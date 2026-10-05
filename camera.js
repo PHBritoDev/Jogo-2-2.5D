@@ -2,7 +2,8 @@
 
 /* ============================================================
    CAMERA — segue o jogador suavemente e respeita os limites
-   do mapa (com uma margem de céu além da borda)
+   do mapa (com uma margem de céu além da borda).
+   Também faz um tremor curto (shake) quando há impacto.
    ============================================================ */
 const Camera = {
   x: 0,
@@ -10,6 +11,11 @@ const Camera = {
   viewW: 800,
   viewH: CFG.VIEW_H,
   scale: 1,
+
+  // Tremor de impacto (decai sozinho)
+  shake: 0,
+  shakeX: 0,
+  shakeY: 0,
 
   // Chamado quando a tela muda de tamanho (pixels reais do canvas)
   resize(pxW, pxH) {
@@ -45,5 +51,16 @@ const Camera = {
     // Garante que continue dentro dos limites mesmo após redimensionar
     this.x = this._clampX(this.x);
     this.y = this._clampY(this.y);
+
+    // Tremor: deslocamento aleatório que diminui rápido
+    if (this.shake > 0.05) {
+      this.shake *= Math.exp(-12 * dt);
+      this.shakeX = (Math.random() * 2 - 1) * this.shake;
+      this.shakeY = (Math.random() * 2 - 1) * this.shake;
+    } else {
+      this.shake = 0;
+      this.shakeX = 0;
+      this.shakeY = 0;
+    }
   }
 };

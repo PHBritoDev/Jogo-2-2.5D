@@ -1,9 +1,82 @@
 'use strict';
 
 /* ============================================================
-   COMBAT — inimigo de teste, hitbox do ataque do jogador,
+   COMBAT — sons, inimigo de teste, hitbox do ataque do jogador,
    colisão entre personagens, textos de dano e HUD de vida
    ============================================================ */
+
+/* ---------------- Sons (sintetizados, sem arquivos nem URLs) ----------------
+   Usa Web Audio. O navegador só libera o áudio depois do primeiro toque,
+   então o som começa a funcionar a partir do primeiro botão que você apertar. */
+const Sfx = (function () {
+  let ac = null, master = null, nbuf = null;
+
+  function create() {
+    if (ac) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      ac = new AC();
+      master = ac.createGain();
+      master.gain.value = 0.55;
+      master.connect(ac.destination);
+      nbuf = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.4), ac.sampleRate);
+      const d = nbuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    } catch (e) { ac = null; }
+  }
+
+  const EVENTS = ['pointerdown', 'touchend', 'keydown', 'click'];
+  function unlock() {
+    create();
+    if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+    if (ac && ac.state === 'running') {
+      for (let i = 0; i < EVENTS.length; i++) window.removeEventListener(EVENTS[i], unlock);
+    }
+  }
+  for (let i = 0; i < EVENTS.length; i++) window.addEventListener(EVENTS[i], unlock, { passive: true });
+
+  function ready() { return ac && ac.state === 'running'; }
+
+  // Tom com variação de frequência (f0 -> f1)
+  function tone(f0, f1, dur, type, vol) {
+    if (!ready()) return;
+    const t = ac.currentTime;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+
+  // Ruído filtrado (vento / impacto)
+  function noise(dur, vol, f0, f1) {
+    if (!ready()) return;
+    const t = ac.currentTime;
+    const s = ac.createBufferSource();
+    s.buffer = nbuf;
+    const f = ac.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 1.2;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    s.connect(f); f.connect(g); g.connect(master);
+    s.start(t); s.stop(t + dur + 0.02);
+  }
+
+  return {
+    swing() { noise(0.14, 0.35, 500, 2200); },
+    hit()   { tone(260, 60, 0.13, 'square', 0.22); noise(0.09, 0.4, 1800, 500); },
+    hurt()  { tone(320, 110, 0.22, 'sawtooth', 0.2); noise(0.12, 0.3, 900, 300); },
+    block() { tone(880, 620, 0.07, 'square', 0.12); tone(1320, 900, 0.05, 'triangle', 0.1); noise(0.05, 0.25, 3000, 1500); },
+    death() { tone(420, 50, 0.45, 'sawtooth', 0.22); noise(0.35, 0.3, 1200, 200); }
+  };
+})();
 
 /* ---------------- Inimigo de teste ---------------- */
 const Enemy = {
@@ -69,8 +142,10 @@ const Enemy = {
       this.kx *= 1.4; this.ky *= 1.4;
       this.vz = 200;
       Ambient.spawnSpark(this.x, gy, 12, '#ff8a6a');
+      Sfx.death();
     } else {
       this._go('stagger');
+      Sfx.hit();
     }
   },
 
@@ -304,23 +379,35 @@ const Enemy = {
 /* ---------------- Orquestração do combate ---------------- */
 const Combat = {
   texts: [],
-  _w: -1, _tw: -1,
-  elFill: null, elTrail: null, elText: null, elFlash: null,
+  _w: -1, _tw: -1, _ko: false,
+  elFill: null, elTrail: null, elText: null, elFlash: null, elKo: null,
 
   init() {
     this.elFill = document.getElementById('hp-fill');
     this.elTrail = document.getElementById('hp-trail');
     this.elText = document.getElementById('hp-text');
     this.elFlash = document.getElementById('hurt-flash');
-    this._w = -1; this._tw = -1;
+    this.elKo = document.getElementById('ko');
+    this._w = -1; this._tw = -1; this._ko = false;
   },
 
+  // Reinicia jogador e inimigo (usado no início e ao ser derrotado)
   reset() {
     Player.spawn(World.spawn.x, World.spawn.y);
     Enemy.spawn();
     this.texts.length = 0;
     Ambient.sparks.length = 0;
+    Game.hitstop = 0;
+    Camera.shake = 0;
+    Camera.snap(Player);
     this._w = -1; this._tw = -1;
+    this._setKo(false);
+  },
+
+  _setKo(v) {
+    if (!this.elKo || v === this._ko) return;
+    this._ko = v;
+    this.elKo.classList.toggle('on', v);
   },
 
   addText(x, y, str, col) {
@@ -345,6 +432,10 @@ const Combat = {
 
   update(dt) {
     const C = CFG.COMBAT;
+
+    // ----- Jogador derrotado: mostra aviso e reinicia depois de um instante -----
+    this._setKo(Player.dead && Player.deadT > 0.6);
+    if (Player.dead && Player.deadT > 2.4) { this.reset(); return; }
 
     // ----- Hitbox do ataque do jogador -----
     // Só acerta dentro da janela ativa e uma única vez por golpe (attackId)

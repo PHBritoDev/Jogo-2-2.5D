@@ -2,7 +2,7 @@
 
 /* ============================================================
    AMBIENT — céu, nuvens, sombras de nuvens, vento visual,
-   folhas, pólen e poeira
+   folhas, pólen, poeira e faíscas de impacto (combate)
    ============================================================ */
 const Ambient = {
   wind: 0.6,
@@ -12,6 +12,7 @@ const Ambient = {
   streaks: [],
   leaves: [],
   dust: [],
+  sparks: [],
   shadows: [],
 
   init(cam) {
@@ -102,6 +103,22 @@ const Ambient = {
       d.y += d.vy * dt;
       d.vx *= 0.92;
     }
+
+    // Faíscas de impacto (vida curta, limite de 70 no total)
+    const damp = Math.exp(-4 * dt);
+    for (let i = this.sparks.length - 1; i >= 0; i--) {
+      const s = this.sparks[i];
+      s.age += dt;
+      if (s.age >= s.life) {
+        this.sparks[i] = this.sparks[this.sparks.length - 1];
+        this.sparks.pop();
+        continue;
+      }
+      s.vy += 520 * dt;
+      s.vx *= damp;
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+    }
   },
 
   spawnDust(x, y, n, col, spread) {
@@ -113,6 +130,21 @@ const Ambient = {
         vx: (Math.random() - 0.5) * 60 * sp, vy: -(5 + Math.random() * 22),
         age: 0, life: 0.35 + Math.random() * 0.25,
         r: 2 + Math.random() * 2, col: col
+      });
+    }
+  },
+
+  // Faíscas que saem em todas as direções (impacto, defesa, morte)
+  spawnSpark(x, y, n, col) {
+    for (let i = 0; i < n; i++) {
+      if (this.sparks.length >= 70) this.sparks.shift();
+      const a = Math.random() * 6.2832;
+      const sp = 60 + Math.random() * 140;
+      this.sparks.push({
+        x: x, y: y,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40,
+        age: 0, life: 0.25 + Math.random() * 0.2,
+        r: 1.2 + Math.random() * 1.6, col: col
       });
     }
   },
@@ -193,6 +225,20 @@ const Ambient = {
       ctx.beginPath();
       ctx.arc(d.x, d.y, d.r * (1 + k), 0, 6.2832);
       ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  },
+
+  drawSparks(ctx) {
+    const list = this.sparks;
+    if (!list.length) return;
+    for (let i = 0; i < list.length; i++) {
+      const s = list[i];
+      const k = s.age / s.life;
+      const sz = s.r * 2 * (1 - k * 0.6);
+      ctx.globalAlpha = 1 - k;
+      ctx.fillStyle = s.col;
+      ctx.fillRect(s.x - sz / 2, s.y - sz / 2, sz, sz);
     }
     ctx.globalAlpha = 1;
   },

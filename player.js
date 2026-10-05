@@ -78,6 +78,7 @@ const Player = {
     this.atkBuf = 0;
     this.kx += dx * C.lunge;
     this.ky += dy * C.lunge;
+    Sfx.swing();
   },
 
   // Chamado pelo inimigo. Retorna o dano aplicado.
@@ -96,6 +97,7 @@ const Player = {
       this.invuln = 0.25;
       Ambient.spawnSpark(this.x + dx * -8, gy, 7, '#9fd4ff');
       Combat.addText(this.x, this.y - this.z - 42, '-' + dmg, '#9fd4ff');
+      Sfx.block();
     } else {
       this.stun = C.playerStun;
       this.hurtT = 0.18;
@@ -110,6 +112,7 @@ const Player = {
       Camera.shake = Math.min(6, Camera.shake + 4);
       Game.hitstop = C.hitstop;
       Combat.hurtFlash();
+      Sfx.hurt();
     }
 
     this.kx = dx * kb;
@@ -124,6 +127,7 @@ const Player = {
       this.kx *= 1.3; this.ky *= 1.3;
       this.vz = Math.max(this.vz, 160);
       this.onGround = false;
+      Sfx.death();
     }
     return dmg;
   },
