@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#4fa9ec">
+<title>Seven Sins - Demo de Exploração</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<!-- Interface (HUD) -->
+<div id="fps">-- FPS</div>
+
+<div id="top-buttons">
+  <button id="btn-fs" class="btn-round" aria-label="Tela cheia">⛶</button>
+  <button id="btn-pause" class="btn-round" aria-label="Pausar">❚❚</button>
+</div>
+
+<div id="joy-zone"></div>
+<div id="joy-base"><div id="joy-knob"></div></div>
+<button id="btn-jump" aria-label="Pular">PULAR</button>
+
+<!-- Telas de aviso -->
+<div id="overlay-pause" class="overlay hidden">
+  <h1>Pausado</h1>
+  <button id="btn-resume" class="btn-big">Continuar</button>
+</div>
+
+<div id="overlay-rotate" class="overlay hidden">
+  <div class="rotate-icon">↻</div>
+  <h1>Gire o celular</h1>
+  <p>Este jogo funciona na horizontal.</p>
+</div>
+
+<!-- Scripts (ordem importa) -->
+<script src="config.js"></script>
+<script src="utils.js"></script>
+<script src="input.js"></script>
+<script src="world.js"></script>
+<script src="camera.js"></script>
+<script src="ambient.js"></script>
+<script src="player.js"></script>
+<script src="render.js"></script>
+<script src="main.js"></script>
+
+</body>
+</html>
