@@ -22,7 +22,7 @@
   let appliedW = 0, appliedH = 0, appliedDpr = 0;
 
   function updateStopped() {
-    Game.stopped = Game.paused || Game.rotate;
+    Game.stopped = Game.paused || Game.rotate || Game.talking;
   }
 
   function checkOrientation(w, h) {
@@ -111,14 +111,20 @@
   // ---------- Inicialização ----------
   World.build();
   Render.init(ctx);
-  Player.spawn(World.spawn.x, World.spawn.y);
+  Combat.init();
+  Combat.reset();   // faz Player.spawn + Enemy.spawn
   resize(true);
   Ambient.init(Camera);
+  Quest.init();
+  Quest.start();   // abre a introdução da missão 1
 
   // ---------- Atualização (um passo de física) ----------
-  function step(dt, jumpPressed) {
+  function step(dt, jumpPressed, attackPressed) {
     Game.time += dt;
-    Player.update(dt, Input.axis(), jumpPressed, Input.jumpHeld());
+    Player.update(dt, Input.axis(), jumpPressed, Input.jumpHeld(), attackPressed, Input.defendHeld());
+    Enemy.update(dt);
+    Combat.update(dt);
+    Quest.update(dt);
     Camera.update(dt, Player);
     Ambient.update(dt, Game.time, Camera);
   }
@@ -145,17 +151,30 @@
 
     // Vigia: se o tamanho da janela mudou e nenhum evento avisou, corrige agora
     resize();
+    updateStopped();   // diálogo abre/fecha fora do passo de física
 
     const jump = Input.consumeJump();
 
+    // Ataque: descarta toques durante pausa/hitstop para não "vazarem" depois
+    let attack = false;
+    if (Game.stopped) Input.consumeAttack();
+    else if (Game.hitstop <= 0) attack = Input.consumeAttack();
+
     try {
       if (!Game.stopped) {
-        // Divide quadros longos em passos menores para a física ficar estável
-        const sdt = Math.min(dt, 0.1);
-        const steps = Math.max(1, Math.ceil(sdt * 60 - 0.05));
-        const h = sdt / steps;
-        for (let i = 0; i < steps; i++) step(h, i === 0 && jump);
+        if (Game.hitstop > 0) {
+          // Hitstop: micro-pausa ao acertar/levar dano (só renderiza)
+          Game.hitstop = Math.max(0, Game.hitstop - dt);
+        } else {
+          // Divide quadros longos em passos menores para a física ficar estável
+          const sdt = Math.min(dt, 0.1);
+          const steps = Math.max(1, Math.ceil(sdt * 60 - 0.05));
+          const h = sdt / steps;
+          for (let i = 0; i < steps; i++) step(h, i === 0 && jump, i === 0 && attack);
+        }
       }
+      Quest.frame(dt);
+      Combat.updateHud();
       Render.frame(dt);
     } catch (err) {
       // Mostra o erro no lugar do FPS (ajuda a diagnosticar no celular)

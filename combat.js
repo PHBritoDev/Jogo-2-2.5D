@@ -74,7 +74,9 @@ const Sfx = (function () {
     hit()   { tone(260, 60, 0.13, 'square', 0.22); noise(0.09, 0.4, 1800, 500); },
     hurt()  { tone(320, 110, 0.22, 'sawtooth', 0.2); noise(0.12, 0.3, 900, 300); },
     block() { tone(880, 620, 0.07, 'square', 0.12); tone(1320, 900, 0.05, 'triangle', 0.1); noise(0.05, 0.25, 3000, 1500); },
-    death() { tone(420, 50, 0.45, 'sawtooth', 0.22); noise(0.35, 0.3, 1200, 200); }
+    death() { tone(420, 50, 0.45, 'sawtooth', 0.22); noise(0.35, 0.3, 1200, 200); },
+    coin()  { tone(990, 1320, 0.08, 'square', 0.1); tone(1480, 1760, 0.12, 'square', 0.08); },
+    blip()  { tone(520, 640, 0.05, 'triangle', 0.09); }
   };
 })();
 

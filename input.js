@@ -17,7 +17,7 @@ const Input = (function () {
   let joyId = null;
   let cx = 0, cy = 0;
   let touchJump = false, touchDefend = false;
-  let jumpQueued = false, attackQueued = false;
+  let jumpQueued = false, attackQueued = false, interactQueued = false;
 
   function placeBase(x, y) {
     base.style.left = x + 'px';
@@ -103,16 +103,19 @@ const Input = (function () {
 
   bindButton('btn-jump', function () { touchJump = true; jumpQueued = true; }, function () { touchJump = false; });
   bindButton('btn-attack', function () { attackQueued = true; }, function () {});
+  bindButton('btn-interact', function () { interactQueued = true; }, function () {});
   bindButton('btn-defend', function () { touchDefend = true; }, function () { touchDefend = false; });
 
   // ----- Teclado (teste no PC) -----
   const JUMP_KEYS = { Space: 1, KeyZ: 1, KeyK: 1 };
   const ATTACK_KEYS = { KeyJ: 1, KeyX: 1 };
+  const INTERACT_KEYS = { KeyE: 1, Enter: 1 };
   window.addEventListener('keydown', function (e) {
     if (e.code === 'Space' || e.code.indexOf('Arrow') === 0) e.preventDefault();
     if (!keys[e.code]) {
       if (JUMP_KEYS[e.code]) jumpQueued = true;
       if (ATTACK_KEYS[e.code]) attackQueued = true;
+      if (INTERACT_KEYS[e.code]) interactQueued = true;
     }
     keys[e.code] = true;
   });
@@ -147,6 +150,7 @@ const Input = (function () {
     // Retornam true uma vez por apertar (segurar o botão NÃO repete)
     consumeJump() { const j = jumpQueued; jumpQueued = false; return j; },
     consumeAttack() { const a = attackQueued; attackQueued = false; return a; },
+    consumeInteract() { const a = interactQueued; interactQueued = false; return a; },
     relayout: layoutIdle,   // reposiciona o joystick (chamado pelo resize do main.js)
     isKey(code) { return !!keys[code]; }
   };

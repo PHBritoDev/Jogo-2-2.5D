@@ -74,6 +74,15 @@ const CFG = {
     }
   },
 
+  QUEST: {
+    sight: 230,        // distância em que o viajante percebe o jogador e vem até ele
+    giveUp: 420,       // se o jogador se afastar mais que isso, ele desiste de seguir
+    stopDist: 40,      // distância em que ele para perto do jogador
+    talkDist: 62,      // distância máxima para o botão FALAR aparecer
+    npcSpeed: 85,
+    coinR: 20          // raio para pegar moedas
+  },
+
   BOUNDS_PAD: 16,      // distância mínima do jogador até a borda do mapa
   CELL: 256            // tamanho das células da grade espacial
 };
@@ -84,5 +93,6 @@ const Game = {
   paused: false,
   rotate: false,
   stopped: false,
-  hitstop: 0
+  hitstop: 0,
+  talking: false   // true enquanto há diálogo aberto (congela o jogo)
 };

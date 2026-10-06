@@ -176,6 +176,24 @@ const World = {
     if (o.r > 0) { cell.solid.push(o); this._solids.push(o); }
   },
 
+  // Remove objetos perto de um ponto (usado para abrir clareira para NPCs).
+  // Também tira árvores logo "à frente" do ponto, cuja copa taparia o NPC.
+  clearArea(x, y, r) {
+    const rm = function (arr) {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const o = arr[i];
+        const near = Math.hypot(o.x - x, o.y - y) < r + (o.r || 0);
+        const cover = Math.abs(o.x - x) < 45 && o.y > y && o.y < y + 110;
+        if (near || cover) arr.splice(i, 1);
+      }
+    };
+    for (let i = 0; i < this.cells.length; i++) {
+      const c = this.cells[i];
+      rm(c.flat); rm(c.tall); rm(c.solid);
+    }
+    rm(this._solids);
+  },
+
   // Objetos dentro de um retângulo (separados em planos e em pé)
   query(x0, y0, x1, y1, flat, tall) {
     flat.length = 0; tall.length = 0;

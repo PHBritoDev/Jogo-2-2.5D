@@ -119,8 +119,8 @@ const Render = {
     Ambient.drawClouds(ctx, cam);
 
     // Câmera "encaixada" nos pixels reais para evitar tremidas
-    const cx = Math.round(cam.x * cam.scale) / cam.scale;
-    const cy = Math.round(cam.y * cam.scale) / cam.scale;
+    const cx = Math.round((cam.x + cam.shakeX) * cam.scale) / cam.scale;
+    const cy = Math.round((cam.y + cam.shakeY) * cam.scale) / cam.scale;
 
     ctx.save();
     ctx.translate(-cx, -cy);
@@ -133,8 +133,11 @@ const Render = {
     World.query(cx - 60, cy - 20, cx + cam.viewW + 60, cy + cam.viewH + 150, this.flat, this.tall);
 
     for (let i = 0; i < this.flat.length; i++) this._drawFlat(ctx, this.flat[i], t);
+    Quest.drawGround(ctx, t);
 
     this.tall.push(Player);
+    if (Enemy.alpha > 0) this.tall.push(Enemy);
+    if (Traveler.alpha > 0 && Traveler.state !== 'gone') this.tall.push(Traveler);
     this.tall.sort(function (a, b) { return a.sy - b.sy; });
     for (let i = 0; i < this.tall.length; i++) {
       const o = this.tall[i];
@@ -144,17 +147,25 @@ const Render = {
         case 'rock':   this._drawRock(ctx, o); break;
         case 'bush':   this._drawBush(ctx, o); break;
         case 'player': Player.draw(ctx); break;
+        case 'enemy':  Enemy.draw(ctx, t); break;
+        case 'npc':    Traveler.draw(ctx, t); break;
       }
     }
 
     Ambient.drawDust(ctx);
+    Ambient.drawSparks(ctx);
     Ambient.drawLeaves(ctx, t);
+    Combat.drawDebug(ctx);
+    Combat.drawTexts(ctx);
 
     ctx.restore();
 
     // Nuvens altas e vento (por cima de tudo)
     Ambient.drawHighClouds(ctx, cam);
     Ambient.drawStreaks(ctx);
+
+    // Marcador do objetivo da missão
+    Quest.drawMarker(ctx, cam, cx, cy, t);
   },
 
   // ---------- Terreno ----------
