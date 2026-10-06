@@ -83,6 +83,21 @@ const CFG = {
     coinR: 20          // raio para pegar moedas
   },
 
+  // Cobiçoso (primeiro inimigo da Ganância) e o evento do monte de ouro
+  GREED: {
+    triggerDist: 150,  // distância do jogador ao monte de ouro que dispara o evento
+    omenTime: 1.5,     // tempo de tremor antes do inimigo surgir
+    hp: 48, radius: 11,
+    speed: 118, hopV: 190,        // anda aos pulinhos
+    sight: 300, giveUp: 520,
+    attackRange: 34, hitRange: 40,
+    windup: 0.42, attackDur: 0.26, cooldown: 0.9, stagger: 0.34,
+    damage: 8, kb: 230, lunge: 120,
+    steal: 5,          // moedas roubadas por golpe que acerta (devolvidas ao derrotá-lo)
+    fleeTime: 2.4, fleeSpeed: 150,
+    reward: 10         // moedas de recompensa (além das roubadas)
+  },
+
   BOUNDS_PAD: 16,      // distância mínima do jogador até a borda do mapa
   CELL: 256            // tamanho das células da grade espacial
 };

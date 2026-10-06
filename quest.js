@@ -294,6 +294,7 @@ const Quest = {
   coinList: [],
   flags: { choice: null },   // 'all' | 'half' | 'refuse' | 'broke'
   pending: null,             // GANCHO FUTURO: { type:'battle', id:'...' } -> conflito/batalha
+  pile: null,                // monte de ouro do evento do Cobiçoso { x, y } (usado pelo greed.js)
   _after: null,
   _summary: '',
   toastT: 0,
@@ -401,6 +402,14 @@ const Quest = {
     } else {
       this._summary = 'Você não tinha moedas. Aurélio foi embora decepcionado.';
     }
+  },
+
+  // Chamado pelo greed.js quando o Cobiçoso é derrotado: devolve o saque + recompensa
+  onGreedDefeated(g) {
+    const back = (g.loot || 0) + CFG.GREED.reward;
+    g.loot = 0;
+    this.coins += back;
+    this.toast('Cobiçoso derrotado! +' + back + ' moedas', 3);
   },
 
   afterTalk() {

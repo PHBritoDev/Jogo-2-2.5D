@@ -1,7 +1,8 @@
 'use strict';
 
 /* ============================================================
-   COMBAT — sons, inimigo de teste, hitbox do ataque do jogador,
+   COMBAT — sons, inimigo de teste, hitbox do ataque do jogador
+   (vale para todos os inimigos: Enemy e Greedling),
    colisão entre personagens, textos de dano e HUD de vida
    ============================================================ */
 
@@ -397,6 +398,7 @@ const Combat = {
   reset() {
     Player.spawn(World.spawn.x, World.spawn.y);
     Enemy.spawn();
+    Greedling.reset();
     this.texts.length = 0;
     Ambient.sparks.length = 0;
     Game.hitstop = 0;
@@ -439,52 +441,64 @@ const Combat = {
     this._setKo(Player.dead && Player.deadT > 0.6);
     if (Player.dead && Player.deadT > 2.4) { this.reset(); return; }
 
-    // ----- Hitbox do ataque do jogador -----
-    // Só acerta dentro da janela ativa e uma única vez por golpe (attackId)
-    if (Player.isAttackActive() && Enemy.state !== 'dead' && Enemy.hitId !== Player.attackId) {
-      const hx = Player.x + Player.atkDirX * C.reach;
-      const hy = Player.y + Player.atkDirY * C.reach;
-      const dx = Enemy.x - hx, dy = Enemy.y - hy;
-      const rr = C.hitR + Enemy.r;
-      if (dx * dx + dy * dy <= rr * rr && Math.abs(Enemy.z - Player.z) < C.hitZ) {
-        Enemy.hitId = Player.attackId;
-        let kx = Enemy.x - Player.x, ky = Enemy.y - Player.y;
-        const m = Math.hypot(kx, ky);
-        if (m > 0.001) { kx /= m; ky /= m; } else { kx = Player.atkDirX; ky = Player.atkDirY; }
-        Enemy.hurt(C.damage, kx, ky, C.kb);
-      }
-    }
-
-    // ----- Colisão entre jogador e inimigo (não se atravessam) -----
-    // Se um está bem mais alto que o outro (pulo), um passa por cima.
-    if (Enemy.state !== 'dead' && Math.abs(Player.z - Enemy.z) < C.bodyH) {
-      let dx = Player.x - Enemy.x, dy = Player.y - Enemy.y;
-      const d = Math.hypot(dx, dy);
-      const min = Player.r + Enemy.r;
-      if (d < min) {
-        if (d > 0.001) { dx /= d; dy /= d; } else { dx = 1; dy = 0; }
-        const ov = min - d;
-        const px = Player.x + dx * ov * 0.6, py = Player.y + dy * ov * 0.6;
-        const ex = Enemy.x - dx * ov * 0.4, ey = Enemy.y - dy * ov * 0.4;
-        let pOk = !World.blocked(px, py, Player.r);
-        let eOk = !World.blocked(ex, ey, Enemy.r);
-        if (pOk) { Player.x = px; Player.y = py; }
-        if (eOk) { Enemy.x = ex; Enemy.y = ey; }
-        // Se um dos lados está travado, o outro se afasta o restante
-        if (!pOk && eOk) { Enemy.x -= dx * ov * 0.6; Enemy.y -= dy * ov * 0.6; }
-        if (!eOk && pOk) { Player.x += dx * ov * 0.4; Player.y += dy * ov * 0.4; }
-      }
-    }
+    // ----- Hitbox do ataque do jogador + colisão entre personagens -----
+    // Vale para todos os inimigos (Enemy de teste e Cobiçoso)
+    this._foe(Enemy);
+    this._foe(Greedling);
 
     // ----- Barras (rastro do dano) e textos -----
     this._trail(Player, dt);
     this._trail(Enemy, dt);
+    this._trail(Greedling, dt);
 
     for (let i = this.texts.length - 1; i >= 0; i--) {
       const t = this.texts[i];
       t.age += dt;
       t.y -= 28 * dt;
       if (t.age >= t.life) this.texts.splice(i, 1);
+    }
+  },
+
+  // Ataque do jogador e colisão contra UM inimigo (mesma regra para todos)
+  _foe(E) {
+    const C = CFG.COMBAT;
+    if (E.state === 'dead' || E.state === 'gone') return;
+
+    // Só acerta dentro da janela ativa e uma única vez por golpe (attackId)
+    if (Player.isAttackActive() && E.hitId !== Player.attackId) {
+      const hx = Player.x + Player.atkDirX * C.reach;
+      const hy = Player.y + Player.atkDirY * C.reach;
+      const dx = E.x - hx, dy = E.y - hy;
+      const rr = C.hitR + E.r;
+      if (dx * dx + dy * dy <= rr * rr && Math.abs(E.z - Player.z) < C.hitZ) {
+        E.hitId = Player.attackId;
+        let kx = E.x - Player.x, ky = E.y - Player.y;
+        const m = Math.hypot(kx, ky);
+        if (m > 0.001) { kx /= m; ky /= m; } else { kx = Player.atkDirX; ky = Player.atkDirY; }
+        E.hurt(C.damage, kx, ky, C.kb);
+        if (E.state === 'dead') return;
+      }
+    }
+
+    // Colisão entre jogador e inimigo (não se atravessam)
+    // Se um está bem mais alto que o outro (pulo), um passa por cima.
+    if (Math.abs(Player.z - E.z) < C.bodyH) {
+      let dx = Player.x - E.x, dy = Player.y - E.y;
+      const d = Math.hypot(dx, dy);
+      const min = Player.r + E.r;
+      if (d < min) {
+        if (d > 0.001) { dx /= d; dy /= d; } else { dx = 1; dy = 0; }
+        const ov = min - d;
+        const px = Player.x + dx * ov * 0.6, py = Player.y + dy * ov * 0.6;
+        const ex = E.x - dx * ov * 0.4, ey = E.y - dy * ov * 0.4;
+        const pOk = !World.blocked(px, py, Player.r);
+        const eOk = !World.blocked(ex, ey, E.r);
+        if (pOk) { Player.x = px; Player.y = py; }
+        if (eOk) { E.x = ex; E.y = ey; }
+        // Se um dos lados está travado, o outro se afasta o restante
+        if (!pOk && eOk) { E.x -= dx * ov * 0.6; E.y -= dy * ov * 0.6; }
+        if (!eOk && pOk) { Player.x += dx * ov * 0.4; Player.y += dy * ov * 0.4; }
+      }
     }
   },
 
@@ -530,6 +544,7 @@ const Combat = {
     ctx.beginPath(); ctx.arc(Player.x, Player.y, Player.r, 0, 6.2832); ctx.stroke();
     ctx.strokeStyle = 'rgba(255,80,80,0.9)';
     ctx.beginPath(); ctx.arc(Enemy.x, Enemy.y, Enemy.r, 0, 6.2832); ctx.stroke();
+    if (Greedling.state !== 'gone') { ctx.beginPath(); ctx.arc(Greedling.x, Greedling.y, Greedling.r, 0, 6.2832); ctx.stroke(); }
     if (Player.attackT >= 0) {
       ctx.strokeStyle = Player.isAttackActive() ? 'rgba(255,255,0,1)' : 'rgba(255,255,0,0.3)';
       ctx.beginPath();

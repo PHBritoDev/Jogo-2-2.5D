@@ -123,6 +123,7 @@
     Game.time += dt;
     Player.update(dt, Input.axis(), jumpPressed, Input.jumpHeld(), attackPressed, Input.defendHeld());
     Enemy.update(dt);
+    Greedling.update(dt);
     Combat.update(dt);
     Quest.update(dt);
     Camera.update(dt, Player);
