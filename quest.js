@@ -1,12 +1,12 @@
 'use strict';
 
 /* ============================================================
-   QUEST — missão 1 (tutorial), acontecimento da Ganância,
-   moedas, caixa de diálogo com escolhas e marcador de objetivo.
+   QUEST — ferramentas da campanha: moedas, caixa de diálogo com
+   escolhas, HUD de objetivo, marcador de objetivo, Aurélio (NPC)
+   e o acontecimento da Ganância da missão 1.
 
-   Estrutura pensada para crescer:
-     ACONTECIMENTO (NPC aborda) -> DIÁLOGO/ESCOLHA -> CONSEQUÊNCIA
-       -> (futuro) CONFLITO -> BATALHA INDIVIDUAL -> RECOMPENSA
+   A ORDEM das missões/etapas fica no campaign.js (Campaign).
+   Aqui ficam as peças que as etapas usam.
    O gancho do conflito é Quest.pending (ver "refuse" abaixo).
    ============================================================ */
 
@@ -93,14 +93,6 @@ const Dialog = {
   }
 };
 
-/* ---------------- Passos da missão 1 ---------------- */
-const M1_STEPS = {
-  explore: { obj: 'Siga a trilha a leste e encontre o viajante', target: function () { return Traveler; } },
-  talk:    { obj: 'Fale com o viajante (botão FALAR)',            target: function () { return Traveler; } },
-  next:    { obj: 'Siga a trilha a noroeste',                     target: function () { return { x: 880, y: 640 }; }, radius: 90 },
-  done:    { obj: 'Missão concluída! A próxima missão virá em breve.', target: null }
-};
-
 /* ---------------- NPC do acontecimento (Aurélio, o viajante da Ganância) ---------------- */
 const Traveler = {
   type: 'npc',
@@ -112,6 +104,14 @@ const Traveler = {
   anim: 0, speed: 0,
   canTalk: false,
   sy: 0,
+  leaveTo: null,      // para onde ele vai ao terminar a conversa (padrão: leste)
+
+  // Coloca o NPC num lugar novo (abre clareira em volta) para uma nova conversa
+  place(x, y, leaveTo) {
+    World.clearArea(x, y, 70);
+    this.leaveTo = leaveTo || null;
+    this.spawn(x, y);
+  },
 
   spawn(x, y) {
     // Garante que não nasce dentro d'água
@@ -161,7 +161,8 @@ const Traveler = {
         break;
 
       case 'leave': {   // vai embora e some
-        const lx = 2350 - this.x, ly = 1150 - this.y, ld = Math.hypot(lx, ly) || 1;
+        const L = this.leaveTo || { x: 2350, y: 1150 };
+        const lx = L.x - this.x, ly = L.y - this.y, ld = Math.hypot(lx, ly) || 1;
         this.fx = lx / ld; this.fy = ly / ld;
         if (this.stateT < 2.4) this._move(this.fx, this.fy, Q.npcSpeed * 0.9, dt);
         else this.alpha = Math.max(0, 1 - (this.stateT - 2.4) / 0.8);
@@ -286,19 +287,18 @@ const INTRO_NODES = {
   i3: { who: 'Narrador', text: 'Siga a trilha, colete moedas pelo caminho e descubra o que ele quer.' }
 };
 
-/* ---------------- Orquestração da missão ---------------- */
+/* ---------------- Ferramentas da campanha ---------------- */
 const Quest = {
-  step: 'none',
-  title: 'Missão 1 · Primeiros Passos',
+  step: 'none',              // espelho da etapa atual (o greed.js lê 'fight'); quem controla é o Campaign
   coins: 0,
   coinList: [],
   flags: { choice: null },   // 'all' | 'half' | 'refuse' | 'broke'
   pending: null,             // GANCHO FUTURO: { type:'battle', id:'...' } -> conflito/batalha
-  pile: null,                // monte de ouro do evento do Cobiçoso { x, y } (usado pelo greed.js)
+  pile: null,                // onde o Cobiçoso volta se o jogador morrer na luta { x, y } (usado pelo greed.js)
   _after: null,
   _summary: '',
   toastT: 0,
-  _can: false, _coinsShown: -1, _objShown: '',
+  _label: null, _coinsShown: -1, _objShown: '',
   elBox: null, elTitle: null, elObj: null, elCoins: null, elToast: null, elBtn: null,
 
   init() {
@@ -316,15 +316,25 @@ const Quest = {
     Traveler.spawn(nx, ny);
 
     // Moedas ao longo da trilha leste (spawn -> viajante)
-    const P = [[1600, 1152], [1850, 1000], [2000, 900]];
-    const segs = [], L = [];
+    this.coinList = [];
+    this.addTrail([[1600, 1152], [1850, 1000], [2000, 900]], [0.18, 0.32, 0.46, 0.6, 0.74, 0.88], 2);
+
+    Campaign.init();
+  },
+
+  // Espalha moedas ao longo de uma trilha (pontos). "fr" = quantidade ou lista de posições 0..1
+  addTrail(P, fr, v) {
+    const segs = [];
     let total = 0;
     for (let i = 0; i < P.length - 1; i++) {
       const l = Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]);
       segs.push(l); total += l;
     }
-    const fr = [0.18, 0.32, 0.46, 0.6, 0.74, 0.88];
-    this.coinList = [];
+    if (typeof fr === 'number') {
+      const n = fr, list = [];
+      for (let k = 0; k < n; k++) list.push(n > 1 ? 0.12 + 0.76 * k / (n - 1) : 0.5);
+      fr = list;
+    }
     for (let k = 0; k < fr.length; k++) {
       let s = fr[k] * total, i = 0;
       while (i < segs.length - 1 && s > segs[i]) { s -= segs[i]; i++; }
@@ -332,28 +342,22 @@ const Quest = {
       const ax = P[i][0], ay = P[i][1], bx = P[i + 1][0], by = P[i + 1][1];
       const px = -(by - ay) / segs[i], py = (bx - ax) / segs[i];   // perpendicular
       const off = (k % 2 ? 1 : -1) * 14;
-      this.coinList.push({ x: ax + (bx - ax) * u + px * off, y: ay + (by - ay) * u + py * off, v: 2, ph: k * 1.3, got: false });
+      this.coinList.push({ x: ax + (bx - ax) * u + px * off, y: ay + (by - ay) * u + py * off, v: v, ph: k * 1.3, got: false });
     }
   },
 
-  // Chamado uma vez ao entrar no mundo
+  // Chamado uma vez ao entrar no mundo: introdução, depois a campanha começa
   start() {
     this.step = 'intro';
-    this._hud('Missão 1 · Primeiros Passos', 'Ouça o narrador...');
-    const self = this;
+    this.hud('Galáxia 1 · Terra', 'Ouça o narrador...');
     Dialog.start(INTRO_NODES, 'i1', function () {
-      self.goto('explore');
-      self.toast('Nova missão: Primeiros Passos');
+      Campaign.start();
+      Quest.toast('Nova missão: Primeiros Passos');
     });
   },
 
-  goto(id) {
-    this.step = id;
-    const s = M1_STEPS[id];
-    this._hud(id === 'done' ? '✔ ' + this.title : this.title, s ? s.obj : '');
-  },
-
-  _hud(title, obj) {
+  // Atualiza a caixa de objetivo (só mexe no DOM se o texto mudou)
+  hud(title, obj) {
     this.elBox.classList.remove('hidden');
     if (this.elTitle.textContent !== title) this.elTitle.textContent = title;
     if (this._objShown !== obj) { this.elObj.textContent = obj; this._objShown = obj; }
@@ -365,20 +369,10 @@ const Quest = {
     this.toastT = secs || 3.2;
   },
 
-  // O viajante percebeu o jogador e vem até ele
-  onNotice() {
-    if (this.step === 'explore') {
-      this.goto('talk');
-      Sfx.blip();
-      this.toast('"Ei, você aí!"', 2);
-    }
-  },
-
-  // Jogador apertou FALAR perto do viajante
-  talk() {
+  // Jogador apertou o botão perto do NPC: abre a conversa
+  talk(nodes, first) {
     Traveler._go('talk');
-    const self = this;
-    Dialog.start(GREED_NODES, 'hail', function () { self.afterTalk(); });
+    Dialog.start(nodes, first, function () { Quest.afterTalk(); });
   },
 
   // Registra a escolha e a consequência imediata (a consequência "física" roda ao fechar o diálogo)
@@ -410,16 +404,22 @@ const Quest = {
     g.loot = 0;
     this.coins += back;
     this.toast('Cobiçoso derrotado! +' + back + ' moedas', 3);
+    Campaign.onGreedDefeated(g);
   },
 
+  // Fim da conversa: o NPC vai embora e a campanha avança
   afterTalk() {
     Traveler._go('leave');
-    const f = this._after;
+    const f = this._after, sum = this._summary;
     this._after = null;
+    this._summary = '';
     if (f) f();
-    this.goto('next');
-    this.toast(this._summary, 5);
+    Campaign.next();
+    if (sum) this.toast(sum, 5);
   },
+
+  // O viajante percebeu o jogador (a etapa 'npc' do Campaign detecta pelo estado dele)
+  onNotice() {},
 
   // ----- Atualização lógica (dentro do passo de física; não roda em pausa/diálogo) -----
   update(dt) {
@@ -440,36 +440,35 @@ const Quest = {
     }
 
     Traveler.update(dt);
-
-    if (this.step === 'next') {
-      const s = M1_STEPS.next, t = s.target();
-      if (Math.hypot(Player.x - t.x, Player.y - t.y) < s.radius) {
-        this.goto('done');
-        this.toast('Missão 1 concluída!', 4);
-        Sfx.coin();
-      }
-    }
+    Campaign.update(dt);
   },
 
-  // ----- Por quadro (roda sempre: HUD, botão FALAR, toque no diálogo) -----
+  // ----- Por quadro (roda sempre: HUD, botão de interação, toque no diálogo) -----
   frame(dt) {
     if (this.toastT > 0) {
       this.toastT -= dt;
       if (this.toastT <= 0) this.elToast.classList.remove('on');
     }
+    Campaign.frame(dt);
 
     const press = Input.consumeInteract();
     const live = !Game.paused && !Game.rotate;
-    const can = live && !Game.talking && !Player.dead && Traveler.canTalk && this.step === 'talk';
+    const label = live && !Game.talking && !Player.dead ? Campaign.prompt() : null;
+    const can = !!label;
 
     if (press && live) {
       if (Game.talking) Dialog.advance();
-      else if (can) this.talk();
+      else if (can) Campaign.interact();
     }
 
-    if (can !== this._can) {
-      this._can = can;
+    if (label !== this._label) {
+      this._label = label;
       this.elBtn.classList.toggle('hidden', !can);
+      if (can) {
+        this.elBtn.textContent = label;
+        this.elBtn.setAttribute('aria-label', label);
+        this.elBtn.classList.toggle('long', label.length > 7);
+      }
     }
     if (this.coins !== this._coinsShown) {
       this._coinsShown = this.coins;
@@ -477,7 +476,7 @@ const Quest = {
     }
   },
 
-  // ----- Desenho no mundo (moedas e anel do destino), antes dos personagens -----
+  // ----- Desenho no mundo (moedas, props e anel do destino), antes dos personagens -----
   drawGround(ctx, t) {
     for (let i = 0; i < this.coinList.length; i++) {
       const c = this.coinList[i];
@@ -494,20 +493,13 @@ const Quest = {
       ctx.fillRect(c.x - 0.5 - w, by - 3.5, 1.4, 4);
     }
 
-    if (this.step === 'next') {
-      const tg = M1_STEPS.next.target();
-      const k = (t * 0.8) % 1;
-      ctx.strokeStyle = 'rgba(255,224,102,' + (0.8 * (1 - k)).toFixed(3) + ')';
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.ellipse(tg.x, tg.y, 20 + k * 50, (20 + k * 50) * 0.6, 0, 0, 6.2832); ctx.stroke();
-    }
+    Campaign.drawGround(ctx, t);
   },
 
   // ----- Marcador do objetivo (espaço da tela) -----
   drawMarker(ctx, cam, cx, cy, t) {
-    const s = M1_STEPS[this.step];
-    if (!s || !s.target || Game.talking) return;
-    const tg = s.target();
+    if (Game.talking) return;
+    const tg = Campaign.markerTarget();
     if (!tg || tg.alpha === 0) return;
 
     const sx = tg.x - cx, sy = tg.y - cy;

@@ -1,0 +1,40 @@
+/* ============================================================
+   CAMPAIGN — aviso de missão concluída e ajustes do botão
+   de interação (FALAR / INVESTIGAR / ATIVAR)
+   ============================================================ */
+
+#mission-banner {
+  position: fixed;
+  top: 28%;
+  left: 50%;
+  transform: translate(-50%, -14px) scale(.96);
+  z-index: 13;
+  min-width: 240px;
+  max-width: 70vw;
+  padding: 10px 22px 12px;
+  border-radius: 16px;
+  border: 3px solid #f0c040;
+  background: linear-gradient(rgba(44, 26, 70, .94), rgba(18, 10, 36, .94));
+  color: #fff;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .35s, transform .35s;
+  box-shadow: 0 0 24px rgba(240, 192, 64, .45);
+}
+#mission-banner.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+
+#mb-top { font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #8cff8c; }
+#mb-name { margin-top: 2px; font-size: 16px; font-weight: 800; color: #ffd34d; }
+#mb-reward { margin-top: 4px; font-size: 13px; font-weight: 700; }
+#mb-next {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, .25);
+  font-size: 12px;
+  opacity: .92;
+}
+#mb-reward:empty, #mb-next:empty { display: none; }
+
+/* Textos mais longos no botão (INVESTIGAR) */
+#btn-interact.long { font-size: 9px; letter-spacing: 0; }
