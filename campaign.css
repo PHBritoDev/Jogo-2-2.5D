@@ -38,3 +38,265 @@
 
 /* Textos mais longos no botão (INVESTIGAR) */
 #btn-interact.long { font-size: 9px; letter-spacing: 0; }
+
+/* HUD do chefe: usa o mesmo sistema de vida do combate, sem HUD paralelo. */
+#boss-hud {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  z-index: 11;
+  width: min(360px, 52vw);
+  transform: translateX(-50%);
+  padding: 7px 11px 6px;
+  border: 2px solid rgba(232, 190, 88, .9);
+  border-radius: 11px;
+  background: rgba(24, 14, 30, .86);
+  color: #fff;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 0 18px rgba(217, 161, 49, .24);
+}
+.boss-hud-heading { display: flex; align-items: baseline; justify-content: center; gap: 7px; }
+#boss-hud-name { color: #ffe49a; font-size: 12px; letter-spacing: .7px; }
+#boss-hud-title { color: rgba(255,255,255,.76); font-size: 9px; }
+.boss-hud-bar { height: 10px; margin-top: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,.6); border-radius: 6px; background: rgba(0,0,0,.65); }
+#boss-hud-fill { width: 100%; height: 100%; transform-origin: left center; background: linear-gradient(90deg, #aa244f, #e75a54); transition: transform .15s linear; }
+#boss-hud.phase-two #boss-hud-fill { background: linear-gradient(90deg, #d13b36, #ff9b42); }
+#boss-hud-text { margin-top: 2px; font: 10px/1 monospace; color: rgba(255,255,255,.9); }
+
+/* Apresentação reutilizável de oponente: confronto, identidade, fala e preparo. */
+.boss-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 24px 18px;
+  background:
+    linear-gradient(150deg, transparent 0 37%, rgba(120, 27, 38, .76) 37% 59%, transparent 59%),
+    radial-gradient(ellipse at 72% 45%, rgba(117, 77, 38, .38), transparent 47%),
+    radial-gradient(ellipse at center, #34232a, #09090d 76%);
+  color: #fff;
+  text-align: center;
+  opacity: 1;
+  transition: opacity .45s ease;
+}
+.boss-intro.entering { animation: boss-arena-arrival .9s ease-out both; }
+.boss-intro-card {
+  position: relative;
+  width: min(760px, 96vw);
+  padding: 12px 28px 28px;
+}
+.boss-intro-versus {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(175px, 31vh, 260px);
+  margin: 0 auto 5px;
+}
+.boss-intro-stamp {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #d9b96c;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 5px;
+}
+.boss-intro-portrait {
+  position: absolute;
+  left: 58%;
+  width: clamp(132px, 25vw, 205px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 3px solid #d7b65b;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #604454, #1b141b 72%);
+  box-shadow: 0 0 0 8px rgba(219, 177, 82, .1), 0 0 44px rgba(227, 171, 64, .3);
+  animation: boss-portrait-arrive .8s .12s cubic-bezier(.2,.8,.2,1) both;
+}
+.boss-intro-portrait svg { width: 74%; height: 88%; overflow: visible; }
+.portrait-halo { fill: none; stroke: rgba(231, 191, 97, .34); stroke-width: 1.5; }
+.portrait-cloak { fill: #291f2c; stroke: #d5ad57; stroke-width: 2; }
+.portrait-armor { fill: #613340; stroke: #e4bd65; stroke-width: 2; }
+.portrait-head { fill: #bd9772; stroke: #241a1b; stroke-width: 2; }
+.portrait-mask { fill: #2a1b25; }
+.portrait-mitre { fill: #c99d43; stroke: #f2d17c; stroke-width: 2; }
+.portrait-gold, .portrait-eye { fill: none; stroke: #ffe8a0; stroke-width: 2.5; stroke-linecap: round; }
+.portrait-eye { stroke: #edcf83; stroke-width: 3; }
+.boss-intro-vs {
+  position: absolute;
+  left: 47%;
+  z-index: 1;
+  color: #171014;
+  font: italic 900 clamp(40px, 8vw, 76px)/1 Georgia, serif;
+  text-shadow: 2px 3px 0 #e8c466, -1px -1px 0 #e8c466;
+  transform: rotate(-9deg);
+}
+.boss-intro-player-mark {
+  position: absolute;
+  left: 15%;
+  display: grid;
+  place-items: center;
+  width: clamp(100px, 20vw, 160px);
+  aspect-ratio: 1;
+  border: 2px solid rgba(225, 217, 190, .72);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 36%, #4d5660, #11151a 68%);
+  color: #eee5c7;
+  font-size: clamp(14px, 2.2vw, 20px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  box-shadow: inset 0 0 0 7px rgba(220, 220, 210, .08);
+}
+.boss-intro-kicker {
+  color: #d8b75f;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+#boss-intro-name {
+  margin: 9px 0 3px;
+  color: #fff0bf;
+  font-size: clamp(30px, 7vw, 50px);
+  line-height: 1.05;
+  text-shadow: 0 3px 20px rgba(242, 184, 61, .45);
+}
+.boss-intro-subtitle {
+  color: rgba(255, 223, 151, .9);
+  font-size: clamp(12px, 2.5vw, 17px);
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+#boss-intro-quote {
+  min-height: 26px;
+  margin: 15px auto 22px;
+  color: rgba(255,255,255,.86);
+  font: italic clamp(14px, 3vw, 18px)/1.45 Georgia, serif;
+}
+.boss-intro-prep {
+  display: none;
+  max-width: 480px;
+  margin: 12px auto 22px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(224, 190, 99, .45);
+  border-bottom: 1px solid rgba(224, 190, 99, .45);
+  color: #eee0bd;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.boss-intro.prepare #boss-intro-quote { display: none; }
+.boss-intro.prepare #boss-intro-quote-label { display: none; }
+.boss-intro.prepare .boss-intro-prep { display: block; }
+.boss-intro-quote-label {
+  min-height: 12px;
+  margin: -13px auto 18px;
+  color: rgba(221, 198, 147, .7);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+}
+#boss-intro-button {
+  min-width: 210px;
+  border-color: #e8bd57;
+  background: linear-gradient(#684b35, #38263d);
+}
+.boss-intro.ready .boss-intro-card { animation: boss-ready-pulse 1.4s ease-in-out infinite alternate; }
+.boss-intro[data-theme="greed"] .boss-intro-portrait { border-color: #dfb847; }
+
+/* Clima muda por progresso da campanha; controles e HUD continuam clicáveis. */
+.climate-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .9s ease, visibility .9s;
+}
+.climate-layer.storm,
+.climate-layer.fog,
+.climate-layer.night { visibility: visible; opacity: 1; }
+.climate-layer::before,
+.climate-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.climate-layer.storm::before {
+  background: linear-gradient(180deg, rgba(5, 13, 27, .38), rgba(9, 16, 26, .25));
+}
+.climate-layer.fog::before {
+  background: radial-gradient(ellipse at 50% 65%, rgba(190, 204, 210, .42), rgba(110, 126, 139, .12) 65%, transparent);
+}
+.climate-layer.night::before {
+  background:
+    radial-gradient(1px 1px at 12% 18%, rgba(255,255,220,.88) 99%, transparent),
+    radial-gradient(1px 1px at 34% 9%, rgba(255,255,220,.72) 99%, transparent),
+    radial-gradient(1px 1px at 58% 22%, rgba(255,255,220,.82) 99%, transparent),
+    radial-gradient(1px 1px at 83% 12%, rgba(255,255,220,.72) 99%, transparent),
+    linear-gradient(rgba(5, 8, 23, .54), rgba(7, 10, 26, .3));
+}
+.climate-rain {
+  position: absolute;
+  inset: -45%;
+  display: none;
+  opacity: .62;
+  background:
+    repeating-linear-gradient(107deg, transparent 0 13px, rgba(192, 215, 233, .52) 14px, transparent 15px 25px),
+    repeating-linear-gradient(107deg, transparent 0 47px, rgba(215, 228, 240, .27) 48px, transparent 49px 67px);
+  background-size: 78px 100px, 122px 160px;
+  animation: climate-rain-fall .42s linear infinite;
+}
+.climate-layer.storm .climate-rain { display: block; }
+.climate-layer.storm::after {
+  background: rgba(218, 231, 255, .9);
+  opacity: 0;
+}
+.climate-layer.storm.lightning::after { animation: climate-lightning .42s ease-out both; }
+@keyframes climate-rain-fall {
+  to { transform: translate3d(-48px, 106px, 0); }
+}
+@keyframes climate-lightning {
+  0%, 100% { opacity: 0; }
+  8% { opacity: .72; }
+  15% { opacity: .08; }
+  25% { opacity: .4; }
+  40% { opacity: 0; }
+}
+
+@keyframes boss-arena-arrival {
+  0% { opacity: 0; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes boss-portrait-arrive {
+  from { opacity: 0; transform: translateX(28px) scale(.8); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes boss-ready-pulse {
+  from { filter: brightness(.94); }
+  to { filter: brightness(1.12); }
+}
+
+@media (max-width: 560px) {
+  #boss-hud { width: min(270px, 58vw); top: calc(8px + env(safe-area-inset-top)); }
+  #boss-hud-title { display: none; }
+  .boss-intro-card { padding: 14px 10px 20px; }
+  .boss-intro-versus { min-height: 175px; }
+  .boss-intro-player-mark { left: 10%; }
+  .boss-intro-portrait { left: 56%; }
+  .boss-intro-vs { left: 45%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .climate-layer.storm .climate-rain { animation-duration: 1.2s; }
+}

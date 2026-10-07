@@ -138,6 +138,7 @@ const Render = {
     this.tall.push(Player);
     if (Enemy.alpha > 0) this.tall.push(Enemy);
     if (Greedling.alpha > 0 && Greedling.state !== 'gone') this.tall.push(Greedling);
+    if (BishopBoss.alpha > 0 && BishopBoss.state !== 'inactive') this.tall.push(BishopBoss);
     if (Traveler.alpha > 0 && Traveler.state !== 'gone') this.tall.push(Traveler);
     this.tall.sort(function (a, b) { return a.sy - b.sy; });
     for (let i = 0; i < this.tall.length; i++) {
@@ -150,6 +151,7 @@ const Render = {
         case 'player': Player.draw(ctx); break;
         case 'enemy':  Enemy.draw(ctx, t); break;
         case 'greedling': Greedling.draw(ctx, t); break;
+        case 'bishop': BishopBoss.draw(ctx, t); break;
         case 'npc':    Traveler.draw(ctx, t); break;
       }
     }

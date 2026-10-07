@@ -12,6 +12,9 @@
 <body>
 
 <canvas id="game"></canvas>
+<div id="climate-layer" class="climate-layer clear" aria-hidden="true">
+  <div class="climate-rain"></div>
+</div>
 
 <!-- Interface (HUD) -->
 <div id="fps">-- FPS</div>
@@ -33,6 +36,16 @@
   <div id="hp-trail"></div>
   <div id="hp-fill"></div>
   <span id="hp-text"></span>
+</div>
+<div id="boss-hud" class="hidden" aria-live="polite">
+  <div class="boss-hud-heading">
+    <strong id="boss-hud-name"></strong>
+    <span id="boss-hud-title"></span>
+  </div>
+  <div class="boss-hud-bar">
+    <div id="boss-hud-fill"></div>
+  </div>
+  <div id="boss-hud-text"></div>
 </div>
 <div id="hurt-flash"></div>
 <div id="ko">DERROTADO</div>
@@ -61,6 +74,36 @@
   <div id="dlg-hint">toque para continuar ▶</div>
 </div>
 
+<!-- Apresentação reutilizável de oponentes especiais -->
+<div id="boss-intro" class="boss-intro hidden" role="dialog" aria-modal="true" aria-labelledby="boss-intro-name">
+  <div class="boss-intro-card">
+    <div class="boss-intro-versus" aria-hidden="true">
+      <span class="boss-intro-stamp">ENCONTRO</span>
+      <div id="boss-intro-portrait" class="boss-intro-portrait">
+        <svg viewBox="0 0 120 150" focusable="false">
+          <circle class="portrait-halo" cx="60" cy="70" r="51"></circle>
+          <path class="portrait-cloak" d="M20 145 29 93 43 77 77 77 91 93 100 145Z"></path>
+          <path class="portrait-armor" d="m37 91 23 17 23-17 8 54H29Z"></path>
+          <path class="portrait-head" d="M43 51q0-23 17-23t17 23l-4 24H47Z"></path>
+          <path class="portrait-mask" d="M43 56h34v12H43z"></path>
+          <path class="portrait-mitre" d="m39 45 5-24 12 12 5-26 6 26 12-12 4 24Z"></path>
+          <path class="portrait-gold" d="M60 37v15m-10 47 10 9 10-9M49 124h22"></path>
+          <path class="portrait-eye" d="M49 59h6m10 0h6"></path>
+        </svg>
+      </div>
+      <span class="boss-intro-vs">VS</span>
+      <div class="boss-intro-player-mark" aria-label="Você">VOCÊ</div>
+    </div>
+    <div id="boss-intro-title" class="boss-intro-kicker"></div>
+    <h1 id="boss-intro-name"></h1>
+    <div id="boss-intro-subtitle" class="boss-intro-subtitle"></div>
+    <p id="boss-intro-quote"></p>
+    <div id="boss-intro-quote-label" class="boss-intro-quote-label"></div>
+    <p id="boss-intro-prep" class="boss-intro-prep" aria-live="polite"></p>
+    <button id="boss-intro-button" class="btn-big">CONTINUAR</button>
+  </div>
+</div>
+
 <!-- Telas de aviso -->
 <div id="overlay-pause" class="overlay hidden">
   <h1>Pausado</h1>
@@ -84,6 +127,10 @@
 <script src="combat.js"></script>
 <script src="greed.js"></script>
 <script src="quest.js"></script>
+<script src="casino.js"></script>
+<script src="ruined-city.js"></script>
+<script src="bishops.js"></script>
+<script src="climate.js"></script>
 <script src="campaign.js"></script>
 <script src="render.js"></script>
 <script src="main.js"></script>

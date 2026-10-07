@@ -1,7 +1,7 @@
 'use strict';
 
 /* ============================================================
-   CAMPAIGN — progressão da Galáxia 1 · Terra / Ganância
+   CAMPAIGN — missões, eventos e progresso da Galáxia 1 · Terra
 
    Fluxo de cada missão (dados em GALAXIES.greed.missions):
      EXPLORAÇÃO -> EVENTO -> CONFRONTO/INVESTIGAÇÃO -> INIMIGO
@@ -12,7 +12,9 @@
      npc          encontrar e falar com um NPC
      investigate  chegar perto e apertar o botão (diálogo)
      ambush       evento: tremor/omen -> Cobiçoso(s) surgem -> luta
-     guard        evento: diálogo do guarda -> luta com o inimigo base
+      guard        evento: diálogo do guarda -> luta com o inimigo base
+      casinoFind / casinoEnter / casinoExplore
+      bishop       encontro configurado com apresentação e chefe próprios
 
    Para criar uma etapa nova de um tipo existente basta adicionar
    um objeto na lista "steps". Para criar um TIPO novo, adicione
@@ -20,7 +22,7 @@
    / interact).
 
    Usa o que já existe: Quest (HUD, moedas, diálogo), Dialog,
-   Traveler, Greedling, Enemy, Combat, Ambient e Sfx.
+    Traveler, Greedling, Enemy, Combat, Ambient, Casino e Bishops.
    ============================================================ */
 
 /* ---------------- Locais do mapa (unidades de mundo) ---------------- */
@@ -31,7 +33,15 @@ const LOC = {
   toll:     { x: 800,  y: 1625 },   // posto de pedágio abandonado (SO)
   aurelio2: { x: 2420, y: 1690 },   // onde Aurélio se esconde (SE)
   guard:    { x: 2830, y: 1900 },   // guarda do portão (floresta escura)
-  seal:     { x: 2910, y: 1935 }    // selo do Primeiro Bispo
+  seal:     { x: 2910, y: 1935 },  // selo na floresta
+  casinoClue: Casino.clue,
+  casinoDoor: Casino.door,
+  missionOrder: { x: Casino.door.x + 32, y: Casino.door.y + 18 },
+  cityApproach: { x: 2020, y: 1040 },
+  cityRaid: { x: 1940, y: 1005 },
+  cityLedger: { x: 1780, y: 960 },
+  cityInner: { x: 1660, y: 850 },
+  citySeal: { x: 1530, y: 760 }
 };
 
 /* ---------------- Diálogos das missões 2 a 4 ---------------- */
@@ -42,7 +52,7 @@ const INV_PILE = {
 
 const INV_TOLL = {
   t1: { who: 'Narrador', text: 'Um posto de pedágio abandonado. A placa diz: "TODO VIAJANTE PAGA. SEM EXCEÇÃO."', next: 't2' },
-  t2: { who: 'Narrador', text: 'A caixa de moedas está aberta... e vazia. Algo se mexe lá dentro!' }
+  t2: { who: 'Narrador', text: 'A caixa está vazia. No fundo, uma anotação: “três moedas antigas, na margem leste do lago, marcam uma porta que não aparece nos mapas.”' }
 };
 
 const AUR2_NODES = {
@@ -57,8 +67,8 @@ const AUR2_NODES = {
     },
     next: 'a2'
   },
-  a2: { who: 'Aurélio', text: 'Além da floresta escura existe um portão. Atrás dele, a Torre das Moedas, onde o Primeiro Bispo da Ganância empilha tudo o que a ilha perdeu.', next: 'a3' },
-  a3: { who: 'Aurélio', text: 'Um capanga guarda o portão. Só passa quem paga... ou quem vence. Eu pagaria. Você, por sorte, tem uma espada.' }
+  a2: { who: 'Aurélio', text: 'O Bispo não guarda uma torre aberta. Ele se esconde num cassino secreto, na margem leste do lago. A ilha inteira paga a conta dele.', next: 'a3' },
+  a3: { who: 'Aurélio', text: 'O selo da floresta é a última pista. Procure as três moedas antigas junto ao lago; a porta só aparece para quem descobriu o rastro.' }
 };
 
 const GUARD_NODES = {
@@ -71,7 +81,36 @@ const SEAL_NODES = {
   s2: {
     who: 'Narrador',
     enter: function () { Campaign.openSeal(); },
-    text: 'Além da floresta, a Torre das Moedas brilha. O Primeiro Bispo da Ganância espera por você.'
+    text: 'A runa revela o mesmo desenho da anotação do pedágio: três moedas sob a margem leste do lago. O cassino secreto existe — e o Bispo está lá.'
+  }
+};
+
+const CASINO_NODES = {
+  c1: { who: 'Anfitrião', text: 'Bem-vindo. Aqui ninguém perde por acaso; a casa sempre cobra a dívida inteira.', next: 'c2' },
+  c2: { who: 'Anfitrião', text: 'O dono do cofre é Valério, o Primeiro Bispo da Ganância. Ele já sabe que você entrou. A porta do salão está aberta.' }
+};
+
+const CITY_LEDGER_NODES = {
+  l1: {
+    who: 'Narrador',
+    text: 'O livro de caixa foi encharcado pela chuva. Os nomes desapareceram, mas alguém arrancou as páginas que registravam para onde a dívida foi enviada.',
+    next: 'l2'
+  },
+  l2: {
+    who: 'Nota no livro',
+    text: '“A casa do cofre era apenas a vitrine. A cobrança verdadeira segue para a Casa da Moeda, sob o selo do Contador.”'
+  }
+};
+
+const CITY_SEAL_NODES = {
+  e1: {
+    who: 'Narrador',
+    text: 'Sob a ferrugem, o selo mostra quatro marcas de bispo. A de Valério está riscada; a segunda aponta para a entrada da antiga Casa da Moeda.',
+    next: 'e2'
+  },
+  e2: {
+    who: 'Nérion',
+    text: '“Valério guardava as moedas. Eu guardo os nomes. Há contas que passam de pai para filho e um livro que nenhum cobrador pode abrir.”'
   }
 };
 
@@ -84,7 +123,7 @@ const GALAXIES = {
     id: 'greed',
     name: 'Galáxia 1 · Terra',
     sin: 'Ganância',
-    endText: 'O selo está aberto. O Primeiro Bispo da Ganância espera na Torre das Moedas. (em breve)',
+    endText: 'A Casa da Moeda foi alcançada. Dois dos quatro selos da Ganância foram quebrados.',
 
     missions: [
       {
@@ -128,7 +167,8 @@ const GALAXIES = {
           { type: 'goto', obj: 'Siga a trilha ao sudoeste', target: LOC.tollWay, radius: 110 },
           { type: 'investigate', obj: 'Investigue o Posto de Pedágio abandonado',
             target: LOC.toll, radius: 80, prompt: 'INVESTIGAR',
-            nodes: INV_TOLL, first: 't1' },
+            nodes: INV_TOLL, first: 't1',
+            onDone: function () { Campaign.flags.casinoClue = true; } },
           // Emboscada com duas ondas (o mesmo Cobiçoso, um depois do outro)
           { type: 'ambush', prop: 'toll', immediate: true,
             omenObj: 'Cuidado! A caixa de moedas está se mexendo...',
@@ -159,17 +199,115 @@ const GALAXIES = {
             target: LOC.seal, radius: 90, prompt: 'ATIVAR',
             nodes: SEAL_NODES, first: 's1' }
         ]
+      },
+      {
+        id: 'm5',
+        title: 'Missão 5 · O Cassino Secreto',
+        reward: BISHOP_PROFILES.greedFirst.reward,
+        steps: [
+          { type: 'casinoFind' },
+          { type: 'casinoEnter' },
+          { type: 'casinoExplore' },
+          { type: 'bishop', boss: 'greedFirst' }
+        ]
+      },
+      {
+        id: 'm6',
+        title: 'Missão 6 · As Ruínas da Dívida',
+        reward: BISHOP_PROFILES.greedSecond.reward,
+        trail: { pts: [[2630, 820], [2350, 880], [2080, 1000], [1850, 970], [1660, 850]], n: 9, v: 1 },
+        steps: [
+          {
+            type: 'acceptMission',
+            obj: 'Leia o mandado deixado junto ao cassino',
+            target: LOC.missionOrder,
+            radius: 82,
+            prompt: 'ACEITAR MISSÃO',
+            climate: 'storm'
+          },
+          {
+            type: 'goto',
+            obj: 'Siga o livro de cobranças até o antigo distrito comercial',
+            target: LOC.cityApproach,
+            radius: 105
+          },
+          {
+            type: 'cityDiscover',
+            obj: 'Explore as ruínas e encontre a trilha dos cobradores',
+            target: RuinedCity.outerGate,
+            radius: 155
+          },
+          {
+            type: 'followerAmbush',
+            obj: 'Investigue as ruas alagadas',
+            omenObj: 'Passos cercam as ruínas...',
+            fightObj: 'Derrote os Seguidores da Ganância!',
+            target: LOC.cityRaid,
+            radius: 125,
+            omenText: 'Um sinal de cobrança riscado na parede começa a brilhar.',
+            nextText: 'Outros cobradores bloqueiam a rua!',
+            spawns: [
+              { x: 1910, y: 990 },
+              { x: 1970, y: 1035 }
+            ],
+            hpScale: 0.72,
+            speedScale: 1.08
+          },
+          {
+            type: 'investigate',
+            obj: 'Leia o livro de caixa abandonado',
+            target: LOC.cityLedger,
+            radius: 72,
+            prompt: 'LER',
+            nodes: CITY_LEDGER_NODES,
+            first: 'l1',
+            done: 'Nova pista: a Casa da Moeda fica sob o selo do Contador'
+          },
+          {
+            type: 'goto',
+            obj: 'Encontre a entrada da antiga Casa da Moeda',
+            target: LOC.cityInner,
+            radius: 95
+          },
+          {
+            type: 'followerAmbush',
+            immediate: true,
+            omenText: 'O selo da Casa da Moeda desperta os últimos guardiões.',
+            omenObj: 'Os guardiões estão se aproximando...',
+            fightObj: 'Derrote o guardião da Casa da Moeda!',
+            target: LOC.cityInner,
+            spawns: [{ x: 1635, y: 835 }],
+            hpScale: 0.9,
+            speedScale: 1.12
+          },
+          {
+            type: 'investigate',
+            obj: 'Examine o selo quebrado na entrada',
+            target: LOC.citySeal,
+            radius: 74,
+            prompt: 'EXAMINAR',
+            nodes: CITY_SEAL_NODES,
+            first: 'e1',
+            onDone: function () { Campaign.flags.secondBishopFound = true; }
+          },
+          { type: 'bishop', boss: 'greedSecond' }
+        ]
       }
     ],
 
     /* ----- GANCHOS PARA O FUTURO (ainda NÃO implementados) -----
        Cada item abaixo é só um espaço reservado para as próximas etapas. */
     bishops: [
-      { id: 'bispo1', name: 'Primeiro Bispo da Ganância', status: 'locked' },
-      { id: 'bispo2', name: 'Segundo Bispo da Ganância',  status: 'locked' },
-      { id: 'bispo3', name: 'Terceiro Bispo da Ganância', status: 'locked' },
-      { id: 'bispo4', name: 'Quarto Bispo da Ganância',   status: 'locked' }
+      { id: 'bishop1', name: 'Primeiro Bispo da Ganância', status: 'locked' },
+      { id: 'bishop2', name: 'Segundo Bispo da Ganância',  status: 'locked' },
+      { id: 'bishop3', name: 'Terceiro Bispo da Ganância', status: 'locked' },
+      { id: 'bishop4', name: 'Quarto Bispo da Ganância',   status: 'locked' }
     ],
+    progression: {
+      bishopsRequiredForTournament: 4,
+      tournament: { status: 'locked', requires: 'four_bishops_defeated' },
+      finalSin: { status: 'locked', requires: 'tournament_won' }
+    },
     shop: null,          // loja
     tournament: null,    // torneio
     finalBoss: null,     // chefe final Ganância
@@ -179,6 +317,23 @@ const GALAXIES = {
 
 /* ---------------- Comportamento de cada tipo de etapa ---------------- */
 const HANDLERS = {
+  acceptMission: {
+    obj: function (s) { return s.obj; },
+    target: function (s) { return s.target; },
+    ring: function () { return false; },
+    update: function () {},
+    prompt: function (s) {
+      return Campaign.near(s.target, s.radius) ? (s.prompt || 'ACEITAR') : null;
+    },
+    interact: function (s) {
+      if (!Campaign.near(s.target, s.radius)) return;
+      Campaign.flags.bishop2MissionAccepted = true;
+      Climate.set(s.climate || 'clear');
+      Quest.toast('Missão aceita. A tempestade cobre as ruínas da cidade.', 3.5);
+      Campaign.next();
+    }
+  },
+
   goto: {
     obj: function (s) { return s.obj; },
     target: function (s) { return s.target; },
@@ -227,6 +382,85 @@ const HANDLERS = {
         Campaign.next();
       });
     }
+  },
+
+  cityDiscover: {
+    obj: function (s) { return s.obj; },
+    target: function (s) { return s.target; },
+    ring: function () { return true; },
+    update: function (s) {
+      if (Campaign.near(s.target, s.radius) && !Campaign.flags.cityDiscovered) {
+        Campaign.flags.cityDiscovered = true;
+        Sfx.blip();
+        Quest.toast('Distrito Comercial abandonado descoberto. Há marcas de cobrança nas paredes.', 3.4);
+        Campaign.next();
+      }
+    }
+  },
+
+  followerAmbush: {
+    enter: function (s, st) {
+      st.phase = 'approach';
+      st.wave = 0;
+      st.alive = false;
+      st.t = 0;
+      st.sparkT = 0;
+      Campaign.followerActive = false;
+      Campaign.retireGuard = true;
+      if (s.immediate) Campaign._followerOmen(s, st, s.omenText);
+    },
+    obj: function (s, st) {
+      if (st.phase === 'approach') return s.obj || 'Procure sinais dos cobradores';
+      if (st.phase === 'omen') return s.omenObj || 'Os Seguidores da Ganância estão chegando...';
+      if (st.phase === 'fight') return s.fightObj || 'Derrote os Seguidores da Ganância!';
+      return 'A rua está livre.';
+    },
+    target: function (s, st) {
+      return st.phase === 'fight' && st.alive && Enemy.state !== 'dead' ? Enemy : s.target;
+    },
+    ring: function (s, st) { return st.phase === 'approach' || st.phase === 'fight'; },
+    update: function (s, st, dt) {
+      if (st.phase === 'approach') {
+        if (Campaign.near(s.target, s.radius) && !Player.dead) {
+          Campaign._followerOmen(s, st, s.omenText);
+        }
+      } else if (st.phase === 'omen') {
+        st.t += dt;
+        Camera.shake = Math.max(Camera.shake, 0.45);
+        st.sparkT -= dt;
+        if (st.sparkT <= 0) {
+          st.sparkT = 0.34;
+          const p = s.spawns[st.wave];
+          Ambient.spawnSpark(p.x, p.y - 9, 3, '#d49a45');
+        }
+        if (st.t >= (s.omenTime || 1.15)) {
+          const p = s.spawns[st.wave++];
+          Campaign.spawnFollower(p, s);
+          st.alive = true;
+          st.phase = 'fight';
+          st.t = 0;
+          Campaign.refresh();
+        }
+      } else if (st.phase === 'fight' && st.alive && Enemy.state === 'dead') {
+        st.alive = false;
+        st.phase = 'between';
+        st.t = 0;
+        Campaign.retireGuard = true;
+      } else if (st.phase === 'between') {
+        st.t += dt;
+        if (st.t >= 0.75) {
+          if (st.wave < s.spawns.length) {
+            Campaign._followerOmen(s, st, s.nextText || 'Mais cobradores se aproximam.');
+          } else {
+            Campaign.followerActive = false;
+            Campaign.retireGuard = true;
+            Campaign.restoreGuard();
+            Campaign.next();
+          }
+        }
+      }
+    },
+    prompt: function () { return null; }
   },
 
   ambush: {
@@ -299,6 +533,103 @@ const HANDLERS = {
       }
     },
     prompt: function () { return null; }
+  },
+
+  casinoFind: {
+    obj: function () { return 'Procure três moedas antigas na margem leste do lago'; },
+    ring: function () { return false; },
+    update: function () {},
+    prompt: function () {
+      return Campaign.flags.casinoClue && Campaign.near(Casino.clue, 48) ? 'INVESTIGAR' : null;
+    },
+    interact: function () {
+      Campaign.flags.casinoDiscovered = true;
+      Casino.discovered = true;
+      Ambient.spawnSpark(Casino.clue.x, Casino.clue.y - 8, 12, '#ffe066');
+      Sfx.coin();
+      Quest.toast('As moedas revelam uma entrada escondida logo adiante.', 3);
+      Campaign.next();
+    }
+  },
+
+  casinoEnter: {
+    obj: function () { return 'A entrada do Cassino Secreto foi descoberta'; },
+    target: function () { return Casino.door; },
+    ring: function () { return false; },
+    update: function () {},
+    prompt: function () {
+      return Campaign.near(Casino.door, 62) ? 'ENTRAR' : null;
+    },
+    interact: function () {
+      Casino.enter();
+      Campaign.next();
+    }
+  },
+
+  casinoExplore: {
+    obj: function () { return 'Fale com o anfitrião e descubra quem controla o cofre'; },
+    target: function () { return Casino.dealer; },
+    ring: function () { return true; },
+    update: function () {},
+    prompt: function () {
+      return Casino.inside && Campaign.near(Casino.dealer, 58) ? 'FALAR' : null;
+    },
+    interact: function () {
+      Dialog.start(CASINO_NODES, 'c1', function () { Campaign.next(); });
+    }
+  },
+
+  bishop: {
+    enter: function (s, st) {
+      st.phase = 'intro';
+      const index = Campaign.bishopIndex(s.boss);
+      if (index >= 0 && Campaign.galaxy.bishops[index].status !== 'defeated') {
+        Campaign.galaxy.bishops[index].status = 'available';
+      }
+      Campaign.presentBishop(s, st);
+    },
+    obj: function (s, st) {
+      if (st.phase === 'victory') {
+        return s.boss === 'greedFirst' ? 'Vitória! O cofre do Bispo está aberto.' : 'Vitória! O segundo selo foi quebrado.';
+      }
+      if (st.phase === 'fight') return 'Derrote ' + BISHOP_PROFILES[s.boss].name + ', ' + BISHOP_PROFILES[s.boss].title + '!';
+      return 'O Bispo entra no salão...';
+    },
+    target: function (s, st) {
+      return st.phase === 'fight' ? BishopBoss : null;
+    },
+    ring: function (s, st) { return st.phase === 'fight'; },
+    update: function (s, st, dt) {
+      if (st.phase === 'fight' && BishopBoss.state === 'inactive' &&
+          !BossPresentation.open && !Player.dead) {
+        Campaign.presentBishop(s, st);
+      } else if (st.phase === 'fight' && BishopBoss.state === 'dead') {
+        // A derrota é reconhecida assim que o HP zera; a saída aguarda a
+        // animação de queda sem depender de um segundo sinal de combate.
+        st.phase = 'victory';
+        st.t = 0;
+        Campaign.flags.bishopDefeated = true;
+        const boss = BISHOP_PROFILES[s.boss];
+        const index = Campaign.bishopIndex(s.boss);
+        if (index >= 0) {
+          Campaign.galaxy.bishops[index].status = 'defeated';
+          Campaign.flags['bishop' + (index + 1) + 'Defeated'] = true;
+          Campaign.updateProgression();
+        }
+        Campaign.showBanner('VITÓRIA', boss.name + ' · ' + boss.title, '',
+          boss.id === 'bishop1' ? 'O Cassino Secreto está sob seu controle.' : 'O segundo selo da Ganância foi quebrado.');
+        Quest.hud('Vitória · ' + boss.name, 'O selo foi quebrado. Recompensa e campanha atualizadas.');
+        Sfx.coin();
+      } else if (st.phase === 'victory') {
+        st.t += dt;
+        if (st.t >= Math.max(3.2, (BishopBoss.profile && BishopBoss.profile.deathDuration) || 0)) {
+          Campaign.leaveBossArena(BISHOP_PROFILES[s.boss]);
+          BishopBoss.reset();
+          Campaign.next();
+        }
+      }
+    },
+    prompt: function () { return null; }
   }
 };
 
@@ -312,10 +643,23 @@ const Campaign = {
   finished: false,
   completed: {},     // id da missão -> true
   unlocked: [],      // GANCHO: itens/habilidades liberados por recompensas (futuro)
-  flags: { gateOpen: false, guardDown: false },
+  flags: {
+    gateOpen: false,
+    guardDown: false,
+    casinoClue: false,
+    casinoDiscovered: false,
+    bishopDefeated: false,
+    bishop2MissionAccepted: false,
+    cityDiscovered: false,
+    secondBishopFound: false,
+    bishop1Defeated: false,
+    bishop2Defeated: false
+  },
   props: {},
   fightLive: false,  // há um Cobiçoso da campanha vivo
   retireGuard: false,
+  followerActive: false,
+  baseEnemyConfig: null,
   bannerT: 0,
   elBanner: null, elTop: null, elName: null, elReward: null, elNext: null,
 
@@ -336,11 +680,17 @@ const Campaign = {
     World.clearArea(LOC.clearing.x, LOC.clearing.y, 95);
     World.clearArea(LOC.toll.x, LOC.toll.y, 95);
     World.clearArea(LOC.seal.x - 30, LOC.seal.y - 10, 140);
+    RuinedCity.prepare();
+    Casino.init();
+    Climate.init();
+    BossPresentation.init();
+    BishopBoss.init();
 
     // O inimigo base vira o Guarda do Bispo: fica de sentinela no selo
     // (Combat.reset usa essa posição toda vez que o jogador renasce)
     CFG.COMBAT.enemy.x = LOC.guard.x;
     CFG.COMBAT.enemy.y = LOC.guard.y;
+    this.baseEnemyConfig = Object.assign({}, CFG.COMBAT.enemy);
     Enemy.spawn();
   },
 
@@ -352,6 +702,13 @@ const Campaign = {
   startMission(i) {
     this.mi = i;
     const m = this.galaxy.missions[i];
+    if (m.id === 'm5' && this.galaxy.bishops[0].status === 'locked') {
+      this.galaxy.bishops[0].status = 'available';
+    }
+    if (m.id === 'm6' && this.galaxy.bishops[0].status === 'defeated' &&
+        this.galaxy.bishops[1].status === 'locked') {
+      this.galaxy.bishops[1].status = 'available';
+    }
     if (m.trail) Quest.addTrail(m.trail.pts, m.trail.n, m.trail.v);
     this.enterStep(0);
   },
@@ -402,10 +759,83 @@ const Campaign = {
     this.finished = true;
     this.step = null;
     this.st = null;
-    this.galaxy.bishops[0].status = 'available';   // GANÂNCIA: 1º Bispo liberado (luta ainda não existe)
+    this.updateProgression();
     this._sync();
-    Quest.hud('✔ ' + this.galaxy.name + ' · ' + this.galaxy.sin, this.galaxy.endText);
-    this.showBanner('✔ MISSÃO CONCLUÍDA', m.title, rew, 'O caminho até o Primeiro Bispo está aberto!');
+    const defeated = this.defeatedBishopCount();
+    const required = this.galaxy.progression.bishopsRequiredForTournament;
+    const endText = defeated < required
+      ? this.galaxy.endText + ' O torneio continua bloqueado até os quatro Bispos serem derrotados.'
+      : 'Os quatro Bispos foram derrotados. O torneio ainda precisa ser vencido.';
+    Quest.hud('✔ ' + this.galaxy.name + ' · ' + this.galaxy.sin, endText);
+    this.showBanner('✔ MISSÃO CONCLUÍDA', m.title, rew,
+      defeated + ' de ' + required + ' Bispos derrotados · torneio: ' +
+        (this.galaxy.progression.tournament.status === 'unlocked' ? 'desbloqueado' : 'bloqueado'));
+  },
+
+  presentBishop(s, st) {
+    const profile = BISHOP_PROFILES[s.boss];
+    BossPresentation.start(profile, function () {
+      if (Campaign.step !== s || Campaign.st !== st) return;
+      BishopBoss.begin(profile);
+      st.phase = 'fight';
+      Campaign.refresh();
+    });
+  },
+
+  bishopIndex(profileKey) {
+    const profile = BISHOP_PROFILES[profileKey];
+    if (!profile || !this.galaxy) return -1;
+    return this.galaxy.bishops.findIndex(function (bishop) { return bishop.id === profile.id; });
+  },
+
+  defeatedBishopCount() {
+    if (!this.galaxy) return 0;
+    return this.galaxy.bishops.filter(function (bishop) { return bishop.status === 'defeated'; }).length;
+  },
+
+  updateProgression() {
+    if (!this.galaxy || !this.galaxy.progression) return;
+    const allBishopsDefeated = this.defeatedBishopCount() >= this.galaxy.progression.bishopsRequiredForTournament;
+    this.galaxy.progression.tournament.status = allBishopsDefeated ? 'unlocked' : 'locked';
+    this.galaxy.progression.finalSin.status =
+      this.galaxy.progression.tournament.status === 'unlocked' &&
+      this.galaxy.progression.tournament.won ? 'unlocked' : 'locked';
+  },
+
+  leaveBossArena(profile) {
+    if (profile && profile.exitPoint) {
+      const p = profile.exitPoint;
+      Player.x = p.x; Player.y = p.y; Player.z = 0;
+      Player.vx = Player.vy = Player.vz = 0;
+      Player.kx = Player.ky = 0;
+      Player.floor = 0; Player.onGround = true; Player.sy = p.y;
+      Camera.snap(Player);
+    } else {
+      Casino.exit();
+    }
+  },
+
+  spawnFollower(point, step) {
+    if (!this.baseEnemyConfig) this.baseEnemyConfig = Object.assign({}, CFG.COMBAT.enemy);
+    const base = this.baseEnemyConfig;
+    const hpScale = step.hpScale || 0.72;
+    CFG.COMBAT.enemy = Object.assign({}, base, {
+      x: point.x,
+      y: point.y,
+      hp: Math.max(1, Math.round(base.hp * hpScale)),
+      radius: Math.max(11, Math.min(base.radius, 14)),
+      speed: Math.round(base.speed * (step.speedScale || 1)),
+      respawn: 999999
+    });
+    this.retireGuard = false;
+    this.followerActive = true;
+    Enemy.spawn();
+    Enemy._go('chase');
+    this.refresh();
+  },
+
+  restoreGuard() {
+    if (this.baseEnemyConfig) CFG.COMBAT.enemy = Object.assign({}, this.baseEnemyConfig);
   },
 
   // Entrega recompensas de missão (moedas agora; itens/habilidades no futuro)
@@ -463,6 +893,16 @@ const Campaign = {
     this.refresh();
   },
 
+  _followerOmen(s, st, text) {
+    st.phase = 'omen';
+    st.t = 0;
+    st.sparkT = 0;
+    Camera.shake = Math.max(Camera.shake, 2.2);
+    Sfx.blip();
+    if (text) Quest.toast(text, 2.8);
+    this.refresh();
+  },
+
   _spawn(s, st) {
     const p = s.spawns[st.wave];
     st.wave++;
@@ -500,10 +940,12 @@ const Campaign = {
 
   // ----- por quadro (sempre roda) -----
   frame(dt) {
+    Climate.frame(dt);
     if (this.bannerT > 0) {
       this.bannerT -= dt;
       if (this.bannerT <= 0 && this.elBanner) this.elBanner.classList.remove('on');
     }
+    BishopBoss.updateHud();
   },
 
   showBanner(top, name, reward, next) {
@@ -544,6 +986,10 @@ const Campaign = {
 
   // ----- desenho no chão: props da campanha e anel do destino -----
   drawGround(ctx, t) {
+    Casino.drawGround(ctx, t);
+    RuinedCity.drawGround(ctx, t, this.flags.cityDiscovered);
+    this._drawMissionOrder(ctx, t);
+    this._drawCityClues(ctx, t);
     const cam = Camera;
     const x0 = cam.x - 90, x1 = cam.x + cam.viewW + 90;
     const y0 = cam.y - 90, y1 = cam.y + cam.viewH + 90;
@@ -562,6 +1008,53 @@ const Campaign = {
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.ellipse(tg.x, tg.y, 20 + k * 50, (20 + k * 50) * 0.6, 0, 0, 6.2832); ctx.stroke();
     }
+  },
+
+  _drawMissionOrder(ctx, t) {
+    if (!this.step || this.step.type !== 'acceptMission') return;
+    const p = LOC.missionOrder, pulse = 0.62 + Math.sin(t * 4) * 0.18;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y + 4, 19, 6, 0, 0, 6.2832); ctx.fill();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(-0.12);
+    ctx.fillStyle = '#c5b58f';
+    ctx.fillRect(-13, -9, 26, 17);
+    ctx.strokeStyle = '#6d5940';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-13, -9, 26, 17);
+    ctx.strokeStyle = '#73513a';
+    ctx.beginPath(); ctx.moveTo(-8, -4); ctx.lineTo(8, -4); ctx.moveTo(-8, 0); ctx.lineTo(5, 0);
+    ctx.moveTo(-8, 4); ctx.lineTo(7, 4); ctx.stroke();
+    ctx.restore();
+  },
+
+  _drawCityClues(ctx, t) {
+    const currentMission = this.mi >= 0 ? this.mission() : null;
+    if (!currentMission || currentMission.id !== 'm6') return;
+    const ledger = LOC.cityLedger;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(ledger.x, ledger.y + 5, 20, 7, 0, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = '#463d31';
+    ctx.fillRect(ledger.x - 13, ledger.y - 8, 26, 14);
+    ctx.fillStyle = '#b9aa84';
+    ctx.fillRect(ledger.x - 10, ledger.y - 12, 20, 13);
+    ctx.strokeStyle = '#716144'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ledger.x, ledger.y - 10); ctx.lineTo(ledger.x, ledger.y - 1);
+    ctx.moveTo(ledger.x - 6, ledger.y - 8); ctx.lineTo(ledger.x - 2, ledger.y - 7);
+    ctx.moveTo(ledger.x + 3, ledger.y - 5); ctx.lineTo(ledger.x + 7, ledger.y - 4); ctx.stroke();
+    const seal = LOC.citySeal, pulse = .45 + .3 * Math.sin(t * 3.1);
+    ctx.fillStyle = '#363438';
+    ctx.beginPath(); ctx.ellipse(seal.x, seal.y, 31, 14, -.1, 0, 6.2832); ctx.fill();
+    ctx.strokeStyle = 'rgba(198,151,66,' + pulse.toFixed(2) + ')';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(seal.x, seal.y, 24, 10, -.1, 0, 6.2832); ctx.stroke();
+    ctx.fillStyle = '#d5aa5e';
+    ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('II', seal.x, seal.y + 4);
+    ctx.restore();
   },
 
   _glint(ctx, x, y, t, ph) {

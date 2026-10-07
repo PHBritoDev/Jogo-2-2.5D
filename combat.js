@@ -77,7 +77,8 @@ const Sfx = (function () {
     block() { tone(880, 620, 0.07, 'square', 0.12); tone(1320, 900, 0.05, 'triangle', 0.1); noise(0.05, 0.25, 3000, 1500); },
     death() { tone(420, 50, 0.45, 'sawtooth', 0.22); noise(0.35, 0.3, 1200, 200); },
     coin()  { tone(990, 1320, 0.08, 'square', 0.1); tone(1480, 1760, 0.12, 'square', 0.08); },
-    blip()  { tone(520, 640, 0.05, 'triangle', 0.09); }
+    blip()  { tone(520, 640, 0.05, 'triangle', 0.09); },
+    thunder() { tone(95, 32, 1.05, 'sawtooth', 0.18); noise(0.9, 0.22, 220, 52); }
   };
 })();
 
@@ -304,18 +305,29 @@ const Enemy = {
     ctx.translate(0, -bob);
 
     // Cor do corpo (branco ao levar dano, pulsa ao preparar o golpe)
-    let body = '#b8404e', dark = '#8f2f3b';
+    const follower = typeof Campaign !== 'undefined' && Campaign.followerActive;
+    let body = follower ? '#c08b42' : '#b8404e';
+    let dark = follower ? '#765126' : '#8f2f3b';
     if (this.flashT > 0) { body = '#ffffff'; dark = '#ffffff'; }
-    else if (st === 'windup' && ((this.stateT * 14) | 0) % 2 === 0) { body = '#ff7a4a'; dark = '#d9542c'; }
+    else if (st === 'windup' && ((this.stateT * 14) | 0) % 2 === 0) {
+      body = follower ? '#f0cd77' : '#ff7a4a';
+      dark = follower ? '#b27a32' : '#d9542c';
+    }
 
     // Chifres
-    ctx.fillStyle = this.flashT > 0 ? '#ffffff' : '#e8dcc0';
+    ctx.fillStyle = this.flashT > 0 ? '#ffffff' : (follower ? '#e2bb69' : '#e8dcc0');
     ctx.beginPath(); ctx.moveTo(-9, -22); ctx.lineTo(-6, -33); ctx.lineTo(-3, -23); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.moveTo(9, -22); ctx.lineTo(6, -33); ctx.lineTo(3, -23); ctx.closePath(); ctx.fill();
 
     // Corpo
     ctx.fillStyle = body;
     ctx.beginPath(); ctx.ellipse(0, -14, 11, 12, 0, 0, 6.2832); ctx.fill();
+    if (follower && this.flashT <= 0) {
+      ctx.fillStyle = '#f2d28a';
+      ctx.beginPath(); ctx.arc(0, -14, 3, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = '#734d23'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, -14, 4.5, 0, 6.2832); ctx.stroke();
+    }
 
     // Braços
     ctx.fillStyle = dark;
@@ -374,6 +386,13 @@ const Enemy = {
       ctx.fillStyle = this.hp / this.maxHp < 0.3 ? '#e04040' : '#5fd35f';
       ctx.fillRect(bx, by, w * (this.hp / this.maxHp), 4);
     }
+    if (follower && st !== 'dead') {
+      ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
+      ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(25,17,9,.9)';
+      ctx.fillStyle = '#f0d18d';
+      ctx.strokeText('SEGUIDOR', this.x, this.y - this.z - 51);
+      ctx.fillText('SEGUIDOR', this.x, this.y - this.z - 51);
+    }
 
     ctx.globalAlpha = 1;
   }
@@ -396,9 +415,11 @@ const Combat = {
 
   // Reinicia jogador e inimigo (usado no início e ao ser derrotado)
   reset() {
-    Player.spawn(World.spawn.x, World.spawn.y);
+    const spawn = Casino && Casino.inside ? Casino.start : World.spawn;
+    Player.spawn(spawn.x, spawn.y);
     Enemy.spawn();
     Greedling.reset();
+    BishopBoss.reset();
     this.texts.length = 0;
     Ambient.sparks.length = 0;
     Game.hitstop = 0;
@@ -441,15 +462,21 @@ const Combat = {
     this._setKo(Player.dead && Player.deadT > 0.6);
     if (Player.dead && Player.deadT > 2.4) { this.reset(); return; }
 
+    // O chefe usa as mesmas hitboxes e a mesma física dos demais oponentes.
+    // Atualizá-lo aqui garante que a IA rode junto com o loop de combate.
+    BishopBoss.update(dt);
+
     // ----- Hitbox do ataque do jogador + colisão entre personagens -----
     // Vale para todos os inimigos (Enemy de teste e Cobiçoso)
     this._foe(Enemy);
     this._foe(Greedling);
+    this._foe(BishopBoss);
 
     // ----- Barras (rastro do dano) e textos -----
     this._trail(Player, dt);
     this._trail(Enemy, dt);
     this._trail(Greedling, dt);
+    this._trail(BishopBoss, dt);
 
     for (let i = this.texts.length - 1; i >= 0; i--) {
       const t = this.texts[i];
@@ -462,7 +489,7 @@ const Combat = {
   // Ataque do jogador e colisão contra UM inimigo (mesma regra para todos)
   _foe(E) {
     const C = CFG.COMBAT;
-    if (E.state === 'dead' || E.state === 'gone') return;
+    if (E.state === 'dead' || E.state === 'gone' || E.state === 'inactive') return;
 
     // Só acerta dentro da janela ativa e uma única vez por golpe (attackId)
     if (Player.isAttackActive() && E.hitId !== Player.attackId) {
