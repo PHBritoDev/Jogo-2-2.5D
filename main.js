@@ -128,6 +128,7 @@
     Quest.update(dt);
     Camera.update(dt, Player);
     Ambient.update(dt, Game.time, Camera);
+    StormEvents.update(dt);
   }
 
   // ---------- Loop ----------

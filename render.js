@@ -110,6 +110,7 @@ const Render = {
   // ---------- Quadro completo ----------
   frame(dt) {
     const ctx = this.ctx, cam = Camera, t = Game.time;
+    const isolatedScene = !!World.activeInstanceBounds();
     this.dt = dt;
 
     ctx.setTransform(cam.scale, 0, 0, cam.scale, 0, 0);
@@ -134,6 +135,7 @@ const Render = {
 
     for (let i = 0; i < this.flat.length; i++) this._drawFlat(ctx, this.flat[i], t);
     Quest.drawGround(ctx, t);
+    StormEvents.draw(ctx, t);
 
     this.tall.push(Player);
     if (Enemy.alpha > 0) this.tall.push(Enemy);
@@ -158,15 +160,18 @@ const Render = {
 
     Ambient.drawDust(ctx);
     Ambient.drawSparks(ctx);
-    Ambient.drawLeaves(ctx, t);
+    MistValley.drawMistForeground(ctx, t);
+    if (!isolatedScene) Ambient.drawLeaves(ctx, t);
     Combat.drawDebug(ctx);
     Combat.drawTexts(ctx);
 
     ctx.restore();
 
     // Nuvens altas e vento (por cima de tudo)
-    Ambient.drawHighClouds(ctx, cam);
-    Ambient.drawStreaks(ctx);
+    if (!isolatedScene) {
+      Ambient.drawHighClouds(ctx, cam);
+      Ambient.drawStreaks(ctx);
+    }
 
     // Marcador do objetivo da missão
     Quest.drawMarker(ctx, cam, cx, cy, t);
@@ -225,6 +230,8 @@ const Render = {
     ctx.strokeStyle = 'rgba(255,255,255,0.4)';
     ctx.lineWidth = 1.2;
     ctx.stroke();
+
+    MistValley.drawGround(ctx, t);
 
     // Borda da ilha
     ctx.fillStyle = '#3b7f33';

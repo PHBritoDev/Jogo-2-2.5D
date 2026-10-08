@@ -26,7 +26,12 @@ const World = {
     [[1600, 1152], [1400, 1000], [1150, 820], [880, 640]],
     [[1600, 1152], [1850, 1000], [2000, 900]],
     [[1600, 1152], [1350, 1350], [1000, 1550], [760, 1650]],
-    [[1600, 1152], [1850, 1350], [2150, 1550], [2450, 1700]]
+    [[1600, 1152], [1850, 1350], [2150, 1550], [2450, 1700]],
+    // Estrada de campanha que liga o Casino, o vale central e as ruínas SO.
+    [[2630, 820], [2320, 980], [2000, 1160], [1690, 1330], [1370, 1490], [1050, 1740]],
+    // Estrada distante para o vale úmido no extremo nordeste da ilha.
+    [[620, 1535], [1250, 1500], [1750, 1400], [2200, 1200],
+      [2560, 990], [2760, 790], [2870, 590], [3020, 355]]
   ],
 
   build() {
@@ -86,6 +91,26 @@ const World = {
   },
 
   isWater(px, py) { return this.tileAt(px, py) === T.WATER; },
+
+  // Cenários instanciados reutilizam coordenadas do mapa sem exibir ou
+  // colidir com a decoração que existe por baixo deles.
+  activeInstanceBounds() {
+    if (typeof RuinedCity !== 'undefined' && RuinedCity.arenaInside) return RuinedCity.room;
+    if (typeof Casino !== 'undefined' && Casino.inside) return Casino.room;
+    if (typeof MistValley !== 'undefined' && MistValley.siteInside) return MistValley.room;
+    return null;
+  },
+
+  _insideBounds(x, y, bounds) {
+    return !!bounds && x >= bounds.left && x <= bounds.right &&
+      y >= bounds.top && y <= bounds.bottom;
+  },
+
+  _hiddenByScene(x, y) {
+    if (this.activeInstanceBounds()) return true;
+    if (typeof MistValley !== 'undefined' && MistValley.contains(x, y)) return true;
+    return typeof RuinedCity !== 'undefined' && RuinedCity.contains(x, y);
+  },
 
   // Colisão com água considerando o raio do jogador
   blocked(x, y, r) {
@@ -206,11 +231,11 @@ const World = {
         let i, o;
         for (i = 0; i < cell.flat.length; i++) {
           o = cell.flat[i];
-          if (o.x >= x0 && o.x <= x1 && o.y >= y0 && o.y <= y1) flat.push(o);
+          if (o.x >= x0 && o.x <= x1 && o.y >= y0 && o.y <= y1 && !this._hiddenByScene(o.x, o.y)) flat.push(o);
         }
         for (i = 0; i < cell.tall.length; i++) {
           o = cell.tall[i];
-          if (o.x >= x0 && o.x <= x1 && o.y >= y0 && o.y <= y1) tall.push(o);
+          if (o.x >= x0 && o.x <= x1 && o.y >= y0 && o.y <= y1 && !this._hiddenByScene(o.x, o.y)) tall.push(o);
         }
       }
     }
@@ -225,7 +250,10 @@ const World = {
       for (let i = ci - 1; i <= ci + 1; i++) {
         if (i < 0 || j < 0 || i >= this.gx || j >= this.gy) continue;
         const s = this.cells[i + j * this.gx].solid;
-        for (let k = 0; k < s.length; k++) out.push(s[k]);
+        for (let k = 0; k < s.length; k++) {
+          const o = s[k];
+          if (!this._hiddenByScene(o.x, o.y)) out.push(o);
+        }
       }
     }
   }

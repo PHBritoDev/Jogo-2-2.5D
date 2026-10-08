@@ -20,16 +20,21 @@ const Casino = {
   init() {
     this.inside = false;
     this.discovered = false;
-    World.clearArea(this.door.x, this.door.y, 100);
-    World.clearArea(810, 810, 720);
+    // Só abre o espaço da porta. A sala é um cenário instanciado e não
+    // precisa apagar a floresta inteira que existe sob ela.
+    World.clearArea(this.door.x, this.door.y, 48);
 
     if (!this._baseBlocked) {
       this._baseBlocked = World.blocked;
       const self = this;
       World.blocked = function (x, y, r) {
-        if (self.inside &&
-            (x - r < self.room.left || x + r > self.room.right ||
-             y - r < self.room.top || y + r > self.room.bottom)) return true;
+        const bounds = World.activeInstanceBounds();
+        if (bounds) {
+          if (x - r < bounds.left || x + r > bounds.right ||
+              y - r < bounds.top || y + r > bounds.bottom) return true;
+          // O piso desenhado da sala substitui o terreno e a água do mapa.
+          return false;
+        }
         return self._baseBlocked.call(World, x, y, r);
       };
     }
@@ -38,6 +43,7 @@ const Casino = {
   enter() {
     this.inside = true;
     this.discovered = true;
+    Climate.setInterior(true);
     this._placePlayer(this.start.x, this.start.y);
     Camera.snap(Player);
     Sfx.blip();
@@ -46,6 +52,7 @@ const Casino = {
 
   exit() {
     this.inside = false;
+    Climate.setInterior(false);
     this._placePlayer(this.door.x + 32, this.door.y + 18);
     Camera.snap(Player);
   },
@@ -61,7 +68,11 @@ const Casino = {
   },
 
   drawGround(ctx, t) {
-    if (this.inside) this._drawInterior(ctx, t);
+    if (this.inside) {
+      ctx.fillStyle = '#120e17';
+      ctx.fillRect(0, 0, World.w, World.h);
+      this._drawInterior(ctx, t);
+    }
 
     const step = Campaign.step;
     if (!this.inside && Campaign.flags.casinoClue &&

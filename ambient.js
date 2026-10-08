@@ -62,9 +62,12 @@ const Ambient = {
 
   update(dt, t, cam) {
     // Vento com rajadas
-    this.wind = U.clamp(0.55 + 0.3 * Math.sin(t * 0.35) + 0.15 * Math.sin(t * 1.1 + 1.7) + 0.1 * Math.sin(t * 2.7), 0.15, 1);
+    const hush = Climate.state === 'fog' || Climate.state === 'fogging';
+    const breeze = 0.55 + 0.3 * Math.sin(t * 0.35) +
+      0.15 * Math.sin(t * 1.1 + 1.7) + 0.1 * Math.sin(t * 2.7);
+    this.wind = hush ? U.clamp(breeze * 0.42, 0.08, 0.46) : U.clamp(breeze, 0.15, 1);
     const w = this.wind;
-    this.cloudT += dt * (0.5 + w);
+    this.cloudT += dt * (hush ? 0.2 + w * 0.25 : 0.5 + w);
 
     // Riscos de vento (espaço da tela)
     for (const s of this.streaks) {
@@ -262,7 +265,7 @@ const Ambient = {
 
   // Riscos de vento (espaço da tela, depois do mundo)
   drawStreaks(ctx) {
-    if (this.wind < 0.25) return;
+    if (this.wind < 0.25 || Climate.state === 'fog' || Climate.state === 'fogging') return;
     ctx.globalAlpha = 0.1 + 0.3 * this.wind;
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1.2;

@@ -37,11 +37,19 @@ const LOC = {
   casinoClue: Casino.clue,
   casinoDoor: Casino.door,
   missionOrder: { x: Casino.door.x + 32, y: Casino.door.y + 18 },
-  cityApproach: { x: 2020, y: 1040 },
-  cityRaid: { x: 1940, y: 1005 },
-  cityLedger: { x: 1780, y: 960 },
-  cityInner: { x: 1660, y: 850 },
-  citySeal: { x: 1530, y: 760 }
+  cityApproach: { x: 1370, y: 1490 },
+  cityRaid: { x: 970, y: 1735 },
+  cityLedger: { x: 820, y: 1580 },
+  cityInner: { x: 690, y: 1515 },
+  citySeal: { x: 640, y: 1520 },
+  bishop3Order: { x: 620, y: 1535 },
+  mistTrailhead: { x: 1750, y: 1400 },
+  mistFirstBlock: { x: 2110, y: 1240 },
+  mistEasternRoad: { x: 2440, y: 1030 },
+  mistSignal: { x: 2560, y: 920 },
+  mistPass: { x: 2690, y: 830 },
+  mistLedger: { x: 2960, y: 465 },
+  mistGateApproach: { x: 3020, y: 355 }
 };
 
 /* ---------------- Diálogos das missões 2 a 4 ---------------- */
@@ -111,6 +119,46 @@ const CITY_SEAL_NODES = {
   e2: {
     who: 'Nérion',
     text: '“Valério guardava as moedas. Eu guardo os nomes. Há contas que passam de pai para filho e um livro que nenhum cobrador pode abrir.”'
+  }
+};
+
+const BISHOP2_AFTER_NODES = {
+  b1: {
+    who: 'Narrador · diálogo fictício',
+    text: 'O livro da Casa da Moeda não registrava apenas valores. Suas colunas dividiam tarefas: guardar, cobrar e decidir quem podia passar.'
+  },
+  b2: {
+    who: 'Narrador · diálogo fictício',
+    text: 'Na margem, quatro marcas organizavam o trabalho. A terceira não tinha nome — só o desenho de um instrumento sobre um vale coberto de neblina.',
+    next: 'b3'
+  },
+  b3: {
+    who: 'Narrador · diálogo fictício',
+    text: 'A anotação termina ali. Alguém arrancou o restante da página antes que o destino fosse registrado.'
+  }
+};
+
+const MIST_SIGNAL_NODES = {
+  m1: {
+    who: 'Caderno de campo · registro fictício',
+    text: '“A névoa apaga os marcos de longe. Os cobradores seguem as lanternas baixas; a passagem fica onde o som não retorna.”',
+    next: 'm2'
+  },
+  m2: {
+    who: 'Narrador · diálogo fictício',
+    text: 'Há uma terceira marca no verso, mas o nome foi raspado. O bilhete não explica quem está no vale — apenas confirma que alguém protege a passagem.'
+  }
+};
+
+const MIST_LEDGER_NODES = {
+  v1: {
+    who: 'Placa de medição · inscrição fictícia',
+    text: '“Não medir o ouro. Medir quem se curva quando a luz aparece.”',
+    next: 'v2'
+  },
+  v2: {
+    who: 'Narrador · diálogo fictício',
+    text: 'A placa aponta para uma porta entre as lanternas. Não há nome de bispo nem instruções além do sinal da terceira marca.'
   }
 };
 
@@ -215,7 +263,7 @@ const GALAXIES = {
         id: 'm6',
         title: 'Missão 6 · As Ruínas da Dívida',
         reward: BISHOP_PROFILES.greedSecond.reward,
-        trail: { pts: [[2630, 820], [2350, 880], [2080, 1000], [1850, 970], [1660, 850]], n: 9, v: 1 },
+        trail: { pts: [[2630, 820], [2320, 980], [2000, 1160], [1690, 1330], [1370, 1490], [1050, 1740]], n: 12, v: 1 },
         steps: [
           {
             type: 'acceptMission',
@@ -230,6 +278,22 @@ const GALAXIES = {
             obj: 'Siga o livro de cobranças até o antigo distrito comercial',
             target: LOC.cityApproach,
             radius: 105
+          },
+          {
+            type: 'followerAmbush',
+            obj: 'Siga a estrada alagada; os cobradores podem estar à espreita',
+            omenObj: 'Há movimento entre as ruínas da estrada...',
+            fightObj: 'Derrote os cobradores da estrada!',
+            target: LOC.cityApproach,
+            radius: 130,
+            omenText: 'Uma emboscada bloqueia a estrada para o distrito.',
+            nextText: 'Mais seguidores vêm pela trilha!',
+            spawns: [
+              { x: 1300, y: 1435 },
+              { x: 1450, y: 1540 }
+            ],
+            hpScale: 0.68,
+            speedScale: 1.06
           },
           {
             type: 'cityDiscover',
@@ -247,8 +311,9 @@ const GALAXIES = {
             omenText: 'Um sinal de cobrança riscado na parede começa a brilhar.',
             nextText: 'Outros cobradores bloqueiam a rua!',
             spawns: [
-              { x: 1910, y: 990 },
-              { x: 1970, y: 1035 }
+              { x: 930, y: 1700 },
+              { x: 1030, y: 1785 },
+              { x: 875, y: 1780 }
             ],
             hpScale: 0.72,
             speedScale: 1.08
@@ -276,7 +341,7 @@ const GALAXIES = {
             omenObj: 'Os guardiões estão se aproximando...',
             fightObj: 'Derrote o guardião da Casa da Moeda!',
             target: LOC.cityInner,
-            spawns: [{ x: 1635, y: 835 }],
+            spawns: [{ x: 750, y: 1480 }],
             hpScale: 0.9,
             speedScale: 1.12
           },
@@ -290,7 +355,165 @@ const GALAXIES = {
             first: 'e1',
             onDone: function () { Campaign.flags.secondBishopFound = true; }
           },
+          {
+            type: 'bishopEnter',
+            obj: 'A entrada da Casa da Moeda leva ao salão isolado do Bispo',
+            target: RuinedCity.innerGate,
+            radius: 72
+          },
           { type: 'bishop', boss: 'greedSecond' }
+        ]
+      },
+      {
+        id: 'm7',
+        title: 'Missão 7 · O Vale das Lanternas Afundadas',
+        trail: {
+          pts: [[620, 1535], [1250, 1500], [1750, 1400], [2200, 1200],
+            [2560, 990], [2760, 790], [2870, 590], [3020, 355]],
+          n: 8,
+          v: 1
+        },
+        steps: [
+          {
+            type: 'story',
+            obj: 'Leia as páginas recuperadas da Casa da Moeda',
+            nodes: BISHOP2_AFTER_NODES,
+            first: 'b1'
+          },
+          {
+            type: 'acceptMission',
+            obj: 'Aceite o mandado para investigar o terceiro selo',
+            target: LOC.bishop3Order,
+            radius: 70,
+            prompt: 'ACEITAR MISSÃO',
+            climate: 'fog',
+            climateTransition: 8,
+            acceptedFlag: 'bishop3MissionAccepted',
+            unlockBishop: 3,
+            acceptedToast: 'Missão aceita. A tempestade perde força; um silêncio frio vem do outro lado da ilha.'
+          },
+          {
+            type: 'goto',
+            obj: 'Atravesse a ilha pela estrada para o nordeste',
+            target: LOC.mistTrailhead,
+            radius: 105
+          },
+          {
+            type: 'followerAmbush',
+            obj: 'Os seguidores da Ganância vigiam a estrada alta',
+            omenObj: 'Passos acompanham você na névoa...',
+            fightObj: 'Afaste os cobradores da estrada!',
+            target: LOC.mistFirstBlock,
+            radius: 130,
+            omenText: 'Um grupo de cobradores sai da estrada e fecha a passagem.',
+            nextText: 'Outro seguidor toma o lugar do primeiro.',
+            spawns: [
+              { x: 2045, y: 1190 },
+              { x: 2190, y: 1275 }
+            ],
+            hpScale: 0.66,
+            speedScale: 1.02
+          },
+          {
+            type: 'goto',
+            obj: 'Siga a trilha para além da margem leste do lago',
+            target: LOC.mistEasternRoad,
+            radius: 105
+          },
+          {
+            type: 'investigate',
+            obj: 'Investigue o marco de estrada derrubado',
+            target: LOC.mistSignal,
+            radius: 76,
+            prompt: 'LER',
+            nodes: MIST_SIGNAL_NODES,
+            first: 'm1'
+          },
+          {
+            type: 'followerAmbush',
+            obj: 'Recupere a passagem entre as pedras molhadas',
+            omenObj: 'As lanternas se apagam uma a uma...',
+            fightObj: 'Derrote os seguidores que bloqueiam a passagem!',
+            target: LOC.mistPass,
+            radius: 118,
+            omenText: 'Seguidores da Ganância protegem o caminho para o vale.',
+            nextText: 'Mais um cobrador surge entre as pedras.',
+            spawns: [
+              { x: 2645, y: 790 },
+              { x: 2740, y: 865 }
+            ],
+            hpScale: 0.68,
+            speedScale: 1.04
+          },
+          {
+            type: 'mistRegionDiscover',
+            obj: 'Entre no Vale das Lanternas Afundadas',
+            target: MistValley.threshold,
+            radius: 120
+          },
+          {
+            type: 'followerAmbush',
+            obj: 'Procure a trilha entre as lanternas antigas',
+            omenObj: 'Algo se move por trás da névoa...',
+            fightObj: 'Afaste os guardiões do vale!',
+            target: MistValley.outerCheckpoint,
+            radius: 118,
+            omenText: 'Dois guardiões tentam conduzir você para fora do vale.',
+            nextText: 'Um último guardião avança pela passarela.',
+            spawns: [
+              { x: 2820, y: 555 },
+              { x: 2910, y: 630 }
+            ],
+            hpScale: 0.7,
+            speedScale: 1.04
+          },
+          {
+            type: 'investigate',
+            obj: 'Leia a inscrição no antigo posto de medição',
+            target: LOC.mistLedger,
+            radius: 72,
+            prompt: 'EXAMINAR',
+            nodes: MIST_LEDGER_NODES,
+            first: 'v1'
+          },
+          {
+            type: 'goto',
+            obj: 'Siga os marcos até a passagem escondida',
+            target: LOC.mistGateApproach,
+            radius: 125
+          },
+          {
+            type: 'followerAmbush',
+            obj: 'Os últimos cobradores guardam a passagem',
+            omenObj: 'A luz dourada pulsa atrás da neblina...',
+            fightObj: 'Abra caminho até a porta!',
+            target: LOC.mistGateApproach,
+            radius: 95,
+            omenText: 'Um pequeno grupo tenta impedir sua aproximação.',
+            nextText: 'Outro guardião bloqueia a porta.',
+            spawns: [
+              { x: 2960, y: 390 },
+              { x: 3070, y: 430 }
+            ],
+            hpScale: 0.7,
+            speedScale: 1.05
+          },
+          {
+            type: 'mistEntryDiscover',
+            obj: 'Descubra a entrada isolada entre as lanternas',
+            target: MistValley.outerGate,
+            radius: 88
+          },
+          {
+            type: 'mistEnter',
+            obj: 'A entrada leva a um local isolado',
+            target: MistValley.outerGate,
+            radius: 70
+          },
+          {
+            type: 'mistSite',
+            obj: 'Local isolado encontrado. O encontro do Terceiro Bispo ainda não foi iniciado.'
+          }
         ]
       }
     ],
@@ -327,11 +550,30 @@ const HANDLERS = {
     },
     interact: function (s) {
       if (!Campaign.near(s.target, s.radius)) return;
-      Campaign.flags.bishop2MissionAccepted = true;
-      Climate.set(s.climate || 'clear');
-      Quest.toast('Missão aceita. A tempestade cobre as ruínas da cidade.', 3.5);
+      if (s.acceptedFlag) Campaign.flags[s.acceptedFlag] = true;
+      else Campaign.flags.bishop2MissionAccepted = true;
+      if (s.unlockBishop) {
+        const bishop = Campaign.galaxy.bishops[s.unlockBishop - 1];
+        if (bishop && bishop.status === 'locked') bishop.status = 'available';
+      }
+      if (s.climateTransition && Climate.transitionTo) {
+        Climate.transitionTo(s.climate || 'clear', s.climateTransition);
+      } else {
+        Climate.set(s.climate || 'clear');
+      }
+      Quest.toast(s.acceptedToast || 'Missão aceita. A tempestade cobre as ruínas da cidade.', 3.5);
       Campaign.next();
     }
+  },
+
+  story: {
+    obj: function (s) { return s.obj; },
+    ring: function () { return false; },
+    update: function () {},
+    enter: function (s) {
+      Dialog.start(s.nodes, s.first, function () { Campaign.next(); });
+    },
+    prompt: function () { return null; }
   },
 
   goto: {
@@ -395,6 +637,80 @@ const HANDLERS = {
         Quest.toast('Distrito Comercial abandonado descoberto. Há marcas de cobrança nas paredes.', 3.4);
         Campaign.next();
       }
+    }
+  },
+
+  mistRegionDiscover: {
+    obj: function (s) { return s.obj; },
+    target: function (s) { return s.target; },
+    ring: function () { return true; },
+    update: function (s) {
+      if (Campaign.near(s.target, s.radius) && !Campaign.flags.bishop3RegionDiscovered) {
+        Campaign.flags.bishop3RegionDiscovered = true;
+        Sfx.blip();
+        Quest.toast('Vale das Lanternas Afundadas descoberto. As trilhas somem dentro da neblina.', 3.8);
+        Campaign.next();
+      }
+    }
+  },
+
+  mistEntryDiscover: {
+    obj: function (s) { return s.obj; },
+    target: function (s) { return s.target; },
+    ring: function () { return true; },
+    update: function (s) {
+      if (Campaign.near(s.target, s.radius) && !Campaign.flags.bishop3EntryFound) {
+        Campaign.flags.bishop3EntryFound = true;
+        Sfx.blip();
+        Quest.toast('Uma porta isolada aparece sob as marcas de medição. A entrada foi encontrada.', 4);
+        Campaign.next();
+      }
+    }
+  },
+
+  mistEnter: {
+    obj: function (s) { return s.obj; },
+    target: function (s) { return s.target; },
+    ring: function () { return false; },
+    update: function () {},
+    prompt: function (s) {
+      return Campaign.flags.bishop3EntryFound && Campaign.near(s.target, s.radius) ? 'ENTRAR' : null;
+    },
+    interact: function (s) {
+      if (!Campaign.flags.bishop3EntryFound || !Campaign.near(s.target, s.radius)) return;
+      MistValley.enterSite();
+      Campaign.flags.bishop3SiteEntered = true;
+      Campaign.next();
+    }
+  },
+
+  mistSite: {
+    obj: function (s) { return s.obj; },
+    target: function () { return MistValley.exit; },
+    ring: function () { return false; },
+    update: function () {},
+    prompt: function () {
+      return MistValley.siteInside && Campaign.near(MistValley.exit, 68) ? 'SAIR' : null;
+    },
+    interact: function () {
+      if (!MistValley.siteInside || !Campaign.near(MistValley.exit, 68)) return;
+      MistValley.exitSite();
+      Campaign.enterStep(Campaign.si - 1);
+    }
+  },
+
+  bishopEnter: {
+    obj: function (s) { return s.obj; },
+    target: function (s) { return s.target; },
+    ring: function () { return false; },
+    update: function () {},
+    prompt: function (s) {
+      return Campaign.near(s.target, s.radius) ? 'ENTRAR' : null;
+    },
+    interact: function () {
+      if (!Campaign.near(RuinedCity.innerGate, 72)) return;
+      RuinedCity.enter();
+      Campaign.next();
     }
   },
 
@@ -653,7 +969,11 @@ const Campaign = {
     cityDiscovered: false,
     secondBishopFound: false,
     bishop1Defeated: false,
-    bishop2Defeated: false
+    bishop2Defeated: false,
+    bishop3MissionAccepted: false,
+    bishop3RegionDiscovered: false,
+    bishop3EntryFound: false,
+    bishop3SiteEntered: false
   },
   props: {},
   fightLive: false,  // há um Cobiçoso da campanha vivo
@@ -681,6 +1001,7 @@ const Campaign = {
     World.clearArea(LOC.toll.x, LOC.toll.y, 95);
     World.clearArea(LOC.seal.x - 30, LOC.seal.y - 10, 140);
     RuinedCity.prepare();
+    MistValley.prepare();
     Casino.init();
     Climate.init();
     BossPresentation.init();
@@ -805,6 +1126,11 @@ const Campaign = {
   leaveBossArena(profile) {
     if (profile && profile.exitPoint) {
       const p = profile.exitPoint;
+      if (profile.id === 'bishop2') {
+        RuinedCity.arenaInside = false;
+        RuinedCity.exteriorReturn = null;
+        Climate.setInterior(false);
+      }
       Player.x = p.x; Player.y = p.y; Player.z = 0;
       Player.vx = Player.vy = Player.vz = 0;
       Player.kx = Player.ky = 0;
@@ -1012,14 +1338,14 @@ const Campaign = {
 
   _drawMissionOrder(ctx, t) {
     if (!this.step || this.step.type !== 'acceptMission') return;
-    const p = LOC.missionOrder, pulse = 0.62 + Math.sin(t * 4) * 0.18;
+    const p = this.step.target || LOC.missionOrder, pulse = 0.62 + Math.sin(t * 4) * 0.18;
     ctx.save();
     ctx.globalAlpha = pulse;
     ctx.fillStyle = 'rgba(0,0,0,.35)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y + 4, 19, 6, 0, 0, 6.2832); ctx.fill();
     ctx.translate(p.x, p.y);
     ctx.rotate(-0.12);
-    ctx.fillStyle = '#c5b58f';
+    ctx.fillStyle = this.step.orderColor || '#c5b58f';
     ctx.fillRect(-13, -9, 26, 17);
     ctx.strokeStyle = '#6d5940';
     ctx.lineWidth = 1;

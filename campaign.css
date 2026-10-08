@@ -224,6 +224,7 @@
 }
 .climate-layer.storm,
 .climate-layer.fog,
+.climate-layer.fogging,
 .climate-layer.night { visibility: visible; opacity: 1; }
 .climate-layer::before,
 .climate-layer::after {
@@ -233,11 +234,27 @@
   pointer-events: none;
 }
 .climate-layer.storm::before {
-  background: linear-gradient(180deg, rgba(5, 13, 27, .38), rgba(9, 16, 26, .25));
+  background: linear-gradient(180deg, rgba(5, 13, 27, .28), rgba(9, 16, 26, .17));
 }
+.climate-layer.indoor.storm::before { background: transparent; }
+.climate-layer.indoor.storm::after { display: none; }
+.climate-layer.indoor .climate-rain { display: none !important; }
 .climate-layer.fog::before {
-  background: radial-gradient(ellipse at 50% 65%, rgba(190, 204, 210, .42), rgba(110, 126, 139, .12) 65%, transparent);
+  background:
+    radial-gradient(ellipse 90% 46% at 58% 79%, rgba(185, 199, 201, .2), rgba(126, 144, 151, .07) 54%, transparent 78%),
+    linear-gradient(180deg, rgba(29, 42, 52, .15), transparent 44%, rgba(197, 208, 207, .045));
 }
+.climate-layer.fogging::before {
+  background:
+    linear-gradient(180deg, rgba(5, 13, 27, .2), rgba(9, 16, 26, .1));
+  opacity: var(--storm-residual, 1);
+}
+.climate-layer.fogging::after {
+  background: radial-gradient(ellipse 90% 46% at 58% 79%, rgba(185, 199, 201, .2), rgba(126, 144, 151, .07) 54%, transparent 78%);
+  opacity: var(--mist-progress, 0);
+}
+.climate-layer.indoor.fog::before { opacity: .28; }
+.climate-layer.indoor.fogging::before { opacity: .16; }
 .climate-layer.night::before {
   background:
     radial-gradient(1px 1px at 12% 18%, rgba(255,255,220,.88) 99%, transparent),
@@ -248,29 +265,34 @@
 }
 .climate-rain {
   position: absolute;
-  inset: -45%;
+  inset: -30%;
   display: none;
-  opacity: .62;
+  opacity: .3;
   background:
-    repeating-linear-gradient(107deg, transparent 0 13px, rgba(192, 215, 233, .52) 14px, transparent 15px 25px),
-    repeating-linear-gradient(107deg, transparent 0 47px, rgba(215, 228, 240, .27) 48px, transparent 49px 67px);
-  background-size: 78px 100px, 122px 160px;
-  animation: climate-rain-fall .42s linear infinite;
+    repeating-linear-gradient(107deg, transparent 0 34px, rgba(192, 215, 233, .24) 35px, transparent 36px 76px),
+    repeating-linear-gradient(107deg, transparent 0 76px, rgba(224, 235, 243, .3) 77px, transparent 79px 158px);
+  background-size: 95px 132px, 147px 196px;
+  animation: climate-rain-fall 1.15s linear infinite;
 }
 .climate-layer.storm .climate-rain { display: block; }
+.climate-layer.fogging .climate-rain {
+  display: block;
+  opacity: var(--rain-opacity, .3);
+  transition: opacity .4s linear;
+}
 .climate-layer.storm::after {
-  background: rgba(218, 231, 255, .9);
+  background: rgba(218, 231, 255, .76);
   opacity: 0;
 }
 .climate-layer.storm.lightning::after { animation: climate-lightning .42s ease-out both; }
 @keyframes climate-rain-fall {
-  to { transform: translate3d(-48px, 106px, 0); }
+  to { transform: translate3d(-34px, 72px, 0); }
 }
 @keyframes climate-lightning {
   0%, 100% { opacity: 0; }
-  8% { opacity: .72; }
-  15% { opacity: .08; }
-  25% { opacity: .4; }
+  8% { opacity: .48; }
+  15% { opacity: .05; }
+  25% { opacity: .24; }
   40% { opacity: 0; }
 }
 
@@ -298,5 +320,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .climate-layer.storm .climate-rain { animation-duration: 1.2s; }
+  .climate-layer.storm .climate-rain { animation-duration: 2s; }
 }

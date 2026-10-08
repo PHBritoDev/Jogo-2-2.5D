@@ -415,7 +415,9 @@ const Combat = {
 
   // Reinicia jogador e inimigo (usado no início e ao ser derrotado)
   reset() {
-    const spawn = Casino && Casino.inside ? Casino.start : World.spawn;
+    const spawn = typeof RuinedCity !== 'undefined' && RuinedCity.arenaInside
+      ? RuinedCity.start
+      : (Casino && Casino.inside ? Casino.start : World.spawn);
     Player.spawn(spawn.x, spawn.y);
     Enemy.spawn();
     Greedling.reset();
