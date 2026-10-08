@@ -20,15 +20,15 @@ const TERRITORY_ENEMY_PROFILES = Object.freeze({
     })
   }),
   2: Object.freeze({
-    common: Object.freeze({ id: 'enemy-2', asset: null, displayHeight: 84 }),
+    common: Object.freeze({ id: 'enemy-2', asset: './Enemy2.png', displayHeight: 84 }),
     miniLeader: Object.freeze({ id: 'mini-leader-2', asset: null, scale: 2 })
   }),
   3: Object.freeze({
-    common: Object.freeze({ id: 'enemy-3', asset: null, displayHeight: 84 }),
+    common: Object.freeze({ id: 'enemy-3', asset: './Enemy3.png', displayHeight: 84 }),
     miniLeader: Object.freeze({ id: 'mini-leader-3', asset: null, scale: 2 })
   }),
   4: Object.freeze({
-    common: Object.freeze({ id: 'enemy-4', asset: null, displayHeight: 84 }),
+    common: Object.freeze({ id: 'enemy-4', asset: './Enemy4.png', displayHeight: 84 }),
     miniLeader: Object.freeze({ id: 'mini-leader-4', asset: null, scale: 2 })
   })
 });
