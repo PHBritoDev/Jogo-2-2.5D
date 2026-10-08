@@ -49,7 +49,11 @@ const LOC = {
   mistSignal: { x: 2560, y: 920 },
   mistPass: { x: 2690, y: 830 },
   mistLedger: { x: 2960, y: 465 },
-  mistGateApproach: { x: 3020, y: 355 }
+  mistGateApproach: { x: 3020, y: 355 },
+  nightTrailhead: { x: 2520, y: 1170 },
+  nightRidge: NightSanctum.ridge,
+  nightEvidence: NightSanctum.marker,
+  nightMissionOrder: NightSanctum.order
 };
 
 /* ---------------- Diálogos das missões 2 a 4 ---------------- */
@@ -162,6 +166,35 @@ const MIST_LEDGER_NODES = {
   }
 };
 
+const BISHOP3_AFTER_NODES = {
+  e1: {
+    who: 'Elior · fala fictícia',
+    text: '“Quatro selos, quatro colunas. A primeira arrecada. A segunda registra. A terceira mede quem consentiu. A última decidirá quem será chamado de protetor.”',
+    next: 'e2'
+  },
+  e2: {
+    who: 'Narrador · registro fictício',
+    text: 'As páginas confirmam: a Ganância não está juntando riqueza para um único cofre. A organização prepara um pacto público — cada região será conduzida a pedir a própria submissão como se fosse salvação.',
+    next: 'e3'
+  },
+  e3: {
+    who: 'Narrador · registro fictício',
+    text: 'O quarto Bispo guarda a última rota e a decisão final do plano. O nome por trás dos quatro selos continua ausente dos registros.'
+  }
+};
+
+const NIGHT_MARKER_NODES = {
+  n1: {
+    who: 'Marco da serra · inscrição fictícia',
+    text: '“Quando a cidade dormir, levem a ata ao observatório. Nenhum juramento deve ser feito sob testemunhas.”',
+    next: 'n2'
+  },
+  n2: {
+    who: 'Narrador · registro fictício',
+    text: 'O recado não revela quem redigiu a ata. O caminho segue até uma porta isolada, onde as marcas do quarto selo foram raspadas.'
+  }
+};
+
 /* Aurélio é o único NPC por enquanto */
 const NPCS = { aurelio: Traveler };
 
@@ -171,7 +204,7 @@ const GALAXIES = {
     id: 'greed',
     name: 'Galáxia 1 · Terra',
     sin: 'Ganância',
-    endText: 'A Casa da Moeda foi alcançada. Dois dos quatro selos da Ganância foram quebrados.',
+    endText: 'A Serra sem Ecos foi alcançada. Três dos quatro selos da Ganância foram quebrados.',
 
     missions: [
       {
@@ -367,6 +400,7 @@ const GALAXIES = {
       {
         id: 'm7',
         title: 'Missão 7 · O Vale das Lanternas Afundadas',
+        reward: BISHOP_PROFILES.greedThird.reward,
         trail: {
           pts: [[620, 1535], [1250, 1500], [1750, 1400], [2200, 1200],
             [2560, 990], [2760, 790], [2870, 590], [3020, 355]],
@@ -512,7 +546,103 @@ const GALAXIES = {
           },
           {
             type: 'mistSite',
-            obj: 'Local isolado encontrado. O encontro do Terceiro Bispo ainda não foi iniciado.'
+            obj: 'O Posto de Medição está vazio. As pistas indicam que o responsável não está mais no vale.'
+          },
+          { type: 'bishop', boss: 'greedThird' }
+        ]
+      },
+      {
+        id: 'm8',
+        title: 'Missão 8 · A Serra sem Ecos',
+        trail: {
+          pts: [[3020, 420], [2820, 850], [2520, 1170], [2350, 1430],
+            [2240, 1640], [2070, 1880], [2045, 2130]],
+          n: 11,
+          v: 1
+        },
+        steps: [
+          {
+            type: 'acceptMission',
+            obj: 'Aceite o mandado para seguir o quarto selo',
+            target: LOC.nightMissionOrder,
+            radius: 74,
+            prompt: 'ACEITAR MISSÃO',
+            climate: 'night',
+            climateTransition: 7,
+            acceptedFlag: 'bishop4MissionAccepted',
+            unlockBishop: 4,
+            acceptedToast: 'Missão aceita. A noite cai sobre uma serra distante; o caminho não aparece nos mapas.'
+          },
+          {
+            type: 'goto',
+            obj: 'Siga a trilha para o sul, até a serra distante',
+            target: LOC.nightTrailhead,
+            radius: 120
+          },
+          {
+            type: 'followerAmbush',
+            obj: 'Os seguidores da Ganância vigiam a passagem de basalto',
+            omenObj: 'Há passos no cascalho, mas ninguém aparece sob a lua...',
+            fightObj: 'Afaste os seguidores que fecharam a passagem!',
+            target: LOC.nightTrailhead,
+            radius: 125,
+            omenText: 'Seguidores da Ganância saem das sombras da serra.',
+            nextText: 'Outro cobrador ocupa a passagem estreita.',
+            spawns: [
+              { x: 2490, y: 1105 },
+              { x: 2575, y: 1222 }
+            ],
+            hpScale: 0.66,
+            speedScale: 1.02
+          },
+          {
+            type: 'nightRegionDiscover',
+            obj: 'Atravesse a crista até o Observatório do Silêncio',
+            target: NightSanctum.threshold,
+            radius: 120
+          },
+          {
+            type: 'goto',
+            obj: 'Siga os marcos de pedra pela crista',
+            target: LOC.nightRidge,
+            radius: 105
+          },
+          {
+            type: 'investigate',
+            obj: 'Leia a ordem deixada no marco da serra',
+            target: LOC.nightEvidence,
+            radius: 78,
+            prompt: 'LER',
+            nodes: NIGHT_MARKER_NODES,
+            first: 'n1'
+          },
+          {
+            type: 'followerAmbush',
+            obj: 'Aproximar-se da porta sem despertar os últimos guardiões',
+            omenObj: 'Uma lanterna coberta se move junto à entrada...',
+            fightObj: 'Abra caminho até o observatório!',
+            target: NightSanctum.outerGate,
+            radius: 110,
+            omenText: 'Um pequeno grupo guarda a entrada isolada.',
+            spawns: [{ x: 1990, y: 2078 }],
+            hpScale: 0.7,
+            speedScale: 1.04
+          },
+          {
+            type: 'nightEntryDiscover',
+            obj: 'Descubra a entrada escondida entre as pedras',
+            target: NightSanctum.outerGate,
+            radius: 86
+          },
+          {
+            type: 'nightEnter',
+            obj: 'Entre no Observatório do Silêncio',
+            target: NightSanctum.outerGate,
+            radius: 72
+          },
+          {
+            type: 'nightSite',
+            obj: 'Observatório encontrado. A apresentação do Quarto Bispo ainda não foi iniciada.'
           }
         ]
       }
@@ -651,6 +781,65 @@ const HANDLERS = {
         Quest.toast('Vale das Lanternas Afundadas descoberto. As trilhas somem dentro da neblina.', 3.8);
         Campaign.next();
       }
+    }
+  },
+
+  nightRegionDiscover: {
+    obj: function (s) { return s.obj; },
+    target: function (s) { return s.target; },
+    ring: function () { return true; },
+    update: function (s) {
+      if (Campaign.near(s.target, s.radius) && !Campaign.flags.bishop4RegionDiscovered) {
+        Campaign.flags.bishop4RegionDiscovered = true;
+        Sfx.blip();
+        Quest.toast('Serra sem Ecos descoberta. O céu aberto deixa a estrada exposta; o observatório fica adiante.', 3.8);
+        Campaign.next();
+      }
+    }
+  },
+
+  nightEntryDiscover: {
+    obj: function (s) { return s.obj; },
+    target: function (s) { return s.target; },
+    ring: function () { return true; },
+    update: function (s) {
+      if (Campaign.near(s.target, s.radius) && !Campaign.flags.bishop4EntryFound) {
+        Campaign.flags.bishop4EntryFound = true;
+        Sfx.blip();
+        Quest.toast('A marca do quarto selo revela uma porta escavada na rocha. A entrada foi encontrada.', 4);
+        Campaign.next();
+      }
+    }
+  },
+
+  nightEnter: {
+    obj: function (s) { return s.obj; },
+    target: function (s) { return s.target; },
+    ring: function () { return false; },
+    update: function () {},
+    prompt: function (s) {
+      return Campaign.flags.bishop4EntryFound && Campaign.near(s.target, s.radius) ? 'ENTRAR' : null;
+    },
+    interact: function (s) {
+      if (!Campaign.flags.bishop4EntryFound || !Campaign.near(s.target, s.radius)) return;
+      NightSanctum.enterSite();
+      Campaign.flags.bishop4SiteEntered = true;
+      Campaign.next();
+    }
+  },
+
+  nightSite: {
+    obj: function (s) { return s.obj; },
+    target: function () { return NightSanctum.exit; },
+    ring: function () { return false; },
+    update: function () {},
+    prompt: function () {
+      return NightSanctum.siteInside && Campaign.near(NightSanctum.exit, 68) ? 'SAIR' : null;
+    },
+    interact: function () {
+      if (!NightSanctum.siteInside || !Campaign.near(NightSanctum.exit, 68)) return;
+      NightSanctum.exitSite();
+      Campaign.enterStep(Campaign.si - 1);
     }
   },
 
@@ -905,8 +1094,10 @@ const HANDLERS = {
       Campaign.presentBishop(s, st);
     },
     obj: function (s, st) {
-      if (st.phase === 'victory') {
-        return s.boss === 'greedFirst' ? 'Vitória! O cofre do Bispo está aberto.' : 'Vitória! O segundo selo foi quebrado.';
+      if (st.phase === 'victory' || st.phase === 'epilogue' || st.phase === 'dialog') {
+        if (s.boss === 'greedFirst') return 'Vitória! O cofre do Bispo está aberto.';
+        if (s.boss === 'greedSecond') return 'Vitória! O segundo selo foi quebrado.';
+        return 'Vitória! O terceiro selo foi quebrado.';
       }
       if (st.phase === 'fight') return 'Derrote ' + BISHOP_PROFILES[s.boss].name + ', ' + BISHOP_PROFILES[s.boss].title + '!';
       return 'O Bispo entra no salão...';
@@ -922,7 +1113,7 @@ const HANDLERS = {
       } else if (st.phase === 'fight' && BishopBoss.state === 'dead') {
         // A derrota é reconhecida assim que o HP zera; a saída aguarda a
         // animação de queda sem depender de um segundo sinal de combate.
-        st.phase = 'victory';
+        st.phase = s.boss === 'greedThird' ? 'epilogue' : 'victory';
         st.t = 0;
         Campaign.flags.bishopDefeated = true;
         const boss = BISHOP_PROFILES[s.boss];
@@ -932,10 +1123,22 @@ const HANDLERS = {
           Campaign.flags['bishop' + (index + 1) + 'Defeated'] = true;
           Campaign.updateProgression();
         }
-        Campaign.showBanner('VITÓRIA', boss.name + ' · ' + boss.title, '',
-          boss.id === 'bishop1' ? 'O Cassino Secreto está sob seu controle.' : 'O segundo selo da Ganância foi quebrado.');
+        const victoryText = boss.id === 'bishop1' ? 'O Cassino Secreto está sob seu controle.' :
+          (boss.id === 'bishop2' ? 'O segundo selo da Ganância foi quebrado.' :
+            'O terceiro selo da Ganância foi quebrado.');
+        Campaign.showBanner('VITÓRIA', boss.name + ' · ' + boss.title, '', victoryText);
         Quest.hud('Vitória · ' + boss.name, 'O selo foi quebrado. Recompensa e campanha atualizadas.');
         Sfx.coin();
+      } else if (st.phase === 'epilogue') {
+        st.t += dt;
+        if (st.t >= 2.7) {
+          st.phase = 'dialog';
+          Dialog.start(BISHOP3_AFTER_NODES, 'e1', function () {
+            Campaign.leaveBossArena(BISHOP_PROFILES[s.boss]);
+            BishopBoss.reset();
+            Campaign.next();
+          });
+        }
       } else if (st.phase === 'victory') {
         st.t += dt;
         if (st.t >= Math.max(3.2, (BishopBoss.profile && BishopBoss.profile.deathDuration) || 0)) {
@@ -973,7 +1176,11 @@ const Campaign = {
     bishop3MissionAccepted: false,
     bishop3RegionDiscovered: false,
     bishop3EntryFound: false,
-    bishop3SiteEntered: false
+    bishop3SiteEntered: false,
+    bishop4MissionAccepted: false,
+    bishop4RegionDiscovered: false,
+    bishop4EntryFound: false,
+    bishop4SiteEntered: false
   },
   props: {},
   fightLive: false,  // há um Cobiçoso da campanha vivo
@@ -1002,6 +1209,7 @@ const Campaign = {
     World.clearArea(LOC.seal.x - 30, LOC.seal.y - 10, 140);
     RuinedCity.prepare();
     MistValley.prepare();
+    NightSanctum.prepare();
     Casino.init();
     Climate.init();
     BossPresentation.init();
@@ -1129,6 +1337,10 @@ const Campaign = {
       if (profile.id === 'bishop2') {
         RuinedCity.arenaInside = false;
         RuinedCity.exteriorReturn = null;
+        Climate.setInterior(false);
+      }
+      if (profile.id === 'bishop3' && typeof MistValley !== 'undefined') {
+        MistValley.siteInside = false;
         Climate.setInterior(false);
       }
       Player.x = p.x; Player.y = p.y; Player.z = 0;
@@ -1314,6 +1526,7 @@ const Campaign = {
   drawGround(ctx, t) {
     Casino.drawGround(ctx, t);
     RuinedCity.drawGround(ctx, t, this.flags.cityDiscovered);
+    NightSanctum.drawGround(ctx, t);
     this._drawMissionOrder(ctx, t);
     this._drawCityClues(ctx, t);
     const cam = Camera;

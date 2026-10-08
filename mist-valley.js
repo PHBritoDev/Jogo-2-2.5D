@@ -1,9 +1,8 @@
 'use strict';
 
 /* ============================================================
-   MIST VALLEY — região exterior e instância do antigo posto de
-   medição. A descoberta da porta e a progressão ficam em campaign.js.
-   O salão está vazio nesta etapa: não há apresentação nem combate.
+   MIST VALLEY — região exterior, atmosfera e arena instanciada do
+   antigo posto de medição. Descobertas e progressão ficam na campanha.
    ============================================================ */
 const MistValley = {
   bounds: { left: 2520, right: 3190, top: 80, bottom: 850 },
@@ -14,6 +13,8 @@ const MistValley = {
   room: { left: 150, right: 1450, top: 300, bottom: 1280 },
   start: { x: 740, y: 885 },
   exit: { x: 390, y: 1212 },
+  bossStart: { x: 825, y: 745 },
+  returnPoint: { x: 3054, y: 377 },
   siteInside: false,
 
   contains(x, y) {
@@ -37,7 +38,7 @@ const MistValley = {
     this._placePlayer(this.start.x, this.start.y);
     Camera.snap(Player);
     Sfx.blip();
-    Quest.toast('Posto de Medição — há marcas de uso, mas nenhuma presença à vista.', 3.6);
+    Quest.toast('Posto de Medição — as marcas no piso formam um terceiro selo.', 3.6);
   },
 
   exitSite() {
@@ -272,22 +273,49 @@ const MistValley = {
     const inside = this.siteInside;
     if (!inside && !this.contains(Player.x, Player.y)) return;
     ctx.save();
-    const mistAlpha = Climate.state === 'fogging'
-      ? .045 + .07 * (Climate.transition ? Climate.transition.elapsed / Climate.transition.duration : 0)
-      : .105;
-    ctx.globalAlpha = Math.max(.035, Math.min(.12, mistAlpha));
+    const transition = Climate.transition
+      ? Climate.transition.elapsed / Climate.transition.duration : 1;
+    const mistAlpha = Climate.state === 'fogging' ? .07 + .11 * transition : .19;
+    ctx.globalAlpha = Math.max(.055, Math.min(.2, mistAlpha));
     const offsets = inside
-      ? [[440, 880, 360, 62], [1010, 635, 300, 48]]
-      : [[2750, 685, 245, 54], [2940, 505, 310, 63], [3110, 355, 220, 47]];
+      ? [[440, 880, 118, 17], [1010, 635, 92, 14]]
+      : [[2730, 690, 96, 14], [2940, 505, 128, 19], [3110, 355, 84, 13]];
     for (let i = 0; i < offsets.length; i++) {
       const p = offsets[i];
-      const drift = Math.sin(t * .22 + i * 1.9) * 34;
-      const grad = ctx.createRadialGradient(p[0] + drift, p[1], 4, p[0] + drift, p[1], p[2]);
-      grad.addColorStop(0, 'rgba(198,211,209,.92)');
-      grad.addColorStop(.55, 'rgba(174,192,192,.42)');
-      grad.addColorStop(1, 'rgba(172,190,189,0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath(); ctx.ellipse(p[0] + drift, p[1], p[2], p[3], 0, 0, Math.PI * 2); ctx.fill();
+      const drift = Math.sin(t * .13 + i * 1.9) * 22;
+      const breathe = .78 + Math.sin(t * .31 + i * 2.2) * .12;
+      const lobes = [
+        [0, 0, 1, 1],
+        [-.42, 5, .58, .74],
+        [.39, -4, .66, .82]
+      ];
+      for (let j = 0; j < lobes.length; j++) {
+        const l = lobes[j], x = p[0] + drift + p[2] * l[0], y = p[1] + l[1];
+        const rx = p[2] * l[2], ry = p[3] * l[3] * breathe;
+        const grad = ctx.createRadialGradient(x, y, 2, x, y, rx);
+        grad.addColorStop(0, 'rgba(146,171,173,.22)');
+        grad.addColorStop(.48, 'rgba(132,157,161,.08)');
+        grad.addColorStop(1, 'rgba(127,151,156,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.ellipse(x, y, rx, ry, -.025 + i * .02, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // Pontos de luz espaçados sugerem lanternas distantes, sem virar chuva de partículas.
+    const lights = inside
+      ? [[310, 972], [1280, 835]]
+      : [[2675, 670], [2888, 522], [3050, 372]];
+    for (let i = 0; i < lights.length; i++) {
+      const p = lights[i], pulse = .26 + .13 * Math.sin(t * .72 + i * 2.4);
+      const x = p[0] + Math.sin(t * .16 + i) * 8;
+      const y = p[1] + Math.cos(t * .21 + i * 1.5) * 5;
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, 15);
+      glow.addColorStop(0, 'rgba(202,173,112,' + pulse.toFixed(3) + ')');
+      glow.addColorStop(1, 'rgba(202,173,112,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(225,203,153,' + (pulse * .8).toFixed(3) + ')';
+      ctx.beginPath(); ctx.arc(x, y, 1.35, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
   },

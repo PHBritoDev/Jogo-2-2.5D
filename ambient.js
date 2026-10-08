@@ -62,7 +62,8 @@ const Ambient = {
 
   update(dt, t, cam) {
     // Vento com rajadas
-    const hush = Climate.state === 'fog' || Climate.state === 'fogging';
+    const hush = Climate.state === 'fog' || Climate.state === 'fogging' ||
+      Climate.state === 'night' || Climate.state === 'nightfall';
     const breeze = 0.55 + 0.3 * Math.sin(t * 0.35) +
       0.15 * Math.sin(t * 1.1 + 1.7) + 0.1 * Math.sin(t * 2.7);
     this.wind = hush ? U.clamp(breeze * 0.42, 0.08, 0.46) : U.clamp(breeze, 0.15, 1);
@@ -248,15 +249,18 @@ const Ambient = {
   },
 
   drawLeaves(ctx, t) {
-    for (const p of this.leaves) {
-      ctx.fillStyle = p.col;
+    const night = Climate.state === 'night' || Climate.state === 'nightfall';
+    for (let i = 0; i < this.leaves.length; i++) {
+      const p = this.leaves[i];
+      if (night && p.leaf && i % 4 !== 0) continue;
+      ctx.fillStyle = night ? (p.leaf ? '#64717b' : '#c0c3bd') : p.col;
       ctx.beginPath();
       if (p.leaf) {
         ctx.ellipse(p.x, p.y, p.sz, p.sz * 0.5, p.rot, 0, 6.2832);
-        ctx.globalAlpha = 0.9;
+        ctx.globalAlpha = night ? 0.18 : 0.9;
       } else {
         ctx.arc(p.x, p.y, p.sz, 0, 6.2832);
-        ctx.globalAlpha = 0.45 + 0.4 * Math.sin(t * 2 + p.ph);
+        ctx.globalAlpha = night ? 0.16 : 0.45 + 0.4 * Math.sin(t * 2 + p.ph);
       }
       ctx.fill();
     }
@@ -265,7 +269,8 @@ const Ambient = {
 
   // Riscos de vento (espaço da tela, depois do mundo)
   drawStreaks(ctx) {
-    if (this.wind < 0.25 || Climate.state === 'fog' || Climate.state === 'fogging') return;
+    if (this.wind < 0.25 || Climate.state === 'fog' || Climate.state === 'fogging' ||
+        Climate.state === 'night' || Climate.state === 'nightfall') return;
     ctx.globalAlpha = 0.1 + 0.3 * this.wind;
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1.2;

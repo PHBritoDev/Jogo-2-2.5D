@@ -1,6 +1,6 @@
 'use strict';
 
-/* Climas de campanha reutilizáveis. Só tempestade é acionada nesta etapa. */
+/* Climas de campanha reutilizáveis; as missões acionam tempestade, neblina e noite. */
 const CLIMATE_PRESETS = {
   clear: { className: 'clear', thunder: false },
   storm: { className: 'storm', thunder: true },
@@ -33,12 +33,15 @@ const Climate = {
     this.nextFlash = name === 'storm' ? 2.2 + Math.random() * 2.6 : 0;
     if (!this.el) this.el = document.getElementById('climate-layer');
     if (this.el) {
-      this.el.classList.remove('clear', 'storm', 'fog', 'fogging', 'night', 'lightning');
+      this.el.classList.remove('clear', 'storm', 'fog', 'fogging', 'night', 'nightfall', 'transitioning', 'lightning');
       this.el.classList.add(preset.className);
       this.el.style.removeProperty('--mist-progress');
       this.el.style.removeProperty('--storm-residual');
       this.el.style.removeProperty('--rain-opacity');
-      this.el.setAttribute('aria-label', name === 'storm' ? 'Tempestade forte' : 'Clima ' + name);
+      this.el.style.removeProperty('--night-progress');
+      this.el.style.removeProperty('--climate-progress');
+      this.el.setAttribute('aria-label', name === 'storm' ? 'Tempestade forte' :
+        (name === 'night' ? 'Noite estrelada' : 'Clima ' + name));
     }
     return true;
   },
@@ -47,21 +50,26 @@ const Climate = {
     if (!CLIMATE_PRESETS[name]) return false;
     if (this.state === name) return true;
     if (!this.el) this.el = document.getElementById('climate-layer');
-    this.state = 'fogging';
+    const transitionClass = name === 'fog' ? 'fogging' : (name === 'night' ? 'nightfall' : 'transitioning');
+    this.state = transitionClass;
     this.transition = {
       target: name,
+      className: transitionClass,
       duration: Math.max(.1, duration || 6),
       elapsed: 0
     };
     this.flashFor = 0;
     this.thunderIn = -1;
     if (this.el) {
-      this.el.classList.remove('clear', 'storm', 'fog', 'fogging', 'night', 'lightning');
-      this.el.classList.add('fogging');
+      this.el.classList.remove('clear', 'storm', 'fog', 'fogging', 'night', 'nightfall', 'transitioning', 'lightning');
+      this.el.classList.add(transitionClass);
       this.el.style.setProperty('--mist-progress', '0');
-      this.el.style.setProperty('--storm-residual', '1');
-      this.el.style.setProperty('--rain-opacity', '.3');
-      this.el.setAttribute('aria-label', 'O clima está mudando para neblina');
+      this.el.style.setProperty('--night-progress', '0');
+      this.el.style.setProperty('--climate-progress', '0');
+      this.el.style.setProperty('--storm-residual', this.state === 'fogging' ? '1' : '0');
+      this.el.style.setProperty('--rain-opacity', this.state === 'fogging' ? '.3' : '0');
+      this.el.setAttribute('aria-label', name === 'night' ? 'O clima está mudando para noite' :
+        'O clima está mudando para neblina');
     }
     return true;
   },
@@ -82,9 +90,15 @@ const Climate = {
       this.transition.elapsed = Math.min(this.transition.duration, this.transition.elapsed + step);
       const progress = this.transition.elapsed / this.transition.duration;
       if (this.el) {
-        this.el.style.setProperty('--mist-progress', progress.toFixed(3));
-        this.el.style.setProperty('--storm-residual', (1 - progress).toFixed(3));
-        this.el.style.setProperty('--rain-opacity', (.3 * (1 - progress)).toFixed(3));
+        if (this.transition.target === 'fog') {
+          this.el.style.setProperty('--mist-progress', progress.toFixed(3));
+          this.el.style.setProperty('--storm-residual', (1 - progress).toFixed(3));
+          this.el.style.setProperty('--rain-opacity', (.3 * (1 - progress)).toFixed(3));
+        } else if (this.transition.target === 'night') {
+          this.el.style.setProperty('--night-progress', progress.toFixed(3));
+        } else {
+          this.el.style.setProperty('--climate-progress', progress.toFixed(3));
+        }
       }
       if (progress >= 1) {
         const target = this.transition.target;

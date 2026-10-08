@@ -31,7 +31,10 @@ const World = {
     [[2630, 820], [2320, 980], [2000, 1160], [1690, 1330], [1370, 1490], [1050, 1740]],
     // Estrada distante para o vale úmido no extremo nordeste da ilha.
     [[620, 1535], [1250, 1500], [1750, 1400], [2200, 1200],
-      [2560, 990], [2760, 790], [2870, 590], [3020, 355]]
+      [2560, 990], [2760, 790], [2870, 590], [3020, 355]],
+    // Trilha sul para o platô remoto do Observatório do Silêncio.
+    [[3020, 420], [2820, 850], [2520, 1170], [2350, 1430],
+      [2240, 1640], [2070, 1880], [2045, 2130]]
   ],
 
   build() {
@@ -98,6 +101,7 @@ const World = {
     if (typeof RuinedCity !== 'undefined' && RuinedCity.arenaInside) return RuinedCity.room;
     if (typeof Casino !== 'undefined' && Casino.inside) return Casino.room;
     if (typeof MistValley !== 'undefined' && MistValley.siteInside) return MistValley.room;
+    if (typeof NightSanctum !== 'undefined' && NightSanctum.siteInside) return NightSanctum.room;
     return null;
   },
 
@@ -109,6 +113,7 @@ const World = {
   _hiddenByScene(x, y) {
     if (this.activeInstanceBounds()) return true;
     if (typeof MistValley !== 'undefined' && MistValley.contains(x, y)) return true;
+    if (typeof NightSanctum !== 'undefined' && NightSanctum.contains(x, y)) return true;
     return typeof RuinedCity !== 'undefined' && RuinedCity.contains(x, y);
   },
 
