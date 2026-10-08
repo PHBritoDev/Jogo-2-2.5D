@@ -157,6 +157,10 @@
 
     const jump = Input.consumeJump();
 
+    // Troca de câmera (terceira <-> primeira pessoa); ignorada em pausa/diálogo
+    const camPress = Input.consumeCamera();
+    if (camPress && !Game.stopped) FirstPerson.toggle();
+
     // Ataque: descarta toques durante pausa/hitstop para não "vazarem" depois
     let attack = false;
     if (Game.stopped) Input.consumeAttack();
@@ -175,6 +179,7 @@
           for (let i = 0; i < steps; i++) step(h, i === 0 && jump, i === 0 && attack);
         }
       }
+      if (!Game.stopped) FirstPerson.update(dt);   // detecta combate real e orienta o olhar
       Quest.frame(dt);
       Combat.updateHud();
       Render.frame(dt);

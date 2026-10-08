@@ -113,6 +113,9 @@ const Render = {
     const isolatedScene = !!World.activeInstanceBounds();
     this.dt = dt;
 
+    // Primeira pessoa: câmera própria (firstperson.js); a terceira segue abaixo, intacta
+    if (FirstPerson.active) { FirstPerson.render(ctx, dt); return; }
+
     ctx.setTransform(cam.scale, 0, 0, cam.scale, 0, 0);
 
     // Céu e nuvens (espaço da tela)

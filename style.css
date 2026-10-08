@@ -65,6 +65,10 @@ canvas {
 
 .btn-round:active { background: rgba(0, 0, 0, .6); }
 
+/* Botão de câmera: aceso = primeira pessoa; apagado = travado pelo combate */
+#btn-camera.on { background: rgba(255, 211, 77, .55); border-color: #ffd34d; }
+#btn-camera.locked { opacity: .45; }
+
 /* ---------- Joystick ---------- */
 #joy-zone {
   position: fixed;
