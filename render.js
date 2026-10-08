@@ -138,7 +138,10 @@ const Render = {
     StormEvents.draw(ctx, t);
 
     this.tall.push(Player);
-    if (Enemy.alpha > 0) this.tall.push(Enemy);
+    for (let i = 0; i < Enemy.instances.length; i++) {
+      const enemy = Enemy.instances[i];
+      if (enemy.alpha > 0) this.tall.push(enemy);
+    }
     if (Greedling.alpha > 0 && Greedling.state !== 'gone') this.tall.push(Greedling);
     if (BishopBoss.alpha > 0 && BishopBoss.state !== 'inactive') this.tall.push(BishopBoss);
     if (Traveler.alpha > 0 && Traveler.state !== 'gone') this.tall.push(Traveler);
@@ -151,7 +154,7 @@ const Render = {
         case 'rock':   this._drawRock(ctx, o); break;
         case 'bush':   this._drawBush(ctx, o); break;
         case 'player': Player.draw(ctx); break;
-        case 'enemy':  Enemy.draw(ctx, t); break;
+        case 'enemy':  o.draw(ctx, t); break;
         case 'greedling': Greedling.draw(ctx, t); break;
         case 'bishop': BishopBoss.draw(ctx, t); break;
         case 'npc':    Traveler.draw(ctx, t); break;

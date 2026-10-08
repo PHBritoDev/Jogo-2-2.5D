@@ -911,6 +911,8 @@ const HANDLERS = {
       st.phase = 'approach';
       st.wave = 0;
       st.alive = false;
+      st.enemies = [];
+      st.current = null;
       st.t = 0;
       st.sparkT = 0;
       Campaign.followerActive = false;
@@ -924,7 +926,9 @@ const HANDLERS = {
       return 'A rua está livre.';
     },
     target: function (s, st) {
-      return st.phase === 'fight' && st.alive && Enemy.state !== 'dead' ? Enemy : s.target;
+      return st.phase === 'fight' && st.alive && st.current && st.current.state !== 'dead'
+        ? st.current
+        : s.target;
     },
     ring: function (s, st) { return st.phase === 'approach' || st.phase === 'fight'; },
     update: function (s, st, dt) {
@@ -942,14 +946,15 @@ const HANDLERS = {
           Ambient.spawnSpark(p.x, p.y - 9, 3, '#d49a45');
         }
         if (st.t >= (s.omenTime || 1.15)) {
-          const p = s.spawns[st.wave++];
-          Campaign.spawnFollower(p, s);
+          const point = s.spawns[st.wave++];
+          st.current = Campaign.spawnFollower(point, s);
+          st.enemies.push(st.current);
           st.alive = true;
           st.phase = 'fight';
           st.t = 0;
           Campaign.refresh();
         }
-      } else if (st.phase === 'fight' && st.alive && Enemy.state === 'dead') {
+      } else if (st.phase === 'fight' && st.alive && st.current && st.current.state === 'dead') {
         st.alive = false;
         st.phase = 'between';
         st.t = 0;
@@ -1016,7 +1021,8 @@ const HANDLERS = {
     enter: function (s, st) { st.phase = 'approach'; },
     obj: function (s, st) { return st.phase === 'fight' ? s.fightObj : s.obj; },
     target: function (s, st) {
-      return st.phase === 'fight' && Enemy.state !== 'dead' ? Enemy : s.target;
+      const guard = Campaign.guardEnemy;
+      return st.phase === 'fight' && guard && guard.state !== 'dead' ? guard : s.target;
     },
     ring: function (s, st) { return st.phase === 'approach'; },
     update: function (s, st) {
@@ -1025,12 +1031,14 @@ const HANDLERS = {
           st.phase = 'event';
           Dialog.start(GUARD_NODES, 'g1', function () {
             st.phase = 'fight';
-            if (Enemy.state !== 'dead') Enemy._go('chase');
+            const guard = Campaign.guardEnemy;
+            if (guard && guard.state !== 'dead') guard._go('chase');
             Campaign.refresh();
           });
         }
       } else if (st.phase === 'fight') {
-        if (Enemy.state === 'dead') {
+        const guard = Campaign.guardEnemy;
+        if (guard && guard.state === 'dead') {
           Campaign.flags.guardDown = true;
           Campaign.retireGuard = true;   // o guarda não volta mais
           Quest.coins += s.reward;
@@ -1191,6 +1199,7 @@ const Campaign = {
   followerActive: false,
   enemyTerritory: 1,
   baseEnemyConfig: null,
+  guardEnemy: null,
   bannerT: 0,
   elBanner: null, elTop: null, elName: null, elReward: null, elNext: null,
 
@@ -1224,7 +1233,8 @@ const Campaign = {
     CFG.COMBAT.enemy.x = LOC.guard.x;
     CFG.COMBAT.enemy.y = LOC.guard.y;
     this.baseEnemyConfig = Object.assign({}, CFG.COMBAT.enemy);
-    Enemy.spawn();
+    Enemy.resetAll(CFG.COMBAT.enemy);
+    this.guardEnemy = Enemy.instances[0] || null;
   },
 
   start() {
@@ -1362,7 +1372,7 @@ const Campaign = {
     if (!this.baseEnemyConfig) this.baseEnemyConfig = Object.assign({}, CFG.COMBAT.enemy);
     const base = this.baseEnemyConfig;
     const hpScale = step.hpScale || 0.72;
-    CFG.COMBAT.enemy = Object.assign({}, base, {
+    const config = Object.assign({}, base, {
       x: point.x,
       y: point.y,
       hp: Math.max(1, Math.round(base.hp * hpScale)),
@@ -1370,11 +1380,11 @@ const Campaign = {
       speed: Math.round(base.speed * (step.speedScale || 1)),
       respawn: 999999
     });
-    this.retireGuard = false;
     this.followerActive = true;
-    Enemy.spawn();
-    Enemy._go('chase');
-    this.refresh();
+    const enemy = Enemy.spawn(config);
+    enemy.removeWhenDead = true;
+    enemy._go('chase');
+    return enemy;
   },
 
   restoreGuard() {
@@ -1472,10 +1482,10 @@ const Campaign = {
 
   // ----- por passo de física (não roda em pausa/diálogo) -----
   update(dt) {
-    if (this.retireGuard) {   // mantém o guarda derrotado fora do mapa
-      Enemy.state = 'dead';
-      Enemy.stateT = 0;
-      Enemy.alpha = 0;
+    if (this.retireGuard && this.guardEnemy) {   // mantém o guarda derrotado fora do mapa
+      this.guardEnemy.state = 'dead';
+      this.guardEnemy.stateT = 0;
+      this.guardEnemy.alpha = 0;
     }
     if (this.finished || !this.step) return;
     HANDLERS[this.step.type].update(this.step, this.st, dt);

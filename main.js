@@ -112,7 +112,7 @@
   World.build();
   Render.init(ctx);
   Combat.init();
-  Combat.reset();   // faz Player.spawn + Enemy.spawn
+  Combat.reset();   // reinicia Player e a coleção de Enemy
   resize(true);
   Ambient.init(Camera);
   Quest.init();

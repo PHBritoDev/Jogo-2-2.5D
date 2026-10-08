@@ -85,25 +85,41 @@ const Sfx = (function () {
 /* ---------------- Inimigo de teste ---------------- */
 const Enemy = {
   type: 'enemy',
-  x: 0, y: 0, z: 0,
-  vx: 0, vy: 0, vz: 0,
-  kx: 0, ky: 0,
-  r: 12,
-  hp: 1, maxHp: 1, trail: 1, trailDelay: 0,
-  state: 'idle',        // idle, chase, windup, attack, recover, stagger, dead
-  stateT: 0,
-  flashT: 0,
-  alpha: 1,
-  hitDone: false,
-  hitId: -1,            // último golpe do jogador que me acertou
-  fx: -1, fy: 0,
-  anim: 0, speed: 0,
-  onGround: true, floor: 0,
-  sy: 0,
-  _solids: [],
+  instances: [],
 
-  spawn() {
-    const E = CFG.COMBAT.enemy;
+  // Cria uma entidade nova; o objeto retornado mantém o mesmo comportamento
+  // de Enemy, mas possui estado, física e configuração próprios.
+  spawn(config) {
+    const enemy = Object.create(this);
+    enemy._solids = [];
+    enemy._spawn(config || CFG.COMBAT.enemy);
+    this.instances.push(enemy);
+    return enemy;
+  },
+
+  // Reinicia cada entidade em seu próprio ponto/configuração de spawn.
+  // É usado quando o jogador morre, como o spawn original do inimigo único.
+  resetAll(config) {
+    if (config) {
+      this.instances.length = 0;
+      return this.spawn(config);
+    }
+    if (!this.instances.length) return this.spawn();
+    for (let i = 0; i < this.instances.length; i++) {
+      const enemy = this.instances[i];
+      enemy._spawn(enemy.spawnConfig);
+    }
+  },
+
+  remove(enemy) {
+    const index = this.instances.indexOf(enemy);
+    if (index >= 0) this.instances.splice(index, 1);
+  },
+
+  _spawn(config) {
+    const E = Object.assign({}, CFG.COMBAT.enemy, config || {});
+    this.stats = E;
+    this.spawnConfig = Object.assign({}, E);
     this.x = E.x; this.y = E.y; this.z = 0;
     this.vx = this.vy = this.vz = 0;
     this.kx = this.ky = 0;
@@ -113,6 +129,7 @@ const Enemy = {
     this.flashT = 0; this.alpha = 1;
     this.hitDone = false; this.hitId = -1;
     this.fx = -1; this.fy = 0;
+    this.anim = 0; this.speed = 0;
     this.onGround = true; this.floor = 0;
     this.sy = this.y;
   },
@@ -154,7 +171,18 @@ const Enemy = {
   },
 
   update(dt) {
-    const E = CFG.COMBAT.enemy;
+    const enemies = this.instances;
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const enemy = enemies[i];
+      enemy._update(dt);
+      if (enemy.removeWhenDead && enemy.state === 'dead' && enemy.alpha <= 0) {
+        this.remove(enemy);
+      }
+    }
+  },
+
+  _update(dt) {
+    const E = this.stats;
     this.stateT += dt;
     this.flashT = Math.max(0, this.flashT - dt);
 
@@ -205,7 +233,7 @@ const Enemy = {
 
       case 'dead':
         this.alpha = U.clamp(1 - (this.stateT - 0.9) / 0.7, 0, 1);
-        if (this.stateT >= E.respawn) { this.spawn(); return; }
+        if (this.stateT >= E.respawn) { this._spawn(this.spawnConfig); return; }
         break;
     }
 
@@ -272,7 +300,7 @@ const Enemy = {
 
   draw(ctx, t) {
     if (this.alpha <= 0) return;
-    const E = CFG.COMBAT.enemy;
+    const E = this.stats;
     const h = this.z - this.floor;
     const ss = 1 - Math.min(h, 120) / 240;
     const portraitHeight = TerritoryEnemyVisuals.commonHeight();
@@ -431,7 +459,7 @@ const Combat = {
       ? RuinedCity.start
       : (Casino && Casino.inside ? Casino.start : World.spawn);
     Player.spawn(spawn.x, spawn.y);
-    Enemy.spawn();
+    Enemy.resetAll();
     Greedling.reset();
     BishopBoss.reset();
     this.texts.length = 0;
@@ -481,14 +509,14 @@ const Combat = {
     BishopBoss.update(dt);
 
     // ----- Hitbox do ataque do jogador + colisão entre personagens -----
-    // Vale para todos os inimigos (Enemy de teste e Cobiçoso)
-    this._foe(Enemy);
+    // Cada inimigo comum usa a mesma hitbox e colisão, independentemente.
+    for (let i = 0; i < Enemy.instances.length; i++) this._foe(Enemy.instances[i]);
     this._foe(Greedling);
     this._foe(BishopBoss);
 
     // ----- Barras (rastro do dano) e textos -----
     this._trail(Player, dt);
-    this._trail(Enemy, dt);
+    for (let i = 0; i < Enemy.instances.length; i++) this._trail(Enemy.instances[i], dt);
     this._trail(Greedling, dt);
     this._trail(BishopBoss, dt);
 
@@ -584,7 +612,11 @@ const Combat = {
     ctx.strokeStyle = 'rgba(0,255,255,0.9)';
     ctx.beginPath(); ctx.arc(Player.x, Player.y, Player.r, 0, 6.2832); ctx.stroke();
     ctx.strokeStyle = 'rgba(255,80,80,0.9)';
-    ctx.beginPath(); ctx.arc(Enemy.x, Enemy.y, Enemy.r, 0, 6.2832); ctx.stroke();
+    for (let i = 0; i < Enemy.instances.length; i++) {
+      const enemy = Enemy.instances[i];
+      if (enemy.state === 'dead') continue;
+      ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.r, 0, 6.2832); ctx.stroke();
+    }
     if (Greedling.state !== 'gone') { ctx.beginPath(); ctx.arc(Greedling.x, Greedling.y, Greedling.r, 0, 6.2832); ctx.stroke(); }
     if (Player.attackT >= 0) {
       ctx.strokeStyle = Player.isAttackActive() ? 'rgba(255,255,0,1)' : 'rgba(255,255,0,0.3)';
