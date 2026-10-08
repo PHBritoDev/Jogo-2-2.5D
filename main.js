@@ -113,7 +113,6 @@
   Render.init(ctx);
   Combat.init();
   Combat.reset();   // reinicia Player e a coleção de Enemy
-  FirstPerson._syncButton();
   resize(true);
   Ambient.init(Camera);
   Quest.init();
@@ -158,10 +157,9 @@
 
     const jump = Input.consumeJump();
 
-    // Percorre os modos de câmera; ignorado em pausa/diálogo
-    const camPress = Input.consumeCamera();
-    if (camPress && !Game.stopped) FirstPerson.cycleMode();
-    if (!Game.stopped) FirstPerson.update(dt, Input.aimHeld());
+    // A mira alterna entre direção livre e direção travada; ignorada em pausa/diálogo
+    if (Game.stopped) Input.consumeAimToggle();
+    else if (Input.consumeAimToggle()) Player.setAimMode(!Player.aimLocked);
 
     // Ataque: descarta toques durante pausa/hitstop para não "vazarem" depois
     let attack = false;

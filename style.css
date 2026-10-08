@@ -65,10 +65,6 @@ canvas {
 
 .btn-round:active { background: rgba(0, 0, 0, .6); }
 
-/* O estado aceso indica primeira pessoa; combate nunca bloqueia a troca. */
-#btn-camera.on { background: rgba(255, 211, 77, .55); border-color: #ffd34d; }
-#btn-camera { min-width: 46px; font-size: 11px; font-weight: 800; }
-
 /* ---------- Joystick ---------- */
 #joy-zone {
   position: fixed;
@@ -77,17 +73,6 @@ canvas {
   bottom: 0;
   width: 50%;
   z-index: 5;
-  touch-action: none;
-}
-
-/* Área livre à direita: não cobre botões e aceita um segundo dedo. */
-#camera-zone {
-  position: fixed;
-  top: calc(58px + env(safe-area-inset-top));
-  right: 0;
-  bottom: calc(190px + env(safe-area-inset-bottom));
-  width: 50%;
-  z-index: 4;
   touch-action: none;
 }
 
@@ -201,7 +186,7 @@ canvas {
 
 .hidden { display: none !important; }
 
-/* Ataque, defesa e mira ficam juntos, sem invadir a zona de câmera. */
+/* Ataque, defesa, mira direcional e pulo ficam juntos para toque. */
 #btn-attack {
   grid-column: 1;
   grid-row: 1;
@@ -234,11 +219,12 @@ canvas {
   font-size: 11px;
 }
 
-#btn-aim.pressed {
+#btn-aim.on {
   background: rgba(255, 211, 77, .62);
   border-color: #fff0b5;
-  transform: scale(.94);
 }
+
+#btn-aim.pressed { transform: scale(.94); }
 
 #btn-attack.pressed, #btn-defend.pressed { transform: scale(.94); filter: brightness(1.4); }
 
