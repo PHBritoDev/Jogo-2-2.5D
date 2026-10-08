@@ -6,7 +6,6 @@
    ============================================================ */
 const Input = (function () {
   const zone = document.getElementById('joy-zone');
-  const cameraZone = document.getElementById('camera-zone');
   const base = document.getElementById('joy-base');
   const knob = document.getElementById('joy-knob');
 
@@ -17,10 +16,8 @@ const Input = (function () {
 
   let joyId = null;
   let cx = 0, cy = 0;
-  let touchJump = false, touchDefend = false, touchAim = false;
-  let jumpQueued = false, attackQueued = false, interactQueued = false, cameraQueued = false;
-  const cameraPointers = new Map();
-  let pinchDistance = 0;
+  let touchJump = false, touchDefend = false;
+  let jumpQueued = false, attackQueued = false, interactQueued = false, aimToggleQueued = false;
 
   function placeBase(x, y) {
     base.style.left = x + 'px';
@@ -88,52 +85,6 @@ const Input = (function () {
   zone.addEventListener('pointercancel', endJoy);
   zone.addEventListener('lostpointercapture', endJoy);
 
-  // ----- Olhar (área livre no lado direito; botões têm prioridade visual) -----
-  function pointerDistance(a, b) {
-    return Math.hypot(a.x - b.x, a.y - b.y);
-  }
-
-  cameraZone.addEventListener('pointerdown', function (e) {
-    if (cameraPointers.has(e.pointerId)) return;
-    e.preventDefault();
-    cameraPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    try { cameraZone.setPointerCapture(e.pointerId); } catch (err) {}
-    pinchDistance = cameraPointers.size === 2
-      ? pointerDistance.apply(null, Array.from(cameraPointers.values()))
-      : 0;
-  });
-
-  cameraZone.addEventListener('pointermove', function (e) {
-    const point = cameraPointers.get(e.pointerId);
-    if (!point) return;
-    e.preventDefault();
-    const dx = e.clientX - point.x, dy = e.clientY - point.y;
-    point.x = e.clientX;
-    point.y = e.clientY;
-
-    if (cameraPointers.size >= 2) {
-      const points = Array.from(cameraPointers.values());
-      const nextDistance = pointerDistance(points[0], points[1]);
-      if (pinchDistance > 0) FirstPerson.adjustZoom((nextDistance - pinchDistance) * 0.0025);
-      pinchDistance = nextDistance;
-      return;
-    }
-
-    if (FirstPerson.active) FirstPerson.lookBy(dx, dy);
-    else Camera.panBy(dx, dy);
-  });
-
-  function endCamera(e) {
-    if (!cameraPointers.has(e.pointerId)) return;
-    cameraPointers.delete(e.pointerId);
-    pinchDistance = cameraPointers.size === 2
-      ? pointerDistance.apply(null, Array.from(cameraPointers.values()))
-      : 0;
-  }
-  cameraZone.addEventListener('pointerup', endCamera);
-  cameraZone.addEventListener('pointercancel', endCamera);
-  cameraZone.addEventListener('lostpointercapture', endCamera);
-
   // ----- Botões de ação (cada um com seu próprio toque) -----
   function bindButton(id, onDown, onUp) {
     const el = document.getElementById(id);
@@ -161,30 +112,29 @@ const Input = (function () {
   bindButton('btn-jump', function () { touchJump = true; jumpQueued = true; }, function () { touchJump = false; });
   bindButton('btn-attack', function () { attackQueued = true; }, function () {});
   bindButton('btn-interact', function () { interactQueued = true; }, function () {});
-  bindButton('btn-camera', function () { cameraQueued = true; }, function () {});
   bindButton('btn-defend', function () { touchDefend = true; }, function () { touchDefend = false; });
-  bindButton('btn-aim', function () { touchAim = true; }, function () { touchAim = false; });
+  bindButton('btn-aim', function () { aimToggleQueued = true; }, function () {});
 
   // ----- Teclado (teste no PC) -----
   const JUMP_KEYS = { Space: 1, KeyZ: 1, KeyK: 1 };
   const ATTACK_KEYS = { KeyJ: 1, KeyX: 1 };
   const INTERACT_KEYS = { KeyE: 1, Enter: 1 };
-  const CAMERA_KEYS = { KeyV: 1 };   // alterna os modos de câmera
+  const AIM_KEYS = { KeyF: 1, Button5: 1 };   // alterna a mira direcional
   window.addEventListener('keydown', function (e) {
     if (e.code === 'Space' || e.code.indexOf('Arrow') === 0) e.preventDefault();
     if (!keys[e.code]) {
       if (JUMP_KEYS[e.code]) jumpQueued = true;
       if (ATTACK_KEYS[e.code]) attackQueued = true;
       if (INTERACT_KEYS[e.code]) interactQueued = true;
-      if (CAMERA_KEYS[e.code]) cameraQueued = true;
+      if (AIM_KEYS[e.code]) aimToggleQueued = true;
     }
     keys[e.code] = true;
   });
   window.addEventListener('keyup', function (e) { keys[e.code] = false; });
   window.addEventListener('blur', function () {
     for (const k in keys) keys[k] = false;
-    touchJump = false; touchDefend = false; touchAim = false;
-    cameraPointers.clear(); pinchDistance = 0;
+    touchJump = false; touchDefend = false;
+    aimToggleQueued = false;
     releaseJoy();
   });
 
@@ -209,12 +159,11 @@ const Input = (function () {
     },
     jumpHeld() { return touchJump || !!(keys.Space || keys.KeyZ || keys.KeyK); },
     defendHeld() { return touchDefend || !!(keys.KeyL || keys.KeyC || keys.ShiftLeft); },
-    aimHeld() { return touchAim || !!(keys.KeyF || keys.Button5); },
     // Retornam true uma vez por apertar (segurar o botão NÃO repete)
     consumeJump() { const j = jumpQueued; jumpQueued = false; return j; },
     consumeAttack() { const a = attackQueued; attackQueued = false; return a; },
     consumeInteract() { const a = interactQueued; interactQueued = false; return a; },
-    consumeCamera() { const a = cameraQueued; cameraQueued = false; return a; },
+    consumeAimToggle() { const a = aimToggleQueued; aimToggleQueued = false; return a; },
     relayout: layoutIdle,   // reposiciona o joystick (chamado pelo resize do main.js)
     isKey(code) { return !!keys[code]; }
   };

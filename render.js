@@ -113,9 +113,6 @@ const Render = {
     const isolatedScene = !!World.activeInstanceBounds();
     this.dt = dt;
 
-    // Primeira pessoa: câmera própria (firstperson.js); a terceira segue abaixo, intacta
-    if (FirstPerson.active) { FirstPerson.render(ctx, dt); return; }
-
     ctx.setTransform(cam.scale, 0, 0, cam.scale, 0, 0);
 
     // Céu e nuvens (espaço da tela)
@@ -162,20 +159,6 @@ const Render = {
         case 'bishop': BishopBoss.draw(ctx, t); break;
         case 'npc':    Traveler.draw(ctx, t); break;
       }
-    }
-
-    // Sinal discreto sob o alvo durante MIRAR; mantém o desenho do inimigo intacto.
-    if (FirstPerson.aiming && FirstPerson.target) {
-      const target = FirstPerson.target;
-      const radius = target.r || 12;
-      ctx.save();
-      ctx.globalAlpha = 0.58 + Math.sin(t * 5) * 0.12;
-      ctx.strokeStyle = '#ffe29a';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(target.x, target.y + 2, Math.max(12, radius * 1.45), Math.max(6, radius * 0.62), 0, 0, 6.2832);
-      ctx.stroke();
-      ctx.restore();
     }
 
     Ambient.drawDust(ctx);

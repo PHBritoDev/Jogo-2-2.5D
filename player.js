@@ -29,6 +29,8 @@ const Player = {
   attackId: 0,           // identifica cada golpe (evita dano repetido)
   atkBuf: 0, atkCool: 0,
   atkDirX: 0, atkDirY: 1,
+  aimLocked: false,
+  aimDirX: 0, aimDirY: 1,
   blocking: false, blockFlash: 0,
   hurtT: 0, blinkT: 0, invuln: 0, stun: 0,
   dead: false, deadT: 0,
@@ -41,6 +43,9 @@ const Player = {
     this.floor = 0;
     this.sy = y;
     this.fx = 0; this.fy = 1;
+    this.aimLocked = false;
+    this.aimDirX = this.fx; this.aimDirY = this.fy;
+    this._syncAimButton();
     this.squash = 0;
     this.maxHp = CFG.COMBAT.playerHP;
     this.hp = this.maxHp; this.trail = this.hp; this.trailDelay = 0;
@@ -65,12 +70,37 @@ const Player = {
     return this.attackT >= CFG.COMBAT.hitStart && this.attackT <= CFG.COMBAT.hitEnd;
   },
 
+  _syncAimButton() {
+    const button = document.getElementById('btn-aim');
+    if (!button) return;
+    button.classList.toggle('on', this.aimLocked);
+    button.setAttribute('aria-pressed', this.aimLocked ? 'true' : 'false');
+    button.setAttribute('aria-label', this.aimLocked ? 'Desativar mira direcional' : 'Ativar mira direcional');
+  },
+
+  setAimMode(locked) {
+    this.aimLocked = !!locked;
+    if (this.aimLocked) {
+      const length = Math.hypot(this.fx, this.fy) || 1;
+      this.aimDirX = this.fx / length;
+      this.aimDirY = this.fy / length;
+      this.fx = this.aimDirX;
+      this.fy = this.aimDirY;
+    }
+    this._syncAimButton();
+  },
+
   _startAttack(ax, ay) {
     const C = CFG.COMBAT;
-    let dx = ax, dy = ay;
-    const m = Math.hypot(dx, dy);
-    if (m > 0.3) { dx /= m; dy /= m; }
-    else { const f = Math.hypot(this.fx, this.fy) || 1; dx = this.fx / f; dy = this.fy / f; }
+    let dx, dy;
+    if (this.aimLocked) {
+      dx = this.aimDirX; dy = this.aimDirY;
+    } else {
+      dx = ax; dy = ay;
+      const m = Math.hypot(dx, dy);
+      if (m > 0.3) { dx /= m; dy /= m; }
+      else { const f = Math.hypot(this.fx, this.fy) || 1; dx = this.fx / f; dy = this.fy / f; }
+    }
     this.atkDirX = dx; this.atkDirY = dy;
     this.fx = dx; this.fy = dy;
     this.attackT = 0;
@@ -251,7 +281,7 @@ const Player = {
 
     // ----- Animação -----
     this.speed = Math.hypot(this.vx, this.vy);
-    if (this.speed > 8 && this.attackT < 0 && !this.dead) {
+    if (this.speed > 8 && this.attackT < 0 && !this.dead && !this.aimLocked) {
       const f = Math.min(1, dt * 14);
       this.fx += (this.vx / this.speed - this.fx) * f;
       this.fy += (this.vy / this.speed - this.fy) * f;
