@@ -65,9 +65,9 @@ canvas {
 
 .btn-round:active { background: rgba(0, 0, 0, .6); }
 
-/* Botão de câmera: aceso = primeira pessoa; apagado = travado pelo combate */
+/* O estado aceso indica primeira pessoa; combate nunca bloqueia a troca. */
 #btn-camera.on { background: rgba(255, 211, 77, .55); border-color: #ffd34d; }
-#btn-camera.locked { opacity: .45; }
+#btn-camera { min-width: 46px; font-size: 11px; font-weight: 800; }
 
 /* ---------- Joystick ---------- */
 #joy-zone {
@@ -77,6 +77,17 @@ canvas {
   bottom: 0;
   width: 50%;
   z-index: 5;
+  touch-action: none;
+}
+
+/* Área livre à direita: não cobre botões e aceita um segundo dedo. */
+#camera-zone {
+  position: fixed;
+  top: calc(58px + env(safe-area-inset-top));
+  right: 0;
+  bottom: calc(190px + env(safe-area-inset-bottom));
+  width: 50%;
+  z-index: 4;
   touch-action: none;
 }
 
@@ -110,25 +121,43 @@ canvas {
   box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
 }
 
-/* ---------- Botão de pulo ---------- */
-#btn-jump {
+/* ---------- Ações agrupadas para o polegar direito ---------- */
+#action-cluster {
   position: fixed;
-  right: calc(30px + env(safe-area-inset-right));
-  bottom: calc(30px + env(safe-area-inset-bottom));
+  right: calc(16px + env(safe-area-inset-right));
+  bottom: calc(14px + env(safe-area-inset-bottom));
   z-index: 10;
-  width: 88px;
-  height: 88px;
+  display: grid;
+  grid-template-columns: 82px 82px;
+  grid-template-rows: 76px 82px;
+  gap: 8px;
+  pointer-events: none;
+}
+
+#action-cluster button {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, .8);
-  background: rgba(255, 255, 255, .22);
   color: #fff;
   font-weight: 700;
-  font-size: 13px;
   letter-spacing: .5px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
   touch-action: none;
+  pointer-events: auto;
 }
 
+#btn-jump {
+  grid-column: 2;
+  grid-row: 2;
+  width: 82px !important;
+  height: 82px !important;
+  border: 3px solid rgba(255, 255, 255, .8);
+  background: rgba(255, 255, 255, .22);
+  font-size: 12px;
+}
 #btn-jump.pressed { background: rgba(255, 255, 255, .5); transform: scale(.94); }
 
 /* ---------- Telas de aviso ---------- */
@@ -172,36 +201,43 @@ canvas {
 
 .hidden { display: none !important; }
 
-/* ---------- Botões de combate ---------- */
-#btn-attack, #btn-defend {
-  position: fixed;
-  z-index: 10;
-  border-radius: 50%;
-  color: #fff;
-  font-weight: 700;
-  letter-spacing: .5px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
-  touch-action: none;
-}
-
+/* Ataque, defesa e mira ficam juntos, sem invadir a zona de câmera. */
 #btn-attack {
-  right: calc(130px + env(safe-area-inset-right));
-  bottom: calc(40px + env(safe-area-inset-bottom));
-  width: 84px;
-  height: 84px;
-  font-size: 12px;
+  grid-column: 1;
+  grid-row: 1;
   border: 3px solid rgba(255, 190, 170, .9);
   background: rgba(220, 70, 50, .35);
+  font-size: 11px;
 }
 
 #btn-defend {
-  right: calc(40px + env(safe-area-inset-right));
-  bottom: calc(130px + env(safe-area-inset-bottom));
-  width: 72px;
-  height: 72px;
-  font-size: 10px;
+  grid-column: 2;
+  grid-row: 1;
+  width: 72px !important;
+  height: 72px !important;
+  align-self: center;
+  justify-self: center;
   border: 3px solid rgba(170, 215, 255, .9);
   background: rgba(60, 130, 220, .3);
+  font-size: 10px;
+}
+
+#btn-aim {
+  grid-column: 1;
+  grid-row: 2;
+  width: 72px !important;
+  height: 72px !important;
+  align-self: center;
+  justify-self: center;
+  border: 3px solid rgba(255, 226, 154, .9);
+  background: rgba(202, 148, 48, .32);
+  font-size: 11px;
+}
+
+#btn-aim.pressed {
+  background: rgba(255, 211, 77, .62);
+  border-color: #fff0b5;
+  transform: scale(.94);
 }
 
 #btn-attack.pressed, #btn-defend.pressed { transform: scale(.94); filter: brightness(1.4); }
@@ -342,8 +378,8 @@ canvas {
 /* ---------- Botão FALAR ---------- */
 #btn-interact {
   position: fixed;
-  right: calc(130px + env(safe-area-inset-right));
-  bottom: calc(135px + env(safe-area-inset-bottom));
+  right: calc(198px + env(safe-area-inset-right));
+  bottom: calc(72px + env(safe-area-inset-bottom));
   z-index: 10;
   width: 70px;
   height: 70px;

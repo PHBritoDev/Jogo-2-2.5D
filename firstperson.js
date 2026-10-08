@@ -15,40 +15,46 @@
      que reutilizam as funções de desenho que já existem.
    - O corpo do protagonista NÃO é desenhado (só mãos/escudo).
 
-   Combate REAL = algum oponente em estado ativo (perseguindo,
-   preparando/executando golpe, em recuperação, atordoado...) perto
-   do jogador. Nesse caso a câmera entra sozinha em primeira pessoa
-   e a troca manual fica travada até o combate acabar.
+   Os modos de câmera são escolhidos pelo jogador. O foco de combate é
+   opcional e suave: não trava a câmera nem substitui as regras de combate.
 
    Controle de troca: tecla V ou botão #btn-camera (ver input.js).
    ============================================================ */
 const FirstPerson = {
   cfg: {
-    hfov: 80 * Math.PI / 180,  // campo de visão horizontal
-    eye: 27,                   // altura dos olhos acima do chão (o corpo tem ~34)
-    horizon: 0.46,             // posição do horizonte na tela (0 = topo, 1 = base)
-    far: 480,                  // alcance do chão e das árvores
+    hfov: 90 * Math.PI / 180,  // campo mais aberto para reduzir a sensação de proximidade
+    maxHfov: 95 * Math.PI / 180,
+    eye: 23,                   // câmera um pouco mais baixa que a versão anterior
+    horizon: 0.47,             // posição do horizonte na tela (0 = topo, 1 = base)
+    far: 420,                  // reequilibrado com o FOV para manter o custo do buffer
     indoorFar: 340,            // alcance dentro de locais fechados
     bufScale: 1,               // pixels do buffer do chão por unidade de mundo
     strip: 2,                  // altura (em unidades de tela) de cada faixa de chão
     pad: 14,                   // folga lateral (esconde as bordas durante o tremor)
-    turn: 9,                   // velocidade do giro do olhar
+    turn: 7,                   // giro suave, sem puxões bruscos
     combatRange: 640,          // distância máxima para um oponente contar como combate
-    combatHold: 0.8,           // segundos até liberar a câmera depois do último oponente
     idleSpeed: 30,             // abaixo disso o jogador é considerado "parado"
-    aimAtTarget: true,         // parado em combate: o jogador "olha" para onde a câmera olha
     engaged: {                 // estados que contam como combate real
       emerge: 1, approach: 1, chase: 1, guard: 1, windup: 1,
       attack: 1, recover: 1, stagger: 1, flee: 1
     }
   },
 
+  modes: [
+    { label: '3ª pessoa próxima', zoom: 0.92, firstPerson: false },
+    { label: '3ª pessoa afastada', zoom: 1.25, firstPerson: false },
+    { label: '1ª pessoa', zoom: 1.25, firstPerson: true }
+  ],
+  modeIndex: 1,
+  modeZoom: 1.25,
   active: false,     // true = primeira pessoa
-  locked: false,     // true = combate real (não pode voltar para terceira)
+  aiming: false,
+  viewZoom: 1,
+  viewZoomTarget: 1,
   yaw: Math.PI / 2,  // direção do olhar (rad): 0 = +x, PI/2 = +y (sul)
+  pitch: 0,
+  manualLook: false,
   target: null,      // oponente que a câmera enquadra em combate
-
-  _hold: 0,
   _foes: [],
   _btn: null,
   _buf: null, _bg: null, _bw: 0, _bh: 0, _bx: 0, _by: 0,
@@ -65,26 +71,48 @@ const FirstPerson = {
 
   facingAngle() { return Math.atan2(Player.fy, Player.fx); },
 
-  // Alterna terceira <-> primeira pessoa (bloqueado em combate real)
-  toggle() {
-    if (this.locked) {
-      Quest.toast('Primeira pessoa travada durante o combate', 1.6);
-      return false;
-    }
-    this.active = !this.active;
+  // Percorre 3ª próxima, 3ª afastada e 1ª pessoa.
+  cycleMode() {
+    this.modeIndex = (this.modeIndex + 1) % this.modes.length;
+    const mode = this.modes[this.modeIndex];
+    this.active = mode.firstPerson;
+    this.modeZoom = mode.zoom;
+    Camera.setZoom(this.modeZoom);
+    Camera.resetLook();
+    this.manualLook = false;
+    this.pitch = 0;
     if (this.active) this.yaw = this.facingAngle();
     this._syncButton();
     return true;
+  },
+
+  toggle() { return this.cycleMode(); },
+
+  lookBy(dx, dy) {
+    this.yaw = this._wrap(this.yaw + dx * 0.005);
+    this.pitch = U.clamp(this.pitch - dy * 0.004, -0.42, 0.42);
+    this.manualLook = true;
+  },
+
+  adjustZoom(amount) {
+    if (this.active) {
+      this.viewZoomTarget = U.clamp(this.viewZoomTarget + amount, 0.95, 1.25);
+    } else {
+      this.modeZoom = U.clamp(this.modeZoom - amount, 0.82, 1.55);
+      Camera.setZoom(this.modeZoom);
+    }
   },
 
   _syncButton() {
     if (!this._btn) this._btn = document.getElementById('btn-camera');
     const b = this._btn;
     if (!b) return;
+    const mode = this.modes[this.modeIndex];
     b.classList.toggle('on', this.active);
-    b.classList.toggle('locked', this.locked);
+    b.textContent = this.active ? '1P' : (this.modeIndex === 0 ? '3P−' : '3P+');
     b.setAttribute('aria-pressed', this.active ? 'true' : 'false');
-    b.setAttribute('aria-disabled', this.locked ? 'true' : 'false');
+    b.setAttribute('aria-label', 'Câmera: ' + mode.label + '. Toque para alternar o modo.');
+    b.title = mode.label + ' — toque para alternar';
   },
 
   // Oponentes em combate (usa os mesmos objetos/estados do combate existente)
@@ -100,11 +128,11 @@ const FirstPerson = {
     return out;
   },
 
-  // Chamado uma vez por quadro (fora dos passos de física)
-  update(dt) {
+  // Atualiza o foco opcional sem alterar o estado ou as regras dos inimigos.
+  update(dt, aimHeld) {
     const C = this.cfg;
-
-    // ----- Detecta combate real e escolhe o alvo mais próximo -----
+    const wasAiming = this.aiming;
+    this.aiming = !!aimHeld;
     const foes = this._engagedFoes();
     let target = null, best = 1e9;
     for (let i = 0; i < foes.length; i++) {
@@ -113,48 +141,39 @@ const FirstPerson = {
     }
     this.target = target;
 
-    const wasLocked = this.locked;
-    if (target) this._hold = C.combatHold;
-    else this._hold = Math.max(0, this._hold - dt);
-    const inCombat = this._hold > 0;
+    // Ao começar a mirar, enquadra o alvo uma vez; o arrasto manual tem prioridade.
+    if (this.aiming && !wasAiming && target) this.manualLook = false;
 
-    if (inCombat && !wasLocked) {
-      this.locked = true;                 // combate começou: força primeira pessoa
-      if (!this.active) {
-        this.active = true;
-        this.yaw = target ? Math.atan2(target.y - Player.y, target.x - Player.x) : this.facingAngle();
+    if (this.active && !Player.dead) {
+      let goal = this.yaw;
+      if (this.aiming && target && !this.manualLook) {
+        goal = Math.atan2(target.y - Player.y, target.x - Player.x);
+      } else if (!this.manualLook) {
+        goal = this.facingAngle();
       }
-      this._syncButton();
-    } else if (!inCombat && wasLocked) {
-      this.locked = false;                // combate acabou: libera a troca
-      this._syncButton();
+      const k = 1 - Math.exp(-C.turn * dt);
+      this.yaw = this._wrap(this.yaw + this._wrap(goal - this.yaw) * k);
     }
 
-    if (!this.active || Player.dead) return;
-
-    // ----- Direção do olhar -----
-    // Exploração: acompanha a direção do jogador.
-    // Combate: parado, enquadra o alvo; andando/atacando, acompanha o jogador.
-    let goal = this.facingAngle();
-    if (this.locked && target && Player.attackT < 0 && Player.speed <= C.idleSpeed) {
-      goal = Math.atan2(target.y - Player.y, target.x - Player.x);
-    }
-    const k = 1 - Math.exp(-C.turn * dt);
-    this.yaw = this._wrap(this.yaw + this._wrap(goal - this.yaw) * k);
-
-    // Parado em combate, o jogador passa a "olhar" para onde a câmera olha,
-    // assim um golpe sem direção no analógico sai para onde se está vendo.
-    if (C.aimAtTarget && this.locked && target &&
-        Player.attackT < 0 && Player.speed < 8 && Player.stun <= 0) {
-      Player.fx = Math.cos(this.yaw);
-      Player.fy = Math.sin(this.yaw);
+    // Mirando parado, um ataque sem direção explícita usa o rumo da câmera.
+    // Em 3ª pessoa, orienta o personagem ao alvo, sem trocar a câmera de modo.
+    if (this.aiming && target && Player.speed < 8 &&
+        Player.attackT < 0 && Player.stun <= 0) {
+      const goal = this.active
+        ? this.yaw
+        : Math.atan2(target.y - Player.y, target.x - Player.x);
+      const facing = Math.atan2(Player.fy, Player.fx);
+      const k = 1 - Math.exp(-C.turn * dt);
+      const angle = this._wrap(facing + this._wrap(goal - facing) * k);
+      Player.fx = Math.cos(angle);
+      Player.fy = Math.sin(angle);
     }
   },
 
   // ---------- Desenho ----------
   _ensureBuffer() {
     const C = this.cfg;
-    const th = Math.tan(C.hfov / 2);
+    const th = Math.tan(C.maxHfov / 2);
     const bw = Math.ceil(2 * (C.far * th * 1.1 + 40) * C.bufScale);
     const bh = Math.ceil((C.far + 24) * C.bufScale);
     if (this._buf && this._bw === bw && this._bh === bh) return;
@@ -170,12 +189,14 @@ const FirstPerson = {
     const cam = Camera, C = this.cfg, t = Game.time;
     const W = cam.viewW, H = cam.viewH;
     const indoor = !!World.activeInstanceBounds();
-    const th = Math.tan(C.hfov / 2);
+    this.viewZoom += (this.viewZoomTarget - this.viewZoom) * (1 - Math.exp(-6 * dt));
+    const hfov = C.hfov / this.viewZoom;
+    const th = Math.tan(hfov / 2);
 
     this._W = W; this._H = H;
     this._th = th;
     this._f = (W / 2) / th;
-    this._hz = H * C.horizon;
+    this._hz = H * U.clamp(C.horizon + this.pitch * 0.34, 0.32, 0.62);
     this._ez = Player.z + C.eye;
     this._far = indoor ? C.indoorFar : C.far;
     this._px = Player.x; this._py = Player.y;
@@ -193,6 +214,7 @@ const FirstPerson = {
     this._blitGround(ctx);
     this._drawFog(ctx, indoor);
     this._drawBillboards(ctx, t);
+    this._drawAimHighlight(ctx);
     this._drawTexts(ctx);
 
     ctx.restore();
@@ -389,6 +411,30 @@ const FirstPerson = {
       }
       ctx.restore();
     }
+  },
+
+  _drawAimHighlight(ctx) {
+    const target = this.aiming && this.target;
+    if (!target) return;
+    const dx = target.x - this._px, dy = target.y - this._py;
+    const depth = dx * this._fx + dy * this._fy;
+    if (depth < 4 || depth > this._far + 40) return;
+    const lat = dx * this._rx + dy * this._ry;
+    const k = this._f / depth;
+    const sx = this._W / 2 + lat * k;
+    if (sx < -30 || sx > this._W + 30) return;
+
+    const sy = this._hz + (this._ez - (target.z || 0) - 18) * k;
+    const rx = U.clamp((target.r || 12) * k * 1.5, 9, 28);
+    const pulse = 0.56 + Math.sin(Game.time * 5) * 0.12;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = '#ffe29a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, rx, Math.max(5, rx * 0.42), 0, 0, 6.2832);
+    ctx.stroke();
+    ctx.restore();
   },
 
   // Números de dano (o combate guarda a posição já com a altura somada)
