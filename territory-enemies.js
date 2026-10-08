@@ -73,8 +73,12 @@ const TerritoryEnemyVisuals = {
   drawCommon(ctx, enemy, bob) {
     const territory = this.profile(this.activeTerritoryId());
     const common = territory && territory.common;
+    if (!common || !common.asset) return false;
+
+    // Se há uma arte definida, ela controla o visual mesmo enquanto carrega.
+    // Isso evita que o desenho vetorial antigo apareça por alguns quadros.
     const image = this.commonImage(common);
-    if (!image) return false;
+    if (!image) return true;
 
     const height = common.displayHeight;
     const width = height * (image.naturalWidth / image.naturalHeight);
