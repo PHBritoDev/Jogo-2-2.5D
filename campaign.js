@@ -295,6 +295,7 @@ const GALAXIES = {
       {
         id: 'm6',
         title: 'Missão 6 · As Ruínas da Dívida',
+        territory: 2,
         reward: BISHOP_PROFILES.greedSecond.reward,
         trail: { pts: [[2630, 820], [2320, 980], [2000, 1160], [1690, 1330], [1370, 1490], [1050, 1740]], n: 12, v: 1 },
         steps: [
@@ -400,6 +401,7 @@ const GALAXIES = {
       {
         id: 'm7',
         title: 'Missão 7 · O Vale das Lanternas Afundadas',
+        territory: 3,
         reward: BISHOP_PROFILES.greedThird.reward,
         trail: {
           pts: [[620, 1535], [1250, 1500], [1750, 1400], [2200, 1200],
@@ -554,6 +556,7 @@ const GALAXIES = {
       {
         id: 'm8',
         title: 'Missão 8 · A Serra sem Ecos',
+        territory: 4,
         trail: {
           pts: [[3020, 420], [2820, 850], [2520, 1170], [2350, 1430],
             [2240, 1640], [2070, 1880], [2045, 2130]],
@@ -1186,6 +1189,7 @@ const Campaign = {
   fightLive: false,  // há um Cobiçoso da campanha vivo
   retireGuard: false,
   followerActive: false,
+  enemyTerritory: 1,
   baseEnemyConfig: null,
   bannerT: 0,
   elBanner: null, elTop: null, elName: null, elReward: null, elNext: null,
@@ -1231,6 +1235,7 @@ const Campaign = {
   startMission(i) {
     this.mi = i;
     const m = this.galaxy.missions[i];
+    this.enemyTerritory = m.territory || 1;
     if (m.id === 'm5' && this.galaxy.bishops[0].status === 'locked') {
       this.galaxy.bishops[0].status = 'available';
     }

@@ -275,17 +275,24 @@ const Enemy = {
     const E = CFG.COMBAT.enemy;
     const h = this.z - this.floor;
     const ss = 1 - Math.min(h, 120) / 240;
+    const portraitHeight = TerritoryEnemyVisuals.commonHeight();
 
     ctx.globalAlpha = this.alpha;
     ctx.fillStyle = 'rgba(10,30,15,' + (0.3 * ss).toFixed(3) + ')';
     ctx.beginPath();
-    ctx.ellipse(this.x, this.y - this.floor, 12 * ss + 2, 5 * ss + 1, 0, 0, 6.2832);
+    ctx.ellipse(
+      this.x, this.y - this.floor,
+      (portraitHeight ? 18 : 12) * ss + 2,
+      (portraitHeight ? 7 : 5) * ss + 1,
+      0, 0, 6.2832
+    );
     ctx.fill();
 
     const st = this.state;
     const moving = st === 'chase' && this.speed > 8;
     const s = Math.sin(this.anim);
     const bob = moving ? Math.abs(s) * 2 : (st === 'idle' ? Math.sin(t * 3) * 0.8 : 0);
+    const follower = typeof Campaign !== 'undefined' && Campaign.followerActive;
 
     ctx.save();
     ctx.translate(this.x, this.y - this.z);
@@ -297,88 +304,92 @@ const Enemy = {
     else if (st === 'dead') { const p = Math.min(1, this.stateT / 0.35); sy = 1 - 0.7 * p; sx = 1 + 0.4 * p; }
     ctx.scale(sx, sy);
 
-    // Pés
-    ctx.fillStyle = '#4a1a20';
-    ctx.beginPath(); ctx.ellipse(-5, -1.5 - (moving ? Math.max(0, s) * 3 : 0), 4.5, 2.8, 0, 0, 6.2832); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(5, -1.5 - (moving ? Math.max(0, -s) * 3 : 0), 4.5, 2.8, 0, 0, 6.2832); ctx.fill();
+    const usesTerritorySprite = TerritoryEnemyVisuals.drawCommon(ctx, this, bob);
+    if (!usesTerritorySprite) {
+      // Visual vetorial original: continua disponível para territórios sem arte integrada.
+      ctx.fillStyle = '#4a1a20';
+      ctx.beginPath(); ctx.ellipse(-5, -1.5 - (moving ? Math.max(0, s) * 3 : 0), 4.5, 2.8, 0, 0, 6.2832); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(5, -1.5 - (moving ? Math.max(0, -s) * 3 : 0), 4.5, 2.8, 0, 0, 6.2832); ctx.fill();
 
-    ctx.translate(0, -bob);
+      ctx.translate(0, -bob);
 
-    // Cor do corpo (branco ao levar dano, pulsa ao preparar o golpe)
-    const follower = typeof Campaign !== 'undefined' && Campaign.followerActive;
-    let body = follower ? '#c08b42' : '#b8404e';
-    let dark = follower ? '#765126' : '#8f2f3b';
-    if (this.flashT > 0) { body = '#ffffff'; dark = '#ffffff'; }
-    else if (st === 'windup' && ((this.stateT * 14) | 0) % 2 === 0) {
-      body = follower ? '#f0cd77' : '#ff7a4a';
-      dark = follower ? '#b27a32' : '#d9542c';
-    }
+      // Cor do corpo (branco ao levar dano, pulsa ao preparar o golpe)
+      let body = follower ? '#c08b42' : '#b8404e';
+      let dark = follower ? '#765126' : '#8f2f3b';
+      if (this.flashT > 0) { body = '#ffffff'; dark = '#ffffff'; }
+      else if (st === 'windup' && ((this.stateT * 14) | 0) % 2 === 0) {
+        body = follower ? '#f0cd77' : '#ff7a4a';
+        dark = follower ? '#b27a32' : '#d9542c';
+      }
 
-    // Chifres
-    ctx.fillStyle = this.flashT > 0 ? '#ffffff' : (follower ? '#e2bb69' : '#e8dcc0');
-    ctx.beginPath(); ctx.moveTo(-9, -22); ctx.lineTo(-6, -33); ctx.lineTo(-3, -23); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(9, -22); ctx.lineTo(6, -33); ctx.lineTo(3, -23); ctx.closePath(); ctx.fill();
+      // Chifres
+      ctx.fillStyle = this.flashT > 0 ? '#ffffff' : (follower ? '#e2bb69' : '#e8dcc0');
+      ctx.beginPath(); ctx.moveTo(-9, -22); ctx.lineTo(-6, -33); ctx.lineTo(-3, -23); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(9, -22); ctx.lineTo(6, -33); ctx.lineTo(3, -23); ctx.closePath(); ctx.fill();
 
-    // Corpo
-    ctx.fillStyle = body;
-    ctx.beginPath(); ctx.ellipse(0, -14, 11, 12, 0, 0, 6.2832); ctx.fill();
-    if (follower && this.flashT <= 0) {
-      ctx.fillStyle = '#f2d28a';
-      ctx.beginPath(); ctx.arc(0, -14, 3, 0, 6.2832); ctx.fill();
-      ctx.strokeStyle = '#734d23'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(0, -14, 4.5, 0, 6.2832); ctx.stroke();
-    }
+      // Corpo
+      ctx.fillStyle = body;
+      ctx.beginPath(); ctx.ellipse(0, -14, 11, 12, 0, 0, 6.2832); ctx.fill();
+      if (follower && this.flashT <= 0) {
+        ctx.fillStyle = '#f2d28a';
+        ctx.beginPath(); ctx.arc(0, -14, 3, 0, 6.2832); ctx.fill();
+        ctx.strokeStyle = '#734d23'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(0, -14, 4.5, 0, 6.2832); ctx.stroke();
+      }
 
-    // Braços
-    ctx.fillStyle = dark;
-    if (st === 'windup') {
-      ctx.beginPath(); ctx.arc(-11, -23, 3.4, 0, 6.2832); ctx.fill();
-      ctx.beginPath(); ctx.arc(11, -23, 3.4, 0, 6.2832); ctx.fill();
-    } else if (st === 'attack') {
-      ctx.beginPath(); ctx.arc(this.fx * 17, -13 + this.fy * 5, 4, 0, 6.2832); ctx.fill();
-      ctx.beginPath(); ctx.arc(-11, -11, 3.2, 0, 6.2832); ctx.fill();
-    } else {
-      const sw = moving ? s * 2 : 0;
-      ctx.beginPath(); ctx.arc(-11.5, -12 + sw, 3.2, 0, 6.2832); ctx.fill();
-      ctx.beginPath(); ctx.arc(11.5, -12 - sw, 3.2, 0, 6.2832); ctx.fill();
-    }
+      // Braços
+      ctx.fillStyle = dark;
+      if (st === 'windup') {
+        ctx.beginPath(); ctx.arc(-11, -23, 3.4, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.arc(11, -23, 3.4, 0, 6.2832); ctx.fill();
+      } else if (st === 'attack') {
+        ctx.beginPath(); ctx.arc(this.fx * 17, -13 + this.fy * 5, 4, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.arc(-11, -11, 3.2, 0, 6.2832); ctx.fill();
+      } else {
+        const sw = moving ? s * 2 : 0;
+        ctx.beginPath(); ctx.arc(-11.5, -12 + sw, 3.2, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.arc(11.5, -12 - sw, 3.2, 0, 6.2832); ctx.fill();
+      }
 
-    // Rosto (some quando está de costas)
-    if (this.fy > -0.5 && st !== 'dead') {
-      const ex = this.fx * 2;
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.ellipse(-4.2 + ex, -17, 3, 3.4, 0, 0, 6.2832); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(4.2 + ex, -17, 3, 3.4, 0, 0, 6.2832); ctx.fill();
-      ctx.fillStyle = '#400';
-      ctx.beginPath(); ctx.arc(-4.2 + ex + this.fx * 1.2, -16.6 + this.fy, 1.5, 0, 6.2832); ctx.fill();
-      ctx.beginPath(); ctx.arc(4.2 + ex + this.fx * 1.2, -16.6 + this.fy, 1.5, 0, 6.2832); ctx.fill();
-      ctx.strokeStyle = '#3a0f14'; ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(-8 + ex, -22); ctx.lineTo(-2 + ex, -19.5);
-      ctx.moveTo(8 + ex, -22); ctx.lineTo(2 + ex, -19.5);
-      ctx.stroke();
-      if (st === 'attack' || st === 'windup') {
-        ctx.fillStyle = '#3a0f14';
-        ctx.beginPath(); ctx.ellipse(ex, -9, 4, 2.6, 0, 0, 6.2832); ctx.fill();
+      // Rosto (some quando está de costas)
+      if (this.fy > -0.5 && st !== 'dead') {
+        const ex = this.fx * 2;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(-4.2 + ex, -17, 3, 3.4, 0, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(4.2 + ex, -17, 3, 3.4, 0, 0, 6.2832); ctx.fill();
+        ctx.fillStyle = '#400';
+        ctx.beginPath(); ctx.arc(-4.2 + ex + this.fx * 1.2, -16.6 + this.fy, 1.5, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.arc(4.2 + ex + this.fx * 1.2, -16.6 + this.fy, 1.5, 0, 6.2832); ctx.fill();
+        ctx.strokeStyle = '#3a0f14'; ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-8 + ex, -22); ctx.lineTo(-2 + ex, -19.5);
+        ctx.moveTo(8 + ex, -22); ctx.lineTo(2 + ex, -19.5);
+        ctx.stroke();
+        if (st === 'attack' || st === 'windup') {
+          ctx.fillStyle = '#3a0f14';
+          ctx.beginPath(); ctx.ellipse(ex, -9, 4, 2.6, 0, 0, 6.2832); ctx.fill();
+        }
       }
     }
 
-    // Alerta antes de atacar
     if (st === 'windup') {
       ctx.fillStyle = '#ffdd33';
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 3;
       ctx.font = 'bold 18px sans-serif';
       ctx.textAlign = 'center';
-      ctx.strokeText('!', 0, -38);
-      ctx.fillText('!', 0, -38);
+      const alertY = usesTerritorySprite ? -portraitHeight - 8 : -38;
+      ctx.strokeText('!', 0, alertY);
+      ctx.fillText('!', 0, alertY);
     }
 
     ctx.restore();
 
     // Barra de vida sobre a cabeça
     if (st !== 'dead' && (this.hp < this.maxHp || st !== 'idle')) {
-      const w = 36, bx = this.x - w / 2, by = this.y - this.z - 46;
+      const w = usesTerritorySprite ? 50 : 36;
+      const bx = this.x - w / 2;
+      const by = this.y - this.z - (usesTerritorySprite ? portraitHeight + 12 : 46);
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(bx - 1, by - 1, w + 2, 6);
       ctx.fillStyle = '#ffb347';
@@ -390,8 +401,9 @@ const Enemy = {
       ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
       ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(25,17,9,.9)';
       ctx.fillStyle = '#f0d18d';
-      ctx.strokeText('SEGUIDOR', this.x, this.y - this.z - 51);
-      ctx.fillText('SEGUIDOR', this.x, this.y - this.z - 51);
+      const labelY = this.y - this.z - (usesTerritorySprite ? portraitHeight + 22 : 51);
+      ctx.strokeText('SEGUIDOR', this.x, labelY);
+      ctx.fillText('SEGUIDOR', this.x, labelY);
     }
 
     ctx.globalAlpha = 1;

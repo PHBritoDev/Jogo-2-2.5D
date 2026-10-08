@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#4fa9ec">
+<title>Seven Sins - Demo de Exploração</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="campaign.css">
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<div id="climate-layer" class="climate-layer clear" aria-hidden="true">
+  <div class="climate-rain"></div>
+</div>
+
+<!-- Interface (HUD) -->
+<div id="fps">-- FPS</div>
+
+<div id="top-buttons">
+  <button id="btn-fs" class="btn-round" aria-label="Tela cheia">⛶</button>
+  <button id="btn-pause" class="btn-round" aria-label="Pausar">❚❚</button>
+</div>
+
+<div id="joy-zone"></div>
+<div id="joy-base"><div id="joy-knob"></div></div>
+<button id="btn-jump" aria-label="Pular">PULAR</button>
+<button id="btn-attack" aria-label="Atacar">ATACAR</button>
+<button id="btn-defend" aria-label="Defender">DEFENDER</button>
+<button id="btn-interact" class="hidden" aria-label="Falar">FALAR</button>
+
+<!-- HUD de combate -->
+<div id="hp-bar">
+  <div id="hp-trail"></div>
+  <div id="hp-fill"></div>
+  <span id="hp-text"></span>
+</div>
+<div id="boss-hud" class="hidden" aria-live="polite">
+  <div class="boss-hud-heading">
+    <strong id="boss-hud-name"></strong>
+    <span id="boss-hud-title"></span>
+  </div>
+  <div class="boss-hud-bar">
+    <div id="boss-hud-fill"></div>
+  </div>
+  <div id="boss-hud-text"></div>
+</div>
+<div id="hurt-flash"></div>
+<div id="ko">DERROTADO</div>
+
+<!-- HUD de missão -->
+<div id="quest-box" class="hidden">
+  <div id="quest-title"></div>
+  <div id="quest-obj"></div>
+</div>
+<div id="coin-box"><span class="coin-ic"></span><span id="coin-n">0</span></div>
+<div id="toast"></div>
+
+<!-- Aviso de missão concluída -->
+<div id="mission-banner">
+  <div id="mb-top"></div>
+  <div id="mb-name"></div>
+  <div id="mb-reward"></div>
+  <div id="mb-next"></div>
+</div>
+
+<!-- Caixa de diálogo -->
+<div id="dialog" class="hidden">
+  <div id="dlg-who"></div>
+  <div id="dlg-text"></div>
+  <div id="dlg-choices"></div>
+  <div id="dlg-hint">toque para continuar ▶</div>
+</div>
+
+<!-- Apresentação reutilizável de oponentes especiais -->
+<div id="boss-intro" class="boss-intro hidden" role="dialog" aria-modal="true" aria-labelledby="boss-intro-name">
+  <div class="boss-intro-card">
+    <div class="boss-intro-versus" aria-hidden="true">
+      <span class="boss-intro-stamp">ENCONTRO</span>
+      <div id="boss-intro-portrait" class="boss-intro-portrait">
+        <svg viewBox="0 0 120 150" focusable="false">
+          <circle class="portrait-halo" cx="60" cy="70" r="51"></circle>
+          <path class="portrait-cloak" d="M20 145 29 93 43 77 77 77 91 93 100 145Z"></path>
+          <path class="portrait-armor" d="m37 91 23 17 23-17 8 54H29Z"></path>
+          <path class="portrait-head" d="M43 51q0-23 17-23t17 23l-4 24H47Z"></path>
+          <path class="portrait-mask" d="M43 56h34v12H43z"></path>
+          <path class="portrait-mitre" d="m39 45 5-24 12 12 5-26 6 26 12-12 4 24Z"></path>
+          <path class="portrait-gold" d="M60 37v15m-10 47 10 9 10-9M49 124h22"></path>
+          <path class="portrait-eye" d="M49 59h6m10 0h6"></path>
+        </svg>
+      </div>
+      <span class="boss-intro-vs">VS</span>
+      <div class="boss-intro-player-mark" aria-label="Você">VOCÊ</div>
+    </div>
+    <div id="boss-intro-title" class="boss-intro-kicker"></div>
+    <h1 id="boss-intro-name"></h1>
+    <div id="boss-intro-subtitle" class="boss-intro-subtitle"></div>
+    <p id="boss-intro-quote"></p>
+    <div id="boss-intro-quote-label" class="boss-intro-quote-label"></div>
+    <p id="boss-intro-prep" class="boss-intro-prep" aria-live="polite"></p>
+    <button id="boss-intro-button" class="btn-big">CONTINUAR</button>
+  </div>
+</div>
+
+<!-- Telas de aviso -->
+<div id="overlay-pause" class="overlay hidden">
+  <h1>Pausado</h1>
+  <button id="btn-resume" class="btn-big">Continuar</button>
+</div>
+
+<div id="overlay-rotate" class="overlay hidden">
+  <div class="rotate-icon">↻</div>
+  <h1>Gire o celular</h1>
+  <p>Este jogo funciona na horizontal.</p>
+</div>
+
+<!-- Scripts (ordem importa) -->
+<script src="config.js"></script>
+<script src="utils.js"></script>
+<script src="input.js"></script>
+<script src="world.js"></script>
+<script src="camera.js"></script>
+<script src="ambient.js"></script>
+<script src="player.js"></script>
+<script src="territory-enemies.js"></script>
+<script src="combat.js"></script>
+<script src="greed.js"></script>
+<script src="quest.js"></script>
+<script src="casino.js"></script>
+<script src="ruined-city.js"></script>
+<script src="climate.js"></script>
+<script src="mist-valley.js"></script>
+<script src="night-sanctum.js"></script>
+<script src="bishops.js"></script>
+<script src="storm-events.js"></script>
+<script src="campaign.js"></script>
+<script src="render.js"></script>
+<script src="main.js"></script>
+
+</body>
+</html>
