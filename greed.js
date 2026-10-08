@@ -238,15 +238,22 @@ const Greedling = {
     const h = this.z - this.floor;
     const ss = 1 - Math.min(h, 120) / 240;
     const flash = this.flashT > 0;
+    const portraitHeight = TerritoryEnemyVisuals.commonHeight();
 
     ctx.globalAlpha = this.alpha;
     ctx.fillStyle = 'rgba(10,30,15,' + (0.3 * ss).toFixed(3) + ')';
     ctx.beginPath();
-    ctx.ellipse(this.x, this.y - this.floor, 11 * ss + 2, 4.6 * ss + 1, 0, 0, 6.2832);
+    ctx.ellipse(
+      this.x, this.y - this.floor,
+      (portraitHeight ? 18 : 11) * ss + 2,
+      (portraitHeight ? 7 : 4.6) * ss + 1,
+      0, 0, 6.2832
+    );
     ctx.fill();
 
     const s = Math.sin(this.anim);
     const moving = this.speed > 8;
+    const bob = moving && this.onGround ? Math.abs(s) * 1.5 : (st === 'idle' ? Math.sin(t * 3) * 0.6 : 0);
 
     ctx.save();
     ctx.translate(this.x, this.y - this.z);
@@ -259,6 +266,12 @@ const Greedling = {
     else if (!this.onGround) { const v = U.clamp(this.vz / 900, -0.1, 0.16); sy = 1 + v; sx = 1 - v * 0.6; }
     else if (st === 'idle') { sy = 1 + Math.sin(t * 3) * 0.02; }
     ctx.scale(sx, sy);
+
+    // O Cobiçoso usa o mesmo visual comum definido para o território ativo.
+    // Com arte disponível, nenhum elemento vetorial antigo é desenhado por baixo.
+    const usesTerritorySprite = TerritoryEnemyVisuals.drawCommon(ctx, this, bob);
+    if (!usesTerritorySprite) {
+      ctx.translate(0, -bob);
 
     // Cores (branco ao levar dano; dourado pulsante ao preparar o golpe)
     let body = '#7d8a2e', skin = '#93a336', belly = '#a9b84a', vest = '#d9a521';
@@ -377,12 +390,26 @@ const Greedling = {
       ctx.strokeText(ch, 0, by);
       ctx.fillText(ch, 0, by);
     }
+    } else if (st === 'windup' || st === 'flee') {
+      // Mantém o aviso de ataque/roubo como indicador de combate, fora do corpo.
+      const ch = st === 'flee' ? '$' : '!';
+      ctx.fillStyle = '#ffdd33';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      const by = -portraitHeight - 32 + (st === 'flee' ? Math.sin(t * 10) * 2 : 0);
+      ctx.strokeText(ch, 0, by);
+      ctx.fillText(ch, 0, by);
+    }
 
     ctx.restore();
 
     // Barra de vida + nome sobre a cabeça
     if (st !== 'dead' && st !== 'emerge' && (this.hp < this.maxHp || (st !== 'idle'))) {
-      const w = 34, bx = this.x - w / 2, by = this.y - this.z - 50;
+      const w = portraitHeight ? 50 : 34;
+      const bx = this.x - w / 2;
+      const by = this.y - this.z - (portraitHeight ? portraitHeight + 15 : 50);
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(bx - 1, by - 1, w + 2, 6);
       ctx.fillStyle = '#ffb347';
