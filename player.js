@@ -310,35 +310,44 @@ const Player = {
 
     ctx.translate(0, -bob);
 
-    // Corpo (túnica)
-    ctx.fillStyle = flash ? '#ffffff' : '#3d6fd1';
-    ctx.beginPath(); ctx.ellipse(0, -14, 8.5, 9, 0, 0, 6.2832); ctx.fill();
-    ctx.fillStyle = flash ? '#ffffff' : '#f0c040';
-    ctx.fillRect(-7.6, -12, 15.2, 2.4);
+    // Camiseta preta e estampa clara da referência
+    ctx.fillStyle = flash ? '#ffffff' : '#171b20';
+    ctx.beginPath(); ctx.ellipse(0, -14, 8.8, 9.2, 0, 0, 6.2832); ctx.fill();
+    if (!flash) {
+      ctx.fillStyle = '#dce9ed';
+      ctx.beginPath(); ctx.moveTo(-4.8, -15); ctx.lineTo(-1.5, -18.5); ctx.lineTo(0, -15.5); ctx.lineTo(2.2, -19); ctx.lineTo(5, -14); ctx.lineTo(2.4, -13); ctx.lineTo(0, -10.5); ctx.lineTo(-2.2, -13); ctx.closePath(); ctx.fill();
+    }
 
-    // Braços
+    // Braços e pele exposta
     const sw = moving ? s * 2.5 : (this.onGround ? 0 : -2.5);
-    ctx.fillStyle = flash ? '#ffffff' : '#2f58ac';
+    ctx.fillStyle = flash ? '#ffffff' : '#171b20';
     ctx.beginPath(); ctx.arc(-9.5, -14 + sw, 2.8, 0, 6.2832); ctx.fill();
     ctx.beginPath(); ctx.arc(9.5, -14 - sw, 2.8, 0, 6.2832); ctx.fill();
 
-    // Cabeça
-    ctx.fillStyle = flash ? '#ffffff' : '#f4cba3';
+    // Rosto baseado na referência
+    ctx.fillStyle = flash ? '#ffffff' : '#a85f3e';
     ctx.beginPath(); ctx.arc(0, -28, 8, 0, 6.2832); ctx.fill();
 
-    // Cabelo (cobre tudo quando está de costas)
-    ctx.fillStyle = flash ? '#ffffff' : '#4a2e1a';
+    // Cabelo cacheado escuro; cobre a cabeça quando visto de costas
+    ctx.fillStyle = flash ? '#ffffff' : '#17151a';
     ctx.beginPath();
-    if (this.fy < -0.4) ctx.arc(0, -28, 8.4, 0, 6.2832);
-    else ctx.arc(0, -28.4, 8.4, Math.PI, 6.2832);
+    if (this.fy < -0.4) ctx.arc(0, -28, 8.7, 0, 6.2832);
+    else {
+      ctx.arc(0, -29.5, 8.8, Math.PI, 6.2832);
+      for (let i = -6; i <= 6; i += 3) {
+        ctx.beginPath(); ctx.arc(i, -34 + Math.abs(i) * 0.12, 2.8, 0, 6.2832); ctx.fill();
+      }
+    }
     ctx.fill();
 
-    // Olhos (indicam a direção)
+    // Olhos e traços do rosto
     if (this.fy > -0.4 && !this.dead) {
       const ex = this.fx * 3.2, ey = -27 + this.fy * 1.5;
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = '#17151a';
       ctx.beginPath(); ctx.arc(ex - 2.6, ey, 1.1, 0, 6.2832); ctx.fill();
       ctx.beginPath(); ctx.arc(ex + 2.6, ey, 1.1, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = '#633521'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(-3, -24); ctx.quadraticCurveTo(0, -22.7, 3, -24); ctx.stroke();
     }
 
     // ----- Soco: braço estica na direção do ataque + arco de impacto -----
@@ -347,11 +356,11 @@ const Player = {
       const dx = this.atkDirX, dy = this.atkDirY;
       const ext = Math.sin(Math.min(1, p / 0.7) * Math.PI) * (C.reach + 6);
       const fxp = dx * ext, fyp = dy * ext * 0.6 - 14;
-      ctx.strokeStyle = '#2f58ac';
+      ctx.strokeStyle = '#171b20';
       ctx.lineWidth = 4;
       ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(dx * 8, -14); ctx.lineTo(fxp, fyp); ctx.stroke();
-      ctx.fillStyle = '#f4cba3';
+      ctx.fillStyle = '#a85f3e';
       ctx.beginPath(); ctx.arc(fxp, fyp, 4.4, 0, 6.2832); ctx.fill();
 
       const fade = 1 - (this.attackT - C.hitStart) / (C.hitEnd + 0.12 - C.hitStart);
