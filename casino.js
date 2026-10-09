@@ -92,7 +92,8 @@ const Casino = {
       ctx.restore();
     }
 
-    if (this.discovered && !this.inside) this._drawEntrance(ctx, t);
+    const portalReplacesEntrance = typeof BishopDimension !== 'undefined' && BishopDimension.isExteriorRendered();
+    if (this.discovered && !this.inside && !portalReplacesEntrance) this._drawEntrance(ctx, t);
   },
 
   _coin(ctx, x, y, scale) {
