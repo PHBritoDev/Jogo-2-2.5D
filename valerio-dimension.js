@@ -100,17 +100,17 @@ const BishopDimension = (function () {
   }
   function buildExterior() {
     const arch=[],glow=[],trees=[];
-    // Colunas rústicas e lintel em blocos; a energia anima separadamente.
-    addBox(arch,-30,35,0,9,73,13,'#342d2d'); addBox(arch,30,35,0,9,73,13,'#382f2c');
-    addBox(arch,-30,3,0,18,8,19,'#645044'); addBox(arch,30,3,0,18,8,19,'#5c493e');
-    for(let i=0;i<7;i++){const a=Math.PI-(i/6)*Math.PI,x=Math.cos(a)*30,y=52+Math.sin(a)*23;addBox(arch,x,y,0,13,11,14,i%2?'#55453d':'#665348',Math.PI/2-a);}
+    // Ruínas de pedra escura emolduram o portal roxo da campanha.
+    addBox(arch,-30,35,0,9,73,13,'#211d2b'); addBox(arch,30,35,0,9,73,13,'#292236');
+    addBox(arch,-30,3,0,18,8,19,'#473b55'); addBox(arch,30,3,0,18,8,19,'#3c334b');
+    for(let i=0;i<7;i++){const a=Math.PI-(i/6)*Math.PI,x=Math.cos(a)*30,y=52+Math.sin(a)*23;addBox(arch,x,y,0,13,11,14,i%2?'#392f49':'#51405f',Math.PI/2-a);}
     addPlane(glow,0,39,-4,43,59,'#180d2a',.94);
     addRing(glow,0,40,-8,21,31,4,'#a92cff',.98,44);
     addRing(glow,0,40,-9,15,24,2.1,'#e28cff',.92,36);
     addRing(glow,0,40,-10,10,18,1.3,'#7022ff',.9,32);
     // Troncos, galhos e copas no primeiro plano, como a trilha escura da referência.
     const treesSpec=[[-71,58,17],[-57,71,11],[-46,50,8],[48,57,10],[64,77,16],[79,53,10],[-82,32,10],[88,35,12]];
-    for(let i=0;i<treesSpec.length;i++){const p=treesSpec[i],lean=(i%2?3:-3);addBox(trees,p[0],p[1]/2,5,7,p[1],8,i%2?'#281f20':'#352624',lean*.012);addBox(trees,p[0]+lean,p[1]*.74,5,23,2.2,4,'#2b2223',lean*.028);addBox(trees,p[0]-lean*.65,p[1]*.83,4,17,1.8,3,'#362929',-lean*.026);addCone(trees,p[0],p[1]+5,7,15,24,'#181b1c',6);}
+    for(let i=0;i<treesSpec.length;i++){const p=treesSpec[i],lean=(i%2?3:-3);addBox(trees,p[0],p[1]/2,5,7,p[1],8,i%2?'#201c2b':'#2b2537',lean*.012);addBox(trees,p[0]+lean,p[1]*.74,5,23,2.2,4,'#242033',lean*.028);addBox(trees,p[0]-lean*.65,p[1]*.83,4,17,1.8,3,'#302740',-lean*.026);addCone(trees,p[0],p[1]+5,7,15,24,'#151522',6);}
     for(let i=0;i<55;i++){
       const a=(i*2.399)%Math.PI*2,rad=8+(i*19%38),x=Math.cos(a)*rad,y=15+(i*29%63);
       addBox(glow,x,y,-11,1.6,1.6,.5,i%5?'#cf70ff':'#ffe0ff');
@@ -118,53 +118,95 @@ const BishopDimension = (function () {
     return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),trees:mesh(S.gl,trees)};
   }
   function buildArena() {
-    const world=[],portal=[],particles=[],player=[],bishop=[];
-    // Chão amplo com lajes; espaço aberto mantido para a luta futura.
-    addBox(world,0,-.38,0,16,.72,14,'#17151f');
-    for(let x=-7.5;x<=7.5;x+=1.15) addBox(world,x,.015,0,.025,.018,13.5,'#393341');
-    for(let z=-6.4;z<=6.4;z+=1.1) addBox(world,0,.018,z,15.6,.02,.025,'#393341');
-    addBox(world,0,.08,2.1,6.2,.12,7.2,'#28232f');
-    // Escadaria central sobe até o arco roxo.
+    const world=[],portal=[],mist=[],player=[],bishop=[];
+
+    // Uma estrada de terra atravessa a dimensão; bosque fechado e raízes
+    // substituem a praça aberta. Geometria deliberadamente low-poly para mobile.
+    addBox(world,0,-.38,-1.5,48,.72,42,'#08100f');
+    addBox(world,0,-.015,-1.5,5.55,.09,37,'#302b25');
+    addBox(world,-2.91,.015,-1.5,.24,.11,36,'#171b17');
+    addBox(world, 2.91,.015,-1.5,.24,.11,36,'#171b17');
+
+    // Cascalho, folhas e sulcos baixos mantêm a estrada legível durante o combate.
+    for(let i=0;i<32;i++){
+      const z=14-(i*.91),x=((i*17)%31)/31*3.9-1.95;
+      const w=.12+(i%4)*.075,d=.12+(i%3)*.09;
+      addBox(world,x,.045,z,w,.055,d,i%4===0?'#555044':(i%2?'#403b31':'#39372f'),(i%5)*.13);
+      if(i%3===0)addBox(world,x+(i%2?.42:-.42),.037,z-.28,.48,.035,.06,'#24251f',(i%2?.2:-.2));
+    }
+    // Raízes expostas e pedras formam ombros naturais; as colisões usam esse
+    // mesmo corredor em vez de prender o jogador à antiga sala retangular.
+    for(let i=0;i<16;i++){
+      const z=12-i*1.7,side=i%2?1:-1;
+      addBox(world,side*(3.05+(i%3)*.17),.075,z,.62+(i%3)*.18,.18,.38+(i%2)*.22, i%3?'#292b26':'#37352f',side*.18);
+      addBox(world,side*(2.72+(i%2)*.12),.12,z+.18,1.08,.22,.19,'#343129',-side*.22);
+    }
+
+    // Fileiras alternadas de árvores altas, troncos torcidos, galhos e copas
+    // escuras fecham a vista lateral sem cobrir o centro da estrada.
+    for(let i=0;i<11;i++){
+      const z=13.7-i*3.05+(i%2?.78:-.42);
+      for(let side=-1;side<=1;side+=2){
+        const x=side*(4.05+(i*7%5)*.54+((i+side+2)%2)*.24);
+        const h=8.2+(i*7%5)*.72,lean=side*(.2+(i%3)*.08);
+        const bark=i%3===0?'#292b2c':'#202626';
+        addCylinder(world,x,h*.34,z,.28+(i%2)*.05,h*.68,bark,8,'#343536');
+        addCylinder(world,x+lean,h*.79,z,.2+(i%2)*.035,h*.38,bark,8,'#343536');
+        addBox(world,x+side*.38,h*.67,z,1.72,.12,.16,'#272b2d',side*.48);
+        addBox(world,x-side*.16,h*.85,z+.06,1.22,.1,.14,'#292b2e',-side*.54);
+        if(i%3===0)addBox(world,x+side*.2,h*.93,z-.08,.9,.09,.12,'#24282b',side*.62);
+        if(i%3===1)addCone(world,x+lean*.4,h*.91,z,.72,2.05,'#151d1e',6);
+        addBox(world,x-side*.38,.12,z+.3,1.2,.2,.65,'#272925',side*.2);
+      }
+    }
+    // Uma segunda fileira mais distante interrompe as linhas regulares e
+    // fecha o horizonte com silhuetas de árvores de alturas variadas.
     for(let i=0;i<8;i++){
-      const z=1.15-i*.78,h=.22+i*.018,y=.12+i*.18;
-      addBox(world,0,y,z,5.5-i*.035,h,.8,'#39313e');
-      addBox(world,0,y+h/2+.012,z+.36,5.35-i*.035,.035,.05,i%2?'#8760a5':'#664489');
+      const side=i%2?1:-1,x=side*(7.1+(i%3)*.75),z=12.1-i*3.9+(i%2)*1.25,h=9+(i*5%4)*.9;
+      addCylinder(world,x,h*.48,z,.3,h*.96,i%2?'#151d20':'#1c2023',7,'#2b2d31');
+      addBox(world,x+side*.35,h*.76,z,1.7,.12,.16,'#1d2326',side*.42);
+      addBox(world,x-side*.18,h*.89,z+.08,1.18,.1,.13,'#202528',-side*.5);
+      if(i%2===0)addCone(world,x,h*.92,z,.85,2.2,'#11191b',6);
     }
-    // Ruínas laterais e torres quebradas.
-    const pillars=[[-7,-4.4,5.1],[-6.6,0,4.3],[7,-4.2,5.7],[6.8,.2,3.8],[-7,4,3.2],[7,4.3,4.5]];
-    for(let i=0;i<pillars.length;i++){const p=pillars[i];addBox(world,p[0],p[2]/2,p[1],.85,p[2],.95,i%2?'#272430':'#302b38');addBox(world,p[0],p[2],p[1],1.14,.23,1.2,'#45374d');addBox(world,p[0],.42,p[1],1.35,.62,1.4,'#423647');}
-    for(let i=0;i<8;i++){
-      const x=(i%2?1:-1)*(3.2+(i%4)*.88),z=-5.8+(i%4)*1.1,h=1.2+(i*7%9)*.25;
-      addBox(world,x,h/2,z,.62,h,.8,i%3?'#282532':'#392b43');
-      if(i%3===0)addBox(world,x+.22,h+.3,z,.7,.34,.88,'#534063',.15);
+
+    // Névoa baixa e rarefeita em três planos curtos; sem pós-processamento caro.
+    addPlane(mist,0,1.0,-10,8.4,1.15,'#9cabb7',.055);
+    addPlane(mist,0,.82,-3.5,7.5,.75,'#8297a5',.038);
+    addPlane(mist,0,.72,4.5,7.2,.6,'#83919b',.028);
+
+    // O arco violeta ao fim da estrada liga visualmente a dimensão ao portal
+    // da campanha e oferece uma silhueta distante, sem bloquear o chefe.
+    addBox(portal,-2.05,2.15,-18.35,.48,4.25,.72,'#34303e');
+    addBox(portal, 2.05,2.15,-18.35,.48,4.25,.72,'#34303e');
+    addBox(portal,0,4.45,-18.35,4.5,.54,.72,'#393247');
+    addBox(portal,0,.12,-18.35,4.8,.32,1.05,'#473d50');
+    addBox(portal,-2.05,.18,-18.35,1.05,.36,1.05,'#4c4252');
+    addBox(portal, 2.05,.18,-18.35,1.05,.36,1.05,'#4c4252');
+    for(let i=0;i<7;i++){
+      const a=Math.PI-(i/6)*Math.PI,x=Math.cos(a)*2.05,y=4.15+Math.sin(a)*1.35;
+      addBox(portal,x,y,-18.35,.55,.48,.68,i%2?'#493e56':'#5a4a66',Math.PI/2-a);
     }
-    // Pilastras e arco monumental em pedras segmentadas.
-    addBox(world,-2.2,1.85,-5.05,.66,3.7,.9,'#393141'); addBox(world,2.2,1.85,-5.05,.66,3.7,.9,'#393141');
-    addBox(world,-2.2,.28,-5.05,1.08,.56,1.3,'#64516c'); addBox(world,2.2,.28,-5.05,1.08,.56,1.3,'#64516c');
-    for(let i=0;i<9;i++){
-      const a=Math.PI-(i/8)*Math.PI, x=Math.cos(a)*2.2, y=3.65+Math.sin(a)*1.55;
-      addBox(world,x,y,-5.05,.7,.61,1.05,i%2?'#54415d':'#66506e',Math.PI/2-a);
+    addPlane(portal,0,2.2,-17.97,3.45,4.25,'#0d0b1a',.97);
+    addRing(portal,0,2.2,-17.92,1.63,2.28,.14,'#a52cff',.9,40);
+    addRing(portal,0,2.2,-17.88,1.3,1.95,.07,'#e77cff',.82,32);
+    for(let i=0;i<36;i++){
+      const a=(i*2.399)%Math.PI*2,rad=.12+(i*17%100)/100*1.15;
+      const x=Math.cos(a)*rad,y=.55+(i*31%330)/100;
+      addBox(portal,x,y,-17.84-(i%2)*.02,.035,.04,.016,i%7===0?'#ffd4ff':'#c65cff');
     }
-    addBox(world,0,5.4,-5.05,1.15,.34,1.1,'#43334e');
-    // Pórtico, portal profundo e runas luminosas.
-    addPlane(portal,0,3.0,-5.55,3.85,5.9,'#120b23',.98);
-    addRing(portal,0,3.25,-5.86,1.56,2.48,.19,'#a52cff',.96,56);
-    addRing(portal,0,3.25,-5.94,1.28,2.18,.085,'#e77cff',.92,48);
-    addRing(portal,0,3.25,-6.02,.91,1.74,.055,'#7629fc',.9,42);
-    for(let i=0;i<74;i++){
-      const a=(i*2.399)%Math.PI*2,rad=.2+(i*17%100)/100*1.38,x=Math.cos(a)*rad,y=1.05+(i*31%420)/100;
-      addBox(portal,x,y,-6.08-(i%3)*.018,.035+(i%3)*.012,.045+(i%4)*.012,.018,i%7===0?'#ffd4ff':'#c65cff');
+
+    // Pontos frios de luz só nas bordas, deixando a silhueta do chefe visível.
+    for(let i=0;i<12;i++){
+      const side=i%2?1:-1,z=11-Math.floor(i/2)*3.5;
+      addSphere(world,side*(3.25+(i%3)*.22),.38+(i%3)*.12,z,.075,i%3?'#7594a0':'#aa74c7',5,6);
     }
-    // Lajes quebradas e brasas ao redor da praça.
-    for(let i=0;i<30;i++){
-      const a=i*2.4,rad=4.4+(i%5)*.38,x=Math.cos(a)*rad,z=1.5+Math.sin(a)*rad*.42;
-      addBox(world,x,.12,z,.22+(i%3)*.12,.18,.28+(i%4)*.1,i%2?'#51475a':'#403847',a*.15);
-    }
-    addCone(player,0,.58,0,.34,.86,'#438cbd',10); addSphere(player,0,1.13,0,.23,'#d6bda5',7,10); addBox(player,0,.86,-.02,.48,.12,.52,'#d8cfb7');
-    addCone(bishop,0,.83,0,.55,1.26,'#29202f',12); addSphere(bishop,0,1.58,0,.25,'#b89cc4',8,12);
-    addBox(bishop,0,1.61,-.24,.47,.11,.08,'#16111d'); addCone(bishop,0,2.02,0,.37,.5,'#6c36a0',10);
+
+    // Marcadores provisórios: pontos de substituição para personagem e Bispo 3D.
+    addCone(player,0,.58,0,.34,.86,'#438cbd',8); addSphere(player,0,1.13,0,.23,'#d6bda5',6,8); addBox(player,0,.86,-.02,.48,.12,.52,'#d8cfb7');
+    addCone(bishop,0,.83,0,.55,1.26,'#29202f',10); addSphere(bishop,0,1.58,0,.25,'#b89cc4',6,8);
+    addBox(bishop,0,1.61,-.24,.47,.11,.08,'#16111d'); addCone(bishop,0,2.02,0,.37,.5,'#6c36a0',8);
     addBox(bishop,0,.96,.38,.13,.78,.14,'#dbb55e');
-    return {world:mesh(S.gl,world),portal:mesh(S.gl,portal),player:mesh(S.gl,player),bishop:mesh(S.gl,bishop)};
+    return {world:mesh(S.gl,world),mist:mesh(S.gl,mist),portal:mesh(S.gl,portal),player:mesh(S.gl,player),bishop:mesh(S.gl,bishop)};
   }
   function shader(gl,type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh)||'shader inválido');return sh;}
   function initGL() {
@@ -174,7 +216,7 @@ const BishopDimension = (function () {
     const fs='precision mediump float; varying vec4 vColor; void main(){gl_FragColor=vColor;}';
     const program=gl.createProgram();gl.attachShader(program,shader(gl,gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl,gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);
     if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program)||'programa WebGL inválido');
-    S.gl=gl;S.program=program;S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');
+    S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
     S.exterior=buildExterior();S.arena=buildArena();S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
     S.lost=false;S.failed=false;
@@ -200,17 +242,20 @@ const BishopDimension = (function () {
     const projection=ortho(0,w,0,h,-120,120), base=multiply(projection,multiply(translate(screenX,h-screenY,0),scale(unit,unit,unit)));
     gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.exterior.trees,base);draw(S.exterior.arch,base);
-    const pulse=.92+.08*Math.sin(Game.time*3.2), glow=multiply(base,multiply(translate(0,40+Math.sin(Game.time*1.6)*1.4,-7),multiply(rotateZ(Game.time*.23),scale(pulse,pulse,1))));
-    draw(S.exterior.glow,glow);
+    const pulse=.92+.08*Math.sin(Game.time*3.2), centerY=40+Math.sin(Game.time*1.6)*1.4, centerZ=-8;
+    const glowModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.23),multiply(scale(pulse,pulse,1),translate(0,-40,8))));
+    draw(S.exterior.glow,multiply(base,glowModel));
   }
   function insideFrame() {
     const gl=S.gl,w=S.canvas.width,h=S.canvas.height,room=Casino.room,unit=1/72;
     const px=(Player.x-(room.left+room.right)/2)*unit,pz=(Player.y-(room.top+room.bottom)/2)*unit;
-    const eye=[px,5.6,pz+10.5],target=[px*.7,1.65,pz-2.0];
+    const eye=[px,4.8,pz+9.5],target=[px*.7,1.25,pz-3.5];
     const pv=multiply(perspective(1.02,w/h,.1,75),lookAt(eye,target,[0,1,0]));
-    gl.clearColor(.035,.025,.065,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.clearColor(.008,.014,.021,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
-    const pulse=1+.035*Math.sin(Game.time*2.6), ringModel=multiply(translate(0,3.25,-5.78),multiply(rotateZ(Game.time*.48),scale(pulse,pulse,1)));
+    draw(S.arena.mist,pv);
+    const pulse=1+.035*Math.sin(Game.time*2.6), centerY=2.2, centerZ=-18.84;
+    const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
     draw(S.arena.portal,multiply(pv,ringModel));
     const bossStep=Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst';
     const bossLive=bossStep&&(BishopBoss.state!=='inactive'||(Campaign.st&&Campaign.st.phase==='intro'));
@@ -227,8 +272,9 @@ const BishopDimension = (function () {
     if(S.lost||S.failed||!S.gl)return;
     try {
       resize();
-      const inside=!!Casino.inside;
-      const active=inside||(Casino.discovered&&Campaign.flags.casinoDiscovered);
+      const inside=!!(Casino.inside&&isBattleActive());
+      const exterior=!!(!Casino.inside&&Casino.discovered&&Campaign.flags.casinoDiscovered);
+      const active=inside||exterior;
       S.canvas.style.display=active?'block':'none';
       if(!active)return;
       if(inside!==S.wasInside){S.wasInside=inside;S.canvas.style.opacity=inside?'0.18':'1';if(inside)requestAnimationFrame(function(){if(S.canvas&&Casino.inside)S.canvas.style.opacity='1';});}
@@ -244,5 +290,22 @@ const BishopDimension = (function () {
     S.canvas.addEventListener('webglcontextrestored',function(){try{initGL();resize();}catch(err){S.failed=true;console.warn('Não foi possível restaurar WebGL:',err);}});
     try{initGL();resize();}catch(err){S.failed=true;console.warn('WebGL indisponível; o cenário 2D continua ativo.',err);}
   }
-  return {init:init,frame:frame,resize:resize};
+  function isBattleActive() {
+    return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
+  }
+  function enter() {
+    if(!Casino.inside||!Campaign.step||Campaign.step.type!=='bishop'||Campaign.step.boss!=='greedFirst')return;
+    const room=Casino.room;
+    Player.x=(room.left+room.right)/2;
+    Player.y=room.bottom-180;
+    Player.z=0;Player.vx=Player.vy=Player.vz=0;Player.kx=Player.ky=0;
+    Player.fx=0;Player.fy=-1;Player.floor=0;Player.onGround=true;Player.sy=Player.y;
+    Camera.snap(Player);
+  }
+  function blocked(x,y,r) {
+    if(!isBattleActive())return false;
+    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=3.25*72;
+    return x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<room.top+125||y+r>room.bottom-95;
+  }
+  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked};
 })();

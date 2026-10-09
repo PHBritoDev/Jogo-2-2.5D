@@ -1098,6 +1098,7 @@ const HANDLERS = {
   bishop: {
     enter: function (s, st) {
       st.phase = 'intro';
+      if (s.boss === 'greedFirst' && typeof BishopDimension !== 'undefined') BishopDimension.enter();
       const index = Campaign.bishopIndex(s.boss);
       if (index >= 0 && Campaign.galaxy.bishops[index].status !== 'defeated') {
         Campaign.galaxy.bishops[index].status = 'available';

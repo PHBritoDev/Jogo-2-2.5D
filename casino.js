@@ -9,9 +9,9 @@ const Casino = {
   door: { x: 2630, y: 790 },
   clue: { x: 2525, y: 890 },
   room: { left: 260, right: 1360, top: 360, bottom: 1260 },
-  start: { x: 420, y: 1110 },
+  start: { x: 810, y: 1080 },
   dealer: { x: 810, y: 575 },
-  bossStart: { x: 1110, y: 835 },
+  bossStart: { x: 960, y: 835 },
   exit: { x: 430, y: 1215 },
   inside: false,
   discovered: false,
@@ -28,6 +28,9 @@ const Casino = {
       this._baseBlocked = World.blocked;
       const self = this;
       World.blocked = function (x, y, r) {
+        if (typeof BishopDimension !== 'undefined' && BishopDimension.isBattleActive()) {
+          return BishopDimension.blocked(x, y, r);
+        }
         const bounds = World.activeInstanceBounds();
         if (bounds) {
           if (x - r < bounds.left || x + r > bounds.right ||
