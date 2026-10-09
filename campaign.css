@@ -388,9 +388,15 @@ body.bishop-battle #quest-box {
   top: calc(80px + env(safe-area-inset-top));
   max-width: min(70vw, 460px);
 }
+body.bishop-battle #toast {
+  top: calc(136px + env(safe-area-inset-top));
+}
 @media (max-width: 560px) {
   body.bishop-battle #quest-box {
     top: calc(72px + env(safe-area-inset-top));
     max-width: min(66vw, 300px);
+  }
+  body.bishop-battle #toast {
+    top: calc(164px + env(safe-area-inset-top));
   }
 }
