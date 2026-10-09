@@ -146,95 +146,136 @@ const BishopDimension = (function () {
     return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),ruins:mesh(S.gl,ruins)};
   }
   function buildArena() {
-    const world=[],portal=[],mist=[],player=[],bishop=[];
+    const world=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[];
 
-    // Uma estrada de terra atravessa a dimensão; bosque fechado e raízes
-    // substituem a praça aberta. Geometria deliberadamente low-poly para mobile.
-    addBox(world,0,-.38,-1.5,48,.72,42,'#08100f');
-    addBox(world,0,-.015,-1.5,5.55,.09,37,'#302b25');
-    addBox(world,-2.91,.015,-1.5,.24,.11,36,'#171b17');
-    addBox(world, 2.91,.015,-1.5,.24,.11,36,'#171b17');
+    // A estrada fica mais larga sem aumentar o tamanho da arena; o piso
+    // continua low-poly e seus destaques são geometria estática e barata.
+    addBox(world,0,-.38,-2.5,54,.72,52,'#111814');
+    addBox(world,0,-.015,-2.5,7.2,.09,50,'#493f32');
+    addBox(world,-3.72,.015,-2.5,.18,.11,49,'#292922');
+    addBox(world, 3.72,.015,-2.5,.18,.11,49,'#292922');
+    for(let i=0;i<7;i++){
+      const z=15-i*5.1;
+      addQuad(world,[-1.4,.039,z+1.05],[1.4,.039,z+1.05],[1.05,.039,z-1.05],[-1.05,.039,z-1.05],color('#827962',.11));
+    }
 
-    // Cascalho, folhas e sulcos baixos mantêm a estrada legível durante o combate.
-    for(let i=0;i<32;i++){
-      const z=14-(i*.91),x=((i*17)%31)/31*3.9-1.95;
+    // Cascalho e folhas variam ao longo do caminho sem poluir a área de esquiva.
+    for(let i=0;i<38;i++){
+      const z=17-(i*.91),x=((i*17)%37)/37*5.3-2.65;
       const w=.12+(i%4)*.075,d=.12+(i%3)*.09;
-      addBox(world,x,.045,z,w,.055,d,i%4===0?'#555044':(i%2?'#403b31':'#39372f'),(i%5)*.13);
-      if(i%3===0)addBox(world,x+(i%2?.42:-.42),.037,z-.28,.48,.035,.06,'#24251f',(i%2?.2:-.2));
-    }
-    // Raízes expostas e pedras formam ombros naturais; as colisões usam esse
-    // mesmo corredor em vez de prender o jogador à antiga sala retangular.
-    for(let i=0;i<16;i++){
-      const z=12-i*1.7,side=i%2?1:-1;
-      addBox(world,side*(3.05+(i%3)*.17),.075,z,.62+(i%3)*.18,.18,.38+(i%2)*.22, i%3?'#292b26':'#37352f',side*.18);
-      addBox(world,side*(2.72+(i%2)*.12),.12,z+.18,1.08,.22,.19,'#343129',-side*.22);
+      addBox(world,x,.045,z,w,.055,d,i%4===0?'#71634d':(i%2?'#51483a':'#5c5140'),(i%5)*.13);
+      if(i%3===0)addBox(world,x+(i%2?.42:-.42),.037,z-.28,.48,.035,.06,'#302d26',(i%2?.2:-.2));
     }
 
-    // Fileiras alternadas de árvores altas, troncos torcidos, galhos e copas
-    // escuras fecham a vista lateral sem cobrir o centro da estrada.
-    for(let i=0;i<11;i++){
-      const z=13.7-i*3.05+(i%2?.78:-.42);
+    // Raízes, pedras e moitas nos ombros; ficam fora do corredor de colisão.
+    for(let i=0;i<17;i++){
+      const z=14-i*1.72,side=i%2?1:-1;
+      const x=side*(4.58+(i%3)*.18);
+      addBox(world,x,.11,z,.62+(i%3)*.16,.22,.42+(i%2)*.18,i%3?'#514334':'#66513a',side*.18);
+      addBox(world,side*(4.38+(i%2)*.12),.10,z+.18,.96,.20,.22,'#5c4934',-side*.18);
+      if(i%2===0)addBox(world,side*(4.65+(i%3)*.22),.24,z-.35,.72,.42,.62,i%4?'#4d514b':'#5c5a50',side*.14);
+      if(i%3===0)addCone(world,side*(5.05+(i%2)*.3),.42,z+.52,.48,.88,i%2?'#263f32':'#354632',6);
+    }
+
+    // Árvores altas com troncos tortos, galhos e copas sobrepostas.
+    // A variedade vem de poucas formas reaproveitadas, adequada a mobile.
+    const barkPalette=['#51402f','#493a30','#5b4532','#463b32'];
+    const leafPalette=['#254333','#304b35','#3e4d36','#29463e'];
+    for(let i=0;i<12;i++){
+      const z=15-i*3.05+(i%2?.72:-.28);
       for(let side=-1;side<=1;side+=2){
-        const x=side*(4.05+(i*7%5)*.54+((i+side+2)%2)*.24);
-        const h=8.2+(i*7%5)*.72,lean=side*(.2+(i%3)*.08);
-        const bark=i%3===0?'#292b2c':'#202626';
-        addCylinder(world,x,h*.34,z,.28+(i%2)*.05,h*.68,bark,8,'#343536');
-        addCylinder(world,x+lean,h*.79,z,.2+(i%2)*.035,h*.38,bark,8,'#343536');
-        addBox(world,x+side*.38,h*.67,z,1.72,.12,.16,'#272b2d',side*.48);
-        addBox(world,x-side*.16,h*.85,z+.06,1.22,.1,.14,'#292b2e',-side*.54);
-        if(i%3===0)addBox(world,x+side*.2,h*.93,z-.08,.9,.09,.12,'#24282b',side*.62);
-        if(i%3===1)addCone(world,x+lean*.4,h*.91,z,.72,2.05,'#151d1e',6);
-        addBox(world,x-side*.38,.12,z+.3,1.2,.2,.65,'#272925',side*.2);
+        const x=side*(4.72+(i*7%5)*.43+((i+side+2)%2)*.2);
+        const h=8.5+(i*7%5)*.72,lean=side*(.22+(i%3)*.09);
+        const bark=barkPalette[i%4],leaf=leafPalette[(i+side+2)%4];
+        addQuad(world,[x-.2,.026,z-.28],[x+.2,.026,z-.28],[x+side*1.05,.026,z+1.8],[x-side*.82,.026,z+1.8],color('#070c09',.3));
+        addCylinder(world,x,h*.34,z,.3+(i%2)*.05,h*.68,bark,8,'#866a48');
+        addCylinder(world,x+lean,h*.79,z,.21+(i%2)*.035,h*.38,bark,8,'#92734d');
+        addBox(world,x+side*.38,h*.67,z,1.9,.18,.2,'#73583d',side*.48);
+        addBox(world,x-side*.16,h*.84,z+.06,1.42,.16,.18,'#806243',-side*.54);
+        if(i%3===0)addBox(world,x+side*.2,h*.93,z-.08,1.05,.13,.16,'#896b46',side*.62);
+        addCone(world,x+lean*.4,h*.91,z,.98,2.45,leaf,7);
+        addCone(world,x+lean*.18,h*1.08,z-.04,.68,1.8,leafPalette[(i+1)%4],7);
+        if(i%3===1)addCone(world,x-side*.48,h*.78,z+.12,.62,1.55,leafPalette[(i+2)%4],6);
       }
     }
-    // Uma segunda fileira mais distante interrompe as linhas regulares e
-    // fecha o horizonte com silhuetas de árvores de alturas variadas.
+
+    // Silhuetas mais afastadas quebram a repetição e fecham a floresta.
     for(let i=0;i<8;i++){
-      const side=i%2?1:-1,x=side*(7.1+(i%3)*.75),z=12.1-i*3.9+(i%2)*1.25,h=9+(i*5%4)*.9;
-      addCylinder(world,x,h*.48,z,.3,h*.96,i%2?'#151d20':'#1c2023',7,'#2b2d31');
-      addBox(world,x+side*.35,h*.76,z,1.7,.12,.16,'#1d2326',side*.42);
-      addBox(world,x-side*.18,h*.89,z+.08,1.18,.1,.13,'#202528',-side*.5);
-      if(i%2===0)addCone(world,x,h*.92,z,.85,2.2,'#11191b',6);
+      const side=i%2?1:-1,x=side*(8+(i%3)*.72),z=13-i*4.15+(i%2)*1.1,h=9+(i*5%4)*.9;
+      const bark=barkPalette[(i+1)%4],leaf=leafPalette[(i+2)%4];
+      addCylinder(world,x,h*.48,z,.32,h*.96,bark,7,'#806344');
+      addBox(world,x+side*.35,h*.76,z,1.9,.15,.18,'#6b533a',side*.42);
+      addBox(world,x-side*.18,h*.89,z+.08,1.35,.13,.15,'#806344',-side*.5);
+      addCone(world,x,h*.92,z,.98,2.8,leaf,7);
+      addCone(world,x+side*.15,h*1.08,z+.05,.66,1.85,leafPalette[(i+3)%4],7);
     }
 
-    // Névoa baixa e rarefeita em três planos curtos; sem pós-processamento caro.
-    addPlane(mist,0,1.0,-10,8.4,1.15,'#9cabb7',.055);
-    addPlane(mist,0,.82,-3.5,7.5,.75,'#8297a5',.038);
-    addPlane(mist,0,.72,4.5,7.2,.6,'#83919b',.028);
+    // Três véus translúcidos se movem em velocidades diferentes; sem shader
+    // de pós-processamento nem aumento de resolução.
+    const mistSpecs=[
+      [0,.56,8.5,.62,'#b8c5c7',.045],
+      [-.6,.48,0, .72,'#9aadb3',.038],
+      [.45,.42,-10.5, .82,'#b0bec1',.032]
+    ];
+    for(let i=0;i<mistSpecs.length;i++){
+      const m=[],s=mistSpecs[i];
+      addPlane(m,s[0],s[1],s[2],8.7,s[3],s[4],s[5]);
+      addPlane(m,s[0]+(i%2?.9:-.9),s[1]+.08,s[2]-.55,6.2,s[3]*.72,'#82999f',s[5]*.72);
+      mistLayers.push(mesh(S.gl,m));
+    }
 
-    // O arco violeta ao fim da estrada liga visualmente a dimensão ao portal
-    // da campanha e oferece uma silhueta distante, sem bloquear o chefe.
-    addBox(portal,-2.05,2.15,-18.35,.48,4.25,.72,'#34303e');
-    addBox(portal, 2.05,2.15,-18.35,.48,4.25,.72,'#34303e');
-    addBox(portal,0,4.45,-18.35,4.5,.54,.72,'#393247');
-    addBox(portal,0,.12,-18.35,4.8,.32,1.05,'#473d50');
-    addBox(portal,-2.05,.18,-18.35,1.05,.36,1.05,'#4c4252');
-    addBox(portal, 2.05,.18,-18.35,1.05,.36,1.05,'#4c4252');
+    // Motes leves no ar, deslocados com um movimento comum discreto.
+    for(let i=0;i<26;i++){
+      const a=(i*2.399)%Math.PI*2,x=Math.cos(a)*(1.1+(i*17%100)/100*2.5);
+      const y=.28+(i*13%100)/100*1.65,z=13-(i*19%360)/10;
+      const size=.025+(i%3)*.012,c=color(i%5===0?'#d8c69b':'#a8c7bb',i%5===0?.48:.32);
+      addQuad(particles,[x-size,y,z],[x,y+size,z],[x+size,y,z],[x,y-size,z],c);
+    }
+
+    // Portal em pedra: a moldura permanece imóvel; só a energia gira.
+    const portalZ=-21.25,energyZ=-20.72;
+    addBox(portal,-2.22,2.45,portalZ,.52,4.8,.82,'#514958');
+    addBox(portal, 2.22,2.45,portalZ,.52,4.8,.82,'#5b5265');
+    addBox(portal,0,5.0,portalZ,4.95,.62,.88,'#5d5369');
+    addBox(portal,0,.12,portalZ,5.35,.34,1.24,'#61556d');
+    addBox(portal,-2.22,.2,portalZ,1.18,.42,1.2,'#6a5a71');
+    addBox(portal, 2.22,.2,portalZ,1.18,.42,1.2,'#62556d');
     for(let i=0;i<7;i++){
-      const a=Math.PI-(i/6)*Math.PI,x=Math.cos(a)*2.05,y=4.15+Math.sin(a)*1.35;
-      addBox(portal,x,y,-18.35,.55,.48,.68,i%2?'#493e56':'#5a4a66',Math.PI/2-a);
+      const a=Math.PI-(i/6)*Math.PI,x=Math.cos(a)*2.22,y=4.62+Math.sin(a)*1.55;
+      addBox(portal,x,y,portalZ,.58,.52,.78,i%2?'#5d526b':'#71617b',Math.PI/2-a);
     }
-    addPlane(portal,0,2.2,-17.97,3.45,4.25,'#0d0b1a',.97);
-    addRing(portal,0,2.2,-17.92,1.63,2.28,.14,'#a52cff',.9,40);
-    addRing(portal,0,2.2,-17.88,1.3,1.95,.07,'#e77cff',.82,32);
-    for(let i=0;i<36;i++){
-      const a=(i*2.399)%Math.PI*2,rad=.12+(i*17%100)/100*1.15;
-      const x=Math.cos(a)*rad,y=.55+(i*31%330)/100;
-      addBox(portal,x,y,-17.84-(i%2)*.02,.035,.04,.016,i%7===0?'#ffd4ff':'#c65cff');
+    addPlane(portal,0,2.48,energyZ-.07,3.85,4.65,'#100d1b',.98);
+    addRing(portal,0,2.48,energyZ+.14,2.02,2.32,.18,'#71647a',1,40);
+    addRing(energy,0,2.48,energyZ,1.78,2.36,.16,'#b63cff',.96,40);
+    addRing(energy,0,2.48,energyZ+.045,1.43,2.02,.09,'#ee9bff',.9,36);
+    addRing(energy,0,2.48,energyZ+.08,1.08,1.62,.055,'#a875ff',.78,32);
+    for(let i=0;i<32;i++){
+      const a=(i*2.399)%Math.PI*2,rad=.12+(i*17%100)/100*1.12;
+      const x=Math.cos(a)*rad,y=.72+(i*31%350)/100;
+      addBox(energy,x,y,energyZ+.12,.04,.05,.018,i%7===0?'#ffe0ff':'#d184ff');
     }
 
-    // Pontos frios de luz só nas bordas, deixando a silhueta do chefe visível.
+    // Pontos frios de luz nas bordas dão contraste sem escurecer o chão.
     for(let i=0;i<12;i++){
-      const side=i%2?1:-1,z=11-Math.floor(i/2)*3.5;
-      addSphere(world,side*(3.25+(i%3)*.22),.38+(i%3)*.12,z,.075,i%3?'#7594a0':'#aa74c7',5,6);
+      const side=i%2?1:-1,z=12-Math.floor(i/2)*3.5;
+      addSphere(world,side*(3.95+(i%3)*.24),.42+(i%3)*.12,z,.095,i%3?'#9bc0c2':'#c796e7',5,6);
     }
 
-    // Marcadores provisórios: pontos de substituição para personagem e Bispo 3D.
-    addCone(player,0,.58,0,.34,.86,'#438cbd',8); addSphere(player,0,1.13,0,.23,'#d6bda5',6,8); addBox(player,0,.86,-.02,.48,.12,.52,'#d8cfb7');
-    addCone(bishop,0,.83,0,.55,1.26,'#29202f',10); addSphere(bishop,0,1.58,0,.25,'#b89cc4',6,8);
-    addBox(bishop,0,1.61,-.24,.47,.11,.08,'#16111d'); addCone(bishop,0,2.02,0,.37,.5,'#6c36a0',8);
-    addBox(bishop,0,.96,.38,.13,.78,.14,'#dbb55e');
-    return {world:mesh(S.gl,world),mist:mesh(S.gl,mist),portal:mesh(S.gl,portal),player:mesh(S.gl,player),bishop:mesh(S.gl,bishop)};
+    // Silhuetas simples, mas maiores e com contraste para continuarem legíveis.
+    addCone(player,0,.64,0,.39,.98,'#5486a1',8);
+    addBox(player,0,.94,-.04,.56,.16,.5,'#b29b77');
+    addSphere(player,0,1.3,0,.27,'#e6d2b8',6,8);
+    addCone(bishop,0,.92,0,.62,1.48,'#3d2d49',10);
+    addSphere(bishop,0,1.72,0,.29,'#d0b7cb',6,8);
+    addBox(bishop,0,1.72,-.25,.52,.13,.09,'#1a1222');
+    addCone(bishop,0,2.2,0,.42,.58,'#8a4db4',8);
+    addBox(bishop,0,.98,.4,.15,.88,.16,'#e1be70');
+    addBox(bishop,0,.57,.02,.68,.09,.54,'#705136');
+    return {
+      world:mesh(S.gl,world),mist:mistLayers,portal:mesh(S.gl,portal),
+      energy:mesh(S.gl,energy),particles:mesh(S.gl,particles),
+      player:mesh(S.gl,player),bishop:mesh(S.gl,bishop)
+    };
   }
   function shader(gl,type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh)||'shader inválido');return sh;}
   function initGL() {
@@ -284,12 +325,20 @@ const BishopDimension = (function () {
     const px=(Player.x-(room.left+room.right)/2)*unit,pz=(Player.y-(room.top+room.bottom)/2)*unit;
     const eye=[px,4.8,pz+9.5],target=[px*.7,1.25,pz-3.5];
     const pv=multiply(perspective(1.02,w/h,.1,75),lookAt(eye,target,[0,1,0]));
-    gl.clearColor(.008,.014,.021,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.clearColor(.014,.022,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
-    draw(S.arena.mist,pv);
-    const pulse=1+.035*Math.sin(Game.time*2.6), centerY=2.2, centerZ=-18.84;
+    draw(S.arena.portal,pv);
+    const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
     const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
-    draw(S.arena.portal,multiply(pv,ringModel));
+    gl.depthMask(false);
+    draw(S.arena.energy,multiply(pv,ringModel));
+    const particleDrift=multiply(translate(Math.sin(Game.time*.38)*.18,Math.sin(Game.time*.72)*.07,Math.cos(Game.time*.27)*.3),rotateZ(Math.sin(Game.time*.2)*.012));
+    draw(S.arena.particles,multiply(pv,particleDrift));
+    for(let i=0;i<S.arena.mist.length;i++){
+      const drift=multiply(translate(Math.sin(Game.time*.24+i*1.8)*.26,Math.sin(Game.time*.52+i)*.045,Math.cos(Game.time*.19+i)*.42),rotateZ(Math.sin(Game.time*.16+i)*.008));
+      draw(S.arena.mist[i],multiply(pv,drift));
+    }
+    gl.depthMask(true);
     const bossStep=Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst';
     const bossLive=bossStep&&(BishopBoss.state!=='inactive'||(Campaign.st&&Campaign.st.phase==='intro'));
     if(bossLive){
@@ -338,7 +387,7 @@ const BishopDimension = (function () {
   }
   function blocked(x,y,r) {
     if(!isBattleActive())return false;
-    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=3.25*72;
+    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=3.85*72;
     return x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<room.top+125||y+r>room.bottom-95;
   }
   return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked};
