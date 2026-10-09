@@ -92,7 +92,6 @@ const Casino = {
       ctx.restore();
     }
 
-    if (this.discovered && !this.inside) this._drawEntrance(ctx, t);
   },
 
   _coin(ctx, x, y, scale) {
@@ -106,30 +105,6 @@ const Casino = {
     ctx.fillStyle = '#fff0a0';
     ctx.fillRect(-0.6, -2, 1.2, 4);
     ctx.restore();
-  },
-
-  _drawEntrance(ctx, t) {
-    const x = this.door.x, y = this.door.y;
-    const glow = 0.12 + 0.08 * (1 + Math.sin(t * 3));
-    ctx.fillStyle = 'rgba(10,20,18,0.32)';
-    ctx.beginPath(); ctx.ellipse(x, y + 5, 42, 12, 0, 0, 6.2832); ctx.fill();
-    ctx.fillStyle = '#3b2b20';
-    ctx.fillRect(x - 29, y - 41, 58, 44);
-    ctx.fillStyle = '#18201b';
-    ctx.fillRect(x - 21, y - 34, 42, 35);
-    ctx.fillStyle = 'rgba(255,198,55,' + glow.toFixed(3) + ')';
-    ctx.fillRect(x - 18, y - 31, 36, 31);
-    ctx.strokeStyle = '#bd8c35';
-    ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(x - 30, y + 2); ctx.lineTo(x - 30, y - 29);
-    ctx.quadraticCurveTo(x, y - 61, x + 30, y - 29); ctx.lineTo(x + 30, y + 2);
-    ctx.stroke();
-    ctx.fillStyle = '#f6cb49';
-    ctx.font = 'bold 10px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('?', x, y - 17);
-    this._coin(ctx, x - 39, y + 3, 0.85);
-    this._coin(ctx, x + 40, y + 2, 0.85);
   },
 
   _drawInterior(ctx, t) {
