@@ -174,7 +174,7 @@ const BishopDimension = (function () {
     const fs='precision mediump float; varying vec4 vColor; void main(){gl_FragColor=vColor;}';
     const program=gl.createProgram();gl.attachShader(program,shader(gl,gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl,gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);
     if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program)||'programa WebGL inválido');
-    S.gl=gl;S.program=program;S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');
+    S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
     S.exterior=buildExterior();S.arena=buildArena();S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
     S.lost=false;S.failed=false;
@@ -200,8 +200,9 @@ const BishopDimension = (function () {
     const projection=ortho(0,w,0,h,-120,120), base=multiply(projection,multiply(translate(screenX,h-screenY,0),scale(unit,unit,unit)));
     gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.exterior.trees,base);draw(S.exterior.arch,base);
-    const pulse=.92+.08*Math.sin(Game.time*3.2), glow=multiply(base,multiply(translate(0,40+Math.sin(Game.time*1.6)*1.4,-7),multiply(rotateZ(Game.time*.23),scale(pulse,pulse,1))));
-    draw(S.exterior.glow,glow);
+    const pulse=.92+.08*Math.sin(Game.time*3.2), centerY=40+Math.sin(Game.time*1.6)*1.4, centerZ=-8;
+    const glowModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.23),multiply(scale(pulse,pulse,1),translate(0,-40,8))));
+    draw(S.exterior.glow,multiply(base,glowModel));
   }
   function insideFrame() {
     const gl=S.gl,w=S.canvas.width,h=S.canvas.height,room=Casino.room,unit=1/72;
@@ -210,7 +211,8 @@ const BishopDimension = (function () {
     const pv=multiply(perspective(1.02,w/h,.1,75),lookAt(eye,target,[0,1,0]));
     gl.clearColor(.035,.025,.065,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
-    const pulse=1+.035*Math.sin(Game.time*2.6), ringModel=multiply(translate(0,3.25,-5.78),multiply(rotateZ(Game.time*.48),scale(pulse,pulse,1)));
+    const pulse=1+.035*Math.sin(Game.time*2.6), centerY=3.25, centerZ=-5.78;
+    const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
     draw(S.arena.portal,multiply(pv,ringModel));
     const bossStep=Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst';
     const bossLive=bossStep&&(BishopBoss.state!=='inactive'||(Campaign.st&&Campaign.st.phase==='intro'));
