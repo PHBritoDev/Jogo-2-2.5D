@@ -54,12 +54,29 @@ const BishopDimension = (function () {
     const c=color(hex),n=sides||10,base=y-h/2,tip=[x,y+h/2,z];
     for(let i=0;i<n;i++){const a=i/n*Math.PI*2,b=(i+1)/n*Math.PI*2,p=[x+Math.cos(a)*r,base,z+Math.sin(a)*r],q=[x+Math.cos(b)*r,base,z+Math.sin(b)*r];addTri(out,p,q,tip,[c[0]*(.78+(i%3)*.09),c[1]*(.78+(i%3)*.09),c[2]*(.78+(i%3)*.09),c[3]]);addTri(out,[x,base,z],q,p,c);}
   }
-  function addSphere(out,x,y,z,r,hex,lat,lon) {
+  function addSphere(out,x,y,z,r,hex,lat,lon,sx,sy,sz) {
     const c=color(hex),rows=lat||7,cols=lon||10;
+    const scaleX=sx==null?1:sx,scaleY=sy==null?1:sy,scaleZ=sz==null?1:sz;
     for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){
       const t0=Math.PI*i/rows,t1=Math.PI*(i+1)/rows,p0=j*2*Math.PI/cols,p1=(j+1)*2*Math.PI/cols;
-      const pt=(t,p)=>[x+r*Math.sin(t)*Math.cos(p),y+r*Math.cos(t),z+r*Math.sin(t)*Math.sin(p)];
+      const pt=(t,p)=>[x+r*scaleX*Math.sin(t)*Math.cos(p),y+r*scaleY*Math.cos(t),z+r*scaleZ*Math.sin(t)*Math.sin(p)];
       addQuad(out,pt(t0,p0),pt(t1,p0),pt(t1,p1),pt(t0,p1),[c[0]*(.78+.22*Math.sin(p0)),c[1]*(.78+.22*Math.sin(p0)),c[2]*(.78+.22*Math.sin(p0)),c[3]]);
+    }
+  }
+  function addSegment(out,a,b,r0,r1,hex,sides) {
+    const axis=normalize([b[0]-a[0],b[1]-a[1],b[2]-a[2]]);
+    const ref=Math.abs(axis[1])<.9?[0,1,0]:[0,0,1];
+    const u=normalize(cross(axis,ref)),v=cross(axis,u),n=sides||6,c=color(hex);
+    for(let i=0;i<n;i++){
+      const a0=i/n*Math.PI*2,a1=(i+1)/n*Math.PI*2;
+      const radial=(t)=>[u[0]*Math.cos(t)+v[0]*Math.sin(t),u[1]*Math.cos(t)+v[1]*Math.sin(t),u[2]*Math.cos(t)+v[2]*Math.sin(t)];
+      const d0=radial(a0),d1=radial(a1);
+      const p0=[a[0]+d0[0]*r0,a[1]+d0[1]*r0,a[2]+d0[2]*r0];
+      const p1=[a[0]+d1[0]*r0,a[1]+d1[1]*r0,a[2]+d1[2]*r0];
+      const p2=[b[0]+d1[0]*r1,b[1]+d1[1]*r1,b[2]+d1[2]*r1];
+      const p3=[b[0]+d0[0]*r1,b[1]+d0[1]*r1,b[2]+d0[2]*r1];
+      const shade=i%3===0?.82:(i%3===1?1:.9);
+      addQuad(out,p0,p1,p2,p3,[c[0]*shade,c[1]*shade,c[2]*shade,c[3]]);
     }
   }
   function addRing(out,x,y,z,rx,ry,tube,hex,alpha,segments) {
@@ -151,12 +168,12 @@ const BishopDimension = (function () {
     // A estrada fica mais larga sem aumentar o tamanho da arena; o piso
     // continua low-poly e seus destaques são geometria estática e barata.
     addBox(world,0,-.38,-2.5,54,.72,52,'#111814');
-    addBox(world,0,-.015,-2.5,7.2,.09,50,'#493f32');
-    addBox(world,-3.72,.015,-2.5,.18,.11,49,'#292922');
-    addBox(world, 3.72,.015,-2.5,.18,.11,49,'#292922');
-    for(let i=0;i<7;i++){
-      const z=15-i*5.1;
-      addQuad(world,[-1.4,.039,z+1.05],[1.4,.039,z+1.05],[1.05,.039,z-1.05],[-1.05,.039,z-1.05],color('#827962',.11));
+    addBox(world,0,-.015,-2.5,8.2,.09,50,'#493f32');
+    addBox(world,-4.22,.015,-2.5,.18,.11,49,'#292922');
+    addBox(world, 4.22,.015,-2.5,.18,.11,49,'#292922');
+    for(let i=0;i<8;i++){
+      const z=17-i*4.75,fade=1-i/8,width=3.1-fade*.65;
+      addQuad(world,[-width,.041,z+2.55],[width,.041,z+2.55],[width*.78,.041,z-2.55],[-width*.78,.041,z-2.55],color('#d0a16b',.21*fade+.025));
     }
 
     // Cascalho e folhas variam ao longo do caminho sem poluir a área de esquiva.
@@ -167,47 +184,69 @@ const BishopDimension = (function () {
       if(i%3===0)addBox(world,x+(i%2?.42:-.42),.037,z-.28,.48,.035,.06,'#302d26',(i%2?.2:-.2));
     }
 
-    // Raízes, pedras e moitas nos ombros; ficam fora do corredor de colisão.
+    // Pedras arredondadas, raízes expostas e moitas nos ombros da estrada.
     for(let i=0;i<17;i++){
       const z=14-i*1.72,side=i%2?1:-1;
-      const x=side*(4.58+(i%3)*.18);
-      addBox(world,x,.11,z,.62+(i%3)*.16,.22,.42+(i%2)*.18,i%3?'#514334':'#66513a',side*.18);
-      addBox(world,side*(4.38+(i%2)*.12),.10,z+.18,.96,.20,.22,'#5c4934',-side*.18);
-      if(i%2===0)addBox(world,side*(4.65+(i%3)*.22),.24,z-.35,.72,.42,.62,i%4?'#4d514b':'#5c5a50',side*.14);
-      if(i%3===0)addCone(world,side*(5.05+(i%2)*.3),.42,z+.52,.48,.88,i%2?'#263f32':'#354632',6);
+      const x=side*(5.0+(i%3)*.18),rock=i%3?'#403b32':'#51483c';
+      addSphere(world,x,.16,z,.48+(i%3)*.1,rock,4,6,1.35,.52,.92);
+      addSegment(world,[x-side*.12,.12,z+.12],[x-side*(.58+(i%3)*.12),.035,z+.52],.13,.025,i%2?'#30271f':'#413226',5);
+      addSegment(world,[x+side*.08,.11,z-.12],[x+side*.48,.035,z-.38],.11,.02,'#382c22',5);
+      if(i%2===0){
+        const bushX=side*(5.48+(i%3)*.22),bushY=.26;
+        addSphere(world,bushX,bushY,z-.35,.42,i%4?'#1d2b20':'#293426',4,6,1.35,.72,.9);
+        addSphere(world,bushX+side*.3,bushY+.04,z-.54,.31,'#263224',4,6,1.2,.76,.9);
+      }
+      if(i%4===0)addCone(world,side*(5.62+(i%2)*.3),.55,z+.48,.34,.72,i%2?'#263b2b':'#303b2a',6);
     }
 
-    // Árvores altas com troncos tortos, galhos e copas sobrepostas.
-    // A variedade vem de poucas formas reaproveitadas, adequada a mobile.
-    const barkPalette=['#51402f','#493a30','#5b4532','#463b32'];
-    const leafPalette=['#254333','#304b35','#3e4d36','#29463e'];
+    // Troncos retorcidos e galhos nus: a silhueta segue a referência da mata
+    // noturna; arbustos e samambaias quebram o vazio junto aos troncos.
+    const barkPalette=['#32291f','#3a2d23','#403126','#302923'];
     for(let i=0;i<12;i++){
-      const z=15-i*3.05+(i%2?.72:-.28);
+      const z=15-i*2.82+(i*7%13)*.2;
       for(let side=-1;side<=1;side+=2){
-        const x=side*(4.72+(i*7%5)*.43+((i+side+2)%2)*.2);
-        const h=8.5+(i*7%5)*.72,lean=side*(.22+(i%3)*.09);
-        const bark=barkPalette[i%4],leaf=leafPalette[(i+side+2)%4];
-        addQuad(world,[x-.2,.026,z-.28],[x+.2,.026,z-.28],[x+side*1.05,.026,z+1.8],[x-side*.82,.026,z+1.8],color('#070c09',.3));
-        addCylinder(world,x,h*.34,z,.3+(i%2)*.05,h*.68,bark,8,'#866a48');
-        addCylinder(world,x+lean,h*.79,z,.21+(i%2)*.035,h*.38,bark,8,'#92734d');
-        addBox(world,x+side*.38,h*.67,z,1.9,.18,.2,'#73583d',side*.48);
-        addBox(world,x-side*.16,h*.84,z+.06,1.42,.16,.18,'#806243',-side*.54);
-        if(i%3===0)addBox(world,x+side*.2,h*.93,z-.08,1.05,.13,.16,'#896b46',side*.62);
-        addCone(world,x+lean*.4,h*.91,z,.98,2.45,leaf,7);
-        addCone(world,x+lean*.18,h*1.08,z-.04,.68,1.8,leafPalette[(i+1)%4],7);
-        if(i%3===1)addCone(world,x-side*.48,h*.78,z+.12,.62,1.55,leafPalette[(i+2)%4],6);
+        const variant=(i*7+(side>0?3:0))%7;
+        const tz=z+(side>0?.62:-.38)+((i*11+(side>0?5:0))%7)*.17;
+        const x=side*(5.32+(i*7%5)*.4+((i+side+2)%2)*.2);
+        const h=8.6+variant*.58,lean=(((i+(side>0?1:0))%2)?1:-1)*(.18+(variant%4)*.085);
+        const bark=barkPalette[(i+(side>0?1:0))%4];
+        addQuad(world,[x-.2,.026,tz-.28],[x+.2,.026,tz-.28],[x+side*1.05,.026,tz+1.8],[x-side*.82,.026,tz+1.8],color('#070c09',.3));
+        const middle=[x+lean*.38,h*.52,tz+(variant%3-.7)*.12],top=[x+lean,h,tz+(variant%4-1.5)*.16];
+        addSegment(world,[x,.08,tz],middle,.34,.23,bark,7);
+        addSegment(world,middle,top,.23,.075,barkPalette[(i+2)%4],7);
+        for(let j=0;j<5;j++){
+          const y=h*(.46+j*.083),f=y/h,rootX=x+lean*f;
+          const branchSide=(j+i+(side>0?2:0))%2===0?-1:1;
+          const length=.95+((i*3+j*5)%7)*.16,raise=.58+((i+j*2)%4)*.18;
+          const start=[rootX,y,tz+(j%2?.16:-.12)];
+          const end=[rootX+branchSide*length,y+raise,tz+(j%3-1)*.16];
+          addSegment(world,start,end,.082,.025,barkPalette[(i+j)%4],5);
+          if(j%2===0){
+            const twigSide=branchSide*(j%3===0?-1:1);
+            addSegment(world,[end[0],end[1],end[2]],[end[0]+twigSide*.48,end[1]+.46,end[2]+.12],.033,.008,'#51402f',4);
+          }
+        }
+        for(let r=0;r<3;r++){
+          const outward=(r-1)*.42+side*.48;
+          addSegment(world,[x,.14,tz],[x+outward,.035,tz+(r-1)*.32],.17,.018,'#372a20',5);
+        }
       }
     }
 
-    // Silhuetas mais afastadas quebram a repetição e fecham a floresta.
-    for(let i=0;i<8;i++){
-      const side=i%2?1:-1,x=side*(8+(i%3)*.72),z=13-i*4.15+(i%2)*1.1,h=9+(i*5%4)*.9;
-      const bark=barkPalette[(i+1)%4],leaf=leafPalette[(i+2)%4];
-      addCylinder(world,x,h*.48,z,.32,h*.96,bark,7,'#806344');
-      addBox(world,x+side*.35,h*.76,z,1.9,.15,.18,'#6b533a',side*.42);
-      addBox(world,x-side*.18,h*.89,z+.08,1.35,.13,.15,'#806344',-side*.5);
-      addCone(world,x,h*.92,z,.98,2.8,leaf,7);
-      addCone(world,x+side*.15,h*1.08,z+.05,.66,1.85,leafPalette[(i+3)%4],7);
+    // Fileira irregular ao fundo fecha as laterais e dá profundidade sem
+    // repetir um padrão de árvores em intervalos iguais.
+    for(let i=0;i<18;i++){
+      const side=i%2?1:-1,variant=(i*5)%9;
+      const x=side*(7.4+(i*7%5)*.78),z=16-i*1.92+(i*11%17)*.19,h=6.6+variant*.47;
+      const bark=barkPalette[(i+1)%4],lean=side*(.22+(variant%3)*.13);
+      const mid=[x+lean*.42,h*.55,z],top=[x+lean,h,z+(i%4-1.5)*.12];
+      addSegment(world,[x,.06,z],mid,.28,.17,bark,6);
+      addSegment(world,mid,top,.17,.045,barkPalette[(i+2)%4],6);
+      for(let j=0;j<3;j++){
+        const branchSide=((i+j)%2?1:-1);
+        const startY=h*(.6+j*.1),startX=x+lean*(startY/h);
+        addSegment(world,[startX,startY,z],[startX+branchSide*(.82+(i+j)%4*.22),startY+.5+(j%2)*.2,z+(j-1)*.12],.062,.014,bark,5);
+      }
     }
 
     // Três véus translúcidos se movem em velocidades diferentes; sem shader
@@ -387,7 +426,7 @@ const BishopDimension = (function () {
   }
   function blocked(x,y,r) {
     if(!isBattleActive())return false;
-    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=3.85*72;
+    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=4.25*72;
     return x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<room.top+125||y+r>room.bottom-95;
   }
   return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked};
