@@ -237,8 +237,12 @@ const BishopDimension = (function () {
   function outsideFrame() {
     if(!Casino.discovered&&!Campaign.flags.casinoDiscovered)return;
     const gl=S.gl, w=S.canvas.width, h=S.canvas.height, pxRatio=w/(window.innerWidth||w);
-    const sx=(Casino.door.x-Camera.x)*Camera.scale+Camera.shakeX, sy=(Casino.door.y-Camera.y)*Camera.scale+Camera.shakeY;
-    const screenX=sx*pxRatio, screenY=(window.innerHeight-sy)*h/(window.innerHeight||h), unit=Camera.scale*pxRatio;
+    const gameCanvas=document.getElementById('game');
+    const gameRatio=gameCanvas?gameCanvas.width/(window.innerWidth||w):pxRatio;
+    const unit=Camera.scale*pxRatio/gameRatio;
+    const camX=Math.round((Camera.x+Camera.shakeX)*Camera.scale)/Camera.scale;
+    const camY=Math.round((Camera.y+Camera.shakeY)*Camera.scale)/Camera.scale;
+    const screenX=(Casino.door.x-camX)*unit, screenY=(Casino.door.y-camY)*unit;
     const projection=ortho(0,w,0,h,-120,120), base=multiply(projection,multiply(translate(screenX,h-screenY,0),scale(unit,unit,unit)));
     gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.exterior.trees,base);draw(S.exterior.arch,base);
@@ -278,14 +282,14 @@ const BishopDimension = (function () {
       const active=inside||exterior;
       S.canvas.style.display=active?'block':'none';
       if(!active)return;
-      if(inside!==S.wasInside){S.wasInside=inside;S.canvas.style.opacity=inside?'0.18':'1';if(inside)requestAnimationFrame(function(){if(S.canvas&&Casino.inside)S.canvas.style.opacity='1';});}
+      if(inside!==S.wasInside){S.wasInside=inside;S.canvas.style.opacity='1';}
       if(inside)insideFrame();else outsideFrame();
     } catch(err) { console.warn('Cena 3D de Valério indisponível; mantendo renderização 2D.',err);S.canvas.style.display='none';S.failed=true; }
   }
   function init() {
     if(S.canvas)return;
     S.canvas=document.createElement('canvas');S.canvas.id='valerio-dimension-3d';S.canvas.setAttribute('aria-hidden','true');
-    S.canvas.style.cssText='position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;display:none;opacity:1;transition:opacity .85s ease;';
+    S.canvas.style.cssText='position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;display:none;opacity:1;';
     document.body.appendChild(S.canvas);
     S.canvas.addEventListener('webglcontextlost',function(e){e.preventDefault();S.lost=true;S.gl=null;S.canvas.style.display='none';});
     S.canvas.addEventListener('webglcontextrestored',function(){try{initGL();resize();}catch(err){S.failed=true;console.warn('Não foi possível restaurar WebGL:',err);}});
