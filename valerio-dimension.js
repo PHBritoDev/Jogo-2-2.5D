@@ -104,7 +104,7 @@ const BishopDimension = (function () {
     addBox(arch,-30,35,0,9,73,13,'#211d2b'); addBox(arch,30,35,0,9,73,13,'#292236');
     addBox(arch,-30,3,0,18,8,19,'#473b55'); addBox(arch,30,3,0,18,8,19,'#3c334b');
     for(let i=0;i<7;i++){const a=Math.PI-(i/6)*Math.PI,x=Math.cos(a)*30,y=52+Math.sin(a)*23;addBox(arch,x,y,0,13,11,14,i%2?'#392f49':'#51405f',Math.PI/2-a);}
-    addPlane(glow,0,39,-4,43,59,'#180d2a',.94);
+    addPlane(glow,0,39,-14,43,59,'#180d2a',.94);
     addRing(glow,0,40,-8,21,31,4,'#a92cff',.98,44);
     addRing(glow,0,40,-9,15,24,2.1,'#e28cff',.92,36);
     addRing(glow,0,40,-10,10,18,1.3,'#7022ff',.9,32);
@@ -269,10 +269,11 @@ const BishopDimension = (function () {
   }
   function frame() {
     if(!S.canvas)return;
-    if(S.lost||S.failed||!S.gl)return;
+    const inside=!!(Casino.inside&&isBattleActive());
+    document.body.classList.toggle('bishop-battle',inside);
+    if(S.lost||S.failed||!S.gl){S.canvas.style.display='none';return;}
     try {
       resize();
-      const inside=!!(Casino.inside&&isBattleActive());
       const exterior=!!(!Casino.inside&&Casino.discovered&&Campaign.flags.casinoDiscovered);
       const active=inside||exterior;
       S.canvas.style.display=active?'block':'none';
