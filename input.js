@@ -2,17 +2,19 @@
 
 /* ============================================================
    INPUT — joystick analógico (lado esquerdo), botões de pulo,
-   ataque e defesa (lado direito) e teclado (para testar no PC)
+   ataque e defesa (lado direito), teclado e câmera livre por arrasto
    ============================================================ */
 const Input = (function () {
   const zone = document.getElementById('joy-zone');
   const base = document.getElementById('joy-base');
   const knob = document.getElementById('joy-knob');
+  const gameCanvas = document.getElementById('game');
 
   const R = CFG.JOY.radius;
   const keys = {};
   const joy = { x: 0, y: 0 };
   const out = { x: 0, y: 0 };
+  const cameraDrag = { active: false, pointerId: null, lastX: 0, lastY: 0 };
 
   let joyId = null;
   let cx = 0, cy = 0;
@@ -61,6 +63,7 @@ const Input = (function () {
   // ----- Joystick (toque na metade esquerda da tela) -----
   zone.addEventListener('pointerdown', function (e) {
     if (joyId !== null) return;
+    if (cameraDrag.active) return;
     e.preventDefault();
     joyId = e.pointerId;
     try { zone.setPointerCapture(e.pointerId); } catch (err) {}
@@ -115,6 +118,48 @@ const Input = (function () {
   bindButton('btn-defend', function () { touchDefend = true; }, function () { touchDefend = false; });
   bindButton('btn-aim', function () { aimToggleQueued = true; }, function () {});
 
+  // ----- Câmera livre por arrasto: mouse direito / toque na área do jogo -----
+  function beginCameraDrag(e) {
+    if (!gameCanvas || e.target !== gameCanvas) return;
+    if (cameraDrag.active) return;
+    const isMouseDrag = e.pointerType === 'mouse' && e.button === 2;
+    const isTouchDrag = e.pointerType === 'touch' && e.isPrimary;
+    if (!isMouseDrag && !isTouchDrag) return;
+    e.preventDefault();
+    cameraDrag.active = true;
+    cameraDrag.pointerId = e.pointerId;
+    cameraDrag.lastX = e.clientX;
+    cameraDrag.lastY = e.clientY;
+    try { gameCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+  }
+
+  function moveCameraDrag(e) {
+    if (!cameraDrag.active || e.pointerId !== cameraDrag.pointerId) return;
+    const dx = e.clientX - cameraDrag.lastX;
+    const dy = e.clientY - cameraDrag.lastY;
+    cameraDrag.lastX = e.clientX;
+    cameraDrag.lastY = e.clientY;
+
+    // Sensibilidade de arrasto suave; mantém limites no eixo Y
+    const mult = 0.8;
+    Camera.addLookDelta(dx * mult, dy * mult);
+  }
+
+  function endCameraDrag(e) {
+    if (!cameraDrag.active || e.pointerId !== cameraDrag.pointerId) return;
+    cameraDrag.active = false;
+    cameraDrag.pointerId = null;
+  }
+
+  gameCanvas.addEventListener('pointerdown', beginCameraDrag);
+  gameCanvas.addEventListener('pointermove', moveCameraDrag);
+  gameCanvas.addEventListener('pointerup', endCameraDrag);
+  gameCanvas.addEventListener('pointercancel', endCameraDrag);
+  gameCanvas.addEventListener('lostpointercapture', endCameraDrag);
+  gameCanvas.addEventListener('contextmenu', function (e) {
+    if (cameraDrag.active) e.preventDefault();
+  });
+
   // ----- Teclado (teste no PC) -----
   const JUMP_KEYS = { Space: 1, KeyZ: 1, KeyK: 1 };
   const ATTACK_KEYS = { KeyJ: 1, KeyX: 1 };
@@ -136,6 +181,8 @@ const Input = (function () {
     touchJump = false; touchDefend = false;
     aimToggleQueued = false;
     releaseJoy();
+    cameraDrag.active = false;
+    cameraDrag.pointerId = null;
   });
 
   window.addEventListener('resize', layoutIdle);
@@ -165,6 +212,8 @@ const Input = (function () {
     consumeInteract() { const a = interactQueued; interactQueued = false; return a; },
     consumeAimToggle() { const a = aimToggleQueued; aimToggleQueued = false; return a; },
     relayout: layoutIdle,   // reposiciona o joystick (chamado pelo resize do main.js)
-    isKey(code) { return !!keys[code]; }
+    isKey(code) { return !!keys[code]; },
+    isCameraDragging() { return cameraDrag.active; },
+    resetCamera() { Camera.resetLook(); }
   };
 })();
