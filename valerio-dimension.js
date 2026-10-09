@@ -99,23 +99,51 @@ const BishopDimension = (function () {
     return[x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,eye),-dot(y,eye),-dot(z,eye),1];
   }
   function buildExterior() {
-    const arch=[],glow=[],trees=[];
-    // Ruínas de pedra escura emolduram o portal roxo da campanha.
-    addBox(arch,-30,35,0,9,73,13,'#211d2b'); addBox(arch,30,35,0,9,73,13,'#292236');
-    addBox(arch,-30,3,0,18,8,19,'#473b55'); addBox(arch,30,3,0,18,8,19,'#3c334b');
-    for(let i=0;i<7;i++){const a=Math.PI-(i/6)*Math.PI,x=Math.cos(a)*30,y=52+Math.sin(a)*23;addBox(arch,x,y,0,13,11,14,i%2?'#392f49':'#51405f',Math.PI/2-a);}
+    const arch=[],glow=[],ruins=[];
+    // Arco monumental de pedra, com blocos talhados e luz violeta no vão.
+    addBox(arch,-30,35,0,10,74,15,'#211d2b'); addBox(arch,30,35,0,10,74,15,'#292236');
+    addBox(arch,-30,3,0,19,8,20,'#473b55'); addBox(arch,30,3,0,19,8,20,'#3c334b');
+    for(let i=0;i<9;i++){
+      const a=Math.PI-(i/8)*Math.PI,x=Math.cos(a)*30,y=52+Math.sin(a)*23;
+      addBox(arch,x,y,0,13,10,15,i%2?'#392f49':'#51405f',Math.PI/2-a);
+    }
+    // Colunas frontais com bases, capitéis e frisos de pedra.
+    for(const side of [-1,1]){
+      addCylinder(arch,side*27,36,1.5,4.2,68,'#51465c',10,'#796984');
+      addCylinder(arch,side*27,36,1.8,1.35,62,'#302a38',8,'#65556f');
+      addBox(arch,side*27,4,1.5,17,7,19,'#62546c');
+      addBox(arch,side*27,70,1.5,17,7,19,'#71617a');
+      for(let i=0;i<5;i++) addBox(arch,side*27,13+i*10,2,12,.9,17,i%2?'#786884':'#3d3448');
+    }
+    addBox(arch,0,79,0,25,8,18,'#40374d');
+    addBox(arch,0,84,-.5,15,3,16,'#74627d');
+    addRing(arch,0,89,-1,8.5,8.5,1.7,'#8c7199',.78,24);
+    // Ruínas laterais de pedra quebrada substituem as antigas silhuetas de árvores.
+    for(const side of [-1,1]){
+      addBox(ruins,side*49,28,5,15,56,18,side<0?'#17141f':'#201a27');
+      addBox(ruins,side*49,59,5,22,7,22,'#332a3a',side*.025);
+      addBox(ruins,side*56,48,7,13,27,17,'#211b29',side*-.08);
+      addBox(ruins,side*60,70,7,20,8,18,'#2d2535',side*.04);
+      addBox(ruins,side*44,7,5,25,12,24,'#30283a');
+      addBox(ruins,side*67,25,8,12,31,13,'#18151f',side*.07);
+    }
+    const rubble=[[-66,10,8,17,9,13,-.1],[-58,16,9,13,7,12,.08],[-72,35,8,12,19,12,-.12],[63,13,9,19,11,15,.1],[70,39,9,13,17,14,-.08]];
+    for(const r of rubble) addBox(ruins,r[0],r[1],r[2],r[3],r[4],r[5],'#292331',r[6]);
+    // Degraus em primeiro plano; semitransparentes para não esconder o jogador 2D.
+    for(let i=0;i<6;i++){
+      const y=-2-i*2.5,z=1+i*2.1,half=31+i*7.5,depth=2.7;
+      addQuad(arch,[-half,y,z],[half,y,z],[half,y,z+depth],[-half,y,z+depth],color(i%2?'#51475b':'#413849',.38));
+      addQuad(arch,[-half,y-2,z+depth],[half,y-2,z+depth],[half,y,z+depth],[-half,y,z+depth],color('#292431',.46));
+    }
     addPlane(glow,0,39,-14,43,59,'#180d2a',.94);
     addRing(glow,0,40,-8,21,31,4,'#a92cff',.98,44);
     addRing(glow,0,40,-9,15,24,2.1,'#e28cff',.92,36);
     addRing(glow,0,40,-10,10,18,1.3,'#7022ff',.9,32);
-    // Troncos, galhos e copas no primeiro plano, como a trilha escura da referência.
-    const treesSpec=[[-71,58,17],[-57,71,11],[-46,50,8],[48,57,10],[64,77,16],[79,53,10],[-82,32,10],[88,35,12]];
-    for(let i=0;i<treesSpec.length;i++){const p=treesSpec[i],lean=(i%2?3:-3);addBox(trees,p[0],p[1]/2,5,7,p[1],8,i%2?'#201c2b':'#2b2537',lean*.012);addBox(trees,p[0]+lean,p[1]*.74,5,23,2.2,4,'#242033',lean*.028);addBox(trees,p[0]-lean*.65,p[1]*.83,4,17,1.8,3,'#302740',-lean*.026);addCone(trees,p[0],p[1]+5,7,15,24,'#151522',6);}
     for(let i=0;i<55;i++){
       const a=(i*2.399)%Math.PI*2,rad=8+(i*19%38),x=Math.cos(a)*rad,y=15+(i*29%63);
       addBox(glow,x,y,-11,1.6,1.6,.5,i%5?'#cf70ff':'#ffe0ff');
     }
-    return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),trees:mesh(S.gl,trees)};
+    return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),ruins:mesh(S.gl,ruins)};
   }
   function buildArena() {
     const world=[],portal=[],mist=[],player=[],bishop=[];
@@ -243,9 +271,10 @@ const BishopDimension = (function () {
     const camX=Math.round((Camera.x+Camera.shakeX)*Camera.scale)/Camera.scale;
     const camY=Math.round((Camera.y+Camera.shakeY)*Camera.scale)/Camera.scale;
     const screenX=(Casino.door.x-camX)*unit, screenY=(Casino.door.y-camY)*unit;
-    const projection=ortho(0,w,0,h,-120,120), base=multiply(projection,multiply(translate(screenX,h-screenY,0),scale(unit,unit,unit)));
+    const monumentScale=1.85;
+    const projection=ortho(0,w,0,h,-120,120), base=multiply(projection,multiply(translate(screenX,h-screenY,0),scale(unit*monumentScale,unit*monumentScale,unit*monumentScale)));
     gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-    draw(S.exterior.trees,base);draw(S.exterior.arch,base);
+    draw(S.exterior.ruins,base);draw(S.exterior.arch,base);
     const pulse=.92+.08*Math.sin(Game.time*3.2), centerY=40+Math.sin(Game.time*1.6)*1.4, centerZ=-8;
     const glowModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.23),multiply(scale(pulse,pulse,1),translate(0,-40,8))));
     draw(S.exterior.glow,multiply(base,glowModel));
