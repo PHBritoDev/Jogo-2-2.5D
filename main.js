@@ -111,6 +111,7 @@
   // ---------- Inicialização ----------
   World.build();
   Render.init(ctx);
+  BishopDimension.init();
   Combat.init();
   Combat.reset();   // reinicia Player e a coleção de Enemy
   resize(true);
@@ -182,6 +183,7 @@
       Quest.frame(dt);
       Combat.updateHud();
       Render.frame(dt);
+      BishopDimension.frame(dt);
     } catch (err) {
       // Mostra o erro no lugar do FPS (ajuda a diagnosticar no celular)
       console.error(err);
