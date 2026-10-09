@@ -11,7 +11,8 @@ const BishopDimension = (function () {
     canvas: null, gl: null, program: null, aPosition: -1, aColor: -1,
     uMvp: null, exterior: null, arena: null, energy: null, particles: null,
     playerModel: null, bishopModel: null, failed: false, lost: false,
-    wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0
+    wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0,
+    battleCameraX: 0, battleCameraZ: 0, battleCameraReady: false
   };
 
   const clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -91,6 +92,7 @@ const BishopDimension = (function () {
   function translate(x,y,z){return [1,0,0,0,0,1,0,0,0,0,1,0,x,y,z,1];}
   function scale(x,y,z){return [x,0,0,0,0,y,0,0,0,0,z,0,0,0,0,1];}
   function rotateZ(a){const c=Math.cos(a),s=Math.sin(a);return[c,s,0,0,-s,c,0,0,0,0,1,0,0,0,0,1];}
+  function rotateY(a){const c=Math.cos(a),s=Math.sin(a);return[c,0,-s,0,0,1,0,0,s,0,c,0,0,0,0,1];}
   function normalize(v){const n=Math.hypot(v[0],v[1],v[2])||1;return[v[0]/n,v[1]/n,v[2]/n];}
   function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
   function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
@@ -151,63 +153,93 @@ const BishopDimension = (function () {
     // A estrada fica mais larga sem aumentar o tamanho da arena; o piso
     // continua low-poly e seus destaques são geometria estática e barata.
     addBox(world,0,-.38,-2.5,54,.72,52,'#111814');
-    addBox(world,0,-.015,-2.5,7.2,.09,50,'#493f32');
-    addBox(world,-3.72,.015,-2.5,.18,.11,49,'#292922');
-    addBox(world, 3.72,.015,-2.5,.18,.11,49,'#292922');
+    addBox(world,0,-.015,-2.5,9.8,.09,50,'#493f32');
+    addBox(world,-4.92,.015,-2.5,.18,.11,49,'#292922');
+    addBox(world, 4.92,.015,-2.5,.18,.11,49,'#292922');
     for(let i=0;i<7;i++){
       const z=15-i*5.1;
-      addQuad(world,[-1.4,.039,z+1.05],[1.4,.039,z+1.05],[1.05,.039,z-1.05],[-1.05,.039,z-1.05],color('#827962',.11));
+      addQuad(world,[-2.05,.039,z+1.05],[2.05,.039,z+1.05],[1.55,.039,z-1.05],[-1.55,.039,z-1.05],color('#827962',.11));
     }
 
     // Cascalho e folhas variam ao longo do caminho sem poluir a área de esquiva.
     for(let i=0;i<38;i++){
-      const z=17-(i*.91),x=((i*17)%37)/37*5.3-2.65;
+      const z=17-(i*.91),x=((i*17)%43)/43*6.2-3.1;
       const w=.12+(i%4)*.075,d=.12+(i%3)*.09;
       addBox(world,x,.045,z,w,.055,d,i%4===0?'#71634d':(i%2?'#51483a':'#5c5140'),(i%5)*.13);
       if(i%3===0)addBox(world,x+(i%2?.42:-.42),.037,z-.28,.48,.035,.06,'#302d26',(i%2?.2:-.2));
     }
 
-    // Raízes, pedras e moitas nos ombros; ficam fora do corredor de colisão.
-    for(let i=0;i<17;i++){
-      const z=14-i*1.72,side=i%2?1:-1;
-      const x=side*(4.58+(i%3)*.18);
-      addBox(world,x,.11,z,.62+(i%3)*.16,.22,.42+(i%2)*.18,i%3?'#514334':'#66513a',side*.18);
-      addBox(world,side*(4.38+(i%2)*.12),.10,z+.18,.96,.20,.22,'#5c4934',-side*.18);
-      if(i%2===0)addBox(world,side*(4.65+(i%3)*.22),.24,z-.35,.72,.42,.62,i%4?'#4d514b':'#5c5a50',side*.14);
-      if(i%3===0)addCone(world,side*(5.05+(i%2)*.3),.42,z+.52,.48,.88,i%2?'#263f32':'#354632',6);
+    // Luz morna baixa, em faixas largas e suaves, mantém o caminho legível.
+    for(let i=0;i<6;i++){
+      const z=13-i*5.25,w=3.8+(i%2)*.45;
+      addQuad(world,[-w,.042,z+1.8],[w,.042,z+1.8],[w*.72,.042,z-1.8],[-w*.72,.042,z-1.8],color('#c49a72',.075));
     }
 
-    // Árvores altas com troncos tortos, galhos e copas sobrepostas.
-    // A variedade vem de poucas formas reaproveitadas, adequada a mobile.
-    const barkPalette=['#51402f','#493a30','#5b4532','#463b32'];
-    const leafPalette=['#254333','#304b35','#3e4d36','#29463e'];
-    for(let i=0;i<12;i++){
-      const z=15-i*3.05+(i%2?.72:-.28);
-      for(let side=-1;side<=1;side+=2){
-        const x=side*(4.72+(i*7%5)*.43+((i+side+2)%2)*.2);
-        const h=8.5+(i*7%5)*.72,lean=side*(.22+(i%3)*.09);
-        const bark=barkPalette[i%4],leaf=leafPalette[(i+side+2)%4];
-        addQuad(world,[x-.2,.026,z-.28],[x+.2,.026,z-.28],[x+side*1.05,.026,z+1.8],[x-side*.82,.026,z+1.8],color('#070c09',.3));
-        addCylinder(world,x,h*.34,z,.3+(i%2)*.05,h*.68,bark,8,'#866a48');
-        addCylinder(world,x+lean,h*.79,z,.21+(i%2)*.035,h*.38,bark,8,'#92734d');
-        addBox(world,x+side*.38,h*.67,z,1.9,.18,.2,'#73583d',side*.48);
-        addBox(world,x-side*.16,h*.84,z+.06,1.42,.16,.18,'#806243',-side*.54);
-        if(i%3===0)addBox(world,x+side*.2,h*.93,z-.08,1.05,.13,.16,'#896b46',side*.62);
-        addCone(world,x+lean*.4,h*.91,z,.98,2.45,leaf,7);
-        addCone(world,x+lean*.18,h*1.08,z-.04,.68,1.8,leafPalette[(i+1)%4],7);
-        if(i%3===1)addCone(world,x-side*.48,h*.78,z+.12,.62,1.55,leafPalette[(i+2)%4],6);
+    const varied=(seed)=>{const n=Math.sin(seed*127.1+311.7)*43758.5453123;return n-Math.floor(n);};
+    const barkPalette=['#302b28','#39312b','#403329','#292d2c','#49382d'];
+    const leafPalette=['#14221d','#1d2b22','#222a20','#172824'];
+
+    // Raízes expostas, pedras e moitas formam ombros irregulares, fora do
+    // corredor caminhável. Cada lado varia em posição e altura.
+    for(let i=0;i<19;i++){
+      const seed=200+i,side=i%2?1:-1,z=15-i*1.55+(varied(seed)-.5)*1.25;
+      const x=side*(5.45+varied(seed+1)*1.45);
+      addBox(world,x,.10,z,.7+varied(seed+2)*.45,.2,.38+varied(seed+3)*.25,barkPalette[i%5],side*.18);
+      addBox(world,side*(5.25+varied(seed+4)*.85),.075,z+.22,.88,.15,.19,barkPalette[(i+2)%5],-side*.22);
+      if(i%2===0){
+        const h=.34+varied(seed+5)*.42;
+        addSphere(world,side*(5.8+varied(seed+6)*1.1),h*.48,z-.3,.3+varied(seed+7)*.2,i%4?'#41433b':'#4d493e',5,6);
+      }
+      if(i%3===0){
+        const bushX=side*(5.55+varied(seed+8)*1.65);
+        addCone(world,bushX,.38,z+.55,.38+varied(seed+9)*.28,.72+varied(seed+10)*.48,i%2?'#202d23':'#293629',6);
+        addCone(world,bushX+side*.3,.3,z+.68,.27,.58,'#30382b',6);
       }
     }
 
-    // Silhuetas mais afastadas quebram a repetição e fecham a floresta.
-    for(let i=0;i<8;i++){
-      const side=i%2?1:-1,x=side*(8+(i%3)*.72),z=13-i*4.15+(i%2)*1.1,h=9+(i*5%4)*.9;
-      const bark=barkPalette[(i+1)%4],leaf=leafPalette[(i+2)%4];
-      addCylinder(world,x,h*.48,z,.32,h*.96,bark,7,'#806344');
-      addBox(world,x+side*.35,h*.76,z,1.9,.15,.18,'#6b533a',side*.42);
-      addBox(world,x-side*.18,h*.89,z+.08,1.35,.13,.15,'#806344',-side*.5);
-      addCone(world,x,h*.92,z,.98,2.8,leaf,7);
-      addCone(world,x+side*.15,h*1.08,z+.05,.66,1.85,leafPalette[(i+3)%4],7);
+    // Fileiras desalinhadas de árvores: troncos torcidos, raízes em leque,
+    // galhos assimétricos e copas escuras misturadas a silhuetas nuas.
+    for(let i=0;i<14;i++){
+      for(let side=-1;side<=1;side+=2){
+        const seed=i*2+(side>0?1:0),z=17-i*2.75+(varied(seed+20)-.5)*2.1;
+        const x=side*(5.55+varied(seed+1)*2.35),h=7.1+varied(seed+2)*5.3;
+        const lean=side*(.18+varied(seed+3)*.58),radius=.2+varied(seed+4)*.16;
+        const bark=barkPalette[Math.floor(varied(seed+5)*barkPalette.length)];
+        const leaf=leafPalette[Math.floor(varied(seed+6)*leafPalette.length)];
+        const branchSide=varied(seed+7)>.5?1:-1;
+        addQuad(world,[x-.2,.026,z-.3],[x+.2,.026,z-.3],[x+side*(.8+lean),.026,z+1.75],[x-side*.72,.026,z+1.75],color('#060908',.34));
+        addCylinder(world,x,h*.32,z,radius,h*.64,bark,8,'#514236');
+        addCylinder(world,x+lean,h*.81,z+side*varied(seed+8)*.28,radius*.72,h*.38,bark,8,'#5c4937');
+        // Raízes ficam presas à base do tronco e se espalham pelo chão.
+        for(let root=0;root<3;root++){
+          const dir=root===1?-1:1,len=.5+varied(seed+10+root)*.62;
+          addBox(world,x+dir*len*.34,.075,z+(root===2?.22:-.08),len,.14,.2,bark,dir*.16);
+        }
+        // Galhos inclinados em alturas diferentes quebram o contorno repetido.
+        for(let branch=0;branch<4;branch++){
+          const dir=branch%2===0?branchSide:-branchSide;
+          const len=.72+varied(seed+30+branch)*1.15,level=.53+branch*.095;
+          const bx=x+lean*(level*.7),by=h*level;
+          addBox(world,bx+dir*len*.32,by,z+(branch%2?.18:-.12),len,.12,.16,bark,dir*(.22+varied(seed+40+branch)*.36));
+          if(branch%2===0)addBox(world,bx+dir*(len*.72),by+.28,z+(branch%2?.2:-.16),len*.48,.075,.105,bark,dir*.42);
+        }
+        if(i%3!==1)addCone(world,x+lean*.68,h*.91,z,.7+varied(seed+50)*.48,1.9+varied(seed+51)*.85,leaf,7);
+        if(i%4===0)addCone(world,x-branchSide*.55,h*.76,z+.14,.48,1.4,leafPalette[(i+2)%4],6);
+      }
+    }
+
+    // Um segundo plano, mais largo e escuro, fecha o horizonte e dá profundidade.
+    for(let i=0;i<11;i++){
+      const side=i%2?1:-1,seed=500+i,x=side*(9+varied(seed)*4.8);
+      const z=19-i*3.85+(varied(seed+1)-.5)*2.4,h=8.5+varied(seed+2)*5.4;
+      const bark=barkPalette[(i+2)%5],leaf=leafPalette[(i+1)%4];
+      addCylinder(world,x,h*.49,z,.16+varied(seed+3)*.16,h*.98,bark,7,'#514236');
+      for(let branch=0;branch<3;branch++){
+        const dir=branch%2?1:-1,len=1+varied(seed+10+branch)*1.4;
+        const by=h*(.6+branch*.12);
+        addBox(world,x+dir*len*.3,by,z+branch*.07,len,.11,.13,bark,dir*(.27+varied(seed+20+branch)*.3));
+      }
+      if(i%3!==0)addCone(world,x,h*.96,z,.8+varied(seed+4)*.5,2.2+varied(seed+5),leaf,7);
     }
 
     // Três véus translúcidos se movem em velocidades diferentes; sem shader
@@ -320,10 +352,16 @@ const BishopDimension = (function () {
     const glowModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.23),multiply(scale(pulse,pulse,1),translate(0,-40,8))));
     draw(S.exterior.glow,multiply(base,glowModel));
   }
-  function insideFrame() {
+  function insideFrame(dt) {
     const gl=S.gl,w=S.canvas.width,h=S.canvas.height,room=Casino.room,unit=1/72;
     const px=(Player.x-(room.left+room.right)/2)*unit,pz=(Player.y-(room.top+room.bottom)/2)*unit;
-    const eye=[px,4.8,pz+9.5],target=[px*.7,1.25,pz-3.5];
+    if(!S.battleCameraReady){S.battleCameraX=px;S.battleCameraZ=pz;S.battleCameraReady=true;}
+    else{
+      const follow=1-Math.exp(-8.5*clamp(dt||0,0,.1));
+      S.battleCameraX+=(px-S.battleCameraX)*follow;
+      S.battleCameraZ+=(pz-S.battleCameraZ)*follow;
+    }
+    const eye=[S.battleCameraX,4.8,S.battleCameraZ+9.5],target=[S.battleCameraX*.7,1.25,S.battleCameraZ-3.5];
     const pv=multiply(perspective(1.02,w/h,.1,75),lookAt(eye,target,[0,1,0]));
     gl.clearColor(.014,.022,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
@@ -347,9 +385,16 @@ const BishopDimension = (function () {
       const bpos=[(bx-(room.left+room.right)/2)*unit,0,(by-(room.top+room.bottom)/2)*unit];
       draw(S.bishopModel,multiply(pv,translate(bpos[0],.08,bpos[2])));
     }
-    if(!Player.dead){const jump=clamp(Player.z||0,0,60)*unit,model=multiply(translate(px,.04+jump,pz),scale(1,1,1));draw(S.playerModel,multiply(pv,model));}
+    if(!Player.dead){
+      const jump=clamp(Player.z||0,0,60)*unit;
+      const pace=Player.onGround?clamp((Player.speed||0)/(CFG.PLAYER.speed||185),0,1):0;
+      const stride=Math.sin(Player.anim||0),stepBob=pace*(.018+Math.abs(stride)*.032);
+      const sway=pace*stride*.035,yaw=Math.atan2(Player.fx||0,Player.fy||1);
+      const model=multiply(translate(px,.04+jump+stepBob,pz),multiply(rotateY(yaw),multiply(rotateZ(sway),scale(1,1,1))));
+      draw(S.playerModel,multiply(pv,model));
+    }
   }
-  function frame() {
+  function frame(dt) {
     if(!S.canvas)return;
     const inside=!!(Casino.inside&&isBattleActive());
     document.body.classList.toggle('bishop-battle',inside);
@@ -361,7 +406,7 @@ const BishopDimension = (function () {
       S.canvas.style.display=active?'block':'none';
       if(!active)return;
       if(inside!==S.wasInside){S.wasInside=inside;S.canvas.style.opacity='1';}
-      if(inside)insideFrame();else outsideFrame();
+      if(inside)insideFrame(dt);else outsideFrame();
     } catch(err) { console.warn('Cena 3D de Valério indisponível; mantendo renderização 2D.',err);S.canvas.style.display='none';S.failed=true; }
   }
   function init() {
@@ -383,12 +428,13 @@ const BishopDimension = (function () {
     Player.y=room.bottom-180;
     Player.z=0;Player.vx=Player.vy=Player.vz=0;Player.kx=Player.ky=0;
     Player.fx=0;Player.fy=-1;Player.floor=0;Player.onGround=true;Player.sy=Player.y;
+    S.battleCameraReady=false;
     Camera.snap(Player);
   }
   function blocked(x,y,r) {
     if(!isBattleActive())return false;
-    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=3.85*72;
-    return x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<room.top+125||y+r>room.bottom-95;
+    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=4.85*72;
+    return x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<room.top+80||y+r>room.bottom-60;
   }
   return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked};
 })();

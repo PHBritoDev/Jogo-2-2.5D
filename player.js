@@ -190,13 +190,23 @@ const Player = {
       if (this.attackT >= C.attackDur) { this.attackT = -1; this.atkCool = C.attackCooldown; }
     }
 
-    // ----- Velocidade horizontal (analógica e suavizada) -----
+    // ----- Velocidade horizontal (analógica, com resposta separada) -----
     let mul = 1;
     if (this.blocking) mul = C.blockSpeed;
     else if (this.attackT >= 0) mul = C.atkSpeed;
-    const k = 1 - Math.exp(-(this.onGround ? P.accelGround : P.accelAir) * dt);
-    this.vx += (ax * P.speed * mul - this.vx) * k;
-    this.vy += (ay * P.speed * mul - this.vy) * k;
+    const targetX = ax * P.speed * mul, targetY = ay * P.speed * mul;
+    const inputSpeed = Math.hypot(ax, ay), currentSpeed = Math.hypot(this.vx, this.vy);
+    const aligned = inputSpeed > 0.02 && currentSpeed > 8
+      ? (this.vx * targetX + this.vy * targetY) / (currentSpeed * Math.hypot(targetX, targetY) || 1)
+      : 1;
+    const response = inputSpeed < 0.02
+      ? (this.onGround ? P.decelGround : P.decelAir)
+      : (aligned < 0.55
+        ? (this.onGround ? P.turnGround : P.turnAir)
+        : (this.onGround ? P.accelGround : P.accelAir));
+    const k = 1 - Math.exp(-response * dt);
+    this.vx += (targetX - this.vx) * k;
+    this.vy += (targetY - this.vy) * k;
 
     // ----- Pulo (com coyote time e buffer) -----
     if (jumpPressed) this.buffer = P.buffer; else this.buffer = Math.max(0, this.buffer - dt);
@@ -282,9 +292,11 @@ const Player = {
     // ----- Animação -----
     this.speed = Math.hypot(this.vx, this.vy);
     if (this.speed > 8 && this.attackT < 0 && !this.dead && !this.aimLocked) {
-      const f = Math.min(1, dt * 14);
+      const f = 1 - Math.exp(-14 * dt);
       this.fx += (this.vx / this.speed - this.fx) * f;
       this.fy += (this.vy / this.speed - this.fy) * f;
+      const facing = Math.hypot(this.fx, this.fy) || 1;
+      this.fx /= facing; this.fy /= facing;
     }
     if (this.onGround) this.anim += dt * this.speed * 0.075;
     this.squash *= Math.exp(-12 * dt);

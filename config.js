@@ -17,8 +17,12 @@ const CFG = {
   PLAYER: {
     radius: 11,
     speed: 185,        // unidades/seg
-    accelGround: 14,   // suavização da aceleração no chão
-    accelAir: 6,       // suavização no ar
+    accelGround: 11,   // aceleração gradual no chão
+    accelAir: 5.5,     // aceleração no ar
+    decelGround: 12,   // desacelera sem parar abruptamente
+    decelAir: 5,       // mantém alguma inércia no ar
+    turnGround: 9.5,   // mudanças fortes de direção são amortecidas
+    turnAir: 4.5,
     gravity: 1700,
     jumpV: 560,        // força do pulo (altura ≈ jumpV² / (2*gravity))
     coyote: 0.1,       // tolerância para pular logo após sair de uma borda
