@@ -110,6 +110,15 @@ const Render = {
   // ---------- Quadro completo ----------
   frame(dt) {
     const ctx = this.ctx, cam = Camera, t = Game.time;
+    
+    // OCLUSÃO: se a batalha 3D de Valério está ativa, ocluir renderização 2D
+    const inside3DBattle = typeof BishopDimension !== 'undefined' && BishopDimension.isBattleActive();
+    if(inside3DBattle) {
+      ctx.fillStyle = 'rgba(0,0,0,0)';
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      return;
+    }
+    
     const isolatedScene = !!World.activeInstanceBounds();
     this.dt = dt;
 
