@@ -6,7 +6,7 @@
    apenas do espaço, dos limites e da apresentação visual do local.
    ============================================================ */
 const Casino = {
-  door: { x: 2630, y: 790 },
+  door: { x: 2640, y: 790 },
   clue: { x: 2525, y: 890 },
   room: { left: 260, right: 1360, top: 360, bottom: 1260 },
   start: { x: 810, y: 1080 },
