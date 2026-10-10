@@ -79,8 +79,8 @@
   }
   function start() {
     if(started||failed)return;started=true;
-    loadScript('https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.min.js')
-      .then(function(){return loadScript('https://cdn.jsdelivr.net/npm/three@0.124.0/examples/js/loaders/GLTFLoader.js');})
+    loadScript('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js')
+      .then(function(){return loadScript('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js');})
       .then(function(){
         if(!window.THREE||!THREE.GLTFLoader)throw new Error('Three.js/GLTFLoader indisponível');
         canvas=document.createElement('canvas');canvas.id='valerio-bishop-glb';
