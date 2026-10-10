@@ -8,6 +8,7 @@
 const BISHOP_PROFILES = {
   greedFirst: {
     id: 'bishop1',
+    portraitAsset: './Bispo1.png',
     theme: 'greed',
     name: 'Valério',
     title: 'Primeiro Bispo da Ganância',
@@ -32,6 +33,7 @@ const BISHOP_PROFILES = {
   },
   greedSecond: {
     id: 'bishop2',
+    portraitAsset: './Bispo2.png',
     theme: 'greed',
     name: 'Nérion',
     title: 'Segundo Bispo da Ganância',
@@ -66,6 +68,7 @@ const BISHOP_PROFILES = {
   },
   greedThird: {
     id: 'bishop3',
+    portraitAsset: './Bispo3.png',
     theme: 'greed',
     introStyle: 'testimony',
     introStamp: 'TERCEIRO SELO · REGISTRO DE TESTEMUNHO',
@@ -150,6 +153,34 @@ const BossPresentation = {
     if (!this.el) { if (onReady) onReady(); return; }
     this.profile = profile;
     this.onReady = onReady || null;
+    // Retratos usam a arte oficial do personagem; o SVG antigo fica como fallback.
+    const portrait = document.getElementById('boss-intro-portrait');
+    if (portrait) {
+      const fallback = portrait.querySelector('svg');
+      let art = portrait.querySelector('.boss-intro-art');
+      if (!art) {
+        art = document.createElement('img');
+        art.className = 'boss-intro-art';
+        art.alt = '';
+        art.setAttribute('aria-hidden', 'true');
+        art.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;pointer-events:none;';
+        portrait.style.position = 'relative';
+        portrait.appendChild(art);
+      }
+      const asset = profile.portraitAsset || '';
+      if (asset) {
+        art.style.display = 'block';
+        art.onload = function () { if (fallback) fallback.style.display = 'none'; };
+        art.onerror = function () {
+          art.style.display = 'none';
+          if (fallback) fallback.style.display = '';
+        };
+        art.src = asset;
+      } else {
+        art.style.display = 'none';
+        if (fallback) fallback.style.display = '';
+      }
+    }
     this.phase = 0;
     this.open = true;
     Game.talking = true;
