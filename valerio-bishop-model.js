@@ -173,7 +173,10 @@
               talk:pickClip([/talk/i,/speak/i])
             };
             findAnimationBones(root);
-            window.ValerioGLBReady=true;showStatus('modelo e clips preparados',false);loadWeapon();
+            window.ValerioGLBReady=true;
+            const clipInfo=Object.keys(animationClips).map(function(k){return k+':'+(animationClips[k]?animationClips[k].name:'—');}).join(' | ');
+            showStatus('clips '+clipInfo+'; braço='+(armBone&&armBone.name||'não encontrado')+'; mão='+(handBone&&handBone.name||'não encontrada'),false);
+            loadWeapon();
             console.info('Valério: clips disponíveis',clips.map(function(a){return a.name;}),'mapeamento',Object.keys(animationClips).reduce(function(o,k){o[k]=animationClips[k]&&animationClips[k].name;return o;},{}));
           } catch(err) {
             failed=true;window.ValerioGLBReady=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
@@ -205,18 +208,18 @@
     const t=v.time||0;
     const walking=animType==='procedural-walk'?Math.sin(t*8.5)*.42:0;
     // Só aplicamos rotações manuais quando falta um clip: não anulamos a animação GLB.
-    if(armBone&&armBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
+    if(armBone&&armBase&&(animType==='attack'||animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
       armBone.rotation.copy(armBase);
-      if(animType==='procedural-attack'){
+      if(animType==='attack'||animType==='procedural-attack'){
         armBone.rotation.x+=-.8*attackProgress-windup*.28;
         armBone.rotation.z+=-.72*attackProgress-windup*.22;
       }
       if(animType==='procedural-hurt')armBone.rotation.z+=.38*hurtProgress;
       if(animType==='procedural-walk')armBone.rotation.x+=walking*.35;
     }
-    if(forearmBone&&forearmBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
+    if(forearmBone&&forearmBase&&(animType==='attack'||animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
       forearmBone.rotation.copy(forearmBase);
-      if(animType==='procedural-attack'){
+      if(animType==='attack'||animType==='procedural-attack'){
         forearmBone.rotation.x+=-1.05*attackProgress;
         forearmBone.rotation.z+=-.3*attackProgress;
       }
@@ -233,7 +236,7 @@
     }
     if(weaponPivot){
       // O pivô está na mão; o golpe acompanha o braço em vez de girar nas costas.
-      const swing=animType==='procedural-attack'?attackProgress:0;
+      const swing=(animType==='attack'||animType==='procedural-attack')?attackProgress:0;
       weaponPivot.rotation.z=-.12-windup*.35+swing*.32;
       weaponPivot.rotation.x=swing*.18;
     }
