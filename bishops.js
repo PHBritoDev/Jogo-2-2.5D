@@ -320,6 +320,7 @@ const BishopBoss = {
 
   hurt(rawDamage, dx, dy, kb) {
     if (this.state === 'dead' || this.state === 'inactive' || !this.profile) return;
+    window.ValerioBossHitSerial = (window.ValerioBossHitSerial || 0) + 1;
     const guarding = this.state === 'guard';
     const guardScale = guarding && this.profile.guard ? this.profile.guard.damageScale : 1;
     const damage = Math.max(1, Math.round(rawDamage * (1 - this.profile.defense) * guardScale));
