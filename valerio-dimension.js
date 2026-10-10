@@ -588,7 +588,7 @@ const BishopDimension = (function () {
       // Durante o golpe, mantém a orientação usada no início do ataque;
       // nos outros estados, acompanha o jogador sem teletransportar o ângulo.
       const faceBoss=(bossState==='attack')
-        ? Math.atan2(BishopBoss.fx||0,-(BishopBoss.fy||-1))
+        ? Math.atan2(Number.isFinite(BishopBoss.fx)?BishopBoss.fx:0,-(Number.isFinite(BishopBoss.fy)?BishopBoss.fy:-1))
         : Math.atan2(px-bpos[0],-(pz-bpos[2]));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
       const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),rotateZ(bodySway)));
