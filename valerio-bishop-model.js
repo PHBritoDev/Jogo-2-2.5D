@@ -3,6 +3,8 @@
   'use strict';
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
+  let animationClips={},currentAction=null,armBone=null,forearmBone=null,armBase=null,forearmBase=null;
+  let lastHitSerial=0,hurtUntil=0,previousState='';
   function loadScript(url) {
     return new Promise(function(resolve,reject){
       const s=document.createElement('script');s.src=url;s.onload=resolve;
@@ -77,6 +79,50 @@
       console.info('Espada1.glb carregada como foice de uma mão.');
     },undefined,function(err){console.warn('Espada1.glb não carregou.',err);});
   }
+  function findAnimationBones(model) {
+    model.traverse(function(obj){
+      if(!obj.isBone)return;
+      const n=(obj.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      if(!armBone && /right.*(upperarm|arm)$/.test(n) && !/forearm/.test(n))armBone=obj;
+      if(!armBone && /mixamorigrightarm$/.test(n))armBone=obj;
+      if(!forearmBone && /right.*forearm/.test(n))forearmBone=obj;
+      if(!forearmBone && /mixamorigrightforearm$/.test(n))forearmBone=obj;
+    });
+    if(armBone)armBase=armBone.rotation.clone();
+    if(forearmBone)forearmBase=forearmBone.rotation.clone();
+  }
+  function stopAction() {
+    if(currentAction){currentAction.fadeOut(.08);currentAction=null;}
+  }
+  function playClip(type,oneShot) {
+    const clip=animationClips[type];
+    if(!clip||!mixer)return false;
+    const next=mixer.clipAction(clip);
+    if(currentAction===next&&next.isRunning())return true;
+    if(currentAction)currentAction.fadeOut(.1);
+    next.reset();next.enabled=true;next.setEffectiveTimeScale(1);next.setEffectiveWeight(1);
+    next.setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);
+    next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;
+    return true;
+  }
+  function chooseAnimation(v,now) {
+    const serial=window.ValerioBossHitSerial||0;
+    if(serial!==lastHitSerial){lastHitSerial=serial;hurtUntil=now+430;}
+    const hurt=hurtUntil>now;
+    if(hurt&&animationClips.hurt){playClip('hurt',true);return 'hurt';}
+    if(v.state==='dead'){stopAction();return 'dead';}
+    if(v.state==='attack'&&animationClips.attack){playClip('attack',true);return 'attack';}
+    if(v.talking&&animationClips.talk){playClip('talk',false);return 'talk';}
+    if(v.state==='approach'&&(v.speed||0)>2){
+      if((v.speed||0)>84&&animationClips.run){playClip('run',false);return 'run';}
+      if(animationClips.walk){playClip('walk',false);return 'walk';}
+      if(animationClips.run){playClip('run',false);return 'run';}
+    }
+    if(v.state==='stagger'&&!animationClips.hurt){stopAction();return 'procedural-hurt';}
+    if((v.state==='attack'||v.state==='windup')&&!animationClips.attack){stopAction();return 'procedural-attack';}
+    if(animationClips.idle){playClip('idle',false);return 'idle';}
+    stopAction();return 'none';
+  }
   function start() {
     if(started||failed)return;started=true;
     loadScript('https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js')
@@ -102,13 +148,23 @@
           try {
             root=gltf.scene;fitModel(root,2.7);improveMaterials(root);
             pivot=new THREE.Group();pivot.add(root);scene.add(pivot);
-            // Toca apenas um clip de repouso/respiração; nunca seleciona o aceno automaticamente.
+            // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=gltf.animations||[];
-            const idleClip=clips.find(function(a){return /idle|breath|rest/i.test(a.name)&&!/wave|hello|greet/i.test(a.name);});
-            if(idleClip){mixer.clipAction(idleClip).play();}
-            window.ValerioGLBReady=true;showStatus('arquivo carregado; aguardando arena',false);loadWeapon();
-            console.info('Valério GLB otimizado carregado; animações disponíveis:',clips.map(function(a){return a.name;}),'repouso:',idleClip?idleClip.name:'não encontrado');
+            const pickClip=function(patterns){
+              return clips.find(function(c){return patterns.some(function(re){return re.test(c.name);})&&!/wave|hello|greet/i.test(c.name);})||null;
+            };
+            animationClips={
+              idle:pickClip([/idle/i,/breath/i,/rest/i,/stand/i]),
+              walk:pickClip([/walk/i]),
+              run:pickClip([/run/i,/sprint/i]),
+              attack:pickClip([/attack/i,/slash/i,/swing/i,/strike/i,/sword/i]),
+              hurt:pickClip([/hurt/i,/damage/i,/stagger/i,/flinch/i,/hit/i]),
+              talk:pickClip([/talk/i,/speak/i])
+            };
+            findAnimationBones(root);
+            window.ValerioGLBReady=true;showStatus('modelo e clips preparados',false);loadWeapon();
+            console.info('Valério: clips disponíveis',clips.map(function(a){return a.name;}),'mapeamento',Object.keys(animationClips).reduce(function(o,k){o[k]=animationClips[k]&&animationClips[k].name;return o;},{}));
           } catch(err) {
             failed=true;window.ValerioGLBReady=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
           }
@@ -128,14 +184,31 @@
     pivot.position.set(v.position[0],v.position[1],v.position[2]);
     // Corrige o eixo frontal comum em modelos exportados para GLB.
     pivot.rotation.y=(v.yaw||0)+Math.PI;
-    // Movimento corporal sutil, sem executar animação automática que gire o Bispo.
-    root.rotation.z=(v.state==='windup'?.035:0)+Math.sin((v.time||0)*1.35)*.008;
-    if(weaponPivot){
-      const t=v.time||0,windup=v.state==='windup'?-.55:0,strike=v.state==='attack'?Math.sin(t*15)*.48:0;
-      weaponPivot.rotation.z=-.28+windup+strike+Math.sin(t*1.8)*.025;
-      weaponPivot.rotation.x=Math.sin(t*1.3)*.025;
-    }
+    const animType=chooseAnimation(v,now);
     if(mixer)mixer.update(Math.min(Math.max((now-last)/1000,0),.05));
+    const attackProgress=v.state==='attack'?Math.sin(Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.attackDuration||.3)))*Math.PI):0;
+    const windup=v.state==='windup'?Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.windupDuration||.6))):0;
+    const hurtProgress=hurtUntil>now?Math.sin(Math.max(0,Math.min(1,1-(hurtUntil-now)/430))*Math.PI):0;
+    // Fallback corporal para clips de ataque/dano ausentes no arquivo.
+    root.rotation.z=(v.state==='windup'?.025+windup*.055:0)+
+      (animType==='procedural-hurt'?-hurtProgress*.12:0)+Math.sin((v.time||0)*1.35)*.006;
+    if(armBone&&armBase){
+      armBone.rotation.copy(armBase);
+      if(animType==='procedural-attack')armBone.rotation.z+=-.9*attackProgress-windup*.38;
+      if(animType==='procedural-hurt')armBone.rotation.z+=.38*hurtProgress;
+    }
+    if(forearmBone&&forearmBase){
+      forearmBone.rotation.copy(forearmBase);
+      if(animType==='procedural-attack')forearmBone.rotation.z+=-1.05*attackProgress;
+      if(animType==='procedural-hurt')forearmBone.rotation.z+=.22*hurtProgress;
+    }
+    if(weaponPivot){
+      const t=v.time||0;
+      const swing=animType==='procedural-attack'?attackProgress:0;
+      weaponPivot.rotation.z=-.28-windup*.55+swing*1.12+Math.sin(t*1.8)*.018;
+      weaponPivot.rotation.x=Math.sin(t*1.3)*.018;
+    }
+    previousState=v.state||'';
     last=now;renderer.render(scene,camera);
   }
   window.ValerioGLBReady=false;
