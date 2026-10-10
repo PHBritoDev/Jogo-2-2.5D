@@ -3,7 +3,8 @@
   'use strict';
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
-  let animationClips={},currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
+  let animationClips={},attackClips=[],currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
+  let attackCycle=-1,deathPlayed=false;
   let lastHitSerial=0,hurtUntil=0,previousState='',renderedYaw=null;
   function loadScript(url) {
     return new Promise(function(resolve,reject){
@@ -75,10 +76,14 @@
     new THREE.GLTFLoader().load('./Espada1.glb',function(gltf){
       weaponRoot=gltf.scene;fitModel(weaponRoot,1.35);improveMaterials(weaponRoot);
       weaponPivot=new THREE.Group();
-      // A arma acompanha a mão direita; não fica presa ao torso/costas.
-      weaponPivot.position.set(0,-.12,0);
-      weaponPivot.rotation.set(0,0,-.12);weaponPivot.add(weaponRoot);
+      // O pivô fica no punho; deslocamos o modelo para que a mão segure o cabo,
+      // em vez de apoiar a arma pela extremidade inferior do modelo.
+      weaponPivot.position.set(0,-.02,0);
+      weaponPivot.rotation.set(0,0,-.12);
+      weaponRoot.position.y-=.28; // ajuste inicial do ponto de pegada; calibrar visualmente no jogo
+      weaponPivot.add(weaponRoot);
       if(handBone)handBone.add(weaponPivot);else pivot.add(weaponPivot);
+      showStatus((window.ValerioClipDiagnostics||'Clips do modelo carregados')+'\nfoice carregada; presa em '+(handBone&&handBone.name||'pivô do corpo')+'; ajuste de pegada ativo',false);
       console.info('Espada1.glb anexada à mão direita:',handBone&&handBone.name);
     },undefined,function(err){console.warn('Espada1.glb não carregou.',err);});
   }
@@ -100,8 +105,8 @@
   function stopAction() {
     if(currentAction){currentAction.fadeOut(.08);currentAction=null;}
   }
-  function playClip(type,oneShot) {
-    const clip=animationClips[type];
+  function playClip(type,oneShot,overrideClip) {
+    const clip=overrideClip||animationClips[type];
     if(!clip||!mixer)return false;
     const next=mixer.clipAction(clip);
     if(currentAction===next&&next.isRunning())return true;
@@ -120,8 +125,22 @@
     if(serial!==lastHitSerial){lastHitSerial=serial;hurtUntil=now+430;}
     const hurt=hurtUntil>now;
     if(hurt&&animationClips.hurt){playClip('hurt',true);return 'hurt';}
-    if(v.state==='dead'){stopAction();return 'dead';}
-    if(v.state==='attack'&&animationClips.attack){playClip('attack',true);return 'attack';}
+    if(v.state==='dead'){
+      if(animationClips.death){
+        if(!deathPlayed){playClip('death',true);deathPlayed=true;}
+        return 'death';
+      }
+      stopAction();return 'dead';
+    }
+    deathPlayed=false;
+    if((v.state==='magic'||v.state==='cast'||v.state==='casting'||v.casting)&&animationClips.magic){
+      playClip('magic',false);return 'magic';
+    }
+    if(v.state==='attack'&&(attackClips.length||animationClips.attack)){
+      if(previousState!=='attack')attackCycle=(attackCycle+1)%Math.max(1,attackClips.length);
+      const selected=attackClips.length?attackClips[attackCycle<0?0:attackCycle]:animationClips.attack;
+      playClip('attack',true,selected);return 'attack';
+    }
     if(v.talking&&animationClips.talk){playClip('talk',false);return 'talk';}
     if(v.state==='approach'){
       // O movimento do boss já é controlado pelo combate; não espere um limiar
@@ -164,26 +183,39 @@
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=gltf.animations||[];
+            const normalized=function(c){return (c.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
             const pickClip=function(patterns){
               return clips.find(function(c){
-                const name=(c.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+                const name=normalized(c);
                 return patterns.some(function(re){return re.test(name);})&&!/wave|hello|greet/.test(name);
               })||null;
             };
+            const pickClips=function(patterns){
+              return clips.filter(function(c){
+                const name=normalized(c);
+                return patterns.some(function(re){return re.test(name);})&&!/wave|hello|greet/.test(name);
+              });
+            };
+            const attackExclude=/walk|run|hurt|damage|death|dead|fall|magic|spell|cast|pose|idle|breath|rest|stand|talk|speak/;
+            attackClips=pickClips([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/combo/,/melee/]).filter(function(c){return !attackExclude.test(normalized(c));});
             animationClips={
-              idle:pickClip([/idle/i,/breath/i,/rest/i,/stand/i]),
+              idle:pickClip([/idle/,/breath/,/rest/,/stand/]),
               walk:pickClip([/walk/,/walking/,/locomotion/,/walkforward/]),
               run:pickClip([/run/,/running/,/sprint/,/jog/]),
-              attack:pickClip([/attack/i,/slash/i,/swing/i,/strike/i,/sword/i]),
-              hurt:pickClip([/hurt/i,/damage/i,/stagger/i,/flinch/i,/hit/i]),
-              talk:pickClip([/talk/i,/speak/i])
+              attack:attackClips[0]||pickClip([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/combo/,/melee/]),
+              hurt:pickClip([/hurt/,/damage/,/stagger/,/flinch/,/hitreaction/,/hit/]),
+              death:pickClip([/death/,/dead/,/die/,/fall/,/defeat/,/knockout/]),
+              magic:pickClip([/magic/,/cast/,/spell/,/grimoire/,/bible/,/book/,/prayer/,/pose/]),
+              talk:pickClip([/talk/,/speak/])
             };
             findAnimationBones(root);
             window.ValerioGLBReady=true;
-            const clipInfo=Object.keys(animationClips).map(function(k){return k+':'+(animationClips[k]?animationClips[k].name:'—');}).join(' | ');
-            showStatus('clips '+clipInfo+'; braço='+(armBone&&armBone.name||'não encontrado')+'; mão='+(handBone&&handBone.name||'não encontrada'),false);
+            const clipInfo=clips.length?clips.map(function(c){return (c.name||'(sem nome)')+' '+Number(c.duration||0).toFixed(2)+'s';}).join(' | '):'NENHUM CLIP NO GLB';
+            const mapped='idle='+(animationClips.idle&&animationClips.idle.name||'—')+'; walk='+(animationClips.walk&&animationClips.walk.name||'—')+'; run='+(animationClips.run&&animationClips.run.name||'—')+'; ataques='+attackClips.length+'; dano='+(animationClips.hurt&&animationClips.hurt.name||'—')+'; morte='+(animationClips.death&&animationClips.death.name||'—')+'; magia='+(animationClips.magic&&animationClips.magic.name||'—');
+            window.ValerioClipDiagnostics='GLB clips ('+clips.length+'): '+clipInfo+'\n'+mapped+'\nbraço='+(armBone&&armBone.name||'não encontrado')+'; mão='+(handBone&&handBone.name||'não encontrada');
+            showStatus(window.ValerioClipDiagnostics,false);
             loadWeapon();
-            console.info('Valério: clips disponíveis',clips.map(function(a){return a.name;}),'mapeamento',Object.keys(animationClips).reduce(function(o,k){o[k]=animationClips[k]&&animationClips[k].name;return o;},{}));
+            console.info('Valério: clips disponíveis',clips.map(function(a){return {name:a.name,duration:a.duration};}),'mapeamento',mapped);
           } catch(err) {
             failed=true;window.ValerioGLBReady=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
           }
@@ -221,18 +253,18 @@
     const t=v.time||0;
     const walking=animType==='procedural-walk'?Math.sin(t*8.5)*.42:0;
     // Só aplicamos rotações manuais quando falta um clip: não anulamos a animação GLB.
-    if(armBone&&armBase&&(animType==='attack'||animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
+    if(armBone&&armBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
       armBone.rotation.copy(armBase);
-      if(animType==='attack'||animType==='procedural-attack'){
+      if(animType==='procedural-attack'){
         armBone.rotation.x+=-.8*attackProgress-windup*.28;
         armBone.rotation.z+=-.72*attackProgress-windup*.22;
       }
       if(animType==='procedural-hurt')armBone.rotation.z+=.38*hurtProgress;
       if(animType==='procedural-walk')armBone.rotation.x+=walking*.35;
     }
-    if(forearmBone&&forearmBase&&(animType==='attack'||animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
+    if(forearmBone&&forearmBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
       forearmBone.rotation.copy(forearmBase);
-      if(animType==='attack'||animType==='procedural-attack'){
+      if(animType==='procedural-attack'){
         forearmBone.rotation.x+=-1.05*attackProgress;
         forearmBone.rotation.z+=-.3*attackProgress;
       }
@@ -249,7 +281,7 @@
     }
     if(weaponPivot){
       // O pivô está na mão; o golpe acompanha o braço em vez de girar nas costas.
-      const swing=(animType==='attack'||animType==='procedural-attack')?attackProgress:0;
+      const swing=animType==='procedural-attack'?attackProgress:0;
       weaponPivot.rotation.z=-.12-windup*.35+swing*.32;
       weaponPivot.rotation.x=swing*.18;
     }
