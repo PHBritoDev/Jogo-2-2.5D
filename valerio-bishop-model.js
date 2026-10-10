@@ -22,6 +22,18 @@
       obj.frustumCulled=false;
       (Array.isArray(obj.material)?obj.material:[obj.material]).forEach(function(mat){
         if(!mat)return;
+        // Mantém os mapas de textura originais, mas remove fatores de cor
+        // quase pretos que podem ter sido exportados incorretamente no GLB.
+        if(mat.color && mat.map) mat.color.set(0xffffff);
+        if(mat.color && !mat.map && mat.color.r<0.08 && mat.color.g<0.08 && mat.color.b<0.08) {
+          mat.color.set(0x77717f);
+        }
+        if(mat.roughness!==undefined) mat.roughness=Math.max(mat.roughness,0.62);
+        if(mat.metalness!==undefined) mat.metalness=Math.min(mat.metalness,0.18);
+        if(mat.emissive && mat.emissive.r+mat.emissive.g+mat.emissive.b<0.03) {
+          mat.emissive.set(0x100d16);
+          if(mat.emissiveIntensity!==undefined) mat.emissiveIntensity=0.35;
+        }
         if(mat.opacity<1){mat.opacity=1;mat.transparent=false;mat.depthWrite=true;}
         mat.needsUpdate=true;
       });
@@ -47,7 +59,7 @@
         document.body.appendChild(canvas);
         renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:false,powerPreference:'low-power'});
         renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.1));renderer.setSize(window.innerWidth,window.innerHeight,false);
-        renderer.setClearColor(0x000000,0);renderer.outputEncoding=THREE.sRGBEncoding;
+        renderer.setClearColor(0x000000,0);renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.NoToneMapping;renderer.toneMappingExposure=1.0;
         scene=new THREE.Scene();
         // Materiais PBR do GLB precisam de luzes na cena Three.js.
         scene.add(new THREE.HemisphereLight(0xe4e9ff,0x393044,2.0));
