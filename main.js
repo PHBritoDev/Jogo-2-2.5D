@@ -122,7 +122,8 @@
   // ---------- Atualização (um passo de física) ----------
   function step(dt, jumpPressed, attackPressed) {
     Game.time += dt;
-    Player.update(dt, Input.axis(), jumpPressed, Input.jumpHeld(), attackPressed, Input.defendHeld());
+    const moveAxis = BishopDimension.transformAxis(Input.axis());
+    Player.update(dt, moveAxis, jumpPressed, Input.jumpHeld(), attackPressed, Input.defendHeld());
     Enemy.update(dt);
     Greedling.update(dt);
     Combat.update(dt);

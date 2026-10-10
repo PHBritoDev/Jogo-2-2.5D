@@ -11,7 +11,8 @@ const BishopDimension = (function () {
     uMvp: null, exterior: null, arena: null, energy: null, particles: null,
     playerModel: null, bishopModel: null, failed: false, lost: false,
     wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0,
-    canvasVisible: false
+    canvasVisible: false,
+    camera: { yaw: 0, pitch: -0.08, distance: 10, minDistance: 0.35, maxDistance: 18 }
   };
 
   const clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -267,6 +268,23 @@ const BishopDimension = (function () {
       addQuad(world,[x-.22,.022,z-.18],[x+.22,.022,z-.18],[x+.15,.022,z+.22],[x-.15,.022,z+.22],color('#070c09',.25));
     }
 
+    // Camada adicional de árvores retorcidas nas margens e ao fundo, fora da faixa de combate.
+    for(let i=0;i<14;i++){
+      const side=i%2?1:-1, variant=(i*7)%8;
+      const x=side*(11.5+(i%4)*1.15), z=13-i*3.05+(i%3)*.35;
+      const h=6.4+variant*.72, lean=side*(.2+(variant%4)*.11), bark=barkPalette[(i+2)%4];
+      const mid=[x+lean*.4,h*.54,z],top=[x+lean,h,z+.18];
+      addSegment(world,[x,.05,z],mid,.31,.19,bark,6);
+      addSegment(world,mid,top,.19,.045,barkPalette[(i+1)%4],6);
+      for(let j=0;j<4;j++){
+        const dir=(j%2?1:-1), yy=h*(.48+j*.1), xx=x+lean*(yy/h);
+        const end=[xx+dir*(.75+(i+j)%4*.25),yy+.45+(j%3)*.12,z+(j%2)*.22];
+        addSegment(world,[xx,yy,z],end,.067,.018,bark,5);
+        if(j===1||j===3)addSegment(world,end,[end[0]+dir*.34,end[1]+.35,end[2]+.1],.025,.006,'#51402f',4);
+      }
+      for(let k=0;k<3;k++)addSegment(world,[x,.12,z],[x+side*(.28+k*.22),.035,z+(k-1)*.24],.12,.015,bark,5);
+    }
+
     // Vegetação do chão, raízes e fungos para quebrar a aparência “limbo”.
     for(let i=0;i<14;i++){
       const side=i%2?1:-1;
@@ -279,6 +297,21 @@ const BishopDimension = (function () {
       }
       if(i%4===0) addCone(world,x+side*.32,.08,z-.25,.18,.32,i%2?'#6b4423':'#8b5a3c',5);
     }
+
+    // Céu noturno local da dimensão: estrelas geométricas baratas, sem alterar o mundo 2D.
+    for(let i=0;i<84;i++){
+      const seed=(i*37)%101/101;
+      const x=-27+seed*54;
+      const y=7.5+((i*29)%47)/47*12;
+      const z=-7-((i*17)%53)/53*28;
+      const r=.025+(i%4)*.012;
+      const tone=i%9===0?'#b7c8ff':(i%5===0?'#f0d9a5':'#dce7ff');
+      addSphere(world,x,y,z,r,tone,3,4);
+    }
+    // Algumas estrelas maiores e discretas para dar profundidade ao céu.
+    [[-13,14,-23],[8,17,-29],[21,12,-19],[-4,18,-34],[15,9,-31]].forEach((p,i)=>{
+      addSphere(world,p[0],p[1],p[2],.075,i%2?'#c4d8ff':'#f2e4bd',4,5);
+    });
 
     const mistSpecs=[
       [0,.56,8.5,.62,'#b8c5c7',.045],
@@ -387,9 +420,12 @@ const BishopDimension = (function () {
   function insideFrame() {
     const gl=S.gl,w=S.canvas.width,h=S.canvas.height,room=Casino.room,unit=1/72;
     const px=(Player.x-(room.left+room.right)/2)*unit,pz=(Player.y-(room.top+room.bottom)/2)*unit;
-    const eye=[px,4.8,pz+9.5],target=[px*.7,1.25,pz-3.5];
-    const pv=multiply(perspective(1.02,w/h,.1,75),lookAt(eye,target,[0,1,0]));
-    gl.clearColor(.014,.022,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    const cam=S.camera, yaw=cam.yaw, pitch=cam.pitch, dist=cam.distance;
+    const cp=Math.cos(pitch), sp=Math.sin(pitch), sy=Math.sin(yaw), cy=Math.cos(yaw);
+    const eye=[px-sy*cp*dist,1.6-sp*dist,pz+cy*cp*dist];
+    const target=[px+sy*cp*12,1.2+sp*12,pz-cy*cp*12];
+    const pv=multiply(perspective(dist<0.7?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
+    gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
     draw(S.arena.portal,pv);
     const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
@@ -411,7 +447,7 @@ const BishopDimension = (function () {
       const bpos=[(bx-(room.left+room.right)/2)*unit,0,(by-(room.top+room.bottom)/2)*unit];
       draw(S.bishopModel,multiply(pv,translate(bpos[0],.08,bpos[2])));
     }
-    if(!Player.dead){const jump=clamp(Player.z||0,0,60)*unit,model=multiply(translate(px,.04+jump,pz),scale(1,1,1));draw(S.playerModel,multiply(pv,model));}
+    if(!Player.dead && dist>=0.7){const jump=clamp(Player.z||0,0,60)*unit,model=multiply(translate(px,.04+jump,pz),scale(1,1,1));draw(S.playerModel,multiply(pv,model));}
   }
   function frame() {
     if(!S.canvas)return;
@@ -421,7 +457,8 @@ const BishopDimension = (function () {
     if(S.canvasVisible!==shouldBeVisible){
       S.canvasVisible=shouldBeVisible;
       const gameCanvas=document.getElementById('game');
-      if(gameCanvas)gameCanvas.style.opacity=shouldBeVisible?'0':'1';
+      // O mapa 2D só some dentro da arena 3D; ao revelar o portal, o mundo continua visível.
+      if(gameCanvas)gameCanvas.style.opacity=inside?'0':'1';
     }
     if(S.lost||S.failed||!S.gl){S.canvas.style.display='none';return;}
     try {
@@ -446,6 +483,9 @@ const BishopDimension = (function () {
   function isBattleActive() {
     return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
   }
+  function addCameraLook(dx,dy){const c=S.camera;c.yaw=clamp(c.yaw-dx*.006,-Math.PI,Math.PI);c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
+  function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
+  function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
   function enter() {
     if(!Casino.inside||!Campaign.step||Campaign.step.type!=='bishop'||Campaign.step.boss!=='greedFirst')return;
     const room=Casino.room;
@@ -453,6 +493,7 @@ const BishopDimension = (function () {
     Player.y=room.bottom-180;
     Player.z=0;Player.vx=Player.vy=Player.vz=0;Player.kx=Player.ky=0;
     Player.fx=0;Player.fy=-1;Player.floor=0;Player.onGround=true;Player.sy=Player.y;
+    S.camera.yaw=0;S.camera.pitch=-0.08;S.camera.distance=10;
     Camera.snap(Player);
   }
   function blocked(x,y,r) {
@@ -460,5 +501,5 @@ const BishopDimension = (function () {
     const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=8.5*72;
     return x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<room.top+125||y+r>room.bottom-95;
   }
-  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked};
+  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis};
 })();
