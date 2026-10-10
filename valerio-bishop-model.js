@@ -10,8 +10,22 @@
     });
   }
   function fitModel(model,height) {
-    const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3());
-    if(!isFinite(size.y)||size.y<0.01)throw new Error('GLB sem dimensões válidas');
+    // Alguns exportadores entregam personagens no eixo Z-up. Detecta isso
+    // antes de dimensionar para evitar altura quase zero e modelo invisível.
+    let box=new THREE.Box3().setFromObject(model);
+    let size=box.getSize(new THREE.Vector3());
+    if(size.z>size.y*1.35 && size.z>size.x*0.72) {
+      model.rotation.x=-Math.PI/2;
+      box=new THREE.Box3().setFromObject(model);
+      size=box.getSize(new THREE.Vector3());
+    }
+    if(!isFinite(size.y)||size.y<0.01) {
+      // Último recurso: tenta a orientação alternativa sem descartar o GLB.
+      model.rotation.x=Math.PI/2;
+      box=new THREE.Box3().setFromObject(model);
+      size=box.getSize(new THREE.Vector3());
+    }
+    if(!isFinite(size.y)||size.y<0.01)throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
     model.scale.setScalar(height/size.y);
     const scaled=new THREE.Box3().setFromObject(model),center=scaled.getCenter(new THREE.Vector3());
     model.position.set(-center.x,-scaled.min.y,-center.z);
