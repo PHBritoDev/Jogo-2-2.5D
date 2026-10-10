@@ -142,19 +142,24 @@
       Campaign.enemyTerritory = Campaign.galaxy.missions[missionIndex].territory || 1;
       Campaign.flags.casinoDiscovered = true;
       Casino.discovered = true;
-      Casino.inside = true;
-      if (typeof Climate !== 'undefined' && Climate.setInterior) Climate.setInterior(true);
+      // Usa a entrada oficial do cassino para configurar o cenário e o estado interno.
+      Casino.enter();
       const bishop = Campaign.galaxy.bishops[0];
       if (bishop && bishop.status !== 'defeated') bishop.status = 'available';
       Campaign.enterStep(stepIndex);
       Quest.toast('MODO TESTE: spawn direto na dimensão de Valério.', 4);
       return true;
     };
-    if (!launchValerioTest()) {
-      window.addEventListener('load', function () {
-        if (!launchValerioTest()) console.error('Modo teste de Valério: campanha ainda não inicializada.');
-      }, { once: true });
-    }
+    // Espera a inicialização terminar por completo antes de trocar a etapa da campanha.
+    window.setTimeout(function () {
+      if (!launchValerioTest()) {
+        window.addEventListener('load', function () {
+          window.setTimeout(function () {
+            if (!launchValerioTest()) console.error('Modo teste de Valério: campanha ainda não inicializada.');
+          }, 300);
+        }, { once: true });
+      }
+    }, 500);
   }
 
   // ---------- Atualização (um passo de física) ----------
