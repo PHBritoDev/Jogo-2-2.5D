@@ -20,7 +20,7 @@ const BISHOP_PROFILES = {
     damage: 1,
     defense: 0.24,
     radius: 18,
-    speed: 76,
+    speed: 80,
     visualScale: 1.22,
     deathDuration: 1.2,
     reward: { coins: 120, unlocks: ['greed_bishop_1_defeated'] },
@@ -414,7 +414,8 @@ const BishopBoss = {
       case 'attack':
         if (!this.hitDone && this.stateT >= this.attack.hitAt) {
           this.hitDone = true;
-          if (alive && d < this.attack.range && Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH) {
+          const facingDot=(this.fx*dx+this.fy*dy)/(d||1);
+          if (alive && d < this.attack.range && facingDot > 0.12 && Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH) {
             Player.hurt(this.attack.damage * this.profile.damage, this.x, this.y, this.attack.kb);
             Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 7,
               this.profile.id === 'bishop3' ? '#b8d0c3' : '#f3c14e');
