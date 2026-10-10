@@ -2,7 +2,7 @@
    a arena WebGL existente. Se o carregamento falhar, o modelo procedural continua. */
 (function () {
   'use strict';
-  let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,mixer=null,last=0;
+  let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null,mixer=null,last=0;
   let canvas=null;
   function loadScript(url) {
     return new Promise(function(resolve,reject){
@@ -40,7 +40,9 @@
           const scaledBox=new THREE.Box3().setFromObject(root);
           const center=scaledBox.getCenter(new THREE.Vector3());
           root.position.set(-center.x,-scaledBox.min.y,-center.z);
-          scene.add(root);
+          pivot=new THREE.Group();
+          pivot.add(root);
+          scene.add(pivot);
           if(gltf.animations&&gltf.animations.length){
             mixer=new THREE.AnimationMixer(root);
             mixer.clipAction(gltf.animations[0]).play();
@@ -63,7 +65,7 @@
   function frame(now) {
     requestAnimationFrame(frame);
     const v=window.ValerioModelView;
-    if(!v||!v.active||!root||!renderer||!camera){if(canvas)canvas.style.display='none';return;}
+    if(!v||!v.active||!root||!pivot||!renderer||!camera){if(canvas)canvas.style.display='none';return;}
     canvas.style.display='block';
     const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
     if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio())){
@@ -74,10 +76,8 @@
     camera.updateProjectionMatrix();
     camera.position.set(v.eye[0],v.eye[1],v.eye[2]);
     camera.lookAt(v.target[0],v.target[1],v.target[2]);
-    root.position.x=v.position[0];
-    root.position.y=v.position[1];
-    root.position.z=v.position[2];
-    root.rotation.y=v.yaw||0;
+    pivot.position.set(v.position[0],v.position[1],v.position[2]);
+    pivot.rotation.y=v.yaw||0;
     if(mixer)mixer.update(Math.min(.05,Math.max(0,(now-last)/1000||0)));
     else {
       root.rotation.z=(v.state==='windup'?.09:0)+Math.sin((v.time||0)*1.35)*.018;
