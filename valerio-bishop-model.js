@@ -83,7 +83,7 @@
     model.traverse(function(obj){
       if(!obj.isBone)return;
       const n=(obj.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-      if(!armBone && /right.*(upperarm|arm)$/.test(n))armBone=obj;
+      if(!armBone && /right.*(upperarm|arm)$/.test(n) && !/forearm/.test(n))armBone=obj;
       if(!armBone && /mixamorigrightarm$/.test(n))armBone=obj;
       if(!forearmBone && /right.*forearm/.test(n))forearmBone=obj;
       if(!forearmBone && /mixamorigrightforearm$/.test(n))forearmBone=obj;
