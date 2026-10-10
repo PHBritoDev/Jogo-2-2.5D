@@ -12,18 +12,14 @@
       s.onerror=function(){reject(new Error('Falha ao carregar '+url));};document.head.appendChild(s);
     });
   }
+  // Diagnóstico somente no console: nunca cobre a tela do jogador.
   function showStatus(message,isError) {
-    let el=document.getElementById('valerio-glb-status');
-    if(!el){
-      el=document.createElement('div');el.id='valerio-glb-status';
-      el.style.cssText='position:fixed;left:8px;top:8px;z-index:99999;max-width:90vw;padding:8px 10px;border-radius:8px;font:12px/1.35 monospace;color:#fff;background:#17452b;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:none;';
-      document.body.appendChild(el);
-    }
-    el.style.background=isError?'#7b1717':'#17452b';
-    el.textContent='VALÉRIO GLB: '+message;
-    el.style.display='block';
+    const old=document.getElementById('valerio-glb-status');
+    if(old)old.remove();
+    if(isError)console.warn('Valério GLB:',message);
+    else console.info('Valério GLB:',message);
   }
-  function hideStatus(){const el=document.getElementById('valerio-glb-status');if(el)el.style.display='none';}
+  function hideStatus(){const el=document.getElementById('valerio-glb-status');if(el)el.remove();}
   function errorText(err){
     if(!err)return 'erro sem detalhes';
     return err.message||err.statusText||String(err);
