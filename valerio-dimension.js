@@ -588,6 +588,8 @@ const BishopDimension = (function () {
       const faceBoss=Math.atan2(px-bpos[0],-(pz-bpos[2]));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
       const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),rotateZ(bodySway)));
+      window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],.08+bossBob,bpos[2]],yaw:faceBoss,aspect:w/h,fov:dist<0.7?1.22:1.02,state:bossState,time:Game.time||0};
+      if(!window.ValerioGLBReady){
       draw(S.bishopModel,multiply(pv,bossBase));
       const shoulderBase=multiply(bossBase,multiply(translate(0,1.37,0),rotateZ(Math.sin(Game.time*2.1)*.035-windup*.08)));
       draw(S.arena.bishopShoulders,multiply(pv,shoulderBase));
@@ -603,7 +605,8 @@ const BishopDimension = (function () {
       draw(S.arena.bishopArmR,multiply(pv,armR));
       draw(S.arena.bishopHands,multiply(pv,multiply(armL,translate(-.24,-.35,-.03))));
       draw(S.arena.bishopHands,multiply(pv,multiply(armR,translate(.24,-.35,-.03))));
-    }
+      }
+    } else { window.ValerioModelView={active:false}; }
     if(!Player.dead && dist>=0.7){
       const jump=clamp(Player.z||0,0,60)*unit;
       const moving=Math.hypot(Player.vx||0,Player.vy||0)>18;
@@ -623,6 +626,7 @@ const BishopDimension = (function () {
   function frame() {
     if(!S.canvas)return;
     const inside=!!(Casino.inside&&isBattleActive());
+    if(!inside)window.ValerioModelView={active:false};
     document.body.classList.toggle('bishop-battle',inside);
     const shouldBeVisible=inside||(!Casino.inside&&Casino.discovered&&Campaign.flags.casinoDiscovered);
     if(S.canvasVisible!==shouldBeVisible) S.canvasVisible=shouldBeVisible;
