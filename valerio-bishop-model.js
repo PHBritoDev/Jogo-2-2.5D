@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
-  let weaponPivot=null,weaponRoot=null,last=0,canvas=null;
+  let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   function loadScript(url) {
     return new Promise(function(resolve,reject){
       const s=document.createElement('script');s.src=url;s.onload=resolve;
@@ -67,18 +67,22 @@
         const fill=new THREE.DirectionalLight(0x9b8cff,1.15);fill.position.set(4,3,-4);scene.add(fill);
         const rim=new THREE.PointLight(0xb52dff,1.1,12);rim.position.set(0,2.2,-1.8);scene.add(rim);
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
-        new THREE.GLTFLoader().load('./Bispo1.glb',function(gltf){
+        new THREE.GLTFLoader().load('./Bispo1.0.glb',function(gltf){
           try {
             root=gltf.scene;fitModel(root,2.7);improveMaterials(root);
             pivot=new THREE.Group();pivot.add(root);scene.add(pivot);
-            // Não executar o primeiro clip automaticamente: pode ser uma animação de giro.
+            // Toca apenas um clip de repouso/respiração; nunca seleciona o aceno automaticamente.
+            mixer=new THREE.AnimationMixer(root);
+            const clips=gltf.animations||[];
+            const idleClip=clips.find(function(a){return /idle|breath|rest/i.test(a.name)&&!/wave|hello|greet/i.test(a.name);});
+            if(idleClip){mixer.clipAction(idleClip).play();}
             window.ValerioGLBReady=true;loadWeapon();
-            console.info('Valério GLB carregado; animações disponíveis:',gltf.animations?gltf.animations.map(function(a){return a.name;}):[]);
+            console.info('Valério GLB otimizado carregado; animações disponíveis:',clips.map(function(a){return a.name;}),'repouso:',idleClip?idleClip.name:'não encontrado');
           } catch(err) {
             failed=true;window.ValerioGLBReady=false;console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
           }
         },undefined,function(err){
-          failed=true;window.ValerioGLBReady=false;console.error('Falha ao carregar ./Bispo1.glb; usando modelo alternativo.',err);
+          failed=true;window.ValerioGLBReady=false;console.error('Falha ao carregar ./Bispo1.0.glb; usando modelo alternativo.',err);
         });
       })
       .catch(function(err){failed=true;window.ValerioGLBReady=false;console.error('Three.js/GLTFLoader não carregou; usando modelo alternativo.',err);});
@@ -100,6 +104,7 @@
       weaponPivot.rotation.z=-.28+windup+strike+Math.sin(t*1.8)*.025;
       weaponPivot.rotation.x=Math.sin(t*1.3)*.025;
     }
+    if(mixer)mixer.update(Math.min(Math.max((now-last)/1000,0),.05));
     last=now;renderer.render(scene,camera);
   }
   window.ValerioGLBReady=false;
