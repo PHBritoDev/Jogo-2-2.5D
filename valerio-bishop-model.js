@@ -9,6 +9,22 @@
       s.onerror=function(){reject(new Error('Falha ao carregar '+url));};document.head.appendChild(s);
     });
   }
+  function showStatus(message,isError) {
+    let el=document.getElementById('valerio-glb-status');
+    if(!el){
+      el=document.createElement('div');el.id='valerio-glb-status';
+      el.style.cssText='position:fixed;left:8px;top:8px;z-index:99999;max-width:90vw;padding:8px 10px;border-radius:8px;font:12px/1.35 monospace;color:#fff;background:#17452b;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:none;';
+      document.body.appendChild(el);
+    }
+    el.style.background=isError?'#7b1717':'#17452b';
+    el.textContent='VALÉRIO GLB: '+message;
+    el.style.display='block';
+  }
+  function hideStatus(){const el=document.getElementById('valerio-glb-status');if(el)el.style.display='none';}
+  function errorText(err){
+    if(!err)return 'erro sem detalhes';
+    return err.message||err.statusText||String(err);
+  }
   function fitModel(model,height) {
     // Alguns exportadores entregam personagens no eixo Z-up. Detecta isso
     // antes de dimensionar para evitar altura quase zero e modelo invisível.
@@ -81,7 +97,8 @@
         const fill=new THREE.DirectionalLight(0x9b8cff,1.15);fill.position.set(4,3,-4);scene.add(fill);
         const rim=new THREE.PointLight(0xb52dff,1.1,12);rim.position.set(0,2.2,-1.8);scene.add(rim);
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
-        new THREE.GLTFLoader().load('./Bispo1.0.glb',function(gltf){
+        showStatus('carregando arquivo...',false);
+        new THREE.GLTFLoader().load('./Bispo1.0.glb?v=20261010b',function(gltf){
           try {
             root=gltf.scene;fitModel(root,2.7);improveMaterials(root);
             pivot=new THREE.Group();pivot.add(root);scene.add(pivot);
@@ -90,16 +107,16 @@
             const clips=gltf.animations||[];
             const idleClip=clips.find(function(a){return /idle|breath|rest/i.test(a.name)&&!/wave|hello|greet/i.test(a.name);});
             if(idleClip){mixer.clipAction(idleClip).play();}
-            window.ValerioGLBReady=true;loadWeapon();
+            window.ValerioGLBReady=true;showStatus('arquivo carregado; aguardando arena',false);loadWeapon();
             console.info('Valério GLB otimizado carregado; animações disponíveis:',clips.map(function(a){return a.name;}),'repouso:',idleClip?idleClip.name:'não encontrado');
           } catch(err) {
-            failed=true;window.ValerioGLBReady=false;console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
+            failed=true;window.ValerioGLBReady=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
           }
         },undefined,function(err){
-          failed=true;window.ValerioGLBReady=false;console.error('Falha ao carregar ./Bispo1.0.glb; usando modelo alternativo.',err);
+          failed=true;window.ValerioGLBReady=false;showStatus('falha ao carregar arquivo: '+errorText(err),true);console.error('Falha ao carregar ./Bispo1.0.glb; usando modelo alternativo.',err);
         });
       })
-      .catch(function(err){failed=true;window.ValerioGLBReady=false;console.error('Three.js/GLTFLoader não carregou; usando modelo alternativo.',err);});
+      .catch(function(err){failed=true;window.ValerioGLBReady=false;showStatus('Three.js/GLTFLoader falhou: '+errorText(err),true);console.error('Three.js/GLTFLoader não carregou; usando modelo alternativo.',err);});
   }
   function frame(now) {
     requestAnimationFrame(frame);const v=window.ValerioModelView;
