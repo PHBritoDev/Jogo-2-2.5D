@@ -124,7 +124,7 @@ const Input = (function () {
   function pointerDistance(){const p=Array.from(cameraPointers.values());return p.length<2?0:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);}
   function beginCameraDrag(e) {
     if (!gameCanvas || e.target !== gameCanvas || !BishopDimension.isBattleActive()) return;
-    if (e.pointerType === 'mouse' && e.button !== 2) return;
+    if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
     e.preventDefault();cameraPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(cameraPointers.size===2){pinchDistance=pointerDistance();cameraDrag.active=false;return;}
     cameraDrag.active=true;cameraDrag.pointerId=e.pointerId;cameraDrag.lastX=e.clientX;cameraDrag.lastY=e.clientY;
