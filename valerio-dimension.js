@@ -588,21 +588,30 @@ const BishopDimension = (function () {
       const faceBoss=Math.atan2(px-bpos[0],-(pz-bpos[2]));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
       const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),rotateZ(bodySway)));
-      draw(S.bishopModel,multiply(pv,bossBase));
-      const shoulderBase=multiply(bossBase,multiply(translate(0,1.37,0),rotateZ(Math.sin(Game.time*2.1)*.035-windup*.08)));
-      draw(S.arena.bishopShoulders,multiply(pv,shoulderBase));
-      const headTilt=Math.sin(Game.time*1.7)*.045-windup*.16+strike*.12;
-      const headBase=multiply(bossBase,multiply(translate(0,1.82,0),multiply(rotateY(Math.sin(Game.time*.8)*.075),rotateZ(headTilt))));
-      draw(S.arena.bishopHead,multiply(pv,headBase));
-      draw(S.arena.bishopFace,multiply(pv,headBase));
-      draw(S.arena.bishopCrown,multiply(pv,headBase));
-      const bossArmSwing=Math.sin(Game.time*2.8)*.09+windup*.72-strike*.9;
-      const armL=multiply(bossBase,multiply(translate(-.38,1.38,-.015),rotateZ(-bossArmSwing-.08)));
-      const armR=multiply(bossBase,multiply(translate(.38,1.38,-.015),rotateZ(bossArmSwing+.22+strike*.28)));
-      draw(S.arena.bishopArmL,multiply(pv,armL));
-      draw(S.arena.bishopArmR,multiply(pv,armR));
-      draw(S.arena.bishopHands,multiply(pv,multiply(armL,translate(-.24,-.35,-.03))));
-      draw(S.arena.bishopHands,multiply(pv,multiply(armR,translate(.24,-.35,-.03))));
+      // Prioridade à arte personalizada do Bispo: não substituir por um boneco genérico.
+      const spriteVisible=drawBishopSprite(multiply(pv,bossBase));
+      if(spriteVisible){
+        // Segundo plano cruzado dá alguma espessura quando a câmera circula.
+        const crossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss+Math.PI/2),rotateZ(bodySway)));
+        drawBishopSprite(multiply(pv,crossBase));
+      }else{
+        // Modelo low-poly serve apenas como fallback se a textura ainda não carregou.
+        draw(S.bishopModel,multiply(pv,bossBase));
+        const shoulderBase=multiply(bossBase,multiply(translate(0,1.37,0),rotateZ(Math.sin(Game.time*2.1)*.035-windup*.08)));
+        draw(S.arena.bishopShoulders,multiply(pv,shoulderBase));
+        const headTilt=Math.sin(Game.time*1.7)*.045-windup*.16+strike*.12;
+        const headBase=multiply(bossBase,multiply(translate(0,1.82,0),multiply(rotateY(Math.sin(Game.time*.8)*.075),rotateZ(headTilt))));
+        draw(S.arena.bishopHead,multiply(pv,headBase));
+        draw(S.arena.bishopFace,multiply(pv,headBase));
+        draw(S.arena.bishopCrown,multiply(pv,headBase));
+        const bossArmSwing=Math.sin(Game.time*2.8)*.09+windup*.72-strike*.9;
+        const armL=multiply(bossBase,multiply(translate(-.38,1.38,-.015),rotateZ(-bossArmSwing-.08)));
+        const armR=multiply(bossBase,multiply(translate(.38,1.38,-.015),rotateZ(bossArmSwing+.22+strike*.28)));
+        draw(S.arena.bishopArmL,multiply(pv,armL));
+        draw(S.arena.bishopArmR,multiply(pv,armR));
+        draw(S.arena.bishopHands,multiply(pv,multiply(armL,translate(-.24,-.35,-.03))));
+        draw(S.arena.bishopHands,multiply(pv,multiply(armR,translate(.24,-.35,-.03))));
+      }
     }
     if(!Player.dead && dist>=0.7){
       const jump=clamp(Player.z||0,0,60)*unit;
