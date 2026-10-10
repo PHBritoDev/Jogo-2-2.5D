@@ -109,6 +109,8 @@ const BishopDimension = (function () {
   function translate(x,y,z){return [1,0,0,0,0,1,0,0,0,0,1,0,x,y,z,1];}
   function scale(x,y,z){return [x,0,0,0,0,y,0,0,0,0,z,0,0,0,0,1];}
   function rotateZ(a){const c=Math.cos(a),s=Math.sin(a);return[c,s,0,0,-s,c,0,0,0,0,1,0,0,0,0,1];}
+  function rotateX(a){const c=Math.cos(a),s=Math.sin(a);return[1,0,0,0,0,c,s,0,0,-s,c,0,0,0,0,1];}
+  function rotateY(a){const c=Math.cos(a),s=Math.sin(a);return[c,0,-s,0,0,1,0,0,s,0,c,0,0,0,0,1];}
   function normalize(v){const n=Math.hypot(v[0],v[1],v[2])||1;return[v[0]/n,v[1]/n,v[2]/n];}
   function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
   function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
@@ -160,7 +162,7 @@ const BishopDimension = (function () {
     return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),ruins:mesh(S.gl,ruins)};
   }
   function buildArena() {
-    const world=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[];
+    const world=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[];
 
     // Chão contínuo e mais largo para a floresta: a área preta foi substituída por piso escuro.
     addBox(world,0,-0.92,-2.5,132,0.9,78,'#151b18');
@@ -324,11 +326,11 @@ const BishopDimension = (function () {
     }
 
     // Céu noturno local da dimensão: estrelas geométricas baratas, sem alterar o mundo 2D.
-    for(let i=0;i<84;i++){
-      const seed=(i*37)%101/101;
-      const x=-27+seed*54;
-      const y=7.5+((i*29)%47)/47*12;
-      const z=-7-((i*17)%53)/53*28;
+    for(let i=0;i<132;i++){
+      const seed=(i*37)%137/137;
+      const x=-39+seed*78;
+      const y=8+((i*29)%61)/61*17;
+      const z=-8-((i*17)%71)/71*38;
       const r=.025+(i%4)*.012;
       const tone=i%9===0?'#b7c8ff':(i%5===0?'#f0d9a5':'#dce7ff');
       addSphere(world,x,y,z,r,tone,3,4);
@@ -393,10 +395,20 @@ const BishopDimension = (function () {
     addCone(bishop,0,2.2,0,.42,.58,'#8a4db4',8);
     addBox(bishop,0,.98,.4,.15,.88,.16,'#e1be70');
     addBox(bishop,0,.57,.02,.68,.09,.54,'#705136');
+    // Membros separados para animação procedural leve, sem esqueleto externo.
+    addSegment(playerArmL,[0,0,0],[-.18,-.34,-.025],.085,.055,'#171b20',6);
+    addSegment(playerArmR,[0,0,0],[.18,-.34,-.025],.085,.055,'#171b20',6);
+    addSegment(playerLegL,[0,0,0],[-.045,-.25,-.015],.095,.065,'#29232a',6);
+    addSegment(playerLegR,[0,0,0],[.045,-.25,-.015],.095,.065,'#29232a',6);
+    addSegment(bishopArmL,[0,0,0],[-.24,-.35,-.03],.095,.065,'#30213a',6);
+    addSegment(bishopArmR,[0,0,0],[.24,-.35,-.03],.095,.065,'#30213a',6);
     return {
       world:mesh(S.gl,world),mist:mistLayers,portal:mesh(S.gl,portal),
       energy:mesh(S.gl,energy),particles:mesh(S.gl,particles),
-      player:mesh(S.gl,player),bishop:mesh(S.gl,bishop)
+      player:mesh(S.gl,player),bishop:mesh(S.gl,bishop),
+      playerArmL:mesh(S.gl,playerArmL),playerArmR:mesh(S.gl,playerArmR),
+      playerLegL:mesh(S.gl,playerLegL),playerLegR:mesh(S.gl,playerLegR),
+      bishopArmL:mesh(S.gl,bishopArmL),bishopArmR:mesh(S.gl,bishopArmR)
     };
   }
   function shader(gl,type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh)||'shader inválido');return sh;}
@@ -470,9 +482,32 @@ const BishopDimension = (function () {
       const bossActive=BishopBoss.state!=='inactive';
       const bx=bossActive&&Number.isFinite(BishopBoss.x)?BishopBoss.x:Casino.bossStart.x,by=bossActive&&Number.isFinite(BishopBoss.y)?BishopBoss.y:Casino.bossStart.y;
       const bpos=[(bx-(room.left+room.right)/2)*unit,0,(by-(room.top+room.bottom)/2)*unit];
-      draw(S.bishopModel,multiply(pv,translate(bpos[0],.08,bpos[2])));
+      const bossState=BishopBoss.state||'idle';
+      const windup=bossState==='windup'?clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.windup)||.6),0,1):0;
+      const strike=bossState==='attack'?Math.sin(clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.duration)||.3),0,1)*Math.PI):0;
+      const bossBob=Math.sin(Game.time*2.15)*.055;
+      const faceBoss=Math.atan2(px-bpos[0],-(pz-bpos[2]));
+      const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),rotateZ(-windup*.12+strike*.08)));
+      draw(S.bishopModel,multiply(pv,bossBase));
+      const bossArmSwing=Math.sin(Game.time*2.8)*.045+windup*.72-strike*.9;
+      draw(S.arena.bishopArmL,multiply(pv,multiply(bossBase,multiply(translate(-.31,1.1,-.02),rotateZ(-bossArmSwing)))));
+      draw(S.arena.bishopArmR,multiply(pv,multiply(bossBase,multiply(translate(.31,1.1,-.02),rotateZ(bossArmSwing+.22)))));
     }
-    if(!Player.dead && dist>=0.7){const jump=clamp(Player.z||0,0,60)*unit,model=multiply(translate(px,.04+jump,pz),scale(1,1,1));draw(S.playerModel,multiply(pv,model));}
+    if(!Player.dead && dist>=0.7){
+      const jump=clamp(Player.z||0,0,60)*unit;
+      const moving=Math.hypot(Player.vx||0,Player.vy||0)>18;
+      const phase=Game.time*9;
+      const gait=moving?Math.sin(phase)*.42:Math.sin(Game.time*2)*.025;
+      const bob=moving?Math.abs(Math.sin(phase))*.055:Math.sin(Game.time*2)*.018;
+      const lean=moving?clamp(-(Player.vy||0)*.0007,-.13,.13):0;
+      const facing=Math.atan2(Player.fx||0,-(Player.fy||-1));
+      const playerBase=multiply(translate(px,.04+jump+bob,pz),multiply(rotateY(facing),rotateX(lean)));
+      draw(S.playerModel,multiply(pv,playerBase));
+      draw(S.arena.playerArmL,multiply(pv,multiply(playerBase,multiply(translate(-.29,.98,-.02),rotateX(gait)))));
+      draw(S.arena.playerArmR,multiply(pv,multiply(playerBase,multiply(translate(.29,.98,-.02),rotateX(-gait)))));
+      draw(S.arena.playerLegL,multiply(pv,multiply(playerBase,multiply(translate(-.13,.27,.01),rotateX(-gait*.82)))));
+      draw(S.arena.playerLegR,multiply(pv,multiply(playerBase,multiply(translate(.13,.27,.01),rotateX(gait*.82)))));
+    }
   }
   function frame() {
     if(!S.canvas)return;
@@ -483,7 +518,7 @@ const BishopDimension = (function () {
     // Restaura o mundo 2D a cada quadro ao sair da luta. Não condicione isso
     // à visibilidade do portal: ela pode continuar ativa antes e depois da batalha.
     const gameCanvas=document.getElementById('game');
-    if(gameCanvas)gameCanvas.style.opacity=inside?'0':'1';
+    if(gameCanvas){gameCanvas.style.opacity=inside?'0':'1';if(!inside)gameCanvas.style.visibility='visible';}
     if(S.lost||S.failed||!S.gl){S.canvas.style.display='none';return;}
     try {
       resize();
@@ -507,7 +542,7 @@ const BishopDimension = (function () {
   function isBattleActive() {
     return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
   }
-  function addCameraLook(dx,dy){const c=S.camera;c.yaw=clamp(c.yaw+dx*.006,-Math.PI,Math.PI);c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
+  function addCameraLook(dx,dy){const c=S.camera;c.yaw+=dx*.006;c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
   function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
   function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
   function enter() {
