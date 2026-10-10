@@ -119,8 +119,10 @@
     if(v.state==='dead'){stopAction();return 'dead';}
     if(v.state==='attack'&&animationClips.attack){playClip('attack',true);return 'attack';}
     if(v.talking&&animationClips.talk){playClip('talk',false);return 'talk';}
-    if(v.state==='approach'&&(v.speed||0)>2){
-      if((v.speed||0)>84&&animationClips.run){playClip('run',false);return 'run';}
+    if(v.state==='approach'){
+      // O movimento do boss já é controlado pelo combate; não espere um limiar
+      // de velocidade alto para animar as pernas, senão ele desliza em idle.
+      if((v.speed||0)>38&&animationClips.run){playClip('run',false);return 'run';}
       if(animationClips.walk){playClip('walk',false);return 'walk';}
       if(animationClips.run){playClip('run',false);return 'run';}
       stopAction();return 'procedural-walk';
