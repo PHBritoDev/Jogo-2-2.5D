@@ -14,7 +14,7 @@ const BishopDimension = (function () {
     bishopTexture: null, bishopTextureLoaded: false, bishopQuad: null,
     wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0,
     canvasVisible: false,
-    camera: { yaw: 0, pitch: -0.08, distance: 10, minDistance: 0.35, maxDistance: 18 }
+    camera: { yaw: 0, pitch: -0.08, distance: 6.2, minDistance: 0.35, maxDistance: 18 }
   };
 
   const clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -664,10 +664,10 @@ const BishopDimension = (function () {
     if(!Casino.inside||!Campaign.step||Campaign.step.type!=='bishop'||Campaign.step.boss!=='greedFirst')return;
     const room=Casino.room;
     Player.x=(room.left+room.right)/2;
-    Player.y=room.bottom-180;
+    Player.y=room.bottom-360;
     Player.z=0;Player.vx=Player.vy=Player.vz=0;Player.kx=Player.ky=0;
     Player.fx=0;Player.fy=-1;Player.floor=0;Player.onGround=true;Player.sy=Player.y;
-    S.camera.yaw=0;S.camera.pitch=-0.08;S.camera.distance=10;
+    S.camera.yaw=0;S.camera.pitch=-0.08;S.camera.distance=6.2;
     Camera.snap(Player);
   }
   function blocked(x,y,r) {
