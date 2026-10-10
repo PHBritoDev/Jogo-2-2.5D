@@ -280,6 +280,21 @@ const BishopDimension = (function () {
       if(i%4===0) addCone(world,x+side*.32,.08,z-.25,.18,.32,i%2?'#6b4423':'#8b5a3c',5);
     }
 
+    // Céu noturno local da dimensão: estrelas geométricas baratas, sem alterar o mundo 2D.
+    for(let i=0;i<84;i++){
+      const seed=(i*37)%101/101;
+      const x=-27+seed*54;
+      const y=7.5+((i*29)%47)/47*12;
+      const z=-7-((i*17)%53)/53*28;
+      const r=.025+(i%4)*.012;
+      const tone=i%9===0?'#b7c8ff':(i%5===0?'#f0d9a5':'#dce7ff');
+      addSphere(world,x,y,z,r,tone,3,4);
+    }
+    // Algumas estrelas maiores e discretas para dar profundidade ao céu.
+    [[-13,14,-23],[8,17,-29],[21,12,-19],[-4,18,-34],[15,9,-31]].forEach((p,i)=>{
+      addSphere(world,p[0],p[1],p[2],.075,i%2?'#c4d8ff':'#f2e4bd',4,5);
+    });
+
     const mistSpecs=[
       [0,.56,8.5,.62,'#b8c5c7',.045],
       [-.6,.48,0, .72,'#9aadb3',.038],
@@ -389,7 +404,7 @@ const BishopDimension = (function () {
     const px=(Player.x-(room.left+room.right)/2)*unit,pz=(Player.y-(room.top+room.bottom)/2)*unit;
     const eye=[px,4.8,pz+9.5],target=[px*.7,1.25,pz-3.5];
     const pv=multiply(perspective(1.02,w/h,.1,75),lookAt(eye,target,[0,1,0]));
-    gl.clearColor(.014,.022,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
     draw(S.arena.portal,pv);
     const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
