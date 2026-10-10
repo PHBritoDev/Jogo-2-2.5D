@@ -119,6 +119,44 @@
   Quest.init();
   Quest.start();   // abre a introdução da missão 1
 
+  // Atalho exclusivo de testes: abra a página com ?valerioTest=1 para
+  // entrar diretamente na arena do Primeiro Bispo sem concluir missões.
+  if (new URLSearchParams(window.location.search).get('valerioTest') === '1') {
+    const launchValerioTest = function () {
+      if (!Campaign || !Campaign.galaxy || !Campaign.galaxy.missions) return false;
+      let missionIndex = -1, stepIndex = -1;
+      for (let mi = 0; mi < Campaign.galaxy.missions.length; mi++) {
+        const steps = Campaign.galaxy.missions[mi].steps || [];
+        const si = steps.findIndex(function (s) { return s.type === 'bishop' && s.boss === 'greedFirst'; });
+        if (si >= 0) { missionIndex = mi; stepIndex = si; break; }
+      }
+      if (missionIndex < 0) return false;
+      // Fecha a introdução inicial sem executar seu callback de campanha.
+      if (typeof Dialog !== 'undefined') {
+        Dialog.open = false; Dialog.onEnd = null;
+        if (Dialog.el) Dialog.el.classList.add('hidden');
+      }
+      Game.talking = false;
+      Campaign.finished = false;
+      Campaign.mi = missionIndex;
+      Campaign.enemyTerritory = Campaign.galaxy.missions[missionIndex].territory || 1;
+      Campaign.flags.casinoDiscovered = true;
+      Casino.discovered = true;
+      Casino.inside = true;
+      if (typeof Climate !== 'undefined' && Climate.setInterior) Climate.setInterior(true);
+      const bishop = Campaign.galaxy.bishops[0];
+      if (bishop && bishop.status !== 'defeated') bishop.status = 'available';
+      Campaign.enterStep(stepIndex);
+      Quest.toast('MODO TESTE: spawn direto na dimensão de Valério.', 4);
+      return true;
+    };
+    if (!launchValerioTest()) {
+      window.addEventListener('load', function () {
+        if (!launchValerioTest()) console.error('Modo teste de Valério: campanha ainda não inicializada.');
+      }, { once: true });
+    }
+  }
+
   // ---------- Atualização (um passo de física) ----------
   function step(dt, jumpPressed, attackPressed) {
     Game.time += dt;
