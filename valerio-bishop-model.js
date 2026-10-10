@@ -176,7 +176,7 @@
         const rim=new THREE.PointLight(0xb52dff,1.1,12);rim.position.set(0,2.2,-1.8);scene.add(rim);
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
-        new THREE.GLTFLoader().load('./Bispo1.0.glb?v=20261010b',function(gltf){
+        new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
             root=gltf.scene;fitModel(root,2.7);improveMaterials(root);
             pivot=new THREE.Group();pivot.add(root);scene.add(pivot);
