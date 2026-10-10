@@ -185,6 +185,7 @@
     // Corrige o eixo frontal comum em modelos exportados para GLB.
     pivot.rotation.y=(v.yaw||0)+Math.PI;
     const animType=chooseAnimation(v,now);
+    if(mixer)mixer.update(Math.min(Math.max((now-last)/1000,0),.05));
     const attackProgress=v.state==='attack'?Math.sin(Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.attackDuration||.3)))*Math.PI):0;
     const windup=v.state==='windup'?Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.windupDuration||.6))):0;
     const hurtProgress=hurtUntil>now?Math.sin(Math.max(0,Math.min(1,1-(hurtUntil-now)/430))*Math.PI):0;
@@ -207,7 +208,6 @@
       weaponPivot.rotation.z=-.28-windup*.55+swing*1.12+Math.sin(t*1.8)*.018;
       weaponPivot.rotation.x=Math.sin(t*1.3)*.018;
     }
-    if(mixer)mixer.update(Math.min(Math.max((now-last)/1000,0),.05));
     previousState=v.state||'';
     last=now;renderer.render(scene,camera);
   }
