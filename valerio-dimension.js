@@ -500,7 +500,7 @@ const BishopDimension = (function () {
       const gait=moving?Math.sin(phase)*.42:Math.sin(Game.time*2)*.025;
       const bob=moving?Math.abs(Math.sin(phase))*.055:Math.sin(Game.time*2)*.018;
       const lean=moving?clamp(-(Player.vy||0)*.0007,-.13,.13):0;
-      const facing=Math.atan2(Player.fx||0,-(Player.fy||-1));
+      const facing=Math.atan2(Number.isFinite(Player.fx)?Player.fx:0,-(Number.isFinite(Player.fy)?Player.fy:-1));
       const playerBase=multiply(translate(px,.04+jump+bob,pz),multiply(rotateY(facing),rotateX(lean)));
       draw(S.playerModel,multiply(pv,playerBase));
       draw(S.arena.playerArmL,multiply(pv,multiply(playerBase,multiply(translate(-.29,.98,-.02),rotateX(gait)))));
