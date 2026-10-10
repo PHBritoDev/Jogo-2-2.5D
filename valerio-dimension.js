@@ -668,7 +668,8 @@ const BishopDimension = (function () {
   function enter() {
     if(!Casino.inside||!Campaign.step||Campaign.step.type!=='bishop'||Campaign.step.boss!=='greedFirst')return;
     const room=Casino.room;
-    Player.x=(room.left+room.right)/2;
+    // Alinha o jogador ao eixo do chefe para a câmera não mirar ao lado dele.
+    Player.x=Casino.bossStart.x;
     Player.y=room.bottom-40;
     Player.z=0;Player.vx=Player.vy=Player.vz=0;Player.kx=Player.ky=0;
     Player.fx=0;Player.fy=-1;Player.floor=0;Player.onGround=true;Player.sy=Player.y;
