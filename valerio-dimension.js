@@ -626,6 +626,7 @@ const BishopDimension = (function () {
   function frame() {
     if(!S.canvas)return;
     const inside=!!(Casino.inside&&isBattleActive());
+    if(!inside)window.ValerioModelView={active:false};
     document.body.classList.toggle('bishop-battle',inside);
     const shouldBeVisible=inside||(!Casino.inside&&Casino.discovered&&Campaign.flags.casinoDiscovered);
     if(S.canvasVisible!==shouldBeVisible) S.canvasVisible=shouldBeVisible;
