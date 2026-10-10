@@ -4,7 +4,7 @@
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   let animationClips={},currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
-  let lastHitSerial=0,hurtUntil=0,previousState='';
+  let lastHitSerial=0,hurtUntil=0,previousState='',renderedYaw=null;
   function loadScript(url) {
     return new Promise(function(resolve,reject){
       const s=document.createElement('script');s.src=url;s.onload=resolve;
@@ -109,7 +109,7 @@
     next.reset();next.enabled=true;
     // A caminhada do GLB estava ciclando rápido demais para a curta aproximação do boss.
     // Mantemos corrida reservada para habilidade futura e sincronizamos a passada por estado.
-    next.setEffectiveTimeScale(type==='walk'?0.62:type==='run'?0.88:1);
+    next.setEffectiveTimeScale(type==='walk'?0.50:type==='run'?0.88:1);
     next.setEffectiveWeight(1);
     next.setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);
     next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;
@@ -201,10 +201,17 @@
     camera.aspect=v.aspect||w/h;camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
     camera.position.set(v.eye[0],v.eye[1],v.eye[2]);camera.lookAt(v.target[0],v.target[1],v.target[2]);
     pivot.position.set(v.position[0],v.position[1],v.position[2]);
-    // Corrige o eixo frontal comum em modelos exportados para GLB.
-    pivot.rotation.y=(v.yaw||0)+Math.PI;
+    // Corrige o eixo frontal comum em modelos exportados para GLB e gira pelo
+    // menor arco possível: evita a volta de 360° quando o jogador cruza atrás.
+    const targetYaw=(v.yaw||0)+Math.PI;
+    const turnDt=Math.min(Math.max((now-last)/1000,0),.05);
+    if(renderedYaw===null){renderedYaw=targetYaw;pivot.rotation.y=targetYaw;}
+    else {
+      const yawDelta=Math.atan2(Math.sin(targetYaw-pivot.rotation.y),Math.cos(targetYaw-pivot.rotation.y));
+      pivot.rotation.y+=yawDelta*Math.min(1,turnDt*7.5);
+    }
     const animType=chooseAnimation(v,now);
-    if(mixer)mixer.update(Math.min(Math.max((now-last)/1000,0),.05));
+    if(mixer)mixer.update(turnDt);
     const attackProgress=v.state==='attack'?Math.sin(Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.attackDuration||.3)))*Math.PI):0;
     const windup=v.state==='windup'?Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.windupDuration||.6))):0;
     const hurtProgress=hurtUntil>now?Math.sin(Math.max(0,Math.min(1,1-(hurtUntil-now)/430))*Math.PI):0;
