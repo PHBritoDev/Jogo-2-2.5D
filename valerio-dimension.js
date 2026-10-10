@@ -427,16 +427,17 @@ const BishopDimension = (function () {
     S.spriteUv=gl.getAttribLocation(program,'aUv');
     S.spriteMvp=gl.getUniformLocation(program,'uMvp');
     S.spriteSampler=gl.getUniformLocation(program,'uTexture');
-    // Quad vertical com UVs; o canal alfa original do PNG é preservado.
+    // Quad vertical; as dimensões finais serão ajustadas à proporção real do PNG.
+    // Isso evita achatar ou cortar o Bispo quando a arte é substituída por uma versão nova.
     S.bishopQuad=gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER,S.bishopQuad);
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([
-      -.76,.04,0, 0,1,
-       .76,.04,0, 1,1,
-       .76,2.72,0, 1,0,
-      -.76,.04,0, 0,1,
-       .76,2.72,0, 1,0,
-      -.76,2.72,0, 0,0
+      -.9,.04,0, 0,1,
+       .9,.04,0, 1,1,
+       .9,3.15,0, 1,0,
+      -.9,.04,0, 0,1,
+       .9,3.15,0, 1,0,
+      -.9,3.15,0, 0,0
     ]),gl.STATIC_DRAW);
     const texture=gl.createTexture();
     S.bishopTexture=texture;
@@ -453,6 +454,19 @@ const BishopDimension = (function () {
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
+        // Mantém a proporção natural da arte e dá mais presença ao Bispo na arena.
+        const spriteHeight=3.15;
+        const aspect=(image.naturalWidth>0&&image.naturalHeight>0)?image.naturalWidth/image.naturalHeight:0.667;
+        const spriteWidth=Math.max(1.25,Math.min(2.35,spriteHeight*aspect));
+        gl.bindBuffer(gl.ARRAY_BUFFER,S.bishopQuad);
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([
+          -spriteWidth/2,.04,0, 0,1,
+           spriteWidth/2,.04,0, 1,1,
+           spriteWidth/2,spriteHeight,0, 1,0,
+          -spriteWidth/2,.04,0, 0,1,
+           spriteWidth/2,spriteHeight,0, 1,0,
+          -spriteWidth/2,spriteHeight,0, 0,0
+        ]),gl.STATIC_DRAW);
         S.bishopTextureLoaded=true;
       } catch(err) {
         S.bishopTextureLoaded=false;
@@ -460,7 +474,7 @@ const BishopDimension = (function () {
       }
     };
     image.onerror=function(){S.bishopTextureLoaded=false;};
-    image.src='./Bispo1.png';
+    image.src='./Bispo1.png?v=20261010-bishop-art-fit';
   }
   function drawBishopSprite(matrix) {
     const gl=S.gl;
