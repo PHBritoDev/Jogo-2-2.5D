@@ -400,3 +400,21 @@ body.bishop-battle #toast {
     top: calc(164px + env(safe-area-inset-top));
   }
 }
+
+
+/* Valério — aproxima os elementos da apresentação VS em telas estreitas. */
+.boss-intro { overflow-x: hidden; overflow-y: auto; }
+.boss-intro-card { box-sizing: border-box; }
+.boss-intro-versus { width: min(100%, 520px); }
+.boss-intro-portrait { left: calc(50% + 10px); }
+.boss-intro-player-mark { left: calc(50% - clamp(100px, 20vw, 160px) - 10px); }
+@media (max-width: 600px) {
+  .boss-intro { padding: 16px 10px; }
+  .boss-intro-card { width: 100%; padding: 10px 8px 22px; }
+  .boss-intro-versus { min-height: clamp(150px, 25vh, 205px); }
+  .boss-intro-portrait { left: calc(50% + 8px); width: clamp(112px, 31vw, 150px); }
+  .boss-intro-player-mark { left: calc(50% - clamp(82px, 23vw, 112px) - 8px); width: clamp(82px, 23vw, 112px); }
+  .boss-intro-vs { left: 50%; font-size: clamp(38px, 11vw, 56px); }
+  #boss-intro-name { font-size: clamp(28px, 8vw, 40px); }
+  #boss-intro-button { max-width: 100%; white-space: normal; }
+}
