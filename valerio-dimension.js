@@ -268,6 +268,23 @@ const BishopDimension = (function () {
       addQuad(world,[x-.22,.022,z-.18],[x+.22,.022,z-.18],[x+.15,.022,z+.22],[x-.15,.022,z+.22],color('#070c09',.25));
     }
 
+    // Camada adicional de árvores retorcidas nas margens e ao fundo, fora da faixa de combate.
+    for(let i=0;i<14;i++){
+      const side=i%2?1:-1, variant=(i*7)%8;
+      const x=side*(11.5+(i%4)*1.15), z=13-i*3.05+(i%3)*.35;
+      const h=6.4+variant*.72, lean=side*(.2+(variant%4)*.11), bark=barkPalette[(i+2)%4];
+      const mid=[x+lean*.4,h*.54,z],top=[x+lean,h,z+.18];
+      addSegment(world,[x,.05,z],mid,.31,.19,bark,6);
+      addSegment(world,mid,top,.19,.045,barkPalette[(i+1)%4],6);
+      for(let j=0;j<4;j++){
+        const dir=(j%2?1:-1), yy=h*(.48+j*.1), xx=x+lean*(yy/h);
+        const end=[xx+dir*(.75+(i+j)%4*.25),yy+.45+(j%3)*.12,z+(j%2)*.22];
+        addSegment(world,[xx,yy,z],end,.067,.018,bark,5);
+        if(j===1||j===3)addSegment(world,end,[end[0]+dir*.34,end[1]+.35,end[2]+.1],.025,.006,'#51402f',4);
+      }
+      for(let k=0;k<3;k++)addSegment(world,[x,.12,z],[x+side*(.28+k*.22),.035,z+(k-1)*.24],.12,.015,bark,5);
+    }
+
     // Vegetação do chão, raízes e fungos para quebrar a aparência “limbo”.
     for(let i=0;i<14;i++){
       const side=i%2?1:-1;
@@ -440,7 +457,8 @@ const BishopDimension = (function () {
     if(S.canvasVisible!==shouldBeVisible){
       S.canvasVisible=shouldBeVisible;
       const gameCanvas=document.getElementById('game');
-      if(gameCanvas)gameCanvas.style.opacity=shouldBeVisible?'0':'1';
+      // O mapa 2D só some dentro da arena 3D; ao revelar o portal, o mundo continua visível.
+      if(gameCanvas)gameCanvas.style.opacity=inside?'0':'1';
     }
     if(S.lost||S.failed||!S.gl){S.canvas.style.display='none';return;}
     try {
