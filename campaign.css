@@ -109,7 +109,7 @@
 }
 .boss-intro-portrait {
   position: absolute;
-  left: 58%;
+  left: calc(50% + 24px);
   width: clamp(132px, 25vw, 205px);
   aspect-ratio: 1;
   display: grid;
@@ -131,7 +131,7 @@
 .portrait-eye { stroke: #edcf83; stroke-width: 3; }
 .boss-intro-vs {
   position: absolute;
-  left: 47%;
+  left: 50%;
   z-index: 1;
   color: #171014;
   font: italic 900 clamp(40px, 8vw, 76px)/1 Georgia, serif;
@@ -140,7 +140,7 @@
 }
 .boss-intro-player-mark {
   position: absolute;
-  left: 15%;
+  left: calc(50% - clamp(100px, 20vw, 160px) - 24px);
   display: grid;
   place-items: center;
   width: clamp(100px, 20vw, 160px);
@@ -374,9 +374,9 @@
   #boss-hud-title { display: none; }
   .boss-intro-card { padding: 14px 10px 20px; }
   .boss-intro-versus { min-height: 175px; }
-  .boss-intro-player-mark { left: 10%; }
-  .boss-intro-portrait { left: 56%; }
-  .boss-intro-vs { left: 45%; }
+  .boss-intro-player-mark { left: calc(50% - clamp(82px, 22vw, 108px) - 16px); width: clamp(82px, 22vw, 108px); }
+  .boss-intro-portrait { left: calc(50% + 16px); width: clamp(108px, 25vw, 132px); }
+  .boss-intro-vs { left: 50%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
