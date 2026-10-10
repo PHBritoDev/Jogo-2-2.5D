@@ -118,47 +118,34 @@ const Input = (function () {
   bindButton('btn-defend', function () { touchDefend = true; }, function () { touchDefend = false; });
   bindButton('btn-aim', function () { aimToggleQueued = true; }, function () {});
 
-  // ----- Câmera livre por arrasto: mouse direito / toque na área do jogo -----
+  // ----- Câmera exclusiva da dimensão 3D de Valério -----
+  const cameraPointers = new Map();
+  let pinchDistance = 0;
+  function pointerDistance(){const p=Array.from(cameraPointers.values());return p.length<2?0:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);}
   function beginCameraDrag(e) {
-    if (!gameCanvas || e.target !== gameCanvas) return;
-    if (cameraDrag.active) return;
-    const isMouseDrag = e.pointerType === 'mouse' && e.button === 2;
-    const isTouchDrag = e.pointerType === 'touch' && e.isPrimary;
-    if (!isMouseDrag && !isTouchDrag) return;
-    e.preventDefault();
-    cameraDrag.active = true;
-    cameraDrag.pointerId = e.pointerId;
-    cameraDrag.lastX = e.clientX;
-    cameraDrag.lastY = e.clientY;
+    if (!gameCanvas || e.target !== gameCanvas || !BishopDimension.isBattleActive()) return;
+    if (e.pointerType === 'mouse' && e.button !== 2) return;
+    e.preventDefault();cameraPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(cameraPointers.size===2){pinchDistance=pointerDistance();cameraDrag.active=false;return;}
+    cameraDrag.active=true;cameraDrag.pointerId=e.pointerId;cameraDrag.lastX=e.clientX;cameraDrag.lastY=e.clientY;
     try { gameCanvas.setPointerCapture(e.pointerId); } catch (err) {}
   }
-
   function moveCameraDrag(e) {
-    if (!cameraDrag.active || e.pointerId !== cameraDrag.pointerId) return;
-    const dx = e.clientX - cameraDrag.lastX;
-    const dy = e.clientY - cameraDrag.lastY;
-    cameraDrag.lastX = e.clientX;
-    cameraDrag.lastY = e.clientY;
-
-    // Sensibilidade de arrasto suave; mantém limites no eixo Y
-    const mult = 0.8;
-    Camera.addLookDelta(dx * mult, dy * mult);
+    if(!cameraPointers.has(e.pointerId)||!BishopDimension.isBattleActive())return;
+    const prev=cameraPointers.get(e.pointerId);cameraPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(cameraPointers.size>=2){const d=pointerDistance();if(pinchDistance>0&&d>0)BishopDimension.addCameraZoom((pinchDistance-d)*.035);pinchDistance=d;cameraDrag.active=false;return;}
+    if(!cameraDrag.active||e.pointerId!==cameraDrag.pointerId)return;
+    BishopDimension.addCameraLook(e.clientX-prev.x,e.clientY-prev.y);cameraDrag.lastX=e.clientX;cameraDrag.lastY=e.clientY;
   }
-
   function endCameraDrag(e) {
-    if (!cameraDrag.active || e.pointerId !== cameraDrag.pointerId) return;
-    cameraDrag.active = false;
-    cameraDrag.pointerId = null;
+    cameraPointers.delete(e.pointerId);if(e.pointerId===cameraDrag.pointerId){cameraDrag.active=false;cameraDrag.pointerId=null;}pinchDistance=pointerDistance();
   }
-
   gameCanvas.addEventListener('pointerdown', beginCameraDrag);
   gameCanvas.addEventListener('pointermove', moveCameraDrag);
   gameCanvas.addEventListener('pointerup', endCameraDrag);
   gameCanvas.addEventListener('pointercancel', endCameraDrag);
   gameCanvas.addEventListener('lostpointercapture', endCameraDrag);
-  gameCanvas.addEventListener('contextmenu', function (e) {
-    if (cameraDrag.active) e.preventDefault();
-  });
+  gameCanvas.addEventListener('contextmenu', function (e) { if (cameraDrag.active) e.preventDefault(); });
 
   // ----- Teclado (teste no PC) -----
   const JUMP_KEYS = { Space: 1, KeyZ: 1, KeyK: 1 };
@@ -183,6 +170,7 @@ const Input = (function () {
     releaseJoy();
     cameraDrag.active = false;
     cameraDrag.pointerId = null;
+    cameraPointers.clear();pinchDistance=0;
   });
 
   window.addEventListener('resize', layoutIdle);

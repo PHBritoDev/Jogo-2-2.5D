@@ -11,7 +11,8 @@ const BishopDimension = (function () {
     uMvp: null, exterior: null, arena: null, energy: null, particles: null,
     playerModel: null, bishopModel: null, failed: false, lost: false,
     wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0,
-    canvasVisible: false
+    canvasVisible: false,
+    camera: { yaw: 0, pitch: -0.08, distance: 10, minDistance: 0.35, maxDistance: 18 }
   };
 
   const clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -402,8 +403,11 @@ const BishopDimension = (function () {
   function insideFrame() {
     const gl=S.gl,w=S.canvas.width,h=S.canvas.height,room=Casino.room,unit=1/72;
     const px=(Player.x-(room.left+room.right)/2)*unit,pz=(Player.y-(room.top+room.bottom)/2)*unit;
-    const eye=[px,4.8,pz+9.5],target=[px*.7,1.25,pz-3.5];
-    const pv=multiply(perspective(1.02,w/h,.1,75),lookAt(eye,target,[0,1,0]));
+    const cam=S.camera, yaw=cam.yaw, pitch=cam.pitch, dist=cam.distance;
+    const cp=Math.cos(pitch), sp=Math.sin(pitch), sy=Math.sin(yaw), cy=Math.cos(yaw);
+    const eye=[px-sy*cp*dist,1.6-sp*dist,pz+cy*cp*dist];
+    const target=[px+sy*cp*12,1.2+sp*12,pz-cy*cp*12];
+    const pv=multiply(perspective(dist<0.7?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
     gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
     draw(S.arena.portal,pv);
@@ -426,7 +430,7 @@ const BishopDimension = (function () {
       const bpos=[(bx-(room.left+room.right)/2)*unit,0,(by-(room.top+room.bottom)/2)*unit];
       draw(S.bishopModel,multiply(pv,translate(bpos[0],.08,bpos[2])));
     }
-    if(!Player.dead){const jump=clamp(Player.z||0,0,60)*unit,model=multiply(translate(px,.04+jump,pz),scale(1,1,1));draw(S.playerModel,multiply(pv,model));}
+    if(!Player.dead && dist>=0.7){const jump=clamp(Player.z||0,0,60)*unit,model=multiply(translate(px,.04+jump,pz),scale(1,1,1));draw(S.playerModel,multiply(pv,model));}
   }
   function frame() {
     if(!S.canvas)return;
@@ -461,6 +465,9 @@ const BishopDimension = (function () {
   function isBattleActive() {
     return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
   }
+  function addCameraLook(dx,dy){const c=S.camera;c.yaw=clamp(c.yaw-dx*.006,-Math.PI,Math.PI);c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
+  function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
+  function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
   function enter() {
     if(!Casino.inside||!Campaign.step||Campaign.step.type!=='bishop'||Campaign.step.boss!=='greedFirst')return;
     const room=Casino.room;
@@ -468,6 +475,7 @@ const BishopDimension = (function () {
     Player.y=room.bottom-180;
     Player.z=0;Player.vx=Player.vy=Player.vz=0;Player.kx=Player.ky=0;
     Player.fx=0;Player.fy=-1;Player.floor=0;Player.onGround=true;Player.sy=Player.y;
+    S.camera.yaw=0;S.camera.pitch=-0.08;S.camera.distance=10;
     Camera.snap(Player);
   }
   function blocked(x,y,r) {
@@ -475,5 +483,5 @@ const BishopDimension = (function () {
     const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=8.5*72;
     return x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<room.top+125||y+r>room.bottom-95;
   }
-  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked};
+  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis};
 })();
