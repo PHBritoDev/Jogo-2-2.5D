@@ -285,6 +285,31 @@ const BishopDimension = (function () {
       for(let k=0;k<3;k++)addSegment(world,[x,.12,z],[x+side*(.28+k*.22),.035,z+(k-1)*.24],.12,.015,bark,5);
     }
 
+    // Anel florestal denso: árvores adicionais no perímetro do piso.
+    // Todas as bases ficam dentro do terreno visível, com polígonos leves para celular.
+    for(let i=0;i<42;i++){
+      const side=i%2?1:-1, row=Math.floor(i/2);
+      const x=side*(17+(row%6)*6.1+((i*7)%5)*.32);
+      const z=30-row*3.12+((i*11)%5)*.24;
+      const h=7.2+((i*13)%8)*.78, lean=side*(.18+((i*5)%4)*.12);
+      const bark=barkPalette[(i+row)%barkPalette.length];
+      const base=[x,.035,z], mid=[x+lean*.42,h*.54,z+.12], top=[x+lean,h,z+((i%3)-1)*.16];
+      addSegment(world,base,mid,.34,.2,bark,6);
+      addSegment(world,mid,top,.2,.045,barkPalette[(i+2)%barkPalette.length],6);
+      for(let j=0;j<4;j++){
+        const dir=(j%2===0?-1:1)*(i%4<2?1:-1);
+        const yy=h*(.43+j*.105), xx=x+lean*(yy/h);
+        const end=[xx+dir*(1.05+((i+j*3)%5)*.19),yy+.42+((i+j)%3)*.2,z+(j%3-1)*.17];
+        addSegment(world,[xx,yy,z],end,.075,.018,bark,5);
+        if(j%2===0)addSegment(world,end,[end[0]+dir*.4,end[1]+.38,end[2]+.12],.03,.007,'#51402f',4);
+      }
+      for(let k=0;k<3;k++){
+        const rootSide=(k-1);
+        addSegment(world,[x,.13,z],[x+rootSide*.4+side*.18,.028,z+rootSide*.24],.14,.014,bark,5);
+      }
+      addQuad(world,[x-.3,.018,z-.2],[x+.3,.018,z-.2],[x+.22,.018,z+.2],[x-.22,.018,z+.2],color('#070c09',.24));
+    }
+
     // Vegetação do chão, raízes e fungos para quebrar a aparência “limbo”.
     for(let i=0;i<14;i++){
       const side=i%2?1:-1;
@@ -454,12 +479,11 @@ const BishopDimension = (function () {
     const inside=!!(Casino.inside&&isBattleActive());
     document.body.classList.toggle('bishop-battle',inside);
     const shouldBeVisible=inside||(!Casino.inside&&Casino.discovered&&Campaign.flags.casinoDiscovered);
-    if(S.canvasVisible!==shouldBeVisible){
-      S.canvasVisible=shouldBeVisible;
-      const gameCanvas=document.getElementById('game');
-      // O mapa 2D só some dentro da arena 3D; ao revelar o portal, o mundo continua visível.
-      if(gameCanvas)gameCanvas.style.opacity=inside?'0':'1';
-    }
+    if(S.canvasVisible!==shouldBeVisible) S.canvasVisible=shouldBeVisible;
+    // Restaura o mundo 2D a cada quadro ao sair da luta. Não condicione isso
+    // à visibilidade do portal: ela pode continuar ativa antes e depois da batalha.
+    const gameCanvas=document.getElementById('game');
+    if(gameCanvas)gameCanvas.style.opacity=inside?'0':'1';
     if(S.lost||S.failed||!S.gl){S.canvas.style.display='none';return;}
     try {
       resize();
@@ -483,7 +507,7 @@ const BishopDimension = (function () {
   function isBattleActive() {
     return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
   }
-  function addCameraLook(dx,dy){const c=S.camera;c.yaw=clamp(c.yaw-dx*.006,-Math.PI,Math.PI);c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
+  function addCameraLook(dx,dy){const c=S.camera;c.yaw=clamp(c.yaw+dx*.006,-Math.PI,Math.PI);c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
   function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
   function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
   function enter() {
@@ -498,8 +522,12 @@ const BishopDimension = (function () {
   }
   function blocked(x,y,r) {
     if(!isBattleActive())return false;
-    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=8.5*72;
-    return x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<room.top+125||y+r>room.bottom-95;
+    // Coordenadas do jogador são convertidas para unidades 3D dividindo por 72.
+    // O piso mede 132 x 78 unidades; deixe margem suficiente para explorar e lutar.
+    const room=Casino.room,cx=(room.left+room.right)/2,cy=(room.top+room.bottom)/2;
+    const halfWidth=61*72,halfDepth=34*72;
+    return x-r<cx-halfWidth||x+r>cx+halfWidth||
+      y-r<cy-halfDepth||y+r>cy+halfDepth;
   }
   return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis};
 })();
