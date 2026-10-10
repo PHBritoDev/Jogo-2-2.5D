@@ -17,6 +17,22 @@ const Camera = {
   shakeX: 0,
   shakeY: 0,
 
+  // Câmera livre / look-around suave para mobile e desktop
+  lookX: 0,
+  lookY: 0,
+  maxLookX: 180,
+  maxLookY: 100,
+
+  addLookDelta(dx, dy) {
+    this.lookX = U.clamp(this.lookX + dx, -this.maxLookX, this.maxLookX);
+    this.lookY = U.clamp(this.lookY + dy, -this.maxLookY, this.maxLookY);
+  },
+
+  resetLook() {
+    this.lookX = 0;
+    this.lookY = 0;
+  },
+
   // Chamado quando a tela muda de tamanho (pixels reais do canvas)
   resize(pxW, pxH) {
     this.scale = pxH / CFG.VIEW_H;
@@ -36,8 +52,8 @@ const Camera = {
     return max < min ? (World.h - this.viewH) / 2 : U.clamp(v, min, max);
   },
 
-  _goalX(p) { return this._clampX(p.x + p.vx * CFG.CAM.look - this.viewW / 2); },
-  _goalY(p) { return this._clampY(p.y - 18 + p.vy * CFG.CAM.look - this.viewH / 2); },
+  _goalX(p) { return this._clampX(p.x + p.vx * CFG.CAM.look - this.viewW / 2 + this.lookX); },
+  _goalY(p) { return this._clampY(p.y - 18 + p.vy * CFG.CAM.look - this.viewH / 2 + this.lookY); },
 
   snap(p) {
     this.x = this._goalX(p);
