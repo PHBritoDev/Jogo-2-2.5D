@@ -416,7 +416,7 @@ const BishopDimension = (function () {
   function shader(gl,type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh)||'shader inválido');return sh;}
   function initBishopSprite(gl) {
     const vs='attribute vec3 aPosition; attribute vec2 aUv; uniform mat4 uMvp; varying vec2 vUv; void main(){gl_Position=uMvp*vec4(aPosition,1.0);vUv=aUv;}';
-    const fs='precision mediump float; varying vec2 vUv; uniform sampler2D uTexture; void main(){vec4 texel=texture2D(uTexture,vUv);if(texel.a<0.025)discard;gl_FragColor=texel;}';
+    const fs='precision mediump float; varying vec2 vUv; uniform sampler2D uTexture; void main(){vec4 texel=texture2D(uTexture,vUv);if(texel.a<=0.001)discard;gl_FragColor=texel;}';
     const program=gl.createProgram();
     gl.attachShader(program,shader(gl,gl.VERTEX_SHADER,vs));
     gl.attachShader(program,shader(gl,gl.FRAGMENT_SHADER,fs));
