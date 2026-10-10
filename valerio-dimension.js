@@ -164,7 +164,7 @@ const BishopDimension = (function () {
     return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),ruins:mesh(S.gl,ruins)};
   }
   function buildArena() {
-    const world=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[];
+    const world=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
 
     // Chão contínuo e mais largo para a floresta: a área preta foi substituída por piso escuro.
     addBox(world,0,-0.92,-2.5,132,0.9,78,'#151b18');
@@ -391,12 +391,24 @@ const BishopDimension = (function () {
     addCone(player,0,.64,0,.39,.98,'#5486a1',8);
     addBox(player,0,.94,-.04,.56,.16,.5,'#b29b77');
     addSphere(player,0,1.3,0,.27,'#e6d2b8',6,8);
-    addCone(bishop,0,.92,0,.62,1.48,'#3d2d49',10);
-    addSphere(bishop,0,1.72,0,.29,'#d0b7cb',6,8);
-    addBox(bishop,0,1.72,-.25,.52,.13,.09,'#1a1222');
-    addCone(bishop,0,2.2,0,.42,.58,'#8a4db4',8);
-    addBox(bishop,0,.98,.4,.15,.88,.16,'#e1be70');
-    addBox(bishop,0,.57,.02,.68,.09,.54,'#705136');
+    // Valério: corpo low-poly 3D; a luta não depende mais de uma imagem plana.
+    addCone(bishop,0,.86,0,.64,1.55,'#302239',12);
+    addCone(bishop,0,.53,0,.68,.48,'#211728',12);
+    addBox(bishop,0,.76,-.49,.13,.98,.055,'#a77b38');
+    addBox(bishop,0,.58,-.49,.38,.11,.075,'#d1a654');
+    addBox(bishop,-.22,.14,-.025,.23,.24,.34,'#17121d');
+    addBox(bishop,.22,.14,-.025,.23,.24,.34,'#17121d');
+    addSphere(bishopShoulders,0,0,0,.35,'#46304f',8,10,1.32,.64,.92);
+    addSphere(bishopShoulders,-.34,-.02,0,.2,'#34213f',7,8,1,.85,1);
+    addSphere(bishopShoulders,.34,-.02,0,.2,'#34213f',7,8,1,.85,1);
+    addSphere(bishopHead,0,0,0,.29,'#9b829c',8,10,.86,1.12,.82);
+    addBox(bishopFace,0,-.045,-.225,.35,.17,.075,'#17101f');
+    addBox(bishopFace,-.095,.035,-.272,.075,.035,.025,'#ff354f');
+    addBox(bishopFace,.095,.035,-.272,.075,.035,.025,'#ff354f');
+    addCone(bishopCrown,0,.22,0,.31,.5,'#713b91',8);
+    addSegment(bishopCrown,[-.18,.06,0],[-.37,.38,-.025],.085,.012,'#b17ad2',5);
+    addSegment(bishopCrown,[.18,.06,0],[.37,.38,-.025],.085,.012,'#b17ad2',5);
+    addSphere(bishopHands,0,0,0,.105,'#8f748e',7,8);
     // Membros separados para animação procedural leve, sem esqueleto externo.
     addSegment(playerArmL,[0,0,0],[-.18,-.34,-.025],.085,.055,'#171b20',6);
     addSegment(playerArmR,[0,0,0],[.18,-.34,-.025],.085,.055,'#171b20',6);
@@ -410,7 +422,9 @@ const BishopDimension = (function () {
       player:mesh(S.gl,player),bishop:mesh(S.gl,bishop),
       playerArmL:mesh(S.gl,playerArmL),playerArmR:mesh(S.gl,playerArmR),
       playerLegL:mesh(S.gl,playerLegL),playerLegR:mesh(S.gl,playerLegR),
-      bishopArmL:mesh(S.gl,bishopArmL),bishopArmR:mesh(S.gl,bishopArmR)
+      bishopArmL:mesh(S.gl,bishopArmL),bishopArmR:mesh(S.gl,bishopArmR),
+      bishopShoulders:mesh(S.gl,bishopShoulders),bishopHead:mesh(S.gl,bishopHead),
+      bishopFace:mesh(S.gl,bishopFace),bishopCrown:mesh(S.gl,bishopCrown),bishopHands:mesh(S.gl,bishopHands)
     };
   }
   function shader(gl,type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh)||'shader inválido');return sh;}
@@ -572,14 +586,23 @@ const BishopDimension = (function () {
       const strike=bossState==='attack'?Math.sin(clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.duration)||.3),0,1)*Math.PI):0;
       const bossBob=Math.sin(Game.time*2.15)*.055;
       const faceBoss=Math.atan2(px-bpos[0],-(pz-bpos[2]));
-      const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),rotateZ(-windup*.12+strike*.08)));
-      const spriteVisible=drawBishopSprite(multiply(pv,bossBase));
-      if(!spriteVisible){
-        draw(S.bishopModel,multiply(pv,bossBase));
-        const bossArmSwing=Math.sin(Game.time*2.8)*.045+windup*.72-strike*.9;
-        draw(S.arena.bishopArmL,multiply(pv,multiply(bossBase,multiply(translate(-.31,1.1,-.02),rotateZ(-bossArmSwing)))));
-        draw(S.arena.bishopArmR,multiply(pv,multiply(bossBase,multiply(translate(.31,1.1,-.02),rotateZ(bossArmSwing+.22)))));
-      }
+      const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
+      const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),rotateZ(bodySway)));
+      draw(S.bishopModel,multiply(pv,bossBase));
+      const shoulderBase=multiply(bossBase,multiply(translate(0,1.37,0),rotateZ(Math.sin(Game.time*2.1)*.035-windup*.08)));
+      draw(S.arena.bishopShoulders,multiply(pv,shoulderBase));
+      const headTilt=Math.sin(Game.time*1.7)*.045-windup*.16+strike*.12;
+      const headBase=multiply(bossBase,multiply(translate(0,1.82,0),multiply(rotateY(Math.sin(Game.time*.8)*.075),rotateZ(headTilt))));
+      draw(S.arena.bishopHead,multiply(pv,headBase));
+      draw(S.arena.bishopFace,multiply(pv,headBase));
+      draw(S.arena.bishopCrown,multiply(pv,headBase));
+      const bossArmSwing=Math.sin(Game.time*2.8)*.09+windup*.72-strike*.9;
+      const armL=multiply(bossBase,multiply(translate(-.38,1.38,-.015),rotateZ(-bossArmSwing-.08)));
+      const armR=multiply(bossBase,multiply(translate(.38,1.38,-.015),rotateZ(bossArmSwing+.22+strike*.28)));
+      draw(S.arena.bishopArmL,multiply(pv,armL));
+      draw(S.arena.bishopArmR,multiply(pv,armR));
+      draw(S.arena.bishopHands,multiply(pv,multiply(armL,translate(-.24,-.35,-.03))));
+      draw(S.arena.bishopHands,multiply(pv,multiply(armR,translate(.24,-.35,-.03))));
     }
     if(!Player.dead && dist>=0.7){
       const jump=clamp(Player.z||0,0,60)*unit;
