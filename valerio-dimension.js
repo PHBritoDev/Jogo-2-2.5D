@@ -574,7 +574,12 @@ const BishopDimension = (function () {
       const faceBoss=Math.atan2(px-bpos[0],-(pz-bpos[2]));
       const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),rotateZ(-windup*.12+strike*.08)));
       const spriteVisible=drawBishopSprite(multiply(pv,bossBase));
-      if(!spriteVisible){
+      if(spriteVisible){
+        // Segunda silhueta cruzada: dá volume quando o jogador circula o Bispo,
+        // evitando o efeito de folha sem precisar duplicar a imagem na mesma direção.
+        const crossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss+Math.PI/2),rotateZ(-windup*.12+strike*.08)));
+        drawBishopSprite(multiply(pv,crossBase));
+      } else {
         draw(S.bishopModel,multiply(pv,bossBase));
         const bossArmSwing=Math.sin(Game.time*2.8)*.045+windup*.72-strike*.9;
         draw(S.arena.bishopArmL,multiply(pv,multiply(bossBase,multiply(translate(-.31,1.1,-.02),rotateZ(-bossArmSwing)))));
