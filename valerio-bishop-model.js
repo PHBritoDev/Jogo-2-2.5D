@@ -41,7 +41,9 @@
       size=box.getSize(new THREE.Vector3());
     }
     if(!isFinite(size.y)||size.y<0.01)throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
-    model.scale.setScalar(height/size.y);
+    // Preserve a escala original exportada no GLB. setScalar() sobrescrevia
+    // valores como 0.01 do Blender e podia ampliar o personagem dezenas de vezes.
+    model.scale.multiplyScalar(height/size.y);
     const scaled=new THREE.Box3().setFromObject(model),center=scaled.getCenter(new THREE.Vector3());
     model.position.set(-center.x,-scaled.min.y,-center.z);
   }
