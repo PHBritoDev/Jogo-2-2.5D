@@ -1,11 +1,10 @@
 'use strict';
 
-/*
- * VALERIO DIMENSION — lightweight WebGL scene for the first Bishop.
- * The campaign, collision, player and boss simulation stay in the existing
- * 2D systems. This module only renders the discovered portal and casino arena.
- * All geometry and shaders are local: no runtime CDN or model downloads.
- */
+/* ============================================================
+   VALERIO DIMENSION — arena do Primeiro Bispo da Ganância
+   Ajustes mínimos para evitar o vácuo negro da floresta,
+   reforçar o piso, ampliar a estrada e preservar a campanha.
+   ============================================================ */
 const BishopDimension = (function () {
   const S = {
     canvas: null, gl: null, program: null, aPosition: -1, aColor: -1,
@@ -118,14 +117,12 @@ const BishopDimension = (function () {
   }
   function buildExterior() {
     const arch=[],glow=[],ruins=[];
-    // Arco monumental de pedra, com blocos talhados e luz violeta no vão.
     addBox(arch,-30,35,0,10,74,15,'#211d2b'); addBox(arch,30,35,0,10,74,15,'#292236');
     addBox(arch,-30,3,0,19,8,20,'#473b55'); addBox(arch,30,3,0,19,8,20,'#3c334b');
     for(let i=0;i<9;i++){
       const a=Math.PI-(i/8)*Math.PI,x=Math.cos(a)*30,y=52+Math.sin(a)*23;
       addBox(arch,x,y,0,13,10,15,i%2?'#392f49':'#51405f',Math.PI/2-a);
     }
-    // Colunas frontais com bases, capitéis e frisos de pedra.
     for(const side of [-1,1]){
       addCylinder(arch,side*27,36,1.5,4.2,68,'#51465c',10,'#796984');
       addCylinder(arch,side*27,36,1.8,1.35,62,'#302a38',8,'#65556f');
@@ -136,7 +133,6 @@ const BishopDimension = (function () {
     addBox(arch,0,79,0,25,8,18,'#40374d');
     addBox(arch,0,84,-.5,15,3,16,'#74627d');
     addRing(arch,0,89,-1,8.5,8.5,1.7,'#8c7199',.78,24);
-    // Ruínas laterais de pedra quebrada substituem as antigas silhuetas de árvores.
     for(const side of [-1,1]){
       addBox(ruins,side*49,28,5,15,56,18,side<0?'#17141f':'#201a27');
       addBox(ruins,side*49,59,5,22,7,22,'#332a3a',side*.025);
@@ -147,7 +143,6 @@ const BishopDimension = (function () {
     }
     const rubble=[[-66,10,8,17,9,13,-.1],[-58,16,9,13,7,12,.08],[-72,35,8,12,19,12,-.12],[63,13,9,19,11,15,.1],[70,39,9,13,17,14,-.08]];
     for(const r of rubble) addBox(ruins,r[0],r[1],r[2],r[3],r[4],r[5],'#292331',r[6]);
-    // Degraus em primeiro plano; semitransparentes para não esconder o jogador 2D.
     for(let i=0;i<6;i++){
       const y=-2-i*2.5,z=1+i*2.1,half=31+i*7.5,depth=2.7;
       addQuad(arch,[-half,y,z],[half,y,z],[half,y,z+depth],[-half,y,z+depth],color(i%2?'#51475b':'#413849',.38));
@@ -166,27 +161,33 @@ const BishopDimension = (function () {
   function buildArena() {
     const world=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[];
 
-    // A estrada fica MAIS LARGA (ampliada de 54 para ~106 unidades de largura)
-    // sem aumentar o tamanho da arena; o piso continua low-poly e seus destaques
-    // são geometria estática e barata.
-    addBox(world,0,-.38,-2.5,110,.72,52,'#111814');  // largura 110 (era 54)
-    addBox(world,0,-.015,-2.5,16.2,.09,50,'#493f32');  // props da estrada
+    // Chão contínuo e mais largo para a floresta: a área preta foi substituída por piso escuro.
+    addBox(world,0,-0.92,-2.5,132,0.9,78,'#151b18');
+    addBox(world,0,-0.22,-2.5,120,0.34,66,'#252d29');
+    addBox(world,0,-.38,-2.5,130,.72,64,'#111814');
+    addBox(world,0,-.015,-2.5,16.2,.09,50,'#493f32');
     addBox(world,-8.44,.015,-2.5,.18,.11,49,'#292922');
     addBox(world, 8.44,.015,-2.5,.18,.11,49,'#292922');
+    for(let i=0;i<20;i++){
+      const x = -56 + i * 5.8;
+      const y = 0.12 + (i % 3) * 0.06;
+      addBox(world,x,y,-1.2,2.4,0.16,3,'#2d2d2f');
+      addBox(world,x + (i % 2 ? 0.8 : -0.8), y - 0.05, -1.1, 1.4, 0.12, 1.5, '#312b28', 0.5);
+    }
     for(let i=0;i<8;i++){
-      const z=17-i*4.75,fade=1-i/8,width=6.2-fade*1.3;  // ajustado para nova largura
+      const z=17-i*4.75,fade=1-i/8,width=6.2-fade*1.3;
       addQuad(world,[-width,.041,z+2.55],[width,.041,z+2.55],[width*.78,.041,z-2.55],[-width*.78,.041,z-2.55],color('#d0a16b',.21*fade+.025));
     }
 
-    // Cascalho e folhas variam ao longo do caminho sem poluir a área de esquiva.
-    for(let i=0;i<38;i++){
-      const z=17-(i*.91),x=((i*17)%37)/37*10.6-5.3;  // ajustado
+    // Cascalho e raízes laterais, mantendo a trilha visível e integrada ao terreno.
+    for(let i=0;i<42;i++){
+      const z=17-(i*.91),x=((i*17)%37)/37*10.6-5.3;
       const w=.12+(i%4)*.075,d=.12+(i%3)*.09;
       addBox(world,x,.045,z,w,.055,d,i%4===0?'#71634d':(i%2?'#51483a':'#5c5140'),(i%5)*.13);
       if(i%3===0)addBox(world,x+(i%2?.42:-.42),.037,z-.28,.48,.035,.06,'#302d26',(i%2?.2:-.2));
     }
 
-    // Pedras arredondadas, raízes expostas e moitas nos ombros da estrada.
+    // Rocha, brotos e moitas nos ombros da estrada.
     for(let i=0;i<17;i++){
       const z=14-i*1.72,side=i%2?1:-1;
       const x=side*(5.0+(i%3)*.18),rock=i%3?'#403b32':'#51483c';
@@ -201,12 +202,10 @@ const BishopDimension = (function () {
       if(i%4===0)addCone(world,side*(5.62+(i%2)*.3),.55,z+.48,.34,.72,i%2?'#263b2b':'#303b2a',6);
     }
 
-    // Troncos retorcidos e galhos nus: a silhueta segue a referência da mata
-    // noturna; arbustos e samambaias quebram o vazio junto aos troncos.
     const barkPalette=['#32291f','#3a2d23','#403126','#302923'];
     for(let i=0;i<12;i++){
       const z=15-i*2.82+(i*7%13)*.2;
-      for(let side=-1;side<=1;side+=2){
+      for(let side=-1;side<=1;side+=2) {
         const variant=(i*7+(side>0?3:0))%7;
         const tz=z+(side>0?.62:-.38)+((i*11+(side>0?5:0))%7)*.17;
         const x=side*(5.32+(i*7%5)*.4+((i+side+2)%2)*.2);
@@ -235,8 +234,7 @@ const BishopDimension = (function () {
       }
     }
 
-    // FLORESTA DENSA E PROFUNDA: fileira adicional ao fundo com variação de altura
-    // para criar silhueta assustadora e profundidade visual.
+    // Aberto e denso: mais árvores no fundo para quebrar a sensação de vazio negro.
     for(let i=0;i<18;i++){
       const side=i%2?1:-1,variant=(i*5)%9;
       const x=side*(7.4+(i*7%5)*.78),z=16-i*1.92+(i*11%17)*.19,h=6.6+variant*.47;
@@ -251,58 +249,37 @@ const BishopDimension = (function () {
       }
     }
 
-    // NOVA FILEIRA AO FUNDO: mais 8 árvores para densificar silhueta
-    // Altura variada (5~11 unidades) para criar profundidade e medo visual
+    // Mais 8 árvores para fechar a silhueta da floresta.
     for(let i=0;i<8;i++){
       const side=i%2?1:-1;
       const variant=(i*13)%11;
       const x=side*(9.2+(i%4)*.95),z=-5-i*2.4+(i*7%11)*.25;
-      const h=5.2+variant*.8;  // maior variação de altura
-      const bark=barkPalette[(i+3)%4];
-      const lean=side*(.28+(variant%3)*.16);
-      
-      // Tronco principal
+      const h=5.2+variant*.8; const bark=barkPalette[(i+3)%4]; const lean=side*(.28+(variant%3)*.16);
       addSegment(world,[x,.04,z],[x+lean*.5,h*.58,z],.26,.14,bark,7);
       addSegment(world,[x+lean*.5,h*.58,z],[x+lean*.8,h,z],.14,.04,barkPalette[(i+1)%4],6);
-      
-      // 4 galhos principais
       for(let j=0;j<4;j++){
         const branchSide=(j%2?1:-1);
         const startH=h*(.45+j*.11),startX=x+lean*(startH/h);
         const bx=startX+branchSide*.95,by=startH+.6,bz=z+(j%2-.5)*.18;
         addSegment(world,[startX,startH,z],[bx,by,bz],.078,.022,bark,5);
-        
-        // Pequenos galhos secundários
-        if(j%2===0) {
-          addSegment(world,[bx,by,bz],[bx+branchSide*.35,by+.4,bz+.08],.028,.008,'#51402f',4);
-        }
+        if(j%2===0) addSegment(world,[bx,by,bz],[bx+branchSide*.35,by+.4,bz+.08],.028,.008,'#51402f',4);
       }
-      
-      // Sombra/raiz no chão
       addQuad(world,[x-.22,.022,z-.18],[x+.22,.022,z-.18],[x+.15,.022,z+.22],[x-.15,.022,z+.22],color('#070c09',.25));
     }
 
-    // Vegetação secundária: samambaias e fungos nas raízes
+    // Vegetação do chão, raízes e fungos para quebrar a aparência “limbo”.
     for(let i=0;i<14;i++){
       const side=i%2?1:-1;
       const x=side*(6.8+(i%3)*.6),z=12-i*1.6+(i*5%7)*.14;
-      
-      // Samambaia (segmento em leque)
       const fh=.6+(i%3)*.2;
       for(let k=0;k<3;k++){
         const angle=(k-1)*0.4;
         const ex=Math.sin(angle)*.5,ez=Math.cos(angle)*.5;
         addSegment(world,[x,.05,z],[x+ex,fh,z+ez],.032,.008,'#3a4d2a',3);
       }
-      
-      // Cogumelos/fungos nas raízes
-      if(i%4===0) {
-        addCone(world,x+side*.32,.08,z-.25,.18,.32,i%2?'#6b4423':'#8b5a3c',5);
-      }
+      if(i%4===0) addCone(world,x+side*.32,.08,z-.25,.18,.32,i%2?'#6b4423':'#8b5a3c',5);
     }
 
-    // Três véus translúcidos se movem em velocidades diferentes; sem shader
-    // de pós-processamento nem aumento de resolução.
     const mistSpecs=[
       [0,.56,8.5,.62,'#b8c5c7',.045],
       [-.6,.48,0, .72,'#9aadb3',.038],
@@ -315,7 +292,6 @@ const BishopDimension = (function () {
       mistLayers.push(mesh(S.gl,m));
     }
 
-    // Motes leves no ar, deslocados com um movimento comum discreto.
     for(let i=0;i<26;i++){
       const a=(i*2.399)%Math.PI*2,x=Math.cos(a)*(1.1+(i*17%100)/100*2.5);
       const y=.28+(i*13%100)/100*1.65,z=13-(i*19%360)/10;
@@ -323,7 +299,6 @@ const BishopDimension = (function () {
       addQuad(particles,[x-size,y,z],[x,y+size,z],[x+size,y,z],[x,y-size,z],c);
     }
 
-    // Portal em pedra: a moldura permanece imóvel; só a energia gira.
     const portalZ=-21.25,energyZ=-20.72;
     addBox(portal,-2.22,2.45,portalZ,.52,4.8,.82,'#514958');
     addBox(portal, 2.22,2.45,portalZ,.52,4.8,.82,'#5b5265');
@@ -346,13 +321,11 @@ const BishopDimension = (function () {
       addBox(energy,x,y,energyZ+.12,.04,.05,.018,i%7===0?'#ffe0ff':'#d184ff');
     }
 
-    // Pontos frios de luz nas bordas dão contraste sem escurecer o chão.
     for(let i=0;i<12;i++){
       const side=i%2?1:-1,z=12-Math.floor(i/2)*3.5;
       addSphere(world,side*(3.95+(i%3)*.24),.42+(i%3)*.12,z,.095,i%3?'#9bc0c2':'#c796e7',5,6);
     }
 
-    // Silhuetas simples, mas maiores e com contraste para continuarem legíveis.
     addCone(player,0,.64,0,.39,.98,'#5486a1',8);
     addBox(player,0,.94,-.04,.56,.16,.5,'#b29b77');
     addSphere(player,0,1.3,0,.27,'#e6d2b8',6,8);
@@ -444,15 +417,12 @@ const BishopDimension = (function () {
     if(!S.canvas)return;
     const inside=!!(Casino.inside&&isBattleActive());
     document.body.classList.toggle('bishop-battle',inside);
-    
-    // OCLUSÃO: ocultar canvas 2D quando 3D está ativo
     const shouldBeVisible=inside||(!Casino.inside&&Casino.discovered&&Campaign.flags.casinoDiscovered);
     if(S.canvasVisible!==shouldBeVisible){
       S.canvasVisible=shouldBeVisible;
       const gameCanvas=document.getElementById('game');
       if(gameCanvas)gameCanvas.style.opacity=shouldBeVisible?'0':'1';
     }
-    
     if(S.lost||S.failed||!S.gl){S.canvas.style.display='none';return;}
     try {
       resize();
@@ -479,7 +449,6 @@ const BishopDimension = (function () {
   function enter() {
     if(!Casino.inside||!Campaign.step||Campaign.step.type!=='bishop'||Campaign.step.boss!=='greedFirst')return;
     const room=Casino.room;
-    // Suavizar entrada: preservar velocidade anterior e lerp suave
     Player.x=(room.left+room.right)/2;
     Player.y=room.bottom-180;
     Player.z=0;Player.vx=Player.vy=Player.vz=0;Player.kx=Player.ky=0;
@@ -488,7 +457,7 @@ const BishopDimension = (function () {
   }
   function blocked(x,y,r) {
     if(!isBattleActive())return false;
-    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=8.5*72;  // ampliado de 4.25 para 8.5
+    const room=Casino.room,cx=(room.left+room.right)/2,halfWidth=8.5*72;
     return x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<room.top+125||y+r>room.bottom-95;
   }
   return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked};
