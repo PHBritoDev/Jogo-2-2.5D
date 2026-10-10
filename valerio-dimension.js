@@ -10,6 +10,8 @@ const BishopDimension = (function () {
     canvas: null, gl: null, program: null, aPosition: -1, aColor: -1,
     uMvp: null, exterior: null, arena: null, energy: null, particles: null,
     playerModel: null, bishopModel: null, failed: false, lost: false,
+    spriteProgram: null, spritePosition: -1, spriteUv: -1, spriteMvp: null, spriteSampler: null,
+    bishopTexture: null, bishopTextureLoaded: false, bishopQuad: null,
     wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0,
     canvasVisible: false,
     camera: { yaw: 0, pitch: -0.08, distance: 10, minDistance: 0.35, maxDistance: 18 }
@@ -412,6 +414,74 @@ const BishopDimension = (function () {
     };
   }
   function shader(gl,type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh)||'shader inválido');return sh;}
+  function initBishopSprite(gl) {
+    const vs='attribute vec3 aPosition; attribute vec2 aUv; uniform mat4 uMvp; varying vec2 vUv; void main(){gl_Position=uMvp*vec4(aPosition,1.0);vUv=aUv;}';
+    const fs='precision mediump float; varying vec2 vUv; uniform sampler2D uTexture; void main(){vec4 texel=texture2D(uTexture,vUv);if(texel.a<=0.001)discard;gl_FragColor=texel;}';
+    const program=gl.createProgram();
+    gl.attachShader(program,shader(gl,gl.VERTEX_SHADER,vs));
+    gl.attachShader(program,shader(gl,gl.FRAGMENT_SHADER,fs));
+    gl.linkProgram(program);
+    if(!gl.getProgramParameter(program,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program)||'shader da arte do Bispo inválido');
+    S.spriteProgram=program;
+    S.spritePosition=gl.getAttribLocation(program,'aPosition');
+    S.spriteUv=gl.getAttribLocation(program,'aUv');
+    S.spriteMvp=gl.getUniformLocation(program,'uMvp');
+    S.spriteSampler=gl.getUniformLocation(program,'uTexture');
+    // Quad vertical com UVs; o canal alfa original do PNG é preservado.
+    S.bishopQuad=gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,S.bishopQuad);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([
+      -.76,.04,0, 0,1,
+       .76,.04,0, 1,1,
+       .76,2.72,0, 1,0,
+      -.76,.04,0, 0,1,
+       .76,2.72,0, 1,0,
+      -.76,2.72,0, 0,0
+    ]),gl.STATIC_DRAW);
+    const texture=gl.createTexture();
+    S.bishopTexture=texture;
+    gl.bindTexture(gl.TEXTURE_2D,texture);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    // Enquanto a imagem carrega, usa o modelo geométrico existente como fallback.
+    const image=new Image();
+    image.onload=function(){
+      try {
+        gl.bindTexture(gl.TEXTURE_2D,S.bishopTexture);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
+        S.bishopTextureLoaded=true;
+      } catch(err) {
+        S.bishopTextureLoaded=false;
+        console.warn('Não foi possível carregar a arte de Valério; usando o modelo alternativo.',err);
+      }
+    };
+    image.onerror=function(){S.bishopTextureLoaded=false;};
+    image.src='./Bispo1.png';
+  }
+  function drawBishopSprite(matrix) {
+    const gl=S.gl;
+    if(!S.bishopTextureLoaded||!S.spriteProgram||!S.bishopQuad)return false;
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(true);
+    gl.useProgram(S.spriteProgram);
+    gl.bindBuffer(gl.ARRAY_BUFFER,S.bishopQuad);
+    gl.enableVertexAttribArray(S.spritePosition);
+    gl.enableVertexAttribArray(S.spriteUv);
+    gl.vertexAttribPointer(S.spritePosition,3,gl.FLOAT,false,20,0);
+    gl.vertexAttribPointer(S.spriteUv,2,gl.FLOAT,false,20,12);
+    gl.uniformMatrix4fv(S.spriteMvp,false,new Float32Array(matrix));
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D,S.bishopTexture);
+    gl.uniform1i(S.spriteSampler,0);
+    gl.drawArrays(gl.TRIANGLES,0,6);
+    gl.useProgram(S.program);
+    return true;
+  }
   function initGL() {
     const gl=S.canvas.getContext('webgl',{alpha:true,antialias:false,depth:true,stencil:false,preserveDrawingBuffer:false,powerPreference:'low-power'}) || S.canvas.getContext('experimental-webgl');
     if(!gl){S.failed=true;return;}
@@ -420,6 +490,7 @@ const BishopDimension = (function () {
     const program=gl.createProgram();gl.attachShader(program,shader(gl,gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl,gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);
     if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program)||'programa WebGL inválido');
     S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');
+    initBishopSprite(gl);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
     S.exterior=buildExterior();S.arena=buildArena();S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
     S.lost=false;S.failed=false;
@@ -488,10 +559,13 @@ const BishopDimension = (function () {
       const bossBob=Math.sin(Game.time*2.15)*.055;
       const faceBoss=Math.atan2(px-bpos[0],-(pz-bpos[2]));
       const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),rotateZ(-windup*.12+strike*.08)));
-      draw(S.bishopModel,multiply(pv,bossBase));
-      const bossArmSwing=Math.sin(Game.time*2.8)*.045+windup*.72-strike*.9;
-      draw(S.arena.bishopArmL,multiply(pv,multiply(bossBase,multiply(translate(-.31,1.1,-.02),rotateZ(-bossArmSwing)))));
-      draw(S.arena.bishopArmR,multiply(pv,multiply(bossBase,multiply(translate(.31,1.1,-.02),rotateZ(bossArmSwing+.22)))));
+      const spriteVisible=drawBishopSprite(multiply(pv,bossBase));
+      if(!spriteVisible){
+        draw(S.bishopModel,multiply(pv,bossBase));
+        const bossArmSwing=Math.sin(Game.time*2.8)*.045+windup*.72-strike*.9;
+        draw(S.arena.bishopArmL,multiply(pv,multiply(bossBase,multiply(translate(-.31,1.1,-.02),rotateZ(-bossArmSwing)))));
+        draw(S.arena.bishopArmR,multiply(pv,multiply(bossBase,multiply(translate(.31,1.1,-.02),rotateZ(bossArmSwing+.22)))));
+      }
     }
     if(!Player.dead && dist>=0.7){
       const jump=clamp(Player.z||0,0,60)*unit;
