@@ -246,7 +246,7 @@
               // Clips exportados trazem keyframes de escala que inflavam o modelo
               // durante idle/ataque. Mantemos posição/rotação para preservar o movimento.
               clip.tracks=clip.tracks.filter(function(track){
-                return !/(^|\\.)scale(?:$|\\[)/i.test(track.name||'');
+                return !/(^|\.)scale(?:$|\[)/i.test(track.name||'');
               });
               return clip;
             });
