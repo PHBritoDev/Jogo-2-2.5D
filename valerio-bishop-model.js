@@ -268,6 +268,7 @@
     if(started||failed)return;started=true;window.ValerioGLBLoading=true;
     loadScript('https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js')
       .then(function(){return loadScript('https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js');})
+      .then(function(){return loadScript('https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/DRACOLoader.js');})
       .then(function(){
         if(!window.THREE||!THREE.GLTFLoader)throw new Error('Three.js/GLTFLoader indisponível');
         canvas=document.createElement('canvas');canvas.id='valerio-bishop-glb';
@@ -307,7 +308,13 @@
         const valerioModelUrl=useUpdatedValerioModel
           ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/BispoNovo.glb?valerioModelTest=20261011b'
           :'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb';
-        new THREE.GLTFLoader().load(valerioModelUrl,function(gltf){
+        const gltfLoader=new THREE.GLTFLoader();
+        // O BispoNovo.glb solicita Draco no próprio arquivo; habilitamos o decoder
+        // oficial da mesma versão do Three.js. GLBs sem Draco continuam funcionando.
+        const dracoLoader=new THREE.DRACOLoader();
+        dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/draco/');
+        gltfLoader.setDRACOLoader(dracoLoader);
+        gltfLoader.load(valerioModelUrl,function(gltf){
           try {
             root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'BispoNovo.glb');rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
