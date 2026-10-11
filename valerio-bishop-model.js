@@ -408,7 +408,7 @@
               .filter(function(c){return !attackExclude.test(normalized(c));})
               .sort(function(a,b){
                 const na=normalized(a),nb=normalized(b);
-                const ma=na.match(/(\\d+)$/),mb=nb.match(/(\\d+)$/);
+                const ma=na.match(/(\d+)$/),mb=nb.match(/(\d+)$/);
                 if(ma&&mb&&Number(ma[1])!==Number(mb[1]))return Number(ma[1])-Number(mb[1]);
                 if(ma&&!mb)return -1;
                 if(!ma&&mb)return 1;
