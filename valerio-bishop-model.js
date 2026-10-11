@@ -23,6 +23,18 @@
   function showStatus(message,isError) {
     if(isError)console.warn('Valério GLB:',message);
     else console.info('Valério GLB:',message);
+    // Erro curto no celular, sem painel que cubra a arena.
+    if(isError){
+      let notice=document.getElementById('valerio-glb-error');
+      if(!notice){
+        notice=document.createElement('div');notice.id='valerio-glb-error';
+        notice.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:2147483647;padding:7px 9px;border-radius:6px;background:rgba(70,0,0,.92);color:#fff;font:12px/1.35 monospace;white-space:normal;pointer-events:none;';
+        document.body.appendChild(notice);
+      }
+      notice.textContent='Skin GLB não carregou: '+String(message).slice(0,180);
+    }else if(message==='modelo carregado e pronto'){
+      const notice=document.getElementById('valerio-glb-error');if(notice)notice.remove();
+    }
     if(showAnimationDebug){
       let panel=document.getElementById('valerio-glb-status');
       if(!panel){
@@ -370,6 +382,7 @@
             };
             findAnimationBones(root);
             window.ValerioGLBReady=true;window.ValerioGLBLoading=false;
+            showStatus('modelo carregado e pronto',false);
             const clipInfo=clips.length?clips.map(function(c){return (c.name||'(sem nome)')+' '+Number(c.duration||0).toFixed(2)+'s';}).join(' | '):'NENHUM CLIP NO GLB';
             const mapped='idle='+(animationClips.idle&&animationClips.idle.name||'—')+'; walk='+(animationClips.walk&&animationClips.walk.name||'—')+'; run='+(animationClips.run&&animationClips.run.name||'—')+'; ataque normal='+(animationClips.attack&&animationClips.attack.name||'—')+'; habilidades='+skillClips.map(function(c){return c.name||'(sem nome)';}).join(', ')+'; dano='+(animationClips.hurt&&animationClips.hurt.name||'—')+'; morte='+(animationClips.death&&animationClips.death.name||'—')+'; magia='+(animationClips.magic&&animationClips.magic.name||'—');
             window.ValerioClipDiagnostics='GLB clips ('+clips.length+'): '+clipInfo+'\n'+mapped+'\nbraço='+(armBone&&armBone.name||'não encontrado')+'; mão='+(handBone&&handBone.name||'não encontrada')+(window.ValerioScaleDiagnostics?'\n'+window.ValerioScaleDiagnostics:'')+'\nmodelo selecionado: '+(useUpdatedValerioModel?'ATUALIZADO':'ESTÁVEL');
@@ -485,5 +498,7 @@
     last=now;renderer.render(scene,camera);
   }
   window.ValerioGLBReady=false;window.ValerioGLBLoading=false;
-  window.addEventListener('load',function(){start();requestAnimationFrame(frame);},{once:true});
+  function bootValerioGLB(){start();requestAnimationFrame(frame);}
+  if(document.readyState==='complete')bootValerioGLB();
+  else window.addEventListener('load',bootValerioGLB,{once:true});
 })();
