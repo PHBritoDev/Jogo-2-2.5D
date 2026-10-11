@@ -226,7 +226,7 @@
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;const fittedModel=fitModel(root,1.55);fittedRoot=fittedModel;rootBasePosition=root.position.clone();restoreModelScales=lockModelScales(root);improveMaterials(root);
+            root=gltf.scene;const fittedModel=fitModel(root,1.0);fittedRoot=fittedModel;rootBasePosition=root.position.clone();restoreModelScales=lockModelScales(root);improveMaterials(root);
             // Escala conservadora: evita que um GLB exportado fora da escala invada a arena.
             pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(fittedModel);scene.add(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
@@ -275,7 +275,7 @@
             loadWeapon();
             console.info('Valério: clips disponíveis',clips.map(function(a){return {name:a.name,duration:a.duration};}),'mapeamento',mapped);
           } catch(err) {
-            failed=true;window.ValerioGLBReady=false;window.ValerioGLBLoading=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
+            failed=true;window.ValerioGLBReady=false;window.ValerioGLBLoading=false;window.ValerioGLBRendering=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
           }
         },undefined,function(err){
           failed=true;window.ValerioGLBReady=false;window.ValerioGLBLoading=false;showStatus('falha ao carregar arquivo: '+errorText(err),true);console.error('Falha ao carregar ./Bispo1.0.glb; usando modelo alternativo.',err);
@@ -285,8 +285,8 @@
   }
   function frame(now) {
     requestAnimationFrame(frame);const v=window.ValerioModelView;
-    if(!v||!v.active||!root||!pivot||!renderer||!camera){if(canvas)canvas.style.display='none';return;}
-    canvas.style.display='block';const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
+    if(!v||!v.active||!root||!pivot||!renderer||!camera){window.ValerioGLBRendering=false;if(canvas)canvas.style.display='none';return;}
+    canvas.style.display='block';window.ValerioGLBRendering=true;const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
     if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);
     camera.aspect=v.aspect||w/h;camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
     camera.position.set(v.eye[0],v.eye[1],v.eye[2]);camera.lookAt(v.target[0],v.target[1],v.target[2]);
