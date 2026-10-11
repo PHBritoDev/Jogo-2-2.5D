@@ -408,6 +408,22 @@
               talk:pickClip([/talk/,/speak/])
             };
             findAnimationBones(root);
+            // Mesmo no modo estático, avaliamos uma única pose do esqueleto.
+            // Sem uma pose inicial avaliada pelo AnimationMixer, alguns GLBs com
+            // skin/armature podem renderizar o mesh colapsado ou aparentemente invisível.
+            if(disableValerioClips&&mixer){
+              const staticPoseClip=animationClips.idle||clips[0];
+              if(staticPoseClip){
+                const staticPoseAction=mixer.clipAction(staticPoseClip);
+                staticPoseAction.reset().play();
+                mixer.update(0);
+                staticPoseAction.paused=true;
+                currentAction=staticPoseAction;
+                currentActionType='static-pose';
+              }else{
+                mixer.update(0);
+              }
+            }
             window.ValerioGLBReady=true;window.ValerioGLBLoading=false;
             showStatus('modelo carregado e pronto',false);
             const clipInfo=clips.length?clips.map(function(c){return (c.name||'(sem nome)')+' '+Number(c.duration||0).toFixed(2)+'s';}).join(' | '):'NENHUM CLIP NO GLB';
