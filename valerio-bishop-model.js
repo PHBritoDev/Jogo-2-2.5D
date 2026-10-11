@@ -173,7 +173,7 @@
     // A caminhada do GLB estava ciclando rápido demais para a curta aproximação do boss.
     // Mantemos corrida reservada para habilidade futura e sincronizamos a passada por estado.
     // Passada lenta e contida: sem balanço acelerado nem corrida durante a aproximação normal.
-    next.setEffectiveTimeScale(type==='walk'?0.24:type==='run'?0.88:1);
+    next.setEffectiveTimeScale(type==='walk'?1:type==='run'?0.88:1);
     next.setEffectiveWeight(1);
     next.setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);
     next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;
@@ -215,6 +215,8 @@
       if(animationClips.walk){playClip('walk',false);return 'walk';}
     }
     if(state==='approach'){
+      // Quando o boss quase parou para atacar, não continue a caminhar no lugar.
+      if((Number(v.speed)||0)<8&&animationClips.idle){playClip('idle',false);return 'idle';}
       if(animationClips.walk){playClip('walk',false);return 'walk';}
       stopAction();return 'procedural-walk';
     }
@@ -346,7 +348,16 @@
       pivot.rotation.y+=yawDelta*Math.min(1,turnDt*7.5);
     }
     const animType=chooseAnimation(v,now);
-    if(mixer&&!disableValerioClips)mixer.update(turnDt);
+    if(mixer&&!disableValerioClips){
+      // Sincroniza a cadência das pernas com a velocidade REAL do BishopBoss.
+      // A 80 px/s chega perto do ritmo normal; ao desacelerar, a passada encurta.
+      if(animType==='walk'&&currentAction){
+        const movementSpeed=Math.max(0,Number(v.speed)||0);
+        const synchronizedRate=Math.max(0.18,Math.min(1.05,movementSpeed/76));
+        currentAction.setEffectiveTimeScale(synchronizedRate);
+      }
+      mixer.update(turnDt);
+    }
     // Clips com root-motion podem deslocar o personagem para baixo do piso; o combate já controla a posição do boss.
     if(rootBasePosition&&root)root.position.copy(rootBasePosition);
     // Reaplica a escala de importação depois do mixer e antes do render.
