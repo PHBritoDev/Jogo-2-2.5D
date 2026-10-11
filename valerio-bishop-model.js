@@ -312,7 +312,11 @@
             root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb');rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
             // proporções corretas; trava mudanças de escala vindas dos clips.
-            pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(root);scene.add(pivot);
+            // A arena antiga desenha o Bispo com escala global 0.42 em bossBase.
+            // O GLB era normalizado para 2.7 unidades, mas o pivot ficava em 1,
+            // ignorando a escala da arena e deixando Valério cerca de 2.38x maior.
+            // Aplicamos a mesma escala visual da arena ao pivot do GLB.
+            pivot=new THREE.Group();pivot.scale.setScalar(0.42);pivot.add(root);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
