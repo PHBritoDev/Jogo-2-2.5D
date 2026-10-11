@@ -30,7 +30,10 @@
         panel.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:2147483646;max-height:78vh;overflow-y:auto;margin:0;padding:12px;background:rgba(8,8,15,.97);color:#fff;font:12px/1.45 monospace;white-space:pre-wrap;pointer-events:auto;touch-action:pan-y;border:2px solid #c5a45b;border-radius:8px;';
         document.body.appendChild(panel);
       }
-      panel.textContent=String(message);
+      const entry=String(message);
+      // Preserve earlier loader messages: weapon loading can finish before or after the GLB clips.
+      if(!panel.textContent.includes(entry))panel.textContent=(panel.textContent?panel.textContent+'\n\n':'')+entry;
+      panel.scrollTop=panel.scrollHeight;
       panel.style.borderColor=isError?'#f55':'#c5a45b';
     }
   }
