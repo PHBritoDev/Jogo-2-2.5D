@@ -1,6 +1,8 @@
 /* Valério GLB + foice. Iluminação, orientação e movimento estabilizados para mobile. */
 (function () {
   'use strict';
+  // Calibração validada pelo espaço da arena: o GLB ocupa 2,7 unidades de altura.
+  const VALERIO_MODEL_HEIGHT=2.7;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
@@ -44,6 +46,14 @@
     const factor=height/size.y;
     fit.scale.setScalar(factor);
     fit.position.set(-((box.min.x+box.max.x)/2)*factor,-box.min.y*factor,-((box.min.z+box.max.z)/2)*factor);
+    const fittedBox=new THREE.Box3().setFromObject(fit);
+    const fittedSize=fittedBox.getSize(new THREE.Vector3());
+    if(!isFinite(fittedSize.y)||Math.abs(fittedSize.y-height)>0.05) {
+      throw new Error('Altura normalizada inválida: '+fittedSize.y.toFixed(3)+' unidades; esperado '+height.toFixed(3));
+    }
+    if(!isFinite(fittedBox.min.y)||Math.abs(fittedBox.min.y)>0.05) {
+      throw new Error('Pés do GLB fora do plano de origem: '+fittedBox.min.y.toFixed(3)+' unidades');
+    }
     return fit;
   }
   // GLTFs podem conter trilhas de escala em grupos ou no próprio esqueleto.
@@ -205,24 +215,30 @@
         const key=new THREE.DirectionalLight(0xffe6cf,2.6);key.position.set(-4,7,5);scene.add(key);
         const fill=new THREE.DirectionalLight(0x9b8cff,1.15);fill.position.set(4,3,-4);scene.add(fill);
         const rim=new THREE.PointLight(0xb52dff,1.1,12);rim.position.set(0,2.2,-1.8);scene.add(rim);
-        // O cenário da arena e o modelo usam canvases WebGL separados, portanto
-        // o chão do cenário não consegue escrever profundidade sobre este canvas.
-        // Este plano invisível compartilha a câmera do Valério e oculta tudo abaixo
-        // do piso sem pintar pixels sobre o cenário que está por trás.
-        const groundOccluder=new THREE.Mesh(
-          new THREE.PlaneGeometry(500,500),
-          new THREE.MeshBasicMaterial({color:0x000000,colorWrite:false,depthWrite:true,depthTest:true,side:THREE.DoubleSide})
-        );
-        groundOccluder.rotation.x=-Math.PI/2;
-        groundOccluder.position.y=0.005;
-        groundOccluder.renderOrder=-100;
-        groundOccluder.frustumCulled=false;
-        scene.add(groundOccluder);
+        // O jogo e o GLB usam contextos WebGL distintos; o depth buffer do
+        // terreno não é compartilhado. Recriamos no canvas transparente as quatro
+        // caixas de piso de valerio-dimension.js, somente para escrever profundidade.
+        // Assim o GLB é ocluído pelo piso real sem cobrir os pixels do cenário.
+        const floorDepthMaterial=new THREE.MeshBasicMaterial({
+          color:0x000000,colorWrite:false,depthWrite:true,depthTest:true
+        });
+        const floorDepthBoxes=[
+          [132,.9,78,0,-.92,-2.5],
+          [120,.34,66,0,-.22,-2.5],
+          [130,.72,64,0,-.38,-2.5],
+          [16.2,.09,50,0,-.015,-2.5]
+        ];
+        floorDepthBoxes.forEach(function(box){
+          const occluder=new THREE.Mesh(new THREE.BoxGeometry(box[0],box[1],box[2]),floorDepthMaterial);
+          occluder.position.set(box[3],box[4],box[5]);
+          occluder.renderOrder=-100;occluder.frustumCulled=false;
+          scene.add(occluder);
+        });
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;const fittedModel=fitModel(root,2.7,true);fittedRoot=fittedModel;rootBasePosition=root.position.clone();improveMaterials(root);
+            root=gltf.scene;const fittedModel=fitModel(root,VALERIO_MODEL_HEIGHT,true);fittedRoot=fittedModel;rootBasePosition=root.position.clone();improveMaterials(root);
             // A escala de ajuste fica num grupo pai separado dos ossos. Travamos a hierarquia
             // inteira (incluindo o grupo de ajuste), para nenhum clip conseguir ampliar o boss.
             pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(fittedModel);scene.add(pivot);
@@ -287,7 +303,7 @@
   }
   function frame(now) {
     requestAnimationFrame(frame);const v=window.ValerioModelView;
-    if(!v||!v.active||!root||!pivot||!renderer||!camera){window.ValerioGLBRendering=false;if(canvas)canvas.style.display='none';return;}
+    if(!v||!v.active||!window.ValerioGLBReady||!root||!pivot||!renderer||!camera){window.ValerioGLBRendering=false;if(canvas)canvas.style.display='none';return;}
     canvas.style.display='block';window.ValerioGLBRendering=true;const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
     if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);
     camera.aspect=v.aspect||w/h;camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
