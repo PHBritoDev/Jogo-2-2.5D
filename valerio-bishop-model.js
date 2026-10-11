@@ -5,7 +5,7 @@
   const VALERIO_MODEL_HEIGHT=2.7;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
-  let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
+  let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
   let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
   // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
   const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
@@ -178,6 +178,7 @@
     });
     if(armBone)armBase=armBone.rotation.clone();
     if(forearmBone)forearmBase=forearmBone.rotation.clone();
+    if(handBone)handBase=handBone.rotation.clone();
     if(legLeft)legLeftBase=legLeft.rotation.clone();
     if(legRight)legRightBase=legRight.rotation.clone();
   }
@@ -430,8 +431,8 @@
     if(armBone&&armBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
       armBone.rotation.copy(armBase);
       if(animType==='procedural-attack'){
-        armBone.rotation.x+=-.8*attackProgress-windup*.28;
-        armBone.rotation.z+=-.72*attackProgress-windup*.22;
+        armBone.rotation.x+=-1.02*attackProgress-windup*.34;
+        armBone.rotation.z+=-.98*attackProgress-windup*.3;
       }
       if(animType==='procedural-hurt')armBone.rotation.z+=.38*hurtProgress;
       if(animType==='procedural-walk')armBone.rotation.x+=walking*.35;
@@ -439,8 +440,8 @@
     if(forearmBone&&forearmBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
       forearmBone.rotation.copy(forearmBase);
       if(animType==='procedural-attack'){
-        forearmBone.rotation.x+=-1.05*attackProgress;
-        forearmBone.rotation.z+=-.3*attackProgress;
+        forearmBone.rotation.x+=-1.22*attackProgress;
+        forearmBone.rotation.z+=-.42*attackProgress;
       }
       if(animType==='procedural-hurt')forearmBone.rotation.x+=.22*hurtProgress;
       if(animType==='procedural-walk')forearmBone.rotation.x-=walking*.25;
@@ -456,9 +457,10 @@
     if(weaponPivot){
       // O pivô está na mão; o golpe acompanha o braço em vez de girar nas costas.
       const swing=animType==='procedural-attack'?attackProgress:0;
-      // O clip real já anima braço/mão e move a foice anexada; não duplicamos o balanço.
-      weaponPivot.rotation.z=-.12-windup*.35+swing*.32;
-      weaponPivot.rotation.x=swing*.18;
+      // Sem clip de ataque no GLB, ampliamos o arco procedural para a foice acompanhar claramente o ombro.
+      // Se o GLB vier a ganhar um ataque real, o movimento manual não duplica esse clip.
+      weaponPivot.rotation.z=-.12-windup*.42+swing*.58;
+      weaponPivot.rotation.x=swing*.3;
     }
     previousState=v.state||'';
     last=now;renderer.render(scene,camera);
