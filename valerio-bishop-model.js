@@ -233,7 +233,14 @@
             pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(fittedModel);scene.add(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
-            const clips=gltf.animations||[];
+            const clips=(gltf.animations||[]).map(function(clip){
+              // Clips exportados trazem keyframes de escala que inflavam o modelo
+              // durante idle/ataque. Mantemos posição/rotação para preservar o movimento.
+              clip.tracks=clip.tracks.filter(function(track){
+                return !/(^|\\.)scale(?:$|\\[)/i.test(track.name||'');
+              });
+              return clip;
+            });
             const normalized=function(c){return (c.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
             const pickClip=function(patterns){
               return clips.find(function(c){
@@ -301,16 +308,9 @@
     if(rootBasePosition&&root)root.position.copy(rootBasePosition);
     // Reaplica a escala de importação depois do mixer e antes do render.
     if(restoreModelScales)restoreModelScales();
-    // Mantém a altura real do modelo em ~1,65 unidade após cada clip; evita
-    // escalas/animações ou hierarquias exportadas fazerem o Bispo virar gigante.
-    if(fittedRoot&&pivot){
-      const bounds=new THREE.Box3().setFromObject(fittedRoot);
-      const height=bounds.getSize(new THREE.Vector3()).y/Math.max(0.0001,Math.abs(pivot.scale.y));
-      if(Number.isFinite(height)&&height>0.05){
-        const desiredScale=1.65/height;
-        pivot.scale.setScalar(Math.max(0.01,Math.min(3,desiredScale)));
-      }
-    }
+    // A escala do personagem é definida uma vez por fitModel(). Não recalcular
+    // a escala pela bounding box animada: respiração, ataque e poses mudam a caixa
+    // delimitadora e isso faz o corpo crescer/encolher a cada frame.
     if(disableValerioClips&&window.ValerioClipDiagnostics&&!window.ValerioClipDiagnostics.includes('CLIPS PAUSADOS PARA TESTE')){
       window.ValerioClipDiagnostics+='\\nCLIPS PAUSADOS PARA TESTE';
       console.info('Valério: clips GLB pausados pelo parâmetro valerioNoAnimations=1.');
