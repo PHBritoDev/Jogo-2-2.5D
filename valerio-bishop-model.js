@@ -53,31 +53,36 @@
     }
     return fit;
   }
-  // Os clips de alguns GLBs incluem chaves de escala no nó raiz/grupos.
-  // A escala normalizada fica no grupo pai; se o mixer substituir a escala
-  // importada (ex.: 0.01 -> 1), esse fator externo multiplica o modelo por
-  // dezenas de vezes. Mantemos os transforms de escala dos nós não-Bone fixos;
-  // as animações continuam controlando os ossos normalmente.
-  function lockNonBoneScales(model) {
+  // GLTFs podem conter trilhas de escala em grupos ou no próprio esqueleto.
+  // O fit é calculado a partir da escala importada; se um clip trocar, por
+  // exemplo, 0.01 por 1, o fator do grupo pai transforma Valério num gigante.
+  // A escala não é necessária para caminhar/atacar: preservamos a escala-base
+  // de cada nó e deixamos os clips animarem posição/rotação normalmente.
+  function lockModelScales(model) {
     const states=[];
     model.traverse(function(obj){
-      if(!obj.isBone&&obj.scale)states.push({object:obj,base:obj.scale.clone()});
+      if(obj.scale)states.push({
+        object:obj,
+        base:obj.scale.clone(),
+        name:obj.name||obj.type||'nó sem nome'
+      });
     });
     let warned=false;
     return function(){
-      let corrected=false;
+      const corrected=[];
       for(let i=0;i<states.length;i++){
         const state=states[i],obj=state.object,base=state.base;
         if(Math.abs(obj.scale.x-base.x)>1e-5||
            Math.abs(obj.scale.y-base.y)>1e-5||
            Math.abs(obj.scale.z-base.z)>1e-5){
           obj.scale.copy(base);
-          corrected=true;
+          corrected.push(state.name);
         }
       }
-      if(corrected&&!warned){
+      if(corrected.length&&!warned){
         warned=true;
-        console.warn('Valério: um clip tentou alterar a escala de um nó do modelo; escala original restaurada para manter a altura normalizada.');
+        console.warn('Valério: escala animada bloqueada para preservar o tamanho normalizado. Nós alterados pelo clip:',corrected);
+        window.ValerioScaleDiagnostics='Escala alterada por animação em: '+corrected.join(', ');
       }
     };
   }
@@ -211,7 +216,7 @@
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;const fittedModel=fitModel(root,1.55);restoreModelScales=lockNonBoneScales(root);improveMaterials(root);
+            root=gltf.scene;const fittedModel=fitModel(root,1.55);restoreModelScales=lockModelScales(root);improveMaterials(root);
             pivot=new THREE.Group();pivot.add(fittedModel);scene.add(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
