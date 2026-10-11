@@ -447,7 +447,7 @@
       const maxTurn=5.0*turnDt;
       pivot.rotation.y+=Math.max(-maxTurn,Math.min(maxTurn,yawDelta));
     }
-    const animType=chooseAnimation(v,now);
+    const animType=disableValerioClips?'none':chooseAnimation(v,now);
     if(mixer&&!disableValerioClips){
       // Sincroniza a cadência das pernas com a velocidade REAL do BishopBoss.
       // A 80 px/s chega perto do ritmo normal; ao desacelerar, a passada encurta.
@@ -469,57 +469,69 @@
       window.ValerioClipDiagnostics+='\\nCLIPS PAUSADOS PARA TESTE';
       console.info('Valério: clips GLB pausados pelo parâmetro valerioNoAnimations=1.');
     }
-    const attackProgress=(v.state==='attack'||v.state==='skill1'||v.state==='skill2')?Math.sin(Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.attackDuration||.3)))*Math.PI):0;
-    const windup=v.state==='windup'?Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.windupDuration||.6))):0;
-    const hurtProgress=hurtUntil>now?Math.sin(Math.max(0,Math.min(1,1-(hurtUntil-now)/430))*Math.PI):0;
-    // Fallback corporal para clips de ataque/dano ausentes no arquivo.
-    root.rotation.z=(v.state==='windup'?.025+windup*.055:0)+
-      (animType==='procedural-hurt'?-hurtProgress*.12:0)+Math.sin((v.time||0)*1.35)*.006;
-    const t=v.time||0;
-    const walking=animType==='procedural-walk'?Math.sin(t*3.2)*.12:0;
-    // Só aplicamos rotações manuais quando falta um clip: não anulamos a animação GLB.
-    if(armBone&&armBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
-      armBone.rotation.copy(armBase);
-      if(animType==='procedural-attack'){
-        armBone.rotation.x+=-1.02*attackProgress-windup*.34;
-        armBone.rotation.z+=-.98*attackProgress-windup*.3;
+    if(!disableValerioClips){
+      const attackProgress=(v.state==='attack'||v.state==='skill1'||v.state==='skill2')?Math.sin(Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.attackDuration||.3)))*Math.PI):0;
+      const windup=v.state==='windup'?Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.windupDuration||.6))):0;
+      const hurtProgress=hurtUntil>now?Math.sin(Math.max(0,Math.min(1,1-(hurtUntil-now)/430))*Math.PI):0;
+      // Fallback corporal para clips de ataque/dano ausentes no arquivo.
+      root.rotation.z=(v.state==='windup'?.025+windup*.055:0)+
+        (animType==='procedural-hurt'?-hurtProgress*.12:0)+Math.sin((v.time||0)*1.35)*.006;
+      const t=v.time||0;
+      const walking=animType==='procedural-walk'?Math.sin(t*3.2)*.12:0;
+      // Só aplicamos rotações manuais quando falta um clip: não anulamos a animação GLB.
+      if(armBone&&armBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
+        armBone.rotation.copy(armBase);
+        if(animType==='procedural-attack'){
+          armBone.rotation.x+=-1.02*attackProgress-windup*.34;
+          armBone.rotation.z+=-.98*attackProgress-windup*.3;
+        }
+        if(animType==='procedural-hurt')armBone.rotation.z+=.38*hurtProgress;
+        if(animType==='procedural-walk')armBone.rotation.x+=walking*.35;
       }
-      if(animType==='procedural-hurt')armBone.rotation.z+=.38*hurtProgress;
-      if(animType==='procedural-walk')armBone.rotation.x+=walking*.35;
-    }
-    if(forearmBone&&forearmBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
-      forearmBone.rotation.copy(forearmBase);
-      if(animType==='procedural-attack'){
-        forearmBone.rotation.x+=-1.22*attackProgress;
-        forearmBone.rotation.z+=-.42*attackProgress;
+      if(forearmBone&&forearmBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
+        forearmBone.rotation.copy(forearmBase);
+        if(animType==='procedural-attack'){
+          forearmBone.rotation.x+=-1.22*attackProgress;
+          forearmBone.rotation.z+=-.42*attackProgress;
+        }
+        if(animType==='procedural-hurt')forearmBone.rotation.x+=.22*hurtProgress;
+        if(animType==='procedural-walk')forearmBone.rotation.x-=walking*.25;
       }
-      if(animType==='procedural-hurt')forearmBone.rotation.x+=.22*hurtProgress;
-      if(animType==='procedural-walk')forearmBone.rotation.x-=walking*.25;
-    }
-    // O osso da mão também participa do golpe, evitando que só o ombro se mova enquanto a foice parece presa.
-    if(handBone&&handBase&&(animType==='procedural-attack'||animType==='procedural-hurt')){
-      handBone.rotation.copy(handBase);
-      if(animType==='procedural-attack'){
-        handBone.rotation.x+=-.28*attackProgress;
-        handBone.rotation.z+=-.24*attackProgress;
+      // O osso da mão também participa do golpe, evitando que só o ombro se mova enquanto a foice parece presa.
+      if(handBone&&handBase&&(animType==='procedural-attack'||animType==='procedural-hurt')){
+        handBone.rotation.copy(handBase);
+        if(animType==='procedural-attack'){
+          handBone.rotation.x+=-.28*attackProgress;
+          handBone.rotation.z+=-.24*attackProgress;
+        }
+        if(animType==='procedural-hurt')handBone.rotation.z+=.12*hurtProgress;
       }
-      if(animType==='procedural-hurt')handBone.rotation.z+=.12*hurtProgress;
-    }
-    if(legLeft&&legLeftBase&&(animType==='procedural-walk'||animType==='procedural-attack'||animType==='procedural-hurt')){
-      legLeft.rotation.copy(legLeftBase);
-      if(animType==='procedural-walk')legLeft.rotation.x+=walking;
-    }
-    if(legRight&&legRightBase&&(animType==='procedural-walk'||animType==='procedural-attack'||animType==='procedural-hurt')){
-      legRight.rotation.copy(legRightBase);
-      if(animType==='procedural-walk')legRight.rotation.x-=walking;
-    }
-    if(weaponPivot){
-      // O pivô está na mão; o golpe acompanha o braço em vez de girar nas costas.
-      const swing=animType==='procedural-attack'?attackProgress:0;
-      // Sem clip de ataque no GLB, ampliamos o arco procedural para a foice acompanhar claramente o ombro.
-      // Se o GLB vier a ganhar um ataque real, o movimento manual não duplica esse clip.
-      weaponPivot.rotation.z=-.12-windup*.42+swing*.58;
-      weaponPivot.rotation.x=swing*.3;
+      if(legLeft&&legLeftBase&&(animType==='procedural-walk'||animType==='procedural-attack'||animType==='procedural-hurt')){
+        legLeft.rotation.copy(legLeftBase);
+        if(animType==='procedural-walk')legLeft.rotation.x+=walking;
+      }
+      if(legRight&&legRightBase&&(animType==='procedural-walk'||animType==='procedural-attack'||animType==='procedural-hurt')){
+        legRight.rotation.copy(legRightBase);
+        if(animType==='procedural-walk')legRight.rotation.x-=walking;
+      }
+      if(weaponPivot){
+        // O pivô está na mão; o golpe acompanha o braço em vez de girar nas costas.
+        const swing=animType==='procedural-attack'?attackProgress:0;
+        // Sem clip de ataque no GLB, ampliamos o arco procedural para a foice acompanhar claramente o ombro.
+        // Se o GLB vier a ganhar um ataque real, o movimento manual não duplica esse clip.
+        weaponPivot.rotation.z=-.12-windup*.42+swing*.58;
+        weaponPivot.rotation.x=swing*.3;
+      }
+  
+    }else{
+      // Modo estático: remove também os movimentos procedurais, não apenas os clips GLB.
+      root.rotation.z=0;
+      if(armBone&&armBase)armBone.rotation.copy(armBase);
+      if(forearmBone&&forearmBase)forearmBone.rotation.copy(forearmBase);
+      if(handBone&&handBase)handBone.rotation.copy(handBase);
+      if(legLeft&&legLeftBase)legLeft.rotation.copy(legLeftBase);
+      if(legRight&&legRightBase)legRight.rotation.copy(legRightBase);
+      if(weaponPivot){weaponPivot.rotation.set(0,0,-.12);}
     }
     previousState=v.state||'';
     last=now;renderer.render(scene,camera);
