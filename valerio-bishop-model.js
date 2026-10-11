@@ -18,7 +18,7 @@
   }
   // Diagnóstico visual opcional para testes no celular; desligado no jogo normal.
   const debugParams=new URLSearchParams(window.location.search);
-  const showAnimationDebug=debugParams.get('valerioAnimDebug')==='1'||debugParams.get('valerioScaleDebug')==='1';
+  const showAnimationDebug=false; // painel de diagnóstico desativado para testar o visual sem bloquear a tela.
   const useUpdatedValerioModel=debugParams.get('valerioStableModel')!=='1';
   function showStatus(message,isError) {
     if(isError)console.warn('Valério GLB:',message);
