@@ -180,7 +180,12 @@
     const serial=window.ValerioBossHitSerial||0;
     if(serial!==lastHitSerial){lastHitSerial=serial;hurtUntil=now+430;}
     const hurt=hurtUntil>now;
-    if(hurt&&animationClips.hurt){playClip('hurt',true);return 'hurt';}
+    if(hurt){
+      if(animationClips.hurt){playClip('hurt',true);return 'hurt';}
+      // Mesmo quando o GLB não tem clip de dano, o golpe recebido precisa reagir
+      // ao serial de acerto do combate, em vez de continuar respirando como se nada ocorresse.
+      stopAction();return 'procedural-hurt';
+    }
     if(v.state==='dead'){
       if(animationClips.death){
         if(!deathPlayed){playClip('death',true);deathPlayed=true;}
