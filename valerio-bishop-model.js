@@ -16,10 +16,21 @@
       s.onerror=function(){reject(new Error('Falha ao carregar '+url));};document.head.appendChild(s);
     });
   }
-  // Diagnóstico fica somente no console; nunca desenha texto sobre o jogo.
+  // Diagnóstico visual opcional para testes no celular; desligado no jogo normal.
+  const showAnimationDebug=new URLSearchParams(window.location.search).get('valerioAnimDebug')==='1';
   function showStatus(message,isError) {
     if(isError)console.warn('Valério GLB:',message);
     else console.info('Valério GLB:',message);
+    if(showAnimationDebug){
+      let panel=document.getElementById('valerio-glb-status');
+      if(!panel){
+        panel=document.createElement('pre');panel.id='valerio-glb-status';
+        panel.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99999;max-height:42vh;overflow:auto;margin:0;padding:9px;background:rgba(8,8,15,.92);color:#fff;font:11px/1.35 monospace;white-space:pre-wrap;pointer-events:none;border:1px solid #c5a45b;border-radius:6px;';
+        document.body.appendChild(panel);
+      }
+      panel.textContent=String(message);
+      panel.style.borderColor=isError?'#f55':'#c5a45b';
+    }
   }
   function hideStatus(){const el=document.getElementById('valerio-glb-status');if(el)el.remove();}
   function errorText(err){
@@ -171,10 +182,8 @@
     if(currentAction===next&&(next.isRunning()||(oneShot&&next.enabled&&next.paused)))return true;
     if(currentAction)currentAction.fadeOut(.1);
     next.reset();next.enabled=true;
-    // A caminhada do GLB estava ciclando rápido demais para a curta aproximação do boss.
-    // Mantemos corrida reservada para habilidade futura e sincronizamos a passada por estado.
-    // Passada lenta e contida: sem balanço acelerado nem corrida durante a aproximação normal.
-    next.setEffectiveTimeScale(type==='walk'?1:type==='run'?0.88:1);
+    // A corrida usa o clip de corrida; a caminhada tem cadência corrigida pela velocidade real no frame().
+    next.setEffectiveTimeScale(type==='run'?0.92:1);
     next.setEffectiveWeight(1);
     next.setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);
     next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;currentActionType=type;
