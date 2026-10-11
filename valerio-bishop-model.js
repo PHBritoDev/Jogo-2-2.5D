@@ -18,6 +18,8 @@
   function showStatus(message,isError) {
     const old=document.getElementById('valerio-glb-status');
     if(old)old.remove();
+    const bootstrap=document.getElementById('valerio-glb-bootstrap-status');
+    if(bootstrap)bootstrap.textContent='Valério: '+String(message);
     if(isError)console.warn('Valério GLB:',message);
     else console.info('Valério GLB:',message);
     // Diagnóstico visível somente no link de teste, para identificar por que
@@ -286,7 +288,7 @@
             loadWeapon();
             console.info('Valério: clips disponíveis',clips.map(function(a){return {name:a.name,duration:a.duration};}),'mapeamento',mapped);
           } catch(err) {
-            failed=true;window.ValerioGLBReady=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
+            failed=true;window.ValerioGLBReady=false;window.ValerioGLBLoading=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
           }
         },undefined,function(err){
           failed=true;window.ValerioGLBReady=false;window.ValerioGLBLoading=false;showStatus('falha ao carregar arquivo: '+errorText(err),true);console.error('Falha ao carregar ./Bispo1.0.glb; usando modelo alternativo.',err);

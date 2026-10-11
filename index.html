@@ -149,8 +149,10 @@
   (document.body||document.documentElement).appendChild(p);
   window.addEventListener('error',function(e){
     var t=e.target;
-    if(t && (t.src||'').match(/valerio-(dimension|bishop-model)|Bispo1\.0\.glb|GLTFLoader|three\.min\.js/i)){
-      p.textContent='ERRO AO CARREGAR RECURSO: '+(t.src||e.message||'desconhecido');
+    var resource=t&&(t.src||t.href);
+    var source=e.filename||'';
+    if((resource||source).match(/valerio-(dimension|bishop-model)|Bispo1\.0\.glb|GLTFLoader|three\.min\.js/i)||(!t&&e.message)){
+      p.textContent='ERRO DE SCRIPT/RECURSO: '+(resource||source||e.message||'desconhecido')+(e.message&&source?': '+e.message:'');
     }
   },true);
   var n=0;
