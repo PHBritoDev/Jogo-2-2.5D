@@ -117,49 +117,49 @@
   resize(true);
   Ambient.init(Camera);
   Quest.init();
-  Quest.start();   // abre a introdução da missão 1
 
-  // Atalho exclusivo de testes: abra a página com ?valerioTest=1 para
-  // entrar diretamente na arena do Primeiro Bispo sem concluir missões.
-  if (new URLSearchParams(window.location.search).get('valerioTest') === '1') {
-    const launchValerioTest = function () {
-      if (!Campaign || !Campaign.galaxy || !Campaign.galaxy.missions) return false;
-      let missionIndex = -1, stepIndex = -1;
+  // Modo de teste direto: pula a introdução e prepara a arena do Primeiro Bispo.
+  // A inicialização é síncrona para não depender de temporizadores ou do evento load.
+  const valerioTestMode = new URLSearchParams(window.location.search).get('valerioTest') === '1';
+  if (valerioTestMode) {
+    let missionIndex = -1;
+    let stepIndex = -1;
+    if (Campaign.galaxy && Array.isArray(Campaign.galaxy.missions)) {
       for (let mi = 0; mi < Campaign.galaxy.missions.length; mi++) {
         const steps = Campaign.galaxy.missions[mi].steps || [];
-        const si = steps.findIndex(function (s) { return s.type === 'bishop' && s.boss === 'greedFirst'; });
+        const si = steps.findIndex(function (s) {
+          return s.type === 'bishop' && s.boss === 'greedFirst';
+        });
         if (si >= 0) { missionIndex = mi; stepIndex = si; break; }
       }
-      if (missionIndex < 0) return false;
-      // Fecha a introdução inicial sem executar seu callback de campanha.
-      if (typeof Dialog !== 'undefined') {
-        Dialog.open = false; Dialog.onEnd = null;
-        if (Dialog.el) Dialog.el.classList.add('hidden');
-      }
-      Game.talking = false;
+    }
+
+    if (missionIndex >= 0) {
       Campaign.finished = false;
       Campaign.mi = missionIndex;
       Campaign.enemyTerritory = Campaign.galaxy.missions[missionIndex].territory || 1;
       Campaign.flags.casinoDiscovered = true;
+      Campaign.flags.casinoClue = true;
       Casino.discovered = true;
-      // Usa a entrada oficial do cassino para configurar o cenário e o estado interno.
-      Casino.enter();
-      const bishop = Campaign.galaxy.bishops[0];
+      Campaign.fightLive = false;
+
+      const bishop = Campaign.galaxy.bishops && Campaign.galaxy.bishops[0];
       if (bishop && bishop.status !== 'defeated') bishop.status = 'available';
+
+      // Casino.enter prepara o interior; a etapa do Bispo muda o cenário para a dimensão 3D.
+      Casino.enter();
       Campaign.enterStep(stepIndex);
-      Quest.toast('MODO TESTE: spawn direto na dimensão de Valério.', 4);
-      return true;
-    };
-    // Espera a inicialização terminar por completo antes de trocar a etapa da campanha.
-    window.setTimeout(function () {
-      if (!launchValerioTest()) {
-        window.addEventListener('load', function () {
-          window.setTimeout(function () {
-            if (!launchValerioTest()) console.error('Modo teste de Valério: campanha ainda não inicializada.');
-          }, 300);
-        }, { once: true });
+      if (BishopDimension.isBattleActive()) {
+        Quest.toast('DIMENSÃO DE VALÉRIO — modo de teste direto.', 5);
+      } else {
+        Quest.toast('Falha ao ativar a dimensão de Valério. Confira o carregamento.', 6);
       }
-    }, 500);
+    } else {
+      Quest.start();
+      Quest.toast('Modo de teste: etapa do Primeiro Bispo não encontrada.', 6);
+    }
+  } else {
+    Quest.start();   // abre a introdução da missão 1
   }
 
   // ---------- Atualização (um passo de física) ----------
