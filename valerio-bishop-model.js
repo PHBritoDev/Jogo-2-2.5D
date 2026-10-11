@@ -20,6 +20,15 @@
     if(old)old.remove();
     if(isError)console.warn('Valério GLB:',message);
     else console.info('Valério GLB:',message);
+    // Diagnóstico visível somente no link de teste, para identificar por que
+    // o GLB real não carregou sem exigir que o jogador abra o console do celular.
+    if(new URLSearchParams(window.location.search).get('valerioTest')==='1'){
+      const panel=document.createElement('div');
+      panel.id='valerio-glb-status';
+      panel.textContent='Valério: '+String(message);
+      panel.style.cssText='position:fixed;z-index:99999;left:8px;top:8px;max-width:calc(100vw - 24px);padding:7px 10px;border-radius:6px;background:rgba(8,8,18,.88);color:'+(isError?'#ff8b8b':'#e8e8ff')+';font:12px/1.35 monospace;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:none;';
+      document.body.appendChild(panel);
+    }
   }
   function hideStatus(){const el=document.getElementById('valerio-glb-status');if(el)el.remove();}
   function errorText(err){
