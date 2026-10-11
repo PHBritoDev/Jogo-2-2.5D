@@ -4,7 +4,7 @@
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
-  let deathPlayed=false;
+  let deathPlayed=false,restoreModelScales=null;
   let lastHitSerial=0,hurtUntil=0,previousState='',renderedYaw=null;
   function loadScript(url) {
     return new Promise(function(resolve,reject){
@@ -52,6 +52,34 @@
       throw new Error('Falha ao normalizar altura do GLB: '+fittedSize.y.toFixed(3)+' unidades');
     }
     return fit;
+  }
+  // Os clips de alguns GLBs incluem chaves de escala no nó raiz/grupos.
+  // A escala normalizada fica no grupo pai; se o mixer substituir a escala
+  // importada (ex.: 0.01 -> 1), esse fator externo multiplica o modelo por
+  // dezenas de vezes. Mantemos os transforms de escala dos nós não-Bone fixos;
+  // as animações continuam controlando os ossos normalmente.
+  function lockNonBoneScales(model) {
+    const states=[];
+    model.traverse(function(obj){
+      if(!obj.isBone&&obj.scale)states.push({object:obj,base:obj.scale.clone()});
+    });
+    let warned=false;
+    return function(){
+      let corrected=false;
+      for(let i=0;i<states.length;i++){
+        const state=states[i],obj=state.object,base=state.base;
+        if(Math.abs(obj.scale.x-base.x)>1e-5||
+           Math.abs(obj.scale.y-base.y)>1e-5||
+           Math.abs(obj.scale.z-base.z)>1e-5){
+          obj.scale.copy(base);
+          corrected=true;
+        }
+      }
+      if(corrected&&!warned){
+        warned=true;
+        console.warn('Valério: um clip tentou alterar a escala de um nó do modelo; escala original restaurada para manter a altura normalizada.');
+      }
+    };
   }
   function improveMaterials(model) {
     model.traverse(function(obj){
@@ -183,7 +211,7 @@
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;const fittedModel=fitModel(root,1.55);improveMaterials(root);
+            root=gltf.scene;const fittedModel=fitModel(root,1.55);restoreModelScales=lockNonBoneScales(root);improveMaterials(root);
             pivot=new THREE.Group();pivot.add(fittedModel);scene.add(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
@@ -251,6 +279,8 @@
     }
     const animType=chooseAnimation(v,now);
     if(mixer)mixer.update(turnDt);
+    // Reaplica a escala de importação depois do mixer e antes do render.
+    if(restoreModelScales)restoreModelScales();
     const attackProgress=v.state==='attack'?Math.sin(Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.attackDuration||.3)))*Math.PI):0;
     const windup=v.state==='windup'?Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.windupDuration||.6))):0;
     const hurtProgress=hurtUntil>now?Math.sin(Math.max(0,Math.min(1,1-(hurtUntil-now)/430))*Math.PI):0;
