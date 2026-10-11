@@ -139,32 +139,7 @@
 <script src="bishops.js"></script>
 <script src="storm-events.js"></script>
 <script src="campaign.js"></script>
-<script>
-(function(){
-  if(new URLSearchParams(location.search).get('valerioTest')!=='1') return;
-  var p=document.createElement('div');
-  p.id='valerio-glb-bootstrap-status';
-  p.textContent='Diagnóstico: página carregada; verificando scripts do Valério...';
-  p.style.cssText='position:fixed;z-index:100000;left:8px;top:8px;max-width:calc(100vw - 24px);padding:8px 10px;border-radius:6px;background:#111;color:#fff;font:12px/1.4 monospace;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:none';
-  (document.body||document.documentElement).appendChild(p);
-  window.addEventListener('error',function(e){
-    var t=e.target;
-    var resource=t&&(t.src||t.href);
-    var source=e.filename||'';
-    if((resource||source).match(/valerio-(dimension|bishop-model)|Bispo1\.0\.glb|GLTFLoader|three\.min\.js/i)||(!t&&e.message)){
-      p.textContent='ERRO DE SCRIPT/RECURSO: '+(resource||source||e.message||'desconhecido')+(e.message&&source?': '+e.message:'');
-    }
-  },true);
-  var n=0;
-  var timer=setInterval(function(){
-    n++;
-    if(window.ValerioGLBReady===true){p.textContent='Diagnóstico: modelo GLB carregado; verificando exibição na arena.';clearInterval(timer);}
-    else if(window.ValerioGLBLoading===true){p.textContent='Diagnóstico: scripts ativos; arquivo GLB ainda carregando...';}
-    else if(n>=12){p.textContent='Diagnóstico: módulo não iniciou ou GLB não ficou pronto. Ready='+String(window.ValerioGLBReady)+'; Loading='+String(window.ValerioGLBLoading)+'; confira se há outra mensagem acima.';clearInterval(timer);}
-  },1000);
-})();
-</script>
-<script src="valerio-dimension.js?v=valerio-diagnostic-fix-20261013b"></script>
+<script src="valerio-dimension.js?v=valerio-clean-screen-size-20261013c"></script>
 <script src="valerio-bishop-model.js?v=valerio-diagnostic-fix-20261013b"></script>
 <script src="render.js"></script>
 <script src="main.js?v=valerio-direct-dimension-20261010d"></script>
