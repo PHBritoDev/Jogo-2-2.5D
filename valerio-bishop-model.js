@@ -345,15 +345,36 @@
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=(gltf.animations||[]).map(function(clip){
-              // Clips exportados trazem keyframes de escala que inflavam o modelo
-              // durante idle/ataque. Mantemos posição/rotação para preservar o movimento.
+              // Remove keyframes de escala que podem inflar o modelo.
               clip.tracks=clip.tracks.filter(function(track){
-                // GLTF pode serializar a propriedade como Node.scale, Node/scale ou Node.scale[0].
-                // Filtra pela propriedade final, não pelo formato exato do caminho do osso.
                 const path=String(track.name||'').replace(/\[[^\]]*\]$/,'');
                 const property=path.split(/[.:/]/).pop().toLowerCase();
                 return property!=='scale';
               });
+              const clipName=(clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+              const isRootMotionClip=clipName==='hitknockbackrootmotion'||clipName==='swordlightcombo';
+              if(isRootMotionClip){
+                const changed=[];
+                clip.tracks.forEach(function(track){
+                  const trackName=String(track.name||'');
+                  const prop=trackName.split(/[.:/]/).pop().replace(/\[[^\]]*\]$/,'').toLowerCase();
+                  if(prop!=='position')return;
+                  const nodeName=trackName.replace(/\.position.*$/i,'').replace(/\/position.*$/i,'').replace(/\[.*?\]/g,'').toLowerCase();
+                  const isRootNode=/(^|[^a-z])(root|armature|scene|rootmotion)([^a-z]|$)/i.test(nodeName);
+                  const isHips=/hips|pelvis/.test(nodeName);
+                  if(!isRootNode&&!isHips)return;
+                  const values=track.values, stride=typeof track.getValueSize==='function'?track.getValueSize():3;
+                  if(!values||stride<3||!track.times||!track.times.length)return;
+                  const firstX=values[0],firstY=values[1],firstZ=values[2];
+                  for(let k=0;k<track.times.length;k++){
+                    const i=k*stride;
+                    if(isRootNode){values[i]=firstX;values[i+1]=firstY;values[i+2]=firstZ;}
+                    else {values[i]=firstX;values[i+2]=firstZ;}
+                  }
+                  changed.push(trackName);
+                });
+                console.info('Valério: root motion neutralizado em "'+clip.name+'"; trilhas ajustadas:',changed.length?changed:'nenhuma trilha de posição de raiz/quadril reconhecida');
+              }
               return clip;
             });
             const normalized=function(c){return (c.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
