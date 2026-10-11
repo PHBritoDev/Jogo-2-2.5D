@@ -18,7 +18,7 @@
   }
   // Diagnóstico visual opcional para testes no celular; desligado no jogo normal.
   const debugParams=new URLSearchParams(window.location.search);
-  const showAnimationDebug=debugParams.get('valerioDebug')==='1'; // painel disponível apenas quando solicitado no link de teste.
+  const showAnimationDebug=false; // diagnóstico fica no console; nunca cobre a tela jogável no celular.
   const useUpdatedValerioModel=debugParams.get('valerioStableModel')!=='1';
   function showStatus(message,isError) {
     if(isError)console.warn('Valério GLB:',message);
@@ -50,8 +50,7 @@
     }
   }
   function hideStatus(){const el=document.getElementById('valerio-glb-status');if(el)el.remove();}
-  // Mostra o painel assim que o script executa; não depende do GLB terminar de carregar.
-  if(showAnimationDebug){showStatus('DIAGNÓSTICO ATIVO\\nModelo solicitado: '+(useUpdatedValerioModel?'ATUALIZADO':'ESTÁVEL')+'\\nAguardando carregamento do modelo...',false);}
+  // Diagnóstico somente no console: a arena nunca deve ficar coberta por texto.
   function errorText(err){
     if(!err)return 'erro sem detalhes';
     return err.message||err.statusText||String(err);
