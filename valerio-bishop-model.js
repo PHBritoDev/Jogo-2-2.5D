@@ -18,7 +18,7 @@
   }
   // Diagnóstico visual opcional para testes no celular; desligado no jogo normal.
   const debugParams=new URLSearchParams(window.location.search);
-  const showAnimationDebug=false; // painel de diagnóstico desativado para testar o visual sem bloquear a tela.
+  const showAnimationDebug=debugParams.get('valerioDebug')==='1'; // painel disponível apenas quando solicitado no link de teste.
   const useUpdatedValerioModel=debugParams.get('valerioStableModel')!=='1';
   function showStatus(message,isError) {
     if(isError)console.warn('Valério GLB:',message);
@@ -328,13 +328,13 @@
         gltfLoader.setDRACOLoader(dracoLoader);
         gltfLoader.load(valerioModelUrl,function(gltf){
           try {
-            root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'BispoNovo.glb');rootBasePosition=root.position.clone();improveMaterials(root);
+            root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb');rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
             // proporções corretas; trava mudanças de escala vindas dos clips.
             // O GLB atualizado tem proporções diferentes do modelo antigo. A escala 0.84
             // deixou o Bispo gigante e largo demais para a clareira; reduzimos para
             // 0.21 (um quarto da escala anterior), sem alterar câmera ou arena.
-            pivot=new THREE.Group();pivot.scale.setScalar(0.42);pivot.add(root);scene.add(pivot);
+            pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(root);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
