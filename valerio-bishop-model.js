@@ -305,11 +305,11 @@
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
         const valerioModelUrl=useUpdatedValerioModel
-          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/1807ac4c67cf9b2d6d7398a32758127051183289/Bispo1.0.glb'
+          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/BispoNovo.glb?valerioModelTest=20261011a'
           :'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb';
         new THREE.GLTFLoader().load(valerioModelUrl,function(gltf){
           try {
-            root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb');rootBasePosition=root.position.clone();improveMaterials(root);
+            root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'BispoNovo.glb');rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
             // proporções corretas; trava mudanças de escala vindas dos clips.
             // O GLB atualizado tem proporções diferentes do modelo antigo. A escala 0.84
