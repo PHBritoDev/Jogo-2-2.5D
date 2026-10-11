@@ -446,6 +446,15 @@
       if(animType==='procedural-hurt')forearmBone.rotation.x+=.22*hurtProgress;
       if(animType==='procedural-walk')forearmBone.rotation.x-=walking*.25;
     }
+    // O osso da mão também participa do golpe, evitando que só o ombro se mova enquanto a foice parece presa.
+    if(handBone&&handBase&&(animType==='procedural-attack'||animType==='procedural-hurt')){
+      handBone.rotation.copy(handBase);
+      if(animType==='procedural-attack'){
+        handBone.rotation.x+=-.28*attackProgress;
+        handBone.rotation.z+=-.24*attackProgress;
+      }
+      if(animType==='procedural-hurt')handBone.rotation.z+=.12*hurtProgress;
+    }
     if(legLeft&&legLeftBase&&(animType==='procedural-walk'||animType==='procedural-attack'||animType==='procedural-hurt')){
       legLeft.rotation.copy(legLeftBase);
       if(animType==='procedural-walk')legLeft.rotation.x+=walking;
