@@ -334,7 +334,7 @@
             // O GLB atualizado tem proporções diferentes do modelo antigo. A escala 0.84
             // deixou o Bispo gigante e largo demais para a clareira; reduzimos para
             // 0.21 (um quarto da escala anterior), sem alterar câmera ou arena.
-            pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(root);scene.add(pivot);
+            pivot=new THREE.Group();pivot.scale.setScalar(0.21);pivot.add(root);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
