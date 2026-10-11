@@ -258,7 +258,7 @@ const BishopBoss = {
   state: 'inactive', stateT: 0, flashT: 0, alpha: 0,
   hitDone: false, hitId: -1, fx: -1, fy: 0,
   anim: 0, speed: 0, onGround: true, floor: 0, sy: 0,
-  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), _solids: [],
+  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, _solids: [],
   elHud: null, elHudName: null, elHudTitle: null, elHudFill: null, elHudText: null,
 
   init() {
@@ -284,6 +284,7 @@ const BishopBoss = {
     this.phase = 1;
     this.guardCooldown = 0;
     this.skillCooldowns = Object.create(null);
+    this.skillChainCooldown = 0;
     this.updateHud();
   },
 
@@ -306,6 +307,7 @@ const BishopBoss = {
     this.phase = 1;
     this.guardCooldown = 0;
     this.skillCooldowns = Object.create(null);
+    this.skillChainCooldown = 0;
     this.onGround = true; this.floor = 0; this.sy = this.y;
     this.updateHud();
     Sfx.blip();
@@ -373,6 +375,7 @@ const BishopBoss = {
     this.flashT = Math.max(0, this.flashT - dt);
     this.guardCooldown = Math.max(0, this.guardCooldown - dt);
     Object.keys(this.skillCooldowns).forEach(id => { this.skillCooldowns[id] = Math.max(0, this.skillCooldowns[id] - dt); });
+    this.skillChainCooldown = Math.max(0, this.skillChainCooldown - dt);
     const dx = Player.x - this.x, dy = Player.y - this.y;
     const d = Math.hypot(dx, dy) || 0.001;
     const alive = !Player.dead;
@@ -385,10 +388,11 @@ const BishopBoss = {
         this.fx = dx / d; this.fy = dy / d;
         // Skills são escolhidas com recarga própria e começam uma aproximação em corrida.
         if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
-          const readySkill = this.profile.attacks.find(a => a.skill && (this.skillCooldowns[a.id] || 0) <= 0);
+          const readySkill = this.skillChainCooldown <= 0 ? this.profile.attacks.find(a => a.skill && (this.skillCooldowns[a.id] || 0) <= 0) : null;
           if (readySkill && d <= 300 && (this.attackIndex % 2 === 1)) {
             this.attack = readySkill;
             this.skillCooldowns[readySkill.id] = readySkill.skillCooldown || 6.5;
+            this.skillChainCooldown = 2.5;
             this._go('skillapproach');
             break;
           }
@@ -404,7 +408,10 @@ const BishopBoss = {
           const pool = ready.length ? ready : attacks.filter(a => !a.skill);
           this.attack = pool[this.attackIndex % pool.length];
           this.attackIndex++;
-          if (this.attack.skill) this.skillCooldowns[this.attack.id] = this.attack.skillCooldown || 6.5;
+          if (this.attack.skill) {
+            this.skillCooldowns[this.attack.id] = this.attack.skillCooldown || 6.5;
+            this.skillChainCooldown = 2.5;
+          }
           if (this.phase === 2 && this.attackIndex % 3 === 0) {
             const heavy = attacks.find(a => !a.skill && a.id === 'vault');
             if (heavy && (!heavy.skill || (this.skillCooldowns[heavy.id] || 0) <= 0)) this.attack = heavy;
