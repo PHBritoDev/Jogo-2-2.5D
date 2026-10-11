@@ -35,6 +35,8 @@
     }
   }
   function hideStatus(){const el=document.getElementById('valerio-glb-status');if(el)el.remove();}
+  // Mostra o painel assim que o script executa; não depende do GLB terminar de carregar.
+  if(showAnimationDebug){showStatus('DIAGNÓSTICO ATIVO\\nModelo solicitado: '+(useUpdatedValerioModel?'ATUALIZADO':'ESTÁVEL')+'\\nAguardando carregamento do modelo...',false);}
   function errorText(err){
     if(!err)return 'erro sem detalhes';
     return err.message||err.statusText||String(err);
