@@ -7,6 +7,7 @@
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
   let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
+  let attackCycleActive=false,activeAttackClip=null,nextAttackClipIndex=0;
   // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
   const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
   let lastHitSerial=0,hurtUntil=0,previousState='',renderedYaw=null;
@@ -247,6 +248,7 @@
     }
     const hurt=!v.skillLocked&&hurtUntil>now;
     if(hurt){
+      attackCycleActive=false;activeAttackClip=null;
       if(animationClips.hurt){playClip('hurt',true);return 'hurt';}
       stopAction();return 'procedural-hurt';
     }
@@ -254,18 +256,25 @@
     // O clip de ataque pode durar mais que a janela de dano do combate.
     // Durante a recuperação, deixa o movimento visual terminar sem prolongar hitbox/dano.
     if(state==='recover'&&(currentActionType==='attack'||currentActionType==='skill')&&currentAction&&currentAction.isRunning()){
+      attackCycleActive=false;activeAttackClip=null;
       return currentActionType;
     }
-    // Ataque normal usa o primeiro clip; os próximos são as duas habilidades.
-    if(state==='attack'&&(animationClips.attack||attackClips.length)){
-      playClip('attack',true,animationClips.attack||attackClips[0]);return 'attack';
-    }
-    const skillMatch=/^(skill|ability|special|heavy|combo)[_-]?(1|2|3)?$/.exec(state);
-    if(skillMatch){
-      const index=skillMatch[2]?Number(skillMatch[2])-1:0;
-      if(skillClips[index]){playClip('skill',true,skillClips[index]);return 'skill';}
+    // Os ataques normais (incluindo estados internos de golpe) alternam entre os dois clips.
+    const isAttackState=state==='attack'||state==='skill1'||state==='skill2'||state==='skill3';
+    if(isAttackState){
+      if(attackClips.length){
+        if(!attackCycleActive){
+          activeAttackClip=attackClips[nextAttackClipIndex%attackClips.length];
+          nextAttackClipIndex=(nextAttackClipIndex+1)%attackClips.length;
+          attackCycleActive=true;
+        }
+        playClip('attack',true,activeAttackClip);
+        return 'attack';
+      }
+      attackCycleActive=false;activeAttackClip=null;
       stopAction();return 'procedural-attack';
     }
+    attackCycleActive=false;activeAttackClip=null;
     if(v.talking&&animationClips.talk){playClip('talk',false);return 'talk';}
     // Corrida fica reservada a uma aproximação explícita para habilidade;
     // o deslocamento normal do Bispo sempre usa caminhada lenta e controlada.
@@ -328,7 +337,7 @@
         const valerioModelUrl=useOriginalValerioBaseline
           ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/c2ce8ac71b2f81989bc30d8159fa63ec89331b21/Bispo1.0.glb?baseline=20261011a'
           :(useUpdatedValerioModel
-            ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/Bispo1.0.glb?valerioModelTest=20261011f'
+            ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/Bispo1.0.glb?valerioModelTest=20261011g-new-animations'
             :'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb');
         const gltfLoader=new THREE.GLTFLoader();
         // O novo Bispo1.0.glb pode usar Draco; habilitamos o decoder
@@ -393,12 +402,19 @@
               });
             };
             const attackExclude=/walk|run|hurt|damage|death|dead|fall|magic|spell|cast|pose|idle|breath|rest|stand|talk|speak/;
-            // O arquivo GLB tem clips próprios; não presumimos que as habilidades sejam os clips 2 e 3 de ataque.
-            // Primeiro procuramos habilidades pelo nome e só usamos ataques extras como fallback.
-            attackClips=pickClips([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/combo/,/melee/]).filter(function(c){return !attackExclude.test(normalized(c));});
-            skillClips=pickClips([/skill[_-]?[123]?/,/ability[_-]?[123]?/,/special[_-]?[123]?/,/heavy[_-]?[123]?/,/combo[_-]?[123]?/,/magic/,/spell/,/cast/]).filter(function(c){return !attackExclude.test(normalized(c));});
-            skillClips=skillClips.filter(function(c){return c!==attackClips[0];});
-            if(!skillClips.length)skillClips=attackClips.slice(1,3);
+            // Este Bispo usa somente dois golpes normais, alternados a cada novo ataque.
+            // Prioriza nomes Attack 1 / Attack 2 e, na falta deles, usa a ordem exportada.
+            attackClips=pickClips([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/combo/,/melee/])
+              .filter(function(c){return !attackExclude.test(normalized(c));})
+              .sort(function(a,b){
+                const na=normalized(a),nb=normalized(b);
+                const ma=na.match(/(\\d+)$/),mb=nb.match(/(\\d+)$/);
+                if(ma&&mb&&Number(ma[1])!==Number(mb[1]))return Number(ma[1])-Number(mb[1]);
+                if(ma&&!mb)return -1;
+                if(!ma&&mb)return 1;
+                return 0;
+              }).slice(0,2);
+            skillClips=[];
             animationClips={
               idle:pickClip([/idle/,/breath/,/rest/,/stand/]),
               walk:pickClip([/walk/,/walking/,/locomotion/,/walkforward/]),
