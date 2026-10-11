@@ -345,7 +345,9 @@
     if(renderedYaw===null){renderedYaw=targetYaw;pivot.rotation.y=targetYaw;}
     else {
       const yawDelta=Math.atan2(Math.sin(targetYaw-pivot.rotation.y),Math.cos(targetYaw-pivot.rotation.y));
-      pivot.rotation.y+=yawDelta*Math.min(1,turnDt*7.5);
+      // Limite angular real: o boss acompanha o jogador sem girar como um pião.
+      const maxTurn=2.25*turnDt;
+      pivot.rotation.y+=Math.max(-maxTurn,Math.min(maxTurn,yawDelta));
     }
     const animType=chooseAnimation(v,now);
     if(mixer&&!disableValerioClips){
