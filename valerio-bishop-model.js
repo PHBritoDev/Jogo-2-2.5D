@@ -251,7 +251,7 @@
       // A reação deve terminar junto com o clip real, não com um timer fixo
       // que cortava animações de dano mais longas no meio do movimento.
       const hurtDuration=animationClips.hurt?Math.max(0.43,Number(animationClips.hurt.duration)||0.43):0.43;
-      if(!v.skillLocked)hurtUntil=now+Math.min(1.1,hurtDuration*1000);
+      if(!v.skillLocked)hurtUntil=now+hurtDuration*1000;
     }
     const hurt=!v.skillLocked&&hurtUntil>now;
     if(hurt){
