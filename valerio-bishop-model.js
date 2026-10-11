@@ -230,7 +230,7 @@
           try {
             root=gltf.scene;const fittedModel=fitModel(root,1.55);rootBasePosition=root.position.clone();restoreModelScales=lockModelScales(root);improveMaterials(root);
             // Escala conservadora: evita que um GLB exportado fora da escala invada a arena.
-            pivot=new THREE.Group();pivot.scale.setScalar(0.32);pivot.add(fittedModel);scene.add(pivot);
+            pivot=new THREE.Group();pivot.scale.setScalar(0.18);pivot.add(fittedModel);scene.add(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=gltf.animations||[];
