@@ -252,7 +252,7 @@
         });
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
-        new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
+        new THREE.GLTFLoader().load('https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb',function(gltf){
           try {
             root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT);rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
