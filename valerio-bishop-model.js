@@ -190,7 +190,13 @@
       stopAction();return 'dead';
     }
     const serial=window.ValerioBossHitSerial||0;
-    if(serial!==lastHitSerial){lastHitSerial=serial;hurtUntil=now+430;}
+    if(serial!==lastHitSerial){
+      lastHitSerial=serial;
+      // A reação deve terminar junto com o clip real, não com um timer fixo
+      // que cortava animações de dano mais longas no meio do movimento.
+      const hurtDuration=animationClips.hurt?Math.max(0.43,Number(animationClips.hurt.duration)||0.43):0.43;
+      hurtUntil=now+Math.min(1.1,hurtDuration*1000);
+    }
     const hurt=hurtUntil>now;
     if(hurt){
       if(animationClips.hurt){playClip('hurt',true);return 'hurt';}
