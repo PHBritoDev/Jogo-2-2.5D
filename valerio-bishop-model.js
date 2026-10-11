@@ -173,7 +173,7 @@
     // A caminhada do GLB estava ciclando rápido demais para a curta aproximação do boss.
     // Mantemos corrida reservada para habilidade futura e sincronizamos a passada por estado.
     // Passada lenta e contida: sem balanço acelerado nem corrida durante a aproximação normal.
-    next.setEffectiveTimeScale(type==='walk'?0.18:type==='run'?0.88:1);
+    next.setEffectiveTimeScale(type==='walk'?0.24:type==='run'?0.88:1);
     next.setEffectiveWeight(1);
     next.setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);
     next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;
@@ -365,7 +365,7 @@
     root.rotation.z=(v.state==='windup'?.025+windup*.055:0)+
       (animType==='procedural-hurt'?-hurtProgress*.12:0)+Math.sin((v.time||0)*1.35)*.006;
     const t=v.time||0;
-    const walking=animType==='procedural-walk'?Math.sin(t*2.7)*.14:0;
+    const walking=animType==='procedural-walk'?Math.sin(t*3.2)*.12:0;
     // Só aplicamos rotações manuais quando falta um clip: não anulamos a animação GLB.
     if(armBone&&armBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
       armBone.rotation.copy(armBase);
