@@ -199,9 +199,12 @@
       playClip('attack',true,animationClips.attack||attackClips[0]);return 'attack';
     }
     const skillMatch=/^(skill|ability|special|heavy|combo)[_-]?(1|2|3)?$/.exec(String(v.state||'').toLowerCase());
-    if(skillMatch&&skillClips.length){
-      const index=skillMatch[2]?Math.max(0,Math.min(skillClips.length-1,Number(skillMatch[2])-1)):0;
-      playClip('skill',true,skillClips[index]);return 'skill';
+    if(skillMatch){
+      const index=skillMatch[2]?Number(skillMatch[2])-1:0;
+      if(skillClips[index]){playClip('skill',true,skillClips[index]);return 'skill';}
+      // Se o GLB não tiver clip para esta habilidade, usa o golpe procedural
+      // em vez de cair em idle e fingir que a habilidade não aconteceu.
+      stopAction();return 'procedural-attack';
     }
     if(v.talking&&animationClips.talk){playClip('talk',false);return 'talk';}
     if(v.state==='approach'){
@@ -352,7 +355,7 @@
       window.ValerioClipDiagnostics+='\\nCLIPS PAUSADOS PARA TESTE';
       console.info('Valério: clips GLB pausados pelo parâmetro valerioNoAnimations=1.');
     }
-    const attackProgress=v.state==='attack'?Math.sin(Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.attackDuration||.3)))*Math.PI):0;
+    const attackProgress=(v.state==='attack'||v.state==='skill1'||v.state==='skill2')?Math.sin(Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.attackDuration||.3)))*Math.PI):0;
     const windup=v.state==='windup'?Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.windupDuration||.6))):0;
     const hurtProgress=hurtUntil>now?Math.sin(Math.max(0,Math.min(1,1-(hurtUntil-now)/430))*Math.PI):0;
     // Fallback corporal para clips de ataque/dano ausentes no arquivo.
