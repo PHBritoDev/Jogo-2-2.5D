@@ -57,9 +57,10 @@
     return err.message||err.statusText||String(err);
   }
   function measureModelBounds(model) {
-    // O GLB conhecido por manter a escala correta usa SkinnedMesh. Antes de calcular a caixa, atualizamos
-    // explicitamente as matrizes dos ossos; sem isso a caixa pode ter altura
-    // quase zero e fitModel amplifica o personagem enormemente.
+    // Atualiza primeiro a hierarquia e as juntas. Em SkinnedMesh, a caixa da
+    // geometria bruta NÃO representa a malha deformada pelo esqueleto: usar
+    // geometry.boundingBox aqui pode medir só os vértices locais minúsculos e
+    // fazer fitModel aplicar uma escala enorme, embora o corpo renderizado seja gigante.
     model.updateMatrixWorld(true);
     model.traverse(function(obj) {
       if (obj.isSkinnedMesh && obj.skeleton) {
@@ -71,10 +72,11 @@
     const box = new THREE.Box3();
     model.traverse(function(obj) {
       if (!obj.isMesh) return;
-      // Para normalização, usamos os vértices da geometria em pose-base.
-      // O boundingBox calculado de um SkinnedMesh pode colapsar para ~0.02
-      // dependendo do esqueleto/exportação; usar essa caixa faz fitModel
-      // aplicar escala >100 e transforma o Bispo num gigante.
+      if (obj.isSkinnedMesh && obj.boundingBox && !obj.boundingBox.isEmpty()) {
+        // SkinnedMesh.boundingBox contém os vértices já avaliados com a pose/juntas.
+        box.union(obj.boundingBox.clone().applyMatrix4(obj.matrixWorld));
+        return;
+      }
       if (obj.geometry) {
         if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
         if (obj.geometry.boundingBox) {
