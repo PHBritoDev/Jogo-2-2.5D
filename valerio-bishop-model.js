@@ -291,7 +291,7 @@
         });
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
-        new THREE.GLTFLoader().load('https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb',function(gltf){
+        new THREE.GLTFLoader().load('https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/1807ac4c67cf9b2d6d7398a32758127051183289/Bispo1.0.glb',function(gltf){
           try {
             root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT);rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
@@ -326,9 +326,12 @@
               });
             };
             const attackExclude=/walk|run|hurt|damage|death|dead|fall|magic|spell|cast|pose|idle|breath|rest|stand|talk|speak/;
-            // A ordem do GLB é preservada: primeiro clip = ataque normal; os dois seguintes = habilidades.
+            // O arquivo GLB tem clips próprios; não presumimos que as habilidades sejam os clips 2 e 3 de ataque.
+            // Primeiro procuramos habilidades pelo nome e só usamos ataques extras como fallback.
             attackClips=pickClips([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/combo/,/melee/]).filter(function(c){return !attackExclude.test(normalized(c));});
-            skillClips=attackClips.slice(1,3);
+            skillClips=pickClips([/skill[_-]?[123]?/,/ability[_-]?[123]?/,/special[_-]?[123]?/,/heavy[_-]?[123]?/,/combo[_-]?[123]?/,/magic/,/spell/,/cast/]).filter(function(c){return !attackExclude.test(normalized(c));});
+            skillClips=skillClips.filter(function(c){return c!==attackClips[0];});
+            if(!skillClips.length)skillClips=attackClips.slice(1,3);
             animationClips={
               idle:pickClip([/idle/,/breath/,/rest/,/stand/]),
               walk:pickClip([/walk/,/walking/,/locomotion/,/walkforward/]),
