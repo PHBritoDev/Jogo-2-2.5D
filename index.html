@@ -139,6 +139,29 @@
 <script src="bishops.js"></script>
 <script src="storm-events.js"></script>
 <script src="campaign.js"></script>
+<script>
+(function(){
+  if(new URLSearchParams(location.search).get('valerioTest')!=='1') return;
+  var p=document.createElement('div');
+  p.id='valerio-glb-bootstrap-status';
+  p.textContent='Diagnóstico: página carregada; verificando scripts do Valério...';
+  p.style.cssText='position:fixed;z-index:100000;left:8px;top:8px;max-width:calc(100vw - 24px);padding:8px 10px;border-radius:6px;background:#111;color:#fff;font:12px/1.4 monospace;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:none';
+  (document.body||document.documentElement).appendChild(p);
+  window.addEventListener('error',function(e){
+    var t=e.target;
+    if(t && (t.src||'').match(/valerio-(dimension|bishop-model)|Bispo1\.0\.glb|GLTFLoader|three\.min\.js/i)){
+      p.textContent='ERRO AO CARREGAR RECURSO: '+(t.src||e.message||'desconhecido');
+    }
+  },true);
+  var n=0;
+  var timer=setInterval(function(){
+    n++;
+    if(window.ValerioGLBReady===true){p.textContent='Diagnóstico: modelo GLB carregado; verificando exibição na arena.';clearInterval(timer);}
+    else if(window.ValerioGLBLoading===true){p.textContent='Diagnóstico: scripts ativos; arquivo GLB ainda carregando...';}
+    else if(n>=12){p.textContent='Diagnóstico: módulo não iniciou ou GLB não ficou pronto. Ready='+String(window.ValerioGLBReady)+'; Loading='+String(window.ValerioGLBLoading)+'; confira se há outra mensagem acima.';clearInterval(timer);}
+  },1000);
+})();
+</script>
 <script src="valerio-dimension.js?v=valerio-glb-diagnostic-20261012c"></script>
 <script src="valerio-bishop-model.js?v=valerio-glb-diagnostic-20261012c"></script>
 <script src="render.js"></script>
