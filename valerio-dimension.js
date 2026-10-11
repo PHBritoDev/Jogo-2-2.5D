@@ -14,7 +14,7 @@ const BishopDimension = (function () {
     bishopTexture: null, bishopTextureLoaded: false, bishopQuad: null,
     wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0,
     canvasVisible: false,
-    camera: { yaw: 0, pitch: -0.035, distance: 12.5, minDistance: 3, maxDistance: 22 }
+    camera: { yaw: 0, pitch: -0.035, distance: 12.5, minDistance: 0.22, maxDistance: 22 }
   };
 
   const clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -195,12 +195,12 @@ const BishopDimension = (function () {
       addBox(world,x,y,z,size,size,size,tint);
     }
     // Planeta distante com anéis discretos, no fundo da arena.
-    addSphere(world,-31,22,-67,5.4,'#354b86',12,18,1,1,.88);
+    addSphere(world,-20,13,-34,5.4,'#354b86',12,18,1,1,.88);
     addSphere(world,-32.7,24.2,-62.8,1.05,'#a8b5df',8,12,1,1,.8);
-    addRing(world,-31,22,-67,8.2,2.5,.16,'#b6a2ff',.72,36);
+    addRing(world,-20,13,-34,8.2,2.5,.16,'#b6a2ff',.72,36);
     // Pequeno buraco negro: núcleo escuro e anel roxo, longe do combate.
-    addSphere(world,39,17,-59,3.1,'#070711',12,18,1,1,1);
-    addRing(world,39,17,-59,5.2,2.1,.24,'#9b4dff',.78,40);
+    addSphere(world,22,10,-32,3.1,'#070711',12,18,1,1,1);
+    addRing(world,22,10,-32,5.2,2.1,.24,'#9b4dff',.78,40);
     addRing(world,39,17.15,-59,4.1,1.55,.12,'#e0a5ff',.62,40);
 
     // Cascalho e raízes laterais, mantendo a trilha visível e integrada ao terreno.
@@ -682,7 +682,7 @@ const BishopDimension = (function () {
     return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
   }
   function addCameraLook(dx,dy){const c=S.camera;c.yaw+=dx*.006;c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
-  function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
+  function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,.22,S.camera.maxDistance);}
   function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
   function enter() {
     if(!Casino.inside||!Campaign.step||Campaign.step.type!=='bishop'||Campaign.step.boss!=='greedFirst')return;
