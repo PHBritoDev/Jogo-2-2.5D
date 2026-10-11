@@ -4,7 +4,7 @@
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
-  let deathPlayed=false,restoreModelScales=null,rootBasePosition=null;
+  let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
   // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
   const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
   let lastHitSerial=0,hurtUntil=0,previousState='',renderedYaw=null;
@@ -206,7 +206,7 @@
     stopAction();return 'none';
   }
   function start() {
-    if(started||failed)return;started=true;
+    if(started||failed)return;started=true;window.ValerioGLBLoading=true;
     loadScript('https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js')
       .then(function(){return loadScript('https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js');})
       .then(function(){
@@ -228,9 +228,9 @@
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;const fittedModel=fitModel(root,1.55);rootBasePosition=root.position.clone();restoreModelScales=lockModelScales(root);improveMaterials(root);
+            root=gltf.scene;const fittedModel=fitModel(root,1.55);fittedRoot=fittedModel;rootBasePosition=root.position.clone();restoreModelScales=lockModelScales(root);improveMaterials(root);
             // Escala conservadora: evita que um GLB exportado fora da escala invada a arena.
-            pivot=new THREE.Group();pivot.scale.setScalar(0.18);pivot.add(fittedModel);scene.add(pivot);
+            pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(fittedModel);scene.add(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=gltf.animations||[];
@@ -262,7 +262,7 @@
               talk:pickClip([/talk/,/speak/])
             };
             findAnimationBones(root);
-            window.ValerioGLBReady=true;
+            window.ValerioGLBReady=true;window.ValerioGLBLoading=false;
             const clipInfo=clips.length?clips.map(function(c){return (c.name||'(sem nome)')+' '+Number(c.duration||0).toFixed(2)+'s';}).join(' | '):'NENHUM CLIP NO GLB';
             const mapped='idle='+(animationClips.idle&&animationClips.idle.name||'—')+'; walk='+(animationClips.walk&&animationClips.walk.name||'—')+'; run='+(animationClips.run&&animationClips.run.name||'—')+'; ataque normal='+(animationClips.attack&&animationClips.attack.name||'—')+'; habilidades='+skillClips.map(function(c){return c.name||'(sem nome)';}).join(', ')+'; dano='+(animationClips.hurt&&animationClips.hurt.name||'—')+'; morte='+(animationClips.death&&animationClips.death.name||'—')+'; magia='+(animationClips.magic&&animationClips.magic.name||'—');
             window.ValerioClipDiagnostics='GLB clips ('+clips.length+'): '+clipInfo+'\n'+mapped+'\nbraço='+(armBone&&armBone.name||'não encontrado')+'; mão='+(handBone&&handBone.name||'não encontrada');
@@ -273,10 +273,10 @@
             failed=true;window.ValerioGLBReady=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
           }
         },undefined,function(err){
-          failed=true;window.ValerioGLBReady=false;showStatus('falha ao carregar arquivo: '+errorText(err),true);console.error('Falha ao carregar ./Bispo1.0.glb; usando modelo alternativo.',err);
+          failed=true;window.ValerioGLBReady=false;window.ValerioGLBLoading=false;showStatus('falha ao carregar arquivo: '+errorText(err),true);console.error('Falha ao carregar ./Bispo1.0.glb; usando modelo alternativo.',err);
         });
       })
-      .catch(function(err){failed=true;window.ValerioGLBReady=false;showStatus('Three.js/GLTFLoader falhou: '+errorText(err),true);console.error('Three.js/GLTFLoader não carregou; usando modelo alternativo.',err);});
+      .catch(function(err){failed=true;window.ValerioGLBReady=false;window.ValerioGLBLoading=false;showStatus('Three.js/GLTFLoader falhou: '+errorText(err),true);console.error('Three.js/GLTFLoader não carregou; usando modelo alternativo.',err);});
   }
   function frame(now) {
     requestAnimationFrame(frame);const v=window.ValerioModelView;
@@ -301,6 +301,16 @@
     if(rootBasePosition&&root)root.position.copy(rootBasePosition);
     // Reaplica a escala de importação depois do mixer e antes do render.
     if(restoreModelScales)restoreModelScales();
+    // Mantém a altura real do modelo em ~1,65 unidade após cada clip; evita
+    // escalas/animações ou hierarquias exportadas fazerem o Bispo virar gigante.
+    if(fittedRoot&&pivot){
+      const bounds=new THREE.Box3().setFromObject(fittedRoot);
+      const height=bounds.getSize(new THREE.Vector3()).y/Math.max(0.0001,Math.abs(pivot.scale.y));
+      if(Number.isFinite(height)&&height>0.05){
+        const desiredScale=1.65/height;
+        pivot.scale.setScalar(Math.max(0.01,Math.min(3,desiredScale)));
+      }
+    }
     if(disableValerioClips&&window.ValerioClipDiagnostics&&!window.ValerioClipDiagnostics.includes('CLIPS PAUSADOS PARA TESTE')){
       window.ValerioClipDiagnostics+='\\nCLIPS PAUSADOS PARA TESTE';
       console.info('Valério: clips GLB pausados pelo parâmetro valerioNoAnimations=1.');
@@ -350,6 +360,6 @@
     previousState=v.state||'';
     last=now;renderer.render(scene,camera);
   }
-  window.ValerioGLBReady=false;
+  window.ValerioGLBReady=false;window.ValerioGLBLoading=false;
   window.addEventListener('load',function(){start();requestAnimationFrame(frame);},{once:true});
 })();
