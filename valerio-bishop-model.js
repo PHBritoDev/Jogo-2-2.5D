@@ -305,7 +305,7 @@
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
         const valerioModelUrl=useUpdatedValerioModel
-          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/BispoNovo.glb?valerioModelTest=20261011a'
+          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/BispoNovo.glb?valerioModelTest=20261011b'
           :'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb';
         new THREE.GLTFLoader().load(valerioModelUrl,function(gltf){
           try {
