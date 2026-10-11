@@ -68,13 +68,13 @@
   }
   function publishBoundsReport() {
     if(!boundsDebug)return;
-    const report='DIAGNÓSTICO DE CAIXAS GLOBAIS (unidades Three.js)\\n'+
-      'Referência: coordenadas globais da cena; sem mudar GLB nem fatores de escala.\\n\\n'+
-      boundsDebugRows.map(function(row){return Object.keys(row).map(function(key){return key+': '+row[key];}).join(' | ');}).join('\\n\\n')+
-      '\\n\\nCopie este relatório e envie no chat. Console: [ValerioBoundsDebug].';
+    const report='DIAGNÓSTICO DE CAIXAS GLOBAIS (unidades Three.js)\n'+
+      'Referência: coordenadas globais da cena; sem mudar GLB nem fatores de escala.\n\n'+
+      boundsDebugRows.map(function(row){return Object.keys(row).map(function(key){return key+': '+row[key];}).join(' | ');}).join('\n\n')+
+      '\n\nCopie este relatório e envie no chat. Console: [ValerioBoundsDebug].';
     window.ValerioBoundsReport=report;
     showStatus(report,false);
-    console.info('[ValerioBoundsDebug] RELATÓRIO COMPLETO\\n'+report);
+    console.info('[ValerioBoundsDebug] RELATÓRIO COMPLETO\n'+report);
   }
   function measureModelBounds(model) {
     // O GLB conhecido por manter a escala correta usa SkinnedMesh. Antes de calcular a caixa, atualizamos
