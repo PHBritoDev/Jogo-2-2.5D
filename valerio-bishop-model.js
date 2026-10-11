@@ -1,8 +1,8 @@
 /* Valério GLB + foice. Iluminação, orientação e movimento estabilizados para mobile. */
 (function () {
   'use strict';
-  // Calibração validada pelo espaço da arena: o GLB ocupa 2,7 unidades de altura.
-  const VALERIO_MODEL_HEIGHT=2.7;
+  // Altura de referência do chefe no espaço da arena; sem escala-pai adicional.
+  const VALERIO_MODEL_HEIGHT=1.55;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
@@ -56,6 +56,15 @@
     }
     return fit;
   }
+  function keepAnimationTrack(track) {
+    const path=String(track.name||'').replace(/\[[^\]]*\]$/,'');
+    const parts=path.split(/[.:/]/);
+    const property=(parts.pop()||'').toLowerCase();
+    const node=(parts.pop()||'').replace(/[^a-z0-9]/gi,'').toLowerCase();
+    const rootMotion=property==='position'&&/^(mixamorig)?hips$/.test(node);
+    return property!=='scale'&&!rootMotion;
+  }
+
   // GLTFs podem conter trilhas de escala em grupos ou no próprio esqueleto.
   // O fit é calculado a partir da escala importada; se um clip trocar, por
   // exemplo, 0.01 por 1, o fator do grupo pai transforma Valério num gigante.
@@ -246,15 +255,9 @@
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=(gltf.animations||[]).map(function(clip){
-              // Clips exportados trazem keyframes de escala que inflavam o modelo
-              // durante idle/ataque. Mantemos posição/rotação para preservar o movimento.
-              clip.tracks=clip.tracks.filter(function(track){
-                // GLTF pode serializar a propriedade como Node.scale, Node/scale ou Node.scale[0].
-                // Filtra pela propriedade final, não pelo formato exato do caminho do osso.
-                const path=String(track.name||'').replace(/\[[^\]]*\]$/,'');
-                const property=path.split(/[.:/]/).pop().toLowerCase();
-                return property!=='scale';
-              });
+              // Preserva cada clip e suas poses; escala importada e root-motion de Hips
+              // não podem deslocar/ampliar o modelo, pois o combate controla a posição.
+              clip.tracks=clip.tracks.filter(keepAnimationTrack);
               return clip;
             });
             const normalized=function(c){return (c.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
@@ -320,7 +323,7 @@
     }
     const animType=chooseAnimation(v,now);
     if(mixer&&!disableValerioClips)mixer.update(turnDt);
-    // Clips com root-motion podem deslocar o personagem para baixo do piso; o combate já controla a posição do boss.
+    // O root-motion de mixamorigHips.position é filtrado na importação; o combate posiciona o boss.
     if(rootBasePosition&&root)root.position.copy(rootBasePosition);
     // Reaplica a escala de importação depois do mixer e antes do render.
     if(restoreModelScales)restoreModelScales();
