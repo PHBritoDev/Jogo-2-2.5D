@@ -613,7 +613,7 @@ const BishopDimension = (function () {
       const bossState=BishopBoss.state||'idle';
       const windup=bossState==='windup'?clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.windup)||.6),0,1):0;
       const strike=bossState==='attack'?Math.sin(clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.duration)||.3),0,1)*Math.PI):0;
-      const bossBob=Math.sin(Game.time*2.15)*.055;
+      const bossBob=(bossState==='idle'||bossState==='approach')?Math.sin(Game.time*2.15)*.012:0;
       // Durante o golpe, mantém a orientação usada no início do ataque;
       // nos outros estados, acompanha o jogador sem teletransportar o ângulo.
       const bossSpeed=Math.hypot(BishopBoss.vx||0,BishopBoss.vy||0);
