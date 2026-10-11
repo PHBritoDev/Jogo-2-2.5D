@@ -611,7 +611,7 @@ const BishopDimension = (function () {
         ? Math.atan2(Number.isFinite(BishopBoss.fx)?BishopBoss.fx:0,-(Number.isFinite(BishopBoss.fy)?BishopBoss.fy:-1))
         : Math.atan2(px-bpos[0],-(pz-bpos[2]));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
-      const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(.42,.42,.42))));
+      const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(1,1,1))));
       window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],.08+bossBob,bpos[2]],yaw:faceBoss,aspect:w/h,fov:dist<0.7?1.22:1.02,state:bossState,time:Game.time||0,speed:BishopBoss.speed||0,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,talking:!!Game.talking};
       if(!window.ValerioGLBReady){
       draw(S.bishopModel,multiply(pv,bossBase));
