@@ -469,9 +469,9 @@ const BishopDimension = (function () {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
         // Mantém a proporção natural da arte e dá mais presença ao Bispo na arena.
-        const spriteHeight=3.15;
+        const spriteHeight=1.65;
         const aspect=(image.naturalWidth>0&&image.naturalHeight>0)?image.naturalWidth/image.naturalHeight:0.667;
-        const spriteWidth=Math.max(1.25,Math.min(2.35,spriteHeight*aspect));
+        const spriteWidth=Math.max(0.65,Math.min(1.25,spriteHeight*aspect));
         gl.bindBuffer(gl.ARRAY_BUFFER,S.bishopQuad);
         gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([
           -spriteWidth/2,.04,0, 0,1,
