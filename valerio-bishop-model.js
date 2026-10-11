@@ -226,16 +226,22 @@
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;const fittedModel=fitModel(root,1.0);fittedRoot=fittedModel;rootBasePosition=root.position.clone();restoreModelScales=lockModelScales(root);improveMaterials(root);
-            // Escala conservadora: evita que um GLB exportado fora da escala invada a arena.
+            root=gltf.scene;const fittedModel=fitModel(root,1.0);fittedRoot=fittedModel;rootBasePosition=root.position.clone();improveMaterials(root);
+            // A escala de ajuste fica num grupo pai separado dos ossos. Travamos a hierarquia
+            // inteira (incluindo o grupo de ajuste), para nenhum clip conseguir ampliar o boss.
             pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(fittedModel);scene.add(pivot);
+            restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=(gltf.animations||[]).map(function(clip){
               // Clips exportados trazem keyframes de escala que inflavam o modelo
               // durante idle/ataque. Mantemos posição/rotação para preservar o movimento.
               clip.tracks=clip.tracks.filter(function(track){
-                return !/(^|\.)scale(?:$|\[)/i.test(track.name||'');
+                // GLTF pode serializar a propriedade como Node.scale, Node/scale ou Node.scale[0].
+                // Filtra pela propriedade final, não pelo formato exato do caminho do osso.
+                const path=String(track.name||'').replace(/\[[^\]]*\]$/,'');
+                const property=path.split(/[.:/]/).pop().toLowerCase();
+                return property!=='scale';
               });
               return clip;
             });
