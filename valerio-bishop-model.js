@@ -318,10 +318,10 @@
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
         const valerioModelUrl=useUpdatedValerioModel
-          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/BispoNovo.glb?valerioModelTest=20261011b'
+          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/Bispo1.0.glb?valerioModelTest=20261011c'
           :'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb';
         const gltfLoader=new THREE.GLTFLoader();
-        // O BispoNovo.glb solicita Draco no próprio arquivo; habilitamos o decoder
+        // O novo Bispo1.0.glb pode usar Draco; habilitamos o decoder
         // oficial da mesma versão do Three.js. GLBs sem Draco continuam funcionando.
         const dracoLoader=new THREE.DRACOLoader();
         dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/draco/');
