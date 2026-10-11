@@ -27,8 +27,8 @@ const BISHOP_PROFILES = {
     arena: Casino.bossStart,
     attacks: [
       { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.28, cooldown: 0.72, range: 58, damage: 16, kb: 260, lunge: 70, hitAt: 0.08 },
-      { id: 'vault', name: 'Cofre Esmagador', windup: 0.9, duration: 0.36, cooldown: 1.02, range: 82, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
-      { id: 'sweep', name: 'Varredura de Ouro', windup: 0.72, duration: 0.32, cooldown: 0.84, range: 72, damage: 19, kb: 310, lunge: 92, hitAt: 0.09 }
+      { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.02, range: 82, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
+      { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 0.84, range: 72, damage: 19, kb: 310, lunge: 92, hitAt: 0.09 }
     ]
   },
   greedSecond: {
@@ -258,7 +258,7 @@ const BishopBoss = {
   state: 'inactive', stateT: 0, flashT: 0, alpha: 0,
   hitDone: false, hitId: -1, fx: -1, fy: 0,
   anim: 0, speed: 0, onGround: true, floor: 0, sy: 0,
-  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, _solids: [],
+  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, _solids: [],
   elHud: null, elHudName: null, elHudTitle: null, elHudFill: null, elHudText: null,
 
   init() {
@@ -283,6 +283,8 @@ const BishopBoss = {
     this.hitId = -1;
     this.phase = 1;
     this.guardCooldown = 0;
+    this.skillCooldowns = Object.create(null);
+    this.skillChainCooldown = 0;
     this.updateHud();
   },
 
@@ -304,6 +306,8 @@ const BishopBoss = {
     this.attackIndex = 0;
     this.phase = 1;
     this.guardCooldown = 0;
+    this.skillCooldowns = Object.create(null);
+    this.skillChainCooldown = 0;
     this.onGround = true; this.floor = 0; this.sy = this.y;
     this.updateHud();
     Sfx.blip();
@@ -322,16 +326,17 @@ const BishopBoss = {
     if (this.state === 'dead' || this.state === 'inactive' || !this.profile) return;
     window.ValerioBossHitSerial = (window.ValerioBossHitSerial || 0) + 1;
     const guarding = this.state === 'guard';
+    const skillLocked = !!(this.attack && this.attack.skill && ['windup','attack','recover'].includes(this.state));
     const guardScale = guarding && this.profile.guard ? this.profile.guard.damageScale : 1;
     const damage = Math.max(1, Math.round(rawDamage * (1 - this.profile.defense) * guardScale));
     this.hp = Math.max(0, this.hp - damage);
     this.trailDelay = 0.5;
     this.flashT = 0.09;
-    this.kx = guarding ? 0 : dx * kb * 0.72;
-    this.ky = guarding ? 0 : dy * kb * 0.72;
-    this.vx = this.vy = 0;
-    this.vz = guarding ? 0 : Math.max(this.vz, CFG.COMBAT.hurtPop * 0.65);
-    this.onGround = guarding;
+    this.kx = (guarding || skillLocked) ? 0 : dx * kb * 0.72;
+    this.ky = (guarding || skillLocked) ? 0 : dy * kb * 0.72;
+    if (!skillLocked) this.vx = this.vy = 0;
+    this.vz = (guarding || skillLocked) ? this.vz : Math.max(this.vz, CFG.COMBAT.hurtPop * 0.65);
+    this.onGround = guarding || skillLocked;
     const gy = this.y - this.z - 24;
     Ambient.spawnSpark(this.x, gy, 10, '#ffe5a0');
     Ambient.spawnSpark(this.x, gy, 4, '#ffffff');
@@ -345,6 +350,9 @@ const BishopBoss = {
       Ambient.spawnSpark(this.x, gy, 24, '#f2c654');
       Ambient.spawnSpark(this.x, gy, 9, '#ffffff');
       Sfx.death();
+    } else if (skillLocked) {
+      // Recebe dano normalmente, mas não perde a skill já iniciada.
+      Sfx.hit();
     } else if (guarding) {
       this._go('recover');
       Camera.shake = Math.max(Camera.shake, 2.4);
@@ -366,6 +374,8 @@ const BishopBoss = {
     this.stateT += dt;
     this.flashT = Math.max(0, this.flashT - dt);
     this.guardCooldown = Math.max(0, this.guardCooldown - dt);
+    Object.keys(this.skillCooldowns).forEach(id => { this.skillCooldowns[id] = Math.max(0, this.skillCooldowns[id] - dt); });
+    this.skillChainCooldown = Math.max(0, this.skillChainCooldown - dt);
     const dx = Player.x - this.x, dy = Player.y - this.y;
     const d = Math.hypot(dx, dy) || 0.001;
     const alive = !Player.dead;
@@ -376,6 +386,17 @@ const BishopBoss = {
       case 'approach':
         if (!alive) break;
         this.fx = dx / d; this.fy = dy / d;
+        // Skills têm recarga própria e podem iniciar uma aproximação em corrida.
+        if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
+          const readySkill = this.skillChainCooldown <= 0 ? this.profile.attacks.find(a => a.skill && (this.skillCooldowns[a.id] || 0) <= 0) : null;
+          if (readySkill && d <= 300 && (this.attackIndex % 2 === 1)) {
+            this.attack = readySkill;
+            this.skillCooldowns[readySkill.id] = readySkill.skillCooldown || 6.5;
+            this.skillChainCooldown = 2.5;
+            this._go('skillapproach');
+            break;
+          }
+        }
         if (this.profile.guard && this.guardCooldown <= 0 &&
             d <= this.profile.guard.range && Player.isAttackActive()) {
           this.guardCooldown = this.profile.guard.cooldown;
@@ -383,13 +404,36 @@ const BishopBoss = {
           Ambient.spawnSpark(this.x, this.y - 24, 6, '#98aa9d');
         } else if (d <= (this.profile.engageRange || 66)) {
           const attacks = this.profile.attacks;
-          this.attack = attacks[this.attackIndex % attacks.length];
+          const ready = attacks.filter(a => !a.skill || (this.skillCooldowns[a.id] || 0) <= 0);
+          const pool = ready.length ? ready : attacks.filter(a => !a.skill);
+          this.attack = pool[this.attackIndex % pool.length];
           this.attackIndex++;
-          if (this.phase === 2 && this.attackIndex % 3 === 0) this.attack = attacks[1];
+          if (this.attack.skill) {
+            this.skillCooldowns[this.attack.id] = this.attack.skillCooldown || 6.5;
+            this.skillChainCooldown = 2.5;
+          }
+          if (this.phase === 2 && this.attackIndex % 3 === 0) {
+            const heavy = attacks.find(a => !a.skill && a.id === 'vault');
+            if (heavy && (!heavy.skill || (this.skillCooldowns[heavy.id] || 0) <= 0)) this.attack = heavy;
+          }
           this._go('windup');
         } else {
-          tvx = this.fx * this.profile.speed * (this.phase === 2 ? 1.22 : 1);
-          tvy = this.fy * this.profile.speed * (this.phase === 2 ? 1.22 : 1);
+          const far = d > 145;
+          const approachSpeed = this.profile.speed * (far ? 1.7 : 1) * (this.phase === 2 ? 1.12 : 1);
+          tvx = this.fx * approachSpeed;
+          tvy = this.fy * approachSpeed;
+        }
+        break;
+
+      case 'skillapproach':
+        if (!alive) { this._go('approach'); break; }
+        this.fx = dx / d; this.fy = dy / d;
+        if (!this.attack || !this.attack.skill) { this._go('approach'); break; }
+        if (d <= Math.min(this.attack.range * 0.78, 68)) {
+          this._go('windup');
+        } else {
+          tvx = this.fx * this.profile.speed * 1.7;
+          tvy = this.fy * this.profile.speed * 1.7;
         }
         break;
 
