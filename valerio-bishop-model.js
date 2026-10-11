@@ -179,7 +179,11 @@
     const next=mixer.clipAction(clip);
     // Um clip de uma execução (ataque/morte) deve permanecer no último quadro;
     // isRunning() fica falso após terminar e, sem esta proteção, o clip reinicia a cada frame.
-    if(currentAction===next&&(next.isRunning()||(oneShot&&next.enabled&&next.paused)))return true;
+    const requestedState=String(window.ValerioModelView&&window.ValerioModelView.state||'').toLowerCase();
+    // Não reinicia a cada frame enquanto o estado continua igual; mas permite um novo golpe
+    // quando o combate sai de attack/recover e entra em attack novamente.
+    if(currentAction===next&&next.isRunning())return true;
+    if(currentAction===next&&oneShot&&next.enabled&&next.paused&&previousState===requestedState)return true;
     if(currentAction)currentAction.fadeOut(.1);
     next.reset();next.enabled=true;
     // A corrida usa o clip de corrida; a caminhada tem cadência corrigida pela velocidade real no frame().
