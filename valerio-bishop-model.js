@@ -19,6 +19,9 @@
   // Diagnóstico visual opcional para testes no celular; desligado no jogo normal.
   const debugParams=new URLSearchParams(window.location.search);
   const showAnimationDebug=debugParams.get('valerioAnimDebug')==='1'||debugParams.get('valerioScaleDebug')==='1';
+  // Instrumentação temporária de caixas globais; só roda com ?valerioBoundsDebug=1.
+  const boundsDebug=debugParams.get('valerioBoundsDebug')==='1';
+  const boundsDebugRows=[];
   const useUpdatedValerioModel=debugParams.get('valerioStableModel')!=='1';
   function showStatus(message,isError) {
     if(isError)console.warn('Valério GLB:',message);
@@ -43,6 +46,35 @@
   function errorText(err){
     if(!err)return 'erro sem detalhes';
     return err.message||err.statusText||String(err);
+  }
+  function boundsSnapshot(model,label,extra) {
+    model.updateMatrixWorld(true);
+    model.traverse(function(obj){if(obj.isSkinnedMesh&&obj.skeleton)obj.skeleton.update();});
+    model.updateMatrixWorld(true);
+    const box=measureModelBounds(model);
+    const size=box.getSize(new THREE.Vector3());
+    const center=box.getCenter(new THREE.Vector3());
+    const row={
+      etapa:label,
+      alturaGlobal:+size.y.toFixed(6),minY:+box.min.y.toFixed(6),maxY:+box.max.y.toFixed(6),
+      larguraGlobal:+size.x.toFixed(6),profundidadeGlobal:+size.z.toFixed(6),
+      minX:+box.min.x.toFixed(6),maxX:+box.max.x.toFixed(6),minZ:+box.min.z.toFixed(6),maxZ:+box.max.z.toFixed(6),
+      centroX:+center.x.toFixed(6),centroY:+center.y.toFixed(6),centroZ:+center.z.toFixed(6)
+    };
+    if(extra)Object.keys(extra).forEach(function(key){row[key]=extra[key];});
+    boundsDebugRows.push(row);
+    console.info('[ValerioBoundsDebug]',JSON.stringify(row));
+    return row;
+  }
+  function publishBoundsReport() {
+    if(!boundsDebug)return;
+    const report='DIAGNÓSTICO DE CAIXAS GLOBAIS (unidades Three.js)\n'+
+      'Referência: coordenadas globais da cena; sem mudar GLB nem fatores de escala.\n\n'+
+      boundsDebugRows.map(function(row){return Object.keys(row).map(function(key){return key+': '+row[key];}).join(' | ');}).join('\n\n')+
+      '\n\nCopie este relatório e envie no chat. Console: [ValerioBoundsDebug].';
+    window.ValerioBoundsReport=report;
+    showStatus(report,false);
+    console.info('[ValerioBoundsDebug] RELATÓRIO COMPLETO\n'+report);
   }
   function measureModelBounds(model) {
     // O GLB conhecido por manter a escala correta usa SkinnedMesh. Antes de calcular a caixa, atualizamos
@@ -69,6 +101,7 @@
     return box;
   }
   function fitModel(model,height,diagnosticName) {
+    if(boundsDebug)boundsSnapshot(model,'01 antes de fitModel');
     let box=measureModelBounds(model);
     let size=box.getSize(new THREE.Vector3());
     if(size.z>size.y*1.35 && size.z>size.x*0.72) {
@@ -84,6 +117,7 @@
     if(!isFinite(size.y)||size.y<0.01) throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
     const measuredHeight=size.y;
     const appliedScale=height/measuredHeight;
+    if(boundsDebug)boundsDebugRows.push({etapa:'escala de normalização',alturaMedidaAntes:+measuredHeight.toFixed(6),escalaAplicada:+appliedScale.toFixed(8),alturaAlvo:height});
     model.scale.setScalar(appliedScale);
     if(diagnosticName){
       window.ValerioScaleDiagnostics='Modelo: '+diagnosticName+' | altura medida antes do ajuste: '+measuredHeight.toFixed(5)+' | escala aplicada: '+appliedScale.toFixed(5)+' | alvo: '+height;
@@ -93,6 +127,7 @@
     const center=scaled.getCenter(new THREE.Vector3());
     model.position.set(-center.x,-scaled.min.y,-center.z);
     model.updateMatrixWorld(true);
+    if(boundsDebug)boundsSnapshot(model,'02 depois de fitModel (antes do pivô)',{escalaRaiz:model.scale.x});
     return model;
   }
   // GLTFs podem conter trilhas de escala em grupos ou no próprio esqueleto.
@@ -127,6 +162,39 @@
         window.ValerioScaleDiagnostics='Escala alterada por animação em: '+corrected.join(', ');
       }
     };
+  }
+  function runBoundsAnimationSamples(model,pivotObject,clips) {
+    if(!boundsDebug||!mixer||!clips||!clips.length)return;
+    const nodes=[];
+    model.traverse(function(obj){
+      if(obj.position&&obj.quaternion&&obj.scale)nodes.push({obj:obj,position:obj.position.clone(),quaternion:obj.quaternion.clone(),scale:obj.scale.clone()});
+    });
+    const restoreTransforms=function(){nodes.forEach(function(s){s.obj.position.copy(s.position);s.obj.quaternion.copy(s.quaternion);s.obj.scale.copy(s.scale);});};
+    const fractions=[0,0.25,0.5,0.75,1];
+    try {
+      clips.forEach(function(clip){
+        fractions.forEach(function(fraction){
+          mixer.stopAllAction();restoreTransforms();
+          const action=mixer.clipAction(clip);
+          action.reset();action.enabled=true;action.setEffectiveWeight(1);action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=true;action.play();
+          action.paused=true;action.time=Math.max(0,Math.min(Number(clip.duration)||0,(Number(clip.duration)||0)*fraction));
+          mixer.update(0);
+          if(rootBasePosition&&root)root.position.copy(rootBasePosition);
+          if(restoreModelScales)restoreModelScales();
+          pivotObject.updateMatrixWorld(true);
+          boundsSnapshot(pivotObject,'pose '+(clip.name||'(sem nome)')+' @ '+Math.round(fraction*100)+'%',{clip:clip.name||'(sem nome)',fracao:Math.round(fraction*100)+'%',tempoSegundos:+(((Number(clip.duration)||0)*fraction).toFixed(4))});
+        });
+      });
+    } catch(err) {
+      console.warn('[ValerioBoundsDebug] Falha ao amostrar clips:',err);
+      boundsDebugRows.push({etapa:'ERRO ao amostrar animações',mensagem:errorText(err)});
+    } finally {
+      mixer.stopAllAction();restoreTransforms();
+      if(restoreModelScales)restoreModelScales();
+      model.updateMatrixWorld(true);pivotObject.updateMatrixWorld(true);
+      model.traverse(function(obj){if(obj.isSkinnedMesh&&obj.skeleton)obj.skeleton.update();});
+      model.updateMatrixWorld(true);pivotObject.updateMatrixWorld(true);
+    }
   }
   function improveMaterials(model) {
     model.traverse(function(obj){
@@ -317,6 +385,7 @@
             // 0.21 (um quarto da escala anterior), sem alterar câmera ou arena.
             pivot=new THREE.Group();pivot.scale.setScalar(0.42);pivot.add(root);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
+            if(boundsDebug)boundsSnapshot(pivot,'03 depois do pivô (caixa global)',{escalaPivo:pivot.scale.x,escalaRaiz:root.scale.x});
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=(gltf.animations||[]).map(function(clip){
@@ -362,6 +431,11 @@
               talk:pickClip([/talk/,/speak/])
             };
             findAnimationBones(root);
+            if(boundsDebug){
+              runBoundsAnimationSamples(root,pivot,clips);
+              boundsSnapshot(pivot,'04 estado restaurado após amostragem',{escalaPivo:pivot.scale.x,escalaRaiz:root.scale.x});
+              publishBoundsReport();
+            }
             window.ValerioGLBReady=true;window.ValerioGLBLoading=false;
             const clipInfo=clips.length?clips.map(function(c){return (c.name||'(sem nome)')+' '+Number(c.duration||0).toFixed(2)+'s';}).join(' | '):'NENHUM CLIP NO GLB';
             const mapped='idle='+(animationClips.idle&&animationClips.idle.name||'—')+'; walk='+(animationClips.walk&&animationClips.walk.name||'—')+'; run='+(animationClips.run&&animationClips.run.name||'—')+'; ataque normal='+(animationClips.attack&&animationClips.attack.name||'—')+'; habilidades='+skillClips.map(function(c){return c.name||'(sem nome)';}).join(', ')+'; dano='+(animationClips.hurt&&animationClips.hurt.name||'—')+'; morte='+(animationClips.death&&animationClips.death.name||'—')+'; magia='+(animationClips.magic&&animationClips.magic.name||'—');
