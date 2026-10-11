@@ -1,8 +1,8 @@
 /* Valério GLB + foice. Iluminação, orientação e movimento estabilizados para mobile. */
 (function () {
   'use strict';
-  // Calibração validada pelo espaço da arena: o GLB ocupa 2,7 unidades de altura.
-  const VALERIO_MODEL_HEIGHT=2.7;
+  // Calibração validada pelo espaço da arena: o GLB deve ocupar cerca de 0,95 unidade de altura na arena.
+  const VALERIO_MODEL_HEIGHT=0.95;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
@@ -174,7 +174,7 @@
   }
   function loadWeapon() {
     new THREE.GLTFLoader().load('./Espada1.glb',function(gltf){
-      weaponRoot=gltf.scene;fitModel(weaponRoot,1.35);improveMaterials(weaponRoot);
+      weaponRoot=gltf.scene;fitModel(weaponRoot,0.62);improveMaterials(weaponRoot);
       weaponPivot=new THREE.Group();
       // O pivô fica no punho; deslocamos o modelo para que a mão segure o cabo,
       // em vez de apoiar a arma pela extremidade inferior do modelo.
@@ -357,7 +357,7 @@
             root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb');rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
             // proporções corretas; trava mudanças de escala vindas dos clips.
-            // fitModel normaliza a geometria para 2,7 unidades; não aplicar uma segunda escala.
+            // fitModel normaliza a geometria para 0,95 unidade; não aplicar uma segunda escala.
             pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(root);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
