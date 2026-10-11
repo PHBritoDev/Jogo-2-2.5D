@@ -5,6 +5,8 @@
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
   let deathPlayed=false,restoreModelScales=null;
+  // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
+  const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
   let lastHitSerial=0,hurtUntil=0,previousState='',renderedYaw=null;
   function loadScript(url) {
     return new Promise(function(resolve,reject){
@@ -283,9 +285,13 @@
       pivot.rotation.y+=yawDelta*Math.min(1,turnDt*7.5);
     }
     const animType=chooseAnimation(v,now);
-    if(mixer)mixer.update(turnDt);
+    if(mixer&&!disableValerioClips)mixer.update(turnDt);
     // Reaplica a escala de importação depois do mixer e antes do render.
     if(restoreModelScales)restoreModelScales();
+    if(disableValerioClips&&window.ValerioClipDiagnostics&&!window.ValerioClipDiagnostics.includes('CLIPS PAUSADOS PARA TESTE')){
+      window.ValerioClipDiagnostics+='\\nCLIPS PAUSADOS PARA TESTE';
+      console.info('Valério: clips GLB pausados pelo parâmetro valerioNoAnimations=1.');
+    }
     const attackProgress=v.state==='attack'?Math.sin(Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.attackDuration||.3)))*Math.PI):0;
     const windup=v.state==='windup'?Math.max(0,Math.min(1,(v.stateTime||0)/Math.max(.1,v.windupDuration||.6))):0;
     const hurtProgress=hurtUntil>now?Math.sin(Math.max(0,Math.min(1,1-(hurtUntil-now)/430))*Math.PI):0;
