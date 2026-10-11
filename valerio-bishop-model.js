@@ -229,7 +229,7 @@
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
             root=gltf.scene;const fittedModel=fitModel(root,1.55);restoreModelScales=lockModelScales(root);improveMaterials(root);
-            pivot=new THREE.Group();pivot.add(fittedModel);scene.add(pivot);
+            pivot=new THREE.Group();pivot.scale.setScalar(0.55);pivot.add(fittedModel);scene.add(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=gltf.animations||[];
