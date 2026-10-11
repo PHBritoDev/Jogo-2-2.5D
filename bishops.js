@@ -17,7 +17,7 @@ const BISHOP_PROFILES = {
     quoteLabel: 'FALA FICTÍCIA DO PERSONAGEM · NÃO É VERSÍCULO',
     preparation: 'Valério encurta a distância antes de atacar. Espere o golpe terminar para contra-atacar.',
     hp: 240,
-    damage: 1,
+    damage: 0.35, // dano reduzido temporariamente para testes de combate
     defense: 0.24,
     radius: 18,
     speed: 80,
