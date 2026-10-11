@@ -340,13 +340,16 @@
     pivot.position.set(v.position[0],v.position[1],v.position[2]);
     // Corrige o eixo frontal comum em modelos exportados para GLB e gira pelo
     // menor arco possível: evita a volta de 360° quando o jogador cruza atrás.
-    const targetYaw=(v.yaw||0)+Math.PI;
+    const playerPos=Array.isArray(v.playerPosition)?v.playerPosition:null;
+    // O GLB já fica orientado com a frente no +Z: mirar diretamente para o jogador
+    // evita a inversão de quadrantes que fazia Valério andar de costas/de lado.
+    const targetYaw=playerPos?Math.atan2(playerPos[0]-v.position[0],playerPos[2]-v.position[2]):(v.yaw||0);
     const turnDt=Math.min(Math.max((now-last)/1000,0),.05);
     if(renderedYaw===null){renderedYaw=targetYaw;pivot.rotation.y=targetYaw;}
     else {
       const yawDelta=Math.atan2(Math.sin(targetYaw-pivot.rotation.y),Math.cos(targetYaw-pivot.rotation.y));
       // Limite angular real: o boss acompanha o jogador sem girar como um pião.
-      const maxTurn=2.25*turnDt;
+      const maxTurn=5.0*turnDt;
       pivot.rotation.y+=Math.max(-maxTurn,Math.min(maxTurn,yawDelta));
     }
     const animType=chooseAnimation(v,now);
