@@ -38,7 +38,7 @@
     return err.message||err.statusText||String(err);
   }
   function measureModelBounds(model) {
-    // O GLB atual usa SkinnedMesh. Antes de calcular a caixa, atualizamos
+    // O GLB conhecido por manter a escala correta usa SkinnedMesh. Antes de calcular a caixa, atualizamos
     // explicitamente as matrizes dos ossos; sem isso a caixa pode ter altura
     // quase zero e fitModel amplifica o personagem enormemente.
     model.updateMatrixWorld(true);
@@ -291,7 +291,7 @@
         });
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
-        new THREE.GLTFLoader().load('https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/1807ac4c67cf9b2d6d7398a32758127051183289/Bispo1.0.glb',function(gltf){
+        new THREE.GLTFLoader().load('https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb',function(gltf){
           try {
             root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT);rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
