@@ -71,12 +71,18 @@
     const box = new THREE.Box3();
     model.traverse(function(obj) {
       if (!obj.isMesh) return;
-      if (obj.isSkinnedMesh && obj.boundingBox) {
-        const skinnedBox = obj.boundingBox.clone().applyMatrix4(obj.matrixWorld);
-        box.union(skinnedBox);
-      } else {
-        box.union(new THREE.Box3().setFromObject(obj));
+      // Para normalização, usamos os vértices da geometria em pose-base.
+      // O boundingBox calculado de um SkinnedMesh pode colapsar para ~0.02
+      // dependendo do esqueleto/exportação; usar essa caixa faz fitModel
+      // aplicar escala >100 e transforma o Bispo num gigante.
+      if (obj.geometry) {
+        if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
+        if (obj.geometry.boundingBox) {
+          box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
+          return;
+        }
       }
+      box.union(new THREE.Box3().setFromObject(obj));
     });
     return box;
   }
@@ -318,7 +324,7 @@
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
         const valerioModelUrl=useUpdatedValerioModel
-          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/Bispo1.0.glb?valerioModelTest=20261011d'
+          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/Bispo1.0.glb?valerioModelTest=20261011e'
           :'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb';
         const gltfLoader=new THREE.GLTFLoader();
         // O novo Bispo1.0.glb pode usar Draco; habilitamos o decoder
@@ -331,10 +337,8 @@
             root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb');rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
             // proporções corretas; trava mudanças de escala vindas dos clips.
-            // O GLB atualizado tem proporções diferentes do modelo antigo. A escala 0.84
-            // deixou o Bispo gigante e largo demais para a clareira; reduzimos para
-            // 0.21 (um quarto da escala anterior), sem alterar câmera ou arena.
-            pivot=new THREE.Group();pivot.scale.setScalar(0.10);pivot.add(root);scene.add(pivot);
+            // fitModel normaliza a geometria para 2,7 unidades; não aplicar uma segunda escala.
+            pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(root);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
