@@ -165,58 +165,61 @@
     const clip=overrideClip||animationClips[type];
     if(!clip||!mixer)return false;
     const next=mixer.clipAction(clip);
-    if(currentAction===next&&next.isRunning())return true;
+    // Um clip de uma execução (ataque/morte) deve permanecer no último quadro;
+    // isRunning() fica falso após terminar e, sem esta proteção, o clip reinicia a cada frame.
+    if(currentAction===next&&(next.isRunning()||(oneShot&&next.enabled&&next.paused)))return true;
     if(currentAction)currentAction.fadeOut(.1);
     next.reset();next.enabled=true;
     // A caminhada do GLB estava ciclando rápido demais para a curta aproximação do boss.
     // Mantemos corrida reservada para habilidade futura e sincronizamos a passada por estado.
-    next.setEffectiveTimeScale(type==='walk'?0.30:type==='run'?0.88:1);
+    // Passada lenta e contida: sem balanço acelerado nem corrida durante a aproximação normal.
+    next.setEffectiveTimeScale(type==='walk'?0.18:type==='run'?0.88:1);
     next.setEffectiveWeight(1);
     next.setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);
     next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;
     return true;
   }
   function chooseAnimation(v,now) {
-    const serial=window.ValerioBossHitSerial||0;
-    if(serial!==lastHitSerial){lastHitSerial=serial;hurtUntil=now+430;}
-    const hurt=hurtUntil>now;
-    if(hurt){
-      if(animationClips.hurt){playClip('hurt',true);return 'hurt';}
-      // Mesmo quando o GLB não tem clip de dano, o golpe recebido precisa reagir
-      // ao serial de acerto do combate, em vez de continuar respirando como se nada ocorresse.
-      stopAction();return 'procedural-hurt';
-    }
-    if(v.state==='dead'){
+    const state=String(v.state||'').toLowerCase();
+    // Morte tem prioridade absoluta: um último hit não pode substituir a queda por dano.
+    if(state==='dead'||state==='death'||state==='dying'){
       if(animationClips.death){
         if(!deathPlayed){playClip('death',true);deathPlayed=true;}
         return 'death';
       }
       stopAction();return 'dead';
     }
+    const serial=window.ValerioBossHitSerial||0;
+    if(serial!==lastHitSerial){lastHitSerial=serial;hurtUntil=now+430;}
+    const hurt=hurtUntil>now;
+    if(hurt){
+      if(animationClips.hurt){playClip('hurt',true);return 'hurt';}
+      stopAction();return 'procedural-hurt';
+    }
     deathPlayed=false;
-    // Ataque normal usa sempre o primeiro clip; os seguintes ficam reservados às habilidades.
-    if(v.state==='attack'&&(animationClips.attack||attackClips.length)){
+    // Ataque normal usa o primeiro clip; os próximos são as duas habilidades.
+    if(state==='attack'&&(animationClips.attack||attackClips.length)){
       playClip('attack',true,animationClips.attack||attackClips[0]);return 'attack';
     }
-    const skillMatch=/^(skill|ability|special|heavy|combo)[_-]?(1|2|3)?$/.exec(String(v.state||'').toLowerCase());
+    const skillMatch=/^(skill|ability|special|heavy|combo)[_-]?(1|2|3)?$/.exec(state);
     if(skillMatch){
       const index=skillMatch[2]?Number(skillMatch[2])-1:0;
       if(skillClips[index]){playClip('skill',true,skillClips[index]);return 'skill';}
-      // Se o GLB não tiver clip para esta habilidade, usa o golpe procedural
-      // em vez de cair em idle e fingir que a habilidade não aconteceu.
       stopAction();return 'procedural-attack';
     }
     if(v.talking&&animationClips.talk){playClip('talk',false);return 'talk';}
-    if(v.state==='approach'){
-      // O movimento do boss já é controlado pelo combate; não espere um limiar
-      // de velocidade alto para animar as pernas, senão ele desliza em idle.
-      if((v.speed||0)>38&&animationClips.run){playClip('run',false);return 'run';}
-      if(animationClips.walk){playClip('walk',false);return 'walk';}
+    // Corrida fica reservada a uma aproximação explícita para habilidade;
+    // o deslocamento normal do Bispo sempre usa caminhada lenta e controlada.
+    if(state==='skillapproach'||state==='approachskill'||state==='runskill'){
       if(animationClips.run){playClip('run',false);return 'run';}
+      if(animationClips.walk){playClip('walk',false);return 'walk';}
+    }
+    if(state==='approach'){
+      if(animationClips.walk){playClip('walk',false);return 'walk';}
       stopAction();return 'procedural-walk';
     }
-    if(v.state==='stagger'&&!animationClips.hurt){stopAction();return 'procedural-hurt';}
-    if((v.state==='attack'||v.state==='windup')&&!animationClips.attack){stopAction();return 'procedural-attack';}
+    if(state==='stagger'&&!animationClips.hurt){stopAction();return 'procedural-hurt';}
+    if((state==='attack'||state==='windup')&&!animationClips.attack){stopAction();return 'procedural-attack';}
     if(animationClips.idle){playClip('idle',false);return 'idle';}
     stopAction();return 'none';
   }
@@ -304,7 +307,7 @@
               run:pickClip([/run/,/running/,/sprint/,/jog/]),
               attack:attackClips[0]||pickClip([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/combo/,/melee/]),
               hurt:pickClip([/hurt/,/damage/,/stagger/,/flinch/,/hitreaction/,/hit/]),
-              death:pickClip([/death/,/dead/,/die/,/fall/,/defeat/,/knockout/]),
+              death:pickClip([/death/,/dead/,/dying/,/die/,/defeat/,/knockout/,/fall/]),
               magic:pickClip([/magic/,/cast/,/spell/,/grimoire/,/bible/,/book/,/prayer/,/pose/]),
               talk:pickClip([/talk/,/speak/])
             };
@@ -362,7 +365,7 @@
     root.rotation.z=(v.state==='windup'?.025+windup*.055:0)+
       (animType==='procedural-hurt'?-hurtProgress*.12:0)+Math.sin((v.time||0)*1.35)*.006;
     const t=v.time||0;
-    const walking=animType==='procedural-walk'?Math.sin(t*8.5)*.42:0;
+    const walking=animType==='procedural-walk'?Math.sin(t*2.7)*.14:0;
     // Só aplicamos rotações manuais quando falta um clip: não anulamos a animação GLB.
     if(armBone&&armBase&&(animType==='procedural-attack'||animType==='procedural-hurt'||animType==='procedural-walk')){
       armBone.rotation.copy(armBase);
