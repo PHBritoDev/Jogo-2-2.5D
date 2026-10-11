@@ -408,19 +408,34 @@
                 return patterns.some(function(re){return re.test(name);})&&!/wave|hello|greet/.test(name);
               });
             };
-            const attackExclude=/walk|run|hurt|damage|death|dead|fall|magic|spell|cast|pose|idle|breath|rest|stand|talk|speak/;
-            // Este Bispo usa somente dois golpes normais, alternados a cada novo ataque.
-            // Prioriza nomes Attack 1 / Attack 2 e, na falta deles, usa a ordem exportada.
-            attackClips=pickClips([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/combo/,/melee/])
-              .filter(function(c){return !attackExclude.test(normalized(c));})
-              .sort(function(a,b){
+            const attackExclude=/walk|run|hurt|damage|death|dead|fall|magic|spell|cast|pose|idle|breath|rest|stand|talk|speak|rootmotion|knockback/;
+            const sortAttackClips=function(list){
+              return list.slice().sort(function(a,b){
                 const na=normalized(a),nb=normalized(b);
-                const ma=na.match(/(\d+)$/),mb=nb.match(/(\d+)$/);
+                const ma=na.match(/(\\d+)$/),mb=nb.match(/(\\d+)$/);
                 if(ma&&mb&&Number(ma[1])!==Number(mb[1]))return Number(ma[1])-Number(mb[1]);
                 if(ma&&!mb)return -1;
                 if(!ma&&mb)return 1;
                 return 0;
-              }).slice(0,2);
+              });
+            };
+            // Primeiro tenta os dois golpes individuais. Um clip de combo longo
+            // não deve ocupar uma das vagas e quebrar a alternância entre ataques.
+            const individualAttacks=sortAttackClips(pickClips([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/melee/])
+              .filter(function(c){
+                const name=normalized(c);
+                return !attackExclude.test(name)&&!/combo|chain/.test(name);
+              }));
+            const numberedAttacks=individualAttacks.filter(function(c){return /(?:attack|slash|swing|strike|sword|scythe|melee)\\d+$/.test(normalized(c));});
+            attackClips=(numberedAttacks.length>=2?numberedAttacks:individualAttacks).slice(0,2);
+            // Só usa combo como último recurso, caso o GLB não tenha dois golpes individuais.
+            if(attackClips.length<2){
+              const comboAttacks=sortAttackClips(pickClips([/combo/])
+                .filter(function(c){return !attackExclude.test(normalized(c));}));
+              comboAttacks.forEach(function(c){
+                if(attackClips.length<2&&!attackClips.includes(c))attackClips.push(c);
+              });
+            }
             skillClips=[];
             animationClips={
               idle:pickClip([/idle/,/breath/,/rest/,/stand/]),
