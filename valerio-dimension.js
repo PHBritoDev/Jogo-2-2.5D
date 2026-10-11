@@ -586,9 +586,9 @@ const BishopDimension = (function () {
     const cam=S.camera, yaw=cam.yaw, pitch=cam.pitch, dist=cam.distance;
     const cp=Math.cos(pitch), sp=Math.sin(pitch), sy=Math.sin(yaw), cy=Math.cos(yaw);
     const eye=[px-sy*cp*dist,1.6-sp*dist,pz+cy*cp*dist];
-    const lookAhead=dist<0.7?2.8:5.3;
+    const lookAhead=dist<0.95?2.8:5.3;
     const target=[px+sy*cp*lookAhead,1.2+sp*lookAhead,pz-cy*cp*lookAhead];
-    const pv=multiply(perspective(dist<0.7?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
+    const pv=multiply(perspective(dist<0.95?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
     gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
     draw(S.arena.portal,pv);
@@ -621,7 +621,7 @@ const BishopDimension = (function () {
         : Math.atan2(px-bpos[0],-(pz-bpos[2]));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
       const bossBase=multiply(translate(bpos[0],floorY-.008+bossBob,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(.42,.42,.42))));
-      window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],floorY+bossBob,bpos[2]],yaw:faceBoss,aspect:w/h,fov:dist<0.7?1.22:1.02,state:bossState==='attack'&&BishopBoss.attack?(BishopBoss.attack.id==='vault'?'skill1':BishopBoss.attack.id==='sweep'?'skill2':'attack'):bossState,combatState:bossState,attackId:BishopBoss.attack&&BishopBoss.attack.id||null,time:Game.time||0,speed:BishopBoss.speed||0,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,talking:!!Game.talking};
+      window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],floorY+bossBob,bpos[2]],yaw:faceBoss,aspect:w/h,fov:dist<0.95?1.22:1.02,state:bossState==='attack'&&BishopBoss.attack?(BishopBoss.attack.id==='vault'?'skill1':BishopBoss.attack.id==='sweep'?'skill2':'attack'):bossState,combatState:bossState,attackId:BishopBoss.attack&&BishopBoss.attack.id||null,time:Game.time||0,speed:BishopBoss.speed||0,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,talking:!!Game.talking};
       if(!window.ValerioGLBReady && !window.ValerioGLBLoading && !window.ValerioGLBRendering){
       draw(S.bishopModel,multiply(pv,bossBase));
       const shoulderBase=multiply(bossBase,multiply(translate(0,1.37,0),rotateZ(Math.sin(Game.time*2.1)*.035-windup*.08)));
@@ -640,7 +640,7 @@ const BishopDimension = (function () {
       draw(S.arena.bishopHands,multiply(pv,multiply(armR,translate(.24,-.35,-.03))));
       }
     } else { window.ValerioModelView={active:false}; }
-    if(!Player.dead && dist>=0.7){
+    if(!Player.dead && dist>=0.95){
       const jump=clamp(Player.z||0,0,60)*unit;
       const moving=Math.hypot(Player.vx||0,Player.vy||0)>18;
       const phase=Game.time*9;
