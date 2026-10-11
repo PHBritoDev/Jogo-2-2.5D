@@ -17,7 +17,9 @@
     });
   }
   // Diagnóstico visual opcional para testes no celular; desligado no jogo normal.
-  const showAnimationDebug=new URLSearchParams(window.location.search).get('valerioAnimDebug')==='1';
+  const debugParams=new URLSearchParams(window.location.search);
+  const showAnimationDebug=debugParams.get('valerioAnimDebug')==='1'||debugParams.get('valerioScaleDebug')==='1';
+  const useUpdatedValerioModel=debugParams.get('valerioUpdatedModel')==='1';
   function showStatus(message,isError) {
     if(isError)console.warn('Valério GLB:',message);
     else console.info('Valério GLB:',message);
@@ -61,7 +63,7 @@
     });
     return box;
   }
-  function fitModel(model,height) {
+  function fitModel(model,height,diagnosticName) {
     let box=measureModelBounds(model);
     let size=box.getSize(new THREE.Vector3());
     if(size.z>size.y*1.35 && size.z>size.x*0.72) {
@@ -75,7 +77,12 @@
       size=box.getSize(new THREE.Vector3());
     }
     if(!isFinite(size.y)||size.y<0.01) throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
-    model.scale.setScalar(height/size.y);
+    const measuredHeight=size.y;
+    const appliedScale=height/measuredHeight;
+    model.scale.setScalar(appliedScale);
+    if(diagnosticName){
+      window.ValerioScaleDiagnostics='Modelo: '+diagnosticName+' | altura medida antes do ajuste: '+measuredHeight.toFixed(5)+' | escala aplicada: '+appliedScale.toFixed(5)+' | alvo: '+height;
+    }
     model.updateMatrixWorld(true);
     const scaled=measureModelBounds(model);
     const center=scaled.getCenter(new THREE.Vector3());
@@ -291,9 +298,12 @@
         });
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
-        new THREE.GLTFLoader().load('https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb',function(gltf){
+        const valerioModelUrl=useUpdatedValerioModel
+          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/1807ac4c67cf9b2d6d7398a32758127051183289/Bispo1.0.glb'
+          :'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb';
+        new THREE.GLTFLoader().load(valerioModelUrl,function(gltf){
           try {
-            root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT);rootBasePosition=root.position.clone();improveMaterials(root);
+            root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb');rootBasePosition=root.position.clone();improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
             // proporções corretas; trava mudanças de escala vindas dos clips.
             pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(root);scene.add(pivot);
@@ -346,7 +356,7 @@
             window.ValerioGLBReady=true;window.ValerioGLBLoading=false;
             const clipInfo=clips.length?clips.map(function(c){return (c.name||'(sem nome)')+' '+Number(c.duration||0).toFixed(2)+'s';}).join(' | '):'NENHUM CLIP NO GLB';
             const mapped='idle='+(animationClips.idle&&animationClips.idle.name||'—')+'; walk='+(animationClips.walk&&animationClips.walk.name||'—')+'; run='+(animationClips.run&&animationClips.run.name||'—')+'; ataque normal='+(animationClips.attack&&animationClips.attack.name||'—')+'; habilidades='+skillClips.map(function(c){return c.name||'(sem nome)';}).join(', ')+'; dano='+(animationClips.hurt&&animationClips.hurt.name||'—')+'; morte='+(animationClips.death&&animationClips.death.name||'—')+'; magia='+(animationClips.magic&&animationClips.magic.name||'—');
-            window.ValerioClipDiagnostics='GLB clips ('+clips.length+'): '+clipInfo+'\n'+mapped+'\nbraço='+(armBone&&armBone.name||'não encontrado')+'; mão='+(handBone&&handBone.name||'não encontrada');
+            window.ValerioClipDiagnostics='GLB clips ('+clips.length+'): '+clipInfo+'\n'+mapped+'\nbraço='+(armBone&&armBone.name||'não encontrado')+'; mão='+(handBone&&handBone.name||'não encontrada')+(window.ValerioScaleDiagnostics?'\n'+window.ValerioScaleDiagnostics:'')+'\nmodelo selecionado: '+(useUpdatedValerioModel?'ATUALIZADO':'ESTÁVEL');
             showStatus(window.ValerioClipDiagnostics,false);
             loadWeapon();
             console.info('Valério: clips disponíveis',clips.map(function(a){return {name:a.name,duration:a.duration};}),'mapeamento',mapped);
