@@ -184,6 +184,25 @@ const BishopDimension = (function () {
       addQuad(world,[-width,.041,z+2.55],[width,.041,z+2.55],[width*.78,.041,z-2.55],[-width*.78,.041,z-2.55],color('#d0a16b',.21*fade+.025));
     }
 
+    // Céu cósmico em 3D: estrelas espalhadas em volta e abaixo da arena.
+    // São apenas pequenas malhas estáticas, sem texturas ou shaders pesados.
+    for(let i=0;i<145;i++){
+      const x=Math.sin(i*127.1+4.2)*88;
+      const y=-38+((i*37.7)%112);
+      const z=-86+((i*53.3)%132);
+      const size=i%13===0?.12:(i%4===0?.075:.045);
+      const tint=i%9===0?'#b7a4ff':(i%7===0?'#9bdcff':'#dce7ff');
+      addBox(world,x,y,z,size,size,size,tint);
+    }
+    // Planeta distante com anéis discretos, no fundo da arena.
+    addSphere(world,-31,22,-67,5.4,'#354b86',12,18,1,1,.88);
+    addSphere(world,-32.7,24.2,-62.8,1.05,'#a8b5df',8,12,1,1,.8);
+    addRing(world,-31,22,-67,8.2,2.5,.16,'#b6a2ff',.72,36);
+    // Pequeno buraco negro: núcleo escuro e anel roxo, longe do combate.
+    addSphere(world,39,17,-59,3.1,'#070711',12,18,1,1,1);
+    addRing(world,39,17,-59,5.2,2.1,.24,'#9b4dff',.78,40);
+    addRing(world,39,17.15,-59,4.1,1.55,.12,'#e0a5ff',.62,40);
+
     // Cascalho e raízes laterais, mantendo a trilha visível e integrada ao terreno.
     for(let i=0;i<42;i++){
       const z=17-(i*.91),x=((i*17)%37)/37*10.6-5.3;
