@@ -226,10 +226,10 @@
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;const fittedModel=fitModel(root,1.0);fittedRoot=fittedModel;rootBasePosition=root.position.clone();improveMaterials(root);
+            root=gltf.scene;const fittedModel=fitModel(root,1.55);fittedRoot=fittedModel;rootBasePosition=root.position.clone();improveMaterials(root);
             // A escala de ajuste fica num grupo pai separado dos ossos. Travamos a hierarquia
             // inteira (incluindo o grupo de ajuste), para nenhum clip conseguir ampliar o boss.
-            pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(fittedModel);scene.add(pivot);
+            pivot=new THREE.Group();pivot.scale.setScalar(0.32);pivot.add(fittedModel);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
