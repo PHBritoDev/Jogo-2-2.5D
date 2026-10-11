@@ -170,7 +170,7 @@
     next.reset();next.enabled=true;
     // A caminhada do GLB estava ciclando rápido demais para a curta aproximação do boss.
     // Mantemos corrida reservada para habilidade futura e sincronizamos a passada por estado.
-    next.setEffectiveTimeScale(type==='walk'?0.50:type==='run'?0.88:1);
+    next.setEffectiveTimeScale(type==='walk'?0.30:type==='run'?0.88:1);
     next.setEffectiveWeight(1);
     next.setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);
     next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;
