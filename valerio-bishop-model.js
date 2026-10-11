@@ -241,6 +241,13 @@
     if(v.skillLocked)hurtUntil=0;
     if(serial!==lastHitSerial){
       lastHitSerial=serial;
+      // Um novo golpe recebido precisa reiniciar a reação mesmo se o clip de dano
+      // anterior terminou pausado no último quadro e o estado do chefe não mudou.
+      if(currentActionType==='hurt'&&currentAction){
+        currentAction.stop();
+        currentAction=null;
+        currentActionType='';
+      }
       // A reação deve terminar junto com o clip real, não com um timer fixo
       // que cortava animações de dano mais longas no meio do movimento.
       const hurtDuration=animationClips.hurt?Math.max(0.43,Number(animationClips.hurt.duration)||0.43):0.43;
