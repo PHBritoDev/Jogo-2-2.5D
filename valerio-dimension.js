@@ -572,6 +572,14 @@ const BishopDimension = (function () {
     const glowModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.23),multiply(scale(pulse,pulse,1),translate(0,-40,8))));
     draw(S.exterior.glow,multiply(base,glowModel));
   }
+  function arenaFloorHeight(x,z) {
+    // Mesmas superfícies e prioridades dos boxes de piso criados em buildArena().
+    if(Math.abs(x)<=8.1 && Math.abs(z+2.5)<=25) return .03;
+    if(Math.abs(x)<=65 && Math.abs(z+2.5)<=32) return -.02;
+    if(Math.abs(x)<=60 && Math.abs(z+2.5)<=33) return -.05;
+    return -.47;
+  }
+
   function insideFrame() {
     const gl=S.gl,w=S.canvas.width,h=S.canvas.height,room=Casino.room,unit=1/72;
     const px=(Player.x-(room.left+room.right)/2)*unit,pz=(Player.y-(room.top+room.bottom)/2)*unit;
@@ -601,6 +609,7 @@ const BishopDimension = (function () {
       const bossActive=BishopBoss.state!=='inactive';
       const bx=bossActive&&Number.isFinite(BishopBoss.x)?BishopBoss.x:Casino.bossStart.x,by=bossActive&&Number.isFinite(BishopBoss.y)?BishopBoss.y:Casino.bossStart.y;
       const bpos=[(bx-(room.left+room.right)/2)*unit,0,(by-(room.top+room.bottom)/2)*unit];
+      const floorY=arenaFloorHeight(bpos[0],bpos[2]);
       const bossState=BishopBoss.state||'idle';
       const windup=bossState==='windup'?clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.windup)||.6),0,1):0;
       const strike=bossState==='attack'?Math.sin(clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.duration)||.3),0,1)*Math.PI):0;
@@ -611,8 +620,8 @@ const BishopDimension = (function () {
         ? Math.atan2(Number.isFinite(BishopBoss.fx)?BishopBoss.fx:0,-(Number.isFinite(BishopBoss.fy)?BishopBoss.fy:-1))
         : Math.atan2(px-bpos[0],-(pz-bpos[2]));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
-      const bossBase=multiply(translate(bpos[0],.08+bossBob,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(.42,.42,.42))));
-      window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],.08+bossBob,bpos[2]],yaw:faceBoss,aspect:w/h,fov:dist<0.7?1.22:1.02,state:bossState,time:Game.time||0,speed:BishopBoss.speed||0,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,talking:!!Game.talking};
+      const bossBase=multiply(translate(bpos[0],floorY-.008+bossBob,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(.42,.42,.42))));
+      window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],floorY+bossBob,bpos[2]],yaw:faceBoss,aspect:w/h,fov:dist<0.7?1.22:1.02,state:bossState,time:Game.time||0,speed:BishopBoss.speed||0,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,talking:!!Game.talking};
       if(!window.ValerioGLBReady && !window.ValerioGLBLoading && !window.ValerioGLBRendering){
       draw(S.bishopModel,multiply(pv,bossBase));
       const shoulderBase=multiply(bossBase,multiply(translate(0,1.37,0),rotateZ(Math.sin(Game.time*2.1)*.035-windup*.08)));
