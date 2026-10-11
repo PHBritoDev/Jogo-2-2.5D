@@ -389,8 +389,9 @@ const BishopBoss = {
         // Skills têm recarga própria e podem iniciar uma aproximação em corrida.
         if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
           const readySkill = this.skillChainCooldown <= 0 ? this.profile.attacks.find(a => a.skill && (this.skillCooldowns[a.id] || 0) <= 0) : null;
-          if (readySkill && d <= 300 && (this.attackIndex % 2 === 1)) {
+          if (readySkill && d <= 300 && (this.attackIndex % 2 === 0)) {
             this.attack = readySkill;
+            this.attackIndex++;
             this.skillCooldowns[readySkill.id] = readySkill.skillCooldown || 6.5;
             this.skillChainCooldown = 2.5;
             this._go('skillapproach');
@@ -412,10 +413,8 @@ const BishopBoss = {
             this.skillCooldowns[this.attack.id] = this.attack.skillCooldown || 6.5;
             this.skillChainCooldown = 2.5;
           }
-          if (this.phase === 2 && this.attackIndex % 3 === 0) {
-            const heavy = attacks.find(a => !a.skill && a.id === 'vault');
-            if (heavy && (!heavy.skill || (this.skillCooldowns[heavy.id] || 0) <= 0)) this.attack = heavy;
-          }
+          // A seleção já respeita as recargas; não substitua uma skill escolhida
+          // por um golpe que não existe no conjunto de ataques normais.
           this._go('windup');
         } else {
           const far = d > 145;
