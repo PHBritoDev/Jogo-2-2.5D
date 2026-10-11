@@ -27,7 +27,7 @@
       let panel=document.getElementById('valerio-glb-status');
       if(!panel){
         panel=document.createElement('pre');panel.id='valerio-glb-status';
-        panel.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99999;max-height:42vh;overflow:auto;margin:0;padding:9px;background:rgba(8,8,15,.92);color:#fff;font:11px/1.35 monospace;white-space:pre-wrap;pointer-events:none;border:1px solid #c5a45b;border-radius:6px;';
+        panel.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:2147483646;max-height:78vh;overflow-y:auto;margin:0;padding:12px;background:rgba(8,8,15,.97);color:#fff;font:12px/1.45 monospace;white-space:pre-wrap;pointer-events:auto;touch-action:pan-y;border:2px solid #c5a45b;border-radius:8px;';
         document.body.appendChild(panel);
       }
       panel.textContent=String(message);
