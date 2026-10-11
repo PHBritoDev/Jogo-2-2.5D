@@ -27,22 +27,32 @@
     return err.message||err.statusText||String(err);
   }
   function fitModel(model,height) {
-    // Normaliza a orientação do GLB e calcula a caixa real do personagem.
+    // GLBs podem vir com o eixo vertical em Y, Z ou X. Se o eixo vertical
+    // for identificado errado, height/size.y pode ampliar o personagem dezenas
+    // de vezes. Escolhemos a orientação pelo maior eixo antes de dimensionar.
     let box=new THREE.Box3().setFromObject(model);
     let size=box.getSize(new THREE.Vector3());
-    if(size.z>size.y*1.35 && size.z>size.x*0.72) {
-      model.rotation.x=-Math.PI/2;
+    const dims=[size.x,size.y,size.z];
+    const largest=Math.max.apply(null,dims);
+    if(!isFinite(largest)||largest<0.01)throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
+    if(size.y<largest*0.72) {
+      if(size.z>=size.x) model.rotation.x=-Math.PI/2;
+      else model.rotation.z=Math.PI/2;
       box=new THREE.Box3().setFromObject(model);
       size=box.getSize(new THREE.Vector3());
-    }
-    if(!isFinite(size.y)||size.y<0.01) {
-      model.rotation.x=Math.PI/2;
-      box=new THREE.Box3().setFromObject(model);
-      size=box.getSize(new THREE.Vector3());
+      // Se a primeira rotação não colocou o maior eixo na vertical, tenta a outra.
+      if(size.y<Math.max(size.x,size.z)*0.72) {
+        model.rotation.x=0;
+        model.rotation.z=0;
+        box=new THREE.Box3().setFromObject(model);
+        size=box.getSize(new THREE.Vector3());
+        if(size.z>=size.x) model.rotation.x=-Math.PI/2;
+        else model.rotation.z=Math.PI/2;
+        box=new THREE.Box3().setFromObject(model);
+        size=box.getSize(new THREE.Vector3());
+      }
     }
     if(!isFinite(size.y)||size.y<0.01)throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
-    // Escala e centralização ficam num grupo PAI. Assim, clips de animação
-    // que alterem a escala/posição do nó raiz não anulam o ajuste de tamanho.
     const fit=new THREE.Group();
     fit.add(model);
     const factor=height/size.y;
