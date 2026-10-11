@@ -5,7 +5,7 @@
   const VALERIO_MODEL_HEIGHT=2.7;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
-  let animationClips={},attackClips=[],skillClips=[],currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
+  let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
   let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
   // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
   const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
@@ -160,6 +160,7 @@
   }
   function stopAction() {
     if(currentAction){currentAction.fadeOut(.08);currentAction=null;}
+    currentActionType='';
   }
   function playClip(type,oneShot,overrideClip) {
     const clip=overrideClip||animationClips[type];
@@ -176,7 +177,7 @@
     next.setEffectiveTimeScale(type==='walk'?1:type==='run'?0.88:1);
     next.setEffectiveWeight(1);
     next.setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);
-    next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;
+    next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;currentActionType=type;
     return true;
   }
   function chooseAnimation(v,now) {
@@ -203,6 +204,11 @@
       stopAction();return 'procedural-hurt';
     }
     deathPlayed=false;
+    // O clip de ataque pode durar mais que a janela de dano do combate.
+    // Durante a recuperação, deixa o movimento visual terminar sem prolongar hitbox/dano.
+    if(state==='recover'&&(currentActionType==='attack'||currentActionType==='skill')&&currentAction&&currentAction.isRunning()){
+      return currentActionType;
+    }
     // Ataque normal usa o primeiro clip; os próximos são as duas habilidades.
     if(state==='attack'&&(animationClips.attack||attackClips.length)){
       playClip('attack',true,animationClips.attack||attackClips[0]);return 'attack';
