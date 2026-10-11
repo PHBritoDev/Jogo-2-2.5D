@@ -559,7 +559,7 @@ const BishopDimension = (function () {
     const cam=S.camera, yaw=cam.yaw, pitch=cam.pitch, dist=cam.distance;
     const cp=Math.cos(pitch), sp=Math.sin(pitch), sy=Math.sin(yaw), cy=Math.cos(yaw);
     const eye=[px-sy*cp*dist,1.6-sp*dist,pz+cy*cp*dist];
-    const lookAhead=5.3;
+    const lookAhead=dist<0.7?2.8:5.3;
     const target=[px+sy*cp*lookAhead,1.2+sp*lookAhead,pz-cy*cp*lookAhead];
     const pv=multiply(perspective(dist<0.7?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
     gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -670,10 +670,11 @@ const BishopDimension = (function () {
     const room=Casino.room;
     // Alinha o jogador ao eixo do chefe para a câmera não mirar ao lado dele.
     Player.x=Casino.bossStart.x;
-    Player.y=room.bottom-40;
+    // Spawn de primeira pessoa a ~2,8 m do Bispo, perto o bastante para ler o rosto.
+    Player.y=Casino.bossStart.y+202;
     Player.z=0;Player.vx=Player.vy=Player.vz=0;Player.kx=Player.ky=0;
     Player.fx=0;Player.fy=-1;Player.floor=0;Player.onGround=true;Player.sy=Player.y;
-    S.camera.yaw=0;S.camera.pitch=-0.035;S.camera.distance=12.5;
+    S.camera.yaw=0;S.camera.pitch=-0.035;S.camera.distance=0.45;
     Camera.snap(Player);
   }
   function blocked(x,y,r) {

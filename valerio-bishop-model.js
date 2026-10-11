@@ -25,8 +25,7 @@
     return err.message||err.statusText||String(err);
   }
   function fitModel(model,height) {
-    // Alguns exportadores entregam personagens no eixo Z-up. Detecta isso
-    // antes de dimensionar para evitar altura quase zero e modelo invisível.
+    // Normaliza a orientação do GLB e calcula a caixa real do personagem.
     let box=new THREE.Box3().setFromObject(model);
     let size=box.getSize(new THREE.Vector3());
     if(size.z>size.y*1.35 && size.z>size.x*0.72) {
@@ -35,17 +34,24 @@
       size=box.getSize(new THREE.Vector3());
     }
     if(!isFinite(size.y)||size.y<0.01) {
-      // Último recurso: tenta a orientação alternativa sem descartar o GLB.
       model.rotation.x=Math.PI/2;
       box=new THREE.Box3().setFromObject(model);
       size=box.getSize(new THREE.Vector3());
     }
     if(!isFinite(size.y)||size.y<0.01)throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
-    // Preserve a escala original exportada no GLB. setScalar() sobrescrevia
-    // valores como 0.01 do Blender e podia ampliar o personagem dezenas de vezes.
-    model.scale.multiplyScalar(height/size.y);
-    const scaled=new THREE.Box3().setFromObject(model),center=scaled.getCenter(new THREE.Vector3());
-    model.position.set(-center.x,-scaled.min.y,-center.z);
+    // Escala e centralização ficam num grupo PAI. Assim, clips de animação
+    // que alterem a escala/posição do nó raiz não anulam o ajuste de tamanho.
+    const fit=new THREE.Group();
+    fit.add(model);
+    const factor=height/size.y;
+    fit.scale.setScalar(factor);
+    fit.position.set(-((box.min.x+box.max.x)/2)*factor,-box.min.y*factor,-((box.min.z+box.max.z)/2)*factor);
+    const fittedBox=new THREE.Box3().setFromObject(fit);
+    const fittedSize=fittedBox.getSize(new THREE.Vector3());
+    if(!isFinite(fittedSize.y)||Math.abs(fittedSize.y-height)>0.05) {
+      throw new Error('Falha ao normalizar altura do GLB: '+fittedSize.y.toFixed(3)+' unidades');
+    }
+    return fit;
   }
   function improveMaterials(model) {
     model.traverse(function(obj){
@@ -177,8 +183,8 @@
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;fitModel(root,1.55);improveMaterials(root);
-            pivot=new THREE.Group();pivot.add(root);scene.add(pivot);
+            root=gltf.scene;const fittedModel=fitModel(root,1.55);improveMaterials(root);
+            pivot=new THREE.Group();pivot.add(fittedModel);scene.add(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=gltf.animations||[];
