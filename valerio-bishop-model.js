@@ -4,7 +4,7 @@
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,legLeftBase=null,legRightBase=null;
-  let deathPlayed=false,restoreModelScales=null;
+  let deathPlayed=false,restoreModelScales=null,rootBasePosition=null;
   // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
   const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
   let lastHitSerial=0,hurtUntil=0,previousState='',renderedYaw=null;
@@ -228,8 +228,9 @@
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;const fittedModel=fitModel(root,1.55);restoreModelScales=lockModelScales(root);improveMaterials(root);
-            pivot=new THREE.Group();pivot.scale.setScalar(0.55);pivot.add(fittedModel);scene.add(pivot);
+            root=gltf.scene;const fittedModel=fitModel(root,1.55);rootBasePosition=root.position.clone();restoreModelScales=lockModelScales(root);improveMaterials(root);
+            // Escala conservadora: evita que um GLB exportado fora da escala invada a arena.
+            pivot=new THREE.Group();pivot.scale.setScalar(0.32);pivot.add(fittedModel);scene.add(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
             const clips=gltf.animations||[];
@@ -296,6 +297,8 @@
     }
     const animType=chooseAnimation(v,now);
     if(mixer&&!disableValerioClips)mixer.update(turnDt);
+    // Clips com root-motion podem deslocar o personagem para baixo do piso; o combate já controla a posição do boss.
+    if(rootBasePosition&&root)root.position.copy(rootBasePosition);
     // Reaplica a escala de importação depois do mixer e antes do render.
     if(restoreModelScales)restoreModelScales();
     if(disableValerioClips&&window.ValerioClipDiagnostics&&!window.ValerioClipDiagnostics.includes('CLIPS PAUSADOS PARA TESTE')){
