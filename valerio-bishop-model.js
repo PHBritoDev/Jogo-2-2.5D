@@ -27,17 +27,28 @@
     return err.message||err.statusText||String(err);
   }
   function measureModelBounds(model) {
-    // SkinnedMesh pode expor a caixa estática da geometria, que não representa
-    // o personagem ligado ao esqueleto. Atualizamos os ossos e calculamos a caixa
-    // deformada antes de decidir a escala; isso evita fator gigante por altura falsa.
+    // O GLB atual usa SkinnedMesh. Antes de calcular a caixa, atualizamos
+    // explicitamente as matrizes dos ossos; sem isso a caixa pode ter altura
+    // quase zero e fitModel amplifica o personagem enormemente.
     model.updateMatrixWorld(true);
     model.traverse(function(obj) {
-      if (obj.isSkinnedMesh && typeof obj.computeBoundingBox === 'function') {
-        obj.computeBoundingBox();
+      if (obj.isSkinnedMesh && obj.skeleton) {
+        obj.skeleton.update();
+        if (typeof obj.computeBoundingBox === 'function') obj.computeBoundingBox();
       }
     });
     model.updateMatrixWorld(true);
-    return new THREE.Box3().setFromObject(model);
+    const box = new THREE.Box3();
+    model.traverse(function(obj) {
+      if (!obj.isMesh) return;
+      if (obj.isSkinnedMesh && obj.boundingBox) {
+        const skinnedBox = obj.boundingBox.clone().applyMatrix4(obj.matrixWorld);
+        box.union(skinnedBox);
+      } else {
+        box.union(new THREE.Box3().setFromObject(obj));
+      }
+    });
+    return box;
   }
   function fitModel(model,height) {
     let box=measureModelBounds(model);
