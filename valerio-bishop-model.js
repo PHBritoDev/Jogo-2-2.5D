@@ -24,43 +24,26 @@
     if(!err)return 'erro sem detalhes';
     return err.message||err.statusText||String(err);
   }
-  function fitModel(model,height) {
-    // GLBs podem vir com o eixo vertical em Y, Z ou X. Se o eixo vertical
-    // for identificado errado, height/size.y pode ampliar o personagem dezenas
-    // de vezes. Escolhemos a orientação pelo maior eixo antes de dimensionar.
+  function fitModel(model,height,knownYUp) {
+    // O GLB Mixamo atual já usa Y como eixo vertical. Não inferir o eixo pela
+    // caixa estática do esqueleto: a geometria sem skinning pode ter limites
+    // enganosos e a rotação automática deixa o personagem deitado/deformado.
     let box=new THREE.Box3().setFromObject(model);
     let size=box.getSize(new THREE.Vector3());
-    const dims=[size.x,size.y,size.z];
-    const largest=Math.max.apply(null,dims);
+    const largest=Math.max(size.x,size.y,size.z);
     if(!isFinite(largest)||largest<0.01)throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
-    if(size.y<largest*0.72) {
+    if(!knownYUp && size.y<largest*0.72) {
       if(size.z>=size.x) model.rotation.x=-Math.PI/2;
       else model.rotation.z=Math.PI/2;
       box=new THREE.Box3().setFromObject(model);
       size=box.getSize(new THREE.Vector3());
-      // Se a primeira rotação não colocou o maior eixo na vertical, tenta a outra.
-      if(size.y<Math.max(size.x,size.z)*0.72) {
-        model.rotation.x=0;
-        model.rotation.z=0;
-        box=new THREE.Box3().setFromObject(model);
-        size=box.getSize(new THREE.Vector3());
-        if(size.z>=size.x) model.rotation.x=-Math.PI/2;
-        else model.rotation.z=Math.PI/2;
-        box=new THREE.Box3().setFromObject(model);
-        size=box.getSize(new THREE.Vector3());
-      }
     }
-    if(!isFinite(size.y)||size.y<0.01)throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
+    if(!isFinite(size.y)||size.y<0.01)throw new Error('GLB sem dimensões válidas no eixo vertical Y');
     const fit=new THREE.Group();
     fit.add(model);
     const factor=height/size.y;
     fit.scale.setScalar(factor);
     fit.position.set(-((box.min.x+box.max.x)/2)*factor,-box.min.y*factor,-((box.min.z+box.max.z)/2)*factor);
-    const fittedBox=new THREE.Box3().setFromObject(fit);
-    const fittedSize=fittedBox.getSize(new THREE.Vector3());
-    if(!isFinite(fittedSize.y)||Math.abs(fittedSize.y-height)>0.05) {
-      throw new Error('Falha ao normalizar altura do GLB: '+fittedSize.y.toFixed(3)+' unidades');
-    }
     return fit;
   }
   // GLTFs podem conter trilhas de escala em grupos ou no próprio esqueleto.
@@ -222,14 +205,27 @@
         const key=new THREE.DirectionalLight(0xffe6cf,2.6);key.position.set(-4,7,5);scene.add(key);
         const fill=new THREE.DirectionalLight(0x9b8cff,1.15);fill.position.set(4,3,-4);scene.add(fill);
         const rim=new THREE.PointLight(0xb52dff,1.1,12);rim.position.set(0,2.2,-1.8);scene.add(rim);
+        // O cenário da arena e o modelo usam canvases WebGL separados, portanto
+        // o chão do cenário não consegue escrever profundidade sobre este canvas.
+        // Este plano invisível compartilha a câmera do Valério e oculta tudo abaixo
+        // do piso sem pintar pixels sobre o cenário que está por trás.
+        const groundOccluder=new THREE.Mesh(
+          new THREE.PlaneGeometry(500,500),
+          new THREE.MeshBasicMaterial({color:0x000000,colorWrite:false,depthWrite:true,depthTest:true,side:THREE.DoubleSide})
+        );
+        groundOccluder.rotation.x=-Math.PI/2;
+        groundOccluder.position.y=0.005;
+        groundOccluder.renderOrder=-100;
+        groundOccluder.frustumCulled=false;
+        scene.add(groundOccluder);
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
         new THREE.GLTFLoader().load('./Bispo1.0.glb?v=valerio-anim-20261010c',function(gltf){
           try {
-            root=gltf.scene;const fittedModel=fitModel(root,1.55);fittedRoot=fittedModel;rootBasePosition=root.position.clone();improveMaterials(root);
+            root=gltf.scene;const fittedModel=fitModel(root,2.7,true);fittedRoot=fittedModel;rootBasePosition=root.position.clone();improveMaterials(root);
             // A escala de ajuste fica num grupo pai separado dos ossos. Travamos a hierarquia
             // inteira (incluindo o grupo de ajuste), para nenhum clip conseguir ampliar o boss.
-            pivot=new THREE.Group();pivot.scale.setScalar(0.32);pivot.add(fittedModel);scene.add(pivot);
+            pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(fittedModel);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
