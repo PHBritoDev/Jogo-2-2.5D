@@ -318,7 +318,7 @@
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         showStatus('carregando arquivo...',false);
         const valerioModelUrl=useUpdatedValerioModel
-          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/Bispo1.0.glb?valerioModelTest=20261011c'
+          ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/Bispo1.0.glb?valerioModelTest=20261011d'
           :'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb';
         const gltfLoader=new THREE.GLTFLoader();
         // O novo Bispo1.0.glb pode usar Draco; habilitamos o decoder
@@ -334,7 +334,7 @@
             // O GLB atualizado tem proporções diferentes do modelo antigo. A escala 0.84
             // deixou o Bispo gigante e largo demais para a clareira; reduzimos para
             // 0.21 (um quarto da escala anterior), sem alterar câmera ou arena.
-            pivot=new THREE.Group();pivot.scale.setScalar(0.21);pivot.add(root);scene.add(pivot);
+            pivot=new THREE.Group();pivot.scale.setScalar(0.10);pivot.add(root);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
