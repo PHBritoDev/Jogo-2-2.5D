@@ -19,7 +19,7 @@
   // Diagnóstico visual opcional para testes no celular; desligado no jogo normal.
   const debugParams=new URLSearchParams(window.location.search);
   const showAnimationDebug=debugParams.get('valerioAnimDebug')==='1'||debugParams.get('valerioScaleDebug')==='1';
-  const useUpdatedValerioModel=debugParams.get('valerioUpdatedModel')==='1';
+  const useUpdatedValerioModel=debugParams.get('valerioStableModel')!=='1';
   function showStatus(message,isError) {
     if(isError)console.warn('Valério GLB:',message);
     else console.info('Valério GLB:',message);
@@ -316,7 +316,7 @@
             // O GLB era normalizado para 2.7 unidades, mas o pivot ficava em 1,
             // ignorando a escala da arena e deixando Valério cerca de 2.38x maior.
             // Aplicamos a mesma escala visual da arena ao pivot do GLB.
-            pivot=new THREE.Group();pivot.scale.setScalar(0.42);pivot.add(root);scene.add(pivot);
+            pivot=new THREE.Group();pivot.scale.setScalar(0.84);pivot.add(root);scene.add(pivot);
             restoreModelScales=lockModelScales(pivot);
             // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
             mixer=new THREE.AnimationMixer(root);
