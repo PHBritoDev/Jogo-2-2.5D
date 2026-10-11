@@ -26,27 +26,39 @@
     if(!err)return 'erro sem detalhes';
     return err.message||err.statusText||String(err);
   }
+  function measureModelBounds(model) {
+    // SkinnedMesh pode expor a caixa estática da geometria, que não representa
+    // o personagem ligado ao esqueleto. Atualizamos os ossos e calculamos a caixa
+    // deformada antes de decidir a escala; isso evita fator gigante por altura falsa.
+    model.updateMatrixWorld(true);
+    model.traverse(function(obj) {
+      if (obj.isSkinnedMesh && typeof obj.computeBoundingBox === 'function') {
+        obj.computeBoundingBox();
+      }
+    });
+    model.updateMatrixWorld(true);
+    return new THREE.Box3().setFromObject(model);
+  }
   function fitModel(model,height) {
-    // Retoma a normalização que funcionava antes da troca do GLB:
-    // detecta o eixo vertical pelo volume do modelo, escala o próprio esqueleto
-    // e centraliza os pés na origem. Não usa um grupo de ajuste externo.
-    let box=new THREE.Box3().setFromObject(model);
+    let box=measureModelBounds(model);
     let size=box.getSize(new THREE.Vector3());
     if(size.z>size.y*1.35 && size.z>size.x*0.72) {
       model.rotation.x=-Math.PI/2;
-      box=new THREE.Box3().setFromObject(model);
+      box=measureModelBounds(model);
       size=box.getSize(new THREE.Vector3());
     }
     if(!isFinite(size.y)||size.y<0.01) {
       model.rotation.x=Math.PI/2;
-      box=new THREE.Box3().setFromObject(model);
+      box=measureModelBounds(model);
       size=box.getSize(new THREE.Vector3());
     }
     if(!isFinite(size.y)||size.y<0.01) throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
     model.scale.setScalar(height/size.y);
-    const scaled=new THREE.Box3().setFromObject(model);
+    model.updateMatrixWorld(true);
+    const scaled=measureModelBounds(model);
     const center=scaled.getCenter(new THREE.Vector3());
     model.position.set(-center.x,-scaled.min.y,-center.z);
+    model.updateMatrixWorld(true);
     return model;
   }
   // GLTFs podem conter trilhas de escala em grupos ou no próprio esqueleto.
