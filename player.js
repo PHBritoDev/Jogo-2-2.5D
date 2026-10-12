@@ -142,7 +142,7 @@ const Player = {
       this.blinkT = C.invuln;
       this.invuln = C.invuln;
       if (requestKnockdown) {
-        this.knockdownT = Math.max(this.knockdownT, 0.58);
+        this.knockdownT = Math.max(this.knockdownT, Number(window.ProtagonistaAnimationTiming && window.ProtagonistaAnimationTiming.fallDuration) || 1.05);
         this.gettingUp = false;
         this.getUpT = 0;
         this.stun = Math.max(this.stun, 0.6);
@@ -191,7 +191,7 @@ const Player = {
     this.atkCool = Math.max(0, this.atkCool - dt);
     if (this.knockdownT > 0) {
       this.knockdownT = Math.max(0, this.knockdownT - dt);
-      if (this.knockdownT <= 0 && !this.dead) { this.gettingUp = true; this.getUpT = 1.05; }
+      if (this.knockdownT <= 0 && !this.dead) { this.gettingUp = true; this.getUpT = Number(window.ProtagonistaAnimationTiming && window.ProtagonistaAnimationTiming.getupDuration) || 1.05; }
     } else if (this.gettingUp) {
       this.getUpT = Math.max(0, this.getUpT - dt);
       if (this.getUpT <= 0) this.gettingUp = false;
