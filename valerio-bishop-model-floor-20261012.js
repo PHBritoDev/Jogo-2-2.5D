@@ -491,6 +491,9 @@
           scene.add(occluder);
         });
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
+        // API compartilhada: protagonista e Valério usam a mesma cena, câmera e depth buffer.
+        // Isso preserva a oclusão correta quando um personagem fica na frente do outro.
+        window.ValerioThreeAPI={THREE:THREE,scene:scene,renderer:renderer,camera:camera};
         showStatus('carregando arquivo...',false);
         const valerioModelUrl=useOriginalValerioBaseline
           ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/c2ce8ac71b2f81989bc30d8159fa63ec89331b21/Bispo1.0.glb?baseline=20261011a'
