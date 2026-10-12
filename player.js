@@ -112,8 +112,9 @@ const Player = {
   },
 
   // Chamado pelo inimigo. Retorna o dano aplicado.
-  hurt(dmg, fromX, fromY, kb) {
-    if (this.dead || this.invuln > 0) return 0;
+  hurt(dmg, fromX, fromY, kb, options) {
+    // O segundo impacto do combo atravessa a invulnerabilidade criada pelo primeiro.
+    if (this.dead || (this.invuln > 0 && !(options && options.ignoreInvuln))) return 0;
     const C = CFG.COMBAT;
     let dx = this.x - fromX, dy = this.y - fromY;
     const d = Math.hypot(dx, dy) || 1;
