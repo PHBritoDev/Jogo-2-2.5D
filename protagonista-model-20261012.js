@@ -88,7 +88,7 @@
   }
   function loadSword(model){
     const loader=new api.THREE.GLTFLoader();
-    loader.load('./EspadaProta.glb?v=espada-prota-mod31',function(gltf){
+    loader.load('./EspadaProta.glb?v=espada-prota-original-mod32',function(gltf){
       try{
         swordRoot=gltf.scene;
         swordRoot.name='EspadaProta_Runtime';
