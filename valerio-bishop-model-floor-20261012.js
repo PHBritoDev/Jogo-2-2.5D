@@ -11,6 +11,8 @@
   let attackCycleActive=false,activeAttackClip=null,nextAttackClipIndex=0,activeAttackStage=0;
   // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
   const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
+  // MODIFICAÇÃO 9: offset vertical temporário apenas para diagnóstico via URL.
+  const diagnosticFloorOffset=Number(new URLSearchParams(window.location.search).get('valerioFloorOffset'))||0;
   let lastHitSerial=0,hurtUntil=0,previousState='',renderedYaw=null;
   function loadScript(url) {
     return new Promise(function(resolve,reject){
@@ -656,7 +658,7 @@
     camera.position.set(v.eye[0],v.eye[1],v.eye[2]);camera.lookAt(v.target[0],v.target[1],v.target[2]);
     // A altura do modelo já foi normalizada usando o envelope completo das animações.
     // Não aplicar offsets por estado: isso separava a morte do piso e criava flutuação.
-    pivot.position.set(v.position[0],v.position[1],v.position[2]);
+    pivot.position.set(v.position[0],v.position[1]+diagnosticFloorOffset,v.position[2]);
     // Corrige o eixo frontal comum em modelos exportados para GLB e gira pelo
     // menor arco possível: evita a volta de 360° quando o jogador cruza atrás.
     const playerPos=Array.isArray(v.playerPosition)?v.playerPosition:null;
