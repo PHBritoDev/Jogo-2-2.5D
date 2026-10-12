@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,celestialSword=null,swordCore=null,swordHand=null,swordPhase=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,celestialSword=null,swordCore=null,swordTrail=null,swordTrailMaterial=null,swordGlowMaterial=null,swordHand=null,swordPhase=0,lastSwordAttackId=-1,lastSwordHitSerial=0,swordHitFlash=0;
   const MODEL_HEIGHT=2.15;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
@@ -102,12 +102,18 @@
           const gold=new THREE.MeshStandardMaterial({color:0xc99a43,metalness:.82,roughness:.25});
           const dark=new THREE.MeshStandardMaterial({color:0x252a32,metalness:.35,roughness:.48});
           const crystal=new THREE.MeshStandardMaterial({color:0x8de8ff,metalness:.28,roughness:.16,emissive:0x35bfff,emissiveIntensity:.7});
+          swordGlowMaterial=new THREE.MeshBasicMaterial({color:0x83dcff,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+          swordTrailMaterial=new THREE.MeshBasicMaterial({color:0x9beaff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
           // Eixo longitudinal +Y; lâmina com espessura real via ExtrudeGeometry.
           const bladeShape=new THREE.Shape();
           bladeShape.moveTo(-.035,0); bladeShape.lineTo(-.052,.12); bladeShape.lineTo(-.038,.57);
           bladeShape.lineTo(0,.76); bladeShape.lineTo(.038,.57); bladeShape.lineTo(.052,.12); bladeShape.lineTo(.035,0); bladeShape.closePath();
           const bladeGeo=new THREE.ExtrudeGeometry(bladeShape,{depth:.018,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.006,bevelThickness:.004});
           const blade=new THREE.Mesh(bladeGeo,pearl); blade.position.z=-.009; blade.castShadow=true; blade.receiveShadow=true; group.add(blade);
+          const glow=new THREE.Mesh(new THREE.PlaneGeometry(.15,.68),swordGlowMaterial);glow.position.set(0,.36,-.025);group.add(glow);
+          // Rastro geométrico fino, desligado por padrão e ativado apenas durante golpes rápidos.
+          const trailShape=new THREE.Shape();trailShape.moveTo(-.025,.02);trailShape.quadraticCurveTo(-.24,.28,-.11,.67);trailShape.lineTo(.02,.75);trailShape.quadraticCurveTo(-.04,.38,.025,.04);trailShape.closePath();
+          swordTrail=new THREE.Mesh(new THREE.ShapeGeometry(trailShape),swordTrailMaterial);swordTrail.position.set(0,0,-.04);swordTrail.visible=false;group.add(swordTrail);
           // Fio claro nas duas laterais.
           [-1,1].forEach(function(side){
             const rail=new THREE.Mesh(new THREE.BoxGeometry(.006,.52,.022),edge);
@@ -230,6 +236,20 @@
       if(swordCore&&swordCore.material){
         swordCore.material.emissiveIntensity=.48+.22*(.5+.5*Math.sin(swordPhase*3.2));
       }
+      const attacking=Number.isFinite(v.attackT)?v.attackT>=0:!!v.attack;
+      const attackId=Number.isFinite(v.attackId)?v.attackId:-1;
+      const attackTime=Number.isFinite(v.attackT)?v.attackT:0;
+      const fastSwing=attacking&&attackTime<.34;
+      if(attackId>=0&&attackId!==lastSwordAttackId){lastSwordAttackId=attackId;swordHitFlash=0;}
+      const hitSerial=Number(window.CelestialSwordHitSerial)||0;
+      if(hitSerial!==lastSwordHitSerial){lastSwordHitSerial=hitSerial;swordHitFlash=.16;}
+      swordHitFlash=Math.max(0,swordHitFlash-dt);
+      if(swordTrail&&swordTrailMaterial){
+        swordTrail.visible=fastSwing;
+        swordTrailMaterial.opacity=fastSwing?Math.max(0,.28*(1-Math.min(1,attackTime/.38))):0;
+      }
+      if(swordGlowMaterial){swordGlowMaterial.opacity=.08+.06*(.5+.5*Math.sin(swordPhase*2.4))+(swordHitFlash>0?.35:0);}
+      if(swordCore&&swordCore.material&&swordHitFlash>0){swordCore.material.emissiveIntensity=1.8;}
     }
     if(restoreModelScales)restoreModelScales();
     if(root&&rootBasePosition){root.position.copy(rootBasePosition);root.updateMatrixWorld(true);}
