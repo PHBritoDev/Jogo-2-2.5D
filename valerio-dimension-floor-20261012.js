@@ -614,7 +614,7 @@ const BishopDimension = (function () {
     }
     window.PlayerModelView={
       active:true,eye:eye.slice(),target:target.slice(),
-      position:[px,arenaFloorHeight(px,pz)+.04+playerJump,pz],yaw:playerYaw,
+      position:[px,arenaFloorHeight(px,pz)+.04+playerJump,pz],yaw:-playerYaw,
       aspect:w/h,fov:dist<0.95?1.22:1.02,firstPerson:dist<0.95,
       moving:playerMoving,speed:Math.hypot(Player.vx||0,Player.vy||0),
       dead:!!Player.dead,knockedDown:(Player.knockdownT||0)>0,
