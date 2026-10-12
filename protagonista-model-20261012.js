@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},attackClips=[],currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
   const MODEL_HEIGHT=2.15;
   // O GLB mede cerca de 1,90 no eixo Y; o cabo fica entre Y=0,57 e 0,95.
   const SWORD_SCALE=.62,SWORD_GRIP_Y=.75;
@@ -220,15 +220,16 @@
           });
           if(/breath|idle|rest|standstill|parado/.test(n))actions.idle=actions.idle||clip;
           if(/walk|walking|locomotion|andar|caminh/.test(n))actions.walk=actions.walk||clip;
-          if(/attack|slash|swing|strike|sword|melee|atacar|ataque/.test(n))actions.attack=actions.attack||clip;
+          if(/attack|slash|swing|strike|sword|melee|atacar|ataque|1h|2h|onehand|twohand|combat/.test(n)){attackClips.push(clip);actions.attack=actions.attack||clip;}
           if(/hurt|damage|hitreaction|takehit|tomardano|dano/.test(n))actions.hurt=actions.hurt||clip;
           if(/get.?up|stand.?up|rise|recover.?floor|levant|levantar/.test(n))actions.getup=actions.getup||clip;
           if(/death|dying|dead|^die$|morrer|morte/.test(n)){actions.death=actions.death||clip;actions.fall=actions.fall||clip;}
         });
         if(!actions.idle&&clips.length)actions.idle=clips[0];
         ready=true;window.ProtagonistaGLBReady=true;
+        window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k].name;return o;},{})};
         note('modelo pronto. Clips: '+clips.map(c=>c.name+' ('+(Number(c.duration)||0).toFixed(2)+'s)').join(', ')+
-          ' | mapeamento: '+Object.keys(actions).map(k=>k+'='+actions[k].name).join('; '),false);
+          ' | ataques encontrados: '+(attackClips.map(c=>c.name).join(', ')||'NENHUM')+' | mapeamento: '+Object.keys(actions).map(k=>k+'='+actions[k].name).join('; '),false);
       }catch(e){failed=true;note('erro preparando modelo: '+e.message,true);}
     },undefined,function(){failed=true;note('falha ao carregar Protagonista.glb; confira se o arquivo está na raiz do GitHub.',true);});
   }
@@ -248,12 +249,12 @@
     if(v.gettingUp){if(currentType!=='getup')play('getup',true);return;}
     // O clipe de morte do modelo também é a animação de queda; após o timer, toca get-up.
     if(v.knockedDown){if(currentType!=='fall')play('fall',true);return;}
-    if(v.attack){if(currentType!=='attack')play('attack',true);return;}
+    if(v.attack){const id=Number(v.attackId)||0;if(id!==lastPlayedAttackId){lastPlayedAttackId=id;const clip=attackClips.length?attackClips[(id-1)%attackClips.length]:null;if(clip){actions.attack=clip;play('attack',true);}else{currentType='';}}return;}
     if(v.hurt){if(currentType!=='hurt')play('hurt',true);return;}
     if(v.moving&&actions.walk){if(currentType!=='walk'||!currentAction||!currentAction.isRunning())play('walk',false);return;}
     if(currentType!=='idle'||!currentAction||!currentAction.isRunning())play('idle',false);
   }
-  let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1;
+  let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1,lastPlayedAttackId=-1;
   function refreshSwordDiagnostics(now){
     if(now-swordStatusCheckAt<250)return;swordStatusCheckAt=now;
     let el=document.getElementById('sword-debug-status');
