@@ -296,9 +296,20 @@ const ValerioCombatAI = {
     const pool = ready.length ? ready : normal;
     if (!pool.length) return null;
 
-    // Se o jogador corre, prioriza um golpe amplo quando disponível.
+    const find = id => pool.find(a => a.id === id);
     const wide = pool.find(a => /sweep|wave|ring|circle/i.test(a.id + ' ' + (a.name || '')));
-    if (playerSpeed > 100 && wide && distance > 75) return wide;
+    const heavy = pool.find(a => a.id === 'vault' || /heavy|slam|smash/i.test(a.id + ' ' + (a.name || '')));
+
+    // Decide pela distância e pelo comportamento do jogador, não só por rotação fixa.
+    if (playerSpeed > 105 && distance > 72 && wide) return wide;
+    if (distance > 145 && heavy && (index % 2 === 0 || profile.id === 'bishop1')) return heavy;
+    if (distance < 105) return find('tax') || normal[index % Math.max(1, normal.length)] || pool[0];
+    if (profile.id === 'bishop1' && pool.length > 1) {
+      // Evita repetir o mesmo ataque consecutivamente quando há alternativas disponíveis.
+      const previous = attacks[index % attacks.length];
+      const alternative = pool.find(a => a.id !== (previous && previous.id));
+      if (alternative && index % 3 === 0) return alternative;
+    }
     return pool[index % pool.length];
   }
 };
