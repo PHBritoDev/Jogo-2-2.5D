@@ -446,7 +446,8 @@
               });
               const clipName=(clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
               const isRootMotionClip=clipName==='hitknockbackrootmotion'||clipName==='swordlightcombo';
-              if(isRootMotionClip){
+              const isLocomotionClip=/walk|walking|run|running|sprint|jog|locomotion/.test(clipName);
+              if(isRootMotionClip||isLocomotionClip){
                 const changed=[];
                 clip.tracks.forEach(function(track){
                   const trackName=String(track.name||'');
@@ -462,7 +463,12 @@
                   for(let k=0;k<track.times.length;k++){
                     const i=k*stride;
                     if(isRootNode){values[i]=firstX;values[i+1]=firstY;values[i+2]=firstZ;}
-                    else {values[i]=firstX;values[i+2]=firstZ;}
+                    else {
+                      values[i]=firstX;values[i+2]=firstZ;
+                      // Caminhada/corrida não deve animar a altura do quadril:
+                      // isso fazia o modelo inteiro parecer flutuar acima do piso.
+                      if(isLocomotionClip)values[i+1]=firstY;
+                    }
                   }
                   changed.push(trackName);
                 });
