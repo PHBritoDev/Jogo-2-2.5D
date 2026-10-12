@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0;
   const MODEL_HEIGHT=2.35;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
@@ -37,6 +37,7 @@
         root.position.x-=((box.min.x+box.max.x)/2)*factor;
         root.position.z-=((box.min.z+box.max.z)/2)*factor;
         root.position.y-=box.min.y*factor;
+        rootBasePosition=root.position.clone();
         pivot=new THREE.Group();pivot.visible=false;pivot.add(root);api.scene.add(pivot);
         mixer=new THREE.AnimationMixer(root);
         const clips=gltf.animations||[];
@@ -106,6 +107,7 @@
     }
     const dt=Math.min(Math.max((now-last)/1000,0),.05);last=now;
     if(mixer)mixer.update(dt);
+    if(root&&rootBasePosition){root.position.copy(rootBasePosition);root.updateMatrixWorld(true);}
     // A renderização fica com o loop do Valério: os dois modelos compartilham depth buffer.
   }
   window.ProtagonistaGLBReady=false;
