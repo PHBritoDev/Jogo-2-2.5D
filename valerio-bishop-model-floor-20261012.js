@@ -136,7 +136,7 @@
     try {
       clips.forEach(function(clip) {
         const duration = Math.max(0, Number(clip.duration) || 0);
-        const intervals = Math.max(1, Math.ceil(duration * 12));
+        const intervals = Math.max(1, Math.ceil(duration * 30)); // MODIFICAÇÃO 11: amostragem mais precisa do contato dos pés com o chão.
         const floorSamples = [];
         for (let i = 0; i <= intervals; i++) {
           mixer.stopAllAction();
