@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},attackClips=[],currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},attackClips=[],currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordPivot=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
   const MODEL_HEIGHT=2.15;
   // O GLB mede cerca de 1,90 no eixo Y; o cabo fica entre Y=0,57 e 0,95.
   const SWORD_SCALE=.62,SWORD_GRIP_Y=.75;
@@ -127,7 +127,9 @@
           swordMount=new THREE.Group();
           swordMount.name='EspadaProta_HandMount';
           api.scene.add(swordMount);
-          swordMount.add(swordRoot);
+          swordMount.add(swordPivot=new THREE.Group());
+          swordPivot.name='EspadaProta_AttackPivot';
+          swordPivot.add(swordRoot);
           updateSwordMount();
         }
         addSwordEffects(swordRoot);
@@ -157,7 +159,7 @@
       swordRoot.traverse(function(o){if(o.isMesh)o.visible=true;});
       if(swordMount)swordMount.visible=false;
     }else if(swordHand&&swordMount){
-      swordMount.add(swordRoot);
+      if(swordPivot)swordPivot.add(swordRoot);else swordMount.add(swordRoot);
       swordRoot.position.set(0,SWORD_GRIP_Y*SWORD_SCALE,0);
       swordRoot.rotation.set(0,0,Math.PI);
       swordRoot.scale.setScalar(SWORD_SCALE);
@@ -226,6 +228,7 @@
           if(/death|dying|dead|^die$|morrer|morte/.test(n)){actions.death=actions.death||clip;actions.fall=actions.fall||clip;}
         });
         if(!actions.idle&&clips.length)actions.idle=clips[0];
+        if(!attackClips.length){const skip=/idle|breath|rest|standstill|walk|walking|run|running|sprint|jog|locomotion|hurt|damage|hitreaction|takehit|death|dying|dead|get.?up|stand.?up|recover|parado|andar|caminh|morrer|morte/i;attackClips=clips.filter(function(c){return c!==actions.idle&&!skip.test(c.name||'')&&Number(c.duration)>.25;});}
         ready=true;window.ProtagonistaGLBReady=true;
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k].name;return o;},{})};
         note('modelo pronto. Clips: '+clips.map(c=>c.name+' ('+(Number(c.duration)||0).toFixed(2)+'s)').join(', ')+
@@ -319,7 +322,7 @@
       if(v.attack&&attackId!==lastSwordAttackId){lastSwordAttackId=attackId;swordAttackStart=now;}
       const swingProgress=swordAttackStart<0?1:Math.max(0,Math.min(1,(now-swordAttackStart)/460));
       const swingAngle=swingProgress<1?Math.sin(swingProgress*Math.PI)*1.35:0;
-      swordRoot.rotation.set(0,0,Math.PI+swingAngle);
+      if(swordPivot&&swordRoot.parent===swordPivot){swordPivot.rotation.set(0,0,swingAngle);swordRoot.rotation.set(0,0,Math.PI);}else{swordRoot.rotation.set(0,0,Math.PI+swingAngle);}
       swordPhase+=dt;
       swordEffects.forEach(function(p,i){
         const phase=p.userData.phase+swordPhase*(1.15+(i%3)*.18);
@@ -328,6 +331,7 @@
       });
       if(swordLight)swordLight.intensity=.55+.22*(.5+.5*Math.sin(swordPhase*2.4));
     }
+    if(currentType==='attack'&&currentAction&&!currentAction.isRunning())currentType='';
     if(restoreModelScales)restoreModelScales();
     if(root&&rootBasePosition){root.position.copy(rootBasePosition);root.updateMatrixWorld(true);}
     if(swordMount&&swordHand)updateSwordMount();
