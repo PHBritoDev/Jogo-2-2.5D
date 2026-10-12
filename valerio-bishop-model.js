@@ -4,7 +4,7 @@
   // Calibração validada pelo espaço da arena: o GLB deve ocupar cerca de 0,95 unidade de altura na arena.
   const VALERIO_MODEL_HEIGHT=0.95;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
-  let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null;
+  let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null,weaponScaleCompensation=false;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
   let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
   let attackCycleActive=false,activeAttackClip=null,nextAttackClipIndex=0;
@@ -258,7 +258,7 @@
       weaponPivot.rotation.set(0,0,-.12);
       weaponRoot.position.y-=.28; // ajuste inicial do ponto de pegada; calibrar visualmente no jogo
       weaponPivot.add(weaponRoot);
-      if(handBone)handBone.add(weaponPivot);else pivot.add(weaponPivot);
+      if(handBone){handBone.add(weaponPivot);weaponScaleCompensation=true;}else{pivot.add(weaponPivot);weaponScaleCompensation=false;}
       showStatus((window.ValerioClipDiagnostics||'Clips do modelo carregados')+'\nfoice carregada; presa em '+(handBone&&handBone.name||'pivô do corpo')+'; ajuste de pegada ativo',false);
       console.info('Espada1.glb anexada à mão direita:',handBone&&handBone.name);
     },undefined,function(err){console.warn('Espada1.glb não carregou.',err);});
@@ -649,6 +649,19 @@
         if(animType==='procedural-walk')legRight.rotation.x-=walking;
       }
       if(weaponPivot){
+        // A hierarquia do GLB contém escalas de importação pequenas (por exemplo, Armature 0.01).
+        // Compensa a escala mundial da mão para a arma manter o tamanho normalizado de 0,62 unidade.
+        // Como a compensação fica no pivô, os offsets locais do cabo continuam acompanhando a mão.
+        if(weaponScaleCompensation&&handBone){
+          handBone.updateWorldMatrix(true,false);
+          const handWorldScale=new THREE.Vector3();
+          handBone.getWorldScale(handWorldScale);
+          weaponPivot.scale.set(
+            Math.abs(handWorldScale.x)>1e-5?1/handWorldScale.x:1,
+            Math.abs(handWorldScale.y)>1e-5?1/handWorldScale.y:1,
+            Math.abs(handWorldScale.z)>1e-5?1/handWorldScale.z:1
+          );
+        }else weaponPivot.scale.set(1,1,1);
         // O pivô está na mão; o golpe acompanha o braço em vez de girar nas costas.
         const swing=animType==='procedural-attack'?attackProgress:0;
         // Sem clip de ataque no GLB, ampliamos o arco procedural para a foice acompanhar claramente o ombro.
