@@ -7,6 +7,7 @@
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null,weaponScaleCompensation=false;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
   let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
+  let animationFloorProfiles=[],floorEnvelopeMinY=0;
   let attackCycleActive=false,activeAttackClip=null,nextAttackClipIndex=0,activeAttackStage=0;
   // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
   const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
@@ -94,7 +95,7 @@
   }
   function measureAnimationEnvelope(model, clips) {
     if (!mixer || !clips || !clips.length) {
-      return { box: measureModelBounds(model), samples: 0 };
+      return { box: measureModelBounds(model), samples: 0, floorProfiles: [] };
     }
     const savedTransforms = [];
     model.traverse(function(obj) {
@@ -117,10 +118,12 @@
     const envelope = new THREE.Box3();
     let referenceBox = null;
     let samples = 0;
+    const floorProfiles = [];
     try {
       clips.forEach(function(clip) {
         const duration = Math.max(0, Number(clip.duration) || 0);
         const intervals = Math.max(1, Math.ceil(duration * 12));
+        const floorSamples = [];
         for (let i = 0; i <= intervals; i++) {
           mixer.stopAllAction();
           restoreTransforms();
@@ -137,12 +140,14 @@
           mixer.update(0);
           const poseBox = measureModelBounds(model);
           if (!poseBox.isEmpty()) {
+            floorSamples.push({ time: duration * (i / intervals), minY: poseBox.min.y });
             envelope.union(poseBox);
             const isIdlePose = /idle|breath|rest|stand/i.test(clip.name || '');
             if (i === 0 && (!referenceBox || isIdlePose)) referenceBox = poseBox.clone();
           }
           samples++;
         }
+        if (floorSamples.length) floorProfiles.push({ clip: clip, duration: duration, samples: floorSamples });
       });
     } finally {
       mixer.stopAllAction();
@@ -154,7 +159,7 @@
       model.updateMatrixWorld(true);
     }
     if (envelope.isEmpty()) throw new Error('Não foi possível medir as poses esqueléticas do GLB');
-    return { box: envelope, referenceBox: referenceBox || envelope.clone(), samples: samples };
+    return { box: envelope, referenceBox: referenceBox || envelope.clone(), samples: samples, floorProfiles: floorProfiles };
   }
   function fitModel(model,height,diagnosticName,clips) {
     const measureFitBounds = function() {
@@ -184,6 +189,12 @@
     // escala-base diferente de 1. A caixa de referência recebe o mesmo fator.
     const baseScale=model.scale.clone();
     const basePosition=model.position.clone();
+    const floorMinY=(measurement.box.min.y-basePosition.y)*appliedScale;
+    const floorProfiles=(measurement.floorProfiles||[]).map(function(profile){
+      return {clip:profile.clip,duration:profile.duration,samples:profile.samples.map(function(sample){
+        return {time:sample.time,minY:(sample.minY-basePosition.y)*appliedScale};
+      })};
+    });
     model.scale.set(baseScale.x*appliedScale,baseScale.y*appliedScale,baseScale.z*appliedScale);
     if(diagnosticName){
       window.ValerioScaleDiagnostics='Modelo: '+diagnosticName+' | altura medida nas poses do esqueleto: '+measuredHeight.toFixed(5) + ' | fator aplicado à escala-base: '+appliedScale.toFixed(5)+' | alvo: '+height;
@@ -204,7 +215,29 @@
     const anchorCenter=anchorBox.getCenter(new THREE.Vector3());
     model.position.set(-anchorCenter.x,-floorBox.min.y,-anchorCenter.z);
     model.updateMatrixWorld(true);
-    return model;
+    return {floorMinY:floorMinY,floorProfiles:floorProfiles};
+  }
+  function animationFloorCorrection() {
+    if (!currentAction || !animationFloorProfiles.length) return 0;
+    const clip = currentAction.getClip();
+    const profile = animationFloorProfiles.find(function(entry) { return entry.clip === clip; });
+    if (!profile || !profile.samples.length) return 0;
+    const duration = Math.max(0, Number(profile.duration) || 0);
+    let time = Number(currentAction.time) || 0;
+    if (currentAction.loop === THREE.LoopRepeat && duration > 0) time = ((time % duration) + duration) % duration;
+    time = Math.max(0, Math.min(duration, time));
+    const samples = profile.samples;
+    if (samples.length === 1 || time <= samples[0].time) return floorEnvelopeMinY - samples[0].minY;
+    let low = 0, high = samples.length - 1;
+    while (high - low > 1) {
+      const middle = (low + high) >> 1;
+      if (samples[middle].time <= time) low = middle; else high = middle;
+    }
+    const a = samples[low], b = samples[high];
+    const span = b.time - a.time;
+    const amount = span > 0 ? (time - a.time) / span : 0;
+    const poseMinY = a.minY + (b.minY - a.minY) * amount;
+    return floorEnvelopeMinY - poseMinY;
   }
   // GLTFs podem conter trilhas de escala em grupos ou no próprio esqueleto.
   // O fit é calculado a partir da escala importada; se um clip trocar, por
@@ -508,7 +541,9 @@
               }
               return clip;
             });
-            fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb',clips);
+            const floorFit=fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb',clips);
+            animationFloorProfiles=floorFit.floorProfiles;
+            floorEnvelopeMinY=floorFit.floorMinY;
             rootBasePosition=root.position.clone();
             restoreModelScales=lockModelScales(pivot);
             const normalized=function(c){return (c.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
@@ -640,7 +675,11 @@
       mixer.update(turnDt);
     }
     // Clips com root-motion podem deslocar o personagem para baixo do piso; o combate já controla a posição do boss.
-    if(rootBasePosition&&root)root.position.copy(rootBasePosition);
+    if(rootBasePosition&&root){
+      root.position.copy(rootBasePosition);
+      // Reancora a pose ativa no piso, em vez de usar a pose mais baixa de outra animação.
+      root.position.y+=animationFloorCorrection();
+    }
     // Preserva o offset de pés calculado no fit inicial. O Box3 por frame usava
     // bounds de bind-pose em meshes esqueléticos e fazia Valério afundar no chão.
     if(restoreModelScales)restoreModelScales();
