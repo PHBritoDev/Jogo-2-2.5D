@@ -229,13 +229,6 @@
     model.updateMatrixWorld(true);
     return {floorMinY:floorMinY,floorProfiles:floorProfiles};
   }
-  // Mede a malha esquelética na pose FINAL deste frame (inclui os ossos e rotações manuais) e
-  // translada só o pivô verticalmente até o ponto mais baixo tocar o piso real do boss.
-  function anchorPoseToFloor(targetY) {
-    if(!root||!pivot||!Number.isFinite(targetY))return;
-    const bounds=measureModelBounds(root,true);
-    if(!bounds.isEmpty()&&Number.isFinite(bounds.min.y))pivot.position.y+=targetY-bounds.min.y; // MOD 9: ancora o corpo pelo ponto mais baixo do personagem, excluindo a foice.
-  }
   function animationFloorCorrection() {
     if (!currentAction || !animationFloorProfiles.length) return 0;
     const clip = currentAction.getClip();
@@ -693,10 +686,13 @@
       }
       mixer.update(turnDt);
     }
-    // Combate define a posição; o ajuste final do piso ocorre depois de aplicar a pose completa.
-    if(rootBasePosition&&root)root.position.copy(rootBasePosition);
-    // Preserva o offset de pés calculado no fit inicial. O Box3 por frame usava
-    // bounds de bind-pose em meshes esqueléticos e fazia Valério afundar no chão.
+    // RECUPERAÇÃO: volta ao sistema de piso anterior à regressão introduzida
+    // pela ancoragem por bounding box a cada frame. O combate define o pivô;
+    // a correção amostrada do clip compensa apenas o root-motion vertical.
+    if(rootBasePosition&&root){
+      root.position.copy(rootBasePosition);
+      root.position.y+=animationFloorCorrection();
+    }
     if(restoreModelScales)restoreModelScales();
     // A escala do personagem é definida uma vez por fitModel(). Não recalcular
     // a escala pela bounding box animada: respiração, ataque e poses mudam a caixa
@@ -782,8 +778,6 @@
       if(legRight&&legRightBase)legRight.rotation.copy(legRightBase);
       if(weaponPivot){weaponPivot.rotation.set(0,0,-.12);}
     }
-    // Corrige a altura após mixer, scale restoration e rotações/procedimentos do frame.
-    anchorPoseToFloor(Number(v.position[1])||0);
     previousState=v.state||'';
     last=now;renderer.render(scene,camera);
   }
