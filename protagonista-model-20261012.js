@@ -1,8 +1,8 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0;
-  const MODEL_HEIGHT=2.35;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0;
+  const MODEL_HEIGHT=2.15;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
     window.ProtagonistaDiagnostics=message;
@@ -152,7 +152,11 @@
     if(!ready||!v||!v.active||v.firstPerson||!pivot||!api){if(pivot)pivot.visible=false;return;}
     pivot.visible=true;
     pivot.position.set(v.position[0],v.position[1],v.position[2]);
-    pivot.rotation.y=v.yaw||0;
+    const targetYaw=Number.isFinite(v.yaw)?v.yaw:0;
+    const turnDt=Math.min(Math.max((now-yawLast)/1000,0),.05);yawLast=now;
+    if(renderedYaw===null)renderedYaw=targetYaw;
+    else {const delta=Math.atan2(Math.sin(targetYaw-renderedYaw),Math.cos(targetYaw-renderedYaw));const maxTurn=7*turnDt;renderedYaw+=Math.max(-maxTurn,Math.min(maxTurn,delta));}
+    pivot.rotation.y=renderedYaw;
     choose(v);
     if(currentType==='walk'&&currentAction){
       const speed=Math.max(0,Number(v.speed)||0);

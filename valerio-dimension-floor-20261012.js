@@ -591,8 +591,27 @@ const BishopDimension = (function () {
     const target=[px+sy*cp*lookAhead,1.2+sp*lookAhead,pz-cy*cp*lookAhead];
     const pv=multiply(perspective(dist<0.95?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
     const playerJump=clamp(Player.z||0,0,60)*unit;
-    const playerYaw=Math.atan2(Number.isFinite(Player.fx)?Player.fx:0,-(Number.isFinite(Player.fy)?Player.fy:-1));
     const playerMoving=Math.hypot(Player.vx||0,Player.vy||0)>18;
+    const playerIsAttacking=(Player.attackT||-1)>=0;
+    let playerYaw=Math.atan2(Number.isFinite(Player.fx)?Player.fx:0,-(Number.isFinite(Player.fy)?Player.fy:-1));
+    // Híbrido: em movimento, respeita a direção escolhida; parado, encara o Bispo;
+    // durante o golpe, o corpo acompanha a direção real do ataque.
+    if(playerIsAttacking){
+      const ax=Number.isFinite(Player.atkDirX)?Player.atkDirX:Player.fx;
+      const ay=Number.isFinite(Player.atkDirY)?Player.atkDirY:Player.fy;
+      playerYaw=Math.atan2(ax,-ay);
+    }else if(!playerMoving){
+      const facingBossStep=Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst';
+      const facingBossLive=facingBossStep&&(BishopBoss.state!=='inactive'||(Campaign.st&&Campaign.st.phase==='intro'));
+      if(facingBossLive){
+        const bossActiveForFacing=BishopBoss.state!=='inactive';
+        const bxFacing=bossActiveForFacing&&Number.isFinite(BishopBoss.x)?BishopBoss.x:Casino.bossStart.x;
+        const byFacing=bossActiveForFacing&&Number.isFinite(BishopBoss.y)?BishopBoss.y:Casino.bossStart.y;
+        const bossXFacing=(bxFacing-(room.left+room.right)/2)*unit;
+        const bossZFacing=(byFacing-(room.top+room.bottom)/2)*unit;
+        playerYaw=Math.atan2(bossXFacing-px,bossZFacing-pz);
+      }
+    }
     window.PlayerModelView={
       active:true,eye:eye.slice(),target:target.slice(),
       position:[px,arenaFloorHeight(px,pz)+.04+playerJump,pz],yaw:playerYaw,
