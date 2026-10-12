@@ -42,6 +42,22 @@
         const clips=gltf.animations||[];
         clips.forEach(function(clip){
           const n=(clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+          const locomotion=/walk|walking|run|running|sprint|jog|locomotion|andar|caminh/.test(n);
+          clip.tracks.forEach(function(track){
+            const name=String(track.name||''),prop=name.split(/[.:/]/).pop().replace(/\[[^\]]*\]$/,'').toLowerCase();
+            if(prop!=='position'||!track.values||!track.times||!track.times.length)return;
+            const node=name.replace(/\.position.*$/i,'').replace(/\/position.*$/i,'').replace(/\[.*?\]/g,'').toLowerCase();
+            const rootNode=/(^|[^a-z])(root|armature|scene|rootmotion)([^a-z]|$)/i.test(node);
+            const hips=/hips|pelvis/.test(node);
+            if(!rootNode&&!hips)return;
+            const values=track.values,stride=typeof track.getValueSize==='function'?track.getValueSize():3;
+            if(stride<3)return;
+            const x=values[0],y=values[1],z=values[2];
+            for(let i=0;i<track.times.length;i++){
+              const k=i*stride;values[k]=x;values[k+2]=z;
+              if(rootNode||locomotion)values[k+1]=y;
+            }
+          });
           if(/breath|idle|rest|standstill|parado/.test(n))actions.idle=actions.idle||clip;
           if(/walk|walking|locomotion|andar|caminh/.test(n))actions.walk=actions.walk||clip;
           if(/attack|slash|swing|strike|sword|melee|atacar|ataque/.test(n))actions.attack=actions.attack||clip;
@@ -84,6 +100,10 @@
     pivot.position.set(v.position[0],v.position[1],v.position[2]);
     pivot.rotation.y=v.yaw||0;
     choose(v);
+    if(currentType==='walk'&&currentAction){
+      const speed=Math.max(0,Number(v.speed)||0);
+      currentAction.setEffectiveTimeScale(Math.max(.35,Math.min(1.35,speed/130)));
+    }
     const dt=Math.min(Math.max((now-last)/1000,0),.05);last=now;
     if(mixer)mixer.update(dt);
     // A renderização fica com o loop do Valério: os dois modelos compartilham depth buffer.
