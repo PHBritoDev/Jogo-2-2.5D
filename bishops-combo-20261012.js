@@ -26,7 +26,7 @@ const BISHOP_PROFILES = {
     reward: { coins: 120, unlocks: ['greed_bishop_1_defeated'] },
     arena: Casino.bossStart,
     attacks: [
-      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.28, cooldown: 0.72, range: 58, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.18, secondHitScale: 0.65 },
+      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.62, cooldown: 0.9, range: 58, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.36, secondHitScale: 0.65 },
       { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.02, range: 82, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
       { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 0.84, range: 72, damage: 19, kb: 310, lunge: 92, hitAt: 0.09 }
     ]
