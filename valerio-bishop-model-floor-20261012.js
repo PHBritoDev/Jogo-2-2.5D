@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   // Escala normalizada para manter o Valério em tamanho de chefe na arena.
-  const VALERIO_MODEL_HEIGHT=3.8;
+  const VALERIO_MODEL_HEIGHT=4.05;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null,weaponScaleCompensation=false;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
