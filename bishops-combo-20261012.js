@@ -489,11 +489,19 @@ const BishopBoss = {
           const secondCanReach=alive && d < this.attack.range && secondFacingDot > 0.12 &&
             Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH;
           if (!Player.dead && (this.hitDonePrimary || secondCanReach)) {
-            const secondaryDamage=Player.hurt(
+            // Compatibilidade defensiva: limpar a invulnerabilidade antes do
+            // segundo impacto também funciona se uma versão antiga de player.js
+            // ainda estiver em cache e não reconhecer a opção ignoreInvuln.
+            const previousInvuln = Player.invuln;
+            if (this.hitDonePrimary) Player.invuln = 0;
+            const secondaryDamage = Player.hurt(
               this.attack.damage * (this.attack.secondHitScale || 0.65) * this.profile.damage,
               this.x, this.y, this.attack.kb * 0.35,
               { ignoreInvuln: this.hitDonePrimary }
             );
+            if (secondaryDamage <= 0 && !Player.dead) {
+              Player.invuln = Math.max(Player.invuln || 0, previousInvuln || 0);
+            }
             if (secondaryDamage > 0) {
               Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 6, '#ffffff');
             }
