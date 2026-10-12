@@ -44,7 +44,7 @@
     const fall=/fall|falling|knockdown|collapse|stumble|caer|queda/.test(n);
     const death=/death|dying|dead|^die$|morrer|morte/.test(n);
     const getup=/getup|standup|rise|recoverfloor|levant|levantar/.test(n);
-    if(role==='attack')return hurt||idle||walk||fall||death||getup;
+    if(role==='attack')return hurt||idle||walk||fall||death||getup||/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand/.test(n)===false;
     if(role==='hurt')return attack||idle||walk||fall||death||getup;
     if(role==='idle')return attack||hurt||walk||fall||death||getup;
     if(role==='walk')return attack||hurt||idle||fall||death||getup;
@@ -54,7 +54,7 @@
   }
   function applySavedAnimationRoles(clips){
     let saved={};
-    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV1')||'{}')||{};}catch(e){}
+    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV2')||'{}')||{};}catch(e){}
     Object.keys(ROLE_LABELS).forEach(function(role){
       const index=Number(saved[role]);
       if(Number.isInteger(index)&&index>=0&&index<clips.length){
@@ -76,7 +76,7 @@
     const existing=document.getElementById('protagonista-animation-debug');
     if(existing)existing.remove();
     let saved={};
-    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV1')||'{}')||{};}catch(e){}
+    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV2')||'{}')||{};}catch(e){}
     const panel=document.createElement('div');
     panel.id='protagonista-animation-debug';
     panel.style.cssText='position:fixed;z-index:99999;left:6px;right:6px;top:6px;max-height:48vh;overflow:auto;background:rgba(0,0,0,.94);color:#fff;padding:8px;border:1px solid #d8b45a;border-radius:6px;font:11px/1.35 monospace;pointer-events:auto';
@@ -107,7 +107,7 @@
       assign.addEventListener('click',function(){
         const role=select.value;if(!role)return;
         saved[role]=i;
-        try{localStorage.setItem('protagonistaAnimationRolesV1',JSON.stringify(saved));}catch(e){}
+        try{localStorage.setItem('protagonistaAnimationRolesV2',JSON.stringify(saved));}catch(e){}
         actions[role]=clip;
         if(role==='attack')attackClips=[clip];
         if(role==='death'){actions.fall=actions.fall||clip;}
@@ -328,14 +328,16 @@
           });
           if(/breath|idle|rest|standstill|parado/.test(n))actions.idle=actions.idle||clip;
           if(/walk|walking|locomotion|andar|caminh/.test(n))actions.walk=actions.walk||clip;
-          if(/attack|slash|swing|strike|sword|melee|atacar|ataque|1h|2h|onehand|twohand|combat/.test(n)){attackClips.push(clip);actions.attack=actions.attack||clip;}
+          const namedAttack=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand/.test(n);
+          const conflictingAction=/hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh|get.?up|stand.?up|rise|recover.?floor|levant|levantar/.test(n);
+          if(namedAttack&&!conflictingAction){attackClips.push(clip);actions.attack=actions.attack||clip;}
           if(/hurt|damage|hitreaction|takehit|tomardano|dano/.test(n))actions.hurt=actions.hurt||clip;
           if(/get.?up|stand.?up|rise|recover.?floor|levant|levantar/.test(n))actions.getup=actions.getup||clip;
           if(/fall|falling|knockdown|collapse|stumble|caer|queda/.test(n))actions.fall=actions.fall||clip;
           if(/death|dying|dead|^die$|morrer|morte/.test(n))actions.death=actions.death||clip;
         });
         applySavedAnimationRoles(clips);
-        const unsafeRole=/hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh/i;
+        const unsafeRole=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand|hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh/i;
         if(!actions.idle){
           actions.idle=clips.find(function(c){return /breath|idle|rest|standstill|parado/i.test(c.name||'');})||null;
         }
@@ -347,13 +349,14 @@
           // a seleção do ataque nunca depende desta escolha.
           actions.idle=clips.find(function(c){return !unsafeRole.test(c.name||'');})||null;
         }
-        // Queda forte usa o clip de morte quando não existe um clip próprio de queda.
-        // Se o arquivo só tiver um deles, ambos os estados reutilizam esse mesmo clip.
-        actions.fall=actions.fall||actions.death||null;
-        actions.death=actions.death||actions.fall||null;
+        // Queda e morte são estados distintos: nunca reutilizar a animação de morte para derrubada.
+        actions.fall=actions.fall||null;
+        actions.death=actions.death||null;
         window.ProtagonistaAnimationTiming={
-          fallDuration:Number((actions.fall||actions.death||{}).duration)||1.05,
-          getupDuration:Number((actions.getup||{}).duration)||1.05
+          attackDuration:.34,
+          hurtDuration:.18,
+          fallDuration:Math.max(1.15,Number((actions.fall||{}).duration)||0),
+          getupDuration:Math.max(1.05,Number((actions.getup||{}).duration)||0)
         };
         ready=true;window.ProtagonistaGLBReady=true;
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k]&&actions[k].name||null;return o;},{})};
@@ -366,15 +369,20 @@
   }
   function play(type,once){
     const THREE=api.THREE,clip=actions[type]||((type==='idle'||type==='walk')?actions.idle:null);
-    if(!clip||!mixer)return;
+    const critical=/^(attack|hurt|fall|death|getup)$/.test(type);
+    if(!clip||!mixer){
+      if(critical&&currentAction){currentAction.stop();currentAction=null;currentType='';}
+      return;
+    }
     const next=mixer.clipAction(clip);
     if(currentAction===next&&next.isRunning())return;
     const timing=window.ProtagonistaAnimationTiming||{};
-    const targetDuration=type==='attack'?Number(timing.attackDuration):type==='hurt'?Number(timing.hurtDuration):0;
+    const targetDuration=type==='attack'?Number(timing.attackDuration):type==='hurt'?Number(timing.hurtDuration):type==='fall'?Number(timing.fallDuration):type==='death'?Number(timing.deathDuration)||0:type==='getup'?Number(timing.getupDuration):0;
     const clipDuration=Number(clip.duration)||0;
     const playbackScale=targetDuration>0&&clipDuration>0?clipDuration/targetDuration:1;
     const fade=targetDuration>0?Math.min(.07,targetDuration*.2):.09;
-    if(currentAction)currentAction.fadeOut(fade);
+    const previousCritical=/^(attack|hurt|fall|death|getup)$/.test(currentType);
+    if(currentAction){if(critical||previousCritical)currentAction.stop();else currentAction.fadeOut(fade);}
     next.reset();next.enabled=true;next.setEffectiveWeight(1);
     next.setEffectiveTimeScale(playbackScale);
     next.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);
