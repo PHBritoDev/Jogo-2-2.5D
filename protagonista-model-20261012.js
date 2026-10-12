@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},attackClips=[],currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordPivot=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},attackClips=[],fallbackAttackClip=null,currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordPivot=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
   const MODEL_HEIGHT=2.15;
   // O GLB mede cerca de 1,90 no eixo Y; o cabo fica entre Y=0,57 e 0,95.
   const SWORD_SCALE=.62,SWORD_GRIP_Y=.75;
@@ -35,10 +35,7 @@
     };
   }
   function showAnimationDiagnostics(clips){
-    let el=document.getElementById('protagonista-animation-debug');
-    if(!el){el=document.createElement('div');el.id='protagonista-animation-debug';el.style.cssText='position:fixed;right:8px;top:8px;z-index:99998;max-width:min(92vw,420px);max-height:24vh;overflow:auto;padding:7px 9px;border-radius:6px;background:rgba(0,0,0,.78);color:#fff;font:11px/1.35 monospace;white-space:normal;pointer-events:none;';document.body.appendChild(el);}
-    const names=clips.map(function(c,i){return i+': '+(c.name||'(sem nome)')+' ['+(Number(c.duration)||0).toFixed(2)+'s]';});
-    el.textContent='CLIPS DO PROTAGONISTA: '+(names.join(' | ')||'nenhum')+' || GOLPES IDENTIFICADOS: '+(attackClips.map(function(c){return c.name||'(sem nome)';}).join(', ')||'NENHUM — sem nomes de ataque reconhecíveis');
+    // Diagnósticos ficam disponíveis em window.ProtagonistaAnimationDiagnostics, sem texto sobre a tela.
   }
   function findAPI(){
     if(disabled||ready||failed)return;
@@ -234,15 +231,34 @@
           if(/fall|falling|knockdown|collapse|stumble|caer|queda/.test(n))actions.fall=actions.fall||clip;
           if(/death|dying|dead|^die$|morrer|morte/.test(n))actions.death=actions.death||clip;
         });
+        const unsafeRole=/hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh/i;
         if(!actions.idle){
-          // Não usar clips de ataque/dano/morte como repouso quando o GLB não nomeia um idle.
-          const unsafeIdle=/attack|slash|swing|strike|sword|melee|atacar|ataque|hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda/i;
-          actions.idle=clips.find(function(c){return !unsafeIdle.test(c.name||'');})||null;
+          actions.idle=clips.find(function(c){return /breath|idle|rest|standstill|parado/i.test(c.name||'');})||null;
         }
-        // Segurança: não transformar clips desconhecidos em golpes. Isso fazia morte/dano entrarem no combo quando o GLB usa nomes genéricos.
+        if(!attackClips.length){
+          // Para nomes genéricos, infere um golpe provável pela movimentação dos braços/tronco.
+          // Escolhe apenas um fallback: nunca alterna por animações desconhecidas de morte/dano.
+          let bestScore=-Infinity;
+          clips.forEach(function(clip){
+            if(unsafeRole.test(clip.name||''))return;
+            if((Number(clip.duration)||0)<.25||(Number(clip.duration)||0)>3.5)return;
+            let upper=0,lower=0;
+            (clip.tracks||[]).forEach(function(track){
+              const target=String(track.name||'').split(/[.:/]/)[0].toLowerCase();
+              if(/arm|hand|wrist|forearm|shoulder|elbow|spine|chest|torso|weapon|sword|finger/.test(target))upper++;
+              if(/hips|pelvis|thigh|leg|foot|calf|rootmotion|(^|[^a-z])root([^a-z]|$)/.test(target))lower++;
+            });
+            const score=upper*2-lower;
+            if(upper>0&&score>bestScore){bestScore=score;fallbackAttackClip=clip;}
+          });
+          if(fallbackAttackClip)attackClips=[fallbackAttackClip];
+        }
+        if(!actions.idle){
+          actions.idle=clips.find(function(c){return !unsafeRole.test(c.name||'')&&c!==fallbackAttackClip;})||null;
+        }
         ready=true;window.ProtagonistaGLBReady=true;
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k].name;return o;},{})};
-        showAnimationDiagnostics(clips);
+        // A lista de clips fica disponível em window.ProtagonistaAnimationDiagnostics, sem texto na tela.
         note('modelo pronto. Clips: '+clips.map(c=>c.name+' ('+(Number(c.duration)||0).toFixed(2)+'s)').join(', ')+
           ' | ataques encontrados: '+(attackClips.map(c=>c.name).join(', ')||'NENHUM')+' | mapeamento: '+Object.keys(actions).map(k=>k+'='+actions[k].name).join('; '),false);
       }catch(e){failed=true;note('erro preparando modelo: '+e.message,true);}
@@ -272,8 +288,6 @@
   let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1,lastPlayedAttackId=-1;
   function refreshSwordDiagnostics(now){
     if(now-swordStatusCheckAt<250)return;swordStatusCheckAt=now;
-    let el=document.getElementById('sword-debug-status');
-    if(!el){el=document.createElement('div');el.id='sword-debug-status';el.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99999;max-width:calc(100vw - 16px);padding:6px 9px;border-radius:6px;background:rgba(0,0,0,.78);font:12px/1.35 monospace;pointer-events:none;';document.body.appendChild(el);}
     let message=swordLoadError||'Aguardando carregamento de EspadaProta.glb...';
     let verified=false;
     if(swordLoaded){
@@ -302,8 +316,7 @@
       }
     }
     window.EspadaProtaDiagnostics=message;
-    el.style.color=verified?'#86efac':'#ffb9b9';
-    el.textContent='ESPADA: '+message;
+    // Status disponível em window.EspadaProtaDiagnostics; sem painel sobre a jogabilidade.
   }
   function frame(now){
     requestAnimationFrame(frame);
