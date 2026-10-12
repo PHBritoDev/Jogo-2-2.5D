@@ -170,9 +170,10 @@ const BishopDimension = (function () {
     addBox(world,0,-0.92,-2.5,132,0.9,78,'#151b18');
     addBox(world,0,-0.22,-2.5,120,0.34,66,'#252d29');
     addBox(world,0,-.38,-2.5,130,.72,64,'#111814');
-    addBox(world,0,-.015,-2.5,16.2,.09,50,'#493f32');
-    addBox(world,-8.44,.015,-2.5,.18,.11,49,'#292922');
-    addBox(world, 8.44,.015,-2.5,.18,.11,49,'#292922');
+    // MOD 6: eleva a superfície visível da estrada da arena para encontrar os pés do GLB sem alterar animações ou física do chefe.
+    addBox(world,0,.055,-2.5,16.2,.09,50,'#493f32');
+    addBox(world,-8.44,.085,-2.5,.18,.11,49,'#292922');
+    addBox(world, 8.44,.085,-2.5,.18,.11,49,'#292922');
     for(let i=0;i<20;i++){
       const x = -56 + i * 5.8;
       const y = 0.12 + (i % 3) * 0.06;
