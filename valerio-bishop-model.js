@@ -599,18 +599,21 @@
     }
     // Clips com root-motion podem deslocar o personagem para baixo do piso; o combate já controla a posição do boss.
     if(rootBasePosition&&root)root.position.copy(rootBasePosition);
-    // Mantém os pés no nível do piso em cada pose animada; clips de ataque/dano
-    // podem levantar a malha mesmo quando a posição física do chefe não mudou.
+    // Reaplica escalas-base antes de medir a pose atual.
+    if(restoreModelScales)restoreModelScales();
+    // Mantém os pés no nível do piso em cada pose animada; a arma é removida
+    // temporariamente da hierarquia para não confundir sua ponta com os pés.
     if(root&&pivot){
+      const weaponParent=weaponPivot&&weaponPivot.parent;
+      if(weaponParent)weaponParent.remove(weaponPivot);
       root.updateMatrixWorld(true);
       const poseBounds=new THREE.Box3().setFromObject(root);
       if(!poseBounds.isEmpty()&&Number.isFinite(poseBounds.min.y)){
         root.position.y-=poseBounds.min.y-pivot.position.y;
         root.updateMatrixWorld(true);
       }
+      if(weaponParent){weaponParent.add(weaponPivot);root.updateMatrixWorld(true);}
     }
-    // Reaplica a escala de importação depois do mixer e antes do render.
-    if(restoreModelScales)restoreModelScales();
     // A escala do personagem é definida uma vez por fitModel(). Não recalcular
     // a escala pela bounding box animada: respiração, ataque e poses mudam a caixa
     // delimitadora e isso faz o corpo crescer/encolher a cada frame.
