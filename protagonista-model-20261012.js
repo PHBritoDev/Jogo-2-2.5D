@@ -236,20 +236,38 @@
           actions.idle=clips.find(function(c){return /breath|idle|rest|standstill|parado/i.test(c.name||'');})||null;
         }
         if(!attackClips.length){
-          // Para nomes genéricos, infere um golpe provável pela movimentação dos braços/tronco.
-          // Escolhe apenas um fallback: nunca alterna por animações desconhecidas de morte/dano.
+          // Nomes genéricos: prioriza clips com movimento rotacional no braço direito,
+          // depois antebraço/mão. Evita escolher só porque o clip anima muitos ossos do tronco.
           let bestScore=-Infinity;
           clips.forEach(function(clip){
             if(unsafeRole.test(clip.name||''))return;
             if((Number(clip.duration)||0)<.25||(Number(clip.duration)||0)>3.5)return;
-            let upper=0,lower=0;
+            let score=0,armMotion=0,rightArmMotion=0,torsoMotion=0,lowerMotion=0;
             (clip.tracks||[]).forEach(function(track){
               const target=String(track.name||'').split(/[.:/]/)[0].toLowerCase();
-              if(/arm|hand|wrist|forearm|shoulder|elbow|spine|chest|torso|weapon|sword|finger/.test(target))upper++;
-              if(/hips|pelvis|thigh|leg|foot|calf|rootmotion|(^|[^a-z])root([^a-z]|$)/.test(target))lower++;
+              const prop=String(track.name||'').split(/[.:/]/).pop().toLowerCase();
+              const values=track.values||[],stride=typeof track.getValueSize==='function'?track.getValueSize():3;
+              let motion=0;
+              if(values.length>=stride*2&&stride>0){
+                for(let j=stride;j<values.length;j+=stride){
+                  for(let k=0;k<Math.min(stride,4);k++)motion+=Math.abs(values[j+k]-values[j-stride+k]);
+                }
+                motion/=Math.max(1,values.length/stride-1);
+              }
+              const rotational=/quaternion|rotation/.test(prop);
+              const weight=rotational?Math.min(motion,2):Math.min(motion*.15,.25);
+              if(/right.*(arm|forearm|hand|wrist)|mixamorigright(arm|forearm|hand)/.test(target)){
+                rightArmMotion+=weight;armMotion+=weight;
+              }else if(/(arm|forearm|hand|wrist|shoulder|elbow)/.test(target)){
+                armMotion+=weight;
+              }else if(/spine|chest|torso|neck|head/.test(target)){
+                torsoMotion+=weight;
+              }else if(/hips|pelvis|thigh|leg|foot|calf|rootmotion/.test(target)){
+                lowerMotion+=weight;
+              }
             });
-            const score=upper*2-lower;
-            if(upper>0&&score>bestScore){bestScore=score;fallbackAttackClip=clip;}
+            score=rightArmMotion*5+armMotion*2-torsoMotion*.8-lowerMotion*.7;
+            if(armMotion>.01&&score>bestScore){bestScore=score;fallbackAttackClip=clip;}
           });
           if(fallbackAttackClip)attackClips=[fallbackAttackClip];
         }
