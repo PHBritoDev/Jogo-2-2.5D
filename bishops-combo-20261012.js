@@ -709,6 +709,22 @@ const BishopBoss = {
     ctx.fillStyle = 'rgba(20,10,22,0.38)';
     ctx.beginPath(); ctx.ellipse(this.x, this.y - this.floor, 23, 8, 0, 0, 6.2832); ctx.fill();
 
+    if (st === 'guard') {
+      // Escudo arcano frontal, visível enquanto Valério bloqueia.
+      const shieldAngle = Math.atan2(this.fy, this.fx);
+      ctx.save();
+      ctx.globalAlpha = 0.82;
+      ctx.strokeStyle = '#b9dce8';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#7cc8e4';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(this.x + this.fx * 17, this.y - this.floor - 27 + this.fy * 8,
+        25, shieldAngle - 1.08, shieldAngle + 1.08);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     if (st === 'windup' && this.attack && this.attack.telegraph === 'ring') {
       const progress = U.clamp(this.stateT / this.attack.windup, 0, 1);
       ctx.save();
