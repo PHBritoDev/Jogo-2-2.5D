@@ -482,14 +482,23 @@ const BishopBoss = {
         // precisa de sua própria janela de acerto, sem duplicar o primeiro dano.
         if (this.attack.id === 'tax' && !this.hitDoneSecondary &&
             this.stateT >= (this.attack.secondHitAt || 0.18)) {
-          this.hitDoneSecondary = true;
-          // Continuação do mesmo combo: se a espada acertou, a mão livre atinge
-          // o mesmo alvo mesmo depois do knockback do primeiro impacto.
-          if (this.hitDonePrimary && !Player.dead) {
-            Player.hurt(this.attack.damage * (this.attack.secondHitScale || 0.65) * this.profile.damage,
-              this.x, this.y, this.attack.kb * 0.35, { ignoreInvuln: true });
-            Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 6, '#ffffff');
+          // O segundo impacto só consome sua janela depois de tentar acertar.
+          // Se o primeiro conectou, ignora o knockback e a invulnerabilidade
+          // criados por ele; se errou, o segundo ainda tem sua própria checagem.
+          const secondFacingDot=(this.fx*dx+this.fy*dy)/(d||1);
+          const secondCanReach=alive && d < this.attack.range && secondFacingDot > 0.12 &&
+            Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH;
+          if (!Player.dead && (this.hitDonePrimary || secondCanReach)) {
+            const secondaryDamage=Player.hurt(
+              this.attack.damage * (this.attack.secondHitScale || 0.65) * this.profile.damage,
+              this.x, this.y, this.attack.kb * 0.35,
+              { ignoreInvuln: this.hitDonePrimary }
+            );
+            if (secondaryDamage > 0) {
+              Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 6, '#ffffff');
+            }
           }
+          this.hitDoneSecondary = true;
         }
         if (this.stateT >= this.attack.duration) this._go('recover');
         break;
@@ -512,10 +521,33 @@ const BishopBoss = {
     const k = Math.min(1, dt * 9);
     this.vx += (tvx - this.vx) * k;
     this.vy += (tvy - this.vy) * k;
-    Enemy._physics.call(this, dt);
+    this._physicsDimension(dt);
     this.speed = Math.hypot(this.vx, this.vy);
     this.anim += dt * (this.speed * 0.06 + 1.2);
     this.sy = this.y;
+  },
+
+  // Física própria da dimensão 3D: não usa as pedras/árvores invisíveis do mapa 2D
+  // como plataformas, que faziam Valério pousar no ar durante a luta.
+  _physicsDimension(dt) {
+    const P = CFG.PLAYER;
+    this.vz -= P.gravity * dt;
+    this.z += this.vz * dt;
+    this.floor = 0;
+    if (this.z <= 0 && this.vz <= 0) {
+      this.z = 0;
+      this.vz = 0;
+      this.onGround = true;
+    } else {
+      this.onGround = false;
+    }
+
+    const pad = CFG.BOUNDS_PAD || 0;
+    this.x = U.clamp(this.x + (this.vx + this.kx) * dt, pad, World.w - pad);
+    this.y = U.clamp(this.y + (this.vy + this.ky) * dt, pad, World.h - pad);
+    const knockbackDamping = Math.exp(-8 * dt);
+    this.kx *= knockbackDamping;
+    this.ky *= knockbackDamping;
   },
 
   updateHud() {
