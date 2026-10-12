@@ -180,17 +180,20 @@
     if(!isFinite(size.y)||size.y<0.01) throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
     const measuredHeight=size.y;
     const appliedScale=height/measuredHeight;
-    model.scale.setScalar(appliedScale);
+    // Aplica o fator à escala importada, em vez de apagá-la: alguns GLBs têm
+    // escala-base diferente de 1. A caixa de referência recebe o mesmo fator.
+    const baseScale=model.scale.clone();
+    const basePosition=model.position.clone();
+    model.scale.set(baseScale.x*appliedScale,baseScale.y*appliedScale,baseScale.z*appliedScale);
     if(diagnosticName){
-      window.ValerioScaleDiagnostics='Modelo: '+diagnosticName+' | altura medida nas poses do esqueleto: '+measuredHeight.toFixed(5)+' | escala aplicada uma vez: '+appliedScale.toFixed(5)+' | alvo: '+height;
-      window.ValerioPoseBoundsDiagnostics=(clips&&clips.length?clips.length+' clips / '+measurement.samples+' poses esqueléticas':'pose estática')+' | altura máxima: '+measuredHeight.toFixed(5)+' | escala raiz: '+appliedScale.toFixed(5);
+      window.ValerioScaleDiagnostics='Modelo: '+diagnosticName+' | altura medida nas poses do esqueleto: '+measuredHeight.toFixed(5) + ' | fator aplicado à escala-base: '+appliedScale.toFixed(5)+' | alvo: '+height;
+      window.ValerioPoseBoundsDiagnostics=(clips&&clips.length?clips.length+' clips / '+measurement.samples+' poses esqueléticas':'pose estática')+' | altura máxima: '+measuredHeight.toFixed(5)+' | fator raiz: '+appliedScale.toFixed(5);
     }
-    // Recalcula os limites depois da escala e usa a MESMA pose de referência
-    // para centralizar e ancorar os pés. Misturar o envelope de todas as animações
-    // com a caixa da pose atual deslocava a base do modelo durante a luta.
-    model.updateMatrixWorld(true);
-    const anchoredMeasurement=measureFitBounds();
-    const anchorBox=anchoredMeasurement.referenceBox||anchoredMeasurement.box;
+    // O ajuste dos pés usa a mesma pose de referência usada no cálculo de escala,
+    // sem fazer uma segunda varredura cara por todos os vértices/animações no celular.
+    const anchorBox=(measurement.referenceBox||measurement.box).clone();
+    anchorBox.min.sub(basePosition).multiplyScalar(appliedScale).add(basePosition);
+    anchorBox.max.sub(basePosition).multiplyScalar(appliedScale).add(basePosition);
     if(anchorBox.isEmpty()) throw new Error('Não foi possível determinar a pose de referência para o piso');
     const anchorCenter=anchorBox.getCenter(new THREE.Vector3());
     model.position.set(-anchorCenter.x,-anchorBox.min.y,-anchorCenter.z);
