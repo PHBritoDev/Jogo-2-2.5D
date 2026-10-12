@@ -590,6 +590,17 @@ const BishopDimension = (function () {
     const lookAhead=dist<0.95?2.8:5.3;
     const target=[px+sy*cp*lookAhead,1.2+sp*lookAhead,pz-cy*cp*lookAhead];
     const pv=multiply(perspective(dist<0.95?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
+    const playerJump=clamp(Player.z||0,0,60)*unit;
+    const playerYaw=Math.atan2(Number.isFinite(Player.fx)?Player.fx:0,-(Number.isFinite(Player.fy)?Player.fy:-1));
+    const playerMoving=Math.hypot(Player.vx||0,Player.vy||0)>18;
+    window.PlayerModelView={
+      active:true,eye:eye.slice(),target:target.slice(),
+      position:[px,arenaFloorHeight(px,pz)+.04+playerJump,pz],yaw:playerYaw,
+      aspect:w/h,fov:dist<0.95?1.22:1.02,firstPerson:dist<0.95,
+      moving:playerMoving,dead:!!Player.dead,knockedDown:(Player.knockdownT||0)>0,
+      gettingUp:!!Player.gettingUp,hurt:(Player.hurtT||0)>0,
+      attack:(Player.attackT||-1)>=0,time:Game.time||0
+    };
     gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
     draw(S.arena.portal,pv);
@@ -650,7 +661,7 @@ const BishopDimension = (function () {
       draw(S.arena.bishopHands,multiply(pv,multiply(armR,translate(.24,-.35,-.03))));
       }
     } else { window.ValerioModelView={active:false}; }
-    if(!Player.dead && dist>=0.95){
+    if(!Player.dead && dist>=0.95 && !window.ProtagonistaGLBReady){
       const jump=clamp(Player.z||0,0,60)*unit;
       const moving=Math.hypot(Player.vx||0,Player.vy||0)>18;
       const phase=Game.time*9;
@@ -669,7 +680,7 @@ const BishopDimension = (function () {
   function frame() {
     if(!S.canvas)return;
     const inside=!!(Casino.inside&&isBattleActive());
-    if(!inside)window.ValerioModelView={active:false};
+    if(!inside){window.ValerioModelView={active:false};window.PlayerModelView={active:false};}
     document.body.classList.toggle('bishop-battle',inside);
     const shouldBeVisible=inside||(!Casino.inside&&Casino.discovered&&Campaign.flags.casinoDiscovered);
     if(S.canvasVisible!==shouldBeVisible) S.canvasVisible=shouldBeVisible;
