@@ -71,13 +71,15 @@
     box.makeEmpty();
     model.traverse(function(obj) {
       if (!obj.isMesh || !obj.geometry) return;
-      // MOD 9: a arma fica presa à mão, mas não pode definir a altura do corpo.
-      // A ponta da foice pode ser o ponto mais baixo da caixa e erguer as botas.
+      // MOD 10: apenas geometria VISÍVEL do corpo pode definir o contato com o chão.
+      // Malhas auxiliares/ocultas podem ficar abaixo das botas e levantar o personagem.
+      // A foice também fica fora deste cálculo, pois está presa à mão.
       let ancestor=obj;
       while(ancestor && ancestor!==model){
-        if(ancestor===weaponRoot || ancestor===weaponPivot) return;
+        if(ancestor.visible===false || ancestor===weaponRoot || ancestor===weaponPivot) return;
         ancestor=ancestor.parent;
       }
+      if(obj.visible===false)return;
       const position = obj.geometry.attributes && obj.geometry.attributes.position;
       if (obj.isSkinnedMesh && obj.skeleton && position && typeof obj.boneTransform === 'function') {
         const vertex=reuseScratch?(runtimeVertexScratch||(runtimeVertexScratch=new THREE.Vector3())):new THREE.Vector3();
@@ -314,13 +316,13 @@
   }
   function loadWeapon() {
     new THREE.GLTFLoader().load('./Espada1.glb',function(gltf){
-      weaponRoot=gltf.scene;fitModel(weaponRoot,1.35);improveMaterials(weaponRoot);
+      // MOD 10: foice ampliada para cerca de 2,3x o tamanho anterior.
+      weaponRoot=gltf.scene;fitModel(weaponRoot,3.1);improveMaterials(weaponRoot);
       weaponPivot=new THREE.Group();
-      // O pivô fica no punho; deslocamos o modelo para que a mão segure o cabo,
-      // em vez de apoiar a arma pela extremidade inferior do modelo.
+      // O pivô fica no punho; o deslocamento acompanha a escala para manter o cabo na mão.
       weaponPivot.position.set(0,-.02,0);
       weaponPivot.rotation.set(0,0,-.12);
-      weaponRoot.position.y-=.61; // ajuste proporcional ao novo tamanho da arma para manter o cabo na mão
+      weaponRoot.position.y-=1.40; // offset proporcional à foice ampliada, mantendo a empunhadura
       weaponPivot.add(weaponRoot);
       if(handBone){handBone.add(weaponPivot);weaponScaleCompensation=true;}else{pivot.add(weaponPivot);weaponScaleCompensation=false;}
       showStatus((window.ValerioClipDiagnostics||'Clips do modelo carregados')+'\nfoice carregada; presa em '+(handBone&&handBone.name||'pivô do corpo')+'; ajuste de pegada ativo',false);
