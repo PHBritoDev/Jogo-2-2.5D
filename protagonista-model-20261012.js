@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,celestialSword=null,swordCore=null,swordTrail=null,swordTrailMaterial=null,swordGlowMaterial=null,swordHand=null,swordPhase=0,lastSwordAttackId=-1,lastSwordHitSerial=0,swordHitFlash=0,swordImpactBits=[],swordImpactAge=99;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0;
   const MODEL_HEIGHT=2.15;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
@@ -92,79 +92,6 @@
         restoreModelScales=lockModelScales(root);
         pivot=new THREE.Group();pivot.visible=false;pivot.add(root);api.scene.add(pivot);
         mixer=new THREE.AnimationMixer(root);
-        // Espada Celestial: geometria 3D real, presa a um osso de mão encontrado em runtime.
-        // A busca é tolerante a nomes de rigs diferentes; não presume um nome específico.
-                function buildCelestialSword(){
-          const group=new THREE.Group();
-          group.name='CelestialSword_Runtime';
-          const pearl=new THREE.MeshStandardMaterial({color:0xeaf3f6,metalness:.72,roughness:.24,emissive:0x6b9eae,emissiveIntensity:.16});
-          const edge=new THREE.MeshStandardMaterial({color:0xffffff,metalness:.9,roughness:.18});
-          const gold=new THREE.MeshStandardMaterial({color:0xc99a43,metalness:.82,roughness:.25});
-          const dark=new THREE.MeshStandardMaterial({color:0x252a32,metalness:.35,roughness:.48});
-          const crystal=new THREE.MeshStandardMaterial({color:0x8de8ff,metalness:.28,roughness:.16,emissive:0x35bfff,emissiveIntensity:.7});
-          swordGlowMaterial=new THREE.MeshBasicMaterial({color:0x83dcff,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
-          swordTrailMaterial=new THREE.MeshBasicMaterial({color:0x9beaff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
-          // Eixo longitudinal +Y; lâmina com espessura real via ExtrudeGeometry.
-          const bladeShape=new THREE.Shape();
-          bladeShape.moveTo(-.035,0); bladeShape.lineTo(-.052,.12); bladeShape.lineTo(-.038,.57);
-          bladeShape.lineTo(0,.76); bladeShape.lineTo(.038,.57); bladeShape.lineTo(.052,.12); bladeShape.lineTo(.035,0); bladeShape.closePath();
-          const bladeGeo=new THREE.ExtrudeGeometry(bladeShape,{depth:.018,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.006,bevelThickness:.004});
-          const blade=new THREE.Mesh(bladeGeo,pearl); blade.position.z=-.009; blade.castShadow=true; blade.receiveShadow=true; group.add(blade);
-          const glow=new THREE.Mesh(new THREE.PlaneGeometry(.15,.68),swordGlowMaterial);glow.position.set(0,.36,-.025);group.add(glow);
-          // Rastro geométrico fino, desligado por padrão e ativado apenas durante golpes rápidos.
-          const trailShape=new THREE.Shape();trailShape.moveTo(-.025,.02);trailShape.quadraticCurveTo(-.24,.28,-.11,.67);trailShape.lineTo(.02,.75);trailShape.quadraticCurveTo(-.04,.38,.025,.04);trailShape.closePath();
-          swordTrail=new THREE.Mesh(new THREE.ShapeGeometry(trailShape),swordTrailMaterial);swordTrail.position.set(0,0,-.04);swordTrail.visible=false;group.add(swordTrail);
-          // Fio claro nas duas laterais.
-          [-1,1].forEach(function(side){
-            const rail=new THREE.Mesh(new THREE.BoxGeometry(.006,.52,.022),edge);
-            rail.position.set(side*.044,.31,0); group.add(rail);
-          });
-          // Guarda curta, curva e legível, feita de segmentos sólidos.
-          const guard=new THREE.Group(); guard.position.y=-.015; group.add(guard);
-          const center=new THREE.Mesh(new THREE.BoxGeometry(.075,.035,.045),gold); guard.add(center);
-          [-1,1].forEach(function(side){
-            const arm=new THREE.Mesh(new THREE.BoxGeometry(.026,.15,.035),gold);
-            arm.position.set(side*.065,.035,0); arm.rotation.z=side*.48; guard.add(arm);
-            const tip=new THREE.Mesh(new THREE.SphereGeometry(.018,8,6),gold);
-            tip.position.set(side*.105,.09,0); guard.add(tip);
-          });
-          const grip=new THREE.Mesh(new THREE.CylinderGeometry(.018,.021,.16,8),dark);
-          grip.position.y=-.105; group.add(grip);
-          const gripBand=new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,.022,8),gold);
-          gripBand.position.y=-.17; group.add(gripBand);
-          const pommel=new THREE.Mesh(new THREE.OctahedronGeometry(.03,0),gold); pommel.position.y=-.205; group.add(pommel);
-          swordCore=new THREE.Mesh(new THREE.OctahedronGeometry(.027,0),crystal);
-          swordCore.position.set(0,.005,.034); swordCore.name='CelestialSword_Core'; group.add(swordCore);
-          swordImpactBits=[];swordImpactAge=99;
-          for(let i=0;i<5;i++){
-            const bit=new THREE.Mesh(new THREE.OctahedronGeometry(.012,0),i%2?gold:crystal);
-            bit.visible=false;bit.userData.phase=i*1.256;group.add(bit);swordImpactBits.push(bit);
-          }
-          // Dimensão inicial compacta e separada; poderá ser refinada após o teste visual no jogo.
-          group.scale.setScalar(1.0);
-          return group;
-        }
-        function attachCelestialSword(model){
-          const bones=[];
-          model.traverse(function(o){if(o.isBone)bones.push(o);});
-          const rightHand=/right.*(hand|wrist)|hand.*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|mixamorig:rightHand/i;
-          swordHand=bones.find(function(b){return rightHand.test(b.name||'');})||null;
-          if(!swordHand){
-            // Mesmo se o GLB usar nomes de ossos inesperados, a arma ainda existe
-            // e poderá ser mostrada presa à câmera no modo de primeira pessoa.
-            window.CelestialSwordDiagnostics='Sem osso de mão reconhecido; espada será exibida pela câmera. Ossos: '+bones.map(function(b){return b.name;}).filter(Boolean).join(', ');
-            console.warn(window.CelestialSwordDiagnostics);
-          }
-          celestialSword=buildCelestialSword();
-          celestialSword.position.set(0,0,0);
-          celestialSword.rotation.set(0,0,Math.PI);
-          if(swordHand){
-            // Em terceira pessoa acompanha a mão animada.
-            swordHand.add(celestialSword);
-            window.CelestialSwordDiagnostics='Espada 3D anexada ao osso: '+swordHand.name;
-          }
-        }
-        attachCelestialSword(root);
         const clips=gltf.animations||[];
         clips.forEach(function(clip){
           const n=(clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -226,24 +153,6 @@
     if(!ready||!v||!v.active||!pivot||!api){if(pivot)pivot.visible=false;return;}
     if(lastFirstPerson!==!!v.firstPerson){
       if(root)root.traverse(function(o){if(o.isMesh)o.visible=!v.firstPerson;});
-      if(celestialSword&&api.camera){
-        // Em primeira pessoa, prende a espada à câmera para garantir que ela
-        // apareça no campo de visão, independentemente do rig ou do nome do osso.
-        if(v.firstPerson){
-          api.camera.add(celestialSword);
-          celestialSword.traverse(function(o){if(o.isMesh)o.visible=true;});
-          celestialSword.visible=true;
-          window.CelestialSwordDiagnostics='Espada presa à câmera em primeira pessoa; meshes forçados visíveis.';
-          celestialSword.position.set(.38,-.34,-.78);
-          celestialSword.rotation.set(0,0,-.22);
-          celestialSword.scale.setScalar(.82);
-        }else{
-          if(swordHand)swordHand.add(celestialSword);
-          celestialSword.position.set(0,0,0);
-          celestialSword.rotation.set(0,0,Math.PI);
-          celestialSword.scale.setScalar(1);
-        }
-      }
       lastFirstPerson=!!v.firstPerson;
     }
     pivot.visible=true;
@@ -260,32 +169,6 @@
     }
     const dt=Math.min(Math.max((now-last)/1000,0),.05);last=now;
     if(mixer)mixer.update(dt);
-    if(celestialSword){
-      swordPhase+=dt;
-      if(swordCore&&swordCore.material){
-        swordCore.material.emissiveIntensity=.48+.22*(.5+.5*Math.sin(swordPhase*3.2));
-      }
-      const attacking=Number.isFinite(v.attackT)?v.attackT>=0:!!v.attack;
-      const attackId=Number.isFinite(v.attackId)?v.attackId:-1;
-      const attackTime=Number.isFinite(v.attackT)?v.attackT:0;
-      const fastSwing=attacking&&attackTime<.34;
-      if(attackId>=0&&attackId!==lastSwordAttackId){lastSwordAttackId=attackId;swordHitFlash=0;}
-      const hitSerial=Number(window.CelestialSwordHitSerial)||0;
-      if(hitSerial!==lastSwordHitSerial){lastSwordHitSerial=hitSerial;swordHitFlash=.16;swordImpactAge=0;}
-      swordHitFlash=Math.max(0,swordHitFlash-dt);
-      if(swordTrail&&swordTrailMaterial){
-        swordTrail.visible=fastSwing;
-        swordTrailMaterial.opacity=fastSwing?Math.max(0,.28*(1-Math.min(1,attackTime/.38))):0;
-      }
-      if(swordGlowMaterial){swordGlowMaterial.opacity=.08+.06*(.5+.5*Math.sin(swordPhase*2.4))+(swordHitFlash>0?.35:0);}
-      if(swordCore&&swordCore.material&&swordHitFlash>0){swordCore.material.emissiveIntensity=1.8;}
-      swordImpactAge+=dt;
-      swordImpactBits.forEach(function(bit,i){
-        const age=swordImpactAge,phase=bit.userData.phase;
-        bit.visible=age<.16;
-        if(bit.visible){const spread=age*1.2;bit.position.set(Math.cos(phase)*spread,.34+Math.sin(phase)*spread,-.035);bit.scale.setScalar(Math.max(.08,1-age/.16));}
-      });
-    }
     if(restoreModelScales)restoreModelScales();
     if(root&&rootBasePosition){root.position.copy(rootBasePosition);root.updateMatrixWorld(true);}
     // A renderização fica com o loop do Valério: os dois modelos compartilham depth buffer.
