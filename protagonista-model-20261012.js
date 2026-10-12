@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordEffects=[],swordLight=null,swordPhase=0,swordFallbackParent=null;
   const MODEL_HEIGHT=2.15;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
@@ -64,6 +64,72 @@
     });
     return box;
   }
+  function findSwordHand(model){
+    const bones=[];
+    model.traverse(function(o){if(o.isBone)bones.push(o);});
+    const rightHand=/(right.*(hand|wrist)|(hand|wrist).*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|mixamorig:rightHand)/i;
+    return bones.find(function(b){return rightHand.test(b.name||'');})||
+      bones.find(function(b){return /hand|wrist|ma[oã]o/i.test(b.name||'');})||null;
+  }
+  function addSwordEffects(sword){
+    const THREE=api.THREE;
+    swordLight=new THREE.PointLight(0xffc44d,.72,1.45,2);
+    swordLight.position.set(0,.18,.08);
+    sword.add(swordLight);
+    const glowMaterial=new THREE.MeshBasicMaterial({color:0xffd56a,transparent:true,opacity:.58,blending:THREE.AdditiveBlending,depthWrite:false});
+    // Pequenos pontos dourados orbitam a lâmina; não substituem nem alteram o modelo criado pelo usuário.
+    for(let i=0;i<7;i++){
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(.012+(i%3)*.003,6,5),glowMaterial);
+      mesh.userData.phase=i*Math.PI*2/7;
+      mesh.userData.height=-.18+(i%4)*.13;
+      mesh.userData.radius=.045+(i%3)*.018;
+      sword.add(mesh);swordEffects.push(mesh);
+    }
+  }
+  function loadSword(model){
+    const loader=new api.THREE.GLTFLoader();
+    loader.load('./EspadaProta.glb?v=espada-prota-mod27',function(gltf){
+      try{
+        swordRoot=gltf.scene;
+        swordRoot.name='EspadaProta_Runtime';
+        swordRoot.traverse(function(o){
+          if(!o.isMesh)return;
+          o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;
+          const materials=Array.isArray(o.material)?o.material:[o.material];
+          materials.forEach(function(m){if(m){m.needsUpdate=true;}});
+        });
+        // O GLB enviado pelo usuário tem cerca de 1,9 unidade de comprimento; ajustamos para caber na mão.
+        swordRoot.scale.setScalar(.43);
+        swordRoot.rotation.set(0,0,Math.PI);
+        swordRoot.position.set(0,.39,0);
+        swordHand=findSwordHand(model);
+        swordFallbackParent=swordHand||model;
+        swordFallbackParent.add(swordRoot);
+        addSwordEffects(swordRoot);
+        if(window.PlayerModelView&&window.PlayerModelView.firstPerson)setSwordFirstPerson(true);
+        window.EspadaProtaDiagnostics='EspadaProta.glb carregada; encaixe: '+(swordHand?'osso '+swordHand.name:'modelo do protagonista (nenhum osso de mão reconhecido)');
+      }catch(e){window.EspadaProtaDiagnostics='Erro preparando EspadaProta.glb: '+e.message;console.warn(window.EspadaProtaDiagnostics);}
+    },undefined,function(){
+      window.EspadaProtaDiagnostics='Falha ao carregar ./EspadaProta.glb. Confira se o arquivo está na raiz do repositório.';
+      console.warn(window.EspadaProtaDiagnostics);
+    });
+  }
+  function setSwordFirstPerson(firstPerson){
+    if(!swordRoot||!api||!api.camera)return;
+    if(firstPerson){
+      api.camera.add(swordRoot);
+      swordRoot.position.set(.34,-.32,-.72);
+      swordRoot.rotation.set(0,0,-.2);
+      swordRoot.scale.setScalar(.36);
+      swordRoot.traverse(function(o){if(o.isMesh)o.visible=true;});
+      swordRoot.visible=true;
+    }else{
+      if(swordFallbackParent)swordFallbackParent.add(swordRoot);
+      swordRoot.position.set(0,.39,0);
+      swordRoot.rotation.set(0,0,Math.PI);
+      swordRoot.scale.setScalar(.43);
+    }
+  }
   function loadModel(){
     note('carregando Protagonista.glb...',false);
     const THREE=api.THREE,loader=new THREE.GLTFLoader();
@@ -91,6 +157,7 @@
         rootBasePosition=root.position.clone();
         restoreModelScales=lockModelScales(root);
         pivot=new THREE.Group();pivot.visible=false;pivot.add(root);api.scene.add(pivot);
+        loadSword(root);
         mixer=new THREE.AnimationMixer(root);
         const clips=gltf.animations||[];
         clips.forEach(function(clip){
@@ -153,6 +220,7 @@
     if(!ready||!v||!v.active||!pivot||!api){if(pivot)pivot.visible=false;return;}
     if(lastFirstPerson!==!!v.firstPerson){
       if(root)root.traverse(function(o){if(o.isMesh)o.visible=!v.firstPerson;});
+      setSwordFirstPerson(!!v.firstPerson);
       lastFirstPerson=!!v.firstPerson;
     }
     pivot.visible=true;
@@ -169,6 +237,15 @@
     }
     const dt=Math.min(Math.max((now-last)/1000,0),.05);last=now;
     if(mixer)mixer.update(dt);
+    if(swordRoot){
+      swordPhase+=dt;
+      swordEffects.forEach(function(p,i){
+        const phase=p.userData.phase+swordPhase*(1.15+(i%3)*.18);
+        p.position.set(Math.cos(phase)*p.userData.radius,p.userData.height+Math.sin(swordPhase*1.8+i)*.025,Math.sin(phase)*p.userData.radius+.025);
+        p.visible=Math.sin(swordPhase*2+i*.9)>.05;
+      });
+      if(swordLight)swordLight.intensity=.55+.22*(.5+.5*Math.sin(swordPhase*2.4));
+    }
     if(restoreModelScales)restoreModelScales();
     if(root&&rootBasePosition){root.position.copy(rootBasePosition);root.updateMatrixWorld(true);}
     // A renderização fica com o loop do Valério: os dois modelos compartilham depth buffer.
