@@ -221,7 +221,6 @@
     if(!el){el=document.createElement('div');el.id='sword-debug-status';el.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99999;max-width:calc(100vw - 16px);padding:6px 9px;border-radius:6px;background:rgba(0,0,0,.78);color:#ffe08a;font:12px/1.35 monospace;pointer-events:none;';document.body.appendChild(el);}
     el.textContent='ESPADA: '+(window.EspadaProtaDiagnostics||'aguardando carregamento do GLB...');
   }
-  let lastFirstPerson=null;
   function frame(now){
     requestAnimationFrame(frame);
     updateSwordStatus(now);
