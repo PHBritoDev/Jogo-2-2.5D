@@ -75,7 +75,8 @@ const BISHOP_PROFILES = {
     theme: 'greed',
     introStyle: 'testimony',
     introStamp: 'TERCEIRO SELO · REGISTRO DE TESTEMUNHO',
-    introPause: 1150,
+    // O testemunho continua na apresentação, mas o jogador pode começar assim que terminar de ler.
+    introPause: 0,
     name: 'Elior',
     title: 'Terceiro Bispo da Ganância',
     identity: 'O Cartógrafo do Voto',
