@@ -44,7 +44,7 @@
     const fall=/fall|falling|knockdown|collapse|stumble|caer|queda/.test(n);
     const death=/death|dying|dead|^die$|morrer|morte/.test(n);
     const getup=/getup|standup|rise|recoverfloor|levant|levantar/.test(n);
-    if(role==='attack')return hurt||idle||walk||fall||death||getup||/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand/.test(n)===false;
+    if(role==='attack')return hurt||idle||walk||fall||death||getup;
     if(role==='hurt')return attack||idle||walk||fall||death||getup;
     if(role==='idle')return attack||hurt||walk||fall||death||getup;
     if(role==='walk')return attack||hurt||idle||fall||death||getup;
