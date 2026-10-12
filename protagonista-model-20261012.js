@@ -1,12 +1,36 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0;
   const MODEL_HEIGHT=2.35;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
     window.ProtagonistaDiagnostics=message;
     if(isError)console.warn('Protagonista GLB:',message);else console.info('Protagonista GLB:',message);
+  }
+  // Proteção do PR #49: clips exportados podem alterar a escala de ossos/nós e multiplicar o fit do GLB.
+  // Guardamos a escala já normalizada e restauramos após cada mixer.update(), sem bloquear posição/rotação.
+  function lockModelScales(model){
+    const states=[];
+    model.traverse(function(obj){
+      if(obj.scale)states.push({object:obj,base:obj.scale.clone(),name:obj.name||obj.type||'nó sem nome'});
+    });
+    let warned=false;
+    return function(){
+      const corrected=[];
+      for(let i=0;i<states.length;i++){
+        const state=states[i],obj=state.object,base=state.base;
+        if(Math.abs(obj.scale.x-base.x)>1e-5||Math.abs(obj.scale.y-base.y)>1e-5||Math.abs(obj.scale.z-base.z)>1e-5){
+          obj.scale.copy(base);
+          corrected.push(state.name);
+        }
+      }
+      if(corrected.length&&!warned){
+        warned=true;
+        window.ProtagonistaScaleDiagnostics='Escala animada bloqueada em: '+corrected.join(', ');
+        console.warn('Protagonista: escala animada restaurada para preservar o tamanho normalizado. Nós alterados:',corrected);
+      }
+    };
   }
   function findAPI(){
     if(disabled||ready||failed)return;
@@ -38,6 +62,7 @@
         root.position.z-=((box.min.z+box.max.z)/2)*factor;
         root.position.y-=box.min.y*factor;
         rootBasePosition=root.position.clone();
+        restoreModelScales=lockModelScales(root);
         pivot=new THREE.Group();pivot.visible=false;pivot.add(root);api.scene.add(pivot);
         mixer=new THREE.AnimationMixer(root);
         const clips=gltf.animations||[];
@@ -108,6 +133,7 @@
     }
     const dt=Math.min(Math.max((now-last)/1000,0),.05);last=now;
     if(mixer)mixer.update(dt);
+    if(restoreModelScales)restoreModelScales();
     if(root&&rootBasePosition){root.position.copy(rootBasePosition);root.updateMatrixWorld(true);}
     // A renderização fica com o loop do Valério: os dois modelos compartilham depth buffer.
   }
