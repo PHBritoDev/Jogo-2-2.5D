@@ -256,7 +256,7 @@ const BishopBoss = {
   x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kx: 0, ky: 0,
   r: 18, hp: 1, maxHp: 1, trail: 1, trailDelay: 0,
   state: 'inactive', stateT: 0, flashT: 0, alpha: 0,
-  hitDone: false, hitDoneSecondary: false, hitId: -1, fx: -1, fy: 0,
+  hitDone: false, hitDoneSecondary: false, hitDonePrimary: false, hitId: -1, fx: -1, fy: 0,
   anim: 0, speed: 0, onGround: true, floor: 0, sy: 0,
   attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, _solids: [],
   elHud: null, elHudName: null, elHudTitle: null, elHudFill: null, elHudText: null,
@@ -281,6 +281,7 @@ const BishopBoss = {
     this.attack = null;
     this.hitDone = false;
     this.hitDoneSecondary = false;
+    this.hitDonePrimary = false;
     this.hitId = -1;
     this.phase = 1;
     this.guardCooldown = 0;
@@ -303,6 +304,7 @@ const BishopBoss = {
     this.alpha = 1;
     this.hitDone = false;
     this.hitDoneSecondary = false;
+    this.hitDonePrimary = false;
     this.hitId = -1;
     this.fx = -1; this.fy = 0.2;
     this.attackIndex = 0;
@@ -321,7 +323,7 @@ const BishopBoss = {
   _go(state) {
     this.state = state;
     this.stateT = 0;
-    if (state === 'attack') { this.hitDone = false; this.hitDoneSecondary = false; }
+    if (state === 'attack') { this.hitDone = false; this.hitDoneSecondary = false; this.hitDonePrimary = false; }
   },
 
   hurt(rawDamage, dx, dy, kb) {
@@ -350,8 +352,10 @@ const BishopBoss = {
     if (this.hp <= 0) {
       this._go('dead');
       this.kx *= 1.3; this.ky *= 1.3;
-      this.vz = 0;
-      this.onGround = true;
+      // A morte usa a mesma gravidade do jogador/inimigos: impulso curto e pouso real.
+      this.z = Math.max(0, this.z || 0);
+      this.vz = 420;
+      this.onGround = false;
       Ambient.spawnSpark(this.x, gy, 24, '#f2c654');
       Ambient.spawnSpark(this.x, gy, 9, '#ffffff');
       Sfx.death();
@@ -464,7 +468,8 @@ const BishopBoss = {
           this.hitDone = true;
           const facingDot=(this.fx*dx+this.fy*dy)/(d||1);
           if (alive && d < this.attack.range && facingDot > 0.12 && Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH) {
-            Player.hurt(this.attack.damage * this.profile.damage, this.x, this.y, this.attack.kb);
+            const primaryDamage = Player.hurt(this.attack.damage * this.profile.damage, this.x, this.y, this.attack.kb);
+            if (primaryDamage > 0) this.hitDonePrimary = true;
             Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 7,
               this.profile.id === 'bishop3' ? '#b8d0c3' : '#f3c14e');
           }
@@ -478,11 +483,11 @@ const BishopBoss = {
         if (this.attack.id === 'tax' && !this.hitDoneSecondary &&
             this.stateT >= (this.attack.secondHitAt || 0.18)) {
           this.hitDoneSecondary = true;
-          const secondFacingDot=(this.fx*dx+this.fy*dy)/(d||1);
-          if (alive && d < this.attack.range && secondFacingDot > 0.12 &&
-              Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH) {
+          // Continuação do mesmo combo: se a espada acertou, a mão livre atinge
+          // o mesmo alvo mesmo depois do knockback do primeiro impacto.
+          if (this.hitDonePrimary && !Player.dead) {
             Player.hurt(this.attack.damage * (this.attack.secondHitScale || 0.65) * this.profile.damage,
-              this.x, this.y, this.attack.kb * 0.72, { ignoreInvuln: true });
+              this.x, this.y, this.attack.kb * 0.35, { ignoreInvuln: true });
             Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 6, '#ffffff');
           }
         }
