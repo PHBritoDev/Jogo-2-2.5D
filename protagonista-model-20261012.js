@@ -307,7 +307,8 @@
           if(/fall|falling|knockdown|collapse|stumble|caer|queda/.test(n))actions.fall=actions.fall||clip;
           if(/death|dying|dead|^die$|morrer|morte/.test(n))actions.death=actions.death||clip;
         });
-        applySavedAnimationRoles(clips);\n        const unsafeRole=/hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh/i;
+        applySavedAnimationRoles(clips);
+        const unsafeRole=/hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh/i;
         if(!actions.idle){
           actions.idle=clips.find(function(c){return /breath|idle|rest|standstill|parado/i.test(c.name||'');})||null;
         }
