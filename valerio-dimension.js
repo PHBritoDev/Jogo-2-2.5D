@@ -613,7 +613,9 @@ const BishopDimension = (function () {
       const bossState=BishopBoss.state||'idle';
       const windup=bossState==='windup'?clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.windup)||.6),0,1):0;
       const strike=bossState==='attack'?Math.sin(clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.duration)||.3),0,1)*Math.PI):0;
-      const bossBob=(bossState==='idle'||bossState==='approach')?Math.sin(Game.time*2.15)*.012:0;
+      // O root do GLB fica ancorado ao piso; a animação corporal não eleva o boss inteiro.
+      const bossBob=0;
+      const bossHeight=bossActive?Math.max(0,Number(BishopBoss.z)||0)/72:0;
       // Durante o golpe, mantém a orientação usada no início do ataque;
       // nos outros estados, acompanha o jogador sem teletransportar o ângulo.
       const bossSpeed=Math.hypot(BishopBoss.vx||0,BishopBoss.vy||0);
@@ -625,10 +627,10 @@ const BishopDimension = (function () {
           ? Math.atan2(BishopBoss.vx,-BishopBoss.vy)
           : Math.atan2(px-bpos[0],-(pz-bpos[2])));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
-      const bossBase=multiply(translate(bpos[0],floorY-.008+bossBob,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(1.68,1.68,1.68))));
+      const bossBase=multiply(translate(bpos[0],floorY-.008+bossBob+bossHeight,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(1.68,1.68,1.68))));
       const modelState=(bossState==='attack'&&BishopBoss.attack?(BishopBoss.attack.id==='vault'?'skill1':BishopBoss.attack.id==='sweep'?'skill2':'attack'):(bossState==='approach'&&bossSpeed>105?'skillapproach':bossState));
       const skillLocked=!!(BishopBoss.attack&&BishopBoss.attack.skill&&['skillapproach','windup','attack','recover'].includes(bossState));
-      window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],floorY+bossBob,bpos[2]],playerPosition:[px,0,pz],yaw:faceBoss,aspect:w/h,fov:dist<0.95?1.22:1.02,state:modelState,combatState:bossState,skillLocked:skillLocked,attackId:BishopBoss.attack&&BishopBoss.attack.id||null,time:Game.time||0,speed:bossSpeed,moveSpeed:bossSpeed,moving:bossSpeed>8,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,talking:!!Game.talking};
+      window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],floorY+bossBob+bossHeight,bpos[2]],playerPosition:[px,0,pz],yaw:faceBoss,aspect:w/h,fov:dist<0.95?1.22:1.02,state:modelState,combatState:bossState,skillLocked:skillLocked,attackId:BishopBoss.attack&&BishopBoss.attack.id||null,time:Game.time||0,speed:bossSpeed,moveSpeed:bossSpeed,moving:bossSpeed>8,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,talking:!!Game.talking};
       if(!window.ValerioGLBReady && !window.ValerioGLBLoading && !window.ValerioGLBRendering){
       draw(S.bishopModel,multiply(pv,bossBase));
       const shoulderBase=multiply(bossBase,multiply(translate(0,1.37,0),rotateZ(Math.sin(Game.time*2.1)*.035-windup*.08)));
