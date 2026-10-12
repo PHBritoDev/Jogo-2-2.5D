@@ -100,14 +100,14 @@
         });
         // O GLB enviado pelo usuário tem cerca de 1,9 unidade de comprimento; ajustamos para caber na mão.
         swordRoot.scale.setScalar(.43);
-        swordRoot.rotation.set(0,0,Math.PI);
-        swordRoot.position.set(0,.39,0);
+        swordRoot.rotation.set(0,0,0);
+        swordRoot.position.set(0,1.05,0);
         swordHand=findSwordHand(model);
         swordFallbackParent=swordHand||model;
         swordFallbackParent.add(swordRoot);
         addSwordEffects(swordRoot);
         if(window.PlayerModelView&&window.PlayerModelView.firstPerson)setSwordFirstPerson(true);
-        window.EspadaProtaDiagnostics='EspadaProta.glb carregada; encaixe: '+(swordHand?'osso '+swordHand.name:'modelo do protagonista (nenhum osso de mão reconhecido)');
+        window.EspadaProtaDiagnostics='EspadaProta.glb carregada; encaixe: '+(swordHand?'osso '+swordHand.name:'modelo do protagonista (nenhum osso de mão reconhecido)')+'; tamanho '+swordRoot.scale.x.toFixed(2);
       }catch(e){window.EspadaProtaDiagnostics='Erro preparando EspadaProta.glb: '+e.message;console.warn(window.EspadaProtaDiagnostics);}
     },undefined,function(){
       window.EspadaProtaDiagnostics='Falha ao carregar ./EspadaProta.glb. Confira se o arquivo está na raiz do repositório.';
@@ -125,8 +125,8 @@
       swordRoot.visible=true;
     }else{
       if(swordFallbackParent)swordFallbackParent.add(swordRoot);
-      swordRoot.position.set(0,.39,0);
-      swordRoot.rotation.set(0,0,Math.PI);
+      swordRoot.position.set(0,1.05,0);
+      swordRoot.rotation.set(0,0,0);
       swordRoot.scale.setScalar(.43);
     }
   }
