@@ -4,7 +4,7 @@
   let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
   const MODEL_HEIGHT=2.15;
   // O GLB mede cerca de 1,90 no eixo Y; o cabo fica entre Y=0,57 e 0,95.
-  const SWORD_SCALE=.43,SWORD_GRIP_Y=.75;
+  const SWORD_SCALE=.62,SWORD_GRIP_Y=.75;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
     window.ProtagonistaDiagnostics=message;
@@ -152,7 +152,7 @@
       // O ponto de pegada continua no canto inferior direito, sem herdar escala do rig.
       swordRoot.position.set(.34,0,-.72);
       swordRoot.rotation.set(0,0,Math.PI);
-      swordRoot.scale.setScalar(.36);
+      swordRoot.scale.setScalar(.52);
       swordRoot.visible=true;
       swordRoot.traverse(function(o){if(o.isMesh)o.visible=true;});
       if(swordMount)swordMount.visible=false;
@@ -253,7 +253,7 @@
     if(v.moving&&actions.walk){if(currentType!=='walk'||!currentAction||!currentAction.isRunning())play('walk',false);return;}
     if(currentType!=='idle'||!currentAction||!currentAction.isRunning())play('idle',false);
   }
-  let lastFirstPerson=null,lastSwordStatus=0;
+  let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1;
   function refreshSwordDiagnostics(now){
     if(now-swordStatusCheckAt<250)return;swordStatusCheckAt=now;
     let el=document.getElementById('sword-debug-status');
@@ -314,6 +314,11 @@
     const dt=Math.min(Math.max((now-last)/1000,0),.05);last=now;
     if(mixer)mixer.update(dt);
     if(swordRoot){
+      const attackId=Number(v.attackId)||0;
+      if(v.attack&&attackId!==lastSwordAttackId){lastSwordAttackId=attackId;swordAttackStart=now;}
+      const swingProgress=swordAttackStart<0?1:Math.max(0,Math.min(1,(now-swordAttackStart)/460));
+      const swingAngle=swingProgress<1?Math.sin(swingProgress*Math.PI)*1.35:0;
+      swordRoot.rotation.set(0,0,Math.PI+swingAngle);
       swordPhase+=dt;
       swordEffects.forEach(function(p,i){
         const phase=p.userData.phase+swordPhase*(1.15+(i%3)*.18);
