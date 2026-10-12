@@ -618,8 +618,9 @@ const BishopDimension = (function () {
       aspect:w/h,fov:dist<0.95?1.22:1.02,firstPerson:dist<0.95,
       moving:playerMoving,speed:Math.hypot(Player.vx||0,Player.vy||0),
       dead:!!Player.dead,knockedDown:(Player.knockdownT||0)>0,
-      gettingUp:!!Player.gettingUp,hurt:(Player.hurtT||0)>0,
-      attack:(Player.attackT||-1)>=0,time:Game.time||0
+      gettingUp:!!Player.gettingUp,hurt:(Player.hurtT||0)>0,blocking:!!Player.blocking,
+      attack:(Player.attackT||-1)>=0,attackT:Number(Player.attackT),attackId:Number(Player.attackId)||0,
+      jumping:(Player.z||0)>.08,time:Game.time||0
     };
     gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
