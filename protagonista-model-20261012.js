@@ -72,7 +72,7 @@
     actions.death=actions.death||actions.fall||null;
   }
   function showAnimationDiagnostics(clips){
-    if(new URLSearchParams(window.location.search).get('debugAnimations')!=='1')return;
+    const params=new URLSearchParams(window.location.search);if(params.get('debugAnimations')!=='1'||params.get('showAnimationMapper')!=='1')return;
     const existing=document.getElementById('protagonista-animation-debug');
     if(existing)existing.remove();
     let saved={};
@@ -451,7 +451,7 @@
     if(swordRoot){
       const attackId=Number(v.attackId)||0;
       if(v.attack&&attackId!==lastSwordAttackId){lastSwordAttackId=attackId;swordAttackStart=now;}
-      const swingProgress=swordAttackStart<0?1:Math.max(0,Math.min(1,(now-swordAttackStart)/460));
+      const swingDuration=Math.max(1,Number((window.ProtagonistaAnimationTiming||{}).attackDuration)||.34)*1000;const swingProgress=swordAttackStart<0?1:Math.max(0,Math.min(1,(now-swordAttackStart)/swingDuration));
       const swingAngle=swingProgress<1?Math.sin(swingProgress*Math.PI)*1.35:0;
       if(swordPivot&&swordRoot.parent===swordPivot){swordPivot.rotation.set(0,0,swingAngle);swordRoot.rotation.set(0,0,Math.PI);}else{swordRoot.rotation.set(0,0,Math.PI+swingAngle);}
       swordPhase+=dt;
