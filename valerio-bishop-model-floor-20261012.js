@@ -191,12 +191,18 @@
     }
     // O ajuste dos pés usa a mesma pose de referência usada no cálculo de escala,
     // sem fazer uma segunda varredura cara por todos os vértices/animações no celular.
+    // Usa o envelope de TODAS as animações para ancorar o ponto mais baixo no piso.
+    // A pose idle serve para centralizar X/Z, mas não para calcular o chão: caminhada e
+    // morte podem ter pés/armadura mais baixos do que a pose de referência.
     const anchorBox=(measurement.referenceBox||measurement.box).clone();
     anchorBox.min.sub(basePosition).multiplyScalar(appliedScale).add(basePosition);
     anchorBox.max.sub(basePosition).multiplyScalar(appliedScale).add(basePosition);
-    if(anchorBox.isEmpty()) throw new Error('Não foi possível determinar a pose de referência para o piso');
+    const floorBox=measurement.box.clone();
+    floorBox.min.sub(basePosition).multiplyScalar(appliedScale).add(basePosition);
+    floorBox.max.sub(basePosition).multiplyScalar(appliedScale).add(basePosition);
+    if(anchorBox.isEmpty()||floorBox.isEmpty()) throw new Error('Não foi possível determinar a pose de referência para o piso');
     const anchorCenter=anchorBox.getCenter(new THREE.Vector3());
-    model.position.set(-anchorCenter.x,-anchorBox.min.y,-anchorCenter.z);
+    model.position.set(-anchorCenter.x,-floorBox.min.y,-anchorCenter.z);
     model.updateMatrixWorld(true);
     return model;
   }
@@ -601,11 +607,9 @@
     if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);
     camera.aspect=v.aspect||w/h;camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
     camera.position.set(v.eye[0],v.eye[1],v.eye[2]);camera.lookAt(v.target[0],v.target[1],v.target[2]);
-    // Calibração visual do piso: os pés do GLB ficam ligeiramente acima da superfície
-    // mesmo após o fit. A animação de morte precisa de compensação adicional.
-    const isDeadPose=/^(dead|death|dying)$/i.test(String(v.state||''));
-    const floorCorrection=isDeadPose?0.14:0.055;
-    pivot.position.set(v.position[0],v.position[1]-floorCorrection,v.position[2]);
+    // A altura do modelo já foi normalizada usando o envelope completo das animações.
+    // Não aplicar offsets por estado: isso separava a morte do piso e criava flutuação.
+    pivot.position.set(v.position[0],v.position[1],v.position[2]);
     // Corrige o eixo frontal comum em modelos exportados para GLB e gira pelo
     // menor arco possível: evita a volta de 360° quando o jogador cruza atrás.
     const playerPos=Array.isArray(v.playerPosition)?v.playerPosition:null;
