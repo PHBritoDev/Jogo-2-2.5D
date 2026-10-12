@@ -638,15 +638,14 @@ const BishopBoss = {
             const phaseDamage = this.profile.id === 'bishop1'
               ? (this.phase >= 3 ? 1.16 : this.phase === 2 ? 1.07 : 1) : 1;
             const baseDamage = this.attack.damage * this.profile.damage * phaseDamage;
-            // Crítico de combate: golpes fortes têm mais chance; impactos muito fortes
-            // derrubam mesmo sem crítico. A hitbox atual ainda não rastreia a posição 3D da cabeça.
+            // Chance moderada: 8% em golpes comuns e 13% em golpes pesados/especiais.
+            // O crítico é um evento de combate; a hitbox ainda não identifica a cabeça fisicamente.
             const heavyImpact = baseDamage >= 27 || this.attack.id === 'vault';
-            const criticalChance = heavyImpact ? 0.16 : 0.045;
+            const criticalChance = heavyImpact ? 0.13 : 0.08;
             const critical = Math.random() < criticalChance;
-            const knockdown = critical || heavyImpact;
             const primaryDamage = Player.hurt(baseDamage,
               this.x, this.y, this.attack.kb,
-              { critical: critical, knockdown: knockdown, hitRegion: critical ? 'head' : 'body' });
+              { critical: critical, knockdown: critical });
             if (primaryDamage > 0) {
               this.hitDone = true;
               this.hitDonePrimary = true;
