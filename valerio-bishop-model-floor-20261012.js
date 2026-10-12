@@ -7,7 +7,7 @@
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null,weaponScaleCompensation=false;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
   let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
-  let attackCycleActive=false,activeAttackClip=null,nextAttackClipIndex=0;
+  let attackCycleActive=false,activeAttackClip=null,nextAttackClipIndex=0,activeAttackStage=0;
   // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
   const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
   let lastHitSerial=0,hurtUntil=0,previousState='',renderedYaw=null;
@@ -185,10 +185,15 @@
       window.ValerioScaleDiagnostics='Modelo: '+diagnosticName+' | altura medida nas poses do esqueleto: '+measuredHeight.toFixed(5)+' | escala aplicada uma vez: '+appliedScale.toFixed(5)+' | alvo: '+height;
       window.ValerioPoseBoundsDiagnostics=(clips&&clips.length?clips.length+' clips / '+measurement.samples+' poses esqueléticas':'pose estática')+' | altura máxima: '+measuredHeight.toFixed(5)+' | escala raiz: '+appliedScale.toFixed(5);
     }
+    // Recalcula os limites depois da escala e usa a MESMA pose de referência
+    // para centralizar e ancorar os pés. Misturar o envelope de todas as animações
+    // com a caixa da pose atual deslocava a base do modelo durante a luta.
     model.updateMatrixWorld(true);
-    const scaled=measureModelBounds(model);
-    const center=scaled.getCenter(new THREE.Vector3());
-    model.position.set(-center.x,-scaled.min.y,-center.z);
+    const anchoredMeasurement=measureFitBounds();
+    const anchorBox=anchoredMeasurement.referenceBox||anchoredMeasurement.box;
+    if(anchorBox.isEmpty()) throw new Error('Não foi possível determinar a pose de referência para o piso');
+    const anchorCenter=anchorBox.getCenter(new THREE.Vector3());
+    model.position.set(-anchorCenter.x,-anchorBox.min.y,-anchorCenter.z);
     model.updateMatrixWorld(true);
     return model;
   }
@@ -345,19 +350,33 @@
     // Os ataques normais (incluindo estados internos de golpe) alternam entre os dois clips.
     const isAttackState=state==='attack'||state==='skill1'||state==='skill2'||state==='skill3';
     if(isAttackState){
+      // Cobrança possui dois impactos reais; cada janela precisa de um golpe visual
+      // separado. Antes, os dois eventos de dano aconteciam durante uma única animação.
+      const requestedStage=(state==='attack'&&v.attackId==='tax'&&
+        Number(v.secondHitAt)>0&&Number(v.stateTime)>=Number(v.secondHitAt))?2:1;
+      if(attackCycleActive&&activeAttackStage!==requestedStage){
+        if(currentAction&&currentActionType==='attack'){
+          currentAction.stop();
+          currentAction=null;
+          currentActionType='';
+        }
+        attackCycleActive=false;
+        activeAttackClip=null;
+      }
       if(attackClips.length){
         if(!attackCycleActive){
           activeAttackClip=attackClips[nextAttackClipIndex%attackClips.length];
           nextAttackClipIndex=(nextAttackClipIndex+1)%attackClips.length;
           attackCycleActive=true;
+          activeAttackStage=requestedStage;
         }
         playClip('attack',true,activeAttackClip);
         return 'attack';
       }
-      attackCycleActive=false;activeAttackClip=null;
+      attackCycleActive=false;activeAttackClip=null;activeAttackStage=0;
       stopAction();return 'procedural-attack';
     }
-    attackCycleActive=false;activeAttackClip=null;
+    attackCycleActive=false;activeAttackClip=null;activeAttackStage=0;
     if(v.talking&&animationClips.talk){playClip('talk',false);return 'talk';}
     // Corrida fica reservada a uma aproximação explícita para habilidade;
     // o deslocamento normal do Bispo sempre usa caminhada lenta e controlada.
@@ -445,7 +464,10 @@
                 return property!=='scale';
               });
               const clipName=(clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-              const isRootMotionClip=clipName==='hitknockbackrootmotion'||clipName==='swordlightcombo';
+              // Qualquer clip pode conter translação do nó raiz. Neutralizamos
+              // essa translação em todos os clips para que a animação não tire o
+              // modelo do ponto de apoio controlado pela física do jogo.
+              const isRootMotionClip=true;
               const isLocomotionClip=/walk|walking|run|running|sprint|jog|locomotion/.test(clipName);
               const isDeathMotionClip=/death|dying|^die$|defeat|knockout|fall|hitknockback/.test(clipName);
               if(isRootMotionClip||isLocomotionClip||isDeathMotionClip){
