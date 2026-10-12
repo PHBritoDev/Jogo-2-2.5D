@@ -252,6 +252,39 @@ const BossPresentation = {
   }
 };
 
+/* IA TÁTICA DO VALÉRIO — camada separada para evoluir depois com magias e poderes. */
+const ValerioCombatAI = {
+  version: 1,
+  predictSeconds: 0.22,
+  maxLead: 42,
+
+  reset() {},
+
+  target(boss, player, dx, dy, distance) {
+    // Persegue a posição provável do jogador em vez de mirar só onde ele estava.
+    // A previsão é curta e limitada para não produzir giros exagerados.
+    const speed = Math.hypot(player.vx || 0, player.vy || 0);
+    if (distance < 95 || speed < 35) return { x: player.x, y: player.y };
+    const t = Math.min(this.predictSeconds, this.maxLead / Math.max(speed, 1));
+    return {
+      x: player.x + (player.vx || 0) * t,
+      y: player.y + (player.vy || 0) * t
+    };
+  },
+
+  chooseAttack(profile, attacks, cooldowns, index, chainCooldown, distance, playerSpeed) {
+    const ready = attacks.filter(a => !a.skill || (cooldowns[a.id] || 0) <= 0);
+    const normal = attacks.filter(a => !a.skill);
+    const pool = ready.length ? ready : normal;
+    if (!pool.length) return null;
+
+    // Se o jogador corre, prioriza um golpe amplo quando disponível.
+    const wide = pool.find(a => /sweep|wave|ring|circle/i.test(a.id + ' ' + (a.name || '')));
+    if (playerSpeed > 100 && wide && distance > 75) return wide;
+    return pool[index % pool.length];
+  }
+};
+
 const BishopBoss = {
   type: 'bishop',
   profile: null,
@@ -396,7 +429,12 @@ const BishopBoss = {
     switch (this.state) {
       case 'approach':
         if (!alive) break;
-        this.fx = dx / d; this.fy = dy / d;
+        const tacticalTarget = this.profile.id === 'bishop1'
+          ? ValerioCombatAI.target(this, Player, dx, dy, d)
+          : { x: Player.x, y: Player.y };
+        const aimX = tacticalTarget.x - this.x, aimY = tacticalTarget.y - this.y;
+        const aimD = Math.hypot(aimX, aimY) || 1;
+        this.fx = aimX / aimD; this.fy = aimY / aimD;
         // Skills têm recarga própria e podem iniciar uma aproximação em corrida.
         if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
           const readySkill = this.skillChainCooldown <= 0 ? this.profile.attacks.find(a => a.skill && (this.skillCooldowns[a.id] || 0) <= 0) : null;
@@ -416,9 +454,16 @@ const BishopBoss = {
           Ambient.spawnSpark(this.x, this.y - 24, 6, '#98aa9d');
         } else if (d <= (this.profile.engageRange || 66)) {
           const attacks = this.profile.attacks;
-          const ready = attacks.filter(a => !a.skill || (this.skillCooldowns[a.id] || 0) <= 0);
-          const pool = ready.length ? ready : attacks.filter(a => !a.skill);
-          this.attack = pool[this.attackIndex % pool.length];
+          const poolChoice = this.profile.id === 'bishop1'
+            ? ValerioCombatAI.chooseAttack(this.profile, attacks, this.skillCooldowns,
+                this.attackIndex, this.skillChainCooldown, d, Player.speed || Math.hypot(Player.vx || 0, Player.vy || 0))
+            : null;
+          if (poolChoice) this.attack = poolChoice;
+          else {
+            const ready = attacks.filter(a => !a.skill || (this.skillCooldowns[a.id] || 0) <= 0);
+            const pool = ready.length ? ready : attacks.filter(a => !a.skill);
+            this.attack = pool[this.attackIndex % pool.length];
+          }
           this.attackIndex++;
           if (this.attack.skill) {
             this.skillCooldowns[this.attack.id] = this.attack.skillCooldown || 6.5;
