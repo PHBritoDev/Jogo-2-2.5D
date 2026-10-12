@@ -58,7 +58,8 @@
     if(!err)return 'erro sem detalhes';
     return err.message||err.statusText||String(err);
   }
-  function measureModelBounds(model) {
+  let runtimeBoundsScratch=null,runtimeSkinnedBoundsScratch=null,runtimeVertexScratch=null;
+  function measureModelBounds(model,reuseScratch) {
     // Three.js r147 não tem SkinnedMesh.computeBoundingBox(). A caixa da geometria
     // bruta ignora os pesos dos ossos; aplique a skin a cada vértice antes do fit.
     model.updateMatrixWorld(true);
@@ -66,13 +67,15 @@
       if (obj.isSkinnedMesh && obj.skeleton) obj.skeleton.update();
     });
     model.updateMatrixWorld(true);
-    const box = new THREE.Box3();
+    const box=reuseScratch?(runtimeBoundsScratch||(runtimeBoundsScratch=new THREE.Box3())):new THREE.Box3();
+    box.makeEmpty();
     model.traverse(function(obj) {
       if (!obj.isMesh || !obj.geometry) return;
       const position = obj.geometry.attributes && obj.geometry.attributes.position;
       if (obj.isSkinnedMesh && obj.skeleton && position && typeof obj.boneTransform === 'function') {
-        const vertex = new THREE.Vector3();
-        const skinnedBox = new THREE.Box3();
+        const vertex=reuseScratch?(runtimeVertexScratch||(runtimeVertexScratch=new THREE.Vector3())):new THREE.Vector3();
+        const skinnedBox=reuseScratch?(runtimeSkinnedBoundsScratch||(runtimeSkinnedBoundsScratch=new THREE.Box3())):new THREE.Box3();
+        skinnedBox.makeEmpty();
         for (let i = 0; i < position.count; i++) {
           vertex.fromBufferAttribute(position, i);
           obj.boneTransform(i, vertex);
@@ -216,6 +219,13 @@
     model.position.set(-anchorCenter.x,-floorBox.min.y,-anchorCenter.z);
     model.updateMatrixWorld(true);
     return {floorMinY:floorMinY,floorProfiles:floorProfiles};
+  }
+  // Mede a malha esquelética na pose FINAL deste frame (inclui os ossos e rotações manuais) e
+  // translada só o pivô verticalmente até o ponto mais baixo tocar o piso real do boss.
+  function anchorPoseToFloor(targetY) {
+    if(!root||!pivot||!Number.isFinite(targetY))return;
+    const bounds=measureModelBounds(root,true);
+    if(!bounds.isEmpty()&&Number.isFinite(bounds.min.y))pivot.position.y+=targetY-bounds.min.y;
   }
   function animationFloorCorrection() {
     if (!currentAction || !animationFloorProfiles.length) return 0;
@@ -674,12 +684,8 @@
       }
       mixer.update(turnDt);
     }
-    // Clips com root-motion podem deslocar o personagem para baixo do piso; o combate já controla a posição do boss.
-    if(rootBasePosition&&root){
-      root.position.copy(rootBasePosition);
-      // Reancora a pose ativa no piso, em vez de usar a pose mais baixa de outra animação.
-      root.position.y+=animationFloorCorrection();
-    }
+    // Combate define a posição; o ajuste final do piso ocorre depois de aplicar a pose completa.
+    if(rootBasePosition&&root)root.position.copy(rootBasePosition);
     // Preserva o offset de pés calculado no fit inicial. O Box3 por frame usava
     // bounds de bind-pose em meshes esqueléticos e fazia Valério afundar no chão.
     if(restoreModelScales)restoreModelScales();
@@ -767,6 +773,8 @@
       if(legRight&&legRightBase)legRight.rotation.copy(legRightBase);
       if(weaponPivot){weaponPivot.rotation.set(0,0,-.12);}
     }
+    // Corrige a altura após mixer, scale restoration e rotações/procedimentos do frame.
+    anchorPoseToFloor(Number(v.position[1])||0);
     previousState=v.state||'';
     last=now;renderer.render(scene,camera);
   }
