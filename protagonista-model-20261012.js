@@ -231,9 +231,14 @@
           if(/attack|slash|swing|strike|sword|melee|atacar|ataque|1h|2h|onehand|twohand|combat/.test(n)){attackClips.push(clip);actions.attack=actions.attack||clip;}
           if(/hurt|damage|hitreaction|takehit|tomardano|dano/.test(n))actions.hurt=actions.hurt||clip;
           if(/get.?up|stand.?up|rise|recover.?floor|levant|levantar/.test(n))actions.getup=actions.getup||clip;
-          if(/death|dying|dead|^die$|morrer|morte/.test(n)){actions.death=actions.death||clip;actions.fall=actions.fall||clip;}
+          if(/fall|falling|knockdown|collapse|stumble|caer|queda/.test(n))actions.fall=actions.fall||clip;
+          if(/death|dying|dead|^die$|morrer|morte/.test(n))actions.death=actions.death||clip;
         });
-        if(!actions.idle&&clips.length)actions.idle=clips[0];
+        if(!actions.idle){
+          // Não usar clips de ataque/dano/morte como repouso quando o GLB não nomeia um idle.
+          const unsafeIdle=/attack|slash|swing|strike|sword|melee|atacar|ataque|hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda/i;
+          actions.idle=clips.find(function(c){return !unsafeIdle.test(c.name||'');})||null;
+        }
         // Segurança: não transformar clips desconhecidos em golpes. Isso fazia morte/dano entrarem no combo quando o GLB usa nomes genéricos.
         ready=true;window.ProtagonistaGLBReady=true;
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k].name;return o;},{})};
