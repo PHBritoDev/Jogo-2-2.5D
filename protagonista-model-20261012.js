@@ -150,18 +150,19 @@
           const rightHand=/right.*(hand|wrist)|hand.*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|mixamorig:rightHand/i;
           swordHand=bones.find(function(b){return rightHand.test(b.name||'');})||null;
           if(!swordHand){
-            // Não prende a uma bone inventada: expõe diagnóstico e deixa arma desativada.
-            window.CelestialSwordDiagnostics='Espada não anexada: nenhum osso de mão direita reconhecido. Ossos encontrados: '+bones.map(function(b){return b.name;}).filter(Boolean).join(', ');
+            // Mesmo se o GLB usar nomes de ossos inesperados, a arma ainda existe
+            // e poderá ser mostrada presa à câmera no modo de primeira pessoa.
+            window.CelestialSwordDiagnostics='Sem osso de mão reconhecido; espada será exibida pela câmera. Ossos: '+bones.map(function(b){return b.name;}).filter(Boolean).join(', ');
             console.warn(window.CelestialSwordDiagnostics);
-            return;
           }
           celestialSword=buildCelestialSword();
-          // O grupo é filho do osso; animações do braço e da mão movem a espada junto.
-          // Offset conservador no punho, sem tocar na escala do personagem.
           celestialSword.position.set(0,0,0);
           celestialSword.rotation.set(0,0,Math.PI);
-          swordHand.add(celestialSword);
-          window.CelestialSwordDiagnostics='Espada 3D anexada ao osso: '+swordHand.name;
+          if(swordHand){
+            // Em terceira pessoa acompanha a mão animada.
+            swordHand.add(celestialSword);
+            window.CelestialSwordDiagnostics='Espada 3D anexada ao osso: '+swordHand.name;
+          }
         }
         attachCelestialSword(root);
         const clips=gltf.animations||[];
@@ -223,15 +224,23 @@
     requestAnimationFrame(frame);
     const v=window.PlayerModelView;
     if(!ready||!v||!v.active||!pivot||!api){if(pivot)pivot.visible=false;return;}
-    // Em primeira pessoa escondemos apenas a malha do corpo, não o osso animado
-    // nem a espada presa à mão. Assim a arma continua visível no enquadramento.
     if(lastFirstPerson!==!!v.firstPerson){
-      if(root)root.traverse(function(o){
-        if(!o.isMesh)return;
-        let weaponPart=false,ancestor=o;
-        while(ancestor){if(ancestor===celestialSword){weaponPart=true;break;}ancestor=ancestor.parent;}
-        o.visible=!v.firstPerson||weaponPart;
-      });
+      if(root)root.traverse(function(o){if(o.isMesh)o.visible=!v.firstPerson;});
+      if(celestialSword&&api.camera){
+        // Em primeira pessoa, prende a espada à câmera para garantir que ela
+        // apareça no campo de visão, independentemente do rig ou do nome do osso.
+        if(v.firstPerson){
+          api.camera.add(celestialSword);
+          celestialSword.position.set(.38,-.34,-.78);
+          celestialSword.rotation.set(0,0,-.22);
+          celestialSword.scale.setScalar(.82);
+        }else{
+          if(swordHand)swordHand.add(celestialSword);
+          celestialSword.position.set(0,0,0);
+          celestialSword.rotation.set(0,0,Math.PI);
+          celestialSword.scale.setScalar(1);
+        }
+      }
       lastFirstPerson=!!v.firstPerson;
     }
     pivot.visible=true;
