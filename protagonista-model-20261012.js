@@ -1,8 +1,10 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordEffects=[],swordLight=null,swordPhase=0,swordFallbackParent=null;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
   const MODEL_HEIGHT=2.15;
+  // O GLB mede cerca de 1,90 no eixo Y; o cabo fica entre Y=0,57 e 0,95.
+  const SWORD_SCALE=.43,SWORD_GRIP_Y=.75;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
     window.ProtagonistaDiagnostics=message;
@@ -67,9 +69,9 @@
   function findSwordHand(model){
     const bones=[];
     model.traverse(function(o){if(o.isBone)bones.push(o);});
-    const rightHand=/(right.*(hand|wrist)|(hand|wrist).*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|mixamorig:rightHand)/i;
-    return bones.find(function(b){return rightHand.test(b.name||'');})||
-      bones.find(function(b){return /hand|wrist|ma[oã]o/i.test(b.name||'');})||null;
+    // Nunca liga à primeira mão encontrada: sem um nome inequivocamente direito, falha explicitamente.
+    const rightHand=/(right.*(hand|wrist)|(hand|wrist).*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|(hand|wrist)[_. -]?r$|mixamorig:rightHand)/i;
+    return bones.find(function(b){return rightHand.test(b.name||'');})||null;
   }
   function addSwordEffects(sword){
     const THREE=api.THREE;
@@ -86,49 +88,86 @@
       sword.add(mesh);swordEffects.push(mesh);
     }
   }
+  function updateSwordMount(){
+    if(!swordHand||!swordMount||!api)return false;
+    swordHand.updateWorldMatrix(true,false);
+    swordHand.getWorldPosition(swordWorldPosition);
+    swordHand.getWorldQuaternion(swordWorldQuaternion);
+    // O mount é filho da cena, não do Armature (escala importada 0,01).
+    swordMount.position.copy(swordWorldPosition);
+    swordMount.quaternion.copy(swordWorldQuaternion);
+    swordMount.scale.set(1,1,1);
+    swordMount.updateMatrixWorld(true);
+    return true;
+  }
   function loadSword(model){
-    const loader=new api.THREE.GLTFLoader();
-    loader.load('./EspadaProta.glb?v=espada-prota-original-mod32',function(gltf){
+    const THREE=api.THREE,loader=new THREE.GLTFLoader();
+    swordWorldPosition=new THREE.Vector3();
+    swordWorldQuaternion=new THREE.Quaternion();
+    loader.load('./EspadaProta.glb?v=espada-prota-hand-mount-mod33',function(gltf){
       try{
         swordRoot=gltf.scene;
         swordRoot.name='EspadaProta_Runtime';
+        swordRoot.visible=true;
+        swordMeshes=0;
         swordRoot.traverse(function(o){
           if(!o.isMesh)return;
-          o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;
+          swordMeshes++;
+          o.visible=true;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;
           const materials=Array.isArray(o.material)?o.material:[o.material];
-          materials.forEach(function(m){if(m){m.needsUpdate=true;}});
+          materials.forEach(function(m){if(m)m.needsUpdate=true;});
         });
-        // O GLB enviado pelo usuário tem cerca de 1,9 unidade de comprimento; ajustamos para caber na mão.
-        swordRoot.scale.setScalar(.43);
-        swordRoot.rotation.set(0,0,0);
+        if(!swordMeshes)throw new Error('GLB carregado sem malhas renderizáveis');
         swordHand=findSwordHand(model);
-        swordFallbackParent=swordHand||model;
-        // O osso da mão já fornece a posição no corpo: não somar 1,05 unidade local nele.
-        swordRoot.position.set(0,swordHand?-0.36:1.05,swordHand?0.10:0);
-        swordFallbackParent.add(swordRoot);
+        swordRoot.scale.setScalar(SWORD_SCALE);
+        // O eixo Y da lâmina aponta para fora dos dedos; o cabo (+Y no GLB) fica no centro da mão.
+        swordRoot.rotation.set(0,0,Math.PI);
+        swordRoot.position.set(0,SWORD_GRIP_Y*SWORD_SCALE,0);
+        if(swordHand){
+          swordMount=new THREE.Group();
+          swordMount.name='EspadaProta_HandMount';
+          api.scene.add(swordMount);
+          swordMount.add(swordRoot);
+          updateSwordMount();
+        }
         addSwordEffects(swordRoot);
-        if(window.PlayerModelView&&window.PlayerModelView.firstPerson)setSwordFirstPerson(true);
-        window.EspadaProtaDiagnostics='EspadaProta.glb carregada; encaixe: '+(swordHand?'osso '+swordHand.name:'modelo do protagonista (nenhum osso de mão reconhecido)')+'; tamanho '+swordRoot.scale.x.toFixed(2)+'; deslocamento '+swordRoot.position.x.toFixed(2)+','+swordRoot.position.y.toFixed(2)+','+swordRoot.position.z.toFixed(2);
-      }catch(e){window.EspadaProtaDiagnostics='Erro preparando EspadaProta.glb: '+e.message;console.warn(window.EspadaProtaDiagnostics);}
-    },undefined,function(){
-      window.EspadaProtaDiagnostics='Falha ao carregar ./EspadaProta.glb. Confira se o arquivo está na raiz do repositório.';
-      console.warn(window.EspadaProtaDiagnostics);
+        swordLoaded=true;swordLoadError='';
+        if(window.PlayerModelView&&window.PlayerModelView.active&&window.PlayerModelView.firstPerson)setSwordFirstPerson(true);
+        refreshSwordDiagnostics(performance.now());
+      }catch(e){
+        swordLoadError='Falha ao preparar EspadaProta.glb: '+(e&&e.message||String(e));
+        window.EspadaProtaDiagnostics=swordLoadError;
+        console.warn('EspadaProta:',swordLoadError);
+      }
+    },undefined,function(err){
+      swordLoadError='Falha ao carregar ./EspadaProta.glb: '+(err&&err.message||'erro HTTP/rede informado pelo GLTFLoader');
+      window.EspadaProtaDiagnostics=swordLoadError;
+      console.warn('EspadaProta:',swordLoadError,err||'');
     });
   }
   function setSwordFirstPerson(firstPerson){
     if(!swordRoot||!api||!api.camera)return;
     if(firstPerson){
       api.camera.add(swordRoot);
-      swordRoot.position.set(.34,-.32,-.72);
-      swordRoot.rotation.set(0,0,-.2);
+      // O ponto de pegada continua no canto inferior direito, sem herdar escala do rig.
+      swordRoot.position.set(.34,0,-.72);
+      swordRoot.rotation.set(0,0,Math.PI);
       swordRoot.scale.setScalar(.36);
-      swordRoot.traverse(function(o){if(o.isMesh)o.visible=true;});
       swordRoot.visible=true;
+      swordRoot.traverse(function(o){if(o.isMesh)o.visible=true;});
+      if(swordMount)swordMount.visible=false;
+    }else if(swordHand&&swordMount){
+      swordMount.add(swordRoot);
+      swordRoot.position.set(0,SWORD_GRIP_Y*SWORD_SCALE,0);
+      swordRoot.rotation.set(0,0,Math.PI);
+      swordRoot.scale.setScalar(SWORD_SCALE);
+      swordRoot.visible=true;
+      swordMount.visible=true;
+      swordRoot.traverse(function(o){if(o.isMesh)o.visible=true;});
+      updateSwordMount();
     }else{
-      if(swordFallbackParent)swordFallbackParent.add(swordRoot);
-      swordRoot.position.set(0,swordHand?-0.36:1.05,swordHand?0.10:0);
-      swordRoot.rotation.set(0,0,0);
-      swordRoot.scale.setScalar(.43);
+      if(swordRoot.parent)swordRoot.parent.remove(swordRoot);
+      swordRoot.visible=false;
     }
   }
   function loadModel(){
@@ -215,15 +254,44 @@
     if(currentType!=='idle'||!currentAction||!currentAction.isRunning())play('idle',false);
   }
   let lastFirstPerson=null,lastSwordStatus=0;
-  function updateSwordStatus(now){
-    if(now-lastSwordStatus<250)return;lastSwordStatus=now;
+  function refreshSwordDiagnostics(now){
+    if(now-swordStatusCheckAt<250)return;swordStatusCheckAt=now;
     let el=document.getElementById('sword-debug-status');
-    if(!el){el=document.createElement('div');el.id='sword-debug-status';el.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99999;max-width:calc(100vw - 16px);padding:6px 9px;border-radius:6px;background:rgba(0,0,0,.78);color:#ffe08a;font:12px/1.35 monospace;pointer-events:none;';document.body.appendChild(el);}
-    el.textContent='ESPADA: '+(window.EspadaProtaDiagnostics||'aguardando carregamento do GLB...');
+    if(!el){el=document.createElement('div');el.id='sword-debug-status';el.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99999;max-width:calc(100vw - 16px);padding:6px 9px;border-radius:6px;background:rgba(0,0,0,.78);font:12px/1.35 monospace;pointer-events:none;';document.body.appendChild(el);}
+    let message=swordLoadError||'Aguardando carregamento de EspadaProta.glb...';
+    let verified=false;
+    if(swordLoaded){
+      const view=window.PlayerModelView,firstPerson=!!(view&&view.active&&view.firstPerson);
+      if(!swordMeshes)message='FALHA: GLB carregado sem malha renderizável.';
+      else if(!swordHand||!swordMount)message='FALHA: GLB tem '+swordMeshes+' malha(s), mas a mão direita do rig não foi encontrada.';
+      else if(firstPerson?swordRoot.parent!==api.camera:swordRoot.parent!==swordMount)message='FALHA: GLB carregado, porém não está conectado ao suporte ativo da espada.';
+      else{
+        try{
+          swordRoot.updateWorldMatrix(true,true);
+          const box=new api.THREE.Box3().setFromObject(swordRoot),size=box.getSize(new api.THREE.Vector3());
+          const length=Math.max(size.x,size.y,size.z);
+          let visibleMesh=false;
+          swordRoot.traverse(function(o){
+            if(!o.isMesh||!o.geometry)return;
+            let parent=o,visible=true;
+            while(parent){if(parent.visible===false){visible=false;break;}if(parent===swordRoot)break;parent=parent.parent;}
+            const mats=Array.isArray(o.material)?o.material:[o.material];
+            const materialVisible=mats.some(function(m){return !!m&&m.visible!==false&&(!Number.isFinite(m.opacity)||m.opacity>0);});
+            if(visible&&materialVisible)visibleMesh=true;
+          });
+          if(!visibleMesh)message='FALHA: suporte conectado, mas nenhuma malha da espada está visível.';
+          else if(!Number.isFinite(length)||length<.45)message='FALHA: dimensão mundial da espada inválida ('+(Number(length)||0).toFixed(3)+' u).';
+          else{verified=true;message='OK: GLB carregado; '+swordMeshes+' malha(s); mão direita '+swordHand.name+'; '+(firstPerson?'1ª pessoa/câmera':'3ª pessoa/mão')+'; comprimento '+length.toFixed(2)+' u.';}
+        }catch(e){message='FALHA ao verificar malha/encaixe da espada: '+(e&&e.message||String(e));}
+      }
+    }
+    window.EspadaProtaDiagnostics=message;
+    el.style.color=verified?'#86efac':'#ffb9b9';
+    el.textContent='ESPADA: '+message;
   }
   function frame(now){
     requestAnimationFrame(frame);
-    updateSwordStatus(now);
+    refreshSwordDiagnostics(now);
     const v=window.PlayerModelView;
     if(!ready||!v||!v.active||!pivot||!api){if(pivot)pivot.visible=false;return;}
     if(lastFirstPerson!==!!v.firstPerson){
@@ -256,9 +324,10 @@
     }
     if(restoreModelScales)restoreModelScales();
     if(root&&rootBasePosition){root.position.copy(rootBasePosition);root.updateMatrixWorld(true);}
+    if(swordMount&&swordHand)updateSwordMount();
     // A renderização fica com o loop do Valério: os dois modelos compartilham depth buffer.
   }
   window.ProtagonistaGLBReady=false;
-  window.EspadaProtaDiagnostics='aguardando carregamento do modelo do protagonista...';
+  window.EspadaProtaDiagnostics='aguardando carregamento de EspadaProta.glb...';
   if(!disabled){if(document.readyState==='complete')findAPI();else window.addEventListener('load',findAPI,{once:true});requestAnimationFrame(frame);}
 })();
