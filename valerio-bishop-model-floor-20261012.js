@@ -71,6 +71,13 @@
     box.makeEmpty();
     model.traverse(function(obj) {
       if (!obj.isMesh || !obj.geometry) return;
+      // MOD 9: a arma fica presa à mão, mas não pode definir a altura do corpo.
+      // A ponta da foice pode ser o ponto mais baixo da caixa e erguer as botas.
+      let ancestor=obj;
+      while(ancestor && ancestor!==model){
+        if(ancestor===weaponRoot || ancestor===weaponPivot) return;
+        ancestor=ancestor.parent;
+      }
       const position = obj.geometry.attributes && obj.geometry.attributes.position;
       if (obj.isSkinnedMesh && obj.skeleton && position && typeof obj.boneTransform === 'function') {
         const vertex=reuseScratch?(runtimeVertexScratch||(runtimeVertexScratch=new THREE.Vector3())):new THREE.Vector3();
@@ -225,7 +232,7 @@
   function anchorPoseToFloor(targetY) {
     if(!root||!pivot||!Number.isFinite(targetY))return;
     const bounds=measureModelBounds(root,true);
-    if(!bounds.isEmpty()&&Number.isFinite(bounds.min.y)){const v=window.ValerioModelView||{};const state=String(v.state||'').toLowerCase();const idleLike=state==='idle'||state==='approach'&&(Number(v.speed)||0)<8||state==='static-pose';const sink=idleLike?0.12:0.065;pivot.position.y+=targetY-bounds.min.y-sink;} // MOD 8: correção maior em repouso, quando a folga sob as botas fica mais visível.
+    if(!bounds.isEmpty()&&Number.isFinite(bounds.min.y))pivot.position.y+=targetY-bounds.min.y; // MOD 9: ancora o corpo pelo ponto mais baixo do personagem, excluindo a foice.
   }
   function animationFloorCorrection() {
     if (!currentAction || !animationFloorProfiles.length) return 0;
