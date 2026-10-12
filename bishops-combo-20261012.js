@@ -480,8 +480,8 @@ const BishopBoss = {
         }
         // Cobrança tem dois impactos visuais (espada e mão livre): cada um
         // precisa de sua própria janela de acerto, sem duplicar o primeiro dano.
-        if (this.attack.id === 'tax' && !this.hitDoneSecondary &&
-            this.stateT >= (this.attack.secondHitAt || 0.18)) {
+        if (Number.isFinite(this.attack.secondHitAt) && !this.hitDoneSecondary &&
+            this.stateT >= this.attack.secondHitAt) {
           // O segundo impacto só consome sua janela depois de tentar acertar.
           // Se o primeiro conectou, ignora o knockback e a invulnerabilidade
           // criados por ele; se errou, o segundo ainda tem sua própria checagem.

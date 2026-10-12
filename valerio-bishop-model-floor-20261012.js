@@ -355,8 +355,8 @@
     if(isAttackState){
       // Cobrança possui dois impactos reais; cada janela precisa de um golpe visual
       // separado. Antes, os dois eventos de dano aconteciam durante uma única animação.
-      const requestedStage=(state==='attack'&&v.attackId==='tax'&&
-        Number(v.secondHitAt)>0&&Number(v.stateTime)>=Number(v.secondHitAt))?2:1;
+      const requestedStage=(state==='attack'&&Number(v.secondHitAt)>0&&
+        Number(v.stateTime)>=Number(v.secondHitAt))?2:1;
       if(attackCycleActive&&activeAttackStage!==requestedStage){
         if(currentAction&&currentActionType==='attack'){
           currentAction.stop();
@@ -601,7 +601,11 @@
     if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);
     camera.aspect=v.aspect||w/h;camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
     camera.position.set(v.eye[0],v.eye[1],v.eye[2]);camera.lookAt(v.target[0],v.target[1],v.target[2]);
-    pivot.position.set(v.position[0],v.position[1],v.position[2]);
+    // Calibração visual do piso: os pés do GLB ficam ligeiramente acima da superfície
+    // mesmo após o fit. A animação de morte precisa de compensação adicional.
+    const isDeadPose=/^(dead|death|dying)$/i.test(String(v.state||''));
+    const floorCorrection=isDeadPose?0.14:0.055;
+    pivot.position.set(v.position[0],v.position[1]-floorCorrection,v.position[2]);
     // Corrige o eixo frontal comum em modelos exportados para GLB e gira pelo
     // menor arco possível: evita a volta de 360° quando o jogador cruza atrás.
     const playerPos=Array.isArray(v.playerPosition)?v.playerPosition:null;
