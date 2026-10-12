@@ -150,8 +150,15 @@ const Player = {
       }
       this.attackT = -1;
       this.atkBuf = 0;
-      this.vz = Math.max(this.vz, C.hurtPop);
-      this.onGround = false;
+      if (requestKnockdown) {
+        // A derrubada é uma transição de combate no chão, não um segundo pulo.
+        this.vz = 0;
+        this.z = this.floor;
+        this.onGround = true;
+      } else {
+        this.vz = Math.max(this.vz, C.hurtPop);
+        this.onGround = false;
+      }
       Ambient.spawnSpark(this.x, gy, 9, '#ff9a8a');
       Combat.addText(this.x, this.y - this.z - 42, critical ? 'CRÍTICO! -' + dmg : (requestKnockdown ? 'DERRUBADO! -' + dmg : '-' + dmg), critical ? '#ffd166' : '#ff5a5a');
       Camera.shake = Math.min(6, Camera.shake + 4);
@@ -248,7 +255,7 @@ const Player = {
     }
 
     // ----- Gravidade (soltar o botão encurta o pulo) -----
-    if (!jumpHeld && this.vz > 0 && !this.dead && this.stun <= 0) this.vz -= P.gravity * 1.2 * dt;
+    if (!jumpHeld && this.vz > 0 && !this.dead && this.stun <= 0) this.vz -= P.gravity * 0.35 * dt;
     this.vz -= P.gravity * dt;
     this.z += this.vz * dt;
 
