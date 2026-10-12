@@ -732,7 +732,7 @@ const BishopDimension = (function () {
   function isBattleActive() {
     return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
   }
-  function addCameraLook(dx,dy){const c=S.camera;c.yaw-=dx*.006;c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
+  function addCameraLook(dx,dy){const c=S.camera;c.yaw+=dx*.006;c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
   function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
   function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
   function enter() {
