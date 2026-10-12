@@ -26,7 +26,7 @@ const BISHOP_PROFILES = {
     reward: { coins: 120, unlocks: ['greed_bishop_1_defeated'] },
     arena: Casino.bossStart,
     attacks: [
-      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.28, cooldown: 0.72, range: 58, damage: 16, kb: 260, lunge: 70, hitAt: 0.08 },
+      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.28, cooldown: 0.72, range: 58, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.18, secondHitScale: 0.65 },
       { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.02, range: 82, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
       { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 0.84, range: 72, damage: 19, kb: 310, lunge: 92, hitAt: 0.09 }
     ]
@@ -256,7 +256,7 @@ const BishopBoss = {
   x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kx: 0, ky: 0,
   r: 18, hp: 1, maxHp: 1, trail: 1, trailDelay: 0,
   state: 'inactive', stateT: 0, flashT: 0, alpha: 0,
-  hitDone: false, hitId: -1, fx: -1, fy: 0,
+  hitDone: false, hitDoneSecondary: false, hitId: -1, fx: -1, fy: 0,
   anim: 0, speed: 0, onGround: true, floor: 0, sy: 0,
   attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, _solids: [],
   elHud: null, elHudName: null, elHudTitle: null, elHudFill: null, elHudText: null,
@@ -280,6 +280,7 @@ const BishopBoss = {
     this.vx = this.vy = this.vz = this.kx = this.ky = 0;
     this.attack = null;
     this.hitDone = false;
+    this.hitDoneSecondary = false;
     this.hitId = -1;
     this.phase = 1;
     this.guardCooldown = 0;
@@ -301,6 +302,7 @@ const BishopBoss = {
     this.flashT = 0;
     this.alpha = 1;
     this.hitDone = false;
+    this.hitDoneSecondary = false;
     this.hitId = -1;
     this.fx = -1; this.fy = 0.2;
     this.attackIndex = 0;
@@ -319,7 +321,7 @@ const BishopBoss = {
   _go(state) {
     this.state = state;
     this.stateT = 0;
-    if (state === 'attack') this.hitDone = false;
+    if (state === 'attack') { this.hitDone = false; this.hitDoneSecondary = false; }
   },
 
   hurt(rawDamage, dx, dy, kb) {
@@ -335,8 +337,10 @@ const BishopBoss = {
     this.kx = (guarding || skillLocked) ? 0 : dx * kb * 0.72;
     this.ky = (guarding || skillLocked) ? 0 : dy * kb * 0.72;
     if (!skillLocked) this.vx = this.vy = 0;
-    this.vz = (guarding || skillLocked) ? this.vz : Math.max(this.vz, CFG.COMBAT.hurtPop * 0.65);
-    this.onGround = guarding || skillLocked;
+    // O Bispo deve reagir ao golpe sem ser lançado para cima: a reação visual
+    // é feita pelo clip de dano, não por uma velocidade vertical de salto.
+    this.vz = 0;
+    this.onGround = true;
     const gy = this.y - this.z - 24;
     Ambient.spawnSpark(this.x, gy, 10, '#ffe5a0');
     Ambient.spawnSpark(this.x, gy, 4, '#ffffff');
@@ -346,7 +350,8 @@ const BishopBoss = {
     if (this.hp <= 0) {
       this._go('dead');
       this.kx *= 1.3; this.ky *= 1.3;
-      this.vz = 190;
+      this.vz = 0;
+      this.onGround = true;
       Ambient.spawnSpark(this.x, gy, 24, '#f2c654');
       Ambient.spawnSpark(this.x, gy, 9, '#ffffff');
       Sfx.death();
@@ -466,6 +471,19 @@ const BishopBoss = {
           if (this.attack.id === 'vault') {
             Ambient.spawnSpark(this.x, this.y - 7, 12, '#f2c654');
             Camera.shake = Math.max(Camera.shake, 4);
+          }
+        }
+        // Cobrança tem dois impactos visuais (espada e mão livre): cada um
+        // precisa de sua própria janela de acerto, sem duplicar o primeiro dano.
+        if (this.attack.id === 'tax' && !this.hitDoneSecondary &&
+            this.stateT >= (this.attack.secondHitAt || 0.18)) {
+          this.hitDoneSecondary = true;
+          const secondFacingDot=(this.fx*dx+this.fy*dy)/(d||1);
+          if (alive && d < this.attack.range && secondFacingDot > 0.12 &&
+              Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH) {
+            Player.hurt(this.attack.damage * (this.attack.secondHitScale || 0.65) * this.profile.damage,
+              this.x, this.y, this.attack.kb * 0.72);
+            Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 6, '#ffffff');
           }
         }
         if (this.stateT >= this.attack.duration) this._go('recover');
