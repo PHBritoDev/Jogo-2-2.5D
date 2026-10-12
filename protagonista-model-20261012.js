@@ -88,7 +88,7 @@
   }
   function loadSword(model){
     const loader=new api.THREE.GLTFLoader();
-    loader.load('./EspadaProta.glb?v=espada-prota-mod27',function(gltf){
+    loader.load('./EspadaProta.glb?v=espada-prota-mod29',function(gltf){
       try{
         swordRoot=gltf.scene;
         swordRoot.name='EspadaProta_Runtime';
@@ -101,9 +101,10 @@
         // O GLB enviado pelo usuário tem cerca de 1,9 unidade de comprimento; ajustamos para caber na mão.
         swordRoot.scale.setScalar(.43);
         swordRoot.rotation.set(0,0,0);
-        swordRoot.position.set(0,1.05,0);
         swordHand=findSwordHand(model);
         swordFallbackParent=swordHand||model;
+        // O osso da mão já fornece a posição no corpo: não somar 1,05 unidade local nele.
+        swordRoot.position.set(0,swordHand?0:1.05,0);
         swordFallbackParent.add(swordRoot);
         addSwordEffects(swordRoot);
         if(window.PlayerModelView&&window.PlayerModelView.firstPerson)setSwordFirstPerson(true);
@@ -125,7 +126,7 @@
       swordRoot.visible=true;
     }else{
       if(swordFallbackParent)swordFallbackParent.add(swordRoot);
-      swordRoot.position.set(0,1.05,0);
+      swordRoot.position.set(0,swordHand?0:1.05,0);
       swordRoot.rotation.set(0,0,0);
       swordRoot.scale.setScalar(.43);
     }
@@ -213,9 +214,17 @@
     if(v.moving&&actions.walk){if(currentType!=='walk'||!currentAction||!currentAction.isRunning())play('walk',false);return;}
     if(currentType!=='idle'||!currentAction||!currentAction.isRunning())play('idle',false);
   }
+  let lastFirstPerson=null,lastSwordStatus=0;
+  function updateSwordStatus(now){
+    if(now-lastSwordStatus<250)return;lastSwordStatus=now;
+    let el=document.getElementById('sword-debug-status');
+    if(!el){el=document.createElement('div');el.id='sword-debug-status';el.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99999;max-width:calc(100vw - 16px);padding:6px 9px;border-radius:6px;background:rgba(0,0,0,.78);color:#ffe08a;font:12px/1.35 monospace;pointer-events:none;';document.body.appendChild(el);}
+    el.textContent='ESPADA: '+(window.EspadaProtaDiagnostics||'aguardando carregamento do GLB...');
+  }
   let lastFirstPerson=null;
   function frame(now){
     requestAnimationFrame(frame);
+    updateSwordStatus(now);
     const v=window.PlayerModelView;
     if(!ready||!v||!v.active||!pivot||!api){if(pivot)pivot.visible=false;return;}
     if(lastFirstPerson!==!!v.firstPerson){
@@ -251,5 +260,6 @@
     // A renderização fica com o loop do Valério: os dois modelos compartilham depth buffer.
   }
   window.ProtagonistaGLBReady=false;
+  window.EspadaProtaDiagnostics='aguardando carregamento do modelo do protagonista...';
   if(!disabled){if(document.readyState==='complete')findAPI();else window.addEventListener('load',findAPI,{once:true});requestAnimationFrame(frame);}
 })();
