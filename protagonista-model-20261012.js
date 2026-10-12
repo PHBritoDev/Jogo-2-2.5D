@@ -150,18 +150,19 @@
           const rightHand=/right.*(hand|wrist)|hand.*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|mixamorig:rightHand/i;
           swordHand=bones.find(function(b){return rightHand.test(b.name||'');})||null;
           if(!swordHand){
-            // Não prende a uma bone inventada: expõe diagnóstico e deixa arma desativada.
-            window.CelestialSwordDiagnostics='Espada não anexada: nenhum osso de mão direita reconhecido. Ossos encontrados: '+bones.map(function(b){return b.name;}).filter(Boolean).join(', ');
+            // Mesmo se o GLB usar nomes de ossos inesperados, a arma ainda existe
+            // e poderá ser mostrada presa à câmera no modo de primeira pessoa.
+            window.CelestialSwordDiagnostics='Sem osso de mão reconhecido; espada será exibida pela câmera. Ossos: '+bones.map(function(b){return b.name;}).filter(Boolean).join(', ');
             console.warn(window.CelestialSwordDiagnostics);
-            return;
           }
           celestialSword=buildCelestialSword();
-          // O grupo é filho do osso; animações do braço e da mão movem a espada junto.
-          // Offset conservador no punho, sem tocar na escala do personagem.
           celestialSword.position.set(0,0,0);
           celestialSword.rotation.set(0,0,Math.PI);
-          swordHand.add(celestialSword);
-          window.CelestialSwordDiagnostics='Espada 3D anexada ao osso: '+swordHand.name;
+          if(swordHand){
+            // Em terceira pessoa acompanha a mão animada.
+            swordHand.add(celestialSword);
+            window.CelestialSwordDiagnostics='Espada 3D anexada ao osso: '+swordHand.name;
+          }
         }
         attachCelestialSword(root);
         const clips=gltf.animations||[];
