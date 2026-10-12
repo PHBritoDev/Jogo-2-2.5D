@@ -21,14 +21,15 @@ const BISHOP_PROFILES = {
     defense: 0.24,
     radius: 18,
     speed: 80,
+    engageRange: 80, // MODIFICAÇÃO 13: Valério inicia ataques automaticamente quando chega perto.
     visualScale: 1.22,
     deathDuration: 1.2,
     reward: { coins: 120, unlocks: ['greed_bishop_1_defeated'] },
     arena: Casino.bossStart,
     attacks: [
-      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.62, cooldown: 0.9, range: 58, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.36, secondHitScale: 0.65 },
-      { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.02, range: 82, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
-      { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 0.84, range: 72, damage: 19, kb: 310, lunge: 92, hitAt: 0.09 }
+      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.62, cooldown: 0.9, range: 82, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.36, secondHitScale: 0.65 },
+      { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.02, range: 108, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
+      { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 0.84, range: 96, damage: 19, kb: 310, lunge: 92, hitAt: 0.09 }
     ]
   },
   greedSecond: {
@@ -465,13 +466,21 @@ const BishopBoss = {
 
       case 'attack':
         if (!this.hitDone && this.stateT >= this.attack.hitAt) {
-          this.hitDone = true;
+          const isValerio = this.profile.id === 'bishop1';
           const facingDot=(this.fx*dx+this.fy*dy)/(d||1);
-          if (alive && d < this.attack.range && facingDot > 0.12 && Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH) {
+          const canReach = alive && d < this.attack.range &&
+            facingDot > (isValerio ? -0.15 : 0.12) &&
+            Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH;
+          // MODIFICAÇÃO 13: a foice tem uma janela curta de contato; sair alguns
+          // centímetros no primeiro frame não cancela um golpe que ainda está passando.
+          if (canReach) {
+            this.hitDone = true;
             const primaryDamage = Player.hurt(this.attack.damage * this.profile.damage, this.x, this.y, this.attack.kb);
             if (primaryDamage > 0) this.hitDonePrimary = true;
             Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 7,
               this.profile.id === 'bishop3' ? '#b8d0c3' : '#f3c14e');
+          } else if (!isValerio || this.stateT >= this.attack.hitAt + 0.22) {
+            this.hitDone = true;
           }
           if (this.attack.id === 'vault') {
             Ambient.spawnSpark(this.x, this.y - 7, 12, '#f2c654');
@@ -486,7 +495,7 @@ const BishopBoss = {
           // Se o primeiro conectou, ignora o knockback e a invulnerabilidade
           // criados por ele; se errou, o segundo ainda tem sua própria checagem.
           const secondFacingDot=(this.fx*dx+this.fy*dy)/(d||1);
-          const secondCanReach=alive && d < this.attack.range && secondFacingDot > 0.12 &&
+          const secondCanReach=alive && d < this.attack.range && secondFacingDot > (this.profile.id === 'bishop1' ? -0.15 : 0.12) &&
             Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH;
           if (!Player.dead && (this.hitDonePrimary || secondCanReach)) {
             // Compatibilidade defensiva: limpar a invulnerabilidade antes do
