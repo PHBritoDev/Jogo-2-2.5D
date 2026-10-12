@@ -115,6 +115,7 @@
       });
     };
     const envelope = new THREE.Box3();
+    let referenceBox = null;
     let samples = 0;
     try {
       clips.forEach(function(clip) {
@@ -135,7 +136,11 @@
           action.time = duration * (i / intervals);
           mixer.update(0);
           const poseBox = measureModelBounds(model);
-          if (!poseBox.isEmpty()) envelope.union(poseBox);
+          if (!poseBox.isEmpty()) {
+            envelope.union(poseBox);
+            const isIdlePose = /idle|breath|rest|stand/i.test(clip.name || '');
+            if (i === 0 && (!referenceBox || isIdlePose)) referenceBox = poseBox.clone();
+          }
           samples++;
         }
       });
@@ -149,7 +154,7 @@
       model.updateMatrixWorld(true);
     }
     if (envelope.isEmpty()) throw new Error('Não foi possível medir as poses esqueléticas do GLB');
-    return { box: envelope, samples: samples };
+    return { box: envelope, referenceBox: referenceBox || envelope.clone(), samples: samples };
   }
   function fitModel(model,height,diagnosticName,clips) {
     const measureFitBounds = function() {
@@ -158,11 +163,13 @@
     let measurement = measureFitBounds();
     let box = measurement.box;
     let size=box.getSize(new THREE.Vector3());
-    if(size.z>size.y*1.35 && size.z>size.x*0.72) {
+    let poseSize=(measurement.referenceBox||box).getSize(new THREE.Vector3());
+    if(poseSize.z>poseSize.y*1.35 && poseSize.z>poseSize.x*0.72) {
       model.rotation.x=-Math.PI/2;
       measurement=measureFitBounds();
       box=measurement.box;
       size=box.getSize(new THREE.Vector3());
+      poseSize=(measurement.referenceBox||box).getSize(new THREE.Vector3());
     }
     if(!isFinite(size.y)||size.y<0.01) {
       model.rotation.x=Math.PI/2;
