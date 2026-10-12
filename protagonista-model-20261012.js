@@ -106,6 +106,7 @@
         swordFallbackParent=swordHand||model;
         swordFallbackParent.add(swordRoot);
         addSwordEffects(swordRoot);
+        if(window.PlayerModelView&&window.PlayerModelView.firstPerson)setSwordFirstPerson(true);
         window.EspadaProtaDiagnostics='EspadaProta.glb carregada; encaixe: '+(swordHand?'osso '+swordHand.name:'modelo do protagonista (nenhum osso de mão reconhecido)');
       }catch(e){window.EspadaProtaDiagnostics='Erro preparando EspadaProta.glb: '+e.message;console.warn(window.EspadaProtaDiagnostics);}
     },undefined,function(){
