@@ -38,6 +38,32 @@
     if(!api||!api.THREE||!api.scene||!api.camera||!api.renderer||!api.THREE.GLTFLoader){requestAnimationFrame(findAPI);return;}
     loadModel();
   }
+  // Mede a malha já deformada pelo esqueleto. Box3.setFromObject sozinho usa limites brutos
+  // em versões antigas do Three.js e pode normalizar o GLB com uma altura incorreta.
+  function measureModelBounds(model){
+    model.updateMatrixWorld(true);
+    model.traverse(function(obj){if(obj.isSkinnedMesh&&obj.skeleton)obj.skeleton.update();});
+    model.updateMatrixWorld(true);
+    const box=new api.THREE.Box3();
+    box.makeEmpty();
+    model.traverse(function(obj){
+      if(!obj.isMesh||!obj.geometry||obj.visible===false)return;
+      let parent=obj.parent;
+      while(parent&&parent!==model){if(parent.visible===false)return;parent=parent.parent;}
+      const pos=obj.geometry.attributes&&obj.geometry.attributes.position;
+      if(obj.isSkinnedMesh&&obj.skeleton&&pos&&typeof obj.boneTransform==='function'){
+        const v=new api.THREE.Vector3(),skinnedBox=new api.THREE.Box3();skinnedBox.makeEmpty();
+        for(let i=0;i<pos.count;i++){
+          v.fromBufferAttribute(pos,i);obj.boneTransform(i,v);v.applyMatrix4(obj.matrixWorld);skinnedBox.expandByPoint(v);
+        }
+        if(!skinnedBox.isEmpty()){box.union(skinnedBox);return;}
+      }
+      if(!obj.geometry.boundingBox)obj.geometry.computeBoundingBox();
+      if(obj.geometry.boundingBox)box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
+      else box.union(new api.THREE.Box3().setFromObject(obj));
+    });
+    return box;
+  }
   function loadModel(){
     note('carregando Protagonista.glb...',false);
     const THREE=api.THREE,loader=new THREE.GLTFLoader();
@@ -53,10 +79,11 @@
             if(m)m.needsUpdate=true;
           });
         });
-        let box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3());
-        if(size.z>size.y*1.35&&size.z>size.x*.72){root.rotation.x=-Math.PI/2;box=new THREE.Box3().setFromObject(root);size=box.getSize(new THREE.Vector3());}
+        let box=measureModelBounds(root),size=box.getSize(new THREE.Vector3());
+        if(size.z>size.y*1.35&&size.z>size.x*.72){root.rotation.x=-Math.PI/2;box=measureModelBounds(root);size=box.getSize(new THREE.Vector3());}
         if(!isFinite(size.y)||size.y<.01)throw new Error('modelo sem altura válida');
         const factor=MODEL_HEIGHT/size.y;
+        window.ProtagonistaScaleDiagnostics='Altura esquelética medida: '+size.y.toFixed(5)+' | fator de ajuste: '+factor.toFixed(5)+' | altura-alvo: '+MODEL_HEIGHT;
         root.scale.multiplyScalar(factor);
         root.position.x-=((box.min.x+box.max.x)/2)*factor;
         root.position.z-=((box.min.z+box.max.z)/2)*factor;
