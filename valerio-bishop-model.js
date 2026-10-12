@@ -522,7 +522,9 @@
               attack:attackClips[0]||pickClip([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/combo/,/melee/]),
               hurt:pickClip([/hurt/,/damage/,/stagger/,/flinch/,/hitreaction/]),
               // Nunca confundir o clip de knockback/queda com reação de dano ou morte.
-              death:pickClip([/^death/,/dying/,/^die$/, /defeat/,/knockout/])||pickClip([/fall/]),
+              // Evita clips genéricos de queda lateral. Se não houver morte dedicada,
+              // usa a animação de knockback para trás do próprio GLB antes do fallback procedural.
+              death:pickClip([/^death/,/dying/,/^die$/, /defeat/,/knockout/])||pickClip([/hitknockbackrootmotion/,/fallback/,/fall_backward/,/backfall/]),
               magic:pickClip([/magic/,/cast/,/spell/,/grimoire/,/bible/,/book/,/prayer/,/pose/]),
               talk:pickClip([/talk/,/speak/])
             };
@@ -583,10 +585,10 @@
       pivot.rotation.y+=Math.max(-maxTurn,Math.min(maxTurn,yawDelta));
     }
     const animType=disableValerioClips?'none':chooseAnimation(v,now);
-    // Se o GLB não tiver um clip de morte próprio, tombar o corpo é melhor
-    // que deixar Valério imóvel ou reutilizar a animação de queda ao receber dano.
-    const deadProgress=String(v.state||'').toLowerCase()==='dead'?Math.max(0,Math.min(1,(Number(v.stateTime)||0)/0.7)):0;
-    pivot.rotation.z=animType==='procedural-death'?deadProgress*1.12:0;
+    // Fallback de morte: Valério cai para trás, não de lado.
+    const deadProgress=String(v.state||'').toLowerCase()==='dead'?Math.max(0,Math.min(1,(Number(v.stateTime)||0)/0.72)):0;
+    pivot.rotation.x=animType==='procedural-death'?-deadProgress*1.42:0;
+    pivot.rotation.z=0;
     if(mixer&&!disableValerioClips){
       // Sincroniza a cadência das pernas com a velocidade REAL do BishopBoss.
       // A 80 px/s chega perto do ritmo normal; ao desacelerar, a passada encurta.
@@ -599,21 +601,9 @@
     }
     // Clips com root-motion podem deslocar o personagem para baixo do piso; o combate já controla a posição do boss.
     if(rootBasePosition&&root)root.position.copy(rootBasePosition);
-    // Reaplica escalas-base antes de medir a pose atual.
+    // Preserva o offset de pés calculado no fit inicial. O Box3 por frame usava
+    // bounds de bind-pose em meshes esqueléticos e fazia Valério afundar no chão.
     if(restoreModelScales)restoreModelScales();
-    // Mantém os pés no nível do piso em cada pose animada; a arma é removida
-    // temporariamente da hierarquia para não confundir sua ponta com os pés.
-    if(root&&pivot){
-      const weaponParent=weaponPivot&&weaponPivot.parent;
-      if(weaponParent)weaponParent.remove(weaponPivot);
-      root.updateMatrixWorld(true);
-      const poseBounds=new THREE.Box3().setFromObject(root);
-      if(!poseBounds.isEmpty()&&Number.isFinite(poseBounds.min.y)){
-        root.position.y-=poseBounds.min.y-pivot.position.y;
-        root.updateMatrixWorld(true);
-      }
-      if(weaponParent){weaponParent.add(weaponPivot);root.updateMatrixWorld(true);}
-    }
     // A escala do personagem é definida uma vez por fitModel(). Não recalcular
     // a escala pela bounding box animada: respiração, ataque e poses mudam a caixa
     // delimitadora e isso faz o corpo crescer/encolher a cada frame.

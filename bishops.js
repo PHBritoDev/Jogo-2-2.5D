@@ -482,7 +482,7 @@ const BishopBoss = {
           if (alive && d < this.attack.range && secondFacingDot > 0.12 &&
               Math.abs(Player.z - this.z) < CFG.COMBAT.bodyH) {
             Player.hurt(this.attack.damage * (this.attack.secondHitScale || 0.65) * this.profile.damage,
-              this.x, this.y, this.attack.kb * 0.72);
+              this.x, this.y, this.attack.kb * 0.72, { ignoreInvuln: true });
             Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 6, '#ffffff');
           }
         }
