@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,celestialSword=null,swordCore=null,swordHand=null,swordPhase=0;
   const MODEL_HEIGHT=2.15;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
@@ -94,8 +94,7 @@
         mixer=new THREE.AnimationMixer(root);
         // Espada Celestial: geometria 3D real, presa a um osso de mão encontrado em runtime.
         // A busca é tolerante a nomes de rigs diferentes; não presume um nome específico.
-        let celestialSword=null, swordCore=null, swordHand=null, swordPhase=0;
-        function buildCelestialSword(){
+                function buildCelestialSword(){
           const group=new THREE.Group();
           group.name='CelestialSword_Runtime';
           const pearl=new THREE.MeshStandardMaterial({color:0xeaf3f6,metalness:.72,roughness:.24,emissive:0x6b9eae,emissiveIntensity:.16});
