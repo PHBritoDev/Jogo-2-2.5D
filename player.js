@@ -121,7 +121,8 @@ const Player = {
     options = options || {};
     const critical = !!options.critical && !this.blocking;
     if (critical) dmg = Math.round(dmg * 1.55);
-    const requestKnockdown = !this.blocking && (!!options.knockdown || (dmg >= 28 && kb >= 230));
+    // A queda é exclusiva de um crítico confirmado; golpes fortes comuns não derrubam.
+    const requestKnockdown = !this.blocking && critical && options.knockdown === true;
     let dx = this.x - fromX, dy = this.y - fromY;
     const d = Math.hypot(dx, dy) || 1;
     dx /= d; dy /= d;
