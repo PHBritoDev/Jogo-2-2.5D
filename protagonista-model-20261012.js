@@ -68,8 +68,8 @@
         if(role==='attack')attackClips=[clip];
       }
     });
-    actions.fall=actions.fall||actions.death||null;
-    actions.death=actions.death||actions.fall||null;
+    actions.fall=actions.fall||null;
+    actions.death=actions.death||null;
   }
   function showAnimationDiagnostics(clips){
     const params=new URLSearchParams(window.location.search);if(params.get('debugAnimations')!=='1'||params.get('showAnimationMapper')!=='1')return;
@@ -110,8 +110,6 @@
         try{localStorage.setItem('protagonistaAnimationRolesV2',JSON.stringify(saved));}catch(e){}
         actions[role]=clip;
         if(role==='attack')attackClips=[clip];
-        if(role==='death'){actions.fall=actions.fall||clip;}
-        if(role==='fall'){actions.death=actions.death||clip;}
         window.ProtagonistaAnimationTiming={
           // O combate real usa estes tempos: sincronizar o clip inteiro evita o golpe
           // continuar além da hitbox ou a reação de dano ser cortada no meio.
