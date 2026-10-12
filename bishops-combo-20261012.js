@@ -27,9 +27,10 @@ const BISHOP_PROFILES = {
     reward: { coins: 120, unlocks: ['greed_bishop_1_defeated'] },
     arena: Casino.bossStart,
     attacks: [
-      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.62, cooldown: 0.9, range: 132, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.36, secondHitScale: 0.65 },
-      { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.02, range: 158, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
-      { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 0.84, range: 145, damage: 19, kb: 310, lunge: 92, hitAt: 0.09 }
+      // MOD 16: alcances coerentes com a distância de início; golpes acompanham melhor quem corre.
+      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.62, cooldown: 0.9, range: 165, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.36, secondHitScale: 0.65 },
+      { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.02, range: 190, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
+      { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 0.84, range: 178, damage: 19, kb: 310, lunge: 92, hitAt: 0.09 }
     ]
   },
   greedSecond: {
@@ -476,11 +477,17 @@ const BishopBoss = {
             facingDot > (isValerio ? -0.65 : 0.12) &&
             Math.abs(Player.z - this.z) < Math.max(CFG.COMBAT.bodyH, 54);
           if (canReach) {
-            this.hitDone = true;
             const primaryDamage = Player.hurt(this.attack.damage * this.profile.damage, this.x, this.y, this.attack.kb);
-            if (primaryDamage > 0) this.hitDonePrimary = true;
-            Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 7,
-              this.profile.id === 'bishop3' ? '#b8d0c3' : '#f3c14e');
+            if (primaryDamage > 0) {
+              this.hitDone = true;
+              this.hitDonePrimary = true;
+              Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 7,
+                this.profile.id === 'bishop3' ? '#b8d0c3' : '#f3c14e');
+            } else if (!isValerio || this.stateT >= contactWindowEnd) {
+              // Não mostrar impacto falso nem consumir a janela enquanto o jogador
+              // estiver invulnerável; o contato pode ser reavaliado até o fim do golpe.
+              this.hitDone = true;
+            }
           } else if (!isValerio || this.stateT >= contactWindowEnd) {
             this.hitDone = true;
           }
