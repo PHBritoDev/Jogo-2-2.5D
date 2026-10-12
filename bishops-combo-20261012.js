@@ -21,7 +21,7 @@ const BISHOP_PROFILES = {
     defense: 0.24,
     radius: 18,
     speed: 80,
-    engageRange: 145, // MODIFICAÇÃO 14: inicia a luta corpo a corpo a uma distância bem maior.
+    engageRange: 180, // MODIFICAÇÃO 15: começa a atacar de mais longe.
     visualScale: 1.22,
     deathDuration: 1.2,
     reward: { coins: 120, unlocks: ['greed_bishop_1_defeated'] },
