@@ -35,7 +35,27 @@
     };
   }
   function showAnimationDiagnostics(clips){
-    // Diagnósticos ficam disponíveis em window.ProtagonistaAnimationDiagnostics, sem texto sobre a tela.
+    // Painel temporário, opt-in: só aparece quando a URL contém ?debugAnimations=1.
+    // Mantém a tela normal limpa para jogar no celular.
+    if(new URLSearchParams(window.location.search).get('debugAnimations')!=='1')return;
+    const existing=document.getElementById('protagonista-animation-debug');
+    if(existing)existing.remove();
+    const panel=document.createElement('div');
+    panel.id='protagonista-animation-debug';
+    panel.style.cssText='position:fixed;z-index:99999;left:6px;right:6px;top:6px;max-height:42vh;overflow:auto;background:rgba(0,0,0,.88);color:#fff;padding:8px;border:1px solid #d8b45a;border-radius:6px;font:12px/1.35 monospace;white-space:pre-wrap;pointer-events:none';
+    panel.textContent='CLIPES DO PROTAGONISTA\\n'+clips.map(function(c,i){
+      const n=c.name||'(sem nome)';
+      const flags=[];
+      if(actions.attack===c||attackClips.indexOf(c)>=0)flags.push('ATAQUE-SELECIONADO');
+      if(actions.hurt===c)flags.push('DANO');
+      if(actions.idle===c)flags.push('IDLE');
+      if(actions.walk===c)flags.push('ANDAR');
+      if(actions.fall===c)flags.push('QUEDA');
+      if(actions.death===c)flags.push('MORTE');
+      if(actions.getup===c)flags.push('LEVANTAR');
+      return (i+1)+'. '+n+' ['+(Number(c.duration)||0).toFixed(2)+'s]'+(flags.length?' — '+flags.join(', '):'');
+    }).join('\\n')+'\\n\\nMande um print deste painel; ele só aparece nesta URL de diagnóstico.';
+    document.body.appendChild(panel);
   }
   function findAPI(){
     if(disabled||ready||failed)return;
