@@ -34,6 +34,12 @@
       }
     };
   }
+  function showAnimationDiagnostics(clips){
+    let el=document.getElementById('protagonista-animation-debug');
+    if(!el){el=document.createElement('div');el.id='protagonista-animation-debug';el.style.cssText='position:fixed;right:8px;top:8px;z-index:99998;max-width:min(92vw,420px);max-height:24vh;overflow:auto;padding:7px 9px;border-radius:6px;background:rgba(0,0,0,.78);color:#fff;font:11px/1.35 monospace;white-space:normal;pointer-events:none;';document.body.appendChild(el);}
+    const names=clips.map(function(c,i){return i+': '+(c.name||'(sem nome)')+' ['+(Number(c.duration)||0).toFixed(2)+'s]';});
+    el.textContent='CLIPS DO PROTAGONISTA: '+(names.join(' | ')||'nenhum')+' || GOLPES IDENTIFICADOS: '+(attackClips.map(function(c){return c.name||'(sem nome)';}).join(', ')||'NENHUM — sem nomes de ataque reconhecíveis');
+  }
   function findAPI(){
     if(disabled||ready||failed)return;
     api=window.ValerioThreeAPI;
@@ -228,9 +234,10 @@
           if(/death|dying|dead|^die$|morrer|morte/.test(n)){actions.death=actions.death||clip;actions.fall=actions.fall||clip;}
         });
         if(!actions.idle&&clips.length)actions.idle=clips[0];
-        if(!attackClips.length){const skip=/idle|breath|rest|standstill|walk|walking|run|running|sprint|jog|locomotion|hurt|damage|hitreaction|takehit|death|dying|dead|get.?up|stand.?up|recover|parado|andar|caminh|morrer|morte/i;attackClips=clips.filter(function(c){return c!==actions.idle&&!skip.test(c.name||'')&&Number(c.duration)>.25;});}
+        // Segurança: não transformar clips desconhecidos em golpes. Isso fazia morte/dano entrarem no combo quando o GLB usa nomes genéricos.
         ready=true;window.ProtagonistaGLBReady=true;
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k].name;return o;},{})};
+        showAnimationDiagnostics(clips);
         note('modelo pronto. Clips: '+clips.map(c=>c.name+' ('+(Number(c.duration)||0).toFixed(2)+'s)').join(', ')+
           ' | ataques encontrados: '+(attackClips.map(c=>c.name).join(', ')||'NENHUM')+' | mapeamento: '+Object.keys(actions).map(k=>k+'='+actions[k].name).join('; '),false);
       }catch(e){failed=true;note('erro preparando modelo: '+e.message,true);}
