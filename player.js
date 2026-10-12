@@ -34,6 +34,7 @@ const Player = {
   blocking: false, blockFlash: 0,
   hurtT: 0, blinkT: 0, invuln: 0, stun: 0,
   dead: false, deadT: 0,
+  knockdownT: 0, gettingUp: false, getUpT: 0,
 
   spawn(x, y) {
     this.x = x; this.y = y; this.z = 0;
@@ -53,6 +54,7 @@ const Player = {
     this.blocking = false; this.blockFlash = 0;
     this.hurtT = 0; this.blinkT = 0; this.invuln = 0; this.stun = 0;
     this.dead = false; this.deadT = 0;
+    this.knockdownT = 0; this.gettingUp = false; this.getUpT = 0;
   },
 
   _dustColor() {
@@ -116,6 +118,10 @@ const Player = {
     // O segundo impacto do combo atravessa a invulnerabilidade criada pelo primeiro.
     if (this.dead || (this.invuln > 0 && !(options && options.ignoreInvuln))) return 0;
     const C = CFG.COMBAT;
+    options = options || {};
+    const critical = !!options.critical && !this.blocking;
+    if (critical) dmg = Math.round(dmg * 1.55);
+    const requestKnockdown = !this.blocking && (!!options.knockdown || (dmg >= 28 && kb >= 230));
     let dx = this.x - fromX, dy = this.y - fromY;
     const d = Math.hypot(dx, dy) || 1;
     dx /= d; dy /= d;
@@ -134,12 +140,19 @@ const Player = {
       this.hurtT = 0.18;
       this.blinkT = C.invuln;
       this.invuln = C.invuln;
+      if (requestKnockdown) {
+        this.knockdownT = Math.max(this.knockdownT, 0.58);
+        this.gettingUp = false;
+        this.getUpT = 0;
+        this.stun = Math.max(this.stun, 0.6);
+        this.invuln = Math.max(this.invuln, 1.55);
+      }
       this.attackT = -1;
       this.atkBuf = 0;
       this.vz = Math.max(this.vz, C.hurtPop);
       this.onGround = false;
       Ambient.spawnSpark(this.x, gy, 9, '#ff9a8a');
-      Combat.addText(this.x, this.y - this.z - 42, '-' + dmg, '#ff5a5a');
+      Combat.addText(this.x, this.y - this.z - 42, critical ? 'CRÍTICO! -' + dmg : (requestKnockdown ? 'DERRUBADO! -' + dmg : '-' + dmg), critical ? '#ffd166' : '#ff5a5a');
       Camera.shake = Math.min(6, Camera.shake + 4);
       Game.hitstop = C.hitstop;
       Combat.hurtFlash();
@@ -154,6 +167,7 @@ const Player = {
     if (this.hp <= 0) {
       this.dead = true;
       this.deadT = 0;
+      this.knockdownT = 0; this.gettingUp = false; this.getUpT = 0;
       this.blocking = false;
       this.kx *= 1.3; this.ky *= 1.3;
       this.vz = Math.max(this.vz, 160);
@@ -174,8 +188,15 @@ const Player = {
     this.blockFlash = Math.max(0, this.blockFlash - dt);
     this.stun = Math.max(0, this.stun - dt);
     this.atkCool = Math.max(0, this.atkCool - dt);
+    if (this.knockdownT > 0) {
+      this.knockdownT = Math.max(0, this.knockdownT - dt);
+      if (this.knockdownT <= 0 && !this.dead) { this.gettingUp = true; this.getUpT = 1.05; }
+    } else if (this.gettingUp) {
+      this.getUpT = Math.max(0, this.getUpT - dt);
+      if (this.getUpT <= 0) this.gettingUp = false;
+    }
 
-    const canAct = !this.dead && this.stun <= 0;
+    const canAct = !this.dead && this.stun <= 0 && this.knockdownT <= 0 && !this.gettingUp;
     if (this.dead) this.deadT += dt;
     if (!canAct) { ax = 0; ay = 0; jumpPressed = false; jumpHeld = false; attackPressed = false; defendHeld = false; }
 
