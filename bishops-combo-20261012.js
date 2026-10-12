@@ -24,6 +24,7 @@ const BISHOP_PROFILES = {
     engageRange: 180, // MODIFICAÇÃO 15: começa a atacar de mais longe.
     visualScale: 1.22,
     deathDuration: 1.2,
+    guard: { range: 205, duration: 0.42, cooldown: 2.6, damageScale: 0.22 },
     reward: { coins: 120, unlocks: ['greed_bishop_1_defeated'] },
     arena: Casino.bossStart,
     attacks: [
@@ -254,11 +255,28 @@ const BossPresentation = {
 
 /* IA TÁTICA DO VALÉRIO — camada separada para evoluir depois com magias e poderes. */
 const ValerioCombatAI = {
-  version: 1,
-  predictSeconds: 0.22,
-  maxLead: 42,
+  version: 2,
+  predictSeconds: 0.28,
+  maxLead: 54,
 
   reset() {},
+
+  defensiveChoice(boss, player, distance) {
+    if (!player.isAttackActive || !player.isAttackActive() || distance > 205) return null;
+    if (boss.evadeCooldown > 0 || boss.guardCooldown > 0) return null;
+    const playerSpeed = Math.hypot(player.vx || 0, player.vy || 0);
+    return playerSpeed > 72 && distance > 82 ? 'evade' : 'guard';
+  },
+
+  evadeVector(boss, player) {
+    const dx = player.x - boss.x, dy = player.y - boss.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const side = (boss.attackIndex % 2 === 0) ? 1 : -1;
+    return {
+      x: (-dx / d * 0.42) + (-dy / d * side * 0.91),
+      y: (-dy / d * 0.42) + ( dx / d * side * 0.91)
+    };
+  },
 
   target(boss, player, dx, dy, distance) {
     // Persegue a posição provável do jogador em vez de mirar só onde ele estava.
@@ -290,7 +308,7 @@ const BishopBoss = {
   profile: null,
   x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, kx: 0, ky: 0,
   r: 18, hp: 1, maxHp: 1, trail: 1, trailDelay: 0,
-  state: 'inactive', stateT: 0, flashT: 0, alpha: 0,
+  state: 'inactive', stateT: 0, flashT: 0, alpha: 0, evadeCooldown: 0,
   hitDone: false, hitDoneSecondary: false, hitDonePrimary: false, hitId: -1, fx: -1, fy: 0,
   anim: 0, speed: 0, onGround: true, floor: 0, sy: 0,
   attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, _solids: [],
@@ -320,6 +338,7 @@ const BishopBoss = {
     this.hitId = -1;
     this.phase = 1;
     this.guardCooldown = 0;
+    this.evadeCooldown = 0;
     this.skillCooldowns = Object.create(null);
     this.skillChainCooldown = 0;
     this.updateHud();
@@ -345,6 +364,7 @@ const BishopBoss = {
     this.attackIndex = 0;
     this.phase = 1;
     this.guardCooldown = 0;
+    this.evadeCooldown = 0;
     this.skillCooldowns = Object.create(null);
     this.skillChainCooldown = 0;
     this.onGround = true; this.floor = 0; this.sy = this.y;
@@ -365,6 +385,11 @@ const BishopBoss = {
     if (this.state === 'dead' || this.state === 'inactive' || !this.profile) return;
     window.ValerioBossHitSerial = (window.ValerioBossHitSerial || 0) + 1;
     const guarding = this.state === 'guard';
+    if (this.profile.id === 'bishop1' && this.state === 'evade' && this.stateT <= 0.27) {
+      Ambient.spawnSpark(this.x, this.y - 20, 3, '#d7d9c8');
+      Sfx.blip();
+      return;
+    }
     const skillLocked = !!(this.attack && this.attack.skill && ['skillapproach','windup','attack','recover'].includes(this.state));
     const guardScale = guarding && this.profile.guard ? this.profile.guard.damageScale : 1;
     const damage = Math.max(1, Math.round(rawDamage * (1 - this.profile.defense) * guardScale));
@@ -418,6 +443,7 @@ const BishopBoss = {
     this.stateT += dt;
     this.flashT = Math.max(0, this.flashT - dt);
     this.guardCooldown = Math.max(0, this.guardCooldown - dt);
+    this.evadeCooldown = Math.max(0, this.evadeCooldown - dt);
     Object.keys(this.skillCooldowns).forEach(id => { this.skillCooldowns[id] = Math.max(0, this.skillCooldowns[id] - dt); });
     this.skillChainCooldown = Math.max(0, this.skillChainCooldown - dt);
     const dx = Player.x - this.x, dy = Player.y - this.y;
@@ -435,6 +461,24 @@ const BishopBoss = {
         const aimX = tacticalTarget.x - this.x, aimY = tacticalTarget.y - this.y;
         const aimD = Math.hypot(aimX, aimY) || 1;
         this.fx = aimX / aimD; this.fy = aimY / aimD;
+        if (this.profile.id === 'bishop1') {
+          const defense = ValerioCombatAI.defensiveChoice(this, Player, d);
+          if (defense === 'guard') {
+            this.guardCooldown = 2.6;
+            this._go('guard');
+            Ambient.spawnSpark(this.x, this.y - 24, 9, '#a9c8d5');
+            Sfx.block();
+            break;
+          }
+          if (defense === 'evade') {
+            this.evadeCooldown = 2.0;
+            const step = ValerioCombatAI.evadeVector(this, Player);
+            this.fx = step.x; this.fy = step.y;
+            this._go('evade');
+            Ambient.spawnDust(this.x, this.y, 8, '#c9b36d', 0.9);
+            break;
+          }
+        }
         // Skills têm recarga própria e podem iniciar uma aproximação em corrida.
         if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
           const readySkill = this.skillChainCooldown <= 0 ? this.profile.attacks.find(a => a.skill && (this.skillCooldowns[a.id] || 0) <= 0) : null;
@@ -494,8 +538,21 @@ const BishopBoss = {
 
       case 'guard':
         if (!alive) this._go('approach');
-        else if (this.stateT >= this.profile.guard.duration) this._go('approach');
+        else {
+          this.fx = dx / d; this.fy = dy / d;
+          if (this.stateT >= ((this.profile.guard && this.profile.guard.duration) || 0.42)) this._go('approach');
+        }
         break;
+
+      case 'evade': {
+        if (!alive) { this._go('approach'); break; }
+        const ev = ValerioCombatAI.evadeVector(this, Player);
+        this.fx = ev.x; this.fy = ev.y;
+        tvx = ev.x * this.profile.speed * 2.25;
+        tvy = ev.y * this.profile.speed * 2.25;
+        if (this.stateT >= 0.34) this._go('approach');
+        break;
+      }
 
       case 'windup':
         if (!alive) { this._go('approach'); break; }
