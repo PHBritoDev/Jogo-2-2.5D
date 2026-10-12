@@ -21,7 +21,7 @@
   const debugParams=new URLSearchParams(window.location.search);
   const showAnimationDebug=false; // diagnóstico fica no console; nunca cobre a tela jogável no celular.
   const useOriginalValerioBaseline=debugParams.get('valerioOriginal')==='1';
-  const useUpdatedValerioModel=debugParams.get('valerioStableModel')!=='1';
+  const useUpdatedValerioModel=debugParams.get('valerioUpdatedModel')==='1';
   function showStatus(message,isError) {
     if(isError)console.warn('Valério GLB:',message);
     else console.info('Valério GLB:',message);
