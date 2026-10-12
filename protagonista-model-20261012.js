@@ -147,8 +147,25 @@
         function attachCelestialSword(model){
           const bones=[];
           model.traverse(function(o){if(o.isBone)bones.push(o);});
-          const rightHand=/right.*(hand|wrist)|hand.*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|mixamorig:rightHand/i;
-          swordHand=bones.find(function(b){return rightHand.test(b.name||'');})||null;
+          // Nomes variam entre Blender, Mixamo, Unity e rigs humanoides genéricos.
+          // Pontua correspondências para preferir a mão direita real ao punho ou a nós auxiliares.
+          function handBoneScore(bone){
+            const raw=String(bone.name||''),n=raw.toLowerCase().replace(/[^a-z0-9]/g,'');
+            if(!n)return -1;
+            const rightSide=/(right|rhand|handr|rwrist|wristr|bip001rhand|mixamorig.*righthand)/i.test(raw)||/(righthand|handright|righthandend|handr|rhand|rightwrist|wristr|bip001rhand|mixamorig.*righthand)/i.test(n);
+            if(!rightSide)return -1;
+            if(/(lefthand|handleft|leftwrist|wristl|lhand|handl)/i.test(n))return -1;
+            if(/(righthand|handright|handr|rhand|bip001rhand|mixamorig.*righthand)/i.test(n))return 100;
+            if(/(rightwrist|wristr|rwrist)/i.test(n))return 65;
+            return -1;
+          }
+          swordHand=null;
+          let bestHandScore=-1;
+          bones.forEach(function(bone){
+            const score=handBoneScore(bone);
+            if(score>bestHandScore){bestHandScore=score;swordHand=bone;}
+          });
+          if(bestHandScore<0)swordHand=null;
           if(!swordHand){
             // Não prende a uma bone inventada: expõe diagnóstico e deixa arma desativada.
             window.CelestialSwordDiagnostics='Espada não anexada: nenhum osso de mão direita reconhecido. Ossos encontrados: '+bones.map(function(b){return b.name;}).filter(Boolean).join(', ');
