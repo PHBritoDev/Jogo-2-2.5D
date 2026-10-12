@@ -615,7 +615,7 @@ const BishopDimension = (function () {
       const strike=bossState==='attack'?Math.sin(clamp((BishopBoss.stateT||0)/((BishopBoss.attack&&BishopBoss.attack.duration)||.3),0,1)*Math.PI):0;
       // O root do GLB fica ancorado ao piso; a animação corporal não eleva o boss inteiro.
       const bossBob=0;
-      const bossHeight=bossActive?Math.max(0,Number(BishopBoss.z)||0)/72:0;
+      const bossHeight=bossActive?Math.max(0,(Number(BishopBoss.z)||0)-(Number(BishopBoss.floor)||0))/72:0;
       // Durante o golpe, mantém a orientação usada no início do ataque;
       // nos outros estados, acompanha o jogador sem teletransportar o ângulo.
       const bossSpeed=Math.hypot(BishopBoss.vx||0,BishopBoss.vy||0);
