@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,celestialSword=null,swordCore=null,swordTrail=null,swordTrailMaterial=null,swordGlowMaterial=null,swordHand=null,swordPhase=0,lastSwordAttackId=-1,lastSwordHitSerial=0,swordHitFlash=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,celestialSword=null,swordCore=null,swordTrail=null,swordTrailMaterial=null,swordGlowMaterial=null,swordHand=null,swordPhase=0,lastSwordAttackId=-1,lastSwordHitSerial=0,swordHitFlash=0,swordImpactBits=[],swordImpactAge=99;
   const MODEL_HEIGHT=2.15;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
@@ -135,6 +135,11 @@
           const pommel=new THREE.Mesh(new THREE.OctahedronGeometry(.03,0),gold); pommel.position.y=-.205; group.add(pommel);
           swordCore=new THREE.Mesh(new THREE.OctahedronGeometry(.027,0),crystal);
           swordCore.position.set(0,.005,.034); swordCore.name='CelestialSword_Core'; group.add(swordCore);
+          swordImpactBits=[];swordImpactAge=99;
+          for(let i=0;i<5;i++){
+            const bit=new THREE.Mesh(new THREE.OctahedronGeometry(.012,0),i%2?gold:crystal);
+            bit.visible=false;bit.userData.phase=i*1.256;group.add(bit);swordImpactBits.push(bit);
+          }
           // Dimensão inicial compacta e separada; poderá ser refinada após o teste visual no jogo.
           group.scale.setScalar(1.0);
           return group;
@@ -242,7 +247,7 @@
       const fastSwing=attacking&&attackTime<.34;
       if(attackId>=0&&attackId!==lastSwordAttackId){lastSwordAttackId=attackId;swordHitFlash=0;}
       const hitSerial=Number(window.CelestialSwordHitSerial)||0;
-      if(hitSerial!==lastSwordHitSerial){lastSwordHitSerial=hitSerial;swordHitFlash=.16;}
+      if(hitSerial!==lastSwordHitSerial){lastSwordHitSerial=hitSerial;swordHitFlash=.16;swordImpactAge=0;}
       swordHitFlash=Math.max(0,swordHitFlash-dt);
       if(swordTrail&&swordTrailMaterial){
         swordTrail.visible=fastSwing;
@@ -250,6 +255,12 @@
       }
       if(swordGlowMaterial){swordGlowMaterial.opacity=.08+.06*(.5+.5*Math.sin(swordPhase*2.4))+(swordHitFlash>0?.35:0);}
       if(swordCore&&swordCore.material&&swordHitFlash>0){swordCore.material.emissiveIntensity=1.8;}
+      swordImpactAge+=dt;
+      swordImpactBits.forEach(function(bit,i){
+        const age=swordImpactAge,phase=bit.userData.phase;
+        bit.visible=age<.16;
+        if(bit.visible){const spread=age*1.2;bit.position.set(Math.cos(phase)*spread,.34+Math.sin(phase)*spread,-.035);bit.scale.setScalar(Math.max(.08,1-age/.16));}
+      });
     }
     if(restoreModelScales)restoreModelScales();
     if(root&&rootBasePosition){root.position.copy(rootBasePosition);root.updateMatrixWorld(true);}
