@@ -709,7 +709,7 @@ const BishopDimension = (function () {
     Player.y=Casino.bossStart.y+202;
     Player.z=0;Player.vx=Player.vy=Player.vz=0;Player.kx=Player.ky=0;
     Player.fx=0;Player.fy=-1;Player.floor=0;Player.onGround=true;Player.sy=Player.y;
-    S.camera.yaw=0;S.camera.pitch=-0.035;S.camera.distance=6.2;
+    S.camera.yaw=0.72;S.camera.pitch=-0.035;S.camera.distance=6.2;
     Camera.snap(Player);
   }
   function blocked(x,y,r) {
