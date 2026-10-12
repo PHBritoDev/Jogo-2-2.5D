@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},attackClips=[],fallbackAttackClip=null,currentAction=null,currentType='',ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordPivot=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
+  let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},attackClips=[],fallbackAttackClip=null,currentAction=null,currentType='',diagnosticPreview=false,ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordPivot=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
   const MODEL_HEIGHT=2.15;
   // O GLB mede cerca de 1,90 no eixo Y; o cabo fica entre Y=0,57 e 0,95.
   const SWORD_SCALE=.62,SWORD_GRIP_Y=.75;
@@ -35,27 +35,52 @@
     };
   }
   function showAnimationDiagnostics(clips){
-    // Painel temporário, opt-in: só aparece quando a URL contém ?debugAnimations=1.
-    // Mantém a tela normal limpa para jogar no celular.
+    // Painel opt-in para inspecionar os clips reais. Cada botão toca o clip escolhido,
+    // evitando adivinhar ataque/dano apenas pelo movimento dos braços.
     if(new URLSearchParams(window.location.search).get('debugAnimations')!=='1')return;
     const existing=document.getElementById('protagonista-animation-debug');
     if(existing)existing.remove();
     const panel=document.createElement('div');
     panel.id='protagonista-animation-debug';
-    panel.style.cssText='position:fixed;z-index:99999;left:6px;right:6px;top:6px;max-height:42vh;overflow:auto;background:rgba(0,0,0,.88);color:#fff;padding:8px;border:1px solid #d8b45a;border-radius:6px;font:12px/1.35 monospace;white-space:pre-wrap;pointer-events:none';
-    panel.textContent='CLIPES DO PROTAGONISTA\\n'+clips.map(function(c,i){
-      const n=c.name||'(sem nome)';
+    panel.style.cssText='position:fixed;z-index:99999;left:6px;right:6px;top:6px;max-height:44vh;overflow:auto;background:rgba(0,0,0,.92);color:#fff;padding:8px;border:1px solid #d8b45a;border-radius:6px;font:12px/1.35 monospace;pointer-events:auto';
+    const heading=document.createElement('div');
+    heading.textContent='CLIPES DO PROTAGONISTA — toque para reproduzir';
+    heading.style.cssText='font-weight:bold;margin-bottom:6px';
+    panel.appendChild(heading);
+    clips.forEach(function(clip,i){
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;gap:6px;align-items:center;margin:3px 0';
+      const button=document.createElement('button');
+      button.type='button';
+      button.textContent=(i+1)+'. '+(clip.name||'(sem nome)')+' ['+(Number(clip.duration)||0).toFixed(2)+'s]';
+      button.style.cssText='flex:1;min-width:0;text-align:left;padding:6px;background:#252525;color:#fff;border:1px solid #777;border-radius:4px;font:11px monospace';
+      button.addEventListener('click',function(){previewDiagnosticClip(clip);});
+      row.appendChild(button);
       const flags=[];
-      if(actions.attack===c||attackClips.indexOf(c)>=0)flags.push('ATAQUE-SELECIONADO');
-      if(actions.hurt===c)flags.push('DANO');
-      if(actions.idle===c)flags.push('IDLE');
-      if(actions.walk===c)flags.push('ANDAR');
-      if(actions.fall===c)flags.push('QUEDA');
-      if(actions.death===c)flags.push('MORTE');
-      if(actions.getup===c)flags.push('LEVANTAR');
-      return (i+1)+'. '+n+' ['+(Number(c.duration)||0).toFixed(2)+'s]'+(flags.length?' — '+flags.join(', '):'');
-    }).join('\\n')+'\\n\\nMande um print deste painel; ele só aparece nesta URL de diagnóstico.';
+      Object.keys(actions).forEach(function(role){if(actions[role]===clip)flags.push(role.toUpperCase());});
+      const mapped=document.createElement('span');
+      mapped.textContent=flags.join('/')||'—';
+      mapped.style.cssText='min-width:58px;color:#e8c66a;font-size:10px';
+      row.appendChild(mapped);
+      panel.appendChild(row);
+    });
+    const stop=document.createElement('button');
+    stop.type='button';
+    stop.textContent='VOLTAR ÀS ANIMAÇÕES DO JOGO';
+    stop.style.cssText='width:100%;margin-top:7px;padding:7px;background:#6b4c14;color:white;border:0;border-radius:4px;font-weight:bold';
+    stop.addEventListener('click',function(){diagnosticPreview=false;currentType='';});
+    panel.appendChild(stop);
     document.body.appendChild(panel);
+  }
+  function previewDiagnosticClip(clip){
+    if(!mixer||!clip)return;
+    diagnosticPreview=true;
+    if(currentAction)currentAction.fadeOut(.06);
+    const action=mixer.clipAction(clip);
+    action.reset();action.enabled=true;action.setEffectiveWeight(1);
+    action.setLoop(api.THREE.LoopRepeat,Infinity);
+    action.clampWhenFinished=false;action.fadeIn(.06).play();
+    currentAction=action;currentType='diagnostic-preview';
   }
   function findAPI(){
     if(disabled||ready||failed)return;
@@ -255,55 +280,33 @@
         if(!actions.idle){
           actions.idle=clips.find(function(c){return /breath|idle|rest|standstill|parado/i.test(c.name||'');})||null;
         }
-        if(!attackClips.length){
-          // Nomes genéricos: prioriza clips com movimento rotacional no braço direito,
-          // depois antebraço/mão. Evita escolher só porque o clip anima muitos ossos do tronco.
-          let bestScore=-Infinity;
-          clips.forEach(function(clip){
-            if(unsafeRole.test(clip.name||''))return;
-            if((Number(clip.duration)||0)<.25||(Number(clip.duration)||0)>3.5)return;
-            let score=0,armMotion=0,rightArmMotion=0,torsoMotion=0,lowerMotion=0;
-            (clip.tracks||[]).forEach(function(track){
-              const target=String(track.name||'').split(/[.:/]/)[0].toLowerCase();
-              const prop=String(track.name||'').split(/[.:/]/).pop().toLowerCase();
-              const values=track.values||[],stride=typeof track.getValueSize==='function'?track.getValueSize():3;
-              let motion=0;
-              if(values.length>=stride*2&&stride>0){
-                for(let j=stride;j<values.length;j+=stride){
-                  for(let k=0;k<Math.min(stride,4);k++)motion+=Math.abs(values[j+k]-values[j-stride+k]);
-                }
-                motion/=Math.max(1,values.length/stride-1);
-              }
-              const rotational=/quaternion|rotation/.test(prop);
-              const weight=rotational?Math.min(motion,2):Math.min(motion*.15,.25);
-              if(/right.*(arm|forearm|hand|wrist)|mixamorigright(arm|forearm|hand)/.test(target)){
-                rightArmMotion+=weight;armMotion+=weight;
-              }else if(/(arm|forearm|hand|wrist|shoulder|elbow)/.test(target)){
-                armMotion+=weight;
-              }else if(/spine|chest|torso|neck|head/.test(target)){
-                torsoMotion+=weight;
-              }else if(/hips|pelvis|thigh|leg|foot|calf|rootmotion/.test(target)){
-                lowerMotion+=weight;
-              }
-            });
-            score=rightArmMotion*5+armMotion*2-torsoMotion*.8-lowerMotion*.7;
-            if(armMotion>.01&&score>bestScore){bestScore=score;fallbackAttackClip=clip;}
-          });
-          if(fallbackAttackClip)attackClips=[fallbackAttackClip];
-        }
+        // Não escolhemos um "ataque" por heurística de movimento: clips de dano,
+        // queda e ataque podem mover o mesmo braço. Se o nome não for semântico,
+        // o painel de diagnóstico permite identificar o clip real sem contaminar o jogo.
         if(!actions.idle){
-          actions.idle=clips.find(function(c){return !unsafeRole.test(c.name||'')&&c!==fallbackAttackClip;})||null;
+          // Só usa um clip genérico como repouso se não houver papéis nomeados;
+          // a seleção do ataque nunca depende desta escolha.
+          actions.idle=clips.find(function(c){return !unsafeRole.test(c.name||'');})||null;
         }
+        // Queda forte usa o clip de morte quando não existe um clip próprio de queda.
+        // Se o arquivo só tiver um deles, ambos os estados reutilizam esse mesmo clip.
+        actions.fall=actions.fall||actions.death||null;
+        actions.death=actions.death||actions.fall||null;
+        window.ProtagonistaAnimationTiming={
+          fallDuration:Number((actions.fall||actions.death||{}).duration)||1.05,
+          getupDuration:Number((actions.getup||{}).duration)||1.05
+        };
         ready=true;window.ProtagonistaGLBReady=true;
-        window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k].name;return o;},{})};
+        window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k]&&actions[k].name||null;return o;},{})};
         // A lista de clips fica disponível em window.ProtagonistaAnimationDiagnostics, sem texto na tela.
+        showAnimationDiagnostics(clips);
         note('modelo pronto. Clips: '+clips.map(c=>c.name+' ('+(Number(c.duration)||0).toFixed(2)+'s)').join(', ')+
-          ' | ataques encontrados: '+(attackClips.map(c=>c.name).join(', ')||'NENHUM')+' | mapeamento: '+Object.keys(actions).map(k=>k+'='+actions[k].name).join('; '),false);
+          ' | ataques encontrados: '+(attackClips.map(c=>c.name).join(', ')||'NENHUM')+' | mapeamento: '+Object.keys(actions).map(k=>k+'='+(actions[k]&&actions[k].name||'NENHUM')).join('; '),false);
       }catch(e){failed=true;note('erro preparando modelo: '+e.message,true);}
     },undefined,function(){failed=true;note('falha ao carregar Protagonista.glb; confira se o arquivo está na raiz do GitHub.',true);});
   }
   function play(type,once){
-    const THREE=api.THREE,clip=actions[type]||actions.idle;
+    const THREE=api.THREE,clip=actions[type]||((type==='idle'||type==='walk')?actions.idle:null);
     if(!clip||!mixer)return;
     const next=mixer.clipAction(clip);
     if(currentAction===next&&next.isRunning())return;
@@ -373,7 +376,7 @@
     if(renderedYaw===null)renderedYaw=targetYaw;
     else {const delta=Math.atan2(Math.sin(targetYaw-renderedYaw),Math.cos(targetYaw-renderedYaw));const maxTurn=7*turnDt;renderedYaw+=Math.max(-maxTurn,Math.min(maxTurn,delta));}
     pivot.rotation.y=renderedYaw;
-    choose(v);
+    if(!diagnosticPreview)choose(v);
     if(currentType==='walk'&&currentAction){
       const speed=Math.max(0,Number(v.speed)||0);
       currentAction.setEffectiveTimeScale(Math.max(.35,Math.min(1.35,speed/130)));
