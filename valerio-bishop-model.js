@@ -1,7 +1,7 @@
 /* Valério GLB + foice. Iluminação, orientação e movimento estabilizados para mobile. */
 (function () {
   'use strict';
-  // Calibração validada pelo espaço da arena: o GLB deve ocupar cerca de 0,95 unidade de altura na arena.
+  // Escala normalizada para manter o Valério em tamanho de chefe na arena.
   const VALERIO_MODEL_HEIGHT=3.8;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null,weaponScaleCompensation=false;
