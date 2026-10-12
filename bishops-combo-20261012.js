@@ -255,17 +255,19 @@ const BossPresentation = {
 
 /* IA TÁTICA DO VALÉRIO — camada separada para evoluir depois com magias e poderes. */
 const ValerioCombatAI = {
-  version: 2,
+  version: 3,
   predictSeconds: 0.28,
   maxLead: 54,
 
   reset() {},
 
   defensiveChoice(boss, player, distance) {
-    if (!player.isAttackActive || !player.isAttackActive() || distance > 205) return null;
-    if (boss.evadeCooldown > 0 || boss.guardCooldown > 0) return null;
+    if (distance > 225 || (boss.evadeCooldown > 0 && boss.guardCooldown > 0)) return null;
     const playerSpeed = Math.hypot(player.vx || 0, player.vy || 0);
-    return playerSpeed > 72 && distance > 82 ? 'evade' : 'guard';
+    if (boss.evadeCooldown <= 0 && playerSpeed > 48 && distance > 70) return 'evade';
+    if (boss.guardCooldown <= 0) return 'guard';
+    if (boss.evadeCooldown <= 0) return 'evade';
+    return null;
   },
 
   evadeVector(boss, player) {
@@ -350,6 +352,9 @@ const BishopBoss = {
     this.phase = 1;
     this.guardCooldown = 0;
     this.evadeCooldown = 0;
+    this.lastPlayerAttackId = Player.attackId;
+    this.pendingDefense = null;
+    this.pendingDefenseT = 0;
     this.skillCooldowns = Object.create(null);
     this.skillChainCooldown = 0;
     this.updateHud();
@@ -460,6 +465,17 @@ const BishopBoss = {
     const dx = Player.x - this.x, dy = Player.y - this.y;
     const d = Math.hypot(dx, dy) || 0.001;
     const alive = !Player.dead;
+    if (this.profile.id === 'bishop1') {
+      this.pendingDefenseT = Math.max(0, this.pendingDefenseT - dt);
+      if (this.pendingDefenseT <= 0) this.pendingDefense = null;
+      if (Player.attackId !== this.lastPlayerAttackId) {
+        this.lastPlayerAttackId = Player.attackId;
+        if (alive && d <= 225) {
+          const response = ValerioCombatAI.defensiveChoice(this, Player, d);
+          if (response) { this.pendingDefense = response; this.pendingDefenseT = 0.72; }
+        }
+      }
+    }
     let tvx = 0, tvy = 0;
 
     if (this.hp / this.maxHp <= 0.5) this.phase = 2;
@@ -473,15 +489,19 @@ const BishopBoss = {
         const aimD = Math.hypot(aimX, aimY) || 1;
         this.fx = aimX / aimD; this.fy = aimY / aimD;
         if (this.profile.id === 'bishop1') {
-          const defense = ValerioCombatAI.defensiveChoice(this, Player, d);
-          if (defense === 'guard') {
+          const defense = this.pendingDefenseT > 0 && this.pendingDefense
+            ? this.pendingDefense
+            : (Player.attackT >= 0 ? ValerioCombatAI.defensiveChoice(this, Player, d) : null);
+          if (defense === 'guard' && this.guardCooldown <= 0) {
+            this.pendingDefense = null; this.pendingDefenseT = 0;
             this.guardCooldown = 2.6;
             this._go('guard');
             Ambient.spawnSpark(this.x, this.y - 24, 9, '#a9c8d5');
             Sfx.block();
             break;
           }
-          if (defense === 'evade') {
+          if (defense === 'evade' && this.evadeCooldown <= 0) {
+            this.pendingDefense = null; this.pendingDefenseT = 0;
             this.evadeCooldown = 2.0;
             const step = ValerioCombatAI.evadeVector(this, Player);
             this.fx = step.x; this.fy = step.y;
