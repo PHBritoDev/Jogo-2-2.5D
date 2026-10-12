@@ -545,6 +545,8 @@ const Combat = {
         const m = Math.hypot(kx, ky);
         if (m > 0.001) { kx /= m; ky /= m; } else { kx = Player.atkDirX; ky = Player.atkDirY; }
         E.hurt(C.damage, kx, ky, C.kb);
+        // Sinal simples para o protótipo 3D acender o núcleo ao confirmar um acerto real.
+        window.CelestialSwordHitSerial=(Number(window.CelestialSwordHitSerial)||0)+1;
         if (E.state === 'dead') return;
       }
     }
