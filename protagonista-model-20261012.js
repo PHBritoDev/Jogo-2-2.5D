@@ -231,6 +231,9 @@
         // apareça no campo de visão, independentemente do rig ou do nome do osso.
         if(v.firstPerson){
           api.camera.add(celestialSword);
+          celestialSword.traverse(function(o){if(o.isMesh)o.visible=true;});
+          celestialSword.visible=true;
+          window.CelestialSwordDiagnostics='Espada presa à câmera em primeira pessoa; meshes forçados visíveis.';
           celestialSword.position.set(.38,-.34,-.78);
           celestialSword.rotation.set(0,0,-.22);
           celestialSword.scale.setScalar(.82);
