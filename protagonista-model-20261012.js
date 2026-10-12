@@ -34,43 +34,74 @@
       }
     };
   }
+  const ROLE_LABELS={attack:'Ataque',hurt:'Tomar dano',idle:'Respirar/parado',walk:'Caminhar',death:'Morte',getup:'Levantar'};
+  function applySavedAnimationRoles(clips){
+    let saved={};
+    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV1')||'{}')||{};}catch(e){}
+    Object.keys(ROLE_LABELS).forEach(function(role){
+      const index=Number(saved[role]);
+      if(Number.isInteger(index)&&index>=0&&index<clips.length){
+        actions[role]=clips[index];
+        if(role==='attack')attackClips=[clips[index]];
+      }
+    });
+    actions.fall=actions.fall||actions.death||null;
+    actions.death=actions.death||actions.fall||null;
+  }
   function showAnimationDiagnostics(clips){
-    // Painel opt-in para inspecionar os clips reais. Cada botão toca o clip escolhido,
-    // evitando adivinhar ataque/dano apenas pelo movimento dos braços.
     if(new URLSearchParams(window.location.search).get('debugAnimations')!=='1')return;
     const existing=document.getElementById('protagonista-animation-debug');
     if(existing)existing.remove();
+    let saved={};
+    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV1')||'{}')||{};}catch(e){}
     const panel=document.createElement('div');
     panel.id='protagonista-animation-debug';
-    panel.style.cssText='position:fixed;z-index:99999;left:6px;right:6px;top:6px;max-height:44vh;overflow:auto;background:rgba(0,0,0,.92);color:#fff;padding:8px;border:1px solid #d8b45a;border-radius:6px;font:12px/1.35 monospace;pointer-events:auto';
+    panel.style.cssText='position:fixed;z-index:99999;left:6px;right:6px;top:6px;max-height:48vh;overflow:auto;background:rgba(0,0,0,.94);color:#fff;padding:8px;border:1px solid #d8b45a;border-radius:6px;font:11px/1.35 monospace;pointer-events:auto';
     const heading=document.createElement('div');
-    heading.textContent='CLIPES DO PROTAGONISTA — toque para reproduzir';
+    heading.textContent='MAPEAMENTO DAS ANIMAÇÕES — toque em Reproduzir e atribua cada função';
     heading.style.cssText='font-weight:bold;margin-bottom:6px';
     panel.appendChild(heading);
+    const roles=document.createElement('div');
+    roles.style.cssText='position:sticky;top:0;background:#171717;padding:5px;margin-bottom:6px;color:#f4d17a';
+    roles.textContent='Funções: '+Object.keys(ROLE_LABELS).map(function(k){return ROLE_LABELS[k]+': '+(saved[k]!==undefined&&clips[Number(saved[k])]?clips[Number(saved[k])].name:'não definida');}).join(' | ');
+    panel.appendChild(roles);
     clips.forEach(function(clip,i){
       const row=document.createElement('div');
-      row.style.cssText='display:flex;gap:6px;align-items:center;margin:3px 0';
-      const button=document.createElement('button');
-      button.type='button';
-      button.textContent=(i+1)+'. '+(clip.name||'(sem nome)')+' ['+(Number(clip.duration)||0).toFixed(2)+'s]';
-      button.style.cssText='flex:1;min-width:0;text-align:left;padding:6px;background:#252525;color:#fff;border:1px solid #777;border-radius:4px;font:11px monospace';
-      button.addEventListener('click',function(){previewDiagnosticClip(clip);});
-      row.appendChild(button);
-      const flags=[];
-      Object.keys(actions).forEach(function(role){if(actions[role]===clip)flags.push(role.toUpperCase());});
-      const mapped=document.createElement('span');
-      mapped.textContent=flags.join('/')||'—';
-      mapped.style.cssText='min-width:58px;color:#e8c66a;font-size:10px';
-      row.appendChild(mapped);
-      panel.appendChild(row);
+      row.style.cssText='display:flex;gap:4px;align-items:center;margin:4px 0;flex-wrap:wrap';
+      const playButton=document.createElement('button');
+      playButton.type='button';
+      playButton.textContent=(i+1)+'. '+(clip.name||'(sem nome)')+' ('+(Number(clip.duration)||0).toFixed(2)+'s) ▶';
+      playButton.style.cssText='flex:1;min-width:150px;text-align:left;padding:6px;background:#252525;color:#fff;border:1px solid #777;border-radius:4px;font:11px monospace';
+      playButton.addEventListener('click',function(){previewDiagnosticClip(clip);});
+      row.appendChild(playButton);
+      const select=document.createElement('select');
+      select.style.cssText='max-width:140px;padding:5px;background:#111;color:#fff;border:1px solid #777;border-radius:4px;font:11px monospace';
+      const empty=document.createElement('option');empty.value='';empty.textContent='Atribuir função…';select.appendChild(empty);
+      Object.keys(ROLE_LABELS).forEach(function(role){const option=document.createElement('option');option.value=role;option.textContent=ROLE_LABELS[role];select.appendChild(option);});
+      const assign=document.createElement('button');
+      assign.type='button';assign.textContent='Salvar';
+      assign.style.cssText='padding:6px;background:#6b4c14;color:#fff;border:0;border-radius:4px;font:11px monospace';
+      assign.addEventListener('click',function(){
+        const role=select.value;if(!role)return;
+        saved[role]=i;
+        try{localStorage.setItem('protagonistaAnimationRolesV1',JSON.stringify(saved));}catch(e){}
+        actions[role]=clip;
+        if(role==='attack')attackClips=[clip];
+        if(role==='death'){actions.fall=actions.fall||clip;}
+        if(role==='fall'){actions.death=actions.death||clip;}
+        window.ProtagonistaAnimationTiming={
+          fallDuration:Number((actions.fall||actions.death||{}).duration)||1.05,
+          getupDuration:Number((actions.getup||{}).duration)||1.05
+        };
+        roles.textContent='Funções: '+Object.keys(ROLE_LABELS).map(function(k){return ROLE_LABELS[k]+': '+(saved[k]!==undefined&&clips[Number(saved[k])]?clips[Number(saved[k])].name:'não definida');}).join(' | ');
+      });
+      row.appendChild(select);row.appendChild(assign);panel.appendChild(row);
     });
     const stop=document.createElement('button');
-    stop.type='button';
-    stop.textContent='VOLTAR ÀS ANIMAÇÕES DO JOGO';
-    stop.style.cssText='width:100%;margin-top:7px;padding:7px;background:#6b4c14;color:white;border:0;border-radius:4px;font-weight:bold';
-    stop.addEventListener('click',function(){diagnosticPreview=false;currentType='';});
-    panel.appendChild(stop);
-    document.body.appendChild(panel);
+    stop.type='button';stop.textContent='FECHAR PAINEL E VOLTAR AO JOGO';
+    stop.style.cssText='width:100%;margin-top:7px;padding:8px;background:#6b4c14;color:white;border:0;border-radius:4px;font-weight:bold';
+    stop.addEventListener('click',function(){diagnosticPreview=false;currentType='';panel.remove();});
+    panel.appendChild(stop);document.body.appendChild(panel);
   }
   function previewDiagnosticClip(clip){
     if(!mixer||!clip)return;
@@ -276,6 +307,7 @@
           if(/fall|falling|knockdown|collapse|stumble|caer|queda/.test(n))actions.fall=actions.fall||clip;
           if(/death|dying|dead|^die$|morrer|morte/.test(n))actions.death=actions.death||clip;
         });
+        applySavedAnimationRoles(clips);
         const unsafeRole=/hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh/i;
         if(!actions.idle){
           actions.idle=clips.find(function(c){return /breath|idle|rest|standstill|parado/i.test(c.name||'');})||null;
