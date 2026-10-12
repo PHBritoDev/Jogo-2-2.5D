@@ -447,7 +447,8 @@
               const clipName=(clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
               const isRootMotionClip=clipName==='hitknockbackrootmotion'||clipName==='swordlightcombo';
               const isLocomotionClip=/walk|walking|run|running|sprint|jog|locomotion/.test(clipName);
-              if(isRootMotionClip||isLocomotionClip){
+              const isDeathMotionClip=/death|dying|^die$|defeat|knockout|fall|hitknockback/.test(clipName);
+              if(isRootMotionClip||isLocomotionClip||isDeathMotionClip){
                 const changed=[];
                 clip.tracks.forEach(function(track){
                   const trackName=String(track.name||'');
@@ -467,7 +468,7 @@
                       values[i]=firstX;values[i+2]=firstZ;
                       // Caminhada/corrida não deve animar a altura do quadril:
                       // isso fazia o modelo inteiro parecer flutuar acima do piso.
-                      if(isLocomotionClip)values[i+1]=firstY;
+                      if(isLocomotionClip||isDeathMotionClip)values[i+1]=firstY;
                     }
                   }
                   changed.push(trackName);
