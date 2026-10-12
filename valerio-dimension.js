@@ -625,7 +625,7 @@ const BishopDimension = (function () {
           ? Math.atan2(BishopBoss.vx,-BishopBoss.vy)
           : Math.atan2(px-bpos[0],-(pz-bpos[2])));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
-      const bossBase=multiply(translate(bpos[0],floorY-.008+bossBob,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(.42,.42,.42))));
+      const bossBase=multiply(translate(bpos[0],floorY-.008+bossBob,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(1.68,1.68,1.68))));
       const modelState=(bossState==='attack'&&BishopBoss.attack?(BishopBoss.attack.id==='vault'?'skill1':BishopBoss.attack.id==='sweep'?'skill2':'attack'):(bossState==='approach'&&bossSpeed>105?'skillapproach':bossState));
       const skillLocked=!!(BishopBoss.attack&&BishopBoss.attack.skill&&['skillapproach','windup','attack','recover'].includes(bossState));
       window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],floorY+bossBob,bpos[2]],playerPosition:[px,0,pz],yaw:faceBoss,aspect:w/h,fov:dist<0.95?1.22:1.02,state:modelState,combatState:bossState,skillLocked:skillLocked,attackId:BishopBoss.attack&&BishopBoss.attack.id||null,time:Game.time||0,speed:bossSpeed,moveSpeed:bossSpeed,moving:bossSpeed>8,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,talking:!!Game.talking};
