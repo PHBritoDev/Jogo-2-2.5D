@@ -58,48 +58,116 @@
     return err.message||err.statusText||String(err);
   }
   function measureModelBounds(model) {
-    // Atualiza primeiro a hierarquia e as juntas. Em SkinnedMesh, a caixa da
-    // geometria bruta NÃO representa a malha deformada pelo esqueleto: usar
-    // geometry.boundingBox aqui pode medir só os vértices locais minúsculos e
-    // fazer fitModel aplicar uma escala enorme, embora o corpo renderizado seja gigante.
+    // Three.js r147 não tem SkinnedMesh.computeBoundingBox(). A caixa da geometria
+    // bruta ignora os pesos dos ossos; aplique a skin a cada vértice antes do fit.
     model.updateMatrixWorld(true);
     model.traverse(function(obj) {
-      if (obj.isSkinnedMesh && obj.skeleton) {
-        obj.skeleton.update();
-        if (typeof obj.computeBoundingBox === 'function') obj.computeBoundingBox();
-      }
+      if (obj.isSkinnedMesh && obj.skeleton) obj.skeleton.update();
     });
     model.updateMatrixWorld(true);
     const box = new THREE.Box3();
     model.traverse(function(obj) {
-      if (!obj.isMesh) return;
-      if (obj.isSkinnedMesh && obj.boundingBox && !obj.boundingBox.isEmpty()) {
-        // SkinnedMesh.boundingBox contém os vértices já avaliados com a pose/juntas.
-        box.union(obj.boundingBox.clone().applyMatrix4(obj.matrixWorld));
-        return;
-      }
-      if (obj.geometry) {
-        if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
-        if (obj.geometry.boundingBox) {
-          box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
+      if (!obj.isMesh || !obj.geometry) return;
+      const position = obj.geometry.attributes && obj.geometry.attributes.position;
+      if (obj.isSkinnedMesh && obj.skeleton && position && typeof obj.boneTransform === 'function') {
+        const vertex = new THREE.Vector3();
+        const skinnedBox = new THREE.Box3();
+        for (let i = 0; i < position.count; i++) {
+          vertex.fromBufferAttribute(position, i);
+          obj.boneTransform(i, vertex);
+          vertex.applyMatrix4(obj.matrixWorld);
+          skinnedBox.expandByPoint(vertex);
+        }
+        if (!skinnedBox.isEmpty()) {
+          box.union(skinnedBox);
           return;
         }
+      }
+      if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
+      if (obj.geometry.boundingBox) {
+        box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
+        return;
       }
       box.union(new THREE.Box3().setFromObject(obj));
     });
     return box;
   }
-  function fitModel(model,height,diagnosticName) {
-    let box=measureModelBounds(model);
+  function measureAnimationEnvelope(model, clips) {
+    if (!mixer || !clips || !clips.length) {
+      return { box: measureModelBounds(model), samples: 0 };
+    }
+    const savedTransforms = [];
+    model.traverse(function(obj) {
+      if (obj.position && obj.quaternion && obj.scale) {
+        savedTransforms.push({
+          object: obj,
+          position: obj.position.clone(),
+          quaternion: obj.quaternion.clone(),
+          scale: obj.scale.clone()
+        });
+      }
+    });
+    const restoreTransforms = function() {
+      savedTransforms.forEach(function(state) {
+        state.object.position.copy(state.position);
+        state.object.quaternion.copy(state.quaternion);
+        state.object.scale.copy(state.scale);
+      });
+    };
+    const envelope = new THREE.Box3();
+    let samples = 0;
+    try {
+      clips.forEach(function(clip) {
+        const duration = Math.max(0, Number(clip.duration) || 0);
+        const intervals = Math.max(1, Math.ceil(duration * 12));
+        for (let i = 0; i <= intervals; i++) {
+          mixer.stopAllAction();
+          restoreTransforms();
+          const action = mixer.clipAction(clip);
+          action.reset();
+          action.enabled = true;
+          action.setEffectiveWeight(1);
+          action.setEffectiveTimeScale(1);
+          action.setLoop(THREE.LoopOnce, 1);
+          action.clampWhenFinished = true;
+          action.play();
+          action.paused = true;
+          action.time = duration * (i / intervals);
+          mixer.update(0);
+          const poseBox = measureModelBounds(model);
+          if (!poseBox.isEmpty()) envelope.union(poseBox);
+          samples++;
+        }
+      });
+    } finally {
+      mixer.stopAllAction();
+      restoreTransforms();
+      model.updateMatrixWorld(true);
+      model.traverse(function(obj) {
+        if (obj.isSkinnedMesh && obj.skeleton) obj.skeleton.update();
+      });
+      model.updateMatrixWorld(true);
+    }
+    if (envelope.isEmpty()) throw new Error('Não foi possível medir as poses esqueléticas do GLB');
+    return { box: envelope, samples: samples };
+  }
+  function fitModel(model,height,diagnosticName,clips) {
+    const measureFitBounds = function() {
+      return clips && clips.length ? measureAnimationEnvelope(model,clips) : { box: measureModelBounds(model), samples: 0 };
+    };
+    let measurement = measureFitBounds();
+    let box = measurement.box;
     let size=box.getSize(new THREE.Vector3());
     if(size.z>size.y*1.35 && size.z>size.x*0.72) {
       model.rotation.x=-Math.PI/2;
-      box=measureModelBounds(model);
+      measurement=measureFitBounds();
+      box=measurement.box;
       size=box.getSize(new THREE.Vector3());
     }
     if(!isFinite(size.y)||size.y<0.01) {
       model.rotation.x=Math.PI/2;
-      box=measureModelBounds(model);
+      measurement=measureFitBounds();
+      box=measurement.box;
       size=box.getSize(new THREE.Vector3());
     }
     if(!isFinite(size.y)||size.y<0.01) throw new Error('GLB sem dimensões válidas nos eixos X/Y/Z');
@@ -107,7 +175,8 @@
     const appliedScale=height/measuredHeight;
     model.scale.setScalar(appliedScale);
     if(diagnosticName){
-      window.ValerioScaleDiagnostics='Modelo: '+diagnosticName+' | altura medida antes do ajuste: '+measuredHeight.toFixed(5)+' | escala aplicada: '+appliedScale.toFixed(5)+' | alvo: '+height;
+      window.ValerioScaleDiagnostics='Modelo: '+diagnosticName+' | altura medida nas poses do esqueleto: '+measuredHeight.toFixed(5)+' | escala aplicada uma vez: '+appliedScale.toFixed(5)+' | alvo: '+height;
+      window.ValerioPoseBoundsDiagnostics=(clips&&clips.length?clips.length+' clips / '+measurement.samples+' poses esqueléticas':'pose estática')+' | altura máxima: '+measuredHeight.toFixed(5)+' | escala raiz: '+appliedScale.toFixed(5);
     }
     model.updateMatrixWorld(true);
     const scaled=measureModelBounds(model);
@@ -354,13 +423,12 @@
         gltfLoader.setDRACOLoader(dracoLoader);
         gltfLoader.load(valerioModelUrl,function(gltf){
           try {
-            root=gltf.scene;fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb');rootBasePosition=root.position.clone();improveMaterials(root);
+            root=gltf.scene;improveMaterials(root);
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
             // proporções corretas; trava mudanças de escala vindas dos clips.
             // fitModel normaliza a geometria para 0,95 unidade; não aplicar uma segunda escala.
             pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(root);scene.add(pivot);
-            restoreModelScales=lockModelScales(pivot);
-            // Mapeia os clips que já existem no GLB; ataque/dano têm fallback procedural.
+            // O mixer mede as poses antes de congelar a escala-base normalizada.
             mixer=new THREE.AnimationMixer(root);
             const clips=(gltf.animations||[]).map(function(clip){
               // Remove keyframes de escala que podem inflar o modelo.
@@ -395,6 +463,9 @@
               }
               return clip;
             });
+            fitModel(root,VALERIO_MODEL_HEIGHT,'Bispo1.0.glb',clips);
+            rootBasePosition=root.position.clone();
+            restoreModelScales=lockModelScales(pivot);
             const normalized=function(c){return (c.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
             const pickClip=function(patterns){
               return clips.find(function(c){
