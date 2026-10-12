@@ -225,7 +225,7 @@
   function anchorPoseToFloor(targetY) {
     if(!root||!pivot||!Number.isFinite(targetY))return;
     const bounds=measureModelBounds(root,true);
-    if(!bounds.isEmpty()&&Number.isFinite(bounds.min.y))pivot.position.y+=targetY-bounds.min.y-0.045; // MOD 7: afunda discretamente o modelo para eliminar a folga visual sob as botas.
+    if(!bounds.isEmpty()&&Number.isFinite(bounds.min.y)){const v=window.ValerioModelView||{};const state=String(v.state||'').toLowerCase();const idleLike=state==='idle'||state==='approach'&&(Number(v.speed)||0)<8||state==='static-pose';const sink=idleLike?0.12:0.065;pivot.position.y+=targetY-bounds.min.y-sink;} // MOD 8: correção maior em repouso, quando a folga sob as botas fica mais visível.
   }
   function animationFloorCorrection() {
     if (!currentAction || !animationFloorProfiles.length) return 0;
