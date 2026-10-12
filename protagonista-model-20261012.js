@@ -64,7 +64,7 @@
           if(/attack|slash|swing|strike|sword|melee|atacar|ataque/.test(n))actions.attack=actions.attack||clip;
           if(/hurt|damage|hitreaction|takehit|tomardano|dano/.test(n))actions.hurt=actions.hurt||clip;
           if(/get.?up|stand.?up|rise|recover.?floor|levant|levantar/.test(n))actions.getup=actions.getup||clip;
-          if(/death|dying|dead|^die$|morrer|morte/.test(n))actions.death=actions.death||clip;
+          if(/death|dying|dead|^die$|morrer|morte/.test(n)){actions.death=actions.death||clip;actions.fall=actions.fall||clip;}
         });
         if(!actions.idle&&clips.length)actions.idle=clips[0];
         ready=true;window.ProtagonistaGLBReady=true;
@@ -87,7 +87,8 @@
   function choose(v){
     if(v.dead){if(currentType!=='death')play('death',true);return;}
     if(v.gettingUp){if(currentType!=='getup')play('getup',true);return;}
-    if(v.knockedDown){if(currentType!=='hurt')play('hurt',true);return;}
+    // O clipe de morte do modelo também é a animação de queda; após o timer, toca get-up.
+    if(v.knockedDown){if(currentType!=='fall')play('fall',true);return;}
     if(v.attack){if(currentType!=='attack')play('attack',true);return;}
     if(v.hurt){if(currentType!=='hurt')play('hurt',true);return;}
     if(v.moving&&actions.walk){if(currentType!=='walk'||!currentAction||!currentAction.isRunning())play('walk',false);return;}
