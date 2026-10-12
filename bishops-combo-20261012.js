@@ -255,7 +255,7 @@ const BossPresentation = {
 
 /* IA TÁTICA DO VALÉRIO — camada separada para evoluir depois com magias e poderes. */
 const ValerioCombatAI = {
-  version: 3,
+  version: 4,
   predictSeconds: 0.28,
   maxLead: 54,
 
@@ -264,7 +264,10 @@ const ValerioCombatAI = {
   defensiveChoice(boss, player, distance) {
     if (distance > 225 || (boss.evadeCooldown > 0 && boss.guardCooldown > 0)) return null;
     const playerSpeed = Math.hypot(player.vx || 0, player.vy || 0);
-    if (boss.evadeCooldown <= 0 && playerSpeed > 48 && distance > 70) return 'evade';
+    // Quanto mais o jogador insiste em atacar, mais Valério varia a defesa.
+    const repeatedPressure = (boss.playerAttackTempo || 0) >= 2;
+    if (boss.evadeCooldown <= 0 &&
+        (playerSpeed > 48 && distance > 70 || boss.phase >= 3 || repeatedPressure && distance > 85)) return 'evade';
     if (boss.guardCooldown <= 0) return 'guard';
     if (boss.evadeCooldown <= 0) return 'evade';
     return null;
@@ -353,6 +356,8 @@ const BishopBoss = {
     this.guardCooldown = 0;
     this.evadeCooldown = 0;
     this.lastPlayerAttackId = Player.attackId;
+    this.playerAttackTempo = 0;
+    this.playerAttackWindow = 0;
     this.pendingDefense = null;
     this.pendingDefenseT = 0;
     this.skillCooldowns = Object.create(null);
@@ -379,6 +384,8 @@ const BishopBoss = {
     this.fx = -1; this.fy = 0.2;
     this.attackIndex = 0;
     this.phase = 1;
+    this.playerAttackTempo = 0;
+    this.playerAttackWindow = 0;
     this.guardCooldown = 0;
     this.evadeCooldown = 0;
     this.skillCooldowns = Object.create(null);
@@ -443,11 +450,6 @@ const BishopBoss = {
       Camera.shake = Math.max(Camera.shake, 2.4);
       Sfx.hit();
     } else {
-      if (this.hp / this.maxHp <= 0.5 && this.phase === 1) {
-        this.phase = 2;
-        Quest.toast(this.profile.name + ' acelera os golpes: o selo está em risco!', 2.7);
-        Camera.shake = Math.max(Camera.shake, 4);
-      }
       this._go('stagger');
       Sfx.hit();
     }
@@ -467,18 +469,38 @@ const BishopBoss = {
     const alive = !Player.dead;
     if (this.profile.id === 'bishop1') {
       this.pendingDefenseT = Math.max(0, this.pendingDefenseT - dt);
+      this.playerAttackWindow = Math.max(0, this.playerAttackWindow - dt);
       if (this.pendingDefenseT <= 0) this.pendingDefense = null;
       if (Player.attackId !== this.lastPlayerAttackId) {
         this.lastPlayerAttackId = Player.attackId;
+        this.playerAttackTempo = this.playerAttackWindow > 0
+          ? Math.min(4, this.playerAttackTempo + 1) : 0;
+        this.playerAttackWindow = 1.45;
         if (alive && d <= 225) {
           const response = ValerioCombatAI.defensiveChoice(this, Player, d);
-          if (response) { this.pendingDefense = response; this.pendingDefenseT = 0.72; }
+          if (response) { this.pendingDefense = response; this.pendingDefenseT = 0.82; }
         }
+      } else if (this.playerAttackWindow <= 0) {
+        this.playerAttackTempo = Math.max(0, this.playerAttackTempo - dt * 1.4);
       }
     }
     let tvx = 0, tvy = 0;
 
-    if (this.hp / this.maxHp <= 0.5) this.phase = 2;
+    // Três fases reais: o perigo cresce conforme a vida do chefe diminui.
+    const healthRatio = this.hp / this.maxHp;
+    const nextPhase = healthRatio <= 0.35 ? 3 : healthRatio <= 0.70 ? 2 : 1;
+    if (nextPhase > this.phase) {
+      this.phase = nextPhase;
+      if (this.profile.id === 'bishop1') {
+        const message = nextPhase === 3
+          ? this.profile.name + ' entra em fúria! Não lhe dê espaço!'
+          : this.profile.name + ' abandona a cautela e aumenta a pressão!';
+        Quest.toast(message, 2.7);
+        Camera.shake = Math.max(Camera.shake, nextPhase === 3 ? 6 : 4);
+        Ambient.spawnSpark(this.x, this.y - 28, nextPhase === 3 ? 22 : 12,
+          nextPhase === 3 ? '#f07848' : '#d8a94e');
+      }
+    }
     switch (this.state) {
       case 'approach':
         if (!alive) break;
@@ -494,7 +516,7 @@ const BishopBoss = {
             : (Player.attackT >= 0 ? ValerioCombatAI.defensiveChoice(this, Player, d) : null);
           if (defense === 'guard' && this.guardCooldown <= 0) {
             this.pendingDefense = null; this.pendingDefenseT = 0;
-            this.guardCooldown = 2.6;
+            this.guardCooldown = this.phase >= 3 ? 1.75 : this.phase === 2 ? 2.2 : 2.6;
             this._go('guard');
             Ambient.spawnSpark(this.x, this.y - 24, 9, '#a9c8d5');
             Sfx.block();
@@ -502,7 +524,7 @@ const BishopBoss = {
           }
           if (defense === 'evade' && this.evadeCooldown <= 0) {
             this.pendingDefense = null; this.pendingDefenseT = 0;
-            this.evadeCooldown = 2.0;
+            this.evadeCooldown = this.phase >= 3 ? 1.3 : this.phase === 2 ? 1.65 : 2.0;
             const step = ValerioCombatAI.evadeVector(this, Player);
             this.fx = step.x; this.fy = step.y;
             this._go('evade');
@@ -549,7 +571,8 @@ const BishopBoss = {
           this._go('windup');
         } else {
           const far = d > 145;
-          const approachSpeed = this.profile.speed * (far ? 1.7 : 1) * (this.phase === 2 ? 1.12 : 1);
+          const phaseSpeed = this.phase >= 3 ? 1.36 : this.phase === 2 ? 1.18 : 1;
+          const approachSpeed = this.profile.speed * (far ? 1.7 : 1) * phaseSpeed;
           tvx = this.fx * approachSpeed;
           tvy = this.fy * approachSpeed;
         }
@@ -588,7 +611,9 @@ const BishopBoss = {
       case 'windup':
         if (!alive) { this._go('approach'); break; }
         this.fx = dx / d; this.fy = dy / d;
-        if (this.stateT >= this.attack.windup) {
+        const windupScale = this.profile.id === 'bishop1'
+          ? (this.phase >= 3 ? 0.78 : this.phase === 2 ? 0.91 : 1) : 1;
+        if (this.stateT >= this.attack.windup * windupScale) {
           this._go('attack');
           this.kx += this.fx * this.attack.lunge;
           this.ky += this.fy * this.attack.lunge;
@@ -610,7 +635,9 @@ const BishopBoss = {
             facingDot > (isValerio ? -0.65 : 0.12) &&
             Math.abs(Player.z - this.z) < Math.max(CFG.COMBAT.bodyH, 54);
           if (canReach) {
-            const primaryDamage = Player.hurt(this.attack.damage * this.profile.damage, this.x, this.y, this.attack.kb);
+            const primaryDamage = Player.hurt(this.attack.damage * this.profile.damage * (this.profile.id === 'bishop1'
+              ? (this.phase >= 3 ? 1.16 : this.phase === 2 ? 1.07 : 1) : 1),
+              this.x, this.y, this.attack.kb);
             if (primaryDamage > 0) {
               this.hitDone = true;
               this.hitDonePrimary = true;
@@ -646,7 +673,8 @@ const BishopBoss = {
             const previousInvuln = Player.invuln;
             if (this.hitDonePrimary) Player.invuln = 0;
             const secondaryDamage = Player.hurt(
-              this.attack.damage * (this.attack.secondHitScale || 0.65) * this.profile.damage,
+              this.attack.damage * (this.attack.secondHitScale || 0.65) * this.profile.damage *
+                (this.profile.id === 'bishop1' ? (this.phase >= 3 ? 1.16 : this.phase === 2 ? 1.07 : 1) : 1),
               this.x, this.y, this.attack.kb * 0.35,
               { ignoreInvuln: this.hitDonePrimary }
             );
@@ -663,7 +691,8 @@ const BishopBoss = {
         break;
 
       case 'recover': {
-        const cooldown = ((this.attack && this.attack.cooldown) || 0.6) * (this.phase === 2 ? 0.72 : 1);
+        const recoveryScale = this.phase >= 3 ? 0.43 : this.phase === 2 ? 0.68 : 1;
+        const cooldown = ((this.attack && this.attack.cooldown) || 0.6) * recoveryScale;
         if (this.stateT >= cooldown) this._go(alive ? 'approach' : 'recover');
         break;
       }
@@ -718,7 +747,9 @@ const BishopBoss = {
     this.elHudTitle.textContent = this.profile.title;
     this.elHudFill.style.transform = 'scaleX(' + (this.hp / this.maxHp).toFixed(3) + ')';
     this.elHudText.textContent = Math.ceil(this.hp) + ' / ' + this.maxHp;
-    this.elHud.classList.toggle('phase-two', this.phase === 2);
+    this.elHud.classList.toggle('phase-two', this.phase >= 2);
+    this.elHud.classList.toggle('phase-three', this.phase >= 3);
+    this.elHud.dataset.phase = String(this.phase);
   },
 
   draw(ctx, t) {
