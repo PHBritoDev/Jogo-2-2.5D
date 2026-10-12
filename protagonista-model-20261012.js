@@ -88,7 +88,7 @@
   }
   function loadSword(model){
     const loader=new api.THREE.GLTFLoader();
-    loader.load('./EspadaProta.glb?v=espada-prota-mod29',function(gltf){
+    loader.load('./EspadaProta.glb?v=espada-prota-mod31',function(gltf){
       try{
         swordRoot=gltf.scene;
         swordRoot.name='EspadaProta_Runtime';
@@ -104,11 +104,11 @@
         swordHand=findSwordHand(model);
         swordFallbackParent=swordHand||model;
         // O osso da mão já fornece a posição no corpo: não somar 1,05 unidade local nele.
-        swordRoot.position.set(0,swordHand?0:1.05,0);
+        swordRoot.position.set(0,swordHand?-0.36:1.05,swordHand?0.10:0);
         swordFallbackParent.add(swordRoot);
         addSwordEffects(swordRoot);
         if(window.PlayerModelView&&window.PlayerModelView.firstPerson)setSwordFirstPerson(true);
-        window.EspadaProtaDiagnostics='EspadaProta.glb carregada; encaixe: '+(swordHand?'osso '+swordHand.name:'modelo do protagonista (nenhum osso de mão reconhecido)')+'; tamanho '+swordRoot.scale.x.toFixed(2);
+        window.EspadaProtaDiagnostics='EspadaProta.glb carregada; encaixe: '+(swordHand?'osso '+swordHand.name:'modelo do protagonista (nenhum osso de mão reconhecido)')+'; tamanho '+swordRoot.scale.x.toFixed(2)+'; deslocamento '+swordRoot.position.x.toFixed(2)+','+swordRoot.position.y.toFixed(2)+','+swordRoot.position.z.toFixed(2);
       }catch(e){window.EspadaProtaDiagnostics='Erro preparando EspadaProta.glb: '+e.message;console.warn(window.EspadaProtaDiagnostics);}
     },undefined,function(){
       window.EspadaProtaDiagnostics='Falha ao carregar ./EspadaProta.glb. Confira se o arquivo está na raiz do repositório.';
@@ -126,7 +126,7 @@
       swordRoot.visible=true;
     }else{
       if(swordFallbackParent)swordFallbackParent.add(swordRoot);
-      swordRoot.position.set(0,swordHand?0:1.05,0);
+      swordRoot.position.set(0,swordHand?-0.36:1.05,swordHand?0.10:0);
       swordRoot.rotation.set(0,0,0);
       swordRoot.scale.setScalar(.43);
     }
