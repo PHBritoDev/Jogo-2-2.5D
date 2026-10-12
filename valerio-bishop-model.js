@@ -311,7 +311,7 @@
         if(!deathPlayed){playClip('death',true);deathPlayed=true;}
         return 'death';
       }
-      stopAction();return 'dead';
+      stopAction();return 'procedural-death';
     }
     const serial=window.ValerioBossHitSerial||0;
     if(v.skillLocked)hurtUntil=0;
@@ -520,8 +520,9 @@
               walk:pickClip([/walk/,/walking/,/locomotion/,/walkforward/]),
               run:pickClip([/run/,/running/,/sprint/,/jog/]),
               attack:attackClips[0]||pickClip([/attack/,/slash/,/swing/,/strike/,/sword/,/scythe/,/combo/,/melee/]),
-              hurt:pickClip([/hurt/,/damage/,/stagger/,/flinch/,/hitreaction/,/hit/]),
-              death:pickClip([/death/,/dead/,/dying/,/die/,/defeat/,/knockout/,/fall/]),
+              hurt:pickClip([/hurt/,/damage/,/stagger/,/flinch/,/hitreaction/]),
+              // Nunca confundir o clip de knockback/queda com reação de dano ou morte.
+              death:pickClip([/^death/,/dying/,/^die$/, /defeat/,/knockout/])||pickClip([/fall/]),
               magic:pickClip([/magic/,/cast/,/spell/,/grimoire/,/bible/,/book/,/prayer/,/pose/]),
               talk:pickClip([/talk/,/speak/])
             };
@@ -582,6 +583,10 @@
       pivot.rotation.y+=Math.max(-maxTurn,Math.min(maxTurn,yawDelta));
     }
     const animType=disableValerioClips?'none':chooseAnimation(v,now);
+    // Se o GLB não tiver um clip de morte próprio, tombar o corpo é melhor
+    // que deixar Valério imóvel ou reutilizar a animação de queda ao receber dano.
+    const deadProgress=String(v.state||'').toLowerCase()==='dead'?Math.max(0,Math.min(1,(Number(v.stateTime)||0)/0.7)):0;
+    pivot.rotation.z=animType==='procedural-death'?deadProgress*1.12:0;
     if(mixer&&!disableValerioClips){
       // Sincroniza a cadência das pernas com a velocidade REAL do BishopBoss.
       // A 80 px/s chega perto do ritmo normal; ao desacelerar, a passada encurta.
@@ -594,6 +599,16 @@
     }
     // Clips com root-motion podem deslocar o personagem para baixo do piso; o combate já controla a posição do boss.
     if(rootBasePosition&&root)root.position.copy(rootBasePosition);
+    // Mantém os pés no nível do piso em cada pose animada; clips de ataque/dano
+    // podem levantar a malha mesmo quando a posição física do chefe não mudou.
+    if(root&&pivot){
+      root.updateMatrixWorld(true);
+      const poseBounds=new THREE.Box3().setFromObject(root);
+      if(!poseBounds.isEmpty()&&Number.isFinite(poseBounds.min.y)){
+        root.position.y-=poseBounds.min.y-pivot.position.y;
+        root.updateMatrixWorld(true);
+      }
+    }
     // Reaplica a escala de importação depois do mixer e antes do render.
     if(restoreModelScales)restoreModelScales();
     // A escala do personagem é definida uma vez por fitModel(). Não recalcular
