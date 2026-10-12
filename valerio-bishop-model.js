@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   // Calibração validada pelo espaço da arena: o GLB deve ocupar cerca de 0,95 unidade de altura na arena.
-  const VALERIO_MODEL_HEIGHT=0.95;
+  const VALERIO_MODEL_HEIGHT=3.8;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null,weaponScaleCompensation=false;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
@@ -250,13 +250,13 @@
   }
   function loadWeapon() {
     new THREE.GLTFLoader().load('./Espada1.glb',function(gltf){
-      weaponRoot=gltf.scene;fitModel(weaponRoot,0.62);improveMaterials(weaponRoot);
+      weaponRoot=gltf.scene;fitModel(weaponRoot,1.35);improveMaterials(weaponRoot);
       weaponPivot=new THREE.Group();
       // O pivô fica no punho; deslocamos o modelo para que a mão segure o cabo,
       // em vez de apoiar a arma pela extremidade inferior do modelo.
       weaponPivot.position.set(0,-.02,0);
       weaponPivot.rotation.set(0,0,-.12);
-      weaponRoot.position.y-=.28; // ajuste inicial do ponto de pegada; calibrar visualmente no jogo
+      weaponRoot.position.y-=.61; // ajuste proporcional ao novo tamanho da arma para manter o cabo na mão
       weaponPivot.add(weaponRoot);
       if(handBone){handBone.add(weaponPivot);weaponScaleCompensation=true;}else{pivot.add(weaponPivot);weaponScaleCompensation=false;}
       showStatus((window.ValerioClipDiagnostics||'Clips do modelo carregados')+'\nfoice carregada; presa em '+(handBone&&handBone.name||'pivô do corpo')+'; ajuste de pegada ativo',false);
