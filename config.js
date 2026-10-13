@@ -43,10 +43,10 @@ const CFG = {
   COMBAT: {
     playerHP: 100,
     // Ataque do jogador
-    attackDur: 0.34,       // duração total do golpe
-    hitStart: 0.07,        // quando a hitbox liga
-    hitEnd: 0.2,           // quando a hitbox desliga
-    attackCooldown: 0.06,
+    attackDur: 0.58,       // duração total do golpe, sincronizada à animação 3D
+    hitStart: 0.12,        // dá tempo para o início visual do golpe
+    hitEnd: 0.32,          // janela de impacto mais legível
+    attackCooldown: 0.12,
     attackBuffer: 0.14,    // tolerância para apertar um pouco antes
     damage: 12,
     reach: 24,             // distância do centro da hitbox à frente do jogador
@@ -60,7 +60,7 @@ const CFG = {
     blockKb: 0.35,         // knockback reduzido
     blockSpeed: 0.45,      // velocidade enquanto defende
     // Reação ao dano
-    playerStun: 0.18,
+    playerStun: 0.34,
     hurtPop: 130,          // pequeno "pulinho" ao tomar dano
     invuln: 0.6,
     hitstop: 0.06,         // micro-pausa ao acertar
