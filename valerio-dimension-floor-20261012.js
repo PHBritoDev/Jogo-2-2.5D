@@ -14,7 +14,8 @@ const BishopDimension = (function () {
     bishopTexture: null, bishopTextureLoaded: false, bishopQuad: null,
     wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0,
     canvasVisible: false,
-    camera: { yaw: 0, pitch: -0.035, distance: 12.5, minDistance: 0.85, maxDistance: 22 }
+    camera: { yaw: 0, pitch: -0.035, distance: 12.5, minDistance: 0.85, maxDistance: 22 },
+    impactAt: 0, impactStrength: 0
   };
 
   const clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -540,6 +541,10 @@ const BishopDimension = (function () {
     const eye=[px-sy*cp*dist,1.6-sp*dist-evadeDip,pz+cy*cp*dist];
     const lookAhead=dist<0.95?2.8:5.3;
     const target=[px+sy*cp*lookAhead,1.2+sp*lookAhead,pz-cy*cp*lookAhead];
+    // Impacto curto de primeira pessoa: reforça acertos sem esconder o chefe.
+    const impactAge=(performance.now()-S.impactAt)/1000;
+    const impactFade=S.impactAt>0?clamp(1-impactAge/.15,0,1):0;
+    if(impactFade>0){const kick=Math.sin(impactAge*92)*S.impactStrength*impactFade*.035;eye[1]+=kick;target[1]+=kick*.65;eye[0]+=kick*.45;target[0]+=kick*.3;}
     const pv=multiply(perspective(dist<0.95?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
     const playerJump=clamp((Number(Player.z)||0)-(Number(Player.floor)||0),0,60)*unit;
     const playerMoving=Math.hypot(Player.vx||0,Player.vy||0)>18;
@@ -560,7 +565,7 @@ const BishopDimension = (function () {
         const byFacing=bossActiveForFacing&&Number.isFinite(BishopBoss.y)?BishopBoss.y:Casino.bossStart.y;
         const bossXFacing=(bxFacing-(room.left+room.right)/2)*unit;
         const bossZFacing=(byFacing-(room.top+room.bottom)/2)*unit;
-        playerYaw=Math.atan2(bossXFacing-px,bossZFacing-pz);
+        playerYaw=Math.atan2(bossXFacing-px,-(bossZFacing-pz));
       }
     }
     window.PlayerModelView={
@@ -695,6 +700,7 @@ const BishopDimension = (function () {
   }
   function addCameraLook(dx,dy){const c=S.camera;c.yaw+=dx*.006;c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
   function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
+  function impact(strength){S.impactAt=performance.now();S.impactStrength=clamp(Number(strength)||.6,.25,1.5);}
   function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
   function enter() {
     if(!Casino.inside||!Campaign.step||Campaign.step.type!=='bishop'||Campaign.step.boss!=='greedFirst')return;
@@ -719,5 +725,5 @@ const BishopDimension = (function () {
     return x-r<cx-halfWidth||x+r>cx+halfWidth||
       y-r<cy-halfDepth||y+r>cy+halfDepth;
   }
-  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis};
+  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis,impact:impact};
 })();
