@@ -34,7 +34,7 @@
       }
     };
   }
-  const ROLE_LABELS={attack:'Ataque',hurt:'Tomar dano',idle:'Respirar/parado',walk:'Caminhar',death:'Morte',getup:'Levantar'};
+  const ROLE_LABELS={attack1:'Ataque 1',attack2:'Ataque 2',hurt:'Tomar dano',idle:'Respirar/parado',walk:'Caminhar',fall:'Cair no chão',death:'Morte',getup:'Levantar'};
   function savedRoleConflicts(role,clip){
     const n=String(clip&&clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
     const attack=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand/.test(n);
@@ -55,19 +55,25 @@
   function applySavedAnimationRoles(clips){
     let saved={};
     try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV2')||'{}')||{};}catch(e){}
+    // Compatibilidade com configurações antigas: "attack" passa a ser Ataque 1.
+    if(saved.attack1===undefined&&saved.attack!==undefined)saved.attack1=saved.attack;
     Object.keys(ROLE_LABELS).forEach(function(role){
       const index=Number(saved[role]);
-      if(Number.isInteger(index)&&index>=0&&index<clips.length){
-        const clip=clips[index];
-        // Um mapeamento antigo nunca pode substituir um papel claramente oposto pelo nome.
-        if(savedRoleConflicts(role,clip)){
-          console.warn('Protagonista: mapeamento salvo ignorado; o clipe não combina com a função '+ROLE_LABELS[role]+'.',clip.name);
-          return;
-        }
-        actions[role]=clip;
-        if(role==='attack')attackClips=[clip];
+      if(!Number.isInteger(index)||index<0||index>=clips.length)return;
+      const clip=clips[index];
+      if(savedRoleConflicts(role==='attack1'||role==='attack2'?'attack':role,clip)){
+        console.warn('Protagonista: mapeamento salvo ignorado; o clipe não combina com a função '+ROLE_LABELS[role]+'.',clip.name);
+        return;
       }
+      actions[role]=clip;
     });
+    const mappedAttacks=[];
+    if(actions.attack1)mappedAttacks.push(actions.attack1);
+    if(actions.attack2&&actions.attack2!==actions.attack1)mappedAttacks.push(actions.attack2);
+    if(mappedAttacks.length){
+      attackClips=mappedAttacks;
+      actions.attack=attackClips[0];
+    }
     actions.fall=actions.fall||null;
     actions.death=actions.death||null;
   }
@@ -109,7 +115,14 @@
         saved[role]=i;
         try{localStorage.setItem('protagonistaAnimationRolesV2',JSON.stringify(saved));}catch(e){}
         actions[role]=clip;
-        if(role==='attack')attackClips=[clip];
+        if(role==='attack1'||role==='attack2'){
+          const first=role==='attack1'?clip:(actions.attack1||attackClips[0]||null);
+          const second=role==='attack2'?clip:(actions.attack2||null);
+          attackClips=[];
+          if(first)attackClips.push(first);
+          if(second&&second!==first)attackClips.push(second);
+          actions.attack=attackClips[0]||null;
+        }
         window.ProtagonistaAnimationTiming={
           // O combate real usa estes tempos: sincronizar o clip inteiro evita o golpe
           // continuar além da hitbox ou a reação de dano ser cortada no meio.
@@ -321,7 +334,7 @@
             const x=values[0],y=values[1],z=values[2];
             for(let i=0;i<track.times.length;i++){
               const k=i*stride;values[k]=x;values[k+2]=z;
-              if(rootNode||locomotion)values[k+1]=y;
+              // Root motion vertical em ataques/queda/morte fazia o personagem terminar suspenso. Só a locomoção mantém a altura animada.\n              if(locomotion)values[k+1]=y;
             }
           });
           if(/breath|idle|rest|standstill|parado/.test(n))actions.idle=actions.idle||clip;
