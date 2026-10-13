@@ -202,9 +202,12 @@
 
     const jump = Input.consumeJump();
 
-    // A mira alterna entre direção livre e direção travada; ignorada em pausa/diálogo
-    if (Game.stopped) Input.consumeAimToggle();
-    else if (Input.consumeAimToggle()) Player.setAimMode(!Player.aimLocked);
+    // O botão de mira vira esquiva na dimensão de Valério; fora dela mantém a mira direcional.
+    const aimAction = Input.consumeAimToggle();
+    if (!Game.stopped && aimAction) {
+      if (BishopDimension.isBattleActive()) Player.evade(BishopDimension.transformAxis(Input.axis()));
+      else Player.setAimMode(!Player.aimLocked);
+    }
 
     // Ataque: descarta toques durante pausa/hitstop para não "vazarem" depois
     let attack = false;
