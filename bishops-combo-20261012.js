@@ -255,7 +255,7 @@ const BossPresentation = {
 
 /* IA TÁTICA DO VALÉRIO — camada separada para evoluir depois com magias e poderes. */
 const ValerioCombatAI = {
-  version: 4,
+  version: 5,
   predictSeconds: 0.28,
   maxLead: 54,
 
@@ -611,10 +611,16 @@ const BishopBoss = {
 
       case 'windup':
         if (!alive) { this._go('approach'); break; }
-        this.fx = dx / d; this.fy = dy / d;
         const windupScale = this.profile.id === 'bishop1'
           ? (this.phase >= 3 ? 0.78 : this.phase === 2 ? 0.91 : 1) : 1;
-        if (this.stateT >= this.attack.windup * windupScale) {
+        const windupDuration = this.attack.windup * windupScale;
+        // O chefe acompanha durante a preparação, mas trava a direção antes do impacto.
+        // Isso dá uma janela legível para esquivar em vez de corrigir a mira até o último instante.
+        const aimLockWindow = Math.min(0.18, windupDuration * 0.30);
+        if (this.stateT < windupDuration - aimLockWindow) {
+          this.fx = dx / d; this.fy = dy / d;
+        }
+        if (this.stateT >= windupDuration) {
           this._go('attack');
           this.kx += this.fx * this.attack.lunge;
           this.ky += this.fy * this.attack.lunge;
