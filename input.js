@@ -87,6 +87,8 @@ const Input = (function () {
   zone.addEventListener('pointerup', endJoy);
   zone.addEventListener('pointercancel', endJoy);
   zone.addEventListener('lostpointercapture', endJoy);
+  window.addEventListener('pointerup', endJoy);
+  window.addEventListener('pointercancel', endJoy);
 
   // ----- Botões de ação (cada um com seu próprio toque) -----
   function bindButton(id, onDown, onUp) {
