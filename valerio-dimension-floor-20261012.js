@@ -617,7 +617,8 @@ const BishopDimension = (function () {
       let seed=42;
       const rnd=function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
       // Distribuição em bordas e pequenos trechos fora do caminho central.
-      for(let n=0;n<150;n++){
+      const targetArena=S.arena;
+      for(let n=0;n<100;n++){
         let x=0,z=0,tries=0;
         do{
           const side=rnd()<.5?-1:1;
@@ -642,7 +643,7 @@ const BishopDimension = (function () {
           }
         });
       }
-      if(base.length)S.arena.grassAsset=mesh(S.gl,base);
+      if(base.length&&S.arena===targetArena&&S.gl)targetArena.grassAsset=mesh(S.gl,base);
     }).catch(function(err){console.warn('Grama.glb não pôde ser integrado; mantendo a vegetação low-poly da floresta.',err);});
   }
   function initGL() {
