@@ -138,7 +138,7 @@ const Player = {
       Sfx.block();
     } else {
       this.stun = C.playerStun;
-      this.hurtT = 0.42;
+      this.hurtT = 0.88;
       this.blinkT = C.invuln;
       this.invuln = C.invuln;
       if (requestKnockdown) {
