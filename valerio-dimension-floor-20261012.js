@@ -586,7 +586,9 @@ const BishopDimension = (function () {
     const px=(Player.x-(room.left+room.right)/2)*unit,pz=(Player.y-(room.top+room.bottom)/2)*unit;
     const cam=S.camera, yaw=cam.yaw, pitch=cam.pitch, dist=cam.distance;
     const cp=Math.cos(pitch), sp=Math.sin(pitch), sy=Math.sin(yaw), cy=Math.cos(yaw);
-    const eye=[px-sy*cp*dist,1.6-sp*dist,pz+cy*cp*dist];
+    const evadeProgress=(Player.evadeT||0)>0?clamp(1-(Player.evadeT/.24),0,1):0;
+    const evadeDip=Math.sin(Math.PI*evadeProgress)*.24;
+    const eye=[px-sy*cp*dist,1.6-sp*dist-evadeDip,pz+cy*cp*dist];
     const lookAhead=dist<0.95?2.8:5.3;
     const target=[px+sy*cp*lookAhead,1.2+sp*lookAhead,pz-cy*cp*lookAhead];
     const pv=multiply(perspective(dist<0.95?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
@@ -614,7 +616,7 @@ const BishopDimension = (function () {
     }
     window.PlayerModelView={
       active:true,eye:eye.slice(),target:target.slice(),
-      position:[px,arenaFloorHeight(px,pz)+playerJump,pz],yaw:-playerYaw,
+      position:[px,arenaFloorHeight(px,pz)+playerJump-evadeDip,pz],yaw:-playerYaw,
       aspect:w/h,fov:dist<0.95?1.22:1.02,firstPerson:dist<0.95,
       moving:playerMoving,speed:Math.hypot(Player.vx||0,Player.vy||0),evading:(Player.evadeT||0)>0,evadeT:Number(Player.evadeT)||0,
       dead:!!Player.dead,knockedDown:(Player.knockdownT||0)>0,
