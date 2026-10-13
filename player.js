@@ -27,12 +27,14 @@ const Player = {
   hp: 1, maxHp: 1, trail: 1, trailDelay: 0,
   attackT: -1,           // -1 = não está atacando
   attackId: 0,           // identifica cada golpe (evita dano repetido)
+  comboStage: 0,         // estágio da sequência de espada: 0, 1 ou finalizador
+  lastAttackAt: -999,
   atkBuf: 0, atkCool: 0,
   atkDirX: 0, atkDirY: 1,
   aimLocked: false,
   aimDirX: 0, aimDirY: 1,
   blocking: false, blockFlash: 0,
-  hurtT: 0, blinkT: 0, invuln: 0, stun: 0,
+  hurtT: 0, damageId: 0, blinkT: 0, invuln: 0, stun: 0,
   dead: false, deadT: 0,
   knockdownT: 0, gettingUp: false, getUpT: 0,
 
@@ -51,6 +53,7 @@ const Player = {
     this.maxHp = CFG.COMBAT.playerHP;
     this.hp = this.maxHp; this.trail = this.hp; this.trailDelay = 0;
     this.attackT = -1; this.atkBuf = 0; this.atkCool = 0;
+    this.comboStage = 0; this.lastAttackAt = -999;
     this.blocking = false; this.blockFlash = 0;
     this.hurtT = 0; this.blinkT = 0; this.invuln = 0; this.stun = 0;
     this.dead = false; this.deadT = 0;
@@ -101,10 +104,35 @@ const Player = {
       dx = ax; dy = ay;
       const m = Math.hypot(dx, dy);
       if (m > 0.3) { dx /= m; dy /= m; }
-      else { const f = Math.hypot(this.fx, this.fy) || 1; dx = this.fx / f; dy = this.fy / f; }
+      else {
+        // Ataque parado mira o alvo mais próximo; não reutiliza uma direção antiga
+        // que pode apontar para trás depois de soltar o analógico.
+        let target = null;
+        let bestDistanceSq = (C.autoAimRange || 0) * (C.autoAimRange || 0);
+        const consider = function (candidate) {
+          if (!candidate || !Number.isFinite(candidate.x) || !Number.isFinite(candidate.y) ||
+              candidate.state === 'dead' || candidate.state === 'gone' || candidate.state === 'inactive' ||
+              (Number.isFinite(candidate.hp) && candidate.hp <= 0)) return;
+          const tx = candidate.x - this.x, ty = candidate.y - this.y;
+          const distanceSq = tx * tx + ty * ty;
+          if (distanceSq > 0.01 && distanceSq <= bestDistanceSq) { bestDistanceSq = distanceSq; target = candidate; }
+        }.bind(this);
+        if (typeof BishopBoss !== 'undefined') consider(BishopBoss);
+        if (typeof Greedling !== 'undefined') consider(Greedling);
+        if (typeof Enemy !== 'undefined' && Array.isArray(Enemy.instances)) Enemy.instances.forEach(consider);
+        if (target) {
+          const length = Math.hypot(target.x - this.x, target.y - this.y) || 1;
+          dx = (target.x - this.x) / length; dy = (target.y - this.y) / length;
+        } else {
+          const f = Math.hypot(this.fx, this.fy) || 1; dx = this.fx / f; dy = this.fy / f;
+        }
+      }
     }
     this.atkDirX = dx; this.atkDirY = dy;
     this.fx = dx; this.fy = dy;
+    const now = Number(Game.time) || 0;
+    this.comboStage = now - this.lastAttackAt > C.comboReset ? 0 : (this.comboStage + 1) % 3;
+    this.lastAttackAt = now;
     this.attackT = 0;
     this.attackId++;
     this.atkBuf = 0;
@@ -119,16 +147,19 @@ const Player = {
     if (this.dead || (this.invuln > 0 && !(options && options.ignoreInvuln))) return 0;
     const C = CFG.COMBAT;
     options = options || {};
-    const critical = !!options.critical && !this.blocking;
-    if (critical) dmg = Math.round(dmg * 1.55);
-    // A queda é exclusiva de um crítico confirmado; golpes fortes comuns não derrubam.
-    const requestKnockdown = !this.blocking && critical && options.knockdown === true && this.knockdownT <= 0 && !this.gettingUp;
     let dx = this.x - fromX, dy = this.y - fromY;
     const d = Math.hypot(dx, dy) || 1;
     dx /= d; dy /= d;
+    const facingLength = Math.hypot(this.fx, this.fy) || 1;
+    const blockFacesHit = this.blocking &&
+      ((this.fx * -dx + this.fy * -dy) / facingLength) >= C.blockFacingDot;
+    const critical = !!options.critical && !blockFacesHit;
+    if (critical) dmg = Math.round(dmg * 1.55);
+    // A queda é exclusiva de um crítico confirmado; golpes fortes comuns não derrubam.
+    const requestKnockdown = !blockFacesHit && critical && options.knockdown === true && this.knockdownT <= 0 && !this.gettingUp;
     const gy = this.y - this.z - 16;
 
-    if (this.blocking) {
+    if (blockFacesHit) {
       dmg = Math.max(1, Math.round(dmg * (1 - C.blockReduce)));
       kb *= C.blockKb;
       this.blockFlash = 0.2;
@@ -138,7 +169,8 @@ const Player = {
       Sfx.block();
     } else {
       this.stun = C.playerStun;
-      this.hurtT = 0.18;
+      this.hurtT = Math.max(0.42, Number(C.hurtDuration) || 0.42);
+      this.damageId = (Number(this.damageId) || 0) + 1;
       this.blinkT = C.invuln;
       this.invuln = C.invuln;
       if (requestKnockdown) {
@@ -146,20 +178,26 @@ const Player = {
         this.gettingUp = false;
         this.getUpT = 0;
         this.stun = Math.max(this.stun, 0.6);
-        const fallTime = Math.min(2, Math.max(1.15, Number(window.ProtagonistaAnimationTiming && window.ProtagonistaAnimationTiming.fallDuration) || 1.15));
-        const getupTime = Math.min(2, Math.max(1.05, Number(window.ProtagonistaAnimationTiming && window.ProtagonistaAnimationTiming.getupDuration) || 1.05));
-        this.invuln = Math.max(this.invuln, fallTime + getupTime + 0.15);
+        this.invuln = Math.max(this.invuln, 1.55);
       }
       this.attackT = -1;
       this.atkBuf = 0;
       if (requestKnockdown) {
         // A derrubada é uma transição de combate no chão, não um segundo pulo.
         this.vz = 0;
+        const arenaFloor = typeof BishopDimension !== 'undefined' &&
+          typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive() ? 0 : this.floor;
+        this.z = arenaFloor;
+        this.floor = arenaFloor;
+        this.onGround = true;
+      } else if (this.onGround) {
+        // Dano comum anima uma reação, mas não transforma o personagem num pulo.
         this.z = this.floor;
+        this.vz = 0;
         this.onGround = true;
       } else {
-        this.vz = Math.max(this.vz, C.hurtPop);
-        this.onGround = false;
+        // Se já estava no ar, não adiciona impulso para cima: deixa-o cair.
+        this.vz = Math.min(this.vz, 0);
       }
       Ambient.spawnSpark(this.x, gy, 9, '#ff9a8a');
       Combat.addText(this.x, this.y - this.z - 42, critical ? 'CRÍTICO! -' + dmg : (requestKnockdown ? 'DERRUBADO! -' + dmg : '-' + dmg), critical ? '#ffd166' : '#ff5a5a');
@@ -180,12 +218,15 @@ const Player = {
       this.knockdownT = 0; this.gettingUp = false; this.getUpT = 0;
       this.blocking = false;
       this.kx *= 1.3; this.ky *= 1.3;
-      if (this.z > this.floor + 0.001) {
-        // A morte não lança o corpo para cima; se estiver no ar, ele continua caindo.
-        this.vz = Math.min(this.vz, -120);
+      // Morte no chão fica ancorada; se acontecer no ar, continua caindo sem impulso extra.
+      const arenaFloor = typeof BishopDimension !== 'undefined' &&
+        typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive() ? 0 : this.floor;
+      this.floor = arenaFloor;
+      if (this.z > arenaFloor + 0.001) {
+        this.vz = Math.min(this.vz, 0);
         this.onGround = false;
       } else {
-        this.z = this.floor;
+        this.z = arenaFloor;
         this.vz = 0;
         this.onGround = true;
       }
@@ -219,7 +260,11 @@ const Player = {
 
     // ----- Defesa e ataque (nunca ao mesmo tempo) -----
     this.blocking = defendHeld && this.attackT < 0;
-    if (attackPressed) this.atkBuf = C.attackBuffer; else this.atkBuf = Math.max(0, this.atkBuf - dt);
+    if (attackPressed) {
+      // Um toque durante o golpe fica guardado até ao fim da recuperação e do cooldown.
+      const remainingAttack = this.attackT >= 0 ? Math.max(0, C.attackDur - this.attackT) : 0;
+      this.atkBuf = C.attackBuffer + remainingAttack;
+    } else this.atkBuf = Math.max(0, this.atkBuf - dt);
     if (this.blocking) this.atkBuf = 0;
     if (this.atkBuf > 0 && canAct && !this.blocking && this.attackT < 0 && this.atkCool <= 0) {
       this._startAttack(ax, ay);
@@ -286,10 +331,12 @@ const Player = {
     // ----- Colisão com objetos sólidos -----
     World.solidsNear(this.x, this.y, this._solids);
     const list = this._solids;
+    const inBishopArena = typeof BishopDimension !== 'undefined' &&
+      typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive();
     for (let it = 0; it < 2; it++) {
       for (let i = 0; i < list.length; i++) {
         const o = list[i];
-        if (o.type === 'rock' && this.z + 6 >= o.h) continue;
+        if (o.type === 'rock' && (inBishopArena || this.z + 6 >= o.h)) continue;
         let dx = this.x - o.x, dy = this.y - o.y;
         const minD = o.r + this.r;
         const d2 = dx * dx + dy * dy;
@@ -307,12 +354,15 @@ const Player = {
     // ----- Superfície sob os pés (chão ou topo de pedra) -----
     let floor = 0;
     let sortY = this.y;
-    for (let i = 0; i < list.length; i++) {
-      const o = list[i];
-      if (o.type !== 'rock') continue;
-      const d = Math.hypot(this.x - o.x, this.y - o.y);
-      if (d < o.r + 3 && o.h > floor) floor = o.h;
-      if (d < o.r + this.r + 4 && this.z + 6 >= o.h) sortY = Math.max(sortY, o.y + 1);
+    // A arena 3D tem seu próprio piso; rochas do mapa 2D não podem virar plataformas invisíveis.
+    if (!inBishopArena) {
+      for (let i = 0; i < list.length; i++) {
+        const o = list[i];
+        if (o.type !== 'rock') continue;
+        const d = Math.hypot(this.x - o.x, this.y - o.y);
+        if (d < o.r + 3 && o.h > floor) floor = o.h;
+        if (d < o.r + this.r + 4 && this.z + 6 >= o.h) sortY = Math.max(sortY, o.y + 1);
+      }
     }
     this.floor = floor;
     this.sy = sortY;
@@ -320,7 +370,12 @@ const Player = {
     // ----- Pouso -----
     const wasAir = !this.onGround;
     const prevVz = this.vz;
-    if (this.z <= floor + 0.001 && this.vz <= 0) {
+    if (!this.dead && (this.knockdownT > 0 || this.gettingUp)) {
+      // Queda pesada e levantamento acontecem no piso real; sem gravidade extra no meio da animação.
+      this.z = floor;
+      this.vz = 0;
+      this.onGround = true;
+    } else if (this.z <= floor + 0.001 && this.vz <= 0) {
       if (wasAir && prevVz < -180) {
         this.squash = -0.28 * Math.min(1, -prevVz / 700);
         Ambient.spawnDust(this.x, this.y - floor, 7, this._dustColor(), 1.3);

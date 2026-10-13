@@ -441,8 +441,78 @@ const Enemy = {
 /* ---------------- Orquestração do combate ---------------- */
 const Combat = {
   texts: [],
+  attackModifiers: new Map(),
+  _reportedModifierErrors: new Set(),
   _w: -1, _tw: -1, _ko: false,
   elFill: null, elTrail: null, elText: null, elFlash: null, elKo: null,
+
+  // Effects (future enchantments/powers) can alter a typed melee hit without
+  // replacing the combat loop. Modifiers should be pure; return changed fields.
+  registerAttackModifier(id, modifier) {
+    const key = String(id || '');
+    if (!key || typeof modifier !== 'function') throw new TypeError('Efeito de ataque requer id e função.');
+    this.attackModifiers.set(key, modifier);
+    return key;
+  },
+
+  removeAttackModifier(id) {
+    return this.attackModifiers.delete(String(id));
+  },
+
+  playerAttackProfile(target) {
+    const C = CFG.COMBAT;
+    const stage = Math.max(0, Math.min(2, Number(Player.comboStage) || 0)) | 0;
+    const scale = [1, 1.12, 1.32][stage];
+    const profile = {
+      source: 'player', kind: 'melee', damageType: 'physical', stage: stage,
+      tags: ['weapon', 'melee', 'combo-' + (stage + 1)],
+      damage: Math.round(C.damage * scale),
+      reach: C.reach * [1, 1.04, 1.10][stage],
+      bladeReach: C.bladeReach * [1, 1.06, 1.15][stage],
+      hitRadius: C.hitR * [1, 1.02, 1.08][stage],
+      knockback: C.kb * [1, 1.05, 1.25][stage],
+      hitstop: C.hitstop * [1, 1.15, 1.65][stage],
+      cameraShake: [0, 0.4, 1.2][stage]
+    };
+    for (const [id, modifier] of this.attackModifiers) {
+      try {
+        const changed = modifier(Object.assign({}, profile, { tags: profile.tags.slice() }), target);
+        if (changed && typeof changed === 'object') Object.assign(profile, changed);
+      } catch (error) {
+        if (!this._reportedModifierErrors.has(id)) {
+          this._reportedModifierErrors.add(id);
+          console.error('Modificador de combate removido após erro:', id, error);
+        }
+        this.attackModifiers.delete(id);
+      }
+    }
+    const defaults = { damage: C.damage, reach: C.reach, bladeReach: C.bladeReach, hitRadius: C.hitR, knockback: C.kb, hitstop: C.hitstop, cameraShake: 0 };
+    Object.keys(defaults).forEach(function (key) {
+      const value = Number(profile[key]);
+      profile[key] = Number.isFinite(value) ? Math.max(0, value) : defaults[key];
+    });
+    if (!Array.isArray(profile.tags)) profile.tags = ['weapon', 'melee'];
+    return profile;
+  },
+
+  // Cápsula ao longo da lâmina: o inimigo toma dano quando a borda da espada
+  // cruza o corpo, não só quando um pequeno círculo central coincide.
+  _swordTouches(E, strike, C) {
+    if (Math.abs((Number(E.z) || 0) - (Number(Player.z) || 0)) >= C.hitZ) return false;
+    const dirX = Number(Player.atkDirX) || 0, dirY = Number(Player.atkDirY) || 1;
+    const tx = E.x - Player.x, ty = E.y - Player.y;
+    if (tx * dirX + ty * dirY < 0) return false;
+    const start = Math.min(Math.max(4, (Number(Player.r) || 0) * 0.35), strike.reach * 0.45);
+    const end = Math.max(start, strike.reach + (Number(strike.bladeReach) || 0));
+    const ax = Player.x + dirX * start, ay = Player.y + dirY * start;
+    const bx = Player.x + dirX * end, by = Player.y + dirY * end;
+    const sx = bx - ax, sy = by - ay;
+    const lengthSq = sx * sx + sy * sy || 1;
+    const t = Math.max(0, Math.min(1, ((E.x - ax) * sx + (E.y - ay) * sy) / lengthSq));
+    const dx = E.x - (ax + sx * t), dy = E.y - (ay + sy * t);
+    const radius = Math.max(0, Number(strike.hitRadius) || 0) + Math.max(0, Number(E.r) || 0);
+    return dx * dx + dy * dy <= radius * radius;
+  },
 
   init() {
     this.elFill = document.getElementById('hp-fill');
@@ -535,16 +605,15 @@ const Combat = {
 
     // Só acerta dentro da janela ativa e uma única vez por golpe (attackId)
     if (Player.isAttackActive() && E.hitId !== Player.attackId) {
-      const hx = Player.x + Player.atkDirX * C.reach;
-      const hy = Player.y + Player.atkDirY * C.reach;
-      const dx = E.x - hx, dy = E.y - hy;
-      const rr = C.hitR + E.r;
-      if (dx * dx + dy * dy <= rr * rr && Math.abs(E.z - Player.z) < C.hitZ) {
+      const strike = this.playerAttackProfile(E);
+      if (this._swordTouches(E, strike, C)) {
         E.hitId = Player.attackId;
         let kx = E.x - Player.x, ky = E.y - Player.y;
         const m = Math.hypot(kx, ky);
         if (m > 0.001) { kx /= m; ky /= m; } else { kx = Player.atkDirX; ky = Player.atkDirY; }
-        E.hurt(C.damage, kx, ky, C.kb);
+        E.hurt(strike.damage, kx, ky, strike.knockback);
+        Game.hitstop = Math.max(Game.hitstop, strike.hitstop);
+        Camera.shake = Math.max(Camera.shake, strike.cameraShake);
         // Sinal simples para o protótipo 3D acender o núcleo ao confirmar um acerto real.
         window.CelestialSwordHitSerial=(Number(window.CelestialSwordHitSerial)||0)+1;
         if (E.state === 'dead') return;

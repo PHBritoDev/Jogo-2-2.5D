@@ -34,7 +34,7 @@
       }
     };
   }
-  const ROLE_LABELS={attack:'Ataque',attack2:'Ataque 2',hurt:'Tomar dano',fall:'Queda',idle:'Respirar/parado',walk:'Caminhar',death:'Morte',getup:'Levantar'};
+  const ROLE_LABELS={attack1:'Ataque 1',attack2:'Ataque 2',hurt:'Tomar dano',idle:'Respirar/parado',walk:'Caminhar',fall:'Cair no chão',death:'Morte',getup:'Levantar'};
   function savedRoleConflicts(role,clip){
     const n=String(clip&&clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
     const attack=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand/.test(n);
@@ -44,41 +44,47 @@
     const fall=/fall|falling|knockdown|collapse|stumble|caer|queda/.test(n);
     const death=/death|dying|dead|^die$|morrer|morte/.test(n);
     const getup=/getup|standup|rise|recoverfloor|levant|levantar/.test(n);
-    if(role==='attack'||role==='attack2')return hurt||idle||walk||fall||death||getup;
+    if(role==='attack')return hurt||idle||walk||fall||death||getup;
     if(role==='hurt')return attack||idle||walk||fall||death||getup;
     if(role==='idle')return attack||hurt||walk||fall||death||getup;
     if(role==='walk')return attack||hurt||idle||fall||death||getup;
     if(role==='death')return attack||hurt||idle||walk||getup;
     if(role==='getup')return attack||hurt||idle||walk||fall||death;
-    if(role==='fall')return attack||hurt||idle||walk||death||getup;
     return false;
   }
   function applySavedAnimationRoles(clips){
     let saved={};
-    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV2')||'{}')||{};}catch(e){}
+    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV3')||'{}')||{};}catch(e){}
+    // Compatibilidade com configurações antigas: "attack" passa a ser Ataque 1.
+    if(saved.attack1===undefined&&saved.attack!==undefined)saved.attack1=saved.attack;
     Object.keys(ROLE_LABELS).forEach(function(role){
       const index=Number(saved[role]);
-      if(Number.isInteger(index)&&index>=0&&index<clips.length){
-        const clip=clips[index];
-        // Um mapeamento antigo nunca pode substituir um papel claramente oposto pelo nome.
-        if(savedRoleConflicts(role,clip)){
-          console.warn('Protagonista: mapeamento salvo ignorado; o clipe não combina com a função '+ROLE_LABELS[role]+'.',clip.name);
-          return;
-        }
-        actions[role]=clip;
-        if(role==='attack'){attackClips=[clip];actions.attack=clip;}
-        if(role==='attack2'){attackClips=attackClips.filter(function(c){return c!==clip;});attackClips.push(clip);}
+      if(!Number.isInteger(index)||index<0||index>=clips.length)return;
+      const clip=clips[index];
+      if(savedRoleConflicts(role==='attack1'||role==='attack2'?'attack':role,clip)){
+        console.warn('Protagonista: mapeamento salvo ignorado; o clipe não combina com a função '+ROLE_LABELS[role]+'.',clip.name);
+        return;
       }
+      actions[role]=clip;
     });
+    const mappedAttacks=[];
+    if(actions.attack1)mappedAttacks.push(actions.attack1);
+    if(actions.attack2&&actions.attack2!==actions.attack1)mappedAttacks.push(actions.attack2);
+    if(mappedAttacks.length){
+      attackClips=mappedAttacks;
+      actions.attack=attackClips[0];
+    }
     actions.fall=actions.fall||null;
-    actions.death=actions.death||null;
+    // O usuário confirmou que o clipe de queda também é a animação de morte.
+    // Reutilizá-lo evita que a morte fique sem clipe e deixe o protagonista em pé.
+    actions.death=actions.death||actions.fall||null;
   }
   function showAnimationDiagnostics(clips){
     const params=new URLSearchParams(window.location.search);if(params.get('debugAnimations')!=='1'||params.get('showAnimationMapper')!=='1')return;
     const existing=document.getElementById('protagonista-animation-debug');
     if(existing)existing.remove();
     let saved={};
-    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV2')||'{}')||{};}catch(e){}
+    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV3')||'{}')||{};}catch(e){}
     const panel=document.createElement('div');
     panel.id='protagonista-animation-debug';
     panel.style.cssText='position:fixed;z-index:99999;left:6px;right:6px;top:6px;max-height:48vh;overflow:auto;background:rgba(0,0,0,.94);color:#fff;padding:8px;border:1px solid #d8b45a;border-radius:6px;font:11px/1.35 monospace;pointer-events:auto';
@@ -109,17 +115,24 @@
       assign.addEventListener('click',function(){
         const role=select.value;if(!role)return;
         saved[role]=i;
-        try{localStorage.setItem('protagonistaAnimationRolesV2',JSON.stringify(saved));}catch(e){}
+        try{localStorage.setItem('protagonistaAnimationRolesV3',JSON.stringify(saved));}catch(e){}
         actions[role]=clip;
-        if(role==='attack'){attackClips=[clip];actions.attack=clip;}
-        if(role==='attack2'){attackClips=attackClips.filter(function(c){return c!==clip;});attackClips.push(clip);}
+        if(role==='attack1'||role==='attack2'){
+          const first=role==='attack1'?clip:(actions.attack1||attackClips[0]||null);
+          const second=role==='attack2'?clip:(actions.attack2||null);
+          attackClips=[];
+          if(first)attackClips.push(first);
+          if(second&&second!==first)attackClips.push(second);
+          actions.attack=attackClips[0]||null;
+        }
         window.ProtagonistaAnimationTiming={
           // O combate real usa estes tempos: sincronizar o clip inteiro evita o golpe
           // continuar além da hitbox ou a reação de dano ser cortada no meio.
-          attackDuration:.34,
-          hurtDuration:.18,
-          fallDuration:Number((actions.fall||actions.death||{}).duration)||1.05,
-          getupDuration:Number((actions.getup||{}).duration)||1.05
+          attackDuration:Number(CFG.COMBAT.attackDur)||.78,
+          hurtDuration:.9,
+          fallDuration:Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0),
+          deathDuration:1.8,
+          getupDuration:Math.max(1.55,Number((actions.getup||{}).duration)||0)
         };
         roles.textContent='Funções: '+Object.keys(ROLE_LABELS).map(function(k){return ROLE_LABELS[k]+': '+(saved[k]!==undefined&&clips[Number(saved[k])]?clips[Number(saved[k])].name:'não definida');}).join(' | ');
       });
@@ -324,7 +337,7 @@
             const x=values[0],y=values[1],z=values[2];
             for(let i=0;i<track.times.length;i++){
               const k=i*stride;values[k]=x;values[k+2]=z;
-              if(rootNode||locomotion)values[k+1]=y;
+              // Root motion vertical em ataques/queda/morte fazia o personagem terminar suspenso. Só a locomoção mantém a altura animada.\n              if(locomotion)values[k+1]=y;
             }
           });
           if(/breath|idle|rest|standstill|parado/.test(n))actions.idle=actions.idle||clip;
@@ -338,6 +351,7 @@
           if(/death|dying|dead|^die$|morrer|morte/.test(n))actions.death=actions.death||clip;
         });
         applySavedAnimationRoles(clips);
+        // Não atribuir funções pela posição dos clipes: isso confunde ataque, dano e morte.
         const unsafeRole=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand|hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh/i;
         if(!actions.idle){
           actions.idle=clips.find(function(c){return /breath|idle|rest|standstill|parado/i.test(c.name||'');})||null;
@@ -350,14 +364,15 @@
           // a seleção do ataque nunca depende desta escolha.
           actions.idle=clips.find(function(c){return !unsafeRole.test(c.name||'');})||null;
         }
-        // Prefere um clipe próprio de queda; se não existir, usa a morte como fallback.
+        // Queda e morte são estados distintos: nunca reutilizar a animação de morte para derrubada.
+        actions.fall=actions.fall||null;
         actions.death=actions.death||null;
-        actions.fall=actions.fall||actions.death||null;
         window.ProtagonistaAnimationTiming={
-          attackDuration:.34,
-          hurtDuration:.18,
-          fallDuration:Math.min(2,Math.max(1.15,Number((actions.fall||actions.death||{}).duration)||1.15)),
-          getupDuration:Math.min(2,Math.max(1.05,Number((actions.getup||{}).duration)||1.05))
+          attackDuration:Number(CFG.COMBAT.attackDur)||.78,
+          hurtDuration:.42,
+          fallDuration:Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0),
+          deathDuration:1.8,
+          getupDuration:Math.max(1.4,Number((actions.getup||{}).duration)||0)
         };
         ready=true;window.ProtagonistaGLBReady=true;
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k]&&actions[k].name||null;return o;},{})};
@@ -393,14 +408,41 @@
   function choose(v){
     if(v.dead){if(currentType!=='death')play('death',true);return;}
     if(v.gettingUp){if(currentType!=='getup')play('getup',true);return;}
-    // O clipe de morte do modelo também é a animação de queda; após o timer, toca get-up.
+    // Queda/levantamento têm prioridade sobre qualquer reação de dano.
     if(v.knockedDown){if(currentType!=='fall')play('fall',true);return;}
-    if(v.attack){const id=Number(v.attackId)||0;if(id!==lastPlayedAttackId){lastPlayedAttackId=id;const clip=attackClips.length?attackClips[(id-1)%attackClips.length]:null;if(clip){actions.attack=clip;play('attack',true);}else{currentType='';}}return;}
-    if(v.hurt){if(currentType!=='hurt')play('hurt',true);return;}
+    // Reinicia a reação em cada impacto. Sem clipe mapeado, usa um recuo curto
+    // em vez de deixar a pose de queda/morte continuar durante um dano comum.
+    if(v.hurt){
+      const hurtId=Number(v.hurtId)||0;
+      if(hurtId!==lastPlayedHurtId){
+        lastPlayedHurtId=hurtId;
+        if(actions.hurt){play('hurt',true);return;}
+        if(currentAction){currentAction.stop();currentAction=null;}
+        currentType='procedural-hurt';return;
+      }
+      if(currentType==='hurt'&&currentAction&&currentAction.isRunning())return;
+      if(currentType==='hurt'||currentType==='procedural-hurt')return;
+      if(actions.hurt){play('hurt',true);return;}
+      if(currentAction){currentAction.stop();currentAction=null;}
+      currentType='procedural-hurt';return;
+    }
+    if(v.attack){
+      const id=Number(v.attackId)||0;
+      if(id!==lastPlayedAttackId){
+        lastPlayedAttackId=id;
+        const clip=attackClips.length?attackClips[(id-1)%attackClips.length]:null;
+        if(clip){actions.attack=clip;play('attack',true);return;}
+        currentType='';
+      }else if(currentType==='attack'&&currentAction&&currentAction.isRunning()){
+        return;
+      }
+      // Quando o clipe termina antes do estado de combate, retoma a locomoção
+      // em vez de manter o personagem preso no último quadro do golpe.
+    }
     if(v.moving&&actions.walk){if(currentType!=='walk'||!currentAction||!currentAction.isRunning())play('walk',false);return;}
     if(currentType!=='idle'||!currentAction||!currentAction.isRunning())play('idle',false);
   }
-  let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1,lastPlayedAttackId=-1;
+  let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1,lastPlayedAttackId=-1,lastPlayedHurtId=-1;
   function refreshSwordDiagnostics(now){
     if(now-swordStatusCheckAt<250)return;swordStatusCheckAt=now;
     let message=swordLoadError||'Aguardando carregamento de EspadaProta.glb...';
@@ -451,6 +493,10 @@
     else {const delta=Math.atan2(Math.sin(targetYaw-renderedYaw),Math.cos(targetYaw-renderedYaw));const maxTurn=7*turnDt;renderedYaw+=Math.max(-maxTurn,Math.min(maxTurn,delta));}
     pivot.rotation.y=renderedYaw;
     if(!diagnosticPreview)choose(v);
+    const hurtAmount=currentType==='procedural-hurt'
+      ? Math.sin(Math.PI*Math.max(0,Math.min(1,(Number(v.hurtT)||0)/.42))) : 0;
+    pivot.rotation.x=-hurtAmount*.13;
+    pivot.rotation.z=0;
     if(currentType==='walk'&&currentAction){
       const speed=Math.max(0,Number(v.speed)||0);
       currentAction.setEffectiveTimeScale(Math.max(.35,Math.min(1.35,speed/130)));

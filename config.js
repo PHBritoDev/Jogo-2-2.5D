@@ -43,14 +43,18 @@ const CFG = {
   COMBAT: {
     playerHP: 100,
     // Ataque do jogador
-    attackDur: 0.34,       // duração total do golpe
-    hitStart: 0.07,        // quando a hitbox liga
-    hitEnd: 0.2,           // quando a hitbox desliga
-    attackCooldown: 0.06,
-    attackBuffer: 0.14,    // tolerância para apertar um pouco antes
+    attackDur: 0.78,       // golpe, impacto e recuperação alinhados ao clipe do protagonista
+    hitStart: 0.18,        // preparação curta antes do impacto visual
+    hitEnd: 0.40,          // janela ativa termina antes da recuperação
+    attackCooldown: 0.16,
+    attackBuffer: 0.40,    // mantém um ataque enfileirado até a próxima abertura
+    comboReset: 1.15,      // pausa maior encerra a sequência de três golpes
+    blockFacingDot: 0.12,  // defesa cobre a frente, não golpes pelas costas
     damage: 12,
-    reach: 24,             // distância do centro da hitbox à frente do jogador
-    hitR: 20,              // raio da hitbox
+    reach: 24,             // início da zona de corte à frente do jogador
+    bladeReach: 42,        // prolonga a colisão até a ponta da lâmina
+    autoAimRange: 360,     // mira o alvo próximo ao atacar sem direcionar o analógico
+    hitR: 20,              // espessura da zona de corte
     hitZ: 38,              // diferença máxima de altura para acertar
     kb: 320,               // knockback no inimigo
     lunge: 110,            // impulso do jogador ao atacar
@@ -60,8 +64,9 @@ const CFG = {
     blockKb: 0.35,         // knockback reduzido
     blockSpeed: 0.45,      // velocidade enquanto defende
     // Reação ao dano
-    playerStun: 0.18,
-    hurtPop: 130,          // pequeno "pulinho" ao tomar dano
+    playerStun: 0.48,
+    hurtDuration: 0.42,    // tempo mínimo para a reação de dano ficar legível
+    hurtPop: 130,          // rebound legado dos inimigos comuns; não usado no jogador
     invuln: 0.6,
     hitstop: 0.06,         // micro-pausa ao acertar
     bodyH: 34,             // altura do corpo (colisão entre personagens)
