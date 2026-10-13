@@ -575,7 +575,7 @@ const BishopDimension = (function () {
   }
   function arenaFloorHeight(x,z) {
     // Mesmas superfícies e prioridades dos boxes de piso criados em buildArena().
-    if(Math.abs(x)<=8.1 && Math.abs(z+2.5)<=25) return .03;
+    if(Math.abs(x)<=8.1 && Math.abs(z+2.5)<=25) return .10;
     if(Math.abs(x)<=65 && Math.abs(z+2.5)<=32) return -.02;
     if(Math.abs(x)<=60 && Math.abs(z+2.5)<=33) return -.05;
     return -.47;
@@ -614,7 +614,7 @@ const BishopDimension = (function () {
     }
     window.PlayerModelView={
       active:true,eye:eye.slice(),target:target.slice(),
-      position:[px,arenaFloorHeight(px,pz)+.04+playerJump,pz],yaw:-playerYaw,
+      position:[px,arenaFloorHeight(px,pz)+playerJump,pz],yaw:-playerYaw,
       aspect:w/h,fov:dist<0.95?1.22:1.02,firstPerson:dist<0.95,
       moving:playerMoving,speed:Math.hypot(Player.vx||0,Player.vy||0),
       dead:!!Player.dead,knockedDown:(Player.knockdownT||0)>0,
@@ -660,7 +660,7 @@ const BishopDimension = (function () {
           ? Math.atan2(BishopBoss.vx,-BishopBoss.vy)
           : Math.atan2(px-bpos[0],-(pz-bpos[2])));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
-      const bossBase=multiply(translate(bpos[0],floorY-.008+bossBob+bossHeight,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(1.68,1.68,1.68))));
+      const bossBase=multiply(translate(bpos[0],floorY+bossBob+bossHeight,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(1.68,1.68,1.68))));
       const modelState=(bossState==='attack'&&BishopBoss.attack?(BishopBoss.attack.id==='vault'?'skill1':BishopBoss.attack.id==='sweep'?'skill2':'attack'):(bossState==='approach'&&bossSpeed>105?'skillapproach':bossState));
       const skillLocked=!!(BishopBoss.attack&&BishopBoss.attack.skill&&['skillapproach','windup','attack','recover'].includes(bossState));
       window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],floorY+bossBob+bossHeight,bpos[2]],playerPosition:[px,0,pz],yaw:faceBoss,aspect:w/h,fov:dist<0.95?1.22:1.02,state:modelState,combatState:bossState,skillLocked:skillLocked,attackId:BishopBoss.attack&&BishopBoss.attack.id||null,time:Game.time||0,speed:bossSpeed,moveSpeed:bossSpeed,moving:bossSpeed>8,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,secondHitAt:(BishopBoss.attack&&BishopBoss.attack.secondHitAt)||0,talking:!!Game.talking};
@@ -690,7 +690,7 @@ const BishopDimension = (function () {
       const bob=moving?Math.abs(Math.sin(phase))*.055:Math.sin(Game.time*2)*.018;
       const lean=moving?clamp(-(Player.vy||0)*.0007,-.13,.13):0;
       const facing=Math.atan2(Number.isFinite(Player.fx)?Player.fx:0,-(Number.isFinite(Player.fy)?Player.fy:-1));
-      const playerBase=multiply(translate(px,.04+jump+bob,pz),multiply(rotateY(facing),rotateX(lean)));
+      const playerBase=multiply(translate(px,.10+jump+bob,pz),multiply(rotateY(facing),rotateX(lean)));
       draw(S.playerModel,multiply(pv,playerBase));
       draw(S.arena.playerArmL,multiply(pv,multiply(playerBase,multiply(translate(-.29,.98,-.02),rotateX(gait)))));
       draw(S.arena.playerArmR,multiply(pv,multiply(playerBase,multiply(translate(.29,.98,-.02),rotateX(-gait)))));
