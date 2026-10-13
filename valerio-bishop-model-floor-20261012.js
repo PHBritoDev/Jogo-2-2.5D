@@ -228,7 +228,8 @@
     if(anchorBox.isEmpty()||floorBox.isEmpty()) throw new Error('Não foi possível determinar a pose de referência para o piso');
     const anchorCenter=anchorBox.getCenter(new THREE.Vector3());
     // Ancorar pela pose neutra evita a caixa de outra animação erguer o Bispo quando ele fica parado.
-    model.position.set(-anchorCenter.x,-anchorBox.min.y,-anchorCenter.z);
+    // O piso é calculado pelo envelope das animações; a pose neutra serve só para centralizar X/Z.
+    model.position.set(-anchorCenter.x,-floorBox.min.y,-anchorCenter.z);
     model.updateMatrixWorld(true);
     return {floorMinY:floorMinY,floorProfiles:floorProfiles};
   }
@@ -697,8 +698,9 @@
     // a correção amostrada do clip compensa apenas o root-motion vertical.
     if(rootBasePosition&&root){
       root.position.copy(rootBasePosition);
-      // Só corrige a caixa durante a morte; no repouso, a correção por bounding box criava flutuação variável.
-      if(['dead','death','dying'].includes(String(v.state||'').toLowerCase())) root.position.y+=animationFloorCorrection();
+      // Reaplica a correção amostrada do clipe ativo em todos os estados: idle, caminhada, ataque e morte.
+      // Sem ela, o root-motion dos clips levanta o modelo acima do chão durante a caminhada.
+      root.position.y+=animationFloorCorrection();
     }
     if(restoreModelScales)restoreModelScales();
     // A escala do personagem é definida uma vez por fitModel(). Não recalcular
