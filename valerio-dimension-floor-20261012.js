@@ -170,24 +170,10 @@ const BishopDimension = (function () {
   function buildArena() {
     const world=[],foliage=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
 
-    // Chão contínuo e mais largo para a floresta: a área preta foi substituída por piso escuro.
-    addBox(world,0,-0.92,-2.5,132,0.9,78,'#151b18');
-    addBox(world,0,-0.22,-2.5,120,0.34,66,'#252d29');
-    addBox(world,0,-.38,-2.5,130,.72,64,'#111814');
-    // MOD 6: eleva a superfície visível da estrada da arena para encontrar os pés do GLB sem alterar animações ou física do chefe.
-    addBox(world,0,.055,-2.5,16.2,.09,50,'#493f32');
-    addBox(world,-8.44,.085,-2.5,.18,.11,49,'#292922');
-    addBox(world, 8.44,.085,-2.5,.18,.11,49,'#292922');
-    for(let i=0;i<20;i++){
-      const x = -56 + i * 5.8;
-      const y = 0.12 + (i % 3) * 0.06;
-      addBox(world,x,y,-1.2,2.4,0.16,3,'#2d2d2f');
-      addBox(world,x + (i % 2 ? 0.8 : -0.8), y - 0.05, -1.1, 1.4, 0.12, 1.5, '#312b28', 0.5);
-    }
-    for(let i=0;i<8;i++){
-      const z=17-i*4.75,fade=1-i/8,width=6.2-fade*1.3;
-      addQuad(world,[-width,.041,z+2.55],[width,.041,z+2.55],[width*.78,.041,z-2.55],[-width*.78,.041,z-2.55],color('#d0a16b',.21*fade+.025));
-    }
+    // Piso de suporte discreto: a grama real cobre toda a superfície jogável.
+    // Sem estrada, pedras, cascalho, raízes soltas ou moitas sobre o terreno.
+    addBox(world,0,-0.42,-2.5,132,0.8,78,'#18251a');
+    addBox(world,0,-0.035,-2.5,128,0.12,72,'#20301d');
 
     // Céu cósmico em 3D: estrelas espalhadas em volta e abaixo da arena.
     // São apenas pequenas malhas estáticas, sem texturas ou shaders pesados.
@@ -234,146 +220,58 @@ const BishopDimension = (function () {
       if(i%4===0)addCone(world,side*(5.62+(i%2)*.3),.55,z+.48,.34,.72,i%2?'#263b2b':'#303b2a',6);
     }
 
-    const barkPalette=['#32291f','#3a2d23','#403126','#302923'];
-    for(let i=0;i<12;i++){
-      const z=15-i*2.82+(i*7%13)*.2;
-      for(let side=-1;side<=1;side+=2) {
-        const variant=(i*7+(side>0?3:0))%7;
-        const tz=z+(side>0?.62:-.38)+((i*11+(side>0?5:0))%7)*.17;
-        const x=side*(5.32+(i*7%5)*.4+((i+side+2)%2)*.2);
-        const h=8.6+variant*.58,lean=(((i+(side>0?1:0))%2)?1:-1)*(.18+(variant%4)*.085);
-        const bark=barkPalette[(i+(side>0?1:0))%4];
-        addQuad(world,[x-.2,.026,tz-.28],[x+.2,.026,tz-.28],[x+side*1.05,.026,tz+1.8],[x-side*.82,.026,tz+1.8],color('#070c09',.3));
-        const middle=[x+lean*.38,h*.52,tz+(variant%3-.7)*.12],top=[x+lean,h,tz+(variant%4-1.5)*.16];
-        addSegment(world,[x,.08,tz],middle,.34,.23,bark,7);
-        addSegment(world,middle,top,.23,.075,barkPalette[(i+2)%4],7);
-        for(let j=0;j<5;j++){
-          const y=h*(.46+j*.083),f=y/h,rootX=x+lean*f;
-          const branchSide=(j+i+(side>0?2:0))%2===0?-1:1;
-          const length=.95+((i*3+j*5)%7)*.16,raise=.58+((i+j*2)%4)*.18;
-          const start=[rootX,y,tz+(j%2?.16:-.12)];
-          const end=[rootX+branchSide*length,y+raise,tz+(j%3-1)*.16];
-          addSegment(world,start,end,.082,.025,barkPalette[(i+j)%4],5);
-          if(j%2===0){
-            const twigSide=branchSide*(j%3===0?-1:1);
-            addSegment(world,[end[0],end[1],end[2]],[end[0]+twigSide*.48,end[1]+.46,end[2]+.12],.033,.008,'#51402f',4);
-          }
-        }
-        for(let r=0;r<3;r++){
-          const outward=(r-1)*.42+side*.48;
-          addSegment(world,[x,.14,tz],[x+outward,.035,tz+(r-1)*.32],.17,.018,'#372a20',5);
+    // FLORESTA MORTA DENSA: troncos muito próximos, fileiras sobrepostas e galhos retorcidos.
+    // As laterais ficam próximas da área jogável para esconder o que existe atrás delas.
+    const deadBark=['#392b22','#493528','#302923','#554031','#403027'];
+    function deadTree(x,z,seed,scale){
+      const variant=(seed*7)%11, h=(7.2+variant*.58)*scale;
+      const lean=((seed%2)?1:-1)*(.22+(variant%4)*.12);
+      const bark=deadBark[seed%deadBark.length];
+      const mid=[x+lean*.45,h*.53,z+.10],top=[x+lean,h,z+((seed%3)-1)*.18];
+      addSegment(world,[x,.035,z],mid,.34*scale,.20*scale,bark,6);
+      addSegment(world,mid,top,.20*scale,.045*scale,deadBark[(seed+2)%deadBark.length],6);
+      for(let j=0;j<6;j++){
+        const dir=((seed+j)%2===0?-1:1);
+        const yy=h*(.34+j*.092),xx=x+lean*(yy/h);
+        const length=(1.05+((seed*3+j*5)%6)*.23)*scale;
+        const end=[xx+dir*length,yy+(.52+((seed+j)%4)*.16)*scale,z+((j%3)-1)*.2*scale];
+        addSegment(world,[xx,yy,z],end,.085*scale,.022*scale,bark,5);
+        if(j%2===0){
+          addSegment(world,end,[end[0]+dir*.52*scale,end[1]+.43*scale,end[2]+.10],.033*scale,.007*scale,deadBark[(seed+j+1)%deadBark.length],4);
         }
       }
-    }
-
-    // Aberto e denso: mais árvores no fundo para quebrar a sensação de vazio negro.
-    for(let i=0;i<18;i++){
-      const side=i%2?1:-1,variant=(i*5)%9;
-      const x=side*(7.4+(i*7%5)*.78),z=16-i*1.92+(i*11%17)*.19,h=6.6+variant*.47;
-      const bark=barkPalette[(i+1)%4],lean=side*(.22+(variant%3)*.13);
-      const mid=[x+lean*.42,h*.55,z],top=[x+lean,h,z+(i%4-1.5)*.12];
-      addSegment(world,[x,.06,z],mid,.28,.17,bark,6);
-      addSegment(world,mid,top,.17,.045,barkPalette[(i+2)%4],6);
-      for(let j=0;j<3;j++){
-        const branchSide=((i+j)%2?1:-1);
-        const startY=h*(.6+j*.1),startX=x+lean*(startY/h);
-        addSegment(world,[startX,startY,z],[startX+branchSide*(.82+(i+j)%4*.22),startY+.5+(j%2)*.2,z+(j-1)*.12],.062,.014,bark,5);
+      for(let k=0;k<4;k++){
+        const rootDir=k<2?-1:1,rootZ=(k%2?1:-1)*.28*scale;
+        addSegment(world,[x,.12,z],[x+rootDir*(.32+(k%2)*.22)*scale,.028,z+rootZ],.15*scale,.012*scale,bark,5);
       }
     }
-
-    // Mais 8 árvores para fechar a silhueta da floresta.
-    for(let i=0;i<8;i++){
-      const side=i%2?1:-1;
-      const variant=(i*13)%11;
-      const x=side*(9.2+(i%4)*.95),z=-5-i*2.4+(i*7%11)*.25;
-      const h=5.2+variant*.8; const bark=barkPalette[(i+3)%4]; const lean=side*(.28+(variant%3)*.16);
-      addSegment(world,[x,.04,z],[x+lean*.5,h*.58,z],.26,.14,bark,7);
-      addSegment(world,[x+lean*.5,h*.58,z],[x+lean*.8,h,z],.14,.04,barkPalette[(i+1)%4],6);
-      for(let j=0;j<4;j++){
-        const branchSide=(j%2?1:-1);
-        const startH=h*(.45+j*.11),startX=x+lean*(startH/h);
-        const bx=startX+branchSide*.95,by=startH+.6,bz=z+(j%2-.5)*.18;
-        addSegment(world,[startX,startH,z],[bx,by,bz],.078,.022,bark,5);
-        if(j%2===0) addSegment(world,[bx,by,bz],[bx+branchSide*.35,by+.4,bz+.08],.028,.008,'#51402f',4);
+    // Quatro fileiras laterais em zigue-zague: árvores vizinhas se sobrepõem na visão.
+    let treeSeed=1;
+    for(let side of [-1,1]){
+      for(let row=0;row<4;row++){
+        const x=side*(9.3+row*3.0);
+        for(let i=0;i<23;i++){
+          const z=-30+i*2.65+(row%2)*1.28+(i%3)*.18;
+          deadTree(x+((i%4)-1.5)*.34,z,treeSeed++,.88+((i+row)%4)*.075);
+        }
       }
-      addQuad(world,[x-.22,.022,z-.18],[x+.22,.022,z-.18],[x+.15,.022,z+.22],[x-.15,.022,z+.22],color('#070c09',.25));
     }
-
-    // Camada adicional de árvores retorcidas nas margens e ao fundo, fora da faixa de combate.
-    for(let i=0;i<14;i++){
-      const side=i%2?1:-1, variant=(i*7)%8;
-      const x=side*(11.5+(i%4)*1.15), z=13-i*3.05+(i%3)*.35;
-      const h=6.4+variant*.72, lean=side*(.2+(variant%4)*.11), bark=barkPalette[(i+2)%4];
-      const mid=[x+lean*.4,h*.54,z],top=[x+lean,h,z+.18];
-      addSegment(world,[x,.05,z],mid,.31,.19,bark,6);
-      addSegment(world,mid,top,.19,.045,barkPalette[(i+1)%4],6);
-      for(let j=0;j<4;j++){
-        const dir=(j%2?1:-1), yy=h*(.48+j*.1), xx=x+lean*(yy/h);
-        const end=[xx+dir*(.75+(i+j)%4*.25),yy+.45+(j%3)*.12,z+(j%2)*.22];
-        addSegment(world,[xx,yy,z],end,.067,.018,bark,5);
-        if(j===1||j===3)addSegment(world,end,[end[0]+dir*.34,end[1]+.35,end[2]+.1],.025,.006,'#51402f',4);
+    // Parede de fundo em duas fileiras, sem intervalos grandes entre troncos.
+    for(let row=0;row<2;row++){
+      const z=-31+row*3.0;
+      for(let i=0;i<23;i++){
+        const x=-28+i*2.55+(row%2)*1.15;
+        deadTree(x,z+((i%3)-1)*.22,treeSeed++,.92+((i+row)%3)*.08);
       }
-      for(let k=0;k<3;k++)addSegment(world,[x,.12,z],[x+side*(.28+k*.22),.035,z+(k-1)*.24],.12,.015,bark,5);
     }
-
-    // Anel florestal denso: árvores adicionais no perímetro do piso.
-    // Todas as bases ficam dentro do terreno visível, com polígonos leves para celular.
-    for(let i=0;i<42;i++){
-      const side=i%2?1:-1, row=Math.floor(i/2);
-      const x=side*(17+(row%6)*6.1+((i*7)%5)*.32);
-      const z=30-row*3.12+((i*11)%5)*.24;
-      const h=7.2+((i*13)%8)*.78, lean=side*(.18+((i*5)%4)*.12);
-      const bark=barkPalette[(i+row)%barkPalette.length];
-      const base=[x,.035,z], mid=[x+lean*.42,h*.54,z+.12], top=[x+lean,h,z+((i%3)-1)*.16];
-      addSegment(world,base,mid,.34,.2,bark,6);
-      addSegment(world,mid,top,.2,.045,barkPalette[(i+2)%barkPalette.length],6);
-      for(let j=0;j<4;j++){
-        const dir=(j%2===0?-1:1)*(i%4<2?1:-1);
-        const yy=h*(.43+j*.105), xx=x+lean*(yy/h);
-        const end=[xx+dir*(1.05+((i+j*3)%5)*.19),yy+.42+((i+j)%3)*.2,z+(j%3-1)*.17];
-        addSegment(world,[xx,yy,z],end,.075,.018,bark,5);
-        if(j%2===0)addSegment(world,end,[end[0]+dir*.4,end[1]+.38,end[2]+.12],.03,.007,'#51402f',4);
+    // Fecha também a borda dianteira, mas preserva uma passagem central para entrar/sair.
+    for(let row=0;row<2;row++){
+      const z=27-row*2.8;
+      for(let i=0;i<24;i++){
+        const x=-30+i*2.6+(row%2)*1.1;
+        if(Math.abs(x)<6.2)continue;
+        deadTree(x,z+((i%3)-1)*.2,treeSeed++,.9+((i+row)%4)*.07);
       }
-      for(let k=0;k<3;k++){
-        const rootSide=(k-1);
-        addSegment(world,[x,.13,z],[x+rootSide*.4+side*.18,.028,z+rootSide*.24],.14,.014,bark,5);
-      }
-      addQuad(world,[x-.3,.018,z-.2],[x+.3,.018,z-.2],[x+.22,.018,z+.2],[x-.22,.018,z+.2],color('#070c09',.24));
-    }
-
-    // Floresta fechada de árvores mortas: cada árvore tem tronco, galhos e raízes ligados.
-    const deadBark=['#4a392c','#594332','#40332b','#514034'];
-    for(let i=0;i<48;i++){
-      const side=i%2?1:-1,row=Math.floor(i/2);
-      const x=side*(13.2+(row%7)*6.45+((i*5)%3)*.28);
-      const z=27-Math.floor(row/7)*18.2+((i*11)%7)*.42;
-      const variant=(i*7)%9,h=7.4+variant*.72,lean=side*(.18+(variant%4)*.12);
-      const bark=deadBark[i%deadBark.length];
-      const mid=[x+lean*.46,h*.54,z+.1],top=[x+lean,h,z+((i%3)-1)*.2];
-      addQuad(world,[x-1.05,.003,z-.72],[x+1.05,.003,z-.72],[x+.82,.003,z+.72],[x-.82,.003,z+.72],color('#030605',.18));
-      addSegment(world,[x,.055,z],mid,.31,.18,bark,7);
-      addSegment(world,mid,top,.18,.045,deadBark[(i+2)%deadBark.length],6);
-      for(let j=0;j<5;j++){
-        const dir=((i+j)%2?1:-1),yy=h*(.39+j*.105),xx=x+lean*(yy/h);
-        const length=.9+((i*3+j*5)%6)*.22,raise=.45+((i+j*2)%4)*.2;
-        const end=[xx+dir*length,yy+raise,z+(j%3-1)*.18];
-        addSegment(world,[xx,yy,z],end,.078,.022,bark,5);
-        if(j%2===0)addSegment(world,end,[end[0]+dir*.42,end[1]+.4,end[2]+.1],.031,.007,'#5b4635',4);
-      }
-      for(let k=0;k<3;k++)addSegment(world,[x,.12,z],[x+side*(.28+k*.2),.03,z+(k-1)*.25],.13,.016,bark,5);
-    }
-
-    // Vegetação do chão, raízes e fungos para quebrar a aparência “limbo”.
-    for(let i=0;i<14;i++){
-      const side=i%2?1:-1;
-      const x=side*(6.8+(i%3)*.6),z=12-i*1.6+(i*5%7)*.14;
-      const fh=.6+(i%3)*.2;
-      for(let k=0;k<3;k++){
-        const angle=(k-1)*0.4;
-        const ex=Math.sin(angle)*.5,ez=Math.cos(angle)*.5;
-        addSegment(world,[x,.05,z],[x+ex,fh,z+ez],.032,.008,'#3a4d2a',3);
-      }
-      if(i%4===0) addCone(world,x+side*.32,.08,z-.25,.18,.32,i%2?'#6b4423':'#8b5a3c',5);
     }
 
     // Céu noturno local da dimensão: estrelas geométricas baratas, sem alterar o mundo 2D.
@@ -562,7 +460,7 @@ const BishopDimension = (function () {
   function loadGrassAsset(){
     // Grama.glb usa Z como eixo vertical. O renderer do jogo usa Y: convertemos os eixos
     // para que as lâminas fiquem em pé e possam reagir ao vento.
-    fetch('./Grama.glb?v=mod44-real-grass-wind-20261013').then(function(r){
+    fetch('./Grama.glb?v=mod46-full-ground-grass-20261013').then(function(r){
       if(!r.ok)throw new Error('Grama.glb HTTP '+r.status);
       return r.arrayBuffer();
     }).then(function(buffer){
@@ -622,14 +520,14 @@ const BishopDimension = (function () {
       const targetArena=S.arena,base=[];
       let seed=4427;
       const rnd=function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
-      const cols=20,rows=13;
+      const cols=32,rows=24;
       for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
-        const x=-58+col*(116/(cols-1))+(rnd()-.5)*1.5;
-        const z=-31+row*(61/(rows-1))+(rnd()-.5)*1.1;
+        const x=-61+col*(122/(cols-1))+(rnd()-.5)*.65;
+        const z=-35+row*(65/(rows-1))+(rnd()-.5)*.5;
         const angle=rnd()*Math.PI*2,co=Math.cos(angle),si=Math.sin(angle);
-        const width=4.25+rnd()*1.05,depth=4.05+rnd()*1.05,height=.82+rnd()*.34;
+        const width=6.4+rnd()*.65,depth=4.9+rnd()*.45,height=.96+rnd()*.28;
         const sx=width/spanX,sz=depth/spanZ,sy=height/spanUp,shade=.84+rnd()*.28;
-        const groundY=Math.abs(x)<=8.1&&Math.abs(z+2.5)<=25?.108:-.005;
+        const groundY=.035;
         primitives.forEach(function(p){
           for(let i=0;i+2<p.indices.length;i+=3){
             const tri=[];
