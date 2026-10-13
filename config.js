@@ -47,6 +47,12 @@ const CFG = {
     hitStart: 0.18,        // preparação curta antes do impacto visual
     hitEnd: 0.40,          // janela ativa termina antes da recuperação
     attackCooldown: 0.16,
+    // Sequência de espada com ritmo próprio: dois cortes rápidos e um finalizador pesado.
+    comboStages: [
+      { duration: 0.62, hitStart: 0.15, hitEnd: 0.31, cooldown: 0.08, damageScale: 1.00, reachScale: 1.00, bladeReachScale: 1.00, hitRadiusScale: 1.00, knockbackScale: 0.92, hitstopScale: 1.00, cameraShake: 0.0, lungeScale: 0.72 },
+      { duration: 0.66, hitStart: 0.17, hitEnd: 0.35, cooldown: 0.09, damageScale: 1.12, reachScale: 1.03, bladeReachScale: 1.06, hitRadiusScale: 1.05, knockbackScale: 1.08, hitstopScale: 1.20, cameraShake: 0.45, lungeScale: 0.80 },
+      { duration: 0.82, hitStart: 0.27, hitEnd: 0.48, cooldown: 0.18, damageScale: 1.38, reachScale: 1.08, bladeReachScale: 1.15, hitRadiusScale: 1.12, knockbackScale: 1.38, hitstopScale: 1.70, cameraShake: 1.25, lungeScale: 0.94 }
+    ],
     attackBuffer: 0.40,    // mantém um ataque enfileirado até a próxima abertura
     comboReset: 1.15,      // pausa maior encerra a sequência de três golpes
     blockFacingDot: 0.12,  // defesa cobre a frente, não golpes pelas costas

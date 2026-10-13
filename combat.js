@@ -462,17 +462,22 @@ const Combat = {
   playerAttackProfile(target) {
     const C = CFG.COMBAT;
     const stage = Math.max(0, Math.min(2, Number(Player.comboStage) || 0)) | 0;
-    const scale = [1, 1.12, 1.32][stage];
+    const stages = Array.isArray(C.comboStages) ? C.comboStages : [];
+    const combo = stages[stage] || {};
+    const factor = function (key, fallback) {
+      const value = Number(combo[key]);
+      return Number.isFinite(value) && value > 0 ? value : fallback;
+    };
     const profile = {
       source: 'player', kind: 'melee', damageType: 'physical', stage: stage,
       tags: ['weapon', 'melee', 'combo-' + (stage + 1)],
-      damage: Math.round(C.damage * scale),
-      reach: C.reach * [1, 1.04, 1.10][stage],
-      bladeReach: C.bladeReach * [1, 1.06, 1.15][stage],
-      hitRadius: C.hitR * [1, 1.02, 1.08][stage],
-      knockback: C.kb * [1, 1.05, 1.25][stage],
-      hitstop: C.hitstop * [1, 1.15, 1.65][stage],
-      cameraShake: [0, 0.4, 1.2][stage]
+      damage: Math.round(C.damage * factor('damageScale', [1, 1.12, 1.32][stage])),
+      reach: C.reach * factor('reachScale', [1, 1.04, 1.10][stage]),
+      bladeReach: C.bladeReach * factor('bladeReachScale', [1, 1.06, 1.15][stage]),
+      hitRadius: C.hitR * factor('hitRadiusScale', [1, 1.02, 1.08][stage]),
+      knockback: C.kb * factor('knockbackScale', [1, 1.05, 1.25][stage]),
+      hitstop: C.hitstop * factor('hitstopScale', [1, 1.15, 1.65][stage]),
+      cameraShake: Number.isFinite(Number(combo.cameraShake)) ? Number(combo.cameraShake) : [0, 0.4, 1.2][stage]
     };
     for (const [id, modifier] of this.attackModifiers) {
       try {

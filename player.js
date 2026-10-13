@@ -26,6 +26,7 @@ const Player = {
   // ----- combate -----
   hp: 1, maxHp: 1, trail: 1, trailDelay: 0,
   attackT: -1,           // -1 = não está atacando
+  attackDurCurrent: 0, attackHitStartCurrent: 0, attackHitEndCurrent: 0, attackCooldownCurrent: 0,
   attackId: 0,           // identifica cada golpe (evita dano repetido)
   comboStage: 0,         // estágio da sequência de espada: 0, 1 ou finalizador
   lastAttackAt: -999,
@@ -53,6 +54,10 @@ const Player = {
     this.maxHp = CFG.COMBAT.playerHP;
     this.hp = this.maxHp; this.trail = this.hp; this.trailDelay = 0;
     this.attackT = -1; this.atkBuf = 0; this.atkCool = 0;
+    this.attackDurCurrent = CFG.COMBAT.attackDur;
+    this.attackHitStartCurrent = CFG.COMBAT.hitStart;
+    this.attackHitEndCurrent = CFG.COMBAT.hitEnd;
+    this.attackCooldownCurrent = CFG.COMBAT.attackCooldown;
     this.comboStage = 0; this.lastAttackAt = -999;
     this.blocking = false; this.blockFlash = 0;
     this.hurtT = 0; this.damageId = 0; this.blinkT = 0; this.invuln = 0; this.stun = 0;
@@ -72,7 +77,10 @@ const Player = {
 
   // A hitbox do ataque só existe nesta janela de tempo
   isAttackActive() {
-    return this.attackT >= CFG.COMBAT.hitStart && this.attackT <= CFG.COMBAT.hitEnd;
+    const C = CFG.COMBAT;
+    const start = this.attackDurCurrent > 0 ? this.attackHitStartCurrent : C.hitStart;
+    const end = this.attackDurCurrent > 0 ? this.attackHitEndCurrent : C.hitEnd;
+    return this.attackT >= start && this.attackT <= end;
   },
 
   _syncAimButton() {
@@ -132,11 +140,24 @@ const Player = {
     const now = Number(Game.time) || 0;
     this.comboStage = now - this.lastAttackAt > C.comboReset ? 0 : (this.comboStage + 1) % 3;
     this.lastAttackAt = now;
+    const stages = Array.isArray(C.comboStages) ? C.comboStages : null;
+    const stage = stages && stages[this.comboStage] ? stages[this.comboStage] : null;
+    const timing = function (key, fallback) {
+      const value = Number(stage && stage[key]);
+      return Number.isFinite(value) && value > 0 ? value : fallback;
+    };
+    this.attackDurCurrent = timing('duration', C.attackDur);
+    this.attackHitStartCurrent = timing('hitStart', C.hitStart);
+    this.attackHitEndCurrent = Math.max(this.attackHitStartCurrent, timing('hitEnd', C.hitEnd));
+    this.attackCooldownCurrent = timing('cooldown', C.attackCooldown);
+    if (window.ProtagonistaAnimationTiming) window.ProtagonistaAnimationTiming.attackDuration = this.attackDurCurrent;
     this.attackT = 0;
     this.attackId++;
     this.atkBuf = 0;
-    this.kx += dx * C.lunge;
-    this.ky += dy * C.lunge;
+    const lungeScale = Number(stage && stage.lungeScale);
+    const lunge = C.lunge * (Number.isFinite(lungeScale) && lungeScale > 0 ? lungeScale : 1);
+    this.kx += dx * lunge;
+    this.ky += dy * lunge;
     Sfx.swing();
   },
 
@@ -261,7 +282,8 @@ const Player = {
     this.blocking = defendHeld && this.attackT < 0;
     if (attackPressed) {
       // Um toque durante o golpe fica guardado até ao fim da recuperação e do cooldown.
-      const remainingAttack = this.attackT >= 0 ? Math.max(0, C.attackDur - this.attackT) : 0;
+      const attackDuration = this.attackDurCurrent > 0 ? this.attackDurCurrent : C.attackDur;
+      const remainingAttack = this.attackT >= 0 ? Math.max(0, attackDuration - this.attackT) : 0;
       this.atkBuf = C.attackBuffer + remainingAttack;
     } else this.atkBuf = Math.max(0, this.atkBuf - dt);
     if (this.blocking) this.atkBuf = 0;
@@ -270,7 +292,8 @@ const Player = {
     }
     if (this.attackT >= 0) {
       this.attackT += dt;
-      if (this.attackT >= C.attackDur) { this.attackT = -1; this.atkCool = C.attackCooldown; }
+      const attackDuration = this.attackDurCurrent > 0 ? this.attackDurCurrent : C.attackDur;
+      if (this.attackT >= attackDuration) { this.attackT = -1; this.atkCool = this.attackCooldownCurrent > 0 ? this.attackCooldownCurrent : C.attackCooldown; }
     }
 
     // ----- Velocidade horizontal (analógica, com curvas distintas) -----
