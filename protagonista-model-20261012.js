@@ -54,7 +54,7 @@
   }
   function applySavedAnimationRoles(clips){
     let saved={};
-    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV2')||'{}')||{};}catch(e){}
+    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV3')||'{}')||{};}catch(e){}
     // Compatibilidade com configurações antigas: "attack" passa a ser Ataque 1.
     if(saved.attack1===undefined&&saved.attack!==undefined)saved.attack1=saved.attack;
     Object.keys(ROLE_LABELS).forEach(function(role){
@@ -82,7 +82,7 @@
     const existing=document.getElementById('protagonista-animation-debug');
     if(existing)existing.remove();
     let saved={};
-    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV2')||'{}')||{};}catch(e){}
+    try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV3')||'{}')||{};}catch(e){}
     const panel=document.createElement('div');
     panel.id='protagonista-animation-debug';
     panel.style.cssText='position:fixed;z-index:99999;left:6px;right:6px;top:6px;max-height:48vh;overflow:auto;background:rgba(0,0,0,.94);color:#fff;padding:8px;border:1px solid #d8b45a;border-radius:6px;font:11px/1.35 monospace;pointer-events:auto';
@@ -113,7 +113,7 @@
       assign.addEventListener('click',function(){
         const role=select.value;if(!role)return;
         saved[role]=i;
-        try{localStorage.setItem('protagonistaAnimationRolesV2',JSON.stringify(saved));}catch(e){}
+        try{localStorage.setItem('protagonistaAnimationRolesV3',JSON.stringify(saved));}catch(e){}
         actions[role]=clip;
         if(role==='attack1'||role==='attack2'){
           const first=role==='attack1'?clip:(actions.attack1||attackClips[0]||null);
