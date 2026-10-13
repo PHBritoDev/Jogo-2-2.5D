@@ -51,8 +51,10 @@ const CFG = {
     comboReset: 1.15,      // pausa maior encerra a sequência de três golpes
     blockFacingDot: 0.12,  // defesa cobre a frente, não golpes pelas costas
     damage: 12,
-    reach: 24,             // distância do centro da hitbox à frente do jogador
-    hitR: 20,              // raio da hitbox
+    reach: 24,             // início da zona de corte à frente do jogador
+    bladeReach: 42,        // prolonga a colisão até a ponta da lâmina
+    autoAimRange: 360,     // mira o alvo próximo ao atacar sem direcionar o analógico
+    hitR: 20,              // espessura da zona de corte
     hitZ: 38,              // diferença máxima de altura para acertar
     kb: 320,               // knockback no inimigo
     lunge: 110,            // impulso do jogador ao atacar
@@ -63,7 +65,8 @@ const CFG = {
     blockSpeed: 0.45,      // velocidade enquanto defende
     // Reação ao dano
     playerStun: 0.48,
-    hurtPop: 130,          // pequeno "pulinho" ao tomar dano
+    hurtDuration: 0.42,    // mantém a reação de dano legível
+    hurtPop: 130,          // legado dos inimigos; o jogador não recebe impulso vertical ao ser atingido
     invuln: 0.6,
     hitstop: 0.06,         // micro-pausa ao acertar
     bodyH: 34,             // altura do corpo (colisão entre personagens)
