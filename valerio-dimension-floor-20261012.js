@@ -197,29 +197,6 @@ const BishopDimension = (function () {
     addSphere(world,19,33,-57,3.7,'#b56a9d',8,12,1,1,.9);
     addSphere(world,3,45,-68,2.7,'#c7d7ed',7,10,1,1,.9);
 
-    // Cascalho e raízes laterais, mantendo a trilha visível e integrada ao terreno.
-    for(let i=0;i<42;i++){
-      const z=17-(i*.91),x=((i*17)%37)/37*10.6-5.3;
-      const w=.12+(i%4)*.075,d=.12+(i%3)*.09;
-      addBox(world,x,.045,z,w,.055,d,i%4===0?'#71634d':(i%2?'#51483a':'#5c5140'),(i%5)*.13);
-      if(i%3===0)addBox(world,x+(i%2?.42:-.42),.037,z-.28,.48,.035,.06,'#302d26',(i%2?.2:-.2));
-    }
-
-    // Rocha, brotos e moitas nos ombros da estrada.
-    for(let i=0;i<17;i++){
-      const z=14-i*1.72,side=i%2?1:-1;
-      const x=side*(5.0+(i%3)*.18),rock=i%3?'#403b32':'#51483c';
-      addSphere(world,x,.16,z,.48+(i%3)*.1,rock,4,6,1.35,.52,.92);
-      addSegment(world,[x-side*.12,.12,z+.12],[x-side*(.58+(i%3)*.12),.035,z+.52],.13,.025,i%2?'#30271f':'#413226',5);
-      addSegment(world,[x+side*.08,.11,z-.12],[x+side*.48,.035,z-.38],.11,.02,'#382c22',5);
-      if(i%2===0){
-        const bushX=side*(5.48+(i%3)*.22),bushY=.26;
-        addSphere(world,bushX,bushY,z-.35,.42,i%4?'#1d2b20':'#293426',4,6,1.35,.72,.9);
-        addSphere(world,bushX+side*.3,bushY+.04,z-.54,.31,'#263224',4,6,1.2,.76,.9);
-      }
-      if(i%4===0)addCone(world,side*(5.62+(i%2)*.3),.55,z+.48,.34,.72,i%2?'#263b2b':'#303b2a',6);
-    }
-
     // FLORESTA MORTA DENSA: troncos muito próximos, fileiras sobrepostas e galhos retorcidos.
     // As laterais ficam próximas da área jogável para esconder o que existe atrás delas.
     const deadBark=['#392b22','#493528','#302923','#554031','#403027'];
