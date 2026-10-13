@@ -670,12 +670,12 @@ const BishopBoss = {
         if (Number.isFinite(this.attack.secondHitAt) && !this.hitDoneSecondary &&
             this.stateT >= this.attack.secondHitAt) {
           // O segundo impacto só consome sua janela depois de tentar acertar.
-          // Se o primeiro conectou, ignora o knockback e a invulnerabilidade
-          // criados por ele; se errou, o segundo ainda tem sua própria checagem.
+          // O segundo impacto sempre precisa confirmar alcance e direção. Se o primeiro conectou,
+          // ele pode atravessar apenas a invulnerabilidade desse mesmo golpe — nunca acertar de longe.
           const secondFacingDot=(this.fx*dx+this.fy*dy)/(d||1);
           const secondCanReach=alive && d <= this.attack.range + (Player.r || 0) + (this.r || 0) && secondFacingDot > 0.12 &&
             Math.abs(Player.z - this.z) < Math.max(CFG.COMBAT.bodyH, 54);
-          if (!Player.dead && (this.hitDonePrimary || secondCanReach)) {
+          if (!Player.dead && secondCanReach) {
             // Compatibilidade defensiva: limpar a invulnerabilidade antes do
             // segundo impacto também funciona se uma versão antiga de player.js
             // ainda estiver em cache e não reconhecer a opção ignoreInvuln.
