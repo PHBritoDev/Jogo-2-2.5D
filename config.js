@@ -43,11 +43,13 @@ const CFG = {
   COMBAT: {
     playerHP: 100,
     // Ataque do jogador
-    attackDur: 1.35,       // golpe completo com tempo para ler o movimento da espada
-    hitStart: 0.28,        // impacto depois da preparação visual do braço
-    hitEnd: 0.72,          // janela de acerto alinhada ao meio do golpe
-    attackCooldown: 0.22,
-    attackBuffer: 0.14,    // tolerância para apertar um pouco antes
+    attackDur: 0.78,       // golpe, impacto e recuperação alinhados ao clipe do protagonista
+    hitStart: 0.18,        // preparação curta antes do impacto visual
+    hitEnd: 0.40,          // janela ativa termina antes da recuperação
+    attackCooldown: 0.16,
+    attackBuffer: 0.40,    // mantém um ataque enfileirado até a próxima abertura
+    comboReset: 1.15,      // pausa maior encerra a sequência de três golpes
+    blockFacingDot: 0.12,  // defesa cobre a frente, não golpes pelas costas
     damage: 12,
     reach: 24,             // distância do centro da hitbox à frente do jogador
     hitR: 20,              // raio da hitbox

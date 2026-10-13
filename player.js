@@ -27,6 +27,8 @@ const Player = {
   hp: 1, maxHp: 1, trail: 1, trailDelay: 0,
   attackT: -1,           // -1 = não está atacando
   attackId: 0,           // identifica cada golpe (evita dano repetido)
+  comboStage: 0,         // estágio da sequência de espada: 0, 1 ou finalizador
+  lastAttackAt: -999,
   atkBuf: 0, atkCool: 0,
   atkDirX: 0, atkDirY: 1,
   aimLocked: false,
@@ -51,6 +53,7 @@ const Player = {
     this.maxHp = CFG.COMBAT.playerHP;
     this.hp = this.maxHp; this.trail = this.hp; this.trailDelay = 0;
     this.attackT = -1; this.atkBuf = 0; this.atkCool = 0;
+    this.comboStage = 0; this.lastAttackAt = -999;
     this.blocking = false; this.blockFlash = 0;
     this.hurtT = 0; this.blinkT = 0; this.invuln = 0; this.stun = 0;
     this.dead = false; this.deadT = 0;
@@ -105,6 +108,9 @@ const Player = {
     }
     this.atkDirX = dx; this.atkDirY = dy;
     this.fx = dx; this.fy = dy;
+    const now = Number(Game.time) || 0;
+    this.comboStage = now - this.lastAttackAt > C.comboReset ? 0 : (this.comboStage + 1) % 3;
+    this.lastAttackAt = now;
     this.attackT = 0;
     this.attackId++;
     this.atkBuf = 0;
@@ -119,16 +125,19 @@ const Player = {
     if (this.dead || (this.invuln > 0 && !(options && options.ignoreInvuln))) return 0;
     const C = CFG.COMBAT;
     options = options || {};
-    const critical = !!options.critical && !this.blocking;
-    if (critical) dmg = Math.round(dmg * 1.55);
-    // A queda é exclusiva de um crítico confirmado; golpes fortes comuns não derrubam.
-    const requestKnockdown = !this.blocking && options.knockdown === true;
     let dx = this.x - fromX, dy = this.y - fromY;
     const d = Math.hypot(dx, dy) || 1;
     dx /= d; dy /= d;
+    const facingLength = Math.hypot(this.fx, this.fy) || 1;
+    const blockFacesHit = this.blocking &&
+      ((this.fx * -dx + this.fy * -dy) / facingLength) >= C.blockFacingDot;
+    const critical = !!options.critical && !blockFacesHit;
+    if (critical) dmg = Math.round(dmg * 1.55);
+    // A queda é exclusiva de um crítico confirmado; golpes fortes comuns não derrubam.
+    const requestKnockdown = !blockFacesHit && options.knockdown === true;
     const gy = this.y - this.z - 16;
 
-    if (this.blocking) {
+    if (blockFacesHit) {
       dmg = Math.max(1, Math.round(dmg * (1 - C.blockReduce)));
       kb *= C.blockKb;
       this.blockFlash = 0.2;
@@ -218,7 +227,11 @@ const Player = {
 
     // ----- Defesa e ataque (nunca ao mesmo tempo) -----
     this.blocking = defendHeld && this.attackT < 0;
-    if (attackPressed) this.atkBuf = C.attackBuffer; else this.atkBuf = Math.max(0, this.atkBuf - dt);
+    if (attackPressed) {
+      // Um toque durante o golpe fica guardado até ao fim da recuperação e do cooldown.
+      const remainingAttack = this.attackT >= 0 ? Math.max(0, C.attackDur - this.attackT) : 0;
+      this.atkBuf = C.attackBuffer + remainingAttack;
+    } else this.atkBuf = Math.max(0, this.atkBuf - dt);
     if (this.blocking) this.atkBuf = 0;
     if (this.atkBuf > 0 && canAct && !this.blocking && this.attackT < 0 && this.atkCool <= 0) {
       this._startAttack(ax, ay);

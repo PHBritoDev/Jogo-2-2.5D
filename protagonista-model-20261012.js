@@ -128,7 +128,7 @@
         window.ProtagonistaAnimationTiming={
           // O combate real usa estes tempos: sincronizar o clip inteiro evita o golpe
           // continuar além da hitbox ou a reação de dano ser cortada no meio.
-          attackDuration:1.4,
+          attackDuration:Number(CFG.COMBAT.attackDur)||.78,
           hurtDuration:.9,
           fallDuration:Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0),
           deathDuration:1.8,
@@ -368,7 +368,7 @@
         actions.fall=actions.fall||null;
         actions.death=actions.death||null;
         window.ProtagonistaAnimationTiming={
-          attackDuration:.58,
+          attackDuration:Number(CFG.COMBAT.attackDur)||.78,
           hurtDuration:.42,
           fallDuration:Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0),
           deathDuration:1.8,
@@ -410,7 +410,19 @@
     if(v.gettingUp){if(currentType!=='getup')play('getup',true);return;}
     // O clipe de morte do modelo também é a animação de queda; após o timer, toca get-up.
     if(v.knockedDown){if(currentType!=='fall')play('fall',true);return;}
-    if(v.attack){const id=Number(v.attackId)||0;if(id!==lastPlayedAttackId){lastPlayedAttackId=id;const clip=attackClips.length?attackClips[(id-1)%attackClips.length]:null;if(clip){actions.attack=clip;play('attack',true);}else{currentType='';}}return;}
+    if(v.attack){
+      const id=Number(v.attackId)||0;
+      if(id!==lastPlayedAttackId){
+        lastPlayedAttackId=id;
+        const clip=attackClips.length?attackClips[(id-1)%attackClips.length]:null;
+        if(clip){actions.attack=clip;play('attack',true);return;}
+        currentType='';
+      }else if(currentType==='attack'&&currentAction&&currentAction.isRunning()){
+        return;
+      }
+      // Quando o clipe termina antes do estado de combate, retoma a locomoção
+      // em vez de manter o personagem preso no último quadro do golpe.
+    }
     if(v.hurt){if(currentType!=='hurt')play('hurt',true);return;}
     if(v.moving&&actions.walk){if(currentType!=='walk'||!currentAction||!currentAction.isRunning())play('walk',false);return;}
     if(currentType!=='idle'||!currentAction||!currentAction.isRunning())play('idle',false);

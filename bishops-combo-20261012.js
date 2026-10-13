@@ -633,17 +633,17 @@ const BishopBoss = {
           const contactRange = this.attack.range + (Player.r || 0) + (this.r || 0);
           const contactWindowEnd = Math.min(this.attack.duration - 0.035, this.attack.hitAt + 0.46);
           const canReach = alive && d <= contactRange &&
-            facingDot > (isValerio ? -0.65 : 0.12) &&
+            facingDot > 0.12 &&
             Math.abs(Player.z - this.z) < Math.max(CFG.COMBAT.bodyH, 54);
           if (canReach) {
             const phaseDamage = this.profile.id === 'bishop1'
               ? (this.phase >= 3 ? 1.16 : this.phase === 2 ? 1.07 : 1) : 1;
             const baseDamage = this.attack.damage * this.profile.damage * phaseDamage;
-            // Chance moderada: 8% em golpes comuns e 13% em golpes pesados/especiais.
-            // O crítico é um evento de combate; a hitbox ainda não identifica a cabeça fisicamente.
+            // Sem hitbox de cabeça, críticos aleatórios ficam invisíveis e injustos.
+            // Só ataques explicitamente marcados podem aplicar crítico; golpes pesados
+            // continuam previsíveis e são anunciados antes da animação.
             const heavyImpact = baseDamage >= 27 || this.attack.id === 'vault';
-            const criticalChance = heavyImpact ? 0.13 : 0.08;
-            const critical = Math.random() < criticalChance;
+            const critical = this.attack.critical === true;
             const primaryDamage = Player.hurt(baseDamage,
               this.x, this.y, this.attack.kb,
               { critical: critical, knockdown: critical || heavyImpact });
@@ -673,7 +673,7 @@ const BishopBoss = {
           // Se o primeiro conectou, ignora o knockback e a invulnerabilidade
           // criados por ele; se errou, o segundo ainda tem sua própria checagem.
           const secondFacingDot=(this.fx*dx+this.fy*dy)/(d||1);
-          const secondCanReach=alive && d <= this.attack.range + (Player.r || 0) + (this.r || 0) && secondFacingDot > (this.profile.id === 'bishop1' ? -0.65 : 0.12) &&
+          const secondCanReach=alive && d <= this.attack.range + (Player.r || 0) + (this.r || 0) && secondFacingDot > 0.12 &&
             Math.abs(Player.z - this.z) < Math.max(CFG.COMBAT.bodyH, 54);
           if (!Player.dead && (this.hitDonePrimary || secondCanReach)) {
             // Compatibilidade defensiva: limpar a invulnerabilidade antes do
