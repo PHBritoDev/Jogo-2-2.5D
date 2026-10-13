@@ -550,13 +550,17 @@ const BishopDimension = (function () {
     const playerMoving=Math.hypot(Player.vx||0,Player.vy||0)>18;
     const playerIsAttacking=(Player.attackT||-1)>=0;
     let playerYaw=Math.atan2(Number.isFinite(Player.fx)?Player.fx:0,-(Number.isFinite(Player.fy)?Player.fy:-1));
+    // MOD 51: trava de alvo. Com o chefe vivo a menos de ~4,5 m o corpo sempre o encara (andar, defender,
+    // recuar), exceto durante a esquiva. Antes, andar de lado perto dele virava as costas e o golpe saía para trás.
+    const bossAliveForLock=BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'&&Number.isFinite(BishopBoss.x)&&Number.isFinite(BishopBoss.y);
+    const bossLockOn=!Player.dead&&(Player.evadeT||0)<=0&&bossAliveForLock&&Math.hypot(BishopBoss.x-Player.x,BishopBoss.y-Player.y)<330;
     // Híbrido: em movimento, respeita a direção escolhida; parado, encara o Bispo;
     // durante o golpe, o corpo acompanha a direção real do ataque.
     if(playerIsAttacking){
       const ax=Number.isFinite(Player.atkDirX)?Player.atkDirX:Player.fx;
       const ay=Number.isFinite(Player.atkDirY)?Player.atkDirY:Player.fy;
       playerYaw=Math.atan2(ax,-ay);
-    }else if(!playerMoving){
+    }else if(!playerMoving||bossLockOn){
       const facingBossStep=Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst';
       const facingBossLive=facingBossStep&&(BishopBoss.state!=='inactive'||(Campaign.st&&Campaign.st.phase==='intro'));
       if(facingBossLive){
@@ -623,7 +627,7 @@ const BishopDimension = (function () {
       const bossBase=multiply(translate(bpos[0],floorY+bossBob+bossHeight,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(1.68,1.68,1.68))));
       const modelState=(bossState==='attack'&&BishopBoss.attack?(BishopBoss.attack.id==='vault'?'skill1':BishopBoss.attack.id==='sweep'?'skill2':'attack'):(bossState==='approach'&&bossSpeed>105?'skillapproach':bossState));
       const skillLocked=!!(BishopBoss.attack&&BishopBoss.attack.skill&&['skillapproach','windup','attack','recover'].includes(bossState));
-      window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],floorY+bossBob+bossHeight,bpos[2]],playerPosition:[px,0,pz],yaw:faceBoss,aspect:w/h,fov:dist<0.95?1.22:1.02,state:modelState,combatState:bossState,skillLocked:skillLocked,attackId:BishopBoss.attack&&BishopBoss.attack.id||null,time:Game.time||0,speed:bossSpeed,moveSpeed:bossSpeed,moving:bossSpeed>8,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(BishopBoss.attack&&BishopBoss.attack.windup)||.6,secondHitAt:(BishopBoss.attack&&BishopBoss.attack.secondHitAt)||0,talking:!!Game.talking};
+      window.ValerioModelView={active:true,eye:eye.slice(),target:target.slice(),position:[bpos[0],floorY+bossBob+bossHeight,bpos[2]],playerPosition:[px,0,pz],yaw:faceBoss,aspect:w/h,fov:dist<0.95?1.22:1.02,state:modelState,combatState:bossState,skillLocked:skillLocked,attackId:BishopBoss.attack&&BishopBoss.attack.id||null,time:Game.time||0,speed:bossSpeed,moveSpeed:bossSpeed,moving:bossSpeed>8,stateTime:BishopBoss.stateT||0,attackDuration:(BishopBoss.attack&&BishopBoss.attack.duration)||.3,windupDuration:(typeof BishopBoss.windupDurationNow==='function'?BishopBoss.windupDurationNow():((BishopBoss.attack&&BishopBoss.attack.windup)||.6)),hitAt:(BishopBoss.attack&&BishopBoss.attack.hitAt)||.08,secondHitAt:(BishopBoss.attack&&BishopBoss.attack.secondHitAt)||0,talking:!!Game.talking};
       if(!window.ValerioGLBReady && !window.ValerioGLBLoading && !window.ValerioGLBRendering){
       draw(S.bishopModel,multiply(pv,bossBase));
       const shoulderBase=multiply(bossBase,multiply(translate(0,1.37,0),rotateZ(Math.sin(Game.time*2.1)*.035-windup*.08)));

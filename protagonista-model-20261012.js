@@ -351,6 +351,22 @@
           if(/death|dying|dead|^die$|morrer|morte/.test(n))actions.death=actions.death||clip;
         });
         applySavedAnimationRoles(clips);
+        // MOD 51: mapeamento determinístico pelos nomes reais do Protagonista.glb. Os nomes ("Lift Air Hit Right",
+        // "Hit Knockback", "Overhand Throw", "Kip Up") não contêm as palavras que as regexes acima procuram, então antes
+        // nenhum clip de dano/ataque/levantar era reconhecido e o jogo dependia do mapeamento salvo no navegador —
+        // que podia apontar o dano para o mesmo clip da queda/morte.
+        (function(){
+          const norm=function(c){return String(c&&c.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
+          const named=function(re){return clips.find(function(c){return re.test(norm(c));})||null;};
+          const knownHurt=named(/^liftairhitright$/),knownFall=named(/^hitknockback$/),knownGetup=named(/^kipup$/),knownAttack=named(/^overhandthrow$/);
+          if(!actions.fall&&knownFall)actions.fall=knownFall;
+          if(!actions.death&&knownFall)actions.death=knownFall;
+          // Dano NUNCA pode ser o clip de queda/morte (era isso que mostrava a morte ao levar um golpe).
+          if(actions.hurt&&(actions.hurt===actions.fall||actions.hurt===actions.death||actions.hurt===knownFall))actions.hurt=null;
+          if(!actions.hurt&&knownHurt)actions.hurt=knownHurt;
+          if(!actions.getup&&knownGetup)actions.getup=knownGetup;
+          if(!attackClips.length&&knownAttack){attackClips=[knownAttack];actions.attack=knownAttack;}
+        })();
         // Não atribuir funções pela posição dos clipes: isso confunde ataque, dano e morte.
         const unsafeRole=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand|hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh/i;
         if(!actions.idle){
@@ -397,7 +413,17 @@
     const timing=window.ProtagonistaAnimationTiming||{};
     const targetDuration=type==='attack'?Number(timing.attackDuration):type==='hurt'?Number(timing.hurtDuration):type==='fall'?Number(timing.fallDuration):type==='death'?Number(timing.deathDuration)||0:type==='getup'?Number(timing.getupDuration):0;
     const clipDuration=Number(clip.duration)||0;
-    const playbackScale=targetDuration>0&&clipDuration>0?clipDuration/targetDuration:1;
+    let playbackScale=targetDuration>0&&clipDuration>0?clipDuration/targetDuration:1;
+    if(type==='attack'&&clipDuration>0&&typeof Player!=='undefined'){
+      // MOD 51: o pico do braço do clip (~27% do Overhand Throw) cai no começo da janela ativa do golpe,
+      // em vez de esticar o clip inteiro pela duração e acertar tarde/cedo demais em cada etapa do combo.
+      const hs=Number(Player.attackHitStartCurrent),he=Number(Player.attackHitEndCurrent);
+      if(Number.isFinite(hs)&&Number.isFinite(he)&&he>hs){
+        const hitMoment=hs+(he-hs)*.35;
+        const contact=clipDuration*.27;
+        playbackScale=Math.max(.8,Math.min(2.4,contact/hitMoment));
+      }
+    }
     const fade=targetDuration>0?Math.min(.07,targetDuration*.2):.09;
     const previousCritical=/^(attack|hurt|fall|death|getup)$/.test(currentType);
     if(currentAction){if(critical||previousCritical)currentAction.stop();else currentAction.fadeOut(fade);}
@@ -495,7 +521,12 @@
     else {const delta=Math.atan2(Math.sin(targetYaw-renderedYaw),Math.cos(targetYaw-renderedYaw));const maxTurn=7*turnDt;renderedYaw+=Math.max(-maxTurn,Math.min(maxTurn,delta));}
     pivot.rotation.y=renderedYaw;
     const hurtAmount=currentType==='procedural-hurt' ? Math.sin(Math.PI*Math.max(0,Math.min(1,(Number(v.hurtT)||0)/.42))) : 0;
-    pivot.rotation.x=-hurtAmount*.13;
+    // MOD 51: o GLB não tem clip de esquiva nem de defesa; usamos uma pose corporal segura (inclinação/agachar),
+    // sem mexer nos ossos, para não distorcer o rig.
+    const evadeP=v.evading?Math.sin(Math.PI*Math.max(0,Math.min(1,1-(Number(v.evadeT)||0)/.24))):0;
+    const guardP=v.blocking&&!v.attack?1:0;
+    pivot.rotation.x=-hurtAmount*.13-evadeP*.32+guardP*.1;
+    pivot.position.y=v.position[1]-evadeP*.14-guardP*.05;
     pivot.rotation.z=0;
     if(!diagnosticPreview)choose(v);
     if(currentType==='walk'&&currentAction){

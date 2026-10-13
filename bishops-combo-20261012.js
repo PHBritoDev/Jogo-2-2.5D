@@ -15,9 +15,9 @@ const BISHOP_PROFILES = {
     identity: 'O Tesoureiro da Torre',
     quote: '“Tudo tem um preço. Até a sua coragem.”',
     quoteLabel: 'FALA FICTÍCIA DO PERSONAGEM · NÃO É VERSÍCULO',
-    preparation: 'Valério encurta a distância antes de atacar. Espere o golpe terminar para contra-atacar.',
+    preparation: 'Valério encurta a distância e ataca em sequências curtas. Defenda no instante exato do golpe para uma Defesa Perfeita, ataque quando ele recuperar o fôlego e esquive dos golpes pesados.',
     hp: 240,
-    damage: 0.35, // dano reduzido temporariamente para testes de combate
+    damage: 0.75, // MOD 51: dano de teste (0.35) substituído por valor de luta real; ajuste aqui se quiser mais fácil/difícil.
     defense: 0.24,
     radius: 18,
     speed: 80,
@@ -29,9 +29,9 @@ const BISHOP_PROFILES = {
     arena: Casino.bossStart,
     attacks: [
       // MOD 16: alcances coerentes com a distância de início; golpes acompanham melhor quem corre.
-      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.62, cooldown: 0.9, range: 165, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.36, secondHitScale: 0.65 },
-      { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.02, range: 190, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
-      { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 0.84, range: 178, damage: 19, kb: 310, lunge: 92, hitAt: 0.09 }
+      { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.64, cooldown: 0.9, range: 165, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.54, secondHitScale: 0.65, parryable: true },
+      { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.5, range: 190, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
+      { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 1.05, range: 178, damage: 19, kb: 310, lunge: 92, hitAt: 0.09, parryable: true }
     ]
   },
   greedSecond: {
@@ -362,6 +362,7 @@ const BishopBoss = {
     this.pendingDefenseT = 0;
     this.skillCooldowns = Object.create(null);
     this.skillChainCooldown = 0;
+    this.poise = this.poiseMax = 28; this.chain = 0; this.staggerDur = 0; this.staggerImmuneT = 0;
     this.updateHud();
   },
 
@@ -391,6 +392,7 @@ const BishopBoss = {
     this.skillCooldowns = Object.create(null);
     this.skillChainCooldown = 0;
     this.onGround = true; this.floor = 0; this.sy = this.y;
+    this.poise = this.poiseMax = 28; this.chain = 0; this.staggerDur = 0; this.staggerImmuneT = 0;
     this.updateHud();
     Sfx.blip();
     Camera.shake = Math.max(Camera.shake, 4);
@@ -414,6 +416,19 @@ const BishopBoss = {
       return;
     }
     const skillLocked = !!(this.attack && this.attack.skill && ['skillapproach','windup','attack','recover'].includes(this.state));
+    // MOD 51: golpes leves não cancelam o ataque do Valério (acabou o "spam de botão").
+    // Só o finalizador do combo, a quebra de postura ou uma abertura real (recuperação,
+    // aproximação, respiro) o fazem tropeçar. Depois de tropeçar ele fica imune por um instante.
+    const isV1 = this.profile.id === 'bishop1';
+    const heavyHit = (typeof Player !== 'undefined' && Player.comboStage === 2 && Player.attackT >= 0) || rawDamage >= 15.5;
+    const committed = isV1 && !skillLocked && !guarding && ['windup', 'attack', 'skillapproach'].includes(this.state);
+    let poiseHeld = false;
+    if (isV1 && !guarding) {
+      this.poise -= rawDamage;
+      if (committed && !heavyHit && this.poise > 0) poiseHeld = true;
+      else if (committed || this.poise <= 0) this.poise = this.poiseMax;
+    }
+    const staggerImmune = isV1 && this.staggerImmuneT > 0 && this.state !== 'stagger';
     const guardScale = guarding && this.profile.guard ? this.profile.guard.damageScale : 1;
     const damage = Math.max(1, Math.round(rawDamage * (1 - this.profile.defense) * guardScale));
     this.hp = Math.max(0, this.hp - damage);
@@ -421,7 +436,8 @@ const BishopBoss = {
     this.flashT = 0.09;
     this.kx = (guarding || skillLocked) ? 0 : dx * kb * 0.72;
     this.ky = (guarding || skillLocked) ? 0 : dy * kb * 0.72;
-    if (!skillLocked) this.vx = this.vy = 0;
+    if (!skillLocked && !poiseHeld) this.vx = this.vy = 0;
+    if (poiseHeld) { this.kx *= 0.25; this.ky *= 0.25; }
     // O Bispo deve reagir ao golpe sem ser lançado para cima: a reação visual
     // é feita pelo clip de dano, não por uma velocidade vertical de salto.
     this.vz = 0;
@@ -443,23 +459,48 @@ const BishopBoss = {
       Ambient.spawnSpark(this.x, gy, 24, '#f2c654');
       Ambient.spawnSpark(this.x, gy, 9, '#ffffff');
       Sfx.death();
-    } else if (skillLocked) {
-      // Recebe dano normalmente, mas não perde a skill já iniciada.
+    } else if (skillLocked || poiseHeld || staggerImmune) {
+      // Recebe dano normalmente, mas não perde o golpe/skill já iniciado.
       Sfx.hit();
     } else if (guarding) {
       this._go('recover');
       Camera.shake = Math.max(Camera.shake, 2.4);
       Sfx.hit();
     } else {
-      this._go('stagger');
+      // Já em stagger (ex.: depois de uma Defesa Perfeita) a janela não é reiniciada nem encurtada.
+      if (this.state !== 'stagger') { this.staggerDur = heavyHit ? 0.46 : 0.34; this._go('stagger'); }
+      this.chain = 0;
       Sfx.hit();
     }
     this.updateHud();
   },
 
+  // MOD 51: Defesa Perfeita — o jogador bloqueou no instante do golpe.
+  parried() {
+    if (!this.profile || this.state === 'dead' || this.state === 'inactive') return;
+    this.chain = 0;
+    this.kx = this.ky = this.vx = this.vy = 0;
+    this.staggerDur = 0.9;
+    this.poise = this.poiseMax;
+    this._go('stagger');
+    Ambient.spawnSpark(this.x, this.y - 28, 16, '#bfe8ff');
+    Ambient.spawnSpark(this.x, this.y - 28, 6, '#ffffff');
+    Camera.shake = Math.max(Camera.shake, 3.2);
+    Sfx.block();
+  },
+
+  // Duração real da preparação (considera a fase), usada pela animação 3D para sincronizar o golpe.
+  windupDurationNow() {
+    if (!this.attack) return 0.6;
+    const s = this.profile && this.profile.id === 'bishop1' ? (this.phase >= 3 ? 0.78 : this.phase === 2 ? 0.91 : 1) : 1;
+    return this.attack.windup * s;
+  },
+
   update(dt) {
     if (this.state === 'inactive') return;
     this.stateT += dt;
+    this.staggerImmuneT = Math.max(0, (this.staggerImmuneT || 0) - dt);
+    if (this.poise < this.poiseMax) this.poise = Math.min(this.poiseMax, this.poise + 9 * dt);
     this.flashT = Math.max(0, this.flashT - dt);
     this.guardCooldown = Math.max(0, this.guardCooldown - dt);
     this.evadeCooldown = Math.max(0, this.evadeCooldown - dt);
@@ -652,7 +693,7 @@ const BishopBoss = {
             const critical = this.attack.critical === true;
             const primaryDamage = Player.hurt(baseDamage,
               this.x, this.y, this.attack.kb,
-              { critical: critical, knockdown: critical || heavyImpact });
+              { critical: critical, knockdown: critical || heavyImpact, parryable: this.attack.parryable === true });
             if (primaryDamage > 0) {
               this.hitDone = true;
               this.hitDonePrimary = true;
@@ -706,14 +747,35 @@ const BishopBoss = {
         break;
 
       case 'recover': {
-        const recoveryScale = this.phase >= 3 ? 0.43 : this.phase === 2 ? 0.68 : 1;
+        // MOD 51: recuperação nunca some por completo; é a janela de contra-ataque do jogador.
+        const recoveryScale = this.phase >= 3 ? 0.62 : this.phase === 2 ? 0.8 : 1;
         const cooldown = ((this.attack && this.attack.cooldown) || 0.6) * recoveryScale;
-        if (this.stateT >= cooldown) this._go(alive ? 'approach' : 'recover');
+        if (this.stateT >= cooldown) {
+          if (!alive) { this._go('recover'); break; }
+          if (this.profile.id === 'bishop1') {
+            // Depois de 2 golpes seguidos (3 na fúria) ele para para respirar: intervalo para reagir.
+            this.chain = (this.chain || 0) + 1;
+            if (this.chain >= (this.phase >= 3 ? 3 : 2)) { this.chain = 0; this._go('breather'); break; }
+          }
+          this._go('approach');
+        }
+        break;
+      }
+
+      case 'breather': {
+        if (!alive) { this._go('approach'); break; }
+        this.fx = dx / d; this.fy = dy / d;
+        const rest = this.phase >= 3 ? 0.4 : this.phase === 2 ? 0.55 : 0.75;
+        if (this.stateT >= rest) this._go('approach');
         break;
       }
 
       case 'stagger':
-        if (this.stateT >= 0.3) this._go(alive ? 'approach' : 'stagger');
+        if (this.stateT >= (this.staggerDur || 0.3)) {
+          this.staggerDur = 0;
+          this.staggerImmuneT = 0.8; // anti-stunlock: ele não pode ser travado para sempre
+          this._go(alive ? 'approach' : 'stagger');
+        }
         break;
 
       case 'dead':

@@ -9,6 +9,11 @@
   let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
   let animationFloorProfiles=[],floorEnvelopeMinY=0;
   let attackCycleActive=false,activeAttackClip=null,nextAttackClipIndex=0,activeAttackStage=0;
+  // MOD 51: cada golpe do chefe usa o clip certo e começa no quadro certo para o contato bater com o dano.
+  let attackClipMap={};
+  // Instante do contato dentro de cada clip, medido na velocidade angular do braço direito dos dados do GLB.
+  const CLIP_CONTACT={swordregularb:.27,swordaerialcombo:.27};
+  const FLINCH_SECONDS=.42;
   // Modo diagnóstico: permite comparar o mesmo GLB com os clips pausados.
   const disableValerioClips=new URLSearchParams(window.location.search).get('valerioNoAnimations')==='1';
   // MODIFICAÇÃO 9: offset vertical temporário apenas para diagnóstico via URL.
@@ -366,20 +371,45 @@
     next.clampWhenFinished=!!oneShot;next.fadeIn(.1).play();currentAction=next;currentActionType=type;
     return true;
   }
+  function clipContact(clip){
+    const n=String(clip&&clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    return CLIP_CONTACT[n]||((Number(clip&&clip.duration)||.5)*.5);
+  }
+  // Reinicia sempre do zero (mesmo que o mesmo clip ainda esteja tocando) e permite escolher o quadro inicial.
+  function startAction(type,clip,time,timeScale,oneShot){
+    if(!clip||!mixer)return false;
+    const next=mixer.clipAction(clip);
+    if(currentAction&&currentAction!==next)currentAction.fadeOut(.1);
+    next.stop();next.reset();next.enabled=true;next.paused=false;
+    next.setEffectiveWeight(1);next.setEffectiveTimeScale(timeScale);
+    next.setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);
+    next.clampWhenFinished=!!oneShot;next.time=time||0;next.fadeIn(.1).play();
+    currentAction=next;currentActionType=type;
+    return true;
+  }
+  let lastWindupStart=0;
+  // Detecta o início de uma nova preparação (stateTime voltou perto de zero).
+  function freshWindup(v){
+    const t=Number(v.stateTime)||0;
+    const fresh=t<lastWindupStart-.001;
+    lastWindupStart=t;
+    return fresh;
+  }
   function chooseAnimation(v,now) {
     const state=String(v.state||'').toLowerCase();
     // Morte tem prioridade absoluta: um último hit não pode substituir a queda por dano.
     if(state==='dead'||state==='death'||state==='dying'){
       if(animationClips.death){
-        if(!deathPlayed){playClip('death',true);deathPlayed=true;}
+        if(!deathPlayed){startAction('death',animationClips.death,0,1,true);deathPlayed=true;}
         return 'death';
       }
       stopAction();return 'procedural-death';
     }
     const serial=window.ValerioBossHitSerial||0;
+    let freshHit=false;
     if(v.skillLocked)hurtUntil=0;
     if(serial!==lastHitSerial){
-      lastHitSerial=serial;
+      lastHitSerial=serial;freshHit=true;
       // Um novo golpe recebido precisa reiniciar a reação mesmo se o clip de dano
       // anterior terminou pausado no último quadro e o estado do chefe não mudou.
       if(currentActionType==='hurt'&&currentAction){
@@ -389,13 +419,19 @@
       }
       // A reação deve terminar junto com o clip real, não com um timer fixo
       // que cortava animações de dano mais longas no meio do movimento.
-      const hurtDuration=animationClips.hurt?Math.max(0.43,Number(animationClips.hurt.duration)||0.43):0.43;
-      if(!v.skillLocked)hurtUntil=now+hurtDuration*1000;
+      const hurtDuration=animationClips.hurt?Math.max(0.43,Number(animationClips.hurt.duration)||0.43):FLINCH_SECONDS;
+      // Golpe leve durante o ataque do chefe (postura firme): só dano, sem cancelar a animação.
+      const committedAttack=state==='windup'||state==='attack'||state==='skill1'||state==='skill2'||state==='skillapproach';
+      if(!v.skillLocked&&!committedAttack)hurtUntil=now+hurtDuration*1000;
     }
     const hurt=!v.skillLocked&&hurtUntil>now;
     if(hurt){
       attackCycleActive=false;activeAttackClip=null;
       if(animationClips.hurt){playClip('hurt',true);return 'hurt';}
+      if(animationClips.flinch){
+        if(freshHit||currentActionType!=='hurt')startAction('hurt',animationClips.flinch,0,1.1,true);
+        return 'hurt';
+      }
       stopAction();return 'procedural-hurt';
     }
     deathPlayed=false;
@@ -405,8 +441,32 @@
       attackCycleActive=false;activeAttackClip=null;
       return currentActionType;
     }
+    // Preparação: o clip do golpe avança só até o quadro anterior ao contato, esticado por toda a janela
+    // de aviso. Assim o jogador lê o golpe chegando e o contato visual cai no instante do dano.
+    const mappedClip=attackClipMap[v.attackId]||null;
+    if(state==='windup'&&mappedClip){
+      const hitAt=Number(v.hitAt)||.08;
+      const anticipation=Math.max(.06,clipContact(mappedClip)-hitAt);
+      const progress=Math.max(0,Math.min(1,(Number(v.stateTime)||0)/Math.max(.1,Number(v.windupDuration)||.6)));
+      const newWindup=freshWindup(v);
+      if(newWindup||currentActionType!=='windup'||!currentAction||currentAction.getClip()!==mappedClip)startAction('windup',mappedClip,0,0,false);
+      currentAction.time=anticipation*progress*progress*(3-2*progress);
+      return 'windup';
+    }
     // Os ataques normais (incluindo estados internos de golpe) alternam entre os dois clips.
     const isAttackState=state==='attack'||state==='skill1'||state==='skill2'||state==='skill3';
+    if(isAttackState&&mappedClip){
+      const hitAt=Number(v.hitAt)||.08;
+      if(currentActionType==='windup'&&currentAction&&currentAction.getClip()===mappedClip){
+        currentAction.setEffectiveTimeScale(1);currentAction.setLoop(THREE.LoopOnce,1);
+        currentAction.clampWhenFinished=true;currentActionType='attack';
+      }else if(!(currentActionType==='attack'&&currentAction&&currentAction.getClip()===mappedClip&&Number(v.stateTime)>hitAt+.02)){
+        if(currentActionType!=='attack'||!currentAction||currentAction.getClip()!==mappedClip)
+          startAction('attack',mappedClip,Math.max(0,clipContact(mappedClip)-hitAt),1,true);
+      }
+      attackCycleActive=false;activeAttackClip=null;
+      return 'attack';
+    }
     if(isAttackState){
       // Cobrança possui dois impactos reais; cada janela precisa de um golpe visual
       // separado. Antes, os dois eventos de dano aconteciam durante uma única animação.
@@ -607,6 +667,10 @@
               });
             }
             skillClips=[];
+            const exactClip=function(re){return clips.find(function(c){return re.test(normalized(c));})||null;};
+            const aerialCombo=exactClip(/^swordaerialcombo$/),regularB=exactClip(/^swordregularb$/);
+            // Cobrança = dois cortes (o combo aéreo tem dois contatos); Cofre e Varredura = corte único.
+            attackClipMap={tax:aerialCombo||regularB,vault:regularB||aerialCombo,sweep:regularB||aerialCombo};
             animationClips={
               idle:pickClip([/idle/,/breath/,/rest/,/stand/]),
               walk:pickClip([/walk/,/walking/,/locomotion/,/walkforward/]),
@@ -620,6 +684,9 @@
               magic:pickClip([/magic/,/cast/,/spell/,/grimoire/,/bible/,/book/,/prayer/,/pose/]),
               talk:pickClip([/talk/,/speak/])
             };
+            // O GLB não tem clip de dano. A reação usa só o início do clip de knockback (flinch curto);
+            // o clip completo continua exclusivo da morte.
+            animationClips.flinch=animationClips.hurt?null:animationClips.death;
             findAnimationBones(root);
             // Mesmo no modo estático, avaliamos uma única pose do esqueleto.
             // Sem uma pose inicial avaliada pelo AnimationMixer, alguns GLBs com

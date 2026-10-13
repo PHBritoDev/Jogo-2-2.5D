@@ -224,6 +224,21 @@ const Player = {
     const requestKnockdown = !blockFacesHit && critical && options.knockdown === true && this.knockdownT <= 0 && !this.gettingUp;
     const gy = this.y - this.z - 16;
 
+    // MOD 51: Defesa Perfeita — defender no instante do golpe anula o dano e abre a guarda do chefe.
+    if (blockFacesHit && options.parryable === true && (this.blockHeldT || 0) <= (C.parryWindow || 0.28) &&
+        typeof BishopBoss !== 'undefined' && typeof BishopBoss.parried === 'function') {
+      this.blockFlash = 0.35;
+      this.invuln = Math.max(this.invuln, 0.4);
+      Ambient.spawnSpark(this.x + dx * -8, gy, 12, '#ffffff');
+      Ambient.spawnSpark(this.x + dx * -8, gy, 8, '#9fd4ff');
+      Combat.addText(this.x, this.y - this.z - 46, 'DEFESA PERFEITA', '#bfe8ff');
+      Camera.shake = Math.max(Camera.shake, 3);
+      Game.hitstop = Math.max(Game.hitstop, 0.09);
+      if (typeof BishopDimension !== 'undefined' && typeof BishopDimension.impact === 'function') BishopDimension.impact(0.9);
+      BishopBoss.parried();
+      return 0.01;
+    }
+
     if (blockFacesHit) {
       dmg = Math.max(1, Math.round(dmg * (1 - C.blockReduce)));
       kb *= C.blockKb;
@@ -328,6 +343,8 @@ const Player = {
 
     // ----- Defesa e ataque (nunca ao mesmo tempo) -----
     this.blocking = defendHeld && this.attackT < 0 && this.evadeT <= 0;
+    // MOD 51: tempo desde que a defesa foi levantada; define a janela da Defesa Perfeita.
+    this.blockHeldT = this.blocking ? (this.blockHeldT || 0) + dt : 0;
     if (attackPressed) {
       // Um toque durante o golpe fica guardado até ao fim da recuperação e do cooldown.
       const attackDuration = this.attackDurCurrent > 0 ? this.attackDurCurrent : C.attackDur;
