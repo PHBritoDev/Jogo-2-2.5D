@@ -503,7 +503,8 @@ const Combat = {
   // Colisão em cápsula ao longo da lâmina, não apenas num círculo curto à frente.
   _swordTouches(E, strike, C) {
     if (Math.abs((Number(E.z) || 0) - (Number(Player.z) || 0)) >= C.hitZ) return false;
-    const dirX = Number(Player.atkDirX) || 0, dirY = Number(Player.atkDirY) || 1;
+    const rawDirX=Number(Player.atkDirX),rawDirY=Number(Player.atkDirY);
+    const dirX=Number.isFinite(rawDirX)?rawDirX:0,dirY=Number.isFinite(rawDirY)?rawDirY:1;
     const tx = E.x - Player.x, ty = E.y - Player.y;
     if (tx * dirX + ty * dirY < 0) return false;
     const start = Math.min(Math.max(4, (Number(Player.r) || 0) * 0.35), strike.reach * 0.45);
