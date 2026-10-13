@@ -34,7 +34,7 @@ const Player = {
   aimLocked: false,
   aimDirX: 0, aimDirY: 1,
   blocking: false, blockFlash: 0,
-  hurtT: 0, blinkT: 0, invuln: 0, stun: 0,
+  hurtT: 0, damageId: 0, blinkT: 0, invuln: 0, stun: 0,
   dead: false, deadT: 0,
   knockdownT: 0, gettingUp: false, getUpT: 0,
 
@@ -55,7 +55,7 @@ const Player = {
     this.attackT = -1; this.atkBuf = 0; this.atkCool = 0;
     this.comboStage = 0; this.lastAttackAt = -999;
     this.blocking = false; this.blockFlash = 0;
-    this.hurtT = 0; this.blinkT = 0; this.invuln = 0; this.stun = 0;
+    this.hurtT = 0; this.damageId = 0; this.blinkT = 0; this.invuln = 0; this.stun = 0;
     this.dead = false; this.deadT = 0;
     this.knockdownT = 0; this.gettingUp = false; this.getUpT = 0;
   },
@@ -104,7 +104,28 @@ const Player = {
       dx = ax; dy = ay;
       const m = Math.hypot(dx, dy);
       if (m > 0.3) { dx /= m; dy /= m; }
-      else { const f = Math.hypot(this.fx, this.fy) || 1; dx = this.fx / f; dy = this.fy / f; }
+      else {
+        // Atacar parado mira o alvo vivo mais próximo em vez de reutilizar uma direção antiga.
+        let target = null;
+        let bestDistanceSq = (C.autoAimRange || 0) * (C.autoAimRange || 0);
+        const consider = function (candidate) {
+          if (!candidate || !Number.isFinite(candidate.x) || !Number.isFinite(candidate.y) ||
+              candidate.state === 'dead' || candidate.state === 'gone' || candidate.state === 'inactive' ||
+              (Number.isFinite(candidate.hp) && candidate.hp <= 0)) return;
+          const tx = candidate.x - this.x, ty = candidate.y - this.y;
+          const distanceSq = tx * tx + ty * ty;
+          if (distanceSq > 0.01 && distanceSq <= bestDistanceSq) { bestDistanceSq = distanceSq; target = candidate; }
+        }.bind(this);
+        if (typeof BishopBoss !== 'undefined') consider(BishopBoss);
+        if (typeof Greedling !== 'undefined') consider(Greedling);
+        if (typeof Enemy !== 'undefined' && Array.isArray(Enemy.instances)) Enemy.instances.forEach(consider);
+        if (target) {
+          const length = Math.hypot(target.x - this.x, target.y - this.y) || 1;
+          dx = (target.x - this.x) / length; dy = (target.y - this.y) / length;
+        } else {
+          const f = Math.hypot(this.fx, this.fy) || 1; dx = this.fx / f; dy = this.fy / f;
+        }
+      }
     }
     this.atkDirX = dx; this.atkDirY = dy;
     this.fx = dx; this.fy = dy;
@@ -134,7 +155,7 @@ const Player = {
     const critical = !!options.critical && !blockFacesHit;
     if (critical) dmg = Math.round(dmg * 1.55);
     // A queda é exclusiva de um crítico confirmado; golpes fortes comuns não derrubam.
-    const requestKnockdown = !blockFacesHit && options.knockdown === true;
+    const requestKnockdown = !blockFacesHit && critical && options.knockdown === true && this.knockdownT <= 0 && !this.gettingUp;
     const gy = this.y - this.z - 16;
 
     if (blockFacesHit) {
@@ -147,7 +168,8 @@ const Player = {
       Sfx.block();
     } else {
       this.stun = C.playerStun;
-      this.hurtT = 0.88;
+      this.hurtT = Math.max(0.42, Number(C.hurtDuration) || 0.42);
+      this.damageId = (Number(this.damageId) || 0) + 1;
       this.blinkT = C.invuln;
       this.invuln = C.invuln;
       if (requestKnockdown) {
@@ -167,9 +189,14 @@ const Player = {
         this.z = arenaFloor;
         this.floor = arenaFloor;
         this.onGround = true;
+      } else if (this.onGround) {
+        // Dano comum provoca reação, mas não lança o jogador para cima.
+        this.z = this.floor;
+        this.vz = 0;
+        this.onGround = true;
       } else {
-        this.vz = Math.max(this.vz, C.hurtPop);
-        this.onGround = false;
+        // Se já estava no ar, preserva a queda sem acrescentar impulso vertical.
+        this.vz = Math.min(this.vz, 0);
       }
       Ambient.spawnSpark(this.x, gy, 9, '#ff9a8a');
       Combat.addText(this.x, this.y - this.z - 42, critical ? 'CRÍTICO! -' + dmg : (requestKnockdown ? 'DERRUBADO! -' + dmg : '-' + dmg), critical ? '#ffd166' : '#ff5a5a');
@@ -193,10 +220,15 @@ const Player = {
       // A morte não dá um salto involuntário: a animação de queda/morte termina no chão.
       const arenaFloor = typeof BishopDimension !== 'undefined' &&
         typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive() ? 0 : this.floor;
-      this.z = arenaFloor;
       this.floor = arenaFloor;
-      this.vz = 0;
-      this.onGround = true;
+      if (this.z > arenaFloor + 0.001) {
+        this.vz = Math.min(this.vz, 0);
+        this.onGround = false;
+      } else {
+        this.z = arenaFloor;
+        this.vz = 0;
+        this.onGround = true;
+      }
       Sfx.death();
     }
     return dmg;
