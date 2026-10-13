@@ -410,6 +410,21 @@
     if(v.gettingUp){if(currentType!=='getup')play('getup',true);return;}
     // O clipe de morte do modelo também é a animação de queda; após o timer, toca get-up.
     if(v.knockedDown){if(currentType!=='fall')play('fall',true);return;}
+    // Cada impacto reinicia a reação; ela não pode reutilizar a pose de morte/queda.
+    if(v.hurt){
+      const hurtId=Number(v.hurtId)||0;
+      if(hurtId!==lastPlayedHurtId){
+        lastPlayedHurtId=hurtId;
+        if(actions.hurt){play('hurt',true);return;}
+        if(currentAction){currentAction.stop();currentAction=null;}
+        currentType='procedural-hurt';return;
+      }
+      if(currentType==='hurt'&&currentAction&&currentAction.isRunning())return;
+      if(currentType==='hurt'||currentType==='procedural-hurt')return;
+      if(actions.hurt){play('hurt',true);return;}
+      if(currentAction){currentAction.stop();currentAction=null;}
+      currentType='procedural-hurt';return;
+    }
     if(v.attack){
       const id=Number(v.attackId)||0;
       if(id!==lastPlayedAttackId){
@@ -423,11 +438,11 @@
       // Quando o clipe termina antes do estado de combate, retoma a locomoção
       // em vez de manter o personagem preso no último quadro do golpe.
     }
-    if(v.hurt){if(currentType!=='hurt')play('hurt',true);return;}
+
     if(v.moving&&actions.walk){if(currentType!=='walk'||!currentAction||!currentAction.isRunning())play('walk',false);return;}
     if(currentType!=='idle'||!currentAction||!currentAction.isRunning())play('idle',false);
   }
-  let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1,lastPlayedAttackId=-1;
+  let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1,lastPlayedAttackId=-1,lastPlayedHurtId=-1;
   function refreshSwordDiagnostics(now){
     if(now-swordStatusCheckAt<250)return;swordStatusCheckAt=now;
     let message=swordLoadError||'Aguardando carregamento de EspadaProta.glb...';
@@ -477,6 +492,9 @@
     if(renderedYaw===null)renderedYaw=targetYaw;
     else {const delta=Math.atan2(Math.sin(targetYaw-renderedYaw),Math.cos(targetYaw-renderedYaw));const maxTurn=7*turnDt;renderedYaw+=Math.max(-maxTurn,Math.min(maxTurn,delta));}
     pivot.rotation.y=renderedYaw;
+    const hurtAmount=currentType==='procedural-hurt' ? Math.sin(Math.PI*Math.max(0,Math.min(1,(Number(v.hurtT)||0)/.42))) : 0;
+    pivot.rotation.x=-hurtAmount*.13;
+    pivot.rotation.z=0;
     if(!diagnosticPreview)choose(v);
     if(currentType==='walk'&&currentAction){
       const speed=Math.max(0,Number(v.speed)||0);
