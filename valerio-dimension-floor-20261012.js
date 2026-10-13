@@ -435,100 +435,56 @@ const BishopDimension = (function () {
     return true;
   }
   function loadGrassAsset(){
-    // Grama.glb usa Z como eixo vertical. O renderer do jogo usa Y: convertemos os eixos
-    // para que as lâminas fiquem em pé e possam reagir ao vento.
-    fetch('./Grama.glb?v=mod46-full-ground-grass-20261013').then(function(r){
-      if(!r.ok)throw new Error('Grama.glb HTTP '+r.status);
-      return r.arrayBuffer();
-    }).then(function(buffer){
-      const view=new DataView(buffer);
-      if(view.getUint32(0,true)!==0x46546c67)throw new Error('arquivo GLB inválido');
-      let offset=12,json=null,bin=null,binStart=0;
-      while(offset+8<=buffer.byteLength){
-        const length=view.getUint32(offset,true),type=view.getUint32(offset+4,true),start=offset+8;
-        if(type===0x4e4f534a)json=JSON.parse(new TextDecoder().decode(new Uint8Array(buffer,start,length)));
-        else if(type===0x004e4942){bin=new Uint8Array(buffer,start,length);binStart=start;}
-        offset=start+length;
-      }
-      if(!json||!bin)throw new Error('GLB sem JSON/BIN');
-      const componentBytes={5121:1,5123:2,5125:4,5126:4};
-      const typeCount={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT4:16};
-      function accessor(index){
-        const a=json.accessors[index],bv=a&&json.bufferViews[a.bufferView],count=a&&a.count,n=a&&typeCount[a.type];
-        if(!a||!bv||!n)throw new Error('accessor GLB não suportado');
-        const stride=bv.byteStride||componentBytes[a.componentType]*n;
-        const start=binStart+(bv.byteOffset||0)+(a.byteOffset||0),out=[];
-        for(let i=0;i<count;i++){
-          const row=[];
-          for(let j=0;j<n;j++){
-            const p=start+i*stride+j*componentBytes[a.componentType];
-            let v;
-            if(a.componentType===5126)v=view.getFloat32(p,true);
-            else if(a.componentType===5125)v=view.getUint32(p,true);
-            else if(a.componentType===5123)v=view.getUint16(p,true);
-            else v=view.getUint8(p);
-            if(a.normalized){
-              if(a.componentType===5121)v/=255;
-              else if(a.componentType===5123)v/=65535;
-              else if(a.componentType===5125)v/=4294967295;
-            }
-            row.push(v);
-          }
-          out.push(row);
+    // Grama procedural em geometria real: não depende do parser do Grama.glb,
+    // que deixava o chão verde sem desenhar as lâminas no aparelho do jogador.
+    // Cada tufo tem lâminas cruzadas, pontas afiladas e cores naturais; o shader
+    // existente anima os vértices altos para simular rajadas de vento.
+    const targetArena=S.arena,grass=[];
+    let seed=47291;
+    const rnd=function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+    const cols=44,rows=36,groundY=.028;
+    const baseColors=['#354a25','#40572a','#4a612e','#5b6b35','#737c42'];
+    function vertex(x,y,z,c){grass.push(x,y,z,c[0],c[1],c[2],c[3]);}
+    function quad(a,b,c,d,col){
+      // Mesma estrutura de vértices usada pelo renderer WebGL (posição + cor).
+      vertex(a[0],a[1],a[2],col);vertex(b[0],b[1],b[2],col);vertex(c[0],c[1],c[2],col);
+      vertex(a[0],a[1],a[2],col);vertex(c[0],c[1],c[2],col);vertex(d[0],d[1],d[2],col);
+    }
+    for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
+      // Distribuição em grade com variação aleatória para não formar linhas visíveis.
+      const x=-61+(col+.5)*(122/cols)+(rnd()-.5)*1.0;
+      const z=-35+(row+.5)*(65/rows)+(rnd()-.5)*.8;
+      const bladeCount=5+(rnd()>.58?1:0);
+      for(let b=0;b<bladeCount;b++){
+        const angle=rnd()*Math.PI*2;
+        const wx=Math.cos(angle),wz=Math.sin(angle);
+        const px=-wz,pz=wx;
+        const bx=x+(rnd()-.5)*.48,bz=z+(rnd()-.5)*.42;
+        const height=.46+rnd()*.26;
+        const halfWidth=.055+rnd()*.045;
+        const lean=.10+rnd()*.20;
+        const leanX=wx*lean,leanZ=wz*lean;
+        let prevLeft=null,prevRight=null;
+        for(let seg=0;seg<3;seg++){
+          const t0=seg/3,t1=(seg+1)/3;
+          const w0=halfWidth*Math.pow(1-t0,.78),w1=Math.max(.002,halfWidth*Math.pow(1-t1,.78));
+          const cx0=bx+leanX*t0*t0,cz0=bz+leanZ*t0*t0;
+          const cx1=bx+leanX*t1*t1,cz1=bz+leanZ*t1*t1;
+          const left0=[cx0+px*w0,groundY+height*t0,cz0+pz*w0];
+          const right0=[cx0-px*w0,groundY+height*t0,cz0-pz*w0];
+          const left1=[cx1+px*w1,groundY+height*t1,cz1+pz*w1];
+          const right1=[cx1-px*w1,groundY+height*t1,cz1-pz*w1];
+          const colorIndex=Math.min(baseColors.length-1,Math.floor(t1*(baseColors.length-1)));
+          const shade=.82+rnd()*.30,raw=color(baseColors[colorIndex]);
+          const tint=[Math.min(1,raw[0]*shade),Math.min(1,raw[1]*shade),Math.min(1,raw[2]*shade),.98];
+          quad(left0,right0,right1,left1,tint);
         }
-        return out;
       }
-      const primitives=[];
-      (json.meshes||[]).forEach(function(m){
-        (m.primitives||[]).forEach(function(p){
-          if(!p.attributes||p.attributes.POSITION==null||p.mode!=null&&p.mode!==4)return;
-          const positions=accessor(p.attributes.POSITION);
-          const indices=p.indices==null?positions.map(function(_,i){return i;}):accessor(p.indices).map(function(v){return v[0];});
-          const colors=p.attributes.COLOR_0==null?null:accessor(p.attributes.COLOR_0);
-          const mat=(json.materials||[])[p.material]||{};
-          const factor=mat.pbrMetallicRoughness&&mat.pbrMetallicRoughness.baseColorFactor||[1,1,1,1];
-          primitives.push({positions:positions,indices:indices,colors:colors,factor:factor});
-        });
-      });
-      if(!primitives.length)throw new Error('Grama.glb sem malhas trianguláveis');
-      let min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
-      primitives.forEach(function(p){p.positions.forEach(function(v){for(let k=0;k<3;k++){min[k]=Math.min(min[k],v[k]);max[k]=Math.max(max[k],v[k]);}});});
-      const spanX=Math.max(max[0]-min[0],.001),spanZ=Math.max(max[1]-min[1],.001),spanUp=Math.max(max[2]-min[2],.001);
-      const targetArena=S.arena,base=[];
-      let seed=4427;
-      const rnd=function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
-      const cols=32,rows=24;
-      for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
-        const x=-61+col*(122/(cols-1))+(rnd()-.5)*.65;
-        const z=-35+row*(65/(rows-1))+(rnd()-.5)*.5;
-        const angle=rnd()*Math.PI*2,co=Math.cos(angle),si=Math.sin(angle);
-        const width=6.4+rnd()*.65,depth=4.9+rnd()*.45,height=.96+rnd()*.28;
-        const sx=width/spanX,sz=depth/spanZ,sy=height/spanUp,shade=.84+rnd()*.28;
-        const groundY=.035;
-        primitives.forEach(function(p){
-          for(let i=0;i+2<p.indices.length;i+=3){
-            const tri=[];
-            for(let q=0;q<3;q++){
-              const vi=p.indices[i+q],v=p.positions[vi];
-              const lx=(v[0]-(min[0]+max[0])*.5)*sx;
-              const lz=(v[1]-(min[1]+max[1])*.5)*sz;
-              const ly=(v[2]-min[2])*sy;
-              const tx=x+lx*co-lz*si,tz=z+lx*si+lz*co,ty=groundY+ly;
-              const vc=p.colors&&p.colors[vi]||[.22,.48,.14,1],f=p.factor;
-              tri.push([tx,ty,tz],[Math.max(0,Math.min(1,vc[0]*f[0]*shade)),Math.max(0,Math.min(1,vc[1]*f[1]*shade)),Math.max(0,Math.min(1,vc[2]*f[2]*shade)),vc[3]*(f[3]==null?1:f[3])]);
-            }
-            base.push(...tri[0][0],...tri[0][1],...tri[1][0],...tri[1][1],...tri[2][0],...tri[2][1]);
-          }
-        });
-      }
-      if(base.length&&S.arena===targetArena&&S.gl){
-        targetArena.grassAsset=mesh(S.gl,base);
-        window.ValerioGrassStatus={loaded:true,patches:cols*rows,triangles:targetArena.grassAsset.count/3};
-      }
-    }).catch(function(err){
-      window.ValerioGrassStatus={loaded:false,error:String(err&&err.message||err)};
-      console.warn('Grama.glb não pôde ser integrado; verifique ValerioGrassStatus.',err);
-    });
+    }
+    if(grass.length&&S.arena===targetArena&&S.gl){
+      targetArena.grassAsset=mesh(S.gl,grass);
+      window.ValerioGrassStatus={loaded:true,mode:'procedural',patches:cols*rows,triangles:targetArena.grassAsset.count/3};
+    }
   }
   function initGL() {
     const gl=S.canvas.getContext('webgl',{alpha:true,antialias:false,depth:true,stencil:false,preserveDrawingBuffer:false,powerPreference:'low-power'}) || S.canvas.getContext('experimental-webgl');
