@@ -201,7 +201,6 @@ const BishopDimension = (function () {
     addSphere(world,-24,17,-49,10.1,'#b8a5ff',.0+3,40,1,.25,.88);
     addRing(world,-24,17,-49,10.1,3.15,.18,'#b8a5ff',.68,40);
     addSphere(world,21,20,-56,6.1,'#8e493e',10,16,1,1,.92);
-    addSphere(world,21,20,-56,6.13,'#d18b55',8,16,1,.98,.94);
     addRing(world,21,20,-56,8.6,2.1,.16,'#d8b27b',.7,36);
     addSphere(world,2,29,-71,4.3,'#3b8a84',9,14,1,1,.9);
     addSphere(world,-39,27,-67,3.2,'#7754a6',8,12,1,1,.95);
@@ -564,11 +563,11 @@ const BishopDimension = (function () {
     }).then(function(buffer){
       const view=new DataView(buffer);
       if(view.getUint32(0,true)!==0x46546c67)throw new Error('arquivo GLB inválido');
-      let offset=12,json=null,bin=null;
+      let offset=12,json=null,bin=null,binStart=0;
       while(offset+8<=buffer.byteLength){
         const length=view.getUint32(offset,true),type=view.getUint32(offset+4,true),start=offset+8;
         if(type===0x4e4f534a)json=JSON.parse(new TextDecoder().decode(new Uint8Array(buffer,start,length)));
-        else if(type===0x004e4942)bin=new Uint8Array(buffer,start,length);
+        else if(type===0x004e4942){bin=new Uint8Array(buffer,start,length);binStart=start;}
         offset=start+length;
       }
       if(!json||!bin)throw new Error('GLB sem JSON/BIN');
@@ -578,7 +577,7 @@ const BishopDimension = (function () {
         const a=json.accessors[index],bv=json.bufferViews[a.bufferView],count=a.count,n=typeCount[a.type];
         if(!a||!bv||!n)throw new Error('accessor GLB não suportado');
         const stride=bv.byteStride||componentBytes[a.componentType]*n;
-        const start=(bv.byteOffset||0)+(a.byteOffset||0),out=[];
+        const start=binStart+(bv.byteOffset||0)+(a.byteOffset||0),out=[];
         for(let i=0;i<count;i++){
           const row=[];
           for(let j=0;j<n;j++){
