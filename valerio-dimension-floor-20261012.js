@@ -586,6 +586,11 @@ const BishopDimension = (function () {
             else if(a.componentType===5125)v=view.getUint32(p,true);
             else if(a.componentType===5123)v=view.getUint16(p,true);
             else v=view.getUint8(p);
+            if(a.normalized){
+              if(a.componentType===5121)v/=255;
+              else if(a.componentType===5123)v/=65535;
+              else if(a.componentType===5125)v/=4294967295;
+            }
             row.push(v);
           }
           out.push(row);
@@ -600,7 +605,7 @@ const BishopDimension = (function () {
           const indices=p.indices==null?positions.map(function(_,i){return i;}):accessor(p.indices).map(function(v){return v[0];});
           const colors=p.attributes.COLOR_0==null?null:accessor(p.attributes.COLOR_0);
           const mat=(json.materials||[])[p.material]||{};
-          const factor=mat.pbrMetallicRoughness&&mat.pbrMetallicRoughness.baseColorFactor||[.22,.48,.14,1];
+          const factor=mat.pbrMetallicRoughness&&mat.pbrMetallicRoughness.baseColorFactor||[1,1,1,1];
           primitives.push({positions:positions,indices:indices,colors:colors,factor:factor});
         });
       });
@@ -630,7 +635,7 @@ const BishopDimension = (function () {
               const lx=(v[0]-(min[0]+max[0])*.5)*k,lz=(v[2]-(min[2]+max[2])*.5)*k;
               const ly=(v[1]-min[1])*k;
               const tx=x+lx*co-lz*si, tz=z+lx*si+lz*co,ty=-.005+ly;
-              const vc=p.colors&&p.colors[vi]||[1,1,1,1],f=p.factor;
+              const vc=p.colors&&p.colors[vi]||[.22,.48,.14,1],f=p.factor;
               tri.push([tx,ty,tz],[Math.max(0,Math.min(1,vc[0]*f[0]*shade)),Math.max(0,Math.min(1,vc[1]*f[1]*shade)),Math.max(0,Math.min(1,vc[2]*f[2]*shade)),vc[3]*(f[3]==null?1:f[3])]);
             }
             base.push(...tri[0][0],...tri[0][1],...tri[1][0],...tri[1][1],...tri[2][0],...tri[2][1]);
