@@ -130,9 +130,9 @@
           // continuar além da hitbox ou a reação de dano ser cortada no meio.
           attackDuration:Number(CFG.COMBAT.attackDur)||.78,
           hurtDuration:.9,
-          fallDuration:Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0),
+          fallDuration:Math.min(2,Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0)),
           deathDuration:1.8,
-          getupDuration:Math.max(1.55,Number((actions.getup||{}).duration)||0)
+          getupDuration:Math.min(2,Math.max(1.55,Number((actions.getup||{}).duration)||0))
         };
         roles.textContent='Funções: '+Object.keys(ROLE_LABELS).map(function(k){return ROLE_LABELS[k]+': '+(saved[k]!==undefined&&clips[Number(saved[k])]?clips[Number(saved[k])].name:'não definida');}).join(' | ');
       });
@@ -372,9 +372,9 @@
         window.ProtagonistaAnimationTiming={
           attackDuration:Number(CFG.COMBAT.attackDur)||.78,
           hurtDuration:.42,
-          fallDuration:Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0),
+          fallDuration:Math.min(2,Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0)),
           deathDuration:1.8,
-          getupDuration:Math.max(1.4,Number((actions.getup||{}).duration)||0)
+          getupDuration:Math.min(2,Math.max(1.4,Number((actions.getup||{}).duration)||0))
         };
         ready=true;window.ProtagonistaGLBReady=true;
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k]&&actions[k].name||null;return o;},{})};
