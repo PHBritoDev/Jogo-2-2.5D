@@ -435,55 +435,44 @@ const BishopDimension = (function () {
     return true;
   }
   function loadGrassAsset(){
-    // Grama procedural em geometria real: não depende do parser do Grama.glb,
-    // que deixava o chão verde sem desenhar as lâminas no aparelho do jogador.
-    // Cada tufo tem lâminas cruzadas, pontas afiladas e cores naturais; o shader
-    // existente anima os vértices altos para simular rajadas de vento.
+    // Tapete de grama procedural cobrindo o piso inteiro, sem depender de GLB.
+    // Lâminas triangulares leves: alta densidade visual com custo baixo para celular.
     const targetArena=S.arena,grass=[];
-    let seed=47291;
+    let seed=48731;
     const rnd=function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
-    const cols=44,rows=36,groundY=.028;
-    const baseColors=['#354a25','#40572a','#4a612e','#5b6b35','#737c42'];
+    // O piso mede 128 x 72; a grade cobre exatamente suas bordas.
+    const cols=58,rows=34,groundY=.028;
+    const palette=['#304522','#3a5127','#455d2c','#526633','#66733a','#788044'];
     function vertex(x,y,z,c){grass.push(x,y,z,c[0],c[1],c[2],c[3]);}
-    function quad(a,b,c,d,col){
-      // Mesma estrutura de vértices usada pelo renderer WebGL (posição + cor).
+    function triangle(a,b,c,col){
       vertex(a[0],a[1],a[2],col);vertex(b[0],b[1],b[2],col);vertex(c[0],c[1],c[2],col);
-      vertex(a[0],a[1],a[2],col);vertex(c[0],c[1],c[2],col);vertex(d[0],d[1],d[2],col);
     }
     for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
-      // Distribuição em grade com variação aleatória para não formar linhas visíveis.
-      const x=-61+(col+.5)*(122/cols)+(rnd()-.5)*1.0;
-      const z=-35+(row+.5)*(65/rows)+(rnd()-.5)*.8;
-      const bladeCount=5+(rnd()>.58?1:0);
+      const x=-64+(col+.5)*(128/cols)+(rnd()-.5)*.48;
+      const z=-38.5+(row+.5)*(72/rows)+(rnd()-.5)*.42;
+      // 9–13 lâminas por célula, em leque irregular para evitar aspecto de grade.
+      const bladeCount=9+Math.floor(rnd()*5);
       for(let b=0;b<bladeCount;b++){
         const angle=rnd()*Math.PI*2;
-        const wx=Math.cos(angle),wz=Math.sin(angle);
-        const px=-wz,pz=wx;
-        const bx=x+(rnd()-.5)*.48,bz=z+(rnd()-.5)*.42;
-        const height=.46+rnd()*.26;
-        const halfWidth=.055+rnd()*.045;
-        const lean=.10+rnd()*.20;
-        const leanX=wx*lean,leanZ=wz*lean;
-        let prevLeft=null,prevRight=null;
-        for(let seg=0;seg<3;seg++){
-          const t0=seg/3,t1=(seg+1)/3;
-          const w0=halfWidth*Math.pow(1-t0,.78),w1=Math.max(.002,halfWidth*Math.pow(1-t1,.78));
-          const cx0=bx+leanX*t0*t0,cz0=bz+leanZ*t0*t0;
-          const cx1=bx+leanX*t1*t1,cz1=bz+leanZ*t1*t1;
-          const left0=[cx0+px*w0,groundY+height*t0,cz0+pz*w0];
-          const right0=[cx0-px*w0,groundY+height*t0,cz0-pz*w0];
-          const left1=[cx1+px*w1,groundY+height*t1,cz1+pz*w1];
-          const right1=[cx1-px*w1,groundY+height*t1,cz1-pz*w1];
-          const colorIndex=Math.min(baseColors.length-1,Math.floor(t1*(baseColors.length-1)));
-          const shade=.82+rnd()*.30,raw=color(baseColors[colorIndex]);
-          const tint=[Math.min(1,raw[0]*shade),Math.min(1,raw[1]*shade),Math.min(1,raw[2]*shade),.98];
-          quad(left0,right0,right1,left1,tint);
-        }
+        const dx=Math.cos(angle),dz=Math.sin(angle);
+        const px=-dz,pz=dx;
+        const bx=x+(rnd()-.5)*1.72,bz=z+(rnd()-.5)*1.68;
+        const height=.40+rnd()*.37;
+        const halfWidth=.065+rnd()*.075;
+        const lean=.08+rnd()*.25;
+        const topX=bx+dx*lean,topZ=bz+dz*lean;
+        const left=[bx+px*halfWidth,groundY,bz+pz*halfWidth];
+        const right=[bx-px*halfWidth,groundY,bz-pz*halfWidth];
+        const tip=[topX,groundY+height,topZ];
+        const raw=color(palette[Math.floor(rnd()*palette.length)]);
+        const shade=.76+rnd()*.42;
+        const tint=[Math.min(1,raw[0]*shade),Math.min(1,raw[1]*shade),Math.min(1,raw[2]*shade),.98];
+        triangle(left,right,tip,tint);
       }
     }
     if(grass.length&&S.arena===targetArena&&S.gl){
       targetArena.grassAsset=mesh(S.gl,grass);
-      window.ValerioGrassStatus={loaded:true,mode:'procedural',patches:cols*rows,triangles:targetArena.grassAsset.count/3};
+      window.ValerioGrassStatus={loaded:true,mode:'procedural-full-cover',patches:cols*rows,blades:grass.length/21,triangles:targetArena.grassAsset.count/3};
     }
   }
   function initGL() {
@@ -589,7 +578,7 @@ const BishopDimension = (function () {
     // O shader move vértices altos, deixando copas e folhas balançarem sem
     // deslocar o piso; o vento custa apenas uma operação por vértice.
     draw(S.arena.foliage,pv,.16)
-    if(S.arena.grassAsset)draw(S.arena.grassAsset,pv,.48)
+    if(S.arena.grassAsset)draw(S.arena.grassAsset,pv,.27)
     draw(S.arena.portal,pv);
     const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
     const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
