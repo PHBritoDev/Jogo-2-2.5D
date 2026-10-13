@@ -367,6 +367,8 @@
         // Queda e morte são estados distintos: nunca reutilizar a animação de morte para derrubada.
         actions.fall=actions.fall||null;
         actions.death=actions.death||null;
+        actions.fall=actions.fall||actions.death||null;
+        actions.death=actions.death||actions.fall||null;
         window.ProtagonistaAnimationTiming={
           attackDuration:Number(CFG.COMBAT.attackDur)||.78,
           hurtDuration:.42,
