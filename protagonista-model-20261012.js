@@ -34,7 +34,7 @@
       }
     };
   }
-  const ROLE_LABELS={attack:'Ataque',hurt:'Tomar dano',idle:'Respirar/parado',walk:'Caminhar',death:'Morte',getup:'Levantar'};
+  const ROLE_LABELS={attack:'Ataque',attack2:'Ataque 2',hurt:'Tomar dano',fall:'Queda',idle:'Respirar/parado',walk:'Caminhar',death:'Morte',getup:'Levantar'};
   function savedRoleConflicts(role,clip){
     const n=String(clip&&clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
     const attack=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand/.test(n);
@@ -44,12 +44,13 @@
     const fall=/fall|falling|knockdown|collapse|stumble|caer|queda/.test(n);
     const death=/death|dying|dead|^die$|morrer|morte/.test(n);
     const getup=/getup|standup|rise|recoverfloor|levant|levantar/.test(n);
-    if(role==='attack')return hurt||idle||walk||fall||death||getup;
+    if(role==='attack'||role==='attack2')return hurt||idle||walk||fall||death||getup;
     if(role==='hurt')return attack||idle||walk||fall||death||getup;
     if(role==='idle')return attack||hurt||walk||fall||death||getup;
     if(role==='walk')return attack||hurt||idle||fall||death||getup;
     if(role==='death')return attack||hurt||idle||walk||getup;
     if(role==='getup')return attack||hurt||idle||walk||fall||death;
+    if(role==='fall')return attack||hurt||idle||walk||death||getup;
     return false;
   }
   function applySavedAnimationRoles(clips){
@@ -65,7 +66,8 @@
           return;
         }
         actions[role]=clip;
-        if(role==='attack')attackClips=[clip];
+        if(role==='attack'){attackClips=[clip];actions.attack=clip;}
+        if(role==='attack2'){attackClips=attackClips.filter(function(c){return c!==clip;});attackClips.push(clip);}
       }
     });
     actions.fall=actions.fall||null;
@@ -109,7 +111,8 @@
         saved[role]=i;
         try{localStorage.setItem('protagonistaAnimationRolesV2',JSON.stringify(saved));}catch(e){}
         actions[role]=clip;
-        if(role==='attack')attackClips=[clip];
+        if(role==='attack'){attackClips=[clip];actions.attack=clip;}
+        if(role==='attack2'){attackClips=attackClips.filter(function(c){return c!==clip;});attackClips.push(clip);}
         window.ProtagonistaAnimationTiming={
           // O combate real usa estes tempos: sincronizar o clip inteiro evita o golpe
           // continuar além da hitbox ou a reação de dano ser cortada no meio.
@@ -347,14 +350,14 @@
           // a seleção do ataque nunca depende desta escolha.
           actions.idle=clips.find(function(c){return !unsafeRole.test(c.name||'');})||null;
         }
-        // Queda e morte são estados distintos: nunca reutilizar a animação de morte para derrubada.
-        actions.fall=actions.fall||null;
+        // Prefere um clipe próprio de queda; se não existir, usa a morte como fallback.
         actions.death=actions.death||null;
+        actions.fall=actions.fall||actions.death||null;
         window.ProtagonistaAnimationTiming={
           attackDuration:.34,
           hurtDuration:.18,
-          fallDuration:Math.max(1.15,Number((actions.fall||{}).duration)||0),
-          getupDuration:Math.max(1.05,Number((actions.getup||{}).duration)||0)
+          fallDuration:Math.min(2,Math.max(1.15,Number((actions.fall||actions.death||{}).duration)||1.15)),
+          getupDuration:Math.min(2,Math.max(1.05,Number((actions.getup||{}).duration)||1.05))
         };
         ready=true;window.ProtagonistaGLBReady=true;
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k]&&actions[k].name||null;return o;},{})};
