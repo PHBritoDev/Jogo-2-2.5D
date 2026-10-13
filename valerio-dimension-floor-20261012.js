@@ -8,7 +8,7 @@
 const BishopDimension = (function () {
   const S = {
     canvas: null, gl: null, program: null, aPosition: -1, aColor: -1,
-    uMvp: null, exterior: null, arena: null, energy: null, particles: null,
+    uMvp: null, uTime: null, uWind: null, exterior: null, arena: null, energy: null, particles: null,
     playerModel: null, bishopModel: null, failed: false, lost: false,
     spriteProgram: null, spritePosition: -1, spriteUv: -1, spriteMvp: null, spriteSampler: null,
     bishopTexture: null, bishopTextureLoaded: false, bishopQuad: null,
@@ -643,11 +643,11 @@ const BishopDimension = (function () {
   function initGL() {
     const gl=S.canvas.getContext('webgl',{alpha:true,antialias:false,depth:true,stencil:false,preserveDrawingBuffer:false,powerPreference:'low-power'}) || S.canvas.getContext('experimental-webgl');
     if(!gl){S.failed=true;return;}
-    const vs='attribute vec3 aPosition; attribute vec4 aColor; uniform mat4 uMvp; varying vec4 vColor; void main(){gl_Position=uMvp*vec4(aPosition,1.0);vColor=aColor;gl_PointSize=3.0;}';
+    const vs='attribute vec3 aPosition; attribute vec4 aColor; uniform mat4 uMvp; uniform float uTime; uniform float uWind; varying vec4 vColor; void main(){vec3 p=aPosition;p.x+=sin(uTime*1.7+aPosition.z*0.85)*uWind*clamp((aPosition.y-0.08)*2.2,0.0,1.0);gl_Position=uMvp*vec4(p,1.0);vColor=aColor;gl_PointSize=3.0;}';
     const fs='precision mediump float; varying vec4 vColor; void main(){gl_FragColor=vColor;}';
     const program=gl.createProgram();gl.attachShader(program,shader(gl,gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl,gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);
     if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program)||'programa WebGL inválido');
-    S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');
+    S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');S.uTime=gl.getUniformLocation(program,'uTime');S.uWind=gl.getUniformLocation(program,'uWind');
     initBishopSprite(gl);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
     S.exterior=buildExterior();S.arena=buildArena();S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
@@ -661,11 +661,14 @@ const BishopDimension = (function () {
     if(S.canvas.width!==bw||S.canvas.height!==bh){S.canvas.width=bw;S.canvas.height=bh;S.gl.viewport(0,0,bw,bh);}
     S.lastWidth=bw;S.lastHeight=bh;
   }
-  function draw(m, matrix) {
+  function draw(m, matrix, wind) {
     const gl=S.gl;if(!m||!m.buffer)return;
     gl.bindBuffer(gl.ARRAY_BUFFER,m.buffer);gl.enableVertexAttribArray(S.aPosition);gl.enableVertexAttribArray(S.aColor);
     gl.vertexAttribPointer(S.aPosition,3,gl.FLOAT,false,28,0);gl.vertexAttribPointer(S.aColor,4,gl.FLOAT,false,28,12);
-    gl.uniformMatrix4fv(S.uMvp,false,new Float32Array(matrix));gl.drawArrays(gl.TRIANGLES,0,m.count);
+    gl.uniformMatrix4fv(S.uMvp,false,new Float32Array(matrix));
+    if(S.uTime)gl.uniform1f(S.uTime,Game.time||0);
+    if(S.uWind)gl.uniform1f(S.uWind,wind||0);
+    gl.drawArrays(gl.TRIANGLES,0,m.count);
   }
   function outsideFrame() {
     if(!Casino.discovered&&!Campaign.flags.casinoDiscovered)return;
@@ -737,13 +740,10 @@ const BishopDimension = (function () {
     };
     gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
-    // Movimento de vento discreto nas copas, sem animar o terreno inteiro.
-    const canopySway=Math.sin(Game.time*1.15)*.006+Math.sin(Game.time*2.05)*.002;
-    draw(S.arena.foliage,multiply(pv,rotateZ(canopySway)));
-    if(S.arena.grassAsset){
-      const grassSway=Math.sin(Game.time*1.7)*.0015;
-      draw(S.arena.grassAsset,multiply(pv,rotateZ(grassSway)));
-    }
+    // O shader move vértices altos, deixando copas e folhas balançarem sem
+    // deslocar o piso; o vento custa apenas uma operação por vértice.
+    draw(S.arena.foliage,pv,.12);
+    if(S.arena.grassAsset)draw(S.arena.grassAsset,pv,.18);
     draw(S.arena.portal,pv);
     const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
     const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
