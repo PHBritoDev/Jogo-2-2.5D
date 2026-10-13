@@ -646,7 +646,7 @@ const BishopBoss = {
             const critical = Math.random() < criticalChance;
             const primaryDamage = Player.hurt(baseDamage,
               this.x, this.y, this.attack.kb,
-              { critical: critical, knockdown: critical });
+              { critical: critical, knockdown: critical || heavyImpact });
             if (primaryDamage > 0) {
               this.hitDone = true;
               this.hitDonePrimary = true;
