@@ -8,7 +8,7 @@
 const BishopDimension = (function () {
   const S = {
     canvas: null, gl: null, program: null, aPosition: -1, aColor: -1,
-    uMvp: null, exterior: null, arena: null, energy: null, particles: null,
+    uMvp: null, uTime: null, uWind: null, exterior: null, arena: null, energy: null, particles: null,
     playerModel: null, bishopModel: null, failed: false, lost: false,
     spriteProgram: null, spritePosition: -1, spriteUv: -1, spriteMvp: null, spriteSampler: null,
     bishopTexture: null, bishopTextureLoaded: false, bishopQuad: null,
@@ -164,7 +164,7 @@ const BishopDimension = (function () {
     return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),ruins:mesh(S.gl,ruins)};
   }
   function buildArena() {
-    const world=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
+    const world=[],foliage=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
 
     // Chão contínuo e mais largo para a floresta: a área preta foi substituída por piso escuro.
     addBox(world,0,-0.92,-2.5,132,0.9,78,'#151b18');
@@ -195,14 +195,16 @@ const BishopDimension = (function () {
       const tint=i%9===0?'#b7a4ff':(i%7===0?'#9bdcff':'#dce7ff');
       addBox(world,x,y,z,size,size,size,tint);
     }
-    // Planeta distante com anéis discretos, no fundo da arena.
-    addSphere(world,-20,13,-34,5.4,'#354b86',12,18,1,1,.88);
-    addSphere(world,-32.7,24.2,-62.8,1.05,'#a8b5df',8,12,1,1,.8);
-    addRing(world,-20,13,-34,8.2,2.5,.16,'#b6a2ff',.72,36);
-    // Pequeno buraco negro: núcleo escuro e anel roxo, longe do combate.
-    addSphere(world,22,10,-32,3.1,'#070711',12,18,1,1,1);
-    addRing(world,22,10,-32,5.2,2.1,.24,'#9b4dff',.78,40);
-    addRing(world,39,17.15,-59,4.1,1.55,.12,'#e0a5ff',.62,40);
+    // Mini sistema planetário: substitui o buraco negro por mundos grandes,
+    // coloridos e afastados da zona de combate. Geometria low-poly leve.
+    addSphere(world,-24,17,-49,7.2,'#3d5d9a',10,16,1,.96,.9);
+    addRing(world,-24,17,-49,10.1,3.15,.18,'#b8a5ff',.68,40);
+    addSphere(world,21,20,-56,6.1,'#8e493e',10,16,1,1,.92);
+    addRing(world,21,20,-56,8.6,2.1,.16,'#d8b27b',.7,36);
+    addSphere(world,2,29,-71,4.3,'#3b8a84',9,14,1,1,.9);
+    addSphere(world,-39,27,-67,3.2,'#7754a6',8,12,1,1,.95);
+    addSphere(world,39,13,-43,2.1,'#b7c6d8',7,10,1,1,.9);
+    addRing(world,2,29,-71,5.9,1.35,.12,'#83d9d1',.62,32);
 
     // Cascalho e raízes laterais, mantendo a trilha visível e integrada ao terreno.
     for(let i=0;i<42;i++){
@@ -334,6 +336,27 @@ const BishopDimension = (function () {
       addQuad(world,[x-.3,.018,z-.2],[x+.3,.018,z-.2],[x+.22,.018,z+.2],[x-.22,.018,z+.2],color('#070c09',.24));
     }
 
+    // Copas low-poly escuras: a floresta deixa de parecer apenas troncos
+    // nus. Mantemos a faixa central livre para leitura do combate.
+    const canopyPalette=['#183b27','#21482d','#285334','#193d2b','#315b36'];
+    for(let i=0;i<24;i++){
+      const side=i%2===0?-1:1, row=Math.floor(i/2);
+      const x=side*(9.1+(row%5)*5.25+((i*7)%4)*.24);
+      const z=22-row*4.15+((i*11)%5)*.35;
+      const h=7.1+((i*13)%7)*.62;
+      const c1=canopyPalette[i%canopyPalette.length],c2=canopyPalette[(i+2)%canopyPalette.length];
+      addSphere(foliage,x,h-.65,z,2.15,c1,5,7,1.45,1.05,1.18);
+      addSphere(foliage,x-side*.95,h-1.35,z+.18,1.65,c2,5,7,1.35,.9,1.08);
+      addSphere(foliage,x+side*.88,h-1.48,z-.2,1.7,canopyPalette[(i+3)%canopyPalette.length],5,7,1.28,.92,1.05);
+      addCone(foliage,x,h+.7,z,.95,2.5,c1,6);
+    }
+    // Camada de copas ao fundo fecha a linha do horizonte sem carregar o celular.
+    for(let i=0;i<11;i++){
+      const x=-34+i*6.8,z=-35+(i%3)*1.2,h=8.4+(i%4)*.55;
+      addSphere(foliage,x,h,z,2.7,canopyPalette[i%canopyPalette.length],5,7,1.7,1.08,1.1);
+      addSphere(foliage,x+.7,h-1.3,z+.15,2.1,canopyPalette[(i+1)%canopyPalette.length],5,7,1.4,.9,1.05);
+    }
+
     // Vegetação do chão, raízes e fungos para quebrar a aparência “limbo”.
     for(let i=0;i<14;i++){
       const side=i%2?1:-1;
@@ -437,7 +460,7 @@ const BishopDimension = (function () {
     addSegment(bishopArmL,[0,0,0],[-.24,-.35,-.03],.095,.065,'#30213a',6);
     addSegment(bishopArmR,[0,0,0],[.24,-.35,-.03],.095,.065,'#30213a',6);
     return {
-      world:mesh(S.gl,world),mist:mistLayers,portal:mesh(S.gl,portal),
+      world:mesh(S.gl,world),foliage:mesh(S.gl,foliage),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
       energy:mesh(S.gl,energy),particles:mesh(S.gl,particles),
       player:mesh(S.gl,player),bishop:mesh(S.gl,bishop),
       playerArmL:mesh(S.gl,playerArmL),playerArmR:mesh(S.gl,playerArmR),
@@ -530,17 +553,105 @@ const BishopDimension = (function () {
     gl.useProgram(S.program);
     return true;
   }
+  function loadGrassAsset(){
+    // Lê o GLB real da grama sem biblioteca externa: extrai triângulos e
+    // materiais básicos, cria instâncias estáticas baratas e mantém fallback.
+    fetch('./Grama.glb?v=mod42-grass-forest-20261013').then(function(r){
+      if(!r.ok)throw new Error('Grama.glb HTTP '+r.status);
+      return r.arrayBuffer();
+    }).then(function(buffer){
+      const view=new DataView(buffer);
+      if(view.getUint32(0,true)!==0x46546c67)throw new Error('arquivo GLB inválido');
+      let offset=12,json=null,bin=null,binStart=0;
+      while(offset+8<=buffer.byteLength){
+        const length=view.getUint32(offset,true),type=view.getUint32(offset+4,true),start=offset+8;
+        if(type===0x4e4f534a)json=JSON.parse(new TextDecoder().decode(new Uint8Array(buffer,start,length)));
+        else if(type===0x004e4942){bin=new Uint8Array(buffer,start,length);binStart=start;}
+        offset=start+length;
+      }
+      if(!json||!bin)throw new Error('GLB sem JSON/BIN');
+      const componentBytes={5121:1,5123:2,5125:4,5126:4};
+      const typeCount={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT4:16};
+      function accessor(index){
+        const a=json.accessors[index],bv=json.bufferViews[a.bufferView],count=a.count,n=typeCount[a.type];
+        if(!a||!bv||!n)throw new Error('accessor GLB não suportado');
+        const stride=bv.byteStride||componentBytes[a.componentType]*n;
+        const start=binStart+(bv.byteOffset||0)+(a.byteOffset||0),out=[];
+        for(let i=0;i<count;i++){
+          const row=[];
+          for(let j=0;j<n;j++){
+            const p=start+i*stride+j*componentBytes[a.componentType];
+            let v;
+            if(a.componentType===5126)v=view.getFloat32(p,true);
+            else if(a.componentType===5125)v=view.getUint32(p,true);
+            else if(a.componentType===5123)v=view.getUint16(p,true);
+            else v=view.getUint8(p);
+            row.push(v);
+          }
+          out.push(row);
+        }
+        return out;
+      }
+      const primitives=[];
+      (json.meshes||[]).forEach(function(m){
+        (m.primitives||[]).forEach(function(p){
+          if(!p.attributes||p.attributes.POSITION==null)return;
+          const positions=accessor(p.attributes.POSITION);
+          const indices=p.indices==null?positions.map(function(_,i){return i;}):accessor(p.indices).map(function(v){return v[0];});
+          const colors=p.attributes.COLOR_0==null?null:accessor(p.attributes.COLOR_0);
+          const mat=(json.materials||[])[p.material]||{};
+          const factor=mat.pbrMetallicRoughness&&mat.pbrMetallicRoughness.baseColorFactor||[.22,.48,.14,1];
+          primitives.push({positions:positions,indices:indices,colors:colors,factor:factor});
+        });
+      });
+      if(!primitives.length)throw new Error('Grama.glb sem malhas trianguláveis');
+      let min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
+      primitives.forEach(function(p){p.positions.forEach(function(v){for(let k=0;k<3;k++){min[k]=Math.min(min[k],v[k]);max[k]=Math.max(max[k],v[k]);}});});
+      const width=Math.max(max[0]-min[0],max[2]-min[2],.001),height=Math.max(max[1]-min[1],.001);
+      const scale=Math.min(.95/width,.72/height),base=[];
+      let seed=42;
+      const rnd=function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+      // Distribuição em bordas e pequenos trechos fora do caminho central.
+      for(let n=0;n<150;n++){
+        let x=0,z=0,tries=0;
+        do{
+          const side=rnd()<.5?-1:1;
+          x=side*(8.5+rnd()*39);
+          z=-31+rnd()*58;
+          tries++;
+        }while(tries<12&&Math.abs(x)<9.1&&Math.abs(z+2.5)<25);
+        const angle=rnd()*Math.PI*2,k=scale*(.72+rnd()*.58),co=Math.cos(angle),si=Math.sin(angle);
+        const shade=.78+rnd()*.38;
+        primitives.forEach(function(p){
+          for(let i=0;i+2<p.indices.length;i+=3){
+            const tri=[];
+            for(let q=0;q<3;q++){
+              const vi=p.indices[i+q],v=p.positions[vi];
+              const lx=(v[0]-(min[0]+max[0])*.5)*k,lz=(v[2]-(min[2]+max[2])*.5)*k;
+              const ly=(v[1]-min[1])*k;
+              const tx=x+lx*co-lz*si, tz=z+lx*si+lz*co,ty=-.005+ly;
+              const vc=p.colors&&p.colors[vi]||[1,1,1,1],f=p.factor;
+              tri.push([tx,ty,tz],[Math.max(0,Math.min(1,vc[0]*f[0]*shade)),Math.max(0,Math.min(1,vc[1]*f[1]*shade)),Math.max(0,Math.min(1,vc[2]*f[2]*shade)),vc[3]*(f[3]==null?1:f[3])]);
+            }
+            base.push(...tri[0][0],...tri[0][1],...tri[1][0],...tri[1][1],...tri[2][0],...tri[2][1]);
+          }
+        });
+      }
+      if(base.length)S.arena.grassAsset=mesh(S.gl,base);
+    }).catch(function(err){console.warn('Grama.glb não pôde ser integrado; mantendo a vegetação low-poly da floresta.',err);});
+  }
   function initGL() {
     const gl=S.canvas.getContext('webgl',{alpha:true,antialias:false,depth:true,stencil:false,preserveDrawingBuffer:false,powerPreference:'low-power'}) || S.canvas.getContext('experimental-webgl');
     if(!gl){S.failed=true;return;}
-    const vs='attribute vec3 aPosition; attribute vec4 aColor; uniform mat4 uMvp; varying vec4 vColor; void main(){gl_Position=uMvp*vec4(aPosition,1.0);vColor=aColor;gl_PointSize=3.0;}';
+    const vs='attribute vec3 aPosition; attribute vec4 aColor; uniform mat4 uMvp; uniform float uTime; uniform float uWind; varying vec4 vColor; void main(){vec3 p=aPosition;p.x+=sin(uTime*1.7+aPosition.z*0.85)*uWind*clamp((aPosition.y-0.08)*2.2,0.0,1.0);gl_Position=uMvp*vec4(p,1.0);vColor=aColor;gl_PointSize=3.0;}';
     const fs='precision mediump float; varying vec4 vColor; void main(){gl_FragColor=vColor;}';
     const program=gl.createProgram();gl.attachShader(program,shader(gl,gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl,gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);
     if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program)||'programa WebGL inválido');
-    S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');
+    S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');S.uTime=gl.getUniformLocation(program,'uTime');S.uWind=gl.getUniformLocation(program,'uWind');
     initBishopSprite(gl);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
     S.exterior=buildExterior();S.arena=buildArena();S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
+    loadGrassAsset();
     S.lost=false;S.failed=false;
   }
   function resize() {
@@ -550,11 +661,14 @@ const BishopDimension = (function () {
     if(S.canvas.width!==bw||S.canvas.height!==bh){S.canvas.width=bw;S.canvas.height=bh;S.gl.viewport(0,0,bw,bh);}
     S.lastWidth=bw;S.lastHeight=bh;
   }
-  function draw(m, matrix) {
+  function draw(m, matrix, wind) {
     const gl=S.gl;if(!m||!m.buffer)return;
     gl.bindBuffer(gl.ARRAY_BUFFER,m.buffer);gl.enableVertexAttribArray(S.aPosition);gl.enableVertexAttribArray(S.aColor);
     gl.vertexAttribPointer(S.aPosition,3,gl.FLOAT,false,28,0);gl.vertexAttribPointer(S.aColor,4,gl.FLOAT,false,28,12);
-    gl.uniformMatrix4fv(S.uMvp,false,new Float32Array(matrix));gl.drawArrays(gl.TRIANGLES,0,m.count);
+    gl.uniformMatrix4fv(S.uMvp,false,new Float32Array(matrix));
+    if(S.uTime)gl.uniform1f(S.uTime,Game.time||0);
+    if(S.uWind)gl.uniform1f(S.uWind,wind||0);
+    gl.drawArrays(gl.TRIANGLES,0,m.count);
   }
   function outsideFrame() {
     if(!Casino.discovered&&!Campaign.flags.casinoDiscovered)return;
@@ -624,8 +738,12 @@ const BishopDimension = (function () {
       attack:(Player.attackT||-1)>=0,attackT:Number(Player.attackT),attackId:Number(Player.attackId)||0,
       jumping:((Number(Player.z)||0)-(Number(Player.floor)||0))>.08,time:Game.time||0
     };
-    gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.clearColor(.012,.016,.026,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
+    // O shader move vértices altos, deixando copas e folhas balançarem sem
+    // deslocar o piso; o vento custa apenas uma operação por vértice.
+    draw(S.arena.foliage,pv,.12);
+    if(S.arena.grassAsset)draw(S.arena.grassAsset,pv,.18);
     draw(S.arena.portal,pv);
     const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
     const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
