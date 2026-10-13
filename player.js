@@ -122,7 +122,7 @@ const Player = {
     const critical = !!options.critical && !this.blocking;
     if (critical) dmg = Math.round(dmg * 1.55);
     // A queda é exclusiva de um crítico confirmado; golpes fortes comuns não derrubam.
-    const requestKnockdown = !this.blocking && critical && options.knockdown === true;
+    const requestKnockdown = !this.blocking && options.knockdown === true;
     let dx = this.x - fromX, dy = this.y - fromY;
     const d = Math.hypot(dx, dy) || 1;
     dx /= d; dy /= d;
@@ -153,7 +153,10 @@ const Player = {
       if (requestKnockdown) {
         // A derrubada é uma transição de combate no chão, não um segundo pulo.
         this.vz = 0;
-        this.z = this.floor;
+        const arenaFloor = typeof BishopDimension !== 'undefined' &&
+          typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive() ? 0 : this.floor;
+        this.z = arenaFloor;
+        this.floor = arenaFloor;
         this.onGround = true;
       } else {
         this.vz = Math.max(this.vz, C.hurtPop);
@@ -179,7 +182,10 @@ const Player = {
       this.blocking = false;
       this.kx *= 1.3; this.ky *= 1.3;
       // A morte não dá um salto involuntário: a animação de queda/morte termina no chão.
-      this.z = this.floor;
+      const arenaFloor = typeof BishopDimension !== 'undefined' &&
+        typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive() ? 0 : this.floor;
+      this.z = arenaFloor;
+      this.floor = arenaFloor;
       this.vz = 0;
       this.onGround = true;
       Sfx.death();
