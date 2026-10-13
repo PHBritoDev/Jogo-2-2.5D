@@ -36,6 +36,7 @@ const Player = {
   aimDirX: 0, aimDirY: 1,
   blocking: false, blockFlash: 0,
   hurtT: 0, damageId: 0, blinkT: 0, invuln: 0, stun: 0,
+  evadeT: 0, evadeCooldown: 0, evadeInvuln: 0, evadeDirX: 0, evadeDirY: 0,
   dead: false, deadT: 0,
   knockdownT: 0, gettingUp: false, getUpT: 0,
 
@@ -61,6 +62,7 @@ const Player = {
     this.comboStage = 0; this.lastAttackAt = -999;
     this.blocking = false; this.blockFlash = 0;
     this.hurtT = 0; this.damageId = 0; this.blinkT = 0; this.invuln = 0; this.stun = 0;
+    this.evadeT = 0; this.evadeCooldown = 0; this.evadeInvuln = 0; this.evadeDirX = 0; this.evadeDirY = 0;
     this.dead = false; this.deadT = 0;
     this.knockdownT = 0; this.gettingUp = false; this.getUpT = 0;
   },
@@ -161,18 +163,48 @@ const Player = {
     Sfx.swing();
   },
 
+  // Esquiva curta: atravessa a janela inicial do golpe, mas respeita recarga e atordoamento.
+  evade(axis) {
+    if (this.dead || this.stun > 0 || this.knockdownT > 0 || this.gettingUp || this.evadeCooldown > 0) return false;
+    if (this.attackT >= 0 && this.isAttackActive()) return false;
+    axis = axis || { x: 0, y: 0 };
+    let dx = Number(axis.x) || 0, dy = Number(axis.y) || 0;
+    let length = Math.hypot(dx, dy);
+    if (length < 0.2 && typeof BishopDimension !== 'undefined' && BishopDimension.isBattleActive() && typeof BishopBoss !== 'undefined' && BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead') {
+      dx = this.x - BishopBoss.x; dy = this.y - BishopBoss.y; length = Math.hypot(dx, dy);
+    }
+    if (length < 0.2) { dx = -(Number(this.fx) || 0); dy = -(Number(this.fy) || 1); length = Math.hypot(dx, dy); }
+    length = length || 1; dx /= length; dy /= length;
+    this.evadeDirX = dx; this.evadeDirY = dy;
+    this.evadeT = 0.24; this.evadeInvuln = 0.18; this.evadeCooldown = 0.92;
+    this.attackT = -1; this.atkBuf = 0; this.blocking = false;
+    this.atkCool = Math.max(this.atkCool, 0.08);
+    this.kx = 0; this.ky = 0; this.vx = dx * 430; this.vy = dy * 430;
+    this.fx = dx; this.fy = dy;
+    Ambient.spawnDust(this.x, this.y - this.floor, 7, '#a7b9b0', 0.75);
+    Sfx.blip();
+    return true;
+  },
+
   // Chamado pelo inimigo. Retorna o dano aplicado.
   hurt(dmg, fromX, fromY, kb, options) {
-    // O segundo impacto do combo atravessa a invulnerabilidade criada pelo primeiro.
-    if (this.dead || (this.invuln > 0 && !(options && options.ignoreInvuln))) return 0;
+    // A esquiva tem prioridade; fora dela, o segundo impacto do combo pode atravessar invulnerabilidade comum.
+    if (this.dead || this.evadeInvuln > 0 || (this.invuln > 0 && !(options && options.ignoreInvuln))) return 0;
     const C = CFG.COMBAT;
     options = options || {};
     let dx = this.x - fromX, dy = this.y - fromY;
     const d = Math.hypot(dx, dy) || 1;
     dx /= d; dy /= d;
-    const facingLength = Math.hypot(this.fx, this.fy) || 1;
+    let facingX = this.fx, facingY = this.fy;
+    // Na dimensão de Valério, o modelo parado encara o chefe; a defesa deve usar essa mesma direção,
+    // não a última direção em que o jogador caminhou.
+    if (this.blocking && typeof BishopDimension !== 'undefined' && BishopDimension.isBattleActive() &&
+        typeof BishopBoss !== 'undefined' && BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead') {
+      facingX = BishopBoss.x - this.x; facingY = BishopBoss.y - this.y;
+    }
+    const facingLength = Math.hypot(facingX, facingY) || 1;
     const blockFacesHit = this.blocking &&
-      ((this.fx * -dx + this.fy * -dy) / facingLength) >= C.blockFacingDot;
+      ((facingX * -dx + facingY * -dy) / facingLength) >= C.blockFacingDot;
     const critical = !!options.critical && !blockFacesHit;
     if (critical) dmg = Math.round(dmg * 1.55);
     // A queda é exclusiva de um crítico confirmado; golpes fortes comuns não derrubam.
@@ -265,6 +297,9 @@ const Player = {
     this.invuln = Math.max(0, this.invuln - dt);
     this.blockFlash = Math.max(0, this.blockFlash - dt);
     this.stun = Math.max(0, this.stun - dt);
+    this.evadeT = Math.max(0, this.evadeT - dt);
+    this.evadeCooldown = Math.max(0, this.evadeCooldown - dt);
+    this.evadeInvuln = Math.max(0, this.evadeInvuln - dt);
     this.atkCool = Math.max(0, this.atkCool - dt);
     if (this.knockdownT > 0) {
       this.knockdownT = Math.max(0, this.knockdownT - dt);
@@ -274,12 +309,12 @@ const Player = {
       if (this.getUpT <= 0) this.gettingUp = false;
     }
 
-    const canAct = !this.dead && this.stun <= 0 && this.knockdownT <= 0 && !this.gettingUp;
+    const canAct = !this.dead && this.stun <= 0 && this.knockdownT <= 0 && !this.gettingUp && this.evadeT <= 0;
     if (this.dead) this.deadT += dt;
     if (!canAct) { ax = 0; ay = 0; jumpPressed = false; jumpHeld = false; attackPressed = false; defendHeld = false; }
 
     // ----- Defesa e ataque (nunca ao mesmo tempo) -----
-    this.blocking = defendHeld && this.attackT < 0;
+    this.blocking = defendHeld && this.attackT < 0 && this.evadeT <= 0;
     if (attackPressed) {
       // Um toque durante o golpe fica guardado até ao fim da recuperação e do cooldown.
       const attackDuration = this.attackDurCurrent > 0 ? this.attackDurCurrent : C.attackDur;
@@ -303,20 +338,25 @@ const Player = {
     const inputLen = Math.min(1, Math.hypot(ax, ay));
     const targetX = inputLen > 0.001 ? ax / inputLen * P.speed * mul * inputLen : 0;
     const targetY = inputLen > 0.001 ? ay / inputLen * P.speed * mul * inputLen : 0;
-    const currentLen = Math.hypot(this.vx, this.vy);
-    const targetLen = Math.hypot(targetX, targetY);
-    let response;
-    if (targetLen < 0.001) {
-      response = this.onGround ? (P.decelGround || P.accelGround) : (P.decelAir || P.accelAir);
-    } else if (currentLen > 8 &&
-      (this.vx * targetX + this.vy * targetY) / (currentLen * targetLen) < 0.82) {
-      response = this.onGround ? (P.turnGround || P.accelGround) : (P.turnAir || P.accelAir);
+    if (this.evadeT > 0) {
+      this.vx = this.evadeDirX * 430;
+      this.vy = this.evadeDirY * 430;
     } else {
-      response = this.onGround ? P.accelGround : P.accelAir;
+      const currentLen = Math.hypot(this.vx, this.vy);
+      const targetLen = Math.hypot(targetX, targetY);
+      let response;
+      if (targetLen < 0.001) {
+        response = this.onGround ? (P.decelGround || P.accelGround) : (P.decelAir || P.accelAir);
+      } else if (currentLen > 8 &&
+        (this.vx * targetX + this.vy * targetY) / (currentLen * targetLen) < 0.82) {
+        response = this.onGround ? (P.turnGround || P.accelGround) : (P.turnAir || P.accelAir);
+      } else {
+        response = this.onGround ? P.accelGround : P.accelAir;
+      }
+      const k = 1 - Math.exp(-response * dt);
+      this.vx += (targetX - this.vx) * k;
+      this.vy += (targetY - this.vy) * k;
     }
-    const k = 1 - Math.exp(-response * dt);
-    this.vx += (targetX - this.vx) * k;
-    this.vy += (targetY - this.vy) * k;
 
     // ----- Pulo (com coyote time e buffer) -----
     if (jumpPressed) this.buffer = P.buffer; else this.buffer = Math.max(0, this.buffer - dt);
