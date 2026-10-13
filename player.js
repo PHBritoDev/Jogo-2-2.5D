@@ -138,7 +138,7 @@ const Player = {
       Sfx.block();
     } else {
       this.stun = C.playerStun;
-      this.hurtT = 0.18;
+      this.hurtT = 0.42;
       this.blinkT = C.invuln;
       this.invuln = C.invuln;
       if (requestKnockdown) {
@@ -178,8 +178,10 @@ const Player = {
       this.knockdownT = 0; this.gettingUp = false; this.getUpT = 0;
       this.blocking = false;
       this.kx *= 1.3; this.ky *= 1.3;
-      this.vz = Math.max(this.vz, 160);
-      this.onGround = false;
+      // A morte não dá um salto involuntário: a animação de queda/morte termina no chão.
+      this.z = this.floor;
+      this.vz = 0;
+      this.onGround = true;
       Sfx.death();
     }
     return dmg;
@@ -277,10 +279,12 @@ const Player = {
     // ----- Colisão com objetos sólidos -----
     World.solidsNear(this.x, this.y, this._solids);
     const list = this._solids;
+    const inBishopArena = typeof BishopDimension !== 'undefined' &&
+      typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive();
     for (let it = 0; it < 2; it++) {
       for (let i = 0; i < list.length; i++) {
         const o = list[i];
-        if (o.type === 'rock' && this.z + 6 >= o.h) continue;
+        if (o.type === 'rock' && (inBishopArena || this.z + 6 >= o.h)) continue;
         let dx = this.x - o.x, dy = this.y - o.y;
         const minD = o.r + this.r;
         const d2 = dx * dx + dy * dy;
@@ -298,12 +302,15 @@ const Player = {
     // ----- Superfície sob os pés (chão ou topo de pedra) -----
     let floor = 0;
     let sortY = this.y;
-    for (let i = 0; i < list.length; i++) {
-      const o = list[i];
-      if (o.type !== 'rock') continue;
-      const d = Math.hypot(this.x - o.x, this.y - o.y);
-      if (d < o.r + 3 && o.h > floor) floor = o.h;
-      if (d < o.r + this.r + 4 && this.z + 6 >= o.h) sortY = Math.max(sortY, o.y + 1);
+    // A arena 3D tem seu próprio piso; rochas do mapa 2D não podem virar plataformas invisíveis.
+    if (!inBishopArena) {
+      for (let i = 0; i < list.length; i++) {
+        const o = list[i];
+        if (o.type !== 'rock') continue;
+        const d = Math.hypot(this.x - o.x, this.y - o.y);
+        if (d < o.r + 3 && o.h > floor) floor = o.h;
+        if (d < o.r + this.r + 4 && this.z + 6 >= o.h) sortY = Math.max(sortY, o.y + 1);
+      }
     }
     this.floor = floor;
     this.sy = sortY;
@@ -311,7 +318,12 @@ const Player = {
     // ----- Pouso -----
     const wasAir = !this.onGround;
     const prevVz = this.vz;
-    if (this.z <= floor + 0.001 && this.vz <= 0) {
+    if (!this.dead && (this.knockdownT > 0 || this.gettingUp)) {
+      // Queda pesada e levantamento acontecem no piso real; sem gravidade extra no meio da animação.
+      this.z = floor;
+      this.vz = 0;
+      this.onGround = true;
+    } else if (this.z <= floor + 0.001 && this.vz <= 0) {
       if (wasAir && prevVz < -180) {
         this.squash = -0.28 * Math.min(1, -prevVz / 700);
         Ambient.spawnDust(this.x, this.y - floor, 7, this._dustColor(), 1.3);
