@@ -122,7 +122,7 @@ const Player = {
     const critical = !!options.critical && !this.blocking;
     if (critical) dmg = Math.round(dmg * 1.55);
     // A queda é exclusiva de um crítico confirmado; golpes fortes comuns não derrubam.
-    const requestKnockdown = !this.blocking && critical && options.knockdown === true;
+    const requestKnockdown = !this.blocking && critical && options.knockdown === true && this.knockdownT <= 0 && !this.gettingUp;
     let dx = this.x - fromX, dy = this.y - fromY;
     const d = Math.hypot(dx, dy) || 1;
     dx /= d; dy /= d;
@@ -146,7 +146,9 @@ const Player = {
         this.gettingUp = false;
         this.getUpT = 0;
         this.stun = Math.max(this.stun, 0.6);
-        this.invuln = Math.max(this.invuln, 1.55);
+        const fallTime = Math.min(2, Math.max(1.15, Number(window.ProtagonistaAnimationTiming && window.ProtagonistaAnimationTiming.fallDuration) || 1.15));
+        const getupTime = Math.min(2, Math.max(1.05, Number(window.ProtagonistaAnimationTiming && window.ProtagonistaAnimationTiming.getupDuration) || 1.05));
+        this.invuln = Math.max(this.invuln, fallTime + getupTime + 0.15);
       }
       this.attackT = -1;
       this.atkBuf = 0;
@@ -178,8 +180,15 @@ const Player = {
       this.knockdownT = 0; this.gettingUp = false; this.getUpT = 0;
       this.blocking = false;
       this.kx *= 1.3; this.ky *= 1.3;
-      this.vz = Math.max(this.vz, 160);
-      this.onGround = false;
+      if (this.z > this.floor + 0.001) {
+        // A morte não lança o corpo para cima; se estiver no ar, ele continua caindo.
+        this.vz = Math.min(this.vz, -120);
+        this.onGround = false;
+      } else {
+        this.z = this.floor;
+        this.vz = 0;
+        this.onGround = true;
+      }
       Sfx.death();
     }
     return dmg;
@@ -245,7 +254,7 @@ const Player = {
     // ----- Pulo (com coyote time e buffer) -----
     if (jumpPressed) this.buffer = P.buffer; else this.buffer = Math.max(0, this.buffer - dt);
     this.coyote = this.onGround ? P.coyote : Math.max(0, this.coyote - dt);
-    if (this.buffer > 0 && this.coyote > 0) {
+    if (this.buffer > 0 && this.coyote > 0 && canAct) {
       this.vz = P.jumpV;
       this.onGround = false;
       this.coyote = 0;
