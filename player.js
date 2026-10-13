@@ -111,29 +111,42 @@ const Player = {
     if (this.aimLocked) {
       dx = this.aimDirX; dy = this.aimDirY;
     } else {
-      dx = ax; dy = ay;
-      const m = Math.hypot(dx, dy);
-      if (m > 0.3) { dx /= m; dy /= m; }
-      else {
-        // Atacar parado mira o alvo vivo mais próximo em vez de reutilizar uma direção antiga.
-        let target = null;
-        let bestDistanceSq = (C.autoAimRange || 0) * (C.autoAimRange || 0);
-        const consider = function (candidate) {
-          if (!candidate || !Number.isFinite(candidate.x) || !Number.isFinite(candidate.y) ||
-              candidate.state === 'dead' || candidate.state === 'gone' || candidate.state === 'inactive' ||
-              (Number.isFinite(candidate.hp) && candidate.hp <= 0)) return;
-          const tx = candidate.x - this.x, ty = candidate.y - this.y;
-          const distanceSq = tx * tx + ty * ty;
-          if (distanceSq > 0.01 && distanceSq <= bestDistanceSq) { bestDistanceSq = distanceSq; target = candidate; }
-        }.bind(this);
-        if (typeof BishopBoss !== 'undefined' && (typeof BishopDimension !== 'undefined' && typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive())) consider(BishopBoss);
-        if (typeof Greedling !== 'undefined') consider(Greedling);
-        if (typeof Enemy !== 'undefined' && Array.isArray(Enemy.instances)) Enemy.instances.forEach(consider);
-        if (target) {
-          const length = Math.hypot(target.x - this.x, target.y - this.y) || 1;
-          dx = (target.x - this.x) / length; dy = (target.y - this.y) / length;
-        } else {
-          const f = Math.hypot(this.fx, this.fy) || 1; dx = this.fx / f; dy = this.fy / f;
+      const bossBattle = typeof BishopDimension !== 'undefined' &&
+        typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive() &&
+        typeof BishopBoss !== 'undefined' && BishopBoss.state !== 'inactive' &&
+        BishopBoss.state !== 'dead' && !(Number.isFinite(BishopBoss.hp) && BishopBoss.hp <= 0);
+      const bossDx = bossBattle ? BishopBoss.x - this.x : 0;
+      const bossDy = bossBattle ? BishopBoss.y - this.y : 0;
+      const bossDistance = Math.hypot(bossDx,bossDy);
+      if (bossBattle && bossDistance > 0.01 && bossDistance <= Math.max(C.autoAimRange||0,420)) {
+        // Na luta do Bispo, o ataque prioriza o alvo, não a direção do joystick.
+        // Isso evita virar as costas e cortar o vazio enquanto o jogador se move.
+        dx = bossDx / bossDistance; dy = bossDy / bossDistance;
+      } else {
+        dx = ax; dy = ay;
+        const m = Math.hypot(dx, dy);
+        if (m > 0.3) { dx /= m; dy /= m; }
+        else {
+          let target = null;
+          let bestDistanceSq = (C.autoAimRange || 0) * (C.autoAimRange || 0);
+          const consider = function (candidate) {
+            if (!candidate || !Number.isFinite(candidate.x) || !Number.isFinite(candidate.y) ||
+                candidate.state === 'dead' || candidate.state === 'gone' || candidate.state === 'inactive' ||
+                (Number.isFinite(candidate.hp) && candidate.hp <= 0)) return;
+            const tx = candidate.x - this.x, ty = candidate.y - this.y;
+            const distanceSq = tx * tx + ty * ty;
+            if (distanceSq > 0.01 && distanceSq <= bestDistanceSq) { bestDistanceSq = distanceSq; target = candidate; }
+          }.bind(this);
+          if (typeof BishopBoss !== 'undefined' && typeof BishopDimension !== 'undefined' &&
+              typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive()) consider(BishopBoss);
+          if (typeof Greedling !== 'undefined') consider(Greedling);
+          if (typeof Enemy !== 'undefined' && Array.isArray(Enemy.instances)) Enemy.instances.forEach(consider);
+          if (target) {
+            const length = Math.hypot(target.x - this.x, target.y - this.y) || 1;
+            dx = (target.x - this.x) / length; dy = (target.y - this.y) / length;
+          } else {
+            const f = Math.hypot(this.fx, this.fy) || 1; dx = this.fx / f; dy = this.fy / f;
+          }
         }
       }
     }
