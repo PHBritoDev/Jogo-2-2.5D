@@ -198,7 +198,6 @@ const BishopDimension = (function () {
     // Mini sistema planetário: substitui o buraco negro por mundos grandes,
     // coloridos e afastados da zona de combate. Geometria low-poly leve.
     addSphere(world,-24,17,-49,7.2,'#3d5d9a',10,16,1,.96,.9);
-    addSphere(world,-24,17,-49,10.1,'#b8a5ff',.0+3,40,1,.25,.88);
     addRing(world,-24,17,-49,10.1,3.15,.18,'#b8a5ff',.68,40);
     addSphere(world,21,20,-56,6.1,'#8e493e',10,16,1,1,.92);
     addRing(world,21,20,-56,8.6,2.1,.16,'#d8b27b',.7,36);
