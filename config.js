@@ -59,8 +59,8 @@ const CFG = {
     damage: 12,
     reach: 24,             // início da zona de corte à frente do jogador
     bladeReach: 42,        // prolonga a colisão até a ponta da lâmina
-    autoAimRange: 360,     // mira o alvo próximo ao atacar sem direcionar o analógico
-    hitR: 20,              // espessura da zona de corte
+    autoAimRange: 480,     // assistência de mira no alvo próximo, inclusive em combate corpo a corpo
+    hitR: 24,              // tolerância da lâmina para não atravessar o alvo sem registrar
     hitZ: 38,              // diferença máxima de altura para acertar
     kb: 320,               // knockback no inimigo
     lunge: 110,            // impulso do jogador ao atacar
