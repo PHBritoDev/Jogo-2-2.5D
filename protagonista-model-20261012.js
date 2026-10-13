@@ -348,18 +348,7 @@
           if(/death|dying|dead|^die$|morrer|morte/.test(n))actions.death=actions.death||clip;
         });
         applySavedAnimationRoles(clips);
-        // Este GLB tem seis clipes na ordem conhecida: respirar, andar, atacar,
-        // tomar dano, levantar e morrer. Se os nomes forem genéricos, usa essa ordem.
-        if(clips.length===6){
-          if(!actions.idle)actions.idle=clips[0]||null;
-          if(!actions.walk)actions.walk=clips[1]||null;
-          if(!actions.attack&&attackClips.length===0&&clips[2]){
-            actions.attack1=clips[2];actions.attack=clips[2];attackClips=[clips[2]];
-          }
-          if(!actions.hurt)actions.hurt=clips[3]||null;
-          if(!actions.getup)actions.getup=clips[4]||null;
-          if(!actions.death)actions.death=clips[5]||null;
-        }
+        // Não atribuir funções pela posição dos clipes: isso confunde ataque, dano e morte.
         const unsafeRole=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand|hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|get.?up|stand.?up|rise|recover.?floor|levant|levantar|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh/i;
         if(!actions.idle){
           actions.idle=clips.find(function(c){return /breath|idle|rest|standstill|parado/i.test(c.name||'');})||null;
@@ -373,7 +362,7 @@
           actions.idle=clips.find(function(c){return !unsafeRole.test(c.name||'');})||null;
         }
         // Queda e morte são estados distintos: nunca reutilizar a animação de morte para derrubada.
-        actions.fall=actions.fall||actions.death||null;
+        actions.fall=actions.fall||null;
         actions.death=actions.death||null;
         window.ProtagonistaAnimationTiming={
           attackDuration:.34,
