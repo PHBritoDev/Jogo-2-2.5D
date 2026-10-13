@@ -126,10 +126,11 @@
         window.ProtagonistaAnimationTiming={
           // O combate real usa estes tempos: sincronizar o clip inteiro evita o golpe
           // continuar além da hitbox ou a reação de dano ser cortada no meio.
-          attackDuration:.34,
-          hurtDuration:.18,
-          fallDuration:Number((actions.fall||actions.death||{}).duration)||1.05,
-          getupDuration:Number((actions.getup||{}).duration)||1.05
+          attackDuration:.58,
+          hurtDuration:.42,
+          fallDuration:Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0),
+          deathDuration:1.8,
+          getupDuration:Math.max(1.4,Number((actions.getup||{}).duration)||0)
         };
         roles.textContent='Funções: '+Object.keys(ROLE_LABELS).map(function(k){return ROLE_LABELS[k]+': '+(saved[k]!==undefined&&clips[Number(saved[k])]?clips[Number(saved[k])].name:'não definida');}).join(' | ');
       });
@@ -365,10 +366,11 @@
         actions.fall=actions.fall||null;
         actions.death=actions.death||null;
         window.ProtagonistaAnimationTiming={
-          attackDuration:.34,
-          hurtDuration:.18,
-          fallDuration:Math.max(1.15,Number((actions.fall||{}).duration)||0),
-          getupDuration:Math.max(1.05,Number((actions.getup||{}).duration)||0)
+          attackDuration:.58,
+          hurtDuration:.42,
+          fallDuration:Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0),
+          deathDuration:1.8,
+          getupDuration:Math.max(1.4,Number((actions.getup||{}).duration)||0)
         };
         ready=true;window.ProtagonistaGLBReady=true;
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k]&&actions[k].name||null;return o;},{})};
