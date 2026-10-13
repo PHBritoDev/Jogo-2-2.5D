@@ -435,10 +435,11 @@ const BishopBoss = {
     if (this.hp <= 0) {
       this._go('dead');
       this.kx *= 1.3; this.ky *= 1.3;
-      // A morte usa a mesma gravidade do jogador/inimigos: impulso curto e pouso real.
-      this.z = Math.max(0, this.z || 0);
-      this.vz = 420;
-      this.onGround = false;
+      // A animação de morte já mostra a queda; não lançar o Bispo para o ar por física adicional.
+      this.z = 0;
+      this.vz = 0;
+      this.floor = 0;
+      this.onGround = true;
       Ambient.spawnSpark(this.x, gy, 24, '#f2c654');
       Ambient.spawnSpark(this.x, gy, 9, '#ffffff');
       Sfx.death();
