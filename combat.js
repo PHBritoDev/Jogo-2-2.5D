@@ -468,6 +468,7 @@ const Combat = {
       tags: ['weapon', 'melee', 'combo-' + (stage + 1)],
       damage: Math.round(C.damage * scale),
       reach: C.reach * [1, 1.04, 1.10][stage],
+      bladeReach: C.bladeReach * [1, 1.06, 1.15][stage],
       hitRadius: C.hitR * [1, 1.02, 1.08][stage],
       knockback: C.kb * [1, 1.05, 1.25][stage],
       hitstop: C.hitstop * [1, 1.15, 1.65][stage],
@@ -485,13 +486,31 @@ const Combat = {
         this.attackModifiers.delete(id);
       }
     }
-    const defaults = { damage: C.damage, reach: C.reach, hitRadius: C.hitR, knockback: C.kb, hitstop: C.hitstop, cameraShake: 0 };
+    const defaults = { damage: C.damage, reach: C.reach, bladeReach: C.bladeReach, hitRadius: C.hitR, knockback: C.kb, hitstop: C.hitstop, cameraShake: 0 };
     Object.keys(defaults).forEach(function (key) {
       const value = Number(profile[key]);
       profile[key] = Number.isFinite(value) ? Math.max(0, value) : defaults[key];
     });
     if (!Array.isArray(profile.tags)) profile.tags = ['weapon', 'melee'];
     return profile;
+  },
+
+  // Colisão em cápsula ao longo da lâmina, não apenas num círculo curto à frente.
+  _swordTouches(E, strike, C) {
+    if (Math.abs((Number(E.z) || 0) - (Number(Player.z) || 0)) >= C.hitZ) return false;
+    const dirX = Number(Player.atkDirX) || 0, dirY = Number(Player.atkDirY) || 1;
+    const tx = E.x - Player.x, ty = E.y - Player.y;
+    if (tx * dirX + ty * dirY < 0) return false;
+    const start = Math.min(Math.max(4, (Number(Player.r) || 0) * 0.35), strike.reach * 0.45);
+    const end = Math.max(start, strike.reach + (Number(strike.bladeReach) || 0));
+    const ax = Player.x + dirX * start, ay = Player.y + dirY * start;
+    const bx = Player.x + dirX * end, by = Player.y + dirY * end;
+    const sx = bx - ax, sy = by - ay;
+    const lengthSq = sx * sx + sy * sy || 1;
+    const t = Math.max(0, Math.min(1, ((E.x - ax) * sx + (E.y - ay) * sy) / lengthSq));
+    const dx = E.x - (ax + sx * t), dy = E.y - (ay + sy * t);
+    const radius = Math.max(0, Number(strike.hitRadius) || 0) + Math.max(0, Number(E.r) || 0);
+    return dx * dx + dy * dy <= radius * radius;
   },
 
   init() {
@@ -586,11 +605,7 @@ const Combat = {
     // Só acerta dentro da janela ativa e uma única vez por golpe (attackId)
     if (Player.isAttackActive() && E.hitId !== Player.attackId) {
       const strike = this.playerAttackProfile(E);
-      const hx = Player.x + Player.atkDirX * strike.reach;
-      const hy = Player.y + Player.atkDirY * strike.reach;
-      const dx = E.x - hx, dy = E.y - hy;
-      const rr = strike.hitRadius + E.r;
-      if (dx * dx + dy * dy <= rr * rr && Math.abs(E.z - Player.z) < C.hitZ) {
+      if (this._swordTouches(E, strike, C)) {
         E.hitId = Player.attackId;
         let kx = E.x - Player.x, ky = E.y - Player.y;
         const m = Math.hypot(kx, ky);
