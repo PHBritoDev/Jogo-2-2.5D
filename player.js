@@ -116,7 +116,7 @@ const Player = {
           const distanceSq = tx * tx + ty * ty;
           if (distanceSq > 0.01 && distanceSq <= bestDistanceSq) { bestDistanceSq = distanceSq; target = candidate; }
         }.bind(this);
-        if (typeof BishopBoss !== 'undefined') consider(BishopBoss);
+        if (typeof BishopBoss !== 'undefined' && (typeof BishopDimension !== 'undefined' && typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive())) consider(BishopBoss);
         if (typeof Greedling !== 'undefined') consider(Greedling);
         if (typeof Enemy !== 'undefined' && Array.isArray(Enemy.instances)) Enemy.instances.forEach(consider);
         if (target) {
