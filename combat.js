@@ -617,6 +617,8 @@ const Combat = {
         const m = Math.hypot(kx, ky);
         if (m > 0.001) { kx /= m; ky /= m; } else { kx = Player.atkDirX; ky = Player.atkDirY; }
         E.hurt(strike.damage, kx, ky, strike.knockback);
+        if(typeof Sfx!=='undefined')Sfx.hit();
+        if(typeof BishopDimension!=='undefined'&&typeof BishopDimension.impact==='function'&&BishopDimension.isBattleActive())BishopDimension.impact(strike.cameraShake||.6);
         Game.hitstop = Math.max(Game.hitstop, strike.hitstop);
         Camera.shake = Math.max(Camera.shake, strike.cameraShake);
         // Sinal simples para o protótipo 3D acender o núcleo ao confirmar um acerto real.
