@@ -629,7 +629,7 @@ const BishopDimension = (function () {
               const vi=p.indices[i+q],v=p.positions[vi];
               const lx=(v[0]-(min[0]+max[0])*.5)*k,lz=(v[2]-(min[2]+max[2])*.5)*k;
               const ly=(v[1]-min[1])*k;
-              const tx=x+lx*co-lz*si, tz=z+lx*si+lz*co,ty=.105+ly;
+              const tx=x+lx*co-lz*si, tz=z+lx*si+lz*co,ty=-.005+ly;
               const vc=p.colors&&p.colors[vi]||[1,1,1,1],f=p.factor;
               tri.push([tx,ty,tz],[Math.max(0,Math.min(1,vc[0]*f[0]*shade)),Math.max(0,Math.min(1,vc[1]*f[1]*shade)),Math.max(0,Math.min(1,vc[2]*f[2]*shade)),vc[3]*(f[3]==null?1:f[3])]);
             }
@@ -738,7 +738,7 @@ const BishopDimension = (function () {
       attack:(Player.attackT||-1)>=0,attackT:Number(Player.attackT),attackId:Number(Player.attackId)||0,
       jumping:((Number(Player.z)||0)-(Number(Player.floor)||0))>.08,time:Game.time||0
     };
-    gl.clearColor(.006,.009,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.clearColor(.012,.016,.026,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
     // O shader move vértices altos, deixando copas e folhas balançarem sem
     // deslocar o piso; o vento custa apenas uma operação por vértice.
