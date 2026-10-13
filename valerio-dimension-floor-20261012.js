@@ -616,7 +616,7 @@ const BishopDimension = (function () {
       active:true,eye:eye.slice(),target:target.slice(),
       position:[px,arenaFloorHeight(px,pz)+playerJump,pz],yaw:-playerYaw,
       aspect:w/h,fov:dist<0.95?1.22:1.02,firstPerson:dist<0.95,
-      moving:playerMoving,speed:Math.hypot(Player.vx||0,Player.vy||0),
+      moving:playerMoving,speed:Math.hypot(Player.vx||0,Player.vy||0),evading:(Player.evadeT||0)>0,evadeT:Number(Player.evadeT)||0,
       dead:!!Player.dead,knockedDown:(Player.knockdownT||0)>0,
       gettingUp:!!Player.gettingUp,hurt:(Player.hurtT||0)>0,hurtId:Number(Player.damageId)||0,hurtT:Number(Player.hurtT)||0,blocking:!!Player.blocking,
       attack:(Player.attackT||-1)>=0,attackT:Number(Player.attackT),attackId:Number(Player.attackId)||0,
@@ -701,6 +701,12 @@ const BishopDimension = (function () {
   function frame() {
     if(!S.canvas)return;
     const inside=!!(Casino.inside&&isBattleActive());
+    const evadeButton=document.getElementById('btn-aim');
+    if(evadeButton){
+      const label=inside?'ESQUIVA':'MIRAR';
+      if(evadeButton.textContent!==label)evadeButton.textContent=label;
+      evadeButton.setAttribute('aria-label',inside?'Esquivar':'Alternar modo de mira direcional');
+    }
     if(!inside){window.ValerioModelView={active:false};window.PlayerModelView={active:false};}
     document.body.classList.toggle('bishop-battle',inside);
     const shouldBeVisible=inside||(!Casino.inside&&Casino.discovered&&Campaign.flags.casinoDiscovered);
