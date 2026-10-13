@@ -75,7 +75,9 @@
       actions.attack=attackClips[0];
     }
     actions.fall=actions.fall||null;
-    actions.death=actions.death||null;
+    // O usuário confirmou que o clipe de queda também é a animação de morte.
+    // Reutilizá-lo evita que a morte fique sem clipe e deixe o protagonista em pé.
+    actions.death=actions.death||actions.fall||null;
   }
   function showAnimationDiagnostics(clips){
     const params=new URLSearchParams(window.location.search);if(params.get('debugAnimations')!=='1'||params.get('showAnimationMapper')!=='1')return;
@@ -126,11 +128,11 @@
         window.ProtagonistaAnimationTiming={
           // O combate real usa estes tempos: sincronizar o clip inteiro evita o golpe
           // continuar além da hitbox ou a reação de dano ser cortada no meio.
-          attackDuration:.58,
-          hurtDuration:.42,
+          attackDuration:1.4,
+          hurtDuration:.9,
           fallDuration:Math.max(1.55,Number((actions.fall||actions.death||{}).duration)||0),
           deathDuration:1.8,
-          getupDuration:Math.max(1.4,Number((actions.getup||{}).duration)||0)
+          getupDuration:Math.max(1.55,Number((actions.getup||{}).duration)||0)
         };
         roles.textContent='Funções: '+Object.keys(ROLE_LABELS).map(function(k){return ROLE_LABELS[k]+': '+(saved[k]!==undefined&&clips[Number(saved[k])]?clips[Number(saved[k])].name:'não definida');}).join(' | ');
       });
