@@ -590,7 +590,7 @@ const BishopDimension = (function () {
     const lookAhead=dist<0.95?2.8:5.3;
     const target=[px+sy*cp*lookAhead,1.2+sp*lookAhead,pz-cy*cp*lookAhead];
     const pv=multiply(perspective(dist<0.95?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
-    const playerJump=clamp(Player.z||0,0,60)*unit;
+    const playerJump=clamp((Number(Player.z)||0)-(Number(Player.floor)||0),0,60)*unit;
     const playerMoving=Math.hypot(Player.vx||0,Player.vy||0)>18;
     const playerIsAttacking=(Player.attackT||-1)>=0;
     let playerYaw=Math.atan2(Number.isFinite(Player.fx)?Player.fx:0,-(Number.isFinite(Player.fy)?Player.fy:-1));
