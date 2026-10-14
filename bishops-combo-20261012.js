@@ -141,8 +141,9 @@ const BossArtPreload = (function () {
 // Retrato do protagonista: reaproveita o desenho real do jogador (Player.draw) em um canvas pequeno.
 // É vetorial, não depende de arquivo externo nem do GLB e é gerado uma única vez (leve e confiável).
 const HeroPortrait = (function () {
-  let url = '';
+  let url = '', overrideUrl = '';
   function build() {
+    if (overrideUrl) return overrideUrl;
     if (url) return url;
     try {
       const W = 192, H = 192, k = 4.3;
@@ -199,9 +200,18 @@ const HeroPortrait = (function () {
     }
   }
   function init() { apply(document.getElementById('hero-portrait'), false); }
+  function set3D(src) {
+    if (typeof src !== 'string' || !src.startsWith('data:image/')) return;
+    overrideUrl = src;
+    url = src;
+    init();
+    const mark = document.querySelector('.boss-intro-player-mark');
+    if (mark) apply(mark, true);
+  }
+  window.SetHeroPortrait3D = set3D;
   if (document.readyState === 'complete') setTimeout(init, 300);
   else window.addEventListener('load', function () { setTimeout(init, 300); }, { once: true });
-  return { build: build, apply: apply };
+  return { build: build, apply: apply, set3D: set3D };
 })();
 
 const BossPresentation = {
