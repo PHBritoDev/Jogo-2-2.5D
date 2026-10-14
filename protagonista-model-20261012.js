@@ -529,10 +529,13 @@
     // MOD 52: o clip de morte (Hit Knockback) é só um tropeço e deixava o corpo em pé, "caindo no vento".
     // Depois do tropeço o corpo tomba para trás até deitar no chão.
     const fallRaw=v.dead?Math.max(0,Math.min(1,((Number(v.deadT)||0)-.3)/.6)):0,fall=fallRaw*fallRaw*(3-2*fallRaw);
-    pivot.rotation.x=-hurtAmount*.13-evadeP*.32+guardP*.1-fall*1.5;
-    pivot.position.y=v.position[1]-evadeP*.14-guardP*.05;
+    const jumpP=v.jumping?Math.max(0,Math.min(1,(Number(v.position[1])||0)-0.02)):0;
+    // MOD 56: esquiva mais atlética (inclinação lateral e compressão), e salto com
+    // postura inclinada no ar. São ajustes no pivô, sem tocar no esqueleto ou nos clips GLB.
+    pivot.rotation.x=-hurtAmount*.13-evadeP*.48+guardP*.1-fall*1.5-jumpP*.10;
+    pivot.position.y=v.position[1]-evadeP*.19-guardP*.05;
     lastFall=fall;
-    pivot.rotation.z=0;
+    pivot.rotation.z=-evadeP*.34+jumpP*.08;
     if(!diagnosticPreview)choose(v);
     if(currentType==='walk'&&currentAction){
       const speed=Math.max(0,Number(v.speed)||0);
