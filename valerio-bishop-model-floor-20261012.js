@@ -839,7 +839,9 @@
         const synchronizedRate=Math.max(0.18,Math.min(1.05,movementSpeed/76));
         currentAction.setEffectiveTimeScale(synchronizedRate);
       }
-      mixer.update(turnDt);
+      // Congela o quadro final da morte quando o corpo termina de tombar, evitando deslize animado no chão.
+      if(isDeadV&&deadFallV>=1){if(currentAction)currentAction.paused=true;}
+      else mixer.update(turnDt);
     }
     // RECUPERAÇÃO: volta ao sistema de piso anterior à regressão introduzida
     // pela ancoragem por bounding box a cada frame. O combate define o pivô;
