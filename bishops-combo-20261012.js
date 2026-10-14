@@ -780,7 +780,12 @@ const BishopBoss = {
 
       case 'dead':
         this.alpha = U.clamp(1 - Math.max(0, this.stateT - 0.65) / 0.8, 0, 1);
-        break;
+        // MOD 56: congela completamente o corpo após a queda. Antes, o knockback
+        // residual ainda passava pela física comum e fazia o cadáver deslizar em círculos.
+        this.vx = this.vy = this.kx = this.ky = 0;
+        this.speed = 0;
+        this.sy = this.y;
+        return;
     }
 
     const k = Math.min(1, dt * 9);
