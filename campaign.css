@@ -532,3 +532,56 @@ body.bishop-battle #toast {
   .boss-intro.ready .boss-intro-card,
   .boss-intro-portrait { animation: none !important; }
 }
+
+
+/* MOD 63 — correção estrutural do alinhamento do confronto VS.
+   Os retratos eram posicionados por vários overrides de left/calc().
+   Grid em três colunas mantém jogador e chefe simétricos em qualquer viewport. */
+#boss-intro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#boss-intro .boss-intro-card {
+  width: min(760px, 100%);
+  margin-inline: auto;
+}
+#boss-intro .boss-intro-versus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  width: min(100%, 520px);
+  margin-inline: auto;
+}
+#boss-intro .boss-intro-player-mark {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
+  left: auto !important;
+  justify-self: center;
+}
+#boss-intro .boss-intro-vs {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  left: auto !important;
+  justify-self: center;
+}
+#boss-intro .boss-intro-portrait {
+  position: relative;
+  grid-column: 3;
+  grid-row: 1;
+  left: auto !important;
+  justify-self: center;
+}
+@media (max-width: 600px) {
+  #boss-intro .boss-intro-versus {
+    width: min(100%, 420px);
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+}
+@media (max-height: 520px) {
+  #boss-intro { align-items: flex-start; }
+  #boss-intro .boss-intro-card { margin: auto 0; }
+}
