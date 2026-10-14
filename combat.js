@@ -500,22 +500,31 @@ const Combat = {
     return profile;
   },
 
-  // Colisão em cápsula ao longo da lâmina, não apenas num círculo curto à frente.
+  // MOD 55: cápsula ao longo da lâmina, com tolerância calibrada apenas para o Bispo.
+  // O GLB visual e a física 2D usam espaços distintos; a pequena margem compensa a diferença
+  // sem transformar os ataques contra inimigos comuns em golpes de longo alcance.
   _swordTouches(E, strike, C) {
-    if (Math.abs((Number(E.z) || 0) - (Number(Player.z) || 0)) >= C.hitZ) return false;
+    const isBishop = E === BishopBoss || (E.profile && E.profile.id === 'bishop1');
+    const verticalTolerance = isBishop ? Math.max(C.hitZ, 56) : C.hitZ;
+    if (Math.abs((Number(E.z) || 0) - (Number(Player.z) || 0)) >= verticalTolerance) return false;
     const rawDirX=Number(Player.atkDirX),rawDirY=Number(Player.atkDirY);
     const dirX=Number.isFinite(rawDirX)?rawDirX:0,dirY=Number.isFinite(rawDirY)?rawDirY:1;
     const tx = E.x - Player.x, ty = E.y - Player.y;
-    if (tx * dirX + ty * dirY < 0) return false;
+    const targetDistance = Math.hypot(tx, ty);
+    // Alvos comuns continuam exigindo que estejam à frente; contra o Bispo permitimos
+    // um pequeno erro lateral de mira, pois a foice/espada visual tem largura e arco.
+    if (tx * dirX + ty * dirY < 0 && (!isBishop || targetDistance > (strike.reach + strike.bladeReach + (E.r || 0)))) return false;
     const start = Math.min(Math.max(4, (Number(Player.r) || 0) * 0.35), strike.reach * 0.45);
-    const end = Math.max(start, strike.reach + (Number(strike.bladeReach) || 0));
+    const tipAssist = isBishop ? 16 : 0;
+    const end = Math.max(start, strike.reach + (Number(strike.bladeReach) || 0) + tipAssist);
     const ax = Player.x + dirX * start, ay = Player.y + dirY * start;
     const bx = Player.x + dirX * end, by = Player.y + dirY * end;
     const sx = bx - ax, sy = by - ay;
     const lengthSq = sx * sx + sy * sy || 1;
     const t = Math.max(0, Math.min(1, ((E.x - ax) * sx + (E.y - ay) * sy) / lengthSq));
     const dx = E.x - (ax + sx * t), dy = E.y - (ay + sy * t);
-    const radius = Math.max(0, Number(strike.hitRadius) || 0) + Math.max(0, Number(E.r) || 0);
+    const bishopContactGrace = isBishop ? 12 : 0;
+    const radius = Math.max(0, Number(strike.hitRadius) || 0) + Math.max(0, Number(E.r) || 0) + bishopContactGrace;
     return dx * dx + dy * dy <= radius * radius;
   },
 
@@ -608,8 +617,14 @@ const Combat = {
     const C = CFG.COMBAT;
     if (E.state === 'dead' || E.state === 'gone' || E.state === 'inactive') return;
 
-    // Só acerta dentro da janela ativa e uma única vez por golpe (attackId)
-    if (Player.isAttackActive() && E.hitId !== Player.attackId) {
+    // MOD 55: pequena janela extra no Bispo para alinhar o contato visual da lâmina
+    // com a animação 3D; cada ataque continua causando dano no máximo uma vez.
+    const bishopTarget = E === BishopBoss || (E.profile && E.profile.id === 'bishop1');
+    const attackWindowGrace = bishopTarget && Player.attackT >= 0 &&
+      Player.attackT >= Math.max(0, Player.attackHitStartCurrent - 0.06) &&
+      Player.attackT <= Player.attackHitEndCurrent + 0.10;
+    // Só acerta durante o golpe (com tolerância curta no chefe) e uma vez por attackId.
+    if ((Player.isAttackActive() || attackWindowGrace) && E.hitId !== Player.attackId) {
       const strike = this.playerAttackProfile(E);
       if (this._swordTouches(E, strike, C)) {
         E.hitId = Player.attackId;
