@@ -318,7 +318,7 @@
         root.position.y-=box.min.y*factor;
         rootBasePosition=root.position.clone();
         restoreModelScales=lockModelScales(root);
-        pivot=new THREE.Group();pivot.visible=false;pivot.add(root);api.scene.add(pivot);
+        pivot=new THREE.Group();pivot.rotation.order='YXZ';pivot.visible=false;pivot.add(root);api.scene.add(pivot);
         loadSword(root);
         mixer=new THREE.AnimationMixer(root);
         const clips=gltf.animations||[];
@@ -525,8 +525,11 @@
     // sem mexer nos ossos, para não distorcer o rig.
     const evadeP=v.evading?Math.sin(Math.PI*Math.max(0,Math.min(1,1-(Number(v.evadeT)||0)/.24))):0;
     const guardP=v.blocking&&!v.attack?1:0;
-    pivot.rotation.x=-hurtAmount*.13-evadeP*.32+guardP*.1;
-    pivot.position.y=v.position[1]-evadeP*.14-guardP*.05;
+    // MOD 52: o clip de morte (Hit Knockback) é só um tropeço e deixava o corpo em pé, "caindo no vento".
+    // Depois do tropeço o corpo tomba para trás até deitar no chão.
+    const fallRaw=v.dead?Math.max(0,Math.min(1,((Number(v.deadT)||0)-.3)/.6)):0,fall=fallRaw*fallRaw*(3-2*fallRaw);
+    pivot.rotation.x=-hurtAmount*.13-evadeP*.32+guardP*.1-fall*1.48;
+    pivot.position.y=v.position[1]-evadeP*.14-guardP*.05+fall*.12;
     pivot.rotation.z=0;
     if(!diagnosticPreview)choose(v);
     if(currentType==='walk'&&currentAction){

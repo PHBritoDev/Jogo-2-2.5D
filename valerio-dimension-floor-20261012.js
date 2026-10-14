@@ -534,6 +534,22 @@ const BishopDimension = (function () {
   function insideFrame() {
     const gl=S.gl,w=S.canvas.width,h=S.canvas.height,room=Casino.room,unit=1/72;
     const px=(Player.x-(room.left+room.right)/2)*unit,pz=(Player.y-(room.top+room.bottom)/2)*unit;
+    // MOD 52: câmera de RPG com trava de alvo. Sem arrasto manual, ela vai para trás do jogador olhando
+    // para o chefe (o joystick "para cima" sempre avança nele). Arrastar a tela retoma o controle por ~2 s.
+    {
+      const nowMs=performance.now(),camDt=Math.min(.05,Math.max(0,(nowMs-(S.camT||nowMs))/1000));S.camT=nowMs;
+      const c0=S.camera;
+      const bossUp=BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'&&Number.isFinite(BishopBoss.x)&&Number.isFinite(BishopBoss.y);
+      const manual=nowMs-(S.lookAt||0)<2000;
+      if(bossUp&&!Player.dead&&!manual&&Campaign.step&&Campaign.step.boss==='greedFirst'){
+        const bdx=(BishopBoss.x-(room.left+room.right)/2)*unit-px,bdz=(BishopBoss.y-(room.top+room.bottom)/2)*unit-pz;
+        if(Math.hypot(bdx,bdz)>.4){
+          const want=Math.atan2(bdx,-bdz),delta=Math.atan2(Math.sin(want-c0.yaw),Math.cos(want-c0.yaw));
+          c0.yaw+=delta*Math.min(1,camDt*3.4);
+          c0.pitch+=(-0.14-c0.pitch)*Math.min(1,camDt*1.6);
+        }
+      }
+    }
     const cam=S.camera, yaw=cam.yaw, pitch=cam.pitch, dist=cam.distance;
     const cp=Math.cos(pitch), sp=Math.sin(pitch), sy=Math.sin(yaw), cy=Math.cos(yaw);
     const evadeProgress=(Player.evadeT||0)>0?clamp(1-(Player.evadeT/.24),0,1):0;
@@ -549,7 +565,8 @@ const BishopDimension = (function () {
     const playerJump=clamp((Number(Player.z)||0)-(Number(Player.floor)||0),0,60)*unit;
     const playerMoving=Math.hypot(Player.vx||0,Player.vy||0)>18;
     const playerIsAttacking=(Player.attackT||-1)>=0;
-    let playerYaw=Math.atan2(Number.isFinite(Player.fx)?Player.fx:0,-(Number.isFinite(Player.fy)?Player.fy:-1));
+    // MOD 52: mesma convenção do Valério (yaw = atan2(dx,dz)). Antes usava atan2(dx,-dz) e negava no fim: o modelo ficava 180° virado.
+    let playerYaw=Math.atan2(Number.isFinite(Player.fx)?Player.fx:0,(Number.isFinite(Player.fy)?Player.fy:-1));
     // MOD 51: trava de alvo. Com o chefe vivo a menos de ~4,5 m o corpo sempre o encara (andar, defender,
     // recuar), exceto durante a esquiva. Antes, andar de lado perto dele virava as costas e o golpe saía para trás.
     const bossAliveForLock=BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'&&Number.isFinite(BishopBoss.x)&&Number.isFinite(BishopBoss.y);
@@ -559,7 +576,7 @@ const BishopDimension = (function () {
     if(playerIsAttacking){
       const ax=Number.isFinite(Player.atkDirX)?Player.atkDirX:Player.fx;
       const ay=Number.isFinite(Player.atkDirY)?Player.atkDirY:Player.fy;
-      playerYaw=Math.atan2(ax,-ay);
+      playerYaw=Math.atan2(ax,ay);
     }else if(!playerMoving||bossLockOn){
       const facingBossStep=Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst';
       const facingBossLive=facingBossStep&&(BishopBoss.state!=='inactive'||(Campaign.st&&Campaign.st.phase==='intro'));
@@ -569,12 +586,12 @@ const BishopDimension = (function () {
         const byFacing=bossActiveForFacing&&Number.isFinite(BishopBoss.y)?BishopBoss.y:Casino.bossStart.y;
         const bossXFacing=(bxFacing-(room.left+room.right)/2)*unit;
         const bossZFacing=(byFacing-(room.top+room.bottom)/2)*unit;
-        playerYaw=Math.atan2(bossXFacing-px,-(bossZFacing-pz));
+        playerYaw=Math.atan2(bossXFacing-px,(bossZFacing-pz));
       }
     }
     window.PlayerModelView={
       active:true,eye:eye.slice(),target:target.slice(),
-      position:[px,arenaFloorHeight(px,pz)+playerJump-evadeDip,pz],yaw:-playerYaw,
+      position:[px,arenaFloorHeight(px,pz)+playerJump-evadeDip,pz],yaw:playerYaw,deadT:Number(Player.deadT)||0,
       aspect:w/h,fov:dist<0.95?1.22:1.02,firstPerson:dist<0.95,
       moving:playerMoving,speed:Math.hypot(Player.vx||0,Player.vy||0),evading:(Player.evadeT||0)>0,evadeT:Number(Player.evadeT)||0,
       dead:!!Player.dead,knockedDown:(Player.knockdownT||0)>0,
@@ -702,7 +719,7 @@ const BishopDimension = (function () {
   function isBattleActive() {
     return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
   }
-  function addCameraLook(dx,dy){const c=S.camera;c.yaw+=dx*.006;c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
+  function addCameraLook(dx,dy){S.lookAt=performance.now();const c=S.camera;c.yaw+=dx*.006;c.pitch=clamp(c.pitch-dy*.005,-0.9,0.85);}
   function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
   function impact(strength){S.impactAt=performance.now();S.impactStrength=clamp(Number(strength)||.6,.25,1.5);}
   function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
