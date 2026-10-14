@@ -171,7 +171,7 @@ const BishopDimension = (function () {
     return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),ruins:mesh(S.gl,ruins)};
   }
   function buildArena() {
-    const world=[],foliage=[],shadows=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
+    const world=[],foliage=[],shadows=[],leaves=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
 
     // Piso de suporte discreto: a grama real cobre toda a superfície jogável.
     // Sem estrada, pedras, cascalho, raízes soltas ou moitas sobre o terreno.
@@ -229,6 +229,8 @@ const BishopDimension = (function () {
       }
       addSegment(world,[x,.035,z],mid,.34*scale,.20*scale,bark,6);
       addSegment(world,mid,top,.20*scale,.045*scale,deadBark[(seed+2)%deadBark.length],6);
+      // Filete frio discreto: sugere luz lunar nas arestas sem luz dinâmica.
+      addSegment(foliage,[x-.10*scale,.22*scale,z-.17*scale],[top[0]-.035*scale,top[1]*.92,top[2]-.035*scale],.026*scale,.004*scale,'#66727a',4);
       for(let j=0;j<6;j++){
         const dir=((seed+j)%2===0?-1:1);
         const yy=h*(.34+j*.092),xx=x+lean*(yy/h);
@@ -273,6 +275,15 @@ const BishopDimension = (function () {
       }
     }
 
+    // Folhas secas estilizadas: malha única, sem criar partículas novas a cada quadro.
+    for(let i=0;i<14;i++){
+      const x=-10+((i*37)%197)/197*20, y=1.0+((i*23)%100)/100*4.5, z=-24+((i*41)%193)/193*48;
+      const ang=(i*1.71)%Math.PI, len=.13+(i%4)*.035, wid=len*.34;
+      const dx=Math.cos(ang)*len,dz=Math.sin(ang)*len,px=-Math.sin(ang)*wid,pz=Math.cos(ang)*wid;
+      const c=color(i%3===0?'#a77848':(i%3===1?'#73513c':'#b58b55'),.82);
+      addTri(leaves,[x-dx*.5,y,z-dz*.5],[x+px,y+.025,z+pz],[x+dx,y+.015,z+dz],c);
+      addTri(leaves,[x-dx*.5,y,z-dz*.5],[x+dx,y+.015,z+dz],[x-px,y-.008,z-pz],c);
+    }
     // Céu noturno local da dimensão: estrelas geométricas baratas, sem alterar o mundo 2D.
     for(let i=0;i<132;i++){
       const seed=(i*37)%137/137;
@@ -363,7 +374,7 @@ const BishopDimension = (function () {
     addSegment(bishopArmL,[0,0,0],[-.24,-.35,-.03],.095,.065,'#30213a',6);
     addSegment(bishopArmR,[0,0,0],[.24,-.35,-.03],.095,.065,'#30213a',6);
     return {
-      world:mesh(S.gl,world),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
+      world:mesh(S.gl,world),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),leaves:mesh(S.gl,leaves),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
       energy:mesh(S.gl,energy),particles:mesh(S.gl,particles),
       player:mesh(S.gl,player),bishop:mesh(S.gl,bishop),
       playerArmL:mesh(S.gl,playerArmL),playerArmR:mesh(S.gl,playerArmR),
@@ -650,6 +661,9 @@ const BishopDimension = (function () {
     if(S.arena.grassAsset)draw(S.arena.grassAsset,pv,.27)
     // Sombras estáticas desenhadas por cima do terreno; sem luzes ou mapas de sombra dinâmicos.
     draw(S.arena.shadows,pv)
+    // Movimento lento das folhas: uma transformação e uma chamada de desenho por quadro.
+    const leafDrift=multiply(translate(Math.sin(Game.time*.34)*.8,Math.sin(Game.time*.7)*.16,Math.cos(Game.time*.25)*.55),rotateZ(Math.sin(Game.time*.28)*.035));
+    draw(S.arena.leaves,multiply(pv,leafDrift))
     draw(S.arena.portal,pv);
     const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
     const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
