@@ -466,3 +466,31 @@ body.bishop-battle #toast {
   #boss-intro-quote { margin:8px auto 12px; }
   .boss-intro-prep { margin:8px auto 12px; padding:8px 12px; }
 }
+
+
+/* MOD 60 — os dois retratos da apresentação têm tamanho idêntico e ficam simétricos. */
+.boss-intro {
+  --boss-portrait-size: clamp(108px, 23vw, 190px);
+}
+.boss-intro-portrait,
+.boss-intro-player-mark {
+  width: var(--boss-portrait-size) !important;
+  height: var(--boss-portrait-size);
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
+}
+.boss-intro-portrait {
+  left: calc(50% + 16px) !important;
+}
+.boss-intro-player-mark {
+  left: calc(50% - var(--boss-portrait-size) - 16px) !important;
+}
+#boss-intro-quote-label:empty {
+  display: none;
+}
+@media (max-width: 600px) {
+  .boss-intro { --boss-portrait-size: clamp(104px, 28vw, 132px); }
+}
+@media (max-height: 520px) {
+  .boss-intro { --boss-portrait-size: clamp(96px, 19vh, 140px); }
+}
