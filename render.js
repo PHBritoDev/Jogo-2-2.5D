@@ -44,23 +44,70 @@ const Render = {
         g.fillStyle = pal.base;
         g.fillRect(0, 0, S, S);
 
-        // Manchas de cor
-        g.globalAlpha = 0.55;
-        for (let i = 0; i < 30; i++) {
+        // Base orgânica: pequenas variações de luz e sombra evitam o aspecto chapado.
+        if (type === T.GRASS || type === T.DARK || type === T.FLOWER) {
+          const shade = g.createLinearGradient(0, 0, S, S);
+          shade.addColorStop(0, 'rgba(255,255,210,0.10)');
+          shade.addColorStop(0.48, 'rgba(255,255,255,0)');
+          shade.addColorStop(1, 'rgba(15,45,12,0.18)');
+          g.fillStyle = shade;
+          g.fillRect(0, 0, S, S);
+
+          // Pequenos agrupamentos irregulares de vegetação, misturados ao solo.
+          for (let i = 0; i < 7; i++) {
+            const x = r() * S, y = r() * S;
+            const rad = 5 + r() * 10;
+            const patch = g.createRadialGradient(x, y, 0, x, y, rad);
+            patch.addColorStop(0, pal.dots[r() * 3 | 0] + '55');
+            patch.addColorStop(1, pal.base + '00');
+            g.fillStyle = patch;
+            g.beginPath(); g.arc(x, y, rad, 0, 6.2832); g.fill();
+          }
+        }
+
+        // Manchas finas e variadas, como folhas pequenas e diferenças no terreno.
+        g.globalAlpha = 0.48;
+        for (let i = 0; i < 42; i++) {
           g.fillStyle = pal.dots[r() * 3 | 0];
-          const sz = 2 + r() * 6;
-          g.fillRect(r() * S, r() * S, sz, sz * (0.5 + r() * 0.6));
+          const sz = 1 + r() * (type === T.GRASS || type === T.DARK || type === T.FLOWER ? 4.5 : 6);
+          const x = r() * S, y = r() * S;
+          g.beginPath();
+          if (type === T.GRASS || type === T.DARK || type === T.FLOWER) {
+            g.ellipse(x, y, sz, 0.6 + r() * 1.5, r() * 3.14, 0, 6.2832);
+            g.fill();
+          } else {
+            g.fillRect(x, y, sz, sz * (0.5 + r() * 0.6));
+          }
         }
         g.globalAlpha = 1;
 
-        // Detalhes por tipo
+        // Lâminas de grama em camadas: sombras na base e pontas claras.
         if (type === T.GRASS || type === T.DARK || type === T.FLOWER) {
-          g.lineWidth = 1.6;
-          for (let i = 0; i < 8; i++) {
-            g.strokeStyle = pal.dots[r() * 3 | 0];
-            const x = r() * S, y = 6 + r() * (S - 6);
-            g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 4, y - 4 - r() * 4); g.stroke();
+          for (let i = 0; i < 32; i++) {
+            const x = 2 + r() * (S - 4);
+            const y = 12 + r() * (S - 12);
+            const h = 3 + r() * 7;
+            const bend = (r() - 0.5) * 6;
+            const tone = r();
+            g.lineCap = 'round';
+            g.lineWidth = 0.65 + r() * 0.8;
+            g.strokeStyle = tone < 0.34 ? pal.dots[0] : tone < 0.68 ? pal.dots[1] : pal.dots[2];
+            g.globalAlpha = 0.55 + r() * 0.4;
+            g.beginPath();
+            g.moveTo(x, y);
+            g.quadraticCurveTo(x + bend * 0.45, y - h * 0.55, x + bend, y - h);
+            g.stroke();
+            if (i % 4 === 0) {
+              g.strokeStyle = 'rgba(210,245,160,0.45)';
+              g.lineWidth = 0.55;
+              g.beginPath();
+              g.moveTo(x + 0.5, y - 1);
+              g.lineTo(x + bend * 0.65, y - h * 0.65);
+              g.stroke();
+            }
           }
+          g.globalAlpha = 1;
+          g.lineCap = 'butt';
         }
         if (type === T.FLOWER) {
           for (let i = 0; i < 4; i++) {
