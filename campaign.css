@@ -494,3 +494,41 @@ body.bishop-battle #toast {
 @media (max-height: 520px) {
   .boss-intro { --boss-portrait-size: clamp(96px, 19vh, 140px); }
 }
+
+
+/* MOD 62 — apresentação do Primeiro Bispo: centralização e terror carmesim. */
+.boss-intro {
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(105, 18, 36, .22), transparent 58%),
+    linear-gradient(150deg, transparent 0 37%, rgba(105, 10, 29, .78) 37% 59%, transparent 59%),
+    radial-gradient(ellipse at 72% 40%, rgba(170, 32, 45, .2), transparent 48%),
+    radial-gradient(ellipse at 50% 50%, #241018, #060509 78%);
+}
+.boss-intro-card {
+  margin-inline: auto;
+  text-align: center;
+}
+.boss-intro-kicker {
+  color: #d8b75f;
+  letter-spacing: clamp(1.5px, .35vw, 4px);
+  text-shadow: 0 0 16px rgba(150, 18, 38, .45);
+}
+#boss-intro-name {
+  text-shadow: 0 0 10px rgba(170, 25, 43, .3), 0 3px 20px rgba(242, 184, 61, .35);
+}
+#boss-intro-quote {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  text-wrap: balance;
+}
+.boss-intro[data-theme="greed"] .boss-intro-portrait {
+  box-shadow: 0 0 0 8px rgba(219, 55, 72, .10), 0 0 38px rgba(185, 30, 48, .28);
+}
+@media (prefers-reduced-motion: reduce) {
+  .boss-intro.entering,
+  .boss-intro.ready .boss-intro-card,
+  .boss-intro-portrait { animation: none !important; }
+}
