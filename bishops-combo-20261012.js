@@ -13,8 +13,8 @@ const BISHOP_PROFILES = {
     name: 'Valério',
     title: 'Primeiro Bispo da Ganância',
     identity: 'O Tesoureiro da Torre',
-    quote: '“Tudo tem um preço. Até a sua coragem.”',
-    quoteLabel: 'FALA FICTÍCIA DO PERSONAGEM · NÃO É VERSÍCULO',
+    quote: '“Não coleciono moedas. Coleciono o instante em que alguém vende aquilo que jurou nunca vender.”',
+    quoteLabel: '',
     preparation: 'Valério encurta a distância e ataca em sequências curtas. Defenda no instante exato do golpe para uma Defesa Perfeita, ataque quando ele recuperar o fôlego e esquive dos golpes pesados.',
     hp: 240,
     damage: 0.75, // MOD 51: dano de teste (0.35) substituído por valor de luta real; ajuste aqui se quiser mais fácil/difícil.
