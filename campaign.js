@@ -99,7 +99,7 @@ const SEAL_NODES = {
 
 const CASINO_NODES = {
   c1: { who: 'Anfitrião', text: 'Bem-vindo. Aqui ninguém perde por acaso; a casa sempre cobra a dívida inteira.', next: 'c2' },
-  c2: { who: 'Anfitrião', text: 'O dono do cofre é Valério, o Primeiro Bispo da Ganância. Ele já sabe que você entrou. A porta do salão está aberta.' }
+  c2: { who: 'Anfitrião', text: 'O dono do cofre é KHRAVAZOTH, o Primeiro Bispo da Ganância. Ele já sabe que você entrou. A porta do salão está aberta.' }
 };
 
 const CITY_LEDGER_NODES = {
