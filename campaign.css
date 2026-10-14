@@ -457,3 +457,12 @@ body.bishop-battle #toast {
 }
 #boss-intro-button:active { transform: translateY(3px); box-shadow: 0 1px 0 #9a6a1c, 0 3px 8px rgba(0, 0, 0, .4); }
 .boss-intro-kicker { color: #f2c35b; }
+
+/* MOD 59 — caixas de diálogo e apresentações limitadas à área visível. */
+@media (max-height:520px) {
+  .boss-intro { align-items:flex-start; padding-top:8px; padding-bottom:8px; }
+  .boss-intro-card { margin:auto 0; }
+  .boss-intro-versus { min-height:125px; }
+  #boss-intro-quote { margin:8px auto 12px; }
+  .boss-intro-prep { margin:8px auto 12px; padding:8px 12px; }
+}
