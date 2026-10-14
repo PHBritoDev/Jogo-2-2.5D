@@ -11,7 +11,7 @@
   // MOD 53: chão pelos ossos dos pés (antes: ponto mais baixo da malha inteira, que é a barra da veste/capa,
   // então os pés ficavam suspensos). soleGap = altura do osso do pé até a sola.
   let footBones=[],soleGap=0,standDelta=0,lieDelta=null,deadFallV=0;
-  const footTmp=new THREE.Vector3();
+  let footTmp=null;
   function lowestFootRel(){
     let m=Infinity;
     for(let i=0;i<footBones.length;i++){footBones[i].getWorldPosition(footTmp);if(footTmp.y<m)m=footTmp.y;}
@@ -529,6 +529,8 @@
       .then(function(){return loadScript('https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/DRACOLoader.js');})
       .then(function(){
         if(!window.THREE||!THREE.GLTFLoader)throw new Error('Three.js/GLTFLoader indisponível');
+        // MOD 54: só criar o vetor depois que o Three.js estiver carregado; antes disso THREE não existe.
+        footTmp=new THREE.Vector3();
         canvas=document.createElement('canvas');canvas.id='valerio-bishop-glb';
         canvas.setAttribute('aria-hidden','true');
         canvas.style.cssText='position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;';
