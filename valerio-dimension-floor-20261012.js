@@ -171,7 +171,7 @@ const BishopDimension = (function () {
     return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),ruins:mesh(S.gl,ruins)};
   }
   function buildArena() {
-    const world=[],foliage=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
+    const world=[],foliage=[],shadows=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
 
     // Piso de suporte discreto: a grama real cobre toda a superfície jogável.
     // Sem estrada, pedras, cascalho, raízes soltas ou moitas sobre o terreno.
@@ -208,6 +208,25 @@ const BishopDimension = (function () {
       const lean=((seed%2)?1:-1)*(.22+(variant%4)*.12);
       const bark=deadBark[seed%deadBark.length];
       const mid=[x+lean*.45,h*.53,z+.10],top=[x+lean,h,z+((seed%3)-1)*.18];
+      // Sombra falsa e estática no solo: uma elipse + poucos galhos projetados.
+      // Um único mesh para toda a floresta evita shadow maps e draw calls por árvore.
+      const shadowColor=color('#080d0a',.30),sy=.043;
+      const shadowCx=x-(x<0?-1:1)*(.72*scale),shadowCz=z+.42*scale;
+      const rx=1.05*scale,rz=.78*scale,segments=12;
+      for(let si=0;si<segments;si++){
+        const a0=si/segments*Math.PI*2,a1=(si+1)/segments*Math.PI*2;
+        addTri(shadows,[shadowCx,sy,shadowCz],
+          [shadowCx+Math.cos(a0)*rx,sy,shadowCz+Math.sin(a0)*rz],
+          [shadowCx+Math.cos(a1)*rx,sy,shadowCz+Math.sin(a1)*rz],shadowColor);
+      }
+      // Três silhuetas alongadas sugerem sombras dos galhos sem simular luz em tempo real.
+      for(let bi=0;bi<3;bi++){
+        const bx=x+lean*(.38+bi*.13),bz=z+(bi-1)*.13*scale;
+        const ex=bx-(x<0?-1:1)*(.95+bi*.24)*scale,ez=bz+(.42+bi*.12)*scale;
+        const width=(.055-bi*.009)*scale;
+        addQuad(shadows,[bx-width,sy,bz],[bx+width,sy,bz],
+          [ex+width*.35,sy,ez],[ex-width*.35,sy,ez],color('#080d0a',.23));
+      }
       addSegment(world,[x,.035,z],mid,.34*scale,.20*scale,bark,6);
       addSegment(world,mid,top,.20*scale,.045*scale,deadBark[(seed+2)%deadBark.length],6);
       for(let j=0;j<6;j++){
@@ -344,7 +363,7 @@ const BishopDimension = (function () {
     addSegment(bishopArmL,[0,0,0],[-.24,-.35,-.03],.095,.065,'#30213a',6);
     addSegment(bishopArmR,[0,0,0],[.24,-.35,-.03],.095,.065,'#30213a',6);
     return {
-      world:mesh(S.gl,world),foliage:mesh(S.gl,foliage),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
+      world:mesh(S.gl,world),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
       energy:mesh(S.gl,energy),particles:mesh(S.gl,particles),
       player:mesh(S.gl,player),bishop:mesh(S.gl,bishop),
       playerArmL:mesh(S.gl,playerArmL),playerArmR:mesh(S.gl,playerArmR),
@@ -629,6 +648,8 @@ const BishopDimension = (function () {
     // deslocar o piso; o vento custa apenas uma operação por vértice.
     draw(S.arena.foliage,pv,.16)
     if(S.arena.grassAsset)draw(S.arena.grassAsset,pv,.27)
+    // Sombras estáticas desenhadas por cima do terreno; sem luzes ou mapas de sombra dinâmicos.
+    draw(S.arena.shadows,pv)
     draw(S.arena.portal,pv);
     const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
     const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
