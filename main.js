@@ -26,7 +26,9 @@
   }
 
   function checkOrientation(w, h) {
-    Game.rotate = h > w;
+    // Só exigir horizontal em aparelhos de toque; janelas estreitas de PC continuam jogáveis.
+    const touchDevice = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : ('ontouchstart' in window);
+    Game.rotate = touchDevice && h > w && Math.min(w, h) < 900;
     overlayRotate.classList.toggle('hidden', !Game.rotate);
     updateStopped();
   }
