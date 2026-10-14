@@ -116,6 +116,28 @@ const BISHOP_PROFILES = {
   }
 };
 
+// Pré-carrega e decodifica os retratos dos Bispos em segundo plano, um por vez, logo após o carregamento do jogo.
+// Antes, o PNG só começava a ser baixado/decodificado quando a apresentação abria, congelando a tela na entrada.
+const BossArtPreload = (function () {
+  const keep = [];
+  function run() {
+    Object.keys(BISHOP_PROFILES).forEach(function (key, i) {
+      const asset = BISHOP_PROFILES[key].portraitAsset;
+      if (!asset) return;
+      setTimeout(function () {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = asset;
+        if (img.decode) img.decode().catch(function () {});
+        keep.push(img);
+      }, 1200 + i * 500);
+    });
+  }
+  if (document.readyState === 'complete') run();
+  else window.addEventListener('load', run, { once: true });
+  return { keep: keep };
+})();
+
 const BossPresentation = {
   open: false,
   phase: 0,

@@ -225,7 +225,7 @@
     const THREE=api.THREE,loader=new THREE.GLTFLoader();
     swordWorldPosition=new THREE.Vector3();
     swordWorldQuaternion=new THREE.Quaternion();
-    loader.load('./EspadaProta.glb?v=espada-prota-hand-mount-mod33',function(gltf){
+    loader.load('./EspadaProta.glb?v=espada-prota-hand-mount-mod33-tex1k',function(gltf){
       try{
         swordRoot=gltf.scene;
         swordRoot.name='EspadaProta_Runtime';
@@ -234,7 +234,7 @@
         swordRoot.traverse(function(o){
           if(!o.isMesh)return;
           swordMeshes++;
-          o.visible=true;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;
+          o.visible=true;o.castShadow=true;o.receiveShadow=false;o.frustumCulled=false;
           const materials=Array.isArray(o.material)?o.material:[o.material];
           materials.forEach(function(m){if(m)m.needsUpdate=true;});
         });
@@ -255,6 +255,7 @@
         }
         addSwordEffects(swordRoot);
         swordLoaded=true;swordLoadError='';
+        if(window.ValerioThreeWarmUp)window.ValerioThreeWarmUp();
         if(window.PlayerModelView&&window.PlayerModelView.active&&window.PlayerModelView.firstPerson)setSwordFirstPerson(true);
         refreshSwordDiagnostics(performance.now());
       }catch(e){
@@ -301,7 +302,7 @@
         root=gltf.scene;
         root.traverse(function(o){
           if(!o.isMesh)return;
-          o.frustumCulled=false;
+          o.frustumCulled=false;o.castShadow=true;
           (Array.isArray(o.material)?o.material:[o.material]).forEach(function(m){
             if(m&&m.color&&m.map)m.color.set(0xffffff);
             if(m&&m.roughness!==undefined)m.roughness=Math.max(m.roughness,.55);
@@ -401,6 +402,7 @@
           getupDuration:Math.min(2,Math.max(1.4,Number((actions.getup||{}).duration)||0))
         };
         ready=true;window.ProtagonistaGLBReady=true;
+        if(window.ValerioThreeWarmUp)window.ValerioThreeWarmUp();
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k]&&actions[k].name||null;return o;},{})};
         // A lista de clips fica disponível em window.ProtagonistaAnimationDiagnostics, sem texto na tela.
         showAnimationDiagnostics(clips);
@@ -479,7 +481,10 @@
     if(currentType!=='idle'||!currentAction||!currentAction.isRunning())play('idle',false);
   }
   let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1,lastPlayedAttackId=-1,lastPlayedHurtId=-1;
+  // Diagnóstico da espada (Box3, traverse e matrizes a cada 250 ms) só roda com ?espadaDiag=1.
+  const swordDiagnosticsEnabled=new URLSearchParams(window.location.search).get('espadaDiag')==='1';
   function refreshSwordDiagnostics(now){
+    if(!swordDiagnosticsEnabled)return;
     if(now-swordStatusCheckAt<250)return;swordStatusCheckAt=now;
     let message=swordLoadError||'Aguardando carregamento de EspadaProta.glb...';
     let verified=false;

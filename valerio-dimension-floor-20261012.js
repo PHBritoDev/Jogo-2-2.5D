@@ -96,6 +96,8 @@ const BishopDimension = (function () {
       addQuad(out,pt(u,v),pt(u2,v),pt(u2,v2),pt(u,v2),cc);
     }
   }
+  // Matriz reutilizada por draw(): evita alocar um Float32Array por chamada (dezenas por quadro) e a coleta de lixo resultante.
+  const MVP_SCRATCH = new Float32Array(16);
   function mesh(gl, data) {
     const buffer=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);
@@ -386,6 +388,10 @@ const BishopDimension = (function () {
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
     // Enquanto a imagem carrega, usa o modelo geométrico existente como fallback.
+    // A arte 2D do Bispo é só um recurso reserva (o GLB é o visual atual). Carregá-la no início custava
+    // decodificar o PNG e subir uma textura grande à GPU sem nunca ser desenhada; agora é sob demanda.
+    S.bishopSpriteRequested=false;S.bishopTextureLoaded=false;
+    S.loadBishopSpriteImage=function(){
     const image=new Image();
     image.onload=function(){
       try {
@@ -414,9 +420,11 @@ const BishopDimension = (function () {
     };
     image.onerror=function(){S.bishopTextureLoaded=false;};
     image.src='./Bispo1.png?v=20261010-bishop-art-fit';
+    };
   }
   function drawBishopSprite(matrix) {
     const gl=S.gl;
+    if(!S.bishopTextureLoaded&&!S.bishopSpriteRequested&&S.loadBishopSpriteImage){S.bishopSpriteRequested=true;S.loadBishopSpriteImage();}
     if(!S.bishopTextureLoaded||!S.spriteProgram||!S.bishopQuad)return false;
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
@@ -427,7 +435,8 @@ const BishopDimension = (function () {
     gl.enableVertexAttribArray(S.spriteUv);
     gl.vertexAttribPointer(S.spritePosition,3,gl.FLOAT,false,20,0);
     gl.vertexAttribPointer(S.spriteUv,2,gl.FLOAT,false,20,12);
-    gl.uniformMatrix4fv(S.spriteMvp,false,new Float32Array(matrix));
+    MVP_SCRATCH.set(matrix);
+    gl.uniformMatrix4fv(S.spriteMvp,false,MVP_SCRATCH);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D,S.bishopTexture);
     gl.uniform1i(S.spriteSampler,0);
@@ -468,7 +477,11 @@ const BishopDimension = (function () {
         const raw=color(palette[Math.floor(rnd()*palette.length)]);
         const shade=.76+rnd()*.42;
         const tint=[Math.min(1,raw[0]*shade),Math.min(1,raw[1]*shade),Math.min(1,raw[2]*shade),.98];
-        triangle(left,right,tip,tint);
+        // Base escura (oclusão ambiente) e ponta clara (luz do alto): dá volume e profundidade ao tapete
+        // de grama com as mesmas ~64 mil vértices e sem nenhum custo extra por quadro.
+        const baseTint=[tint[0]*.66,tint[1]*.66,tint[2]*.66,tint[3]];
+        const topTint=[Math.min(1,tint[0]*1.25),Math.min(1,tint[1]*1.25),Math.min(1,tint[2]*1.2),tint[3]];
+        vertex(left[0],left[1],left[2],baseTint);vertex(right[0],right[1],right[2],baseTint);vertex(tip[0],tip[1],tip[2],topTint);
       }
     }
     if(grass.length&&S.arena===targetArena&&S.gl){
@@ -501,7 +514,8 @@ const BishopDimension = (function () {
     const gl=S.gl;if(!m||!m.buffer)return;
     gl.bindBuffer(gl.ARRAY_BUFFER,m.buffer);gl.enableVertexAttribArray(S.aPosition);gl.enableVertexAttribArray(S.aColor);
     gl.vertexAttribPointer(S.aPosition,3,gl.FLOAT,false,28,0);gl.vertexAttribPointer(S.aColor,4,gl.FLOAT,false,28,12);
-    gl.uniformMatrix4fv(S.uMvp,false,new Float32Array(matrix));
+    MVP_SCRATCH.set(matrix);
+    gl.uniformMatrix4fv(S.uMvp,false,MVP_SCRATCH);
     if(S.uTime)gl.uniform1f(S.uTime,Game.time||0);
     if(S.uWind)gl.uniform1f(S.uWind,wind||0);
     gl.drawArrays(gl.TRIANGLES,0,m.count);
@@ -509,7 +523,7 @@ const BishopDimension = (function () {
   function outsideFrame() {
     if(!Casino.discovered&&!Campaign.flags.casinoDiscovered)return;
     const gl=S.gl, w=S.canvas.width, h=S.canvas.height, pxRatio=w/(window.innerWidth||w);
-    const gameCanvas=document.getElementById('game');
+    const gameCanvas=S.gameCanvas||(S.gameCanvas=document.getElementById('game'));
     const gameRatio=gameCanvas?gameCanvas.width/(window.innerWidth||w):pxRatio;
     const unit=Camera.scale*pxRatio/gameRatio;
     const camX=Math.round((Camera.x+Camera.shakeX)*Camera.scale)/Camera.scale;
@@ -690,7 +704,7 @@ const BishopDimension = (function () {
   function frame() {
     if(!S.canvas)return;
     const inside=!!(Casino.inside&&isBattleActive());
-    const evadeButton=document.getElementById('btn-aim');
+    const evadeButton=S.btnAim||(S.btnAim=document.getElementById('btn-aim'));
     if(evadeButton){
       const label=inside?'ESQUIVA':'MIRAR';
       if(evadeButton.textContent!==label)evadeButton.textContent=label;
@@ -702,7 +716,7 @@ const BishopDimension = (function () {
     if(S.canvasVisible!==shouldBeVisible) S.canvasVisible=shouldBeVisible;
     // Restaura o mundo 2D a cada quadro ao sair da luta. Não condicione isso
     // à visibilidade do portal: ela pode continuar ativa antes e depois da batalha.
-    const gameCanvas=document.getElementById('game');
+    const gameCanvas=S.gameCanvas||(S.gameCanvas=document.getElementById('game'));
     if(gameCanvas){gameCanvas.style.opacity=inside?'0':'1';if(!inside)gameCanvas.style.visibility='visible';}
     if(S.lost||S.failed||!S.gl){S.canvas.style.display='none';return;}
     try {

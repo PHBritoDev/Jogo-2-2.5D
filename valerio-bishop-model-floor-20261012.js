@@ -11,7 +11,9 @@
   // MOD 53: chão pelos ossos dos pés (antes: ponto mais baixo da malha inteira, que é a barra da veste/capa,
   // então os pés ficavam suspensos). soleGap = altura do osso do pé até a sola.
   let footBones=[],soleGap=0,standDelta=0,lieDelta=null,deadFallV=0;
-  let footTmp=null;
+  let footTmp=null,handScaleTmp=null;
+  // Sombras/aquecimento (Three.js): luz principal, plano receptor e contadores.
+  let keyLight=null,shadowGround=null,shadowTick=0,warmTimer=0,warmedOnce=false;
   function lowestFootRel(){
     let m=Infinity;
     for(let i=0;i<footBones.length;i++){footBones[i].getWorldPosition(footTmp);if(footTmp.y<m)m=footTmp.y;}
@@ -306,6 +308,7 @@
     model.traverse(function(obj){
       if(!obj.isMesh)return;
       obj.frustumCulled=false;
+      obj.castShadow=true;
       (Array.isArray(obj.material)?obj.material:[obj.material]).forEach(function(mat){
         if(!mat)return;
         // Mantém os mapas de textura originais, mas remove fatores de cor
@@ -326,7 +329,7 @@
     });
   }
   function loadWeapon() {
-    new THREE.GLTFLoader().load('./Espada1.glb',function(gltf){
+    new THREE.GLTFLoader().load('./Espada1.glb?v=tex1k',function(gltf){
       // MOD 10: foice ampliada para cerca de 2,3x o tamanho anterior.
       weaponRoot=gltf.scene;fitModel(weaponRoot,3.1);improveMaterials(weaponRoot);
       weaponPivot=new THREE.Group();
@@ -336,6 +339,7 @@
       weaponRoot.position.y-=1.40; // offset proporcional à foice ampliada, mantendo a empunhadura
       weaponPivot.add(weaponRoot);
       if(handBone){handBone.add(weaponPivot);weaponScaleCompensation=true;}else{pivot.add(weaponPivot);weaponScaleCompensation=false;}
+      scheduleWarmUp();
       showStatus((window.ValerioClipDiagnostics||'Clips do modelo carregados')+'\nfoice carregada; presa em '+(handBone&&handBone.name||'pivô do corpo')+'; ajuste de pegada ativo',false);
       console.info('Espada1.glb anexada à mão direita:',handBone&&handBone.name);
     },undefined,function(err){console.warn('Espada1.glb não carregou.',err);});
@@ -522,6 +526,46 @@
     if(animationClips.idle){playClip('idle',false);return 'idle';}
     stopAction();return 'none';
   }
+  // Sombra: a luz acompanha o ponto médio entre Valério e jogador (em passos de 1 unidade, para o mapa não tremer)
+  // e o mapa só é recalculado a cada 2 quadros; a luz só se move nos quadros em que o mapa é refeito.
+  function updateShadowRig(v){
+    if(!keyLight||!renderer)return;
+    shadowTick++;
+    if(shadowTick%2!==0){renderer.shadowMap.needsUpdate=false;return;}
+    const pp=Array.isArray(v.playerPosition)?v.playerPosition:v.position;
+    const cx=Math.round((v.position[0]+pp[0])*.5),cz=Math.round((v.position[2]+pp[2])*.5);
+    keyLight.target.position.set(cx,0,cz);
+    keyLight.position.set(cx-5.6,9.8,cz+7);
+    keyLight.target.updateMatrixWorld();
+    renderer.shadowMap.needsUpdate=true;
+  }
+  // Compila shaders e envia texturas/geometria à GPU ANTES da batalha. Sem isso, o primeiro quadro da luta
+  // compilava todos os programas e subia ~100 MB de texturas de uma vez (o congelamento ao "Entrar em batalha").
+  // Também força objetos ocultos (protagonista, escudo, espada) a serem preparados, e é refeito quando a
+  // quantidade de luzes muda (ex.: luz da espada), pois isso invalida os programas já compilados.
+  function scheduleWarmUp(){
+    if(warmTimer)clearTimeout(warmTimer);
+    warmTimer=setTimeout(runWarmUp,400);
+  }
+  function runWarmUp(){
+    warmTimer=0;
+    if(!renderer||!scene||!camera||!root||!window.ValerioGLBReady)return;
+    const view=window.ValerioModelView;
+    if(view&&view.active)return;
+    const reveal=[];
+    try{
+      scene.traverse(function(o){if(o!==scene&&o.visible===false){reveal.push(o);o.visible=true;}});
+      camera.aspect=Math.max(1,window.innerWidth)/Math.max(1,window.innerHeight);
+      camera.position.set(0,2.2,9);camera.lookAt(0,1.6,0);camera.updateProjectionMatrix();
+      scene.updateMatrixWorld(true);
+      renderer.shadowMap.needsUpdate=true;
+      renderer.compile(scene,camera);
+      renderer.render(scene,camera);
+      warmedOnce=true;
+    }catch(err){console.warn('Valério: aquecimento da cena 3D falhou (sem efeito no jogo).',err);}
+    for(let i=0;i<reveal.length;i++)reveal[i].visible=false;
+  }
+  window.ValerioThreeWarmUp=scheduleWarmUp;
   function start() {
     if(started||failed)return;started=true;window.ValerioGLBLoading=true;
     loadScript('https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js')
@@ -538,10 +582,21 @@
         renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:false,powerPreference:'low-power'});
         renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.1));renderer.setSize(window.innerWidth,window.innerHeight,false);
         renderer.setClearColor(0x000000,0);renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.NoToneMapping;renderer.toneMappingExposure=1.0;
+        // Sombras reais: antes shadowMap nunca era ativado, então castShadow/receiveShadow não faziam nada.
+        // Atualização manual (a cada 2 quadros) e mapa menor em aparelhos mais fracos.
+        const lowEnd=(navigator.deviceMemory&&navigator.deviceMemory<=3)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4);
+        renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;
         scene=new THREE.Scene();
         // Materiais PBR do GLB precisam de luzes na cena Three.js.
         scene.add(new THREE.HemisphereLight(0xe4e9ff,0x393044,2.0));
-        const key=new THREE.DirectionalLight(0xffe6cf,2.6);key.position.set(-4,7,5);scene.add(key);
+        const key=new THREE.DirectionalLight(0xffe6cf,2.6);key.position.set(-4,7,5);scene.add(key);scene.add(key.target);
+        keyLight=key;key.castShadow=true;key.shadow.mapSize.set(lowEnd?512:1024,lowEnd?512:1024);
+        key.shadow.camera.left=-9;key.shadow.camera.right=9;key.shadow.camera.top=9;key.shadow.camera.bottom=-9;
+        key.shadow.camera.near=1;key.shadow.camera.far=32;key.shadow.bias=-.0005;key.shadow.normalBias=.03;
+        // Receptor invisível: o chão do terreno vive em outro contexto WebGL, então este plano só escurece
+        // os pixels sombreados (ShadowMaterial) e deixa o resto transparente sobre o cenário.
+        shadowGround=new THREE.Mesh(new THREE.PlaneGeometry(140,80),new THREE.ShadowMaterial({color:0x04020a,opacity:.5,depthWrite:false}));
+        shadowGround.rotation.x=-Math.PI/2;shadowGround.position.set(0,.05,-2.5);shadowGround.receiveShadow=true;shadowGround.frustumCulled=false;scene.add(shadowGround);
         const fill=new THREE.DirectionalLight(0x9b8cff,1.15);fill.position.set(4,3,-4);scene.add(fill);
         const rim=new THREE.PointLight(0xb52dff,1.1,12);rim.position.set(0,2.2,-1.8);scene.add(rim);
         // O jogo e o GLB usam contextos WebGL distintos; o depth buffer do
@@ -566,12 +621,14 @@
         camera=new THREE.PerspectiveCamera(58.4,window.innerWidth/window.innerHeight,.1,90);
         // API compartilhada: protagonista e Valério usam a mesma cena, câmera e depth buffer.
         // Isso preserva a oclusão correta quando um personagem fica na frente do outro.
+        // A câmera precisa estar na cena para que a espada de 1ª pessoa (filha da câmera) seja desenhada.
+        scene.add(camera);
         window.ValerioThreeAPI={THREE:THREE,scene:scene,renderer:renderer,camera:camera};
         showStatus('carregando arquivo...',false);
         const valerioModelUrl=useOriginalValerioBaseline
           ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/c2ce8ac71b2f81989bc30d8159fa63ec89331b21/Bispo1.0.glb?baseline=20261011a'
           :(useUpdatedValerioModel
-            ?'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/main/Bispo1.0.glb?valerioModelTest=20261011h-fresh-upload'
+            ?'./Bispo1.0.glb'
             :'https://raw.githubusercontent.com/PHBritoDev/Jogo-2-2.5D/e4af770/Bispo1.0.glb');
         const gltfLoader=new THREE.GLTFLoader();
         // O novo Bispo1.0.glb pode usar Draco; habilitamos o decoder
@@ -730,6 +787,7 @@
             window.ValerioClipDiagnostics='GLB clips ('+clips.length+'): '+clipInfo+'\n'+mapped+'\nbraço='+(armBone&&armBone.name||'não encontrado')+'; mão='+(handBone&&handBone.name||'não encontrada')+(window.ValerioScaleDiagnostics?'\n'+window.ValerioScaleDiagnostics:'')+'\nmodelo selecionado: '+(useUpdatedValerioModel?'ATUALIZADO':'ESTÁVEL');
             showStatus(window.ValerioClipDiagnostics,false);
             loadWeapon();
+            scheduleWarmUp();
             console.info('Valério: clips disponíveis',clips.map(function(a){return {name:a.name,duration:a.duration};}),'mapeamento',mapped);
           } catch(err) {
             failed=true;window.ValerioGLBReady=false;window.ValerioGLBLoading=false;window.ValerioGLBRendering=false;showStatus('erro ao preparar modelo: '+errorText(err),true);console.error('Erro ao preparar Bispo1.glb; usando modelo alternativo.',err);
@@ -742,8 +800,8 @@
   }
   function frame(now) {
     requestAnimationFrame(frame);const v=window.ValerioModelView;
-    if(!v||!v.active||!window.ValerioGLBReady||!root||!pivot||!renderer||!camera){window.ValerioGLBRendering=false;if(canvas)canvas.style.display='none';return;}
-    canvas.style.display='block';window.ValerioGLBRendering=true;const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
+    if(!v||!v.active||!window.ValerioGLBReady||!root||!pivot||!renderer||!camera){window.ValerioGLBRendering=false;if(canvas&&canvas.style.display!=='none')canvas.style.display='none';return;}
+    if(canvas.style.display!=='block')canvas.style.display='block';window.ValerioGLBRendering=true;const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
     if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);
     camera.aspect=v.aspect||w/h;camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
     camera.position.set(v.eye[0],v.eye[1],v.eye[2]);camera.lookAt(v.target[0],v.target[1],v.target[2]);
@@ -868,7 +926,7 @@
         // Como a compensação fica no pivô, os offsets locais do cabo continuam acompanhando a mão.
         if(weaponScaleCompensation&&handBone){
           handBone.updateWorldMatrix(true,false);
-          const handWorldScale=new THREE.Vector3();
+          const handWorldScale=handScaleTmp||(handScaleTmp=new THREE.Vector3());
           handBone.getWorldScale(handWorldScale);
           weaponPivot.scale.set(
             Math.abs(handWorldScale.x)>1e-5?1/handWorldScale.x:1,
@@ -895,6 +953,7 @@
       if(weaponPivot){weaponPivot.rotation.set(0,0,-.12);}
     }
     previousState=v.state||'';
+    updateShadowRig(v);
     last=now;renderer.render(scene,camera);
   }
   window.ValerioGLBReady=false;window.ValerioGLBLoading=false;

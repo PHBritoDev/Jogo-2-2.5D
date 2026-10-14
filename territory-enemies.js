@@ -62,12 +62,25 @@ const TerritoryEnemyVisuals = {
       image.onerror = function () {
         console.error('Não foi possível carregar o visual do inimigo:', common.asset);
       };
+      image.decoding = 'async';
       image.src = common.asset;
+      if (image.decode) image.decode().catch(function () {});
       this.images[common.id] = image;
     }
 
     const image = this.images[common.id];
     return image.complete && image.naturalWidth > 0 ? image : null;
+  },
+
+  // Carrega e decodifica as artes dos inimigos em segundo plano (uma por vez) para que o primeiro
+  // inimigo de cada território não congele a tela ao aparecer.
+  preload() {
+    const self = this;
+    Object.keys(TERRITORY_ENEMY_PROFILES).forEach(function (key, i) {
+      const common = TERRITORY_ENEMY_PROFILES[key].common;
+      if (!common || !common.asset) return;
+      setTimeout(function () { self.commonImage(common); }, 800 + i * 400);
+    });
   },
 
   drawCommon(ctx, enemy, bob) {
@@ -97,3 +110,6 @@ const TerritoryEnemyVisuals = {
     return true;
   }
 };
+
+if (document.readyState === 'complete') TerritoryEnemyVisuals.preload();
+else window.addEventListener('load', function () { TerritoryEnemyVisuals.preload(); }, { once: true });
