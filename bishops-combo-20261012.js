@@ -11,9 +11,10 @@ const BISHOP_PROFILES = {
     portraitAsset: './Bispo1.png',
     theme: 'greed',
     name: 'KHRAVAZOTH',
-    title: 'Primeiro Bispo da Ganância',
+    title: 'O Bispo do Último Pecado',
     identity: 'O Horror Além da Criação',
-    quote: '“Não coleciono moedas. Coleciono o instante em que alguém vende aquilo que jurou nunca vender.”',
+    introKicker: 'ENTIDADE SELADA · AQUELE QUE NÃO DEVERIA EXISTIR',
+    quote: '“Toda alma tem um último pedido. A sua terá o privilégio de morrer sem ser ouvida.”',
     quoteLabel: '',
     preparation: 'KHRAVAZOTH encurta a distância e ataca em sequências curtas. Defenda no instante exato do golpe para uma Defesa Perfeita, ataque quando ele recuperar o fôlego e esquive dos golpes pesados.',
     hp: 240,
@@ -286,7 +287,7 @@ const BossPresentation = {
     this.phase = 0;
     this.open = true;
     Game.talking = true;
-    this.elTitle.textContent = profile.identity ? 'OPONENTE · ' + profile.identity : 'OPONENTE';
+    this.elTitle.textContent = profile.introKicker || (profile.identity ? 'OPONENTE · ' + profile.identity : 'OPONENTE');
     if (this.elStamp) this.elStamp.textContent = profile.introStamp || 'ENCONTRO';
     this.elName.textContent = profile.name || 'Oponente';
     if (this.elSubtitle) this.elSubtitle.textContent = profile.title || '';
