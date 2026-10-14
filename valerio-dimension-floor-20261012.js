@@ -491,6 +491,11 @@ const BishopDimension = (function () {
       // 2 tufos por célula, cada um com 3 folhas largas em leque: silhueta macia, sem pontas de agulha.
       for(let clump=0;clump<2;clump++){
         const x=cx+(rnd()-.5)*1.5,z=cz+(rnd()-.5)*1.45;
+        // Sombra estática discreta sob cada tufo: sem shadow maps ou luz dinâmica.
+        const shadowY=groundY+.003, shadowX=.23+rnd()*.08, shadowZ=.15+rnd()*.06;
+        const shadow=[.012,.018,.010,.34];
+        vertex(x-shadowX,shadowY,z,shadow); vertex(x,shadowY,z-shadowZ,shadow); vertex(x+shadowX,shadowY,z,shadow);
+        vertex(x-shadowX,shadowY,z,shadow); vertex(x+shadowX,shadowY,z,shadow); vertex(x,shadowY,z+shadowZ,shadow);
         const clumpH=.42+rnd()*.34,clumpTone=Math.floor(rnd()*palette.length);
         const raw0=color(palette[clumpTone]);
         const windOffset=(rnd()-.5)*.3;
