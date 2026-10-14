@@ -210,9 +210,9 @@ const BishopDimension = (function () {
       const mid=[x+lean*.45,h*.53,z+.10],top=[x+lean,h,z+((seed%3)-1)*.18];
       // Sombra falsa e estática no solo: uma elipse + poucos galhos projetados.
       // Um único mesh para toda a floresta evita shadow maps e draw calls por árvore.
-      const shadowColor=color('#080d0a',.30),sy=.043;
-      const shadowCx=x-(x<0?-1:1)*(.72*scale),shadowCz=z+.42*scale;
-      const rx=1.05*scale,rz=.78*scale,segments=12;
+      const shadowColor=color('#050807',.46),sy=.043;
+      const shadowCx=x-(x<0?-1:1)*(1.02*scale),shadowCz=z+.52*scale;
+      const rx=1.48*scale,rz=1.08*scale,segments=14;
       for(let si=0;si<segments;si++){
         const a0=si/segments*Math.PI*2,a1=(si+1)/segments*Math.PI*2;
         addTri(shadows,[shadowCx,sy,shadowCz],
@@ -225,12 +225,12 @@ const BishopDimension = (function () {
         const ex=bx-(x<0?-1:1)*(.95+bi*.24)*scale,ez=bz+(.42+bi*.12)*scale;
         const width=(.055-bi*.009)*scale;
         addQuad(shadows,[bx-width,sy,bz],[bx+width,sy,bz],
-          [ex+width*.35,sy,ez],[ex-width*.35,sy,ez],color('#080d0a',.23));
+          [ex+width*.35,sy,ez],[ex-width*.35,sy,ez],color('#050807',.36));
       }
       addSegment(world,[x,.035,z],mid,.34*scale,.20*scale,bark,6);
       addSegment(world,mid,top,.20*scale,.045*scale,deadBark[(seed+2)%deadBark.length],6);
       // Filete frio discreto: sugere luz lunar nas arestas sem luz dinâmica.
-      addSegment(foliage,[x-.10*scale,.22*scale,z-.17*scale],[top[0]-.035*scale,top[1]*.92,top[2]-.035*scale],.026*scale,.004*scale,'#66727a',4);
+      addSegment(foliage,[x-.13*scale,.28*scale,z-.20*scale],[top[0]-.055*scale,top[1]*.94,top[2]-.055*scale],.052*scale,.009*scale,'#a5c4d1',4);
       for(let j=0;j<6;j++){
         const dir=((seed+j)%2===0?-1:1);
         const yy=h*(.34+j*.092),xx=x+lean*(yy/h);
@@ -276,11 +276,11 @@ const BishopDimension = (function () {
     }
 
     // Folhas secas estilizadas: malha única, sem criar partículas novas a cada quadro.
-    for(let i=0;i<14;i++){
-      const x=-10+((i*37)%197)/197*20, y=1.0+((i*23)%100)/100*4.5, z=-24+((i*41)%193)/193*48;
-      const ang=(i*1.71)%Math.PI, len=.13+(i%4)*.035, wid=len*.34;
+    for(let i=0;i<42;i++){
+      const x=-11+((i*37)%197)/197*22, y=.35+((i*23)%100)/100*3.8, z=-27+((i*41)%193)/193*54;
+      const ang=(i*1.71)%Math.PI, len=.20+(i%4)*.055, wid=len*.38;
       const dx=Math.cos(ang)*len,dz=Math.sin(ang)*len,px=-Math.sin(ang)*wid,pz=Math.cos(ang)*wid;
-      const c=color(i%3===0?'#a77848':(i%3===1?'#73513c':'#b58b55'),.82);
+      const c=color(i%3===0?'#d59b59':(i%3===1?'#9b6847':'#e0bb70'),.96);
       addTri(leaves,[x-dx*.5,y,z-dz*.5],[x+px,y+.025,z+pz],[x+dx,y+.015,z+dz],c);
       addTri(leaves,[x-dx*.5,y,z-dz*.5],[x+dx,y+.015,z+dz],[x-px,y-.008,z-pz],c);
     }
@@ -667,8 +667,8 @@ const BishopDimension = (function () {
     // Sombras estáticas desenhadas por cima do terreno; sem luzes ou mapas de sombra dinâmicos.
     draw(S.arena.shadows,pv)
     // Movimento lento das folhas: uma transformação e uma chamada de desenho por quadro.
-    const leafDrift=multiply(translate(Math.sin(Game.time*.34)*.8,Math.sin(Game.time*.7)*.16,Math.cos(Game.time*.25)*.55),rotateZ(Math.sin(Game.time*.28)*.035));
-    draw(S.arena.leaves,multiply(pv,leafDrift))
+    const leafDrift=multiply(translate(Math.sin(Game.time*.34)*.18,Math.sin(Game.time*.7)*.04,Math.cos(Game.time*.25)*.14),rotateZ(Math.sin(Game.time*.8)*.025));
+    draw(S.arena.leaves,multiply(pv,leafDrift),.72)
     draw(S.arena.portal,pv);
     const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
     const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
