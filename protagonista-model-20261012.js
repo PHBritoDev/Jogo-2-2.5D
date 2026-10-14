@@ -1,7 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
-  let lastFall=0,lieDelta=null;
+  let lastFall=0,lieDelta=null,guardShield=null,guardShieldWire=null,guardShieldRing=null;
   let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},attackClips=[],fallbackAttackClip=null,currentAction=null,currentType='',diagnosticPreview=false,ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordPivot=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
   const MODEL_HEIGHT=2.15;
   // O GLB mede cerca de 1,90 no eixo Y; o cabo fica entre Y=0,57 e 0,95.
@@ -320,6 +320,13 @@
         rootBasePosition=root.position.clone();
         restoreModelScales=lockModelScales(root);
         pivot=new THREE.Group();pivot.rotation.order='YXZ';pivot.visible=false;pivot.add(root);api.scene.add(pivot);
+        // MOD 56: escudo 3D real na camada do protagonista, visível também na dimensão do Valério.
+        guardShield=new THREE.Mesh(new THREE.SphereGeometry(.78,18,14),new THREE.MeshBasicMaterial({color:0x4acbff,transparent:true,opacity:.12,side:THREE.DoubleSide,depthWrite:false}));
+        guardShield.position.set(0,.94,0);guardShield.scale.set(.78,1.22,.55);guardShield.visible=false;guardShield.renderOrder=8;pivot.add(guardShield);
+        guardShieldWire=new THREE.Mesh(new THREE.SphereGeometry(.79,12,10),new THREE.MeshBasicMaterial({color:0x9beaff,transparent:true,opacity:.72,wireframe:true,depthWrite:false}));
+        guardShieldWire.position.copy(guardShield.position);guardShieldWire.scale.copy(guardShield.scale);guardShieldWire.visible=false;guardShieldWire.renderOrder=9;pivot.add(guardShieldWire);
+        guardShieldRing=new THREE.Mesh(new THREE.TorusGeometry(.61,.018,6,32),new THREE.MeshBasicMaterial({color:0x9beaff,transparent:true,opacity:.78,depthWrite:false}));
+        guardShieldRing.rotation.x=Math.PI/2;guardShieldRing.position.set(0,.42,0);guardShieldRing.visible=false;guardShieldRing.renderOrder=9;pivot.add(guardShieldRing);
         loadSword(root);
         mixer=new THREE.AnimationMixer(root);
         const clips=gltf.animations||[];
@@ -526,13 +533,20 @@
     // sem mexer nos ossos, para não distorcer o rig.
     const evadeP=v.evading?Math.sin(Math.PI*Math.max(0,Math.min(1,1-(Number(v.evadeT)||0)/.24))):0;
     const guardP=v.blocking&&!v.attack?1:0;
+    const shieldOn=guardP>0&& !v.dead;
+    if(guardShield){guardShield.visible=shieldOn;guardShield.material.opacity=.08+.05*(.5+.5*Math.sin((Number(v.time)||0)*7));}
+    if(guardShieldWire){guardShieldWire.visible=shieldOn;guardShieldWire.rotation.y=(Number(v.time)||0)*.55;guardShieldWire.material.opacity=.58+.2*(.5+.5*Math.sin((Number(v.time)||0)*8));}
+    if(guardShieldRing){guardShieldRing.visible=shieldOn;guardShieldRing.rotation.z=(Number(v.time)||0)*.75;}
     // MOD 52: o clip de morte (Hit Knockback) é só um tropeço e deixava o corpo em pé, "caindo no vento".
     // Depois do tropeço o corpo tomba para trás até deitar no chão.
     const fallRaw=v.dead?Math.max(0,Math.min(1,((Number(v.deadT)||0)-.3)/.6)):0,fall=fallRaw*fallRaw*(3-2*fallRaw);
-    pivot.rotation.x=-hurtAmount*.13-evadeP*.32+guardP*.1-fall*1.5;
-    pivot.position.y=v.position[1]-evadeP*.14-guardP*.05;
+    const jumpP=v.jumping?Math.max(0,Math.min(1,(Number(v.position[1])||0)-0.02)):0;
+    // MOD 56: esquiva mais atlética (inclinação lateral e compressão), e salto com
+    // postura inclinada no ar. São ajustes no pivô, sem tocar no esqueleto ou nos clips GLB.
+    pivot.rotation.x=-hurtAmount*.13-evadeP*.48+guardP*.1-fall*1.5-jumpP*.10;
+    pivot.position.y=v.position[1]-evadeP*.19-guardP*.05;
     lastFall=fall;
-    pivot.rotation.z=0;
+    pivot.rotation.z=-evadeP*.34+jumpP*.08;
     if(!diagnosticPreview)choose(v);
     if(currentType==='walk'&&currentAction){
       const speed=Math.max(0,Number(v.speed)||0);

@@ -519,6 +519,27 @@ const Player = {
     ctx.save();
     ctx.translate(this.x, this.y - this.z);
 
+    // MOD 56: escudo etéreo enquanto a defesa está pressionada.
+    // Desenhado no canvas de jogo, sem criar hitbox nem alterar a redução de dano.
+    if (this.blocking && !this.dead) {
+      const pulse = 0.5 + 0.5 * Math.sin((Game.time || 0) * 8);
+      ctx.save();
+      ctx.globalAlpha = 0.22 + pulse * 0.10;
+      const shield = ctx.createRadialGradient(0, -21, 5, 0, -21, 25);
+      shield.addColorStop(0, 'rgba(105,205,255,0.02)');
+      shield.addColorStop(0.72, 'rgba(75,175,255,0.18)');
+      shield.addColorStop(1, 'rgba(170,235,255,0.02)');
+      ctx.fillStyle = shield;
+      ctx.beginPath(); ctx.ellipse(0, -21, 20, 28, 0, 0, 6.2832); ctx.fill();
+      ctx.globalAlpha = 0.72 + pulse * 0.22;
+      ctx.strokeStyle = '#8fe7ff'; ctx.lineWidth = 1.7;
+      ctx.beginPath(); ctx.ellipse(0, -21, 19, 27, 0, 0, 6.2832); ctx.stroke();
+      ctx.strokeStyle = 'rgba(220,250,255,0.8)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, -21, 22, -2.2, -0.9); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -21, 22, 0.95, 2.25); ctx.stroke();
+      ctx.restore();
+    }
+
     // Pisca enquanto está invulnerável após levar dano
     if (this.blinkT > 0 && !this.dead && ((Game.time * 20) | 0) % 2 === 0) ctx.globalAlpha = 0.45;
 
