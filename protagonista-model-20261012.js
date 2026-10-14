@@ -294,6 +294,44 @@
       swordRoot.visible=false;
     }
   }
+  // Gera o retrato a partir do GLB real usando o renderer 3D já existente (sem criar outro contexto WebGL).
+  function render3DPortrait(model){
+    try{
+      if(!api||!api.THREE||!api.renderer||!model||!window.SetHeroPortrait3D)return;
+      const THREE=api.THREE,renderer=api.renderer,size=256;
+      const target=new THREE.WebGLRenderTarget(size,size,{format:THREE.RGBAFormat,type:THREE.UnsignedByteType,depthBuffer:true,stencilBuffer:false});
+      const portraitScene=new THREE.Scene();
+      portraitScene.add(new THREE.HemisphereLight(0xeaf0ff,0x30263d,2.2));
+      const key=new THREE.DirectionalLight(0xffe6c7,2.8);key.position.set(-2.5,4,3);portraitScene.add(key);
+      const fill=new THREE.DirectionalLight(0x9bbcff,1.0);fill.position.set(2,2,-2);portraitScene.add(fill);
+      const camera=new THREE.PerspectiveCamera(38,1,.1,12);
+      camera.position.set(0,1.55,2.65);camera.lookAt(0,1.52,0);camera.updateProjectionMatrix();
+      const oldParent=model.parent,oldPosition=model.position.clone(),oldQuaternion=model.quaternion.clone(),oldScale=model.scale.clone();
+      const oldTarget=renderer.getRenderTarget(),oldClear=renderer.getClearColor(new THREE.Color()).clone(),oldAlpha=renderer.getClearAlpha(),oldAutoClear=renderer.autoClear;
+      try{
+        if(oldParent)oldParent.remove(model);
+        portraitScene.add(model);
+        model.position.set(0,0,0);model.rotation.set(0,0,0);model.updateMatrixWorld(true);
+        renderer.autoClear=true;renderer.setClearColor(0x000000,0);
+        renderer.setRenderTarget(target);renderer.clear();renderer.render(portraitScene,camera);
+        const pixels=new Uint8Array(size*size*4);renderer.readRenderTargetPixels(target,0,0,size,size,pixels);
+        const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+        const ctx=canvas.getContext('2d');const imageData=ctx.createImageData(size,size);
+        for(let y=0;y<size;y++){
+          const src=(size-1-y)*size*4,dst=y*size*4;
+          imageData.data.set(pixels.subarray(src,src+size*4),dst);
+        }
+        ctx.putImageData(imageData,0,0);
+        window.SetHeroPortrait3D(canvas.toDataURL('image/png'));
+      }finally{
+        portraitScene.remove(model);
+        model.position.copy(oldPosition);model.quaternion.copy(oldQuaternion);model.scale.copy(oldScale);
+        if(oldParent)oldParent.add(model);
+        renderer.setRenderTarget(oldTarget);renderer.setClearColor(oldClear,oldAlpha);renderer.autoClear=oldAutoClear;
+        target.dispose();
+      }
+    }catch(e){console.warn('Retrato 3D do protagonista não pôde ser gerado; mantendo o retrato de reserva.',e);}
+  }
   function loadModel(){
     note('carregando Protagonista.glb...',false);
     const THREE=api.THREE,loader=new THREE.GLTFLoader();
@@ -402,6 +440,7 @@
           getupDuration:Math.min(2,Math.max(1.4,Number((actions.getup||{}).duration)||0))
         };
         ready=true;window.ProtagonistaGLBReady=true;
+        render3DPortrait(root);
         if(window.ValerioThreeWarmUp)window.ValerioThreeWarmUp();
         window.ProtagonistaAnimationDiagnostics={clips:clips.map(c=>({name:c.name,duration:Number(c.duration)||0})),attackCandidates:attackClips.map(c=>c.name),mapped:Object.keys(actions).reduce(function(o,k){o[k]=actions[k]&&actions[k].name||null;return o;},{})};
         // A lista de clips fica disponível em window.ProtagonistaAnimationDiagnostics, sem texto na tela.
@@ -477,7 +516,8 @@
       // em vez de manter o personagem preso no último quadro do golpe.
     }
 
-    if(v.moving&&actions.walk){if(currentType!=='walk'||!currentAction||!currentAction.isRunning())play('walk',false);return;}
+    // Sem clip de salto dedicado, não tocar a caminhada no ar.
+    if(v.moving&&!v.jumping&&actions.walk){if(currentType!=='walk'||!currentAction||!currentAction.isRunning())play('walk',false);return;}
     if(currentType!=='idle'||!currentAction||!currentAction.isRunning())play('idle',false);
   }
   let lastFirstPerson=null,lastSwordStatus=0,lastSwordAttackId=-1,swordAttackStart=-1,lastPlayedAttackId=-1,lastPlayedHurtId=-1;
