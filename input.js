@@ -147,13 +147,20 @@ const Input = (function () {
   gameCanvas.addEventListener('pointerup', endCameraDrag);
   gameCanvas.addEventListener('pointercancel', endCameraDrag);
   gameCanvas.addEventListener('lostpointercapture', endCameraDrag);
-  gameCanvas.addEventListener('contextmenu', function (e) { if (cameraDrag.active) e.preventDefault(); });
+  gameCanvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  // Evita zoom acidental por duplo clique/toque na área do jogo.
+  document.addEventListener('dblclick', function (e) {
+    if (!e.target.closest || !e.target.closest('input, textarea, select')) e.preventDefault();
+  }, { passive: false });
+  gameCanvas.addEventListener('wheel', function (e) {
+    if (e.ctrlKey || e.metaKey) e.preventDefault();
+  }, { passive: false });
 
   // ----- Teclado (teste no PC) -----
   const JUMP_KEYS = { Space: 1, KeyZ: 1, KeyK: 1 };
   const ATTACK_KEYS = { KeyJ: 1, KeyX: 1 };
   const INTERACT_KEYS = { KeyE: 1, Enter: 1 };
-  const AIM_KEYS = { KeyF: 1, Button5: 1 };   // alterna a mira direcional
+  const AIM_KEYS = { KeyF: 1, Button5: 1 };   // F = esquiva na dimensão de Valério
   window.addEventListener('keydown', function (e) {
     if (e.code === 'Space' || e.code.indexOf('Arrow') === 0) e.preventDefault();
     if (!keys[e.code]) {
@@ -195,7 +202,7 @@ const Input = (function () {
       return out;
     },
     jumpHeld() { return touchJump || !!(keys.Space || keys.KeyZ || keys.KeyK); },
-    defendHeld() { return touchDefend || !!(keys.KeyL || keys.KeyC || keys.ShiftLeft); },
+    defendHeld() { return touchDefend || !!(keys.KeyL || keys.KeyC || keys.ShiftLeft || keys.ShiftRight); },
     // Retornam true uma vez por apertar (segurar o botão NÃO repete)
     consumeJump() { const j = jumpQueued; jumpQueued = false; return j; },
     consumeAttack() { const a = attackQueued; attackQueued = false; return a; },
