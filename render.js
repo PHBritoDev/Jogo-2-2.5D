@@ -309,16 +309,29 @@ const Render = {
     const w = Ambient.wind;
     const sway = Math.sin(t * 2 + o.ph + o.x * 0.01) * w;
     if (o.type === 'tuft') {
-      const h = 9 * o.s, bend = sway * 4 + w * 2;
-      ctx.strokeStyle = o.col;
-      ctx.lineWidth = 1.6;
+      // Folhas largas de ponta arredondada, com sombra de contato: silhueta macia em vez de riscos finos.
+      const sc = o.s, h = 8.5 * sc, bend = sway * 4 + w * 2;
+      ctx.fillStyle = 'rgba(18,44,20,0.18)';
+      ctx.beginPath(); ctx.ellipse(o.x, o.y + 0.5, 5.2 * sc, 1.7 * sc, 0, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = o.col;
       ctx.beginPath();
-      for (let i = -1; i <= 1; i++) {
-        const bx = o.x + i * 2.6 * o.s;
-        ctx.moveTo(bx, o.y);
-        ctx.quadraticCurveTo(bx + i * 1.5 + bend * 0.3, o.y - h * 0.6, bx + i * 2.5 + bend, o.y - h * (1 - Math.abs(i) * 0.2));
+      for (let i = -2; i <= 2; i++) {
+        const k = Math.abs(i);
+        const bx = o.x + i * 1.8 * sc;
+        const bh = h * (1 - k * 0.17) * (0.92 + ((i + 2) % 3) * 0.06);
+        const wd = 1.5 * sc;
+        const tx = bx + i * 1.2 + bend * (0.7 + k * 0.08), ty = o.y - bh;
+        ctx.moveTo(bx - wd, o.y);
+        ctx.quadraticCurveTo(bx - wd * 0.5 + bend * 0.25, o.y - bh * 0.6, tx - wd * 0.3, ty + 1);
+        ctx.quadraticCurveTo(tx, ty - 0.9, tx + wd * 0.3, ty + 1);
+        ctx.quadraticCurveTo(bx + wd * 0.5 + bend * 0.25, o.y - bh * 0.6, bx + wd, o.y);
+        ctx.closePath();
       }
-      ctx.stroke();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(214,244,150,0.22)';
+      ctx.beginPath();
+      ctx.ellipse(o.x + bend * 0.5, o.y - h * 0.62, 1.3 * sc, h * 0.34, bend * 0.05, 0, 6.2832);
+      ctx.fill();
     } else {
       const fx = o.x + sway * 1.5, fy = o.y - 7 * o.s;
       ctx.strokeStyle = '#3b8a3a';

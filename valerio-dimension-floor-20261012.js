@@ -452,41 +452,43 @@ const BishopDimension = (function () {
     const rnd=function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
     // O piso mede 128 x 72; a grade cobre exatamente suas bordas.
     const cols=58,rows=34,groundY=.028;
-    const palette=['#304522','#3a5127','#455d2c','#526633','#66733a','#788044'];
+    const palette=['#2f4a24','#3b5a2a','#4a6a30','#5b7a38','#6f8a40','#82924a'];
+    let bladeTotal=0;
     function vertex(x,y,z,c){grass.push(x,y,z,c[0],c[1],c[2],c[3]);}
-    function triangle(a,b,c,col){
-      vertex(a[0],a[1],a[2],col);vertex(b[0],b[1],b[2],col);vertex(c[0],c[1],c[2],col);
-    }
     for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
-      const x=-64+(col+.5)*(128/cols)+(rnd()-.5)*.48;
-      const z=-38.5+(row+.5)*(72/rows)+(rnd()-.5)*.42;
-      // 9–13 lâminas por célula, em leque irregular para evitar aspecto de grade.
-      const bladeCount=9+Math.floor(rnd()*5);
-      for(let b=0;b<bladeCount;b++){
-        const angle=rnd()*Math.PI*2;
-        const dx=Math.cos(angle),dz=Math.sin(angle);
-        const px=-dz,pz=dx;
-        const bx=x+(rnd()-.5)*1.72,bz=z+(rnd()-.5)*1.68;
-        const height=.40+rnd()*.37;
-        const halfWidth=.065+rnd()*.075;
-        const lean=.08+rnd()*.25;
-        const topX=bx+dx*lean,topZ=bz+dz*lean;
-        const left=[bx+px*halfWidth,groundY,bz+pz*halfWidth];
-        const right=[bx-px*halfWidth,groundY,bz-pz*halfWidth];
-        const tip=[topX,groundY+height,topZ];
-        const raw=color(palette[Math.floor(rnd()*palette.length)]);
-        const shade=.76+rnd()*.42;
-        const tint=[Math.min(1,raw[0]*shade),Math.min(1,raw[1]*shade),Math.min(1,raw[2]*shade),.98];
-        // Base escura (oclusão ambiente) e ponta clara (luz do alto): dá volume e profundidade ao tapete
-        // de grama com as mesmas ~64 mil vértices e sem nenhum custo extra por quadro.
-        const baseTint=[tint[0]*.66,tint[1]*.66,tint[2]*.66,tint[3]];
-        const topTint=[Math.min(1,tint[0]*1.25),Math.min(1,tint[1]*1.25),Math.min(1,tint[2]*1.2),tint[3]];
-        vertex(left[0],left[1],left[2],baseTint);vertex(right[0],right[1],right[2],baseTint);vertex(tip[0],tip[1],tip[2],topTint);
+      const cx=-64+(col+.5)*(128/cols)+(rnd()-.5)*.48;
+      const cz=-38.5+(row+.5)*(72/rows)+(rnd()-.5)*.42;
+      // 2 tufos por célula, cada um com 3 folhas largas em leque: silhueta macia, sem pontas de agulha.
+      for(let clump=0;clump<2;clump++){
+        const x=cx+(rnd()-.5)*1.5,z=cz+(rnd()-.5)*1.45;
+        const clumpH=.42+rnd()*.34,clumpTone=Math.floor(rnd()*palette.length);
+        const raw0=color(palette[clumpTone]);
+        const windOffset=(rnd()-.5)*.3;
+        for(let b=0;b<3;b++){
+          const angle=rnd()*Math.PI*2;
+          const dx=Math.cos(angle),dz=Math.sin(angle);
+          const px=-dz,pz=dx;
+          const bx=x+(rnd()-.5)*.34,bz=z+(rnd()-.5)*.34;
+          const height=clumpH*(.72+rnd()*.4);
+          const halfWidth=.1+rnd()*.07;
+          const topHalf=halfWidth*.42;
+          const lean=.1+rnd()*.24+windOffset*.2;
+          const topX=bx+dx*lean,topZ=bz+dz*lean,topY=groundY+height;
+          const shade=.82+rnd()*.34;
+          const t=[Math.min(1,raw0[0]*shade),Math.min(1,raw0[1]*shade),Math.min(1,raw0[2]*shade),.98];
+          const baseTint=[t[0]*.6,t[1]*.62,t[2]*.58,t[3]];
+          const topTint=[Math.min(1,t[0]*1.2),Math.min(1,t[1]*1.2),Math.min(1,t[2]*1.1),t[3]];
+          const L=[bx+px*halfWidth,groundY,bz+pz*halfWidth],R=[bx-px*halfWidth,groundY,bz-pz*halfWidth];
+          const TL=[topX+px*topHalf,topY,topZ+pz*topHalf],TR=[topX-px*topHalf,topY,topZ-pz*topHalf];
+          vertex(L[0],L[1],L[2],baseTint);vertex(R[0],R[1],R[2],baseTint);vertex(TL[0],TL[1],TL[2],topTint);
+          vertex(R[0],R[1],R[2],baseTint);vertex(TR[0],TR[1],TR[2],topTint);vertex(TL[0],TL[1],TL[2],topTint);
+          bladeTotal++;
+        }
       }
     }
     if(grass.length&&S.arena===targetArena&&S.gl){
       targetArena.grassAsset=mesh(S.gl,grass);
-      window.ValerioGrassStatus={loaded:true,mode:'procedural-full-cover',patches:cols*rows,blades:grass.length/21,triangles:targetArena.grassAsset.count/3};
+      window.ValerioGrassStatus={loaded:true,mode:'procedural-full-cover',patches:cols*rows,blades:bladeTotal,triangles:targetArena.grassAsset.count/3};
     }
   }
   function initGL() {

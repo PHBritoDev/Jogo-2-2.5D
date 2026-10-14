@@ -417,3 +417,117 @@ canvas {
 }
 .dlg-choice:active { background: rgba(240, 192, 64, .5); }
 #dlg-hint { margin-top: 6px; font-size: 11px; text-align: right; opacity: .7; }
+
+
+/* ============================================================
+   IDENTIDADE VISUAL — céu, luz divina, trevas e corrupção
+   Paleta: dourado celestial, azul luminoso, pérola, noite e carmesim/violeta.
+   Cada botão tem cor própria; sem filtros pesados (só gradientes e sombras).
+   ============================================================ */
+:root {
+  --gold: #f2c35b; --gold-deep: #9a6a1c; --pearl: #f7f2e4;
+  --azure: #7fd0ff; --azure-deep: #1d5fb0;
+  --night: #0e0c1c; --night-2: #1b1633;
+  --crimson: #d2415a; --crimson-deep: #6e1428; --violet: #7a4cc2; --violet-deep: #2e1a5a;
+}
+
+html, body { background: #14122a; font-family: "Trebuchet MS", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+/* Botões do topo: vidro escuro com aro dourado */
+.btn-round {
+  border: 2px solid var(--gold);
+  background: radial-gradient(circle at 50% 30%, rgba(70, 56, 120, .85), rgba(14, 12, 28, .88));
+  color: var(--pearl);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 244, 205, .35);
+  transition: transform .08s ease-out;
+}
+.btn-round:active { transform: scale(.92); background: radial-gradient(circle at 50% 30%, rgba(120, 92, 190, .9), rgba(14, 12, 28, .9)); }
+
+/* Joystick */
+#joy-base { background: radial-gradient(circle, rgba(127, 208, 255, .10), rgba(14, 12, 28, .32)); border: 2px solid rgba(242, 195, 91, .7); }
+#joy-knob { background: radial-gradient(circle at 40% 30%, #fffaf0, #f2c35b 70%, #b98425); box-shadow: 0 2px 8px rgba(0, 0, 0, .45); }
+
+/* Botões de ação */
+#action-cluster button {
+  font-family: inherit;
+  font-weight: 800;
+  letter-spacing: .8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .5), inset 0 2px 0 rgba(255, 255, 255, .38), inset 0 -4px 8px rgba(0, 0, 0, .28);
+  transition: transform .07s ease-out, box-shadow .07s ease-out;
+}
+#btn-attack { border: 3px solid #ffd9a0; background: radial-gradient(circle at 50% 30%, #f06a52, var(--crimson) 45%, var(--crimson-deep)); }
+#btn-defend { border: 3px solid var(--pearl); background: radial-gradient(circle at 50% 30%, #aee3ff, #3b8fe0 50%, var(--azure-deep)); text-shadow: 0 1px 3px rgba(5, 25, 70, .7); }
+#btn-aim { border: 3px solid var(--gold); background: radial-gradient(circle at 50% 30%, #a77be6, var(--violet) 50%, var(--violet-deep)); }
+#btn-aim.on { background: radial-gradient(circle at 50% 30%, #fff1b8, var(--gold) 55%, #b98425); border-color: #fff8dc; color: #3a2606; text-shadow: none; }
+#btn-jump { border: 3px solid var(--gold); background: radial-gradient(circle at 50% 28%, #ffffff, #efe6cc 55%, #c9b27a); color: #3a2a0c; text-shadow: none; }
+#btn-attack.pressed, #btn-defend.pressed, #btn-aim.pressed, #btn-jump.pressed,
+#action-cluster button:active { transform: scale(.93); box-shadow: 0 1px 3px rgba(0, 0, 0, .5), inset 0 3px 8px rgba(0, 0, 0, .4); filter: brightness(1.12); }
+#btn-jump.pressed { background: radial-gradient(circle at 50% 28%, #fff, #fff1c4 60%, #e0c27a); }
+#action-cluster button:disabled, #btn-interact:disabled, .btn-big:disabled { opacity: .5; filter: grayscale(.7); }
+
+/* FALAR */
+#btn-interact {
+  font-family: inherit;
+  font-weight: 800;
+  border: 3px solid #fff3c4;
+  background: radial-gradient(circle at 50% 28%, #ffe79a, var(--gold) 55%, #b9822a);
+  color: #3a2606;
+  text-shadow: none;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .5), inset 0 2px 0 rgba(255, 255, 255, .5);
+}
+
+/* Botão grande (menus/diálogos) e estados */
+.btn-big {
+  position: relative;
+  border: 2px solid #fff3c4;
+  background: linear-gradient(180deg, #ffeaa6, var(--gold) 52%, #b9822a);
+  color: #2e1d05;
+  font-weight: 800;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 0 var(--gold-deep), 0 8px 14px rgba(0, 0, 0, .4);
+  transition: transform .07s ease-out, box-shadow .07s ease-out;
+}
+.btn-big:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--gold-deep), 0 3px 8px rgba(0, 0, 0, .4); }
+.btn-big.selected { background: linear-gradient(180deg, #e9f6ff, var(--azure) 55%, var(--azure-deep)); color: #06223f; border-color: var(--pearl); }
+.btn-big.loading { color: transparent; pointer-events: none; }
+.btn-big.loading::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+  border: 3px solid rgba(46, 29, 5, .3); border-top-color: #2e1d05; border-radius: 50%;
+  animation: btn-spin .8s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* HUD: retrato do protagonista + barra de vida */
+#hero-portrait {
+  position: fixed;
+  top: calc(24px + env(safe-area-inset-top));
+  left: calc(8px + env(safe-area-inset-left));
+  z-index: 10;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--gold);
+  background: radial-gradient(circle at 50% 35%, #4a4f86, var(--night));
+  box-shadow: 0 0 0 2px rgba(14, 12, 28, .8), 0 3px 8px rgba(0, 0, 0, .5);
+  pointer-events: none;
+}
+#hero-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#hp-bar { left: calc(68px + env(safe-area-inset-left)); height: 18px; border: 2px solid var(--gold); background: linear-gradient(180deg, #120f24, #241b3f); border-radius: 9px; box-shadow: 0 2px 6px rgba(0, 0, 0, .45); }
+#hp-fill { background: linear-gradient(180deg, #a6f0b8, #38b56e 55%, #1f8a52); }
+#hp-fill.low { background: linear-gradient(180deg, #ff8d8d, #d2415a 55%, #8e1c35); }
+#hp-trail { background: linear-gradient(180deg, #ffe08a, #e8a43a); }
+#hp-text { font-family: inherit; line-height: 14px; }
+#coin-box { left: calc(68px + env(safe-area-inset-left)); top: calc(50px + env(safe-area-inset-top)); border: 2px solid var(--gold); background: linear-gradient(180deg, #1b1633, #0e0c1c); border-radius: 13px; }
+.coin-ic { background: radial-gradient(circle at 35% 30%, #fff1b8, var(--gold) 60%, #a8771a); border-color: #7a5410; }
+#quest-box { border: 2px solid var(--gold); background: linear-gradient(180deg, rgba(27, 22, 51, .88), rgba(14, 12, 28, .88)); border-radius: 14px; box-shadow: 0 3px 8px rgba(0, 0, 0, .4); }
+#quest-title { color: var(--gold); }
+#toast { border-color: var(--gold); background: rgba(14, 12, 28, .92); }
+
+/* Diálogo e pausa */
+#dialog { border: 2px solid var(--gold); background: linear-gradient(180deg, rgba(27, 22, 51, .96), rgba(14, 12, 28, .96)); border-radius: 16px; box-shadow: 0 6px 18px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 244, 205, .18); }
+#dlg-who { color: var(--gold); }
+.dlg-choice { border: 2px solid rgba(242, 195, 91, .55); background: linear-gradient(180deg, rgba(122, 76, 194, .28), rgba(46, 26, 90, .4)); border-radius: 12px; transition: transform .07s ease-out; }
+.dlg-choice:active { background: linear-gradient(180deg, #ffe79a, var(--gold)); color: #2e1d05; transform: scale(.98); }
+.overlay { background: radial-gradient(ellipse at 50% 35%, rgba(60, 48, 120, .88), rgba(10, 8, 24, .94) 75%); }
+.overlay h1 { color: var(--gold); letter-spacing: 3px; text-shadow: 0 2px 10px rgba(242, 195, 91, .35); }

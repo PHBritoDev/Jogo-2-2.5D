@@ -138,6 +138,72 @@ const BossArtPreload = (function () {
   return { keep: keep };
 })();
 
+// Retrato do protagonista: reaproveita o desenho real do jogador (Player.draw) em um canvas pequeno.
+// É vetorial, não depende de arquivo externo nem do GLB e é gerado uma única vez (leve e confiável).
+const HeroPortrait = (function () {
+  let url = '';
+  function build() {
+    if (url) return url;
+    try {
+      const W = 192, H = 192, k = 4.3;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const g = c.getContext('2d');
+      const bg = g.createRadialGradient(W / 2, H * 0.38, 8, W / 2, H * 0.5, W * 0.75);
+      bg.addColorStop(0, '#5b6fa3');
+      bg.addColorStop(0.55, '#262a52');
+      bg.addColorStop(1, '#0f0d22');
+      g.fillStyle = bg;
+      g.fillRect(0, 0, W, H);
+      const halo = g.createRadialGradient(W / 2, H * 0.34, 4, W / 2, H * 0.34, W * 0.42);
+      halo.addColorStop(0, 'rgba(255,230,160,.38)');
+      halo.addColorStop(1, 'rgba(255,230,160,0)');
+      g.fillStyle = halo;
+      g.fillRect(0, 0, W, H);
+      const who = Object.create(Player);
+      Object.assign(who, {
+        x: 0, y: 0, z: 0, floor: 0, anim: 0, speed: 0, onGround: true, dead: false,
+        hurtT: 0, blinkT: 0, blocking: false, blockFlash: 0, squash: 0,
+        fx: 0, fy: 1, attackT: -1
+      });
+      g.save();
+      g.translate(W / 2, H / 2 + 22 * k);
+      g.scale(k, k);
+      who.draw(g);
+      g.restore();
+      url = c.toDataURL('image/png');
+    } catch (e) { url = ''; }
+    return url;
+  }
+  function apply(el, withTag) {
+    if (!el) return;
+    const src = build();
+    if (!src) return;
+    let img = el.querySelector('img');
+    if (!img) {
+      img = document.createElement('img');
+      img.alt = '';
+      img.setAttribute('aria-hidden', 'true');
+      img.draggable = false;
+      el.insertBefore(img, el.firstChild);
+    }
+    img.src = src;
+    el.classList.add('has-art');
+    if (withTag && !el.querySelector('.hero-tag')) {
+      el.textContent = '';
+      el.appendChild(img);
+      const tag = document.createElement('span');
+      tag.className = 'hero-tag';
+      tag.textContent = 'VOCÊ';
+      el.appendChild(tag);
+    }
+  }
+  function init() { apply(document.getElementById('hero-portrait'), false); }
+  if (document.readyState === 'complete') setTimeout(init, 300);
+  else window.addEventListener('load', function () { setTimeout(init, 300); }, { once: true });
+  return { build: build, apply: apply };
+})();
+
 const BossPresentation = {
   open: false,
   phase: 0,
@@ -188,7 +254,7 @@ const BossPresentation = {
         art.className = 'boss-intro-art';
         art.alt = '';
         art.setAttribute('aria-hidden', 'true');
-        art.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;pointer-events:none;';
+        art.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 9%;pointer-events:none;';
         portrait.style.position = 'relative';
         portrait.appendChild(art);
       }
@@ -206,6 +272,7 @@ const BossPresentation = {
         if (fallback) fallback.style.display = '';
       }
     }
+    HeroPortrait.apply(this.el.querySelector('.boss-intro-player-mark'), true);
     this.phase = 0;
     this.open = true;
     Game.talking = true;
