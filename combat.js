@@ -525,7 +525,15 @@ const Combat = {
     const dx = E.x - (ax + sx * t), dy = E.y - (ay + sy * t);
     const bishopContactGrace = isBishop ? 12 : 0;
     const radius = Math.max(0, Number(strike.hitRadius) || 0) + Math.max(0, Number(E.r) || 0) + bishopContactGrace;
-    return dx * dx + dy * dy <= radius * radius;
+    if (dx * dx + dy * dy <= radius * radius) return true;
+    // MOD 56: assistência de contato para o Bispo. O golpe 3D pode encostar com a ponta
+    // mesmo quando a projeção 2D da lâmina fica alguns pixels ao lado. Só vale na frente
+    // do jogador, durante a janela ativa, e continua protegido por hitId em _foe().
+    if (isBishop && targetDistance <= end + Math.max(0, Number(E.r) || 0) + 28) {
+      const forward = tx * dirX + ty * dirY;
+      return forward >= -Math.max(0, Number(E.r) || 0) * 0.35;
+    }
+    return false;
   },
 
   init() {
