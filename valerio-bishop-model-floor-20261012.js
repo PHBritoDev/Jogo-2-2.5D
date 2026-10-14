@@ -8,6 +8,15 @@
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
   let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
   let animationFloorProfiles=[],floorEnvelopeMinY=0;
+  // MOD 53: chão pelos ossos dos pés (antes: ponto mais baixo da malha inteira, que é a barra da veste/capa,
+  // então os pés ficavam suspensos). soleGap = altura do osso do pé até a sola.
+  let footBones=[],soleGap=0,standDelta=0,lieDelta=null,deadFallV=0;
+  const footTmp=new THREE.Vector3();
+  function lowestFootRel(){
+    let m=Infinity;
+    for(let i=0;i<footBones.length;i++){footBones[i].getWorldPosition(footTmp);if(footTmp.y<m)m=footTmp.y;}
+    return m-(pivot?pivot.position.y:0);
+  }
   let attackCycleActive=false,activeAttackClip=null,nextAttackClipIndex=0,activeAttackStage=0;
   // MOD 51: cada golpe do chefe usa o clip certo e começa no quadro certo para o contato bater com o dano.
   let attackClipMap={};
@@ -574,7 +583,7 @@
             // Mantém a escala normalizada no próprio GLB, como na versão que tinha
             // proporções corretas; trava mudanças de escala vindas dos clips.
             // fitModel normaliza a geometria para 0,95 unidade; não aplicar uma segunda escala.
-            pivot=new THREE.Group();pivot.scale.setScalar(1);pivot.add(root);scene.add(pivot);
+            pivot=new THREE.Group();pivot.rotation.order='YXZ';pivot.scale.setScalar(1);pivot.add(root);scene.add(pivot);
             // O mixer mede as poses antes de congelar a escala-base normalizada.
             mixer=new THREE.AnimationMixer(root);
             const clips=(gltf.animations||[]).map(function(clip){
@@ -624,6 +633,14 @@
             animationFloorProfiles=floorFit.floorProfiles;
             floorEnvelopeMinY=floorFit.floorMinY;
             rootBasePosition=root.position.clone();
+            footBones=[];
+            root.traverse(function(o){const n=String(o.name||'').toLowerCase().replace(/[^a-z]/g,'');if(/(left|right)(foot|toebase)$/.test(n))footBones.push(o);});
+            try{
+              pivot.updateMatrixWorld(true);
+              const bind=measureModelBounds(root);
+              soleGap=Math.min(.06*VALERIO_MODEL_HEIGHT,Math.max(.02*VALERIO_MODEL_HEIGHT,lowestFootRel()-(bind.min.y-pivot.position.y)));
+            }catch(e){soleGap=.03*VALERIO_MODEL_HEIGHT;}
+            console.info('Valério: ossos dos pés encontrados:',footBones.map(function(b){return b.name;}),'| folga da sola:',soleGap.toFixed(3));
             restoreModelScales=lockModelScales(pivot);
             const normalized=function(c){return (c.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');};
             const pickClip=function(patterns){
@@ -747,8 +764,12 @@
     }
     const animType=disableValerioClips?'none':chooseAnimation(v,now);
     // Fallback de morte: Valério cai para trás, não de lado.
-    const deadProgress=String(v.state||'').toLowerCase()==='dead'?Math.max(0,Math.min(1,(Number(v.stateTime)||0)/0.72)):0;
-    pivot.rotation.x=animType==='procedural-death'?-deadProgress*1.42:0;
+    // MOD 53: o clip de morte é só um tropeço; depois dele o corpo tomba para trás e é apoiado no chão pela
+    // caixa real da malha (veja o bloco de piso abaixo), sem elevar o modelo artificialmente.
+    const isDeadV=String(v.state||'').toLowerCase()==='dead';
+    const fallRawV=isDeadV?Math.max(0,Math.min(1,((Number(v.stateTime)||0)-.3)/.6)):0;
+    deadFallV=fallRawV*fallRawV*(3-2*fallRawV);
+    pivot.rotation.x=-deadFallV*1.5;
     pivot.rotation.z=0;
     if(mixer&&!disableValerioClips){
       // Sincroniza a cadência das pernas com a velocidade REAL do BishopBoss.
@@ -767,7 +788,24 @@
       root.position.copy(rootBasePosition);
       // Reaplica a correção amostrada do clipe ativo em todos os estados: idle, caminhada, ataque e morte.
       // Sem ela, o root-motion dos clips levanta o modelo acima do chão durante a caminhada.
-      root.position.y+=animationFloorCorrection();
+      if(footBones.length){
+        pivot.updateMatrixWorld(true);
+        let delta;
+        if(deadFallV>0){
+          if(deadFallV>=1&&lieDelta!==null)delta=lieDelta;
+          else{
+            const lying=measureModelBounds(root),d=-(lying.min.y-pivot.position.y);
+            delta=standDelta*(1-deadFallV)+d*deadFallV;
+            if(deadFallV>=1)lieDelta=delta;
+          }
+        }else{
+          lieDelta=null;
+          // Em pé / andando / atacando: o pé mais baixo fica sempre na altura da sola no chão.
+          delta=soleGap-lowestFootRel();
+          standDelta=delta;
+        }
+        root.position.y+=delta;
+      }else root.position.y+=animationFloorCorrection();
     }
     if(restoreModelScales)restoreModelScales();
     // A escala do personagem é definida uma vez por fitModel(). Não recalcular

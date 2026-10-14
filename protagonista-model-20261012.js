@@ -1,6 +1,7 @@
 /* Protagonista 3D — usa a mesma cena/câmera do Valério para depth correto. */
 (function () {
   'use strict';
+  let lastFall=0,lieDelta=null;
   let api=null,root=null,pivot=null,mixer=null,rootBasePosition=null,restoreModelScales=null,actions={},attackClips=[],fallbackAttackClip=null,currentAction=null,currentType='',diagnosticPreview=false,ready=false,failed=false,last=0,renderedYaw=null,yawLast=0,swordRoot=null,swordHand=null,swordMount=null,swordPivot=null,swordWorldPosition=null,swordWorldQuaternion=null,swordEffects=[],swordLight=null,swordPhase=0,swordMeshes=0,swordLoaded=false,swordLoadError='',swordStatusCheckAt=0;
   const MODEL_HEIGHT=2.15;
   // O GLB mede cerca de 1,90 no eixo Y; o cabo fica entre Y=0,57 e 0,95.
@@ -528,8 +529,9 @@
     // MOD 52: o clip de morte (Hit Knockback) é só um tropeço e deixava o corpo em pé, "caindo no vento".
     // Depois do tropeço o corpo tomba para trás até deitar no chão.
     const fallRaw=v.dead?Math.max(0,Math.min(1,((Number(v.deadT)||0)-.3)/.6)):0,fall=fallRaw*fallRaw*(3-2*fallRaw);
-    pivot.rotation.x=-hurtAmount*.13-evadeP*.32+guardP*.1-fall*1.48;
-    pivot.position.y=v.position[1]-evadeP*.14-guardP*.05+fall*.12;
+    pivot.rotation.x=-hurtAmount*.13-evadeP*.32+guardP*.1-fall*1.5;
+    pivot.position.y=v.position[1]-evadeP*.14-guardP*.05;
+    lastFall=fall;
     pivot.rotation.z=0;
     if(!diagnosticPreview)choose(v);
     if(currentType==='walk'&&currentAction){
@@ -554,7 +556,20 @@
     }
     if(currentType==='attack'&&currentAction&&!currentAction.isRunning())currentType='';
     if(restoreModelScales)restoreModelScales();
-    if(root&&rootBasePosition){root.position.copy(rootBasePosition);root.updateMatrixWorld(true);}
+    if(root&&rootBasePosition){
+      root.position.copy(rootBasePosition);root.updateMatrixWorld(true);
+      // MOD 53: deitado, o corpo é apoiado no piso pela caixa real da malha (sem elevar o modelo).
+      if(lastFall>0&&pivot){
+        if(lastFall>=1&&lieDelta!==null)root.position.y+=lieDelta;
+        else{
+          pivot.updateMatrixWorld(true);
+          const lying=measureModelBounds(root),d=-(lying.min.y-pivot.position.y);
+          if(lastFall>=1)lieDelta=d;
+          root.position.y+=d*lastFall;
+        }
+        root.updateMatrixWorld(true);
+      }else lieDelta=null;
+    }
     if(swordMount&&swordHand)updateSwordMount();
     // A renderização fica com o loop do Valério: os dois modelos compartilham depth buffer.
   }

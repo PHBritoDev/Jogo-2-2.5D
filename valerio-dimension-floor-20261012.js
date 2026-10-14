@@ -540,15 +540,23 @@ const BishopDimension = (function () {
       const nowMs=performance.now(),camDt=Math.min(.05,Math.max(0,(nowMs-(S.camT||nowMs))/1000));S.camT=nowMs;
       const c0=S.camera;
       const bossUp=BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'&&Number.isFinite(BishopBoss.x)&&Number.isFinite(BishopBoss.y);
-      const manual=nowMs-(S.lookAt||0)<2000;
-      if(bossUp&&!Player.dead&&!manual&&Campaign.step&&Campaign.step.boss==='greedFirst'){
+      const wrapA=function(a){return Math.atan2(Math.sin(a),Math.cos(a));};
+      if(bossUp&&!Player.dead&&Campaign.step&&Campaign.step.boss==='greedFirst'){
+        // Câmera = seguimento automático (base) + deslocamento do jogador (arrasto). O arrasto nunca é
+        // sobrescrito: ele vira deslocamento e só relaxa devagar depois de ~3 s sem tocar na tela.
+        if(S.fBase===undefined){S.fBase=c0.yaw;S.fOff=0;S.fLast=c0.yaw;S.pBase=c0.pitch;S.pOff=0;S.pLast=c0.pitch;}
+        S.fOff+=wrapA(c0.yaw-S.fLast);S.pOff+=c0.pitch-S.pLast;
         const bdx=(BishopBoss.x-(room.left+room.right)/2)*unit-px,bdz=(BishopBoss.y-(room.top+room.bottom)/2)*unit-pz;
         if(Math.hypot(bdx,bdz)>.4){
-          const want=Math.atan2(bdx,-bdz),delta=Math.atan2(Math.sin(want-c0.yaw),Math.cos(want-c0.yaw));
-          c0.yaw+=delta*Math.min(1,camDt*3.4);
-          c0.pitch+=(-0.14-c0.pitch)*Math.min(1,camDt*1.6);
+          const want=Math.atan2(bdx,-bdz);
+          S.fBase=wrapA(S.fBase+wrapA(want-S.fBase)*Math.min(1,camDt*4.2));
+          S.pBase+=(-0.14-S.pBase)*Math.min(1,camDt*1.6);
         }
-      }
+        if(nowMs-(S.lookAt||0)>3000){S.fOff*=Math.max(0,1-camDt*.5);S.pOff*=Math.max(0,1-camDt*.5);}
+        S.fOff=Math.max(-3.1,Math.min(3.1,S.fOff));S.pOff=Math.max(-.6,Math.min(.6,S.pOff));
+        c0.yaw=S.fBase+S.fOff;c0.pitch=Math.max(-.9,Math.min(.55,S.pBase+S.pOff));
+        S.fLast=c0.yaw;S.pLast=c0.pitch;
+      }else S.fBase=undefined;
     }
     const cam=S.camera, yaw=cam.yaw, pitch=cam.pitch, dist=cam.distance;
     const cp=Math.cos(pitch), sp=Math.sin(pitch), sy=Math.sin(yaw), cy=Math.cos(yaw);
