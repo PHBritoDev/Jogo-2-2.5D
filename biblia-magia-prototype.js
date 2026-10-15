@@ -6,7 +6,7 @@
   'use strict';
 
   const params = new URLSearchParams(window.location.search);
-  if (params.get('bibliaTest') !== '1') return;
+  if (params.get('bibliaTest') !== '1' && !document.getElementById('btn-magic')) return;
 
   const CLOSED_URL = './biblia_celestial_fechada.glb?v=mod69-biblia-20261014';
   const OPEN_URL = './biblia_celestial_aberta.glb?v=mod69-biblia-20261014';
