@@ -575,6 +575,28 @@ const BishopBoss = {
     this.updateHud();
   },
 
+  // Queimadura: dano contínuo sem cancelar ataque, defesa ou habilidade já iniciada.
+  burnDamage(rawDamage) {
+    if (this.state === 'dead' || this.state === 'inactive' || !this.profile) return;
+    const damage = Math.max(1, Math.round(rawDamage * (1 - this.profile.defense)));
+    this.hp = Math.max(0, this.hp - damage);
+    this.trailDelay = 0.5;
+    this.flashT = Math.max(this.flashT, 0.055);
+    const gy = this.y - this.z - 24;
+    Ambient.spawnSpark(this.x, gy, 3, '#ff8a25');
+    Combat.addText(this.x, gy - 13, '-' + damage, '#ff8a25');
+    if (this.hp <= 0) {
+      this._go('dead');
+      this.kx = this.ky = 0;
+      this.z = this.vz = this.floor = 0;
+      this.onGround = true;
+      Ambient.spawnSpark(this.x, gy, 14, '#ff8a25');
+      Ambient.spawnSpark(this.x, gy, 6, '#ffe9a0');
+      Sfx.death();
+    }
+    this.updateHud();
+  },
+
   // MOD 51: Defesa Perfeita — o jogador bloqueou no instante do golpe.
   parried() {
     if (!this.profile || this.state === 'dead' || this.state === 'inactive') return;
