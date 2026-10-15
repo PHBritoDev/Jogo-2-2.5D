@@ -647,10 +647,10 @@
 
   function currentSunTarget(origin) {
     const THREE = api.THREE;
-    if (typeof BishopBoss !== 'undefined' && typeof BishopDimension !== 'undefined' &&
-        BishopDimension.isBattleActive() && BishopBoss.state !== 'inactive' &&
-        BishopBoss.state !== 'dead' && Number.isFinite(BishopBoss.x) &&
-        Number.isFinite(BishopBoss.y) && typeof Casino !== 'undefined' && Casino.room) {
+    if (typeof BishopBoss !== 'undefined' && BishopBoss.profile &&
+        BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
+        Number.isFinite(BishopBoss.x) && Number.isFinite(BishopBoss.y) &&
+        typeof Casino !== 'undefined' && Casino.room) {
       const cx = (Casino.room.left + Casino.room.right) / 2;
       const cy = (Casino.room.top + Casino.room.bottom) / 2;
       return new THREE.Vector3((BishopBoss.x - cx) / 72, 0.12, (BishopBoss.y - cy) / 72);
@@ -836,15 +836,16 @@
     if (!started || !api || !api.THREE || !window.PlayerModelView ||
         !Array.isArray(window.PlayerModelView.position) || sunFlight) return;
     const view = window.PlayerModelView;
-    const origin = new api.THREE.Vector3(view.position[0], view.position[1] + 4.8, view.position[2]);
+    const origin = new api.THREE.Vector3(view.position[0], view.position[1] + 1.25, view.position[2]);
     const target = currentSunTarget(origin);
     target.y = 0.12;
     ensureSunAssets();
-    origin.y += 0.75;
+    origin.y += 0.7;
+    const peak = origin.clone(); peak.y += 3.6;
     sunOrb.position.copy(origin);
     sunOrb.visible = true;
     sunHalo.rotation.z = 0;
-    sunFlight = { start: origin.clone(), target: target, startedAt: now, holdDuration: 2450, duration: 1250 };
+    sunFlight = { start: origin.clone(), peak: peak, target: target, startedAt: now, riseDuration: 650, holdDuration: 2450, duration: 1250 };
     sunLastCast = now;
     window.BibliaCelestialDiagnostics = 'Sol da Justiça invocado';
   }
@@ -862,17 +863,22 @@
     }
     const elapsed = now - sunFlight.startedAt;
     const liveTarget = currentSunTarget(sunFlight.start);
-    if (elapsed >= sunFlight.holdDuration && elapsed < sunFlight.holdDuration + 850) {
+    const descentStart = sunFlight.riseDuration + sunFlight.holdDuration;
+    const descentElapsed = elapsed - descentStart;
+    if (descentElapsed >= 0 && descentElapsed < 850) {
       sunFlight.target.lerp(liveTarget, Math.min(1, dt * 3.2));
     }
-    const descentElapsed = elapsed - sunFlight.holdDuration;
+    const riseP = Math.max(0, Math.min(1, elapsed / sunFlight.riseDuration));
+    const riseEase = riseP * riseP * (3 - 2 * riseP);
     const p = Math.max(0, Math.min(1, descentElapsed / sunFlight.duration));
     const eased = p * p * (3 - 2 * p);
-    if (descentElapsed < 0) {
-      sunOrb.position.copy(sunFlight.start);
+    if (elapsed < sunFlight.riseDuration) {
+      sunOrb.position.lerpVectors(sunFlight.start, sunFlight.peak, riseEase);
+    } else if (descentElapsed < 0) {
+      sunOrb.position.copy(sunFlight.peak);
       sunOrb.position.y += Math.sin(now * 0.0035) * 0.12;
     } else {
-      sunOrb.position.lerpVectors(sunFlight.start, sunFlight.target, eased);
+      sunOrb.position.lerpVectors(sunFlight.peak, sunFlight.target, eased);
       sunOrb.position.y += Math.sin(now * 0.008) * 0.045;
     }
     sunHalo.rotation.z += dt * 2.5;
