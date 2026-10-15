@@ -106,7 +106,7 @@
     openBook.rotation.y = 0; openBook.scale.setScalar(1);
     group.visible = true;
     if (flash) { flash.material.opacity = 0.78; flash.scale.setScalar(0.18); }
-    window.BibliaCelestialDiagnostics = 'Fogo Celestial: Bíblia abrindo';
+    window.BibliaCelestialDiagnostics = 'Espadas Celestiais: Bíblia abrindo';
   }
 
 
@@ -369,7 +369,7 @@
         closedBook.scale.setScalar(1);
         openBook.rotation.y = 0;
         openBook.scale.setScalar(1);
-        window.BibliaCelestialDiagnostics = 'Bíblia aberta; conjurando Fogo Celestial';
+        window.BibliaCelestialDiagnostics = 'Bíblia aberta; conjurando Três Espadas Celestiais';
         launchCelestialSwords(view, now);
       }
     }
