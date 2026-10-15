@@ -815,7 +815,25 @@ const BishopDimension = (function () {
       if(dx*dx+dz*dz<minD*minD)return true;
     }
     if(BishopBoss&&BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'&&Number.isFinite(BishopBoss.x)&&Number.isFinite(BishopBoss.y)){
-      const bx=(BishopBoss.x-cx)/72,bz=(BishopBoss.y-cy)/72,dx=px-bx,dz=pz-bz,minD=1.16+pr;
+      const bx=(BishopBoss.x-cx)/72,bz=(BishopBoss.y-cy)/72,dx=px-bx,dz=pz-bz,minD=1.30+pr;
+      if(dx*dx+dz*dz<minD*minD){
+        // Se o jogador já entrou na hitbox por um passo rápido, permita somente
+        // o movimento que aumenta a distância, para ele conseguir sair sem travar.
+        const oldX=(Player.x-cx)/72,oldZ=(Player.y-cy)/72;
+        const oldD=Math.hypot(oldX-bx,oldZ-bz),newD=Math.hypot(dx,dz);
+        if(oldD>=minD-0.035||newD<=oldD+0.001)return true;
+      }
+    }
+    return false;
+  }
+  function blockedForBoss(x,y,r) {
+    if(!isBattleActive())return false;
+    const room=Casino.room,cx=(room.left+room.right)/2,cy=(room.top+room.bottom)/2;
+    const halfWidth=61*72,halfDepth=34*72;
+    if(x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<cy-halfDepth||y+r>cy+halfDepth)return true;
+    const px=(x-cx)/72,pz=(y-cy)/72,pr=Math.max(0,r/72);
+    for(let i=0;i<S.treeColliders.length;i++){
+      const tree=S.treeColliders[i],dx=px-tree.x,dz=pz-tree.z,minD=tree.r+pr;
       if(dx*dx+dz*dz<minD*minD)return true;
     }
     return false;
@@ -836,5 +854,5 @@ const BishopDimension = (function () {
     }
     return {x:x,z:z};
   }
-  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,resolveBiblePosition:resolveBiblePosition,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis,impact:impact};
+  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,blockedForBoss:blockedForBoss,resolveBiblePosition:resolveBiblePosition,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis,impact:impact};
 })();
