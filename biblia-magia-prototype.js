@@ -1,4 +1,4 @@
-/* Mod 82 — Bíblia Celestial integrada em página isolada de combate.
+/* Mod 83 — Sol dourado procedural, explosão divina e vegetação destrutível.
  * Ativado somente com ?bibliaTest=1 para não alterar o combate normal.
  * Usa a cena/câmera Three.js compartilhada do protagonista e do Bispo.
  */
@@ -583,13 +583,17 @@
   }
 
   
-  // Modificação 82 — Sol da Justiça ampliado e impacto celestial.
+  // Modificação 83 — Sol dourado animado e explosão divina sem anéis genéricos.
   // Uma única esfera reutilizável, explosão leve e crater visual para manter bom desempenho no celular.
   let sunOrb = null;
   let sunHalo = null;
   let sunLight = null;
   let sunFlight = null;
   let sunCrater = null;
+  let sunExplosionEffects = [];
+  let sunExplosionFlashGeometry = null;
+  let sunDebrisGeometry = null;
+  let sunSparkGeometry = null;
   let sunButtonBound = false;
   let sunOrbGeometry = null;
   let sunOrbMaterial = null;
@@ -603,8 +607,10 @@
   function ensureSunAssets() {
     const THREE = api.THREE;
     if (!sunOrbGeometry) sunOrbGeometry = new THREE.SphereGeometry(1.6, 14, 12);
-    if (!sunOrbMaterial) sunOrbMaterial = new THREE.MeshBasicMaterial({
-      color: 0xfff7c2, transparent: true, opacity: 1
+    if (!sunOrbMaterial) sunOrbMaterial = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: 'varying vec3 vSunPos; void main(){vSunPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader: 'precision mediump float; uniform float uTime; varying vec3 vSunPos; void main(){vec3 p=normalize(vSunPos);float a=sin(p.x*13.0+p.y*8.0+uTime*1.5)*sin(p.z*11.0-p.y*9.0-uTime*1.1);float b=sin(p.y*24.0+p.x*7.0+uTime*0.8)*cos(p.z*19.0-uTime*1.3);float fire=clamp(0.52+0.24*a+0.18*b,0.0,1.0);vec3 deep=vec3(0.72,0.055,0.004);vec3 orange=vec3(1.0,0.22,0.008);vec3 gold=vec3(1.0,0.61,0.025);vec3 hot=vec3(1.0,0.86,0.19);vec3 c=mix(deep,orange,smoothstep(0.0,0.43,fire));c=mix(c,gold,smoothstep(0.35,0.76,fire));c=mix(c,hot,smoothstep(0.72,0.96,fire)*0.68);float limb=0.78+0.22*max(0.0,p.y*0.4+0.6);gl_FragColor=vec4(c*limb,1.0);}'}
     });
     if (!sunHaloGeometry) sunHaloGeometry = new THREE.TorusGeometry(2.0, 0.09, 6, 32);
     if (!sunHaloMaterial) sunHaloMaterial = new THREE.MeshBasicMaterial({
@@ -626,7 +632,7 @@
       sunHalo = new THREE.Mesh(sunHaloGeometry, sunHaloMaterial);
       sunHalo.name = 'SolDaJustica_Corona';
       sunOrb.add(sunHalo);
-      sunLight = new THREE.PointLight(0xffd54a, 5.5, 11);
+      sunLight = new THREE.PointLight(0xff9b18, 4.8, 12);
       sunOrb.add(sunLight);
       sunOrb.visible = false;
       api.scene.add(sunOrb);
@@ -738,26 +744,63 @@
     });
   }
 
+  function createSunExplosion(position, now) {
+    const THREE=api.THREE;
+    if(!sunExplosionFlashGeometry)sunExplosionFlashGeometry=new THREE.SphereGeometry(1,10,8);
+    if(!sunDebrisGeometry)sunDebrisGeometry=new THREE.ConeGeometry(.11,.72,5,1);
+    if(!sunSparkGeometry)sunSparkGeometry=new THREE.SphereGeometry(.065,5,4);
+    const flash=new THREE.Mesh(sunExplosionFlashGeometry,new THREE.MeshBasicMaterial({color:0xffa51e,transparent:true,opacity:.92,blending:THREE.AdditiveBlending,depthWrite:false}));
+    flash.position.set(position.x,.65,position.z);flash.scale.setScalar(.35);api.scene.add(flash);
+    sunExplosionEffects.push({mesh:flash,kind:'flash',startedAt:now,life:440,base:2.9});
+    for(let i=0;i<14;i++){
+      const angle=(i/14)*Math.PI*2+(Math.random()-.5)*.22,speed=2.1+Math.random()*3.8;
+      const mesh=new THREE.Mesh(sunDebrisGeometry,new THREE.MeshBasicMaterial({color:i%3===0?0xffd65a:0xff7410,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}));
+      mesh.position.set(position.x+Math.cos(angle)*.24,.18+Math.random()*.45,position.z+Math.sin(angle)*.24);
+      mesh.rotation.set(Math.random()*2,Math.random()*2,angle);api.scene.add(mesh);
+      sunExplosionEffects.push({mesh:mesh,kind:'shard',startedAt:now,life:520+Math.random()*260,vx:Math.cos(angle)*speed,vz:Math.sin(angle)*speed,vy:1.8+Math.random()*3.1,spin:(Math.random()-.5)*9});
+    }
+    for(let i=0;i<10;i++){
+      const angle=Math.random()*Math.PI*2,speed=1.4+Math.random()*3.2;
+      const mesh=new THREE.Mesh(sunSparkGeometry,new THREE.MeshBasicMaterial({color:0xffe18a,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false}));
+      mesh.position.set(position.x,.22+Math.random()*.35,position.z);api.scene.add(mesh);
+      sunExplosionEffects.push({mesh:mesh,kind:'spark',startedAt:now,life:380+Math.random()*260,vx:Math.cos(angle)*speed,vz:Math.sin(angle)*speed,vy:1.4+Math.random()*3.6});
+    }
+    if(typeof BishopDimension!=='undefined'&&typeof BishopDimension.impact==='function')BishopDimension.impact(1.15);
+  }
+  function updateSunExplosionEffects(now,dt) {
+    sunExplosionEffects=sunExplosionEffects.filter(function(e){
+      const age=now-e.startedAt,p=age/e.life;
+      if(p>=1){if(e.mesh.parent)e.mesh.parent.remove(e.mesh);if(e.mesh.material&&e.mesh.material.dispose)e.mesh.material.dispose();return false;}
+      if(e.kind==='flash'){e.mesh.scale.setScalar(.35+p*e.base);e.mesh.material.opacity=(1-p)*.92;}
+      else{
+        e.mesh.position.x+=e.vx*dt;e.mesh.position.z+=e.vz*dt;e.mesh.position.y+=e.vy*dt;
+        e.vy-=9.2*dt;e.mesh.rotation.x+=dt*(e.spin||3);e.mesh.rotation.z+=dt*3;
+        e.mesh.material.opacity=1-p;if(e.kind==='spark')e.mesh.scale.setScalar(1-p*.72);
+      }
+      return true;
+    });
+  }
   function castSunOfJustice() {
     const now = performance.now();
     if (!started || !api || !api.THREE || !window.PlayerModelView ||
         !Array.isArray(window.PlayerModelView.position) || sunFlight) return;
     const view = window.PlayerModelView;
-    const origin = new api.THREE.Vector3(view.position[0], view.position[1] + 1.15, view.position[2]);
+    const origin = new api.THREE.Vector3(view.position[0], view.position[1] + 4.8, view.position[2]);
     const target = currentSunTarget(origin);
     target.y = 0.12;
     ensureSunAssets();
-    origin.y += 0.95;
+    origin.y += 0.75;
     sunOrb.position.copy(origin);
     sunOrb.visible = true;
     sunHalo.rotation.z = 0;
-    sunFlight = { start: origin.clone(), target: target, startedAt: now, duration: 1450 };
+    sunFlight = { start: origin.clone(), target: target, startedAt: now, duration: 1650 };
     sunLastCast = now;
     window.BibliaCelestialDiagnostics = 'Sol da Justiça invocado';
   }
 
   function updateSunOfJustice(now, dt) {
     updateSunImpactWaves(now);
+    updateSunExplosionEffects(now, Math.min(.05, Math.max(0, dt || 0)));
     if (!sunOrb || !sunFlight) {
       if (sunCrater && now - sunCrater.userData.createdAt > 5200) {
         api.scene.remove(sunCrater);
@@ -776,7 +819,8 @@
     sunHalo.rotation.z += dt * 2.5;
     const pulse = 1 + Math.sin(now * 0.018) * 0.07;
     sunOrb.scale.setScalar(pulse);
-    sunLight.intensity = 4.2 + Math.sin(now * 0.02) * 0.6;
+    if(sunOrbMaterial&&sunOrbMaterial.uniforms&&sunOrbMaterial.uniforms.uTime)sunOrbMaterial.uniforms.uTime.value=now*.001;
+    sunLight.intensity = 4.0 + Math.sin(now * 0.02) * 0.45;
     if (p < 1) return;
 
     const impact = sunFlight.target.clone();
@@ -796,9 +840,11 @@
         landedHit = true;
       }
     }
-    makeSunCrater(impact, now);
-    createSunImpactWaves(impact, now);
+    createSunExplosion(impact, now);
     damageNearbyVegetation(impact, now);
+    if(typeof BishopDimension!=='undefined'&&typeof BishopDimension.damageVegetation==='function'){
+      BishopDimension.damageVegetation(impact.x, impact.z, 4.6);
+    }
     sunOrb.visible = false;
     sunFlight = null;
     window.BibliaCelestialDiagnostics = landedHit ? 'Sol da Justiça acertou o alvo' : 'Sol da Justiça atingiu o solo';
