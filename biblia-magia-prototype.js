@@ -12,7 +12,7 @@
   const OPEN_URL = './biblia_celestial_aberta.glb?v=mod69-biblia-20261014';
   const TARGET_SIZE = 0.82;
   const BOOK_FORWARD = 1.08;
-  const CAST_VISIBLE_MS = 1850;
+  const CAST_VISIBLE_MS = 2450;
 
   let api = null;
   let group = null;
@@ -103,7 +103,7 @@
   function summon() {
     if (!started || !closedBook || !openBook) return;
     const stamp = performance.now();
-    if (stamp - lastSummonInput < 280 || stamp - lastSpellCast < SPELL_COOLDOWN_MS) return;
+    if (stamp - lastSummonInput < 280 || (lastSpellCast && stamp - lastSpellCast < SPELL_COOLDOWN_MS)) return;
     lastSummonInput = stamp;
     lastSpellCast = stamp;
     castRequested = true; opened = false; opening = false;
@@ -131,7 +131,7 @@
     );
     fireballLight = new THREE.PointLight(0xff7b20, 1.8, 3.4);
     fireball.visible = fireballGlow.visible = false;
-    group.add(fireball, fireballGlow, fireballLight);
+    api.scene.add(fireball, fireballGlow, fireballLight);
   }
 
   function launchFireball(view, now) {
