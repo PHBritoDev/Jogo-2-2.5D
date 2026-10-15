@@ -834,7 +834,11 @@ const BishopDimension = (function () {
     const px=(x-cx)/72,pz=(y-cy)/72,pr=Math.max(0,r/72);
     for(let i=0;i<S.treeColliders.length;i++){
       const tree=S.treeColliders[i],dx=px-tree.x,dz=pz-tree.z,minD=tree.r+pr;
-      if(dx*dx+dz*dz<minD*minD)return true;
+      if(dx*dx+dz*dz<minD*minD){
+        const oldX=(BishopBoss.x-cx)/72,oldZ=(BishopBoss.y-cy)/72;
+        const oldD=Math.hypot(oldX-tree.x,oldZ-tree.z),newD=Math.hypot(dx,dz);
+        if(oldD>=minD-0.035||newD<=oldD+0.001)return true;
+      }
     }
     return false;
   }
