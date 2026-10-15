@@ -144,8 +144,8 @@
   function makeSwordGlowMaterial(original) {
     const material = original.clone();
     if ('emissive' in material) {
-      material.emissive.set(0xffc84b);
-      material.emissiveIntensity = 1.7;
+      material.emissive.set(0xffdf52);
+      material.emissiveIntensity = 3.4;
     }
     material.transparent = true;
     material.opacity = 0.96;
@@ -155,9 +155,31 @@
 
   function createFlyingSword(position, direction, target, index, now) {
     const THREE = api.THREE;
-    const root = swordTemplate.clone(true);
+    const root = new THREE.Group();
     root.name = 'EspadaCelestial_Projetil_' + (index + 1);
-    root.traverse(function (obj) {
+    const aura = swordTemplate.clone(true);
+    aura.name = 'AuraDourada_Espada_' + (index + 1);
+    aura.scale.setScalar(1.16);
+    aura.traverse(function (obj) {
+      if (!obj.isMesh) return;
+      obj.castShadow = false;
+      obj.receiveShadow = false;
+      const sourceMaterials = Array.isArray(obj.material) ? obj.material : [obj.material];
+      const auraMaterials = sourceMaterials.filter(Boolean).map(function () {
+        return new THREE.MeshBasicMaterial({
+          color: 0xffd52e,
+          transparent: true,
+          opacity: 0.3,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        });
+      });
+      obj.material = Array.isArray(obj.material) ? auraMaterials : auraMaterials[0];
+    });
+    const blade = swordTemplate.clone(true);
+    blade.name = 'EspadaLuminosa_' + (index + 1);
+    blade.traverse(function (obj) {
       if (!obj.isMesh) return;
       obj.castShadow = false;
       obj.receiveShadow = false;
@@ -167,6 +189,7 @@
         obj.material = makeSwordGlowMaterial(obj.material);
       }
     });
+    root.add(aura, blade);
     const bounds = new THREE.Box3().setFromObject(root);
     const size = new THREE.Vector3();
     bounds.getSize(size);
@@ -176,7 +199,7 @@
     root.position.copy(position);
     root.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), direction.clone().normalize());
     api.scene.add(root);
-    const light = new THREE.PointLight(0xffd875, 1.4, 2.1);
+    const light = new THREE.PointLight(0xffd43b, 3.0, 3.4);
     light.position.copy(position);
     api.scene.add(light);
     root.userData.startX = position.x;
@@ -186,7 +209,8 @@
     flyingSwords.push({
       root: root,
       light: light,
-      velocity: direction.clone().normalize().multiplyScalar(10.5),
+      velocity: direction.clone().normalize().multiplyScalar(4.1),
+      launchAt: now + 650,
       target: target ? target.clone() : position.clone().addScaledVector(direction, 6),
       bossTarget: !!target,
       index: index,
@@ -219,16 +243,16 @@
     } else {
       target = origin.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(6));
     }
-    const forward = target.clone().sub(origin).normalize();
-    const side = new THREE.Vector3(forward.z, 0, -forward.x).normalize();
-    const offsets = [-0.34, 0, 0.34];
-    offsets.forEach(function (offset, index) {
-      const start = origin.clone()
-        .addScaledVector(forward, 0.72)
-        .addScaledVector(side, offset)
-        .add(new THREE.Vector3(0, index === 1 ? 0.08 : 0.19, 0));
-      const aim = target.clone().addScaledVector(side, offset * 0.38).sub(start).normalize();
-      createFlyingSword(start, aim, bossAlive ? target.clone().addScaledVector(side, offset * 0.38) : null, index, now);
+    const forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    const side = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    const starts = [
+      origin.clone().addScaledVector(forward, 0.88).add(new THREE.Vector3(0, 0.12, 0)),
+      origin.clone().addScaledVector(forward, 0.22).addScaledVector(side, 0.72).add(new THREE.Vector3(0, 0.04, 0)),
+      origin.clone().addScaledVector(forward, 0.22).addScaledVector(side, -0.72).add(new THREE.Vector3(0, 0.04, 0))
+    ];
+    starts.forEach(function (start, index) {
+      const aim = target.clone().sub(start).normalize();
+      createFlyingSword(start, aim, bossAlive ? target.clone() : null, index, now);
     });
     window.BibliaCelestialDiagnostics = 'Três Espadas Celestiais lançadas';
   }
@@ -238,10 +262,16 @@
     const THREE = api.THREE;
     flyingSwords = flyingSwords.filter(function (entry) {
       if (!entry.root || !entry.root.parent) return false;
-      entry.root.position.addScaledVector(entry.velocity, dt);
-      entry.root.rotateY(dt * 1.2);
+      if (now >= entry.launchAt) {
+        entry.root.position.addScaledVector(entry.velocity, dt);
+        entry.root.rotateY(dt * 0.45);
+      } else {
+        entry.root.position.y += Math.sin(now * 0.004 + entry.index * 2) * dt * 0.09;
+        entry.root.rotation.y += dt * 0.28;
+      }
       entry.light.position.copy(entry.root.position);
-      const pulse = 1 + Math.sin(now * 0.025 + entry.index) * 0.12;
+      entry.light.intensity = 2.6 + (Math.sin(now * 0.012 + entry.index) + 1) * 0.65;
+      const pulse = 1 + Math.sin(now * 0.018 + entry.index) * 0.07;
       entry.root.scale.setScalar((entry.root.userData.baseScale || 0.01) * pulse);
       if (!entry.hit && entry.bossTarget && typeof BishopBoss !== 'undefined' &&
           BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
@@ -261,7 +291,7 @@
           return false;
         }
       }
-      if (now - entry.startedAt > 1800 ||
+      if (now - entry.startedAt > 4200 ||
           entry.root.position.distanceTo(new THREE.Vector3(entry.root.userData.startX, entry.root.userData.startY, entry.root.userData.startZ)) > 8) {
         if (entry.root.parent) entry.root.parent.remove(entry.root);
         if (entry.light.parent) entry.light.parent.remove(entry.light);
