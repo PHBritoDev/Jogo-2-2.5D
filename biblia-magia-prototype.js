@@ -11,6 +11,8 @@
   const CLOSED_URL = './biblia_celestial_fechada.glb?v=mod69-biblia-20261014';
   const OPEN_URL = './biblia_celestial_aberta.glb?v=mod69-biblia-20261014';
   const TARGET_SIZE = 0.82;
+  const BOOK_FORWARD = 1.08;
+  const CAST_VISIBLE_MS = 1850;
 
   let api = null;
   let group = null;
@@ -26,6 +28,8 @@
   let transitionStart = 0;
   const OPEN_TRANSITION_MS = 520;
   let lastWarning = 0;
+  let hideAt = 0;
+  let castRequested = false;
 
   function prepareBook(sceneModel) {
     const THREE = api.THREE;
@@ -86,6 +90,19 @@
     });
   }
 
+  function summon() {
+    if (!started || !closedBook || !openBook || castRequested) return;
+    castRequested = true; opened = false; opening = false;
+    hideAt = performance.now() + CAST_VISIBLE_MS;
+    openAt = performance.now() + 250;
+    closedBook.visible = true; openBook.visible = false;
+    closedBook.rotation.y = 0; closedBook.scale.setScalar(1);
+    openBook.rotation.y = 0; openBook.scale.setScalar(1);
+    group.visible = true;
+    if (flash) { flash.material.opacity = 0.78; flash.scale.setScalar(0.18); }
+    window.BibliaCelestialDiagnostics = 'encantamento iniciado';
+  }
+
   function begin() {
     if (started) return;
     api = window.ValerioThreeAPI;
@@ -109,14 +126,18 @@
       loaded++;
       if (loaded !== 2) return;
       closedBook.visible = true;
-      group.visible = true;
-      openAt = performance.now() + 680;
+      group.visible = false;
+      openAt = 0;
       window.BibliaCelestialDiagnostics = 'modelos fechado e aberto carregados';
     }
 
     loadModel(CLOSED_URL, function (model) { onLoaded(model, false); });
     loadModel(OPEN_URL, function (model) { onLoaded(model, true); });
-    window.BibliaCelestialDiagnostics = 'carregando modelos 3D';
+    window.BibliaCelestialDiagnostics = 'Bíblia carregada; aguardando botão MAGIA';
+    const magicButton = document.getElementById('btn-magic');
+    if (magicButton) magicButton.addEventListener('click', summon);
+    window.castBibliaCelestial = summon;
+    window.addEventListener('biblia-cast', summon);
     requestAnimationFrame(update);
   }
 
@@ -131,6 +152,13 @@
     }
     if (!closedBook || !openBook) return;
 
+    if (!castRequested) { group.visible = false; return; }
+    if (hideAt && now >= hideAt) {
+      castRequested = false; opened = false; opening = false; hideAt = 0;
+      group.visible = false; closedBook.visible = false; openBook.visible = false;
+      window.BibliaCelestialDiagnostics = 'Bíblia recolhida após o encantamento';
+      return;
+    }
     group.visible = true;
     if (!opened && !opening && now >= openAt) {
       opening = true;
@@ -165,12 +193,14 @@
 
     const yaw = Number(view.yaw) || 0;
     const bob = Math.sin(now * 0.0032) * 0.045;
-    const forward = 0.78;
-    group.position.set(
-      view.position[0] + Math.sin(yaw) * forward,
-      view.position[1] + 1.62 + bob,
-      view.position[2] + Math.cos(yaw) * forward
-    );
+    const forward = BOOK_FORWARD;
+    let bookX = view.position[0] + Math.sin(yaw) * forward;
+    let bookZ = view.position[2] + Math.cos(yaw) * forward;
+    if (typeof BishopDimension !== 'undefined' && typeof BishopDimension.resolveBiblePosition === 'function') {
+      const resolved = BishopDimension.resolveBiblePosition(bookX, bookZ, 0.42);
+      bookX = resolved.x; bookZ = resolved.z;
+    }
+    group.position.set(bookX, view.position[1] + 1.62 + bob, bookZ);
     group.rotation.y = yaw;
 
     const pulse = 1 + Math.sin(now * 0.004) * 0.045;
