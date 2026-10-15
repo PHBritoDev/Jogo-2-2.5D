@@ -913,8 +913,19 @@ const BishopBoss = {
     }
 
     const pad = CFG.BOUNDS_PAD || 0;
-    this.x = U.clamp(this.x + (this.vx + this.kx) * dt, pad, World.w - pad);
-    this.y = U.clamp(this.y + (this.vy + this.ky) * dt, pad, World.h - pad);
+    let nextX = U.clamp(this.x + (this.vx + this.kx) * dt, pad, World.w - pad);
+    let nextY = U.clamp(this.y + (this.vy + this.ky) * dt, pad, World.h - pad);
+    const bossRadius = Math.max(18, Number(this.r) || 24);
+    if (typeof BishopDimension !== 'undefined' && typeof BishopDimension.blockedForBoss === 'function') {
+      if (BishopDimension.blockedForBoss(nextX, this.y, bossRadius)) {
+        nextX = this.x; this.vx = 0; this.kx = 0;
+      }
+      if (BishopDimension.blockedForBoss(nextX, nextY, bossRadius)) {
+        nextY = this.y; this.vy = 0; this.ky = 0;
+      }
+    }
+    this.x = nextX;
+    this.y = nextY;
     const knockbackDamping = Math.exp(-8 * dt);
     this.kx *= knockbackDamping;
     this.ky *= knockbackDamping;
