@@ -786,6 +786,51 @@
       return true;
     });
   }
+  function startSunBurn(x,z,now) {
+    if(!api||!api.scene||!api.THREE)return;
+    if(!sunBurnFlameGeometry)sunBurnFlameGeometry=new api.THREE.ConeGeometry(.14,.52,5,1);
+    if(sunBurnStatus&&sunBurnStatus.flames){
+      sunBurnStatus.flames.forEach(function(f){if(f.mesh.parent)f.mesh.parent.remove(f.mesh);if(f.mesh.material)f.mesh.material.dispose();});
+    }
+    const flames=[];
+    for(let i=0;i<8;i++){
+      const angle=(i/8)*Math.PI*2,rad=.38+(i%3)*.19;
+      const material=new api.THREE.MeshBasicMaterial({
+        color:i%3===0?0xffe06a:(i%2===0?0xff8a12:0xff3c08),
+        transparent:true,opacity:.86,blending:api.THREE.AdditiveBlending,depthWrite:false
+      });
+      const mesh=new api.THREE.Mesh(sunBurnFlameGeometry,material);
+      mesh.position.set(x+Math.cos(angle)*rad,.38+(i%4)*.29,z+Math.sin(angle)*rad);
+      mesh.rotation.z=(Math.random()-.5)*.28;
+      api.scene.add(mesh);
+      flames.push({mesh,angle,rad,baseY:mesh.position.y,phase:Math.random()*6.28});
+    }
+    sunBurnStatus={x:x,z:z,until:now+4500,nextTickAt:now+850,flames:flames};
+    window.BibliaCelestialDiagnostics='Valério em chamas: queimadura divina';
+  }
+  function updateSunBurn(now,dt) {
+    if(!sunBurnStatus)return;
+    const burn=sunBurnStatus;
+    if(now>=burn.until){
+      burn.flames.forEach(function(f){if(f.mesh.parent)f.mesh.parent.remove(f.mesh);if(f.mesh.material)f.mesh.material.dispose();});
+      sunBurnStatus=null;return;
+    }
+    burn.flames.forEach(function(f){
+      const wobble=Math.sin(now*.012+f.phase);
+      f.mesh.position.x=burn.x+Math.cos(f.angle+now*.0007)*f.rad;
+      f.mesh.position.z=burn.z+Math.sin(f.angle+now*.0007)*f.rad;
+      f.mesh.position.y=f.baseY+wobble*.12;
+      f.mesh.scale.set(1,.72+Math.abs(wobble)*.7,1);
+      f.mesh.material.opacity=.58+Math.abs(wobble)*.32;
+    });
+    if(now>=burn.nextTickAt){
+      burn.nextTickAt=now+900;
+      if(typeof BishopBoss!=='undefined'&&BishopBoss.profile&&BishopBoss.state!=='dead'&&BishopBoss.state!=='inactive'){
+        if(typeof BishopBoss.burnDamage==='function')BishopBoss.burnDamage(5);
+        else BishopBoss.hurt(4,0,0,0);
+      }
+    }
+  }
   function castSunOfJustice() {
     const now = performance.now();
     if (!started || !api || !api.THREE || !window.PlayerModelView ||
