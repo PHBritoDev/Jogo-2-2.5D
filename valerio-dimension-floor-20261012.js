@@ -821,7 +821,7 @@ const BishopDimension = (function () {
         // o movimento que aumenta a distância, para ele conseguir sair sem travar.
         const oldX=(Player.x-cx)/72,oldZ=(Player.y-cy)/72;
         const oldD=Math.hypot(oldX-bx,oldZ-bz),newD=Math.hypot(dx,dz);
-        if(oldD>=minD-0.035||newD<=oldD+0.001)return true;
+        if(oldD>=minD||newD<=oldD+0.001)return true;
       }
     }
     return false;
@@ -837,7 +837,7 @@ const BishopDimension = (function () {
       if(dx*dx+dz*dz<minD*minD){
         const oldX=(BishopBoss.x-cx)/72,oldZ=(BishopBoss.y-cy)/72;
         const oldD=Math.hypot(oldX-tree.x,oldZ-tree.z),newD=Math.hypot(dx,dz);
-        if(oldD>=minD-0.035||newD<=oldD+0.001)return true;
+        if(oldD>=minD||newD<=oldD+0.001)return true;
       }
     }
     return false;
