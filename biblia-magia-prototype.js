@@ -610,7 +610,7 @@
     if (!sunOrbMaterial) sunOrbMaterial = new THREE.ShaderMaterial({
       uniforms: { uTime: { value: 0 } },
       vertexShader: 'varying vec3 vSunPos; void main(){vSunPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-      fragmentShader: 'precision mediump float; uniform float uTime; varying vec3 vSunPos; void main(){vec3 p=normalize(vSunPos);float a=sin(p.x*13.0+p.y*8.0+uTime*1.5)*sin(p.z*11.0-p.y*9.0-uTime*1.1);float b=sin(p.y*24.0+p.x*7.0+uTime*0.8)*cos(p.z*19.0-uTime*1.3);float fire=clamp(0.52+0.24*a+0.18*b,0.0,1.0);vec3 deep=vec3(0.72,0.055,0.004);vec3 orange=vec3(1.0,0.22,0.008);vec3 gold=vec3(1.0,0.61,0.025);vec3 hot=vec3(1.0,0.86,0.19);vec3 c=mix(deep,orange,smoothstep(0.0,0.43,fire));c=mix(c,gold,smoothstep(0.35,0.76,fire));c=mix(c,hot,smoothstep(0.72,0.96,fire)*0.68);float limb=0.78+0.22*max(0.0,p.y*0.4+0.6);gl_FragColor=vec4(c*limb,1.0);}'}
+      fragmentShader: 'precision mediump float; uniform float uTime; varying vec3 vSunPos; void main(){vec3 p=normalize(vSunPos);float a=sin(p.x*13.0+p.y*8.0+uTime*1.5)*sin(p.z*11.0-p.y*9.0-uTime*1.1);float b=sin(p.y*24.0+p.x*7.0+uTime*0.8)*cos(p.z*19.0-uTime*1.3);float fire=clamp(0.52+0.24*a+0.18*b,0.0,1.0);vec3 deep=vec3(0.72,0.055,0.004);vec3 orange=vec3(1.0,0.22,0.008);vec3 gold=vec3(1.0,0.61,0.025);vec3 hot=vec3(1.0,0.86,0.19);vec3 c=mix(deep,orange,smoothstep(0.0,0.43,fire));c=mix(c,gold,smoothstep(0.35,0.76,fire));c=mix(c,hot,smoothstep(0.72,0.96,fire)*0.68);float limb=0.78+0.22*max(0.0,p.y*0.4+0.6);gl_FragColor=vec4(c*limb,1.0);}'
     });
     if (!sunHaloGeometry) sunHaloGeometry = new THREE.TorusGeometry(2.0, 0.09, 6, 32);
     if (!sunHaloMaterial) sunHaloMaterial = new THREE.MeshBasicMaterial({
