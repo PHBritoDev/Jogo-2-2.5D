@@ -915,7 +915,7 @@ const BishopBoss = {
     const pad = CFG.BOUNDS_PAD || 0;
     let nextX = U.clamp(this.x + (this.vx + this.kx) * dt, pad, World.w - pad);
     let nextY = U.clamp(this.y + (this.vy + this.ky) * dt, pad, World.h - pad);
-    const bossRadius = Math.max(18, Number(this.r) || 24);
+    const bossRadius = Math.max(40, Number(this.r) || 40);
     if (typeof BishopDimension !== 'undefined' && typeof BishopDimension.blockedForBoss === 'function') {
       if (BishopDimension.blockedForBoss(nextX, this.y, bossRadius)) {
         nextX = this.x; this.vx = 0; this.kx = 0;
