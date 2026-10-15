@@ -32,14 +32,6 @@
   let castRequested = false;
   let lastSummonInput = 0;
   let lastSpellCast = 0;
-  let fireball = null;
-  let fireballGlow = null;
-  let fireballLight = null;
-  let fireballTarget = null;
-  let fireballStartedAt = 0;
-  let fireballHit = false;
-  const SPELL_COOLDOWN_MS = 1800;
-  const FIREBALL_DAMAGE = 22;
 
   function prepareBook(sceneModel) {
     const THREE = api.THREE;
@@ -118,105 +110,166 @@
   }
 
 
-  function ensureFireball() {
-    if (fireball || !api || !group) return;
-    const THREE = api.THREE;
-    fireball = new THREE.Mesh(
-      new THREE.SphereGeometry(0.19, 14, 10),
-      new THREE.MeshBasicMaterial({ color: 0xff7a18, transparent: true, opacity: 1, depthWrite: false })
-    );
-    fireballGlow = new THREE.Mesh(
-      new THREE.SphereGeometry(0.34, 12, 8),
-      new THREE.MeshBasicMaterial({ color: 0xffb52e, transparent: true, opacity: 0.38, depthWrite: false })
-    );
-    fireballLight = new THREE.PointLight(0xff7b20, 1.8, 3.4);
-    fireball.visible = fireballGlow.visible = false;
-    api.scene.add(fireball, fireballGlow, fireballLight);
+  // Magia 2 — Invocação das Três Espadas Celestiais.
+  // Reutiliza o mesmo GLB da espada equipada pelo protagonista.
+  const SWORD_MODEL_URL = './EspadaProta.glb?v=mod75-espadas-celestiais';
+  const SWORD_DAMAGE = 12;
+  const SPELL_COOLDOWN_MS = 3000;
+  let swordTemplate = null;
+  let flyingSwords = [];
+  let swordLoadStarted = false;
+
+  function loadSwordTemplate() {
+    if (swordLoadStarted || !api || !api.THREE || !api.THREE.GLTFLoader) return;
+    swordLoadStarted = true;
+    new api.THREE.GLTFLoader().load(SWORD_MODEL_URL, function (gltf) {
+      swordTemplate = gltf.scene;
+      swordTemplate.updateMatrixWorld(true);
+      window.BibliaCelestialDiagnostics = 'Espadas Celestiais: espada reutilizada carregada';
+    }, undefined, function (err) {
+      console.warn('Espadas Celestiais: falha ao carregar a espada reutilizada.', err);
+      window.BibliaCelestialDiagnostics = 'Espadas Celestiais: modelo da espada indisponível';
+    });
   }
 
-  function launchFireball(view, now) {
-    if (!Array.isArray(view.position) || view.position.length < 3) return;
-    ensureFireball();
-    if (!fireball) return;
+  function clearFlyingSwords() {
+    if (!api || !api.scene) return;
+    flyingSwords.forEach(function (entry) {
+      if (entry.root && entry.root.parent) entry.root.parent.remove(entry.root);
+      if (entry.light && entry.light.parent) entry.light.parent.remove(entry.light);
+    });
+    flyingSwords = [];
+  }
+
+  function makeSwordGlowMaterial(original) {
+    const material = original.clone();
+    if ('emissive' in material) {
+      material.emissive.set(0xffc84b);
+      material.emissiveIntensity = 1.7;
+    }
+    material.transparent = true;
+    material.opacity = 0.96;
+    material.depthWrite = true;
+    return material;
+  }
+
+  function createFlyingSword(position, direction, target, index, now) {
+    const THREE = api.THREE;
+    const root = swordTemplate.clone(true);
+    root.name = 'EspadaCelestial_Projetil_' + (index + 1);
+    root.traverse(function (obj) {
+      if (!obj.isMesh) return;
+      obj.castShadow = false;
+      obj.receiveShadow = false;
+      if (Array.isArray(obj.material)) {
+        obj.material = obj.material.map(function (m) { return makeSwordGlowMaterial(m); });
+      } else if (obj.material) {
+        obj.material = makeSwordGlowMaterial(obj.material);
+      }
+    });
+    const bounds = new THREE.Box3().setFromObject(root);
+    const size = new THREE.Vector3();
+    bounds.getSize(size);
+    const longest = Math.max(size.x, size.y, size.z, 0.001);
+    const baseScale = 0.72 / longest;
+    root.scale.setScalar(baseScale);
+    root.position.copy(position);
+    root.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
+    root.rotateZ(Math.PI);
+    api.scene.add(root);
+    const light = new THREE.PointLight(0xffd875, 1.4, 2.1);
+    light.position.copy(position);
+    api.scene.add(light);
+    root.userData.startX = position.x;
+    root.userData.startY = position.y;
+    root.userData.startZ = position.z;
+    root.userData.baseScale = baseScale;
+    flyingSwords.push({
+      root: root,
+      light: light,
+      velocity: direction.clone().normalize().multiplyScalar(10.5),
+      target: target ? target.clone() : position.clone().addScaledVector(direction, 6),
+      bossTarget: !!target,
+      index: index,
+      startedAt: now,
+      hit: false,
+      damage: SWORD_DAMAGE
+    });
+  }
+
+  function launchCelestialSwords(view, now) {
+    if (!Array.isArray(view.position) || view.position.length < 3 || !swordTemplate) {
+      window.BibliaCelestialDiagnostics = swordTemplate
+        ? 'Espadas Celestiais: posição do protagonista indisponível'
+        : 'Espadas Celestiais: carregando a espada';
+      return;
+    }
+    clearFlyingSwords();
     const THREE = api.THREE;
     const yaw = Number(view.yaw) || 0;
-    const start = new THREE.Vector3(
-      view.position[0] + Math.sin(yaw) * 0.85,
-      view.position[1] + 1.34,
-      view.position[2] + Math.cos(yaw) * 0.85
-    );
-    let target = new THREE.Vector3(
-      start.x + Math.sin(yaw) * 6.5,
-      start.y,
-      start.z + Math.cos(yaw) * 6.5
-    );
+    const origin = new THREE.Vector3(view.position[0], view.position[1] + 1.25, view.position[2]);
     const bossAlive = typeof BishopBoss !== 'undefined' &&
       typeof BishopDimension !== 'undefined' && BishopDimension.isBattleActive() &&
       BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
       Number.isFinite(BishopBoss.x) && Number.isFinite(BishopBoss.y);
+    let target = null;
     if (bossAlive && typeof Casino !== 'undefined' && Casino.room) {
       const cx = (Casino.room.left + Casino.room.right) / 2;
       const cy = (Casino.room.top + Casino.room.bottom) / 2;
-      target.set((BishopBoss.x - cx) / 72, start.y - 0.12, (BishopBoss.y - cy) / 72);
-      fireballTarget = { x: BishopBoss.x, y: BishopBoss.y, boss: true };
+      target = new THREE.Vector3((BishopBoss.x - cx) / 72, origin.y - 0.08, (BishopBoss.y - cy) / 72);
     } else {
-      fireballTarget = null;
+      target = origin.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(6));
     }
-    const direction = target.sub(start);
-    if (direction.lengthSq() < 0.001) direction.set(Math.sin(yaw), 0, Math.cos(yaw));
-    direction.normalize();
-    fireball.position.copy(start);
-    fireballGlow.position.copy(start);
-    fireballLight.position.copy(start);
-    fireball.userData.velocity = direction.multiplyScalar(8.2);
-    fireball.userData.start = start.clone();
-    fireball.userData.target = fireballTarget ? new THREE.Vector3(
-      (fireballTarget.x - (Casino.room.left + Casino.room.right) / 2) / 72,
-      start.y - 0.12,
-      (fireballTarget.y - (Casino.room.top + Casino.room.bottom) / 2) / 72
-    ) : start.clone().addScaledVector(direction, 6.5);
-    fireballStartedAt = now;
-    fireballHit = false;
-    fireball.visible = fireballGlow.visible = true;
-    fireballLight.visible = true;
-    window.BibliaCelestialDiagnostics = 'Fogo Celestial lançado';
+    const forward = target.clone().sub(origin).normalize();
+    const side = new THREE.Vector3(forward.z, 0, -forward.x).normalize();
+    const offsets = [-0.34, 0, 0.34];
+    offsets.forEach(function (offset, index) {
+      const start = origin.clone()
+        .addScaledVector(forward, 0.72)
+        .addScaledVector(side, offset)
+        .add(new THREE.Vector3(0, index === 1 ? 0.08 : 0.19, 0));
+      const aim = target.clone().addScaledVector(side, offset * 0.38).sub(start).normalize();
+      createFlyingSword(start, aim, bossAlive ? target.clone().addScaledVector(side, offset * 0.38) : null, index, now);
+    });
+    window.BibliaCelestialDiagnostics = 'Três Espadas Celestiais lançadas';
   }
 
-  function updateFireball(now, dt) {
-    if (!fireball || !fireball.visible) return;
-    const velocity = fireball.userData.velocity;
-    fireball.position.addScaledVector(velocity, dt);
-    const pulse = 1 + Math.sin(now * 0.035) * 0.16;
-    fireballGlow.position.copy(fireball.position);
-    fireballGlow.scale.setScalar(pulse);
-    fireballLight.position.copy(fireball.position);
-    fireball.rotation.x += dt * 7;
-    fireball.rotation.y += dt * 9;
-
-    if (!fireballHit && fireballTarget && fireballTarget.boss &&
-        typeof BishopBoss !== 'undefined' && BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
-        typeof Casino !== 'undefined' && Casino.room) {
-      const cx = (Casino.room.left + Casino.room.right) / 2;
-      const cy = (Casino.room.top + Casino.room.bottom) / 2;
-      const bx = (BishopBoss.x - cx) / 72;
-      const bz = (BishopBoss.y - cy) / 72;
-      if (Math.hypot(fireball.position.x - bx, fireball.position.z - bz) < 0.82) {
-        fireballHit = true;
-        const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
-        const d = Math.hypot(dx, dy) || 1;
-        BishopBoss.hurt(FIREBALL_DAMAGE, dx / d, dy / d, 190);
-        window.BibliaCelestialDiagnostics = 'Fogo Celestial acertou: ' + FIREBALL_DAMAGE + ' de dano base';
-        fireball.visible = fireballGlow.visible = false;
-        fireballLight.visible = false;
-        fireballTarget = null;
-        return;
+  function updateFlyingSwords(now, dt) {
+    if (!flyingSwords.length) return;
+    const THREE = api.THREE;
+    flyingSwords = flyingSwords.filter(function (entry) {
+      if (!entry.root || !entry.root.parent) return false;
+      entry.root.position.addScaledVector(entry.velocity, dt);
+      entry.root.rotateY(dt * 1.2);
+      entry.light.position.copy(entry.root.position);
+      const pulse = 1 + Math.sin(now * 0.025 + entry.index) * 0.12;
+      entry.root.scale.setScalar((entry.root.userData.baseScale || 0.01) * pulse);
+      if (!entry.hit && entry.bossTarget && typeof BishopBoss !== 'undefined' &&
+          BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
+          typeof Casino !== 'undefined' && Casino.room) {
+        const cx = (Casino.room.left + Casino.room.right) / 2;
+        const cy = (Casino.room.top + Casino.room.bottom) / 2;
+        const bx = (BishopBoss.x - cx) / 72;
+        const bz = (BishopBoss.y - cy) / 72;
+        if (Math.hypot(entry.root.position.x - bx, entry.root.position.z - bz) < 0.78) {
+          entry.hit = true;
+          const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
+          const d = Math.hypot(dx, dy) || 1;
+          BishopBoss.hurt(entry.damage, dx / d, dy / d, 145);
+          window.BibliaCelestialDiagnostics = 'Espada Celestial acertou: ' + entry.damage + ' de dano';
+          if (entry.root.parent) entry.root.parent.remove(entry.root);
+          if (entry.light.parent) entry.light.parent.remove(entry.light);
+          return false;
+        }
       }
-    }
-    if (now - fireballStartedAt > 1550 || fireball.position.distanceTo(fireball.userData.start) > 7.5) {
-      fireball.visible = fireballGlow.visible = false;
-      fireballLight.visible = false;
-      fireballTarget = null;
-    }
+      if (now - entry.startedAt > 1800 ||
+          entry.root.position.distanceTo(new THREE.Vector3(entry.root.userData.startX, entry.root.userData.startY, entry.root.userData.startZ)) > 8) {
+        if (entry.root.parent) entry.root.parent.remove(entry.root);
+        if (entry.light.parent) entry.light.parent.remove(entry.light);
+        return false;
+      }
+      return true;
+    });
   }
 
   function begin() {
@@ -227,6 +280,7 @@
       return;
     }
     started = true;
+    loadSwordTemplate();
     const THREE = api.THREE;
     group = new THREE.Group();
     group.visible = false;
@@ -271,7 +325,7 @@
     requestAnimationFrame(update);
     const dt = previousFrame ? Math.min(0.05, (now - previousFrame) / 1000) : 0;
     previousFrame = now;
-    updateFireball(now, dt);
+    updateFlyingSwords(now, dt);
     if (!group || !api) return;
 
     const view = window.PlayerModelView;
@@ -317,7 +371,7 @@
         openBook.rotation.y = 0;
         openBook.scale.setScalar(1);
         window.BibliaCelestialDiagnostics = 'Bíblia aberta; conjurando Fogo Celestial';
-        launchFireball(view, now);
+        launchCelestialSwords(view, now);
       }
     }
 
