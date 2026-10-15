@@ -1,4 +1,4 @@
-/* Mod 83 — Sol dourado procedural, explosão divina e vegetação destrutível.
+/* Mod 84 — Grimório em todas as magias, sol suspenso e queimadura divina.
  * Ativado somente com ?bibliaTest=1 para não alterar o combate normal.
  * Usa a cena/câmera Three.js compartilhada do protagonista e do Bispo.
  */
@@ -32,6 +32,7 @@
   let castRequested = false;
   let lastSummonInput = 0;
   let lastSpellCast = 0;
+  let pendingBookSpell = 'swords';
 
   function prepareBook(sceneModel) {
     const THREE = api.THREE;
@@ -92,12 +93,14 @@
     });
   }
 
-  function summon() {
+  function summon(spell) {
     if (!started || !closedBook || !openBook) return;
     const stamp = performance.now();
-    if (stamp - lastSummonInput < 280 || (lastSpellCast && stamp - lastSpellCast < SPELL_COOLDOWN_MS)) return;
+    const requestedSpell = spell || 'swords';
+    if (stamp - lastSummonInput < 280 || (requestedSpell === 'swords' && lastSpellCast && stamp - lastSpellCast < SPELL_COOLDOWN_MS)) return;
     lastSummonInput = stamp;
     lastSpellCast = stamp;
+    pendingBookSpell = requestedSpell;
     castRequested = true; opened = false; opening = false;
     hideAt = stamp + CAST_VISIBLE_MS;
     openAt = stamp + 250;
@@ -594,6 +597,9 @@
   let sunExplosionFlashGeometry = null;
   let sunDebrisGeometry = null;
   let sunSparkGeometry = null;
+  let sunBurnFlameGeometry = null;
+  let sunBurnEffects = [];
+  let sunBurnStatus = null;
   let sunButtonBound = false;
   let sunOrbGeometry = null;
   let sunOrbMaterial = null;
@@ -606,13 +612,13 @@
 
   function ensureSunAssets() {
     const THREE = api.THREE;
-    if (!sunOrbGeometry) sunOrbGeometry = new THREE.SphereGeometry(1.6, 14, 12);
+    if (!sunOrbGeometry) sunOrbGeometry = new THREE.SphereGeometry(2.1, 16, 14);
     if (!sunOrbMaterial) sunOrbMaterial = new THREE.ShaderMaterial({
       uniforms: { uTime: { value: 0 } },
       vertexShader: 'varying vec3 vSunPos; void main(){vSunPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
       fragmentShader: 'precision mediump float; uniform float uTime; varying vec3 vSunPos; void main(){vec3 p=normalize(vSunPos);float a=sin(p.x*13.0+p.y*8.0+uTime*1.5)*sin(p.z*11.0-p.y*9.0-uTime*1.1);float b=sin(p.y*24.0+p.x*7.0+uTime*0.8)*cos(p.z*19.0-uTime*1.3);float fire=clamp(0.52+0.24*a+0.18*b,0.0,1.0);vec3 deep=vec3(0.72,0.055,0.004);vec3 orange=vec3(1.0,0.22,0.008);vec3 gold=vec3(1.0,0.61,0.025);vec3 hot=vec3(1.0,0.86,0.19);vec3 c=mix(deep,orange,smoothstep(0.0,0.43,fire));c=mix(c,gold,smoothstep(0.35,0.76,fire));c=mix(c,hot,smoothstep(0.72,0.96,fire)*0.68);float limb=0.78+0.22*max(0.0,p.y*0.4+0.6);gl_FragColor=vec4(c*limb,1.0);}'
     });
-    if (!sunHaloGeometry) sunHaloGeometry = new THREE.TorusGeometry(2.0, 0.09, 6, 32);
+    if (!sunHaloGeometry) sunHaloGeometry = new THREE.TorusGeometry(2.55, 0.11, 6, 36);
     if (!sunHaloMaterial) sunHaloMaterial = new THREE.MeshBasicMaterial({
       color: 0xffd84a, transparent: true, opacity: 0.9,
       blending: THREE.AdditiveBlending, depthWrite: false
@@ -793,7 +799,7 @@
     sunOrb.position.copy(origin);
     sunOrb.visible = true;
     sunHalo.rotation.z = 0;
-    sunFlight = { start: origin.clone(), target: target, startedAt: now, duration: 1650 };
+    sunFlight = { start: origin.clone(), target: target, startedAt: now, holdDuration: 2450, duration: 1250 };
     sunLastCast = now;
     window.BibliaCelestialDiagnostics = 'Sol da Justiça invocado';
   }
@@ -801,6 +807,7 @@
   function updateSunOfJustice(now, dt) {
     updateSunImpactWaves(now);
     updateSunExplosionEffects(now, Math.min(.05, Math.max(0, dt || 0)));
+    updateSunBurn(now, dt);
     if (!sunOrb || !sunFlight) {
       if (sunCrater && now - sunCrater.userData.createdAt > 5200) {
         api.scene.remove(sunCrater);
@@ -808,35 +815,42 @@
       }
       return;
     }
+    const elapsed = now - sunFlight.startedAt;
     const liveTarget = currentSunTarget(sunFlight.start);
-    if (now - sunFlight.startedAt < 780) {
-      sunFlight.target.lerp(liveTarget, Math.min(1, dt * 2.4));
+    if (elapsed >= sunFlight.holdDuration && elapsed < sunFlight.holdDuration + 850) {
+      sunFlight.target.lerp(liveTarget, Math.min(1, dt * 3.2));
     }
-    const p = Math.max(0, Math.min(1, (now - sunFlight.startedAt) / sunFlight.duration));
+    const descentElapsed = elapsed - sunFlight.holdDuration;
+    const p = Math.max(0, Math.min(1, descentElapsed / sunFlight.duration));
     const eased = p * p * (3 - 2 * p);
-    sunOrb.position.lerpVectors(sunFlight.start, sunFlight.target, eased);
-    sunOrb.position.y += Math.sin(now * 0.012) * 0.035;
+    if (descentElapsed < 0) {
+      sunOrb.position.copy(sunFlight.start);
+      sunOrb.position.y += Math.sin(now * 0.0035) * 0.12;
+    } else {
+      sunOrb.position.lerpVectors(sunFlight.start, sunFlight.target, eased);
+      sunOrb.position.y += Math.sin(now * 0.008) * 0.045;
+    }
     sunHalo.rotation.z += dt * 2.5;
     const pulse = 1 + Math.sin(now * 0.018) * 0.07;
     sunOrb.scale.setScalar(pulse);
     if(sunOrbMaterial&&sunOrbMaterial.uniforms&&sunOrbMaterial.uniforms.uTime)sunOrbMaterial.uniforms.uTime.value=now*.001;
     sunLight.intensity = 4.0 + Math.sin(now * 0.02) * 0.45;
-    if (p < 1) return;
+    if (descentElapsed < sunFlight.duration) return;
 
     const impact = sunFlight.target.clone();
     impact.y = 0.08;
     let landedHit = false;
-    if (typeof BishopBoss !== 'undefined' && typeof BishopDimension !== 'undefined' &&
-        BishopDimension.isBattleActive() && BishopBoss.state !== 'inactive' &&
-        BishopBoss.state !== 'dead' && typeof Casino !== 'undefined' && Casino.room) {
+    if (typeof BishopBoss !== 'undefined' && BishopBoss.profile &&
+        BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' && typeof Casino !== 'undefined' && Casino.room) {
       const cx = (Casino.room.left + Casino.room.right) / 2;
       const cy = (Casino.room.top + Casino.room.bottom) / 2;
       const bx = (BishopBoss.x - cx) / 72;
       const bz = (BishopBoss.y - cy) / 72;
-      if (Math.hypot(impact.x - bx, impact.z - bz) <= 1.8) {
+      if (Math.hypot(impact.x - bx, impact.z - bz) <= 5.2) {
         const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
         const d = Math.hypot(dx, dy) || 1;
-        BishopBoss.hurt(30, dx / d, dy / d, 230);
+        BishopBoss.hurt(42, dx / d, dy / d, 120);
+        startSunBurn(bx, bz, now);
         landedHit = true;
       }
     }
@@ -865,9 +879,9 @@
       sunButton.style.touchAction = 'none';
       sunButton.addEventListener('pointerdown', function (event) {
         event.preventDefault();
-        castSunOfJustice();
+        summon('sun');
       }, { passive: false });
-      sunButton.addEventListener('click', castSunOfJustice);
+      sunButton.addEventListener('click', function(){ summon('sun'); });
     }
     const judgmentButton = document.getElementById('btn-magic2');
     if (judgmentButton && !judgmentButtonBound) {
@@ -875,9 +889,9 @@
       judgmentButton.style.touchAction = 'none';
       judgmentButton.addEventListener('pointerdown', function (event) {
         event.preventDefault();
-        summonJudgment();
+        summon('judgment');
       }, { passive: false });
-      judgmentButton.addEventListener('click', summonJudgment);
+      judgmentButton.addEventListener('click', function(){ summon('judgment'); });
     }
     const THREE = api.THREE;
     group = new THREE.Group();
@@ -971,7 +985,9 @@
         openBook.rotation.y = 0;
         openBook.scale.setScalar(1);
         window.BibliaCelestialDiagnostics = 'Bíblia aberta; conjurando Três Espadas Celestiais';
-        launchCelestialSwords(view, now);
+        if (pendingBookSpell === 'judgment') summonJudgment();
+        else if (pendingBookSpell === 'sun') castSunOfJustice();
+        else launchCelestialSwords(view, now);
       }
     }
 
