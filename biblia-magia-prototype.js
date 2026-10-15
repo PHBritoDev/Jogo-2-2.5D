@@ -31,6 +31,15 @@
   let hideAt = 0;
   let castRequested = false;
   let lastSummonInput = 0;
+  let lastSpellCast = 0;
+  let fireball = null;
+  let fireballGlow = null;
+  let fireballLight = null;
+  let fireballTarget = null;
+  let fireballStartedAt = 0;
+  let fireballHit = false;
+  const SPELL_COOLDOWN_MS = 1800;
+  const FIREBALL_DAMAGE = 22;
 
   function prepareBook(sceneModel) {
     const THREE = api.THREE;
@@ -94,8 +103,9 @@
   function summon() {
     if (!started || !closedBook || !openBook) return;
     const stamp = performance.now();
-    if (stamp - lastSummonInput < 280) return;
+    if (stamp - lastSummonInput < 280 || stamp - lastSpellCast < SPELL_COOLDOWN_MS) return;
     lastSummonInput = stamp;
+    lastSpellCast = stamp;
     castRequested = true; opened = false; opening = false;
     hideAt = stamp + CAST_VISIBLE_MS;
     openAt = stamp + 250;
@@ -104,7 +114,109 @@
     openBook.rotation.y = 0; openBook.scale.setScalar(1);
     group.visible = true;
     if (flash) { flash.material.opacity = 0.78; flash.scale.setScalar(0.18); }
-    window.BibliaCelestialDiagnostics = 'encantamento iniciado';
+    window.BibliaCelestialDiagnostics = 'Fogo Celestial: Bíblia abrindo';
+  }
+
+
+  function ensureFireball() {
+    if (fireball || !api || !group) return;
+    const THREE = api.THREE;
+    fireball = new THREE.Mesh(
+      new THREE.SphereGeometry(0.19, 14, 10),
+      new THREE.MeshBasicMaterial({ color: 0xff7a18, transparent: true, opacity: 1, depthWrite: false })
+    );
+    fireballGlow = new THREE.Mesh(
+      new THREE.SphereGeometry(0.34, 12, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffb52e, transparent: true, opacity: 0.38, depthWrite: false })
+    );
+    fireballLight = new THREE.PointLight(0xff7b20, 1.8, 3.4);
+    fireball.visible = fireballGlow.visible = false;
+    group.add(fireball, fireballGlow, fireballLight);
+  }
+
+  function launchFireball(view, now) {
+    if (!Array.isArray(view.position) || view.position.length < 3) return;
+    ensureFireball();
+    if (!fireball) return;
+    const THREE = api.THREE;
+    const yaw = Number(view.yaw) || 0;
+    const start = new THREE.Vector3(
+      view.position[0] + Math.sin(yaw) * 0.85,
+      view.position[1] + 1.34,
+      view.position[2] + Math.cos(yaw) * 0.85
+    );
+    let target = new THREE.Vector3(
+      start.x + Math.sin(yaw) * 6.5,
+      start.y,
+      start.z + Math.cos(yaw) * 6.5
+    );
+    const bossAlive = typeof BishopBoss !== 'undefined' &&
+      typeof BishopDimension !== 'undefined' && BishopDimension.isBattleActive() &&
+      BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
+      Number.isFinite(BishopBoss.x) && Number.isFinite(BishopBoss.y);
+    if (bossAlive && typeof Casino !== 'undefined' && Casino.room) {
+      const cx = (Casino.room.left + Casino.room.right) / 2;
+      const cy = (Casino.room.top + Casino.room.bottom) / 2;
+      target.set((BishopBoss.x - cx) / 72, start.y - 0.12, (BishopBoss.y - cy) / 72);
+      fireballTarget = { x: BishopBoss.x, y: BishopBoss.y, boss: true };
+    } else {
+      fireballTarget = null;
+    }
+    const direction = target.sub(start);
+    if (direction.lengthSq() < 0.001) direction.set(Math.sin(yaw), 0, Math.cos(yaw));
+    direction.normalize();
+    fireball.position.copy(start);
+    fireballGlow.position.copy(start);
+    fireballLight.position.copy(start);
+    fireball.userData.velocity = direction.multiplyScalar(8.2);
+    fireball.userData.start = start.clone();
+    fireball.userData.target = fireballTarget ? new THREE.Vector3(
+      (fireballTarget.x - (Casino.room.left + Casino.room.right) / 2) / 72,
+      start.y - 0.12,
+      (fireballTarget.y - (Casino.room.top + Casino.room.bottom) / 2) / 72
+    ) : start.clone().addScaledVector(direction, 6.5);
+    fireballStartedAt = now;
+    fireballHit = false;
+    fireball.visible = fireballGlow.visible = true;
+    fireballLight.visible = true;
+    window.BibliaCelestialDiagnostics = 'Fogo Celestial lançado';
+  }
+
+  function updateFireball(now, dt) {
+    if (!fireball || !fireball.visible) return;
+    const velocity = fireball.userData.velocity;
+    fireball.position.addScaledVector(velocity, dt);
+    const pulse = 1 + Math.sin(now * 0.035) * 0.16;
+    fireballGlow.position.copy(fireball.position);
+    fireballGlow.scale.setScalar(pulse);
+    fireballLight.position.copy(fireball.position);
+    fireball.rotation.x += dt * 7;
+    fireball.rotation.y += dt * 9;
+
+    if (!fireballHit && fireballTarget && fireballTarget.boss &&
+        typeof BishopBoss !== 'undefined' && BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
+        typeof Casino !== 'undefined' && Casino.room) {
+      const cx = (Casino.room.left + Casino.room.right) / 2;
+      const cy = (Casino.room.top + Casino.room.bottom) / 2;
+      const bx = (BishopBoss.x - cx) / 72;
+      const bz = (BishopBoss.y - cy) / 72;
+      if (Math.hypot(fireball.position.x - bx, fireball.position.z - bz) < 0.82) {
+        fireballHit = true;
+        const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
+        const d = Math.hypot(dx, dy) || 1;
+        BishopBoss.hurt(FIREBALL_DAMAGE, dx / d, dy / d, 190);
+        window.BibliaCelestialDiagnostics = 'Fogo Celestial acertou: ' + FIREBALL_DAMAGE + ' de dano base';
+        fireball.visible = fireballGlow.visible = false;
+        fireballLight.visible = false;
+        fireballTarget = null;
+        return;
+      }
+    }
+    if (now - fireballStartedAt > 1550 || fireball.position.distanceTo(fireball.userData.start) > 7.5) {
+      fireball.visible = fireballGlow.visible = false;
+      fireballLight.visible = false;
+      fireballTarget = null;
+    }
   }
 
   function begin() {
@@ -154,8 +266,12 @@
     requestAnimationFrame(update);
   }
 
+  let previousFrame = 0;
   function update(now) {
     requestAnimationFrame(update);
+    const dt = previousFrame ? Math.min(0.05, (now - previousFrame) / 1000) : 0;
+    previousFrame = now;
+    updateFireball(now, dt);
     if (!group || !api) return;
 
     const view = window.PlayerModelView;
@@ -200,7 +316,8 @@
         closedBook.scale.setScalar(1);
         openBook.rotation.y = 0;
         openBook.scale.setScalar(1);
-        window.BibliaCelestialDiagnostics = 'Bíblia integrada à dimensão do Valério e aberta';
+        window.BibliaCelestialDiagnostics = 'Bíblia aberta; conjurando Fogo Celestial';
+        launchFireball(view, now);
       }
     }
 
