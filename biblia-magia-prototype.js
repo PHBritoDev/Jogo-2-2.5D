@@ -1,4 +1,4 @@
-/* Mod 67 — protótipo visual da Bíblia Celestial.
+/* Mod 69 — Bíblia Celestial integrada em página isolada de combate.
  * Ativado somente com ?bibliaTest=1 para não alterar o combate normal.
  * Usa a cena/câmera Three.js compartilhada do protagonista e do Bispo.
  */
@@ -8,8 +8,8 @@
   const params = new URLSearchParams(window.location.search);
   if (params.get('bibliaTest') !== '1') return;
 
-  const CLOSED_URL = './biblia_celestial_fechada.glb?v=mod67-biblia-20261014';
-  const OPEN_URL = './biblia_celestial_aberta.glb?v=mod67-biblia-20261014';
+  const CLOSED_URL = './biblia_celestial_fechada.glb?v=mod69-biblia-20261014';
+  const OPEN_URL = './biblia_celestial_aberta.glb?v=mod69-biblia-20261014';
   const TARGET_SIZE = 0.82;
 
   let api = null;
@@ -22,6 +22,9 @@
   let started = false;
   let opened = false;
   let openAt = 0;
+  let opening = false;
+  let transitionStart = 0;
+  const OPEN_TRANSITION_MS = 520;
   let lastWarning = 0;
 
   function prepareBook(sceneModel) {
@@ -109,7 +112,6 @@
       group.visible = true;
       openAt = performance.now() + 680;
       window.BibliaCelestialDiagnostics = 'modelos fechado e aberto carregados';
-      if (window.ValerioThreeWarmUp) window.ValerioThreeWarmUp();
     }
 
     loadModel(CLOSED_URL, function (model) { onLoaded(model, false); });
@@ -131,11 +133,34 @@
 
     group.visible = true;
     if (!opened && now >= openAt) {
-      opened = true;
-      closedBook.visible = false;
+      opening = true;
+      transitionStart = now;
+      closedBook.visible = true;
       openBook.visible = true;
-      flash.material.opacity = 0.92;
-      flash.scale.setScalar(0.2);
+      openBook.scale.set(0.001, 1, 1);
+      flash.material.opacity = 0.72;
+      flash.scale.setScalar(0.16);
+    }
+
+    if (!Array.isArray(view.position) || view.position.length < 3) return;
+    if (opening) {
+      const progress = Math.max(0, Math.min(1, (now - transitionStart) / OPEN_TRANSITION_MS));
+      const eased = progress * progress * (3 - 2 * progress);
+      closedBook.rotation.y = eased * Math.PI * 0.5;
+      closedBook.scale.x = Math.max(0.001, 1 - eased);
+      openBook.rotation.y = -Math.PI * 0.5 + eased * Math.PI * 0.5;
+      openBook.scale.x = Math.max(0.001, eased);
+      if (progress >= 1) {
+        opening = false;
+        opened = true;
+        closedBook.visible = false;
+        openBook.visible = true;
+        closedBook.rotation.y = 0;
+        closedBook.scale.setScalar(1);
+        openBook.rotation.y = 0;
+        openBook.scale.setScalar(1);
+        window.BibliaCelestialDiagnostics = 'Bíblia integrada à dimensão do Valério e aberta';
+      }
     }
 
     const yaw = Number(view.yaw) || 0;
@@ -154,7 +179,7 @@
     goldRing.scale.setScalar(pulse);
     whiteRing.scale.setScalar(1 + Math.sin(now * 0.005) * 0.035);
 
-    if (opened && flash.material.opacity > 0) {
+    if ((opened || opening) && flash.material.opacity > 0) {
       flash.material.opacity = Math.max(0, flash.material.opacity - 0.035);
       const s = flash.scale.x + 0.085;
       flash.scale.setScalar(s);
