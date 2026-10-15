@@ -301,6 +301,241 @@
     });
   }
 
+
+  // Modificação 78 — Habilidade 2: Julgamento Celestial.
+  // Círculo mágico 3D gerado por código; não exige modelo externo.
+  const JUDGMENT_COOLDOWN_MS = 6500;
+  const JUDGMENT_DAMAGE = 11;
+  let judgmentLastCast = 0;
+  let judgmentRing = null;
+  let judgmentRunes = [];
+  let judgmentSwords = [];
+  let judgmentParticles = [];
+  let judgmentCastActive = false;
+  let judgmentTarget = null;
+  let judgmentLastFrame = 0;
+  let judgmentButtonBound = false;
+
+  function makeJudgmentCircle(center, now) {
+    const THREE = api.THREE;
+    if (judgmentRing && judgmentRing.parent) judgmentRing.parent.remove(judgmentRing);
+    judgmentRunes.forEach(function (m) { if (m.parent) m.parent.remove(m); });
+    judgmentRunes = [];
+    const root = new THREE.Group();
+    root.name = 'CirculoMagico_JulgamentoCelestial';
+    root.position.set(center.x, 0.035, center.z);
+    const outer = new THREE.Mesh(
+      new THREE.TorusGeometry(1.55, 0.035, 8, 96),
+      new THREE.MeshBasicMaterial({ color: 0xffc928, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    outer.rotation.x = -Math.PI / 2;
+    root.add(outer);
+    const inner = new THREE.Mesh(
+      new THREE.TorusGeometry(1.22, 0.014, 6, 80),
+      new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true, opacity: 0.82, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    inner.rotation.x = -Math.PI / 2;
+    root.add(inner);
+    const pentagramPoints = [];
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+      pentagramPoints.push(new THREE.Vector3(Math.cos(a) * 1.05, 0.015, Math.sin(a) * 1.05));
+    }
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xffd84d, transparent: true, opacity: 0.85 });
+    const starOrder = [0, 2, 4, 1, 3, 0];
+    const points = starOrder.map(function (i) { return pentagramPoints[i]; });
+    const star = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMat);
+    root.add(star);
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+      const rune = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.018, 0.3),
+        new THREE.MeshBasicMaterial({ color: 0xfff4bf, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      rune.position.set(Math.cos(a) * 1.38, 0.025, Math.sin(a) * 1.38);
+      rune.rotation.y = -a;
+      root.add(rune);
+      judgmentRunes.push(rune);
+    }
+    api.scene.add(root);
+    judgmentRing = root;
+    judgmentRing.userData.startedAt = now;
+  }
+
+  function clearJudgmentSwords() {
+    judgmentSwords.forEach(function (entry) {
+      if (entry.root && entry.root.parent) entry.root.parent.remove(entry.root);
+      if (entry.light && entry.light.parent) entry.light.parent.remove(entry.light);
+    });
+    judgmentSwords = [];
+  }
+
+  function createJudgmentParticles(position, now, finalBurst) {
+    const THREE = api.THREE;
+    const count = finalBurst ? 28 : 12;
+    for (let i = 0; i < count; i++) {
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(finalBurst ? 0.045 : 0.028, 6, 5),
+        new THREE.MeshBasicMaterial({
+          color: i % 3 === 0 ? 0xffffff : (i % 2 ? 0xffd53b : 0xfff0a1),
+          transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false
+        })
+      );
+      mesh.position.copy(position);
+      mesh.position.y += 0.08;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = (finalBurst ? 1.7 : 1.05) * (0.45 + Math.random());
+      judgmentParticles.push({
+        mesh: mesh,
+        velocity: new THREE.Vector3(Math.cos(angle) * speed, 0.45 + Math.random() * speed, Math.sin(angle) * speed),
+        startedAt: now,
+        life: finalBurst ? 780 : 520
+      });
+      api.scene.add(mesh);
+    }
+  }
+
+  function launchJudgmentCelestial(now) {
+    if (!swordTemplate || !api || !api.THREE) {
+      window.BibliaCelestialDiagnostics = 'Julgamento Celestial: carregando modelo da espada';
+      return;
+    }
+    clearJudgmentSwords();
+    const THREE = api.THREE;
+    const view = window.PlayerModelView;
+    if (!view || !Array.isArray(view.position) || view.position.length < 3) return;
+    const origin = new THREE.Vector3(view.position[0], view.position[1], view.position[2]);
+    const yaw = Number(view.yaw) || 0;
+    const bossAlive = typeof BishopBoss !== 'undefined' &&
+      typeof BishopDimension !== 'undefined' && BishopDimension.isBattleActive() &&
+      BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
+      Number.isFinite(BishopBoss.x) && Number.isFinite(BishopBoss.y);
+    if (bossAlive && typeof Casino !== 'undefined' && Casino.room) {
+      const cx = (Casino.room.left + Casino.room.right) / 2;
+      const cy = (Casino.room.top + Casino.room.bottom) / 2;
+      judgmentTarget = new THREE.Vector3((BishopBoss.x - cx) / 72, 0.08, (BishopBoss.y - cy) / 72);
+    } else {
+      judgmentTarget = origin.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(5));
+      judgmentTarget.y = 0.08;
+    }
+    makeJudgmentCircle(judgmentTarget, now);
+    const offsets = [
+      [0, 0], [1.15, 0], [-1.15, 0], [0, 1.15], [0, -1.15]
+    ];
+    offsets.forEach(function (offset, index) {
+      const target = judgmentTarget.clone().add(new THREE.Vector3(offset[0], 0, offset[1]));
+      const start = target.clone().add(new THREE.Vector3(offset[0] * 0.22, 4.4 + (index % 2) * 0.35, offset[1] * 0.22));
+      const root = new THREE.Group();
+      root.name = 'JulgamentoCelestial_Espada_' + (index + 1);
+      const blade = swordTemplate.clone(true);
+      blade.traverse(function (obj) {
+        if (!obj.isMesh) return;
+        obj.castShadow = false; obj.receiveShadow = false;
+        const list = Array.isArray(obj.material) ? obj.material : [obj.material];
+        const glowing = list.filter(Boolean).map(function (mat) {
+          const m = mat.clone();
+          if (m.emissive) { m.emissive.set(0xffd43b); m.emissiveIntensity = 3.8; }
+          m.transparent = true; m.opacity = 0.98;
+          return m;
+        });
+        obj.material = Array.isArray(obj.material) ? glowing : glowing[0];
+      });
+      root.add(blade);
+      const bounds = new THREE.Box3().setFromObject(root);
+      const size = new THREE.Vector3(); bounds.getSize(size);
+      const longest = Math.max(size.x, size.y, size.z, 0.001);
+      root.scale.setScalar(0.78 / longest);
+      root.position.copy(start);
+      root.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), target.clone().sub(start).normalize());
+      api.scene.add(root);
+      const light = new THREE.PointLight(0xffd43b, 3.8, 3.8);
+      light.position.copy(start);
+      api.scene.add(light);
+      judgmentSwords.push({
+        root: root, light: light, start: start, target: target,
+        launchAt: now + 450 + index * 65, startedAt: now, hit: false, index: index,
+        bossTarget: bossAlive, damage: JUDGMENT_DAMAGE
+      });
+    });
+    judgmentCastActive = true;
+    judgmentLastFrame = now;
+    window.BibliaCelestialDiagnostics = 'Julgamento Celestial: cinco espadas invocadas';
+  }
+
+  function updateJudgment(now, dt) {
+    const THREE = api && api.THREE;
+    if (!THREE) return;
+    if (judgmentRing) {
+      const age = now - (judgmentRing.userData.startedAt || now);
+      judgmentRing.rotation.y += dt * 0.32;
+      const pulse = 1 + Math.sin(now * 0.012) * 0.045;
+      judgmentRing.scale.set(pulse, 1, pulse);
+      if (age > 2600) {
+        api.scene.remove(judgmentRing);
+        judgmentRing = null;
+        judgmentRunes = [];
+      }
+    }
+    judgmentSwords = judgmentSwords.filter(function (entry) {
+      if (!entry.root || !entry.root.parent) return false;
+      const progress = Math.max(0, Math.min(1, (now - entry.launchAt) / 560));
+      if (now >= entry.launchAt) {
+        const eased = progress * progress * (3 - 2 * progress);
+        entry.root.position.lerpVectors(entry.start, entry.target, eased);
+        entry.root.rotation.y += dt * 0.7;
+        entry.light.position.copy(entry.root.position);
+      } else {
+        entry.root.position.y += Math.sin(now * 0.012 + entry.index) * dt * 0.04;
+        entry.light.position.copy(entry.root.position);
+      }
+      entry.light.intensity = 3 + Math.sin(now * 0.025 + entry.index) * 0.7;
+      if (!entry.hit && now >= entry.launchAt + 530) {
+        entry.hit = true;
+        createJudgmentParticles(entry.target, now, entry.index === 4);
+        if (entry.bossTarget && typeof BishopBoss !== 'undefined' &&
+            BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead') {
+          const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
+          const d = Math.hypot(dx, dy) || 1;
+          BishopBoss.hurt(entry.damage, dx / d, dy / d, 120);
+        }
+        if (entry.root.parent) entry.root.parent.remove(entry.root);
+        if (entry.light.parent) entry.light.parent.remove(entry.light);
+        return false;
+      }
+      if (now - entry.startedAt > 2400) {
+        if (entry.root.parent) entry.root.parent.remove(entry.root);
+        if (entry.light.parent) entry.light.parent.remove(entry.light);
+        return false;
+      }
+      return true;
+    });
+    judgmentParticles = judgmentParticles.filter(function (p) {
+      const age = now - p.startedAt;
+      if (age >= p.life) {
+        if (p.mesh.parent) p.mesh.parent.remove(p.mesh);
+        if (p.mesh.geometry) p.mesh.geometry.dispose();
+        if (p.mesh.material) p.mesh.material.dispose();
+        return false;
+      }
+      p.mesh.position.addScaledVector(p.velocity, dt);
+      p.velocity.y -= 2.2 * dt;
+      p.mesh.material.opacity = 1 - age / p.life;
+      p.mesh.scale.setScalar(1 - age / p.life * 0.55);
+      return true;
+    });
+    if (judgmentCastActive && !judgmentSwords.length && !judgmentParticles.length) {
+      judgmentCastActive = false;
+      window.BibliaCelestialDiagnostics = 'Julgamento Celestial concluído';
+    }
+  }
+
+  function summonJudgment() {
+    const now = performance.now();
+    if (!started || !swordTemplate || now - judgmentLastCast < JUDGMENT_COOLDOWN_MS) return;
+    judgmentLastCast = now;
+    launchJudgmentCelestial(now);
+  }
+
   function begin() {
     if (started) return;
     api = window.ValerioThreeAPI;
@@ -310,6 +545,16 @@
     }
     started = true;
     loadSwordTemplate();
+    const judgmentButton = document.getElementById('btn-magic2');
+    if (judgmentButton && !judgmentButtonBound) {
+      judgmentButtonBound = true;
+      judgmentButton.style.touchAction = 'none';
+      judgmentButton.addEventListener('pointerdown', function (event) {
+        event.preventDefault();
+        summonJudgment();
+      }, { passive: false });
+      judgmentButton.addEventListener('click', summonJudgment);
+    }
     const THREE = api.THREE;
     group = new THREE.Group();
     group.visible = false;
@@ -355,6 +600,7 @@
     const dt = previousFrame ? Math.min(0.05, (now - previousFrame) / 1000) : 0;
     previousFrame = now;
     updateFlyingSwords(now, dt);
+    updateJudgment(now, dt);
     if (!group || !api) return;
 
     const view = window.PlayerModelView;
