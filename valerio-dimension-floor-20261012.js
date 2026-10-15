@@ -15,7 +15,7 @@ const BishopDimension = (function () {
     wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0,
     canvasVisible: false,
     camera: { yaw: 0, pitch: -0.035, distance: 12.5, minDistance: 0.85, maxDistance: 22 },
-    impactAt: 0, impactStrength: 0
+    impactAt: 0, impactStrength: 0, treeGeometryRanges: [], sunScorches: [], removedTreeIds: new Set(), arenaSourceData: null
   };
 
   const clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -204,7 +204,10 @@ const BishopDimension = (function () {
     // As laterais ficam próximas da área jogável para esconder o que existe atrás delas.
     const deadBark=['#392b22','#493528','#302923','#554031','#403027'];
     function deadTree(x,z,seed,scale){
-      S.treeColliders.push({x:x,z:z,r:0.38*scale});
+      const treeId=seed;
+      if(S.removedTreeIds.has(treeId)) return;
+      const range={id:treeId,x:x,z:z,r:0.38*scale,worldStart:world.length,foliageStart:foliage.length,shadowsStart:shadows.length};
+      S.treeColliders.push({id:treeId,x:x,z:z,r:0.38*scale});
       const variant=(seed*7)%11, h=(7.2+variant*.58)*scale;
       const lean=((seed%2)?1:-1)*(.22+(variant%4)*.12);
       const bark=deadBark[seed%deadBark.length];
@@ -246,6 +249,8 @@ const BishopDimension = (function () {
         const rootDir=k<2?-1:1,rootZ=(k%2?1:-1)*.28*scale;
         addSegment(world,[x,.12,z],[x+rootDir*(.32+(k%2)*.22)*scale,.028,z+rootZ],.15*scale,.012*scale,bark,5);
       }
+      range.worldEnd=world.length;range.foliageEnd=foliage.length;range.shadowsEnd=shadows.length;
+      S.treeGeometryRanges.push(range);
     }
     // Quatro fileiras laterais em zigue-zague: árvores vizinhas se sobrepõem na visão.
     let treeSeed=1;
@@ -376,6 +381,7 @@ const BishopDimension = (function () {
     addSegment(bishopArmR,[0,0,0],[.24,-.35,-.03],.095,.065,'#30213a',6);
     return {
       world:mesh(S.gl,world),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),leaves:mesh(S.gl,leaves),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
+      sourceData:{world:world,foliage:foliage,shadows:shadows},
       energy:mesh(S.gl,energy),particles:mesh(S.gl,particles),
       player:mesh(S.gl,player),bishop:mesh(S.gl,bishop),
       playerArmL:mesh(S.gl,playerArmL),playerArmR:mesh(S.gl,playerArmR),
@@ -492,6 +498,7 @@ const BishopDimension = (function () {
       // 2 tufos por célula, cada um com 3 folhas largas em leque: silhueta macia, sem pontas de agulha.
       for(let clump=0;clump<2;clump++){
         const x=cx+(rnd()-.5)*1.5,z=cz+(rnd()-.5)*1.45;
+        if(S.sunScorches.some(function(p){return Math.hypot(x-p.x,z-p.z)<p.r;})) continue;
         // Sombra estática discreta sob cada tufo: sem shadow maps ou luz dinâmica.
         const shadowY=groundY+.003, shadowX=.23+rnd()*.08, shadowZ=.15+rnd()*.06;
         const shadow=[.012,.018,.010,.34];
@@ -523,6 +530,7 @@ const BishopDimension = (function () {
       }
     }
     if(grass.length&&S.arena===targetArena&&S.gl){
+      if(targetArena.grassAsset&&targetArena.grassAsset.buffer)S.gl.deleteBuffer(targetArena.grassAsset.buffer);
       targetArena.grassAsset=mesh(S.gl,grass);
       window.ValerioGrassStatus={loaded:true,mode:'procedural-full-cover',patches:cols*rows,blades:bladeTotal,triangles:targetArena.grassAsset.count/3};
     }
@@ -537,7 +545,7 @@ const BishopDimension = (function () {
     S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');S.uTime=gl.getUniformLocation(program,'uTime');S.uWind=gl.getUniformLocation(program,'uWind');
     initBishopSprite(gl);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-    S.exterior=buildExterior();S.treeColliders=[];S.arena=buildArena();S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
+    S.exterior=buildExterior();S.treeColliders=[];S.treeGeometryRanges=[];S.removedTreeIds=new Set();S.sunScorches=[];S.arena=buildArena();S.arenaSourceData=S.arena.sourceData;S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
     loadGrassAsset();
     S.lost=false;S.failed=false;
   }
@@ -744,6 +752,39 @@ const BishopDimension = (function () {
       draw(S.arena.playerLegR,multiply(pv,multiply(playerBase,multiply(translate(.13,.27,.01),rotateX(gait*.82)))));
     }
   }
+  function damageVegetation(x,z,radius){
+    if(!isBattleActive()||!S.arena||!S.arenaSourceData||!S.gl)return {trees:0,grass:0};
+    const r=Math.max(2.4,Number(radius)||3.8),hits=S.treeGeometryRanges
+      .filter(function(t){return !S.removedTreeIds.has(t.id)&&Math.hypot(t.x-x,t.z-z)<r+t.r;})
+      .sort(function(a,b){return Math.hypot(a.x-x,a.z-z)-Math.hypot(b.x-x,b.z-z);}).slice(0,3);
+    hits.forEach(function(t){S.removedTreeIds.add(t.id);});
+    if(hits.length){
+      const ranges=S.treeGeometryRanges.filter(function(t){return S.removedTreeIds.has(t.id);});
+      function filtered(key,startKey,endKey){
+        const src=S.arenaSourceData[key],out=[];
+        for(let i=0;i<src.length;i++){
+          let skip=false;
+          for(let j=0;j<ranges.length;j++)if(i>=ranges[j][startKey]&&i<ranges[j][endKey]){skip=true;break;}
+          if(!skip)out.push(src[i]);
+        }
+        return out;
+      }
+      ['world','foliage','shadows'].forEach(function(key){
+        const old=S.arena[key];if(old&&old.buffer)S.gl.deleteBuffer(old.buffer);
+        S.arena[key]=mesh(S.gl,filtered(key,key+'Start',key+'End'));
+      });
+      S.treeColliders=S.treeColliders.filter(function(t){return !S.removedTreeIds.has(t.id);});
+    }
+    const now=performance.now();
+    S.sunScorches.push({x:x,z:z,r:Math.max(2.5,r*.78),expires:now+6500});
+    loadGrassAsset();
+    return {trees:hits.length,grass:1};
+  }
+  function updateSunScorches(){
+    if(!S.sunScorches.length)return;
+    const now=performance.now(),left=S.sunScorches.filter(function(p){return p.expires>now;});
+    if(left.length!==S.sunScorches.length){S.sunScorches=left;loadGrassAsset();}
+  }
   function frame() {
     if(!S.canvas)return;
     const inside=!!(Casino.inside&&isBattleActive());
@@ -770,6 +811,7 @@ const BishopDimension = (function () {
       if(!active)return;
       if(inside!==S.wasInside){S.wasInside=inside;S.canvas.style.opacity='1';}
       if(inside)insideFrame();else outsideFrame();
+       updateSunScorches();
     } catch(err) { console.warn('Cena 3D de Valério indisponível; mantendo renderização 2D.',err);S.canvas.style.display='none';S.failed=true; }
   }
   function init() {
@@ -858,5 +900,5 @@ const BishopDimension = (function () {
     }
     return {x:x,z:z};
   }
-  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,blockedForBoss:blockedForBoss,resolveBiblePosition:resolveBiblePosition,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis,impact:impact};
+  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,blockedForBoss:blockedForBoss,resolveBiblePosition:resolveBiblePosition,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis,impact:impact,damageVegetation:damageVegetation};
 })();
