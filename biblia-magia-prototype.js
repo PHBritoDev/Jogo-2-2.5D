@@ -30,6 +30,7 @@
   let lastWarning = 0;
   let hideAt = 0;
   let castRequested = false;
+  let lastSummonInput = 0;
 
   function prepareBook(sceneModel) {
     const THREE = api.THREE;
@@ -91,10 +92,13 @@
   }
 
   function summon() {
-    if (!started || !closedBook || !openBook || castRequested) return;
+    if (!started || !closedBook || !openBook) return;
+    const stamp = performance.now();
+    if (stamp - lastSummonInput < 280) return;
+    lastSummonInput = stamp;
     castRequested = true; opened = false; opening = false;
-    hideAt = performance.now() + CAST_VISIBLE_MS;
-    openAt = performance.now() + 250;
+    hideAt = stamp + CAST_VISIBLE_MS;
+    openAt = stamp + 250;
     closedBook.visible = true; openBook.visible = false;
     closedBook.rotation.y = 0; closedBook.scale.setScalar(1);
     openBook.rotation.y = 0; openBook.scale.setScalar(1);
@@ -135,7 +139,16 @@
     loadModel(OPEN_URL, function (model) { onLoaded(model, true); });
     window.BibliaCelestialDiagnostics = 'Bíblia carregada; aguardando botão MAGIA';
     const magicButton = document.getElementById('btn-magic');
-    if (magicButton) magicButton.addEventListener('click', summon);
+    if (magicButton) {
+      magicButton.style.touchAction = 'none';
+      // pointerdown responde imediatamente no celular, inclusive enquanto o outro dedo move o joystick.
+      magicButton.addEventListener('pointerdown', function (event) {
+        event.preventDefault();
+        summon();
+      }, { passive: false });
+      // Fallback para navegadores que não disparam Pointer Events.
+      magicButton.addEventListener('click', summon);
+    }
     window.castBibliaCelestial = summon;
     window.addEventListener('biblia-cast', summon);
     requestAnimationFrame(update);
