@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#090d1c">
+  <title>Bíblia Celestial — Laboratório Visual</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #080c19; color: #fff8e8; }
+    body { position: relative; }
+    #stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+    .vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 15%, rgba(3,6,17,.25) 62%, rgba(2,4,12,.8) 100%); }
+    header { position: fixed; top: max(14px, env(safe-area-inset-top)); left: 16px; right: 16px; text-align: center; pointer-events: none; text-shadow: 0 2px 12px #000; }
+    .eyebrow { color: #e4c77f; font-size: 10px; letter-spacing: .24em; font-weight: 800; text-transform: uppercase; }
+    h1 { margin: 5px 0 3px; font-size: clamp(20px, 5vw, 30px); letter-spacing: .04em; }
+    .sub { color: #c5cbe0; font-size: 12px; }
+    #version { position: fixed; top: max(10px, env(safe-area-inset-top)); right: 10px; border: 1px solid #ffffff35; border-radius: 50%; width: 25px; height: 25px; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: #090d1cb8; }
+    .panel { position: fixed; left: 14px; right: 14px; bottom: max(16px, env(safe-area-inset-bottom)); padding: 12px; border: 1px solid #e9d49a45; border-radius: 18px; background: linear-gradient(145deg, #111a2be8, #090e1bed); box-shadow: 0 10px 40px #0008; }
+    .status { min-height: 18px; text-align: center; font-size: 12px; color: #e8d7a9; margin: 0 0 10px; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    button { min-height: 44px; border-radius: 12px; border: 1px solid #d8bd77a6; background: linear-gradient(180deg, #3b3427, #1a1b22); color: #fff3cf; font-weight: 800; letter-spacing: .04em; font-size: 12px; }
+    button:active { transform: scale(.98); }
+    button.primary { background: linear-gradient(180deg, #e5c77d, #8b672e); color: #17121a; }
+    .hint { text-align: center; color: #9fa9c1; font-size: 10px; margin-top: 9px; }
+    #error { color: #ffb7a9; }
+  </style>
+</head>
+<body>
+  <canvas id="stage" aria-label="Visualização 3D da Bíblia Celestial"></canvas>
+  <div class="vignette"></div>
+  <header>
+    <div class="eyebrow">Artefato sagrado · protótipo isolado</div>
+    <h1>BÍBLIA CELESTIAL</h1>
+    <div class="sub">Modelo 3D • luz dourada • abertura ritual</div>
+  </header>
+  <div id="version" title="Laboratório visual — versão 68" aria-label="Versão 68">68</div>
+  <section class="panel" aria-label="Controles da Bíblia">
+    <p id="status" class="status">Preparando a Bíblia celestial…</p>
+    <div class="actions">
+      <button id="closed">BÍBLIA FECHADA</button>
+      <button id="open" class="primary">ABRIR A BÍBLIA</button>
+      <button id="rotate">⟳ GIRAR MODELO</button>
+      <button id="reset">REINICIAR CENA</button>
+    </div>
+    <div class="hint">Arraste para girar a câmera · use os botões para testar os modelos</div>
+  </section>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const canvas = document.getElementById('stage');
+    const status = document.getElementById('status');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x080d1d);
+    scene.fog = new THREE.FogExp2(0x080d1d, 0.035);
+
+    const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, 0.01, 100);
+    camera.position.set(0, 0.3, 3.25);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'low-power' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.6));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
+
+    scene.add(new THREE.HemisphereLight(0xdce7ff, 0x30213b, 2.0));
+    const key = new THREE.DirectionalLight(0xffe4a1, 3.2);
+    key.position.set(2.5, 3.5, 4);
+    scene.add(key);
+    const rim = new THREE.PointLight(0x8fb9ff, 15, 8);
+    rim.position.set(-2, 1.1, -2);
+    scene.add(rim);
+    const glow = new THREE.PointLight(0xffd987, 7, 5);
+    glow.position.set(0, 0.4, 1.2);
+    scene.add(glow);
+
+    const halo = new THREE.Mesh(
+      new THREE.TorusGeometry(0.78, 0.008, 6, 100),
+      new THREE.MeshBasicMaterial({ color: 0xdcc17b, transparent: true, opacity: 0.62 })
+    );
+    halo.position.set(0, 0.04, -0.28);
+    scene.add(halo);
+    const halo2 = new THREE.Mesh(
+      new THREE.TorusGeometry(0.98, 0.004, 5, 100),
+      new THREE.MeshBasicMaterial({ color: 0x9ebdff, transparent: true, opacity: 0.28 })
+    );
+    halo2.position.set(0, 0.04, -0.3);
+    scene.add(halo2);
+
+    const bookRoot = new THREE.Group();
+    scene.add(bookRoot);
+    let closedModel = null;
+    let openModel = null;
+    let isOpen = false;
+    let autoRotate = true;
+    let loadCount = 0;
+    const loader = new GLTFLoader();
+
+    function fitModel(model) {
+      model.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      bounds.getSize(size);
+      bounds.getCenter(center);
+      const largest = Math.max(size.x, size.y, size.z, 0.001);
+      model.scale.setScalar(1.12 / largest);
+      model.position.set(-center.x * model.scale.x, -center.y * model.scale.y, -center.z * model.scale.z);
+      model.traverse((obj) => {
+        if (!obj.isMesh) return;
+        obj.castShadow = false;
+        obj.receiveShadow = false;
+        if (obj.material) {
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          for (const mat of mats) {
+            if ('envMapIntensity' in mat) mat.envMapIntensity = 1.25;
+          }
+        }
+      });
+      return model;
+    }
+
+    function loaded(model, open) {
+      const fitted = fitModel(model);
+      fitted.visible = false;
+      bookRoot.add(fitted);
+      if (open) openModel = fitted;
+      else closedModel = fitted;
+      loadCount++;
+      if (loadCount === 2) {
+        showBook(false);
+        status.textContent = 'Bíblia carregada. Toque em “Abrir a Bíblia”.';
+      }
+    }
+
+    function fail(error) {
+      console.error(error);
+      status.innerHTML = '<span id="error">Não foi possível carregar um modelo. Recarregue a página e tente novamente.</span>';
+    }
+
+    loader.load('./biblia_celestial_fechada.glb?v=68', gltf => loaded(gltf.scene, false), undefined, fail);
+    loader.load('./biblia_celestial_aberta.glb?v=68', gltf => loaded(gltf.scene, true), undefined, fail);
+
+    function showBook(open) {
+      if (!closedModel || !openModel) return;
+      isOpen = open;
+      closedModel.visible = !open;
+      openModel.visible = open;
+      bookRoot.rotation.set(0, 0, 0);
+      bookRoot.position.set(0, 0.04, 0);
+      status.textContent = open ? 'Bíblia aberta · pronta para a conjuração.' : 'Bíblia fechada · aguardando a conjuração.';
+    }
+
+    document.getElementById('closed').addEventListener('click', () => showBook(false));
+    document.getElementById('open').addEventListener('click', () => showBook(true));
+    document.getElementById('rotate').addEventListener('click', () => {
+      autoRotate = !autoRotate;
+      status.textContent = autoRotate ? 'Rotação automática ativada.' : 'Rotação automática pausada.';
+    });
+    document.getElementById('reset').addEventListener('click', () => {
+      camera.position.set(0, 0.3, 3.25);
+      controls.target.set(0, 0.04, 0);
+      controls.update();
+      bookRoot.rotation.set(0, 0, 0);
+      autoRotate = true;
+      showBook(false);
+    });
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.enablePan = false;
+    controls.minDistance = 1.4;
+    controls.maxDistance = 5;
+    controls.target.set(0, 0.04, 0);
+    controls.update();
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      if (autoRotate && loadCount === 2) bookRoot.rotation.y += 0.003;
+      bookRoot.position.y = 0.04 + Math.sin(t * 1.5) * 0.035;
+      halo.rotation.z = t * 0.12;
+      halo2.rotation.z = -t * 0.08;
+      glow.intensity = 6.5 + Math.sin(t * 2.2) * 1.2;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.6));
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>
