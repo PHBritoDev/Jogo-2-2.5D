@@ -1,4 +1,4 @@
-/* Mod 84 — Grimório em todas as magias, sol suspenso e queimadura divina.
+/* Mod 85 — Fogo suave preso ao Bispo e conjuração de uma magia por vez.
  * Ativado somente com ?bibliaTest=1 para não alterar o combate normal.
  * Usa a cena/câmera Three.js compartilhada do protagonista e do Bispo.
  */
@@ -97,7 +97,8 @@
     if (!started || !closedBook || !openBook) return;
     const stamp = performance.now();
     const requestedSpell = spell || 'swords';
-    if (stamp - lastSummonInput < 280 || (requestedSpell === 'swords' && lastSpellCast && stamp - lastSpellCast < SPELL_COOLDOWN_MS)) return;
+    // Uma conjuração por vez: impede que toques rápidos substituam a magia pendente enquanto o grimório abre.
+    if (castRequested || opening || opened || stamp - lastSummonInput < 280 || (lastSpellCast && stamp - lastSpellCast < 2800)) return;
     lastSummonInput = stamp;
     lastSpellCast = stamp;
     pendingBookSpell = requestedSpell;
@@ -788,40 +789,67 @@
   }
   function startSunBurn(x,z,now) {
     if(!api||!api.scene||!api.THREE)return;
-    if(!sunBurnFlameGeometry)sunBurnFlameGeometry=new api.THREE.ConeGeometry(.14,.52,5,1);
+    const THREE=api.THREE;
+    if(!sunBurnFlameGeometry)sunBurnFlameGeometry=new THREE.SphereGeometry(1,10,8);
     if(sunBurnStatus&&sunBurnStatus.flames){
-      sunBurnStatus.flames.forEach(function(f){if(f.mesh.parent)f.mesh.parent.remove(f.mesh);if(f.mesh.material)f.mesh.material.dispose();});
+      sunBurnStatus.flames.forEach(function(f){
+        if(f.mesh.parent)f.mesh.parent.remove(f.mesh);
+        f.mesh.traverse(function(child){if(child.material)child.material.dispose();});
+      });
     }
     const flames=[];
-    for(let i=0;i<8;i++){
-      const angle=(i/8)*Math.PI*2,rad=.38+(i%3)*.19;
-      const material=new api.THREE.MeshBasicMaterial({
-        color:i%3===0?0xffe06a:(i%2===0?0xff8a12:0xff3c08),
-        transparent:true,opacity:.86,blending:api.THREE.AdditiveBlending,depthWrite:false
+    // Chamas macias em camadas, sem cones pontudos. Cada grupo acompanha a posição do Bispo.
+    for(let i=0;i<9;i++){
+      const angle=(i/9)*Math.PI*2,rad=.30+(i%3)*.12;
+      const group=new THREE.Group();
+      const outerMat=new THREE.MeshBasicMaterial({
+        color:i%3===0?0xffc044:(i%2===0?0xff6818:0xe93608),
+        transparent:true,opacity:.68,blending:THREE.AdditiveBlending,depthWrite:false
       });
-      const mesh=new api.THREE.Mesh(sunBurnFlameGeometry,material);
-      mesh.position.set(x+Math.cos(angle)*rad,.38+(i%4)*.29,z+Math.sin(angle)*rad);
-      mesh.rotation.z=(Math.random()-.5)*.28;
-      api.scene.add(mesh);
-      flames.push({mesh,angle,rad,baseY:mesh.position.y,phase:Math.random()*6.28});
+      const innerMat=new THREE.MeshBasicMaterial({
+        color:i%3===0?0xffffb0:0xffb52e,
+        transparent:true,opacity:.72,blending:THREE.AdditiveBlending,depthWrite:false
+      });
+      const outer=new THREE.Mesh(sunBurnFlameGeometry,outerMat);
+      outer.scale.set(.15,.42,.13);
+      const inner=new THREE.Mesh(sunBurnFlameGeometry,innerMat);
+      inner.position.y=-.045;
+      inner.scale.set(.075,.24,.075);
+      group.add(outer,inner);
+      group.position.set(x+Math.cos(angle)*rad,.82+(i%4)*.36,z+Math.sin(angle)*rad);
+      api.scene.add(group);
+      flames.push({mesh:group,angle,rad,baseY:group.position.y,phase:Math.random()*6.28,outer:outer,inner:inner});
     }
     sunBurnStatus={x:x,z:z,until:now+4500,nextTickAt:now+850,flames:flames};
-    window.BibliaCelestialDiagnostics='Valério em chamas: queimadura divina';
+    window.BibliaCelestialDiagnostics='Valério em chamas: efeito suave preso ao Bispo';
   }
   function updateSunBurn(now,dt) {
     if(!sunBurnStatus)return;
     const burn=sunBurnStatus;
     if(now>=burn.until){
-      burn.flames.forEach(function(f){if(f.mesh.parent)f.mesh.parent.remove(f.mesh);if(f.mesh.material)f.mesh.material.dispose();});
+      burn.flames.forEach(function(f){
+        if(f.mesh.parent)f.mesh.parent.remove(f.mesh);
+        f.mesh.traverse(function(child){if(child.material)child.material.dispose();});
+      });
       sunBurnStatus=null;return;
     }
+    // Recalcula a posição do Bispo a cada quadro para o fogo não ficar abandonado no chão.
+    if(typeof BishopBoss!=='undefined'&&BishopBoss.profile&&typeof Casino!=='undefined'&&Casino.room){
+      const cx=(Casino.room.left+Casino.room.right)/2;
+      const cy=(Casino.room.top+Casino.room.bottom)/2;
+      burn.x=(BishopBoss.x-cx)/72;
+      burn.z=(BishopBoss.y-cy)/72;
+    }
     burn.flames.forEach(function(f){
-      const wobble=Math.sin(now*.012+f.phase);
-      f.mesh.position.x=burn.x+Math.cos(f.angle+now*.0007)*f.rad;
-      f.mesh.position.z=burn.z+Math.sin(f.angle+now*.0007)*f.rad;
-      f.mesh.position.y=f.baseY+wobble*.12;
-      f.mesh.scale.set(1,.72+Math.abs(wobble)*.7,1);
-      f.mesh.material.opacity=.58+Math.abs(wobble)*.32;
+      const wobble=Math.sin(now*.010+f.phase);
+      f.mesh.position.x=burn.x+Math.cos(f.angle+now*.00055)*f.rad;
+      f.mesh.position.z=burn.z+Math.sin(f.angle+now*.00055)*f.rad;
+      f.mesh.position.y=f.baseY+wobble*.09;
+      f.mesh.rotation.y=Math.sin(now*.002+f.phase)*.24;
+      f.outer.scale.set(.13+Math.abs(wobble)*.025,.34+Math.abs(wobble)*.20,.12+Math.abs(wobble)*.02);
+      f.inner.scale.set(.065,.19+Math.abs(wobble)*.10,.065);
+      f.outer.material.opacity=.46+Math.abs(wobble)*.22;
+      f.inner.material.opacity=.48+Math.abs(wobble)*.25;
     });
     if(now>=burn.nextTickAt){
       burn.nextTickAt=now+900;
