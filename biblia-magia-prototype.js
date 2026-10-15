@@ -524,7 +524,6 @@
       if (!entry.hit && now >= entry.launchAt + JUDGMENT_FALL_MS) {
         entry.hit = true;
         const impact = entry.root.position.clone();
-        createJudgmentParticles(impact, now, entry.index === 4);
         let landedHit = false;
         if (entry.bossTarget && liveTarget && typeof BishopBoss !== 'undefined' &&
             BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead') {
@@ -538,10 +537,8 @@
             landedHit = true;
           }
         }
-        if (!landedHit) {
-          // A espada que erra ainda deixa um pequeno brilho no local do impacto, mas não causa dano.
-          createJudgmentParticles(impact, now, false);
-        }
+        // A última espada só faz a explosão maior se acertar o Bispo.
+        createJudgmentParticles(impact, now, entry.index === 4 && landedHit);
         if (entry.root.parent) entry.root.parent.remove(entry.root);
         if (entry.light.parent) entry.light.parent.remove(entry.light);
         return false;
