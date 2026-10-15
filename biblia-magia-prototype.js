@@ -306,6 +306,9 @@
   // Círculo mágico 3D gerado por código; não exige modelo externo.
   const JUDGMENT_COOLDOWN_MS = 6500;
   const JUDGMENT_DAMAGE = 11;
+  const JUDGMENT_FALL_MS = 1280;
+  const JUDGMENT_LOCK_LEAD_MS = 300;
+  const JUDGMENT_HIT_RADIUS = 0.76;
   let judgmentLastCast = 0;
   let judgmentRing = null;
   let judgmentRunes = [];
@@ -326,13 +329,13 @@
     root.position.set(center.x, 0.035, center.z);
     const outer = new THREE.Mesh(
       new THREE.TorusGeometry(1.55, 0.035, 8, 96),
-      new THREE.MeshBasicMaterial({ color: 0xffc928, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending, depthWrite: false })
+      new THREE.MeshBasicMaterial({ color: 0xffff19, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false })
     );
     outer.rotation.x = -Math.PI / 2;
     root.add(outer);
     const inner = new THREE.Mesh(
       new THREE.TorusGeometry(1.22, 0.014, 6, 80),
-      new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true, opacity: 0.82, blending: THREE.AdditiveBlending, depthWrite: false })
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false })
     );
     inner.rotation.x = -Math.PI / 2;
     root.add(inner);
@@ -341,7 +344,7 @@
       const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
       pentagramPoints.push(new THREE.Vector3(Math.cos(a) * 1.05, 0.015, Math.sin(a) * 1.05));
     }
-    const lineMat = new THREE.LineBasicMaterial({ color: 0xffd84d, transparent: true, opacity: 0.85 });
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xffff36, transparent: true, opacity: 1 });
     const starOrder = [0, 2, 4, 1, 3, 0];
     const points = starOrder.map(function (i) { return pentagramPoints[i]; });
     const star = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMat);
@@ -350,7 +353,7 @@
       const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
       const rune = new THREE.Mesh(
         new THREE.BoxGeometry(0.12, 0.018, 0.3),
-        new THREE.MeshBasicMaterial({ color: 0xfff4bf, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending, depthWrite: false })
+        new THREE.MeshBasicMaterial({ color: 0xffff9a, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false })
       );
       rune.position.set(Math.cos(a) * 1.38, 0.025, Math.sin(a) * 1.38);
       rune.rotation.y = -a;
@@ -424,7 +427,7 @@
     ];
     offsets.forEach(function (offset, index) {
       const target = judgmentTarget.clone().add(new THREE.Vector3(offset[0], 0, offset[1]));
-      const start = target.clone().add(new THREE.Vector3(offset[0] * 0.22, 4.4 + (index % 2) * 0.35, offset[1] * 0.22));
+      const start = target.clone().add(new THREE.Vector3(offset[0] * 0.22, 5.0 + (index % 2) * 0.35, offset[1] * 0.22));
       const root = new THREE.Group();
       root.name = 'JulgamentoCelestial_Espada_' + (index + 1);
       const blade = swordTemplate.clone(true);
@@ -434,8 +437,9 @@
         const list = Array.isArray(obj.material) ? obj.material : [obj.material];
         const glowing = list.filter(Boolean).map(function (mat) {
           const m = mat.clone();
-          if (m.emissive) { m.emissive.set(0xffd43b); m.emissiveIntensity = 3.8; }
-          m.transparent = true; m.opacity = 0.98;
+          if (m.emissive) { m.emissive.set(0xffff20); m.emissiveIntensity = 6.5; }
+          if ('color' in m) m.color.set(0xfff7a1);
+          m.transparent = true; m.opacity = 1;
           return m;
         });
         obj.material = Array.isArray(obj.material) ? glowing : glowing[0];
@@ -448,18 +452,31 @@
       root.position.copy(start);
       root.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), target.clone().sub(start).normalize());
       api.scene.add(root);
-      const light = new THREE.PointLight(0xffd43b, 3.8, 3.8);
+      const light = new THREE.PointLight(0xffff24, 7.5, 5.5);
       light.position.copy(start);
       api.scene.add(light);
       judgmentSwords.push({
         root: root, light: light, start: start, target: target,
-        launchAt: now + 450 + index * 65, startedAt: now, hit: false, index: index,
-        bossTarget: bossAlive, damage: JUDGMENT_DAMAGE
+        launchAt: now + 750 + index * 125, lockAt: now + 750 + index * 125 + JUDGMENT_FALL_MS - JUDGMENT_LOCK_LEAD_MS,
+        startedAt: now, hit: false, index: index,
+        bossTarget: bossAlive, damage: JUDGMENT_DAMAGE, targetLocked: false
       });
     });
     judgmentCastActive = true;
     judgmentLastFrame = now;
     window.BibliaCelestialDiagnostics = 'Julgamento Celestial: cinco espadas invocadas';
+  }
+
+  function getCurrentJudgmentBossTarget(entry) {
+    const THREE = api.THREE;
+    if (!entry.bossTarget || typeof BishopBoss === 'undefined' ||
+        typeof BishopDimension === 'undefined' || !BishopDimension.isBattleActive() ||
+        BishopBoss.state === 'inactive' || BishopBoss.state === 'dead' ||
+        !Number.isFinite(BishopBoss.x) || !Number.isFinite(BishopBoss.y) ||
+        typeof Casino === 'undefined' || !Casino.room) return null;
+    const cx = (Casino.room.left + Casino.room.right) / 2;
+    const cy = (Casino.room.top + Casino.room.bottom) / 2;
+    return new THREE.Vector3((BishopBoss.x - cx) / 72, 0.08, (BishopBoss.y - cy) / 72);
   }
 
   function updateJudgment(now, dt) {
@@ -470,7 +487,12 @@
       judgmentRing.rotation.y += dt * 0.32;
       const pulse = 1 + Math.sin(now * 0.012) * 0.045;
       judgmentRing.scale.set(pulse, 1, pulse);
-      if (age > 2600) {
+      const liveTarget = getCurrentJudgmentBossTarget({ bossTarget: true });
+      if (liveTarget && age < 2100) {
+        judgmentRing.position.x += (liveTarget.x - judgmentRing.position.x) * Math.min(1, dt * 5);
+        judgmentRing.position.z += (liveTarget.z - judgmentRing.position.z) * Math.min(1, dt * 5);
+      }
+      if (age > 3400) {
         api.scene.remove(judgmentRing);
         judgmentRing = null;
         judgmentRunes = [];
@@ -478,31 +500,53 @@
     }
     judgmentSwords = judgmentSwords.filter(function (entry) {
       if (!entry.root || !entry.root.parent) return false;
-      const progress = Math.max(0, Math.min(1, (now - entry.launchAt) / 560));
+      const liveTarget = getCurrentJudgmentBossTarget(entry);
+      if (liveTarget && now < entry.lockAt) {
+        entry.target.copy(liveTarget);
+        entry.targetLocked = false;
+      } else if (now >= entry.lockAt) {
+        entry.targetLocked = true;
+      }
+      const progress = Math.max(0, Math.min(1, (now - entry.launchAt) / JUDGMENT_FALL_MS));
       if (now >= entry.launchAt) {
         const eased = progress * progress * (3 - 2 * progress);
         entry.root.position.lerpVectors(entry.start, entry.target, eased);
-        entry.root.rotation.y += dt * 0.7;
+        const direction = entry.target.clone().sub(entry.root.position).normalize();
+        if (direction.lengthSq() > 0.001) {
+          entry.root.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), direction);
+        }
         entry.light.position.copy(entry.root.position);
       } else {
-        entry.root.position.y += Math.sin(now * 0.012 + entry.index) * dt * 0.04;
+        entry.root.position.y += Math.sin(now * 0.012 + entry.index) * dt * 0.035;
         entry.light.position.copy(entry.root.position);
       }
-      entry.light.intensity = 3 + Math.sin(now * 0.025 + entry.index) * 0.7;
-      if (!entry.hit && now >= entry.launchAt + 530) {
+      entry.light.intensity = 6.5 + Math.sin(now * 0.025 + entry.index) * 1.4;
+      if (!entry.hit && now >= entry.launchAt + JUDGMENT_FALL_MS) {
         entry.hit = true;
-        createJudgmentParticles(entry.target, now, entry.index === 4);
-        if (entry.bossTarget && typeof BishopBoss !== 'undefined' &&
+        const impact = entry.root.position.clone();
+        createJudgmentParticles(impact, now, entry.index === 4);
+        let landedHit = false;
+        if (entry.bossTarget && liveTarget && typeof BishopBoss !== 'undefined' &&
             BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead') {
-          const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
-          const d = Math.hypot(dx, dy) || 1;
-          BishopBoss.hurt(entry.damage, dx / d, dy / d, 120);
+          const dx3 = impact.x - liveTarget.x;
+          const dz3 = impact.z - liveTarget.z;
+          const distance3D = Math.hypot(dx3, dz3);
+          if (distance3D <= JUDGMENT_HIT_RADIUS) {
+            const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
+            const d = Math.hypot(dx, dy) || 1;
+            BishopBoss.hurt(entry.damage, dx / d, dy / d, 120);
+            landedHit = true;
+          }
+        }
+        if (!landedHit) {
+          // A espada que erra ainda deixa um pequeno brilho no local do impacto, mas não causa dano.
+          createJudgmentParticles(impact, now, false);
         }
         if (entry.root.parent) entry.root.parent.remove(entry.root);
         if (entry.light.parent) entry.light.parent.remove(entry.light);
         return false;
       }
-      if (now - entry.startedAt > 2400) {
+      if (now - entry.startedAt > 4300) {
         if (entry.root.parent) entry.root.parent.remove(entry.root);
         if (entry.light.parent) entry.light.parent.remove(entry.light);
         return false;
