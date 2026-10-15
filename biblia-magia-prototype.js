@@ -132,7 +132,7 @@
     if (!closedBook || !openBook) return;
 
     group.visible = true;
-    if (!opened && now >= openAt) {
+    if (!opened && !opening && now >= openAt) {
       opening = true;
       transitionStart = now;
       closedBook.visible = true;
