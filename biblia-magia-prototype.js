@@ -582,6 +582,168 @@
     launchJudgmentCelestial(now);
   }
 
+  
+  // Modificação 81 — Skill 3: Sol da Justiça.
+  // Uma única esfera reutilizável, explosão leve e crater visual para manter bom desempenho no celular.
+  let sunOrb = null;
+  let sunHalo = null;
+  let sunLight = null;
+  let sunFlight = null;
+  let sunCrater = null;
+  let sunButtonBound = false;
+  let sunOrbGeometry = null;
+  let sunOrbMaterial = null;
+  let sunHaloGeometry = null;
+  let sunHaloMaterial = null;
+  let sunCraterGeometry = null;
+  let sunCraterMaterial = null;
+  let sunCraterRingGeometry = null;
+  let sunCraterRingMaterial = null;
+
+  function ensureSunAssets() {
+    const THREE = api.THREE;
+    if (!sunOrbGeometry) sunOrbGeometry = new THREE.SphereGeometry(0.32, 12, 10);
+    if (!sunOrbMaterial) sunOrbMaterial = new THREE.MeshBasicMaterial({
+      color: 0xfff7c2, transparent: true, opacity: 1
+    });
+    if (!sunHaloGeometry) sunHaloGeometry = new THREE.TorusGeometry(0.48, 0.035, 5, 24);
+    if (!sunHaloMaterial) sunHaloMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffd84a, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    if (!sunCraterGeometry) sunCraterGeometry = new THREE.CircleGeometry(1.25, 20);
+    if (!sunCraterMaterial) sunCraterMaterial = new THREE.MeshBasicMaterial({
+      color: 0x24190c, transparent: true, opacity: 0.82, depthWrite: false
+    });
+    if (!sunCraterRingGeometry) sunCraterRingGeometry = new THREE.TorusGeometry(1.28, 0.045, 5, 32);
+    if (!sunCraterRingMaterial) sunCraterRingMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffc928, transparent: true, opacity: 0.8,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    if (!sunOrb) {
+      sunOrb = new THREE.Mesh(sunOrbGeometry, sunOrbMaterial);
+      sunOrb.name = 'SolDaJustica_Orb';
+      sunHalo = new THREE.Mesh(sunHaloGeometry, sunHaloMaterial);
+      sunHalo.name = 'SolDaJustica_Corona';
+      sunOrb.add(sunHalo);
+      sunLight = new THREE.PointLight(0xffd54a, 4.5, 5.5);
+      sunOrb.add(sunLight);
+      sunOrb.visible = false;
+      api.scene.add(sunOrb);
+    }
+  }
+
+  function currentSunTarget(origin) {
+    const THREE = api.THREE;
+    if (typeof BishopBoss !== 'undefined' && typeof BishopDimension !== 'undefined' &&
+        BishopDimension.isBattleActive() && BishopBoss.state !== 'inactive' &&
+        BishopBoss.state !== 'dead' && Number.isFinite(BishopBoss.x) &&
+        Number.isFinite(BishopBoss.y) && typeof Casino !== 'undefined' && Casino.room) {
+      const cx = (Casino.room.left + Casino.room.right) / 2;
+      const cy = (Casino.room.top + Casino.room.bottom) / 2;
+      return new THREE.Vector3((BishopBoss.x - cx) / 72, 0.12, (BishopBoss.y - cy) / 72);
+    }
+    const view = window.PlayerModelView;
+    const yaw = Number(view && view.yaw) || 0;
+    return origin.clone().add(new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(4.5));
+  }
+
+  function makeSunCrater(position, now) {
+    const THREE = api.THREE;
+    if (sunCrater && sunCrater.parent) api.scene.remove(sunCrater);
+    sunCrater = new THREE.Group();
+    sunCrater.name = 'SolDaJustica_Cratera';
+    const ground = new THREE.Mesh(sunCraterGeometry, sunCraterMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0.025;
+    const ring = new THREE.Mesh(sunCraterRingGeometry, sunCraterRingMaterial);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.045;
+    sunCrater.add(ground, ring);
+    sunCrater.position.set(position.x, 0, position.z);
+    sunCrater.userData.createdAt = now;
+    api.scene.add(sunCrater);
+  }
+
+  function scorchNearbyNamedTrees(position) {
+    const THREE = api.THREE;
+    const candidates = [];
+    api.scene.traverse(function (obj) {
+      if (obj === api.scene || !obj.visible || !obj.name ||
+          !/(tree|arvore|árvore|foliage|trunk)/i.test(obj.name) ||
+          !(obj.isGroup || (obj.isMesh && obj.parent === api.scene))) return;
+      const world = new THREE.Vector3();
+      obj.getWorldPosition(world);
+      if (Math.hypot(world.x - position.x, world.z - position.z) <= 2.25) candidates.push(obj);
+    });
+    // Só oculta objetos claramente nomeados como árvores; nunca altera o chefe ou o cenário inteiro.
+    candidates.forEach(function (obj) { obj.visible = false; });
+  }
+
+  function castSunOfJustice() {
+    const now = performance.now();
+    if (!started || !api || !api.THREE || !window.PlayerModelView ||
+        !Array.isArray(window.PlayerModelView.position) || sunFlight) return;
+    const view = window.PlayerModelView;
+    const origin = new api.THREE.Vector3(view.position[0], view.position[1] + 1.15, view.position[2]);
+    const target = currentSunTarget(origin);
+    target.y = 0.12;
+    ensureSunAssets();
+    sunOrb.position.copy(origin);
+    sunOrb.visible = true;
+    sunHalo.rotation.z = 0;
+    sunFlight = { start: origin.clone(), target: target, startedAt: now, duration: 1150 };
+    sunLastCast = now;
+    window.BibliaCelestialDiagnostics = 'Sol da Justiça invocado';
+  }
+
+  function updateSunOfJustice(now, dt) {
+    if (!sunOrb || !sunFlight) {
+      if (sunCrater && now - sunCrater.userData.createdAt > 5200) {
+        api.scene.remove(sunCrater);
+        sunCrater = null;
+      }
+      return;
+    }
+    const liveTarget = currentSunTarget(sunFlight.start);
+    if (now - sunFlight.startedAt < 780) {
+      sunFlight.target.lerp(liveTarget, Math.min(1, dt * 2.4));
+    }
+    const p = Math.max(0, Math.min(1, (now - sunFlight.startedAt) / sunFlight.duration));
+    const eased = p * p * (3 - 2 * p);
+    sunOrb.position.lerpVectors(sunFlight.start, sunFlight.target, eased);
+    sunOrb.position.y += Math.sin(now * 0.012) * 0.035;
+    sunHalo.rotation.z += dt * 2.5;
+    const pulse = 1 + Math.sin(now * 0.018) * 0.07;
+    sunOrb.scale.setScalar(pulse);
+    sunLight.intensity = 4.2 + Math.sin(now * 0.02) * 0.6;
+    if (p < 1) return;
+
+    const impact = sunFlight.target.clone();
+    impact.y = 0.08;
+    let landedHit = false;
+    if (typeof BishopBoss !== 'undefined' && typeof BishopDimension !== 'undefined' &&
+        BishopDimension.isBattleActive() && BishopBoss.state !== 'inactive' &&
+        BishopBoss.state !== 'dead' && typeof Casino !== 'undefined' && Casino.room) {
+      const cx = (Casino.room.left + Casino.room.right) / 2;
+      const cy = (Casino.room.top + Casino.room.bottom) / 2;
+      const bx = (BishopBoss.x - cx) / 72;
+      const bz = (BishopBoss.y - cy) / 72;
+      if (Math.hypot(impact.x - bx, impact.z - bz) <= 1.8) {
+        const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
+        const d = Math.hypot(dx, dy) || 1;
+        BishopBoss.hurt(30, dx / d, dy / d, 230);
+        landedHit = true;
+      }
+    }
+    createJudgmentParticles(impact, now, true);
+    makeSunCrater(impact, now);
+    scorchNearbyNamedTrees(impact);
+    sunOrb.visible = false;
+    sunFlight = null;
+    window.BibliaCelestialDiagnostics = landedHit ? 'Sol da Justiça acertou o alvo' : 'Sol da Justiça atingiu o solo';
+  }
+
   function begin() {
     if (started) return;
     api = window.ValerioThreeAPI;
@@ -591,6 +753,16 @@
     }
     started = true;
     loadSwordTemplate();
+    const sunButton = document.getElementById('btn-magic3');
+    if (sunButton && !sunButtonBound) {
+      sunButtonBound = true;
+      sunButton.style.touchAction = 'none';
+      sunButton.addEventListener('pointerdown', function (event) {
+        event.preventDefault();
+        castSunOfJustice();
+      }, { passive: false });
+      sunButton.addEventListener('click', castSunOfJustice);
+    }
     const judgmentButton = document.getElementById('btn-magic2');
     if (judgmentButton && !judgmentButtonBound) {
       judgmentButtonBound = true;
@@ -647,6 +819,7 @@
     previousFrame = now;
     updateFlyingSwords(now, dt);
     updateJudgment(now, dt);
+    updateSunOfJustice(now, dt);
     if (!group || !api) return;
 
     const view = window.PlayerModelView;
