@@ -1,4 +1,4 @@
-/* Mod 80 — Bíblia Celestial integrada em página isolada de combate.
+/* Mod 82 — Bíblia Celestial integrada em página isolada de combate.
  * Ativado somente com ?bibliaTest=1 para não alterar o combate normal.
  * Usa a cena/câmera Three.js compartilhada do protagonista e do Bispo.
  */
@@ -583,7 +583,7 @@
   }
 
   
-  // Modificação 81 — Skill 3: Sol da Justiça.
+  // Modificação 82 — Sol da Justiça ampliado e impacto celestial.
   // Uma única esfera reutilizável, explosão leve e crater visual para manter bom desempenho no celular.
   let sunOrb = null;
   let sunHalo = null;
@@ -602,20 +602,20 @@
 
   function ensureSunAssets() {
     const THREE = api.THREE;
-    if (!sunOrbGeometry) sunOrbGeometry = new THREE.SphereGeometry(0.32, 12, 10);
+    if (!sunOrbGeometry) sunOrbGeometry = new THREE.SphereGeometry(1.6, 14, 12);
     if (!sunOrbMaterial) sunOrbMaterial = new THREE.MeshBasicMaterial({
       color: 0xfff7c2, transparent: true, opacity: 1
     });
-    if (!sunHaloGeometry) sunHaloGeometry = new THREE.TorusGeometry(0.48, 0.035, 5, 24);
+    if (!sunHaloGeometry) sunHaloGeometry = new THREE.TorusGeometry(2.0, 0.09, 6, 32);
     if (!sunHaloMaterial) sunHaloMaterial = new THREE.MeshBasicMaterial({
       color: 0xffd84a, transparent: true, opacity: 0.9,
       blending: THREE.AdditiveBlending, depthWrite: false
     });
-    if (!sunCraterGeometry) sunCraterGeometry = new THREE.CircleGeometry(1.25, 20);
+    if (!sunCraterGeometry) sunCraterGeometry = new THREE.CircleGeometry(1.8, 24);
     if (!sunCraterMaterial) sunCraterMaterial = new THREE.MeshBasicMaterial({
       color: 0x24190c, transparent: true, opacity: 0.82, depthWrite: false
     });
-    if (!sunCraterRingGeometry) sunCraterRingGeometry = new THREE.TorusGeometry(1.28, 0.045, 5, 32);
+    if (!sunCraterRingGeometry) sunCraterRingGeometry = new THREE.TorusGeometry(1.84, 0.075, 5, 32);
     if (!sunCraterRingMaterial) sunCraterRingMaterial = new THREE.MeshBasicMaterial({
       color: 0xffc928, transparent: true, opacity: 0.8,
       blending: THREE.AdditiveBlending, depthWrite: false
@@ -626,7 +626,7 @@
       sunHalo = new THREE.Mesh(sunHaloGeometry, sunHaloMaterial);
       sunHalo.name = 'SolDaJustica_Corona';
       sunOrb.add(sunHalo);
-      sunLight = new THREE.PointLight(0xffd54a, 4.5, 5.5);
+      sunLight = new THREE.PointLight(0xffd54a, 5.5, 11);
       sunOrb.add(sunLight);
       sunOrb.visible = false;
       api.scene.add(sunOrb);
@@ -747,10 +747,11 @@
     const target = currentSunTarget(origin);
     target.y = 0.12;
     ensureSunAssets();
+    origin.y += 0.95;
     sunOrb.position.copy(origin);
     sunOrb.visible = true;
     sunHalo.rotation.z = 0;
-    sunFlight = { start: origin.clone(), target: target, startedAt: now, duration: 1150 };
+    sunFlight = { start: origin.clone(), target: target, startedAt: now, duration: 1450 };
     sunLastCast = now;
     window.BibliaCelestialDiagnostics = 'Sol da Justiça invocado';
   }
