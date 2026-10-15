@@ -1,4 +1,4 @@
-/* Mod 69 — Bíblia Celestial integrada em página isolada de combate.
+/* Mod 80 — Bíblia Celestial integrada em página isolada de combate.
  * Ativado somente com ?bibliaTest=1 para não alterar o combate normal.
  * Usa a cena/câmera Three.js compartilhada do protagonista e do Bispo.
  */
@@ -302,7 +302,7 @@
   }
 
 
-  // Modificação 78 — Habilidade 2: Julgamento Celestial.
+  // Modificação 80 — Habilidade 2: Julgamento Celestial otimizado.
   // Círculo mágico 3D gerado por código; não exige modelo externo.
   const JUDGMENT_COOLDOWN_MS = 6500;
   const JUDGMENT_DAMAGE = 11;
@@ -314,6 +314,8 @@
   let judgmentRunes = [];
   let judgmentSwords = [];
   let judgmentParticles = [];
+  let judgmentParticleGeometry = null;
+  let judgmentParticleMaterials = null;
   let judgmentCastActive = false;
   let judgmentTarget = null;
   let judgmentLastFrame = 0;
@@ -375,21 +377,27 @@
 
   function createJudgmentParticles(position, now, finalBurst) {
     const THREE = api.THREE;
-    const count = finalBurst ? 28 : 12;
+    // Reutiliza geometria e materiais: evita centenas de alocações quando as duas magias coincidem.
+    if (!judgmentParticleGeometry) judgmentParticleGeometry = new THREE.SphereGeometry(1, 5, 4);
+    if (!judgmentParticleMaterials) {
+      judgmentParticleMaterials = [
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
+        new THREE.MeshBasicMaterial({ color: 0xffd53b, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
+        new THREE.MeshBasicMaterial({ color: 0xfff0a1, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })
+      ];
+    }
+    const count = finalBurst ? 16 : 6;
     for (let i = 0; i < count; i++) {
-      const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(finalBurst ? 0.045 : 0.028, 6, 5),
-        new THREE.MeshBasicMaterial({
-          color: i % 3 === 0 ? 0xffffff : (i % 2 ? 0xffd53b : 0xfff0a1),
-          transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false
-        })
-      );
+      const size = finalBurst ? 0.045 : 0.028;
+      const mesh = new THREE.Mesh(judgmentParticleGeometry, judgmentParticleMaterials[i % 3]);
+      mesh.scale.setScalar(size);
       mesh.position.copy(position);
       mesh.position.y += 0.08;
       const angle = Math.random() * Math.PI * 2;
       const speed = (finalBurst ? 1.7 : 1.05) * (0.45 + Math.random());
       judgmentParticles.push({
         mesh: mesh,
+        size: size,
         velocity: new THREE.Vector3(Math.cos(angle) * speed, 0.45 + Math.random() * speed, Math.sin(angle) * speed),
         startedAt: now,
         life: finalBurst ? 780 : 520
@@ -452,7 +460,7 @@
       root.position.copy(start);
       root.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), target.clone().sub(start).normalize());
       api.scene.add(root);
-      const light = new THREE.PointLight(0xffff24, 7.5, 5.5);
+      const light = new THREE.PointLight(0xffff24, 4.2, 3.8);
       light.position.copy(start);
       api.scene.add(light);
       judgmentSwords.push({
@@ -520,7 +528,7 @@
         entry.root.position.y += Math.sin(now * 0.012 + entry.index) * dt * 0.035;
         entry.light.position.copy(entry.root.position);
       }
-      entry.light.intensity = 6.5 + Math.sin(now * 0.025 + entry.index) * 1.4;
+      entry.light.intensity = 3.8 + Math.sin(now * 0.025 + entry.index) * 0.7;
       if (!entry.hit && now >= entry.launchAt + JUDGMENT_FALL_MS) {
         entry.hit = true;
         const impact = entry.root.position.clone();
@@ -554,14 +562,11 @@
       const age = now - p.startedAt;
       if (age >= p.life) {
         if (p.mesh.parent) p.mesh.parent.remove(p.mesh);
-        if (p.mesh.geometry) p.mesh.geometry.dispose();
-        if (p.mesh.material) p.mesh.material.dispose();
         return false;
       }
       p.mesh.position.addScaledVector(p.velocity, dt);
       p.velocity.y -= 2.2 * dt;
-      p.mesh.material.opacity = 1 - age / p.life;
-      p.mesh.scale.setScalar(1 - age / p.life * 0.55);
+      p.mesh.scale.setScalar(p.size * (1 - age / p.life * 0.8));
       return true;
     });
     if (judgmentCastActive && !judgmentSwords.length && !judgmentParticles.length) {
