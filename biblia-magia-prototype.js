@@ -174,8 +174,7 @@
     const baseScale = 0.72 / longest;
     root.scale.setScalar(baseScale);
     root.position.copy(position);
-    root.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
-    root.rotateZ(Math.PI);
+    root.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), direction.clone().normalize());
     api.scene.add(root);
     const light = new THREE.PointLight(0xffd875, 1.4, 2.1);
     light.position.copy(position);
