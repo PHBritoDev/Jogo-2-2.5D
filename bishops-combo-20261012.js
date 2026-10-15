@@ -916,12 +916,45 @@ const BishopBoss = {
     let nextX = U.clamp(this.x + (this.vx + this.kx) * dt, pad, World.w - pad);
     let nextY = U.clamp(this.y + (this.vy + this.ky) * dt, pad, World.h - pad);
     const bossRadius = Math.max(40, Number(this.r) || 40);
-    if (typeof BishopDimension !== 'undefined' && typeof BishopDimension.blockedForBoss === 'function') {
-      if (BishopDimension.blockedForBoss(nextX, this.y, bossRadius)) {
-        nextX = this.x; this.vx = 0; this.kx = 0;
-      }
-      if (BishopDimension.blockedForBoss(nextX, nextY, bossRadius)) {
-        nextY = this.y; this.vy = 0; this.ky = 0;
+    const dimensionCollision = typeof BishopDimension !== 'undefined' &&
+      typeof BishopDimension.blockedForBoss === 'function' && BishopDimension.isBattleActive();
+    if (dimensionCollision) {
+      const blockedAt = (x,y) => BishopDimension.blockedForBoss(x,y,bossRadius);
+      const hitX = blockedAt(nextX,this.y);
+      const hitY = blockedAt(nextX,nextY);
+      if (hitX || hitY) {
+        // Desvio local: quando o tronco bloqueia a rota direta, tenta os dois lados
+        // do obstáculo e escolhe o caminho livre que mais aproxima do jogador.
+        const desiredX = (this.vx + this.kx), desiredY = (this.vy + this.ky);
+        const desiredLen = Math.hypot(desiredX,desiredY) || 1;
+        const baseAngle = Math.atan2(desiredY,desiredX);
+        const speed = Math.max(24,Math.hypot(this.vx,this.vy));
+        const turnOptions = [Math.PI/3,-Math.PI/3,Math.PI/2,-Math.PI/2,Math.PI*.78,-Math.PI*.78,Math.PI];
+        let best = null, bestScore = Infinity;
+        const lookAhead = Math.max(34,Math.min(62,speed*.48));
+        for (const turn of turnOptions) {
+          const angle = baseAngle + turn;
+          const tx = this.x + Math.cos(angle)*lookAhead;
+          const ty = this.y + Math.sin(angle)*lookAhead;
+          if (blockedAt(tx,ty)) continue;
+          const targetX = typeof Player !== 'undefined' ? Player.x : this.x;
+          const targetY = typeof Player !== 'undefined' ? Player.y : this.y;
+          const targetDistance = Math.hypot(targetX-tx,targetY-ty);
+          const alignment = (Math.cos(angle)*desiredX+Math.sin(angle)*desiredY)/desiredLen;
+          const score = targetDistance - alignment*18 + Math.abs(turn)*3;
+          if (score < bestScore) { bestScore=score; best={x:tx,y:ty,angle}; }
+        }
+        if (best) {
+          this.vx = Math.cos(best.angle)*speed;
+          this.vy = Math.sin(best.angle)*speed;
+          this.kx = this.ky = 0;
+          nextX = U.clamp(this.x + this.vx*dt,pad,World.w-pad);
+          nextY = U.clamp(this.y + this.vy*dt,pad,World.h-pad);
+          if (blockedAt(nextX,nextY)) { nextX=this.x; nextY=this.y; }
+        } else {
+          if (hitX) { nextX=this.x; this.vx=0; this.kx=0; }
+          if (hitY || blockedAt(nextX,nextY)) { nextY=this.y; this.vy=0; this.ky=0; }
+        }
       }
     }
     this.x = nextX;
