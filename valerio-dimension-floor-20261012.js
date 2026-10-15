@@ -9,7 +9,7 @@ const BishopDimension = (function () {
   const S = {
     canvas: null, gl: null, program: null, aPosition: -1, aColor: -1,
     uMvp: null, uTime: null, uWind: null, exterior: null, arena: null, energy: null, particles: null,
-    playerModel: null, bishopModel: null, failed: false, lost: false,
+    playerModel: null, bishopModel: null, failed: false, lost: false, treeColliders: [],
     spriteProgram: null, spritePosition: -1, spriteUv: -1, spriteMvp: null, spriteSampler: null,
     bishopTexture: null, bishopTextureLoaded: false, bishopQuad: null,
     wasInside: false, opacity: 1, lastWidth: 0, lastHeight: 0,
@@ -204,6 +204,7 @@ const BishopDimension = (function () {
     // As laterais ficam próximas da área jogável para esconder o que existe atrás delas.
     const deadBark=['#392b22','#493528','#302923','#554031','#403027'];
     function deadTree(x,z,seed,scale){
+      S.treeColliders.push({x:x,z:z,r:0.38*scale});
       const variant=(seed*7)%11, h=(7.2+variant*.58)*scale;
       const lean=((seed%2)?1:-1)*(.22+(variant%4)*.12);
       const bark=deadBark[seed%deadBark.length];
@@ -536,7 +537,7 @@ const BishopDimension = (function () {
     S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');S.uTime=gl.getUniformLocation(program,'uTime');S.uWind=gl.getUniformLocation(program,'uWind');
     initBishopSprite(gl);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-    S.exterior=buildExterior();S.arena=buildArena();S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
+    S.exterior=buildExterior();S.treeColliders=[];S.arena=buildArena();S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
     loadGrassAsset();
     S.lost=false;S.failed=false;
   }
@@ -807,8 +808,33 @@ const BishopDimension = (function () {
     // O piso mede 132 x 78 unidades; deixe margem suficiente para explorar e lutar.
     const room=Casino.room,cx=(room.left+room.right)/2,cy=(room.top+room.bottom)/2;
     const halfWidth=61*72,halfDepth=34*72;
-    return x-r<cx-halfWidth||x+r>cx+halfWidth||
-      y-r<cy-halfDepth||y+r>cy+halfDepth;
+    if(x-r<cx-halfWidth||x+r>cx+halfWidth||y-r<cy-halfDepth||y+r>cy+halfDepth)return true;
+    const px=(x-cx)/72,pz=(y-cy)/72,pr=Math.max(0,r/72);
+    for(let i=0;i<S.treeColliders.length;i++){
+      const tree=S.treeColliders[i],dx=px-tree.x,dz=pz-tree.z,minD=tree.r+pr;
+      if(dx*dx+dz*dz<minD*minD)return true;
+    }
+    if(BishopBoss&&BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'&&Number.isFinite(BishopBoss.x)&&Number.isFinite(BishopBoss.y)){
+      const bx=(BishopBoss.x-cx)/72,bz=(BishopBoss.y-cy)/72,dx=px-bx,dz=pz-bz,minD=1.16+pr;
+      if(dx*dx+dz*dz<minD*minD)return true;
+    }
+    return false;
   }
-  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis,impact:impact};
+  function resolveBiblePosition(x,z,r) {
+    if(!isBattleActive())return {x:x,z:z};
+    const room=Casino.room,cx=(room.left+room.right)/2,cy=(room.top+room.bottom)/2;
+    const radius=Math.max(.1,Number(r)||.42);
+    for(let pass=0;pass<2;pass++){
+      for(let i=0;i<S.treeColliders.length;i++){
+        const tree=S.treeColliders[i],dx=x-tree.x,dz=z-tree.z,d=Math.hypot(dx,dz),minD=tree.r+radius;
+        if(d<minD){const n=d||.001;x=tree.x+dx/n*minD;z=tree.z+dz/n*minD;}
+      }
+      if(BishopBoss&&BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'&&Number.isFinite(BishopBoss.x)&&Number.isFinite(BishopBoss.y)){
+        const bx=(BishopBoss.x-cx)/72,bz=(BishopBoss.y-cy)/72,dx=x-bx,dz=z-bz,d=Math.hypot(dx,dz),minD=1.16+radius;
+        if(d<minD){const n=d||.001;x=bx+dx/n*minD;z=bz+dz/n*minD;}
+      }
+    }
+    return {x:x,z:z};
+  }
+  return {init:init,frame:frame,resize:resize,enter:enter,isBattleActive:isBattleActive,blocked:blocked,resolveBiblePosition:resolveBiblePosition,addCameraLook:addCameraLook,addCameraZoom:addCameraZoom,transformAxis:transformAxis,impact:impact};
 })();
