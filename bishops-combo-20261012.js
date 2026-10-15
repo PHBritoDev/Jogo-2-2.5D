@@ -901,6 +901,8 @@ const BishopBoss = {
   // como plataformas, que faziam Valério pousar no ar durante a luta.
   _physicsDimension(dt) {
     const P = CFG.PLAYER;
+    // Mantém o lado escolhido por alguns instantes para evitar zigue-zague junto às árvores.
+    this._dimensionAvoidHold = Math.max(0, (this._dimensionAvoidHold || 0) - dt);
     this.vz -= P.gravity * dt;
     this.z += this.vz * dt;
     this.floor = 0;
@@ -941,10 +943,14 @@ const BishopBoss = {
           const targetY = typeof Player !== 'undefined' ? Player.y : this.y;
           const targetDistance = Math.hypot(targetX-tx,targetY-ty);
           const alignment = (Math.cos(angle)*desiredX+Math.sin(angle)*desiredY)/desiredLen;
-          const score = targetDistance - alignment*18 + Math.abs(turn)*3;
+          const side = Math.sign(Math.sin(turn));
+          const sidePenalty = this._dimensionAvoidHold > 0 && this._dimensionAvoidSide && side !== this._dimensionAvoidSide ? 24 : 0;
+          const score = targetDistance - alignment*18 + Math.abs(turn)*3 + sidePenalty;
           if (score < bestScore) { bestScore=score; best={x:tx,y:ty,angle}; }
         }
         if (best) {
+          this._dimensionAvoidSide = Math.sign(Math.sin(best.angle - baseAngle)) || this._dimensionAvoidSide || 1;
+          this._dimensionAvoidHold = 0.85;
           this.vx = Math.cos(best.angle)*speed;
           this.vy = Math.sin(best.angle)*speed;
           this.kx = this.ky = 0;
