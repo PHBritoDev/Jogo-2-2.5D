@@ -665,19 +665,77 @@
     api.scene.add(sunCrater);
   }
 
-  function scorchNearbyNamedTrees(position) {
+  let sunImpactWaves = [];
+  let sunTemporaryTerrain = [];
+  let sunWaveGeometry = null;
+  let sunWaveMaterial = null;
+
+  function damageNearbyVegetation(position, now) {
     const THREE = api.THREE;
-    const candidates = [];
+    const trees = [];
+    const grass = [];
     api.scene.traverse(function (obj) {
-      if (obj === api.scene || !obj.visible || !obj.name ||
-          !/(tree|arvore|árvore|foliage|trunk)/i.test(obj.name) ||
-          !(obj.isGroup || (obj.isMesh && obj.parent === api.scene))) return;
+      if (obj === api.scene || !obj.visible || !obj.name || obj.userData.sunTemporarilyHidden) return;
+      const tree = /(tree|arvore|árvore|trunk|pine)/i.test(obj.name);
+      const lawn = /(grass|grama|tuft|groundcover|smallplant)/i.test(obj.name);
+      if (!tree && !lawn) return;
+      if (obj.parent && obj.parent !== api.scene && obj.parent.name && /(tree|arvore|árvore|trunk|pine)/i.test(obj.parent.name)) return;
       const world = new THREE.Vector3();
       obj.getWorldPosition(world);
-      if (Math.hypot(world.x - position.x, world.z - position.z) <= 2.25) candidates.push(obj);
+      const distance = Math.hypot(world.x - position.x, world.z - position.z);
+      if (tree && distance < 4.6) trees.push({ obj: obj, distance: distance });
+      if (lawn && distance < 3.4) grass.push({ obj: obj, distance: distance });
     });
-    // Só oculta objetos claramente nomeados como árvores; nunca altera o chefe ou o cenário inteiro.
-    candidates.forEach(function (obj) { obj.visible = false; });
+    trees.sort(function (a, b) { return a.distance - b.distance; });
+    grass.sort(function (a, b) { return a.distance - b.distance; });
+    trees.slice(0, 3).forEach(function (item) {
+      item.obj.userData.sunTemporarilyHidden = true;
+      item.obj.visible = false;
+      sunTemporaryTerrain.push({ obj: item.obj, restoreAt: now + 18000 });
+    });
+    grass.slice(0, 18).forEach(function (item) {
+      item.obj.userData.sunTemporarilyHidden = true;
+      item.obj.visible = false;
+      sunTemporaryTerrain.push({ obj: item.obj, restoreAt: now + 6000 });
+    });
+  }
+
+  function createSunImpactWaves(position, now) {
+    const THREE = api.THREE;
+    if (!sunWaveGeometry) sunWaveGeometry = new THREE.TorusGeometry(1, 0.07, 5, 32);
+    if (!sunWaveMaterial) sunWaveMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffe66b, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    for (let i = 0; i < 3; i++) {
+      const mesh = new THREE.Mesh(sunWaveGeometry, sunWaveMaterial);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(position.x, 0.09 + i * 0.025, position.z);
+      mesh.scale.setScalar(0.22 + i * 0.08);
+      api.scene.add(mesh);
+      sunImpactWaves.push({ mesh: mesh, startedAt: now + i * 95, life: 720, base: 0.22 + i * 0.08 });
+    }
+  }
+
+  function updateSunImpactWaves(now) {
+    sunImpactWaves = sunImpactWaves.filter(function (wave) {
+      const age = now - wave.startedAt;
+      if (age < 0) return true;
+      if (age >= wave.life) {
+        if (wave.mesh.parent) wave.mesh.parent.remove(wave.mesh);
+        return false;
+      }
+      const p = age / wave.life;
+      wave.mesh.scale.setScalar(wave.base + p * 2.15);
+      wave.mesh.material.opacity = (1 - p) * 0.9;
+      return true;
+    });
+    sunTemporaryTerrain = sunTemporaryTerrain.filter(function (item) {
+      if (now < item.restoreAt) return true;
+      item.obj.visible = true;
+      delete item.obj.userData.sunTemporarilyHidden;
+      return false;
+    });
   }
 
   function castSunOfJustice() {
@@ -698,6 +756,7 @@
   }
 
   function updateSunOfJustice(now, dt) {
+    updateSunImpactWaves(now);
     if (!sunOrb || !sunFlight) {
       if (sunCrater && now - sunCrater.userData.createdAt > 5200) {
         api.scene.remove(sunCrater);
@@ -736,9 +795,9 @@
         landedHit = true;
       }
     }
-    createJudgmentParticles(impact, now, true);
     makeSunCrater(impact, now);
-    scorchNearbyNamedTrees(impact);
+    createSunImpactWaves(impact, now);
+    damageNearbyVegetation(impact, now);
     sunOrb.visible = false;
     sunFlight = null;
     window.BibliaCelestialDiagnostics = landedHit ? 'Sol da Justiça acertou o alvo' : 'Sol da Justiça atingiu o solo';
