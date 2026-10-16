@@ -710,3 +710,54 @@ html body #action-cluster #btn-ultimate::before {
     bottom: calc(2px + var(--hud-safe-b)) !important;
   }
 }
+
+
+/* MOD 105 — layout móvel conforme marcação do usuário.
+   Só posicionamento/tamanho; IDs e ações originais são preservados. */
+@media (hover: none) and (pointer: coarse) {
+  /* MAGIA II ocupa o lugar anteriormente reservado ao pulo. */
+  html body #action-cluster #btn-magic2 {
+    left: 67px !important;
+    top: 78px !important;
+    width: 57px !important;
+    height: 57px !important;
+    padding-bottom: 7px !important;
+    rotate: 0deg !important;
+  }
+  /* Faixa inferior: DASH/ESQUIVA, PULO e ESCUDO, nessa ordem. */
+  html body #action-cluster #btn-aim {
+    left: 0 !important;
+    top: 211px !important;
+    width: 49px !important;
+    height: 49px !important;
+    rotate: 0deg !important;
+  }
+  html body #action-cluster #btn-jump {
+    left: 58px !important;
+    top: 215px !important;
+    width: 49px !important;
+    height: 49px !important;
+    rotate: 0deg !important;
+  }
+  html body #action-cluster #btn-defend {
+    left: 116px !important;
+    top: 211px !important;
+    width: 49px !important;
+    height: 49px !important;
+    rotate: 0deg !important;
+  }
+}
+@media (hover: none) and (pointer: coarse) and (max-width: 380px) {
+  html body #action-cluster #btn-aim {
+    left: 0 !important; top: 204px !important;
+    width: 45px !important; height: 45px !important;
+  }
+  html body #action-cluster #btn-jump {
+    left: 52px !important; top: 208px !important;
+    width: 45px !important; height: 45px !important;
+  }
+  html body #action-cluster #btn-defend {
+    left: 104px !important; top: 204px !important;
+    width: 45px !important; height: 45px !important;
+  }
+}
