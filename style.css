@@ -647,8 +647,8 @@ html, body { background: #14122a; font-family: "Trebuchet MS", system-ui, -apple
 }
 
 /* MOD 97 — HUD mobile agrupado por prioridade, sem alterar handlers dos botões. */
-#fps { display: none; }
-#fps.debug-visible, #fps.error { display: block; }
+#fps { display: block !important; }
+#fps.debug-visible, #fps.error { display: block !important; }
 #action-cluster {
   grid-template-columns: 76px 76px;
   grid-template-rows: 70px 70px 52px 46px 46px;
