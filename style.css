@@ -645,3 +645,131 @@ html, body { background: #14122a; font-family: "Trebuchet MS", system-ui, -apple
 @media (max-height: 420px) {
   #action-cluster { transform: scale(.84); transform-origin: bottom right; right: calc(6px + env(safe-area-inset-right)); bottom: calc(4px + env(safe-area-inset-bottom)); }
 }
+
+/* MOD 97 — HUD mobile agrupado por prioridade, sem alterar handlers dos botões. */
+#fps { display: none; }
+#fps.debug-visible, #fps.error { display: block; }
+#action-cluster {
+  grid-template-columns: 76px 76px;
+  grid-template-rows: 70px 70px 52px 46px 46px;
+  gap: 6px;
+}
+#btn-attack { grid-column: 1; grid-row: 1; }
+#btn-aim { grid-column: 2; grid-row: 1; }
+#btn-defend { grid-column: 1; grid-row: 2; }
+#btn-jump { grid-column: 2; grid-row: 2; }
+#btn-magic { grid-column: 1; grid-row: 3; }
+#btn-magic2 { grid-column: 2; grid-row: 3; }
+#btn-magic3 { grid-column: 1 / span 2; grid-row: 4; }
+#btn-ultimate { grid-column: 1 / span 2; grid-row: 5; }
+
+/* Configurações de gráficos, disponíveis no menu de pausa. */
+#overlay-pause { z-index: 30; }
+.pause-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.pause-menu h1 { margin: 0 0 4px; }
+.graphics-panel {
+  width: min(560px, 94vw);
+  max-height: min(92dvh, 580px);
+  overflow-y: auto;
+  padding: 16px 18px;
+  border: 1px solid rgba(242, 195, 91, .7);
+  border-radius: 16px;
+  background: linear-gradient(150deg, rgba(19, 15, 34, .97), rgba(7, 8, 17, .97));
+  color: #fff;
+  text-align: left;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .52), inset 0 1px 0 rgba(255, 244, 205, .12);
+  touch-action: pan-y;
+}
+.graphics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.graphics-header h2 { margin: 0; color: #ffe8a4; font-size: 20px; }
+.graphics-back {
+  padding: 8px 13px;
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .1);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+}
+.graphics-profile-label, .graphics-control > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(255, 255, 255, .92);
+  font-size: 13px;
+  font-weight: 700;
+}
+#graphics-profile {
+  width: 100%;
+  min-height: 42px;
+  margin: 6px 0 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(242, 195, 91, .58);
+  border-radius: 10px;
+  background: #171426;
+  color: #fff;
+  font: inherit;
+  touch-action: manipulation;
+}
+.graphics-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+.graphics-control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.graphics-control output { color: #f2c35b; font-variant-numeric: tabular-nums; }
+.graphics-control input[type="range"] {
+  width: 100%;
+  min-height: 26px;
+  margin: 0;
+  accent-color: #f2c35b;
+  touch-action: pan-x;
+}
+.graphics-control input:disabled { opacity: .55; }
+.graphics-status {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, .14);
+  color: rgba(255, 255, 255, .72);
+  font-size: 12px;
+}
+@media (max-width: 720px) {
+  #action-cluster {
+    grid-template-columns: 66px 66px;
+    grid-template-rows: 62px 62px 48px 42px 42px;
+    gap: 5px;
+  }
+  #btn-jump { width: 62px !important; height: 62px !important; }
+  #btn-defend, #btn-aim { width: 58px !important; height: 58px !important; }
+  #btn-magic, #btn-magic2 { width: 62px !important; height: 44px !important; }
+  #btn-magic3 { width: 96px !important; height: 40px !important; }
+  #btn-ultimate { width: 118px !important; height: 42px !important; }
+}
+@media (max-height: 420px) {
+  #action-cluster {
+    grid-template-columns: 66px 66px;
+    grid-template-rows: 60px 60px 44px 40px 40px;
+  }
+  .graphics-panel { padding: 10px 13px; }
+  .graphics-header { margin-bottom: 7px; }
+  .graphics-header h2 { font-size: 17px; }
+  .graphics-controls { gap: 7px 14px; }
+  .graphics-status { margin-top: 7px; padding-top: 7px; }
+}

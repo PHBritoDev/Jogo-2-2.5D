@@ -13,7 +13,7 @@
   let footBones=[],soleGap=0,standDelta=0,lieDelta=null,deadFallV=0;
   let footTmp=null,handScaleTmp=null;
   // Sombras/aquecimento (Three.js): luz principal, plano receptor e contadores.
-  let keyLight=null,shadowGround=null,shadowTick=0,warmTimer=0,warmedOnce=false;
+  let keyLight=null,shadowGround=null,hemisphereLight=null,fillLight=null,rimLight=null,shadowTick=0,warmTimer=0,warmedOnce=false;
   function lowestFootRel(){
     let m=Infinity;
     for(let i=0;i<footBones.length;i++){footBones[i].getWorldPosition(footTmp);if(footTmp.y<m)m=footTmp.y;}
@@ -539,6 +539,35 @@
     keyLight.target.updateMatrixWorld();
     renderer.shadowMap.needsUpdate=true;
   }
+  function applyGraphicsQuality(){
+    if(!renderer||!window.THREE)return;
+    const quality=window.GraphicsQuality;
+    const settings=quality?quality.getSettings():{resolutionScale:1,shadowQuality:3,effects:1};
+    const shadowLevel=Math.max(0,Math.min(4,Math.round(settings.shadowQuality)));
+    const shadowSizes=[0,256,512,1024,2048];
+    const enabled=shadowLevel>0;
+    renderer.shadowMap.enabled=enabled;
+    renderer.shadowMap.type=shadowLevel>=4?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;
+    renderer.shadowMap.autoUpdate=false;
+    if(keyLight){
+      const size=shadowSizes[shadowLevel];
+      if(keyLight.shadow.map&&keyLight.shadow.mapSize.x!==size){
+        keyLight.shadow.map.dispose();
+        keyLight.shadow.map=null;
+      }
+      if(size>0)keyLight.shadow.mapSize.set(size,size);
+      keyLight.castShadow=enabled;
+      keyLight.shadow.needsUpdate=enabled;
+    }
+    if(shadowGround)shadowGround.receiveShadow=enabled;
+    const atmosphere=Math.max(.25,Math.min(1.5,Number(settings.effects)||1));
+    if(hemisphereLight)hemisphereLight.intensity=2*(.75+.25*atmosphere);
+    if(fillLight)fillLight.intensity=1.15*(.55+.45*atmosphere);
+    if(rimLight)rimLight.intensity=1.1*(.5+.5*atmosphere);
+    if(quality)renderer.setPixelRatio(quality.pixelRatio(3));
+    renderer.setSize(Math.max(1,window.innerWidth),Math.max(1,window.innerHeight),false);
+    renderer.shadowMap.needsUpdate=true;
+  }
   // Compila shaders e envia texturas/geometria à GPU ANTES da batalha. Sem isso, o primeiro quadro da luta
   // compilava todos os programas e subia ~100 MB de texturas de uma vez (o congelamento ao "Entrar em batalha").
   // Também força objetos ocultos (protagonista, escudo, espada) a serem preparados, e é refeito quando a
@@ -566,6 +595,7 @@
     for(let i=0;i<reveal.length;i++)reveal[i].visible=false;
   }
   window.ValerioThreeWarmUp=scheduleWarmUp;
+  window.addEventListener('graphics-quality-change',applyGraphicsQuality);
   function start() {
     if(started||failed)return;started=true;window.ValerioGLBLoading=true;
     loadScript('https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js')
@@ -579,26 +609,26 @@
         canvas.setAttribute('aria-hidden','true');
         canvas.style.cssText='position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;display:none;';
         document.body.appendChild(canvas);
-        renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:false,powerPreference:'low-power'});
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.1));renderer.setSize(window.innerWidth,window.innerHeight,false);
+        const powerPreference=window.GraphicsQuality?window.GraphicsQuality.webglPowerPreference():'low-power';
+        renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:false,powerPreference:powerPreference});
+        renderer.setPixelRatio(window.GraphicsQuality?window.GraphicsQuality.pixelRatio(3):Math.min(window.devicePixelRatio||1,1.1));renderer.setSize(window.innerWidth,window.innerHeight,false);
         renderer.setClearColor(0x000000,0);renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.NoToneMapping;renderer.toneMappingExposure=1.0;
-        // Sombras reais: antes shadowMap nunca era ativado, então castShadow/receiveShadow não faziam nada.
-        // Atualização manual (a cada 2 quadros) e mapa menor em aparelhos mais fracos.
-        const lowEnd=(navigator.deviceMemory&&navigator.deviceMemory<=3)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4);
+        // Sombras reais: o perfil controla mapa, filtro e ativação; atualização manual evita custo a cada quadro.
         renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;
         scene=new THREE.Scene();
         // Materiais PBR do GLB precisam de luzes na cena Three.js.
-        scene.add(new THREE.HemisphereLight(0xe4e9ff,0x393044,2.0));
+        hemisphereLight=new THREE.HemisphereLight(0xe4e9ff,0x393044,2.0);scene.add(hemisphereLight);
         const key=new THREE.DirectionalLight(0xffe6cf,2.6);key.position.set(-4,7,5);scene.add(key);scene.add(key.target);
-        keyLight=key;key.castShadow=true;key.shadow.mapSize.set(lowEnd?512:1024,lowEnd?512:1024);
+        keyLight=key;key.castShadow=true;key.shadow.mapSize.set(1024,1024);
         key.shadow.camera.left=-9;key.shadow.camera.right=9;key.shadow.camera.top=9;key.shadow.camera.bottom=-9;
         key.shadow.camera.near=1;key.shadow.camera.far=32;key.shadow.bias=-.0005;key.shadow.normalBias=.03;
         // Receptor invisível: o chão do terreno vive em outro contexto WebGL, então este plano só escurece
         // os pixels sombreados (ShadowMaterial) e deixa o resto transparente sobre o cenário.
         shadowGround=new THREE.Mesh(new THREE.PlaneGeometry(140,80),new THREE.ShadowMaterial({color:0x04020a,opacity:.5,depthWrite:false}));
         shadowGround.rotation.x=-Math.PI/2;shadowGround.position.set(0,.05,-2.5);shadowGround.receiveShadow=true;shadowGround.frustumCulled=false;scene.add(shadowGround);
-        const fill=new THREE.DirectionalLight(0x9b8cff,1.15);fill.position.set(4,3,-4);scene.add(fill);
-        const rim=new THREE.PointLight(0xb52dff,1.1,12);rim.position.set(0,2.2,-1.8);scene.add(rim);
+        fillLight=new THREE.DirectionalLight(0x9b8cff,1.15);fillLight.position.set(4,3,-4);scene.add(fillLight);
+        rimLight=new THREE.PointLight(0xb52dff,1.1,12);rimLight.position.set(0,2.2,-1.8);scene.add(rimLight);
+        applyGraphicsQuality();
         // O jogo e o GLB usam contextos WebGL distintos; o depth buffer do
         // terreno não é compartilhado. Recriamos no canvas transparente as quatro
         // caixas de piso de valerio-dimension.js, somente para escrever profundidade.
