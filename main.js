@@ -167,8 +167,9 @@
   // ---------- Atualização (um passo de física) ----------
   function step(dt, jumpPressed, attackPressed) {
     Game.time += dt;
-    const moveAxis = BishopDimension.transformAxis(Input.axis());
-    Player.update(dt, moveAxis, jumpPressed, Input.jumpHeld(), attackPressed, Input.defendHeld());
+    const cinematicLock = !!window.CelestialUltimateActive;
+    const moveAxis = cinematicLock ? { x: 0, y: 0 } : BishopDimension.transformAxis(Input.axis());
+    Player.update(dt, moveAxis, cinematicLock ? false : jumpPressed, cinematicLock ? false : Input.jumpHeld(), cinematicLock ? false : attackPressed, cinematicLock ? false : Input.defendHeld());
     Enemy.update(dt);
     Greedling.update(dt);
     Combat.update(dt);
