@@ -536,7 +536,8 @@ const BishopDimension = (function () {
     }
   }
   function initGL() {
-    const gl=S.canvas.getContext('webgl',{alpha:true,antialias:false,depth:true,stencil:false,preserveDrawingBuffer:false,powerPreference:'low-power'}) || S.canvas.getContext('experimental-webgl');
+    const powerPreference=window.GraphicsQuality?window.GraphicsQuality.webglPowerPreference():'low-power';
+    const gl=S.canvas.getContext('webgl',{alpha:true,antialias:false,depth:true,stencil:false,preserveDrawingBuffer:false,powerPreference:powerPreference}) || S.canvas.getContext('experimental-webgl');
     if(!gl){S.failed=true;return;}
     const vs='attribute vec3 aPosition; attribute vec4 aColor; uniform mat4 uMvp; uniform float uTime; uniform float uWind; varying vec4 vColor; void main(){vec3 p=aPosition;float tip=clamp((aPosition.y+0.02)*1.25,0.0,1.0);float gust=sin(uTime*1.65+aPosition.z*0.31+aPosition.x*0.13);p.x+=gust*uWind*tip;p.z+=cos(uTime*1.18+aPosition.x*0.22+aPosition.z*0.08)*uWind*0.34*tip;gl_Position=uMvp*vec4(p,1.0);vColor=aColor;gl_PointSize=3.0;}';
     const fs='precision mediump float; varying vec4 vColor; uniform float uStorm; uniform float uLightning; void main(){float s=clamp(uStorm,0.0,1.0);float flash=clamp(uLightning,0.0,1.0);vec3 tint=mix(vec3(1.0),vec3(0.57,0.66,0.84),s);vec3 color=vColor.rgb*tint*(1.0-0.34*s);color=min(vec3(1.0),color+vec3(0.42,0.56,0.86)*flash*0.58);gl_FragColor=vec4(color,vColor.a);}';
@@ -552,12 +553,14 @@ const BishopDimension = (function () {
   function resize() {
     if(!S.canvas||!S.gl)return;
     const w=Math.max(1,window.innerWidth||document.documentElement.clientWidth||1),h=Math.max(1,window.innerHeight||document.documentElement.clientHeight||1);
-    const dpr=Math.min(window.devicePixelRatio||1,1.35),bw=Math.max(1,Math.round(w*dpr)),bh=Math.max(1,Math.round(h*dpr));
+    const dpr=window.GraphicsQuality?window.GraphicsQuality.pixelRatio(3):Math.min(window.devicePixelRatio||1,1.35),bw=Math.max(1,Math.round(w*dpr)),bh=Math.max(1,Math.round(h*dpr));
     if(S.canvas.width!==bw||S.canvas.height!==bh){S.canvas.width=bw;S.canvas.height=bh;S.gl.viewport(0,0,bw,bh);}
     S.lastWidth=bw;S.lastHeight=bh;
   }
-  function draw(m, matrix, wind) {
+  function draw(m, matrix, wind, fraction) {
     const gl=S.gl;if(!m||!m.buffer)return;
+    const vertexCount=Number.isFinite(fraction)?Math.floor(m.count*clamp(fraction,0,1)/3)*3:m.count;
+    if(vertexCount<=0)return;
     gl.bindBuffer(gl.ARRAY_BUFFER,m.buffer);gl.enableVertexAttribArray(S.aPosition);gl.enableVertexAttribArray(S.aColor);
     gl.vertexAttribPointer(S.aPosition,3,gl.FLOAT,false,28,0);gl.vertexAttribPointer(S.aColor,4,gl.FLOAT,false,28,12);
     MVP_SCRATCH.set(matrix);
@@ -566,7 +569,7 @@ const BishopDimension = (function () {
     if(S.uWind)gl.uniform1f(S.uWind,wind||0);
     if(S.uStorm)gl.uniform1f(S.uStorm,clamp(Number(window.CelestialUltimateStormFactor)||0,0,1));
     if(S.uLightning)gl.uniform1f(S.uLightning,clamp(Number(window.CelestialUltimateLightningFactor)||0,0,1));
-    gl.drawArrays(gl.TRIANGLES,0,m.count);
+    gl.drawArrays(gl.TRIANGLES,0,vertexCount);
   }
   function outsideFrame() {
     if(!Casino.discovered&&!Campaign.flags.casinoDiscovered)return;
@@ -681,23 +684,29 @@ const BishopDimension = (function () {
     draw(S.arena.world,pv);
     // O shader move vértices altos, deixando copas e folhas balançarem sem
     // deslocar o piso; o vento custa apenas uma operação por vértice.
+    const graphics=window.GraphicsQuality;
+    const shadowQuality=graphics?graphics.get('shadowQuality'):3;
+    const effectQuality=graphics?graphics.get('effects'):1;
+    const particleQuality=graphics?graphics.get('particles'):1;
     draw(S.arena.foliage,pv,.16)
     if(S.arena.grassAsset)draw(S.arena.grassAsset,pv,.27)
     // Sombras estáticas desenhadas por cima do terreno; sem luzes ou mapas de sombra dinâmicos.
-    draw(S.arena.shadows,pv)
+    if(shadowQuality>0)draw(S.arena.shadows,pv)
     // Movimento lento das folhas: uma transformação e uma chamada de desenho por quadro.
     const leafDrift=multiply(translate(Math.sin(Game.time*.34)*.18,Math.sin(Game.time*.7)*.04,Math.cos(Game.time*.25)*.14),rotateZ(Math.sin(Game.time*.8)*.025));
-    draw(S.arena.leaves,multiply(pv,leafDrift),.72)
+    if(effectQuality>=.45)draw(S.arena.leaves,multiply(pv,leafDrift),.72)
     draw(S.arena.portal,pv);
     const pulse=1+.045*Math.sin(Game.time*2.6), centerY=2.48, centerZ=-20.72;
     const ringModel=multiply(translate(0,centerY,centerZ),multiply(rotateZ(Game.time*.48),multiply(scale(pulse,pulse,1),translate(0,-centerY,-centerZ))));
     gl.depthMask(false);
-    draw(S.arena.energy,multiply(pv,ringModel));
+    if(effectQuality>=.45)draw(S.arena.energy,multiply(pv,ringModel));
     const particleDrift=multiply(translate(Math.sin(Game.time*.38)*.18,Math.sin(Game.time*.72)*.07,Math.cos(Game.time*.27)*.3),rotateZ(Math.sin(Game.time*.2)*.012));
-    draw(S.arena.particles,multiply(pv,particleDrift));
-    for(let i=0;i<S.arena.mist.length;i++){
-      const drift=multiply(translate(Math.sin(Game.time*.24+i*1.8)*.26,Math.sin(Game.time*.52+i)*.045,Math.cos(Game.time*.19+i)*.42),rotateZ(Math.sin(Game.time*.16+i)*.008));
-      draw(S.arena.mist[i],multiply(pv,drift));
+    draw(S.arena.particles,multiply(pv,particleDrift),0,Math.min(1,particleQuality/1.4));
+    if(effectQuality>=.55){
+      for(let i=0;i<S.arena.mist.length;i++){
+        const drift=multiply(translate(Math.sin(Game.time*.24+i*1.8)*.26,Math.sin(Game.time*.52+i)*.045,Math.cos(Game.time*.19+i)*.42),rotateZ(Math.sin(Game.time*.16+i)*.008));
+        draw(S.arena.mist[i],multiply(pv,drift));
+      }
     }
     gl.depthMask(true);
     const bossStep=Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst';

@@ -11,8 +11,14 @@
   const btnPause = document.getElementById('btn-pause');
   const btnFs = document.getElementById('btn-fs');
   const btnResume = document.getElementById('btn-resume');
+  const btnGraphics = document.getElementById('btn-graphics');
+  const btnGraphicsBack = document.getElementById('btn-graphics-back');
   const overlayPause = document.getElementById('overlay-pause');
+  const pauseMenu = document.getElementById('pause-menu');
+  const graphicsPanel = document.getElementById('graphics-panel');
   const overlayRotate = document.getElementById('overlay-rotate');
+  const showFpsDebug = new URLSearchParams(window.location.search).get('debug') === '1';
+  fpsEl.classList.toggle('debug-visible', showFpsDebug);
 
   // ---------- Tamanho / orientação ----------
   // UM único sistema de resize. Ele mede a janela de novo a cada chamada
@@ -36,7 +42,9 @@
   function resize(force) {
     const w = window.innerWidth || document.documentElement.clientWidth || 0;
     const h = window.innerHeight || document.documentElement.clientHeight || 0;
-    const dpr = Math.min(window.devicePixelRatio || 1, CFG.MAX_DPR);
+    const dpr = window.GraphicsQuality
+      ? window.GraphicsQuality.pixelRatio(CFG.MAX_DPR)
+      : Math.min(window.devicePixelRatio || 1, CFG.MAX_DPR);
     if (w < 2 || h < 2) return;                       // medida transitória durante a rotação
     if (!force && w === appliedW && h === appliedH && dpr === appliedDpr) return;
     appliedW = w; appliedH = h; appliedDpr = dpr;
@@ -67,14 +75,37 @@
   function setPaused(v) {
     Game.paused = v;
     overlayPause.classList.toggle('hidden', !v);
+    if (!v) {
+      if (graphicsPanel) graphicsPanel.classList.add('hidden');
+      if (pauseMenu) pauseMenu.classList.remove('hidden');
+    }
     btnPause.textContent = v ? '▶' : '❚❚';
     updateStopped();
   }
 
+  function openGraphicsSettings() {
+    setPaused(true);
+    if (pauseMenu) pauseMenu.classList.add('hidden');
+    if (graphicsPanel) graphicsPanel.classList.remove('hidden');
+    if (window.GraphicsQuality) window.GraphicsQuality.init();
+  }
+
+  function closeGraphicsSettings() {
+    if (graphicsPanel && !graphicsPanel.classList.contains('hidden')) {
+      graphicsPanel.classList.add('hidden');
+      if (pauseMenu) pauseMenu.classList.remove('hidden');
+      return true;
+    }
+    return false;
+  }
+
   btnPause.addEventListener('click', function () { setPaused(!Game.paused); });
   btnResume.addEventListener('click', function () { setPaused(false); });
+  if (btnGraphics) btnGraphics.addEventListener('click', openGraphicsSettings);
+  if (btnGraphicsBack) btnGraphicsBack.addEventListener('click', closeGraphicsSettings);
 
   window.addEventListener('keydown', function (e) {
+    if (e.code === 'Escape' && closeGraphicsSettings()) return;
     if (e.code === 'KeyP' || e.code === 'Escape') setPaused(!Game.paused);
   });
 
@@ -104,6 +135,7 @@
   window.addEventListener('resize', scheduleResize);
   window.addEventListener('orientationchange', scheduleResize);
   window.addEventListener('pageshow', scheduleResize);
+  window.addEventListener('graphics-quality-change', function () { resize(true); });
   if (screen.orientation && screen.orientation.addEventListener) {
     screen.orientation.addEventListener('change', scheduleResize);
   }
@@ -111,6 +143,7 @@
   if (window.ResizeObserver) new ResizeObserver(function () { resize(); }).observe(document.documentElement);
 
   // ---------- Inicialização ----------
+  if (window.GraphicsQuality) window.GraphicsQuality.init();
   World.build();
   Render.init(ctx);
   BishopDimension.init();
@@ -203,6 +236,9 @@
     // Vigia: se o tamanho da janela mudou e nenhum evento avisou, corrige agora
     resize();
     updateStopped();   // diálogo abre/fecha fora do passo de física
+    if (window.GraphicsQuality) {
+      window.GraphicsQuality.observeFrame(dt, !Game.stopped && Game.hitstop <= 0);
+    }
 
     const jump = Input.consumeJump();
 
@@ -238,6 +274,7 @@
     } catch (err) {
       // Mostra o erro no lugar do FPS (ajuda a diagnosticar no celular)
       console.error(err);
+      fpsEl.classList.add('error');
       fpsEl.textContent = 'ERRO: ' + (err && err.message ? err.message : err);
       canvas.width = canvas.width;   // limpa o estado do canvas (transform/save)
     }

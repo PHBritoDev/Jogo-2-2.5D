@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#14122a">
 <title>Seven Sins - Demo de Exploração</title>
-<link rel="stylesheet" href="style.css?v=mod93-rune-hud-20261016">
+<link rel="stylesheet" href="style.css?v=mod97-graphics-mobile-hud-20261016">
 <link rel="stylesheet" href="campaign.css?v=mod90-ultimate-distance-20261016">
 </head>
 <body>
@@ -18,7 +18,7 @@
 
 <!-- Interface (HUD) -->
 <div id="fps">-- FPS</div>
-<div id="build-marker" title="Mod 96 — golpe de espada em primeira pessoa" aria-label="Versão 95 — câmera estabilizada" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:30;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.3);border-radius:50%;background:rgba(10,12,18,.58);color:#fff;font:700 11px/1 sans-serif;pointer-events:none;">96</div>
+<div id="build-marker" title="Mod 97 — qualidade gráfica e HUD mobile" aria-label="Versão 97 — perfis gráficos e controles mobile" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:30;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.3);border-radius:50%;background:rgba(10,12,18,.58);color:#fff;font:700 11px/1 sans-serif;pointer-events:none;">97</div>
 
 <div id="top-buttons">
   <button id="btn-fs" class="btn-round" aria-label="Tela cheia">⛶</button>
@@ -40,8 +40,8 @@
 <div id="joy-base"><div id="joy-knob"></div></div>
 <div id="action-cluster" role="group" aria-label="Ações do jogador">
   <button id="btn-attack" aria-label="Atacar">ATACAR</button>
-  <button id="btn-defend" aria-label="Defender">DEFESA</button>
   <button id="btn-aim" aria-label="Alternar modo de mira direcional">MIRAR</button>
+  <button id="btn-defend" aria-label="Defender">DEFESA</button>
   <button id="btn-jump" aria-label="Pular">PULAR</button>
   <button id="btn-magic" aria-label="Invocar a Bíblia Celestial">MAGIA</button>
   <button id="btn-magic2" aria-label="Julgamento Celestial: invocar cinco espadas do céu">MAGIA II</button>
@@ -126,8 +126,46 @@
 
 <!-- Telas de aviso -->
 <div id="overlay-pause" class="overlay hidden">
-  <h1>Pausado</h1>
-  <button id="btn-resume" class="btn-big">Continuar</button>
+  <div id="pause-menu" class="pause-menu">
+    <h1>Pausado</h1>
+    <button id="btn-graphics" class="btn-big" type="button">Gráficos</button>
+    <button id="btn-resume" class="btn-big" type="button">Continuar</button>
+  </div>
+  <section id="graphics-panel" class="graphics-panel hidden" role="dialog" aria-modal="true" aria-labelledby="graphics-title">
+    <header class="graphics-header">
+      <h2 id="graphics-title">Qualidade gráfica</h2>
+      <button id="btn-graphics-back" class="graphics-back" type="button">Voltar</button>
+    </header>
+    <label class="graphics-profile-label" for="graphics-profile">Perfil</label>
+    <select id="graphics-profile" aria-describedby="graphics-status">
+      <option value="very-low">Muito Baixo</option>
+      <option value="low">Baixo</option>
+      <option value="medium">Médio</option>
+      <option value="high">Alto</option>
+      <option value="ultra">Ultra</option>
+      <option value="custom">Personalizado</option>
+      <option value="auto">Automático</option>
+    </select>
+    <div class="graphics-controls">
+      <label class="graphics-control" for="graphics-resolution">
+        <span>Resolução interna <output id="graphics-resolution-value">100%</output></span>
+        <input id="graphics-resolution" type="range" min="50" max="150" step="5" value="100">
+      </label>
+      <label class="graphics-control" for="graphics-shadows">
+        <span>Sombras <output id="graphics-shadows-value">Altas</output></span>
+        <input id="graphics-shadows" type="range" min="0" max="4" step="1" value="3">
+      </label>
+      <label class="graphics-control" for="graphics-particles">
+        <span>Partículas <output id="graphics-particles-value">100%</output></span>
+        <input id="graphics-particles" type="range" min="0" max="150" step="10" value="100">
+      </label>
+      <label class="graphics-control" for="graphics-effects">
+        <span>Efeitos e atmosfera <output id="graphics-effects-value">100%</output></span>
+        <input id="graphics-effects" type="range" min="25" max="150" step="5" value="100">
+      </label>
+    </div>
+    <p id="graphics-status" class="graphics-status" aria-live="polite">Automático · medindo FPS</p>
+  </section>
 </div>
 
 <div id="overlay-rotate" class="overlay hidden">
@@ -137,12 +175,13 @@
 </div>
 
 <!-- Scripts (ordem importa) -->
-<script src="config.js?v=mod61-khravazoth-first-bishop-20261014"></script>
+<script src="config.js?v=mod97-graphics-quality-20261016"></script>
+<script src="graphics.js?v=mod97-graphics-quality-20261016"></script>
 <script src="utils.js?v=mod61-khravazoth-first-bishop-20261014"></script>
 <script src="input.js?v=mod61-khravazoth-first-bishop-20261014"></script>
 <script src="world.js?v=mod61-khravazoth-first-bishop-20261014"></script>
 <script src="camera.js?v=mod61-khravazoth-first-bishop-20261014"></script>
-<script src="ambient.js?v=mod94-cosmic-aurora-20261016"></script>
+<script src="ambient.js?v=mod97-quality-effects-20261016"></script>
 <script src="player.js?v=mod92-combat-audio-impact-20261016"></script>
 <script src="territory-enemies.js?v=mod61-khravazoth-first-bishop-20261014"></script>
 <script src="combat.js?v=mod93-cinematic-sfx-20261016"></script>
@@ -156,11 +195,11 @@
 <script src="bishops-combo-20261012.js?v=mod90-ultimate-distance-20261016"></script>
 <script src="storm-events.js?v=mod61-khravazoth-first-bishop-20261014"></script>
 <script src="campaign.js?v=mod61-khravazoth-first-bishop-20261014"></script>
-<script src="valerio-dimension-floor-20261012.js?v=mod95-camera-pitch-20261016"></script>
-<script src="valerio-bishop-model-floor-20261012.js?v=mod90-ultimate-distance-20261016"></script>
+<script src="valerio-dimension-floor-20261012.js?v=mod97-quality-effects-20261016"></script>
+<script src="valerio-bishop-model-floor-20261012.js?v=mod97-quality-shadows-20261016"></script>
 <script src="protagonista-model-20261012.js?v=mod96-first-person-slash-20261016"></script>
 <script src="render.js?v=mod94-vibrant-grass-20261016"></script>
-<script src="main.js?v=mod92-combat-audio-impact-20261016"></script>
+<script src="main.js?v=mod97-graphics-settings-20261016"></script>
 <script src="biblia-magia-prototype.js?v=mod92-combat-audio-impact-20261016"></script>
 
 </body>

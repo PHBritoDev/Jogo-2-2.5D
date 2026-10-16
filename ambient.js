@@ -157,6 +157,8 @@ const Ambient = {
   // ---------- Desenho (espaço da tela, antes do mundo) ----------
   drawSky(ctx, cam) {
     const cosmic = Climate.state === 'night' || Climate.state === 'nightfall';
+    const quality = window.GraphicsQuality;
+    const effects = quality ? quality.get('effects') : 1;
     const g = ctx.createLinearGradient(0, 0, 0, cam.viewH);
     if (cosmic) {
       g.addColorStop(0, '#030612');
@@ -171,7 +173,8 @@ const Ambient = {
 
     if (cosmic) {
       // Estrelas determinísticas: sem Math.random por frame nem objetos extras.
-      for (let i = 0; i < 84; i++) {
+      const starCount = Math.max(28, Math.min(128, Math.round(84 * effects)));
+      for (let i = 0; i < starCount; i++) {
         const seed = i * 127.1 + 311.7;
         const nx = (Math.sin(seed) * 43758.5453) % 1;
         const ny = (Math.sin(seed * 1.73) * 24634.6345) % 1;
@@ -189,7 +192,8 @@ const Ambient = {
       // Auroras leves; poucas faixas e gradientes para limitar o custo por frame.
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
-      for (let band = 0; band < 3; band++) {
+      const auroraBands = Math.max(1, Math.min(5, Math.round(3 * effects)));
+      for (let band = 0; band < auroraBands; band++) {
         const y = cam.viewH * (0.18 + band * 0.105);
         const drift = Math.sin(this.cloudT * 0.18 + band * 1.7) * cam.viewW * 0.035;
         const glow = ctx.createLinearGradient(0, y - 48, 0, y + 76);
@@ -209,11 +213,13 @@ const Ambient = {
       }
       ctx.restore();
 
-      const nebula = ctx.createRadialGradient(cam.viewW * 0.72, cam.viewH * 0.28, 4, cam.viewW * 0.72, cam.viewH * 0.28, cam.viewW * 0.42);
-      nebula.addColorStop(0, 'rgba(105,72,190,0.16)');
-      nebula.addColorStop(1, 'rgba(105,72,190,0)');
-      ctx.fillStyle = nebula;
-      ctx.fillRect(0, 0, cam.viewW, cam.viewH);
+      if (effects >= 0.55) {
+        const nebula = ctx.createRadialGradient(cam.viewW * 0.72, cam.viewH * 0.28, 4, cam.viewW * 0.72, cam.viewH * 0.28, cam.viewW * 0.42);
+        nebula.addColorStop(0, 'rgba(105,72,190,0.16)');
+        nebula.addColorStop(1, 'rgba(105,72,190,0)');
+        ctx.fillStyle = nebula;
+        ctx.fillRect(0, 0, cam.viewW, cam.viewH);
+      }
       return;
     }
 
@@ -261,13 +267,18 @@ const Ambient = {
 
   // ---------- Desenho (espaço do mundo) ----------
   drawCloudShadows(ctx) {
+    const quality = window.GraphicsQuality;
+    const shadowLevel = quality ? quality.get('shadowQuality') : 3;
+    if (shadowLevel <= 0) return;
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, 0, World.w, World.h);
     ctx.clip();
-    ctx.fillStyle = 'rgba(15,45,60,0.10)';
+    ctx.fillStyle = 'rgba(15,45,60,' + (0.025 + shadowLevel * 0.018).toFixed(3) + ')';
     ctx.beginPath();
-    for (const s of this.shadows) {
+    const shadowCount = Math.ceil(this.shadows.length * (0.42 + shadowLevel * 0.145));
+    for (let i = 0; i < shadowCount; i++) {
+      const s = this.shadows[i];
       const span = World.w + s.rx * 2;
       const x = (((s.x + this.cloudT * s.v * 4) % span) + span) % span - s.rx;
       ctx.moveTo(x + s.rx, s.y);
@@ -278,7 +289,11 @@ const Ambient = {
   },
 
   drawDust(ctx) {
-    for (const d of this.dust) {
+    const quality = window.GraphicsQuality;
+    const density = quality ? quality.get('particles') : 1;
+    const stride = Math.max(1, Math.ceil(1 / Math.max(0.2, density)));
+    for (let i = 0; i < this.dust.length; i += stride) {
+      const d = this.dust[i];
       const k = d.age / d.life;
       ctx.globalAlpha = (1 - k) * 0.55;
       ctx.fillStyle = d.col;
@@ -292,7 +307,10 @@ const Ambient = {
   drawSparks(ctx) {
     const list = this.sparks;
     if (!list.length) return;
-    for (let i = 0; i < list.length; i++) {
+    const quality = window.GraphicsQuality;
+    const density = quality ? quality.get('particles') : 1;
+    const stride = Math.max(1, Math.ceil(1 / Math.max(0.2, density)));
+    for (let i = 0; i < list.length; i += stride) {
       const s = list[i];
       const k = s.age / s.life;
       const sz = s.r * 2 * (1 - k * 0.6);
@@ -305,7 +323,10 @@ const Ambient = {
 
   drawLeaves(ctx, t) {
     const night = Climate.state === 'night' || Climate.state === 'nightfall';
-    for (let i = 0; i < this.leaves.length; i++) {
+    const quality = window.GraphicsQuality;
+    const density = quality ? quality.get('particles') : 1;
+    const stride = Math.max(1, Math.ceil(1 / Math.max(0.2, density)));
+    for (let i = 0; i < this.leaves.length; i += stride) {
       const p = this.leaves[i];
       if (night && p.leaf && i % 4 !== 0) continue;
       ctx.fillStyle = night ? (p.leaf ? '#64717b' : '#c0c3bd') : p.col;
@@ -324,6 +345,8 @@ const Ambient = {
 
   // Riscos de vento (espaço da tela, depois do mundo)
   drawStreaks(ctx) {
+    const quality = window.GraphicsQuality;
+    if (quality && quality.get('effects') < 0.55) return;
     if (this.wind < 0.25 || Climate.state === 'fog' || Climate.state === 'fogging' ||
         Climate.state === 'night' || Climate.state === 'nightfall') return;
     ctx.globalAlpha = 0.1 + 0.3 * this.wind;

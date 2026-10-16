@@ -11,8 +11,9 @@ const CFG = {
 
   // Quantas unidades de mundo cabem na altura da tela (menor = mais zoom)
   VIEW_H: 420,
-  // Limite de resolução (menor = mais FPS em celular fraco). Ex.: 1.5
-  MAX_DPR: 2,
+  // Teto de resolução interna. Perfis leves podem renderizar abaixo do DPR nativo;
+  // Ultra pode usar mais pixels em hardware capaz, sem tocar na física.
+  MAX_DPR: 3,
 
   PLAYER: {
     radius: 11,
