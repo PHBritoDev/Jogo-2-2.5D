@@ -752,3 +752,37 @@ body.bishop-battle #toast {
 @media (max-height: 420px) {
   #mission-banner, #quest-box { top: calc(78px + env(safe-area-inset-top)); }
 }
+
+
+/* MOD 86 — A vida baixa altera a leitura da barra sem adicionar partículas ou luzes 3D. */
+#boss-hud #boss-hud-fill {
+  will-change: transform;
+}
+#boss-hud.phase-three #boss-hud-fill {
+  background: linear-gradient(90deg, #430014 0%, #a10b27 48%, #ff5b38 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 220, 190, .38), 0 0 8px rgba(255, 45, 25, .38);
+}
+#boss-hud.low-health {
+  border-color: rgba(232, 76, 65, .9);
+}
+#boss-hud.low-health #boss-hud-name {
+  color: #ffb2a8;
+  text-shadow: 0 0 7px rgba(255, 50, 35, .42);
+}
+#boss-hud.low-health .boss-hud-bar {
+  border-color: rgba(255, 155, 135, .8);
+}
+#boss-hud.critical-health {
+  animation: boss-hud-danger-pulse 1.7s ease-in-out infinite;
+}
+#boss-hud.critical-health #boss-hud-fill {
+  background: linear-gradient(90deg, #3c0010 0%, #c4142c 52%, #ff6846 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 220, 190, .4), 0 0 10px rgba(255, 36, 25, .52);
+}
+@keyframes boss-hud-danger-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(210, 20, 35, .22), inset 0 0 8px rgba(115, 8, 24, .18); }
+  50% { box-shadow: 0 0 17px rgba(255, 35, 25, .42), inset 0 0 11px rgba(160, 8, 24, .28); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #boss-hud.critical-health { animation: none; }
+}
