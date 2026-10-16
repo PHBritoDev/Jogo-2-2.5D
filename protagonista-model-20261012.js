@@ -593,7 +593,7 @@
     const jumpP=v.jumping?Math.max(0,Math.min(1,(Number(v.position[1])||0)-0.02)):0;
     // MOD 56: esquiva mais atlética (inclinação lateral e compressão), e salto com
     // postura inclinada no ar. São ajustes no pivô, sem tocar no esqueleto ou nos clips GLB.
-    pivot.rotation.x=-hurtAmount*.13-evadeP*.48+guardP*.1-fall*1.5-jumpP*.10;
+    pivot.rotation.x=-hurtAmount*.13-evadeP*.48+guardP*.1-fall*1.5-jumpP*.10-(window.CelestialUltimateLookAtSky?.24:0);
     pivot.position.y=v.position[1]-evadeP*.19-guardP*.05;
     lastFall=fall;
     pivot.rotation.z=-evadeP*.34+jumpP*.08;
