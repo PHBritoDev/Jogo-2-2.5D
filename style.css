@@ -593,3 +593,55 @@ html, body { background: #14122a; font-family: "Trebuchet MS", system-ui, -apple
   .boss-intro-card { padding-top:4px; padding-bottom:10px; }
   #boss-intro-quote { margin:8px auto 12px; }
 }
+
+
+/* MOD 93 — interface de combate: placas rúnicas, legibilidade e mobile */
+:root {
+  --ui-ink: #090914;
+  --ui-panel: rgba(12, 10, 27, .88);
+  --ui-gold-bright: #fff0b0;
+  --ui-gold-line: rgba(242, 195, 91, .88);
+}
+#action-cluster button {
+  border-radius: 18px !important;
+  clip-path: polygon(14% 0, 86% 0, 100% 20%, 100% 80%, 86% 100%, 14% 100%, 0 80%, 0 20%);
+  position: relative;
+  overflow: hidden;
+  letter-spacing: .55px;
+  font-size: clamp(9px, 1.5vw, 12px);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.42), inset 0 -5px 10px rgba(0,0,0,.32), 0 4px 10px rgba(0,0,0,.42);
+  filter: drop-shadow(0 0 4px rgba(242,195,91,.12));
+}
+#action-cluster button::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(255, 244, 205, .28);
+  clip-path: polygon(14% 0, 86% 0, 100% 20%, 100% 80%, 86% 100%, 14% 100%, 0 80%, 0 20%);
+  pointer-events: none;
+}
+#btn-attack { background: linear-gradient(155deg, #ff8b72, #c52e4d 55%, #5b102b) !important; border-color: #ffe1b0 !important; }
+#btn-defend { background: linear-gradient(155deg, #c7f0ff, #398bd8 55%, #143b7b) !important; border-color: #e9f8ff !important; }
+#btn-aim { background: linear-gradient(155deg, #c0a0ff, #7443bd 55%, #2b164e) !important; border-color: #e2d1ff !important; }
+#btn-jump { background: linear-gradient(155deg, #fffdf0, #e7d6a7 58%, #9a7433) !important; border-color: #fff1bb !important; }
+#btn-magic, #btn-magic2 { border-radius: 14px !important; clip-path: polygon(10% 0,90% 0,100% 24%,100% 76%,90% 100%,10% 100%,0 76%,0 24%); }
+#btn-magic { background: linear-gradient(155deg, #a68b59, #594525 60%, #241b19) !important; color: #fff4c9; }
+#btn-magic2 { background: linear-gradient(155deg, #fff08b, #c39b20 58%, #66500e) !important; color: #fff9dd; }
+#btn-magic3 { clip-path: polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%); background: linear-gradient(180deg, #fffbdc, #f2c35b 58%, #96601a) !important; border-color: #fff2b8 !important; box-shadow: 0 0 16px rgba(255,210,54,.32), inset 0 2px 0 rgba(255,255,255,.7) !important; }
+#btn-ultimate { clip-path: polygon(9% 0,91% 0,100% 50%,91% 100%,9% 100%,0 50%); border-radius: 12px !important; background: linear-gradient(180deg, #e8faff, #729cff 52%, #332b80) !important; color: #fff !important; border-color: #d9f7ff !important; box-shadow: 0 0 18px rgba(115,175,255,.42), inset 0 2px 0 rgba(255,255,255,.7) !important; }
+#btn-ultimate:active, #btn-magic3:active { filter: brightness(1.22); }
+#hp-bar { box-shadow: 0 0 0 1px rgba(9,9,20,.7), 0 3px 10px rgba(0,0,0,.5), inset 0 1px 3px rgba(0,0,0,.5); }
+#quest-box, #coin-box, #dialog { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#quest-box { border-color: rgba(242,195,91,.82); box-shadow: 0 5px 18px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,244,205,.12); }
+#top-buttons .btn-round { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+@media (max-width: 720px) {
+  #action-cluster { right: calc(10px + env(safe-area-inset-right)); bottom: calc(9px + env(safe-area-inset-bottom)); grid-template-columns: 70px 70px; grid-template-rows: 66px 72px 52px 46px 46px; gap: 5px; }
+  #btn-jump { width: 72px !important; height: 72px !important; }
+  #btn-defend, #btn-aim { width: 64px !important; height: 64px !important; }
+  #btn-magic, #btn-magic2 { width: 66px !important; height: 48px !important; }
+  #btn-magic3 { width: 100px !important; height: 42px !important; }
+  #btn-ultimate { width: 122px !important; height: 44px !important; }
+}
+@media (max-height: 420px) {
+  #action-cluster { transform: scale(.84); transform-origin: bottom right; right: calc(6px + env(safe-area-inset-right)); bottom: calc(4px + env(safe-area-inset-bottom)); }
+}

@@ -170,16 +170,37 @@ const Sfx = (function () {
   }
 
   return {
-    swing() { noise(0.14, 0.35, 500, 2200); },
-    hit()   { tone(260, 60, 0.13, 'square', 0.22); noise(0.09, 0.4, 1800, 500); },
-    hurt()  { tone(320, 110, 0.22, 'sawtooth', 0.2); noise(0.12, 0.3, 900, 300); },
-    block() { tone(880, 620, 0.07, 'square', 0.12); tone(1320, 900, 0.05, 'triangle', 0.1); noise(0.05, 0.25, 3000, 1500); },
-    dash()  { tone(420, 105, 0.16, 'triangle', 0.075); noise(0.12, 0.11, 1700, 420); },
+    swing() {
+      noise(0.20, 0.22, 420, 2600);
+      tone(720, 180, 0.16, 'triangle', 0.045);
+      tone(1450, 560, 0.11, 'sine', 0.025);
+    },
+    hit() {
+      tone(155, 48, 0.19, 'triangle', 0.24);
+      noise(0.13, 0.28, 2100, 260);
+      tone(920, 380, 0.075, 'square', 0.055);
+    },
+    hurt() {
+      tone(245, 72, 0.26, 'sawtooth', 0.13);
+      noise(0.18, 0.20, 1050, 180);
+      tone(620, 230, 0.16, 'triangle', 0.045);
+    },
+    block() {
+      tone(1040, 710, 0.09, 'triangle', 0.12);
+      tone(1580, 980, 0.07, 'sine', 0.07);
+      noise(0.08, 0.17, 3200, 900);
+    },
+    dash() {
+      noise(0.19, 0.12, 2100, 260);
+      tone(510, 95, 0.21, 'triangle', 0.065);
+      tone(1250, 420, 0.13, 'sine', 0.025);
+    },
     footstep(surface) {
-      const level = surface === 'stone' ? 0.055 : (surface === 'wet' ? 0.046 : 0.038);
-      const pitch = surface === 'stone' ? 145 : (surface === 'wet' ? 118 : 185);
-      tone(pitch + Math.random() * 22, pitch * 0.62, 0.075, 'triangle', level);
-      noise(0.045, level * 0.42, surface === 'grass' ? 1200 : 760, 190);
+      const level = surface === 'stone' ? 0.062 : (surface === 'wet' ? 0.052 : 0.046);
+      const pitch = surface === 'stone' ? 118 : (surface === 'wet' ? 102 : 158);
+      tone(pitch + Math.random() * 18, pitch * 0.58, 0.10, 'triangle', level);
+      noise(surface === 'grass' ? 0.075 : 0.055, level * 0.58, surface === 'grass' ? 1450 : 780, 150);
+      if (surface === 'grass') noise(0.035, 0.018, 2400, 950);
     },
     powerCast(kind) {
       const pitch = kind === 'sun' ? 330 : (kind === 'ultimate' ? 190 : 270);
