@@ -960,8 +960,12 @@
     const now=performance.now(),THREE=api&&api.THREE;
     if(!started||!api||!THREE||judgmentUltimate.active||!swordTemplate||!window.PlayerModelView||!window.PlayerModelView.active){window.BibliaCelestialDiagnostics='Julgamento Divino: aguarde o carregamento 3D';return;}
     if(typeof BishopDimension==='undefined'||!BishopDimension.isBattleActive()||typeof BishopBoss==='undefined'||BishopBoss.state==='inactive'||BishopBoss.state==='dead'){window.BibliaCelestialDiagnostics='Julgamento Divino disponível durante a batalha contra o Bispo';return;}
-    const distance=typeof Player!=='undefined'&&Number.isFinite(Player.x)&&Number.isFinite(Player.y)?Math.hypot(BishopBoss.x-Player.x,BishopBoss.y-Player.y):Infinity;
-    if(distance>10){window.BibliaCelestialDiagnostics='Aproxime-se do Bispo (até 10 metros) para usar o Julgamento Divino';return;}
+    const playerPositionValid=typeof Player!=='undefined'&&Number.isFinite(Player.x)&&Number.isFinite(Player.y)&&Number.isFinite(BishopBoss.x)&&Number.isFinite(BishopBoss.y);
+    if(!playerPositionValid){window.BibliaCelestialDiagnostics='Julgamento Divino: não foi possível confirmar a distância do Bispo';return;}
+    const distance=Math.hypot(BishopBoss.x-Player.x,BishopBoss.y-Player.y);
+    const ULTIMATE_MIN_DISTANCE=120; // coordenadas do jogo; ~1,7 unidades na dimensão 3D
+    if(distance<ULTIMATE_MIN_DISTANCE){window.BibliaCelestialDiagnostics='Afaste-se um pouco do Bispo para usar o Julgamento Divino';return;}
+    if(window.PlayerModelView.dead||Player.dead){window.BibliaCelestialDiagnostics='Julgamento Divino indisponível enquanto estiver caído ou morto';return;}
     if(castRequested||opening||opened||(lastSpellCast&&now-lastSpellCast<6500))return;
     const normal=window.ValerioModelView;
     judgmentUltimate.active=true;judgmentUltimate.stage='book';judgmentUltimate.startedAt=now;judgmentUltimate.stageAt=now;judgmentUltimate.damageDone=false;judgmentUltimate.root=null;judgmentUltimate.returnEye=null;judgmentUltimate.returnTarget=null;judgmentUltimate.returnStartEye=null;judgmentUltimate.returnStartTarget=null;
