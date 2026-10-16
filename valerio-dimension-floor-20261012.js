@@ -96,6 +96,83 @@ const BishopDimension = (function () {
       addQuad(out,pt(u,v),pt(u2,v),pt(u2,v2),pt(u,v2),cc);
     }
   }
+
+  // ===== Cosmos visual (somente aparência): planetas, nebulosas, halos e auroras =====
+  // Tudo é malha estática com cor por vértice; a lógica do jogo não é tocada.
+  function hex3(hex){const n=parseInt(hex.slice(1),16);return[((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255];}
+  function mix3(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+  function pushV(out,p,c){out.push(p[0],p[1],p[2],c[0],c[1],c[2],c[3]);}
+  function addVQuad(out,a,b,c,d,ca,cb,cc,cd){pushV(out,a,ca);pushV(out,b,cb);pushV(out,c,cc);pushV(out,a,ca);pushV(out,c,cc);pushV(out,d,cd);}
+  // Planeta com faixas/manchas, luz direcional, terminador quente e brilho de atmosfera.
+  function addPlanet(out,x,y,z,r,o){
+    const rows=o.rows||18,cols=o.cols||30,seed=o.seed||0;
+    const base=hex3(o.base),b1=hex3(o.b1||o.base),b2=hex3(o.b2||o.base),atmo=hex3(o.atmo||'#9ab8ff');
+    const L=normalize([-.55,.5,.68]);
+    const vert=function(i,j){
+      const t=Math.PI*i/rows,p=2*Math.PI*j/cols;
+      const n=[Math.sin(t)*Math.cos(p),Math.cos(t),Math.sin(t)*Math.sin(p)];
+      const lat=n[1];
+      const swirl=Math.sin(p*3+lat*4+seed)*(o.swirl==null?.35:o.swirl);
+      const band=.5+.5*Math.sin(lat*(o.freq||9)+swirl+seed);
+      const bf=o.blotF||5;
+      const blot=clamp(.5+.9*Math.sin(p*bf+lat*7+seed*1.7)*Math.sin(lat*bf*1.6-p*2+seed),0,1);
+      let c=mix3(base,b1,band);
+      c=mix3(c,b2,clamp(blot*(o.blot||0),0,1));
+      const d=dot(n,L);
+      const lit=clamp(d*1.1+.14,0,1);
+      const shade=.17+.83*Math.pow(lit,.85);
+      const term=Math.exp(-Math.pow((d-.04)*5.5,2))*(o.term==null?.30:o.term);
+      const rim=Math.pow(1-clamp(n[2]*.55+.45,0,1),2.2)*.22*clamp(d+.6,0,1);
+      return {p:[x+r*n[0],y+r*n[1],z+r*n[2]],c:[
+        Math.min(1,c[0]*shade+atmo[0]*(term+rim)),
+        Math.min(1,c[1]*shade+atmo[1]*(term+rim)),
+        Math.min(1,c[2]*shade+atmo[2]*(term+rim)),1]};
+    };
+    for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){
+      const a=vert(i,j),b=vert(i+1,j),c=vert(i+1,j+1),d=vert(i,j+1);
+      addVQuad(out,a.p,b.p,c.p,d.p,a.c,b.c,c.c,d.c);
+    }
+  }
+  // Casca translúcida (atmosfera/halo) para ser desenhada de forma aditiva.
+  function addShell(out,x,y,z,r,hex,alpha,rows,cols){
+    const c=hex3(hex),nr=rows||8,nc=cols||16,col=[c[0],c[1],c[2],alpha];
+    const pt=function(t,p){return[x+r*Math.sin(t)*Math.cos(p),y+r*Math.cos(t),z+r*Math.sin(t)*Math.sin(p)];};
+    for(let i=0;i<nr;i++)for(let j=0;j<nc;j++){
+      const t0=Math.PI*i/nr,t1=Math.PI*(i+1)/nr,p0=j*2*Math.PI/nc,p1=(j+1)*2*Math.PI/nc;
+      addVQuad(out,pt(t0,p0),pt(t1,p0),pt(t1,p1),pt(t0,p1),col,col,col,col);
+    }
+  }
+  // Nuvem de nebulosa: disco elíptico com centro opaco e borda transparente.
+  function addGlowDisc(out,x,y,z,rx,ry,hex,alpha,rot,seg){
+    const c=hex3(hex),n=seg||20,cr=Math.cos(rot||0),sr=Math.sin(rot||0);
+    const pt=function(a,k){const px=Math.cos(a)*rx*k,py=Math.sin(a)*ry*k;return[x+px*cr-py*sr,y+px*sr+py*cr,z];};
+    const c0=[c[0],c[1],c[2],alpha],c1=[c[0],c[1],c[2],alpha*.42],c2=[c[0],c[1],c[2],0];
+    for(let i=0;i<n;i++){
+      const a0=i/n*Math.PI*2,a1=(i+1)/n*Math.PI*2;
+      pushV(out,[x,y,z],c0);pushV(out,pt(a0,.5),c1);pushV(out,pt(a1,.5),c1);
+      addVQuad(out,pt(a0,.5),pt(a1,.5),pt(a1,1),pt(a0,1),c1,c1,c2,c2);
+    }
+  }
+  // Anel plano inclinado, em faixas concêntricas com pequenos vãos.
+  function addPlanetRing(out,x,y,z,rIn,rOut,tiltX,tiltZ,hexes,alpha,seg){
+    const n=seg||72,bands=hexes.length,cx=Math.cos(tiltX),sx=Math.sin(tiltX),cz=Math.cos(tiltZ),sz=Math.sin(tiltZ);
+    const pt=function(a,r){
+      let px=Math.cos(a)*r,py=0,pz=Math.sin(a)*r;
+      const y1=py*cx-pz*sx,z1=py*sx+pz*cx;py=y1;pz=z1;
+      const x2=px*cz-py*sz,y2=px*sz+py*cz;px=x2;py=y2;
+      return[x+px,y+py,z+pz];
+    };
+    const span=rOut-rIn;
+    for(let k=0;k<bands;k++){
+      const r0=rIn+span*k/bands,r1=rIn+span*(k+1)/bands-span*.02,c=hex3(hexes[k]),al=alpha*(k%2?.72:1);
+      for(let i=0;i<n;i++){
+        const a0=i/n*Math.PI*2,a1=(i+1)/n*Math.PI*2,sh=.74+.26*Math.sin(a0*3+k*1.3);
+        const col=[c[0]*sh,c[1]*sh,c[2]*sh,al];
+        addVQuad(out,pt(a0,r0),pt(a1,r0),pt(a1,r1),pt(a0,r1),col,col,col,col);
+      }
+    }
+  }
+
   // Matriz reutilizada por draw(): evita alocar um Float32Array por chamada (dezenas por quadro) e a coleta de lixo resultante.
   const MVP_SCRATCH = new Float32Array(16);
   function mesh(gl, data) {
@@ -171,6 +248,7 @@ const BishopDimension = (function () {
     return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),ruins:mesh(S.gl,ruins)};
   }
   function buildArena() {
+    const sky=[],skyGlow=[],skyRings=[];
     const world=[],aurora=[],foliage=[],shadows=[],leaves=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
 
     // Piso de suporte discreto: a grama real cobre toda a superfície jogável.
@@ -188,17 +266,37 @@ const BishopDimension = (function () {
       const tint=i%9===0?'#b7a4ff':(i%7===0?'#9bdcff':'#dce7ff');
       addBox(world,x,y,z,size,size,size,tint);
     }
-    // Mini sistema planetário espalhado em volta da arena, em profundidades diferentes.
-    addSphere(world,-34,24,-32,6.1,'#526fd0',10,16,1,.96,.9);
-    addRing(world,-34,24,-32,8.6,2.7,.18,'#b8a5ff',.76,40);
-    addSphere(world,31,27,-36,5.3,'#df6b50',10,16,1,1,.92);
-    addRing(world,31,27,-36,7.4,2.0,.16,'#f1bd78',.72,36);
-    addSphere(world,-43,30,-2,4.3,'#8b62d6',9,14,1,1,.95);
-    addSphere(world,42,19,9,3.6,'#e1b45e',8,12,1,1,.9);
-    addSphere(world,-21,36,17,4.5,'#3caaa1',9,14,1,1,.9);
-    addRing(world,-21,36,17,6.2,1.5,.12,'#83d9d1',.72,32);
-    addSphere(world,19,33,-57,3.7,'#b56a9d',8,12,1,1,.9);
-    addSphere(world,3,45,-68,2.7,'#c7d7ed',7,10,1,1,.9);
+    // Cosmos da dimensão: nebulosas, planetas com faixas/atmosfera e anéis inclinados.
+    // Corpos opacos (sky), halos/nebulosas aditivos (skyGlow) e anéis translúcidos (skyRings).
+    // Nebulosas de fundo (violeta, azul, magenta, turquesa), grandes e suaves.
+    [
+      [-34,22,-66,30,13,'#5a2bd6',.20,.35],[-4,30,-70,34,12,'#2a63e0',.16,-.2],[30,24,-67,28,12,'#b034c4',.17,.3],
+      [52,18,-62,22,10,'#1ab5b0',.13,-.4],[-56,16,-62,22,9,'#2f6bff',.14,.5],[8,16,-60,36,8,'#7a38e8',.12,0],
+      [-20,36,-72,24,9,'#c43ccf',.12,.25],[40,34,-72,22,8,'#4a4ae8',.13,-.3],[-48,32,-70,18,8,'#18b8c8',.10,.2]
+    ].forEach(function(n){addGlowDisc(skyGlow,n[0],n[1],n[2],n[3],n[4],n[5],n[6],n[7],22);});
+    // Lua grande ao fundo (cratera/manchas) com halo pálido.
+    addPlanet(sky,-39,17,-56,8.6,{base:'#cdb7f0',b1:'#9a86d8',b2:'#6b559e',blot:.75,blotF:7,freq:4,swirl:.15,seed:2.1,atmo:'#d8c4ff',term:.22,rows:20,cols:34});
+    addShell(skyGlow,-39,17,-56,9.3,'#c8b0ff',.10,10,18);addShell(skyGlow,-39,17,-56,10.6,'#a68cff',.05,10,18);
+    // Gigante azul com faixas claras e anel lavanda.
+    addPlanet(sky,-34,24,-32,6.5,{base:'#3e5fd0',b1:'#9ec4ff',b2:'#2a3f9c',blot:.35,freq:11,swirl:.45,seed:.7,atmo:'#9cc8ff',rows:20,cols:34});
+    addShell(skyGlow,-34,24,-32,7.0,'#6fa0ff',.14,10,18);addShell(skyGlow,-34,24,-32,7.9,'#4f7cff',.07,10,18);addShell(skyGlow,-34,24,-32,9.4,'#4f6cff',.03,10,18);
+    addPlanetRing(skyRings,-34,24,-32,8.6,13.2,.30,.34,['#e4d6ff','#9c86e8','#f0e6ff','#7a68d0','#c6b4ff'],.62);
+    // Planeta vermelho-alaranjado com tempestades e anel dourado.
+    addPlanet(sky,31,27,-36,5.8,{base:'#e0583c',b1:'#ffc070',b2:'#8a2a2a',blot:.6,blotF:4,freq:13,swirl:.55,seed:3.4,atmo:'#ffb07a',rows:20,cols:34});
+    addShell(skyGlow,31,27,-36,6.3,'#ff8a5a',.13,10,18);addShell(skyGlow,31,27,-36,7.2,'#ff6a4a',.06,10,18);addShell(skyGlow,31,27,-36,8.6,'#ff5a4a',.025,10,18);
+    addPlanetRing(skyRings,31,27,-36,7.7,11.6,.28,-.38,['#ffe2a0','#e8b25a','#fff0c4','#c88a40'],.6);
+    // Violeta com nuvens, dourado quente, turquesa anelado, rosa e pálido distante.
+    addPlanet(sky,-43,26,-2,4.6,{base:'#8b4fe0',b1:'#d8a0ff',b2:'#4e2a9c',blot:.5,freq:8,swirl:.5,seed:5.2,atmo:'#d0a8ff',rows:16,cols:28});
+    addShell(skyGlow,-43,26,-2,5.1,'#b27cff',.13,8,16);addShell(skyGlow,-43,26,-2,6.0,'#9a60ff',.05,8,16);
+    addPlanet(sky,42,19,9,3.9,{base:'#e8b040',b1:'#fff0a8',b2:'#b0702a',blot:.4,freq:10,swirl:.3,seed:1.4,atmo:'#ffe090',rows:16,cols:28});
+    addShell(skyGlow,42,19,9,4.3,'#ffcf60',.13,8,16);addShell(skyGlow,42,19,9,5.1,'#ffb840',.05,8,16);
+    addPlanet(sky,-21,27,17,4.8,{base:'#2fb4a8',b1:'#a8fff0',b2:'#1a6e78',blot:.55,blotF:6,freq:9,swirl:.4,seed:6.1,atmo:'#9affea',rows:16,cols:28});
+    addShell(skyGlow,-21,27,17,5.3,'#58e8d4',.13,8,16);addShell(skyGlow,-21,27,17,6.2,'#38d0c0',.05,8,16);
+    addPlanetRing(skyRings,-21,27,17,6.4,9.0,.34,.30,['#b6fff2','#58d0c4','#d8fff8'],.58,60);
+    addPlanet(sky,19,26,-57,4.0,{base:'#c4509c',b1:'#ffa8d8',b2:'#7a2a78',blot:.5,freq:9,swirl:.45,seed:4.3,atmo:'#ffb0e8',rows:16,cols:28});
+    addShell(skyGlow,19,26,-57,4.5,'#ff7acb',.13,8,16);addShell(skyGlow,19,26,-57,5.4,'#e85ab8',.05,8,16);
+    addPlanet(sky,3,32,-68,3.0,{base:'#cfe0f8',b1:'#ffffff',b2:'#8aa4d0',blot:.45,freq:7,swirl:.25,seed:7.7,atmo:'#e0f0ff',rows:14,cols:24});
+    addShell(skyGlow,3,32,-68,3.4,'#b8d8ff',.12,8,16);addShell(skyGlow,3,32,-68,4.2,'#9ac0ff',.05,8,16);
 
     // FLORESTA MORTA DENSA: troncos muito próximos, fileiras sobrepostas e galhos retorcidos.
     // As laterais ficam próximas da área jogável para esconder o que existe atrás delas.
@@ -300,23 +398,50 @@ const BishopDimension = (function () {
       const tone=i%9===0?'#b7c8ff':(i%5===0?'#f0d9a5':'#dce7ff');
       addSphere(world,x,y,z,r,tone,3,4);
     }
-    // Auroras 3D leves ao fundo da arena: malha estática, animada pelo shader de vento existente.
-    // Ficam atrás da floresta e usam alfa baixo para não competir com o Bispo nem ofuscar a tela.
-    for(let band=0;band<3;band++){
-      const x0=-43, x1=43, segments=28;
-      const yBase=17+band*3.6, zBase=-43-band*1.6;
-      for(let i=0;i<segments;i++){
-        const xa=x0+(x1-x0)*i/segments, xb=x0+(x1-x0)*(i+1)/segments;
-        const waveA=Math.sin(i*.42+band*1.25)*1.45, waveB=Math.sin((i+1)*.42+band*1.25)*1.45;
-        const upperA=yBase+waveA+1.7, upperB=yBase+waveB+1.7;
-        const lowerA=yBase+waveA-1.7, lowerB=yBase+waveB-1.7;
-        const tint=band===1?'#64cfff':'#50f0bd';
-        const alpha=band===1?.105:.13;
-        addQuad(aurora,[xa,lowerA,zBase],[xb,lowerB,zBase],[xb,upperB,zBase],[xa,upperA,zBase],color(tint,alpha));
-        // Filete violeta fino na borda superior para dar profundidade sem bloom caro.
-        addQuad(aurora,[xa,upperA,zBase-.025],[xb,upperB,zBase-.025],[xb,upperB+.16,zBase-.025],[xa,upperA+.16,zBase-.025],color('#a58aff',.12));
+    // Auroras 3D em cortinas: borda inferior brilhante, raios verticais e gradiente verde→ciano→violeta→magenta.
+    // Malha estática com cor por vértice (alfa → 0 no topo); o shader de vento faz as cortinas ondularem.
+    // Desenhadas de forma aditiva e atrás da floresta (a profundidade preserva árvores e personagens).
+    (function(){
+      const palettes=[
+        ['#8dffd2','#3cf5a0','#3fd9ff','#7a8cff','#b25cff','#ff5ccf'],
+        ['#7dfff0','#3ee8d0','#4aa8ff','#6a7cff','#9a5cff','#e65cff'],
+        ['#a8ffb0','#52f58a','#38e0c8','#58a0ff','#8a6cff','#d05cff'],
+        ['#9affe8','#46f0b8','#4ac8ff','#7a94ff','#a864ff','#ff6ad8'],
+        ['#c0ffb8','#6aff98','#40e8d8','#5a9cff','#9468ff','#ff62c8']
+      ];
+      const prof=[0,1,.62,.34,.16,.06,0], tt=[0,.1,.25,.45,.65,.85,1];
+      const layers=5, cols=60, x0=-64, x1=64;
+      for(let layer=0;layer<layers;layer++){
+        const pal=palettes[layer].map(hex3);
+        const yBase=8.5+layer*2.1, zBase=-40-layer*2.6, layerAlpha=.46-layer*.04;
+        const colorAt=function(t){
+          const f=clamp(t,0,1)*(pal.length-1),i=Math.min(pal.length-2,Math.floor(f));
+          return mix3(pal[i],pal[i+1],f-i);
+        };
+        for(let i=0;i<cols;i++){
+          const xa=x0+(x1-x0)*i/cols, xb=x0+(x1-x0)*(i+1)/cols;
+          const info=function(x,idx){
+            const ray=clamp(.55+.5*Math.sin(idx*1.9+layer*2.3)*Math.sin(idx*.63+layer)+.15*Math.sin(idx*4.1+layer),.12,1);
+            return {
+              ray:ray,
+              y0:yBase+Math.sin(x*.09+layer*1.7)*2.4+Math.sin(x*.23+layer)*.9,
+              h:11+layer*1.4+Math.sin(x*.13+layer*3)*3.5,
+              z:zBase+Math.sin(x*.05+layer)*5
+            };
+          };
+          const A=info(xa,i),B=info(xb,i+1);
+          for(let r=0;r<tt.length-1;r++){
+            const ta=tt[r],tb=tt[r+1];
+            const ca=colorAt(ta),cb=colorAt(tb);
+            const c00=[ca[0],ca[1],ca[2],prof[r]*A.ray*layerAlpha];
+            const c10=[ca[0],ca[1],ca[2],prof[r]*B.ray*layerAlpha];
+            const c11=[cb[0],cb[1],cb[2],prof[r+1]*B.ray*layerAlpha];
+            const c01=[cb[0],cb[1],cb[2],prof[r+1]*A.ray*layerAlpha];
+            addVQuad(aurora,[xa,A.y0+ta*A.h,A.z],[xb,B.y0+ta*B.h,B.z],[xb,B.y0+tb*B.h,B.z],[xa,A.y0+tb*A.h,A.z],c00,c10,c11,c01);
+          }
+        }
       }
-    }
+    })();
 
     // Algumas estrelas maiores e discretas para dar profundidade ao céu.
     [[-13,14,-23],[8,17,-29],[21,12,-19],[-4,18,-34],[15,9,-31]].forEach((p,i)=>{
@@ -398,7 +523,7 @@ const BishopDimension = (function () {
     addSegment(bishopArmL,[0,0,0],[-.24,-.35,-.03],.095,.065,'#30213a',6);
     addSegment(bishopArmR,[0,0,0],[.24,-.35,-.03],.095,.065,'#30213a',6);
     return {
-      world:mesh(S.gl,world),aurora:mesh(S.gl,aurora),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),leaves:mesh(S.gl,leaves),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
+      world:mesh(S.gl,world),sky:mesh(S.gl,sky),skyGlow:mesh(S.gl,skyGlow),skyRings:mesh(S.gl,skyRings),aurora:mesh(S.gl,aurora),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),leaves:mesh(S.gl,leaves),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
       sourceData:{world:world,foliage:foliage,shadows:shadows},
       energy:mesh(S.gl,energy),particles:mesh(S.gl,particles),
       player:mesh(S.gl,player),bishop:mesh(S.gl,bishop),
@@ -660,7 +785,7 @@ const BishopDimension = (function () {
       renderEye=cinematicCamera.eye;renderTarget=cinematicCamera.target;
       renderFov=Number(cinematicCamera.fov)||1.02;
     }
-    const pv=multiply(perspective(renderFov,w/h,.1,90),lookAt(renderEye,renderTarget,[0,1,0]));
+    const pv=multiply(perspective(renderFov,w/h,.1,150),lookAt(renderEye,renderTarget,[0,1,0]));
     const playerJump=clamp((Number(Player.z)||0)-(Number(Player.floor)||0),0,60)*unit;
     const playerMoving=Math.hypot(Player.vx||0,Player.vy||0)>18;
     const playerIsAttacking=(Player.attackT||-1)>=0;
@@ -700,11 +825,19 @@ const BishopDimension = (function () {
     };
     gl.clearColor(.018,.026,.060,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
-    // A aurora pertence ao renderizador 3D de Valério (não ao céu Canvas 2D).
-    // Uma única chamada de desenho por quadro; profundidade preserva árvores e personagens à frente.
+    // Cosmos 3D: planetas opacos, nebulosas/halos aditivos, anéis translúcidos e auroras em cortina.
+    // A profundidade preserva árvores e personagens à frente; tudo sem escrever profundidade (exceto corpos).
+    draw(S.arena.sky,pv);
     if((window.GraphicsQuality?window.GraphicsQuality.get('effects'):1)>=.45){
+      const skyDrift=multiply(translate(Math.sin(Game.time*.045)*.7,Math.sin(Game.time*.06)*.25,0),rotateZ(Math.sin(Game.time*.03)*.004));
       gl.depthMask(false);
-      draw(S.arena.aurora,pv,.11);
+      gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+      draw(S.arena.skyGlow,multiply(pv,skyDrift),0);
+      gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+      draw(S.arena.skyRings,pv,0);
+      gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+      draw(S.arena.aurora,pv,1.5);
+      gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(true);
     }
     // O shader move vértices altos, deixando copas e folhas balançarem sem
