@@ -1533,6 +1533,20 @@
     }
     window.castBibliaCelestial = summon;
     window.addEventListener('biblia-cast', summon);
+
+    // MOD 106 — atalhos de teclado para os poderes no computador.
+    // Números não conflitam com movimento, ataque, defesa, pulo ou interação.
+    window.addEventListener('keydown', function (event) {
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      switch (event.code) {
+        case 'Digit1': event.preventDefault(); summon(); break;
+        case 'Digit2': event.preventDefault(); summon('judgment'); break;
+        case 'Digit3': event.preventDefault(); summon('sun'); break;
+        case 'Digit4': event.preventDefault(); startJudgmentUltimate(); break;
+      }
+    });
     requestAnimationFrame(update);
   }
 
