@@ -100,7 +100,6 @@
     if (!started || !closedBook || !openBook) return;
     const stamp = performance.now();
     const requestedSpell = spell || 'swords';
-    if (requestedSpell === 'sun') { startJudgmentUltimate(); return; }
     // Uma conjuração por vez: impede que toques rápidos substituam a magia pendente enquanto o grimório abre.
     if (castRequested || opening || opened || stamp - lastSummonInput < 280 || (lastSpellCast && stamp - lastSpellCast < 2800)) return;
     lastSummonInput = stamp;
@@ -606,6 +605,7 @@
   let sunBurnEffects = [];
   let sunBurnStatus = null;
   let sunButtonBound = false;
+  let ultimateButtonBound = false;
   let sunOrbGeometry = null;
   let sunOrbMaterial = null;
   let sunHaloGeometry = null;
@@ -1077,6 +1077,17 @@
     }
     started = true;
     loadSwordTemplate();
+    const ultimateButton = document.getElementById('btn-ultimate');
+    if (ultimateButton && !ultimateButtonBound) {
+      ultimateButtonBound = true;
+      ultimateButton.style.touchAction = 'none';
+      const triggerUltimate = function(event) {
+        if (event) event.preventDefault();
+        startJudgmentUltimate();
+      };
+      ultimateButton.addEventListener('pointerdown', triggerUltimate, { passive: false });
+      ultimateButton.addEventListener('click', triggerUltimate);
+    }
     const sunButton = document.getElementById('btn-magic3');
     if (sunButton && !sunButtonBound) {
       sunButtonBound = true;
