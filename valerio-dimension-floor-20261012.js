@@ -171,7 +171,7 @@ const BishopDimension = (function () {
     return {arch:mesh(S.gl,arch),glow:mesh(S.gl,glow),ruins:mesh(S.gl,ruins)};
   }
   function buildArena() {
-    const world=[],foliage=[],shadows=[],leaves=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
+    const world=[],aurora=[],foliage=[],shadows=[],leaves=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
 
     // Piso de suporte discreto: a grama real cobre toda a superfície jogável.
     // Sem estrada, pedras, cascalho, raízes soltas ou moitas sobre o terreno.
@@ -300,6 +300,24 @@ const BishopDimension = (function () {
       const tone=i%9===0?'#b7c8ff':(i%5===0?'#f0d9a5':'#dce7ff');
       addSphere(world,x,y,z,r,tone,3,4);
     }
+    // Auroras 3D leves ao fundo da arena: malha estática, animada pelo shader de vento existente.
+    // Ficam atrás da floresta e usam alfa baixo para não competir com o Bispo nem ofuscar a tela.
+    for(let band=0;band<3;band++){
+      const x0=-43, x1=43, segments=28;
+      const yBase=17+band*3.6, zBase=-43-band*1.6;
+      for(let i=0;i<segments;i++){
+        const xa=x0+(x1-x0)*i/segments, xb=x0+(x1-x0)*(i+1)/segments;
+        const waveA=Math.sin(i*.42+band*1.25)*1.45, waveB=Math.sin((i+1)*.42+band*1.25)*1.45;
+        const upperA=yBase+waveA+1.7, upperB=yBase+waveB+1.7;
+        const lowerA=yBase+waveA-1.7, lowerB=yBase+waveB-1.7;
+        const tint=band===1?'#64cfff':'#50f0bd';
+        const alpha=band===1?.105:.13;
+        addQuad(aurora,[xa,lowerA,zBase],[xb,lowerB,zBase],[xb,upperB,zBase],[xa,upperA,zBase],color(tint,alpha));
+        // Filete violeta fino na borda superior para dar profundidade sem bloom caro.
+        addQuad(aurora,[xa,upperA,zBase-.025],[xb,upperB,zBase-.025],[xb,upperB+.16,zBase-.025],[xa,upperA+.16,zBase-.025],color('#a58aff',.12));
+      }
+    }
+
     // Algumas estrelas maiores e discretas para dar profundidade ao céu.
     [[-13,14,-23],[8,17,-29],[21,12,-19],[-4,18,-34],[15,9,-31]].forEach((p,i)=>{
       addSphere(world,p[0],p[1],p[2],.075,i%2?'#c4d8ff':'#f2e4bd',4,5);
@@ -380,7 +398,7 @@ const BishopDimension = (function () {
     addSegment(bishopArmL,[0,0,0],[-.24,-.35,-.03],.095,.065,'#30213a',6);
     addSegment(bishopArmR,[0,0,0],[.24,-.35,-.03],.095,.065,'#30213a',6);
     return {
-      world:mesh(S.gl,world),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),leaves:mesh(S.gl,leaves),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
+      world:mesh(S.gl,world),aurora:mesh(S.gl,aurora),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),leaves:mesh(S.gl,leaves),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
       sourceData:{world:world,foliage:foliage,shadows:shadows},
       energy:mesh(S.gl,energy),particles:mesh(S.gl,particles),
       player:mesh(S.gl,player),bishop:mesh(S.gl,bishop),
@@ -682,6 +700,13 @@ const BishopDimension = (function () {
     };
     gl.clearColor(.018,.026,.060,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
+    // A aurora pertence ao renderizador 3D de Valério (não ao céu Canvas 2D).
+    // Uma única chamada de desenho por quadro; profundidade preserva árvores e personagens à frente.
+    if((window.GraphicsQuality?window.GraphicsQuality.get('effects'):1)>=.45){
+      gl.depthMask(false);
+      draw(S.arena.aurora,pv,.11);
+      gl.depthMask(true);
+    }
     // O shader move vértices altos, deixando copas e folhas balançarem sem
     // deslocar o piso; o vento custa apenas uma operação por vértice.
     const graphics=window.GraphicsQuality;
