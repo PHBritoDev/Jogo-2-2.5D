@@ -347,14 +347,14 @@
       const a1=(ax+1)%3,a2=(ax+2)%3;
       const rad=Math.max(.01,Math.max(dims[a1],dims[a2])*.5)*.5+len*.01;
       const mat=function(color,opacity){return new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:opacity,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});};
-      const auraMat=mat(0x9a3cff,.16),orbMat=mat(0xff4a68,.5),emberMat=mat(0xff7a8a,.9);
+      const auraMat=mat(0x9a3cff,.03),orbMat=mat(0xff4a68,.22),emberMat=mat(0xff7a8a,.68);
       const group=new THREE.Group();group.name='Foice_FX';
-      const aura=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*1.2,len*.98,10,1,true),auraMat);
+      const aura=new THREE.Mesh(new THREE.CylinderGeometry(rad*.24,rad*.30,len*.98,24,1,true),auraMat);
       aura.position.copy(center);if(ax===0)aura.rotation.z=Math.PI/2;else if(ax===2)aura.rotation.x=Math.PI/2;
       aura.renderOrder=3;group.add(aura);
       // A lâmina fica na extremidade superior do eixo longo (cabo preso à mão em y negativo).
       const tipPos=[center.x,center.y,center.z];tipPos[ax]=box.max.getComponent(ax)-len*.16;
-      const orb=new THREE.Mesh(new THREE.SphereGeometry(len*.075,10,8),orbMat);
+      const orb=new THREE.Mesh(new THREE.SphereGeometry(len*.035,12,10),orbMat);
       orb.position.set(tipPos[0],tipPos[1],tipPos[2]);orb.renderOrder=3;group.add(orb);
       const embers=[];
       for(let i=0;i<12;i++){

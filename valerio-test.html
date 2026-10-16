@@ -7,12 +7,12 @@
 <meta name="theme-color" content="#4fa9ec">
 <title>Seven Sins - Demo de Exploração</title>
 <link rel="stylesheet" href="style.css?v=mod99-aurora-hud-20261016">
-<link rel="stylesheet" href="campaign.css?v=mod90-ultimate-distance-20261016">\n<link rel="stylesheet" href="hud-rpg.css?v=mod101-hud-rpg-20261016">
+<link rel="stylesheet" href="campaign.css?v=mod90-ultimate-distance-20261016">\n<link rel="stylesheet" href="hud-rpg.css?v=mod102-hud-fps-portrait-20261016">
 </head>
 <body>
 
 <canvas id="game"></canvas>
-<div id="build-marker" title="Mod 101 — HUD RPG e efeitos das armas" aria-label="Versão 101 — HUD RPG e efeitos das armas" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:30;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.3);border-radius:50%;background:rgba(10,12,18,.58);color:#fff;font:700 11px/1 sans-serif;pointer-events:none;">101</div>
+<div id="build-marker" title="Mod 102 — brilho discreto, FPS e retrato" aria-label="Versão 102 — brilho discreto, FPS e retrato" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:30;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.3);border-radius:50%;background:rgba(10,12,18,.58);color:#fff;font:700 11px/1 sans-serif;pointer-events:none;">102</div>
 
 <div id="climate-layer" class="climate-layer clear" aria-hidden="true">
   <div class="climate-rain"></div>
@@ -52,6 +52,7 @@
 <button id="btn-interact" class="hidden" aria-label="Falar">FALAR</button>
 
 <!-- HUD de combate -->
+<div id="hero-portrait" aria-label="Protagonista"><img alt="" draggable="false"></div>
 <div id="hp-bar">
   <div id="hp-trail"></div>
   <div id="hp-fill"></div>
@@ -196,8 +197,9 @@
 <script src="storm-events.js?v=mod61-khravazoth-first-bishop-20261014"></script>
 <script src="campaign.js?v=mod61-khravazoth-first-bishop-20261014"></script>
 <script src="valerio-dimension-floor-20261012.js?v=mod100-canonical-cosmos-20261016"></script>
-<script src="valerio-bishop-model-floor-20261012.js?v=mod101-scythe-fx-20261016"></script>
-<script src="protagonista-model-20261012.js?v=mod101-sword-fx-20261016"></script>
+<script src="valerio-bishop-model-floor-20261012.js?v=mod102-scythe-glow-20261016"></script>
+<script>window.SetHeroPortrait3D=window.SetHeroPortrait3D||function(src){var img=document.querySelector("#hero-portrait img");if(img&&src)img.src=src;};</script>
+<script src="protagonista-model-20261012.js?v=mod102-sword-glow-20261016"></script>
 <script src="render.js?v=mod99-3d-aurora-20261016"></script>
 <script src="main.js?v=mod97-graphics-settings-20261016"></script>
 <script src="biblia-magia-prototype.js?v=mod92-combat-audio-impact-20261016"></script>

@@ -233,11 +233,11 @@
       const rad=Math.max(.012,Math.max(o1,o2)*.55)+len*.012;
       const group=new THREE.Group();group.name='EspadaProta_FX';
       const add=function(color,opacity){return new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:opacity,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});};
-      const auraMat=add(0xffd66a,.2),coreMat=add(0xfff4cc,.26),sparkMat=add(0xfff0b0,.9);
+      const auraMat=add(0xffd66a,.035),coreMat=add(0xfff4cc,.065),sparkMat=add(0xfff0b0,.62);
       const orient=function(m){if(ax===0)m.rotation.z=Math.PI/2;else if(ax===2)m.rotation.x=Math.PI/2;};
-      const aura=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*1.3,len*.98,10,1,true),auraMat);
+      const aura=new THREE.Mesh(new THREE.CylinderGeometry(rad*.24,rad*.30,len*.98,24,1,true),auraMat);
       aura.position.copy(center);orient(aura);aura.renderOrder=3;group.add(aura);
-      const core=new THREE.Mesh(new THREE.CylinderGeometry(rad*.28,rad*.28,len*.96,6,1,true),coreMat);
+      const core=new THREE.Mesh(new THREE.CylinderGeometry(rad*.075,rad*.075,len*.96,12,1,true),coreMat);
       core.position.copy(center);orient(core);core.renderOrder=3;group.add(core);
       const sparks=[];
       for(let i=0;i<10;i++){
@@ -253,9 +253,9 @@
     const f=swordFx;if(!f)return;
     swordFxBoost+=((swinging?1:0)-swordFxBoost)*Math.min(1,dt*9);
     const boost=swordFxBoost,pulse=.5+.5*Math.sin(time*2.6);
-    f.auraMat.opacity=.13+.10*pulse+.30*boost;
-    f.coreMat.opacity=.20+.16*pulse+.36*boost;
-    const sc=1+.35*boost+.06*pulse;f.aura.scale.set(sc,1,sc);
+    f.auraMat.opacity=.025+.025*pulse+.075*boost;
+    f.coreMat.opacity=.045+.025*pulse+.10*boost;
+    const sc=1+.10*boost+.025*pulse;f.aura.scale.set(sc,1,sc);
     const ax=f.ax,a1=(ax+1)%3,a2=(ax+2)%3;
     for(let i=0;i<f.sparks.length;i++){
       const m=f.sparks[i],u=m.userData;

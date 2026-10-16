@@ -460,3 +460,7 @@ html body #action-cluster #btn-ultimate::before { background-image: url("data:im
 @media (max-height: 380px) {
   html body #action-cluster { --b: clamp(38px, 12.4vh, 52px); }
 }
+
+
+/* MOD 102: FPS sempre visível para acompanhar o desempenho no celular. */
+html body #fps { display:block !important; top:calc(5px + var(--hud-safe-t)); left:calc(6px + var(--hud-safe-l)); z-index:50; padding:4px 7px; border:1px solid rgba(255,240,184,.4); background:rgba(5,5,12,.68); border-radius:6px; font-size:11px; }
