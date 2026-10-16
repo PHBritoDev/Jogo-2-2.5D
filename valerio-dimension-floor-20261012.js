@@ -8,7 +8,7 @@
 const BishopDimension = (function () {
   const S = {
     canvas: null, gl: null, program: null, aPosition: -1, aColor: -1,
-    uMvp: null, uTime: null, uWind: null, exterior: null, arena: null, energy: null, particles: null,
+     uMvp: null, uTime: null, uWind: null, uStorm: null, uLightning: null, exterior: null, arena: null, energy: null, particles: null,
     playerModel: null, bishopModel: null, failed: false, lost: false, treeColliders: [],
     spriteProgram: null, spritePosition: -1, spriteUv: -1, spriteMvp: null, spriteSampler: null,
     bishopTexture: null, bishopTextureLoaded: false, bishopQuad: null,
@@ -539,10 +539,10 @@ const BishopDimension = (function () {
     const gl=S.canvas.getContext('webgl',{alpha:true,antialias:false,depth:true,stencil:false,preserveDrawingBuffer:false,powerPreference:'low-power'}) || S.canvas.getContext('experimental-webgl');
     if(!gl){S.failed=true;return;}
     const vs='attribute vec3 aPosition; attribute vec4 aColor; uniform mat4 uMvp; uniform float uTime; uniform float uWind; varying vec4 vColor; void main(){vec3 p=aPosition;float tip=clamp((aPosition.y+0.02)*1.25,0.0,1.0);float gust=sin(uTime*1.65+aPosition.z*0.31+aPosition.x*0.13);p.x+=gust*uWind*tip;p.z+=cos(uTime*1.18+aPosition.x*0.22+aPosition.z*0.08)*uWind*0.34*tip;gl_Position=uMvp*vec4(p,1.0);vColor=aColor;gl_PointSize=3.0;}';
-    const fs='precision mediump float; varying vec4 vColor; void main(){gl_FragColor=vColor;}';
+    const fs='precision mediump float; varying vec4 vColor; uniform float uStorm; uniform float uLightning; void main(){float s=clamp(uStorm,0.0,1.0);float flash=clamp(uLightning,0.0,1.0);vec3 tint=mix(vec3(1.0),vec3(0.57,0.66,0.84),s);vec3 color=vColor.rgb*tint*(1.0-0.34*s);color=min(vec3(1.0),color+vec3(0.42,0.56,0.86)*flash*0.58);gl_FragColor=vec4(color,vColor.a);}';
     const program=gl.createProgram();gl.attachShader(program,shader(gl,gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl,gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);
     if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program)||'programa WebGL inválido');
-    S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');S.uTime=gl.getUniformLocation(program,'uTime');S.uWind=gl.getUniformLocation(program,'uWind');
+    S.gl=gl;S.program=program;gl.useProgram(program);S.aPosition=gl.getAttribLocation(program,'aPosition');S.aColor=gl.getAttribLocation(program,'aColor');S.uMvp=gl.getUniformLocation(program,'uMvp');S.uTime=gl.getUniformLocation(program,'uTime');S.uWind=gl.getUniformLocation(program,'uWind');S.uStorm=gl.getUniformLocation(program,'uStorm');S.uLightning=gl.getUniformLocation(program,'uLightning');
     initBishopSprite(gl);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
     S.exterior=buildExterior();S.treeColliders=[];S.treeGeometryRanges=[];S.removedTreeIds=new Set();S.sunScorches=[];S.arena=buildArena();S.arenaSourceData=S.arena.sourceData;S.playerModel=S.arena.player;S.bishopModel=S.arena.bishop;
@@ -564,6 +564,8 @@ const BishopDimension = (function () {
     gl.uniformMatrix4fv(S.uMvp,false,MVP_SCRATCH);
     if(S.uTime)gl.uniform1f(S.uTime,Game.time||0);
     if(S.uWind)gl.uniform1f(S.uWind,wind||0);
+    if(S.uStorm)gl.uniform1f(S.uStorm,clamp(Number(window.CelestialUltimateStormFactor)||0,0,1));
+    if(S.uLightning)gl.uniform1f(S.uLightning,clamp(Number(window.CelestialUltimateLightningFactor)||0,0,1));
     gl.drawArrays(gl.TRIANGLES,0,m.count);
   }
   function outsideFrame() {
@@ -629,7 +631,15 @@ const BishopDimension = (function () {
     const impactAge=(performance.now()-S.impactAt)/1000;
     const impactFade=S.impactAt>0?clamp(1-impactAge/.15,0,1):0;
     if(impactFade>0){const kick=Math.sin(impactAge*92)*S.impactStrength*impactFade*.035;eye[1]+=kick;target[1]+=kick*.65;eye[0]+=kick*.45;target[0]+=kick*.3;}
-    const pv=multiply(perspective(dist<0.95?1.22:1.02,w/h,.1,90),lookAt(eye,target,[0,1,0]));
+    // A câmera cinematográfica deve mover também a arena WebGL, não só os GLBs.
+    // Caso contrário os personagens mudam de enquadramento sobre um cenário parado.
+    const cinematicCamera=window.CelestialUltimateCamera;
+    let renderEye=eye,renderTarget=target,renderFov=dist<0.95?1.22:1.02;
+    if(cinematicCamera&&cinematicCamera.active&&Array.isArray(cinematicCamera.eye)&&Array.isArray(cinematicCamera.target)){
+      renderEye=cinematicCamera.eye;renderTarget=cinematicCamera.target;
+      renderFov=Number(cinematicCamera.fov)||1.02;
+    }
+    const pv=multiply(perspective(renderFov,w/h,.1,90),lookAt(renderEye,renderTarget,[0,1,0]));
     const playerJump=clamp((Number(Player.z)||0)-(Number(Player.floor)||0),0,60)*unit;
     const playerMoving=Math.hypot(Player.vx||0,Player.vy||0)>18;
     const playerIsAttacking=(Player.attackT||-1)>=0;
