@@ -631,7 +631,7 @@ const BishopDimension = (function () {
     let seed=48731;
     const rnd=function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
     // O piso mede 128 x 72; a grade cobre exatamente suas bordas.
-    const cols=58,rows=34,groundY=.028;
+    const cols=46,rows=27,groundY=.028;
     const palette=['#2f4a24','#3b5a2a','#4a6a30','#5b7a38','#6f8a40','#82924a'];
     let bladeTotal=0;
     function vertex(x,y,z,c){grass.push(x,y,z,c[0],c[1],c[2],c[3]);}

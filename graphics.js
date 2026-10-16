@@ -156,6 +156,17 @@
     return true;
   }
 
+  function emergencyQualityDrop() {
+    // Uma queda severa (ex.: entrada na arena 3D) exige resposta mais rápida
+    // que o ajuste normal, que espera vários segundos para evitar oscilações.
+    let changed = false;
+    if (automatic.effects > 0.45) { automatic.effects = Math.max(0.45, automatic.effects - 0.25); changed = true; }
+    if (automatic.particles > 0.25) { automatic.particles = Math.max(0.25, automatic.particles - 0.3); changed = true; }
+    if (automatic.shadowQuality > 0) { automatic.shadowQuality = Math.max(0, automatic.shadowQuality - 1); changed = true; }
+    if (automatic.resolutionScale > 0.62) { automatic.resolutionScale = Math.max(0.62, automatic.resolutionScale - 0.12); changed = true; }
+    return changed;
+  }
+
   function restoreAutomaticQuality() {
     // Recupera gradualmente, sem alternar presets inteiros nem criar oscilações.
     if (automatic.resolutionScale < autoCeiling.resolutionScale) {
@@ -197,6 +208,13 @@
     }
 
     const now = performance.now();
+    // Se a luta cai para perto de 20 FPS, não esperar os 4,5 s do ajuste comum.
+    // Atua apenas no modo automático e mantém os limites seguros de qualidade.
+    if (mode === 'auto' && currentFps < 30 && now - lastAdjustment >= 1800) {
+      lastAdjustment = now;
+      lowFpsSeconds = 0;
+      if (emergencyQualityDrop()) { emitChange(); return; }
+    }
     if (lowFpsSeconds >= 4.5 && now - lastAdjustment >= 6000) {
       lowFpsSeconds = 0;
       lastAdjustment = now;
