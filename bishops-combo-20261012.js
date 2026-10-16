@@ -1,5 +1,6 @@
 'use strict';
 
+/* Mod 86 — HUD de vida do Bispo reage às fases sem partículas permanentes. */
 /* ============================================================
    BISHOPS — perfis de Bispo e estrutura compartilhada de
    apresentação. O conteúdo do encontro é dado; o fluxo pode ser
@@ -999,11 +1000,15 @@ const BishopBoss = {
     if (!active) return;
     this.elHudName.textContent = this.profile.name;
     this.elHudTitle.textContent = this.profile.title;
-    this.elHudFill.style.transform = 'scaleX(' + (this.hp / this.maxHp).toFixed(3) + ')';
+    const healthRatio = Math.max(0, Math.min(1, this.hp / Math.max(1, this.maxHp)));
+    this.elHudFill.style.transform = 'scaleX(' + healthRatio.toFixed(3) + ')';
     this.elHudText.textContent = Math.ceil(this.hp) + ' / ' + this.maxHp;
     this.elHud.classList.toggle('phase-two', this.phase >= 2);
     this.elHud.classList.toggle('phase-three', this.phase >= 3);
+    this.elHud.classList.toggle('low-health', healthRatio <= 0.35);
+    this.elHud.classList.toggle('critical-health', healthRatio <= 0.15);
     this.elHud.dataset.phase = String(this.phase);
+    this.elHud.dataset.health = healthRatio <= 0.15 ? 'critical' : healthRatio <= 0.35 ? 'low' : 'stable';
   },
 
   draw(ctx, t) {
