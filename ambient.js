@@ -156,11 +156,66 @@ const Ambient = {
 
   // ---------- Desenho (espaço da tela, antes do mundo) ----------
   drawSky(ctx, cam) {
+    const cosmic = Climate.state === 'night' || Climate.state === 'nightfall';
     const g = ctx.createLinearGradient(0, 0, 0, cam.viewH);
-    g.addColorStop(0, '#4fa9ec');
-    g.addColorStop(1, '#cdeeff');
+    if (cosmic) {
+      g.addColorStop(0, '#030612');
+      g.addColorStop(0.48, '#10112c');
+      g.addColorStop(1, '#172a31');
+    } else {
+      g.addColorStop(0, '#4fa9ec');
+      g.addColorStop(1, '#cdeeff');
+    }
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, cam.viewW, cam.viewH);
+
+    if (cosmic) {
+      // Estrelas determinísticas: sem Math.random por frame nem objetos extras.
+      for (let i = 0; i < 84; i++) {
+        const seed = i * 127.1 + 311.7;
+        const nx = (Math.sin(seed) * 43758.5453) % 1;
+        const ny = (Math.sin(seed * 1.73) * 24634.6345) % 1;
+        const x = ((Math.abs(nx) * cam.viewW) + i * 0.17) % cam.viewW;
+        const y = Math.abs(ny) * cam.viewH * 0.72;
+        const radius = i % 11 === 0 ? 1.35 : 0.55 + (i % 3) * 0.22;
+        ctx.globalAlpha = i % 4 === 0 ? 0.82 : 0.48;
+        ctx.fillStyle = i % 7 === 0 ? '#b8eaff' : '#fff4d1';
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 6.2832);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // Auroras leves; poucas faixas e gradientes para limitar o custo por frame.
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (let band = 0; band < 3; band++) {
+        const y = cam.viewH * (0.18 + band * 0.105);
+        const drift = Math.sin(this.cloudT * 0.18 + band * 1.7) * cam.viewW * 0.035;
+        const glow = ctx.createLinearGradient(0, y - 48, 0, y + 76);
+        glow.addColorStop(0, 'rgba(35,255,177,0)');
+        glow.addColorStop(0.38, band === 1 ? 'rgba(69,205,255,0.13)' : 'rgba(65,255,156,0.19)');
+        glow.addColorStop(0.62, 'rgba(120,93,255,0.11)');
+        glow.addColorStop(1, 'rgba(35,255,177,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.moveTo(-20, y + 22);
+        ctx.bezierCurveTo(cam.viewW * 0.22, y - 44 + drift, cam.viewW * 0.53, y + 62, cam.viewW * 0.72, y + 4 + drift);
+        ctx.bezierCurveTo(cam.viewW * 0.88, y - 24, cam.viewW * 0.96, y + 25, cam.viewW + 20, y - 8);
+        ctx.lineTo(cam.viewW + 20, y + 100);
+        ctx.lineTo(-20, y + 100);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+
+      const nebula = ctx.createRadialGradient(cam.viewW * 0.72, cam.viewH * 0.28, 4, cam.viewW * 0.72, cam.viewH * 0.28, cam.viewW * 0.42);
+      nebula.addColorStop(0, 'rgba(105,72,190,0.16)');
+      nebula.addColorStop(1, 'rgba(105,72,190,0)');
+      ctx.fillStyle = nebula;
+      ctx.fillRect(0, 0, cam.viewW, cam.viewH);
+      return;
+    }
 
     const sx = cam.viewW * 0.8, sy = cam.viewH * 0.15;
     const s = ctx.createRadialGradient(sx, sy, 0, sx, sy, 150);
