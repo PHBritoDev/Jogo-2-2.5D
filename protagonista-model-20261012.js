@@ -160,7 +160,7 @@
   function findAPI(){
     if(disabled||ready||failed)return;
     api=window.ValerioThreeAPI;
-    if(!api||!api.THREE||!api.scene||!api.camera||!api.renderer||!api.THREE.GLTFLoader){requestAnimationFrame(findAPI);return;}
+    if(!api||!api.THREE||!api.scene||!api.camera||!api.renderer||!api.THREE.GLTFLoader){setTimeout(findAPI, 120);return;}
     loadModel();
   }
   // Mede a malha já deformada pelo esqueleto. Box3.setFromObject sozinho usa limites brutos

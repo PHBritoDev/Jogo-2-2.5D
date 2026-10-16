@@ -1456,7 +1456,7 @@
     if (started) return;
     api = window.ValerioThreeAPI;
     if (!api || !api.THREE || !api.scene || !api.THREE.GLTFLoader) {
-      requestAnimationFrame(begin);
+      setTimeout(begin, 120);
       return;
     }
     started = true;
