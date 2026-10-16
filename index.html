@@ -8,7 +8,7 @@
 <title>Seven Sins - Demo de Exploração</title>
 <link rel="stylesheet" href="style.css?v=mod97-graphics-mobile-hud-20261016">
 <link rel="stylesheet" href="campaign.css?v=mod90-ultimate-distance-20261016">
-<link rel="stylesheet" href="hud-rpg.css?v=mod105-magic2-dash-jump-shield-20261016">
+<link rel="stylesheet" href="hud-rpg.css?v=mod106-pc-keyboard-controls-20261016">
 </head>
 <body>
 
@@ -19,7 +19,7 @@
 
 <!-- Interface (HUD) -->
 <div id="fps">-- FPS</div>
-<div id="build-marker" title="Mod 105 — HUD móvel refinado" aria-label="Versão 105 — HUD móvel refinado" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:30;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.3);border-radius:50%;background:rgba(10,12,18,.58);color:#fff;font:700 11px/1 sans-serif;pointer-events:none;">105</div>
+<div id="build-marker" title="Mod 106 — controles de teclado no PC" aria-label="Versão 106 — controles de teclado no PC" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:30;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.3);border-radius:50%;background:rgba(10,12,18,.58);color:#fff;font:700 11px/1 sans-serif;pointer-events:none;">106</div>
 
 <div id="top-buttons">
   <button id="btn-fs" class="btn-round" aria-label="Tela cheia">⛶</button>
@@ -33,6 +33,8 @@
   <span><kbd>Espaço</kbd> Pular</span>
   <span><kbd>F</kbd> Esquivar</span>
   <span><kbd>E</kbd> / <kbd>Enter</kbd> Interagir/continuar</span>
+  <span><kbd>1</kbd> Magia · <kbd>2</kbd> Magia II</span>
+  <span><kbd>3</kbd> Sol da Justiça · <kbd>4</kbd> Ultimate</span>
   <span><kbd>P</kbd> / <kbd>Esc</kbd> Pausar</span>
   <small>Arraste o mouse na dimensão 3D para mover a câmera.</small>
 </div>
@@ -44,10 +46,10 @@
   <button id="btn-aim" aria-label="Alternar modo de mira direcional">MIRA</button>
   <button id="btn-defend" aria-label="Defender">DEF</button>
   <button id="btn-jump" aria-label="Pular">PULO</button>
-  <button id="btn-magic" aria-label="Invocar a Bíblia Celestial">MAGIA</button>
-  <button id="btn-magic2" aria-label="Julgamento Celestial: invocar cinco espadas do céu">MAG.II</button>
-  <button id="btn-magic3" aria-label="Sol da Justiça: invocar e lançar um mini sol celestial">SOL</button>
-  <button id="btn-ultimate" aria-label="Ultimate Julgamento Divino: invocar a espada celestial colossal">ULT.</button>
+  <button id="btn-magic" aria-label="Invocar a Bíblia Celestial">MAGIA<span class="key-hint" aria-hidden="true">1</span></button>
+  <button id="btn-magic2" aria-label="Julgamento Celestial: invocar cinco espadas do céu">MAG.II<span class="key-hint" aria-hidden="true">2</span></button>
+  <button id="btn-magic3" aria-label="Sol da Justiça: invocar e lançar um mini sol celestial">SOL<span class="key-hint" aria-hidden="true">3</span></button>
+  <button id="btn-ultimate" aria-label="Ultimate Julgamento Divino: invocar a espada celestial colossal">ULT.<span class="key-hint" aria-hidden="true">4</span></button>
 </div>
 <button id="btn-interact" class="hidden" aria-label="Falar">FALAR</button>
 
@@ -202,7 +204,7 @@
 <script src="protagonista-model-20261012.js?v=mod102-sword-glow-20261016"></script>
 <script src="render.js?v=mod94-vibrant-grass-20261016"></script>
 <script src="main.js?v=mod97-graphics-settings-20261016"></script>
-<script src="biblia-magia-prototype.js?v=mod92-combat-audio-impact-20261016"></script>
+<script src="biblia-magia-prototype.js?v=mod106-pc-keyboard-spells-20261016"></script>
 
 </body>
 </html>
