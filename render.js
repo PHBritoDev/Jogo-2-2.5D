@@ -21,12 +21,12 @@ const Render = {
   // ---------- Pré-renderização dos tiles (4 variações por tipo) ----------
   _buildTiles() {
     const PAL = {};
-    PAL[T.GRASS]  = { base: '#63b24d', dots: ['#58a643', '#72c05a', '#4e9b3c'] };
+    PAL[T.GRASS]  = { base: '#72c94c', dots: ['#65b83f', '#8bd85e', '#4caa35'] };
     PAL[T.DARK]   = { base: '#2f7a3c', dots: ['#286b34', '#3a8947', '#245f30'] };
     PAL[T.DIRT]   = { base: '#a98a5a', dots: ['#97794c', '#bfa171', '#8c6f45'] };
     PAL[T.SAND]   = { base: '#e6d59c', dots: ['#d6c58c', '#f2e5b4', '#dccb92'] };
     PAL[T.WATER]  = { base: '#2f86c9', dots: ['#2a79b8', '#3c94d4', '#2570ad'] };
-    PAL[T.FLOWER] = { base: '#6cbb54', dots: ['#62b04c', '#7fcb64', '#58a643'] };
+    PAL[T.FLOWER] = { base: '#78c95a', dots: ['#6bbb4c', '#91d976', '#5aad42'] };
     PAL[T.STONE]  = { base: '#8d9193', dots: ['#7b7f82', '#a1a5a7', '#6f7376'] };
 
     const fl = ['#ffffff', '#ffe36b', '#ff8fb1', '#b79bff'];
