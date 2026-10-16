@@ -546,3 +546,167 @@ html body #action-cluster #btn-ultimate::before {
     gap: 4px 6px;
   }
 }
+
+
+/* MOD 104 — HUD de combate diagonal, inspirado em jogos de luta mobile.
+   Botões reais e IDs preservados; somente layout, escala e rótulos visuais. */
+@media (hover: none), (pointer: coarse) {
+  html body #action-cluster {
+    position: fixed !important;
+    display: block !important;
+    width: 235px !important;
+    height: 260px !important;
+    right: calc(5px + var(--hud-safe-r)) !important;
+    bottom: calc(7px + var(--hud-safe-b)) !important;
+    left: auto !important;
+    top: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    gap: 0 !important;
+    z-index: 14 !important;
+    pointer-events: none;
+  }
+  html body #action-cluster button {
+    position: absolute !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 2px 8px !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    clip-path: none !important;
+    white-space: nowrap !important;
+    font-family: system-ui, sans-serif !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    color: #fff !important;
+    text-shadow: 0 1px 3px #000, 0 0 5px #000 !important;
+    pointer-events: auto;
+    touch-action: manipulation;
+    box-shadow: 0 0 0 2px rgba(0,0,0,.88),
+      inset 0 0 0 3px rgba(255,245,220,.18),
+      inset 0 -8px 12px rgba(0,0,0,.52),
+      0 4px 10px rgba(0,0,0,.55) !important;
+  }
+  html body #action-cluster button::after {
+    inset: 0 !important;
+    border-radius: 50% !important;
+    border: 2px solid rgba(255,225,157,.88) !important;
+    background: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+    box-shadow: inset 0 0 0 2px rgba(10,8,18,.8), 0 0 7px rgba(242,195,91,.18);
+  }
+  html body #action-cluster button::before {
+    left: 50% !important;
+    top: 8% !important;
+    width: 48% !important;
+    height: 48% !important;
+    transform: translateX(-50%) !important;
+    background-position: center !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,.85)) !important;
+    content: "" !important;
+  }
+
+  /* Pequenos comandos em arco; o ataque domina o conjunto. */
+  html body #action-cluster #btn-aim {
+    left: 7px !important; top: 17px !important;
+    width: 55px !important; height: 55px !important;
+    rotate: -7deg;
+  }
+  html body #action-cluster #btn-magic3 {
+    left: 76px !important; top: 0 !important;
+    width: 57px !important; height: 57px !important;
+    rotate: 5deg;
+  }
+  html body #action-cluster #btn-ultimate {
+    left: 151px !important; top: 25px !important;
+    width: 66px !important; height: 66px !important;
+    padding-bottom: 9px !important;
+    font-size: 8px !important;
+    border-radius: 50% !important;
+    rotate: 8deg;
+    background: radial-gradient(circle at 36% 24%, #bfa2ff, #6030bc 55%, #1a0a48 100%) !important;
+    box-shadow: 0 0 0 2px #080512, inset 0 0 0 3px rgba(238,218,255,.42),
+      0 0 13px rgba(157,105,255,.42), 0 5px 12px rgba(0,0,0,.6) !important;
+  }
+  html body #action-cluster #btn-defend {
+    left: 0 !important; top: 87px !important;
+    width: 57px !important; height: 57px !important;
+    rotate: -6deg;
+  }
+  html body #action-cluster #btn-jump {
+    left: 67px !important; top: 78px !important;
+    width: 57px !important; height: 57px !important;
+    rotate: 6deg;
+  }
+  html body #action-cluster #btn-magic2 {
+    left: 8px !important; top: 158px !important;
+    width: 53px !important; height: 53px !important;
+    padding-bottom: 7px !important;
+    rotate: 5deg;
+  }
+  html body #action-cluster #btn-magic {
+    left: 70px !important; top: 151px !important;
+    width: 54px !important; height: 54px !important;
+    padding-bottom: 7px !important;
+    rotate: -5deg;
+  }
+  html body #action-cluster #btn-attack {
+    left: 130px !important; top: 112px !important;
+    width: 94px !important; height: 94px !important;
+    padding: 0 3px 12px !important;
+    border: 2px solid #ffe2a2 !important;
+    font-size: 10px !important;
+    letter-spacing: .45px !important;
+    rotate: 3deg;
+    background: radial-gradient(circle at 35% 22%, #ff8b7e, #d72f48 47%, #4b081b 100%) !important;
+    box-shadow: 0 0 0 2px #19050b, inset 0 0 0 4px rgba(255,224,181,.42),
+      inset 0 -12px 18px rgba(0,0,0,.48), 0 0 18px rgba(239,47,65,.34),
+      0 6px 14px rgba(0,0,0,.65) !important;
+    z-index: 3;
+  }
+  html body #action-cluster #btn-attack::before {
+    top: 8% !important;
+    width: 56% !important;
+    height: 56% !important;
+  }
+  html body #action-cluster #btn-ultimate::after {
+    border: 2px solid #ffe6a6 !important;
+    background: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+  }
+  html body #action-cluster button.pressed,
+  html body #action-cluster button:active {
+    filter: brightness(1.24) !important;
+    scale: .94;
+  }
+}
+@media (hover: none) and (pointer: coarse) and (max-width: 380px) {
+  html body #action-cluster {
+    transform: scale(.88) !important;
+    transform-origin: bottom right !important;
+    right: calc(2px + var(--hud-safe-r)) !important;
+    bottom: calc(5px + var(--hud-safe-b)) !important;
+  }
+}
+@media (hover: none) and (pointer: coarse) and (max-height: 420px) {
+  html body #action-cluster {
+    transform: scale(.76) !important;
+    transform-origin: bottom right !important;
+    right: calc(2px + var(--hud-safe-r)) !important;
+    bottom: calc(2px + var(--hud-safe-b)) !important;
+  }
+}
