@@ -761,3 +761,29 @@ html body #action-cluster #btn-ultimate::before {
     width: 45px !important; height: 45px !important;
   }
 }
+
+
+/* MOD 106 — atalhos visíveis para teclado; no toque, preserva os botões limpos. */
+.key-hint { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  html body #action-cluster button .key-hint {
+    display: inline-flex;
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    z-index: 8;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 3px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,.78);
+    border-radius: 4px;
+    background: rgba(5,8,18,.88);
+    color: #fff;
+    font: 900 11px/1 system-ui, sans-serif;
+    text-shadow: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,.6);
+    pointer-events: none;
+  }
+}
