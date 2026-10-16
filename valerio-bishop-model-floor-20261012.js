@@ -804,7 +804,15 @@
     if(canvas.style.display!=='block')canvas.style.display='block';window.ValerioGLBRendering=true;const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
     if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);
     camera.aspect=v.aspect||w/h;camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
-    camera.position.set(v.eye[0],v.eye[1],v.eye[2]);camera.lookAt(v.target[0],v.target[1],v.target[2]);
+    const cinematicCamera=window.CelestialUltimateCamera;
+    if(cinematicCamera&&cinematicCamera.active&&Array.isArray(cinematicCamera.eye)&&Array.isArray(cinematicCamera.target)){
+      camera.fov=(Number(cinematicCamera.fov)||.92)*180/Math.PI;camera.updateProjectionMatrix();
+      camera.position.set(cinematicCamera.eye[0],cinematicCamera.eye[1],cinematicCamera.eye[2]);
+      camera.lookAt(cinematicCamera.target[0],cinematicCamera.target[1],cinematicCamera.target[2]);
+    }else{
+      camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
+      camera.position.set(v.eye[0],v.eye[1],v.eye[2]);camera.lookAt(v.target[0],v.target[1],v.target[2]);
+    }
     // A altura do modelo já foi normalizada usando o envelope completo das animações.
     // Não aplicar offsets por estado: isso separava a morte do piso e criava flutuação.
     pivot.position.set(v.position[0],v.position[1]+diagnosticFloorOffset,v.position[2]);
