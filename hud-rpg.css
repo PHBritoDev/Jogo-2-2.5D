@@ -464,3 +464,85 @@ html body #action-cluster #btn-ultimate::before { background-image: url("data:im
 
 /* MOD 102: FPS sempre visível para acompanhar o desempenho no celular. */
 html body #fps { display:block !important; top:calc(5px + var(--hud-safe-t)); left:calc(6px + var(--hud-safe-l)); z-index:50; padding:4px 7px; border:1px solid rgba(255,240,184,.4); background:rgba(5,5,12,.68); border-radius:6px; font-size:11px; }
+
+
+/* MOD 103 — cluster de combate organizado pela frequência e força das ações.
+   Mantém os mesmos IDs e eventos; altera apenas posição e tamanho visual. */
+html body #action-cluster {
+  --b: clamp(44px, 10.6vh, 64px);
+  grid-template-columns: var(--b) calc(var(--b) * 1.12);
+  grid-template-rows: repeat(3, var(--b)) calc(var(--b) * 1.24);
+  gap: clamp(5px, 1.1vh, 9px) clamp(7px, 1.4vw, 12px);
+  align-items: center;
+  justify-items: center;
+}
+html body #action-cluster #btn-ultimate {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+}
+html body #action-cluster #btn-defend { grid-column: 2; grid-row: 1; }
+html body #action-cluster #btn-magic3 { grid-column: 1; grid-row: 2; width: 100% !important; height: 100% !important; }
+html body #action-cluster #btn-aim { grid-column: 2; grid-row: 2; }
+html body #action-cluster #btn-magic2 { grid-column: 1; grid-row: 3; width: 100% !important; height: 100% !important; }
+html body #action-cluster #btn-jump { grid-column: 2; grid-row: 3; }
+html body #action-cluster #btn-magic { grid-column: 1; grid-row: 4; width: 100% !important; height: 100% !important; }
+html body #action-cluster #btn-attack {
+  grid-column: 2;
+  grid-row: 4;
+  width: calc(var(--b) * 1.22) !important;
+  height: calc(var(--b) * 1.22) !important;
+  justify-self: end;
+  align-self: center;
+  z-index: 2;
+  font-size: clamp(8px, calc(var(--b) * .16), 12px);
+  padding-bottom: calc(var(--b) * .12) !important;
+  box-shadow: 0 0 0 1px #160609, inset 0 0 0 4px rgba(35, 5, 9, .72),
+    inset 0 -8px 14px rgba(0, 0, 0, .4), 0 0 16px rgba(255, 55, 65, .28),
+    0 4px 10px rgba(0, 0, 0, .6);
+}
+html body #action-cluster #btn-attack::before {
+  width: 53%;
+  height: 53%;
+  top: 7%;
+}
+html body #action-cluster #btn-ultimate {
+  --c1: #a77bff;
+  --c2: #27105f;
+  --glow: rgba(183, 143, 255, .85);
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 50% 32%, #b18aff 0%, #5424a6 58%, #1b0a48 100%) !important;
+}
+html body #action-cluster #btn-ultimate::after {
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, #5a3a12, #fff0b8, #9a6a1c, #f4d27a, #4a2f08, #d9a948, #5a3a12);
+  -webkit-mask: radial-gradient(circle closest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+  mask: radial-gradient(circle closest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+  box-shadow: none;
+}
+html body #action-cluster #btn-ultimate::before {
+  width: 45%;
+  height: 45%;
+  top: 8%;
+}
+@media (max-width: 720px) {
+  html body #action-cluster {
+    --b: clamp(42px, 10.3vh, 58px);
+    grid-template-columns: var(--b) calc(var(--b) * 1.12);
+    grid-template-rows: repeat(3, var(--b)) calc(var(--b) * 1.22);
+    gap: 5px 7px;
+  }
+  html body #action-cluster #btn-attack {
+    width: calc(var(--b) * 1.18) !important;
+    height: calc(var(--b) * 1.18) !important;
+  }
+}
+@media (max-height: 420px) {
+  html body #action-cluster {
+    --b: clamp(38px, 10.4vh, 48px);
+    grid-template-rows: repeat(3, var(--b)) calc(var(--b) * 1.18);
+    gap: 4px 6px;
+  }
+}
