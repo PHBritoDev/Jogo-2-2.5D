@@ -607,9 +607,22 @@
     if(swordRoot){
       const attackId=Number(v.attackId)||0;
       if(v.attack&&attackId!==lastSwordAttackId){lastSwordAttackId=attackId;swordAttackStart=now;}
-      const swingDuration=Math.max(1,Number((window.ProtagonistaAnimationTiming||{}).attackDuration)||.34)*1000;const swingProgress=swordAttackStart<0?1:Math.max(0,Math.min(1,(now-swordAttackStart)/swingDuration));
-      const swingAngle=swingProgress<1?Math.sin(swingProgress*Math.PI)*1.35:0;
-      if(swordPivot&&swordRoot.parent===swordPivot){swordPivot.rotation.set(0,0,swingAngle);swordRoot.rotation.set(0,0,Math.PI);}else{swordRoot.rotation.set(0,0,Math.PI+swingAngle);}
+      const swingDuration=Math.max(1,Number((window.ProtagonistaAnimationTiming||{}).attackDuration)||.34)*1000;
+      const swingProgress=swordAttackStart<0?1:Math.max(0,Math.min(1,(now-swordAttackStart)/swingDuration));
+      if(v.firstPerson&&swordRoot.parent===api.camera){
+        // MOD 96: golpe visível em primeira pessoa, com arco lateral, avanço e retorno.
+        // A animação corporal fica oculta neste modo; a lâmina reproduz o movimento do ataque.
+        const p=swingProgress,active=p<1;
+        const slash=Math.sin(Math.PI*Math.min(1,p/.72));
+        const follow=Math.sin(Math.PI*Math.max(0,Math.min(1,(p-.18)/.82)));
+        const direction=(Number(v.attackId)||0)%2===0?1:-1;
+        const strike=active?Math.sin(Math.PI*Math.min(1,p/.58)):0;
+        swordRoot.position.set(.34+direction*.28*slash, -.035+(.10*follow), -.72-.32*strike);
+        swordRoot.rotation.set(.18+direction*.72*slash, direction*1.08*slash, Math.PI-direction*1.05*slash+.22*follow);
+      }else{
+        const swingAngle=swingProgress<1?Math.sin(swingProgress*Math.PI)*1.35:0;
+        if(swordPivot&&swordRoot.parent===swordPivot){swordPivot.rotation.set(0,0,swingAngle);swordRoot.rotation.set(0,0,Math.PI);}else{swordRoot.rotation.set(0,0,Math.PI+swingAngle);}
+      }
       swordPhase+=dt;
       swordEffects.forEach(function(p,i){
         const phase=p.userData.phase+swordPhase*(1.15+(i%3)*.18);
