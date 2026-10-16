@@ -877,7 +877,7 @@
   function setUltimateCamera(now) {
     const state=judgmentUltimate, view=window.PlayerModelView, THREE=api.THREE, normal=window.ValerioModelView;
     if(!state.active)return;
-    if(state.stage==='lookSky'){window.CelestialUltimateCamera={active:false};return;}
+    if(state.stage==='lookSky'){window.CelestialUltimateCamera={active:false};if(normal&&Array.isArray(normal.eye)&&Array.isArray(normal.target)){if(!state.cameraEye)state.cameraEye=new THREE.Vector3();if(!state.cameraTarget)state.cameraTarget=new THREE.Vector3();state.cameraEye.set(normal.eye[0],normal.eye[1],normal.eye[2]);state.cameraTarget.set(normal.target[0],normal.target[1],normal.target[2]);state.cameraFov=Number(normal.fov)||1.02;state.cameraLastAt=now;}return;}
     let eye,target,fov=0.92;
     const player=view&&Array.isArray(view.position)?new THREE.Vector3(view.position[0],view.position[1],view.position[2]):new THREE.Vector3(0,0,0);
     const yaw=Number(view&&view.yaw)||0,forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
