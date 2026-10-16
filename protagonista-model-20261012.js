@@ -6,6 +6,8 @@
   const MODEL_HEIGHT=2.15;
   // O GLB mede cerca de 1,90 no eixo Y; o cabo fica entre Y=0,57 e 0,95.
   const SWORD_SCALE=.62,SWORD_GRIP_Y=.75;
+  // MOD 100: aura, núcleo de luz e fagulhas leves na lâmina (somente aparência; não altera a espada nem o combate).
+  let swordFx=null,swordFxBoost=0;
   const disabled=new URLSearchParams(window.location.search).get('protagonista3D')==='0';
   function note(message,isError){
     window.ProtagonistaDiagnostics=message;
@@ -196,6 +198,17 @@
   }
   function addSwordEffects(sword){
     const THREE=api.THREE;
+    // Medidas da lâmina no espaço local (antes de adicionar luzes/partículas), para a aura acompanhar o modelo.
+    let fxBox=null;
+    try{
+      const parent=sword.parent,sp=sword.position.clone(),sq=sword.quaternion.clone(),ss=sword.scale.clone();
+      if(parent)parent.remove(sword);
+      sword.position.set(0,0,0);sword.quaternion.identity();sword.scale.set(1,1,1);sword.updateMatrix();sword.updateMatrixWorld(true);
+      const b=new THREE.Box3().setFromObject(sword);
+      sword.position.copy(sp);sword.quaternion.copy(sq);sword.scale.copy(ss);sword.updateMatrix();
+      if(parent)parent.add(sword);
+      if(b&&!b.isEmpty()&&isFinite(b.min.x)&&isFinite(b.max.x))fxBox=b;
+    }catch(e){fxBox=null;}
     swordLight=new THREE.PointLight(0xffc44d,.72,1.45,2);
     swordLight.position.set(0,.18,.08);
     sword.add(swordLight);
@@ -207,6 +220,54 @@
       mesh.userData.height=-.18+(i%4)*.13;
       mesh.userData.radius=.045+(i%3)*.018;
       sword.add(mesh);swordEffects.push(mesh);
+    }
+    if(fxBox)buildSwordFx(THREE,sword,fxBox);
+  }
+  function buildSwordFx(THREE,sword,box){
+    try{
+      const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+      const dims=[size.x,size.y,size.z];
+      let ax=0;if(dims[1]>dims[ax])ax=1;if(dims[2]>dims[ax])ax=2;
+      const len=Math.max(.05,dims[ax]);
+      const o1=dims[(ax+1)%3],o2=dims[(ax+2)%3];
+      const rad=Math.max(.012,Math.max(o1,o2)*.55)+len*.012;
+      const group=new THREE.Group();group.name='EspadaProta_FX';
+      const add=function(color,opacity){return new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:opacity,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});};
+      const auraMat=add(0xffd66a,.2),coreMat=add(0xfff4cc,.26),sparkMat=add(0xfff0b0,.9);
+      const orient=function(m){if(ax===0)m.rotation.z=Math.PI/2;else if(ax===2)m.rotation.x=Math.PI/2;};
+      const aura=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*1.3,len*.98,10,1,true),auraMat);
+      aura.position.copy(center);orient(aura);aura.renderOrder=3;group.add(aura);
+      const core=new THREE.Mesh(new THREE.CylinderGeometry(rad*.28,rad*.28,len*.96,6,1,true),coreMat);
+      core.position.copy(center);orient(core);core.renderOrder=3;group.add(core);
+      const sparks=[];
+      for(let i=0;i<10;i++){
+        const m=new THREE.Mesh(new THREE.SphereGeometry(Math.max(.004,len*.011),5,4),sparkMat);
+        m.userData={off:i/10,ang:i*2.399,along:.08+((i*37)%100)/100*.84,speed:.32+(i%4)*.09};
+        m.renderOrder=3;group.add(m);sparks.push(m);
+      }
+      sword.add(group);
+      swordFx={ax:ax,min:box.min.clone(),len:len,rad:rad,center:center,aura:aura,core:core,auraMat:auraMat,coreMat:coreMat,sparks:sparks,group:group};
+    }catch(e){swordFx=null;console.warn('Efeito da espada indisponível:',e);}
+  }
+  function updateSwordFx(time,dt,swinging){
+    const f=swordFx;if(!f)return;
+    swordFxBoost+=((swinging?1:0)-swordFxBoost)*Math.min(1,dt*9);
+    const boost=swordFxBoost,pulse=.5+.5*Math.sin(time*2.6);
+    f.auraMat.opacity=.13+.10*pulse+.30*boost;
+    f.coreMat.opacity=.20+.16*pulse+.36*boost;
+    const sc=1+.35*boost+.06*pulse;f.aura.scale.set(sc,1,sc);
+    const ax=f.ax,a1=(ax+1)%3,a2=(ax+2)%3;
+    for(let i=0;i<f.sparks.length;i++){
+      const m=f.sparks[i],u=m.userData;
+      const t=(time*(u.speed+boost*.5)+u.off)%1;
+      const r=f.rad*(1.1+2.6*t),ang=u.ang+time*.8;
+      const pos=[0,0,0];
+      pos[ax]=f.min.getComponent(ax)+f.len*u.along+f.len*.10*t;
+      pos[a1]=f.center.getComponent(a1)+Math.cos(ang)*r;
+      pos[a2]=f.center.getComponent(a2)+Math.sin(ang)*r;
+      m.position.set(pos[0],pos[1],pos[2]);
+      const k=Math.sin(Math.PI*t)*(1+1.1*boost);
+      m.scale.setScalar(Math.max(.001,k));
     }
   }
   function updateSwordMount(){
@@ -629,7 +690,8 @@
         p.position.set(Math.cos(phase)*p.userData.radius,p.userData.height+Math.sin(swordPhase*1.8+i)*.025,Math.sin(phase)*p.userData.radius+.025);
         p.visible=Math.sin(swordPhase*2+i*.9)>.05;
       });
-      if(swordLight)swordLight.intensity=.55+.22*(.5+.5*Math.sin(swordPhase*2.4));
+      if(swordLight)swordLight.intensity=.55+.22*(.5+.5*Math.sin(swordPhase*2.4))+.7*swordFxBoost;
+      try{updateSwordFx(swordPhase,dt,swingProgress<1);}catch(e){swordFx=null;}
     }
     if(currentType==='attack'&&currentAction&&!currentAction.isRunning())currentType='';
     if(restoreModelScales)restoreModelScales();

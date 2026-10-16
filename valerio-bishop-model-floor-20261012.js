@@ -5,6 +5,8 @@
   const VALERIO_MODEL_HEIGHT=4.05;
   let started=false,failed=false,renderer=null,scene=null,camera=null,root=null,pivot=null;
   let weaponPivot=null,weaponRoot=null,last=0,canvas=null,mixer=null,weaponScaleCompensation=false;
+  // MOD 100: brilho violeta/carmesim e brasas leves na foice (somente aparência).
+  let scytheFx=null,scytheFxBoost=0;
   let animationClips={},attackClips=[],skillClips=[],currentAction=null,currentActionType='',armBone=null,forearmBone=null,handBone=null,legLeft=null,legRight=null,armBase=null,forearmBase=null,handBase=null,legLeftBase=null,legRightBase=null;
   let deathPlayed=false,restoreModelScales=null,rootBasePosition=null,fittedRoot=null;
   let animationFloorProfiles=[],floorEnvelopeMinY=0;
@@ -328,6 +330,62 @@
       });
     });
   }
+  // Efeito leve na foice: aura ao longo do cabo/lâmina, orbe pulsante perto da ponta e brasas subindo.
+  function buildScytheFx(root){
+    try{
+      const parent=root.parent,sp=root.position.clone(),sq=root.quaternion.clone(),ss=root.scale.clone();
+      if(parent)parent.remove(root);
+      root.position.set(0,0,0);root.quaternion.identity();root.scale.set(1,1,1);root.updateMatrix();root.updateMatrixWorld(true);
+      const box=new THREE.Box3().setFromObject(root);
+      root.position.copy(sp);root.quaternion.copy(sq);root.scale.copy(ss);root.updateMatrix();
+      if(parent)parent.add(root);
+      if(!box||box.isEmpty()||!isFinite(box.min.x)||!isFinite(box.max.x))return;
+      const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+      const dims=[size.x,size.y,size.z];
+      let ax=0;if(dims[1]>dims[ax])ax=1;if(dims[2]>dims[ax])ax=2;
+      const len=Math.max(.05,dims[ax]);
+      const a1=(ax+1)%3,a2=(ax+2)%3;
+      const rad=Math.max(.01,Math.max(dims[a1],dims[a2])*.5)*.5+len*.01;
+      const mat=function(color,opacity){return new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:opacity,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});};
+      const auraMat=mat(0x9a3cff,.16),orbMat=mat(0xff4a68,.5),emberMat=mat(0xff7a8a,.9);
+      const group=new THREE.Group();group.name='Foice_FX';
+      const aura=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*1.2,len*.98,10,1,true),auraMat);
+      aura.position.copy(center);if(ax===0)aura.rotation.z=Math.PI/2;else if(ax===2)aura.rotation.x=Math.PI/2;
+      aura.renderOrder=3;group.add(aura);
+      // A lâmina fica na extremidade superior do eixo longo (cabo preso à mão em y negativo).
+      const tipPos=[center.x,center.y,center.z];tipPos[ax]=box.max.getComponent(ax)-len*.16;
+      const orb=new THREE.Mesh(new THREE.SphereGeometry(len*.075,10,8),orbMat);
+      orb.position.set(tipPos[0],tipPos[1],tipPos[2]);orb.renderOrder=3;group.add(orb);
+      const embers=[];
+      for(let i=0;i<12;i++){
+        const m=new THREE.Mesh(new THREE.SphereGeometry(Math.max(.004,len*.012),5,4),emberMat);
+        m.userData={off:i/12,ang:i*2.399,along:.55+((i*29)%100)/100*.42,speed:.22+(i%5)*.06,spread:.6+((i*13)%10)/10};
+        m.renderOrder=3;group.add(m);embers.push(m);
+      }
+      root.add(group);
+      scytheFx={ax:ax,a1:a1,a2:a2,min:box.min.clone(),len:len,rad:rad,center:center,aura:aura,orb:orb,auraMat:auraMat,orbMat:orbMat,embers:embers};
+    }catch(e){scytheFx=null;console.warn('Efeito da foice indisponível:',e);}
+  }
+  function updateScytheFx(time,swing){
+    const f=scytheFx;if(!f)return;
+    scytheFxBoost+=((swing>.05?1:0)-scytheFxBoost)*.18;
+    const boost=scytheFxBoost,pulse=.5+.5*Math.sin(time*2.3);
+    f.auraMat.opacity=.12+.08*pulse+.22*boost;
+    f.orbMat.opacity=.34+.22*pulse+.36*boost;
+    const os=1+.25*pulse+.7*boost;f.orb.scale.set(os,os,os);
+    const sc=1+.3*boost;f.aura.scale.set(sc,1,sc);
+    for(let i=0;i<f.embers.length;i++){
+      const m=f.embers[i],u=m.userData;
+      const t=(time*(u.speed+boost*.35)+u.off)%1;
+      const r=f.rad*u.spread*(1.2+1.8*t),ang=u.ang+time*.6;
+      const pos=[0,0,0];
+      pos[f.ax]=f.min.getComponent(f.ax)+f.len*u.along+f.len*.16*t;
+      pos[f.a1]=f.center.getComponent(f.a1)+Math.cos(ang)*r;
+      pos[f.a2]=f.center.getComponent(f.a2)+Math.sin(ang)*r;
+      m.position.set(pos[0],pos[1],pos[2]);
+      m.scale.setScalar(Math.max(.001,Math.sin(Math.PI*t)*(1+.9*boost)));
+    }
+  }
   function loadWeapon() {
     new THREE.GLTFLoader().load('./Espada1.glb?v=tex1k',function(gltf){
       // MOD 10: foice ampliada para cerca de 2,3x o tamanho anterior.
@@ -337,6 +395,7 @@
       weaponPivot.position.set(0,-.02,0);
       weaponPivot.rotation.set(0,0,-.12);
       weaponRoot.position.y-=1.40; // offset proporcional à foice ampliada, mantendo a empunhadura
+      buildScytheFx(weaponRoot);
       weaponPivot.add(weaponRoot);
       if(handBone){handBone.add(weaponPivot);weaponScaleCompensation=true;}else{pivot.add(weaponPivot);weaponScaleCompensation=false;}
       scheduleWarmUp();
@@ -980,6 +1039,7 @@
         // Se o GLB vier a ganhar um ataque real, o movimento manual não duplica esse clip.
         weaponPivot.rotation.z=-.12-windup*.42+swing*.58;
         weaponPivot.rotation.x=swing*.3;
+        try{updateScytheFx(now/1000,swing);}catch(e){scytheFx=null;}
       }
   
     }else{
