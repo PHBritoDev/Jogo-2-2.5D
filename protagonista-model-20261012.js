@@ -483,6 +483,11 @@
     currentAction=next;currentType=type;
   }
   function choose(v){
+    if(window.CelestialUltimateActive&&!v.dead&&!v.knockedDown&&!v.gettingUp){
+      const cinematicPose=window.CelestialUltimatePose==='walk'?'walk':'idle';
+      if(actions[cinematicPose]&&(currentType!==cinematicPose||!currentAction||!currentAction.isRunning()))play(cinematicPose,false);
+      return;
+    }
     if(v.dead){if(currentType!=='death')play('death',true);return;}
     if(v.gettingUp){if(currentType!=='getup')play('getup',true);return;}
     // O clipe de morte do modelo também é a animação de queda; após o timer, toca get-up.
