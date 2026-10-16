@@ -618,8 +618,8 @@ const BishopDimension = (function () {
           S.pBase+=(-0.14-S.pBase)*Math.min(1,camDt*1.6);
         }
         if(nowMs-(S.lookAt||0)>3000){S.fOff*=Math.max(0,1-camDt*.5);S.pOff*=Math.max(0,1-camDt*.5);}
-        S.fOff=Math.max(-3.1,Math.min(3.1,S.fOff));S.pOff=Math.max(-.6,Math.min(.6,S.pOff));
-        c0.yaw=S.fBase+S.fOff;c0.pitch=Math.max(-.48,Math.min(.24,S.pBase+S.pOff));
+        S.pOff=Math.max(-.98,Math.min(.98,S.pOff));
+        c0.yaw=S.fBase+S.fOff;c0.pitch=Math.max(-1.12,Math.min(.82,S.pBase+S.pOff));
         S.fLast=c0.yaw;S.pLast=c0.pitch;
       }else S.fBase=undefined;
     }
@@ -845,7 +845,7 @@ const BishopDimension = (function () {
   function isBattleActive() {
     return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
   }
-  function addCameraLook(dx,dy){S.lookAt=performance.now();const c=S.camera;c.yaw+=dx*.0045;c.yaw=((c.yaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;c.pitch=clamp(c.pitch-dy*.0035,-0.48,0.24);}
+  function addCameraLook(dx,dy){S.lookAt=performance.now();const c=S.camera;c.yaw+=dx*.0045;c.yaw=((c.yaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;c.pitch=clamp(c.pitch-dy*.0035,-1.12,0.82);}
   function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
   function impact(strength){S.impactAt=performance.now();S.impactStrength=clamp(Number(strength)||.6,.25,1.5);}
   function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
