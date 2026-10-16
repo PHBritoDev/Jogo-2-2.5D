@@ -176,6 +176,7 @@
     Quest.update(dt);
     Camera.update(dt, Player);
     Ambient.update(dt, Game.time, Camera);
+    if (typeof Sfx !== 'undefined' && typeof Sfx.updateWorld === 'function') Sfx.updateWorld(dt, Player);
     StormEvents.update(dt);
   }
 

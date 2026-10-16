@@ -195,7 +195,8 @@ const Player = {
     this.kx = 0; this.ky = 0; this.vx = dx * 430; this.vy = dy * 430;
     this.fx = dx; this.fy = dy;
     Ambient.spawnDust(this.x, this.y - this.floor, 7, '#a7b9b0', 0.75);
-    Sfx.blip();
+    if (typeof Sfx.dash === 'function') Sfx.dash();
+    else Sfx.blip();
     return true;
   },
 
