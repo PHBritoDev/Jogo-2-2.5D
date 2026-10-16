@@ -11,6 +11,9 @@
    então o som começa a funcionar a partir do primeiro botão que você apertar. */
 const Sfx = (function () {
   let ac = null, master = null, nbuf = null;
+  let ambientSource = null, ambientFilter = null, ambientGain = null;
+  let ambientDrone = null, ambientDroneGain = null, ambientProfileName = '';
+  let footstepTimer = 0, lastEvadeT = 0;
 
   function create() {
     if (ac) return;
@@ -38,6 +41,102 @@ const Sfx = (function () {
   for (let i = 0; i < EVENTS.length; i++) window.addEventListener(EVENTS[i], unlock, { passive: true });
 
   function ready() { return ac && ac.state === 'running'; }
+
+  function ensureAmbient() {
+    if (!ready() || ambientSource) return;
+    ambientSource = ac.createBufferSource();
+    ambientSource.buffer = nbuf;
+    ambientSource.loop = true;
+    ambientFilter = ac.createBiquadFilter();
+    ambientFilter.type = 'lowpass';
+    ambientFilter.frequency.value = 520;
+    ambientFilter.Q.value = 0.35;
+    ambientGain = ac.createGain();
+    ambientGain.gain.value = 0;
+    ambientSource.connect(ambientFilter);
+    ambientFilter.connect(ambientGain);
+    ambientGain.connect(master);
+    ambientSource.start();
+
+    ambientDrone = ac.createOscillator();
+    ambientDrone.type = 'sine';
+    ambientDrone.frequency.value = 62;
+    ambientDroneGain = ac.createGain();
+    ambientDroneGain.gain.value = 0;
+    ambientDrone.connect(ambientDroneGain);
+    ambientDroneGain.connect(master);
+    ambientDrone.start();
+  }
+
+  function ramp(param, value, seconds) {
+    if (!param || !ac) return;
+    const now = ac.currentTime;
+    param.cancelScheduledValues(now);
+    param.setTargetAtTime(value, now, seconds || 0.8);
+  }
+
+  function worldAmbience() {
+    if (typeof BishopDimension !== 'undefined' &&
+        typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive()) return 'arena';
+    if (typeof Casino !== 'undefined' && Casino.inside) return 'casino';
+    if (typeof RuinedCity !== 'undefined' && RuinedCity.arenaInside) return 'city';
+    if (typeof MistValley !== 'undefined' && MistValley.siteInside) return 'mist';
+    if (typeof NightSanctum !== 'undefined' && NightSanctum.siteInside) return 'sanctum';
+    const climate = typeof Climate !== 'undefined' ? Climate.state : 'clear';
+    if (climate === 'storm') return 'storm';
+    if (climate === 'fog' || climate === 'fogging') return 'mist';
+    if (climate === 'night' || climate === 'nightfall') return 'night';
+    return 'forest';
+  }
+
+  const AMBIENCE = {
+    forest:  { noise: 0.014, cutoff: 1050, drone: 0.0000, pitch: 62 },
+    storm:   { noise: 0.020, cutoff: 540,  drone: 0.0025, pitch: 48 },
+    mist:    { noise: 0.009, cutoff: 370,  drone: 0.0018, pitch: 58 },
+    night:   { noise: 0.006, cutoff: 620,  drone: 0.0015, pitch: 112 },
+    city:    { noise: 0.009, cutoff: 260,  drone: 0.0015, pitch: 52 },
+    sanctum: { noise: 0.007, cutoff: 420,  drone: 0.0028, pitch: 66 },
+    casino:  { noise: 0.005, cutoff: 320,  drone: 0.0026, pitch: 48 },
+    arena:   { noise: 0.006, cutoff: 300,  drone: 0.0030, pitch: 54 }
+  };
+
+  function ambienceSurface() {
+    const profile = worldAmbience();
+    if (profile === 'city' || profile === 'casino' || profile === 'arena') return 'stone';
+    if (profile === 'mist' || profile === 'sanctum' || profile === 'night') return 'soft';
+    if (profile === 'storm') return 'wet';
+    return 'grass';
+  }
+
+  function updateWorld(dt, player) {
+    if (!ac) return;
+    ensureAmbient();
+    if (ready() && ambientGain && ambientDroneGain) {
+      const profileName = worldAmbience();
+      if (profileName !== ambientProfileName) {
+        ambientProfileName = profileName;
+        const profile = AMBIENCE[profileName] || AMBIENCE.forest;
+        ramp(ambientGain.gain, profile.noise, 1.1);
+        ramp(ambientFilter.frequency, profile.cutoff, 0.9);
+        ramp(ambientDroneGain.gain, profile.drone, 1.1);
+        ramp(ambientDrone.frequency, profile.pitch, 1.1);
+      }
+    }
+    if (!player) return;
+    const evadeT = Number(player.evadeT) || 0;
+    if (evadeT > 0 && lastEvadeT <= 0) this.dash();
+    lastEvadeT = evadeT;
+    footstepTimer = Math.max(0, footstepTimer - Math.max(0, dt || 0));
+    const speed = Math.hypot(Number(player.vx) || 0, Number(player.vy) || 0);
+    if (!player.dead && player.onGround && !player.blocking && evadeT <= 0 && speed > 72) {
+      if (footstepTimer <= 0) {
+        this.footstep(ambienceSurface());
+        footstepTimer = Math.max(0.29, Math.min(0.48, 82 / speed));
+      }
+    } else if (speed < 35 || !player.onGround || player.blocking || evadeT > 0) {
+      footstepTimer = Math.min(footstepTimer, 0.08);
+    }
+  }
 
   // Tom com variação de frequência (f0 -> f1)
   function tone(f0, f1, dur, type, vol) {
@@ -75,10 +174,29 @@ const Sfx = (function () {
     hit()   { tone(260, 60, 0.13, 'square', 0.22); noise(0.09, 0.4, 1800, 500); },
     hurt()  { tone(320, 110, 0.22, 'sawtooth', 0.2); noise(0.12, 0.3, 900, 300); },
     block() { tone(880, 620, 0.07, 'square', 0.12); tone(1320, 900, 0.05, 'triangle', 0.1); noise(0.05, 0.25, 3000, 1500); },
+    dash()  { tone(420, 105, 0.16, 'triangle', 0.075); noise(0.12, 0.11, 1700, 420); },
+    footstep(surface) {
+      const level = surface === 'stone' ? 0.055 : (surface === 'wet' ? 0.046 : 0.038);
+      const pitch = surface === 'stone' ? 145 : (surface === 'wet' ? 118 : 185);
+      tone(pitch + Math.random() * 22, pitch * 0.62, 0.075, 'triangle', level);
+      noise(0.045, level * 0.42, surface === 'grass' ? 1200 : 760, 190);
+    },
+    powerCast(kind) {
+      const pitch = kind === 'sun' ? 330 : (kind === 'ultimate' ? 190 : 270);
+      tone(pitch, pitch * 2.35, kind === 'ultimate' ? 0.72 : 0.38, 'sine', kind === 'ultimate' ? 0.11 : 0.075);
+      tone(pitch * 0.52, pitch * 1.2, kind === 'ultimate' ? 0.9 : 0.52, 'triangle', 0.045);
+      noise(kind === 'ultimate' ? 0.48 : 0.24, 0.055, 680, 2400);
+    },
+    powerImpact(strong) {
+      const level = strong ? 0.19 : 0.12;
+      tone(strong ? 118 : 168, 34, strong ? 0.48 : 0.29, 'sawtooth', level);
+      noise(strong ? 0.38 : 0.23, strong ? 0.17 : 0.105, 1250, 130);
+    },
     death() { tone(420, 50, 0.45, 'sawtooth', 0.22); noise(0.35, 0.3, 1200, 200); },
     coin()  { tone(990, 1320, 0.08, 'square', 0.1); tone(1480, 1760, 0.12, 'square', 0.08); },
     blip()  { tone(520, 640, 0.05, 'triangle', 0.09); },
-    thunder() { tone(95, 32, 1.05, 'sawtooth', 0.18); noise(0.9, 0.22, 220, 52); }
+    thunder() { tone(95, 32, 1.05, 'sawtooth', 0.18); noise(0.9, 0.22, 220, 52); },
+    updateWorld: updateWorld
   };
 })();
 

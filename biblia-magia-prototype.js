@@ -192,6 +192,117 @@
   let swordTemplate = null;
   let flyingSwords = [];
   let swordLoadStarted = false;
+  const celestialImpactPool = [];
+  const CELESTIAL_IMPACT_POOL_SIZE = 4;
+  let celestialImpactCursor = 0;
+  let celestialImpactRingGeometry = null;
+  let celestialImpactFlashGeometry = null;
+  let celestialImpactLight = null;
+  let celestialImpactLightAt = 0;
+  let celestialImpactLightStrength = 0;
+  let lastCelestialImpactSoundAt = -Infinity;
+
+  function ensureCelestialImpactPool() {
+    if (!api || !api.scene || !api.THREE || celestialImpactPool.length) return;
+    const THREE = api.THREE;
+    celestialImpactRingGeometry = new THREE.TorusGeometry(0.42, 0.045, 5, 28);
+    celestialImpactFlashGeometry = new THREE.SphereGeometry(0.34, 8, 6);
+    for (let i = 0; i < CELESTIAL_IMPACT_POOL_SIZE; i++) {
+      const root = new THREE.Group();
+      root.name = 'ImpactoCelestial3D_' + i;
+      root.visible = false;
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffd85b, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      const innerMaterial = new THREE.MeshBasicMaterial({
+        color: 0xfff6d5, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      const flashMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffe9a1, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      const ring = new THREE.Mesh(celestialImpactRingGeometry, ringMaterial);
+      const inner = new THREE.Mesh(celestialImpactRingGeometry, innerMaterial);
+      ring.rotation.x = inner.rotation.x = -Math.PI / 2;
+      inner.position.y = 0.018;
+      const flash = new THREE.Mesh(celestialImpactFlashGeometry, flashMaterial);
+      flash.position.y = 0.28;
+      root.add(ring, inner, flash);
+      api.scene.add(root);
+      celestialImpactPool.push({ root: root, ring: ring, inner: inner, flash: flash, startedAt: 0, life: 440, strength: 1 });
+    }
+    celestialImpactLight = new THREE.PointLight(0xffd56a, 0, 4.5, 2);
+    celestialImpactLight.name = 'ImpactoCelestialLuz';
+    celestialImpactLight.castShadow = false;
+    api.scene.add(celestialImpactLight);
+  }
+
+  function showCelestialImpact(position, now, color, strong) {
+    ensureCelestialImpactPool();
+    if (!celestialImpactPool.length || !position) return;
+    const effect = celestialImpactPool[celestialImpactCursor++ % celestialImpactPool.length];
+    effect.root.position.copy(position);
+    effect.root.position.y = Math.max(0.08, Number(position.y) || 0);
+    effect.root.visible = true;
+    effect.startedAt = now;
+    effect.life = strong ? 540 : 430;
+    effect.strength = strong ? 1.35 : 1;
+    effect.ring.material.color.setHex(color || 0xffd85b);
+    effect.inner.material.color.setHex(0xfff6d5);
+    effect.flash.material.color.setHex(color || 0xffe9a1);
+    effect.ring.material.opacity = 0.92;
+    effect.inner.material.opacity = 0.84;
+    effect.flash.material.opacity = 0.72;
+    effect.ring.scale.setScalar(0.18);
+    effect.inner.scale.setScalar(0.12);
+    effect.flash.scale.setScalar(0.2);
+    if (celestialImpactLight) {
+      celestialImpactLight.position.set(position.x, Math.max(0.35, position.y + 0.45), position.z);
+      celestialImpactLightAt = now;
+      celestialImpactLightStrength = strong ? 3.8 : 2.5;
+    }
+  }
+
+  function updateCelestialImpacts(now) {
+    if (!celestialImpactPool.length) return;
+    celestialImpactPool.forEach(function (effect) {
+      if (!effect.root.visible) return;
+      const progress = Math.max(0, Math.min(1, (now - effect.startedAt) / effect.life));
+      if (progress >= 1) {
+        effect.root.visible = false;
+        return;
+      }
+      effect.ring.scale.setScalar(0.18 + progress * 2.2 * effect.strength);
+      effect.inner.scale.setScalar(0.12 + progress * 1.55 * effect.strength);
+      effect.flash.scale.setScalar(0.2 + progress * 0.9 * effect.strength);
+      effect.ring.material.opacity = (1 - progress) * 0.92;
+      effect.inner.material.opacity = (1 - progress) * 0.82;
+      effect.flash.material.opacity = (1 - progress) * 0.7;
+    });
+    if (celestialImpactLight) {
+      const progress = Math.max(0, Math.min(1, (now - celestialImpactLightAt) / 380));
+      celestialImpactLight.intensity = celestialImpactLightStrength * (1 - progress);
+    }
+  }
+
+  function damageBishopWithCelestialPower(damage, dx, dy, knockback, position, now, color, strong) {
+    if (typeof BishopBoss === 'undefined' || !BishopBoss.profile ||
+        BishopBoss.state === 'inactive' || BishopBoss.state === 'dead' || !(BishopBoss.hp > 0)) return false;
+    const before = Number(BishopBoss.hp);
+    const length = Math.hypot(dx, dy) || 1;
+    BishopBoss.hurt(damage, dx / length, dy / length, knockback);
+    const confirmed = Number(BishopBoss.hp) < before;
+    if (confirmed) {
+      showCelestialImpact(position, now, color, strong);
+      if (now - lastCelestialImpactSoundAt >= 220 && typeof Sfx !== 'undefined' && Sfx.powerImpact) {
+        Sfx.powerImpact(!!strong);
+        lastCelestialImpactSoundAt = now;
+      }
+    }
+    return confirmed;
+  }
 
   function loadSwordTemplate() {
     if (swordLoadStarted || !api || !api.THREE || !api.THREE.GLTFLoader) return;
@@ -206,10 +317,22 @@
     });
   }
 
+  function disposeCelestialClone(root) {
+    if (!root) return;
+    if (root.parent) root.parent.remove(root);
+    root.traverse(function (object) {
+      if (!object.material) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach(function (material) {
+        if (material && typeof material.dispose === 'function') material.dispose();
+      });
+    });
+  }
+
   function clearFlyingSwords() {
     if (!api || !api.scene) return;
     flyingSwords.forEach(function (entry) {
-      if (entry.root && entry.root.parent) entry.root.parent.remove(entry.root);
+      disposeCelestialClone(entry.root);
       if (entry.light && entry.light.parent) entry.light.parent.remove(entry.light);
     });
     flyingSwords = [];
@@ -328,6 +451,7 @@
       const aim = target.clone().sub(start).normalize();
       createFlyingSword(start, aim, bossAlive ? target.clone() : null, index, now);
     });
+    if (typeof Sfx !== 'undefined' && Sfx.powerCast) Sfx.powerCast('swords');
     window.BibliaCelestialDiagnostics = 'Três Espadas Celestiais lançadas';
   }
 
@@ -357,17 +481,20 @@
         if (Math.hypot(entry.root.position.x - bx, entry.root.position.z - bz) < 0.78) {
           entry.hit = true;
           const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
-          const d = Math.hypot(dx, dy) || 1;
-          BishopBoss.hurt(entry.damage, dx / d, dy / d, 145);
-          window.BibliaCelestialDiagnostics = 'Espada Celestial acertou: ' + entry.damage + ' de dano';
-          if (entry.root.parent) entry.root.parent.remove(entry.root);
+          const confirmed = damageBishopWithCelestialPower(
+            entry.damage, dx, dy, 145, entry.root.position, now, 0xffd34d, false
+          );
+          window.BibliaCelestialDiagnostics = confirmed
+            ? 'Espada Celestial acertou: ' + entry.damage + ' de dano'
+            : 'Espada Celestial foi repelida';
+          disposeCelestialClone(entry.root);
           if (entry.light.parent) entry.light.parent.remove(entry.light);
           return false;
         }
       }
       if (now - entry.startedAt > 4200 ||
           entry.root.position.distanceTo(new THREE.Vector3(entry.root.userData.startX, entry.root.userData.startY, entry.root.userData.startZ)) > 8) {
-        if (entry.root.parent) entry.root.parent.remove(entry.root);
+        disposeCelestialClone(entry.root);
         if (entry.light.parent) entry.light.parent.remove(entry.light);
         return false;
       }
@@ -443,7 +570,7 @@
 
   function clearJudgmentSwords() {
     judgmentSwords.forEach(function (entry) {
-      if (entry.root && entry.root.parent) entry.root.parent.remove(entry.root);
+      disposeCelestialClone(entry.root);
       if (entry.light && entry.light.parent) entry.light.parent.remove(entry.light);
     });
     judgmentSwords = [];
@@ -546,6 +673,7 @@
     });
     judgmentCastActive = true;
     judgmentLastFrame = now;
+    if (typeof Sfx !== 'undefined' && Sfx.powerCast) Sfx.powerCast('judgment');
     window.BibliaCelestialDiagnostics = 'Julgamento Celestial: cinco espadas invocadas';
   }
 
@@ -614,19 +742,19 @@
           const distance3D = Math.hypot(dx3, dz3);
           if (distance3D <= JUDGMENT_HIT_RADIUS) {
             const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
-            const d = Math.hypot(dx, dy) || 1;
-            BishopBoss.hurt(entry.damage, dx / d, dy / d, 120);
-            landedHit = true;
+            landedHit = damageBishopWithCelestialPower(
+              entry.damage, dx, dy, 120, impact, now, 0xffe267, false
+            );
           }
         }
         // A última espada só faz a explosão maior se acertar o Bispo.
         createJudgmentParticles(impact, now, entry.index === 4 && landedHit);
-        if (entry.root.parent) entry.root.parent.remove(entry.root);
+        disposeCelestialClone(entry.root);
         if (entry.light.parent) entry.light.parent.remove(entry.light);
         return false;
       }
       if (now - entry.startedAt > 4300) {
-        if (entry.root.parent) entry.root.parent.remove(entry.root);
+        disposeCelestialClone(entry.root);
         if (entry.light.parent) entry.light.parent.remove(entry.light);
         return false;
       }
@@ -1051,7 +1179,160 @@
     state.impactAt=now;state.stage='impact';state.stageAt=now;if(state.sword)state.sword.visible=false;if(state.swordLight)state.swordLight.intensity=0;
     const flashMesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),new THREE.MeshBasicMaterial({color:0xfff6cf,transparent:true,opacity:.96,blending:THREE.AdditiveBlending,depthWrite:false}));flashMesh.position.copy(boss);flashMesh.position.y=1.05;flashMesh.scale.set(.6,.6,.6);state.root.add(flashMesh);state.flash=flashMesh;
     const ring=new THREE.Mesh(new THREE.TorusGeometry(.65,.085,6,40),new THREE.MeshBasicMaterial({color:0xffd76a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.set(boss.x,.10,boss.z);state.root.add(ring);state.shockwave=ring;
-    if(!state.damageDone&&typeof BishopBoss!=='undefined'&&BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'){const damage=Math.max(50,Math.round((Number(BishopBoss.maxHp)||100)*.46));const dx=BishopBoss.x-Player.x,dy=BishopBoss.y-Player.y,d=Math.hypot(dx,dy)||1;BishopBoss.hurt(damage,dx/d,dy/d,185);state.damageDone=true;}
+    if(!state.damageDone&&typeof BishopBoss!=='undefined'&&BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'){
+      const damage=Math.max(50,Math.round((Number(BishopBoss.maxHp)||100)*.46));
+      const dx=BishopBoss.x-Player.x,dy=BishopBoss.y-Player.y;
+      damageBishopWithCelestialPower(damage,dx,dy,185,boss,now,0xfff0a8,true);
+      state.damageDone=true;
+    }
+    createSunExplosion(boss,now);damageNearbyVegetation(boss,now);
+    if(typeof BishopDimension!=='undefined'){if(typeof BishopDimension.damageVegetation==='function')BishopDimension.damageVegetation(boss.x,boss.z,5.8);if(typeof BishopDimension.impact==='function')BishopDimension.impact(1.8);}
+    window.BibliaCelestialDiagnostics='Julgamento Divino: impacto e dano aplicados';
+  }
+  function endJudgmentUltimate(now) {
+    const state=judgmentUltimate;
+    if(state.root){state.root.traverse(function(obj){if(obj.geometry&&obj.geometry.dispose&&!obj.userData.ultimateSharedGeometry)obj.geometry.dispose();if(obj.material){const mats=Array.isArray(obj.material)?obj.material:[obj.material];mats.forEach(function(m){if(m&&m.dispose)m.dispose();});}});if(state.root.parent)state.root.parent.remove(state.root);}
+    if(api&&api.scene&&api.scene.fog===state.stormFog)api.scene.fog=state.originalSceneFog||null;
+    state.active=false;state.stage='';state.root=null;state.cameraEye=null;state.cameraTarget=null;state.cameraLastAt=0;state.cameraFov=1.02;state.clouds=[];state.cloudMaterial=null;state.rain=null;state.lightning=null;state.portal=null;state.portalSpinner=null;state.portalMaterials=[];state.sword=null;state.swordLight=null;state.flashLight=null;state.stormFog=null;state.originalSceneFog=null;state.shockwave=null;state.flash=null;
+    window.CelestialUltimateActive=false;window.CelestialUltimateAutoWalk=false;window.CelestialUltimatePose='';window.CelestialUltimateLookAtSky=false;window.CelestialUltimateCamera={active:false};
+    window.CelestialUltimateStormFactor=0;window.CelestialUltimateLightningFactor=0;
+    if(typeof BishopBoss!=='undefined'){if(state.originalBossUpdate)BishopBoss.update=state.originalBossUpdate;state.originalBossUpdate=null;if(BishopBoss.state!=='dead'&&BishopBoss.state!=='inactive'){BishopBoss.vx=BishopBoss.vy=BishopBoss.kx=BishopBoss.ky=0;if(BishopBoss.state==='attack'||BishopBoss.state==='windup'||BishopBoss.state==='approach'){BishopBoss.state='recover';BishopBoss.stateT=0;BishopBoss.attack=null;}}}
+    castRequested=false;opened=false;opening=false;hideAt=0;if(group)group.visible=false;if(closedBook)closedBook.visible=false;if(openBook)openBook.visible=false;
+    window.BibliaCelestialDiagnostics='Julgamento Divino concluído';
+  }
+  function startJudgmentUltimate() {
+    const now=performance.now(),THREE=api&&api.THREE;
+    if(judgmentUltimate.active)return false;
+    if(!started||!api||!THREE||!swordTemplate||!closedBook||!openBook||!window.PlayerModelView||!window.PlayerModelView.active)return reportUltimateBlock('Aguarde o carregamento 3D antes de usar o Julgamento Divino.');
+    if(typeof BishopDimension==='undefined'||!BishopDimension.isBattleActive()||typeof BishopBoss==='undefined'||BishopBoss.state==='inactive'||BishopBoss.state==='dead')return reportUltimateBlock('Julgamento Divino disponível durante a batalha con }
+  }
+
+  // Mod 91 — câmera enquadrada pela lâmina, portal frontal e limpeza controlada da tempestade.
+  const judgmentUltimate = {active:false,stage:'',stageAt:0,startedAt:0,root:null,clouds:[],cloudMaterial:null,rain:null,lightning:null,portal:null,portalSpinner:null,portalMaterials:[],portalFacingYaw:0,sword:null,swordLength:ULTIMATE_SWORD_LENGTH,swordLight:null,flashLight:null,stormFog:null,originalSceneFog:null,shockwave:null,flash:null,impactAt:0,lastLightningAt:0,returnEye:null,returnTarget:null,returnStartEye:null,returnStartTarget:null,cameraEye:null,cameraTarget:null,cameraLastAt:0,cameraFov:1.02,originalBossUpdate:null,walkYaw:0,damageDone:false};
+  let bookGlowLight = null;
+  function ultimateBossPoint() {
+    const THREE=api.THREE;
+    const bossAlive=typeof BishopBoss!=='undefined'&&typeof BishopDimension!=='undefined'&&BishopDimension.isBattleActive()&&BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'&&Number.isFinite(BishopBoss.x)&&Number.isFinite(BishopBoss.y);
+    if(!bossAlive||typeof Casino==='undefined'||!Casino.room)return null;
+    const cx=(Casino.room.left+Casino.room.right)/2,cy=(Casino.room.top+Casino.room.bottom)/2;
+    return new THREE.Vector3((BishopBoss.x-cx)/72,0.08,(BishopBoss.y-cy)/72);
+  }
+  function setUltimateCamera(now) {
+    const state=judgmentUltimate, view=window.PlayerModelView, THREE=api.THREE, normal=window.ValerioModelView;
+    if(!state.active)return;
+    let eye,target,fov=0.92;
+    const player=view&&Array.isArray(view.position)?new THREE.Vector3(view.position[0],view.position[1],view.position[2]):new THREE.Vector3(0,0,0);
+    const yaw=Number(view&&view.yaw)||0,forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+    const boss=ultimateBossPoint()||player.clone().addScaledVector(forward,5);
+    const shotAxis=player.clone().sub(boss);shotAxis.y=0;
+    if(shotAxis.lengthSq()<0.0001)shotAxis.copy(forward);
+    shotAxis.normalize();
+    const shotSide=new THREE.Vector3(-shotAxis.z,0,shotAxis.x);
+    if(state.stage==='book'){
+      eye=player.clone().addScaledVector(forward,-5.4).add(new THREE.Vector3(0,2.55,0));target=player.clone().add(new THREE.Vector3(0,1.25,0));fov=1.04;
+    }else if(state.stage==='bookReveal'){
+      eye=player.clone().addScaledVector(forward,-5.4).add(new THREE.Vector3(0,2.55,0));target=player.clone().add(new THREE.Vector3(0,1.25,0));fov=1.04;
+    }else if(state.stage==='lookSky'){
+      eye=player.clone().addScaledVector(forward,-5.8).add(new THREE.Vector3(0,3.0,0));
+      target=player.clone().add(new THREE.Vector3(0,8.5,0));fov=1.02;
+    }else if(state.stage==='storm'||state.stage==='portal'){
+      // A câmera mantém o lado do jogador e enquadra o portal voltado para ele.
+      eye=boss.clone().addScaledVector(shotAxis,19.5).addScaledVector(shotSide,2.4).add(new THREE.Vector3(0,16.3,0));
+      target=boss.clone().add(new THREE.Vector3(0,11.8,0));fov=1.08;
+    }else if(state.stage==='emerge'){
+      const swordY=state.sword?state.sword.position.y:17.6;
+      eye=boss.clone().addScaledVector(shotAxis,16).addScaledVector(shotSide,2).add(new THREE.Vector3(0,swordY+3.4,0));
+      target=boss.clone().add(new THREE.Vector3(0,swordY,0));fov=1.05;
+    }else if(state.stage==='fallSetup'||state.stage==='fall'||state.stage==='impact'){
+      // Afasta conforme o comprimento real da espada: ponta e chão permanecem no quadro.
+      const halfLength=(Number(state.swordLength)||ULTIMATE_SWORD_LENGTH)*.5;
+      const swordY=state.sword?state.sword.position.y:17.6;
+      const floorY=ULTIMATE_CAMERA_FLOOR_Y;
+      const top=Math.max(4.05,swordY+halfLength);
+      const bottom=Math.min(floorY,swordY-halfLength);
+      const targetY=(top+bottom)*.5;
+      const verticalSpan=Math.max(1,top-bottom);
+      const distance=Math.max(14,verticalSpan/(2*Math.tan(1.02*.5)*.82));
+      eye=boss.clone().addScaledVector(shotAxis,distance).addScaledVector(shotSide,distance*.12).add(new THREE.Vector3(0,targetY+distance*.16,0));
+      target=boss.clone().add(new THREE.Vector3(0,targetY,0));fov=1.02;
+      if(state.stage==='impact'){const shake=Math.max(0,1-(now-state.impactAt)/430);eye.x+=Math.sin(now*.12)*.12*shake;eye.y+=Math.cos(now*.16)*.10*shake;}
+    }else if(state.stage==='return'){
+      const p=Math.max(0,Math.min(1,(now-state.stageAt)/ULTIMATE_CAMERA_RETURN_MS)),e=p*p*(3-2*p);
+      const fallbackEye=state.returnStartEye||state.returnEye||player.clone().add(new THREE.Vector3(0,4,9));
+      const fallbackTarget=state.returnStartTarget||state.returnTarget||player;
+      const ne=normal&&normal.eye?new THREE.Vector3(normal.eye[0],normal.eye[1],normal.eye[2]):fallbackEye;
+      const nt=normal&&normal.target?new THREE.Vector3(normal.target[0],normal.target[1],normal.target[2]):fallbackTarget;
+      eye=fallbackEye.clone().lerp(ne,e);target=fallbackTarget.clone().lerp(nt,e);fov=.86+(Number(normal&&normal.fov||1.02)-.86)*e;
+      if(p>=1){window.CelestialUltimateCamera={active:false};return;}
+    }
+    if(!eye||!target)return;
+    const cameraDt=state.cameraLastAt?Math.min(.05,Math.max(0,(now-state.cameraLastAt)/1000)):0;
+    state.cameraLastAt=now;
+    if(state.cameraEye&&state.cameraTarget){const blend=1-Math.exp(-cameraDt*2.35);state.cameraEye.lerp(eye,blend);state.cameraTarget.lerp(target,blend);state.cameraFov+=(fov-state.cameraFov)*blend;}
+    else{state.cameraEye=eye.clone();state.cameraTarget=target.clone();state.cameraFov=fov;}
+    eye=state.cameraEye;target=state.cameraTarget;fov=state.cameraFov;
+    window.CelestialUltimateCamera={active:true,eye:[eye.x,eye.y,eye.z],target:[target.x,target.y,target.z],fov:fov};
+    state.returnEye=eye.clone();state.returnTarget=target.clone();
+  }
+  function addUltimateStorm(now) {
+    const THREE=api.THREE,root=new THREE.Group();root.name='JulgamentoDivino_Tempestade';api.scene.add(root);judgmentUltimate.root=root;
+    const boss=ultimateBossPoint()||new THREE.Vector3(0,0,0);
+    judgmentUltimate.originalSceneFog=api.scene.fog;
+    judgmentUltimate.stormFog=new THREE.FogExp2(0x182238,0);
+    api.scene.fog=judgmentUltimate.stormFog;
+    const cloudGeo=new THREE.SphereGeometry(1,8,6),cloudMat=new THREE.MeshBasicMaterial({color:0x111a2b,transparent:true,opacity:0,depthWrite:false});
+    judgmentUltimate.cloudMaterial=cloudMat;
+    for(let i=0;i<12;i++){const a=i/12*Math.PI*2,rad=6.2+(i%3)*.55;const cloud=new THREE.Mesh(cloudGeo,cloudMat);cloud.position.set(boss.x+Math.cos(a)*rad,13.5+(i%4)*.34,boss.z+Math.sin(a)*rad);cloud.scale.set(1.7+(i%3)*.24,.62+(i%2)*.18,1.45);root.add(cloud);judgmentUltimate.clouds.push({mesh:cloud,angle:a,radius:rad,phase:i*.8});}
+    const player=window.PlayerModelView&&Array.isArray(window.PlayerModelView.position)?window.PlayerModelView.position:[boss.x,0,boss.z+1];
+    judgmentUltimate.portalFacingYaw=Math.atan2(player[0]-boss.x,player[2]-boss.z);
+    const portal=new THREE.Group();portal.name='JulgamentoDivino_PortalCelestial';portal.position.set(boss.x,17.6,boss.z);portal.rotation.y=judgmentUltimate.portalFacingYaw;portal.scale.setScalar(.08);portal.visible=false;root.add(portal);judgmentUltimate.portal=portal;
+    const spinner=new THREE.Group();portal.add(spinner);judgmentUltimate.portalSpinner=spinner;
+    function portalMaterial(color,opacity){const material=new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});material.userData.ultimateBaseOpacity=opacity;judgmentUltimate.portalMaterials.push(material);return material;}
+    const aperture=new THREE.Mesh(new THREE.CircleGeometry(4.2,48),portalMaterial(0x344a78,.48));aperture.position.z=-.08;spinner.add(aperture);
+    spinner.add(new THREE.Mesh(new THREE.TorusGeometry(5.15,.095,8,80),portalMaterial(0xffd66b,.98)));
+    spinner.add(new THREE.Mesh(new THREE.TorusGeometry(4.38,.045,7,72),portalMaterial(0xe9f5ff,.88)));
+    spinner.add(new THREE.Mesh(new THREE.TorusGeometry(3.4,.025,6,64),portalMaterial(0x84bcff,.66)));
+    const runeGeo=new THREE.BoxGeometry(.15,.035,.4),runeMat=portalMaterial(0xffedac,.94),runes=new THREE.InstancedMesh(runeGeo,runeMat,16),runeTransform=new THREE.Object3D();
+    for(let i=0;i<16;i++){const a=i*Math.PI/8;runeTransform.position.set(Math.cos(a)*4.78,Math.sin(a)*4.78,0);runeTransform.rotation.set(0,0,a);runeTransform.updateMatrix();runes.setMatrixAt(i,runeTransform.matrix);}
+    runes.instanceMatrix.needsUpdate=true;spinner.add(runes);
+    const dropCount=112,positions=new Float32Array(dropCount*6);
+    for(let i=0;i<dropCount;i++){const x=boss.x+(Math.random()-.5)*19,y=3+Math.random()*18,z=boss.z+(Math.random()-.5)*18;positions[i*6]=x;positions[i*6+1]=y;positions[i*6+2]=z;positions[i*6+3]=x-.035;positions[i*6+4]=y-.24;positions[i*6+5]=z-.025;}
+    const rainGeo=new THREE.BufferGeometry();rainGeo.setAttribute('position',new THREE.BufferAttribute(positions,3));rainGeo.attributes.position.setUsage(THREE.DynamicDrawUsage);
+    const rain=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0x9ac9f3,transparent:true,opacity:.42,depthWrite:false}));root.add(rain);judgmentUltimate.rain=rain;
+    const lightningSegments=24,lightningGeo=new THREE.BufferGeometry();lightningGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(lightningSegments*6),3));
+    const lightning=new THREE.LineSegments(lightningGeo,new THREE.LineBasicMaterial({color:0xc7eaff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));lightning.visible=false;root.add(lightning);judgmentUltimate.lightning=lightning;judgmentUltimate.lastLightningAt=now-500;
+    const flashLight=new THREE.PointLight(0xadcfff,0,32,2);flashLight.position.set(boss.x,14,boss.z);root.add(flashLight);judgmentUltimate.flashLight=flashLight;
+    window.CelestialUltimateStormFactor=0;window.CelestialUltimateLightningFactor=0;
+    window.BibliaCelestialDiagnostics='Julgamento Divino: tempestade e portal ativos';
+  }
+  function createUltimateSword(now) {
+    if(!swordTemplate||!judgmentUltimate.root)return;
+    const THREE=api.THREE,boss=ultimateBossPoint()||new THREE.Vector3(0,0,0),root=new THREE.Group();root.name='JulgamentoDivino_EspadaColossal';
+    const blade=swordTemplate.clone(true);
+    blade.traverse(function(obj){if(!obj.isMesh)return;obj.userData.ultimateSharedGeometry=true;obj.castShadow=false;obj.receiveShadow=false;obj.frustumCulled=false;const list=Array.isArray(obj.material)?obj.material:[obj.material];const mats=list.filter(Boolean).map(function(src){const m=src.clone();if(m.emissive){m.emissive.lerp(new THREE.Color(0xffd36b),.22);m.emissiveIntensity=Math.min(1.35,Math.max(.55,Number(m.emissiveIntensity)||.55));}return m;});obj.material=Array.isArray(obj.material)?mats:mats[0];});
+    blade.updateMatrixWorld(true);
+    const bounds=new THREE.Box3().setFromObject(blade),size=new THREE.Vector3(),center=new THREE.Vector3();bounds.getSize(size);bounds.getCenter(center);const longest=Math.max(size.x,size.y,size.z,.001);
+    blade.position.sub(center);root.add(blade);
+    const longIndex=size.y>=size.x&&size.y>=size.z?1:(size.x>=size.z?0:2);
+    const longAxis=longIndex===1?new THREE.Vector3(0,-1,0):(longIndex===0?new THREE.Vector3(-1,0,0):new THREE.Vector3(0,0,-1));
+    const fitScale=ULTIMATE_SWORD_LENGTH/longest,crossScales=[1.35,1.35,1.15];crossScales[longIndex]=1;
+    root.quaternion.setFromUnitVectors(longAxis,new THREE.Vector3(0,-1,0));root.scale.set(fitScale*crossScales[0],fitScale*crossScales[1],fitScale*crossScales[2]);
+    root.position.set(boss.x,21.5,boss.z);judgmentUltimate.root.add(root);judgmentUltimate.sword=root;
+    judgmentUltimate.swordLength=ULTIMATE_SWORD_LENGTH;
+    const light=new THREE.PointLight(0xffd66d,3.2,18);light.position.copy(root.position);judgmentUltimate.root.add(light);judgmentUltimate.swordLight=light;
+    judgmentUltimate.swordStart=root.position.clone();judgmentUltimate.swordPortalY=17.6;judgmentUltimate.swordTarget=new THREE.Vector3(boss.x,judgmentUltimate.swordLength*.5+ULTIMATE_GROUND_CLEARANCE,boss.z);judgmentUltimate.stage='emerge';judgmentUltimate.stageAt=now;
+  }
+  function createUltimateImpact(now) {
+    const THREE=api.THREE,boss=ultimateBossPoint()||new THREE.Vector3(0,.08,0),state=judgmentUltimate;
+    state.impactAt=now;state.stage='impact';state.stageAt=now;if(state.sword)state.sword.visible=false;if(state.swordLight)state.swordLight.intensity=0;
+    const flashMesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),new THREE.MeshBasicMaterial({color:0xfff6cf,transparent:true,opacity:.96,blending:THREE.AdditiveBlending,depthWrite:false}));flashMesh.position.copy(boss);flashMesh.position.y=1.05;flashMesh.scale.set(.6,.6,.6);state.root.add(flashMesh);state.flash=flashMesh;
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.65,.085,6,40),new THREE.MeshBasicMaterial({color:0xffd76a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.set(boss.x,.10,boss.z);state.root.add(ring);state.shockwave=ring;
+    if(!state.damageDone&&typeof BishopBoss!=='undefined'&&BishopBoss.state!=='inactive'&&BishopBoss.state!=='dead'){
+      const damage=Math.max(50,Math.round((Number(BishopBoss.maxHp)||100)*.46));
+      const dx=BishopBoss.x-Player.x,dy=BishopBoss.y-Player.y;
+      damageBishopWithCelestialPower(damage,dx,dy,185,boss,now,0xfff0a8,true);
+      state.damageDone=true;
+    }
     createSunExplosion(boss,now);damageNearbyVegetation(boss,now);
     if(typeof BishopDimension!=='undefined'){if(typeof BishopDimension.damageVegetation==='function')BishopDimension.damageVegetation(boss.x,boss.z,5.8);if(typeof BishopDimension.impact==='function')BishopDimension.impact(1.8);}
     window.BibliaCelestialDiagnostics='Julgamento Divino: impacto e dano aplicados';
@@ -1088,6 +1369,7 @@
     judgmentUltimate.cameraTarget=normal&&Array.isArray(normal.target)?new THREE.Vector3(normal.target[0],normal.target[1],normal.target[2]):null;
     judgmentUltimate.cameraLastAt=now;judgmentUltimate.cameraFov=Number(normal&&normal.fov)||1.02;
     lastSpellCast=now;window.CelestialUltimateActive=true;window.CelestialUltimateAutoWalk=false;window.CelestialUltimatePose='idle';window.CelestialUltimateLookAtSky=false;window.CelestialUltimateCamera={active:false};
+    if(typeof Sfx!=='undefined'&&Sfx.powerCast)Sfx.powerCast('ultimate');
     if(typeof BishopBoss.update==='function'){judgmentUltimate.originalBossUpdate=BishopBoss.update;BishopBoss.update=function(dt){if(window.CelestialUltimateActive)return;return judgmentUltimate.originalBossUpdate.apply(this,arguments);};}
     if(bookGlowLight)bookGlowLight.intensity=0;setUltimateBibleFade(1);window.BibliaCelestialDiagnostics='Julgamento Divino: invocação iniciada';
     castRequested=true;opened=false;opening=false;pendingBookSpell='ultimate';hideAt=now+30000;openAt=now+ULTIMATE_BOOK_OPEN_DELAY_MS;
@@ -1249,6 +1531,7 @@
     sunHalo.rotation.z = 0;
     sunFlight = { start: origin.clone(), peak: peak, target: target, startedAt: now, riseDuration: 650, holdDuration: 2450, duration: 1250 };
     sunLastCast = now;
+    if (typeof Sfx !== 'undefined' && Sfx.powerCast) Sfx.powerCast('sun');
     window.BibliaCelestialDiagnostics = 'Sol da Justiça invocado';
   }
 
@@ -1301,10 +1584,10 @@
       const bz = (BishopBoss.y - cy) / 72;
       if (Math.hypot(impact.x - bx, impact.z - bz) <= 5.2) {
         const dx = BishopBoss.x - Player.x, dy = BishopBoss.y - Player.y;
-        const d = Math.hypot(dx, dy) || 1;
-        BishopBoss.hurt(42, dx / d, dy / d, 120);
-        startSunBurn(bx, bz, now);
-        landedHit = true;
+        landedHit = damageBishopWithCelestialPower(
+          42, dx, dy, 120, impact, now, 0xff7b1a, true
+        );
+        if (landedHit) startSunBurn(bx, bz, now);
       }
     }
     createSunExplosion(impact, now);
@@ -1406,6 +1689,7 @@
     requestAnimationFrame(update);
     const dt = previousFrame ? Math.min(0.05, (now - previousFrame) / 1000) : 0;
     previousFrame = now;
+    updateCelestialImpacts(now);
     updateFlyingSwords(now, dt);
     updateJudgment(now, dt);
     updateSunOfJustice(now, dt);
