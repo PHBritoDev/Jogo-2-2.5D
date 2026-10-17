@@ -473,6 +473,22 @@
       entry.light.intensity = 2.6 + (Math.sin(now * 0.012 + entry.index) + 1) * 0.65;
       const pulse = 1 + Math.sin(now * 0.018 + entry.index) * 0.07;
       entry.root.scale.setScalar((entry.root.userData.baseScale || 0.01) * pulse);
+      if (entry.bossTarget && typeof BishopBoss !== 'undefined' && BishopBoss.profile &&
+          BishopBoss.profile.id === 'bishop1' && BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
+          typeof Casino !== 'undefined' && Casino.room) {
+        const cxThreat=(Casino.room.left+Casino.room.right)/2,cyThreat=(Casino.room.top+Casino.room.bottom)/2;
+        const bxThreat=(BishopBoss.x-cxThreat)/72,bzThreat=(BishopBoss.y-cyThreat)/72;
+        const threatDistance=Math.hypot(entry.root.position.x-bxThreat,entry.root.position.z-bzThreat);
+        if(threatDistance<3.6&&BishopBoss.magicCutCooldown<=0&&['approach','recover','breather'].includes(BishopBoss.state)){
+          BishopBoss.magicThreatT=.58;BishopBoss.magicThreatX=entry.root.position.x*72+cxThreat;BishopBoss.magicThreatY=entry.root.position.z*72+cyThreat;
+        }
+        if(!entry.hit&&window.ValerioMagicCutActive&&threatDistance<1.18){
+          entry.hit=true;Ambient.spawnSpark(BishopBoss.x,BishopBoss.y-25,9,'#d8dfff');Ambient.spawnSpark(BishopBoss.x,BishopBoss.y-25,4,'#ffffff');
+          if(typeof Sfx!=='undefined'&&Sfx.block)Sfx.block();
+          window.BibliaCelestialDiagnostics='Valério cortou uma Espada Celestial com a foice';
+          disposeCelestialClone(entry.root);if(entry.light.parent)entry.light.parent.remove(entry.light);return false;
+        }
+      }
       if (!entry.hit && entry.bossTarget && typeof BishopBoss !== 'undefined' &&
           BishopBoss.state !== 'inactive' && BishopBoss.state !== 'dead' &&
           typeof Casino !== 'undefined' && Casino.room) {
