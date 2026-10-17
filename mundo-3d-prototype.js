@@ -66,7 +66,7 @@ let lastMove=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);
 let x=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let z=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;const len=Math.hypot(x,z);if(len>1){x/=len;z/=len;}
 const moving=len>.12&&now>actionUntil;
-if(moving){const speed=4.3;player.position.x+=x*speed*dt;player.position.z+=z*speed*dt;player.position.x=THREE.MathUtils.clamp(player.position.x,-38,38);player.position.z=THREE.MathUtils.clamp(player.position.z,-72,14);player.rotation.y=Math.atan2(x,z);cameraYaw=THREE.MathUtils.lerp(cameraYaw,player.rotation.y+Math.PI,.04);if(actions.walk)play('walk');}
+if(moving){const speed=4.3;player.position.x+=x*speed*dt;player.position.z+=z*speed*dt;player.position.x=THREE.MathUtils.clamp(player.position.x,-38,38);player.position.z=THREE.MathUtils.clamp(player.position.z,-72,14);player.rotation.y=Math.atan2(x,z);if(actions.walk)play('walk');}
 else if(now>actionUntil&&actions.idle)play('idle');
 if(hop>0){hop-=dt;player.position.y=Math.max(0,Math.sin((.34-hop)/.34*Math.PI)*.75);}else player.position.y=0;
 const target=new THREE.Vector3(player.position.x,player.position.y+1.15,player.position.z);
