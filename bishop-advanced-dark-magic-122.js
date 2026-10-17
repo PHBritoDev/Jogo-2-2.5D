@@ -1,4 +1,4 @@
-/* MOD 122 — Ceifador com foice, lâminas frontais e Ultimate Eclipse do Abismo. */
+/* MOD 123 — três magias, foice corrigida, lâminas frontais e Eclipse do Abismo. */
 (function(){
 'use strict';
 let api=null,group=null,ready=false,last=0,activeId='',startAt=0,overlay=null;
@@ -15,17 +15,17 @@ function build(){
  const hood=new T.Mesh(new T.SphereGeometry(.29,10,8),blackRed);hood.position.set(0,1.83,.02);hood.scale.set(.88,1.05,.78);reaper.add(hood);
  const face=new T.Mesh(new T.SphereGeometry(.17,8,7),new T.MeshBasicMaterial({color:0x010105}));face.position.set(0,1.83,.19);reaper.add(face);
  [-.085,.085].forEach(x=>{const eye=new T.Mesh(new T.SphereGeometry(.035,6,5),red);eye.position.set(x,1.87,.34);reaper.add(eye);});
- arm=new T.Group();arm.position.set(.3,1.45,.02);reaper.add(arm);
+ arm=new T.Group();arm.position.set(.43,1.42,.22);reaper.add(arm);
  const upper=new T.Mesh(new T.CylinderGeometry(.085,.11,.62,6),blackRed);upper.position.y=-.2;upper.rotation.z=-.24;arm.add(upper);
  const hand=new T.Mesh(new T.SphereGeometry(.09,7,6),black);hand.position.set(.12,-.48,.02);arm.add(hand);
- scythe=new T.Group();scythe.position.set(.16,-.62,.03);scythe.rotation.z=-.18;arm.add(scythe);
- const shaft=new T.Mesh(new T.CylinderGeometry(.026,.04,1.62,7),blackRed);shaft.position.y=-.62;scythe.add(shaft);
- const grip=new T.Mesh(new T.CylinderGeometry(.045,.045,.28,6),mat(T,0xff123f,.95,true));grip.position.y=-.83;scythe.add(grip);
- const blade=new T.Mesh(new T.TorusGeometry(.38,.065,6,20,Math.PI*.72),blackRed);blade.position.set(.2,.2,.02);blade.rotation.z=.72;scythe.add(blade);
- const edge=new T.Mesh(new T.TorusGeometry(.35,.025,5,20,Math.PI*.72),mat(T,0xff4268,.95,true));edge.position.set(.2,.2,.055);edge.rotation.z=.72;scythe.add(edge);
- const tip=new T.Mesh(new T.ConeGeometry(.075,.36,5),mat(T,0xff7893,.95,true));tip.position.set(.51,.44,.035);tip.rotation.z=-.84;scythe.add(tip);
+ scythe=new T.Group();scythe.position.set(.18,-.42,.28);scythe.rotation.z=-.18;arm.add(scythe);
+ const shaft=new T.Mesh(new T.CylinderGeometry(.026,.04,1.62,7),blackRed);shaft.position.y=.25;scythe.add(shaft);
+ const grip=new T.Mesh(new T.CylinderGeometry(.045,.045,.28,6),mat(T,0xff123f,.95,true));grip.position.y=-.03;scythe.add(grip);
+ const blade=new T.Mesh(new T.TorusGeometry(.38,.065,6,20,Math.PI*.72),blackRed);blade.position.set(.2,.2,.06);blade.rotation.z=.72;scythe.add(blade);
+ const edge=new T.Mesh(new T.TorusGeometry(.35,.025,5,20,Math.PI*.72),mat(T,0xff4268,.95,true));edge.position.set(.2,.2,.095);edge.rotation.z=.72;scythe.add(edge);
+ const tip=new T.Mesh(new T.ConeGeometry(.075,.36,5),mat(T,0xff7893,.95,true));tip.position.set(.51,.44,.075);tip.rotation.z=-.84;scythe.add(tip);
  lane=new T.Mesh(new T.PlaneGeometry(1,1),mat(T,0xff123f,.28,true));lane.rotation.x=-Math.PI/2;group.add(lane);
- for(let i=0;i<28;i++){const g=new T.Group();g.add(new T.Mesh(new T.BoxGeometry(.055,.78,.035),blackRed));const point=new T.Mesh(new T.ConeGeometry(.04,.24,4),black);point.position.y=-.49;g.add(point);const edge2=new T.Mesh(new T.BoxGeometry(.018,.64,.045),mat(T,0xff123f,.96,true));edge2.position.set(.018,.02,.022);g.add(edge2);const core=new T.Mesh(new T.BoxGeometry(.009,.48,.05),mat(T,0xff7893,.95,true));core.position.set(-.012,.01,.026);g.add(core);const trail=new T.Mesh(new T.BoxGeometry(.085,1.2,.012),mat(T,0xff123f,.42,true));trail.position.set(0,.34,-.015);g.add(trail);group.add(g);swords.push({mesh:g,lane:((i%7)-3)*.28,start:.15+Math.floor(i/7)*.17,baseY:1.2+(i%4)*.27,phase:i*.37});}
+ for(let i=0;i<35;i++){const g=new T.Group();g.add(new T.Mesh(new T.BoxGeometry(.055,.78,.035),blackRed));const point=new T.Mesh(new T.ConeGeometry(.04,.24,4),black);point.position.y=-.49;g.add(point);const edge2=new T.Mesh(new T.BoxGeometry(.018,.64,.045),mat(T,0xff123f,.96,true));edge2.position.set(.018,.02,.022);g.add(edge2);const core=new T.Mesh(new T.BoxGeometry(.009,.48,.05),mat(T,0xff7893,.95,true));core.position.set(-.012,.01,.026);g.add(core);const trail=new T.Mesh(new T.BoxGeometry(.085,1.2,.012),mat(T,0xff123f,.42,true));trail.position.set(0,.34,-.015);g.add(trail);group.add(g);swords.push({mesh:g,lane:((i%7)-3)*.52,start:.10+Math.floor(i/7)*.12,baseY:1.2+(i%4)*.27,phase:i*.37});}
  const eclipse=new T.Group();eclipse.name='Eclipse sequence';group.add(eclipse);
  moon=new T.Mesh(new T.SphereGeometry(1.65,20,14),new T.MeshStandardMaterial({color:0x24000b,roughness:.9,emissive:0x7b001c,emissiveIntensity:1.1}));moon.position.set(0,8.2,-7.8);eclipse.add(moon);
  const eyeMat=new T.MeshBasicMaterial({color:0x030106});
@@ -52,19 +52,19 @@ function tick(now){
  group.position.set(boss[0],boss[1]||0,boss[2]);group.visible=true;
  if(id!==activeId){activeId=id;startAt=now;const book=window.BishopGrimoire3D||window.ValerioGrimoire3D;if(book&&book.ready&&typeof book.invoke==='function')book.invoke(((Number(view.windupDuration)||1.5)+(Number(view.attackDuration)||1)+2.5)*1000);}
  reaper.visible=id==='blackReaper';lane.visible=id==='blackSwordRain';swords.forEach(s=>s.mesh.visible=id==='blackSwordRain');group.userData.eclipse.visible=id==='abyssEclipse';
- if(id==='blackReaper'){const progress=state==='windup'?0:clamp((Number(view.stateTime)||0)/Math.max(.1,Number(view.hitAt)||.62),0,1);reaper.position.set(ux*(1+(len-1)*progress),0,uz*(1+(len-1)*progress));reaper.rotation.y=Math.atan2(ux,uz);const swing=state==='attack'?clamp(((Number(view.stateTime)||0)-.25)/.55,0,1):0;arm.rotation.z=state==='windup'?.12:-.18-swing*1.08;scythe.rotation.z=-.18+swing*1.7;}
- else if(id==='blackSwordRain'){lane.material.opacity=state==='windup'?.48:.08;lane.position.set(dx*.5,.045,dz*.5);lane.rotation.set(-Math.PI/2,0,-Math.atan2(dz,dx));lane.scale.set(2.8,Math.max(1,len),1);const progress=state==='attack'?clamp((Number(view.stateTime)||0)/Math.max(.1,Number(view.hitAt)||.72),0,1):0;swords.forEach(s=>{const startD=1.2+s.start*.35,travelD=Math.max(0,len-startD)*progress,spread=s.lane*(.7+progress*.35);s.mesh.position.set(ux*(startD+travelD)+px*spread,s.baseY+.035*Math.sin(now*.009+s.phase),uz*(startD+travelD)+pz*spread);s.mesh.rotation.set(Math.PI/2,Math.atan2(-ux,-uz),0);s.mesh.visible=state!=='attack'||progress<.985;s.mesh.scale.setScalar(1+.08*Math.sin(now*.012+s.phase));});}
+ if(id==='blackReaper'){const progress=state==='windup'?0:clamp((Number(view.stateTime)||0)/Math.max(.1,Number(view.hitAt)||1.15),0,1);reaper.position.set(ux*(.8+(len-.8)*progress),0,uz*(.8+(len-.8)*progress));reaper.rotation.y=Math.atan2(ux,uz);const t=Number(view.stateTime)||0;arm.rotation.z=state==='windup'?.38: -.12+Math.sin(t*4.1)*.72;scythe.rotation.z=state==='windup'?.18: .12+Math.sin(t*4.1+.7)*.95;}
+ else if(id==='blackSwordRain'){lane.material.opacity=state==='windup'?.48:.08;lane.position.set(dx*.5,.045,dz*.5);lane.rotation.set(-Math.PI/2,0,-Math.atan2(dz,dx));lane.scale.set(2.8,Math.max(1,len),1);const progress=state==='attack'?clamp((Number(view.stateTime)||0)/Math.max(.1,Number(view.hitAt)||.72),0,1):0;swords.forEach(s=>{const startD=Math.min(.65+s.start*.25,len*.22),travelD=Math.max(0,len-startD)*progress,spread=s.lane*(.78+progress*.22);s.mesh.position.set(ux*(startD+travelD)+px*spread,s.baseY+.035*Math.sin(now*.009+s.phase),uz*(startD+travelD)+pz*spread);s.mesh.rotation.set(0,Math.atan2(ux,uz),0);s.mesh.visible=state!=='attack'||progress<.985;s.mesh.scale.setScalar(1+.08*Math.sin(now*.012+s.phase));});}
  else{
-  const elapsed=Math.max(0,(now-startAt)/1000),charge=clamp(elapsed/2.1,0,1),grow=clamp((elapsed-2.15)/3.5,0,1),launch=clamp((elapsed-6.45)/1.35,0,1);
+  const elapsed=Math.max(0,(now-startAt)/1000),charge=clamp(elapsed/1.8,0,1),grow=clamp((elapsed-1.9)/3.0,0,1),launchStart=Math.max(5.6,(Number(view.windupDuration)||2.6)+(Number(view.hitAt)||6.0)-1.0),launch=clamp((elapsed-launchStart)/1.25,0,1);
   if(!overlay){overlay=document.createElement('div');overlay.setAttribute('aria-hidden','true');overlay.style.cssText='position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .18s linear;background:radial-gradient(ellipse at 50% 14%,rgba(255,0,38,.42),rgba(110,0,18,.26) 42%,rgba(3,0,8,.5) 100%);mix-blend-mode:multiply;';document.body.appendChild(overlay);}
-  overlay.style.opacity=String(clamp((elapsed-1.05)*.22,0,.72));moon.visible=elapsed>1.15&&elapsed<8.8;moon.scale.setScalar(.06+charge*1.12);moon.material.emissiveIntensity=.45+charge*1.4;
-  ring.material.opacity=.2+grow*.78;ring.scale.setScalar(.12+grow*1.6);hole.visible=elapsed>2.05;hole.position.set(0,7.1-grow*.45,-7.1);hole.scale.setScalar(.08+grow*1.65);
+  overlay.style.opacity=String(clamp((elapsed-1.05)*.22,0,.72));moon.visible=elapsed>.75&&elapsed<10.5;moon.scale.setScalar(.06+charge*1.12);moon.material.emissiveIntensity=.45+charge*1.4;
+  ring.material.opacity=.2+grow*.78;ring.scale.setScalar(.12+grow*1.6);hole.visible=elapsed>1.85;hole.position.set(0,7.1-grow*.45,-7.1);hole.scale.setScalar(.08+grow*1.65);
   rays.forEach((ray,i)=>{ray.material.opacity=elapsed>1.2&&elapsed<6.7?(.12+.68*Math.abs(Math.sin(now*.006+i)))*charge:0;ray.scale.y=.4+charge*1.6;ray.rotation.y=now*.00035+i*.7;});
-  trees.forEach(tree=>{const p=clamp((elapsed-2.3-tree.phase*.09)/3.6,0,1);tree.mesh.visible=elapsed>2.3&&elapsed<8.2;tree.mesh.position.set(tree.base.x*(1-p)+Math.sin(now*.002+tree.phase)*.12,tree.base.y+p*(7.0+tree.phase*.12),tree.base.z*(1-p)-7.1*p+Math.cos(now*.002+tree.phase)*.12);tree.mesh.rotation.z=Math.sin(now*.003+tree.phase)*(.08+p*.25);tree.mesh.scale.setScalar(1-p*.55);});
-  debris.forEach(rock=>{const p=clamp((elapsed-2.5-rock.phase*.025)/3.3,0,1);rock.mesh.visible=elapsed>2.5&&elapsed<8.2;rock.mesh.position.set(rock.base.x*(1-p),rock.base.y+p*(6.8+rock.phase*.12),rock.base.z*(1-p)-7.0*p);rock.mesh.rotation.set(now*.001+rock.phase,now*.0015+rock.phase,now*.001+rock.phase);});
-  if(elapsed>6.45){hole.position.set(ux*len*launch,1.35,uz*len*launch);ring.position.copy(hole.position);ring.scale.setScalar(1.2+launch*.7);blast.position.copy(hole.position);blast.scale.setScalar(.2+launch*4);blast.material.opacity=launch>.8?clamp((launch-.8)*4,0,.95):.04;hole.scale.setScalar(1.55+launch*.45);}
+  trees.forEach(tree=>{const p=clamp((elapsed-2.0-tree.phase*.07)/3.0,0,1);tree.mesh.visible=elapsed>1.95&&elapsed<10.0;tree.mesh.position.set(tree.base.x*(1-p)+Math.sin(now*.002+tree.phase)*.12,tree.base.y+p*(7.0+tree.phase*.12),tree.base.z*(1-p)-7.1*p+Math.cos(now*.002+tree.phase)*.12);tree.mesh.rotation.z=Math.sin(now*.003+tree.phase)*(.08+p*.25);tree.mesh.scale.setScalar(1-p*.55);});
+  debris.forEach(rock=>{const p=clamp((elapsed-2.1-rock.phase*.02)/2.9,0,1);rock.mesh.visible=elapsed>2.0&&elapsed<10.0;rock.mesh.position.set(rock.base.x*(1-p),rock.base.y+p*(6.8+rock.phase*.12),rock.base.z*(1-p)-7.0*p);rock.mesh.rotation.set(now*.001+rock.phase,now*.0015+rock.phase,now*.001+rock.phase);});
+  if(elapsed>launchStart){hole.position.set(ux*len*launch,1.35,uz*len*launch);ring.position.copy(hole.position);ring.scale.setScalar(1.2+launch*.7);blast.position.copy(hole.position);blast.scale.setScalar(.2+launch*4);blast.material.opacity=launch>.8?clamp((launch-.8)*4,0,.95):.04;hole.scale.setScalar(1.55+launch*.45);}
   else{ring.position.copy(hole.position);blast.material.opacity=0;}
-  if(elapsed>8){hole.scale.setScalar(Math.max(.01,1.9-(elapsed-8)*5));blast.material.opacity=Math.max(0,.9-(elapsed-8)*2.8);}
+  if(elapsed>launchStart+1.45){hole.scale.setScalar(Math.max(.01,1.9-(elapsed-8)*5));blast.material.opacity=Math.max(0,.9-(elapsed-8)*2.8);}
  }
 }
 function start(){requestAnimationFrame(tick);}
