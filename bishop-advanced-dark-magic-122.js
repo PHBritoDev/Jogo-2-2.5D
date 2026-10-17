@@ -8,7 +8,7 @@ function mat(T,color,opacity=1,add=false){return new T.MeshBasicMaterial({color,
 function build(){
  if(!api||!api.THREE||!api.scene||ready)return;
  const T=api.THREE,black=new T.MeshStandardMaterial({color:0x010104,roughness:.48,metalness:.18,emissive:0x120006,emissiveIntensity:.35}),blackRed=new T.MeshStandardMaterial({color:0x160008,roughness:.38,metalness:.25,emissive:0x520014,emissiveIntensity:.72}),red=mat(T,0xff102f,.96,true),hotRed=mat(T,0xff243d,.9,true);
- group=new T.Group();group.name='BishopAdvancedDarkMagic_Mod122';api.scene.add(group);
+ group=new T.Group();group.name='BishopAdvancedDarkMagic_Mod125';api.scene.add(group);
  reaper=new T.Group();group.add(reaper);
  const robe=new T.Mesh(new T.ConeGeometry(.43,1.55,7),black);robe.position.y=1.02;reaper.add(robe);
  const hem=new T.Mesh(new T.TorusGeometry(.36,.035,5,16),mat(T,0xff1744,.85,true));hem.rotation.x=Math.PI/2;hem.position.y=.32;reaper.add(hem);
