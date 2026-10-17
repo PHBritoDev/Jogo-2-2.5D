@@ -1,4 +1,4 @@
-/* MOD 111 — posiciona o grimório 3D à frente e na vertical diante de Valério.
+/* MOD 112 — corrige a direção frontal do grimório em relação ao modelo 3D de Valério.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -51,7 +51,7 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod111';
+    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod112';
     const leather = material('leather', 0x171d18, .82, .18);
     const leatherEdge = material('leatherEdge', 0x30251a, .75, .35);
     const pagesMat = material('parchment', 0xc8b88a, .94, .04);
@@ -121,7 +121,7 @@
     attachedScene = api.scene;
     ready = true;
     window.ValerioGrimoire3D = {
-      version: 111,
+      version: 112,
       open: function(){ targetOpen = 1; opened = true; },
       close: function(){ targetOpen = 0; opened = false; },
       toggle: function(){ targetOpen = targetOpen > .5 ? 0 : 1; opened = targetOpen > .5; },
@@ -156,18 +156,25 @@
       root.visible = false; return;
     }
     root.visible = true;
-    // MOD 111: fica centralizado à frente do Bispo, seguindo a direção em que ele olha.
-    // Usa apenas a rotação horizontal do chefe: a câmera não pode inclinar o livro.
+    // MOD 112: usa a mesma convenção de frente do GLB ( +Z ) e o alvo real do jogador.
+    // view.yaw usa outra convenção no renderer 2D; reutilizá-lo colocava o livro atrás do modelo.
     const p = view.position;
-    const yaw = Number.isFinite(Number(view.yaw)) ? Number(view.yaw) : 0;
-    const frontDistance = 0.92;
-    const bob = Math.sin(now * .0018) * .025;
+    const playerPos = Array.isArray(view.playerPosition) ? view.playerPosition : null;
+    let facingYaw = Number.isFinite(Number(view.yaw)) ? Number(view.yaw) : 0;
+    if (playerPos && Number.isFinite(playerPos[0]) && Number.isFinite(playerPos[2])) {
+      const dx = playerPos[0] - p[0];
+      const dz = playerPos[2] - p[2];
+      if (Math.hypot(dx, dz) > 0.001) facingYaw = Math.atan2(dx, dz);
+    }
+    const frontDistance = 0.82;
+    const bob = Math.sin(now * .0018) * .018;
     root.position.set(
-      p[0] + Math.sin(yaw) * frontDistance,
-      p[1] + 2.15 + bob,
-      p[2] + Math.cos(yaw) * frontDistance
+      p[0] + Math.sin(facingYaw) * frontDistance,
+      p[1] + 1.58 + bob,
+      p[2] + Math.cos(facingYaw) * frontDistance
     );
-    root.rotation.set(0, yaw, 0);
+    // Apenas rotação horizontal: o livro permanece nivelado, sem inclinar com a câmera.
+    root.rotation.set(0, facingYaw, 0);
     // Capa esquerda e direita abrem em sentidos opostos com easing suave.
     const desired = targetOpen * 1.28;
     angle += (desired - angle) * Math.min(1, dt * 7.5);
