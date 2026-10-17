@@ -1,0 +1,186 @@
+/* MOD 110 — Grimório tridimensional do Bispo Valério.
+ * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
+ * Não implementa poderes, dano, cooldowns ou comportamento de combate.
+ */
+(function () {
+  'use strict';
+  const params = new URLSearchParams(window.location.search);
+  const enabled = params.get('valerioGrimoire') === '1' || !!document.getElementById('btn-valerio-grimoire');
+  if (!enabled) return;
+
+  let api = null, root = null, leftHinge = null, rightHinge = null;
+  let pages = [], runes = [], opened = false, targetOpen = 0, angle = 0;
+  let button = null, lastTime = 0, ready = false, attachedScene = null;
+  const GOLD = 0xc9a34a, DARK_GOLD = 0x62421b, EMERALD = 0x087c5b;
+  const MAT = {};
+  function material(key, color, roughness, metalness, emissive, emissiveIntensity) {
+    if (!MAT[key]) MAT[key] = new api.THREE.MeshStandardMaterial({
+      color, roughness: roughness == null ? .68 : roughness,
+      metalness: metalness == null ? .45 : metalness,
+      emissive: emissive || 0x000000,
+      emissiveIntensity: emissiveIntensity || 0
+    });
+    return MAT[key];
+  }
+  function box(parent, name, size, pos, mat, bevelSegments) {
+    const T = api.THREE;
+    const mesh = new T.Mesh(new T.BoxGeometry(size[0], size[1], size[2], 1, 1, 1), mat);
+    mesh.name = name;
+    mesh.position.set(pos[0], pos[1], pos[2]);
+    mesh.castShadow = false; mesh.receiveShadow = false;
+    parent.add(mesh);
+    return mesh;
+  }
+  function makeRune(parent, x, y, z, scale) {
+    const T = api.THREE;
+    const group = new T.Group();
+    group.position.set(x, y, z);
+    group.scale.setScalar(scale || 1);
+    const gold = material('runeGold', GOLD, .32, .78, 0x6b4300, .22);
+    const emerald = material('runeEmerald', EMERALD, .34, .55, 0x00a46c, .5);
+    // Emblema geométrico abstrato, sem representar uma habilidade.
+    const diamond = new T.Mesh(new T.OctahedronGeometry(.075, 0), emerald);
+    diamond.scale.set(.72, 1.45, .34);
+    group.add(diamond);
+    const ring = new T.Mesh(new T.TorusGeometry(.13, .012, 5, 20), gold);
+    ring.rotation.z = Math.PI / 4; group.add(ring);
+    const vertical = new T.Mesh(new T.BoxGeometry(.018, .25, .012), gold);
+    group.add(vertical);
+    parent.add(group); runes.push(group);
+    return group;
+  }
+  function buildBook() {
+    const T = api.THREE;
+    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod110';
+    const leather = material('leather', 0x171d18, .82, .18);
+    const leatherEdge = material('leatherEdge', 0x30251a, .75, .35);
+    const pagesMat = material('parchment', 0xc8b88a, .94, .04);
+    const pageShadow = material('pageShadow', 0x766345, .92, .04);
+    const gold = material('gold', GOLD, .28, .82, 0x503100, .18);
+    const green = material('greenGem', 0x087c5b, .22, .58, 0x00a86d, .8);
+    const w = .92, h = .68, thick = .105;
+    // Miolo real, com espessura e várias folhas finas.
+    box(root, 'Lombada reforçada', [.12, h + .045, thick + .025], [0, 0, 0], leatherEdge);
+    box(root, 'Bloco de páginas', [w - .10, h - .045, thick * .62], [0, 0, .006], pagesMat);
+    for (let i = 0; i < 7; i++) {
+      const z = -.027 + i * .009;
+      box(root, 'Borda de páginas ' + i, [w - .13, h - .075, .003], [0, 0, z], i % 2 ? pagesMat : pageShadow);
+    }
+    // Duas capas articuladas por dobradiças: abrem de verdade em 3D.
+    leftHinge = new T.Group(); leftHinge.position.set(-.045, 0, .025); root.add(leftHinge);
+    box(leftHinge, 'Capa esquerda', [w / 2, h, .045], [-w / 4, 0, .025], leather);
+    box(leftHinge, 'Friso dourado esquerdo', [w / 2 - .055, h - .055, .009], [-w / 4, 0, .052], gold);
+    box(leftHinge, 'Forro esmeralda esquerdo', [w / 2 - .078, h - .078, .008], [-w / 4, 0, .058], material('insideGreen', 0x17382b, .72, .25));
+    rightHinge = new T.Group(); rightHinge.position.set(.045, 0, .025); root.add(rightHinge);
+    box(rightHinge, 'Capa direita', [w / 2, h, .045], [w / 4, 0, .025], leather);
+    box(rightHinge, 'Friso dourado direito', [w / 2 - .055, h - .055, .009], [w / 4, 0, .052], gold);
+    box(rightHinge, 'Forro esmeralda direito', [w / 2 - .078, h - .078, .008], [w / 4, 0, .058], material('insideGreen', 0x17382b, .72, .25));
+    // Placas, cantos metálicos, fecho e pedra central: identidade da Ganância.
+    for (const side of [-1, 1]) {
+      for (const yy of [-1, 1]) {
+        box(root, 'Canto dourado', [.085, .055, .018], [side * .395, yy * .292, .078], gold);
+      }
+    }
+    box(root, 'Placa central', [.24, .31, .025], [.0, .015, .083], gold);
+    const gem = new T.Mesh(new T.OctahedronGeometry(.095, 1), green);
+    gem.name = 'Selo esmeralda'; gem.position.set(0, .02, .105); gem.scale.set(.82, 1.22, .56); root.add(gem);
+    const sealRing = new T.Mesh(new T.TorusGeometry(.145, .012, 6, 32), gold);
+    sealRing.position.set(0, .02, .103); root.add(sealRing);
+    makeRune(root, 0, -.205, .092, .55);
+    // Pequenas nervuras de lombada reforçam a silhueta de um volume encadernado.
+    for (let i = -1; i <= 1; i++) {
+      const rib = new T.Mesh(new T.TorusGeometry(.055, .009, 4, 16, Math.PI), gold);
+      rib.rotation.y = Math.PI / 2; rib.position.set(0, i * .19, .018); root.add(rib);
+    }
+    // Marcadores de página finos; ficam no miolo e não são poderes.
+    for (let i = 0; i < 5; i++) {
+      const page = box(root, 'Marcador de página ' + i, [.014, .13, .012], [.29 + i * .025, -.28, .065], i % 2 ? green : gold);
+      pages.push(page);
+    }
+    root.scale.setScalar(1.12);
+    root.visible = false;
+    api.scene.add(root);
+    attachedScene = api.scene;
+    ready = true;
+    window.ValerioGrimoire3D = {
+      version: 110,
+      open: function(){ targetOpen = 1; opened = true; },
+      close: function(){ targetOpen = 0; opened = false; },
+      toggle: function(){ targetOpen = targetOpen > .5 ? 0 : 1; opened = targetOpen > .5; },
+      isOpen: function(){ return opened; },
+      ready: true
+    };
+    if (button) {
+      button.disabled = false;
+      button.setAttribute('aria-pressed', 'false');
+      button.textContent = 'GRIMÓRIO';
+    }
+  }
+  function syncButton() {
+    if (!button) return;
+    button.setAttribute('aria-pressed', opened ? 'true' : 'false');
+    button.textContent = opened ? 'FECHAR GRIMÓRIO' : 'GRIMÓRIO';
+  }
+  function toggle() {
+    if (!ready) return;
+    targetOpen = targetOpen > .5 ? 0 : 1;
+    opened = targetOpen > .5;
+    syncButton();
+    if (root) root.visible = true;
+  }
+  function tick(now) {
+    requestAnimationFrame(tick);
+    const dt = lastTime ? Math.min(.05, (now - lastTime) / 1000) : 0;
+    lastTime = now;
+    if (!ready || !root || !api || !api.scene || api.scene !== attachedScene) return;
+    const view = window.ValerioModelView;
+    if (!view || !view.active || !Array.isArray(view.position) || !api.camera) {
+      root.visible = false; return;
+    }
+    root.visible = true;
+    // Flutua próximo ao Bispo, voltado para a câmera; não toca na posição/IA do chefe.
+    const p = view.position;
+    const cam = api.camera;
+    const side = cam.position.x >= p[0] ? 1 : -1;
+    const bob = Math.sin(now * .0018) * .035;
+    root.position.set(p[0] + side * .78, p[1] + 1.08 + bob, p[2] + .12);
+    root.quaternion.copy(cam.quaternion);
+    // Capa esquerda e direita abrem em sentidos opostos com easing suave.
+    const desired = targetOpen * 1.28;
+    angle += (desired - angle) * Math.min(1, dt * 7.5);
+    if (leftHinge) leftHinge.rotation.y = -angle;
+    if (rightHinge) rightHinge.rotation.y = angle;
+    root.rotation.z = Math.sin(now * .0014) * .025;
+    runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
+    if (angle < .01 && targetOpen === 0) root.visible = false;
+  }
+  function init() {
+    button = document.getElementById('btn-valerio-grimoire');
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'CARREGANDO…';
+      button.addEventListener('click', toggle);
+    }
+    window.addEventListener('keydown', function(e) {
+      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.code !== 'KeyG') return;
+      const target = e.target;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      e.preventDefault(); toggle();
+    });
+    function waitForSharedScene() {
+      api = window.ValerioThreeAPI;
+      if (!api || !api.THREE || !api.scene || !api.camera) {
+        setTimeout(waitForSharedScene, 180); return;
+      }
+      try { buildBook(); requestAnimationFrame(tick); }
+      catch (err) {
+        console.error('MOD 110: falha ao montar o grimório 3D de Valério.', err);
+        if (button) { button.disabled = true; button.textContent = 'GRIMÓRIO INDISPONÍVEL'; }
+      }
+    }
+    waitForSharedScene();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  else init();
+})();
