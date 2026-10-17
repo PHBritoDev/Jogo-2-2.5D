@@ -16,11 +16,18 @@
 const Dialog = {
   open: false,
   nodes: null, cur: null, list: [], onEnd: null, t0: 0,
-  el: null, elWho: null, elText: null, elChoices: null, elHint: null,
+  el: null, elWho: null, elPortrait: null, elText: null, elChoices: null, elHint: null,
 
   init() {
     this.el = document.getElementById('dialog');
     this.elWho = document.getElementById('dlg-who');
+    this.elPortrait = document.getElementById('dlg-portrait');
+    if (this.elPortrait) {
+      this.elPortrait.addEventListener('error', function () {
+        this.classList.add('hidden');
+        this.removeAttribute('src');
+      });
+    }
     this.elText = document.getElementById('dlg-text');
     this.elChoices = document.getElementById('dlg-choices');
     this.elHint = document.getElementById('dlg-hint');
@@ -51,6 +58,18 @@ const Dialog = {
     this.cur = n;
     if (n.enter) n.enter();
     this.elWho.textContent = n.who || '';
+    const portrait = typeof n.portrait === 'function' ? n.portrait() : n.portrait;
+    if (this.elPortrait) {
+      if (typeof portrait === 'string' && portrait.trim()) {
+        this.elPortrait.src = portrait.trim();
+        this.elPortrait.alt = n.who ? 'Retrato de ' + n.who : 'Retrato do personagem';
+        this.elPortrait.classList.remove('hidden');
+      } else {
+        this.elPortrait.removeAttribute('src');
+        this.elPortrait.alt = '';
+        this.elPortrait.classList.add('hidden');
+      }
+    }
     this.elText.textContent = typeof n.text === 'function' ? n.text() : n.text;
     this.list = n.choices ? (typeof n.choices === 'function' ? n.choices() : n.choices) : [];
 
@@ -281,10 +300,21 @@ const GREED_NODES = {
 };
 
 /* ---------------- Introdução da missão ---------------- */
+const heroDialoguePortrait = function () {
+  const image = document.querySelector('#hero-portrait img');
+  return image && image.getAttribute('src') ? image.getAttribute('src') : null;
+};
 const INTRO_NODES = {
-  i1: { who: 'Narrador', text: 'Galáxia 1. Uma ilha flutuante onde o vento carrega moedas... e boatos.', next: 'i2' },
-  i2: { who: 'Narrador', text: 'Dizem que um viajante estranho vaga pela trilha a leste, pedindo moedas a quem passa.', next: 'i3' },
-  i3: { who: 'Narrador', text: 'Siga a trilha, colete moedas pelo caminho e descubra o que ele quer.' }
+  i1: { who: 'Anjo-Guia', portrait: 'AnjoGuia.png',
+    text: 'Você despertou na Terra, a primeira ilha da jornada. Algo está desequilibrando este lugar.', next: 'i2' },
+  i2: { who: 'Protagonista', portrait: heroDialoguePortrait,
+    text: 'Quem é você? E por onde devo começar?', next: 'i3' },
+  i3: { who: 'Anjo-Guia', portrait: 'AnjoGuia.png',
+    text: 'Sou seu Anjo-Guia. Siga a trilha a leste e encontre Aurélio; a conversa com ele será sua primeira missão.', next: 'i4' },
+  i4: { who: 'Protagonista', portrait: heroDialoguePortrait,
+    text: 'Entendido. Vou falar com Aurélio e descobrir o que está acontecendo na ilha.', next: 'i5' },
+  i5: { who: 'Anjo-Guia', portrait: 'AnjoGuia.png',
+    text: 'Vá com calma e observe os sinais pelo caminho. Estarei por perto.' }
 };
 
 /* ---------------- Ferramentas da campanha ---------------- */
@@ -349,7 +379,7 @@ const Quest = {
   // Chamado uma vez ao entrar no mundo: introdução, depois a campanha começa
   start() {
     this.step = 'intro';
-    this.hud('Galáxia 1 · Terra', 'Ouça o narrador...');
+    this.hud('Galáxia 1 · Terra', 'Acompanhe a conversa inicial...');
     Dialog.start(INTRO_NODES, 'i1', function () {
       Campaign.start();
       Quest.toast('Nova missão: Primeiros Passos');
