@@ -1,4 +1,4 @@
-/* MOD 127 — grimório com aura discreta, pequena e controlada.
+/* MOD 128 — grimório compacto, aura contida e sem efeitos duplicados.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -112,12 +112,12 @@
       root.add(cloud); darkSmoke.push(cloud);
     }
     // Tentáculos de sombra: curvas afiladas e irregulares, sem geometria circular.
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 5; i++) {
       const phase = i * Math.PI * 2 / 7;
       const points = [];
       for (let j = 0; j < 7; j++) {
         const t = j / 6;
-        const radius = .12 + t * (.37 + (i % 3) * .045);
+        const radius = .12 + t * (.25 + (i % 3) * .025);
         points.push(new T.Vector3(
           Math.cos(phase + t * (1.3 + (i % 3) * .25)) * radius,
           -.16 + t * (.38 + (i % 4) * .035) + Math.sin(phase + t * 4) * .065,
@@ -125,19 +125,19 @@
         ));
       }
       const curve = new T.CatmullRomCurve3(points);
-      const mesh = new T.Mesh(new T.TubeGeometry(curve, 24, .009 + (i % 3) * .002, 5, false),
+      const mesh = new T.Mesh(new T.TubeGeometry(curve, 24, .006 + (i % 3) * .001, 5, false),
         new T.MeshBasicMaterial({color: 0x090006, transparent:true, opacity:.92, depthWrite:false}));
       mesh.name = 'Tentáculo de sombra ' + i;
       mesh.userData = {phase, speed: .35 + (i % 4) * .12};
       root.add(mesh); darkTendrils.push(mesh);
     }
     // Fissuras escarlates dentro da sombra: finas, irregulares e pulsantes, nunca um halo redondo.
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       const phase = i * Math.PI * 2 / 3 + .3;
       const points = [];
       for (let j = 0; j < 6; j++) {
         const t = j / 5;
-        const radius = .13 + t * (.31 + (i % 2) * .06);
+        const radius = .13 + t * (.22 + (i % 2) * .035);
         points.push(new T.Vector3(
           Math.cos(phase + t * 1.6) * radius,
           -.10 + t * (.26 + (i % 3) * .04) + Math.sin(phase + t * 5) * .04,
@@ -152,7 +152,7 @@
     }
     // Brasas vermelhas e lascas negras sobem em trajetórias tortas, como energia instável.
     const sparkColors = [0x8f0714, 0xc51d2b, 0x31050a, 0x161616];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 5; i++) {
       const red = i % 3 !== 0;
       const sparkMat = new T.MeshBasicMaterial({
         color: sparkColors[i % sparkColors.length], transparent: true,
@@ -168,9 +168,9 @@
       spark.name = red ? 'Brasa escarlate ' + i : 'Fragmento de sombra ' + i;
       root.add(spark); darkSparks.push(spark);
     }
-    // MOD 126: lâminas grandes e pontiagudas substituem a aura discreta anterior.
-    for(let i=0;i<8;i++){const a=i*Math.PI*2/8,shard=new T.Mesh(new T.ConeGeometry(.065+(i%3)*.018,.34+(i%4)*.08,3),new T.MeshBasicMaterial({color:i%3===0?0x020104:0x3d000b,transparent:true,opacity:.98,depthWrite:false}));shard.position.set(Math.cos(a)*.66,Math.sin(a)*.48,.18);shard.rotation.z=-a+Math.PI/2;shard.userData={phase:a,baseX:shard.position.x,baseY:shard.position.y};root.add(shard);auraShards.push(shard);}
-    for(let i=0;i<5;i++){const a=i*Math.PI*2/5,slash=new T.Mesh(new T.BoxGeometry(.035,.58+(i%3)*.12,.025),new T.MeshBasicMaterial({color:i%2?0xff001b:0x8b0018,transparent:true,opacity:.98,blending:T.AdditiveBlending,depthWrite:false}));slash.position.set(Math.cos(a)*.72,Math.sin(a)*.52,.23);slash.rotation.z=-a+.35;slash.userData={phase:a,baseRotation:slash.rotation.z};root.add(slash);auraSlashes.push(slash);}
+    // MOD 128: fragmentos pequenos e discretos; o livro continua sendo o foco visual.
+    for(let i=0;i<4;i++){const a=i*Math.PI*2/4,shard=new T.Mesh(new T.ConeGeometry(.035+(i%3)*.008,.18+(i%4)*.035,3),new T.MeshBasicMaterial({color:i%3===0?0x020104:0x260008,transparent:true,opacity:.68,depthWrite:false}));shard.position.set(Math.cos(a)*.46,Math.sin(a)*.34,.12);shard.rotation.z=-a+Math.PI/2;shard.userData={phase:a,baseX:shard.position.x,baseY:shard.position.y};root.add(shard);auraShards.push(shard);}
+    for(let i=0;i<3;i++){const a=i*Math.PI*2/3,slash=new T.Mesh(new T.BoxGeometry(.018,.30+(i%3)*.05,.012),new T.MeshBasicMaterial({color:i%2?0x8d0018:0x52000d,transparent:true,opacity:.62,blending:T.AdditiveBlending,depthWrite:false}));slash.position.set(Math.cos(a)*.49,Math.sin(a)*.36,.16);slash.rotation.z=-a+.35;slash.userData={phase:a,baseRotation:slash.rotation.z};root.add(slash);auraSlashes.push(slash);}
     // Folhas articuladas 3D: espalham suavemente quando a capa abre.
     for (let i = 0; i < 4; i++) {
       const spread = (i - 1.5) * .012;
@@ -194,7 +194,7 @@
       const page = box(root, 'Marcador de página ' + i, [.014, .13, .012], [.29 + i * .025, -.28, .065], i % 2 ? green : gold);
       pages.push(page);
     }
-    root.scale.setScalar(1.0);
+    root.scale.setScalar(.78);
     root.visible = false;
     api.scene.add(root);
     attachedScene = api.scene;
@@ -296,9 +296,9 @@
       spark.scale.setScalar(.72 + .55 * (.5 + .5 * Math.sin(t * 2.5)));
     });
     auraShards.forEach((s)=>{const u=s.userData,t=now*.002+u.phase;s.position.set(u.baseX+Math.sin(t)*.08,u.baseY+Math.cos(t*1.2)*.09,.16+Math.sin(t*1.4)*.035);s.rotation.z=-u.phase+Math.PI/2+Math.sin(t)*.24;s.scale.setScalar(.82+.22*(.5+.5*Math.sin(t*1.7)));});
-     auraSlashes.forEach((s)=>{const u=s.userData,t=now*.0018+u.phase;s.rotation.z=u.baseRotation+Math.sin(t)*.28;s.material.opacity=.55+.4*(.5+.5*Math.sin(t*2));s.scale.y=.82+.45*(.5+.5*Math.sin(t*1.3));});
-     auraShards.forEach((s)=>{const u=s.userData,t=now*.002+u.phase;s.position.set(u.baseX+Math.sin(t)*.08,u.baseY+Math.cos(t*1.2)*.09,.16+Math.sin(t*1.4)*.035);s.rotation.z=-u.phase+Math.PI/2+Math.sin(t)*.24;s.scale.setScalar(.82+.22*(.5+.5*Math.sin(t*1.7)));});
-    auraSlashes.forEach((s)=>{const u=s.userData,t=now*.0018+u.phase;s.rotation.z=u.baseRotation+Math.sin(t)*.28;s.material.opacity=.55+.4*(.5+.5*Math.sin(t*2));s.scale.y=.82+.45*(.5+.5*Math.sin(t*1.3));});
+     auraSlashes.forEach((s)=>{const u=s.userData,t=now*.0018+u.phase;s.rotation.z=u.baseRotation+Math.sin(t)*.28;s.material.opacity=.28+.24*(.5+.5*Math.sin(t*2));s.scale.y=.9+.16*(.5+.5*Math.sin(t*1.3));});
+     
+    
     runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
     if (angle < .01 && targetOpen === 0) root.visible = false;
   }
