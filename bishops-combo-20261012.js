@@ -24,6 +24,7 @@ const BISHOP_PROFILES = {
     radius: 18,
     speed: 80,
     engageRange: 180, // MODIFICAÇÃO 15: começa a atacar de mais longe.
+    guard: { range: 185, duration: 0.52, cooldown: 3.2, damageScale: 0.28 },
     visualScale: 1.22,
     deathDuration: 1.2,
     guard: { range: 205, duration: 0.42, cooldown: 2.6, damageScale: 0.22 },
@@ -394,7 +395,7 @@ const ValerioCombatAI = {
     if(distance>235&&chainCooldown<=0){
       const ultimate=find('abyssEclipse');
       if(ultimate&&available('abyssEclipse')&&phase>=2&&playerSpeed<72)return ultimate;
-      const ranged=fast?['blackSwordRain','graveThorns','abyssHands']:['graveThorns','blackSwordRain','abyssHands'];
+      const ranged=distance>350?['blackSwordRain','graveThorns','abyssHands']:(fast?['blackSwordRain','graveThorns','abyssHands']:['graveThorns','blackSwordRain','abyssHands']);
       const pick=different(ranged.filter(available));if(pick)return pick;
     }
     if(distance>150&&chainCooldown<=0){
