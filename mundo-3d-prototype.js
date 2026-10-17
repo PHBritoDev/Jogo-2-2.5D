@@ -61,7 +61,7 @@ function updateEnemyHud(){
 function tryPlayerAttack(){
  const now=performance.now();if(now<attackCooldown)return;attackCooldown=now+520;
  swordSwingStart=now;swordSwingUntil=now+460;
- if(actions.attack){play('attack',.045);actionUntil=now+460;}else{actionUntil=now+460;}
+ if(actions.attack){const attackAction=actions.attack;if(activeAction&&activeAction!==attackAction)activeAction.fadeOut(.07);attackAction.reset();attackAction.setLoop(THREE.LoopOnce,1);attackAction.clampWhenFinished=true;attackAction.fadeIn(.07).play();activeAction=attackAction;actionUntil=now+attackAction.getClip().duration*1000;}else{status.textContent='Este modelo não possui clipe de ataque reconhecido.';actionUntil=now;}
  if(!enemyAlive){status.textContent='Inimigo derrotado!';return;}
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz);
@@ -76,39 +76,28 @@ function tryPlayerAttack(){
  if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';}
 }
 
-// Anjo-Guia: personagem 3D dentro do mundo, substituindo o NPC provisório.
+// Anjo-Guia: usa o modelo GLB original adicionado ao repositório.
 const guide=new THREE.Group();scene.add(guide);guide.position.set(3.3,0,-5.4);
-const robeMat=new THREE.MeshStandardMaterial({color:0xe8e7dc,roughness:.82});
-const cloakMat=new THREE.MeshStandardMaterial({color:0x334e79,roughness:.9});
-const goldMat=new THREE.MeshStandardMaterial({color:0xf2cf72,metalness:.42,roughness:.38,emissive:0x4a2d08,emissiveIntensity:.16});
-const skinMat=new THREE.MeshStandardMaterial({color:0xd9b59b,roughness:.9});
-const darkMat=new THREE.MeshStandardMaterial({color:0x182235,roughness:.9});
-function guidePart(geometry,material,x,y,z,sx=1,sy=1,sz=1){
- const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;guide.add(mesh);return mesh;
-}
-// Túnica longa e manto azul; silhueta low-poly inteiramente 3D.
-guidePart(new THREE.CylinderGeometry(.19,.42,.98,9,1),robeMat,0,.64,0);
-guidePart(new THREE.CylinderGeometry(.205,.31,.72,9,1),cloakMat,0,.91,-.105);
-guidePart(new THREE.SphereGeometry(.205,12,10),skinMat,0,1.31,.035,1,.96,.88);
-guidePart(new THREE.SphereGeometry(.255,12,10),cloakMat,0,1.42,-.025,1,.95,.9);
-guidePart(new THREE.ConeGeometry(.27,.38,9),cloakMat,0,1.62,-.015);
-guidePart(new THREE.TorusGeometry(.25,.035,8,24),goldMat,0,1.42,.025,1,1,.85).rotation.x=Math.PI/2;
-guidePart(new THREE.BoxGeometry(.42,.055,.055),goldMat,0,.9,.235);
-guidePart(new THREE.SphereGeometry(.035,8,6),goldMat,-.07,1.32,.211);
-guidePart(new THREE.SphereGeometry(.035,8,6),goldMat,.07,1.32,.211);
-const guideArms=[];
-for(const side of [-1,1]){
- const arm=guidePart(new THREE.CapsuleGeometry(.075,.39,4,7),cloakMat,side*.29,.83,.015);
- arm.rotation.z=side*-.27;guideArms.push(arm);
- guidePart(new THREE.SphereGeometry(.085,8,6),robeMat,side*.34,.61,.04);
-}
-const guideHalo=new THREE.Mesh(new THREE.TorusGeometry(.29,.035,8,32),new THREE.MeshBasicMaterial({color:0xffe5a0}));
-guideHalo.position.set(0,1.93,-.015);guideHalo.rotation.x=Math.PI/2;guide.add(guideHalo);
-const guideAura=new THREE.PointLight(0xffe6a3,.85,4.5);guideAura.position.set(0,1.45,.15);guide.add(guideAura);
+const guideModelRoot=new THREE.Group();guide.add(guideModelRoot);
+const guideAura=new THREE.PointLight(0xffe6a3,.7,4.5);guideAura.position.set(0,1.45,.15);guide.add(guideAura);
 const guideShadow=new THREE.Mesh(new THREE.CircleGeometry(.42,20),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.28,depthWrite:false}));
 guideShadow.rotation.x=-Math.PI/2;guideShadow.position.y=.014;guide.add(guideShadow);
 const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.58,.055,8,28),new THREE.MeshBasicMaterial({color:0xffd65a}));
 questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,.06,guide.position.z);scene.add(questMarker);
+new GLTFLoader().load('./AnjoGuia.glb?v=mod148-anjo-guia-glb',gltf=>{
+ const imported=gltf.scene;
+ imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
+ // Normaliza a escala e apoia os pés no chão sem modificar a malha original.
+ const bounds=new THREE.Box3().setFromObject(imported);
+ const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ if(size.y>0.001){
+  const scale=1.85/size.y;
+  imported.scale.setScalar(scale);
+  imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
+ }
+ guideModelRoot.add(imported);
+ guide.userData.modelLoaded=true;
+},undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
 let questStep=0,coins=0,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
 function updateQuestHud(){
  const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count');
@@ -166,41 +155,35 @@ function findSwordHand(root){
  const rightHand=/(right.*(hand|wrist)|(hand|wrist).*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|(hand|wrist)[_. -]?r$|mixamorig:rightHand)/i;
  return bones.find(b=>rightHand.test(b.name||''))||null;
 }
-function findSwordArmBones(root){
- const bones=[];root.traverse(o=>{if(o.isBone)bones.push(o);});
- const specs=[{role:'upper',re:/right.*(arm|shoulder)|mixamorig:rightarm/i},{role:'fore',re:/right.*forearm|forearm.*right|mixamorig:rightforearm/i},{role:'hand',re:/right.*hand|hand.*right|mixamorig:righthand/i}];
- swordArmBones=specs.map(s=>({role:s.role,bone:bones.find(b=>s.re.test(b.name||'')),base:null})).filter(x=>x.bone);
- swordArmBones.forEach(x=>x.base=x.bone.quaternion.clone());
-}
-let swordRoot=null,swordHand=null,swordMount=null,swordPivot=null,swordArmBones=[];
-const swordWorldPosition=new THREE.Vector3(),swordWorldQuaternion=new THREE.Quaternion();
-function updateSwordMount(){
- if(!swordHand||!swordMount)return;
- swordHand.updateWorldMatrix(true,false);swordHand.getWorldPosition(swordWorldPosition);swordHand.getWorldQuaternion(swordWorldQuaternion);
- swordMount.position.copy(swordWorldPosition);swordMount.quaternion.copy(swordWorldQuaternion);swordMount.scale.set(1,1,1);swordMount.updateMatrixWorld(true);
-}
+let swordRoot=null,swordHand=null,swordPivot=null;
 function loadPlayerSword(modelRoot){
  const loader=new GLTFLoader();
- loader.load('./EspadaProta.glb?v=espada-prota-hand-mount-mod33-tex1',gltf=>{
+ loader.load('./EspadaProta.glb?v=mod148-sword-grip',gltf=>{
   swordRoot=gltf.scene;swordRoot.name='EspadaProta_Runtime';
   swordRoot.traverse(o=>{if(o.isMesh){o.visible=true;o.castShadow=true;o.receiveShadow=false;o.frustumCulled=false;}});
-  swordHand=findSwordHand(modelRoot);findSwordArmBones(modelRoot);
-  swordRoot.scale.setScalar(.62);swordRoot.rotation.set(0,0,Math.PI);swordRoot.position.set(0,.465,0);
+  swordHand=findSwordHand(modelRoot);
+  swordRoot.scale.setScalar(.62);
+  swordRoot.rotation.set(0,0,Math.PI);
+  // Alinha a extremidade do cabo à origem do punho, evitando deixar o centro da espada dentro da palma.
+  swordRoot.position.set(0,0,0);
+  const swordBounds=new THREE.Box3().setFromObject(swordRoot);
+  if(Number.isFinite(swordBounds.max.y))swordRoot.position.y=-swordBounds.max.y;
+  swordPivot=new THREE.Group();swordPivot.name='EspadaProta_HandGrip';
   if(swordHand){
-   swordMount=new THREE.Group();swordMount.name='EspadaProta_HandMount';scene.add(swordMount);
-   swordMount.add(swordPivot=new THREE.Group());swordPivot.name='EspadaProta_AttackPivot';swordPivot.add(swordRoot);updateSwordMount();
+   swordHand.add(swordPivot);
+   swordPivot.position.set(0,0,0);
   }else{
-   // Fallback visível e animável caso o rig não exponha um osso de mão direita reconhecível.
-   swordPivot=new THREE.Group();swordPivot.name='EspadaProta_FallbackAttackPivot';swordPivot.position.set(.28,.85,.12);player.add(swordPivot);
-   swordRoot.position.set(0,0,0);swordPivot.add(swordRoot);
+   // Só usado se o arquivo do protagonista não expuser um osso de mão direita.
+   swordPivot.position.set(.28,.85,.12);player.add(swordPivot);
   }
+  swordPivot.add(swordRoot);
  },undefined,err=>{console.warn('EspadaProta.glb não carregou:',err);});
 }
 new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
  model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;}}});
  fitModel(model);player.add(model);
  loadPlayerSword(model);
- if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);const attack=chooseClip(clips,/attack|sword|golpe|ataque|slash|strike|light.?combo|heavy.?combo|overhand.?throw/i);const jump=chooseClip(clips,/jump|saltar|salto/i);
+ if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);const attack=chooseClip(clips,/hit.?knockback|ataque.?1/i)||chooseClip(clips,/sword.*(light|heavy|aerial).*combo|attack|swing|slash|strike|golpe|ataque/i);const jump=chooseClip(clips,/jump|saltar|salto/i);
  if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attack)actions.attack=mixer.clipAction(attack);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'attack',0);}
  player.userData.ready=true;loading.classList.add('hidden');status.textContent='Missão 1 · encontre o Anjo-Guia e fale com ele';
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
@@ -213,7 +196,7 @@ stick.addEventListener('pointerdown',e=>{joyActive=true;stick.setPointerCapture(
 stick.addEventListener('pointermove',e=>{if(joyActive)setJoy(e);});
 function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';}
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
-let actionUntil=0,verticalVelocity=0,swordSwingUntil=0,swordSwingStart=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
+let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
 function action(kind){const now=performance.now();if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){play('jump',.08);actionUntil=now+420;}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='magic'?'Magia celestial será integrada depois':'Ultimate será integrada depois';setTimeout(()=>{if(status.textContent.startsWith('Magia celestial')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
 document.getElementById('attack').addEventListener('click',()=>action('attack'));
 const jumpButton=document.getElementById('jump');
@@ -242,7 +225,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(!enemyAlive){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
  updateEnemyHud();
  if(enemyAlive)enemy.rotation.y=Math.atan2(camera.position.x-enemy.position.x,camera.position.z-enemy.position.z);
- guide.position.y=.018+Math.sin(now*.0022)*.025;guideHalo.rotation.z=Math.sin(now*.0015)*.08;guideAura.intensity=.72+Math.sin(now*.003)*.13;
+ guide.position.y=.018+Math.sin(now*.0022)*.012;guideAura.intensity=.62+Math.sin(now*.003)*.1;
  const npcDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
  const talkButton=document.getElementById('talk-button');
  if(talkButton)talkButton.classList.toggle('hidden',questStep!==0||npcDistance>2.7||dialogueOpen);
@@ -321,9 +304,7 @@ if(firstPerson){
  camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(target);
 }
 const t=clock.elapsedTime;treeGroup.children.forEach((tree,i)=>{tree.rotation.z=Math.sin(t*.7+i*.9)*.012;});grassGroup.children.forEach((blade,i)=>{blade.rotation.z=Math.sin(t*1.4+i*.31)*.12;});
-if(swordSwingUntil>now){const p=THREE.MathUtils.clamp((now-swordSwingStart)/460,0,1),arc=Math.sin(p*Math.PI);for(const entry of swordArmBones){const q=new THREE.Quaternion();if(entry.role==='upper')q.setFromEuler(new THREE.Euler(-.18-arc*.62,0,-arc*.92));else if(entry.role==='fore')q.setFromEuler(new THREE.Euler(.05,0,-arc*.8));else q.setFromEuler(new THREE.Euler(-arc*.25,0,arc*.2));entry.bone.quaternion.copy(entry.base).multiply(q);}}else{for(const entry of swordArmBones)entry.bone.quaternion.copy(entry.base);}
-if(swordHand&&swordMount){player.updateMatrixWorld(true);updateSwordMount();}
-if(swordPivot){if(now<swordSwingUntil){const p=THREE.MathUtils.clamp((now-swordSwingStart)/460,0,1);const arc=Math.sin(p*Math.PI);swordPivot.rotation.set(-.35-arc*.65,Math.sin(p*Math.PI*2)*.45,-.25-arc*1.7);swordPivot.position.set(0,0,0);}else{swordPivot.rotation.x=THREE.MathUtils.damp(swordPivot.rotation.x,0,18,dt);swordPivot.rotation.y=THREE.MathUtils.damp(swordPivot.rotation.y,0,18,dt);swordPivot.rotation.z=THREE.MathUtils.damp(swordPivot.rotation.z,0,18,dt);}}
+// A espada acompanha diretamente o osso da mão; o golpe vem do clipe de animação do personagem, sem balanço artificial por código.
 renderer.render(scene,camera);}
 animate();
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);}
