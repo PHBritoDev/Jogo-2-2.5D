@@ -322,8 +322,8 @@
         if(mat.roughness!==undefined) mat.roughness=Math.max(mat.roughness,0.62);
         if(mat.metalness!==undefined) mat.metalness=Math.min(mat.metalness,0.18);
         if(mat.emissive && mat.emissive.r+mat.emissive.g+mat.emissive.b<0.03) {
-          mat.emissive.set(0x100d16);
-          if(mat.emissiveIntensity!==undefined) mat.emissiveIntensity=0.35;
+          mat.emissive.set(0x120006);
+          if(mat.emissiveIntensity!==undefined) mat.emissiveIntensity=0.22;
         }
         if(mat.opacity<1){mat.opacity=1;mat.transparent=false;mat.depthWrite=true;}
         mat.needsUpdate=true;
@@ -640,8 +640,8 @@
         // os pixels sombreados (ShadowMaterial) e deixa o resto transparente sobre o cenário.
         shadowGround=new THREE.Mesh(new THREE.PlaneGeometry(140,80),new THREE.ShadowMaterial({color:0x04020a,opacity:.5,depthWrite:false}));
         shadowGround.rotation.x=-Math.PI/2;shadowGround.position.set(0,.05,-2.5);shadowGround.receiveShadow=true;shadowGround.frustumCulled=false;scene.add(shadowGround);
-        fillLight=new THREE.DirectionalLight(0x9b8cff,1.15);fillLight.position.set(4,3,-4);scene.add(fillLight);
-        rimLight=new THREE.PointLight(0xb52dff,1.1,12);rimLight.position.set(0,2.2,-1.8);scene.add(rimLight);
+        fillLight=new THREE.DirectionalLight(0x3a000d,.92);fillLight.position.set(4,3,-4);scene.add(fillLight);
+        rimLight=new THREE.PointLight(0xff173d,1.35,15);rimLight.position.set(0,2.2,-1.8);scene.add(rimLight);
         applyGraphicsQuality();
         // O jogo e o GLB usam contextos WebGL distintos; o depth buffer do
         // terreno não é compartilhado. Recriamos no canvas transparente as quatro

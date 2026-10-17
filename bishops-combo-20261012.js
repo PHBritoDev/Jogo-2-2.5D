@@ -35,8 +35,8 @@ const BISHOP_PROFILES = {
       // MOD 122: magias negras e Eclipse do Abismo com alvo travado no fim da preparação e janela real para esquiva.
       { id: 'abyssHands', name: 'Mãos do Abismo', skill: true, skillCooldown: 9.5, windup: 1.18, duration: 0.72, cooldown: 1.45, range: 300, areaRadius: 94, damage: 19, kb: 325, lunge: 0, hitAt: 0.22, telegraph: 'hands' },
       { id: 'graveThorns', name: 'Sepultura de Espinhos', skill: true, skillCooldown: 11.5, windup: 1.38, duration: 0.62, cooldown: 1.65, range: 300, areaRadius: 100, damage: 24, kb: 365, lunge: 0, hitAt: 0.18, telegraph: 'spikes' },
-      { id: 'blackSwordRain', name: 'Marcha das Lâminas Negras', skill: true, skillCooldown: 17, windup: 1.85, duration: 1.24, cooldown: 2.0, range: 460, areaRadius: 125, damage: 30, kb: 390, lunge: 0, hitAt: 0.72, telegraph: 'swords' },
-      { id: 'abyssEclipse', name: 'Eclipse do Abismo', skill: true, skillCooldown: 28, windup: 2.6, duration: 7.2, cooldown: 3.0, range: 460, areaRadius: 115, damage: 42, kb: 520, lunge: 0, hitAt: 6.0, telegraph: 'eclipse', critical: true },
+      { id: 'blackSwordRain', name: 'Marcha das Lâminas Negras', skill: true, skillCooldown: 17, windup: 1.85, duration: 1.24, cooldown: 2.0, range: 620, areaRadius: 145, damage: 30, kb: 390, lunge: 0, hitAt: 0.72, telegraph: 'swords' },
+      { id: 'abyssEclipse', name: 'Eclipse do Abismo', skill: true, skillCooldown: 28, windup: 2.8, duration: 10.2, cooldown: 3.0, range: 620, areaRadius: 115, damage: 42, kb: 520, lunge: 0, hitAt: 8.2, telegraph: 'eclipse', critical: true },
       { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.5, range: 190, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
       { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 1.05, range: 178, damage: 19, kb: 310, lunge: 92, hitAt: 0.09, parryable: true }
     ]
@@ -774,7 +774,7 @@ const BishopBoss = {
         this.fx = dx / d; this.fy = dy / d;
         if (!this.attack || !this.attack.skill) { this._go('approach'); break; }
         const rangedDarkSkill = ['abyssHands', 'graveThorns', 'blackSwordRain', 'abyssEclipse'].includes(this.attack.id);
-        const skillStartRange = rangedDarkSkill ? Math.min(this.attack.range * 0.82, 400) : Math.min(this.attack.range * 0.78, 68);
+        const skillStartRange = rangedDarkSkill ? Math.min(this.attack.range * 0.82, 520) : Math.min(this.attack.range * 0.78, 68);
         if (d <= skillStartRange) {
           this._go('windup');
         } else {

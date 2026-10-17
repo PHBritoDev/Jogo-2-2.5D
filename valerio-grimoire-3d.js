@@ -11,7 +11,7 @@
   let api = null, root = null, leftHinge = null, rightHinge = null;
   let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkSmoke = [], darkTendrils = [], crimsonTendrils = [], opened = false, targetOpen = 0, angle = 0;
   let lastTime = 0, ready = false, attachedScene = null, autoCloseAt = 0;
-  const GOLD = 0xe7a6b2, DARK_GOLD = 0x32101b, EMERALD = 0xff1744;
+  const GOLD = 0x8f001c, DARK_GOLD = 0x210006, EMERALD = 0xff102f;
   const MAT = {};
   function material(key, color, roughness, metalness, emissive, emissiveIntensity) {
     if (!MAT[key]) MAT[key] = new api.THREE.MeshStandardMaterial({
@@ -36,14 +36,14 @@
     const group = new T.Group();
     group.position.set(x, y, z);
     group.scale.setScalar(scale || 1);
-    const gold = material('runeGold', GOLD, .32, .78, 0x6b4300, .22);
+    const gold = material('runeGold', GOLD, .32, .58, 0x4f0011, .52);
     const emerald = material('runeEmerald', EMERALD, .24, .72, 0xff003c, 1.3);
     // Emblema geométrico abstrato, sem representar uma habilidade.
     const diamond = new T.Mesh(new T.OctahedronGeometry(.075, 0), emerald);
     diamond.scale.set(.72, 1.45, .34);
     group.add(diamond);
-    const ring = new T.Mesh(new T.TorusGeometry(.13, .012, 5, 20), gold);
-    ring.rotation.z = Math.PI / 4; group.add(ring);
+    const slashA = new T.Mesh(new T.BoxGeometry(.025,.31,.014), gold); slashA.rotation.z=Math.PI/4; group.add(slashA);
+    const slashB = new T.Mesh(new T.BoxGeometry(.025,.31,.014), gold); slashB.rotation.z=-Math.PI/4; group.add(slashB);
     const vertical = new T.Mesh(new T.BoxGeometry(.018, .25, .012), gold);
     group.add(vertical);
     parent.add(group); runes.push(group);
@@ -51,12 +51,12 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod122';
+    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod125';
     const leather = material('leather', 0x08050b, .48, .42, 0x430010, .42);
     const leatherEdge = material('leatherEdge', 0x250711, .38, .62, 0x8b0022, .58);
-    const pagesMat = material('parchment', 0x251018, .88, .08, 0x5a0018, .16);
+    const pagesMat = material('parchment', 0x100309, .9, .04, 0x31000b, .18);
     const pageShadow = material('pageShadow', 0x10060d, .9, .04, 0x2d000b, .12);
-    const gold = material('gold', 0x9c1736, .28, .82, 0xff002e, .75);
+    const gold = material('gold', 0x680014, .34, .45, 0xff0028, 1.0);
     const green = material('greenGem', 0xff1744, .18, .58, 0xff003c, 1.8);
     const w = .92, h = .68, thick = .105;
     // Miolo real, com espessura e várias folhas finas.
@@ -84,13 +84,12 @@
     box(root, 'Placa central', [.24, .31, .025], [.0, .015, .083], gold);
     const gem = new T.Mesh(new T.OctahedronGeometry(.095, 1), green);
     gem.name = 'Selo esmeralda'; gem.position.set(0, .02, .105); gem.scale.set(.82, 1.22, .56); root.add(gem);
-    const sealRing = new T.Mesh(new T.TorusGeometry(.145, .012, 6, 32), gold);
-    sealRing.position.set(0, .02, .103); root.add(sealRing);
+    for(const side of [-1,1]){const runeSlash=new T.Mesh(new T.BoxGeometry(.025,.28,.014),gold);runeSlash.position.set(side*.19,.02,.108);runeSlash.rotation.z=side*.45;root.add(runeSlash);}
     makeRune(root, 0, -.205, .092, .55);
     // Pequenas nervuras de lombada reforçam a silhueta de um volume encadernado.
     for (let i = -1; i <= 1; i++) {
-      const rib = new T.Mesh(new T.TorusGeometry(.055, .009, 4, 16, Math.PI), gold);
-      rib.rotation.y = Math.PI / 2; rib.position.set(0, i * .19, .018); root.add(rib);
+      const rib = new T.Mesh(new T.BoxGeometry(.16,.018,.025), gold);
+      rib.position.set(0, i * .19, .018); rib.rotation.z=.12*i; root.add(rib);
     }
     // MOD 118: magia proibida — fumaça negra, filamentos orgânicos e veias escarlates.
     // Sem círculos mágicos: a energia parece escapar das páginas e enrolar-se no ar.
@@ -198,7 +197,7 @@
     attachedScene = api.scene;
     ready = true;
     window.BishopGrimoire3D = {
-      version: 122,
+      version: 125,
       invoke: function(duration){
         if (!ready || !root) return false;
         targetOpen = 1; opened = true; root.visible = true;

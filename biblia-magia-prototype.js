@@ -128,24 +128,26 @@
 
   function addAura() {
     const THREE = api.THREE;
+    // MOD 125: sem aros dourados/brancos pequenos; energia em lâminas escarlates.
     goldRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.53, 0.012, 6, 48),
-      new THREE.MeshBasicMaterial({ color: 0xf3cc72, transparent: true, opacity: 0.62, depthWrite: false })
+      new THREE.BoxGeometry(0.045, 1.18, 0.025),
+      new THREE.MeshBasicMaterial({ color: 0x100006, transparent: true, opacity: 0.9, depthWrite: false })
     );
     whiteRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.43, 0.006, 5, 40),
-      new THREE.MeshBasicMaterial({ color: 0xfff5d8, transparent: true, opacity: 0.46, depthWrite: false })
+      new THREE.BoxGeometry(0.022, 0.94, 0.03),
+      new THREE.MeshBasicMaterial({ color: 0xff1238, transparent: true, opacity: 0.86, depthWrite: false, blending: THREE.AdditiveBlending })
     );
     goldRing.position.z = -0.045;
     whiteRing.position.z = -0.035;
+    whiteRing.rotation.z = Math.PI / 4;
     group.add(goldRing, whiteRing);
 
     flash = new THREE.Mesh(
       new THREE.SphereGeometry(0.12, 10, 8),
-      new THREE.MeshBasicMaterial({ color: 0xfff3c2, transparent: true, opacity: 0, depthWrite: false })
+      new THREE.MeshBasicMaterial({ color: 0xff1238, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
     );
     group.add(flash);
-    bookGlowLight = new THREE.PointLight(0xffefb5, 0, 4.8);
+    bookGlowLight = new THREE.PointLight(0xff1238, 0, 4.8);
     bookGlowLight.position.set(0, 0.02, 0.18);
     group.add(bookGlowLight);
   }
@@ -1625,8 +1627,8 @@
     group.rotation.y = yaw;
 
     const pulse = 1 + Math.sin(now * 0.004) * 0.045;
-    goldRing.rotation.z = now * 0.00042;
-    whiteRing.rotation.z = -now * 0.00065;
+    goldRing.rotation.z = Math.sin(now * 0.0014) * 0.12;
+    whiteRing.rotation.z = Math.PI / 4 - Math.sin(now * 0.0011) * 0.09;
     goldRing.scale.setScalar(pulse);
     whiteRing.scale.setScalar(1 + Math.sin(now * 0.005) * 0.035);
 
