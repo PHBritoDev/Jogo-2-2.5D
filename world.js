@@ -172,6 +172,36 @@ const World = {
     const flower = (x, y, r) => ({ type: 'flower', x, y, r: 0, flat: true, s: 0.8 + r() * 0.5, col: fcol[r() * fcol.length | 0], ph: r() * 6.28 });
     sc({ count: 500, tries: 3000, biomes: [F], make: flower });
     sc({ count: 80, tries: 1500, biomes: [G], make: flower });
+
+    // Um pequeno bosque em volta do início enquadra a clareira sem fechar as trilhas.
+    this._populateStartingGrove(rnd);
+  },
+
+  _populateStartingGrove(rnd) {
+    const center = this.spawn;
+    const target = 22;
+    let placed = 0;
+
+    // A distribuição em anel mantém o ponto de partida livre. A distância das
+    // trilhas preserva o corredor de caminhada e o sistema atual de colisão.
+    for (let attempt = 0; attempt < target * 40 && placed < target; attempt++) {
+      const angle = rnd() * Math.PI * 2;
+      const radius = 155 + Math.sqrt(rnd()) * 205;
+      const x = center.x + Math.cos(angle) * radius;
+      const y = center.y + Math.sin(angle) * radius;
+      const biome = this.tileAt(x, y);
+      if (biome !== T.GRASS && biome !== T.FLOWER) continue;
+      if (this._pathDist(x, y) < 92) continue;
+
+      const s = 0.88 + rnd() * 0.38;
+      const tree = { type: 'tree', x, y, s, r: 9 * s, gap: 34, ph: rnd() * 6.28,
+        pal: rnd() < 0.12 ? 3 : (rnd() * 3 | 0), fade: 1 };
+      if (!this._free(tree)) continue;
+      tree.sy = tree.y;
+      this._add(tree);
+      placed++;
+    }
+    return placed;
   },
 
   _scatter(rnd, opt) {

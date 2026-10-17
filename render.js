@@ -346,7 +346,7 @@ const Render = {
   },
 
   _drawTree(ctx, o, t) {
-    const s = o.s, sw = Math.sin(t * 1.7 + o.ph) * Ambient.wind, sx = sw * 4 * s;
+    const s = o.s, sw = Math.sin(t * 1.35 + o.ph) * Ambient.wind, sx = sw * 5 * s;
 
     // Some a copa quando o jogador está atrás dela
     let target = 1;
@@ -382,7 +382,7 @@ const Render = {
   },
 
   _drawPine(ctx, o, t) {
-    const s = o.s, sw = Math.sin(t * 1.5 + o.ph) * Ambient.wind, sx = sw * 3 * s;
+    const s = o.s, sw = Math.sin(t * 1.2 + o.ph) * Ambient.wind, sx = sw * 4 * s;
 
     let target = 1;
     if (Player.y < o.y && Math.abs(Player.x - o.x) < 28 * s) {
