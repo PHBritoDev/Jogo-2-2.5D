@@ -338,9 +338,11 @@ const Player = {
       if (this.getUpT <= 0) this.gettingUp = false;
     }
 
-    const canAct = !this.dead && this.stun <= 0 && this.knockdownT <= 0 && !this.gettingUp && this.evadeT <= 0;
+    const cinematicLocked = !!window.CelestialEclipseLock;
+    const canAct = !cinematicLocked && !this.dead && this.stun <= 0 && this.knockdownT <= 0 && !this.gettingUp && this.evadeT <= 0;
     if (this.dead) this.deadT += dt;
     if (!canAct) { ax = 0; ay = 0; jumpPressed = false; jumpHeld = false; attackPressed = false; defendHeld = false; }
+    if (cinematicLocked) { this.vx = 0; this.vy = 0; this.vz = 0; this.evadeT = 0; }
 
     // ----- Defesa e ataque (nunca ao mesmo tempo) -----
     this.blocking = defendHeld && this.attackT < 0 && this.evadeT <= 0;
