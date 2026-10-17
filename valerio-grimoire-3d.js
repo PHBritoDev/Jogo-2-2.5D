@@ -1,4 +1,4 @@
-/* MOD 122 — grimório sombrio e escarlate, invocado automaticamente durante magia do Bispo.
+/* MOD 126 — grimório com aura angular grande, negra e escarlate, visível durante a conjuração.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -9,9 +9,9 @@
   if (!enabled) return;
 
   let api = null, root = null, leftHinge = null, rightHinge = null;
-  let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkSmoke = [], darkTendrils = [], crimsonTendrils = [], opened = false, targetOpen = 0, angle = 0;
+  let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkSmoke = [], darkTendrils = [], crimsonTendrils = [], auraShards = [], auraSlashes = [], opened = false, targetOpen = 0, angle = 0;
   let lastTime = 0, ready = false, attachedScene = null, autoCloseAt = 0;
-  const GOLD = 0x8f001c, DARK_GOLD = 0x210006, EMERALD = 0xff102f;
+  const GOLD = 0x5a0010, DARK_GOLD = 0x090006, EMERALD = 0xff001b;
   const MAT = {};
   function material(key, color, roughness, metalness, emissive, emissiveIntensity) {
     if (!MAT[key]) MAT[key] = new api.THREE.MeshStandardMaterial({
@@ -51,13 +51,13 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod125';
+    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod126';
     const leather = material('leather', 0x08050b, .48, .42, 0x430010, .42);
     const leatherEdge = material('leatherEdge', 0x250711, .38, .62, 0x8b0022, .58);
     const pagesMat = material('parchment', 0x100309, .9, .04, 0x31000b, .18);
     const pageShadow = material('pageShadow', 0x10060d, .9, .04, 0x2d000b, .12);
-    const gold = material('gold', 0x680014, .34, .45, 0xff0028, 1.0);
-    const green = material('greenGem', 0xff1744, .18, .58, 0xff003c, 1.8);
+    const gold = material('gold', 0x280006, .34, .45, 0x8f0018, .35);
+    const green = material('crimsonGem', 0x60000e, .18, .58, 0xff001b, 1.4);
     const w = .92, h = .68, thick = .105;
     // Miolo real, com espessura e várias folhas finas.
     box(root, 'Lombada reforçada', [.12, h + .045, thick + .025], [0, 0, 0], leatherEdge);
@@ -93,7 +93,7 @@
     }
     // MOD 118: magia proibida — fumaça negra, filamentos orgânicos e veias escarlates.
     // Sem círculos mágicos: a energia parece escapar das páginas e enrolar-se no ar.
-    const smokeColors = [0x020105, 0x08020a, 0x16020a, 0x27000d, 0x4a0015];
+    const smokeColors = [0x010103, 0x050006, 0x100007, 0x240008, 0x3a000b];
     for (let i = 0; i < 22; i++) {
       const smokeMat = new T.MeshBasicMaterial({
         color: smokeColors[i % smokeColors.length], transparent: true,
@@ -145,7 +145,7 @@
         ));
       }
       const vein = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points), 20, .0045, 4, false),
-        new T.MeshBasicMaterial({color: i % 2 ? 0xff1744 : 0xff4268, transparent:true, opacity:.88, depthWrite:false, blending: T.AdditiveBlending}));
+        new T.MeshBasicMaterial({color: i % 2 ? 0xff001b : 0x9e001a, transparent:true, opacity:.94, depthWrite:false, blending: T.AdditiveBlending}));
       vein.name = 'Fissura escarlate ' + i;
       vein.userData = {phase, speed: .6 + (i % 3) * .15};
       root.add(vein); crimsonTendrils.push(vein);
@@ -197,7 +197,7 @@
     attachedScene = api.scene;
     ready = true;
     window.BishopGrimoire3D = {
-      version: 125,
+      version: 126,
       invoke: function(duration){
         if (!ready || !root) return false;
         targetOpen = 1; opened = true; root.visible = true;
@@ -292,7 +292,9 @@
       spark.material.opacity = red ? .35 + .55 * (.5 + .5 * Math.sin(t * 2.2)) : .2 + .36 * (.5 + .5 * Math.sin(t * 1.8));
       spark.scale.setScalar(.72 + .55 * (.5 + .5 * Math.sin(t * 2.5)));
     });
-    runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
+    auraShards.forEach((s)=>{const u=s.userData,t=now*.002+u.phase;s.position.set(u.baseX+Math.sin(t)*.08,u.baseY+Math.cos(t*1.2)*.09,.16+Math.sin(t*1.4)*.035);s.rotation.z=-u.phase+Math.PI/2+Math.sin(t)*.24;s.scale.setScalar(.82+.22*(.5+.5*Math.sin(t*1.7)));});
+     auraSlashes.forEach((s)=>{const u=s.userData,t=now*.0018+u.phase;s.rotation.z=u.baseRotation+Math.sin(t)*.28;s.material.opacity=.55+.4*(.5+.5*Math.sin(t*2));s.scale.y=.82+.45*(.5+.5*Math.sin(t*1.3));});
+     runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
     if (angle < .01 && targetOpen === 0) root.visible = false;
   }
   function init() {
