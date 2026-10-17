@@ -185,6 +185,7 @@ const Render = {
     this._drawCliff(ctx);
     this._drawGround(ctx, cx, cy, cam, t);
     Ambient.drawCloudShadows(ctx);
+    Ambient.drawNightLighting(ctx, cam, t);
 
     // Objetos visíveis
     World.query(cx - 60, cy - 20, cx + cam.viewW + 60, cy + cam.viewH + 150, this.flat, this.tall);
