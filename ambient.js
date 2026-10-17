@@ -189,27 +189,64 @@ const Ambient = {
       }
       ctx.globalAlpha = 1;
 
-      // Auroras leves; poucas faixas e gradientes para limitar o custo por frame.
+      // Cortinas de aurora com intensidade ligada ao perfil gráfico.
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
       const auroraBands = Math.max(1, Math.min(5, Math.round(3 * effects)));
+      const palettes = [
+        ['rgba(63,255,166,0.43)', 'rgba(79,219,255,0.33)'],
+        ['rgba(63,224,220,0.40)', 'rgba(144,111,255,0.34)'],
+        ['rgba(126,101,255,0.34)', 'rgba(73,241,195,0.27)']
+      ];
       for (let band = 0; band < auroraBands; band++) {
-        const y = cam.viewH * (0.18 + band * 0.105);
-        const drift = Math.sin(this.cloudT * 0.18 + band * 1.7) * cam.viewW * 0.035;
-        const glow = ctx.createLinearGradient(0, y - 48, 0, y + 76);
+        const y = cam.viewH * (0.13 + band * 0.11);
+        const phase = this.cloudT * 0.14 + band * 1.7;
+        const drift = Math.sin(phase) * cam.viewW * 0.045;
+        const sway = Math.sin(phase * 0.68 + 1.2) * cam.viewW * 0.028;
+        const height = Math.max(88, cam.viewH * 0.25);
+        const pulse = 0.96 + Math.sin(this.cloudT * 0.42 + band * 1.4) * 0.04;
+        const palette = palettes[band % palettes.length];
+        const glow = ctx.createLinearGradient(0, y - height * 0.75, 0, y + height * 0.95);
         glow.addColorStop(0, 'rgba(35,255,177,0)');
-        glow.addColorStop(0.38, band === 1 ? 'rgba(69,205,255,0.13)' : 'rgba(65,255,156,0.19)');
-        glow.addColorStop(0.62, 'rgba(120,93,255,0.11)');
+        glow.addColorStop(0.22, palette[0]);
+        glow.addColorStop(0.54, palette[1]);
         glow.addColorStop(1, 'rgba(35,255,177,0)');
         ctx.fillStyle = glow;
+        ctx.globalAlpha = pulse;
         ctx.beginPath();
-        ctx.moveTo(-20, y + 22);
-        ctx.bezierCurveTo(cam.viewW * 0.22, y - 44 + drift, cam.viewW * 0.53, y + 62, cam.viewW * 0.72, y + 4 + drift);
-        ctx.bezierCurveTo(cam.viewW * 0.88, y - 24, cam.viewW * 0.96, y + 25, cam.viewW + 20, y - 8);
-        ctx.lineTo(cam.viewW + 20, y + 100);
-        ctx.lineTo(-20, y + 100);
+        ctx.moveTo(-20, y + height * 0.16);
+        ctx.bezierCurveTo(cam.viewW * 0.18, y - height * 0.50 + drift, cam.viewW * 0.42, y + height * 0.66, cam.viewW * 0.68, y + height * 0.04 + sway);
+        ctx.bezierCurveTo(cam.viewW * 0.84, y - height * 0.28, cam.viewW * 0.96, y + height * 0.34 + drift, cam.viewW + 20, y - height * 0.08);
+        ctx.lineTo(cam.viewW + 20, y + height * 0.80);
+        ctx.bezierCurveTo(cam.viewW * 0.72, y + height * 0.46, cam.viewW * 0.40, y + height * 0.92, -20, y + height * 0.68);
         ctx.closePath();
         ctx.fill();
+
+        // Uma borda fina e poucas cortinas verticais dão volume sem blur ou partículas.
+        ctx.globalAlpha = pulse * 0.76;
+        ctx.strokeStyle = band % 2 === 0 ? 'rgba(181,255,222,0.48)' : 'rgba(185,184,255,0.45)';
+        ctx.lineWidth = effects < 0.75 ? 1 : 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-10, y + height * 0.2);
+        ctx.bezierCurveTo(cam.viewW * 0.2, y - height * 0.28 + drift, cam.viewW * 0.47, y + height * 0.38, cam.viewW * 0.73, y + height * 0.06 + sway);
+        ctx.bezierCurveTo(cam.viewW * 0.86, y - height * 0.12, cam.viewW * 0.96, y + height * 0.26, cam.viewW + 10, y - height * 0.02);
+        ctx.stroke();
+        if (effects >= 0.55) {
+          const streamers = effects < 0.75 ? 4 : Math.min(6, Math.round(effects * 4));
+          ctx.globalAlpha = pulse * 0.72;
+          ctx.lineWidth = effects < 0.8 ? 1 : 1.5;
+          for (let i = 0; i < streamers; i++) {
+            const travel = this.cloudT * 2.6;
+            const x = (((i + 0.5) * cam.viewW / streamers + drift * 0.42 + travel) % cam.viewW + cam.viewW) % cam.viewW;
+            const drop = height * (0.45 + (i % 3) * 0.12);
+            const bend = Math.sin(phase + i * 1.9) * cam.viewW * 0.012;
+            ctx.strokeStyle = i % 2 ? 'rgba(117,255,204,0.39)' : 'rgba(141,202,255,0.34)';
+            ctx.beginPath();
+            ctx.moveTo(x, y + height * 0.12);
+            ctx.bezierCurveTo(x + bend, y + drop * 0.3, x - bend * 0.7, y + drop * 0.72, x + bend * 0.45, y + drop);
+            ctx.stroke();
+          }
+        }
       }
       ctx.restore();
 
@@ -229,6 +266,68 @@ const Ambient = {
     s.addColorStop(1, 'rgba(255,248,200,0)');
     ctx.fillStyle = s;
     ctx.fillRect(sx - 150, sy - 150, 300, 300);
+  },
+
+  // Luz rebatida no chão durante a noite: poucos gradientes e sem sombras dinâmicas.
+  drawNightLighting(ctx, cam, t) {
+    if ((Climate.state !== 'night' && Climate.state !== 'nightfall') || Climate.indoor) return;
+    const quality = window.GraphicsQuality;
+    const effects = quality ? quality.get('effects') : 1;
+    if (effects < 0.55) return;
+    const x = cam.x, y = cam.y, w = cam.viewW, h = cam.viewH;
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgba(5,12,34,0.10)';
+    ctx.fillRect(x, y, w, h);
+    ctx.globalCompositeOperation = 'screen';
+
+    const reflected = ctx.createLinearGradient(x, y + h * 0.36, x, y + h);
+    reflected.addColorStop(0, 'rgba(53,166,255,0)');
+    reflected.addColorStop(0.58, 'rgba(58,172,229,0.035)');
+    reflected.addColorStop(1, 'rgba(61,255,178,0.15)');
+    ctx.fillStyle = reflected;
+    ctx.fillRect(x, y + h * 0.30, w, h * 0.70);
+
+    const radius = Math.min(190, Math.max(115, w * 0.18));
+    if (typeof Player !== 'undefined' && Number.isFinite(Player.x) && Number.isFinite(Player.y) &&
+        Player.x + radius >= x && Player.x - radius <= x + w &&
+        Player.y + radius >= y && Player.y - radius <= y + h) {
+      this._drawNightPool(ctx, Player.x, Player.y, radius, 'rgba(86,255,192,0.22)');
+    }
+    if (effects >= 0.8 && typeof BishopBoss !== 'undefined' && BishopBoss.alpha > 0 &&
+        Number.isFinite(BishopBoss.x) && Number.isFinite(BishopBoss.y) &&
+        BishopBoss.x + 170 >= x && BishopBoss.x - 170 <= x + w &&
+        BishopBoss.y + 170 >= y && BishopBoss.y - 170 <= y + h) {
+      this._drawNightPool(ctx, BishopBoss.x, BishopBoss.y, 170, 'rgba(170,105,255,0.22)');
+    }
+
+    const beams = effects < 0.8 ? 1 : 2;
+    for (let i = 0; i < beams; i++) {
+      const center = x + w * (0.3 + i * 0.4) + Math.sin(t * 0.08 + i * 2.1) * w * 0.015;
+      const top = y + h * (0.32 + i * 0.07);
+      const beam = ctx.createLinearGradient(center, top, center, y + h);
+      beam.addColorStop(0, 'rgba(110,221,255,0)');
+      beam.addColorStop(0.46, 'rgba(120,231,231,0.024)');
+      beam.addColorStop(1, 'rgba(119,255,190,0)');
+      ctx.fillStyle = beam;
+      ctx.beginPath();
+      ctx.moveTo(center - 3, top);
+      ctx.lineTo(center + 3, top);
+      ctx.lineTo(center + w * 0.07, y + h);
+      ctx.lineTo(center - w * 0.08, y + h);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  },
+
+  _drawNightPool(ctx, px, py, radius, color) {
+    const glow = ctx.createRadialGradient(px, py, 0, px, py, radius);
+    glow.addColorStop(0, color);
+    glow.addColorStop(0.42, 'rgba(91,204,255,0.075)');
+    glow.addColorStop(1, 'rgba(91,204,255,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(px - radius, py - radius, radius * 2, radius * 2);
   },
 
   _cloud(ctx, x, y, s, alpha) {

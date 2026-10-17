@@ -103,6 +103,15 @@ const BishopDimension = (function () {
   function mix3(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
   function pushV(out,p,c){out.push(p[0],p[1],p[2],c[0],c[1],c[2],c[3]);}
   function addVQuad(out,a,b,c,d,ca,cb,cc,cd){pushV(out,a,ca);pushV(out,b,cb);pushV(out,c,cc);pushV(out,a,ca);pushV(out,c,cc);pushV(out,d,cd);}
+  function addGroundGlow(out,x,z,rx,rz,hex,alpha,segments){
+    const rgb=hex3(hex),center=[x,.06,z],inner=[rgb[0],rgb[1],rgb[2],alpha],outer=[rgb[0],rgb[1],rgb[2],0],n=segments||28;
+    for(let i=0;i<n;i++){
+      const a0=i/n*Math.PI*2,a1=(i+1)/n*Math.PI*2;
+      pushV(out,center,inner);
+      pushV(out,[x+Math.cos(a0)*rx,.06,z+Math.sin(a0)*rz],outer);
+      pushV(out,[x+Math.cos(a1)*rx,.06,z+Math.sin(a1)*rz],outer);
+    }
+  }
   // Planeta com faixas/manchas, luz direcional, terminador quente e brilho de atmosfera.
   function addPlanet(out,x,y,z,r,o){
     const rows=o.rows||18,cols=o.cols||30,seed=o.seed||0;
@@ -249,12 +258,16 @@ const BishopDimension = (function () {
   }
   function buildArena() {
     const sky=[],skyGlow=[],skyRings=[];
-    const world=[],aurora=[],foliage=[],shadows=[],leaves=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
+    const world=[],groundGlow=[],aurora=[],foliage=[],shadows=[],leaves=[],portal=[],energy=[],mistLayers=[],particles=[],player=[],bishop=[],playerArmL=[],playerArmR=[],playerLegL=[],playerLegR=[],bishopArmL=[],bishopArmR=[],bishopShoulders=[],bishopHead=[],bishopFace=[],bishopCrown=[],bishopHands=[];
 
     // Piso de suporte discreto: a grama real cobre toda a superfície jogável.
     // Sem estrada, pedras, cascalho, raízes soltas ou moitas sobre o terreno.
     addBox(world,0,-0.42,-2.5,132,0.8,78,'#18251a');
     addBox(world,0,-0.035,-2.5,128,0.12,72,'#20301d');
+    // Reflexos estáticos em uma única malha: aurora verde no gramado, portal violeta e luar frio.
+    addGroundGlow(groundGlow,0,-2.5,26,17,'#38e8b0',.18,36);
+    addGroundGlow(groundGlow,0,-20.7,8,5,'#ce54ff',.40,28);
+    addGroundGlow(groundGlow,0,11,17,11,'#4d9dff',.11,32);
 
     // Céu cósmico em 3D: estrelas espalhadas em volta e abaixo da arena.
     // São apenas pequenas malhas estáticas, sem texturas ou shaders pesados.
@@ -523,7 +536,7 @@ const BishopDimension = (function () {
     addSegment(bishopArmL,[0,0,0],[-.24,-.35,-.03],.095,.065,'#30213a',6);
     addSegment(bishopArmR,[0,0,0],[.24,-.35,-.03],.095,.065,'#30213a',6);
     return {
-      world:mesh(S.gl,world),sky:mesh(S.gl,sky),skyGlow:mesh(S.gl,skyGlow),skyRings:mesh(S.gl,skyRings),aurora:mesh(S.gl,aurora),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),leaves:mesh(S.gl,leaves),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
+      world:mesh(S.gl,world),groundGlow:mesh(S.gl,groundGlow),sky:mesh(S.gl,sky),skyGlow:mesh(S.gl,skyGlow),skyRings:mesh(S.gl,skyRings),aurora:mesh(S.gl,aurora),foliage:mesh(S.gl,foliage),shadows:mesh(S.gl,shadows),leaves:mesh(S.gl,leaves),grassAsset:null,mist:mistLayers,portal:mesh(S.gl,portal),
       sourceData:{world:world,foliage:foliage,shadows:shadows},
       energy:mesh(S.gl,energy),particles:mesh(S.gl,particles),
       player:mesh(S.gl,player),bishop:mesh(S.gl,bishop),
@@ -825,6 +838,11 @@ const BishopDimension = (function () {
     };
     gl.clearColor(.018,.026,.060,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     draw(S.arena.world,pv);
+    if((window.GraphicsQuality?window.GraphicsQuality.get('effects'):1)>=.45){
+      gl.depthMask(false);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+      draw(S.arena.groundGlow,pv,0);
+      gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(true);
+    }
     // Cosmos 3D: planetas opacos, nebulosas/halos aditivos, anéis translúcidos e auroras em cortina.
     // A profundidade preserva árvores e personagens à frente; tudo sem escrever profundidade (exceto corpos).
     draw(S.arena.sky,pv);
