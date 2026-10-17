@@ -343,7 +343,7 @@ const Player = {
     if (this.dead) this.deadT += dt;
     if (!canAct) { ax = 0; ay = 0; jumpPressed = false; jumpHeld = false; attackPressed = false; defendHeld = false; }
     // MOD 126: bloqueia comandos, mas mantém a gravidade para não suspender o herói no ar.
-    if (cinematicLocked) { this.vx = 0; this.vy = 0; this.evadeT = 0; }
+    if (cinematicLocked) { this.vx = 0; this.vy = 0; this.vz = 0; this.z = this.floor; this.onGround = true; this.evadeT = 0; }
 
     // ----- Defesa e ataque (nunca ao mesmo tempo) -----
     this.blocking = defendHeld && this.attackT < 0 && this.evadeT <= 0;
