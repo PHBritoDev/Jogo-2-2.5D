@@ -39,7 +39,10 @@ let model=null,mixer=null,actions={},activeAction=null,walkName='';
 const clock=new THREE.Clock();
 function chooseClip(clips,regex){return clips.find(c=>regex.test(c.name));}
 function play(name,fade=.18){const next=actions[name];if(!next||next===activeAction)return;if(activeAction)activeAction.fadeOut(fade);next.reset().fadeIn(fade).play();activeAction=next;}
-function fitModel(root){\n // O GLB original do protagonista já foi validado perto de 1,9 m. Não recalcular escala pela caixa de ossos animados: isso já causou modelos gigantes em rigs anteriores.\n root.scale.set(1,1,1);root.position.set(0,0,0);\n}
+function fitModel(root){
+ // O GLB original do protagonista já foi validado perto de 1,9 m. Não recalcular escala pela caixa de ossos animados: isso já causou modelos gigantes em rigs anteriores.
+ root.scale.set(1,1,1);root.position.set(0,0,0);
+}
 new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
  model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;}}});
  fitModel(model);player.add(model);
