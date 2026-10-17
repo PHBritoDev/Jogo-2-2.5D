@@ -379,7 +379,7 @@ const Quest = {
   // Chamado uma vez ao entrar no mundo: introdução, depois a campanha começa
   start() {
     this.step = 'intro';
-    this.hud('Galáxia 1 · Terra', 'Ouça o narrador...');
+    this.hud('Galáxia 1 · Terra', 'Acompanhe a conversa inicial...');
     Dialog.start(INTRO_NODES, 'i1', function () {
       Campaign.start();
       Quest.toast('Nova missão: Primeiros Passos');
