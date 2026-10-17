@@ -37,7 +37,7 @@
     group.position.set(x, y, z);
     group.scale.setScalar(scale || 1);
     const gold = material('runeGold', GOLD, .32, .78, 0x6b4300, .22);
-    const emerald = material('runeEmerald', EMERALD, .34, .55, 0x00a46c, .5);
+    const emerald = material('runeEmerald', EMERALD, .24, .72, 0xff003c, 1.3);
     // Emblema geométrico abstrato, sem representar uma habilidade.
     const diamond = new T.Mesh(new T.OctahedronGeometry(.075, 0), emerald);
     diamond.scale.set(.72, 1.45, .34);
