@@ -26,12 +26,13 @@ const path=new THREE.Mesh(new THREE.PlaneGeometry(6,90),pathMat);path.rotation.x
 const hillMat=mat(0x63835b);
 for(let i=0;i<10;i++){const hill=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),hillMat);hill.scale.set(8+Math.random()*10,2+Math.random()*4,6+Math.random()*7);hill.position.set((Math.random()-.5)*100,-1.5,-30-Math.random()*60);scene.add(hill);}
 const treeGroup=new THREE.Group();scene.add(treeGroup);
+const treeObstacles=[];const rockObstacles=[];
 function makeTree(x,z,s=1){const g=new THREE.Group();const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.16*s,.32*s,2.6*s,7),barkMat);trunk.position.y=1.3*s;trunk.castShadow=true;g.add(trunk);
 for(let j=0;j<3;j++){const crown=new THREE.Mesh(new THREE.IcosahedronGeometry((1.05-j*.12)*s,1),j===1?leafLight:leafMat);crown.position.set((Math.random()-.5)*.25*s,(2.25+j*.62)*s,(Math.random()-.5)*.25*s);crown.scale.set(1,.9,1);crown.castShadow=true;g.add(crown);}
-g.position.set(x,0,z);treeGroup.add(g);return g;}
+g.position.set(x,0,z);treeGroup.add(g);treeObstacles.push({x,z,radius:.38*s+.28});return g;}
 let seed=9137;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
 for(let i=0;i<100;i++){let x=(rand()-.5)*90,z=-8-rand()*82;if(Math.abs(x)<5&&z>-48)continue;makeTree(x,z,.7+rand()*1.2);}
-for(let i=0;i<32;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.4+rand()*1.15,0),rockMat);r.position.set((rand()-.5)*42,.15,-5-rand()*65);r.scale.y=.5+rand()*.6;r.rotation.set(rand(),rand()*3,rand());r.castShadow=true;r.receiveShadow=true;scene.add(r);}
+for(let i=0;i<32;i++){const radius=.4+rand()*1.15;const r=new THREE.Mesh(new THREE.DodecahedronGeometry(radius,0),rockMat);r.position.set((rand()-.5)*42,.15,-5-rand()*65);r.scale.y=.5+rand()*.6;r.rotation.set(rand(),rand()*3,rand());r.castShadow=true;r.receiveShadow=true;scene.add(r);rockObstacles.push({x:r.position.x,z:r.position.z,radius:radius*.82+.3});}
 const grassGroup=new THREE.Group();scene.add(grassGroup);
 for(let i=0;i<180;i++){const x=(rand()-.5)*58,z=-3-rand()*55;if(Math.abs(x)<3&&z>-48)continue;const h=.12+rand()*.3;const blade=new THREE.Mesh(new THREE.ConeGeometry(.055,h,3),i%3?leafLight:leafMat);blade.position.set(x,h/2,z);blade.rotation.z=(rand()-.5)*.55;grassGroup.add(blade);}
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
@@ -107,10 +108,18 @@ const blend=1-Math.exp(-response*dt);
 moveVX+=(targetVX-moveVX)*blend;moveVZ+=(targetVZ-moveVZ)*blend;
 if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
 const moving=Math.hypot(moveVX,moveVZ)>.12;
+function blockedAt(x,z){
+ for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
+ for(const o of rockObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
+ return false;
+}
 // Movimento horizontal permanece disponível durante o pulo.
 if(moving){
- player.position.x+=moveVX*dt;player.position.z+=moveVZ*dt;
- player.position.x=THREE.MathUtils.clamp(player.position.x,-38,38);player.position.z=THREE.MathUtils.clamp(player.position.z,-72,14);
+ const nextX=THREE.MathUtils.clamp(player.position.x+moveVX*dt,-38,38);
+ const nextZ=THREE.MathUtils.clamp(player.position.z+moveVZ*dt,-72,14);
+ // Testa cada eixo separadamente para o jogador conseguir deslizar junto à árvore/pedra.
+ if(!blockedAt(nextX,player.position.z))player.position.x=nextX;else moveVX=0;
+ if(!blockedAt(player.position.x,nextZ))player.position.z=nextZ;else moveVZ=0;
  const wantedYaw=Math.atan2(moveVX,moveVZ);
  const yawDelta=Math.atan2(Math.sin(wantedYaw-playerYaw),Math.cos(wantedYaw-playerYaw));
  playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;
