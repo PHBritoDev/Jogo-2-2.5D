@@ -62,7 +62,16 @@ let actionUntil=0,hop=0;
 function action(kind){const now=performance.now();if(kind==='jump'){hop=.34;if(actions.jump){play('jump',.08);actionUntil=now+650;}return;}if(kind==='attack'||kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='attack'?'Golpe demonstrativo · combate ainda será integrado':kind==='magic'?'Magia será conectada ao sistema celestial':'Ultimate será conectada ao sistema celestial';setTimeout(()=>{if(status.textContent.startsWith('Golpe demonstrativo')||status.textContent.startsWith('Magia será')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
 document.getElementById('attack').addEventListener('click',()=>action('attack'));document.getElementById('jump').addEventListener('click',()=>action('jump'));document.getElementById('magic').addEventListener('click',()=>action('magic'));document.getElementById('ultimate').addEventListener('click',()=>action('ultimate'));
 addEventListener('keydown',e=>{if(e.repeat)return;if(e.key.toLowerCase()==='j'||e.key.toLowerCase()==='x')action('attack');if(e.key===' ')action('jump');});
-let lastMove=0;
+let lastMove=0; 
+let cameraYaw=0,cameraPitch=.18,cameraDistance=6.2;
+const lookArea=document.getElementById('look-area');
+let lookPointer=null,lastLookX=0,lastLookY=0;
+lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;lookPointer=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;try{lookArea.setPointerCapture(e.pointerId);}catch(_){}});
+lookArea.addEventListener('pointermove',e=>{if(lookPointer!==e.pointerId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;cameraYaw-=dx*.006;cameraPitch=THREE.MathUtils.clamp(cameraPitch-dy*.004,-.18,.72);});
+function endLook(e){if(lookPointer===e.pointerId)lookPointer=null;}
+lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);
+lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,3.5,9);},{passive:true});
+
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);
 let x=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let z=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;const len=Math.hypot(x,z);if(len>1){x/=len;z/=len;}
 const moving=len>.12&&now>actionUntil;
