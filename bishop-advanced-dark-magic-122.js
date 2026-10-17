@@ -35,7 +35,7 @@ function build(){
  const grinShape=new T.Shape();grinShape.moveTo(-2.45,-.45);grinShape.quadraticCurveTo(0,-2.65,2.45,-.45);grinShape.quadraticCurveTo(0,-1.2,-2.45,-.45);
  const grin=new T.Mesh(new T.ShapeGeometry(grinShape,24),new T.MeshBasicMaterial({color:0x120006,side:T.DoubleSide}));grin.position.set(0,-.42,4.84);moon.add(grin);
  for(let i=0;i<11;i++){const tooth=new T.Mesh(new T.ConeGeometry(.17,.66+(i%3)*.13,3),new T.MeshBasicMaterial({color:0xfff8e8}));tooth.position.set(-2.0+i*.4,-.77+(i%2)*.12,4.91);tooth.rotation.z=Math.PI;moon.add(tooth);}
- for(let i=0;i<9;i++){const tooth=new T.Mesh(new T.ConeGeometry(.15,.5+(i%3)*.1,3),new T.MeshBasicMaterial({color:0xfff8e8}));tooth.position.set(-1.8+i*.45,-1.48+(i%2)*.1,4.91);moon.add(tooth);}
+ for(let i=0;i<9;i++){const tooth=new T.Mesh(new T.ConeGeometry(.15,.5+(i%3)*.1,3),new T.MeshBasicMaterial({color:0xfff8e8}));tooth.position.set(-1.8+i*.45,-1.48+(i%2)*.1,4.91);tooth.rotation.z=0;moon.add(tooth);}
  // Sem halo circular: a expressão é formada por olhos triangulares e sorriso monstruoso.
  hole=new T.Mesh(new T.SphereGeometry(1,24,18),new T.MeshBasicMaterial({color:0x000000,depthWrite:false}));hole.position.set(0,8.3,-6.3);eclipse.add(hole);
  ring=new T.Mesh(new T.TorusGeometry(1.4,.09,7,48),red);ring.position.copy(hole.position);ring.scale.set(1,.72,.3);eclipse.add(ring);
@@ -63,7 +63,7 @@ function tick(now){
  else if(id==='blackSwordRain'){const desiredLen=Math.max(.01,len),blendAim=state==='attack'?.055:.018;swordAimX+=(ux-swordAimX)*blendAim;swordAimZ+=(uz-swordAimZ)*blendAim;const aimLen=Math.max(.001,Math.hypot(swordAimX,swordAimZ));const ax=swordAimX/aimLen,az=swordAimZ/aimLen,apx=-az,apz=ax;lane.material.opacity=state==='windup'?.36:.04;lane.position.set(ax*desiredLen*.5,.045,az*desiredLen*.5);lane.rotation.set(-Math.PI/2,0,-Math.atan2(az,ax));lane.scale.set(1.8,Math.max(1,desiredLen),1);const progress=state==='attack'?clamp((Number(view.stateTime)||0)/Math.max(.1,Number(view.hitAt)||.72),0,1):0;swords.forEach(s=>{const startD=.8+s.start*.24,travelD=Math.max(0,desiredLen-startD)*progress,spread=s.lane*(.48+progress*.12);s.mesh.position.set(ax*(startD+travelD)+apx*spread,s.baseY+.025*Math.sin(now*.009+s.phase),az*(startD+travelD)+apz*spread);s.mesh.rotation.set(Math.PI/2,Math.atan2(-ax,-az),0);s.mesh.visible=state!=='attack'||progress<.995;s.mesh.scale.setScalar(1+.045*Math.sin(now*.012+s.phase));});}
  else{
   const elapsed=Math.max(0,(now-startAt)/1000),charge=clamp(elapsed/2.5,0,1),grow=clamp((elapsed-2.4)/3.8,0,1),launch=clamp((elapsed-7.05)/1.25,0,1);
-  // MOD 125: plano geral alto; lua e vórtice ficam separados e o jogador recupera controle ao lançar.
+  // MOD 126: lua afastada do vórtice; árvores sobem e giram visivelmente, câmera volta antes do arremesso.
   if(id==='abyssEclipse'){
     const normalEye=cameraStartEye||[boss[0],2.2,boss[2]+9];
     const normalTarget=cameraStartTarget||[boss[0],1.6,boss[2]];
