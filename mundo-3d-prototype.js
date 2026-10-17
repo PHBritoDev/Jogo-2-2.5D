@@ -62,7 +62,7 @@ let actionUntil=0,hop=0;
 function action(kind){const now=performance.now();if(kind==='jump'){hop=.34;if(actions.jump){play('jump',.08);actionUntil=now+650;}return;}if(kind==='attack'||kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='attack'?'Golpe demonstrativo · combate ainda será integrado':kind==='magic'?'Magia será conectada ao sistema celestial':'Ultimate será conectada ao sistema celestial';setTimeout(()=>{if(status.textContent.startsWith('Golpe demonstrativo')||status.textContent.startsWith('Magia será')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
 document.getElementById('attack').addEventListener('click',()=>action('attack'));document.getElementById('jump').addEventListener('click',()=>action('jump'));document.getElementById('magic').addEventListener('click',()=>action('magic'));document.getElementById('ultimate').addEventListener('click',()=>action('ultimate'));
 addEventListener('keydown',e=>{if(e.repeat)return;if(e.key.toLowerCase()==='j'||e.key.toLowerCase()==='x')action('attack');if(e.key===' ')action('jump');});
-let lastMove=0; 
+let lastMove=0,moveVX=0,moveVZ=0,playerYaw=0;
 let cameraYaw=0,cameraPitch=.18,cameraDistance=6.2;
 const lookArea=document.getElementById('look-area');
 let lookPointer=null,lastLookX=0,lastLookY=0;
@@ -73,10 +73,30 @@ lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointe
 lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,3.5,9);},{passive:true});
 
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);
-let x=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let z=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;const len=Math.hypot(x,z);if(len>1){x/=len;z/=len;}
-const moving=len>.12&&now>actionUntil;
-if(moving){const speed=4.3;player.position.x+=x*speed*dt;player.position.z+=z*speed*dt;player.position.x=THREE.MathUtils.clamp(player.position.x,-38,38);player.position.z=THREE.MathUtils.clamp(player.position.z,-72,14);player.rotation.y=Math.atan2(x,z);if(actions.walk)play('walk');}
-else if(now>actionUntil&&actions.idle)play('idle');
+let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
+let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
+let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
+// Mesmo princípio da dimensão do Valério: o joystick é relativo à orientação da câmera,
+// com zona morta analógica e aceleração/desaceleração suaves, em vez de deslocar o modelo instantaneamente.
+const dead=.12;if(len<dead){axisX=0;axisZ=0;}else{const power=(len-dead)/(1-dead);axisX=axisX/len*power;axisZ=axisZ/len*power;}
+const worldX=axisX*Math.cos(cameraYaw)+axisZ*Math.sin(cameraYaw);
+const worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
+const speed=4.3,targetVX=worldX*speed,targetVZ=worldZ*speed;
+const accel=(Math.hypot(targetVX,targetVZ)>.05)?13:17;
+const blend=1-Math.exp(-accel*dt);
+moveVX+=(targetVX-moveVX)*blend;moveVZ+=(targetVZ-moveVZ)*blend;
+if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
+const moving=Math.hypot(moveVX,moveVZ)>.12;
+if(now>actionUntil){
+ if(moving){
+  player.position.x+=moveVX*dt;player.position.z+=moveVZ*dt;
+  player.position.x=THREE.MathUtils.clamp(player.position.x,-38,38);player.position.z=THREE.MathUtils.clamp(player.position.z,-72,14);
+  const wantedYaw=Math.atan2(moveVX,moveVZ);
+  const yawDelta=Math.atan2(Math.sin(wantedYaw-playerYaw),Math.cos(wantedYaw-playerYaw));
+  playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;
+  if(actions.walk){play('walk');const walkAction=actions.walk;if(walkAction)walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(Math.hypot(moveVX,moveVZ)/3.4,.55,1.45));}
+ }else if(actions.idle)play('idle');
+}
 if(hop>0){hop-=dt;player.position.y=Math.max(0,Math.sin((.34-hop)/.34*Math.PI)*.75);}else player.position.y=0;
 const target=new THREE.Vector3(player.position.x,player.position.y+1.15,player.position.z);
 const camOffset=new THREE.Vector3(Math.sin(cameraYaw)*cameraDistance*Math.cos(cameraPitch),cameraDistance*Math.sin(cameraPitch),Math.cos(cameraYaw)*cameraDistance*Math.cos(cameraPitch));
