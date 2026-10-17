@@ -32,7 +32,7 @@ for(let j=0;j<3;j++){const crown=new THREE.Mesh(new THREE.IcosahedronGeometry((1
 g.position.set(x,0,z);treeGroup.add(g);treeObstacles.push({x,z,radius:.38*s+.28});return g;}
 let seed=9137;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
 for(let i=0;i<100;i++){let x=(rand()-.5)*90,z=-8-rand()*82;if(Math.abs(x)<5&&z>-48)continue;makeTree(x,z,.7+rand()*1.2);}
-for(let i=0;i<32;i++){const radius=.4+rand()*1.15;const r=new THREE.Mesh(new THREE.DodecahedronGeometry(radius,0),rockMat);r.position.set((rand()-.5)*42,.15,-5-rand()*65);r.scale.y=.5+rand()*.6;r.rotation.set(rand(),rand()*3,rand());r.castShadow=true;r.receiveShadow=true;scene.add(r);rockObstacles.push({x:r.position.x,z:r.position.z,radius:radius*.82+.3});}
+for(let i=0;i<32;i++){const radius=.4+rand()*1.15;const r=new THREE.Mesh(new THREE.DodecahedronGeometry(radius,0),rockMat);r.position.set((rand()-.5)*42,.15,-5-rand()*65);r.scale.y=.5+rand()*.6;r.rotation.set(rand(),rand()*3,rand());r.castShadow=true;r.receiveShadow=true;scene.add(r);rockObstacles.push({x:r.position.x,z:r.position.z,radius:radius*.92,height:r.position.y+radius*r.scale.y*.72});}
 const grassGroup=new THREE.Group();scene.add(grassGroup);
 for(let i=0;i<180;i++){const x=(rand()-.5)*58,z=-3-rand()*55;if(Math.abs(x)<3&&z>-48)continue;const h=.12+rand()*.3;const blade=new THREE.Mesh(new THREE.ConeGeometry(.055,h,3),i%3?leafLight:leafMat);blade.position.set(x,h/2,z);blade.rotation.z=(rand()-.5)*.55;grassGroup.add(blade);}
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
@@ -110,10 +110,14 @@ if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
 const moving=Math.hypot(moveVX,moveVZ)>.12;
 function blockedAt(x,z){
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
- for(const o of rockObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
  return false;
 }
-// Movimento horizontal permanece disponível durante o pulo.
+function terrainHeightAt(x,z){
+ let height=0;
+ for(const rock of rockObstacles){const d=Math.hypot(x-rock.x,z-rock.z);if(d<rock.radius){const t=1-d/rock.radius;const smooth=t*t*(3-2*t);height=Math.max(height,rock.height*smooth);}}
+ return height;
+}
+// As pedras deixam de ser paredes invisíveis: o jogador atravessa sua projeção e o chão sobe suavemente sobre elas.\n// Movimento horizontal permanece disponível durante o pulo.
 if(moving){
  const nextX=THREE.MathUtils.clamp(player.position.x+moveVX*dt,-38,38);
  const nextZ=THREE.MathUtils.clamp(player.position.z+moveVZ*dt,-72,14);
@@ -125,11 +129,14 @@ if(moving){
  playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;
  if(grounded&&now>actionUntil&&actions.walk){play('walk');const walkAction=actions.walk;if(walkAction)walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(Math.hypot(moveVX,moveVZ)/3.4,.55,1.45));}
 }else if(grounded&&now>actionUntil&&actions.idle)play('idle');
-// Física vertical: impulso, gravidade e aterrissagem no plano do chão.
+// Física vertical com altura do terreno: o personagem pode subir e descer pelas pedras.
+const floorY=terrainHeightAt(player.position.x,player.position.z);
 if(!grounded){
  verticalVelocity-=gravity*dt;
  player.position.y+=verticalVelocity*dt;
- if(player.position.y<=0){player.position.y=0;verticalVelocity=0;grounded=true;}
+ if(player.position.y<=floorY){player.position.y=floorY;verticalVelocity=0;grounded=true;}
+}else{
+ player.position.y=floorY;
 }
 const firstPerson=cameraDistance<1.05;if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
