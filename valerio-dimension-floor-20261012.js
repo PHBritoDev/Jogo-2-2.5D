@@ -892,7 +892,7 @@ const BishopDimension = (function () {
           : Math.atan2(px-bpos[0],-(pz-bpos[2])));
       const bodySway=Math.sin(Game.time*1.35)*.025-windup*.12+strike*.06;
       const bossBase=multiply(translate(bpos[0],floorY+bossBob+bossHeight,bpos[2]),multiply(rotateY(faceBoss),multiply(rotateZ(bodySway),scale(1.68,1.68,1.68))));
-      const modelState=(bossState==='attack'&&BishopBoss.attack?(BishopBoss.attack.id==='vault'?'skill1':BishopBoss.attack.id==='sweep'?'skill2':'attack'):(bossState==='approach'&&bossSpeed>105?'skillapproach':bossState));
+      const modelState=bossState==='intercept'?'skill2':(bossState==='attack'&&BishopBoss.attack?(BishopBoss.attack.id==='vault'?'skill1':BishopBoss.attack.id==='sweep'?'skill2':'attack'):(bossState==='approach'&&bossSpeed>105?'skillapproach':bossState));
       const skillLocked=!!(BishopBoss.attack&&BishopBoss.attack.skill&&['skillapproach','windup','attack','recover'].includes(bossState));
       const magicTargetX=Number.isFinite(BishopBoss.skillTargetX)?BishopBoss.skillTargetX:Player.x;
       const magicTargetY=Number.isFinite(BishopBoss.skillTargetY)?BishopBoss.skillTargetY:Player.y;

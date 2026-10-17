@@ -24,6 +24,7 @@ const BISHOP_PROFILES = {
     radius: 18,
     speed: 80,
     engageRange: 180, // MODIFICAÇÃO 15: começa a atacar de mais longe.
+    guard: { range: 185, duration: 0.52, cooldown: 3.2, damageScale: 0.28 },
     visualScale: 1.22,
     deathDuration: 1.2,
     guard: { range: 205, duration: 0.42, cooldown: 2.6, damageScale: 0.22 },
@@ -361,74 +362,49 @@ const BossPresentation = {
 
 /* IA TÁTICA DO VALÉRIO — camada separada para evoluir depois com magias e poderes. */
 const ValerioCombatAI = {
-  version: 5,
-  predictSeconds: 0.28,
-  maxLead: 54,
-
-  reset() {},
-
+  version: 6, predictSeconds: 0.28, maxLead: 54, reset() {},
   defensiveChoice(boss, player, distance) {
-    if (distance > 225 || (boss.evadeCooldown > 0 && boss.guardCooldown > 0)) return null;
-    const playerSpeed = Math.hypot(player.vx || 0, player.vy || 0);
-    // Quanto mais o jogador insiste em atacar, mais Valério varia a defesa.
-    const repeatedPressure = (boss.playerAttackTempo || 0) >= 2;
-    if (boss.evadeCooldown <= 0 &&
-        (playerSpeed > 48 && distance > 70 || boss.phase >= 3 || repeatedPressure && distance > 85)) return 'evade';
-    if (boss.guardCooldown <= 0) return 'guard';
-    if (boss.evadeCooldown <= 0) return 'evade';
+    if (distance > 205 || (boss.evadeCooldown > 0 && boss.guardCooldown > 0)) return null;
+    const speed=Math.hypot(player.vx||0,player.vy||0), active=Number(player.attackT)>=0, repeated=(boss.playerAttackTempo||0)>=2;
+    if (!active && !repeated && boss.phase<3) return null;
+    if (active && distance<92 && boss.guardCooldown<=0 && (boss.phase<3 || speed<115)) return 'guard';
+    if (boss.evadeCooldown<=0 && ((distance>88 && (speed>36 || repeated || boss.phase>=2)) || (boss.phase>=3 && distance>58))) return 'evade';
+    if (active && boss.guardCooldown<=0) return 'guard';
+    if (boss.evadeCooldown<=0 && active) return 'evade';
     return null;
   },
-
-  evadeVector(boss, player) {
-    const dx = player.x - boss.x, dy = player.y - boss.y;
-    const d = Math.hypot(dx, dy) || 1;
-    const side = (boss.attackIndex % 2 === 0) ? 1 : -1;
-    return {
-      x: (-dx / d * 0.42) + (-dy / d * side * 0.91),
-      y: (-dy / d * 0.42) + ( dx / d * side * 0.91)
-    };
+  evadeVector(boss,player) {
+    const dx=player.x-boss.x,dy=player.y-boss.y,d=Math.hypot(dx,dy)||1,side=boss.attackIndex%2===0?1:-1;
+    return {x:(-dx/d*.42)+(-dy/d*side*.91),y:(-dy/d*.42)+(dx/d*side*.91)};
   },
-
-  target(boss, player, dx, dy, distance) {
-    // Persegue a posição provável do jogador em vez de mirar só onde ele estava.
-    // A previsão é curta e limitada para não produzir giros exagerados.
-    const speed = Math.hypot(player.vx || 0, player.vy || 0);
-    if (distance < 95 || speed < 35) return { x: player.x, y: player.y };
-    const t = Math.min(this.predictSeconds, this.maxLead / Math.max(speed, 1));
-    return {
-      x: player.x + (player.vx || 0) * t,
-      y: player.y + (player.vy || 0) * t
-    };
+  target(boss,player,dx,dy,distance) {
+    const speed=Math.hypot(player.vx||0,player.vy||0);
+    if(distance<95||speed<35)return{x:player.x,y:player.y};
+    const t=Math.min(this.predictSeconds,this.maxLead/Math.max(speed,1));
+    return{x:player.x+(player.vx||0)*t,y:player.y+(player.vy||0)*t};
   },
-
-  chooseAttack(profile, attacks, cooldowns, index, chainCooldown, distance, playerSpeed) {
-    const ready = attacks.filter(a => !a.skill || (cooldowns[a.id] || 0) <= 0);
-    const normal = attacks.filter(a => !a.skill);
-    const pool = ready.length ? ready : normal;
-    if (!pool.length) return null;
-
-    const find = id => pool.find(a => a.id === id);
-    const wide = pool.find(a => /sweep|wave|ring|circle/i.test(a.id + ' ' + (a.name || '')));
-    const heavy = pool.find(a => a.id === 'vault' || /heavy|slam|smash/i.test(a.id + ' ' + (a.name || '')));
-
-    // Decide pela distância e pelo comportamento do jogador, não só por rotação fixa.
-    // As magias negras entram na rotação de longe, sem substituir golpes corpo a corpo.
-    if (profile.id === 'bishop1' && chainCooldown <= 0 && distance > 118) {
-      const ultimate = pool.find(a => a.id === 'abyssEclipse');
-      if (ultimate && (BishopBoss.phase >= 2 || index % 8 === 0)) return ultimate;
-      const dark = pool.filter(a => ['abyssHands', 'graveThorns', 'blackSwordRain'].includes(a.id));
-      if (dark.length) return dark[(Math.floor(index / 2)) % dark.length];
+  chooseAttack(profile,attacks,cooldowns,index,chainCooldown,distance,playerSpeed,player) {
+    const ready=attacks.filter(a=>!a.skill||(cooldowns[a.id]||0)<=0),normal=attacks.filter(a=>!a.skill),pool=ready.length?ready:normal;
+    if(!pool.length)return null;
+    const find=id=>pool.find(a=>a.id===id),available=id=>!!find(id)&&(!find(id).skill||(cooldowns[id]||0)<=0);
+    const phase=BishopBoss.phase||1,blocking=!!(player&&player.blocking),fast=playerSpeed>100,previous=BishopBoss.lastChosenAttackId;
+    const different=ids=>{const options=ids.map(find).filter(Boolean);return options.find(a=>a.id!==previous)||options[0]||null;};
+    if(blocking&&distance<185){const breaker=different(['vault','tax']);if(breaker)return breaker;}
+    if(fast&&distance>72&&distance<225&&available('sweep'))return find('sweep');
+    if(distance<102)return different(['tax'])||normal[0]||pool[0];
+    if(distance>235&&chainCooldown<=0){
+      const ultimate=find('abyssEclipse');
+      if(ultimate&&available('abyssEclipse')&&phase>=2&&playerSpeed<72)return ultimate;
+      const ranged=distance>350?['blackSwordRain','graveThorns','abyssHands']:(fast?['blackSwordRain','graveThorns','abyssHands']:['graveThorns','blackSwordRain','abyssHands']);
+      const pick=different(ranged.filter(available));if(pick)return pick;
     }
-    if (playerSpeed > 105 && distance > 72 && wide) return wide;
-    if (distance > 145 && heavy && (index % 2 === 0 || profile.id === 'bishop1')) return heavy;
-    if (distance < 105) return find('tax') || normal[index % Math.max(1, normal.length)] || pool[0];
-    if (profile.id === 'bishop1' && pool.length > 1) {
-      // Evita repetir o mesmo ataque consecutivamente quando há alternativas disponíveis.
-      const previous = attacks[index % attacks.length];
-      const alternative = pool.find(a => a.id !== (previous && previous.id));
-      if (alternative && index % 3 === 0) return alternative;
+    if(distance>150&&chainCooldown<=0){
+      const mid=fast?['abyssHands','blackSwordRain','vault']:['graveThorns','abyssHands','vault'];
+      const pick=different(mid.filter(available));if(pick)return pick;
     }
-    return pool[index % pool.length];
+    if(distance>112&&available('vault')&&(phase>=2||!fast))return find('vault');
+    const candidates=pool.filter(a=>a.id!==previous);
+    return candidates.find(a=>!a.skill)||candidates[0]||pool[0];
   }
 };
 
@@ -440,7 +416,7 @@ const BishopBoss = {
   state: 'inactive', stateT: 0, flashT: 0, alpha: 0, evadeCooldown: 0,
   hitDone: false, hitDoneSecondary: false, hitDonePrimary: false, hitId: -1, fx: -1, fy: 0,
   anim: 0, speed: 0, onGround: true, floor: 0, sy: 0,
-  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, skillRotationIndex: 0, skillTargetX: null, skillTargetY: null, _solids: [],
+  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, skillRotationIndex: 0, skillTargetX: null, skillTargetY: null, lastChosenAttackId: null, magicThreatT: 0, magicThreatX: 0, magicThreatY: 0, magicCutCooldown: 0, _solids: [],
   elHud: null, elHudName: null, elHudTitle: null, elHudFill: null, elHudText: null,
 
   init() {
@@ -477,6 +453,8 @@ const BishopBoss = {
     this.skillCooldowns = Object.create(null);
     this.skillChainCooldown = 0;
     this.skillRotationIndex = 0;
+    this.lastChosenAttackId = null; this.magicThreatT = 0; this.magicCutCooldown = 0;
+    window.ValerioMagicCutActive = false;
     this.poise = this.poiseMax = 28; this.chain = 0; this.staggerDur = 0; this.staggerImmuneT = 0;
     this.updateHud();
   },
@@ -506,6 +484,8 @@ const BishopBoss = {
     this.evadeCooldown = 0;
     this.skillCooldowns = Object.create(null);
     this.skillChainCooldown = 0;
+    this.lastChosenAttackId = null; this.magicThreatT = 0; this.magicCutCooldown = 0;
+    window.ValerioMagicCutActive = false;
     this.onGround = true; this.floor = 0; this.sy = this.y;
     this.poise = this.poiseMax = 28; this.chain = 0; this.staggerDur = 0; this.staggerImmuneT = 0;
     this.updateHud();
@@ -642,6 +622,9 @@ const BishopBoss = {
     this.flashT = Math.max(0, this.flashT - dt);
     this.guardCooldown = Math.max(0, this.guardCooldown - dt);
     this.evadeCooldown = Math.max(0, this.evadeCooldown - dt);
+    this.magicThreatT = Math.max(0, (this.magicThreatT || 0) - dt);
+    this.magicCutCooldown = Math.max(0, (this.magicCutCooldown || 0) - dt);
+    window.ValerioMagicCutActive = !!(this.profile && this.profile.id === 'bishop1' && this.state === 'intercept' && this.stateT >= 0.12 && this.stateT <= 0.72);
     Object.keys(this.skillCooldowns).forEach(id => { this.skillCooldowns[id] = Math.max(0, this.skillCooldowns[id] - dt); });
     this.skillChainCooldown = Math.max(0, this.skillChainCooldown - dt);
     const dx = Player.x - this.x, dy = Player.y - this.y;
@@ -665,6 +648,11 @@ const BishopBoss = {
       }
     }
     let tvx = 0, tvy = 0;
+    if (this.profile.id === 'bishop1' && alive && this.magicThreatT > 0 && this.magicCutCooldown <= 0 && ['approach','recover','breather'].includes(this.state) && d > 42) {
+      const tx=(this.magicThreatX||this.x)-this.x,ty=(this.magicThreatY||this.y)-this.y,td=Math.hypot(tx,ty)||1;
+      this.fx=tx/td;this.fy=ty/td;this.magicThreatT=0;this.magicCutCooldown=this.phase>=3?3.8:5.2;
+      this._go('intercept');Ambient.spawnSpark(this.x,this.y-25,5,'#d8dfff');
+    }
 
     // Três fases reais: o perigo cresce conforme a vida do chefe diminui.
     const healthRatio = this.hp / this.maxHp;
@@ -712,24 +700,15 @@ const BishopBoss = {
             break;
           }
         }
-        // Skills têm recarga própria e podem iniciar uma aproximação em corrida.
-        if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
-          const allSkills = this.profile.attacks.filter(a => a.skill);
-          let readySkill = null;
-          if (this.skillChainCooldown <= 0 && allSkills.length) {
-            for (let offset = 0; offset < allSkills.length; offset++) {
-              const idx = (this.skillRotationIndex + offset) % allSkills.length;
-              if ((this.skillCooldowns[allSkills[idx].id] || 0) <= 0) {
-                readySkill = allSkills[idx];
-                this.skillRotationIndex = (idx + 1) % allSkills.length;
-                break;
-              }
-            }
-          }
-          if (readySkill && d <= 300 && (this.attackIndex % 2 === 0)) {
-            this.attack = readySkill;
+        // Escolha tática também vale longe: sem rotação cega de magias por índice.
+        if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1' && this.skillChainCooldown <= 0) {
+          const tacticalSkill = ValerioCombatAI.chooseAttack(this.profile, this.profile.attacks, this.skillCooldowns,
+            this.attackIndex, this.skillChainCooldown, d, Player.speed || Math.hypot(Player.vx || 0, Player.vy || 0), Player);
+          if (tacticalSkill && tacticalSkill.skill && d <= Math.min(tacticalSkill.range * 0.82, 520)) {
+            this.attack = tacticalSkill;
+            this.lastChosenAttackId = tacticalSkill.id;
             this.attackIndex++;
-            this.skillCooldowns[readySkill.id] = readySkill.skillCooldown || 6.5;
+            this.skillCooldowns[tacticalSkill.id] = tacticalSkill.skillCooldown || 6.5;
             this.skillChainCooldown = 2.5;
             this._go('skillapproach');
             break;
@@ -744,7 +723,7 @@ const BishopBoss = {
           const attacks = this.profile.attacks;
           const poolChoice = this.profile.id === 'bishop1'
             ? ValerioCombatAI.chooseAttack(this.profile, attacks, this.skillCooldowns,
-                this.attackIndex, this.skillChainCooldown, d, Player.speed || Math.hypot(Player.vx || 0, Player.vy || 0))
+                this.attackIndex, this.skillChainCooldown, d, Player.speed || Math.hypot(Player.vx || 0, Player.vy || 0), Player)
             : null;
           if (poolChoice) this.attack = poolChoice;
           else {
@@ -752,6 +731,7 @@ const BishopBoss = {
             const pool = ready.length ? ready : attacks.filter(a => !a.skill);
             this.attack = pool[this.attackIndex % pool.length];
           }
+          this.lastChosenAttackId = this.attack && this.attack.id || this.lastChosenAttackId;
           this.attackIndex++;
           if (this.attack.skill) {
             this.skillCooldowns[this.attack.id] = this.attack.skillCooldown || 6.5;
@@ -782,6 +762,14 @@ const BishopBoss = {
           tvy = this.fy * this.profile.speed * 1.7;
         }
         break;
+
+      case 'intercept': {
+        if (!alive) { window.ValerioMagicCutActive=false;this._go('approach');break; }
+        const tx=(this.magicThreatX||this.x)-this.x,ty=(this.magicThreatY||this.y)-this.y,td=Math.hypot(tx,ty)||1;
+        this.fx=tx/td;this.fy=ty/td;tvx=tvy=0;
+        if(this.stateT>=0.82){window.ValerioMagicCutActive=false;this._go('approach');}
+        break;
+      }
 
       case 'guard':
         if (!alive) this._go('approach');
