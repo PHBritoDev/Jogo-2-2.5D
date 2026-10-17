@@ -624,7 +624,7 @@ const BishopBoss = {
     this.evadeCooldown = Math.max(0, this.evadeCooldown - dt);
     this.magicThreatT = Math.max(0, (this.magicThreatT || 0) - dt);
     this.magicCutCooldown = Math.max(0, (this.magicCutCooldown || 0) - dt);
-    window.ValerioMagicCutActive = !!(this.profile && this.profile.id === 'bishop1' && this.state === 'intercept' && this.stateT >= 0.12 && this.stateT <= 0.72);
+    window.ValerioMagicCutActive = !!(!window.CelestialUltimateActive && this.profile && this.profile.id === 'bishop1' && this.state === 'intercept' && this.stateT >= 0.12 && this.stateT <= 0.72);
     Object.keys(this.skillCooldowns).forEach(id => { this.skillCooldowns[id] = Math.max(0, this.skillCooldowns[id] - dt); });
     this.skillChainCooldown = Math.max(0, this.skillChainCooldown - dt);
     const dx = Player.x - this.x, dy = Player.y - this.y;
@@ -648,7 +648,7 @@ const BishopBoss = {
       }
     }
     let tvx = 0, tvy = 0;
-    if (this.profile.id === 'bishop1' && alive && this.magicThreatT > 0 && this.magicCutCooldown <= 0 && ['approach','recover','breather'].includes(this.state) && d > 42) {
+    if (!window.CelestialUltimateActive && this.profile.id === 'bishop1' && alive && this.magicThreatT > 0 && this.magicCutCooldown <= 0 && ['approach','recover','breather'].includes(this.state) && d > 42) {
       const tx=(this.magicThreatX||this.x)-this.x,ty=(this.magicThreatY||this.y)-this.y,td=Math.hypot(tx,ty)||1;
       this.fx=tx/td;this.fy=ty/td;this.magicThreatT=0;this.magicCutCooldown=this.phase>=3?3.8:5.2;
       this._go('intercept');Ambient.spawnSpark(this.x,this.y-25,5,'#d8dfff');

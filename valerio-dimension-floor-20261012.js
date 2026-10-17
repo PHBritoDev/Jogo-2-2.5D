@@ -1008,10 +1008,10 @@ const BishopDimension = (function () {
   function isBattleActive() {
     return !!(Casino&&Casino.inside&&Campaign&&Campaign.step&&Campaign.step.type==='bishop'&&Campaign.step.boss==='greedFirst'&&Campaign.st);
   }
-  function addCameraLook(dx,dy){S.lookAt=performance.now();const c=S.camera;c.yaw+=dx*.0045;c.yaw=((c.yaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;c.pitch=clamp(c.pitch-dy*.0035,-1.12,0.82);}
-  function addCameraZoom(delta){S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
+  function addCameraLook(dx,dy){if(window.CelestialUltimateActive||window.CelestialEclipseLock)return;S.lookAt=performance.now();const c=S.camera;c.yaw+=dx*.0045;c.yaw=((c.yaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;c.pitch=clamp(c.pitch-dy*.0035,-1.12,0.82);}
+  function addCameraZoom(delta){if(window.CelestialUltimateActive||window.CelestialEclipseLock)return;S.camera.distance=clamp(S.camera.distance+delta,S.camera.minDistance,S.camera.maxDistance);}
   function impact(strength){S.impactAt=performance.now();S.impactStrength=clamp(Number(strength)||.6,.25,1.5);}
-  function transformAxis(axis){if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
+  function transformAxis(axis){if(window.CelestialUltimateActive||window.CelestialEclipseLock)return {x:0,y:0};if(!isBattleActive())return axis;const a=S.camera.yaw,cs=Math.cos(a),sn=Math.sin(a);return {x:axis.x*cs-axis.y*sn,y:axis.x*sn+axis.y*cs};}
   function enter() {
     if(!Casino.inside||!Campaign.step||Campaign.step.type!=='bishop'||Campaign.step.boss!=='greedFirst')return;
     const room=Casino.room;
