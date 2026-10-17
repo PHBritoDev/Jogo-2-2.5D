@@ -1,4 +1,4 @@
-/* MOD 113 — eleva e afasta um pouco o grimório do Bispo Valério.
+/* MOD 114 — inclina o grimório e adiciona aura obscura animada.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -9,7 +9,7 @@
   if (!enabled) return;
 
   let api = null, root = null, leftHinge = null, rightHinge = null;
-  let pages = [], pageLeaves = [], runes = [], opened = false, targetOpen = 0, angle = 0;
+  let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkAura = null, darkAuraCore = null, opened = false, targetOpen = 0, angle = 0;
   let button = null, lastTime = 0, ready = false, attachedScene = null;
   const GOLD = 0xc9a34a, DARK_GOLD = 0x62421b, EMERALD = 0x087c5b;
   const MAT = {};
@@ -51,7 +51,7 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod113';
+    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod114';
     const leather = material('leather', 0x171d18, .82, .18);
     const leatherEdge = material('leatherEdge', 0x30251a, .75, .35);
     const pagesMat = material('parchment', 0xc8b88a, .94, .04);
@@ -92,6 +92,42 @@
       const rib = new T.Mesh(new T.TorusGeometry(.055, .009, 4, 16, Math.PI), gold);
       rib.rotation.y = Math.PI / 2; rib.position.set(0, i * .19, .018); root.add(rib);
     }
+    // MOD 114: aurora obscura animada, inspirada na aura do protagonista.
+    // Tons de carvão/violeta escuro com brilho discreto; sem alterar combate ou poderes.
+    const darkMat = new T.MeshBasicMaterial({
+      color: 0x21152d, transparent: true, opacity: .16,
+      blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+    });
+    const darkCoreMat = new T.MeshBasicMaterial({
+      color: 0x09070d, transparent: true, opacity: .22,
+      blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide
+    });
+    darkAura = new T.Mesh(new T.TorusGeometry(.57, .045, 7, 36), darkMat);
+    darkAura.name = 'Aurora obscura externa';
+    darkAura.position.set(0, 0, .015);
+    darkAura.rotation.x = .25;
+    root.add(darkAura);
+    darkAuraCore = new T.Mesh(new T.TorusGeometry(.48, .022, 6, 32), darkCoreMat);
+    darkAuraCore.name = 'Núcleo de sombra';
+    darkAuraCore.position.set(0, 0, .02);
+    darkAuraCore.rotation.set(-.18, .32, 0);
+    root.add(darkAuraCore);
+    const wispMat = new T.MeshBasicMaterial({
+      color: 0x382344, transparent: true, opacity: .38,
+      blending: T.AdditiveBlending, depthWrite: false
+    });
+    for (let i = 0; i < 12; i++) {
+      const spark = new T.Mesh(new T.SphereGeometry(.012 + (i % 3) * .004, 6, 5), wispMat);
+      spark.userData = {
+        phase: i * Math.PI * 2 / 12,
+        radius: .43 + (i % 4) * .045,
+        height: -.38 + (i % 6) * .15,
+        speed: .45 + (i % 4) * .12
+      };
+      spark.name = 'Partícula de aurora obscura ' + i;
+      root.add(spark);
+      darkSparks.push(spark);
+    }
     // Folhas articuladas 3D: espalham suavemente quando a capa abre.
     for (let i = 0; i < 4; i++) {
       const spread = (i - 1.5) * .012;
@@ -121,7 +157,7 @@
     attachedScene = api.scene;
     ready = true;
     window.ValerioGrimoire3D = {
-      version: 113,
+      version: 114,
       open: function(){ targetOpen = 1; opened = true; },
       close: function(){ targetOpen = 0; opened = false; },
       toggle: function(){ targetOpen = targetOpen > .5 ? 0 : 1; opened = targetOpen > .5; },
@@ -156,7 +192,7 @@
       root.visible = false; return;
     }
     root.visible = true;
-    // MOD 113: mantém a direção corrigida e ajusta apenas a posição de frente do GLB ( +Z ) e o alvo real do jogador.
+    // MOD 114: mantém a posição aprovada e inclina a face do livro ligeiramente para baixo.
     // view.yaw usa outra convenção no renderer 2D; reutilizá-lo colocava o livro atrás do modelo.
     const p = view.position;
     const playerPos = Array.isArray(view.playerPosition) ? view.playerPosition : null;
@@ -173,8 +209,8 @@
       p[1] + 1.78 + bob,
       p[2] + Math.cos(facingYaw) * frontDistance
     );
-    // Apenas rotação horizontal: o livro permanece nivelado, sem inclinar com a câmera.
-    root.rotation.set(0, facingYaw, 0);
+    // Inclinação leve para baixo: a face do grimório aponta um pouco para o chão.
+    root.rotation.set(.16, facingYaw, 0);
     // Capa esquerda e direita abrem em sentidos opostos com easing suave.
     const desired = targetOpen * 1.28;
     angle += (desired - angle) * Math.min(1, dt * 7.5);
@@ -184,7 +220,26 @@
       const pageOpen = Math.max(0, angle - page.offset);
       page.hinge.rotation.y = page.side < 0 ? -pageOpen * .28 : pageOpen * .28;
     });
-    // Mantém o livro reto; somente a flutuação vertical é animada.
+    // Pulso e órbita das partículas: aura animada em tons obscuros.
+    const pulse = .5 + .5 * Math.sin(now * .0024);
+    if (darkAura) {
+      darkAura.rotation.z = now * .00042;
+      darkAura.scale.setScalar(1 + .045 * pulse);
+      darkAura.material.opacity = .11 + .07 * pulse;
+    }
+    if (darkAuraCore) {
+      darkAuraCore.rotation.z = -now * .00058;
+      darkAuraCore.scale.setScalar(1 + .035 * (1 - pulse));
+      darkAuraCore.material.opacity = .16 + .08 * pulse;
+    }
+    darkSparks.forEach((spark) => {
+      const u = spark.userData;
+      const t = now * .001 * u.speed + u.phase;
+      spark.position.set(Math.cos(t) * u.radius, u.height + Math.sin(t * .72) * .045, Math.sin(t) * .17 + .055);
+      const flicker = .55 + .45 * Math.sin(t * 1.8);
+      spark.scale.setScalar(.55 + flicker * .8);
+      spark.material.opacity = .18 + flicker * .26;
+    });
     runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
     if (angle < .01 && targetOpen === 0) root.visible = false;
   }
