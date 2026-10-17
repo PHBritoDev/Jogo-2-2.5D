@@ -756,7 +756,9 @@ const BishopBoss = {
         if (!alive) { this._go('approach'); break; }
         this.fx = dx / d; this.fy = dy / d;
         if (!this.attack || !this.attack.skill) { this._go('approach'); break; }
-        if (d <= Math.min(this.attack.range * 0.78, 68)) {
+        const rangedDarkSkill = this.attack.id === 'abyssHands' || this.attack.id === 'graveThorns';
+        const skillStartRange = rangedDarkSkill ? Math.min(this.attack.range * 0.82, 250) : Math.min(this.attack.range * 0.78, 68);
+        if (d <= skillStartRange) {
           this._go('windup');
         } else {
           tvx = this.fx * this.profile.speed * 1.7;
