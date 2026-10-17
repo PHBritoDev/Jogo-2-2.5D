@@ -79,10 +79,10 @@ function tryPlayerAttack(){
 // Anjo-Guia: usa o modelo GLB original adicionado ao repositório.
 const guide=new THREE.Group();scene.add(guide);guide.position.set(3.3,0,-5.4);
 const guideModelRoot=new THREE.Group();guide.add(guideModelRoot);
-const guideAura=new THREE.PointLight(0xffe6a3,.7,4.5);guideAura.position.set(0,1.45,.15);guide.add(guideAura);
-const guideShadow=new THREE.Mesh(new THREE.CircleGeometry(.42,20),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.28,depthWrite:false}));
+const guideAura=new THREE.PointLight(0xffe6a3,.45,2.8);guideAura.position.set(0,.78,.1);guide.add(guideAura);
+const guideShadow=new THREE.Mesh(new THREE.CircleGeometry(.28,20),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.28,depthWrite:false}));
 guideShadow.rotation.x=-Math.PI/2;guideShadow.position.y=.014;guide.add(guideShadow);
-const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.58,.055,8,28),new THREE.MeshBasicMaterial({color:0xffd65a}));
+const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.38,.04,8,28),new THREE.MeshBasicMaterial({color:0xffd65a}));
 questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,.06,guide.position.z);scene.add(questMarker);
 new GLTFLoader().load('./AnjoGuia.glb?v=mod148-anjo-guia-glb',gltf=>{
  const imported=gltf.scene;
@@ -91,7 +91,7 @@ new GLTFLoader().load('./AnjoGuia.glb?v=mod148-anjo-guia-glb',gltf=>{
  const bounds=new THREE.Box3().setFromObject(imported);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(size.y>0.001){
-  const scale=1.28/size.y;
+  const scale=.82/size.y;
   imported.scale.setScalar(scale);
   imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
  }
@@ -178,7 +178,8 @@ function findSwordHand(root){
  const rightHand=/(right.*(hand|wrist)|(hand|wrist).*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|(hand|wrist)[_. -]?r$|mixamorig:rightHand)/i;
  return bones.find(b=>rightHand.test(b.name||''))||null;
 }
-let swordRoot=null,swordHand=null,swordPivot=null;
+let swordRoot=null,swordHand=null,swordPivot=null,swordMount=null,swordWorldPosition=new THREE.Vector3(),swordWorldQuaternion=new THREE.Quaternion();
+function updatePlayerSwordMount(){if(!swordHand||!swordMount)return;swordHand.updateWorldMatrix(true,false);swordHand.getWorldPosition(swordWorldPosition);swordHand.getWorldQuaternion(swordWorldQuaternion);swordMount.position.copy(swordWorldPosition);swordMount.quaternion.copy(swordWorldQuaternion);swordMount.scale.set(1,1,1);swordMount.updateMatrixWorld(true);}
 function loadPlayerSword(modelRoot){
  const loader=new GLTFLoader();
  loader.load('./EspadaProta.glb?v=mod148-sword-grip',gltf=>{
@@ -186,20 +187,17 @@ function loadPlayerSword(modelRoot){
   swordRoot.traverse(o=>{if(o.isMesh){o.visible=true;o.castShadow=true;o.receiveShadow=false;o.frustumCulled=false;}});
   swordHand=findSwordHand(modelRoot);
   swordRoot.scale.setScalar(.62);
+  // Mesmo encaixe validado na dimensão do Valério: cabo centrado na mão e mount fora da hierarquia escalada do rig.
   swordRoot.rotation.set(0,0,Math.PI);
-  // Alinha a extremidade do cabo à origem do punho, evitando deixar o centro da espada dentro da palma.
-  swordRoot.position.set(0,0,0);
-  const swordBounds=new THREE.Box3().setFromObject(swordRoot);
-  if(Number.isFinite(swordBounds.max.y))swordRoot.position.y=-swordBounds.max.y;
-  swordPivot=new THREE.Group();swordPivot.name='EspadaProta_HandGrip';
+  swordRoot.position.set(0,.75*.62,0);
+  swordPivot=new THREE.Group();swordPivot.name='EspadaProta_AttackPivot';
   if(swordHand){
-   swordHand.add(swordPivot);
-   swordPivot.position.set(0,0,0);
+   swordMount=new THREE.Group();swordMount.name='EspadaProta_HandMount';scene.add(swordMount);
+   swordMount.add(swordPivot);swordPivot.add(swordRoot);updatePlayerSwordMount();
   }else{
-   // Só usado se o arquivo do protagonista não expuser um osso de mão direita.
-   swordPivot.position.set(.28,.85,.12);player.add(swordPivot);
+   // Fallback apenas se o rig não expuser a mão direita.
+   swordPivot.position.set(.28,.85,.12);player.add(swordPivot);swordPivot.add(swordRoot);
   }
-  swordPivot.add(swordRoot);
  },undefined,err=>{console.warn('EspadaProta.glb não carregou:',err);});
 }
 new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
@@ -243,12 +241,13 @@ lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(camer
 addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';});
 
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);
+    updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);enemyMaterials[0].emissive.setHex(0x8b2417);enemyMaterials[0].emissiveIntensity=1.1;}else{enemyMaterials[0].emissive.setHex(0x000000);enemyMaterials[0].emissiveIntensity=0;}
  if(enemyKnockback>0&&enemyAlive){const step=Math.min(enemyKnockback,dt*2.5);enemy.position.x+=Math.sin(playerYaw)*step;enemy.position.z+=Math.cos(playerYaw)*step;enemyKnockback-=step;}
  if(!enemyAlive){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
  updateEnemyHud();
  if(enemyAlive)enemy.rotation.y=Math.atan2(camera.position.x-enemy.position.x,camera.position.z-enemy.position.z);
- guide.position.y=.018+Math.sin(now*.0022)*.012;guideAura.intensity=.62+Math.sin(now*.003)*.1;
+ guide.position.y=.008+Math.sin(now*.0022)*.006;guideAura.intensity=.4+Math.sin(now*.003)*.06;
  const npcDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
  const talkButton=document.getElementById('talk-button');
  if(talkButton)talkButton.classList.toggle('hidden',questStep!==0||npcDistance>2.7||dialogueOpen);
