@@ -269,7 +269,12 @@
       }
       Quest.frame(dt);
       Combat.updateHud();
-      Render.frame(dt);
+      // MOD 109: evita desenhar o canvas 2D invisível durante diálogos e a luta 3D do Bispo.
+      // A dimensão 3D e o modelo GLB continuam renderizando; isso remove um segundo render caro
+      // por quadro, sem alterar física, HUD, IA ou animações da batalha.
+      const boss3DActive = typeof BishopDimension !== 'undefined' &&
+        typeof BishopDimension.isBattleActive === 'function' && BishopDimension.isBattleActive();
+      if (!Game.talking && !boss3DActive) Render.frame(dt);
       BishopDimension.frame(dt);
     } catch (err) {
       // Mostra o erro no lugar do FPS (ajuda a diagnosticar no celular)
