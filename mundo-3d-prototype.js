@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { retargetClip } from 'three/addons/utils/SkeletonUtils.js';
 
 const canvas=document.getElementById('scene'),status=document.getElementById('status'),loading=document.getElementById('loading');
 const scene=new THREE.Scene();
@@ -37,7 +38,7 @@ const grassGroup=new THREE.Group();scene.add(grassGroup);
 for(let i=0;i<180;i++){const x=(rand()-.5)*58,z=-3-rand()*55;if(Math.abs(x)<3&&z>-48)continue;const h=.12+rand()*.3;const blade=new THREE.Mesh(new THREE.ConeGeometry(.055,h,3),i%3?leafLight:leafMat);blade.position.set(x,h/2,z);blade.rotation.z=(rand()-.5)*.55;grassGroup.add(blade);}
 
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
-// Inimigo comum: usa a arte real do território 1 do jogo 2D, como billboard no mundo 3D.
+// Inimigo comum: usa Enemy1.glb com as animações que realmente existirem no arquivo.
 const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(0,0,-3.2);
 const enemyTexture=new THREE.TextureLoader().load('./Enemy1-sprite.png');
 enemyTexture.colorSpace=THREE.SRGBColorSpace;
@@ -45,9 +46,75 @@ const enemySpriteMaterial=new THREE.MeshStandardMaterial({map:enemyTexture,trans
 const enemyMaterials=[enemySpriteMaterial];
 const enemySprite=new THREE.Mesh(new THREE.PlaneGeometry(1.55,1.95),enemySpriteMaterial);
 enemySprite.position.y=.98;enemySprite.castShadow=true;enemy.add(enemySprite);
+const enemyModelRoot=new THREE.Group();enemy.add(enemyModelRoot);
 const enemyGroundShadow=new THREE.Mesh(new THREE.CircleGeometry(.48,20),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.35,depthWrite:false}));
 enemyGroundShadow.rotation.x=-Math.PI/2;enemyGroundShadow.position.y=.012;enemy.add(enemyGroundShadow);
+let enemyModel=null,enemyMixer=null,enemyClips=[],enemyActions={},enemyCurrentAction=null,enemyCurrentRole='idle',enemyHasDeathClip=false;
+let enemyDashClip=null,enemyJumpClip=null,enemyTransferDone=false;
 let enemyHP=100,enemyAlive=true,enemyHitFlash=0,enemyKnockback=0,attackCooldown=0;
+function playEnemyAnimation(role,fade=.1,once=false){
+ const next=enemyActions[role];if(!next)return false;
+ if(enemyCurrentAction&&enemyCurrentAction!==next)enemyCurrentAction.fadeOut(fade);
+ next.reset();next.enabled=true;next.setEffectiveWeight(1);
+ next.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);
+ next.clampWhenFinished=once;next.fadeIn(fade).play();
+ enemyCurrentAction=next;enemyCurrentRole=role;return true;
+}
+function setEnemyHitFlash(active){
+ for(const material of enemyMaterials){
+  if(!material||!material.emissive)continue;
+  if(material.userData.enemyBaseEmissive===undefined){material.userData.enemyBaseEmissive=material.emissive.getHex();material.userData.enemyBaseEmissiveIntensity=material.emissiveIntensity||0;}
+  if(active){material.emissive.setHex(0x8b2417);material.emissiveIntensity=1.1;}
+  else{material.emissive.setHex(material.userData.enemyBaseEmissive);material.emissiveIntensity=material.userData.enemyBaseEmissiveIntensity;}
+ }
+}
+function tryTransferEnemyLocomotion(){
+ if(enemyTransferDone||!model||!mixer||!enemyModel)return;
+ enemyTransferDone=true;
+ const transfer=(clip,role)=>{
+  if(!clip)return;
+  try{
+   const adapted=retargetClip(model,enemyModel,clip);
+   if(!adapted||!adapted.tracks||adapted.tracks.length<4)throw new Error('retarget sem trilhas suficientes');
+   const action=mixer.clipAction(adapted);
+   if(role==='jump')actions.jump=action;else actions.dash=action;
+   console.info('Enemy1.glb: '+role+' adaptado para Protagonista.glb ('+clip.name+')');
+  }catch(err){console.warn('Não foi possível adaptar '+role+' de Enemy1.glb:',err);}
+ };
+ transfer(enemyDashClip,'dash');transfer(enemyJumpClip,'jump');
+}
+new GLTFLoader().load('./Enemy1.glb?v=mod151-enemy1-animations',gltf=>{
+ const imported=gltf.scene;
+ imported.traverse(o=>{
+  if(!o.isMesh)return;
+  o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;
+  const materials=Array.isArray(o.material)?o.material:[o.material];
+  for(const material of materials)if(material&&!enemyMaterials.includes(material))enemyMaterials.push(material);
+ });
+ const bounds=new THREE.Box3().setFromObject(imported),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ if(size.y>.001){const scale=1.75/size.y;imported.scale.setScalar(scale);imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);}
+ enemyModelRoot.add(imported);enemyModel=imported;enemySprite.visible=false;
+ enemyClips=gltf.animations||[];enemyMixer=new THREE.AnimationMixer(imported);
+ const find=regex=>enemyClips.find(c=>regex.test(String(c.name||'')));
+ const clipsByRole={
+  idle:find(/idle|breath|stand|parad|repos/i),
+  walk:find(/walk|walking|locomotion|caminh/i),
+  attack:find(/attack|slash|claw|strike|swing|golpe|ataque/i),
+  hit:find(/hit|hurt|damage|reaction|impact|dano|atingido/i),
+  death:find(/death|die|dead|dying|morte|morrer/i)
+ };
+ enemyDashClip=find(/dash|quick.?step|evade|dodge|esquiva/i);
+ enemyJumpClip=find(/jump|leap|hop|salto|saltar/i);
+ for(const role of Object.keys(clipsByRole)){const clip=clipsByRole[role];if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}
+ enemyHasDeathClip=!!clipsByRole.death;
+ const fallbackIdle=enemyClips.find(c=>!/attack|slash|claw|strike|swing|hit|hurt|damage|death|die|jump|leap|dash|dodge|walk|run/i.test(String(c.name||'')));
+ if(!enemyActions.idle&&fallbackIdle)enemyActions.idle=enemyMixer.clipAction(fallbackIdle);
+ playEnemyAnimation('idle',0);
+ window.Enemy1AnimationReport=enemyClips.map(c=>c.name);
+ console.info('Enemy1.glb animações:',window.Enemy1AnimationReport);
+ tryTransferEnemyLocomotion();
+},undefined,err=>{console.error('Enemy1.glb não carregou; mantendo sprite de segurança.',err);enemyModelRoot.visible=false;});
+
 function updateEnemyHud(){
  const p=enemy.position.clone().add(new THREE.Vector3(0,2.2,0)).project(camera);
  const hud=document.getElementById('enemy-hud');
@@ -73,7 +140,8 @@ function tryPlayerAttack(){
  }
  enemyHP=Math.max(0,enemyHP-25);enemyHitFlash=.2;enemyKnockback=.42;
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
- if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';}
+ if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;}
+ else playEnemyAnimation('hit',.05,true);
 }
 
 // Anjo-Guia: usa o modelo GLB original adicionado ao repositório.
@@ -168,7 +236,8 @@ function selectDimensionAttack(clips){
  // Nunca tratar Hit Knockback, queda ou morte como ataque.
  return clips.filter(validAttackClip);
 }
-function play(name,fade=.18){const next=actions[name];if(!next||next===activeAction)return;if(activeAction)activeAction.fadeOut(fade);next.reset().fadeIn(fade).play();activeAction=next;}
+function play(name,fade=.18){const next=actions[name];if(!next||next===activeAction)return;if(activeAction)activeAction.fadeOut(fade);next.reset();next.setLoop(THREE.LoopRepeat,Infinity);next.clampWhenFinished=false;next.fadeIn(fade).play();activeAction=next;}
+function playOnce(name,fade=.08){const next=actions[name];if(!next)return false;if(activeAction&&activeAction!==next)activeAction.fadeOut(fade);next.reset();next.enabled=true;next.setEffectiveWeight(1);next.setLoop(THREE.LoopOnce,1);next.clampWhenFinished=true;next.fadeIn(fade).play();activeAction=next;return true;}
 function fitModel(root){
  // O GLB original do protagonista já foi validado perto de 1,9 m. Não recalcular escala pela caixa de ossos animados: isso já causou modelos gigantes em rigs anteriores.
  root.scale.set(1,1,1);root.position.set(0,0,0);
@@ -206,6 +275,7 @@ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
  loadPlayerSword(model);
  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);attackClips=selectDimensionAttack(clips);attackClipIndex=0;const jump=chooseClip(clips,/jump|saltar|salto/i);
  if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'idle',0);}
+ tryTransferEnemyLocomotion();
  player.userData.ready=true;loading.classList.add('hidden');status.textContent='Missão 1 · encontre o Anjo-Guia e fale com ele';
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
@@ -218,13 +288,15 @@ stick.addEventListener('pointermove',e=>{if(joyActive)setJoy(e);});
 function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';}
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
 let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
-function action(kind){const now=performance.now();if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){play('jump',.08);actionUntil=now+420;}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='magic'?'Magia celestial será integrada depois':'Ultimate será integrada depois';setTimeout(()=>{if(status.textContent.startsWith('Magia celestial')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
+let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
+function action(kind){const now=performance.now();if(kind==='dash'){if(!grounded||now<dashCooldownUntil)return;dashCooldownUntil=now+850;dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);dashRemaining=actions.dash?Math.min(.42,Math.max(.2,actions.dash.getClip().duration*.45)):.23;if(actions.dash)playOnce('dash',.045);actionUntil=now+(actions.dash?Math.max(260,Math.min(550,actions.dash.getClip().duration*1000)):260);return;}if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='magic'?'Magia celestial será integrada depois':'Ultimate será integrada depois';setTimeout(()=>{if(status.textContent.startsWith('Magia celestial')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
 document.getElementById('attack').addEventListener('click',()=>action('attack'));
+document.getElementById('dash').addEventListener('click',()=>action('dash'));
 const jumpButton=document.getElementById('jump');
 // pointerdown responde imediatamente ao segundo dedo enquanto o primeiro mantém o joystick.
 jumpButton.addEventListener('pointerdown',e=>{e.preventDefault();action('jump');});
 document.getElementById('magic').addEventListener('click',()=>action('magic'));document.getElementById('ultimate').addEventListener('click',()=>action('ultimate'));
-addEventListener('keydown',e=>{if(e.repeat)return;if(e.key.toLowerCase()==='j'||e.key.toLowerCase()==='x')action('attack');if(e.key===' ')action('jump');});
+addEventListener('keydown',e=>{if(e.repeat)return;if(e.key.toLowerCase()==='j'||e.key.toLowerCase()==='x')action('attack');if(e.key===' ')action('jump');if(e.key==='Shift')action('dash');});
 let lastMove=0,moveVX=0,moveVZ=0,playerYaw=Math.PI;
 let cameraYaw=0,cameraPitch=.16,cameraDistance=8.5;
 const lookArea=document.getElementById('look-area');
@@ -240,11 +312,12 @@ lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointe
 lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.08,15);},{passive:true});
 addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';});
 
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);
     updatePlayerSwordMount();
- if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);enemyMaterials[0].emissive.setHex(0x8b2417);enemyMaterials[0].emissiveIntensity=1.1;}else{enemyMaterials[0].emissive.setHex(0x000000);enemyMaterials[0].emissiveIntensity=0;}
+ if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
+ if(enemyCurrentRole==='hit'&&enemyCurrentAction&&!enemyCurrentAction.isRunning()&&enemyAlive)playEnemyAnimation('idle',.08);
  if(enemyKnockback>0&&enemyAlive){const step=Math.min(enemyKnockback,dt*2.5);enemy.position.x+=Math.sin(playerYaw)*step;enemy.position.z+=Math.cos(playerYaw)*step;enemyKnockback-=step;}
- if(!enemyAlive){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
+ if(!enemyAlive&&!enemyHasDeathClip){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
  updateEnemyHud();
  if(enemyAlive)enemy.rotation.y=Math.atan2(camera.position.x-enemy.position.x,camera.position.z-enemy.position.z);
  guide.position.y=.008+Math.sin(now*.0022)*.006;guideAura.intensity=.4+Math.sin(now*.003)*.06;
@@ -294,7 +367,12 @@ function terrainHeightAt(x,z){
  return height;
 }
 // As pedras deixam de ser paredes invisíveis: o jogador atravessa sua projeção e o chão sobe suavemente sobre elas.\n// Movimento horizontal permanece disponível durante o pulo.
-if(moving){
+if(dashRemaining>0){
+ const dashDt=Math.min(dt,dashRemaining);const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*8.2*dashDt,-38,38);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*8.2*dashDt,-72,14);
+ if(!blockedAt(nextX,player.position.z))player.position.x=nextX;
+ if(!blockedAt(player.position.x,nextZ))player.position.z=nextZ;
+ playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;dashRemaining=Math.max(0,dashRemaining-dt);
+}else if(moving){
  const nextX=THREE.MathUtils.clamp(player.position.x+moveVX*dt,-38,38);
  const nextZ=THREE.MathUtils.clamp(player.position.z+moveVZ*dt,-72,14);
  // Testa cada eixo separadamente para o jogador conseguir deslizar junto à árvore/pedra.
