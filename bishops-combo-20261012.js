@@ -438,7 +438,7 @@ const BishopBoss = {
   state: 'inactive', stateT: 0, flashT: 0, alpha: 0, evadeCooldown: 0,
   hitDone: false, hitDoneSecondary: false, hitDonePrimary: false, hitId: -1, fx: -1, fy: 0,
   anim: 0, speed: 0, onGround: true, floor: 0, sy: 0,
-  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, skillTargetX: null, skillTargetY: null, _solids: [],
+  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, skillRotationIndex: 0, skillTargetX: null, skillTargetY: null, _solids: [],
   elHud: null, elHudName: null, elHudTitle: null, elHudFill: null, elHudText: null,
 
   init() {
@@ -474,6 +474,7 @@ const BishopBoss = {
     this.pendingDefenseT = 0;
     this.skillCooldowns = Object.create(null);
     this.skillChainCooldown = 0;
+    this.skillRotationIndex = 0;
     this.poise = this.poiseMax = 28; this.chain = 0; this.staggerDur = 0; this.staggerImmuneT = 0;
     this.updateHud();
   },
@@ -711,9 +712,11 @@ const BishopBoss = {
         }
         // Skills têm recarga própria e podem iniciar uma aproximação em corrida.
         if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
-          const readySkill = this.skillChainCooldown <= 0 ? this.profile.attacks.find(a => a.skill && (this.skillCooldowns[a.id] || 0) <= 0) : null;
+          const readySkills = this.skillChainCooldown <= 0 ? this.profile.attacks.filter(a => a.skill && (this.skillCooldowns[a.id] || 0) <= 0) : [];
+          const readySkill = readySkills.length ? readySkills[this.skillRotationIndex % readySkills.length] : null;
           if (readySkill && d <= 300 && (this.attackIndex % 2 === 0)) {
             this.attack = readySkill;
+            this.skillRotationIndex = (this.skillRotationIndex + 1) % Math.max(1, this.profile.attacks.filter(a => a.skill).length);
             this.attackIndex++;
             this.skillCooldowns[readySkill.id] = readySkill.skillCooldown || 6.5;
             this.skillChainCooldown = 2.5;
