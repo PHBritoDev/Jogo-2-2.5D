@@ -57,7 +57,11 @@ const Dialog = {
     if (!n) { this.close(); return; }
     this.cur = n;
     if (n.enter) n.enter();
-    this.elWho.textContent = n.who || '';
+    const speakerName = n.who || '';
+    this.el.classList.toggle('comic-protagonist', /protagonista|herói|você/i.test(speakerName));
+    this.el.classList.toggle('comic-guide', /anjo-guia/i.test(speakerName));
+    this.el.dataset.speaker = speakerName;
+    this.elWho.textContent = speakerName;
     const portrait = typeof n.portrait === 'function' ? n.portrait() : n.portrait;
     if (this.elPortrait) {
       if (typeof portrait === 'string' && portrait.trim()) {
