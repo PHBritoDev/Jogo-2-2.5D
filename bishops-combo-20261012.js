@@ -32,6 +32,9 @@ const BISHOP_PROFILES = {
     attacks: [
       // MOD 16: alcances coerentes com a distância de início; golpes acompanham melhor quem corre.
       { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.64, cooldown: 0.9, range: 165, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.54, secondHitScale: 0.65, parryable: true },
+      // MOD 120: magias negras com alvo travado no fim da preparação e janela real para esquiva.
+      { id: 'abyssHands', name: 'Mãos do Abismo', skill: true, skillCooldown: 9.5, windup: 1.18, duration: 0.72, cooldown: 1.45, range: 300, areaRadius: 94, damage: 19, kb: 325, lunge: 0, hitAt: 0.22, telegraph: 'hands' },
+      { id: 'graveThorns', name: 'Sepultura de Espinhos', skill: true, skillCooldown: 11.5, windup: 1.38, duration: 0.62, cooldown: 1.65, range: 300, areaRadius: 100, damage: 24, kb: 365, lunge: 0, hitAt: 0.18, telegraph: 'spikes' },
       { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.5, range: 190, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
       { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 1.05, range: 178, damage: 19, kb: 310, lunge: 92, hitAt: 0.09, parryable: true }
     ]
@@ -407,6 +410,11 @@ const ValerioCombatAI = {
     const heavy = pool.find(a => a.id === 'vault' || /heavy|slam|smash/i.test(a.id + ' ' + (a.name || '')));
 
     // Decide pela distância e pelo comportamento do jogador, não só por rotação fixa.
+    // As magias negras entram na rotação de longe, sem substituir golpes corpo a corpo.
+    if (profile.id === 'bishop1' && chainCooldown <= 0 && distance > 118) {
+      const dark = pool.filter(a => a.id === 'abyssHands' || a.id === 'graveThorns');
+      if (dark.length) return dark[(Math.floor(index / 2)) % dark.length];
+    }
     if (playerSpeed > 105 && distance > 72 && wide) return wide;
     if (distance > 145 && heavy && (index % 2 === 0 || profile.id === 'bishop1')) return heavy;
     if (distance < 105) return find('tax') || normal[index % Math.max(1, normal.length)] || pool[0];
@@ -428,7 +436,7 @@ const BishopBoss = {
   state: 'inactive', stateT: 0, flashT: 0, alpha: 0, evadeCooldown: 0,
   hitDone: false, hitDoneSecondary: false, hitDonePrimary: false, hitId: -1, fx: -1, fy: 0,
   anim: 0, speed: 0, onGround: true, floor: 0, sy: 0,
-  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, _solids: [],
+  attack: null, attackIndex: 0, phase: 1, guardCooldown: 0, skillCooldowns: Object.create(null), skillChainCooldown: 0, skillTargetX: null, skillTargetY: null, _solids: [],
   elHud: null, elHudName: null, elHudTitle: null, elHudFill: null, elHudText: null,
 
   init() {
@@ -449,6 +457,7 @@ const BishopBoss = {
     this.trailDelay = 0;
     this.vx = this.vy = this.vz = this.kx = this.ky = 0;
     this.attack = null;
+    this.skillTargetX = this.skillTargetY = null;
     this.hitDone = false;
     this.hitDoneSecondary = false;
     this.hitDonePrimary = false;
@@ -785,10 +794,17 @@ const BishopBoss = {
           this.fx = dx / d; this.fy = dy / d;
         }
         if (this.stateT >= windupDuration) {
+          if (this.attack.id === 'abyssHands' || this.attack.id === 'graveThorns') {
+            // Trava o centro no fim do aviso: mover-se depois evita o impacto.
+            this.skillTargetX = Player.x;
+            this.skillTargetY = Player.y;
+          } else {
+            this.skillTargetX = this.skillTargetY = null;
+          }
           this._go('attack');
           this.kx += this.fx * this.attack.lunge;
           this.ky += this.fy * this.attack.lunge;
-          Camera.shake = Math.max(Camera.shake, this.attack.id === 'vault' ? 3.5 : 1.5);
+          Camera.shake = Math.max(Camera.shake, (this.attack.id === 'vault' || this.attack.id === 'graveThorns') ? 3.5 : 1.5);
           if (this.attack.id === 'vault') Ambient.spawnDust(this.x, this.y, 10, '#d8b65a', 1.4);
           if (this.attack.id === 'sealwave') Ambient.spawnDust(this.x, this.y, 15, '#89988e', 1.5);
         }
@@ -802,8 +818,12 @@ const BishopBoss = {
           // todo o movimento do golpe. Soma os raios dos corpos ao alcance nominal.
           const contactRange = this.attack.range + (Player.r || 0) + (this.r || 0);
           const contactWindowEnd = Math.min(this.attack.duration - 0.035, this.attack.hitAt + 0.46);
-          const canReach = alive && d <= contactRange &&
-            facingDot > 0.12 &&
+          const areaSkill = this.attack.id === 'abyssHands' || this.attack.id === 'graveThorns';
+          const targetDistance = areaSkill && Number.isFinite(this.skillTargetX) && Number.isFinite(this.skillTargetY)
+            ? Math.hypot(Player.x - this.skillTargetX, Player.y - this.skillTargetY) : Infinity;
+          const canReach = alive && (areaSkill
+            ? targetDistance <= (this.attack.areaRadius || 64) + (Player.r || 0)
+            : d <= contactRange && facingDot > 0.12) &&
             Math.abs(Player.z - this.z) < Math.max(CFG.COMBAT.bodyH, 54);
           if (canReach) {
             const phaseDamage = this.profile.id === 'bishop1'
@@ -821,7 +841,12 @@ const BishopBoss = {
               this.hitDone = true;
               this.hitDonePrimary = true;
               Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 7,
-                this.profile.id === 'bishop3' ? '#b8d0c3' : '#f3c14e');
+                areaSkill ? '#c91e32' : (this.profile.id === 'bishop3' ? '#b8d0c3' : '#f3c14e'));
+              if (areaSkill) {
+                Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 5, '#17121b');
+                Camera.shake = Math.max(Camera.shake, this.attack.id === 'graveThorns' ? 5.2 : 3.8);
+                if (typeof BishopDimension !== 'undefined') BishopDimension.impact(this.attack.id === 'graveThorns' ? 1.2 : .9);
+              }
             } else if (!isValerio || this.stateT >= contactWindowEnd) {
               // Não mostrar impacto falso nem consumir a janela enquanto o jogador
               // estiver invulnerável; o contato pode ser reavaliado até o fim do golpe.
