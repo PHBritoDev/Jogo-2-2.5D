@@ -6,7 +6,7 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x9bc6d1);
 scene.fog=new THREE.Fog(0x9bc6d1,35,115);
 const camera=new THREE.PerspectiveCamera(56,innerWidth/innerHeight,.1,180);
-camera.position.set(0,4.2,8);
+camera.position.set(0,3.2,10);
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
 renderer.setSize(innerWidth,innerHeight);
@@ -62,7 +62,16 @@ let actionUntil=0,hop=0;
 function action(kind){const now=performance.now();if(kind==='jump'){hop=.34;if(actions.jump){play('jump',.08);actionUntil=now+650;}return;}if(kind==='attack'||kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='attack'?'Golpe demonstrativo · combate ainda será integrado':kind==='magic'?'Magia será conectada ao sistema celestial':'Ultimate será conectada ao sistema celestial';setTimeout(()=>{if(status.textContent.startsWith('Golpe demonstrativo')||status.textContent.startsWith('Magia será')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
 document.getElementById('attack').addEventListener('click',()=>action('attack'));document.getElementById('jump').addEventListener('click',()=>action('jump'));document.getElementById('magic').addEventListener('click',()=>action('magic'));document.getElementById('ultimate').addEventListener('click',()=>action('ultimate'));
 addEventListener('keydown',e=>{if(e.repeat)return;if(e.key.toLowerCase()==='j'||e.key.toLowerCase()==='x')action('attack');if(e.key===' ')action('jump');});
-let lastMove=0;
+let lastMove=0; 
+let cameraYaw=0,cameraPitch=.18,cameraDistance=6.2;
+const lookArea=document.getElementById('look-area');
+let lookPointer=null,lastLookX=0,lastLookY=0;
+lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;lookPointer=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;try{lookArea.setPointerCapture(e.pointerId);}catch(_){}});
+lookArea.addEventListener('pointermove',e=>{if(lookPointer!==e.pointerId)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;cameraYaw-=dx*.006;cameraPitch=THREE.MathUtils.clamp(cameraPitch-dy*.004,-.18,.72);});
+function endLook(e){if(lookPointer===e.pointerId)lookPointer=null;}
+lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);
+lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,3.5,9);},{passive:true});
+
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);
 let x=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let z=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;const len=Math.hypot(x,z);if(len>1){x/=len;z/=len;}
 const moving=len>.12&&now>actionUntil;
@@ -70,8 +79,9 @@ if(moving){const speed=4.3;player.position.x+=x*speed*dt;player.position.z+=z*sp
 else if(now>actionUntil&&actions.idle)play('idle');
 if(hop>0){hop-=dt;player.position.y=Math.max(0,Math.sin((.34-hop)/.34*Math.PI)*.75);}else player.position.y=0;
 const target=new THREE.Vector3(player.position.x,player.position.y+1.15,player.position.z);
-const behind=new THREE.Vector3(Math.sin(player.rotation.y)*7,3.4,Math.cos(player.rotation.y)*7);
-const desired=target.clone().add(behind);camera.position.lerp(desired,1-Math.exp(-4*dt));camera.lookAt(target.x,target.y+.15,target.z-1.4);
+const camOffset=new THREE.Vector3(Math.sin(cameraYaw)*cameraDistance*Math.cos(cameraPitch),cameraDistance*Math.sin(cameraPitch),Math.cos(cameraYaw)*cameraDistance*Math.cos(cameraPitch));
+const desired=target.clone().add(camOffset);
+camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(target);
 const t=clock.elapsedTime;treeGroup.children.forEach((tree,i)=>{tree.rotation.z=Math.sin(t*.7+i*.9)*.012;});grassGroup.children.forEach((blade,i)=>{blade.rotation.z=Math.sin(t*1.4+i*.31)*.12;});
 renderer.render(scene,camera);}
 animate();
