@@ -1,4 +1,4 @@
-/* MOD 110 — Grimório tridimensional do Bispo Valério.
+/* MOD 111 — posiciona o grimório 3D à frente e na vertical diante de Valério.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -51,7 +51,7 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod110';
+    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod111';
     const leather = material('leather', 0x171d18, .82, .18);
     const leatherEdge = material('leatherEdge', 0x30251a, .75, .35);
     const pagesMat = material('parchment', 0xc8b88a, .94, .04);
@@ -121,7 +121,7 @@
     attachedScene = api.scene;
     ready = true;
     window.ValerioGrimoire3D = {
-      version: 110,
+      version: 111,
       open: function(){ targetOpen = 1; opened = true; },
       close: function(){ targetOpen = 0; opened = false; },
       toggle: function(){ targetOpen = targetOpen > .5 ? 0 : 1; opened = targetOpen > .5; },
@@ -156,13 +156,18 @@
       root.visible = false; return;
     }
     root.visible = true;
-    // Flutua próximo ao Bispo, voltado para a câmera; não toca na posição/IA do chefe.
+    // MOD 111: fica centralizado à frente do Bispo, seguindo a direção em que ele olha.
+    // Usa apenas a rotação horizontal do chefe: a câmera não pode inclinar o livro.
     const p = view.position;
-    const cam = api.camera;
-    const side = cam.position.x >= p[0] ? 1 : -1;
-    const bob = Math.sin(now * .0018) * .035;
-    root.position.set(p[0] + side * .78, p[1] + 1.08 + bob, p[2] + .12);
-    root.quaternion.copy(cam.quaternion);
+    const yaw = Number.isFinite(Number(view.yaw)) ? Number(view.yaw) : 0;
+    const frontDistance = 0.92;
+    const bob = Math.sin(now * .0018) * .025;
+    root.position.set(
+      p[0] + Math.sin(yaw) * frontDistance,
+      p[1] + 2.15 + bob,
+      p[2] + Math.cos(yaw) * frontDistance
+    );
+    root.rotation.set(0, yaw, 0);
     // Capa esquerda e direita abrem em sentidos opostos com easing suave.
     const desired = targetOpen * 1.28;
     angle += (desired - angle) * Math.min(1, dt * 7.5);
@@ -172,7 +177,7 @@
       const pageOpen = Math.max(0, angle - page.offset);
       page.hinge.rotation.y = page.side < 0 ? -pageOpen * .28 : pageOpen * .28;
     });
-    root.rotation.z = Math.sin(now * .0014) * .025;
+    // Mantém o livro reto; somente a flutuação vertical é animada.
     runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
     if (angle < .01 && targetOpen === 0) root.visible = false;
   }
@@ -197,7 +202,7 @@
       }
       try { buildBook(); requestAnimationFrame(tick); }
       catch (err) {
-        console.error('MOD 110: falha ao montar o grimório 3D de Valério.', err);
+        console.error('MOD 111: falha ao montar o grimório 3D de Valério.', err);
         if (button) { button.disabled = true; button.textContent = 'GRIMÓRIO INDISPONÍVEL'; }
       }
     }
