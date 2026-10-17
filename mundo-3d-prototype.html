@@ -20,6 +20,7 @@ button{width:64px;height:58px;border-radius:18px;border:1px solid #ffffff50;back
 button:active{transform:scale(.96);background:#31583d}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:26px;background:linear-gradient(#10251bdc,#08110feF);z-index:5;font-size:14px;line-height:1.6}
 #loading.hidden{display:none}
+#quest-box{position:fixed;left:10px;top:66px;z-index:3;max-width:min(260px,66vw);padding:10px 12px;border:1px solid #f0d78b55;border-radius:12px;background:#10190fd9;box-shadow:0 4px 16px #0004;pointer-events:none}#quest-title{font-size:10px;font-weight:900;letter-spacing:.08em;color:#ffe19a;margin-bottom:5px}#quest-objective{font-size:12px;line-height:1.35;color:#f4f4e8}.quest-coins{margin-top:7px;font-size:10px;color:#e8d7a2;letter-spacing:.08em}.quest-coins strong{font-size:13px;color:#fff;margin-left:6px}#talk-button{position:fixed;left:50%;bottom:26%;transform:translateX(-50%);z-index:4;width:auto;min-width:100px;height:44px;padding:0 22px;border-color:#f4d16c;background:#644b13ed;color:#fff1bc}#dialog-panel{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:6;width:min(540px,calc(100vw - 24px));padding:16px;border:1px solid #d6bc72aa;border-radius:16px;background:linear-gradient(145deg,#1a211beF,#0a110ef5);box-shadow:0 8px 28px #0009}#dialog-who{font-size:13px;font-weight:900;color:#ffdc83;margin-bottom:8px}#dialog-text{font-size:14px;line-height:1.5;color:#fff;margin-bottom:13px}#dialog-continue{display:block;margin-left:auto;width:auto;min-width:112px;height:42px;padding:0 15px;color:#fff0b5;border-color:#f0d07b;background:#55421b}#quest-toast{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:5;padding:12px 18px;border:1px solid #e9d17c;border-radius:12px;background:#172217ed;color:#ffeb9d;font-size:12px;font-weight:900;white-space:nowrap;box-shadow:0 6px 22px #0007}.hidden{display:none!important}
 #enemy-hud{position:fixed;z-index:3;display:none;transform:translate(-50%,-50%);width:132px;text-align:center;pointer-events:none;text-shadow:0 1px 4px #000}
 #enemy-name{font-size:10px;font-weight:900;letter-spacing:.1em;color:#ffe7d9;margin-bottom:4px}
 #enemy-hp-track{height:7px;border:1px solid #e9d5c6aa;border-radius:8px;background:#171312d9;overflow:hidden;box-shadow:0 2px 7px #0008}
@@ -32,17 +33,21 @@ button:active{transform:scale(.96);background:#31583d}
 <canvas id="scene"></canvas>
 <div id="look-area" aria-label="Arraste para olhar para cima/baixo; use dois dedos para aproximar/afastar"></div>
 <div id="top"><div id="title">A BATALHA CONTRA OS 7 PECADOS</div><div id="status">Preparando o mundo 3D…</div></div>
-<div id="marker" aria-label="Modificação 145">145</div>
-<div id="enemy-hud"><div id="enemy-name">CRIATURA SOMBRIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
-<div id="hint">PROTÓTIPO 3D · explore o vale e teste a movimentação</div>
+<div id="marker" aria-label="Modificação 146">146</div>
+<div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
+<div id="hint">MISSÃO 1 · encontre Aurélio e fale com ele</div>
+<div id="quest-box"><div id="quest-title">MISSÃO 1 · PRIMEIROS PASSOS</div><div id="quest-objective">Encontre Aurélio, o viajante</div><div class="quest-coins">MOEDAS <strong id="coin-count">0</strong></div></div>
+<div id="quest-toast" class="hidden">MISSÃO CONCLUÍDA · +5 MOEDAS</div>
+<button id="talk-button" class="hidden">FALAR</button>
+<div id="dialog-panel" class="hidden"><div id="dialog-who">Aurélio</div><div id="dialog-text"></div><button id="dialog-continue">CONTINUAR</button></div>
 <a id="back" href="./index.html">Voltar ao jogo 2D</a>
 <div id="stick" aria-label="Controle de movimento"><div id="knob"></div></div>
 <div id="actions">
 <button id="attack">GOLPE</button><button id="jump">PULAR</button>
 <button id="magic">MAGIA</button><button id="ultimate">ULTIMATE</button>
 </div>
-<div id="loading">Carregando o protagonista 3D e construindo o vale…<br><br>Esta é uma versão paralela de teste. A campanha original continua intacta.</div>
+<div id="loading">Carregando o protagonista 3D e construindo o vale…<br><br>A primeira etapa da migração 3D já usa a arte real do inimigo, a espada real e a missão inicial adaptada.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mundo-3d-prototype.js?v=mod145-first-combat"></script>
+<script type="module" src="./mundo-3d-prototype.js?v=mod146-3d-real-assets-quest"></script>
 </body>
 </html>
