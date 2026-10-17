@@ -1,4 +1,4 @@
-/* MOD 116 — inclina o grimório e adiciona aura obscura animada.
+/* MOD 117 — restaura a orientação natural e refina a aura em fumaça sombria.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -9,7 +9,7 @@
   if (!enabled) return;
 
   let api = null, root = null, leftHinge = null, rightHinge = null;
-  let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkAura = null, darkAuraCore = null, opened = false, targetOpen = 0, angle = 0;
+  let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkSmoke = [], darkAura = null, darkAuraCore = null, opened = false, targetOpen = 0, angle = 0;
   let button = null, lastTime = 0, ready = false, attachedScene = null;
   const GOLD = 0xc9a34a, DARK_GOLD = 0x62421b, EMERALD = 0x087c5b;
   const MAT = {};
@@ -51,7 +51,7 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod116';
+    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod117';
     const leather = material('leather', 0x171d18, .82, .18);
     const leatherEdge = material('leatherEdge', 0x30251a, .75, .35);
     const pagesMat = material('parchment', 0xc8b88a, .94, .04);
@@ -92,39 +92,66 @@
       const rib = new T.Mesh(new T.TorusGeometry(.055, .009, 4, 16, Math.PI), gold);
       rib.rotation.y = Math.PI / 2; rib.position.set(0, i * .19, .018); root.add(rib);
     }
-    // MOD 116: aurora obscura animada, inspirada na aura do protagonista.
-    // Preto e carvão neutro, sem roxo ou brilho branco; sem alterar combate ou poderes.
+    // MOD 117: aura de sombra em camadas — anéis finos, névoa irregular e partículas orbitais.
+    // A fumaça usa alpha blending e tons neutros de carvão/cinza, sem brilho roxo ou branco.
     const darkMat = new T.MeshBasicMaterial({
-      color: 0x080808, transparent: true, opacity: .76,
+      color: 0x292929, transparent: true, opacity: .28,
       blending: T.NormalBlending, depthWrite: false, side: T.DoubleSide
     });
     const darkCoreMat = new T.MeshBasicMaterial({
-      color: 0x000000, transparent: true, opacity: .84,
+      color: 0x101010, transparent: true, opacity: .34,
       blending: T.NormalBlending, depthWrite: false, side: T.DoubleSide
     });
-    darkAura = new T.Mesh(new T.TorusGeometry(.57, .045, 7, 36), darkMat);
-    darkAura.name = 'Aurora obscura externa';
+    darkAura = new T.Mesh(new T.TorusGeometry(.55, .012, 5, 64), darkMat);
+    darkAura.name = 'Filamento externo da aura sombria';
     darkAura.position.set(0, 0, .015);
-    darkAura.rotation.x = .25;
+    darkAura.rotation.x = .22;
     root.add(darkAura);
-    darkAuraCore = new T.Mesh(new T.TorusGeometry(.48, .022, 6, 32), darkCoreMat);
-    darkAuraCore.name = 'Núcleo de sombra';
+    darkAuraCore = new T.Mesh(new T.TorusGeometry(.47, .007, 4, 56), darkCoreMat);
+    darkAuraCore.name = 'Filamento interno de sombra';
     darkAuraCore.position.set(0, 0, .02);
     darkAuraCore.rotation.set(-.18, .32, 0);
     root.add(darkAuraCore);
-    const wispMat = new T.MeshBasicMaterial({
-      color: 0x090909, transparent: true, opacity: .72,
-      blending: T.NormalBlending, depthWrite: false
-    });
-    for (let i = 0; i < 12; i++) {
-      const spark = new T.Mesh(new T.SphereGeometry(.012 + (i % 3) * .004, 6, 5), wispMat);
-      spark.userData = {
-        phase: i * Math.PI * 2 / 12,
-        radius: .43 + (i % 4) * .045,
-        height: -.38 + (i % 6) * .15,
-        speed: .45 + (i % 4) * .12
+    // Nuvens elípticas sobrepostas dão volume à fumaça, em vez de simples bolinhas ou aros grossos.
+    const smokeColors = [0x171717, 0x292929, 0x3a3a3a, 0x202020, 0x484848];
+    for (let i = 0; i < 18; i++) {
+      const tone = smokeColors[i % smokeColors.length];
+      const smokeMat = new T.MeshBasicMaterial({
+        color: tone, transparent: true,
+        opacity: .11 + (i % 4) * .025,
+        blending: T.NormalBlending, depthWrite: false,
+        side: T.DoubleSide
+      });
+      const cloud = new T.Mesh(new T.SphereGeometry(1, 9, 7), smokeMat);
+      const size = .075 + (i % 5) * .012;
+      cloud.scale.set(size * 1.45, size * (1.7 + (i % 3) * .25), .018 + (i % 3) * .006);
+      cloud.userData = {
+        phase: i * Math.PI * 2 / 18,
+        radius: .43 + (i % 5) * .035,
+        height: -.29 + (i % 7) * .095,
+        speed: .34 + (i % 4) * .11,
+        drift: .025 + (i % 3) * .012,
+        baseScale: size
       };
-      spark.name = 'Partícula de aurora obscura ' + i;
+      cloud.name = 'Nuvem de fumaça sombria ' + i;
+      root.add(cloud);
+      darkSmoke.push(cloud);
+    }
+    // Pontos escuros muito discretos quebram a silhueta e dão movimento à aura.
+    const sparkColors = [0x202020, 0x383838, 0x111111];
+    for (let i = 0; i < 10; i++) {
+      const sparkMat = new T.MeshBasicMaterial({
+        color: sparkColors[i % sparkColors.length], transparent: true,
+        opacity: .3, blending: T.NormalBlending, depthWrite: false
+      });
+      const spark = new T.Mesh(new T.SphereGeometry(.009 + (i % 3) * .003, 6, 5), sparkMat);
+      spark.userData = {
+        phase: i * Math.PI * 2 / 10,
+        radius: .44 + (i % 4) * .035,
+        height: -.34 + (i % 6) * .13,
+        speed: .48 + (i % 4) * .13
+      };
+      spark.name = 'Fragmento de sombra ' + i;
       root.add(spark);
       darkSparks.push(spark);
     }
@@ -157,7 +184,7 @@
     attachedScene = api.scene;
     ready = true;
     window.ValerioGrimoire3D = {
-      version: 116,
+      version: 117,
       open: function(){ targetOpen = 1; opened = true; },
       close: function(){ targetOpen = 0; opened = false; },
       toggle: function(){ targetOpen = targetOpen > .5 ? 0 : 1; opened = targetOpen > .5; },
@@ -192,7 +219,7 @@
       root.visible = false; return;
     }
     root.visible = true;
-    // MOD 116: mantém a posição aprovada e inclina a face do livro ligeiramente para baixo.
+    // MOD 117: preserva a posição aprovada e usa uma inclinação discreta, próxima da orientação natural.
     // view.yaw usa outra convenção no renderer 2D; reutilizá-lo colocava o livro atrás do modelo.
     const p = view.position;
     const playerPos = Array.isArray(view.playerPosition) ? view.playerPosition : null;
@@ -210,7 +237,7 @@
       p[2] + Math.cos(facingYaw) * frontDistance
     );
     // Inclinação para cima: a face do grimório ergue-se ligeiramente.
-    root.rotation.set(-.30, facingYaw, 0);
+    root.rotation.set(.12, facingYaw, 0);
     // Capa esquerda e direita abrem em sentidos opostos com easing suave.
     const desired = targetOpen * 1.28;
     angle += (desired - angle) * Math.min(1, dt * 7.5);
@@ -220,25 +247,37 @@
       const pageOpen = Math.max(0, angle - page.offset);
       page.hinge.rotation.y = page.side < 0 ? -pageOpen * .28 : pageOpen * .28;
     });
-    // Pulso e órbita das partículas: aura animada em tons obscuros.
-    const pulse = .5 + .5 * Math.sin(now * .0024);
+    // Fumaça deriva para cima enquanto gira em volta do grimório, com pulsação suave.
+    const pulse = .5 + .5 * Math.sin(now * .0017);
     if (darkAura) {
-      darkAura.rotation.z = now * .00042;
-      darkAura.scale.setScalar(1 + .045 * pulse);
-      darkAura.material.opacity = .58 + .16 * pulse;
+      darkAura.rotation.z = now * .00028;
+      darkAura.scale.set(1 + .025 * pulse, 1 + .045 * pulse, 1);
+      darkAura.material.opacity = .19 + .08 * pulse;
     }
     if (darkAuraCore) {
-      darkAuraCore.rotation.z = -now * .00058;
-      darkAuraCore.scale.setScalar(1 + .035 * (1 - pulse));
-      darkAuraCore.material.opacity = .68 + .12 * pulse;
+      darkAuraCore.rotation.z = -now * .00036;
+      darkAuraCore.scale.set(1 + .035 * (1 - pulse), 1 + .025 * pulse, 1);
+      darkAuraCore.material.opacity = .24 + .09 * pulse;
     }
+    darkSmoke.forEach((cloud) => {
+      const u = cloud.userData;
+      const t = now * .001 * u.speed + u.phase;
+      const rise = ((now * .00011 * u.speed + u.phase / (Math.PI * 2)) % 1);
+      cloud.position.set(
+        Math.cos(t) * u.radius + Math.sin(t * .65) * u.drift,
+        u.height + rise * .13 + Math.sin(t * .7) * .025,
+        .035 + Math.sin(t * 1.3) * .11
+      );
+      cloud.rotation.z = t * .38;
+      const swell = .88 + .18 * Math.sin(t * 1.35);
+      cloud.scale.set(u.baseScale * 1.45 * swell, u.baseScale * (1.7 + (Math.sin(t) + 1) * .2), .02 + (Math.sin(t * .9) + 1) * .006);
+      cloud.material.opacity = .09 + (.07 * (.5 + .5 * Math.sin(t * 1.6)));
+    });
     darkSparks.forEach((spark) => {
       const u = spark.userData;
       const t = now * .001 * u.speed + u.phase;
-      spark.position.set(Math.cos(t) * u.radius, u.height + Math.sin(t * .72) * .045, Math.sin(t) * .17 + .055);
-      const flicker = .55 + .45 * Math.sin(t * 1.8);
-      spark.scale.setScalar(.55 + flicker * .8);
-      spark.material.opacity = .42 + flicker * .24;
+      spark.position.set(Math.cos(t) * u.radius, u.height + Math.sin(t * .72) * .055, .055 + Math.sin(t) * .13);
+      spark.material.opacity = .18 + .2 * (.5 + .5 * Math.sin(t * 1.8));
     });
     runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
     if (angle < .01 && targetOpen === 0) root.visible = false;
@@ -264,7 +303,7 @@
       }
       try { buildBook(); requestAnimationFrame(tick); }
       catch (err) {
-        console.error('MOD 116: falha ao montar o grimório 3D de Valério.', err);
+        console.error('MOD 117: falha ao montar o grimório 3D de Valério.', err);
         if (button) { button.disabled = true; button.textContent = 'GRIMÓRIO INDISPONÍVEL'; }
       }
     }
