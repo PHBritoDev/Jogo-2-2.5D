@@ -98,7 +98,7 @@
     for (let i = 0; i < 22; i++) {
       const smokeMat = new T.MeshBasicMaterial({
         color: smokeColors[i % smokeColors.length], transparent: true,
-        opacity: .13 + (i % 4) * .025, blending: T.NormalBlending,
+        opacity: .20 + (i % 4) * .035, blending: T.NormalBlending,
         depthWrite: false, side: T.DoubleSide
       });
       const cloud = new T.Mesh(new T.SphereGeometry(1, 10, 8), smokeMat);
@@ -192,7 +192,7 @@
       const page = box(root, 'Marcador de página ' + i, [.014, .13, .012], [.29 + i * .025, -.28, .065], i % 2 ? green : gold);
       pages.push(page);
     }
-    root.scale.setScalar(1.12);
+    root.scale.setScalar(1.24);
     root.visible = false;
     api.scene.add(root);
     attachedScene = api.scene;
@@ -266,7 +266,7 @@
       cloud.rotation.z = t * .48;
       const swell = .8 + .28 * Math.sin(t * 1.4);
       cloud.scale.set(u.baseScale * 1.5 * swell, u.baseScale * (1.8 + (Math.sin(t) + 1) * .25), .025 + (Math.sin(t * .9) + 1) * .008);
-      cloud.material.opacity = .1 + .09 * (.5 + .5 * Math.sin(t * 1.7));
+      cloud.material.opacity = .18 + .16 * (.5 + .5 * Math.sin(t * 1.7));
     });
     darkTendrils.forEach((mesh) => {
       const u = mesh.userData;
