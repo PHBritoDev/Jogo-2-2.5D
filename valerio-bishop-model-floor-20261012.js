@@ -846,6 +846,8 @@
     requestAnimationFrame(frame);const v=window.ValerioModelView;
     if(!v||!v.active||!window.ValerioGLBReady||!root||!pivot||!renderer||!camera){window.ValerioGLBRendering=false;if(canvas&&canvas.style.display!=='none')canvas.style.display='none';return;}
     if(canvas.style.display!=='block')canvas.style.display='block';window.ValerioGLBRendering=true;const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
+    // Mod 121: energia da foice pulsa também em repouso, não apenas durante o golpe.
+    try{const swing=v.combatState==='attack'?Math.min(1,Math.max(0,(Number(v.stateTime)||0)/Math.max(.1,Number(v.attackDuration)||.7))):0;updateScytheFx(now/1000,swing);}catch(e){scytheFx=null;}
     if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);
     camera.aspect=v.aspect||w/h;camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
     const cinematicCamera=window.CelestialUltimateCamera;
@@ -994,7 +996,7 @@
         // Se o GLB vier a ganhar um ataque real, o movimento manual não duplica esse clip.
         weaponPivot.rotation.z=-.12-windup*.42+swing*.58;
         weaponPivot.rotation.x=swing*.3;
-        try{updateScytheFx(now/1000,swing);}catch(e){scytheFx=null;}
+        // A energia contínua da foice é atualizada no frame principal.
       }
   
     }else{
