@@ -1,4 +1,4 @@
-/* MOD 117 — restaura a orientação natural e refina a aura em fumaça sombria.
+/* MOD 118 — energia proibida preta e escarlate no grimório aberto.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -9,7 +9,7 @@
   if (!enabled) return;
 
   let api = null, root = null, leftHinge = null, rightHinge = null;
-  let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkSmoke = [], darkAura = null, darkAuraCore = null, opened = false, targetOpen = 0, angle = 0;
+  let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkSmoke = [], darkTendrils = [], crimsonTendrils = [], opened = false, targetOpen = 0, angle = 0;
   let button = null, lastTime = 0, ready = false, attachedScene = null;
   const GOLD = 0xc9a34a, DARK_GOLD = 0x62421b, EMERALD = 0x087c5b;
   const MAT = {};
@@ -51,7 +51,7 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod117';
+    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod118';
     const leather = material('leather', 0x171d18, .82, .18);
     const leatherEdge = material('leatherEdge', 0x30251a, .75, .35);
     const pagesMat = material('parchment', 0xc8b88a, .94, .04);
@@ -92,68 +92,82 @@
       const rib = new T.Mesh(new T.TorusGeometry(.055, .009, 4, 16, Math.PI), gold);
       rib.rotation.y = Math.PI / 2; rib.position.set(0, i * .19, .018); root.add(rib);
     }
-    // MOD 117: aura de sombra em camadas — anéis finos, névoa irregular e partículas orbitais.
-    // A fumaça usa alpha blending e tons neutros de carvão/cinza, sem brilho roxo ou branco.
-    const darkMat = new T.MeshBasicMaterial({
-      color: 0x292929, transparent: true, opacity: .28,
-      blending: T.NormalBlending, depthWrite: false, side: T.DoubleSide
-    });
-    const darkCoreMat = new T.MeshBasicMaterial({
-      color: 0x101010, transparent: true, opacity: .34,
-      blending: T.NormalBlending, depthWrite: false, side: T.DoubleSide
-    });
-    darkAura = new T.Mesh(new T.TorusGeometry(.55, .012, 5, 64), darkMat);
-    darkAura.name = 'Filamento externo da aura sombria';
-    darkAura.position.set(0, 0, .015);
-    darkAura.rotation.x = .22;
-    root.add(darkAura);
-    darkAuraCore = new T.Mesh(new T.TorusGeometry(.47, .007, 4, 56), darkCoreMat);
-    darkAuraCore.name = 'Filamento interno de sombra';
-    darkAuraCore.position.set(0, 0, .02);
-    darkAuraCore.rotation.set(-.18, .32, 0);
-    root.add(darkAuraCore);
-    // Nuvens elípticas sobrepostas dão volume à fumaça, em vez de simples bolinhas ou aros grossos.
-    const smokeColors = [0x171717, 0x292929, 0x3a3a3a, 0x202020, 0x484848];
-    for (let i = 0; i < 18; i++) {
-      const tone = smokeColors[i % smokeColors.length];
+    // MOD 118: magia proibida — fumaça negra, filamentos orgânicos e veias escarlates.
+    // Sem círculos mágicos: a energia parece escapar das páginas e enrolar-se no ar.
+    const smokeColors = [0x080808, 0x111111, 0x1b1b1b, 0x242424, 0x321b1b];
+    for (let i = 0; i < 22; i++) {
       const smokeMat = new T.MeshBasicMaterial({
-        color: tone, transparent: true,
-        opacity: .11 + (i % 4) * .025,
-        blending: T.NormalBlending, depthWrite: false,
-        side: T.DoubleSide
+        color: smokeColors[i % smokeColors.length], transparent: true,
+        opacity: .13 + (i % 4) * .025, blending: T.NormalBlending,
+        depthWrite: false, side: T.DoubleSide
       });
-      const cloud = new T.Mesh(new T.SphereGeometry(1, 9, 7), smokeMat);
-      const size = .075 + (i % 5) * .012;
-      cloud.scale.set(size * 1.45, size * (1.7 + (i % 3) * .25), .018 + (i % 3) * .006);
+      const cloud = new T.Mesh(new T.SphereGeometry(1, 10, 8), smokeMat);
+      const size = .065 + (i % 6) * .012;
+      cloud.scale.set(size * 1.5, size * (1.8 + (i % 3) * .3), .025 + (i % 3) * .008);
       cloud.userData = {
-        phase: i * Math.PI * 2 / 18,
-        radius: .43 + (i % 5) * .035,
-        height: -.29 + (i % 7) * .095,
-        speed: .34 + (i % 4) * .11,
-        drift: .025 + (i % 3) * .012,
-        baseScale: size
+        phase: i * Math.PI * 2 / 22, radius: .35 + (i % 6) * .045,
+        height: -.22 + (i % 9) * .07, speed: .42 + (i % 5) * .13,
+        drift: .035 + (i % 4) * .012, baseScale: size
       };
-      cloud.name = 'Nuvem de fumaça sombria ' + i;
-      root.add(cloud);
-      darkSmoke.push(cloud);
+      cloud.name = 'Véu de energia negra ' + i;
+      root.add(cloud); darkSmoke.push(cloud);
     }
-    // Pontos escuros muito discretos quebram a silhueta e dão movimento à aura.
-    const sparkColors = [0x202020, 0x383838, 0x111111];
-    for (let i = 0; i < 10; i++) {
+    // Tentáculos de sombra: curvas afiladas e irregulares, sem geometria circular.
+    for (let i = 0; i < 7; i++) {
+      const phase = i * Math.PI * 2 / 7;
+      const points = [];
+      for (let j = 0; j < 7; j++) {
+        const t = j / 6;
+        const radius = .12 + t * (.37 + (i % 3) * .045);
+        points.push(new T.Vector3(
+          Math.cos(phase + t * (1.3 + (i % 3) * .25)) * radius,
+          -.16 + t * (.38 + (i % 4) * .035) + Math.sin(phase + t * 4) * .065,
+          .04 + Math.sin(phase + t * 3.1) * (.035 + t * .09)
+        ));
+      }
+      const curve = new T.CatmullRomCurve3(points);
+      const mesh = new T.Mesh(new T.TubeGeometry(curve, 24, .009 + (i % 3) * .002, 5, false),
+        new T.MeshBasicMaterial({color: 0x080808, transparent:true, opacity:.84, depthWrite:false}));
+      mesh.name = 'Tentáculo de sombra ' + i;
+      mesh.userData = {phase, speed: .35 + (i % 4) * .12};
+      root.add(mesh); darkTendrils.push(mesh);
+    }
+    // Fissuras escarlates dentro da sombra: finas, irregulares e pulsantes, nunca um halo redondo.
+    for (let i = 0; i < 5; i++) {
+      const phase = i * Math.PI * 2 / 5 + .3;
+      const points = [];
+      for (let j = 0; j < 6; j++) {
+        const t = j / 5;
+        const radius = .13 + t * (.31 + (i % 2) * .06);
+        points.push(new T.Vector3(
+          Math.cos(phase + t * 1.6) * radius,
+          -.10 + t * (.26 + (i % 3) * .04) + Math.sin(phase + t * 5) * .04,
+          .14 + Math.sin(phase + t * 2.8) * .045
+        ));
+      }
+      const vein = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points), 20, .0045, 4, false),
+        new T.MeshBasicMaterial({color: i % 2 ? 0x7b0712 : 0xc01825, transparent:true, opacity:.62, depthWrite:false}));
+      vein.name = 'Fissura escarlate ' + i;
+      vein.userData = {phase, speed: .6 + (i % 3) * .15};
+      root.add(vein); crimsonTendrils.push(vein);
+    }
+    // Brasas vermelhas e lascas negras sobem em trajetórias tortas, como energia instável.
+    const sparkColors = [0x8f0714, 0xc51d2b, 0x31050a, 0x161616];
+    for (let i = 0; i < 18; i++) {
+      const red = i % 3 !== 0;
       const sparkMat = new T.MeshBasicMaterial({
         color: sparkColors[i % sparkColors.length], transparent: true,
-        opacity: .3, blending: T.NormalBlending, depthWrite: false
+        opacity: red ? .72 : .5, blending: red ? T.AdditiveBlending : T.NormalBlending,
+        depthWrite: false
       });
-      const spark = new T.Mesh(new T.SphereGeometry(.009 + (i % 3) * .003, 6, 5), sparkMat);
+      const spark = new T.Mesh(new T.SphereGeometry(.006 + (i % 4) * .0025, 6, 5), sparkMat);
       spark.userData = {
-        phase: i * Math.PI * 2 / 10,
-        radius: .44 + (i % 4) * .035,
-        height: -.34 + (i % 6) * .13,
-        speed: .48 + (i % 4) * .13
+        phase: i * Math.PI * 2 / 18, radius: .22 + (i % 7) * .045,
+        height: -.34 + (i % 9) * .085, speed: .55 + (i % 5) * .16,
+        rise: .08 + (i % 4) * .035
       };
-      spark.name = 'Fragmento de sombra ' + i;
-      root.add(spark);
-      darkSparks.push(spark);
+      spark.name = red ? 'Brasa escarlate ' + i : 'Fragmento de sombra ' + i;
+      root.add(spark); darkSparks.push(spark);
     }
     // Folhas articuladas 3D: espalham suavemente quando a capa abre.
     for (let i = 0; i < 4; i++) {
@@ -184,7 +198,7 @@
     attachedScene = api.scene;
     ready = true;
     window.ValerioGrimoire3D = {
-      version: 117,
+      version: 118,
       open: function(){ targetOpen = 1; opened = true; },
       close: function(){ targetOpen = 0; opened = false; },
       toggle: function(){ targetOpen = targetOpen > .5 ? 0 : 1; opened = targetOpen > .5; },
@@ -219,7 +233,7 @@
       root.visible = false; return;
     }
     root.visible = true;
-    // MOD 117: preserva a posição aprovada e usa uma inclinação discreta, próxima da orientação natural.
+    // MOD 118: preserva posição e inclinação discreta do grimório.
     // view.yaw usa outra convenção no renderer 2D; reutilizá-lo colocava o livro atrás do modelo.
     const p = view.position;
     const playerPos = Array.isArray(view.playerPosition) ? view.playerPosition : null;
@@ -247,37 +261,45 @@
       const pageOpen = Math.max(0, angle - page.offset);
       page.hinge.rotation.y = page.side < 0 ? -pageOpen * .28 : pageOpen * .28;
     });
-    // Fumaça deriva para cima enquanto gira em volta do grimório, com pulsação suave.
-    const pulse = .5 + .5 * Math.sin(now * .0017);
-    if (darkAura) {
-      darkAura.rotation.z = now * .00028;
-      darkAura.scale.set(1 + .025 * pulse, 1 + .045 * pulse, 1);
-      darkAura.material.opacity = .19 + .08 * pulse;
-    }
-    if (darkAuraCore) {
-      darkAuraCore.rotation.z = -now * .00036;
-      darkAuraCore.scale.set(1 + .035 * (1 - pulse), 1 + .025 * pulse, 1);
-      darkAuraCore.material.opacity = .24 + .09 * pulse;
-    }
+    // A fumaça se enrola e sobe; as fissuras vermelhas pulsam dentro dos tentáculos negros.
     darkSmoke.forEach((cloud) => {
       const u = cloud.userData;
       const t = now * .001 * u.speed + u.phase;
-      const rise = ((now * .00011 * u.speed + u.phase / (Math.PI * 2)) % 1);
+      const rise = ((now * .00014 * u.speed + u.phase / (Math.PI * 2)) % 1);
       cloud.position.set(
-        Math.cos(t) * u.radius + Math.sin(t * .65) * u.drift,
-        u.height + rise * .13 + Math.sin(t * .7) * .025,
-        .035 + Math.sin(t * 1.3) * .11
+        Math.cos(t) * u.radius + Math.sin(t * .73) * u.drift,
+        u.height + rise * .18 + Math.sin(t * .8) * .035,
+        .02 + Math.sin(t * 1.2) * .13
       );
-      cloud.rotation.z = t * .38;
-      const swell = .88 + .18 * Math.sin(t * 1.35);
-      cloud.scale.set(u.baseScale * 1.45 * swell, u.baseScale * (1.7 + (Math.sin(t) + 1) * .2), .02 + (Math.sin(t * .9) + 1) * .006);
-      cloud.material.opacity = .09 + (.07 * (.5 + .5 * Math.sin(t * 1.6)));
+      cloud.rotation.z = t * .48;
+      const swell = .8 + .28 * Math.sin(t * 1.4);
+      cloud.scale.set(u.baseScale * 1.5 * swell, u.baseScale * (1.8 + (Math.sin(t) + 1) * .25), .025 + (Math.sin(t * .9) + 1) * .008);
+      cloud.material.opacity = .1 + .09 * (.5 + .5 * Math.sin(t * 1.7));
+    });
+    darkTendrils.forEach((mesh) => {
+      const u = mesh.userData;
+      mesh.rotation.z = Math.sin(now * .0007 * u.speed + u.phase) * .16;
+      mesh.rotation.y = Math.sin(now * .00055 * u.speed + u.phase) * .22;
+      mesh.material.opacity = .64 + .2 * (.5 + .5 * Math.sin(now * .0012 * u.speed + u.phase));
+    });
+    crimsonTendrils.forEach((mesh) => {
+      const u = mesh.userData;
+      mesh.rotation.z = Math.sin(now * .001 * u.speed + u.phase) * .11;
+      mesh.rotation.y = Math.sin(now * .0008 * u.speed + u.phase) * .12;
+      mesh.material.opacity = .28 + .52 * (.5 + .5 * Math.sin(now * .002 * u.speed + u.phase));
     });
     darkSparks.forEach((spark) => {
       const u = spark.userData;
       const t = now * .001 * u.speed + u.phase;
-      spark.position.set(Math.cos(t) * u.radius, u.height + Math.sin(t * .72) * .055, .055 + Math.sin(t) * .13);
-      spark.material.opacity = .18 + .2 * (.5 + .5 * Math.sin(t * 1.8));
+      const rise = ((now * .00028 * u.speed + u.phase / (Math.PI * 2)) % 1);
+      spark.position.set(
+        Math.cos(t) * u.radius + Math.sin(t * 1.7) * .035,
+        u.height + rise * u.rise + Math.sin(t * 1.9) * .045,
+        .12 + Math.sin(t * 1.3) * .13
+      );
+      const red = spark.name.indexOf('Brasa') === 0;
+      spark.material.opacity = red ? .35 + .55 * (.5 + .5 * Math.sin(t * 2.2)) : .2 + .36 * (.5 + .5 * Math.sin(t * 1.8));
+      spark.scale.setScalar(.72 + .55 * (.5 + .5 * Math.sin(t * 2.5)));
     });
     runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
     if (angle < .01 && targetOpen === 0) root.visible = false;
@@ -303,7 +325,7 @@
       }
       try { buildBook(); requestAnimationFrame(tick); }
       catch (err) {
-        console.error('MOD 117: falha ao montar o grimório 3D de Valério.', err);
+        console.error('MOD 118: falha ao montar o grimório 3D de Valério.', err);
         if (button) { button.disabled = true; button.textContent = 'GRIMÓRIO INDISPONÍVEL'; }
       }
     }
