@@ -61,7 +61,7 @@ function updateEnemyHud(){
 function tryPlayerAttack(){
  const now=performance.now();if(now<attackCooldown)return;attackCooldown=now+520;
  
- if(actions.attack){const attackAction=actions.attack;if(activeAction&&activeAction!==attackAction)activeAction.fadeOut(.07);attackAction.reset();attackAction.setLoop(THREE.LoopOnce,1);attackAction.clampWhenFinished=true;attackAction.fadeIn(.07).play();activeAction=attackAction;actionUntil=now+attackAction.getClip().duration*1000;}else{status.textContent='Este modelo não possui clipe de ataque reconhecido.';actionUntil=now;}
+ if(attackClips.length){const attackClip=attackClips[attackClipIndex++%attackClips.length];const attackAction=mixer.clipAction(attackClip);if(activeAction&&activeAction!==attackAction)activeAction.fadeOut(.07);attackAction.reset();attackAction.enabled=true;attackAction.setEffectiveWeight(1);attackAction.setLoop(THREE.LoopOnce,1);attackAction.clampWhenFinished=true;attackAction.fadeIn(.07).play();activeAction=attackAction;actionUntil=now+attackClip.duration*1000;}else{status.textContent='Não foi encontrado um clipe de ataque válido no Protagonista.glb.';actionUntil=now;}
  if(!enemyAlive){status.textContent='Inimigo derrotado!';return;}
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz);
@@ -91,7 +91,7 @@ new GLTFLoader().load('./AnjoGuia.glb?v=mod148-anjo-guia-glb',gltf=>{
  const bounds=new THREE.Box3().setFromObject(imported);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(size.y>0.001){
-  const scale=1.85/size.y;
+  const scale=1.28/size.y;
   imported.scale.setScalar(scale);
   imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
  }
@@ -142,9 +142,32 @@ document.getElementById('talk-button').addEventListener('click',talkToGuide);
 document.getElementById('dialog-continue').addEventListener('click',advanceDialogue);
 updateQuestHud();
 
-let model=null,mixer=null,actions={},activeAction=null,walkName='';
+let model=null,mixer=null,actions={},activeAction=null,walkName='',attackClips=[],attackClipIndex=0;
 const clock=new THREE.Clock();
 function chooseClip(clips,regex){return clips.find(c=>regex.test(c.name));}
+function clipKey(clip){return String(clip&&clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function validAttackClip(clip){
+ const n=clipKey(clip);
+ if(!n)return false;
+ const bad=/hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh|getup|standup|rise|recoverfloor|levant|levantar/;
+ const good=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand/;
+ return good.test(n)&&!bad.test(n);
+}
+function selectDimensionAttack(clips){
+ let saved={};try{saved=JSON.parse(localStorage.getItem('protagonistaAnimationRolesV3')||'{}')||{};}catch(e){}
+ const validMapped=[];
+ ['attack1','attack2'].forEach(role=>{
+  const raw=saved[role]===undefined&&role==='attack1'?saved.attack:saved[role];
+  const index=Number(raw);
+  if(Number.isInteger(index)&&index>=0&&index<clips.length&&validAttackClip(clips[index])&&!validMapped.includes(clips[index]))validMapped.push(clips[index]);
+ });
+ if(validMapped.length)return validMapped;
+ // Mesmo mapeamento determinístico usado na dimensão do Valério.
+ const dimensionAttack=clips.find(c=>clipKey(c)==='overhandthrow');
+ if(dimensionAttack)return [dimensionAttack];
+ // Nunca tratar Hit Knockback, queda ou morte como ataque.
+ return clips.filter(validAttackClip);
+}
 function play(name,fade=.18){const next=actions[name];if(!next||next===activeAction)return;if(activeAction)activeAction.fadeOut(fade);next.reset().fadeIn(fade).play();activeAction=next;}
 function fitModel(root){
  // O GLB original do protagonista já foi validado perto de 1,9 m. Não recalcular escala pela caixa de ossos animados: isso já causou modelos gigantes em rigs anteriores.
@@ -183,8 +206,8 @@ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
  model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;}}});
  fitModel(model);player.add(model);
  loadPlayerSword(model);
- if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);const attack=chooseClip(clips,/hit.?knockback|ataque.?1/i)||chooseClip(clips,/sword.*(light|heavy|aerial).*combo|attack|swing|slash|strike|golpe|ataque/i);const jump=chooseClip(clips,/jump|saltar|salto/i);
- if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attack)actions.attack=mixer.clipAction(attack);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'attack',0);}
+ if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);attackClips=selectDimensionAttack(clips);attackClipIndex=0;const jump=chooseClip(clips,/jump|saltar|salto/i);
+ if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'idle',0);}
  player.userData.ready=true;loading.classList.add('hidden');status.textContent='Missão 1 · encontre o Anjo-Guia e fale com ele';
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
