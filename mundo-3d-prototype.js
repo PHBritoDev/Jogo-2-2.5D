@@ -179,7 +179,7 @@ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
  loadPlayerSword(model);
  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);const attack=chooseClip(clips,/attack|sword|golpe|ataque/i);const jump=chooseClip(clips,/jump|saltar|salto/i);
  if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attack)actions.attack=mixer.clipAction(attack);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'attack',0);}
- player.userData.ready=true;loading.classList.add('hidden');status.textContent='Inimigo à frente · aproxime-se e use GOLPE';
+ player.userData.ready=true;loading.classList.add('hidden');status.textContent='Missão 1 · encontre Aurélio e fale com ele';
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -219,7 +219,6 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(!enemyAlive){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
  updateEnemyHud();
  if(enemyAlive)enemy.rotation.y=Math.atan2(camera.position.x-enemy.position.x,camera.position.z-enemy.position.z);
- if(swordHand&&swordMount){player.updateMatrixWorld(true);updateSwordMount();}
  aurelio.position.y=.018+Math.sin(now*.0022)*.025;
  const npcDistance=Math.hypot(aurelio.position.x-player.position.x,aurelio.position.z-player.position.z);
  const talkButton=document.getElementById('talk-button');
@@ -233,6 +232,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(dialogueOpen){play('idle',.08);}
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
+if(dialogueOpen){axisX=0;axisZ=0;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
 // Mesmo princípio da dimensão do Valério: o joystick é relativo à orientação da câmera,
 // com zona morta analógica e aceleração/desaceleração suaves, em vez de deslocar o modelo instantaneamente.
@@ -298,6 +298,7 @@ if(firstPerson){
  camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(target);
 }
 const t=clock.elapsedTime;treeGroup.children.forEach((tree,i)=>{tree.rotation.z=Math.sin(t*.7+i*.9)*.012;});grassGroup.children.forEach((blade,i)=>{blade.rotation.z=Math.sin(t*1.4+i*.31)*.12;});
+if(swordHand&&swordMount){player.updateMatrixWorld(true);updateSwordMount();}
 renderer.render(scene,camera);}
 animate();
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);}
