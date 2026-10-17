@@ -48,11 +48,12 @@ function build(){
  for(let i=0;i<24;i++){const frag=new T.Mesh(new T.DodecahedronGeometry(.10+(i%4)*.045,0),i%3?black:blackRed);frag.position.set((i-12)*.9,.12+(i%4)*.13,-3-(i%6)*2.1);eclipse.add(frag);debris.push({mesh:frag,phase:i*.17,base:frag.position.clone()});}
  group.userData.eclipse=eclipse;group.visible=false;ready=true;
 }
-function hide(){if(group)group.visible=false;if(overlay)overlay.style.opacity='0';window.CelestialEclipseLock=false;window.CelestialUltimateCamera={active:false};activeId='';startAt=0;}
+function hide(){if(group)group.visible=false;if(overlay)overlay.style.opacity='0';if(window.CelestialUltimateCamera&&window.CelestialUltimateCamera.owner==='bishop-eclipse'){window.CelestialEclipseLock=false;window.CelestialUltimateCamera={active:false,owner:'bishop-eclipse'};}activeId='';startAt=0;}
 function tick(now){
  requestAnimationFrame(tick);const dt=last?Math.min(.05,(now-last)/1000):0;last=now;
  api=window.ValerioThreeAPI||api;if(!ready&&api){try{build();}catch(e){return;}}
  const view=window.ValerioModelView;
+ if(window.CelestialUltimateActive){if(group)group.visible=false;if(overlay)overlay.style.opacity='0';if(activeId)startAt+=dt*1000;return;}
  if(!ready||!view||!view.active||!['blackSwordRain','abyssEclipse'].includes(view.attackId)||!['windup','attack','recover'].includes(view.combatState)){hide();return;}
  const id=view.attackId,state=view.combatState;if(state==='recover'){hide();return;}
  const target=Array.isArray(view.skillTargetPosition)?view.skillTargetPosition:(Array.isArray(view.playerPosition)?view.playerPosition:[0,0,0]),boss=Array.isArray(view.position)?view.position:target;
@@ -61,7 +62,7 @@ function tick(now){
  if(id!==activeId){activeId=id;startAt=now;if(id==='abyssEclipse'){window.CelestialEclipseLock=true;cameraStartEye=Array.isArray(view.eye)?view.eye.slice():[0,2.2,9];cameraStartTarget=Array.isArray(view.target)?view.target.slice():[0,1.6,0];cameraStartFov=Number(view.fov)||1.02;}if(id==='blackSwordRain'){swordAimX=ux;swordAimZ=uz;}const book=window.BishopGrimoire3D||window.ValerioGrimoire3D;if(book&&book.ready&&typeof book.invoke==='function')book.invoke(((Number(view.windupDuration)||1.5)+(Number(view.attackDuration)||1)+1.2)*1000);}
  reaper.visible=false;lane.visible=id==='blackSwordRain';swords.forEach(s=>s.mesh.visible=id==='blackSwordRain');group.userData.eclipse.visible=id==='abyssEclipse';
  if(id==='blackReaper'){const progress=state==='windup'?0:clamp((Number(view.stateTime)||0)/Math.max(.1,Number(view.hitAt)||.62),0,1);reaper.position.set(ux*(1+(len-1)*progress),0,uz*(1+(len-1)*progress));reaper.rotation.y=Math.atan2(ux,uz);const swing=state==='attack'?clamp(((Number(view.stateTime)||0)-.25)/.55,0,1):0;arm.rotation.z=state==='windup'?.12:-.18-swing*1.08;scythe.rotation.z=-.18+swing*1.7;}
- else if(id==='blackSwordRain'){const desiredLen=Math.max(.01,len),blendAim=state==='attack'?.055:.018;swordAimX+=(ux-swordAimX)*blendAim;swordAimZ+=(uz-swordAimZ)*blendAim;const aimLen=Math.max(.001,Math.hypot(swordAimX,swordAimZ));const ax=swordAimX/aimLen,az=swordAimZ/aimLen,apx=-az,apz=ax;lane.material.opacity=state==='windup'?.16:.012;lane.position.set(ax*desiredLen*.5,.045,az*desiredLen*.5);lane.rotation.set(-Math.PI/2,0,-Math.atan2(az,ax));lane.scale.set(1.8,Math.max(1,desiredLen),1);const progress=state==='attack'?clamp((Number(view.stateTime)||0)/Math.max(.1,Number(view.hitAt)||.72),0,1):0;swords.forEach(s=>{const startD=.8+s.start*.24,travelD=Math.max(0,desiredLen-startD)*progress,spread=s.lane*(.48+progress*.12);s.mesh.position.set(ax*(startD+travelD)+apx*spread,s.baseY+.025*Math.sin(now*.009+s.phase),az*(startD+travelD)+apz*spread);s.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),new T.Vector3(ax,.06,az).normalize());s.mesh.visible=state!=='attack'||progress<.995;s.mesh.scale.setScalar(1+.018*Math.sin(now*.012+s.phase));});}
+ else if(id==='blackSwordRain'){const desiredLen=Math.max(.01,len),blendAim=state==='attack'?.055:.018;swordAimX+=(ux-swordAimX)*blendAim;swordAimZ+=(uz-swordAimZ)*blendAim;const aimLen=Math.max(.001,Math.hypot(swordAimX,swordAimZ));const ax=swordAimX/aimLen,az=swordAimZ/aimLen,apx=-az,apz=ax;lane.material.opacity=state==='windup'?.16:.012;lane.position.set(ax*desiredLen*.5,.045,az*desiredLen*.5);lane.rotation.set(-Math.PI/2,0,-Math.atan2(az,ax));lane.scale.set(1.8,Math.max(1,desiredLen),1);const progress=state==='attack'?clamp((Number(view.stateTime)||0)/Math.max(.1,Number(view.hitAt)||.72),0,1):0;swords.forEach(s=>{const startD=.8+s.start*.24,travelD=Math.max(0,desiredLen-startD)*progress,spread=s.lane*(.48+progress*.12);s.mesh.position.set(ax*(startD+travelD)+apx*spread,s.baseY+.025*Math.sin(now*.009+s.phase),az*(startD+travelD)+apz*spread);s.mesh.rotation.set(state==='attack'?-0.07:0.025*Math.sin(now*.003+s.phase),0,s.lane*.025);s.mesh.visible=state!=='attack'||progress<.995;s.mesh.scale.setScalar(1+.018*Math.sin(now*.012+s.phase));});}
  else{
   const elapsed=Math.max(0,(now-startAt)/1000),charge=clamp(elapsed/2.5,0,1),grow=clamp((elapsed-2.4)/3.8,0,1),launch=clamp((elapsed-7.05)/1.25,0,1);
   // MOD 128: lua em disco frontal; vegetação some antes do lançamento, sem flutuar após a sucção.
@@ -76,7 +77,7 @@ function tick(now){
     const blend=smoothRise*(1-smoothReturn);
     const eye=normalEye.map((v,i)=>v+(skyEye[i]-v)*blend);
     const targetCam=normalTarget.map((v,i)=>v+(skyTarget[i]-v)*blend);
-    window.CelestialUltimateCamera={active:elapsed<7.05,eye:eye,target:targetCam,fov:(Number(cameraStartFov)||1.02)+.25*blend};
+    window.CelestialUltimateCamera={active:elapsed<7.05,owner:'bishop-eclipse',eye:eye,target:targetCam,fov:(Number(cameraStartFov)||1.02)+.25*blend};
     window.CelestialEclipseLock=elapsed<7.05;
   }
   if(!overlay){overlay=document.createElement('div');overlay.setAttribute('aria-hidden','true');overlay.style.cssText='position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .18s linear;background:radial-gradient(ellipse at 50% 14%,rgba(180,0,24,.18),rgba(65,0,12,.14) 42%,rgba(3,0,8,.34) 100%);mix-blend-mode:multiply;';document.body.appendChild(overlay);}
