@@ -168,6 +168,9 @@
       spark.name = red ? 'Brasa escarlate ' + i : 'Fragmento de sombra ' + i;
       root.add(spark); darkSparks.push(spark);
     }
+    // MOD 126: lâminas grandes e pontiagudas substituem a aura discreta anterior.
+    for(let i=0;i<12;i++){const a=i*Math.PI*2/12,shard=new T.Mesh(new T.ConeGeometry(.09+(i%3)*.025,.58+(i%4)*.12,3),new T.MeshBasicMaterial({color:i%3===0?0x020104:0x260008,transparent:true,opacity:.96,depthWrite:false}));shard.position.set(Math.cos(a)*.67,Math.sin(a)*.49,.16);shard.rotation.z=-a+Math.PI/2;shard.userData={phase:a,baseX:shard.position.x,baseY:shard.position.y};root.add(shard);auraShards.push(shard);}
+    for(let i=0;i<7;i++){const a=i*Math.PI*2/7,slash=new T.Mesh(new T.BoxGeometry(.045,.98+(i%3)*.18,.025),new T.MeshBasicMaterial({color:i%2?0xff001b:0x8b0018,transparent:true,opacity:.9,blending:T.AdditiveBlending,depthWrite:false}));slash.position.set(Math.cos(a)*.78,Math.sin(a)*.65,.21);slash.rotation.z=-a+.35;slash.userData={phase:a,baseRotation:slash.rotation.z};root.add(slash);auraSlashes.push(slash);}
     // Folhas articuladas 3D: espalham suavemente quando a capa abre.
     for (let i = 0; i < 4; i++) {
       const spread = (i - 1.5) * .012;
@@ -294,7 +297,9 @@
     });
     auraShards.forEach((s)=>{const u=s.userData,t=now*.002+u.phase;s.position.set(u.baseX+Math.sin(t)*.08,u.baseY+Math.cos(t*1.2)*.09,.16+Math.sin(t*1.4)*.035);s.rotation.z=-u.phase+Math.PI/2+Math.sin(t)*.24;s.scale.setScalar(.82+.22*(.5+.5*Math.sin(t*1.7)));});
      auraSlashes.forEach((s)=>{const u=s.userData,t=now*.0018+u.phase;s.rotation.z=u.baseRotation+Math.sin(t)*.28;s.material.opacity=.55+.4*(.5+.5*Math.sin(t*2));s.scale.y=.82+.45*(.5+.5*Math.sin(t*1.3));});
-     runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
+     auraShards.forEach((s)=>{const u=s.userData,t=now*.002+u.phase;s.position.set(u.baseX+Math.sin(t)*.08,u.baseY+Math.cos(t*1.2)*.09,.16+Math.sin(t*1.4)*.035);s.rotation.z=-u.phase+Math.PI/2+Math.sin(t)*.24;s.scale.setScalar(.82+.22*(.5+.5*Math.sin(t*1.7)));});
+    auraSlashes.forEach((s)=>{const u=s.userData,t=now*.0018+u.phase;s.rotation.z=u.baseRotation+Math.sin(t)*.28;s.material.opacity=.55+.4*(.5+.5*Math.sin(t*2));s.scale.y=.82+.45*(.5+.5*Math.sin(t*1.3));});
+    runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
     if (angle < .01 && targetOpen === 0) root.visible = false;
   }
   function init() {
