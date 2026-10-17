@@ -1,4 +1,4 @@
-/* MOD 126 — grimório com aura escarlate muito maior e visível durante a conjuração.
+/* MOD 127 — grimório com aura discreta, pequena e controlada.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -51,7 +51,7 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod126';
+    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod127';
     const leather = material('leather', 0x08050b, .48, .42, 0x430010, .42);
     const leatherEdge = material('leatherEdge', 0x250711, .38, .62, 0x8b0022, .58);
     const pagesMat = material('parchment', 0x100309, .9, .04, 0x31000b, .18);
@@ -62,7 +62,7 @@
     // Miolo real, com espessura e várias folhas finas.
     box(root, 'Lombada reforçada', [.12, h + .045, thick + .025], [0, 0, 0], leatherEdge);
     box(root, 'Bloco de páginas', [w - .10, h - .045, thick * .62], [0, 0, .006], pagesMat);
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 4; i++) {
       const z = -.027 + i * .009;
       box(root, 'Borda de páginas ' + i, [w - .13, h - .075, .003], [0, 0, z], i % 2 ? pagesMat : pageShadow);
     }
@@ -94,7 +94,7 @@
     // MOD 118: magia proibida — fumaça negra, filamentos orgânicos e veias escarlates.
     // Sem círculos mágicos: a energia parece escapar das páginas e enrolar-se no ar.
     const smokeColors = [0x010103, 0x050006, 0x100007, 0x240008, 0x3a000b];
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 10; i++) {
       const smokeMat = new T.MeshBasicMaterial({
         color: smokeColors[i % smokeColors.length], transparent: true,
         opacity: .20 + (i % 4) * .035, blending: T.NormalBlending,
@@ -104,7 +104,7 @@
       const size = .065 + (i % 6) * .012;
       cloud.scale.set(size * 1.5, size * (1.8 + (i % 3) * .3), .025 + (i % 3) * .008);
       cloud.userData = {
-        phase: i * Math.PI * 2 / 22, radius: .35 + (i % 6) * .045,
+        phase: i * Math.PI * 2 / 10, radius: .35 + (i % 6) * .045,
         height: -.22 + (i % 9) * .07, speed: .42 + (i % 5) * .13,
         drift: .035 + (i % 4) * .012, baseScale: size
       };
@@ -132,8 +132,8 @@
       root.add(mesh); darkTendrils.push(mesh);
     }
     // Fissuras escarlates dentro da sombra: finas, irregulares e pulsantes, nunca um halo redondo.
-    for (let i = 0; i < 5; i++) {
-      const phase = i * Math.PI * 2 / 5 + .3;
+    for (let i = 0; i < 3; i++) {
+      const phase = i * Math.PI * 2 / 3 + .3;
       const points = [];
       for (let j = 0; j < 6; j++) {
         const t = j / 5;
@@ -152,7 +152,7 @@
     }
     // Brasas vermelhas e lascas negras sobem em trajetórias tortas, como energia instável.
     const sparkColors = [0x8f0714, 0xc51d2b, 0x31050a, 0x161616];
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 8; i++) {
       const red = i % 3 !== 0;
       const sparkMat = new T.MeshBasicMaterial({
         color: sparkColors[i % sparkColors.length], transparent: true,
@@ -161,7 +161,7 @@
       });
       const spark = new T.Mesh(new T.SphereGeometry(.006 + (i % 4) * .0025, 6, 5), sparkMat);
       spark.userData = {
-        phase: i * Math.PI * 2 / 18, radius: .22 + (i % 7) * .045,
+        phase: i * Math.PI * 2 / 8, radius: .22 + (i % 7) * .045,
         height: -.34 + (i % 9) * .085, speed: .55 + (i % 5) * .16,
         rise: .08 + (i % 4) * .035
       };
@@ -169,8 +169,8 @@
       root.add(spark); darkSparks.push(spark);
     }
     // MOD 126: lâminas grandes e pontiagudas substituem a aura discreta anterior.
-    for(let i=0;i<16;i++){const a=i*Math.PI*2/16,shard=new T.Mesh(new T.ConeGeometry(.13+(i%3)*.035,1.0+(i%4)*.22,3),new T.MeshBasicMaterial({color:i%3===0?0x020104:0x3d000b,transparent:true,opacity:.98,depthWrite:false,depthTest:false}));shard.position.set(Math.cos(a)*1.02,Math.sin(a)*.78,.48);shard.rotation.z=-a+Math.PI/2;shard.userData={phase:a,baseX:shard.position.x,baseY:shard.position.y};root.add(shard);auraShards.push(shard);}
-    for(let i=0;i<10;i++){const a=i*Math.PI*2/10,slash=new T.Mesh(new T.BoxGeometry(.075,1.42+(i%3)*.24,.045),new T.MeshBasicMaterial({color:i%2?0xff001b:0x8b0018,transparent:true,opacity:.98,blending:T.AdditiveBlending,depthWrite:false,depthTest:false}));slash.position.set(Math.cos(a)*1.16,Math.sin(a)*.84,.54);slash.rotation.z=-a+.35;slash.userData={phase:a,baseRotation:slash.rotation.z};root.add(slash);auraSlashes.push(slash);}
+    for(let i=0;i<8;i++){const a=i*Math.PI*2/8,shard=new T.Mesh(new T.ConeGeometry(.065+(i%3)*.018,.34+(i%4)*.08,3),new T.MeshBasicMaterial({color:i%3===0?0x020104:0x3d000b,transparent:true,opacity:.98,depthWrite:false}));shard.position.set(Math.cos(a)*.66,Math.sin(a)*.48,.18);shard.rotation.z=-a+Math.PI/2;shard.userData={phase:a,baseX:shard.position.x,baseY:shard.position.y};root.add(shard);auraShards.push(shard);}
+    for(let i=0;i<5;i++){const a=i*Math.PI*2/5,slash=new T.Mesh(new T.BoxGeometry(.035,.58+(i%3)*.12,.025),new T.MeshBasicMaterial({color:i%2?0xff001b:0x8b0018,transparent:true,opacity:.98,blending:T.AdditiveBlending,depthWrite:false}));slash.position.set(Math.cos(a)*.72,Math.sin(a)*.52,.23);slash.rotation.z=-a+.35;slash.userData={phase:a,baseRotation:slash.rotation.z};root.add(slash);auraSlashes.push(slash);}
     // Folhas articuladas 3D: espalham suavemente quando a capa abre.
     for (let i = 0; i < 4; i++) {
       const spread = (i - 1.5) * .012;
@@ -194,13 +194,13 @@
       const page = box(root, 'Marcador de página ' + i, [.014, .13, .012], [.29 + i * .025, -.28, .065], i % 2 ? green : gold);
       pages.push(page);
     }
-    root.scale.setScalar(1.24);
+    root.scale.setScalar(1.0);
     root.visible = false;
     api.scene.add(root);
     attachedScene = api.scene;
     ready = true;
     window.BishopGrimoire3D = {
-      version: 126,
+      version: 127,
       invoke: function(duration){
         if (!ready || !root) return false;
         targetOpen = 1; opened = true; root.visible = true;
