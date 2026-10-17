@@ -75,7 +75,7 @@
       spikes.push({ mesh: group, x: o[0], z: o[1], phase: i * .36 });
     });
     reaperGroup=new T.Group();root.add(reaperGroup);
-    reaperWarning=new T.Mesh(new T.RingGeometry(.72,1.28,48),warningMat.clone());reaperWarning.rotation.x=-Math.PI/2;reaperWarning.position.y=.045;root.add(reaperWarning);
+    reaperWarning=new T.Mesh(new T.RingGeometry(.72,1.28,48),warningMat.clone());reaperWarning.rotation.x=-Math.PI/2;reaperWarning.position.y=.045;root.add(reaperWarning);reaperWarning.visible=false;
     const robe=new T.Mesh(new T.ConeGeometry(.43,1.55,7),black);robe.position.y=1.02;reaperGroup.add(robe);
     const hood=new T.Mesh(new T.SphereGeometry(.29,9,8),black2);hood.position.set(0,1.83,.02);hood.scale.set(.88,1.05,.78);reaperGroup.add(hood);
     const face=new T.Mesh(new T.SphereGeometry(.17,8,7),new T.MeshBasicMaterial({color:0x020204}));face.position.set(0,1.83,.19);reaperGroup.add(face);
@@ -120,6 +120,7 @@
       (Array.isArray(view.playerPosition) ? view.playerPosition : [0, 0, 0]);
     root.position.set(target[0], target[1] || 0, target[2]);
     root.visible = true;
+    reaperWarning.visible = id === 'blackReaper';
     const windup = Math.max(.1, Number(view.windupDuration) || (id === 'abyssHands' ? 1.18 : 1.38));
     const duration = Math.max(.1, Number(view.attackDuration) || (id === 'abyssHands' ? .72 : .62));
     const t = Number(view.stateTime) || 0;
