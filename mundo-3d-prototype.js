@@ -60,7 +60,7 @@ function updateEnemyHud(){
 }
 function tryPlayerAttack(){
  const now=performance.now();if(now<attackCooldown)return;attackCooldown=now+520;
- swordSwingStart=now;swordSwingUntil=now+460;
+ 
  if(actions.attack){const attackAction=actions.attack;if(activeAction&&activeAction!==attackAction)activeAction.fadeOut(.07);attackAction.reset();attackAction.setLoop(THREE.LoopOnce,1);attackAction.clampWhenFinished=true;attackAction.fadeIn(.07).play();activeAction=attackAction;actionUntil=now+attackAction.getClip().duration*1000;}else{status.textContent='Este modelo não possui clipe de ataque reconhecido.';actionUntil=now;}
  if(!enemyAlive){status.textContent='Inimigo derrotado!';return;}
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
