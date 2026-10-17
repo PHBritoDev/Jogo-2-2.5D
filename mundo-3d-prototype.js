@@ -166,7 +166,13 @@ function findSwordHand(root){
  const rightHand=/(right.*(hand|wrist)|(hand|wrist).*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|(hand|wrist)[_. -]?r$|mixamorig:rightHand)/i;
  return bones.find(b=>rightHand.test(b.name||''))||null;
 }
-let swordRoot=null,swordHand=null,swordMount=null,swordPivot=null;
+function findSwordArmBones(root){
+ const bones=[];root.traverse(o=>{if(o.isBone)bones.push(o);});
+ const specs=[{role:'upper',re:/right.*(arm|shoulder)|mixamorig:rightarm/i},{role:'fore',re:/right.*forearm|forearm.*right|mixamorig:rightforearm/i},{role:'hand',re:/right.*hand|hand.*right|mixamorig:righthand/i}];
+ swordArmBones=specs.map(s=>({role:s.role,bone:bones.find(b=>s.re.test(b.name||'')),base:null})).filter(x=>x.bone);
+ swordArmBones.forEach(x=>x.base=x.bone.quaternion.clone());
+}
+let swordRoot=null,swordHand=null,swordMount=null,swordPivot=null,swordArmBones=[];
 const swordWorldPosition=new THREE.Vector3(),swordWorldQuaternion=new THREE.Quaternion();
 function updateSwordMount(){
  if(!swordHand||!swordMount)return;
@@ -178,14 +184,15 @@ function loadPlayerSword(modelRoot){
  loader.load('./EspadaProta.glb?v=espada-prota-hand-mount-mod33-tex1',gltf=>{
   swordRoot=gltf.scene;swordRoot.name='EspadaProta_Runtime';
   swordRoot.traverse(o=>{if(o.isMesh){o.visible=true;o.castShadow=true;o.receiveShadow=false;o.frustumCulled=false;}});
-  swordHand=findSwordHand(modelRoot);
+  swordHand=findSwordHand(modelRoot);findSwordArmBones(modelRoot);
   swordRoot.scale.setScalar(.62);swordRoot.rotation.set(0,0,Math.PI);swordRoot.position.set(0,.465,0);
   if(swordHand){
    swordMount=new THREE.Group();swordMount.name='EspadaProta_HandMount';scene.add(swordMount);
    swordMount.add(swordPivot=new THREE.Group());swordPivot.name='EspadaProta_AttackPivot';swordPivot.add(swordRoot);updateSwordMount();
   }else{
-   // Segurança: se o rig usar um nome de mão diferente, mantém a espada junto do protagonista.
-   swordRoot.position.set(.28,.85,.12);player.add(swordRoot);
+   // Fallback visível e animável caso o rig não exponha um osso de mão direita reconhecível.
+   swordPivot=new THREE.Group();swordPivot.name='EspadaProta_FallbackAttackPivot';swordPivot.position.set(.28,.85,.12);player.add(swordPivot);
+   swordRoot.position.set(0,0,0);swordPivot.add(swordRoot);
   }
  },undefined,err=>{console.warn('EspadaProta.glb não carregou:',err);});
 }
@@ -314,6 +321,7 @@ if(firstPerson){
  camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(target);
 }
 const t=clock.elapsedTime;treeGroup.children.forEach((tree,i)=>{tree.rotation.z=Math.sin(t*.7+i*.9)*.012;});grassGroup.children.forEach((blade,i)=>{blade.rotation.z=Math.sin(t*1.4+i*.31)*.12;});
+if(swordSwingUntil>now){const p=THREE.MathUtils.clamp((now-swordSwingStart)/460,0,1),arc=Math.sin(p*Math.PI);for(const entry of swordArmBones){const q=new THREE.Quaternion();if(entry.role==='upper')q.setFromEuler(new THREE.Euler(-.18-arc*.62,0,-arc*.92));else if(entry.role==='fore')q.setFromEuler(new THREE.Euler(.05,0,-arc*.8));else q.setFromEuler(new THREE.Euler(-arc*.25,0,arc*.2));entry.bone.quaternion.copy(entry.base).multiply(q);}}else{for(const entry of swordArmBones)entry.bone.quaternion.copy(entry.base);}
 if(swordHand&&swordMount){player.updateMatrixWorld(true);updateSwordMount();}
 if(swordPivot){if(now<swordSwingUntil){const p=THREE.MathUtils.clamp((now-swordSwingStart)/460,0,1);const arc=Math.sin(p*Math.PI);swordPivot.rotation.set(-.35-arc*.65,Math.sin(p*Math.PI*2)*.45,-.25-arc*1.7);swordPivot.position.set(0,0,0);}else{swordPivot.rotation.x=THREE.MathUtils.damp(swordPivot.rotation.x,0,18,dt);swordPivot.rotation.y=THREE.MathUtils.damp(swordPivot.rotation.y,0,18,dt);swordPivot.rotation.z=THREE.MathUtils.damp(swordPivot.rotation.z,0,18,dt);}}
 renderer.render(scene,camera);}
