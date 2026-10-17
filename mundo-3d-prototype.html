@@ -7,7 +7,7 @@
 <title>Seven Sins — Protótipo Mundo 3D</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101b1c;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}
-#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}#look-area{position:fixed;inset:0 0 145px 145px;z-index:0;touch-action:none}#top,#hint,#marker,#back,#stick,#actions{z-index:2}#top,#hint,#marker{pointer-events:none}#back,#stick,#actions{pointer-events:auto}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}#look-area{position:fixed;inset:0;z-index:0;touch-action:none}#top,#hint,#marker,#back,#stick,#actions{z-index:2}#top,#hint,#marker{pointer-events:none}#back,#stick,#actions{pointer-events:auto}
 #top{position:fixed;top:10px;left:10px;right:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;pointer-events:none}
 #title{padding:9px 12px;border:1px solid #ffffff35;border-radius:12px;background:#07110c99;backdrop-filter:blur(8px);font-size:12px;letter-spacing:.08em;font-weight:800}
 #status{max-width:60%;padding:8px 10px;border-radius:10px;background:#07110c99;font-size:11px;text-align:right;color:#d8eadc}
@@ -28,7 +28,7 @@ button:active{transform:scale(.96);background:#31583d}
 <canvas id="scene"></canvas>
 <div id="look-area" aria-label="Arraste para olhar para cima/baixo; use dois dedos para aproximar/afastar"></div>
 <div id="top"><div id="title">A BATALHA CONTRA OS 7 PECADOS</div><div id="status">Preparando o mundo 3D…</div></div>
-<div id="marker" aria-label="Modificação 138">138</div>
+<div id="marker" aria-label="Modificação 139">139</div>
 <div id="hint">PROTÓTIPO 3D · explore o vale e teste a movimentação</div>
 <a id="back" href="./index.html">Voltar ao jogo 2D</a>
 <div id="stick" aria-label="Controle de movimento"><div id="knob"></div></div>
@@ -38,6 +38,6 @@ button:active{transform:scale(.96);background:#31583d}
 </div>
 <div id="loading">Carregando o protagonista 3D e construindo o vale…<br><br>Esta é uma versão paralela de teste. A campanha original continua intacta.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mundo-3d-prototype.js?v=mod138-movement-response"></script>
+<script type="module" src="./mundo-3d-prototype.js?v=mod139-first-person-look"></script>
 </body>
 </html>
