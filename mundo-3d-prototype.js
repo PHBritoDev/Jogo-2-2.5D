@@ -60,7 +60,8 @@ function updateEnemyHud(){
 }
 function tryPlayerAttack(){
  const now=performance.now();if(now<attackCooldown)return;attackCooldown=now+520;
- if(actions.attack){play('attack',.06);actionUntil=now+430;}
+ swordSwingStart=now;swordSwingUntil=now+460;
+ if(actions.attack){play('attack',.045);actionUntil=now+460;}else{actionUntil=now+460;}
  if(!enemyAlive){status.textContent='Inimigo derrotado!';return;}
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz);
@@ -75,31 +76,44 @@ function tryPlayerAttack(){
  if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';}
 }
 
-// Aurélio, o viajante da Ganância: adaptação 3D do personagem já existente no jogo 2D.
-const aurelio=new THREE.Group();scene.add(aurelio);aurelio.position.set(3.3,0,-5.4);
-const aurelioPurple=mat(0x7a4b9b,.9),aurelioDark=mat(0x4a2260,.9),aurelioGold=mat(0xf0c040,.55),aurelioSkin=mat(0xe8b98f,.85),aurelioBrown=mat(0x3a2a20,.9);
-function aurelioPart(geometry,material,x,y,z,sx=1,sy=1,sz=1){
- const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;aurelio.add(mesh);return mesh;
+// Anjo-Guia: personagem 3D dentro do mundo, substituindo o NPC provisório.
+const guide=new THREE.Group();scene.add(guide);guide.position.set(3.3,0,-5.4);
+const robeMat=new THREE.MeshStandardMaterial({color:0xe8e7dc,roughness:.82});
+const cloakMat=new THREE.MeshStandardMaterial({color:0x334e79,roughness:.9});
+const goldMat=new THREE.MeshStandardMaterial({color:0xf2cf72,metalness:.42,roughness:.38,emissive:0x4a2d08,emissiveIntensity:.16});
+const skinMat=new THREE.MeshStandardMaterial({color:0xd9b59b,roughness:.9});
+const darkMat=new THREE.MeshStandardMaterial({color:0x182235,roughness:.9});
+function guidePart(geometry,material,x,y,z,sx=1,sy=1,sz=1){
+ const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;guide.add(mesh);return mesh;
 }
-aurelioPart(new THREE.CapsuleGeometry(.25,.52,4,8),aurelioPurple,0,.58,0,1,1,1);
-aurelioPart(new THREE.BoxGeometry(.49,.065,.32),aurelioGold,0,.62,0);
-aurelioPart(new THREE.CapsuleGeometry(.065,.35,3,6),aurelioPurple,-.31,.62,0);
-aurelioPart(new THREE.CapsuleGeometry(.065,.35,3,6),aurelioPurple,.31,.62,0);
-aurelioPart(new THREE.SphereGeometry(.18,12,10),aurelioSkin,0,1.12,0);
-aurelioPart(new THREE.CylinderGeometry(.28,.28,.055,12),aurelioDark,0,1.28,0);
-aurelioPart(new THREE.ConeGeometry(.22,.38,7),aurelioDark,0,1.47,0);
-aurelioPart(new THREE.BoxGeometry(.28,.045,.04),aurelioGold,0,1.33,.23);
-aurelioPart(new THREE.SphereGeometry(.13,10,8),aurelioGold,.29,.57,.03,1,.85,.8);
-aurelioPart(new THREE.SphereGeometry(.045,8,6),aurelioBrown,.29,.57,.145);
-const aurelioShadow=new THREE.Mesh(new THREE.CircleGeometry(.38,16),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.28,depthWrite:false}));
-aurelioShadow.rotation.x=-Math.PI/2;aurelioShadow.position.y=.014;aurelio.add(aurelioShadow);
+// Túnica longa e manto azul; silhueta low-poly inteiramente 3D.
+guidePart(new THREE.CylinderGeometry(.19,.42,.98,9,1),robeMat,0,.64,0);
+guidePart(new THREE.CylinderGeometry(.205,.31,.72,9,1),cloakMat,0,.91,-.105);
+guidePart(new THREE.SphereGeometry(.205,12,10),skinMat,0,1.31,.035,1,.96,.88);
+guidePart(new THREE.SphereGeometry(.255,12,10),cloakMat,0,1.42,-.025,1,.95,.9);
+guidePart(new THREE.ConeGeometry(.27,.38,9),cloakMat,0,1.62,-.015);
+guidePart(new THREE.TorusGeometry(.25,.035,8,24),goldMat,0,1.42,.025,1,1,.85).rotation.x=Math.PI/2;
+guidePart(new THREE.BoxGeometry(.42,.055,.055),goldMat,0,.9,.235);
+guidePart(new THREE.SphereGeometry(.035,8,6),goldMat,-.07,1.32,.211);
+guidePart(new THREE.SphereGeometry(.035,8,6),goldMat,.07,1.32,.211);
+const guideArms=[];
+for(const side of [-1,1]){
+ const arm=guidePart(new THREE.CapsuleGeometry(.075,.39,4,7),cloakMat,side*.29,.83,.015);
+ arm.rotation.z=side*-.27;guideArms.push(arm);
+ guidePart(new THREE.SphereGeometry(.085,8,6),robeMat,side*.34,.61,.04);
+}
+const guideHalo=new THREE.Mesh(new THREE.TorusGeometry(.29,.035,8,32),new THREE.MeshBasicMaterial({color:0xffe5a0}));
+guideHalo.position.set(0,1.93,-.015);guideHalo.rotation.x=Math.PI/2;guide.add(guideHalo);
+const guideAura=new THREE.PointLight(0xffe6a3,.85,4.5);guideAura.position.set(0,1.45,.15);guide.add(guideAura);
+const guideShadow=new THREE.Mesh(new THREE.CircleGeometry(.42,20),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.28,depthWrite:false}));
+guideShadow.rotation.x=-Math.PI/2;guideShadow.position.y=.014;guide.add(guideShadow);
 const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.58,.055,8,28),new THREE.MeshBasicMaterial({color:0xffd65a}));
-questMarker.rotation.x=Math.PI/2;questMarker.position.set(aurelio.position.x,.06,aurelio.position.z);scene.add(questMarker);
+questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,.06,guide.position.z);scene.add(questMarker);
 let questStep=0,coins=0,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
 function updateQuestHud(){
  const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count');
- if(title)title.textContent='MISSÃO 1 · PRIMEIROS PASSOS';
- if(objective)objective.textContent=questStep===0?'Encontre Aurélio, o viajante':questStep===1?'Siga a trilha a noroeste':questStep===2?'Missão concluída! Explore o vale.':'Explore o vale e procure pistas';
+ if(title)title.textContent='MISSÃO 1 · O CHAMADO';
+ if(objective)objective.textContent=questStep===0?'Encontre o Anjo-Guia':questStep===1?'Siga a trilha até a clareira':questStep===2?'Missão concluída! Explore o vale.':'Explore o vale e procure pistas';
  if(coinCount)coinCount.textContent=String(coins);
 }
 function showDialogue(pages,onFinish){
@@ -122,20 +136,20 @@ function advanceDialogue(){
  dialogueOpen=false;document.getElementById('dialog-panel').classList.add('hidden');
  const finish=dialogueFinish;dialogueFinish=null;if(finish)finish();
 }
-function talkToAurelio(){
+function talkToGuide(){
  if(questStep!==0||dialogueOpen)return;
- aurelio.lookAt(player.position.x,aurelio.position.y,player.position.z);
+ guide.lookAt(player.position.x,guide.position.y,player.position.z);
  showDialogue([
-  {who:'Aurélio',text:'Psiu, forasteiro! Ouvi moedas tilintando por aí... Eu só preciso de umas poucas. Pouquinhas mesmo.'},
-  {who:'Aurélio',text:coins>0?'Então? Ajude este pobre viajante. Quanto você me dá?':'Nenhuma moeda? Hmpf... que inútil.'},
-  {who:'Narrador',text:'A trilha a noroeste leva a uma clareira suspeita. Continue a investigação.'}
+  {who:'Anjo-Guia',text:'Finalmente chegou. Você foi enviado por Deus para enfrentar a escuridão que corrompe estas terras.'},
+  {who:'Anjo-Guia',text:'Não tema. Sua jornada começa aqui, mas cada pecado ficará mais forte. Aprenda a lutar e não abandone sua fé.'},
+  {who:'Anjo-Guia',text:'Siga a trilha até a clareira à frente. Lá você encontrará seu primeiro desafio. Que Deus guie seus passos.'}
  ],()=>{
   questStep=1;questMarker.position.set(-2.2,.06,-13);updateQuestHud();
   document.getElementById('talk-button').classList.add('hidden');
-  status.textContent='Nova etapa: siga a trilha a noroeste';
+  status.textContent='Nova etapa: siga a trilha até a clareira';
  });
 }
-document.getElementById('talk-button').addEventListener('click',talkToAurelio);
+document.getElementById('talk-button').addEventListener('click',talkToGuide);
 document.getElementById('dialog-continue').addEventListener('click',advanceDialogue);
 updateQuestHud();
 
@@ -148,7 +162,9 @@ function fitModel(root){
  root.scale.set(1,1,1);root.position.set(0,0,0);
 }
 function findSwordHand(root){
- let found=null;root.traverse(o=>{if(found||!o.isBone)return;const n=(o.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');if(/righthand|mixamorig.*righthand|handr|handright/.test(n))found=o;});return found;
+ const bones=[];root.traverse(o=>{if(o.isBone)bones.push(o);});
+ const rightHand=/(right.*(hand|wrist)|(hand|wrist).*right|(^|[_ .-])r(hand|wrist)([_ .-]|$)|(hand|wrist)[_. -]?r$|mixamorig:rightHand)/i;
+ return bones.find(b=>rightHand.test(b.name||''))||null;
 }
 let swordRoot=null,swordHand=null,swordMount=null,swordPivot=null;
 const swordWorldPosition=new THREE.Vector3(),swordWorldQuaternion=new THREE.Quaternion();
@@ -166,7 +182,7 @@ function loadPlayerSword(modelRoot){
   swordRoot.scale.setScalar(.62);swordRoot.rotation.set(0,0,Math.PI);swordRoot.position.set(0,.465,0);
   if(swordHand){
    swordMount=new THREE.Group();swordMount.name='EspadaProta_HandMount';scene.add(swordMount);
-   swordMount.add(swordPivot=new THREE.Group());swordPivot.add(swordRoot);updateSwordMount();
+   swordMount.add(swordPivot=new THREE.Group());swordPivot.name='EspadaProta_AttackPivot';swordPivot.add(swordRoot);updateSwordMount();
   }else{
    // Segurança: se o rig usar um nome de mão diferente, mantém a espada junto do protagonista.
    swordRoot.position.set(.28,.85,.12);player.add(swordRoot);
@@ -177,20 +193,20 @@ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
  model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;}}});
  fitModel(model);player.add(model);
  loadPlayerSword(model);
- if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);const attack=chooseClip(clips,/attack|sword|golpe|ataque/i);const jump=chooseClip(clips,/jump|saltar|salto/i);
+ if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);const attack=chooseClip(clips,/attack|sword|golpe|ataque|slash|strike|light.?combo|heavy.?combo|overhand.?throw/i);const jump=chooseClip(clips,/jump|saltar|salto/i);
  if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attack)actions.attack=mixer.clipAction(attack);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'attack',0);}
- player.userData.ready=true;loading.classList.add('hidden');status.textContent='Missão 1 · encontre Aurélio e fale com ele';
+ player.userData.ready=true;loading.classList.add('hidden');status.textContent='Missão 1 · encontre o Anjo-Guia e fale com ele';
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-addEventListener('keydown',e=>{if(!e.repeat&&(e.key==='e'||e.key==='Enter')&&!dialogueOpen&&questStep===0&&Math.hypot(aurelio.position.x-player.position.x,aurelio.position.z-player.position.z)<=2.7)talkToAurelio();else if(!e.repeat&&(e.key==='e'||e.key==='Enter')&&dialogueOpen)advanceDialogue();});
+addEventListener('keydown',e=>{if(!e.repeat&&(e.key==='e'||e.key==='Enter')&&!dialogueOpen&&questStep===0&&Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z)<=2.7)talkToGuide();else if(!e.repeat&&(e.key==='e'||e.key==='Enter')&&dialogueOpen)advanceDialogue();});
 let joyX=0,joyY=0,joyActive=false;const stick=document.getElementById('stick'),knob=document.getElementById('knob');
 function setJoy(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.32;const d=Math.hypot(dx,dy);if(d>max){dx=dx/d*max;dy=dy/d*max;}joyX=dx/max;joyY=dy/max;knob.style.transform='translate('+dx+'px,'+dy+'px)';}
 stick.addEventListener('pointerdown',e=>{joyActive=true;stick.setPointerCapture(e.pointerId);setJoy(e);});
 stick.addEventListener('pointermove',e=>{if(joyActive)setJoy(e);});
 function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';}
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
-let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
+let actionUntil=0,verticalVelocity=0,swordSwingUntil=0,swordSwingStart=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
 function action(kind){const now=performance.now();if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){play('jump',.08);actionUntil=now+420;}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='magic'?'Magia celestial será integrada depois':'Ultimate será integrada depois';setTimeout(()=>{if(status.textContent.startsWith('Magia celestial')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
 document.getElementById('attack').addEventListener('click',()=>action('attack'));
 const jumpButton=document.getElementById('jump');
@@ -219,17 +235,17 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(!enemyAlive){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
  updateEnemyHud();
  if(enemyAlive)enemy.rotation.y=Math.atan2(camera.position.x-enemy.position.x,camera.position.z-enemy.position.z);
- aurelio.position.y=.018+Math.sin(now*.0022)*.025;
- const npcDistance=Math.hypot(aurelio.position.x-player.position.x,aurelio.position.z-player.position.z);
+ guide.position.y=.018+Math.sin(now*.0022)*.025;guideHalo.rotation.z=Math.sin(now*.0015)*.08;guideAura.intensity=.72+Math.sin(now*.003)*.13;
+ const npcDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
  const talkButton=document.getElementById('talk-button');
  if(talkButton)talkButton.classList.toggle('hidden',questStep!==0||npcDistance>2.7||dialogueOpen);
  questMarker.visible=questStep<2;
- if(questStep===0){questMarker.position.x=aurelio.position.x;questMarker.position.z=aurelio.position.z;}
+ if(questStep===0){questMarker.position.x=guide.position.x;questMarker.position.z=guide.position.z;}
  if(questStep===1&&Math.hypot(player.position.x+2.2,player.position.z+13)<2.15){
   questStep=2;coins+=5;updateQuestHud();questMarker.visible=false;status.textContent='Missão concluída! +5 moedas';document.getElementById('quest-toast').classList.remove('hidden');
   setTimeout(()=>document.getElementById('quest-toast').classList.add('hidden'),2600);
  }
- if(dialogueOpen){play('idle',.08);}
+ if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
 if(dialogueOpen){axisX=0;axisZ=0;}
@@ -299,6 +315,7 @@ if(firstPerson){
 }
 const t=clock.elapsedTime;treeGroup.children.forEach((tree,i)=>{tree.rotation.z=Math.sin(t*.7+i*.9)*.012;});grassGroup.children.forEach((blade,i)=>{blade.rotation.z=Math.sin(t*1.4+i*.31)*.12;});
 if(swordHand&&swordMount){player.updateMatrixWorld(true);updateSwordMount();}
+if(swordPivot){if(now<swordSwingUntil){const p=THREE.MathUtils.clamp((now-swordSwingStart)/460,0,1);const arc=Math.sin(p*Math.PI);swordPivot.rotation.set(-.35-arc*.65,Math.sin(p*Math.PI*2)*.45,-.25-arc*1.7);swordPivot.position.set(0,0,0);}else{swordPivot.rotation.x=THREE.MathUtils.damp(swordPivot.rotation.x,0,18,dt);swordPivot.rotation.y=THREE.MathUtils.damp(swordPivot.rotation.y,0,18,dt);swordPivot.rotation.z=THREE.MathUtils.damp(swordPivot.rotation.z,0,18,dt);}}
 renderer.render(scene,camera);}
 animate();
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);}
