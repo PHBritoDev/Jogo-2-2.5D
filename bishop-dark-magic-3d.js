@@ -4,8 +4,8 @@
  */
 (function () {
   'use strict';
-  let api = null, root = null, handsGroup = null, spikesGroup = null, hands = [], spikes = [];
-  let handWarning = null, spikeWarning = null, lastAttackKey = '', lastBookKey = '';
+  let api = null, root = null, handsGroup = null, spikesGroup = null, reaperGroup = null, swordRainGroup = null, hands = [], spikes = [], rainSwords = [];
+  let handWarning = null, spikeWarning = null, reaperWarning = null, swordWarning = null, lastAttackKey = '', lastBookKey = '';
   let lastTime = 0, built = false;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -74,14 +74,21 @@
       baseCrack.rotation.x = -Math.PI / 2; baseCrack.position.y = .025; group.add(baseCrack);
       spikes.push({ mesh: group, x: o[0], z: o[1], phase: i * .36 });
     });
-    built = true;
+    reaperGroup=new T.Group();root.add(reaperGroup);
+    reaperWarning=new T.Mesh(new T.RingGeometry(.72,1.28,48),warningMat.clone());reaperWarning.rotation.x=-Math.PI/2;reaperWarning.position.y=.045;root.add(reaperWarning);reaperWarning.visible=false;
+    const robe=new T.Mesh(new T.ConeGeometry(.43,1.55,7),black);robe.position.y=1.02;reaperGroup.add(robe);
+    const hood=new T.Mesh(new T.SphereGeometry(.29,9,8),black2);hood.position.set(0,1.83,.02);hood.scale.set(.88,1.05,.78);reaperGroup.add(hood);
+    const face=new T.Mesh(new T.SphereGeometry(.17,8,7),new T.MeshBasicMaterial({color:0x020204}));face.position.set(0,1.83,.19);reaperGroup.add(face);
+    for(const x of [-.085,.085]){const eye=new T.Mesh(new T.SphereGeometry(.027,6,5),red);eye.position.set(x,1.87,.34);reaperGroup.add(eye);}
+    const shaft=new T.Mesh(new T.CylinderGeometry(.025,.035,1.75,6),black2);shaft.position.set(.52,1.17,.08);shaft.rotation.z=-.28;reaperGroup.add(shaft);
+    const blade=new T.Mesh(new T.TorusGeometry(.28,.055,5,12,Math.PI*1.05),red);blade.position.set(.72,2.03,.08);blade.rotation.z=2.7;reaperGroup.add(blade);
+    const bladeEdge=new T.Mesh(new T.ConeGeometry(.10,.64,5),black2);bladeEdge.position.set(.84,2.18,.08);bladeEdge.rotation.z=-1.1;reaperGroup.add(bladeEdge);reaperGroup.visible=false;
+    swordRainGroup=new T.Group();root.add(swordRainGroup);
+    swordWarning=new T.Mesh(new T.RingGeometry(.9,1.65,56),warningMat.clone());swordWarning.rotation.x=-Math.PI/2;swordWarning.position.y=.05;swordRainGroup.add(swordWarning);
+    for(let i=0;i<28;i++){const g=new T.Group();const x=Math.cos(i*2.399)*(.35+((i*17)%100)/100*1.05);const z=Math.sin(i*2.399)*(.35+((i*29)%100)/100*1.05);g.position.set(x,5.2+((i*13)%9)*.42,z);g.rotation.z=(i%5-2)*.06;g.add(new T.Mesh(new T.BoxGeometry(.055,.72,.035),black2));const point=new T.Mesh(new T.ConeGeometry(.04,.22,4),black);point.position.y=-.46;g.add(point);const edge=new T.Mesh(new T.BoxGeometry(.012,.5,.042),red);edge.position.set(.018,.02,.022);g.add(edge);swordRainGroup.add(g);rainSwords.push({mesh:g,x:x,z:z,baseY:g.position.y,phase:i*.37});}
+    swordRainGroup.visible=false;built=true;
   }
-
-  function hideAll() {
-    if (handsGroup) handsGroup.visible = false;
-    if (spikesGroup) spikesGroup.visible = false;
-    if (root) root.visible = false;
-  }
+  function hideAll(){if(handsGroup)handsGroup.visible=false;if(spikesGroup)spikesGroup.visible=false;if(reaperGroup)reaperGroup.visible=false;if(swordRainGroup)swordRainGroup.visible=false;if(root)root.visible=false;lastBookKey='';}
 
   function tick(now) {
     requestAnimationFrame(tick);
@@ -90,7 +97,7 @@
     api = window.ValerioThreeAPI || api;
     if (!built && api) { try { build(); } catch (e) { console.warn('Mod 120: VFX das magias negras não pôde ser montado.', e); return; } }
     const view = window.ValerioModelView;
-    if (!built || !view || !view.active || !view.attackId || !['abyssHands', 'graveThorns'].includes(view.attackId) ||
+    if (!built || !view || !view.active || !view.attackId || !['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain'].includes(view.attackId) ||
         !['windup', 'attack', 'recover'].includes(view.combatState)) {
       hideAll(); lastAttackKey = ''; return;
     }
@@ -100,7 +107,7 @@
       lastAttackKey = id;
       const book = window.BishopGrimoire3D || window.ValerioGrimoire3D;
       if (book && book.ready && typeof book.invoke === 'function' && lastBookKey !== id) {
-        book.invoke((Number(view.windupDuration) || 1.2) + (Number(view.attackDuration) || .7) + 1.25);
+        book.invoke(((Number(view.windupDuration) || 1.2) + (Number(view.attackDuration) || .7) + 1.25) * 1000);
         lastBookKey = id;
       }
     }
@@ -113,6 +120,7 @@
       (Array.isArray(view.playerPosition) ? view.playerPosition : [0, 0, 0]);
     root.position.set(target[0], target[1] || 0, target[2]);
     root.visible = true;
+    reaperWarning.visible = id === 'blackReaper';
     const windup = Math.max(.1, Number(view.windupDuration) || (id === 'abyssHands' ? 1.18 : 1.38));
     const duration = Math.max(.1, Number(view.attackDuration) || (id === 'abyssHands' ? .72 : .62));
     const t = Number(view.stateTime) || 0;
@@ -120,8 +128,9 @@
     if (id === 'abyssHands') {
       handsGroup.visible = true; spikesGroup.visible = false;
       handWarning.material.opacity = warningPulse;
-      const rising = state === 'windup' ? clamp(t / windup, 0, 1) : 1;
-      const strike = state === 'attack' ? clamp(t / duration, 0, 1) : 0;
+      const hitAt = Math.max(.08, Number(view.hitAt) || .22);
+      const rising = state === 'windup' ? clamp(t / Math.max(.1, windup - .12), 0, 1) : 1;
+      const strike = state === 'attack' ? clamp(t / hitAt, 0, 1) : 0;
       hands.forEach((h, i) => {
         const stagger = clamp(rising * 1.18 - h.phase * .12, 0, 1);
         const y = state === 'windup' ? -1.45 + stagger * 1.42 : .02 - strike * .58;
@@ -130,16 +139,13 @@
         h.mesh.scale.set(punch, .84 + stagger * .16, punch);
         h.mesh.rotation.z = Math.sin(now * .006 + h.phase) * .055;
       });
+    } else if(id==='graveThorns'){
+      handsGroup.visible=false;spikesGroup.visible=true;reaperGroup.visible=false;swordRainGroup.visible=false;spikeWarning.material.opacity=state==='windup'?warningPulse:.05;spikeWarning.scale.setScalar(1+.08*Math.sin(now*.009));
+      const hitAt=Math.max(.08,Number(view.hitAt)||.18);const rise=state==='windup'?0:clamp(t/hitAt,0,1);spikes.forEach((s)=>{const localRise=clamp(rise*1.45-s.phase*.11,0,1);s.mesh.position.set(s.x,-2.55+localRise*2.55,s.z);s.mesh.rotation.y=Math.sin(now*.001+s.phase)*.08;});
+    } else if(id==='blackReaper'){
+      handsGroup.visible=false;spikesGroup.visible=false;reaperGroup.visible=true;swordRainGroup.visible=false;reaperWarning.material.opacity=state==='windup'?warningPulse:.06;const boss=Array.isArray(view.position)?view.position:target;const sx=boss[0]-target[0],sz=boss[2]-target[2];const impactAt=Math.max(.1,Number(view.hitAt)||.32);const progress=state==='windup'?0:clamp(t/impactAt,0,1);reaperGroup.position.set(sx*(1-progress),0,sz*(1-progress));reaperGroup.rotation.y=Math.atan2(-sx,-sz);reaperGroup.scale.setScalar(.88+.12*Math.sin(now*.004));
     } else {
-      handsGroup.visible = false; spikesGroup.visible = true;
-      spikeWarning.material.opacity = state === 'windup' ? warningPulse : .05;
-      spikeWarning.scale.setScalar(1 + .08 * Math.sin(now * .009));
-      const rise = state === 'windup' ? 0 : clamp(t / Math.max(.12, duration * .72), 0, 1);
-      spikes.forEach((s, i) => {
-        const localRise = clamp(rise * 1.45 - s.phase * .11, 0, 1);
-        s.mesh.position.set(s.x, -2.55 + localRise * 2.55, s.z);
-        s.mesh.rotation.y = Math.sin(now * .001 + s.phase) * .08;
-      });
+      handsGroup.visible=false;spikesGroup.visible=false;reaperGroup.visible=false;swordRainGroup.visible=true;swordWarning.material.opacity=state==='windup'?warningPulse:.04;const impactAt=Math.max(.1,Number(view.hitAt)||.46);const fall=state==='attack'?clamp(t/impactAt,0,1):0;rainSwords.forEach((s)=>{const delay=(s.phase%1)*.42;const p=clamp((fall-delay)/(1-delay),0,1);s.mesh.position.set(s.x,state==='windup'?s.baseY+.25*Math.sin(now*.004+s.phase):s.baseY-p*7.6,s.z);s.mesh.rotation.x=state==='attack'?-.18-p*.22:.04*Math.sin(now*.003+s.phase);s.mesh.visible=state!=='attack'||p<.98;});
     }
     // Evita reter efeitos entre ataques diferentes; o próximo começo reabre o grimório.
     if (state === 'attack' && lastAttackKey !== id) lastAttackKey = id;

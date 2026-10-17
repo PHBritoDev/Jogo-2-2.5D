@@ -331,61 +331,16 @@
     });
   }
   // Efeito leve na foice: aura ao longo do cabo/lâmina, orbe pulsante perto da ponta e brasas subindo.
+  // MOD 121: aura genérica removida; filamentos negros e fissuras escarlates na foice.
   function buildScytheFx(root){
-    try{
-      const parent=root.parent,sp=root.position.clone(),sq=root.quaternion.clone(),ss=root.scale.clone();
-      if(parent)parent.remove(root);
-      root.position.set(0,0,0);root.quaternion.identity();root.scale.set(1,1,1);root.updateMatrix();root.updateMatrixWorld(true);
-      const box=new THREE.Box3().setFromObject(root);
-      root.position.copy(sp);root.quaternion.copy(sq);root.scale.copy(ss);root.updateMatrix();
-      if(parent)parent.add(root);
-      if(!box||box.isEmpty()||!isFinite(box.min.x)||!isFinite(box.max.x))return;
-      const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
-      const dims=[size.x,size.y,size.z];
-      let ax=0;if(dims[1]>dims[ax])ax=1;if(dims[2]>dims[ax])ax=2;
-      const len=Math.max(.05,dims[ax]);
-      const a1=(ax+1)%3,a2=(ax+2)%3;
-      const rad=Math.max(.01,Math.max(dims[a1],dims[a2])*.5)*.5+len*.01;
-      const mat=function(color,opacity){return new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:opacity,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});};
-      const auraMat=mat(0x9a3cff,.03),orbMat=mat(0xff4a68,.22),emberMat=mat(0xff7a8a,.68);
-      const group=new THREE.Group();group.name='Foice_FX';
-      const aura=new THREE.Mesh(new THREE.CylinderGeometry(rad*.24,rad*.30,len*.98,24,1,true),auraMat);
-      aura.position.copy(center);if(ax===0)aura.rotation.z=Math.PI/2;else if(ax===2)aura.rotation.x=Math.PI/2;
-      aura.renderOrder=3;group.add(aura);
-      // A lâmina fica na extremidade superior do eixo longo (cabo preso à mão em y negativo).
-      const tipPos=[center.x,center.y,center.z];tipPos[ax]=box.max.getComponent(ax)-len*.16;
-      const orb=new THREE.Mesh(new THREE.SphereGeometry(len*.035,12,10),orbMat);
-      orb.position.set(tipPos[0],tipPos[1],tipPos[2]);orb.renderOrder=3;group.add(orb);
-      const embers=[];
-      for(let i=0;i<12;i++){
-        const m=new THREE.Mesh(new THREE.SphereGeometry(Math.max(.004,len*.012),5,4),emberMat);
-        m.userData={off:i/12,ang:i*2.399,along:.55+((i*29)%100)/100*.42,speed:.22+(i%5)*.06,spread:.6+((i*13)%10)/10};
-        m.renderOrder=3;group.add(m);embers.push(m);
-      }
-      root.add(group);
-      scytheFx={ax:ax,a1:a1,a2:a2,min:box.min.clone(),len:len,rad:rad,center:center,aura:aura,orb:orb,auraMat:auraMat,orbMat:orbMat,embers:embers};
-    }catch(e){scytheFx=null;console.warn('Efeito da foice indisponível:',e);}
+    try{const parent=root.parent,sp=root.position.clone(),sq=root.quaternion.clone(),ss=root.scale.clone();root.position.set(0,0,0);root.quaternion.identity();root.scale.set(1,1,1);root.updateMatrix();root.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(root);root.position.copy(sp);root.quaternion.copy(sq);root.scale.copy(ss);root.updateMatrix();if(parent)parent.add(root);if(box.isEmpty())return;const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3()),dims=[size.x,size.y,size.z];let ax=0;if(dims[1]>dims[ax])ax=1;if(dims[2]>dims[ax])ax=2;const len=Math.max(.05,dims[ax]),a1=(ax+1)%3,a2=(ax+2)%3,rad=Math.max(.018,Math.max(dims[a1],dims[a2])*.12);
+      const group=new THREE.Group();group.name='Foice_EnergiaNegativa_Mod121';const darkMats=[],redMats=[];
+      for(let i=0;i<5;i++){const pts=[],phase=i*Math.PI*2/5;for(let j=0;j<=16;j++){const t=j/16,ang=phase+t*5.4,r=rad*(.5+.55*Math.sin(t*Math.PI)),p=[center.x,center.y,center.z];p[ax]=box.min.getComponent(ax)+len*(.08+t*.84);p[a1]=center.getComponent(a1)+Math.cos(ang)*r;p[a2]=center.getComponent(a2)+Math.sin(ang)*r;pts.push(new THREE.Vector3(p[0],p[1],p[2]));}const m=new THREE.MeshBasicMaterial({color:i%2?0x09070b:0x171016,transparent:true,opacity:.78,depthWrite:false});group.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),36,.012+(i%2)*.004,5,false),m));darkMats.push(m);}
+      for(let i=0;i<4;i++){const pts=[],phase=i*Math.PI*.5+.2;for(let j=0;j<=12;j++){const t=j/12,ang=phase+t*3.2,r=rad*(.3+.35*t),p=[center.x,center.y,center.z];p[ax]=box.min.getComponent(ax)+len*(.48+t*.48);p[a1]=center.getComponent(a1)+Math.cos(ang)*r;p[a2]=center.getComponent(a2)+Math.sin(ang)*r;pts.push(new THREE.Vector3(p[0],p[1],p[2]));}const m=new THREE.MeshBasicMaterial({color:i%2?0x7e0715:0xd71932,transparent:true,opacity:.72,depthWrite:false,blending:THREE.AdditiveBlending});group.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),28,.006,4,false),m));redMats.push(m);}
+      const sparks=[];for(let i=0;i<10;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.009+(i%3)*.004,5,4),new THREE.MeshBasicMaterial({color:i%3?0xc9142c:0x08070a,transparent:true,opacity:.82,depthWrite:false,blending:i%3?THREE.AdditiveBlending:THREE.NormalBlending}));m.userData={phase:i/10,side:i%2?1:-1};group.add(m);sparks.push(m);}root.add(group);scytheFx={group:group,ax:ax,a1:a1,a2:a2,min:box.min.clone(),len:len,rad:rad,center:center,darkMats:darkMats,redMats:redMats,sparks:sparks};
+    }catch(e){scytheFx=null;console.warn('Energia negativa da foice indisponível:',e);}
   }
-  function updateScytheFx(time,swing){
-    const f=scytheFx;if(!f)return;
-    scytheFxBoost+=((swing>.05?1:0)-scytheFxBoost)*.18;
-    const boost=scytheFxBoost,pulse=.5+.5*Math.sin(time*2.3);
-    f.auraMat.opacity=.12+.08*pulse+.22*boost;
-    f.orbMat.opacity=.34+.22*pulse+.36*boost;
-    const os=1+.25*pulse+.7*boost;f.orb.scale.set(os,os,os);
-    const sc=1+.3*boost;f.aura.scale.set(sc,1,sc);
-    for(let i=0;i<f.embers.length;i++){
-      const m=f.embers[i],u=m.userData;
-      const t=(time*(u.speed+boost*.35)+u.off)%1;
-      const r=f.rad*u.spread*(1.2+1.8*t),ang=u.ang+time*.6;
-      const pos=[0,0,0];
-      pos[f.ax]=f.min.getComponent(f.ax)+f.len*u.along+f.len*.16*t;
-      pos[f.a1]=f.center.getComponent(f.a1)+Math.cos(ang)*r;
-      pos[f.a2]=f.center.getComponent(f.a2)+Math.sin(ang)*r;
-      m.position.set(pos[0],pos[1],pos[2]);
-      m.scale.setScalar(Math.max(.001,Math.sin(Math.PI*t)*(1+.9*boost)));
-    }
-  }
+  function updateScytheFx(time,swing){const f=scytheFx;if(!f)return;const pulse=.5+.5*Math.sin(time*3.1),boost=Math.max(0,Math.min(1,swing||0));f.group.rotation[f.ax===0?'x':f.ax===1?'y':'z']=Math.sin(time*1.4)*.035;f.darkMats.forEach(m=>{m.opacity=.48+.28*pulse+.12*boost;});f.redMats.forEach((m,i)=>{m.opacity=.28+.62*(.5+.5*Math.sin(time*4.2+i*1.7))+.1*boost;});f.sparks.forEach((m,i)=>{const u=m.userData,t=(time*(.22+(i%4)*.07)+u.phase)%1,ang=time*1.4+i*2.399,r=f.rad*(.55+.9*t),p=[f.center.x,f.center.y,f.center.z];p[f.ax]=f.min.getComponent(f.ax)+f.len*(.3+.65*t);p[f.a1]=f.center.getComponent(f.a1)+Math.cos(ang)*r*u.side;p[f.a2]=f.center.getComponent(f.a2)+Math.sin(ang)*r;m.position.set(p[0],p[1],p[2]);m.scale.setScalar(Math.max(.001,Math.sin(Math.PI*t)*(.7+boost)));});}
   function loadWeapon() {
     new THREE.GLTFLoader().load('./Espada1.glb?v=tex1k',function(gltf){
       // MOD 10: foice ampliada para cerca de 2,3x o tamanho anterior.
@@ -891,6 +846,8 @@
     requestAnimationFrame(frame);const v=window.ValerioModelView;
     if(!v||!v.active||!window.ValerioGLBReady||!root||!pivot||!renderer||!camera){window.ValerioGLBRendering=false;if(canvas&&canvas.style.display!=='none')canvas.style.display='none';return;}
     if(canvas.style.display!=='block')canvas.style.display='block';window.ValerioGLBRendering=true;const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
+    // Mod 121: energia da foice pulsa também em repouso, não apenas durante o golpe.
+    try{const swing=v.combatState==='attack'?Math.min(1,Math.max(0,(Number(v.stateTime)||0)/Math.max(.1,Number(v.attackDuration)||.7))):0;updateScytheFx(now/1000,swing);}catch(e){scytheFx=null;}
     if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);
     camera.aspect=v.aspect||w/h;camera.fov=(v.fov||1.02)*180/Math.PI;camera.updateProjectionMatrix();
     const cinematicCamera=window.CelestialUltimateCamera;
@@ -1039,7 +996,7 @@
         // Se o GLB vier a ganhar um ataque real, o movimento manual não duplica esse clip.
         weaponPivot.rotation.z=-.12-windup*.42+swing*.58;
         weaponPivot.rotation.x=swing*.3;
-        try{updateScytheFx(now/1000,swing);}catch(e){scytheFx=null;}
+        // A energia contínua da foice é atualizada no frame principal.
       }
   
     }else{
