@@ -1,4 +1,4 @@
-/* MOD 115 — inclina o grimório e adiciona aura obscura animada.
+/* MOD 116 — inclina o grimório e adiciona aura obscura animada.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -51,7 +51,7 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod115';
+    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod116';
     const leather = material('leather', 0x171d18, .82, .18);
     const leatherEdge = material('leatherEdge', 0x30251a, .75, .35);
     const pagesMat = material('parchment', 0xc8b88a, .94, .04);
@@ -92,14 +92,14 @@
       const rib = new T.Mesh(new T.TorusGeometry(.055, .009, 4, 16, Math.PI), gold);
       rib.rotation.y = Math.PI / 2; rib.position.set(0, i * .19, .018); root.add(rib);
     }
-    // MOD 115: aurora obscura animada, inspirada na aura do protagonista.
-    // Tons de carvão/violeta escuro com brilho discreto; sem alterar combate ou poderes.
+    // MOD 116: aurora obscura animada, inspirada na aura do protagonista.
+    // Preto e carvão neutro, sem roxo ou brilho branco; sem alterar combate ou poderes.
     const darkMat = new T.MeshBasicMaterial({
-      color: 0x160b20, transparent: true, opacity: .68,
+      color: 0x080808, transparent: true, opacity: .76,
       blending: T.NormalBlending, depthWrite: false, side: T.DoubleSide
     });
     const darkCoreMat = new T.MeshBasicMaterial({
-      color: 0x08060b, transparent: true, opacity: .78,
+      color: 0x000000, transparent: true, opacity: .84,
       blending: T.NormalBlending, depthWrite: false, side: T.DoubleSide
     });
     darkAura = new T.Mesh(new T.TorusGeometry(.57, .045, 7, 36), darkMat);
@@ -113,7 +113,7 @@
     darkAuraCore.rotation.set(-.18, .32, 0);
     root.add(darkAuraCore);
     const wispMat = new T.MeshBasicMaterial({
-      color: 0x21102b, transparent: true, opacity: .62,
+      color: 0x090909, transparent: true, opacity: .72,
       blending: T.NormalBlending, depthWrite: false
     });
     for (let i = 0; i < 12; i++) {
@@ -157,7 +157,7 @@
     attachedScene = api.scene;
     ready = true;
     window.ValerioGrimoire3D = {
-      version: 115,
+      version: 116,
       open: function(){ targetOpen = 1; opened = true; },
       close: function(){ targetOpen = 0; opened = false; },
       toggle: function(){ targetOpen = targetOpen > .5 ? 0 : 1; opened = targetOpen > .5; },
@@ -192,7 +192,7 @@
       root.visible = false; return;
     }
     root.visible = true;
-    // MOD 115: mantém a posição aprovada e inclina a face do livro ligeiramente para baixo.
+    // MOD 116: mantém a posição aprovada e inclina a face do livro ligeiramente para baixo.
     // view.yaw usa outra convenção no renderer 2D; reutilizá-lo colocava o livro atrás do modelo.
     const p = view.position;
     const playerPos = Array.isArray(view.playerPosition) ? view.playerPosition : null;
@@ -209,8 +209,8 @@
       p[1] + 1.78 + bob,
       p[2] + Math.cos(facingYaw) * frontDistance
     );
-    // Inclinação leve para baixo: a face do grimório aponta um pouco para o chão.
-    root.rotation.set(.30, facingYaw, 0);
+    // Inclinação para cima: a face do grimório ergue-se ligeiramente.
+    root.rotation.set(-.30, facingYaw, 0);
     // Capa esquerda e direita abrem em sentidos opostos com easing suave.
     const desired = targetOpen * 1.28;
     angle += (desired - angle) * Math.min(1, dt * 7.5);
@@ -264,7 +264,7 @@
       }
       try { buildBook(); requestAnimationFrame(tick); }
       catch (err) {
-        console.error('MOD 115: falha ao montar o grimório 3D de Valério.', err);
+        console.error('MOD 116: falha ao montar o grimório 3D de Valério.', err);
         if (button) { button.disabled = true; button.textContent = 'GRIMÓRIO INDISPONÍVEL'; }
       }
     }
