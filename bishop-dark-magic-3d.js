@@ -128,8 +128,9 @@
     if (id === 'abyssHands') {
       handsGroup.visible = true; spikesGroup.visible = false;
       handWarning.material.opacity = warningPulse;
-      const rising = state === 'windup' ? clamp(t / windup, 0, 1) : 1;
-      const strike = state === 'attack' ? clamp(t / duration, 0, 1) : 0;
+      const hitAt = Math.max(.08, Number(view.hitAt) || .22);
+      const rising = state === 'windup' ? clamp(t / Math.max(.1, windup - .12), 0, 1) : 1;
+      const strike = state === 'attack' ? clamp(t / hitAt, 0, 1) : 0;
       hands.forEach((h, i) => {
         const stagger = clamp(rising * 1.18 - h.phase * .12, 0, 1);
         const y = state === 'windup' ? -1.45 + stagger * 1.42 : .02 - strike * .58;
@@ -140,11 +141,11 @@
       });
     } else if(id==='graveThorns'){
       handsGroup.visible=false;spikesGroup.visible=true;reaperGroup.visible=false;swordRainGroup.visible=false;spikeWarning.material.opacity=state==='windup'?warningPulse:.05;spikeWarning.scale.setScalar(1+.08*Math.sin(now*.009));
-      const rise=state==='windup'?0:clamp(t/Math.max(.12,duration*.72),0,1);spikes.forEach((s)=>{const localRise=clamp(rise*1.45-s.phase*.11,0,1);s.mesh.position.set(s.x,-2.55+localRise*2.55,s.z);s.mesh.rotation.y=Math.sin(now*.001+s.phase)*.08;});
+      const hitAt=Math.max(.08,Number(view.hitAt)||.18);const rise=state==='windup'?0:clamp(t/hitAt,0,1);spikes.forEach((s)=>{const localRise=clamp(rise*1.45-s.phase*.11,0,1);s.mesh.position.set(s.x,-2.55+localRise*2.55,s.z);s.mesh.rotation.y=Math.sin(now*.001+s.phase)*.08;});
     } else if(id==='blackReaper'){
-      handsGroup.visible=false;spikesGroup.visible=false;reaperGroup.visible=true;swordRainGroup.visible=false;reaperWarning.material.opacity=state==='windup'?warningPulse:.06;const boss=Array.isArray(view.position)?view.position:target;const sx=boss[0]-target[0],sz=boss[2]-target[2];const progress=state==='windup'?0:clamp(t/Math.max(.18,duration*.78),0,1);reaperGroup.position.set(sx*(1-progress),0,sz*(1-progress));reaperGroup.rotation.y=Math.atan2(-sx,-sz);reaperGroup.scale.setScalar(.88+.12*Math.sin(now*.004));
+      handsGroup.visible=false;spikesGroup.visible=false;reaperGroup.visible=true;swordRainGroup.visible=false;reaperWarning.material.opacity=state==='windup'?warningPulse:.06;const boss=Array.isArray(view.position)?view.position:target;const sx=boss[0]-target[0],sz=boss[2]-target[2];const impactAt=Math.max(.1,Number(view.hitAt)||.32);const progress=state==='windup'?0:clamp(t/impactAt,0,1);reaperGroup.position.set(sx*(1-progress),0,sz*(1-progress));reaperGroup.rotation.y=Math.atan2(-sx,-sz);reaperGroup.scale.setScalar(.88+.12*Math.sin(now*.004));
     } else {
-      handsGroup.visible=false;spikesGroup.visible=false;reaperGroup.visible=false;swordRainGroup.visible=true;swordWarning.material.opacity=state==='windup'?warningPulse:.04;const fall=state==='attack'?clamp(t/Math.max(.2,duration),0,1):0;rainSwords.forEach((s)=>{const delay=(s.phase%1)*.42;const p=clamp((fall-delay)/(1-delay),0,1);s.mesh.position.set(s.x,state==='windup'?s.baseY+.25*Math.sin(now*.004+s.phase):s.baseY-p*7.6,s.z);s.mesh.rotation.x=state==='attack'?-.18-p*.22:.04*Math.sin(now*.003+s.phase);s.mesh.visible=state!=='attack'||p<.98;});
+      handsGroup.visible=false;spikesGroup.visible=false;reaperGroup.visible=false;swordRainGroup.visible=true;swordWarning.material.opacity=state==='windup'?warningPulse:.04;const impactAt=Math.max(.1,Number(view.hitAt)||.46);const fall=state==='attack'?clamp(t/impactAt,0,1):0;rainSwords.forEach((s)=>{const delay=(s.phase%1)*.42;const p=clamp((fall-delay)/(1-delay),0,1);s.mesh.position.set(s.x,state==='windup'?s.baseY+.25*Math.sin(now*.004+s.phase):s.baseY-p*7.6,s.z);s.mesh.rotation.x=state==='attack'?-.18-p*.22:.04*Math.sin(now*.003+s.phase);s.mesh.visible=state!=='attack'||p<.98;});
     }
     // Evita reter efeitos entre ataques diferentes; o próximo começo reabre o grimório.
     if (state === 'attack' && lastAttackKey !== id) lastAttackKey = id;
