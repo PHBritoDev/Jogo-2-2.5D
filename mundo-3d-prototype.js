@@ -60,7 +60,11 @@ function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
 let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
 function action(kind){const now=performance.now();if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){play('jump',.08);actionUntil=now+420;}else{actionUntil=now+180;}return;}if(kind==='attack'||kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='attack'?'Golpe demonstrativo · combate ainda será integrado':kind==='magic'?'Magia será conectada ao sistema celestial':'Ultimate será conectada ao sistema celestial';setTimeout(()=>{if(status.textContent.startsWith('Golpe demonstrativo')||status.textContent.startsWith('Magia será')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
-document.getElementById('attack').addEventListener('click',()=>action('attack'));document.getElementById('jump').addEventListener('click',()=>action('jump'));document.getElementById('magic').addEventListener('click',()=>action('magic'));document.getElementById('ultimate').addEventListener('click',()=>action('ultimate'));
+document.getElementById('attack').addEventListener('click',()=>action('attack'));
+const jumpButton=document.getElementById('jump');
+// pointerdown responde imediatamente ao segundo dedo enquanto o primeiro mantém o joystick.
+jumpButton.addEventListener('pointerdown',e=>{e.preventDefault();action('jump');});
+document.getElementById('magic').addEventListener('click',()=>action('magic'));document.getElementById('ultimate').addEventListener('click',()=>action('ultimate'));
 addEventListener('keydown',e=>{if(e.repeat)return;if(e.key.toLowerCase()==='j'||e.key.toLowerCase()==='x')action('attack');if(e.key===' ')action('jump');});
 let lastMove=0,moveVX=0,moveVZ=0,playerYaw=Math.PI;
 let cameraYaw=0,cameraPitch=.16,cameraDistance=8.5;
