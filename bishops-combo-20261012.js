@@ -817,7 +817,7 @@ const BishopBoss = {
           this._go('attack');
           this.kx += this.fx * this.attack.lunge;
           this.ky += this.fy * this.attack.lunge;
-          Camera.shake = Math.max(Camera.shake, (this.attack.id === 'vault' || this.attack.id === 'graveThorns') ? 3.5 : 1.5);
+          Camera.shake = Math.max(Camera.shake, (this.attack.id === 'vault' || this.attack.id === 'blackReaper') ? 3.5 : 1.5);
           if (this.attack.id === 'vault') Ambient.spawnDust(this.x, this.y, 10, '#d8b65a', 1.4);
           if (this.attack.id === 'sealwave') Ambient.spawnDust(this.x, this.y, 15, '#89988e', 1.5);
           if (this.attack.id === 'abyssEclipse') { Camera.shake = Math.max(Camera.shake, 6); Ambient.spawnSpark(this.x, this.y - this.z - 12, 22, '#ff123f'); }
@@ -858,8 +858,8 @@ const BishopBoss = {
                 areaSkill ? '#c91e32' : (this.profile.id === 'bishop3' ? '#b8d0c3' : '#f3c14e'));
               if (areaSkill) {
                 Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 5, '#17121b');
-                Camera.shake = Math.max(Camera.shake, this.attack.id === 'graveThorns' ? 5.2 : 3.8);
-                if (typeof BishopDimension !== 'undefined') BishopDimension.impact(this.attack.id === 'graveThorns' ? 1.2 : .9);
+                Camera.shake = Math.max(Camera.shake, this.attack.id === 'abyssEclipse' ? 5.2 : 3.8);
+                if (typeof BishopDimension !== 'undefined') BishopDimension.impact(this.attack.id === 'abyssEclipse' ? 1.2 : .9);
               }
             } else if (!isValerio || this.stateT >= contactWindowEnd) {
               // Não mostrar impacto falso nem consumir a janela enquanto o jogador
