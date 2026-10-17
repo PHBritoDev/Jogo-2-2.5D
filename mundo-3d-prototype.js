@@ -84,8 +84,19 @@ const dead=.12;if(len<dead){axisX=0;axisZ=0;}else{const power=(len-dead)/(1-dead
 const worldX=axisX*Math.cos(cameraYaw)+axisZ*Math.sin(cameraYaw);
 const worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
 const speed=4.3,targetVX=worldX*speed,targetVZ=worldZ*speed;
-const accel=(Math.hypot(targetVX,targetVZ)>.05)?13:17;
-const blend=1-Math.exp(-accel*dt);
+const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
+let response;
+if(targetSpeed<.001){
+ // Replica a desaceleração de chão do jogo principal: solta o analógico sem patinar.
+ response=16;
+}else if(currentSpeed>.08&&
+ (moveVX*targetVX+moveVZ*targetVZ)/(currentSpeed*targetSpeed)<.82){
+ // Ao inverter a direção, conserva um pouco da inércia como na dimensão do Valério.
+ response=7.5;
+}else{
+ response=10;
+}
+const blend=1-Math.exp(-response*dt);
 moveVX+=(targetVX-moveVX)*blend;moveVZ+=(targetVZ-moveVZ)*blend;
 if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
 const moving=Math.hypot(moveVX,moveVZ)>.12;
