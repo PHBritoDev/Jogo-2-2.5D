@@ -11,7 +11,7 @@
   let api = null, root = null, leftHinge = null, rightHinge = null;
   let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkSmoke = [], darkTendrils = [], crimsonTendrils = [], opened = false, targetOpen = 0, angle = 0;
   let lastTime = 0, ready = false, attachedScene = null, autoCloseAt = 0;
-  const GOLD = 0xff345c, DARK_GOLD = 0x24030b, EMERALD = 0xff1744;
+  const GOLD = 0xe7a6b2, DARK_GOLD = 0x32101b, EMERALD = 0xff1744;
   const MAT = {};
   function material(key, color, roughness, metalness, emissive, emissiveIntensity) {
     if (!MAT[key]) MAT[key] = new api.THREE.MeshStandardMaterial({
@@ -42,8 +42,8 @@
     const diamond = new T.Mesh(new T.OctahedronGeometry(.075, 0), emerald);
     diamond.scale.set(.72, 1.45, .34);
     group.add(diamond);
-    const slashA = new T.Mesh(new T.BoxGeometry(.025, .21, .012), gold); slashA.rotation.z = Math.PI / 4; group.add(slashA);
-    const slashB = new T.Mesh(new T.BoxGeometry(.025, .21, .012), emerald); slashB.rotation.z = -Math.PI / 4; group.add(slashB);
+    const ring = new T.Mesh(new T.TorusGeometry(.13, .012, 5, 20), gold);
+    ring.rotation.z = Math.PI / 4; group.add(ring);
     const vertical = new T.Mesh(new T.BoxGeometry(.018, .25, .012), gold);
     group.add(vertical);
     parent.add(group); runes.push(group);
@@ -51,11 +51,11 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod123';
+    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod122';
     const leather = material('leather', 0x08050b, .48, .42, 0x430010, .42);
     const leatherEdge = material('leatherEdge', 0x250711, .38, .62, 0x8b0022, .58);
-    const pagesMat = material('parchment', 0x18070d, .96, .08, 0x3d0010, .12);
-    const pageShadow = material('pageShadow', 0x09040a, .96, .04, 0x1b0007, .08);
+    const pagesMat = material('parchment', 0x251018, .88, .08, 0x5a0018, .16);
+    const pageShadow = material('pageShadow', 0x10060d, .9, .04, 0x2d000b, .12);
     const gold = material('gold', 0x9c1736, .28, .82, 0xff002e, .75);
     const green = material('greenGem', 0xff1744, .18, .58, 0xff003c, 1.8);
     const w = .92, h = .68, thick = .105;
@@ -70,7 +70,7 @@
     leftHinge = new T.Group(); leftHinge.position.set(-.045, 0, .025); root.add(leftHinge);
     box(leftHinge, 'Capa esquerda', [w / 2, h, .045], [-w / 4, 0, .025], leather);
     box(leftHinge, 'Friso dourado esquerdo', [w / 2 - .055, h - .055, .009], [-w / 4, 0, .052], gold);
-    box(leftHinge, 'Forro esmeralda esquerdo', [w / 2 - .078, h - .078, .008], [-w / 4, 0, .058], material('insideCrimson', 0x26050d, .94, .18));
+    box(leftHinge, 'Forro esmeralda esquerdo', [w / 2 - .078, h - .078, .008], [-w / 4, 0, .058], material('insideGreen', 0x17382b, .72, .25));
     rightHinge = new T.Group(); rightHinge.position.set(.045, 0, .025); root.add(rightHinge);
     box(rightHinge, 'Capa direita', [w / 2, h, .045], [w / 4, 0, .025], leather);
     box(rightHinge, 'Friso dourado direito', [w / 2 - .055, h - .055, .009], [w / 4, 0, .052], gold);
@@ -84,21 +84,21 @@
     box(root, 'Placa central', [.24, .31, .025], [.0, .015, .083], gold);
     const gem = new T.Mesh(new T.OctahedronGeometry(.095, 1), green);
     gem.name = 'Selo esmeralda'; gem.position.set(0, .02, .105); gem.scale.set(.82, 1.22, .56); root.add(gem);
-    const sealSlashA = new T.Mesh(new T.BoxGeometry(.025, .34, .012), gold); sealSlashA.position.set(0,.02,.113); sealSlashA.rotation.z=.72; root.add(sealSlashA);
-    const sealSlashB = new T.Mesh(new T.BoxGeometry(.025, .34, .012), green); sealSlashB.position.set(0,.02,.114); sealSlashB.rotation.z=-.72; root.add(sealSlashB);
+    const sealRing = new T.Mesh(new T.TorusGeometry(.145, .012, 6, 32), gold);
+    sealRing.position.set(0, .02, .103); root.add(sealRing);
     makeRune(root, 0, -.205, .092, .55);
     // Pequenas nervuras de lombada reforçam a silhueta de um volume encadernado.
     for (let i = -1; i <= 1; i++) {
-      const rib = new T.Mesh(new T.BoxGeometry(.025, .12, .018), gold);
-      rib.position.set(0, i * .19, .018); root.add(rib);
+      const rib = new T.Mesh(new T.TorusGeometry(.055, .009, 4, 16, Math.PI), gold);
+      rib.rotation.y = Math.PI / 2; rib.position.set(0, i * .19, .018); root.add(rib);
     }
-    // MOD 123: grimório sem círculos flutuantes; capa escura e sigilos angulares escarlates.
+    // MOD 118: magia proibida — fumaça negra, filamentos orgânicos e veias escarlates.
     // Sem círculos mágicos: a energia parece escapar das páginas e enrolar-se no ar.
     const smokeColors = [0x020105, 0x08020a, 0x16020a, 0x27000d, 0x4a0015];
     for (let i = 0; i < 22; i++) {
       const smokeMat = new T.MeshBasicMaterial({
         color: smokeColors[i % smokeColors.length], transparent: true,
-        opacity: .09 + (i % 4) * .018, blending: T.NormalBlending,
+        opacity: .20 + (i % 4) * .035, blending: T.NormalBlending,
         depthWrite: false, side: T.DoubleSide
       });
       const cloud = new T.Mesh(new T.SphereGeometry(1, 10, 8), smokeMat);
@@ -192,13 +192,13 @@
       const page = box(root, 'Marcador de página ' + i, [.014, .13, .012], [.29 + i * .025, -.28, .065], i % 2 ? green : gold);
       pages.push(page);
     }
-    root.scale.setScalar(1.08);
+    root.scale.setScalar(1.24);
     root.visible = false;
     api.scene.add(root);
     attachedScene = api.scene;
     ready = true;
     window.BishopGrimoire3D = {
-      version: 123,
+      version: 122,
       invoke: function(duration){
         if (!ready || !root) return false;
         targetOpen = 1; opened = true; root.visible = true;
@@ -235,11 +235,11 @@
       const dz = playerPos[2] - p[2];
       if (Math.hypot(dx, dz) > 0.001) facingYaw = Math.atan2(dx, dz);
     }
-    const frontDistance = .72;
-    const bob = Math.sin(now * .0018) * .008;
+    const frontDistance = 1.05;
+    const bob = Math.sin(now * .0018) * .018;
     root.position.set(
       p[0] + Math.sin(facingYaw) * frontDistance,
-      p[1] + .62 + bob,
+      p[1] + 1.78 + bob,
       p[2] + Math.cos(facingYaw) * frontDistance
     );
     // Inclinação para cima: a face do grimório ergue-se ligeiramente.
