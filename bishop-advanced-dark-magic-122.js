@@ -64,7 +64,7 @@ function tick(now){
   debris.forEach(rock=>{const p=clamp((elapsed-2.1-rock.phase*.02)/2.9,0,1);rock.mesh.visible=elapsed>2.0&&elapsed<10.0;rock.mesh.position.set(rock.base.x*(1-p),rock.base.y+p*(6.8+rock.phase*.12),rock.base.z*(1-p)-7.0*p);rock.mesh.rotation.set(now*.001+rock.phase,now*.0015+rock.phase,now*.001+rock.phase);});
   if(elapsed>launchStart){hole.position.set(ux*len*launch,1.35,uz*len*launch);ring.position.copy(hole.position);ring.scale.setScalar(1.2+launch*.7);blast.position.copy(hole.position);blast.scale.setScalar(.2+launch*4);blast.material.opacity=launch>.8?clamp((launch-.8)*4,0,.95):.04;hole.scale.setScalar(1.55+launch*.45);}
   else{ring.position.copy(hole.position);blast.material.opacity=0;}
-  if(elapsed>launchStart+1.45){hole.scale.setScalar(Math.max(.01,1.9-(elapsed-8)*5));blast.material.opacity=Math.max(0,.9-(elapsed-8)*2.8);}
+  if(elapsed>launchStart+1.45){hole.scale.setScalar(Math.max(.01,1.9-(elapsed-(launchStart+1.45))*5));blast.material.opacity=Math.max(0,.9-(elapsed-(launchStart+1.45))*2.8);}
  }
 }
 function start(){requestAnimationFrame(tick);}
