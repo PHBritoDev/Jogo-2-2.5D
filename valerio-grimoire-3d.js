@@ -9,7 +9,7 @@
   if (!enabled) return;
 
   let api = null, root = null, leftHinge = null, rightHinge = null;
-  let pages = [], runes = [], opened = false, targetOpen = 0, angle = 0;
+  let pages = [], pageLeaves = [], runes = [], opened = false, targetOpen = 0, angle = 0;
   let button = null, lastTime = 0, ready = false, attachedScene = null;
   const GOLD = 0xc9a34a, DARK_GOLD = 0x62421b, EMERALD = 0x087c5b;
   const MAT = {};
@@ -92,6 +92,24 @@
       const rib = new T.Mesh(new T.TorusGeometry(.055, .009, 4, 16, Math.PI), gold);
       rib.rotation.y = Math.PI / 2; rib.position.set(0, i * .19, .018); root.add(rib);
     }
+    // Folhas articuladas 3D: espalham suavemente quando a capa abre.
+    for (let i = 0; i < 4; i++) {
+      const spread = (i - 1.5) * .012;
+      const leftPage = new T.Group();
+      leftPage.position.set(-.045, 0, .026 + spread);
+      const leftLeaf = new T.Mesh(new T.BoxGeometry(.365, .59, .0035), pagesMat);
+      leftLeaf.position.set(-.184, 0, 0);
+      leftLeaf.castShadow = false; leftLeaf.receiveShadow = false;
+      leftPage.add(leftLeaf); root.add(leftPage);
+      pageLeaves.push({ hinge: leftPage, side: -1, offset: i * .025 });
+      const rightPage = new T.Group();
+      rightPage.position.set(.045, 0, .026 + spread);
+      const rightLeaf = new T.Mesh(new T.BoxGeometry(.365, .59, .0035), pagesMat);
+      rightLeaf.position.set(.184, 0, 0);
+      rightLeaf.castShadow = false; rightLeaf.receiveShadow = false;
+      rightPage.add(rightLeaf); root.add(rightPage);
+      pageLeaves.push({ hinge: rightPage, side: 1, offset: i * .025 });
+    }
     // Marcadores de página finos; ficam no miolo e não são poderes.
     for (let i = 0; i < 5; i++) {
       const page = box(root, 'Marcador de página ' + i, [.014, .13, .012], [.29 + i * .025, -.28, .065], i % 2 ? green : gold);
@@ -150,6 +168,10 @@
     angle += (desired - angle) * Math.min(1, dt * 7.5);
     if (leftHinge) leftHinge.rotation.y = -angle;
     if (rightHinge) rightHinge.rotation.y = angle;
+    pageLeaves.forEach(function(page) {
+      const pageOpen = Math.max(0, angle - page.offset);
+      page.hinge.rotation.y = page.side < 0 ? -pageOpen * .28 : pageOpen * .28;
+    });
     root.rotation.z = Math.sin(now * .0014) * .025;
     runes.forEach((r, i) => { r.rotation.z = Math.sin(now * .0015 + i) * .06; });
     if (angle < .01 && targetOpen === 0) root.visible = false;
