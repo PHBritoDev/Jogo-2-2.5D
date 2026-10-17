@@ -787,3 +787,22 @@ html body #action-cluster #btn-ultimate::before {
     pointer-events: none;
   }
 }
+
+
+/* MOD 110 — controle discreto para abrir/fechar o grimório 3D de Valério */
+html body #top-buttons .valerio-grimoire-toggle {
+  min-width: 42px;
+  font-size: 19px;
+  color: #f4d98a;
+  border-color: rgba(202, 163, 74, .85);
+  background: radial-gradient(circle at 35% 25%, rgba(25, 93, 69, .96), rgba(10, 22, 20, .96));
+  box-shadow: 0 0 0 1px rgba(16, 10, 3, .8), inset 0 0 0 1px rgba(244, 217, 138, .25), 0 0 12px rgba(8, 150, 100, .18);
+}
+html body #top-buttons .valerio-grimoire-toggle[aria-pressed="true"] {
+  color: #fff2bb;
+  border-color: #e4c16a;
+  box-shadow: 0 0 0 1px rgba(16, 10, 3, .8), inset 0 0 0 1px rgba(244, 217, 138, .35), 0 0 16px rgba(22, 214, 143, .36);
+}
+html body #top-buttons .valerio-grimoire-toggle:disabled {
+  opacity: .72;
+}
