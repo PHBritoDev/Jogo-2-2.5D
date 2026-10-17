@@ -1,16 +1,16 @@
-/* MOD 118 — energia proibida preta e escarlate no grimório aberto.
+/* MOD 119 — grimório invocado automaticamente apenas durante magia do Bispo.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
 (function () {
   'use strict';
   const params = new URLSearchParams(window.location.search);
-  const enabled = params.get('valerioGrimoire') === '1' || !!document.getElementById('btn-valerio-grimoire');
+  const enabled = params.get('valerioTest') === '1' || params.get('protagonista3D') === '1' || params.get('valerioGrimoire') === '1';
   if (!enabled) return;
 
   let api = null, root = null, leftHinge = null, rightHinge = null;
   let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkSmoke = [], darkTendrils = [], crimsonTendrils = [], opened = false, targetOpen = 0, angle = 0;
-  let button = null, lastTime = 0, ready = false, attachedScene = null;
+  let lastTime = 0, ready = false, attachedScene = null, autoCloseAt = 0;
   const GOLD = 0xc9a34a, DARK_GOLD = 0x62421b, EMERALD = 0x087c5b;
   const MAT = {};
   function material(key, color, roughness, metalness, emissive, emissiveIntensity) {
@@ -51,7 +51,7 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'ValerioGrimoire3D_Mod118';
+    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod119';
     const leather = material('leather', 0x171d18, .82, .18);
     const leatherEdge = material('leatherEdge', 0x30251a, .75, .35);
     const pagesMat = material('parchment', 0xc8b88a, .94, .04);
@@ -197,31 +197,20 @@
     api.scene.add(root);
     attachedScene = api.scene;
     ready = true;
-    window.ValerioGrimoire3D = {
-      version: 118,
-      open: function(){ targetOpen = 1; opened = true; },
-      close: function(){ targetOpen = 0; opened = false; },
-      toggle: function(){ targetOpen = targetOpen > .5 ? 0 : 1; opened = targetOpen > .5; },
+    window.BishopGrimoire3D = {
+      version: 119,
+      invoke: function(duration){
+        if (!ready || !root) return false;
+        targetOpen = 1; opened = true; root.visible = true;
+        autoCloseAt = performance.now() + (Number(duration) > 0 ? Number(duration) : 2600);
+        return true;
+      },
+      open: function(){ return window.BishopGrimoire3D.invoke(2600); },
+      close: function(){ targetOpen = 0; opened = false; autoCloseAt = 0; },
       isOpen: function(){ return opened; },
       ready: true
     };
-    if (button) {
-      button.disabled = false;
-      button.setAttribute('aria-pressed', 'false');
-      button.textContent = 'GRIMÓRIO';
-    }
-  }
-  function syncButton() {
-    if (!button) return;
-    button.setAttribute('aria-pressed', opened ? 'true' : 'false');
-    button.textContent = opened ? 'FECHAR GRIMÓRIO' : 'GRIMÓRIO';
-  }
-  function toggle() {
-    if (!ready) return;
-    targetOpen = targetOpen > .5 ? 0 : 1;
-    opened = targetOpen > .5;
-    syncButton();
-    if (root) root.visible = true;
+    window.ValerioGrimoire3D = window.BishopGrimoire3D;
   }
   function tick(now) {
     requestAnimationFrame(tick);
@@ -232,8 +221,11 @@
     if (!view || !view.active || !Array.isArray(view.position) || !api.camera) {
       root.visible = false; return;
     }
-    root.visible = true;
-    // MOD 118: preserva posição e inclinação discreta do grimório.
+    if (autoCloseAt && now >= autoCloseAt) {
+      targetOpen = 0; opened = false; autoCloseAt = 0;
+    }
+    root.visible = targetOpen > 0 || angle > .01;
+    // MOD 119: grimório só fica visível durante uma conjuração do Bispo.
     // view.yaw usa outra convenção no renderer 2D; reutilizá-lo colocava o livro atrás do modelo.
     const p = view.position;
     const playerPos = Array.isArray(view.playerPosition) ? view.playerPosition : null;
@@ -305,19 +297,6 @@
     if (angle < .01 && targetOpen === 0) root.visible = false;
   }
   function init() {
-    button = document.getElementById('btn-valerio-grimoire');
-    if (button) {
-      button.disabled = true;
-      button.textContent = 'CARREGANDO…';
-      button.addEventListener('click', toggle);
-    }
-    window.addEventListener('keydown', function(e) {
-      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
-      if (e.code !== 'KeyG') return;
-      const target = e.target;
-      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
-      e.preventDefault(); toggle();
-    });
     function waitForSharedScene() {
       api = window.ValerioThreeAPI;
       if (!api || !api.THREE || !api.scene || !api.camera) {
@@ -325,8 +304,7 @@
       }
       try { buildBook(); requestAnimationFrame(tick); }
       catch (err) {
-        console.error('MOD 118: falha ao montar o grimório 3D de Valério.', err);
-        if (button) { button.disabled = true; button.textContent = 'GRIMÓRIO INDISPONÍVEL'; }
+        console.error('MOD 119: falha ao montar o grimório 3D do Bispo.', err);
       }
     }
     waitForSharedScene();
