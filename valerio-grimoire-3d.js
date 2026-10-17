@@ -1,4 +1,4 @@
-/* MOD 126 — grimório com aura angular grande, negra e escarlate, visível durante a conjuração.
+/* MOD 126 — grimório com aura escarlate muito maior e visível durante a conjuração.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -169,8 +169,8 @@
       root.add(spark); darkSparks.push(spark);
     }
     // MOD 126: lâminas grandes e pontiagudas substituem a aura discreta anterior.
-    for(let i=0;i<12;i++){const a=i*Math.PI*2/12,shard=new T.Mesh(new T.ConeGeometry(.09+(i%3)*.025,.58+(i%4)*.12,3),new T.MeshBasicMaterial({color:i%3===0?0x020104:0x260008,transparent:true,opacity:.96,depthWrite:false}));shard.position.set(Math.cos(a)*.67,Math.sin(a)*.49,.16);shard.rotation.z=-a+Math.PI/2;shard.userData={phase:a,baseX:shard.position.x,baseY:shard.position.y};root.add(shard);auraShards.push(shard);}
-    for(let i=0;i<7;i++){const a=i*Math.PI*2/7,slash=new T.Mesh(new T.BoxGeometry(.045,.98+(i%3)*.18,.025),new T.MeshBasicMaterial({color:i%2?0xff001b:0x8b0018,transparent:true,opacity:.9,blending:T.AdditiveBlending,depthWrite:false}));slash.position.set(Math.cos(a)*.78,Math.sin(a)*.65,.21);slash.rotation.z=-a+.35;slash.userData={phase:a,baseRotation:slash.rotation.z};root.add(slash);auraSlashes.push(slash);}
+    for(let i=0;i<16;i++){const a=i*Math.PI*2/16,shard=new T.Mesh(new T.ConeGeometry(.13+(i%3)*.035,1.0+(i%4)*.22,3),new T.MeshBasicMaterial({color:i%3===0?0x020104:0x3d000b,transparent:true,opacity:.98,depthWrite:false,depthTest:false}));shard.position.set(Math.cos(a)*1.02,Math.sin(a)*.78,.48);shard.rotation.z=-a+Math.PI/2;shard.userData={phase:a,baseX:shard.position.x,baseY:shard.position.y};root.add(shard);auraShards.push(shard);}
+    for(let i=0;i<10;i++){const a=i*Math.PI*2/10,slash=new T.Mesh(new T.BoxGeometry(.075,1.42+(i%3)*.24,.045),new T.MeshBasicMaterial({color:i%2?0xff001b:0x8b0018,transparent:true,opacity:.98,blending:T.AdditiveBlending,depthWrite:false,depthTest:false}));slash.position.set(Math.cos(a)*1.16,Math.sin(a)*.84,.54);slash.rotation.z=-a+.35;slash.userData={phase:a,baseRotation:slash.rotation.z};root.add(slash);auraSlashes.push(slash);}
     // Folhas articuladas 3D: espalham suavemente quando a capa abre.
     for (let i = 0; i < 4; i++) {
       const spread = (i - 1.5) * .012;
