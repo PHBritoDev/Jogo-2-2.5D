@@ -6,7 +6,7 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x9bc6d1);
 scene.fog=new THREE.Fog(0x9bc6d1,35,115);
 const camera=new THREE.PerspectiveCamera(56,innerWidth/innerHeight,.1,180);
-camera.position.set(0,4.2,8);
+camera.position.set(0,3.2,10);
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
 renderer.setSize(innerWidth,innerHeight);
@@ -66,12 +66,13 @@ let lastMove=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);
 let x=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let z=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;const len=Math.hypot(x,z);if(len>1){x/=len;z/=len;}
 const moving=len>.12&&now>actionUntil;
-if(moving){const speed=4.3;player.position.x+=x*speed*dt;player.position.z+=z*speed*dt;player.position.x=THREE.MathUtils.clamp(player.position.x,-38,38);player.position.z=THREE.MathUtils.clamp(player.position.z,-72,14);player.rotation.y=Math.atan2(x,z);if(actions.walk)play('walk');}
+if(moving){const speed=4.3;player.position.x+=x*speed*dt;player.position.z+=z*speed*dt;player.position.x=THREE.MathUtils.clamp(player.position.x,-38,38);player.position.z=THREE.MathUtils.clamp(player.position.z,-72,14);player.rotation.y=Math.atan2(x,z);cameraYaw=THREE.MathUtils.lerp(cameraYaw,player.rotation.y+Math.PI,.04);if(actions.walk)play('walk');}
 else if(now>actionUntil&&actions.idle)play('idle');
 if(hop>0){hop-=dt;player.position.y=Math.max(0,Math.sin((.34-hop)/.34*Math.PI)*.75);}else player.position.y=0;
 const target=new THREE.Vector3(player.position.x,player.position.y+1.15,player.position.z);
-const behind=new THREE.Vector3(Math.sin(player.rotation.y)*7,3.4,Math.cos(player.rotation.y)*7);
-const desired=target.clone().add(behind);camera.position.lerp(desired,1-Math.exp(-4*dt));camera.lookAt(target.x,target.y+.15,target.z-1.4);
+const camOffset=new THREE.Vector3(Math.sin(cameraYaw)*cameraDistance*Math.cos(cameraPitch),cameraDistance*Math.sin(cameraPitch),Math.cos(cameraYaw)*cameraDistance*Math.cos(cameraPitch));
+const desired=target.clone().add(camOffset);
+camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(target);
 const t=clock.elapsedTime;treeGroup.children.forEach((tree,i)=>{tree.rotation.z=Math.sin(t*.7+i*.9)*.012;});grassGroup.children.forEach((blade,i)=>{blade.rotation.z=Math.sin(t*1.4+i*.31)*.12;});
 renderer.render(scene,camera);}
 animate();
