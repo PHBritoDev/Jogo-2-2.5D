@@ -699,25 +699,15 @@ const BishopBoss = {
             break;
           }
         }
-        // Skills têm recarga própria e podem iniciar uma aproximação em corrida.
-        if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
-          const allSkills = this.profile.attacks.filter(a => a.skill);
-          let readySkill = null;
-          if (this.skillChainCooldown <= 0 && allSkills.length) {
-            for (let offset = 0; offset < allSkills.length; offset++) {
-              const idx = (this.skillRotationIndex + offset) % allSkills.length;
-              if ((this.skillCooldowns[allSkills[idx].id] || 0) <= 0) {
-                readySkill = allSkills[idx];
-                this.skillRotationIndex = (idx + 1) % allSkills.length;
-                break;
-              }
-            }
-          }
-          if (readySkill && d <= 300 && (this.attackIndex % 2 === 0)) {
-            this.attack = readySkill;
-            this.lastChosenAttackId = readySkill.id;
+        // Escolha tática também vale longe: sem rotação cega de magias por índice.
+        if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1' && this.skillChainCooldown <= 0) {
+          const tacticalSkill = ValerioCombatAI.chooseAttack(this.profile, this.profile.attacks, this.skillCooldowns,
+            this.attackIndex, this.skillChainCooldown, d, Player.speed || Math.hypot(Player.vx || 0, Player.vy || 0), Player);
+          if (tacticalSkill && tacticalSkill.skill && d <= Math.min(tacticalSkill.range * 0.82, 520)) {
+            this.attack = tacticalSkill;
+            this.lastChosenAttackId = tacticalSkill.id;
             this.attackIndex++;
-            this.skillCooldowns[readySkill.id] = readySkill.skillCooldown || 6.5;
+            this.skillCooldowns[tacticalSkill.id] = tacticalSkill.skillCooldown || 6.5;
             this.skillChainCooldown = 2.5;
             this._go('skillapproach');
             break;
