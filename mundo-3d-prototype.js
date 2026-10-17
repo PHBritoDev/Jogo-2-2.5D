@@ -35,7 +35,60 @@ for(let i=0;i<100;i++){let x=(rand()-.5)*90,z=-8-rand()*82;if(Math.abs(x)<5&&z>-
 for(let i=0;i<32;i++){const radius=.4+rand()*1.15;const r=new THREE.Mesh(new THREE.DodecahedronGeometry(radius,0),rockMat);r.position.set((rand()-.5)*42,.15,-5-rand()*65);r.scale.y=.5+rand()*.6;r.rotation.set(rand(),rand()*3,rand());r.castShadow=true;r.receiveShadow=true;scene.add(r);rockObstacles.push({x:r.position.x,z:r.position.z,radius:radius*.92,height:r.position.y+radius*r.scale.y*.72});}
 const grassGroup=new THREE.Group();scene.add(grassGroup);
 for(let i=0;i<180;i++){const x=(rand()-.5)*58,z=-3-rand()*55;if(Math.abs(x)<3&&z>-48)continue;const h=.12+rand()*.3;const blade=new THREE.Mesh(new THREE.ConeGeometry(.055,h,3),i%3?leafLight:leafMat);blade.position.set(x,h/2,z);blade.rotation.z=(rand()-.5)*.55;grassGroup.add(blade);}
+
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
+// Inimigo de treino: geometria original, sem depender de assets externos.
+const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(0,0,-3.2);
+const enemyMaterials=[
+ mat(0x28372f,.82),mat(0x111a18,.75),mat(0x493d31,.9),
+ new THREE.MeshStandardMaterial({color:0xe34d36,emissive:0x8a170d,emissiveIntensity:1.2,roughness:.4})
+];
+function enemyPart(geometry,material,x,y,z,sx=1,sy=1,sz=1){
+ const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;enemy.add(mesh);return mesh;
+}
+enemyPart(new THREE.CapsuleGeometry(.34,.58,4,7),enemyMaterials[0],0,.95,0,1,1,1);
+enemyPart(new THREE.SphereGeometry(.29,10,8),enemyMaterials[1],0,1.68,0,1,1.05,.9);
+enemyPart(new THREE.ConeGeometry(.105,.3,5),enemyMaterials[2],-.19,1.98,-.01,.8,1,1);
+enemyPart(new THREE.ConeGeometry(.105,.3,5),enemyMaterials[2],.19,1.98,-.01,.8,1,1);
+enemyPart(new THREE.SphereGeometry(.055,8,6),enemyMaterials[3],-.105,1.7,.245);
+enemyPart(new THREE.SphereGeometry(.055,8,6),enemyMaterials[3],.105,1.7,.245);
+const enemyArms=[];
+for(const side of [-1,1]){
+ const arm=enemyPart(new THREE.CapsuleGeometry(.105,.43,3,6),enemyMaterials[0],side*.39,1.05,0,1,1,1);
+ arm.rotation.z=side*-.32;enemyArms.push(arm);
+ enemyPart(new THREE.CapsuleGeometry(.13,.34,3,6),enemyMaterials[1],side*.17,.34,0,1,1,1);
+}
+const enemyGroundShadow=new THREE.Mesh(new THREE.CircleGeometry(.48,16),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.35,depthWrite:false}));
+enemyGroundShadow.rotation.x=-Math.PI/2;enemyGroundShadow.position.y=.012;enemy.add(enemyGroundShadow);
+let enemyHP=100,enemyAlive=true,enemyHitFlash=0,enemyKnockback=0,attackCooldown=0,enemyDefeatScale=1;
+const enemyBaseMaterials=enemyMaterials.slice(0,3);
+function updateEnemyHud(){
+ const p=enemy.position.clone().add(new THREE.Vector3(0,2.35,0)).project(camera);
+ const hud=document.getElementById('enemy-hud');
+ if(!hud)return;
+ const visible=p.z>-1&&p.z<1&&p.x>-1.2&&p.x<1.2&&p.y>-1.2&&p.y<1.2&&enemyAlive;
+ hud.style.display=visible?'block':'none';
+ if(visible){hud.style.left=((p.x*.5+.5)*innerWidth)+'px';hud.style.top=((-p.y*.5+.5)*innerHeight)+'px';}
+ const fill=document.getElementById('enemy-hp-fill');
+ if(fill)fill.style.width=Math.max(0,enemyHP)+'%';
+}
+function tryPlayerAttack(){
+ const now=performance.now();if(now<attackCooldown)return;attackCooldown=now+520;
+ if(actions.attack){play('attack',.06);actionUntil=now+430;}
+ if(!enemyAlive){status.textContent='Inimigo derrotado!';return;}
+ const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
+ const distance=Math.hypot(dx,dz);
+ const forwardX=Math.sin(playerYaw),forwardZ=Math.cos(playerYaw);
+ const facing=(dx*forwardX+dz*forwardZ)/(distance||1);
+ if(distance>2.35||facing<.25){
+  status.textContent=distance>2.35?'Chegue mais perto para acertar o golpe':'Vire-se para o inimigo e ataque';
+  return;
+ }
+ enemyHP=Math.max(0,enemyHP-25);enemyHitFlash=.2;enemyKnockback=.42;
+ status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
+ if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';}
+}
+
 let model=null,mixer=null,actions={},activeAction=null,walkName='';
 const clock=new THREE.Clock();
 function chooseClip(clips,regex){return clips.find(c=>regex.test(c.name));}
@@ -49,7 +102,7 @@ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
  fitModel(model);player.add(model);
  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);const attack=chooseClip(clips,/attack|sword|golpe|ataque/i);const jump=chooseClip(clips,/jump|saltar|salto/i);
  if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attack)actions.attack=mixer.clipAction(attack);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'attack',0);}
- player.userData.ready=true;loading.classList.add('hidden');status.textContent='Protagonista 3D carregado · exploração ativa';
+ player.userData.ready=true;loading.classList.add('hidden');status.textContent='Inimigo à frente · aproxime-se e use GOLPE';
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -60,7 +113,7 @@ stick.addEventListener('pointermove',e=>{if(joyActive)setJoy(e);});
 function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';}
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
 let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
-function action(kind){const now=performance.now();if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){play('jump',.08);actionUntil=now+420;}else{actionUntil=now+180;}return;}if(kind==='attack'||kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='attack'?'Golpe demonstrativo · combate ainda será integrado':kind==='magic'?'Magia será conectada ao sistema celestial':'Ultimate será conectada ao sistema celestial';setTimeout(()=>{if(status.textContent.startsWith('Golpe demonstrativo')||status.textContent.startsWith('Magia será')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
+function action(kind){const now=performance.now();if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){play('jump',.08);actionUntil=now+420;}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='magic'?'Magia celestial será integrada depois':'Ultimate será integrada depois';setTimeout(()=>{if(status.textContent.startsWith('Magia celestial')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
 document.getElementById('attack').addEventListener('click',()=>action('attack'));
 const jumpButton=document.getElementById('jump');
 // pointerdown responde imediatamente ao segundo dedo enquanto o primeiro mantém o joystick.
@@ -83,6 +136,10 @@ lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(camer
 addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';});
 
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);
+ if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);enemyMaterials[0].emissive.setHex(0x8b2417);enemyMaterials[0].emissiveIntensity=1.1;}else{enemyMaterials[0].emissive.setHex(0x000000);enemyMaterials[0].emissiveIntensity=0;}
+ if(enemyKnockback>0&&enemyAlive){const step=Math.min(enemyKnockback,dt*2.5);enemy.position.x+=Math.sin(playerYaw)*step;enemy.position.z+=Math.cos(playerYaw)*step;enemyKnockback-=step;}
+ if(!enemyAlive){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
+ updateEnemyHud();
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}

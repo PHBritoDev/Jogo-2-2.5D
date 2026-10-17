@@ -20,6 +20,10 @@ button{width:64px;height:58px;border-radius:18px;border:1px solid #ffffff50;back
 button:active{transform:scale(.96);background:#31583d}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:26px;background:linear-gradient(#10251bdc,#08110feF);z-index:5;font-size:14px;line-height:1.6}
 #loading.hidden{display:none}
+#enemy-hud{position:fixed;z-index:3;display:none;transform:translate(-50%,-50%);width:132px;text-align:center;pointer-events:none;text-shadow:0 1px 4px #000}
+#enemy-name{font-size:10px;font-weight:900;letter-spacing:.1em;color:#ffe7d9;margin-bottom:4px}
+#enemy-hp-track{height:7px;border:1px solid #e9d5c6aa;border-radius:8px;background:#171312d9;overflow:hidden;box-shadow:0 2px 7px #0008}
+#enemy-hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#8d211c,#ef6546);transition:width .12s linear}
 #back{position:fixed;right:10px;top:54px;z-index:2;width:auto;height:auto;padding:7px 10px;border-radius:10px;text-decoration:none;color:#fff;background:#07110c99;border:1px solid #ffffff35;font-size:11px}
 @media(min-width:800px){#stick{width:130px;height:130px;left:28px;bottom:28px}#knob{left:39px;top:39px}#actions{right:28px;bottom:28px;grid-template-columns:repeat(4,68px)}button{width:68px}}
 </style>
@@ -28,7 +32,8 @@ button:active{transform:scale(.96);background:#31583d}
 <canvas id="scene"></canvas>
 <div id="look-area" aria-label="Arraste para olhar para cima/baixo; use dois dedos para aproximar/afastar"></div>
 <div id="top"><div id="title">A BATALHA CONTRA OS 7 PECADOS</div><div id="status">Preparando o mundo 3D…</div></div>
-<div id="marker" aria-label="Modificação 144">144</div>
+<div id="marker" aria-label="Modificação 145">145</div>
+<div id="enemy-hud"><div id="enemy-name">CRIATURA SOMBRIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
 <div id="hint">PROTÓTIPO 3D · explore o vale e teste a movimentação</div>
 <a id="back" href="./index.html">Voltar ao jogo 2D</a>
 <div id="stick" aria-label="Controle de movimento"><div id="knob"></div></div>
@@ -38,6 +43,6 @@ button:active{transform:scale(.96);background:#31583d}
 </div>
 <div id="loading">Carregando o protagonista 3D e construindo o vale…<br><br>Esta é uma versão paralela de teste. A campanha original continua intacta.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mundo-3d-prototype.js?v=mod144-walk-over-rocks"></script>
+<script type="module" src="./mundo-3d-prototype.js?v=mod145-first-combat"></script>
 </body>
 </html>
