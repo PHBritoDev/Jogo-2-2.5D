@@ -712,11 +712,20 @@ const BishopBoss = {
         }
         // Skills têm recarga própria e podem iniciar uma aproximação em corrida.
         if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
-          const readySkills = this.skillChainCooldown <= 0 ? this.profile.attacks.filter(a => a.skill && (this.skillCooldowns[a.id] || 0) <= 0) : [];
-          const readySkill = readySkills.length ? readySkills[this.skillRotationIndex % readySkills.length] : null;
+          const allSkills = this.profile.attacks.filter(a => a.skill);
+          let readySkill = null;
+          if (this.skillChainCooldown <= 0 && allSkills.length) {
+            for (let offset = 0; offset < allSkills.length; offset++) {
+              const idx = (this.skillRotationIndex + offset) % allSkills.length;
+              if ((this.skillCooldowns[allSkills[idx].id] || 0) <= 0) {
+                readySkill = allSkills[idx];
+                this.skillRotationIndex = (idx + 1) % allSkills.length;
+                break;
+              }
+            }
+          }
           if (readySkill && d <= 300 && (this.attackIndex % 2 === 0)) {
             this.attack = readySkill;
-            this.skillRotationIndex = (this.skillRotationIndex + 1) % Math.max(1, this.profile.attacks.filter(a => a.skill).length);
             this.attackIndex++;
             this.skillCooldowns[readySkill.id] = readySkill.skillCooldown || 6.5;
             this.skillChainCooldown = 2.5;
