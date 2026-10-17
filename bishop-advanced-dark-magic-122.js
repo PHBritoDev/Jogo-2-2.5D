@@ -1,4 +1,4 @@
-/* MOD 125 — lâminas compactas teleguiadas e Eclipse escarlate cinematográfico. */
+/* MOD 126 — lua monstruosa, dentes marfim, árvores sugadas e câmera normal no arremesso. */
 (function(){
 'use strict';
 let api=null,group=null,ready=false,last=0,activeId='',startAt=0,overlay=null;
@@ -27,22 +27,24 @@ function build(){
  lane=new T.Mesh(new T.PlaneGeometry(1,1),mat(T,0xff123f,.28,true));lane.rotation.x=-Math.PI/2;group.add(lane);
  for(let i=0;i<35;i++){const g=new T.Group();g.add(new T.Mesh(new T.BoxGeometry(.065,.92,.045),blackRed));const point=new T.Mesh(new T.ConeGeometry(.048,.24,4),black);point.position.y=-.55;g.add(point);const edge2=new T.Mesh(new T.BoxGeometry(.018,.78,.05),red);edge2.position.set(.026,.025,.028);g.add(edge2);const core=new T.Mesh(new T.BoxGeometry(.012,.62,.052),hotRed);core.position.set(-.012,.025,.03);g.add(core);const trail=new T.Mesh(new T.BoxGeometry(.075,1.25,.012),mat(T,0xff102f,.34,true));trail.position.set(0,.36,-.018);g.add(trail);group.add(g);swords.push({mesh:g,lane:((i%7)-3)*.22,start:.12+Math.floor(i/7)*.12,baseY:1.4+(i%4)*.17,phase:i*.31});}
  const eclipse=new T.Group();eclipse.name='Eclipse sequence';group.add(eclipse);
- moon=new T.Group();moon.name='Lua demoníaca escarlate';moon.position.set(0,15.2,-13.2);eclipse.add(moon);
- moonCore=new T.Mesh(new T.SphereGeometry(4.25,32,24),new T.MeshStandardMaterial({color:0x230007,roughness:.92,emissive:0x6f0016,emissiveIntensity:.8}));moon.add(moonCore);
+ moon=new T.Group();moon.name='Lua monstruosa estilo Fire Force';moon.position.set(0,18.1,-18.5);moon.scale.set(1.13,.96,.68);eclipse.add(moon);
+ moonCore=new T.Mesh(new T.SphereGeometry(4.45,28,20),new T.MeshStandardMaterial({color:0xc9c5bd,roughness:1,metalness:0,emissive:0x181316,emissiveIntensity:.08}));moon.add(moonCore);
+ for(let i=0;i<18;i++){const a=i*Math.PI*2/18,spike=new T.Mesh(new T.ConeGeometry(.34+(i%3)*.08,.72+(i%4)*.19,3),new T.MeshStandardMaterial({color:i%3===0?0x5b0712:0x8e101b,roughness:1,emissive:0x250006,emissiveIntensity:.18}));spike.position.set(Math.cos(a)*4.28,Math.sin(a)*4.28,0);spike.rotation.z=-a+Math.PI/2;moon.add(spike);}
  const faceVoid=new T.MeshBasicMaterial({color:0x010104});
  for(const side of [-1,1]){const eye=new T.Mesh(new T.ConeGeometry(.62,1.55,3),faceVoid);eye.position.set(side*1.22,.9,3.82);eye.rotation.z=side*.18;eye.rotation.x=.12;moon.add(eye);const brow=new T.Mesh(new T.BoxGeometry(1.15,.16,.12),blackRed);brow.position.set(side*1.18,1.82,3.78);brow.rotation.z=side*.22;moon.add(brow);}
  const grinShape=new T.Shape();grinShape.moveTo(-2.45,-.45);grinShape.quadraticCurveTo(0,-2.65,2.45,-.45);grinShape.quadraticCurveTo(0,-1.2,-2.45,-.45);
- const grin=new T.Mesh(new T.ShapeGeometry(grinShape,24),faceVoid);grin.position.set(0,-.42,3.83);moon.add(grin);
- for(let i=0;i<9;i++){const tooth=new T.Mesh(new T.ConeGeometry(.18,.58,3),hotRed);tooth.position.set(-1.8+i*.45,-1.0+(i%2)*.12,3.91);tooth.rotation.z=Math.PI;moon.add(tooth);}
+ const grin=new T.Mesh(new T.ShapeGeometry(grinShape,24),new T.MeshBasicMaterial({color:0x120006,side:T.DoubleSide}));grin.position.set(0,-.42,3.83);moon.add(grin);
+ for(let i=0;i<11;i++){const tooth=new T.Mesh(new T.ConeGeometry(.17,.66+(i%3)*.13,3),new T.MeshBasicMaterial({color:0xfff8e8}));tooth.position.set(-2.0+i*.4,-.77+(i%2)*.12,3.94);tooth.rotation.z=Math.PI;moon.add(tooth);}
+ for(let i=0;i<9;i++){const tooth=new T.Mesh(new T.ConeGeometry(.15,.5+(i%3)*.1,3),new T.MeshBasicMaterial({color:0xfff8e8}));tooth.position.set(-1.8+i*.45,-1.48+(i%2)*.1,3.94);moon.add(tooth);}
  // Sem halo circular: a expressão é formada por olhos triangulares e sorriso monstruoso.
  hole=new T.Mesh(new T.SphereGeometry(1,24,18),new T.MeshBasicMaterial({color:0x000000,depthWrite:false}));hole.position.set(0,8.3,-6.3);eclipse.add(hole);
  ring=new T.Mesh(new T.TorusGeometry(1.4,.09,7,48),red);ring.position.copy(hole.position);ring.scale.set(1,.72,.3);eclipse.add(ring);
  blast=new T.Mesh(new T.TorusGeometry(1.1,.12,6,32),mat(T,0x9d001d,0,true));blast.position.set(0,1,0);eclipse.add(blast);
  for(let i=0;i<18;i++){const ray=new T.Mesh(new T.CylinderGeometry(.018,.09,7.2,5),mat(T,i%2?0xff102f:0x5a0014,0,true));ray.position.set(Math.cos(i*Math.PI/9)*2.9,8.6,Math.sin(i*Math.PI/9)*2.9-6.3);ray.rotation.z=i%2?-.3:.3;eclipse.add(ray);rays.push(ray);}
  // Árvores secas de tamanho real, raízes, galhos e vegetação: tudo é puxado fisicamente para o vórtice.
- for(let i=0;i<15;i++){const tree=new T.Group();const trunkH=3.4+(i%4)*.55;const trunk=new T.Mesh(new T.CylinderGeometry(.07,.2,trunkH,6),black);trunk.position.y=trunkH*.5;tree.add(trunk);for(let j=0;j<5;j++){const branch=new T.Mesh(new T.CylinderGeometry(.025,.075,1.35+(j%2)*.35,5),blackRed);branch.position.set((j%2?1:-1)*(.25+(j%3)*.14),trunkH*.35+j*.42,.02);branch.rotation.z=(j%2?-.75:.75);tree.add(branch);}for(let j=0;j<3;j++){const rootBit=new T.Mesh(new T.CylinderGeometry(.015,.09,.85,5),blackRed);rootBit.position.set((j-1)*.2,.18,.02);rootBit.rotation.z=(j-1)*-.55;tree.add(rootBit);}tree.position.set(Math.cos(i*2.399)*(8.5+(i%4)*1.15),0,Math.sin(i*2.399)*(8.5+(i%4)*1.15));eclipse.add(tree);trees.push({mesh:tree,phase:i*.41,base:tree.position.clone()});}
+ for(let i=0;i<17;i++){const tree=new T.Group();const trunkH=4.2+(i%4)*.65;const trunk=new T.Mesh(new T.CylinderGeometry(.12,.29,trunkH,6),black);trunk.position.y=trunkH*.5;tree.add(trunk);for(let j=0;j<7;j++){const branch=new T.Mesh(new T.CylinderGeometry(.035,.105,1.55+(j%3)*.32,5),blackRed);branch.position.set((j%2?1:-1)*(.32+(j%3)*.19),trunkH*.28+j*.38,.02);branch.rotation.z=(j%2?-.78:.78);tree.add(branch);}for(let j=0;j<4;j++){const rootBit=new T.Mesh(new T.CylinderGeometry(.025,.12,1.05,5),blackRed);rootBit.position.set((j-1.5)*.22,.17,.04);rootBit.rotation.z=(j-1.5)*-.48;tree.add(rootBit);}tree.position.set((i-8)*1.55+Math.sin(i*2.4)*.55,-.02,-2.5-(i%5)*2.35);eclipse.add(tree);trees.push({mesh:tree,phase:i*.31,base:tree.position.clone()});}
  for(let i=0;i<42;i++){const tuft=new T.Group();for(let j=0;j<5;j++){const blade=new T.Mesh(new T.ConeGeometry(.055,.48+(j%3)*.13,4),j%3?blackRed:hotRed);blade.position.set((j-2)*.075,.18+(j%3)*.04,((j%2)-.5)*.08);blade.rotation.z=(j-2)*-.16;tuft.add(blade);}tuft.position.set(Math.cos(i*2.399)*(5.5+(i%7)*1.1),0,Math.sin(i*2.399)*(5.5+(i%7)*1.1));eclipse.add(tuft);grass.push({mesh:tuft,phase:i*.27,base:tuft.position.clone()});}
- for(let i=0;i<52;i++){const frag=new T.Mesh(new T.DodecahedronGeometry(.14+(i%5)*.07,0),i%4?black:blackRed);frag.position.set(Math.cos(i*2.399)*(4+(i%9)*.9),.25+(i%7)*.25,Math.sin(i*2.399)*(4+(i%9)*.9));eclipse.add(frag);debris.push({mesh:frag,phase:i*.17,base:frag.position.clone()});}
+ for(let i=0;i<24;i++){const frag=new T.Mesh(new T.DodecahedronGeometry(.10+(i%4)*.045,0),i%3?black:blackRed);frag.position.set((i-12)*.9,.12+(i%4)*.13,-3-(i%6)*2.1);eclipse.add(frag);debris.push({mesh:frag,phase:i*.17,base:frag.position.clone()});}
  group.userData.eclipse=eclipse;group.visible=false;ready=true;
 }
 function hide(){if(group)group.visible=false;if(overlay)overlay.style.opacity='0';window.CelestialEclipseLock=false;window.CelestialUltimateCamera={active:false};activeId='';startAt=0;}
@@ -69,20 +71,20 @@ function tick(now){
     const skyEye=[bossPos[0],(bossPos[1]||0)+14.0,(bossPos[2]||0)+24.0];
     const skyTarget=[bossPos[0],(bossPos[1]||0)+8.0,(bossPos[2]||0)-7.0];
     const rise=clamp(elapsed/1.7,0,1),smoothRise=rise*rise*(3-2*rise);
-    const returning=clamp((elapsed-9.05)/.95,0,1),smoothReturn=returning*returning*(3-2*returning);
+    const returning=clamp((elapsed-6.22)/.83,0,1),smoothReturn=returning*returning*(3-2*returning);
     const blend=smoothRise*(1-smoothReturn);
     const eye=normalEye.map((v,i)=>v+(skyEye[i]-v)*blend);
     const targetCam=normalTarget.map((v,i)=>v+(skyTarget[i]-v)*blend);
-    window.CelestialUltimateCamera={active:true,eye:eye,target:targetCam,fov:(Number(cameraStartFov)||1.02)+.25*blend};
+    window.CelestialUltimateCamera={active:elapsed<7.05,eye:eye,target:targetCam,fov:(Number(cameraStartFov)||1.02)+.25*blend};
     window.CelestialEclipseLock=elapsed<7.05;
   }
   if(!overlay){overlay=document.createElement('div');overlay.setAttribute('aria-hidden','true');overlay.style.cssText='position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .18s linear;background:radial-gradient(ellipse at 50% 14%,rgba(255,0,38,.42),rgba(110,0,18,.26) 42%,rgba(3,0,8,.5) 100%);mix-blend-mode:multiply;';document.body.appendChild(overlay);}
-  overlay.style.opacity=String(clamp((elapsed-.7)*.25,0,.78));moon.visible=elapsed>1.0&&elapsed<10.0;moon.scale.setScalar(.035+charge*.97);moonCore.material.emissiveIntensity=.5+charge*1.2;
+  overlay.style.opacity=String(clamp((elapsed-.7)*.25,0,.78));moon.visible=elapsed>1.0&&elapsed<10.0;moon.scale.set(1.13*(.035+charge*.97),.96*(.035+charge*.97),.68*(.035+charge*.97));moonCore.material.emissiveIntensity=.06+charge*.08;
   ring.material.opacity=.3+grow*.68;ring.scale.set(1.0+grow*2.2,.72+grow*1.15,.3);hole.visible=elapsed>2.0;hole.position.set(0,8.3-grow*.35,-6.3);hole.scale.setScalar(.08+grow*2.25);
   rays.forEach((ray,i)=>{ray.material.opacity=elapsed>1.0&&elapsed<7.1?(.2+.7*Math.abs(Math.sin(now*.006+i)))*charge:0;ray.scale.y=.45+charge*2.1;ray.rotation.y=now*.00035+i*.7;});
-  trees.forEach(tree=>{const p=clamp((elapsed-2.15-tree.phase*.035)/4.25,0,1);tree.mesh.visible=elapsed>2.15&&elapsed<9.2;tree.mesh.position.set(tree.base.x*(1-p)+Math.sin(now*.002+tree.phase)*.16,tree.base.y+p*(8.2+tree.phase*.04),tree.base.z*(1-p)-6.3*p+Math.cos(now*.002+tree.phase)*.16);tree.mesh.rotation.z=Math.sin(now*.003+tree.phase)*(.1+p*.42);tree.mesh.rotation.x=p*.5;tree.mesh.scale.setScalar(1-p*.48);});
-  grass.forEach(tuft=>{const p=clamp((elapsed-1.9-tuft.phase*.012)/3.6,0,1);tuft.mesh.visible=elapsed>1.9&&elapsed<8.8;tuft.mesh.position.set(tuft.base.x*(1-p),tuft.base.y+p*(7.8+tuft.phase*.025),tuft.base.z*(1-p)-6.2*p);tuft.mesh.rotation.z=Math.sin(now*.004+tuft.phase)*(.1+p*.6);tuft.mesh.rotation.x=p*.8;tuft.mesh.scale.setScalar(1-p*.7);});
-  debris.forEach(fragment=>{const p=clamp((elapsed-2.0-fragment.phase*.009)/3.7,0,1);fragment.mesh.visible=elapsed>2.0&&elapsed<8.9;fragment.mesh.position.set(fragment.base.x*(1-p),fragment.base.y+p*(8.0+fragment.phase*.025),fragment.base.z*(1-p)-6.3*p);fragment.mesh.rotation.set(now*.001+fragment.phase,now*.0015+fragment.phase,now*.001+fragment.phase);fragment.mesh.scale.setScalar(1-p*.55);});
+  trees.forEach(tree=>{const p=clamp((elapsed-1.9-tree.phase*.018)/4.5,0,1);tree.mesh.visible=elapsed>1.9&&elapsed<9.2;const tx=ux*1.1,tz=-6.3+uz*1.1;tree.mesh.position.set(tree.base.x*(1-p)+tx*p+Math.sin(now*.002+tree.phase)*.12,tree.base.y+p*.45,tree.base.z*(1-p)+tz*p+Math.cos(now*.002+tree.phase)*.12);tree.mesh.rotation.z=Math.sin(now*.003+tree.phase)*(.08+p*.8);tree.mesh.rotation.x=p*1.05;tree.mesh.scale.setScalar(1-p*.68);});
+  grass.forEach(tuft=>{const p=clamp((elapsed-1.55-tuft.phase*.012)/3.4,0,1);tuft.mesh.visible=elapsed>1.55&&elapsed<8.8;tuft.mesh.position.set(tuft.base.x*(1-p)+ux*1.2*p,tuft.base.y+p*.25,tuft.base.z*(1-p)-6.3*p+uz*1.2*p);tuft.mesh.rotation.z=Math.sin(now*.004+tuft.phase)*(.1+p*.8);tuft.mesh.rotation.x=p*.9;tuft.mesh.scale.setScalar(1-p*.8);});
+  debris.forEach(fragment=>{const p=clamp((elapsed-2.0-fragment.phase*.009)/3.7,0,1);fragment.mesh.visible=elapsed>2.0&&elapsed<8.9;fragment.mesh.position.set(fragment.base.x*(1-p)+ux*1.2*p,fragment.base.y+p*.5,fragment.base.z*(1-p)-6.3*p+uz*1.2*p);fragment.mesh.rotation.set(now*.001+fragment.phase,now*.0015+fragment.phase,now*.001+fragment.phase);fragment.mesh.scale.setScalar(1-p*.65);});
   if(elapsed>7.05){const y=8.3*(1-launch)+1.35*launch;hole.position.set(ux*len*launch,y,-6.3*(1-launch)+uz*len*launch);ring.position.copy(hole.position);ring.scale.setScalar(1.3+launch*1.5);blast.position.copy(hole.position);blast.scale.setScalar(.2+launch*5.5);blast.material.opacity=launch>.78?clamp((launch-.78)*4.5,0,.98):.025;hole.scale.setScalar(2.1+launch*.55);}
   else{ring.position.copy(hole.position);blast.material.opacity=0;}
   if(elapsed>8.3){hole.scale.setScalar(Math.max(.01,2.6-(elapsed-8.3)*5));blast.material.opacity=Math.max(0,.98-(elapsed-8.3)*2.3);}
