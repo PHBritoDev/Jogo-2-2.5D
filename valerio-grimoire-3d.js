@@ -51,7 +51,7 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod122';
+    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod125';
     const leather = material('leather', 0x08050b, .48, .42, 0x430010, .42);
     const leatherEdge = material('leatherEdge', 0x250711, .38, .62, 0x8b0022, .58);
     const pagesMat = material('parchment', 0x100309, .9, .04, 0x31000b, .18);
@@ -197,7 +197,7 @@
     attachedScene = api.scene;
     ready = true;
     window.BishopGrimoire3D = {
-      version: 122,
+      version: 125,
       invoke: function(duration){
         if (!ready || !root) return false;
         targetOpen = 1; opened = true; root.visible = true;
