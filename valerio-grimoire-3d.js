@@ -1,4 +1,4 @@
-/* MOD 119 — grimório invocado automaticamente apenas durante magia do Bispo.
+/* MOD 122 — grimório sombrio e escarlate, invocado automaticamente durante magia do Bispo.
  * Artefato visual independente; reutiliza a cena/câmera Three.js já carregada.
  * Não implementa poderes, dano, cooldowns ou comportamento de combate.
  */
@@ -11,7 +11,7 @@
   let api = null, root = null, leftHinge = null, rightHinge = null;
   let pages = [], pageLeaves = [], runes = [], darkSparks = [], darkSmoke = [], darkTendrils = [], crimsonTendrils = [], opened = false, targetOpen = 0, angle = 0;
   let lastTime = 0, ready = false, attachedScene = null, autoCloseAt = 0;
-  const GOLD = 0xc9a34a, DARK_GOLD = 0x62421b, EMERALD = 0x087c5b;
+  const GOLD = 0xe7a6b2, DARK_GOLD = 0x32101b, EMERALD = 0xff1744;
   const MAT = {};
   function material(key, color, roughness, metalness, emissive, emissiveIntensity) {
     if (!MAT[key]) MAT[key] = new api.THREE.MeshStandardMaterial({
@@ -37,7 +37,7 @@
     group.position.set(x, y, z);
     group.scale.setScalar(scale || 1);
     const gold = material('runeGold', GOLD, .32, .78, 0x6b4300, .22);
-    const emerald = material('runeEmerald', EMERALD, .34, .55, 0x00a46c, .5);
+    const emerald = material('runeEmerald', EMERALD, .24, .72, 0xff003c, 1.3);
     // Emblema geométrico abstrato, sem representar uma habilidade.
     const diamond = new T.Mesh(new T.OctahedronGeometry(.075, 0), emerald);
     diamond.scale.set(.72, 1.45, .34);
@@ -51,13 +51,13 @@
   }
   function buildBook() {
     const T = api.THREE;
-    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod119';
-    const leather = material('leather', 0x171d18, .82, .18);
-    const leatherEdge = material('leatherEdge', 0x30251a, .75, .35);
-    const pagesMat = material('parchment', 0xc8b88a, .94, .04);
-    const pageShadow = material('pageShadow', 0x766345, .92, .04);
-    const gold = material('gold', GOLD, .28, .82, 0x503100, .18);
-    const green = material('greenGem', 0x087c5b, .22, .58, 0x00a86d, .8);
+    root = new T.Group(); root.name = 'BishopGrimoire3D_Mod122';
+    const leather = material('leather', 0x08050b, .48, .42, 0x430010, .42);
+    const leatherEdge = material('leatherEdge', 0x250711, .38, .62, 0x8b0022, .58);
+    const pagesMat = material('parchment', 0x251018, .88, .08, 0x5a0018, .16);
+    const pageShadow = material('pageShadow', 0x10060d, .9, .04, 0x2d000b, .12);
+    const gold = material('gold', 0x9c1736, .28, .82, 0xff002e, .75);
+    const green = material('greenGem', 0xff1744, .18, .58, 0xff003c, 1.8);
     const w = .92, h = .68, thick = .105;
     // Miolo real, com espessura e várias folhas finas.
     box(root, 'Lombada reforçada', [.12, h + .045, thick + .025], [0, 0, 0], leatherEdge);
@@ -94,7 +94,7 @@
     }
     // MOD 118: magia proibida — fumaça negra, filamentos orgânicos e veias escarlates.
     // Sem círculos mágicos: a energia parece escapar das páginas e enrolar-se no ar.
-    const smokeColors = [0x080808, 0x111111, 0x1b1b1b, 0x242424, 0x321b1b];
+    const smokeColors = [0x020105, 0x08020a, 0x16020a, 0x27000d, 0x4a0015];
     for (let i = 0; i < 22; i++) {
       const smokeMat = new T.MeshBasicMaterial({
         color: smokeColors[i % smokeColors.length], transparent: true,
@@ -127,7 +127,7 @@
       }
       const curve = new T.CatmullRomCurve3(points);
       const mesh = new T.Mesh(new T.TubeGeometry(curve, 24, .009 + (i % 3) * .002, 5, false),
-        new T.MeshBasicMaterial({color: 0x080808, transparent:true, opacity:.84, depthWrite:false}));
+        new T.MeshBasicMaterial({color: 0x090006, transparent:true, opacity:.92, depthWrite:false}));
       mesh.name = 'Tentáculo de sombra ' + i;
       mesh.userData = {phase, speed: .35 + (i % 4) * .12};
       root.add(mesh); darkTendrils.push(mesh);
@@ -146,7 +146,7 @@
         ));
       }
       const vein = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points), 20, .0045, 4, false),
-        new T.MeshBasicMaterial({color: i % 2 ? 0x7b0712 : 0xc01825, transparent:true, opacity:.62, depthWrite:false}));
+        new T.MeshBasicMaterial({color: i % 2 ? 0xff1744 : 0xff4268, transparent:true, opacity:.88, depthWrite:false, blending: T.AdditiveBlending}));
       vein.name = 'Fissura escarlate ' + i;
       vein.userData = {phase, speed: .6 + (i % 3) * .15};
       root.add(vein); crimsonTendrils.push(vein);
@@ -198,7 +198,7 @@
     attachedScene = api.scene;
     ready = true;
     window.BishopGrimoire3D = {
-      version: 119,
+      version: 122,
       invoke: function(duration){
         if (!ready || !root) return false;
         targetOpen = 1; opened = true; root.visible = true;
