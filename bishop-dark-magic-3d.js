@@ -97,7 +97,7 @@
     api = window.ValerioThreeAPI || api;
     if (!built && api) { try { build(); } catch (e) { console.warn('Mod 120: VFX das magias negras não pôde ser montado.', e); return; } }
     const view = window.ValerioModelView;
-    if (!built || !view || !view.active || !view.attackId || !['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain'].includes(view.attackId) ||
+    if (!built || !view || !view.active || !view.attackId || !['abyssHands', 'graveThorns'].includes(view.attackId) ||
         !['windup', 'attack', 'recover'].includes(view.combatState)) {
       hideAll(); lastAttackKey = ''; return;
     }
