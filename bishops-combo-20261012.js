@@ -35,6 +35,8 @@ const BISHOP_PROFILES = {
       // MOD 120: magias negras com alvo travado no fim da preparação e janela real para esquiva.
       { id: 'abyssHands', name: 'Mãos do Abismo', skill: true, skillCooldown: 9.5, windup: 1.18, duration: 0.72, cooldown: 1.45, range: 300, areaRadius: 94, damage: 19, kb: 325, lunge: 0, hitAt: 0.22, telegraph: 'hands' },
       { id: 'graveThorns', name: 'Sepultura de Espinhos', skill: true, skillCooldown: 11.5, windup: 1.38, duration: 0.62, cooldown: 1.65, range: 300, areaRadius: 100, damage: 24, kb: 365, lunge: 0, hitAt: 0.18, telegraph: 'spikes' },
+      { id: 'blackReaper', name: 'Ceifador do Abismo', skill: true, skillCooldown: 14, windup: 1.45, duration: 0.78, cooldown: 1.8, range: 300, areaRadius: 82, damage: 27, kb: 410, lunge: 0, hitAt: 0.32, telegraph: 'reaper' },
+      { id: 'blackSwordRain', name: 'Chuva de Lâminas Negras', skill: true, skillCooldown: 17, windup: 1.65, duration: 0.92, cooldown: 2.0, range: 300, areaRadius: 105, damage: 30, kb: 390, lunge: 0, hitAt: 0.46, telegraph: 'swords' },
       { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.5, range: 190, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
       { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 1.05, range: 178, damage: 19, kb: 310, lunge: 92, hitAt: 0.09, parryable: true }
     ]
@@ -412,7 +414,7 @@ const ValerioCombatAI = {
     // Decide pela distância e pelo comportamento do jogador, não só por rotação fixa.
     // As magias negras entram na rotação de longe, sem substituir golpes corpo a corpo.
     if (profile.id === 'bishop1' && chainCooldown <= 0 && distance > 118) {
-      const dark = pool.filter(a => a.id === 'abyssHands' || a.id === 'graveThorns');
+      const dark = pool.filter(a => ['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain'].includes(a.id));
       if (dark.length) return dark[(Math.floor(index / 2)) % dark.length];
     }
     if (playerSpeed > 105 && distance > 72 && wide) return wide;
@@ -513,6 +515,7 @@ const BishopBoss = {
   _go(state) {
     this.state = state;
     this.stateT = 0;
+    if (state === 'windup') { this.skillTargetX = this.skillTargetY = null; }
     if (state === 'attack') { this.hitDone = false; this.hitDoneSecondary = false; this.hitDonePrimary = false; }
   },
 
@@ -756,7 +759,7 @@ const BishopBoss = {
         if (!alive) { this._go('approach'); break; }
         this.fx = dx / d; this.fy = dy / d;
         if (!this.attack || !this.attack.skill) { this._go('approach'); break; }
-        const rangedDarkSkill = this.attack.id === 'abyssHands' || this.attack.id === 'graveThorns';
+        const rangedDarkSkill = ['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain'].includes(this.attack.id);
         const skillStartRange = rangedDarkSkill ? Math.min(this.attack.range * 0.82, 250) : Math.min(this.attack.range * 0.78, 68);
         if (d <= skillStartRange) {
           this._go('windup');
@@ -796,7 +799,7 @@ const BishopBoss = {
           this.fx = dx / d; this.fy = dy / d;
         }
         if (this.stateT >= windupDuration) {
-          if (this.attack.id === 'abyssHands' || this.attack.id === 'graveThorns') {
+          if (['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain'].includes(this.attack.id)) {
             // Trava o centro no fim do aviso: mover-se depois evita o impacto.
             this.skillTargetX = Player.x;
             this.skillTargetY = Player.y;
@@ -820,7 +823,7 @@ const BishopBoss = {
           // todo o movimento do golpe. Soma os raios dos corpos ao alcance nominal.
           const contactRange = this.attack.range + (Player.r || 0) + (this.r || 0);
           const contactWindowEnd = Math.min(this.attack.duration - 0.035, this.attack.hitAt + 0.46);
-          const areaSkill = this.attack.id === 'abyssHands' || this.attack.id === 'graveThorns';
+          const areaSkill = ['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain'].includes(this.attack.id);
           const targetDistance = areaSkill && Number.isFinite(this.skillTargetX) && Number.isFinite(this.skillTargetY)
             ? Math.hypot(Player.x - this.skillTargetX, Player.y - this.skillTargetY) : Infinity;
           const canReach = alive && (areaSkill
