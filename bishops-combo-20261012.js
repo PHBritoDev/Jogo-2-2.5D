@@ -32,14 +32,12 @@ const BISHOP_PROFILES = {
     attacks: [
       // MOD 16: alcances coerentes com a distância de início; golpes acompanham melhor quem corre.
       { id: 'tax', name: 'Cobrança', windup: 0.62, duration: 0.64, cooldown: 0.9, range: 165, damage: 16, kb: 260, lunge: 70, hitAt: 0.08, secondHitAt: 0.54, secondHitScale: 0.65, parryable: true },
-      // MOD 122: magias negras e Eclipse do Abismo com alvo travado no fim da preparação e janela real para esquiva.
-      { id: 'abyssHands', name: 'Mãos do Abismo', skill: true, skillCooldown: 9.5, windup: 1.18, duration: 0.72, cooldown: 1.45, range: 300, areaRadius: 94, damage: 19, kb: 325, lunge: 0, hitAt: 0.22, telegraph: 'hands' },
-      { id: 'graveThorns', name: 'Sepultura de Espinhos', skill: true, skillCooldown: 11.5, windup: 1.38, duration: 0.62, cooldown: 1.65, range: 300, areaRadius: 100, damage: 24, kb: 365, lunge: 0, hitAt: 0.18, telegraph: 'spikes' },
-      { id: 'blackReaper', name: 'Ceifador do Abismo', skill: true, skillCooldown: 14, windup: 1.45, duration: 1.18, cooldown: 1.8, range: 300, areaRadius: 82, damage: 27, kb: 410, lunge: 0, hitAt: 0.62, telegraph: 'reaper' },
-      { id: 'blackSwordRain', name: 'Marcha das Lâminas Negras', skill: true, skillCooldown: 17, windup: 1.85, duration: 1.24, cooldown: 2.0, range: 300, areaRadius: 105, damage: 30, kb: 390, lunge: 0, hitAt: 0.72, telegraph: 'swords' },
-      { id: 'abyssEclipse', name: 'Eclipse do Abismo', skill: true, skillCooldown: 28, windup: 4.6, duration: 4.2, cooldown: 3.0, range: 320, areaRadius: 115, damage: 42, kb: 520, lunge: 0, hitAt: 3.6, telegraph: 'eclipse', critical: true },
-      { id: 'vault', name: 'Cofre Esmagador', skill: true, skillCooldown: 7.0, windup: 0.9, duration: 0.36, cooldown: 1.5, range: 190, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
-      { id: 'sweep', name: 'Varredura de Ouro', skill: true, skillCooldown: 8.5, windup: 0.72, duration: 0.32, cooldown: 1.05, range: 178, damage: 19, kb: 310, lunge: 92, hitAt: 0.09, parryable: true }
+      // MOD 123: somente 3 magias principais, alvo travado e rotação garantida e janela real para esquiva.
+      { id: 'blackReaper', name: 'Ceifador do Abismo', skill: true, skillCooldown: 10, windup: 1.55, duration: 4.8, cooldown: 2.0, range: 460, areaRadius: 88, damage: 27, kb: 410, lunge: 0, hitAt: 1.15, telegraph: 'reaper' },
+      { id: 'blackSwordRain', name: 'Marcha das Lâminas Negras', skill: true, skillCooldown: 12, windup: 1.9, duration: 1.65, cooldown: 2.0, range: 460, areaRadius: 92, damage: 30, kb: 390, lunge: 0, hitAt: 1.0, telegraph: 'swords' },
+      { id: 'abyssEclipse', name: 'Eclipse do Abismo', skill: true, skillCooldown: 18, windup: 2.6, duration: 7.2, cooldown: 3.0, range: 460, areaRadius: 115, damage: 42, kb: 520, lunge: 0, hitAt: 6.0, telegraph: 'eclipse', critical: true },
+      { id: 'vault', name: 'Cofre Esmagador', windup: 0.9, duration: 0.36, cooldown: 1.5, range: 190, damage: 24, kb: 360, lunge: 105, hitAt: 0.12 },
+      { id: 'sweep', name: 'Varredura de Ouro', windup: 0.72, duration: 0.32, cooldown: 1.05, range: 178, damage: 19, kb: 310, lunge: 92, hitAt: 0.09, parryable: true }
     ]
   },
   greedSecond: {
@@ -403,23 +401,16 @@ const ValerioCombatAI = {
   },
 
   chooseAttack(profile, attacks, cooldowns, index, chainCooldown, distance, playerSpeed) {
-    const ready = attacks.filter(a => !a.skill || (cooldowns[a.id] || 0) <= 0);
+    // MOD 123: as magias especiais são escolhidas exclusivamente pela rotação dedicada.
+    // Este seletor fica apenas com os golpes comuns, evitando que habilidades extras furtem a rotação.
     const normal = attacks.filter(a => !a.skill);
-    const pool = ready.length ? ready : normal;
+    const pool = normal.length ? normal : attacks;
     if (!pool.length) return null;
 
     const find = id => pool.find(a => a.id === id);
     const wide = pool.find(a => /sweep|wave|ring|circle/i.test(a.id + ' ' + (a.name || '')));
     const heavy = pool.find(a => a.id === 'vault' || /heavy|slam|smash/i.test(a.id + ' ' + (a.name || '')));
 
-    // Decide pela distância e pelo comportamento do jogador, não só por rotação fixa.
-    // As magias negras entram na rotação de longe, sem substituir golpes corpo a corpo.
-    if (profile.id === 'bishop1' && chainCooldown <= 0 && distance > 118) {
-      const ultimate = pool.find(a => a.id === 'abyssEclipse');
-      if (ultimate && (BishopBoss.phase >= 2 || index % 8 === 0)) return ultimate;
-      const dark = pool.filter(a => ['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain'].includes(a.id));
-      if (dark.length) return dark[(Math.floor(index / 2)) % dark.length];
-    }
     if (playerSpeed > 105 && distance > 72 && wide) return wide;
     if (distance > 145 && heavy && (index % 2 === 0 || profile.id === 'bishop1')) return heavy;
     if (distance < 105) return find('tax') || normal[index % Math.max(1, normal.length)] || pool[0];
@@ -507,6 +498,7 @@ const BishopBoss = {
     this.evadeCooldown = 0;
     this.skillCooldowns = Object.create(null);
     this.skillChainCooldown = 0;
+    this.skillRotationIndex = 0;
     this.onGround = true; this.floor = 0; this.sy = this.y;
     this.poise = this.poiseMax = 28; this.chain = 0; this.staggerDur = 0; this.staggerImmuneT = 0;
     this.updateHud();
@@ -713,11 +705,12 @@ const BishopBoss = {
             break;
           }
         }
-        // Skills têm recarga própria e podem iniciar uma aproximação em corrida.
-        if (d > (this.profile.engageRange || 66) && this.profile.id === 'bishop1') {
-          const allSkills = this.profile.attacks.filter(a => a.skill);
+        // MOD 123: rotação exclusiva e garantida das 3 magias principais, em qualquer distância de combate.
+        if (this.profile.id === 'bishop1' && d <= 460 && this.skillChainCooldown <= 0) {
+          const allSkills = this.profile.attacks.filter(a => a.skill &&
+            ['blackReaper', 'blackSwordRain', 'abyssEclipse'].includes(a.id));
           let readySkill = null;
-          if (this.skillChainCooldown <= 0 && allSkills.length) {
+          if (allSkills.length) {
             for (let offset = 0; offset < allSkills.length; offset++) {
               const idx = (this.skillRotationIndex + offset) % allSkills.length;
               if ((this.skillCooldowns[allSkills[idx].id] || 0) <= 0) {
@@ -727,11 +720,11 @@ const BishopBoss = {
               }
             }
           }
-          if (readySkill && d <= 300 && (this.attackIndex % 2 === 0)) {
+          if (readySkill) {
             this.attack = readySkill;
             this.attackIndex++;
-            this.skillCooldowns[readySkill.id] = readySkill.skillCooldown || 6.5;
-            this.skillChainCooldown = 2.5;
+            this.skillCooldowns[readySkill.id] = readySkill.skillCooldown || 10;
+            this.skillChainCooldown = 2.0;
             this._go('skillapproach');
             break;
           }
@@ -774,7 +767,7 @@ const BishopBoss = {
         if (!alive) { this._go('approach'); break; }
         this.fx = dx / d; this.fy = dy / d;
         if (!this.attack || !this.attack.skill) { this._go('approach'); break; }
-        const rangedDarkSkill = ['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain', 'abyssEclipse'].includes(this.attack.id);
+        const rangedDarkSkill = ['blackReaper', 'blackSwordRain', 'abyssEclipse'].includes(this.attack.id);
         const skillStartRange = rangedDarkSkill ? Math.min(this.attack.range * 0.82, 250) : Math.min(this.attack.range * 0.78, 68);
         if (d <= skillStartRange) {
           this._go('windup');
@@ -814,7 +807,7 @@ const BishopBoss = {
           this.fx = dx / d; this.fy = dy / d;
         }
         if (this.stateT >= windupDuration) {
-          if (['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain', 'abyssEclipse'].includes(this.attack.id)) {
+          if (['blackReaper', 'blackSwordRain', 'abyssEclipse'].includes(this.attack.id)) {
             // Trava o centro no fim do aviso: mover-se depois evita o impacto.
             this.skillTargetX = Player.x;
             this.skillTargetY = Player.y;
@@ -824,7 +817,7 @@ const BishopBoss = {
           this._go('attack');
           this.kx += this.fx * this.attack.lunge;
           this.ky += this.fy * this.attack.lunge;
-          Camera.shake = Math.max(Camera.shake, (this.attack.id === 'vault' || this.attack.id === 'graveThorns') ? 3.5 : 1.5);
+          Camera.shake = Math.max(Camera.shake, (this.attack.id === 'vault' || this.attack.id === 'blackReaper') ? 3.5 : 1.5);
           if (this.attack.id === 'vault') Ambient.spawnDust(this.x, this.y, 10, '#d8b65a', 1.4);
           if (this.attack.id === 'sealwave') Ambient.spawnDust(this.x, this.y, 15, '#89988e', 1.5);
           if (this.attack.id === 'abyssEclipse') { Camera.shake = Math.max(Camera.shake, 6); Ambient.spawnSpark(this.x, this.y - this.z - 12, 22, '#ff123f'); }
@@ -839,7 +832,7 @@ const BishopBoss = {
           // todo o movimento do golpe. Soma os raios dos corpos ao alcance nominal.
           const contactRange = this.attack.range + (Player.r || 0) + (this.r || 0);
           const contactWindowEnd = Math.min(this.attack.duration - 0.035, this.attack.hitAt + 0.46);
-          const areaSkill = ['abyssHands', 'graveThorns', 'blackReaper', 'blackSwordRain', 'abyssEclipse'].includes(this.attack.id);
+          const areaSkill = ['blackReaper', 'blackSwordRain', 'abyssEclipse'].includes(this.attack.id);
           const targetDistance = areaSkill && Number.isFinite(this.skillTargetX) && Number.isFinite(this.skillTargetY)
             ? Math.hypot(Player.x - this.skillTargetX, Player.y - this.skillTargetY) : Infinity;
           const canReach = alive && (areaSkill
@@ -865,8 +858,8 @@ const BishopBoss = {
                 areaSkill ? '#c91e32' : (this.profile.id === 'bishop3' ? '#b8d0c3' : '#f3c14e'));
               if (areaSkill) {
                 Ambient.spawnSpark(Player.x, Player.y - Player.z - 12, 5, '#17121b');
-                Camera.shake = Math.max(Camera.shake, this.attack.id === 'graveThorns' ? 5.2 : 3.8);
-                if (typeof BishopDimension !== 'undefined') BishopDimension.impact(this.attack.id === 'graveThorns' ? 1.2 : .9);
+                Camera.shake = Math.max(Camera.shake, this.attack.id === 'abyssEclipse' ? 5.2 : 3.8);
+                if (typeof BishopDimension !== 'undefined') BishopDimension.impact(this.attack.id === 'abyssEclipse' ? 1.2 : .9);
               }
             } else if (!isValerio || this.stateT >= contactWindowEnd) {
               // Não mostrar impacto falso nem consumir a janela enquanto o jogador

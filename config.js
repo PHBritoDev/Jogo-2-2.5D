@@ -42,7 +42,7 @@ const CFG = {
   },
 
   COMBAT: {
-    playerHP: 100,
+    playerHP: 1000,
     // Ataque do jogador
     attackDur: 0.78,       // golpe, impacto e recuperação alinhados ao clipe do protagonista
     hitStart: 0.18,        // preparação curta antes do impacto visual
