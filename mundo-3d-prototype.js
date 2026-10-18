@@ -234,7 +234,7 @@ new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
   run:find(/^correr$/i)||find(/running/i)||find(/run|sprint/i),
   attack:find(/atq[_\s.-]*0?1|attack[_\s.-]*0?1|claw|strike|slash|swing|golpe|ataque/i),
   attack2:find(/habilidade[_\s.-]*0?3|skill[_\s.-]*0?3|special.*slash/i),
-  cast:find(/hand.*forward|cast|spell|power|launch|ability[_\s.-]*0?2|mao.*frente/i),
+  cast:find(/hand.*forward|cast|spell|power|launch|skill[_\s.-]*0?2|habilidade[_\s.-]*0?2|ability[_\s.-]*0?2|mao.*frente/i),
   dash:find(/^dash$/i)||find(/dash|quickstep/i),
   block:find(/^block$/i)||find(/block|dodge|esquiva/i),
   hit:find(/hit|hurt|damage|reaction|impact|dano|atingido/i),
@@ -487,8 +487,8 @@ function chooseClip(clips,regex){return clips.find(c=>regex.test(c.name));}
 function clipKey(clip){return String(clip&&clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
 function validAttackClip(clip){
  const n=clipKey(clip);if(!n)return false;
- const bad=/hurt|damage|hitreaction|hitknockback|takehit|overhandthrow|tomardano|dano|death|dying|dead|^die$|morrer|morte|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|respir|falar|talk|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh|getup|standup|rise|recoverfloor|levant|levantar|block|dodge|dash|jump|salto/;
- const good=/attack|slash|swing|strike|sword|melee|atacar|ataque|atq\d|skill|habilidade|claw|combo|punch|kick|onehand|twohand/;
+ const bad=/hurt|damage|hitreaction|hitknockback|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|respir|falar|talk|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh|getup|standup|rise|recoverfloor|levant|levantar|block|dodge|dash|jump|salto/;
+ const good=/attack|slash|swing|strike|sword|melee|atacar|ataque|atq\d|skill|habilidade|claw|combo|punch|kick|overhandthrow|onehand|twohand/;
  return good.test(n)&&!bad.test(n);
 }
 function selectDimensionAttack(clips){
@@ -544,7 +544,7 @@ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
   player.add(model);
  loadPlayerSword(model);
  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;playerIdleClip=clips.find(c=>/^idle$/i.test(c.name||''))||chooseClip(clips,/idle|breath|respir|parad/i)||null;const idle=playerIdleClip||chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);attackClips=selectDimensionAttack(clips);attackClipIndex=0;const jump=chooseClip(clips,/jump|saltar|salto/i);
- const hit=chooseClip(clips,/overhandthrow|take.?damage|taking.?damage|hurt|hit.?reaction|hit.?knockback|damage/i);
+ const hit=chooseClip(clips,/hit.?knockback|hit.?reaction|hurt|damage|take.?damage|taking.?damage/i)||chooseClip(clips,/overhandthrow/i);
  const death=chooseClip(clips,/death|dead|dying|(^|[^a-z])die([^a-z]|$)|knockdown|collapse/i);
  const dash=chooseClip(clips,/dash|quickstep|evade/i),block=chooseClip(clips,/block|dodge/i);
  if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);
@@ -675,7 +675,7 @@ if(dashRemaining>0){
  const yawDelta=Math.atan2(Math.sin(wantedYaw-playerYaw),Math.cos(wantedYaw-playerYaw));
  playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;
  if(grounded&&now>actionUntil&&actions.walk){play('walk');const walkAction=actions.walk;if(walkAction)walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(Math.hypot(moveVX,moveVZ)/3.4,.55,1.45));}
-}else if(grounded&&now>actionUntil&&actions.idle)play('idle');
+}else if(playerHP>0&&grounded&&now>actionUntil&&actions.idle)play('idle');
 // Física vertical com altura do terreno: o personagem pode subir e descer pelas pedras.
 const floorY=terrainHeightAt(player.position.x,player.position.z);
 if(!grounded){
