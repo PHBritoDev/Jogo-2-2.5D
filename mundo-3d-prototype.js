@@ -261,7 +261,7 @@ new GLTFLoader().load('./Enemy1.glb?v=mod176-walk-spin-hand-point',gltf=>{
   run:exact('correr')||exact('run')||exact('running'),
   attack:exact('atq1')||exact('attack1')||exact('attack01'),
   attack2:spinAttackClip||enemyClips.find(c=>/(atq2|attack2|skill2)/.test(key(c))),
-  cast:handPointClip||enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))),
+  cast:handPointClip||enemyClips.find(c=>c!==spinAttackClip&&/(handforward|handfront|maofrente|point|apont|cast|spell|magic|shoot|projectile|moveramao)/.test(key(c))),
   dash:exact('dash'),
   block:exact('block'),
   jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
@@ -419,7 +419,7 @@ function updateEnemyAI(dt){
  if(enemyCurrentRole!=='attack'&&enemyCurrentRole!=='attack2'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
  if(enemyCurrentRole==='attack'||enemyCurrentRole==='attack2'){
   enemyAttackElapsed+=dt;const role=enemyAttackRole,action=enemyActions[role];
-  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;const contactDistance=Math.hypot(dx,dz),heightDelta=Math.abs(player.position.y-enemy.position.y),attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&role==='attack'){const facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1);if(enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(attackStillRunning&&role==='attack2'&&contactDistance<=3.1&&heightDelta<=1.5){damagePlayerFromEnemyAttack(13);}}
+  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;const contactDistance=Math.hypot(dx,dz),heightDelta=Math.abs(player.position.y-enemy.position.y),attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&role==='attack'){const facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1);if(enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(attackStillRunning&&role==='attack2'&&contactDistance<=3.0&&heightDelta<=1.35){damagePlayerFromEnemyAttack(13);}}
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
@@ -429,28 +429,23 @@ function updateEnemyAI(dt){
   if(enemyDashRemaining>0)return;
  }
  // Avança com dash antes de escolher especiais; a antiga ordem tornava o dash praticamente inalcançável.
- if(enemyDashCooldown<=0&&((distance>3.6&&distance<=14)||(distance<1.8))){
-  const retreat=distance<1.8,hasDashAnimation=!!enemyActions.dash;
-  if(hasDashAnimation)playEnemyAnimation('dash',.045,true);
-  else{enemyCurrentAction=null;enemyCurrentRole='dash';}
-  enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);
-  enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);
-  enemyDashRemaining=retreat?.38:.44;enemyDashCooldown=2.35;return;
+  // Cooldowns tick independently; dash is only an occasional approach at medium/long range.
+ if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);
+ if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);
+ if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);
+ if(distance>6.5&&distance<=10.5&&enemyDashCooldown<=0&&enemyCastCooldown<=0&&enemySpecialCooldown<=0){
+  if(enemyActions.dash)playEnemyAnimation('dash',.07,true);else{enemyCurrentAction=null;enemyCurrentRole='dash';}
+  enemyDashDirectionX=dx/(distance||1);enemyDashDirectionZ=dz/(distance||1);enemyDashRemaining=.28;enemyDashCooldown=5.2;return;
  }
- // Prioriza alternância real dos especiais antes do golpe básico quando há distância para lançar.
- if(distance>1.65&&distance<=8.5){
-  const preferred=enemyNextRangedRole||'cast',roles=preferred==='cast'?['cast','attack2']:['attack2','cast'];
-  for(const rangedRole of roles){
-   const clipAction=enemyActions[rangedRole];
-   const available=!!clipAction&&(rangedRole==='cast'?enemyCastCooldown<=0:enemySpecialCooldown<=0);
-   if(!available)continue;
-   const duration=clipAction.getClip().duration;
-   if(!playEnemyAnimation(rangedRole,.08,true))continue;
-   enemyNextRangedRole=rangedRole==='cast'?'attack2':'cast';
-   if(rangedRole==='cast'){enemyCastCooldown=4.6;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;}
-   else{enemySpecialCooldown=3.1;enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.25;}
-   return;
-  }
+ // Magia de mão somente em distância média, com animação própria distinta do giro.
+ if(distance>=3.4&&distance<=7.5&&enemyActions.cast&&enemyActions.cast!==enemyActions.attack2&&enemyCastCooldown<=0){
+  const duration=enemyActions.cast.getClip().duration;
+  if(playEnemyAnimation('cast',.1,true)){enemyCastCooldown=5.8;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;enemySpecialCooldown=Math.max(enemySpecialCooldown,1.5);return;}
+ }
+ // Habilidade3/giro é um golpe próximo: nunca substitui a magia de mão nem dispara como ataque à distância.
+ if(distance>ENEMY_ATTACK_RANGE&&distance<=3.15&&enemyActions.attack2&&enemySpecialCooldown<=0){
+  const duration=enemyActions.attack2.getClip().duration;
+  if(playEnemyAnimation('attack2',.1,true)){enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.58,Math.max(.16,duration*.46));enemyAttackResolved=false;enemyAttackCooldown=duration+.85;enemySpecialCooldown=4.8;return;}
  }
  if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);return;}
  if(distance<1.55&&enemyAttackCooldown>0){if(enemyActions.block&&enemyBlockCooldown<=0&&playEnemyAnimation('block',.045,true)){enemyBlockCooldown=1.6;return;}playEnemyAnimation('idle',.08);return;}
