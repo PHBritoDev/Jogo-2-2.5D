@@ -253,7 +253,7 @@ new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  const exact=name=>enemyClips.find(c=>key(c)===name);
  const has=part=>enemyClips.find(c=>key(c).includes(part));
- const handPointClip=enemyClips.find(c=>key(c)==='moveramao'||key(c).includes('moveramao'));
+ const handPointClip=enemyClips.find(c=>{const n=key(c);return n==='moveramao'||n.includes('moveramao')||(n.includes('mao')&&(n.includes('apont')||n.includes('estoc')||n.includes('frente')||n.includes('proj')))||(n.includes('hand')&&(n.includes('point')||n.includes('thrust')||n.includes('stab')||n.includes('forward')));});
  const spinAttackClip=enemyClips.find(c=>key(c)==='habilidade3')||enemyClips.find(c=>/(habilidade3|skill3|skill03)/.test(key(c)));
  const clipsByRole={
   idle:exact('idle')||exact('breath')||exact('breathing')||exact('respiracao'),
@@ -412,14 +412,14 @@ function updateEnemyAI(dt){
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
  if(enemyCurrentRole==='cast'){
   enemyCastElapsed+=dt;
-  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.72){enemyCastResolved=true;spawnEnemyProjectile('hand');}
+  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.82){enemyCastResolved=true;spawnEnemyProjectile('hand');}
   if(enemyCastElapsed<enemyCastDuration)return;
   playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole!=='attack'&&enemyCurrentRole!=='attack2'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
  if(enemyCurrentRole==='attack'||enemyCurrentRole==='attack2'){
   enemyAttackElapsed+=dt;const role=enemyAttackRole,action=enemyActions[role];
-  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'){spawnEnemyProjectile('tornado');}}
+  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;const contactDistance=Math.hypot(dx,dz),heightDelta=Math.abs(player.position.y-enemy.position.y),attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&role==='attack'){const facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1);if(enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(attackStillRunning&&role==='attack2'&&contactDistance<=3.1&&heightDelta<=1.5){damagePlayerFromEnemyAttack(13);}}
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
@@ -457,10 +457,11 @@ function updateEnemyAI(dt){
  if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
   if(playEnemyAnimation('block',.06,true)){enemyBlockCooldown=3.0;const side=enemy.rotation.y+Math.PI/2,sx=enemy.position.x+Math.sin(side)*.65,sz=enemy.position.z+Math.cos(side)*.65;if(!blockedAt(sx,enemy.position.z))enemy.position.x=sx;if(!blockedAt(enemy.position.x,sz))enemy.position.z=sz;return;}
  }
- const running=distance>7.5&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
+ const running=distance>8.5&&!!enemyActions.run,hasWalk=!!enemyActions.walk,role=running?'run':hasWalk?'walk':'idle',speed=running?3.0:1.15,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
  const nextX=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-140,14);let moved=false;
  if(!enemyBlockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!enemyBlockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
- playEnemyAnimation(moved?(role==='run'&&enemyActions.run?'run':'walk'):'idle',.12);
+ // Não deixar a corrida continuar ativa se não houver um clipe real de caminhada.
+ if(moved){if(running)playEnemyAnimation('run',.12);else if(hasWalk)playEnemyAnimation('walk',.16);else playEnemyAnimation('idle',.16);}else playEnemyAnimation('idle',.1);
 }
 function updatePlayerRespawn(now){
  if(playerHP>0||!playerRespawnAt||now<playerRespawnAt)return;
