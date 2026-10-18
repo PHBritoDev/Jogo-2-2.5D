@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
+import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
 
 const canvas=document.getElementById('scene'),status=document.getElementById('status'),loading=document.getElementById('loading');
 const scene=new THREE.Scene();
@@ -214,6 +214,19 @@ function setEnemyHitFlash(active){
   else{material.emissive.setHex(material.userData.enemyBaseEmissive);material.emissiveIntensity=material.userData.enemyBaseEmissiveIntensity;}
  }
 }
+function retargetEnemyMovementClipToPlayer(role,sourceRoot,sourceClip){
+ if(!model||!mixer||!sourceRoot||!sourceClip)return false;
+ let sourceMesh=null,targetMesh=null;
+ sourceRoot.traverse(o=>{if(!sourceMesh&&o.isSkinnedMesh&&o.skeleton)sourceMesh=o;});
+ model.traverse(o=>{if(!targetMesh&&o.isSkinnedMesh&&o.skeleton)targetMesh=o;});
+ if(!sourceMesh||!targetMesh)return false;
+ try{
+  const clip=retargetClip(targetMesh,sourceMesh,sourceClip,{useFirstFramePosition:false,preservePosition:false});
+  if(!clip||!clip.tracks||!clip.tracks.length){console.warn('Retarget sem canais compatíveis para '+role,sourceClip.name);return false;}
+  clip.name='Enemy1_'+sourceClip.name+'_retarget_'+role;
+  actions[role]=mixer.clipAction(clip);console.info('Animação Enemy1 aplicada ao protagonista:',role,sourceClip.name,clip.tracks.length,'canais');return true;
+ }catch(err){console.warn('Não foi possível retargetar '+role+' do Enemy1:',err);return false;}
+}
 function loadEnemyModel(){if(enemyLoadState!=='idle')return;enemyLoadState='loading';
 new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
  const imported=gltf.scene;
@@ -245,6 +258,9 @@ new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
  };
  for(const role of Object.keys(clipsByRole)){const clip=clipsByRole[role];if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}
  enemyHasDeathClip=!!clipsByRole.death;
+ // Usa Dash e Jump reais do Enemy1 no protagonista, convertidos para o esqueleto dele.
+ if(clipsByRole.dash)retargetEnemyMovementClipToPlayer('dash',imported,clipsByRole.dash);
+ if(clipsByRole.jump)retargetEnemyMovementClipToPlayer('jump',imported,clipsByRole.jump);
  // Sem clipe de repouso identificado, não forçar caminhada ou pulo como idle.
  if(!enemyActions.idle)console.warn('Enemy1 sem clipe de repouso identificado.');
  if(enemyActions.idle)playEnemyAnimation('idle',0);
@@ -610,13 +626,12 @@ function terrainHeightAt(x,z){
  return height;
 }
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);for(const uniform of forestWindUniforms)uniform.value=now*.001;for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(enemyModel){
- // Reancora o modelo depois de atualizar o rig: animações com deslocamento vertical não deixam os pés flutuando.
+ // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  enemy.updateMatrixWorld(true);
- const animatedBounds=new THREE.Box3().setFromObject(enemyModel);
- if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y)){
-  const floorY=terrainHeightAt(enemy.position.x,enemy.position.z);
-  enemyModelRoot.position.y+=floorY-animatedBounds.min.y-.045;
- }
+ const floorY=terrainHeightAt(enemy.position.x,enemy.position.z),footPoints=[];
+ enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
+ if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
+ else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
  }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
