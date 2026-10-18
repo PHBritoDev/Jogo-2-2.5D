@@ -238,7 +238,7 @@ function retargetEnemyMovementClipToPlayer(role,sourceRoot,sourceClip){
  }catch(err){console.warn('Não foi possível retargetar '+role+' do Enemy1:',err);return false;}
 }
 function loadEnemyModel(){if(enemyLoadState!=='idle')return;enemyLoadState='loading';
-new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
+new GLTFLoader().load('./Enemy1.glb?v=mod176-walk-spin-hand-point',gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{
   if(!o.isMesh)return;
