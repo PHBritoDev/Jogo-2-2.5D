@@ -258,14 +258,27 @@ new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
   walk:exact('andar')||exact('walk')||exact('walking'),
   run:exact('correr')||exact('run')||exact('running'),
   attack:exact('atq1')||exact('attack1')||exact('attack01'),
-  attack2:exact('habilidade3')||exact('skill3')||exact('skill03'),
-  cast:enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))&&c!==(exact('habilidade3')||exact('skill3')||exact('skill03'))),
+  attack2:enemyClips.find(c=>/(habilidade3|skill3|skill03|atq2|attack2|skill2)/.test(key(c))),
+  cast:enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))),
   dash:exact('dash'),
   block:exact('block'),
   jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
   hit:exact('hit')||exact('hurt')||exact('damage'),
   death:exact('death')||exact('die')||exact('morte')
  };
+ // Não depender de um único nome: distribui clipes reais ainda não usados em papéis especiais distintos.
+ const usedClips=new Set(Object.values(clipsByRole).filter(Boolean));
+ const fallbackPool=enemyClips.filter(c=>!usedClips.has(c)&&!/(idle|breath|respir|andar|walk|correr|running|^run$|dash|block|jump|pulo|saltar|atq1|attack0?1|hit|hurt|damage|death|die|morte|falar|talk)/.test(key(c)));
+ if(!clipsByRole.attack2){
+  clipsByRole.attack2=fallbackPool.find(c=>/(habilidade|skill|atq|attack|power|slash|strike|sword)/.test(key(c)))||fallbackPool[0]||null;
+  if(clipsByRole.attack2)usedClips.add(clipsByRole.attack2);
+ }
+ if(!clipsByRole.cast||clipsByRole.cast===clipsByRole.attack2){
+  clipsByRole.cast=enemyClips.find(c=>c!==clipsByRole.attack2&&!usedClips.has(c)&&/(hand|point|apont|cast|spell|magic|power|habilidade|skill|atq|attack)/.test(key(c)))||
+   fallbackPool.find(c=>c!==clipsByRole.attack2&&!usedClips.has(c))||null;
+ }
+ if(clipsByRole.cast===clipsByRole.attack2)clipsByRole.cast=null;
+ window.Enemy1AnimationRoleReport=Object.fromEntries(Object.entries(clipsByRole).map(([role,clip])=>[role,clip?clip.name:null]));
  for(const role of Object.keys(clipsByRole)){const clip=clipsByRole[role];if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}
  enemyHasDeathClip=!!clipsByRole.death;
  // Usa Dash e Jump reais do Enemy1 no protagonista, convertidos para o esqueleto dele.
