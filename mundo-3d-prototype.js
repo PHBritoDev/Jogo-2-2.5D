@@ -408,23 +408,32 @@ function updateEnemyAI(dt){
   if(!blockedAt(nx,enemy.position.z))enemy.position.x=nx;if(!blockedAt(enemy.position.x,nz))enemy.position.z=nz;
   if(enemyDashRemaining>0)return;
  }
- if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);return;}if(distance<=1.55){playEnemyAnimation('idle',.08);return;}
- if(distance>1.55&&distance<=8.5){
+ // Avança com dash antes de escolher especiais; a antiga ordem tornava o dash praticamente inalcançável.
+ if(enemyActions.dash&&enemyDashCooldown<=0&&((distance>4.8&&distance<=11)||(distance<1.75&&enemyAttackCooldown>0))){
+  if(playEnemyAnimation('dash',.06,true)){
+   const retreat=distance<1.75;
+   enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);
+   enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);
+   enemyDashRemaining=.34;enemyDashCooldown=2.7;return;
+  }
+ }
+ // Prioriza alternância real dos especiais antes do golpe básico quando há distância para lançar.
+ if(distance>1.65&&distance<=8.5){
   const preferred=enemyNextRangedRole||'cast',roles=preferred==='cast'?['cast','attack2']:['attack2','cast'];
   for(const rangedRole of roles){
-   const available=rangedRole==='cast'?enemyActions.cast&&enemyCastCooldown<=0:enemyActions.attack2&&enemySpecialCooldown<=0;
+   const clipAction=enemyActions[rangedRole];
+   const available=!!clipAction&&(rangedRole==='cast'?enemyCastCooldown<=0:enemySpecialCooldown<=0);
    if(!available)continue;
-   const action=enemyActions[rangedRole],duration=action.getClip().duration;
+   const duration=clipAction.getClip().duration;
    if(!playEnemyAnimation(rangedRole,.08,true))continue;
    enemyNextRangedRole=rangedRole==='cast'?'attack2':'cast';
-   if(rangedRole==='cast'){enemyCastCooldown=5.8;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;}
-   else{enemySpecialCooldown=4.0;enemyCurrentRole='attack2';enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.45;}
+   if(rangedRole==='cast'){enemyCastCooldown=4.6;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;}
+   else{enemySpecialCooldown=3.1;enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.25;}
    return;
   }
  }
- if(enemyActions.dash&&enemyDashCooldown<=0&&((distance>6.2&&distance<=10)||(distance<1.95&&enemyAttackCooldown>0))){
-  if(playEnemyAnimation('dash',.06,true)){const retreat=distance<1.95;enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);enemyDashRemaining=.28;enemyDashCooldown=3.0;return;}
- }
+ if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);return;}
+ if(distance<1.55&&enemyAttackCooldown>0){playEnemyAnimation('idle',.08);return;}
  if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
   if(playEnemyAnimation('block',.06,true)){enemyBlockCooldown=3.0;const side=enemy.rotation.y+Math.PI/2,sx=enemy.position.x+Math.sin(side)*.65,sz=enemy.position.z+Math.cos(side)*.65;if(!blockedAt(sx,enemy.position.z))enemy.position.x=sx;if(!blockedAt(enemy.position.x,sz))enemy.position.z=sz;return;}
  }
