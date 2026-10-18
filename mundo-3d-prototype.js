@@ -220,6 +220,15 @@ function retargetEnemyMovementClipToPlayer(role,sourceRoot,sourceClip){
  sourceRoot.traverse(o=>{if(!sourceMesh&&o.isSkinnedMesh&&o.skeleton)sourceMesh=o;});
  model.traverse(o=>{if(!targetMesh&&o.isSkinnedMesh&&o.skeleton)targetMesh=o;});
  if(!sourceMesh||!targetMesh)return false;
+ // Não aplicar uma animação retargetada se os rigs compartilham poucos ossos nomeados.
+ // Isso evita deformar o protagonista com um clipe do Enemy1 incompatível.
+ const normalizeBone=name=>String(name||'').toLowerCase().replace(/^mixamorig[:_]?/,'').replace(/[^a-z0-9]/g,'');
+ const sourceBones=new Set(sourceMesh.skeleton.bones.map(b=>normalizeBone(b.name)));
+ const targetBones=new Set(targetMesh.skeleton.bones.map(b=>normalizeBone(b.name)));
+ const sharedBones=[...sourceBones].filter(name=>name&&targetBones.has(name));
+ const hasPelvis=sharedBones.some(name=>/^(hips|pelvis)$/.test(name)),hasLeftLeg=sharedBones.some(name=>/left.*(upleg|thigh|leg)$/.test(name)),hasRightLeg=sharedBones.some(name=>/right.*(upleg|thigh|leg)$/.test(name)),hasCoreLegs=hasPelvis&&hasLeftLeg&&hasRightLeg;
+ console.info('Compatibilidade de rig Enemy1 → protagonista:',role,sharedBones.length,'ossos compartilhados');
+ if(sharedBones.length<12||!hasCoreLegs){console.warn('Retarget cancelado por compatibilidade insuficiente:',role);return false;}
  try{
   const clip=retargetClip(targetMesh,sourceMesh,sourceClip,{useFirstFramePosition:false,preservePosition:false});
   if(!clip||!clip.tracks||!clip.tracks.length){console.warn('Retarget sem canais compatíveis para '+role,sourceClip.name);return false;}
@@ -244,7 +253,7 @@ new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
  const exact=name=>enemyClips.find(c=>key(c)===name);
  const has=part=>enemyClips.find(c=>key(c).includes(part));
  const clipsByRole={
-  idle:exact('idle')||exact('breath')||exact('breathing')||exact('respiracao')||exact('falar'),
+  idle:exact('idle')||exact('breath')||exact('breathing')||exact('respiracao'),
   walk:exact('andar')||exact('walk')||exact('walking'),
   run:exact('correr')||exact('run')||exact('running'),
   attack:exact('atq1')||exact('attack1')||exact('attack01'),
