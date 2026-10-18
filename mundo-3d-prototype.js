@@ -280,7 +280,7 @@ new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
 
 }
 
-function spawnEnemyProjectile(kind){
+function spawnEnemyProjectile(kind,spreadAngle=0){
  const group=new THREE.Group(),slash=kind==='slash';
  const dark=new THREE.MeshStandardMaterial({color:0x09080d,emissive:slash?0x210d2d:0x170d28,emissiveIntensity:slash?1.15:.85,metalness:.25,roughness:.35,transparent:true,opacity:.96,depthWrite:false});
  const edge=new THREE.MeshStandardMaterial({color:0x6f1728,emissive:0x8b1631,emissiveIntensity:1.35,transparent:true,opacity:.9,depthWrite:false});
@@ -292,9 +292,9 @@ function spawnEnemyProjectile(kind){
   for(let side of [-1,1]){const points=[new THREE.Vector3(side*.08,-.07,-.62),new THREE.Vector3(side*.17,.09,-.39),new THREE.Vector3(side*.08,-.12,-.17),new THREE.Vector3(side*.19,.07,.04),new THREE.Vector3(side*.07,-.05,.27),new THREE.Vector3(side*.13,.1,.48),new THREE.Vector3(0,0,.66)];const bolt=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),sparkMat);bolt.position.x=side*.09;group.add(bolt);}
   group.scale.set(1.0,.72,1.0);
  }else{for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.38+i*.13,.045,5,16),i===1?edge:dark);ring.position.y=(i-1)*.25;ring.rotation.x=(i-1)*.28;group.add(ring);}const core=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),dark);group.add(core);group.scale.set(.9,1.25,.9);}
- const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,len=Math.hypot(dx,dz)||1,dirX=dx/len,dirZ=dz/len;
- group.position.set(enemy.position.x+dirX*.82,enemy.position.y+(slash?1.12:1.0),enemy.position.z+dirZ*.82);group.rotation.y=Math.atan2(dirX,dirZ);scene.add(group);
- enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?7.4:4.8,life:slash?1.15:1.8,damage:slash?14:20,spin:slash?5.5:7.2});
+ const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,len=Math.hypot(dx,dz)||1,baseX=dx/len,baseZ=dz/len,angle=Math.atan2(baseX,baseZ)+spreadAngle,dirX=Math.sin(angle),dirZ=Math.cos(angle);
+ group.position.set(enemy.position.x+dirX*.82,enemy.position.y+(slash?1.12:1.0),enemy.position.z+dirZ*.82);group.rotation.y=angle;scene.add(group);
+ enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?8.2:5.2,life:slash?1.25:2.15,damage:slash?13:16,spin:slash?0:9.2});
 }
 function updateEnemyProjectiles(dt){
  for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
@@ -379,14 +379,14 @@ function updateEnemyAI(dt){
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
  if(enemyCurrentRole==='cast'){
   enemyCastElapsed+=dt;
-  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.42){enemyCastResolved=true;spawnEnemyProjectile('tornado');}
+  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.42){enemyCastResolved=true;spawnEnemyProjectile('tornado',-.34);spawnEnemyProjectile('tornado',0);spawnEnemyProjectile('tornado',.34);}
   if(enemyCastElapsed<enemyCastDuration)return;
   playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole!=='attack'&&enemyCurrentRole!=='attack2'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
  if(enemyCurrentRole==='attack'||enemyCurrentRole==='attack2'){
   enemyAttackElapsed+=dt;const role=enemyAttackRole,action=enemyActions[role];
-  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'){spawnEnemyProjectile('slash');}}
+  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'){spawnEnemyProjectile('slash',-.22);spawnEnemyProjectile('slash',0);spawnEnemyProjectile('slash',.22);}}
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
