@@ -300,7 +300,7 @@ function lockModelScales(model){
  };
 }
 let restoreGuideScales=null;
-new GLTFLoader().load('./AnjoGuia.glb?v=mod160-guide-skinned-bounds-scale-lock',gltf=>{
+new GLTFLoader().load('./AnjoGuia.glb?v=mod161-force-fresh-scale-collision',gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
  // Mede a malha esquelética já deformada e calcula a escala antes de iniciar a animação.
