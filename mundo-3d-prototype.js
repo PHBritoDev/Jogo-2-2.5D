@@ -191,7 +191,8 @@ enemyGroundShadow.rotation.x=-Math.PI/2;enemyGroundShadow.position.y=.012;enemy.
 let enemyModel=null,enemyMixer=null,enemyClips=[],enemyActions={},enemyCurrentAction=null,enemyCurrentRole='idle',enemyHasDeathClip=false;
 let enemyLoadState='idle';
 let enemyHP=100,enemyAlive=true,enemyHitFlash=0,enemyKnockback=0,enemyKnockbackX=0,enemyKnockbackZ=0;
-let enemyAttackCooldown=0,enemyAttackElapsed=0,enemyAttackDuration=0,enemyAttackHitAt=0,enemyAttackResolved=true,enemyAttackFacingX=0,enemyAttackFacingZ=1;
+let enemyAttackCooldown=0,enemyAttackElapsed=0,enemyAttackDuration=0,enemyAttackHitAt=0,enemyAttackResolved=true,enemyAttackFacingX=0,enemyAttackFacingZ=1,enemyAttackRole='attack';
+let enemyDashRemaining=0,enemyDashCooldown=0,enemySpecialCooldown=0,enemyBlockCooldown=0;
 let attackCooldown=0,pendingEnemyHitAt=0,playerAttackFacingX=0,playerAttackFacingZ=1;
 let playerHP=100,playerMaxHP=100,playerInvulnerableUntil=0,playerRespawnAt=0;
 const ENEMY_ATTACK_RANGE=1.55,ENEMY_ATTACK_DAMAGE=18,PLAYER_SPAWN={x:0,z:4};
@@ -214,7 +215,7 @@ function setEnemyHitFlash(active){
  }
 }
 function loadEnemyModel(){if(enemyLoadState!=='idle')return;enemyLoadState='loading';
-new GLTFLoader().load('./Enemy1.glb?v=mod166-enemy-grounding',gltf=>{
+new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{
   if(!o.isMesh)return;
@@ -223,21 +224,25 @@ new GLTFLoader().load('./Enemy1.glb?v=mod166-enemy-grounding',gltf=>{
   for(const material of materials)if(material&&!enemyMaterials.includes(material))enemyMaterials.push(material);
  });
  const bounds=new THREE.Box3().setFromObject(imported),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
- if(size.y>.001){const scale=1.2/size.y;imported.scale.setScalar(scale);imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);}
+ if(size.y>.001){const scale=.88/size.y;imported.scale.setScalar(scale);imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);}
  enemyModelRoot.add(imported);enemyModel=imported;enemySprite.visible=false;
  enemyClips=gltf.animations||[];enemyMixer=new THREE.AnimationMixer(imported);
  const find=regex=>enemyClips.find(c=>regex.test(String(c.name||'')));
  const clipsByRole={
-  idle:find(/idle|breath|stand|parad|repos/i),
-  walk:find(/walking/i)||find(/walk|locomotion|caminh/i),
-  run:find(/running/i)||find(/run|sprint/i),
-  attack:find(/skill[_\s.-]*03/i)||find(/attack|slash|claw|strike|swing|golpe|ataque/i),
+  idle:find(/idle|breath|falar|talk|stand|parad|repos/i),
+  walk:find(/^andar$/i)||find(/walking/i)||find(/walk|locomotion|caminh/i),
+  run:find(/^correr$/i)||find(/running/i)||find(/run|sprint/i),
+  attack:find(/atq[_\s.-]*0?1|attack[_\s.-]*0?1|claw|strike|slash|swing|golpe|ataque/i),
+  attack2:find(/habilidade[_\s.-]*0?3|skill[_\s.-]*0?3|special.*slash/i),
+  cast:find(/hand.*forward|cast|spell|power|launch|ability[_\s.-]*0?2|mao.*frente/i),
+  dash:find(/^dash$/i)||find(/dash|quickstep/i),
+  block:find(/^block$/i)||find(/block|dodge|esquiva/i),
   hit:find(/hit|hurt|damage|reaction|impact|dano|atingido/i),
   death:find(/death|die|dead|dying|morte|morrer/i)
  };
  for(const role of Object.keys(clipsByRole)){const clip=clipsByRole[role];if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}
  enemyHasDeathClip=!!clipsByRole.death;
- const fallbackIdle=enemyClips.find(c=>!/attack|skill|slash|claw|strike|swing|hit|hurt|damage|death|die|jump|leap|hop|saltar|salto|dash|dodge|walking|running|walk|run|fall|land|air/i.test(String(c.name||'')));
+ const fallbackIdle=enemyClips.find(c=>!/attack|atq|habilidade|skill|slash|claw|strike|swing|hit|hurt|damage|death|die|jump|leap|hop|saltar|salto|dash|dodge|block|walking|running|walk|run|fall|land|air/i.test(String(c.name||'')));
  if(!enemyActions.idle&&fallbackIdle)enemyActions.idle=enemyMixer.clipAction(fallbackIdle);
  if(!enemyActions.idle&&enemyActions.walk)enemyActions.idle=enemyActions.walk;
  if(enemyActions.idle)playEnemyAnimation('idle',0);
@@ -288,14 +293,20 @@ function updatePlayerHud(){
 function damagePlayerFromEnemyAttack(){
  const now=performance.now();if(playerHP<=0||now<playerInvulnerableUntil)return false;
  playerHP=Math.max(0,playerHP-ENEMY_ATTACK_DAMAGE);playerInvulnerableUntil=now+850;updatePlayerHud();
- if(playerHP===0){playerRespawnAt=now+1200;moveVX=moveVZ=0;dashRemaining=0;pendingEnemyHitAt=0;status.textContent='Protagonista derrotado. Retornando à trilha…';}
- else status.textContent='O golpe do inimigo atingiu você. Vida: '+playerHP+'%';
+ if(playerHP===0){
+  playerRespawnAt=now+1450;moveVX=moveVZ=0;dashRemaining=0;pendingEnemyHitAt=0;
+  const death=actions.death||actions.hit;if(death){playOnce(death===actions.death?'death':'hit',.06);actionUntil=now+Math.max(250,Math.min(1300,death.getClip().duration*1000));}
+  status.textContent='Protagonista derrotado. Retornando à trilha…';
+ }else{
+  if(actions.hit){playOnce('hit',.05);actionUntil=now+Math.max(220,Math.min(700,actions.hit.getClip().duration*1000));}
+  status.textContent='O golpe do inimigo atingiu você. Vida: '+playerHP+'%';
+ }
  return true;
 }
-function startEnemyAttack(){
- const action=enemyActions.attack,clip=action&&action.getClip(),duration=Number(clip&&clip.duration);
- if(!action||!Number.isFinite(duration)||duration<=0||!playEnemyAnimation('attack',.08,true))return false;
- enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.55,Math.max(.08,duration*.42));
+function startEnemyAttack(role='attack'){
+ const action=enemyActions[role],clip=action&&action.getClip(),duration=Number(clip&&clip.duration);
+ if(!action||!Number.isFinite(duration)||duration<=0||!playEnemyAnimation(role,.08,true))return false;
+ enemyAttackRole=role;enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.55,Math.max(.08,duration*.42));
  enemyAttackFacingX=Math.sin(enemy.rotation.y);enemyAttackFacingZ=Math.cos(enemy.rotation.y);enemyAttackResolved=false;enemyAttackCooldown=duration+.65;return true;
 }
 function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=ENEMY_ATTACK_RANGE&&heightDelta<=.95&&facing>=.55;}
@@ -304,15 +315,45 @@ function updateEnemyAI(dt){
  if(!enemy.visible||!enemyAlive||questStep!==2||dialogueOpen||playerHP<=0){if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.08);}return;}
  if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-140,14);if(!blockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!blockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
  // Deixe a animação de reação terminar antes de voltar a perseguir; evita cortá-la no primeiro quadro.
- if(enemyCurrentRole==='hit')return;
+ if(enemyCurrentRole==='hit'){
+  if(enemyCurrentAction&&enemyCurrentAction.isRunning())return;
+  playEnemyAnimation('idle',.08);
+ }
+ if(['block','cast','attack2'].includes(enemyCurrentRole)){
+  if(enemyCurrentAction&&enemyCurrentAction.isRunning())return;
+  playEnemyAnimation('idle',.08);
+ }
+ if(enemyCurrentRole==='dash'&&enemyDashRemaining<=0){
+  if(enemyCurrentAction&&enemyCurrentAction.isRunning())return;
+  playEnemyAnimation('idle',.08);
+ }
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
  if(enemyCurrentRole!=='attack'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
- if(enemyCurrentRole==='attack'){
-  enemyAttackElapsed+=dt;
-  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===enemyActions.attack&&enemyActions.attack&&enemyCurrentAction.isRunning()&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}
+ if(enemyCurrentRole==='attack'||enemyCurrentRole==='attack2'){
+  enemyAttackElapsed+=dt;const role=enemyAttackRole,action=enemyActions[role];
+  if(role==='attack'&&!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyCurrentAction.isRunning()&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
- if(distance<=ENEMY_ATTACK_RANGE){if(enemyAttackCooldown<=0)startEnemyAttack();else playEnemyAnimation('idle',.08);return;}
+ if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
+  const step=Math.min(6.2*dt,enemyDashRemaining*6.2);enemyDashRemaining=Math.max(0,enemyDashRemaining-dt);
+  const nx=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-62,62),nz=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-140,14);
+  if(!blockedAt(nx,enemy.position.z))enemy.position.x=nx;if(!blockedAt(enemy.position.x,nz))enemy.position.z=nz;
+  if(enemyDashRemaining>0)return;
+ }
+ if(distance<=ENEMY_ATTACK_RANGE){if(enemyAttackCooldown<=0)startEnemyAttack('attack');else playEnemyAnimation('idle',.08);return;}
+ if(distance>2.1&&distance<=3.4&&enemyActions.attack2&&enemySpecialCooldown<=0){
+  const duration=enemyActions.attack2.getClip().duration;
+  if(playEnemyAnimation('attack2',.08,true)){enemySpecialCooldown=4.5;enemyCurrentRole='attack2';enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;return;}
+ }
+ if(distance>3.4&&distance<=6.2&&enemyActions.cast&&enemySpecialCooldown<=0){
+  if(playEnemyAnimation('cast',.08,true)){enemySpecialCooldown=5.5;return;}
+ }
+ if(distance>3.2&&distance<=7.5&&enemyActions.dash&&enemyDashCooldown<=0){
+  if(playEnemyAnimation('dash',.06,true)){enemyDashRemaining=.24;enemyDashCooldown=3.2;return;}
+ }
+ if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
+  if(playEnemyAnimation('block',.06,true)){enemyBlockCooldown=3.0;const side=enemy.rotation.y+Math.PI/2,sx=enemy.position.x+Math.sin(side)*.65,sz=enemy.position.z+Math.cos(side)*.65;if(!blockedAt(sx,enemy.position.z))enemy.position.x=sx;if(!blockedAt(enemy.position.x,sz))enemy.position.z=sz;return;}
+ }
  const running=distance>7.5&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
  const nextX=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-140,14);let moved=false;
  if(!blockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!blockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
@@ -321,7 +362,7 @@ function updateEnemyAI(dt){
 function updatePlayerRespawn(now){
  if(playerHP>0||!playerRespawnAt||now<playerRespawnAt)return;
  player.position.set(PLAYER_SPAWN.x,terrainHeightAt(PLAYER_SPAWN.x,PLAYER_SPAWN.z),PLAYER_SPAWN.z);playerHP=playerMaxHP;playerInvulnerableUntil=now+1000;playerRespawnAt=0;
- moveVX=moveVZ=0;verticalVelocity=0;grounded=true;dashRemaining=0;updatePlayerHud();status.textContent='Você voltou à trilha; o inimigo continua à espreita.';
+ moveVX=moveVZ=0;verticalVelocity=0;grounded=true;dashRemaining=0;actionUntil=0;if(actions.idle)play('idle',.08);updatePlayerHud();status.textContent='Você voltou à trilha; o inimigo continua à espreita.';
 }
 
 // Anjo-Guia: usa o modelo GLB original adicionado ao repositório.
@@ -330,10 +371,11 @@ const guideModelRoot=new THREE.Group();guide.add(guideModelRoot);
 let guideModel=null,guideFitRoot=null,guideIdleMixer=null,playerIdleClip=null,playerReferenceHeight=1.7,vendorsSpawned=false,guideReferenceBounds=null;
 const villageNpcMixers=[];
 function playNativeGuideIdle(clips){
- const idle=(clips||[]).find(c=>/idle|breath/i.test(String(c.name||'')));if(!idle||!guideModel)return;
- const tracks=(idle.tracks||[]).filter(track=>!String(track.name||'').toLowerCase().endsWith('.scale'));if(!tracks.length)return;
- const clip=tracks.length===idle.tracks.length?idle:new THREE.AnimationClip(idle.name,idle.duration,tracks,idle.blendMode);
- guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();guideIdleMixer.update(0);
+ const list=clips||[],idle=list.find(c=>/idle|breath|respir|falar|talk/i.test(String(c.name||'')))||list[0];
+ if(!idle||!guideModel)return;
+ const tracks=(idle.tracks||[]).filter(track=>!String(track.name||'').toLowerCase().endsWith('.scale'));
+ const clip=tracks.length?new THREE.AnimationClip(idle.name,idle.duration,tracks,idle.blendMode):idle;
+ guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.reset();action.setLoop(THREE.LoopRepeat,Infinity);action.setEffectiveWeight(1);action.play();guideIdleMixer.update(0);
 }
 function fitGuideModel(){
  if(!guideModel||!guideFitRoot)return;
@@ -343,7 +385,7 @@ function fitGuideModel(){
  guideFitRoot.scale.setScalar(fitScale);guideFitRoot.position.set(-reference.centerX*fitScale,-reference.minY*fitScale,-reference.centerZ*fitScale);
  if(guideFitRoot.parent!==guideModelRoot)guideModelRoot.add(guideFitRoot);
  // Escala explícita adicional no grupo externo: o ajuste automático não pode anular o aumento pedido.
- guideModelRoot.scale.setScalar(1.65);
+ guideModelRoot.scale.setScalar(2.6);
  guideFitRoot.updateMatrixWorld(true);guide.userData.modelLoaded=true;
 }
 const villageNpcBreathing=[];
@@ -393,7 +435,7 @@ function measureModelBounds(model){
  });
  return box;
 }
-new GLTFLoader().load('./AnjoGuia.glb?v=mod166-guide-scale',gltf=>{
+new GLTFLoader().load('./AnjoGuia.glb?v=mod167-guide-scale-breath',gltf=>{
  const imported=gltf.scene;imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
  guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideModel=imported;playNativeGuideIdle(gltf.animations||[]);fitGuideModel();
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
@@ -444,13 +486,9 @@ const clock=new THREE.Clock();
 function chooseClip(clips,regex){return clips.find(c=>regex.test(c.name));}
 function clipKey(clip){return String(clip&&clip.name||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
 function validAttackClip(clip){
- const n=clipKey(clip);
- if(!n)return false;
- // O mapeamento original do protagonista usa Hit Knockback como um dos golpes.
- // Permitir apenas esse clipe de forma explícita; Overhand Throw continua sendo dano recebido.
- if(n==='hitknockback')return true;
- const bad=/hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh|getup|standup|rise|recoverfloor|levant|levantar/;
- const good=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand/;
+ const n=clipKey(clip);if(!n)return false;
+ const bad=/hurt|damage|hitreaction|hitknockback|takehit|overhandthrow|tomardano|dano|death|dying|dead|^die$|morrer|morte|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|respir|falar|talk|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh|getup|standup|rise|recoverfloor|levant|levantar|block|dodge|dash|jump|salto/;
+ const good=/attack|slash|swing|strike|sword|melee|atacar|ataque|atq\d|skill|habilidade|claw|combo|punch|kick|onehand|twohand/;
  return good.test(n)&&!bad.test(n);
 }
 function selectDimensionAttack(clips){
@@ -506,7 +544,13 @@ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
   player.add(model);
  loadPlayerSword(model);
  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;playerIdleClip=clips.find(c=>/^idle$/i.test(c.name||''))||chooseClip(clips,/idle|breath|respir|parad/i)||null;const idle=playerIdleClip||chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);attackClips=selectDimensionAttack(clips);attackClipIndex=0;const jump=chooseClip(clips,/jump|saltar|salto/i);
- if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'idle',0);}
+ const hit=chooseClip(clips,/overhandthrow|take.?damage|taking.?damage|hurt|hit.?reaction|hit.?knockback|damage/i);
+ const death=chooseClip(clips,/death|dead|dying|(^|[^a-z])die([^a-z]|$)|knockdown|collapse/i);
+ const dash=chooseClip(clips,/dash|quickstep|evade/i),block=chooseClip(clips,/block|dodge/i);
+ if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);
+ if(hit)actions.hit=mixer.clipAction(hit);if(death)actions.death=mixer.clipAction(death);if(dash)actions.dash=mixer.clipAction(dash);if(block)actions.block=mixer.clipAction(block);
+ play(actions.idle?'idle':actions.walk?'walk':'idle',0);
+ window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);}
  fitGuideModel();addVillageVendors();
  player.userData.ready=true;loading.classList.add('hidden');status.textContent='Missão 1 · encontre o Anjo-Guia e fale com ele';
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
@@ -521,7 +565,7 @@ function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
 let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
-function action(kind){if(playerHP<=0)return;const now=performance.now();if(kind==='dash'){if(now<dashCooldownUntil)return;dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;if(actions.dash)playOnce('dash',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='magic'?'Magia celestial será integrada depois':'Ultimate será integrada depois';setTimeout(()=>{if(status.textContent.startsWith('Magia celestial')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
+function action(kind){if(playerHP<=0)return;const now=performance.now();if(kind==='dash'){if(now<dashCooldownUntil)return;dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='magic'?'Magia celestial será integrada depois':'Ultimate será integrada depois';setTimeout(()=>{if(status.textContent.startsWith('Magia celestial')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
 function bindInstantAction(id,kind){const button=document.getElementById(id);button.addEventListener('pointerdown',e=>{e.preventDefault();action(kind);});button.addEventListener('click',e=>{if(e.detail===0)action(kind);});}
 bindInstantAction('attack','attack');bindInstantAction('dash','dash');
 const jumpButton=document.getElementById('jump');
@@ -566,9 +610,9 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const animatedBounds=new THREE.Box3().setFromObject(enemyModel);
  if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y)){
   const floorY=terrainHeightAt(enemy.position.x,enemy.position.z);
-  enemyModelRoot.position.y+=floorY-animatedBounds.min.y;
+  enemyModelRoot.position.y+=floorY-animatedBounds.min.y-.045;
  }
- }if(guideIdleMixer)guideIdleMixer.update(dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
+ }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
