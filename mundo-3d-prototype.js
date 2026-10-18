@@ -258,14 +258,27 @@ new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
   walk:exact('andar')||exact('walk')||exact('walking'),
   run:exact('correr')||exact('run')||exact('running'),
   attack:exact('atq1')||exact('attack1')||exact('attack01'),
-  attack2:exact('habilidade3')||exact('skill3')||exact('skill03'),
-  cast:enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))&&c!==(exact('habilidade3')||exact('skill3')||exact('skill03'))),
+  attack2:enemyClips.find(c=>/(habilidade3|skill3|skill03|atq2|attack2|skill2)/.test(key(c))),
+  cast:enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))),
   dash:exact('dash'),
   block:exact('block'),
   jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
   hit:exact('hit')||exact('hurt')||exact('damage'),
   death:exact('death')||exact('die')||exact('morte')
  };
+ // Não depender de um único nome: distribui clipes reais ainda não usados em papéis especiais distintos.
+ const usedClips=new Set(Object.values(clipsByRole).filter(Boolean));
+ const fallbackPool=enemyClips.filter(c=>!usedClips.has(c)&&!/(idle|breath|respir|andar|walk|correr|running|^run$|dash|block|jump|pulo|saltar|atq1|attack0?1|hit|hurt|damage|death|die|morte|falar|talk)/.test(key(c)));
+ if(!clipsByRole.attack2){
+  clipsByRole.attack2=fallbackPool.find(c=>/(habilidade|skill|atq|attack|power|slash|strike|sword)/.test(key(c)))||fallbackPool[0]||null;
+  if(clipsByRole.attack2)usedClips.add(clipsByRole.attack2);
+ }
+ if(!clipsByRole.cast||clipsByRole.cast===clipsByRole.attack2){
+  clipsByRole.cast=enemyClips.find(c=>c!==clipsByRole.attack2&&!usedClips.has(c)&&/(hand|point|apont|cast|spell|magic|power|habilidade|skill|atq|attack)/.test(key(c)))||
+   fallbackPool.find(c=>c!==clipsByRole.attack2&&!usedClips.has(c))||null;
+ }
+ if(clipsByRole.cast===clipsByRole.attack2)clipsByRole.cast=null;
+ window.Enemy1AnimationRoleReport=Object.fromEntries(Object.entries(clipsByRole).map(([role,clip])=>[role,clip?clip.name:null]));
  for(const role of Object.keys(clipsByRole)){const clip=clipsByRole[role];if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}
  enemyHasDeathClip=!!clipsByRole.death;
  // Usa Dash e Jump reais do Enemy1 no protagonista, convertidos para o esqueleto dele.
@@ -363,7 +376,7 @@ function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.is
 function updateEnemyAI(dt){
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
  if(!enemy.visible||!enemyAlive||questStep!==2||dialogueOpen||playerHP<=0){if(enemyCurrentRole!=='idle'&&enemyActions.idle){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyDashRemaining=0;enemyCastResolved=true;playEnemyAnimation('idle',.1);}return;}
- if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-140,14);if(!blockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!blockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
+ if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-140,14);if(!enemyBlockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!enemyBlockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
  // Deixe a animação de reação terminar antes de voltar a perseguir; evita cortá-la no primeiro quadro.
  if(enemyCurrentRole==='hit'){
   const clip=enemyCurrentAction&&enemyCurrentAction.getClip();
@@ -392,32 +405,41 @@ function updateEnemyAI(dt){
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
   const step=Math.min(8.0*dt,enemyDashRemaining*8.0);enemyDashRemaining=Math.max(0,enemyDashRemaining-dt);
   const nx=THREE.MathUtils.clamp(enemy.position.x+enemyDashDirectionX*step,-62,62),nz=THREE.MathUtils.clamp(enemy.position.z+enemyDashDirectionZ*step,-140,14);
-  if(!blockedAt(nx,enemy.position.z))enemy.position.x=nx;if(!blockedAt(enemy.position.x,nz))enemy.position.z=nz;
+  if(!enemyBlockedAt(nx,enemy.position.z))enemy.position.x=nx;if(!enemyBlockedAt(enemy.position.x,nz))enemy.position.z=nz;
   if(enemyDashRemaining>0)return;
  }
- if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);return;}if(distance<=1.55){playEnemyAnimation('idle',.08);return;}
- if(distance>1.55&&distance<=8.5){
+ // Avança com dash antes de escolher especiais; a antiga ordem tornava o dash praticamente inalcançável.
+ if(enemyActions.dash&&enemyDashCooldown<=0&&((distance>4.8&&distance<=11)||(distance<1.75&&enemyAttackCooldown>0))){
+  if(playEnemyAnimation('dash',.06,true)){
+   const retreat=distance<1.75;
+   enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);
+   enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);
+   enemyDashRemaining=.34;enemyDashCooldown=2.7;return;
+  }
+ }
+ // Prioriza alternância real dos especiais antes do golpe básico quando há distância para lançar.
+ if(distance>1.65&&distance<=8.5){
   const preferred=enemyNextRangedRole||'cast',roles=preferred==='cast'?['cast','attack2']:['attack2','cast'];
   for(const rangedRole of roles){
-   const available=rangedRole==='cast'?enemyActions.cast&&enemyCastCooldown<=0:enemyActions.attack2&&enemySpecialCooldown<=0;
+   const clipAction=enemyActions[rangedRole];
+   const available=!!clipAction&&(rangedRole==='cast'?enemyCastCooldown<=0:enemySpecialCooldown<=0);
    if(!available)continue;
-   const action=enemyActions[rangedRole],duration=action.getClip().duration;
+   const duration=clipAction.getClip().duration;
    if(!playEnemyAnimation(rangedRole,.08,true))continue;
    enemyNextRangedRole=rangedRole==='cast'?'attack2':'cast';
-   if(rangedRole==='cast'){enemyCastCooldown=5.8;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;}
-   else{enemySpecialCooldown=4.0;enemyCurrentRole='attack2';enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.45;}
+   if(rangedRole==='cast'){enemyCastCooldown=4.6;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;}
+   else{enemySpecialCooldown=3.1;enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.25;}
    return;
   }
  }
- if(enemyActions.dash&&enemyDashCooldown<=0&&((distance>6.2&&distance<=10)||(distance<1.95&&enemyAttackCooldown>0))){
-  if(playEnemyAnimation('dash',.06,true)){const retreat=distance<1.95;enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);enemyDashRemaining=.28;enemyDashCooldown=3.0;return;}
- }
+ if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);return;}
+ if(distance<1.55&&enemyAttackCooldown>0){playEnemyAnimation('idle',.08);return;}
  if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
   if(playEnemyAnimation('block',.06,true)){enemyBlockCooldown=3.0;const side=enemy.rotation.y+Math.PI/2,sx=enemy.position.x+Math.sin(side)*.65,sz=enemy.position.z+Math.cos(side)*.65;if(!blockedAt(sx,enemy.position.z))enemy.position.x=sx;if(!blockedAt(enemy.position.x,sz))enemy.position.z=sz;return;}
  }
  const running=distance>7.5&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
  const nextX=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-140,14);let moved=false;
- if(!blockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!blockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
+ if(!enemyBlockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!enemyBlockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
  playEnemyAnimation(moved?(role==='run'&&enemyActions.run?'run':'walk'):'idle',.12);
 }
 function updatePlayerRespawn(now){
@@ -686,6 +708,14 @@ function blockedAt(x,z){
  for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
  return false;
 }
+function playerBlockedAt(x,z){
+ if(blockedAt(x,z))return true;
+ return !!(enemy&&enemy.visible&&enemyAlive&&Math.hypot(x-enemy.position.x,z-enemy.position.z)<.86);
+}
+function enemyBlockedAt(x,z){
+ if(blockedAt(x,z))return true;
+ return Math.hypot(x-player.position.x,z-player.position.z)<.9;
+}
 function terrainHeightAt(x,z){
  let height=0;
  for(const rock of rockObstacles){const d=Math.hypot(x-rock.x,z-rock.z);if(d<rock.radius){const t=1-d/rock.radius;const smooth=t*t*(3-2*t);height=Math.max(height,rock.height*smooth);}}
@@ -753,15 +783,15 @@ const moving=Math.hypot(moveVX,moveVZ)>.12;
 // Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
 if(dashRemaining>0){
  const dashDt=Math.min(dt,dashRemaining);const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*12.5*dashDt,-62,62);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*12.5*dashDt,-140,14);
- if(!blockedAt(nextX,player.position.z))player.position.x=nextX;
- if(!blockedAt(player.position.x,nextZ))player.position.z=nextZ;
+ if(!playerBlockedAt(nextX,player.position.z))player.position.x=nextX;
+ if(!playerBlockedAt(player.position.x,nextZ))player.position.z=nextZ;
  playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;dashRemaining=Math.max(0,dashRemaining-dt);
 }else if(moving){
  const nextX=THREE.MathUtils.clamp(player.position.x+moveVX*dt,-62,62);
  const nextZ=THREE.MathUtils.clamp(player.position.z+moveVZ*dt,-140,14);
  // Testa cada eixo separadamente para o jogador conseguir deslizar junto à árvore/pedra.
- if(!blockedAt(nextX,player.position.z))player.position.x=nextX;else moveVX=0;
- if(!blockedAt(player.position.x,nextZ))player.position.z=nextZ;else moveVZ=0;
+ if(!playerBlockedAt(nextX,player.position.z))player.position.x=nextX;else moveVX=0;
+ if(!playerBlockedAt(player.position.x,nextZ))player.position.z=nextZ;else moveVZ=0;
  const wantedYaw=Math.atan2(moveVX,moveVZ);
  const yawDelta=Math.atan2(Math.sin(wantedYaw-playerYaw),Math.cos(wantedYaw-playerYaw));
  playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;

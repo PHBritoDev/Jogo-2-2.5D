@@ -65,3 +65,14 @@ Este documento registra causas já encontradas no protótipo 3D para evitar rein
 ## 10. Magias bíblicas no protótipo 3D
 - O protótipo tem controles dedicados para três espadas da Palavra, cinco espadas celestiais, Sol da Justiça e ultimate, com cooldowns próprios e projéteis que podem atingir o inimigo da trilha.
 - Isto é uma primeira implementação jogável do sistema de habilidades, não a integração final com a campanha inteira. Antes de trocar a dimensão 2D por padrão, integrar e testar os dados persistentes, as missões/NPCs e a entrada real para a dimensão do Primeiro Bispo. Manter `?mundo2d=1` como retorno seguro até validar a migração.
+
+
+## 11. Mod 173 — por que só o golpe básico aparecia
+Causa identificada no fluxo da IA:
+- A decisão do golpe corpo a corpo vinha antes dos especiais. Como o jogador normalmente fica perto, a IA retornava com `Atq1` antes de escolher `Habilidade3` ou o clipe de apontar a mão.
+- A verificação do dash vinha depois dos especiais de distância média/longe. Quando um especial estava disponível, a IA retornava antes de chegar ao dash; por isso o avanço/retirada quase nunca acontecia.
+Correções:
+- A ordem agora dá oportunidade ao dash em distância longa e à retirada quando o jogador está colado e o golpe está em recarga; depois alterna especiais distintos e só então escolhe o golpe básico.
+- Os papéis especiais tentam descobrir clipes reais não utilizados do GLB caso os nomes conhecidos não existam. `window.Enemy1AnimationRoleReport` mostra o nome real que foi associado a cada papel; `window.Enemy1AnimationReport` lista todos os clipes carregados.
+- Colisão recíproca: movimento do jogador respeita o raio do Enemy1; movimento do Enemy1 respeita o raio do jogador. Usar funções separadas para que a checagem não impeça o próprio inimigo de se mover.
+- Validar no jogo que o relatório associa clipes diferentes a `attack2` e `cast`. Se o modelo não tiver clipes adicionais de combate, a IA não consegue inventar animações que não existam no GLB; nesse caso é necessário adicionar/importar as animações reais.
