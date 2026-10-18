@@ -294,24 +294,34 @@ new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
 }
 
 function spawnEnemyProjectile(kind,spreadAngle=0){
- const group=new THREE.Group(),slash=kind==='slash';
- const dark=new THREE.MeshStandardMaterial({color:0x09080d,emissive:slash?0x210d2d:0x170d28,emissiveIntensity:slash?1.15:.85,metalness:.25,roughness:.35,transparent:true,opacity:.96,depthWrite:false});
- const edge=new THREE.MeshStandardMaterial({color:0x6f1728,emissive:0x8b1631,emissiveIntensity:1.35,transparent:true,opacity:.9,depthWrite:false});
+ const group=new THREE.Group(),slash=kind==='slash',tornado=kind==='tornado',hand=kind==='hand';
+ const dark=new THREE.MeshStandardMaterial({color:0x09080d,emissive:tornado?0x160a24:slash?0x210d2d:0x170d28,emissiveIntensity:tornado?1.25:slash?1.15:1.05,metalness:.2,roughness:.38,transparent:true,opacity:.96,depthWrite:false,side:THREE.DoubleSide});
+ const edge=new THREE.MeshStandardMaterial({color:0x21152b,emissive:0x11081b,emissiveIntensity:.9,transparent:true,opacity:.9,depthWrite:false,side:THREE.DoubleSide});
+ const lightningMat=new THREE.LineBasicMaterial({color:0x35213f,transparent:true,opacity:.98});
  if(slash){
-  // Corte reto, escuro e estreito; sem anel giratório para não parecer um ímã.
   const blade=new THREE.Mesh(new THREE.CylinderGeometry(.035,.16,1.45,7,1,true),dark);blade.rotation.x=Math.PI/2;group.add(blade);
   const core=new THREE.Mesh(new THREE.CylinderGeometry(.012,.055,1.32,5,1,true),new THREE.MeshBasicMaterial({color:0x050407,transparent:true,opacity:.98,depthWrite:false}));core.rotation.x=Math.PI/2;group.add(core);
   const sparkMat=new THREE.LineBasicMaterial({color:0x7e1830,transparent:true,opacity:.98});
   for(let side of [-1,1]){const points=[new THREE.Vector3(side*.08,-.07,-.62),new THREE.Vector3(side*.17,.09,-.39),new THREE.Vector3(side*.08,-.12,-.17),new THREE.Vector3(side*.19,.07,.04),new THREE.Vector3(side*.07,-.05,.27),new THREE.Vector3(side*.13,.1,.48),new THREE.Vector3(0,0,.66)];const bolt=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),sparkMat);bolt.position.x=side*.09;group.add(bolt);}
   group.scale.set(1.0,.72,1.0);
+ }else if(tornado){
+  // Funil único, de altura aproximada à do Enemy1, com espirais e relâmpagos negros.
+  for(let i=0;i<5;i++){const y=.18+i*.34,bottom=.57-i*.085,top=Math.max(.12,bottom-.15);const funnel=new THREE.Mesh(new THREE.CylinderGeometry(top,bottom,.43,9,1,true),i%2?edge:dark);funnel.position.y=y;funnel.rotation.y=i*.62;group.add(funnel);}
+  for(let strand=0;strand<3;strand++){const pts=[];for(let j=0;j<12;j++){const t=j/11,a=t*Math.PI*3.2+strand*Math.PI*2/3,r=.56-t*.39;pts.push(new THREE.Vector3(Math.cos(a)*r,.08+t*1.62,Math.sin(a)*r));}group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
+  for(let bolt=0;bolt<4;bolt++){const a=bolt*Math.PI/2+.3,r=.3+bolt%2*.12;const pts=[new THREE.Vector3(Math.cos(a)*r,.2,Math.sin(a)*r),new THREE.Vector3(Math.cos(a+.24)*.48,.55,Math.sin(a+.24)*.48),new THREE.Vector3(Math.cos(a-.16)*.35,.86,Math.sin(a-.16)*.35),new THREE.Vector3(Math.cos(a+.18)*.62,1.2,Math.sin(a+.18)*.62),new THREE.Vector3(Math.cos(a)*.3,1.72,Math.sin(a)*.3)];group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
+  const core=new THREE.Mesh(new THREE.CylinderGeometry(.12,.24,1.65,7,1,true),new THREE.MeshBasicMaterial({color:0x030207,transparent:true,opacity:.7,side:THREE.DoubleSide,depthWrite:false}));core.position.y=.83;group.add(core);
+ }else if(hand){
+  const core=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),new THREE.MeshBasicMaterial({color:0x07050b,transparent:true,opacity:1,depthWrite:false}));group.add(core);
+  const aura=new THREE.Mesh(new THREE.SphereGeometry(.29,8,6),new THREE.MeshBasicMaterial({color:0x21172c,transparent:true,opacity:.45,wireframe:true,depthWrite:false}));group.add(aura);
+  for(let b=0;b<4;b++){const a=b*Math.PI/2,pts=[new THREE.Vector3(0,0,0),new THREE.Vector3(Math.cos(a)*.16,.12,Math.sin(a)*.16),new THREE.Vector3(Math.cos(a+.25)*.3,-.08,Math.sin(a+.25)*.3),new THREE.Vector3(Math.cos(a-.12)*.43,.05,Math.sin(a-.12)*.43)];group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
  }else{for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.38+i*.13,.045,5,16),i===1?edge:dark);ring.position.y=(i-1)*.25;ring.rotation.x=(i-1)*.28;group.add(ring);}const core=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),dark);group.add(core);group.scale.set(.9,1.25,.9);}
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,len=Math.hypot(dx,dz)||1,baseX=dx/len,baseZ=dz/len,angle=Math.atan2(baseX,baseZ)+spreadAngle,dirX=Math.sin(angle),dirZ=Math.cos(angle);
- group.position.set(enemy.position.x+dirX*.82,enemy.position.y+(slash?1.12:1.0),enemy.position.z+dirZ*.82);group.rotation.y=angle;scene.add(group);
- enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?8.2:5.2,life:slash?1.25:2.15,damage:slash?13:16,spin:slash?0:9.2});
+ group.position.set(enemy.position.x+dirX*(tornado?1.05:.82),enemy.position.y+(slash?1.12:tornado?0:1.0),enemy.position.z+dirZ*(tornado?1.05:.82));group.rotation.y=angle;scene.add(group);
+ enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?8.2:tornado?3.4:hand?7.2:5.2,life:slash?1.25:tornado?2.1:hand?1.7:2.15,damage:slash?13:tornado?22:hand?19:16,spin:slash?0:tornado?2.7:hand?0:9.2,hitRadius:tornado?.9:hand?.65:slash?.78:1.05});
 }
 function updateEnemyProjectiles(dt){
  for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
-  if(dist<(p.kind==='slash'?.78:1.05)&&Math.abs(p.group.position.y-(player.position.y+1))<1.25){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
+  if(dist<(p.hitRadius|| (p.kind==='slash'?.78:1.05))&&Math.abs(p.group.position.y-(player.position.y+(p.kind==='tornado'?.85:1)))<(p.kind==='tornado'?1.5:1.25)){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});enemyProjectiles.splice(i,1);}
  }
 }
@@ -392,14 +402,14 @@ function updateEnemyAI(dt){
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
  if(enemyCurrentRole==='cast'){
   enemyCastElapsed+=dt;
-  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.42){enemyCastResolved=true;spawnEnemyProjectile('tornado',-.34);spawnEnemyProjectile('tornado',0);spawnEnemyProjectile('tornado',.34);}
+  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.42){enemyCastResolved=true;spawnEnemyProjectile('hand');}
   if(enemyCastElapsed<enemyCastDuration)return;
   playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole!=='attack'&&enemyCurrentRole!=='attack2'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
  if(enemyCurrentRole==='attack'||enemyCurrentRole==='attack2'){
   enemyAttackElapsed+=dt;const role=enemyAttackRole,action=enemyActions[role];
-  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'){spawnEnemyProjectile('slash',-.22);spawnEnemyProjectile('slash',0);spawnEnemyProjectile('slash',.22);}}
+  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'){spawnEnemyProjectile('tornado');}}
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
@@ -409,13 +419,13 @@ function updateEnemyAI(dt){
   if(enemyDashRemaining>0)return;
  }
  // Avança com dash antes de escolher especiais; a antiga ordem tornava o dash praticamente inalcançável.
- if(enemyActions.dash&&enemyDashCooldown<=0&&((distance>4.8&&distance<=11)||(distance<1.75&&enemyAttackCooldown>0))){
-  if(playEnemyAnimation('dash',.06,true)){
-   const retreat=distance<1.75;
-   enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);
-   enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);
-   enemyDashRemaining=.34;enemyDashCooldown=2.7;return;
-  }
+ if(enemyDashCooldown<=0&&((distance>3.6&&distance<=14)||(distance<1.8))){
+  const retreat=distance<1.8,hasDashAnimation=!!enemyActions.dash;
+  if(hasDashAnimation)playEnemyAnimation('dash',.045,true);
+  else{enemyCurrentAction=null;enemyCurrentRole='dash';}
+  enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);
+  enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);
+  enemyDashRemaining=retreat?.38:.44;enemyDashCooldown=2.35;return;
  }
  // Prioriza alternância real dos especiais antes do golpe básico quando há distância para lançar.
  if(distance>1.65&&distance<=8.5){
@@ -433,7 +443,7 @@ function updateEnemyAI(dt){
   }
  }
  if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);return;}
- if(distance<1.55&&enemyAttackCooldown>0){playEnemyAnimation('idle',.08);return;}
+ if(distance<1.55&&enemyAttackCooldown>0){if(enemyActions.block&&enemyBlockCooldown<=0&&playEnemyAnimation('block',.045,true)){enemyBlockCooldown=1.6;return;}playEnemyAnimation('idle',.08);return;}
  if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
   if(playEnemyAnimation('block',.06,true)){enemyBlockCooldown=3.0;const side=enemy.rotation.y+Math.PI/2,sx=enemy.position.x+Math.sin(side)*.65,sz=enemy.position.z+Math.cos(side)*.65;if(!blockedAt(sx,enemy.position.z))enemy.position.x=sx;if(!blockedAt(enemy.position.x,sz))enemy.position.z=sz;return;}
  }
