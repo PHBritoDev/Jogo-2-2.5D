@@ -1,0 +1,264 @@
+diff --git a/index.html b/index.html
+index 64cebc9f72bcf119da4a89eec172d7a0fc12010d..4108bd7924ff409f2d0831b0a70ef5ecc23b0a35 100644
+--- a/index.html
++++ b/index.html
+@@ -24,7 +24,7 @@
+   var frame=document.createElement('iframe');
+   frame.id='primary-3d-frame';
+   frame.title='Mundo 3D — A Batalha Contra os 7 Pecados Capitais';
+-  frame.src='mundo-3d-prototype.html?refresh=161&build=161';
++  frame.src='mundo-3d-prototype.html?refresh=162&build=162';
+   frame.allow='fullscreen';
+   document.body.appendChild(frame);
+ })();
+diff --git a/mundo-3d-prototype.html b/mundo-3d-prototype.html
+index b54066877e4b681e2f6673a97d8cd4e64bdd9b19..b48b2ea2aea1e4ca17baa9c69f480b6d057b6273 100644
+--- a/mundo-3d-prototype.html
++++ b/mundo-3d-prototype.html
+@@ -56,7 +56,7 @@ button:active{transform:scale(.96);background:#31583d}
+ <canvas id="scene"></canvas>
+ <div id="look-area" aria-label="Arraste para olhar para cima/baixo; use dois dedos para aproximar/afastar"></div>
+ <div id="top"><div id="title">A BATALHA CONTRA OS 7 PECADOS</div><div id="status">Preparando o mundo 3D…</div></div>
+-<div id="marker" aria-label="Modificação 161">161</div>
++<div id="marker" aria-label="Modificação 162">162</div>
+ <div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
+ <div id="hint">MISSÃO 1 · A CLAREIRA E O PORTAL</div>
+ <div id="quest-box"><div id="quest-title">MISSÃO 1 · A CLAREIRA E O PORTAL</div><div id="quest-objective">Encontre o Anjo-Guia</div><div class="quest-coins">MOEDAS <strong id="coin-count">0</strong></div></div>
+@@ -74,8 +74,8 @@ button:active{transform:scale(.96);background:#31583d}
+ <button id="attack">GOLPE</button><button id="jump">PULAR</button>
+ <button id="dash">DASH</button><button id="magic">MAGIA</button><button id="ultimate">ULTIMATE</button>
+ </div>
+-<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 161: recarga forçada da correção de escala e colisões.</div>
++<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 162: retarget da animação do Anjo-Guia e colisões proporcionais.</div>
+ <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+-<script type="module" src="./mundo-3d-prototype.js?v=mod161-force-fresh-scale-collision"></script>
++<script type="module" src="./mundo-3d-prototype.js?v=mod162-guide-retarget-collision"></script>
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/mundo-3d-prototype.js b/mundo-3d-prototype.js
+index 2f041918eaac6a12e1105f1b7d979bf13a00cb7b..15244115fe620436f3871bc12a8e3daac97a83f5 100644
+--- a/mundo-3d-prototype.js
++++ b/mundo-3d-prototype.js
+@@ -27,7 +27,7 @@ const ground=new THREE.Mesh(new THREE.PlaneGeometry(280,280),groundMat);ground.r
+ const CLEARING={x:0,z:-29},PORTAL={x:0,z:-119},JOURNEY_ENEMIES=[{x:0,z:-59},{x:2.4,z:-79},{x:-2.2,z:-99}];
+ const VILLAGE_CENTER={x:-9.2,z:-18.2};
+ const treeGroup=new THREE.Group();scene.add(treeGroup);
+-const treeObstacles=[],rockObstacles=[],marketObstacles=[],treeSpecs=[];
++const treeObstacles=[],rockObstacles=[],marketObstacles=[],walkableObstacles=[],treeSpecs=[];
+ const leafMid=mat(0x245035),mossMatA=mat(0x34522e),mossMatB=mat(0x465e32),grassMatA=mat(0x58763d),grassMatB=mat(0x304d31);
+ const mainTrail=[[0,14],[0,4],[.5,-6],[-1.8,-17],[0,-29],[2.2,-43],[-1.2,-59],[-2,-76],[2.4,-93],[-1,-107],[0,-119],[1.5,-140]];
+ const villageTrail=[[0,-8],[-2,-11],[-5.3,-14.7],[-9.2,-18.2]];
+@@ -115,7 +115,7 @@ addVillageBox(cabin,new THREE.BoxGeometry(1,1,1),woodMat,0,1.05,0,3.5,2.1,3.15);
+ const cabinRoof=new THREE.Mesh(new THREE.ConeGeometry(2.75,1.55,4),roofMat);cabinRoof.position.set(0,2.83,0);cabinRoof.rotation.y=Math.PI/4;cabinRoof.castShadow=false;cabin.add(cabinRoof);
+ addVillageBox(cabin,new THREE.BoxGeometry(.72,1.35,.08),doorMat,0,.675,1.62,1,1,1);
+ for(const side of [-1,1])addVillageBox(cabin,new THREE.BoxGeometry(.48,.48,.08),fabricGoldMat,side*1.05,1.3,1.62,1,1,1);
+-marketObstacles.push({x:-12.35,z:-20.4,radius:2.05});
++marketObstacles.push({x:-12.35,z:-20.4,shape:'box',halfX:1.95,halfZ:1.95,height:3.6});
+ function makeMarketSign(label,color){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=160;const ctx=canvas.getContext('2d');ctx.fillStyle='#3b2d1e';ctx.fillRect(0,0,512,160);ctx.strokeStyle='#d4b778';ctx.lineWidth=9;ctx.strokeRect(8,8,496,144);ctx.fillStyle=color;ctx.font='bold 72px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,256,82);const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return new THREE.Mesh(new THREE.PlaneGeometry(1.55,.48),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));}
+ const fruitGeo=new THREE.SphereGeometry(.16,8,6),fruitMats=[0xc84232,0xe5a63b,0x6e9c47,0xd8c64a,0x7e4c74].map(color=>mat(color));
+ function makeFruitStall(x,z,label,green){const stall=new THREE.Group();stall.position.set(x,0,z);if(green)stall.rotation.y=Math.PI;villageGroup.add(stall);
+@@ -124,7 +124,7 @@ function makeFruitStall(x,z,label,green){const stall=new THREE.Group();stall.pos
+  for(let i=0;i<5;i++)addVillageBox(stall,new THREE.BoxGeometry(.49,.1,1.52),i%2?fabricCreamMat:(green?fabricGreenMat:fabricGoldMat),(i-2)*.49,1.75,0,1,1,1);
+  const sign=makeMarketSign(label,green?'#d7ebae':'#ffe3a0');sign.position.set(0,2.14,.47);stall.add(sign);
+  for(let basket=0;basket<3;basket++){const bx=(basket-1)*.72;const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.25,.34,.3,8),basketMat);bowl.position.set(bx,1.27,0);stall.add(bowl);for(let j=0;j<4;j++){const fruit=new THREE.Mesh(fruitGeo,fruitMats[(basket*3+j)%fruitMats.length]);fruit.position.set(bx+((j%2)-.5)*.2,1.5+Math.floor(j/2)*.03,(Math.floor(j/2)-.5)*.19);fruit.castShadow=false;stall.add(fruit);}}
+- marketObstacles.push({x,z,radius:1.25});return stall;}
++ marketObstacles.push({x,z,shape:'box',halfX:1.225,halfZ:.76,height:2.4});return stall;}
+ makeFruitStall(-6.35,-20.7,'FRUTAS',false);makeFruitStall(-11.25,-14.45,'ERVAS',true);
+ const bench=new THREE.Group();bench.position.set(-8.7,0,-23.3);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
+ const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
+@@ -231,17 +231,75 @@ function resolvePlayerAttackHit(){
+ // Anjo-Guia: usa o modelo GLB original adicionado ao repositório.
+ const guide=new THREE.Group();scene.add(guide);guide.position.set(3.3,0,-5.4);
+ const guideModelRoot=new THREE.Group();guide.add(guideModelRoot);
+-let guideModel=null,guideIdleMixer=null,playerIdleClip=null,vendorsSpawned=false;
++let guideModel=null,guideFitRoot=null,guideIdleMixer=null,playerIdleClip=null,playerRestPose=null,playerReferenceHeight=1.7,vendorsSpawned=false;
+ const villageNpcMixers=[];
+ function canonicalHumanoidBone(name){return String(name||'').replace(/mixamorig:?/ig,'').replace(/[^a-z0-9]/ig,'').toLowerCase();}
+-function remapIdleToGuide(sourceClip,targetRoot){
+- const targetBones=new Map();targetRoot.traverse(o=>{if(o.isBone){const key=canonicalHumanoidBone(o.name);if(key&&!targetBones.has(key))targetBones.set(key,o.name);}});
++function captureBoneRestPose(root){
++ root.updateMatrixWorld(true);
++ const pose=new Map();
++ root.traverse(o=>{
++  if(!o.isBone)return;
++  const key=canonicalHumanoidBone(o.name);
++  if(key&&!pose.has(key))pose.set(key,{
++   position:o.position.clone(),
++   quaternion:o.quaternion.clone(),
++   parentScale:o.parent?o.parent.getWorldScale(new THREE.Vector3()):new THREE.Vector3(1,1,1)
++  });
++ });
++ return pose;
++}
++function remapIdleToGuide(sourceClip,sourceRestPose,targetRoot){
++ const targetBones=new Map();targetRoot.updateMatrixWorld(true);targetRoot.traverse(o=>{if(o.isBone){const key=canonicalHumanoidBone(o.name);if(key&&!targetBones.has(key))targetBones.set(key,o);}});
+  const tracks=[];
+- for(const track of sourceClip.tracks){const dot=track.name.lastIndexOf('.');if(dot<1)continue;const sourceBone=track.name.slice(0,dot),targetBone=targetBones.get(canonicalHumanoidBone(sourceBone));if(!targetBone)continue;const mapped=track.clone();mapped.name=targetBone+track.name.slice(dot);tracks.push(mapped);}
++ for(const track of sourceClip.tracks){
++  const dot=track.name.lastIndexOf('.');if(dot<1)continue;
++  const key=canonicalHumanoidBone(track.name.slice(0,dot)),sourceBase=sourceRestPose&&sourceRestPose.get(key),targetBone=targetBones.get(key),property=track.name.slice(dot+1);
++  if(!sourceBase||!targetBone||property==='scale')continue;
++  const mapped=track.clone();mapped.name=targetBone.name+track.name.slice(dot);
++  if(property==='position'){
++   const targetParentScale=targetBone.parent?targetBone.parent.getWorldScale(new THREE.Vector3()):new THREE.Vector3(1,1,1);
++   const ratio=new THREE.Vector3(
++    sourceBase.parentScale.x/(targetParentScale.x||1),
++    sourceBase.parentScale.y/(targetParentScale.y||1),
++    sourceBase.parentScale.z/(targetParentScale.z||1)
++   );
++   const values=Float32Array.from(track.values);
++   for(let i=0;i<values.length;i+=3){
++    values[i]=targetBone.position.x+(values[i]-sourceBase.position.x)*ratio.x;
++    values[i+1]=targetBone.position.y+(values[i+1]-sourceBase.position.y)*ratio.y;
++    values[i+2]=targetBone.position.z+(values[i+2]-sourceBase.position.z)*ratio.z;
++   }
++   mapped.values=values;
++  }else if(property==='quaternion'){
++   const sourceInverse=sourceBase.quaternion.clone().invert(),targetRest=targetBone.quaternion.clone(),values=Float32Array.from(track.values);
++   for(let i=0;i<values.length;i+=4){
++    const sourceAnimated=new THREE.Quaternion().fromArray(values,i);
++    const targetAnimated=targetRest.clone().multiply(sourceInverse.clone().multiply(sourceAnimated)).normalize();
++    targetAnimated.toArray(values,i);
++   }
++   mapped.values=values;
++  }else continue;
++  tracks.push(mapped);
++ }
+  if(tracks.length<20){console.warn('Idle do protagonista não foi aplicado ao Anjo-Guia: apenas '+tracks.length+' trilhas ósseas compatíveis.');return null;}
+  return new THREE.AnimationClip(sourceClip.name,sourceClip.duration,tracks,sourceClip.blendMode);
+ }
+-function applyGuideIdle(){if(!guideModel||!playerIdleClip||guideIdleMixer)return;const clip=remapIdleToGuide(playerIdleClip,guideModel);if(!clip)return;guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();}
++function applyGuideIdle(){
++ if(!guideModel||!guideFitRoot||!playerIdleClip||!playerRestPose||guideFitRoot.userData.fitInitialized)return;
++ const clip=remapIdleToGuide(playerIdleClip,playerRestPose,guideModel);
++ if(!clip)return;
++ guideIdleMixer=new THREE.AnimationMixer(guideModel);
++ const action=guideIdleMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();guideIdleMixer.update(0);
++ const bounds=measureModelBounds(guideFitRoot),size=bounds.getSize(new THREE.Vector3());
++ if(size.y>.001&&playerReferenceHeight>.001){
++  const fitScale=playerReferenceHeight*.92/size.y,center=bounds.getCenter(new THREE.Vector3());
++  guideFitRoot.scale.setScalar(fitScale);
++  guideFitRoot.position.set(-center.x*fitScale,-bounds.min.y*fitScale,-center.z*fitScale);
++ }
++ restoreGuideScales=lockModelScales(guideModel);
++ guideModelRoot.add(guideFitRoot);guideFitRoot.updateMatrixWorld(true);
++ guideFitRoot.userData.fitInitialized=true;guide.userData.modelLoaded=true;
++}
+ function addVillageVendors(){if(!model||!playerIdleClip||vendorsSpawned)return;vendorsSpawned=true;const placements=[{x:-6.35,z:-19.05,yaw:Math.PI},{x:-11.25,z:-12.85,yaw:Math.PI*.72}];for(const p of placements){const cloned=cloneSkinned(model),root=new THREE.Group();root.position.set(p.x,0,p.z);root.rotation.y=p.yaw;root.scale.setScalar(.76);root.add(cloned);cloned.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});villageGroup.add(root);const npcMixer=new THREE.AnimationMixer(cloned);const idle=npcMixer.clipAction(playerIdleClip);idle.setLoop(THREE.LoopRepeat,Infinity);idle.play();villageNpcMixers.push(npcMixer);}}
+ 
+ const guideAura=new THREE.PointLight(0xffe6a3,.45,2.8);guideAura.position.set(0,.78,.1);guide.add(guideAura);
+@@ -251,8 +309,12 @@ const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.38,.04,8,28),new THREE
+ questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,.06,guide.position.z);scene.add(questMarker);
+ const clearingPatch=new THREE.Mesh(new THREE.CircleGeometry(5.4,24),new THREE.MeshStandardMaterial({color:0x786f55,roughness:1}));clearingPatch.rotation.x=-Math.PI/2;clearingPatch.position.set(CLEARING.x,.012,CLEARING.z);clearingPatch.receiveShadow=true;scene.add(clearingPatch);
+ // Clareira natural com tronco caído e pedras pequenas: sem runas e sem personagem freira.
+-const fallenLog=new THREE.Mesh(new THREE.CylinderGeometry(.17,.22,3.1,7),barkMat);fallenLog.position.set(-2.5,.22,CLEARING.z-.7);fallenLog.rotation.z=Math.PI/2;fallenLog.rotation.y=.25;fallenLog.castShadow=true;scene.add(fallenLog);marketObstacles.push({x:-2.5,z:CLEARING.z-.7,radius:.48});
+-for(const p of [{x:2.4,z:CLEARING.z-1.4,s:.55},{x:1.7,z:CLEARING.z+1.8,s:.42},{x:-2.9,z:CLEARING.z+1.6,s:.38}]){const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(p.s,0),rockMat);stone.position.set(p.x,p.s*.45,p.z);stone.scale.y=.65;stone.castShadow=true;scene.add(stone);marketObstacles.push({x:p.x,z:p.z,radius:p.s*.58+.06});}
++const fallenLog=new THREE.Mesh(new THREE.CylinderGeometry(.17,.22,3.1,7),barkMat);fallenLog.position.set(-2.5,.22,CLEARING.z-.7);fallenLog.rotation.z=Math.PI/2;fallenLog.rotation.y=.25;fallenLog.castShadow=true;scene.add(fallenLog);
++walkableObstacles.push({type:'capsule',x:-2.5,z:CLEARING.z-.7,axisX:Math.cos(.25),axisZ:-Math.sin(.25),halfLength:1.55,radius:.22,height:.44});
++for(const p of [{x:2.4,z:CLEARING.z-1.4,s:.55},{x:1.7,z:CLEARING.z+1.8,s:.42},{x:-2.9,z:CLEARING.z+1.6,s:.38}]){
++ const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(p.s,0),rockMat);stone.position.set(p.x,p.s*.45,p.z);stone.scale.y=.65;stone.castShadow=true;scene.add(stone);
++ walkableObstacles.push({type:'circle',x:p.x,z:p.z,radius:p.s*.95,height:p.s*1.1});
++}
+ const portalGroup=new THREE.Group();scene.add(portalGroup);portalGroup.position.set(PORTAL.x,0,PORTAL.z);portalGroup.visible=false;
+ const portalRing=new THREE.Mesh(new THREE.TorusGeometry(1.55,.16,10,40),new THREE.MeshStandardMaterial({color:0x8bded8,metalness:.25,roughness:.3,emissive:0x176b75,emissiveIntensity:1.15}));portalRing.position.y=2.1;portalRing.castShadow=true;portalGroup.add(portalRing);
+ const portalCore=new THREE.Mesh(new THREE.CircleGeometry(1.42,32),new THREE.MeshBasicMaterial({color:0x123e50,transparent:true,opacity:.78,side:THREE.DoubleSide,depthWrite:false}));portalCore.position.set(0,2.1,0);portalGroup.add(portalCore);
+@@ -300,22 +362,12 @@ function lockModelScales(model){
+  };
+ }
+ let restoreGuideScales=null;
+-new GLTFLoader().load('./AnjoGuia.glb?v=mod161-force-fresh-scale-collision',gltf=>{
++new GLTFLoader().load('./AnjoGuia.glb?v=mod162-guide-retarget-stable-fit',gltf=>{
+  const imported=gltf.scene;
+  imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
+- // Mede a malha esquelética já deformada e calcula a escala antes de iniciar a animação.
+- const bounds=measureModelBounds(imported);
+- const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+- if(size.y>0.001){
+-  const scale=.82/size.y;
+-  imported.scale.setScalar(scale);
+-  imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
+- }
+- // Guarda a escala normalizada de TODOS os nós do GLB. Clips podem conter
+- // trilhas de escala nos ossos/grupos e multiplicar o ajuste, criando um gigante.
+- restoreGuideScales=lockModelScales(imported);
+- guideModelRoot.add(imported);guideModel=imported;
+- guide.userData.modelLoaded=true;applyGuideIdle();
++ // O fit fica num pai separado: as escalas originais da hierarquia GLB permanecem intactas.
++ guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideFitRoot.updateMatrixWorld(true);
++ guideModel=imported;applyGuideIdle();
+ },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
+ const PROGRESS_KEY='sevenSins3DCampaignV4';
+ function read3DProgress(){try{const current=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');if(current&&current.version>=4)return {questStep:THREE.MathUtils.clamp(Math.floor(Number(current.questStep)||0),0,5),coins:Math.max(0,Math.floor(Number(current.coins)||0)),journeyEnemyIndex:THREE.MathUtils.clamp(Math.floor(Number(current.journeyEnemyIndex)||0),0,3)};const old=JSON.parse(localStorage.getItem('sevenSins3DCampaignV3')||localStorage.getItem('sevenSins3DCampaignV2')||localStorage.getItem('sevenSins3DCampaignV1')||'{}');return {questStep:0,coins:Math.max(0,Math.floor(Number(old.coins)||0)),journeyEnemyIndex:0};}catch(_){return {questStep:0,coins:0,journeyEnemyIndex:0};}}
+@@ -417,8 +469,9 @@ function loadPlayerSword(modelRoot){
+  },undefined,err=>{console.warn('EspadaProta.glb não carregou:',err);});
+ }
+ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
+- model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;}}});
+- fitModel(model);player.add(model);
++  model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;}}});
++  fitModel(model);const playerBounds=measureModelBounds(model),playerSize=playerBounds.getSize(new THREE.Vector3());if(playerSize.y>.001)playerReferenceHeight=playerSize.y;
++  player.add(model);playerRestPose=captureBoneRestPose(model);
+  loadPlayerSword(model);
+  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;playerIdleClip=clips.find(c=>c.name==='Idle')||null;const idle=chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);attackClips=selectDimensionAttack(clips);attackClipIndex=0;const jump=chooseClip(clips,/jump|saltar|salto/i);
+  if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'idle',0);}
+@@ -459,6 +512,30 @@ lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointe
+ lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.08,15);},{passive:true});
+ addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';});
+ 
++function blockedAt(x,z){
++ for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
++ for(const o of marketObstacles){
++  if(o.height!==undefined&&o.height<=.68)continue;
++  const dx=x-o.x,dz=z-o.z;
++  if(o.shape==='box'?Math.abs(dx)<o.halfX&&Math.abs(dz)<o.halfZ:dx*dx+dz*dz<o.radius*o.radius)return true;
++ }
++ for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
++ return false;
++}
++function terrainHeightAt(x,z){
++ let height=0;
++ for(const rock of rockObstacles){const d=Math.hypot(x-rock.x,z-rock.z);if(d<rock.radius){const t=1-d/rock.radius;const smooth=t*t*(3-2*t);height=Math.max(height,rock.height*smooth);}}
++ for(const obstacle of walkableObstacles){
++  let distance;
++  if(obstacle.type==='capsule'){
++   const along=THREE.MathUtils.clamp((x-obstacle.x)*obstacle.axisX+(z-obstacle.z)*obstacle.axisZ,-obstacle.halfLength,obstacle.halfLength);
++   distance=Math.hypot(x-(obstacle.x+obstacle.axisX*along),z-(obstacle.z+obstacle.axisZ*along));
++  }else distance=Math.hypot(x-obstacle.x,z-obstacle.z);
++  if(distance<obstacle.radius){const t=1-distance/obstacle.radius,smooth=t*t*(3-2*t);height=Math.max(height,obstacle.height*smooth);}
++ }
++ return height;
++}
++
+ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(guideIdleMixer){guideIdleMixer.update(dt);if(restoreGuideScales)restoreGuideScales();}for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
+  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
+     updatePlayerSwordMount();
+@@ -468,7 +545,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
+  if(!enemyAlive&&!enemyHasDeathClip&&enemy.visible){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
+  updateEnemyHud();
+  if(enemyAlive)enemy.rotation.y=Math.atan2(camera.position.x-enemy.position.x,camera.position.z-enemy.position.z);
+- guide.position.y=.008+Math.sin(now*.0022)*.006;guideAura.intensity=.4+Math.sin(now*.003)*.06;
++  guide.position.y=0;guideAura.intensity=.4+Math.sin(now*.003)*.06;
+  const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
+  const clearingDistance=Math.hypot(CLEARING.x-player.position.x,CLEARING.z-player.position.z);
+  const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);
+@@ -508,18 +585,7 @@ const blend=1-Math.exp(-response*dt);
+ moveVX+=(targetVX-moveVX)*blend;moveVZ+=(targetVZ-moveVZ)*blend;
+ if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
+ const moving=Math.hypot(moveVX,moveVZ)>.12;
+-function blockedAt(x,z){
+- for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
+- for(const o of marketObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
+- for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
+- return false;
+-}
+-function terrainHeightAt(x,z){
+- let height=0;
+- for(const rock of rockObstacles){const d=Math.hypot(x-rock.x,z-rock.z);if(d<rock.radius){const t=1-d/rock.radius;const smooth=t*t*(3-2*t);height=Math.max(height,rock.height*smooth);}}
+- return height;
+-}
+-// As pedras deixam de ser paredes invisíveis: o jogador atravessa sua projeção e o chão sobe suavemente sobre elas.\n// Movimento horizontal permanece disponível durante o pulo.
++// Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
+ if(dashRemaining>0){
+  const dashDt=Math.min(dt,dashRemaining);const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*12.5*dashDt,-62,62);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*12.5*dashDt,-140,14);
+  if(!blockedAt(nextX,player.position.z))player.position.x=nextX;
