@@ -942,3 +942,28 @@ html, body { background: #14122a; font-family: "Trebuchet MS", system-ui, -apple
   .dlg-portrait { width: 40px; height: 44px; flex-basis: 40px; }
   #dlg-text { padding: 8px 12px; margin-bottom: 6px; }
 }
+
+/* MOD 133 — painéis narrativos cinematográficos: identidade visual própria sem cobrir a cena. */
+#dialog{width:min(700px,calc(100vw - 24px));max-height:min(34vh,245px);overflow-y:auto;padding:10px 14px 9px;border:1px solid rgba(245,211,133,.82);border-radius:15px 5px 15px 5px;background:linear-gradient(90deg,rgba(230,181,75,.10),transparent 28%),linear-gradient(145deg,rgba(18,24,38,.97),rgba(6,10,19,.96));box-shadow:0 10px 30px #0007,inset 0 1px 0 #fff2;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+#dialog::before{content:"REGISTRO DA JORNADA";display:block;margin:0 0 7px;color:#f8dda0b3;font:800 8px/1.2 system-ui,sans-serif;letter-spacing:.2em}
+#dialog::after{content:"";position:absolute;left:0;top:27px;bottom:10px;width:3px;border-radius:0 4px 4px 0;background:linear-gradient(#f5d78c,#9e6c25);pointer-events:none}
+#dialog.dialog-beat{animation:comicPanelEnter .22s cubic-bezier(.2,.8,.2,1) both}
+@keyframes comicPanelEnter{from{opacity:.55;transform:translate(-50%,7px) scale(.985)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+.dlg-speaker{gap:10px;min-height:45px;margin:0 0 7px}
+.dlg-portrait{width:52px;height:56px;flex-basis:52px;border:1px solid #fadc97cc;border-radius:8px 3px 8px 3px;box-shadow:0 3px 12px #0008;object-position:center 24%}
+#dlg-who{display:inline-flex;align-items:center;min-height:27px;width:fit-content;margin:0;padding:5px 10px;border:1px solid #f4d07cb3;border-radius:4px 10px 4px 10px;background:linear-gradient(120deg,#5d461d,#201b19);color:#fff0bf;font:900 11px/1.2 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;box-shadow:2px 3px 0 #0005}
+#dlg-text{margin:0 2px 9px;padding:8px 12px 9px;border:1px solid #f2e8d130;border-radius:3px 12px 12px 12px;background:linear-gradient(135deg,#fffbedf7,#e3e1daf7);color:#20212a;font:500 clamp(13px,1.8vw,16px)/1.4 Georgia,"Times New Roman",serif;letter-spacing:.005em;overflow-wrap:anywhere;box-shadow:3px 4px 0 #0004}
+#dlg-text::before{top:-7px;left:17px;width:12px;height:12px;border-left:1px solid #f2e8d130;border-top:1px solid #f2e8d130;background:#fff9e9}
+#dlg-hint{margin-top:2px;color:#e9d5a5;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+#dialog.comic-protagonist{border-color:#82c9f4d9}
+#dialog.comic-protagonist::after{background:linear-gradient(#a9e2ff,#3b83c2)}
+#dialog.comic-protagonist #dlg-who{border-color:#80bfe8;background:linear-gradient(120deg,#244c70,#142b43);color:#e4f5ff}
+#dialog.comic-protagonist #dlg-text{border-radius:12px 3px 12px 12px;background:linear-gradient(135deg,#f0f9ff,#dcecf5)}
+#dialog.comic-protagonist #dlg-text::before{left:auto;right:17px}
+#dialog.comic-guide #dlg-who{border-color:#f6d98d;background:linear-gradient(120deg,#79602b,#332716);color:#fff1c1}
+#dialog.comic-narrator #dlg-who{background:linear-gradient(120deg,#393b49,#1b1c27);border-color:#9ea3b4;color:#e4e6ef}
+#dlg-choices{gap:6px;margin-top:5px}
+.dlg-choice{min-height:36px;padding:7px 11px;border:1px solid #f5d79199;border-radius:5px 12px 5px 12px;background:linear-gradient(110deg,#5b431bed,#201d1df5);color:#fff2cf;font-size:12px;font-weight:750}
+.dlg-choice:active{background:#80642a}
+@media(max-width:560px){#dialog{width:calc(100vw - 16px);max-height:31vh;padding:8px 10px 7px;bottom:calc(7px + env(safe-area-inset-bottom))}#dialog::before{margin-bottom:5px;font-size:7px}#dialog::after{top:22px;bottom:7px}.dlg-speaker{min-height:38px;gap:7px;margin-bottom:5px}.dlg-portrait{width:40px;height:43px;flex-basis:40px}#dlg-who{min-height:23px;padding:4px 7px;font-size:9px;letter-spacing:.09em}#dlg-text{margin-bottom:6px;padding:7px 9px;font-size:clamp(12px,3.1vw,14px);line-height:1.32}#dlg-hint{font-size:8px}.dlg-choice{min-height:34px;padding:6px 8px;font-size:11px}}
+@media(max-height:420px){#dialog{max-height:38vh;padding:6px 10px}#dialog::before{margin-bottom:3px}.dlg-speaker{min-height:30px;margin-bottom:3px}.dlg-portrait{width:32px;height:34px;flex-basis:32px}#dlg-text{padding:5px 8px;margin-bottom:4px;line-height:1.25}}

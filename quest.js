@@ -60,6 +60,11 @@ const Dialog = {
     const speakerName = n.who || '';
     this.el.classList.toggle('comic-protagonist', /protagonista|herói|você/i.test(speakerName));
     this.el.classList.toggle('comic-guide', /anjo-guia/i.test(speakerName));
+    this.el.classList.toggle('comic-narrator', /narrador|pergaminho|placa|caderno|nota/i.test(speakerName));
+    this.el.dataset.line = String((Number(this.el.dataset.line) || 0) + 1);
+    this.el.classList.remove('dialog-beat');
+    void this.el.offsetWidth;
+    this.el.classList.add('dialog-beat');
     this.el.dataset.speaker = speakerName;
     this.elWho.textContent = speakerName;
     const portrait = typeof n.portrait === 'function' ? n.portrait() : n.portrait;

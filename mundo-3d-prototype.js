@@ -180,23 +180,27 @@ function updateQuestHud(){
  if(objective)objective.textContent=questStep===0?'Encontre o Anjo-Guia':questStep===1?'Siga a trilha até a clareira':questStep===2?'Missão concluída! Explore o vale.':'Explore o vale e procure pistas';
  if(coinCount)coinCount.textContent=String(coins);
 }
+function renderDialoguePage(){
+ const page=dialoguePages[dialogueIndex],panel=document.getElementById('dialog-panel');
+ const who=document.getElementById('dialog-who'),textEl=document.getElementById('dialog-text');
+ const portrait=document.getElementById('dialog-portrait'),monogram=document.getElementById('dialog-monogram');
+ panel.dataset.speaker=page.who||'';who.textContent=page.who||'';textEl.textContent=page.text||'';
+ document.getElementById('dialog-page').textContent=String(dialogueIndex+1).padStart(2,'0')+' / '+String(dialoguePages.length).padStart(2,'0');
+ monogram.textContent=(page.who||'✦').trim().charAt(0).toUpperCase()||'✦';
+ const src=/anjo-guia/i.test(page.who||'')?'AnjoGuia.png':(page.portrait||'');
+ if(src){portrait.src=src;portrait.classList.remove('hidden');monogram.classList.add('hidden');}
+ else{portrait.removeAttribute('src');portrait.classList.add('hidden');monogram.classList.remove('hidden');}
+ panel.classList.remove('dialog-beat');void panel.offsetWidth;panel.classList.add('dialog-beat');
+ document.getElementById('dialog-continue').innerHTML=dialogueIndex===dialoguePages.length-1?'FECHAR <span aria-hidden="true">×</span>':'CONTINUAR <span aria-hidden="true">↗</span>';
+}
 function showDialogue(pages,onFinish){
  dialoguePages=pages;dialogueIndex=0;dialogueFinish=onFinish||null;dialogueOpen=true;
- document.getElementById('dialog-panel').classList.remove('hidden');
- document.getElementById('dialog-who').textContent=pages[0].who;
- document.getElementById('dialog-text').textContent=pages[0].text;
- document.getElementById('dialog-continue').textContent=pages.length>1?'CONTINUAR':'FECHAR';
+ document.getElementById('dialog-panel').classList.remove('hidden');renderDialoguePage();
 }
 function advanceDialogue(){
  if(!dialogueOpen)return;
  dialogueIndex++;
- if(dialogueIndex<dialoguePages.length){
-  const page=dialoguePages[dialogueIndex];
-  document.getElementById('dialog-who').textContent=page.who;
-  document.getElementById('dialog-text').textContent=page.text;
-  document.getElementById('dialog-continue').textContent=dialogueIndex===dialoguePages.length-1?'FECHAR':'CONTINUAR';
-  return;
- }
+ if(dialogueIndex<dialoguePages.length){renderDialoguePage();return;}
  dialogueOpen=false;document.getElementById('dialog-panel').classList.add('hidden');
  const finish=dialogueFinish;dialogueFinish=null;if(finish)finish();
 }
