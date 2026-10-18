@@ -253,13 +253,15 @@ new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  const exact=name=>enemyClips.find(c=>key(c)===name);
  const has=part=>enemyClips.find(c=>key(c).includes(part));
+ const handPointClip=enemyClips.find(c=>key(c)==='moveramao'||key(c).includes('moveramao'));
+ const spinAttackClip=enemyClips.find(c=>key(c)==='habilidade3')||enemyClips.find(c=>/(habilidade3|skill3|skill03)/.test(key(c)));
  const clipsByRole={
   idle:exact('idle')||exact('breath')||exact('breathing')||exact('respiracao'),
   walk:exact('andar')||exact('walk')||exact('walking'),
   run:exact('correr')||exact('run')||exact('running'),
   attack:exact('atq1')||exact('attack1')||exact('attack01'),
-  attack2:enemyClips.find(c=>/(habilidade3|skill3|skill03|atq2|attack2|skill2)/.test(key(c))),
-  cast:enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))),
+  attack2:spinAttackClip||enemyClips.find(c=>/(atq2|attack2|skill2)/.test(key(c))),
+  cast:handPointClip||enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))),
   dash:exact('dash'),
   block:exact('block'),
   jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
@@ -306,22 +308,30 @@ function spawnEnemyProjectile(kind,spreadAngle=0){
   group.scale.set(1.0,.72,1.0);
  }else if(tornado){
   // Funil único, de altura aproximada à do Enemy1, com espirais e relâmpagos negros.
-  for(let i=0;i<5;i++){const y=.18+i*.34,bottom=.57-i*.085,top=Math.max(.12,bottom-.15);const funnel=new THREE.Mesh(new THREE.CylinderGeometry(top,bottom,.43,9,1,true),i%2?edge:dark);funnel.position.y=y;funnel.rotation.y=i*.62;group.add(funnel);}
-  for(let strand=0;strand<3;strand++){const pts=[];for(let j=0;j<12;j++){const t=j/11,a=t*Math.PI*3.2+strand*Math.PI*2/3,r=.56-t*.39;pts.push(new THREE.Vector3(Math.cos(a)*r,.08+t*1.62,Math.sin(a)*r));}group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
-  for(let bolt=0;bolt<4;bolt++){const a=bolt*Math.PI/2+.3,r=.3+bolt%2*.12;const pts=[new THREE.Vector3(Math.cos(a)*r,.2,Math.sin(a)*r),new THREE.Vector3(Math.cos(a+.24)*.48,.55,Math.sin(a+.24)*.48),new THREE.Vector3(Math.cos(a-.16)*.35,.86,Math.sin(a-.16)*.35),new THREE.Vector3(Math.cos(a+.18)*.62,1.2,Math.sin(a+.18)*.62),new THREE.Vector3(Math.cos(a)*.3,1.72,Math.sin(a)*.3)];group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
-  const core=new THREE.Mesh(new THREE.CylinderGeometry(.12,.24,1.65,7,1,true),new THREE.MeshBasicMaterial({color:0x030207,transparent:true,opacity:.7,side:THREE.DoubleSide,depthWrite:false}));core.position.y=.83;group.add(core);
+  for(let i=0;i<7;i++){const y=.12+i*.34,bottom=.78-i*.085,top=Math.max(.14,bottom-.19);const funnel=new THREE.Mesh(new THREE.CylinderGeometry(top,bottom,.46,12,1,true),i%2?edge:dark);funnel.position.y=y;funnel.rotation.y=i*.62;group.add(funnel);}
+  for(let strand=0;strand<3;strand++){const pts=[];for(let j=0;j<16;j++){const t=j/15,a=t*Math.PI*4.4+strand*Math.PI*2/3,r=.78-t*.52;pts.push(new THREE.Vector3(Math.cos(a)*r,.08+t*2.15,Math.sin(a)*r));}group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
+  for(let bolt=0;bolt<4;bolt++){const a=bolt*Math.PI/2+.3,r=.3+bolt%2*.12;const pts=[new THREE.Vector3(Math.cos(a)*r,.2,Math.sin(a)*r),new THREE.Vector3(Math.cos(a+.24)*.68,.55,Math.sin(a+.24)*.68),new THREE.Vector3(Math.cos(a-.16)*.48,1.0,Math.sin(a-.16)*.48),new THREE.Vector3(Math.cos(a+.18)*.78,1.45,Math.sin(a+.18)*.78),new THREE.Vector3(Math.cos(a)*.38,2.25,Math.sin(a)*.38)];group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
+  const core=new THREE.Mesh(new THREE.CylinderGeometry(.16,.32,2.15,9,1,true),new THREE.MeshBasicMaterial({color:0x030207,transparent:true,opacity:.64,side:THREE.DoubleSide,depthWrite:false}));core.position.y=1.08;group.add(core);group.scale.set(1.55,1.55,1.55);
  }else if(hand){
   const core=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),new THREE.MeshBasicMaterial({color:0x07050b,transparent:true,opacity:1,depthWrite:false}));group.add(core);
   const aura=new THREE.Mesh(new THREE.SphereGeometry(.29,8,6),new THREE.MeshBasicMaterial({color:0x21172c,transparent:true,opacity:.45,wireframe:true,depthWrite:false}));group.add(aura);
   for(let b=0;b<4;b++){const a=b*Math.PI/2,pts=[new THREE.Vector3(0,0,0),new THREE.Vector3(Math.cos(a)*.16,.12,Math.sin(a)*.16),new THREE.Vector3(Math.cos(a+.25)*.3,-.08,Math.sin(a+.25)*.3),new THREE.Vector3(Math.cos(a-.12)*.43,.05,Math.sin(a-.12)*.43)];group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
  }else{for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.38+i*.13,.045,5,16),i===1?edge:dark);ring.position.y=(i-1)*.25;ring.rotation.x=(i-1)*.28;group.add(ring);}const core=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),dark);group.add(core);group.scale.set(.9,1.25,.9);}
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,len=Math.hypot(dx,dz)||1,baseX=dx/len,baseZ=dz/len,angle=Math.atan2(baseX,baseZ)+spreadAngle,dirX=Math.sin(angle),dirZ=Math.cos(angle);
- group.position.set(enemy.position.x+dirX*(tornado?1.05:.82),enemy.position.y+(slash?1.12:tornado?0:1.0),enemy.position.z+dirZ*(tornado?1.05:.82));group.rotation.y=angle;scene.add(group);
- enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?8.2:tornado?3.4:hand?7.2:5.2,life:slash?1.25:tornado?2.1:hand?1.7:2.15,damage:slash?13:tornado?22:hand?19:16,spin:slash?0:tornado?2.7:hand?0:9.2,hitRadius:tornado?.9:hand?.65:slash?.78:1.05});
+ group.position.set(enemy.position.x+dirX*(tornado?1.05:.82),tornado?terrainHeightAt(enemy.position.x,enemy.position.z)+.025:enemy.position.y+(slash?1.12:1.0),enemy.position.z+dirZ*(tornado?1.05:.82));group.rotation.y=angle;scene.add(group);
+ enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?8.2:tornado?2.8:hand?7.2:5.2,life:slash?1.25:tornado?2.5:hand?1.7:2.15,damage:slash?13:tornado?22:hand?19:16,spin:slash?0:tornado?3.8:hand?0:9.2,elapsed:0,hitRadius:tornado?1.35:hand?.65:slash?.78:1.05});
 }
 function updateEnemyProjectiles(dt){
- for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
-  if(dist<(p.hitRadius|| (p.kind==='slash'?.78:1.05))&&Math.abs(p.group.position.y-(player.position.y+(p.kind==='tornado'?.85:1)))<(p.kind==='tornado'?1.5:1.25)){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
+ for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.elapsed+=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;
+  if(p.kind==='tornado'){
+   p.group.rotation.y+=p.spin*dt;
+   p.group.position.y=terrainHeightAt(p.group.position.x,p.group.position.z)+.025;
+   p.group.rotation.x=Math.sin(p.elapsed*2.1)*.035;p.group.rotation.z=Math.cos(p.elapsed*1.7)*.025;
+   const sway=Math.sin(p.elapsed*3.1)*.07;p.group.position.x+=sway*dt;p.group.position.z+=Math.cos(p.elapsed*2.7)*.05*dt;
+   p.group.children.forEach((part,index)=>{if(part.isLine)part.rotation.y=Math.sin(p.elapsed*2.5+index)*.14;});
+  }else if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}
+  const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
+  if(dist<(p.hitRadius|| (p.kind==='slash'?.78:1.05))&&Math.abs(p.group.position.y-(player.position.y+(p.kind==='tornado'?1.05:1)))<(p.kind==='tornado'?2.1:1.25)){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});enemyProjectiles.splice(i,1);}
  }
 }
@@ -402,7 +412,7 @@ function updateEnemyAI(dt){
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
  if(enemyCurrentRole==='cast'){
   enemyCastElapsed+=dt;
-  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.42){enemyCastResolved=true;spawnEnemyProjectile('hand');}
+  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.72){enemyCastResolved=true;spawnEnemyProjectile('hand');}
   if(enemyCastElapsed<enemyCastDuration)return;
   playEnemyAnimation('idle',.08);
  }
