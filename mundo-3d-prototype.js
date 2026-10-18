@@ -376,7 +376,7 @@ function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.is
 function updateEnemyAI(dt){
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
  if(!enemy.visible||!enemyAlive||questStep!==2||dialogueOpen||playerHP<=0){if(enemyCurrentRole!=='idle'&&enemyActions.idle){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyDashRemaining=0;enemyCastResolved=true;playEnemyAnimation('idle',.1);}return;}
- if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-140,14);if(!blockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!blockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
+ if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-140,14);if(!enemyBlockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!enemyBlockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
  // Deixe a animação de reação terminar antes de voltar a perseguir; evita cortá-la no primeiro quadro.
  if(enemyCurrentRole==='hit'){
   const clip=enemyCurrentAction&&enemyCurrentAction.getClip();
@@ -405,7 +405,7 @@ function updateEnemyAI(dt){
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
   const step=Math.min(8.0*dt,enemyDashRemaining*8.0);enemyDashRemaining=Math.max(0,enemyDashRemaining-dt);
   const nx=THREE.MathUtils.clamp(enemy.position.x+enemyDashDirectionX*step,-62,62),nz=THREE.MathUtils.clamp(enemy.position.z+enemyDashDirectionZ*step,-140,14);
-  if(!blockedAt(nx,enemy.position.z))enemy.position.x=nx;if(!blockedAt(enemy.position.x,nz))enemy.position.z=nz;
+  if(!enemyBlockedAt(nx,enemy.position.z))enemy.position.x=nx;if(!enemyBlockedAt(enemy.position.x,nz))enemy.position.z=nz;
   if(enemyDashRemaining>0)return;
  }
  // Avança com dash antes de escolher especiais; a antiga ordem tornava o dash praticamente inalcançável.
@@ -439,7 +439,7 @@ function updateEnemyAI(dt){
  }
  const running=distance>7.5&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
  const nextX=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-140,14);let moved=false;
- if(!blockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!blockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
+ if(!enemyBlockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!enemyBlockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
  playEnemyAnimation(moved?(role==='run'&&enemyActions.run?'run':'walk'):'idle',.12);
 }
 function updatePlayerRespawn(now){
@@ -708,6 +708,14 @@ function blockedAt(x,z){
  for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
  return false;
 }
+function playerBlockedAt(x,z){
+ if(blockedAt(x,z))return true;
+ return !!(enemy&&enemy.visible&&enemyAlive&&Math.hypot(x-enemy.position.x,z-enemy.position.z)<.86);
+}
+function enemyBlockedAt(x,z){
+ if(blockedAt(x,z))return true;
+ return Math.hypot(x-player.position.x,z-player.position.z)<.9;
+}
 function terrainHeightAt(x,z){
  let height=0;
  for(const rock of rockObstacles){const d=Math.hypot(x-rock.x,z-rock.z);if(d<rock.radius){const t=1-d/rock.radius;const smooth=t*t*(3-2*t);height=Math.max(height,rock.height*smooth);}}
@@ -775,15 +783,15 @@ const moving=Math.hypot(moveVX,moveVZ)>.12;
 // Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
 if(dashRemaining>0){
  const dashDt=Math.min(dt,dashRemaining);const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*12.5*dashDt,-62,62);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*12.5*dashDt,-140,14);
- if(!blockedAt(nextX,player.position.z))player.position.x=nextX;
- if(!blockedAt(player.position.x,nextZ))player.position.z=nextZ;
+ if(!playerBlockedAt(nextX,player.position.z))player.position.x=nextX;
+ if(!playerBlockedAt(player.position.x,nextZ))player.position.z=nextZ;
  playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;dashRemaining=Math.max(0,dashRemaining-dt);
 }else if(moving){
  const nextX=THREE.MathUtils.clamp(player.position.x+moveVX*dt,-62,62);
  const nextZ=THREE.MathUtils.clamp(player.position.z+moveVZ*dt,-140,14);
  // Testa cada eixo separadamente para o jogador conseguir deslizar junto à árvore/pedra.
- if(!blockedAt(nextX,player.position.z))player.position.x=nextX;else moveVX=0;
- if(!blockedAt(player.position.x,nextZ))player.position.z=nextZ;else moveVZ=0;
+ if(!playerBlockedAt(nextX,player.position.z))player.position.x=nextX;else moveVX=0;
+ if(!playerBlockedAt(player.position.x,nextZ))player.position.z=nextZ;else moveVZ=0;
  const wantedYaw=Math.atan2(moveVX,moveVZ);
  const yawDelta=Math.atan2(Math.sin(wantedYaw-playerYaw),Math.cos(wantedYaw-playerYaw));
  playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;
