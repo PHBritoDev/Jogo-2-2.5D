@@ -190,11 +190,17 @@ const enemyGroundShadow=new THREE.Mesh(new THREE.CircleGeometry(.48,20),new THRE
 enemyGroundShadow.rotation.x=-Math.PI/2;enemyGroundShadow.position.y=.012;enemy.add(enemyGroundShadow);
 let enemyModel=null,enemyMixer=null,enemyClips=[],enemyActions={},enemyCurrentAction=null,enemyCurrentRole='idle',enemyHasDeathClip=false;
 let enemyLoadState='idle';
-let enemyHP=100,enemyAlive=true,enemyHitFlash=0,enemyKnockback=0,attackCooldown=0,pendingEnemyHitAt=0;
+let enemyHP=100,enemyAlive=true,enemyHitFlash=0,enemyKnockback=0,enemyKnockbackX=0,enemyKnockbackZ=0;
+let enemyAttackCooldown=0,enemyAttackElapsed=0,enemyAttackDuration=0,enemyAttackHitAt=0,enemyAttackResolved=true,enemyAttackFacingX=0,enemyAttackFacingZ=1;
+let attackCooldown=0,pendingEnemyHitAt=0,playerAttackFacingX=0,playerAttackFacingZ=1;
+let playerHP=100,playerMaxHP=100,playerInvulnerableUntil=0,playerRespawnAt=0;
+const ENEMY_ATTACK_RANGE=1.55,ENEMY_ATTACK_DAMAGE=18,PLAYER_SPAWN={x:0,z:4};
 function playEnemyAnimation(role,fade=.1,once=false){
  const next=enemyActions[role];if(!next)return false;
- if(enemyCurrentAction&&enemyCurrentAction!==next)enemyCurrentAction.fadeOut(fade);
- next.reset();next.enabled=true;next.setEffectiveWeight(1);
+ const timeScale=role==='idle'?.38:role==='run'?1.08:1;
+ if(enemyCurrentAction===next){enemyCurrentRole=role;next.setEffectiveTimeScale(timeScale);return true;}
+ if(enemyCurrentAction)enemyCurrentAction.fadeOut(fade);
+ next.reset();next.enabled=true;next.setEffectiveWeight(1);next.setEffectiveTimeScale(timeScale);
  next.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);
  next.clampWhenFinished=once;next.fadeIn(fade).play();
  enemyCurrentAction=next;enemyCurrentRole=role;return true;
@@ -208,7 +214,7 @@ function setEnemyHitFlash(active){
  }
 }
 function loadEnemyModel(){if(enemyLoadState!=='idle')return;enemyLoadState='loading';
-new GLTFLoader().load('./Enemy1.glb?v=mod159-lazy-forest',gltf=>{
+new GLTFLoader().load('./Enemy1.glb?v=mod164-enemy-chase',gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{
   if(!o.isMesh)return;
@@ -223,15 +229,17 @@ new GLTFLoader().load('./Enemy1.glb?v=mod159-lazy-forest',gltf=>{
  const find=regex=>enemyClips.find(c=>regex.test(String(c.name||'')));
  const clipsByRole={
   idle:find(/idle|breath|stand|parad|repos/i),
-  walk:find(/walk|walking|locomotion|caminh/i),
-  attack:find(/attack|slash|claw|strike|swing|golpe|ataque/i),
+  walk:find(/walking/i)||find(/walk|locomotion|caminh/i),
+  run:find(/running/i)||find(/run|sprint/i),
+  attack:find(/skill[_\s.-]*03/i)||find(/attack|slash|claw|strike|swing|golpe|ataque/i),
   hit:find(/hit|hurt|damage|reaction|impact|dano|atingido/i),
   death:find(/death|die|dead|dying|morte|morrer/i)
  };
  for(const role of Object.keys(clipsByRole)){const clip=clipsByRole[role];if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}
  enemyHasDeathClip=!!clipsByRole.death;
- const fallbackIdle=enemyClips.find(c=>!/attack|slash|claw|strike|swing|hit|hurt|damage|death|die|jump|leap|hop|saltar|salto|dash|dodge|walk|run|fall|land|air/i.test(String(c.name||'')));
+ const fallbackIdle=enemyClips.find(c=>!/attack|skill|slash|claw|strike|swing|hit|hurt|damage|death|die|jump|leap|hop|saltar|salto|dash|dodge|walking|running|walk|run|fall|land|air/i.test(String(c.name||'')));
  if(!enemyActions.idle&&fallbackIdle)enemyActions.idle=enemyMixer.clipAction(fallbackIdle);
+ if(!enemyActions.idle&&enemyActions.walk)enemyActions.idle=enemyActions.walk;
  if(enemyActions.idle)playEnemyAnimation('idle',0);
  window.Enemy1AnimationReport=enemyClips.map(c=>c.name);
  console.info('Enemy1.glb animações:',window.Enemy1AnimationReport);
@@ -250,86 +258,88 @@ function updateEnemyHud(){
  if(fill)fill.style.width=Math.max(0,enemyHP)+'%';
 }
 function tryPlayerAttack(){
- const now=performance.now();if(now<attackCooldown||!enemyAlive)return;if(questStep!==2){status.textContent='Siga o objetivo atual antes de iniciar este confronto.';return;}attackCooldown=now+680;
- let duration=1;
- if(attackClips.length){
-  const attackClip=attackClips[attackClipIndex++%attackClips.length];duration=attackClip.duration||1;
-  const attackAction=mixer.clipAction(attackClip);if(activeAction&&activeAction!==attackAction)activeAction.fadeOut(.07);
-  attackAction.reset();attackAction.enabled=true;attackAction.setEffectiveWeight(1);attackAction.setLoop(THREE.LoopOnce,1);attackAction.clampWhenFinished=true;attackAction.fadeIn(.07).play();activeAction=attackAction;actionUntil=now+duration*1000;
- }else{status.textContent='Não foi encontrado um clipe de ataque válido no Protagonista.glb.';actionUntil=now+300;}
- // O dano só é calculado quando o golpe chega à fase de contato da animação.
+ const now=performance.now();if(now<attackCooldown||!enemyAlive)return;if(questStep!==2){status.textContent='Siga o objetivo atual antes de iniciar este confronto.';return;}
+ if(!model||!mixer||!attackClips.length){status.textContent='Não foi encontrado um clipe de ataque válido no Protagonista.glb.';return;}
+ const attackClip=attackClips[attackClipIndex++%attackClips.length],duration=Number(attackClip&&attackClip.duration);
+ if(!validAttackClip(attackClip)||!Number.isFinite(duration)||duration<=0){status.textContent='O ataque não tem uma animação válida; nenhum dano foi aplicado.';return;}
+ attackCooldown=now+680;const attackAction=mixer.clipAction(attackClip);
+ if(activeAction&&activeAction!==attackAction)activeAction.fadeOut(.07);
+ attackAction.reset();attackAction.enabled=true;attackAction.setEffectiveWeight(1);attackAction.setLoop(THREE.LoopOnce,1);attackAction.clampWhenFinished=true;attackAction.fadeIn(.07).play();activeAction=attackAction;actionUntil=now+duration*1000;
+ playerAttackFacingX=Math.sin(playerYaw);playerAttackFacingZ=Math.cos(playerYaw);
  pendingEnemyHitAt=now+Math.min(460,Math.max(190,duration*.28*1000));
 }
 function resolvePlayerAttackHit(){
  if(!enemyAlive||questStep!==2)return;
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
- const distance=Math.hypot(dx,dz),forwardX=Math.sin(playerYaw),forwardZ=Math.cos(playerYaw);
- const facing=(dx*forwardX+dz*forwardZ)/(distance||1);
- if(distance>2.0||facing<.28){
-  status.textContent=distance>2.0?'Chegue mais perto para acertar o golpe':'Vire-se para o inimigo e ataque';
-  return;
- }
- enemyHP=Math.max(0,enemyHP-25);enemyHitFlash=.2;enemyKnockback=.42;
+ const distance=Math.hypot(dx,dz),facing=(dx*playerAttackFacingX+dz*playerAttackFacingZ)/(distance||1);
+ if(distance>2.0||facing<.28||Math.abs(player.position.y-enemy.position.y)>1.05){status.textContent=distance>2.0?'Chegue mais perto para acertar o golpe':facing<.28?'O golpe não alcançou o inimigo':'O inimigo está fora da altura do golpe';return;}
+ enemyHP=Math.max(0,enemyHP-25);enemyHitFlash=.2;enemyKnockback=.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
+ if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.05);}
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
- if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>{if(questStep!==2)return;journeyEnemyIndex++;enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;if(journeyEnemyIndex>=JOURNEY_ENEMIES.length){questStep=4;portalGroup.visible=true;questMarker.position.set(PORTAL.x,.06,PORTAL.z);status.textContent='Os inimigos foram vencidos. Encontre o portal.';}else{status.textContent='Um inimigo foi derrotado. Continue pela trilha.';}save3DProgress();updateQuestHud();},850);}
+ if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>{if(questStep!==2)return;journeyEnemyIndex++;enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemyAttackCooldown=0;enemyAttackResolved=true;if(journeyEnemyIndex>=JOURNEY_ENEMIES.length){questStep=4;portalGroup.visible=true;questMarker.position.set(PORTAL.x,.06,PORTAL.z);status.textContent='Os inimigos foram vencidos. Encontre o portal.';}else{status.textContent='Um inimigo foi derrotado. Continue pela trilha.';}save3DProgress();updateQuestHud();},850);}
  else playEnemyAnimation('hit',.05,true);
+}
+function updatePlayerHud(){
+ const hud=document.getElementById('player-hud'),fill=document.getElementById('player-hp-fill'),text=document.getElementById('player-hp-text');
+ if(hud)hud.hidden=!(questStep===2&&enemy.visible);
+ if(fill)fill.style.width=Math.max(0,Math.min(100,playerHP/playerMaxHP*100))+'%';
+ if(text)text.textContent=Math.ceil(playerHP/playerMaxHP*100)+'%';
+}
+function damagePlayerFromEnemyAttack(){
+ const now=performance.now();if(playerHP<=0||now<playerInvulnerableUntil)return false;
+ playerHP=Math.max(0,playerHP-ENEMY_ATTACK_DAMAGE);playerInvulnerableUntil=now+850;updatePlayerHud();
+ if(playerHP===0){playerRespawnAt=now+1200;moveVX=moveVZ=0;dashRemaining=0;pendingEnemyHitAt=0;status.textContent='Protagonista derrotado. Retornando à trilha…';}
+ else status.textContent='O golpe do inimigo atingiu você. Vida: '+playerHP+'%';
+ return true;
+}
+function startEnemyAttack(){
+ const action=enemyActions.attack,clip=action&&action.getClip(),duration=Number(clip&&clip.duration);
+ if(!action||!Number.isFinite(duration)||duration<=0||!playEnemyAnimation('attack',.08,true))return false;
+ enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.55,Math.max(.08,duration*.42));
+ enemyAttackFacingX=Math.sin(enemy.rotation.y);enemyAttackFacingZ=Math.cos(enemy.rotation.y);enemyAttackResolved=false;enemyAttackCooldown=duration+.65;return true;
+}
+function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=ENEMY_ATTACK_RANGE&&heightDelta<=.95&&facing>=.55;}
+function updateEnemyAI(dt){
+ if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
+ if(!enemy.visible||!enemyAlive||questStep!==2||dialogueOpen||playerHP<=0){if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.08);}return;}
+ if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-140,14);if(!blockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!blockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
+ const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
+ if(enemyCurrentRole!=='attack'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
+ if(enemyCurrentRole==='attack'){
+  enemyAttackElapsed+=dt;
+  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===enemyActions.attack&&enemyActions.attack&&enemyCurrentAction.isRunning()&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}
+  if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
+ }
+ if(distance<=ENEMY_ATTACK_RANGE){if(enemyAttackCooldown<=0)startEnemyAttack();else playEnemyAnimation('idle',.08);return;}
+ const running=distance>3.7&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
+ const nextX=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-140,14);let moved=false;
+ if(!blockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!blockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
+ playEnemyAnimation(moved?(role==='run'&&enemyActions.run?'run':'walk'):'idle',.12);
+}
+function updatePlayerRespawn(now){
+ if(playerHP>0||!playerRespawnAt||now<playerRespawnAt)return;
+ player.position.set(PLAYER_SPAWN.x,terrainHeightAt(PLAYER_SPAWN.x,PLAYER_SPAWN.z),PLAYER_SPAWN.z);playerHP=playerMaxHP;playerInvulnerableUntil=now+1000;playerRespawnAt=0;
+ moveVX=moveVZ=0;verticalVelocity=0;grounded=true;dashRemaining=0;updatePlayerHud();status.textContent='Você voltou à trilha; o inimigo continua à espreita.';
 }
 
 // Anjo-Guia: usa o modelo GLB original adicionado ao repositório.
 const guide=new THREE.Group();scene.add(guide);guide.position.set(3.3,0,-5.4);
 const guideModelRoot=new THREE.Group();guide.add(guideModelRoot);
-let guideModel=null,guideFitRoot=null,guideIdleMixer=null,playerIdleClip=null,playerRestPose=null,playerReferenceHeight=1.7,vendorsSpawned=false;
+let guideModel=null,guideFitRoot=null,guideIdleMixer=null,playerIdleClip=null,playerReferenceHeight=1.7,vendorsSpawned=false,guideReferenceBounds=null;
 const villageNpcMixers=[];
-function canonicalHumanoidBone(name){return String(name||'').replace(/mixamorig:?/ig,'').replace(/[^a-z0-9]/ig,'').toLowerCase();}
-function captureBoneRestPose(root){
- root.updateMatrixWorld(true);
- const pose=new Map();
- root.traverse(o=>{
-  if(!o.isBone)return;
-  const key=canonicalHumanoidBone(o.name);
-  if(key&&!pose.has(key))pose.set(key,{
-   position:o.position.clone(),
-   quaternion:o.quaternion.clone(),
-   parentScale:o.parent?o.parent.getWorldScale(new THREE.Vector3()):new THREE.Vector3(1,1,1)
-  });
- });
- return pose;
+function playNativeGuideIdle(clips){
+ const idle=(clips||[]).find(c=>/idle|breath/i.test(String(c.name||'')));if(!idle||!guideModel)return;
+ const tracks=(idle.tracks||[]).filter(track=>!String(track.name||'').toLowerCase().endsWith('.scale'));if(!tracks.length)return;
+ const clip=tracks.length===idle.tracks.length?idle:new THREE.AnimationClip(idle.name,idle.duration,tracks,idle.blendMode);
+ guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();guideIdleMixer.update(0);
 }
-function remapIdleToGuide(sourceClip,sourceRestPose,targetRoot){
- const targetBones=new Map();targetRoot.updateMatrixWorld(true);targetRoot.traverse(o=>{if(o.isBone){const key=canonicalHumanoidBone(o.name);if(key&&!targetBones.has(key))targetBones.set(key,o);}});
- const tracks=[];
- for(const track of sourceClip.tracks){
-  const dot=track.name.lastIndexOf('.');if(dot<1)continue;
-  const key=canonicalHumanoidBone(track.name.slice(0,dot)),sourceBase=sourceRestPose&&sourceRestPose.get(key),targetBone=targetBones.get(key),property=track.name.slice(dot+1);
-  if(!sourceBase||!targetBone||property==='scale')continue;
-  const mapped=track.clone();mapped.name=targetBone.name+track.name.slice(dot);
-  if(property==='position'){
-   const targetParentScale=targetBone.parent?targetBone.parent.getWorldScale(new THREE.Vector3()):new THREE.Vector3(1,1,1);
-   const ratio=new THREE.Vector3(sourceBase.parentScale.x/(targetParentScale.x||1),sourceBase.parentScale.y/(targetParentScale.y||1),sourceBase.parentScale.z/(targetParentScale.z||1));
-   const values=Float32Array.from(track.values);
-   for(let i=0;i<values.length;i+=3){values[i]=targetBone.position.x+(values[i]-sourceBase.position.x)*ratio.x;values[i+1]=targetBone.position.y+(values[i+1]-sourceBase.position.y)*ratio.y;values[i+2]=targetBone.position.z+(values[i+2]-sourceBase.position.z)*ratio.z;}
-   mapped.values=values;
-  }else if(property==='quaternion'){
-   const sourceInverse=sourceBase.quaternion.clone().invert(),targetRest=targetBone.quaternion.clone(),values=Float32Array.from(track.values);
-   for(let i=0;i<values.length;i+=4){const sourceAnimated=new THREE.Quaternion().fromArray(values,i);const targetAnimated=targetRest.clone().multiply(sourceInverse.clone().multiply(sourceAnimated)).normalize();targetAnimated.toArray(values,i);}
-   mapped.values=values;
-  }else continue;
-  tracks.push(mapped);
- }
- if(tracks.length<20){console.warn('Idle do protagonista não foi aplicado ao Anjo-Guia: apenas '+tracks.length+' trilhas ósseas compatíveis.');return null;}
- return new THREE.AnimationClip(sourceClip.name,sourceClip.duration,tracks,sourceClip.blendMode);
-}
-function applyGuideIdle(){
- if(!guideModel||!guideFitRoot||!playerIdleClip||!playerRestPose||guideFitRoot.userData.fitInitialized)return;
- const clip=remapIdleToGuide(playerIdleClip,playerRestPose,guideModel);
- if(!clip)return;
- guideIdleMixer=new THREE.AnimationMixer(guideModel);
- const action=guideIdleMixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();guideIdleMixer.update(0);
- const bounds=measureModelBounds(guideFitRoot),size=bounds.getSize(new THREE.Vector3());
- if(size.y>.001&&playerReferenceHeight>.001){const fitScale=playerReferenceHeight*.92/size.y,center=bounds.getCenter(new THREE.Vector3());guideFitRoot.scale.setScalar(fitScale);guideFitRoot.position.set(-center.x*fitScale,-bounds.min.y*fitScale,-center.z*fitScale);}
- restoreGuideScales=lockModelScales(guideModel);
- guideModelRoot.add(guideFitRoot);guideFitRoot.updateMatrixWorld(true);
- guideFitRoot.userData.fitInitialized=true;guide.userData.modelLoaded=true;
+function fitGuideModel(){
+ if(!guideModel||!guideFitRoot)return;
+ guideFitRoot.scale.setScalar(1);guideFitRoot.position.set(0,0,0);guideFitRoot.updateMatrixWorld(true);
+ if(!guideReferenceBounds){const bounds=measureModelBounds(guideFitRoot),size=bounds.getSize(new THREE.Vector3());if(size.y<=.001)return;const center=bounds.getCenter(new THREE.Vector3());guideReferenceBounds={height:size.y,centerX:center.x,centerZ:center.z,minY:bounds.min.y};}
+ const reference=guideReferenceBounds,targetHeight=playerReferenceHeight*.92,fitScale=targetHeight/reference.height;
+ guideFitRoot.scale.setScalar(fitScale);guideFitRoot.position.set(-reference.centerX*fitScale,-reference.minY*fitScale,-reference.centerZ*fitScale);
+ if(guideFitRoot.parent!==guideModelRoot)guideModelRoot.add(guideFitRoot);guideFitRoot.updateMatrixWorld(true);guide.userData.modelLoaded=true;
 }
 const villageNpcBreathing=[];
 function addVillageVendors(){if(!model||vendorsSpawned)return;vendorsSpawned=true;for(let i=0;i<villageVendors.length;i++){const p=villageVendors[i],cloned=cloneSkinned(model),root=new THREE.Group();root.position.set(p.x,0,p.z);root.rotation.y=p.yaw;root.scale.setScalar(.76);root.userData.breathPhase=i*1.73;root.add(cloned);cloned.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});villageGroup.add(root);if(playerIdleClip){const npcMixer=new THREE.AnimationMixer(cloned),idle=npcMixer.clipAction(playerIdleClip);idle.setLoop(THREE.LoopRepeat,Infinity);idle.play();villageNpcMixers.push(npcMixer);}else villageNpcBreathing.push({root,baseY:0,phase:i*1.73});}}
@@ -378,28 +388,9 @@ function measureModelBounds(model){
  });
  return box;
 }
-function lockModelScales(model){
- const states=[];
- model.traverse(obj=>{if(obj.scale)states.push({object:obj,base:obj.scale.clone(),name:obj.name||obj.type||'nó sem nome'});});
- let warned=false;
- return function restore(){
-  const changed=[];
-  for(const state of states){
-   const {object,base,name}=state;
-   if(Math.abs(object.scale.x-base.x)>1e-5||Math.abs(object.scale.y-base.y)>1e-5||Math.abs(object.scale.z-base.z)>1e-5){
-    object.scale.copy(base);changed.push(name);
-   }
-  }
-  if(changed.length&&!warned){warned=true;console.warn('Anjo-Guia: escala alterada por animação foi restaurada:',changed);window.GuideScaleDiagnostics='Escala animada bloqueada em: '+changed.join(', ');}
- };
-}
-let restoreGuideScales=null;
-new GLTFLoader().load('./AnjoGuia.glb?v=mod162-guide-retarget-stable-fit',gltf=>{
- const imported=gltf.scene;
- imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
- // O fit fica num pai separado: as escalas originais da hierarquia GLB permanecem intactas.
- guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideFitRoot.updateMatrixWorld(true);
- guideModel=imported;applyGuideIdle();
+new GLTFLoader().load('./AnjoGuia.glb?v=mod164-guide-proportional',gltf=>{
+ const imported=gltf.scene;imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
+ guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideModel=imported;playNativeGuideIdle(gltf.animations||[]);fitGuideModel();
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
 const PROGRESS_KEY='sevenSins3DCampaignV4';
 function read3DProgress(){try{const current=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');if(current&&current.version>=4)return {questStep:THREE.MathUtils.clamp(Math.floor(Number(current.questStep)||0),0,5),coins:Math.max(0,Math.floor(Number(current.coins)||0)),journeyEnemyIndex:THREE.MathUtils.clamp(Math.floor(Number(current.journeyEnemyIndex)||0),0,3)};const old=JSON.parse(localStorage.getItem('sevenSins3DCampaignV3')||localStorage.getItem('sevenSins3DCampaignV2')||localStorage.getItem('sevenSins3DCampaignV1')||'{}');return {questStep:0,coins:Math.max(0,Math.floor(Number(old.coins)||0)),journeyEnemyIndex:0};}catch(_){return {questStep:0,coins:0,journeyEnemyIndex:0};}}
@@ -505,11 +496,11 @@ function loadPlayerSword(modelRoot){
 new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
   model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;}}});
   fitModel(model);const playerBounds=measureModelBounds(model),playerSize=playerBounds.getSize(new THREE.Vector3());if(playerSize.y>.001)playerReferenceHeight=playerSize.y;
-  player.add(model);playerRestPose=captureBoneRestPose(model);
+  player.add(model);
  loadPlayerSword(model);
  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;playerIdleClip=clips.find(c=>/^idle$/i.test(c.name||''))||chooseClip(clips,/idle|breath|respir|parad/i)||null;const idle=playerIdleClip||chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);attackClips=selectDimensionAttack(clips);attackClipIndex=0;const jump=chooseClip(clips,/jump|saltar|salto/i);
  if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);play(actions.idle?'idle':actions.walk?'walk':'idle',0);}
- applyGuideIdle();addVillageVendors();
+ fitGuideModel();addVillageVendors();
  player.userData.ready=true;loading.classList.add('hidden');status.textContent='Missão 1 · encontre o Anjo-Guia e fale com ele';
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
@@ -523,7 +514,7 @@ function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
 let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
-function action(kind){const now=performance.now();if(kind==='dash'){if(now<dashCooldownUntil)return;dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;if(actions.dash)playOnce('dash',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='magic'?'Magia celestial será integrada depois':'Ultimate será integrada depois';setTimeout(()=>{if(status.textContent.startsWith('Magia celestial')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
+function action(kind){if(playerHP<=0)return;const now=performance.now();if(kind==='dash'){if(now<dashCooldownUntil)return;dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;if(actions.dash)playOnce('dash',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='ultimate'){if(actions.attack){play('attack',.08);actionUntil=now+(kind==='ultimate'?1200:650);}status.textContent=kind==='magic'?'Magia celestial será integrada depois':'Ultimate será integrada depois';setTimeout(()=>{if(status.textContent.startsWith('Magia celestial')||status.textContent.startsWith('Ultimate será'))status.textContent='Protagonista 3D carregado · exploração ativa';},1900);}}
 function bindInstantAction(id,kind){const button=document.getElementById(id);button.addEventListener('pointerdown',e=>{e.preventDefault();action(kind);});button.addEventListener('click',e=>{if(e.detail===0)action(kind);});}
 bindInstantAction('attack','attack');bindInstantAction('dash','dash');
 const jumpButton=document.getElementById('jump');
@@ -562,15 +553,12 @@ function terrainHeightAt(x,z){
  }
  return height;
 }
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();for(const uniform of forestWindUniforms)uniform.value=now*.001;for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(guideIdleMixer){guideIdleMixer.update(dt);if(restoreGuideScales)restoreGuideScales();}for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);for(const uniform of forestWindUniforms)uniform.value=now*.001;for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(guideIdleMixer)guideIdleMixer.update(dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
  if(enemyCurrentRole==='hit'&&enemyCurrentAction&&!enemyCurrentAction.isRunning()&&enemyAlive)playEnemyAnimation('idle',.08);
- if(enemyKnockback>0&&enemyAlive){const step=Math.min(enemyKnockback,dt*2.5);enemy.position.x+=Math.sin(playerYaw)*step;enemy.position.z+=Math.cos(playerYaw)*step;enemyKnockback-=step;}
- if(!enemyAlive&&!enemyHasDeathClip&&enemy.visible){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
- updateEnemyHud();
- if(enemyAlive)enemy.rotation.y=Math.atan2(camera.position.x-enemy.position.x,camera.position.z-enemy.position.z);
+  if(!enemyAlive&&!enemyHasDeathClip&&enemy.visible){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
  guide.position.y=0;guideAura.intensity=.4+Math.sin(now*.003)*.06;
  const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
  const clearingDistance=Math.hypot(CLEARING.x-player.position.x,CLEARING.z-player.position.z);
@@ -582,13 +570,13 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  questMarker.visible=questStep<5;
  if(questStep===0)questMarker.position.set(guide.position.x,.06,guide.position.z);
  if(questStep===1)questMarker.position.set(CLEARING.x,.06,CLEARING.z);
- if(questStep===2){const target=JOURNEY_ENEMIES[journeyEnemyIndex];if(target){questMarker.position.set(target.x,.06,target.z);if(!enemy.visible&&Math.hypot(target.x-player.position.x,target.z-player.position.z)<10){enemy.position.set(target.x,0,target.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemy.visible=true;if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent='Cuidado! Um inimigo bloqueia a trilha.';}}}
+ if(questStep===2){const target=JOURNEY_ENEMIES[journeyEnemyIndex];if(target){questMarker.position.set(target.x,.06,target.z);if(!enemy.visible&&Math.hypot(target.x-player.position.x,target.z-player.position.z)<10){enemy.position.set(target.x,0,target.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=0;enemyKnockback=0;enemy.visible=true;if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent='Cuidado! Um inimigo bloqueia a trilha.';}}}
  if(questStep===4)questMarker.position.set(PORTAL.x,.06,PORTAL.z);
  if(questStep===2&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
-if(dialogueOpen){axisX=0;axisZ=0;}
+if(dialogueOpen||playerHP<=0){axisX=0;axisZ=0;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
 // Mesmo princípio da dimensão do Valério: o joystick é relativo à orientação da câmera,
 // com zona morta analógica e aceleração/desaceleração suaves, em vez de deslocar o modelo instantaneamente.
@@ -638,7 +626,8 @@ if(!grounded){
 }else{
  player.position.y=floorY;
 }
-const firstPerson=cameraDistance<1.05;if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();
+ const firstPerson=cameraDistance<1.05;if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  camera.position.lerp(target,1-Math.exp(-14*dt));
