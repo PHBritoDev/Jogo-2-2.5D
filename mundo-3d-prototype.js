@@ -32,7 +32,7 @@ function makeTree(x,z,s=1){const g=new THREE.Group();const trunk=new THREE.Mesh(
 for(let j=0;j<3;j++){const crown=new THREE.Mesh(new THREE.IcosahedronGeometry((1.05-j*.12)*s,1),j===1?leafLight:leafMat);crown.position.set((Math.random()-.5)*.25*s,(2.25+j*.62)*s,(Math.random()-.5)*.25*s);crown.scale.set(1,.9,1);crown.castShadow=true;g.add(crown);}
 g.position.set(x,0,z);treeGroup.add(g);treeObstacles.push({x,z,radius:.38*s+.28});return g;}
 let seed=9137;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
-for(let i=0;i<100;i++){let x=(rand()-.5)*90,z=-8-rand()*82;if(Math.abs(x)<5&&z>-48)continue;makeTree(x,z,.7+rand()*1.2);}
+for(let i=0;i<100;i++){let x=(rand()-.5)*90,z=-8-rand()*82;if(Math.abs(x)<5.2&&z>-128)continue;makeTree(x,z,.7+rand()*1.2);}
 // Expansão low-poly controlada: amplia a floresta sem centenas de objetos pesados.
 for(let i=0;i<42;i++){const x=(rand()-.5)*128,z=-82-rand()*53;if(Math.abs(x)<6.5)continue;makeTree(x,z,.75+rand()*1.05);}
 for(let i=0;i<32;i++){const radius=.4+rand()*1.15;const r=new THREE.Mesh(new THREE.DodecahedronGeometry(radius,0),rockMat);r.position.set((rand()-.5)*42,.15,-5-rand()*65);r.scale.y=.5+rand()*.6;r.rotation.set(rand(),rand()*3,rand());r.castShadow=true;r.receiveShadow=true;scene.add(r);rockObstacles.push({x:r.position.x,z:r.position.z,radius:radius*.92,height:r.position.y+radius*r.scale.y*.72});}
@@ -124,7 +124,7 @@ function updateEnemyHud(){
  const p=enemy.position.clone().add(new THREE.Vector3(0,2.2,0)).project(camera);
  const hud=document.getElementById('enemy-hud');
  if(!hud)return;
- const visible=p.z>-1&&p.z<1&&p.x>-1.2&&p.x<1.2&&p.y>-1.2&&p.y<1.2&&enemyAlive;
+ const visible=p.z>-1&&p.z<1&&p.x>-1.2&&p.x<1.2&&p.y>-1.2&&p.y<1.2&&enemyAlive&&enemy.visible;
  hud.style.display=visible?'block':'none';
  if(visible){hud.style.left=((p.x*.5+.5)*innerWidth)+'px';hud.style.top=((-p.y*.5+.5)*innerHeight)+'px';}
  const fill=document.getElementById('enemy-hp-fill');
