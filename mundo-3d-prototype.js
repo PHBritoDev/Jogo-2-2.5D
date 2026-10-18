@@ -303,6 +303,8 @@ function updateEnemyAI(dt){
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
  if(!enemy.visible||!enemyAlive||questStep!==2||dialogueOpen||playerHP<=0){if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.08);}return;}
  if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-140,14);if(!blockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!blockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
+ // Deixe a animação de reação terminar antes de voltar a perseguir; evita cortá-la no primeiro quadro.
+ if(enemyCurrentRole==='hit')return;
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
  if(enemyCurrentRole!=='attack'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
  if(enemyCurrentRole==='attack'){
@@ -454,10 +456,9 @@ function selectDimensionAttack(clips){
   if(Number.isInteger(index)&&index>=0&&index<clips.length&&validAttackClip(clips[index])&&!validMapped.includes(clips[index]))validMapped.push(clips[index]);
  });
  if(validMapped.length)return validMapped;
- // Mesmo mapeamento determinístico usado na dimensão do Valério.
- const dimensionAttack=clips.find(c=>clipKey(c)==='overhandthrow');
- if(dimensionAttack)return [dimensionAttack];
- // Nunca tratar Hit Knockback, queda ou morte como ataque.
+ // Só aceitar clipes cujo nome identifique explicitamente um ataque.
+ // Overhand Throw é uma animação de receber dano neste protagonista, não de atacar.
+ // Se não houver clipe confiável, o botão não aplica dano nem toca uma animação errada.
  return clips.filter(validAttackClip);
 }
 function play(name,fade=.18){const next=actions[name];if(!next||next===activeAction)return;if(activeAction)activeAction.fadeOut(fade);next.reset();next.setLoop(THREE.LoopRepeat,Infinity);next.clampWhenFinished=false;next.fadeIn(fade).play();activeAction=next;}
