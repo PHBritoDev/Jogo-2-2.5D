@@ -173,7 +173,19 @@ new GLTFLoader().load('./AnjoGuia.glb?v=mod148-anjo-guia-glb',gltf=>{
  guideModelRoot.add(imported);
  guide.userData.modelLoaded=true;
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
-let questStep=0,coins=0,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
+const PROGRESS_KEY='sevenSins3DCampaignV1';
+function read3DProgress(){
+ try{const value=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{}');return {questStep:THREE.MathUtils.clamp(Math.floor(Number(value.questStep)||0),0,2),coins:Math.max(0,Math.floor(Number(value.coins)||0))};}
+ catch(_){return {questStep:0,coins:0};}
+}
+let saved3DProgress=read3DProgress();
+let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
+function save3DProgress(){
+ const progress={version:1,questStep,coins,updatedAt:Date.now()};
+ try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}
+ window.SevenSins3DProgress=progress;
+ try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}
+}
 function updateQuestHud(){
  const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count');
  if(title)title.textContent='MISSÃO 1 · O CHAMADO';
@@ -212,7 +224,7 @@ function talkToGuide(){
   {who:'Anjo-Guia',text:'Não tema. Sua jornada começa aqui, mas cada pecado ficará mais forte. Aprenda a lutar e não abandone sua fé.'},
   {who:'Anjo-Guia',text:'Siga a trilha até a clareira à frente. Lá você encontrará seu primeiro desafio. Que Deus guie seus passos.'}
  ],()=>{
-  questStep=1;questMarker.position.set(-2.2,.06,-13);updateQuestHud();
+  questStep=1;questMarker.position.set(-2.2,.06,-13);save3DProgress();updateQuestHud();
   document.getElementById('talk-button').classList.add('hidden');
   status.textContent='Nova etapa: siga a trilha até a clareira';
  });
@@ -339,7 +351,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  questMarker.visible=questStep<2;
  if(questStep===0){questMarker.position.x=guide.position.x;questMarker.position.z=guide.position.z;}
  if(questStep===1&&Math.hypot(player.position.x+2.2,player.position.z+13)<2.15){
-  questStep=2;coins+=5;updateQuestHud();questMarker.visible=false;status.textContent='Missão concluída! +5 moedas';document.getElementById('quest-toast').classList.remove('hidden');
+  questStep=2;coins+=5;save3DProgress();updateQuestHud();questMarker.visible=false;status.textContent='Missão concluída! +5 moedas';document.getElementById('quest-toast').classList.remove('hidden');
   setTimeout(()=>document.getElementById('quest-toast').classList.add('hidden'),2600);
  }
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
