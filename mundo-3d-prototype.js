@@ -192,10 +192,11 @@ let enemyModel=null,enemyMixer=null,enemyClips=[],enemyActions={},enemyCurrentAc
 let enemyLoadState='idle';
 let enemyHP=100,enemyAlive=true,enemyHitFlash=0,enemyKnockback=0,enemyKnockbackX=0,enemyKnockbackZ=0;
 let enemyAttackCooldown=0,enemyAttackElapsed=0,enemyAttackDuration=0,enemyAttackHitAt=0,enemyAttackResolved=true,enemyAttackFacingX=0,enemyAttackFacingZ=1,enemyAttackRole='attack';
-let enemyDashRemaining=0,enemyDashCooldown=0,enemySpecialCooldown=0,enemyBlockCooldown=0;
+let enemyDashRemaining=0,enemyDashCooldown=0,enemySpecialCooldown=0,enemyCastCooldown=0,enemyBlockCooldown=0,enemyCastElapsed=0,enemyCastDuration=0,enemyCastResolved=true,enemyDashDirectionX=0,enemyDashDirectionZ=1;
+const enemyProjectiles=[];
 let attackCooldown=0,pendingEnemyHitAt=0,playerAttackFacingX=0,playerAttackFacingZ=1;
 let playerHP=100,playerMaxHP=100,playerInvulnerableUntil=0,playerRespawnAt=0;
-const ENEMY_ATTACK_RANGE=1.85,ENEMY_ATTACK_DAMAGE=18,PLAYER_SPAWN={x:0,z:4};
+const ENEMY_ATTACK_RANGE=2.25,ENEMY_ATTACK_DAMAGE=18,PLAYER_SPAWN={x:0,z:4};
 function playEnemyAnimation(role,fade=.1,once=false){
  const next=enemyActions[role];if(!next)return false;
  const timeScale=role==='idle'?.38:role==='run'?1.08:1;
@@ -279,6 +280,22 @@ new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
 
 }
 
+function spawnEnemyProjectile(kind){
+ const group=new THREE.Group(),slash=kind==='slash';
+ const dark=new THREE.MeshStandardMaterial({color:0x09080d,emissive:slash?0x210d2d:0x170d28,emissiveIntensity:slash?1.15:.85,metalness:.25,roughness:.35,transparent:true,opacity:.96,depthWrite:false});
+ const edge=new THREE.MeshStandardMaterial({color:0x6f1728,emissive:0x8b1631,emissiveIntensity:1.35,transparent:true,opacity:.9,depthWrite:false});
+ if(slash){const arc=new THREE.Mesh(new THREE.TorusGeometry(.55,.075,6,22,Math.PI*1.32),dark);arc.rotation.z=-.55;group.add(arc);const glint=new THREE.Mesh(new THREE.TorusGeometry(.57,.018,4,22,Math.PI*1.25),edge);glint.rotation.z=-.55;group.add(glint);group.scale.set(1.15,.62,.35);}
+ else{for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.38+i*.13,.045,5,16),i===1?edge:dark);ring.position.y=(i-1)*.25;ring.rotation.x=(i-1)*.28;group.add(ring);}const core=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),dark);group.add(core);group.scale.set(.9,1.25,.9);}
+ const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,len=Math.hypot(dx,dz)||1,dirX=dx/len,dirZ=dz/len;
+ group.position.set(enemy.position.x+dirX*.82,enemy.position.y+(slash?1.12:1.0),enemy.position.z+dirZ*.82);group.rotation.y=Math.atan2(dirX,dirZ);scene.add(group);
+ enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?7.4:4.8,life:slash?1.15:1.8,damage:slash?14:20,spin:slash?5.5:7.2});
+}
+function updateEnemyProjectiles(dt){
+ for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
+  if(dist<(p.kind==='slash'?.78:1.05)&&Math.abs(p.group.position.y-(player.position.y+1))<1.25){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
+  if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});enemyProjectiles.splice(i,1);}
+ }
+}
 function updateEnemyHud(){
  const p=enemy.position.clone().add(new THREE.Vector3(0,2.2,0)).project(camera);
  const hud=document.getElementById('enemy-hud');
@@ -317,9 +334,9 @@ function updatePlayerHud(){
  if(fill)fill.style.width=Math.max(0,Math.min(100,playerHP/playerMaxHP*100))+'%';
  if(text)text.textContent=Math.ceil(playerHP/playerMaxHP*100)+'%';
 }
-function damagePlayerFromEnemyAttack(){
+function damagePlayerFromEnemyAttack(damage=ENEMY_ATTACK_DAMAGE){
  const now=performance.now();if(playerHP<=0||now<playerInvulnerableUntil)return false;
- playerHP=Math.max(0,playerHP-ENEMY_ATTACK_DAMAGE);playerInvulnerableUntil=now+850;updatePlayerHud();
+ playerHP=Math.max(0,playerHP-Math.max(1,Number(damage)||ENEMY_ATTACK_DAMAGE));playerInvulnerableUntil=now+850;updatePlayerHud();
  if(playerHP===0){
   playerRespawnAt=now+1450;moveVX=moveVZ=0;dashRemaining=0;pendingEnemyHitAt=0;
   const death=actions.death||actions.hit;if(death){playOnce(death===actions.death?'death':'hit',.06);actionUntil=now+Math.max(250,Math.min(1300,death.getClip().duration*1000));}
@@ -336,47 +353,53 @@ function startEnemyAttack(role='attack'){
  enemyAttackRole=role;enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.55,Math.max(.08,duration*.42));
  enemyAttackFacingX=Math.sin(enemy.rotation.y);enemyAttackFacingZ=Math.cos(enemy.rotation.y);enemyAttackResolved=false;enemyAttackCooldown=duration+.65;return true;
 }
-function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=2.0&&heightDelta<=1.2;}
+function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=2.4&&heightDelta<=1.2;}
 function updateEnemyAI(dt){
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
  if(!enemy.visible||!enemyAlive||questStep!==2||dialogueOpen||playerHP<=0){if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.08);}return;}
  if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-140,14);if(!blockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!blockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
  // Deixe a animação de reação terminar antes de voltar a perseguir; evita cortá-la no primeiro quadro.
  if(enemyCurrentRole==='hit'){
-  if(enemyCurrentAction&&enemyCurrentAction.isRunning())return;
+  const clip=enemyCurrentAction&&enemyCurrentAction.getClip();
+  if(clip&&enemyCurrentAction.time<clip.duration-.025)return;
   playEnemyAnimation('idle',.08);
  }
- if(['block','cast','attack2'].includes(enemyCurrentRole)){
-  if(enemyCurrentAction&&enemyCurrentAction.isRunning())return;
+ if(enemyCurrentRole==='block'){
+  const clip=enemyCurrentAction&&enemyCurrentAction.getClip();
+  if(clip&&enemyCurrentAction.time<clip.duration-.025)return;
   playEnemyAnimation('idle',.08);
  }
- if(enemyCurrentRole==='dash'&&enemyDashRemaining<=0){
-  if(enemyCurrentAction&&enemyCurrentAction.isRunning())return;
-  playEnemyAnimation('idle',.08);
- }
+ if(enemyCurrentRole==='dash'&&enemyDashRemaining<=0)playEnemyAnimation('idle',.08);
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
- if(enemyCurrentRole!=='attack'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
+ if(enemyCurrentRole==='cast'){
+  enemyCastElapsed+=dt;
+  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.42){enemyCastResolved=true;spawnEnemyProjectile('tornado');}
+  if(enemyCastElapsed<enemyCastDuration)return;
+  playEnemyAnimation('idle',.08);
+ }
+ if(enemyCurrentRole!=='attack'&&enemyCurrentRole!=='attack2'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
  if(enemyCurrentRole==='attack'||enemyCurrentRole==='attack2'){
   enemyAttackElapsed+=dt;const role=enemyAttackRole,action=enemyActions[role];
-  if(role==='attack'&&!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyCurrentAction.isRunning()&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}
+  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'){spawnEnemyProjectile('slash');}}
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
-  const step=Math.min(6.2*dt,enemyDashRemaining*6.2);enemyDashRemaining=Math.max(0,enemyDashRemaining-dt);
-  const nx=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-62,62),nz=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-140,14);
+  const step=Math.min(8.0*dt,enemyDashRemaining*8.0);enemyDashRemaining=Math.max(0,enemyDashRemaining-dt);
+  const nx=THREE.MathUtils.clamp(enemy.position.x+enemyDashDirectionX*step,-62,62),nz=THREE.MathUtils.clamp(enemy.position.z+enemyDashDirectionZ*step,-140,14);
   if(!blockedAt(nx,enemy.position.z))enemy.position.x=nx;if(!blockedAt(enemy.position.x,nz))enemy.position.z=nz;
   if(enemyDashRemaining>0)return;
  }
- if(distance<=ENEMY_ATTACK_RANGE){if(enemyAttackCooldown<=0)startEnemyAttack('attack');else playEnemyAnimation('idle',.08);return;}
- if(distance>2.1&&distance<=3.4&&enemyActions.attack2&&enemySpecialCooldown<=0){
+ if(distance<=ENEMY_ATTACK_RANGE){if(enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);}else playEnemyAnimation('idle',.08);return;}
+ if(distance>2.35&&distance<=5.8&&enemyActions.attack2&&enemySpecialCooldown<=0){
   const duration=enemyActions.attack2.getClip().duration;
-  if(playEnemyAnimation('attack2',.08,true)){enemySpecialCooldown=4.5;enemyCurrentRole='attack2';enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;return;}
+  if(playEnemyAnimation('attack2',.08,true)){enemySpecialCooldown=4.0;enemyCurrentRole='attack2';enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.45;return;}
  }
- if(distance>3.4&&distance<=6.2&&enemyActions.cast&&enemySpecialCooldown<=0){
-  if(playEnemyAnimation('cast',.08,true)){enemySpecialCooldown=5.5;return;}
+ if(distance>3.8&&distance<=8.5&&enemyActions.cast&&enemyCastCooldown<=0){
+  const duration=enemyActions.cast.getClip().duration;
+  if(playEnemyAnimation('cast',.08,true)){enemyCastCooldown=5.8;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;return;}
  }
- if(distance>3.2&&distance<=7.5&&enemyActions.dash&&enemyDashCooldown<=0){
-  if(playEnemyAnimation('dash',.06,true)){enemyDashRemaining=.24;enemyDashCooldown=3.2;return;}
+ if(enemyActions.dash&&enemyDashCooldown<=0&&((distance>6.2&&distance<=10)||(distance<1.95&&enemyAttackCooldown>0))){
+  if(playEnemyAnimation('dash',.06,true)){const retreat=distance<1.95;enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);enemyDashRemaining=.28;enemyDashCooldown=3.0;return;}
  }
  if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
   if(playEnemyAnimation('block',.06,true)){enemyBlockCooldown=3.0;const side=enemy.rotation.y+Math.PI/2,sx=enemy.position.x+Math.sin(side)*.65,sz=enemy.position.z+Math.cos(side)*.65;if(!blockedAt(sx,enemy.position.z))enemy.position.x=sx;if(!blockedAt(enemy.position.x,sz))enemy.position.z=sz;return;}
@@ -401,11 +424,11 @@ function playNativeGuideIdle(clips){
  const list=clips||[];
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  // Nunca usar o primeiro clipe como fallback: ele pode ser corrida ou ataque.
- const idle=list.find(c=>/^(idle|breath|breathing|respiracao|respirar|falar)$/.test(key(c)));
+ const idle=list.find(c=>/(breath|respir)/.test(key(c))&&!/(walk|run|attack|jump|fall|hit|death|cast)/.test(key(c)))||list.find(c=>/idle/.test(key(c))&&!/(walk|run|attack|jump|fall|hit|death|cast)/.test(key(c)));
  if(!idle||!guideModel)return;
  const tracks=(idle.tracks||[]).filter(track=>!String(track.name||'').toLowerCase().endsWith('.scale'));
  const clip=tracks.length?new THREE.AnimationClip(idle.name,idle.duration,tracks,idle.blendMode):idle;
- guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.reset();action.setLoop(THREE.LoopRepeat,Infinity);action.setEffectiveWeight(1);action.play();guideIdleMixer.update(0);
+ guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.reset();action.setLoop(THREE.LoopRepeat,Infinity);action.setEffectiveWeight(1);action.play();guideIdleMixer.update(0);window.GuideAnimationReport=list.map(c=>c.name);console.info('Anjo-Guia: animações disponíveis',window.GuideAnimationReport,'respiração selecionada:',idle.name);
 }
 function fitGuideModel(){
  if(!guideModel||!guideFitRoot)return;
@@ -415,7 +438,7 @@ function fitGuideModel(){
  guideFitRoot.scale.setScalar(fitScale);guideFitRoot.position.set(-reference.centerX*fitScale,-reference.minY*fitScale,-reference.centerZ*fitScale);
  if(guideFitRoot.parent!==guideModelRoot)guideModelRoot.add(guideFitRoot);
  // Escala explícita adicional no grupo externo: o ajuste automático não pode anular o aumento pedido.
- guideModelRoot.scale.setScalar(.82);
+ guideModelRoot.scale.setScalar(1.64);
  guideFitRoot.updateMatrixWorld(true);guide.userData.modelLoaded=true;
 }
 const villageNpcBreathing=[];
@@ -465,7 +488,7 @@ function measureModelBounds(model){
  });
  return box;
 }
-new GLTFLoader().load('./AnjoGuia.glb?v=mod167-guide-scale-breath',gltf=>{
+new GLTFLoader().load('./AnjoGuia.glb?v=mod170-guide-breath-scale',gltf=>{
  const imported=gltf.scene;imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
  guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideModel=imported;playNativeGuideIdle(gltf.animations||[]);fitGuideModel();
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
@@ -641,7 +664,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
  if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
  else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
+ }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
@@ -658,7 +681,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  questMarker.visible=questStep<5;
  if(questStep===0)questMarker.position.set(guide.position.x,.06,guide.position.z);
  if(questStep===1)questMarker.position.set(CLEARING.x,.06,CLEARING.z);
- if(questStep===2){const target=JOURNEY_ENEMIES[journeyEnemyIndex];if(target){questMarker.position.set(target.x,.06,target.z);if(!enemy.visible&&Math.hypot(target.x-player.position.x,target.z-player.position.z)<10){enemy.position.set(target.x,0,target.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=0;enemyKnockback=0;enemy.visible=true;if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent='Cuidado! Um inimigo bloqueia a trilha.';}}}
+ if(questStep===2){const target=JOURNEY_ENEMIES[journeyEnemyIndex];if(target){questMarker.position.set(target.x,.06,target.z);if(!enemy.visible&&Math.hypot(target.x-player.position.x,target.z-player.position.z)<10){enemy.position.set(target.x,0,target.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=0;enemyKnockback=0;enemy.visible=true;if(enemyActions.idle)playEnemyAnimation('idle',.05);enemyDashRemaining=0;enemyCastResolved=true;status.textContent='Cuidado! Um inimigo bloqueia a trilha.';}}}
  if(questStep===4)questMarker.position.set(PORTAL.x,.06,PORTAL.z);
  if(questStep===2&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
