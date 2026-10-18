@@ -188,6 +188,8 @@ function read3DProgress(){
 }
 let saved3DProgress=read3DProgress();
 let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
+if(questStep===2){enemy.position.set(-2.2,0,-13);enemy.visible=true;}
+if(questStep===3){enemy.visible=false;goldClue.visible=true;}
 function save3DProgress(){
  const progress={version:2,questStep,coins,updatedAt:Date.now()};
  try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}
