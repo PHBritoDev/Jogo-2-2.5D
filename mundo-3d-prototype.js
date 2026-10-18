@@ -9,7 +9,7 @@ scene.fog=new THREE.Fog(0x9bc6d1,42,165);
 const camera=new THREE.PerspectiveCamera(56,innerWidth/innerHeight,.1,260);
 camera.position.set(0,3.2,10);
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -18,31 +18,33 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.05;
 scene.add(new THREE.HemisphereLight(0xdff5ff,0x536447,2.0));
 const sun=new THREE.DirectionalLight(0xffedca,2.5);sun.position.set(-18,28,10);sun.castShadow=true;
-sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-72;sun.shadow.camera.right=72;sun.shadow.camera.top=72;sun.shadow.camera.bottom=-72;sun.shadow.bias=-0.0004;scene.add(sun);
+sun.shadow.mapSize.set(512,512);sun.shadow.camera.left=-72;sun.shadow.camera.right=72;sun.shadow.camera.top=72;sun.shadow.camera.bottom=-72;sun.shadow.bias=-0.0004;scene.add(sun);
 const fill=new THREE.DirectionalLight(0x8dbbff,.65);fill.position.set(18,10,-18);scene.add(fill);
 const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
 const groundMat=mat(0x476e43),pathMat=mat(0x9a8d6b),barkMat=mat(0x493c2e),leafMat=mat(0x254d36),leafLight=mat(0x3b7045),rockMat=mat(0x626c68);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(280,280),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.04;ground.receiveShadow=true;scene.add(ground);
 const path=new THREE.Mesh(new THREE.PlaneGeometry(8,145),pathMat);path.rotation.x=-Math.PI/2;path.position.set(0,.005,-57);path.receiveShadow=true;scene.add(path);
-const hillMat=mat(0x63835b);
-for(let i=0;i<10;i++){const hill=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),hillMat);hill.scale.set(8+Math.random()*10,2+Math.random()*4,6+Math.random()*7);hill.position.set((Math.random()-.5)*100,-1.5,-30-Math.random()*60);scene.add(hill);}
+// Floresta leve: árvores e vegetação instanciadas para reduzir chamadas de desenho.
 const treeGroup=new THREE.Group();scene.add(treeGroup);
-const treeObstacles=[];const rockObstacles=[];
-function makeTree(x,z,s=1){const g=new THREE.Group();const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.16*s,.32*s,2.6*s,7),barkMat);trunk.position.y=1.3*s;trunk.castShadow=true;g.add(trunk);
-for(let j=0;j<3;j++){const crown=new THREE.Mesh(new THREE.IcosahedronGeometry((1.05-j*.12)*s,1),j===1?leafLight:leafMat);crown.position.set((Math.random()-.5)*.25*s,(2.25+j*.62)*s,(Math.random()-.5)*.25*s);crown.scale.set(1,.9,1);crown.castShadow=true;g.add(crown);}
-g.position.set(x,0,z);treeGroup.add(g);treeObstacles.push({x,z,radius:.38*s+.28});return g;}
+const treeObstacles=[],rockObstacles=[],treeSpecs=[];
+function makeTree(x,z,s=1){treeSpecs.push({x,z,s});treeObstacles.push({x,z,radius:.52*s+.28});}
 let seed=9137;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
-for(let i=0;i<100;i++){let x=(rand()-.5)*90,z=-8-rand()*82;if(Math.abs(x)<5.2&&z>-128)continue;makeTree(x,z,.7+rand()*1.2);}
-// Expansão low-poly controlada: amplia a floresta sem centenas de objetos pesados.
-for(let i=0;i<42;i++){const x=(rand()-.5)*128,z=-82-rand()*53;if(Math.abs(x)<6.5)continue;makeTree(x,z,.75+rand()*1.05);}
-for(let i=0;i<32;i++){const radius=.4+rand()*1.15;const r=new THREE.Mesh(new THREE.DodecahedronGeometry(radius,0),rockMat);r.position.set((rand()-.5)*42,.15,-5-rand()*65);r.scale.y=.5+rand()*.6;r.rotation.set(rand(),rand()*3,rand());r.castShadow=true;r.receiveShadow=true;scene.add(r);rockObstacles.push({x:r.position.x,z:r.position.z,radius:radius*.92,height:r.position.y+radius*r.scale.y*.72});}
-for(let i=0;i<14;i++){const radius=.45+rand()*.9;const r=new THREE.Mesh(new THREE.DodecahedronGeometry(radius,0),rockMat);r.position.set((rand()-.5)*54,.12,-72-rand()*57);r.scale.y=.45+rand()*.55;r.rotation.set(rand(),rand()*3,rand());r.castShadow=true;r.receiveShadow=true;scene.add(r);rockObstacles.push({x:r.position.x,z:r.position.z,radius:radius*.9,height:r.position.y+radius*r.scale.y*.7});}
+for(let i=0;i<92;i++){const x=(rand()-.5)*90,z=-8-rand()*82;if(Math.abs(x)<5.2&&z>-128)continue;makeTree(x,z,.85+rand()*.9);}
+for(let i=0;i<38;i++){const x=(rand()-.5)*128,z=-82-rand()*53;if(Math.abs(x)<6.5)continue;makeTree(x,z,.85+rand()*.9);}
+const treeDummy=new THREE.Object3D();
+const trunkInstances=new THREE.InstancedMesh(new THREE.CylinderGeometry(.16,.32,2.6,7),barkMat,treeSpecs.length);
+trunkInstances.castShadow=true;trunkInstances.receiveShadow=true;
+const crownInstances=[0,1,2].map(j=>{const mesh=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1.05-j*.12,1),j===1?leafLight:leafMat,treeSpecs.length);mesh.castShadow=true;return mesh;});
+for(let i=0;i<treeSpecs.length;i++){const t=treeSpecs[i];treeDummy.position.set(t.x,1.3*t.s,t.z);treeDummy.scale.set(t.s,t.s,t.s);treeDummy.rotation.set(0,rand()*Math.PI*2,0);treeDummy.updateMatrix();trunkInstances.setMatrixAt(i,treeDummy.matrix);for(let j=0;j<3;j++){treeDummy.position.set(t.x+(rand()-.5)*.18*t.s,(2.25+j*.62)*t.s,t.z+(rand()-.5)*.18*t.s);treeDummy.scale.set(t.s,t.s*.9,t.s);treeDummy.rotation.set(0,rand()*Math.PI*2,0);treeDummy.updateMatrix();crownInstances[j].setMatrixAt(i,treeDummy.matrix);}}
+trunkInstances.instanceMatrix.needsUpdate=true;treeGroup.add(trunkInstances);for(const crown of crownInstances){crown.instanceMatrix.needsUpdate=true;treeGroup.add(crown);}
+for(let i=0;i<25;i++){const radius=.38+rand()*.72;const r=new THREE.Mesh(new THREE.DodecahedronGeometry(radius,0),rockMat);r.position.set((rand()-.5)*46,.12,-6-rand()*115);if(Math.abs(r.position.x)<5.5)r.position.x+=r.position.x<0?-6:6;r.scale.y=.45+rand()*.55;r.rotation.set(rand(),rand()*3,rand());r.castShadow=true;scene.add(r);rockObstacles.push({x:r.position.x,z:r.position.z,radius:radius*.9,height:r.position.y+radius*r.scale.y*.7});}
 const grassGroup=new THREE.Group();scene.add(grassGroup);
-for(let i=0;i<180;i++){const x=(rand()-.5)*58,z=-3-rand()*55;if(Math.abs(x)<3&&z>-48)continue;const h=.12+rand()*.3;const blade=new THREE.Mesh(new THREE.ConeGeometry(.055,h,3),i%3?leafLight:leafMat);blade.position.set(x,h/2,z);blade.rotation.z=(rand()-.5)*.55;grassGroup.add(blade);}
-for(let i=0;i<80;i++){const x=(rand()-.5)*90,z=-58-rand()*75;if(Math.abs(x)<5.5)continue;const h=.12+rand()*.26;const blade=new THREE.Mesh(new THREE.ConeGeometry(.05,h,3),i%3?leafLight:leafMat);blade.position.set(x,h/2,z);blade.rotation.z=(rand()-.5)*.5;grassGroup.add(blade);}
-
+const grassGeo=new THREE.ConeGeometry(.055,1,3);
+const grassInstancesA=new THREE.InstancedMesh(grassGeo,leafLight,160),grassInstancesB=new THREE.InstancedMesh(grassGeo,leafMat,80);let grassAIndex=0,grassBIndex=0;
+for(let i=0;i<240;i++){const x=(rand()-.5)*(i<150?58:90),z=i<150?-3-rand()*55:-58-rand()*75;if(Math.abs(x)<5.5)continue;const h=.12+rand()*.28;treeDummy.position.set(x,h/2,z);treeDummy.scale.set(1,h,1);treeDummy.rotation.set(0,rand()*Math.PI*2,(rand()-.5)*.5);treeDummy.updateMatrix();if(i%3){if(grassAIndex<160)grassInstancesA.setMatrixAt(grassAIndex++,treeDummy.matrix);}else if(grassBIndex<80)grassInstancesB.setMatrixAt(grassBIndex++,treeDummy.matrix);}
+grassInstancesA.count=grassAIndex;grassInstancesB.count=grassBIndex;grassInstancesA.instanceMatrix.needsUpdate=true;grassInstancesB.instanceMatrix.needsUpdate=true;grassGroup.add(grassInstancesA,grassInstancesB);
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
-const CLEARING={x:0,z:-29},RUNE={x:0,z:-42},PORTAL={x:0,z:-119},JOURNEY_ENEMIES=[{x:0,z:-59},{x:2.4,z:-79},{x:-2.2,z:-99}];
+const CLEARING={x:0,z:-29},PORTAL={x:0,z:-119},JOURNEY_ENEMIES=[{x:0,z:-59},{x:2.4,z:-79},{x:-2.2,z:-99}];
 // Inimigo comum: usa Enemy1.glb com as animações que realmente existirem no arquivo.
 const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(0,0,-3.2);enemy.visible=false;
 const enemyTexture=new THREE.TextureLoader().load('./Enemy1-sprite.png');
@@ -131,7 +133,7 @@ function updateEnemyHud(){
  if(fill)fill.style.width=Math.max(0,enemyHP)+'%';
 }
 function tryPlayerAttack(){
- const now=performance.now();if(now<attackCooldown||!enemyAlive)return;if(questStep!==3){status.textContent='Siga o objetivo atual antes de iniciar este confronto.';return;}attackCooldown=now+680;
+ const now=performance.now();if(now<attackCooldown||!enemyAlive)return;if(questStep!==2){status.textContent='Siga o objetivo atual antes de iniciar este confronto.';return;}attackCooldown=now+680;
  let duration=1;
  if(attackClips.length){
   const attackClip=attackClips[attackClipIndex++%attackClips.length];duration=attackClip.duration||1;
@@ -142,7 +144,7 @@ function tryPlayerAttack(){
  pendingEnemyHitAt=now+Math.min(460,Math.max(190,duration*.28*1000));
 }
 function resolvePlayerAttackHit(){
- if(!enemyAlive||questStep!==3)return;
+ if(!enemyAlive||questStep!==2)return;
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz),forwardX=Math.sin(playerYaw),forwardZ=Math.cos(playerYaw);
  const facing=(dx*forwardX+dz*forwardZ)/(distance||1);
@@ -152,7 +154,7 @@ function resolvePlayerAttackHit(){
  }
  enemyHP=Math.max(0,enemyHP-25);enemyHitFlash=.2;enemyKnockback=.42;
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
- if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>{if(questStep!==3)return;journeyEnemyIndex++;enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;if(journeyEnemyIndex>=JOURNEY_ENEMIES.length){questStep=4;portalGroup.visible=true;questMarker.position.set(PORTAL.x,.06,PORTAL.z);status.textContent='Os inimigos foram vencidos. Encontre o portal.';}else{status.textContent='Um inimigo foi derrotado. Continue pela trilha.';}save3DProgress();updateQuestHud();},850);}
+ if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>{if(questStep!==2)return;journeyEnemyIndex++;enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;if(journeyEnemyIndex>=JOURNEY_ENEMIES.length){questStep=4;portalGroup.visible=true;questMarker.position.set(PORTAL.x,.06,PORTAL.z);status.textContent='Os inimigos foram vencidos. Encontre o portal.';}else{status.textContent='Um inimigo foi derrotado. Continue pela trilha.';}save3DProgress();updateQuestHud();},850);}
  else playEnemyAnimation('hit',.05,true);
 }
 
@@ -164,11 +166,10 @@ const guideShadow=new THREE.Mesh(new THREE.CircleGeometry(.28,20),new THREE.Mesh
 guideShadow.rotation.x=-Math.PI/2;guideShadow.position.y=.014;guide.add(guideShadow);
 const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.38,.04,8,28),new THREE.MeshBasicMaterial({color:0xffd65a}));
 questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,.06,guide.position.z);scene.add(questMarker);
-const clearingPatch=new THREE.Mesh(new THREE.CircleGeometry(5.2,24),new THREE.MeshStandardMaterial({color:0x786f55,roughness:1}));clearingPatch.rotation.x=-Math.PI/2;clearingPatch.position.set(CLEARING.x,.012,CLEARING.z);clearingPatch.receiveShadow=true;scene.add(clearingPatch);
-const goldClue=new THREE.Group();scene.add(goldClue);goldClue.position.set(RUNE.x,0,RUNE.z);goldClue.visible=false;
-const runeStone=new THREE.Mesh(new THREE.DodecahedronGeometry(.72,0),new THREE.MeshStandardMaterial({color:0x555d59,roughness:.82,emissive:0x142b2a,emissiveIntensity:.35}));runeStone.position.y=.58;runeStone.scale.set(.8,1.25,.72);runeStone.castShadow=true;goldClue.add(runeStone);
-const runeMark=new THREE.Mesh(new THREE.TorusGeometry(.28,.035,6,16),new THREE.MeshStandardMaterial({color:0x7fe1d2,emissive:0x287b70,emissiveIntensity:.8,roughness:.45}));runeMark.position.set(0,.65,.53);goldClue.add(runeMark);
-const clueGlow=new THREE.PointLight(0x70dccc,.42,3.2);clueGlow.position.set(0,1.05,0);goldClue.add(clueGlow);
+const clearingPatch=new THREE.Mesh(new THREE.CircleGeometry(5.4,24),new THREE.MeshStandardMaterial({color:0x786f55,roughness:1}));clearingPatch.rotation.x=-Math.PI/2;clearingPatch.position.set(CLEARING.x,.012,CLEARING.z);clearingPatch.receiveShadow=true;scene.add(clearingPatch);
+// Clareira natural com tronco caído e pedras pequenas: sem runas e sem personagem freira.
+const fallenLog=new THREE.Mesh(new THREE.CylinderGeometry(.17,.22,3.1,7),barkMat);fallenLog.position.set(-2.5,.22,CLEARING.z-.7);fallenLog.rotation.z=Math.PI/2;fallenLog.rotation.y=.25;fallenLog.castShadow=true;scene.add(fallenLog);
+for(const p of [{x:2.4,z:CLEARING.z-1.4,s:.55},{x:1.7,z:CLEARING.z+1.8,s:.42},{x:-2.9,z:CLEARING.z+1.6,s:.38}]){const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(p.s,0),rockMat);stone.position.set(p.x,p.s*.45,p.z);stone.scale.y=.65;stone.castShadow=true;scene.add(stone);}
 const portalGroup=new THREE.Group();scene.add(portalGroup);portalGroup.position.set(PORTAL.x,0,PORTAL.z);portalGroup.visible=false;
 const portalRing=new THREE.Mesh(new THREE.TorusGeometry(1.55,.16,10,40),new THREE.MeshStandardMaterial({color:0x8bded8,metalness:.25,roughness:.3,emissive:0x176b75,emissiveIntensity:1.15}));portalRing.position.y=2.1;portalRing.castShadow=true;portalGroup.add(portalRing);
 const portalCore=new THREE.Mesh(new THREE.CircleGeometry(1.42,32),new THREE.MeshBasicMaterial({color:0x123e50,transparent:true,opacity:.78,side:THREE.DoubleSide,depthWrite:false}));portalCore.position.set(0,2.1,0);portalGroup.add(portalCore);
@@ -187,16 +188,15 @@ new GLTFLoader().load('./AnjoGuia.glb?v=mod148-anjo-guia-glb',gltf=>{
  guideModelRoot.add(imported);
  guide.userData.modelLoaded=true;
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
-const PROGRESS_KEY='sevenSins3DCampaignV3';
-function read3DProgress(){try{const current=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');if(current&&current.version>=3)return {questStep:THREE.MathUtils.clamp(Math.floor(Number(current.questStep)||0),0,5),coins:Math.max(0,Math.floor(Number(current.coins)||0)),journeyEnemyIndex:THREE.MathUtils.clamp(Math.floor(Number(current.journeyEnemyIndex)||0),0,3)};const old=JSON.parse(localStorage.getItem('sevenSins3DCampaignV2')||localStorage.getItem('sevenSins3DCampaignV1')||'{}');return {questStep:0,coins:Math.max(0,Math.floor(Number(old.coins)||0)),journeyEnemyIndex:0};}catch(_){return {questStep:0,coins:0,journeyEnemyIndex:0};}}
+const PROGRESS_KEY='sevenSins3DCampaignV4';
+function read3DProgress(){try{const current=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');if(current&&current.version>=4)return {questStep:THREE.MathUtils.clamp(Math.floor(Number(current.questStep)||0),0,5),coins:Math.max(0,Math.floor(Number(current.coins)||0)),journeyEnemyIndex:THREE.MathUtils.clamp(Math.floor(Number(current.journeyEnemyIndex)||0),0,3)};const old=JSON.parse(localStorage.getItem('sevenSins3DCampaignV3')||localStorage.getItem('sevenSins3DCampaignV2')||localStorage.getItem('sevenSins3DCampaignV1')||'{}');return {questStep:0,coins:Math.max(0,Math.floor(Number(old.coins)||0)),journeyEnemyIndex:0};}catch(_){return {questStep:0,coins:0,journeyEnemyIndex:0};}}
 let saved3DProgress=read3DProgress();
 let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,journeyEnemyIndex=saved3DProgress.journeyEnemyIndex,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
-if(questStep<3)enemy.visible=false;
-if(questStep===3){enemy.position.set(JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,0,JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59);enemy.visible=false;}
-if(questStep===2)goldClue.visible=true;else goldClue.visible=false;
+if(questStep<2)enemy.visible=false;
+if(questStep===2){enemy.position.set(JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,0,JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59);enemy.visible=false;}
 if(questStep>=4)portalGroup.visible=true;
-function save3DProgress(){const progress={version:3,questStep,coins,journeyEnemyIndex,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
-function updateQuestHud(){const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count');if(title)title.textContent='MISSÃO 1 · A CLAREIRA E O PORTAL';if(objective)objective.textContent=questStep===0?'Fale com o Anjo-Guia':questStep===1?'Encontre e investigue a clareira na floresta':questStep===2?'Examine a pedra rúnica na clareira':questStep===3?'Siga a trilha; enfrente os inimigos pelo caminho':questStep===4?'Encontre e examine o portal estranho':'Missão concluída! O portal ainda guarda seus segredos.';if(coinCount)coinCount.textContent=String(coins);}
+function save3DProgress(){const progress={version:4,questStep,coins,journeyEnemyIndex,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function updateQuestHud(){const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count');if(title)title.textContent='MISSÃO 1 · A CLAREIRA E O PORTAL';if(objective)objective.textContent=questStep===0?'Fale com o Anjo-Guia':questStep===1?'Vá até a clareira e investigue o local':questStep===2?'Siga pela trilha; os inimigos aparecem mais adiante':questStep===4?'Encontre e examine o portal estranho':'Missão concluída! O portal ainda guarda seus segredos.';if(coinCount)coinCount.textContent=String(coins);}
 function renderDialoguePage(){
  const page=dialoguePages[dialogueIndex],panel=document.getElementById('dialog-panel');
  const who=document.getElementById('dialog-who'),textEl=document.getElementById('dialog-text');
@@ -222,10 +222,9 @@ function advanceDialogue(){
  const finish=dialogueFinish;dialogueFinish=null;if(finish)finish();
 }
 function talkToGuide(){if(questStep!==0||dialogueOpen)return;guide.lookAt(player.position.x,guide.position.y,player.position.z);showDialogue([{who:'Anjo-Guia',text:'Antes de enfrentar qualquer inimigo, preciso que investigue a clareira adiante. Há sinais estranhos na floresta, mas não sabemos o que os causou.'},{who:'Anjo-Guia',text:'Explore com calma. Procure marcas antigas no chão e nas pedras. Só depois de entender a pista seguiremos em direção ao possível portal.'}],()=>{questStep=1;save3DProgress();updateQuestHud();document.getElementById('talk-button').classList.add('hidden');status.textContent='Nova etapa: investigue a clareira na floresta';});}
-function investigateClearing(){if(questStep!==1||dialogueOpen)return;showDialogue([{who:'Protagonista',text:'Esta clareira fica longe do início da trilha. O chão parece ter sido limpo às pressas... e há marcas que seguem até aquela pedra.'},{who:'Anjo-Guia',text:'Esses símbolos não são naturais. Examine a pedra rúnica; talvez revele para onde as marcas conduzem.'}],()=>{questStep=2;goldClue.visible=true;questMarker.position.set(RUNE.x,.06,RUNE.z);save3DProgress();updateQuestHud();status.textContent='Nova etapa: examine a pedra rúnica';});}
-function investigateRune(){if(questStep!==2||dialogueOpen)return;showDialogue([{who:'Protagonista',text:'A runa reage à minha presença. A luz aponta para uma região ainda mais profunda da floresta.'},{who:'Anjo-Guia',text:'Parece indicar uma estrutura semelhante a um portal. Vá até lá, mas mantenha-se atento: algo está protegendo o caminho.'}],()=>{questStep=3;journeyEnemyIndex=0;goldClue.visible=false;enemyHP=100;enemyAlive=true;enemy.visible=false;save3DProgress();updateQuestHud();status.textContent='Siga a trilha. Os perigos surgem mais adiante.';});}
+function investigateClearing(){if(questStep!==1||dialogueOpen)return;showDialogue([{who:'Protagonista',text:'A clareira está afastada do começo da trilha. O tronco caído e as marcas no chão mostram que alguém passou por aqui há pouco.'},{who:'Anjo-Guia',text:'Há rastros que seguem floresta adentro. Ainda não sabemos o que existe no fim deles. Siga com cuidado; só mais adiante você encontrará perigo.'}],()=>{questStep=2;journeyEnemyIndex=0;enemyHP=100;enemyAlive=true;enemy.visible=false;save3DProgress();updateQuestHud();status.textContent='Nova etapa: siga a trilha pela floresta';});}
 function investigatePortal(){if(questStep!==4||dialogueOpen)return;showDialogue([{who:'Protagonista',text:'Encontrei. Isto não parece uma passagem comum... não consigo ver o que existe do outro lado.'},{who:'Anjo-Guia',text:'Não atravesse ainda. Precisamos entender para onde leva e por que foi escondido tão fundo na floresta. Esta descoberta é apenas o começo.'}],()=>{questStep=5;coins+=5;questMarker.visible=false;save3DProgress();updateQuestHud();status.textContent='Missão concluída! +5 moedas';const toast=document.getElementById('quest-toast');toast.textContent='MISSÃO CONCLUÍDA · +5 MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);});}
-document.getElementById('talk-button').addEventListener('click',()=>{if(questStep===0)talkToGuide();else if(questStep===1)investigateClearing();else if(questStep===2)investigateRune();else if(questStep===4)investigatePortal();});
+document.getElementById('talk-button').addEventListener('click',()=>{if(questStep===0)talkToGuide();else if(questStep===1)investigateClearing();else if(questStep===4)investigatePortal();});
 document.getElementById('dialog-continue').addEventListener('click',advanceDialogue);
 updateQuestHud();
 
@@ -299,7 +298,7 @@ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-addEventListener('keydown',e=>{if(e.repeat)return;if((e.key==='e'||e.key==='Enter')&&!dialogueOpen){if(questStep===0&&Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z)<=2.7)talkToGuide();else if(questStep===1&&Math.hypot(CLEARING.x-player.position.x, CLEARING.z-player.position.z)<=3.2)investigateClearing();else if(questStep===2&&Math.hypot(RUNE.x-player.position.x,player.position.z-RUNE.z)<=2.8)investigateRune();else if(questStep===4&&Math.hypot(PORTAL.x-player.position.x,player.position.z-PORTAL.z)<=3.4)investigatePortal();}else if((e.key==='e'||e.key==='Enter')&&dialogueOpen)advanceDialogue();});
+addEventListener('keydown',e=>{if(e.repeat)return;if((e.key==='e'||e.key==='Enter')&&!dialogueOpen){if(questStep===0&&Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z)<=2.7)talkToGuide();else if(questStep===1&&Math.hypot(CLEARING.x-player.position.x, CLEARING.z-player.position.z)<=3.2)investigateClearing();else if(questStep===4&&Math.hypot(PORTAL.x-player.position.x,player.position.z-PORTAL.z)<=3.4)investigatePortal();}else if((e.key==='e'||e.key==='Enter')&&dialogueOpen)advanceDialogue();});
 let joyX=0,joyY=0,joyActive=false;const stick=document.getElementById('stick'),knob=document.getElementById('knob');
 function setJoy(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.32;const d=Math.hypot(dx,dy);if(d>max){dx=dx/d*max;dy=dy/d*max;}joyX=dx/max;joyY=dy/max;knob.style.transform='translate('+dx+'px,'+dy+'px)';}
 stick.addEventListener('pointerdown',e=>{joyActive=true;stick.setPointerCapture(e.pointerId);setJoy(e);});
@@ -343,18 +342,16 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  guide.position.y=.008+Math.sin(now*.0022)*.006;guideAura.intensity=.4+Math.sin(now*.003)*.06;
  const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
  const clearingDistance=Math.hypot(CLEARING.x-player.position.x,CLEARING.z-player.position.z);
- const runeDistance=Math.hypot(RUNE.x-player.position.x,RUNE.z-player.position.z);
  const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);
  const talkButton=document.getElementById('talk-button');
- const canTalk=(questStep===0&&guideDistance<=2.7)||(questStep===1&&clearingDistance<=3.2)||(questStep===2&&runeDistance<=2.8)||(questStep===4&&portalDistance<=3.4);
- if(talkButton){talkButton.textContent=questStep===1?'INVESTIGAR':questStep===2?'EXAMINAR RUNA':questStep===4?'EXAMINAR PORTAL':'FALAR';talkButton.classList.toggle('hidden',!canTalk||dialogueOpen);}
+ const canTalk=(questStep===0&&guideDistance<=2.7)||(questStep===1&&clearingDistance<=3.2)||(questStep===4&&portalDistance<=3.4);
+ if(talkButton){talkButton.textContent=questStep===1?'INVESTIGAR CLAREIRA':questStep===4?'EXAMINAR PORTAL':'FALAR';talkButton.classList.toggle('hidden',!canTalk||dialogueOpen);}
  questMarker.visible=questStep<5;
  if(questStep===0)questMarker.position.set(guide.position.x,.06,guide.position.z);
  if(questStep===1)questMarker.position.set(CLEARING.x,.06,CLEARING.z);
- if(questStep===2)questMarker.position.set(RUNE.x,.06,RUNE.z);
- if(questStep===3){const target=JOURNEY_ENEMIES[journeyEnemyIndex];if(target){questMarker.position.set(target.x,.06,target.z);if(!enemy.visible&&Math.hypot(target.x-player.position.x,target.z-player.position.z)<10){enemy.position.set(target.x,0,target.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemy.visible=true;if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent='Cuidado! Um inimigo bloqueia a trilha.';}}}
+ if(questStep===2){const target=JOURNEY_ENEMIES[journeyEnemyIndex];if(target){questMarker.position.set(target.x,.06,target.z);if(!enemy.visible&&Math.hypot(target.x-player.position.x,target.z-player.position.z)<10){enemy.position.set(target.x,0,target.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemy.visible=true;if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent='Cuidado! Um inimigo bloqueia a trilha.';}}}
  if(questStep===4)questMarker.position.set(PORTAL.x,.06,PORTAL.z);
- if(questStep===3&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
+ if(questStep===2&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
@@ -432,5 +429,5 @@ const t=clock.elapsedTime;treeGroup.children.forEach((tree,i)=>{tree.rotation.z=
 // A espada acompanha diretamente o osso da mão; o golpe vem do clipe de animação do personagem, sem balanço artificial por código.
 renderer.render(scene,camera);}
 animate();
-function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);}
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));renderer.setSize(innerWidth,innerHeight);}
 addEventListener('resize',resize);
