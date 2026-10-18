@@ -30,6 +30,7 @@ button:active{transform:scale(.96);background:#31583d}
 #player-hp-track{height:7px;border:1px solid #d7e9d2aa;border-radius:8px;background:#171312d9;overflow:hidden}
 #player-hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#438a3e,#a8d86a);transition:width .16s ease}
 #player-hud[hidden]{display:none}
+ #fullscreen{position:fixed;right:10px;top:10px;z-index:4;width:42px;height:38px;padding:0;border-radius:11px;border:1px solid #ffffff65;background:#07110cce;color:#fff;font-size:23px;line-height:1;box-shadow:0 3px 12px #0005;touch-action:manipulation}#fullscreen:active{background:#31583d}
 #back{position:fixed;right:10px;top:54px;z-index:2;width:auto;height:auto;padding:7px 10px;border-radius:10px;text-decoration:none;color:#fff;background:#07110c99;border:1px solid #ffffff35;font-size:11px}
 @media(min-width:800px){#stick{width:130px;height:130px;left:28px;bottom:28px}#knob{left:39px;top:39px}#actions{right:28px;bottom:28px;grid-template-columns:repeat(4,68px)}button{width:68px}}
 
@@ -61,7 +62,8 @@ button:active{transform:scale(.96);background:#31583d}
 <canvas id="scene"></canvas>
 <div id="look-area" aria-label="Arraste para olhar para cima/baixo; use dois dedos para aproximar/afastar"></div>
 <div id="top"><div id="title">A BATALHA CONTRA OS 7 PECADOS</div><div id="status">Preparando o mundo 3D…</div></div>
-<div id="marker" aria-label="Modificação 169">168</div>
+<button id="fullscreen" type="button" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button>
+<div id="marker" aria-label="Modificação 170">170</div>
 <div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
 <div id="player-hud" hidden aria-label="Vida do protagonista"><div id="player-name"><span>PROTAGONISTA</span><span id="player-hp-text">100%</span></div><div id="player-hp-track"><div id="player-hp-fill"></div></div></div>
 <div id="hint">MISSÃO 1 · A CLAREIRA E O PORTAL</div>
@@ -80,8 +82,11 @@ button:active{transform:scale(.96);background:#31583d}
 <button id="attack">GOLPE</button><button id="jump">PULAR</button>
 <button id="dash">DASH</button><button id="magic">MAGIA</button><button id="ultimate">ULTIMATE</button>
 </div>
-<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 169: papéis de animação, combate do Enemy1 e escala do guia.</div>
+<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 170: tela cheia, respiração do guia e IA ofensiva do Enemy1.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mundo-3d-prototype.js?v=mod169-retarget-guard-idle"></script>
+<script type="module" src="./mundo-3d-prototype.js?v=mod170-fullscreen-enemy-ai"></script>
+<script>
+(function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
+</script>
 </body>
 </html>
