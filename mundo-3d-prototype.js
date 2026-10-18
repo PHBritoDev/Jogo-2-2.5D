@@ -214,7 +214,7 @@ function setEnemyHitFlash(active){
  }
 }
 function loadEnemyModel(){if(enemyLoadState!=='idle')return;enemyLoadState='loading';
-new GLTFLoader().load('./Enemy1.glb?v=mod164-enemy-chase',gltf=>{
+new GLTFLoader().load('./Enemy1.glb?v=mod166-enemy-grounding',gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{
   if(!o.isMesh)return;
@@ -313,7 +313,7 @@ function updateEnemyAI(dt){
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
  if(distance<=ENEMY_ATTACK_RANGE){if(enemyAttackCooldown<=0)startEnemyAttack();else playEnemyAnimation('idle',.08);return;}
- const running=distance>3.7&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
+ const running=distance>7.5&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
  const nextX=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-140,14);let moved=false;
  if(!blockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!blockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
  playEnemyAnimation(moved?(role==='run'&&enemyActions.run?'run':'walk'):'idle',.12);
@@ -341,7 +341,10 @@ function fitGuideModel(){
  if(!guideReferenceBounds){const bounds=measureModelBounds(guideFitRoot),size=bounds.getSize(new THREE.Vector3());if(size.y<=.001)return;const center=bounds.getCenter(new THREE.Vector3());guideReferenceBounds={height:size.y,centerX:center.x,centerZ:center.z,minY:bounds.min.y};}
  const reference=guideReferenceBounds,targetHeight=playerReferenceHeight*.92,fitScale=targetHeight/reference.height;
  guideFitRoot.scale.setScalar(fitScale);guideFitRoot.position.set(-reference.centerX*fitScale,-reference.minY*fitScale,-reference.centerZ*fitScale);
- if(guideFitRoot.parent!==guideModelRoot)guideModelRoot.add(guideFitRoot);guideFitRoot.updateMatrixWorld(true);guide.userData.modelLoaded=true;
+ if(guideFitRoot.parent!==guideModelRoot)guideModelRoot.add(guideFitRoot);
+ // Escala explícita adicional no grupo externo: o ajuste automático não pode anular o aumento pedido.
+ guideModelRoot.scale.setScalar(1.65);
+ guideFitRoot.updateMatrixWorld(true);guide.userData.modelLoaded=true;
 }
 const villageNpcBreathing=[];
 function addVillageVendors(){if(!model||vendorsSpawned)return;vendorsSpawned=true;for(let i=0;i<villageVendors.length;i++){const p=villageVendors[i],cloned=cloneSkinned(model),root=new THREE.Group();root.position.set(p.x,0,p.z);root.rotation.y=p.yaw;root.scale.setScalar(.76);root.userData.breathPhase=i*1.73;root.add(cloned);cloned.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});villageGroup.add(root);if(playerIdleClip){const npcMixer=new THREE.AnimationMixer(cloned),idle=npcMixer.clipAction(playerIdleClip);idle.setLoop(THREE.LoopRepeat,Infinity);idle.play();villageNpcMixers.push(npcMixer);}else villageNpcBreathing.push({root,baseY:0,phase:i*1.73});}}
@@ -390,7 +393,7 @@ function measureModelBounds(model){
  });
  return box;
 }
-new GLTFLoader().load('./AnjoGuia.glb?v=mod164-guide-proportional',gltf=>{
+new GLTFLoader().load('./AnjoGuia.glb?v=mod166-guide-scale',gltf=>{
  const imported=gltf.scene;imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
  guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideModel=imported;playNativeGuideIdle(gltf.animations||[]);fitGuideModel();
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
@@ -443,6 +446,9 @@ function clipKey(clip){return String(clip&&clip.name||'').toLowerCase().replace(
 function validAttackClip(clip){
  const n=clipKey(clip);
  if(!n)return false;
+ // O mapeamento original do protagonista usa Hit Knockback como um dos golpes.
+ // Permitir apenas esse clipe de forma explícita; Overhand Throw continua sendo dano recebido.
+ if(n==='hitknockback')return true;
  const bad=/hurt|damage|hitreaction|takehit|tomardano|dano|death|dying|dead|^die$|morrer|morte|fall|falling|knockdown|collapse|stumble|caer|queda|idle|breath|rest|standstill|parado|walk|walking|run|running|sprint|locomotion|andar|caminh|getup|standup|rise|recoverfloor|levant|levantar/;
  const good=/attack|slash|swing|strike|sword|melee|atacar|ataque|onehand|twohand/;
  return good.test(n)&&!bad.test(n);
@@ -554,7 +560,15 @@ function terrainHeightAt(x,z){
  }
  return height;
 }
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);for(const uniform of forestWindUniforms)uniform.value=now*.001;for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(guideIdleMixer)guideIdleMixer.update(dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);for(const uniform of forestWindUniforms)uniform.value=now*.001;for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(enemyModel){
+ // Reancora o modelo depois de atualizar o rig: animações com deslocamento vertical não deixam os pés flutuando.
+ enemy.updateMatrixWorld(true);
+ const animatedBounds=new THREE.Box3().setFromObject(enemyModel);
+ if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y)){
+  const floorY=terrainHeightAt(enemy.position.x,enemy.position.z);
+  enemyModelRoot.position.y+=floorY-animatedBounds.min.y;
+ }
+ }if(guideIdleMixer)guideIdleMixer.update(dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
