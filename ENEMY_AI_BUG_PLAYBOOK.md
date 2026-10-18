@@ -76,3 +76,9 @@ Correções:
 - Os papéis especiais tentam descobrir clipes reais não utilizados do GLB caso os nomes conhecidos não existam. `window.Enemy1AnimationRoleReport` mostra o nome real que foi associado a cada papel; `window.Enemy1AnimationReport` lista todos os clipes carregados.
 - Colisão recíproca: movimento do jogador respeita o raio do Enemy1; movimento do Enemy1 respeita o raio do jogador. Usar funções separadas para que a checagem não impeça o próprio inimigo de se mover.
 - Validar no jogo que o relatório associa clipes diferentes a `attack2` e `cast`. Se o modelo não tiver clipes adicionais de combate, a IA não consegue inventar animações que não existam no GLB; nesse caso é necessário adicionar/importar as animações reais.
+
+
+## 12. Mod 174 — tornado único, ataque de mão e dash confiável
+- O especial de tornado não deve lançar três projéteis separados. Agora cria um único tornado cônico, aproximadamente da altura do Enemy1, com espirais e raios negros; o ataque de apontar a mão lança um único projétil escuro.
+- Dash não depende mais de o clipe estar carregado para produzir deslocamento. É acionado em distâncias de aproximação maiores e também como retirada quando o jogador cola no inimigo; usa cooldown para não repetir continuamente.
+- Testar de longe, média distância e contato direto. Não declarar validação visual antes de executar no celular.
