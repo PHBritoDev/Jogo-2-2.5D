@@ -54,10 +54,11 @@ groundMat.map=makeSoilTexture('#435d3e',['#536b43','#354f35','#647248'],163);gro
 pathMat.map=makeSoilTexture('#756747',['#8a7955','#5e553d','#9a855d'],1631);pathMat.needsUpdate=true;
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(280,280),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.04;ground.receiveShadow=true;scene.add(ground);
 // Colina escalável: a trilha sobe suavemente até o santuário do portal.
-const CLEARING={x:0,z:-29},PORTAL={x:0,z:-119},JOURNEY_ENEMIES=[{x:0,z:-59},{x:2.4,z:-79},{x:-2.2,z:-99}];
+const CLEARING={x:0,z:-29},PORTAL={x:44,z:-119},JOURNEY_ENEMIES=[{x:0,z:-59},{x:2.4,z:-79},{x:15,z:-99}];
 function hillHeightAt(x,z){
  const progress=THREE.MathUtils.clamp((-z-70)/49,0,1),rise=progress*progress*(3-2*progress);
- const ax=Math.abs(x),edge=THREE.MathUtils.clamp((30-ax)/18,0,1),width=edge*edge*(3-2*edge);
+ const hillCenterX=44*progress,ax=Math.abs(x-hillCenterX);
+ const edge=THREE.MathUtils.clamp((30-ax)/18,0,1),width=edge*edge*(3-2*edge);
  return 5.5*rise*width;
 }
 {
@@ -77,7 +78,7 @@ const treeGroup=new THREE.Group();scene.add(treeGroup);
 const treeObstacles=[],rockObstacles=[],marketObstacles=[],walkableObstacles=[],treeSpecs=[];
 const leafMid=mat(0x245035),mossMatA=mat(0x34522e),mossMatB=mat(0x465e32),grassMatA=mat(0x58763d),grassMatB=mat(0x304d31);
 const canopyWindUniforms=[leafMat,leafMid,leafLight].map((material,i)=>addInstancedWind(material,.075,'clamp((position.y+1.175)/2.35,0.0,1.0)',.72,'forest-canopy-wind-v163-'+i));
-const mainTrail=[[0,14],[0,4],[.5,-6],[-1.8,-17],[0,-29],[2.2,-43],[-1.2,-59],[-2,-76],[2.4,-93],[-1,-107],[0,-119],[1.5,-140]];
+const mainTrail=[[0,14],[0,4],[.5,-6],[-1.8,-17],[0,-29],[2.2,-43],[-1.2,-59],[-2,-76],[5,-91],[15,-99],[27,-108],[44,-119],[46,-132],[45,-140]];
 const villageTrail=[[2.2,-43],[0,-41],[-4.6,-41.4],[-8.7,-43.3],[-12.2,-44.5]];
 const trailRoutes=[{points:mainTrail,width:5.2},{points:villageTrail,width:4.0}];
 function addTrail(points,width){
@@ -362,7 +363,7 @@ function resolvePlayerAttackHit(){
  enemyHP=Math.max(0,enemyHP-25);enemyHitFlash=.2;enemyKnockback=.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
  if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.05);}
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
- if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>{if(questStep!==2)return;journeyEnemyIndex++;enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemyAttackCooldown=0;enemyAttackResolved=true;if(journeyEnemyIndex>=JOURNEY_ENEMIES.length){questStep=4;portalGroup.visible=true;questMarker.position.set(PORTAL.x,.06,PORTAL.z);status.textContent='Os inimigos foram vencidos. Encontre o portal.';}else{status.textContent='Um inimigo foi derrotado. Continue pela trilha.';}save3DProgress();updateQuestHud();},850);}
+ if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>{if(questStep!==2)return;journeyEnemyIndex++;enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemyAttackCooldown=0;enemyAttackResolved=true;if(journeyEnemyIndex>=JOURNEY_ENEMIES.length){questStep=4;portalGroup.visible=true;questMarker.position.set(PORTAL.x,terrainHeightAt(PORTAL.x,PORTAL.z)+.06,PORTAL.z);status.textContent='Os inimigos foram vencidos. Encontre o portal.';}else{status.textContent='Um inimigo foi derrotado. Continue pela trilha.';}save3DProgress();updateQuestHud();},850);}
  else playEnemyAnimation('hit',.05,true);
 }
 function updatePlayerHud(){
@@ -512,11 +513,13 @@ for(const p of [{x:2.4,z:CLEARING.z-1.4,s:.55},{x:1.7,z:CLEARING.z+1.8,s:.42},{x
  walkableObstacles.push({type:'circle',x:p.x,z:p.z,radius:p.s*.95,height:p.s*1.1});
 }
 const portalGroup=new THREE.Group();scene.add(portalGroup);portalGroup.position.set(PORTAL.x,hillHeightAt(PORTAL.x,PORTAL.z),PORTAL.z);portalGroup.visible=true;
-// Moldura monumental de pedra negra, runas e energia violeta giratória.
-const portalStone=mat(0x292633),portalEdge=mat(0x51415f),portalGlow=new THREE.MeshStandardMaterial({color:0xb67aff,emissive:0x7a20ff,emissiveIntensity:2.1,metalness:.2,roughness:.3});
+// Santuário no canto distante: pedra obsidiana, arco gótico, cristais suspensos e energia violeta.
+const portalStone=mat(0x211d2d),portalEdge=mat(0x51415f),portalGlow=new THREE.MeshStandardMaterial({color:0xc39aff,emissive:0x8c36ff,emissiveIntensity:2.5,metalness:.28,roughness:.26});
 function portalBlock(x,y,z,sx,sy,sz,material=portalStone){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;portalGroup.add(m);return m;}
 portalBlock(-2.28,3.15,0,.72,6.3,.95);portalBlock(2.28,3.15,0,.72,6.3,.95);
 portalBlock(0,6.35,0,5.25,.78,1.05);portalBlock(0,.22,0,5.6,.44,1.3,portalEdge);
+const gothicArch=new THREE.Mesh(new THREE.TorusGeometry(2.12,.16,8,48,Math.PI),portalEdge);gothicArch.position.set(0,3.35,-.28);gothicArch.castShadow=true;portalGroup.add(gothicArch);
+const innerArch=new THREE.Mesh(new THREE.TorusGeometry(1.88,.045,6,48,Math.PI),portalGlow);innerArch.position.set(0,3.35,-.12);portalGroup.add(innerArch);
 for(const side of [-1,1]){
  const rune=new THREE.Mesh(new THREE.OctahedronGeometry(.22,0),portalGlow);rune.position.set(side*2.28,4.7,.54);rune.rotation.z=Math.PI/4;portalGroup.add(rune);
  const crystal=new THREE.Mesh(new THREE.ConeGeometry(.28,.9,5),portalEdge);crystal.position.set(side*2.75,6.45,0);crystal.rotation.z=side*.32;portalGroup.add(crystal);
@@ -530,7 +533,16 @@ const vortexPoints=[];for(let i=0;i<=90;i++){const t=i/90,a=t*Math.PI*7.5,r=.04+
 const vortexCurve=new THREE.CatmullRomCurve3(vortexPoints);const vortexLine=new THREE.Mesh(new THREE.TubeGeometry(vortexCurve,180,.035,5,false),new THREE.MeshBasicMaterial({color:0xd9b2ff,transparent:true,opacity:.92}));vortex.add(vortexLine);
 const portalCenter=new THREE.Mesh(new THREE.SphereGeometry(.2,12,8),new THREE.MeshBasicMaterial({color:0xf1dcff}));portalCenter.position.set(0,0,.03);vortex.add(portalCenter);
 const portalLight=new THREE.PointLight(0x9c48ff,3.1,18);portalLight.position.set(0,3.25,.7);portalGroup.add(portalLight);
-const portalFloorGlow=new THREE.Mesh(new THREE.CircleGeometry(3.5,32),new THREE.MeshBasicMaterial({color:0x6720d8,transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false}));portalFloorGlow.rotation.x=-Math.PI/2;portalFloorGlow.position.set(0,.035,.2);portalGroup.add(portalFloorGlow);
+const portalFloorGlow=new THREE.Mesh(new THREE.CircleGeometry(4.2,40),new THREE.MeshBasicMaterial({color:0x7627ee,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false}));portalFloorGlow.rotation.x=-Math.PI/2;portalFloorGlow.position.set(0,.045,.2);portalGroup.add(portalFloorGlow);
+const portalSigil=new THREE.Mesh(new THREE.TorusGeometry(3.1,.035,5,64),new THREE.MeshBasicMaterial({color:0xb88aff,transparent:true,opacity:.8}));portalSigil.rotation.x=-Math.PI/2;portalSigil.position.set(0,.065,.2);portalGroup.add(portalSigil);
+const floatingRelics=[];
+for(let i=0;i<7;i++){
+ const angle=i*Math.PI*2/7,rad=2.9+(i%2)*.45;
+ const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.18+(i%3)*.045,0),i%2?portalGlow:portalEdge);
+ crystal.position.set(Math.cos(angle)*rad,1.1+(i%3)*.72,Math.sin(angle)*.24+.1);
+ crystal.rotation.set(angle,.4*i,angle*.6);portalGroup.add(crystal);
+ floatingRelics.push({mesh:crystal,baseY:crystal.position.y,phase:i*1.7,angle});
+}
 // Mede bounds reais de SkinnedMesh usando vértices deformados pelo rig.
 // Compatível com Three.js atual (applyBoneTransform) e versões antigas (boneTransform).
 function measureModelBounds(model){
@@ -760,7 +772,7 @@ function terrainHeightAt(x,z){
  }
  return height;
 }
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z),feet=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))feet.push(p.y);}});if(feet.length){model.position.y+=floorY-Math.min(...feet);}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z),feet=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))feet.push(p.y);}});if(feet.length){model.position.y+=floorY-Math.min(...feet);}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  enemy.updateMatrixWorld(true);
  const floorY=terrainHeightAt(enemy.position.x,enemy.position.z),footPoints=[];
