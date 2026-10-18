@@ -238,7 +238,7 @@ function retargetEnemyMovementClipToPlayer(role,sourceRoot,sourceClip){
  }catch(err){console.warn('Não foi possível retargetar '+role+' do Enemy1:',err);return false;}
 }
 function loadEnemyModel(){if(enemyLoadState!=='idle')return;enemyLoadState='loading';
-new GLTFLoader().load('./Enemy1.glb?v=mod176-walk-spin-hand-point',gltf=>{
+new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{
   if(!o.isMesh)return;
@@ -253,15 +253,13 @@ new GLTFLoader().load('./Enemy1.glb?v=mod176-walk-spin-hand-point',gltf=>{
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  const exact=name=>enemyClips.find(c=>key(c)===name);
  const has=part=>enemyClips.find(c=>key(c).includes(part));
- const handPointClip=enemyClips.find(c=>{const n=key(c);return n==='moveramao'||n.includes('moveramao')||(n.includes('mao')&&(n.includes('apont')||n.includes('estoc')||n.includes('frente')||n.includes('proj')))||(n.includes('hand')&&(n.includes('point')||n.includes('thrust')||n.includes('stab')||n.includes('forward')));});
- const spinAttackClip=enemyClips.find(c=>key(c)==='habilidade3')||enemyClips.find(c=>/(habilidade3|skill3|skill03)/.test(key(c)));
  const clipsByRole={
   idle:exact('idle')||exact('breath')||exact('breathing')||exact('respiracao'),
   walk:exact('andar')||exact('walk')||exact('walking'),
   run:exact('correr')||exact('run')||exact('running'),
   attack:exact('atq1')||exact('attack1')||exact('attack01'),
-  attack2:spinAttackClip||enemyClips.find(c=>/(atq2|attack2|skill2)/.test(key(c))),
-  cast:handPointClip||enemyClips.find(c=>c!==spinAttackClip&&/(handforward|handfront|maofrente|point|apont|cast|spell|magic|shoot|projectile|moveramao)/.test(key(c))),
+  attack2:enemyClips.find(c=>/(habilidade3|skill3|skill03|atq2|attack2|skill2)/.test(key(c))),
+  cast:enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))),
   dash:exact('dash'),
   block:exact('block'),
   jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
@@ -296,42 +294,24 @@ new GLTFLoader().load('./Enemy1.glb?v=mod176-walk-spin-hand-point',gltf=>{
 }
 
 function spawnEnemyProjectile(kind,spreadAngle=0){
- const group=new THREE.Group(),slash=kind==='slash',tornado=kind==='tornado',hand=kind==='hand';
- const dark=new THREE.MeshStandardMaterial({color:0x09080d,emissive:tornado?0x160a24:slash?0x210d2d:0x170d28,emissiveIntensity:tornado?1.25:slash?1.15:1.05,metalness:.2,roughness:.38,transparent:true,opacity:.96,depthWrite:false,side:THREE.DoubleSide});
- const edge=new THREE.MeshStandardMaterial({color:0x21152b,emissive:0x11081b,emissiveIntensity:.9,transparent:true,opacity:.9,depthWrite:false,side:THREE.DoubleSide});
- const lightningMat=new THREE.LineBasicMaterial({color:0x35213f,transparent:true,opacity:.98});
+ const group=new THREE.Group(),slash=kind==='slash';
+ const dark=new THREE.MeshStandardMaterial({color:0x09080d,emissive:slash?0x210d2d:0x170d28,emissiveIntensity:slash?1.15:.85,metalness:.25,roughness:.35,transparent:true,opacity:.96,depthWrite:false});
+ const edge=new THREE.MeshStandardMaterial({color:0x6f1728,emissive:0x8b1631,emissiveIntensity:1.35,transparent:true,opacity:.9,depthWrite:false});
  if(slash){
+  // Corte reto, escuro e estreito; sem anel giratório para não parecer um ímã.
   const blade=new THREE.Mesh(new THREE.CylinderGeometry(.035,.16,1.45,7,1,true),dark);blade.rotation.x=Math.PI/2;group.add(blade);
   const core=new THREE.Mesh(new THREE.CylinderGeometry(.012,.055,1.32,5,1,true),new THREE.MeshBasicMaterial({color:0x050407,transparent:true,opacity:.98,depthWrite:false}));core.rotation.x=Math.PI/2;group.add(core);
   const sparkMat=new THREE.LineBasicMaterial({color:0x7e1830,transparent:true,opacity:.98});
   for(let side of [-1,1]){const points=[new THREE.Vector3(side*.08,-.07,-.62),new THREE.Vector3(side*.17,.09,-.39),new THREE.Vector3(side*.08,-.12,-.17),new THREE.Vector3(side*.19,.07,.04),new THREE.Vector3(side*.07,-.05,.27),new THREE.Vector3(side*.13,.1,.48),new THREE.Vector3(0,0,.66)];const bolt=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),sparkMat);bolt.position.x=side*.09;group.add(bolt);}
   group.scale.set(1.0,.72,1.0);
- }else if(tornado){
-  // Funil único, de altura aproximada à do Enemy1, com espirais e relâmpagos negros.
-  for(let i=0;i<7;i++){const y=.12+i*.34,bottom=.78-i*.085,top=Math.max(.14,bottom-.19);const funnel=new THREE.Mesh(new THREE.CylinderGeometry(top,bottom,.46,12,1,true),i%2?edge:dark);funnel.position.y=y;funnel.rotation.y=i*.62;group.add(funnel);}
-  for(let strand=0;strand<3;strand++){const pts=[];for(let j=0;j<16;j++){const t=j/15,a=t*Math.PI*4.4+strand*Math.PI*2/3,r=.78-t*.52;pts.push(new THREE.Vector3(Math.cos(a)*r,.08+t*2.15,Math.sin(a)*r));}group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
-  for(let bolt=0;bolt<4;bolt++){const a=bolt*Math.PI/2+.3,r=.3+bolt%2*.12;const pts=[new THREE.Vector3(Math.cos(a)*r,.2,Math.sin(a)*r),new THREE.Vector3(Math.cos(a+.24)*.68,.55,Math.sin(a+.24)*.68),new THREE.Vector3(Math.cos(a-.16)*.48,1.0,Math.sin(a-.16)*.48),new THREE.Vector3(Math.cos(a+.18)*.78,1.45,Math.sin(a+.18)*.78),new THREE.Vector3(Math.cos(a)*.38,2.25,Math.sin(a)*.38)];group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
-  const core=new THREE.Mesh(new THREE.CylinderGeometry(.16,.32,2.15,9,1,true),new THREE.MeshBasicMaterial({color:0x030207,transparent:true,opacity:.64,side:THREE.DoubleSide,depthWrite:false}));core.position.y=1.08;group.add(core);group.scale.set(1.55,1.55,1.55);
- }else if(hand){
-  const core=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),new THREE.MeshBasicMaterial({color:0x07050b,transparent:true,opacity:1,depthWrite:false}));group.add(core);
-  const aura=new THREE.Mesh(new THREE.SphereGeometry(.29,8,6),new THREE.MeshBasicMaterial({color:0x21172c,transparent:true,opacity:.45,wireframe:true,depthWrite:false}));group.add(aura);
-  for(let b=0;b<4;b++){const a=b*Math.PI/2,pts=[new THREE.Vector3(0,0,0),new THREE.Vector3(Math.cos(a)*.16,.12,Math.sin(a)*.16),new THREE.Vector3(Math.cos(a+.25)*.3,-.08,Math.sin(a+.25)*.3),new THREE.Vector3(Math.cos(a-.12)*.43,.05,Math.sin(a-.12)*.43)];group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lightningMat));}
  }else{for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.38+i*.13,.045,5,16),i===1?edge:dark);ring.position.y=(i-1)*.25;ring.rotation.x=(i-1)*.28;group.add(ring);}const core=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),dark);group.add(core);group.scale.set(.9,1.25,.9);}
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,len=Math.hypot(dx,dz)||1,baseX=dx/len,baseZ=dz/len,angle=Math.atan2(baseX,baseZ)+spreadAngle,dirX=Math.sin(angle),dirZ=Math.cos(angle);
- group.position.set(enemy.position.x+dirX*(tornado?1.05:.82),tornado?terrainHeightAt(enemy.position.x,enemy.position.z)+.025:enemy.position.y+(slash?1.12:1.0),enemy.position.z+dirZ*(tornado?1.05:.82));group.rotation.y=angle;scene.add(group);
- enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?8.2:tornado?2.8:hand?7.2:5.2,life:slash?1.25:tornado?2.5:hand?1.7:2.15,damage:slash?13:tornado?22:hand?19:16,spin:slash?0:tornado?3.8:hand?0:9.2,elapsed:0,hitRadius:tornado?1.35:hand?.65:slash?.78:1.05});
+ group.position.set(enemy.position.x+dirX*.82,enemy.position.y+(slash?1.12:1.0),enemy.position.z+dirZ*.82);group.rotation.y=angle;scene.add(group);
+ enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?8.2:5.2,life:slash?1.25:2.15,damage:slash?13:16,spin:slash?0:9.2});
 }
 function updateEnemyProjectiles(dt){
- for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.elapsed+=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;
-  if(p.kind==='tornado'){
-   p.group.rotation.y+=p.spin*dt;
-   p.group.position.y=terrainHeightAt(p.group.position.x,p.group.position.z)+.025;
-   p.group.rotation.x=Math.sin(p.elapsed*2.1)*.035;p.group.rotation.z=Math.cos(p.elapsed*1.7)*.025;
-   const sway=Math.sin(p.elapsed*3.1)*.07;p.group.position.x+=sway*dt;p.group.position.z+=Math.cos(p.elapsed*2.7)*.05*dt;
-   p.group.children.forEach((part,index)=>{if(part.isLine)part.rotation.y=Math.sin(p.elapsed*2.5+index)*.14;});
-  }else if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}
-  const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
-  if(dist<(p.hitRadius|| (p.kind==='slash'?.78:1.05))&&Math.abs(p.group.position.y-(player.position.y+(p.kind==='tornado'?1.05:1)))<(p.kind==='tornado'?2.1:1.25)){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
+ for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
+  if(dist<(p.kind==='slash'?.78:1.05)&&Math.abs(p.group.position.y-(player.position.y+1))<1.25){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});enemyProjectiles.splice(i,1);}
  }
 }
@@ -412,14 +392,14 @@ function updateEnemyAI(dt){
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
  if(enemyCurrentRole==='cast'){
   enemyCastElapsed+=dt;
-  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.82){enemyCastResolved=true;spawnEnemyProjectile('hand');}
+  if(!enemyCastResolved&&enemyCastElapsed>=enemyCastDuration*.42){enemyCastResolved=true;spawnEnemyProjectile('tornado',-.34);spawnEnemyProjectile('tornado',0);spawnEnemyProjectile('tornado',.34);}
   if(enemyCastElapsed<enemyCastDuration)return;
   playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole!=='attack'&&enemyCurrentRole!=='attack2'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
  if(enemyCurrentRole==='attack'||enemyCurrentRole==='attack2'){
   enemyAttackElapsed+=dt;const role=enemyAttackRole,action=enemyActions[role];
-  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;const contactDistance=Math.hypot(dx,dz),heightDelta=Math.abs(player.position.y-enemy.position.y),attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&role==='attack'){const facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1);if(enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(attackStillRunning&&role==='attack2'&&contactDistance<=3.0&&heightDelta<=1.35){damagePlayerFromEnemyAttack(13);}}
+  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'){spawnEnemyProjectile('slash',-.22);spawnEnemyProjectile('slash',0);spawnEnemyProjectile('slash',.22);}}
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
@@ -429,34 +409,38 @@ function updateEnemyAI(dt){
   if(enemyDashRemaining>0)return;
  }
  // Avança com dash antes de escolher especiais; a antiga ordem tornava o dash praticamente inalcançável.
-  // Cooldowns tick independently; dash is only an occasional approach at medium/long range.
- if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);
- if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);
- if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);
- if(distance>6.5&&distance<=10.5&&enemyDashCooldown<=0&&enemyCastCooldown<=0&&enemySpecialCooldown<=0){
-  if(enemyActions.dash)playEnemyAnimation('dash',.07,true);else{enemyCurrentAction=null;enemyCurrentRole='dash';}
-  enemyDashDirectionX=dx/(distance||1);enemyDashDirectionZ=dz/(distance||1);enemyDashRemaining=.28;enemyDashCooldown=5.2;return;
+ if(enemyActions.dash&&enemyDashCooldown<=0&&((distance>4.8&&distance<=11)||(distance<1.75&&enemyAttackCooldown>0))){
+  if(playEnemyAnimation('dash',.06,true)){
+   const retreat=distance<1.75;
+   enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);
+   enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);
+   enemyDashRemaining=.34;enemyDashCooldown=2.7;return;
+  }
  }
- // Magia de mão somente em distância média, com animação própria distinta do giro.
- if(distance>=3.4&&distance<=7.5&&enemyActions.cast&&enemyActions.cast!==enemyActions.attack2&&enemyCastCooldown<=0){
-  const duration=enemyActions.cast.getClip().duration;
-  if(playEnemyAnimation('cast',.1,true)){enemyCastCooldown=5.8;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;enemySpecialCooldown=Math.max(enemySpecialCooldown,1.5);return;}
- }
- // Habilidade3/giro é um golpe próximo: nunca substitui a magia de mão nem dispara como ataque à distância.
- if(distance>ENEMY_ATTACK_RANGE&&distance<=3.15&&enemyActions.attack2&&enemySpecialCooldown<=0){
-  const duration=enemyActions.attack2.getClip().duration;
-  if(playEnemyAnimation('attack2',.1,true)){enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.58,Math.max(.16,duration*.46));enemyAttackResolved=false;enemyAttackCooldown=duration+.85;enemySpecialCooldown=4.8;return;}
+ // Prioriza alternância real dos especiais antes do golpe básico quando há distância para lançar.
+ if(distance>1.65&&distance<=8.5){
+  const preferred=enemyNextRangedRole||'cast',roles=preferred==='cast'?['cast','attack2']:['attack2','cast'];
+  for(const rangedRole of roles){
+   const clipAction=enemyActions[rangedRole];
+   const available=!!clipAction&&(rangedRole==='cast'?enemyCastCooldown<=0:enemySpecialCooldown<=0);
+   if(!available)continue;
+   const duration=clipAction.getClip().duration;
+   if(!playEnemyAnimation(rangedRole,.08,true))continue;
+   enemyNextRangedRole=rangedRole==='cast'?'attack2':'cast';
+   if(rangedRole==='cast'){enemyCastCooldown=4.6;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;}
+   else{enemySpecialCooldown=3.1;enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.25;}
+   return;
+  }
  }
  if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);return;}
- if(distance<1.55&&enemyAttackCooldown>0){if(enemyActions.block&&enemyBlockCooldown<=0&&playEnemyAnimation('block',.045,true)){enemyBlockCooldown=1.6;return;}playEnemyAnimation('idle',.08);return;}
+ if(distance<1.55&&enemyAttackCooldown>0){playEnemyAnimation('idle',.08);return;}
  if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
   if(playEnemyAnimation('block',.06,true)){enemyBlockCooldown=3.0;const side=enemy.rotation.y+Math.PI/2,sx=enemy.position.x+Math.sin(side)*.65,sz=enemy.position.z+Math.cos(side)*.65;if(!blockedAt(sx,enemy.position.z))enemy.position.x=sx;if(!blockedAt(enemy.position.x,sz))enemy.position.z=sz;return;}
  }
- const running=distance>8.5&&!!enemyActions.run,hasWalk=!!enemyActions.walk,role=running?'run':hasWalk?'walk':'idle',speed=running?3.0:1.15,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
+ const running=distance>7.5&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
  const nextX=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-140,14);let moved=false;
  if(!enemyBlockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!enemyBlockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
- // Não deixar a corrida continuar ativa se não houver um clipe real de caminhada.
- if(moved){if(running)playEnemyAnimation('run',.12);else if(hasWalk)playEnemyAnimation('walk',.16);else playEnemyAnimation('idle',.16);}else playEnemyAnimation('idle',.1);
+ playEnemyAnimation(moved?(role==='run'&&enemyActions.run?'run':'walk'):'idle',.12);
 }
 function updatePlayerRespawn(now){
  if(playerHP>0||!playerRespawnAt||now<playerRespawnAt)return;
