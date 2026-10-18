@@ -54,7 +54,7 @@ function closeToPolyline(x,z,points,radius){
 }
 for(const route of trailRoutes)addTrail(route.points,route.width);
 let seed=9137;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
-function makeTree(x,z,s=1){const height=7.2+rand()*3.2;treeSpecs.push({x,z,s,height});treeObstacles.push({x,z,radius:.62*s+.26});}
+function makeTree(x,z,s=1){const height=7.2+rand()*3.2;treeSpecs.push({x,z,s,height});treeObstacles.push({x,z,radius:.34*s+.18});}
 for(let i=0;i<720;i++){
  const x=(rand()-.5)*116,z=15-rand()*153;
  if(Math.hypot(x,z-4)<6.5||Math.hypot(x-CLEARING.x,z-CLEARING.z)<8.6||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<9.8)continue;
@@ -124,7 +124,7 @@ function makeFruitStall(x,z,label,green){const stall=new THREE.Group();stall.pos
  for(let i=0;i<5;i++)addVillageBox(stall,new THREE.BoxGeometry(.49,.1,1.52),i%2?fabricCreamMat:(green?fabricGreenMat:fabricGoldMat),(i-2)*.49,1.75,0,1,1,1);
  const sign=makeMarketSign(label,green?'#d7ebae':'#ffe3a0');sign.position.set(0,2.14,.47);stall.add(sign);
  for(let basket=0;basket<3;basket++){const bx=(basket-1)*.72;const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.25,.34,.3,8),basketMat);bowl.position.set(bx,1.27,0);stall.add(bowl);for(let j=0;j<4;j++){const fruit=new THREE.Mesh(fruitGeo,fruitMats[(basket*3+j)%fruitMats.length]);fruit.position.set(bx+((j%2)-.5)*.2,1.5+Math.floor(j/2)*.03,(Math.floor(j/2)-.5)*.19);fruit.castShadow=false;stall.add(fruit);}}
- marketObstacles.push({x,z,radius:1.48});return stall;}
+ marketObstacles.push({x,z,radius:1.25});return stall;}
 makeFruitStall(-6.35,-20.7,'FRUTAS',false);makeFruitStall(-11.25,-14.45,'ERVAS',true);
 const bench=new THREE.Group();bench.position.set(-8.7,0,-23.3);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
 const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
@@ -251,23 +251,69 @@ const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.38,.04,8,28),new THREE
 questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,.06,guide.position.z);scene.add(questMarker);
 const clearingPatch=new THREE.Mesh(new THREE.CircleGeometry(5.4,24),new THREE.MeshStandardMaterial({color:0x786f55,roughness:1}));clearingPatch.rotation.x=-Math.PI/2;clearingPatch.position.set(CLEARING.x,.012,CLEARING.z);clearingPatch.receiveShadow=true;scene.add(clearingPatch);
 // Clareira natural com tronco caído e pedras pequenas: sem runas e sem personagem freira.
-const fallenLog=new THREE.Mesh(new THREE.CylinderGeometry(.17,.22,3.1,7),barkMat);fallenLog.position.set(-2.5,.22,CLEARING.z-.7);fallenLog.rotation.z=Math.PI/2;fallenLog.rotation.y=.25;fallenLog.castShadow=true;scene.add(fallenLog);marketObstacles.push({x:-2.5,z:CLEARING.z-.7,radius:1.55});
-for(const p of [{x:2.4,z:CLEARING.z-1.4,s:.55},{x:1.7,z:CLEARING.z+1.8,s:.42},{x:-2.9,z:CLEARING.z+1.6,s:.38}]){const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(p.s,0),rockMat);stone.position.set(p.x,p.s*.45,p.z);stone.scale.y=.65;stone.castShadow=true;scene.add(stone);marketObstacles.push({x:p.x,z:p.z,radius:p.s*.85});}
+const fallenLog=new THREE.Mesh(new THREE.CylinderGeometry(.17,.22,3.1,7),barkMat);fallenLog.position.set(-2.5,.22,CLEARING.z-.7);fallenLog.rotation.z=Math.PI/2;fallenLog.rotation.y=.25;fallenLog.castShadow=true;scene.add(fallenLog);marketObstacles.push({x:-2.5,z:CLEARING.z-.7,radius:.48});
+for(const p of [{x:2.4,z:CLEARING.z-1.4,s:.55},{x:1.7,z:CLEARING.z+1.8,s:.42},{x:-2.9,z:CLEARING.z+1.6,s:.38}]){const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(p.s,0),rockMat);stone.position.set(p.x,p.s*.45,p.z);stone.scale.y=.65;stone.castShadow=true;scene.add(stone);marketObstacles.push({x:p.x,z:p.z,radius:p.s*.58+.06});}
 const portalGroup=new THREE.Group();scene.add(portalGroup);portalGroup.position.set(PORTAL.x,0,PORTAL.z);portalGroup.visible=false;
 const portalRing=new THREE.Mesh(new THREE.TorusGeometry(1.55,.16,10,40),new THREE.MeshStandardMaterial({color:0x8bded8,metalness:.25,roughness:.3,emissive:0x176b75,emissiveIntensity:1.15}));portalRing.position.y=2.1;portalRing.castShadow=true;portalGroup.add(portalRing);
 const portalCore=new THREE.Mesh(new THREE.CircleGeometry(1.42,32),new THREE.MeshBasicMaterial({color:0x123e50,transparent:true,opacity:.78,side:THREE.DoubleSide,depthWrite:false}));portalCore.position.set(0,2.1,0);portalGroup.add(portalCore);
 const portalLight=new THREE.PointLight(0x58cbd6,1.3,8);portalLight.position.set(0,2.1,.2);portalGroup.add(portalLight);
-new GLTFLoader().load('./AnjoGuia.glb?v=mod148-anjo-guia-glb',gltf=>{
+// Mede bounds reais de SkinnedMesh usando vértices deformados pelo rig.
+// Compatível com Three.js atual (applyBoneTransform) e versões antigas (boneTransform).
+function measureModelBounds(model){
+ model.updateMatrixWorld(true);
+ model.traverse(obj=>{if(obj.isSkinnedMesh&&obj.skeleton)obj.skeleton.update();});
+ model.updateMatrixWorld(true);
+ const box=new THREE.Box3();box.makeEmpty();
+ model.traverse(obj=>{
+  if(!obj.isMesh||!obj.geometry||obj.visible===false)return;
+  let parent=obj.parent;
+  while(parent&&parent!==model){if(parent.visible===false)return;parent=parent.parent;}
+  const pos=obj.geometry.attributes&&obj.geometry.attributes.position;
+  const skinTransform=typeof obj.applyBoneTransform==='function'?obj.applyBoneTransform:obj.boneTransform;
+  if(obj.isSkinnedMesh&&obj.skeleton&&pos&&typeof skinTransform==='function'){
+   const vertex=new THREE.Vector3(),skinnedBox=new THREE.Box3();skinnedBox.makeEmpty();
+   for(let i=0;i<pos.count;i++){
+    vertex.fromBufferAttribute(pos,i);
+    skinTransform.call(obj,i,vertex);
+    vertex.applyMatrix4(obj.matrixWorld);skinnedBox.expandByPoint(vertex);
+   }
+   if(!skinnedBox.isEmpty()){box.union(skinnedBox);return;}
+  }
+  if(!obj.geometry.boundingBox)obj.geometry.computeBoundingBox();
+  if(obj.geometry.boundingBox)box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
+ });
+ return box;
+}
+function lockModelScales(model){
+ const states=[];
+ model.traverse(obj=>{if(obj.scale)states.push({object:obj,base:obj.scale.clone(),name:obj.name||obj.type||'nó sem nome'});});
+ let warned=false;
+ return function restore(){
+  const changed=[];
+  for(const state of states){
+   const {object,base,name}=state;
+   if(Math.abs(object.scale.x-base.x)>1e-5||Math.abs(object.scale.y-base.y)>1e-5||Math.abs(object.scale.z-base.z)>1e-5){
+    object.scale.copy(base);changed.push(name);
+   }
+  }
+  if(changed.length&&!warned){warned=true;console.warn('Anjo-Guia: escala alterada por animação foi restaurada:',changed);window.GuideScaleDiagnostics='Escala animada bloqueada em: '+changed.join(', ');}
+ };
+}
+let restoreGuideScales=null;
+new GLTFLoader().load('./AnjoGuia.glb?v=mod160-guide-skinned-bounds-scale-lock',gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
- // Normaliza a escala e apoia os pés no chão sem modificar a malha original.
- const bounds=new THREE.Box3().setFromObject(imported);
+ // Mede a malha esquelética já deformada e calcula a escala antes de iniciar a animação.
+ const bounds=measureModelBounds(imported);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(size.y>0.001){
   const scale=.82/size.y;
   imported.scale.setScalar(scale);
   imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
  }
+ // Guarda a escala normalizada de TODOS os nós do GLB. Clips podem conter
+ // trilhas de escala nos ossos/grupos e multiplicar o ajuste, criando um gigante.
+ restoreGuideScales=lockModelScales(imported);
  guideModelRoot.add(imported);guideModel=imported;
  guide.userData.modelLoaded=true;applyGuideIdle();
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
@@ -413,7 +459,7 @@ lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointe
 lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.08,15);},{passive:true});
 addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';});
 
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(guideIdleMixer)guideIdleMixer.update(dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(guideIdleMixer){guideIdleMixer.update(dt);if(restoreGuideScales)restoreGuideScales();}for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
@@ -465,7 +511,7 @@ const moving=Math.hypot(moveVX,moveVZ)>.12;
 function blockedAt(x,z){
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const o of marketObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
- for(const rock of rockObstacles){if(rock.height<=.42)continue;const dx=x-rock.x,dz=z-rock.z;if(dx*dx+dz*dz<rock.radius*rock.radius)return true;}
+ for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
  return false;
 }
 function terrainHeightAt(x,z){
