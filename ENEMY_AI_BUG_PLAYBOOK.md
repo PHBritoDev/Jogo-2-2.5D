@@ -82,3 +82,10 @@ Correções:
 - O especial de tornado não deve lançar três projéteis separados. Agora cria um único tornado cônico, aproximadamente da altura do Enemy1, com espirais e raios negros; o ataque de apontar a mão lança um único projétil escuro.
 - Dash não depende mais de o clipe estar carregado para produzir deslocamento. É acionado em distâncias de aproximação maiores e também como retirada quando o jogador cola no inimigo; usa cooldown para não repetir continuamente.
 - Testar de longe, média distância e contato direto. Não declarar validação visual antes de executar no celular.
+
+
+## 13. Mod 175 — tornado fluido, clipe de mão e golpe giratório
+- Tornado: funil maior, rotação contínua em Y, espirais animadas e oscilação sutil. Não inclinar o grupo em X/Z rapidamente; a base acompanha a altura do terreno enquanto avança.
+- Animação da mão: priorizar o clipe cujo nome normalizado seja/contém `moveramao`, derivado do nome Meshy “mover a mao”. A esfera só é criada aos 72% da animação para ocorrer após o gesto de apontar.
+- Ataque giratório: priorizar `Habilidade3`/variantes `skill3` como `attack2`, preservando essa animação ao disparar o tornado.
+- Verificar `window.Enemy1AnimationRoleReport` no runtime para confirmar os nomes efetivamente carregados. Sintaxe estática não confirma visualmente a animação no dispositivo.
