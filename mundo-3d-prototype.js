@@ -226,7 +226,7 @@ function retargetEnemyMovementClipToPlayer(role,sourceRoot,sourceClip){
  const sourceBones=new Set(sourceMesh.skeleton.bones.map(b=>normalizeBone(b.name)));
  const targetBones=new Set(targetMesh.skeleton.bones.map(b=>normalizeBone(b.name)));
  const sharedBones=[...sourceBones].filter(name=>name&&targetBones.has(name));
- const hasCoreLegs=['hips','pelvis','leftupleg','rightupleg','leftleg','rightleg'].some(name=>sharedBones.includes(name));
+ const hasPelvis=sharedBones.some(name=>/^(hips|pelvis)$/.test(name)),hasLeftLeg=sharedBones.some(name=>/left.*(upleg|thigh|leg)$/.test(name)),hasRightLeg=sharedBones.some(name=>/right.*(upleg|thigh|leg)$/.test(name)),hasCoreLegs=hasPelvis&&hasLeftLeg&&hasRightLeg;
  console.info('Compatibilidade de rig Enemy1 → protagonista:',role,sharedBones.length,'ossos compartilhados');
  if(sharedBones.length<12||!hasCoreLegs){console.warn('Retarget cancelado por compatibilidade insuficiente:',role);return false;}
  try{
