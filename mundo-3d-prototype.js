@@ -192,7 +192,7 @@ let enemyModel=null,enemyMixer=null,enemyClips=[],enemyActions={},enemyCurrentAc
 let enemyLoadState='idle';
 let enemyHP=100,enemyAlive=true,enemyHitFlash=0,enemyKnockback=0,enemyKnockbackX=0,enemyKnockbackZ=0;
 let enemyAttackCooldown=0,enemyAttackElapsed=0,enemyAttackDuration=0,enemyAttackHitAt=0,enemyAttackResolved=true,enemyAttackFacingX=0,enemyAttackFacingZ=1,enemyAttackRole='attack';
-let enemyDashRemaining=0,enemyDashCooldown=0,enemySpecialCooldown=0,enemyCastCooldown=0,enemyBlockCooldown=0,enemyCastElapsed=0,enemyCastDuration=0,enemyCastResolved=true,enemyDashDirectionX=0,enemyDashDirectionZ=1;
+let enemyDashRemaining=0,enemyDashCooldown=0,enemySpecialCooldown=0,enemyCastCooldown=0,enemyBlockCooldown=0,enemyCastElapsed=0,enemyCastDuration=0,enemyCastResolved=true,enemyDashDirectionX=0,enemyDashDirectionZ=1,enemyNextRangedRole='cast';
 const enemyProjectiles=[];
 let attackCooldown=0,pendingEnemyHitAt=0,playerAttackFacingX=0,playerAttackFacingZ=1;
 let playerHP=100,playerMaxHP=100,playerInvulnerableUntil=0,playerRespawnAt=0;
@@ -259,7 +259,7 @@ new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
   run:exact('correr')||exact('run')||exact('running'),
   attack:exact('atq1')||exact('attack1')||exact('attack01'),
   attack2:exact('habilidade3')||exact('skill3')||exact('skill03'),
-  cast:has('handforward')||has('handfront')||has('maofrente')||has('cast'),
+  cast:has('handforward')||has('handfront')||has('maofrente')||has('point')||has('apont')||has('cast')||has('spell')||has('magic')||has('power')||has('shoot')||has('projectile')||has('habilidade2')||has('skill2')||has('atq2')||has('attack2'),
   dash:exact('dash'),
   block:exact('block'),
   jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
@@ -284,14 +284,20 @@ function spawnEnemyProjectile(kind){
  const group=new THREE.Group(),slash=kind==='slash';
  const dark=new THREE.MeshStandardMaterial({color:0x09080d,emissive:slash?0x210d2d:0x170d28,emissiveIntensity:slash?1.15:.85,metalness:.25,roughness:.35,transparent:true,opacity:.96,depthWrite:false});
  const edge=new THREE.MeshStandardMaterial({color:0x6f1728,emissive:0x8b1631,emissiveIntensity:1.35,transparent:true,opacity:.9,depthWrite:false});
- if(slash){const arc=new THREE.Mesh(new THREE.TorusGeometry(.55,.075,6,22,Math.PI*1.32),dark);arc.rotation.z=-.55;group.add(arc);const glint=new THREE.Mesh(new THREE.TorusGeometry(.57,.018,4,22,Math.PI*1.25),edge);glint.rotation.z=-.55;group.add(glint);group.scale.set(1.15,.62,.35);}
- else{for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.38+i*.13,.045,5,16),i===1?edge:dark);ring.position.y=(i-1)*.25;ring.rotation.x=(i-1)*.28;group.add(ring);}const core=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),dark);group.add(core);group.scale.set(.9,1.25,.9);}
+ if(slash){
+  // Corte reto, escuro e estreito; sem anel giratório para não parecer um ímã.
+  const blade=new THREE.Mesh(new THREE.CylinderGeometry(.035,.16,1.45,7,1,true),dark);blade.rotation.x=Math.PI/2;group.add(blade);
+  const core=new THREE.Mesh(new THREE.CylinderGeometry(.012,.055,1.32,5,1,true),new THREE.MeshBasicMaterial({color:0x050407,transparent:true,opacity:.98,depthWrite:false}));core.rotation.x=Math.PI/2;group.add(core);
+  const sparkMat=new THREE.LineBasicMaterial({color:0x7e1830,transparent:true,opacity:.98});
+  for(let side of [-1,1]){const points=[new THREE.Vector3(side*.08,-.07,-.62),new THREE.Vector3(side*.17,.09,-.39),new THREE.Vector3(side*.08,-.12,-.17),new THREE.Vector3(side*.19,.07,.04),new THREE.Vector3(side*.07,-.05,.27),new THREE.Vector3(side*.13,.1,.48),new THREE.Vector3(0,0,.66)];const bolt=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),sparkMat);bolt.position.x=side*.09;group.add(bolt);}
+  group.scale.set(1.0,.72,1.0);
+ }else{for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.38+i*.13,.045,5,16),i===1?edge:dark);ring.position.y=(i-1)*.25;ring.rotation.x=(i-1)*.28;group.add(ring);}const core=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),dark);group.add(core);group.scale.set(.9,1.25,.9);}
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,len=Math.hypot(dx,dz)||1,dirX=dx/len,dirZ=dz/len;
  group.position.set(enemy.position.x+dirX*.82,enemy.position.y+(slash?1.12:1.0),enemy.position.z+dirZ*.82);group.rotation.y=Math.atan2(dirX,dirZ);scene.add(group);
  enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?7.4:4.8,life:slash?1.15:1.8,damage:slash?14:20,spin:slash?5.5:7.2});
 }
 function updateEnemyProjectiles(dt){
- for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
+ for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
   if(dist<(p.kind==='slash'?.78:1.05)&&Math.abs(p.group.position.y-(player.position.y+1))<1.25){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});enemyProjectiles.splice(i,1);}
  }
@@ -356,7 +362,7 @@ function startEnemyAttack(role='attack'){
 function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=2.4&&heightDelta<=1.2;}
 function updateEnemyAI(dt){
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
- if(!enemy.visible||!enemyAlive||questStep!==2||dialogueOpen||playerHP<=0){if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.08);}return;}
+ if(!enemy.visible||!enemyAlive||questStep!==2||dialogueOpen||playerHP<=0){if(enemyCurrentRole!=='idle'&&enemyActions.idle){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyDashRemaining=0;enemyCastResolved=true;playEnemyAnimation('idle',.1);}return;}
  if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-62,62),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-140,14);if(!blockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!blockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
  // Deixe a animação de reação terminar antes de voltar a perseguir; evita cortá-la no primeiro quadro.
  if(enemyCurrentRole==='hit'){
@@ -390,13 +396,18 @@ function updateEnemyAI(dt){
   if(enemyDashRemaining>0)return;
  }
  if(distance<=ENEMY_ATTACK_RANGE){if(enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);}else playEnemyAnimation('idle',.08);return;}
- if(distance>2.35&&distance<=5.8&&enemyActions.attack2&&enemySpecialCooldown<=0){
-  const duration=enemyActions.attack2.getClip().duration;
-  if(playEnemyAnimation('attack2',.08,true)){enemySpecialCooldown=4.0;enemyCurrentRole='attack2';enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.45;return;}
- }
- if(distance>3.8&&distance<=8.5&&enemyActions.cast&&enemyCastCooldown<=0){
-  const duration=enemyActions.cast.getClip().duration;
-  if(playEnemyAnimation('cast',.08,true)){enemyCastCooldown=5.8;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;return;}
+ if(distance>2.35&&distance<=8.5){
+  const preferred=enemyNextRangedRole||'cast',roles=preferred==='cast'?['cast','attack2']:['attack2','cast'];
+  for(const rangedRole of roles){
+   const available=rangedRole==='cast'?enemyActions.cast&&enemyCastCooldown<=0:enemyActions.attack2&&enemySpecialCooldown<=0;
+   if(!available)continue;
+   const action=enemyActions[rangedRole],duration=action.getClip().duration;
+   if(!playEnemyAnimation(rangedRole,.08,true))continue;
+   enemyNextRangedRole=rangedRole==='cast'?'attack2':'cast';
+   if(rangedRole==='cast'){enemyCastCooldown=5.8;enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;}
+   else{enemySpecialCooldown=4.0;enemyCurrentRole='attack2';enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.45;}
+   return;
+  }
  }
  if(enemyActions.dash&&enemyDashCooldown<=0&&((distance>6.2&&distance<=10)||(distance<1.95&&enemyAttackCooldown>0))){
   if(playEnemyAnimation('dash',.06,true)){const retreat=distance<1.95;enemyDashDirectionX=retreat?-dx/(distance||1):dx/(distance||1);enemyDashDirectionZ=retreat?-dz/(distance||1):dz/(distance||1);enemyDashRemaining=.28;enemyDashCooldown=3.0;return;}
@@ -412,23 +423,26 @@ function updateEnemyAI(dt){
 function updatePlayerRespawn(now){
  if(playerHP>0||!playerRespawnAt||now<playerRespawnAt)return;
  player.position.set(PLAYER_SPAWN.x,terrainHeightAt(PLAYER_SPAWN.x,PLAYER_SPAWN.z),PLAYER_SPAWN.z);playerHP=playerMaxHP;playerInvulnerableUntil=now+1000;playerRespawnAt=0;
- moveVX=moveVZ=0;verticalVelocity=0;grounded=true;dashRemaining=0;actionUntil=0;if(actions.idle)play('idle',.08);updatePlayerHud();status.textContent='Você voltou à trilha; o inimigo continua à espreita.';
+ moveVX=moveVZ=0;verticalVelocity=0;grounded=true;dashRemaining=0;actionUntil=0;pendingEnemyHitAt=0;if(mixer){mixer.stopAllAction();activeAction=null;}if(actions.idle)play('idle',.08);updatePlayerHud();status.textContent='Você voltou à trilha; o inimigo continua à espreita.';
 }
 
 // Anjo-Guia: usa o modelo GLB original adicionado ao repositório.
 const guide=new THREE.Group();scene.add(guide);guide.position.set(3.3,0,-5.4);
-const guideModelRoot=new THREE.Group();guide.add(guideModelRoot);
+const guideBreathingPivot=new THREE.Group();guide.add(guideBreathingPivot);
+const guideModelRoot=new THREE.Group();guideBreathingPivot.add(guideModelRoot);
+let guideProceduralBreath=true;
 let guideModel=null,guideFitRoot=null,guideIdleMixer=null,playerIdleClip=null,playerReferenceHeight=1.7,vendorsSpawned=false,guideReferenceBounds=null;
 const villageNpcMixers=[];
 function playNativeGuideIdle(clips){
  const list=clips||[];
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+ window.GuideAnimationReport=list.map(c=>({name:c.name,duration:c.duration,tracks:(c.tracks||[]).length}));
  // Nunca usar o primeiro clipe como fallback: ele pode ser corrida ou ataque.
  const idle=list.find(c=>/(breath|respir)/.test(key(c))&&!/(walk|run|attack|jump|fall|hit|death|cast)/.test(key(c)))||list.find(c=>/idle/.test(key(c))&&!/(walk|run|attack|jump|fall|hit|death|cast)/.test(key(c)));
- if(!idle||!guideModel)return;
+ if(!idle||!guideModel){guideProceduralBreath=true;console.warn('Anjo-Guia sem clipe de respiração/idle identificado; usando respiração procedural. Clipes reais:',window.GuideAnimationReport);return;}
  const tracks=(idle.tracks||[]).filter(track=>!String(track.name||'').toLowerCase().endsWith('.scale'));
  const clip=tracks.length?new THREE.AnimationClip(idle.name,idle.duration,tracks,idle.blendMode):idle;
- guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.reset();action.setLoop(THREE.LoopRepeat,Infinity);action.setEffectiveWeight(1);action.play();guideIdleMixer.update(0);window.GuideAnimationReport=list.map(c=>c.name);console.info('Anjo-Guia: animações disponíveis',window.GuideAnimationReport,'respiração selecionada:',idle.name);
+ guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.reset();action.setLoop(THREE.LoopRepeat,Infinity);action.setEffectiveWeight(1);action.play();guideIdleMixer.update(0);guideProceduralBreath=false;console.info('Anjo-Guia: animações disponíveis',window.GuideAnimationReport,'respiração selecionada:',idle.name);
 }
 function fitGuideModel(){
  if(!guideModel||!guideFitRoot)return;
@@ -657,7 +671,7 @@ function terrainHeightAt(x,z){
  }
  return height;
 }
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);for(const uniform of forestWindUniforms)uniform.value=now*.001;for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(enemyModel){
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);for(const uniform of forestWindUniforms)uniform.value=now*.001;for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.0025,1+breath*.008,1-breath*.0025);guideBreathingPivot.position.y=.006+breath*.005;}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  enemy.updateMatrixWorld(true);
  const floorY=terrainHeightAt(enemy.position.x,enemy.position.z),footPoints=[];
