@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
+import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
 
 const canvas=document.getElementById('scene'),status=document.getElementById('status'),loading=document.getElementById('loading');
 const scene=new THREE.Scene();
@@ -195,7 +195,7 @@ let enemyAttackCooldown=0,enemyAttackElapsed=0,enemyAttackDuration=0,enemyAttack
 let enemyDashRemaining=0,enemyDashCooldown=0,enemySpecialCooldown=0,enemyBlockCooldown=0;
 let attackCooldown=0,pendingEnemyHitAt=0,playerAttackFacingX=0,playerAttackFacingZ=1;
 let playerHP=100,playerMaxHP=100,playerInvulnerableUntil=0,playerRespawnAt=0;
-const ENEMY_ATTACK_RANGE=1.55,ENEMY_ATTACK_DAMAGE=18,PLAYER_SPAWN={x:0,z:4};
+const ENEMY_ATTACK_RANGE=1.85,ENEMY_ATTACK_DAMAGE=18,PLAYER_SPAWN={x:0,z:4};
 function playEnemyAnimation(role,fade=.1,once=false){
  const next=enemyActions[role];if(!next)return false;
  const timeScale=role==='idle'?.38:role==='run'?1.08:1;
@@ -214,6 +214,19 @@ function setEnemyHitFlash(active){
   else{material.emissive.setHex(material.userData.enemyBaseEmissive);material.emissiveIntensity=material.userData.enemyBaseEmissiveIntensity;}
  }
 }
+function retargetEnemyMovementClipToPlayer(role,sourceRoot,sourceClip){
+ if(!model||!mixer||!sourceRoot||!sourceClip)return false;
+ let sourceMesh=null,targetMesh=null;
+ sourceRoot.traverse(o=>{if(!sourceMesh&&o.isSkinnedMesh&&o.skeleton)sourceMesh=o;});
+ model.traverse(o=>{if(!targetMesh&&o.isSkinnedMesh&&o.skeleton)targetMesh=o;});
+ if(!sourceMesh||!targetMesh)return false;
+ try{
+  const clip=retargetClip(targetMesh,sourceMesh,sourceClip,{useFirstFramePosition:false,preservePosition:false});
+  if(!clip||!clip.tracks||!clip.tracks.length){console.warn('Retarget sem canais compatíveis para '+role,sourceClip.name);return false;}
+  clip.name='Enemy1_'+sourceClip.name+'_retarget_'+role;
+  actions[role]=mixer.clipAction(clip);console.info('Animação Enemy1 aplicada ao protagonista:',role,sourceClip.name,clip.tracks.length,'canais');return true;
+ }catch(err){console.warn('Não foi possível retargetar '+role+' do Enemy1:',err);return false;}
+}
 function loadEnemyModel(){if(enemyLoadState!=='idle')return;enemyLoadState='loading';
 new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
  const imported=gltf.scene;
@@ -227,24 +240,29 @@ new GLTFLoader().load('./Enemy1.glb?v=mod167-enemy-actions',gltf=>{
  if(size.y>.001){const scale=.88/size.y;imported.scale.setScalar(scale);imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);}
  enemyModelRoot.add(imported);enemyModel=imported;enemySprite.visible=false;
  enemyClips=gltf.animations||[];enemyMixer=new THREE.AnimationMixer(imported);
- const find=regex=>enemyClips.find(c=>regex.test(String(c.name||'')));
+ const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+ const exact=name=>enemyClips.find(c=>key(c)===name);
+ const has=part=>enemyClips.find(c=>key(c).includes(part));
  const clipsByRole={
-  idle:find(/idle|breath|falar|talk|stand|parad|repos/i),
-  walk:find(/^andar$/i)||find(/walking/i)||find(/walk|locomotion|caminh/i),
-  run:find(/^correr$/i)||find(/running/i)||find(/run|sprint/i),
-  attack:find(/atq[_\s.-]*0?1|attack[_\s.-]*0?1|claw|strike|slash|swing|golpe|ataque/i),
-  attack2:find(/habilidade[_\s.-]*0?3|skill[_\s.-]*0?3|special.*slash/i),
-  cast:find(/hand.*forward|cast|spell|power|launch|skill[_\s.-]*0?2|habilidade[_\s.-]*0?2|ability[_\s.-]*0?2|mao.*frente/i),
-  dash:find(/^dash$/i)||find(/dash|quickstep/i),
-  block:find(/^block$/i)||find(/block|dodge|esquiva/i),
-  hit:find(/hit|hurt|damage|reaction|impact|dano|atingido/i),
-  death:find(/death|die|dead|dying|morte|morrer/i)
+  idle:exact('idle')||exact('breath')||exact('breathing')||exact('respiracao')||exact('falar'),
+  walk:exact('andar')||exact('walk')||exact('walking'),
+  run:exact('correr')||exact('run')||exact('running'),
+  attack:exact('atq1')||exact('attack1')||exact('attack01'),
+  attack2:exact('habilidade3')||exact('skill3')||exact('skill03'),
+  cast:has('handforward')||has('handfront')||has('maofrente')||has('cast'),
+  dash:exact('dash'),
+  block:exact('block'),
+  jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
+  hit:exact('hit')||exact('hurt')||exact('damage'),
+  death:exact('death')||exact('die')||exact('morte')
  };
  for(const role of Object.keys(clipsByRole)){const clip=clipsByRole[role];if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}
  enemyHasDeathClip=!!clipsByRole.death;
- const fallbackIdle=enemyClips.find(c=>!/attack|atq|habilidade|skill|slash|claw|strike|swing|hit|hurt|damage|death|die|jump|leap|hop|saltar|salto|dash|dodge|block|walking|running|walk|run|fall|land|air/i.test(String(c.name||'')));
- if(!enemyActions.idle&&fallbackIdle)enemyActions.idle=enemyMixer.clipAction(fallbackIdle);
- if(!enemyActions.idle&&enemyActions.walk)enemyActions.idle=enemyActions.walk;
+ // Usa Dash e Jump reais do Enemy1 no protagonista, convertidos para o esqueleto dele.
+ if(clipsByRole.dash)retargetEnemyMovementClipToPlayer('dash',imported,clipsByRole.dash);
+ if(clipsByRole.jump)retargetEnemyMovementClipToPlayer('jump',imported,clipsByRole.jump);
+ // Sem clipe de repouso identificado, não forçar caminhada ou pulo como idle.
+ if(!enemyActions.idle)console.warn('Enemy1 sem clipe de repouso identificado.');
  if(enemyActions.idle)playEnemyAnimation('idle',0);
  window.Enemy1AnimationReport=enemyClips.map(c=>c.name);
  console.info('Enemy1.glb animações:',window.Enemy1AnimationReport);
@@ -309,7 +327,7 @@ function startEnemyAttack(role='attack'){
  enemyAttackRole=role;enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.55,Math.max(.08,duration*.42));
  enemyAttackFacingX=Math.sin(enemy.rotation.y);enemyAttackFacingZ=Math.cos(enemy.rotation.y);enemyAttackResolved=false;enemyAttackCooldown=duration+.65;return true;
 }
-function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=ENEMY_ATTACK_RANGE&&heightDelta<=.95&&facing>=.55;}
+function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=2.0&&heightDelta<=1.2;}
 function updateEnemyAI(dt){
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
  if(!enemy.visible||!enemyAlive||questStep!==2||dialogueOpen||playerHP<=0){if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.08);}return;}
@@ -371,7 +389,10 @@ const guideModelRoot=new THREE.Group();guide.add(guideModelRoot);
 let guideModel=null,guideFitRoot=null,guideIdleMixer=null,playerIdleClip=null,playerReferenceHeight=1.7,vendorsSpawned=false,guideReferenceBounds=null;
 const villageNpcMixers=[];
 function playNativeGuideIdle(clips){
- const list=clips||[],idle=list.find(c=>/idle|breath|respir|falar|talk/i.test(String(c.name||'')))||list[0];
+ const list=clips||[];
+ const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+ // Nunca usar o primeiro clipe como fallback: ele pode ser corrida ou ataque.
+ const idle=list.find(c=>/^(idle|breath|breathing|respiracao|respirar|falar)$/.test(key(c)));
  if(!idle||!guideModel)return;
  const tracks=(idle.tracks||[]).filter(track=>!String(track.name||'').toLowerCase().endsWith('.scale'));
  const clip=tracks.length?new THREE.AnimationClip(idle.name,idle.duration,tracks,idle.blendMode):idle;
@@ -385,7 +406,7 @@ function fitGuideModel(){
  guideFitRoot.scale.setScalar(fitScale);guideFitRoot.position.set(-reference.centerX*fitScale,-reference.minY*fitScale,-reference.centerZ*fitScale);
  if(guideFitRoot.parent!==guideModelRoot)guideModelRoot.add(guideFitRoot);
  // Escala explícita adicional no grupo externo: o ajuste automático não pode anular o aumento pedido.
- guideModelRoot.scale.setScalar(2.6);
+ guideModelRoot.scale.setScalar(.82);
  guideFitRoot.updateMatrixWorld(true);guide.userData.modelLoaded=true;
 }
 const villageNpcBreathing=[];
@@ -605,13 +626,12 @@ function terrainHeightAt(x,z){
  return height;
 }
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);for(const uniform of forestWindUniforms)uniform.value=now*.001;for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(enemyModel){
- // Reancora o modelo depois de atualizar o rig: animações com deslocamento vertical não deixam os pés flutuando.
+ // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  enemy.updateMatrixWorld(true);
- const animatedBounds=new THREE.Box3().setFromObject(enemyModel);
- if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y)){
-  const floorY=terrainHeightAt(enemy.position.x,enemy.position.z);
-  enemyModelRoot.position.y+=floorY-animatedBounds.min.y-.045;
- }
+ const floorY=terrainHeightAt(enemy.position.x,enemy.position.z),footPoints=[];
+ enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
+ if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
+ else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
  }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(questStep===2&&enemyLoadState==='idle')loadEnemyModel();
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
