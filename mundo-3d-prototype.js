@@ -39,7 +39,7 @@ for(let i=0;i<180;i++){const x=(rand()-.5)*58,z=-3-rand()*55;if(Math.abs(x)<3&&z
 
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
 // Inimigo comum: usa Enemy1.glb com as animações que realmente existirem no arquivo.
-const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(0,0,-3.2);
+const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(0,0,-3.2);enemy.visible=false;
 const enemyTexture=new THREE.TextureLoader().load('./Enemy1-sprite.png');
 enemyTexture.colorSpace=THREE.SRGBColorSpace;
 const enemySpriteMaterial=new THREE.MeshStandardMaterial({map:enemyTexture,transparent:true,alphaTest:.06,side:THREE.DoubleSide,roughness:1,emissive:0x000000});
@@ -126,7 +126,7 @@ function updateEnemyHud(){
  if(fill)fill.style.width=Math.max(0,enemyHP)+'%';
 }
 function tryPlayerAttack(){
- const now=performance.now();if(now<attackCooldown||!enemyAlive)return;attackCooldown=now+680;
+ const now=performance.now();if(now<attackCooldown||!enemyAlive)return;if(questStep!==2){status.textContent='Siga o objetivo atual antes de iniciar este confronto.';return;}attackCooldown=now+680;
  let duration=1;
  if(attackClips.length){
   const attackClip=attackClips[attackClipIndex++%attackClips.length];duration=attackClip.duration||1;
@@ -137,7 +137,7 @@ function tryPlayerAttack(){
  pendingEnemyHitAt=now+Math.min(460,Math.max(190,duration*.28*1000));
 }
 function resolvePlayerAttackHit(){
- if(!enemyAlive)return;
+ if(!enemyAlive||questStep!==2)return;
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz),forwardX=Math.sin(playerYaw),forwardZ=Math.cos(playerYaw);
  const facing=(dx*forwardX+dz*forwardZ)/(distance||1);
@@ -147,7 +147,7 @@ function resolvePlayerAttackHit(){
  }
  enemyHP=Math.max(0,enemyHP-25);enemyHitFlash=.2;enemyKnockback=.42;
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
- if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;}
+ if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Seguidor derrotado. Procure pistas na clareira.';setTimeout(()=>{if(questStep!==2)return;questStep=3;enemy.visible=false;goldClue.visible=true;questMarker.visible=true;questMarker.position.set(goldClue.position.x,.06,goldClue.position.z);save3DProgress();updateQuestHud();status.textContent='Nova etapa: investigue as moedas douradas';},1100);}
  else playEnemyAnimation('hit',.05,true);
 }
 
@@ -159,6 +159,10 @@ const guideShadow=new THREE.Mesh(new THREE.CircleGeometry(.28,20),new THREE.Mesh
 guideShadow.rotation.x=-Math.PI/2;guideShadow.position.y=.014;guide.add(guideShadow);
 const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.38,.04,8,28),new THREE.MeshBasicMaterial({color:0xffd65a}));
 questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,.06,guide.position.z);scene.add(questMarker);
+const goldClue=new THREE.Group();scene.add(goldClue);goldClue.position.set(-4.2,0,-17.2);goldClue.visible=false;
+const goldMat=new THREE.MeshStandardMaterial({color:0xffc83d,metalness:.72,roughness:.28,emissive:0x5b3100,emissiveIntensity:.28});
+for(let i=0;i<9;i++){const coin=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.035,12),goldMat);const a=i*2.399;coin.position.set(Math.cos(a)*(.16+(i%3)*.09),.035+(i%2)*.025,Math.sin(a)*(.16+(i%3)*.09));coin.rotation.x=Math.PI/2;coin.rotation.z=a;coin.castShadow=true;goldClue.add(coin);}
+const clueGlow=new THREE.PointLight(0xffbf35,.65,2.8);clueGlow.position.y=.4;goldClue.add(clueGlow);
 new GLTFLoader().load('./AnjoGuia.glb?v=mod148-anjo-guia-glb',gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
@@ -173,24 +177,30 @@ new GLTFLoader().load('./AnjoGuia.glb?v=mod148-anjo-guia-glb',gltf=>{
  guideModelRoot.add(imported);
  guide.userData.modelLoaded=true;
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
-const PROGRESS_KEY='sevenSins3DCampaignV1';
+const PROGRESS_KEY='sevenSins3DCampaignV2';
 function read3DProgress(){
- try{const value=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{}');return {questStep:THREE.MathUtils.clamp(Math.floor(Number(value.questStep)||0),0,2),coins:Math.max(0,Math.floor(Number(value.coins)||0))};}
- catch(_){return {questStep:0,coins:0};}
+ try{
+  const current=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');
+  if(current&&current.version>=2)return {questStep:THREE.MathUtils.clamp(Math.floor(Number(current.questStep)||0),0,4),coins:Math.max(0,Math.floor(Number(current.coins)||0))};
+  const old=JSON.parse(localStorage.getItem('sevenSins3DCampaignV1')||'{}');
+  return {questStep:Math.min(1,Math.max(0,Math.floor(Number(old.questStep)||0))),coins:Math.max(0,Math.floor(Number(old.coins)||0))};
+ }catch(_){return {questStep:0,coins:0};}
 }
 let saved3DProgress=read3DProgress();
 let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
+if(questStep===2){enemy.position.set(-2.2,0,-13);enemy.visible=true;}
+if(questStep===3){enemy.visible=false;goldClue.visible=true;}
 function save3DProgress(){
- const progress={version:1,questStep,coins,updatedAt:Date.now()};
+ const progress={version:2,questStep,coins,updatedAt:Date.now()};
  try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}
  window.SevenSins3DProgress=progress;
  try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}
 }
 function updateQuestHud(){
  const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count');
- if(title)title.textContent='MISSÃO 1 · O CHAMADO';
- if(objective)objective.textContent=questStep===0?'Encontre o Anjo-Guia':questStep===1?'Siga a trilha até a clareira':questStep===2?'Missão concluída! Explore o vale.':'Explore o vale e procure pistas';
- if(coinCount)coinCount.textContent=String(coins);
+ if(title)title.textContent='MISSÃO 1 · O RASTRO DA GANÂNCIA';
+  if(objective)objective.textContent=questStep===0?'Encontre o Anjo-Guia':questStep===1?'Siga a trilha até a clareira':questStep===2?'Derrote o Seguidor da Ganância':questStep===3?'Investigue as moedas na clareira':'Missão concluída! Procure novas pistas no vale.';
+  if(coinCount)coinCount.textContent=String(coins);
 }
 function renderDialoguePage(){
  const page=dialoguePages[dialogueIndex],panel=document.getElementById('dialog-panel');
@@ -222,14 +232,21 @@ function talkToGuide(){
  showDialogue([
   {who:'Anjo-Guia',text:'Finalmente chegou. Você foi enviado por Deus para enfrentar a escuridão que corrompe estas terras.'},
   {who:'Anjo-Guia',text:'Não tema. Sua jornada começa aqui, mas cada pecado ficará mais forte. Aprenda a lutar e não abandone sua fé.'},
-  {who:'Anjo-Guia',text:'Siga a trilha até a clareira à frente. Lá você encontrará seu primeiro desafio. Que Deus guie seus passos.'}
+  {who:'Anjo-Guia',text:'Siga a trilha até a clareira. Há algo errado naquela região; observe o que encontrar e esteja preparado para lutar.'}
  ],()=>{
   questStep=1;questMarker.position.set(-2.2,.06,-13);save3DProgress();updateQuestHud();
   document.getElementById('talk-button').classList.add('hidden');
   status.textContent='Nova etapa: siga a trilha até a clareira';
  });
 }
-document.getElementById('talk-button').addEventListener('click',talkToGuide);
+function investigateGold(){
+ if(questStep!==3||dialogueOpen)return;
+ showDialogue([{who:'Protagonista',text:'Moedas espalhadas no meio da floresta... isto parece ter sido deixado de propósito.'},{who:'Anjo-Guia',text:'Alguém está atraindo viajantes para esta clareira. A Ganância já deixou sua marca.'}],()=>{
+  questStep=4;coins+=10;save3DProgress();updateQuestHud();questMarker.visible=false;goldClue.visible=false;
+  status.textContent='Missão concluída! +10 moedas';const toast=document.getElementById('quest-toast');toast.textContent='MISSÃO CONCLUÍDA · +10 MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);
+ });
+}
+document.getElementById('talk-button').addEventListener('click',()=>{if(questStep===0)talkToGuide();else if(questStep===3)investigateGold();});
 document.getElementById('dialog-continue').addEventListener('click',advanceDialogue);
 updateQuestHud();
 
@@ -303,7 +320,7 @@ new GLTFLoader().load('./Protagonista.glb?mod131-main-world',gltf=>{
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-addEventListener('keydown',e=>{if(!e.repeat&&(e.key==='e'||e.key==='Enter')&&!dialogueOpen&&questStep===0&&Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z)<=2.7)talkToGuide();else if(!e.repeat&&(e.key==='e'||e.key==='Enter')&&dialogueOpen)advanceDialogue();});
+addEventListener('keydown',e=>{if(!e.repeat&&(e.key==='e'||e.key==='Enter')&&!dialogueOpen&&questStep===0&&Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z)<=2.7)talkToGuide();else if(!e.repeat&&(e.key==='e'||e.key==='Enter')&&!dialogueOpen&&questStep===3&&Math.hypot(goldClue.position.x-player.position.x,goldClue.position.z-player.position.z)<=2.6)investigateGold();else if(!e.repeat&&(e.key==='e'||e.key==='Enter')&&dialogueOpen)advanceDialogue();});
 let joyX=0,joyY=0,joyActive=false;const stick=document.getElementById('stick'),knob=document.getElementById('knob');
 function setJoy(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.32;const d=Math.hypot(dx,dy);if(d>max){dx=dx/d*max;dy=dy/d*max;}joyX=dx/max;joyY=dy/max;knob.style.transform='translate('+dx+'px,'+dy+'px)';}
 stick.addEventListener('pointerdown',e=>{joyActive=true;stick.setPointerCapture(e.pointerId);setJoy(e);});
@@ -341,19 +358,22 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
  if(enemyCurrentRole==='hit'&&enemyCurrentAction&&!enemyCurrentAction.isRunning()&&enemyAlive)playEnemyAnimation('idle',.08);
  if(enemyKnockback>0&&enemyAlive){const step=Math.min(enemyKnockback,dt*2.5);enemy.position.x+=Math.sin(playerYaw)*step;enemy.position.z+=Math.cos(playerYaw)*step;enemyKnockback-=step;}
- if(!enemyAlive&&!enemyHasDeathClip){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
+ if(!enemyAlive&&!enemyHasDeathClip&&enemy.visible){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
  updateEnemyHud();
  if(enemyAlive)enemy.rotation.y=Math.atan2(camera.position.x-enemy.position.x,camera.position.z-enemy.position.z);
  guide.position.y=.008+Math.sin(now*.0022)*.006;guideAura.intensity=.4+Math.sin(now*.003)*.06;
  const npcDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
+ const clueDistance=Math.hypot(goldClue.position.x-player.position.x,goldClue.position.z-player.position.z);
  const talkButton=document.getElementById('talk-button');
- if(talkButton)talkButton.classList.toggle('hidden',questStep!==0||npcDistance>2.7||dialogueOpen);
- questMarker.visible=questStep<2;
+ if(talkButton){talkButton.textContent=questStep===3?'INVESTIGAR':'FALAR';talkButton.classList.toggle('hidden',!((questStep===0&&npcDistance<=2.7)||(questStep===3&&clueDistance<=2.6))||dialogueOpen);}
+ questMarker.visible=questStep<4;
  if(questStep===0){questMarker.position.x=guide.position.x;questMarker.position.z=guide.position.z;}
  if(questStep===1)questMarker.position.set(-2.2,.06,-13);
+ if(questStep===2){questMarker.position.set(enemy.position.x,.06,enemy.position.z);enemy.visible=true;}
+ if(questStep===3)questMarker.position.set(goldClue.position.x,.06,goldClue.position.z);
  if(questStep===1&&Math.hypot(player.position.x+2.2,player.position.z+13)<2.15){
-  questStep=2;coins+=5;save3DProgress();updateQuestHud();questMarker.visible=false;status.textContent='Missão concluída! +5 moedas';document.getElementById('quest-toast').classList.remove('hidden');
-  setTimeout(()=>document.getElementById('quest-toast').classList.add('hidden'),2600);
+  questStep=2;enemy.position.set(-2.2,0,-13);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyHP=100;enemyAlive=true;enemy.visible=true;goldClue.visible=false;
+  if(enemyActions.idle)playEnemyAnimation('idle',.05);save3DProgress();updateQuestHud();status.textContent='Emboscada! Derrote o Seguidor da Ganância.';
  }
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
