@@ -350,6 +350,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(talkButton)talkButton.classList.toggle('hidden',questStep!==0||npcDistance>2.7||dialogueOpen);
  questMarker.visible=questStep<2;
  if(questStep===0){questMarker.position.x=guide.position.x;questMarker.position.z=guide.position.z;}
+ if(questStep===1)questMarker.position.set(-2.2,.06,-13);
  if(questStep===1&&Math.hypot(player.position.x+2.2,player.position.z+13)<2.15){
   questStep=2;coins+=5;save3DProgress();updateQuestHud();questMarker.visible=false;status.textContent='Missão concluída! +5 moedas';document.getElementById('quest-toast').classList.remove('hidden');
   setTimeout(()=>document.getElementById('quest-toast').classList.add('hidden'),2600);
