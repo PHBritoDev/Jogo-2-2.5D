@@ -15,7 +15,7 @@
 #hint{position:fixed;left:50%;top:54px;transform:translateX(-50%);max-width:92vw;text-align:center;color:#efffe9;background:#07110ca6;border:1px solid #ffffff20;border-radius:10px;padding:7px 10px;font-size:11px;pointer-events:none}
 #stick{position:fixed;left:20px;bottom:22px;width:116px;height:116px;border-radius:50%;background:#06130b60;border:1px solid #ffffff50;touch-action:none}
 #knob{position:absolute;left:33px;top:33px;width:48px;height:48px;border-radius:50%;background:#d8e8d5b8;border:1px solid #fff8;box-shadow:0 2px 12px #0005}
-#actions{position:fixed;right:16px;bottom:22px;display:grid;grid-template-columns:repeat(2,64px);gap:9px}
+ #actions{position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,60px);gap:6px}#actions button{width:60px;height:48px;border-radius:12px;font-size:9px;padding:2px}
 button{width:64px;height:58px;border-radius:18px;border:1px solid #ffffff50;background:#10251bd9;color:white;font-weight:800;font-size:11px;box-shadow:0 4px 14px #0003;touch-action:manipulation}
 button:active{transform:scale(.96);background:#31583d}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:26px;background:linear-gradient(#10251bdc,#08110feF);z-index:5;font-size:14px;line-height:1.6}
@@ -32,7 +32,7 @@ button:active{transform:scale(.96);background:#31583d}
 #player-hud[hidden]{display:none}
  #fullscreen{position:fixed;right:10px;top:10px;z-index:4;width:42px;height:38px;padding:0;border-radius:11px;border:1px solid #ffffff65;background:#07110cce;color:#fff;font-size:23px;line-height:1;box-shadow:0 3px 12px #0005;touch-action:manipulation}#fullscreen:active{background:#31583d}
 #back{position:fixed;right:10px;top:54px;z-index:2;width:auto;height:auto;padding:7px 10px;border-radius:10px;text-decoration:none;color:#fff;background:#07110c99;border:1px solid #ffffff35;font-size:11px}
-@media(min-width:800px){#stick{width:130px;height:130px;left:28px;bottom:28px}#knob{left:39px;top:39px}#actions{right:28px;bottom:28px;grid-template-columns:repeat(4,68px)}button{width:68px}}
+@media(min-width:800px){#stick{width:130px;height:130px;left:28px;bottom:28px}#knob{left:39px;top:39px}#actions{right:28px;bottom:28px;grid-template-columns:repeat(4,68px)}#actions button{width:68px;height:58px;font-size:10px}}
 
 /* MOD 153 — identidade de quadrinhos exclusiva para a narrativa 3D */
 #dialog-panel{width:min(680px,calc(100vw - 20px));max-height:31vh;overflow-y:auto;bottom:calc(9px + env(safe-area-inset-bottom));padding:10px 13px 9px;border:1px solid #d9bd79;border-radius:15px 4px 15px 4px;background:linear-gradient(100deg,#151d1bef,#080e0ff7);box-shadow:0 10px 30px #0009,inset 0 1px #fff2;backdrop-filter:blur(10px);animation:storyPanelIn .22s ease-out}
@@ -63,7 +63,7 @@ button:active{transform:scale(.96);background:#31583d}
 <div id="look-area" aria-label="Arraste para olhar para cima/baixo; use dois dedos para aproximar/afastar"></div>
 <div id="top"><div id="title">A BATALHA CONTRA OS 7 PECADOS</div><div id="status">Preparando o mundo 3D…</div></div>
 <button id="fullscreen" type="button" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button>
-<div id="marker" aria-label="Modificação 171">171</div>
+<div id="marker" aria-label="Modificação 172">172</div>
 <div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
 <div id="player-hud" hidden aria-label="Vida do protagonista"><div id="player-name"><span>PROTAGONISTA</span><span id="player-hp-text">100%</span></div><div id="player-hp-track"><div id="player-hp-fill"></div></div></div>
 <div id="hint">MISSÃO 1 · A CLAREIRA E O PORTAL</div>
@@ -80,11 +80,11 @@ button:active{transform:scale(.96);background:#31583d}
 <div id="stick" aria-label="Controle de movimento"><div id="knob"></div></div>
 <div id="actions">
 <button id="attack">GOLPE</button><button id="jump">PULAR</button>
-<button id="dash">DASH</button><button id="magic">MAGIA</button><button id="ultimate">ULTIMATE</button>
+<button id="dash">DASH</button><button id="magic">ESPADAS · 1</button><button id="magic2">JULGAMENTO · 2</button><button id="magic3">SOL · 3</button><button id="ultimate">ULTIMATE · 4</button>
 </div>
-<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 171: respiração procedural, animações de combate alternadas e correções de morte/IA.</div>
+<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 172: combate Enemy1, respiração reforçada, correção de queda e magias bíblicas.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mundo-3d-prototype.js?v=mod171-guide-breath-enemy-combat"></script>
+<script type="module" src="./mundo-3d-prototype.js?v=mod172-triple-spells-ai"></script>
 <script>
 (function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
 </script>

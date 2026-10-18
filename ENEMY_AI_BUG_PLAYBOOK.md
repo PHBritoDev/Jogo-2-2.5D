@@ -49,3 +49,19 @@ Este documento registra causas já encontradas no protótipo 3D para evitar rein
 3. Verificar cada estado: idle, perseguir, corpo a corpo, cada ataque à distância, dash, dano, morte e respawn.
 4. Testar com jogador parado perto do inimigo, longe, após tomar dano e após respawn.
 5. Não declarar teste visual/mobile concluído sem realmente executar o jogo no navegador.
+
+
+## 8. Mod 172 — ataques múltiplos e distância de combate
+- O golpe especial de cortes agora cria três projéteis em leque, em vez de apenas um. O golpe de tornado também lança três projéteis com abertura angular.
+- A IA pode tentar um ataque à distância quando o ataque corpo a corpo ainda está em recarga, desde que exista espaço mínimo. Isso evita ficar parada sem fazer nada só porque o golpe básico está em cooldown.
+- Os papéis `cast` e `attack2` precisam usar clipes distintos. Se os nomes reais não forem claros, consultar `window.Enemy1AnimationReport` no console; não presumir que o clipe de habilidade 3 também é o de apontar a mão.
+- Testar especificamente em três distâncias: corpo a corpo, média e longa. Confirmar que o inimigo usa ataque básico, corte triplo e tornado triplo; se um especial não aparecer, inspecionar a lista real de clipes e o estado de cooldown, não apenas aumentar a chance aleatória.
+
+## 9. Mod 172 — queda do protagonista e respiração do Anjo
+- Quando o protagonista está no chão, a dimensão recalcula a posição vertical do modelo a partir dos ossos reais dos pés (foot/toe/ankle), depois de atualizar o mixer. Não aplicar essa correção enquanto o personagem está no ar, para não cancelar salto.
+- A respiração procedural do Anjo agora usa um pulso de corpo mais visível e tenta modular suavemente ossos de tronco/peito quando disponíveis. Confirmar visualmente no aparelho; nomes de ossos podem variar entre rigs.
+- Não afirmar que a respiração ou o alinhamento estão resolvidos sem teste visual.
+
+## 10. Magias bíblicas no protótipo 3D
+- O protótipo tem controles dedicados para três espadas da Palavra, cinco espadas celestiais, Sol da Justiça e ultimate, com cooldowns próprios e projéteis que podem atingir o inimigo da trilha.
+- Isto é uma primeira implementação jogável do sistema de habilidades, não a integração final com a campanha inteira. Antes de trocar a dimensão 2D por padrão, integrar e testar os dados persistentes, as missões/NPCs e a entrada real para a dimensão do Primeiro Bispo. Manter `?mundo2d=1` como retorno seguro até validar a migração.
