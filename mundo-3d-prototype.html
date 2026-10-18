@@ -27,19 +27,47 @@ button:active{transform:scale(.96);background:#31583d}
 #enemy-hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#8d211c,#ef6546);transition:width .12s linear}
 #back{position:fixed;right:10px;top:54px;z-index:2;width:auto;height:auto;padding:7px 10px;border-radius:10px;text-decoration:none;color:#fff;background:#07110c99;border:1px solid #ffffff35;font-size:11px}
 @media(min-width:800px){#stick{width:130px;height:130px;left:28px;bottom:28px}#knob{left:39px;top:39px}#actions{right:28px;bottom:28px;grid-template-columns:repeat(4,68px)}button{width:68px}}
+
+/* MOD 153 — identidade de quadrinhos exclusiva para a narrativa 3D */
+#dialog-panel{width:min(680px,calc(100vw - 20px));max-height:31vh;overflow-y:auto;bottom:calc(9px + env(safe-area-inset-bottom));padding:10px 13px 9px;border:1px solid #d9bd79;border-radius:15px 4px 15px 4px;background:linear-gradient(100deg,#151d1bef,#080e0ff7);box-shadow:0 10px 30px #0009,inset 0 1px #fff2;backdrop-filter:blur(10px);animation:storyPanelIn .22s ease-out}
+#dialog-kicker{display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;color:#d8c28c;font:800 8px/1.2 system-ui,sans-serif;letter-spacing:.19em}
+#dialog-page{color:#fff0bf;letter-spacing:.12em}
+#dialog-speaker-row{display:flex;align-items:center;gap:9px;margin-bottom:7px;min-height:39px}
+#dialog-avatar{width:43px;height:45px;flex:0 0 43px;display:grid;place-items:center;position:relative;overflow:hidden;border:1px solid #d9bd79;border-radius:8px 3px 8px 3px;background:radial-gradient(circle at 50% 25%,#5b725f,#17201d 72%);box-shadow:0 3px 10px #0007}
+#dialog-portrait{width:100%;height:100%;object-fit:cover;object-position:center 25%}
+#dialog-monogram{position:absolute;font:900 19px/1 Georgia,serif;color:#f5df9c;text-shadow:0 2px 8px #000}
+#dialog-who{display:inline-flex;align-items:center;min-height:25px;margin:0;padding:5px 9px;border:1px solid #9c8145;border-radius:4px 9px 4px 9px;background:linear-gradient(120deg,#5b4824,#211c15);color:#fff0bf;font:900 10px/1.2 system-ui,sans-serif;letter-spacing:.13em;text-transform:uppercase}
+#dialog-text{margin:0 2px 7px;padding:8px 11px;border:1px solid #ffffff25;border-radius:3px 12px 12px 12px;background:linear-gradient(135deg,#fffbed,#e5e4de);color:#20221f;font:500 clamp(12px,1.7vw,15px)/1.4 Georgia,"Times New Roman",serif;box-shadow:3px 4px 0 #0004;overflow-wrap:anywhere}
+#dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#dialog-hint{font:800 8px/1.2 system-ui,sans-serif;letter-spacing:.12em;color:#c9c5b4}
+#dialog-continue{display:block;width:auto;min-width:105px;height:34px;padding:0 12px;border:1px solid #d9bd79;border-radius:5px 11px 5px 11px;background:linear-gradient(120deg,#604b20,#2c2416);color:#fff0bd;font-size:9px;font-weight:900;letter-spacing:.08em}
+#dialog-continue span{margin-left:7px;color:#e8cb77}
+#dialog-panel[data-speaker="Protagonista"] #dialog-who{background:linear-gradient(120deg,#254c69,#142b3b);border-color:#85c9ef;color:#e3f5ff}
+#dialog-panel[data-speaker="Protagonista"] #dialog-text{border-radius:12px 3px 12px 12px;background:linear-gradient(135deg,#f1faff,#dcebf4)}
+#dialog-panel[data-speaker="Protagonista"] #dialog-monogram{color:#a9e2ff}
+#dialog-panel[data-speaker="Anjo-Guia"] #dialog-who{background:linear-gradient(120deg,#79602b,#332716);border-color:#f4d88d}
+@keyframes storyPanelIn{from{opacity:.5;transform:translate(-50%,7px) scale(.99)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@media(max-width:560px){#dialog-panel{width:calc(100vw - 12px);max-height:29vh;bottom:calc(5px + env(safe-area-inset-bottom));padding:7px 9px}#dialog-kicker{font-size:7px;margin-bottom:4px}#dialog-speaker-row{min-height:31px;margin-bottom:5px;gap:7px}#dialog-avatar{width:33px;height:35px;flex-basis:33px}#dialog-monogram{font-size:16px}#dialog-who{font-size:9px;min-height:22px;padding:4px 7px}#dialog-text{font-size:12px;line-height:1.3;padding:6px 8px;margin-bottom:5px}#dialog-hint{font-size:7px}#dialog-continue{height:31px;min-width:94px;font-size:8px}}
+@media(max-height:420px){#dialog-panel{max-height:36vh;padding:5px 9px}#dialog-kicker{margin-bottom:3px}#dialog-speaker-row{min-height:26px;margin-bottom:3px}#dialog-avatar{width:27px;height:28px;flex-basis:27px}#dialog-text{padding:5px 8px;line-height:1.22}}
+
 </style>
 </head>
 <body>
 <canvas id="scene"></canvas>
 <div id="look-area" aria-label="Arraste para olhar para cima/baixo; use dois dedos para aproximar/afastar"></div>
 <div id="top"><div id="title">A BATALHA CONTRA OS 7 PECADOS</div><div id="status">Preparando o mundo 3D…</div></div>
-<div id="marker" aria-label="Modificação 152">152</div>
+<div id="marker" aria-label="Modificação 153">153</div>
 <div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
 <div id="hint">MISSÃO 1 · encontre o Anjo-Guia e fale com ele</div>
 <div id="quest-box"><div id="quest-title">MISSÃO 1 · PRIMEIROS PASSOS</div><div id="quest-objective">Encontre o Anjo-Guia</div><div class="quest-coins">MOEDAS <strong id="coin-count">0</strong></div></div>
 <div id="quest-toast" class="hidden">MISSÃO CONCLUÍDA · +5 MOEDAS</div>
 <button id="talk-button" class="hidden">FALAR</button>
-<div id="dialog-panel" class="hidden"><div id="dialog-who">Anjo-Guia</div><div id="dialog-text"></div><button id="dialog-continue">CONTINUAR</button></div>
+<div id="dialog-panel" class="hidden" aria-live="polite">
+<div id="dialog-kicker">REGISTRO DA JORNADA <span id="dialog-page">01 / 03</span></div>
+<div id="dialog-speaker-row"><div id="dialog-avatar"><img id="dialog-portrait" class="hidden" alt=""><span id="dialog-monogram">✦</span></div><div id="dialog-who">ANJO-GUIA</div></div>
+<div id="dialog-text"></div>
+<div id="dialog-footer"><span id="dialog-hint">TOQUE PARA AVANÇAR</span><button id="dialog-continue">CONTINUAR <span aria-hidden="true">↗</span></button></div>
+</div>
 <a id="back" href="./index.html">Voltar ao jogo 2D</a>
 <div id="stick" aria-label="Controle de movimento"><div id="knob"></div></div>
 <div id="actions">
@@ -48,6 +76,6 @@ button:active{transform:scale(.96);background:#31583d}
 </div>
 <div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 152: inimigo no chão, dash e dano sincronizado ao golpe.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mundo-3d-prototype.js?v=mod152-fix-enemy1-dash-hitbox-grounding"></script>
+<script type="module" src="./mundo-3d-prototype.js?v=mod153-cinematic-comic-dialogue"></script>
 </body>
 </html>
