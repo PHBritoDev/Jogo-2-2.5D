@@ -31,7 +31,7 @@ button:active{transform:scale(.96);background:#31583d}
 #player-hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#438a3e,#a8d86a);transition:width .16s ease}
 #player-hud[hidden]{display:none}
  #fullscreen{position:fixed;right:10px;top:10px;z-index:4;width:42px;height:38px;padding:0;border-radius:11px;border:1px solid #ffffff65;background:#07110cce;color:#fff;font-size:23px;line-height:1;box-shadow:0 3px 12px #0005;touch-action:manipulation}#fullscreen:active{background:#31583d}
-#back{position:fixed;right:10px;top:54px;z-index:2;width:auto;height:auto;padding:7px 10px;border-radius:10px;text-decoration:none;color:#fff;background:#07110c99;border:1px solid #ffffff35;font-size:11px}
+#back{position:fixed;right:10px;top:96px;z-index:2;width:auto;height:auto;padding:7px 10px;border-radius:10px;text-decoration:none;color:#fff;background:#07110c99;border:1px solid #ffffff35;font-size:11px}
 @media(min-width:800px){#stick{width:130px;height:130px;left:28px;bottom:28px}#knob{left:39px;top:39px}#actions{right:28px;bottom:28px;grid-template-columns:repeat(4,68px)}#actions button{width:68px;height:58px;font-size:10px}}
 
 /* MOD 153 — identidade de quadrinhos exclusiva para a narrativa 3D */
@@ -59,13 +59,13 @@ button:active{transform:scale(.96);background:#31583d}
 
 /* MOD 176 — seletor leve de qualidade do mundo 3D */
 #graphics-toggle-3d{position:fixed;right:10px;top:56px;z-index:7;width:auto;height:34px;padding:0 11px;border:1px solid #d9bd79aa;border-radius:10px;background:#101a13ed;color:#fff0bd;font-size:10px;font-weight:900;letter-spacing:.04em}
-#graphics-panel-3d{position:fixed;right:10px;top:96px;z-index:8;width:min(255px,calc(100vw - 20px));padding:13px;border:1px solid #d9bd79aa;border-radius:13px 4px 13px 4px;background:linear-gradient(145deg,#18231df5,#07100ef7);box-shadow:0 8px 24px #0009;backdrop-filter:blur(10px)}
+#graphics-panel-3d{position:fixed;right:10px;top:136px;z-index:8;width:min(255px,calc(100vw - 20px));padding:13px;border:1px solid #d9bd79aa;border-radius:13px 4px 13px 4px;background:linear-gradient(145deg,#18231df5,#07100ef7);box-shadow:0 8px 24px #0009;backdrop-filter:blur(10px)}
 #graphics-panel-3d[hidden]{display:none}
 #graphics-panel-3d h2{margin:0 0 9px;font-size:13px;color:#fff0bd}
 #graphics-panel-3d label{display:block;margin-bottom:5px;font-size:10px;color:#d7e4d5}
 #graphics-profile-3d{width:100%;height:38px;padding:0 9px;border:1px solid #ffffff45;border-radius:8px;background:#0a130f;color:#fff;font-size:12px}
 #graphics-status-3d{margin:9px 0 0;font-size:10px;line-height:1.4;color:#bcd0bd}
-@media(max-width:560px){#graphics-toggle-3d{top:54px;right:8px;height:32px;font-size:9px}#graphics-panel-3d{top:92px;right:8px}}
+@media(max-width:560px){#graphics-toggle-3d{top:54px;right:8px;height:32px;font-size:9px}#graphics-panel-3d{top:132px;right:8px}}
 
 </style>
 </head>
@@ -97,7 +97,7 @@ button:active{transform:scale(.96);background:#31583d}
 </div>
 <div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 173: combate Enemy1, respiração reforçada, correção de queda e magias bíblicas.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mundo-3d-prototype.js?v=mod175-edge-sanctuary"></script>
+<script type="module" src="./mundo-3d-prototype.js?v=mod176-adaptive-graphics"></script>
 <script>
 (function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
 </script>
