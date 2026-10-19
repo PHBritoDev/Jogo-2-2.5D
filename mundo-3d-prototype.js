@@ -866,7 +866,65 @@ if(firstPerson){
 }
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
 // A espada acompanha diretamente o osso da mão; o golpe vem do clipe de animação do personagem, sem balanço artificial por código.
-renderer.render(scene,camera);}
+updateAutoGraphics3D(dt,now);renderer.render(scene,camera);}
+
+/* MOD 176 — perfis gráficos reais para o mundo 3D; Auto ajusta a qualidade conforme FPS. */
+const graphics3DProfiles={
+ low:{scale:.62,shadows:false,shadowSize:256,foliage:false,clouds:false},
+ high:{scale:.9,shadows:true,shadowSize:512,foliage:true,clouds:true},
+ max:{scale:1.2,shadows:true,shadowSize:1024,foliage:true,clouds:true}
+};
+let graphics3DMode='auto',graphics3DScale=.78,graphics3DFps=0,graphics3DSampleTime=0,graphics3DSampleFrames=0,graphics3DLowTime=0,graphics3DHighTime=0,graphics3DLastChange=0;
+function applyGraphics3D(mode,autoScale){
+ graphics3DMode=mode;
+ const baseline=graphics3DProfiles[mode]||graphics3DProfiles.high;
+ graphics3DScale=mode==='auto'?autoScale:baseline.scale;
+ const shadowEnabled=mode==='auto'?graphics3DScale>=.78:baseline.shadows;
+ const shadowSize=mode==='auto'?(graphics3DScale>=1?512:256):baseline.shadowSize;
+ renderer.setPixelRatio(Math.min((devicePixelRatio||1)*graphics3DScale,1.5));
+ renderer.setSize(innerWidth,innerHeight);
+ renderer.shadowMap.enabled=shadowEnabled;
+ sunLight.castShadow=shadowEnabled;
+ sunLight.shadow.mapSize.set(shadowSize,shadowSize);
+ sunLight.shadow.camera.updateProjectionMatrix();
+ sunLight.shadow.needsUpdate=true;
+ renderer.shadowMap.needsUpdate=true;
+ grassGroup.visible=mode==='auto'?graphics3DScale>=.72:baseline.foliage;
+ mossInstancesA.visible=grassGroup.visible;mossInstancesB.visible=grassGroup.visible;
+ for(const cloud of movingClouds)cloud.group.visible=mode==='auto'?graphics3DScale>=.7:baseline.clouds;
+ const label=mode==='auto'?'Automático':mode==='low'?'Baixo':mode==='high'?'Alto':'Máximo';
+ const status=document.getElementById('graphics-status-3d');
+ if(status)status.textContent=label+' · '+Math.round(graphics3DScale*100)+'% de resolução'+(graphics3DFps?' · '+Math.round(graphics3DFps)+' FPS':' · medindo FPS');
+}
+function updateAutoGraphics3D(dt,now){
+ if(graphics3DMode!=='auto'||!Number.isFinite(dt)||dt<=0||dt>.25)return;
+ graphics3DSampleTime+=dt;graphics3DSampleFrames++;
+ if(graphics3DSampleTime<2)return;
+ graphics3DFps=graphics3DSampleFrames/graphics3DSampleTime;
+ const elapsed=graphics3DSampleTime;graphics3DSampleTime=0;graphics3DSampleFrames=0;
+ if(graphics3DFps<34){graphics3DLowTime+=elapsed;graphics3DHighTime=0;}
+ else if(graphics3DFps>52){graphics3DHighTime+=elapsed;graphics3DLowTime=0;}
+ else{graphics3DLowTime=0;graphics3DHighTime=0;}
+ if(graphics3DLowTime>=3.5&&now-graphics3DLastChange>4000){
+  graphics3DLowTime=0;graphics3DLastChange=now;
+  applyGraphics3D('auto',Math.max(.55,graphics3DScale-.12));
+ }else if(graphics3DHighTime>=8&&now-graphics3DLastChange>8000){
+  graphics3DHighTime=0;graphics3DLastChange=now;
+  applyGraphics3D('auto',Math.min(.95,graphics3DScale+.08));
+ }else{
+  const status=document.getElementById('graphics-status-3d');
+  if(status)status.textContent='Automático · '+Math.round(graphics3DScale*100)+'% de resolução · '+Math.round(graphics3DFps)+' FPS';
+ }
+}
+(function initGraphics3D(){
+ const toggle=document.getElementById('graphics-toggle-3d'),panel=document.getElementById('graphics-panel-3d'),select=document.getElementById('graphics-profile-3d');
+ if(toggle&&panel){toggle.addEventListener('click',()=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));});}
+ let saved='auto';try{const value=localStorage.getItem('seven-sins-3d-graphics');if(['auto','low','high','max'].includes(value))saved=value;}catch(e){}
+ if(select){select.value=saved;select.addEventListener('change',()=>{const mode=select.value;try{localStorage.setItem('seven-sins-3d-graphics',mode);}catch(e){};const initial=mode==='auto'?((navigator.deviceMemory&&navigator.deviceMemory<=4)? .68:.82):(graphics3DProfiles[mode]||graphics3DProfiles.high).scale;applyGraphics3D(mode,initial);});}
+ const initial=saved==='auto'?((navigator.deviceMemory&&navigator.deviceMemory<=4)||((navigator.hardwareConcurrency||8)<=4)? .68:.82):graphics3DProfiles[saved].scale;
+ applyGraphics3D(saved,initial);
+})();
+
 animate();
-function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));renderer.setSize(innerWidth,innerHeight);}
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();applyGraphics3D(graphics3DMode,graphics3DScale);}
 addEventListener('resize',resize);
