@@ -31,7 +31,12 @@ function addInstancedWind(material,amplitude,heightExpression,speed,cacheKey){
 const sunPosition=new THREE.Vector3(-18,58,-170);
 const sunLight=new THREE.DirectionalLight(0xffe6b5,2.1);sunLight.position.copy(sunPosition);sunLight.castShadow=true;
 sunLight.shadow.mapSize.set(512,512);sunLight.shadow.camera.left=-68;sunLight.shadow.camera.right=68;sunLight.shadow.camera.top=68;sunLight.shadow.camera.bottom=-68;sunLight.shadow.bias=-0.0004;sunLight.shadow.normalBias=.035;scene.add(sunLight);
-const fill=new THREE.DirectionalLight(0xa9d2e8,.38);fill.position.set(30,18,-22);scene.add(fill);
+const fill=new THREE.DirectionalLight(0xa9d2e8,.48);fill.position.set(30,18,-22);scene.add(fill);
+
+// Luz ambiente e sombra mais suaves, preservando o custo baixo no celular.
+sunLight.shadow.camera.left=-76;sunLight.shadow.camera.right=76;sunLight.shadow.camera.top=76;sunLight.shadow.camera.bottom=-76;
+sunLight.shadow.radius=3;
+
 const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
 // Cúpula diurna em gradiente: céu azul aberto, horizonte atmosférico e sol visível sobre a trilha.
 const skyGeometry=new THREE.SphereGeometry(220,28,18),skyPositions=skyGeometry.attributes.position,skyColors=new Float32Array(skyPositions.count*3);
@@ -73,6 +78,28 @@ function hillHeightAt(x,z){
  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
  const hill=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}));hill.receiveShadow=true;hill.castShadow=false;scene.add(hill);
 }
+
+/* MOD 178 — serras low-poly ao horizonte: poucos draws, sem sombras e sem colisões. */
+const mountainFarGeometry=new THREE.ConeGeometry(1,1,7,2);
+const mountainFarMaterial=new THREE.MeshStandardMaterial({color:0x667e82,roughness:1,flatShading:true});
+const mountainNearMaterial=new THREE.MeshStandardMaterial({color:0x526d60,roughness:1,flatShading:true});
+const mountainFarLayout=[
+ [-124,-128,23,43],[-86,-141,29,52],[-40,-145,20,37],[8,-148,27,48],[57,-143,24,44],[104,-132,30,55],[133,-101,23,39],
+ [143,-48,28,49],[145,14,22,39],[132,72,31,53],[105,116,24,42],[56,139,29,48],[0,145,23,41],[-57,138,31,54],[-106,116,25,43],[-135,74,29,50],[-145,16,22,39],[-141,-48,27,47],[-99,-92,18,31],[93,-94,20,34]
+];
+const mountainNearLayout=[[-112,-62,15,26],[-108,9,18,31],[-94,75,16,28],[-54,105,14,24],[0,117,18,31],[54,105,15,26],[96,74,18,30],[108,8,15,26],[101,-62,18,31]];
+function buildMountainRidge(layout,material,colorA,colorB){
+ const mesh=new THREE.InstancedMesh(mountainFarGeometry,material,layout.length),dummy=new THREE.Object3D(),a=new THREE.Color(colorA),b=new THREE.Color(colorB);
+ for(let i=0;i<layout.length;i++){
+  const [x,z,radius,height]=layout[i];
+  dummy.position.set(x,height*.48-.08,z);dummy.scale.set(radius,height,radius*(.78+(i%4)*.09));dummy.rotation.set(0,(i%5)*.31,0);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+  mesh.setColorAt(i,a.clone().lerp(b,(i%7)/6));
+ }
+ mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;mesh.frustumCulled=true;scene.add(mesh);return mesh;
+}
+const distantMountainRidge=buildMountainRidge(mountainFarLayout,mountainFarMaterial,0x647d83,0x8ca3a0);
+const forestMountainRidge=buildMountainRidge(mountainNearLayout,mountainNearMaterial,0x3e5b4a,0x71836a);
+
 const VILLAGE_CENTER={x:-12.2,z:-44.5},VILLAGE_CLEAR_RADIUS=14.2;
 const treeGroup=new THREE.Group();scene.add(treeGroup);
 const treeObstacles=[],rockObstacles=[],marketObstacles=[],walkableObstacles=[],treeSpecs=[];
@@ -170,6 +197,10 @@ marketObstacles.push({x:cabin.position.x,z:cabin.position.z,shape:'box',halfX:1.
 function makeVillageHouse(x,z,scale,roofMaterial){const house=new THREE.Group();house.position.set(x,0,z);villageGroup.add(house);const width=3.5*scale,depth=2.8*scale,height=2.15*scale;const body=new THREE.Mesh(new THREE.BoxGeometry(width,height,depth),woodMat);body.position.y=height*.5;body.receiveShadow=true;house.add(body);const roof=new THREE.Mesh(new THREE.ConeGeometry(width*.82,1.45*scale,4),roofMaterial);roof.position.y=height+.68*scale;roof.rotation.y=Math.PI/4;roof.castShadow=true;house.add(roof);const door=new THREE.Mesh(new THREE.BoxGeometry(.7*scale,1.25*scale,.08),doorMat);door.position.set(0,.625*scale,depth*.5+.035);house.add(door);for(const side of [-1,1]){const window=new THREE.Mesh(new THREE.BoxGeometry(.48*scale,.43*scale,.07),windowMat);window.position.set(side*width*.27,1.25*scale,depth*.5+.04);house.add(window);}marketObstacles.push({x,z,shape:'box',halfX:width*.57,halfZ:depth*.57,height:height+1.6*scale});return house;}
 makeVillageHouse(VILLAGE_CENTER.x-7.3,VILLAGE_CENTER.z-4.1,.96,roofMat);
 makeVillageHouse(VILLAGE_CENTER.x+.9,VILLAGE_CENTER.z+9.1,.88,fabricGreenMat);
+// Pequenas casas periféricas: ampliam a vila sem espalhar meshes pesadas pelo mapa.
+makeVillageHouse(VILLAGE_CENTER.x-10.8,VILLAGE_CENTER.z+3.6,.82,roofMat);
+makeVillageHouse(VILLAGE_CENTER.x+8.9,VILLAGE_CENTER.z-6.9,.78,fabricGreenMat);
+makeVillageHouse(VILLAGE_CENTER.x+2.2,VILLAGE_CENTER.z-11.4,.72,roofMat);
 function makeMarketSign(label,color){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=160;const ctx=canvas.getContext('2d');ctx.fillStyle='#3b2d1e';ctx.fillRect(0,0,512,160);ctx.strokeStyle='#d4b778';ctx.lineWidth=9;ctx.strokeRect(8,8,496,144);ctx.fillStyle=color;ctx.font='bold '+Math.min(72,Math.floor(430/label.length*1.35))+'px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,256,82);const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return new THREE.Mesh(new THREE.PlaneGeometry(1.55,.48),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));}
 const fruitGeo=new THREE.SphereGeometry(.16,8,6),fruitMats=[0xc84232,0xe5a63b,0x6e9c47,0xd8c64a,0x7e4c74].map(color=>mat(color));
 function makeFruitStall(x,z,label,green){const stall=new THREE.Group();stall.position.set(x,0,z);if(green)stall.rotation.y=Math.PI;villageGroup.add(stall);
