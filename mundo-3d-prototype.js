@@ -924,6 +924,8 @@ const graphics3DProfiles={
 };
 let graphics3DMode='auto',graphics3DScale=.78,graphics3DFps=0,graphics3DSampleTime=0,graphics3DSampleFrames=0,graphics3DLowTime=0,graphics3DHighTime=0,graphics3DLastChange=0;
 function applyGraphics3D(mode,autoScale){
+ const previousMode=graphics3DMode;
+ if(mode!==previousMode){graphics3DFps=0;graphics3DSampleTime=0;graphics3DSampleFrames=0;graphics3DLowTime=0;graphics3DHighTime=0;}
  graphics3DMode=mode;
  const baseline=graphics3DProfiles[mode]||graphics3DProfiles.high;
  graphics3DScale=mode==='auto'?autoScale:baseline.scale;
@@ -942,7 +944,7 @@ function applyGraphics3D(mode,autoScale){
  for(const cloud of movingClouds)cloud.group.visible=mode==='auto'?graphics3DScale>=.7:baseline.clouds;
  const label=mode==='auto'?'Automático':mode==='low'?'Baixo':mode==='high'?'Alto':'Máximo';
  const status=document.getElementById('graphics-status-3d');
- if(status)status.textContent=label+' · '+Math.round(graphics3DScale*100)+'% de resolução'+(graphics3DFps?' · '+Math.round(graphics3DFps)+' FPS':' · medindo FPS');
+ if(status)status.textContent=label+' · '+Math.round(graphics3DScale*100)+'% de resolução'+(mode==='auto'?(graphics3DFps?' · '+Math.round(graphics3DFps)+' FPS':' · medindo FPS'):'');
 }
 function updateAutoGraphics3D(dt,now){
  if(graphics3DMode!=='auto'||!Number.isFinite(dt)||dt<=0||dt>.25)return;
