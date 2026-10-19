@@ -80,7 +80,26 @@ function hillHeightAt(x,z){
 }
 
 /* MOD 178 — serras low-poly ao horizonte: poucos draws, sem sombras e sem colisões. */
-const mountainFarGeometry=new THREE.ConeGeometry(1,1,7,2);
+/* Montanhas facetadas e irregulares: geometria compartilhada para manter poucos draw calls. */
+function makeRuggedMountainGeometry(){
+ const sides=9,rings=[[0,.82],[.12,1],[.31,.78],[.53,.58],[.74,.37],[.91,.19]],vertices=[],indices=[];
+ const jag=[1.04,.82,1.12,.9,1.08,.78,1.15,.88,.97];
+ for(let r=0;r<rings.length;r++){
+  const [y,base]=rings[r];
+  for(let i=0;i<sides;i++){
+   const a=i/sides*Math.PI*2,rad=base*jag[i];
+   vertices.push(Math.cos(a)*rad,y+(r>1&&r<5?((i%3)-1)*.025:0),Math.sin(a)*rad);
+  }
+ }
+ for(let r=0;r<rings.length-1;r++)for(let i=0;i<sides;i++){
+  const a=r*sides+i,b=r*sides+(i+1)%sides,c=(r+1)*sides+(i+1)%sides,d=(r+1)*sides+i;
+  if((r+i)%2){indices.push(a,b,d,b,c,d);}else{indices.push(a,b,c,a,c,d);}
+ }
+ const top=vertices.length/3;vertices.push(.035,1.06,-.025);
+ for(let i=0;i<sides;i++)indices.push((rings.length-1)*sides+i,(rings.length-1)*sides+(i+1)%sides,top);
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));g.setIndex(indices);g.computeVertexNormals();return g;
+}
+const mountainFarGeometry=makeRuggedMountainGeometry();
 const mountainFarMaterial=new THREE.MeshStandardMaterial({color:0x667e82,roughness:1,flatShading:true});
 const mountainNearMaterial=new THREE.MeshStandardMaterial({color:0x526d60,roughness:1,flatShading:true});
 const mountainFarLayout=[
@@ -139,7 +158,7 @@ for(let i=0;i<720;i++){
  if(trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+1.25)))continue;
  makeTree(x,z,.78+rand()*.88);
 }
-const treeDummy=new THREE.Object3D(),trunkGeo=new THREE.CylinderGeometry(.18,.34,1,7,1),rootGeo=new THREE.CylinderGeometry(.29,.48,.46,7,1),crownGeo=new THREE.ConeGeometry(1,2.35,8,2);
+const treeDummy=new THREE.Object3D(),trunkGeo=new THREE.CylinderGeometry(.18,.34,1,7,1),rootGeo=new THREE.CylinderGeometry(.29,.48,.46,7,1),crownGeo=new THREE.IcosahedronGeometry(1,1);
 const trunkInstances=new THREE.InstancedMesh(trunkGeo,barkMat,treeSpecs.length),rootInstances=new THREE.InstancedMesh(rootGeo,barkMat,treeSpecs.length);
 trunkInstances.castShadow=true;trunkInstances.receiveShadow=true;rootInstances.castShadow=false;rootInstances.receiveShadow=true;
 const crownInstances=[leafMat,leafMid,leafLight].map(material=>new THREE.InstancedMesh(crownGeo,material,treeSpecs.length));
