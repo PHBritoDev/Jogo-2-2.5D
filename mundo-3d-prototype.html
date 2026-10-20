@@ -73,6 +73,12 @@ button:active{transform:scale(.96);background:#31583d}
 #camera-toggle-3d:active{background:#31583d}
 @media(max-width:560px){#camera-toggle-3d{left:8px;top:54px;height:32px;font-size:9px}}
 
+/* MOD 181 — botão Dia / Noite */
+#daynight-toggle-3d{position:fixed;left:10px;top:96px;z-index:7;width:auto;height:34px;padding:0 11px;border:1px solid #d9bd79aa;border-radius:10px;background:#101a13ed;color:#fff0bd;font-size:10px;font-weight:900;letter-spacing:.04em}
+#daynight-toggle-3d:active{background:#31583d}
+#daynight-toggle-3d[aria-pressed="true"]{border-color:#8ab4ffaa;color:#d6e8ff;background:#0d1520ed}
+@media(max-width:560px){#daynight-toggle-3d{left:8px;top:92px;height:32px;font-size:9px}}
+
 </style>
 </head>
 <body>
@@ -81,9 +87,10 @@ button:active{transform:scale(.96);background:#31583d}
 <div id="top"><div id="title">A BATALHA CONTRA OS 7 PECADOS</div><div id="status">Preparando o mundo 3D…</div></div>
 <button id="fullscreen" type="button" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button>
 <button id="camera-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre primeira e terceira pessoa">1ª PESSOA</button>
+<button id="daynight-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre dia e noite">DIA</button>
 <button id="graphics-toggle-3d" type="button" aria-expanded="false" aria-controls="graphics-panel-3d">⚙ GRÁFICOS</button>
 <section id="graphics-panel-3d" hidden aria-label="Configurações gráficas do mundo 3D"><h2>Qualidade gráfica</h2><label for="graphics-profile-3d">Perfil de desempenho</label><select id="graphics-profile-3d"><option value="auto">Automático (recomendado)</option><option value="low">Baixo — celular fraco</option><option value="high">Alto — mais detalhes</option><option value="max">Máximo — aparelhos fortes</option></select><p id="graphics-status-3d" aria-live="polite">Ajustando o mundo para seu aparelho…</p></section>
-<div id="marker" aria-label="Modificação 173">173</div>
+<div id="marker" aria-label="Modificação 181">181</div>
 <div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
 <div id="player-hud" hidden aria-label="Vida do protagonista"><div id="player-name"><span>PROTAGONISTA</span><span id="player-hp-text">100%</span></div><div id="player-hp-track"><div id="player-hp-fill"></div></div></div>
 <div id="hint">MISSÃO 1 · A CLAREIRA E O PORTAL</div>
@@ -102,9 +109,9 @@ button:active{transform:scale(.96);background:#31583d}
 <button id="attack">GOLPE</button><button id="jump">PULAR</button>
 <button id="dash">DASH</button><button id="magic">ESPADAS · 1</button><button id="magic2">JULGAMENTO · 2</button><button id="magic3">SOL · 3</button><button id="ultimate">ULTIMATE · 4</button>
 </div>
-<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 173: combate Enemy1, respiração reforçada, correção de queda e magias bíblicas.</div>
+<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 181: lua 3D, ciclo dia/noite, ruína secreta e expansão do horizonte.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mundo-3d-prototype.js?v=mod180-rugged-mountains-tree-canopies"></script>
+<script type="module" src="./mod181-loader.js?v=mod181-final"></script>
 <script>
 (function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
 </script>
