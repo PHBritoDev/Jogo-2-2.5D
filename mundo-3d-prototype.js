@@ -117,7 +117,9 @@ function buildMountainRidge(layout,material,colorA,colorB){
  mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;mesh.frustumCulled=true;scene.add(mesh);return mesh;
 }
 const distantMountainRidge=buildMountainRidge(mountainFarLayout,mountainFarMaterial,0x647d83,0x8ca3a0);
-const forestMountainRidge=buildMountainRidge(mountainNearLayout,mountainNearMaterial,0x3e5b4a,0x71836a);\n\n/* MOD 181 — Lua 3D + ciclo dia/noite + expansão controlada do horizonte. */
+const forestMountainRidge=buildMountainRidge(mountainNearLayout,mountainNearMaterial,0x3e5b4a,0x71836a);
+
+/* MOD 181 — Lua 3D + ciclo dia/noite + expansão controlada do horizonte. */
 const moonPosition=new THREE.Vector3(42,72,95);
 let moonRoot=null,moonVisible=false;
 new GLTFLoader().load('./Lua.glb?v=mod181-moon',gltf=>{
@@ -1010,7 +1012,7 @@ if(!grounded){
 }else{
  player.position.y=floorY;
 }
-updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();
+updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();updateDayNight(dt);checkSecretRuin();
  const firstPerson=cameraDistance<1.05;if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
