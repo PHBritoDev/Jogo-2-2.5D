@@ -1,1 +1,119 @@
-PLACEHOLDER2
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#172a24">
+<title>Seven Sins — Protótipo Mundo 3D</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101b1c;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}#look-area{position:fixed;inset:0;z-index:0;touch-action:none}#top,#hint,#marker,#back,#stick,#actions{z-index:2}#top,#hint,#marker{pointer-events:none}#back,#stick,#actions{pointer-events:auto}
+#top{position:fixed;top:10px;left:10px;right:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;pointer-events:none}
+#title{padding:9px 12px;border:1px solid #ffffff35;border-radius:12px;background:#07110c99;backdrop-filter:blur(8px);font-size:12px;letter-spacing:.08em;font-weight:800}
+#status{max-width:60%;padding:8px 10px;border-radius:10px;background:#07110c99;font-size:11px;text-align:right;color:#d8eadc}
+#marker{position:fixed;left:50%;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);width:24px;height:24px;border-radius:50%;border:1px solid #ffffff45;background:#07110c88;display:grid;place-items:center;font-size:11px;font-weight:800;pointer-events:none}
+#hint{position:fixed;left:50%;top:54px;transform:translateX(-50%);max-width:92vw;text-align:center;color:#efffe9;background:#07110ca6;border:1px solid #ffffff20;border-radius:10px;padding:7px 10px;font-size:11px;pointer-events:none}
+#stick{position:fixed;left:20px;bottom:22px;width:116px;height:116px;border-radius:50%;background:#06130b60;border:1px solid #ffffff50;touch-action:none}
+#knob{position:absolute;left:33px;top:33px;width:48px;height:48px;border-radius:50%;background:#d8e8d5b8;border:1px solid #fff8;box-shadow:0 2px 12px #0005}
+ #actions{position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,60px);gap:6px}#actions button{width:60px;height:48px;border-radius:12px;font-size:9px;padding:2px}
+button{width:64px;height:58px;border-radius:18px;border:1px solid #ffffff50;background:#10251bd9;color:white;font-weight:800;font-size:11px;box-shadow:0 4px 14px #0003;touch-action:manipulation}
+button:active{transform:scale(.96);background:#31583d}
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:26px;background:linear-gradient(#10251bdc,#08110feF);z-index:5;font-size:14px;line-height:1.6}
+#loading.hidden{display:none}
+#quest-box{position:fixed;left:10px;top:66px;z-index:3;max-width:min(260px,66vw);padding:10px 12px;border:1px solid #f0d78b55;border-radius:12px;background:#10190fd9;box-shadow:0 4px 16px #0004;pointer-events:none}#quest-title{font-size:10px;font-weight:900;letter-spacing:.08em;color:#ffe19a;margin-bottom:5px}#quest-objective{font-size:12px;line-height:1.35;color:#f4f4e8}.quest-coins{margin-top:7px;font-size:10px;color:#e8d7a2;letter-spacing:.08em}.quest-coins strong{font-size:13px;color:#fff;margin-left:6px}#talk-button{position:fixed;left:50%;bottom:26%;transform:translateX(-50%);z-index:4;width:auto;min-width:100px;height:44px;padding:0 22px;border-color:#f4d16c;background:#644b13ed;color:#fff1bc}#dialog-panel{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:6;width:min(540px,calc(100vw - 24px));padding:16px;border:1px solid #d6bc72aa;border-radius:16px;background:linear-gradient(145deg,#1a211beF,#0a110ef5);box-shadow:0 8px 28px #0009}#dialog-who{font-size:13px;font-weight:900;color:#ffdc83;margin-bottom:8px}#dialog-text{font-size:14px;line-height:1.5;color:#fff;margin-bottom:13px}#dialog-continue{display:block;margin-left:auto;width:auto;min-width:112px;height:42px;padding:0 15px;color:#fff0b5;border-color:#f0d07b;background:#55421b}#quest-toast{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:5;padding:12px 18px;border:1px solid #e9d17c;border-radius:12px;background:#172217ed;color:#ffeb9d;font-size:12px;font-weight:900;white-space:nowrap;box-shadow:0 6px 22px #0007}.hidden{display:none!important}
+#enemy-hud{position:fixed;z-index:3;display:none;transform:translate(-50%,-50%);width:132px;text-align:center;pointer-events:none;text-shadow:0 1px 4px #000}
+#enemy-name{font-size:10px;font-weight:900;letter-spacing:.1em;color:#ffe7d9;margin-bottom:4px}
+#enemy-hp-track{height:7px;border:1px solid #e9d5c6aa;border-radius:8px;background:#171312d9;overflow:hidden;box-shadow:0 2px 7px #0008}
+#enemy-hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#8d211c,#ef6546);transition:width .12s linear}
+#player-hud{position:fixed;z-index:3;left:18px;bottom:calc(148px + env(safe-area-inset-bottom));width:min(132px,40vw);padding:7px 9px;border:1px solid #d7e9d2aa;border-radius:9px;background:#07110cd9;pointer-events:none;text-shadow:0 1px 4px #000}
+#player-name{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;font-size:9px;font-weight:900;letter-spacing:.08em;color:#e6f5df}
+#player-hp-track{height:7px;border:1px solid #d7e9d2aa;border-radius:8px;background:#171312d9;overflow:hidden}
+#player-hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#438a3e,#a8d86a);transition:width .16s ease}
+#player-hud[hidden]{display:none}
+ #fullscreen{position:fixed;right:10px;top:10px;z-index:4;width:42px;height:38px;padding:0;border-radius:11px;border:1px solid #ffffff65;background:#07110cce;color:#fff;font-size:23px;line-height:1;box-shadow:0 3px 12px #0005;touch-action:manipulation}#fullscreen:active{background:#31583d}
+#back{position:fixed;right:10px;top:96px;z-index:2;width:auto;height:auto;padding:7px 10px;border-radius:10px;text-decoration:none;color:#fff;background:#07110c99;border:1px solid #ffffff35;font-size:11px}
+@media(min-width:800px){#stick{width:130px;height:130px;left:28px;bottom:28px}#knob{left:39px;top:39px}#actions{right:28px;bottom:28px;grid-template-columns:repeat(4,68px)}#actions button{width:68px;height:58px;font-size:10px}}
+
+/* MOD 153 — identidade de quadrinhos exclusiva para a narrativa 3D */
+#dialog-panel{width:min(680px,calc(100vw - 20px));max-height:31vh;overflow-y:auto;bottom:calc(9px + env(safe-area-inset-bottom));padding:10px 13px 9px;border:1px solid #d9bd79;border-radius:15px 4px 15px 4px;background:linear-gradient(100deg,#151d1bef,#080e0ff7);box-shadow:0 10px 30px #0009,inset 0 1px #fff2;backdrop-filter:blur(10px);animation:storyPanelIn .22s ease-out}
+#dialog-kicker{display:flex;justify-content:space-between;gap:12px;margin-bottom:7px;color:#d8c28c;font:800 8px/1.2 system-ui,sans-serif;letter-spacing:.19em}
+#dialog-page{color:#fff0bf;letter-spacing:.12em}
+#dialog-speaker-row{display:flex;align-items:center;gap:9px;margin-bottom:7px;min-height:39px}
+#dialog-avatar{width:43px;height:45px;flex:0 0 43px;display:grid;place-items:center;position:relative;overflow:hidden;border:1px solid #d9bd79;border-radius:8px 3px 8px 3px;background:radial-gradient(circle at 50% 25%,#5b725f,#17201d 72%);box-shadow:0 3px 10px #0007}
+#dialog-portrait{width:100%;height:100%;object-fit:cover;object-position:center 25%}
+#dialog-monogram{position:absolute;font:900 19px/1 Georgia,serif;color:#f5df9c;text-shadow:0 2px 8px #000}
+#dialog-who{display:inline-flex;align-items:center;min-height:25px;margin:0;padding:5px 9px;border:1px solid #9c8145;border-radius:4px 9px 4px 9px;background:linear-gradient(120deg,#5b4824,#211c15);color:#fff0bf;font:900 10px/1.2 system-ui,sans-serif;letter-spacing:.13em;text-transform:uppercase}
+#dialog-text{margin:0 2px 7px;padding:8px 11px;border:1px solid #ffffff25;border-radius:3px 12px 12px 12px;background:linear-gradient(135deg,#fffbed,#e5e4de);color:#20221f;font:500 clamp(12px,1.7vw,15px)/1.4 Georgia,"Times New Roman",serif;box-shadow:3px 4px 0 #0004;overflow-wrap:anywhere}
+#dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#dialog-hint{font:800 8px/1.2 system-ui,sans-serif;letter-spacing:.12em;color:#c9c5b4}
+#dialog-continue{display:block;width:auto;min-width:105px;height:34px;padding:0 12px;border:1px solid #d9bd79;border-radius:5px 11px 5px 11px;background:linear-gradient(120deg,#604b20,#2c2416);color:#fff0bd;font-size:9px;font-weight:900;letter-spacing:.08em}
+#dialog-continue span{margin-left:7px;color:#e8cb77}
+#dialog-panel[data-speaker="Protagonista"] #dialog-who{background:linear-gradient(120deg,#254c69,#142b3b);border-color:#85c9ef;color:#e3f5ff}
+#dialog-panel[data-speaker="Protagonista"] #dialog-text{border-radius:12px 3px 12px 12px;background:linear-gradient(135deg,#f1faff,#dcebf4)}
+#dialog-panel[data-speaker="Protagonista"] #dialog-monogram{color:#a9e2ff}
+#dialog-panel[data-speaker="Anjo-Guia"] #dialog-who{background:linear-gradient(120deg,#79602b,#332716);border-color:#f4d88d}
+@keyframes storyPanelIn{from{opacity:.5;transform:translate(-50%,7px) scale(.99)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@media(max-width:560px){#dialog-panel{width:calc(100vw - 12px);max-height:29vh;bottom:calc(5px + env(safe-area-inset-bottom));padding:7px 9px}#dialog-kicker{font-size:7px;margin-bottom:4px}#dialog-speaker-row{min-height:31px;margin-bottom:5px;gap:7px}#dialog-avatar{width:33px;height:35px;flex-basis:33px}#dialog-monogram{font-size:16px}#dialog-who{font-size:9px;min-height:22px;padding:4px 7px}#dialog-text{font-size:12px;line-height:1.3;padding:6px 8px;margin-bottom:5px}#dialog-hint{font-size:7px}#dialog-continue{height:31px;min-width:94px;font-size:8px}}
+@media(max-height:420px){#dialog-panel{max-height:36vh;padding:5px 9px}#dialog-kicker{margin-bottom:3px}#dialog-speaker-row{min-height:26px;margin-bottom:3px}#dialog-avatar{width:27px;height:28px;flex-basis:27px}#dialog-text{padding:5px 8px;line-height:1.22}}
+
+
+/* MOD 176 — seletor leve de qualidade do mundo 3D */
+#graphics-toggle-3d{position:fixed;right:10px;top:56px;z-index:7;width:auto;height:34px;padding:0 11px;border:1px solid #d9bd79aa;border-radius:10px;background:#101a13ed;color:#fff0bd;font-size:10px;font-weight:900;letter-spacing:.04em}
+#graphics-panel-3d{position:fixed;right:10px;top:136px;z-index:8;width:min(255px,calc(100vw - 20px));padding:13px;border:1px solid #d9bd79aa;border-radius:13px 4px 13px 4px;background:linear-gradient(145deg,#18231df5,#07100ef7);box-shadow:0 8px 24px #0009;backdrop-filter:blur(10px)}
+#graphics-panel-3d[hidden]{display:none}
+#graphics-panel-3d h2{margin:0 0 9px;font-size:13px;color:#fff0bd}
+#graphics-panel-3d label{display:block;margin-bottom:5px;font-size:10px;color:#d7e4d5}
+#graphics-profile-3d{width:100%;height:38px;padding:0 9px;border:1px solid #ffffff45;border-radius:8px;background:#0a130f;color:#fff;font-size:12px}
+#graphics-status-3d{margin:9px 0 0;font-size:10px;line-height:1.4;color:#bcd0bd}
+@media(max-width:560px){#graphics-toggle-3d{top:54px;right:8px;height:32px;font-size:9px}#graphics-panel-3d{top:132px;right:8px}}
+
+
+/* MOD 177 — alternância de perspectiva e controles de câmera */
+#camera-toggle-3d{position:fixed;left:10px;top:56px;z-index:7;width:auto;height:34px;padding:0 11px;border:1px solid #ffffff55;border-radius:10px;background:#101a13ed;color:#f3f6e9;font-size:10px;font-weight:900;letter-spacing:.03em}
+#camera-toggle-3d:active{background:#31583d}
+@media(max-width:560px){#camera-toggle-3d{left:8px;top:54px;height:32px;font-size:9px}}
+
+/* MOD 181 — botão Dia / Noite */
+#daynight-toggle-3d{position:fixed;left:10px;top:96px;z-index:7;width:auto;height:34px;padding:0 11px;border:1px solid #d9bd79aa;border-radius:10px;background:#101a13ed;color:#fff0bd;font-size:10px;font-weight:900;letter-spacing:.04em}
+#daynight-toggle-3d:active{background:#31583d}
+#daynight-toggle-3d[aria-pressed="true"]{border-color:#8ab4ffaa;color:#d6e8ff;background:#0d1520ed}
+@media(max-width:560px){#daynight-toggle-3d{left:8px;top:92px;height:32px;font-size:9px}}
+
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="look-area" aria-label="Arraste para olhar para cima/baixo; use dois dedos para aproximar/afastar"></div>
+<div id="top"><div id="title">A BATALHA CONTRA OS 7 PECADOS</div><div id="status">Preparando o mundo 3D…</div></div>
+<button id="fullscreen" type="button" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button>
+<button id="camera-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre primeira e terceira pessoa">1ª PESSOA</button>
+<button id="daynight-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre dia e noite">DIA</button>
+<button id="graphics-toggle-3d" type="button" aria-expanded="false" aria-controls="graphics-panel-3d">⚙ GRÁFICOS</button>
+<section id="graphics-panel-3d" hidden aria-label="Configurações gráficas do mundo 3D"><h2>Qualidade gráfica</h2><label for="graphics-profile-3d">Perfil de desempenho</label><select id="graphics-profile-3d"><option value="auto">Automático (recomendado)</option><option value="low">Baixo — celular fraco</option><option value="high">Alto — mais detalhes</option><option value="max">Máximo — aparelhos fortes</option></select><p id="graphics-status-3d" aria-live="polite">Ajustando o mundo para seu aparelho…</p></section>
+<div id="marker" aria-label="Modificação 181">181</div>
+<div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
+<div id="player-hud" hidden aria-label="Vida do protagonista"><div id="player-name"><span>PROTAGONISTA</span><span id="player-hp-text">100%</span></div><div id="player-hp-track"><div id="player-hp-fill"></div></div></div>
+<div id="hint">MISSÃO 1 · A CLAREIRA E O PORTAL</div>
+<div id="quest-box"><div id="quest-title">MISSÃO 1 · A CLAREIRA E O PORTAL</div><div id="quest-objective">Encontre o Anjo-Guia</div><div class="quest-coins">MOEDAS <strong id="coin-count">0</strong></div></div>
+<div id="quest-toast" class="hidden">MISSÃO CONCLUÍDA · +5 MOEDAS</div>
+<button id="talk-button" class="hidden">FALAR</button>
+<div id="dialog-panel" class="hidden" aria-live="polite">
+<div id="dialog-kicker">REGISTRO DA JORNADA <span id="dialog-page">01 / 03</span></div>
+<div id="dialog-speaker-row"><div id="dialog-avatar"><img id="dialog-portrait" class="hidden" alt=""><span id="dialog-monogram">✦</span></div><div id="dialog-who">ANJO-GUIA</div></div>
+<div id="dialog-text"></div>
+<div id="dialog-footer"><span id="dialog-hint">TOQUE PARA AVANÇAR</span><button id="dialog-continue">CONTINUAR <span aria-hidden="true">↗</span></button></div>
+</div>
+<a id="back" href="./index.html?mundo2d=1">Voltar à campanha preservada</a>
+<div id="stick" aria-label="Controle de movimento"><div id="knob"></div></div>
+<div id="actions">
+<button id="attack">GOLPE</button><button id="jump">PULAR</button>
+<button id="dash">DASH</button><button id="magic">ESPADAS · 1</button><button id="magic2">JULGAMENTO · 2</button><button id="magic3">SOL · 3</button><button id="ultimate">ULTIMATE · 4</button>
+</div>
+<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 181: lua 3D, ciclo dia/noite, ruína secreta e expansão do horizonte.</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module" src="./mundo-3d-prototype.js?v=mod181-moon-daynight-ruins"></script>
+<script>
+(function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
+</script>
+</body>
+</html>
