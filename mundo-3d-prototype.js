@@ -648,7 +648,8 @@ function checkSecretRuin(){
   status.textContent='Você encontrou uma ruína antiga escondida entre as árvores.';
  }
 }
-\n// Clareira natural com tronco caído e pedras pequenas: sem runas e sem personagem freira.
+
+// Clareira natural com tronco caído e pedras pequenas: sem runas e sem personagem freira.
 const fallenLog=new THREE.Mesh(new THREE.CylinderGeometry(.17,.22,3.1,7),barkMat);fallenLog.position.set(-2.5,.22,CLEARING.z-.7);fallenLog.rotation.z=Math.PI/2;fallenLog.rotation.y=.25;fallenLog.castShadow=true;scene.add(fallenLog);
 walkableObstacles.push({type:'capsule',x:-2.5,z:CLEARING.z-.7,axisX:Math.cos(.25),axisZ:-Math.sin(.25),halfLength:1.55,radius:.22,height:.44});
 for(const p of [{x:2.4,z:CLEARING.z-1.4,s:.55},{x:1.7,z:CLEARING.z+1.8,s:.42},{x:-2.9,z:CLEARING.z+1.6,s:.38}]){
