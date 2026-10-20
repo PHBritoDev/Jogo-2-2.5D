@@ -11,9 +11,13 @@ let secretRuinFound=false;try{secretRuinFound=localStorage.getItem('seven-sins-3
 function checkSecretRuin(){
  if(secretRuinFound)return;
  if(Math.hypot(player.position.x-secretRuin.position.x,player.position.z-secretRuin.position.z)<3.2){
+  // Marca primeiro para impedir que contatos repetidos concedam várias recompensas.
   secretRuinFound=true;
-  try{localStorage.setItem('seven-sins-3d-secret-ruin','1');const n=Number(localStorage.getItem('seven-sins-3d-coins')||0);localStorage.setItem('seven-sins-3d-coins',String(n+3));}catch(e){}
-  const coinEl=document.getElementById('coin-count');if(coinEl){const cur=Number(coinEl.textContent||0);coinEl.textContent=String(cur+3);}
+  try{localStorage.setItem('seven-sins-3d-secret-ruin','1');}catch(e){}
+  // Usa o saldo e a persistência oficiais do mundo; não cria uma carteira paralela.
+  coins+=3;
+  save3DProgress();
+  updateQuestHud();
   const toast=document.getElementById('quest-toast');if(toast){toast.textContent='RUÍNA DESCOBERTA · +3 MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}
   status.textContent='Você encontrou uma ruína antiga escondida entre as árvores.';
  }
