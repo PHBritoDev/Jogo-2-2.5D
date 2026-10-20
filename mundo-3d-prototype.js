@@ -16,7 +16,7 @@ renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.02;
-scene.add(new THREE.HemisphereLight(0xeaf7ff,0x59684b,1.55));
+const hemiLight=new THREE.HemisphereLight(0xeaf7ff,0x59684b,1.55);scene.add(hemiLight);
 const forestWindUniforms=[];
 function addInstancedWind(material,amplitude,heightExpression,speed,cacheKey){
  const uniform={value:0};forestWindUniforms.push(uniform);material.userData.forestWindUniform=uniform;
@@ -106,7 +106,7 @@ const mountainFarLayout=[
  [-124,-128,23,43],[-86,-141,29,52],[-40,-145,20,37],[8,-148,27,48],[57,-143,24,44],[104,-132,30,55],[133,-101,23,39],
  [143,-48,28,49],[145,14,22,39],[132,72,31,53],[105,116,24,42],[56,139,29,48],[0,145,23,41],[-57,138,31,54],[-106,116,25,43],[-135,74,29,50],[-145,16,22,39],[-141,-48,27,47],[-99,-92,18,31],[93,-94,20,34]
 ];
-const mountainNearLayout=[[-112,-62,15,26],[-108,9,18,31],[-94,75,16,28],[-54,105,14,24],[0,117,18,31],[54,105,15,26],[96,74,18,30],[108,8,15,26],[101,-62,18,31]];
+const mountainNearLayout=[[-112,-62,15,26],[-108,9,18,31],[-94,75,16,28],[-54,105,14,24],[0,117,18,31],[54,105,15,26],[96,74,18,30],[108,8,15,26],[101,-62,18,31],[-72,-28,12,21],[-38,88,13,22],[72,-38,14,24],[28,98,11,19],[-125,40,16,28],[118,48,15,27]];
 function buildMountainRidge(layout,material,colorA,colorB){
  const mesh=new THREE.InstancedMesh(mountainFarGeometry,material,layout.length),dummy=new THREE.Object3D(),a=new THREE.Color(colorA),b=new THREE.Color(colorB);
  for(let i=0;i<layout.length;i++){
@@ -117,7 +117,74 @@ function buildMountainRidge(layout,material,colorA,colorB){
  mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;mesh.frustumCulled=true;scene.add(mesh);return mesh;
 }
 const distantMountainRidge=buildMountainRidge(mountainFarLayout,mountainFarMaterial,0x647d83,0x8ca3a0);
-const forestMountainRidge=buildMountainRidge(mountainNearLayout,mountainNearMaterial,0x3e5b4a,0x71836a);
+const forestMountainRidge=buildMountainRidge(mountainNearLayout,mountainNearMaterial,0x3e5b4a,0x71836a);\n\n/* MOD 181 — Lua 3D + ciclo dia/noite + expansão controlada do horizonte. */
+const moonPosition=new THREE.Vector3(42,72,95);
+let moonRoot=null,moonVisible=false;
+new GLTFLoader().load('./Lua.glb?v=mod181-moon',gltf=>{
+ const moon=gltf.scene;
+ moon.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=false;if(o.material){o.material.toneMapped=false;o.material.emissive=o.material.emissive||new THREE.Color(0x223344);}}});
+ const bounds=new THREE.Box3().setFromObject(moon),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const target=7.5,scale=size.y>.001?target/size.y:1;
+ moon.scale.setScalar(scale);moon.position.set(-center.x*scale,-center.y*scale,-center.z*scale);
+ moonRoot=new THREE.Group();moonRoot.position.copy(moonPosition);moonRoot.add(moon);moonRoot.visible=false;scene.add(moonRoot);moonVisible=true;
+},undefined,err=>console.warn('Lua.glb não carregou; mantendo céu sem modelo 3D.',err));
+
+const dayNightState={mode:'day',t:0,target:0};
+const villageTorchLights=[];
+const dayPreset={bg:0xb8d4d7,fog:0xa9c4c2,fogNear:58,fogFar:205,hemiSky:0xeaf7ff,hemiGround:0x59684b,hemiInt:1.55,sunInt:2.1,fillInt:.48,exposure:1.02,sunDiskVis:true,moonVis:false,torchInt:.35};
+const nightPreset={bg:0x0b1420,fog:0x0e1a24,fogNear:28,fogFar:145,hemiSky:0x1a2a3c,hemiGround:0x1a2218,hemiInt:.42,sunInt:.08,fillInt:.12,exposure:.88,sunDiskVis:false,moonVis:true,torchInt:1.55};
+function lerpColorHex(a,b,t){const ca=new THREE.Color(a),cb=new THREE.Color(b);return ca.lerp(cb,t);}
+function applyDayNightVisual(t){
+ const p=t;
+ scene.background.copy(lerpColorHex(dayPreset.bg,nightPreset.bg,p));
+ scene.fog.color.copy(lerpColorHex(dayPreset.fog,nightPreset.fog,p));
+ scene.fog.near=THREE.MathUtils.lerp(dayPreset.fogNear,nightPreset.fogNear,p);
+ scene.fog.far=THREE.MathUtils.lerp(dayPreset.fogFar,nightPreset.fogFar,p);
+ hemiLight.color.copy(lerpColorHex(dayPreset.hemiSky,nightPreset.hemiSky,p));
+ hemiLight.groundColor.copy(lerpColorHex(dayPreset.hemiGround,nightPreset.hemiGround,p));
+ hemiLight.intensity=THREE.MathUtils.lerp(dayPreset.hemiInt,nightPreset.hemiInt,p);
+ sunLight.intensity=THREE.MathUtils.lerp(dayPreset.sunInt,nightPreset.sunInt,p);
+ fill.intensity=THREE.MathUtils.lerp(dayPreset.fillInt,nightPreset.fillInt,p);
+ renderer.toneMappingExposure=THREE.MathUtils.lerp(dayPreset.exposure,nightPreset.exposure,p);
+ if(sunDisk)sunDisk.visible=p<.55;
+ if(sunHalo)sunHalo.visible=p<.55;
+ if(moonRoot)moonRoot.visible=p>.35;
+ for(const light of villageTorchLights)light.intensity=THREE.MathUtils.lerp(dayPreset.torchInt,nightPreset.torchInt,p);
+ // Gradiente do céu diurno → noturno
+ if(skyDome&&skyDome.geometry&&skyDome.geometry.attributes.color){
+  const cols=skyDome.geometry.attributes.color,pos=skyDome.geometry.attributes.position;
+  const dayH=new THREE.Color(0xc4dbd4),dayZ=new THREE.Color(0x559dcc);
+  const nightH=new THREE.Color(0x121a28),nightZ=new THREE.Color(0x0a1020);
+  for(let i=0;i<pos.count;i++){
+   const y=pos.getY(i)/220;let u=THREE.MathUtils.clamp((y+.12)/.94,0,1);u=u*u*(3-2*u);
+   const d=dayH.clone().lerp(dayZ,u),n=nightH.clone().lerp(nightZ,u),c=d.lerp(n,p);
+   cols.setXYZ(i,c.r,c.g,c.b);
+  }
+  cols.needsUpdate=true;
+ }
+}
+function setDayNightMode(mode){
+ dayNightState.mode=mode==='night'?'night':'day';
+ dayNightState.target=dayNightState.mode==='night'?1:0;
+ try{localStorage.setItem('seven-sins-3d-daynight',dayNightState.mode);}catch(e){}
+ const btn=document.getElementById('daynight-toggle-3d');
+ if(btn){btn.textContent=dayNightState.mode==='night'?'NOITE':'DIA';btn.setAttribute('aria-pressed',String(dayNightState.mode==='night'));}
+}
+function updateDayNight(dt){
+ const speed=1.35;
+ if(Math.abs(dayNightState.t-dayNightState.target)<.002){dayNightState.t=dayNightState.target;applyDayNightVisual(dayNightState.t);return;}
+ dayNightState.t=THREE.MathUtils.lerp(dayNightState.t,dayNightState.target,1-Math.exp(-speed*dt));
+ applyDayNightVisual(dayNightState.t);
+}
+(function initDayNightUI(){
+ let saved='day';try{const v=localStorage.getItem('seven-sins-3d-daynight');if(v==='night'||v==='day')saved=v;}catch(e){}
+ const btn=document.getElementById('daynight-toggle-3d');
+ if(btn)btn.addEventListener('click',()=>setDayNightMode(dayNightState.mode==='night'?'day':'night'));
+ setDayNightMode(saved);
+ if(saved==='night'){dayNightState.t=1;applyDayNightVisual(1);}
+})();
+
+
 
 const VILLAGE_CENTER={x:-12.2,z:-44.5},VILLAGE_CLEAR_RADIUS=14.2;
 const treeGroup=new THREE.Group();scene.add(treeGroup);
@@ -233,7 +300,7 @@ const marketStalls=[{x:VILLAGE_CENTER.x+2.85,z:VILLAGE_CENTER.z-2.5,label:'FRUTA
 for(const stall of marketStalls)makeFruitStall(stall.x,stall.z,stall.label,stall.green);
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
 const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
-for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},{x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}]){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,2.05,5),woodMat);pole.position.set(p.x,1.02,p.z);villageGroup.add(pole);const glow=new THREE.Mesh(new THREE.SphereGeometry(.16,7,6),lanternMat);glow.position.set(p.x,1.92,p.z);villageGroup.add(glow);}
+for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},{x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}]){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,2.05,5),woodMat);pole.position.set(p.x,1.02,p.z);villageGroup.add(pole);const glow=new THREE.Mesh(new THREE.SphereGeometry(.16,7,6),lanternMat);glow.position.set(p.x,1.92,p.z);villageGroup.add(glow);}\nfor(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},{x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}]){const torch=new THREE.PointLight(0xffb060,.35,11,.9);torch.position.set(p.x,1.95,p.z);torch.castShadow=false;villageGroup.add(torch);villageTorchLights.push(torch);}
 const villageVendors=[
  {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Frutas colhidas nesta clareira e provisões para quem cruza a mata.',hints:['O Anjo-Guia costuma esperar perto do começo da trilha. Siga as luzes da floresta.','As marcas da clareira ficam além da curva ao sul da vila.','Os viajantes que seguiram a trilha encontraram inimigos adiante. Não avance sem cuidado.','O portal fica longe daqui, no fim da trilha.','O comércio da vila está aberto a quem volta da jornada.']},
  {name:'Mara · Ervas',shortName:'ERVAS',x:marketStalls[1].x,z:marketStalls[1].z+1.55,yaw:Math.PI*.72,greeting:'Ervas, raízes e folhas aromáticas — tudo colhido sem ferir a floresta.',hints:['Procure o Anjo-Guia na entrada da mata; ele conhece os sinais antigos.','Observe o chão e as pedras na clareira, perto da trilha principal.','Há movimento no caminho adiante; os rastros levam mais fundo na floresta.','A trilha continua até uma passagem estranha, bem distante da vila.','Depois da missão, a mata parece mais tranquila.']},
@@ -555,7 +622,31 @@ guideShadow.rotation.x=-Math.PI/2;guideShadow.position.y=.014;guide.add(guideSha
 const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.38,.04,8,28),new THREE.MeshBasicMaterial({color:0xffd65a}));
 questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,.06,guide.position.z);scene.add(questMarker);
 const clearingPatch=new THREE.Mesh(new THREE.CircleGeometry(5.4,24),new THREE.MeshStandardMaterial({color:0x786f55,roughness:1}));clearingPatch.rotation.x=-Math.PI/2;clearingPatch.position.set(CLEARING.x,.012,CLEARING.z);clearingPatch.receiveShadow=true;scene.add(clearingPatch);
-// Clareira natural com tronco caído e pedras pequenas: sem runas e sem personagem freira.
+/* MOD 181 — ruína secreta acessível ao lado da trilha, recompensa visual de exploração. */
+const secretRuin=new THREE.Group();secretRuin.position.set(-18.5,0,-52);scene.add(secretRuin);
+const ruinStone=mat(0x6a7168);
+for(const [rx,rz,rw,rh,rd] of [[0,0,2.4,1.1,1.6],[1.8,.4,1.2,1.8,.9],[-1.6,-.3,1.4,.9,1.2],[.4,-1.3,1.8,.55,1.0]]){
+ const block=new THREE.Mesh(new THREE.BoxGeometry(rw,rh,rd),ruinStone);block.position.set(rx,rh*.5,rz);block.rotation.y=(rx+rz)*.11;block.castShadow=false;block.receiveShadow=true;secretRuin.add(block);
+ marketObstacles.push({x:secretRuin.position.x+rx,z:secretRuin.position.z+rz,shape:'box',halfX:rw*.55,halfZ:rd*.55,height:rh});
+}
+const ruinMarker=new THREE.Mesh(new THREE.TorusGeometry(.22,.03,6,16),new THREE.MeshBasicMaterial({color:0xc9a55a}));
+ruinMarker.rotation.x=Math.PI/2;ruinMarker.position.set(0,.05,1.8);secretRuin.add(ruinMarker);
+let secretRuinFound=false;try{secretRuinFound=localStorage.getItem('seven-sins-3d-secret-ruin')==='1';}catch(e){}
+function checkSecretRuin(){
+ if(secretRuinFound)return;
+ if(Math.hypot(player.position.x-secretRuin.position.x,player.position.z-secretRuin.position.z)<3.2){
+  // Marca primeiro para impedir que contatos repetidos concedam várias recompensas.
+  secretRuinFound=true;
+  try{localStorage.setItem('seven-sins-3d-secret-ruin','1');}catch(e){}
+  // Usa o saldo e a persistência oficiais do mundo; não cria uma carteira paralela.
+  coins+=3;
+  save3DProgress();
+  updateQuestHud();
+  const toast=document.getElementById('quest-toast');if(toast){toast.textContent='RUÍNA DESCOBERTA · +3 MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}
+  status.textContent='Você encontrou uma ruína antiga escondida entre as árvores.';
+ }
+}
+\n// Clareira natural com tronco caído e pedras pequenas: sem runas e sem personagem freira.
 const fallenLog=new THREE.Mesh(new THREE.CylinderGeometry(.17,.22,3.1,7),barkMat);fallenLog.position.set(-2.5,.22,CLEARING.z-.7);fallenLog.rotation.z=Math.PI/2;fallenLog.rotation.y=.25;fallenLog.castShadow=true;scene.add(fallenLog);
 walkableObstacles.push({type:'capsule',x:-2.5,z:CLEARING.z-.7,axisX:Math.cos(.25),axisZ:-Math.sin(.25),halfLength:1.55,radius:.22,height:.44});
 for(const p of [{x:2.4,z:CLEARING.z-1.4,s:.55},{x:1.7,z:CLEARING.z+1.8,s:.42},{x:-2.9,z:CLEARING.z+1.6,s:.38}]){
