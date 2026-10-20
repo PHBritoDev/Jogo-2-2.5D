@@ -79,6 +79,7 @@ function hillHeightAt(x,z){
  const hill=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}));hill.receiveShadow=true;hill.castShadow=false;scene.add(hill);
 }
 
+/* MOD 183 — limites de exploração ampliados para permitir alcançar a região das serras; árvores/rochas seguem com colisão própria. */
 /* MOD 178 — serras low-poly ao horizonte: poucos draws, sem sombras e sem colisões. */
 /* Montanhas facetadas e irregulares: geometria compartilhada para manter poucos draw calls. */
 function makeRuggedMountainGeometry(){
@@ -990,13 +991,13 @@ if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
 const moving=Math.hypot(moveVX,moveVZ)>.12;
 // Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
 if(dashRemaining>0){
- const dashDt=Math.min(dt,dashRemaining);const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*12.5*dashDt,-62,62);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*12.5*dashDt,-140,14);
+ const dashDt=Math.min(dt,dashRemaining);const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*12.5*dashDt,-138,138);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*12.5*dashDt,-138,138);
  if(!playerBlockedAt(nextX,player.position.z))player.position.x=nextX;
  if(!playerBlockedAt(player.position.x,nextZ))player.position.z=nextZ;
  playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;dashRemaining=Math.max(0,dashRemaining-dt);
 }else if(moving){
- const nextX=THREE.MathUtils.clamp(player.position.x+moveVX*dt,-62,62);
- const nextZ=THREE.MathUtils.clamp(player.position.z+moveVZ*dt,-140,14);
+ const nextX=THREE.MathUtils.clamp(player.position.x+moveVX*dt,-138,138);
+ const nextZ=THREE.MathUtils.clamp(player.position.z+moveVZ*dt,-138,138);
  // Testa cada eixo separadamente para o jogador conseguir deslizar junto à árvore/pedra.
  if(!playerBlockedAt(nextX,player.position.z))player.position.x=nextX;else moveVX=0;
  if(!playerBlockedAt(player.position.x,nextZ))player.position.z=nextZ;else moveVZ=0;
