@@ -83,3 +83,12 @@ Correções:
 - Não ligar o portal à dimensão de Valério nesta etapa. A dimensão estável continua na página principal (`BishopDimension` / `?valerioTest=1`). O portal só explica que a passagem segue fechada até a subida da montanha.
 - As crianças reutilizam o rig já carregado do protagonista, em escala menor, como os vendedores da vila. Não trocar isso por `Npc.glb` sem medir o custo: o arquivo passa de 16 MiB.
 - O loader `mod181-loader.js` reescreve o import de `act1-flow.js` para URL absoluta porque o protótipo é executado a partir de um blob. Se remover o loader, o import relativo volta a funcionar direto.
+
+
+## 13. Mod 185 — subida, guarda e portal existente
+- Depois do resgate, a trilha da montanha tem duas sentinelas espaçadas e um guarda antes do portal. Elas reutilizam o mesmo Enemy1, uma de cada vez. Não criar um segundo GLB só para parecer um grupo.
+- O guarda não muda a escala do rig. A diferença é vida (180), dano corpo a corpo um pouco maior, recuo de dash e, abaixo de 55% de vida, um corte largo em leque usando o clipe de conjuração que já existir. Se esse clipe não existir, o guarda continua mais resistente, sem animação inventada.
+- A barra de vida usa porcentagem (`enemyMaxHP`). Não voltar a tratar `enemyHP` como porcentagem direta, senão o guarda estoura a barra.
+- O portal só abre no passo 6. Antes disso ele avisa que a passagem segue guardada e não congela a luta se o inimigo estiver vivo.
+- A travessia leva a `index.html?valerioTest=1`, que entra na dimensão estável de Valério. Não construir outra arena no protótipo 3D.
+- Saves V5 no passo 4 ou 5 (portal fechado da Mod 184) voltam ao começo da subida e não recebem de novo a recompensa do portal se ela já tinha sido dada.
