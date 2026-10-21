@@ -76,3 +76,10 @@ Correções:
 - Os papéis especiais tentam descobrir clipes reais não utilizados do GLB caso os nomes conhecidos não existam. `window.Enemy1AnimationRoleReport` mostra o nome real que foi associado a cada papel; `window.Enemy1AnimationReport` lista todos os clipes carregados.
 - Colisão recíproca: movimento do jogador respeita o raio do Enemy1; movimento do Enemy1 respeita o raio do jogador. Usar funções separadas para que a checagem não impeça o próprio inimigo de se mover.
 - Validar no jogo que o relatório associa clipes diferentes a `attack2` e `cast`. Se o modelo não tiver clipes adicionais de combate, a IA não consegue inventar animações que não existam no GLB; nesse caso é necessário adicionar/importar as animações reais.
+
+## 12. Mod 184 — Ato I no mundo 3D
+- A missão jogável do protótipo deixou de ser "clareira genérica" e passou a ser o resgate do Ato I: nome, Téo, noite, três captores, gaiolas, escolta e portal ainda fechado.
+- O progresso novo fica em `sevenSins3DCampaignV5`. Saves da missão antiga (V4 e anteriores) conservam as moedas e voltam ao início do Ato I, para não pular o resgate.
+- Não ligar o portal à dimensão de Valério nesta etapa. A dimensão estável continua na página principal (`BishopDimension` / `?valerioTest=1`). O portal só explica que a passagem segue fechada até a subida da montanha.
+- As crianças reutilizam o rig já carregado do protagonista, em escala menor, como os vendedores da vila. Não trocar isso por `Npc.glb` sem medir o custo: o arquivo passa de 16 MiB.
+- O loader `mod181-loader.js` reescreve o import de `act1-flow.js` para URL absoluta porque o protótipo é executado a partir de um blob. Se remover o loader, o import relativo volta a funcionar direto.
