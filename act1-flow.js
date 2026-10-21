@@ -1,15 +1,19 @@
 /**
- * MOD 184 — Ato I no mundo 3D.
- * Dados e transições puras do resgate. O protótipo 3D aplica estes estados;
- * a dimensão de Valério não é substituída nem aberta aqui.
+ * MOD 185 — Ato I no mundo 3D, com a subida da montanha.
+ * Dados e transições puras. A dimensão de Valério não é reconstruída aqui:
+ * o portal só pede a entrada já existente (?valerioTest=1).
  */
 export const ACT1 = {
-  version: 5,
+  version: 6,
   purse: 8,
   bribe: 5,
   rescueReward: 12,
-  portalReward: 5,
-  enemyTotal: 3
+  portalReward: 8,
+  wardenReward: 18,
+  enemyTotal: 3,
+  mountainSentries: 2,
+  sentryHp: 100,
+  wardenHp: 180
 };
 
 const BANNED = ['porra', 'merda', 'caralho', 'fdp', 'puta', 'viado', 'cuzao', 'buceta'];
@@ -33,36 +37,68 @@ function clampInt(value, min, max, fallback) {
   return Math.min(max, Math.max(min, n));
 }
 
-export function migrateProgress(raw) {
-  const base = {
+function baseProgress() {
+  return {
     version: ACT1.version,
     questStep: 0,
     coins: 0,
     journeyEnemyIndex: 0,
+    mountainIndex: 0,
     playerName: '',
     captorsTaunted: false,
     childrenFreed: false,
     awakeningSeen: false,
-    actCardSeen: false
+    actCardSeen: false,
+    wardenTaunted: false,
+    wardenDefeated: false,
+    portalOpened: false,
+    portalRewardClaimed: false
   };
+}
+
+export function migrateProgress(raw) {
+  const base = baseProgress();
   if (!raw || typeof raw !== 'object') return base;
   const coins = Math.max(0, Math.floor(Number(raw.coins) || 0));
   const named = sanitizePlayerName(raw.playerName || '');
-  if (Number(raw.version) >= ACT1.version) {
+  const shared = {
+    coins,
+    playerName: named.ok ? named.name : '',
+    captorsTaunted: !!raw.captorsTaunted,
+    childrenFreed: !!raw.childrenFreed,
+    awakeningSeen: !!raw.awakeningSeen,
+    actCardSeen: !!raw.actCardSeen
+  };
+  const version = Number(raw.version);
+  if (version >= ACT1.version) {
     return {
       ...base,
-      questStep: clampInt(raw.questStep, 0, 5, 0),
-      coins,
+      ...shared,
+      questStep: clampInt(raw.questStep, 0, 7, 0),
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
-      playerName: named.ok ? named.name : '',
-      captorsTaunted: !!raw.captorsTaunted,
-      childrenFreed: !!raw.childrenFreed,
-      awakeningSeen: !!raw.awakeningSeen,
-      actCardSeen: !!raw.actCardSeen
+      mountainIndex: clampInt(raw.mountainIndex, 0, ACT1.mountainSentries, 0),
+      wardenTaunted: !!raw.wardenTaunted,
+      wardenDefeated: !!raw.wardenDefeated,
+      portalOpened: !!raw.portalOpened,
+      portalRewardClaimed: !!raw.portalRewardClaimed
     };
   }
-  // A missão antiga (clareira genérica) não corresponde ao Ato I.
-  // Mantém o ouro e recomeça a história para não pular o resgate.
+  if (version === 5) {
+    // O fim antigo (passo 5) era o portal fechado de propósito.
+    // Quem já chegou lá continua na subida, sem perder ouro nem receber de novo a recompensa do portal.
+    const previousStep = clampInt(raw.questStep, 0, 5, 0);
+    const alreadyPaidPortal = previousStep >= 5;
+    const step = previousStep >= 4 ? 4 : previousStep;
+    return {
+      ...base,
+      ...shared,
+      questStep: step,
+      journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
+      mountainIndex: 0,
+      portalRewardClaimed: alreadyPaidPortal
+    };
+  }
+  // Missão anterior à V5: conserva o ouro e recomeça o resgate.
   return { ...base, coins };
 }
 
@@ -72,11 +108,17 @@ export function questPresentation(step) {
     1: ['ATO I · O PREÇO DE UMA VIDA', 'Procure Téo, na banca de provisões da vila'],
     2: ['ATO I · A MATA E AS GAIOLAS', 'Siga a trilha noturna. Três captores guardam as crianças'],
     3: ['ATO I · A CHAVE', 'Abra as gaiolas e escolte as crianças de volta à vila'],
-    4: ['ATO I · A ROTA RASGADA', 'Suba até o portal de Valério. Ainda não entre'],
-    5: ['ATO I · RESGATE CONCLUÍDO', 'A montanha segue fechada. A dimensão de Valério permanece intacta']
+    4: ['ATO I · A SUBIDA', 'Duas sentinelas guardam a montanha, bem espaçadas. Enfrente uma de cada vez'],
+    5: ['ATO I · O GUARDA DA PASSAGEM', 'Derrote o guarda antes do portal. Ele resiste mais e abre um corte largo'],
+    6: ['ATO I · O PORTAL DE VALÉRIO', 'Aproxime-se. A dimensão que já existe será aberta, não substituída'],
+    7: ['ATO I · DIMENSÃO ABERTA', 'Valério espera na dimensão dele. A mata permanece salva']
   };
-  const pair = pages[step] || pages[5];
+  const pair = pages[step] || pages[7];
   return { title: pair[0], objective: pair[1] };
+}
+
+export function combatStep(step) {
+  return step === 2 || step === 4 || step === 5;
 }
 
 export function guideAwakeningLines() {
@@ -131,14 +173,28 @@ export function reunionLines() {
   return [
     { who: 'Lia · Frutas', text: 'Elas voltaram... Eu tinha medo até de perguntar os nomes.' },
     { who: 'Téo · Provisões', text: 'Eu vendi o silêncio. Vocês devolveram o que o meu ouro não comprava de volta.' },
-    { who: 'Anjo-Guia', text: 'Com os captores havia um mapa rasgado. A rota sobe a montanha, até o portal de Valério. Ainda não atravesse: a dimensão dele continua de pé, e o caminho cobra mais do que esta mata.' }
+    { who: 'Anjo-Guia', text: 'Com os captores havia um mapa rasgado. A rota sobe a montanha, mas não está vazia: duas sentinelas, bem separadas, e um guarda maior antes do portal. A dimensão de Valério continua a dele. Não vamos construir outra.' }
+  ];
+}
+
+export function wardenTauntLines(name) {
+  return [
+    { who: 'Guarda da Passagem', text: 'Três caíram na mata e ainda assim você subiu. Aqui o preço muda. Eu não sou mais um deles — sou o que sobra quando o ouro acaba.' },
+    { who: name || 'Protagonista', text: 'Então cobre de mim. As crianças já não estão à venda, e este portal não é um mercado.' }
+  ];
+}
+
+export function portalBlockedLines() {
+  return [
+    { who: 'Anjo-Guia', text: 'Ainda não. A passagem tem guarda, e entrar agora seria levar a luta para dentro da dimensão de Valério. Limpe a subida primeiro.' }
   ];
 }
 
 export function portalLines(name) {
   return [
-    { who: name || 'Protagonista', text: 'O portal está no alto da trilha. Dá para sentir o outro lado, mas entrar agora seria abandonar o que ainda não enfrentamos.' },
-    { who: 'Anjo-Guia', text: 'Valério espera na dimensão que já é dele — não vamos substituí-la. Antes há a subida, os encontros na montanha e um guarda maior. Quando esse caminho estiver limpo, eu te acompanho até a passagem. Até lá, o portal permanece fechado.' }
+    { who: 'Anjo-Guia', text: (name || 'Viajante') + ', eu caminhei contigo porque um dia alguém recusou me vender. Não posso dizer o meu nome verdadeiro ainda. Se eu atravessar com você, Valério vai cobrar os dois de uma vez.' },
+    { who: 'Anjo-Guia', text: 'Vá. A dimensão que te espera é a que já está de pé — não uma arena feita às pressas. Eu fico na mata. Volte.' },
+    { who: name || 'Protagonista', text: 'Então guarda a clareira. Eu volto com o nome que você me pediu para não vender.' }
   ];
 }
 
@@ -155,5 +211,38 @@ export function afterEnemyDefeated(index, total = ACT1.enemyTotal) {
     questStep: 2,
     journeyEnemyIndex: next,
     status: 'Um captor caiu. Os outros ainda guardam a trilha.'
+  };
+}
+
+export function afterMountainDefeat(index, total = ACT1.mountainSentries) {
+  const next = Math.max(0, Math.floor(Number(index) || 0)) + 1;
+  if (next >= total) {
+    return {
+      questStep: 5,
+      mountainIndex: next,
+      status: 'A subida ficou quieta. O guarda da passagem espera, sozinho, antes do portal.'
+    };
+  }
+  return {
+    questStep: 4,
+    mountainIndex: next,
+    status: 'Uma sentinela caiu. A próxima está mais acima — não corra para as duas de uma vez.'
+  };
+}
+
+export function afterWardenDefeat() {
+  return {
+    questStep: 6,
+    wardenDefeated: true,
+    status: 'O guarda caiu. O portal pode abrir a dimensão de Valério, sem substituí-la.'
+  };
+}
+
+/** A entrada usa a dimensão estável já publicada. Não cria arena nova. */
+export function valerioHandoffPlan() {
+  return {
+    mode: 'existing-dimension',
+    replaceDimension: false,
+    entry: './index.html?valerioTest=1&fromPortal=1'
   };
 }
