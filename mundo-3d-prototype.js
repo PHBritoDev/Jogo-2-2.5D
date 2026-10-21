@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
+import { SKILLS, SKILL_ORDER, MANA, unlockedSkills, newlyUnlocked, canCast, regenMana, manaFromHit, cooldownFraction } from './skills3d.js';
 import { createTerrain, buildTerrainArrays, colorTerrain, scatterForest } from './world3d-terrain.js';
 import { ACT1, sanitizePlayerName, migrateProgress, questPresentation, guideAwakeningLines, guideAfterNameLines, informantPoorLines, informantLines, captorTauntLines, freeChildrenLines, reunionLines, wardenTauntLines, portalBlockedLines, portalLines, afterEnemyDefeated, afterMountainDefeat, afterWardenDefeat, valerioHandoffPlan } from './act1-flow.js';
 
@@ -569,7 +570,7 @@ function resolvePlayerAttackHit(){
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz),facing=(dx*playerAttackFacingX+dz*playerAttackFacingZ)/(distance||1);
  if(distance>2.0||facing<.28||Math.abs(player.position.y-enemy.position.y)>1.05){status.textContent=distance>2.0?'Chegue mais perto para acertar o golpe':facing<.28?'O golpe não alcançou o inimigo':'O inimigo está fora da altura do golpe';return;}
- enemyHP=Math.max(0,enemyHP-25);enemyHitFlash=.2;enemyKnockback=.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
+ enemyHP=Math.max(0,enemyHP-25);({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));enemyHitFlash=.2;enemyKnockback=.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
  if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.05);}
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
  if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),850);}
@@ -826,7 +827,32 @@ if(questStep<2)enemy.visible=false;
 if(questStep===2){{const jx=JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,jz=JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59;enemy.position.set(jx,terrainHeightAt(jx,jz),jz);}enemy.visible=false;}
 portalGroup.visible=true;
 function save3DProgress(){const progress={version:ACT1.version,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
-function updateQuestHud(){const view=questPresentation(questStep);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
+/* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
+   no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
+const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
+let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
+const SKILL_LABELS={magic:'ESPADAS',magic2:'JULGAMENTO',magic3:'SOL',ultimate:'ULTIMATE'};
+const skillButtons={};
+for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;b.innerHTML='<span class="skill-name">'+SKILL_LABELS[id]+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';b.dataset.key=SKILLS[id].key;b.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');skillButtons[id]={el:b,cost:b.querySelector('.skill-cost'),cd:-1,state:''};}
+for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧']]){const b=document.getElementById(id);if(b)b.dataset.key=key;}
+function refreshSkillUnlocks(){
+ const next=unlockedSkills({questStep,bishopsDefeated:0,testAll:testAllSkills});
+ const fresh=skillSet?newlyUnlocked(skillSet,next):[];
+ skillSet=next;
+ for(const id of SKILL_ORDER){const ui=skillButtons[id];if(ui)ui.el.classList.toggle('skill-locked',!skillSet.has(id));}
+ for(const id of fresh){const ui=skillButtons[id];if(!ui)continue;ui.el.classList.remove('skill-reveal');void ui.el.offsetWidth;ui.el.classList.add('skill-reveal');
+  const toast=document.getElementById('quest-toast');if(toast){toast.textContent='NOVA PALAVRA · '+SKILLS[id].name.toUpperCase()+' ('+SKILLS[id].key+')';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),3200);}}
+}
+function updateSkillHud(now){
+ for(const id of SKILL_ORDER){const ui=skillButtons[id];if(!ui||!skillSet||!skillSet.has(id))continue;
+  const frac=cooldownFraction(id,holyCooldowns,now),cd=Math.round(frac*100)/100;
+  if(cd!==ui.cd){ui.cd=cd;ui.el.style.setProperty('--cd',String(cd));}
+  const left=Math.max(0,(holyCooldowns[id]||0)-now),state=left>0?'cd'+Math.ceil(left/1000):playerMana<SKILLS[id].mana?'nomana':'ready';
+  if(state!==ui.state){ui.state=state;ui.cost.textContent=left>0?String(Math.ceil(left/1000)):String(SKILLS[id].mana);ui.el.classList.toggle('skill-nomana',state==='nomana');ui.el.classList.toggle('skill-cooling',left>0);}
+ }
+ const fill=document.getElementById('player-mana-fill');if(fill){const w=Math.round(playerMana/MANA.max*100);if(fill.dataset.w!==String(w)){fill.dataset.w=String(w);fill.style.width=w+'%';}}
+}
+function updateQuestHud(){refreshSkillUnlocks();const view=questPresentation(questStep);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
 function showActCard(){if(actCardSeen)return;actCardSeen=true;save3DProgress();const card=document.getElementById('act-card');if(!card)return;card.classList.remove('hidden');const hide=()=>{card.classList.add('hidden');card.removeEventListener('pointerdown',hide);};card.addEventListener('pointerdown',hide);setTimeout(hide,3400);}
 function finishAwakening(){if(!awakeningActive&&awakeningSeen)return;awakeningActive=false;awakeningSeen=true;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');save3DProgress();}
 let namePromptBound=null;
@@ -959,7 +985,7 @@ new GLTFLoader().load('./Protagonista.glb?mod172-grounding',gltf=>{
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA');if(typing)return;keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-addEventListener('keydown',e=>{if(e.repeat)return;const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA'||document.activeElement.tagName==='SELECT');if(typing)return;if(e.code==='KeyJ'||e.code==='KeyX'){action('attack');return;}if(e.code==='KeyF'){action('dash');return;}if(e.code==='Space'){e.preventDefault();action('jump');return;}if(e.key==='e'||e.key==='Enter')tryInteract();});
+addEventListener('keydown',e=>{if(e.repeat)return;const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA'||document.activeElement.tagName==='SELECT');if(typing)return;if(e.code==='KeyJ'||e.code==='KeyX'){action('attack');return;}if(e.code==='KeyF'||e.key==='Shift'){action('dash');return;}if(e.code==='Digit1'||e.code==='Numpad1'){action('magic');return;}if(e.code==='Digit2'||e.code==='Numpad2'){action('magic2');return;}if(e.code==='Digit3'||e.code==='Numpad3'){action('magic3');return;}if(e.code==='Digit4'||e.code==='Numpad4'){action('ultimate');return;}if(e.code==='Space'){e.preventDefault();action('jump');return;}if(e.key==='e'||e.key==='Enter')tryInteract();});
 let joyX=0,joyY=0,joyActive=false;const stick=document.getElementById('stick'),knob=document.getElementById('knob');
 function setJoy(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.32;const d=Math.hypot(dx,dy);if(d>max){dx=dx/d*max;dy=dy/d*max;}joyX=dx/max;joyY=dy/max;knob.style.transform='translate('+dx+'px,'+dy+'px)';}
 stick.addEventListener('pointerdown',e=>{joyActive=true;stick.setPointerCapture(e.pointerId);setJoy(e);});
@@ -969,6 +995,7 @@ stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel
 let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
 const holyProjectiles=[];let holyCooldowns={magic:0,magic2:0,magic3:0,ultimate:0};
+
 function spawnHolyProjectile(kind,angleOffset=0,delay=0){
  const group=new THREE.Group(),gold=new THREE.MeshStandardMaterial({color:0xffe7a0,emissive:0xffbd3f,emissiveIntensity:2.2,metalness:.55,roughness:.2}),white=new THREE.MeshBasicMaterial({color:0xfff7d2});
  if(kind==='sun'){const orb=new THREE.Mesh(new THREE.SphereGeometry(.42,16,12),gold);group.add(orb);const halo=new THREE.Mesh(new THREE.TorusGeometry(.58,.035,6,24),white);halo.rotation.x=Math.PI/2;group.add(halo);}
@@ -978,9 +1005,10 @@ function spawnHolyProjectile(kind,angleOffset=0,delay=0){
  holyProjectiles.push({group,dirX,dirZ,kind,delay,life:kind==='sun'?2.7:1.7,speed:kind==='sun'?4.2:8.5,damage:kind==='sun'?28:kind==='ultimate'?45:kind==='sword5'?10:14,hit:false});
 }
 function castHolyMagic(kind){
- const now=performance.now();if(now<(holyCooldowns[kind]||0)||playerHP<=0)return;
+ const now=performance.now();if(playerHP<=0)return;
+ const check=canCast(kind,{unlocked:skillSet||new Set(),mana:playerMana,cooldownUntil:holyCooldowns,now});if(!check.ok){status.textContent=check.reason;return;}
  if(!combatStepNow()||!enemy.visible||!enemyAlive){status.textContent='A Palavra está pronta, mas ainda não há inimigo ao alcance desta batalha.';return;}
- const cooldown={magic:1800,magic2:4200,magic3:6200,ultimate:12000}[kind]||2500;holyCooldowns[kind]=now+cooldown;
+ playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;
  if(kind==='magic'){[-.19,0,.19].forEach((a,i)=>spawnHolyProjectile('sword',a,i*.09));status.textContent='Espadas da Palavra — três lâminas de luz!';}
  else if(kind==='magic2'){[-.28,-.14,0,.14,.28].forEach((a,i)=>spawnHolyProjectile('sword5',a,i*.12));status.textContent='Julgamento Celestial — cinco espadas descem em formação!';}
  else if(kind==='magic3'){spawnHolyProjectile('sun');status.textContent='Sol da Justiça — luz ardente lançada contra o inimigo!';}
@@ -1000,7 +1028,7 @@ const jumpButton=document.getElementById('jump');
 // pointerdown responde imediatamente ao segundo dedo enquanto o primeiro mantém o joystick.
 jumpButton.addEventListener('pointerdown',e=>{e.preventDefault();action('jump');});
 document.getElementById('magic').addEventListener('click',()=>action('magic'));document.getElementById('magic2').addEventListener('click',()=>action('magic2'));document.getElementById('magic3').addEventListener('click',()=>action('magic3'));document.getElementById('ultimate').addEventListener('click',()=>action('ultimate'));
-addEventListener('keydown',e=>{if(e.repeat)return;if(e.key.toLowerCase()==='j'||e.key.toLowerCase()==='x')action('attack');if(e.key===' ')action('jump');if(e.key==='Shift')action('dash');if(e.key==='1')action('magic');if(e.key==='2')action('magic2');if(e.key==='3')action('magic3');if(e.key==='4')action('ultimate');});
+// MOD 186 — atalhos unificados no listener de teclado acima (antes havia dois listeners para J/X/Espaço).
 let lastMove=0,moveVX=0,moveVZ=0,playerYaw=Math.PI;
 let cameraYaw=0,cameraPitch=.16,cameraDistance=8.5;
 const lookArea=document.getElementById('look-area');
@@ -1201,7 +1229,7 @@ if(!grounded){
 }else{
  player.position.y=floorY;
 }
-updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();updateDayNight(dt);checkSecretRuin();
+updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt,combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);checkSecretRuin();
  const firstPerson=cameraDistance<1.05;if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
@@ -1309,7 +1337,7 @@ const portalBeacon=(()=>{const c=document.createElement('canvas');c.width=4;c.he
  grad.addColorStop(0,'rgba(214,170,255,0.95)');grad.addColorStop(.18,'rgba(160,92,255,0.55)');grad.addColorStop(.7,'rgba(120,60,255,0.14)');grad.addColorStop(1,'rgba(120,60,255,0)');g.fillStyle=grad;g.fillRect(0,0,4,128);
  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.75,1.6,64,14,1,true),new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:.32,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false,toneMapped:false}));
- beam.position.set(PORTAL.x,groundHeightAt(PORTAL.x,PORTAL.z)+32,PORTAL.z-.6);beam.renderOrder=3;beam.frustumCulled=false;scene.add(beam);return beam;})();
+ beam.position.set(PORTAL.x,groundHeightAt(PORTAL.x,PORTAL.z)+39,PORTAL.z-.6);beam.renderOrder=3;beam.frustumCulled=false;scene.add(beam);return beam;})();
 function makeSoftDotTexture(){const c=document.createElement('canvas');c.width=32;c.height=32;const g=c.getContext('2d'),r=g.createRadialGradient(16,16,0,16,16,16);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.35,'rgba(255,255,255,.55)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,32,32);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
 const softDot=makeSoftDotTexture();
 const FIREFLY_COUNT=terrainLowSpec?36:64,LEAF_COUNT=terrainLowSpec?22:40;
