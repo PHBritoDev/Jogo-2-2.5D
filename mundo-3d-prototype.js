@@ -506,21 +506,28 @@ new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  const exact=name=>enemyClips.find(c=>key(c)===name);
  const has=part=>enemyClips.find(c=>key(c).includes(part));
+ // MOD 186 — o Enemy1.glb exporta 6 clipes com nomes UUID. Papéis conferidos por prévia visual e pelo
+ // movimento dos ossos (quadril/mão); sem isso o "cast" podia cair no salto e o inimigo não tinha repouso.
+ const ENEMY1_CLIP_TABLE={'01a14b5a-2ee6-75dc-982f-8965372f192b':'idle','01a14b5c-5fd2-74f9-b256-af9f522f53cb':'cast','01a14b57-0772-77b2-9da3-b6644a5d1cae':'attack','01a14b51-9352-70b9-8540-e7713d7152b1':'block','01a14b4e-e964-72e9-9e35-9c0c586edbec':'dash','01a14b4d-06e7-7100-a90e-f7462489c8b9':'jump'};
+ const byTable=role=>enemyClips.find(c=>ENEMY1_CLIP_TABLE[c.name]===role);
+ // Clipes com deslocamento do quadril (investida/esquiva/salto) viram "no lugar": quem move o inimigo é o código.
+ const inPlace=clip=>{if(!clip)return clip;const copy=clip.clone();for(const track of copy.tracks){if(!/(hips|pelvis)[^.]*\.position$/i.test(track.name))continue;const v=track.values;for(let i=3;i<v.length;i+=3){v[i]=v[0];v[i+2]=v[2];}}return copy;};
+ const retargetSources={dash:exact('dash'),jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto')};
  const clipsByRole={
-  idle:exact('idle')||exact('breath')||exact('breathing')||exact('respiracao'),
+  idle:byTable('idle')||exact('idle')||exact('breath')||exact('breathing')||exact('respiracao'),
   walk:exact('andar')||exact('walk')||exact('walking'),
   run:exact('correr')||exact('run')||exact('running'),
-  attack:exact('atq1')||exact('attack1')||exact('attack01'),
+  attack:byTable('attack')||exact('atq1')||exact('attack1')||exact('attack01'),
   attack2:enemyClips.find(c=>/(habilidade3|skill3|skill03|atq2|attack2|skill2)/.test(key(c))),
-  cast:enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))),
-  dash:exact('dash'),
-  block:exact('block'),
-  jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
+  cast:byTable('cast')||enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))),
+  dash:inPlace(byTable('dash'))||exact('dash'),
+  block:inPlace(byTable('block'))||exact('block'),
+  jump:inPlace(byTable('jump'))||exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
   hit:exact('hit')||exact('hurt')||exact('damage'),
   death:exact('death')||exact('die')||exact('morte')
  };
  // Não depender de um único nome: distribui clipes reais ainda não usados em papéis especiais distintos.
- const usedClips=new Set(Object.values(clipsByRole).filter(Boolean));
+ const usedClips=new Set([...Object.values(clipsByRole).filter(Boolean),...Object.keys(ENEMY1_CLIP_TABLE).map(n=>enemyClips.find(c=>c.name===n)).filter(Boolean)]);
  const fallbackPool=enemyClips.filter(c=>!usedClips.has(c)&&!/(idle|breath|respir|andar|walk|correr|running|^run$|dash|block|jump|pulo|saltar|atq1|attack0?1|hit|hurt|damage|death|die|morte|falar|talk)/.test(key(c)));
  if(!clipsByRole.attack2){
   clipsByRole.attack2=fallbackPool.find(c=>/(habilidade|skill|atq|attack|power|slash|strike|sword)/.test(key(c)))||fallbackPool[0]||null;
@@ -535,8 +542,9 @@ new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
  for(const role of Object.keys(clipsByRole)){const clip=clipsByRole[role];if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}
  enemyHasDeathClip=!!clipsByRole.death;
  // Usa Dash e Jump reais do Enemy1 no protagonista, convertidos para o esqueleto dele.
- if(clipsByRole.dash)retargetEnemyMovementClipToPlayer('dash',imported,clipsByRole.dash);
- if(clipsByRole.jump)retargetEnemyMovementClipToPlayer('jump',imported,clipsByRole.jump);
+ // Só clipes nomeados seguem para o protagonista (comportamento anterior preservado; rigs diferentes).
+ if(retargetSources.dash)retargetEnemyMovementClipToPlayer('dash',imported,retargetSources.dash);
+ if(retargetSources.jump)retargetEnemyMovementClipToPlayer('jump',imported,retargetSources.jump);
  // Sem clipe de repouso identificado, não forçar caminhada ou pulo como idle.
  if(!enemyActions.idle)console.warn('Enemy1 sem clipe de repouso identificado.');
  if(enemyActions.idle)playEnemyAnimation('idle',0);
