@@ -112,6 +112,12 @@ button:active{transform:scale(.96);background:#31583d}
 #player-mana-track{height:5px;margin-top:4px;border:1px solid #a9c8f0aa;border-radius:8px;background:#0d1320d9;overflow:hidden}
 #player-mana-fill{height:100%;width:100%;background:linear-gradient(90deg,#2f5fb8,#8fc4ff);transition:width .2s linear}
 @media (hover:hover) and (pointer:fine){#actions button[data-key]::after,#talk-button::after{content:attr(data-key);position:absolute;left:5px;top:3px;font-size:8px;font-weight:900;color:#e7cf8c;opacity:.95}#talk-button{position:fixed}}
+
+/* MOD 186 — volumes de ambiente e efeitos no painel de configurações. */
+#graphics-panel-3d .audio-settings{margin-top:12px;padding-top:10px;border-top:1px solid #ffffff22}
+#graphics-panel-3d .audio-settings label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0;font-size:11px}
+#graphics-panel-3d .audio-settings input[type=range]{width:58%;accent-color:#d9bd79}
+#graphics-panel-3d .audio-mute{justify-content:flex-start!important}
 </style>
 </head>
 <body>
@@ -121,7 +127,7 @@ button:active{transform:scale(.96);background:#31583d}
 <button id="fullscreen" type="button" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button>
 <button id="camera-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre primeira e terceira pessoa">1ª PESSOA</button>
 <button id="daynight-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre dia e noite">DIA</button>
-<button id="graphics-toggle-3d" type="button" aria-expanded="false" aria-controls="graphics-panel-3d">⚙ GRÁFICOS</button>
+<button id="graphics-toggle-3d" type="button" aria-expanded="false" aria-controls="graphics-panel-3d">⚙ AJUSTES</button>
 <section id="graphics-panel-3d" hidden aria-label="Configurações gráficas do mundo 3D"><h2>Qualidade gráfica</h2><label for="graphics-profile-3d">Perfil de desempenho</label><select id="graphics-profile-3d"><option value="auto">Automático (recomendado)</option><option value="low">Baixo — celular fraco</option><option value="high">Alto — mais detalhes</option><option value="max">Máximo — aparelhos fortes</option></select><p id="graphics-status-3d" aria-live="polite">Ajustando o mundo para seu aparelho…</p></section>
 <div id="marker" aria-label="Modificação 186">186</div>
 <div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
