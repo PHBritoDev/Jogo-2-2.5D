@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
 import { SKILLS, SKILL_ORDER, MANA, unlockedSkills, newlyUnlocked, canCast, regenMana, manaFromHit, cooldownFraction } from './skills3d.js';
 import { createWorldAudio } from './audio3d.js';
+import { MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { createTerrain, buildTerrainArrays, colorTerrain, scatterForest } from './world3d-terrain.js';
 import { ACT1, sanitizePlayerName, migrateProgress, questPresentation, guideAwakeningLines, guideAfterNameLines, informantPoorLines, informantLines, captorTauntLines, freeChildrenLines, reunionLines, wardenTauntLines, portalBlockedLines, portalLines, afterEnemyDefeated, afterMountainDefeat, afterWardenDefeat, valerioHandoffPlan } from './act1-flow.js';
 
@@ -234,6 +235,7 @@ let seed=9137;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/429
    pois ficam fora da área caminhável). Tudo instanciado: poucos draw calls para o celular. */
 function forestSpotFree(x,z){
  if(Math.hypot(x,z-4)<6.5||Math.hypot(x-CLEARING.x,z-CLEARING.z)<8.6||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1)return false;
+ if(WAYSTONES.some(w=>Math.hypot(x-w.x,z-w.z)<4.2))return false;
  if(Math.hypot(x-SECRET_RUIN_SPOT.x,z-SECRET_RUIN_SPOT.z)<4.4||Math.hypot(x-PORTAL.x,z-PORTAL.z)<9.5||Math.hypot(x-.1,z+56.1)<5.2)return false;
  return !trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+1.25));
 }
@@ -905,7 +907,7 @@ function startPortalPull(){if(!portalPull)portalPull={t:0};}
 function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;player.position.x+=(PORTAL.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=((PORTAL.z+2.4)-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(PORTAL.x-player.position.x,PORTAL.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestValerioHandoff();}
 function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull)return;if(questStep===7||portalOpened){startPortalPull();return;}if(questStep!==6)return;showDialogue(portalLines(playerName),()=>{if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();status.textContent='O portal reconhece o seu nome e começa a puxar.';const toast=document.getElementById('quest-toast');if(toast){toast.textContent='A DIMENSÃO DE VALÉRIO SE ABRE';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}startPortalPull();});}
 function warnPortalBlocked(){if(dialogueOpen||namePromptOpen)return;showDialogue(portalBlockedLines());}
-function tryInteract(){if(namePromptOpen||awakeningActive||portalPull)return;if(dialogueOpen){advanceDialogue();return;}const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);const teo=villageVendors[2];const teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z);const cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(questStep===1&&teoDistance<=2.9){talkToInformant();return;}if(questStep===3&&!childrenFreed&&cageDistance<=4.2){freeChildren();return;}const fighting=enemy.visible&&enemyAlive;if((questStep===4||questStep===5)&&portalDistance<=3.8&&!fighting){warnPortalBlocked();return;}if((questStep===6||questStep===7)&&portalDistance<=3.8&&!fighting){openValerioPortal();return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
+function tryInteract(){if(namePromptOpen||awakeningActive||portalPull)return;if(dialogueOpen){advanceDialogue();return;}const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);const teo=villageVendors[2];const teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z);const cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(questStep===1&&teoDistance<=2.9){talkToInformant();return;}if(questStep===3&&!childrenFreed&&cageDistance<=4.2){freeChildren();return;}const fighting=enemy.visible&&enemyAlive;if((questStep===4||questStep===5)&&portalDistance<=3.8&&!fighting){warnPortalBlocked();return;}if((questStep===6||questStep===7)&&portalDistance<=3.8&&!fighting){openValerioPortal();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
 document.getElementById('talk-button').addEventListener('click',tryInteract);
 const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');skipAwakening.addEventListener('click',finishAwakening);}
 if(questStep>=2&&questStep<=6){setDayNightMode('night');dayNightState.t=1;applyDayNightVisual(1);}
@@ -1169,8 +1171,8 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const talkButton=document.getElementById('talk-button');
  const nearbyVendor=nearestVillageVendor();
  const teo=villageVendors[2],teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z),cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);
- const fightingNow=enemy.visible&&enemyAlive;const portalReady=(questStep===6||questStep===7)&&portalDistance<=3.8&&!fightingNow,portalSoon=(questStep===4||questStep===5)&&portalDistance<=3.8&&!fightingNow;const canTalk=(questStep===0&&guideDistance<=2.7)||(questStep===1&&teoDistance<=2.9)||(questStep===3&&!childrenFreed&&cageDistance<=4.2)||portalReady||portalSoon||!!nearbyVendor;
- if(talkButton){const label=questStep===1&&teoDistance<=2.9?(coins>=ACT1.bribe?'OFERECER 5':'FALAR · TÉO'):questStep===3&&!childrenFreed&&cageDistance<=4.2?'ABRIR GAIOLAS':portalReady?'ATRAVESSAR':portalSoon?'PORTAL FECHADO':nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull);}
+ const fightingNow=enemy.visible&&enemyAlive;const portalReady=(questStep===6||questStep===7)&&portalDistance<=3.8&&!fightingNow,portalSoon=(questStep===4||questStep===5)&&portalDistance<=3.8&&!fightingNow;const nearStone=nearestWaystone();const canTalk=!!nearStone||(questStep===0&&guideDistance<=2.7)||(questStep===1&&teoDistance<=2.9)||(questStep===3&&!childrenFreed&&cageDistance<=4.2)||portalReady||portalSoon||!!nearbyVendor;
+ if(talkButton){const label=questStep===1&&teoDistance<=2.9?(coins>=ACT1.bribe?'OFERECER 5':'FALAR · TÉO'):questStep===3&&!childrenFreed&&cageDistance<=4.2?'ABRIR GAIOLAS':portalReady?'ATRAVESSAR':portalSoon?'PORTAL FECHADO':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · MAPA':'REGISTRAR ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull);}
  questMarker.visible=questStep<7&&!portalPull;
  if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
  if(questStep===1)questMarker.position.set(teo.x,terrainHeightAt(teo.x,teo.z)+.06,teo.z);
@@ -1376,11 +1378,90 @@ function updateAmbientLife(dt,now){
 }
 /* MOD 186 — estado do mundo para o áudio: superfície sob os pés, distância do lago/portal, altitude. */
 function updateWorldAudio(dt){
+ updateMapDiscovery(performance.now());
  const x=player.position.x,z=player.position.z;
  const onPath=Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<13||trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5));
  const surface=terrain3D.waterDepth(x,z)>-.05?'water':onPath?'path':'grass';
  worldAudio.update(dt,{night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6});
 }
+/* MOD 186 — mapa com névoa de guerra e abrigos de viagem rápida. O mapa só mostra o que já foi visto;
+   cada abrigo precisa ser encontrado e registrado antes de aparecer na lista de viagem. */
+const MAP_STORE='seven-sins-3d-map';
+const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');}catch(_){}return createMapState(saved);})();
+let mapDirty=false,mapSaveAt=0,mapScanAt=0,mapBase=null,mapOpen=false;
+function saveMapState(force){if(!mapDirty&&!force)return;mapDirty=false;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));}catch(_){}}
+const waystoneVisuals=WAYSTONES.map(w=>{const g=new THREE.Group();g.position.set(w.x,groundHeightAt(w.x,w.z),w.z);scene.add(g);
+ const stone=new THREE.Mesh(new THREE.CylinderGeometry(.34,.5,1.75,6),rockMat);stone.position.y=.86;stone.castShadow=true;stone.receiveShadow=true;g.add(stone);
+ const cap=new THREE.Mesh(new THREE.OctahedronGeometry(.3,0),new THREE.MeshStandardMaterial({color:0x6b6450,emissive:0x8a6a20,emissiveIntensity:.25,roughness:.6}));cap.position.y=2.02;g.add(cap);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(.62,.035,6,28),new THREE.MeshBasicMaterial({color:0x9a8650,transparent:true,opacity:.55}));ring.rotation.x=Math.PI/2;ring.position.y=.06;g.add(ring);
+ marketObstacles.push({x:w.x,z:w.z,shape:'circle',radius:.62,height:1.8});return{data:w,group:g,cap,ring};});
+function syncWaystoneVisuals(){for(const v of waystoneVisuals){const on=mapState.waystones.has(v.data.id);v.cap.material.emissive.setHex(on?0x66d6ff:0x8a6a20);v.cap.material.emissiveIntensity=on?1.6:.25;v.ring.material.color.setHex(on?0x8fe3ff:0x9a8650);v.ring.material.opacity=on?.9:.55;}}
+syncWaystoneVisuals();
+function nearestWaystone(){let best=null,bd=2.5;for(const v of waystoneVisuals){const d=Math.hypot(v.data.x-player.position.x,v.data.z-player.position.z);if(d<bd){bd=d;best=v.data;}}return best;}
+function useWaystone(w){
+ if(!mapState.waystones.has(w.id)){mapState.waystones.add(w.id);mapDirty=true;saveMapState();syncWaystoneVisuals();worldAudio.reveal();
+  const toast=document.getElementById('quest-toast');if(toast){toast.textContent='ABRIGO REGISTRADO · '+w.name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}
+  status.textContent='Abrigo registrado. Abra o MAPA para voltar aqui quando estiver em segurança.';return;}
+ openWorldMap();
+}
+function updateMapDiscovery(now){
+ if(now<mapScanAt)return;mapScanAt=now+400;
+ const x=player.position.x,z=player.position.z;
+ if(revealAround(mapState,x,z))mapDirty=true;
+ const found=discoverPois(mapState,x,z,{secretsFound:{ruina:secretRuinFound}});
+ if(found.length){mapDirty=true;const toast=document.getElementById('quest-toast');if(toast&&!dialogueOpen){toast.textContent='LOCAL DESCOBERTO · '+found[0].name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2400);}}
+ if(now>mapSaveAt){mapSaveAt=now+4000;saveMapState();}
+ if(mapOpen)drawWorldMap();
+}
+function buildMapBase(){
+ const N=220,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d'),img=g.createImageData(N,N);
+ for(let j=0;j<N;j++)for(let i=0;i<N;i++){const x=MAP_BOUNDS.x0+(i+.5)/N*MAP_BOUNDS.size,z=MAP_BOUNDS.z0+(j+.5)/N*MAP_BOUNDS.size,h=groundHeightAt(x,z),hx=groundHeightAt(x+1,z),wet=terrain3D.waterDepth(x,z);
+  let r,gg,b;if(wet>0){r=40;gg=70;b=86;}else if(terrain3D.walkable(x,z)){const n=(hx-h)*40;r=74+n;gg=94+n;b=60+n*.6;}else{const t=Math.min(1,h/60),n=(hx-h)*14;r=86+t*90+n;gg=88+t*86+n;b=82+t*90+n;}
+  const k=(j*N+i)*4;img.data[k]=r;img.data[k+1]=gg;img.data[k+2]=b;img.data[k+3]=255;}
+ g.putImageData(img,0,0);
+ const px=(x)=>(x-MAP_BOUNDS.x0)/MAP_BOUNDS.size*N,pz=(z)=>(z-MAP_BOUNDS.z0)/MAP_BOUNDS.size*N;
+ g.fillStyle='rgba(28,52,30,.75)';for(const t of treeSpecs){if(!t.collide)continue;g.beginPath();g.arc(px(t.x),pz(t.z),.9+t.s*.5,0,Math.PI*2);g.fill();}
+ g.strokeStyle='#b39a68';g.lineCap='round';g.lineJoin='round';for(const route of trailRoutes){g.lineWidth=route.width/MAP_BOUNDS.size*N*.8;g.beginPath();route.points.forEach((p,k)=>k?g.lineTo(px(p[0]),pz(p[1])):g.moveTo(px(p[0]),pz(p[1])));g.stroke();}
+ g.fillStyle='#8c7a55';g.beginPath();g.arc(px(VILLAGE_CENTER.x),pz(VILLAGE_CENTER.z),12/MAP_BOUNDS.size*N,0,Math.PI*2);g.fill();
+ return c;
+}
+const MAP_GLYPH={camp:'▲',village:'⌂',clearing:'◌',danger:'◆',water:'≈',secret:'✧',portal:'✦'};
+function drawWorldMap(){
+ const canvas=document.getElementById('world-map-canvas');if(!canvas)return;const S=canvas.width,g=canvas.getContext('2d');if(!mapBase)mapBase=buildMapBase();
+ const px=(x)=>(x-MAP_BOUNDS.x0)/MAP_BOUNDS.size*S,pz=(z)=>(z-MAP_BOUNDS.z0)/MAP_BOUNDS.size*S;
+ g.clearRect(0,0,S,S);g.imageSmoothingEnabled=true;g.drawImage(mapBase,0,0,S,S);
+ // Névoa: células não visitadas cobertas por pergaminho escuro com borda suave.
+ const fog=document.createElement('canvas');fog.width=fog.height=FOG_CELLS;const fg=fog.getContext('2d');fg.fillStyle='#120f0b';
+ for(let j=0;j<FOG_CELLS;j++)for(let i=0;i<FOG_CELLS;i++)if(!mapState.cells[j*FOG_CELLS+i])fg.fillRect(i,j,1,1);
+ g.save();g.globalAlpha=1;try{g.filter='blur('+Math.round(S/90)+'px)';}catch(_){}g.drawImage(fog,0,0,S,S);g.restore();
+ g.font='bold '+Math.round(S/28)+'px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';
+ for(const p of MAP_POIS){if(!mapState.pois.has(p.id))continue;g.fillStyle=p.kind==='portal'?'#d6a8ff':p.kind==='danger'?'#ff9b84':'#ffe6a3';g.fillText(MAP_GLYPH[p.kind]||'•',px(p.x),pz(p.z));g.font=Math.round(S/44)+'px system-ui,sans-serif';g.fillStyle='#f4ead0';g.fillText(p.name,px(p.x),pz(p.z)+S/30);g.font='bold '+Math.round(S/28)+'px system-ui,sans-serif';}
+ for(const w of WAYSTONES){if(!isRevealed(mapState,w.x,w.z))continue;const on=mapState.waystones.has(w.id);g.fillStyle=on?'#8fe3ff':'#a99a72';g.fillText('◈',px(w.x),pz(w.z));}
+ if(questMarker.visible!==false&&isRevealed(mapState,questMarker.position.x,questMarker.position.z)){g.strokeStyle='#ffd65a';g.lineWidth=2;g.beginPath();g.arc(px(questMarker.position.x),pz(questMarker.position.z),S/55,0,Math.PI*2);g.stroke();}
+ const ax=px(player.position.x),az=pz(player.position.z),dx=Math.sin(playerYaw),dz=Math.cos(playerYaw),L=S/36;
+ g.fillStyle='#ffffff';g.strokeStyle='#1a1408';g.lineWidth=2;g.beginPath();g.moveTo(ax+dx*L,az+dz*L);g.lineTo(ax-dz*L*.55-dx*L*.5,az+dx*L*.55-dz*L*.5);g.lineTo(ax+dz*L*.55-dx*L*.5,az-dx*L*.55-dz*L*.5);g.closePath();g.stroke();g.fill();
+}
+function travelState(){return canFastTravel({inCombat:combatStepNow()&&enemy.visible&&enemyAlive,inDialogue:dialogueOpen||namePromptOpen,inCinematic:awakeningActive||!!portalPull,escorting:questStep===3&&childrenFreed,falling:!grounded,dead:playerHP<=0});}
+function renderTravelList(){
+ const list=document.getElementById('world-map-travel');if(!list)return;list.innerHTML='';
+ const registered=WAYSTONES.filter(w=>mapState.waystones.has(w.id));const check=travelState();
+ if(!registered.length){list.innerHTML='<p class="map-note">Nenhum abrigo registrado. Procure pedras com runa (◈) e toque em REGISTRAR.</p>';return;}
+ if(!check.ok){const p=document.createElement('p');p.className='map-note';p.textContent=check.reason;list.appendChild(p);}
+ for(const w of registered){const b=document.createElement('button');b.type='button';b.textContent='VIAJAR · '+w.name.toUpperCase();b.disabled=!check.ok;b.addEventListener('click',()=>fastTravelTo(w));list.appendChild(b);}
+}
+function fastTravelTo(w){
+ const check=travelState();if(!check.ok){status.textContent=check.reason;renderTravelList();return;}
+ closeWorldMap();const veil=document.getElementById('travel-veil');if(veil){veil.classList.add('on');setTimeout(()=>veil.classList.remove('on'),520);}
+ setTimeout(()=>{const x=w.x+1.4,z=w.z+1.4;player.position.set(x,terrainHeightAt(x,z),z);moveVX=moveVZ=0;dashRemaining=0;camera.position.set(x+Math.sin(cameraYaw)*cameraDistance,player.position.y+3,z+Math.cos(cameraYaw)*cameraDistance);status.textContent='Você chegou ao '+w.name+'.';},260);
+}
+function openWorldMap(){if(awakeningActive||namePromptOpen)return;const panel=document.getElementById('world-map');if(!panel)return;mapOpen=true;panel.hidden=false;const c=document.getElementById('world-map-canvas');const size=Math.max(220,Math.min(520,Math.floor(Math.min(innerWidth*.9,innerHeight*.66))));if(c.width!==size){c.width=c.height=size;}drawWorldMap();renderTravelList();}
+function closeWorldMap(){const panel=document.getElementById('world-map');if(panel)panel.hidden=true;mapOpen=false;}
+(function initWorldMapUi(){
+ const btn=document.getElementById('map-toggle-3d'),close=document.getElementById('world-map-close');
+ if(btn)btn.addEventListener('click',()=>mapOpen?closeWorldMap():openWorldMap());if(close)close.addEventListener('click',closeWorldMap);
+ addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing||e.repeat)return;if(e.code==='KeyM'){mapOpen?closeWorldMap():openWorldMap();}else if(e.code==='Escape'&&mapOpen)closeWorldMap();});
+ addEventListener('pagehide',()=>saveMapState(true));
+})();
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={

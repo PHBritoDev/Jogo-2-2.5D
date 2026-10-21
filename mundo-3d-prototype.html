@@ -118,6 +118,23 @@ button:active{transform:scale(.96);background:#31583d}
 #graphics-panel-3d .audio-settings label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0;font-size:11px}
 #graphics-panel-3d .audio-settings input[type=range]{width:58%;accent-color:#d9bd79}
 #graphics-panel-3d .audio-mute{justify-content:flex-start!important}
+
+/* MOD 186 — mapa com névoa de guerra e viagem rápida. */
+#map-toggle-3d{position:fixed;right:296px;top:56px;z-index:7;width:auto;height:34px;padding:0 11px;border:1px solid #d9bd79aa;border-radius:10px;background:#101a13ed;color:#fff0bd;font-size:10px;font-weight:900;letter-spacing:.04em}
+@media(max-width:560px){#map-toggle-3d{right:262px;top:54px;height:32px;font-size:9px}}
+@media(max-width:560px){#graphics-toggle-3d{right:8px;top:54px}#camera-toggle-3d{right:8px;top:90px}#daynight-toggle-3d{right:8px;top:126px}#map-toggle-3d{right:8px;top:162px}#back{top:200px}}
+#world-map{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:12px;background:#05080ab8}
+#world-map[hidden]{display:none}
+#world-map-sheet{max-width:100%;max-height:100%;overflow:auto;padding:10px 12px 12px;border:1px solid #d9bd79;border-radius:14px 4px 14px 4px;background:linear-gradient(160deg,#1a1d16f5,#0b0e0cf8);box-shadow:0 14px 40px #000b;text-align:center}
+#world-map-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;color:#e8d29a;font-size:10px;font-weight:900;letter-spacing:.14em}
+#world-map-close{width:34px;height:30px;border-radius:8px;font-size:14px;padding:0}
+#world-map-canvas{display:block;margin:0 auto;border:1px solid #6d5d3a;border-radius:6px;background:#120f0b;max-width:100%}
+#world-map-travel{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}
+#world-map-travel button{width:auto;height:34px;padding:0 10px;border-radius:9px;font-size:9px;letter-spacing:.06em;border-color:#8fe3ffaa;background:#10232bd9}
+#world-map-travel button:disabled{opacity:.45}
+#world-map .map-note{width:100%;margin:2px 0;font-size:11px;color:#d7cfb6}
+#travel-veil{position:fixed;inset:0;z-index:10;background:#000;opacity:0;pointer-events:none;transition:opacity .25s}
+#travel-veil.on{opacity:1}
 </style>
 </head>
 <body>
@@ -127,6 +144,7 @@ button:active{transform:scale(.96);background:#31583d}
 <button id="fullscreen" type="button" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button>
 <button id="camera-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre primeira e terceira pessoa">1ª PESSOA</button>
 <button id="daynight-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre dia e noite">DIA</button>
+<button id="map-toggle-3d" type="button" aria-label="Abrir mapa (M)">MAPA</button>
 <button id="graphics-toggle-3d" type="button" aria-expanded="false" aria-controls="graphics-panel-3d">⚙ AJUSTES</button>
 <section id="graphics-panel-3d" hidden aria-label="Configurações gráficas do mundo 3D"><h2>Qualidade gráfica</h2><label for="graphics-profile-3d">Perfil de desempenho</label><select id="graphics-profile-3d"><option value="auto">Automático (recomendado)</option><option value="low">Baixo — celular fraco</option><option value="high">Alto — mais detalhes</option><option value="max">Máximo — aparelhos fortes</option></select><p id="graphics-status-3d" aria-live="polite">Ajustando o mundo para seu aparelho…</p></section>
 <div id="marker" aria-label="Modificação 186">186</div>
@@ -151,6 +169,8 @@ button:active{transform:scale(.96);background:#31583d}
     <p id="act-bishop">Valério, o Primeiro Bispo</p>
   </div>
 </div>
+<section id="world-map" hidden aria-label="Mapa da floresta"><div id="world-map-sheet"><div id="world-map-head"><span>MAPA · FLORESTA DA GANÂNCIA</span><button id="world-map-close" type="button" aria-label="Fechar mapa">✕</button></div><canvas id="world-map-canvas" width="360" height="360"></canvas><div id="world-map-travel"></div></div></section>
+<div id="travel-veil" aria-hidden="true"></div>
 <div id="quest-toast" class="hidden">MISSÃO CONCLUÍDA</div>
 <button id="talk-button" class="hidden" data-key="E">FALAR</button>
 <div id="dialog-panel" class="hidden" aria-live="polite">
