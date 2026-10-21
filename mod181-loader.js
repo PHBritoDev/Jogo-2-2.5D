@@ -1,6 +1,6 @@
 /**
- * MOD 182 — carrega mundo-3d-prototype.js, reescreve caminhos relativos dos GLB,
- * aplica Mod 181 se faltar e correções de combate do Enemy1.
+ * MOD 184 — carrega mundo-3d-prototype.js, reescreve caminhos relativos dos GLB
+ * e o módulo do Ato I, aplica Mod 181 se faltar e correções de combate do Enemy1.
  */
 async function loadText(url) {
   const r = await fetch(url);
@@ -80,15 +80,16 @@ async function applyMod181(code) {
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
-  if (statusEl) statusEl.textContent = 'Aplicando Mod 182…';
-  let code = await loadText(new URL('./mundo-3d-prototype.js?v=mod182-combat', import.meta.url).href);
+  if (statusEl) statusEl.textContent = 'Aplicando Mod 184…';
+  let code = await loadText(new URL('./mundo-3d-prototype.js?v=mod184-ato1', import.meta.url).href);
   code = await applyMod181(code);
+  code = code.replace(/from '\.\/act1-flow\.js'/g, "from '" + new URL('./act1-flow.js?v=mod184-ato1', import.meta.url).href + "'");
   code = rewriteAssetPaths(code, baseHref);
   const blob = new Blob([code], { type: 'text/javascript' });
   await import(URL.createObjectURL(blob));
 } catch (err) {
   console.error(err);
-  if (statusEl) statusEl.textContent = 'Erro na Mod 182: ' + (err && err.message ? err.message : err);
+  if (statusEl) statusEl.textContent = 'Erro na Mod 184: ' + (err && err.message ? err.message : err);
   const loading = document.getElementById('loading');
-  if (loading) loading.innerHTML = 'Falha ao montar o mundo 3D (Mod 182).<br><br>' + (err && err.message ? err.message : String(err));
+  if (loading) loading.innerHTML = 'Falha ao montar o mundo 3D (Mod 184).<br><br>' + (err && err.message ? err.message : String(err));
 }

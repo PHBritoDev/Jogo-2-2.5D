@@ -12,9 +12,9 @@
 </head>
 <body>
 <script>
-/* MOD 134 — ponte de teste segura para a migração do mundo 3D.
+/* MOD 184 — ponte para o mundo 3D com o Ato I jogável.
    O modo 3D é ativado por ?mundo3d=1; ?mundo2d=1 mantém acesso à campanha antiga
-   enquanto os sistemas reais de missões e a dimensão do Primeiro Bispo são integrados. */
+   enquanto a dimensão do Primeiro Bispo segue preservada na página principal. */
 (function(){
   var params=new URLSearchParams(window.location.search);
   if(params.get('mundo3d')!=='1'||params.get('mundo2d')==='1')return;
@@ -24,7 +24,7 @@
   var frame=document.createElement('iframe');
   frame.id='primary-3d-frame';
   frame.title='Mundo 3D — A Batalha Contra os 7 Pecados Capitais';
-  frame.src='mundo-3d-prototype.html?refresh=181&build=181';
+  frame.src='mundo-3d-prototype.html?refresh=184&build=184';
   frame.allow='fullscreen';
   document.body.appendChild(frame);
 })();
