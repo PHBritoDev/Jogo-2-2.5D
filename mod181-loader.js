@@ -1,5 +1,5 @@
 /**
- * MOD 185 — carrega mundo-3d-prototype.js, reescreve caminhos relativos dos GLB
+ * MOD 186 — carrega mundo-3d-prototype.js (e seus módulos locais: Ato I, terreno), reescreve caminhos relativos dos GLB
  * e o módulo do Ato I, aplica Mod 181 se faltar e correções de combate do Enemy1.
  */
 async function loadText(url) {
@@ -77,19 +77,23 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
+const BUILD = 'mod186-terreno';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
-  if (statusEl) statusEl.textContent = 'Aplicando Mod 185…';
-  let code = await loadText(new URL('./mundo-3d-prototype.js?v=mod185-subida', import.meta.url).href);
+  if (statusEl) statusEl.textContent = 'Aplicando Mod 186…';
+  let code = await loadText(new URL('./mundo-3d-prototype.js?v=' + BUILD, import.meta.url).href);
   code = await applyMod181(code);
-  code = code.replace(/from '\.\/act1-flow\.js'/g, "from '" + new URL('./act1-flow.js?v=mod185-subida', import.meta.url).href + "'");
+  // Módulos locais importados pelo mundo (o código roda a partir de um blob, então os caminhos precisam ser absolutos).
+  code = code.replace(/from '\.\/([a-z0-9-]+\.js)'/gi, function(_, file) {
+    return "from '" + new URL('./' + file + '?v=' + BUILD, import.meta.url).href + "'";
+  });
   code = rewriteAssetPaths(code, baseHref);
   const blob = new Blob([code], { type: 'text/javascript' });
   await import(URL.createObjectURL(blob));
 } catch (err) {
   console.error(err);
-  if (statusEl) statusEl.textContent = 'Erro na Mod 185: ' + (err && err.message ? err.message : err);
+  if (statusEl) statusEl.textContent = 'Erro na Mod 186: ' + (err && err.message ? err.message : err);
   const loading = document.getElementById('loading');
-  if (loading) loading.innerHTML = 'Falha ao montar o mundo 3D (Mod 185).<br><br>' + (err && err.message ? err.message : String(err));
+  if (loading) loading.innerHTML = 'Falha ao montar o mundo 3D (Mod 186).<br><br>' + (err && err.message ? err.message : String(err));
 }
