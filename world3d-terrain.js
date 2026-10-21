@@ -59,11 +59,13 @@ export const PLAY_AREA = { cx: 0, cz: -64, hx: 82, hz: 98, round: 30, wobble: 7 
  * @param {(x:number,z:number)=>number} [opts.hill] relevo autoral já existente (subida do portal)
  * @param {Array<{x:number,z:number,r:number,fade?:number}>} [opts.keepouts] áreas que precisam ficar planas
  * @param {Array<{points:number[][],r:number,fade?:number}>} [opts.paths] trilhas que precisam ficar planas
+ * @param {Array<{x:number,z:number,r:number,depth:number,level:number}>} [opts.ponds] lagos escavados no vale
  */
 export function createTerrain(opts = {}) {
   const hill = opts.hill || (() => 0);
   const keepouts = opts.keepouts || [];
   const paths = opts.paths || [];
+  const ponds = opts.ponds || [];
   const area = Object.assign({}, PLAY_AREA, opts.area || {});
 
   /** Distância assinada até a borda explorável (negativa dentro do vale). */
@@ -116,16 +118,32 @@ export function createTerrain(opts = {}) {
     return n * m;
   }
 
+  /** Bacia do lago: margem orgânica, fundo suave. */
+  function pondCut(x, z) {
+    let cut = 0;
+    for (const p of ponds) {
+      const wob = (fbm(x * .09 + p.x, z * .09 + p.z, 2, 13) - .5) * p.r * .35;
+      const d = Math.hypot(x - p.x, z - p.z) - wob;
+      if (d < p.r) cut = Math.max(cut, p.depth * smoothstep(p.r, p.r * .35, d));
+    }
+    return cut;
+  }
   function height(x, z) {
     const d = boundaryDistance(x, z);
-    return hill(x, z) + relief(x, z) + mountainHeight(x, z, d);
+    return hill(x, z) + relief(x, z) + mountainHeight(x, z, d) - pondCut(x, z);
+  }
+  /** Altura da lâmina d'água acima do chão (negativa = seco; -99 longe de lagos). */
+  function waterDepth(x, z) {
+    let depth = -99;
+    for (const p of ponds) if (Math.hypot(x - p.x, z - p.z) < p.r * 1.4) depth = Math.max(depth, p.level - height(x, z));
+    return depth;
   }
 
   /** Limite físico: o jogador sobe o começo do contraforte e para onde a encosta fica íngreme. */
   const WALK_LIMIT = -5.5;
-  function walkable(x, z) { return boundaryDistance(x, z) < WALK_LIMIT; }
+  function walkable(x, z) { return boundaryDistance(x, z) < WALK_LIMIT && waterDepth(x, z) < .38; }
 
-  return { height, boundaryDistance, flatMask, relief, walkable, mountainHeight, area, WALK_LIMIT };
+  return { height, boundaryDistance, flatMask, relief, walkable, mountainHeight, waterDepth, ponds, area, WALK_LIMIT };
 }
 
 /**
@@ -176,6 +194,8 @@ export function colorTerrain(terrain, positions, normals) {
     let c = mix(grassDark, grass, smoothstep(.3, .7, n1));
     c = mix(c, moss, smoothstep(.62, .82, n2) * .5);
     c = mix(c, dirt, smoothstep(.72, .9, n1) * .35);
+    const wet = terrain.waterDepth ? terrain.waterDepth(x, z) : -1;
+    if (wet > -.5) c = mix(c, [.33, .3, .22], smoothstep(-.5, .05, wet));
     const d = terrain.boundaryDistance(x, z);
     // Encostas: musgo -> rocha conforme inclinação e altitude.
     const rocky = clamp(smoothstep(.12, .3, slope) + smoothstep(14, 40, y) * .6, 0, 1) * smoothstep(-14, -2, d);
@@ -208,7 +228,7 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
     if (d < -11) {
       // Vale: bosques em manchas, com clareiras naturais.
       if (rnd() > smoothstep(.34, .62, density) * .95) continue;
-      if (!isFree(x, z)) continue;
+      if (!isFree(x, z) || terrain.waterDepth(x, z) > -.25) continue;
       const kind = density > .6 && rnd() < .45 ? 'conifer' : (rnd() < .52 ? 'oak' : 'round');
       specs.push({ x, z, kind, s: .8 + rnd() * .75, rot: rnd() * Math.PI * 2, tint: rnd(), collide: true });
     } else if (d > 5 && d < 62) {

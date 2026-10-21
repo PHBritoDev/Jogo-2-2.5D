@@ -69,3 +69,11 @@ test('floresta respeita áreas livres, separa colisão e encosta', () => {
   }
   assert.ok(specs.some(t => t.collide) && specs.some(t => !t.collide));
 });
+
+test('lago escavado bloqueia a parte funda e mantém a margem caminhável', () => {
+  const t = createTerrain({ ponds: [{ x: -42, z: -96, r: 13, depth: 2.2, level: -.55 }] });
+  assert.ok(!t.walkable(-42, -96), 'centro do lago não pode ser caminhável');
+  assert.ok(t.waterDepth(-42, -96) > 1);
+  assert.ok(t.walkable(-42 + 20, -96), 'fora do lago continua caminhável');
+  assert.ok(t.waterDepth(0, 0) < 0);
+});
