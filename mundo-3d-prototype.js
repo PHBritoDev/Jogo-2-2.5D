@@ -4,7 +4,7 @@ import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/Skeleton
 import { SKILLS, SKILL_ORDER, MANA, unlockedSkills, newlyUnlocked, canCast, regenMana, manaFromHit, cooldownFraction } from './skills3d.js';
 import { createWorldAudio } from './audio3d.js';
 import { MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
-import { createTerrain, buildTerrainArrays, colorTerrain, scatterForest } from './world3d-terrain.js';
+import { createTerrain, buildTerrainArrays, colorTerrain, scatterForest, fbm } from './world3d-terrain.js';
 import { ACT1, sanitizePlayerName, migrateProgress, questPresentation, guideAwakeningLines, guideAfterNameLines, informantPoorLines, informantLines, captorTauntLines, freeChildrenLines, reunionLines, wardenTauntLines, portalBlockedLines, portalLines, afterEnemyDefeated, afterMountainDefeat, afterWardenDefeat, valerioHandoffPlan } from './act1-flow.js';
 
 const worldAudio=createWorldAudio();
@@ -255,7 +255,7 @@ function forestSpotFree(x,z){
   if(t.kind==='round')t.height=(7.2+t.tint*3.2)*t.s;
   else if(t.kind==='conifer')t.height=(t.collide?8.2:9.5)*t.s*(.85+t.tint*.35);
   else t.height=(1.05+t.tint*.45)*t.s;
-  if(t.collide)treeObstacles.push({x:t.x,z:t.z,radius:t.kind==='oak'?.32*t.height+.08:t.kind==='conifer'?.24*t.s+.2:.34*t.s+.18});
+  if(t.collide)treeObstacles.push({x:t.x,z:t.z,radius:t.kind==='oak'?.25*t.height+.08:t.kind==='conifer'?.24*t.s+.2:.34*t.s+.18});
  }
 }
 const roundTrees=treeSpecs.filter(t=>t.kind==='round'),oakTrees=treeSpecs.filter(t=>t.kind==='oak'),coniferTrees=treeSpecs.filter(t=>t.kind==='conifer');
@@ -327,7 +327,7 @@ if(oakTrees.length)new GLTFLoader().load('./Arvore.glb?v=mod186-oak',gltf=>{try{
  const geometry=mergeOakTree(gltf.scene),material=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.92,flatShading:true});
  addInstancedWind(material,.05,'clamp((position.y-2.6)/2.8,0.0,1.0)',.7,'mod186-oak-wind');addNearCameraFade(material);
  const mesh=new THREE.InstancedMesh(geometry,material,oakTrees.length),tint=new THREE.Color();
- for(let i=0;i<oakTrees.length;i++){const t=oakTrees[i];treeDummy.position.set(t.x,t.y,t.z);treeDummy.scale.set(t.height*(.9+t.tint*.25),t.height,t.height*(.9+(1-t.tint)*.25));treeDummy.rotation.set(0,t.rot,0);treeDummy.updateMatrix();mesh.setMatrixAt(i,treeDummy.matrix);tint.setRGB(.92+t.tint*.16,.95+t.tint*.1,.88+(1-t.tint)*.14);mesh.setColorAt(i,tint);}
+ for(let i=0;i<oakTrees.length;i++){const t=oakTrees[i];treeDummy.position.set(t.x,t.y,t.z);treeDummy.scale.set(t.height*(.7+t.tint*.18),t.height*1.12,t.height*(.7+(1-t.tint)*.18));treeDummy.rotation.set(0,t.rot,0);treeDummy.updateMatrix();mesh.setMatrixAt(i,treeDummy.matrix);tint.setRGB(.92+t.tint*.16,.95+t.tint*.1,.88+(1-t.tint)*.14);mesh.setColorAt(i,tint);}
  mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=!terrainLowSpec;mesh.receiveShadow=true;mesh.computeBoundingSphere();treeGroup.add(mesh);
  setRoundTreeCount(roundTrees.length);
  gltf.scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();for(const m of [].concat(o.material))m&&m.dispose();}});
@@ -402,8 +402,27 @@ const villageVendors=[
  {name:'Nara · Artesanato',shortName:'ARTESANATO',x:marketStalls[3].x,z:marketStalls[3].z+1.55,yaw:Math.PI,greeting:'Faço fechaduras honestas. As gaiolas da mata não são trabalho meu.',hints:['O Anjo-Guia conhece o nome das coisas. Comece por ele.','Téo vende farinha e medo. Os dois estão na banca de provisões.','Se ouvir unhas na trilha, não é vento.','Quando as crianças passarem por aqui, eu baixo o preço do pão.','A montanha ficou com o resto da história. Eu fico com a vila.']}
 ];
 function mergeGrassTuft(sourceRoot){const positions=[],colors=[],indices=[],zUpToYUp=new THREE.Matrix4().makeRotationX(-Math.PI/2);sourceRoot.updateMatrixWorld(true);sourceRoot.traverse(obj=>{if(!obj.isMesh||!obj.geometry||!obj.geometry.attributes.position)return;const geometry=obj.geometry,position=geometry.attributes.position,color=geometry.attributes.color,base=positions.length/3;const vertex=new THREE.Vector3();for(let i=0;i<position.count;i++){vertex.fromBufferAttribute(position,i).applyMatrix4(obj.matrixWorld).applyMatrix4(zUpToYUp);positions.push(vertex.x,vertex.y,vertex.z);colors.push(color?color.getX(i):.38,color?color.getY(i):.56,color?color.getZ(i):.3);}if(geometry.index){for(let i=0;i<geometry.index.count;i++)indices.push(base+geometry.index.getX(i));}else for(let i=0;i<position.count;i++)indices.push(base+i);});if(!positions.length)throw new Error('Grama.glb não contém malhas com vértices');const merged=new THREE.BufferGeometry();merged.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));merged.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));merged.setIndex(indices);merged.computeVertexNormals();merged.computeBoundingBox();merged.computeBoundingSphere();return merged;}
-function scatterGrassTufts(geometry){let seed=1632026;const next=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};const lowSpec=(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches)||innerWidth<700;const target=lowSpec?620:1000,mesh=new THREE.InstancedMesh(geometry,grassMaterial,target),dummy=new THREE.Object3D();let placed=0,attempts=0;while(placed<target&&attempts<target*10){attempts++;const x=(next()-.5)*160,z=26-next()*182;if(!dryGround(x,z))continue;if(Math.hypot(x,z-4)<5.8||Math.hypot(x-CLEARING.x,z-CLEARING.z)<6.8||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1.6)continue;if(trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+.6)))continue;if(treeObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+.5))continue;if(rockObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+.32))continue;if(marketObstacles.some(o=>o.shape==='box'?Math.abs(x-o.x)<o.halfX+.35&&Math.abs(z-o.z)<o.halfZ+.35:Math.hypot(x-o.x,z-o.z)<o.radius+.35))continue;dummy.position.set(x,groundHeightAt(x,z)+.012,z);dummy.rotation.set(0,next()*Math.PI*2,0);dummy.scale.setScalar(2.65+next()*.85);dummy.updateMatrix();mesh.setMatrixAt(placed++,dummy.matrix);}mesh.count=placed;mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;mesh.computeBoundingSphere();grassGroup.remove(grassInstancesA,grassInstancesB);grassGroup.add(mesh);grassGroup.userData.grassInstances=mesh;grassGeo.dispose();grassMatA.dispose();grassMatB.dispose();window.SevenSinsGrassReport={asset:'Grama.glb',instances:placed,deviceTier:lowSpec?'mobile':'desktop'};}
-const grassMaterial=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,side:THREE.DoubleSide});
+/* MOD 186 — grama em blocos de 10 m ao redor do jogador: densa onde se olha, custo constante.
+   Cada bloco é gerado uma vez (determinístico) e reaproveitado quando o jogador volta. */
+let grassRefresh=null;
+function scatterGrassTufts(geometry){
+ const lowSpec=terrainLowSpec,CHUNK=10,R=lowSpec?2:3,PER=lowSpec?22:26,cap=(2*R+1)*(2*R+1)*PER;
+ const mesh=new THREE.InstancedMesh(geometry,grassMaterial,cap),dummy=new THREE.Object3D(),cache=new Map();
+ const blocked=(x,z)=>{if(!dryGround(x,z))return true;if(Math.hypot(x,z-4)<5.8||Math.hypot(x-CLEARING.x,z-CLEARING.z)<6.8||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1.6)return true;if(trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+.6)))return true;if(treeObstacles.some(o=>Math.abs(x-o.x)<o.radius+.5&&Math.hypot(x-o.x,z-o.z)<o.radius+.5))return true;if(rockObstacles.some(o=>Math.abs(x-o.x)<o.radius+.32&&Math.hypot(x-o.x,z-o.z)<o.radius+.32))return true;return marketObstacles.some(o=>o.shape==='box'?Math.abs(x-o.x)<o.halfX+.35&&Math.abs(z-o.z)<o.halfZ+.35:Math.hypot(x-o.x,z-o.z)<o.radius+.35);};
+ function chunk(cx,cz){const key=cx+','+cz;let list=cache.get(key);if(list)return list;list=[];let seed=((cx*73856093)^(cz*19349663))>>>0||1;const next=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  for(let i=0;i<PER*2&&list.length<PER;i++){const x=(cx+next())*CHUNK,z=(cz+next())*CHUNK;
+   // Campinas mais densas e sub-bosque mais ralo, sem bordas retas entre blocos.
+   if(next()>.25+.75*fbm(x*.045+5,z*.045-9,2,71))continue;if(blocked(x,z))continue;
+   dummy.position.set(x,groundHeightAt(x,z)+.012,z);dummy.rotation.set(0,next()*Math.PI*2,0);const sc=1.55+next()*1.05;dummy.scale.set(sc,sc*(.75+next()*.45),sc);dummy.updateMatrix();list.push(dummy.matrix.clone());}
+  cache.set(key,list);return list;}
+ let lastKey='';
+ grassRefresh=(px,pz)=>{const cx=Math.floor(px/CHUNK),cz=Math.floor(pz/CHUNK),key=cx+','+cz;if(key===lastKey)return;lastKey=key;let n=0;
+  for(let dz=-R;dz<=R;dz++)for(let dx=-R;dx<=R;dx++)for(const m of chunk(cx+dx,cz+dz))mesh.setMatrixAt(n++,m);
+  mesh.count=n;mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();window.SevenSinsGrassReport={asset:'Grama.glb',instances:n,chunks:cache.size,deviceTier:lowSpec?'mobile':'desktop'};};
+ mesh.castShadow=false;mesh.receiveShadow=false;grassGroup.remove(grassInstancesA,grassInstancesB);grassGroup.add(mesh);grassGroup.userData.grassInstances=mesh;grassGeo.dispose();grassMatA.dispose();grassMatB.dispose();
+ grassRefresh(player.position.x,player.position.z);
+}
+const grassMaterial=new THREE.MeshStandardMaterial({color:0x93a67c,vertexColors:true,roughness:1,side:THREE.DoubleSide});
 addInstancedWind(grassMaterial,.045,'clamp(position.y*3.25,0.0,1.0)',1.05,'mod163-grass-wind');
 new GLTFLoader().load('./Grama.glb?v=mod163-forest-grass-instances',gltf=>{try{const tuftGeometry=mergeGrassTuft(gltf.scene);scatterGrassTufts(tuftGeometry);const disposedGeometries=new Set(),disposedMaterials=new Set();gltf.scene.traverse(obj=>{if(!obj.isMesh)return;if(obj.geometry&&!disposedGeometries.has(obj.geometry)){obj.geometry.dispose();disposedGeometries.add(obj.geometry);}for(const material of (Array.isArray(obj.material)?obj.material:[obj.material]))if(material&&!disposedMaterials.has(material)){material.dispose();disposedMaterials.add(material);}});}catch(err){console.warn('Grama.glb não foi instanciada; mantendo a vegetação leve de reserva.',err);}},undefined,err=>console.warn('Grama.glb não carregou; mantendo a vegetação leve de reserva.',err));
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
@@ -1300,7 +1319,7 @@ function applyGraphics3D(mode,autoScale){
  sunLight.shadow.camera.updateProjectionMatrix();
  sunLight.shadow.needsUpdate=true;
  renderer.shadowMap.needsUpdate=true;
- grassGroup.visible=mode==='auto'?graphics3DScale>=.72:baseline.foliage;
+ grassGroup.visible=mode==='auto'?graphics3DScale>=.6:baseline.foliage;
  mossInstancesA.visible=grassGroup.visible;mossInstancesB.visible=grassGroup.visible;
  for(const cloud of movingClouds)cloud.group.visible=mode==='auto'?graphics3DScale>=.7:baseline.clouds;
  const label=mode==='auto'?'Automático':mode==='low'?'Baixo':mode==='high'?'Alto':'Máximo';
@@ -1362,6 +1381,7 @@ const fallingLeaves=(()=>{const pos=new Float32Array(LEAF_COUNT*3),col=new Float
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));
  const pts=new THREE.Points(g,new THREE.PointsMaterial({size:.13,sizeAttenuation:true,vertexColors:true,transparent:true,opacity:.9,depthWrite:false}));pts.frustumCulled=false;scene.add(pts);return{pts,pos,vel};})();
 function updateAmbientLife(dt,now){
+ if(grassRefresh)grassRefresh(player.position.x,player.position.z);
  const night=dayNightState.t,t=now*.001,px=player.position.x,pz=player.position.z;
  const ready=questStep>=6;portalBeacon.material.opacity=(ready?.42:.17)+night*.14+Math.sin(t*1.7)*.035;
  fireflies.pts.visible=night>.35&&grassGroup.visible;

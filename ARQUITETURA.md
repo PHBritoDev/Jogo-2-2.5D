@@ -95,3 +95,9 @@ Quarto Bispo. O torneio continua exigindo quatro Bispos derrotados.
   absoluta com `?v=BUILD`; ao adicionar módulos ao mundo 3D basta importá-los.
 - `?debug3d=1` expõe `window.SevenSinsDebug3D` para verificação automática
   (teleporte, câmera livre, contagem de draw calls). Não aparece para o jogador.
+- Outros módulos puros do mundo 3D (com testes `*.test.mjs`, rodar `node --test`):
+  `skills3d.js` (desbloqueio/mana/recarga das Palavras), `map3d.js` (névoa de
+  guerra, locais, abrigos e regras de viagem rápida) e `audio3d.js` (áudio
+  procedural; sem teste em Node por depender de Web Audio).
+- A grama (`Grama.glb`) é distribuída em blocos de 10 m ao redor do jogador
+  (`grassRefresh`), com custo constante; a floresta e as encostas são fixas.
