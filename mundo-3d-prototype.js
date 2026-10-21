@@ -40,7 +40,7 @@ function addNearCameraFade(material,near=3.2){
  const key=previousKey?previousKey.call(material):'';material.customProgramCacheKey=()=>key+'|near-fade';material.needsUpdate=true;
 }
 const sunPosition=new THREE.Vector3(-18,58,-170);
-const SUN_DIRECTION=new THREE.Vector3(-.12,.5,-.86).normalize(),SKY_SCALE=3.15,SKY_FOLLOW=new THREE.Vector3();
+const SUN_DIRECTION=new THREE.Vector3(-.12,.5,-.86).normalize(),MOON_DIRECTION=new THREE.Vector3(42,72,95).normalize(),LIGHT_DIRECTION=SUN_DIRECTION.clone(),SKY_SCALE=3.15,SKY_FOLLOW=new THREE.Vector3();
 const sunLight=new THREE.DirectionalLight(0xffe6b5,2.1);sunLight.position.copy(sunPosition);sunLight.castShadow=true;scene.add(sunLight.target);
 sunLight.shadow.mapSize.set(512,512);sunLight.shadow.camera.left=-68;sunLight.shadow.camera.right=68;sunLight.shadow.camera.top=68;sunLight.shadow.camera.bottom=-68;sunLight.shadow.bias=-0.0004;sunLight.shadow.normalBias=.035;scene.add(sunLight);
 const fill=new THREE.DirectionalLight(0xa9d2e8,.48);fill.position.set(30,18,-22);scene.add(fill);
@@ -111,17 +111,22 @@ const moonPosition=new THREE.Vector3(42,72,95);
 let moonRoot=null,moonVisible=false;
 new GLTFLoader().load('./Lua.glb?v=mod181-moon',gltf=>{
  const moon=gltf.scene;
- moon.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=false;if(o.material){o.material.toneMapped=false;o.material.emissive=o.material.emissive||new THREE.Color(0x223344);}}});
+ moon.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=false;if(o.material){o.material.toneMapped=false;o.material.emissive=new THREE.Color(0xfff1d6);if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=.85;}else o.material.emissiveIntensity=.2;}}});
  const bounds=new THREE.Box3().setFromObject(moon),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  const target=7.5,scale=size.y>.001?target/size.y:1;
  moon.scale.setScalar(scale);moon.position.set(-center.x*scale,-center.y*scale,-center.z*scale);
- moonRoot=new THREE.Group();moonRoot.position.copy(moonPosition);moon.traverse(o=>{if(o.isMesh&&o.material)for(const m of [].concat(o.material))m.fog=false;});moonRoot.add(moon);moonRoot.visible=false;scene.add(moonRoot);moonVisible=true;
+ moonRoot=new THREE.Group();moonRoot.position.copy(moonPosition);moon.traverse(o=>{if(o.isMesh&&o.material)for(const m of [].concat(o.material))m.fog=false;});const moonFace=new THREE.Group();moonFace.rotation.y=-Math.PI/4;moonFace.add(moon);moonRoot.add(moonFace);const moonGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:sunHaloTexture,color:0x9fb8ff,transparent:true,opacity:.55,depthWrite:false,fog:false,toneMapped:false}));moonGlow.scale.set(17,17,1);moonGlow.position.z=-2;moonRoot.add(moonGlow);moonRoot.visible=false;scene.add(moonRoot);moonVisible=true;
 },undefined,err=>console.warn('Lua.glb não carregou; mantendo céu sem modelo 3D.',err));
 
+/* MOD 186 — céu estrelado leve (1 draw call), visível só à noite. */
+const starField=(()=>{const count=terrainLowSpec?650:1100,pos=new Float32Array(count*3),col=new Float32Array(count*3);let s=7731;const r=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};
+ for(let i=0;i<count;i++){const u=r(),v=.08+r()*.92,th=u*Math.PI*2,y=v,rad=Math.sqrt(1-y*y);pos[i*3]=Math.cos(th)*rad*640;pos[i*3+1]=y*640;pos[i*3+2]=Math.sin(th)*rad*640;const w=.65+r()*.35,tint=r();col[i*3]=w*(tint>.8?1:.86);col[i*3+1]=w*.9;col[i*3+2]=w*(tint<.25?.78:1);}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));
+ const pts=new THREE.Points(g,new THREE.PointsMaterial({size:1.6,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:0,depthWrite:false,fog:false,toneMapped:false}));pts.frustumCulled=false;pts.renderOrder=-9;pts.visible=false;scene.add(pts);return pts;})();
 const dayNightState={mode:'day',t:0,target:0};
 const villageTorchLights=[];
 const dayPreset={bg:0xb8d4d7,fog:0xa6bfc4,fogNear:46,fogFar:340,hemiSky:0xeaf7ff,hemiGround:0x59684b,hemiInt:1.55,sunInt:2.1,fillInt:.48,exposure:1.02,sunDiskVis:true,moonVis:false,torchInt:.35};
-const nightPreset={bg:0x0b1420,fog:0x101c28,fogNear:26,fogFar:230,hemiSky:0x1a2a3c,hemiGround:0x1a2218,hemiInt:.42,sunInt:.08,fillInt:.12,exposure:.88,sunDiskVis:false,moonVis:true,torchInt:1.55};
+const nightPreset={bg:0x0d1626,fog:0x17263c,fogNear:30,fogFar:270,hemiSky:0x4a6a9a,hemiGround:0x1b2418,hemiInt:.82,sunInt:.62,fillInt:.16,exposure:1,sunDiskVis:false,moonVis:true,torchInt:1.55};
 function lerpColorHex(a,b,t){const ca=new THREE.Color(a),cb=new THREE.Color(b);return ca.lerp(cb,t);}
 function applyDayNightVisual(t){
  const p=t;
@@ -134,6 +139,9 @@ function applyDayNightVisual(t){
  hemiLight.intensity=THREE.MathUtils.lerp(dayPreset.hemiInt,nightPreset.hemiInt,p);
  sunLight.intensity=THREE.MathUtils.lerp(dayPreset.sunInt,nightPreset.sunInt,p);
  fill.intensity=THREE.MathUtils.lerp(dayPreset.fillInt,nightPreset.fillInt,p);
+ // MOD 186 — à noite a luz principal vira luar azulado vindo da lua (com sombras), sem apagar a leitura do cenário.
+ sunLight.color.copy(lerpColorHex(0xffe6b5,0xa9c3ff,p));LIGHT_DIRECTION.copy(SUN_DIRECTION).lerp(MOON_DIRECTION,p).normalize();
+ if(starField){starField.visible=p>.3;starField.material.opacity=THREE.MathUtils.smoothstep(p,.3,1)*.95;}
  renderer.toneMappingExposure=THREE.MathUtils.lerp(dayPreset.exposure,nightPreset.exposure,p);
  if(sunDisk)sunDisk.visible=p<.55;
  if(sunHalo)sunHalo.visible=p<.55;
@@ -143,7 +151,7 @@ function applyDayNightVisual(t){
  if(skyDome&&skyDome.geometry&&skyDome.geometry.attributes.color){
   const cols=skyDome.geometry.attributes.color,pos=skyDome.geometry.attributes.position;
   const dayH=new THREE.Color(0xc4dbd4),dayZ=new THREE.Color(0x559dcc);
-  const nightH=new THREE.Color(0x121a28),nightZ=new THREE.Color(0x0a1020);
+  const nightH=new THREE.Color(0x24344e),nightZ=new THREE.Color(0x050a17);
   for(let i=0;i<pos.count;i++){
    const y=pos.getY(i)/220;let u=THREE.MathUtils.clamp((y+.12)/.94,0,1);u=u*u*(3-2*u);
    const d=dayH.clone().lerp(dayZ,u),n=nightH.clone().lerp(nightZ,u),c=d.lerp(n,p);
@@ -698,7 +706,7 @@ const guideAura=new THREE.PointLight(0xffe6a3,.45,2.8);guideAura.position.set(0,
 const guideShadow=new THREE.Mesh(new THREE.CircleGeometry(.28,20),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.28,depthWrite:false}));
 guideShadow.rotation.x=-Math.PI/2;guideShadow.position.y=.014;guide.add(guideShadow);
 const questMarker=new THREE.Mesh(new THREE.TorusGeometry(.38,.04,8,28),new THREE.MeshBasicMaterial({color:0xffd65a}));
-questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,.06,guide.position.z);scene.add(questMarker);
+questMarker.rotation.x=Math.PI/2;questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);scene.add(questMarker);
 const clearingPatch=new THREE.Mesh(new THREE.CircleGeometry(5.4,24),new THREE.MeshStandardMaterial({color:0x786f55,roughness:1}));clearingPatch.rotation.x=-Math.PI/2;clearingPatch.position.set(CLEARING.x,.012,CLEARING.z);clearingPatch.receiveShadow=true;scene.add(clearingPatch);
 /* MOD 181 — ruína secreta acessível ao lado da trilha, recompensa visual de exploração. */
 const secretRuin=new THREE.Group();secretRuin.position.set(SECRET_RUIN_SPOT.x,groundHeightAt(SECRET_RUIN_SPOT.x,SECRET_RUIN_SPOT.z),SECRET_RUIN_SPOT.z);scene.add(secretRuin);
@@ -803,7 +811,7 @@ let mountainIndex=saved3DProgress.mountainIndex||0,wardenTaunted=!!saved3DProgre
 let wardenIntroLock=false,portalPull=null,handoffSent=false;
 let namePromptOpen=false,awakeningActive=!awakeningSeen&&questStep===0,awakeningT=0,tauntLock=false,reunionStarted=false,purseGiven=questStep>0;
 if(questStep<2)enemy.visible=false;
-if(questStep===2){enemy.position.set(JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,0,JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59);enemy.visible=false;}
+if(questStep===2){{const jx=JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,jz=JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59;enemy.position.set(jx,terrainHeightAt(jx,jz),jz);}enemy.visible=false;}
 portalGroup.visible=true;
 function save3DProgress(){const progress={version:ACT1.version,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 function updateQuestHud(){const view=questPresentation(questStep);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
@@ -841,7 +849,7 @@ function combatStepNow(){return questStep===2||questStep===4||questStep===5;}
 function enemyHpPercent(){return Math.max(0,Math.min(100,enemyHP/Math.max(1,enemyMaxHP)*100));}
 function nextDashCooldown(){if(encounterProfile==='warden')return 2.15;if(encounterProfile==='sentry'&&mountainIndex>0)return 1.65;return 2.7;}
 function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;el.textContent=encounterProfile==='warden'?'GUARDA DA PASSAGEM':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
-function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,0,spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
+function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
 function advanceAfterEnemyDefeat(){enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;if(questStep===2){enemyHP=100;enemyMaxHP=100;enemyAlive=true;encounterProfile='captor';const next=afterEnemyDefeated(journeyEnemyIndex,JOURNEY_ENEMIES.length);questStep=next.questStep;journeyEnemyIndex=next.journeyEnemyIndex;status.textContent=next.status;save3DProgress();updateQuestHud();return;}if(questStep===4){const next=afterMountainDefeat(mountainIndex,MOUNTAIN_SENTRIES.length);questStep=next.questStep;mountainIndex=next.mountainIndex;enemyHP=100;enemyMaxHP=100;enemyAlive=true;status.textContent=next.status;save3DProgress();updateQuestHud();if(questStep===5){const toast=document.getElementById('quest-toast');if(toast){toast.textContent='O GUARDA DA PASSAGEM ESPERA';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2400);}}return;}if(questStep===5){const next=afterWardenDefeat();questStep=next.questStep;wardenDefeated=true;enemyHP=100;enemyMaxHP=100;enemyAlive=true;coins+=ACT1.wardenReward;status.textContent=next.status;save3DProgress();updateQuestHud();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='GUARDA DERROTADO · +'+ACT1.wardenReward+' MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}}}
 function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
 function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;if(questStep===1&&vendor.shortName==='PROVISÕES'){talkToInformant();return;}const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
@@ -1074,26 +1082,31 @@ function spawnAct1Children(){
  });
  if(childrenFreed)openCageDoors();
 }
+/* MOD 186 — escolta atrás do herói (não grudada no mundo +Z) e, depois do reencontro, as crianças ficam
+   na vila com as famílias. Antes elas seguiam o jogador para sempre, inclusive nas lutas e até o portal. */
+const CHILD_HOMES=[{x:VILLAGE_CENTER.x-4.6,z:VILLAGE_CENTER.z+1.5},{x:VILLAGE_CENTER.x-3.4,z:VILLAGE_CENTER.z+1.1}];
 function updateChildren(dt){
- for(const child of childFollowers){
+ for(let i=0;i<childFollowers.length;i++){
+  const child=childFollowers[i];
   child.root.visible=questStep>=2;
   if(!child.root.visible)continue;
   if(child.mixer)child.mixer.update(dt);
-  const home=childrenFreed?null:child.home;
-  const tx=home?home.x:player.position.x+child.offset;
-  const tz=home?home.z:player.position.z+1.25;
-  child.root.position.x+=(tx-child.root.position.x)*Math.min(1,dt*(childrenFreed?2.4:8));
-  child.root.position.z+=(tz-child.root.position.z)*Math.min(1,dt*(childrenFreed?2.4:8));
+  let tx,tz,rate;
+  if(!childrenFreed){tx=child.home.x;tz=child.home.z;rate=8;}
+  else if(questStep>=4){const h=CHILD_HOMES[i%CHILD_HOMES.length];tx=h.x;tz=h.z;rate=1.4;}
+  else{const fx=Math.sin(playerYaw),fz=Math.cos(playerYaw),back=1.55+i*.2;tx=player.position.x-fx*back+fz*child.offset*.85;tz=player.position.z-fz*back-fx*child.offset*.85;rate=2.6;}
+  child.root.position.x+=(tx-child.root.position.x)*Math.min(1,dt*rate);
+  child.root.position.z+=(tz-child.root.position.z)*Math.min(1,dt*rate);
   child.root.position.y=terrainHeightAt(child.root.position.x,child.root.position.z);
-  const faceX=childrenFreed?player.position.x:child.root.position.x;
-  const faceZ=childrenFreed?player.position.z:child.root.position.z+1;
-  if(childrenFreed)child.root.lookAt(faceX,child.root.position.y,faceZ);
+  if(childrenFreed){const lookX=questStep>=4?VILLAGE_CENTER.x:player.position.x,lookZ=questStep>=4?VILLAGE_CENTER.z:player.position.z;child.root.lookAt(lookX,child.root.position.y,lookZ);}
  }
 }
 buildAct1Cages();
 
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z),feet=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))feet.push(p.y);}});if(feet.length){model.position.y+=floorY-Math.min(...feet);}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
+ // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
+ if(enemyAlive||enemyHasDeathClip)enemy.position.y=terrainHeightAt(enemy.position.x,enemy.position.z);
  enemy.updateMatrixWorld(true);
  const floorY=terrainHeightAt(enemy.position.x,enemy.position.z),footPoints=[];
  enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
@@ -1104,7 +1117,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
  if(enemyCurrentRole==='hit'&&enemyCurrentAction&&!enemyCurrentAction.isRunning()&&enemyAlive)playEnemyAnimation('idle',.08);
-  if(!enemyAlive&&!enemyHasDeathClip&&enemy.visible){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
+  if(!enemyAlive&&!enemyHasDeathClip&&enemy.visible){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(terrainHeightAt(enemy.position.x,enemy.position.z)-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
  guide.position.y=groundHeightAt(guide.position.x,guide.position.z);guideAura.intensity=.4+Math.sin(now*.003)*.06;
  const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
  const clearingDistance=Math.hypot(CLEARING.x-player.position.x,CLEARING.z-player.position.z);
@@ -1115,10 +1128,10 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const fightingNow=enemy.visible&&enemyAlive;const portalReady=(questStep===6||questStep===7)&&portalDistance<=3.8&&!fightingNow,portalSoon=(questStep===4||questStep===5)&&portalDistance<=3.8&&!fightingNow;const canTalk=(questStep===0&&guideDistance<=2.7)||(questStep===1&&teoDistance<=2.9)||(questStep===3&&!childrenFreed&&cageDistance<=4.2)||portalReady||portalSoon||!!nearbyVendor;
  if(talkButton){const label=questStep===1&&teoDistance<=2.9?(coins>=ACT1.bribe?'OFERECER 5':'FALAR · TÉO'):questStep===3&&!childrenFreed&&cageDistance<=4.2?'ABRIR GAIOLAS':portalReady?'ATRAVESSAR':portalSoon?'PORTAL FECHADO':nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull);}
  questMarker.visible=questStep<7&&!portalPull;
- if(questStep===0)questMarker.position.set(guide.position.x,.06,guide.position.z);
- if(questStep===1)questMarker.position.set(teo.x,.06,teo.z);
- if(questStep===2){const target=JOURNEY_ENEMIES[journeyEnemyIndex];if(target){questMarker.position.set(target.x,.06,target.z);const near=Math.hypot(target.x-player.position.x,target.z-player.position.z)<10;if(journeyEnemyIndex===0&&!captorsTaunted){if(near)beginCaptorTaunt();}else if(near){revealEncounter('captor',target,100,'Cuidado! Um captor bloqueia a trilha.');}}}
- if(questStep===3){if(!childrenFreed)questMarker.position.set(CAGE_CENTER.x,.06,CAGE_CENTER.z);else questMarker.position.set(VILLAGE_CENTER.x,.06,VILLAGE_CENTER.z);}
+ if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
+ if(questStep===1)questMarker.position.set(teo.x,terrainHeightAt(teo.x,teo.z)+.06,teo.z);
+ if(questStep===2){const target=JOURNEY_ENEMIES[journeyEnemyIndex];if(target){questMarker.position.set(target.x,terrainHeightAt(target.x,target.z)+.06,target.z);const near=Math.hypot(target.x-player.position.x,target.z-player.position.z)<10;if(journeyEnemyIndex===0&&!captorsTaunted){if(near)beginCaptorTaunt();}else if(near){revealEncounter('captor',target,100,'Cuidado! Um captor bloqueia a trilha.');}}}
+ if(questStep===3){if(!childrenFreed)questMarker.position.set(CAGE_CENTER.x,terrainHeightAt(CAGE_CENTER.x,CAGE_CENTER.z)+.06,CAGE_CENTER.z);else questMarker.position.set(VILLAGE_CENTER.x,terrainHeightAt(VILLAGE_CENTER.x,VILLAGE_CENTER.z)+.06,VILLAGE_CENTER.z);}
  if(questStep===4){const spot=MOUNTAIN_SENTRIES[Math.min(mountainIndex,MOUNTAIN_SENTRIES.length-1)];if(spot&&mountainIndex<MOUNTAIN_SENTRIES.length){questMarker.position.set(spot.x,terrainHeightAt(spot.x,spot.z)+.06,spot.z);if(Math.hypot(spot.x-player.position.x,spot.z-player.position.z)<8)revealEncounter('sentry',spot,ACT1.sentryHp,mountainIndex>0?'A segunda sentinela desce um degrau da trilha.':'Uma sentinela bloqueia a subida.');}}
  if(questStep===5){questMarker.position.set(WARDEN_SPOT.x,terrainHeightAt(WARDEN_SPOT.x,WARDEN_SPOT.z)+.06,WARDEN_SPOT.z);const nearWarden=Math.hypot(WARDEN_SPOT.x-player.position.x,WARDEN_SPOT.z-player.position.z)<8;if(nearWarden&&!wardenTaunted)beginWardenIntro();else if(nearWarden)revealEncounter('warden',WARDEN_SPOT,ACT1.wardenHp,'O guarda ainda segura a passagem.');}
  if(questStep===6)questMarker.position.set(PORTAL.x,terrainHeightAt(PORTAL.x,PORTAL.z)+.06,PORTAL.z);
@@ -1205,11 +1218,12 @@ updateAutoGraphics3D(dt,now);
 function updateSkyAndShadows(){
  skyDome.position.copy(camera.position);skyDome.scale.setScalar(SKY_SCALE);
  SKY_FOLLOW.copy(SUN_DIRECTION).multiplyScalar(560).add(camera.position);sunDisk.position.copy(SKY_FOLLOW);sunHalo.position.copy(SKY_FOLLOW);sunDisk.scale.setScalar(2.6);sunHalo.scale.set(68,68,1);
- if(moonRoot){moonRoot.position.set(camera.position.x+moonPosition.x*2.2,camera.position.y+moonPosition.y*2.2,camera.position.z+moonPosition.z*2.2);moonRoot.scale.setScalar(2.2);moonRoot.lookAt(camera.position);}
+ if(moonRoot){moonRoot.position.set(camera.position.x+moonPosition.x*2.2,camera.position.y+moonPosition.y*2.2,camera.position.z+moonPosition.z*2.2);moonRoot.scale.setScalar(4);moonRoot.lookAt(camera.position);}
  // Caixa de sombra menor e centrada no jogador: sombras mais nítidas sem custo extra; ajusta à grade de texels para não tremer.
  const texel=(sunLight.shadow.camera.right-sunLight.shadow.camera.left)/Math.max(1,sunLight.shadow.mapSize.x);
  const tx=Math.round(player.position.x/texel)*texel,tz=Math.round(player.position.z/texel)*texel;
- sunLight.target.position.set(tx,player.position.y,tz);sunLight.position.set(tx+SUN_DIRECTION.x*90,player.position.y+SUN_DIRECTION.y*90,tz+SUN_DIRECTION.z*90);
+ sunLight.target.position.set(tx,player.position.y,tz);sunLight.position.set(tx+LIGHT_DIRECTION.x*90,player.position.y+LIGHT_DIRECTION.y*90,tz+LIGHT_DIRECTION.z*90);
+ if(starField)starField.position.copy(camera.position);
 }
 /* MOD 186 — a câmera em terceira pessoa não atravessa encostas nem a subida do portal. */
 function keepCameraAboveTerrain(){
@@ -1282,11 +1296,14 @@ let debugCameraOverride=null;
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  teleport(x,z,yaw){player.position.set(x,terrainHeightAt(x,z),z);if(Number.isFinite(yaw)){cameraYaw=yaw;}},
  view(yaw,pitch,dist){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=dist;},
- state(){return{x:player.position.x,y:player.position.y,z:player.position.z,walkable:terrain3D.walkable(player.position.x,player.position.z),edge:terrain3D.boundaryDistance(player.position.x,player.position.z),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,terrain:window.SevenSinsTerrainReport,forest:window.SevenSinsForestReport,trees:treeSpecs.length};},
- setNight(on){setDayNightMode(on?'night':'day');},
+ state(){return{x:player.position.x,y:player.position.y,z:player.position.z,walkable:terrain3D.walkable(player.position.x,player.position.z),edge:terrain3D.boundaryDistance(player.position.x,player.position.z),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,terrain:window.SevenSinsTerrainReport,forest:window.SevenSinsForestReport,trees:treeSpecs.length,fog:scene.fog.color.getHexString(),fogFar:scene.fog.far,night:dayNightState.t,quest:questStep,coins,dialogueOpen,namePromptOpen,awakeningActive,hp:playerHP,enemy:{hp:enemyHP,visible:enemy.visible,alive:enemyAlive,x:+enemy.position.x.toFixed(1),z:+enemy.position.z.toFixed(1),y:+enemy.position.y.toFixed(2)},objective:(document.getElementById('quest-objective')||{}).textContent};},
+ setNight(on){setDayNightMode(on?'night':'day');dayNightState.t=dayNightState.target;applyDayNightVisual(dayNightState.t);},
  fly(from,to){debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
- freeRoam(){awakeningActive=false;namePromptOpen=false;dialogueOpen=false;}
+ freeRoam(){awakeningActive=false;namePromptOpen=false;dialogueOpen=false;},
+ teo(){const t=villageVendors[2];return{x:t.x,z:t.z};},
+ face(){if(enemy.visible){playerYaw=Math.atan2(enemy.position.x-player.position.x,enemy.position.z-player.position.z);player.rotation.y=playerYaw;}},
+ target(){const m=questMarker.position;return questMarker.visible===false?null:{x:m.x,z:m.z};}
 };
 
 animate();
