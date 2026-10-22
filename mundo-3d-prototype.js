@@ -328,6 +328,31 @@ const coniferGeometry=(()=>{
  tiers.forEach(([y,r,h],i)=>parts.push({geometry:new THREE.ConeGeometry(r,h,7,1),matrix:M(0,y+h*.5,0,1,1,1,i*.7),color:i%2?0x23452f:0x1d3c2a,shade:yy=>.78+Math.min(.42,(yy-y)/h*.42)}));
  return mergeColoredParts(parts);
 })();
+/* MOD 202 — corte de instâncias: florestas inteiras eram desenhadas todo quadro (inclusive árvores atrás da
+   câmera e a 300 m). Mantemos o conjunto completo na memória e enviamos à GPU só as instâncias perto e à frente. */
+const instanceCullers=[],_cullDir=new THREE.Vector3();let cullFrame=0,cullLastX=1e9,cullLastZ=1e9,cullLastYaw=1e9;
+function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
+ const n=mesh.count,src=mesh.instanceMatrix.array.slice(0,n*16),col=mesh.instanceColor?mesh.instanceColor.array.slice(0,n*3):null,pos=new Float32Array(n*3);
+ for(let i=0;i<n;i++){pos[i*3]=src[i*16+12];pos[i*3+1]=src[i*16+13];pos[i*3+2]=src[i*16+14];}
+ mesh.frustumCulled=false;instanceCullers.push({mesh,n,src,col,pos,r2:radius*radius,min2:minRadius*minRadius,near2:keepNear*keepNear});cullLastX=1e9;
+}
+function updateInstanceCulling(){
+ if(!instanceCullers.length||(++cullFrame%4))return;
+ camera.getWorldDirection(_cullDir);const yaw=Math.atan2(_cullDir.x,_cullDir.z),px=player.position.x,pz=player.position.z;
+ if(Math.abs(px-cullLastX)<3&&Math.abs(pz-cullLastZ)<3&&Math.abs(yaw-cullLastYaw)<.12)return;
+ cullLastX=px;cullLastZ=pz;cullLastYaw=yaw;
+ const cx=camera.position.x,cz=camera.position.z,fl=Math.hypot(_cullDir.x,_cullDir.z)||1,fx=_cullDir.x/fl,fz=_cullDir.z/fl;
+ for(const c of instanceCullers){
+  const arr=c.mesh.instanceMatrix.array,carr=c.col&&c.mesh.instanceColor?c.mesh.instanceColor.array:null;let k=0;
+  for(let i=0;i<c.n;i++){
+   const dx=c.pos[i*3]-cx,dz=c.pos[i*3+2]-cz,d2=dx*dx+dz*dz;
+   if(d2>c.r2||d2<c.min2)continue;
+   if(d2>c.near2&&(dx*fx+dz*fz)<-.1*Math.sqrt(d2))continue;
+   arr.set(c.src.subarray(i*16,i*16+16),k*16);if(carr)carr.set(c.col.subarray(i*3,i*3+3),k*3);k++;
+  }
+  c.mesh.count=k;c.mesh.instanceMatrix.needsUpdate=true;if(carr)c.mesh.instanceColor.needsUpdate=true;
+ }
+}
 const coniferMaterial=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.95,flatShading:true});
 addInstancedWind(coniferMaterial,.035,'clamp((position.y-0.2)*1.3,0.0,1.0)',.64,'mod186-conifer-wind');addNearCameraFade(coniferMaterial,4.4);
 const coniferInstances=new THREE.InstancedMesh(coniferGeometry,coniferMaterial,Math.max(1,coniferTrees.length));
@@ -337,7 +362,16 @@ const coniferInstances=new THREE.InstancedMesh(coniferGeometry,coniferMaterial,M
   treeDummy.position.set(t.x,t.y,t.z);treeDummy.scale.set(w,t.height,w);treeDummy.rotation.set(0,t.rot,0);treeDummy.updateMatrix();coniferInstances.setMatrixAt(i,treeDummy.matrix);
   tint.copy(tintA).lerp(t.tint<.5?tintB:tintC,Math.abs(t.tint-.5)*1.4);coniferInstances.setColorAt(i,tint);}
  coniferInstances.count=coniferTrees.length;coniferInstances.instanceMatrix.needsUpdate=true;if(coniferInstances.instanceColor)coniferInstances.instanceColor.needsUpdate=true;
- coniferInstances.castShadow=!terrainLowSpec;coniferInstances.receiveShadow=true;coniferInstances.computeBoundingSphere();treeGroup.add(coniferInstances);
+ coniferInstances.castShadow=!terrainLowSpec;coniferInstances.receiveShadow=true;coniferInstances.computeBoundingSphere();registerInstanceCull(coniferInstances,120);treeGroup.add(coniferInstances);
+}
+/** Carvalho distante: copa elipsoidal + tronco (~100 triângulos em vez de ~380), com as cores médias do modelo completo. */
+function buildOakFarGeometry(src){
+ src.computeBoundingBox();const b=src.boundingBox,h=Math.max(.1,b.max.y-b.min.y),w=Math.max(.1,Math.max(b.max.x-b.min.x,b.max.z-b.min.z));
+ const cx=(b.max.x+b.min.x)/2,cz=(b.max.z+b.min.z)/2,crown=new THREE.IcosahedronGeometry(1,1),trunk=new THREE.CylinderGeometry(.16*h*.1+.12,.22*h*.1+.18,h*.5,6,1);
+ const parts=[[crown,[.1,.26,.12],(g)=>{g.scale(w*.46,h*.28,w*.46);g.translate(cx,b.min.y+h*.7,cz);}],[trunk,[.22,.16,.1],(g)=>{g.translate(cx,b.min.y+h*.25,cz);}]];
+ const pos=[],col=[];
+ for(const [g0,c,fix] of parts){const g=g0.index?g0.toNonIndexed():g0;fix(g);const p=g.attributes.position;for(let i=0;i<p.count;i++){pos.push(p.getX(i),p.getY(i),p.getZ(i));const lift=.85+.3*Math.max(0,(p.getY(i)-b.min.y)/h-.4);col.push(c[0]*lift,c[1]*lift,c[2]*lift);}}
+ const out=new THREE.BufferGeometry();out.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));out.setAttribute('color',new THREE.Float32BufferAttribute(col,3));out.computeVertexNormals();return out;
 }
 // Carvalho autoral: Arvore.glb tem o tronco começando 1,76 m acima das raízes; estica a base até o chão.
 function mergeOakTree(sourceRoot){
@@ -363,7 +397,10 @@ if(oakTrees.length)new GLTFLoader().load('./Arvore.glb?v=mod186-oak',gltf=>{try{
  addInstancedWind(material,.05,'clamp((position.y-2.6)/2.8,0.0,1.0)',.7,'mod186-oak-wind');addNearCameraFade(material);
  const mesh=new THREE.InstancedMesh(geometry,material,oakTrees.length),tint=new THREE.Color();
  for(let i=0;i<oakTrees.length;i++){const t=oakTrees[i];treeDummy.position.set(t.x,t.y,t.z);treeDummy.scale.set(t.height*(.7+t.tint*.18),t.height*1.12,t.height*(.7+(1-t.tint)*.18));treeDummy.rotation.set(0,t.rot,0);treeDummy.updateMatrix();mesh.setMatrixAt(i,treeDummy.matrix);tint.setRGB(.92+t.tint*.16,.95+t.tint*.1,.88+(1-t.tint)*.14);mesh.setColorAt(i,tint);}
- mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=!terrainLowSpec;mesh.receiveShadow=true;mesh.computeBoundingSphere();treeGroup.add(mesh);
+ mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=!terrainLowSpec;mesh.receiveShadow=true;mesh.computeBoundingSphere();{const farGeo=buildOakFarGeometry(geometry),farMesh=new THREE.InstancedMesh(farGeo,material,oakTrees.length);
+  farMesh.instanceMatrix.array.set(mesh.instanceMatrix.array);farMesh.instanceMatrix.needsUpdate=true;for(let i=0;i<oakTrees.length;i++){mesh.getColorAt(i,tint);farMesh.setColorAt(i,tint);}if(farMesh.instanceColor)farMesh.instanceColor.needsUpdate=true;
+  farMesh.castShadow=false;farMesh.receiveShadow=false;farMesh.count=oakTrees.length;treeGroup.add(farMesh);registerInstanceCull(farMesh,112,0,48);registerInstanceCull(mesh,48,26);}
+ treeGroup.add(mesh);
  setRoundTreeCount(roundTrees.length);
  gltf.scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();for(const m of [].concat(o.material))m&&m.dispose();}});
  window.SevenSinsForestReport={oaks:oakTrees.length,round:roundTrees.length,conifers:coniferTrees.length,oakVertices:geometry.attributes.position.count};
@@ -437,6 +474,23 @@ const villageVendors=[
  {name:'Nara · Artesanato',shortName:'ARTESANATO',x:marketStalls[3].x,z:marketStalls[3].z+1.55,yaw:Math.PI,greeting:'Faço fechaduras honestas. As gaiolas da mata não são trabalho meu.',hints:['O Anjo-Guia conhece o nome das coisas. Comece por ele.','Téo vende farinha e medo. Os dois estão na banca de provisões.','Se ouvir unhas na trilha, não é vento.','Quando as crianças passarem por aqui, eu baixo o preço do pão.','A montanha ficou com o resto da história. Eu fico com a vila.']}
 ];
 function mergeGrassTuft(sourceRoot){const positions=[],colors=[],indices=[],zUpToYUp=new THREE.Matrix4().makeRotationX(-Math.PI/2);sourceRoot.updateMatrixWorld(true);sourceRoot.traverse(obj=>{if(!obj.isMesh||!obj.geometry||!obj.geometry.attributes.position)return;const geometry=obj.geometry,position=geometry.attributes.position,color=geometry.attributes.color,base=positions.length/3;const vertex=new THREE.Vector3();for(let i=0;i<position.count;i++){vertex.fromBufferAttribute(position,i).applyMatrix4(obj.matrixWorld).applyMatrix4(zUpToYUp);positions.push(vertex.x,vertex.y,vertex.z);colors.push(color?color.getX(i):.38,color?color.getY(i):.56,color?color.getZ(i):.3);}if(geometry.index){for(let i=0;i<geometry.index.count;i++)indices.push(base+geometry.index.getX(i));}else for(let i=0;i<position.count;i++)indices.push(base+i);});if(!positions.length)throw new Error('Grama.glb não contém malhas com vértices');const merged=new THREE.BufferGeometry();merged.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));merged.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));merged.setIndex(indices);merged.computeVertexNormals();merged.computeBoundingBox();merged.computeBoundingSphere();return merged;}
+/** Tufo de grama leve: ~9 lâminas (≈30 triângulos) com a altura e as cores do tufo original, que tinha ~380 triângulos. */
+function buildLightGrassTuft(src){
+ src.computeBoundingBox();const b=src.boundingBox,H=Math.max(.2,b.max.y-b.min.y),W=Math.max(.2,Math.max(b.max.x-b.min.x,b.max.z-b.min.z)),pos=[],col=[],idx=[];
+ let seed=12345;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+ const base=[.2,.3,.13],tip=[.62,.74,.4];let vi=0;
+ for(let i=0;i<9;i++){
+  const a=rnd()*Math.PI*2,r=rnd()*W*.28,x=Math.cos(a)*r,z=Math.sin(a)*r,h=H*(.55+rnd()*.5),w=Math.max(.035,W*.05),lean=(rnd()-.5)*W*.5,ra=rnd()*Math.PI,cx=Math.cos(ra),cz=Math.sin(ra),ld=rnd()<.5?-1:1;
+  const pts=[[0,0,w],[h*.5,lean*.35*ld,w*.8],[h,lean*ld,0]];
+  const rows=[[x-cx*w,b.min.y,z-cz*w,x+cx*w,b.min.y,z+cz*w],[x+cz*lean*.35*ld-cx*w*.8,b.min.y+h*.5,z-cx*lean*.35*ld-cz*w*.8,x+cz*lean*.35*ld+cx*w*.8,b.min.y+h*.5,z-cx*lean*.35*ld+cz*w*.8]];
+  const t=[x+cz*lean*ld,b.min.y+h,z-cx*lean*ld];
+  const k=vi;for(const rw of rows){pos.push(rw[0],rw[1],rw[2],rw[3],rw[4],rw[5]);const f=rw===rows[0]?0:.5;col.push(base[0]+(tip[0]-base[0])*f,base[1]+(tip[1]-base[1])*f,base[2]+(tip[2]-base[2])*f,base[0]+(tip[0]-base[0])*f,base[1]+(tip[1]-base[1])*f,base[2]+(tip[2]-base[2])*f);}
+  pos.push(t[0],t[1],t[2]);col.push(tip[0],tip[1],tip[2]);vi+=5;
+  idx.push(k,k+1,k+2,k+1,k+3,k+2,k+2,k+3,k+4);
+  void pts;
+ }
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();return g;
+}
 /* MOD 186 — grama em blocos de 10 m ao redor do jogador: densa onde se olha, custo constante.
    Cada bloco é gerado uma vez (determinístico) e reaproveitado quando o jogador volta. */
 let grassRefresh=null;
@@ -459,7 +513,7 @@ function scatterGrassTufts(geometry){
 }
 const grassMaterial=new THREE.MeshStandardMaterial({color:0x93a67c,vertexColors:true,roughness:1,side:THREE.DoubleSide});
 addInstancedWind(grassMaterial,.045,'clamp(position.y*3.25,0.0,1.0)',1.05,'mod163-grass-wind');
-new GLTFLoader().load('./Grama.glb?v=mod163-forest-grass-instances',gltf=>{try{const tuftGeometry=mergeGrassTuft(gltf.scene);scatterGrassTufts(tuftGeometry);const disposedGeometries=new Set(),disposedMaterials=new Set();gltf.scene.traverse(obj=>{if(!obj.isMesh)return;if(obj.geometry&&!disposedGeometries.has(obj.geometry)){obj.geometry.dispose();disposedGeometries.add(obj.geometry);}for(const material of (Array.isArray(obj.material)?obj.material:[obj.material]))if(material&&!disposedMaterials.has(material)){material.dispose();disposedMaterials.add(material);}});}catch(err){console.warn('Grama.glb não foi instanciada; mantendo a vegetação leve de reserva.',err);}},undefined,err=>console.warn('Grama.glb não carregou; mantendo a vegetação leve de reserva.',err));
+new GLTFLoader().load('./Grama.glb?v=mod163-forest-grass-instances',gltf=>{try{const tuftGeometry=buildLightGrassTuft(mergeGrassTuft(gltf.scene));scatterGrassTufts(tuftGeometry);const disposedGeometries=new Set(),disposedMaterials=new Set();gltf.scene.traverse(obj=>{if(!obj.isMesh)return;if(obj.geometry&&!disposedGeometries.has(obj.geometry)){obj.geometry.dispose();disposedGeometries.add(obj.geometry);}for(const material of (Array.isArray(obj.material)?obj.material:[obj.material]))if(material&&!disposedMaterials.has(material)){material.dispose();disposedMaterials.add(material);}});}catch(err){console.warn('Grama.glb não foi instanciada; mantendo a vegetação leve de reserva.',err);}},undefined,err=>console.warn('Grama.glb não carregou; mantendo a vegetação leve de reserva.',err));
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
 // Inimigo comum: usa Enemy1.glb com as animações que realmente existirem no arquivo.
 const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(0,0,-3.2);enemy.visible=false;
@@ -771,6 +825,14 @@ const guideModelRoot=new THREE.Group();guideBreathingPivot.add(guideModelRoot);
 let guideProceduralBreath=true;
 let guideModel=null,guideFitRoot=null,guideIdleMixer=null,playerIdleClip=null,playerReferenceHeight=1.7,vendorsSpawned=false,guideReferenceBounds=null;
 const villageNpcMixers=[];
+var npcCullFrame=0,_npcV=null;
+function updateNpcCulling(){
+ if((++npcCullFrame%10))return;if(!_npcV)_npcV=new THREE.Vector3();
+ for(const m of villageNpcMixers){const root=m.getRoot&&m.getRoot();if(!root||!root.getWorldPosition)continue;root.getWorldPosition(_npcV);
+  const d=Math.hypot(_npcV.x-player.position.x,_npcV.z-player.position.z),far=d>62;
+  if(far!==!!m.__far){m.__far=far;root.visible=!far;}}
+}
+
 function playNativeGuideIdle(clips){
  const list=clips||[];
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
@@ -940,6 +1002,14 @@ let namePromptOpen=false,awakeningActive=!awakeningSeen&&questStep===0,awakening
 if(questStep<2)enemy.visible=false;
 if(questStep===2){{const jx=JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,jz=JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59;enemy.position.set(jx,terrainHeightAt(jx,jz),jz);}enemy.visible=false;}
 portalGroup.visible=true;
+/* MOD 202 — os shaders do mundo compilam enquanto a tela das galáxias está aberta (compilação paralela), não no primeiro
+   quadro depois do ENTRAR: era isso que travava o jogo por alguns segundos ao entrar. */
+var worldCompiled=false,worldCompileStarted=false;
+function precompileWorld(){
+ if(worldCompileStarted)return;worldCompileStarted=true;
+ const done=()=>{worldCompiled=true;};setTimeout(done,9000);
+ try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
+}
 function save3DProgress(){const progress={version:ACT1.version,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
@@ -1096,7 +1166,7 @@ new GLTFLoader().load('./Protagonista.glb?mod172-grounding',gltf=>{
  play(actions.idle?'idle':actions.walk?'walk':'idle',0);
  window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);}
  fitGuideModel();addVillageVendors();
- player.userData.ready=true;loading.classList.add('hidden');spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep)).objective;
+ player.userData.ready=true;loading.classList.add('hidden');precompileWorld();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep)).objective;
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA');if(typing)return;keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -1273,7 +1343,7 @@ function animate(){requestAnimationFrame(animate);if(vsOpen||gamePaused||menuGat
  enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
  if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
  else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);updateVillagers(dt);if(combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
+ }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
@@ -1350,7 +1420,7 @@ if(!grounded){
 }else{
  player.position.y=floorY;
 }
-updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt,combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);checkSecretRuin();
+updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt,combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);updateInstanceCulling();checkSecretRuin();
  const firstPerson=cameraDistance<1.05;if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
@@ -1400,20 +1470,23 @@ const graphics3DProfiles={
  max:{scale:1.2,shadows:true,shadowSize:1024,foliage:true,clouds:true}
 };
 let graphics3DMode='auto',graphics3DScale=.78,graphics3DFps=0,graphics3DSampleTime=0,graphics3DSampleFrames=0,graphics3DLowTime=0,graphics3DHighTime=0,graphics3DLastChange=0;
+var autoShadowDecision=null;
+function autoShadowsDecision(){if(autoShadowDecision===null)autoShadowDecision=!terrainLowSpec;return autoShadowDecision;}
 function applyGraphics3D(mode,autoScale){
  const previousMode=graphics3DMode;
  if(mode!==previousMode){graphics3DFps=0;graphics3DSampleTime=0;graphics3DSampleFrames=0;graphics3DLowTime=0;graphics3DHighTime=0;}
  graphics3DMode=mode;
  const baseline=graphics3DProfiles[mode]||graphics3DProfiles.high;
  graphics3DScale=mode==='auto'?autoScale:baseline.scale;
- const shadowEnabled=mode==='auto'?graphics3DScale>=.78:baseline.shadows;
- const shadowSize=mode==='auto'?(graphics3DScale>=1?512:256):baseline.shadowSize;
- renderer.setPixelRatio(Math.min((devicePixelRatio||1)*graphics3DScale,1.5));
- renderer.setSize(innerWidth,innerHeight);
+ /* MOD 202 — ligar/desligar sombras muda os shaders (recompilação = travada de alguns segundos). No modo Auto a
+    decisão é tomada uma única vez; só a resolução sobe e desce com o FPS. */
+ const shadowEnabled=mode==='auto'?autoShadowsDecision():baseline.shadows;
+ const shadowSize=mode==='auto'?512:baseline.shadowSize;
+ const nextRatio=Math.min((devicePixelRatio||1)*graphics3DScale,1.5);
+ if(Math.abs(renderer.getPixelRatio()-nextRatio)>.001||renderer.domElement.width!==Math.floor(innerWidth*nextRatio)){renderer.setPixelRatio(nextRatio);renderer.setSize(innerWidth,innerHeight);}
  renderer.shadowMap.enabled=shadowEnabled;
  sunLight.castShadow=shadowEnabled;
- sunLight.shadow.mapSize.set(shadowSize,shadowSize);
- sunLight.shadow.camera.updateProjectionMatrix();
+ if(sunLight.shadow.mapSize.x!==shadowSize){sunLight.shadow.mapSize.set(shadowSize,shadowSize);if(sunLight.shadow.map){sunLight.shadow.map.dispose();sunLight.shadow.map=null;}}
  sunLight.shadow.needsUpdate=true;
  renderer.shadowMap.needsUpdate=true;
  grassGroup.visible=mode==='auto'?graphics3DScale>=.6:baseline.foliage;
@@ -1597,6 +1670,7 @@ function enterDimensionArena(key){
  player.position.set(spots.player.x,sp.y,spots.player.z);playerYaw=Math.PI;player.rotation.y=Math.PI;cameraYaw=0;cameraPitch=.12;moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;
  camera.position.set(spots.player.x,sp.y+3.5,spots.player.z+8.5);
 }
+function warmTextures(root){const seen=new Set();root.traverse(o=>{const ms=o.material?[].concat(o.material):[];for(const m of ms)for(const k of ['map','emissiveMap','normalMap','roughnessMap']){const t=m&&m[k];if(t&&!seen.has(t)){seen.add(t);try{renderer.initTexture(t);}catch(e){}}}});}
 function startDimensionBattle(key,opts){
  if(dimBattle||vsOpen)return;const d=DIMENSIONS[key];
  dimBattle={key,profile:d.profile,hp:opts.hp||d.hp,returnTo:opts.returnTo,onVictory:opts.onVictory,onAbort:opts.onAbort,active:false};
@@ -1621,7 +1695,7 @@ function openVsCard(key){
  setTimeout(()=>{
   try{getDimArena(key);}catch(e){console.error(e);}
   loadRig(DIMENSIONS[key].rig).then(()=>{
-   try{const a=getDimArena(key);a.group.visible=true;renderer.compile(scene,camera);a.group.visible=false;}catch(e){console.warn('Pré-compilação da dimensão falhou.',e);}
+   try{const a=getDimArena(key);a.group.visible=true;renderer.compile(scene,camera);a.group.visible=false;warmTextures(a.group);const rg=rigs[DIMENSIONS[key].rig];if(rg)warmTextures(rg.model);}catch(e){console.warn('Pré-compilação da dimensão falhou.',e);}
    go.disabled=false;go.textContent='ENTRAR NA LUTA';
   },()=>{vsFailed=true;go.disabled=false;go.textContent='TENTAR DE NOVO';});
  },160);
@@ -1632,7 +1706,7 @@ function openVsCard(key){
 })();
 function beginDimensionFight(){
  const b=dimBattle;if(!b)return;const d=DIMENSIONS[b.key],panel=document.getElementById('vs-panel');
- if(panel)panel.hidden=true;vsOpen=false;
+ if(panel)panel.hidden=true;vsOpen=false;portalPull=null;
  enterDimensionArena(b.key);
  enemy.visible=false;useRig(d.rig);bossRageAnnounced=false;bossComboHits=0;bossHitCounter=0;
  const sp=arenaSpots(b.key);revealEncounter(d.profile,sp.boss,b.hp,d.line);
@@ -1690,8 +1764,8 @@ function valerioVictory(){
 // ---- Portais dos Bispos 2–4 (aparecem quando o confronto do ato está liberado) ----
 const DIM_PORTAL_DEFS={
  bishop2:{at:()=>DISTRICT_SPOTS.arena,from:()=>DISTRICT_SPOTS.plaza,active:()=>questStep===ACT2.boss},
- bishop3:{at:()=>stepDef(19).at,from:()=>({x:132,z:-22}),active:()=>questStep===19},
- bishop4:{at:()=>stepDef(25).at,from:()=>({x:-50,z:-224}),active:()=>questStep===25}
+ bishop3:{at:()=>stepDef(19).def.at,from:()=>({x:132,z:-22}),active:()=>questStep===19},
+ bishop4:{at:()=>stepDef(25).def.at,from:()=>({x:-50,z:-224}),active:()=>questStep===25}
 };
 function dimPortalReturn(key){const def=DIM_PORTAL_DEFS[key],at=def.at(),from=def.from(),dx=from.x-at.x,dz=from.z-at.z,l=Math.hypot(dx,dz)||1;return{x:at.x+dx/l*12,z:at.z+dz/l*12};}
 function dimPortalNear(key,r){const def=DIM_PORTAL_DEFS[key];if(!def||!def.active())return false;const at=def.at();return Math.hypot(at.x-player.position.x,at.z-player.position.z)<r;}
@@ -2006,7 +2080,7 @@ const GALAXY_STORE='seven-sins-galaxies';
 function openGalaxyScreen(){
  let save={};try{save=JSON.parse(localStorage.getItem(GALAXY_STORE)||'{}');}catch(_){}
  menuGate=true;closeWorldMap();closeShop();setPaused(false);
- showGalaxyScreen({progress:{questStep,bishopsDefeated},save,coins,onSettings:()=>{const gb=document.getElementById('graphics-toggle-3d');if(gb)gb.click();},onCelebrated:()=>{try{delete save.celebrate;localStorage.setItem(GALAXY_STORE,JSON.stringify(save));}catch(_){}},isReady:()=>!loading||loading.classList.contains('hidden')||loading.style.display==='none',onEnter:()=>{menuGate=false;worldAudio.unlock();if(pendingAwakening){pendingAwakening=false;startPrologue();}}});
+ showGalaxyScreen({progress:{questStep,bishopsDefeated},save,coins,onSettings:()=>{const gb=document.getElementById('graphics-toggle-3d');if(gb)gb.click();},onCelebrated:()=>{try{delete save.celebrate;localStorage.setItem(GALAXY_STORE,JSON.stringify(save));}catch(_){}},isReady:()=>(!loading||loading.classList.contains('hidden')||loading.style.display==='none')&&worldCompiled,onEnter:()=>{menuGate=false;worldAudio.unlock();if(pendingAwakening){pendingAwakening=false;startPrologue();}}});
 }
 if(menuGate){pendingAwakening=awakeningActive;awakeningActive=false;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');openGalaxyScreen();}
 /* MOD 190 — corações e perfil. Corações vivem num registro próprio (regeneram com o jogo fechado). */
@@ -2048,7 +2122,7 @@ function closeProfile(){const panel=document.getElementById('profile-panel');if(
 const VILLAGER_TINTS=[0xffffff,0xd9c6a8,0xb8c8d9,0xd6b0b0,0xc2d1b0,0xe0d0f0];
 const villagerWalkers=[];
 function loadVillagers(){
- new GLTFLoader().load('./Npc-lod.glb?v=mod191',gltf=>{
+ new GLTFLoader().load('./Npc-lod2.glb?v=mod202',gltf=>{
   const clips=gltf.animations||[],byName=n=>clips.find(c=>c.name===n);
   const idleClips=[byName('_01a156a3_6952_769b_94bf_2cf0e9d19b46'),byName('Agree_Gesture'),byName('Alert')].filter(Boolean),walkClip=byName('Walking');
   const base=gltf.scene;base.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
@@ -2251,7 +2325,7 @@ const district=(()=>{
 })();
 // ---------- Família Arruda (moradores reais do Npc-lod.glb) ----------
 const familyRoots=[];
-new GLTFLoader().load('./Npc-lod.glb?v=mod191',gltf=>{
+new GLTFLoader().load('./Npc-lod2.glb?v=mod202',gltf=>{
  const base=gltf.scene,clips=gltf.animations||[],idle=clips.find(c=>c.name==='Alert')||clips[0],cross=clips.find(c=>c.name==='_01a156a3_6952_769b_94bf_2cf0e9d19b46');
  const box=measureModelBounds(base),size=box.getSize(new THREE.Vector3()),scale=size.y>.01?(playerReferenceHeight*.97)/size.y:1;
  [[0,0,0x9a8a7a],[1.4,.3,0x7a8a9a]].forEach(([ox,oz,tint],i)=>{const c=cloneSkinned(base),h=new THREE.Group();c.scale.setScalar(scale);c.position.y=-box.min.y*scale;c.rotation.y=Math.PI;h.add(c);
@@ -2377,7 +2451,7 @@ function lateDef(){const r=stepDef(questStep);return r?r.def:null;}
 function lateEngaged(){const d=lateDef();return !!d&&((d.type==='fight')||(d.type==='boss'&&lateBossActive));}
 // ---------- Moradores dos Atos III e IV ----------
 const lateNpcs={};
-new GLTFLoader().load('./Npc-lod.glb?v=mod191',gltf=>{
+new GLTFLoader().load('./Npc-lod2.glb?v=mod202',gltf=>{
  const base=gltf.scene,clips=gltf.animations||[],by=n=>clips.find(c=>c.name===n);
  const box=measureModelBounds(base),size=box.getSize(new THREE.Vector3()),scale=size.y>.01?(playerReferenceHeight*.97)/size.y:1;
  const place=(key,x,z,yaw,tint,clipName)=>{const c=cloneSkinned(base),h=new THREE.Group();c.scale.setScalar(scale);c.position.y=-box.min.y*scale;c.rotation.y=Math.PI;h.add(c);
@@ -2514,7 +2588,7 @@ function updateLate(dt,now){
 }
 lateSystemsReady=true;
 /* ===================== MOD 197 — ARCO FINAL: OS QUATRO GUARDIÕES E O PECADO DA GANÂNCIA ===================== */
-RIG_DEFS.bishop1={file:'./Bispo1.0.glb?v=mod197',height:1.4,roles:{idle:'Idle',walk:'Walk',attack:'Sword Aerial Combo',cast:'Sword Regular B',death:'Hit Knockback Root Motion'},inPlace:['attack','cast','death']};
+RIG_DEFS.bishop1={file:'./Bispo1-lod.glb?v=mod202',height:1.4,roles:{idle:'Idle',walk:'Walk',attack:'Sword Aerial Combo',cast:'Sword Regular B',death:'Hit Knockback Root Motion'},inPlace:['attack','cast','death']};
 RIG_DEFS.greed1={file:'./Ganancia1-lod.glb?v=mod197',height:1.7,roles:{idle:'_01a15a96_67a9_773a_89e1_3990f76b968d',walk:'Walking',run:'Running',attack:'Triple_Combo_Attack',cast:'Skill_03',dash:'_01a15a9f_d25c_70e1_bcee_3b20cf78b1d2',death:'Dead',arise:'Arise'},inPlace:['attack','dash','death']};
 RIG_DEFS.greed2={file:'./Ganancia2-lod.glb?v=mod197',height:1.9,roles:{idle:'_01a156cd_69c5_76fe_b170_51aba82e74db',walk:'Walking',run:'Running',attack:'Triple_Combo_Attack',cast:'Skill_01',death:'Dead',arise:'Arise'},inPlace:['attack','death']};
 RIG_DEFS.greed3={file:'./Ganancia3-lod.glb?v=mod197',height:2.15,roles:{idle:'_01a156df_e232_77c3_9887_dc9edce1e064',walk:'Unsteady_Walk',run:'Running',attack:'Skill_03',cast:'Skill_03',death:'Dead',arise:'Arise'},inPlace:['attack','death']};
@@ -2776,10 +2850,14 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
  freeRoam(){awakeningActive=false;namePromptOpen=false;dialogueOpen=false;},
  voidTest(){enterVoid();},
+ cullInfo(){return instanceCullers.map(c=>({n:c.n,count:c.mesh.count,verts:c.mesh.geometry.attributes.position.count,min:Math.sqrt(c.min2),max:Math.sqrt(c.r2)}));},
+ triBreakdown(){const out=[];scene.traverse(o=>{if(!o.isMesh&&!o.isPoints)return;let v=true,q=o;while(q){if(!q.visible){v=false;break;}q=q.parent;}if(!v)return;const g=o.geometry;if(!g)return;const n=g.index?g.index.count/3:(g.attributes.position?g.attributes.position.count/3:0);const inst=o.isInstancedMesh?o.count:1;let path='',pp=o.parent,d=0;while(pp&&d<4){path+='<'+(pp.name||pp.type);pp=pp.parent;d++;}const wp=new THREE.Vector3();o.getWorldPosition(wp);out.push({gt:g.type,gp:g.parameters?JSON.stringify(g.parameters).slice(0,80):'',mc:o.material&&o.material.color?o.material.color.getHexString():'',name:(o.name||o.type)+path,dist:Math.round(Math.hypot(wp.x-player.position.x,wp.z-player.position.z)),mat:(o.material&&o.material.name)||'',tri:Math.round(n*inst),inst,skinned:!!o.isSkinnedMesh,verts:g.attributes.position?g.attributes.position.count:0});});out.sort((a,b)=>b.tri-a.tri);return{total:out.reduce((a,b)=>a+b.tri,0),count:out.length,top:out.slice(0,40)};},
+ rinfo(){return{geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,prog:renderer.info.programs?renderer.info.programs.length:0,shadow:sunLight.castShadow,pr:renderer.getPixelRatio(),lights:scene.children.filter(o=>o.isLight).length};},
  startDim(key){const d=DIMENSIONS[key];startDimensionBattle(key,{hp:d.hp,returnTo:{x:player.position.x,z:player.position.z},onVictory(){},onAbort(){}});},
  vsGo(){const b=document.getElementById('vs-go');if(b&&!b.disabled)b.click();return b?b.textContent:null;},
  setHour(h){setGameHour(h);},
  killBoss(){if(enemy.visible){enemyHP=1;}},
+ nearBoss(){if(!enemy.visible)return -1;const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,l=Math.hypot(dx,dz)||1;player.position.x=enemy.position.x+dx/l*1.5;player.position.z=enemy.position.z+dz/l*1.5;return l;},
  hurtPlayer(n){playerHP=Math.max(1,playerHP-(n||10));updatePlayerHud();},
  power(){bossPowerCd=0;foeSkillCd=0;},
  hazardCount(){return{hazards:hazards.length,blackHole:blackHole.active,combo:comboCount};},
@@ -2807,8 +2885,8 @@ const BRAZIER_SPOTS=(()=>{
 const brazierBowl=new THREE.InstancedMesh(new THREE.CylinderGeometry(.62,.34,.4,10,1,true),new THREE.MeshStandardMaterial({color:0x2a2420,roughness:.7,metalness:.55,side:THREE.DoubleSide}),BRAZIER_SPOTS.length);
 const brazierPole=new THREE.InstancedMesh(new THREE.CylinderGeometry(.07,.12,1.25,6),new THREE.MeshStandardMaterial({color:0x3a2f27,roughness:.8,metalness:.4}),BRAZIER_SPOTS.length);
 const flameMat=new THREE.MeshBasicMaterial({color:0xff8a2c,transparent:true,opacity:.92,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
-const brazierFlame=new THREE.InstancedMesh(new THREE.ConeGeometry(.42,1.05,7),flameMat,BRAZIER_SPOTS.length);
-const brazierCore=new THREE.InstancedMesh(new THREE.ConeGeometry(.22,.62,6),new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}),BRAZIER_SPOTS.length);
+const brazierFlame=new THREE.InstancedMesh(new THREE.LatheGeometry([[0,0],[.3,.1],[.4,.35],[.33,.7],[.17,1.1],[0,1.55]].map(([x,y])=>new THREE.Vector2(x,y)),9),flameMat,BRAZIER_SPOTS.length);
+const brazierCore=new THREE.InstancedMesh(new THREE.LatheGeometry([[0,0],[.18,.08],[.22,.25],[.15,.5],[0,.85]].map(([x,y])=>new THREE.Vector2(x,y)),8),new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}),BRAZIER_SPOTS.length);
 for(const m of [brazierBowl,brazierPole,brazierFlame,brazierCore]){m.frustumCulled=false;scene.add(m);}
 const brazierLight=new THREE.PointLight(0xff9a45,0,18,1.6);brazierLight.castShadow=false;scene.add(brazierLight);
 const _bm=new THREE.Matrix4(),_bq=new THREE.Quaternion(),_bs=new THREE.Vector3(),_bp=new THREE.Vector3();
@@ -2826,8 +2904,8 @@ function updateBraziers(dt){
  if((brazierFrame++&1)===0)BRAZIER_SPOTS.forEach((b,i)=>{
   const dx=b.x-px,dz=b.z-pz;if(dx*dx+dz*dz>90*90){_bm.makeScale(0,0,0);brazierFlame.setMatrixAt(i,_bm);brazierCore.setMatrixAt(i,_bm);return;}
   const f=1+Math.sin(t*11+i*1.7)*.12+Math.sin(t*23+i)*.08,y=brazierGround[i]+1.52;
-  _bm.compose(_bp.set(b.x,y+.5*f,b.z),_bq.identity(),_bs.set(1,f,1));brazierFlame.setMatrixAt(i,_bm);
-  _bm.compose(_bp.set(b.x,y+.3*f,b.z),_bq.identity(),_bs.set(1,f*1.1,1));brazierCore.setMatrixAt(i,_bm);});
+  _bm.compose(_bp.set(b.x,y-.1,b.z),_bq.identity(),_bs.set(1+Math.sin(t*9+i)*.07,f,1+Math.cos(t*8+i)*.07));brazierFlame.setMatrixAt(i,_bm);
+  _bm.compose(_bp.set(b.x,y-.05,b.z),_bq.identity(),_bs.set(1,f*1.1,1));brazierCore.setMatrixAt(i,_bm);});
  brazierFlame.instanceMatrix.needsUpdate=true;brazierCore.instanceMatrix.needsUpdate=true;
  if(best>=0&&near<30){const b=BRAZIER_SPOTS[best];brazierLight.position.set(b.x,brazierGround[best]+2.1,b.z);
   brazierLight.intensity=(.7+night*2.6)*(1+Math.sin(t*13+best)*.07)*THREE.MathUtils.smoothstep(30-near,0,12);}
