@@ -5,7 +5,7 @@ import { SKILLS, SKILL_ORDER, MANA, unlockedSkills, newlyUnlocked, canCast, rege
 import { createWorldAudio } from './audio3d.js';
 import { MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { createTerrain, buildTerrainArrays, colorTerrain, scatterForest, fbm } from './world3d-terrain.js';
-import { ACT1, sanitizePlayerName, migrateProgress, questPresentation, guideAwakeningLines, guideAfterNameLines, informantPoorLines, informantLines, captorTauntLines, freeChildrenLines, reunionLines, wardenTauntLines, portalBlockedLines, portalLines, afterEnemyDefeated, afterMountainDefeat, afterWardenDefeat, valerioHandoffPlan } from './act1-flow.js';
+import { ACT1, sanitizePlayerName, migrateProgress, questPresentation, guideAwakeningLines, guideAfterNameLines, informantPoorLines, informantLines, captorTauntLines, freeChildrenLines, reunionLines, wardenTauntLines, portalBlockedLines, portalLines, afterEnemyDefeated, afterMountainDefeat, afterWardenDefeat, valerioHandoffPlan, afterValerioVictory, valerioVictoryLines } from './act1-flow.js';
 
 const worldAudio=createWorldAudio();
 for(const type of ['pointerdown','keydown','touchstart'])addEventListener(type,()=>worldAudio.unlock(),{passive:true,capture:true});
@@ -853,12 +853,12 @@ let saved3DProgress=read3DProgress();
 let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,journeyEnemyIndex=saved3DProgress.journeyEnemyIndex,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
 let playerName=saved3DProgress.playerName,captorsTaunted=saved3DProgress.captorsTaunted,childrenFreed=saved3DProgress.childrenFreed,awakeningSeen=saved3DProgress.awakeningSeen,actCardSeen=saved3DProgress.actCardSeen;
 let mountainIndex=saved3DProgress.mountainIndex||0,wardenTaunted=!!saved3DProgress.wardenTaunted,wardenDefeated=!!saved3DProgress.wardenDefeated,portalOpened=!!saved3DProgress.portalOpened,portalRewardClaimed=!!saved3DProgress.portalRewardClaimed;
-let wardenIntroLock=false,portalPull=null,handoffSent=false;
+let wardenIntroLock=false,portalPull=null,handoffSent=false,bishopsDefeated=saved3DProgress.bishopsDefeated||0,valerioRewardClaimed=!!saved3DProgress.valerioRewardClaimed;
 let namePromptOpen=false,awakeningActive=!awakeningSeen&&questStep===0,awakeningT=0,tauntLock=false,reunionStarted=false,purseGiven=questStep>0;
 if(questStep<2)enemy.visible=false;
 if(questStep===2){{const jx=JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,jz=JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59;enemy.position.set(jx,terrainHeightAt(jx,jz),jz);}enemy.visible=false;}
 portalGroup.visible=true;
-function save3DProgress(){const progress={version:ACT1.version,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
@@ -868,7 +868,7 @@ const skillButtons={};
 for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;b.innerHTML='<span class="skill-name">'+SKILL_LABELS[id]+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';b.dataset.key=SKILLS[id].key;b.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');skillButtons[id]={el:b,cost:b.querySelector('.skill-cost'),cd:-1,state:''};}
 for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧']]){const b=document.getElementById(id);if(b)b.dataset.key=key;}
 function refreshSkillUnlocks(){
- const next=unlockedSkills({questStep,bishopsDefeated:0,testAll:testAllSkills});
+ const next=unlockedSkills({questStep,bishopsDefeated,testAll:testAllSkills});
  const fresh=skillSet?newlyUnlocked(skillSet,next):[];
  skillSet=next;
  for(const id of SKILL_ORDER){const ui=skillButtons[id];if(ui)ui.el.classList.toggle('skill-locked',!skillSet.has(id));}
@@ -929,10 +929,9 @@ function beginCaptorTaunt(){if(captorsTaunted||tauntLock||dialogueOpen||nameProm
 function freeChildren(){if(questStep!==3||childrenFreed||dialogueOpen||namePromptOpen)return;showDialogue(freeChildrenLines(playerName),()=>{childrenFreed=true;openCageDoors();save3DProgress();updateQuestHud();status.textContent='Escolte as crianças de volta à vila.';});}
 function reunionDialogue(){if(reunionStarted||dialogueOpen||namePromptOpen||questStep!==3||!childrenFreed)return;reunionStarted=true;showDialogue(reunionLines(),()=>{questStep=4;coins+=ACT1.rescueReward;save3DProgress();updateQuestHud();status.textContent='As famílias as receberam. A subida tem sentinelas espaçadas antes do portal.';const toast=document.getElementById('quest-toast');if(toast){toast.textContent='AS CRIANÇAS ESTÃO SEGURAS · +'+ACT1.rescueReward+' MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}});}
 function beginWardenIntro(){if(wardenTaunted||wardenIntroLock||dialogueOpen||namePromptOpen)return;wardenIntroLock=true;showDialogue(wardenTauntLines(playerName),()=>{wardenTaunted=true;wardenIntroLock=false;save3DProgress();revealEncounter('warden',WARDEN_SPOT,ACT1.wardenHp,'O guarda da passagem entra na trilha.');});}
-function requestValerioHandoff(){if(handoffSent)return;handoffSent=true;const plan=valerioHandoffPlan();const target=new URL(plan.entry,window.location.href).href;status.textContent='O portal puxa você para a dimensão de Valério…';try{(window.top||window).location.replace(target);}catch(_){window.location.href=target;}}
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
 function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;player.position.x+=(PORTAL.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=((PORTAL.z+2.4)-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(PORTAL.x-player.position.x,PORTAL.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestValerioHandoff();}
-function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull)return;if(questStep===7||portalOpened){startPortalPull();return;}if(questStep!==6)return;showDialogue(portalLines(playerName),()=>{if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();status.textContent='O portal reconhece o seu nome e começa a puxar.';const toast=document.getElementById('quest-toast');if(toast){toast.textContent='A DIMENSÃO DE VALÉRIO SE ABRE';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}startPortalPull();});}
+function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de Valério foi quebrado.';return;}if(questStep===7||portalOpened){startPortalPull();return;}if(questStep!==6)return;showDialogue(portalLines(playerName),()=>{if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();status.textContent='O portal reconhece o seu nome e começa a puxar.';const toast=document.getElementById('quest-toast');if(toast){toast.textContent='A DIMENSÃO DE VALÉRIO SE ABRE';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}startPortalPull();});}
 function warnPortalBlocked(){if(dialogueOpen||namePromptOpen)return;showDialogue(portalBlockedLines());}
 function tryInteract(){if(namePromptOpen||awakeningActive||portalPull)return;if(dialogueOpen){advanceDialogue();return;}const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);const teo=villageVendors[2];const teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z);const cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(questStep===1&&teoDistance<=2.9){talkToInformant();return;}if(questStep===3&&!childrenFreed&&cageDistance<=4.2){freeChildren();return;}const fighting=enemy.visible&&enemyAlive;if((questStep===4||questStep===5)&&portalDistance<=3.8&&!fighting){warnPortalBlocked();return;}if((questStep===6||questStep===7)&&portalDistance<=3.8&&!fighting){openValerioPortal();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
 document.getElementById('talk-button').addEventListener('click',tryInteract);
@@ -1176,7 +1175,7 @@ function updateChildren(dt){
 }
 buildAct1Cages();
 
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z),feet=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))feet.push(p.y);}});if(feet.length){model.position.y+=floorY-Math.min(...feet);}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
+function animate(){requestAnimationFrame(animate);if(dimensionActive){clock.getDelta();return;}const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z),feet=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))feet.push(p.y);}});if(feet.length){model.position.y+=floorY-Math.min(...feet);}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
  if(enemyAlive||enemyHasDeathClip)enemy.position.y=terrainHeightAt(enemy.position.x,enemy.position.z);
@@ -1490,6 +1489,42 @@ function closeWorldMap(){const panel=document.getElementById('world-map');if(pan
  addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing||e.repeat)return;if(e.code==='KeyM'){mapOpen?closeWorldMap():openWorldMap();}else if(e.code==='Escape'&&mapOpen)closeWorldMap();});
  addEventListener('pagehide',()=>saveMapState(true));
 })();
+/* MOD 187 — o portal leva à dimensão original de Valério SEM trocar de link: dentro de index.html?mundo3d=1
+   a própria página abre a dimensão por cima do mundo (pausado e intacto); aberto direto, o mundo cria uma
+   sobreposição com a dimensão. Na vitória, o jogador volta para a frente do portal, já fechado. */
+let dimensionActive=false,dimensionFrame=null,dimensionAck=false;
+function showPortalVeil(on){const veil=document.getElementById('portal-veil');if(veil)veil.classList.toggle('on',!!on);}
+function enterDimensionState(){dimensionActive=true;worldAudio.pause(true);setTimeout(()=>showPortalVeil(false),700);}
+function openOwnDimension(){
+ if(dimensionFrame)return;const plan=valerioHandoffPlan();const url=new URL(plan.entry,window.location.href);url.searchParams.set('embedded3d','1');
+ const frame=document.createElement('iframe');frame.id='valerio-frame';frame.title='Dimensão de Valério';frame.allow='fullscreen';frame.src=url.href;
+ frame.addEventListener('load',()=>{setTimeout(()=>{frame.classList.add('ready');try{frame.focus();}catch(_){}enterDimensionState();},500);});
+ document.body.appendChild(frame);dimensionFrame=frame;
+}
+function requestValerioHandoff(){
+ if(handoffSent)return;handoffSent=true;dimensionAck=false;showPortalVeil(true);worldAudio.portalEnter();
+ status.textContent='O portal puxa você para a dimensão de Valério…';
+ if(window.parent!==window){try{window.parent.postMessage({type:'SEVEN_SINS_ENTER_VALERIO'},window.location.origin);}catch(_){}setTimeout(()=>{if(!dimensionAck)openOwnDimension();},1600);}
+ else setTimeout(openOwnDimension,450);
+}
+function returnFromDimension(){
+ if(dimensionFrame){dimensionFrame.remove();dimensionFrame=null;}
+ dimensionActive=false;worldAudio.pause(false);showPortalVeil(false);portalPull=null;handoffSent=false;
+ const result=afterValerioVictory({valerioRewardClaimed,bishopsDefeated});
+ questStep=result.questStep;bishopsDefeated=result.bishopsDefeated;valerioRewardClaimed=true;coins+=result.coinsGained;
+ const x=PORTAL.x,z=PORTAL.z+4.5;player.position.set(x,terrainHeightAt(x,z),z);playerYaw=0;player.rotation.y=0;cameraYaw=0;moveVX=moveVZ=0;
+ playerHP=playerMaxHP;playerMana=MANA.max;closePortalVisuals();save3DProgress();updateQuestHud();
+ const toast=document.getElementById('quest-toast');if(toast){toast.textContent='VALÉRIO FOI PURIFICADO'+(result.coinsGained?' · +'+result.coinsGained+' MOEDAS':'');toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),3200);}
+ setTimeout(()=>showDialogue(valerioVictoryLines(playerName)),900);
+}
+function closePortalVisuals(){if(questStep<8)return;for(const m of [portalRing,portalInnerRing,portalCore,vortex,portalFloorGlow,portalSigil])m.visible=false;portalLight.intensity=0;portalBeacon.visible=false;}
+addEventListener('message',e=>{
+ if(e.origin!==window.location.origin)return;const data=e.data||{};
+ if(data.type==='SEVEN_SINS_VALERIO_STARTED'){dimensionAck=true;enterDimensionState();}
+ else if(data.type==='SEVEN_SINS_VALERIO_FAILED'){dimensionAck=true;openOwnDimension();}
+ else if(data.type==='SEVEN_SINS_BISHOP_RESULT'&&data.result==='victory'&&(dimensionActive||handoffSent))returnFromDimension();
+});
+closePortalVisuals();
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={

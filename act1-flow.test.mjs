@@ -126,3 +126,16 @@ test('falas citam Valério e não trocam a dimensão por outra arena', () => {
   assert.match(entry, /já está de pé/);
   assert.doesNotMatch(entry, /permanece fechado/);
 });
+
+test('vitória sobre Valério fecha o Ato I uma vez só', async () => {
+  const { afterValerioVictory, migrateProgress, questPresentation, ACT1 } = await import('./act1-flow.js');
+  const first = afterValerioVictory({ valerioRewardClaimed: false });
+  assert.equal(first.questStep, 8);
+  assert.equal(first.bishopsDefeated, 1);
+  assert.equal(first.coinsGained, ACT1.valerioReward);
+  assert.equal(afterValerioVictory({ valerioRewardClaimed: true, bishopsDefeated: 1 }).coinsGained, 0);
+  const saved = migrateProgress({ version: ACT1.version, questStep: 8, bishopsDefeated: 1, valerioRewardClaimed: true });
+  assert.equal(saved.questStep, 8);
+  assert.equal(saved.bishopsDefeated, 1);
+  assert.match(questPresentation(8).title, /CONCLUÍDO/);
+});

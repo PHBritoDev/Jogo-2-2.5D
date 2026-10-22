@@ -136,6 +136,14 @@ button:active{transform:scale(.96);background:#31583d}
 #world-map .map-note{width:100%;margin:2px 0;font-size:11px;color:#d7cfb6}
 #travel-veil{position:fixed;inset:0;z-index:10;background:#000;opacity:0;pointer-events:none;transition:opacity .25s}
 #travel-veil.on{opacity:1}
+
+/* MOD 187 — travessia do portal e dimensão aberta na mesma página. */
+#portal-veil{position:fixed;inset:0;z-index:29;pointer-events:none;opacity:0;transition:opacity .45s ease;background:radial-gradient(circle at 50% 50%,#f4e6ff 0%,#9a52ff 18%,#2a0a5c 46%,#05020c 78%)}
+#portal-veil::before{content:'';position:absolute;inset:-40%;background:repeating-conic-gradient(from 0deg,#b77dff22 0 12deg,transparent 12deg 30deg);animation:portalSpin 1.6s linear infinite}
+#portal-veil.on{opacity:1;pointer-events:auto}
+@keyframes portalSpin{to{transform:rotate(360deg)}}
+#valerio-frame{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:30;background:#05020c;opacity:0;transition:opacity .6s ease}
+#valerio-frame.ready{opacity:1}
 </style>
 </head>
 <body>
@@ -172,6 +180,7 @@ button:active{transform:scale(.96);background:#31583d}
 </div>
 <section id="world-map" hidden aria-label="Mapa da floresta"><div id="world-map-sheet"><div id="world-map-head"><span>MAPA · FLORESTA DA GANÂNCIA</span><button id="world-map-close" type="button" aria-label="Fechar mapa">✕</button></div><canvas id="world-map-canvas" width="360" height="360"></canvas><div id="world-map-travel"></div></div></section>
 <div id="travel-veil" aria-hidden="true"></div>
+<div id="portal-veil" aria-hidden="true"></div>
 <div id="quest-toast" class="hidden">MISSÃO CONCLUÍDA</div>
 <button id="talk-button" class="hidden" data-key="E">FALAR</button>
 <div id="dialog-panel" class="hidden" aria-live="polite">

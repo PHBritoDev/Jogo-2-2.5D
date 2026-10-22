@@ -155,8 +155,9 @@
 
   // Modo de teste direto: pula a introdução e prepara a arena do Primeiro Bispo.
   // A inicialização é síncrona para não depender de temporizadores ou do evento load.
-  const valerioTestMode = new URLSearchParams(window.location.search).get('valerioTest') === '1';
-  if (valerioTestMode) {
+  // MOD 187 — a entrada na dimensão de Valério virou função: o portal do mundo 3D a chama na mesma
+  // página (sem trocar de link). ?valerioTest=1 continua funcionando como antes.
+  function startValerioDimension() {
     let missionIndex = -1;
     let stepIndex = -1;
     if (Campaign.galaxy && Array.isArray(Campaign.galaxy.missions)) {
@@ -185,7 +186,7 @@
       Casino.enter();
       Campaign.enterStep(stepIndex);
       if (BishopDimension.isBattleActive()) {
-        Quest.toast('DIMENSÃO DE VALÉRIO — modo de teste direto.', 5);
+        Quest.toast(new URLSearchParams(window.location.search).get('valerioTest') === '1' && !/fromPortal|embedded3d/.test(window.location.search) ? 'DIMENSÃO DE VALÉRIO — modo de teste direto.' : 'DIMENSÃO DE VALÉRIO — o portal se fechou atrás de você.', 5);
       } else {
         Quest.toast('Falha ao ativar a dimensão de Valério. Confira o carregamento.', 6);
       }
@@ -193,7 +194,15 @@
       Quest.start();
       Quest.toast('Modo de teste: etapa do Primeiro Bispo não encontrada.', 6);
     }
-  } else {
+    return BishopDimension.isBattleActive();
+  }
+  window.SevenSinsStartValerio = startValerioDimension;
+  const valerioTestMode = new URLSearchParams(window.location.search).get('valerioTest') === '1';
+  // Sob o mundo 3D (?mundo3d=1) a campanha 2D fica em espera: sem introdução aberta por trás do iframe.
+  const hostingWorld3D = new URLSearchParams(window.location.search).get('mundo3d') === '1';
+  if (valerioTestMode) {
+    startValerioDimension();
+  } else if (!hostingWorld3D) {
     Quest.start();   // abre a introdução da missão 1
   }
 
