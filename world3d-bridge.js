@@ -2,7 +2,7 @@
  * MOD 187 — Ponte entre o mundo 3D e a dimensão de Valério (que continua sendo a dimensão original).
  *
  * Dois caminhos, sem trocar de link:
- * 1. index.html?mundo3d=1 → o mundo 3D roda num iframe desta página. Ao entrar no portal, o iframe
+ * 1. index.html (padrão; ?mundo3d=1 também) → o mundo 3D roda num iframe desta página. Ao entrar no portal, o iframe
  *    pede SEVEN_SINS_ENTER_VALERIO; esta página esconde o iframe (o mundo fica pausado, intacto),
  *    abre a dimensão aqui mesmo e, na vitória, devolve SEVEN_SINS_BISHOP_RESULT.
  * 2. index.html?valerioTest=1&embedded3d=1 → esta página é a sobreposição criada pelo próprio mundo 3D;
@@ -10,7 +10,7 @@
  */
 (function () {
   const params = new URLSearchParams(window.location.search);
-  const hostMode = params.get('mundo3d') === '1' && params.get('mundo2d') !== '1';
+  const hostMode = !!window.SEVEN_SINS_WORLD3D_HOST;
   const embedded = params.get('embedded3d') === '1' && window.parent !== window;
   if (!hostMode && !embedded) return;
 

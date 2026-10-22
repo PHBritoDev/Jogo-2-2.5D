@@ -1132,9 +1132,9 @@ const lookPointers=new Map();let lastPinchDistance=0;
 function pinchDistance(){const pts=Array.from(lookPointers.values());return pts.length<2?0:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);}
 let mouseLookStart=null;lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(e.pointerType==='mouse')mouseLookStart={x:e.clientX,y:e.clientY,t:performance.now()};try{lookArea.setPointerCapture(e.pointerId);}catch(_){}if(lookPointers.size===2){lastPinchDistance=pinchDistance();return;} });
 lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;const prev=lookPointers.get(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const d=pinchDistance();if(lastPinchDistance>0&&d>0){cameraDistance=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);syncCameraToggle3D(); }lastPinchDistance=d;return;}const dx=e.clientX-prev.x,dy=e.clientY-prev.y;const firstPersonLook=cameraDistance<1.05;
-const lookSensitivity=firstPersonLook?.0022:.004;
+const lookSensitivity=(firstPersonLook?.0022:.004)*userSettings.sensitivity;
 cameraYaw-=dx*lookSensitivity;
-cameraPitch=THREE.MathUtils.clamp(cameraPitch+dy*(firstPersonLook?.003:.004),-1.32,1.32);});
+cameraPitch=THREE.MathUtils.clamp(cameraPitch+dy*(firstPersonLook?.003:.004)*userSettings.sensitivity,-1.32,1.32);});
 function endLook(e){const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
 lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);lookArea.addEventListener('lostpointercapture',endLook);
 lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);syncCameraToggle3D();},{passive:true});
@@ -1331,7 +1331,7 @@ if(firstPerson){
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateChildren(dt);updateCages();if(questStep===3&&childrenFreed&&!reunionStarted&&!dialogueOpen&&Math.hypot(VILLAGE_CENTER.x-player.position.x,VILLAGE_CENTER.z-player.position.z)<8)reunionDialogue();
- updateFpsBadge(now);updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);
+ updateFpsBadge(now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);
  renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -2000,8 +2000,8 @@ const sparkGeo=new THREE.BufferGeometry(),SPARKS=24,sparkPos=new Float32Array(SP
 sparkGeo.setAttribute('position',new THREE.BufferAttribute(sparkPos,3));
 const sparks=new THREE.Points(sparkGeo,new THREE.PointsMaterial({map:softDot,color:0xffd88a,size:.2,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));sparks.frustumCulled=false;scene.add(sparks);
 function burstSparks(pos,color){sparks.material.color.setHex(color||0xffd88a);sparkLife=1;for(let i=0;i<SPARKS;i++){sparkPos[i*3]=pos.x;sparkPos[i*3+1]=pos.y;sparkPos[i*3+2]=pos.z;const a=Math.random()*Math.PI*2,u=Math.random()*2-1,r=Math.sqrt(1-u*u),sp=2+Math.random()*3.5;sparkVel[i*3]=Math.cos(a)*r*sp;sparkVel[i*3+1]=Math.abs(u)*sp+1;sparkVel[i*3+2]=Math.sin(a)*r*sp;}sparkGeo.attributes.position.needsUpdate=true;}
-function onEnemyDamaged(amount,crit){const p=enemy.position.clone();p.y+=1.4;damageNumber(p,String(amount),crit?'crit':'');burstSparks(p,crit?0xfff0b8:0xffc860);hitStop(crit?95:60);cameraShake(crit?.16:.08);}
-function onPlayerDamaged(amount,blocked){const p=player.position.clone();p.y+=1.6;damageNumber(p,'-'+amount,blocked?'blocked':'hurt');cameraShake(blocked?.06:.18);if(!blocked)flashVignette();}
+function onEnemyDamaged(amount,crit){vibrate(crit?25:12);const p=enemy.position.clone();p.y+=1.4;damageNumber(p,String(amount),crit?'crit':'');burstSparks(p,crit?0xfff0b8:0xffc860);hitStop(crit?95:60);cameraShake(crit?.16:.08);}
+function onPlayerDamaged(amount,blocked){vibrate(blocked?20:45);const p=player.position.clone();p.y+=1.6;damageNumber(p,'-'+amount,blocked?'blocked':'hurt');cameraShake(blocked?.06:.18);if(!blocked)flashVignette();}
 function flashVignette(){const v=document.getElementById('hurt-vignette');if(!v)return;v.classList.remove('on');void v.offsetWidth;v.classList.add('on');}
 function updateCombatJuice(dt){
  if(sparkLife>0){sparkLife=Math.max(0,sparkLife-dt*2.2);for(let i=0;i<SPARKS;i++){sparkVel[i*3+1]-=9*dt;sparkPos[i*3]+=sparkVel[i*3]*dt;sparkPos[i*3+1]+=sparkVel[i*3+1]*dt;sparkPos[i*3+2]+=sparkVel[i*3+2]*dt;}sparkGeo.attributes.position.needsUpdate=true;sparks.material.opacity=sparkLife;}
@@ -2009,12 +2009,56 @@ function updateCombatJuice(dt){
  for(const d of dmgPool){if(!d.busy)continue;d.t+=dt;if(d.t>.9){d.busy=false;d.el.style.display='none';continue;}v.copy(d.pos);v.y+=d.t*1.1;v.project(camera);if(v.z>1){d.el.style.display='none';continue;}d.el.style.display='block';d.el.style.transform='translate('+((v.x*.5+.5)*innerWidth)+'px,'+((-v.y*.5+.5)*innerHeight)+'px) translate(-50%,-50%) scale('+(1+Math.max(0,.25-d.t)*1.6)+')';d.el.style.opacity=String(Math.min(1,(.9-d.t)*3));}
 }
 function applyCameraShake(dt){if(shakeAmt<=.001){shakeAmt=0;return;}shakeOffset.set((Math.random()-.5)*shakeAmt,(Math.random()-.5)*shakeAmt,(Math.random()-.5)*shakeAmt);camera.position.add(shakeOffset);shakeAmt*=Math.exp(-dt*14);}
+/* MOD 194 — ajustes do jogador: sensibilidade da câmera, tamanho/opacidade dos controles, vibração,
+   seta de objetivo e dicas. Salvos no aparelho; aplicados na hora. */
+const SETTINGS_STORE='seven-sins-3d-settings';
+const userSettings=Object.assign({sensitivity:1,controlScale:1,controlOpacity:1,vibration:true,arrow:true,hints:true},(()=>{try{return JSON.parse(localStorage.getItem(SETTINGS_STORE)||'{}');}catch(_){return{};}})());
+function saveSettings(){try{localStorage.setItem(SETTINGS_STORE,JSON.stringify(userSettings));}catch(_){}}
+function applySettings(){
+ const r=document.documentElement.style;r.setProperty('--ctrl-scale',String(userSettings.controlScale));r.setProperty('--ctrl-opacity',String(userSettings.controlOpacity));
+ document.body.classList.toggle('no-hints',!userSettings.hints);const arrow=document.getElementById('objective-arrow');if(arrow&&!userSettings.arrow)arrow.hidden=true;
+}
+function vibrate(ms){if(userSettings.vibration&&navigator.vibrate){try{navigator.vibrate(ms);}catch(_){}}}
+(function initSettingsUi(){
+ const panel=document.getElementById('graphics-panel-3d');if(!panel)return;
+ const box=document.createElement('div');box.className='audio-settings';
+ box.innerHTML='<h2>Controles</h2>'+
+  '<label>Sensibilidade <input id="set-sens" type="range" min="40" max="200"></label>'+
+  '<label>Tamanho dos botões <input id="set-size" type="range" min="75" max="130"></label>'+
+  '<label>Opacidade dos botões <input id="set-opacity" type="range" min="35" max="100"></label>'+
+  '<label class="audio-mute"><input id="set-vib" type="checkbox"> Vibração</label>'+
+  '<label class="audio-mute"><input id="set-arrow" type="checkbox"> Seta de objetivo</label>'+
+  '<label class="audio-mute"><input id="set-hints" type="checkbox"> Mostrar dicas na tela</label>'+
+  '<label>Idioma <select id="set-lang"><option value="pt-BR">Português (Brasil)</option><option value="en" disabled>English (em breve)</option></select></label>';
+ const close=panel.querySelector('.panel-close');panel.insertBefore(box,close||null);
+ const q=id=>box.querySelector(id);
+ q('#set-sens').value=Math.round(userSettings.sensitivity*100);q('#set-size').value=Math.round(userSettings.controlScale*100);q('#set-opacity').value=Math.round(userSettings.controlOpacity*100);
+ q('#set-vib').checked=userSettings.vibration;q('#set-arrow').checked=userSettings.arrow;q('#set-hints').checked=userSettings.hints;
+ const bind=(id,key,fn)=>q(id).addEventListener(q(id).type==='checkbox'?'change':'input',()=>{userSettings[key]=fn(q(id));saveSettings();applySettings();});
+ bind('#set-sens','sensitivity',e=>e.value/100);bind('#set-size','controlScale',e=>e.value/100);bind('#set-opacity','controlOpacity',e=>e.value/100);
+ bind('#set-vib','vibration',e=>e.checked);bind('#set-arrow','arrow',e=>e.checked);bind('#set-hints','hints',e=>e.checked);
+ applySettings();
+})();
+// Seta de objetivo: aponta para o marcador da missão quando ele está fora da tela, com a distância.
+const _arrowV=new THREE.Vector3();
+function updateObjectiveArrow(){
+ const el=document.getElementById('objective-arrow');if(!el)return;
+ const show=userSettings.arrow&&questMarker.visible!==false&&!dialogueOpen&&!prologueActive&&!awakeningActive&&questStep<8;
+ if(!show){if(!el.hidden)el.hidden=true;return;}
+ const mx=questMarker.position.x,mz=questMarker.position.z,dist=Math.hypot(mx-player.position.x,mz-player.position.z);
+ _arrowV.set(mx,questMarker.position.y+1,mz).project(camera);
+ const onScreen=_arrowV.z<1&&Math.abs(_arrowV.x)<.85&&Math.abs(_arrowV.y)<.8;
+ if(onScreen||dist<4){el.hidden=true;return;}
+ el.hidden=false;
+ const ang=Math.atan2(mx-camera.position.x,mz-camera.position.z),rel=ang-(cameraYaw+Math.PI);
+ el.style.setProperty('--rot',(-rel*180/Math.PI)+'deg');el.querySelector('span').textContent=Math.round(dist)+' m';
+}
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  teleport(x,z,yaw){player.position.set(x,terrainHeightAt(x,z),z);if(Number.isFinite(yaw)){cameraYaw=yaw;}},
  view(yaw,pitch,dist){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=dist;},
- state(){return{x:player.position.x,y:player.position.y,z:player.position.z,walkable:terrain3D.walkable(player.position.x,player.position.z),edge:terrain3D.boundaryDistance(player.position.x,player.position.z),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,terrain:window.SevenSinsTerrainReport,forest:window.SevenSinsForestReport,trees:treeSpecs.length,fog:scene.fog.color.getHexString(),fogFar:scene.fog.far,night:dayNightState.t,quest:questStep,coins,dialogueOpen,namePromptOpen,awakeningActive,hp:playerHP,enemy:{hp:enemyHP,visible:enemy.visible,alive:enemyAlive,x:+enemy.position.x.toFixed(1),z:+enemy.position.z.toFixed(1),y:+enemy.position.y.toFixed(2)},objective:(document.getElementById('quest-objective')||{}).textContent,audio:worldAudio.state};},
+ state(){return{x:player.position.x,y:player.position.y,z:player.position.z,walkable:terrain3D.walkable(player.position.x,player.position.z),edge:terrain3D.boundaryDistance(player.position.x,player.position.z),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,terrain:window.SevenSinsTerrainReport,forest:window.SevenSinsForestReport,trees:treeSpecs.length,fog:scene.fog.color.getHexString(),fogFar:scene.fog.far,night:dayNightState.t,quest:questStep,coins,dialogueOpen,namePromptOpen,awakeningActive,hp:playerHP,enemy:{hp:enemyHP,visible:enemy.visible,alive:enemyAlive,x:+enemy.position.x.toFixed(1),z:+enemy.position.z.toFixed(1),y:+enemy.position.y.toFixed(2)},objective:(document.getElementById('quest-objective')||{}).textContent,audio:worldAudio.state,dim:{active:dimensionActive,sent:handoffSent,pull:!!portalPull,pt:portalPull&&portalPull.t,ack:dimensionAck,paused:gamePaused,gate:menuGate,hidden:document.hidden}};},
  setNight(on){setDayNightMode(on?'night':'day');dayNightState.t=dayNightState.target;applyDayNightVisual(dayNightState.t);},
  fly(from,to){debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
