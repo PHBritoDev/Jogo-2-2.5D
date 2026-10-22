@@ -209,7 +209,7 @@ button:active{transform:scale(.96);background:#31583d}
 </div>
 <div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 199: câmera, combate, primeira pessoa e poderes dos Bispos.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mod181-loader.js?v=mod199-combate"></script>
+<script type="module" src="./mod181-loader.js?v=mod199-reset"></script>
 <script>
 (function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
 </script>
