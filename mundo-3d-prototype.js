@@ -4,6 +4,7 @@ import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/Skeleton
 import { SKILLS, SKILL_ORDER, MANA, unlockedSkills, newlyUnlocked, canCast, regenMana, manaFromHit, cooldownFraction } from './skills3d.js';
 import { createWorldAudio } from './audio3d.js';
 import { showGalaxyScreen } from './galaxies3d.js';
+import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
@@ -863,6 +864,7 @@ new GLTFLoader().load('./AnjoGuia.glb?v=mod170-guide-breath-scale',gltf=>{
 const PROGRESS_KEY='sevenSins3DCampaignV6';
 function read3DProgress(){try{const keys=[PROGRESS_KEY,'sevenSins3DCampaignV5','sevenSins3DCampaignV4','sevenSins3DCampaignV3','sevenSins3DCampaignV2','sevenSins3DCampaignV1'];for(const key of keys){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw)return migrateProgress(raw);}return migrateProgress({coins:0});}catch(_){return migrateProgress(null);}}
 let saved3DProgress=read3DProgress();
+let sideReady=false;
 let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,journeyEnemyIndex=saved3DProgress.journeyEnemyIndex,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
 let playerName=saved3DProgress.playerName,captorsTaunted=saved3DProgress.captorsTaunted,childrenFreed=saved3DProgress.childrenFreed,awakeningSeen=saved3DProgress.awakeningSeen,actCardSeen=saved3DProgress.actCardSeen;
 let mountainIndex=saved3DProgress.mountainIndex||0,wardenTaunted=!!saved3DProgress.wardenTaunted,wardenDefeated=!!saved3DProgress.wardenDefeated,portalOpened=!!saved3DProgress.portalOpened,portalRewardClaimed=!!saved3DProgress.portalRewardClaimed;
@@ -928,7 +930,7 @@ function updateSkillHud(now){
  }
  const fill=document.getElementById('player-mana-fill');if(fill){const w=Math.round(playerMana/MANA.max*100);if(fill.dataset.w!==String(w)){fill.dataset.w=String(w);fill.style.width=w+'%';}}
 }
-function updateQuestHud(){refreshSkillUnlocks();const view=questPresentation(questStep);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
+function updateQuestHud(){refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=questPresentation(questStep);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
 function showActCard(){if(actCardSeen)return;actCardSeen=true;save3DProgress();const card=document.getElementById('act-card');if(!card)return;card.classList.remove('hidden');const hide=()=>{card.classList.add('hidden');card.removeEventListener('pointerdown',hide);};card.addEventListener('pointerdown',hide);setTimeout(hide,3400);}
 function finishAwakening(){if(!awakeningActive&&awakeningSeen)return;awakeningActive=false;awakeningSeen=true;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');save3DProgress();}
 let namePromptBound=null;
@@ -966,7 +968,7 @@ function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
 function advanceAfterEnemyDefeat(){registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;if(questStep===2){enemyHP=100;enemyMaxHP=100;enemyAlive=true;encounterProfile='captor';const next=afterEnemyDefeated(journeyEnemyIndex,JOURNEY_ENEMIES.length);questStep=next.questStep;journeyEnemyIndex=next.journeyEnemyIndex;status.textContent=next.status;save3DProgress();updateQuestHud();return;}if(questStep===4){const next=afterMountainDefeat(mountainIndex,MOUNTAIN_SENTRIES.length);questStep=next.questStep;mountainIndex=next.mountainIndex;enemyHP=100;enemyMaxHP=100;enemyAlive=true;status.textContent=next.status;save3DProgress();updateQuestHud();if(questStep===5){const toast=document.getElementById('quest-toast');if(toast){toast.textContent='O GUARDA DA PASSAGEM ESPERA';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2400);}}return;}if(questStep===5){const next=afterWardenDefeat();questStep=next.questStep;wardenDefeated=true;enemyHP=100;enemyMaxHP=100;enemyAlive=true;coins+=ACT1.wardenReward;status.textContent=next.status;save3DProgress();updateQuestHud();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='GUARDA DERROTADO · +'+ACT1.wardenReward+' MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}}}
 function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
-function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;if(questStep===1&&vendor.shortName==='PROVISÕES'){talkToInformant();return;}const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
+function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;if(questStep===1&&vendor.shortName==='PROVISÕES'){talkToInformant();return;}if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
 function talkToInformant(){if(questStep!==1||dialogueOpen||namePromptOpen)return;if(coins<ACT1.bribe){showDialogue(informantPoorLines());return;}showDialogue(informantLines(playerName),()=>{coins=Math.max(0,coins-ACT1.bribe);questStep=2;journeyEnemyIndex=0;captorsTaunted=false;tauntLock=false;encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;enemy.visible=false;setDayNightMode('night');save3DProgress();updateQuestHud();status.textContent='A noite caiu. Siga a trilha até as gaiolas.';});}
 function beginCaptorTaunt(){if(captorsTaunted||tauntLock||dialogueOpen||namePromptOpen)return;tauntLock=true;showDialogue(captorTauntLines(playerName),()=>{captorsTaunted=true;tauntLock=false;save3DProgress();status.textContent='Os captores avançam. Proteja as gaiolas.';});}
 function freeChildren(){if(questStep!==3||childrenFreed||dialogueOpen||namePromptOpen)return;showDialogue(freeChildrenLines(playerName),()=>{childrenFreed=true;openCageDoors();save3DProgress();updateQuestHud();status.textContent='Escolte as crianças de volta à vila.';});}
@@ -1329,7 +1331,7 @@ if(firstPerson){
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateChildren(dt);updateCages();if(questStep===3&&childrenFreed&&!reunionStarted&&!dialogueOpen&&Math.hypot(VILLAGE_CENTER.x-player.position.x,VILLAGE_CENTER.z-player.position.z)<8)reunionDialogue();
- updateFpsBadge(now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();
+ updateFpsBadge(now);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();
  renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -1472,7 +1474,7 @@ function syncWaystoneVisuals(){for(const v of waystoneVisuals){const on=mapState
 syncWaystoneVisuals();
 function nearestWaystone(){let best=null,bd=2.5;for(const v of waystoneVisuals){const d=Math.hypot(v.data.x-player.position.x,v.data.z-player.position.z);if(d<bd){bd=d;best=v.data;}}return best;}
 function useWaystone(w){
- if(!mapState.waystones.has(w.id)){mapState.waystones.add(w.id);mapDirty=true;saveMapState();syncWaystoneVisuals();worldAudio.reveal();
+ if(!mapState.waystones.has(w.id)){mapState.waystones.add(w.id);mapDirty=true;saveMapState();syncWaystoneVisuals();refreshSideQuests();worldAudio.reveal();
   const toast=document.getElementById('quest-toast');if(toast){toast.textContent='ABRIGO REGISTRADO · '+w.name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}
   status.textContent='Abrigo registrado. Abra o MAPA para voltar aqui quando estiver em segurança.';return;}
  openWorldMap();
@@ -1950,6 +1952,41 @@ function updateVillagers(dt){
   const yaw=Math.atan2(b[0]-a[0],b[1]-a[1]),d=Math.atan2(Math.sin(yaw-w.holder.rotation.y),Math.cos(yaw-w.holder.rotation.y));w.holder.rotation.y+=d*Math.min(1,dt*6);
  }
 }
+/* MOD 192 — missões opcionais da vila: ofertas nas bancas, itens no mundo, diário no quadro de missão. */
+const SIDE_STORE='seven-sins-3d-side';
+const sideState=(()=>{let raw=null;try{raw=JSON.parse(localStorage.getItem(SIDE_STORE)||'null');}catch(_){}return createSideState(raw);})();
+function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));}catch(_){}}
+const SIDE_ITEMS=[];
+{
+ const petal=new THREE.MeshStandardMaterial({color:0xcfe8ff,emissive:0x7fb8ff,emissiveIntensity:1.6,roughness:.5}),stem=mat(0x3d5a2e);
+ const flowerSpots=[[-38,-20],[22,-30],[-44,-72],[30,-58],[-20,-108],[18,-128]];
+ for(const [x0,z0] of flowerSpots){let x=x0,z=z0;for(let k=0;k<20&&!(dryGround(x,z)&&!treeObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+1.2));k++){x=x0+(Math.random()-.5)*8;z=z0+(Math.random()-.5)*8;}
+  const g=new THREE.Group();g.position.set(x,groundHeightAt(x,z),z);
+  const st=new THREE.Mesh(new THREE.CylinderGeometry(.015,.02,.42,4),stem);st.position.y=.21;g.add(st);
+  for(let i=0;i<5;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(.07,6,4),petal);const a=i/5*Math.PI*2;p.position.set(Math.cos(a)*.08,.45,Math.sin(a)*.08);p.scale.set(1,.45,1.6);p.rotation.y=-a;g.add(p);}
+  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:softDot,color:0x9fd0ff,transparent:true,opacity:.75,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));glow.position.y=.45;glow.scale.set(1.1,1.1,1);g.add(glow);
+  g.visible=false;scene.add(g);SIDE_ITEMS.push({item:'flor',group:g,glow,taken:false});}
+ const pend=new THREE.Group(),px=-14.2,pz=-84.5;pend.position.set(px,groundHeightAt(px,pz)+.05,pz);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(.12,.025,6,16),new THREE.MeshStandardMaterial({color:0xe2b04a,metalness:.8,roughness:.25,emissive:0x5a3a08,emissiveIntensity:.8}));ring.rotation.x=Math.PI/2;pend.add(ring);
+ const pglow=new THREE.Sprite(new THREE.SpriteMaterial({map:softDot,color:0xffd36a,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));pglow.position.y=.15;pglow.scale.set(.9,.9,1);pend.add(pglow);
+ pend.visible=false;scene.add(pend);SIDE_ITEMS.push({item:'pingente',group:pend,glow:pglow,taken:false});
+}
+// Itens já entregues/coletados não reaparecem.
+{const taken={flor:sideState.ervas.progress+(sideState.ervas.state==='done'?99:0),pingente:sideState.pingente.progress+(sideState.pingente.state==='done'?99:0)};for(const it of SIDE_ITEMS){if(taken[it.item]>0){it.taken=true;taken[it.item]--;}}}
+function syncSideItems(){for(const it of SIDE_ITEMS){const q=SIDE_QUESTS.find(x=>x.goal.item===it.item);it.group.visible=!it.taken&&sideState[q.id].state==='active';}}
+function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones.size});syncSideItems();const box=document.getElementById('side-lines');if(box){const lines=activeSideLines(sideState);box.innerHTML=lines.map(l=>'<div>◇ '+l+'</div>').join('');box.hidden=!lines.length;}}
+function updateSideItems(dt,now){
+ for(const it of SIDE_ITEMS){if(!it.group.visible)continue;it.glow.material.opacity=.5+Math.sin(now*.004+it.group.position.x)*.25;
+  if(Math.hypot(it.group.position.x-player.position.x,it.group.position.z-player.position.z)<1.5){const q=collectSide(sideState,it.item);if(!q)continue;it.taken=true;it.group.visible=false;saveSide();worldAudio.reveal();showRewardPop(q.title+' · '+sideState[q.id].progress+'/'+q.goal.count);refreshSideQuests();}}
+}
+/** Conversa nas bancas: oferta, lembrete ou entrega da missão opcional daquele vendedor. */
+function trySideQuestTalk(vendor){
+ refreshSideQuests();const q=questForGiver(sideState,vendor.shortName);if(!q)return false;const s=sideState[q.id];
+ if(s.state==='available'){showDialogue(q.offer,()=>{acceptSide(sideState,q.id);saveSide();refreshSideQuests();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='MISSÃO OPCIONAL · '+q.title.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}});return true;}
+ if(s.state==='ready'){showDialogue(q.turnIn,()=>{const r=turnInSide(sideState,q.id);if(r){coins+=r.coins;gainXp(r.xp);showRewardPop('+'+r.coins+' MOEDAS · +'+r.xp+' XP');save3DProgress();updateQuestHud();}saveSide();refreshSideQuests();});return true;}
+ showDialogue([{who:vendor.name,text:q.progressLine+'. ('+s.progress+'/'+q.goal.count+')'}]);return true;
+}
+sideReady=true;refreshSideQuests();
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={

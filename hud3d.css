@@ -246,3 +246,5 @@ body.cinematic #skip-awakening{top:calc(11vh + 10px)!important;bottom:auto!impor
 #profile-stats strong{display:block;margin-top:2px;font-size:13px;color:#fff3cf}
 .profile-note{margin:10px 0 8px;font-size:10.5px;color:#a99f88}
 #profile-close{width:100%!important;background:#141020!important}
+#side-lines{margin-top:5px;padding-top:4px;border-top:1px solid #c9a24d44;font:600 clamp(8px,2vh,11px)/1.35 var(--hud-font);color:#bcd6ff}
+#side-lines[hidden]{display:none}
