@@ -3,8 +3,8 @@
  * Nível/XP, Loja Central (setores, requisitos de ato + nível + ouro), conquistas e catálogo de inimigos.
  * O ouro sozinho nunca libera um item: cada oferta declara etapa da campanha e nível mínimos.
  */
-export const LEVELS = [0, 60, 150, 280, 450, 680, 980, 1350, 1800, 2350];
-export const XP_REWARDS = { captor: 22, sentry: 32, warden: 70, rescue: 50, ruin: 15, valerio: 160 };
+export const LEVELS = [0, 60, 150, 280, 450, 680, 980, 1350, 1800, 2350, 3000, 3750];
+export const XP_REWARDS = { captor: 22, sentry: 32, warden: 70, rescue: 50, ruin: 15, valerio: 160, zealot: 45, hollow: 55 };
 
 export function levelFromXp(xp) {
   let lvl = 1;
@@ -40,15 +40,18 @@ export const SHOP_ITEMS = [
     desc: 'Cinco espadas em leque. 32 de mana, recarga média.' },
   { id: 'magic3', sector: 'escrituras', kind: 'skill', name: 'Sol da Justiça', cost: 70, level: 4, step: 8,
     desc: 'Um sol pequeno e lento que queima o que toca. 45 de mana.' },
-  { id: 'ultimate', sector: 'escrituras', kind: 'skill', name: 'Julgamento Divino', cost: 160, level: 7, step: 99,
-    desc: 'A espada colossal. Disponível antes do Segundo Bispo (Ato II).', stepText: 'chegar ao Ato II — A Dívida dos Vivos' },
+  { id: 'ultimate', sector: 'escrituras', kind: 'skill', name: 'Julgamento Divino', cost: 160, level: 6, step: 11,
+    desc: 'A espada colossal. Recurso raro: 80 de mana e recarga longa.', stepText: 'ouvir a família Arruda no Ato II — A Dívida dos Vivos' },
   { id: 'aurora', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Aurora', cost: 30, level: 3, step: 4,
-    desc: 'Lâmina clara e mais longa: +20% de dano e rastro dourado. Sem habilidade ativa.' }
+    desc: 'Lâmina clara e mais longa: +20% de dano e rastro dourado. Sem habilidade ativa.' },
+  { id: 'vigilia', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Vigília', cost: 110, level: 7, step: 16, stepText: 'encontrar quem resiste no Vale do Altar (Ato III)',
+    desc: 'Aço azul-pálido para quem não dorme diante do mal: +44% de dano e alcance maior.' }
 ];
 
 export const SWORDS = {
   prota: { id: 'prota', name: 'Espada do Chamado', damage: 25, reach: 2.0, trail: 0xffe2a0 },
-  aurora: { id: 'aurora', name: 'Lâmina da Aurora', damage: 30, reach: 2.25, trail: 0xfff1b8 }
+  aurora: { id: 'aurora', name: 'Lâmina da Aurora', damage: 30, reach: 2.25, trail: 0xfff1b8 },
+  vigilia: { id: 'vigilia', name: 'Lâmina da Vigília', damage: 36, reach: 2.4, trail: 0xbfe0ff }
 };
 
 /** Requisito de compra com motivo legível. owned: Set de ids. */
@@ -94,7 +97,19 @@ export const BESTIARY = [
   { id: 'warden', act: 1, name: 'Guarda da Passagem', cls: 'Mini-chefe · Enemy1', img: 'Enemy1.png', discoveryReward: 6,
     lore: 'Mais pesado, golpe largo e mais resistente. Um selo de Valério arde em seu peito.' },
   { id: 'valerio', act: 1, name: 'Valério', cls: 'Primeiro Bispo', img: 'Bispo1.png', discoveryReward: 10,
-    lore: 'Guardava as moedas. Fez da floresta um livro-caixa de vidas.' }
+    lore: 'Guardava as moedas. Fez da floresta um livro-caixa de vidas.' },
+  { id: 'vorgazhek', act: 2, name: 'VORGAZHEK', cls: 'Segundo Bispo', img: 'Bispo2.png', discoveryReward: 14,
+    lore: 'O Arauto das Almas Endividadas. Escrevia o nome dos devedores em três livros e cobrava dos vivos o que os mortos não pagaram.' },
+  { id: 'zealot', act: 3, name: 'Zelote do Altar', cls: 'Servo · Enemy3', img: 'Enemy3.png', discoveryReward: 5,
+    lore: 'Ajoelhou-se tanto que esqueceu como se levanta. Golpeia em trio e lança cinzas de incenso.' },
+  { id: 'zarkhael', act: 3, name: "ZAR'KHAEL", cls: 'Terceiro Bispo', img: 'Bispo3.png', discoveryReward: 16,
+    lore: 'O Carrasco do Juízo Eterno. Contava joelhos e cobrava ingresso para rezar.' },
+  { id: 'hollow', act: 4, name: 'Servo sem Eco', cls: 'Servo · Enemy4', img: 'Enemy4.png', discoveryReward: 6,
+    lore: 'Esqueceu o próprio nome. Ainda carrega cartas que nunca entregou.' },
+  { id: 'veraxion', act: 4, name: 'VÉRAXION', cls: 'Quarto Bispo', img: 'Bispo4.png', discoveryReward: 18,
+    lore: 'O Custódio do Último Selo. Guardava o amor como prova de dívida — e a Ganância como prisioneira.' },
+  { id: 'ganancia', act: 5, name: 'GANÂNCIA', cls: 'Pecado Capital', img: 'Ganancia1.png', discoveryReward: 40,
+    lore: 'Não precisava mentir. Bastava que alguém desejasse um pouco mais. Três formas, uma só fome.' }
 ];
 
 export function bestiaryEntry(entry, defeated = new Set()) {

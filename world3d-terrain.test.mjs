@@ -77,3 +77,15 @@ test('lago escavado bloqueia a parte funda e mantém a margem caminhável', () =
   assert.ok(t.walkable(-42 + 20, -96), 'fora do lago continua caminhável');
   assert.ok(t.waterDepth(0, 0) < 0);
 });
+
+test('região extra ligada por garganta é caminhável de ponta a ponta', () => {
+  const t = createTerrain({
+    extraAreas: [{ cx: -150, cz: -60, hx: 42, hz: 38 }],
+    passes: [{ points: [[-70, -60], [-112, -60]], r: 7 }],
+    channels: [{ points: [[-170, -80], [-130, -40]], width: 3, depth: 1.6, level: -.5 }]
+  });
+  for (let x = -60; x >= -140; x -= 2) assert.ok(t.walkable(x, -60), 'garganta fechada em x=' + x);
+  assert.ok(!t.walkable(-90, -20), 'fora da garganta continua montanha');
+  assert.ok(t.waterDepth(-150, -60) > .3, 'canal tem água');
+  assert.ok(!t.walkable(-150, -60), 'canal fundo não é caminhável');
+});

@@ -66,16 +66,27 @@ export function createTerrain(opts = {}) {
   const keepouts = opts.keepouts || [];
   const paths = opts.paths || [];
   const ponds = opts.ponds || [];
+  const extraAreas = (opts.extraAreas || []).map(a => Object.assign({ round: 20, wobble: 5 }, a));
+  const passes = opts.passes || [];
+  const channels = opts.channels || [];
   const area = Object.assign({}, PLAY_AREA, opts.area || {});
 
   /** Distância assinada até a borda explorável (negativa dentro do vale). */
-  function boundaryDistance(x, z) {
-    const qx = Math.abs(x - area.cx) - (area.hx - area.round);
-    const qz = Math.abs(z - area.cz) - (area.hz - area.round);
+  function rectDistance(a, x, z) {
+    const qx = Math.abs(x - a.cx) - (a.hx - a.round);
+    const qz = Math.abs(z - a.cz) - (a.hz - a.round);
     const outside = Math.hypot(Math.max(qx, 0), Math.max(qz, 0));
     const inside = Math.min(Math.max(qx, qz), 0);
+    return outside + inside - a.round;
+  }
+  /** União suave: vales e gargantas se encontram sem quina. */
+  function smin(a, b, k) { const h = clamp(.5 + .5 * (b - a) / k, 0, 1); return b + (a - b) * h - k * h * (1 - h); }
+  function boundaryDistance(x, z) {
+    let d = rectDistance(area, x, z);
+    for (const a of extraAreas) d = smin(d, rectDistance(a, x, z), 12);
+    for (const p of passes) d = smin(d, distToPolyline(x, z, p.points) - p.r, 8);
     const wobble = (fbm(x * .021 + 40, z * .021 - 13, 3, 5) - .5) * 2 * area.wobble;
-    return outside + inside - area.round + wobble;
+    return d + wobble;
   }
 
   /** 0 perto de trilhas, vila, clareiras e portal; 1 na mata livre. */
@@ -121,6 +132,10 @@ export function createTerrain(opts = {}) {
   /** Bacia do lago: margem orgânica, fundo suave. */
   function pondCut(x, z) {
     let cut = 0;
+    for (const c of channels) {
+      const d = distToPolyline(x, z, c.points);
+      if (d < c.width) cut = Math.max(cut, c.depth * smoothstep(c.width, c.width * .45, d));
+    }
     for (const p of ponds) {
       const wob = (fbm(x * .09 + p.x, z * .09 + p.z, 2, 13) - .5) * p.r * .35;
       const d = Math.hypot(x - p.x, z - p.z) - wob;
@@ -136,6 +151,7 @@ export function createTerrain(opts = {}) {
   function waterDepth(x, z) {
     let depth = -99;
     for (const p of ponds) if (Math.hypot(x - p.x, z - p.z) < p.r * 1.4) depth = Math.max(depth, p.level - height(x, z));
+    for (const c of channels) if (distToPolyline(x, z, c.points) < c.width * 1.2) depth = Math.max(depth, c.level - height(x, z));
     return depth;
   }
 
@@ -143,7 +159,7 @@ export function createTerrain(opts = {}) {
   const WALK_LIMIT = -5.5;
   function walkable(x, z) { return boundaryDistance(x, z) < WALK_LIMIT && waterDepth(x, z) < .38; }
 
-  return { height, boundaryDistance, flatMask, relief, walkable, mountainHeight, waterDepth, ponds, area, WALK_LIMIT };
+  return { height, boundaryDistance, flatMask, relief, walkable, mountainHeight, waterDepth, ponds, channels, area, extraAreas, WALK_LIMIT };
 }
 
 /**
@@ -161,9 +177,9 @@ export function buildAxis(fineHalf, fineCell, outerSteps, growth) {
 }
 
 /** Gera posições, cores e índices do terreno. */
-export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, fineCell = 2, outerSteps = 40, growth = 1.075 } = {}) {
+export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, fineHalfZ = fineHalf, fineCell = 2, outerSteps = 40, growth = 1.075 } = {}) {
   const ax = buildAxis(fineHalf, fineCell, outerSteps, growth).map(v => v + cx);
-  const az = buildAxis(fineHalf, fineCell, outerSteps, growth).map(v => v + cz);
+  const az = buildAxis(fineHalfZ, fineCell, outerSteps, growth).map(v => v + cz);
   const nx = ax.length, nz = az.length;
   const positions = new Float32Array(nx * nz * 3);
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
@@ -194,6 +210,12 @@ export function colorTerrain(terrain, positions, normals) {
     let c = mix(grassDark, grass, smoothstep(.3, .7, n1));
     c = mix(c, moss, smoothstep(.62, .82, n2) * .5);
     c = mix(c, dirt, smoothstep(.72, .9, n1) * .35);
+    // Regiões extras (Distrito da Ferrugem): lama, pedra gasta e ferrugem no lugar da grama.
+    for (const e of terrain.extraAreas || []) {
+      const qx = Math.abs(x - e.cx) - e.hx + 8, qz = Math.abs(z - e.cz) - e.hz + 8, inside = -Math.max(qx, qz);
+      const tA = e.tint ? e.tint[0] : [.27, .22, .17], tB = e.tint ? e.tint[1] : [.36, .3, .24];
+      if (inside > -10) c = mix(c, mix(tA, tB, n2), smoothstep(-10, 6, inside) * (e.tintStrength || .9));
+    }
     const wet = terrain.waterDepth ? terrain.waterDepth(x, z) : -1;
     if (wet > -.5) c = mix(c, [.33, .3, .22], smoothstep(-.5, .05, wet));
     const d = terrain.boundaryDistance(x, z);
@@ -220,6 +242,10 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
   const area = terrain.area, specs = [];
   const span = { x0: area.cx - area.hx - 70, x1: area.cx + area.hx + 70, z0: area.cz - area.hz - 70, z1: area.cz + area.hz + 70 };
+  for (const e of terrain.extraAreas || []) {
+    span.x0 = Math.min(span.x0, e.cx - e.hx - 70); span.x1 = Math.max(span.x1, e.cx + e.hx + 70);
+    span.z0 = Math.min(span.z0, e.cz - e.hz - 70); span.z1 = Math.max(span.z1, e.cz + e.hz + 70);
+  }
   const total = lowSpec ? Math.round(attempts * .6) : attempts;
   for (let i = 0; i < total; i++) {
     const x = span.x0 + rnd() * (span.x1 - span.x0), z = span.z0 + rnd() * (span.z1 - span.z0);

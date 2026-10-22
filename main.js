@@ -198,8 +198,8 @@
   }
   window.SevenSinsStartValerio = startValerioDimension;
   const valerioTestMode = new URLSearchParams(window.location.search).get('valerioTest') === '1';
-  // Sob o mundo 3D (?mundo3d=1) a campanha 2D fica em espera: sem introdução aberta por trás do iframe.
-  const hostingWorld3D = new URLSearchParams(window.location.search).get('mundo3d') === '1';
+  // Sob o mundo 3D (padrão desde o Mod 194) a campanha 2D fica em espera: sem introdução aberta por trás do iframe.
+  const hostingWorld3D = !!window.SEVEN_SINS_WORLD3D_HOST;
   if (valerioTestMode) {
     startValerioDimension();
   } else if (!hostingWorld3D) {
@@ -232,6 +232,9 @@
     let dt = (now - last) / 1000;
     last = now;
     if (dt > 0.25) dt = 0.25;
+
+    // MOD 194 — sob o mundo 3D a campanha 2D dorme (sem física nem desenho) até a dimensão do Bispo abrir.
+    if (hostingWorld3D && !document.documentElement.classList.contains('valerio-from-3d')) return;
 
     // FPS (atualiza a cada meio segundo)
     fpsN++;

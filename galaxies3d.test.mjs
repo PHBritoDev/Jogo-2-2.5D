@@ -16,3 +16,7 @@ test('progresso da Galáxia 1 cresce com o Ato I e não passa de 100%', () => {
   assert.ok(galaxyProgress(1, { questStep: 8, bishopsDefeated: 9 }) <= 1);
   assert.equal(galaxyProgress(2, { questStep: 8 }), 0);
 });
+
+test('Galáxia 1 completa ao fim do arco final', () => {
+  assert.equal(galaxyProgress(1, { questStep: 30, bishopsDefeated: 4 }), 1);
+});

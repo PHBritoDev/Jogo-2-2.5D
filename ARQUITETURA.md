@@ -101,3 +101,21 @@ Quarto Bispo. O torneio continua exigindo quatro Bispos derrotados.
   procedural; sem teste em Node por depender de Web Audio).
 - A grama (`Grama.glb`) é distribuída em blocos de 10 m ao redor do jogador
   (`grassRefresh`), com custo constante; a floresta e as encostas são fixas.
+
+## Mundo 3D como experiência principal (Mod 194+)
+
+- `index.html` abre o mundo 3D por padrão (iframe `mundo-3d-prototype.html`); a
+  campanha 2D só abre com `?mundo2d=1` e o loop 2D dorme enquanto o 3D está na
+  frente. A página 2D continua necessária: é ela que hospeda a dimensão de
+  Valério (`world3d-bridge.js`). Remover o 2D exige antes portar essa dimensão.
+- Ato II (`act2-flow.js`, passos 8–14): Garganta da Dívida (região extra no
+  terreno via `extraAreas`/`passes`/`channels`), Distrito da Ferrugem, família
+  Arruda, três livros-caixa, selo e VORGAZHEK (`Bispo2.glb`) usando o mesmo
+  sistema de combate do Enemy1 por troca de rig (`useRig`).
+- Modelos leves gerados (originais intactos): `Npc-lod.glb`, `Enemy1-lod.glb`,
+  `AnjoGuia-lod.glb` (gltf-transform + meshoptimizer, ~15% dos vértices).
+- Atos III/IV (`acts34-flow.js`, passos 14–26) usam um motor genérico de
+  etapas (talk/reach/fight/collect/boss) e rigs por tabela (`RIG_DEFS`).
+- Arco final (`finale-flow.js`, passos 26–30): quatro guardiões no portal,
+  Vazio da Ganância abaixo do mundo (`VOID`), três formas e epílogo; ao fim a
+  tela das galáxias rompe a corrente da Galáxia 2.

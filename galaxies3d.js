@@ -5,7 +5,7 @@
  */
 export const GALAXIES = [
   { id: 1, name: 'Ganância', subtitle: 'Onde vidas viraram moeda', hue: 42, color: '#f3c25a', glow: '#ffcf6a' },
-  { id: 2, name: 'Selada', hint: 'Um calor que consome sem saciar', hue: 350, color: '#c0485e', glow: '#ff6f8a' },
+  { id: 2, name: 'Selada', subtitle: 'Uma nova jornada desperta', hint: 'Um calor que consome sem saciar', hue: 350, color: '#c0485e', glow: '#ff6f8a' },
   { id: 3, name: 'Selada', hint: 'Mesas que nunca se esvaziam', hue: 25, color: '#c97a3a', glow: '#ffae6a' },
   { id: 4, name: 'Selada', hint: 'Fogo que não aquece ninguém', hue: 8, color: '#b8322a', glow: '#ff5a44' },
   { id: 5, name: 'Selada', hint: 'Olhos que contam o que é dos outros', hue: 140, color: '#4f9a62', glow: '#7fe09a' },
@@ -16,6 +16,7 @@ export const GALAXIES = [
 /** Progresso (0..1) da Galáxia 1 a partir do passo do Ato I; Atos II–IV ainda não existem. */
 export function galaxyProgress(galaxyId, { questStep = 0, bishopsDefeated = 0 } = {}) {
   if (galaxyId !== 1) return 0;
+  if (questStep >= 30) return 1;
   const actI = Math.min(1, Math.max(0, questStep) / 8);
   // O Ato I vale um quarto da galáxia (quatro Bispos + o Pecado no fim).
   return Math.min(1, actI * .22 + Math.max(0, bishopsDefeated - 1) * .2);
@@ -37,7 +38,7 @@ function el(tag, attrs = {}, html = '') {
  * Mostra a tela. onEnter(galaxyId) é chamado ao tocar ENTRAR numa galáxia liberada.
  * isReady() informa se o mundo terminou de carregar (o botão espera por ele).
  */
-export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = () => true } = {}) {
+export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = () => true, onCelebrated } = {}) {
   const open = unlockedGalaxies(save);
   const root = el('section', { id: 'galaxy-screen', 'aria-label': 'Sete galáxias' });
   root.innerHTML = '<div class="gx-stars"></div><div class="gx-head"><span class="gx-kicker">A BATALHA CONTRA OS</span><h1>7 PECADOS CAPITAIS</h1><p>Sete mundos acorrentados. Um deles já pede por você.</p></div><svg class="gx-chains" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg><div class="gx-orbs"></div><div class="gx-detail"></div>';
@@ -47,15 +48,17 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   let chains = '';
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i], b = pts[i + 1], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 + 26;
-    const broken = open.includes(GALAXIES[i + 1].id);
-    chains += '<path class="gx-chain' + (broken ? ' broken' : '') + '" d="M' + a.x + ' ' + a.y + ' Q' + mx + ' ' + my + ' ' + b.x + ' ' + b.y + '"/>';
+    const broken = open.includes(GALAXIES[i + 1].id), breaking = save.celebrate === GALAXIES[i + 1].id;
+    chains += '<path class="gx-chain' + (breaking ? ' breaking' : broken ? ' broken' : '') + '" d="M' + a.x + ' ' + a.y + ' Q' + mx + ' ' + my + ' ' + b.x + ' ' + b.y + '"/>';
   }
   svg.innerHTML = chains;
   let selected = 1;
   function renderDetail() {
     const g = GALAXIES[selected - 1], unlocked = open.includes(g.id), pct = Math.round(galaxyProgress(g.id, progress) * 100);
     detail.innerHTML = unlocked
-      ? '<span class="gx-num">GALÁXIA ' + g.id + '</span><h2>' + g.name + '</h2><p>' + g.subtitle + '</p><div class="gx-bar"><i style="width:' + pct + '%"></i></div><span class="gx-pct">' + pct + '% da galáxia</span><button type="button" class="gx-enter">ENTRAR</button>'
+      ? (g.id === 1
+        ? '<span class="gx-num">GALÁXIA ' + g.id + '</span><h2>' + g.name + '</h2><p>' + g.subtitle + '</p><div class="gx-bar"><i style="width:' + pct + '%"></i></div><span class="gx-pct">' + pct + '% da galáxia</span><button type="button" class="gx-enter">ENTRAR</button>'
+        : '<span class="gx-num">GALÁXIA ' + g.id + '</span><h2>Desperta</h2><p>“' + g.hint + '”</p><span class="gx-pct">As correntes caíram. Esta jornada chega numa próxima atualização.</span>')
       : '<span class="gx-num">GALÁXIA ' + g.id + '</span><h2>🔒 Selada</h2><p>“' + g.hint + '”</p><span class="gx-pct">Liberte a galáxia anterior para quebrar esta corrente.</span>';
     const btn = detail.querySelector('.gx-enter');
     if (btn) {
@@ -70,11 +73,20 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
     const orb = el('button', { type: 'button', class: 'gx-orb' + (unlocked ? ' open' : ' locked'), 'data-id': String(g.id), 'aria-label': 'Galáxia ' + g.id + (unlocked ? ' — ' + g.name : ' — selada') });
     orb.style.left = (pts[i].x / 10) + '%'; orb.style.top = (pts[i].y / 5.6) + '%';
     orb.style.setProperty('--c', g.color); orb.style.setProperty('--g', g.glow);
-    orb.innerHTML = '<span class="gx-core"></span><span class="gx-ring"></span><span class="gx-label">' + (unlocked ? g.name : g.id) + '</span>';
+    orb.innerHTML = '<span class="gx-core"></span><span class="gx-ring"></span><span class="gx-label">' + (unlocked ? (g.id === 1 ? g.name : 'Desperta') : g.id) + '</span>';
     orb.addEventListener('click', () => { selected = g.id; renderDetail(); });
     orbs.appendChild(orb);
   });
   renderDetail();
   document.body.appendChild(root);
+  // MOD 197 — a corrente da galáxia recém-libertada se rompe (uma vez), com o próximo mundo despertando.
+  const freed = Number(save.celebrate) || 0;
+  if (freed >= 2 && freed <= 7) {
+    const orb = orbs.querySelector('[data-id="' + freed + '"]');
+    if (orb) { orb.classList.add('awakening'); setTimeout(() => { selected = freed; renderDetail(); }, 1800); }
+    const banner = el('div', { class: 'gx-freed' }, 'A CORRENTE SE ROMPEU · GALÁXIA ' + freed + ' DESPERTA');
+    root.appendChild(banner);
+    if (typeof onCelebrated === 'function') onCelebrated(freed);
+  }
   return { root, close() { root.remove(); } };
 }
