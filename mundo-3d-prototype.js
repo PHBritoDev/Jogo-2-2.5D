@@ -1107,7 +1107,7 @@ function castHolyMagic(kind){
  if(kind==='magic'){[-.19,0,.19].forEach((a,i)=>spawnHolyProjectile('sword',a,i*.09));status.textContent='Espadas da Palavra — três lâminas de luz!';}
  else if(kind==='magic2'){[-.28,-.14,0,.14,.28].forEach((a,i)=>spawnHolyProjectile('sword5',a,i*.12));status.textContent='Julgamento Celestial — cinco espadas descem em formação!';}
  else if(kind==='magic3'){spawnHolyProjectile('sun');status.textContent='Sol da Justiça — luz ardente lançada contra o inimigo!';}
- else{spawnHolyProjectile('ultimate');status.textContent='Julgamento Divino — a espada celestial foi invocada!';}
+ else{castDivineJudgment();}
 }
 function updateHolyProjectiles(dt){
  for(let i=holyProjectiles.length-1;i>=0;i--){const p=holyProjectiles[i];p.delay-=dt;if(p.delay>0)continue;p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind==='sun'){p.group.position.y+=Math.sin(performance.now()*.006)*dt*.22;p.group.rotation.y+=dt*2;}else p.group.rotation.z+=dt*2;
@@ -1351,7 +1351,7 @@ if(firstPerson){
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateChildren(dt);updateCages();if(questStep===3&&childrenFreed&&!reunionStarted&&!dialogueOpen&&Math.hypot(VILLAGE_CENTER.x-player.position.x,VILLAGE_CENTER.z-player.position.z)<8)reunionDialogue();
- updateFpsBadge(now);updateAct2(dt,now);if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);
+ updateFpsBadge(now);updateAct2(dt,now);if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);
  renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -2505,6 +2505,37 @@ function updateFinale(dt,now){
  if(finaleFighting&&enemy.visible&&enemyAlive&&!bossRageAnnounced&&bossPhase(enemyHP,enemyMaxHP)===2&&questStep===FINALE.sin){bossRageAnnounced=true;showCombatCallout('FÚRIA DA GANÂNCIA');enemyCastCooldown=0;cameraShake(.25);}
 }
 finaleReady=true;
+/* MOD 198 — Julgamento Divino refeito: telegraph com círculo de runas douradas, pilar de luz, espada
+   colossal que desce do céu, impacto com raios e onda de choque. Dano real em área, uma vez por uso. */
+let ultimateFx=null;
+function castDivineJudgment(){
+ const tgt=combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<16?enemy.position.clone():player.position.clone().add(new THREE.Vector3(Math.sin(playerYaw)*6,0,Math.cos(playerYaw)*6));
+ tgt.y=groundHeightAt(tgt.x,tgt.z);
+ const g=new THREE.Group();g.position.copy(tgt);scene.add(g);
+ const goldMat=new THREE.MeshBasicMaterial({color:0xffd56a,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+ const ring=new THREE.Mesh(new THREE.RingGeometry(3.6,3.9,64),goldMat);ring.rotation.x=-Math.PI/2;ring.position.y=.08;g.add(ring);
+ const ring2=new THREE.Mesh(new THREE.RingGeometry(2.2,2.35,6),goldMat.clone());ring2.rotation.x=-Math.PI/2;ring2.position.y=.09;g.add(ring2);
+ const pillar=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.8,40,20,1,true),new THREE.MeshBasicMaterial({color:0xfff2c4,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));pillar.position.y=20;g.add(pillar);
+ const sword=new THREE.Group();const blade=new THREE.Mesh(new THREE.ConeGeometry(.55,7,4),new THREE.MeshStandardMaterial({color:0xfff6e0,emissive:0xffd56a,emissiveIntensity:2.2,metalness:.6,roughness:.2}));blade.rotation.x=Math.PI;blade.position.y=-3.5;sword.add(blade);
+ const guard=new THREE.Mesh(new THREE.BoxGeometry(3,.35,.4),new THREE.MeshStandardMaterial({color:0xe2b04a,emissive:0x8a5a10,emissiveIntensity:1.2,metalness:.8}));sword.add(guard);
+ const hilt=new THREE.Mesh(new THREE.CylinderGeometry(.16,.2,1.6,8),guard.material);hilt.position.y=.9;sword.add(hilt);sword.position.y=34;g.add(sword);
+ const light=new THREE.PointLight(0xffe0a0,0,30,1.2);light.position.y=4;g.add(light);
+ const bolts=[];for(let i=0;i<6;i++){const pts=[];let x=0,z=0;for(let k=0;k<9;k++){pts.push(new THREE.Vector3(x,k*2.6,z));x+=(Math.random()-.5)*1.4;z+=(Math.random()-.5)*1.4;}const ln=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xfff6c8,transparent:true,opacity:0,toneMapped:false}));const a=i/6*Math.PI*2;ln.position.set(Math.cos(a)*3,0,Math.sin(a)*3);g.add(ln);bolts.push(ln);}
+ const wave=new THREE.Mesh(new THREE.RingGeometry(.5,1,48),goldMat.clone());wave.rotation.x=-Math.PI/2;wave.position.y=.12;g.add(wave);
+ ultimateFx={g,ring,ring2,pillar,sword,light,bolts,wave,t:0,hit:false,target:tgt};
+ status.textContent='“O Senhor é a minha luz e a minha salvação; de quem terei medo?”';showCombatCallout('JULGAMENTO DIVINO');
+}
+function updateUltimateFx(dt){
+ const f=ultimateFx;if(!f)return;f.t+=dt;const t=f.t;
+ const tele=Math.min(1,t/1.1);f.ring.material.opacity=tele*.9;f.ring2.material.opacity=tele*.8;f.ring.rotation.z+=dt*.8;f.ring2.rotation.z-=dt*1.6;
+ f.pillar.material.opacity=t<1.1?tele*.35:Math.max(0,.6-(t-1.1)*.7);f.pillar.scale.x=f.pillar.scale.z=t<1.1?1:1+(t-1.1)*2;
+ if(t>.7&&t<1.25){const k=(t-.7)/.55;f.sword.position.y=34-33*k*k;}
+ if(t>=1.25&&!f.hit){f.hit=true;f.sword.position.y=1;cameraShake(.4);hitStop(140);vibrate(90);burstSparks(f.target.clone().setY(f.target.y+1),0xfff0b8);worldAudio.magic&&worldAudio.magic('ultimate');
+  if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-f.target.x,enemy.position.z-f.target.z)<4.6){const dmg=Math.round(60*(1+statsForLevel(playerLevel()).damageBonus));enemyHP=Math.max(0,enemyHP-dmg);onEnemyDamaged(dmg,true);enemyKnockback=.9;const dx=enemy.position.x-f.target.x,dz=enemy.position.z-f.target.z,d=Math.hypot(dx,dz)||1;enemyKnockbackX=dx/d;enemyKnockbackZ=dz/d;
+   if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else playEnemyAnimation('hit',.05,true);}}
+ if(f.hit){const k=t-1.25;f.light.intensity=Math.max(0,6-k*5);for(const b of f.bolts){b.material.opacity=k<.5?(Math.random()>.4?.95:.2):Math.max(0,.9-k);b.rotation.y+=dt*3;}f.wave.scale.setScalar(1+k*12);f.wave.material.opacity=Math.max(0,.8-k*.9);f.ring.material.opacity=Math.max(0,.9-k);f.ring2.material.opacity=Math.max(0,.8-k);f.sword.position.y=1-k*1.2;f.sword.children.forEach(c=>{if(c.material){c.material.transparent=true;c.material.opacity=Math.max(0,1-k*.8);}});}
+ if(t>2.6){scene.remove(f.g);f.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});ultimateFx=null;}
+}
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={

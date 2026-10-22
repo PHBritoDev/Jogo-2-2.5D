@@ -114,3 +114,8 @@ Quarto Bispo. O torneio continua exigindo quatro Bispos derrotados.
   sistema de combate do Enemy1 por troca de rig (`useRig`).
 - Modelos leves gerados (originais intactos): `Npc-lod.glb`, `Enemy1-lod.glb`,
   `AnjoGuia-lod.glb` (gltf-transform + meshoptimizer, ~15% dos vértices).
+- Atos III/IV (`acts34-flow.js`, passos 14–26) usam um motor genérico de
+  etapas (talk/reach/fight/collect/boss) e rigs por tabela (`RIG_DEFS`).
+- Arco final (`finale-flow.js`, passos 26–30): quatro guardiões no portal,
+  Vazio da Ganância abaixo do mundo (`VOID`), três formas e epílogo; ao fim a
+  tela das galáxias rompe a corrente da Galáxia 2.
