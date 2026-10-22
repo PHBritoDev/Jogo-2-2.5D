@@ -7,8 +7,8 @@
 const STORE_KEY = 'seven-sins-3d-audio';
 
 export function createWorldAudio() {
-  let ctx = null, master = null, ambBus = null, sfxBus = null, noiseBuf = null, ready = false;
-  const settings = { ambient: .7, sfx: .8, muted: false };
+  let ctx = null, master = null, ambBus = null, sfxBus = null, musicBus = null, music = null, noiseBuf = null, ready = false;
+  const settings = { ambient: .7, sfx: .8, music: .55, muted: false };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (_) {}
   const layers = {};
   let insectTimer = 0, birdTimer = 2, gustTimer = 0, stepDistance = 0, lastStepAt = 0;
@@ -19,6 +19,7 @@ export function createWorldAudio() {
     const t = ctx.currentTime;
     master.gain.setTargetAtTime(settings.muted ? 0 : 1, t, .08);
     ambBus.gain.setTargetAtTime(settings.ambient, t, .1);
+    if (musicBus) musicBus.gain.setTargetAtTime(settings.music, t, .2);
     sfxBus.gain.setTargetAtTime(settings.sfx, t, .05);
   }
   function makeNoise() {
@@ -41,6 +42,7 @@ export function createWorldAudio() {
     // Compressor suave evita picos quando vários efeitos coincidem.
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(master);
     ambBus = ctx.createGain(); sfxBus = ctx.createGain(); ambBus.connect(comp); sfxBus.connect(comp);
+    musicBus = ctx.createGain(); musicBus.connect(comp); music = createMusic();
     noiseBuf = makeNoise();
     layers.wind = loopNoise('bandpass', 380, .55, ambBus);
     layers.leaves = loopNoise('highpass', 3200, .4, ambBus);
@@ -51,6 +53,45 @@ export function createWorldAudio() {
     layers.portal = { g: hum };
     ready = true; applyVolumes();
     document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); });
+  }
+  /* MOD 194 — trilha procedural própria (sem amostras de outras obras): exploração em pad modal (ré dórico,
+     calma de dia, mais grave à noite) e combate com tambores graves e ostinato; troca com fade, sem sobrepor loops. */
+  function createMusic() {
+    const explore = ctx.createGain(), combat = ctx.createGain(); explore.gain.value = 0; combat.gain.value = 0;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400; explore.connect(lp); lp.connect(musicBus); combat.connect(musicBus);
+    const chords = [[146.8, 220, 261.6, 349.2], [130.8, 196, 261.6, 329.6], [116.5, 174.6, 233.1, 293.7], [130.8, 196, 246.9, 329.6]];
+    let chordAt = 0, chordIdx = 0, beatAt = 0, beat = 0, mode = 'explore';
+    function pad(freqs, dur) {
+      const t = ctx.currentTime;
+      for (const f of freqs) for (const det of [-6, 5]) {
+        const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = f; o.detune.value = det;
+        o.connect(g); g.connect(explore); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.022, t + dur * .35);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 1.05); o.start(t); o.stop(t + dur * 1.1);
+      }
+      // Sino distante, esparso.
+      if (Math.random() < .55) { const f = freqs[1 + (Math.random() * 3 | 0)] * 2; const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(explore); g.gain.setValueAtTime(0.0001, t + 1.2); g.gain.exponentialRampToValueAtTime(.03, t + 1.22); g.gain.exponentialRampToValueAtTime(0.0001, t + 4.5); o.start(t + 1.2); o.stop(t + 4.6); }
+    }
+    function drum(t, f0, peak) { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * .45, t + .25); o.connect(g); g.connect(combat); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + .01); g.gain.exponentialRampToValueAtTime(0.0001, t + .4); o.start(t); o.stop(t + .45); }
+    function pluck(t, f) { const o = ctx.createOscillator(), g = ctx.createGain(), fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 900; o.type = 'sawtooth'; o.frequency.value = f; o.connect(fl); fl.connect(g); g.connect(combat); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.05, t + .01); g.gain.exponentialRampToValueAtTime(0.0001, t + .22); o.start(t); o.stop(t + .25); }
+    return {
+      set(next, night) {
+        if (next !== mode) { mode = next; }
+        const t = ctx.currentTime;
+        explore.gain.setTargetAtTime(mode === 'explore' ? .9 : mode === 'silent' ? 0 : .15, t, 1.2);
+        combat.gain.setTargetAtTime(mode === 'combat' ? .9 : 0, t, mode === 'combat' ? .5 : 1.4);
+        lp.frequency.setTargetAtTime(night > .5 ? 800 : 1500, t, 2);
+      },
+      tick(dt, night) {
+        const t = ctx.currentTime;
+        if (t >= chordAt) { const c = chords[chordIdx++ % chords.length]; pad(night > .5 ? c.map(f => f * .75) : c, 7.5); chordAt = t + 7.5; }
+        if (mode === 'combat' && t >= beatAt) {
+          const step = .2, b = beat++ % 16;
+          if (b % 4 === 0) drum(t + .02, 70, .5); if (b === 6 || b === 14) drum(t + .02, 95, .28);
+          if (b % 2 === 0) pluck(t + .02, [146.8, 174.6, 146.8, 196, 146.8, 174.6, 220, 196][(b / 2) % 8]);
+          beatAt = t + step;
+        } else if (mode !== 'combat') beatAt = t;
+      }
+    };
   }
   function env(g, t, a, peak, dec) { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dec); }
   function burst(type, freq, q, peak, dur, bus = sfxBus, sweepTo = 0) {
@@ -83,6 +124,7 @@ export function createWorldAudio() {
     update(dt, s) {
       if (!ready || ctx.state !== 'running') return;
       const t = ctx.currentTime, night = s.night || 0;
+      if (music) { music.set(s.music || 'explore', night); music.tick(dt, night); }
       gustTimer -= dt; if (gustTimer <= 0) { gustTimer = 3 + Math.random() * 6; layers.wind.f.frequency.setTargetAtTime(260 + Math.random() * 380, t, 1.4); }
       const height = Math.max(0, s.altitude || 0);
       layers.wind.g.gain.setTargetAtTime((.16 + Math.min(.14, height * .02)) * (1 + .5 * Math.sin(t * .23)), t, .8);

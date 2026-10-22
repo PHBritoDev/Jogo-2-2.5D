@@ -497,7 +497,7 @@ function retargetEnemyMovementClipToPlayer(role,sourceRoot,sourceClip){
  }catch(err){console.warn('Não foi possível retargetar '+role+' do Enemy1:',err);return false;}
 }
 function loadEnemyModel(){if(enemyLoadState!=='idle')return;enemyLoadState='loading';
-new GLTFLoader().load('./Enemy1.glb?v=mod172-triple-spells-ai',gltf=>{
+new GLTFLoader().load('./Enemy1-lod.glb?v=mod194-lod',gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{
   if(!o.isMesh)return;
@@ -857,7 +857,7 @@ function measureModelBounds(model){
  });
  return box;
 }
-new GLTFLoader().load('./AnjoGuia.glb?v=mod170-guide-breath-scale',gltf=>{
+new GLTFLoader().load('./AnjoGuia-lod.glb?v=mod194-lod',gltf=>{
  const imported=gltf.scene;imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
  guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideModel=imported;playNativeGuideIdle(gltf.animations||[]);fitGuideModel();
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
@@ -1402,10 +1402,10 @@ function updateAutoGraphics3D(dt,now){
 }
 (function initAudioSettings(){
  const panel=document.getElementById('graphics-panel-3d');if(!panel)return;
- const box=document.createElement('div');box.className='audio-settings';box.innerHTML='<h2>Som</h2><label>Ambiente <input id="vol-ambient" type="range" min="0" max="100"></label><label>Efeitos <input id="vol-sfx" type="range" min="0" max="100"></label><label class="audio-mute"><input id="vol-muted" type="checkbox"> Silenciar tudo</label>';panel.appendChild(box);
+ const box=document.createElement('div');box.className='audio-settings';box.innerHTML='<h2>Som</h2><label>Ambiente <input id="vol-ambient" type="range" min="0" max="100"></label><label>Efeitos <input id="vol-sfx" type="range" min="0" max="100"></label><label>Música <input id="vol-music" type="range" min="0" max="100"></label><label class="audio-mute"><input id="vol-muted" type="checkbox"> Silenciar tudo</label>';panel.appendChild(box);
  const st=worldAudio.settings;const amb=box.querySelector('#vol-ambient'),sfx=box.querySelector('#vol-sfx'),mute=box.querySelector('#vol-muted');
  amb.value=Math.round(st.ambient*100);sfx.value=Math.round(st.sfx*100);mute.checked=!!st.muted;
- amb.addEventListener('input',()=>worldAudio.setVolume('ambient',amb.value/100));sfx.addEventListener('input',()=>worldAudio.setVolume('sfx',sfx.value/100));mute.addEventListener('change',()=>worldAudio.setVolume('muted',mute.checked));
+ amb.addEventListener('input',()=>worldAudio.setVolume('ambient',amb.value/100));sfx.addEventListener('input',()=>worldAudio.setVolume('sfx',sfx.value/100));{const mu=box.querySelector('#vol-music');mu.value=Math.round((st.music??.55)*100);mu.addEventListener('input',()=>worldAudio.setVolume('music',mu.value/100));}mute.addEventListener('change',()=>worldAudio.setVolume('muted',mute.checked));
 })();
 (function initGraphics3D(){
  const toggle=document.getElementById('graphics-toggle-3d'),panel=document.getElementById('graphics-panel-3d'),select=document.getElementById('graphics-profile-3d');
@@ -1457,7 +1457,7 @@ function updateWorldAudio(dt){
  const x=player.position.x,z=player.position.z;
  const onPath=Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<13||trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5));
  const surface=terrain3D.waterDepth(x,z)>-.05?'water':onPath?'path':'grass';
- worldAudio.update(dt,{night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6});
+ worldAudio.update(dt,{night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
 }
 /* MOD 186 — mapa com névoa de guerra e abrigos de viagem rápida. O mapa só mostra o que já foi visto;
    cada abrigo precisa ser encontrado e registrado antes de aparecer na lista de viagem. */
