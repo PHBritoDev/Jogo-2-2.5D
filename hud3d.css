@@ -248,3 +248,12 @@ body.cinematic #skip-awakening{top:calc(11vh + 10px)!important;bottom:auto!impor
 #profile-close{width:100%!important;background:#141020!important}
 #side-lines{margin-top:5px;padding-top:4px;border-top:1px solid #c9a24d44;font:600 clamp(8px,2vh,11px)/1.35 var(--hud-font);color:#bcd6ff}
 #side-lines[hidden]{display:none}
+
+/* ---------- MOD 193: números de dano e vinheta de dano ---------- */
+.dmg-num{position:fixed;left:0;top:0;z-index:5;display:none;pointer-events:none;font:900 clamp(14px,3.8vh,22px)/1 var(--hud-font);color:#fff4d6;text-shadow:0 2px 0 #6a3a08,0 0 8px #000,0 0 3px #000;will-change:transform,opacity}
+.dmg-num.crit{color:#ffe07a;font-size:clamp(18px,5vh,30px);text-shadow:0 2px 0 #8a2a08,0 0 12px rgba(255,180,60,.8),0 0 3px #000}
+.dmg-num.hurt{color:#ff7a74;text-shadow:0 2px 0 #3a0608,0 0 6px #000}
+.dmg-num.blocked{color:#a9d4ff;text-shadow:0 2px 0 #0a2a5a,0 0 6px #000}
+#hurt-vignette{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(170,10,20,.55) 100%)}
+#hurt-vignette.on{animation:hurtFlash .45s ease-out}
+@keyframes hurtFlash{0%{opacity:1}100%{opacity:0}}
