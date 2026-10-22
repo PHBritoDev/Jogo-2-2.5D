@@ -92,6 +92,50 @@ button:active{transform:scale(.96);background:#31583d}
 #act-bishop{margin:0;color:#f0e2b0;font-size:14px}
 #hero-name{margin-top:6px;font-size:10px;font-weight:800;letter-spacing:.12em;color:#f3e7c2}
 
+/* MOD 186 — botões de câmera e dia/noite saem de cima do quadro de missão (antes se sobrepunham). */
+#camera-toggle-3d{left:auto;right:112px;top:56px}
+#daynight-toggle-3d{left:auto;right:204px;top:56px}
+#top{right:58px}
+@media(max-width:560px){#camera-toggle-3d{left:auto;right:98px;top:54px}#daynight-toggle-3d{left:auto;right:180px;top:54px}}
+
+/* MOD 186 — habilidades: bloqueio, revelação, recarga em anel, custo de mana e atalho no PC. */
+#actions button{position:relative;overflow:hidden}
+#actions button.skill-locked{display:none}
+#actions button::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:conic-gradient(#020806d0 calc(var(--cd,0)*360deg),transparent 0)}
+#actions .skill-name{position:relative;font-size:8px;letter-spacing:-.01em}
+#actions .skill-cost{position:absolute;right:5px;top:3px;font-size:8px;font-weight:900;color:#a9d6ff;letter-spacing:.02em}
+#actions button.skill-cooling .skill-cost{color:#fff;font-size:11px;right:50%;top:50%;transform:translate(50%,-50%);text-shadow:0 1px 4px #000}
+#actions button.skill-cooling .skill-name{opacity:.35}
+#actions button.skill-nomana{opacity:.5}
+#actions button.skill-reveal{animation:skillReveal 1.3s ease-out}
+@keyframes skillReveal{0%{transform:scale(.3);opacity:0;box-shadow:0 0 0 #ffe7a0}55%{transform:scale(1.14);opacity:1;box-shadow:0 0 26px #ffe7a0}100%{transform:scale(1);box-shadow:0 4px 14px #0003}}
+#player-mana-track{height:5px;margin-top:4px;border:1px solid #a9c8f0aa;border-radius:8px;background:#0d1320d9;overflow:hidden}
+#player-mana-fill{height:100%;width:100%;background:linear-gradient(90deg,#2f5fb8,#8fc4ff);transition:width .2s linear}
+@media (hover:hover) and (pointer:fine){#actions button[data-key]::after,#talk-button::after{content:attr(data-key);position:absolute;left:5px;top:3px;font-size:8px;font-weight:900;color:#e7cf8c;opacity:.95}#talk-button{position:fixed}}
+
+/* MOD 186 — volumes de ambiente e efeitos no painel de configurações. */
+#graphics-panel-3d .audio-settings{margin-top:12px;padding-top:10px;border-top:1px solid #ffffff22}
+#graphics-panel-3d .audio-settings label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0;font-size:11px}
+#graphics-panel-3d .audio-settings input[type=range]{width:58%;accent-color:#d9bd79}
+#graphics-panel-3d .audio-mute{justify-content:flex-start!important}
+
+/* MOD 186 — mapa com névoa de guerra e viagem rápida. */
+#map-toggle-3d{position:fixed;right:296px;top:56px;z-index:7;width:auto;height:34px;padding:0 11px;border:1px solid #d9bd79aa;border-radius:10px;background:#101a13ed;color:#fff0bd;font-size:10px;font-weight:900;letter-spacing:.04em}
+@media(max-width:560px){#map-toggle-3d{right:262px;top:54px;height:32px;font-size:9px}}
+@media(max-width:560px){#hint{display:none}#graphics-toggle-3d{right:8px;top:54px}#camera-toggle-3d{right:8px;top:90px}#daynight-toggle-3d{right:8px;top:126px}#map-toggle-3d{right:8px;top:162px}#back{top:200px}}
+@media(max-width:1100px){#hint{display:none}}
+#world-map{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:12px;background:#05080ab8}
+#world-map[hidden]{display:none}
+#world-map-sheet{max-width:100%;max-height:100%;overflow:auto;padding:10px 12px 12px;border:1px solid #d9bd79;border-radius:14px 4px 14px 4px;background:linear-gradient(160deg,#1a1d16f5,#0b0e0cf8);box-shadow:0 14px 40px #000b;text-align:center}
+#world-map-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;color:#e8d29a;font-size:10px;font-weight:900;letter-spacing:.14em}
+#world-map-close{width:34px;height:30px;border-radius:8px;font-size:14px;padding:0}
+#world-map-canvas{display:block;margin:0 auto;border:1px solid #6d5d3a;border-radius:6px;background:#120f0b;max-width:100%}
+#world-map-travel{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}
+#world-map-travel button{width:auto;height:34px;padding:0 10px;border-radius:9px;font-size:9px;letter-spacing:.06em;border-color:#8fe3ffaa;background:#10232bd9}
+#world-map-travel button:disabled{opacity:.45}
+#world-map .map-note{width:100%;margin:2px 0;font-size:11px;color:#d7cfb6}
+#travel-veil{position:fixed;inset:0;z-index:10;background:#000;opacity:0;pointer-events:none;transition:opacity .25s}
+#travel-veil.on{opacity:1}
 </style>
 </head>
 <body>
@@ -101,11 +145,12 @@ button:active{transform:scale(.96);background:#31583d}
 <button id="fullscreen" type="button" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button>
 <button id="camera-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre primeira e terceira pessoa">1ª PESSOA</button>
 <button id="daynight-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre dia e noite">DIA</button>
-<button id="graphics-toggle-3d" type="button" aria-expanded="false" aria-controls="graphics-panel-3d">⚙ GRÁFICOS</button>
+<button id="map-toggle-3d" type="button" aria-label="Abrir mapa (M)">MAPA</button>
+<button id="graphics-toggle-3d" type="button" aria-expanded="false" aria-controls="graphics-panel-3d">⚙ AJUSTES</button>
 <section id="graphics-panel-3d" hidden aria-label="Configurações gráficas do mundo 3D"><h2>Qualidade gráfica</h2><label for="graphics-profile-3d">Perfil de desempenho</label><select id="graphics-profile-3d"><option value="auto">Automático (recomendado)</option><option value="low">Baixo — celular fraco</option><option value="high">Alto — mais detalhes</option><option value="max">Máximo — aparelhos fortes</option></select><p id="graphics-status-3d" aria-live="polite">Ajustando o mundo para seu aparelho…</p></section>
-<div id="marker" aria-label="Modificação 185">185</div>
+<div id="marker" aria-label="Modificação 186">186</div>
 <div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
-<div id="player-hud" hidden aria-label="Vida do protagonista"><div id="player-name"><span>PROTAGONISTA</span><span id="player-hp-text">100%</span></div><div id="player-hp-track"><div id="player-hp-fill"></div></div></div>
+<div id="player-hud" hidden aria-label="Vida do protagonista"><div id="player-name"><span>PROTAGONISTA</span><span id="player-hp-text">100%</span></div><div id="player-hp-track"><div id="player-hp-fill"></div></div><div id="player-mana-track" aria-label="Mana"><div id="player-mana-fill"></div></div></div>
 <div id="hint">ATO I · O PREÇO DE UMA VIDA</div>
 <div id="quest-box"><div id="quest-title">ATO I · O PREÇO DE UMA VIDA</div><div id="quest-objective">Fale com o Anjo-Guia</div><div id="hero-name" class="quest-name"></div><div class="quest-coins">MOEDAS <strong id="coin-count">0</strong></div></div>
 <button id="skip-awakening" class="hidden" type="button">PULAR ABERTURA</button>
@@ -125,8 +170,10 @@ button:active{transform:scale(.96);background:#31583d}
     <p id="act-bishop">Valério, o Primeiro Bispo</p>
   </div>
 </div>
+<section id="world-map" hidden aria-label="Mapa da floresta"><div id="world-map-sheet"><div id="world-map-head"><span>MAPA · FLORESTA DA GANÂNCIA</span><button id="world-map-close" type="button" aria-label="Fechar mapa">✕</button></div><canvas id="world-map-canvas" width="360" height="360"></canvas><div id="world-map-travel"></div></div></section>
+<div id="travel-veil" aria-hidden="true"></div>
 <div id="quest-toast" class="hidden">MISSÃO CONCLUÍDA</div>
-<button id="talk-button" class="hidden">FALAR</button>
+<button id="talk-button" class="hidden" data-key="E">FALAR</button>
 <div id="dialog-panel" class="hidden" aria-live="polite">
 <div id="dialog-kicker">REGISTRO DA JORNADA <span id="dialog-page">01 / 03</span></div>
 <div id="dialog-speaker-row"><div id="dialog-avatar"><img id="dialog-portrait" class="hidden" alt=""><span id="dialog-monogram">✦</span></div><div id="dialog-who">ANJO-GUIA</div></div>
@@ -139,9 +186,9 @@ button:active{transform:scale(.96);background:#31583d}
 <button id="attack">GOLPE</button><button id="jump">PULAR</button>
 <button id="dash">DASH</button><button id="magic">ESPADAS · 1</button><button id="magic2">JULGAMENTO · 2</button><button id="magic3">SOL · 3</button><button id="ultimate">ULTIMATE · 4</button>
 </div>
-<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 185: subida da montanha e guarda da passagem.</div>
+<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 186: vale cercado por serras reais e floresta nova.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mod181-loader.js?v=mod185-subida"></script>
+<script type="module" src="./mod181-loader.js?v=mod186-terreno"></script>
 <script>
 (function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
 </script>

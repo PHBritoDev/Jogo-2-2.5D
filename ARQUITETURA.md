@@ -76,3 +76,28 @@ Serra sem Ecos. Os encontros reutilizam `followerAmbush`; a inscrição usa
 `investigate`, e `nightEnter`/`nightSite` permitem descobrir, entrar e sair do
 Observatório do Silêncio. O local permanece sem apresentação ou batalha do
 Quarto Bispo. O torneio continua exigindo quatro Bispos derrotados.
+
+## Mundo 3D — terreno da Galáxia 1 (Mod 186)
+
+- `world3d-terrain.js` (funções puras, testes em `world3d-terrain.test.mjs`)
+  define a altura do chão, a borda explorável e a distribuição da floresta.
+  O mesmo `terrain3D.height()` alimenta a malha, a física do jogador/inimigos,
+  a trilha e o portal; `terrain3D.walkable()` é o limite físico, então a
+  encosta que o jogador vê é exatamente onde ele para.
+- Trilhas, vila, clareira, gaiolas, ruína e portal são áreas planas
+  (`keepouts`/`paths`); fora delas o vale ganha ondulação suave.
+- Montanhas são parte da malha contínua (sem cones soltos). `Montanha.glb`
+  foi avaliado e não é usado: é um domo 20×20 com rochas-bolha que não se
+  integra ao relevo. `Arvore.glb` é usado como carvalho instanciado; o tronco
+  do arquivo começa 1,76 m acima das raízes e é esticado até o chão no merge,
+  e as copas são simplificadas para manter o custo baixo no celular.
+- `mod181-loader.js` reescreve qualquer `import './arquivo.js'` local para URL
+  absoluta com `?v=BUILD`; ao adicionar módulos ao mundo 3D basta importá-los.
+- `?debug3d=1` expõe `window.SevenSinsDebug3D` para verificação automática
+  (teleporte, câmera livre, contagem de draw calls). Não aparece para o jogador.
+- Outros módulos puros do mundo 3D (com testes `*.test.mjs`, rodar `node --test`):
+  `skills3d.js` (desbloqueio/mana/recarga das Palavras), `map3d.js` (névoa de
+  guerra, locais, abrigos e regras de viagem rápida) e `audio3d.js` (áudio
+  procedural; sem teste em Node por depender de Web Audio).
+- A grama (`Grama.glb`) é distribuída em blocos de 10 m ao redor do jogador
+  (`grassRefresh`), com custo constante; a floresta e as encostas são fixas.
