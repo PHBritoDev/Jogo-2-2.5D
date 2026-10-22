@@ -757,7 +757,8 @@ function fitGuideModel(){
  guideFitRoot.updateMatrixWorld(true);guide.userData.modelLoaded=true;
 }
 const villageNpcBreathing=[];
-function addVillageVendors(){if(!model||vendorsSpawned)return;vendorsSpawned=true;for(let i=0;i<villageVendors.length;i++){const p=villageVendors[i],cloned=cloneSkinned(model),root=new THREE.Group();root.position.set(p.x,0,p.z);root.rotation.y=p.yaw;root.scale.setScalar(.76);root.userData.breathPhase=i*1.73;root.add(cloned);cloned.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});villageGroup.add(root);if(playerIdleClip){const npcMixer=new THREE.AnimationMixer(cloned),idle=npcMixer.clipAction(playerIdleClip);idle.setLoop(THREE.LoopRepeat,Infinity);idle.play();villageNpcMixers.push(npcMixer);}else villageNpcBreathing.push({root,baseY:0,phase:i*1.73});}}
+const vendorRoots=[];
+function addVillageVendors(){if(!model||vendorsSpawned)return;vendorsSpawned=true;loadVillagers();for(let i=0;i<villageVendors.length;i++){const p=villageVendors[i],cloned=cloneSkinned(model),root=new THREE.Group();root.position.set(p.x,0,p.z);root.rotation.y=p.yaw;root.scale.setScalar(.76);root.userData.breathPhase=i*1.73;root.add(cloned);vendorRoots.push(root);cloned.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});villageGroup.add(root);if(playerIdleClip){const npcMixer=new THREE.AnimationMixer(cloned),idle=npcMixer.clipAction(playerIdleClip);idle.setLoop(THREE.LoopRepeat,Infinity);idle.play();villageNpcMixers.push(npcMixer);}else villageNpcBreathing.push({root,baseY:0,phase:i*1.73});}}
 
 const guideAura=new THREE.PointLight(0xffe6a3,.45,2.8);guideAura.position.set(0,.78,.1);guide.add(guideAura);
 const guideShadow=new THREE.Mesh(new THREE.CircleGeometry(.28,20),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.28,depthWrite:false}));
@@ -1228,7 +1229,7 @@ function animate(){requestAnimationFrame(animate);if(dimensionActive||gamePaused
  enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
  if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
  else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);if(combatStepNow()&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
+ }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers)npcMixer.update(dt);updateVillagers(dt);if(combatStepNow()&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
@@ -1913,6 +1914,42 @@ function closeProfile(){const panel=document.getElementById('profile-panel');if(
  bindInstantTap(document.getElementById('profile-save'),()=>{const input=document.getElementById('profile-name'),r=sanitizePlayerName(input.value);if(!r.ok){document.getElementById('profile-error').textContent=r.error;return;}playerName=r.name;save3DProgress();updateQuestHud();document.getElementById('profile-error').textContent='Nome guardado.';});
  updateHeartsHud(true);
 })();
+/* MOD 191 — moradores de verdade: Npc.glb (versão leve Npc-lod.glb, 33 mil vértices, mesma aparência e
+   animações) substitui os clones do protagonista nas bancas; três moradores caminham pela vila. */
+const VILLAGER_TINTS=[0xffffff,0xd9c6a8,0xb8c8d9,0xd6b0b0,0xc2d1b0,0xe0d0f0];
+const villagerWalkers=[];
+function loadVillagers(){
+ new GLTFLoader().load('./Npc-lod.glb?v=mod191',gltf=>{
+  const clips=gltf.animations||[],byName=n=>clips.find(c=>c.name===n);
+  const idleClips=[byName('_01a156a3_6952_769b_94bf_2cf0e9d19b46'),byName('Agree_Gesture'),byName('Alert')].filter(Boolean),walkClip=byName('Walking');
+  const base=gltf.scene;base.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+  const box=measureModelBounds(base),size=box.getSize(new THREE.Vector3()),scale=size.y>.01?(playerReferenceHeight*.98)/size.y:1;
+  const make=(tintIndex)=>{const c=cloneSkinned(base),holder=new THREE.Group();c.scale.setScalar(scale);c.position.y=-box.min.y*scale;c.rotation.y=Math.PI;/* o Npc.glb olha para -Z */holder.add(c);
+   const tint=new THREE.Color(VILLAGER_TINTS[tintIndex%VILLAGER_TINTS.length]);c.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.color.multiply(tint);/* sem mapa de ambiente, metal vira preto: tecido e couro ficam foscos */o.material.metalness=0;o.material.metalnessMap=null;o.material.roughness=Math.max(.7,o.material.roughness||0);if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x6a5a50);o.material.emissiveIntensity=.8;}o.material.needsUpdate=true;}});
+   return{holder,model:c,mixer:new THREE.AnimationMixer(c)};};
+  // Bancas: troca os clones antigos por moradores, cada um com um gesto de repouso diferente.
+  for(const mixer of villageNpcMixers.splice(0))mixer.stopAllAction();villageNpcBreathing.length=0;
+  for(const root of vendorRoots)villageGroup.remove(root);vendorRoots.length=0;
+  villageVendors.forEach((p,i)=>{const v=make(i+1);v.holder.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.holder.rotation.y=p.yaw;villageGroup.add(v.holder);vendorRoots.push(v.holder);
+   const clip=idleClips[i%Math.max(1,idleClips.length)];if(clip){const a=v.mixer.clipAction(clip);a.play();a.time=i*.7;}villageNpcMixers.push(v.mixer);});
+  // Moradores que circulam pela praça (rotas fechadas, longe das bancas e da trilha principal).
+  const routes=[[[-20,-38],[-16,-33],[-8,-35],[-6,-41],[-12,-39]],[[-22,-50],[-15,-55],[-8,-52],[-13,-48]],[[-4,-52],[2,-49],[4,-44],[-2,-47]]];
+  if(walkClip)routes.forEach((route,i)=>{const v=make(i+3);const a=v.mixer.clipAction(walkClip);a.play();a.time=i*.4;villageGroup.add(v.holder);villageNpcMixers.push(v.mixer);villagerWalkers.push({holder:v.holder,route,leg:0,t:Math.random(),speed:.95+i*.1,pause:0,idle:idleClips[0]?v.mixer.clipAction(idleClips[0]):null,walk:a});});
+  window.SevenSinsVillagerReport={vendors:villageVendors.length,walkers:villagerWalkers.length,clips:clips.map(c=>c.name)};
+ },undefined,err=>console.warn('Npc-lod.glb não carregou; mantendo os moradores antigos.',err));
+}
+function updateVillagers(dt){
+ for(const w of villagerWalkers){
+  if(w.pause>0){w.pause-=dt;if(w.pause<=0&&w.idle){w.idle.fadeOut(.3);w.walk.reset().fadeIn(.3).play();}continue;}
+  const a=w.route[w.leg],b=w.route[(w.leg+1)%w.route.length],len=Math.hypot(b[0]-a[0],b[1]-a[1])||1;
+  w.t+=dt*w.speed/len;
+  if(w.t>=1){w.t=0;w.leg=(w.leg+1)%w.route.length;if(Math.random()<.35&&w.idle){w.pause=2+Math.random()*3;w.walk.fadeOut(.3);w.idle.reset().fadeIn(.3).play();}continue;}
+  // Desvia do herói: espera em vez de atravessá-lo.
+  const x=a[0]+(b[0]-a[0])*w.t,z=a[1]+(b[1]-a[1])*w.t;if(Math.hypot(x-player.position.x,z-player.position.z)<1.1){w.t-=dt*w.speed/len;continue;}
+  w.holder.position.set(x,groundHeightAt(x,z),z);
+  const yaw=Math.atan2(b[0]-a[0],b[1]-a[1]),d=Math.atan2(Math.sin(yaw-w.holder.rotation.y),Math.cos(yaw-w.holder.rotation.y));w.holder.rotation.y+=d*Math.min(1,dt*6);
+ }
+}
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
