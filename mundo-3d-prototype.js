@@ -2706,7 +2706,7 @@ addEventListener('resize',resize);
     try{
       Object.keys(localStorage).forEach(function(key){
         if(/^sevenSins3DCampaignV[1-6]$/.test(key) ||
-           (key.indexOf('seven-sins-')===0 && !/^seven-sins-3d-(daynight|fps|graphics)$/.test(key))){
+           (key.indexOf('seven-sins-')===0 && !/^seven-sins-3d-(daynight|fps|graphics|settings)$/.test(key))){
           localStorage.removeItem(key);
         }
       });
