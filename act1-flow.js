@@ -85,7 +85,8 @@ export function progressionFields(raw, questStep) {
     achievementsClaimed: list(r.achievementsClaimed),
     bestiary: list(r.bestiary),
     bestiaryRewarded: list(r.bestiaryRewarded),
-    shopVisited: !!r.shopVisited
+    shopVisited: !!r.shopVisited,
+    playSeconds: Math.max(0, Math.floor(Number(r.playSeconds) || 0))
   };
 }
 

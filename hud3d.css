@@ -224,3 +224,25 @@ body.cinematic #cine-bars::before,body.cinematic #cine-bars::after{height:11vh}
 #prologue-text.show{opacity:1}
 body.cinematic #skip-awakening{top:calc(11vh + 10px)!important;bottom:auto!important;left:auto!important;right:16px!important;transform:none!important}
 .gx-orb{min-width:56px;min-height:56px}
+
+/* ---------- MOD 190: corações e perfil ---------- */
+#heart-pill{position:absolute;left:calc(var(--P) + 2px + clamp(70px,16vh,96px));top:calc(var(--P)*.14 + var(--hph) + clamp(6px,1.6vh,9px) + 17px);display:flex;align-items:center;gap:5px;height:clamp(18px,4.8vh,26px);padding:0 10px 0 7px;border:1.5px solid #c9485e;border-radius:999px;background:linear-gradient(180deg,rgba(50,18,28,.92),rgba(14,6,10,.94));box-shadow:0 0 0 1px #000c,0 3px 8px #0008;font:800 clamp(11px,2.8vh,15px)/1 var(--hud-font);color:#fff;white-space:nowrap}
+.heart-ic{color:#ff5a74;text-shadow:0 0 6px rgba(255,80,110,.7);font-size:1.05em}
+#heart-timer{font-size:.72em;color:#ffc2cc;margin-left:3px}
+#heart-timer[hidden]{display:none}
+#profile-panel{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:12px;background:#05060acc;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#profile-panel[hidden]{display:none}
+#profile-sheet{position:relative;width:min(380px,100%);max-height:94vh;overflow:auto;padding:14px 16px 14px;border:1px solid #d9bd79;border-radius:16px 4px 16px 4px;background:linear-gradient(160deg,#1a1626f7,#0a0810fa);box-shadow:0 16px 40px #000c;color:#efe6cf;font-family:var(--hud-font);text-align:center}
+#profile-portrait{margin:4px auto 10px;width:78px;height:78px;border-radius:50%;background:#15122a center/cover;box-shadow:0 0 0 3px #e2b653,0 0 0 5px #000,0 6px 16px #000a}
+#profile-sheet h2{margin:0 0 8px;font:800 18px/1 var(--hud-serif);letter-spacing:.2em;color:#f3d58a}
+#profile-sheet label{display:block;text-align:left;font-size:10px;letter-spacing:.12em;color:#c9b07a;margin-bottom:4px}
+.profile-row{display:flex;gap:6px}
+#profile-name{flex:1;min-width:0;height:38px;border-radius:9px;border:1px solid #c9a24d88;background:#0c0a14;color:#fff;padding:0 10px;font-size:15px}
+#profile-sheet button{width:auto;height:38px;padding:0 12px;border:1px solid #c9a24d;border-radius:9px;background:linear-gradient(180deg,#7a5a1e,#3a2608);color:#fff3cf;font:800 11px/1 var(--hud-font);letter-spacing:.08em}
+#profile-error{min-height:15px;margin:4px 0 6px;font-size:11px;color:#ffcf8a;text-align:left}
+#profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:left}
+#profile-stats div{padding:7px 9px;border:1px solid #c9a24d33;border-radius:8px;background:#0e0b16}
+#profile-stats span{display:block;font-size:9px;letter-spacing:.1em;color:#c9b07a;text-transform:uppercase}
+#profile-stats strong{display:block;margin-top:2px;font-size:13px;color:#fff3cf}
+.profile-note{margin:10px 0 8px;font-size:10.5px;color:#a99f88}
+#profile-close{width:100%!important;background:#141020!important}
