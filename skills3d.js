@@ -2,32 +2,27 @@
  * MOD 186 — Habilidades celestiais do mundo 3D: desbloqueio por progressão, mana e recarga.
  * Regras puras (testadas em skills3d.test.mjs); o mundo só desenha e chama.
  *
- * Até a loja central existir, as duas primeiras habilidades são ensinadas pelo Anjo-Guia
- * em marcos do Ato I (o documento pede Skill 1 e 2 antes do Primeiro Bispo). Sol da Justiça
- * e o Julgamento Divino continuam bloqueados até a vitória sobre Valério.
+ * Desde o Mod 188 as Palavras são compradas na Loja Central (Câmara das Escrituras), com requisitos
+ * de etapa, nível e ouro definidos em progression3d.js.
  */
 export const MANA = { max: 100, regenCalm: 6, regenCombat: 2.4, hitGain: 5, hitGainInterval: 650 };
 
 export const SKILLS = {
   magic: { id: 'magic', name: 'Espadas da Palavra', key: '1', mana: 18, cooldown: 1800, unlockStep: 4,
-    lockReason: 'O Anjo-Guia ensina esta Palavra depois que as crianças estiverem a salvo.' },
+    lockReason: 'Compre na Loja Central depois de libertar as crianças.' },
   magic2: { id: 'magic2', name: 'Julgamento Celestial', key: '2', mana: 32, cooldown: 4200, unlockStep: 6,
-    lockReason: 'Liberada ao vencer o guarda da passagem.' },
+    lockReason: 'Compre na Loja Central depois de vencer as sentinelas.' },
   magic3: { id: 'magic3', name: 'Sol da Justiça', key: '3', mana: 45, cooldown: 6200, unlockBishops: 1,
-    lockReason: 'Disponível após derrotar Valério, o Primeiro Bispo.' },
+    lockReason: 'Compre na Loja Central depois de purificar Valério.' },
   ultimate: { id: 'ultimate', name: 'Julgamento Divino', key: '4', mana: 80, cooldown: 14000, unlockBishops: 2,
-    lockReason: 'Disponível antes do Segundo Bispo, com nível e missão próprios.' }
+    lockReason: 'Disponível no Ato II, antes do Segundo Bispo.' }
 };
 export const SKILL_ORDER = ['magic', 'magic2', 'magic3', 'ultimate'];
 
-/** Conjunto de habilidades liberadas para um estado de campanha. */
-export function unlockedSkills({ questStep = 0, bishopsDefeated = 0, testAll = false } = {}) {
-  const out = new Set();
-  for (const id of SKILL_ORDER) {
-    const s = SKILLS[id];
-    if (testAll || (s.unlockStep !== undefined && questStep >= s.unlockStep) || (s.unlockBishops !== undefined && bishopsDefeated >= s.unlockBishops)) out.add(id);
-  }
-  return out;
+/** Conjunto de habilidades liberadas: as que o jogador comprou na Loja Central (Mod 188). */
+export function unlockedSkills({ owned = [], testAll = false } = {}) {
+  const have = owned instanceof Set ? owned : new Set(owned);
+  return new Set(SKILL_ORDER.filter(id => testAll || have.has(id)));
 }
 
 /** Habilidades que acabaram de ser liberadas entre dois estados (para a animação de revelação). */

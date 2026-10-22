@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
 import { SKILLS, SKILL_ORDER, MANA, unlockedSkills, newlyUnlocked, canCast, regenMana, manaFromHit, cooldownFraction } from './skills3d.js';
 import { createWorldAudio } from './audio3d.js';
+import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { createTerrain, buildTerrainArrays, colorTerrain, scatterForest, fbm } from './world3d-terrain.js';
 import { ACT1, sanitizePlayerName, migrateProgress, questPresentation, guideAwakeningLines, guideAfterNameLines, informantPoorLines, informantLines, captorTauntLines, freeChildrenLines, reunionLines, wardenTauntLines, portalBlockedLines, portalLines, afterEnemyDefeated, afterMountainDefeat, afterWardenDefeat, valerioHandoffPlan, afterValerioVictory, valerioVictoryLines } from './act1-flow.js';
@@ -91,11 +92,13 @@ const VILLAGE_CENTER={x:-12.2,z:-44.5},VILLAGE_CLEAR_RADIUS=14.2,SECRET_RUIN_SPO
 const FOREST_POND={x:-27,z:-88,r:11.5,depth:2.4,level:-.42};
 const mainTrail=[[0,14],[0,4],[.5,-6],[-1.8,-17],[0,-29],[2.2,-43],[-1.2,-59],[-2,-76],[5,-91],[15,-99],[27,-108],[44,-119],[46,-132],[45,-140]];
 const villageTrail=[[2.2,-43],[0,-41],[-4.6,-41.4],[-8.7,-43.3],[-12.2,-44.5]];
+// Mod 188 — caminho da vila até a Loja Central (oeste da praça).
+const SHOP_SPOT={x:-33,z:-45},shopTrail=[[-12.2,-44.5],[-18,-45.6],[-24,-45.2],[-27.4,-45]];
 const terrain3D=createTerrain({
  hill:hillHeightAt,
- keepouts:[{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:0.1,z:-56.1,r:6},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
+ keepouts:[{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:0.1,z:-56.1,r:6},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
  ponds:[FOREST_POND],
- paths:[{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5}]
+ paths:[{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5}]
 });
 function groundHeightAt(x,z){return terrain3D.height(x,z);}
 function dryGround(x,z){return terrain3D.walkable(x,z)&&terrain3D.waterDepth(x,z)<-.12;}
@@ -205,7 +208,7 @@ const treeObstacles=[],rockObstacles=[],marketObstacles=[],walkableObstacles=[],
 const leafMid=mat(0x245035),mossMatA=mat(0x34522e),mossMatB=mat(0x465e32),grassMatA=mat(0x58763d),grassMatB=mat(0x304d31);
 const canopyWindUniforms=[leafMat,leafMid,leafLight].map((material,i)=>addInstancedWind(material,.075,'clamp((position.y+1.175)/2.35,0.0,1.0)',.72,'forest-canopy-wind-v163-'+i));
 for(const material of [leafMat,leafMid,leafLight,barkMat])addNearCameraFade(material);
-const trailRoutes=[{points:mainTrail,width:5.2},{points:villageTrail,width:4.0}];
+const trailRoutes=[{points:mainTrail,width:5.2},{points:villageTrail,width:4.0},{points:shopTrail,width:3.4}];
 function addTrail(points,width){
  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],groundHeightAt(p[0],p[1]),p[1])),false,'centripetal');
  const steps=Math.max(48,points.length*14),vertices=[],uvs=[],indices=[];
@@ -235,7 +238,7 @@ let seed=9137;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/429
    pois ficam fora da área caminhável). Tudo instanciado: poucos draw calls para o celular. */
 function forestSpotFree(x,z){
  if(Math.hypot(x,z-4)<6.5||Math.hypot(x-CLEARING.x,z-CLEARING.z)<8.6||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1)return false;
- if(WAYSTONES.some(w=>Math.hypot(x-w.x,z-w.z)<4.2))return false;
+ if(WAYSTONES.some(w=>Math.hypot(x-w.x,z-w.z)<4.2)||Math.hypot(x-SHOP_SPOT.x,z-SHOP_SPOT.z)<10)return false;
  if(Math.hypot(x-SECRET_RUIN_SPOT.x,z-SECRET_RUIN_SPOT.z)<4.4||Math.hypot(x-PORTAL.x,z-PORTAL.z)<9.5||Math.hypot(x-.1,z+56.1)<5.2)return false;
  return !trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+1.25));
 }
@@ -605,8 +608,8 @@ function resolvePlayerAttackHit(){
  if(!enemyAlive||!combatStepNow()||!enemy.visible)return;
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz),facing=(dx*playerAttackFacingX+dz*playerAttackFacingZ)/(distance||1);
- if(distance>2.0||facing<.28||Math.abs(player.position.y-enemy.position.y)>1.05){status.textContent=distance>2.0?'Chegue mais perto para acertar o golpe':facing<.28?'O golpe não alcançou o inimigo':'O inimigo está fora da altura do golpe';return;}
- enemyHP=Math.max(0,enemyHP-25);({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));worldAudio.hit();enemyHitFlash=.2;enemyKnockback=.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
+ if(distance>SWORDS[equippedSword].reach||facing<.28||Math.abs(player.position.y-enemy.position.y)>1.05){status.textContent=distance>2.0?'Chegue mais perto para acertar o golpe':facing<.28?'O golpe não alcançou o inimigo':'O inimigo está fora da altura do golpe';return;}
+ enemyHP=Math.max(0,enemyHP-Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)));({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));worldAudio.hit();enemyHitFlash=.2;enemyKnockback=.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
  if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.05);}
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
  if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),850);}
@@ -622,6 +625,7 @@ function damagePlayerFromEnemyAttack(damage=ENEMY_ATTACK_DAMAGE){
  const now=performance.now();if(playerHP<=0||now<playerInvulnerableUntil)return false;
  const raw=encounterProfile==='warden'?Math.max(1,Math.round((Number(damage)||ENEMY_ATTACK_DAMAGE)*1.15)):Math.max(1,Number(damage)||ENEMY_ATTACK_DAMAGE);
  const scaled=applyDefenseToHit(raw);if(scaled<=0){playerInvulnerableUntil=now+450;return false;}
+ fightHitTaken=true;
  playerHP=Math.max(0,playerHP-scaled);playerInvulnerableUntil=now+850;updatePlayerHud();worldAudio.hurt();
  if(playerHP===0){
   playerRespawnAt=now+1450;moveVX=moveVZ=0;dashRemaining=0;pendingEnemyHitAt=0;
@@ -772,7 +776,7 @@ function checkSecretRuin(){
  if(secretRuinFound)return;
  if(Math.hypot(player.position.x-secretRuin.position.x,player.position.z-secretRuin.position.z)<3.2){
   // Marca primeiro para impedir que contatos repetidos concedam várias recompensas.
-  secretRuinFound=true;
+  secretRuinFound=true;bumpStat('ruins');gainXp(XP_REWARDS.ruin);
   try{localStorage.setItem('seven-sins-3d-secret-ruin','1');}catch(e){}
   // Usa o saldo e a persistência oficiais do mundo; não cria uma carteira paralela.
   coins+=3;
@@ -859,11 +863,40 @@ let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,journeyEnemy
 let playerName=saved3DProgress.playerName,captorsTaunted=saved3DProgress.captorsTaunted,childrenFreed=saved3DProgress.childrenFreed,awakeningSeen=saved3DProgress.awakeningSeen,actCardSeen=saved3DProgress.actCardSeen;
 let mountainIndex=saved3DProgress.mountainIndex||0,wardenTaunted=!!saved3DProgress.wardenTaunted,wardenDefeated=!!saved3DProgress.wardenDefeated,portalOpened=!!saved3DProgress.portalOpened,portalRewardClaimed=!!saved3DProgress.portalRewardClaimed;
 let wardenIntroLock=false,portalPull=null,handoffSent=false,bishopsDefeated=saved3DProgress.bishopsDefeated||0,valerioRewardClaimed=!!saved3DProgress.valerioRewardClaimed;
+/* MOD 188 — progressão: XP e nível, moedas por vitória, estatísticas para conquistas e catálogo de inimigos. */
+let playerXp=saved3DProgress.xp||0,ownedItems=new Set(saved3DProgress.owned||[]),equippedSword=saved3DProgress.sword||'prota';
+const progressStats=Object.assign({kills:0,rescues:0,perfectBlocks:0,flawless:0,places:0,ruins:0,bishops:0},saved3DProgress.stats||{});
+const achievementsClaimed=new Set(saved3DProgress.achievementsClaimed||[]),bestiaryKnown=new Set(saved3DProgress.bestiary||[]),bestiaryRewarded=new Set(saved3DProgress.bestiaryRewarded||[]);
+let shopVisited=!!saved3DProgress.shopVisited,fightHitTaken=false;
+function playerLevel(){return levelFromXp(playerXp);}
+function applyLevelStats(heal){const st=statsForLevel(playerLevel());const was=playerMaxHP;playerMaxHP=st.maxHP;if(heal)playerHP=playerMaxHP;else playerHP=Math.min(playerMaxHP,playerHP+(playerMaxHP-was));updatePlayerHud();updateLevelHud();}
+function updateLevelHud(){const p=levelProgress(playerXp);const lv=document.getElementById('level-badge');if(lv)lv.textContent='NV '+p.level;const fill=document.getElementById('xp-fill');if(fill)fill.style.width=(p.max?100:Math.round(p.into/p.need*100))+'%';}
+function gainXp(amount,why){
+ if(!(amount>0))return;const before=playerLevel();playerXp+=amount;const after=playerLevel();
+ if(after>before){applyLevelStats(true);showCombatCallout('NÍVEL '+after);worldAudio.reveal();status.textContent='Você alcançou o nível '+after+'. Vida máxima: '+playerMaxHP+'.';announceShopNews();}
+ updateLevelHud();
+}
+function bumpStat(key,n=1){progressStats[key]=(progressStats[key]||0)+n;announceAchievements();}
+let achievementsAnnounced=new Set(ACHIEVEMENTS.filter(a=>achievementState(a,progressStats,achievementsClaimed).done).map(a=>a.id));
+function announceAchievements(){for(const a of ACHIEVEMENTS){const st=achievementState(a,progressStats,achievementsClaimed);if(st.done&&!achievementsAnnounced.has(a.id)){achievementsAnnounced.add(a.id);const toast=document.getElementById('quest-toast');if(toast){toast.textContent='CONQUISTA · '+a.name.toUpperCase()+' (resgate na loja)';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}}}}
+const BESTIARY_BY_PROFILE={captor:'captor',sentry:'sentry',warden:'warden'};
+function registerEnemyDefeat(profile){
+ const id=BESTIARY_BY_PROFILE[profile]||'captor';
+ const xp=XP_REWARDS[id]||20,gold=id==='sentry'?6:id==='captor'?4:0;
+ if(gold)coins+=gold;bestiaryKnown.add(id);bumpStat('kills');if(!fightHitTaken)bumpStat('flawless');fightHitTaken=false;
+ gainXp(xp);showRewardPop((gold?'+'+gold+' MOEDAS · ':'')+'+'+xp+' XP');
+}
+function showRewardPop(text){const el=document.getElementById('reward-pop');if(!el)return;el.textContent=text;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
+let announcedShop=new Set();
+function announceShopNews(){
+ const ctx={questStep,level:playerLevel(),coins:Infinity,owned:ownedItems};
+ for(const item of SHOP_ITEMS){const st=shopStatus(item,ctx);if(st.state==='buyable'&&!announcedShop.has(item.id)){announcedShop.add(item.id);if(questStep>0){const toast=document.getElementById('quest-toast');if(toast){toast.textContent='NA LOJA CENTRAL · '+item.name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}}}}
+}
 let namePromptOpen=false,awakeningActive=!awakeningSeen&&questStep===0,awakeningT=0,tauntLock=false,reunionStarted=false,purseGiven=questStep>0;
 if(questStep<2)enemy.visible=false;
 if(questStep===2){{const jx=JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,jz=JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59;enemy.position.set(jx,terrainHeightAt(jx,jz),jz);}enemy.visible=false;}
 portalGroup.visible=true;
-function save3DProgress(){const progress={version:ACT1.version,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
@@ -873,7 +906,7 @@ const skillButtons={};
 for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;b.innerHTML='<span class="btn-icon"></span><span class="btn-label" data-key="'+SKILLS[id].key+'">'+SKILL_LABELS[id]+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';b.dataset.key=SKILLS[id].key;b.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');skillButtons[id]={el:b,cost:b.querySelector('.skill-cost'),cd:-1,state:''};}
 for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧'],['defend','K'],['aim','Q']]){const b=document.getElementById(id);if(b){b.dataset.key=key;const l=b.querySelector('.btn-label');if(l)l.dataset.key=key;}}
 function refreshSkillUnlocks(){
- const next=unlockedSkills({questStep,bishopsDefeated,testAll:testAllSkills});
+ const next=unlockedSkills({owned:ownedItems,testAll:testAllSkills});
  const fresh=skillSet?newlyUnlocked(skillSet,next):[];
  skillSet=next;
  for(const id of SKILL_ORDER){const ui=skillButtons[id];if(ui)ui.el.classList.toggle('skill-locked',!skillSet.has(id));}
@@ -926,19 +959,19 @@ function enemyHpPercent(){return Math.max(0,Math.min(100,enemyHP/Math.max(1,enem
 function nextDashCooldown(){if(encounterProfile==='warden')return 2.15;if(encounterProfile==='sentry'&&mountainIndex>0)return 1.65;return 2.7;}
 function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;el.textContent=encounterProfile==='warden'?'GUARDA DA PASSAGEM':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
-function advanceAfterEnemyDefeat(){enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;if(questStep===2){enemyHP=100;enemyMaxHP=100;enemyAlive=true;encounterProfile='captor';const next=afterEnemyDefeated(journeyEnemyIndex,JOURNEY_ENEMIES.length);questStep=next.questStep;journeyEnemyIndex=next.journeyEnemyIndex;status.textContent=next.status;save3DProgress();updateQuestHud();return;}if(questStep===4){const next=afterMountainDefeat(mountainIndex,MOUNTAIN_SENTRIES.length);questStep=next.questStep;mountainIndex=next.mountainIndex;enemyHP=100;enemyMaxHP=100;enemyAlive=true;status.textContent=next.status;save3DProgress();updateQuestHud();if(questStep===5){const toast=document.getElementById('quest-toast');if(toast){toast.textContent='O GUARDA DA PASSAGEM ESPERA';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2400);}}return;}if(questStep===5){const next=afterWardenDefeat();questStep=next.questStep;wardenDefeated=true;enemyHP=100;enemyMaxHP=100;enemyAlive=true;coins+=ACT1.wardenReward;status.textContent=next.status;save3DProgress();updateQuestHud();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='GUARDA DERROTADO · +'+ACT1.wardenReward+' MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}}}
+function advanceAfterEnemyDefeat(){registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;if(questStep===2){enemyHP=100;enemyMaxHP=100;enemyAlive=true;encounterProfile='captor';const next=afterEnemyDefeated(journeyEnemyIndex,JOURNEY_ENEMIES.length);questStep=next.questStep;journeyEnemyIndex=next.journeyEnemyIndex;status.textContent=next.status;save3DProgress();updateQuestHud();return;}if(questStep===4){const next=afterMountainDefeat(mountainIndex,MOUNTAIN_SENTRIES.length);questStep=next.questStep;mountainIndex=next.mountainIndex;enemyHP=100;enemyMaxHP=100;enemyAlive=true;status.textContent=next.status;save3DProgress();updateQuestHud();if(questStep===5){const toast=document.getElementById('quest-toast');if(toast){toast.textContent='O GUARDA DA PASSAGEM ESPERA';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2400);}}return;}if(questStep===5){const next=afterWardenDefeat();questStep=next.questStep;wardenDefeated=true;enemyHP=100;enemyMaxHP=100;enemyAlive=true;coins+=ACT1.wardenReward;status.textContent=next.status;save3DProgress();updateQuestHud();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='GUARDA DERROTADO · +'+ACT1.wardenReward+' MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}}}
 function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
 function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;if(questStep===1&&vendor.shortName==='PROVISÕES'){talkToInformant();return;}const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
 function talkToInformant(){if(questStep!==1||dialogueOpen||namePromptOpen)return;if(coins<ACT1.bribe){showDialogue(informantPoorLines());return;}showDialogue(informantLines(playerName),()=>{coins=Math.max(0,coins-ACT1.bribe);questStep=2;journeyEnemyIndex=0;captorsTaunted=false;tauntLock=false;encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;enemy.visible=false;setDayNightMode('night');save3DProgress();updateQuestHud();status.textContent='A noite caiu. Siga a trilha até as gaiolas.';});}
 function beginCaptorTaunt(){if(captorsTaunted||tauntLock||dialogueOpen||namePromptOpen)return;tauntLock=true;showDialogue(captorTauntLines(playerName),()=>{captorsTaunted=true;tauntLock=false;save3DProgress();status.textContent='Os captores avançam. Proteja as gaiolas.';});}
 function freeChildren(){if(questStep!==3||childrenFreed||dialogueOpen||namePromptOpen)return;showDialogue(freeChildrenLines(playerName),()=>{childrenFreed=true;openCageDoors();save3DProgress();updateQuestHud();status.textContent='Escolte as crianças de volta à vila.';});}
-function reunionDialogue(){if(reunionStarted||dialogueOpen||namePromptOpen||questStep!==3||!childrenFreed)return;reunionStarted=true;showDialogue(reunionLines(),()=>{questStep=4;coins+=ACT1.rescueReward;save3DProgress();updateQuestHud();status.textContent='As famílias as receberam. A subida tem sentinelas espaçadas antes do portal.';const toast=document.getElementById('quest-toast');if(toast){toast.textContent='AS CRIANÇAS ESTÃO SEGURAS · +'+ACT1.rescueReward+' MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}});}
+function reunionDialogue(){if(reunionStarted||dialogueOpen||namePromptOpen||questStep!==3||!childrenFreed)return;reunionStarted=true;showDialogue(reunionLines(),()=>{questStep=4;bumpStat('rescues');gainXp(XP_REWARDS.rescue);coins+=ACT1.rescueReward;save3DProgress();updateQuestHud();status.textContent='As famílias as receberam. A subida tem sentinelas espaçadas antes do portal.';const toast=document.getElementById('quest-toast');if(toast){toast.textContent='AS CRIANÇAS ESTÃO SEGURAS · +'+ACT1.rescueReward+' MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}});}
 function beginWardenIntro(){if(wardenTaunted||wardenIntroLock||dialogueOpen||namePromptOpen)return;wardenIntroLock=true;showDialogue(wardenTauntLines(playerName),()=>{wardenTaunted=true;wardenIntroLock=false;save3DProgress();revealEncounter('warden',WARDEN_SPOT,ACT1.wardenHp,'O guarda da passagem entra na trilha.');});}
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
 function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;player.position.x+=(PORTAL.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=((PORTAL.z+2.4)-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(PORTAL.x-player.position.x,PORTAL.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestValerioHandoff();}
 function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de Valério foi quebrado.';return;}if(questStep===7||portalOpened){startPortalPull();return;}if(questStep!==6)return;showDialogue(portalLines(playerName),()=>{if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();status.textContent='O portal reconhece o seu nome e começa a puxar.';const toast=document.getElementById('quest-toast');if(toast){toast.textContent='A DIMENSÃO DE VALÉRIO SE ABRE';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}startPortalPull();});}
 function warnPortalBlocked(){if(dialogueOpen||namePromptOpen)return;showDialogue(portalBlockedLines());}
-function tryInteract(){if(namePromptOpen||awakeningActive||portalPull)return;if(dialogueOpen){advanceDialogue();return;}const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);const teo=villageVendors[2];const teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z);const cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(questStep===1&&teoDistance<=2.9){talkToInformant();return;}if(questStep===3&&!childrenFreed&&cageDistance<=4.2){freeChildren();return;}const fighting=enemy.visible&&enemyAlive;if((questStep===4||questStep===5)&&portalDistance<=3.8&&!fighting){warnPortalBlocked();return;}if((questStep===6||questStep===7)&&portalDistance<=3.8&&!fighting){openValerioPortal();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
+function tryInteract(){if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen){advanceDialogue();return;}const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);const teo=villageVendors[2];const teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z);const cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(questStep===1&&teoDistance<=2.9){talkToInformant();return;}if(questStep===3&&!childrenFreed&&cageDistance<=4.2){freeChildren();return;}const fighting=enemy.visible&&enemyAlive;if((questStep===4||questStep===5)&&portalDistance<=3.8&&!fighting){warnPortalBlocked();return;}if((questStep===6||questStep===7)&&portalDistance<=3.8&&!fighting){openValerioPortal();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
 bindInstantTap(document.getElementById('talk-button'),tryInteract);
 const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');skipAwakening.addEventListener('click',finishAwakening);}
 if(questStep>=2&&questStep<=6){setDayNightMode('night');dayNightState.t=1;applyDayNightVisual(1);}
@@ -1204,8 +1237,8 @@ function animate(){requestAnimationFrame(animate);if(dimensionActive||gamePaused
  const talkButton=document.getElementById('talk-button');
  const nearbyVendor=nearestVillageVendor();
  const teo=villageVendors[2],teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z),cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);
- const fightingNow=enemy.visible&&enemyAlive;const portalReady=(questStep===6||questStep===7)&&portalDistance<=3.8&&!fightingNow,portalSoon=(questStep===4||questStep===5)&&portalDistance<=3.8&&!fightingNow;const nearStone=nearestWaystone();const canTalk=!!nearStone||(questStep===0&&guideDistance<=2.7)||(questStep===1&&teoDistance<=2.9)||(questStep===3&&!childrenFreed&&cageDistance<=4.2)||portalReady||portalSoon||!!nearbyVendor;
- if(talkButton){const label=questStep===1&&teoDistance<=2.9?(coins>=ACT1.bribe?'OFERECER 5':'FALAR · TÉO'):questStep===3&&!childrenFreed&&cageDistance<=4.2?'ABRIR GAIOLAS':portalReady?'ATRAVESSAR':portalSoon?'PORTAL FECHADO':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · MAPA':'REGISTRAR ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull);}
+ const fightingNow=enemy.visible&&enemyAlive;const portalReady=(questStep===6||questStep===7)&&portalDistance<=3.8&&!fightingNow,portalSoon=(questStep===4||questStep===5)&&portalDistance<=3.8&&!fightingNow;const nearStone=nearestWaystone(),atShop=nearShopDoor();const canTalk=atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||(questStep===1&&teoDistance<=2.9)||(questStep===3&&!childrenFreed&&cageDistance<=4.2)||portalReady||portalSoon||!!nearbyVendor;
+ if(talkButton){const label=questStep===1&&teoDistance<=2.9?(coins>=ACT1.bribe?'OFERECER 5':'FALAR · TÉO'):questStep===3&&!childrenFreed&&cageDistance<=4.2?'ABRIR GAIOLAS':portalReady?'ATRAVESSAR':portalSoon?'PORTAL FECHADO':atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · MAPA':'REGISTRAR ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull);}
  questMarker.visible=questStep<7&&!portalPull;
  if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
  if(questStep===1)questMarker.position.set(teo.x,terrainHeightAt(teo.x,teo.z)+.06,teo.z);
@@ -1395,6 +1428,7 @@ const fallingLeaves=(()=>{const pos=new Float32Array(LEAF_COUNT*3),col=new Float
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));
  const pts=new THREE.Points(g,new THREE.PointsMaterial({size:.13,sizeAttenuation:true,vertexColors:true,transparent:true,opacity:.9,depthWrite:false}));pts.frustumCulled=false;scene.add(pts);return{pts,pos,vel};})();
 function updateAmbientLife(dt,now){
+ shopBuilding.star.rotation.y+=dt*.8;shopBuilding.lamp.intensity=dayNightState.t*2.2;
  if(grassRefresh)grassRefresh(player.position.x,player.position.z);
  const night=dayNightState.t,t=now*.001,px=player.position.x,pz=player.position.z;
  const ready=questStep>=6;portalBeacon.material.opacity=(ready?.42:.17)+night*.14+Math.sin(t*1.7)*.035;
@@ -1443,7 +1477,7 @@ function updateMapDiscovery(now){
  const x=player.position.x,z=player.position.z;
  if(revealAround(mapState,x,z))mapDirty=true;
  const found=discoverPois(mapState,x,z,{secretsFound:{ruina:secretRuinFound}});
- if(found.length){mapDirty=true;const toast=document.getElementById('quest-toast');if(toast&&!dialogueOpen){toast.textContent='LOCAL DESCOBERTO · '+found[0].name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2400);}}
+ if(found.length){mapDirty=true;progressStats.places=mapState.pois.size;announceAchievements();const toast=document.getElementById('quest-toast');if(toast&&!dialogueOpen){toast.textContent='LOCAL DESCOBERTO · '+found[0].name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2400);}}
  if(now>mapSaveAt){mapSaveAt=now+4000;saveMapState();}
  if(mapOpen)drawWorldMap();
 }
@@ -1459,7 +1493,7 @@ function buildMapBase(){
  g.fillStyle='#8c7a55';g.beginPath();g.arc(px(VILLAGE_CENTER.x),pz(VILLAGE_CENTER.z),12/MAP_BOUNDS.size*N,0,Math.PI*2);g.fill();
  return c;
 }
-const MAP_GLYPH={camp:'▲',village:'⌂',clearing:'◌',danger:'◆',water:'≈',secret:'✧',portal:'✦'};
+const MAP_GLYPH={shop:'⛬',camp:'▲',village:'⌂',clearing:'◌',danger:'◆',water:'≈',secret:'✧',portal:'✦'};
 function drawWorldMap(){
  const canvas=document.getElementById('world-map-canvas');if(!canvas)return;const S=canvas.width,g=canvas.getContext('2d');if(!mapBase)mapBase=buildMapBase();
  const px=(x)=>(x-MAP_BOUNDS.x0)/MAP_BOUNDS.size*S,pz=(z)=>(z-MAP_BOUNDS.z0)/MAP_BOUNDS.size*S;
@@ -1518,6 +1552,7 @@ function returnFromDimension(){
  if(dimensionFrame){dimensionFrame.remove();dimensionFrame=null;}
  dimensionActive=false;worldAudio.pause(false);showPortalVeil(false);portalPull=null;handoffSent=false;
  const result=afterValerioVictory({valerioRewardClaimed,bishopsDefeated});
+ if(result.coinsGained){bumpStat('bishops');gainXp(XP_REWARDS.valerio);bestiaryKnown.add('valerio');}
  questStep=result.questStep;bishopsDefeated=result.bishopsDefeated;valerioRewardClaimed=true;coins+=result.coinsGained;
  const x=PORTAL.x,z=PORTAL.z+4.5;player.position.set(x,terrainHeightAt(x,z),z);playerYaw=0;player.rotation.y=0;cameraYaw=0;moveVX=moveVZ=0;
  playerHP=playerMaxHP;playerMana=MANA.max;closePortalVisuals();save3DProgress();updateQuestHud();
@@ -1532,6 +1567,7 @@ addEventListener('message',e=>{
  else if(data.type==='SEVEN_SINS_BISHOP_RESULT'&&data.result==='victory'&&(dimensionActive||handoffSent))returnFromDimension();
 });
 closePortalVisuals();
+applyLevelStats(true);announceShopNews();
 /* MOD 187 — primeira pessoa de verdade: espada na mão da câmera (com balanço ao andar e golpe visível),
    mira central, campo de visão mais aberto, herói sempre virado para onde a câmera olha. */
 scene.add(camera);
@@ -1541,11 +1577,13 @@ let fpSword=null,fpSwingT=1,fpBob=0,fpWasActive=false;
 const FP_REST={x:.3,y:-.34,z:-.62,rx:-.25,ry:.1,rz:-.38};
 function ensureFpSword(){
  if(fpSword||!swordRoot)return;
- fpSword=swordRoot.clone(true);fpSword.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=false;o.renderOrder=6;}});
+ if(equippedSword==='aurora'&&!auroraFpTemplate)equipSword('aurora');
+ if(equippedSword==='aurora'&&auroraFpTemplate){fpSword=new THREE.Group();fpSword.add(auroraFpTemplate.clone(true));}else fpSword=swordRoot.clone(true);fpSword.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=false;o.renderOrder=6;}});
  fpSword.position.set(0,0,0);fpSword.rotation.set(0,0,0);fpSword.scale.setScalar(.36);fpHolder.add(fpSword);
 }
 function startFpSwing(){fpSwingT=0;}
 function updateFirstPerson(dt,now){
+ if(swordRoot&&equippedSword!=='prota'&&!auroraHand)equipSword(equippedSword);
  const fp=cameraDistance<1.05&&!awakeningActive;
  if(fp!==fpWasActive){fpWasActive=fp;camera.fov=fp?72:56;camera.updateProjectionMatrix();const cross=document.getElementById('crosshair');if(cross)cross.hidden=!fp;}
  fpRig.visible=fp&&!!fpSword;if(swordMount)swordMount.visible=!fp;
@@ -1599,7 +1637,7 @@ function applyDefenseToHit(damage){
  const perfect=performance.now()-defendStartedAt<=PERFECT_WINDOW;
  if(perfect){
   shieldFlash=1;worldAudio.parry();enemyKnockback=.9;enemyKnockbackX=dx/d;enemyKnockbackZ=dz/d;enemyAttackCooldown=Math.max(enemyAttackCooldown,1.4);
-  playerMana=Math.min(MANA.max,playerMana+8);showCombatCallout('DEFESA PERFEITA');status.textContent='Defesa Perfeita! O inimigo ficou aberto.';return 0;
+  playerMana=Math.min(MANA.max,playerMana+8);showCombatCallout('DEFESA PERFEITA');bumpStat('perfectBlocks');status.textContent='Defesa Perfeita! O inimigo ficou aberto.';return 0;
  }
  shieldFlash=.5;worldAudio.block();return Math.max(1,Math.round(damage*.25));
 }
@@ -1681,6 +1719,118 @@ function renderHeroPortrait(){
   const el=document.getElementById('hero-portrait-img');if(el)el.src=c.toDataURL('image/png');
  }catch(err){console.warn('Retrato do herói indisponível.',err);}
 }
+/* MOD 188 — Loja Central: prédio de pedra clara com pórtico, telhado de ardósia e uma estrela dourada
+   no alto (visível da trilha); por dentro, uma única tela com cinco setores. */
+const shopBuilding=(()=>{
+ const g=new THREE.Group(),y0=groundHeightAt(SHOP_SPOT.x,SHOP_SPOT.z);g.position.set(SHOP_SPOT.x,y0,SHOP_SPOT.z);g.rotation.y=Math.PI/2;scene.add(g);
+ const stone=mat(0xcbbd9c),stoneDark=mat(0x8d8371),slate=mat(0x2c3550),goldTrim=new THREE.MeshStandardMaterial({color:0xd9a948,metalness:.6,roughness:.35,emissive:0x3a2606,emissiveIntensity:.4}),marble=mat(0xe8e2d2),cloth=mat(0x6a1f2a),door=mat(0x1a1410);
+ const add=(geo,m,x,y,z,ry=0,cast=true)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.rotation.y=ry;o.castShadow=cast;o.receiveShadow=true;g.add(o);return o;};
+ add(new THREE.BoxGeometry(10.5,.36,8.6),stoneDark,0,.1,0,0,false);
+ add(new THREE.BoxGeometry(8,4.6,5.6),stone,0,2.6,-.9);
+ add(new THREE.BoxGeometry(8.3,.32,5.9),goldTrim,0,4.95,-.9);
+ const roof=add(new THREE.ConeGeometry(5.9,2.6,4,1),slate,0,6.4,-.9,Math.PI/4);roof.scale.set(1,1,.72);
+ const tower=add(new THREE.CylinderGeometry(.9,1.1,3.4,8),stone,0,7.6,-.9);
+ add(new THREE.ConeGeometry(1.25,2.3,8),slate,0,10.4,-.9);
+ const star=new THREE.Mesh(new THREE.OctahedronGeometry(.55,0),new THREE.MeshStandardMaterial({color:0xffe7a0,emissive:0xffbf3f,emissiveIntensity:2.4,metalness:.4,roughness:.2,toneMapped:false}));star.position.set(0,12.15,-.9);g.add(star);
+ // Pórtico: quatro colunas, frontão e estandartes.
+ for(const x of [-3.2,-1.1,1.1,3.2]){add(new THREE.CylinderGeometry(.26,.3,4.1,10),marble,x,2.33,2.5);add(new THREE.BoxGeometry(.7,.24,.7),goldTrim,x,.4,2.5);}
+ add(new THREE.BoxGeometry(8,.45,1.9),stone,0,4.6,2.2);
+ const pediment=add(new THREE.CylinderGeometry(4.1,4.1,1.9,3,1),stone,0,5.25,2.2);pediment.rotation.set(Math.PI/2,0,Math.PI/2);pediment.scale.set(.42,1,1);
+ for(const x of [-2.15,2.15]){const banner=add(new THREE.PlaneGeometry(.9,2.4),cloth,x,3.1,1.94,0,false);banner.material.side=THREE.DoubleSide;add(new THREE.BoxGeometry(1.1,.08,.08),goldTrim,x,4.32,1.95,0,false);}
+ add(new THREE.BoxGeometry(1.7,2.7,.12),door,0,1.55,1.95,0,false);
+ const arch=add(new THREE.TorusGeometry(.85,.1,6,16,Math.PI),goldTrim,0,2.9,1.98,0,false);
+ const sign=makeMarketSign('LOJA CENTRAL','#ffe3a0');sign.scale.multiplyScalar(1.5);sign.position.set(0,4.18,3.18);g.add(sign);
+ const lamp=new THREE.PointLight(0xffc06a,0,13,1.4);lamp.position.set(0,3,3.6);g.add(lamp);
+ // Colisão: salão e pórtico; a porta fica livre para interagir.
+ marketObstacles.push({x:SHOP_SPOT.x-.9,z:SHOP_SPOT.z,shape:'box',halfX:2.95,halfZ:4.15,height:4.6});
+ for(const zc of [-3.2,-1.1,1.1,3.2])marketObstacles.push({x:SHOP_SPOT.x+2.5,z:SHOP_SPOT.z-zc,shape:'circle',radius:.36,height:4});
+ return {group:g,star,lamp,door:{x:SHOP_SPOT.x+4.6,z:SHOP_SPOT.z}};
+})();
+function nearShopDoor(){return Math.hypot(shopBuilding.door.x-player.position.x,shopBuilding.door.z-player.position.z)<3.1;}
+let shopOpen=false,shopSector='escrituras',shopConfirm=null;
+function shopCtx(){return{questStep,level:playerLevel(),coins,owned:ownedItems};}
+function openShop(){
+ if(shopOpen||dialogueOpen||namePromptOpen||awakeningActive)return;
+ if(!shopVisited){shopVisited=true;save3DProgress();showDialogue([
+  {who:'Anjo-Guia',text:'Esta é a Loja Central. Aqui ninguém vende almas — só o que se conquista caminhando. O ouro abre a porta, mas cada Palavra exige que você tenha vivido o bastante para carregá-la.'},
+  {who:'Anjo-Guia',text:'Na Câmara das Escrituras estão os poderes; no Arsenal, as lâminas. O Salão registra seus feitos e o Arquivo guarda o rosto de quem você enfrentou. A última câmara… ainda não é para nós.'}],()=>openShop());return;}
+ shopOpen=true;shopConfirm=null;setDefending(false);const panel=document.getElementById('shop-panel');if(panel)panel.hidden=false;renderShop();
+}
+function closeShop(){shopOpen=false;shopConfirm=null;const panel=document.getElementById('shop-panel');if(panel)panel.hidden=true;}
+function renderShop(){
+ const tabs=document.getElementById('shop-tabs'),body=document.getElementById('shop-body'),gold=document.getElementById('shop-coins'),lvl=document.getElementById('shop-level');if(!tabs||!body)return;
+ if(gold)gold.textContent=String(coins);if(lvl)lvl.textContent='NÍVEL '+playerLevel();
+ tabs.innerHTML='';for(const sec of SHOP_SECTORS){const b=document.createElement('button');b.type='button';b.textContent=sec.name.replace('Câmara dos ','').replace('Câmara das ','').replace('Arsenal das ','Arsenal · ').replace('Salão das ','').replace('Arquivo dos ','Arquivo · ');b.className=sec.id===shopSector?'on':'';if(sec.lockedUntilGalaxy)b.classList.add('locked');bindInstantTap(b,()=>{shopSector=sec.id;shopConfirm=null;renderShop();});tabs.appendChild(b);}
+ const sec=SHOP_SECTORS.find(x=>x.id===shopSector);body.innerHTML='<p class="shop-blurb">'+sec.blurb+'</p>';
+ if(sec.lockedUntilGalaxy){body.insertAdjacentHTML('beforeend','<div class="shop-sealed">🔒<strong>Selada</strong><span>Disponível a partir da Galáxia '+sec.lockedUntilGalaxy+'. Nada aqui pode ser comprado antes disso.</span></div>');return;}
+ if(sec.id==='escrituras'||sec.id==='arsenal'){
+  for(const item of SHOP_ITEMS.filter(i=>i.sector===sec.id)){
+   const st=shopStatus(item,shopCtx()),card=document.createElement('div');card.className='shop-card state-'+st.state;
+   card.innerHTML='<div class="shop-card-head"><strong>'+item.name+'</strong><span class="shop-price">'+(st.state==='owned'?'ADQUIRIDO':item.cost+' ◉')+'</span></div><p>'+item.desc+'</p><p class="shop-req">Nível '+item.level+(st.reason?' · '+st.reason:'')+'</p><div class="shop-actions"></div>';
+   const actions=card.querySelector('.shop-actions');
+   if(st.state==='buyable'){const buy=document.createElement('button');buy.type='button';buy.className='buy';buy.textContent=shopConfirm===item.id?'CONFIRMAR · '+item.cost+' ◉':'COMPRAR';bindInstantTap(buy,()=>{if(shopConfirm!==item.id){shopConfirm=item.id;renderShop();return;}purchase(item);});actions.appendChild(buy);}
+   if(item.kind==='skill'&&st.state!=='locked'){const tr=document.createElement('button');tr.type='button';tr.textContent='EXPERIMENTAR';bindInstantTap(tr,()=>previewSkill(item.id));actions.appendChild(tr);}
+   if(item.kind==='sword'&&st.state==='owned'){const eq=document.createElement('button');eq.type='button';eq.textContent=equippedSword===item.id?'EQUIPADA':'EQUIPAR';eq.disabled=equippedSword===item.id;bindInstantTap(eq,()=>{equipSword(item.id);renderShop();});actions.appendChild(eq);}
+   body.appendChild(card);
+  }
+  if(sec.id==='arsenal'){const base=document.createElement('div');base.className='shop-card state-owned';base.innerHTML='<div class="shop-card-head"><strong>'+SWORDS.prota.name+'</strong><span class="shop-price">INICIAL</span></div><p>A lâmina com que você despertou. Equilibrada, sem habilidade ativa.</p><div class="shop-actions"></div>';const eq=document.createElement('button');eq.type='button';eq.textContent=equippedSword==='prota'?'EQUIPADA':'EQUIPAR';eq.disabled=equippedSword==='prota';bindInstantTap(eq,()=>{equipSword('prota');renderShop();});base.querySelector('.shop-actions').appendChild(eq);body.insertBefore(base,body.children[1]||null);}
+ }else if(sec.id==='conquistas'){
+  for(const a of ACHIEVEMENTS){const st=achievementState(a,progressStats,achievementsClaimed),card=document.createElement('div');card.className='shop-card ach'+(st.claimed?' state-owned':st.done?' state-buyable':'');
+   card.innerHTML='<div class="shop-card-head"><strong>'+a.name+'</strong><span class="shop-price">+'+a.reward+' ◉</span></div><p>'+a.desc+'</p><div class="ach-bar"><i style="width:'+Math.round(st.value/a.goal*100)+'%"></i></div><p class="shop-req">'+st.value+' / '+a.goal+'</p><div class="shop-actions"></div>';
+   if(st.done&&!st.claimed){const b=document.createElement('button');b.type='button';b.className='buy';b.textContent='RESGATAR';bindInstantTap(b,()=>{achievementsClaimed.add(a.id);coins+=a.reward;worldAudio.reveal();save3DProgress();updateQuestHud();renderShop();});card.querySelector('.shop-actions').appendChild(b);}
+   body.appendChild(card);}
+ }else if(sec.id==='arquivo'){
+  const grid=document.createElement('div');grid.className='bestiary';
+  for(const e of BESTIARY){const v=bestiaryEntry(e,bestiaryKnown),card=document.createElement('div');card.className='beast'+(v.known?' known':'');
+   card.innerHTML='<div class="beast-img" style="background-image:url(./'+e.img+')"></div><strong>'+v.name+'</strong><span>'+v.cls+'</span><p>'+v.lore+'</p>';
+   if(v.known&&!bestiaryRewarded.has(e.id)){const b=document.createElement('button');b.type='button';b.className='buy';b.textContent='REGISTRAR +'+e.discoveryReward+' ◉';bindInstantTap(b,()=>{bestiaryRewarded.add(e.id);coins+=e.discoveryReward;save3DProgress();updateQuestHud();renderShop();});card.appendChild(b);}
+   grid.appendChild(card);}
+  body.appendChild(grid);
+ }
+}
+function purchase(item){
+ const r=buyItem(item,shopCtx());shopConfirm=null;if(!r.ok){status.textContent=r.reason;renderShop();return;}
+ coins=r.coins;ownedItems.add(item.id);worldAudio.reveal();if(item.kind==='sword')equipSword(item.id);
+ save3DProgress();updateQuestHud();renderShop();
+ const toast=document.getElementById('quest-toast');if(toast){toast.textContent=(item.kind==='skill'?'NOVA PALAVRA · ':'NOVA LÂMINA · ')+item.name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}
+}
+// Prévia: lança a magia sem gastar mana nem recarga; fora de combate ela não fere ninguém.
+function previewSkill(id){closeShop();const savedMana=playerMana,savedCd=holyCooldowns[id],savedSet=skillSet;skillSet=new Set([id]);holyCooldowns[id]=0;playerMana=MANA.max;castHolyMagic(id);playerMana=savedMana;holyCooldowns[id]=savedCd;skillSet=savedSet;status.textContent='Prévia de '+SKILLS[id].name+' — sem custo, sem efeito no mundo real.';}
+(function initShopUi(){bindInstantTap(document.getElementById('shop-close'),closeShop);addEventListener('keydown',e=>{if(e.code==='Escape'&&shopOpen){closeShop();e.stopImmediatePropagation();}},{capture:true});})();
+/* MOD 188 — Lâmina da Aurora: segunda espada, modelada aqui (não havia espada celestial extra nos assets;
+   os outros GLB são armas dos Bispos). Lâmina clara com fio dourado, guarda em asas e pomo luminoso. */
+function buildAuroraSword(){
+ const g=new THREE.Group();g.name='LaminaDaAurora';
+ const bladeShape=new THREE.Shape();bladeShape.moveTo(-.055,0);bladeShape.lineTo(-.06,.78);bladeShape.lineTo(-.035,.98);bladeShape.lineTo(0,1.12);bladeShape.lineTo(.035,.98);bladeShape.lineTo(.06,.78);bladeShape.lineTo(.055,0);bladeShape.lineTo(-.055,0);
+ const blade=new THREE.Mesh(new THREE.ExtrudeGeometry(bladeShape,{depth:.016,bevelEnabled:true,bevelThickness:.012,bevelSize:.012,bevelSegments:1}),new THREE.MeshStandardMaterial({color:0xf3f0e6,metalness:.85,roughness:.18,emissive:0xffe6b0,emissiveIntensity:.35}));
+ blade.geometry.translate(0,0,-.008);blade.position.y=.26;g.add(blade);
+ const fuller=new THREE.Mesh(new THREE.BoxGeometry(.014,.74,.036),new THREE.MeshBasicMaterial({color:0xffd56a,toneMapped:false}));fuller.position.y=.66;g.add(fuller);
+ const gold=new THREE.MeshStandardMaterial({color:0xe2b04a,metalness:.75,roughness:.3,emissive:0x4a2e06,emissiveIntensity:.5});
+ const guard=new THREE.Mesh(new THREE.BoxGeometry(.34,.045,.06),gold);guard.position.y=.25;g.add(guard);
+ for(const sx of [-1,1]){const wing=new THREE.Mesh(new THREE.ConeGeometry(.035,.16,5),gold);wing.position.set(sx*.19,.29,0);wing.rotation.z=-sx*.9;g.add(wing);}
+ const grip=new THREE.Mesh(new THREE.CylinderGeometry(.028,.032,.22,8),new THREE.MeshStandardMaterial({color:0x3a2a1a,roughness:.8}));grip.position.y=.12;g.add(grip);
+ const pommel=new THREE.Mesh(new THREE.SphereGeometry(.045,10,8),new THREE.MeshStandardMaterial({color:0xfff2c4,emissive:0xffc24a,emissiveIntensity:1.6,toneMapped:false}));pommel.position.y=0;g.add(pommel);
+ g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;}});
+ return g; // origem no pomo, lâmina ao longo de +Y, comprimento ~1,38
+}
+// Encaixa a nova lâmina no mesmo eixo e posição de empunhadura da EspadaProta (medidos no próprio modelo).
+function alignAuroraToSwordRoot(aurora){
+ swordRoot.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(swordRoot.matrixWorld).invert(),box=new THREE.Box3();
+ swordRoot.traverse(o=>{if(o.isMesh&&o.geometry){if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();box.union(o.geometry.boundingBox.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)));}});
+ const size=box.getSize(new THREE.Vector3()),axis=size.x>size.y?(size.x>size.z?'x':'z'):(size.y>size.z?'y':'z');
+ const minV=box.min[axis],maxV=box.max[axis],tipPositive=Math.abs(maxV)>=Math.abs(minV),dir=new THREE.Vector3();dir[axis]=tipPositive?1:-1;
+ const center=box.getCenter(new THREE.Vector3()),start=center.clone();start[axis]=tipPositive?minV:maxV;
+ const holder=new THREE.Group();holder.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);holder.position.copy(start);
+ aurora.scale.setScalar(size[axis]*1.06/1.38);holder.add(aurora);return holder;
+}
+let auroraHand=null,auroraFpTemplate=null;
+function equipSword(id){
+ if(id!=='prota'&&!ownedItems.has(id))return;equippedSword=id;save3DProgress();
+ if(swordRoot&&swordRoot.parent&&!auroraHand){const wrap=new THREE.Group();wrap.position.copy(swordRoot.position);wrap.quaternion.copy(swordRoot.quaternion);wrap.scale.copy(swordRoot.scale);wrap.add(alignAuroraToSwordRoot(buildAuroraSword()));swordRoot.parent.add(wrap);auroraHand=wrap;auroraFpTemplate=alignAuroraToSwordRoot(buildAuroraSword());}
+ if(swordRoot)swordRoot.visible=id==='prota';if(auroraHand)auroraHand.visible=id==='aurora';
+ slashTrail.material.color.setHex(SWORDS[id].trail);
+ if(fpSword){fpHolder.remove(fpSword);fpSword=null;}
+}
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
@@ -1691,6 +1841,9 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  fly(from,to){debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
  freeRoam(){awakeningActive=false;namePromptOpen=false;dialogueOpen=false;},
+ shop(){shopVisited=true;openShop();},
+ grant(xp,gold,step){playerXp+=xp||0;coins+=gold||0;if(step!==undefined)questStep=step;applyLevelStats(true);updateQuestHud();},
+ stats(){return{xp:playerXp,level:playerLevel(),owned:[...ownedItems],sword:equippedSword,coins,maxHP:playerMaxHP};},
  teo(){const t=villageVendors[2];return{x:t.x,z:t.z};},
  face(){if(enemy.visible){playerYaw=Math.atan2(enemy.position.x-player.position.x,enemy.position.z-player.position.z);player.rotation.y=playerYaw;}},
  target(){const m=questMarker.position;return questMarker.visible===false?null:{x:m.x,z:m.z};}

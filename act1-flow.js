@@ -55,7 +55,37 @@ function baseProgress() {
     portalOpened: false,
     portalRewardClaimed: false,
     bishopsDefeated: 0,
-    valerioRewardClaimed: false
+    valerioRewardClaimed: false,
+    ...progressionFields(null, 0)
+  };
+}
+
+const STAT_KEYS = ['kills', 'rescues', 'perfectBlocks', 'flawless', 'places', 'ruins', 'bishops'];
+const SKILL_IDS = ['magic', 'magic2', 'magic3', 'ultimate'];
+const ITEM_IDS = SKILL_IDS.concat(['aurora']);
+/** Mod 188: XP, compras, espada equipada, estatísticas, conquistas e catálogo. */
+export function progressionFields(raw, questStep) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  let owned = Array.isArray(r.owned) ? r.owned.filter(id => ITEM_IDS.includes(id)) : null;
+  if (!owned) {
+    // Progresso do Mod 186/187: as Palavras vinham por etapa; quem já as tinha não perde.
+    owned = [];
+    if (questStep >= 4) owned.push('magic');
+    if (questStep >= 6) owned.push('magic2');
+    if ((Number(r.bishopsDefeated) || 0) >= 1) owned.push('magic3');
+  }
+  const stats = {};
+  for (const k of STAT_KEYS) stats[k] = Math.max(0, Math.floor(Number(r.stats && r.stats[k]) || 0));
+  const list = v => (Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 64) : []);
+  return {
+    xp: Math.max(0, Math.floor(Number(r.xp) || 0)),
+    owned: [...new Set(owned)],
+    sword: r.sword === 'aurora' && owned.includes('aurora') ? 'aurora' : 'prota',
+    stats,
+    achievementsClaimed: list(r.achievementsClaimed),
+    bestiary: list(r.bestiary),
+    bestiaryRewarded: list(r.bestiaryRewarded),
+    shopVisited: !!r.shopVisited
   };
 }
 
@@ -85,7 +115,8 @@ export function migrateProgress(raw) {
       portalOpened: !!raw.portalOpened,
       portalRewardClaimed: !!raw.portalRewardClaimed,
       bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
-      valerioRewardClaimed: !!raw.valerioRewardClaimed
+      valerioRewardClaimed: !!raw.valerioRewardClaimed,
+      ...progressionFields(raw, clampInt(raw.questStep, 0, 8, 0))
     };
   }
   if (version === 5) {
