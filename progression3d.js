@@ -107,7 +107,9 @@ export const BESTIARY = [
   { id: 'hollow', act: 4, name: 'Servo sem Eco', cls: 'Servo · Enemy4', img: 'Enemy4.png', discoveryReward: 6,
     lore: 'Esqueceu o próprio nome. Ainda carrega cartas que nunca entregou.' },
   { id: 'veraxion', act: 4, name: 'VÉRAXION', cls: 'Quarto Bispo', img: 'Bispo4.png', discoveryReward: 18,
-    lore: 'O Custódio do Último Selo. Guardava o amor como prova de dívida — e a Ganância como prisioneira.' }
+    lore: 'O Custódio do Último Selo. Guardava o amor como prova de dívida — e a Ganância como prisioneira.' },
+  { id: 'ganancia', act: 5, name: 'GANÂNCIA', cls: 'Pecado Capital', img: 'Ganancia1.png', discoveryReward: 40,
+    lore: 'Não precisava mentir. Bastava que alguém desejasse um pouco mais. Três formas, uma só fome.' }
 ];
 
 export function bestiaryEntry(entry, defeated = new Set()) {

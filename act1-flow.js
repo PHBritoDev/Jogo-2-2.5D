@@ -92,7 +92,9 @@ export function progressionFields(raw, questStep) {
     lateFound: Array.isArray(r.lateFound) ? r.lateFound.filter(i => Number.isInteger(i) && i >= 0 && i < 8) : [],
     lateFoundStep: Math.max(0, Math.floor(Number(r.lateFoundStep) || 0)),
     lateFightIndex: Math.max(0, Math.min(5, Math.floor(Number(r.lateFightIndex) || 0))),
-    lateBossClaimed: r.lateBossClaimed && typeof r.lateBossClaimed === 'object' ? { zarkhael: !!r.lateBossClaimed.zarkhael, veraxion: !!r.lateBossClaimed.veraxion } : {}
+    lateBossClaimed: r.lateBossClaimed && typeof r.lateBossClaimed === 'object' ? { zarkhael: !!r.lateBossClaimed.zarkhael, veraxion: !!r.lateBossClaimed.veraxion } : {},
+    gauntletIndex: Math.max(0, Math.min(4, Math.floor(Number(r.gauntletIndex) || 0))),
+    finaleClaimed: !!r.finaleClaimed
   };
 }
 
@@ -114,7 +116,7 @@ export function migrateProgress(raw) {
     return {
       ...base,
       ...shared,
-      questStep: clampInt(raw.questStep, 0, 26, 0),
+      questStep: clampInt(raw.questStep, 0, 30, 0),
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: clampInt(raw.mountainIndex, 0, ACT1.mountainSentries, 0),
       wardenTaunted: !!raw.wardenTaunted,
@@ -123,7 +125,7 @@ export function migrateProgress(raw) {
       portalRewardClaimed: !!raw.portalRewardClaimed,
       bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
       valerioRewardClaimed: !!raw.valerioRewardClaimed,
-      ...progressionFields(raw, clampInt(raw.questStep, 0, 26, 0))
+      ...progressionFields(raw, clampInt(raw.questStep, 0, 30, 0))
     };
   }
   if (version === 5) {
