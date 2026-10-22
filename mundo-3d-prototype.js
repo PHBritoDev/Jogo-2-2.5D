@@ -193,7 +193,7 @@ function updateDayNight(dt){
 (function initDayNightUI(){
  let saved='day';try{const v=localStorage.getItem('seven-sins-3d-daynight');if(v==='night'||v==='day')saved=v;}catch(e){}
  const btn=document.getElementById('daynight-toggle-3d');
- if(btn)btn.addEventListener('click',()=>setDayNightMode(dayNightState.mode==='night'?'day':'night'));
+ if(btn)bindInstantTap(btn,()=>setDayNightMode(dayNightState.mode==='night'?'day':'night'));
  setDayNightMode(saved);
  if(saved==='night'){dayNightState.t=1;applyDayNightVisual(1);}
 })();
@@ -587,7 +587,10 @@ function updateEnemyHud(){
  if(fill)fill.style.width=enemyHpPercent()+'%';
 }
 function tryPlayerAttack(){
- const now=performance.now();if(now<attackCooldown||!enemyAlive)return;if(!combatStepNow()||!enemy.visible){status.textContent='Siga o objetivo atual antes de iniciar este confronto.';return;}
+ const now=performance.now();if(now<attackCooldown||dialogueOpen||namePromptOpen||awakeningActive||portalPull)return;
+ // MOD 187 — o golpe sai sempre (treino, exploração); o dano só é resolvido quando há um inimigo ativo.
+ if(defending)setDefending(false);
+ const engaged=combatStepNow()&&enemy.visible&&enemyAlive;if(engaged)assistAimAtEnemy();else if(cameraDistance<1.05){playerYaw=cameraYaw+Math.PI;player.rotation.y=playerYaw;}
  if(!model||!mixer||!attackClips.length){status.textContent='Não foi encontrado um clipe de ataque válido no Protagonista.glb.';return;}
  const attackClip=attackClips[attackClipIndex++%attackClips.length],duration=Number(attackClip&&attackClip.duration);
  if(!validAttackClip(attackClip)||!Number.isFinite(duration)||duration<=0){status.textContent='O ataque não tem uma animação válida; nenhum dano foi aplicado.';return;}
@@ -595,7 +598,8 @@ function tryPlayerAttack(){
  if(activeAction&&activeAction!==attackAction)activeAction.fadeOut(.07);
  attackAction.reset();attackAction.enabled=true;attackAction.setEffectiveWeight(1);attackAction.setLoop(THREE.LoopOnce,1);attackAction.clampWhenFinished=true;attackAction.fadeIn(.07).play();activeAction=attackAction;actionUntil=now+duration*1000;
  playerAttackFacingX=Math.sin(playerYaw);playerAttackFacingZ=Math.cos(playerYaw);
- pendingEnemyHitAt=now+Math.min(460,Math.max(190,duration*.28*1000));
+ if(engaged)pendingEnemyHitAt=now+Math.min(460,Math.max(190,duration*.28*1000));
+ spawnSlashTrail(duration);startFpSwing();
 }
 function resolvePlayerAttackHit(){
  if(!enemyAlive||!combatStepNow()||!enemy.visible)return;
@@ -610,13 +614,14 @@ function resolvePlayerAttackHit(){
 }
 function updatePlayerHud(){
  const hud=document.getElementById('player-hud'),fill=document.getElementById('player-hp-fill'),text=document.getElementById('player-hp-text');
- if(hud)hud.hidden=!(combatStepNow()&&enemy.visible);
+ if(hud)hud.hidden=false;
  if(fill)fill.style.width=Math.max(0,Math.min(100,playerHP/playerMaxHP*100))+'%';
- if(text)text.textContent=Math.ceil(playerHP/playerMaxHP*100)+'%';
+ if(text)text.textContent=Math.max(0,Math.ceil(playerHP))+' / '+playerMaxHP;
 }
 function damagePlayerFromEnemyAttack(damage=ENEMY_ATTACK_DAMAGE){
  const now=performance.now();if(playerHP<=0||now<playerInvulnerableUntil)return false;
- const scaled=encounterProfile==='warden'?Math.max(1,Math.round((Number(damage)||ENEMY_ATTACK_DAMAGE)*1.15)):Math.max(1,Number(damage)||ENEMY_ATTACK_DAMAGE);
+ const raw=encounterProfile==='warden'?Math.max(1,Math.round((Number(damage)||ENEMY_ATTACK_DAMAGE)*1.15)):Math.max(1,Number(damage)||ENEMY_ATTACK_DAMAGE);
+ const scaled=applyDefenseToHit(raw);if(scaled<=0){playerInvulnerableUntil=now+450;return false;}
  playerHP=Math.max(0,playerHP-scaled);playerInvulnerableUntil=now+850;updatePlayerHud();worldAudio.hurt();
  if(playerHP===0){
   playerRespawnAt=now+1450;moveVX=moveVZ=0;dashRemaining=0;pendingEnemyHitAt=0;
@@ -624,7 +629,7 @@ function damagePlayerFromEnemyAttack(damage=ENEMY_ATTACK_DAMAGE){
   status.textContent='Protagonista derrotado. Retornando à trilha…';
  }else{
   if(actions.hit){playOnce('hit',.05);actionUntil=now+Math.max(220,Math.min(700,actions.hit.getClip().duration*1000));}
-  status.textContent='O golpe do inimigo atingiu você. Vida: '+playerHP+'%';
+  status.textContent=(defending?'Golpe bloqueado. ':'O golpe do inimigo atingiu você. ')+'Vida: '+playerHP+' / '+playerMaxHP;
  }
  return true;
 }
@@ -863,10 +868,10 @@ function save3DProgress(){const progress={version:ACT1.version,questStep,coins,j
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
-const SKILL_LABELS={magic:'ESPADAS',magic2:'JULGAMENTO',magic3:'SOL',ultimate:'ULTIMATE'};
+const SKILL_LABELS={magic:'MAGIA',magic2:'MAG.II',magic3:'SOL',ultimate:'ULT.'};
 const skillButtons={};
-for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;b.innerHTML='<span class="skill-name">'+SKILL_LABELS[id]+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';b.dataset.key=SKILLS[id].key;b.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');skillButtons[id]={el:b,cost:b.querySelector('.skill-cost'),cd:-1,state:''};}
-for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧']]){const b=document.getElementById(id);if(b)b.dataset.key=key;}
+for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;b.innerHTML='<span class="btn-icon"></span><span class="btn-label" data-key="'+SKILLS[id].key+'">'+SKILL_LABELS[id]+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';b.dataset.key=SKILLS[id].key;b.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');skillButtons[id]={el:b,cost:b.querySelector('.skill-cost'),cd:-1,state:''};}
+for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧'],['defend','K'],['aim','Q']]){const b=document.getElementById(id);if(b){b.dataset.key=key;const l=b.querySelector('.btn-label');if(l)l.dataset.key=key;}}
 function refreshSkillUnlocks(){
  const next=unlockedSkills({questStep,bishopsDefeated,testAll:testAllSkills});
  const fresh=skillSet?newlyUnlocked(skillSet,next):[];
@@ -885,7 +890,7 @@ function updateSkillHud(now){
  }
  const fill=document.getElementById('player-mana-fill');if(fill){const w=Math.round(playerMana/MANA.max*100);if(fill.dataset.w!==String(w)){fill.dataset.w=String(w);fill.style.width=w+'%';}}
 }
-function updateQuestHud(){refreshSkillUnlocks();const view=questPresentation(questStep);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
+function updateQuestHud(){refreshSkillUnlocks();const view=questPresentation(questStep);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
 function showActCard(){if(actCardSeen)return;actCardSeen=true;save3DProgress();const card=document.getElementById('act-card');if(!card)return;card.classList.remove('hidden');const hide=()=>{card.classList.add('hidden');card.removeEventListener('pointerdown',hide);};card.addEventListener('pointerdown',hide);setTimeout(hide,3400);}
 function finishAwakening(){if(!awakeningActive&&awakeningSeen)return;awakeningActive=false;awakeningSeen=true;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');save3DProgress();}
 let namePromptBound=null;
@@ -934,12 +939,12 @@ function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=d
 function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de Valério foi quebrado.';return;}if(questStep===7||portalOpened){startPortalPull();return;}if(questStep!==6)return;showDialogue(portalLines(playerName),()=>{if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();status.textContent='O portal reconhece o seu nome e começa a puxar.';const toast=document.getElementById('quest-toast');if(toast){toast.textContent='A DIMENSÃO DE VALÉRIO SE ABRE';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}startPortalPull();});}
 function warnPortalBlocked(){if(dialogueOpen||namePromptOpen)return;showDialogue(portalBlockedLines());}
 function tryInteract(){if(namePromptOpen||awakeningActive||portalPull)return;if(dialogueOpen){advanceDialogue();return;}const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);const teo=villageVendors[2];const teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z);const cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(questStep===1&&teoDistance<=2.9){talkToInformant();return;}if(questStep===3&&!childrenFreed&&cageDistance<=4.2){freeChildren();return;}const fighting=enemy.visible&&enemyAlive;if((questStep===4||questStep===5)&&portalDistance<=3.8&&!fighting){warnPortalBlocked();return;}if((questStep===6||questStep===7)&&portalDistance<=3.8&&!fighting){openValerioPortal();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
-document.getElementById('talk-button').addEventListener('click',tryInteract);
+bindInstantTap(document.getElementById('talk-button'),tryInteract);
 const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');skipAwakening.addEventListener('click',finishAwakening);}
 if(questStep>=2&&questStep<=6){setDayNightMode('night');dayNightState.t=1;applyDayNightVisual(1);}
 updateHeroNameQuiet();
 function updateHeroNameQuiet(){updateQuestHud();}
-document.getElementById('dialog-continue').addEventListener('click',advanceDialogue);
+bindInstantTap(document.getElementById('dialog-continue'),advanceDialogue);
 updateQuestHud();
 
 let model=null,mixer=null,actions={},activeAction=null,walkName='',attackClips=[],attackClipIndex=0;
@@ -1032,14 +1037,14 @@ function spawnHolyProjectile(kind,angleOffset=0,delay=0){
  const group=new THREE.Group(),gold=new THREE.MeshStandardMaterial({color:0xffe7a0,emissive:0xffbd3f,emissiveIntensity:2.2,metalness:.55,roughness:.2}),white=new THREE.MeshBasicMaterial({color:0xfff7d2});
  if(kind==='sun'){const orb=new THREE.Mesh(new THREE.SphereGeometry(.42,16,12),gold);group.add(orb);const halo=new THREE.Mesh(new THREE.TorusGeometry(.58,.035,6,24),white);halo.rotation.x=Math.PI/2;group.add(halo);}
  else{const blade=new THREE.Mesh(new THREE.ConeGeometry(.13,.95,5),gold);blade.rotation.x=Math.PI/2;group.add(blade);const core=new THREE.Mesh(new THREE.CylinderGeometry(.025,.045,.8,5),white);core.rotation.x=Math.PI/2;group.add(core);group.rotation.z=Math.PI/2;}
- const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z,base=Math.atan2(dx,dz),angle=base+angleOffset,dirX=Math.sin(angle),dirZ=Math.cos(angle);
+ const target=combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<22;
+ const aimYaw=cameraDistance<1.05?cameraYaw+Math.PI:playerYaw,base=target?Math.atan2(enemy.position.x-player.position.x,enemy.position.z-player.position.z):aimYaw,angle=base+angleOffset,dirX=Math.sin(angle),dirZ=Math.cos(angle);
  group.position.set(player.position.x+dirX*.8,player.position.y+(kind==='sun'?1.65:1.35),player.position.z+dirZ*.8);group.rotation.y=angle;scene.add(group);
  holyProjectiles.push({group,dirX,dirZ,kind,delay,life:kind==='sun'?2.7:1.7,speed:kind==='sun'?4.2:8.5,damage:kind==='sun'?28:kind==='ultimate'?45:kind==='sword5'?10:14,hit:false});
 }
 function castHolyMagic(kind){
  const now=performance.now();if(playerHP<=0)return;
  const check=canCast(kind,{unlocked:skillSet||new Set(),mana:playerMana,cooldownUntil:holyCooldowns,now});if(!check.ok){status.textContent=check.reason;return;}
- if(!combatStepNow()||!enemy.visible||!enemyAlive){status.textContent='A Palavra está pronta, mas ainda não há inimigo ao alcance desta batalha.';return;}
  playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);
  if(kind==='magic'){[-.19,0,.19].forEach((a,i)=>spawnHolyProjectile('sword',a,i*.09));status.textContent='Espadas da Palavra — três lâminas de luz!';}
  else if(kind==='magic2'){[-.28,-.14,0,.14,.28].forEach((a,i)=>spawnHolyProjectile('sword5',a,i*.12));status.textContent='Julgamento Celestial — cinco espadas descem em formação!';}
@@ -1054,12 +1059,14 @@ function updateHolyProjectiles(dt){
  }
 }
 function action(kind){if(playerHP<=0)return;const now=performance.now();if(kind==='dash'){if(now<dashCooldownUntil)return;dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){castHolyMagic(kind);return;}}
-function bindInstantAction(id,kind){const button=document.getElementById(id);button.addEventListener('pointerdown',e=>{e.preventDefault();action(kind);});button.addEventListener('click',e=>{if(e.detail===0)action(kind);});}
+// MOD 187 — o celular não gera 'click' para um segundo dedo enquanto o primeiro segura o joystick; pointerdown responde sempre.
+function bindInstantTap(button,fn){if(!button)return;let lastTap=0;button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();lastTap=performance.now();fn();});button.addEventListener('click',e=>{if(performance.now()-lastTap>500)fn();});}
+function bindInstantAction(id,kind){bindInstantTap(document.getElementById(id),()=>action(kind));}
 bindInstantAction('attack','attack');bindInstantAction('dash','dash');
 const jumpButton=document.getElementById('jump');
 // pointerdown responde imediatamente ao segundo dedo enquanto o primeiro mantém o joystick.
 jumpButton.addEventListener('pointerdown',e=>{e.preventDefault();action('jump');});
-document.getElementById('magic').addEventListener('click',()=>action('magic'));document.getElementById('magic2').addEventListener('click',()=>action('magic2'));document.getElementById('magic3').addEventListener('click',()=>action('magic3'));document.getElementById('ultimate').addEventListener('click',()=>action('ultimate'));
+for(const id of ['magic','magic2','magic3','ultimate'])bindInstantAction(id,id);
 // MOD 186 — atalhos unificados no listener de teclado acima (antes havia dois listeners para J/X/Espaço).
 let lastMove=0,moveVX=0,moveVZ=0,playerYaw=Math.PI;
 let cameraYaw=0,cameraPitch=.16,cameraDistance=8.5;
@@ -1074,7 +1081,7 @@ function syncCameraToggle3D(){
   cameraToggle3D.title=firstPerson?'Mudar para terceira pessoa':'Mudar para primeira pessoa';
  }
 }
-if(cameraToggle3D)cameraToggle3D.addEventListener('click',()=>{
+if(cameraToggle3D)bindInstantTap(cameraToggle3D,()=>{
  cameraDistance=cameraDistance<1.05?8.5:.72;
  cameraPitch=THREE.MathUtils.clamp(cameraPitch,-1.05,1.05);
  syncCameraToggle3D();
@@ -1175,7 +1182,7 @@ function updateChildren(dt){
 }
 buildAct1Cages();
 
-function animate(){requestAnimationFrame(animate);if(dimensionActive){clock.getDelta();return;}const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z),feet=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))feet.push(p.y);}});if(feet.length){model.position.y+=floorY-Math.min(...feet);}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
+function animate(){requestAnimationFrame(animate);if(dimensionActive||gamePaused){clock.getDelta();return;}const dt=Math.min(clock.getDelta(),.04),now=performance.now();updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z),feet=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))feet.push(p.y);}});if(feet.length){model.position.y+=floorY-Math.min(...feet);}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
  if(enemyAlive||enemyHasDeathClip)enemy.position.y=terrainHeightAt(enemy.position.x,enemy.position.z);
@@ -1218,7 +1225,7 @@ let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
 const dead=.12;if(len<dead){axisX=0;axisZ=0;}else{const power=(len-dead)/(1-dead);axisX=axisX/len*power;axisZ=axisZ/len*power;}
 const worldX=axisX*Math.cos(cameraYaw)+axisZ*Math.sin(cameraYaw);
 const worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
-const speed=4.3,targetVX=worldX*speed,targetVZ=worldZ*speed;
+const speed=defending?1.9:4.3,targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
@@ -1284,7 +1291,7 @@ if(firstPerson){
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateChildren(dt);updateCages();if(questStep===3&&childrenFreed&&!reunionStarted&&!dialogueOpen&&Math.hypot(VILLAGE_CENTER.x-player.position.x,VILLAGE_CENTER.z-player.position.z)<8)reunionDialogue();
- updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();
+ updateFpsBadge(now);if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateDefense(dt);updateLockOn(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();
  renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -1362,7 +1369,7 @@ function updateAutoGraphics3D(dt,now){
 })();
 (function initGraphics3D(){
  const toggle=document.getElementById('graphics-toggle-3d'),panel=document.getElementById('graphics-panel-3d'),select=document.getElementById('graphics-profile-3d');
- if(toggle&&panel){toggle.addEventListener('click',()=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));});}
+ if(toggle&&panel){bindInstantTap(toggle,()=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));});}
  let saved='auto';try{const value=localStorage.getItem('seven-sins-3d-graphics');if(['auto','low','high','max'].includes(value))saved=value;}catch(e){}
  if(select){select.value=saved;select.addEventListener('change',()=>{const mode=select.value;try{localStorage.setItem('seven-sins-3d-graphics',mode);}catch(e){};const initial=mode==='auto'?((navigator.deviceMemory&&navigator.deviceMemory<=4)? .68:.82):(graphics3DProfiles[mode]||graphics3DProfiles.high).scale;applyGraphics3D(mode,initial);});}
  const initial=saved==='auto'?((navigator.deviceMemory&&navigator.deviceMemory<=4)||((navigator.hardwareConcurrency||8)<=4)? .68:.82):graphics3DProfiles[saved].scale;
@@ -1485,7 +1492,7 @@ function openWorldMap(){if(awakeningActive||namePromptOpen)return;const panel=do
 function closeWorldMap(){const panel=document.getElementById('world-map');if(panel)panel.hidden=true;mapOpen=false;}
 (function initWorldMapUi(){
  const btn=document.getElementById('map-toggle-3d'),close=document.getElementById('world-map-close');
- if(btn)btn.addEventListener('click',()=>mapOpen?closeWorldMap():openWorldMap());if(close)close.addEventListener('click',closeWorldMap);
+ if(btn)bindInstantTap(btn,()=>mapOpen?closeWorldMap():openWorldMap());if(close)close.addEventListener('click',closeWorldMap);
  addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing||e.repeat)return;if(e.code==='KeyM'){mapOpen?closeWorldMap():openWorldMap();}else if(e.code==='Escape'&&mapOpen)closeWorldMap();});
  addEventListener('pagehide',()=>saveMapState(true));
 })();
@@ -1525,6 +1532,155 @@ addEventListener('message',e=>{
  else if(data.type==='SEVEN_SINS_BISHOP_RESULT'&&data.result==='victory'&&(dimensionActive||handoffSent))returnFromDimension();
 });
 closePortalVisuals();
+/* MOD 187 — primeira pessoa de verdade: espada na mão da câmera (com balanço ao andar e golpe visível),
+   mira central, campo de visão mais aberto, herói sempre virado para onde a câmera olha. */
+scene.add(camera);
+const fpRig=new THREE.Group();fpRig.name='fp-viewmodel';fpRig.visible=false;camera.add(fpRig);
+const fpHolder=new THREE.Group();fpRig.add(fpHolder);
+let fpSword=null,fpSwingT=1,fpBob=0,fpWasActive=false;
+const FP_REST={x:.3,y:-.34,z:-.62,rx:-.25,ry:.1,rz:-.38};
+function ensureFpSword(){
+ if(fpSword||!swordRoot)return;
+ fpSword=swordRoot.clone(true);fpSword.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=false;o.renderOrder=6;}});
+ fpSword.position.set(0,0,0);fpSword.rotation.set(0,0,0);fpSword.scale.setScalar(.36);fpHolder.add(fpSword);
+}
+function startFpSwing(){fpSwingT=0;}
+function updateFirstPerson(dt,now){
+ const fp=cameraDistance<1.05&&!awakeningActive;
+ if(fp!==fpWasActive){fpWasActive=fp;camera.fov=fp?72:56;camera.updateProjectionMatrix();const cross=document.getElementById('crosshair');if(cross)cross.hidden=!fp;}
+ fpRig.visible=fp&&!!fpSword;if(swordMount)swordMount.visible=!fp;
+ if(!fp)return;
+ ensureFpSword();
+ // O herói encara a direção da câmera: golpes, magias e mira saem para onde se olha.
+ if(!dialogueOpen&&!portalPull){playerYaw=cameraYaw+Math.PI;player.rotation.y=playerYaw;}
+ const speed=Math.hypot(moveVX,moveVZ);fpBob+=dt*(grounded&&speed>.3?8.5*Math.min(1.4,speed/3.4):1.2);
+ const bobAmt=grounded&&speed>.3?1:.18;
+ camera.position.y+=Math.sin(fpBob*2)*.028*bobAmt;
+ fpSwingT=Math.min(1,fpSwingT+dt/.3);const k=fpSwingT<1?Math.sin(fpSwingT*Math.PI):0,arc=fpSwingT<1?fpSwingT:1;
+ fpHolder.position.set(FP_REST.x+Math.cos(fpBob)*.012*bobAmt-arc*k*.42,FP_REST.y+Math.abs(Math.sin(fpBob))*.016*bobAmt+k*.12,FP_REST.z-k*.12);
+ fpHolder.rotation.set(FP_REST.rx-k*.9,FP_REST.ry+k*.5,FP_REST.rz+k*1.6);
+}
+/* MOD 187 — assistência de mira: perto do inimigo o golpe vira para ele e dá um passo curto de investida,
+   evitando "golpes no ar" no celular. Longe dele, o golpe sai normalmente na direção do herói. */
+function assistAimAtEnemy(){
+ const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z,d=Math.hypot(dx,dz);
+ if(d>3.6||d<.01)return;
+ const yaw=Math.atan2(dx,dz),diff=Math.atan2(Math.sin(yaw-playerYaw),Math.cos(yaw-playerYaw));
+ if(Math.abs(diff)>1.4&&lockOnActive===false&&cameraDistance<1.05)return;
+ playerYaw=yaw;player.rotation.y=yaw;
+ const step=Math.min(Math.max(0,d-1.45),1.4);if(step>0){const nx=player.position.x+dx/d*step,nz=player.position.z+dz/d*step;if(!blockedAt(nx,nz)){player.position.x=nx;player.position.z=nz;}}
+}
+// Rastro dourado do golpe (uma malha reaproveitada).
+const slashTrail=new THREE.Mesh(new THREE.RingGeometry(.9,1.25,26,1,-Math.PI*.15,Math.PI*1.05),new THREE.MeshBasicMaterial({color:0xffe2a0,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+slashTrail.visible=false;scene.add(slashTrail);let slashTrailT=1,slashTrailDur=.3;
+function spawnSlashTrail(duration){slashTrailT=0;slashTrailDur=Math.min(.42,Math.max(.22,(duration||.5)*.45));slashTrail.visible=true;}
+function updateSlashTrail(dt){
+ if(!slashTrail.visible)return;if(cameraDistance<1.05){slashTrail.visible=false;return;}slashTrailT+=dt/slashTrailDur;if(slashTrailT>=1){slashTrail.visible=false;return;}
+ const fx=Math.sin(playerYaw),fz=Math.cos(playerYaw);slashTrail.position.set(player.position.x+fx*.7,player.position.y+1.05,player.position.z+fz*.7);
+ slashTrail.rotation.set(-Math.PI/2+.35,0,-playerYaw+Math.PI/2-slashTrailT*1.4);slashTrail.material.opacity=Math.sin(slashTrailT*Math.PI)*.75;slashTrail.scale.setScalar(.9+slashTrailT*.3);
+}
+let lockOnActive=false;
+/* MOD 187 — DEFESA (segurar) com Defesa Perfeita no instante do golpe, e MIRAR (trava no inimigo). */
+let defending=false,defendStartedAt=0;
+const PERFECT_WINDOW=230;
+const holyShield=new THREE.Mesh(new THREE.CircleGeometry(.78,6),new THREE.MeshBasicMaterial({color:0xffe6a0,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+const holyShieldRim=new THREE.Mesh(new THREE.RingGeometry(.74,.84,6),new THREE.MeshBasicMaterial({color:0xfff4cf,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+holyShield.add(holyShieldRim);holyShield.visible=false;scene.add(holyShield);let shieldFlash=0;
+function setDefending(on){
+ on=!!on&&playerHP>0&&!dialogueOpen&&!portalPull;if(on===defending)return;defending=on;
+ if(on){defendStartedAt=performance.now();worldAudio.shieldUp();}
+ const b=document.getElementById('defend');if(b)b.classList.toggle('held',on);
+}
+/** Chamado quando um golpe inimigo conecta. Retorna o dano final (0 = defesa perfeita). */
+function applyDefenseToHit(damage){
+ if(!defending)return damage;
+ const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z,d=Math.hypot(dx,dz)||1;
+ const facing=(dx*Math.sin(playerYaw)+dz*Math.cos(playerYaw))/d;if(facing<-.2)return damage; // pelas costas não defende
+ const perfect=performance.now()-defendStartedAt<=PERFECT_WINDOW;
+ if(perfect){
+  shieldFlash=1;worldAudio.parry();enemyKnockback=.9;enemyKnockbackX=dx/d;enemyKnockbackZ=dz/d;enemyAttackCooldown=Math.max(enemyAttackCooldown,1.4);
+  playerMana=Math.min(MANA.max,playerMana+8);showCombatCallout('DEFESA PERFEITA');status.textContent='Defesa Perfeita! O inimigo ficou aberto.';return 0;
+ }
+ shieldFlash=.5;worldAudio.block();return Math.max(1,Math.round(damage*.25));
+}
+function updateDefense(dt){
+ shieldFlash=Math.max(0,shieldFlash-dt*2.6);
+ const show=defending||shieldFlash>0;holyShield.visible=show;if(!show)return;
+ const fx=Math.sin(playerYaw),fz=Math.cos(playerYaw);holyShield.position.set(player.position.x+fx*.62,player.position.y+1.12,player.position.z+fz*.62);
+ holyShield.rotation.set(0,playerYaw,performance.now()*.0012);
+ holyShield.material.opacity=(defending?.22:0)+shieldFlash*.55;holyShieldRim.material.opacity=(defending?.65:0)+shieldFlash*.4;
+ const s=1+shieldFlash*.35;holyShield.scale.set(s,s,s);
+}
+function showCombatCallout(text){const el=document.getElementById('combat-callout');if(!el)return;el.textContent=text;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
+// MIRAR: trava a câmera no inimigo ativo; desliga sozinho quando ele cai ou fica longe.
+const lockRing=new THREE.Mesh(new THREE.RingGeometry(.62,.72,4),new THREE.MeshBasicMaterial({color:0xffcf6a,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
+lockRing.rotation.x=-Math.PI/2;lockRing.visible=false;scene.add(lockRing);
+function lockTargetValid(){return enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;}
+function toggleLockOn(){
+ if(lockOnActive){lockOnActive=false;}else if(lockTargetValid()){lockOnActive=true;worldAudio.lockOn();}else{status.textContent='Nenhum inimigo por perto para travar a mira.';}
+ const b=document.getElementById('aim');if(b)b.classList.toggle('on',lockOnActive);
+}
+function updateLockOn(dt){
+ if(lockOnActive&&!lockTargetValid()){lockOnActive=false;const b=document.getElementById('aim');if(b)b.classList.remove('on');}
+ lockRing.visible=lockOnActive;if(!lockOnActive)return;
+ const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
+ const want=cameraDistance<1.05?Math.atan2(-dx,-dz):Math.atan2(-dx,-dz);
+ const diff=Math.atan2(Math.sin(want-cameraYaw),Math.cos(want-cameraYaw));cameraYaw+=diff*Math.min(1,dt*6);
+ if(cameraDistance<1.05)cameraPitch+=(.05-cameraPitch)*Math.min(1,dt*4);
+ lockRing.position.set(enemy.position.x,enemy.position.y+.05,enemy.position.z);lockRing.rotation.z+=dt*1.8;
+}
+(function initDefendAim(){
+ const def=document.getElementById('defend');
+ if(def){def.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();try{def.setPointerCapture(e.pointerId);}catch(_){}setDefending(true);});for(const t of ['pointerup','pointercancel','lostpointercapture'])def.addEventListener(t,()=>setDefending(false));}
+ bindInstantTap(document.getElementById('aim'),toggleLockOn);
+ addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing)return;if(e.code==='KeyK'&&!e.repeat)setDefending(true);if((e.code==='KeyQ'||e.code==='Tab')&&!e.repeat){e.preventDefault();toggleLockOn();}});
+ addEventListener('keyup',e=>{if(e.code==='KeyK')setDefending(false);});
+ lookArea.addEventListener('contextmenu',e=>e.preventDefault());
+ lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===2)setDefending(true);});
+ addEventListener('pointerup',e=>{if(e.pointerType==='mouse'&&e.button===2)setDefending(false);});
+ addEventListener('blur',()=>setDefending(false));
+})();
+/* MOD 187 — pausa, contador de FPS e retrato do herói no HUD dourado. */
+let gamePaused=false;
+function setPaused(on){
+ on=!!on&&!dimensionActive;if(on===gamePaused)return;gamePaused=on;
+ const panel=document.getElementById('pause-panel');if(panel)panel.hidden=!on;
+ if(!on){const g=document.getElementById('graphics-panel-3d');if(g)g.hidden=true;}
+ worldAudio.pause(on);if(on){setDefending(false);joyActive=false;joyX=joyY=0;for(const k in keys)keys[k]=false;}
+}
+let fpsFrames=0,fpsSince=performance.now(),fpsVisible=true;
+try{fpsVisible=localStorage.getItem('seven-sins-3d-fps')!=='0';}catch(_){}
+function updateFpsBadge(now){fpsFrames++;if(now-fpsSince<1000)return;const fps=Math.round(fpsFrames*1000/(now-fpsSince));fpsFrames=0;fpsSince=now;const b=document.getElementById('fps-badge');if(b){b.hidden=!fpsVisible;b.textContent=fps+' FPS';}}
+(function initPauseAndSettings(){
+ bindInstantTap(document.getElementById('pause-button'),()=>setPaused(!gamePaused));
+ bindInstantTap(document.getElementById('pause-resume'),()=>setPaused(false));
+ bindInstantTap(document.getElementById('pause-map'),()=>{setPaused(false);openWorldMap();});
+ addEventListener('keydown',e=>{if(e.code!=='Escape'&&e.code!=='KeyP')return;const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing||(mapOpen&&e.code==='Escape'))return;setPaused(!gamePaused);},{capture:true});
+ addEventListener('visibilitychange',()=>{if(document.hidden&&!dimensionActive)setPaused(true);});
+ const panel=document.getElementById('graphics-panel-3d');
+ if(panel){
+  const row=document.createElement('label');row.className='toggle-row';row.innerHTML='<input id="fps-toggle" type="checkbox"> Mostrar FPS';panel.appendChild(row);
+  const box=row.querySelector('input');box.checked=fpsVisible;box.addEventListener('change',()=>{fpsVisible=box.checked;try{localStorage.setItem('seven-sins-3d-fps',fpsVisible?'1':'0');}catch(_){}const b=document.getElementById('fps-badge');if(b)b.hidden=!fpsVisible;});
+  const close=document.createElement('button');close.type='button';close.className='panel-close';close.textContent='FECHAR';panel.appendChild(close);bindInstantTap(close,()=>{panel.hidden=true;});
+ }
+})();
+// Retrato: renderiza uma vez o próprio Protagonista.glb (rosto/capuz) num alvo pequeno, sem afetar a cena.
+let heroPortraitDone=false;
+function renderHeroPortrait(){
+ if(heroPortraitDone||!model)return;heroPortraitDone=true;
+ try{
+  const S=160,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
+  const clone=cloneSkinned(model);clone.position.set(0,0,0);clone.rotation.set(0,0,0);clone.visible=true;ps.add(clone);
+  ps.add(new THREE.HemisphereLight(0xfff2dc,0x2a2240,2.2));const key=new THREE.DirectionalLight(0xffe2b0,2.4);key.position.set(1.5,3,4);ps.add(key);
+  clone.updateMatrixWorld(true);const box=measureModelBounds(clone),size=box.getSize(new THREE.Vector3()),top=box.max.y;
+  const cam=new THREE.PerspectiveCamera(28,1,.01,50),headY=top-size.y*.12;cam.position.set(0,headY,size.y*.62);cam.lookAt(0,headY-size.y*.02,0);
+  const prevTarget=renderer.getRenderTarget();renderer.setRenderTarget(rt);renderer.render(ps,cam);
+  const px=new Uint8Array(S*S*4);renderer.readRenderTargetPixels(rt,0,0,S,S,px);renderer.setRenderTarget(prevTarget);rt.dispose();
+  const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),img=g.createImageData(S,S);
+  for(let y=0;y<S;y++)img.data.set(px.subarray((S-1-y)*S*4,(S-y)*S*4),y*S*4);g.putImageData(img,0,0);
+  const el=document.getElementById('hero-portrait-img');if(el)el.src=c.toDataURL('image/png');
+ }catch(err){console.warn('Retrato do herói indisponível.',err);}
+}
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
