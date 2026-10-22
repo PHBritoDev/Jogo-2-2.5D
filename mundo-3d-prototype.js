@@ -182,7 +182,7 @@ function setDayNightMode(mode){
  dayNightState.target=dayNightState.mode==='night'?1:0;
  try{localStorage.setItem('seven-sins-3d-daynight',dayNightState.mode);}catch(e){}
  const btn=document.getElementById('daynight-toggle-3d');
- if(btn){btn.textContent=dayNightState.mode==='night'?'NOITE':'DIA';btn.setAttribute('aria-pressed',String(dayNightState.mode==='night'));}
+ if(btn){btn.textContent=dayNightState.mode==='night'?'CICLO · NOITE':'CICLO · DIA';btn.setAttribute('aria-pressed',String(dayNightState.mode==='night'));}
 }
 function updateDayNight(dt){
  const speed=1.35;
