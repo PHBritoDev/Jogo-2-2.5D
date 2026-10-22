@@ -224,6 +224,45 @@ const THEMES = {
     const lamp = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false })); lamp.position.set(0, 7, -R - 90); g.add(lamp);
     ctx.tick.push((t) => { lamp.material.opacity = .78 + Math.sin(t * 1.1) * .12; });
     return { bg: 0x030304, fog: 0x07070a, fogNear: 22, fogFar: 160, hemi: [0xc8d0f0, 0x101018, .95], sun: [0xdfe6ff, .75], light: [0xb8c8ff, 2.8, 80, [0, 16, 0]], exposure: 1.2 };
+  },
+  // Dimensão do Pecado (5) — caverna monocromática de raízes com olhos, uma boca colossal ao fundo e moedas sobre a rocha.
+  root(THREE, g, spec, ctx) {
+    const r = rng(505), R = spec.radius;
+    const floorTex = canvasTex(THREE, 1024, 1024, (c, w, h) => {
+      c.fillStyle = '#08080a'; c.fillRect(0, 0, w, h); const rr = rng(21);
+      for (let i = 0; i < 700; i++) { c.fillStyle = 'rgba(' + (24 + rr() * 30) + ',' + (24 + rr() * 30) + ',' + (28 + rr() * 30) + ',' + (.3 + rr() * .4) + ')'; c.fillRect(rr() * w, rr() * h, 6 + rr() * 30, 6 + rr() * 22); }
+      c.strokeStyle = 'rgba(210,210,225,.55)'; c.lineWidth = 16; c.lineCap = 'round'; c.beginPath(); c.moveTo(w / 2, h); c.bezierCurveTo(w * .2, h * .75, w * .8, h * .55, w / 2, h * .1); c.stroke();
+      c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 4; c.stroke();
+      c.strokeStyle = 'rgba(190,24,30,.6)'; c.lineWidth = 3; for (let i = 0; i < 40; i++) { let x = rr() * w, y = rr() * h, a2 = rr() * 6.28; c.beginPath(); c.moveTo(x, y); for (let k = 0; k < 8; k++) { a2 += (rr() - .5) * .9; x += Math.cos(a2) * 40; y += Math.sin(a2) * 40; c.lineTo(x, y); } c.stroke(); }
+    });
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(R + 3, 72), new THREE.MeshStandardMaterial({ map: floorTex, emissiveMap: floorTex, emissive: 0x707078, emissiveIntensity: .35, roughness: .6, metalness: .2 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; g.add(floor);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(R + 1.6, .14, 6, 96), new THREE.MeshBasicMaterial({ color: 0xc0302a, toneMapped: false })); rim.rotation.x = Math.PI / 2; rim.position.y = .06; g.add(rim);
+    // Espinhos de rocha e moedas.
+    const spikes = [], coins = [];
+    for (let i = 0; i < 70; i++) { const a = r() * 6.28, d = R + 2 + r() * 22, h = 3 + r() * 10; spikes.push({ x: Math.cos(a) * d, y: h / 2, z: Math.sin(a) * d, sx: .8 + r() * 1.6, sy: h, sz: .8 + r() * 1.6, rx: (r() - .5) * .3, rz: (r() - .5) * .3 }); }
+    for (let i = 0; i < 140; i++) { const a = r() * 6.28, d = r() * (R + 2); coins.push({ x: Math.cos(a) * d, y: .05, z: Math.sin(a) * d, ry: r() * 3, s: .5 }); }
+    g.add(instanced(THREE, new THREE.ConeGeometry(1, 1, 5), new THREE.MeshStandardMaterial({ color: 0x15151a, roughness: .9, emissive: 0x18181e, emissiveIntensity: .8 }), spikes));
+    g.add(instanced(THREE, new THREE.CylinderGeometry(.5, .5, .08, 10), new THREE.MeshStandardMaterial({ color: 0xd8a830, emissive: 0x6a4a10, emissiveIntensity: 1, metalness: .85, roughness: .3 }), coins));
+    // Raízes colossais em arco.
+    const rootMat = new THREE.MeshStandardMaterial({ color: 0x16161a, roughness: .85, emissive: 0x202026, emissiveIntensity: .9 });
+    for (let i = 0; i < 9; i++) {
+      const a = i / 9 * Math.PI * 2 + r() * .3, d = R + 6 + r() * 8, pts = [];
+      for (let k = 0; k <= 6; k++) { const t = k / 6, rad = d * (1 - t * .45) + Math.sin(t * 9 + i) * 2; pts.push(new THREE.Vector3(Math.cos(a + t * .9) * rad, Math.sin(t * Math.PI * .5) * (16 + (i % 3) * 5), Math.sin(a + t * .9) * rad)); }
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 28, 1.6 - 0.04 * i, 7, false), rootMat); g.add(tube);
+    }
+    // Boca colossal ao fundo, com dentes voltados para dentro.
+    const mawZ = -R - 34, maw = new THREE.Mesh(new THREE.TorusGeometry(16, 3.2, 8, 36), new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: .8, emissive: 0x2a2a30, emissiveIntensity: .9 })); maw.position.set(0, 22, mawZ); g.add(maw);
+    const inner = new THREE.Mesh(new THREE.CircleGeometry(14, 32), new THREE.MeshBasicMaterial({ color: 0x000000 })); inner.position.set(0, 22, mawZ - .5); g.add(inner);
+    const teeth = []; for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2; teeth.push({ x: Math.cos(a) * 13.5, y: 22 + Math.sin(a) * 13.5, z: mawZ + 1, rz: a - Math.PI / 2 + Math.PI, sx: .9, sy: 4.5, sz: .9 }); }
+    g.add(instanced(THREE, new THREE.ConeGeometry(1, 1, 5), new THREE.MeshStandardMaterial({ color: 0xcfcfd6, roughness: .6, emissive: 0x404048, emissiveIntensity: .8 }), teeth));
+    const eyes = eyeField(THREE, { count: 260, seed: 9, tex: eyeTexture(THREE, { sclera: ['#707078', '#e8e8ee'], iris: '#c0141e', ring: '#100204' }), tint: [1, .95, .95],
+      place: (i, rr) => { const a = rr() * 6.28, el = (rr() - .2) * 1.6, d = 40 + rr() * 90; return { x: Math.cos(a) * Math.cos(el) * d, y: 8 + Math.sin(el) * d * .6, z: Math.sin(a) * Math.cos(el) * d, size: 2 + rr() * rr() * 12 }; } });
+    g.add(eyes); ctx.eyes.push(eyes);
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ color: 0xffd8d0, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, map: canvasTex(THREE, 128, 128, (c, w, h) => { const gr = c.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, '#fff'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); }) }));
+    glow.position.set(0, 14, mawZ - 6); g.add(glow);
+    ctx.tick.push((t) => { rim.material.color.setHSL(0, .75, .38 + .1 * Math.sin(t * 3)); glow.material.opacity = .42 + Math.sin(t * 1.5) * .12; maw.scale.setScalar(1 + Math.sin(t * .8) * .015); });
+    return { bg: 0x030304, fog: 0x070708, fogNear: 22, fogFar: 160, hemi: [0xc0c0d0, 0x1a0a0a, .9], sun: [0xffd8d0, .55], light: [0xff6a5a, 3.2, 95, [0, 14, 0]], exposure: 1.2 };
   }
 };
 
@@ -292,6 +331,24 @@ const PORTALS = {
     g.add(instanced(THREE, new THREE.ConeGeometry(1, 1, 8), stone, hoods)); g.add(instanced(THREE, new THREE.SphereGeometry(1, 8, 6), stone, heads));
     ctx.tick.push((t) => { shardMesh.position.y = Math.sin(t * .5) * .5; halo.rotation.z = t * .2; });
     return { height: 26, radius: 10 };
+  },
+  // Portal do Pecado: árvore colossal cheia de olhos, com moedas penduradas e um portal rubro no tronco.
+  greed(THREE, g, ctx) {
+    const bark = new THREE.MeshStandardMaterial({ color: 0x120a0a, roughness: .9, emissive: 0x3a0808, emissiveIntensity: .8 });
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 8, 28, 12), bark); trunk.position.y = 14; g.add(trunk);
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(15, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), bark); crown.scale.set(1.3, .6, 1.3); crown.position.y = 27; g.add(crown);
+    const r = rng(81), roots = []; for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; roots.push({ x: Math.cos(a) * 8.5, y: 1.4, z: Math.sin(a) * 8.5, ry: -a, rz: -.9, sx: 2.2, sy: 12, sz: 2.2 }); }
+    g.add(instanced(THREE, new THREE.ConeGeometry(1, 1, 6), bark, roots));
+    const swirl = new THREE.Mesh(new THREE.CircleGeometry(4.2, 36), swirlMaterial(THREE, '#200004', '#ff2a2a')); swirl.scale.set(1, 1.55, 1); swirl.position.set(0, 6.8, 7.6); g.add(swirl); ctx.swirls.push(swirl.material);
+    const coinMat = new THREE.MeshStandardMaterial({ color: 0xd8a830, emissive: 0x7a5010, emissiveIntensity: 1.1, metalness: .85, roughness: .3 }), hang = [], chains = [];
+    for (let i = 0; i < 40; i++) { const a = r() * 6.28, d = 6 + r() * 12, y = 14 + r() * 14; hang.push({ x: Math.cos(a) * d, y, z: Math.sin(a) * d, rx: Math.PI / 2, ry: r() * 3, s: 1.1 + r() * .8 }); chains.push({ x: Math.cos(a) * d, y: y + 5, z: Math.sin(a) * d }); }
+    g.add(instanced(THREE, new THREE.CylinderGeometry(.6, .6, .1, 10), coinMat, hang)); g.add(instanced(THREE, new THREE.CylinderGeometry(.04, .04, 10, 4), new THREE.MeshBasicMaterial({ color: 0x6a5020 }), chains));
+    const piles = []; for (let i = 0; i < 14; i++) { const a = r() * 6.28, d = 7 + r() * 8; piles.push({ x: Math.cos(a) * d, y: .3, z: Math.sin(a) * d + 3, sx: .8 + r(), sy: .5 + r() * .5, sz: .8 + r() }); }
+    g.add(instanced(THREE, new THREE.ConeGeometry(1, 1.4, 10), coinMat, piles));
+    const eyes = eyeField(THREE, { count: 40, seed: 14, tex: eyeTexture(THREE, { sclera: ['#5a0a10', '#c02030'], iris: '#ffb020', ring: '#220004' }), tint: [1.1, .9, .85],
+      place: (i, rr) => { const a = rr() * 6.28, y = 4 + rr() * 24, rad = 5.6 + (28 - y) * .08; return { x: Math.cos(a) * rad, y, z: Math.sin(a) * rad, size: 1.6 + rr() * 3 }; } });
+    g.add(eyes); ctx.eyes.push(eyes);
+    return { height: 40, radius: 16 };
   }
 };
 

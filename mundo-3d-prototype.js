@@ -1678,10 +1678,11 @@ function startDimensionBattle(key,opts){
  status.textContent='O portal puxa você para a dimensão de '+d.name+'…';
  setTimeout(()=>openVsCard(key),700);
 }
-let vsFailed=false;
-function openVsCard(key){
+let vsFailed=false,vsGoCallback=null,vsKey=null;
+function openVsCard(key,onGo){
+ vsGoCallback=onGo||null;vsKey=key;
  const card=vsCard(key,playerName),panel=document.getElementById('vs-panel'),go=document.getElementById('vs-go');
- if(!card||!panel||!go){beginDimensionFight();return;}
+ if(!card||!panel||!go){if(vsGoCallback){const cb=vsGoCallback;vsGoCallback=null;cb();}else beginDimensionFight();return;}
  const heroImg=document.getElementById('vs-hero-img'),src=(document.getElementById('hero-portrait-img')||{}).src;
  if(src)heroImg.src=src;else heroImg.removeAttribute('src');
  document.getElementById('vs-boss-img').src=card.bishopImage;
@@ -1702,7 +1703,9 @@ function openVsCard(key){
 }
 (function initVsPanel(){
  const go=document.getElementById('vs-go');if(!go)return;
- bindInstantTap(go,()=>{if(go.disabled||!dimBattle)return;if(vsFailed){openVsCard(dimBattle.key);return;}beginDimensionFight();});
+ bindInstantTap(go,()=>{if(go.disabled||(!dimBattle&&!vsGoCallback))return;if(vsFailed){openVsCard(vsKey,vsGoCallback);return;}
+  if(vsGoCallback){const cb=vsGoCallback;vsGoCallback=null;const panel=document.getElementById('vs-panel');if(panel)panel.hidden=true;vsOpen=false;cb();return;}
+  beginDimensionFight();});
 })();
 function beginDimensionFight(){
  const b=dimBattle;if(!b)return;const d=DIMENSIONS[b.key],panel=document.getElementById('vs-panel');
@@ -1765,7 +1768,8 @@ function valerioVictory(){
 const DIM_PORTAL_DEFS={
  bishop2:{at:()=>DISTRICT_SPOTS.arena,from:()=>DISTRICT_SPOTS.plaza,active:()=>questStep===ACT2.boss},
  bishop3:{at:()=>stepDef(19).def.at,from:()=>({x:132,z:-22}),active:()=>questStep===19},
- bishop4:{at:()=>stepDef(25).def.at,from:()=>({x:-50,z:-224}),active:()=>questStep===25}
+ bishop4:{at:()=>stepDef(25).def.at,from:()=>({x:-50,z:-224}),active:()=>questStep===25},
+ greed:{at:()=>({x:FINAL_PORTAL.x,z:FINAL_PORTAL.z-10}),from:()=>({x:FINAL_PORTAL.x,z:FINAL_PORTAL.z+30}),active:()=>questStep>=FINALE.talk+1&&questStep<FINALE.done}
 };
 function dimPortalReturn(key){const def=DIM_PORTAL_DEFS[key],at=def.at(),from=def.from(),dx=from.x-at.x,dz=from.z-at.z,l=Math.hypot(dx,dz)||1;return{x:at.x+dx/l*12,z:at.z+dz/l*12};}
 function dimPortalNear(key,r){const def=DIM_PORTAL_DEFS[key];if(!def||!def.active())return false;const at=def.at();return Math.hypot(at.x-player.position.x,at.z-player.position.z)<r;}
@@ -2600,21 +2604,9 @@ function syncFinalPortal(){
  if(open){for(const m of [portalRing,portalInnerRing,portalCore,vortex,portalFloorGlow,portalSigil])m.visible=true;portalLight.color.setHex(0xff3a3a);portalLight.intensity=3;portalRing.material.emissive.setHex(0xa01818);portalBeacon.visible=true;portalBeacon.material.color.setHex(0xff6a6a);}
 }
 // ---------- Vazio da Ganância: arena abaixo do mundo, olhos em várias distâncias ----------
-const voidArena=(()=>{
- const g=new THREE.Group();g.position.set(VOID.x,VOID.y,VOID.z);g.visible=false;scene.add(g);
- const runeTex=(()=>{const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');x.fillStyle='#120609';x.fillRect(0,0,512,512);x.strokeStyle='rgba(220,60,40,.55)';x.lineWidth=3;for(const r of [70,150,230]){x.beginPath();x.arc(256,256,r,0,Math.PI*2);x.stroke();}for(let i=0;i<12;i++){const a=i/12*Math.PI*2;x.beginPath();x.moveTo(256+Math.cos(a)*70,256+Math.sin(a)*70);x.lineTo(256+Math.cos(a)*250,256+Math.sin(a)*250);x.stroke();}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
- const floor=new THREE.Mesh(new THREE.CircleGeometry(VOID.radius+2,64),new THREE.MeshStandardMaterial({color:0x6a3a40,map:runeTex,emissiveMap:runeTex,roughness:.35,metalness:.3,emissive:0xffffff,emissiveIntensity:.55}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;g.add(floor);
- const rim=new THREE.Mesh(new THREE.TorusGeometry(VOID.radius+1.5,.12,6,96),new THREE.MeshBasicMaterial({color:0xc0302a,toneMapped:false}));rim.rotation.x=Math.PI/2;rim.position.y=.05;g.add(rim);
- const eyeTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,2,32,32,30);gr.addColorStop(0,'#fff6c0');gr.addColorStop(.18,'#ffb020');gr.addColorStop(.32,'#a01010');gr.addColorStop(.6,'rgba(60,0,0,.5)');gr.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=gr;x.beginPath();x.ellipse(32,32,30,14,0,0,Math.PI*2);x.fill();x.fillStyle='#000';x.beginPath();x.ellipse(32,32,3,11,0,0,Math.PI*2);x.fill();const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
- const eyes=[];for(let i=0;i<46;i++){const a=Math.random()*Math.PI*2,r=45+Math.random()*180,y=4+Math.random()*90,s=4+r*.09+Math.random()*6;const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:eyeTex,transparent:true,depthWrite:false,fog:false,toneMapped:false,blending:THREE.AdditiveBlending}));sp.position.set(Math.cos(a)*r,y,Math.sin(a)*r);sp.scale.set(s*2,s,1);g.add(sp);eyes.push({sp,phase:Math.random()*10,base:s});}
- return{group:g,eyes,rim};
-})();
 const savedSky={};
-function enterVoid(){
- voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;voidMode=true;voidArena.group.visible=true;skyDome.visible=false;portalBeacon.visible=false;sunDisk.visible=false;sunHalo.visible=false;if(moonRoot)moonRoot.visible=false;if(starField)starField.visible=false;
- savedSky.bg=scene.background.getHex();const x=VOID.x,z=VOID.z+12;player.position.set(x,VOID.y,z);playerYaw=Math.PI;cameraYaw=0;moveVX=moveVZ=0;camera.position.set(x,VOID.y+3.5,z+8.5);
-}
-function leaveVoid(){voidMode=false;voidArena.group.visible=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
+function enterVoid(){enterDimensionArena('greed');}
+function leaveVoid(){voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
 function updateVoid(dt,now){
  updateDimensionPortals(now);
  if(!voidMode)return;
@@ -2623,11 +2615,7 @@ function updateVoid(dt,now){
   dimLight.color.setHex(e.light[0]);dimLight.intensity=e.light[1]*(1+Math.sin(now*.004)*.05);dimLight.distance=e.light[2];dimLight.position.set(voidSpec.x+e.light[3][0],voidSpec.y+e.light[3][1],voidSpec.z+e.light[3][2]);
   arena.update(now,camera,innerHeight*renderer.getPixelRatio());
   if(dimBattle&&dimBattle.active&&dimBattle.key==='bishop1'&&enemy.visible&&enemyAlive&&!bossRageAnnounced&&bossPhase(enemyHP,enemyMaxHP)===2){bossRageAnnounced=true;showCombatCallout('FÚRIA DO GUARDIÃO');status.textContent='VALÉRIO: “'+DIMENSIONS.bishop1.rage+'”';enemyCastCooldown=0;cameraShake(.2);vibrate(60);}
-  return;}
- scene.background.setHex(0x050206);scene.fog.color.setHex(0x0a0306);scene.fog.near=20;scene.fog.far=260;hemiLight.intensity=1.1;hemiLight.color.setHex(0xffb0a8);hemiLight.groundColor.setHex(0x401018);sunLight.intensity=.6;renderer.toneMappingExposure=1.1;
- dimLight.color.setHex(0xff4a3a);dimLight.intensity=3.2;dimLight.distance=90;dimLight.position.set(VOID.x,VOID.y+14,VOID.z);
- for(const e of voidArena.eyes){const blink=Math.max(.08,Math.abs(Math.sin(now*.0007+e.phase))>0.97?.1:1);e.sp.scale.y=e.base*blink;e.sp.material.opacity=.55+.35*Math.sin(now*.002+e.phase);}
- voidArena.rim.material.color.setHSL(0,.7,.35+.1*Math.sin(now*.003));
+ }
 }
 // ---------- Etapas ----------
 function finaleInteract(){
@@ -2647,7 +2635,7 @@ function finaleHandleDefeat(){
  if(!finaleFighting)return false;
  if(questStep===FINALE.gauntlet){finaleFighting=false;enemy.visible=false;enemyAlive=true;const r=nextGauntlet(gauntletIndex);gauntletIndex=r.index;save3DProgress();
   if(!r.done){showRewardPop('Guardião '+gauntletIndex+'/4 em paz');setTimeout(()=>{const g=GAUNTLET[gauntletIndex];showDialogue([{who:g.name.split(' · ')[0],text:g.line}],()=>startGauntletFight());},1500);}
-  else{const hud=document.getElementById('enemy-hud');if(hud)hud.classList.remove('boss');setTimeout(()=>showDialogue([{who:'VÉRAXION',text:'…Então vai. E não deixes ela te chamar pelo nome.'},{who:'Anjo-Guia',text:'Segure firme. O portal vai puxar com força desta vez.'}],()=>{questStep=FINALE.sin;sinForm=0;save3DProgress();updateQuestHud();showPortalVeil(true);setTimeout(()=>{enterVoid();showPortalVeil(false);showDialogue(sinIntroLines(playerName),()=>startSinForm());},900);}),1200);}
+  else{const hud=document.getElementById('enemy-hud');if(hud)hud.classList.remove('boss');setTimeout(()=>showDialogue([{who:'VÉRAXION',text:'…Então vai. E não deixes ela te chamar pelo nome.'},{who:'Anjo-Guia',text:'Segure firme. O portal vai puxar com força desta vez.'}],()=>{questStep=FINALE.sin;sinForm=0;save3DProgress();updateQuestHud();showPortalVeil(true);setTimeout(()=>{openVsCard('greed',()=>{enterVoid();showDialogue(sinIntroLines(playerName),()=>startSinForm());});},900);}),1200);}
   return true;}
  if(questStep===FINALE.sin){finaleFighting=false;enemy.visible=false;enemyAlive=true;const r=nextSinForm(sinForm);sinForm=r.form;
   if(!r.done){cameraShake(.3);showCombatCallout('A GANÂNCIA SE TRANSFORMA');setTimeout(startSinForm,2200);}
@@ -2850,6 +2838,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
  freeRoam(){awakeningActive=false;namePromptOpen=false;dialogueOpen=false;},
  voidTest(){enterVoid();},
+ setHearts(n){heartState.hearts=n;updateHeartsHud(true);},
+ killPlayer(){playerInvulnerableUntil=0;playerHP=1;defending=false;damagePlayerFromEnemyAttack(999);},
  cullInfo(){return instanceCullers.map(c=>({n:c.n,count:c.mesh.count,verts:c.mesh.geometry.attributes.position.count,min:Math.sqrt(c.min2),max:Math.sqrt(c.r2)}));},
  triBreakdown(){const out=[];scene.traverse(o=>{if(!o.isMesh&&!o.isPoints)return;let v=true,q=o;while(q){if(!q.visible){v=false;break;}q=q.parent;}if(!v)return;const g=o.geometry;if(!g)return;const n=g.index?g.index.count/3:(g.attributes.position?g.attributes.position.count/3:0);const inst=o.isInstancedMesh?o.count:1;let path='',pp=o.parent,d=0;while(pp&&d<4){path+='<'+(pp.name||pp.type);pp=pp.parent;d++;}const wp=new THREE.Vector3();o.getWorldPosition(wp);out.push({gt:g.type,gp:g.parameters?JSON.stringify(g.parameters).slice(0,80):'',mc:o.material&&o.material.color?o.material.color.getHexString():'',name:(o.name||o.type)+path,dist:Math.round(Math.hypot(wp.x-player.position.x,wp.z-player.position.z)),mat:(o.material&&o.material.name)||'',tri:Math.round(n*inst),inst,skinned:!!o.isSkinnedMesh,verts:g.attributes.position?g.attributes.position.count:0});});out.sort((a,b)=>b.tri-a.tri);return{total:out.reduce((a,b)=>a+b.tri,0),count:out.length,top:out.slice(0,40)};},
  rinfo(){return{geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,prog:renderer.info.programs?renderer.info.programs.length:0,shadow:sunLight.castShadow,pr:renderer.getPixelRatio(),lights:scene.children.filter(o=>o.isLight).length};},

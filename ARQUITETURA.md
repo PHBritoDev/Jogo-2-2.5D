@@ -1,121 +1,48 @@
-# Estrutura da demo — Galáxia 1
+# Estrutura do jogo — Galáxia 1 (mundo 3D)
 
-O jogo continua em Canvas 2D e mantém os sistemas existentes. Cada arquivo
-deve cuidar de uma área, usando os dados/handlers da campanha para conectar
-as etapas, em vez de colocar lógica de missão nos módulos de desenho.
+O jogo é **100% 3D** (Three.js 0.160). O antigo mundo 2D em Canvas foi removido no Mod 202:
+a dimensão de Valério e as dos demais Bispos acontecem dentro do mesmo mundo 3D, com os mesmos
+HUDs, combate, câmera, habilidades, vida e corações.
 
-## Módulos
+## Arquivos
 
-- `world.js` — mapa, biomas, trilhas, distribuição procedural, colisões e
-  consultas de decoração. As clareiras de missão devem ser pequenas; cenas
-  isoladas ocultam temporariamente a decoração que fica sob elas.
-- `render.js` — ordem de desenho do mundo, objetos, personagens e efeitos.
-- `ruined-city.js` — região exterior das ruínas, seus caminhos/estruturas e
-  a instância isolada da Casa da Moeda. A decoração do salão fica em
-  `_drawArena`/`_drawWorkshopRuin`, sem alterar entrada, área de combate,
-  colisões ou apresentação do Bispo 2.
-- `mist-valley.js` — identidade visual do Vale das Lanternas Afundadas e o
-  Posto de Medição instanciado. O Bispo 3 usa a arena desse local através dos
-  perfis e do fluxo compartilhado em `bishops.js`.
-- `night-sanctum.js` — região da Serra sem Ecos e o Observatório do Silêncio
-  instanciado. Prepara a jornada do Bispo 4, sem iniciar sua batalha.
-- `casino.js` — sala instanciada e entrada/saída do Casino. O piso interno não
-  exige remover vegetação do mapa exterior.
-- `climate.js` e `campaign.css` — estados de clima, transição para neblina,
-  iluminação, chuva e relâmpagos. Presets não controlam missões.
-- `storm-events.js` — perigos/efeitos ocasionais da tempestade, incluindo
-  aviso, redemoinho, dano, knockback e respingos. Só atualiza durante o jogo;
-  não aparece dentro de locais instanciados.
-- `campaign.js` — dados das missões e handlers (`acceptMission`, `goto`,
-  `investigate`, `followerAmbush`, `bishopEnter`, `bishop`, descoberta e entrada
-  no vale). Adicione etapas com handlers reutilizáveis antes de criar um tipo novo.
-- `bishops.js` — perfis, apresentação e combate compartilhado dos Bispos.
-- `quest.js`, `combat.js`, `player.js`, `input.js` — HUD/diálogos, combate,
-  física do jogador e controles desktop/mobile.
+- `index.html` — hospeda o mundo em um iframe (repassa `?debug3d=1`, `?galaxias=1`, `?resetGalaxy1=1`).
+- `mundo-3d-prototype.html` / `.js` / `hud3d.css` — mundo, combate, HUD, loja, mapa, perfil. `mod181-loader.js`
+  carrega o `.js` como texto, reescreve caminhos de módulos/ativos com o token de cache (`BUILD`) e o importa por Blob.
+- Regras puras (testadas com `node --test`): `world3d-terrain.js`, `skills3d.js`, `map3d.js`, `progression3d.js`,
+  `galaxies3d.js`, `hearts3d.js`, `sidequests3d.js`, `act1-flow.js`, `act2-flow.js`, `acts34-flow.js`,
+  `finale-flow.js`, `dimensions3d.js`.
+- `dimension-arenas3d.js` — geometria procedural das arenas e dos portais (recebe o `THREE` por parâmetro e só cria
+  objetos quando a dimensão é aberta).
+- `shop-icons3d.js` — arte própria (SVG) das Palavras, ultimates, espadas e categorias da Loja e do HUD.
 
-## Fluxo atual da missão do Bispo 2
+## Dimensões dos Bispos
 
-`mandado no Casino → viagem e emboscada → descoberta do distrito sudoeste →
-encontros e investigação → selo → ENTRAR → apresentação → combate → retorno`
+`DIMENSIONS` (em `dimensions3d.js`) define nome, fala, foto, arena e tema de cada uma:
+1 Valério (câmara macabra de moedas), 2 VORGAZHEK (vazio de olhos vermelhos e lua sorridente),
+3 ZAR'KHAEL (cogumelos de olhos sobre piso xadrez), 4 VÉRAXION (corredor torto de claraboias) e
+5 Ganância (caverna de raízes e olhos; é o Pecado, não um quinto Bispo).
 
-O distrito foi colocado no sudoeste do mapa (aprox. 966 unidades do ponto
-inicial). O Casino permanece no leste. A trilha de campanha é declarada em
-`world.js` e a sequência jogável em `GALAXIES.greed.missions` dentro de
-`campaign.js`.
+Fluxo: portal no mundo → `startDimensionBattle(key)` → cartão **jogador VS Bispo** (foto do herói, foto do Bispo,
+nome e fala) → arena abaixo do mundo (`voidMode` + `voidSpec`) → luta com o motor normal → vitória/sem corações →
+volta ao portal. Durante o cartão (mundo parado) a arena, o modelo e as texturas são preparados e os shaders
+compilados, para a luta nunca travar. Quedas gastam um coração; sem corações o portal expulsa o jogador.
 
-## Para continuar
+## Dia e noite
 
-Para adicionar outra região, defina geometria/entrada em seu módulo de local,
-coordenadas e caminho em `world.js`, e etapas de progressão em `campaign.js`.
-Para adicionar um perigo climático, mantenha ciclo de vida e dano em
-`storm-events.js`; deixe `climate.js` responsável pelos presets visuais.
-Preserve `Campaign.next()` como dono da progressão e os perfis de
-`BISHOP_PROFILES` como dados de combate.
+Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a
+noite. Braseiros (`BRAZIER_SPOTS`) iluminam os pontos de luta com 4 chamadas de desenho e uma única luz móvel.
 
-## Continuação após o Bispo 2
+## Desempenho (regras do projeto)
 
-O fim da missão `m6` inicia `m7` e mostra o diálogo fictício em
-`BISHOP2_AFTER_NODES`. A etapa `acceptMission` libera o terceiro selo e chama
-`Climate.transitionTo('fog', 8)`. A neblina usa camadas localizadas no mundo e
-luzes espaçadas; o CSS não coloca uma película sobre a tela inteira. A trilha
-e os encontros reutilizam `followerAmbush`; pistas e descobertas usam
-`investigate` e os handlers da região.
+- Nunca ligar/desligar luzes ou sombras em jogo (recompila shaders). No modo Auto só a resolução varia.
+- Shaders do mundo compilam em `precompileWorld()` enquanto a tela de galáxias está aberta.
+- Instâncias de árvores passam por `registerInstanceCull` (raio + frente da câmera, com LOD distante para carvalhos);
+  moradores e modelos pesados são ocultados longe do jogador; a grama usa tufos de ~30 triângulos.
+- Ativos grandes têm versão leve (`*-lod.glb`, `*-ui.webp`); os originais permanecem no repositório.
+- Use `?debug3d=1` e `SevenSinsDebug3D.triBreakdown()` para ver onde estão os triângulos.
 
-`MistValley` cuida da região, do posto isolado e do reposicionamento. Depois
-de `mistEnter`, `bishop` usa a apresentação e o combate compartilhados por
-`BISHOP_PROFILES`; a vitória concede a recompensa da missão, mostra o
-epílogo fictício e inicia a missão seguinte. Elior adiciona apenas um bloqueio
-reativo, com tempo de recarga e redução de dano, integrado à máquina de estados
-compartilhada de `BishopBoss`.
+## Marcadores de versão
 
-## Jornada do Bispo 4
-
-`m8` começa no mandado junto à saída do vale. Aceitar a missão transiciona para
-`night`, com céu estrelado e iluminação lunar; a trilha segue para o sul até a
-Serra sem Ecos. Os encontros reutilizam `followerAmbush`; a inscrição usa
-`investigate`, e `nightEnter`/`nightSite` permitem descobrir, entrar e sair do
-Observatório do Silêncio. O local permanece sem apresentação ou batalha do
-Quarto Bispo. O torneio continua exigindo quatro Bispos derrotados.
-
-## Mundo 3D — terreno da Galáxia 1 (Mod 186)
-
-- `world3d-terrain.js` (funções puras, testes em `world3d-terrain.test.mjs`)
-  define a altura do chão, a borda explorável e a distribuição da floresta.
-  O mesmo `terrain3D.height()` alimenta a malha, a física do jogador/inimigos,
-  a trilha e o portal; `terrain3D.walkable()` é o limite físico, então a
-  encosta que o jogador vê é exatamente onde ele para.
-- Trilhas, vila, clareira, gaiolas, ruína e portal são áreas planas
-  (`keepouts`/`paths`); fora delas o vale ganha ondulação suave.
-- Montanhas são parte da malha contínua (sem cones soltos). `Montanha.glb`
-  foi avaliado e não é usado: é um domo 20×20 com rochas-bolha que não se
-  integra ao relevo. `Arvore.glb` é usado como carvalho instanciado; o tronco
-  do arquivo começa 1,76 m acima das raízes e é esticado até o chão no merge,
-  e as copas são simplificadas para manter o custo baixo no celular.
-- `mod181-loader.js` reescreve qualquer `import './arquivo.js'` local para URL
-  absoluta com `?v=BUILD`; ao adicionar módulos ao mundo 3D basta importá-los.
-- `?debug3d=1` expõe `window.SevenSinsDebug3D` para verificação automática
-  (teleporte, câmera livre, contagem de draw calls). Não aparece para o jogador.
-- Outros módulos puros do mundo 3D (com testes `*.test.mjs`, rodar `node --test`):
-  `skills3d.js` (desbloqueio/mana/recarga das Palavras), `map3d.js` (névoa de
-  guerra, locais, abrigos e regras de viagem rápida) e `audio3d.js` (áudio
-  procedural; sem teste em Node por depender de Web Audio).
-- A grama (`Grama.glb`) é distribuída em blocos de 10 m ao redor do jogador
-  (`grassRefresh`), com custo constante; a floresta e as encostas são fixas.
-
-## Mundo 3D como experiência principal (Mod 194+)
-
-- `index.html` abre o mundo 3D por padrão (iframe `mundo-3d-prototype.html`); a
-  campanha 2D só abre com `?mundo2d=1` e o loop 2D dorme enquanto o 3D está na
-  frente. A página 2D continua necessária: é ela que hospeda a dimensão de
-  Valério (`world3d-bridge.js`). Remover o 2D exige antes portar essa dimensão.
-- Ato II (`act2-flow.js`, passos 8–14): Garganta da Dívida (região extra no
-  terreno via `extraAreas`/`passes`/`channels`), Distrito da Ferrugem, família
-  Arruda, três livros-caixa, selo e VORGAZHEK (`Bispo2.glb`) usando o mesmo
-  sistema de combate do Enemy1 por troca de rig (`useRig`).
-- Modelos leves gerados (originais intactos): `Npc-lod.glb`, `Enemy1-lod.glb`,
-  `AnjoGuia-lod.glb` (gltf-transform + meshoptimizer, ~15% dos vértices).
-- Atos III/IV (`acts34-flow.js`, passos 14–26) usam um motor genérico de
-  etapas (talk/reach/fight/collect/boss) e rigs por tabela (`RIG_DEFS`).
-- Arco final (`finale-flow.js`, passos 26–30): quatro guardiões no portal,
-  Vazio da Ganância abaixo do mundo (`VOID`), três formas e epílogo; ao fim a
-  tela das galáxias rompe a corrente da Galáxia 2.
+Ao mudar código: incremente o número visível (`#marker`), `BUILD` em `mod181-loader.js`, `?v=` em
+`mundo-3d-prototype.html` e `refresh/build` em `index.html`.
