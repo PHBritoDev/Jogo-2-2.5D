@@ -151,7 +151,7 @@ export function questPresentation(step) {
   const pages = {
     0: ['ATO I · O PREÇO DE UMA VIDA', 'Fale com o Anjo-Guia'],
     1: ['ATO I · O PREÇO DE UMA VIDA', 'Procure Téo, na banca de provisões da vila'],
-    2: ['ATO I · A MATA E AS GAIOLAS', 'Siga a trilha noturna. Três captores guardam as crianças'],
+    2: ['ATO I · A MATA E AS GAIOLAS', 'Siga a trilha até as gaiolas. Três captores guardam as crianças'],
     3: ['ATO I · A CHAVE', 'Abra as gaiolas e escolte as crianças de volta à vila'],
     4: ['ATO I · A SUBIDA', 'Duas sentinelas guardam a montanha, bem espaçadas. Enfrente uma de cada vez'],
     5: ['ATO I · O GUARDA DA PASSAGEM', 'Derrote o guarda antes do portal. Ele resiste mais e abre um corte largo'],
@@ -194,7 +194,7 @@ export function informantLines(name) {
     { who: 'Téo · Provisões', text: 'Cinco moedas. Não pagam uma vida. Pagam o medo de eu continuar aqui amanhã.' },
     { who: name || 'Protagonista', text: 'Então tome. Não estou comprando silêncio. Estou comprando a verdade que você tem medo de carregar.' },
     { who: 'Téo · Provisões', text: 'Levaram três pela trilha, em gaiolas, como oferenda. Valério não suja as mãos. Manda os que ainda têm unhas.' },
-    { who: 'Anjo-Guia', text: (name || 'Viajante') + ', a missão já é tua. Não há escolha honesta além de ir. A noite vai se alongar — a cobiça prefere trabalhar no escuro.' }
+    { who: 'Anjo-Guia', text: (name || 'Viajante') + ', a missão já é tua. Não há escolha honesta além de ir. A cobiça trabalha melhor longe dos olhos — vá antes que a trilha esfrie.' }
   ];
 }
 

@@ -95,25 +95,25 @@ export function achievementState(a, stats = {}, claimed = new Set()) {
 
 /** Catálogo por ato. Silhueta até a primeira vitória; descoberta rende um bônus único. */
 export const BESTIARY = [
-  { id: 'captor', act: 1, name: 'Seguidor da Ganância', cls: 'Servo · Enemy1', img: 'Enemy1.png', discoveryReward: 3,
+  { id: 'captor', act: 1, name: 'Seguidor da Ganância', cls: 'Servo · Enemy1', img: 'Enemy1-ui.webp', discoveryReward: 3,
     lore: 'Vendeu a voz para cobrar a de outros. Ataca com garras e recua quando ferido.' },
-  { id: 'sentry', act: 1, name: 'Sentinela da Subida', cls: 'Servo · Enemy1', img: 'Enemy1.png', discoveryReward: 3,
+  { id: 'sentry', act: 1, name: 'Sentinela da Subida', cls: 'Servo · Enemy1', img: 'Enemy1-ui.webp', discoveryReward: 3,
     lore: 'Guarda a montanha em turnos. Prefere esperar que o viajante venha até ele.' },
-  { id: 'warden', act: 1, name: 'Guarda da Passagem', cls: 'Mini-chefe · Enemy1', img: 'Enemy1.png', discoveryReward: 6,
+  { id: 'warden', act: 1, name: 'Guarda da Passagem', cls: 'Mini-chefe · Enemy1', img: 'Enemy1-ui.webp', discoveryReward: 6,
     lore: 'Mais pesado, golpe largo e mais resistente. Um selo de Valério arde em seu peito.' },
-  { id: 'valerio', act: 1, name: 'Valério', cls: 'Primeiro Bispo', img: 'Bispo1.png', discoveryReward: 10,
+  { id: 'valerio', act: 1, name: 'Valério', cls: 'Primeiro Bispo', img: 'Bispo1-ui.webp', discoveryReward: 10,
     lore: 'Guardava as moedas. Fez da floresta um livro-caixa de vidas.' },
-  { id: 'vorgazhek', act: 2, name: 'VORGAZHEK', cls: 'Segundo Bispo', img: 'Bispo2.png', discoveryReward: 14,
+  { id: 'vorgazhek', act: 2, name: 'VORGAZHEK', cls: 'Segundo Bispo', img: 'Bispo2-ui.webp', discoveryReward: 14,
     lore: 'O Arauto das Almas Endividadas. Escrevia o nome dos devedores em três livros e cobrava dos vivos o que os mortos não pagaram.' },
-  { id: 'zealot', act: 3, name: 'Zelote do Altar', cls: 'Servo · Enemy3', img: 'Enemy3.png', discoveryReward: 5,
+  { id: 'zealot', act: 3, name: 'Zelote do Altar', cls: 'Servo · Enemy3', img: 'Enemy3-ui.webp', discoveryReward: 5,
     lore: 'Ajoelhou-se tanto que esqueceu como se levanta. Golpeia em trio e lança cinzas de incenso.' },
-  { id: 'zarkhael', act: 3, name: "ZAR'KHAEL", cls: 'Terceiro Bispo', img: 'Bispo3.png', discoveryReward: 16,
+  { id: 'zarkhael', act: 3, name: "ZAR'KHAEL", cls: 'Terceiro Bispo', img: 'Bispo3-ui.webp', discoveryReward: 16,
     lore: 'O Carrasco do Juízo Eterno. Contava joelhos e cobrava ingresso para rezar.' },
-  { id: 'hollow', act: 4, name: 'Servo sem Eco', cls: 'Servo · Enemy4', img: 'Enemy4.png', discoveryReward: 6,
+  { id: 'hollow', act: 4, name: 'Servo sem Eco', cls: 'Servo · Enemy4', img: 'Enemy4-ui.webp', discoveryReward: 6,
     lore: 'Esqueceu o próprio nome. Ainda carrega cartas que nunca entregou.' },
-  { id: 'veraxion', act: 4, name: 'VÉRAXION', cls: 'Quarto Bispo', img: 'Bispo4.png', discoveryReward: 18,
+  { id: 'veraxion', act: 4, name: 'VÉRAXION', cls: 'Quarto Bispo', img: 'Bispo4-ui.webp', discoveryReward: 18,
     lore: 'O Custódio do Último Selo. Guardava o amor como prova de dívida — e a Ganância como prisioneira.' },
-  { id: 'ganancia', act: 5, name: 'GANÂNCIA', cls: 'Pecado Capital', img: 'Ganancia1.png', discoveryReward: 40,
+  { id: 'ganancia', act: 5, name: 'GANÂNCIA', cls: 'Pecado Capital', img: 'Ganancia1-ui.webp', discoveryReward: 40,
     lore: 'Não precisava mentir. Bastava que alguém desejasse um pouco mais. Três formas, uma só fome.' }
 ];
 
