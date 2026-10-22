@@ -2684,3 +2684,29 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
 animate();
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();applyGraphics3D(graphics3DMode,graphics3DScale);}
 addEventListener('resize',resize);
+
+
+/* MOD 199 — botão discreto para reiniciar a campanha da Galáxia 1. */
+(function addGalaxy1ResetButton(){
+  if(document.getElementById('galaxy1-reset-button')) return;
+  const button=document.createElement('button');
+  button.id='galaxy1-reset-button';
+  button.type='button';
+  button.textContent='RESET';
+  button.title='Reiniciar a campanha da Galáxia 1';
+  button.setAttribute('aria-label','Resetar progresso da Galáxia 1');
+  button.style.cssText='position:fixed;top:calc(env(safe-area-inset-top, 0px) + 8px);right:8px;z-index:2147483000;padding:7px 10px;border:1px solid rgba(255,255,255,.28);border-radius:9px;background:rgba(18,15,28,.62);color:#fff;font:700 11px/1 system-ui,sans-serif;letter-spacing:.08em;opacity:.72;box-shadow:0 2px 8px #0003;touch-action:manipulation;';
+  button.addEventListener('click',function(){
+    if(!window.confirm('Resetar a campanha da Galáxia 1? Missões, chefes, moedas, itens e descobertas serão reiniciados neste navegador.')) return;
+    try{
+      Object.keys(localStorage).forEach(function(key){
+        if(/^sevenSins3DCampaignV[1-6]$/.test(key) ||
+           (key.indexOf('seven-sins-')===0 && !/^seven-sins-3d-(daynight|fps|graphics)$/.test(key))){
+          localStorage.removeItem(key);
+        }
+      });
+    }catch(e){}
+    window.location.reload();
+  });
+  document.body.appendChild(button);
+})();
