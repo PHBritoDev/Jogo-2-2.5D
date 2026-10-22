@@ -42,6 +42,10 @@ export const SHOP_ITEMS = [
     desc: 'Um sol pequeno e lento que queima o que toca. 45 de mana.' },
   { id: 'ultimate', sector: 'escrituras', kind: 'skill', name: 'Julgamento Divino', cost: 160, level: 6, step: 11,
     desc: 'A espada colossal. Recurso raro: 80 de mana e recarga longa.', stepText: 'ouvir a família Arruda no Ato II — A Dívida dos Vivos' },
+  { id: 'magic_plus', sector: 'escrituras', kind: 'upgrade', name: 'Espadas da Palavra II', cost: 90, level: 7, step: 16, stepText: 'chegar ao Vale do Altar (Ato III)',
+    desc: 'Nova Palavra do Ato III: cinco lâminas que perseguem o alvo. Requer Espadas da Palavra.', requires: 'magic' },
+  { id: 'magic2_plus', sector: 'escrituras', kind: 'upgrade', name: 'Julgamento Celestial II', cost: 120, level: 8, step: 16, stepText: 'chegar ao Vale do Altar (Ato III)',
+    desc: 'Nova Palavra do Ato III: sete espadas caem do céu sobre o inimigo. Requer Julgamento Celestial.', requires: 'magic2' },
   { id: 'aurora', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Aurora', cost: 30, level: 3, step: 4,
     desc: 'Lâmina clara e mais longa: +20% de dano e rastro dourado. Sem habilidade ativa.' },
   { id: 'vigilia', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Vigília', cost: 110, level: 7, step: 16, stepText: 'encontrar quem resiste no Vale do Altar (Ato III)',
@@ -61,6 +65,7 @@ export function shopStatus(item, { questStep = 0, level = 1, coins = 0, owned = 
     const what = item.stepText || STEP_NAMES[item.step] || 'avançar na campanha';
     return { state: 'locked', reason: 'Disponível após ' + what + '.' };
   }
+  if (item.requires && !owned.has(item.requires)) return { state: 'locked', reason: 'Requer ' + (SHOP_ITEMS.find(i => i.id === item.requires) || {}).name + '.' };
   if (level < item.level) return { state: 'level', reason: 'Requer nível ' + item.level + '.' };
   if (coins < item.cost) return { state: 'gold', reason: 'Faltam ' + (item.cost - coins) + ' moedas.' };
   return { state: 'buyable', reason: '' };

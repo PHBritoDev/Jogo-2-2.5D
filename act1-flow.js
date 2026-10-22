@@ -62,7 +62,7 @@ function baseProgress() {
 
 const STAT_KEYS = ['kills', 'rescues', 'perfectBlocks', 'flawless', 'places', 'ruins', 'bishops'];
 const SKILL_IDS = ['magic', 'magic2', 'magic3', 'ultimate'];
-const ITEM_IDS = SKILL_IDS.concat(['aurora', 'vigilia']);
+const ITEM_IDS = SKILL_IDS.concat(['aurora', 'vigilia', 'magic_plus', 'magic2_plus']);
 /** Mod 188: XP, compras, espada equipada, estatísticas, conquistas e catálogo. */
 export function progressionFields(raw, questStep) {
   const r = raw && typeof raw === 'object' ? raw : {};

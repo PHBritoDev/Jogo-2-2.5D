@@ -43,3 +43,10 @@ test('catálogo esconde inimigos não derrotados', () => {
   assert.equal(e.known, false); assert.equal(e.name, '???'); assert.ok(!('lore' in e) || !/garras/.test(e.lore));
   assert.equal(bestiaryEntry(BESTIARY[0], new Set(['captor'])).name, 'Seguidor da Ganância');
 });
+
+test('Palavras do Ato III exigem a versão anterior e o Ato III', () => {
+  const up = SHOP_ITEMS.find(i => i.id === 'magic_plus');
+  assert.equal(shopStatus(up, { questStep: 16, level: 9, coins: 999, owned: new Set() }).state, 'locked');
+  assert.equal(shopStatus(up, { questStep: 12, level: 9, coins: 999, owned: new Set(['magic']) }).state, 'locked');
+  assert.equal(shopStatus(up, { questStep: 16, level: 9, coins: 999, owned: new Set(['magic']) }).state, 'buyable');
+});
