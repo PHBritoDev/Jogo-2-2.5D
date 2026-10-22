@@ -19,12 +19,12 @@
   var params=new URLSearchParams(window.location.search);
   if(params.get('mundo3d')!=='1'||params.get('mundo2d')==='1')return;
   var style=document.createElement('style');
-  style.textContent='html,body{overflow:hidden!important}body>*:not(#primary-3d-frame){display:none!important}#primary-3d-frame{display:block!important;position:fixed;inset:0;width:100%;height:100%;border:0;z-index:2147483000;background:#101b1c}';
+  style.textContent='html:not(.valerio-from-3d),html:not(.valerio-from-3d) body{overflow:hidden!important}html:not(.valerio-from-3d) body>*:not(#primary-3d-frame){display:none!important}#primary-3d-frame{display:block!important;position:fixed;inset:0;width:100%;height:100%;border:0;z-index:2147483000;background:#101b1c}html.valerio-from-3d #primary-3d-frame{pointer-events:none}';
   document.head.appendChild(style);
   var frame=document.createElement('iframe');
   frame.id='primary-3d-frame';
   frame.title='Mundo 3D — A Batalha Contra os 7 Pecados Capitais';
-  frame.src='mundo-3d-prototype.html?refresh=186&build=186';
+  frame.src='mundo-3d-prototype.html?refresh=193&build=193';
   frame.allow='fullscreen';
   document.body.appendChild(frame);
 })();
@@ -225,7 +225,8 @@
 <script>window.SetHeroPortrait3D=window.SetHeroPortrait3D||function(src){var img=document.querySelector("#hero-portrait img");if(img&&src)img.src=src;};</script>
 <script src="protagonista-model-20261012.js?v=mod107-lazy-init-20261016"></script>
 <script src="render.js?v=mod131-soft-wind-trees-20261017"></script>
-<script src="main.js?v=mod109-skip-hidden-2d-render-20261016"></script>
+<script src="main.js?v=mod187-valerio-same-page"></script>
+<script src="world3d-bridge.js?v=mod190"></script>
 <script src="biblia-magia-prototype.js?v=mod130-ultimate-camera-sword-fix-20261017"></script>
 <script src="valerio-grimoire-3d.js?v=mod128-compact-grimoire-aura-20261017"></script>
 <script src="bishop-dark-magic-3d.js?v=mod122-abyss-eclipse-front-swords-20261017"></script>

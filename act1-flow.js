@@ -13,7 +13,8 @@ export const ACT1 = {
   enemyTotal: 3,
   mountainSentries: 2,
   sentryHp: 100,
-  wardenHp: 180
+  wardenHp: 180,
+  valerioReward: 40
 };
 
 const BANNED = ['porra', 'merda', 'caralho', 'fdp', 'puta', 'viado', 'cuzao', 'buceta'];
@@ -52,7 +53,40 @@ function baseProgress() {
     wardenTaunted: false,
     wardenDefeated: false,
     portalOpened: false,
-    portalRewardClaimed: false
+    portalRewardClaimed: false,
+    bishopsDefeated: 0,
+    valerioRewardClaimed: false,
+    ...progressionFields(null, 0)
+  };
+}
+
+const STAT_KEYS = ['kills', 'rescues', 'perfectBlocks', 'flawless', 'places', 'ruins', 'bishops'];
+const SKILL_IDS = ['magic', 'magic2', 'magic3', 'ultimate'];
+const ITEM_IDS = SKILL_IDS.concat(['aurora']);
+/** Mod 188: XP, compras, espada equipada, estatísticas, conquistas e catálogo. */
+export function progressionFields(raw, questStep) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  let owned = Array.isArray(r.owned) ? r.owned.filter(id => ITEM_IDS.includes(id)) : null;
+  if (!owned) {
+    // Progresso do Mod 186/187: as Palavras vinham por etapa; quem já as tinha não perde.
+    owned = [];
+    if (questStep >= 4) owned.push('magic');
+    if (questStep >= 6) owned.push('magic2');
+    if ((Number(r.bishopsDefeated) || 0) >= 1) owned.push('magic3');
+  }
+  const stats = {};
+  for (const k of STAT_KEYS) stats[k] = Math.max(0, Math.floor(Number(r.stats && r.stats[k]) || 0));
+  const list = v => (Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 64) : []);
+  return {
+    xp: Math.max(0, Math.floor(Number(r.xp) || 0)),
+    owned: [...new Set(owned)],
+    sword: r.sword === 'aurora' && owned.includes('aurora') ? 'aurora' : 'prota',
+    stats,
+    achievementsClaimed: list(r.achievementsClaimed),
+    bestiary: list(r.bestiary),
+    bestiaryRewarded: list(r.bestiaryRewarded),
+    shopVisited: !!r.shopVisited,
+    playSeconds: Math.max(0, Math.floor(Number(r.playSeconds) || 0))
   };
 }
 
@@ -74,13 +108,16 @@ export function migrateProgress(raw) {
     return {
       ...base,
       ...shared,
-      questStep: clampInt(raw.questStep, 0, 7, 0),
+      questStep: clampInt(raw.questStep, 0, 8, 0),
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: clampInt(raw.mountainIndex, 0, ACT1.mountainSentries, 0),
       wardenTaunted: !!raw.wardenTaunted,
       wardenDefeated: !!raw.wardenDefeated,
       portalOpened: !!raw.portalOpened,
-      portalRewardClaimed: !!raw.portalRewardClaimed
+      portalRewardClaimed: !!raw.portalRewardClaimed,
+      bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
+      valerioRewardClaimed: !!raw.valerioRewardClaimed,
+      ...progressionFields(raw, clampInt(raw.questStep, 0, 8, 0))
     };
   }
   if (version === 5) {
@@ -111,9 +148,10 @@ export function questPresentation(step) {
     4: ['ATO I · A SUBIDA', 'Duas sentinelas guardam a montanha, bem espaçadas. Enfrente uma de cada vez'],
     5: ['ATO I · O GUARDA DA PASSAGEM', 'Derrote o guarda antes do portal. Ele resiste mais e abre um corte largo'],
     6: ['ATO I · O PORTAL DE VALÉRIO', 'Aproxime-se. A dimensão que já existe será aberta, não substituída'],
-    7: ['ATO I · DIMENSÃO ABERTA', 'Valério espera na dimensão dele. A mata permanece salva']
+    7: ['ATO I · DIMENSÃO ABERTA', 'Valério espera na dimensão dele. Atravesse o portal'],
+    8: ['ATO I · CONCLUÍDO', 'Valério foi purificado. Explore a floresta e fale com o Anjo-Guia']
   };
-  const pair = pages[step] || pages[7];
+  const pair = pages[step] || pages[8];
   return { title: pair[0], objective: pair[1] };
 }
 
@@ -195,6 +233,26 @@ export function portalLines(name) {
     { who: 'Anjo-Guia', text: (name || 'Viajante') + ', eu caminhei contigo porque um dia alguém recusou me vender. Não posso dizer o meu nome verdadeiro ainda. Se eu atravessar com você, Valério vai cobrar os dois de uma vez.' },
     { who: 'Anjo-Guia', text: 'Vá. A dimensão que te espera é a que já está de pé — não uma arena feita às pressas. Eu fico na mata. Volte.' },
     { who: name || 'Protagonista', text: 'Então guarda a clareira. Eu volto com o nome que você me pediu para não vender.' }
+  ];
+}
+
+/** Volta da dimensão: a vitória sobre Valério fecha o Ato I uma única vez. */
+export function afterValerioVictory(progress) {
+  const p = progress || {};
+  const first = !p.valerioRewardClaimed;
+  return {
+    questStep: 8,
+    bishopsDefeated: Math.max(1, Math.floor(Number(p.bishopsDefeated) || 0)),
+    valerioRewardClaimed: true,
+    coinsGained: first ? ACT1.valerioReward : 0
+  };
+}
+
+export function valerioVictoryLines(name) {
+  return [
+    { who: 'Anjo-Guia', text: 'Você voltou. O portal se fechou atrás de ti como uma porta que não aceita mais suborno. Valério caiu — e com ele, o primeiro selo da Ganância.' },
+    { who: name || 'Protagonista', text: 'Ele não gritou de dor. Gritou porque ninguém mais lhe devia nada. Ainda há mais deles, não há?' },
+    { who: 'Anjo-Guia', text: 'Há. O Segundo Bispo cobra dívidas que nem os mortos conseguem pagar. Mas hoje, as crianças dormem em casa. Descansa um pouco. Uma nova Palavra desperta em ti: o Sol da Justiça.' }
   ];
 }
 

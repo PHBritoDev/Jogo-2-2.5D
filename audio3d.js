@@ -114,6 +114,13 @@ export function createWorldAudio() {
       burst('highpass', 4000, .5, .06, .5);
       if (kind === 'ultimate') tone('sawtooth', 65, 40, .12, 1.2);
     },
+    /** Pausa todo o som enquanto a dimensão do Bispo está aberta por cima do mundo. */
+    pause(on) { if (!ctx) return; if (on) ctx.suspend(); else ctx.resume(); },
+    portalEnter() { if (!ready) return; tone('sine', 220, 55, .2, 1.4); burst('bandpass', 300, .6, .18, 1.3, sfxBus, 3000); },
+    shieldUp() { if (!ready) return; tone('sine', 660, 990, .05, .18); },
+    block() { if (!ready) return; tone('triangle', 320, 180, .2, .16); burst('bandpass', 2400, 2, .14, .1); },
+    parry() { if (!ready) return; [1318, 1760, 2637].forEach((f, i) => tone('sine', f, f * 1.02, .11, .5, sfxBus, i * .03)); burst('highpass', 5000, .7, .12, .25); },
+    lockOn() { if (!ready) return; tone('sine', 880, 1320, .06, .12); },
     reveal() { if (!ready) return; [784, 988, 1175, 1568].forEach((f, i) => tone('sine', f, 0, .06, .5, sfxBus, i * .09)); }
   };
 }

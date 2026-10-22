@@ -1,0 +1,103 @@
+/**
+ * MOD 188 — Progressão da Galáxia 1 no mundo 3D (regras puras; testes em progression3d.test.mjs).
+ * Nível/XP, Loja Central (setores, requisitos de ato + nível + ouro), conquistas e catálogo de inimigos.
+ * O ouro sozinho nunca libera um item: cada oferta declara etapa da campanha e nível mínimos.
+ */
+export const LEVELS = [0, 60, 150, 280, 450, 680, 980, 1350, 1800, 2350];
+export const XP_REWARDS = { captor: 22, sentry: 32, warden: 70, rescue: 50, ruin: 15, valerio: 160 };
+
+export function levelFromXp(xp) {
+  let lvl = 1;
+  for (let i = 1; i < LEVELS.length; i++) if (xp >= LEVELS[i]) lvl = i + 1;
+  return lvl;
+}
+export function levelProgress(xp) {
+  const lvl = levelFromXp(xp), cur = LEVELS[lvl - 1], next = LEVELS[lvl];
+  return { level: lvl, into: xp - cur, need: next === undefined ? 0 : next - cur, max: next === undefined };
+}
+/** Bônus por nível: vida e mana máximas crescem pouco, para o combate não ficar trivial. */
+export function statsForLevel(level) {
+  return { maxHP: 100 + (level - 1) * 10, maxMana: 100 + (level - 1) * 6, damageBonus: (level - 1) * .04 };
+}
+
+/** Etapas da campanha usadas como requisito (questStep do Ato I). */
+export const STEP_NAMES = {
+  4: 'libertar as crianças das gaiolas', 5: 'vencer as sentinelas da subida', 6: 'derrotar o guarda da passagem', 8: 'purificar Valério, o Primeiro Bispo'
+};
+
+export const SHOP_SECTORS = [
+  { id: 'escrituras', name: 'Câmara das Escrituras', blurb: 'Palavras celestiais que despertam com a jornada.' },
+  { id: 'arsenal', name: 'Arsenal das Lâminas', blurb: 'Espadas forjadas para quem não se vende.' },
+  { id: 'conquistas', name: 'Salão das Conquistas', blurb: 'Feitos que o céu registra e recompensa.' },
+  { id: 'arquivo', name: 'Arquivo dos Inimigos', blurb: 'O que você já enfrentou — e o que ainda se esconde.' },
+  { id: 'fragmentos', name: 'Câmara dos Fragmentos', blurb: 'Selada até a Galáxia 4.', lockedUntilGalaxy: 4 }
+];
+
+export const SHOP_ITEMS = [
+  { id: 'magic', sector: 'escrituras', kind: 'skill', name: 'Espadas da Palavra', cost: 20, level: 2, step: 4,
+    desc: 'Três lâminas de luz à frente. Recarga curta, 18 de mana.' },
+  { id: 'magic2', sector: 'escrituras', kind: 'skill', name: 'Julgamento Celestial', cost: 35, level: 3, step: 5,
+    desc: 'Cinco espadas em leque. 32 de mana, recarga média.' },
+  { id: 'magic3', sector: 'escrituras', kind: 'skill', name: 'Sol da Justiça', cost: 70, level: 4, step: 8,
+    desc: 'Um sol pequeno e lento que queima o que toca. 45 de mana.' },
+  { id: 'ultimate', sector: 'escrituras', kind: 'skill', name: 'Julgamento Divino', cost: 160, level: 7, step: 99,
+    desc: 'A espada colossal. Disponível antes do Segundo Bispo (Ato II).', stepText: 'chegar ao Ato II — A Dívida dos Vivos' },
+  { id: 'aurora', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Aurora', cost: 30, level: 3, step: 4,
+    desc: 'Lâmina clara e mais longa: +20% de dano e rastro dourado. Sem habilidade ativa.' }
+];
+
+export const SWORDS = {
+  prota: { id: 'prota', name: 'Espada do Chamado', damage: 25, reach: 2.0, trail: 0xffe2a0 },
+  aurora: { id: 'aurora', name: 'Lâmina da Aurora', damage: 30, reach: 2.25, trail: 0xfff1b8 }
+};
+
+/** Requisito de compra com motivo legível. owned: Set de ids. */
+export function shopStatus(item, { questStep = 0, level = 1, coins = 0, owned = new Set() } = {}) {
+  if (owned.has(item.id)) return { state: 'owned', reason: 'Já é seu.' };
+  if (questStep < item.step) {
+    const what = item.stepText || STEP_NAMES[item.step] || 'avançar na campanha';
+    return { state: 'locked', reason: 'Disponível após ' + what + '.' };
+  }
+  if (level < item.level) return { state: 'level', reason: 'Requer nível ' + item.level + '.' };
+  if (coins < item.cost) return { state: 'gold', reason: 'Faltam ' + (item.cost - coins) + ' moedas.' };
+  return { state: 'buyable', reason: '' };
+}
+
+export function buyItem(item, ctx) {
+  const st = shopStatus(item, ctx);
+  if (st.state !== 'buyable') return { ok: false, reason: st.reason };
+  return { ok: true, coins: ctx.coins - item.cost };
+}
+
+export const ACHIEVEMENTS = [
+  { id: 'primeiro-golpe', name: 'Primeira Luz', desc: 'Derrote o primeiro captor.', reward: 6, goal: 1, stat: 'kills' },
+  { id: 'libertador', name: 'Libertador', desc: 'Liberte as crianças das gaiolas.', reward: 10, goal: 1, stat: 'rescues' },
+  { id: 'defesa-perfeita', name: 'Escudo da Fé', desc: 'Faça uma Defesa Perfeita.', reward: 8, goal: 1, stat: 'perfectBlocks' },
+  { id: 'intocavel', name: 'Intocável', desc: 'Vença um combate sem ser atingido.', reward: 12, goal: 1, stat: 'flawless' },
+  { id: 'explorador', name: 'Explorador', desc: 'Descubra 5 locais da floresta.', reward: 10, goal: 5, stat: 'places' },
+  { id: 'ruina', name: 'O Que Foi Esquecido', desc: 'Encontre a ruína escondida.', reward: 6, goal: 1, stat: 'ruins' },
+  { id: 'cacador', name: 'Mão Firme', desc: 'Derrote 6 servos da Ganância.', reward: 15, goal: 6, stat: 'kills' },
+  { id: 'purificacao', name: 'Primeiro Selo', desc: 'Purifique Valério, o Primeiro Bispo.', reward: 25, goal: 1, stat: 'bishops' }
+];
+
+export function achievementState(a, stats = {}, claimed = new Set()) {
+  const value = Math.min(a.goal, Math.max(0, Math.floor(Number(stats[a.stat]) || 0)));
+  return { value, done: value >= a.goal, claimed: claimed.has(a.id) };
+}
+
+/** Catálogo por ato. Silhueta até a primeira vitória; descoberta rende um bônus único. */
+export const BESTIARY = [
+  { id: 'captor', act: 1, name: 'Seguidor da Ganância', cls: 'Servo · Enemy1', img: 'Enemy1.png', discoveryReward: 3,
+    lore: 'Vendeu a voz para cobrar a de outros. Ataca com garras e recua quando ferido.' },
+  { id: 'sentry', act: 1, name: 'Sentinela da Subida', cls: 'Servo · Enemy1', img: 'Enemy1.png', discoveryReward: 3,
+    lore: 'Guarda a montanha em turnos. Prefere esperar que o viajante venha até ele.' },
+  { id: 'warden', act: 1, name: 'Guarda da Passagem', cls: 'Mini-chefe · Enemy1', img: 'Enemy1.png', discoveryReward: 6,
+    lore: 'Mais pesado, golpe largo e mais resistente. Um selo de Valério arde em seu peito.' },
+  { id: 'valerio', act: 1, name: 'Valério', cls: 'Primeiro Bispo', img: 'Bispo1.png', discoveryReward: 10,
+    lore: 'Guardava as moedas. Fez da floresta um livro-caixa de vidas.' }
+];
+
+export function bestiaryEntry(entry, defeated = new Set()) {
+  const known = defeated.has(entry.id);
+  return known ? { ...entry, known: true } : { id: entry.id, act: entry.act, known: false, name: '???', cls: 'Desconhecido', img: entry.img, lore: 'Derrote-o para registrar.' };
+}

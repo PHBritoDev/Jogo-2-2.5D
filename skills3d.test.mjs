@@ -2,24 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SKILLS, MANA, unlockedSkills, newlyUnlocked, canCast, regenMana, manaFromHit, cooldownFraction } from './skills3d.js';
 
-test('começa só com a espada; Skill 1 e 2 chegam antes do Primeiro Bispo', () => {
-  assert.equal(unlockedSkills({ questStep: 0 }).size, 0);
-  assert.deepEqual([...unlockedSkills({ questStep: 4 })], ['magic']);
-  assert.deepEqual([...unlockedSkills({ questStep: 6 })], ['magic', 'magic2']);
-  assert.ok(!unlockedSkills({ questStep: 7 }).has('magic3'), 'Sol só depois de Valério');
-  assert.ok(!unlockedSkills({ questStep: 7 }).has('ultimate'));
-  assert.ok(unlockedSkills({ questStep: 7, bishopsDefeated: 1 }).has('magic3'));
+test('começa só com a espada; Palavras chegam pela compra', () => {
+  assert.equal(unlockedSkills({}).size, 0);
+  assert.deepEqual([...unlockedSkills({ owned: ['magic'] })], ['magic']);
+  assert.deepEqual([...unlockedSkills({ owned: new Set(['magic2', 'magic']) })], ['magic', 'magic2']);
+  assert.equal(unlockedSkills({ testAll: true }).size, 4);
 });
 
 test('revelação lista só o que acabou de abrir', () => {
-  assert.deepEqual(newlyUnlocked(unlockedSkills({ questStep: 3 }), unlockedSkills({ questStep: 4 })), ['magic']);
-  assert.deepEqual(newlyUnlocked(unlockedSkills({ questStep: 4 }), unlockedSkills({ questStep: 4 })), []);
+  assert.deepEqual(newlyUnlocked(unlockedSkills({}), unlockedSkills({ owned: ['magic'] })), ['magic']);
+  assert.deepEqual(newlyUnlocked(unlockedSkills({ owned: ['magic'] }), unlockedSkills({ owned: ['magic'] })), []);
 });
 
 test('bloqueio, recarga e mana têm motivos claros', () => {
-  const unlocked = unlockedSkills({ questStep: 6 });
+  const unlocked = unlockedSkills({ owned: ['magic', 'magic2'] });
   assert.equal(canCast('magic3', { unlocked, mana: 100 }).ok, false);
-  assert.match(canCast('magic3', { unlocked, mana: 100 }).reason, /Valério/);
+  assert.match(canCast('magic3', { unlocked, mana: 100 }).reason, /Loja Central/);
   assert.equal(canCast('magic', { unlocked, mana: 100, cooldownUntil: { magic: 1000 }, now: 0 }).ok, false);
   assert.equal(canCast('magic2', { unlocked, mana: 10 }).ok, false);
   assert.equal(canCast('magic2', { unlocked, mana: SKILLS.magic2.mana }).ok, true);
