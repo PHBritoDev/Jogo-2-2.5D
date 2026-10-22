@@ -62,7 +62,7 @@ function baseProgress() {
 
 const STAT_KEYS = ['kills', 'rescues', 'perfectBlocks', 'flawless', 'places', 'ruins', 'bishops'];
 const SKILL_IDS = ['magic', 'magic2', 'magic3', 'ultimate'];
-const ITEM_IDS = SKILL_IDS.concat(['aurora']);
+const ITEM_IDS = SKILL_IDS.concat(['aurora', 'vigilia']);
 /** Mod 188: XP, compras, espada equipada, estatísticas, conquistas e catálogo. */
 export function progressionFields(raw, questStep) {
   const r = raw && typeof raw === 'object' ? raw : {};
@@ -80,7 +80,7 @@ export function progressionFields(raw, questStep) {
   return {
     xp: Math.max(0, Math.floor(Number(r.xp) || 0)),
     owned: [...new Set(owned)],
-    sword: r.sword === 'aurora' && owned.includes('aurora') ? 'aurora' : 'prota',
+    sword: ['aurora', 'vigilia'].includes(r.sword) && owned.includes(r.sword) ? r.sword : 'prota',
     stats,
     achievementsClaimed: list(r.achievementsClaimed),
     bestiary: list(r.bestiary),
@@ -88,7 +88,11 @@ export function progressionFields(raw, questStep) {
     shopVisited: !!r.shopVisited,
     playSeconds: Math.max(0, Math.floor(Number(r.playSeconds) || 0)),
     ledgersFound: Array.isArray(r.ledgersFound) ? [...new Set(r.ledgersFound.filter(i => Number.isInteger(i) && i >= 0 && i < 3))] : [],
-    vorgazhekRewardClaimed: !!r.vorgazhekRewardClaimed
+    vorgazhekRewardClaimed: !!r.vorgazhekRewardClaimed,
+    lateFound: Array.isArray(r.lateFound) ? r.lateFound.filter(i => Number.isInteger(i) && i >= 0 && i < 8) : [],
+    lateFoundStep: Math.max(0, Math.floor(Number(r.lateFoundStep) || 0)),
+    lateFightIndex: Math.max(0, Math.min(5, Math.floor(Number(r.lateFightIndex) || 0))),
+    lateBossClaimed: r.lateBossClaimed && typeof r.lateBossClaimed === 'object' ? { zarkhael: !!r.lateBossClaimed.zarkhael, veraxion: !!r.lateBossClaimed.veraxion } : {}
   };
 }
 
@@ -110,7 +114,7 @@ export function migrateProgress(raw) {
     return {
       ...base,
       ...shared,
-      questStep: clampInt(raw.questStep, 0, 14, 0),
+      questStep: clampInt(raw.questStep, 0, 26, 0),
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: clampInt(raw.mountainIndex, 0, ACT1.mountainSentries, 0),
       wardenTaunted: !!raw.wardenTaunted,
@@ -119,7 +123,7 @@ export function migrateProgress(raw) {
       portalRewardClaimed: !!raw.portalRewardClaimed,
       bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
       valerioRewardClaimed: !!raw.valerioRewardClaimed,
-      ...progressionFields(raw, clampInt(raw.questStep, 0, 14, 0))
+      ...progressionFields(raw, clampInt(raw.questStep, 0, 26, 0))
     };
   }
   if (version === 5) {

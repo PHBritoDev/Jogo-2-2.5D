@@ -177,9 +177,9 @@ export function buildAxis(fineHalf, fineCell, outerSteps, growth) {
 }
 
 /** Gera posições, cores e índices do terreno. */
-export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, fineCell = 2, outerSteps = 40, growth = 1.075 } = {}) {
+export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, fineHalfZ = fineHalf, fineCell = 2, outerSteps = 40, growth = 1.075 } = {}) {
   const ax = buildAxis(fineHalf, fineCell, outerSteps, growth).map(v => v + cx);
-  const az = buildAxis(fineHalf, fineCell, outerSteps, growth).map(v => v + cz);
+  const az = buildAxis(fineHalfZ, fineCell, outerSteps, growth).map(v => v + cz);
   const nx = ax.length, nz = az.length;
   const positions = new Float32Array(nx * nz * 3);
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
@@ -213,7 +213,8 @@ export function colorTerrain(terrain, positions, normals) {
     // Regiões extras (Distrito da Ferrugem): lama, pedra gasta e ferrugem no lugar da grama.
     for (const e of terrain.extraAreas || []) {
       const qx = Math.abs(x - e.cx) - e.hx + 8, qz = Math.abs(z - e.cz) - e.hz + 8, inside = -Math.max(qx, qz);
-      if (inside > -10) c = mix(c, mix([.27, .22, .17], [.36, .3, .24], n2), smoothstep(-10, 6, inside) * .9);
+      const tA = e.tint ? e.tint[0] : [.27, .22, .17], tB = e.tint ? e.tint[1] : [.36, .3, .24];
+      if (inside > -10) c = mix(c, mix(tA, tB, n2), smoothstep(-10, 6, inside) * (e.tintStrength || .9));
     }
     const wet = terrain.waterDepth ? terrain.waterDepth(x, z) : -1;
     if (wet > -.5) c = mix(c, [.33, .3, .22], smoothstep(-.5, .05, wet));
