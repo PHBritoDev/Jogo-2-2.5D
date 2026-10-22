@@ -12,7 +12,7 @@
 </head>
 <body>
 <script>
-/* MOD 194 — o mundo 3D é a experiência principal. A campanha 2D só abre com ?mundo2d=1 (arquivo de
+/* MOD 201 — configurações de campanha e reinício de progresso. O mundo 3D é a experiência principal. A campanha 2D só abre com ?mundo2d=1 (arquivo de
    recuperação); ?valerioTest=1 abre direto a dimensão do Primeiro Bispo, que continua nesta página. */
 (function(){
   var params=new URLSearchParams(window.location.search);
@@ -37,7 +37,7 @@
   var frame=document.createElement('iframe');
   frame.id='primary-3d-frame';
   frame.title='Mundo 3D — A Batalha Contra os 7 Pecados Capitais';
-  frame.src='mundo-3d-prototype.html?refresh=199&build=199'+(params.has('debug3d')?'&debug3d=1':'');
+  frame.src='mundo-3d-prototype.html?refresh=201&build=201'+(params.has('debug3d')?'&debug3d=1':'');
   frame.allow='fullscreen';
   document.body.appendChild(frame);
 })();
