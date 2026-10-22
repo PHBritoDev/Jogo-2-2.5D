@@ -16,6 +16,19 @@
    recuperação); ?valerioTest=1 abre direto a dimensão do Primeiro Bispo, que continua nesta página. */
 (function(){
   var params=new URLSearchParams(window.location.search);
+  if(params.get('resetGalaxy1')==='1'){
+    try{
+      Object.keys(localStorage).forEach(function(key){
+        if(/^sevenSins3DCampaignV[1-6]$/.test(key) ||
+           (key.indexOf('seven-sins-')===0 && !/^seven-sins-3d-(daynight|fps|graphics)$/.test(key))){
+          localStorage.removeItem(key);
+        }
+      });
+    }catch(e){}
+    params.delete('resetGalaxy1');
+    var cleanUrl=window.location.pathname+(params.toString()?'?'+params.toString():'')+window.location.hash;
+    window.history.replaceState({},'',cleanUrl);
+  }
   if(params.get('mundo2d')==='1'||params.get('valerioTest')==='1')return;
   window.SEVEN_SINS_WORLD3D_HOST=true;
   var style=document.createElement('style');
