@@ -40,8 +40,8 @@ export const SHOP_ITEMS = [
     desc: 'Cinco espadas em leque. 32 de mana, recarga média.' },
   { id: 'magic3', sector: 'escrituras', kind: 'skill', name: 'Sol da Justiça', cost: 70, level: 4, step: 8,
     desc: 'Um sol pequeno e lento que queima o que toca. 45 de mana.' },
-  { id: 'ultimate', sector: 'escrituras', kind: 'skill', name: 'Julgamento Divino', cost: 160, level: 7, step: 99,
-    desc: 'A espada colossal. Disponível antes do Segundo Bispo (Ato II).', stepText: 'chegar ao Ato II — A Dívida dos Vivos' },
+  { id: 'ultimate', sector: 'escrituras', kind: 'skill', name: 'Julgamento Divino', cost: 160, level: 6, step: 11,
+    desc: 'A espada colossal. Recurso raro: 80 de mana e recarga longa.', stepText: 'ouvir a família Arruda no Ato II — A Dívida dos Vivos' },
   { id: 'aurora', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Aurora', cost: 30, level: 3, step: 4,
     desc: 'Lâmina clara e mais longa: +20% de dano e rastro dourado. Sem habilidade ativa.' }
 ];
@@ -94,7 +94,9 @@ export const BESTIARY = [
   { id: 'warden', act: 1, name: 'Guarda da Passagem', cls: 'Mini-chefe · Enemy1', img: 'Enemy1.png', discoveryReward: 6,
     lore: 'Mais pesado, golpe largo e mais resistente. Um selo de Valério arde em seu peito.' },
   { id: 'valerio', act: 1, name: 'Valério', cls: 'Primeiro Bispo', img: 'Bispo1.png', discoveryReward: 10,
-    lore: 'Guardava as moedas. Fez da floresta um livro-caixa de vidas.' }
+    lore: 'Guardava as moedas. Fez da floresta um livro-caixa de vidas.' },
+  { id: 'vorgazhek', act: 2, name: 'VORGAZHEK', cls: 'Segundo Bispo', img: 'Bispo2.png', discoveryReward: 14,
+    lore: 'O Arauto das Almas Endividadas. Escrevia o nome dos devedores em três livros e cobrava dos vivos o que os mortos não pagaram.' }
 ];
 
 export function bestiaryEntry(entry, defeated = new Set()) {

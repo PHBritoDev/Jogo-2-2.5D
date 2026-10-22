@@ -86,7 +86,9 @@ export function progressionFields(raw, questStep) {
     bestiary: list(r.bestiary),
     bestiaryRewarded: list(r.bestiaryRewarded),
     shopVisited: !!r.shopVisited,
-    playSeconds: Math.max(0, Math.floor(Number(r.playSeconds) || 0))
+    playSeconds: Math.max(0, Math.floor(Number(r.playSeconds) || 0)),
+    ledgersFound: Array.isArray(r.ledgersFound) ? [...new Set(r.ledgersFound.filter(i => Number.isInteger(i) && i >= 0 && i < 3))] : [],
+    vorgazhekRewardClaimed: !!r.vorgazhekRewardClaimed
   };
 }
 
@@ -108,7 +110,7 @@ export function migrateProgress(raw) {
     return {
       ...base,
       ...shared,
-      questStep: clampInt(raw.questStep, 0, 8, 0),
+      questStep: clampInt(raw.questStep, 0, 14, 0),
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: clampInt(raw.mountainIndex, 0, ACT1.mountainSentries, 0),
       wardenTaunted: !!raw.wardenTaunted,
@@ -117,7 +119,7 @@ export function migrateProgress(raw) {
       portalRewardClaimed: !!raw.portalRewardClaimed,
       bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
       valerioRewardClaimed: !!raw.valerioRewardClaimed,
-      ...progressionFields(raw, clampInt(raw.questStep, 0, 8, 0))
+      ...progressionFields(raw, clampInt(raw.questStep, 0, 14, 0))
     };
   }
   if (version === 5) {

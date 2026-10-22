@@ -3,8 +3,10 @@
  * O mapa só mostra o que o jogador já viu; abrigos precisam ser encontrados e registrados
  * explicitamente antes de aparecerem no menu de viagem.
  */
-export const MAP_BOUNDS = { x0: -105, z0: -169, size: 210 };
-export const FOG_CELLS = 48;
+export const MAP_BOUNDS = { x0: -205, z0: -179, size: 300 };
+/** Chave de armazenamento da névoa: muda quando os limites do mapa mudam (Mod 195). */
+export const MAP_STORE_KEY = 'seven-sins-3d-map-v2';
+export const FOG_CELLS = 64;
 export const REVEAL_RADIUS = 24;
 
 export const MAP_POIS = [
@@ -15,7 +17,11 @@ export const MAP_POIS = [
   { id: 'gaiolas', name: 'Gaiolas da Trilha', x: .1, z: -56.1, kind: 'danger' },
   { id: 'lago', name: 'Lago Escuro', x: -27, z: -88, kind: 'water' },
   { id: 'ruina', name: 'Ruína Esquecida', x: -18.5, z: -52, kind: 'secret', secret: true },
-  { id: 'portal', name: 'Portal de Valério', x: 44, z: -119, kind: 'portal', revealRadius: 34 }
+  { id: 'portal', name: 'Portal de Valério', x: 44, z: -119, kind: 'portal', revealRadius: 34 },
+  { id: 'garganta', name: 'Garganta da Dívida', x: -72, z: -60, kind: 'danger' },
+  { id: 'distrito', name: 'Distrito da Ferrugem', x: -150, z: -62, kind: 'village', revealRadius: 26 },
+  { id: 'mina', name: 'Mina Velha', x: -184, z: -38, kind: 'danger' },
+  { id: 'canal', name: 'Canal de Drenagem', x: -158, z: -86, kind: 'water' }
 ];
 
 export const WAYSTONES = [

@@ -51,6 +51,8 @@ export function createWorldAudio() {
     const hum = ctx.createGain(); hum.gain.value = 0; hum.connect(ambBus);
     for (const [fr, det] of [[55, 0], [82.4, 4], [110, -6]]) { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = fr; o.detune.value = det; const g = ctx.createGain(); g.gain.value = fr === 55 ? .55 : .22; o.connect(g); g.connect(hum); o.start(); }
     layers.portal = { g: hum };
+    layers.rain = loopNoise('highpass', 1800, .3, ambBus);
+    layers.rainLow = loopNoise('lowpass', 420, .5, ambBus);
     ready = true; applyVolumes();
     document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); });
   }
@@ -163,6 +165,9 @@ export function createWorldAudio() {
     block() { if (!ready) return; tone('triangle', 320, 180, .2, .16); burst('bandpass', 2400, 2, .14, .1); },
     parry() { if (!ready) return; [1318, 1760, 2637].forEach((f, i) => tone('sine', f, f * 1.02, .11, .5, sfxBus, i * .03)); burst('highpass', 5000, .7, .12, .25); },
     lockOn() { if (!ready) return; tone('sine', 880, 1320, .06, .12); },
+    /** Chuva do Ato II (0..1): chiado agudo + rumor grave. */
+    setRain(level) { if (!ready) return; const t = ctx.currentTime; layers.rain.g.gain.setTargetAtTime(.2 * level, t, .8); layers.rainLow.g.gain.setTargetAtTime(.14 * level, t, .8); },
+    thunder() { if (!ready) return; const t = ctx.currentTime + .4 + Math.random() * 1.2; const src = ctx.createBufferSource(); src.buffer = noiseBuf; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(380, t); f.frequency.exponentialRampToValueAtTime(70, t + 2.6); const g = ctx.createGain(); src.connect(f); f.connect(g); g.connect(ambBus); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.55, t + .08); g.gain.exponentialRampToValueAtTime(0.0001, t + 3); src.start(t); src.stop(t + 3.1); },
     reveal() { if (!ready) return; [784, 988, 1175, 1568].forEach((f, i) => tone('sine', f, 0, .06, .5, sfxBus, i * .09)); }
   };
 }

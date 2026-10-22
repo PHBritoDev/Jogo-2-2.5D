@@ -15,7 +15,7 @@ export const SKILLS = {
   magic3: { id: 'magic3', name: 'Sol da Justiça', key: '3', mana: 45, cooldown: 6200, unlockBishops: 1,
     lockReason: 'Compre na Loja Central depois de purificar Valério.' },
   ultimate: { id: 'ultimate', name: 'Julgamento Divino', key: '4', mana: 80, cooldown: 14000, unlockBishops: 2,
-    lockReason: 'Disponível no Ato II, antes do Segundo Bispo.' }
+    lockReason: 'Compre na Loja Central durante o Ato II, antes do Segundo Bispo.' }
 };
 export const SKILL_ORDER = ['magic', 'magic2', 'magic3', 'ultimate'];
 
