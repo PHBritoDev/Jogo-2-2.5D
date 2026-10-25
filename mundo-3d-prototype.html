@@ -150,7 +150,8 @@ button:active{transform:scale(.96);background:#31583d}
 #crosshair::after{content:'';position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#ffe7a0;box-shadow:0 0 6px #ffcf5a}
 #crosshair[hidden]{display:none}
 </style>
-<link rel="stylesheet" href="./hud3d.css?v=mod202-dimensoes">
+<link rel="stylesheet" href="./hud3d.css?v=mod203-prologo">
+<link rel="stylesheet" href="./cine3d.css?v=mod203-prologo">
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -159,7 +160,7 @@ button:active{transform:scale(.96);background:#31583d}
 <div id="top-right"><button id="map-toggle-3d" type="button" aria-label="Abrir mapa (M)" title="Mapa (M)">MAPA</button><button id="camera-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre primeira e terceira pessoa" title="Câmera 1ª / 3ª pessoa">1ª PESSOA</button><button id="fullscreen" type="button" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button><button id="pause-button" type="button" aria-label="Pausar (Esc)" title="Pausar">❚❚</button></div>
 <section id="pause-panel" hidden aria-label="Jogo pausado"><div id="pause-sheet"><h2>PAUSA</h2><button id="pause-resume" class="primary" type="button">CONTINUAR</button><button id="pause-map" type="button">MAPA</button><button id="pause-galaxies" type="button">SETE GALÁXIAS</button><button id="graphics-toggle-3d" type="button" aria-expanded="false" aria-controls="graphics-panel-3d">⚙ AJUSTES</button><button id="daynight-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre dia e noite">DIA</button></div></section>
 <section id="graphics-panel-3d" hidden aria-label="Configurações gráficas do mundo 3D"><h2>Qualidade gráfica</h2><label for="graphics-profile-3d">Perfil de desempenho</label><select id="graphics-profile-3d"><option value="auto">Automático (recomendado)</option><option value="low">Baixo — celular fraco</option><option value="high">Alto — mais detalhes</option><option value="max">Máximo — aparelhos fortes</option></select><p id="graphics-status-3d" aria-live="polite">Ajustando o mundo para seu aparelho…</p></section>
-<div id="marker" aria-label="Modificação 202">202</div>
+<div id="marker" aria-label="Modificação 203">203</div>
 <div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
 <div id="hud-hero"><div id="hero-portrait"><img id="hero-portrait-img" alt=""><span class="monogram">✦</span><span id="level-badge">NV 1</span></div><span id="fps-badge">-- FPS</span>
 <div id="player-hud" hidden aria-label="Vida do protagonista"><div id="player-name"><span>PROTAGONISTA</span></div><div id="player-hp-track"><div id="player-hp-fill"></div><span id="player-hp-text">100 / 100</span></div><div id="player-mana-track" aria-label="Mana"><div id="player-mana-fill"></div></div><div id="xp-track" aria-label="Experiência"><div id="xp-fill"></div></div></div>
@@ -194,6 +195,13 @@ button:active{transform:scale(.96);background:#31583d}
 <div id="objective-arrow" hidden aria-hidden="true"><i></i><span></span></div>
 <div id="cine-bars" aria-hidden="true"></div>
 <div id="prologue-text" aria-live="polite"></div>
+<div id="cine-lids" aria-hidden="true"></div>
+<div id="cine-title" aria-live="polite"><span></span><strong></strong></div>
+<div id="cine-say" hidden aria-live="polite"><b id="cine-who"></b><p id="cine-text"></p><small>TOQUE PARA CONTINUAR</small></div>
+<div id="mission-card" hidden role="dialog" aria-modal="true" aria-label="Missão principal"><div class="mc-sheet"><p class="mc-kicker" id="mission-kicker">MISSÃO PRINCIPAL</p><h2 id="mission-title"></h2><p class="mc-obj" id="mission-objective"></p><button id="mission-accept" type="button">ACEITAR MISSÃO</button></div></div>
+<div id="cine-fade" aria-hidden="true"></div>
+<button id="cine-skip" hidden type="button">PULAR</button>
+<div id="start-gate" hidden><div><p class="sg-kicker">A BATALHA CONTRA OS 7 PECADOS CAPITAIS</p><h1>Galáxia 1</h1><button id="start-gate-go" type="button" disabled>CARREGANDO…</button></div></div>
 <section id="profile-panel" hidden aria-label="Perfil"><div id="profile-sheet"><div id="profile-portrait"></div><h2>PERFIL</h2><label for="profile-name">Nome</label><div class="profile-row"><input id="profile-name" maxlength="16" autocomplete="off" enterkeyhint="done"><button id="profile-save" type="button">GUARDAR</button></div><p id="profile-error" aria-live="polite"></p><div id="profile-stats"></div><p class="profile-note">Progresso salvo neste aparelho. Conta e nuvem chegarão em uma atualização futura.</p><button id="profile-close" type="button">FECHAR</button></div></section>
 <section id="shop-panel" hidden aria-label="Loja Central"><div id="shop-sheet"><div id="shop-head"><div class="shop-brand"><span class="shop-sigil" aria-hidden="true"></span><div><h2>LOJA</h2><span class="shop-kicker">FORTALEÇA SUA JORNADA</span></div></div><div class="shop-wallet"><span id="shop-level">NÍVEL 1</span><span class="coin-ic"></span><strong id="shop-coins">0</strong></div><button id="shop-close" type="button" aria-label="Fechar loja">✕</button></div><div id="shop-main"><nav id="shop-tabs"></nav><div id="shop-body"></div></div><div id="shop-foot-note"><span>Os itens são adquiridos com ouro e recompensas do jogo.</span><span class="shop-gx">GALÁXIA 1</span></div></div></section>
 <div id="quest-toast" class="hidden">MISSÃO CONCLUÍDA</div>
@@ -210,7 +218,7 @@ button:active{transform:scale(.96);background:#31583d}
 </div>
 <div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 199: câmera, combate, primeira pessoa e poderes dos Bispos.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mod181-loader.js?v=mod202-dimensoes"></script>
+<script type="module" src="./mod181-loader.js?v=mod203-prologo"></script>
 <script>
 (function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
 </script>

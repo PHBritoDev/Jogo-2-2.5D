@@ -263,6 +263,58 @@ const THEMES = {
     glow.position.set(0, 14, mawZ - 6); g.add(glow);
     ctx.tick.push((t) => { rim.material.color.setHSL(0, .75, .38 + .1 * Math.sin(t * 3)); glow.material.opacity = .42 + Math.sin(t * 1.5) * .12; maw.scale.setScalar(1 + Math.sin(t * .8) * .015); });
     return { bg: 0x030304, fog: 0x070708, fogNear: 22, fogFar: 160, hemi: [0xc0c0d0, 0x1a0a0a, .9], sun: [0xffd8d0, .55], light: [0xff6a5a, 3.2, 95, [0, 14, 0]], exposure: 1.2 };
+  },
+  // MOD 203 — Reino Celestial (prólogo): mar de nuvens, caminho de luz entre colunas, feixes do alto e poeira dourada.
+  // O trono, a figura de luz e os anjos (GLB) são acrescentados pelo mundo depois de carregados.
+  heaven(THREE, g, spec, ctx) {
+    const r = rng(909);
+    const cloudTex = canvasTex(THREE, 512, 512, (c, w, h) => {
+      c.fillStyle = '#efe2c4'; c.fillRect(0, 0, w, h); const rr = rng(4);
+      for (let i = 0; i < 900; i++) { const x = rr() * w, y = rr() * h, rad = 10 + rr() * 60; const gr = c.createRadialGradient(x, y, 0, x, y, rad); const a = .05 + rr() * .12; gr.addColorStop(0, 'rgba(255,255,255,' + a + ')'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
+      for (let i = 0; i < 160; i++) { const x = rr() * w, y = rr() * h, rad = 20 + rr() * 50; const gr = c.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, 'rgba(214,180,120,.10)'); gr.addColorStop(1, 'rgba(214,180,120,0)'); c.fillStyle = gr; c.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
+    }, { repeat: 6 });
+    // Céu em degradê: azul suave no alto, dourado no horizonte (dá profundidade e contraste ao branco do mármore).
+    const sky = new THREE.Mesh(new THREE.SphereGeometry(210, 32, 16), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false,
+      uniforms: { uTop: { value: new THREE.Color(0x6f98cf) }, uMid: { value: new THREE.Color(0xc9d6e6) }, uLow: { value: new THREE.Color(0xf3d9a2) } },
+      vertexShader: 'varying float vY;void main(){vY=normalize(position).y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader: 'uniform vec3 uTop;uniform vec3 uMid;uniform vec3 uLow;varying float vY;void main(){vec3 c=mix(uLow,uMid,smoothstep(.02,.28,vY));c=mix(c,uTop,smoothstep(.28,.85,vY));gl_FragColor=vec4(c,1.);}' }));
+    sky.renderOrder = -1; g.add(sky);
+    const sea = new THREE.Mesh(new THREE.CircleGeometry(220, 48), new THREE.MeshBasicMaterial({ map: cloudTex, fog: true }));
+    sea.rotation.x = -Math.PI / 2; sea.position.y = -1.2; g.add(sea);
+    // Caminho de luz até o trono.
+    const pathTex = canvasTex(THREE, 256, 1024, (c, w, h) => {
+      const gr = c.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#d9b45e'); gr.addColorStop(.08, '#fbf3e0'); gr.addColorStop(.92, '#fbf3e0'); gr.addColorStop(1, '#d9b45e');
+      c.fillStyle = gr; c.fillRect(0, 0, w, h); c.strokeStyle = 'rgba(200,150,60,.55)'; c.lineWidth = 3;
+      for (let y = 0; y < h; y += 64) { c.beginPath(); c.moveTo(20, y); c.lineTo(w - 20, y); c.stroke(); c.beginPath(); c.arc(w / 2, y + 32, 14, 0, 6.3); c.stroke(); }
+    });
+    pathTex.wrapT = THREE.RepeatWrapping; pathTex.repeat.set(1, 6);
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(7, 90), new THREE.MeshStandardMaterial({ map: pathTex, emissiveMap: pathTex, emissive: 0xffe9b0, emissiveIntensity: .35, roughness: .35, metalness: .15 }));
+    path.rotation.x = -Math.PI / 2; path.position.set(0, 0, -10); path.receiveShadow = true; g.add(path);
+    // Colunas de mármore com capitéis dourados, perdendo-se na luz.
+    const cols = [], caps = [], bases = [];
+    for (let k = 0; k < 9; k++) for (const sx of [-1, 1]) { const z = 28 - k * 8.5, x = sx * 9.5; cols.push({ x, y: 13, z, sx: 1, sy: 1, sz: 1 }); caps.push({ x, y: 25.3, z, s: 1 }); bases.push({ x, y: .6, z, s: 1 }); }
+    const marble = new THREE.MeshStandardMaterial({ color: 0xf2ebdc, roughness: .45, emissive: 0xfff3dc, emissiveIntensity: .1 });
+    const goldM = new THREE.MeshStandardMaterial({ color: 0xe0b45a, metalness: .85, roughness: .3, emissive: 0x6a4a10, emissiveIntensity: .6 });
+    g.add(instanced(THREE, new THREE.CylinderGeometry(.9, 1.05, 26, 16), marble, cols));
+    g.add(instanced(THREE, new THREE.CylinderGeometry(1.7, 1.3, 1.4, 16), goldM, caps));
+    g.add(instanced(THREE, new THREE.CylinderGeometry(1.5, 1.6, 1.2, 16), goldM, bases));
+    // Feixes de luz do alto.
+    const beamMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8, transparent: true, opacity: .12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false });
+    const beams = [];
+    for (let k = 0; k < 7; k++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(2 + r() * 2, 6 + r() * 4, 90, 18, 1, true), beamMat); b.position.set((r() - .5) * 40, 40, 20 - k * 12 - r() * 6); b.rotation.z = (r() - .5) * .3; g.add(b); beams.push(b); }
+    const throneBeam = new THREE.Mesh(new THREE.CylinderGeometry(6, 16, 120, 24, 1, true), beamMat.clone()); throneBeam.material.opacity = .2; throneBeam.position.set(0, 55, -50); g.add(throneBeam);
+    // Nuvens soltas e poeira dourada (pontos com textura suave: 1 chamada de desenho cada).
+    const soft = canvasTex(THREE, 128, 128, (c, w, h) => { const gr = c.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.45, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+    const puffs = eyeField(THREE, { count: 260, seed: 3, tex: soft, tint: [1, .97, .9], place: (i, rr) => { const a = rr() * 6.28, d = 14 + rr() * 120; return { x: Math.cos(a) * d, y: -3 + rr() * 9, z: Math.sin(a) * d - 10, size: 18 + rr() * 34 }; } });
+    // Nuvens brancas que variam na transparência (o brilho variável dos olhos as deixava cinzentas sobre o céu claro).
+    puffs.material.fragmentShader = puffs.material.fragmentShader.replace('vec2 uv=vec2(gl_PointCoord.x,(gl_PointCoord.y-.5)/vBlink+.5);', 'vec2 uv=gl_PointCoord;').replace('gl_FragColor=vec4(t.rgb*uTint*vA,t.a);', 'gl_FragColor=vec4(t.rgb*uTint,t.a*(.45+.4*vA));');
+    g.add(puffs); ctx.eyes.push(puffs);
+    const dust = eyeField(THREE, { count: 420, seed: 5, tex: soft, tint: [1.4, 1.15, .7], place: (i, rr) => ({ x: (rr() - .5) * 60, y: rr() * 30, z: 30 - rr() * 90, size: .25 + rr() * .5 }) });
+    dust.material.blending = THREE.AdditiveBlending;
+    dust.material.fragmentShader = EYE_FRAG.replace('vec2 uv=vec2(gl_PointCoord.x,(gl_PointCoord.y-.5)/vBlink+.5);', 'vec2 uv=gl_PointCoord;');
+    g.add(dust); ctx.eyes.push(dust);
+    ctx.tick.push((t) => { dust.position.y = (t * .6) % 6; for (const b of beams) b.material.opacity = .1 + Math.sin(t * .7 + b.position.z) * .03; throneBeam.material.opacity = .18 + Math.sin(t * .9) * .04; });
+    return { bg: 0xf3d9a2, fog: 0xf0dcae, fogNear: 40, fogFar: 260, hemi: [0xfff6e6, 0xc9a86a, 1.2], sun: [0xffe8c0, 1.5], light: [0xffe2a0, 2.6, 140, [0, 22, -46]], exposure: .9 };
   }
 };
 

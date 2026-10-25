@@ -108,6 +108,14 @@ export function createWorldAudio() {
     if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
     const g = ctx.createGain(); o.connect(g); g.connect(bus); env(g, t, .008, peak, dur); o.start(t); o.stop(t + dur + .05);
   }
+  /** Nota longa com ataque lento (coro/pad), para cenas. */
+  function pad(f, peak, attack, hold, rel, delay = 0, type = 'sine', detune = 0) {
+    const t = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t); o.detune.value = detune; o.connect(g); g.connect(sfxBus);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.setValueAtTime(peak, t + attack + hold); g.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + rel);
+    o.start(t); o.stop(t + attack + hold + rel + .05);
+  }
   function cricket(level) {
     const base = 4300 + Math.random() * 700, n = 2 + (Math.random() * 3 | 0);
     for (let i = 0; i < n; i++) tone('triangle', base, 0, .03 * level, .028, ambBus, i * .055);
@@ -168,6 +176,12 @@ export function createWorldAudio() {
     /** Chuva do Ato II (0..1): chiado agudo + rumor grave. */
     setRain(level) { if (!ready) return; const t = ctx.currentTime; layers.rain.g.gain.setTargetAtTime(.2 * level, t, .8); layers.rainLow.g.gain.setTargetAtTime(.14 * level, t, .8); },
     thunder() { if (!ready) return; const t = ctx.currentTime + .4 + Math.random() * 1.2; const src = ctx.createBufferSource(); src.buffer = noiseBuf; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(380, t); f.frequency.exponentialRampToValueAtTime(70, t + 2.6); const g = ctx.createGain(); src.connect(f); f.connect(g); g.connect(ambBus); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.55, t + .08); g.gain.exponentialRampToValueAtTime(0.0001, t + 3); src.start(t); src.stop(t + 3.1); },
+    /** MOD 203 — coro celeste (acorde maior com leve desafinação) para o prólogo no céu. */
+    celestial() { if (!ready) return; [[261.6, 0], [329.6, .4], [392, .8], [523.3, 1.4], [659.3, 2.2]].forEach(([f, d]) => { pad(f, .045, 1.6, 4.5, 3, d); pad(f * 1.003, .03, 1.8, 4.5, 3, d + .05, 'triangle', 6); }); },
+    /** Asas que se desfazem: brilho descendente. */
+    dissolve() { if (!ready) return; for (let i = 0; i < 9; i++) tone('sine', 2093 - i * 140, 1046 - i * 60, .035, .9, sfxBus, i * .12); burst('highpass', 6000, .5, .05, 2.2); },
+    /** Novo capítulo ("Ato 1"): tambor grave, acorde que cresce e um brilho no fim. */
+    chapter() { if (!ready) return; tone('sine', 110, 42, .5, 1.6); burst('lowpass', 180, .8, .35, 1.4); [146.8, 220, 293.7, 440].forEach((f, i) => pad(f, .06, 1.1, 1.2, 1.6, .15 + i * .05, i % 2 ? 'triangle' : 'sine')); [1174.7, 1568, 2349].forEach((f, i) => tone('sine', f, 0, .04, 1.2, sfxBus, 1.3 + i * .08)); },
     reveal() { if (!ready) return; [784, 988, 1175, 1568].forEach((f, i) => tone('sine', f, 0, .06, .5, sfxBus, i * .09)); }
   };
 }
