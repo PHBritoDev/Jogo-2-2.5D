@@ -25,7 +25,7 @@ O texto original continua sendo a referência; as transcrições abaixo são res
 - **Lutas em grupo:** como nos atos anteriores, todos aparecem e lutam um por vez. O "4 ao mesmo tempo" do último round é encenado assim, com as quatro Elites visíveis e com aura.
 - **Ataques da aliada:** o roteiro diz que serão definidos depois; ficaram golpes com ilusões, que trocamos quando você definir.
 - **Inventário:** reúne o que já existia (espadas, casaco, pergaminho, poderes comprados). "Equipar melhor" usa o maior dano. A loja continua igual.
-- **Depois do Ato V:** o jogo segue para o **arco final antigo** (passo 27: os guardiões e a Ganância) até o Marco 7 trocar esse trecho pelo Ato VI (deserto, estátua, revanche dos Bispos, Ganância em três fases e a Inveja).
+- **Depois do Ato V:** segue o Ato VI (Marco 7, `docs/roteiro/M7-ATO6.md`): deserto, estátua, revanche dos Bispos, Ganância em três fases e a Inveja.
 - **Continuar um jogo salvo:** ao reabrir no meio do torneio, o herói volta à arena e o round atual recomeça.
 - **Evidência:**
   - **CONFIRMADO POR CÓDIGO:** `node --test`, 87 testes, entre eles os 4 de `act5-flow.test.mjs`.

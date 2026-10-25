@@ -67,6 +67,14 @@ longa). Coliseu, plateia instanciada, estandartes e braseiros: `Coliseu.glb` (`t
 Auras dos evoluídos: `makeAura()`. Aliada no último round: `updateAlly()`. Torcida: `worldAudio.setCrowd/roar`.
 Inventário: painel `#inv-panel` (tecla I) com "Equipar melhor" (`bestSword`). Espada Celestial em `progression3d.js`.
 
+## Ato VI (Mod 209)
+
+Roteiro do autor em `docs/roteiro/M7-ATO6.md`. Cenas em `act6-flow.js` (etapas 27–29; 30 = galáxia libertada); lugar,
+colisão e contagem de fragmentos em `desert3d.js` (deserto entre o coliseu e a neve). Revanche: painel `#rematch-panel`
+(X em quem caiu) e as dimensões antigas dos Bispos. Ganância em três formas (`act6GreedDefeat` encadeia as fases);
+aliados em `startAllies6`. O arco final antigo (`finale-flow.js`) fica desligado de 25 a 29. Modelos: `DesertoKit.glb`
+(estátua, portais, rochas) e `Sandra-rig.glb` (scripts `tools/blender/m7_*.py`).
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a
