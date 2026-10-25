@@ -1,0 +1,37 @@
+/* MOD 203 — Marco 1: portão inicial, falas de cinema, pálpebras do despertar, cartão de missão. */
+#start-gate{position:fixed;inset:0;z-index:46;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 38%,#3a2f17 0%,#120d06 58%,#050403 100%);color:#f6e7c4;text-align:center;padding:24px}
+#start-gate[hidden]{display:none}
+#start-gate .sg-kicker{font:600 11px/1.4 system-ui,sans-serif;letter-spacing:.32em;color:#d8b46a;margin:0 0 14px}
+#start-gate h1{font:500 clamp(30px,8vw,54px)/1.08 Georgia,"Times New Roman",serif;margin:0 0 30px;text-shadow:0 0 28px #f3c25a66}
+#start-gate-go{min-width:220px;height:50px;border-radius:999px;border:1px solid #f3c25a;background:#f3c25a1f;color:#fff3d6;font:700 14px system-ui,sans-serif;letter-spacing:.2em;cursor:pointer}
+#start-gate-go:disabled{opacity:.55;border-color:#8a7347;cursor:default}
+#cine-title{position:fixed;left:0;right:0;top:28vh;z-index:9;padding:16px 0;text-align:center;opacity:0;transition:opacity 1.2s ease;pointer-events:none;color:#fff6e0;text-shadow:0 1px 3px #0009,0 2px 22px #000c;background:linear-gradient(90deg,transparent,#140c0270 25%,#140c0270 75%,transparent)}
+#cine-title.show{opacity:1}
+#cine-title span{display:block;font:600 12px system-ui,sans-serif;letter-spacing:.42em;color:#f3d48a;margin-bottom:10px}
+#cine-title strong{display:block;font:500 clamp(28px,7vw,50px)/1.1 Georgia,"Times New Roman",serif}
+#cine-say{position:fixed;left:50%;bottom:calc(11vh + 14px);transform:translateX(-50%);z-index:10;width:min(720px,92vw);padding:14px 18px 10px;border-radius:14px;background:#0a0805d9;border:1px solid #f3c25a55;color:#f7ecd2;box-shadow:0 10px 40px #0008}
+#cine-say[hidden]{display:none}
+#cine-say b{display:block;font:700 12px system-ui,sans-serif;letter-spacing:.24em;color:#f3c25a;text-transform:uppercase;margin-bottom:6px}
+#cine-say p{margin:0;font:500 clamp(15px,3.8vw,19px)/1.45 Georgia,"Times New Roman",serif}
+#cine-say small{display:block;text-align:right;margin-top:6px;font:600 10px system-ui,sans-serif;letter-spacing:.2em;color:#cdb98d;opacity:.75}
+#cine-lids{position:fixed;inset:0;z-index:7;pointer-events:none;display:none}
+#cine-lids::before,#cine-lids::after{content:"";position:absolute;left:-10%;right:-10%;height:52%;background:#050302}
+#cine-lids::before{top:0;border-radius:0 0 50% 50%/0 0 30% 30%}
+#cine-lids::after{bottom:0;border-radius:50% 50% 0 0/30% 30% 0 0}
+#cine-lids.on{display:block}
+#cine-lids.open::before{animation:lidTop 3.1s ease-in-out forwards}
+#cine-lids.open::after{animation:lidBottom 3.1s ease-in-out forwards}
+@keyframes lidTop{0%{transform:translateY(0)}22%{transform:translateY(-38%)}34%{transform:translateY(0)}58%{transform:translateY(-62%)}68%{transform:translateY(-30%)}100%{transform:translateY(-104%)}}
+@keyframes lidBottom{0%{transform:translateY(0)}22%{transform:translateY(38%)}34%{transform:translateY(0)}58%{transform:translateY(62%)}68%{transform:translateY(30%)}100%{transform:translateY(104%)}}
+#cine-fade{position:fixed;inset:0;z-index:45;pointer-events:none;opacity:0;background:#000}
+#cine-fade.white{background:#fff8ea}
+#cine-skip{position:fixed;top:calc(11vh + 10px);right:16px;z-index:47;height:34px;padding:0 14px;border-radius:999px;border:1px solid #ffffff44;background:#000000a6;color:#f2e6cc;font:700 11px system-ui,sans-serif;letter-spacing:.16em}
+#cine-skip[hidden]{display:none}
+#mission-card{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:18px;background:#05040399}
+#mission-card[hidden]{display:none}
+#mission-card .mc-sheet{width:min(440px,92vw);padding:22px 22px 18px;border-radius:16px;background:linear-gradient(#1a140b,#0d0a06);border:1px solid #f3c25a88;color:#f7ecd2;text-align:center;box-shadow:0 0 60px #f3c25a33}
+#mission-card .mc-kicker{margin:0 0 8px;font:700 11px system-ui,sans-serif;letter-spacing:.32em;color:#f3c25a}
+#mission-card h2{margin:0 0 12px;font:500 26px/1.2 Georgia,"Times New Roman",serif}
+#mission-card .mc-obj{margin:0 0 18px;font:500 15px/1.5 system-ui,sans-serif;color:#e4d6b6}
+body.cinematic #hint,body.cinematic #objective-arrow,body.cinematic #enemy-hud,body.cinematic #dialog-panel{opacity:0!important;pointer-events:none!important}
+#mission-accept{width:100%;height:48px;border-radius:999px;border:1px solid #f3c25a;background:#f3c25a;color:#1a1206;font:800 14px system-ui,sans-serif;letter-spacing:.18em}

@@ -7,6 +7,7 @@ import { showGalaxyScreen } from './galaxies3d.js';
 import { iconSvg } from './shop-icons3d.js';
 import { DIMENSIONS, dimensionForProfile, arenaSpec, vsCard, arenaSpots } from './dimensions3d.js';
 import { buildDimensionArena, buildDimensionPortal } from './dimension-arenas3d.js';
+import { createDirector, heavenScene, awakeningScene, personalize, MISSION_ACT1 } from './prologue-flow.js';
 import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
@@ -679,7 +680,7 @@ function updateEnemyHud(){
  if(fill)fill.style.width=enemyHpPercent()+'%';
 }
 function tryPlayerAttack(){
- const now=performance.now();if(now<attackCooldown||dialogueOpen||namePromptOpen||awakeningActive||portalPull)return;
+ const now=performance.now();if(now<attackCooldown||dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive)return;
  // MOD 187 — o golpe sai sempre (treino, exploração); o dano só é resolvido quando há um inimigo ativo.
  if(defending)setDefending(false);
  const engaged=combatStepNow()&&enemy.visible&&enemyAlive;if(engaged)assistAimAtEnemy();else if(cameraDistance<1.05){playerYaw=cameraYaw+Math.PI;player.rotation.y=playerYaw;}
@@ -1086,7 +1087,7 @@ function startPortalPull(){if(!portalPull)portalPull={t:0};}
 function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;player.position.x+=(PORTAL.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=((PORTAL.z+2.4)-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(PORTAL.x-player.position.x,PORTAL.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestValerioHandoff();}
 function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de Valério foi quebrado.';return;}updateHeartsHud(true);if(!canChallengeBishop(heartState)){status.textContent='Sem corações. O próximo volta em '+formatTimer(msToNextHeart(heartState))+'.';showDialogue([{who:'Anjo-Guia',text:'Não atravesse de peito vazio. Espere um coração voltar — a mata ainda pode te ensinar enquanto isso.'}]);return;}if(questStep===7||portalOpened){startPortalPull();return;}if(questStep!==6)return;showDialogue(portalLines(playerName),()=>{if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();status.textContent='O portal reconhece o seu nome e começa a puxar.';const toast=document.getElementById('quest-toast');if(toast){toast.textContent='A DIMENSÃO DE VALÉRIO SE ABRE';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}startPortalPull();});}
 function warnPortalBlocked(){if(dialogueOpen||namePromptOpen)return;showDialogue(portalBlockedLines());}
-function tryInteract(){if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen){advanceDialogue();return;}if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);const teo=villageVendors[2];const teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z);const cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(questStep===1&&teoDistance<=2.9){talkToInformant();return;}if(questStep===3&&!childrenFreed&&cageDistance<=4.2){freeChildren();return;}const fighting=enemy.visible&&enemyAlive;if((questStep===4||questStep===5)&&portalDistance<=3.8&&!fighting){warnPortalBlocked();return;}if((questStep===6||questStep===7)&&portalDistance<=3.8&&!fighting){openValerioPortal();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
+function tryInteract(){if(cineActive){if(!namePromptOpen)cineDirector.tap();return;}if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen){advanceDialogue();return;}if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);const teo=villageVendors[2];const teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z);const cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(questStep===1&&teoDistance<=2.9){talkToInformant();return;}if(questStep===3&&!childrenFreed&&cageDistance<=4.2){freeChildren();return;}const fighting=enemy.visible&&enemyAlive;if((questStep===4||questStep===5)&&portalDistance<=3.8&&!fighting){warnPortalBlocked();return;}if((questStep===6||questStep===7)&&portalDistance<=3.8&&!fighting){openValerioPortal();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
 bindInstantTap(document.getElementById('talk-button'),tryInteract);
 const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');bindInstantTap(skipAwakening,()=>skipIntroScene());}
 
@@ -1208,7 +1209,7 @@ function updateHolyProjectiles(dt){
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
  }
 }
-function action(kind){if(playerHP<=0)return;const now=performance.now();if(kind==='dash'){if(now<dashCooldownUntil)return;dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){castHolyMagic(kind);return;}}
+function action(kind){if(playerHP<=0||cineActive)return;const now=performance.now();if(kind==='dash'){if(now<dashCooldownUntil)return;dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){castHolyMagic(kind);return;}}
 // MOD 187 — o celular não gera 'click' para um segundo dedo enquanto o primeiro segura o joystick; pointerdown responde sempre.
 function bindInstantTap(button,fn){if(!button)return;let lastTap=0;button.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();lastTap=performance.now();fn();});button.addEventListener('click',e=>{if(performance.now()-lastTap>500)fn();});}
 function bindInstantAction(id,kind){bindInstantTap(document.getElementById(id),()=>action(kind));}
@@ -1358,7 +1359,7 @@ function animate(){requestAnimationFrame(animate);if(vsOpen||gamePaused||menuGat
  const teo=villageVendors[2],teoDistance=Math.hypot(teo.x-player.position.x,teo.z-player.position.z),cageDistance=Math.hypot(CAGE_CENTER.x-player.position.x,CAGE_CENTER.z-player.position.z);
  const fightingNow=enemy.visible&&enemyAlive;const portalReady=(questStep===6||questStep===7)&&portalDistance<=3.8&&!fightingNow,portalSoon=(questStep===4||questStep===5)&&portalDistance<=3.8&&!fightingNow;const nearStone=nearestWaystone(),atShop=nearShopDoor(),act2Label=act2TalkLabel()||(finaleReady?finaleTalkLabel():'')||(lateSystemsReady?lateTalkLabel():'');const canTalk=!!act2Label||atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||(questStep===1&&teoDistance<=2.9)||(questStep===3&&!childrenFreed&&cageDistance<=4.2)||portalReady||portalSoon||!!nearbyVendor;
  if(talkButton){const label=questStep===1&&teoDistance<=2.9?(coins>=ACT1.bribe?'OFERECER 5':'FALAR · TÉO'):questStep===3&&!childrenFreed&&cageDistance<=4.2?'ABRIR GAIOLAS':portalReady?'ATRAVESSAR':portalSoon?'PORTAL FECHADO':act2Label?act2Label:atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · MAPA':'REGISTRAR ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull);}
- questMarker.visible=(questStep<7||(questStep>=8&&questStep<13))&&!portalPull&&!voidMode;
+ questMarker.visible=(questStep<7||(questStep>=8&&questStep<13))&&!portalPull&&!voidMode&&!cineActive;
  if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
  if(questStep===1)questMarker.position.set(teo.x,terrainHeightAt(teo.x,teo.z)+.06,teo.z);
  if(questStep===2){const target=JOURNEY_ENEMIES[journeyEnemyIndex];if(target){questMarker.position.set(target.x,terrainHeightAt(target.x,target.z)+.06,target.z);const near=Math.hypot(target.x-player.position.x,target.z-player.position.z)<10;if(journeyEnemyIndex===0&&!captorsTaunted){if(near)beginCaptorTaunt();}else if(near){revealEncounter('captor',target,100,'Cuidado! Um captor bloqueia a trilha.');}}}
@@ -1370,7 +1371,7 @@ function animate(){requestAnimationFrame(animate);if(vsOpen||gamePaused||menuGat
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
-if(dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull){axisX=0;axisZ=0;}
+if(dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineActive){axisX=0;axisZ=0;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
 // Mesmo princípio da dimensão do Valério: o joystick é relativo à orientação da câmera,
 // com zona morta analógica e aceleração/desaceleração suaves, em vez de deslocar o modelo instantaneamente.
@@ -1444,7 +1445,7 @@ if(firstPerson){
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateChildren(dt);updateCages();if(questStep===3&&childrenFreed&&!reunionStarted&&!dialogueOpen&&Math.hypot(VILLAGE_CENTER.x-player.position.x,VILLAGE_CENTER.z-player.position.z)<8)reunionDialogue();
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossPowers(dt);updateFoeWeaponSkills(dt);updateAct2(dt,now);if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossPowers(dt);updateFoeWeaponSkills(dt);updateAct2(dt,now);if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -2084,9 +2085,230 @@ const GALAXY_STORE='seven-sins-galaxies';
 function openGalaxyScreen(){
  let save={};try{save=JSON.parse(localStorage.getItem(GALAXY_STORE)||'{}');}catch(_){}
  menuGate=true;closeWorldMap();closeShop();setPaused(false);
- showGalaxyScreen({progress:{questStep,bishopsDefeated},save,coins,onSettings:()=>{const gb=document.getElementById('graphics-toggle-3d');if(gb)gb.click();},onCelebrated:()=>{try{delete save.celebrate;localStorage.setItem(GALAXY_STORE,JSON.stringify(save));}catch(_){}},isReady:()=>(!loading||loading.classList.contains('hidden')||loading.style.display==='none')&&worldCompiled,onEnter:()=>{menuGate=false;worldAudio.unlock();if(pendingAwakening){pendingAwakening=false;startPrologue();}}});
+ showGalaxyScreen({progress:{questStep,bishopsDefeated},save,coins,onSettings:()=>{const gb=document.getElementById('graphics-toggle-3d');if(gb)gb.click();},onCelebrated:()=>{try{delete save.celebrate;localStorage.setItem(GALAXY_STORE,JSON.stringify(save));}catch(_){}},isReady:()=>(!loading||loading.classList.contains('hidden')||loading.style.display==='none')&&worldCompiled,onEnter:()=>{menuGate=false;worldAudio.unlock();if(pendingAwakening){pendingAwakening=false;startAwakeningCine();}}});
 }
-if(menuGate){pendingAwakening=awakeningActive;awakeningActive=false;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');openGalaxyScreen();}
+/* MOD 203 — Marco 1 (roteiro em docs/roteiro/M1-PROLOGO.md): Reino Celestial → tela das galáxias → despertar no
+   Mundo da Ganância. As cenas são dados (prologue-flow.js); aqui ficam câmera, animações, efeitos e telas.
+   Modelos feitos no Blender: TronoCeleste, FiguraDeLuz, Asas e os clipes Ajoelhar/OlharMaos (Protagonista-cine). */
+const HEAVEN_STORE='seven-sins-3d-prologo-ceu';
+var heavenSeen=(()=>{try{return localStorage.getItem(HEAVEN_STORE)==='1';}catch(_){return false;}})();
+var cineActive=false,cineShot='',cineU=0,cineCut=false,cineSayWho='',cineAssets=null,cineHeaven=null,cineAwake=null,cineWalk=null,cineDissolveT=-1,cineBlurT=-1,cineBlurLast=-1,cineAngelT=-1,cineSkipArmedUntil=0,cineSavedFov=56,cineGlowTexture=null;
+const cineEl=id=>document.getElementById(id);
+const cineV=new THREE.Vector3(),cineV2=new THREE.Vector3(),cineLook=new THREE.Vector3(),cinePos=new THREE.Vector3(),cineHead=new THREE.Vector3(),cineHandL=new THREE.Vector3(),cineHandR=new THREE.Vector3();
+const cineSmooth=u=>{u=Math.min(1,Math.max(0,u));return u*u*(3-2*u);};
+const cineDirector=createDirector({
+ shot:(id,u)=>{if(cineShot!==id)cineCut=true;cineShot=id;cineU=u;},
+ say:(who,text)=>{const line=personalize({type:'say',who,text},playerName);cineSayWho=who;cineEl('cine-who').textContent=line.who;cineEl('cine-text').textContent=line.text;cineEl('cine-say').hidden=false;},
+ hideSay:()=>{cineSayWho='';cineEl('cine-say').hidden=true;},
+ do:(id,args)=>cineDo(id,args),
+ ask:id=>cineAsk(id),
+ end:(scene,skipped)=>{if(scene==='ceu')endHeavenCine(skipped);else endAwakeningCine(skipped);}
+});
+function glowTexture(){if(cineGlowTexture)return cineGlowTexture;const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.35,'rgba(255,244,214,.55)');g.addColorStop(1,'rgba(255,230,170,0)');x.fillStyle=g;x.fillRect(0,0,128,128);cineGlowTexture=new THREE.CanvasTexture(c);cineGlowTexture.colorSpace=THREE.SRGBColorSpace;return cineGlowTexture;}
+function glowSprite(color,opacity,size){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture(),color,transparent:true,opacity,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false}));s.scale.setScalar(size);return s;}
+function cineBone(re){let found=null;if(model)model.traverse(o=>{if(!found&&o.isBone&&re.test(o.name||''))found=o;});return found;}
+function loadCineAssets(){
+ if(cineAssets)return cineAssets;
+ const load=file=>new Promise((res,rej)=>new GLTFLoader().load(file,res,undefined,rej));
+ const playerReady=new Promise(res=>{const t=()=>player.userData.ready&&model?res():setTimeout(t,120);t();});
+ const guideReady=new Promise(res=>{const t0=performance.now(),t=()=>guideFitRoot||performance.now()-t0>9000?res():setTimeout(t,120);t();});
+ cineAssets=Promise.all([load('./Protagonista-cine.glb?v=mod203'),load('./Asas.glb?v=mod203'),load('./TronoCeleste.glb?v=mod203'),load('./FiguraDeLuz.glb?v=mod203'),playerReady,guideReady]).then(([clips,wings,throne,figure])=>{
+  if(mixer)for(const c of clips.animations||[]){const key=/ajoelh/i.test(c.name)?'ajoelhar':/olhar/i.test(c.name)?'olharMaos':null;if(key&&!actions[key])actions[key]=mixer.clipAction(c);}
+  return {wings:wings.scene,throne:throne.scene,figure:figure.scene};
+ });
+ return cineAssets;
+}
+function buildHeaven(a){
+ const sp=arenaSpec('ceu'),g=new THREE.Group();g.name='CeuProps';g.position.set(sp.x,sp.y,sp.z);scene.add(g);
+ for(const m of [a.throne,a.figure]){m.scale.setScalar(1.6);m.position.set(0,0,-50);m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});g.add(m);}
+ a.figure.traverse(o=>{if(o.isMesh)o.castShadow=false;});
+ g.updateMatrixWorld(true);
+ const throneBox=new THREE.Box3().setFromObject(a.throne),figBox=new THREE.Box3().setFromObject(a.figure);
+ const head=new THREE.Vector3((figBox.min.x+figBox.max.x)/2,figBox.max.y-.5,(figBox.min.z+figBox.max.z)/2);
+ const glow=glowSprite(0xfff0c8,.7,14);glow.position.copy(head).sub(g.position).add(new THREE.Vector3(0,-1.6,-1.2));g.add(glow);
+ const halo=glowSprite(0xffffff,.85,4.2);halo.position.copy(head).sub(g.position);g.add(halo);
+ const kneelZ=throneBox.max.z+3.2,startZ=kneelZ+17;
+ // Anjos de guarda ao longo do caminho (o mesmo modelo do Anjo-Guia), pairando de frente para o caminho.
+ const angels=[];
+ if(guideFitRoot)for(let k=0;k<3;k++)for(const sx of [-1,1]){const c=cloneSkinned(guideFitRoot);c.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;}});const h=new THREE.Group();h.add(c);h.scale.setScalar(1.7);h.position.set(sx*5.4,.35,kneelZ-sp.z+3+k*6.2);h.rotation.y=-sx*Math.PI/2;h.userData.phase=k*1.7+(sx>0?.8:0);g.add(h);angels.push(h);}
+ // Asas e aura do herói (retiradas na cena C05).
+ const wings=a.wings;wings.scale.setScalar(.55);const wingMats=[];wings.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;wingMats.push(o.material);o.castShadow=true;}});
+ const wingL=wings.getObjectByName('AsaEsquerda'),wingR=wings.getObjectByName('AsaDireita');
+ const wingHolder=new THREE.Group();wingHolder.add(wings);scene.add(wingHolder);
+ const fx=new THREE.Group();scene.add(fx);
+ const aura=glowSprite(0xffe2a0,.5,3);aura.position.y=1.1;fx.add(aura);
+ const N=70,pos=new Float32Array(N*3),seed=[];for(let i=0;i<N;i++){const ang=Math.random()*6.283,r=.45+Math.random()*.55;seed.push({ang,r,v:.35+Math.random()*.5});pos[i*3]=Math.cos(ang)*r;pos[i*3+1]=Math.random()*2.3;pos[i*3+2]=Math.sin(ang)*r;}
+ const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+ const sparks=new THREE.Points(pg,new THREE.PointsMaterial({map:glowTexture(),color:0xffd98a,size:.13,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));sparks.frustumCulled=false;fx.add(sparks);
+ cineHeaven={group:g,origin:new THREE.Vector3(sp.x,sp.y,sp.z),head,glow,halo,angels,kneelZ,startZ,throneZ:sp.z-50,wings,wingL,wingR,wingMats,wingHolder,fx,aura,sparks,seed,spine:cineBone(/spine2$/i)||cineBone(/spine/i)};
+ return cineHeaven;
+}
+function disposeHeaven(){
+ if(!cineHeaven)return;const h=cineHeaven;cineHeaven=null;
+ for(const a of h.angels)a.removeFromParent();// os anjos dividem malhas e materiais com o Anjo-Guia do mundo
+ for(const o of [h.group,h.wingHolder,h.fx]){scene.remove(o);o.traverse(x=>{if(x.isMesh||x.isPoints||x.isSprite){if(x.geometry&&!x.isSprite)x.geometry.dispose();for(const m of [].concat(x.material||[]))if(m)m.dispose();}});}
+ if(dimArenas.ceu){scene.remove(dimArenas.ceu.group);dimArenas.ceu.dispose();delete dimArenas.ceu;}
+}
+function setCineFade(to,dur,white){const el=cineEl('cine-fade');if(!el)return;el.classList.toggle('white',!!white);el.style.transition='opacity '+dur+'s ease';el.style.opacity=String(to);}
+function cineBegin(){
+ cineActive=true;cineShot='';cineCut=true;document.body.classList.add('cinematic');
+ const skip=cineEl('cine-skip');if(skip){skip.hidden=false;skip.textContent='PULAR';}
+ cineSavedFov=camera.fov;camera.fov=50;camera.updateProjectionMatrix();
+ moveVX=moveVZ=0;dashRemaining=0;actionUntil=Infinity;setDefending(false);
+}
+function cineEnd(){
+ cineActive=false;cineShot='';document.body.classList.remove('cinematic');
+ const skip=cineEl('cine-skip');if(skip)skip.hidden=true;
+ cineEl('cine-say').hidden=true;cineEl('cine-title').classList.remove('show');cineEl('cine-lids').className='';canvas.style.filter='';cineBlurT=-1;cineBlurLast=-1;
+ camera.fov=cineSavedFov;camera.near=.1;camera.updateProjectionMatrix();actionUntil=0;guide.visible=true;guide.scale.setScalar(1);
+ if(actions.idle)play('idle',.35);
+}
+function prepareHeaven(){
+ return loadCineAssets().then(a=>{
+  if(!cineHeaven)buildHeaven(a);
+  const arena=getDimArena('ceu');arena.group.visible=true;cineHeaven.group.visible=true;
+  const done=()=>{arena.group.visible=!!(voidMode&&dimKey==='ceu');};
+  try{if(renderer.compileAsync)return renderer.compileAsync(scene,camera).then(done,done);renderer.compile(scene,camera);}catch(e){}done();
+ });
+}
+function startHeavenCine(){
+ if(!cineHeaven){openGalaxyAfterHeaven(true);return;}
+ const h=cineHeaven;h.beaconWas=portalBeacon.visible;enterDimensionArena('ceu');
+ player.position.set(h.origin.x,h.origin.y,h.startZ);playerYaw=Math.PI;player.rotation.y=Math.PI;
+ h.group.visible=true;h.wingHolder.visible=true;h.fx.visible=true;h.wings.visible=true;for(const m of h.wingMats)m.opacity=1;h.aura.material.opacity=.5;h.sparks.material.opacity=.9;cineDissolveT=-1;cineWalk=null;
+ cineBegin();setCineFade(0,1.6,true);worldAudio.celestial();
+ cineDirector.play('ceu',heavenScene());
+}
+function endHeavenCine(skipped){
+ heavenSeen=true;try{localStorage.setItem(HEAVEN_STORE,'1');}catch(_){}
+ setCineFade(1,skipped?.35:.01,true);
+ setTimeout(()=>openGalaxyAfterHeaven(false),skipped?380:60);
+}
+function openGalaxyAfterHeaven(failed){
+ if(failed)console.warn('Prólogo do céu indisponível (modelos não carregaram); seguindo para as galáxias.');
+ if(cineActive)cineEnd();
+ if(cineHeaven&&cineHeaven.beaconWas!==undefined)portalBeacon.visible=cineHeaven.beaconWas;
+ if(voidMode)leaveVoid();disposeHeaven();
+ setGameHour(7.5);player.position.set(0,terrainHeightAt(0,4),4);playerYaw=0;player.rotation.y=0;
+ pendingAwakening=true;openGalaxyScreen();setCineFade(0,1.4,true);
+}
+function startAwakeningCine(){
+ const G=guide.position,dx=0-G.x,dz=4-G.z,d=Math.hypot(dx,dz)||1,ax=G.x+dx/d*3.1,az=G.z+dz/d*3.1;
+ player.position.set(ax,terrainHeightAt(ax,az),az);playerYaw=Math.atan2(G.x-ax,G.z-az);player.rotation.y=playerYaw;
+ guide.lookAt(ax,guide.position.y,az);guide.visible=false;
+ cineAwake={x:ax,z:az,yaw:playerYaw};awakeningActive=false;
+ cineBegin();loadCineAssets().catch(()=>{}).then(()=>{if(cineActive&&cineShot==='olhos-abrem'&&actions.olharMaos)playOnce('olharMaos',.2);});
+ cineDirector.play('despertar',awakeningScene());
+}
+function cineAcceptMission(){
+ if(questStep!==0)return;
+ if(!purseGiven){coins+=ACT1.purse;purseGiven=true;showRewardPop('+'+ACT1.purse+' OURO');}
+ questStep=1;save3DProgress();updateQuestHud();status.textContent='Procure a pequena vila e fale com um vendedor.';
+}
+function endAwakeningCine(skipped){
+ cineEl('mission-card').hidden=true;cineEl('act-card').classList.add('hidden');
+ actCardSeen=true;cineEnd();finishAwakening();
+ if(!playerName)openNamePrompt(()=>cineAcceptMission());else cineAcceptMission();
+ cameraYaw=cineAwake?cineAwake.yaw+Math.PI:cameraYaw;cameraPitch=.16;
+ setCineFade(0,skipped?.6:1.4,false);
+}
+function cineDo(id,args){
+ const h=cineHeaven;
+ if(id==='titulo'){const el=cineEl('cine-title');el.querySelector('span').textContent=args.kicker||'';el.querySelector('strong').textContent=args.title||'';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4200);}
+ else if(id==='heroi-caminha'&&h){cineWalk={from:h.startZ,to:h.kneelZ};if(actions.walk){play('walk',.35);actions.walk.setEffectiveTimeScale(.56);}}
+ else if(id==='heroi-ajoelha'&&h){cineWalk=null;player.position.z=h.kneelZ;if(actions.walk)actions.walk.setEffectiveTimeScale(1);if(!(actions.ajoelhar&&playOnce('ajoelhar',.35)))play('idle',.3);}
+ else if(id==='retirar-asas'){cineDissolveT=0;worldAudio.dissolve();}
+ else if(id==='clarão'){setCineFade(1,2.2,true);}
+ else if(id==='palpebras'){const lids=cineEl('cine-lids');lids.className='on';void lids.offsetWidth;lids.className='on open';cineBlurT=0;setCineFade(0,.8,false);}
+ else if(id==='heroi-olha-maos'){if(actions.olharMaos)playOnce('olharMaos',.2);}
+ else if(id==='heroi-repouso'){if(actions.idle)play('idle',.9);}
+ else if(id==='anjo-aparece'){cineAngelT=0;guide.visible=true;guide.scale.setScalar(.01);worldAudio.celestial();}
+ else if(id==='ato-1'){const card=cineEl('act-card');card.querySelector('#act-kicker').textContent='GALÁXIA 1 · GANÂNCIA';card.querySelector('h2').textContent='ATO I';card.querySelector('#act-bishop').textContent='O preço de uma vida';card.classList.remove('hidden');actCardSeen=true;worldAudio.chapter();}
+ else if(id==='escuro'){cineEl('act-card').classList.add('hidden');setCineFade(1,1.1,false);}
+}
+function cineAsk(id){
+ if(id==='nome'){openNamePrompt(()=>cineDirector.resume());return;}
+ if(id==='aceitar-missao'){cineEl('mission-kicker').textContent=MISSION_ACT1.kicker;cineEl('mission-title').textContent=MISSION_ACT1.title;cineEl('mission-objective').textContent=MISSION_ACT1.objective;cineEl('mission-card').hidden=false;return;}
+ cineDirector.resume();
+}
+bindInstantTap(cineEl('mission-accept'),()=>{if(cineEl('mission-card').hidden)return;cineEl('mission-card').hidden=true;cineAcceptMission();worldAudio.unlock();cineDirector.resume();});
+bindInstantTap(cineEl('cine-skip'),()=>{if(!cineDirector.running)return;const now=performance.now(),b=cineEl('cine-skip');if(now<cineSkipArmedUntil){cineSkipArmedUntil=0;cineDirector.skip();return;}cineSkipArmedUntil=now+2600;b.textContent='TOQUE DE NOVO PARA PULAR';setTimeout(()=>{if(performance.now()>=cineSkipArmedUntil)b.textContent='PULAR';},2700);});
+addEventListener('pointerdown',e=>{if(!cineActive||namePromptOpen)return;const t=e.target;if(t&&t.closest&&t.closest('button,input,#mission-card,#name-panel'))return;cineDirector.tap();},true);
+function cineCam(px,py,pz,lx,ly,lz,follow,dt){
+ cineV.set(px,py,pz);cineV2.set(lx,ly,lz);
+ // A câmera do jogo mexe em camera.position a cada quadro; a câmera da cena guarda a própria posição (cinePos).
+ if(cineCut||!follow){cinePos.copy(cineV);cineLook.copy(cineV2);cineCut=false;}else{const k=1-Math.exp(-follow*dt);cinePos.lerp(cineV,k);cineLook.lerp(cineV2,k);}
+ camera.position.copy(cinePos);camera.lookAt(cineLook);
+}
+function updateHeavenCine(dt,now){
+ const h=cineHeaven;if(!h)return;const P=player.position,y=h.origin.y,u=cineU,e=cineSmooth(u),t=now*.001;
+ if(cineWalk&&cineShot==='ceu-caminhada')P.z=THREE.MathUtils.lerp(cineWalk.from,cineWalk.to,u);
+ for(const a of h.angels)a.position.y=.35+Math.sin(t*1.3+a.userData.phase)*.18;
+ h.glow.material.opacity=.62+Math.sin(t*1.7)*.08;h.halo.material.opacity=.8+Math.sin(t*2.3)*.1;
+ // Asas presas às costas (osso Spine2) com bater lento; aura e faíscas sobem em volta do herói.
+ if(h.spine){h.spine.getWorldPosition(cineV);h.wingHolder.position.copy(cineV);h.wingHolder.position.x-=Math.sin(playerYaw)*.1;h.wingHolder.position.z-=Math.cos(playerYaw)*.1;}
+ h.wingHolder.rotation.y=playerYaw;const flap=Math.sin(t*1.9)*.12;if(h.wingL)h.wingL.rotation.y=flap;if(h.wingR)h.wingR.rotation.y=-flap;
+ h.fx.position.copy(P);const pa=h.sparks.geometry.attributes.position,d=cineDissolveT>=0?Math.min(1,cineDissolveT/3.2):0;
+ for(let i=0;i<h.seed.length;i++){const s=h.seed[i];let yy=pa.array[i*3+1]+dt*s.v*(1+d*5);if(yy>2.4+d*3)yy=0;const r=s.r*(1+d*2.5);s.ang+=dt*.4;pa.array[i*3]=Math.cos(s.ang)*r;pa.array[i*3+1]=yy;pa.array[i*3+2]=Math.sin(s.ang)*r;}
+ pa.needsUpdate=true;
+ if(cineDissolveT>=0){cineDissolveT+=dt;for(const m of h.wingMats)m.opacity=1-d;h.wings.scale.setScalar(.55*(1+d*.3));h.wings.position.y=d*.5;h.aura.material.opacity=.5*(1-d);h.sparks.material.opacity=.9*(1-d*d);if(d>=1){h.wings.visible=false;h.fx.visible=false;}}
+ const O=h.origin,K=h.kneelZ,T=h.throneZ;
+ if(cineShot==='ceu-trono'&&cineSayWho){
+  if(cineSayWho==='heroi')cineCam(P.x+.6,y+1.5,P.z-2.6,P.x,y+1.15,P.z,3,dt);
+  else cineCam(O.x+3.4+Math.sin(t*.2)*.2,y+1.5,K+.6,h.head.x,h.head.y-.4,h.head.z,2,dt);
+  return;
+ }
+ switch(cineShot){
+  case 'ceu-panorama':cineCam(O.x+THREE.MathUtils.lerp(0,1.6,e),y+THREE.MathUtils.lerp(26,3.2,e),h.startZ+THREE.MathUtils.lerp(34,7,e),THREE.MathUtils.lerp(O.x,P.x,e),y+THREE.MathUtils.lerp(8,1.6,e),THREE.MathUtils.lerp(T,P.z-4,e),0,dt);break;
+  case 'ceu-caminhada':{const a=cineSmooth((u-.35)/.4);cineCam(P.x+THREE.MathUtils.lerp(2.2,-1.4,a),y+THREE.MathUtils.lerp(1.5,2.3,a),P.z+THREE.MathUtils.lerp(-4.6,5.2,a),THREE.MathUtils.lerp(P.x,O.x,a),y+THREE.MathUtils.lerp(1.3,6,a),THREE.MathUtils.lerp(P.z,T,a),10,dt);break;}
+  case 'ceu-chegada':cineCam(P.x+THREE.MathUtils.lerp(4.6,3.6,e),y+1.2,P.z-.6,P.x,y+.9,P.z-.4,0,dt);break;
+  case 'ceu-trono':cineCam(P.x+THREE.MathUtils.lerp(.9,.7,e),y+THREE.MathUtils.lerp(.6,.8,e),P.z+THREE.MathUtils.lerp(3.2,2.4,e),O.x,y+6.5,T,0,dt);break;
+  case 'ceu-asas':cineCam(P.x+1.9-e*.4,y+2.3,P.z+3.4-e*.3,P.x,y+1.5,P.z,0,dt);break;
+  case 'ceu-retirada':{const a=THREE.MathUtils.lerp(.45,2.6,e);cineCam(P.x+Math.sin(a)*4.2,y+1.7,P.z+Math.cos(a)*4.2,P.x,y+1.2,P.z,0,dt);break;}
+  case 'ceu-luz':{const a=2.6;cineCam(P.x+Math.sin(a)*4.2,y+1.7+e*3,P.z+Math.cos(a)*4.2,THREE.MathUtils.lerp(P.x,O.x,e),y+THREE.MathUtils.lerp(1.2,30,e),THREE.MathUtils.lerp(P.z,T,e),0,dt);break;}
+ }
+}
+function updateAwakeningCine(dt,now){
+ const A=cineAwake;if(!A)return;const P=player.position,yaw=A.yaw,fx=Math.sin(yaw),fz=Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw),u=cineU,G=guide.position,t=now*.001;
+ if(cineAngelT>=0){cineAngelT+=dt;const k=cineSmooth(cineAngelT/1.3);guide.scale.setScalar(Math.max(.01,k));if(cineAngelT>1.6)cineAngelT=-1;}
+ if(cineShot==='olhos-abrem'||cineShot==='maos'||cineShot==='olhar-em-volta'){
+  // Primeira pessoa: a câmera fica nos olhos (osso da cabeça) e procura as mãos.
+  const head=cineBone(/head$/i),hl=cineBone(/lefthand$/i),hr=cineBone(/righthand$/i);
+  if(head)head.getWorldPosition(cineHead);else cineHead.set(P.x,P.y+1.7,P.z);
+  const ex=cineHead.x+fx*.11,ey=cineHead.y+.07,ez=cineHead.z+fz*.11;
+  let lx=ex+fx*3,ly=ey-.5,lz=ez+fz*3;
+  if(hl&&hr&&cineShot!=='olhar-em-volta'){hl.getWorldPosition(cineHandL);hr.getWorldPosition(cineHandR);const w=cineShot==='maos'?1:cineSmooth((u-.15)/.5);lx=THREE.MathUtils.lerp(lx,(cineHandL.x+cineHandR.x)/2,w);ly=THREE.MathUtils.lerp(ly,(cineHandL.y+cineHandR.y)/2,w);lz=THREE.MathUtils.lerp(lz,(cineHandL.z+cineHandR.z)/2,w);}
+  if(cineShot==='olhar-em-volta'){const off=Math.sin(u*Math.PI*2)*1.05*(1-u*.35),pitch=THREE.MathUtils.lerp(-.55,.05,cineSmooth(u/.25));lx=ex+Math.sin(yaw+off)*3;ly=ey+pitch*3;lz=ez+Math.cos(yaw+off)*3;}
+  // Plano próximo maior: o capuz e o rosto do próprio herói ficam antes dele e não entram na imagem.
+  if(camera.near!==.24){camera.near=.24;camera.updateProjectionMatrix();}
+  cineCam(ex,ey+Math.sin(t*1.3)*.012,ez,lx,ly,lz,cineShot==='olhos-abrem'?0:6,dt);
+  if(cineShot==='maos')cineEl('cine-lids').className='';
+  return;
+ }
+ if(camera.near!==.1){camera.near=.1;camera.updateProjectionMatrix();}
+ const mx=(P.x+G.x)/2,mz=(P.z+G.z)/2;
+ if(cineShot==='anjo-chega'&&!cineSayWho){cineCam(P.x-fx*3.4+rx*2.6,P.y+1.7,P.z-fz*3.4+rz*2.6,G.x,G.y+1.3,G.z,0,dt);return;}
+ if(cineSayWho==='heroi')cineCam(G.x+fx*1.9+rx*.7,G.y+1.8,G.z+fz*1.9+rz*.7,P.x,P.y+1.5,P.z,3,dt);
+ else if(cineSayWho)cineCam(P.x-fx*1.9+rx*.75,P.y+1.75,P.z-fz*1.9+rz*.75,G.x,G.y+1.45,G.z,3,dt);
+ else cineCam(mx+rx*5,P.y+1.8,mz+rz*5,mx,P.y+1.2,mz,2,dt);
+}
+function updateCine(dt,now){
+ if(!cineActive)return;
+ cineDirector.update(dt);if(!cineActive)return;
+ if(swordMount)swordMount.visible=false;fpRig.visible=false;
+ if(cineBlurT>=0){cineBlurT+=dt;const b=Math.max(0,7*(1-cineBlurT/5.5)),r=Math.round(b*4)/4;if(r!==cineBlurLast){cineBlurLast=r;canvas.style.filter=r>0?'blur('+r+'px)':'';}if(b<=0)cineBlurT=-1;}
+ if(cineDirector.scene==='ceu')updateHeavenCine(dt,now);else updateAwakeningCine(dt,now);
+}
+/* Primeiro acesso (jogo novo): portão "toque para começar" — o toque libera o som e abre o prólogo no céu.
+   Os modelos do céu carregam e os shaders compilam enquanto o portão está na tela. */
+function openStartGate(){
+ const gate=cineEl('start-gate'),go=cineEl('start-gate-go');if(!gate||!go){pendingAwakening=true;openGalaxyScreen();return;}
+ menuGate=true;gate.hidden=false;go.disabled=true;go.textContent='CARREGANDO…';
+ let ready=false;const enable=()=>{if(ready)return;ready=true;go.disabled=false;go.textContent='TOQUE PARA COMEÇAR';};
+ prepareHeaven().then(enable,err=>{console.error(err);enable();});
+ bindInstantTap(go,()=>{if(!ready||gate.hidden)return;gate.hidden=true;worldAudio.unlock();menuGate=false;clock.getDelta();startHeavenCine();});
+}
+if(menuGate){pendingAwakening=awakeningActive;awakeningActive=false;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');if(questStep===0&&!awakeningSeen&&!heavenSeen){pendingAwakening=false;openStartGate();}else openGalaxyScreen();}
 /* MOD 190 — corações e perfil. Corações vivem num registro próprio (regeneram com o jogo fechado). */
 const HEART_STORE='seven-sins-hearts';
 let heartState=(()=>{let raw=null;try{raw=JSON.parse(localStorage.getItem(HEART_STORE)||'null');}catch(_){}return normalizeHearts(raw);})();
@@ -2248,7 +2470,7 @@ function vibrate(ms){if(userSettings.vibration&&navigator.vibrate){try{navigator
 const _arrowV=new THREE.Vector3();
 function updateObjectiveArrow(){
  const el=document.getElementById('objective-arrow');if(!el)return;
- const show=userSettings.arrow&&questMarker.visible!==false&&!dialogueOpen&&!prologueActive&&!awakeningActive&&questStep<8&&!voidMode;
+ const show=userSettings.arrow&&questMarker.visible!==false&&!dialogueOpen&&!prologueActive&&!awakeningActive&&!cineActive&&questStep<8&&!voidMode;
  if(!show){if(!el.hidden)el.hidden=true;return;}
  const mx=questMarker.position.x,mz=questMarker.position.z,dist=Math.hypot(mx-player.position.x,mz-player.position.z);
  _arrowV.set(mx,questMarker.position.y+1,mz).project(camera);
@@ -2837,6 +3059,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  fly(from,to){debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
  freeRoam(){awakeningActive=false;namePromptOpen=false;dialogueOpen=false;},
+ cine(id){awakeningActive=false;if(id==='ceu')return prepareHeaven().then(()=>{menuGate=false;startHeavenCine();});startAwakeningCine();return Promise.resolve();},
+ cineState(){const s=cineDirector.step;return{active:cineActive,scene:cineDirector.scene,index:cineDirector.index,type:s&&s.type,id:s&&(s.id||s.who),shot:cineShot,waitingTap:cineDirector.waitingTap,waitingAsk:cineDirector.waitingAsk,heavenSeen,questStep,playerName,coins,menuGate,actions:Object.keys(actions),cam:camera.position.toArray().map(v=>+v.toFixed(2)),head:cineHead.toArray().map(v=>+v.toFixed(2)),player:player.position.toArray().map(v=>+v.toFixed(2)),yaw:+playerYaw.toFixed(2)};},
  voidTest(){enterVoid();},
  setHearts(n){heartState.hearts=n;updateHeartsHud(true);},
  killPlayer(){playerInvulnerableUntil=0;playerHP=1;defending=false;damagePlayerFromEnemyAttack(999);},

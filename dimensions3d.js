@@ -35,6 +35,11 @@ export const DIMENSIONS = {
     rage: 'Se não posso guardar, ninguém guardará.',
     center: { x: 1600, z: 0 }, radius: 30, accent: '#9ab4ff', theme: 'hall'
   },
+  ceu: {
+    key: 'ceu', order: 0, name: 'REINO CELESTIAL', title: 'Prólogo', epithet: 'Diante do Trono',
+    kicker: 'PRÓLOGO', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
+    line: '', rage: '', center: { x: -400, z: 0 }, radius: 80, accent: '#f3c25a', theme: 'heaven'
+  },
   greed: {
     key: 'greed', order: 5, name: 'GANÂNCIA', title: 'O Pecado Capital', epithet: 'A Raiz de Todos os Males',
     kicker: 'DIMENSÃO V · A RAIZ', portrait: 'Ganancia1-ui.webp', rig: 'greed1', profile: 'greed1', hp: 520,
