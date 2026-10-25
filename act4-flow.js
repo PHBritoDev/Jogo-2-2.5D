@@ -7,10 +7,10 @@
  *  22 a torre: sub = piso (1 a 7); o 5º é a sala de descanso
  *  23 VÉRAXION (dentro do portal do 7º piso)
  *  24 a torre cai; a pessoa misteriosa conta quem é
- * Depois, o jogo segue para o Ato V (passo 27) até o Marco 6 trocar esse trecho.
+ * Depois vem o Ato V (passo 25, act5-flow.js).
  */
 export const ACT4N = {
-  road: 21, tower: 22, boss: 23, after: 24, next: 27,
+  road: 21, tower: 22, boss: 23, after: 24, next: 25,
   bandits: 3, banditHp: 140, enemy4Hp: 190, minibossHp: 560, leaderHp: 640, bossHp: 760, reward: 100, xp: 400, scrollBonus: .2
 };
 /** Os sete pisos: quantos Enemy4, se há mini-chefe/líder e se é a sala de descanso. */

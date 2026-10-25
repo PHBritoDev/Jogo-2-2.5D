@@ -53,3 +53,25 @@ body.cinematic #hint,body.cinematic #objective-arrow,body.cinematic #enemy-hud,b
 @keyframes coldPulse{50%{box-shadow:0 0 18px #9ed0ff66}}
 .shop-card.is-new{animation:shopUnlock 1.4s ease-out 2}
 @keyframes shopUnlock{0%{box-shadow:0 0 0 #9ed0ff00;transform:scale(.96)}40%{box-shadow:0 0 30px #9ed0ffcc;transform:scale(1.02)}100%{box-shadow:0 0 0 #9ed0ff00;transform:scale(1)}}
+
+/* MOD 208 — inventário (espadas, roupa, encantamentos e poderes; equipar melhor). */
+#top-right>#inventory-btn::before{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff3c2'/%3E%3Cstop offset='.55' stop-color='%23f0b94a'/%3E%3Cstop offset='1' stop-color='%23a86d1e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M14 22h36l-3 32a4 4 0 0 1-4 3.6H21A4 4 0 0 1 17 54z' fill='url(%23g)' stroke='%23301c06' stroke-width='3'/%3E%3Cpath d='M23 22v-4a9 9 0 0 1 18 0v4' fill='none' stroke='url(%23g)' stroke-width='5'/%3E%3Cpath d='M24 33h16' stroke='%23301c06' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E")}
+#inv-panel{position:fixed;inset:0;z-index:11;display:flex;align-items:center;justify-content:center;padding:10px;background:#05060ad0;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#inv-panel[hidden]{display:none}
+#inv-sheet{display:flex;flex-direction:column;width:min(620px,100%);max-height:100%;border:1px solid #d9bd79;border-radius:12px;background:radial-gradient(120% 70% at 50% 0,#1b1730f5,#07060cfa 70%);box-shadow:0 16px 40px #000c;overflow:hidden;color:#f2e8d0}
+#inv-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #d9bd7955}
+#inv-head h2{flex:1;margin:0;font:600 18px Georgia,serif;letter-spacing:.2em;color:#ffe2a0}
+#inv-best{height:36px;padding:0 14px;white-space:nowrap;border-radius:999px;border:1px solid #f3c25a;background:#f3c25a;color:#1a1206;font:800 12px system-ui,sans-serif;letter-spacing:.12em}
+#inv-close{width:36px;height:36px;border-radius:50%;border:1px solid #d9bd7988;background:transparent;color:#f2e8d0;font-size:16px}
+#inv-body{overflow:auto;padding:6px 14px 14px}
+#inv-body h3{margin:12px 0 6px;font:700 11px system-ui,sans-serif;letter-spacing:.28em;color:#d9bd79}
+.inv-row{display:flex;align-items:center;gap:10px;padding:9px 10px;margin:5px 0;border-radius:10px;background:#ffffff0a;border:1px solid #ffffff14}
+.inv-row.on{border-color:#f3c25a88;background:#f3c25a14}
+.inv-txt{flex:1;display:flex;flex-direction:column;min-width:0}
+.inv-txt strong{font:600 14px system-ui,sans-serif}
+.inv-txt span{font:500 12px system-ui,sans-serif;color:#cfc2a4}
+.inv-stats{font:500 12px system-ui,sans-serif;color:#e8dcc0;text-align:right}
+.inv-stats b{font-size:15px;color:#ffe2a0}
+.inv-row button{height:32px;padding:0 12px;white-space:nowrap;border-radius:999px;border:1px solid #d9bd79;background:transparent;color:#ffe2a0;font:700 11px system-ui,sans-serif;letter-spacing:.1em}
+.inv-row button:disabled{opacity:.6}
+.inv-empty{font:500 13px system-ui,sans-serif;color:#cfc2a4}

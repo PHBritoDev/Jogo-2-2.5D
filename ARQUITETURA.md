@@ -56,8 +56,16 @@ esqueleto do herói em tempo de execução (`attachCoat`). Rig `anjo`: AnjoGuia 
 
 Roteiro do autor em `docs/roteiro/M5-ATO4.md`. Cenas em `act4-flow.js` (etapas 21–24; na torre, `act1Sub` = piso);
 lugares e colisão em `tower3d.js`. A torre (`TorreKit.glb`, script `tools/blender/m5_torre.py`) fica na antiga Serra;
-cada piso é a mesma área abaixo do mundo (tema `tower`), redecorada. O motor antigo ignora 15–25; depois do Ato IV o
-jogo segue para o arco final antigo (passo 27). Pergaminho: `scrollMul()` no dano da espada.
+cada piso é a mesma área abaixo do mundo (tema `tower`), redecorada. O motor antigo ignora 15–25; depois do Ato IV vem
+o Ato V (passo 25). Pergaminho: `scrollMul()` no dano da espada.
+
+## Ato V (Mod 208)
+
+Roteiro do autor em `docs/roteiro/M6-ATO5.md`. Cenas e rounds em `act5-flow.js` (etapa 25; `act1Sub` 0 jornada,
+1 chegada, 2–9 rounds 1–8); lugar e colisão em `coliseum3d.js` (região nova a leste da torre, ligada por uma passagem
+longa). Coliseu, plateia instanciada, estandartes e braseiros: `Coliseu.glb` (`tools/blender/m6_coliseu.py`).
+Auras dos evoluídos: `makeAura()`. Aliada no último round: `updateAlly()`. Torcida: `worldAudio.setCrowd/roar`.
+Inventário: painel `#inv-panel` (tecla I) com "Equipar melhor" (`bestSword`). Espada Celestial em `progression3d.js`.
 
 ## Dia e noite
 
