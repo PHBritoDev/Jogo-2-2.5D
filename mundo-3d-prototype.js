@@ -14,6 +14,8 @@ import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SH
 import { MAP_STORE_KEY, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
+import { ACT4N, FLOORS, SPEAKERS4, act4Presentation, isAct4Step, floorFoes, nextFloor, scrollMultiplier, afterVeraxion, banditScene4, rivalReturnScene, towerViewScene, floorIntroScene, floorClearScene, restScene, leaderDefeatScene, veraxionIntroScene, veraxionDefeatScene, towerFallScene, rivalRevealScene } from './act4-flow.js';
+import { TOWER, TOWER_HALL, towerWalkable, floorTint } from './tower3d.js';
 import { ACT3N, SPEAKERS3, act3Presentation, isAct3Step, buyCoat, afterZarkhael, coatOfferScene, coatAcceptScene, coatRefuseScene, coatNoMoneyScene, COLD_LINE, snowArrivalScene, fisherScene, villagerScene, innScene, bedScene, cellarScene, cellarDefeatScene, raidScene, guillotineScene, caveArrivalScene, caveEndScene, distortedScene, distortedDefeatScene, zarkhaelIntroScene, zarkhaelDefeatScene, angelQuestionScene, angelTruthScene } from './act3-flow.js';
 import { SNOW_CITY, inSnowCity, INN, innWalkable, ICE_CAVE, iceCaveWalkable, DISTORTED, distortedWalkable, COAT, climate } from './snow3d.js';
 import { ACT3, ACT4, LATE_ACTS, EXTRA_REGIONS, EXTRA_PASSES, ALTAR_VALLEY, SERRA, stepDef, latePresentation, lateActFor, collectItem, bossRewardOnce, COLISEUM, coliseumPayout } from './acts34-flow.js';
@@ -695,7 +697,7 @@ function resolvePlayerAttackHit(){
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz),facing=(dx*playerAttackFacingX+dz*playerAttackFacingZ)/(distance||1);
  if(distance>SWORDS[equippedSword].reach||facing<.28||Math.abs(player.position.y-enemy.position.y)>1.05){status.textContent=distance>2.0?'Chegue mais perto para acertar o golpe':facing<.28?'O golpe não alcançou o inimigo':'O inimigo está fora da altura do golpe';return;}
- {const crit=Math.random()<.12,dmg=Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*(crit?1.6:1)*comboMultiplier());enemyHP=Math.max(0,enemyHP-dmg);onEnemyDamaged(dmg,crit);}({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));worldAudio.hit();enemyHitFlash=.2;enemyKnockback=comboCount===3?.9:.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
+ {const crit=Math.random()<.12,dmg=Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*(crit?1.6:1)*comboMultiplier()*scrollMul());enemyHP=Math.max(0,enemyHP-dmg);onEnemyDamaged(dmg,crit);}({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));worldAudio.hit();enemyHitFlash=.2;enemyKnockback=comboCount===3?.9:.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
  if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.05);}
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
  if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),850);}
@@ -1007,7 +1009,7 @@ function precompileWorld(){
  const done=()=>{worldCompiled=true;};setTimeout(done,9000);
  try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
 }
-function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
@@ -1034,7 +1036,7 @@ function updateSkillHud(now){
  }
  const fill=document.getElementById('player-mana-fill');if(fill){const w=Math.round(playerMana/MANA.max*100);if(fill.dataset.w!==String(w)){fill.dataset.w=String(w);fill.style.width=w+'%';}}
 }
-function updateQuestHud(){refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
+function updateQuestHud(){refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||(isAct4Step(questStep)?act4Presentation(questStep,act1Sub):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
 function showActCard(){if(actCardSeen)return;actCardSeen=true;save3DProgress();const card=document.getElementById('act-card');if(!card)return;card.classList.remove('hidden');const hide=()=>{card.classList.add('hidden');card.removeEventListener('pointerdown',hide);};card.addEventListener('pointerdown',hide);setTimeout(hide,3400);}
 function finishAwakening(){if(!awakeningActive&&awakeningSeen)return;awakeningActive=false;awakeningSeen=true;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');save3DProgress();}
 let namePromptBound=null;
@@ -1069,15 +1071,15 @@ function finalePresentationFor(step){const pages={26:['ARCO FINAL · QUATRO FEND
 function combatStepNow(){return (dimBattle&&dimBattle.active)||(typeof pack!=="undefined"&&!!pack&&pack.active)||questStep===2||questStep===3||questStep===4||questStep===5||questStep===13||(lateSystemsReady&&(lateEngaged()||coliseum.active))||(finaleReady&&finaleCombatActive());}
 function enemyHpPercent(){return Math.max(0,Math.min(100,enemyHP/Math.max(1,enemyMaxHP)*100));}
 function nextDashCooldown(){if(encounterProfile==='warden')return 2.15;if(encounterProfile==='sentry'&&mountainIndex>0)return 1.65;return 2.7;}
-function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;const dimInfo=dimensionForProfile(encounterProfile);el.textContent=dimBattle&&dimBattle.active&&dimInfo?dimInfo.name+' · '+(dimInfo.order<5?dimInfo.order+'º BISPO':'PECADO'):(finaleReady&&finaleNameFor(encounterProfile))?finaleNameFor(encounterProfile):encounterProfile==='vorgazhek'?'VORGAZHEK · SEGUNDO BISPO':encounterProfile==='arena'?'ARENA DO VALE':(lateSystemsReady&&lateDef()&&lateDef().profile===encounterProfile)?lateDef().name:encounterProfile==='warden'?'GUARDIÃO DO PORTAL':(encounterProfile==='demon2'||encounterProfile==='demon3')?'DEMÔNIO DA GANÂNCIA':encounterProfile==='miniboss3'?'GUARDIÃO DA DISTORÇÃO':encounterProfile==='angel'?'ANJO-GUIA':encounterProfile==='rival'?'DESCONHECIDO':encounterProfile==='miniboss2'?'GUARDIÃO DO TRONO':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
+function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;const dimInfo=dimensionForProfile(encounterProfile);el.textContent=dimBattle&&dimBattle.active&&dimInfo?dimInfo.name+' · '+(dimInfo.order<5?dimInfo.order+'º BISPO':'PECADO'):(finaleReady&&finaleNameFor(encounterProfile))?finaleNameFor(encounterProfile):encounterProfile==='vorgazhek'?'VORGAZHEK · SEGUNDO BISPO':encounterProfile==='arena'?'ARENA DO VALE':(lateSystemsReady&&lateDef()&&lateDef().profile===encounterProfile)?lateDef().name:encounterProfile==='warden'?'GUARDIÃO DO PORTAL':(encounterProfile==='demon2'||encounterProfile==='demon3')?'DEMÔNIO DA GANÂNCIA':encounterProfile==='miniboss3'?'GUARDIÃO DA DISTORÇÃO':encounterProfile==='angel'?'ANJO-GUIA':encounterProfile==='demon4'?'GUARDIÃO DA TORRE':encounterProfile==='miniboss4'?'GUARDIÃO DO 6º PISO':encounterProfile==='leader4'?'LÍDER DOS GUARDIÕES':encounterProfile==='bandit4'?'BANDIDO':encounterProfile==='rival'?'DESCONHECIDO':encounterProfile==='miniboss2'?'GUARDIÃO DO TRONO':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
-function advanceAfterEnemyDefeat(){if(dimBattle&&dimBattle.active){if(dimBattle.key==='bishop1'&&!dimBattle.outro){dimBattle.outro=true;valerioOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
+function advanceAfterEnemyDefeat(){if(dimBattle&&dimBattle.active){if(dimBattle.key==='bishop1'&&!dimBattle.outro){dimBattle.outro=true;valerioOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
 function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
 function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
 function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;const T=inSewer?sewerLocal(SEWER.portal):PORTAL,tz=T.z+(inSewer?1.2:2.4);player.position.x+=(T.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=(tz-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(T.x-player.position.x,T.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestValerioHandoff();}
 function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de Valério foi quebrado.';return;}updateHeartsHud(true);if(!canChallengeBishop(heartState)){status.textContent='Sem corações. O próximo volta em '+formatTimer(msToNextHeart(heartState))+'.';showDialogue([{who:'Anjo-Guia',text:'Não atravesse de peito vazio. Espere um coração voltar.'}]);return;}if(questStep===6){if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();act1Toast('A DIMENSÃO DE VALÉRIO SE ABRE');}if(questStep===7){status.textContent='O portal puxa você.';worldAudio.portalEnter();startPortalPull();}}
-function tryInteract(){if(cineActive){if(!namePromptOpen)cineDirector.tap();return;}if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen){advanceDialogue();return;}if(act1Interact())return;if(act2StoryInteract())return;if(act3Ready&&act3Interact())return;if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
+function tryInteract(){if(cineActive){if(!namePromptOpen)cineDirector.tap();return;}if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen){advanceDialogue();return;}if(act1Interact())return;if(act2StoryInteract())return;if(act3Ready&&act3Interact())return;if(act3Ready&&act4Interact())return;if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
 bindInstantTap(document.getElementById('talk-button'),tryInteract);
 const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');bindInstantTap(skipAwakening,()=>skipIntroScene());}
 
@@ -1317,9 +1319,9 @@ function animate(){requestAnimationFrame(animate);if(vsOpen||gamePaused||menuGat
  const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);
  const talkButton=document.getElementById('talk-button');
  const nearbyVendor=nearestVillageVendor();
- const fightingNow=enemy.visible&&enemyAlive;const nearStone=nearestWaystone(),atShop=nearShopDoor(),act1Label=act1TalkLabel()||act2StoryLabel()||(act3Ready?act3Label():''),act2Label=act2TalkLabel()||(finaleReady?finaleTalkLabel():'')||(lateSystemsReady?lateTalkLabel():'');const canTalk=!!act1Label||!!act2Label||atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||!!nearbyVendor;
+ const fightingNow=enemy.visible&&enemyAlive;const nearStone=nearestWaystone(),atShop=nearShopDoor(),act1Label=act1TalkLabel()||act2StoryLabel()||(act3Ready?act3Label()||act4Label():''),act2Label=act2TalkLabel()||(finaleReady?finaleTalkLabel():'')||(lateSystemsReady?lateTalkLabel():'');const canTalk=!!act1Label||!!act2Label||atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||!!nearbyVendor;
  if(talkButton){const label=act1Label?act1Label:act2Label?act2Label:atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · MAPA':'REGISTRAR ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull||cineActive);}
- questMarker.visible=(questStep<15||isAct3Step(questStep))&&!portalPull&&(!voidMode||inSewer||inVolcano||!!act3Void)&&!cineActive;
+ questMarker.visible=(questStep<15||isAct3Step(questStep)||isAct4Step(questStep))&&!portalPull&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower)&&!cineActive;
  if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
  if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
@@ -1401,7 +1403,7 @@ if(firstPerson){
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossPowers(dt);updateFoeWeaponSkills(dt);updateAct2(dt,now);if(act3Ready)updateAct3(dt,now);if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossPowers(dt);updateFoeWeaponSkills(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -1676,6 +1678,7 @@ function beginDimensionFight(){
  if(b.key==='bishop1')setTimeout(valerioIntro,600);
  if(b.key==='bishop2')setTimeout(()=>{if(dimBattle&&dimBattle.key==='bishop2')playStory('vorgazhek',vorgazhekIntroScene(),{focus:'enemy',face:'enemy'});},600);
  if(b.key==='bishop3')setTimeout(zarkhaelIntro,600);
+ if(b.key==='bishop4')setTimeout(veraxionIntro,600);
 }
 function resetEnemyAfterDimension(){
  enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;
@@ -1707,6 +1710,7 @@ function dimensionPlayerDown(){
  if(b.key==='bishop1'){spendHeart('valerio');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(heartState.hearts<=0)enemy.visible=false;}
  else if(b.key==='bishop2')bossDefeatedPlayer();
  else if(b.key==='bishop3'&&questStep===ACT3N.boss){spendHeart('zarkhael');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(heartState.hearts<=0)enemy.visible=false;}
+ else if(b.key==='bishop4'&&questStep===ACT4N.boss){spendHeart('veraxion');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(heartState.hearts<=0)enemy.visible=false;}
  else lateBossPlayerDown();
  if(!enemy.visible)abortDimensionBattle();
 }
@@ -1732,7 +1736,7 @@ function valerioVictory(){
 const DIM_PORTAL_DEFS={
  bishop2:{at:()=>DISTRICT_SPOTS.plaza,from:()=>DISTRICT_SPOTS.gate,active:()=>false}, // MOD 205: o portal de VORGAZHEK fica no fundo do vulcão
  bishop3:{at:()=>stepDef(19).def.at,from:()=>({x:132,z:-22}),active:()=>false}, // MOD 206 — o portal de ZAR'KHAEL fica na dimensão distorcida
- bishop4:{at:()=>stepDef(25).def.at,from:()=>({x:-50,z:-224}),active:()=>questStep===25},
+ bishop4:{at:()=>stepDef(25).def.at,from:()=>({x:-50,z:-224}),active:()=>false}, // MOD 207 — o portal de VÉRAXION fica no 7º piso da torre
  greed:{at:()=>({x:FINAL_PORTAL.x,z:FINAL_PORTAL.z-10}),from:()=>({x:FINAL_PORTAL.x,z:FINAL_PORTAL.z+30}),active:()=>questStep>=FINALE.talk+1&&questStep<FINALE.done}
 };
 function dimPortalReturn(key){const def=DIM_PORTAL_DEFS[key],at=def.at(),from=def.from(),dx=from.x-at.x,dz=from.z-at.z,l=Math.hypot(dx,dz)||1;return{x:at.x+dx/l*12,z:at.z+dz/l*12};}
@@ -1960,6 +1964,7 @@ function renderShop(){
   if(sec.id==='arsenal'){const eq=document.createElement('button');eq.type='button';eq.textContent=equippedSword==='prota'?'EQUIPADA':'EQUIPAR';eq.disabled=equippedSword==='prota';bindInstantTap(eq,()=>{equipSword('prota');renderShop();});
    addCard('sword_prota','ESPADA INICIAL',SWORDS.prota.name,'A lâmina com que você despertou. Equilibrada, sem habilidade ativa.','INICIAL','','owned','',[eq]);}
   if(sec.id==='arsenal'&&coatOwned){const cb=document.createElement('button');cb.type='button';cb.textContent=coatOn?'DESEQUIPAR':'EQUIPAR';bindInstantTap(cb,()=>{setCoat(!coatOn);coatJustUnlocked=false;renderShop();status.textContent=coatOn?'Casaco equipado: o frio não te afeta.':'Casaco guardado.';});
+   if(scrollOwned)addCard('sword_prota','ENCANTAMENTO','Pergaminho de Encantamento','Presente da pessoa misteriosa, na estrada da torre. A espada equipada causa +20% de dano.','ATIVO','','owned','',[]);
    addCard('cat_arsenal','ROUPA','Casaco de Pele','Couro forrado de pele, comprado na estrada da cidade de neve. +15 de vida, +10% de recuperação de mana e proteção contra o frio.',coatOn?'EQUIPADO':'ADQUIRIDO','','owned','',[cb]);if(coatJustUnlocked){const last=body.lastElementChild;if(last)last.classList.add('is-new');}}
   for(const item of SHOP_ITEMS.filter(i=>i.sector===sec.id)){
    const st=shopStatus(item,shopCtx()),acts=[];
@@ -2191,11 +2196,12 @@ function cineDo(id,args){
 }
 function cineAsk(id){
  if(id==='nome'){openNamePrompt(()=>cineDirector.resume());return;}
- if(id==='casaco'){const c=cineEl('choice-card');if(c){cineEl('choice-text').textContent='Casaco de Pele · '+COAT.price+' moedas (você tem '+coins+').';c.hidden=false;}else cineDirector.resume();return;}
+ if(id==='pergaminho'){const c=cineEl('choice-card');if(c){choiceMode='pergaminho';c.querySelector('.mc-kicker').textContent='PESSOA MISTERIOSA';c.querySelector('h2').textContent='Pergaminho de Encantamento';cineEl('choice-text').textContent='Encanta a sua espada: +20% de dano.';cineEl('choice-yes').textContent='RECEBER';cineEl('choice-no').hidden=true;c.hidden=false;}else{scrollOwned=true;cineDirector.resume();}return;}
+ if(id==='casaco'){const c=cineEl('choice-card');if(c){choiceMode='casaco';c.querySelector('.mc-kicker').textContent='VENDEDOR DE CASACOS';c.querySelector('h2').textContent='Comprar o casaco?';cineEl('choice-yes').textContent='COMPRAR';cineEl('choice-no').hidden=false;cineEl('choice-text').textContent='Casaco de Pele · '+COAT.price+' moedas (você tem '+coins+').';c.hidden=false;}else cineDirector.resume();return;}
  if(id==='aceitar-missao'){cineEl('mission-kicker').textContent=MISSION_ACT1.kicker;cineEl('mission-title').textContent=MISSION_ACT1.title;cineEl('mission-objective').textContent=MISSION_ACT1.objective;cineEl('mission-card').hidden=false;return;}
  cineDirector.resume();
 }
-bindInstantTap(cineEl('choice-yes'),()=>{if(cineEl('choice-card').hidden)return;coatChoice(true);});
+bindInstantTap(cineEl('choice-yes'),()=>{if(cineEl('choice-card').hidden)return;if(choiceMode==='pergaminho')receiveScroll();else coatChoice(true);});
 bindInstantTap(cineEl('choice-no'),()=>{if(cineEl('choice-card').hidden)return;coatChoice(false);});
 bindInstantTap(cineEl('mission-accept'),()=>{if(cineEl('mission-card').hidden)return;cineEl('mission-card').hidden=true;cineAcceptMission();worldAudio.unlock();cineDirector.resume();});
 bindInstantTap(cineEl('cine-skip'),()=>{if(!cineDirector.running)return;const now=performance.now(),b=cineEl('cine-skip');if(now<cineSkipArmedUntil){cineSkipArmedUntil=0;cineDirector.skip();return;}cineSkipArmedUntil=now+2600;b.textContent='TOQUE DE NOVO PARA PULAR';setTimeout(()=>{if(performance.now()>=cineSkipArmedUntil)b.textContent='PULAR';},2700);});
@@ -2436,7 +2442,7 @@ function vibrate(ms){if(userSettings.vibration&&navigator.vibrate){try{navigator
 const _arrowV=new THREE.Vector3();
 function updateObjectiveArrow(){
  const el=document.getElementById('objective-arrow');if(!el)return;
- const show=userSettings.arrow&&questMarker.visible!==false&&!dialogueOpen&&!prologueActive&&!awakeningActive&&!cineActive&&(questStep<15||isAct3Step(questStep))&&(!voidMode||inSewer||inVolcano||!!act3Void);
+ const show=userSettings.arrow&&questMarker.visible!==false&&!dialogueOpen&&!prologueActive&&!awakeningActive&&!cineActive&&(questStep<15||isAct3Step(questStep)||isAct4Step(questStep))&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower);
  if(!show){if(!el.hidden)el.hidden=true;return;}
  const mx=questMarker.position.x,mz=questMarker.position.z,dist=Math.hypot(mx-player.position.x,mz-player.position.z);
  _arrowV.set(mx,questMarker.position.y+1,mz).project(camera);
@@ -2884,6 +2890,7 @@ var act1WardenClone=null;
 function storyDo(id,args){
  if(storyDo2(id,args))return;
  if(storyDo3(id,args))return;
+ if(storyDo4(id,args))return;
  const P=player.position;
  switch(id){
   case 'titulo':storyTitle(args.kicker,args.title);break;
@@ -3533,7 +3540,7 @@ function distortedCleared(){
 function startZarkhael(){
  updateHeartsHud(true);if(!canChallengeBishop(heartState)){showDialogue([{who:playerName||'Herói',text:'Meus corações se apagaram. Preciso esperar um voltar — '+formatTimer(msToNextHeart(heartState))+'.'}]);return;}
  act3Void=null;voidSpec.walk=null;distortControls(false);if(act3ZPortal)act3ZPortal.setActive(false);for(const c of act3Clones.splice(0))disposeClone(c);
- act1Advance(ACT3N.boss,0);
+ act1Advance(ACT3N.boss,0);delete storyAnchors.enemy;delete storyAnchors.sky;
  startDimensionBattle('bishop3',{hp:ACT3N.bossHp,returnTo:{x:SC.plaza.x+6,z:SC.plaza.z+6},onVictory:act3Victory,onAbort:()=>{enterAct3Void('distorcida',{x:DISTORTED.portal.x,z:DISTORTED.portal.z+6,yaw:Math.PI});act1Advance(ACT3N.cave,3);status.textContent="Sem corações. Recupere um e atravesse o portal de ZAR'KHAEL de novo.";}});
 }
 function zarkhaelIntro(){if(!dimBattle||dimBattle.key!=='bishop3'||questStep!==ACT3N.boss)return;playStory('zarkhael',zarkhaelIntroScene(),{focus:'enemy',face:'enemy'});}
@@ -3620,11 +3627,195 @@ function storyDo3(id,args){
  }
  return false;
 }
+/* MOD 207 — Marco 5: Ato IV como no roteiro original (docs/roteiro/M5-ATO4.md). A torre de VÉRAXION ocupa a antiga
+   Serra sem Ecos; cada piso é a mesma área abaixo do mundo (tema "tower"), redecorada. Modelo novo do Blender: TorreKit.glb. */
+var act4World=null,inTower=false,scrollOwned=!!saved3DProgress.scrollOwned,veraxionClaimed=!!saved3DProgress.veraxionClaimed,act4Clones=[],rivalRun=null,act4Rival=null,towerPortal=null,choiceMode='casaco';
+Object.assign(SPEAKER_ACTOR,{[SPEAKERS4.rival]:'rival',[SPEAKERS4.bandit]:'bandit',[SPEAKERS4.demon]:'enemy',[SPEAKERS4.miniboss]:'enemy',[SPEAKERS4.leader]:'enemy',[SPEAKERS4.greed]:'greed'});
+Object.assign(STORY_EYE,{tower:30});
+function towerLocal(p){const c=DIMENSIONS.torre.center;return{x:p.x+c.x,z:p.z+c.z};}
+function scrollMul(){return scrollMultiplier(typeof scrollOwned!=='undefined'&&scrollOwned);}
+function buildAct4World(){
+ if(act4World)return act4World;const W=act4World={kit:null};
+ // A antiga Serra sem Ecos (Ato IV anterior) sai de cena: o observatório, o abrigo e o pastor.
+ const o=stepDef(25).def.at;scene.traverse(m=>{if(m.parent===scene&&m.isGroup&&Math.abs(m.position.x-o.x)<.01&&Math.abs(m.position.z-o.z)<.01)m.visible=false;});
+ for(let i=marketObstacles.length-1;i>=0;i--){const b=marketObstacles[i];if(b.shape==='circle'&&Math.abs(Math.hypot(b.x-o.x,b.z-o.z)-11)<.05)marketObstacles.splice(i,1);}
+ if(lateNpcs.civil)lateNpcs.civil.visible=false;
+ new GLTFLoader().load('./TorreKit.glb?v=mod207',gltf=>{const kit={};for(const c of gltf.scene.children)kit[c.name]=c;W.kit=kit;
+  const B=TOWER.base,t=kit.Torre.clone();t.position.set(B.x,groundHeightAt(B.x,B.z)-.6,B.z);t.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;}});scene.add(t);W.tower=t;W.towerY=t.position.y;
+  W.towerBlock={x:B.x,z:B.z,shape:'circle',radius:TOWER.radius,height:60};marketObstacles.push(W.towerBlock);syncAct4World();
+ },undefined,e=>console.warn('TorreKit.glb não carregou.',e));
+ // Poeira da queda da torre.
+ const N=300,sp=new Float32Array(N*3),sv=[];for(let i=0;i<N;i++){sv.push({a:Math.random()*6.28,r:Math.random()*14,v:2+Math.random()*5});}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(sp,3));W.dust=new THREE.Points(g,new THREE.PointsMaterial({map:softDot,color:0x8a8478,size:5,transparent:true,opacity:.55,depthWrite:false}));W.dust.frustumCulled=false;W.dust.visible=false;scene.add(W.dust);W.dustV=sv;W.dustT=0;
+ return W;
+}
+function syncAct4World(){
+ const W=act4World;if(!W||!W.tower)return;const fallen=questStep>ACT4N.after||(questStep===ACT4N.after&&W.fell);
+ W.tower.visible=!fallen;const i=marketObstacles.indexOf(W.towerBlock);if(fallen&&i>=0)marketObstacles.splice(i,1);else if(!fallen&&i<0)marketObstacles.push(W.towerBlock);
+}
+function updateAct4World(dt){
+ const W=act4World;if(!W)return;
+ if(W.falling&&W.tower){W.fallT+=dt;const k=Math.min(1,W.fallT/4.5);W.tower.position.y=W.towerY-k*k*70;W.tower.rotation.z=k*k*.25;W.tower.rotation.x=k*.08;if(k>=1){W.falling=false;W.fell=true;W.tower.visible=false;}}
+ if(W.dust.visible){W.dustT+=dt;const a=W.dust.geometry.attributes.position,B=TOWER.base;for(let i=0;i<W.dustV.length;i++){const v=W.dustV[i],rr=v.r+W.dustT*v.v;a.array[i*3]=B.x+Math.cos(v.a)*rr;a.array[i*3+1]=groundHeightAt(B.x,B.z)+1+Math.min(14,W.dustT*v.v*.6);a.array[i*3+2]=B.z+Math.sin(v.a)*rr;}a.needsUpdate=true;W.dust.material.opacity=Math.max(0,.55-W.dustT*.05);if(W.dustT>11)W.dust.visible=false;}
+ for(const c of act4Clones)if(c.mixer)c.mixer.update(dt);
+ if(act4Rival)act4Rival.mixer.update(dt);
+ if(towerPortal&&towerPortal.visible)towerPortal.rotation.z+=dt*.9;
+}
+/* ---------- Pisos da torre ---------- */
+function enterTower(floor){
+ inTower=true;const a=getDimArena('torre');enterDimensionArena('torre');voidSpec.walk=towerWalkable;
+ const p=towerLocal(TOWER_HALL.spawn);player.position.set(p.x,voidSpec.y,p.z);playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;moveVX=moveVZ=0;checkpointX=p.x;checkpointZ=p.z;camera.position.set(p.x,voidSpec.y+3,p.z+6);
+ decorateFloor(a,floor);if(towerPortal)towerPortal.visible=false;act4World.floorDone=false;act4World.floorStarted=false;worldAudio.portalEnter();
+}
+function leaveTower(to){inTower=false;voidSpec.walk=null;leaveVoid();for(const c of act4Clones.splice(0))disposeClone(c);if(towerPortal)towerPortal.visible=false;const p=to||{x:TOWER.door.x,z:TOWER.door.z+3};player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);checkpointX=p.x;checkpointZ=p.z;}
+function decorateFloor(a,n){
+ const t=floorTint(n);if(a.refs.floorMat)a.refs.floorMat.color.setRGB(t[0]*2,t[1]*2,t[2]*2);if(a.refs.wallMat)a.refs.wallMat.color.setRGB(t[0]*.6,t[1]*.6,t[2]*.6);
+ if(!a.refs.rest&&act4World.kit){const kit=act4World.kit,grp=new THREE.Group();const bath=kit.Banheira.clone();bath.position.set(TOWER_HALL.bath.x,0,TOWER_HALL.bath.z);grp.add(bath);
+  const nk=act3World&&act3World.kit;if(nk&&nk.Cama){const bed=nk.Cama.clone();bed.position.set(TOWER_HALL.bed.x,0,TOWER_HALL.bed.z);bed.rotation.y=-Math.PI/2;grp.add(bed);}
+  for(const [x,z] of [[-9,4],[9,4],[0,-10]]){const b=kit.Braseiro.clone();b.position.set(x,0,z);grp.add(b);}a.group.add(grp);a.refs.rest=grp;}
+ if(a.refs.rest)a.refs.rest.visible=n===5;
+}
+function floorPortal(){
+ if(!towerPortal){const g=new THREE.Group(),ring=new THREE.Mesh(new THREE.TorusGeometry(1.6,.16,10,40),new THREE.MeshBasicMaterial({color:0xeef2ff,toneMapped:false}));g.add(ring);
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(1.5,40),new THREE.MeshBasicMaterial({color:0x10102a,transparent:true,opacity:.85,side:THREE.DoubleSide}));g.add(disc);g.add(glowSprite(0xdfe6ff,.6,5));scene.add(g);towerPortal=g;}
+ const c=towerLocal(TOWER_HALL.center);towerPortal.position.set(c.x,voidSpec.y+2.1,c.z);towerPortal.visible=true;
+}
+function startFloor(n){
+ const W=act4World;W.floorStarted=true;const foes=floorFoes(n),P=player.position;
+ storyAnchors.enemy={...towerLocal(TOWER_HALL.boss),y:voidSpec.y,yaw:0};
+ if(FLOORS[n].rest){act1Lock=true;playStory('piso5',floorIntroScene(5),{focus:'hero',done:()=>{act1Lock=false;}});return;}
+ const plain=foes.filter(f=>f.kind==='enemy4'),spots=TOWER_HALL.foes.slice(0,plain.length).map(towerLocal),done=()=>{W.floorDone=true;floorCleared(n);};
+ const big=foes.find(f=>f.kind!=='enemy4');
+ const startBig=hold=>{if(big.kind==='miniboss')startPack({rig:'enemy3',profile:'miniboss4',hp:ACT4N.minibossHp,spots:[towerLocal(TOWER_HALL.boss)],scale:1.8,hold,cloneOpts:{scale:1.8},onDone:done});else startPack({rig:'enemy4',profile:'leader4',hp:ACT4N.leaderHp,spots:[towerLocal(TOWER_HALL.boss)],scale:2,hold,cloneOpts:{scale:2},onDone:done});};
+ if(big&&big.kind==='leader'){loadRig('enemy4').then(()=>{const c=makeFoeClone('enemy4',towerLocal(TOWER_HALL.boss),{role:'idle',scale:2});if(c){c.holder.position.y=voidSpec.y;act4Clones.push(c);W.bigClone=c;}},()=>{});}
+ act1Lock=true;
+ if(plain.length)startPack({rig:'enemy4',profile:'demon4',hp:ACT4N.enemy4Hp,spots,hold:true,onDone:big?()=>{if(W.bigClone){disposeClone(W.bigClone);const i=act4Clones.indexOf(W.bigClone);if(i>=0)act4Clones.splice(i,1);W.bigClone=null;}startBig(false);}:done});
+ else startBig(true);
+ playStory('piso'+n,floorIntroScene(n),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});
+}
+function floorCleared(n){
+ const W=act4World,x=enemy.position.x,z=enemy.position.z;
+ if(n===6||n===7){const c=makeFoeClone(n===6?'enemy3':'enemy4',{x,z},{role:'idle',scale:n===6?1.8:2});if(c){c.holder.position.y=voidSpec.y;c.holder.scale.y*=.85;act4Clones.push(c);W.dying=c;storyAnchors.enemy={x,z,y:voidSpec.y,yaw:Math.atan2(player.position.x-x,player.position.z-z)};}}
+ act1Lock=true;
+ if(n===7){storyAnchors.sky={...towerLocal(TOWER_HALL.center),y:voidSpec.y+7,yaw:0};storyAnchors.portal={...towerLocal(TOWER_HALL.center),y:voidSpec.y+1,yaw:0};
+  playStory('lider-cai',leaderDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;act1Advance(ACT4N.boss,0);status.textContent='Entre no portal.';}});return;}
+ playStory('piso'+n+'-fim',floorClearScene(n),{focus:'hero',done:()=>{act1Lock=false;status.textContent='Suba para o próximo piso.';}});
+}
+/* ---------- Etapas do Ato IV ---------- */
+function updateAct4(dt,now){
+ if(questStep>=ACT4N.road&&!act4World)buildAct4World();
+ updateAct4World(dt);if(rivalRun)stepRivalRun(dt);
+ if(questStep<ACT4N.road||questStep>ACT4N.after)return;
+ if(!rigLoads.rival)loadRig('rival').catch(()=>{});if(questStep>=ACT4N.road&&!rigLoads.enemy4)loadRig('enemy4').catch(()=>{});if(questStep===ACT4N.boss&&!rigLoads.bishop4)loadRig('bishop4').catch(()=>{});
+ const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>{questMarker.visible=true;questMarker.position.set(p.x,(voidMode?voidSpec.y:terrainHeightAt(p.x,p.z))+.06,p.z);};
+ storyAnchors.tower={x:TOWER.base.x,z:TOWER.base.z,yaw:0};if(act4Rival){const h=act4Rival.holder;storyAnchors.rival={x:h.position.x,z:h.position.z,yaw:h.rotation.y};}
+ if(!act4World.resumed&&!act1Busy()){act4World.resumed=true;
+  if(questStep===ACT4N.road&&act1Sub===1&&!act4Rival)act1Advance(ACT4N.road,1);
+  if(questStep===ACT4N.after&&!act1Busy()){act1Lock=true;act4World.fell=true;syncAct4World();if(!act4Rival&&rigs.rival){const P=player.position;act4Rival=makeFoeClone('rival',{x:P.x+2.6,z:P.z+1.2},{role:'idle'});if(act4Rival)faceTo(act4Rival.holder,P);}playStory('misteriosa-revela',rivalRevealScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;finishAct4();}});return;}
+ }
+ const q=questStep,s=act1Sub;
+ if(q===ACT4N.road){
+  if(s===0){const B=TOWER.bandits[0];mark(B);if(near(B,10)&&!act1Busy()&&!pack){act1Lock=true;startPack({rig:'rival',profile:'bandit4',hp:ACT4N.banditHp,spots:TOWER.bandits,hold:true,onDone:()=>{act1Advance(ACT4N.road,1);status.textContent='Siga pela estrada da serra.';}});
+    storyAnchors.bandit={...TOWER.bandits[0],yaw:0};playStory('bandidos4',banditScene4(),{focus:'bandit',done:()=>{act1Lock=false;releasePack();}});}}
+  else if(s===1){const M=TOWER.rivalMeet;mark(M);
+   if(!act4Rival&&rigs.rival){act4Rival=makeFoeClone('rival',M,{role:'idle'});}
+   if(act4Rival&&near(M,8)&&!act1Busy()&&!rivalRun&&!act4World.met){act4World.met=true;act1Lock=true;faceTo(act4Rival.holder,player.position);faceTo(player,M);
+    playStory('reencontro',rivalReturnScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;rivalRun={path:TOWER.rivalPath.map(([x,z])=>({x,z})),i:0,speed:3.6};status.textContent='Siga a pessoa misteriosa.';}});}
+   if(rivalRun===null&&act4World.met&&act4World.arrived&&!act1Busy()&&near(TOWER.view,8)){act1Lock=true;faceTo(player,TOWER.base);playStory('torre',towerViewScene(),{focus:'rival',done:()=>{act1Lock=false;act1Advance(ACT4N.road,2);status.textContent='Entre na torre.';}});}
+   else if(act4World.arrived)mark(TOWER.view);
+  }
+  else mark(TOWER.door);
+  return;
+ }
+ if(q===ACT4N.tower){
+  if(!inTower){mark(TOWER.door);return;}
+  if(!act4World.floorStarted&&!act1Busy()&&!pack)startFloor(Math.max(1,s));
+  if(act4World.floorDone||(FLOORS[s]&&FLOORS[s].rest&&act4World.rested)){if(!towerPortal||!towerPortal.visible)floorPortal();mark(towerLocal(TOWER_HALL.center));}
+  else if(FLOORS[s]&&FLOORS[s].rest)mark(towerLocal(TOWER_HALL.restSpot));
+  return;
+ }
+ if(q===ACT4N.boss&&inTower){if(!towerPortal||!towerPortal.visible)floorPortal();mark(towerLocal(TOWER_HALL.center));}
+}
+function stepRivalRun(dt){
+ const r=rivalRun,c=act4Rival;if(!r||!c)return;const h=c.holder,t=r.path[r.i];
+ if(!t){rivalRun=null;act4World.arrived=true;faceTo(h,player.position);return;}
+ const dx=t.x-h.position.x,dz=t.z-h.position.z,d=Math.hypot(dx,dz);if(d<.4){r.i++;return;}
+ if(Math.hypot(player.position.x-h.position.x,player.position.z-h.position.z)>9){faceTo(h,player.position);return;}
+ const s=Math.min(d,dt*r.speed);h.position.x+=dx/d*s;h.position.z+=dz/d*s;h.position.y=terrainHeightAt(h.position.x,h.position.z);h.rotation.y=Math.atan2(dx,dz);
+ if(!r.running){r.running=true;const src=rigSource('rival');if(src&&src.actions.run){c.mixer.stopAllAction();c.mixer.clipAction(src.actions.run.getClip()).play();}}
+}
+function act4Label(){
+ if(cineActive||questStep<ACT4N.road||questStep>ACT4N.after)return '';const px=player.position.x,pz=player.position.z,d=(p,r)=>Math.hypot(p.x-px,p.z-pz)<=r,q=questStep,s=act1Sub;
+ if(!inTower){if((q===ACT4N.tower||(q===ACT4N.road&&s===2)||q===ACT4N.boss)&&d(TOWER.door,4.5))return 'ENTRAR';return '';}
+ const c=towerLocal(TOWER_HALL.center);
+ if(q===ACT4N.tower&&FLOORS[s]&&FLOORS[s].rest&&!act4World.rested&&d(towerLocal(TOWER_HALL.restSpot),3.5))return 'DESCANSAR';
+ if(q===ACT4N.tower&&towerPortal&&towerPortal.visible&&d(c,3))return 'SUBIR AO ' +(s+1)+'º PISO';
+ if(q===ACT4N.boss&&towerPortal&&towerPortal.visible&&d(c,3))return 'ENTRAR NO PORTAL';
+ return '';
+}
+function act4Interact(){
+ const l=act4Label();if(!l)return false;
+ if(l==='ENTRAR'){travelVeil(()=>{if(questStep===ACT4N.road)act1Advance(ACT4N.tower,1);if(act4Rival){disposeClone(act4Rival);act4Rival=null;}enterTower(questStep===ACT4N.boss?7:Math.max(1,act1Sub));if(questStep===ACT4N.boss){act4World.floorStarted=true;}});return true;}
+ if(l==='DESCANSAR'){act1Lock=true;playStory('descanso',restScene(),{focus:'hero',done:()=>{act1Lock=false;act4World.rested=true;}});return true;}
+ if(/^SUBIR AO/.test(l)){travelVeil(()=>{act4World.rested=false;act1Advance(ACT4N.tower,nextFloor(act1Sub));enterTower(act1Sub);});return true;}
+ if(l==='ENTRAR NO PORTAL'){startVeraxion();return true;}
+ return false;
+}
+function startVeraxion(){
+ updateHeartsHud(true);if(!canChallengeBishop(heartState)){showDialogue([{who:playerName||'Herói',text:'Meus corações se apagaram. Preciso esperar um voltar — '+formatTimer(msToNextHeart(heartState))+'.'}]);return;}
+ inTower=false;voidSpec.walk=null;if(towerPortal)towerPortal.visible=false;for(const c of act4Clones.splice(0))disposeClone(c);delete storyAnchors.enemy;delete storyAnchors.sky;delete storyAnchors.portal;
+ startDimensionBattle('bishop4',{hp:ACT4N.bossHp,returnTo:{x:TOWER.view.x,z:TOWER.view.z+6},onVictory:act4Victory,onAbort:()=>{enterTower(7);act4World.floorStarted=true;status.textContent='Sem corações. Recupere um e entre no portal de novo.';}});
+}
+function veraxionIntro(){if(!dimBattle||dimBattle.key!=='bishop4'||questStep!==ACT4N.boss)return;playStory('veraxion',veraxionIntroScene(),{focus:'enemy',face:'enemy'});}
+function act4Victory(){
+ const r=afterVeraxion({claimed:veraxionClaimed,bishopsDefeated});
+ if(r.coinsGained){coins+=r.coinsGained;gainXp(r.xpGained);bumpStat('bishops');}
+ bestiaryKnown.add('veraxion');bishopsDefeated=r.bishopsDefeated;veraxionClaimed=true;lateBossClaimed.veraxion=true;
+ enemy.visible=false;useRig('enemy1');const hud=document.getElementById('enemy-hud');if(hud)hud.classList.remove('boss');
+ act1Advance(ACT4N.after,0);setGameHour(17);showRewardPop((r.coinsGained?'+'+r.coinsGained+' MOEDAS · ':'')+(r.xpGained?'+'+r.xpGained+' XP':''));act1Toast('VÉRAXION CAIU · QUARTO SELO');
+ act1Lock=true;faceTo(player,TOWER.base);
+ playStory('torre-cai',towerFallScene(),{focus:'hero',done:()=>{act4World.resumed=true;
+  if(!act4Rival&&rigs.rival){const P=player.position;act4Rival=makeFoeClone('rival',{x:P.x+2.6,z:P.z+1.2},{role:'idle'});if(act4Rival)faceTo(act4Rival.holder,P);}
+  playStory('misteriosa-revela',rivalRevealScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;finishAct4();}});}});
+}
+function finishAct4(){
+ if(act4Rival){disposeClone(act4Rival);act4Rival=null;}
+ // O Ato V do roteiro (o coliseu) é o próximo marco; até lá, o jogo segue para o arco final atual (os guardiões e a Ganância).
+ questStep=ACT4N.next;act1Sub=0;save3DProgress();updateQuestHud();setCineFade(0,1.2,false);status.textContent='A pessoa misteriosa conhece um lugar para você se preparar.';
+}
+function receiveScroll(){
+ const card=document.getElementById('choice-card');if(card)card.hidden=true;choiceMode='casaco';
+ scrollOwned=true;save3DProgress();worldAudio.reveal();showRewardPop('PERGAMINHO · ESPADA +20% DE DANO');cineDirector.resume();
+}
+/** Ações das cenas do Ato IV (passos "do"). */
+function storyDo4(id,args){
+ const P=player.position;
+ switch(id){
+  case 'misteriosa-parte4':if(act4Rival){const c=act4Rival;storyFx.push({t:0,tick(t){c.holder.position.x+=.05;if(t>1.2){c.holder.visible=false;return false;}},finish(){c.holder.visible=false;}});}worldAudio.whoosh();return true;
+  case 'escada':floorPortal();worldAudio.portalEnter();return true;
+  case 'queimar4':{const c=act4World&&act4World.dying;worldAudio.magic('magic3');if(c){const fire=glowSprite(0xff5a10,.95,4);fire.position.copy(c.holder.position);fire.position.y+=2;scene.add(fire);
+   c.holder.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.emissive=new THREE.Color(0xff3000);o.material.emissiveIntensity=1.5;}});
+   storyFx.push({t:0,tick(t){fire.scale.setScalar(4+t*3);fire.material.opacity=Math.max(0,.95-t*.4);c.holder.scale.y=Math.max(.01,1.8*(1-t*.5));if(t>2){c.holder.visible=false;scene.remove(fire);return false;}},finish(){c.holder.visible=false;scene.remove(fire);}});}return true;}
+  case 'descansar':setCineFade(1,1.2,false);playerHP=playerMaxHP;playerMana=MANA.max;updatePlayerHud();return true;
+  case 'piscar4':{let n=0;const blink=()=>{setCineFade(n%2?.0:1,.22,true);n++;if(n<4)setTimeout(blink,330);else setCineFade(0,.8,true);};blink();return true;}
+  case 'portal-torre':floorPortal();worldAudio.portalEnter();storyFlash('#101020',600);return true;
+  case 'lembranca':{storyFlash('#300000',700);const e=enemy.position;storyAnchors.greed={x:e.x-2,z:e.z-1,y:e.y,yaw:Math.atan2(P.x-e.x,P.z-e.z)};
+   loadRig('greed1').then(()=>{const g=makeFoeClone('greed1',{x:e.x-2,z:e.z-1},{role:'idle'});if(g){g.holder.position.y=voidSpec.y;g.holder.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=.55;}});act4Clones.push(g);act4World.memory=g;}},()=>{});return true;}
+  case 'fim-lembranca':if(act4World&&act4World.memory){disposeClone(act4World.memory);const i=act4Clones.indexOf(act4World.memory);if(i>=0)act4Clones.splice(i,1);act4World.memory=null;}storyFlash('#300000',500);return true;
+  case 'dimensao-desaba4':cameraShake(.7);worldAudio.portalEnter();vibrate(120);return true;
+  case 'correr-mao':{const e=enemy.position;storyMove={from:{x:P.x,z:P.z},to:{x:e.x+(P.x-e.x)*.25,z:e.z+(P.z-e.z)*.25},t:0,dur:1.8,done:()=>{storyFlash('white',1400);}};if(actions.walk)play('walk',.2);return true;}
+  case 'torre-cai':if(act4World){act4World.falling=true;act4World.fallT=0;act4World.dust.visible=true;act4World.dustT=0;}cameraShake(.8);worldAudio.thunder&&worldAudio.thunder();vibrate(200);setTimeout(()=>syncAct4World(),4800);return true;
+  case 'misteriosa-volta':worldAudio.whoosh();if(act4Rival)act4Rival.holder.visible=true;return true;
+  case 'escuro4':setCineFade(1,1.2,false);return true;
+  case 'ato-5':{const card=cineEl('act-card');card.querySelector('#act-kicker').textContent='GALÁXIA 1 · GANÂNCIA';card.querySelector('h2').textContent='ATO V';card.querySelector('#act-bishop').textContent='A jornada para ficar mais forte';card.classList.remove('hidden');worldAudio.chapter();return true;}
+ }
+ return false;
+}
 /* ===================== MOD 196 — ATOS III E IV (motor genérico de etapas) ===================== */
 var lateFound=Array.isArray(saved3DProgress.lateFound)?saved3DProgress.lateFound.slice():[];
 var lateFightIndex=Number(saved3DProgress.lateFightIndex)||0,lateBossClaimed=Object.assign({},saved3DProgress.lateBossClaimed||{}),lateFoundStep=Number(saved3DProgress.lateFoundStep)||0;
 let lateBossActive=false,lateRigLoading=false,lateTaunted=-1;
-function lateDef(){if(questStep>=ACT3N.road&&questStep<=20)return null;const r=stepDef(questStep);return r?r.def:null;}
+function lateDef(){if(questStep>=ACT3N.road&&questStep<=25)return null;const r=stepDef(questStep);return r?r.def:null;}
 function lateEngaged(){const d=lateDef();return !!d&&((d.type==='fight')||(d.type==='boss'&&lateBossActive));}
 // ---------- Moradores dos Atos III e IV ----------
 const lateNpcs={};
@@ -3757,7 +3948,7 @@ function coliseumTick(){if(coliseum.active&&!coliseumNear()&&Math.hypot(COLISEUM
 function updateLate(dt,now){
  updateLateWeather(dt);lateFightTick();lateBossTick();coliseumTick();
  for(const idol of lateProps.idols){const done=questStep>18||(questStep===18&&lateFoundStep===18&&lateFound.includes(idol.index));if(done&&!idol.fallen)idol.fallen=true;if(idol.fallen&&idol.fallT<1){idol.fallT=Math.min(1,idol.fallT+dt*1.4);idol.fig.rotation.x=-idol.fallT*idol.fallT*1.45;idol.fig.position.z=idol.fallT*.9;}}
- for(const l of lateProps.letters){l.g.visible=questStep===24&&!(lateFoundStep===24&&lateFound.includes(l.index));if(l.g.visible)l.glow.material.opacity=.45+Math.sin(now*.004+l.index)*.25;}
+ for(const l of lateProps.letters){l.g.visible=false&&questStep===24&&!(lateFoundStep===24&&lateFound.includes(l.index));if(l.g.visible)l.glow.material.opacity=.45+Math.sin(now*.004+l.index)*.25;}
  const d=lateDef();
  if(d){let m=null;if(d.type==='talk')m=d.who==='guide'?guide.position:d.at;else if(d.type==='reach')m=d.at;else if(d.type==='fight')m=d.spots[Math.min(lateFightIndex,d.spots.length-1)];else if(d.type==='collect'){const i=d.items.findIndex((_,k)=>!(lateFoundStep===d.step&&lateFound.includes(k)));m=i>=0?d.items[i]:null;}else if(d.type==='boss'&&!lateBossActive)m=d.at;
   if(m){questMarker.visible=true;questMarker.position.set(m.x,terrainHeightAt(m.x,m.z)+.06,m.z);}else if(d.type==='boss')questMarker.visible=false;
@@ -4048,6 +4239,15 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   else if(step===19){go(SC.plaza.x+6,SC.plaza.z+6);}
   return this.storyState();
  },
+ act4(step,sub=0){
+  if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;awakeningActive=false;awakeningSeen=true;if(!playerName)playerName='Davi';
+  if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();if(act3Void)leaveAct3Void({x:0,z:-60});if(inTower)leaveTower();rivalRun=null;if(act4Rival){disposeClone(act4Rival);act4Rival=null;}
+  questStep=step;act1Sub=sub;act2Abyss=true;if(coins<40)coins=40;bishopsDefeated=Math.max(3,bishopsDefeated);valerioRewardClaimed=true;vorgazhekRewardClaimed=true;zarkhaelClaimed=true;save3DProgress();updateQuestHud();buildAct3World();buildAct4World();act4World.met=false;act4World.arrived=false;act4World.resumed=true;act4World.fell=false;syncAct4World();setGameHour(11);
+  const go=(x,z)=>player.position.set(x,terrainHeightAt(x,z),z);
+  if(step===21&&sub===0)go(-4,-140);else if(step===21&&sub===1)go(TOWER.rivalMeet.x,TOWER.rivalMeet.z+12);else if(step===21)go(TOWER.door.x,TOWER.door.z+8);
+  else if(step===22){enterTower(Math.max(1,sub));}else if(step===23){enterTower(7);act4World.floorStarted=true;}else go(TOWER.view.x,TOWER.view.z+6);
+  return this.storyState();
+ },
  coat(on){coatOwned=true;setCoat(on!==false);return{coatOwned,coatOn,maxHP:playerMaxHP};},
  act2(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;awakeningActive=false;awakeningSeen=true;if(!playerName)playerName='Davi';
@@ -4059,7 +4259,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   else if(step===14)go(D.plaza.x+26,D.plaza.z);
   return this.storyState();
  },
- storyState(){const st=cineDirector.step;return{q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label(),inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
+ storyState(){const st=cineDirector.step;return{q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label(),inTower,scroll:scrollOwned,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
  playAfterValerio(){afterValerioStory();},
  tapStory(){return cineDirector.tap();},
  speed(k){debugDtScale=Math.max(.1,Math.min(8,+k||1));return debugDtScale;},

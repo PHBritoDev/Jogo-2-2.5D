@@ -115,7 +115,10 @@ export function progressionFields(raw, questStep) {
     // MOD 206 — casaco de frio do Ato III (comprado na estrada da cidade de neve).
     coatOwned: !!r.coatOwned,
     coatOn: !!r.coatOwned && !!r.coatOn,
-    zarkhaelClaimed: !!r.zarkhaelClaimed
+    zarkhaelClaimed: !!r.zarkhaelClaimed,
+    // MOD 207 — pergaminho de encantamento do Ato IV.
+    scrollOwned: !!r.scrollOwned,
+    veraxionClaimed: !!r.veraxionClaimed
   };
 }
 
