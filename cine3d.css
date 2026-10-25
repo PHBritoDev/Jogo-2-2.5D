@@ -75,3 +75,22 @@ body.cinematic #hint,body.cinematic #objective-arrow,body.cinematic #enemy-hud,b
 .inv-row button{height:32px;padding:0 12px;white-space:nowrap;border-radius:999px;border:1px solid #d9bd79;background:transparent;color:#ffe2a0;font:700 11px system-ui,sans-serif;letter-spacing:.1em}
 .inv-row button:disabled{opacity:.6}
 .inv-empty{font:500 13px system-ui,sans-serif;color:#cfc2a4}
+
+/* MOD 209 — revanche dos quatro Bispos (tela de seleção com X). */
+#rematch-panel{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:12px;background:radial-gradient(circle at 50% 40%,#2a0612e6,#05020af5)}
+#rematch-panel[hidden]{display:none}
+#rematch-sheet{width:min(820px,100%);text-align:center;color:#f2e8d0}
+.rm-kicker{margin:0 0 4px;font:700 11px system-ui,sans-serif;letter-spacing:.32em;color:#ff6a6a}
+#rematch-sheet h2{margin:0 0 14px;font:600 clamp(18px,4vw,28px) Georgia,serif;letter-spacing:.12em;color:#ffe2a0}
+#rematch-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(6px,2vw,16px)}
+.rm-card{position:relative;border:2px solid #d9bd7955;border-radius:10px;overflow:hidden;background:#0008;aspect-ratio:3/4;display:flex;flex-direction:column;justify-content:flex-end}
+.rm-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.9)}
+.rm-card span{position:relative;padding:6px 4px;background:linear-gradient(transparent,#000c);font:700 clamp(9px,1.8vw,13px) system-ui,sans-serif;letter-spacing:.1em}
+.rm-card.next{border-color:#ff4a4a;box-shadow:0 0 22px #ff2a2a88;animation:rmPulse 1.6s ease-in-out infinite}
+.rm-card.done img{filter:grayscale(1) brightness(.45)}
+.rm-x{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:900 clamp(60px,14vw,120px) system-ui,sans-serif;color:#e01a1a;text-shadow:0 0 18px #000}
+.rm-actions{display:flex;gap:10px;justify-content:center;margin-top:16px}
+.rm-actions button{height:46px;padding:0 22px;border-radius:999px;font:800 13px system-ui,sans-serif;letter-spacing:.14em}
+#rematch-go{border:1px solid #ff6a5a;background:#c82020;color:#fff}
+#rematch-close{border:1px solid #d9bd7988;background:transparent;color:#f2e8d0}
+@keyframes rmPulse{50%{box-shadow:0 0 34px #ff2a2acc}}

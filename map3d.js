@@ -27,6 +27,7 @@ export const MAP_POIS = [
   { id: 'altar', name: 'Invernália', x: 150, z: -40, kind: 'village', revealRadius: 26 }, // MOD 206 — a cidade de neve do Ato III
   { id: 'serra', name: 'Torre de VÉRAXION', x: -36, z: -238, kind: 'village', revealRadius: 26 }, // MOD 207
   { id: 'coliseu', name: 'Coliseu da Ascensão', x: 150, z: -215, kind: 'village', revealRadius: 40 }, // MOD 208
+  { id: 'deserto', name: 'Deserto dos Fragmentos', x: 152, z: -124, kind: 'village', revealRadius: 30 }, // MOD 209
   { id: 'coliseu', name: 'Arena do Vale', x: 168, z: -70, kind: 'danger' }
 ];
 
