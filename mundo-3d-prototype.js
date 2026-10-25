@@ -14,6 +14,8 @@ import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SH
 import { MAP_STORE_KEY, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
+import { ACT5N, ROUNDS, SPEAKERS5, roundForSub, subForRound, act5Presentation, bestSword, journeyScene, arrivalScene, roundIntroScene, roundOutroScene, finalScene } from './act5-flow.js';
+import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inArena } from './coliseum3d.js';
 import { ACT4N, FLOORS, SPEAKERS4, act4Presentation, isAct4Step, floorFoes, nextFloor, scrollMultiplier, afterVeraxion, banditScene4, rivalReturnScene, towerViewScene, floorIntroScene, floorClearScene, restScene, leaderDefeatScene, veraxionIntroScene, veraxionDefeatScene, towerFallScene, rivalRevealScene } from './act4-flow.js';
 import { TOWER, TOWER_HALL, towerWalkable, floorTint } from './tower3d.js';
 import { ACT3N, SPEAKERS3, act3Presentation, isAct3Step, buyCoat, afterZarkhael, coatOfferScene, coatAcceptScene, coatRefuseScene, coatNoMoneyScene, COLD_LINE, snowArrivalScene, fisherScene, villagerScene, innScene, bedScene, cellarScene, cellarDefeatScene, raidScene, guillotineScene, caveArrivalScene, caveEndScene, distortedScene, distortedDefeatScene, zarkhaelIntroScene, zarkhaelDefeatScene, angelQuestionScene, angelTruthScene } from './act3-flow.js';
@@ -115,13 +117,15 @@ const SHOP_SPOT={x:-33,z:-45},shopTrail=[[-12.2,-44.5],[-18,-45.6],[-24,-45.2],[
 // Mod 195 — trilha da vila até o Distrito da Ferrugem (Ato II), pela Garganta da Dívida.
 // Mod 196 — trilhas do Vale do Altar (leste) e da Serra sem Ecos (sul).
 const altarTrail=[[2.2,-43],[20,-38],[44,-33],[60,-32]].concat(EXTRA_PASSES[0],[[132,-38],[150,-40]]),serraTrail=[[-2,-76],[-6,-110],[-4,-132]].concat(EXTRA_PASSES[1],[[-34,-226]]);
+// MOD 208 — trilha da torre (serra) até o Coliseu da Ascensão (leste), pela passagem longa.
+const colosseumTrail=[[-36,-238]].concat(COLOSSEUM_PASS,[[COLOSSEUM.gate.x,COLOSSEUM.gate.z]]);
 const districtTrail=[[-27.4,-45],[-40,-49],[-56,-56]].concat(DISTRICT_PASS,[[-130,-62],[DISTRICT_SPOTS.plaza.x,DISTRICT_SPOTS.plaza.z]]);
 const terrain3D=createTerrain({
  hill:hillHeightAt,
- keepouts:[{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:-12,z:-97,r:7,fade:5},{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z,r:9,fade:6},{x:MASSACRE_SPOT.x,z:MASSACRE_SPOT.z,r:6,fade:5},{x:SEWER_DOOR.x,z:SEWER_DOOR.z,r:5,fade:4},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:DISTRICT_SPOTS.plaza.x,z:DISTRICT_SPOTS.plaza.z,r:22,fade:8},{x:ALTAR_VALLEY.cx,z:ALTAR_VALLEY.cz,r:16,fade:8},{x:SERRA.cx,z:SERRA.cz-8,r:16,fade:8},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
+ keepouts:[{x:COLOSSEUM.center.x,z:COLOSSEUM.center.z,r:40,fade:8},{x:-36,z:-256,r:14,fade:6},{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:-12,z:-97,r:7,fade:5},{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z,r:9,fade:6},{x:MASSACRE_SPOT.x,z:MASSACRE_SPOT.z,r:6,fade:5},{x:SEWER_DOOR.x,z:SEWER_DOOR.z,r:5,fade:4},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:DISTRICT_SPOTS.plaza.x,z:DISTRICT_SPOTS.plaza.z,r:22,fade:8},{x:ALTAR_VALLEY.cx,z:ALTAR_VALLEY.cz,r:16,fade:8},{x:SERRA.cx,z:SERRA.cz-8,r:16,fade:8},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
  ponds:[FOREST_POND],
- extraAreas:[DISTRICT,...EXTRA_REGIONS],passes:[{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS}))],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
- paths:[{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5}]
+ extraAreas:[DISTRICT,...EXTRA_REGIONS,COLOSSEUM_REGION],passes:[{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
+ paths:[{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:colosseumTrail,r:4,fade:5}]
 });
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
 function groundHeightAt(x,z){if(voidMode)return voidSpec.y;return terrain3D.height(x,z);}
@@ -247,7 +251,7 @@ const treeObstacles=[],rockObstacles=[],marketObstacles=[],walkableObstacles=[],
 const leafMid=mat(0x245035),mossMatA=mat(0x34522e),mossMatB=mat(0x465e32),grassMatA=mat(0x58763d),grassMatB=mat(0x304d31);
 const canopyWindUniforms=[leafMat,leafMid,leafLight].map((material,i)=>addInstancedWind(material,.075,'clamp((position.y+1.175)/2.35,0.0,1.0)',.72,'forest-canopy-wind-v163-'+i));
 for(const material of [leafMat,leafMid,leafLight,barkMat])addNearCameraFade(material);
-const trailRoutes=[{points:startTrail,width:3.4},{points:mainTrail,width:5.2},{points:villageTrail,width:4.0},{points:shopTrail,width:3.4},{points:districtTrail,width:3.6},{points:altarTrail,width:3.4},{points:serraTrail,width:3.4}];
+const trailRoutes=[{points:startTrail,width:3.4},{points:mainTrail,width:5.2},{points:villageTrail,width:4.0},{points:shopTrail,width:3.4},{points:districtTrail,width:3.6},{points:altarTrail,width:3.4},{points:serraTrail,width:3.4},{points:colosseumTrail,width:3.4}];
 function addTrail(points,width){
  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],groundHeightAt(p[0],p[1]),p[1])),false,'centripetal');
  const steps=Math.max(48,points.length*14),vertices=[],uvs=[],indices=[];
@@ -280,6 +284,8 @@ function forestSpotFree(x,z){
  if(WAYSTONES.some(w=>Math.hypot(x-w.x,z-w.z)<4.2)||Math.hypot(x-SHOP_SPOT.x,z-SHOP_SPOT.z)<10)return false;
  if(Math.abs(x-DISTRICT.cx)<DISTRICT.hx+4&&Math.abs(z-DISTRICT.cz)<DISTRICT.hz+4)return false; // distrito em ruínas: sem mata densa
  if(Math.hypot(x-ALTAR_VALLEY.cx,z-ALTAR_VALLEY.cz)<24||Math.hypot(x-SERRA.cx,z-SERRA.cz+8)<18)return false;
+ if(Math.hypot(x-COLOSSEUM.center.x,z-COLOSSEUM.center.z)<41||Math.hypot(x+36,z+256)<15)return false; // MOD 207/208 — torre e coliseu
+
  if(Math.hypot(x-SECRET_RUIN_SPOT.x,z-SECRET_RUIN_SPOT.z)<4.4||Math.hypot(x-PORTAL.x,z-PORTAL.z)<9.5||Math.hypot(x+12,z+97)<6.5||Math.hypot(x-AWAKE_SPOT.x,z-AWAKE_SPOT.z)<8||Math.hypot(x-MASSACRE_SPOT.x,z-MASSACRE_SPOT.z)<6||Math.hypot(x-SEWER_DOOR.x,z-SEWER_DOOR.z)<6)return false;
  return !trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+1.25));
 }
@@ -495,7 +501,7 @@ let grassRefresh=null;
 function scatterGrassTufts(geometry){
  const lowSpec=terrainLowSpec,CHUNK=10,R=lowSpec?2:3,PER=lowSpec?22:26,cap=(2*R+1)*(2*R+1)*PER;
  const mesh=new THREE.InstancedMesh(geometry,grassMaterial,cap),dummy=new THREE.Object3D(),cache=new Map();
- const blocked=(x,z)=>{if(!dryGround(x,z))return true;if(Math.abs(x-ALTAR_VALLEY.cx)<ALTAR_VALLEY.hx+8&&Math.abs(z-ALTAR_VALLEY.cz)<ALTAR_VALLEY.hz+8)return true; // MOD 206 — sem capim na neve
+ const blocked=(x,z)=>{if(!dryGround(x,z))return true;if(Math.abs(x-ALTAR_VALLEY.cx)<ALTAR_VALLEY.hx+8&&Math.abs(z-ALTAR_VALLEY.cz)<ALTAR_VALLEY.hz+8)return true;if(Math.hypot(x-COLOSSEUM.center.x,z-COLOSSEUM.center.z)<38)return true; // MOD 206 — sem capim na neve
 if(Math.abs(x-DISTRICT.cx)<DISTRICT.hx-2&&Math.abs(z-DISTRICT.cz)<DISTRICT.hz-2&&((x*7.3+z*3.1)%5+5)%5>1.2)return true;if(Math.hypot(x,z-4)<5.8||Math.hypot(x-CLEARING.x,z-CLEARING.z)<6.8||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1.6)return true;if(trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+.6)))return true;if(treeObstacles.some(o=>Math.abs(x-o.x)<o.radius+.5&&Math.hypot(x-o.x,z-o.z)<o.radius+.5))return true;if(rockObstacles.some(o=>Math.abs(x-o.x)<o.radius+.32&&Math.hypot(x-o.x,z-o.z)<o.radius+.32))return true;return marketObstacles.some(o=>o.shape==='box'?Math.abs(x-o.x)<o.halfX+.35&&Math.abs(z-o.z)<o.halfZ+.35:Math.hypot(x-o.x,z-o.z)<o.radius+.35);};
  function chunk(cx,cz){const key=cx+','+cz;let list=cache.get(key);if(list)return list;list=[];let seed=((cx*73856093)^(cz*19349663))>>>0||1;const next=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   for(let i=0;i<PER*2&&list.length<PER;i++){const x=(cx+next())*CHUNK,z=(cz+next())*CHUNK;
@@ -1036,7 +1042,7 @@ function updateSkillHud(now){
  }
  const fill=document.getElementById('player-mana-fill');if(fill){const w=Math.round(playerMana/MANA.max*100);if(fill.dataset.w!==String(w)){fill.dataset.w=String(w);fill.style.width=w+'%';}}
 }
-function updateQuestHud(){refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||(isAct4Step(questStep)?act4Presentation(questStep,act1Sub):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
+function updateQuestHud(){refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=(questStep===ACT5N.step?act5Presentation(act1Sub):null)||finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||(isAct4Step(questStep)?act4Presentation(questStep,act1Sub):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
 function showActCard(){if(actCardSeen)return;actCardSeen=true;save3DProgress();const card=document.getElementById('act-card');if(!card)return;card.classList.remove('hidden');const hide=()=>{card.classList.add('hidden');card.removeEventListener('pointerdown',hide);};card.addEventListener('pointerdown',hide);setTimeout(hide,3400);}
 function finishAwakening(){if(!awakeningActive&&awakeningSeen)return;awakeningActive=false;awakeningSeen=true;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');save3DProgress();}
 let namePromptBound=null;
@@ -1071,7 +1077,7 @@ function finalePresentationFor(step){const pages={26:['ARCO FINAL · QUATRO FEND
 function combatStepNow(){return (dimBattle&&dimBattle.active)||(typeof pack!=="undefined"&&!!pack&&pack.active)||questStep===2||questStep===3||questStep===4||questStep===5||questStep===13||(lateSystemsReady&&(lateEngaged()||coliseum.active))||(finaleReady&&finaleCombatActive());}
 function enemyHpPercent(){return Math.max(0,Math.min(100,enemyHP/Math.max(1,enemyMaxHP)*100));}
 function nextDashCooldown(){if(encounterProfile==='warden')return 2.15;if(encounterProfile==='sentry'&&mountainIndex>0)return 1.65;return 2.7;}
-function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;const dimInfo=dimensionForProfile(encounterProfile);el.textContent=dimBattle&&dimBattle.active&&dimInfo?dimInfo.name+' · '+(dimInfo.order<5?dimInfo.order+'º BISPO':'PECADO'):(finaleReady&&finaleNameFor(encounterProfile))?finaleNameFor(encounterProfile):encounterProfile==='vorgazhek'?'VORGAZHEK · SEGUNDO BISPO':encounterProfile==='arena'?'ARENA DO VALE':(lateSystemsReady&&lateDef()&&lateDef().profile===encounterProfile)?lateDef().name:encounterProfile==='warden'?'GUARDIÃO DO PORTAL':(encounterProfile==='demon2'||encounterProfile==='demon3')?'DEMÔNIO DA GANÂNCIA':encounterProfile==='miniboss3'?'GUARDIÃO DA DISTORÇÃO':encounterProfile==='angel'?'ANJO-GUIA':encounterProfile==='demon4'?'GUARDIÃO DA TORRE':encounterProfile==='miniboss4'?'GUARDIÃO DO 6º PISO':encounterProfile==='leader4'?'LÍDER DOS GUARDIÕES':encounterProfile==='bandit4'?'BANDIDO':encounterProfile==='rival'?'DESCONHECIDO':encounterProfile==='miniboss2'?'GUARDIÃO DO TRONO':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
+function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;const dimInfo=dimensionForProfile(encounterProfile);el.textContent=dimBattle&&dimBattle.active&&dimInfo?dimInfo.name+' · '+(dimInfo.order<5?dimInfo.order+'º BISPO':'PECADO'):(finaleReady&&finaleNameFor(encounterProfile))?finaleNameFor(encounterProfile):encounterProfile==='vorgazhek'?'VORGAZHEK · SEGUNDO BISPO':encounterProfile==='arena'?'ARENA DO VALE':(lateSystemsReady&&lateDef()&&lateDef().profile===encounterProfile)?lateDef().name:encounterProfile==='warden'?'GUARDIÃO DO PORTAL':(encounterProfile==='demon2'||encounterProfile==='demon3')?'DEMÔNIO DA GANÂNCIA':encounterProfile==='miniboss3'?'GUARDIÃO DA DISTORÇÃO':ROUND_NAMES[encounterProfile]?ROUND_NAMES[encounterProfile]:encounterProfile==='angel'?'ANJO-GUIA':encounterProfile==='demon4'?'GUARDIÃO DA TORRE':encounterProfile==='miniboss4'?'GUARDIÃO DO 6º PISO':encounterProfile==='leader4'?'LÍDER DOS GUARDIÕES':encounterProfile==='bandit4'?'BANDIDO':encounterProfile==='rival'?'DESCONHECIDO':encounterProfile==='miniboss2'?'GUARDIÃO DO TRONO':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
 function advanceAfterEnemyDefeat(){if(dimBattle&&dimBattle.active){if(dimBattle.key==='bishop1'&&!dimBattle.outro){dimBattle.outro=true;valerioOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
 function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
@@ -1321,7 +1327,7 @@ function animate(){requestAnimationFrame(animate);if(vsOpen||gamePaused||menuGat
  const nearbyVendor=nearestVillageVendor();
  const fightingNow=enemy.visible&&enemyAlive;const nearStone=nearestWaystone(),atShop=nearShopDoor(),act1Label=act1TalkLabel()||act2StoryLabel()||(act3Ready?act3Label()||act4Label():''),act2Label=act2TalkLabel()||(finaleReady?finaleTalkLabel():'')||(lateSystemsReady?lateTalkLabel():'');const canTalk=!!act1Label||!!act2Label||atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||!!nearbyVendor;
  if(talkButton){const label=act1Label?act1Label:act2Label?act2Label:atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · MAPA':'REGISTRAR ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull||cineActive);}
- questMarker.visible=(questStep<15||isAct3Step(questStep)||isAct4Step(questStep))&&!portalPull&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower)&&!cineActive;
+ questMarker.visible=(questStep<15||isAct3Step(questStep)||isAct4Step(questStep)||questStep===ACT5N.step)&&!portalPull&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower)&&!cineActive;
  if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
  if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
@@ -1403,7 +1409,7 @@ if(firstPerson){
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossPowers(dt);updateFoeWeaponSkills(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossPowers(dt);updateFoeWeaponSkills(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -1946,8 +1952,8 @@ function openShop(){
  shopOpen=true;shopConfirm=null;setDefending(false);const panel=document.getElementById('shop-panel');if(panel)panel.hidden=false;renderShop();
 }
 function closeShop(){shopOpen=false;shopConfirm=null;const panel=document.getElementById('shop-panel');if(panel)panel.hidden=true;}
-const SHOP_ART={magic:'magic',magic2:'magic2',magic3:'magic3',ultimate:'ultimate',magic_plus:'magic_plus',magic2_plus:'magic2_plus',aurora:'sword_aurora',vigilia:'sword_vigilia'};
-const SHOP_TAGS={magic:'HABILIDADE 1',magic2:'HABILIDADE 2',magic3:'HABILIDADE 3',ultimate:'ULTIMATE',magic_plus:'APRIMORAMENTO 1',magic2_plus:'APRIMORAMENTO 2',aurora:'ESPADA',vigilia:'ESPADA'};
+const SHOP_ART={magic:'magic',magic2:'magic2',magic3:'magic3',ultimate:'ultimate',magic_plus:'magic_plus',magic2_plus:'magic2_plus',aurora:'sword_aurora',vigilia:'sword_vigilia',celeste:'sword_aurora'};
+const SHOP_TAGS={magic:'HABILIDADE 1',magic2:'HABILIDADE 2',magic3:'HABILIDADE 3',ultimate:'ULTIMATE',magic_plus:'APRIMORAMENTO 1',magic2_plus:'APRIMORAMENTO 2',aurora:'ESPADA',vigilia:'ESPADA',celeste:'RELÍQUIA'};
 const SHOP_NAV={escrituras:['Habilidades','cat_escrituras'],arsenal:['Equipamentos','cat_arsenal'],conquistas:['Conquistas','cat_conquistas'],arquivo:['Arquivo','cat_arquivo'],fragmentos:['Especiais','cat_fragmentos']};
 function shopArt(name,locked){return '<div class="shop-art'+(locked?' is-locked':'')+'">'+iconSvg(name,{size:96})+(locked?'<span class="shop-lock">'+iconSvg('lock',{size:34}).replace('class="art-svg"','class="art-svg lock"')+'</span>':'')+'</div>';}
 function renderShop(){
@@ -2020,7 +2026,7 @@ function alignAuroraToSwordRoot(aurora){
  aurora.scale.setScalar(size[axis]*1.06/1.38);holder.add(aurora);return holder;
 }
 let auroraHand=null,auroraFpTemplate=null;
-const SWORD_PALETTES={aurora:{blade:0xf3f0e6,edge:0xffe6b0,fuller:0xffd56a,gold:0xe2b04a,pommel:0xffc24a},vigilia:{blade:0xdfe8f5,edge:0x9fc4ff,fuller:0x8fd0ff,gold:0x9aa8c0,pommel:0x7ab8ff}};
+const SWORD_PALETTES={aurora:{blade:0xf3f0e6,edge:0xffe6b0,fuller:0xffd56a,gold:0xe2b04a,pommel:0xffc24a},vigilia:{blade:0xdfe8f5,edge:0x9fc4ff,fuller:0x8fd0ff,gold:0x9aa8c0,pommel:0x7ab8ff},celeste:{blade:0xffffff,edge:0xfff6d8,fuller:0xfff2b0,gold:0xffd86a,pommel:0xffffff}};
 const swordHands={},swordFpTemplates={};
 function equipSword(id){
  if(id!=='prota'&&!ownedItems.has(id))return;equippedSword=id;save3DProgress();
@@ -2442,7 +2448,7 @@ function vibrate(ms){if(userSettings.vibration&&navigator.vibrate){try{navigator
 const _arrowV=new THREE.Vector3();
 function updateObjectiveArrow(){
  const el=document.getElementById('objective-arrow');if(!el)return;
- const show=userSettings.arrow&&questMarker.visible!==false&&!dialogueOpen&&!prologueActive&&!awakeningActive&&!cineActive&&(questStep<15||isAct3Step(questStep)||isAct4Step(questStep))&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower);
+ const show=userSettings.arrow&&questMarker.visible!==false&&!dialogueOpen&&!prologueActive&&!awakeningActive&&!cineActive&&(questStep<15||isAct3Step(questStep)||isAct4Step(questStep)||questStep===ACT5N.step)&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower);
  if(!show){if(!el.hidden)el.hidden=true;return;}
  const mx=questMarker.position.x,mz=questMarker.position.z,dist=Math.hypot(mx-player.position.x,mz-player.position.z);
  _arrowV.set(mx,questMarker.position.y+1,mz).project(camera);
@@ -2891,6 +2897,7 @@ function storyDo(id,args){
  if(storyDo2(id,args))return;
  if(storyDo3(id,args))return;
  if(storyDo4(id,args))return;
+ if(storyDo5(id,args))return;
  const P=player.position;
  switch(id){
   case 'titulo':storyTitle(args.kicker,args.title);break;
@@ -3811,6 +3818,201 @@ function storyDo4(id,args){
  }
  return false;
 }
+/* MOD 208 — Marco 6: Ato V como no roteiro original (docs/roteiro/M6-ATO5.md). O Coliseu da Ascensão fica num vale novo
+   a leste da torre; oito rounds com inimigos "evoluídos" (auras), a torcida de demônios e a pessoa misteriosa lutando ao
+   lado do herói no último round. Modelo novo do Blender: Coliseu.glb (arena, arquibancada, espectadores e estandartes). */
+var act5Fx=[],act5World=null,act5Sandra=null,sandraRun=null,act5Round=null,act5Auras=[],act5Ally=null,inventoryOpen=false;
+const ROUND_NAMES={evo1:'SEGUIDOR EVOLUÍDO',evo2:'DEMÔNIO EVOLUÍDO',evo3:'CARRASCO EVOLUÍDO',elite1:'ELITE DOS SEGUIDORES',elite2:'ELITE DOS DEMÔNIOS',elite3:'ELITE DOS CARRASCOS',elite4:'ELITE DOS GUARDIÕES'};
+Object.assign(SPEAKER_ACTOR,{[SPEAKERS5.e1]:'enemy',[SPEAKERS5.e2]:'enemy',[SPEAKERS5.e3]:'enemy',[SPEAKERS5.m1]:'enemy',[SPEAKERS5.m2]:'enemy',[SPEAKERS5.m3]:'enemy',[SPEAKERS5.m4]:'enemy'});
+Object.assign(STORY_EYE,{colosseum:6});
+function buildAct5World(){
+ if(act5World)return act5World;const W=act5World={kit:null,crowd:[],excite:{value:.2},time:{value:0}};
+ for(const c of colosseumColliders())marketObstacles.push({x:c.x,z:c.z,shape:'circle',radius:c.r,height:20});
+ new GLTFLoader().load('./Coliseu.glb?v=mod208',gltf=>{const kit={};for(const c of gltf.scene.children)kit[c.name]=c;W.kit=kit;
+  const C=COLOSSEUM,y=groundHeightAt(C.center.x,C.center.z),col=kit.Coliseu.clone();col.position.set(C.center.x,y-.15,C.center.z);col.rotation.y=C.yaw;col.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;}});scene.add(col);W.col=col;W.colY=col.position.y;
+  // Braseiros no muro do pódio e estandartes nos mastros.
+  for(let i=0;i<8;i++){const a=i/8*Math.PI*2+Math.PI/8,b=kit.Braseiro.clone();b.position.set(C.center.x+Math.cos(a)*17.4,y+2.55,C.center.z+Math.sin(a)*17.4);scene.add(b);W.crowd.push(b);
+   const l=new THREE.PointLight(0xff6a20,1.3,16,1.6);l.position.set(b.position.x,b.position.y+2.4,b.position.z);if(i%2===0){scene.add(l);W.crowd.push(l);}
+   const e=kit.Estandarte.clone(),r=C.wall-.4;e.position.set(C.center.x+Math.cos(a)*r,y+27.6,C.center.z+Math.sin(a)*r);e.rotation.y=-a+Math.PI/2;scene.add(e);W.crowd.push(e);}
+  // A torcida: milhares de demônios instanciados nos degraus (fora dos portões), pulando com a luta.
+  const N=terrainLowSpec?650:1500,mats=[];const src=[];kit.Espectador.traverse(o=>{if(o.isMesh)src.push(o);});
+  const spots=[];for(let k=0;k<9&&spots.length<N*3;k++){const r0=18+k*15/9+.8,h=2.6+(k+1)*1.15,cnt=Math.floor(2*Math.PI*r0/.95);for(let i=0;i<cnt;i++){const a=i/cnt*Math.PI*2;if([0,Math.PI/2,Math.PI,Math.PI*1.5,Math.PI*2].some(g=>Math.abs(a-g)<.2))continue;spots.push({a,r:r0+(Math.random()-.5)*.3,h});}}
+  for(let i=spots.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[spots[i],spots[j]]=[spots[j],spots[i]];}
+  const use=spots.slice(0,N),d=new THREE.Object3D();
+  for(const m of src){const mat=m.material.clone();mat.onBeforeCompile=sh=>{sh.uniforms.uTime=W.time;sh.uniforms.uExcite=W.excite;sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uTime;uniform float uExcite;').replace('#include <begin_vertex>','#include <begin_vertex>\nfloat ph=float(gl_InstanceID)*1.713;transformed.y+=max(0.0,sin(uTime*(5.0+mod(ph,3.0))+ph))*(0.05+0.45*uExcite);transformed.x+=sin(uTime*2.0+ph)*0.04*uExcite;');};mat.customProgramCacheKey=()=>'mod208-crowd';
+   const im=new THREE.InstancedMesh(m.geometry,mat,use.length);use.forEach((s,i)=>{d.position.set(C.center.x+Math.cos(s.a)*s.r,y+s.h,C.center.z+Math.sin(s.a)*s.r);d.rotation.set(0,Math.atan2(-Math.cos(s.a),-Math.sin(s.a)),0);const sc=.9+Math.random()*.35;d.scale.setScalar(sc*1.15);d.updateMatrix();im.setMatrixAt(i,d.matrix);});
+   im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;scene.add(im);W.crowd.push(im);}
+  syncAct5World();
+ },undefined,e=>console.warn('Coliseu.glb não carregou.',e));
+ // Poeira do desabamento.
+ const N=360,g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(N*3),3));W.dustV=[];for(let i=0;i<N;i++)W.dustV.push({a:Math.random()*6.28,r:10+Math.random()*28,v:2+Math.random()*6});
+ W.dust=new THREE.Points(g,new THREE.PointsMaterial({map:softDot,color:0x7a5a4a,size:7,transparent:true,opacity:.6,depthWrite:false}));W.dust.frustumCulled=false;W.dust.visible=false;scene.add(W.dust);
+ return W;
+}
+function syncAct5World(){const W=act5World;if(!W||!W.col)return;const gone=questStep>ACT5N.step||W.fell;W.col.visible=!gone;for(const c of W.crowd)c.visible=!gone;
+ if(gone&&!W.freed){W.freed=true;for(let i=marketObstacles.length-1;i>=0;i--){const o=marketObstacles[i];if(o.height===20&&Math.hypot(o.x-COLOSSEUM.center.x,o.z-COLOSSEUM.center.z)<40)marketObstacles.splice(i,1);}}}
+function updateAct5World(dt,now){
+ const W=act5World;if(!W)return;W.time.value=now*.001;
+ const target=act5Round&&enemy.visible?1:(questStep===ACT5N.step&&act1Sub>=ACT5N.arrival?.3:.15);W.excite.value+=(target-W.excite.value)*Math.min(1,dt*2);
+ const near=Math.hypot(player.position.x-COLOSSEUM.center.x,player.position.z-COLOSSEUM.center.z)<70&&W.col&&W.col.visible&&!voidMode;worldAudio.setCrowd&&worldAudio.setCrowd(near?W.excite.value:0);
+ if(W.falling&&W.col){W.fallT+=dt;const k=Math.min(1,W.fallT/5);W.col.position.y=W.colY-k*k*26;W.col.rotation.z=Math.sin(W.fallT*9)*.01*(1-k);for(const c of W.crowd){if(c.userData.y0===undefined)c.userData.y0=c.position.y;c.position.y=c.userData.y0-k*k*26;}if(k>=1){W.falling=false;W.fell=true;syncAct5World();}}
+ if(W.dust.visible){W.dustT+=dt;const a=W.dust.geometry.attributes.position,C=COLOSSEUM.center,gy=groundHeightAt(C.x,C.z);for(let i=0;i<W.dustV.length;i++){const v=W.dustV[i],rr=v.r+W.dustT*v.v*.6;a.array[i*3]=C.x+Math.cos(v.a)*rr;a.array[i*3+1]=gy+1+Math.min(18,W.dustT*v.v*.7);a.array[i*3+2]=C.z+Math.sin(v.a)*rr;}a.needsUpdate=true;W.dust.material.opacity=Math.max(0,.6-W.dustT*.05);if(W.dustT>12)W.dust.visible=false;}
+ for(const a of act5Auras)a.tick(dt,now);
+ for(let i=act5Fx.length-1;i>=0;i--){const f=act5Fx[i];f.t+=dt;if(f.tick(f.t,dt)===false)act5Fx.splice(i,1);}
+ if(act5Sandra)act5Sandra.mixer.update(dt);
+}
+/* ---------- Aura dos "evoluídos" (camadas concêntricas, runas, chamas e faíscas; leve no celular) ---------- */
+let auraRuneTex=null,auraFlameTex=null;
+function auraTextures(){
+ if(auraRuneTex)return;
+ const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.translate(128,128);x.strokeStyle='#fff';x.fillStyle='#fff';
+ x.lineWidth=5;x.beginPath();x.arc(0,0,118,0,6.3);x.stroke();x.lineWidth=2;x.beginPath();x.arc(0,0,98,0,6.3);x.stroke();x.beginPath();x.arc(0,0,60,0,6.3);x.stroke();
+ for(let i=0;i<6;i++){const a=i/6*6.283,b=(i+2)/6*6.283;x.beginPath();x.moveTo(Math.cos(a)*98,Math.sin(a)*98);x.lineTo(Math.cos(b)*98,Math.sin(b)*98);x.stroke();}
+ x.font='bold 18px serif';for(let i=0;i<16;i++){x.save();x.rotate(i/16*6.283);x.fillText('ᚱᛟᚾᛖᛋᚦᚨᛉ'[i%8],-6,-104);x.restore();}
+ auraRuneTex=new THREE.CanvasTexture(c);
+ const f=document.createElement('canvas');f.width=64;f.height=128;const y=f.getContext('2d'),gr=y.createLinearGradient(0,128,0,0);gr.addColorStop(0,'rgba(255,255,255,.9)');gr.addColorStop(.45,'rgba(255,255,255,.35)');gr.addColorStop(1,'rgba(255,255,255,0)');y.fillStyle=gr;y.fillRect(0,0,64,128);
+ for(let i=0;i<14;i++){y.fillStyle='rgba(0,0,0,.55)';y.fillRect(Math.random()*64,0,2+Math.random()*5,40+Math.random()*80);}
+ auraFlameTex=new THREE.CanvasTexture(f);auraFlameTex.wrapS=THREE.RepeatWrapping;
+}
+function makeAura(color,size,follow){
+ auraTextures();const g=new THREE.Group(),c=new THREE.Color(color),add={transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false,side:THREE.DoubleSide};
+ const rune=new THREE.Mesh(new THREE.PlaneGeometry(3.6,3.6),new THREE.MeshBasicMaterial({map:auraRuneTex,color:c,opacity:.85,...add}));rune.rotation.x=-Math.PI/2;rune.position.y=.06;g.add(rune);
+ const rune2=rune.clone();rune2.material=rune.material.clone();rune2.scale.setScalar(.62);rune2.material.opacity=.6;g.add(rune2);
+ const shells=[];for(let i=0;i<2;i++){const t=auraFlameTex.clone();t.needsUpdate=true;t.repeat.set(3+i,1);const m=new THREE.Mesh(new THREE.CylinderGeometry(.75+i*.28,.95+i*.35,2.6+i*.6,20,1,true),new THREE.MeshBasicMaterial({map:t,color:c,opacity:.42-i*.12,...add}));m.position.y=1.3+i*.3;g.add(m);shells.push(m);}
+ const N=terrainLowSpec?24:46,pos=new Float32Array(N*3),seed=[];for(let i=0;i<N;i++)seed.push({a:Math.random()*6.28,r:.3+Math.random()*.9,v:.8+Math.random()*1.6,y:Math.random()*3});
+ const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pos,3));const pts=new THREE.Points(pg,new THREE.PointsMaterial({map:softDot,color:c.clone().lerp(new THREE.Color(0xffffff),.35),size:.18,...add}));pts.frustumCulled=false;g.add(pts);
+ g.scale.setScalar(size||1);scene.add(g);
+ const aura={group:g,follow,tick(dt,now){const t=now*.001;if(follow){const o=follow();if(!o){g.visible=false;return;}g.visible=true;g.position.set(o.x,o.y,o.z);}
+  rune.rotation.z+=dt*.6;rune2.rotation.z-=dt*1.1;shells.forEach((m,i)=>{m.material.map.offset.y=-(t*(.6+i*.3))%1;m.material.map.offset.x=t*.05*(i?1:-1);m.scale.x=m.scale.z=1+Math.sin(t*6+i)*.05;});
+  for(let i=0;i<N;i++){const s=seed[i];s.y+=dt*s.v;if(s.y>3.4)s.y=0;pos[i*3]=Math.cos(s.a+t*.8)*s.r;pos[i*3+1]=s.y;pos[i*3+2]=Math.sin(s.a+t*.8)*s.r;}pg.attributes.position.needsUpdate=true;},
+  dispose(){scene.remove(g);}};
+ act5Auras.push(aura);return aura;
+}
+function clearAuras(){for(const a of act5Auras.splice(0))a.dispose();}
+/* ---------- O torneio ---------- */
+function enterArena(){const C=COLOSSEUM,p=C.spawn;player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);playerYaw=Math.PI/2;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;checkpointX=p.x;checkpointZ=p.z;}
+function startRound(n){
+ const R=ROUNDS[n-1],C=COLOSSEUM;act5Round={n,i:0,clones:[]};clearAuras();act1Lock=true;
+ if(!inArena(player.position.x,player.position.z))enterArena();
+ const spots=[C.foe].concat(C.waiting),foes=R.foes;
+ // Todos aparecem; o motor luta com um por vez (como nos outros atos).
+ Promise.all(foes.map(f=>f.rig==='enemy1'?Promise.resolve():loadRig(f.rig))).then(()=>{
+  foes.forEach((f,i)=>{if(i===0)return;const c=makeFoeClone(f.rig,spots[i],{role:'idle',scale:f.scale});if(c){act5Round.clones[i]=c;const h=c.holder;makeAura(f.aura||R.aura,f.scale*.75,()=>h.visible?h.position:null);}});
+  makeAura(R.aura,1,()=>enemy.visible&&enemyAlive?enemy.position:null);
+  fightRoundFoe(n,0,true);
+  storyAnchors.enemy={...C.foe,yaw:-Math.PI/2};storyAnchors.colosseum={...C.center,yaw:0};
+  playStory('round'+n,roundIntroScene(n),{focus:'enemy',face:'enemy',done:()=>{act1Lock=false;delete storyAnchors.enemy;releasePack();if(R.ally)startAlly();}});
+ },()=>{act1Lock=false;});
+}
+function fightRoundFoe(n,i,hold){
+ const R=ROUNDS[n-1],f=R.foes[i],C=COLOSSEUM,c=act5Round.clones[i],spot=c?{x:c.holder.position.x,z:c.holder.position.z}:C.foe;
+ if(c){disposeClone(c);act5Round.clones[i]=null;}
+ startPack({rig:f.rig,profile:f.profile,hp:f.hp,spots:[spot],scale:f.scale,hold,cloneOpts:{scale:f.scale},intro:f.name,onDone:()=>{
+  if(i+1<R.foes.length){act5Round.i=i+1;setTimeout(()=>fightRoundFoe(n,i+1,false),500);return;}
+  roundDone(n);}});
+}
+function roundDone(n){
+ const R=ROUNDS[n-1];stopAlly();clearAuras();worldAudio.roar&&worldAudio.roar();act1Lock=true;act5Round=null;
+ const next=()=>{act1Lock=false;if(n<ROUNDS.length){act1Advance(ACT5N.step,subForRound(n+1));setTimeout(()=>{if(questStep===ACT5N.step)startRound(n+1);},1300);}else finishColosseum();};
+ const out=roundOutroScene(n);if(out.length){const x=enemy.position.x||COLOSSEUM.foe.x,z=enemy.position.z||COLOSSEUM.foe.z;const c=makeFoeClone(R.foes[R.foes.length-1].rig,{x,z},{role:'idle',scale:R.foes[R.foes.length-1].scale});if(c){c.holder.scale.y*=.82;hordeClones.push(c);storyAnchors.enemy={x,z,yaw:Math.atan2(player.position.x-x,player.position.z-z)};}
+  playStory('round'+n+'-fim',out.concat([{type:'do',id:'apagar-oponente',args:{}}]),{focus:'enemy',done:()=>{delete storyAnchors.enemy;if(c){disposeClone(c);const i=hordeClones.indexOf(c);if(i>=0)hordeClones.splice(i,1);}next();}});}
+ else next();
+}
+function finishColosseum(){
+ act1Lock=true;if(!act5Sandra)spawnSandra({x:player.position.x+2.4,z:player.position.z+1});
+ playStory('coliseu-fim',finalScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;
+  if(act5Sandra){disposeClone(act5Sandra);act5Sandra=null;}
+  // O Ato VI do roteiro (o deserto) é o próximo marco; até lá, o jogo segue para o arco final atual (os guardiões e a Ganância).
+  questStep=ACT5N.next;act1Sub=0;save3DProgress();updateQuestHud();syncAct5World();setCineFade(0,1.2,false);status.textContent='Rumo ao deserto: a estátua gigante.';}});
+}
+function spawnSandra(p){if(!rigs.rival)return null;act5Sandra=makeFoeClone('rival',p,{role:'idle'});return act5Sandra;}
+/* ---------- A pessoa misteriosa luta junto no último round (não morre; golpes próprios e ilusões) ---------- */
+function startAlly(){
+ if(!act5Sandra)spawnSandra({x:player.position.x-2,z:player.position.z+1.5});if(!act5Sandra)return;
+ act5Ally={cd:1.6,aura:makeAura(0xff3a6a,.7,()=>act5Sandra&&act5Sandra.holder.visible?act5Sandra.holder.position:null)};
+}
+function stopAlly(){act5Ally=null;}
+function updateAlly(dt){
+ const A=act5Ally,s=act5Sandra;if(!A||!s)return;const h=s.holder,src=rigSource('rival');
+ if(!enemy.visible||!enemyAlive||cineActive){return;}
+ const e=enemy.position,dx=e.x-h.position.x,dz=e.z-h.position.z,d=Math.hypot(dx,dz);h.rotation.y=Math.atan2(dx,dz);
+ if(d>2.4){const sp=Math.min(d-2.2,dt*5.5);h.position.x+=dx/d*sp;h.position.z+=dz/d*sp;h.position.y=terrainHeightAt(h.position.x,h.position.z);if(A.anim!=='run'&&src&&src.actions.run){A.anim='run';s.mixer.stopAllAction();s.mixer.clipAction(src.actions.run.getClip()).play();}return;}
+ A.cd-=dt;if(A.cd>0){if(A.anim!=='idle'&&A.cd<1.2&&src&&src.actions.idle){A.anim='idle';s.mixer.stopAllAction();s.mixer.clipAction(src.actions.idle.getClip()).play();}return;}
+ A.cd=2.2+Math.random()*.8;A.hits=(A.hits||0)+1;
+ if(src&&src.actions.attack){A.anim='attack';s.mixer.stopAllAction();const a=s.mixer.clipAction(src.actions.attack.getClip());a.reset();a.setLoop(THREE.LoopOnce,1);a.play();}
+ // Ilusões: duas cópias translúcidas atacam junto (a cada terceiro golpe, um corte em X maior).
+ const big=A.hits%3===0,dmg=big?26:14;setTimeout(()=>{if(!enemy.visible||!enemyAlive)return;enemyHP=Math.max(0,enemyHP-dmg);const p=enemy.position.clone();p.y+=1.6;damageNumber(p,String(dmg),big?'crit':'');burstSparks(p,0xff4a7a);worldAudio.hit();},320);
+ for(let k=0;k<(big?3:2);k++){const g=makeFoeClone('rival',{x:e.x+Math.cos(k*2.1+A.hits)*1.8,z:e.z+Math.sin(k*2.1+A.hits)*1.8},{role:'attack'});if(!g)continue;g.holder.rotation.y=Math.atan2(e.x-g.holder.position.x,e.z-g.holder.position.z);g.holder.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=.4;o.material.emissive=new THREE.Color(0xff2a6a);o.material.emissiveIntensity=.8;o.material.depthWrite=false;}});
+  act5Fx.push({t:0,tick(t,dt){g.mixer.update(dt);g.holder.traverse(o=>{if(o.isMesh)o.material.opacity=Math.max(0,.4-t*.5);});if(t>.8){disposeClone(g);return false;}}});}
+}
+/* ---------- Etapas do Ato V ---------- */
+function updateAct5(dt,now){
+ if(questStep>=ACT5N.step&&!act5World)buildAct5World();
+ updateAct5World(dt,now);updateAlly(dt);if(sandraRun)stepSandraRun(dt);
+ if(questStep!==ACT5N.step)return;
+ if(!rigLoads.rival)loadRig('rival').catch(()=>{});
+ const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>{questMarker.visible=true;questMarker.position.set(p.x,terrainHeightAt(p.x,p.z)+.06,p.z);};
+ storyAnchors.colosseum={...COLOSSEUM.center,yaw:0};if(act5Sandra){const h=act5Sandra.holder;storyAnchors.rival={x:h.position.x,z:h.position.z,yaw:h.rotation.y};}
+ const s=act1Sub;
+ if(s===ACT5N.journey){
+  if(!act5Sandra&&rigs.rival){const P=player.position;spawnSandra({x:P.x+2.2,z:P.z+1});}
+  if(act5Sandra&&!act5World.journeyTold&&!act1Busy()){act5World.journeyTold=true;act1Lock=true;faceTo(act5Sandra.holder,player.position);
+   playStory('jornada',journeyScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;const h=act5Sandra.holder;sandraRun={path:[{x:h.position.x+6,z:h.position.z+4}].concat(COLOSSEUM_PASS.map(([x,z])=>({x,z})),[{x:COLOSSEUM.gate.x-16,z:COLOSSEUM.gate.z+3}]),i:0,speed:5};status.textContent='Acompanhe a pessoa misteriosa.';}});}
+  if(act5Sandra)mark(act5Sandra.holder.position);else mark(COLOSSEUM.gate);
+  if(act5World.arrived&&near({x:COLOSSEUM.gate.x-16,z:COLOSSEUM.gate.z},10)&&!act1Busy()){act1Lock=true;faceTo(player,COLOSSEUM.center);
+   playStory('coliseu',arrivalScene(),{focus:'rival',done:()=>{act1Lock=false;act1Advance(ACT5N.step,ACT5N.arrival);status.textContent='Entre na arena do coliseu.';}});}
+  return;
+ }
+ if(s===ACT5N.arrival){mark(COLOSSEUM.gateInner);if(near(COLOSSEUM.gateInner,4)&&!act1Busy()){act1Advance(ACT5N.step,subForRound(1));startRound(1);}return;}
+ const R=roundForSub(s);
+ if(R&&!act5Round&&!act1Busy()&&!pack)startRound(R.n);
+}
+function stepSandraRun(dt){
+ const r=sandraRun,c=act5Sandra;if(!r||!c){sandraRun=null;return;}const h=c.holder,t=r.path[r.i];
+ if(!t){sandraRun=null;act5World.arrived=true;faceTo(h,player.position);const src=rigSource('rival');if(src&&src.actions.idle){c.mixer.stopAllAction();c.mixer.clipAction(src.actions.idle.getClip()).play();}return;}
+ const dx=t.x-h.position.x,dz=t.z-h.position.z,d=Math.hypot(dx,dz);if(d<.5){r.i++;return;}
+ if(Math.hypot(player.position.x-h.position.x,player.position.z-h.position.z)>12){faceTo(h,player.position);return;}
+ const s=Math.min(d,dt*r.speed);h.position.x+=dx/d*s;h.position.z+=dz/d*s;h.position.y=terrainHeightAt(h.position.x,h.position.z);h.rotation.y=Math.atan2(dx,dz);
+ if(!r.running){r.running=true;const src=rigSource('rival');if(src&&src.actions.run){c.mixer.stopAllAction();c.mixer.clipAction(src.actions.run.getClip()).play();}}
+}
+/** Ações das cenas do Ato V (passos "do"). */
+function storyDo5(id,args){
+ const P=player.position;
+ switch(id){
+  case 'torcida':if(act5World)act5World.excite.value=args.level||.5;worldAudio.roar&&worldAudio.roar();return true;
+  case 'misteriosa-demonio':if(act5Sandra){const c=act5Sandra;storyFlash('#300010',600);worldAudio.corrupt();storyFx.push({t:0,tick(t){c.holder.scale.setScalar(Math.max(.01,1-t));if(t>1){c.holder.visible=false;return false;}},finish(){c.holder.visible=false;}});}return true;
+  case 'round':{showCombatCallout('ROUND '+args.n);worldAudio.roar&&worldAudio.roar();if(act5World)act5World.excite.value=1;cameraShake(.15);return true;}
+  case 'misteriosa-entra':{if(act5Sandra){disposeClone(act5Sandra);act5Sandra=null;}const x=P.x-2.2,z=P.z+1.4;spawnSandra({x,z});if(act5Sandra){faceTo(act5Sandra.holder,enemy.position.x?enemy.position:COLOSSEUM.foe);storyAnchors.rival={x,z,yaw:act5Sandra.holder.rotation.y};}storyFlash('#400018',500);worldAudio.whoosh();return true;}
+  case 'apagar-oponente':{storyFlash('#200000',400);worldAudio.hit();for(const c of hordeClones){if(c.holder.visible&&Math.hypot(c.holder.position.x-COLOSSEUM.foe.x,c.holder.position.z-COLOSSEUM.foe.z)<12){const h=c.holder;storyFx.push({t:0,tick(t){h.scale.y=Math.max(.01,h.scale.y-t*.08);if(t>.8){h.visible=false;return false;}},finish(){h.visible=false;}});}}return true;}
+  case 'espada-celestial':{const t=document.getElementById('quest-toast');if(t){t.textContent='ESPADA CELESTIAL DESBLOQUEADA · NA LOJA';t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3600);}worldAudio.reveal();worldAudio.celestial&&worldAudio.celestial();
+   const beam=glowSprite(0xfff4d0,.95,4);beam.position.set(COLOSSEUM.center.x,terrainHeightAt(COLOSSEUM.center.x,COLOSSEUM.center.z)+9,COLOSSEUM.center.z);scene.add(beam);storyFx.push({t:0,tick(t){beam.scale.set(3+t*2,14+t*6,1);beam.material.opacity=Math.max(0,.95-t*.4);if(t>2.4){scene.remove(beam);return false;}},finish(){scene.remove(beam);}});
+   return true;}
+  case 'tremor':cameraShake(.6);vibrate(160);worldAudio.thunder&&worldAudio.thunder();if(act5World)act5World.excite.value=0;return true;
+  case 'correr-saida':{const G=COLOSSEUM.exit;storyMove={from:{x:P.x,z:P.z},to:{x:G.x,z:G.z},t:0,dur:2.4,done:()=>{}};if(actions.walk)play('walk',.2);
+   if(act5Sandra){const h=act5Sandra.holder,from={x:h.position.x,z:h.position.z};storyFx.push({t:0,tick(t){const k=Math.min(1,t/2.4);h.position.x=from.x+(G.x+2-from.x)*k;h.position.z=from.z+(G.z+2-from.z)*k;h.position.y=terrainHeightAt(h.position.x,h.position.z);if(k>=1)return false;},finish(){}});}return true;}
+  case 'coliseu-cai':if(act5World){act5World.falling=true;act5World.fallT=0;act5World.dust.visible=true;act5World.dustT=0;}cameraShake(.9);vibrate(240);worldAudio.thunder&&worldAudio.thunder();worldAudio.setCrowd&&worldAudio.setCrowd(0);return true;
+  case 'escuro5':setCineFade(1,1.2,false);return true;
+  case 'ato-6':{const card=cineEl('act-card');card.querySelector('#act-kicker').textContent='GALÁXIA 1 · GANÂNCIA';card.querySelector('h2').textContent='ATO VI';card.querySelector('#act-bishop').textContent='Em busca da Ganância';card.classList.remove('hidden');worldAudio.chapter();return true;}
+ }
+ return false;
+}
+/* ---------- Inventário (espadas, roupa, encantamentos e poderes; "Equipar melhor") ---------- */
+const SKILL_INFO={magic:{dmg:'3 × 14',what:'Três lâminas de luz à frente.'},magic2:{dmg:'5 × 10',what:'Cinco espadas em leque.'},magic3:{dmg:'28 + queimadura',what:'Um sol lento que queima.'},ultimate:{dmg:'60 (área)',what:'A espada colossal desce do céu.'},magic_plus:{dmg:'5 × 16',what:'Lâminas que perseguem o alvo.'},magic2_plus:{dmg:'7 × 10',what:'Espadas caem do céu.'}};
+function openInventory(){const p=document.getElementById('inv-panel');if(!p)return;inventoryOpen=true;setDefending(false);renderInventory();p.hidden=false;}
+function closeInventory(){inventoryOpen=false;const p=document.getElementById('inv-panel');if(p)p.hidden=true;}
+function equipBest(){const best=bestSword(SWORDS,ownedItems);if(best!==equippedSword)equipSword(best);if(coatOwned&&!coatOn)setCoat(true);renderInventory();status.textContent='Melhor equipamento: '+SWORDS[best].name+(coatOwned?' e Casaco de Pele':'')+'.';worldAudio.reveal();}
+function renderInventory(){
+ const body=document.getElementById('inv-body');if(!body)return;body.innerHTML='';
+ const row=(title,sub,stats,btn,on)=>{const r=document.createElement('div');r.className='inv-row'+(on?' on':'');r.innerHTML='<div class="inv-txt"><strong>'+title+'</strong><span>'+sub+'</span></div><div class="inv-stats">'+stats+'</div>';if(btn)r.appendChild(btn);body.appendChild(r);};
+ const head=t=>{const h=document.createElement('h3');h.textContent=t;body.appendChild(h);};
+ const btn=(label,dis,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=!!dis;if(fn)bindInstantTap(b,()=>{fn();renderInventory();});return b;};
+ const best=bestSword(SWORDS,ownedItems);head('ESPADAS');
+ for(const id of Object.keys(SWORDS)){if(id!=='prota'&&!ownedItems.has(id))continue;const s=SWORDS[id],dmg=Math.round(s.damage*scrollMul());row(s.name+(id===best?' ★':''),id===best?'A melhor que você tem':'Espada',(scrollOwned?'<b>'+dmg+'</b> dano <small>(+20% pergaminho)</small>':'<b>'+dmg+'</b> dano')+' · alcance '+s.reach.toFixed(1),btn(equippedSword===id?'EQUIPADA':'EQUIPAR',equippedSword===id,()=>equipSword(id)),equippedSword===id);}
+ if(coatOwned||scrollOwned){head('ROUPA E ENCANTAMENTOS');if(coatOwned)row('Casaco de Pele','Protege do frio','+15 vida · +10% mana',btn(coatOn?'DESEQUIPAR':'EQUIPAR',false,()=>setCoat(!coatOn)),coatOn);if(scrollOwned)row('Pergaminho de Encantamento','Sempre ativo','+20% dano da espada',null,true);}
+ head('PODERES');let any=false;for(const id of Object.keys(SKILL_INFO)){if(!ownedItems.has(id))continue;any=true;const k=SKILLS[id]||SKILLS[id.replace('_plus','')]||{};row((SHOP_ITEMS.find(i=>i.id===id)||{}).name||id,SKILL_INFO[id].what,'<b>'+SKILL_INFO[id].dmg+'</b> dano · '+(k.mana||'—')+' mana · '+(k.cooldown?(k.cooldown/1000).toFixed(1)+' s':'—'),null,true);}
+ if(!any){const p=document.createElement('p');p.className='inv-empty';p.textContent='Nenhum poder ainda. Compre na Loja.';body.appendChild(p);}
+}
+(function bindInventory(){const b=document.getElementById('inventory-btn'),c=document.getElementById('inv-close'),best=document.getElementById('inv-best');bindInstantTap(b,()=>{if(inventoryOpen)closeInventory();else openInventory();});bindInstantTap(c,closeInventory);bindInstantTap(best,equipBest);addEventListener('keydown',e=>{if((e.key==='i'||e.key==='I')&&!dialogueOpen&&!cineActive&&!(e.target&&/input/i.test(e.target.tagName))){if(inventoryOpen)closeInventory();else openInventory();}});})();
 /* ===================== MOD 196 — ATOS III E IV (motor genérico de etapas) ===================== */
 var lateFound=Array.isArray(saved3DProgress.lateFound)?saved3DProgress.lateFound.slice():[];
 var lateFightIndex=Number(saved3DProgress.lateFightIndex)||0,lateBossClaimed=Object.assign({},saved3DProgress.lateBossClaimed||{}),lateFoundStep=Number(saved3DProgress.lateFoundStep)||0;
@@ -4248,6 +4450,14 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   else if(step===22){enterTower(Math.max(1,sub));}else if(step===23){enterTower(7);act4World.floorStarted=true;}else go(TOWER.view.x,TOWER.view.z+6);
   return this.storyState();
  },
+ act5(sub=0){
+  if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;awakeningActive=false;awakeningSeen=true;if(!playerName)playerName='Davi';
+  if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();if(act3Void)leaveAct3Void({x:0,z:-60});if(inTower)leaveTower();sandraRun=null;if(act5Sandra){disposeClone(act5Sandra);act5Sandra=null;}act5Round=null;clearAuras();stopAlly();
+  questStep=ACT5N.step;act1Sub=sub;act2Abyss=true;if(coins<40)coins=40;bishopsDefeated=Math.max(4,bishopsDefeated);save3DProgress();updateQuestHud();buildAct3World();buildAct4World();buildAct5World();act5World.journeyTold=false;act5World.arrived=false;setGameHour(11);
+  const go=(x,z)=>player.position.set(x,terrainHeightAt(x,z),z);
+  if(sub===0)go(-30,-236);else if(sub===1)go(COLOSSEUM.gate.x-4,COLOSSEUM.gate.z);else enterArena();
+  return this.storyState();
+ },
  coat(on){coatOwned=true;setCoat(on!==false);return{coatOwned,coatOn,maxHP:playerMaxHP};},
  act2(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;awakeningActive=false;awakeningSeen=true;if(!playerName)playerName='Davi';
@@ -4259,7 +4469,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   else if(step===14)go(D.plaza.x+26,D.plaza.z);
   return this.storyState();
  },
- storyState(){const st=cineDirector.step;return{q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label(),inTower,scroll:scrollOwned,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
+ storyState(){const st=cineDirector.step;return{q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label(),inTower,scroll:scrollOwned,round:act5Round?act5Round.n:null,sandra:act5Sandra?[+act5Sandra.holder.position.x.toFixed(1),+act5Sandra.holder.position.z.toFixed(1)]:null,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
  playAfterValerio(){afterValerioStory();},
  tapStory(){return cineDirector.tap();},
  speed(k){debugDtScale=Math.max(.1,Math.min(8,+k||1));return debugDtScale;},

@@ -28,7 +28,7 @@ O texto original continua sendo a referência; as transcrições abaixo são res
 - **Pergaminho:** o roteiro deixa escolher; o efeito ficou em +20% de dano na espada equipada (`ACT4N.scrollBonus`), vale para qualquer espada e fica salvo.
 - **Lutas em grupo:** todos aparecem e lutam um por vez, como nos marcos anteriores. Os números do roteiro foram mantidos: 1, 2, 3, 4, o mini-chefe, e o líder com 2.
 - **Bandidos:** usam o modelo encapuzado da pessoa misteriosa (o único humano com clipes de luta). **SUSPEITA:** eles podem ser confundidos com ela.
-- **Depois do Ato IV:** o jogo segue para o **arco final antigo**, a partir dos guardiões (passo 27), até o Marco 6 trocar esse trecho pelo Ato V (coliseu). A conversa antiga com o Anjo (passo 26) foi pulada, porque ele foi levado.
+- **Depois do Ato IV:** o jogo segue para o Ato V (passo 25, Marco 6). A conversa antiga com o Anjo (passo 26) foi pulada, porque ele foi levado.
 - **Continuar um jogo salvo:** se o jogo fecha durante a luta com VÉRAXION, ao entrar de novo na torre o portal do 7º piso já está aberto. Se fecha depois da vitória, a conversa com a pessoa misteriosa toca de novo.
 - **Evidência:**
   - **CONFIRMADO POR CÓDIGO:** `node --test`, 83 testes, entre eles os 5 de `act4-flow.test.mjs`.

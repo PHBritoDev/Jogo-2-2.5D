@@ -25,7 +25,8 @@ export const MAP_POIS = [
   { id: 'canal', name: 'Canal de Drenagem', x: -158, z: -86, kind: 'water' },
   { id: 'incenso', name: 'Passagem do Incenso', x: 96, z: -32, kind: 'danger' },
   { id: 'altar', name: 'Invernália', x: 150, z: -40, kind: 'village', revealRadius: 26 }, // MOD 206 — a cidade de neve do Ato III
-  { id: 'serra', name: 'Serra sem Ecos', x: -36, z: -238, kind: 'village', revealRadius: 26 },
+  { id: 'serra', name: 'Torre de VÉRAXION', x: -36, z: -238, kind: 'village', revealRadius: 26 }, // MOD 207
+  { id: 'coliseu', name: 'Coliseu da Ascensão', x: 150, z: -215, kind: 'village', revealRadius: 40 }, // MOD 208
   { id: 'coliseu', name: 'Arena do Vale', x: 168, z: -70, kind: 'danger' }
 ];
 

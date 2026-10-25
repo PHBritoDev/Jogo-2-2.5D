@@ -49,13 +49,17 @@ export const SHOP_ITEMS = [
   { id: 'aurora', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Aurora', cost: 30, level: 3, step: 4,
     desc: 'Lâmina clara e mais longa: +20% de dano e rastro dourado. Sem habilidade ativa.' },
   { id: 'vigilia', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Vigília', cost: 110, level: 7, step: 16, stepText: 'encontrar quem resiste no Vale do Altar (Ato III)',
-    desc: 'Aço azul-pálido para quem não dorme diante do mal: +44% de dano e alcance maior.' }
+    desc: 'Aço azul-pálido para quem não dorme diante do mal: +44% de dano e alcance maior.' },
+  // MOD 208 — a relíquia do torneio do coliseu (Ato V): desbloqueada ao vencer o 8º round.
+  { id: 'celeste', sector: 'arsenal', kind: 'sword', name: 'Espada Celestial', cost: 220, level: 6, step: 27, stepText: 'vencer o torneio do coliseu (Ato V)', unlock: 'celeste',
+    desc: 'Caiu do céu e desintegra demônios que a tocam: +92% de dano, alcance longo e rastro branco.' }
 ];
 
 export const SWORDS = {
   prota: { id: 'prota', name: 'Espada do Chamado', damage: 25, reach: 2.0, trail: 0xffe2a0 },
   aurora: { id: 'aurora', name: 'Lâmina da Aurora', damage: 30, reach: 2.25, trail: 0xfff1b8 },
-  vigilia: { id: 'vigilia', name: 'Lâmina da Vigília', damage: 36, reach: 2.4, trail: 0xbfe0ff }
+  vigilia: { id: 'vigilia', name: 'Lâmina da Vigília', damage: 36, reach: 2.4, trail: 0xbfe0ff },
+  celeste: { id: 'celeste', name: 'Espada Celestial', damage: 48, reach: 2.6, trail: 0xffffff }
 };
 
 /** Requisito de compra com motivo legível. owned: Set de ids. */
