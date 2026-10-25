@@ -8,7 +8,8 @@
  *   boss    → Bispo com apresentação, fúria na metade da vida e falas de derrota
  * Os passos continuam a numeração dos Atos I e II (14 = Ato II concluído).
  */
-export const ALTAR_VALLEY = { cx: 150, cz: -40, hx: 42, hz: 38, tint: [[.42, .4, .35], [.55, .52, .46]], tintStrength: .55 };
+// MOD 206 — o Vale do Altar virou a cidade de neve do Ato III (snow3d.js): chão coberto de neve.
+export const ALTAR_VALLEY = { cx: 150, cz: -40, hx: 42, hz: 38, tint: [[.80, .84, .9], [.93, .95, .98]], tintStrength: .92 };
 export const ALTAR_PASS = [[70, -32], [88, -30], [104, -36], [114, -38]];
 export const SERRA = { cx: -36, cz: -238, hx: 44, hz: 34, tint: [[.34, .37, .38], [.46, .47, .45]], tintStrength: .55 };
 export const SERRA_PASS = [[-4, -146], [-10, -170], [-22, -192], [-30, -208]];

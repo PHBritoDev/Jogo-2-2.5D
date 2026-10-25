@@ -7,6 +7,7 @@
  */
 import { SEWER } from './sewer3d.js';
 import { VOLCANO } from './volcano3d.js';
+import { INN, ICE_CAVE, DISTORTED } from './snow3d.js';
 
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -521,6 +522,97 @@ const THEMES = {
     const ember = new THREE.Points(eg, new THREE.PointsMaterial({ color: 0xff8a30, size: .07, transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); ember.frustumCulled = false; g.add(ember);
     ctx.tick.push((t, dt) => { const a = eg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] + ev[i] * dt; if (y > 6.5) y = 0; a.array[i * 3 + 1] = y; } a.needsUpdate = true; wallMat.emissiveIntensity = .8 + Math.sin(t * 1.1) * .15; });
     return { bg: 0x0b0503, fog: 0x1a0805, fogNear: 10, fogFar: 62, hemi: [0xffc0a0, 0x401408, 1.15], sun: [0xffa070, .5], light: [0xffa060, 3.6, 30, [0, 3, 0]], exposure: 1.25, lightFollow: true };
+  },
+  // MOD 206 — Interior da estalagem da cidade de neve (Ato III; layout em snow3d.js): salão com lareira e balcão,
+  // o quarto do andar de cima e o porão de pedra. Móveis do NeveKit (balcão, cama, correntes, escada) entram pelo jogo.
+  inn(THREE, g, spec, ctx) {
+    const refs = ctx.refs, r = rng(606);
+    const plank = canvasTex(THREE, 256, 256, (c, w, h) => { c.fillStyle = '#4a3020'; c.fillRect(0, 0, w, h); const rr = rng(3); for (let i = 0; i < 8; i++) { const v = 60 + rr() * 30 | 0; c.fillStyle = 'rgb(' + v + ',' + (v * .66 | 0) + ',' + (v * .42 | 0) + ')'; c.fillRect(0, i * 32 + 1, w, 30); c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(0, i * 32, w, 2); for (let k = 0; k < 3; k++) { c.fillStyle = 'rgba(30,18,10,.5)'; c.beginPath(); c.ellipse(rr() * w, i * 32 + 16, 6, 3, 0, 0, 6.3); c.fill(); } } });
+    plank.wrapS = plank.wrapT = THREE.RepeatWrapping;
+    const stoneT = canvasTex(THREE, 256, 256, (c, w, h) => { c.fillStyle = '#2c2a2a'; c.fillRect(0, 0, w, h); const rr = rng(9); for (let y = 0; y < 8; y++) for (let x = 0; x < 6; x++) { const v = 50 + rr() * 30 | 0; c.fillStyle = 'rgb(' + v + ',' + (v - 2) + ',' + (v - 4) + ')'; c.fillRect(x * 44 + (y % 2) * 22 + 2, y * 32 + 2, 40, 28); } });
+    stoneT.wrapS = stoneT.wrapT = THREE.RepeatWrapping;
+    const mk = (tex, rx, ry, extra) => { const t = tex.clone(); t.needsUpdate = true; t.repeat.set(rx, ry); return new THREE.MeshStandardMaterial(Object.assign({ map: t, roughness: .9 }, extra || {})); };
+    function room(R, H, wallTex, floorTex) {
+      const W = R.hx * 2, D = R.hz * 2;
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(floorTex, W / 2.5, D / 2.5)); floor.rotation.x = -Math.PI / 2; floor.position.set(R.x, 0, R.z); floor.receiveShadow = true; g.add(floor);
+      const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(plank, W / 3, D / 3, { side: THREE.BackSide })); ceil.rotation.x = -Math.PI / 2; ceil.position.set(R.x, H, R.z); g.add(ceil);
+      for (const [x, z, w, ry] of [[R.x, R.z - R.hz, W, 0], [R.x, R.z + R.hz, W, Math.PI], [R.x - R.hx, R.z, D, Math.PI / 2], [R.x + R.hx, R.z, D, -Math.PI / 2]]) {
+        const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, H), mk(wallTex, w / 2.5, H / 2.5)); wall.position.set(x, H / 2, z); wall.rotation.y = ry; g.add(wall);
+      }
+      const beams = []; for (let i = 0; i < Math.floor(W / 2); i++) beams.push({ x: R.x - R.hx + 1 + i * 2, y: H - .15, z: R.z, sx: .25, sy: .3, sz: D });
+      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), mk(plank, 1, 2), beams));
+    }
+    room(INN.hall, 3.6, plank, plank); room(INN.room, 3, plank, plank); room(INN.cellar, 3.2, stoneT, stoneT);
+    // Lareira do salão, mesas e bancos.
+    const fp = new THREE.Group(); fp.position.set(-INN.hall.hx + .5, 0, -1); g.add(fp);
+    const st = new THREE.MeshStandardMaterial({ color: 0x5a5654, roughness: .95 });
+    const hearth = new THREE.Mesh(new THREE.BoxGeometry(1, 2.4, 2.4), st); hearth.position.set(0, 1.2, 0); fp.add(hearth);
+    const hole = new THREE.Mesh(new THREE.BoxGeometry(1.02, 1, 1.3), new THREE.MeshBasicMaterial({ color: 0x120804 })); hole.position.set(.02, .55, 0); fp.add(hole);
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(.3, .7, 8), new THREE.MeshBasicMaterial({ color: 0xff9a3a, toneMapped: false })); flame.position.set(.4, .45, 0); fp.add(flame);
+    ctx.tick.push(t => { flame.scale.set(1 + Math.sin(t * 9) * .1, 1 + Math.sin(t * 13) * .2, 1); });
+    const wood = new THREE.MeshStandardMaterial({ color: 0x5a3a24, roughness: .85 }), tables = [], benches = [];
+    for (const [x, z] of [[-2.5, 1.5], [2.6, 1.6], [3, -1.2]]) { tables.push({ x, y: .75, z, sx: 1.6, sy: .1, sz: .9 }); for (const s of [-1, 1]) benches.push({ x, y: .42, z: z + s * .75, sx: 1.5, sy: .08, sz: .3 }); }
+    g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood, tables)); g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood, benches));
+    // Janela do quarto (noite lá fora) e manchas de umidade no porão.
+    const night = new THREE.Mesh(new THREE.PlaneGeometry(1, .9), new THREE.MeshBasicMaterial({ color: 0x0c1830 })); night.position.set(INN.room.x - INN.room.hx + .02, 1.6, INN.room.z); night.rotation.y = Math.PI / 2; g.add(night);
+    refs.hall = INN.hall; refs.room = INN.room; refs.cellar = INN.cellar;
+    return { bg: 0x0a0604, fog: 0x140c08, fogNear: 6, fogFar: 26, hemi: [0xffd8a8, 0x2a1a10, 1.1], sun: [0xffc080, .25], light: [0xffb060, 3.2, 16, [0, 2.6, 0]], exposure: 1.2, lightFollow: true };
+  },
+  // MOD 206 — Caverna de gelo (Ato III): túnel sinuoso de paredes de gelo azulado, cristais e estalactites;
+  // no fundo, um salão sem saída. O portal da dimensão distorcida aparece "atrás" (no túnel por onde se veio).
+  icecave(THREE, g, spec, ctx) {
+    const C = ICE_CAVE, r = rng(707), refs = ctx.refs;
+    const iceTex = canvasTex(THREE, 256, 256, (c, w, h) => { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#9cc8e8'); gr.addColorStop(1, '#4a7aa8'); c.fillStyle = gr; c.fillRect(0, 0, w, h); const rr = rng(5); c.strokeStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 40; i++) { c.lineWidth = .5 + rr() * 2; c.beginPath(); let x = rr() * w, y = rr() * h; c.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (rr() - .5) * 50; y += (rr() - .5) * 50; c.lineTo(x, y); } c.stroke(); } });
+    iceTex.wrapS = iceTex.wrapT = THREE.RepeatWrapping;
+    const wallMat = new THREE.MeshStandardMaterial({ map: iceTex, roughness: .25, metalness: .05, emissive: 0x1a3a5a, emissiveIntensity: .5, side: THREE.BackSide });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0xdfeaf4, roughness: .55 });
+    const tex = (m, rx, ry) => { const c = m.clone(); if (m.map) { c.map = m.map.clone(); c.map.repeat.set(rx, ry); c.map.needsUpdate = true; } return c; };
+    for (let i = 0; i < C.path.length - 1; i++) {
+      const a = C.path[i], b = C.path[i + 1], len = Math.hypot(b.x - a.x, b.z - a.z) + 2, R = C.r + .5;
+      const grp = new THREE.Group(); grp.position.set((a.x + b.x) / 2, 0, (a.z + b.z) / 2); grp.rotation.y = Math.atan2(b.x - a.x, b.z - a.z); g.add(grp);
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, len), floorMat); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; grp.add(floor);
+      const vg = new THREE.CylinderGeometry(R, R, len, 18, 1, true, Math.PI / 2, Math.PI); vg.rotateX(Math.PI / 2); vg.scale(1, 1.25, 1);
+      const pos = vg.attributes.position; for (let k = 0; k < pos.count; k++) { const y = pos.getY(k); pos.setX(k, pos.getX(k) * (1 + (r() - .5) * .12)); pos.setY(k, y * (1 + (r() - .5) * .1)); } vg.computeVertexNormals();
+      grp.add(new THREE.Mesh(vg, tex(wallMat, len / 4, 2)));
+    }
+    const E = C.end, floor = new THREE.Mesh(new THREE.CircleGeometry(E.r + .5, 40), floorMat); floor.rotation.x = -Math.PI / 2; floor.position.set(E.x, 0, E.z); g.add(floor);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(E.r + .5, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), tex(wallMat, 6, 3)); dome.scale.y = .7; dome.position.set(E.x, 0, E.z); g.add(dome);
+    refs.crystals = []; refs.icicles = [];
+    for (let i = 0; i < 18; i++) { const seg = Math.floor(r() * (C.path.length - 1)), a = C.path[seg], b = C.path[seg + 1], t = r(), side = r() < .5 ? -1 : 1, dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1; refs.crystals.push({ x: a.x + dx * t + (-dz / l) * side * (C.r - .9), z: a.z + dz * t + (dx / l) * side * (C.r - .9), s: .5 + r() * .7, yaw: r() * 6 }); }
+    for (let i = 0; i < 10; i++) { const a = r() * 6.28, d = 4 + r() * (E.r - 5); refs.crystals.push({ x: E.x + Math.cos(a) * d, z: E.z + Math.sin(a) * d, s: .7 + r() * .9, yaw: r() * 6 }); }
+    for (let i = 0; i < 24; i++) { const seg = Math.floor(r() * (C.path.length - 1)), a = C.path[seg], b = C.path[seg + 1], t = r(); refs.icicles.push({ x: a.x + (b.x - a.x) * t + (r() - .5) * 3, z: a.z + (b.z - a.z) * t + (r() - .5) * 3, y: 4.2, s: .6 + r() * .8 }); }
+    // Neve fina caindo de rachaduras no teto (uma chamada de desenho).
+    const N = 160, sp = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const seg = Math.floor(r() * (C.path.length - 1)), a = C.path[seg], b = C.path[seg + 1], t = r(); sp[i * 3] = a.x + (b.x - a.x) * t + (r() - .5) * 4; sp[i * 3 + 1] = r() * 4.5; sp[i * 3 + 2] = a.z + (b.z - a.z) * t + (r() - .5) * 4; }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+    const snow = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: .05, transparent: true, opacity: .8, depthWrite: false })); snow.frustumCulled = false; g.add(snow);
+    ctx.tick.push((t, dt) => { const a = sg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] - dt * .6; if (y < 0) y = 4.5; a.array[i * 3 + 1] = y; } a.needsUpdate = true; });
+    refs.portal = C.portal;
+    return { bg: 0x0a1420, fog: 0x2a4a68, fogNear: 6, fogFar: 46, hemi: [0xcfe6ff, 0x34506a, 1.35], sun: [0xbad8ff, .4], light: [0x9ed0ff, 3.2, 26, [0, 3, 0]], exposure: 1.2, lightFollow: true };
+  },
+  // MOD 206 — Dimensão distorcida (Ato III): tudo ao contrário. Um chão de gelo espelhado sobre o vazio, montanhas
+  // de cabeça para baixo penduradas no céu, neve que sobe e um horizonte girado. Os controles ficam invertidos no jogo.
+  distorted(THREE, g, spec, ctx) {
+    const D = DISTORTED, r = rng(808), refs = ctx.refs;
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(D.floor.r, 64), new THREE.MeshStandardMaterial({ color: 0x9ab4d0, roughness: .15, metalness: .4, emissive: 0x10203a, emissiveIntensity: .6 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; g.add(floor);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(D.floor.r, .3, 8, 64), new THREE.MeshBasicMaterial({ color: 0x8ad0ff, toneMapped: false })); rim.rotation.x = Math.PI / 2; g.add(rim);
+    const rings = []; for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.RingGeometry(3 + i * 3.6, 3.15 + i * 3.6, 64), new THREE.MeshBasicMaterial({ color: 0x6aa8ff, transparent: true, opacity: .35, side: THREE.DoubleSide, toneMapped: false })); m.rotation.x = -Math.PI / 2; m.position.y = .02; g.add(m); rings.push(m); }
+    // Montanhas e pinheiros de cabeça para baixo no céu.
+    const rock = new THREE.MeshStandardMaterial({ color: 0x4a5a6c, roughness: .9, flatShading: true }), peaks = [], pines = [];
+    for (let i = 0; i < 14; i++) { const a = i / 14 * 6.28 + r() * .3, d = 30 + r() * 18, h = 10 + r() * 16; peaks.push({ x: Math.cos(a) * d, y: 26 + h / 2, z: Math.sin(a) * d, sx: 6 + r() * 6, sy: h, sz: 6 + r() * 6, rx: Math.PI }); }
+    for (let i = 0; i < 26; i++) { const a = r() * 6.28, d = 24 + r() * 14; pines.push({ x: Math.cos(a) * d, y: 20 + r() * 4, z: Math.sin(a) * d, sx: 1.4, sy: 4 + r() * 3, sz: 1.4, rx: Math.PI }); }
+    g.add(instanced(THREE, new THREE.ConeGeometry(1, 1, 7), rock, peaks)); g.add(instanced(THREE, new THREE.ConeGeometry(1, 1, 7), new THREE.MeshStandardMaterial({ color: 0x1a3a2a, roughness: .9 }), pines));
+    // Neve que sobe (ao contrário).
+    const N = 220, sp = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const a = r() * 6.28, d = r() * D.floor.r; sp[i * 3] = Math.cos(a) * d; sp[i * 3 + 1] = r() * 14; sp[i * 3 + 2] = Math.sin(a) * d; }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+    const snow = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xdfefff, size: .08, transparent: true, opacity: .85, depthWrite: false })); snow.frustumCulled = false; g.add(snow);
+    // Cristais flutuando de ponta-cabeça em volta.
+    const ice = new THREE.MeshStandardMaterial({ color: 0xa8d8ff, roughness: .1, emissive: 0x2a6aa8, emissiveIntensity: .6, transparent: true, opacity: .85 }), shards = [];
+    for (let i = 0; i < 16; i++) { const a = r() * 6.28, d = D.floor.r - 2 + r() * 6; shards.push({ x: Math.cos(a) * d, y: 3 + r() * 6, z: Math.sin(a) * d, sx: .6, sy: 2 + r() * 2, sz: .6, rx: Math.PI, ry: r() * 3 }); }
+    const shardMesh = instanced(THREE, new THREE.OctahedronGeometry(1, 0), ice, shards); g.add(shardMesh);
+    ctx.tick.push((t, dt) => { const a = sg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] + dt * .9; if (y > 14) y = 0; a.array[i * 3 + 1] = y; } a.needsUpdate = true; rings.forEach((m, i) => { m.rotation.z = t * (i % 2 ? .15 : -.12); }); shardMesh.position.y = Math.sin(t * .6) * .6; });
+    refs.portal = D.portal;
+    return { bg: 0x0c1830, fog: 0x2a3a5a, fogNear: 18, fogFar: 80, hemi: [0xc8dcff, 0x3a2a4a, 1.3], sun: [0xbad0ff, .5], light: [0x9ac8ff, 3, 30, [0, 4, 0]], exposure: 1.25, lightFollow: true };
   }
 };
 

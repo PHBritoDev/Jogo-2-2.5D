@@ -50,6 +50,21 @@ export const DIMENSIONS = {
     kicker: 'ATO II', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
     line: '', rage: '', center: { x: -1200, z: 0 }, radius: 140, accent: '#ff7a30', theme: 'volcano'
   },
+  estalagem: {
+    key: 'estalagem', order: 0, name: 'ESTALAGEM', title: 'Ato III', epithet: 'A hospedagem de graça',
+    kicker: 'ATO III', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
+    line: '', rage: '', center: { x: -1600, z: 0 }, radius: 80, accent: '#ffb060', theme: 'inn'
+  },
+  gelo: {
+    key: 'gelo', order: 0, name: 'CAVERNA DE GELO', title: 'Ato III', epithet: 'O esconderijo do Terceiro Bispo',
+    kicker: 'ATO III', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
+    line: '', rage: '', center: { x: -2000, z: 0 }, radius: 120, accent: '#9ed0ff', theme: 'icecave'
+  },
+  distorcida: {
+    key: 'distorcida', order: 0, name: 'DIMENSÃO DISTORCIDA', title: 'Ato III', epithet: 'Tudo ao contrário',
+    kicker: 'ATO III', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
+    line: '', rage: '', center: { x: -2400, z: 0 }, radius: 90, accent: '#8ad0ff', theme: 'distorted'
+  },
   greed: {
     key: 'greed', order: 5, name: 'GANÂNCIA', title: 'O Pecado Capital', epithet: 'A Raiz de Todos os Males',
     kicker: 'DIMENSÃO V · A RAIZ', portrait: 'Ganancia1-ui.webp', rig: 'greed1', profile: 'greed1', hp: 520,

@@ -1,0 +1,48 @@
+# Marco 4 — Ato III: a cidade de neve, a armadilha, a caverna de gelo e ZAR'KHAEL
+
+**Fonte:** roteiro original do autor, anexo do [documento mestre](../GALAXIA-1-ROTEIRO-INTEGRAL-E-DIRECAO.pdf), páginas 11 a 14.
+As falas revisadas estão em [`act3-flow.js`](../../act3-flow.js), e o nome digitado entra no lugar de `{nome}`.
+
+O texto original continua sendo a referência; as transcrições abaixo são resumidas por cena. Nenhuma fala, personagem, acontecimento ou número de inimigos foi cortado.
+
+## Cenas (ORIGINAL → REVISADO)
+
+| ID | Original (resumo fiel) | Revisado no jogo |
+|---|---|---|
+| A3-01 | No caminho, um NPC de casaco: "ainda você está indo?" / "para a cidade de neve" / "sem nenhum casaco?… posso te vender um"; aceitar ("fez a escolha certa") ou recusar ("pode custar sua vida"); o NPC ensina a equipar no inventário; o casaco desbloqueia com animação (+10% mana, +15 vida, proteção contra frio) | **Vendedor:** fica na passagem leste.<br>**Escolha:** um cartão com COMPRAR e RECUSAR. O preço não estava no roteiro; ficou em 25 moedas.<br>**Moedas:** sem moedas suficientes, ele manda voltar depois (fala nova).<br>**Casaco:** aparece em Equipamentos com brilho de desbloqueio. Dá +15 de vida e +10% de mana e protege do frio. |
+| A3-02 | A cidade de neve; câmera sobe e mostra a cidade de longe (em toda cidade nova); sem casaco: −15% agilidade, −10% mana, 0,1 de dano por segundo, só dentro da cidade; "Aqui realmente está muito frio… devo voltar para comprar casaco?" | **Cidade:** Invernália (nome provisório), no antigo Vale do Altar, com chão de neve e neve caindo. Casas de toras nevadas, estalagem, lampiões, pinheiros e lago congelado, todos feitos no Blender.<br>**Chegada:** plano aberto com o nome e o som de descoberta.<br>**Frio:** os números do roteiro; o aviso "❄ FRIO" aparece só dentro da cidade.<br>**Fala:** a do herói, mantida. |
+| A3-03 | Pessoas com roupas de frio; "coloca identidade nessa cidade"; pescador num lago congelado (só o buraco dele sem gelo): "você viu um homem com asas?" / "Ele é um anjo? ahaha… o frio está fazendo você delirar" | **Identidade (sugestão):** vila de pescadores no gelo, que vive em paz enquanto o resto do mundo está em caos, e paga essa paz com silêncio.<br>**Pescador:** banquinho, vara e o buraco no gelo.<br>**Falas:** mantidas. |
+| A3-04 | Morador: "Você é novo?" / "pelas suas vestes" / "o mundo não está em caos? por que estão sorrindo?" / "rumor de que Bispo3 está aqui… nossa cidade não foi afetada" / "logo vai anoitecer" / "coisas esquisitas acontecem… ache lugar para dormir"; todos entram nas casas; anoitece; "Tem algo de estranho… preciso descobrir" | **Moradora:** falas mantidas, com o nome ZAR'KHAEL no lugar de "Bispo3".<br>**Anoitecer:** os moradores correm para as casas e somem; a noite chega com fade. |
+| A3-05 | Estalagem: "quanto custa?" / "hoje é de graça" / "Sério?" / "Isso mesmo!"; sobe ao quarto; "isso está me cheirando mal… preciso descansar"; dorme; tela preta | **Estalagem:** prédio de dois andares no Blender. Dentro, uma área abaixo do mundo com salão (lareira e balcão), quarto e porão.<br>**Dormir:** "SUBIR AO QUARTO", depois "DORMIR".<br>**Falas:** mantidas. |
+| A3-06 | Acorda (2 piscadas) acorrentado; "Que lugar é esse?"; o estalajadeiro e 3 enemy3: "você prometeu soltar minha filha" / "quem você pensa que é…"; o enemy3 mata o NPC; "eu sabia…"; "derrotou Bispo1 e Bispo2… caiu nesse truque"; "Cadê o AnjoGuia?" / "quem é esse?… sua morte será aqui nesse porão"; luta contra os 3; "eu falo tudo… Bispo3 previu… experimentos… transformar novas pessoas em novo Bispo… você atendia os requisitos"; "vou exterminar todos vocês" / "não faça isso"; ele mata | **Porão:** paredes de pedra e argolas com correntes.<br>**Morte do estalajadeiro:** ele cai após um clarão vermelho, sem sangue à mostra.<br>**Luta:** contra **3 Enemy3**.<br>**Falas:** todas mantidas, com Valério e VORGAZHEK nos lugares de "Bispo1/2".<br>**Correntes:** o herói arrebenta as correntes antes da luta (passo novo, para a luta fazer sentido). |
+| A3-07 | Sobe a escada, sai da estalagem; cidade em caos, fogo, pessoas correndo, enemy3 atacando; "O que vocês estão fazendo?" / "não é digno de saber"; luta contra **4 de uma vez** | **Cidade em chamas:** plano aberto com incêndios pela cidade.<br>**Luta:** os **4 Enemy3** aparecem juntos e lutam um por vez, como nos outros marcos. |
+| A3-08 | Um enemy3 por trás desmaia o herói; 2 piscadas; está numa guilhotina ("Aonde eu estou?"); "Morra." / "Nãooo"; o Anjo chega, derrota o enemy3; "Anjo, pensei que tinha morrido" / "Eu morrer? hahaha…" / "fazia parte do plano para achar o esconderijo do Bispo3, me siga" | **Guilhotina:** modelo do Blender na praça, com a lâmina separada.<br>**Desmaio:** golpe, tela preta e piscadas.<br>**Resgate:** o Anjo surge num clarão branco e o carrasco é desfeito.<br>**Falas:** mantidas. |
+| A3-09 | O Anjo corre e o jogador acompanha até uma caverna de gelo; "Chegamos!" / "como achou?" / "fingi minha morte, segui o Bispo4… conversando com o Bispo3" / "muito arriscado" / "Bispo mais difícil de encontrar"; no fundo: "não tem nada" / "olha para trás" → portal / "não viemos por aí?" / "dimensão distorcida…" / "não é perigoso?" / "apenas vá… adeus"; o Anjo some | **Caminho:** o Anjo corre na frente e espera se o herói fica para trás.<br>**Caverna:** túnel sinuoso de gelo, com cristais, estalactites e neve fina caindo.<br>**Portal:** aparece no túnel por onde vieram.<br>**Falas:** mantidas, com VÉRAXION no lugar de "Bispo4". |
+| A3-10 | Entra (2 piscadas); dimensão onde tudo está ao contrário (frente ↔ trás, direita ↔ esquerda); "Minha percepção parece distorcida"; mini-chefe + **2 enemy3**; falas; derrotado: "não o suficiente… fuja" / "salvar esse planeta" / "eu tenho uma dica, não espera!" / Bispo3: "falou demais, morra"; o mini-chefe pega fogo e vira cinza; "como pode fazer isso com seus aliados?" / "demônios de baixo nível… venha me enfrentar" | **Controles invertidos:** frente vira trás e esquerda vira direita, só lá dentro.<br>**Cenário:** chão de gelo espelhado, montanhas e pinheiros de cabeça para baixo e neve que sobe.<br>**Inimigos:** o Guardião (Enemy4 1,6× maior, 520 de vida) e **2 Enemy3**, todos visíveis.<br>**Queima:** o Guardião arde e some.<br>**Falas:** mantidas. |
+| A3-11 | Atravessa o portal; Bispo3: "admito… sou o mais forte… só perdendo para 2" / "você não passa de uma mosca"; derrotado: "quem é você?" / "últimas palavras?" / "Bispo4… aberração divina… desafiar a ganância" / identidade: "Sou {nome}, um dos Anjos de Deus escolhido para salvar os 7 mundos" / "um anjo?… a não ser que você não seja completamente um anjo" / "Como assim?"; o Anjo termina de derrotá-lo; "Vamos"; a dimensão desaba | **Luta:** a dimensão de ZAR'KHAEL já existente, com cartão VS.<br>**Falas:** todas mantidas, com o nome digitado.<br>**Golpe final:** o Anjo surge e ZAR'KHAEL some num feixe de luz. |
+| A3-12 | De volta à cidade: "por que eu… e não você?" / "acreditou naquele demônio?" / "não minta para mim"; **luta contra o Anjo**; "como perdeu para mim?" / a verdade: "5% do poder real"… "você já foi humano"; a Ganância (fase 1) aparece: "vocês realmente são anjos" / "Corra"; ela some com o Anjo; "Anjooo" / "se quiser ele de volta, venha até mim"; tela preta e "Ato 4" | **Luta:** o Anjo-Guia luta de verdade. Usa o modelo dele com os clipes do herói (mesmo esqueleto Mixamo).<br>**Ganância:** o modelo da fase 1 surge atrás do Anjo e os dois somem num clarão escuro.<br>**Fim:** a fala final vem do céu, depois a tela escurece e aparece o cartão "ATO IV". |
+
+## Decisões e limites (honesto)
+
+- **Onde fica a cidade:** o roteiro pede a cidade de neve "um pouco longe". Ela ocupa o vale leste, que era do Ato III antigo (ídolos e altar). O conteúdo antigo saiu dali; a arena opcional do vale continua.
+- **Nome da cidade:** "Invernália" é **provisório**; troque em `SNOW_CITY.name` (`snow3d.js`).
+- **Preço do casaco:** o roteiro não dá o preço; ficou em 25 moedas (`COAT.price`). O efeito de frio usa os números do roteiro (`COLD`, em `snow3d.js`).
+- **Casaco (Blender):**
+  - **Como foi feito:** sobretudo de couro com gola, manto de pele e punhos, modelado sobre o corpo do herói (`tools/blender/m4_casaco.py`).
+  - **No jogo:** cada vértice recebe os pesos do vértice mais próximo do corpo, então ele dobra com todas as animações.
+  - **SUSPEITA:** a capa original do herói ainda aparece por baixo em alguns ângulos.
+- **Anjo como oponente:**
+  - **Como foi feito:** o modelo do Anjo-Guia não tem clipes de luta, então usa os do herói.
+  - **SUSPEITA:** nos golpes, o Anjo não tem espada e os movimentos são os de cast (Skill_01/Skill_03).
+- **Lutas em grupo:** como nos marcos anteriores, todos aparecem e lutam um por vez. Os números são os do roteiro: 3, 4, e 2 mais o Guardião.
+- **Depois do Ato III:** o jogo segue para o **Ato IV antigo** (passo 21, a Serra) até o Marco 5 trocar esse trecho pelo roteiro original.
+  - **A conversa do passo 20 foi pulada:** ela era com o Anjo, que agora foi levado.
+  - **Trecho a trocar no Marco 5:** algumas falas do Ato IV antigo ainda citam o Anjo.
+- **Continuar um jogo salvo:** se o jogo fecha no meio de uma cena que não se repete sozinha, ele volta ao começo dela ao reabrir: o porão, a luta com ZAR'KHAEL (volta ao portal) e a conversa com o Anjo. Isso foi testado no navegador recarregando a página.
+- **Evidência:**
+  - **CONFIRMADO POR CÓDIGO:** `node --test`, 78 testes, entre eles os 6 de `act3-flow.test.mjs`.
+  - **TESTADO EM NAVEGADOR** (Chromium com SwiftShader, roteiro automático):
+    - todo o Ato III, do passo 15 ao 21, sem erros de página;
+    - o casaco no herói, de frente, de lado e andando;
+    - o aviso de frio sem casaco.
+  - **Android: NÃO TESTADO.**
