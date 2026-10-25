@@ -40,6 +40,11 @@ export const DIMENSIONS = {
     kicker: 'PRÓLOGO', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
     line: '', rage: '', center: { x: -400, z: 0 }, radius: 80, accent: '#f3c25a', theme: 'heaven'
   },
+  esgoto: {
+    key: 'esgoto', order: 0, name: 'ESGOTOS', title: 'Ato I', epithet: 'Onde o Bispo se esconde',
+    kicker: 'ATO I', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
+    line: '', rage: '', center: { x: -800, z: 0 }, radius: 140, accent: '#9ab06a', theme: 'sewer'
+  },
   greed: {
     key: 'greed', order: 5, name: 'GANÂNCIA', title: 'O Pecado Capital', epithet: 'A Raiz de Todos os Males',
     kicker: 'DIMENSÃO V · A RAIZ', portrait: 'Ganancia1-ui.webp', rig: 'greed1', profile: 'greed1', hp: 520,

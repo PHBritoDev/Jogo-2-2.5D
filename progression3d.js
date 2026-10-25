@@ -4,7 +4,7 @@
  * O ouro sozinho nunca libera um item: cada oferta declara etapa da campanha e nível mínimos.
  */
 export const LEVELS = [0, 60, 150, 280, 450, 680, 980, 1350, 1800, 2350, 3000, 3750];
-export const XP_REWARDS = { captor: 22, sentry: 32, warden: 70, rescue: 50, ruin: 15, valerio: 160, zealot: 45, hollow: 55 };
+export const XP_REWARDS = { captor: 22, demon2: 40, sentry: 32, warden: 70, rescue: 50, ruin: 15, valerio: 160, zealot: 45, hollow: 55 };
 
 export function levelFromXp(xp) {
   let lvl = 1;
@@ -97,10 +97,10 @@ export function achievementState(a, stats = {}, claimed = new Set()) {
 export const BESTIARY = [
   { id: 'captor', act: 1, name: 'Seguidor da Ganância', cls: 'Servo · Enemy1', img: 'Enemy1-ui.webp', discoveryReward: 3,
     lore: 'Vendeu a voz para cobrar a de outros. Ataca com garras e recua quando ferido.' },
-  { id: 'sentry', act: 1, name: 'Sentinela da Subida', cls: 'Servo · Enemy1', img: 'Enemy1-ui.webp', discoveryReward: 3,
-    lore: 'Guarda a montanha em turnos. Prefere esperar que o viajante venha até ele.' },
-  { id: 'warden', act: 1, name: 'Guarda da Passagem', cls: 'Mini-chefe · Enemy1', img: 'Enemy1-ui.webp', discoveryReward: 6,
-    lore: 'Mais pesado, golpe largo e mais resistente. Um selo de Valério arde em seu peito.' },
+  { id: 'demon2', act: 1, name: 'Demônio da Ganância', cls: 'Servo · Enemy2', img: 'Enemy2-ui.webp', discoveryReward: 4,
+    lore: 'Anda em bando pelas trilhas e cobra em sangue o que os vivos não pagam em ouro.' },
+  { id: 'warden', act: 1, name: 'Guardião do Portal', cls: 'Mini-chefe · Enemy1', img: 'Enemy1-ui.webp', discoveryReward: 6,
+    lore: 'Guarda a dimensão de Valério no fundo do esgoto. Mais pesado, golpe largo e mais resistente. Implora quando perde.' },
   { id: 'valerio', act: 1, name: 'Valério', cls: 'Primeiro Bispo', img: 'Bispo1-ui.webp', discoveryReward: 10,
     lore: 'Guardava as moedas. Fez da floresta um livro-caixa de vidas.' },
   { id: 'vorgazhek', act: 2, name: 'VORGAZHEK', cls: 'Segundo Bispo', img: 'Bispo2-ui.webp', discoveryReward: 14,
