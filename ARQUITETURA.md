@@ -43,6 +43,15 @@ O interior do vulcão é uma área abaixo do mundo (dimensão `vulcao`, tema `vo
 porta liberada pela chave) com laboratório, sala do ouro, salão, trono e o portal de VORGAZHEK. A visão da erupção
 mostra o mundo por alguns segundos no meio da luta (`visao-inicio`/`visao-fim`). Modelo novo: `Misteriosa-rig.glb`.
 
+## Ato III (Mod 206)
+
+Roteiro do autor em `docs/roteiro/M4-ATO3.md`. Cenas em `act3-flow.js` (etapas 15–19); lugares, colisão, frio e casaco
+em `snow3d.js`. A cidade de neve (Invernália) ocupa o vale leste; o motor antigo de etapas (`acts34-flow.js`) ignora
+15–20 e o jogo volta a ele no passo 21 (Ato IV). Três áreas abaixo do mundo: estalagem (`inn`), caverna de gelo
+(`icecave`) e dimensão distorcida (`distorted`, controles invertidos). Casaco: `Casaco.glb` sem esqueleto, ligado ao
+esqueleto do herói em tempo de execução (`attachCoat`). Rig `anjo`: AnjoGuia com clipes emprestados do Protagonista
+(`RIG_DEFS.*.extra`). Modelos novos: `NeveKit.glb`, `Casaco.glb` (scripts em `tools/blender/m4_*.py`).
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a

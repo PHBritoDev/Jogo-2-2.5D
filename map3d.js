@@ -24,7 +24,7 @@ export const MAP_POIS = [
   { id: 'mina', name: 'Mina Velha', x: -184, z: -38, kind: 'danger' },
   { id: 'canal', name: 'Canal de Drenagem', x: -158, z: -86, kind: 'water' },
   { id: 'incenso', name: 'Passagem do Incenso', x: 96, z: -32, kind: 'danger' },
-  { id: 'altar', name: 'Vale do Altar', x: 150, z: -40, kind: 'village', revealRadius: 26 },
+  { id: 'altar', name: 'Invernália', x: 150, z: -40, kind: 'village', revealRadius: 26 }, // MOD 206 — a cidade de neve do Ato III
   { id: 'serra', name: 'Serra sem Ecos', x: -36, z: -238, kind: 'village', revealRadius: 26 },
   { id: 'coliseu', name: 'Arena do Vale', x: 168, z: -70, kind: 'danger' }
 ];

@@ -35,3 +35,21 @@
 #mission-card .mc-obj{margin:0 0 18px;font:500 15px/1.5 system-ui,sans-serif;color:#e4d6b6}
 body.cinematic #hint,body.cinematic #objective-arrow,body.cinematic #enemy-hud,body.cinematic #dialog-panel{opacity:0!important;pointer-events:none!important}
 #mission-accept{width:100%;height:48px;border-radius:999px;border:1px solid #f3c25a;background:#f3c25a;color:#1a1206;font:800 14px system-ui,sans-serif;letter-spacing:.18em}
+
+/* MOD 206 — escolha do casaco (Ato III) e aviso de frio. */
+#choice-card{position:fixed;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:18px;background:#05040399}
+#choice-card[hidden]{display:none}
+#choice-card .mc-sheet{width:min(440px,92vw);padding:22px 22px 18px;border-radius:16px;background:linear-gradient(#0f1620,#070a10);border:1px solid #9ed0ff88;color:#eef4fa;text-align:center;box-shadow:0 0 60px #9ed0ff33}
+#choice-card .mc-kicker{margin:0 0 8px;font:700 11px system-ui,sans-serif;letter-spacing:.32em;color:#9ed0ff}
+#choice-card h2{margin:0 0 12px;font:500 26px/1.2 Georgia,"Times New Roman",serif}
+#choice-card .mc-obj{margin:0 0 18px;font:500 15px/1.5 system-ui,sans-serif;color:#cfe0ee}
+#choice-card .choice-row{display:flex;gap:10px}
+#choice-card button{flex:1;height:48px;border-radius:999px;font:800 14px system-ui,sans-serif;letter-spacing:.16em}
+#choice-yes{border:1px solid #9ed0ff;background:#9ed0ff;color:#06121e}
+#choice-no{border:1px solid #9ed0ff66;background:transparent;color:#cfe0ee}
+#cold-chip{position:fixed;left:calc(env(safe-area-inset-left) + 12px);top:calc(env(safe-area-inset-top) + 150px);z-index:6;display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-radius:10px;background:#0a1828cc;border:1px solid #9ed0ff88;color:#dff0ff;font:600 11px system-ui,sans-serif;pointer-events:none;animation:coldPulse 2.4s ease-in-out infinite}
+#cold-chip[hidden]{display:none}
+#cold-chip b{font-size:12px;letter-spacing:.2em;color:#9ed0ff}
+@keyframes coldPulse{50%{box-shadow:0 0 18px #9ed0ff66}}
+.shop-card.is-new{animation:shopUnlock 1.4s ease-out 2}
+@keyframes shopUnlock{0%{box-shadow:0 0 0 #9ed0ff00;transform:scale(.96)}40%{box-shadow:0 0 30px #9ed0ffcc;transform:scale(1.02)}100%{box-shadow:0 0 0 #9ed0ff00;transform:scale(1)}}
