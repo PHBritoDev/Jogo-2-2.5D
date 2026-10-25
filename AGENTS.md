@@ -4,6 +4,7 @@ Antes de trabalhar neste repositório, leia **[PROMPT_MESTRE_DO_JOGO.md](PROMPT_
 
 - O criador aceita melhorias proativas. Sugira e implemente melhorias coerentes com a visão, preservando os pilares da história e as funcionalidades existentes.
 - Estado atual: o mundo 2D foi removido (Mod 202); o jogo é 100% 3D e as dimensões dos quatro Bispos acontecem dentro dele. Leia `ARQUITETURA.md`.
+- Roteiro integral (fonte da verdade narrativa): `docs/GALAXIA-1-ROTEIRO-INTEGRAL-E-DIRECAO.pdf`. Execução em marcos, um por vez: `docs/MARCO-0-AUDITORIA-GALAXIA-1.md`.
 - Próxima fase: reescrever a história, melhorar habilidades/IA de inimigos, Bispos e Pecado, combate e câmera do jogador e adicionar eventos.
 - Preserve sistemas estáveis, confirme os arquivos e dependências antes de editar e prefira mudanças pequenas e testáveis.
 - Após cada mudança de código, incremente o marcador numérico visível da modificação e forneça um link direto de teste compatível com celular.
