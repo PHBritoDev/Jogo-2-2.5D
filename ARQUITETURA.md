@@ -35,6 +35,14 @@ com câmera por atores; etapas 1–8 com sub-etapas (`act1Sub`). Lutas em grupo:
 visíveis (`startPack`). O esgoto é uma área abaixo do mundo (tema `sewer`, colisão por `sewerWalkable`) com o portal de
 Valério no fim. Modelos: `VilaKit.glb`, `MoradoresPose.glb`, `Enemy2-rig.glb` (scripts em `tools/blender/`).
 
+## Ato II (Mod 205)
+
+Roteiro do autor em `docs/roteiro/M3-ATO2.md`. Cenas em `act2-flow.js` (etapas 8–14, sub-etapas em `act1Sub`).
+Cidade Cinzária a oeste (`DISTRICT_SPOTS`); depois de VORGAZHEK ela vira ruína e abismo (`act2Abyss`, bloqueado).
+O interior do vulcão é uma área abaixo do mundo (dimensão `vulcao`, tema `volcano`, colisão por `volcanoWalkable`,
+porta liberada pela chave) com laboratório, sala do ouro, salão, trono e o portal de VORGAZHEK. A visão da erupção
+mostra o mundo por alguns segundos no meio da luta (`visao-inicio`/`visao-fim`). Modelo novo: `Misteriosa-rig.glb`.
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a

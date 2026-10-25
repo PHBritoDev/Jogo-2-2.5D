@@ -6,6 +6,7 @@
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
 import { SEWER } from './sewer3d.js';
+import { VOLCANO } from './volcano3d.js';
 
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -424,6 +425,102 @@ const THEMES = {
     const swirl = new THREE.Mesh(new THREE.CircleGeometry(3.1, 40), swirlMaterial(THREE, '#200206', '#e8b040')); swirl.scale.set(1, 1.35, 1); swirl.position.set(0, 3.7, .05); pg.add(swirl); ctx.swirls.push(swirl.material);
     refs.portal = pg;
     return { bg: 0x070907, fog: 0x0e130d, fogNear: 10, fogFar: 60, hemi: [0xa8b89c, 0x3a2e22, 1.35], sun: [0xc0d0b0, .45], light: [0xd8e0a0, 3.6, 32, [0, 3, 0]], exposure: 1.3, lightFollow: true };
+  },
+  // MOD 205 — Interior do vulcão falso (Ato II; layout em volcano3d.js): rocha basáltica com veios incandescentes,
+  // caveiras e ossos, o laboratório, a porta medonha, a sala do ouro, a galeria e a sala secreta do trono.
+  volcano(THREE, g, spec, ctx) {
+    const V = VOLCANO, r = rng(505), refs = ctx.refs;
+    const rockTex = canvasTex(THREE, 256, 256, (c, w, h) => {
+      c.fillStyle = '#1c1714'; c.fillRect(0, 0, w, h); const rr = rng(13);
+      for (let i = 0; i < 90; i++) { const v = 28 + rr() * 26 | 0; c.fillStyle = 'rgb(' + v + ',' + (v - 4) + ',' + (v - 7) + ')'; c.beginPath(); c.ellipse(rr() * w, rr() * h, 10 + rr() * 30, 6 + rr() * 18, rr() * 3, 0, 6.3); c.fill(); }
+    });
+    rockTex.wrapS = rockTex.wrapT = THREE.RepeatWrapping;
+    const veinTex = canvasTex(THREE, 256, 256, (c, w, h) => {
+      c.fillStyle = '#000'; c.fillRect(0, 0, w, h); const rr = rng(29); c.lineCap = 'round';
+      for (let i = 0; i < 14; i++) { let x = rr() * w, y = rr() * h; c.strokeStyle = 'rgba(255,' + (70 + rr() * 60 | 0) + ',20,' + (.5 + rr() * .5) + ')'; c.lineWidth = 1 + rr() * 2.5; c.beginPath(); c.moveTo(x, y); for (let k = 0; k < 6; k++) { x += (rr() - .5) * 60; y += (rr() - .5) * 60; c.lineTo(x, y); } c.stroke(); }
+    });
+    veinTex.wrapS = veinTex.wrapT = THREE.RepeatWrapping;
+    const wallMat = new THREE.MeshStandardMaterial({ map: rockTex, emissiveMap: veinTex, emissive: 0xff4a10, emissiveIntensity: .9, roughness: .95, side: THREE.BackSide });
+    const floorMat = new THREE.MeshStandardMaterial({ map: rockTex, emissiveMap: veinTex, emissive: 0xff5a18, emissiveIntensity: .7, roughness: .8 });
+    const boneMat = new THREE.MeshStandardMaterial({ color: 0xd9cfb8, roughness: .7 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x2a2420, metalness: .65, roughness: .45 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xd8a032, metalness: .9, roughness: .3, emissive: 0x5a3008, emissiveIntensity: .7 });
+    const clothMat = new THREE.MeshStandardMaterial({ color: 0x6a5e4c, roughness: .95 });
+    const tex = (m, rx, ry) => { const c = m.clone(); c.map = m.map.clone(); c.map.repeat.set(rx, ry); c.map.needsUpdate = true; if (m.emissiveMap) { c.emissiveMap = m.emissiveMap.clone(); c.emissiveMap.repeat.set(rx, ry); c.emissiveMap.needsUpdate = true; } return c; };
+    function corridor(seg, R, h) {
+      const len = Math.hypot(seg.to.x - seg.from.x, seg.to.z - seg.from.z), grp = new THREE.Group();
+      grp.position.set((seg.from.x + seg.to.x) / 2, 0, (seg.from.z + seg.to.z) / 2); grp.rotation.y = Math.atan2(seg.to.x - seg.from.x, seg.to.z - seg.from.z); g.add(grp);
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, len), tex(floorMat, R * .5, len / 5)); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; grp.add(floor);
+      const vg = new THREE.CylinderGeometry(R, R, len, 16, 1, true, Math.PI / 2, Math.PI); vg.rotateX(Math.PI / 2); vg.scale(1, h / R, 1);
+      grp.add(new THREE.Mesh(vg, tex(wallMat, len / 4, 2)));
+    }
+    function room(c, h, gaps) {
+      const R = c.r + .4;
+      const floor = new THREE.Mesh(new THREE.CircleGeometry(R, 40), tex(floorMat, c.r / 3, c.r / 3)); floor.rotation.x = -Math.PI / 2; floor.position.set(c.x, 0, c.z); floor.receiveShadow = true; g.add(floor);
+      const wm = tex(wallMat, c.r * 1.1, h / 3), cuts = gaps.map(a => ({ a, w: Math.asin(Math.min(.95, 3.3 / R)) })).sort((p, q) => p.a - q.a);
+      for (let i = 0; i < cuts.length; i++) {
+        const a0 = cuts[i].a + cuts[i].w, a1 = i + 1 < cuts.length ? cuts[i + 1].a - cuts[i + 1].w : cuts[0].a - cuts[0].w + Math.PI * 2;
+        const wall = new THREE.Mesh(new THREE.CylinderGeometry(R, R * 1.08, h, 36, 1, true, a0, a1 - a0), wm); wall.position.set(c.x, h / 2, c.z); g.add(wall);
+      }
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), wm); dome.scale.y = .5; dome.position.set(c.x, h, c.z); g.add(dome);
+    }
+    corridor(V.tunnel, V.tunnel.r + .6, 5); corridor(V.goldPath, V.goldPath.r + .6, 4); corridor(V.deepPath, V.deepPath.r + .6, 4.6); corridor(V.thronePath, V.thronePath.r + .6, 5);
+    room(V.lab, 5.4, [0, -Math.PI / 2, Math.PI]); room(V.gold, 4.6, [Math.PI / 2]); room(V.hall, 6, [0, Math.PI]); room(V.throne, 9, [0]);
+    // Caveiras e ossos pelo chão do túnel e das salas.
+    const skulls = [], bones = [];
+    for (let i = 0; i < 46; i++) {
+      const inT = i < 26, z = inT ? V.tunnel.to.z + r() * (V.tunnel.from.z - V.tunnel.to.z) : V.hall.z + (r() - .5) * 18, x = inT ? (r() - .5) * 4.6 : (r() - .5) * 18;
+      if (i % 2) skulls.push({ x, y: .14, z, s: .16 + r() * .05, ry: r() * 6 }); else bones.push({ x, y: .05, z, rz: Math.PI / 2, ry: r() * 6, s: .8 + r() * .5 });
+    }
+    g.add(instanced(THREE, new THREE.SphereGeometry(1, 9, 7), boneMat, skulls)); g.add(instanced(THREE, new THREE.CylinderGeometry(.04, .05, .7, 6), boneMat, bones));
+    // Laboratório: mesas com corpos sob panos, correntes nas paredes, roda e lâminas (sem sangue explícito).
+    const L = V.lab, tables = [], shrouds = [], links = [];
+    for (let i = 0; i < 5; i++) { const a = -2.4 + i * 1.2, x = L.x + Math.sin(a) * 6.6, z = L.z + Math.cos(a) * 6.6; tables.push({ x, y: .45, z, sx: 2.1, sy: .14, sz: .9, ry: a }); shrouds.push({ x, y: .66, z, sx: 1.7, sy: .28, sz: .55, ry: a }); }
+    const bodies = new THREE.Group(); g.add(bodies); refs.bodies = bodies;
+    g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), ironMat, tables)); bodies.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), clothMat, shrouds));
+    for (let k = 0; k < 6; k++) { const a = .6 + k * .9, x = L.x + Math.sin(a) * (L.r + .1), z = L.z + Math.cos(a) * (L.r + .1); for (let j = 0; j < 10; j++) links.push({ x, y: 3.8 - j * .2, z, s: .1, rx: j % 2 ? Math.PI / 2 : 0, ry: a }); }
+    g.add(instanced(THREE, new THREE.TorusGeometry(1, .3, 5, 10), ironMat, links));
+    for (let k = 0; k < 4; k++) { const a = 1 + k * 1.5, x = L.x + Math.sin(a) * (L.r - .4), z = L.z + Math.cos(a) * (L.r - .4); const fig = new THREE.Mesh(new THREE.CapsuleGeometry(.28, 1, 4, 8), clothMat); fig.position.set(x, 1.3, z); bodies.add(fig); }
+    const wheel = new THREE.Mesh(new THREE.TorusGeometry(1.1, .1, 6, 20), ironMat); wheel.position.set(L.x - 6, 1.4, L.z - 6); wheel.rotation.y = .7; g.add(wheel);
+    // Círculo mágico da purificação (o jogo acende e gira).
+    const circleTex = canvasTex(THREE, 512, 512, (c, w, h) => { c.strokeStyle = '#ffe6a0'; c.lineWidth = 8; c.beginPath(); c.arc(256, 256, 230, 0, 6.3); c.stroke(); c.lineWidth = 4; c.beginPath(); c.arc(256, 256, 180, 0, 6.3); c.stroke(); for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283, b = (i + 3) / 7 * 6.283; c.beginPath(); c.moveTo(256 + Math.cos(a) * 180, 256 + Math.sin(a) * 180); c.lineTo(256 + Math.cos(b) * 180, 256 + Math.sin(b) * 180); c.stroke(); } c.font = 'bold 34px serif'; c.fillStyle = '#ffe6a0'; for (let i = 0; i < 12; i++) { c.save(); c.translate(256, 256); c.rotate(i / 12 * 6.283); c.fillText('✝', -10, -196); c.restore(); } });
+    const circle = new THREE.Mesh(new THREE.CircleGeometry(4.4, 48), new THREE.MeshBasicMaterial({ map: circleTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    circle.rotation.x = -Math.PI / 2; circle.position.set(V.circle.x, .04, V.circle.z); g.add(circle); refs.circle = circle;
+    // A porta medonha: ferro com espinhos e uma caveira; o jogo a abre com a chave.
+    const door = new THREE.Group(); door.position.set(V.door.x, 0, V.door.z); door.rotation.y = Math.PI / 2; g.add(door);
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(4.4, 4.2, .35), ironMat); slab.position.y = 2.1; door.add(slab);
+    const spikes = []; for (let i = 0; i < 18; i++) spikes.push({ x: -1.9 + (i % 6) * .76, y: .7 + Math.floor(i / 6) * 1.3, z: .3, rx: Math.PI / 2, s: .5 });
+    door.add(instanced(THREE, new THREE.ConeGeometry(.12, .5, 6), ironMat, spikes));
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), boneMat); skull.position.set(0, 3.1, .3); door.add(skull);
+    for (const ex of [-.15, .15]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 6, 5), new THREE.MeshBasicMaterial({ color: 0xff3010 })); e.position.set(ex, 3.15, .68); door.add(e); }
+    refs.door = door;
+    // Sala do ouro: montes de moedas, barras e baús.
+    const G = V.gold, coins = [], bars = [];
+    for (let i = 0; i < 160; i++) { const a = r() * 6.28, d = Math.sqrt(r()) * (G.r - 1.2), hgt = Math.max(0, 1.2 - d * .2) * r(); coins.push({ x: G.x + Math.cos(a) * d, y: .04 + hgt, z: G.z + Math.sin(a) * d, s: .2 + r() * .1, rx: r() * .6, ry: r() * 6 }); }
+    for (let i = 0; i < 24; i++) bars.push({ x: G.x - 2 + (i % 6) * .45, y: .12 + Math.floor(i / 6) * .14, z: G.z + 2.6, sx: .4, sy: .12, sz: .2 });
+    g.add(instanced(THREE, new THREE.CylinderGeometry(1, 1, .15, 10), goldMat, coins)); g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), goldMat, bars));
+    const goldLight = new THREE.Mesh(new THREE.SphereGeometry(.01), new THREE.MeshBasicMaterial()); goldLight.position.set(G.x, 1, G.z); g.add(goldLight); refs.goldSpot = { x: G.x, z: G.z };
+    // Galeria e sala do trono: colunas, braseiros, trono enorme e dois pedestais para as estátuas.
+    const pillars = []; for (const c of [V.hall, V.throne]) for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28 + .2; pillars.push({ x: c.x + Math.cos(a) * (c.r - 1.6), y: 3, z: c.z + Math.sin(a) * (c.r - 1.6), sx: 1, sy: 1, sz: 1 }); }
+    g.add(instanced(THREE, new THREE.CylinderGeometry(.6, .8, 6, 10), tex(floorMat, 1, 2), pillars));
+    const fireMat = new THREE.MeshBasicMaterial({ color: 0xff7a20, toneMapped: false }), braziers = [];
+    for (const c of [V.hall, V.throne]) for (let i = 0; i < 4; i++) { const a = i / 4 * 6.28 + .8; braziers.push({ x: c.x + Math.cos(a) * (c.r - 3), y: 1.3, z: c.z + Math.sin(a) * (c.r - 3), s: .3 }); }
+    g.add(instanced(THREE, new THREE.SphereGeometry(1, 8, 6), fireMat, braziers));
+    const T = V.throne, S = V.seat, stoneD = new THREE.MeshStandardMaterial({ color: 0x241c1a, roughness: .7, emissive: 0x200604, emissiveIntensity: .6 });
+    const tg = new THREE.Group(); tg.position.set(S.x, 0, S.z); g.add(tg);
+    for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(9 - i * 2, .5, 4 - i * .8), stoneD); st.position.set(0, .25 + i * .5, i * -.3); tg.add(st); }
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.6, 2.4), stoneD); seat.position.set(0, 2.3, -.4); tg.add(seat);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(3.4, 7, .7), stoneD); back.position.set(0, 5.5, -1.4); tg.add(back);
+    for (const sx of [-1, 1]) { const horn = new THREE.Mesh(new THREE.ConeGeometry(.45, 3, 8), goldMat); horn.position.set(sx * 1.5, 9.4, -1.4); horn.rotation.z = -sx * .4; tg.add(horn); }
+    refs.statues = [{ x: T.x - 7.5, z: T.z - 6 }, { x: T.x + 7.5, z: T.z - 6 }];
+    for (const s of refs.statues) { const p = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.9, 1.2, 10), stoneD); p.position.set(s.x, .6, s.z); g.add(p); }
+    refs.portal = V.portal;
+    // Brasas subindo (uma chamada de desenho).
+    const N = 120, ep = new Float32Array(N * 3), ev = []; for (let i = 0; i < N; i++) { const rm = [V.lab, V.hall, V.throne][i % 3]; ep[i * 3] = rm.x + (r() - .5) * rm.r * 1.6; ep[i * 3 + 1] = r() * 6; ep[i * 3 + 2] = rm.z + (r() - .5) * rm.r * 1.6; ev.push(.4 + r() * .8); }
+    const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.BufferAttribute(ep, 3));
+    const ember = new THREE.Points(eg, new THREE.PointsMaterial({ color: 0xff8a30, size: .07, transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); ember.frustumCulled = false; g.add(ember);
+    ctx.tick.push((t, dt) => { const a = eg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] + ev[i] * dt; if (y > 6.5) y = 0; a.array[i * 3 + 1] = y; } a.needsUpdate = true; wallMat.emissiveIntensity = .8 + Math.sin(t * 1.1) * .15; });
+    return { bg: 0x0b0503, fog: 0x1a0805, fogNear: 10, fogFar: 62, hemi: [0xffc0a0, 0x401408, 1.15], sun: [0xffa070, .5], light: [0xffa060, 3.6, 30, [0, 3, 0]], exposure: 1.25, lightFollow: true };
   }
 };
 
