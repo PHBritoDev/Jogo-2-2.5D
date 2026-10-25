@@ -45,6 +45,11 @@ export const DIMENSIONS = {
     kicker: 'ATO I', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
     line: '', rage: '', center: { x: -800, z: 0 }, radius: 140, accent: '#9ab06a', theme: 'sewer'
   },
+  vulcao: {
+    key: 'vulcao', order: 0, name: 'VULCÃO', title: 'Ato II', epithet: 'O vulcão falso',
+    kicker: 'ATO II', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
+    line: '', rage: '', center: { x: -1200, z: 0 }, radius: 140, accent: '#ff7a30', theme: 'volcano'
+  },
   greed: {
     key: 'greed', order: 5, name: 'GANÂNCIA', title: 'O Pecado Capital', epithet: 'A Raiz de Todos os Males',
     kicker: 'DIMENSÃO V · A RAIZ', portrait: 'Ganancia1-ui.webp', rig: 'greed1', profile: 'greed1', hp: 520,
