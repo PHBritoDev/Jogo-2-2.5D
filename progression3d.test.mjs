@@ -14,7 +14,7 @@ test('níveis sobem com XP e param no máximo', () => {
 });
 
 test('o Ato I rende XP suficiente para as Palavras antes de Valério', () => {
-  const beforeValerio = XP_REWARDS.captor * 3 + XP_REWARDS.rescue + XP_REWARDS.sentry * 2 + XP_REWARDS.warden;
+  const beforeValerio = XP_REWARDS.captor * 10 + XP_REWARDS.demon2 * 3 + XP_REWARDS.warden; // Mod 204: 3+2+5 Seguidores, 3 Demônios e o Guardião
   assert.ok(levelFromXp(beforeValerio) >= item('magic2').level, 'Skill 2 precisa ser alcançável antes do Bispo');
 });
 

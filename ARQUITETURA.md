@@ -11,7 +11,7 @@ HUDs, combate, câmera, habilidades, vida e corações.
   carrega o `.js` como texto, reescreve caminhos de módulos/ativos com o token de cache (`BUILD`) e o importa por Blob.
 - Regras puras (testadas com `node --test`): `world3d-terrain.js`, `skills3d.js`, `map3d.js`, `progression3d.js`,
   `galaxies3d.js`, `hearts3d.js`, `sidequests3d.js`, `act1-flow.js`, `act2-flow.js`, `acts34-flow.js`,
-  `finale-flow.js`, `dimensions3d.js`.
+  `finale-flow.js`, `dimensions3d.js`, `prologue-flow.js` + `cutscenes3d.js` (diretor de cenas), `sewer3d.js` (esgoto do Ato I).
 - `dimension-arenas3d.js` — geometria procedural das arenas e dos portais (recebe o `THREE` por parâmetro e só cria
   objetos quando a dimensão é aberta).
 - `shop-icons3d.js` — arte própria (SVG) das Palavras, ultimates, espadas e categorias da Loja e do HUD.
@@ -27,6 +27,13 @@ Fluxo: portal no mundo → `startDimensionBattle(key)` → cartão **jogador VS 
 nome e fala) → arena abaixo do mundo (`voidMode` + `voidSpec`) → luta com o motor normal → vitória/sem corações →
 volta ao portal. Durante o cartão (mundo parado) a arena, o modelo e as texturas são preparados e os shaders
 compilados, para a luta nunca travar. Quedas gastam um coração; sem corações o portal expulsa o jogador.
+
+## Ato I (Mod 204)
+
+Roteiro do autor em `docs/roteiro/M2-ATO1.md`. As cenas são dados em `act1-flow.js` e rodam no diretor (`cutscenes3d.js`)
+com câmera por atores; etapas 1–8 com sub-etapas (`act1Sub`). Lutas em grupo: um inimigo luta e os demais esperam
+visíveis (`startPack`). O esgoto é uma área abaixo do mundo (tema `sewer`, colisão por `sewerWalkable`) com o portal de
+Valério no fim. Modelos: `VilaKit.glb`, `MoradoresPose.glb`, `Enemy2-rig.glb` (scripts em `tools/blender/`).
 
 ## Dia e noite
 
