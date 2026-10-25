@@ -52,6 +52,13 @@ em `snow3d.js`. A cidade de neve (Invernália) ocupa o vale leste; o motor antig
 esqueleto do herói em tempo de execução (`attachCoat`). Rig `anjo`: AnjoGuia com clipes emprestados do Protagonista
 (`RIG_DEFS.*.extra`). Modelos novos: `NeveKit.glb`, `Casaco.glb` (scripts em `tools/blender/m4_*.py`).
 
+## Ato IV (Mod 207)
+
+Roteiro do autor em `docs/roteiro/M5-ATO4.md`. Cenas em `act4-flow.js` (etapas 21–24; na torre, `act1Sub` = piso);
+lugares e colisão em `tower3d.js`. A torre (`TorreKit.glb`, script `tools/blender/m5_torre.py`) fica na antiga Serra;
+cada piso é a mesma área abaixo do mundo (tema `tower`), redecorada. O motor antigo ignora 15–25; depois do Ato IV o
+jogo segue para o arco final antigo (passo 27). Pergaminho: `scrollMul()` no dano da espada.
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a

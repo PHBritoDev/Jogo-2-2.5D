@@ -8,6 +8,7 @@
 import { SEWER } from './sewer3d.js';
 import { VOLCANO } from './volcano3d.js';
 import { INN, ICE_CAVE, DISTORTED } from './snow3d.js';
+import { TOWER_HALL } from './tower3d.js';
 
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -613,6 +614,32 @@ const THEMES = {
     ctx.tick.push((t, dt) => { const a = sg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] + dt * .9; if (y > 14) y = 0; a.array[i * 3 + 1] = y; } a.needsUpdate = true; rings.forEach((m, i) => { m.rotation.z = t * (i % 2 ? .15 : -.12); }); shardMesh.position.y = Math.sin(t * .6) * .6; });
     refs.portal = D.portal;
     return { bg: 0x0c1830, fog: 0x2a3a5a, fogNear: 18, fogFar: 80, hemi: [0xc8dcff, 0x3a2a4a, 1.3], sun: [0xbad0ff, .5], light: [0x9ac8ff, 3, 30, [0, 4, 0]], exposure: 1.25, lightFollow: true };
+  },
+  // MOD 207 — Um piso da torre de VÉRAXION (Ato IV): salão redondo de pedra negra, colunas com anéis de luz branca,
+  // janelas altas para o céu e um estrado no centro onde surge o portal para o próximo piso. A cor muda a cada piso.
+  tower(THREE, g, spec, ctx) {
+    const T = TOWER_HALL, r = rng(909), refs = ctx.refs;
+    const tile = canvasTex(THREE, 256, 256, (c, w, h) => { c.fillStyle = '#1c1c22'; c.fillRect(0, 0, w, h); const rr = rng(4); for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const v = 34 + rr() * 22 | 0; c.fillStyle = 'rgb(' + v + ',' + v + ',' + (v + 6) + ')'; c.fillRect(x * 32 + 1, y * 32 + 1, 30, 30); } });
+    tile.wrapS = tile.wrapT = THREE.RepeatWrapping; tile.repeat.set(7, 7);
+    const floorMat = new THREE.MeshStandardMaterial({ map: tile, roughness: .55, metalness: .1, color: 0x9a98b0 });
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(T.r, 48), floorMat); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; g.add(floor); refs.floorMat = floorMat;
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x24242c, roughness: .9, side: THREE.BackSide }); refs.wallMat = wallMat;
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(T.r + .3, T.r + .3, 11, 8, 1, true), wallMat); wall.position.y = 5.5; g.add(wall);
+    const ceil = new THREE.Mesh(new THREE.CircleGeometry(T.r + .3, 8), new THREE.MeshStandardMaterial({ color: 0x141418, side: THREE.BackSide })); ceil.rotation.x = -Math.PI / 2; ceil.position.y = 11; g.add(ceil);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xeef2ff, toneMapped: false }), stone = new THREE.MeshStandardMaterial({ color: 0x3a3a44, roughness: .85 });
+    const cols = [], rings = [], wins = [];
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + Math.PI / 8; cols.push({ x: Math.cos(a) * (T.r - 1.2), y: 5.5, z: Math.sin(a) * (T.r - 1.2), sx: 1, sy: 11, sz: 1 }); for (let j = 0; j < 3; j++) rings.push({ x: Math.cos(a) * (T.r - 1.2), y: 2 + j * 3.2, z: Math.sin(a) * (T.r - 1.2), rx: Math.PI / 2, s: .75 });
+      const b = k / 8 * Math.PI * 2; wins.push({ x: Math.cos(b) * (T.r + .2), y: 6, z: Math.sin(b) * (T.r + .2), ry: -b + Math.PI / 2, sx: 1.4, sy: 4, sz: .1 }); }
+    g.add(instanced(THREE, new THREE.CylinderGeometry(.5, .6, 1, 8), stone, cols)); g.add(instanced(THREE, new THREE.TorusGeometry(.62, .05, 6, 20), ringMat, rings));
+    g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x8a9ad8, toneMapped: false }), wins));
+    const dais = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3, .4, 8), stone); dais.position.set(T.center.x, .2, T.center.z); g.add(dais);
+    const sigil = new THREE.Mesh(new THREE.RingGeometry(1.6, 1.8, 40), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .5, side: THREE.DoubleSide, toneMapped: false })); sigil.rotation.x = -Math.PI / 2; sigil.position.set(T.center.x, .42, T.center.z); g.add(sigil); refs.sigil = sigil;
+    // Poeira subindo devagar (uma chamada de desenho).
+    const N = 120, sp = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const a = r() * 6.28, d = r() * (T.r - 1); sp[i * 3] = Math.cos(a) * d; sp[i * 3 + 1] = r() * 10; sp[i * 3 + 2] = Math.sin(a) * d; }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+    const dust = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xdfe4ff, size: .05, transparent: true, opacity: .6, depthWrite: false })); dust.frustumCulled = false; g.add(dust);
+    ctx.tick.push((t, dt) => { const a = sg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] + dt * .25; if (y > 10) y = 0; a.array[i * 3 + 1] = y; } a.needsUpdate = true; sigil.rotation.z = t * .2; });
+    return { bg: 0x08080c, fog: 0x14141c, fogNear: 10, fogFar: 40, hemi: [0xd8dcff, 0x2a2a34, 1.25], sun: [0xc8d0ff, .4], light: [0xdfe6ff, 3.2, 26, [0, 5, 0]], exposure: 1.2, lightFollow: true };
   }
 };
 

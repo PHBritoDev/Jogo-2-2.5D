@@ -65,6 +65,11 @@ export const DIMENSIONS = {
     kicker: 'ATO III', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
     line: '', rage: '', center: { x: -2400, z: 0 }, radius: 90, accent: '#8ad0ff', theme: 'distorted'
   },
+  torre: {
+    key: 'torre', order: 0, name: 'TORRE DE VÉRAXION', title: 'Ato IV', epithet: 'Sete pisos',
+    kicker: 'ATO IV', portrait: 'AnjoGuia-ui.webp', rig: null, profile: null, hp: 0,
+    line: '', rage: '', center: { x: -2800, z: 0 }, radius: 60, accent: '#dfe6ff', theme: 'tower'
+  },
   greed: {
     key: 'greed', order: 5, name: 'GANÂNCIA', title: 'O Pecado Capital', epithet: 'A Raiz de Todos os Males',
     kicker: 'DIMENSÃO V · A RAIZ', portrait: 'Ganancia1-ui.webp', rig: 'greed1', profile: 'greed1', hp: 520,
