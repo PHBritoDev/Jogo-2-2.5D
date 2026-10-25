@@ -1,19 +1,34 @@
 /**
- * MOD 185 — Ato I no mundo 3D, com a subida da montanha.
- * Dados e transições puras. A dimensão de Valério não é reconstruída aqui:
- * o portal só pede a entrada já existente (?valerioTest=1).
+ * MOD 204 — Marco 2: Ato I como no roteiro original do autor (docs/roteiro/M2-ATO1.md).
+ * Dados e transições puras. As cenas são listas de passos do diretor (cutscenes3d.js);
+ * o jogo cuida de câmera, animações, inimigos e cenários. O nome digitado entra no lugar de {nome}.
+ *
+ * Etapas (questStep) e sub-etapas (act1Sub):
+ *  1 vila: 0 a caminho · 1 chegou (procurar o vendedor)
+ *  2 floresta à noite: luta 1 + 2 Seguidores (journeyEnemyIndex 0..3)
+ *  3 a chave: 0 gaiola fechada · 1 crianças transformadas (luta 2) · 2 desmaio
+ *  4 esgotos: 0 a caminho (massacre, 3 Enemy2) · 1 pista (ir à caverna) · 2 dentro (5 Seguidores) · 3 o buraco
+ *  5 o lugar estranho: o Guardião do Portal
+ *  6 portal liberado · 7 dimensão de Valério · 8 Ato I concluído
  */
 export const ACT1 = {
   version: 6,
+  rev: 2,
   purse: 8,
   bribe: 5,
   rescueReward: 12,
   portalReward: 8,
   wardenReward: 18,
   enemyTotal: 3,
+  childEnemies: 2,
+  massacreEnemies: 3,
+  feedingEnemies: 5,
+  cellEnemies: 10,
+  pathEnemies: 12,
   mountainSentries: 2,
   sentryHp: 100,
-  wardenHp: 180,
+  enemy2Hp: 140,
+  wardenHp: 300,
   valerioReward: 40
 };
 
@@ -25,7 +40,7 @@ export function sanitizePlayerName(raw) {
   if (!/^[\p{L}][\p{L} '\-.]{1,15}$/u.test(name)) {
     return { ok: false, error: 'Use letras, espaço, apóstrofo ou hífen.' };
   }
-  const folded = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const folded = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   if (BANNED.some((word) => folded.includes(word))) {
     return { ok: false, error: 'Escolha um nome que possa ser dito em voz alta.' };
   }
@@ -41,7 +56,9 @@ function clampInt(value, min, max, fallback) {
 function baseProgress() {
   return {
     version: ACT1.version,
+    act1Rev: ACT1.rev,
     questStep: 0,
+    act1Sub: 0,
     coins: 0,
     journeyEnemyIndex: 0,
     mountainIndex: 0,
@@ -113,10 +130,12 @@ export function migrateProgress(raw) {
   };
   const version = Number(raw.version);
   if (version >= ACT1.version) {
-    return {
+    const step = clampInt(raw.questStep, 0, 30, 0);
+    const out = {
       ...base,
       ...shared,
-      questStep: clampInt(raw.questStep, 0, 30, 0),
+      questStep: step,
+      act1Sub: clampInt(raw.act1Sub, 0, 9, 0),
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: clampInt(raw.mountainIndex, 0, ACT1.mountainSentries, 0),
       wardenTaunted: !!raw.wardenTaunted,
@@ -125,8 +144,15 @@ export function migrateProgress(raw) {
       portalRewardClaimed: !!raw.portalRewardClaimed,
       bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
       valerioRewardClaimed: !!raw.valerioRewardClaimed,
-      ...progressionFields(raw, clampInt(raw.questStep, 0, 30, 0))
+      ...progressionFields(raw, step)
     };
+    // Save do Ato I antigo (antes do Marco 2) parado no meio do ato: a etapa é mantida, mas a etapa recomeça
+    // do jeito novo (o roteiro mudou: vendedor, floresta à noite, esgotos). Ouro, nome e compras ficam.
+    if ((Number(raw.act1Rev) || 1) < ACT1.rev && step >= 1 && step <= 7) {
+      Object.assign(out, { act1Sub: 0, journeyEnemyIndex: 0, mountainIndex: 0, captorsTaunted: false, childrenFreed: false });
+      if (step <= 5) Object.assign(out, { wardenTaunted: false, wardenDefeated: false });
+    }
+    return out;
   }
   if (version === 5) {
     // O fim antigo (passo 5) era o portal fechado de propósito.
@@ -147,101 +173,287 @@ export function migrateProgress(raw) {
   return { ...base, coins };
 }
 
-export function questPresentation(step) {
+/** Texto do HUD de missão para cada etapa (e sub-etapa) do Ato I. */
+export function questPresentation(step, sub = 0) {
   const pages = {
     0: ['ATO I · O PREÇO DE UMA VIDA', 'Fale com o Anjo-Guia'],
-    1: ['ATO I · O PREÇO DE UMA VIDA', 'Procure Téo, na banca de provisões da vila'],
-    2: ['ATO I · A MATA E AS GAIOLAS', 'Siga a trilha até as gaiolas. Três captores guardam as crianças'],
-    3: ['ATO I · A CHAVE', 'Abra as gaiolas e escolte as crianças de volta à vila'],
-    4: ['ATO I · A SUBIDA', 'Duas sentinelas guardam a montanha, bem espaçadas. Enfrente uma de cada vez'],
-    5: ['ATO I · O GUARDA DA PASSAGEM', 'Derrote o guarda antes do portal. Ele resiste mais e abre um corte largo'],
-    6: ['ATO I · O PORTAL DE VALÉRIO', 'Aproxime-se. A dimensão que já existe será aberta, não substituída'],
+    1: sub >= 1
+      ? ['ATO I · A VILA DA CLAREIRA', 'Pergunte ao vendedor de frutas sobre o Pecado da Ganância']
+      : ['ATO I · O PREÇO DE UMA VIDA', 'Siga a trilha até a pequena vila e fale com um vendedor'],
+    2: ['ATO I · A FLORESTA À NOITE', 'Investigue o choro de crianças na floresta'],
+    3: sub >= 1
+      ? ['ATO I · RECEPTÁCULOS', 'Derrote as crianças possuídas pelos demônios']
+      : ['ATO I · A CHAVE', 'Abra a gaiola com a chave dos Seguidores'],
+    4: [['ATO I · OS ESGOTOS', 'Siga a trilha da montanha rumo aos esgotos'],
+      ['ATO I · A PISTA', 'Siga a pista até a entrada da caverna, na encosta'],
+      ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
+      ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][Math.min(3, sub)],
+    5: ['ATO I · O GUARDIÃO DO PORTAL', 'Siga pelo caminho vazio e derrote o guardião do portal'],
+    6: ['ATO I · O PORTAL DE VALÉRIO', 'Entre no portal: a dimensão de Valério está do outro lado'],
     7: ['ATO I · DIMENSÃO ABERTA', 'Valério espera na dimensão dele. Atravesse o portal'],
-    8: ['ATO I · CONCLUÍDO', 'Valério foi purificado. Explore a floresta e fale com o Anjo-Guia']
+    8: ['ATO I · CONCLUÍDO', 'Valério caiu. Uma longa jornada começa']
   };
   const pair = pages[step] || pages[8];
   return { title: pair[0], objective: pair[1] };
 }
 
 export function combatStep(step) {
-  return step === 2 || step === 4 || step === 5;
+  return step === 2 || step === 3 || step === 4 || step === 5;
 }
 
-export function guideAwakeningLines() {
+/* ---------- Falas (texto revisado; o original está em docs/roteiro/M2-ATO1.md) ---------- */
+export const SPEAKERS = {
+  hero: 'heroi', guide: 'Anjo-Guia', vendor: 'Téo · Provisões', follower: 'Seguidor da Ganância',
+  demon: 'Demônio da Ganância', child: 'Criança', warden: 'Guardião do Portal', valerio: 'Valério', victim: 'Morador'
+};
+const S = SPEAKERS;
+const say = (who, text, extra) => Object.assign({ type: 'say', who, text }, extra || {});
+const shot = (id, dur, args, extra) => Object.assign({ type: 'shot', id, dur, args: args || {} }, extra || {});
+const act = (id, args) => ({ type: 'do', id, args: args || {} });
+const wait = dur => ({ type: 'wait', dur });
+
+/** Chegada à vila: plano aberto mostrando a vila de longe, nome na tela e som de descoberta. */
+export function villageArrivalScene() {
   return [
-    { who: 'Anjo-Guia', text: 'Despertaste. Este lugar já não reconhece a diferença entre necessidade e cobiça. Antes de seguirmos, preciso saber: como devo chamar-te?' }
+    shot('vila-panorama', 5.5, { cam: 'crane', anchor: 'village', from: [26, 18, 34], to: [12, 6, 20], lookFrom: [0, 2, 0], lookTo: [0, 1.5, 0] },
+      { with: [act('titulo', { kicker: 'GALÁXIA 1 · MUNDO DA GANÂNCIA', title: 'Vila da Clareira' }), act('som-descoberta')] }),
+    shot('vila-miseria', 3.5, { cam: 'crane', anchor: 'village', from: [4, 2.8, 9.2], to: [8.4, 2.4, 7.6], lookFrom: [12.5, .3, 2.6], lookTo: [6.2, 1, 6.4] })
   ];
 }
 
-export function guideAfterNameLines(name) {
+/** Sem dinheiro: o vendedor nem conversa. */
+export function vendorRefusalScene() {
   return [
-    { who: 'Anjo-Guia', text: name + ', guarda esse nome. Haverá quem tente comprá-lo, apagá-lo ou usá-lo contra ti. Eu caminharei contigo, mas as escolhas e a coragem serão tuas.' },
-    { who: 'Anjo-Guia', text: 'Há rumores na vila. Vai como quem apenas atravessa. O homem das provisões, Téo, ouve mais do que admite. Leva estas moedas: não são para comprar uma consciência. São para que ele possa falar sem ser vendido no lugar dela.' },
-    { who: 'Anjo-Guia', text: 'O Primeiro Bispo desta ganância atende por Valério. Ainda não o enfrentes. Primeiro descobre o preço que estão cobrando das vidas daqui.' }
+    say(S.hero, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?'),
+    say(S.vendor, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.')
   ];
 }
 
-export function informantPoorLines() {
+/** Pergunta, recusa, o saco de ouro e tudo o que o vendedor sabe. */
+export function vendorScene() {
   return [
-    { who: 'Téo · Provisões', text: 'Crianças? Eu não vi gaiola nenhuma. E não falo de graça — quem abre a boca aqui acaba escrito no livro de alguém.' },
-    { who: 'Anjo-Guia', text: 'Ele ainda mede a coragem em moedas. Volta quando tivermos o bastante para que ele fale sem se vender por inteiro.' }
+    say(S.hero, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?'),
+    say(S.vendor, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.'),
+    shot('saco-de-ouro', 2.6, { cam: 'two', a: 'hero', b: 'vendor', side: 1, dist: 3.4 }, { with: [act('entregar-ouro')] }),
+    say(S.vendor, '…Não conte isso pra ninguém, senão nós dois vamos morrer. Você está vendo a situação desta vila?'),
+    say(S.vendor, 'Não é só aqui: o mundo inteiro está em caos. Há alguns anos o mundo vivia em paz, mas então chegou o Pecado da Ganância. Ele se considera um deus.'),
+    say(S.vendor, 'Desde que ele chegou, o mundo caiu em desgraça. Ele controla todo o dinheiro do mundo.'),
+    say(S.hero, 'Como eu posso encontrá-lo?'),
+    say(S.vendor, 'Fiquei sabendo que não é muito longe daqui. De madrugada, ouvem-se sons estranhos na floresta… choro de crianças.'),
+    say(S.vendor, 'Parece que algumas crianças das vilas e aldeias estão sendo vendidas pelos próprios pais, para servirem de experimento. Dizem até que há demônios envolvidos nisso.'),
+    say(S.hero, 'Mas quem pode estar por trás disso?'),
+    say(S.vendor, 'Parece que é um dos subordinados do Pecado da Ganância. Ele se chama Valério.'),
+    say(S.vendor, 'Bom, eu disse tudo o que sei. Tome cuidado, rapaz, você parece novo. Se tem amor à vida, jamais se envolva com eles.'),
+    act('anoitecer'),
+    wait(2.6)
   ];
 }
 
-export function informantLines(name) {
+/** Na floresta à noite: o choro, o primeiro Seguidor e a provocação. */
+export function forestFirstScene() {
   return [
-    { who: 'Téo · Provisões', text: 'Eu não sei de criança nenhuma. Perguntar isso já é perigoso.' },
-    { who: 'Téo · Provisões', text: 'Cinco moedas. Não pagam uma vida. Pagam o medo de eu continuar aqui amanhã.' },
-    { who: name || 'Protagonista', text: 'Então tome. Não estou comprando silêncio. Estou comprando a verdade que você tem medo de carregar.' },
-    { who: 'Téo · Provisões', text: 'Levaram três pela trilha, em gaiolas, como oferenda. Valério não suja as mãos. Manda os que ainda têm unhas.' },
-    { who: 'Anjo-Guia', text: (name || 'Viajante') + ', a missão já é tua. Não há escolha honesta além de ir. A cobiça trabalha melhor longe dos olhos — vá antes que a trilha esfrie.' }
+    shot('gaiola-de-longe', 3.2, { cam: 'look', on: 'cage', off: [5, 2.6, 7], at: [0, .8, 0] }, { with: [act('choro')] }),
+    say(S.child, 'Socorro! Alguém, por favor… tira a gente daqui!', { actor: 'cage' }),
+    shot('seguidor-surge', 2.2, { cam: 'look', on: 'enemy', off: [2.2, 1.6, 3.6], at: [0, 1, 0] }, { with: [act('surgir-seguidor')] }),
+    say(S.follower, 'Hoje é meu dia de sorte: chegou mais um sacrifício.'),
+    say(S.hero, 'Seu demônio imundo, como ousa acabar com a paz deste mundo?'),
+    say(S.follower, 'A paz deste mundo acabou no momento em que os seres humanos pisaram nele.')
   ];
 }
 
-export function captorTauntLines(name) {
+/** Depois do primeiro: surgem mais dois. */
+export function forestSecondScene() {
   return [
-    { who: 'Seguidor da Ganância', text: 'Olha só. Veio tarde, encapuzado. Estas aqui já têm preço, e o Bispo não devolve o que foi pago.' },
-    { who: 'Seguidor da Ganância', text: 'Pode rezar. Ouro fala mais alto que a tua fé — e estas gaiolas já foram compradas.' },
-    { who: name || 'Protagonista', text: 'Não se vende uma vida. Soltem-nas. Se a chave não abrir, a espada abre.' }
+    shot('mais-dois', 2.4, { cam: 'look', on: 'hero', off: [-3, 2.4, -4.5], at: [0, 1, 4] }, { with: [act('surgir-dois')] }),
+    say(S.follower, 'Quem é você?'),
+    say(S.hero, 'Eu sou aquele que vai destruir o Pecado da Ganância.'),
+    say(S.follower, 'Ahahahaha! Isso é impossível. Você não teria chance nem contra Valério.')
   ];
 }
 
-export function freeChildrenLines(name) {
+export function keyFoundScene() {
+  return [say(S.hero, 'Achei a chave para abrir essa gaiola.')];
+}
+
+/** Abrir a gaiola: as crianças viram Seguidores. */
+export function cageScene() {
   return [
-    { who: name || 'Protagonista', text: 'A chave estava com eles. Segurem firme — estas gaiolas acabam aqui.' },
-    { who: 'Criança', text: 'Eles disseram que ninguém viria. Que a gente já tinha dono.' },
-    { who: name || 'Protagonista', text: 'Ninguém é preço. Vocês voltam para casa.' },
-    { who: 'Anjo-Guia', text: 'Leve-as à vila. As famílias precisam ver que ainda existe quem recuse esse mercado.' }
+    shot('abrir-gaiola', 2.4, { cam: 'look', on: 'cage', off: [3.2, 1.8, 3.4], at: [0, .7, 0] }, { with: [act('abrir-gaiola')] }),
+    say(S.hero, 'Vocês estão bem?'),
+    shot('transformacao', 3.4, { cam: 'look', on: 'cage', off: [4.2, 2.2, 4.6], at: [0, .9, 0] }, { with: [act('transformar-criancas')] }),
+    say(S.hero, 'Que demônios imundos… estão usando as almas dessas pobres crianças como receptáculo.')
   ];
 }
 
-export function reunionLines() {
+/** Desmaio na floresta e o amanhecer com o Anjo. */
+export function faintScene() {
   return [
-    { who: 'Lia · Frutas', text: 'Elas voltaram... Eu tinha medo até de perguntar os nomes.' },
-    { who: 'Téo · Provisões', text: 'Eu vendi o silêncio. Vocês devolveram o que o meu ouro não comprava de volta.' },
-    { who: 'Anjo-Guia', text: 'Com os captores havia um mapa rasgado. A rota sobe a montanha, mas não está vazia: duas sentinelas, bem separadas, e um guarda maior antes do portal. A dimensão de Valério continua a dele. Não vamos construir outra.' }
+    say(S.hero, 'Eu estou me sentindo meio tonto…'),
+    shot('desmaio', 2.4, { cam: 'look', on: 'hero', off: [2.4, 1.4, 2.4], at: [0, .6, 0] }, { with: [act('desmaiar')] }),
+    act('amanhecer'),
+    wait(2.2),
+    shot('anjo-chama', 2.2, { cam: 'look', on: 'hero', off: [0, 2.6, 1.6], at: [0, .3, 0] }, { with: [act('anjo-aparece')] }),
+    say(S.guide, '{nome}… {nome}! {NOME}!'),
+    say(S.guide, 'Por que você está estirado no chão?'),
+    shot('levantar', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: 1, dist: 4.2 }, { with: [act('levantar')] }),
+    say(S.hero, 'Onde eu estou? Como assim, já é de manhã?'),
+    say(S.guide, 'Eu estava te procurando e, do nada, te achei aqui nesta floresta. O que aconteceu?'),
+    say(S.hero, 'Não sei muito bem. Derrotei alguns demônios e, do nada, me senti tonto e desmaiei.'),
+    say(S.guide, 'Enfim, sem perder tempo: vamos para a próxima missão. Descobri uma possível pista enquanto você dormia. Parece que o Primeiro Bispo anda pelos esgotos.'),
+    say(S.hero, 'Esgotos? Eu não quero ir para um lugar tão imundo assim…'),
+    say(S.guide, 'Se você não for, eu mesmo te mato.'),
+    say(S.hero, 'Já estou indo…'),
+    act('anjo-parte')
   ];
 }
 
-export function wardenTauntLines(name) {
+/** No caminho: demônios matando moradores. O herói chega tarde demais. */
+export function massacreScene() {
   return [
-    { who: 'Guarda da Passagem', text: 'Três caíram na mata e ainda assim você subiu. Aqui o preço muda. Eu não sou mais um deles — sou o que sobra quando o ouro acaba.' },
-    { who: name || 'Protagonista', text: 'Então cobre de mim. As crianças já não estão à venda, e este portal não é um mercado.' }
+    shot('massacre', 2.8, { cam: 'look', on: 'massacre', off: [7, 3, 6], at: [0, 1, 0] }, { with: [act('massacre-inicio')] }),
+    say(S.victim, 'Por favor… a gente não tem mais nada!', { actor: 'victim' }),
+    say(S.hero, 'Parem!'),
+    shot('correndo', 2.4, { cam: 'follow', on: 'hero', off: [0, 2.2, -4.5], at: [0, 1.2, 6] }, { with: [act('correr-ate-massacre')] }),
+    act('massacre-fim'),
+    say(S.hero, 'Por que vocês fizeram isso?'),
+    say(S.demon, 'Eles se recusaram a nos dar todo o dinheiro deles. Então eu os matei.'),
+    say(S.hero, 'Então é isso… A existência de vocês acaba aqui.')
   ];
+}
+
+export function clueScene() {
+  return [
+    say(S.hero, 'Um deles deixou cair isto… um mapa sujo de sangue. Marca uma caverna na encosta, aqui perto.')
+  ];
+}
+
+/** Os cinco Seguidores no fundo do esgoto. */
+export function feedingScene() {
+  return [
+    shot('rastros', 2.6, { cam: 'look', on: 'hero', off: [1.4, 1.9, -2.6], at: [0, .2, 5] }),
+    shot('banquete', 2.6, { cam: 'look', on: 'feeding', off: [6, 3, 6], at: [0, .8, 0] }),
+    say(S.hero, 'Larguem eles, seus demônios imundos!'),
+    say(S.follower, 'Hoje é o nosso dia de sorte: chegou a nossa sobremesa.', { actor: 'feeding' })
+  ];
+}
+
+/** O buraco: o Anjo chega, o herói pula, acorda cercado, desmaia e acorda numa jaula. */
+export function holeScene() {
+  return [
+    shot('buraco', 2.4, { cam: 'look', on: 'hole', off: [3, 4, 4], at: [0, -1, 0] }, { with: [act('anjo-aparece')] }),
+    say(S.guide, 'O que aconteceu aqui?'),
+    say(S.hero, 'Esses demônios miseráveis… eu vou matar todos eles!'),
+    shot('correr-buraco', 1.6, { cam: 'follow', on: 'hero', off: [0, 2.4, -4], at: [0, 0, 5] }, { with: [act('correr-ao-buraco')] }),
+    say(S.guide, 'Não seja imprudente! Você pode acabar morrendo!', { auto: 1.8 }),
+    shot('pular', 1.6, { cam: 'look', on: 'hole', off: [0, 7, 2], at: [0, -4, 0] }, { with: [act('pular')] }),
+    act('piscar'),
+    wait(2.4),
+    shot('cercado', 3.4, { cam: 'orbit', on: 'hero', r: 5.2, h: 2.2, from: 0, to: 2.4 }, { with: [act('acordar-cercado')] }),
+    say(S.hero, 'Onde eu estou…?'),
+    act('desmaiar-de-novo'),
+    wait(2.6),
+    shot('na-jaula', 2.6, { cam: 'look', on: 'cell', off: [3.4, 2.2, 3.6], at: [0, 1, 0] }, { with: [act('acordar-na-jaula')] }),
+    shot('anjo-liberta', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: -1, dist: 4.4 }, { with: [act('anjo-abre-jaula')] }),
+    say(S.guide, 'Nunca mais seja imprudente dessa maneira. Se você morrer, este mundo estará acabado, e muitas pessoas sofrerão.'),
+    shot('horda', 3, { cam: 'look', on: 'hero', off: [-2.2, 2.8, -3.4], at: [0, 1, 9] }, { with: [act('horda-chega')] }),
+    say(S.guide, 'Vá por aquele caminho. Eu dou um jeito neles aqui.'),
+    say(S.hero, 'Você tem certeza de que consegue lidar com tantos deles assim?'),
+    say(S.guide, 'Você esqueceu que eu estou entre os arcanjos mais fortes de Deus? Apenas vá.'),
+    act('anjo-luta')
+  ];
+}
+
+/** O lugar estranho: o portal ao longe e o Guardião. */
+export function wardenIntroScene() {
+  return [
+    shot('portal-de-longe', 3.4, { cam: 'look', on: 'hero', off: [1.2, 2.2, -3], at: [0, 2, 26] }),
+    shot('guardiao', 2.4, { cam: 'look', on: 'enemy', off: [2, 1.8, 4.2], at: [0, 1.3, 0] }, { with: [act('surgir-guardiao')] }),
+    say(S.hero, 'Saia do meu caminho, se não quiser morrer.'),
+    say(S.warden, 'Você não dará mais nenhum passo.')
+  ];
+}
+
+/** O Guardião derrotado implora; o herói não poupa demônios. */
+export function wardenDefeatScene() {
+  return [
+    say(S.warden, 'Por favor, não me mate… eu estava apenas seguindo ordens.'),
+    say(S.hero, 'O que é isso? E o que tem dentro desse portal?'),
+    say(S.warden, 'Valério está aí dentro. É uma dimensão isolada deste mundo… foi Valério quem a criou. Ela leva a algum lugar distante deste planeta.'),
+    say(S.hero, 'Entendi… Agora pode sumir deste mundo.'),
+    say(S.warden, 'Nãoooooo!', { auto: 1.4 }),
+    shot('guardiao-desfeito', 2, { cam: 'look', on: 'enemy', off: [2.6, 1.6, 3.6], at: [0, 1, 0] }, { with: [act('desfazer-guardiao')] }),
+    say(S.hero, 'Demônios não merecem misericórdia. Tantas almas imploraram para não morrer, e eles brincaram com elas.'),
+    say(S.hero, 'Matar Valério vai ser o primeiro passo para salvar este mundo.')
+  ];
+}
+
+/** Dentro da dimensão, antes da luta. */
+export function valerioIntroScene() {
+  return [
+    say(S.valerio, 'Quem é você, e como entrou aqui?'),
+    say(S.hero, 'Você não precisa saber de nada, já que logo vai morrer.'),
+    say(S.valerio, 'Hahaha! Você acha que pode matar uma divindade?'),
+    say(S.hero, 'Cadê a divindade? Não estou vendo nenhuma. Até agora, só vi uma: no Céu.'),
+    say(S.valerio, 'Espero que esteja preparado para morrer.')
+  ];
+}
+
+/** Valério caindo. */
+export function valerioDefeatScene() {
+  return [
+    say(S.valerio, 'Não… não pode ser. Isso é impossível! Eu, uma divindade, um dos quatro Bispos da Ganância… derrotado por um humano.'),
+    say(S.valerio, 'Espera… você é realmente um humano?')
+  ];
+}
+
+/** De volta ao início do mapa: o esgoto sumiu; tela escura e o Ato II. */
+export function afterValerioScene() {
+  return [
+    shot('volta', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: 1, dist: 4.4 }, { with: [act('anjo-aparece')] }),
+    say(S.guide, 'Então você realmente voltou vivo, né?'),
+    say(S.hero, 'Aonde eu estou? Eu não estava na dimensão de Valério?'),
+    say(S.guide, 'Parece que, quando você derrotou Valério, o portal se fechou e todo o esgoto sumiu.'),
+    say(S.hero, 'Então, o que eu devo fazer agora?'),
+    say(S.guide, 'Agora é só o começo. Ainda há uma longa jornada pela frente.'),
+    act('escuro'),
+    wait(2.4)
+  ];
+}
+
+/** Troca {nome}/{NOME} pelo nome do jogador e "heroi" pelo nome como orador. */
+export function personalizeLine(step, name) {
+  const n = String(name || 'Viajante');
+  if (!step || step.type !== 'say') return step;
+  return { ...step, who: step.who === S.hero ? n : step.who, text: step.text.replace(/\{NOME\}/g, n.toUpperCase()).replace(/\{nome\}/g, n) };
+}
+
+/* ---------- Transições ---------- */
+/** Floresta: o 1º Seguidor, depois mais 2 (3 no total) e a chave. */
+export function afterEnemyDefeated(index, total = ACT1.enemyTotal) {
+  const next = Math.max(0, Math.floor(Number(index) || 0)) + 1;
+  if (next >= total) return { questStep: 3, journeyEnemyIndex: next, status: 'A chave caiu do último Seguidor. Abra a gaiola.' };
+  return { questStep: 2, journeyEnemyIndex: next, status: next === 1 ? 'Mais deles saem da mata.' : 'Falta um.' };
+}
+
+export function afterWardenDefeat() {
+  return { questStep: 6, wardenDefeated: true, status: 'O Guardião caiu. O portal de Valério está aberto.' };
+}
+
+/** Avanço dentro do Ato I por sub-etapa (para salvar onde o jogador está). */
+export function nextAct1Sub(step, sub) {
+  const last = { 1: 1, 3: 2, 4: 3 }[step];
+  if (last === undefined) return { questStep: step, act1Sub: 0 };
+  if (sub < last) return { questStep: step, act1Sub: sub + 1 };
+  return { questStep: step + 1, act1Sub: 0 };
+}
+
+/** A entrada usa a dimensão estável já publicada. Não cria arena nova. */
+export function valerioHandoffPlan() {
+  return { mode: 'existing-dimension', replaceDimension: false, entry: './index.html?valerioTest=1&fromPortal=1' };
 }
 
 export function portalBlockedLines() {
-  return [
-    { who: 'Anjo-Guia', text: 'Ainda não. A passagem tem guarda, e entrar agora seria levar a luta para dentro da dimensão de Valério. Limpe a subida primeiro.' }
-  ];
-}
-
-export function portalLines(name) {
-  return [
-    { who: 'Anjo-Guia', text: (name || 'Viajante') + ', eu caminhei contigo porque um dia alguém recusou me vender. Não posso dizer o meu nome verdadeiro ainda. Se eu atravessar com você, Valério vai cobrar os dois de uma vez.' },
-    { who: 'Anjo-Guia', text: 'Vá. A dimensão que te espera é a que já está de pé — não uma arena feita às pressas. Eu fico na mata. Volte.' },
-    { who: name || 'Protagonista', text: 'Então guarda a clareira. Eu volto com o nome que você me pediu para não vender.' }
-  ];
+  return [{ who: S.guide, text: 'Ainda não. Há um guardião diante do portal.' }];
 }
 
 /** Volta da dimensão: a vitória sobre Valério fecha o Ato I uma única vez. */
@@ -253,62 +465,5 @@ export function afterValerioVictory(progress) {
     bishopsDefeated: Math.max(1, Math.floor(Number(p.bishopsDefeated) || 0)),
     valerioRewardClaimed: true,
     coinsGained: first ? ACT1.valerioReward : 0
-  };
-}
-
-export function valerioVictoryLines(name) {
-  return [
-    { who: 'Anjo-Guia', text: 'Você voltou. O portal se fechou atrás de ti como uma porta que não aceita mais suborno. Valério caiu — e com ele, o primeiro selo da Ganância.' },
-    { who: name || 'Protagonista', text: 'Ele não gritou de dor. Gritou porque ninguém mais lhe devia nada. Ainda há mais deles, não há?' },
-    { who: 'Anjo-Guia', text: 'Há. O Segundo Bispo cobra dívidas que nem os mortos conseguem pagar. Mas hoje, as crianças dormem em casa. Descansa um pouco. Uma nova Palavra desperta em ti: o Sol da Justiça.' }
-  ];
-}
-
-export function afterEnemyDefeated(index, total = ACT1.enemyTotal) {
-  const next = Math.max(0, Math.floor(Number(index) || 0)) + 1;
-  if (next >= total) {
-    return {
-      questStep: 3,
-      journeyEnemyIndex: next,
-      status: 'A chave é sua. Volte às gaiolas e liberte as crianças.'
-    };
-  }
-  return {
-    questStep: 2,
-    journeyEnemyIndex: next,
-    status: 'Um captor caiu. Os outros ainda guardam a trilha.'
-  };
-}
-
-export function afterMountainDefeat(index, total = ACT1.mountainSentries) {
-  const next = Math.max(0, Math.floor(Number(index) || 0)) + 1;
-  if (next >= total) {
-    return {
-      questStep: 5,
-      mountainIndex: next,
-      status: 'A subida ficou quieta. O guarda da passagem espera, sozinho, antes do portal.'
-    };
-  }
-  return {
-    questStep: 4,
-    mountainIndex: next,
-    status: 'Uma sentinela caiu. A próxima está mais acima — não corra para as duas de uma vez.'
-  };
-}
-
-export function afterWardenDefeat() {
-  return {
-    questStep: 6,
-    wardenDefeated: true,
-    status: 'O guarda caiu. O portal pode abrir a dimensão de Valério, sem substituí-la.'
-  };
-}
-
-/** A entrada usa a dimensão estável já publicada. Não cria arena nova. */
-export function valerioHandoffPlan() {
-  return {
-    mode: 'existing-dimension',
-    replaceDimension: false,
-    entry: './index.html?valerioTest=1&fromPortal=1'
   };
 }

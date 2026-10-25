@@ -5,6 +5,8 @@
  * Referências do criador: Valério (câmara macabra de moedas e correntes), Vorgazhek (vazio de olhos vermelhos e
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
+import { SEWER } from './sewer3d.js';
+
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
 function canvasTex(THREE, w, h, draw, { repeat = null, aniso = 4 } = {}) {
@@ -315,6 +317,113 @@ const THEMES = {
     g.add(dust); ctx.eyes.push(dust);
     ctx.tick.push((t) => { dust.position.y = (t * .6) % 6; for (const b of beams) b.material.opacity = .1 + Math.sin(t * .7 + b.position.z) * .03; throneBeam.material.opacity = .18 + Math.sin(t * .9) * .04; });
     return { bg: 0xf3d9a2, fog: 0xf0dcae, fogNear: 40, fogFar: 260, hemi: [0xfff6e6, 0xc9a86a, 1.2], sun: [0xffe8c0, 1.5], light: [0xffe2a0, 2.6, 140, [0, 22, -46]], exposure: .9 };
+  },
+  // MOD 204 — Esgoto do Ato I (layout em sewer3d.js): túnel abobadado com canal de água e gotas, rastros de sangue,
+  // a sala dos Seguidores com o buraco, a cela mais abaixo, os dois caminhos e o "lugar estranho" com o portal de Valério.
+  sewer(THREE, g, spec, ctx) {
+    const L = SEWER, r = rng(404), refs = ctx.refs;
+    const brick = canvasTex(THREE, 256, 256, (c, w, h) => {
+      c.fillStyle = '#2b2a24'; c.fillRect(0, 0, w, h); const rr = rng(7);
+      for (let y = 0; y < h; y += 32) for (let x = (y / 32) % 2 ? -32 : 0; x < w; x += 64) {
+        const v = 52 + rr() * 30 | 0; c.fillStyle = 'rgb(' + v + ',' + (v - 4) + ',' + (v - 14) + ')'; c.fillRect(x + 2, y + 2, 60, 28);
+        if (rr() < .35) { c.fillStyle = 'rgba(40,70,30,' + (.2 + rr() * .35) + ')'; c.fillRect(x + 2, y + 18 + rr() * 8, 60, 12); }
+      }
+      const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(0,0,0,.35)'); gr.addColorStop(.75, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(30,50,20,.45)'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    });
+    brick.wrapS = brick.wrapT = THREE.RepeatWrapping;
+    const stoneTex = canvasTex(THREE, 256, 256, (c, w, h) => {
+      c.fillStyle = '#3a372f'; c.fillRect(0, 0, w, h); const rr = rng(9);
+      for (let i = 0; i < 70; i++) { const x = rr() * w, y = rr() * h, s = 18 + rr() * 40; const v = 48 + rr() * 26 | 0; c.fillStyle = 'rgb(' + v + ',' + (v - 3) + ',' + (v - 10) + ')'; c.beginPath(); c.ellipse(x, y, s, s * .7, rr() * 3, 0, 6.3); c.fill(); }
+      for (let i = 0; i < 30; i++) { c.fillStyle = 'rgba(20,35,16,' + (.15 + rr() * .3) + ')'; c.beginPath(); c.arc(rr() * w, rr() * h, 6 + rr() * 22, 0, 6.3); c.fill(); }
+    });
+    stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping;
+    const wallMat = new THREE.MeshStandardMaterial({ map: brick, roughness: .9, side: THREE.BackSide, color: 0xbab3a0 });
+    const floorMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: .55, metalness: .05, color: 0xa8a090 });
+    const waterMat = new THREE.MeshStandardMaterial({ color: 0x1c2a18, roughness: .08, metalness: .3, transparent: true, opacity: .82, emissive: 0x081208, emissiveIntensity: .6 });
+    const bloodTex = canvasTex(THREE, 128, 128, (c, w, h) => { const rr = rng(23); for (let i = 0; i < 9; i++) { c.fillStyle = 'rgba(' + (70 + rr() * 30 | 0) + ',6,8,' + (.55 + rr() * .4) + ')'; c.beginPath(); c.ellipse(20 + rr() * 88, 20 + rr() * 88, 6 + rr() * 22, 3 + rr() * 10, rr() * 3, 0, 6.3); c.fill(); } });
+    const bloodMat = new THREE.MeshBasicMaterial({ map: bloodTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, color: 0xffffff });
+    const dirOf = s => Math.atan2(s.to.x - s.from.x, s.to.z - s.from.z), lenOf = s => Math.hypot(s.to.x - s.from.x, s.to.z - s.from.z);
+    // Túnel/corredor abobadado entre dois pontos.
+    function corridor(seg, wallR, h, water) {
+      const len = lenOf(seg), yaw = dirOf(seg), mx = (seg.from.x + seg.to.x) / 2, mz = (seg.from.z + seg.to.z) / 2;
+      const grp = new THREE.Group(); grp.position.set(mx, 0, mz); grp.rotation.y = yaw; g.add(grp);
+      const fm = floorMat.clone(); fm.map = stoneTex.clone(); fm.map.repeat.set(wallR * .5, len / 4); fm.map.needsUpdate = true;
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(wallR * 2, len), fm); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; grp.add(floor);
+      const wm = wallMat.clone(); wm.map = brick.clone(); wm.map.repeat.set(len / 3, 2); wm.map.needsUpdate = true;
+      const vg = new THREE.CylinderGeometry(wallR, wallR, len, 18, 1, true, Math.PI / 2, Math.PI); vg.rotateX(Math.PI / 2); vg.scale(1, h / wallR, 1);
+      grp.add(new THREE.Mesh(vg, wm));
+      if (water) {
+        const ch = new THREE.Mesh(new THREE.PlaneGeometry(1.1, len), waterMat); ch.rotation.x = -Math.PI / 2; ch.position.set(wallR - .8, .03, 0); grp.add(ch);
+        const lip = new THREE.Mesh(new THREE.BoxGeometry(.16, .12, len), floorMat); lip.position.set(wallR - 1.43, .06, 0); grp.add(lip);
+        ctx.tick.push(t => { waterMat.emissiveIntensity = .5 + Math.sin(t * 1.3) * .1; });
+      }
+      return grp;
+    }
+    // Sala circular com parede, cúpula e chão.
+    // Sala circular com parede (com vãos onde chegam os corredores), cúpula e chão. Ângulo 0 = +z, π/2 = +x.
+    function room(c, h, gaps) {
+      const fm = floorMat.clone(); fm.map = stoneTex.clone(); fm.map.repeat.set(c.r / 3, c.r / 3); fm.map.needsUpdate = true;
+      const floor = new THREE.Mesh(new THREE.CircleGeometry(c.r + .4, 40), fm); floor.rotation.x = -Math.PI / 2; floor.position.set(c.x, 0, c.z); floor.receiveShadow = true; g.add(floor);
+      const wm = wallMat.clone(); wm.map = brick.clone(); wm.map.repeat.set(c.r * 1.2, h / 2.2); wm.map.needsUpdate = true;
+      const R = c.r + .4, cuts = gaps.map(a => ({ a, w: Math.asin(Math.min(.95, 3.2 / R)) })).sort((p, q) => p.a - q.a);
+      for (let i = 0; i < cuts.length; i++) {
+        const a0 = cuts[i].a + cuts[i].w, a1 = (i + 1 < cuts.length ? cuts[i + 1].a - cuts[i + 1].w : cuts[0].a - cuts[0].w + Math.PI * 2);
+        const wall = new THREE.Mesh(new THREE.CylinderGeometry(R, R, h, 32, 1, true, a0, a1 - a0), wm); wall.position.set(c.x, h / 2, c.z); g.add(wall);
+      }
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), wm); dome.scale.y = .45; dome.position.set(c.x, h, c.z); g.add(dome);
+    }
+    corridor(L.tunnel, L.tunnel.r + .5, 4.6, true);
+    room(L.feeding, 5.2, [0]); room(L.cell, 5, [Math.PI / 2, Math.PI]); corridor(L.emptyPath, L.emptyPath.r + .6, 4.2, false); corridor(L.hordePath, L.hordePath.r + .6, 4.2, false);
+    // Rastros de sangue do túnel até a sala.
+    for (let i = 0; i < 16; i++) { const t = i / 15, z = L.tunnel.from.z - 4 + (L.feeding.z + 4 - L.tunnel.from.z + 4) * t; const b = new THREE.Mesh(new THREE.PlaneGeometry(1 + r() * .8, 1.4 + r()), bloodMat); b.rotation.set(-Math.PI / 2, 0, r() * 6); b.position.set(-.6 + Math.sin(i * 1.7) * .6, .02, z); g.add(b); }
+    // A "presa" dos Seguidores: um monte escuro coberto (sem detalhe gráfico).
+    const lump = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 8), new THREE.MeshStandardMaterial({ color: 0x2a0d0c, roughness: .7 })); lump.scale.set(1.3, .45, .9); lump.position.set(L.carcass.x, .2, L.carcass.z); g.add(lump);
+    const pool = new THREE.Mesh(new THREE.CircleGeometry(2.4, 24), bloodMat); pool.rotation.x = -Math.PI / 2; pool.position.set(L.carcass.x, .015, L.carcass.z); g.add(pool);
+    // O buraco: disco negro com borda de pedras quebradas.
+    const hole = new THREE.Mesh(new THREE.CircleGeometry(L.hole.r, 28), new THREE.MeshBasicMaterial({ color: 0x000000, polygonOffset: true, polygonOffsetFactor: -3 })); hole.rotation.x = -Math.PI / 2; hole.position.set(L.hole.x, .03, L.hole.z); g.add(hole);
+    const rubble = []; for (let i = 0; i < 14; i++) { const a = i / 14 * 6.28; rubble.push({ x: L.hole.x + Math.cos(a) * (L.hole.r + .3), y: .12, z: L.hole.z + Math.sin(a) * (L.hole.r + .3), s: .2 + r() * .25, ry: r() * 3 }); }
+    g.add(instanced(THREE, new THREE.DodecahedronGeometry(1, 0), floorMat, rubble));
+    refs.hole = { x: L.hole.x, z: L.hole.z };
+    // A cela: jaula de barras no meio da sala de baixo.
+    const iron = new THREE.MeshStandardMaterial({ color: 0x2a2622, metalness: .6, roughness: .45 });
+    const bars = []; for (let i = 0; i < 18; i++) { const a = i / 18 * 6.28; bars.push({ x: L.cage.x + Math.cos(a) * 1.5, y: 1.3, z: L.cage.z + Math.sin(a) * 1.5, sx: 1, sy: 1, sz: 1 }); }
+    const cageBars = instanced(THREE, new THREE.CylinderGeometry(.05, .05, 2.6, 6), iron, bars); g.add(cageBars);
+    const cageTop = new THREE.Mesh(new THREE.TorusGeometry(1.5, .07, 6, 24), iron); cageTop.rotation.x = Math.PI / 2; cageTop.position.set(L.cage.x, 2.6, L.cage.z); g.add(cageTop);
+    refs.cage = { bars: cageBars, top: cageTop };
+    // Musgo e poças nas salas.
+    for (let i = 0; i < 10; i++) { const p = new THREE.Mesh(new THREE.CircleGeometry(.6 + r() * 1.2, 14), waterMat); p.rotation.x = -Math.PI / 2; const room2 = i < 5 ? L.feeding : L.cell, a = r() * 6.28, d = r() * (room2.r - 2); p.position.set(room2.x + Math.cos(a) * d, .02, room2.z + Math.sin(a) * d); g.add(p); }
+    // Gotas caindo do teto (uma chamada de desenho).
+    const N = 60, dp = new Float32Array(N * 3), dv = [];
+    for (let i = 0; i < N; i++) { const onT = i < 40, z = onT ? L.tunnel.to.z + r() * (L.tunnel.from.z - L.tunnel.to.z) : L.feeding.z + (r() - .5) * 12, x = onT ? (r() - .5) * 3.6 : (r() - .5) * 12; dp[i * 3] = x; dp[i * 3 + 1] = r() * 4; dp[i * 3 + 2] = z; dv.push(2.5 + r() * 2); }
+    const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.BufferAttribute(dp, 3));
+    const dropTex = canvasTex(THREE, 32, 32, (c, w, h) => { const gr = c.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(220,235,220,1)'); gr.addColorStop(1, 'rgba(220,235,220,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+    const drips = new THREE.Points(dg, new THREE.PointsMaterial({ color: 0x9fb4a0, size: .045, map: dropTex, transparent: true, opacity: .75, depthWrite: false })); drips.frustumCulled = false; g.add(drips);
+    ctx.tick.push((t, dt) => { const a = dg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] - dv[i] * dt; if (y < 0) y = 4.2; a.array[i * 3 + 1] = y; } a.needsUpdate = true; });
+    // Lamparinas esverdeadas nas paredes (só brilho, sem luz extra).
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0xc9e08a, toneMapped: false });
+    const lamps = []; for (let i = 0; i < 7; i++) lamps.push({ x: (i % 2 ? -1 : 1) * (L.tunnel.r + .35), y: 2.4, z: L.tunnel.from.z - 3 - i * 5, s: .14 });
+    for (const c of [L.cell, L.feeding]) for (let i = 0; i < 5; i++) { const a = i / 5 * 6.28 + .3; lamps.push({ x: c.x + Math.cos(a) * (c.r + .1), y: 2.6, z: c.z + Math.sin(a) * (c.r + .1), s: .14 }); }
+    for (let i = 0; i < 6; i++) lamps.push({ x: L.emptyPath.from.x + (i % 2 ? -1 : 1) * (L.emptyPath.r + .4), y: 2.3, z: L.emptyPath.from.z - 2 - i * 4.5, s: .13 });
+    g.add(instanced(THREE, new THREE.SphereGeometry(1, 8, 6), lampMat, lamps));
+    // O "lugar estranho": caverna vermelha e roxa, pedras flutuando, olhos e o portal de Valério ao fundo.
+    const S2 = L.strange;
+    const caveMat = new THREE.MeshStandardMaterial({ color: 0x1a0c14, roughness: .95, side: THREE.BackSide, emissive: 0x1a0410, emissiveIntensity: .7 });
+    const cave = new THREE.Mesh(new THREE.SphereGeometry(S2.r + 3, 30, 16), caveMat); cave.scale.set(1, .55, 1.25); cave.position.set(S2.x, 0, S2.z - 2); g.add(cave);
+    const cf = new THREE.Mesh(new THREE.CircleGeometry(S2.r + 2, 40), new THREE.MeshStandardMaterial({ color: 0x2a1820, roughness: .8, map: stoneTex })); cf.rotation.x = -Math.PI / 2; cf.position.set(S2.x, .01, S2.z); g.add(cf);
+    const floating = []; for (let i = 0; i < 22; i++) { const a = r() * 6.28, d = 6 + r() * (S2.r - 2); floating.push({ x: S2.x + Math.cos(a) * d, y: 3 + r() * 6, z: S2.z + Math.sin(a) * d, s: .3 + r() * .9, ry: r() * 3 }); }
+    const rocks = instanced(THREE, new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x241820, roughness: .9, emissive: 0x200810, emissiveIntensity: .5 }), floating); g.add(rocks);
+    ctx.tick.push(t => { rocks.position.y = Math.sin(t * .6) * .35; });
+    const eyes = eyeField(THREE, { count: 40, seed: 31, tex: eyeTexture(THREE), tint: [1, .8, .8], place: (i, rr) => { const a = rr() * 6.28; return { x: S2.x + Math.cos(a) * (S2.r + 1), y: 1.5 + rr() * 6, z: S2.z - 2 + Math.sin(a) * (S2.r + 2) * 1.2, size: .8 + rr() * 1.6 }; } });
+    g.add(eyes); ctx.eyes.push(eyes);
+    // Portal de Valério: arco de moedas douradas e redemoinho carmim.
+    const P = L.portal, pg = new THREE.Group(); pg.position.set(P.x, 0, P.z); g.add(pg);
+    const goldM = new THREE.MeshStandardMaterial({ color: 0xc9962e, metalness: .85, roughness: .35, emissive: 0x4a2a06, emissiveIntensity: .8 });
+    const coins = []; for (let i = 0; i < 46; i++) { const a = Math.PI * (i / 45); coins.push({ x: Math.cos(a) * 3.4, y: 3.6 + Math.sin(a) * 3.4 * 1.15 - (i % 2) * .1, z: 0, rx: Math.PI / 2, s: .42 }); }
+    pg.add(instanced(THREE, new THREE.CylinderGeometry(1, 1, .14, 14), goldM, coins));
+    for (const sx of [-1, 1]) { const pil = new THREE.Mesh(new THREE.CylinderGeometry(.5, .7, 3.6, 10), goldM); pil.position.set(sx * 3.4, 1.8, 0); pg.add(pil); }
+    const swirl = new THREE.Mesh(new THREE.CircleGeometry(3.1, 40), swirlMaterial(THREE, '#200206', '#e8b040')); swirl.scale.set(1, 1.35, 1); swirl.position.set(0, 3.7, .05); pg.add(swirl); ctx.swirls.push(swirl.material);
+    refs.portal = pg;
+    return { bg: 0x070907, fog: 0x0e130d, fogNear: 10, fogFar: 60, hemi: [0xa8b89c, 0x3a2e22, 1.35], sun: [0xc0d0b0, .45], light: [0xd8e0a0, 3.6, 32, [0, 3, 0]], exposure: 1.3, lightFollow: true };
   }
 };
 
@@ -322,11 +431,11 @@ const THEMES = {
 export function buildDimensionArena(THREE, theme, spec) {
   const make = THEMES[theme] || THEMES.vault;
   const group = new THREE.Group(); group.position.set(spec.x, spec.y, spec.z); group.visible = false;
-  const ctx = { eyes: [], swirls: [], tick: [] };
+  const ctx = { eyes: [], swirls: [], tick: [], refs: {} };
   const env = make(THREE, group, spec, ctx);
   let last = 0;
   return {
-    group, env,
+    group, env, refs: ctx.refs,
     update(now, camera, viewH) {
       const t = now * .001, dt = Math.min(.1, t - last || .016); last = t;
       const scale = viewH / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));

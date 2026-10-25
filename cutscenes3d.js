@@ -34,7 +34,7 @@ export function createDirector(handlers = {}) {
   }
   function finish(skipped) {
     if (!running) return;
-    running = false; h.hideSay();
+    running = false; waitingTap = false; waitingAsk = false; h.hideSay();
     const cb = onEnd; onEnd = null;
     h.end(sceneId, skipped);
     if (cb) cb(skipped);

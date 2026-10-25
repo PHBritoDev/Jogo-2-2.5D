@@ -182,6 +182,14 @@ export function createWorldAudio() {
     dissolve() { if (!ready) return; for (let i = 0; i < 9; i++) tone('sine', 2093 - i * 140, 1046 - i * 60, .035, .9, sfxBus, i * .12); burst('highpass', 6000, .5, .05, 2.2); },
     /** Novo capítulo ("Ato 1"): tambor grave, acorde que cresce e um brilho no fim. */
     chapter() { if (!ready) return; tone('sine', 110, 42, .5, 1.6); burst('lowpass', 180, .8, .35, 1.4); [146.8, 220, 293.7, 440].forEach((f, i) => pad(f, .06, 1.1, 1.2, 1.6, .15 + i * .05, i % 2 ? 'triangle' : 'sine')); [1174.7, 1568, 2349].forEach((f, i) => tone('sine', f, 0, .04, 1.2, sfxBus, 1.3 + i * .08)); },
+    /** MOD 204 — som de descoberta/conquista (chegada a uma cidade, algo novo): fanfarra curta de metais e sino. */
+    discovery() { if (!ready) return; [[392, 0], [523.3, .18], [659.3, .36], [784, .54]].forEach(([f, d]) => { tone('sawtooth', f, f * 1.002, .035, .55, sfxBus, d); tone('sine', f * 2, 0, .03, .7, sfxBus, d); }); pad(523.3, .05, .5, .9, 1.4, .7); pad(659.3, .04, .5, .9, 1.4, .72, 'triangle'); pad(784, .035, .5, .9, 1.4, .74); tone('sine', 1568, 0, .05, 1.8, sfxBus, 1.1); },
+    /** Saco de moedas trocando de mão. */
+    coins() { if (!ready) return; for (let i = 0; i < 7; i++) tone('triangle', 2600 + Math.random() * 1400, 0, .03, .12, sfxBus, i * .06 + Math.random() * .03); burst('bandpass', 3400, 2, .05, .25); },
+    /** Choro de criança ao longe (soluços em glissando, abafados). */
+    sob() { if (!ready) return; for (let i = 0; i < 4; i++) { const f = 520 + Math.random() * 80; tone('triangle', f, f * .72, .025, .45, ambBus, i * .55 + Math.random() * .15); } },
+    /** Clarão de transformação/possessão: grave descendente e chiado. */
+    corrupt() { if (!ready) return; tone('sawtooth', 220, 40, .12, 1.4); burst('bandpass', 260, .7, .2, 1.2, sfxBus, 90); },
     reveal() { if (!ready) return; [784, 988, 1175, 1568].forEach((f, i) => tone('sine', f, 0, .06, .5, sfxBus, i * .09)); }
   };
 }
