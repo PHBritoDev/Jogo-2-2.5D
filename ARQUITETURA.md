@@ -75,6 +75,13 @@ colisão e contagem de fragmentos em `desert3d.js` (deserto entre o coliseu e a 
 aliados em `startAllies6`. O arco final antigo (`finale-flow.js`) fica desligado de 25 a 29. Modelos: `DesertoKit.glb`
 (estátua, portais, rochas) e `Sandra-rig.glb` (scripts `tools/blender/m7_*.py`).
 
+## Marco 8 — polimento (Mod 210)
+
+Notas em `docs/roteiro/M8-POLIMENTO.md`. Sandra nova (`Sandra-rig.glb`, `tools/blender/m8_sandra.py`): corpo do MakeHuman
+(MPFB2, CC0) ajustado ao esqueleto da Misteriosa, então usa os mesmos clipes. Ultimates dos chefes: regras em `ultimates3d.js`
+(quando cada uma sai); efeitos em `startVoidUlt`/`startSupernova` (`updateBossUltimates`), câmera dramática em
+`applyUltCam` (mesmo giro, volta suave), câmera lenta curta (`slowMo`). Luz da ultimate criada uma vez (`ultLight`).
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a

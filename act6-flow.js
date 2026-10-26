@@ -102,7 +102,7 @@ export function greedPhase3Scene() {
 }
 export function greedFallScene() {
   return [
-    act('ultimate-heroi'), wait(1.8), act('ultimate-anjo'), wait(1.6), act('ultimate-sandra'), wait(1.6),
+    act('ultimate-heroi'), wait(1.8), act('ultimate-anjo'), wait(1.6), act('ultimate-sandra'), wait(2.3),
     act('tudo-branco'), wait(1.6), act('ganancia-caida'), wait(1),
     say(S.greed, 'Não, não, nãooooo! Fui derrotado por meros anjos de baixo escalão e por um simples Bispo que eu descartei? Não acredito nisso…'),
     say(S.hero, 'Finalmente acabou… Isso graças a vocês.'),
@@ -130,7 +130,7 @@ export function epilogueScene() {
     say(S.guide, 'Vou dar uma explicação resumida. Existem sete mundos, e em cada um habita um Pecado. Esses Pecados trazem destruição a esses mundos, e o nosso objetivo é salvar todos eles.', { actor: 'guide' }),
     say(S.guide, 'Nós somos anjos enviados por Deus. O nosso próximo objetivo é salvar o mundo onde habita a Inveja, um dos sete pecados capitais.', { actor: 'guide' }),
     say(S.rival, 'Isso é muito difícil de acreditar… Bem que eu suspeitei da força de vocês, que está além do nível humano.', { actor: 'rival' }),
-    act('sandra-revela'), wait(1.8),
+    shot('sandra', 3.2, { cam: 'look', on: 'rival', off: [.45, 1.55, 2.1], at: [0, 1.48, 0] }, { with: [act('sandra-revela')] }),
     say(S.sandra, 'A propósito, eu me chamo Sandra.', { actor: 'rival' }),
     say(S.hero, 'Pera aí… você era mulher esse tempo todo?'),
     say(S.sandra, 'Sim. Você não percebeu?', { actor: 'rival' }),

@@ -27,7 +27,7 @@ O herói é sempre chamado pelo nome que o jogador digitou.
 ## Decisões e limites (honesto)
 
 - **Arco final antigo:** os guardiões e o portal antigo da Ganância ficam desligados nos passos 25 a 29; o Ato VI os substitui.
-- **Sandra:** a aparência é feita por script a partir do modelo do NPC. Funciona, mas o rosto é simples — **SUSPEITA** de não estar à altura; dá para trocar por uma skin própria depois.
+- **Sandra:** a primeira versão era feita por script a partir do modelo do NPC; foi refeita no Marco 8 a partir da referência do autor (`docs/roteiro/M8-POLIMENTO.md`).
 - **Inveja:** ainda sem skin, como o roteiro pede: um modelo de inimigo pintado de preto, com olhos verdes.
 - **Ultimates "I Am Atomic" / Buraco Negro:** os poderes ficam para o marco dos poderes; aqui a cena usa efeitos próprios.
 - **Aliados:** não sofrem dano (como a aliada do Ato V).
