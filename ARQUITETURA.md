@@ -95,6 +95,13 @@ escolha do poder) e `ultimates3d.js` (quando a ultimate sai). Efeitos no MOD 212
 `updateFoeKit`; ultimates de família em `startKitUlt`; grimório/Bíblia em `showGrimoire`. Os antigos `BOSS_POWERS`
 e `updateFoeWeaponSkills` não são mais chamados.
 
+## Marco 11 — animações e impacto (Mod 213)
+
+`docs/roteiro/M11-ANIMACOES.md`. Poses de poder sobre os clipes (`playPose`/`updatePoses`, ossos apontados no
+espaço do mundo; `POSE_BONES` cobre os nomes mixamo e humanoides). Corrida: `Protagonista-corrida.glb`
+(`tools/blender/m11_corrida.py`) convertido no navegador por `bakeRunClip`; botão `#run`/Shift (`isSprinting`).
+Impacto: `impactFrame` (filtro no canvas), `lightning`, `scorch`.
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a
