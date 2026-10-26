@@ -697,7 +697,7 @@ function tryPlayerAttack(){
  if(!model||!mixer||!attackClips.length){status.textContent='Não foi encontrado um clipe de ataque válido no Protagonista.glb.';return;}
  const attackClip=attackClips[attackClipIndex++%attackClips.length],duration=Number(attackClip&&attackClip.duration);
  if(!validAttackClip(attackClip)||!Number.isFinite(duration)||duration<=0){status.textContent='O ataque não tem uma animação válida; nenhum dano foi aplicado.';return;}
- attackCooldown=now+560;worldAudio.swing();{const step=nextComboStep(now);if(step===3)showCombatCallout('COMBO ×3');}const attackAction=mixer.clipAction(attackClip);
+ attackCooldown=now+560;worldAudio.swing();{const step=nextComboStep(now);if(step===3){showCombatCallout(isNightHour(gameClock.hour)?'CORTE NEGRO':'CORTE DE LUZ');spawnHolyProjectile('arc',0,.16);worldAudio.whoosh();}}const attackAction=mixer.clipAction(attackClip);
  if(activeAction&&activeAction!==attackAction)activeAction.fadeOut(.07);
  attackAction.reset();attackAction.enabled=true;attackAction.setEffectiveWeight(1);attackAction.setLoop(THREE.LoopOnce,1);attackAction.clampWhenFinished=true;attackAction.fadeIn(.07).play();activeAction=attackAction;actionUntil=now+duration*1000;
  playerAttackFacingX=Math.sin(playerYaw);playerAttackFacingZ=Math.cos(playerYaw);
@@ -1188,12 +1188,32 @@ const holyProjectiles=[];let holyCooldowns={magic:0,magic2:0,magic3:0,ultimate:0
 
 function spawnHolyProjectile(kind,angleOffset=0,delay=0){
  const group=new THREE.Group(),gold=new THREE.MeshStandardMaterial({color:0xffe7a0,emissive:0xffbd3f,emissiveIntensity:2.2,metalness:.55,roughness:.2}),white=new THREE.MeshBasicMaterial({color:0xfff7d2});
- if(kind==='sun'){const orb=new THREE.Mesh(new THREE.SphereGeometry(.42,16,12),gold);group.add(orb);const halo=new THREE.Mesh(new THREE.TorusGeometry(.58,.035,6,24),white);halo.rotation.x=Math.PI/2;group.add(halo);}
+ let arcMat=null;
+ if(kind==='arc'){const dark=isNightHour(gameClock.hour);arcMat=new THREE.MeshBasicMaterial({color:dark?0x9a4dff:0xffd36a,transparent:true,opacity:.9,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});for(const [r0,r1,o] of [[.95,1.3,1],[1.32,1.42,.6]]){const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,40,1,-Math.PI/2-1.25,2.5),o<1?arcMat.clone():arcMat);if(o<1)m.material.opacity=.55;m.rotation.x=-Math.PI/2;m.position.z=-1.1;group.add(m);}}
+ else if(kind==='sun'){const orb=new THREE.Mesh(new THREE.SphereGeometry(.42,16,12),gold);group.add(orb);const halo=new THREE.Mesh(new THREE.TorusGeometry(.58,.035,6,24),white);halo.rotation.x=Math.PI/2;group.add(halo);}
  else{const blade=new THREE.Mesh(new THREE.ConeGeometry(.13,.95,5),gold);blade.rotation.x=Math.PI/2;group.add(blade);const core=new THREE.Mesh(new THREE.CylinderGeometry(.025,.045,.8,5),white);core.rotation.x=Math.PI/2;group.add(core);group.rotation.z=Math.PI/2;}
  const target=combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<22;
  const aimYaw=cameraDistance<1.05?cameraYaw+Math.PI:playerYaw,base=target?Math.atan2(enemy.position.x-player.position.x,enemy.position.z-player.position.z):aimYaw,angle=base+angleOffset,dirX=Math.sin(angle),dirZ=Math.cos(angle);
- group.position.set(player.position.x+dirX*.8,player.position.y+(kind==='sun'?1.65:1.35),player.position.z+dirZ*.8);group.rotation.y=angle;scene.add(group);
- holyProjectiles.push({group,dirX,dirZ,kind,delay,life:kind==='sun'?2.7:1.7,speed:kind==='sun'?4.2:8.5,damage:kind==='sun'?28:kind==='ultimate'?45:kind==='sword5'?10:kind==='swordHoming'?16:14,hit:false,homing:kind==='swordHoming'});
+ group.position.set(player.position.x+dirX*.8,player.position.y+(kind==='sun'?1.65:kind==='arc'?1.05:1.35),player.position.z+dirZ*.8);group.rotation.y=angle;scene.add(group);
+ holyProjectiles.push({group,dirX,dirZ,kind,delay,arcMat,life:kind==='sun'?2.7:kind==='arc'?.6:1.7,speed:kind==='sun'?4.2:kind==='arc'?13:8.5,damage:kind==='sun'?28:kind==='arc'?Math.round(18*(1+statsForLevel(playerLevel()).damageBonus)):kind==='ultimate'?45:kind==='sword5'?10:kind==='swordHoming'?16:14,hit:false,homing:kind==='swordHoming'});
+}
+/** MOD 211 — Espada do Círculo (aprimoramento do Sol da Justiça; documento mestre, poder 5): um círculo mágico se abre
+ *  sob o alvo e uma espada gigante irrompe do chão, ferindo e atordoando por um instante. */
+function circleSword(x,z){
+ const y=groundHeightAt(x,z),g=new THREE.Group();g.position.set(x,y,z);scene.add(g);
+ const gold=addMat(0xffd36a,0),rings=[];for(const [r0,r1,seg] of [[2.3,2.45,64],[1.5,1.6,6],[1.55,1.62,3]]){const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,seg),seg===64?gold:gold.clone());m.rotation.x=-Math.PI/2;m.position.y=.06;g.add(m);rings.push(m);}
+ const steel=new THREE.MeshStandardMaterial({color:0xfff4d8,emissive:0xffc24a,emissiveIntensity:1.8,metalness:.6,roughness:.25}),sword=new THREE.Group();
+ const blade=new THREE.Mesh(new THREE.ConeGeometry(.75,7.5,4),steel);blade.position.y=3.75;sword.add(blade);
+ const guard=new THREE.Mesh(new THREE.BoxGeometry(3.2,.4,.5),steel);guard.position.y=-.2;sword.add(guard);
+ const hilt=new THREE.Mesh(new THREE.CylinderGeometry(.18,.22,1.6,8),steel);hilt.position.y=-1.2;sword.add(hilt);
+ sword.rotation.z=Math.PI;sword.position.y=-8;g.add(sword);worldAudio.magic&&worldAudio.magic('magic3');
+ ultFx.push({t:0,hit:false,tick(t){const tel=Math.min(1,t/.7);rings.forEach((r,i)=>{r.material.opacity=.85*tel*(t<1.9?1:Math.max(0,1-(t-1.9)*2));r.rotation.z+=(i?-.04:.02);});
+  if(t>.7&&t<.95){const k=(t-.7)/.25;sword.position.y=-8+9.6*k*k*(3-2*k);}
+  if(t>=.95&&!this.hit){this.hit=true;sword.position.y=1.6;cameraShake(.3);hitStop(90);burstSparks(new THREE.Vector3(x,y+1,z),0xfff0b8);
+   if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<2.8){const dmg=Math.round(40*(1+statsForLevel(playerLevel()).damageBonus));enemyHP=Math.max(0,enemyHP-dmg);onEnemyDamaged(dmg,true);enemyAttackCooldown=Math.max(enemyAttackCooldown,1.6);
+    if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else playEnemyAnimation('hit',.05,true);}}
+  if(t>1.9)steel.emissiveIntensity=Math.max(0,1.8-(t-1.9)*3),sword.position.y-=.12;
+  if(t>2.5){scene.remove(g);g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});return false;}}});
 }
 function castHolyMagic(kind){
  const now=performance.now();if(playerHP<=0)return;
@@ -1203,13 +1223,14 @@ function castHolyMagic(kind){
  else if(kind==='magic'){[-.19,0,.19].forEach((a,i)=>spawnHolyProjectile('sword',a,i*.09));status.textContent='Espadas da Palavra — três lâminas de luz!';}
  else if(kind==='magic2'&&ownedItems.has('magic2_plus')&&combatStepNow()&&enemy.visible&&enemyAlive){for(let i=0;i<7;i++){const a=i/7*Math.PI*2;spawnHazardFriendly(enemy.position.x+Math.cos(a)*(i?1.6:0),enemy.position.z+Math.sin(a)*(i?1.6:0),.35+i*.12);}status.textContent='Julgamento Celestial II — sete espadas caem do céu!';}
  else if(kind==='magic2'){[-.28,-.14,0,.14,.28].forEach((a,i)=>spawnHolyProjectile('sword5',a,i*.12));status.textContent='Julgamento Celestial — cinco espadas descem em formação!';}
+ else if(kind==='magic3'&&ownedItems.has('magic3_plus')&&combatStepNow()&&enemy.visible&&enemyAlive){spawnHolyProjectile('sun');circleSword(enemy.position.x,enemy.position.z);status.textContent='Espada do Círculo — o círculo se abre e a lâmina colossal irrompe do chão!';}
  else if(kind==='magic3'){spawnHolyProjectile('sun');status.textContent='Sol da Justiça — luz ardente lançada contra o inimigo!';}
  else{castDivineJudgment();}
 }
 function updateHolyProjectiles(dt){
- for(let i=holyProjectiles.length-1;i>=0;i--){const p=holyProjectiles[i];p.delay-=dt;if(p.delay>0)continue;p.life-=dt;if(p.homing&&enemy.visible&&enemyAlive){const hx=enemy.position.x-p.group.position.x,hz=enemy.position.z-p.group.position.z,hd=Math.hypot(hx,hz)||1;p.dirX+=(hx/hd-p.dirX)*Math.min(1,dt*5);p.dirZ+=(hz/hd-p.dirZ)*Math.min(1,dt*5);const n=Math.hypot(p.dirX,p.dirZ)||1;p.dirX/=n;p.dirZ/=n;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind==='sun'){p.group.position.y+=Math.sin(performance.now()*.006)*dt*.22;p.group.rotation.y+=dt*2;}else p.group.rotation.z+=dt*2;
+ for(let i=holyProjectiles.length-1;i>=0;i--){const p=holyProjectiles[i];p.delay-=dt;if(p.delay>0)continue;p.life-=dt;if(p.kind==='arc'){const k=1-p.life/.6;p.group.scale.setScalar(1+k*1.3);p.group.traverse(o=>{if(o.material&&o.material.transparent)o.material.opacity=Math.max(0,(o.material===p.arcMat?.9:.55)*(1-k));});}if(p.homing&&enemy.visible&&enemyAlive){const hx=enemy.position.x-p.group.position.x,hz=enemy.position.z-p.group.position.z,hd=Math.hypot(hx,hz)||1;p.dirX+=(hx/hd-p.dirX)*Math.min(1,dt*5);p.dirZ+=(hz/hd-p.dirZ)*Math.min(1,dt*5);const n=Math.hypot(p.dirX,p.dirZ)||1;p.dirX/=n;p.dirZ/=n;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind==='sun'){p.group.position.y+=Math.sin(performance.now()*.006)*dt*.22;p.group.rotation.y+=dt*2;}else p.group.rotation.z+=dt*2;
   const d=Math.hypot(p.group.position.x-enemy.position.x,p.group.position.z-enemy.position.z);
-  if(!p.hit&&enemyAlive&&combatStepNow()&&enemy.visible&&d<1.15&&Math.abs(p.group.position.y-(enemy.position.y+1))<1.8){p.hit=true;enemyHP=Math.max(0,enemyHP-p.damage);onEnemyDamaged(p.damage,p.kind==='ultimate');enemyHitFlash=.2;setEnemyHitFlash(true);setTimeout(()=>setEnemyHitFlash(false),130);const fill=document.getElementById('enemy-hp-fill');if(fill)fill.style.width=enemyHpPercent()+'%';p.life=0;if(enemyHP===0){enemyAlive=false;playEnemyAnimation('death',.06,true);status.textContent='A luz venceu este inimigo. Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),650);}}
+  if(!p.hit&&enemyAlive&&combatStepNow()&&enemy.visible&&d<(p.kind==='arc'?1.9:1.15)&&Math.abs(p.group.position.y-(enemy.position.y+1))<1.8){p.hit=true;enemyHP=Math.max(0,enemyHP-p.damage);onEnemyDamaged(p.damage,p.kind==='ultimate');enemyHitFlash=.2;setEnemyHitFlash(true);setTimeout(()=>setEnemyHitFlash(false),130);const fill=document.getElementById('enemy-hp-fill');if(fill)fill.style.width=enemyHpPercent()+'%';p.life=0;if(enemyHP===0){enemyAlive=false;playEnemyAnimation('death',.06,true);status.textContent='A luz venceu este inimigo. Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),650);}}
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
  }
 }
@@ -1960,8 +1981,8 @@ function openShop(){
  shopOpen=true;shopConfirm=null;setDefending(false);const panel=document.getElementById('shop-panel');if(panel)panel.hidden=false;renderShop();
 }
 function closeShop(){shopOpen=false;shopConfirm=null;const panel=document.getElementById('shop-panel');if(panel)panel.hidden=true;}
-const SHOP_ART={magic:'magic',magic2:'magic2',magic3:'magic3',ultimate:'ultimate',magic_plus:'magic_plus',magic2_plus:'magic2_plus',aurora:'sword_aurora',vigilia:'sword_vigilia',celeste:'sword_aurora'};
-const SHOP_TAGS={magic:'HABILIDADE 1',magic2:'HABILIDADE 2',magic3:'HABILIDADE 3',ultimate:'ULTIMATE',magic_plus:'APRIMORAMENTO 1',magic2_plus:'APRIMORAMENTO 2',aurora:'ESPADA',vigilia:'ESPADA',celeste:'RELÍQUIA'};
+const SHOP_ART={magic:'magic',magic2:'magic2',magic3:'magic3',ultimate:'ultimate',magic_plus:'magic_plus',magic2_plus:'magic2_plus',magic3_plus:'magic3_plus',aurora:'sword_aurora',vigilia:'sword_vigilia',celeste:'sword_aurora'};
+const SHOP_TAGS={magic:'HABILIDADE 1',magic2:'HABILIDADE 2',magic3:'HABILIDADE 3',ultimate:'ULTIMATE',magic_plus:'APRIMORAMENTO 1',magic2_plus:'APRIMORAMENTO 2',magic3_plus:'APRIMORAMENTO 3',aurora:'ESPADA',vigilia:'ESPADA',celeste:'RELÍQUIA'};
 const SHOP_NAV={escrituras:['Habilidades','cat_escrituras'],arsenal:['Equipamentos','cat_arsenal'],conquistas:['Conquistas','cat_conquistas'],arquivo:['Arquivo','cat_arquivo'],fragmentos:['Especiais','cat_fragmentos']};
 function shopArt(name,locked){return '<div class="shop-art'+(locked?' is-locked':'')+'">'+iconSvg(name,{size:96})+(locked?'<span class="shop-lock">'+iconSvg('lock',{size:34}).replace('class="art-svg"','class="art-svg lock"')+'</span>':'')+'</div>';}
 function renderShop(){
@@ -4021,7 +4042,7 @@ function storyDo5(id,args){
  return false;
 }
 /* ---------- Inventário (espadas, roupa, encantamentos e poderes; "Equipar melhor") ---------- */
-const SKILL_INFO={magic:{dmg:'3 × 14',what:'Três lâminas de luz à frente.'},magic2:{dmg:'5 × 10',what:'Cinco espadas em leque.'},magic3:{dmg:'28 + queimadura',what:'Um sol lento que queima.'},ultimate:{dmg:'60 (área)',what:'A espada colossal desce do céu.'},magic_plus:{dmg:'5 × 16',what:'Lâminas que perseguem o alvo.'},magic2_plus:{dmg:'7 × 10',what:'Espadas caem do céu.'}};
+const SKILL_INFO={magic:{dmg:'3 × 14',what:'Três lâminas de luz à frente.'},magic2:{dmg:'5 × 10',what:'Cinco espadas em leque.'},magic3:{dmg:'28 + queimadura',what:'Um sol lento que queima.'},ultimate:{dmg:'60 (área)',what:'A espada colossal desce do céu.'},magic_plus:{dmg:'5 × 16',what:'Lâminas que perseguem o alvo.'},magic2_plus:{dmg:'7 × 10',what:'Espadas caem do céu.'},magic3_plus:{dmg:'28 + 40',what:'Uma espada gigante irrompe de um círculo mágico.'}};
 function openInventory(){const p=document.getElementById('inv-panel');if(!p)return;inventoryOpen=true;setDefending(false);renderInventory();p.hidden=false;}
 function closeInventory(){inventoryOpen=false;const p=document.getElementById('inv-panel');if(p)p.hidden=true;}
 function equipBest(){const best=bestSword(SWORDS,ownedItems);if(best!==equippedSword)equipSword(best);if(coatOwned&&!coatOn)setCoat(true);renderInventory();status.textContent='Melhor equipamento: '+SWORDS[best].name+(coatOwned?' e Casaco de Pele':'')+'.';worldAudio.reveal();}
@@ -4043,7 +4064,7 @@ function renderInventory(){
    X), a Ganância em três formas (com o Anjo e Sandra lutando junto na última), a Inveja e o epílogo. Modelos novos do
    Blender: DesertoKit.glb (estátua, fragmento, portais, deserto) e Sandra-rig.glb (Sandra revelada). */
 var act6World=null,act6Sandra=null,act6SandraRun=null,act6Allies=[],act6Fx=[],act6Form=0,greedClaimed=!!saved3DProgress.finaleClaimed,act6Chaos=0,act6Envy=null;
-RIG_DEFS.sandra={file:'./Sandra-rig.glb?v=mod210',height:1.04,roles:RIG_DEFS.rival.roles,inPlace:RIG_DEFS.rival.inPlace};
+RIG_DEFS.sandra={file:'./Sandra-rig.glb?v=mod211',height:1.04,roles:RIG_DEFS.rival.roles,inPlace:RIG_DEFS.rival.inPlace};
 Object.assign(SPEAKER_ACTOR,{[SPEAKERS6.sandra]:'rival',[SPEAKERS6.greed]:'enemy',[SPEAKERS6.greedSky]:'sky',[SPEAKERS6.envy]:'envy',[SPEAKERS6.b1]:'enemy',[SPEAKERS6.b2]:'enemy',[SPEAKERS6.b3]:'enemy',[SPEAKERS6.b4]:'enemy'});
 Object.assign(STORY_EYE,{statue:20,angels:10,envy:3});
 const DS=DESERT;
@@ -4783,6 +4804,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  killBoss(){if(enemy.visible){enemyHP=1;}},
   /** MOD 210 — força uma ultimate de chefe ('void' ou 'nova') e lê o estado dela. */
   ult(k){if(k==='void')startVoidUlt();else startSupernova();return bossUlt.kind;},
+  /** MOD 211 — testa os poderes novos: 'arc' (Corte de Luz) e 'circle' (Espada do Círculo, no inimigo). */
+  fx(k){if(k==='arc')spawnHolyProjectile('arc');else circleSword(enemy.visible?enemy.position.x:player.position.x+4,enemy.visible?enemy.position.z:player.position.z);return enemyHP;},
   ultState(){return{kind:bossUlt.kind,t:+bossUlt.t.toFixed(2),hp:playerHP,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,cam:+ultCam.w.toFixed(2)};},
   bossHp(f){if(enemy.visible)enemyHP=Math.max(1,Math.round(enemyMaxHP*f));},
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */

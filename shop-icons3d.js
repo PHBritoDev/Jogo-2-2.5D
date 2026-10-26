@@ -79,6 +79,11 @@ const ART = {
     return defs(id, ICE, ['#0c1c3a']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><ellipse cx="48" cy="84" rx="38" ry="9" fill="url(#gl' + id + ')"/>' +
       '<ellipse cx="48" cy="84" rx="26" ry="5" fill="none" stroke="#bfe0ff" stroke-width="1.4"/>' + b + sparks('#cfe6ff', 16, 77);
   },
+  magic3_plus(id) {
+    return defs(id, ['#fff2c4', '#ffc24a', '#8a5a10'], ['#2a1a06']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><ellipse cx="48" cy="80" rx="38" ry="10" fill="url(#gl' + id + ')"/>' +
+      '<ellipse cx="48" cy="80" rx="34" ry="8" fill="none" stroke="#ffe39a" stroke-width="1.6"/><ellipse cx="48" cy="80" rx="22" ry="5" fill="none" stroke="#ffe39a" stroke-width="1"/>' +
+      blade(id, 48, 82, 70, 9, 0) + sparks('#ffe9b0', 14, 31);
+  },
   // Espada inicial.
   sword_prota(id) {
     return defs(id, ['#f4f4fa', '#b8c0d0', '#6c7488'], ['#1a1d2a']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><circle cx="48" cy="52" r="34" fill="url(#gl' + id + ')" opacity=".5"/>' +

@@ -50,3 +50,8 @@ test('Palavras do Ato III exigem a versão anterior e o Ato III', () => {
   assert.equal(shopStatus(up, { questStep: 12, level: 9, coins: 999, owned: new Set(['magic']) }).state, 'locked');
   assert.equal(shopStatus(up, { questStep: 16, level: 9, coins: 999, owned: new Set(['magic']) }).state, 'buyable');
 });
+
+test('MOD 211 — Espada do Círculo: aprimoramento do Sol da Justiça no Ato IV', () => {
+  const up = SHOP_ITEMS.find(i => i.id === 'magic3_plus');
+  assert.ok(up); assert.equal(up.requires, 'magic3'); assert.equal(up.kind, 'upgrade'); assert.equal(up.step, 21);
+});
