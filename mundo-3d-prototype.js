@@ -15,7 +15,8 @@ import { MAP_STORE_KEY, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapSta
 import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
-import { ULTIMATES, ultimateDue } from './ultimates3d.js';
+import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
+import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
 import { DESERT_REGION, DESERT_PASS, DESERT, inDesert, fragmentsHeld } from './desert3d.js';
 import { ACT5N, ROUNDS, SPEAKERS5, roundForSub, subForRound, act5Presentation, bestSword, journeyScene, arrivalScene, roundIntroScene, roundOutroScene, finalScene } from './act5-flow.js';
 import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inArena } from './coliseum3d.js';
@@ -1190,12 +1191,13 @@ function spawnHolyProjectile(kind,angleOffset=0,delay=0){
  const group=new THREE.Group(),gold=new THREE.MeshStandardMaterial({color:0xffe7a0,emissive:0xffbd3f,emissiveIntensity:2.2,metalness:.55,roughness:.2}),white=new THREE.MeshBasicMaterial({color:0xfff7d2});
  let arcMat=null;
  if(kind==='arc'){const dark=isNightHour(gameClock.hour);arcMat=new THREE.MeshBasicMaterial({color:dark?0x9a4dff:0xffd36a,transparent:true,opacity:.9,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});for(const [r0,r1,o] of [[.95,1.3,1],[1.32,1.42,.6]]){const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,40,1,-Math.PI/2-1.25,2.5),o<1?arcMat.clone():arcMat);if(o<1)m.material.opacity=.55;m.rotation.x=-Math.PI/2;m.position.z=-1.1;group.add(m);}}
- else if(kind==='sun'){const orb=new THREE.Mesh(new THREE.SphereGeometry(.42,16,12),gold);group.add(orb);const halo=new THREE.Mesh(new THREE.TorusGeometry(.58,.035,6,24),white);halo.rotation.x=Math.PI/2;group.add(halo);}
+ else if(kind==='sun'){const orb=new THREE.Mesh(new THREE.SphereGeometry(.62,18,14),gold);const cor=glowSprite(0xffb020,.95,4.6);group.add(cor);const cor2=glowSprite(0xfff2b0,.8,2.2);group.add(cor2);group.add(orb);const halo=new THREE.Mesh(new THREE.TorusGeometry(.58,.035,6,24),white);halo.rotation.x=Math.PI/2;group.add(halo);}
  else{const blade=new THREE.Mesh(new THREE.ConeGeometry(.13,.95,5),gold);blade.rotation.x=Math.PI/2;group.add(blade);const core=new THREE.Mesh(new THREE.CylinderGeometry(.025,.045,.8,5),white);core.rotation.x=Math.PI/2;group.add(core);group.rotation.z=Math.PI/2;}
  const target=combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<22;
  const aimYaw=cameraDistance<1.05?cameraYaw+Math.PI:playerYaw,base=target?Math.atan2(enemy.position.x-player.position.x,enemy.position.z-player.position.z):aimYaw,angle=base+angleOffset,dirX=Math.sin(angle),dirZ=Math.cos(angle);
  group.position.set(player.position.x+dirX*.8,player.position.y+(kind==='sun'?1.65:kind==='arc'?1.05:1.35),player.position.z+dirZ*.8);group.rotation.y=angle;scene.add(group);
- holyProjectiles.push({group,dirX,dirZ,kind,delay,arcMat,life:kind==='sun'?2.7:kind==='arc'?.6:1.7,speed:kind==='sun'?4.2:kind==='arc'?13:8.5,damage:kind==='sun'?28:kind==='arc'?Math.round(18*(1+statsForLevel(playerLevel()).damageBonus)):kind==='ultimate'?45:kind==='sword5'?10:kind==='swordHoming'?16:14,hit:false,homing:kind==='swordHoming'});
+ if(kind==='orbit'){group.position.set(player.position.x,player.position.y+1.5,player.position.z);}
+ holyProjectiles.push({group,dirX,dirZ,kind,delay,orbit:kind==='orbit'?.65:0,oa:angleOffset,arcMat,life:kind==='sun'?2.7:kind==='arc'?.6:1.7,speed:kind==='sun'?4.2:kind==='arc'?13:kind==='orbit'?11:8.5,damage:kind==='sun'?28:kind==='arc'?Math.round(18*(1+statsForLevel(playerLevel()).damageBonus)):kind==='ultimate'?45:kind==='sword5'?10:kind==='swordHoming'?16:kind==='orbit'?(ownedItems.has('magic_plus')?16:14):14,hit:false,homing:kind==='swordHoming'||kind==='orbit'});
 }
 /** MOD 211 — Espada do Círculo (aprimoramento do Sol da Justiça; documento mestre, poder 5): um círculo mágico se abre
  *  sob o alvo e uma espada gigante irrompe do chão, ferindo e atordoando por um instante. */
@@ -1215,22 +1217,35 @@ function circleSword(x,z){
   if(t>1.9)steel.emissiveIntensity=Math.max(0,1.8-(t-1.9)*3),sword.position.y-=.12;
   if(t>2.5){scene.remove(g);g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});return false;}}});
 }
+/** MOD 212 — queimadura do Sol da Justiça (inspirado no sol do Escanor): três pulsos de fogo depois do impacto. */
+function burnEnemy(){let n=0;const fl=glowSprite(0xff8a20,.0,2.6);scene.add(fl);fxPush(function(t){fl.position.set(enemy.position.x,enemy.position.y+1.2,enemy.position.z);fl.material.opacity=.5+.3*Math.sin(t*14);if(t>(n+1)*.9&&n<3){n++;hurtEnemy(Math.round(5*(1+statsForLevel(playerLevel()).damageBonus)),false);}if(n>=3||!enemyAlive){fxDispose(fl);return false;}});}
+/** MOD 212 — a ultimate do herói ganha preparação: a Bíblia se abre, um círculo mágico gira no céu, nuvens e raios
+ *  se juntam; só então a espada celestial desce (castDivineJudgment). */
+function chargeDivine(){
+ const tgt=combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<16?enemy.position.clone():player.position.clone().add(new THREE.Vector3(Math.sin(playerYaw)*6,0,Math.cos(playerYaw)*6));
+ const y=fxGy(tgt.x,tgt.z),g=new THREE.Group();g.position.set(tgt.x,y+22,tgt.z);scene.add(g);const rings=[];
+ for(const [r0,r1,seg] of [[7,7.4,64],[5.2,5.5,6],[3.4,3.6,64],[5.3,5.45,3]]){const m=new THREE.Mesh(new THREE.RingGeometry(r0,r1,seg),addMat(0xffe39a,0));m.rotation.x=Math.PI/2;g.add(m);rings.push(m);}
+ const clouds=[];for(let i=0;i<10;i++){const c=glowSprite(i%2?0xd8d0ff:0xfff2d0,0,7);const a=i/10*6.28;c.position.set(Math.cos(a)*9,1.5,Math.sin(a)*9);g.add(c);clouds.push(c);}
+ showCombatCallout('A PALAVRA SE CUMPRE');slowMo(700,.4);Object.assign(ultCam,{want:.8,height:6,dist:13});ultCam.look.set(tgt.x,y+8,tgt.z);worldAudio.celestial&&worldAudio.celestial();
+ fxPush(function(t,dt){const a=Math.min(1,t/.6);rings.forEach((m,i)=>{m.material.opacity=.85*a*(t>1.6?Math.max(0,1-(t-1.6)*2):1);m.rotation.z+=dt*(i%2?-1.2:.8);});clouds.forEach((c,i)=>{const ang=i/10*6.28+t*.6,r=9-t*2.5;c.position.set(Math.cos(ang)*r,1.5,Math.sin(ang)*r);c.material.opacity=.6*a*(t>1.6?Math.max(0,1-(t-1.6)*2):1);});
+  if(t>.4&&Math.random()<.08)cameraShake(.06);if(t>=1.4&&!g.userData.go){g.userData.go=true;castDivineJudgment();}if(t>2.2){fxDispose(g);return false;}});
+}
 function castHolyMagic(kind){
  const now=performance.now();if(playerHP<=0)return;
  const check=canCast(kind,{unlocked:skillSet||new Set(),mana:playerMana,cooldownUntil:holyCooldowns,now});if(!check.ok){status.textContent=check.reason;return;}
- playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);
- if(kind==='magic'&&ownedItems.has('magic_plus')){[-.3,-.15,0,.15,.3].forEach((a,i)=>spawnHolyProjectile('swordHoming',a,i*.07));status.textContent='Espadas da Palavra II — cinco lâminas perseguem o alvo!';}
- else if(kind==='magic'){[-.19,0,.19].forEach((a,i)=>spawnHolyProjectile('sword',a,i*.09));status.textContent='Espadas da Palavra — três lâminas de luz!';}
- else if(kind==='magic2'&&ownedItems.has('magic2_plus')&&combatStepNow()&&enemy.visible&&enemyAlive){for(let i=0;i<7;i++){const a=i/7*Math.PI*2;spawnHazardFriendly(enemy.position.x+Math.cos(a)*(i?1.6:0),enemy.position.z+Math.sin(a)*(i?1.6:0),.35+i*.12);}status.textContent='Julgamento Celestial II — sete espadas caem do céu!';}
- else if(kind==='magic2'){[-.28,-.14,0,.14,.28].forEach((a,i)=>spawnHolyProjectile('sword5',a,i*.12));status.textContent='Julgamento Celestial — cinco espadas descem em formação!';}
+ playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);showGrimoire(0xffd56a,kind==='ultimate'?1.8:.9,true);
+ if(kind==='magic'){const n=ownedItems.has('magic_plus')?5:3;for(let i=0;i<n;i++)spawnHolyProjectile('orbit',i/n*Math.PI*2,0);status.textContent=n===5?'Espadas da Palavra II — cinco espadas orbitam e caçam o alvo!':'Espadas da Palavra — três espadas orbitam você e caçam o alvo!';}
+ else if(kind==='magic2'){// MOD 212 — chuva de espadas celestiais numa área marcada (poder 3 do documento mestre)
+  const plus=ownedItems.has('magic2_plus'),tgt=combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<18?enemy.position:{x:player.position.x+Math.sin(playerYaw)*6,z:player.position.z+Math.cos(playerYaw)*6};
+  fxRain(tgt.x,tgt.z,plus?4.2:3.2,plus?54:34,1.3,Math.round((plus?17:13)*(1+statsForLevel(playerLevel()).damageBonus)),0xfff0b8,false,true);status.textContent=plus?'Julgamento Celestial II — um céu inteiro de espadas desaba sobre a área!':'Julgamento Celestial — espadas celestiais chovem sobre a área marcada!';}
  else if(kind==='magic3'&&ownedItems.has('magic3_plus')&&combatStepNow()&&enemy.visible&&enemyAlive){spawnHolyProjectile('sun');circleSword(enemy.position.x,enemy.position.z);status.textContent='Espada do Círculo — o círculo se abre e a lâmina colossal irrompe do chão!';}
  else if(kind==='magic3'){spawnHolyProjectile('sun');status.textContent='Sol da Justiça — luz ardente lançada contra o inimigo!';}
- else{castDivineJudgment();}
+ else{chargeDivine();}
 }
 function updateHolyProjectiles(dt){
- for(let i=holyProjectiles.length-1;i>=0;i--){const p=holyProjectiles[i];p.delay-=dt;if(p.delay>0)continue;p.life-=dt;if(p.kind==='arc'){const k=1-p.life/.6;p.group.scale.setScalar(1+k*1.3);p.group.traverse(o=>{if(o.material&&o.material.transparent)o.material.opacity=Math.max(0,(o.material===p.arcMat?.9:.55)*(1-k));});}if(p.homing&&enemy.visible&&enemyAlive){const hx=enemy.position.x-p.group.position.x,hz=enemy.position.z-p.group.position.z,hd=Math.hypot(hx,hz)||1;p.dirX+=(hx/hd-p.dirX)*Math.min(1,dt*5);p.dirZ+=(hz/hd-p.dirZ)*Math.min(1,dt*5);const n=Math.hypot(p.dirX,p.dirZ)||1;p.dirX/=n;p.dirZ/=n;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind==='sun'){p.group.position.y+=Math.sin(performance.now()*.006)*dt*.22;p.group.rotation.y+=dt*2;}else p.group.rotation.z+=dt*2;
+ for(let i=holyProjectiles.length-1;i>=0;i--){const p=holyProjectiles[i];if(p.orbit>0){p.orbit-=dt;p.oa+=dt*7;p.group.position.set(player.position.x+Math.sin(p.oa)*1.3,player.position.y+1.5+Math.sin(p.oa*2)*.15,player.position.z+Math.cos(p.oa)*1.3);p.group.rotation.y=p.oa+Math.PI/2;if(p.orbit<=0){const tx=(enemy.visible&&enemyAlive?enemy.position.x:p.group.position.x+Math.sin(playerYaw))-p.group.position.x,tz=(enemy.visible&&enemyAlive?enemy.position.z:p.group.position.z+Math.cos(playerYaw))-p.group.position.z,d=Math.hypot(tx,tz)||1;p.dirX=tx/d;p.dirZ=tz/d;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}continue;}p.delay-=dt;if(p.delay>0)continue;p.life-=dt;if(p.kind==='arc'){const k=1-p.life/.6;p.group.scale.setScalar(1+k*1.3);p.group.traverse(o=>{if(o.material&&o.material.transparent)o.material.opacity=Math.max(0,(o.material===p.arcMat?.9:.55)*(1-k));});}if(p.homing&&enemy.visible&&enemyAlive){const hx=enemy.position.x-p.group.position.x,hz=enemy.position.z-p.group.position.z,hd=Math.hypot(hx,hz)||1;p.dirX+=(hx/hd-p.dirX)*Math.min(1,dt*5);p.dirZ+=(hz/hd-p.dirZ)*Math.min(1,dt*5);const n=Math.hypot(p.dirX,p.dirZ)||1;p.dirX/=n;p.dirZ/=n;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind==='sun'){p.group.position.y+=Math.sin(performance.now()*.006)*dt*.22;p.group.rotation.y+=dt*2;}else p.group.rotation.z+=dt*2;
   const d=Math.hypot(p.group.position.x-enemy.position.x,p.group.position.z-enemy.position.z);
-  if(!p.hit&&enemyAlive&&combatStepNow()&&enemy.visible&&d<(p.kind==='arc'?1.9:1.15)&&Math.abs(p.group.position.y-(enemy.position.y+1))<1.8){p.hit=true;enemyHP=Math.max(0,enemyHP-p.damage);onEnemyDamaged(p.damage,p.kind==='ultimate');enemyHitFlash=.2;setEnemyHitFlash(true);setTimeout(()=>setEnemyHitFlash(false),130);const fill=document.getElementById('enemy-hp-fill');if(fill)fill.style.width=enemyHpPercent()+'%';p.life=0;if(enemyHP===0){enemyAlive=false;playEnemyAnimation('death',.06,true);status.textContent='A luz venceu este inimigo. Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),650);}}
+  if(!p.hit&&enemyAlive&&combatStepNow()&&enemy.visible&&d<(p.kind==='arc'?1.9:1.15)&&Math.abs(p.group.position.y-(enemy.position.y+1))<1.8){p.hit=true;enemyHP=Math.max(0,enemyHP-p.damage);onEnemyDamaged(p.damage,p.kind==='ultimate');if(p.kind==='sun')burnEnemy();enemyHitFlash=.2;setEnemyHitFlash(true);setTimeout(()=>setEnemyHitFlash(false),130);const fill=document.getElementById('enemy-hp-fill');if(fill)fill.style.width=enemyHpPercent()+'%';p.life=0;if(enemyHP===0){enemyAlive=false;playEnemyAnimation('death',.06,true);status.textContent='A luz venceu este inimigo. Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),650);}}
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
  }
 }
@@ -1362,14 +1377,14 @@ let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
 if(dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineActive){axisX=0;axisZ=0;}
 // MOD 206 — dimensão distorcida do Ato III: frente vira trás e esquerda vira direita.
-if(distorted){axisX=-axisX;axisZ=-axisZ;}
+if(distorted||performance.now()<foeInvertUntil){axisX=-axisX;axisZ=-axisZ;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
 // Mesmo princípio da dimensão do Valério: o joystick é relativo à orientação da câmera,
 // com zona morta analógica e aceleração/desaceleração suaves, em vez de deslocar o modelo instantaneamente.
 const dead=.12;if(len<dead){axisX=0;axisZ=0;}else{const power=(len-dead)/(1-dead);axisX=axisX/len*power;axisZ=axisZ/len*power;}
 const worldX=axisX*Math.cos(cameraYaw)+axisZ*Math.sin(cameraYaw);
 const worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
-const speed=(defending?1.9:4.3)*act3SpeedMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
+const speed=(defending?1.9:4.3)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
@@ -1436,7 +1451,7 @@ if(firstPerson){
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateBossPowers(dt);updateFoeWeaponSkills(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -4669,10 +4684,10 @@ function updateBossUltimates(dt,now){
  for(let i=ultFx.length-1;i>=0;i--){const f=ultFx[i];f.t+=dt;if(f.tick(f.t,dt)===false)ultFx.splice(i,1);}
  const fight=encounterProfile+':'+enemyMaxHP;if(fight!==bossUlt.fight){bossUlt.fight=fight;bossUlt.used={};}
  const live=combatStepNow()&&enemy.visible&&enemyAlive&&playerHP>0;
- if(bossUlt.kind){if(!live||cineActive){endBossUlt();return;}bossUlt.t+=dt;(bossUlt.kind==='void'?tickVoidUlt:tickSupernova)(dt,now);return;}
+ if(bossUlt.kind){if(!live||cineActive){endBossUlt();return;}bossUlt.t+=dt;(bossUlt.kind==='void'?tickVoidUlt:bossUlt.kind==='kit'?tickKitUlt:tickSupernova)(dt,now);return;}
  if(!live||cineActive||dialogueOpen||blackHole.active)return;
  const n=bossUlt.used.n||0;if(ultimateDue(encounterProfile,enemyHP/Math.max(1,enemyMaxHP),n)<0)return;
- bossUlt.used.n=n+1;if(ULTIMATES[encounterProfile].kind==='void')startVoidUlt();else startSupernova();
+ bossUlt.used.n=n+1;const uk=ultimateFor(encounterProfile).kind;if(uk==='void')startVoidUlt();else if(uk==='nova')startSupernova();else startKitUlt(uk);
 }
 function startVoidUlt(){
  if(bossUlt.kind)endBossUlt();
@@ -4742,6 +4757,195 @@ function tickSupernova(dt,now){
   f.rings.forEach(r=>{r.material.opacity=Math.max(0,r.material.opacity-dt*.8);});f.runes.material.opacity=Math.max(0,f.runes.material.opacity-dt);f.sDisk.material.opacity=Math.max(0,f.sDisk.material.opacity-dt);f.sBeam.material.opacity=Math.max(0,f.sBeam.material.opacity-dt*.5);
   if(k>1.5)endBossUlt();}
 }
+/* ===================== MOD 212 — Marco 10: poderes de todos os inimigos (regras em powers3d.js) =====================
+ * Cada família (Seguidor, Demônio, Carrasco, Guardião, os quatro Bispos e as três formas da Ganância) tem Habilidade
+ * 1, 2 e 3, golpe de espada e ultimate. Todo poder tem aviso no chão e saída (correr, pular ou dash). Bispos e
+ * Ganância invocam com o grimório aberto; o herói, com a Bíblia. Efeitos curtos, com poucas malhas cada. */
+const kitState={cds:{},t:2.5,last:'',fight:''};
+let foeSlowUntil=0,foeInvertUntil=0;
+function foeSlowMul(){return performance.now()<foeSlowUntil?.4:1;}
+function pHit(dmg){if(dashRemaining>0||!enemyAlive)return false;return damagePlayerFromEnemyAttack(dmg);}
+function foeYaw(){return Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);}
+function fxDispose(o){scene.remove(o);o.traverse(m=>{if(m.geometry&&!m.geometry.userData.keep)m.geometry.dispose();if(m.material&&!m.material.userData.keep)m.material.dispose();});}
+function fxPush(fn){ultFx.push({t:0,tick:fn});}
+function fxGy(x,z){return groundHeightAt(x,z);}
+/** Grimório (Bispos/Ganância) ou Bíblia (herói) aberto, flutuando à frente de quem invoca. */
+function showGrimoire(color,dur,onPlayer){
+ const g=new THREE.Group(),cover=new THREE.MeshStandardMaterial({color:onPlayer?0xf2e2b8:0x1c0a16,emissive:color,emissiveIntensity:onPlayer?.45:.3,metalness:.35,roughness:.45}),page=new THREE.MeshBasicMaterial({color:onPlayer?0xfff6dc:0x2c1a30,side:THREE.DoubleSide});
+ for(const s of [-1,1]){const c=new THREE.Mesh(new THREE.BoxGeometry(.4,.035,.54),cover);c.position.x=s*.2;c.rotation.z=s*.16;g.add(c);const pg=new THREE.Mesh(new THREE.PlaneGeometry(.36,.48),page);pg.rotation.set(-Math.PI/2,0,s*.16);pg.position.set(s*.19,.03,0);g.add(pg);}
+ const rune=new THREE.Mesh(new THREE.RingGeometry(.36,.44,6),addMat(color,0));rune.rotation.x=-Math.PI/2;rune.position.y=.22;g.add(rune);
+ const rune2=new THREE.Mesh(new THREE.RingGeometry(.22,.26,3),addMat(color,0));rune2.rotation.x=-Math.PI/2;rune2.position.y=.24;g.add(rune2);
+ const glow=glowSprite(color,0,1.5);glow.position.y=.18;g.add(glow);scene.add(g);
+ fxPush(function(t){const src=onPlayer?player.position:enemy.position,yaw=onPlayer?playerYaw:foeYaw();
+  g.position.set(src.x+Math.sin(yaw)*.85+Math.cos(yaw)*.45,src.y+1.45+Math.sin(t*3)*.05,src.z+Math.cos(yaw)*.85-Math.sin(yaw)*.45);g.rotation.set(-.55,yaw,0,'YXZ');
+  const a=Math.min(1,t/.22)*(t>dur?Math.max(0,1-(t-dur)/.3):1);g.scale.setScalar(.2+.8*a);rune.rotation.z+=.06;rune2.rotation.z-=.09;rune.material.opacity=.9*a;rune2.material.opacity=.8*a;glow.material.opacity=.75*a;
+  if(t>dur+.3){fxDispose(g);return false;}});
+}
+/** Erupção: aviso circular (spawnHazard dá o dano) e, no disparo, uma coluna de duas cores. */
+function fxErupt(x,z,delay,r,dmg,c1,c2,h=5){spawnHazard({x,z,radius:r,delay,damage:dmg,color:c1});const y=fxGy(x,z),a=new THREE.Mesh(new THREE.ConeGeometry(r*.8,h,12,1,true),addMat(c1,0)),b=new THREE.Mesh(new THREE.ConeGeometry(r*.45,h*.7,10,1,true),addMat(c2,0));a.position.set(x,y+h/2,z);b.position.set(x,y+h*.35,z);scene.add(a,b);
+ fxPush(function(t){const k=t-delay;if(k<0)return;const o=k<.15?k/.15:Math.max(0,1-(k-.15)/.6);a.material.opacity=.75*o;b.material.opacity=.85*o;a.scale.set(1,.6+k*1.4,1);b.scale.set(1,.5+k*1.7,1);a.rotation.y+=.2;b.rotation.y-=.3;if(k>.8){fxDispose(a);fxDispose(b);return false;}});}
+/** Aviso em faixa (lança/raio) do ponto (x,z) na direção yaw; dispara depois de `delay`. */
+function fxLine(x,z,yaw,len,w,delay,dmg,c1,c2){
+ const y=fxGy(x,z)+.07,dx=Math.sin(yaw),dz=Math.cos(yaw),g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=yaw;scene.add(g);
+ const tel=new THREE.Mesh(new THREE.PlaneGeometry(w,len),addMat(c1,.22));tel.rotation.x=-Math.PI/2;tel.position.z=len/2;g.add(tel);
+ const edge=new THREE.Mesh(new THREE.PlaneGeometry(w*.12,len),addMat(c1,.8));edge.rotation.x=-Math.PI/2;edge.position.z=len/2;g.add(edge);
+ const beam=new THREE.Mesh(new THREE.BoxGeometry(w*.8,w*.8,len),addMat(c2,0));beam.position.set(0,1,len/2);g.add(beam);let fired=false;
+ fxPush(function(t){if(t<delay){tel.material.opacity=.15+.25*(t/delay);return;}
+  if(!fired){fired=true;cameraShake(.15);const px=player.position.x-x,pz=player.position.z-z,along=px*dx+pz*dz,side=Math.abs(px*dz-pz*dx);if(along>-.5&&along<len&&side<w*.6&&player.position.y-y<1.8)pHit(dmg);}
+  const k=t-delay;beam.material.opacity=Math.max(0,.9-k*1.8);beam.scale.set(1+k*2,1+k*2,1);tel.material.opacity=Math.max(0,.3-k);edge.material.opacity=Math.max(0,.8-k*2);if(k>.55){fxDispose(g);return false;}});
+}
+/** Varrida em leque à frente de quem ataca (raio r, abertura arc). */
+function fxCone(x,z,yaw,r,arc,delay,dmg,c1,c2){
+ const g=new THREE.Group();g.position.set(x,fxGy(x,z)+.07,z);scene.add(g);
+ const tel=new THREE.Mesh(new THREE.CircleGeometry(r,28,Math.PI/2-yaw-arc/2,arc),addMat(c1,.2));tel.rotation.x=-Math.PI/2;g.add(tel);
+ const sweep=new THREE.Mesh(new THREE.RingGeometry(r*.55,r,28,1,Math.PI/2-yaw-arc/2,arc),addMat(c2,0));sweep.rotation.x=-Math.PI/2;sweep.position.y=.9;g.add(sweep);let fired=false;
+ fxPush(function(t){if(t<delay){tel.material.opacity=.12+.3*(t/delay);return;}
+  if(!fired){fired=true;worldAudio.whoosh();const px=player.position.x-x,pz=player.position.z-z,d=Math.hypot(px,pz),a=Math.atan2(px,pz),da=Math.abs(Math.atan2(Math.sin(a-yaw),Math.cos(a-yaw)));if(d<r&&da<arc/2)pHit(dmg);}
+  const k=t-delay;sweep.material.opacity=Math.max(0,.9-k*2);sweep.scale.setScalar(1+k*.6);tel.material.opacity=Math.max(0,.35-k);if(k>.5){fxDispose(g);return false;}});
+}
+/** Onda de choque que se expande a partir de (x,z): pule ou use o dash quando ela passar. */
+function fxRing(x,z,r,delay,dmg,c1){
+ const y=fxGy(x,z)+.1,tel=new THREE.Mesh(new THREE.RingGeometry(r-.15,r,64),addMat(c1,.35));tel.rotation.x=-Math.PI/2;tel.position.set(x,y,z);scene.add(tel);
+ const wave=new THREE.Mesh(new THREE.CylinderGeometry(1,1,.9,48,1,true),addMat(c1,0));wave.position.set(x,y+.45,z);scene.add(wave);const hit={v:false};
+ fxPush(function(t){if(t<delay){tel.material.opacity=.2+.4*Math.abs(Math.sin(t*9));return;}
+  const k=(t-delay)/.9,R=Math.max(.3,k*r);wave.scale.set(R,1,R);wave.material.opacity=Math.max(0,.8*(1-k));tel.material.opacity=Math.max(0,.4-k);
+  const d=Math.hypot(player.position.x-x,player.position.z-z);if(!hit.v&&Math.abs(d-R)<.7&&player.position.y-y<.6){hit.v=true;pHit(dmg);}
+  if(k>=1){fxDispose(tel);fxDispose(wave);return false;}});
+}
+/** Orbes (estilo Hellblaze): nascem em volta de quem invoca, giram e perseguem o herói. */
+function fxOrbs(n,speed,dmg,c1,c2,size=.32){
+ const e=enemy.position,orbs=[];
+ for(let i=0;i<n;i++){const g=new THREE.Group(),core=new THREE.Mesh(new THREE.SphereGeometry(size,12,8),new THREE.MeshBasicMaterial({color:c2,toneMapped:false})),gl=glowSprite(c1,.9,size*5);g.add(core,gl);scene.add(g);orbs.push({g,a:i/n*6.28,vx:0,vz:0,live:true,launch:.5+i*.12});}
+ fxPush(function(t,dt){let any=false;for(const o of orbs){if(!o.live)continue;any=true;
+  if(t<o.launch){o.a+=dt*5;o.g.position.set(e.x+Math.cos(o.a)*1.4,e.y+1.6+Math.sin(o.a*2)*.2,e.z+Math.sin(o.a)*1.4);continue;}
+  const p=o.g.position,tx=player.position.x-p.x,tz=player.position.z-p.z,ty=player.position.y+1-p.y,d=Math.hypot(tx,tz)||1;
+  if(o.vx===0&&o.vz===0){o.vx=tx/d*speed;o.vz=tz/d*speed;}
+  o.vx+=(tx/d*speed-o.vx)*Math.min(1,dt*1.6);o.vz+=(tz/d*speed-o.vz)*Math.min(1,dt*1.6);p.x+=o.vx*dt;p.z+=o.vz*dt;p.y+=ty*Math.min(1,dt*3);
+  if(Math.hypot(player.position.x-p.x,player.position.z-p.z)<.75&&Math.abs(player.position.y+1-p.y)<1.2){pHit(dmg);burstSparks(p.clone(),c1);o.live=false;fxDispose(o.g);continue;}
+  if(t>o.launch+3.2){o.live=false;fxDispose(o.g);}}
+  return any?undefined:false;});
+}
+/** Cortes em lua crescente (corte negro), em leque, a partir de quem ataca. */
+function fxWave(n,dmg,c1,c2,delay=.35){
+ const e=enemy.position.clone(),yaw0=foeYaw(),waves=[];
+ for(let i=0;i<n;i++){const yaw=yaw0+(i-(n-1)/2)*.28,g=new THREE.Group();const m=new THREE.Mesh(new THREE.RingGeometry(.9,1.35,32,1,-Math.PI/2-1.2,2.4),addMat(c1,0)),m2=new THREE.Mesh(new THREE.RingGeometry(1.35,1.5,32,1,-Math.PI/2-1.2,2.4),addMat(c2,0));
+  for(const x of [m,m2]){x.rotation.x=-Math.PI/2;x.position.z=-1;g.add(x);}g.position.set(e.x,e.y+1.1,e.z);g.rotation.y=yaw;scene.add(g);waves.push({g,m,m2,yaw,live:true,hit:false});}
+ fxPush(function(t,dt){if(t<delay)return;let any=false;const k=t-delay;for(const w of waves){if(!w.live)continue;any=true;
+  w.g.position.x+=Math.sin(w.yaw)*13*dt;w.g.position.z+=Math.cos(w.yaw)*13*dt;w.g.scale.setScalar(1+k*.8);w.m.material.opacity=Math.max(0,.95-k*.7);w.m2.material.opacity=Math.max(0,.7-k*.6);
+  if(!w.hit&&Math.hypot(player.position.x-w.g.position.x,player.position.z-w.g.position.z)<1.5&&Math.abs(player.position.y+1-w.g.position.y)<1.3){w.hit=true;pHit(dmg);}
+  if(k>1.1){w.live=false;fxDispose(w.g);}}return any?undefined:false;});
+}
+/** Investida com aviso: quem ataca dispara em linha reta e fere quem estiver no caminho. */
+function fxDash(len,dmg,c1){
+ const e=enemy.position,yaw=foeYaw(),sx=e.x,sz=e.z;fxLine(sx,sz,yaw,len,1.4,.6,0,c1,c1);let done=false;
+ fxPush(function(t){if(t<.6)return;const k=Math.min(1,(t-.6)/.25);if(!done){const nx=sx+Math.sin(yaw)*len*k,nz=sz+Math.cos(yaw)*len*k;if(!blockedAt(nx,nz)){enemy.position.x=nx;enemy.position.z=nz;}
+   const px=player.position.x-sx,pz=player.position.z-sz,along=px*Math.sin(yaw)+pz*Math.cos(yaw),side=Math.abs(px*Math.cos(yaw)-pz*Math.sin(yaw));if(along>0&&along<len*k+.8&&side<1.1){done=true;pHit(dmg);burstSparks(player.position.clone().setY(player.position.y+1),c1);}}
+  if(k>=1)return false;});
+}
+/** Mãos/correntes que brotam do chão: ferem e prendem (lentidão) quem fica no círculo. */
+function fxGrab(x,z,r,delay,dmg,root,c1,c2,chain){
+ const y=fxGy(x,z),tel=new THREE.Mesh(new THREE.CircleGeometry(r,32),addMat(c2,.0));tel.rotation.x=-Math.PI/2;tel.position.set(x,y+.07,z);scene.add(tel);
+ const rim=new THREE.Mesh(new THREE.RingGeometry(r-.12,r,40),addMat(c1,.8));rim.rotation.x=-Math.PI/2;rim.position.set(x,y+.08,z);scene.add(rim);
+ const hands=new THREE.Group();hands.position.set(x,y,z);scene.add(hands);const mat=chain?new THREE.MeshStandardMaterial({color:0xd8a030,metalness:.8,roughness:.3,emissive:0x3a2000}):new THREE.MeshBasicMaterial({color:0x07020a});
+ for(let i=0;i<6;i++){const a=i/6*6.28,f=new THREE.Mesh(chain?new THREE.TorusGeometry(.22,.06,6,10):new THREE.ConeGeometry(.16,1.6,5),mat);f.position.set(Math.cos(a)*r*.6,-1.4,Math.sin(a)*r*.6);f.rotation.set(chain?0:(Math.cos(a)*-.5),a,chain?Math.PI/2:(Math.sin(a)*.5));f.userData.a=a;hands.add(f);}
+ let fired=false;
+ fxPush(function(t){if(t<delay){tel.material.opacity=.45*(t/delay);rim.material.opacity=.4+.4*Math.abs(Math.sin(t*10));return;}
+  const k=t-delay;hands.children.forEach((f,i)=>{f.position.y=Math.min(chain?.9:.6,-1.4+k*9);if(chain)f.position.y+=Math.sin(k*10+i)*.15;});
+  if(!fired){fired=true;worldAudio.corrupt();if(Math.hypot(player.position.x-x,player.position.z-z)<r){if(pHit(dmg))foeSlowUntil=performance.now()+root*1000;}}
+  tel.material.opacity=Math.max(0,.45-k*.5);rim.material.opacity=Math.max(0,.8-k);if(k>.9){hands.position.y-=.15;}if(k>1.3){fxDispose(tel);fxDispose(rim);fxDispose(hands);return false;}});
+}
+/** Chuva de lâminas/moedas numa área (estilo "portões do tesouro"): aviso, depois dezenas caem do céu. */
+const rainGeo=new THREE.ConeGeometry(.09,1.6,4);rainGeo.userData.keep=true;const coinGeo=new THREE.CylinderGeometry(.22,.22,.06,10);coinGeo.userData.keep=true;
+function fxRain(x,z,r,n,dur,dmg,c1,gold,friendly){
+ n=Math.round(n*(renderer.getPixelRatio()<1?.6:1));const y=fxGy(x,z),tel=new THREE.Mesh(new THREE.CircleGeometry(r,40),addMat(c1,0));tel.rotation.x=-Math.PI/2;tel.position.set(x,y+.07,z);scene.add(tel);
+ const rim=new THREE.Mesh(new THREE.RingGeometry(r-.1,r,48),addMat(c1,.8));rim.rotation.x=-Math.PI/2;rim.position.set(x,y+.08,z);scene.add(rim);
+ const portal=new THREE.Mesh(new THREE.RingGeometry(r*.7,r*.9,48),addMat(c1,0));portal.rotation.x=-Math.PI/2;portal.position.set(x,y+11,z);scene.add(portal);
+ const mat=gold?new THREE.MeshStandardMaterial({color:0xffcf50,emissive:0x8a5a00,emissiveIntensity:.8,metalness:.85,roughness:.25}):new THREE.MeshBasicMaterial({color:c1,toneMapped:false});
+ const im=new THREE.InstancedMesh(gold?coinGeo:rainGeo,mat,n);im.frustumCulled=false;scene.add(im);const drops=[],M=new THREE.Matrix4(),Q=new THREE.Quaternion(),V=new THREE.Vector3(),SC=new THREE.Vector3(1,1,1),E=new THREE.Euler();
+ for(let i=0;i<n;i++){const a=Math.random()*6.28,rr=Math.sqrt(Math.random())*r;drops.push({x:x+Math.cos(a)*rr,z:z+Math.sin(a)*rr,t0:.7+Math.random()*dur,spin:Math.random()*6});}
+ const ticks=[.7+dur*.35,.7+dur*.75],hit=[false,false];
+ fxPush(function(t){const tl=Math.min(1,t/.7);tel.material.opacity=.18*tl;portal.material.opacity=.7*tl*(t<.7+dur?1:Math.max(0,1-(t-.7-dur)*2));portal.rotation.z+=.03;
+  for(let i=0;i<n;i++){const d=drops[i],k=(t-d.t0)/.35;V.set(d.x,k<0?-50:Math.max(y+.4,y+11-k*10.6),d.z);E.set(gold?d.spin+t*8:Math.PI,0,gold?t*6:0);Q.setFromEuler(E);M.compose(V,Q,SC);im.setMatrixAt(i,M);}
+  im.instanceMatrix.needsUpdate=true;
+  for(let j=0;j<2;j++)if(!hit[j]&&t>ticks[j]){hit[j]=true;if(friendly){if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<r+.5)hurtEnemy(dmg,j===1);}else if(Math.hypot(player.position.x-x,player.position.z-z)<r)pHit(Math.round(dmg*.6));cameraShake(.08);}
+  if(t>.7+dur+.7){fxDispose(tel);fxDispose(rim);fxDispose(portal);scene.remove(im);mat.dispose();im.dispose();return false;}});
+}
+/** Furacão (negro, de fogo ou de moedas) que persegue o herói, puxa um pouco e fere de perto. */
+function fxVortex(dur,speed,dmg,c1,c2){
+ const e=enemy.position,g=new THREE.Group();g.position.set(e.x,fxGy(e.x,e.z),e.z);scene.add(g);const shells=[];
+ for(let i=0;i<3;i++){const m=new THREE.Mesh(new THREE.CylinderGeometry(.9+i*.7,.25+i*.2,4+i*1.6,18,1,true),addMat(i===1?c2:c1,0));m.position.y=(4+i*1.6)/2;g.add(m);shells.push(m);}
+ const base=new THREE.Mesh(new THREE.RingGeometry(1.6,1.9,40),addMat(c1,.6));base.rotation.x=-Math.PI/2;base.position.y=.08;g.add(base);let tick=0;
+ fxPush(function(t,dt){const a=Math.min(1,t/.5)*(t>dur?Math.max(0,1-(t-dur)/.5):1);shells.forEach((m,i)=>{m.rotation.y+=dt*(6-i*1.5);m.material.opacity=(.55-i*.12)*a;});
+  const p=g.position,dx=player.position.x-p.x,dz=player.position.z-p.z,d=Math.hypot(dx,dz)||1;if(t<dur){const nx=p.x+dx/d*speed*dt,nz=p.z+dz/d*speed*dt;if(!blockedAt(nx,nz)){p.x=nx;p.z=nz;p.y=fxGy(nx,nz);}
+   if(d<4.5&&d>.6&&dashRemaining<=0){const f=1.4*dt;const qx=player.position.x-dx/d*f,qz=player.position.z-dz/d*f;if(!blockedAt(qx,qz)){player.position.x=qx;player.position.z=qz;}}
+   tick-=dt;if(d<1.8&&tick<=0){tick=.6;pHit(dmg);}}
+  if(t>dur+.5){fxDispose(g);return false;}});
+}
+/** O herói machuca o chefe (efeitos amigos): mesma regra de morte do resto do combate. */
+function hurtEnemy(dmg,big){if(!(combatStepNow()&&enemy.visible&&enemyAlive))return;enemyHP=Math.max(0,enemyHP-dmg);onEnemyDamaged(dmg,!!big);
+ if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else playEnemyAnimation('hit',.05,true);}
+/** Executa um poder do kit (habilidade ou golpe de espada) com os números já ajustados ao nível. */
+function runFoeMove(m,k){
+ const P=player.position,e=enemy.position,yaw=foeYaw(),c1=k.color,c2=k.color2;
+ if(m.id==='sw')playEnemyAnimation('attack',.08,true);else{playEnemyAnimation('cast',.1,true);if(k.book)showGrimoire(c1,1.3,false);}
+ showCombatCallout(m.name.toUpperCase());worldAudio.magic&&worldAudio.magic('magic2');
+ switch(m.type){
+  case 'orbs':fxOrbs(m.n,m.speed,m.dmg,c1,c2);break;
+  case 'grab':for(let i=0;i<m.n;i++){const lead=i*.9;fxGrab(P.x+moveVX*lead,P.z+moveVZ*lead,m.r,.85+i*.35,m.dmg,m.root,c1,c2,m.chain);}break;
+  case 'circles':for(let i=0;i<m.n;i++){const a=Math.random()*6.28,r=i?1.2+Math.random()*3.5:0;fxErupt(P.x+Math.cos(a)*r,P.z+Math.sin(a)*r,.9+i*.22,m.r,m.dmg,c1,c2);}break;
+  case 'rain':fxRain(P.x,P.z,m.r,m.n,m.dur,m.dmg,c1,m.gold);break;
+  case 'wave':fxWave(m.n,m.dmg,c1,c2);break;
+  case 'line':for(let i=0;i<(m.n||1);i++){const off=(i-((m.n||1)-1)/2)*.45;fxLine(e.x,e.z,yaw+off,m.len,m.w,.75+i*.15,m.dmg,c1,c2);}break;
+  case 'ring':fxRing(e.x,e.z,m.r,.7,m.dmg,c1);break;
+  case 'cone':fxCone(e.x,e.z,yaw,m.r,m.arc,.55,m.dmg,c1,c2);break;
+  case 'dash':fxDash(m.len,m.dmg,c1);break;
+  case 'vortex':fxVortex(m.dur,m.speed,m.dmg,m.gold?0xffd060:c1,c2);break;
+  case 'abyss':{const d=Math.max(1,Math.hypot(P.x-e.x,P.z-e.z));for(let i=0;i<m.n;i++){const s=(i+1)/m.n*Math.min(12,d+3);abyssFlame(e.x+(P.x-e.x)/d*s,e.z+(P.z-e.z)/d*s,.8+i*.22,1.9);}abyssFlame(P.x,P.z,1.6,2.6);worldAudio.abyss&&worldAudio.abyss();break;}
+  case 'blackhole':castBlackHole(e.x+(P.x-e.x)*.5,e.z+(P.z-e.z)*.5);break;
+ }
+}
+function updateFoeKit(dt){
+ const prof=encounterProfile,kit=kitFor(prof);if(!kit)return;
+ const fight=prof+':'+enemyMaxHP;if(fight!==kitState.fight){kitState.fight=fight;kitState.cds={};kitState.t=2.5;kitState.last='';if(kitState.aura){kitState.aura.dispose();kitState.aura=null;}}
+ // Aura de batalha (estilo Sol's RNG) quando o chefe ou a elite entra em fúria (menos de 50% de vida).
+ if(kitState.aura){if(!enemy.visible||!enemyAlive||!combatStepNow()){kitState.aura.dispose();kitState.aura=null;}else kitState.aura.tick(dt,performance.now());}
+ else if(tierOf(prof)!=='common'&&enemy.visible&&enemyAlive&&combatStepNow()&&enemyHP<enemyMaxHP*.5){const a=makeAura(kit.color,tierOf(prof)==='boss'?1.5:1.15,()=>enemy.position);const i=act5Auras.indexOf(a);if(i>=0)act5Auras.splice(i,1);kitState.aura=a;showCombatCallout('FÚRIA');}
+ for(const id in kitState.cds)if((kitState.cds[id]-=dt)<=0)delete kitState.cds[id];
+ if(!combatStepNow()||!enemy.visible||!enemyAlive||cineActive||dialogueOpen||playerHP<=0||bossUlt.kind||blackHole.active){kitState.t=Math.max(kitState.t,1.2);return;}
+ kitState.t-=dt;if(kitState.t>0)return;
+ const d=Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z),m0=pickMove(prof,kitState.cds,d,kitState.last);if(!m0)return;
+ const m=powerStats(prof,m0);runFoeMove(m,kit);kitState.cds[m.id]=m.cd;kitState.last=m.id;kitState.t=(m.id==='sw'?2.4:3.2)*(tierOf(prof)==='common'?1.6:1);
+}
+/* ---------- Ultimates das famílias (as do Bispo 4 e da Ganância final ficam no MOD 210) ---------- */
+function startKitUlt(kind){
+ if(bossUlt.kind)endBossUlt();const kit=kitFor(encounterProfile);if(!kit)return;const m=powerStats(encounterProfile,kit.ult),c1=kit.color,c2=kit.color2,e=enemy.position;
+ const at=(time,fn)=>seq.push([time,fn]),seq=[];let dur=5;
+ bossUlt.kind='kit';bossUlt.t=0;bossUlt.fx=null;bossUlt.seq=seq;
+ showCombatCallout(m.name);playEnemyAnimation('cast',.1,true);if(kit.book)showGrimoire(c1,dur,false);worldAudio.voidCharge&&worldAudio.voidCharge();slowMo(500,.35);vibrate(120);
+ Object.assign(ultCam,{want:.85,height:5.5,dist:14});ultCam.look.set(e.x,e.y+2.5,e.z);ultDim(.4,.6);
+ const P=()=>player.position,D=m.dmg;
+ if(kind==='ritual'){status.textContent='O culto fecha o círculo do sacrifício — saia do centro!';const p=P().clone();for(let i=0;i<6;i++){const a=i/6*6.28;fxErupt(p.x+Math.cos(a)*3.6,p.z+Math.sin(a)*3.6,1+i*.12,1.4,Math.round(D*.5),c1,c2);}at(.6,()=>fxErupt(p.x,p.z,2,2.8,D,c1,0xffffff,8));dur=3.6;}
+ else if(kind==='inferno'){status.textContent='Dois furacões de fogo caçam você — corra e use o DASH!';fxRing(e.x,e.z,6,.4,Math.round(D*.5),c1);at(.8,()=>fxVortex(4.5,3.4,Math.round(D*.35),c1,0xffd060));at(1.6,()=>fxVortex(3.6,3,Math.round(D*.35),0xffd060,c1));dur=5.6;}
+ else if(kind==='execution'){status.textContent='O carrasco salta para a execução — saia da marca!';const p=P().clone();spawnHazard({x:p.x,z:p.z,radius:3,delay:1.3,damage:D,color:c1});at(1.25,()=>{if(!blockedAt(p.x,p.z)){enemy.position.x=p.x;enemy.position.z=p.z;}cameraShake(.5);burstSparks(p.clone().setY(fxGy(p.x,p.z)+.5),c1);fxRing(p.x,p.z,8,0,Math.round(D*.5),c1);});at(2,()=>fxWave(3,Math.round(D*.45),c1,c2,0));dur=3.4;}
+ else if(kind==='barrage'){status.textContent='Rajadas de orbes sombrios — não pare de se mover!';for(let i=0;i<3;i++)at(.3+i*.8,()=>fxOrbs(7,8.5,Math.round(D*.3),c1,c2,.28));dur=4.6;}
+ else if(kind==='reaper'){status.textContent='VALÉRIO invoca o Ceifador: fique ATRÁS dele ou use o DASH no corte!';const yaw=foeYaw();
+  for(let i=0;i<5;i++)at(.3+i*.35,()=>fxGrab(P().x,P().z,1.6,.8,Math.round(D*.35),1,c1,c2,false));
+  const sc=new THREE.Group(),bm=addMat(0xd8c8ff,0),blade=new THREE.Mesh(new THREE.TorusGeometry(4.5,.35,6,32,2.2),bm),handle=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,9,8),addMat(0x2a0a3a,0));blade.position.set(0,4.5,0);handle.position.set(4.3,0,0);sc.add(blade,handle);sc.position.set(e.x,e.y+5,e.z);sc.rotation.y=yaw;scene.add(sc);
+  fxCone(e.x,e.z,yaw,9,4.4,2.4,D,c1,0xd8c8ff);fxPush(function(t){const a=Math.min(1,t/.8);bm.opacity=.8*a;handle.material.opacity=.7*a;if(t>2.4)sc.rotation.y+=.25;if(t>3.1){fxDispose(sc);return false;}});dur=3.6;}
+ else if(kind==='forge'){status.textContent='A Fornalha da Dívida: ouro derretido cai do céu — fuja da área e do sol de ouro!';const p=P().clone();fxRain(p.x,p.z,6,60,3,Math.round(D*.6),0xffb020,true);for(let i=0;i<5;i++)at(.6+i*.4,()=>fxErupt(P().x+(Math.random()-.5)*5,P().z+(Math.random()-.5)*5,.8,1.8,Math.round(D*.4),0xffb020,0xff4a00));
+  const sun=new THREE.Mesh(new THREE.SphereGeometry(1.6,20,14),new THREE.MeshBasicMaterial({color:0xffc040,toneMapped:false})),glow=glowSprite(0xff8a20,.9,12);sun.add(glow);sun.position.set(p.x,fxGy(p.x,p.z)+16,p.z);scene.add(sun);
+  at(1.6,()=>spawnHazard({x:P().x,z:P().z,radius:4,delay:2.2,damage:D,color:0xff6a10}));fxPush(function(t){if(t>1.6&&t<3.8){const q=P();sun.position.x+=(q.x-sun.position.x)*.02;sun.position.z+=(q.z-sun.position.z)*.02;sun.position.y=fxGy(sun.position.x,sun.position.z)+16-12*Math.max(0,(t-2.8)/1);}if(t>3.8){burstSparks(sun.position.clone(),0xffb020);cameraShake(.5);fxDispose(sun);return false;}});dur=4.4;}
+ else if(kind==='sentence'){status.textContent="ZAR'KHAEL inverte o espaço: CONTROLES INVERTIDOS por alguns segundos!";foeInvertUntil=performance.now()+4200;showCombatCallout('CONTROLES INVERTIDOS');
+  for(let i=0;i<6;i++)at(.4+i*.45,()=>fxErupt(P().x,P().z,.9,1.9,Math.round(D*.45),c1,0xffffff,7));for(let i=0;i<6;i++)at(1.2,()=>fxLine(e.x,e.z,i/6*6.28,13,1,.8,Math.round(D*.5),c1,0xffffff));dur=4.6;}
+ else if(kind==='gate'){status.textContent='Os portões da Avareza se abrem: centenas de espadas de ouro caem — não fique parado!';for(let i=0;i<4;i++)at(.2+i*1,()=>fxRain(P().x,P().z,4.2,40,1.2,Math.round(D*.55),0xffd040,false));dur=5.2;}
+ else if(kind==='hands'){status.textContent='As mãos da Avareza vão esmagar você — saia da marca!';
+  for(let i=0;i<2;i++)at(.3+i*1.6,()=>{const p=P().clone(),hand=new THREE.Group(),gm=new THREE.MeshStandardMaterial({color:0xffcf50,emissive:0x6a4000,metalness:.9,roughness:.25});const palm=new THREE.Mesh(new THREE.BoxGeometry(3,.6,3.4),gm);hand.add(palm);for(let f=0;f<4;f++){const fg=new THREE.Mesh(new THREE.BoxGeometry(.55,.5,2.2),gm);fg.position.set(-1.1+f*.73,0,2.6);hand.add(fg);}const th=new THREE.Mesh(new THREE.BoxGeometry(.6,.5,1.6),gm);th.position.set(1.9,0,.6);th.rotation.y=-.6;hand.add(th);hand.position.set(p.x,fxGy(p.x,p.z)+14,p.z);hand.rotation.y=Math.random()*6;scene.add(hand);
+   spawnHazard({x:p.x,z:p.z,radius:3.4,delay:1.2,damage:D,color:0xffb030});fxPush(function(t){if(t<1.2)hand.position.y=fxGy(p.x,p.z)+14-10*(t/1.2)**3;else if(t<1.25){hand.position.y=fxGy(p.x,p.z)+.4;cameraShake(.45);}if(t>2){hand.position.y+=.2;}if(t>2.6){fxDispose(hand);return false;}});});
+  at(2.2,()=>fxVortex(3,3.4,Math.round(D*.3),0xffd060,c2));dur=5.4;}
+ bossUlt.dur=dur;
+}
+function tickKitUlt(dt){const s=bossUlt.seq||[];for(let i=s.length-1;i>=0;i--)if(bossUlt.t>=s[i][0]){const fn=s[i][1];s.splice(i,1);fn();}
+ if(bossUlt.t>1.4&&ultCam.want>.5)ultCam.want=.5;if(bossUlt.t>=bossUlt.dur){endBossUlt();}}
 const BOSS_POWERS={
  valerio:{cd:8,run(){status.textContent='VALÉRIO: “Cada moeda é uma alma.” As moedas caem sobre você!';for(let i=0;i<4;i++){const a=Math.random()*6.28,r=1+Math.random()*4;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.7,delay:1+i*.3,damage:16,color:0xffc04a});}if(bossRageAnnounced)castBlackHole(enemy.position.x,enemy.position.z);}},
  vorgazhek:{cd:7.5,run(){status.textContent='VORGAZHEK estende o livro: as correntes da dívida caem sobre você!';const px=player.position.x,pz=player.position.z,vx=moveVX*.5,vz=moveVZ*.5;for(let i=0;i<3;i++)spawnHazard({x:px+vx*(i+1),z:pz+vz*(i+1),radius:2.1,delay:.9+i*.45,damage:18,color:0xd25a2a});}},
@@ -4877,7 +5081,13 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  skipStory(){if(cineActive)cineDirector.skip();},
  nearBoss(){if(!enemy.visible)return -1;const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,l=Math.hypot(dx,dz)||1;player.position.x=enemy.position.x+dx/l*1.5;player.position.z=enemy.position.z+dz/l*1.5;return l;},
  hurtPlayer(n){playerHP=Math.max(1,playerHP-(n||10));updatePlayerHud();},
- power(){bossPowerCd=0;foeSkillCd=0;},
+ power(){bossPowerCd=0;foeSkillCd=0;kitState.cds={};kitState.t=0;},
+  /** MOD 212 — força um poder do kit do inimigo atual: 's1','s2','s3','sw' ou 'ult'. */
+  kitMove(id){const k=kitFor(encounterProfile);if(!k||!enemy.visible)return null;if(id==='ult'){const u=ultimateFor(encounterProfile);if(u.kind==='void')startVoidUlt();else if(u.kind==='nova')startSupernova();else startKitUlt(u.kind);return u.kind;}const m=id==='sw'?k.sword:k.skills.find(s=>s.id===id);runFoeMove(powerStats(encounterProfile,m),k);return m.name;},
+  god(){playerInvulnerableUntil=performance.now()+1e9;},
+  skills(){if(!skillSet)skillSet=new Set();for(const k of ['magic','magic2','magic3','ultimate'])skillSet.add(k);holyCooldowns.magic=holyCooldowns.magic2=holyCooldowns.magic3=holyCooldowns.ultimate=0;playerMana=999;return [...skillSet];},
+  cast(k){castHolyMagic(k);return holyProjectiles.length;},
+  kitInfo(){return{profile:encounterProfile,tier:tierOf(encounterProfile),cds:kitState.cds,ult:bossUlt.kind,hp:playerHP,ehp:enemyHP,fx:ultFx.length,slow:performance.now()<foeSlowUntil,inv:performance.now()<foeInvertUntil};},
  hazardCount(){return{hazards:hazards.length,blackHole:blackHole.active,combo:comboCount};},
  shop(){shopVisited=true;openShop();},
  grant(xp,gold,step){playerXp+=xp||0;coins+=gold||0;if(step!==undefined)questStep=step;applyLevelStats(true);updateQuestHud();},

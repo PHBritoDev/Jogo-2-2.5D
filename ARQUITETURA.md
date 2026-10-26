@@ -87,6 +87,14 @@ Notas em `docs/roteiro/M8-POLIMENTO.md`. Sandra nova (`Sandra-rig.glb`, `tools/b
 `docs/roteiro/M9-PODERES.md`. Corte de Luz/Negro no 3º golpe do combo (`spawnHolyProjectile('arc')`); Espada do Círculo
 (`circleSword`, aprimoramento `magic3_plus`).
 
+## Marco 10 — poderes de todos (Mod 212)
+
+`docs/roteiro/M10-PODERES.md`. Regras puras em `powers3d.js` (famílias, kits com Hab. 1–3, espada e ultimate, nível,
+escolha do poder) e `ultimates3d.js` (quando a ultimate sai). Efeitos no MOD 212: arquétipos `fxOrbs`, `fxGrab`,
+`fxErupt`, `fxRain` (malha instanciada), `fxWave`, `fxLine`, `fxRing`, `fxCone`, `fxDash`, `fxVortex`; kit em
+`updateFoeKit`; ultimates de família em `startKitUlt`; grimório/Bíblia em `showGrimoire`. Os antigos `BOSS_POWERS`
+e `updateFoeWeaponSkills` não são mais chamados.
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a
