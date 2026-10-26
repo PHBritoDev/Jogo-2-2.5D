@@ -968,7 +968,8 @@ function measureModelBounds(model){
  });
  return box;
 }
-new GLTFLoader().load('./AnjoGuia-lod.glb?v=mod194-lod',gltf=>{
+// MOD 215 — Anjo-Guia novo (Anjo-rig.glb, tools/blender/m12_anjo.py): manto branco com veios de ouro, auréola eclipse, asa branca e asa negra.
+new GLTFLoader().load('./Anjo-rig.glb?v=mod215-anjo',gltf=>{
  const imported=gltf.scene;imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
  guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideModel=imported;playNativeGuideIdle(gltf.animations||[]);fitGuideModel();
 },undefined,err=>{console.error('AnjoGuia.glb não carregou:',err);status.textContent='Não foi possível carregar AnjoGuia.glb';});
@@ -3320,7 +3321,7 @@ gorgeGate.sync();
    esgoto e o vulcão. Modelos novos do Blender: NeveKit.glb (cidade, estalagem, guilhotina) e Casaco.glb (o casaco). */
 var act3World=null,act3Void=null,act3Npcs={},act3Folk=[],coatOwned=!!saved3DProgress.coatOwned,coatOn=!!saved3DProgress.coatOn,zarkhaelClaimed=!!saved3DProgress.zarkhaelClaimed;
 var coldWarned=false,coatMesh=null,act3Clones=[],act3Portal=null,act3ZPortal=null,act3Raid=false,guideRun=null,greedClone=null,act3Climate={cold:false,speed:1,mana:1,dps:0},act3ColdAcc=0,act3Ready=true;
-RIG_DEFS.anjo={file:'./AnjoGuia-lod.glb?v=mod194-lod',extra:'./Protagonista.glb?mod172-grounding',height:1.05,roles:{idle:'Idle',walk:'Walking',run:'Running',attack:'Skill_01',cast:'Skill_03',hit:'Hit Knockback',death:'Hit Knockback'},inPlace:['attack','cast','death','hit']};
+RIG_DEFS.anjo={file:'./Anjo-rig.glb?v=mod215-anjo',height:1.12,roles:{idle:'Idle',walk:'Walking',run:'Running',attack:'Attack',cast:'Skill_03',dash:'_01a15ab0_deed_76a9_818c_47f5fc81ba40',death:'Dead'},inPlace:['attack','cast','dash','death']};
 Object.assign(SPEAKER_ACTOR,{[SPEAKERS3.seller]:'seller',[SPEAKERS3.fisher]:'fisher',[SPEAKERS3.villager]:'villager',[SPEAKERS3.keeper]:'keeper',[SPEAKERS3.miniboss]:'enemy',[SPEAKERS3.boss]:'enemy',[SPEAKERS3.greed]:'greed'});
 Object.assign(STORY_EYE,{seller:1.5,fisher:1.3,villager:1.5,keeper:1.5,snowcity:2,greed:2.2});
 const SC=SNOW_CITY;
