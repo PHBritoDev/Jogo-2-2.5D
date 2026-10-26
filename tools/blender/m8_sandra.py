@@ -1,4 +1,4 @@
-# MOD 213 — Sandra: cabelo em camadas, franja lateral e corset ornamental.
+# MOD 214 — Sandra: cabelo em camadas, franja lateral e corset ornamental.
 # Marco 8: Sandra refeita a partir da referência do autor (gótica: cabelo vermelho longo, olhos vermelhos com
 # pupila em cruz, coroa de espinhos, corset preto com ornamentos de prata, saia/capa vermelho-escura com fenda, meias
 # pretas, botas e garras de prata, brincos em cruz e a arma "cruz demoníaca").

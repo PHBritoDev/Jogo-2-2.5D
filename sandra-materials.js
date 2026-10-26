@@ -1,4 +1,4 @@
-// Mod 213: keep the long hem and hair above the character's local floor after
+// Mod 214: keep the long hem and hair above the character's local floor after
 // skinning. Body/boot contact is baked into the GLB; no gameplay state changes.
 import {MeshDepthMaterial, MeshDistanceMaterial, RGBADepthPacking} from 'three';
 export function prepareSandraMaterials(model){
@@ -8,7 +8,7 @@ export function prepareSandraMaterials(model){
    if(!shader.vertexShader.includes(hook))throw new Error('Sandra: skinning shader hook missing');
    shader.vertexShader=shader.vertexShader.replace(hook,hook+'\ntransformed.y = max(transformed.y, 0.006);');
   };
-  material.customProgramCacheKey=()=> 'sandra-floor-213';
+  material.customProgramCacheKey=()=> 'sandra-floor-214';
   material.needsUpdate=true;
  };
  model.traverse(mesh=>{
