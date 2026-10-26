@@ -25,7 +25,7 @@ Execute as duas etapas de geração, nessa ordem. A segunda altera as translaç�
 
 ## Validação
 
-- `node --test`: 106 testes aprovados, incluindo seis regressões do arquivo binário (integridade, pesos, clipes, esquiva, UVs dos olhos e continuidade nos ombros).
+- `node --test`: 103 testes aprovados, incluindo seis regressões do arquivo binário (integridade, pesos, clipes, esquiva, UVs dos olhos e continuidade nos ombros).
 - Khronos glTF Validator: nenhum erro. Aviso `NODE_SKINNED_MESH_NON_ROOT` referente à hierarquia exportada pelo Blender; a hierarquia e a escala foram verificadas no carregador Three.js da campanha.
 - Chromium/SwiftShader, Three.js 0.160: oito clipes, 17 instantes por clipe; inspeção de capturas de rosto, repouso, caminhada, ataque e esquiva. Sem erros JavaScript ou de compilação de shaders.
 - O carregador real da campanha resolveu os sete papéis existentes: `SevenSinsDebug3D.inspectSandra()` com `?debug3d=1`.
