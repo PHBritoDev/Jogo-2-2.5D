@@ -30,10 +30,10 @@ def target(rel, w):
             p = l.split(); V[int(p[0])] += w * np.array([float(t) for t in p[1:4]])
 TARGETS = [('macrodetails/universal-female-young-averagemuscle-minweight', .35), ('macrodetails/proportions/female-young-averagemuscle-averageweight-idealproportions', 1),
            ('macrodetails/height/female-young-averagemuscle-averageweight-maxheight', .5), ('breast/female-young-averagemuscle-averageweight-maxcup-averagefirmness', .45),
-           ('torso/measure-waist-circ-decr', .6), ('stomach/stomach-pregnant-decr', .3), ('head/head-oval', .6), ('chin/chin-triangle', .5), ('chin/chin-width-decr', .4),
+           ('torso/measure-waist-circ-decr', .6), ('stomach/stomach-pregnant-decr', .3), ('head/head-oval', 1.0), ('chin/chin-triangle', .8), ('chin/chin-width-decr', .8),
            ('nose/nose-scale-horiz-decr', .5), ('nose/nose-scale-vert-decr', .3), ('nose/nose-scale-depth-decr', .4), ('nose/nose-point-width-decr', .5),
            ('mouth/mouth-scale-horiz-decr', .35), ('mouth/mouth-upperlip-volume-incr', .4), ('mouth/mouth-lowerlip-volume-incr', .5), ('neck/neck-scale-horiz-decr', .4),
-           ('eyes/r-eye-scale-incr', .9), ('eyes/l-eye-scale-incr', .9), ('eyes/r-eye-height2-incr', .7), ('eyes/l-eye-height2-incr', .7),
+           ('eyes/r-eye-scale-incr', .8), ('eyes/l-eye-scale-incr', .8), ('head/head-scale-horiz-decr', .55), ('head/head-age-decr', .5), ('nose/nose-flaring-decr', .8), ('nose/nose-nostrils-width-decr', .7), ('nose/nose-volume-decr', .5), ('cheek/l-cheek-volume-decr', .5), ('cheek/r-cheek-volume-decr', .5), ('forehead/forehead-temple-decr', .4), ('eyes/r-eye-height2-incr', .7), ('eyes/l-eye-height2-incr', .7),
            ('eyes/r-eye-corner1-up', .4), ('eyes/l-eye-corner1-up', .4), ('cheek/r-cheek-bones-incr', .3), ('cheek/l-cheek-bones-incr', .3)]
 for rel, w in TARGETS:
     if os.path.exists(MP + '/targets/' + rel + '.target.gz'): target(rel, w)
@@ -164,7 +164,7 @@ for sx, g in ((1, 'helper-l-eye'), (-1, 'helper-r-eye')):
         d = v.co - e
         if d.y > -.004 or abs(d.x) > .024 or abs(d.z) > .018: continue
         r = math.hypot(d.x / .024, d.z / .018)
-        if r < 1: v.co.z = e.z + d.z * (1 + .5 * (1 - r) ** .7) + .0025 * max(0, d.x * sx / .02) * (1 - r)
+        if r < 1: v.co.z = e.z + d.z * (1 + (.12 if d.z > 0 else .3) * (1 - r) ** .7) + .003 * max(0, d.x * sx / .02) * (1 - r)
 print('corpo:', len(body.data.vertices), 'vértices')
 
 body.name = 'Sandra'
@@ -196,7 +196,7 @@ def eye_images():
     N = 256; base = np.zeros((N, N, 4)); em = np.zeros((N, N, 4)); base[..., 3] = 1; em[..., 3] = 1
     yy, xx = np.mgrid[0:N, 0:N]; u = (xx + .5) / N - .5; v = (yy + .5) / N - .5; r = np.hypot(u, v); a = np.arctan2(v, u)
     base[..., :3] = (.96, .9, .9)
-    IR = .31; iris = r < IR; k = np.clip(r / IR, 0, 1)
+    IR = .335; iris = r < IR; k = np.clip(r / IR, 0, 1)
     streak = .5 + .5 * np.sin(a * 23 + np.sin(a * 7) * 2)
     col = np.stack([.45 + .5 * (1 - k) + .1 * streak, .02 + .06 * (1 - k), .04 + .05 * (1 - k)], -1)
     col[k > .86] = (.18, .0, .02)                                                              # aro escuro
@@ -256,18 +256,18 @@ for poly in body.data.polygons:
 EYEL, EYER = SG('helper-l-eye'), SG('helper-r-eye'); ER = float(np.linalg.norm(B2[sorted(groups['helper-l-eye'])] - np.array(EYEL), axis=1).mean())
 LIP = Vector((0, -.15, 1.508))
 def skin_col(p, vi):
-    c = Vector((.96, .84, .81))
+    c = Vector((.96, .79, .73))
     if p.z > 1.42 and p.y < -.06:
         for e in (EYEL, EYER):                                         # sombra e delineado vermelho-escuro
             d = Vector(((p.x - e.x) / 1.15, 0, (p.z - e.z) * 1.25)).length / ER
             if 1.0 < d < 1.9 and p.y < e.y + .01:
                 k = (1 - abs(d - 1.25) / .65) ** 1.5 * (1.25 if p.z > e.z else .6)
-                c = c.lerp(Vector((.32, .06, .08)), max(0, min(.85, k)))
-        dl = Vector(((p.x - LIP.x) / .02, 0, (p.z - LIP.z) / .012)).length
-        if dl < 1 and p.y < -.136: c = c.lerp(Vector((.46, .02, .06)), min(1, (1 - dl) * 5))
+                c = c.lerp(Vector((.42, .1, .12)), max(0, min(.7, k)))
+        dl = Vector(((p.x - LIP.x) / .017, 0, (p.z - LIP.z) / .0105)).length
+        if dl < 1 and p.y < -.136: c = c.lerp(Vector((.58, .03, .08)), min(1, (1 - dl) * 5))
         for sx in (-1, 1):                                             # rubor discreto
             db = Vector((p.x - sx * .047, 0, p.z - 1.535)).length
-            if db < .022: c = c.lerp(Vector((.95, .62, .64)), (1 - db / .022) * .45)
+            if db < .026: c = c.lerp(Vector((.96, .6, .6)), (1 - db / .026) * .55)
     return tuple(c)
 paint(body, skin_col)
 # olhos (globo novo com íris vermelha e pupila em cruz), cílios e sobrancelhas
@@ -310,14 +310,14 @@ for sx in (-1, 1):
     EXTRA.append(ribbon(pts, .0032, .0012, .001, 'brow', 'Sobrancelha', nrm))
 # cílios: linha grossa na pálpebra de cima (com pontas no canto de fora) e fina embaixo, seguindo a abertura do olho
 def lid_pt(e, sx, ang, upper):
-    a, b = .0172, (.0094 if upper else .0088); x = e.x + sx * math.cos(ang) * a; z = e.z + math.sin(ang) * b + .0022 * max(0, math.cos(ang)) * (1 if upper else .5)
+    a, b = .0168, (.0072 if upper else .0078); x = e.x + sx * math.cos(ang) * a; z = e.z + math.sin(ang) * b + .0022 * max(0, math.cos(ang)) * (1 if upper else .5)
     return on_face(x, z, .0012)
 for e, sx in ((EYEL, 1), (EYER, -1)):
     up = [lid_pt(e, sx, math.pi * (.97 - .94 * i / 12), True) for i in range(13)]       # do canto de dentro para fora
     pts = [p for p, n in up]; nrm = [n for p, n in up]
-    EXTRA.append(ribbon(pts, .0016, .0034, .0012, 'lash', 'Cilios', nrm))
+    EXTRA.append(ribbon(pts, .002, .0048, .0014, 'lash', 'Cilios', nrm))
     tip = pts[-1]; d = (pts[-1] - pts[-3]).normalized()
-    for k, (dz, ln) in enumerate(((.25, .008), (.6, .0065), (.0, .0085))):
+    for k, (dz, ln) in enumerate(((.25, .01), (.6, .008), (.0, .012), (.45, .009))):
         q = [tip - d * (.0025 * k), tip - d * (.0025 * k) + (d + Vector((0, 0, dz))).normalized() * ln]
         EXTRA.append(ribbon(q, .0016, .0003, .0008, 'lash', 'Cilios', [nrm[-1]] * 2))
     lo = [lid_pt(e, sx, -math.pi * (.15 + .7 * i / 8), False) for i in range(9)]
@@ -339,7 +339,7 @@ def cap_off(p): return .007 + .007 * max(0, min(1, (p.z - 1.6) / .08)) + .004 * 
 me = bpy.data.meshes.new('Cabelo'); me.from_pydata([BV[i] + NRM[i] * cap_off(BV[i]) for i in used], [], [[rm[i] for i in poly.vertices] for poly in cap_faces])
 cap = bpy.data.objects.new('CabeloBase', me); bpy.context.scene.collection.objects.link(cap); me.materials.append(MAT['hair'])
 for f in me.polygons: f.use_smooth = True
-paint(cap, lambda p, vi: (.1, .003, .01))
+paint(cap, lambda p, vi: (.16, .005, .014))
 EXTRA.append(cap)
 HV = BV + [cap.data.vertices[i].co.copy() for i in range(len(cap.data.vertices))]
 HP = [p.vertices[:] for p in body.data.polygons] + [[i + len(BV) for i in p.vertices] for p in cap.data.polygons]
@@ -359,9 +359,9 @@ def drape(root, d0, length, off, steps=16, spread=Vector(), grav=.12, zmin=-1):
     return pts, nr
 def hair_col(base):
     def f(t):
-        c = Vector((.07, .002, .008)).lerp(Vector(base), min(1, t / .2))
-        if .22 < t < .40: c = c.lerp(Vector((.62, .07, .09)), (1 - abs(t - .31) / .09) * .55)
-        return tuple(c.lerp(Vector((.4, .02, .04)), max(0, t - .7) / .3 * .6))
+        c = Vector((.1, .003, .01)).lerp(Vector(base), min(1, t / .16))
+        if .2 < t < .38: c = c.lerp(Vector((.95, .22, .25)), (1 - abs(t - .29) / .09) * .5)
+        return tuple(c.lerp(Vector((.72, .05, .07)), max(0, t - .65) / .35 * .7))
     return f
 def on_cap(dirv):
     hit = HBVH.ray_cast(HC + dirv * .3, -dirv)
@@ -382,41 +382,46 @@ for i in range(NC):
 bm.to_mesh(me); bm.free(); sheet = bpy.data.objects.new('CabeloMassa', me); bpy.context.scene.collection.objects.link(sheet); me.materials.append(MAT['hair'])
 for f in me.polygons: f.use_smooth = True
 NR = len(COLS[0][0])
-paint(sheet, lambda p, vi: hair_col((.17, .004, .014))((vi % NR) / (NR - 1)))
-for i in range(30):                                                   # mechas largas por cima (textura e pontas)
-    ph = -1.55 + 3.1 * (i + random.random() * .7) / 30; el = random.uniform(.05, .6)
+paint(sheet, lambda p, vi: hair_col((.22, .006, .016))((vi % NR) / (NR - 1)))
+def wavy(pts, nr, amp, freq, ph0):
+    n = len(pts); out = [pts[0]]
+    for k in range(1, n):
+        d = (pts[min(n - 1, k + 1)] - pts[k - 1]).normalized(); side = d.cross(nr[k]).normalized()
+        out.append(pts[k] + side * amp * math.sin(k * freq + ph0) * (k / (n - 1)))
+    return out
+def strand(kind, root, d0, ln, off, steps, spread, w, th, amp=.012, grav=.12, taper=.08):
+    pts, nr = drape(root, d0, ln, off, steps=steps, spread=spread, grav=grav)
+    STRANDS.append((kind, wavy(pts, nr, amp, random.uniform(.5, .9), random.uniform(0, 6)), nr, w, th, taper))
+for i in range(110):                                                  # massa: muitas mechas finas e onduladas
+    ph = -1.75 + 3.5 * random.random(); el = random.uniform(-.1, .85)
     dv = Vector((math.sin(ph) * math.cos(el), math.cos(ph) * math.cos(el), math.sin(el))).normalized(); root = on_cap(dv)
-    ln = random.uniform(.88, 1.12) - .2 * abs(math.sin(ph)) ** 2
-    pts, nr = drape(root, dv + Vector((0, .3, -.3)), ln, lambda t: .016 + .05 * t + .006 * random.random(), steps=20, spread=Vector((math.sin(ph) * .032, .012, 0)))
-    STRANDS.append(('back', pts, nr, random.uniform(.075, .1), .012))
+    ln = random.uniform(.85, 1.15) - .22 * abs(math.sin(ph)) ** 2; o = random.random() * .014
+    strand('back', root, dv + Vector((0, .3, -.3)), ln, lambda t, o=o: .014 + o + .05 * t, 18, Vector((math.sin(ph) * .035, .012, 0)), random.uniform(.03, .05), .006, random.uniform(.008, .02))
 for sx in (-1, 1):                                                    # mechas na frente dos ombros
-    for k in range(3):
-        ph = sx * (1.95 + k * .17); dv = Vector((math.sin(ph), math.cos(ph), .25)).normalized()
-        root = on_cap(dv); pts, nr = drape(root, Vector((sx * .25, -.6, -.3)), random.uniform(.5, .64), lambda t: .014 + .012 * t, steps=18, spread=Vector((sx * .01, -.02, 0)), grav=.09)
-        STRANDS.append(('front', pts, nr, random.uniform(.06, .075), .011))
+    for k in range(6):
+        ph = sx * random.uniform(1.85, 2.45); dv = Vector((math.sin(ph), math.cos(ph), random.uniform(.1, .4))).normalized()
+        strand('front', on_cap(dv), Vector((sx * .25, -.6, -.3)), random.uniform(.5, .75), lambda t: .014 + .014 * t, 16, Vector((sx * .01, -.02, 0)), random.uniform(.03, .042), .006, .012, grav=.09)
+    for k in range(4):                                                # mechas que emolduram o rosto
+        dv = Vector((sx * 1, -.4 + k * .16, .45)).normalized()
+        strand('side', on_cap(dv), Vector((sx * .45, -.35, -1)), .26 + k * .07, lambda t: .013 + .01 * t, 12, Vector(), .026, .005, .008, grav=.2)
 def bang(x0, x1, z1, curl):
     root = on_cap(Vector((x0 * 3, -.5, 1)).normalized()); pts = []
     for i in range(11):
         t = i / 10; x = x0 + (x1 - x0) * t ** 1.3; z = root.z + (z1 - root.z) * t
         hit = HBVH.ray_cast(Vector((x, -.4, z)), Vector((0, 1, 0)))
         y = hit[0].y if hit[0] else root.y
-        pts.append(Vector((x, min(root.y, y) - (.008 + .01 * math.sin(t * math.pi) + curl * t * t), z)))
+        pts.append(Vector((x, min(root.y, y) - (.007 + .009 * math.sin(t * math.pi) + curl * t * t), z)))
     pts[0] = root
-    nr = [Vector((0, -1, .2)).normalized()] * len(pts)
-    return pts, nr
-for k in range(13):                                                   # franja: cai até logo acima das sobrancelhas
-    x0 = -.06 + k * .01; lng = k in (1, 6, 11); x1 = x0 * 1.2 + .016 + .006 * random.random(); z1 = 1.6 + .01 * random.random() - (.04 if lng else 0)
-    pts, nr = bang(x0, x1, z1, .008)
-    STRANDS.append(('bang', pts, nr, .022 if k == 6 else .04 - .008 * lng, .005))
-for sx in (-1, 1):                                                    # mechas laterais do rosto
-    for k in range(3):
-        dv = Vector((sx * 1, -.35 + k * .2, .45)).normalized(); root = on_cap(dv)
-        pts, nr = drape(root, Vector((sx * .5, -.3, -1)), .24 + k * .07, lambda t: .014 + .01 * t, steps=12, grav=.2)
-        STRANDS.append(('side', pts, nr, .034, .008))
-for k in range(16):                                                   # volume no alto da cabeça
-    ph = -2.7 + 5.4 * k / 15; dv = Vector((math.sin(ph) * .45, math.cos(ph) * .45, 1)).normalized(); root = on_cap(dv)
-    pts, nr = drape(root, Vector((math.sin(ph), math.cos(ph), .25)), .17, lambda t: .006 + .008 * t, steps=8, grav=.18)
-    STRANDS.append(('top', pts, nr, .06, .012))
+    return pts, [Vector((0, -1, .2)).normalized()] * len(pts)
+for k in range(22):                                                   # franja fina, varrida para o lado; três mechas cruzam o rosto
+    x0 = -.066 + k * .0063; lng = k in (5, 11, 17); x1 = x0 * 1.15 + .02 + .006 * random.random()
+    z1 = (1.548 + .02 * random.random()) if lng else 1.597 + .012 * random.random()
+    pts, nr = bang(x0, x1, z1, .007)
+    STRANDS.append(('bang', pts, nr, random.uniform(.015, .022) * (.7 if lng else 1), .0035, .05))
+for k in range(36):                                                   # textura no alto da cabeça, a partir da risca
+    ph = -2.9 + 5.8 * k / 35; dv = Vector((math.sin(ph) * .25, math.cos(ph) * .25 - .1, 1)).normalized(); root = on_cap(dv)
+    pts, nr = drape(root, Vector((math.sin(ph), math.cos(ph), .2)), random.uniform(.14, .2), lambda t: .006 + .006 * t, steps=8, grav=.2)
+    STRANDS.append(('top', pts, nr, .036, .006, .3))
 CHAIN = [(P['Head'].z, 'Head'), (P['Neck'].z, 'Neck'), (P['UpperChest'].z, 'UpperChest'), (P['Chest'].z, 'Chest'), (P['Spine'].z, 'Spine'), (P['Hips'].z, 'Hips')]
 def chain_w(p):
     z = p.z
@@ -425,9 +430,9 @@ def chain_w(p):
         if z >= z1: k = (z - z1) / (z0 - z1); return {n0: k, n1: 1 - k}
     return {'Hips': 1.}
 HAIR = []
-for kind, pts, nr, w, th in STRANDS:
-    base = (random.uniform(.2, .3), .006, .018)
-    HAIR.append((ribbon(pts, w, w * (.35 if kind != 'bang' else .14), th, 'hair', 'Mecha', nr, hair_col(base)), kind in ('bang', 'side', 'top')))
+for kind, pts, nr, w, th, taper in STRANDS:
+    base = (random.uniform(.36, .52), .01, .024)
+    HAIR.append((ribbon(pts, w, w * taper, th, 'hair', 'Mecha', nr, hair_col(base), sides=4), kind in ('bang', 'side', 'top')))
 
 # ---------- 8) roupa, joias e armadura ----------
 def loop_at(co, no, bones, near):
@@ -496,13 +501,13 @@ for sx in (-1, 1):
     OUTFIT.append((ribbon(pts, .007, .007, .003, 'silver', 'Cinta', [surf(q, 0)[1] for q in pts], sides=4), None))
 for o in ring(Vector((0, 0, 1.452)), Vector((0, -.15, 1)).normalized(), {'Neck', 'Head', 'UpperChest'}, Vector((0, -.03, 1.45)), .004, 'black', w=.02, th=.004, name='Gargantilha'): OUTFIT.append((o, None))
 c, n = surf(Vector((0, -.2, 1.44)), .006)
-for o in cross(c + Vector((0, 0, -.012)), .04, .026, n, gem_r=.005): OUTFIT.append((o, None))
-for sx in (-1, 1):                                                    # correntes de espinhos do colar ao corset
+for o in cross(c + Vector((0, 0, -.02)), .028, .018, n, th=.003, gem_r=.004): OUTFIT.append((o, None))
+for sx in ():                                                          # (correntes do peito removidas no Marco 8b)
     a0 = Vector((sx * .045, -.2, 1.44 if sx else 1.425)); a1 = Vector((sx * .012, -.2, 1.318))
     pts = []
     for t in np.linspace(0, 1, 12):
         q = a0.lerp(a1, t) + Vector((0, 0, -.012 * math.sin(t * math.pi) * (sx != 0))); pts.append(surf(q, .004)[0])
-    nr = [surf(q, 0)[1] for q in pts]; OUTFIT.append((ribbon(pts, .0035, .0035, .003, 'silver', 'Corrente', nr, sides=4), None))
+    nr = [surf(q, 0)[1] for q in pts]; OUTFIT.append((ribbon(pts, .0022, .0022, .002, 'silver', 'Corrente', nr, sides=4), None))
     for k in range(2, 11, 3): OUTFIT.append((spike(pts[k], nr[k] + Vector((0, 0, .4)), .009, .0028), None))
 c, n = surf(Vector((0, -.2, 1.12)), .006)
 for o in cross(c, .1, .06, n, gem_r=.009): OUTFIT.append((o, None))
@@ -515,11 +520,11 @@ for k in range(41):
     a = k / 40 * 2 * math.pi; pts.append(CR[0] + Vector((math.sin(a) * CR[1], -math.cos(a) * CR[2], .012 * math.cos(a) + .004 * math.sin(a * 7))))
 for twist in (0, 1):
     q = [p + Vector((0, 0, .004 * math.sin(i * .9 + twist * math.pi))) for i, p in enumerate(pts)]
-    crown.append(ribbon(q, .005, .005, .005, 'silver', 'Coroa', [(p - CR[0]).normalized() for p in q]))
-for k in range(22):
-    a = k / 22 * 2 * math.pi; front = math.cos(a); p = pts[int(k / 22 * 40)]
-    ln = .05 + .08 * max(0, front) ** 2 + .02 * random.random(); d = ((p - CR[0]).normalized() * .4 + Vector((0, 0, 1))).normalized()
-    crown.append(spike(p, d, ln, .0075))
+    crown.append(ribbon(q, .0035, .0035, .0035, 'silver', 'Coroa', [(p - CR[0]).normalized() for p in q]))
+for k in range(32):
+    a = k / 32 * 2 * math.pi; front = math.cos(a); p = pts[int(k / 32 * 40)]
+    ln = .025 + .045 * max(0, front) ** 2 + .012 * random.random(); d = ((p - CR[0]).normalized() * .45 + Vector((0, 0, 1))).normalized()
+    crown.append(spike(p, d, ln, .0045))
     if k % 2: crown.append(spike(p, ((p - CR[0]).normalized() + Vector((0, 0, -.2))).normalized(), .018, .003))
 crown.append(gem(pts[0] + Vector((0, -.004, .012)), .008))
 for o in crown: OUTFIT.append((o, {'Head': 1.}))

@@ -46,6 +46,8 @@ export const SHOP_ITEMS = [
     desc: 'Nova Palavra do Ato III: cinco lâminas que perseguem o alvo. Requer Espadas da Palavra.', requires: 'magic' },
   { id: 'magic2_plus', sector: 'escrituras', kind: 'upgrade', name: 'Julgamento Celestial II', cost: 120, level: 8, step: 16, stepText: 'chegar ao Vale do Altar (Ato III)',
     desc: 'Nova Palavra do Ato III: sete espadas caem do céu sobre o inimigo. Requer Julgamento Celestial.', requires: 'magic2' },
+  { id: 'magic3_plus', sector: 'escrituras', kind: 'upgrade', name: 'Espada do Círculo', cost: 160, level: 9, step: 21, stepText: 'chegar à Torre (Ato IV)',
+    desc: 'Nova Palavra do Ato IV: um círculo mágico se abre sob o inimigo e uma espada gigante irrompe do chão. Requer Sol da Justiça.', requires: 'magic3' },
   { id: 'aurora', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Aurora', cost: 30, level: 3, step: 4,
     desc: 'Lâmina clara e mais longa: +20% de dano e rastro dourado. Sem habilidade ativa.' },
   { id: 'vigilia', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Vigília', cost: 110, level: 7, step: 16, stepText: 'encontrar quem resiste no Vale do Altar (Ato III)',

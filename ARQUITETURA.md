@@ -82,6 +82,11 @@ Notas em `docs/roteiro/M8-POLIMENTO.md`. Sandra nova (`Sandra-rig.glb`, `tools/b
 (quando cada uma sai); efeitos em `startVoidUlt`/`startSupernova` (`updateBossUltimates`), câmera dramática em
 `applyUltCam` (mesmo giro, volta suave), câmera lenta curta (`slowMo`). Luz da ultimate criada uma vez (`ultLight`).
 
+## Marco 9 — poderes (Mod 211)
+
+`docs/roteiro/M9-PODERES.md`. Corte de Luz/Negro no 3º golpe do combo (`spawnHolyProjectile('arc')`); Espada do Círculo
+(`circleSword`, aprimoramento `magic3_plus`).
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a
