@@ -1,3 +1,4 @@
+import {prepareSandraMaterials} from './sandra-materials.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
@@ -2608,6 +2609,7 @@ function loadRig(name){
  if(rigLoads[name])return rigLoads[name];const def=RIG_DEFS[name];
  rigLoads[name]=new Promise((resolve,reject)=>rigExtraClips(def).then(extra=>new GLTFLoader().load(def.file,gltf=>{
   const model=gltf.scene,clips=(gltf.animations||[]).concat(extra),by=n=>clips.find(c=>c.name===n);
+  if(name==='sandra')prepareSandraMaterials(model);
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;for(const m of [].concat(o.material))if(m&&!enemyMaterials.includes(m)){m.metalness=Math.min(m.metalness||0,.35);enemyMaterials.push(m);}}});
   const box=measureModelBounds(model),size=box.getSize(new THREE.Vector3()),scale=size.y>.01?(playerReferenceHeight*def.height)/size.y:1;
   model.scale.setScalar(scale);model.position.set(0,-box.min.y*scale,0);model.visible=false;enemyModelRoot.add(model);
@@ -4064,7 +4066,7 @@ function renderInventory(){
    X), a Ganância em três formas (com o Anjo e Sandra lutando junto na última), a Inveja e o epílogo. Modelos novos do
    Blender: DesertoKit.glb (estátua, fragmento, portais, deserto) e Sandra-rig.glb (Sandra revelada). */
 var act6World=null,act6Sandra=null,act6SandraRun=null,act6Allies=[],act6Fx=[],act6Form=0,greedClaimed=!!saved3DProgress.finaleClaimed,act6Chaos=0,act6Envy=null;
-RIG_DEFS.sandra={file:'./Sandra-rig.glb?v=mod211',height:1.04,roles:RIG_DEFS.rival.roles,inPlace:RIG_DEFS.rival.inPlace};
+RIG_DEFS.sandra={file:'./Sandra-rig.glb?v=mod213-sandra',height:1.04,roles:RIG_DEFS.rival.roles,inPlace:RIG_DEFS.rival.inPlace};
 Object.assign(SPEAKER_ACTOR,{[SPEAKERS6.sandra]:'rival',[SPEAKERS6.greed]:'enemy',[SPEAKERS6.greedSky]:'sky',[SPEAKERS6.envy]:'envy',[SPEAKERS6.b1]:'enemy',[SPEAKERS6.b2]:'enemy',[SPEAKERS6.b3]:'enemy',[SPEAKERS6.b4]:'enemy'});
 Object.assign(STORY_EYE,{statue:20,angels:10,envy:3});
 const DS=DESERT;
@@ -4783,6 +4785,8 @@ function updateFriendlyStrikes(dt){for(let i=friendlyStrikes.length-1;i>=0;i--){
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
+ /** MOD 213 — valida o mesmo carregador e os clipes usados pela Sandra na campanha. */
+ async inspectSandra(){await loadRig('sandra');const r=rigs.sandra;return{roles:Object.keys(r.actions),clips:Object.fromEntries(Object.entries(r.actions).map(([k,a])=>[k,{name:a.getClip().name,duration:a.getClip().duration}])),height:measureModelBounds(r.model).getSize(new THREE.Vector3()).y};},
  teleport(x,z,yaw){player.position.set(x,terrainHeightAt(x,z),z);if(Number.isFinite(yaw)){cameraYaw=yaw;}},
  view(yaw,pitch,dist){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=dist;},
  state(){return{x:player.position.x,y:player.position.y,z:player.position.z,walkable:terrain3D.walkable(player.position.x,player.position.z),edge:terrain3D.boundaryDistance(player.position.x,player.position.z),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,terrain:window.SevenSinsTerrainReport,forest:window.SevenSinsForestReport,trees:treeSpecs.length,fog:scene.fog.color.getHexString(),fogFar:scene.fog.far,night:dayNightState.t,quest:questStep,coins,dialogueOpen,namePromptOpen,awakeningActive,hp:playerHP,enemy:{hp:enemyHP,visible:enemy.visible,alive:enemyAlive,x:+enemy.position.x.toFixed(1),z:+enemy.position.z.toFixed(1),y:+enemy.position.y.toFixed(2)},objective:(document.getElementById('quest-objective')||{}).textContent,audio:worldAudio.state,dim:{vs:vsOpen,battle:!!dimBattle,active:!!(dimBattle&&dimBattle.active),key:dimKey,sent:handoffSent,pull:!!portalPull,pt:portalPull&&portalPull.t,paused:gamePaused,gate:menuGate,voidMode:!!voidMode,hour:+gameClock.hour.toFixed(2),enemyHP,enemyMaxHP,hp:playerHP}};},
