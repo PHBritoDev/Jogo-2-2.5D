@@ -1,4 +1,5 @@
-# MOD 210 — Marco 8: Sandra refeita a partir da referência do autor (gótica: cabelo vermelho longo, olhos vermelhos com
+# MOD 214 — Sandra: cabelo em camadas, franja lateral e corset ornamental.
+# Marco 8: Sandra refeita a partir da referência do autor (gótica: cabelo vermelho longo, olhos vermelhos com
 # pupila em cruz, coroa de espinhos, corset preto com ornamentos de prata, saia/capa vermelho-escura com fenda, meias
 # pretas, botas e garras de prata, brincos em cruz e a arma "cruz demoníaca").
 #
@@ -6,14 +7,16 @@
 # A malha é ajustada (pose + comprimento de cada osso) ao esqueleto da Misteriosa (Misteriosa-rig.glb), então a Sandra
 # usa as mesmas animações sem retarget.
 # Dados do MPFB2: git clone --filter=blob:none --sparse https://github.com/makehumancommunity/mpfb2 e defina MPFB_DATA
-# como src/mpfb/data (padrão: /tmp/claude-0/ext/mpfb2/src/mpfb/data).
-# Uso: python m8_sandra.py <saída.glb>
+# como src/mpfb/data. Versão validada: 6ff1eb358f6c1959ced77e79e6dd2406d9a71f49.
+# Uso: MPFB_DATA=/caminho/mpfb2/src/mpfb/data blender -b --python tools/blender/m8_sandra.py -- Sandra-rig.glb
 import bpy, bmesh, gzip, json, os, sys, math, random
 import numpy as np
 from mathutils import Vector, Matrix, noise
 OUT = sys.argv[-1]
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-MP = os.environ.get('MPFB_DATA', '/tmp/claude-0/ext/mpfb2/src/mpfb/data')
+MP = os.environ.get('MPFB_DATA')
+if not MP or not os.path.isfile(os.path.join(MP, '3dobjs', 'base.obj')):
+    raise RuntimeError('Defina MPFB_DATA para src/mpfb/data de um checkout do MPFB2.')
 random.seed(11)
 
 # ---------- 1) malha-base + alvos ----------
@@ -30,10 +33,10 @@ def target(rel, w):
             p = l.split(); V[int(p[0])] += w * np.array([float(t) for t in p[1:4]])
 TARGETS = [('macrodetails/universal-female-young-averagemuscle-minweight', .35), ('macrodetails/proportions/female-young-averagemuscle-averageweight-idealproportions', 1),
            ('macrodetails/height/female-young-averagemuscle-averageweight-maxheight', .5), ('breast/female-young-averagemuscle-averageweight-maxcup-averagefirmness', .45),
-           ('torso/measure-waist-circ-decr', .6), ('stomach/stomach-pregnant-decr', .3), ('head/head-oval', 1.0), ('chin/chin-triangle', .8), ('chin/chin-width-decr', .8),
+           ('torso/measure-waist-circ-decr', .6), ('stomach/stomach-pregnant-decr', .3), ('head/head-oval', 1.0), ('chin/chin-triangle', .35), ('chin/chin-width-decr', .45),
            ('nose/nose-scale-horiz-decr', .5), ('nose/nose-scale-vert-decr', .3), ('nose/nose-scale-depth-decr', .4), ('nose/nose-point-width-decr', .5),
            ('mouth/mouth-scale-horiz-decr', .35), ('mouth/mouth-upperlip-volume-incr', .4), ('mouth/mouth-lowerlip-volume-incr', .5), ('neck/neck-scale-horiz-decr', .4),
-           ('eyes/r-eye-scale-incr', .8), ('eyes/l-eye-scale-incr', .8), ('head/head-scale-horiz-decr', .55), ('head/head-age-decr', .5), ('nose/nose-flaring-decr', .8), ('nose/nose-nostrils-width-decr', .7), ('nose/nose-volume-decr', .5), ('cheek/l-cheek-volume-decr', .5), ('cheek/r-cheek-volume-decr', .5), ('forehead/forehead-temple-decr', .4), ('eyes/r-eye-height2-incr', .7), ('eyes/l-eye-height2-incr', .7),
+           ('eyes/r-eye-scale-incr', .45), ('eyes/l-eye-scale-incr', .45), ('head/head-scale-horiz-decr', .2), ('head/head-age-decr', .5), ('nose/nose-flaring-decr', .4), ('nose/nose-nostrils-width-decr', .4), ('nose/nose-volume-decr', .5), ('cheek/l-cheek-volume-decr', .2), ('cheek/r-cheek-volume-decr', .2), ('forehead/forehead-temple-decr', .4), ('eyes/r-eye-height2-incr', .25), ('eyes/l-eye-height2-incr', .25),
            ('eyes/r-eye-corner1-up', .4), ('eyes/l-eye-corner1-up', .4), ('cheek/r-cheek-bones-incr', .3), ('cheek/l-cheek-bones-incr', .3)]
 for rel, w in TARGETS:
     if os.path.exists(MP + '/targets/' + rel + '.target.gz'): target(rel, w)
@@ -130,7 +133,8 @@ TW = {}
 for vi, ws in W.items():
     d = {}
     for mx, w in ws.items(): d[MAP[mx]] = d.get(MAP[mx], 0) + w
-    TW[vi] = d
+    total = sum(d.values())
+    TW[vi] = {n: w / total for n, w in d.items()} if total else {'Head': 1.}
 
 # ---------- 4) malhas ----------
 def build(name, faces_groups):
@@ -142,6 +146,28 @@ def build(name, faces_groups):
         for bn, w in TW.get(o_i, {}).items(): o.vertex_groups[bn].add([n_i], w, 'REPLACE')
     return o
 body = build('Sandra', {'body'})
+# Retenha a superfície ponderada original: cortes BMesh podem interpolar grupos
+# incompletos e produzir descontinuidades nos ombros e nas bordas da roupa.
+from mathutils.bvhtree import BVHTree
+body.data.calc_loop_triangles()
+source_vertices = [v.co.copy() for v in body.data.vertices]
+source_triangles = [tuple(t.vertices) for t in body.data.loop_triangles]
+source_weights = [{body.vertex_groups[g.group].name:g.weight for g in v.groups} for v in body.data.vertices]
+source_surface = BVHTree.FromPolygons(source_vertices, source_triangles, all_triangles=True)
+def surface_weights(point):
+    q, _, face, _ = source_surface.find_nearest(point)
+    ids = source_triangles[face]; a,b,c = [source_vertices[i] for i in ids]
+    ab,ac,aq = b-a,c-a,q-a
+    d00,d01,d11,d20,d21 = ab.dot(ab),ab.dot(ac),ac.dot(ac),aq.dot(ab),aq.dot(ac)
+    det = d00*d11-d01*d01
+    if abs(det)<1e-15: return source_weights[ids[0]]
+    v=(d11*d20-d01*d21)/det; w=(d00*d21-d01*d20)/det
+    result={}
+    for i,t in zip(ids,(1-v-w,v,w)):
+        for n,weight in source_weights[i].items(): result[n]=result.get(n,0)+max(0,t)*weight
+    total=sum(result.values())
+    return {n:w/total for n,w in result.items() if w>1e-8}
+
 # Cortes retos nas bordas da roupa (topo do corset, cava do collant, luvas e meias): os vértices novos herdam os pesos.
 def bisect(o, co, no):
     bm = bmesh.new(); bm.from_mesh(o.data)
@@ -157,6 +183,35 @@ for sx in (-1, 1):
 GLOVE = {sx: (P0 + (P1 - P0) * .45, (P1 - P0).normalized()) for sx, P0, P1 in ((1, Vector(NH['LeftUpperArm']), Vector(NH['LeftLowerArm'])), (-1, Vector(NH['RightUpperArm']), Vector(NH['RightLowerArm'])))}
 WRIST = {sx: (P1 + (P0 - P1) * .12, (P1 - P0).normalized()) for sx, P0, P1 in ((1, Vector(NH['LeftLowerArm']), Vector(NH['LeftHand'])), (-1, Vector(NH['RightLowerArm']), Vector(NH['RightHand'])))}
 for co, no in [CORSET, (Vector((0, 0, .62)), Vector((0, 0, 1))), *LEGCUT.values(), *GLOVE.values()]: bisect(body, co, no)
+for v in body.data.vertices:
+    for group in list(v.groups): body.vertex_groups[group.group].remove([v.index])
+    for name,weight in surface_weights(v.co).items(): body.vertex_groups[name].add([v.index],weight,'REPLACE')
+body.data.update()
+# A mudança de pose da base aproxima superfícies com pesos distintos nas axilas.
+# Reamostre um campo espacial contínuo nas juntas, antes de fazer os ornamentos.
+from mathutils.kdtree import KDTree
+weight_tree=KDTree(len(source_vertices))
+for i,co in enumerate(source_vertices): weight_tree.insert(co,i)
+weight_tree.balance()
+for v in body.data.vertices:
+    if not (1.10 < v.co.z < 1.52 and .04 < abs(v.co.x) < .34): continue
+    samples=weight_tree.find_range(v.co,.07)
+    weights={}; mass=0.
+    for _,index,distance in samples:
+        k=math.exp(-.5*(distance/.03)**2); mass+=k
+        for n,w in source_weights[index].items():
+            if n=='Chest': n='UpperChest'
+            weights[n]=weights.get(n,0)+w*k
+    if mass:
+        def smooth(a,b,x):
+            t=max(0,min(1,(x-a)/(b-a))); return t*t*(3-2*t)
+        blend=smooth(.04,.1,abs(v.co.x))*smooth(.34,.25,abs(v.co.x))*smooth(1.10,1.20,v.co.z)*smooth(1.52,1.43,v.co.z)
+        original=surface_weights(v.co)
+        weights={n:weights.get(n,0)/mass*blend+original.get(n,0)*(1-blend) for n in set(weights)|set(original)}
+        mass=1.
+        for group in list(v.groups): body.vertex_groups[group.group].remove([v.index])
+        for n,w in weights.items(): body.vertex_groups[n].add([v.index],w/mass,'REPLACE')
+
 # olhos mais abertos (estilo anime): as pálpebras se afastam do centro do olho e o canto de fora sobe um pouco
 for sx, g in ((1, 'helper-l-eye'), (-1, 'helper-r-eye')):
     e = Vector(B2[sorted(groups[g])].mean(0))
@@ -164,7 +219,7 @@ for sx, g in ((1, 'helper-l-eye'), (-1, 'helper-r-eye')):
         d = v.co - e
         if d.y > -.004 or abs(d.x) > .024 or abs(d.z) > .018: continue
         r = math.hypot(d.x / .024, d.z / .018)
-        if r < 1: v.co.z = e.z + d.z * (1 + (.12 if d.z > 0 else .3) * (1 - r) ** .7) + .003 * max(0, d.x * sx / .02) * (1 - r)
+        if r < 1: v.co.z = e.z + d.z * (1 - .27 * (1-r)**.6) + .0015 * (d.x*sx/.024) * (1-r)
 print('corpo:', len(body.data.vertices), 'vértices')
 
 body.name = 'Sandra'
@@ -178,7 +233,12 @@ for i, c in enumerate(BV): KD.insert(c, i)
 KD.balance()
 BVH = BVHTree.FromPolygons(BV, [p.vertices[:] for p in body.data.polygons])
 P = {k: Vector(v) for k, v in NH.items()}
-def SG(g): return Vector(B2[sorted(groups[g])].mean(0))
+def SG(g):
+    p=Vector(B[sorted(groups[g])].mean(0))
+    if g.startswith(('joint-l-finger','joint-r-finger')):
+        h,A,h1=XF[('Left' if g.startswith('joint-l-') else 'Right')+'Hand']
+        return Vector(h1+A@(np.array(p)-h))
+    return Vector(B2[sorted(groups[g])].mean(0))
 
 # ---------- 5) materiais ----------
 def mat(name, color=(1, 1, 1), metal=0., rough=.5, emit=None, es=0., vc=False, tex=None, etex=None):
@@ -187,10 +247,14 @@ def mat(name, color=(1, 1, 1), metal=0., rough=.5, emit=None, es=0., vc=False, t
     if vc:
         a = nt.nodes.new('ShaderNodeVertexColor'); a.layer_name = 'Col'; nt.links.new(a.outputs['Color'], b.inputs['Base Color'])
     if tex:
-        t = nt.nodes.new('ShaderNodeTexImage'); t.image = tex; nt.links.new(t.outputs['Color'], b.inputs['Base Color'])
+        t = nt.nodes.new('ShaderNodeTexImage'); t.image = tex
+        uvn=nt.nodes.new('ShaderNodeUVMap');uvn.uv_map='UVMap';nt.links.new(uvn.outputs['UV'],t.inputs['Vector'])
+        nt.links.new(t.outputs['Color'], b.inputs['Base Color'])
     if emit: b.inputs['Emission Color'].default_value = (*emit, 1); b.inputs['Emission Strength'].default_value = es
     if etex:
-        t = nt.nodes.new('ShaderNodeTexImage'); t.image = etex; nt.links.new(t.outputs['Color'], b.inputs['Emission Color']); b.inputs['Emission Strength'].default_value = es
+        t = nt.nodes.new('ShaderNodeTexImage'); t.image = etex
+        uvn=nt.nodes.new('ShaderNodeUVMap');uvn.uv_map='UVMap';nt.links.new(uvn.outputs['UV'],t.inputs['Vector'])
+        nt.links.new(t.outputs['Color'], b.inputs['Emission Color']); b.inputs['Emission Strength'].default_value = es
     return m
 def eye_images():
     N = 256; base = np.zeros((N, N, 4)); em = np.zeros((N, N, 4)); base[..., 3] = 1; em[..., 3] = 1
@@ -214,10 +278,50 @@ def eye_images():
         im = bpy.data.images.new(name, N, N); im.pixels = arr.astype(np.float32).ravel(); im.pack(); imgs.append(im)
     return imgs
 EYE_B, EYE_E = eye_images()
-MAT = {'skin': mat('Pele', rough=.55, vc=True), 'black': mat('Couro', (.03, .025, .03), .15, .32), 'stock': mat('Meia', (.035, .028, .035), .1, .38),
-       'boot': mat('Bota', (.04, .035, .04), .55, .3), 'silver': mat('Prata', (.86, .85, .9), .55, .3), 'gem': mat('Gema', (.8, .02, .05), 0, .2, (1, .04, .08), 5),
-       'hair': mat('Cabelo', rough=.4, vc=True, emit=(.07, 0, .006), es=1), 'skirt': mat('Saia', rough=.6, vc=True), 'lash': mat('Cilios', (.02, .01, .015), 0, .6),
-       'eye': mat('Olho', rough=.15, tex=EYE_B, etex=EYE_E, es=2.5), 'brow': mat('Sobrancelha', (.2, .01, .025), 0, .6)}
+MAT = {'skin': mat('Pele', rough=.48, vc=True), 'black': mat('Couro', (.03, .025, .03), .15, .32), 'stock': mat('Meia', (.035, .028, .035), .1, .38),
+       'boot': mat('Bota', (.04, .035, .04), .55, .3), 'silver': mat('Prata', (.38, .32, .34), .8, .26), 'gem': mat('Gema', (.8, .02, .05), 0, .2, (1, .04, .08), .7),
+       'hair': mat('Cabelo', rough=.58, vc=True), 'skirt': mat('Saia', rough=.6, vc=True), 'lash': mat('Cilios', (.02, .01, .015), 0, .6),
+       'eye': mat('Olho', rough=.15, tex=EYE_B, etex=EYE_E, es=.65), 'brow': mat('Sobrancelha', (.2, .01, .025), 0, .6)}
+MAT['hair'].node_tree.nodes['Principled BSDF'].inputs['Specular IOR Level'].default_value=.2
+MAT['skin'].node_tree.nodes['Principled BSDF'].inputs['Specular IOR Level'].default_value=.3
+
+# Fibres longitudinais na própria malha: sem transparência nem ordenação de cards.
+rng=np.random.default_rng(213)
+HN=256
+hy,hx=np.mgrid[0:HN,0:HN]
+fibre=.58+.22*np.sin(hx*.63+np.sin(hy*.016)*.7)+.1*np.sin(hx*2.1+hy*.009)
+fibre=np.clip(fibre+rng.normal(0,.025,(HN,HN)),.18,1)
+pixels=np.ones((HN,HN,4));pixels[:,:,:3]=fibre[:,:,None]
+hair_image=bpy.data.images.new('Sandra_fibras',HN,HN);hair_image.pixels=pixels.astype(np.float32).ravel();hair_image.pack()
+nt=MAT['hair'].node_tree;bs=nt.nodes['Principled BSDF']
+tex=nt.nodes.new('ShaderNodeTexImage');tex.image=hair_image
+uvn=nt.nodes.new('ShaderNodeUVMap');uvn.uv_map='HairUV';nt.links.new(uvn.outputs['UV'],tex.inputs['Vector'])
+vc=next(n for n in nt.nodes if n.type=='VERTEX_COLOR')
+mul=nt.nodes.new('ShaderNodeMixRGB');mul.blend_type='MULTIPLY';mul.inputs[0].default_value=1
+nt.links.new(vc.outputs['Color'],mul.inputs[1]);nt.links.new(tex.outputs['Color'],mul.inputs[2]);nt.links.new(mul.outputs[0],bs.inputs['Base Color'])
+
+# Recortes e renda do corset ficam na superfície ponderada do corpo, sem
+# peças flutuantes que atravessem a pele durante ataques.
+TN=1024
+ty,tx=np.mgrid[0:TN,0:TN];xx=(tx/(TN-1)-.5)*.7;zz=.7+ty/(TN-1)*.8
+cloth=np.ones((TN,TN,4));cloth[:,:,:3]=(.018,.012,.017)
+neckline=1.277+.029*np.sin(np.clip(np.abs(xx)/.115,0,1)*math.pi)
+cut=(zz>neckline)&(zz>1.275)&(np.abs(xx)<.19)
+side=(np.abs(xx)>.075)&(np.abs(xx)<.165)&(zz>1.00)&(zz<1.24)
+lattice=(np.abs(np.sin((zz-1)*90+xx*65))<.20)|(np.abs(np.sin((zz-1)*90-xx*65))<.20)
+cut|=side&~lattice
+cloth[cut,:3]=tuple(1.055*c**(1/2.4)-.055 for c in (.78,.57,.52))
+trim=(np.abs(zz-neckline)<.0015)&(np.abs(xx)<.16)
+cloth[trim,:3]=(.20,.13,.15)
+cloth_tex=bpy.data.images.new('Sandra_corset',TN,TN);cloth_tex.pixels=cloth.astype(np.float32).ravel();cloth_tex.pack()
+nt=MAT['black'].node_tree;tex=nt.nodes.new('ShaderNodeTexImage');tex.image=cloth_tex
+uvnode=nt.nodes.new('ShaderNodeUVMap');uvnode.uv_map='OutfitUV';nt.links.new(uvnode.outputs['UV'],tex.inputs['Vector']);nt.links.new(tex.outputs['Color'],nt.nodes['Principled BSDF'].inputs['Base Color'])
+uv=body.data.uv_layers.new(name='OutfitUV')
+for poly in body.data.polygons:
+    for li in poly.loop_indices:
+        p=body.data.vertices[body.data.loops[li].vertex_index].co
+        uv.data[li].uv=(p.x/.7+.5,(p.z-.7)/.8)
+
 def add_mat(o, key):
     me = o.data
     if MAT[key].name not in [m.name for m in me.materials]: me.materials.append(MAT[key])
@@ -256,7 +360,7 @@ for poly in body.data.polygons:
 EYEL, EYER = SG('helper-l-eye'), SG('helper-r-eye'); ER = float(np.linalg.norm(B2[sorted(groups['helper-l-eye'])] - np.array(EYEL), axis=1).mean())
 LIP = Vector((0, -.15, 1.508))
 def skin_col(p, vi):
-    c = Vector((.96, .79, .73))
+    c = Vector((.78, .57, .52))
     if p.z > 1.42 and p.y < -.06:
         for e in (EYEL, EYER):                                         # sombra e delineado vermelho-escuro
             d = Vector(((p.x - e.x) / 1.15, 0, (p.z - e.z) * 1.25)).length / ER
@@ -264,7 +368,7 @@ def skin_col(p, vi):
                 k = (1 - abs(d - 1.25) / .65) ** 1.5 * (1.25 if p.z > e.z else .6)
                 c = c.lerp(Vector((.42, .1, .12)), max(0, min(.7, k)))
         dl = Vector(((p.x - LIP.x) / .017, 0, (p.z - LIP.z) / .0105)).length
-        if dl < 1 and p.y < -.136: c = c.lerp(Vector((.58, .03, .08)), min(1, (1 - dl) * 5))
+        if dl < 1 and p.y < -.136: c = c.lerp(Vector((.40, .10, .12)), min(1, (1 - dl) * 5))
         for sx in (-1, 1):                                             # rubor discreto
             db = Vector((p.x - sx * .047, 0, p.z - 1.535)).length
             if db < .026: c = c.lerp(Vector((.96, .6, .6)), (1 - db / .026) * .55)
@@ -296,6 +400,12 @@ def ribbon(pts, w0, w1, th, mat_key, name, normals=None, colors=None, sides=6):
     bm.faces.new(rings[-1][::-1]); bm.faces.new(rings[0])
     bm.to_mesh(me); bm.free(); o = bpy.data.objects.new(name, me); bpy.context.scene.collection.objects.link(o)
     me.materials.append(MAT[mat_key])
+    if mat_key=='hair':
+        uv=me.uv_layers.new(name='HairUV')
+        for poly in me.polygons:
+            for li in poly.loop_indices:
+                vi=me.loops[li].vertex_index
+                uv.data[li].uv=((vi%sides)/sides,(vi//sides)/max(1,n-1))
     for f in me.polygons: f.use_smooth = True
     if colors: paint(o, lambda p, vi: colors(vi // sides / max(1, n - 1)))
     return o
@@ -305,32 +415,32 @@ def on_face(x, z, off=.0015):
 for sx in (-1, 1):
     pts, nrm = [], []
     for i in range(9):
-        t = i / 8; x = sx * (.013 + .044 * t); z = EYEL.z + .019 + .005 * math.sin(t * math.pi) + .002 * t
+        t = i / 8; x = sx * (.013 + .044 * t); z = EYEL.z + .016 + .004 * math.sin(t * math.pi) + .002 * t
         p, n = on_face(x, z); pts.append(p); nrm.append(n)
     EXTRA.append(ribbon(pts, .0032, .0012, .001, 'brow', 'Sobrancelha', nrm))
 # cílios: linha grossa na pálpebra de cima (com pontas no canto de fora) e fina embaixo, seguindo a abertura do olho
 def lid_pt(e, sx, ang, upper):
-    a, b = .0168, (.0072 if upper else .0078); x = e.x + sx * math.cos(ang) * a; z = e.z + math.sin(ang) * b + .0022 * max(0, math.cos(ang)) * (1 if upper else .5)
+    a, b = .0165, (.0048 if upper else .0056); x = e.x + sx * math.cos(ang) * a; z = e.z + math.sin(ang) * b + .0022 * max(0, math.cos(ang)) * (1 if upper else .5)
     return on_face(x, z, .0012)
 for e, sx in ((EYEL, 1), (EYER, -1)):
     up = [lid_pt(e, sx, math.pi * (.97 - .94 * i / 12), True) for i in range(13)]       # do canto de dentro para fora
     pts = [p for p, n in up]; nrm = [n for p, n in up]
-    EXTRA.append(ribbon(pts, .002, .0048, .0014, 'lash', 'Cilios', nrm))
+    EXTRA.append(ribbon(pts, .0014, .0026, .0009, 'lash', 'Cilios', nrm))
     tip = pts[-1]; d = (pts[-1] - pts[-3]).normalized()
     for k, (dz, ln) in enumerate(((.25, .01), (.6, .008), (.0, .012), (.45, .009))):
         q = [tip - d * (.0025 * k), tip - d * (.0025 * k) + (d + Vector((0, 0, dz))).normalized() * ln]
         EXTRA.append(ribbon(q, .0016, .0003, .0008, 'lash', 'Cilios', [nrm[-1]] * 2))
     lo = [lid_pt(e, sx, -math.pi * (.15 + .7 * i / 8), False) for i in range(9)]
-    EXTRA.append(ribbon([p for p, n in lo], .0007, .0011, .0006, 'lash', 'Cilios', [n for p, n in lo]))
+    EXTRA.append(ribbon([p for p, n in lo], .0003, .0005, .0004, 'lash', 'Cilios', [n for p, n in lo]))
 
 # ---------- 7) cabelo ----------
 NRM = [v.normal.copy() for v in body.data.vertices]
 HC = Vector((0, -.02, 1.585))
 def hair_vert(p):
     if p.z < 1.47: return False
-    if p.z > 1.632: return True
+    if p.z > 1.611: return True
     if p.y > -.03 and p.z > 1.50: return True
-    if abs(p.x) > .062 and p.y > -.07 and p.z > 1.58: return True
+    if abs(p.x) > .055 and p.y > -.10 and p.z > 1.55: return True
     return False
 HEADB = {'Head', 'Neck'}
 cap_faces = [poly for poly in body.data.polygons if dom(BW[poly.vertices[0]]) in HEADB and all(hair_vert(BV[i]) for i in poly.vertices)]
@@ -360,8 +470,8 @@ def drape(root, d0, length, off, steps=16, spread=Vector(), grav=.12, zmin=-1):
 def hair_col(base):
     def f(t):
         c = Vector((.1, .003, .01)).lerp(Vector(base), min(1, t / .16))
-        if .2 < t < .38: c = c.lerp(Vector((.95, .22, .25)), (1 - abs(t - .29) / .09) * .5)
-        return tuple(c.lerp(Vector((.72, .05, .07)), max(0, t - .65) / .35 * .7))
+        if .2 < t < .7: c = c.lerp(Vector((.5, .025, .04)), math.sin((t-.2)/.5*math.pi)*.18)
+        return tuple(c.lerp(Vector((.3, .008, .02)), max(0, t - .65) / .35 * .7))
     return f
 def on_cap(dirv):
     hit = HBVH.ray_cast(HC + dirv * .3, -dirv)
@@ -372,8 +482,8 @@ NC = 34
 for i in range(NC + 1):
     ph = -1.6 + 3.2 * i / NC; el = .42 - .3 * abs(ph) / 1.6
     dv = Vector((math.sin(ph) * math.cos(el), math.cos(ph) * math.cos(el), math.sin(el))).normalized(); root = on_cap(dv)
-    ln = 1.02 - .2 * abs(math.sin(ph)) ** 2 + random.uniform(-.05, .05)
-    pts, nr = drape(root, dv + Vector((0, .3, -.3)), ln, lambda t: .01 + .045 * t, steps=22, spread=Vector((math.sin(ph) * .03, .01, 0)))
+    ln = 1.32 - .2 * abs(math.sin(ph)) ** 2 + random.uniform(-.05, .05)
+    pts, nr = drape(root, Vector((dv.x*.2, dv.y*.2, -1)), ln, lambda t: .01 + .025 * t, steps=22, spread=Vector((math.sin(ph) * .03, .01, 0)))
     COLS.append((pts, nr))
 me = bpy.data.meshes.new('Cabelo'); bm = bmesh.new(); grid = []
 for pts, nr in COLS: grid.append([bm.verts.new(p) for p in pts])
@@ -391,37 +501,37 @@ def wavy(pts, nr, amp, freq, ph0):
     return out
 def strand(kind, root, d0, ln, off, steps, spread, w, th, amp=.012, grav=.12, taper=.08):
     pts, nr = drape(root, d0, ln, off, steps=steps, spread=spread, grav=grav)
-    STRANDS.append((kind, wavy(pts, nr, amp, random.uniform(.5, .9), random.uniform(0, 6)), nr, w, th, taper))
-for i in range(110):                                                  # massa: muitas mechas finas e onduladas
+    STRANDS.append((kind, wavy(pts, nr, amp, random.uniform(.28, .48), random.uniform(0, 6)), nr, w, th, taper))
+for i in range(190):                                                  # massa: muitas mechas finas e onduladas
     ph = -1.75 + 3.5 * random.random(); el = random.uniform(-.1, .85)
     dv = Vector((math.sin(ph) * math.cos(el), math.cos(ph) * math.cos(el), math.sin(el))).normalized(); root = on_cap(dv)
-    ln = random.uniform(.85, 1.15) - .22 * abs(math.sin(ph)) ** 2; o = random.random() * .014
-    strand('back', root, dv + Vector((0, .3, -.3)), ln, lambda t, o=o: .014 + o + .05 * t, 18, Vector((math.sin(ph) * .035, .012, 0)), random.uniform(.03, .05), .006, random.uniform(.008, .02))
+    ln = random.uniform(1.15, 1.5) - .22 * abs(math.sin(ph)) ** 2; o = random.random() * .014
+    strand('back', root, Vector((dv.x*.2, dv.y*.2, -1)), ln, lambda t, o=o: .010 + o + .025 * t, 18, Vector((math.sin(ph) * .035, .012, 0)), random.uniform(.018, .035), .003, random.uniform(.025, .045))
 for sx in (-1, 1):                                                    # mechas na frente dos ombros
     for k in range(6):
         ph = sx * random.uniform(1.85, 2.45); dv = Vector((math.sin(ph), math.cos(ph), random.uniform(.1, .4))).normalized()
-        strand('front', on_cap(dv), Vector((sx * .25, -.6, -.3)), random.uniform(.5, .75), lambda t: .014 + .014 * t, 16, Vector((sx * .01, -.02, 0)), random.uniform(.03, .042), .006, .012, grav=.09)
+        strand('front', on_cap(dv), Vector((sx * .25, -.6, -.3)), random.uniform(.5, .75), lambda t: .014 + .014 * t, 16, Vector((sx * .01, -.02, 0)), random.uniform(.012, .024), .003, .02, grav=.09)
     for k in range(4):                                                # mechas que emolduram o rosto
         dv = Vector((sx * 1, -.4 + k * .16, .45)).normalized()
         strand('side', on_cap(dv), Vector((sx * .45, -.35, -1)), .26 + k * .07, lambda t: .013 + .01 * t, 12, Vector(), .026, .005, .008, grav=.2)
 def bang(x0, x1, z1, curl):
-    root = on_cap(Vector((x0 * 3, -.5, 1)).normalized()); pts = []
+    root = on_cap(Vector((x0 * 9, -.6, 1)).normalized()); pts = []
     for i in range(11):
-        t = i / 10; x = x0 + (x1 - x0) * t ** 1.3; z = root.z + (z1 - root.z) * t
+        t = i / 10; x = root.x + (x1 - root.x) * t ** 1.3; z = root.z + (z1 - root.z) * t
         hit = HBVH.ray_cast(Vector((x, -.4, z)), Vector((0, 1, 0)))
         y = hit[0].y if hit[0] else root.y
         pts.append(Vector((x, min(root.y, y) - (.007 + .009 * math.sin(t * math.pi) + curl * t * t), z)))
     pts[0] = root
     return pts, [Vector((0, -1, .2)).normalized()] * len(pts)
 for k in range(22):                                                   # franja fina, varrida para o lado; três mechas cruzam o rosto
-    x0 = -.066 + k * .0063; lng = k in (5, 11, 17); x1 = x0 * 1.15 + .02 + .006 * random.random()
-    z1 = (1.548 + .02 * random.random()) if lng else 1.597 + .012 * random.random()
+    x0 = -.068 + k * .006; lng = k < 14; x1 = x0 + .060 + .007 * math.sin(k)
+    z1 = (1.570 + .024 * k / 14) if lng else 1.59 + .018 * random.random()
     pts, nr = bang(x0, x1, z1, .007)
-    STRANDS.append(('bang', pts, nr, random.uniform(.015, .022) * (.7 if lng else 1), .0035, .05))
-for k in range(36):                                                   # textura no alto da cabeça, a partir da risca
-    ph = -2.9 + 5.8 * k / 35; dv = Vector((math.sin(ph) * .25, math.cos(ph) * .25 - .1, 1)).normalized(); root = on_cap(dv)
+    STRANDS.append(('bang', pts, nr, random.uniform(.008, .014), .002, .05))
+for k in range(64):                                                   # textura no alto da cabeça, a partir da risca
+    ph = -2.9 + 5.8 * k / 63; dv = Vector((math.sin(ph) * .25, math.cos(ph) * .25 - .1, 1)).normalized(); root = on_cap(dv)
     pts, nr = drape(root, Vector((math.sin(ph), math.cos(ph), .2)), random.uniform(.14, .2), lambda t: .006 + .006 * t, steps=8, grav=.2)
-    STRANDS.append(('top', pts, nr, .036, .006, .3))
+    STRANDS.append(('top', pts, nr, .015, .003, .12))
 CHAIN = [(P['Head'].z, 'Head'), (P['Neck'].z, 'Neck'), (P['UpperChest'].z, 'UpperChest'), (P['Chest'].z, 'Chest'), (P['Spine'].z, 'Spine'), (P['Hips'].z, 'Hips')]
 def chain_w(p):
     z = p.z
@@ -431,8 +541,8 @@ def chain_w(p):
     return {'Hips': 1.}
 HAIR = []
 for kind, pts, nr, w, th, taper in STRANDS:
-    base = (random.uniform(.36, .52), .01, .024)
-    HAIR.append((ribbon(pts, w, w * taper, th, 'hair', 'Mecha', nr, hair_col(base), sides=4), kind in ('bang', 'side', 'top')))
+    base = (random.uniform(.18, .34), .004, .012)
+    HAIR.append((ribbon(pts, w, w * taper, th, 'hair', 'Mecha', nr, hair_col(base), sides=6), kind in ('bang', 'side', 'top')))
 
 # ---------- 8) roupa, joias e armadura ----------
 def loop_at(co, no, bones, near):
@@ -482,10 +592,12 @@ def cross(c, h, w, out, up=Vector((0, 0, 1)), th=.004, gem_r=None, thorns=True):
     if gem_r: parts.append(gem(c + up * h * .2 + out * th, gem_r))
     return parts
 def surf(p, off):
-    loc, n, _, _ = BVH.find_nearest(p); return loc + n * off, n
+    hit = BVH.ray_cast(Vector((p.x, -.6, p.z)), Vector((0, 1, 0))) if p.y < -.19 else (None,)
+    loc, n, _, _ = hit if hit[0] is not None else BVH.find_nearest(p)
+    return loc + n * off, n
 OUTFIT = []                                                           # (objeto, pesos fixos ou None = do corpo)
 LEGS = {'LeftUpperLeg', 'RightUpperLeg'}
-for o in ring(CORSET[0] - CORSET[1] * .004, CORSET[1], TORSO, Vector((0, -.05, 1.3)), .003, w=.006, th=.005, spikes=14, sl=.014, name='Debrum'): OUTFIT.append((o, None))
+# O debrum acompanha a curva do decote na textura, sem uma barra reta.
 for o in ring(Vector((0, 0, 1.17)), Vector((0, .25, 1)).normalized(), TORSO, Vector((0, -.05, 1.17)), .003, w=.007, th=.004, name='Faixa'): OUTFIT.append((o, None))
 for o in ring(Vector((0, 0, .95)), Vector((0, 0, 1)), TORSO | LEGS, Vector((0, 0, .95)), .007, w=.012, th=.006, spikes=16, sl=.018, name='Cinto'): OUTFIT.append((o, None))
 for sx in (-1, 1):
@@ -502,7 +614,7 @@ for sx in (-1, 1):
 for o in ring(Vector((0, 0, 1.452)), Vector((0, -.15, 1)).normalized(), {'Neck', 'Head', 'UpperChest'}, Vector((0, -.03, 1.45)), .004, 'black', w=.02, th=.004, name='Gargantilha'): OUTFIT.append((o, None))
 c, n = surf(Vector((0, -.2, 1.44)), .006)
 for o in cross(c + Vector((0, 0, -.02)), .028, .018, n, th=.003, gem_r=.004): OUTFIT.append((o, None))
-for sx in ():                                                          # (correntes do peito removidas no Marco 8b)
+for sx in (-1, 1):                                                    # correntes do colo
     a0 = Vector((sx * .045, -.2, 1.44 if sx else 1.425)); a1 = Vector((sx * .012, -.2, 1.318))
     pts = []
     for t in np.linspace(0, 1, 12):
@@ -512,6 +624,29 @@ for sx in ():                                                          # (corren
 c, n = surf(Vector((0, -.2, 1.12)), .006)
 for o in cross(c, .1, .06, n, gem_r=.009): OUTFIT.append((o, None))
 c, n = surf(Vector((0, -.2, .95)), .012); OUTFIT.append((gem(c, .008), None))
+# MOD 212 — costuras curvas do corset, arabescos e amarração frontal.
+for sx in (-1, 1):
+    for lane in range(3):
+        pts = []
+        for t in np.linspace(0, 1, 24):
+            z = .96 + .34 * t
+            x = sx * (.025 + lane * .028 + .025 * math.sin(math.pi*t))
+            pts.append(surf(Vector((x, -.4, z)), .004)[0])
+        OUTFIT.append((ribbon(pts, .0025, .0025, .002, 'silver', 'BordadoCorset', [surf(p,0)[1] for p in pts], sides=4), None))
+    for k in range(5):
+        z = 1.0 + k * .053
+        pts = [surf(Vector((sx*(.035+.035*math.sin(t*math.pi)), -.4, z+.045*t)), .006)[0] for t in np.linspace(0,1,16)]
+        OUTFIT.append((ribbon(pts,.003,.001,.002,'silver','Arabesco',[surf(p,0)[1] for p in pts],sides=4),None))
+    for k in range(8):
+        z=.985+k*.033
+        a,n=surf(Vector((sx*.017,-.4,z)),.007)
+        b,_=surf(Vector((-sx*.017,-.4,z+.033)),.007)
+        OUTFIT.append((bar(a,b,.002,.002,'silver',n),None))
+    # alças e pequenos rubis no colo
+    pts=[surf(Vector((sx*(.06+.025*math.sin(t*math.pi)), -.4, 1.30+.13*t)),.006)[0] for t in np.linspace(0,1,18)]
+    OUTFIT.append((ribbon(pts,.006,.004,.003,'black','Alca', [surf(p,0)[1] for p in pts]),None))
+    for p in pts[2::5]: OUTFIT.append((gem(p,.0035),None))
+
 # coroa de espinhos
 CR = (HC + Vector((0, .01, .085)), .098, .104)
 crown = []
@@ -523,7 +658,7 @@ for twist in (0, 1):
     crown.append(ribbon(q, .0035, .0035, .0035, 'silver', 'Coroa', [(p - CR[0]).normalized() for p in q]))
 for k in range(32):
     a = k / 32 * 2 * math.pi; front = math.cos(a); p = pts[int(k / 32 * 40)]
-    ln = .025 + .045 * max(0, front) ** 2 + .012 * random.random(); d = ((p - CR[0]).normalized() * .45 + Vector((0, 0, 1))).normalized()
+    ln = .014 + .025 * max(0, front) ** 2 + .008 * random.random(); d = ((p - CR[0]).normalized() * .45 + Vector((0, 0, 1))).normalized()
     crown.append(spike(p, d, ln, .0045))
     if k % 2: crown.append(spike(p, ((p - CR[0]).normalized() + Vector((0, 0, -.2))).normalized(), .018, .003))
 crown.append(gem(pts[0] + Vector((0, -.004, .012)), .008))
@@ -538,7 +673,7 @@ for sx, side in ((1, 'l'), (-1, 'r')):
     hand = ('Left' if sx > 0 else 'Right') + 'Hand'
     for f in range(1, 6):
         a, b = SG(f'joint-{side}-finger-{f}-3'), SG(f'joint-{side}-finger-{f}-4'); d = (b - a).normalized()
-        OUTFIT.append((spike(b - d * .006, d + Vector((0, -.15, -.1)), .028 if f > 1 else .022, .0045), {hand: 1.}))
+        OUTFIT.append((spike(b - d * .006, d + Vector((0, -.15, -.1)), .014 if f > 1 else .010, .0045), {hand: 1.}))
     wr, kn = Vector(NH[hand]), SG(f'joint-{side}-finger-3-1'); c = wr.lerp(kn, .55); n = (c - Vector((0, 0, c.z))).normalized()
     n = Vector((sx, -.2, 0)).normalized()
     for k in range(3): OUTFIT.append((spike(wr.lerp(kn, .3 + k * .25) + n * .012, n + Vector((0, 0, .3)), .016, .004), {hand: 1.}))
@@ -559,6 +694,21 @@ for sx in (-1, 1):
         c, n = surf(Vector((sx * .15, -.2, z)), .009); OUTFIT.append((spike(c, n + Vector((0, 0, .5)), .02, .006), None))
     toe = SG(f'joint-{"l" if sx > 0 else "r"}-toe-2-4') if f'joint-{"l" if sx > 0 else "r"}-toe-2-4' in groups else Vector((sx * .19, -.16, .02))
     OUTFIT.append((spike(toe + Vector((0, .01, .012)), Vector((0, -1, -.05)), .07, .022), None))
+# Biqueira contínua: a bota não deve reproduzir cada dedo como um pé descalço.
+for sx,side in ((1,'Left'),(-1,'Right')):
+    verts=[p for p,w in zip(BV,BW) if dom(w) in {side+'Foot',side+'Toes'} and p.z<.13]
+    if not verts: continue
+    low=Vector(tuple(min(p[i] for p in verts) for i in range(3)))
+    high=Vector(tuple(max(p[i] for p in verts) for i in range(3)))
+    center=(low+high)*.5;radius=(high-low)*.5+Vector((.008,.013,.006))
+    bm=bmesh.new();bmesh.ops.create_uvsphere(bm,u_segments=20,v_segments=12,radius=1)
+    for v in bm.verts:
+        v.co=Vector((center.x+v.co.x*radius.x,center.y+v.co.y*radius.y,max(.005,center.z+v.co.z*radius.z)))
+    me=bpy.data.meshes.new('Biqueira');bm.to_mesh(me);bm.free()
+    o=bpy.data.objects.new('Biqueira',me);bpy.context.scene.collection.objects.link(o);me.materials.append(MAT['boot'])
+    for poly in me.polygons:poly.use_smooth=True
+    OUTFIT.append((o,{side+'Foot':1.}))
+
 # saia/capa: painéis do cinto ao chão, abertos na frente (a fenda alarga para baixo), preto por fora e carmesim por dentro
 ARMB = {'LeftUpperArm', 'RightUpperArm', 'LeftLowerArm', 'RightLowerArm', 'LeftHand', 'RightHand'}
 SK = [c for c, w in zip(BV, BW) if dom(w) not in ARMB and c.z < 1.0]
@@ -574,7 +724,7 @@ def skirt_layer(inner):
     me = bpy.data.meshes.new('Saia'); bm = bmesh.new(); grid = []; uvt = []
     for j in range(NZ + 1):
         t = j / NZ; row = []
-        op = .5 + .55 * t                                             # meia-abertura da fenda (rad)
+        op = .85 + .55 * t                                             # meia-abertura da fenda (rad)
         for i in range(NT + 1):
             u = i / NT; th = op + (2 * math.pi - 2 * op) * u
             panel = (u * 6) % 1; tip = 1 - abs(panel - .5) * 2           # pontas rasgadas: 6 painéis
@@ -607,7 +757,19 @@ def set_w(o, fn):
         if n not in o.vertex_groups: o.vertex_groups.new(name=n)
     for v in o.data.vertices:
         for n, w in fn(o.matrix_world @ v.co).items(): o.vertex_groups[n].add([v.index], w, 'REPLACE')
-def near_w(p): _, i, _ = KD.find(p); return BW[i]
+body.data.calc_loop_triangles()
+cloth_triangles=[tuple(t.vertices) for t in body.data.loop_triangles]
+cloth_surface=BVHTree.FromPolygons(BV,cloth_triangles,all_triangles=True)
+def near_w(p):
+    q,_,face,_=cloth_surface.find_nearest(p)
+    ids=cloth_triangles[face];a,b,c=[BV[i] for i in ids];ab,ac,aq=b-a,c-a,q-a
+    d00,d01,d11,d20,d21=ab.dot(ab),ab.dot(ac),ac.dot(ac),aq.dot(ab),aq.dot(ac)
+    det=d00*d11-d01*d01
+    if abs(det)<1e-15:return BW[ids[0]]
+    v=(d11*d20-d01*d21)/det;w=(d00*d21-d01*d20)/det;out={}
+    for index,t in zip(ids,(1-v-w,v,w)):
+        for name,weight in BW[index].items():out[name]=out.get(name,0)+max(0,t)*weight
+    total=sum(out.values());return {n:w/total for n,w in out.items() if w>1e-8}
 HEAD = lambda p: {'Head': 1.}
 for o in EXTRA: set_w(o, near_w if o is cap else HEAD)
 set_w(sheet, chain_w)
@@ -627,6 +789,36 @@ for o in [x for x in bpy.data.objects if x.type == 'MESH']: o.select_set(True)
 bpy.context.view_layer.objects.active = body; bpy.ops.object.join()
 print('Sandra: vértices', len(body.data.vertices), 'faces', len(body.data.polygons))
 body.parent = arm; md = body.modifiers.new('Armature', 'ARMATURE'); md.object = arm
-for a in [a for a in bpy.data.actions if a.name.endswith('.001')]: bpy.data.actions.remove(a)   # cópias por objeto do importador
+# Preserve todas as ações importadas: Blender 4.3 usa .001 também nas ações do rig.
+print('Ações preservadas:', [a.name for a in bpy.data.actions])
 bpy.ops.object.select_all(action='SELECT')
-bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', use_selection=True, export_animations=True, export_animation_mode='ACTIONS')
+bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', use_selection=True, export_animations=True, export_animation_mode='NLA_TRACKS')
+# O arquivo-fonte contém trilhas duplicadas (.001). Preserve apenas os nomes canônicos
+# usados em RIG_DEFS; os buffers e os canais das oito animações ficam intactos.
+import struct
+with open(OUT, 'rb') as f: data = f.read()
+json_len, json_type = struct.unpack_from('<II', data, 12)
+doc = json.loads(data[20:20 + json_len])
+names = {a['name'] for a in doc.get('animations', [])}
+doc['animations'] = [a for a in doc.get('animations', []) if not (a['name'].endswith('.001') and a['name'][:-4] in names)]
+assert len(doc['animations']) == 8, 'Esperadas as oito animações da Misteriosa'
+tail = bytearray(data[20 + json_len:])
+# A esquiva-fonte cai 8 metros no eixo vertical. O jogo já fixa X/Z;
+# fixe Y neste clipe para uma esquiva no chão, mantendo rotações e membros.
+for anim in doc['animations']:
+    if anim['name'] != '_01a15ab0_deed_76a9_818c_47f5fc81ba40': continue
+    for ch in anim['channels']:
+        if ch['target']['path'] != 'translation' or doc['nodes'][ch['target']['node']].get('name') != 'Hips': continue
+        acc = doc['accessors'][anim['samplers'][ch['sampler']]['output']]
+        assert acc['componentType'] == 5126 and acc['type'] == 'VEC3'
+        view = doc['bufferViews'][acc['bufferView']]
+        offset = 8 + view.get('byteOffset', 0) + acc.get('byteOffset', 0)
+        stride = view.get('byteStride', 12)
+        y = struct.unpack_from('<f', tail, offset + 4)[0]
+        for i in range(acc['count']): struct.pack_into('<f', tail, offset + i * stride + 4, y)
+        if 'min' in acc: acc['min'][1] = y
+        if 'max' in acc: acc['max'][1] = y
+chunk = json.dumps(doc, separators=(',', ':')).encode(); chunk += b' ' * (-len(chunk) % 4)
+with open(OUT, 'wb') as f:
+    f.write(struct.pack('<III', 0x46546c67, 2, 20 + len(chunk) + len(tail)))
+    f.write(struct.pack('<II', len(chunk), json_type)); f.write(chunk); f.write(tail)
