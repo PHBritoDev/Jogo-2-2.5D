@@ -195,6 +195,12 @@ export function createWorldAudio() {
     sob() { if (!ready) return; for (let i = 0; i < 4; i++) { const f = 520 + Math.random() * 80; tone('triangle', f, f * .72, .025, .45, ambBus, i * .55 + Math.random() * .15); } },
     /** Clarão de transformação/possessão: grave descendente e chiado. */
     corrupt() { if (!ready) return; tone('sawtooth', 220, 40, .12, 1.4); burst('bandpass', 260, .7, .2, 1.2, sfxBus, 90); },
-    reveal() { if (!ready) return; [784, 988, 1175, 1568].forEach((f, i) => tone('sine', f, 0, .06, .5, sfxBus, i * .09)); }
+    reveal() { if (!ready) return; [784, 988, 1175, 1568].forEach((f, i) => tone('sine', f, 0, .06, .5, sfxBus, i * .09)); },
+    /** MOD 210 — ultimates dos chefes: buraco negro (zumbido grave que sobe e sopro sugado), fogo abissal,
+     *  e a Supernova da Ganância (carga com coro dissonante, silêncio curto e estrondo longo com brilho). */
+    voidCharge() { if (!ready) return; tone('sine', 38, 96, .3, 5.6); tone('sawtooth', 55, 30, .06, 5.2); burst('bandpass', 180, 1.2, .16, 5.5, sfxBus, 1400); pad(110, .04, 1.5, 2.5, 1.5, 0, 'triangle'); pad(116.5, .035, 1.5, 2.5, 1.5, .1, 'triangle'); },
+    abyss() { if (!ready) return; burst('lowpass', 420, .7, .22, 1.4, sfxBus, 120); tone('sawtooth', 90, 45, .07, 1.2); },
+    novaCharge() { if (!ready) return; tone('sine', 55, 220, .22, 2.9); [196, 207.7, 293.7, 311.1].forEach((f, i) => pad(f, .035, 1.2, 1.4, .4, i * .15, i % 2 ? 'sawtooth' : 'triangle')); burst('highpass', 1800, .6, .08, 2.8, sfxBus, 7000); },
+    novaBlast() { if (!ready) return; tone('sine', 70, 22, .7, 3.4); burst('lowpass', 900, .6, .6, 2.8, sfxBus, 60); burst('bandpass', 3200, .8, .12, 1.6, sfxBus, 600); [1046.5, 1318.5, 1568].forEach((f, i) => tone('sine', f, f * .5, .04, 2.2, sfxBus, .25 + i * .07)); }
   };
 }
