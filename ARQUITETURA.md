@@ -102,6 +102,11 @@ espaço do mundo; `POSE_BONES` cobre os nomes mixamo e humanoides). Corrida: `Pr
 (`tools/blender/m11_corrida.py`) convertido no navegador por `bakeRunClip`; botão `#run`/Shift (`isSprinting`).
 Impacto: `impactFrame` (filtro no canvas), `lightning`, `scorch`.
 
+## Marco 12 — Anjo-Guia novo (Mod 215)
+
+`docs/roteiro/M12-ANJO.md`. `Anjo-rig.glb` (`tools/blender/m12_anjo.py`): MakeHuman masculino no esqueleto da Misteriosa,
+usado pelo Anjo-Guia do mundo e por `RIG_DEFS.anjo` (clipes próprios, sem `extra`). `AnjoGuia-lod.glb` não é mais carregado.
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a
