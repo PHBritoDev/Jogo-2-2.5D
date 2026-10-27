@@ -34,16 +34,16 @@ export const SHOP_SECTORS = [
 ];
 
 export const SHOP_ITEMS = [
-  { id: 'magic', sector: 'escrituras', kind: 'skill', name: 'Espadas da Palavra', cost: 20, level: 2, step: 4,
-    desc: 'Três lâminas de luz à frente. Recarga curta, 18 de mana.' },
+  { id: 'magic', sector: 'escrituras', kind: 'skill', name: 'Cerco das Cinco Lâminas Celestiais', cost: 20, level: 2, step: 4,
+    desc: 'Cinco cópias da espada cercam o inimigo por até 12 s. Toque GOLPE para disparar uma por vez. 18 de mana.' },
   { id: 'magic2', sector: 'escrituras', kind: 'skill', name: 'Julgamento Celestial', cost: 35, level: 3, step: 5,
     desc: 'Cinco espadas em leque. 32 de mana, recarga média.' },
   { id: 'magic3', sector: 'escrituras', kind: 'skill', name: 'Sol da Justiça', cost: 70, level: 4, step: 8,
     desc: 'Um sol pequeno e lento que queima o que toca. 45 de mana.' },
   { id: 'ultimate', sector: 'escrituras', kind: 'skill', name: 'Julgamento Divino', cost: 160, level: 6, step: 11,
     desc: 'A espada colossal. Recurso raro: 80 de mana e recarga longa.', stepText: 'ouvir a família Arruda no Ato II — A Dívida dos Vivos' },
-  { id: 'magic_plus', sector: 'escrituras', kind: 'upgrade', name: 'Espadas da Palavra II', cost: 90, level: 7, step: 16, stepText: 'chegar ao Vale do Altar (Ato III)',
-    desc: 'Nova Palavra do Ato III: cinco lâminas que perseguem o alvo. Requer Espadas da Palavra.', requires: 'magic' },
+  { id: 'magic_plus', sector: 'escrituras', kind: 'upgrade', name: 'Cerco Celestial II', cost: 90, level: 7, step: 16, stepText: 'chegar ao Vale do Altar (Ato III)',
+    desc: 'Aprimora o dano de cada lâmina de 14 para 16. Requer Cerco das Cinco Lâminas Celestiais.', requires: 'magic' },
   { id: 'magic2_plus', sector: 'escrituras', kind: 'upgrade', name: 'Julgamento Celestial II', cost: 120, level: 8, step: 16, stepText: 'chegar ao Vale do Altar (Ato III)',
     desc: 'Nova Palavra do Ato III: sete espadas caem do céu sobre o inimigo. Requer Julgamento Celestial.', requires: 'magic2' },
   { id: 'magic3_plus', sector: 'escrituras', kind: 'upgrade', name: 'Espada do Círculo', cost: 160, level: 9, step: 21, stepText: 'chegar à Torre (Ato IV)',
