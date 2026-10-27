@@ -625,6 +625,18 @@ const THEMES = {
       const pos = vg.attributes.position; for (let k = 0; k < pos.count; k++) { const y = pos.getY(k); pos.setX(k, pos.getX(k) * (1 + (r() - .5) * .12)); pos.setY(k, y * (1 + (r() - .5) * .1)); } vg.computeVertexNormals();
       grp.add(new THREE.Mesh(vg, tex(wallMat, len / 4, 2)));
     }
+    // MOD 219 — a entrada por onde o herói chegou: um trecho de túnel atrás dele que termina na boca iluminada pelo dia
+    // de neve lá fora, com pingentes, neve acumulada e luz fria entrando.
+    { const z0 = C.path[0].z, grp = new THREE.Group(); grp.position.set(C.path[0].x, 0, z0 + 3.5); g.add(grp); const R = C.r + .5;
+      const fl = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, 7), floorMat); fl.rotation.x = -Math.PI / 2; grp.add(fl);
+      const vg = new THREE.CylinderGeometry(R, R, 7, 18, 1, true, Math.PI / 2, Math.PI); vg.rotateX(Math.PI / 2); vg.scale(1, 1.25, 1); grp.add(new THREE.Mesh(vg, tex(wallMat, 2, 2)));
+      const day = new THREE.Mesh(new THREE.CircleGeometry(R, 24, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0xeaf6ff, toneMapped: false })); day.scale.y = 1.25; day.position.set(0, 0, 3.4); day.rotation.y = Math.PI; grp.add(day);
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xcfeaff, transparent: true, opacity: .55, depthWrite: false, blending: THREE.AdditiveBlending })); glow.scale.set(9, 7, 1); glow.position.set(0, 2.2, 2.6); grp.add(glow);
+      const drift = new THREE.Mesh(new THREE.SphereGeometry(2.6, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xf4f8fc, roughness: .8 })); drift.scale.set(1.4, .35, 1); drift.position.set(0, 0, 2.6); grp.add(drift);
+      const iceM = new THREE.MeshStandardMaterial({ color: 0xbfe4ff, roughness: .15, transparent: true, opacity: .85, emissive: 0x2a5a8a, emissiveIntensity: .4 }), ics = [];
+      for (let i = 0; i < 11; i++) { const a = Math.PI * (.1 + i * .08); ics.push({ x: Math.cos(a) * (R - .3), y: Math.sin(a) * (R - .3) * 1.25 - .4, z: 3 - (i % 3) * .5, rx: Math.PI, s: .5 + (i % 4) * .2 }); }
+      grp.add(instanced(THREE, new THREE.ConeGeometry(.18, 1.4, 5), iceM, ics));
+    }
     const E = C.end, floor = new THREE.Mesh(new THREE.CircleGeometry(E.r + .5, 40), floorMat); floor.rotation.x = -Math.PI / 2; floor.position.set(E.x, 0, E.z); g.add(floor);
     const dome = new THREE.Mesh(new THREE.SphereGeometry(E.r + .5, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), tex(wallMat, 6, 3)); dome.scale.y = .7; dome.position.set(E.x, 0, E.z); g.add(dome);
     refs.crystals = []; refs.icicles = [];
