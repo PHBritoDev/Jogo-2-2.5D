@@ -113,6 +113,11 @@ usado pelo Anjo-Guia do mundo e por `RIG_DEFS.anjo` (clipes próprios, sem `extr
 obrigatórias usam `playStory(...,{skippable:false})`. Golpe final: `foeFinalBlow`/`updateFallen`. Cidade: `cityLayout()`
 (act2-flow) instanciada no bloco `district`; emboscada por `inAlley`. Câmera: colisão com cômodos internos e casas.
 
+## Mod 218 — VHAZRAEL e figurantes
+
+`docs/roteiro/M14-VHAZRAEL-E-POLIMENTO.md`. Primeiro Bispo: VHAZRAEL (chaves internas `valerio`/`bishop1` mantidas).
+Figurantes: `dressTownsfolk`; moradores de Cinzária: `CITY_ROUTES`/`updateCityFolk`. Asas do Anjo: ossos `AsaEsq`/`AsaDir`.
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a
