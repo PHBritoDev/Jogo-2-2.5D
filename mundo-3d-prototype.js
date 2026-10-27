@@ -1328,7 +1328,8 @@ addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=
 
 function blockedAt(x,z){
  if(voidMode)return voidSpec.walk?!voidSpec.walk(x-voidSpec.x,z-voidSpec.z):Math.hypot(x-voidSpec.x,z-voidSpec.z)>voidSpec.radius;
- if(!terrain3D.walkable(x,z)||Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)<FOREST_POND.r+1)return true;
+ // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
+ if(terrain3D.boundaryDistance(x,z)>45||terrain3D.waterDepth(x,z)>=.38||Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)<FOREST_POND.r+1)return true;
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const o of marketObstacles){if(o.height!==undefined&&o.height<=.68)continue;const dx=x-o.x,dz=z-o.z;if(o.shape==='box'?Math.abs(dx)<o.halfX&&Math.abs(dz)<o.halfZ:dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
