@@ -107,6 +107,12 @@ Impacto: `impactFrame` (filtro no canvas), `lightning`, `scorch`.
 `docs/roteiro/M12-ANJO.md`. `Anjo-rig.glb` (`tools/blender/m12_anjo.py`): MakeHuman masculino no esqueleto da Misteriosa,
 usado pelo Anjo-Guia do mundo e por `RIG_DEFS.anjo` (clipes próprios, sem `extra`). `AnjoGuia-lod.glb` não é mais carregado.
 
+## Mod 217 — revisão dos Atos II e III
+
+`docs/roteiro/M13-REVISAO-ATOS-2-3.md`. Pular cena: `skip()` do diretor entrega as ações pendentes a `flush`; cenas
+obrigatórias usam `playStory(...,{skippable:false})`. Golpe final: `foeFinalBlow`/`updateFallen`. Cidade: `cityLayout()`
+(act2-flow) instanciada no bloco `district`; emboscada por `inAlley`. Câmera: colisão com cômodos internos e casas.
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a
