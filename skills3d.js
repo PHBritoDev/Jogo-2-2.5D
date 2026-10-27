@@ -10,11 +10,11 @@ export const MANA = { max: 100, regenCalm: 6, regenCombat: 2.4, hitGain: 5, hitG
 export const SKILLS = {
   magic: { id: 'magic', name: 'Cerco das Cinco Lâminas Celestiais', key: '1', mana: 18, cooldown: 1800, unlockStep: 4,
     lockReason: 'Compre na Loja Central depois de libertar as crianças.' },
-  magic2: { id: 'magic2', name: 'Julgamento Celestial', key: '2', mana: 32, cooldown: 4200, unlockStep: 6,
+  magic2: { id: 'magic2', name: 'Chuva de Estrelas Celestiais', key: '2', mana: 32, cooldown: 5200, unlockStep: 6,
     lockReason: 'Compre na Loja Central depois de vencer as sentinelas.' },
-  magic3: { id: 'magic3', name: 'Sol da Justiça', key: '3', mana: 45, cooldown: 6200, unlockBishops: 1,
+  magic3: { disabled: true, id: 'magic3', name: 'Sol da Justiça', key: '3', mana: 45, cooldown: 6200, unlockBishops: 1,
     lockReason: 'Compre na Loja Central depois de purificar VHAZRAEL.' },
-  ultimate: { id: 'ultimate', name: 'Julgamento Divino', key: '4', mana: 80, cooldown: 14000, unlockBishops: 2,
+  ultimate: { disabled: true, id: 'ultimate', name: 'Julgamento Divino', key: '4', mana: 80, cooldown: 14000, unlockBishops: 2,
     lockReason: 'Compre na Loja Central durante o Ato II, antes do Segundo Bispo.' }
 };
 export const SKILL_ORDER = ['magic', 'magic2', 'magic3', 'ultimate'];
@@ -22,7 +22,7 @@ export const SKILL_ORDER = ['magic', 'magic2', 'magic3', 'ultimate'];
 /** Conjunto de habilidades liberadas: as que o jogador comprou na Loja Central (Mod 188). */
 export function unlockedSkills({ owned = [], testAll = false } = {}) {
   const have = owned instanceof Set ? owned : new Set(owned);
-  return new Set(SKILL_ORDER.filter(id => testAll || have.has(id)));
+  return new Set(SKILL_ORDER.filter(id => !SKILLS[id].disabled && (testAll || have.has(id))));
 }
 
 /** Habilidades que acabaram de ser liberadas entre dois estados (para a animação de revelação). */
@@ -33,6 +33,7 @@ export function newlyUnlocked(before, after) {
 /** Pode lançar agora? Retorna o motivo legível quando não. */
 export function canCast(id, { unlocked, mana, cooldownUntil = {}, now = 0 }) {
   const s = SKILLS[id];
+  if (s?.disabled) return { ok: false, reason: 'Em desenvolvimento.' };
   if (!s) return { ok: false, reason: 'Habilidade desconhecida.' };
   if (!unlocked.has(id)) return { ok: false, reason: s.lockReason };
   const left = (cooldownUntil[id] || 0) - now;

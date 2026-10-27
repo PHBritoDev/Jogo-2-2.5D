@@ -1,3 +1,5 @@
+import {CelestialStarfall} from './celestial-starfall3d.js';
+import {createStarfallVFX} from './celestial-starfall-vfx3d.js';
 import {CelestialSiege} from './celestial-siege3d.js';
 import {createSiegeVFX} from './celestial-siege-vfx3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES } from './act1-world-layout.js';
@@ -1038,6 +1040,7 @@ portalGroup.visible=questStep>=8; // MOD 204: no Ato I o portal de VHAZRAEL fica
 var worldCompiled=false,worldCompileStarted=false;
 function precompileWorld(){
  if(worldCompileStarted)return;worldCompileStarted=true;
+ if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene);
  const done=()=>{worldCompiled=true;};setTimeout(done,9000);
  try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
 }
@@ -1046,9 +1049,9 @@ function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
-const SKILL_LABELS={magic:'MAGIA',magic2:'MAG.II',magic3:'SOL',ultimate:'ULT.'};
+const SKILL_LABELS={magic:'MAGIA',magic2:'ESTRELAS',magic3:'EM BREVE',ultimate:'EM BREVE'};
 const skillButtons={};
-for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;b.innerHTML='<span class="btn-icon skill-art">'+iconSvg(id,{size:48})+'</span><span class="btn-label" data-key="'+SKILLS[id].key+'">'+SKILL_LABELS[id]+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';b.dataset.key=SKILLS[id].key;b.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');skillButtons[id]={el:b,cost:b.querySelector('.skill-cost'),cd:-1,state:''};}
+for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;if(SKILLS[id].disabled){b.hidden=true;b.classList.add('skill-locked');b.setAttribute('aria-label','Em desenvolvimento');continue;}b.innerHTML='<span class="btn-icon skill-art">'+iconSvg(id,{size:48})+'</span><span class="btn-label" data-key="'+SKILLS[id].key+'">'+SKILL_LABELS[id]+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';b.dataset.key=SKILLS[id].key;b.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');skillButtons[id]={el:b,cost:b.querySelector('.skill-cost'),cd:-1,state:''};}
 for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧'],['defend','K'],['aim','Q']]){const b=document.getElementById(id);if(b){b.dataset.key=key;const l=b.querySelector('.btn-label');if(l)l.dataset.key=key;}}
 function refreshSkillUnlocks(){
  const next=unlockedSkills({owned:ownedItems,testAll:testAllSkills});
@@ -1218,6 +1221,19 @@ function siegeContext(){return String(voidMode)+':'+(voidSpec&&[voidSpec.x,voidS
 function siegeHUD(){const n=siege.active?siege.remaining:-1;if(n===siegeHudCount)return;siegeHudCount=n;const button=document.getElementById('attack');button.classList.toggle('celestial-siege',n>=0);let hud=button.querySelector('.siege-hud');if(!hud){hud=document.createElement('span');hud.className='siege-hud';hud.innerHTML='<span class="siege-blades">'+Array.from({length:5},()=>'<i><svg viewBox="0 0 12 28" aria-hidden="true"><path fill="currentColor" d="M6 0 8 4 8 17 11 19 11 21 7 20 7 25 8 27 4 27 5 25 5 20 1 21 1 19 4 17 4 4Z"/></svg></i>').join('')+'</span><strong></strong><small>DISPARAR</small>';button.appendChild(hud);}hud.hidden=n<0;if(n>=0){hud.querySelector('strong').textContent=n+'/5';hud.querySelectorAll('i').forEach((e,i)=>e.classList.toggle('spent',i>=n));}button.setAttribute('aria-label',n<0?'Golpe de espada':'Disparar lâmina celestial: '+n+' de 5');}
 function updateSiege(dt){const valid=playerHP>0&&!cineActive&&!dialogueOpen&&!awakeningActive&&siegeScene===siegeContext();siege.update(dt,siegeTarget(),{valid});if(siegeVFX)siegeVFX.update(dt,siege,siegeTarget(),camera,graphics3DMode==='low'||(graphics3DMode==='auto'&&graphics3DScale<.75));siegeHUD();}
 
+// MOD 224 — pooled Skill 2, sharing encounter identity, mana and collision infrastructure.
+let starfallVFX=null,starfallScene='',starfallCameraWeight=0;
+const starfallHand=new THREE.Vector3();
+const starfall=new CelestialStarfall({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),
+ hit:(damage,id)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(damage,false,true);},
+ event:(type,b)=>{if(type==='launch')worldAudio.whoosh();if(type==='open')worldAudio.magic('magic2');if(type==='impact'&&b.i%3===0)worldAudio.hit();if(type==='cancel'&&starfallVFX)starfallVFX.clear();}});
+function updateStarfall(dt){
+ const rig=model&&poseRig(model);if(rig?.rh)rig.rh.getWorldPosition(starfallHand);else {starfallHand.copy(player.position);starfallHand.y+=1.7;}
+ starfall.update(dt,siegeTarget(),{hand:starfallHand,valid:playerHP>0&&!cineActive&&!dialogueOpen&&!awakeningActive&&starfallScene===siegeContext()});
+ if(starfallVFX)starfallVFX.update(starfall,camera,graphics3DMode==='low'||(graphics3DMode==='auto'&&graphics3DScale<.75));
+ starfallCameraWeight+=((starfall.active?1:0)-starfallCameraWeight)*(1-Math.exp(-dt*4));
+}
+
 function spawnHolyProjectile(kind,angleOffset=0,delay=0){
  const group=new THREE.Group(),gold=new THREE.MeshStandardMaterial({color:0xffe7a0,emissive:0xffbd3f,emissiveIntensity:2.2,metalness:.55,roughness:.2}),white=new THREE.MeshBasicMaterial({color:0xfff7d2});
  let arcMat=null;
@@ -1264,18 +1280,20 @@ function chargeDivine(){
 function castHolyMagic(kind){
  const now=performance.now();if(playerHP<=0||gamePaused||cineActive||dialogueOpen)return;
  if(kind==='magic'&&(siege.active||!siegeVFX||!siegeTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>22)){status.textContent=siege.active?'Dispare as lâminas restantes.':'Aproxime-se de um inimigo para invocar o cerco.';return;}
+ if(kind==='magic2'&&starfall.active){status.textContent='A chuva de estrelas ainda está ativa.';return;}
  const check=canCast(kind,{unlocked:skillSet||new Set(),mana:playerMana,cooldownUntil:holyCooldowns,now});if(!check.ok){status.textContent=check.reason;return;}
- playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);if(kind!=='magic'){showGrimoire(0xffd56a,kind==='ultimate'?1.8:.9,true);playPose(model,kind==='ultimate'?'channel':'cast',kind==='ultimate'?1.7:.9,()=>playerYaw,kind==='ultimate'?.5:0);}
+ playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);
  if(kind==='magic'){siegeScene=siegeContext();siege.start(siegeTarget(),ownedItems.has('magic_plus')?16:14);siegeHUD();status.textContent='Cerco das Cinco Lâminas Celestiais — toque GOLPE para disparar cada espada.';}
- else if(kind==='magic2'){// MOD 212 — chuva de espadas celestiais numa área marcada (poder 3 do documento mestre)
-  const plus=ownedItems.has('magic2_plus'),tgt=combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<18?enemy.position:{x:player.position.x+Math.sin(playerYaw)*6,z:player.position.z+Math.cos(playerYaw)*6};
-  fxRain(tgt.x,tgt.z,plus?4.2:3.2,plus?54:34,1.3,Math.round((plus?17:13)*(1+statsForLevel(playerLevel()).damageBonus)),0xfff0b8,false,true);status.textContent=plus?'Julgamento Celestial II — um céu inteiro de espadas desaba sobre a área!':'Julgamento Celestial — espadas celestiais chovem sobre a área marcada!';}
- else if(kind==='magic3'&&ownedItems.has('magic3_plus')&&combatStepNow()&&enemy.visible&&enemyAlive){spawnHolyProjectile('sun');circleSword(enemy.position.x,enemy.position.z);status.textContent='Espada do Círculo — o círculo se abre e a lâmina colossal irrompe do chão!';}
- else if(kind==='magic3'){spawnHolyProjectile('sun');status.textContent='Sol da Justiça — luz ardente lançada contra o inimigo!';}
- else{chargeDivine();}
+ else if(kind==='magic2'){
+  if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene);
+  starfallScene=siegeContext();const rig=model&&poseRig(model);if(rig?.rh)rig.rh.getWorldPosition(starfallHand);else {starfallHand.copy(player.position);starfallHand.y+=1.7;}
+  starfall.start(starfallHand,siegeTarget(),Math.round((ownedItems.has('magic2_plus')?8:6)*(1+statsForLevel(playerLevel()).damageBonus)));
+  playPose(model,'starfall',.7,()=>playerYaw,0);actionUntil=Math.max(actionUntil,now+700);
+  status.textContent='Chuva de Estrelas Celestiais';
+ }
 }
 function updateHolyProjectiles(dt){
- updateSiege(dt);
+ updateSiege(dt);updateStarfall(dt);
  for(let i=holyProjectiles.length-1;i>=0;i--){const p=holyProjectiles[i];if(p.orbit>0){p.orbit-=dt;p.oa+=dt*7;p.group.position.set(player.position.x+Math.sin(p.oa)*1.3,player.position.y+1.5+Math.sin(p.oa*2)*.15,player.position.z+Math.cos(p.oa)*1.3);p.group.rotation.y=p.oa+Math.PI/2;if(p.orbit<=0){const tx=(enemy.visible&&enemyAlive?enemy.position.x:p.group.position.x+Math.sin(playerYaw))-p.group.position.x,tz=(enemy.visible&&enemyAlive?enemy.position.z:p.group.position.z+Math.cos(playerYaw))-p.group.position.z,d=Math.hypot(tx,tz)||1;p.dirX=tx/d;p.dirZ=tz/d;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}continue;}p.delay-=dt;if(p.delay>0)continue;p.life-=dt;if(p.kind==='arc'){const k=1-p.life/.6;p.group.scale.setScalar(1+k*1.3);p.group.traverse(o=>{if(o.material&&o.material.transparent)o.material.opacity=Math.max(0,(o.material===p.arcMat?.9:.55)*(1-k));});}if(p.homing&&enemy.visible&&enemyAlive){const hx=enemy.position.x-p.group.position.x,hz=enemy.position.z-p.group.position.z,hd=Math.hypot(hx,hz)||1;p.dirX+=(hx/hd-p.dirX)*Math.min(1,dt*5);p.dirZ+=(hz/hd-p.dirZ)*Math.min(1,dt*5);const n=Math.hypot(p.dirX,p.dirZ)||1;p.dirX/=n;p.dirZ/=n;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind==='sun'){p.group.position.y+=Math.sin(performance.now()*.006)*dt*.22;p.group.rotation.y+=dt*2;}else p.group.rotation.z+=dt*2;
   const d=Math.hypot(p.group.position.x-enemy.position.x,p.group.position.z-enemy.position.z);
   if(!p.hit&&enemyAlive&&combatStepNow()&&enemy.visible&&d<(p.kind==='arc'?1.9:1.15)&&Math.abs(p.group.position.y-(enemy.position.y+1))<1.8){p.hit=true;enemyHP=Math.max(0,enemyHP-p.damage);onEnemyDamaged(p.damage,p.kind==='ultimate');if(p.kind==='sun')burnEnemy();enemyHitFlash=.2;setEnemyHitFlash(true);setTimeout(()=>setEnemyHitFlash(false),130);const fill=document.getElementById('enemy-hp-fill');if(fill)fill.style.width=enemyHpPercent()+'%';p.life=0;if(enemyHP===0){enemyAlive=false;playEnemyAnimation('death',.06,true);status.textContent='A luz venceu este inimigo. Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),650);}}
@@ -1478,7 +1496,7 @@ if(firstPerson){
  const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
  camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
 }else{
- const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);const camDistUse=effectiveCameraDistance(camFrame.engaged,dt);
+ const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);target.y+=starfallCameraWeight*2;const camDistUse=effectiveCameraDistance(camFrame.engaged,dt)+starfallCameraWeight*4;
  const camOffset=new THREE.Vector3(Math.sin(cameraYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(cameraYaw)*camDistUse*Math.cos(cameraPitch));
  const desired=target.clone().add(camOffset);
  // MOD 186 — se um tronco fica entre o herói e a câmera, aproxima a câmera em vez de enquadrar a casca.
@@ -2065,7 +2083,7 @@ function renderShop(){
   if(sec.id==='arsenal'&&coatOwned){const cb=document.createElement('button');cb.type='button';cb.textContent=coatOn?'DESEQUIPAR':'EQUIPAR';bindInstantTap(cb,()=>{setCoat(!coatOn);coatJustUnlocked=false;renderShop();status.textContent=coatOn?'Casaco equipado: o frio não te afeta.':'Casaco guardado.';});
    if(scrollOwned)addCard('sword_prota','ENCANTAMENTO','Pergaminho de Encantamento','Presente da pessoa misteriosa, na estrada da torre. A espada equipada causa +20% de dano.','ATIVO','','owned','',[]);
    addCard('cat_arsenal','ROUPA','Casaco de Pele','Couro forrado de pele, comprado na estrada da cidade de neve. +15 de vida, +10% de recuperação de mana e proteção contra o frio.',coatOn?'EQUIPADO':'ADQUIRIDO','','owned','',[cb]);if(coatJustUnlocked){const last=body.lastElementChild;if(last)last.classList.add('is-new');}}
-  for(const item of SHOP_ITEMS.filter(i=>i.sector===sec.id)){
+  for(const item of SHOP_ITEMS.filter(i=>i.sector===sec.id&&!i.disabled)){
    const st=shopStatus(item,shopCtx()),acts=[];
    if(st.state==='buyable'){const buy=document.createElement('button');buy.type='button';buy.className='buy';buy.textContent=shopConfirm===item.id?'CONFIRMAR · '+item.cost+' ◉':'COMPRAR';bindInstantTap(buy,()=>{if(shopConfirm!==item.id){shopConfirm=item.id;renderShop();return;}purchase(item);});acts.push(buy);}
    if(item.kind==='sword'&&st.state==='owned'){const eq=document.createElement('button');eq.type='button';eq.textContent=equippedSword===item.id?'EQUIPADA':'EQUIPAR';eq.disabled=equippedSword===item.id;bindInstantTap(eq,()=>{equipSword(item.id);renderShop();});acts.push(eq);}
@@ -4288,7 +4306,7 @@ function storyDo5(id,args){
  return false;
 }
 /* ---------- Inventário (espadas, roupa, encantamentos e poderes; "Equipar melhor") ---------- */
-const SKILL_INFO={magic:{dmg:'3 × 14',what:'Três lâminas de luz à frente.'},magic2:{dmg:'5 × 10',what:'Cinco espadas em leque.'},magic3:{dmg:'28 + queimadura',what:'Um sol lento que queima.'},ultimate:{dmg:'60 (área)',what:'A espada colossal desce do céu.'},magic_plus:{dmg:'5 × 16',what:'Lâminas que perseguem o alvo.'},magic2_plus:{dmg:'7 × 10',what:'Espadas caem do céu.'},magic3_plus:{dmg:'28 + 40',what:'Uma espada gigante irrompe de um círculo mágico.'}};
+const SKILL_INFO={magic:{dmg:'5 × 14',what:'Cinco espadas no alvo; GOLPE dispara uma por vez.'},magic2:{dmg:'6 por impacto',what:'18 estrelas em ondas; dano depende da área atingida.'},magic3:{dmg:'—',what:'Em desenvolvimento.'},ultimate:{dmg:'—',what:'Em desenvolvimento.'},magic_plus:{dmg:'5 × 16',what:'Aprimora as cinco lâminas.'},magic2_plus:{dmg:'8 por impacto',what:'Aprimora o dano das estrelas.'},magic3_plus:{dmg:'—',what:'Em desenvolvimento.'}};
 function openInventory(){const p=document.getElementById('inv-panel');if(!p)return;inventoryOpen=true;setDefending(false);renderInventory();p.hidden=false;}
 function closeInventory(){inventoryOpen=false;const p=document.getElementById('inv-panel');if(p)p.hidden=true;}
 function equipBest(){const best=bestSword(SWORDS,ownedItems);if(best!==equippedSword)equipSword(best);if(coatOwned&&!coatOn)setCoat(true);renderInventory();status.textContent='Melhor equipamento: '+SWORDS[best].name+(coatOwned?' e Casaco de Pele':'')+'.';worldAudio.reveal();}
@@ -4301,7 +4319,7 @@ function renderInventory(){
  for(const id of Object.keys(SWORDS)){if(id!=='prota'&&!ownedItems.has(id))continue;const s=SWORDS[id],dmg=Math.round(s.damage*scrollMul());row(s.name+(id===best?' ★':''),id===best?'A melhor que você tem':'Espada',(scrollOwned?'<b>'+dmg+'</b> dano <small>(+20% pergaminho)</small>':'<b>'+dmg+'</b> dano')+' · alcance '+s.reach.toFixed(1),btn(equippedSword===id?'EQUIPADA':'EQUIPAR',equippedSword===id,()=>equipSword(id)),equippedSword===id);}
  if(coatOwned||scrollOwned){head('ROUPA E ENCANTAMENTOS');if(coatOwned)row('Casaco de Pele','Protege do frio','+15 vida · +10% mana',btn(coatOn?'DESEQUIPAR':'EQUIPAR',false,()=>setCoat(!coatOn)),coatOn);if(scrollOwned)row('Pergaminho de Encantamento','Sempre ativo','+20% dano da espada',null,true);}
  {const fr=questStep<ACT6N.desert?Math.min(4,bishopsDefeated):fragmentsHeld(questStep,act1Sub);if(bishopsDefeated>0&&questStep<ACT6N.done){head('FRAGMENTOS');row('Fragmentos espaciais','Caem dos Bispos; abrem o portal da Ganância','<b>'+fr+'</b> / 4',null,fr>=4);}}
- head('PODERES');let any=false;for(const id of Object.keys(SKILL_INFO)){if(!ownedItems.has(id))continue;any=true;const k=SKILLS[id]||SKILLS[id.replace('_plus','')]||{};row((SHOP_ITEMS.find(i=>i.id===id)||{}).name||id,SKILL_INFO[id].what,'<b>'+SKILL_INFO[id].dmg+'</b> dano · '+(k.mana||'—')+' mana · '+(k.cooldown?(k.cooldown/1000).toFixed(1)+' s':'—'),null,true);}
+ head('PODERES');let any=false;for(const id of Object.keys(SKILL_INFO)){if(!ownedItems.has(id))continue;if((SHOP_ITEMS.find(i=>i.id===id)||{}).disabled){row('Em desenvolvimento','Habilidade reservada para reformulação.','','',false);continue;}any=true;const k=SKILLS[id]||SKILLS[id.replace('_plus','')]||{};row((SHOP_ITEMS.find(i=>i.id===id)||{}).name||id,SKILL_INFO[id].what,'<b>'+SKILL_INFO[id].dmg+'</b> dano · '+(k.mana||'—')+' mana · '+(k.cooldown?(k.cooldown/1000).toFixed(1)+' s':'—'),null,true);}
  if(!any){const p=document.createElement('p');p.className='inv-empty';p.textContent='Nenhum poder ainda. Compre na Loja.';body.appendChild(p);}
 }
 (function bindInventory(){const b=document.getElementById('inventory-btn'),c=document.getElementById('inv-close'),best=document.getElementById('inv-best');bindInstantTap(b,()=>{if(inventoryOpen)closeInventory();else openInventory();});bindInstantTap(c,closeInventory);bindInstantTap(best,equipBest);addEventListener('keydown',e=>{if((e.key==='i'||e.key==='I')&&!dialogueOpen&&!cineActive&&!(e.target&&/input/i.test(e.target.tagName))){if(inventoryOpen)closeInventory();else openInventory();}});})();
@@ -5215,7 +5233,8 @@ function updatePoses(dt){
   if(j.dead||j.t>j.dur||!j.root.parent){if(j.base!==null)j.root.position.y=j.base;poseJobs.splice(i,1);continue;}
   const R=j.rig,w=Math.min(1,j.t/.18)*Math.min(1,Math.max(0,(j.dur-j.t)/.3)),yaw=j.yawFn(),f=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),r=new THREE.Vector3().crossVectors(f,UPV).normalize();
   const D=(x,y,z)=>new THREE.Vector3().addScaledVector(f,x).addScaledVector(UPV,y).addScaledVector(r,z).normalize(),k=j.t/j.dur;
-  if(j.kind==='cast'){turnBone(R.chest,r,.12*w);aimBone(R.rua,R.rla,D(.7,.6,.25),w);aimBone(R.rla,R.rh,D(.5,.85,.1),w);aimBone(R.lua,R.lla,D(.55,-.6,-.35),w*.8);aimBone(R.lla,R.lh,D(.9,.15,.3),w*.8);turnBone(R.head,r,.1*w);}
+  if(j.kind==='starfall'){turnBone(R.chest,r,.12*w);aimBone(R.rua,R.rla,D(.15,1,.1),w);aimBone(R.rla,R.rh,D(.05,1,0),w);turnBone(R.head,r,.18*w);}
+  else if(j.kind==='cast'){turnBone(R.chest,r,.12*w);aimBone(R.rua,R.rla,D(.7,.6,.25),w);aimBone(R.rla,R.rh,D(.5,.85,.1),w);aimBone(R.lua,R.lla,D(.55,-.6,-.35),w*.8);aimBone(R.lla,R.lh,D(.9,.15,.3),w*.8);turnBone(R.head,r,.1*w);}
   else if(j.kind==='channel'){turnBone(R.chest,r,.22*w);aimBone(R.rua,R.rla,D(.15,.85,.5),w);aimBone(R.rla,R.rh,D(.1,.95,.3),w);aimBone(R.lua,R.lla,D(.15,.85,-.5),w);aimBone(R.lla,R.lh,D(.1,.95,-.3),w);turnBone(R.head,r,.2*w);}
   else if(j.kind==='thrust'){turnBone(R.chest,r,-.28*w);aimBone(R.rua,R.rla,D(1,.08,.15),w);aimBone(R.rla,R.rh,D(1,.05,0),w);aimBone(R.lua,R.lla,D(-.45,-.7,-.4),w*.7);}
   else if(j.kind==='slam'){const up=k<.45;turnBone(R.chest,r,(up?.2:-.38)*w);for(const [ua,la,hd,s] of [[R.rua,R.rla,R.rh,1],[R.lua,R.lla,R.lh,-1]]){aimBone(ua,la,up?D(.35,.9,.15*s):D(.85,-.5,.12*s),w);aimBone(la,hd,up?D(.2,1,.05*s):D(.9,-.4,0),w);}}
@@ -5411,6 +5430,9 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   skills(){if(!skillSet)skillSet=new Set();for(const k of ['magic','magic2','magic3','ultimate'])skillSet.add(k);holyCooldowns.magic=holyCooldowns.magic2=holyCooldowns.magic3=holyCooldowns.ultimate=0;playerMana=999;return [...skillSet];},
   cast(k){castHolyMagic(k);return holyProjectiles.length;},
   siegeQA(){menuGate=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;gamePaused=false;questStep=2;act1Sub=0;clearPack();enemy.visible=false;revealEncounter('journey',{x:40,z:14},300,'');player.position.set(40,terrainHeightAt(40,21),21);playerHP=playerMaxHP;debugDtScale=0;setGameHour(11);this.skills();this.fly([44,enemy.position.y+5,21],[40,enemy.position.y+1,14]);return !!siegeVFX;},
+  starfallQA(){this.siegeQA();enemy.position.set(0,terrainHeightAt(0,-29),-29);player.position.set(0,terrainHeightAt(0,-23),-23);playerMana=100;ownedItems.add('magic');ownedItems.add('magic2');refreshSkillUnlocks();this.fly([8,7,-14],[0,4,-27]);return this.starfallState();},
+  starfallFrame(dt){if(mixer)mixer.update(dt);updatePoses(dt);updateStarfall(dt);return this.starfallState();},
+  starfallState(){return {active:starfall.active,time:starfall.time,phase:starfall.phase,mana:playerMana,hp:enemyHP,cooldown:holyCooldowns.magic2,stars:starfall.stars.map(s=>({phase:s.phase,p:{...s.p}}))};},
   siegeFrame(dt){updateSiege(dt);return this.siegeState();},
   siegeState(){return {active:siege.active,remaining:siege.remaining,time:siege.time,hp:enemyHP,blades:siege.blades.map(b=>({phase:b.phase,p:b.p,hit:b.hit}))};},
   siegeAttack(){action('attack');return this.siegeState();},
