@@ -1457,7 +1457,10 @@ if(firstPerson){
   if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>cameraDistance+2||Math.abs(rz)>cameraDistance+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
   // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
   for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
-  if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);}
+  // MOD 217 — interiores (estalagem, esgoto, vulcão, caverna): a câmera para antes da parede, sem mostrar o que há fora do cômodo.
+  if(voidMode&&voidSpec.walk){for(let i=1;i<=14;i++){const f=i/14*limit;if(blockedAt(target.x+camOffset.x*f,target.z+camOffset.z*f)){limit=Math.max(.1,(i-1.6)/14*limit);break;}}}
+  if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
+  if(voidMode&&voidSpec.ceil&&voidSpec.walk===innWalkable){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
  camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(target);applyUltCam(dt,target);
 }
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -3141,7 +3144,8 @@ function updateAct2World(dt,now){
 /* ---------- Moradores da cidade: bandidos ---------- */
 let npcBasePromise=null;
 function npcBase(){if(!npcBasePromise)npcBasePromise=new Promise((res,rej)=>new GLTFLoader().load('./Npc-lod2.glb?v=mod202',gltf=>{const base=gltf.scene,box=measureModelBounds(base),size=box.getSize(new THREE.Vector3());res({base,clips:gltf.animations||[],scale:size.y>.01?(playerReferenceHeight*.98)/size.y:1,box});},undefined,rej));return npcBasePromise;}
-function makeTownsfolk(b,tint,clipName){const c=cloneSkinned(b.base),h=new THREE.Group();c.scale.setScalar(b.scale);c.position.y=-b.box.min.y*b.scale;c.rotation.y=Math.PI;h.add(c);
+// MOD 217 — o Npc-lod2.glb já olha para +Z (dedos dos pés à frente); o giro de 180° fazia moradores e bandidos andarem de costas.
+function makeTownsfolk(b,tint,clipName){const c=cloneSkinned(b.base),h=new THREE.Group();c.scale.setScalar(b.scale);c.position.y=-b.box.min.y*b.scale;h.add(c);
  c.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.color.multiply(new THREE.Color(tint));o.material.metalness=0;o.material.metalnessMap=null;if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x4a3e36);o.material.emissiveIntensity=.7;}}});
  const m=new THREE.AnimationMixer(c),clip=b.clips.find(k=>k.name===clipName)||b.clips.find(k=>k.name==='Alert');const a=clip?m.clipAction(clip):null;if(a)a.play();scene.add(h);return{holder:h,mixer:m,action:a,model:c};}
 function spawnBandits(){
@@ -3470,6 +3474,7 @@ function updateClimate(dt){
 function enterAct3Void(key,at){
  act3Void=key;const a=getDimArena(key);enterDimensionArena(key);
  voidSpec.walk=key==='estalagem'?innWalkable:key==='gelo'?iceCaveWalkable:distortedWalkable;
+ voidSpec.ceil=key==='estalagem'?(x,z)=>z>-10?3.6:z>-30?3:3.2:null;// MOD 217 — teto dos cômodos (a câmera fica abaixo dele)
  const p=act3Local(key,at);player.position.set(p.x,voidSpec.y,p.z);playerYaw=at.yaw||0;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;moveVX=moveVZ=0;
  checkpointX=p.x;checkpointZ=p.z;camera.position.set(p.x,voidSpec.y+3,p.z+6);
  if(key==='estalagem'){furnishInn(a);if(questStep===ACT3N.city&&!act3Npcs.keeperHall)npcBase().then(b=>{if(act3Void!=='estalagem'||act3Npcs.keeperHall)return;const k=act3Local('estalagem',INN.keeper),v=makeTownsfolk(b,0x8a6a4a,'Agree_Gesture');v.holder.position.set(k.x,voidSpec.y,k.z);v.holder.rotation.y=0;act3Npcs.keeperHall=v;});}
