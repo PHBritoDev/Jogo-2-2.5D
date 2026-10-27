@@ -292,6 +292,7 @@ function forestSpotFree(x,z){
  if(WAYSTONES.some(w=>Math.hypot(x-w.x,z-w.z)<4.2)||Math.hypot(x-SHOP_SPOT.x,z-SHOP_SPOT.z)<10)return false;
  if(Math.abs(x-DISTRICT.cx)<DISTRICT.hx+4&&Math.abs(z-DISTRICT.cz)<DISTRICT.hz+4)return false; // distrito em ruínas: sem mata densa
  if(Math.hypot(x-ALTAR_VALLEY.cx,z-ALTAR_VALLEY.cz)<24||Math.hypot(x-SERRA.cx,z-SERRA.cz+8)<18)return false;
+ if(Math.hypot(x-(SNOW_CITY.cave.x-5),z-(SNOW_CITY.cave.z+5))<12)return false; // MOD 219: boca da caverna de gelo à vista
  if(inDesert(x,z))return false;
  if(Math.hypot(x-COLOSSEUM.center.x,z-COLOSSEUM.center.z)<41||Math.hypot(x+36,z+256)<15)return false; // MOD 207/208 — torre e coliseu
 
@@ -1446,7 +1447,7 @@ if(dashRemaining>0){
  if(grounded&&now>actionUntil&&actions.walk){const sp=Math.hypot(moveVX,moveVZ);if(actions.run&&sp>5.2){play('run');actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/7.2,.85,1.25));}else{play('walk');const walkAction=actions.walk;if(walkAction)walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/3.4,.55,1.45));}}
 }else if(playerHP>0&&grounded&&now>actionUntil&&actions.idle)play('idle');
 // Física vertical com altura do terreno: o personagem pode subir e descer pelas pedras.
-const floorY=terrainHeightAt(player.position.x,player.position.z);
+const floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.position.z);
 if(!grounded){
  verticalVelocity-=gravity*dt;
  player.position.y+=verticalVelocity*dt;
@@ -2898,6 +2899,14 @@ function leaveSewer(to){
  const p=to||sewerDoorFront();player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);checkpointX=p.x;checkpointZ=p.z;camera.position.set(p.x+Math.sin(cameraYaw)*6,player.position.y+3,p.z+Math.cos(cameraYaw)*6);
  setGameHour(act1Night?21.5:9);
 }
+/* MOD 219 — entrar na caverna a pé: o herói anda até a boca e some no escuro do túnel; a tela escurece e ele
+   aparece lá dentro, com a luz da entrada às costas. */
+var caveWalk=null;
+function caveWalkIn(cb){if(caveWalk)return;const C=SC.cave,yaw=(act3World&&act3World.caveYaw)||0,P=player.position,to={x:C.x+Math.sin(yaw)*-2.4,z:C.z+Math.cos(yaw)*-2.4};
+ caveWalk={t:0,from:{x:P.x,z:P.z,y:P.y},to,y:(act3World&&act3World.caveY)||P.y,cb};act1Lock=true;moveVX=moveVZ=0;faceTo(player,to);if(actions.walk)play('walk',.2);worldAudio.whoosh&&worldAudio.whoosh();
+ const veil=document.getElementById('travel-veil');setTimeout(()=>{if(veil)veil.classList.add('on');},900);
+ setTimeout(()=>{const w=caveWalk;caveWalk=null;act1Lock=false;w.cb();if(actions.idle)play('idle',.2);setTimeout(()=>{if(veil)veil.classList.remove('on');},350);},1450);}
+function updateCaveWalk(dt){if(!caveWalk)return;const w=caveWalk;w.t+=dt;const k=Math.min(1,w.t/1.4);player.position.x=w.from.x+(w.to.x-w.from.x)*k;player.position.z=w.from.z+(w.to.z-w.from.z)*k;player.position.y=w.from.y+(w.y-w.from.y)*k;}
 function travelVeil(cb){const veil=document.getElementById('travel-veil');if(veil)veil.classList.add('on');setTimeout(()=>{cb();setTimeout(()=>{if(veil)veil.classList.remove('on');},180);},520);}
 /* ---------- Etapas ---------- */
 function act1Advance(step,sub){questStep=step;act1Sub=sub||0;save3DProgress();updateQuestHud();syncAct1World();}
@@ -3505,13 +3514,32 @@ function buildAct3World(){
  W.snow=new THREE.Points(sg,new THREE.PointsMaterial({map:softDot,color:0xffffff,size:.22,transparent:true,opacity:.9,depthWrite:false}));W.snow.frustumCulled=false;W.snow.visible=false;scene.add(W.snow);W.snowGeo=sg;
  // Incêndios da noite do ataque.
  W.fires=[];for(const [x,z] of [[133,-30],[129,-44],[146,-62],[175,-35],[147,-22],[184,-46],[152,-30],[138,-52]])for(let k=0;k<3;k++){const s=glowSprite(0xff6a18,.85,2.4+Math.random()*2.2);const fx=x+(Math.random()-.5)*4,fz=z+(Math.random()-.5)*4;s.position.set(fx,groundHeightAt(fx,fz)+1.3,fz);s.visible=false;scene.add(s);W.fires.push(s);}
- // Entrada da caverna de gelo: arco de rocha com gelo, na encosta.
- const C=SC.cave,cy=groundHeightAt(C.x,C.z),arch=new THREE.Group();arch.position.set(C.x,cy,C.z);arch.rotation.y=C.yaw;scene.add(arch);
- const rock=new THREE.MeshStandardMaterial({color:0x6a7684,roughness:.9,flatShading:true});
- for(const sx of [-1,1]){const p=new THREE.Mesh(new THREE.DodecahedronGeometry(2.6,0),rock);p.scale.set(.9,1.8,1);p.position.set(sx*3.2,2.2,0);arch.add(p);}
- const top=new THREE.Mesh(new THREE.DodecahedronGeometry(3.4,0),rock);top.scale.set(1.6,.8,1);top.position.set(0,5.2,0);arch.add(top);
- const mouth=new THREE.Mesh(new THREE.CircleGeometry(2.6,24),new THREE.MeshBasicMaterial({color:0x0a1420}));mouth.position.set(0,2.2,-.4);mouth.scale.y=1.25;arch.add(mouth);
- const glow=glowSprite(0x8ac8ff,.55,6);glow.position.set(0,2.4,.2);arch.add(glow);W.cave=arch;
+ // MOD 219 — boca da caverna de gelo de verdade: paredão de rocha com neve no alto, arco irregular, pingentes de gelo,
+ // túnel que some no escuro com cristais azuis lá dentro, névoa fria saindo e uma rampa de neve. A boca olha para a
+ // trilha por onde o Anjo chega.
+ {const C=SC.cave,A=SC.anjoPath[SC.anjoPath.length-1],yaw=Math.atan2(A[0]-C.x,A[1]-C.z),cy=groundHeightAt(C.x,C.z),arch=new THREE.Group();
+  arch.position.set(C.x,cy-.15,C.z);W.caveY=cy;arch.rotation.y=yaw;scene.add(arch);W.caveYaw=yaw;
+  const rock=new THREE.MeshStandardMaterial({color:0x5e6a78,roughness:.92,flatShading:true}),snowM=new THREE.MeshStandardMaterial({color:0xeef4fa,roughness:.7,flatShading:true});
+  const ice=new THREE.MeshStandardMaterial({color:0xbfe4ff,roughness:.15,metalness:.1,transparent:true,opacity:.85,emissive:0x2a5a8a,emissiveIntensity:.35});
+  const cliff=[[-6.5,3,-3,5.5,1.2],[6.5,3.2,-3.2,5.2,1.25],[-3.6,8.2,-4,5,.9],[3.8,8.4,-4.2,5.2,.9],[0,10.5,-5.5,6,.8],[-10,1.5,-5,5,1],[10,1.6,-5.2,5,1],[0,4,-9,7,1.2]];
+  const toW=(x,z)=>({x:C.x+x*Math.cos(yaw)+z*Math.sin(yaw),z:C.z-x*Math.sin(yaw)+z*Math.cos(yaw)});
+  for(const [x,y,z,r,sy] of cliff){if(y<5){const w=toW(x,z);marketObstacles.push({x:w.x,z:w.z,shape:'circle',radius:r*.85,height:6});}const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r,1),rock);m.position.set(x,y,z);m.scale.set(1,sy,1);m.rotation.set(x*.1,y*.2,z*.1);arch.add(m);
+   if(y>6){const sn=new THREE.Mesh(new THREE.SphereGeometry(r*.8,10,6,0,Math.PI*2,0,Math.PI/2),snowM);sn.position.set(x,y+r*sy*.55,z);sn.scale.set(1.1,.35,1.1);arch.add(sn);}}
+  // Arco irregular e túnel escuro.
+  const lip=new THREE.Mesh(new THREE.TorusGeometry(3.3,1.15,7,18,Math.PI),rock);lip.position.set(0,0,.2);lip.scale.set(1,1.3,1);arch.add(lip);
+  const tun=new THREE.CylinderGeometry(3.3,3.1,11,16,1,true,-Math.PI/2,Math.PI);tun.rotateX(Math.PI/2);tun.scale(1,1.3,1);
+  const tunnel=new THREE.Mesh(tun,new THREE.MeshStandardMaterial({color:0x2a3a4e,roughness:.6,side:THREE.BackSide,emissive:0x0a1626,emissiveIntensity:.6}));tunnel.position.set(0,0,-5.4);arch.add(tunnel);
+  const back=new THREE.Mesh(new THREE.CircleGeometry(3.4,20),new THREE.MeshBasicMaterial({color:0x04080e}));back.position.set(0,0,-10.8);back.scale.y=1.3;arch.add(back);
+  const floorIn=new THREE.Mesh(new THREE.PlaneGeometry(6.4,11),snowM);floorIn.rotation.x=-Math.PI/2;floorIn.position.set(0,.05,-5.4);arch.add(floorIn);
+  for(let i=0;i<5;i++){const z=-2-i*1.8,sx=i%2?1:-1,c=new THREE.Mesh(new THREE.ConeGeometry(.25,1.2+i%3*.4,5),ice);c.position.set(sx*2.4,.6,z);c.rotation.z=sx*.3;arch.add(c);const g=glowSprite(0x7ac8ff,.55,1.6);g.position.set(sx*2.2,1,z);arch.add(g);}
+  // Pingentes na boca.
+  for(let i=0;i<13;i++){const a=Math.PI*(.08+i*.07),ic=new THREE.Mesh(new THREE.ConeGeometry(.12+((i*7)%3)*.05,.7+((i*5)%4)*.35,5),ice);ic.rotation.x=Math.PI;ic.position.set(Math.cos(a)*3.3,Math.sin(a)*3.3*1.3-.5,.5);arch.add(ic);}
+  // Rampa de neve, pedras soltas e névoa fria.
+  const ramp=new THREE.Mesh(new THREE.CircleGeometry(4.5,20),snowM);ramp.rotation.x=-Math.PI/2;ramp.position.set(0,.12,2.4);ramp.scale.set(1.3,1,1);arch.add(ramp);
+  for(const [x,z,r] of [[-4.2,2.5,.6],[4.6,1.8,.8],[-3,4.6,.4],[3.4,4.2,.5]]){const m=new THREE.Mesh(new THREE.DodecahedronGeometry(r,0),rock);m.position.set(x,r*.5,z);arch.add(m);}
+  W.caveMist=[];for(let i=0;i<6;i++){const m=glowSprite(0xd8ecff,.35,3+i%3);m.position.set((i-2.5)*.9,.6,.5+i%2);arch.add(m);W.caveMist.push({s:m,ph:i*1.1});}
+  {const w=toW(0,-7.5);marketObstacles.push({x:w.x,z:w.z,shape:'circle',radius:3.6,height:6});for(const sx of [-1,1]){const q=toW(sx*4.3,-1.5);marketObstacles.push({x:q.x,z:q.z,shape:'circle',radius:1.3,height:6});}}
+  const g=glowSprite(0x8ac8ff,.45,7);g.position.set(0,1.8,-3);arch.add(g);W.cave=arch;}
  // Kit da cidade (Blender).
  new GLTFLoader().load('./NeveKit.glb?v=mod206',gltf=>{
   const kit={};for(const c of gltf.scene.children)kit[c.name]=c;W.kit=kit;
@@ -3549,6 +3577,7 @@ function updateAct3World(dt,now){
  W.snow.visible=(inCity||Math.hypot(P.x-SC.center.x,P.z-SC.center.z)<SC.radius+30)&&!voidMode;
  if(W.snow.visible){W.snow.position.set(P.x,0,P.z);const a=W.snowGeo.attributes.position;for(let i=0;i<a.count;i++){let y=a.array[i*3+1]-dt*(1.4+(i%7)*.15);if(y<groundHeightAt(P.x,P.z)-1)y+=22;a.array[i*3+1]=y;a.array[i*3]+=Math.sin(now*.0007+i)*dt*.4;}a.needsUpdate=true;}
  for(const f of W.fires)if(f.visible)f.material.opacity=.65+Math.sin(now*.009+f.position.x)*.2;
+ if(W.caveMist&&W.cave&&Math.hypot(P.x-SC.cave.x,P.z-SC.cave.z)<60)for(const m of W.caveMist){const t=now*.0006+m.ph;m.s.position.z=.5+(t%1)*2.4;m.s.material.opacity=.35*(1-(t%1));}
  for(const v of Object.values(act3Npcs)){v.mixer.update(dt);}
  for(const f of act3Folk){f.mixer.update(dt);if(f.target){const h=f.holder,dx=f.target.x-h.position.x,dz=f.target.z-h.position.z,d=Math.hypot(dx,dz);if(d>.4){h.position.x+=dx/d*dt*3;h.position.z+=dz/d*dt*3;h.rotation.y=Math.atan2(dx,dz);h.position.y=groundHeightAt(h.position.x,h.position.z);}else{h.visible=false;f.target=null;}}}
  if(greedClone)greedClone.mixer.update(dt);
@@ -3631,7 +3660,7 @@ function act3Portal3(at){
  act3Portal.position.set(at.x,voidSpec.y+2.4,at.z);act3Portal.visible=true;
 }
 /* ---------- Etapas do Ato III ---------- */
-function updateAct3(dt,now){
+function updateAct3(dt,now){updateCaveWalk(dt);
  if(questStep>=ACT3N.road&&!act3World)buildAct3World();
  updateAct3World(dt,now);updateClimate(dt);
  if(!cineActive&&questStep>=ACT3N.road&&!guidePinned)guide.visible=false;
@@ -3736,7 +3765,7 @@ function act3Interact(){
   {const b=act3Local('estalagem',INN.bed);player.position.set(b.x-1.4,voidSpec.y,b.z+.4);playerYaw=-Math.PI/2;player.rotation.y=playerYaw;}playStory('quarto',bedScene(),{focus:'hero',done:()=>{
 startCellar();}});return true;}
  if(l==='SUBIR A ESCADA'){travelVeil(()=>{leaveAct3Void({x:SC.inn.door.x,z:SC.inn.door.z-2});act1Advance(ACT3N.trap,2);syncAct3World();setGameHour(0.5);});return true;}
- if(l==='ENTRAR NA CAVERNA'){travelVeil(()=>{if(questStep===ACT3N.trap)act1Advance(ACT3N.cave,0);guideRun=null;if(act1Sub>=3){enterAct3Void('distorcida',{x:DISTORTED.portal.x,z:DISTORTED.portal.z+6,yaw:Math.PI});storyDo3('portal-zarkhael');return;}enterAct3Void('gelo',ICE_CAVE.spawn);const p=act3Local('gelo',{x:1.6,z:33});guide.position.set(p.x,voidSpec.y,p.z);guide.visible=act1Sub<2;guidePinned=act1Sub<2;faceTo(guide,player.position);});return true;}
+ if(l==='ENTRAR NA CAVERNA'){caveWalkIn(()=>{if(questStep===ACT3N.trap)act1Advance(ACT3N.cave,0);guideRun=null;if(act1Sub>=3){enterAct3Void('distorcida',{x:DISTORTED.portal.x,z:DISTORTED.portal.z+6,yaw:Math.PI});storyDo3('portal-zarkhael');return;}enterAct3Void('gelo',ICE_CAVE.spawn);const p=act3Local('gelo',{x:1.6,z:33});guide.position.set(p.x,voidSpec.y,p.z);guide.visible=act1Sub<2;guidePinned=act1Sub<2;faceTo(guide,player.position);});return true;}
  if(l==='ENTRAR NO PORTAL'){travelVeil(()=>{if(act3Portal)act3Portal.visible=false;enterAct3Void('distorcida',DISTORTED.spawn);act3World.distStarted=false;});return true;}
  if(l==='ATRAVESSAR O PORTAL'){startZarkhael();return true;}
  return false;

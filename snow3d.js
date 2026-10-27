@@ -35,7 +35,7 @@ export const SNOW_CITY = {
   anjoPath: [[148, -43], [156, -44], [163, -52], [170, -58], [179, -63], [183, -66.8]],
   // MOD 217 — a boca da caverna ficava fora da área andável (o vale arredondado terminava antes dela): esta área
   // estende o chão até a entrada, sem tirar a montanha de trás do arco.
-  caveApproach: { cx: 177, cz: -61, hx: 12.5, hz: 12.5, round: 6, wobble: 1.5, tint: [[.80, .84, .9], [.93, .95, .98]], tintStrength: .92 }
+  caveApproach: { cx: 178, cz: -62, hx: 15, hz: 15, round: 6, wobble: 1.5, tint: [[.80, .84, .9], [.93, .95, .98]], tintStrength: .92 }
 };
 
 /** Dentro da cidade de neve (o frio só afeta aqui). */
