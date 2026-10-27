@@ -4306,7 +4306,7 @@ function storyDo5(id,args){
  return false;
 }
 /* ---------- Inventário (espadas, roupa, encantamentos e poderes; "Equipar melhor") ---------- */
-const SKILL_INFO={magic:{dmg:'5 × 14',what:'Cinco espadas no alvo; GOLPE dispara uma por vez.'},magic2:{dmg:'6 por impacto',what:'18 estrelas em ondas; dano depende da área atingida.'},magic3:{dmg:'—',what:'Em desenvolvimento.'},ultimate:{dmg:'—',what:'Em desenvolvimento.'},magic_plus:{dmg:'5 × 16',what:'Aprimora as cinco lâminas.'},magic2_plus:{dmg:'8 por impacto',what:'Aprimora o dano das estrelas.'},magic3_plus:{dmg:'—',what:'Em desenvolvimento.'}};
+const SKILL_INFO={magic:{dmg:'5 × 14',what:'Cinco espadas no alvo; GOLPE dispara uma por vez.'},magic2:{dmg:'6 por impacto',what:'90 estrelas em ondas durante 10 s; dano depende da área atingida.'},magic3:{dmg:'—',what:'Em desenvolvimento.'},ultimate:{dmg:'—',what:'Em desenvolvimento.'},magic_plus:{dmg:'5 × 16',what:'Aprimora as cinco lâminas.'},magic2_plus:{dmg:'8 por impacto',what:'Aprimora o dano das estrelas.'},magic3_plus:{dmg:'—',what:'Em desenvolvimento.'}};
 function openInventory(){const p=document.getElementById('inv-panel');if(!p)return;inventoryOpen=true;setDefending(false);renderInventory();p.hidden=false;}
 function closeInventory(){inventoryOpen=false;const p=document.getElementById('inv-panel');if(p)p.hidden=true;}
 function equipBest(){const best=bestSword(SWORDS,ownedItems);if(best!==equippedSword)equipSword(best);if(coatOwned&&!coatOn)setCoat(true);renderInventory();status.textContent='Melhor equipamento: '+SWORDS[best].name+(coatOwned?' e Casaco de Pele':'')+'.';worldAudio.reveal();}

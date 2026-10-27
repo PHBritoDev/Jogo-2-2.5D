@@ -37,7 +37,7 @@ export const SHOP_ITEMS = [
   { id: 'magic', sector: 'escrituras', kind: 'skill', name: 'Cerco das Cinco Lâminas Celestiais', cost: 20, level: 2, step: 4,
     desc: 'Cinco cópias da espada cercam o inimigo por até 12 s. Toque GOLPE para disparar uma por vez. 18 de mana.' },
   { id: 'magic2', sector: 'escrituras', kind: 'skill', name: 'Chuva de Estrelas Celestiais', cost: 35, level: 3, step: 5,
-    desc: 'Lance luz ao céu para abrir um círculo e chover 18 estrelas em ondas. 32 de mana; recarga de 5,2 s.' },
+    desc: 'Lance luz ao céu para abrir um círculo e chover 90 estrelas em ondas durante 10 s. 32 de mana; recarga de 5,2 s.' },
   { id: 'magic3', disabled: true, sector: 'escrituras', kind: 'skill', name: 'Sol da Justiça', cost: 70, level: 4, step: 8,
     desc: 'Um sol pequeno e lento que queima o que toca. 45 de mana.' },
   { id: 'ultimate', disabled: true, sector: 'escrituras', kind: 'skill', name: 'Julgamento Divino', cost: 160, level: 6, step: 11,

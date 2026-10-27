@@ -27,3 +27,7 @@ Three.js **r160**, igual ao importmap do jogo: documentação de ShaderMaterial/
 Resultados e capturas em `docs/evidencias/mod224/`. `skill2-preview.html` permite inspecionar o efeito isolado e alternar perfil gráfico. O estudo usa manequins; o jogo continua usando seus GLBs originais.
 
 Android não testado em aparelho real. Chromium com renderização por software e viewport mobile verifica integração e apresentação; não fornece uma medição representativa de FPS em Android.
+
+## Ajuste Mod 225
+
+A pedido do autor: 90 estrelas (5×), em nove ondas de dez, e duração total de 10 s (2×). Círculo e buffers visuais acompanham a duração e a quantidade ampliadas. Dano por estrela, mana e recarga preservados para balanceamento posterior; a proteção contra sobreposição continua ativa até terminar a chuva.

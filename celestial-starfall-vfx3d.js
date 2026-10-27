@@ -17,19 +17,19 @@ export function createStarfallVFX(T,scene){
  const sigilGeo=new T.BufferGeometry();sigilGeo.setAttribute('position',new T.Float32BufferAttribute(positions,3));sigilGeo.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));sigilGeo.setAttribute('tint',new T.Float32BufferAttribute(colors,3));
  const sigil=new T.Mesh(sigilGeo,mat);group.add(sigil);const inner=new T.Mesh(sigilGeo,mat);sigil.add(inner);inner.scale.setScalar(.38);inner.position.y=.08;
  const ribbonMat=mat.clone();ribbonMat.uniforms.time=mat.uniforms.time;
- const segments=20,capacity=19*segments*3*6,buf=new Float32Array(capacity*3),uv=new Float32Array(capacity*2),tint=new Float32Array(capacity*3),geo=new T.BufferGeometry();
+ const segments=20,capacity=91*segments*3*6,buf=new Float32Array(capacity*3),uv=new Float32Array(capacity*2),tint=new Float32Array(capacity*3),geo=new T.BufferGeometry();
  geo.setAttribute('position',new T.BufferAttribute(buf,3).setUsage(T.DynamicDrawUsage));geo.setAttribute('uv',new T.BufferAttribute(uv,2).setUsage(T.DynamicDrawUsage));geo.setAttribute('tint',new T.BufferAttribute(tint,3).setUsage(T.DynamicDrawUsage));const ribbons=new T.Mesh(geo,ribbonMat);ribbons.frustumCulled=false;group.add(ribbons);
  const starMat=new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false,vertexShader:'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}',fragmentShader:'varying vec2 vUv;void main(){vec2 p=abs(vUv*2.-1.);float d=length(p);float rays=pow(max(0.,1.-pow(p.x*p.y*75.,.65)),3.)*pow(max(0.,1.-d),.7);float halo=pow(max(0.,1.-d),5.)*.35;float diamond=max(0.,1.-(p.x+p.y)*3.5);float core=pow(max(0.,1.-d*6.),2.);vec3 color=mix(vec3(.15,.65,1.),vec3(1.,.77,.3),min(1.,diamond*3.));color=mix(color,vec3(1.),core);gl_FragColor=vec4(color,max(max(rays,halo),diamond));}'});
- const starGeo=new T.PlaneGeometry(1.3,1.3),stars=new T.InstancedMesh(starGeo,starMat,19);stars.frustumCulled=false;group.add(stars);
+ const starGeo=new T.PlaneGeometry(1.3,1.3),stars=new T.InstancedMesh(starGeo,starMat,91);stars.frustumCulled=false;group.add(stars);
  const shardGeo=new T.ConeGeometry(.045,.5,3),shardMat=new T.MeshBasicMaterial({color:0xa8e6ff,transparent:true,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false});
- const shards=new T.InstancedMesh(shardGeo,shardMat,180);shards.frustumCulled=false;group.add(shards);
+ const shards=new T.InstancedMesh(shardGeo,shardMat,900);shards.frustumCulled=false;group.add(shards);
  const dummy=new T.Object3D(),a=new T.Vector3(),b=new T.Vector3(),side=new T.Vector3(),dir=new T.Vector3(),eye=new T.Vector3(),up=new T.Vector3(0,1,0);let vertex=0;
  function ribbon(from,to,width,c,u0,u1){dir.subVectors(to,from);eye.subVectors(cameraPosition,from);side.crossVectors(dir,eye).normalize().multiplyScalar(width);
   for(let k=0;k<6;k++){const end=k===2||k===3||k===5,sign=k===1||k===4||k===5?1:-1,v=vertex++,q=end?to:from;buf[v*3]=q.x+side.x*sign;buf[v*3+1]=q.y+side.y*sign;buf[v*3+2]=q.z+side.z*sign;uv[v*2]=end?u1:u0;uv[v*2+1]=sign>0?1:0;tint.set(c,v*3);}}
  const cameraPosition=new T.Vector3();
  function update(state,camera,low=false){
   group.visible=state.active;if(!state.active)return;const t=state.time;mat.uniforms.time.value=t;cameraPosition.copy(camera.position);
-  const open=Math.min(1,Math.max(0,(t-1.5)/.35)),fade=Math.min(1,Math.max(0,(5-t)/.7));sigil.visible=t>=1.5;sigil.position.set(state.center.x,state.center.y,state.center.z);sigil.scale.setScalar((1-Math.pow(1-open,3))*fade);sigil.rotation.set(.38,t*.16,0);inner.rotation.y=-t*.4;mat.uniforms.opacity.value=fade*.85;
+  const open=Math.min(1,Math.max(0,(t-1.5)/.35)),fade=Math.min(1,Math.max(0,(10-t)/.7));sigil.visible=t>=1.5;sigil.position.set(state.center.x,state.center.y,state.center.z);sigil.scale.setScalar((1-Math.pow(1-open,3))*fade);sigil.rotation.set(.38,t*.16,0);inner.rotation.y=-t*.4;mat.uniforms.opacity.value=fade*.85;
   vertex=0;let ns=0,np=0;
   function tip(pos,scale){dummy.position.set(pos.x,pos.y,pos.z);dummy.quaternion.copy(camera.quaternion);dummy.scale.setScalar(scale);dummy.updateMatrix();stars.setMatrixAt(ns++,dummy.matrix);}
   if(t<1.5){tip(state.launch,t<.7?.2+.5*t/.7:.8);if(t>=.7){a.set(state.source.x,state.source.y,state.source.z);b.set(state.launch.x,state.launch.y,state.launch.z);ribbon(a,b,.10,blue,0,1);ribbon(a,b,.035,gold,0,1);if(!low){const height=state.launch.y-state.source.y;for(let j=0;j<20;j++){const u=j/20,v=(j+1)/20; a.set(state.source.x+Math.sin(u*12-t*9)*.18,state.source.y+height*u,state.source.z+Math.cos(u*12-t*9)*.18);b.set(state.source.x+Math.sin(v*12-t*9)*.18,state.source.y+height*v,state.source.z+Math.cos(v*12-t*9)*.18);ribbon(a,b,.028,blue,u,v);}}}}
