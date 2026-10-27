@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DIMENSIONS, BISHOP_KEYS, dimensionForProfile, arenaSpec, vsCard, arenaSpots, DIM_FLOOR_Y } from './dimensions3d.js';
 
-test('os quatro Bispos mantêm os nomes do roteiro e Valério é o primeiro', () => {
-  assert.deepEqual(BISHOP_KEYS.map(k => DIMENSIONS[k].name), ['VALÉRIO', 'VORGAZHEK', "ZAR'KHAEL", 'VÉRAXION']);
+test('os quatro Bispos mantêm os nomes do roteiro e VHAZRAEL é o primeiro', () => {
+  assert.deepEqual(BISHOP_KEYS.map(k => DIMENSIONS[k].name), ['VHAZRAEL', 'VORGAZHEK', "ZAR'KHAEL", 'VÉRAXION']);
   for (const k of Object.keys(DIMENSIONS)) assert.ok(!/KHRAVAZOTH/i.test(JSON.stringify(DIMENSIONS[k])));
 });
 

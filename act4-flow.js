@@ -157,7 +157,7 @@ export function rivalRevealScene() {
     act('misteriosa-volta'),
     say(S.rival, 'Parece que você saiu vitorioso de novo, não é?', { actor: 'rival' }),
     say(S.hero, 'Quem é você de verdade? Como sabe onde estão os Bispos? E por que está me seguindo?'),
-    say(S.rival, 'Calma, não precisa tirar conclusões precipitadas. Não sou subordinada da Ganância; pelo contrário, eu quero destruí-la. Estou de olho em você desde a sua primeira vitória, contra Valério.', { actor: 'rival' }),
+    say(S.rival, 'Calma, não precisa tirar conclusões precipitadas. Não sou subordinada da Ganância; pelo contrário, eu quero destruí-la. Estou de olho em você desde a sua primeira vitória, contra VHAZRAEL.', { actor: 'rival' }),
     say(S.hero, 'Mas como você sabe tão bem onde os Bispos estavam?'),
     say(S.rival, 'Antes existia um quinto Bispo. Mas esse Bispo era tão fraco que foi expulso. Essa era eu.', { actor: 'rival' }),
     say(S.hero, 'Espera… você era um Bispo?!'),

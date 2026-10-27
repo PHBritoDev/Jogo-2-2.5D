@@ -70,7 +70,7 @@ Um painel bonito é apenas o começo: o resultado final precisa parecer parte do
 
 O combate deve ter peso e resposta: ataques, alcance de armas, esquiva/bloqueio, impacto, recuperação, gravidade, colisões e efeitos devem combinar visualmente com o que acontece no jogo.
 
-Para Valério e os outros chefes:
+Para VHAZRAEL e os outros chefes:
 - preservar modelos, escalas, animações e correções que já foram estabilizadas;
 - não reintroduzir bugs antigos de tamanho, flutuação, chão ou rig;
 - ataques e habilidades precisam de alcance, telegraph, cooldown e recuperação legíveis;

@@ -31,7 +31,7 @@ O texto original continua sendo a referência. As falas revisadas estão em [`pr
 ## Decisões e observações
 
 - **Nome:** nenhuma fala usa "Paulo". O nome vem do painel (as mesmas regras de `sanitizePlayerName`). No céu o herói ainda não tem nome, então a fala C06b aparece como "Viajante".
-- **Ato I:** o cartão não cita Valério. O nome dele só aparece quando a história chega até ele.
+- **Ato I:** o cartão não cita VHAZRAEL. O nome dele só aparece quando a história chega até ele.
 - **Bolsa de moedas:** o fluxo antigo dava 8 moedas ao falar com o Anjo. Elas continuam sendo dadas, agora ao aceitar a missão, porque o Ato I atual depende delas para subornar o informante. O Marco 2 vai rever isso junto com a vila nova.
 - **Pular:** o botão PULAR pede um segundo toque para confirmar. Se o jogador pula o céu, vai direto para as galáxias. Se pula o despertar, ainda precisa digitar o nome (quando não tem), e a missão é aceita.
 - **Quem já jogou:** quem já passou do começo (missão maior que 0 ou despertar visto) não vê o céu de novo. Reiniciar o progresso da Galáxia 1 também reinicia o prólogo.

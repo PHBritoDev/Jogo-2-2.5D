@@ -576,7 +576,15 @@ for sx in (1, -1):
             WINGS.append(feather(q, d, ln, w * (1.1 if not white else 1), flat, key, col))
     for k in range(len(bone) - 1):
         WINGS.append(ribbon([bone[k], bone[k + 1]], .05, .045, .03, 'gold' if not white else 'feather', 'OssoAsa', [flat, flat], sides=4))
-for o in WINGS: OUTFIT.append((o, {'UpperChest': 1.}))
+# MOD 218 — cada asa ganha um osso próprio (AsaEsq/AsaDir, filhos do UpperChest): o jogo balança as asas ao respirar,
+# andar e com o vento. As penas perto do ombro ficam no peito e as pontas seguem o osso da asa.
+bpy.context.view_layer.objects.active = arm; bpy.ops.object.mode_set(mode='EDIT'); inv = arm.matrix_world.inverted()
+for nm, sx in (('AsaEsq', 1), ('AsaDir', -1)):
+    eb = arm.data.edit_bones.new(nm); eb.head = inv @ Vector((sx * .07, .11, 1.33)); eb.tail = inv @ Vector((sx * .42, .3, 1.62)); eb.parent = arm.data.edit_bones['UpperChest']; eb.use_deform = True
+bpy.ops.object.mode_set(mode='OBJECT')
+def wing_w(p):
+    t = max(0., min(1., (abs(p.x) - .1) / .3)); return {'UpperChest': 1 - t, ('AsaEsq' if p.x > 0 else 'AsaDir'): t} if t > 0 else {'UpperChest': 1.}
+for o in WINGS: OUTFIT.append((o, wing_w))
 MAT['feather'].use_backface_culling = False; MAT['crystal'].use_backface_culling = False
 # manto longo: branco por fora, faixa escura na frente (aberta), barra rasgada
 ARMB = {'LeftUpperArm', 'RightUpperArm', 'LeftLowerArm', 'RightLowerArm', 'LeftHand', 'RightHand'}
@@ -631,7 +639,7 @@ if VITIMA:                                                            # sem mant
     OUTFIT, SKIRT = [], []
     MAT['brow'].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.08, .05, .04, 1)
 # ---------- 9) pesos, junta tudo e exporta ----------
-GROUPS = sorted(set(MAP.values()))
+GROUPS = sorted(set(MAP.values()) | {'AsaEsq', 'AsaDir'})
 def set_w(o, fn):
     for n in GROUPS:
         if n not in o.vertex_groups: o.vertex_groups.new(name=n)
@@ -642,7 +650,7 @@ HEAD = lambda p: {'Head': 1.}
 for o in EXTRA: set_w(o, near_w if o is cap else HEAD)
 set_w(sheet, chain_w)
 for o, head in HAIR: set_w(o, HEAD if head else chain_w)
-for o, fixed in OUTFIT: set_w(o, (lambda p, f=fixed: f) if fixed else near_w)
+for o, fixed in OUTFIT: set_w(o, fixed if callable(fixed) else (lambda p, f=fixed: f) if fixed else near_w)
 for o, uvt in SKIRT:
     def sw(p, o=o):
         t = max(0, min(1, (ZT - p.z) / ZT)); k = .3 * min(1, abs(p.x) / .2) * t

@@ -23,7 +23,7 @@ test('falas essenciais do roteiro estão presentes, sem nome fixo', () => {
   for (const re of [/sem nenhum casaco/, /morreu de frio mesmo estando bem vestida/, /Fez a escolha certa/, /área de equipamentos/, /pode custar a sua vida/, /muito frio/, /voltar para comprar o casaco/,
     /homem com asas/, /esse frio está te fazendo delirar/, /Você é novo por aqui/, /Pelas suas vestes/, /o mundo não está em caos/, /a nossa cidade não foi afetada/, /Logo vai anoitecer/, /coisas muito esquisitas acontecem/,
     /escondendo alguma coisa/, /hospedagem está de graça/, /cheirando mal/, /preciso descansar/, /Eu não estava na cama/, /soltar a minha filha/, /Quem você pensa que é para me dar ordens/, /bom demais para ser verdade/,
-    /Valério e VORGAZHEK/, /Cadê o Anjo-Guia/, /neste porão/, /previu a sua chegada/, /Experimentos\?/, /transformar novas pessoas num novo Bispo/, /exterminar todos vocês/, /Não faça issoooo/,
+    /VHAZRAEL e VORGAZHEK/, /Cadê o Anjo-Guia/, /neste porão/, /previu a sua chegada/, /Experimentos\?/, /transformar novas pessoas num novo Bispo/, /exterminar todos vocês/, /Não faça issoooo/,
     /O que vocês estão fazendo com esta cidade/, /não é digno de saber/, /O que aconteceu/, /Morra\./, /Nãooooo/, /Pensei que tinha morrido/, /Esqueceu quem eu sou/, /Me siga/,
     /Chegamos/, /fingi a minha própria morte/, /segui VÉRAXION/, /muito arriscado/, /Bispo mais difícil de encontrar/, /não tem nada nesta caverna/, /Olhe para trás/, /nós não viemos por aí/, /dimensão distorcida/,
     /Adeus/, /percepção parece distorcida/, /comer os seus ossos/, /fantoches por ZAR'KHAEL/, /Se ama a sua vida, então fuja/, /salvar este planeta/, /Você falou demais/, /próprios aliados/, /demônios de baixo nível/,

@@ -9,7 +9,7 @@
  *  3 a chave: 0 gaiola fechada · 1 crianças transformadas (luta 2) · 2 desmaio
  *  4 esgotos: 0 a caminho (massacre, 3 Enemy2) · 1 pista (ir à caverna) · 2 dentro (5 Seguidores) · 3 o buraco
  *  5 o lugar estranho: o Guardião do Portal
- *  6 portal liberado · 7 dimensão de Valério · 8 Ato I concluído
+ *  6 portal liberado · 7 dimensão de VHAZRAEL · 8 Ato I concluído
  */
 export const ACT1 = {
   version: 6,
@@ -196,9 +196,9 @@ export function questPresentation(step, sub = 0) {
       ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
       ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][Math.min(3, sub)],
     5: ['ATO I · O GUARDIÃO DO PORTAL', 'Siga pelo caminho vazio e derrote o guardião do portal'],
-    6: ['ATO I · O PORTAL DE VALÉRIO', 'Entre no portal: a dimensão de Valério está do outro lado'],
-    7: ['ATO I · DIMENSÃO ABERTA', 'Valério espera na dimensão dele. Atravesse o portal'],
-    8: ['ATO I · CONCLUÍDO', 'Valério caiu. Uma longa jornada começa']
+    6: ['ATO I · O PORTAL DE VHAZRAEL', 'Entre no portal: a dimensão de VHAZRAEL está do outro lado'],
+    7: ['ATO I · DIMENSÃO ABERTA', 'VHAZRAEL espera na dimensão dele. Atravesse o portal'],
+    8: ['ATO I · CONCLUÍDO', 'VHAZRAEL caiu. Uma longa jornada começa']
   };
   const pair = pages[step] || pages[8];
   return { title: pair[0], objective: pair[1] };
@@ -211,7 +211,7 @@ export function combatStep(step) {
 /* ---------- Falas (texto revisado; o original está em docs/roteiro/M2-ATO1.md) ---------- */
 export const SPEAKERS = {
   hero: 'heroi', guide: 'Anjo-Guia', vendor: 'Téo · Provisões', follower: 'Seguidor da Ganância',
-  demon: 'Demônio da Ganância', child: 'Criança', warden: 'Guardião do Portal', valerio: 'Valério', victim: 'Morador'
+  demon: 'Demônio da Ganância', child: 'Criança', warden: 'Guardião do Portal', valerio: 'VHAZRAEL', victim: 'Morador'
 };
 const S = SPEAKERS;
 const say = (who, text, extra) => Object.assign({ type: 'say', who, text }, extra || {});
@@ -249,7 +249,7 @@ export function vendorScene() {
     say(S.vendor, 'Fiquei sabendo que não é muito longe daqui. De madrugada, ouvem-se sons estranhos na floresta… choro de crianças.'),
     say(S.vendor, 'Parece que algumas crianças das vilas e aldeias estão sendo vendidas pelos próprios pais, para servirem de experimento. Dizem até que há demônios envolvidos nisso.'),
     say(S.hero, 'Mas quem pode estar por trás disso?'),
-    say(S.vendor, 'Parece que é um dos subordinados do Pecado da Ganância. Ele se chama Valério.'),
+    say(S.vendor, 'Parece que é um dos subordinados do Pecado da Ganância. Ele se chama VHAZRAEL.'),
     say(S.vendor, 'Bom, eu disse tudo o que sei. Tome cuidado, rapaz, você parece novo. Se tem amor à vida, jamais se envolva com eles.'),
     act('anoitecer'),
     wait(2.6)
@@ -274,7 +274,7 @@ export function forestSecondScene() {
     shot('mais-dois', 2.4, { cam: 'look', on: 'hero', off: [-3, 2.4, -4.5], at: [0, 1, 4] }, { with: [act('surgir-dois')] }),
     say(S.follower, 'Quem é você?'),
     say(S.hero, 'Eu sou aquele que vai destruir o Pecado da Ganância.'),
-    say(S.follower, 'Ahahahaha! Isso é impossível. Você não teria chance nem contra Valério.')
+    say(S.follower, 'Ahahahaha! Isso é impossível. Você não teria chance nem contra VHAZRAEL.')
   ];
 }
 
@@ -394,12 +394,12 @@ export function wardenDefeatScene() {
   return [
     say(S.warden, 'Por favor, não me mate… eu estava apenas seguindo ordens.'),
     say(S.hero, 'O que é isso? E o que tem dentro desse portal?'),
-    say(S.warden, 'Valério está aí dentro. É uma dimensão isolada deste mundo… foi Valério quem a criou. Ela leva a algum lugar distante deste planeta.'),
+    say(S.warden, 'VHAZRAEL está aí dentro. É uma dimensão isolada deste mundo… foi VHAZRAEL quem a criou. Ela leva a algum lugar distante deste planeta.'),
     say(S.hero, 'Entendi… Agora pode sumir deste mundo.'),
     say(S.warden, 'Nãoooooo!', { auto: 1.4 }),
     shot('guardiao-desfeito', 2, { cam: 'look', on: 'enemy', off: [2.6, 1.6, 3.6], at: [0, 1, 0] }, { with: [act('desfazer-guardiao')] }),
     say(S.hero, 'Demônios não merecem misericórdia. Tantas almas imploraram para não morrer, e eles brincaram com elas.'),
-    say(S.hero, 'Matar Valério vai ser o primeiro passo para salvar este mundo.')
+    say(S.hero, 'Matar VHAZRAEL vai ser o primeiro passo para salvar este mundo.')
   ];
 }
 
@@ -414,7 +414,7 @@ export function valerioIntroScene() {
   ];
 }
 
-/** Valério caindo. */
+/** VHAZRAEL caindo. */
 export function valerioDefeatScene() {
   return [
     say(S.valerio, 'Não… não pode ser. Isso é impossível! Eu, uma divindade, um dos quatro Bispos da Ganância… derrotado por um humano.'),
@@ -427,8 +427,8 @@ export function afterValerioScene() {
   return [
     shot('volta', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: 1, dist: 4.4 }, { with: [act('anjo-aparece')] }),
     say(S.guide, 'Então você realmente voltou vivo, né?'),
-    say(S.hero, 'Aonde eu estou? Eu não estava na dimensão de Valério?'),
-    say(S.guide, 'Parece que, quando você derrotou Valério, o portal se fechou e todo o esgoto sumiu.'),
+    say(S.hero, 'Aonde eu estou? Eu não estava na dimensão de VHAZRAEL?'),
+    say(S.guide, 'Parece que, quando você derrotou VHAZRAEL, o portal se fechou e todo o esgoto sumiu.'),
     say(S.hero, 'Então, o que eu devo fazer agora?'),
     say(S.guide, 'Agora é só o começo. Ainda há uma longa jornada pela frente.'),
     act('escuro'),
@@ -452,7 +452,7 @@ export function afterEnemyDefeated(index, total = ACT1.enemyTotal) {
 }
 
 export function afterWardenDefeat() {
-  return { questStep: 6, wardenDefeated: true, status: 'O Guardião caiu. O portal de Valério está aberto.' };
+  return { questStep: 6, wardenDefeated: true, status: 'O Guardião caiu. O portal de VHAZRAEL está aberto.' };
 }
 
 /** Avanço dentro do Ato I por sub-etapa (para salvar onde o jogador está). */
@@ -472,7 +472,7 @@ export function portalBlockedLines() {
   return [{ who: S.guide, text: 'Ainda não. Há um guardião diante do portal.' }];
 }
 
-/** Volta da dimensão: a vitória sobre Valério fecha o Ato I uma única vez. */
+/** Volta da dimensão: a vitória sobre VHAZRAEL fecha o Ato I uma única vez. */
 export function afterValerioVictory(progress) {
   const p = progress || {};
   const first = !p.valerioRewardClaimed;

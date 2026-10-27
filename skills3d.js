@@ -13,7 +13,7 @@ export const SKILLS = {
   magic2: { id: 'magic2', name: 'Julgamento Celestial', key: '2', mana: 32, cooldown: 4200, unlockStep: 6,
     lockReason: 'Compre na Loja Central depois de vencer as sentinelas.' },
   magic3: { id: 'magic3', name: 'Sol da Justiça', key: '3', mana: 45, cooldown: 6200, unlockBishops: 1,
-    lockReason: 'Compre na Loja Central depois de purificar Valério.' },
+    lockReason: 'Compre na Loja Central depois de purificar VHAZRAEL.' },
   ultimate: { id: 'ultimate', name: 'Julgamento Divino', key: '4', mana: 80, cooldown: 14000, unlockBishops: 2,
     lockReason: 'Compre na Loja Central durante o Ato II, antes do Segundo Bispo.' }
 };

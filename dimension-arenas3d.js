@@ -2,7 +2,7 @@
  * MOD 202 — Arenas e portais das dimensões dos Bispos (geometria procedural, sem arquivos novos).
  * O módulo recebe o THREE como parâmetro (o mundo já o carrega) e só cria objetos quando a dimensão é aberta,
  * então não pesa na entrada do jogo. Tudo é instanciado/agrupado: poucas chamadas de desenho para o celular.
- * Referências do criador: Valério (câmara macabra de moedas e correntes), Vorgazhek (vazio de olhos vermelhos e
+ * Referências do criador: VHAZRAEL (câmara macabra de moedas e correntes), Vorgazhek (vazio de olhos vermelhos e
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
 import { SEWER } from './sewer3d.js';
@@ -84,7 +84,7 @@ function checkerTexture(THREE, repeat, { a = '#0a0a0c', b = '#c8c8d0', cracks = 
 
 /* ===================== ARENAS ===================== */
 const THEMES = {
-  // Valério — a câmara macabra: pedra preta, ouro velho, correntes, gaiolas com enforcados e sangue seco.
+  // VHAZRAEL — a câmara macabra: pedra preta, ouro velho, correntes, gaiolas com enforcados e sangue seco.
   vault(THREE, g, spec, ctx) {
     const r = rng(101), R = spec.radius;
     const floorTex = canvasTex(THREE, 1024, 1024, (c, w, h) => {
@@ -322,7 +322,7 @@ const THEMES = {
     return { bg: 0xf3d9a2, fog: 0xf0dcae, fogNear: 40, fogFar: 260, hemi: [0xfff6e6, 0xc9a86a, 1.2], sun: [0xffe8c0, 1.5], light: [0xffe2a0, 2.6, 140, [0, 22, -46]], exposure: .9 };
   },
   // MOD 204 — Esgoto do Ato I (layout em sewer3d.js): túnel abobadado com canal de água e gotas, rastros de sangue,
-  // a sala dos Seguidores com o buraco, a cela mais abaixo, os dois caminhos e o "lugar estranho" com o portal de Valério.
+  // a sala dos Seguidores com o buraco, a cela mais abaixo, os dois caminhos e o "lugar estranho" com o portal de VHAZRAEL.
   sewer(THREE, g, spec, ctx) {
     const L = SEWER, r = rng(404), refs = ctx.refs;
     const brick = canvasTex(THREE, 256, 256, (c, w, h) => {
@@ -414,7 +414,7 @@ const THEMES = {
     for (const c of [L.cell, L.feeding]) for (let i = 0; i < 5; i++) { const a = i / 5 * 6.28 + .3; lamps.push({ x: c.x + Math.cos(a) * (c.r + .1), y: 2.6, z: c.z + Math.sin(a) * (c.r + .1), s: .14 }); }
     for (let i = 0; i < 6; i++) lamps.push({ x: L.emptyPath.from.x + (i % 2 ? -1 : 1) * (L.emptyPath.r + .4), y: 2.3, z: L.emptyPath.from.z - 2 - i * 4.5, s: .13 });
     g.add(instanced(THREE, new THREE.SphereGeometry(1, 8, 6), lampMat, lamps));
-    // O "lugar estranho": caverna vermelha e roxa, pedras flutuando, olhos e o portal de Valério ao fundo.
+    // O "lugar estranho": caverna vermelha e roxa, pedras flutuando, olhos e o portal de VHAZRAEL ao fundo.
     const S2 = L.strange;
     const caveMat = new THREE.MeshStandardMaterial({ color: 0x1a0c14, roughness: .95, side: THREE.BackSide, emissive: 0x1a0410, emissiveIntensity: .7 });
     const cave = new THREE.Mesh(new THREE.SphereGeometry(S2.r + 3, 30, 16), caveMat); cave.scale.set(1, .55, 1.25); cave.position.set(S2.x, 0, S2.z - 2); g.add(cave);
@@ -424,7 +424,7 @@ const THEMES = {
     ctx.tick.push(t => { rocks.position.y = Math.sin(t * .6) * .35; });
     const eyes = eyeField(THREE, { count: 40, seed: 31, tex: eyeTexture(THREE), tint: [1, .8, .8], place: (i, rr) => { const a = rr() * 6.28; return { x: S2.x + Math.cos(a) * (S2.r + 1), y: 1.5 + rr() * 6, z: S2.z - 2 + Math.sin(a) * (S2.r + 2) * 1.2, size: .8 + rr() * 1.6 }; } });
     g.add(eyes); ctx.eyes.push(eyes);
-    // Portal de Valério: arco de moedas douradas e redemoinho carmim.
+    // Portal de VHAZRAEL: arco de moedas douradas e redemoinho carmim.
     const P = L.portal, pg = new THREE.Group(); pg.position.set(P.x, 0, P.z); g.add(pg);
     const goldM = new THREE.MeshStandardMaterial({ color: 0xc9962e, metalness: .85, roughness: .35, emissive: 0x4a2a06, emissiveIntensity: .8 });
     const coins = []; for (let i = 0; i < 46; i++) { const a = Math.PI * (i / 45); coins.push({ x: Math.cos(a) * 3.4, y: 3.6 + Math.sin(a) * 3.4 * 1.15 - (i % 2) * .1, z: 0, rx: Math.PI / 2, s: .42 }); }

@@ -34,7 +34,7 @@ test('save do Ato I antigo no meio do ato recomeça a etapa no formato novo, sem
   // Save já no formato novo é mantido como está.
   const kept = migrateProgress({ version: 6, act1Rev: ACT1.rev, questStep: 4, act1Sub: 2, coins: 3 });
   assert.equal(kept.act1Sub, 2);
-  // Depois de Valério nada muda.
+  // Depois de VHAZRAEL nada muda.
   const done = migrateProgress({ version: 6, questStep: 12, coins: 9, bishopsDefeated: 1, valerioRewardClaimed: true });
   assert.equal(done.questStep, 12);
   assert.equal(done.valerioRewardClaimed, true);
@@ -81,8 +81,8 @@ test('sub-etapas avançam na ordem e fecham a etapa', () => {
 
 test('falas essenciais do roteiro estão presentes', () => {
   const t = text();
-  for (const re of [/Se não vai comprar nada, vaza/, /Ele se considera um deus/, /controla todo o dinheiro do mundo/, /choro de crianças/, /vendidas pelos próprios pais/, /Ele se chama Valério/,
-    /se tem amor à vida, jamais se envolva com eles/i, /chegou mais um sacrifício/, /A paz deste mundo acabou/, /destruir o Pecado da Ganância/, /nem contra Valério/,
+  for (const re of [/Se não vai comprar nada, vaza/, /Ele se considera um deus/, /controla todo o dinheiro do mundo/, /choro de crianças/, /vendidas pelos próprios pais/, /Ele se chama VHAZRAEL/,
+    /se tem amor à vida, jamais se envolva com eles/i, /chegou mais um sacrifício/, /A paz deste mundo acabou/, /destruir o Pecado da Ganância/, /nem contra VHAZRAEL/,
     /Achei a chave/, /Vocês estão bem\?/, /como receptáculo/, /meio tonto/, /já é de manhã/, /esgotos/, /eu mesmo te mato/, /Já estou indo/,
     /se recusaram a nos dar todo o dinheiro/, /A existência de vocês acaba aqui/, /nossa sobremesa/, /Não seja imprudente/, /Nunca mais seja imprudente/,
     /arcanjos mais fortes de Deus/, /Você não dará mais nenhum passo/, /seguindo ordens/, /dimensão isolada/, /Demônios não merecem misericórdia/,
@@ -111,7 +111,7 @@ test('cenas têm a ordem do roteiro', () => {
   assert.ok(f.indexOf('desmaiar') < f.indexOf('amanhecer') && f.indexOf('amanhecer') < f.indexOf('levantar'));
 });
 
-test('vitória sobre Valério fecha o Ato I uma vez só', () => {
+test('vitória sobre VHAZRAEL fecha o Ato I uma vez só', () => {
   const first = A.afterValerioVictory({ valerioRewardClaimed: false });
   assert.equal(first.questStep, 8);
   assert.equal(first.bishopsDefeated, 1);

@@ -18,7 +18,7 @@ Toda família tem **Habilidade 1, 2 e 3, golpe de espada e ultimate**.
 | Demônio — Enemy2 (demon2, miniboss2, evo2, elite2) | Hálito Infernal (leque) | Erupções | Bolas de Fogo | Corte Flamejante | Furacão Infernal (dois furacões de fogo) |
 | Carrasco — Enemy3 (demon3, miniboss4, zealot, evo3, elite3) | Investida | Tremor (onda de choque) | Corrente da Forca (linha) | Corte Negro ×2 | Execução (salto + onda + cortes) |
 | Guardião — Enemy4 (demon4, leader4, miniboss3, hollow, elite4) | Lança Sombria | Chuva de Lanças | Pulso do Bastião | Varrida | Bastião das Sombras (rajadas de orbes) |
-| Bispo 1 — VALÉRIO | Mãos do Contrato | Orbes das Almas | Moedas das Almas (chuva) | Espadas Sombrias ×3 | Contrato Final: o Ceifador (foice gigante + mãos) |
+| Bispo 1 — VHAZRAEL | Mãos do Contrato | Orbes das Almas | Moedas das Almas (chuva) | Espadas Sombrias ×3 | Contrato Final: o Ceifador (foice gigante + mãos) |
 | Bispo 2 — VORGAZHEK | Correntes da Dívida | Lâminas de Metal Líquido ×5 | Explosões da Forja | Golpe da Forja | Fornalha da Dívida (ouro derretido + sol de ouro) |
 | Bispo 3 — ZAR'KHAEL | Selos do Juízo | Gelo Distorcido (3 linhas) | Sentença Espectral | Lua de Gelo | Sentença Invertida (selos, raios e controles invertidos) |
 | Bispo 4 — VÉRAXION | Fogo Abissal | Furacão Negro | Orbes do Abismo | Corte do Abismo | **Buraco Negro** |
@@ -55,6 +55,6 @@ Toda família tem **Habilidade 1, 2 e 3, golpe de espada e ultimate**.
 - **Celular:** a chuva usa uma única malha instanciada e cai para 60% das peças em telas de baixa resolução.
 - **Evidência:**
   - **CONFIRMADO POR CÓDIGO:** `node --test` (inclui `powers3d.test.mjs` e `ultimates3d.test.mjs`).
-  - **TESTADO EM NAVEGADOR:** os cinco poderes de Valério, VORGAZHEK, ZAR'KHAEL, VÉRAXION e Ganância 1 forçados um a um, sem erros de página. Os quatro poderes do herói causaram dano (42, 26, 38 e 65). Os Atos III a VI correram com os kits automáticos.
+  - **TESTADO EM NAVEGADOR:** os cinco poderes de VHAZRAEL, VORGAZHEK, ZAR'KHAEL, VÉRAXION e Ganância 1 forçados um a um, sem erros de página. Os quatro poderes do herói causaram dano (42, 26, 38 e 65). Os Atos III a VI correram com os kits automáticos.
   - **Android: NÃO TESTADO.**
   - **SUSPEITA:** o equilíbrio de dano precisa de teste real de jogo (no navegador sem GPU o jogo roda a ~8 FPS).

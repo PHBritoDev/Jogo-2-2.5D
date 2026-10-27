@@ -18,5 +18,5 @@
 
 **Evidência:**
 - **CONFIRMADO POR CÓDIGO:** `node --test`.
-- **TESTADO EM NAVEGADOR:** o Corte de Luz tirou 18 de vida e a Espada do Círculo tirou 40, na dimensão de Valério, sem erros de página.
+- **TESTADO EM NAVEGADOR:** o Corte de Luz tirou 18 de vida e a Espada do Círculo tirou 40, na dimensão de VHAZRAEL, sem erros de página.
 - **Android:** NÃO TESTADO.

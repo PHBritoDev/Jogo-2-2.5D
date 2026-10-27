@@ -8,8 +8,8 @@ export const DIM_FLOOR_Y = -2000;
 
 export const DIMENSIONS = {
   bishop1: {
-    key: 'bishop1', order: 1, name: 'VALÉRIO', title: 'O Primeiro Bispo', epithet: 'O Guardião das Moedas',
-    kicker: 'DIMENSÃO I · A CÂMARA DAS MOEDAS', portrait: 'Bispo1-ui.webp', rig: 'bishop1', profile: 'valerio', hp: 260,
+    key: 'bishop1', order: 1, name: 'VHAZRAEL', title: 'O Primeiro Bispo', epithet: 'O Ceifador dos Condenados',
+    kicker: 'DIMENSÃO I · A CÂMARA DOS CONDENADOS', portrait: 'Bispo1-ui.webp', rig: 'bishop1', profile: 'valerio', hp: 260,
     line: '“Toda alma tem um último pedido. A sua terá o privilégio de morrer sem ser ouvida.”',
     rage: 'Cada moeda que cai é uma alma que você não salvou.',
     center: { x: 400, z: 0 }, radius: 30, accent: '#e0b040', theme: 'vault'

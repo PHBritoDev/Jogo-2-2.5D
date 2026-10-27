@@ -7,7 +7,7 @@ Este documento registra a causa e a solução confirmada em 12/10/2026 para o bu
 - Não reverter essa correção nem substituir os arquivos pela versão anterior só para tentar “voltar ao normal”.
 - Arquivos principais: `protagonista-model-20261012.js`, `index.html`, `valerio-test.html`.
 - A página de teste usa o GLB `Protagonista.glb).
-- PR de referência da correção original para o mesmo tipo de bug no Bispo Valério: https://github.com/PHBritoDev/Jogo-2-2.5D/pull/49
+- PR de referência da correção original para o mesmo tipo de bug no Bispo VHAZRAEL: https://github.com/PHBritoDev/Jogo-2-2.5D/pull/49
 
 ## Causa técnica
 Havia dois problemas relacionados, e resolver só um não bastava:

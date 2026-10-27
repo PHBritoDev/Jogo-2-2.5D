@@ -128,7 +128,7 @@ export function cellarScene() {
     say(S.demon, 'Você achou mesmo que eu ia fazer isso? Quem você pensa que é para me dar ordens?'),
     act('matar-estalajadeiro'), wait(1.1),
     say(S.hero, 'Eu sabia que tinha algo de estranho nesta cidade. Estava bom demais para ser verdade.'),
-    say(S.demon, 'Agora é a sua vez. Você não é grande coisa, sabia? Não esperava que quem derrotou Valério e VORGAZHEK fosse cair num truque tão fácil.'),
+    say(S.demon, 'Agora é a sua vez. Você não é grande coisa, sabia? Não esperava que quem derrotou VHAZRAEL e VORGAZHEK fosse cair num truque tão fácil.'),
     say(S.hero, 'Cadê o Anjo-Guia?'),
     say(S.demon, 'Anjo-Guia? Quem é esse? Você está tentando ganhar tempo, mas isso não vai funcionar. A sua morte será aqui, neste porão.'),
     act('romper-correntes')
@@ -194,7 +194,7 @@ export function distortedScene() {
     act('ato3-piscar'), wait(1.2),
     say(S.hero, 'Minha percepção parece distorcida.'),
     shot('guardiao', 2.2, { cam: 'look', on: 'enemy', off: [2, 2.2, 4.6], at: [0, 2, 0] }, { with: [act('ato3-surgir-guardiao')] }),
-    say(S.miniboss, 'Então foi você que derrotou Valério e VORGAZHEK. Mesmo assim, fico surpreso por ter conseguido chegar até aqui. Mas é aqui que a sua jornada acaba.'),
+    say(S.miniboss, 'Então foi você que derrotou VHAZRAEL e VORGAZHEK. Mesmo assim, fico surpreso por ter conseguido chegar até aqui. Mas é aqui que a sua jornada acaba.'),
     say(S.miniboss, 'Vou comer os seus ossos e roubar a sua alma para fortalecer a minha.'),
     say(S.hero, "Vocês não passam de vermes, usados como fantoches por ZAR'KHAEL.")
   ];
@@ -221,7 +221,7 @@ export function zarkhaelDefeatScene() {
   return [
     say(S.boss, "Não… não é possível. Como eu, ZAR'KHAEL, fui derrotado…? Quem é você?"),
     say(S.hero, 'Quais são as suas últimas palavras?'),
-    say(S.boss, 'Vou te revelar algo sobre VÉRAXION. Nem se eu me juntasse a Valério e VORGAZHEK nós teríamos chance contra ele. Ele é uma aberração divina. Se quisesse, poderia até desafiar a Ganância.'),
+    say(S.boss, 'Vou te revelar algo sobre VÉRAXION. Nem se eu me juntasse a VHAZRAEL e VORGAZHEK nós teríamos chance contra ele. Ele é uma aberração divina. Se quisesse, poderia até desafiar a Ganância.'),
     say(S.hero, 'Hmm, interessante. Já que você me revelou algo tão importante, vou retribuir: a minha verdadeira identidade.'),
     say(S.hero, 'Sou {nome}, um dos anjos de Deus, escolhido para salvar os sete mundos.'),
     say(S.boss, 'Um anjo? Isso não é possível. Pensei que seres celestiais não pudessem interferir neste mundo… a não ser que você não seja completamente um anjo.'),
