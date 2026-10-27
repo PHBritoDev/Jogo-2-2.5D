@@ -2736,7 +2736,23 @@ function makeFoeClone(rigName,spot,opts){
  holder.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);if(opts&&opts.scale)holder.scale.setScalar(opts.scale);scene.add(holder);
  const mixer=new THREE.AnimationMixer(c),role=(opts&&opts.role)||'idle',act=src.actions[role]||src.actions.idle;
  if(act){const a=mixer.clipAction(act.getClip());a.play();a.time=Math.random()*2;if(opts&&opts.timeScale)a.timeScale=opts.timeScale;}
- return{holder,mixer,spot,approach:opts&&opts.approach};
+ return{holder,mixer,spot,rig:rigName,approach:opts&&opts.approach};
+}
+/* MOD 217 — golpe final: o herói ataca, o golpe acerta (som, tremor), o inimigo cai com o clipe de morte do rig (ou
+   tomba para trás) e o corpo fica no chão um instante antes de afundar devagar. Substitui o "encolher até sumir". */
+var fallenFoes=[];
+function foeFinalBlow(c,byHero=true){
+ if(!c||c.fallen)return;c.fallen=true;const h=c.holder;h.scale.y=h.scale.x;if(byHero){faceTo(player,h.position);if(actions.attack)playOnce('attack',.08);}
+ setTimeout(()=>{if(!h.parent)return;worldAudio.hit();cameraShake(.25);
+  const src=rigSource(c.rig),d=src&&src.actions&&src.actions.death;
+  if(d){c.mixer.stopAllAction();const a=c.mixer.clipAction(d.getClip());a.reset();a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=true;a.play();}
+  fallenFoes.push({c,t:0,tilt:!d});},byHero?260:0);
+}
+function updateFallen(dt){
+ for(let i=fallenFoes.length-1;i>=0;i--){const f=fallenFoes[i],h=f.c.holder,inner=h.children[0];f.t+=dt;
+  if(f.tilt&&inner)inner.rotation.x=-(Math.min(1,f.t/.7)**2)*Math.PI/2;
+  if(f.t>2.6)h.position.y-=dt*.55;
+  if(f.t>4.2||!h.parent){h.visible=false;fallenFoes.splice(i,1);const k=hordeClones.indexOf(f.c);if(k>=0){hordeClones.splice(k,1);disposeClone(f.c);}}}
 }
 function disposeClone(c){if(!c)return;c.mixer.stopAllAction();scene.remove(c.holder);}
 /** Começa uma luta em grupo. spots: onde cada um espera; o primeiro (ou o mais perto) luta. */
@@ -2769,7 +2785,7 @@ function packHandleDefeat(){
  return true;
 }
 function updatePack(dt){
- const lists=[pack?pack.clones:[],hordeClones];
+ updateFallen(dt);const lists=[pack?pack.clones:[],hordeClones];
  for(const list of lists)for(const c of list){if(!c)continue;c.mixer.update(dt);const h=c.holder;if(!h.visible)continue;
   const tx=c.lookAt||player.position;h.rotation.y=Math.atan2(tx.x-h.position.x,tx.z-h.position.z);
   if(c.approach){const d=Math.hypot(tx.x-h.position.x,tx.z-h.position.z);if(d>c.approach){const s=Math.min(dt*1.1,d-c.approach);h.position.x+=(tx.x-h.position.x)/d*s;h.position.z+=(tx.z-h.position.z)/d*s;}}
@@ -3246,7 +3262,7 @@ function rivalDown(){
  playStory('misteriosa-perde',rivalDefeatScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;delete storyAnchors.rival;if(rivalClone){disposeClone(rivalClone);const i=hordeClones.indexOf(rivalClone);if(i>=0)hordeClones.splice(i,1);rivalClone=null;}act1Advance(ACT2.gate,0);status.textContent='A entrada do vulcão fica a oeste da cidade.';}});
 }
 function gateCleared(){act1Lock=true;const p=DISTRICT_SPOTS.volcanoGuards[0],c=makeFoeClone('enemy2',p,{role:'idle'});if(c){c.holder.scale.y=.8;hordeClones.push(c);storyAnchors.enemy={x:p.x,z:p.z,yaw:Math.atan2(player.position.x-p.x,player.position.z-p.z)};}
- playStory('entrada-cai',gateDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;delete storyAnchors.enemy;if(c){disposeClone(c);const i=hordeClones.indexOf(c);if(i>=0)hordeClones.splice(i,1);}act1Advance(ACT2.volcano,0);status.textContent='Entre no vulcão.';}});
+ playStory('entrada-cai',gateDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;delete storyAnchors.enemy;if(c){foeFinalBlow(c);setTimeout(()=>{disposeClone(c);const i=hordeClones.indexOf(c);if(i>=0)hordeClones.splice(i,1);},4400);}act1Advance(ACT2.volcano,0);status.textContent='Entre no vulcão.';}});
  act2DyingClone=c;}
 var act2DyingClone=null;
 function labCleared(){act1Lock=true;playStory('chave2',keyScene(),{focus:'guide',done:()=>{act1Lock=false;act1Advance(ACT2.volcano,1);status.textContent='Procure o que a chave abre.';}});}
@@ -3278,7 +3294,7 @@ function storyDo2(id,args){
   case 'surgir-misteriosa':worldAudio.whoosh();if(pack&&pack.clones[0]){const h=pack.clones[0].holder;storyAnchors.rival={x:h.position.x,z:h.position.z,yaw:h.rotation.y};}return true;
   case 'apontar-arma':if(actions.attack)playOnce('attack',.1);return true;
   case 'misteriosa-parte':if(rivalClone)storyFx.push({t:0,tick(t){rivalClone.holder.position.x+=.06;if(t>1.2){rivalClone.holder.visible=false;return false;}},finish(){if(rivalClone)rivalClone.holder.visible=false;}});worldAudio.whoosh();return true;
-  case 'eliminar':{const c=act2DyingClone;storyFlash('#200000',500);worldAudio.hit();if(c)storyFx.push({t:0,tick(t){c.holder.scale.setScalar(Math.max(.01,1-t));if(t>1){c.holder.visible=false;return false;}},finish(){c.holder.visible=false;}});return true;}
+  case 'eliminar':{const c=act2DyingClone;foeFinalBlow(c);return true;}
   case 'circulo-magico':{const r=volcanoArena&&volcanoArena.refs;if(r&&r.circle){worldAudio.magic('magic3');storyFx.push({t:0,tick(t){r.circle.material.opacity=Math.min(1,t);r.circle.rotation.z+=.01;if(t>8){r.circle.material.opacity=0;return false;}},finish(){r.circle.material.opacity=0;}});}return true;}
   case 'purificar':{const r=volcanoArena&&volcanoArena.refs;worldAudio.celestial();storyFlash('white',1600);if(r&&r.bodies)setTimeout(()=>{r.bodies.visible=false;},700);
    const L=volcanoLocal(VOLCANO.lab),beams=[];for(let i=0;i<6;i++){const s=glowSprite(0xfff2c8,.9,2);s.position.set(L.x+(Math.random()-.5)*12,voidSpec.y+1,L.z+(Math.random()-.5)*12);scene.add(s);beams.push(s);}
@@ -3692,18 +3708,27 @@ function storyDo3(id,args){
   case 'olhar-correntes':if(actions.kipUp)actions.kipUp.paused=true;return true;
   case 'matar-estalajadeiro':{const k=act3Npcs.keeper;storyFlash('#300000',600);worldAudio.hit();if(k)storyFx.push({t:0,tick(t){k.holder.rotation.x=-Math.min(1.5,t*3);if(t>.6)return false;},finish(){k.holder.rotation.x=-1.5;}});return true;}
   case 'romper-correntes':worldAudio.hit();cameraShake(.25);if(actions.kipUp)actions.kipUp.paused=false;setTimeout(()=>{if(actions.idle)play('idle',.3);},900);return true;
-  case 'eliminar3':{const c=act3World&&act3World.dying;storyFlash('#200000',500);worldAudio.hit();if(c)storyFx.push({t:0,tick(t){c.holder.scale.setScalar(Math.max(.01,1-t));if(t>1){c.holder.visible=false;return false;}},finish(){c.holder.visible=false;}});
+  case 'eliminar3':{const c=act3World&&act3World.dying;foeFinalBlow(c);
    if(act3Npcs.keeper){scene.remove(act3Npcs.keeper.holder);delete act3Npcs.keeper;}return true;}
   case 'cidade-em-chamas':syncAct3World();worldAudio.corrupt();return true;
   case 'surgir-quatro':storyFlash('#300000',400);worldAudio.corrupt();return true;
+  // MOD 217 — captura encenada: os quatro cercam o herói, atacam juntos e só então ele apaga (antes era um corte seco).
+  case 'cercar-heroi':{const P0=player.position;act3World.captors=[];act3World.rescued=false;if(cineSkipping)return true;loadRig('enemy3').then(()=>{if(act3World.rescued)return;for(let i=0;i<4;i++){const a=i/4*Math.PI*2+.4,c=makeFoeClone('enemy3',{x:P0.x+Math.sin(a)*5.5,z:P0.z+Math.cos(a)*5.5},{role:'walk',approach:1.5});if(c){hordeClones.push(c);act3World.captors.push(c);}}},()=>{});worldAudio.corrupt();return true;}
+  case 'capturar':{const cs=act3World.captors||[],src=rigSource('enemy3'),atk=src&&src.actions&&src.actions.attack;
+   cs.forEach((c,i)=>setTimeout(()=>{if(!atk||!c.holder.parent)return;c.mixer.stopAllAction();const a=c.mixer.clipAction(atk.getClip());a.reset();a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=true;a.play();},i*180));
+   setTimeout(()=>{worldAudio.hit();cameraShake(.4);if(actions.hit)playOnce('hit',.05);},520);setTimeout(()=>{worldAudio.hit();cameraShake(.3);},900);return true;}
   case 'golpe-por-tras':worldAudio.hit();cameraShake(.5);vibrate(120);setCineFade(1,.15,true);return true;
   case 'na-guilhotina':{const G=SC.guillotine,gx=G.x,gz=G.z+.2;player.position.set(gx,terrainHeightAt(gx,gz)+.9,gz-.5);playerYaw=Math.PI;player.rotation.y=playerYaw;
    if(actions.ajoelhar)playOnce('ajoelhar',0);else if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=.5;}
-   loadRig('enemy3').then(()=>{const c=makeFoeClone('enemy3',{x:gx+1.3,z:gz+.6},{role:'idle'});if(c){c.holder.position.y=terrainHeightAt(gx,gz)+.9;act3Clones.push(c);act3World.executioner=c;storyAnchors.enemy={x:gx+1.3,z:gz+.6,y:c.holder.position.y,yaw:-Math.PI/2};}},()=>{});
+   loadRig('enemy3').then(()=>{if(act3World.rescued)return;const c=makeFoeClone('enemy3',{x:gx+1.3,z:gz+.6},{role:'idle'});if(c){c.holder.position.y=terrainHeightAt(gx,gz)+.9;act3Clones.push(c);act3World.executioner=c;storyAnchors.enemy={x:gx+1.3,z:gz+.6,y:c.holder.position.y,yaw:-Math.PI/2};}},()=>{});
+   for(const [i,c] of (act3World.captors||[]).entries()){const a=-1+i*.7,x=gx+Math.sin(a)*3.4,z=gz-2.6+Math.cos(a)*1.2;c.approach=0;c.holder.position.set(x,terrainHeightAt(x,z),z);c.lookAt=player.position;const src=rigSource('enemy3'),idle=src&&src.actions&&src.actions.idle;if(idle){c.mixer.stopAllAction();c.mixer.clipAction(idle.getClip()).play();}}
    storyAnchors.enemy={x:gx+1.3,z:gz+.6,y:terrainHeightAt(gx,gz)+.9,yaw:-Math.PI/2};return true;}
   case 'ato3-piscar':{let n=0;const blink=()=>{setCineFade(n%2?.0:1,.22,true);n++;if(n<4)setTimeout(blink,330);else setCineFade(0,.8,true);};blink();return true;}
+  // MOD 217 — o Anjo aparece e ataca de verdade: raios de luz em cada demônio, o carrasco é arremessado e todos caem.
   case 'anjo-salva':{const ex=act3World.executioner;worldAudio.celestial();storyFlash('white',900);cameraShake(.3);
-   if(ex)storyFx.push({t:0,tick(t){ex.holder.position.y+=.08;ex.holder.scale.setScalar(Math.max(.01,1-t*1.4));if(t>.8){ex.holder.visible=false;return false;}},finish(){ex.holder.visible=false;}});
+   const foes=[ex,...(act3World.captors||[])].filter(c=>c&&c.holder.parent);
+   foes.forEach((c,i)=>setTimeout(()=>{const h=c.holder;lightning(h.position.x,h.position.z,0xfff0c0,14);worldAudio.thunder&&worldAudio.thunder();if(c===ex)storyFx.push({t:0,tick(t){h.position.x-=.09;h.position.y=Math.max(terrainHeightAt(h.position.x,h.position.z),h.position.y-.02);if(t>.6)return false;}});foeFinalBlow(c,false);},150+i*220));
+   act3World.captors=[];act3World.rescued=true;
    const G=SC.guillotine;guide.position.set(G.x+2.4,terrainHeightAt(G.x+2.4,G.z-2.4),G.z-2.4);guide.visible=true;guidePinned=true;faceTo(guide,P);
    setTimeout(()=>{player.position.set(G.x+.8,terrainHeightAt(G.x+.8,G.z-2.6),G.z-2.6);if(actions.idle)play('idle',.3);faceTo(player,guide.position);},500);return true;}
   case 'portal-atras':act3Portal3(act3Local('gelo',ICE_CAVE.portal));worldAudio.portalEnter();return true;

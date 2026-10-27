@@ -134,7 +134,7 @@ export function gateDefeatScene() {
   return [
     say(S.demon, 'Isso é impossível… como nós fomos derrotados por um mero humano? Espera… você é realmente humano?'),
     say(S.demon, 'Ouvi rumores de que Valério foi derrotado por alguém, mas achei que era apenas um mito. Parece que foi você, né?'),
-    shot('eliminar', 1.8, { cam: 'look', on: 'enemy', off: [2.4, 1.6, 3], at: [0, 1, 0] }, { with: [act('eliminar')] })
+    shot('eliminar', 2.6, { cam: 'look', on: 'enemy', off: [2.4, 1.6, 3], at: [0, 1, 0] }, { with: [act('eliminar')] })
   ];
 }
 

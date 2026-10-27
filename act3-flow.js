@@ -141,7 +141,7 @@ export function cellarDefeatScene() {
     say(S.demon, 'Sim. Depois da derrota do primeiro e do segundo Bispo, a Ganância está tentando transformar novas pessoas num novo Bispo. E você atendia a todos os requisitos.'),
     say(S.hero, 'Vocês, demônios imundos, brincando com a vida dessas pessoas… Vou exterminar todos vocês.'),
     say(S.demon, 'Não faça issoooo!'),
-    act('eliminar3')
+    shot('eliminar3', 2.6, { cam: 'look', on: 'enemy', off: [2.4, 1.6, 3], at: [0, 1, 0] }, { with: [act('eliminar3')] })
   ];
 }
 export function raidScene() {
@@ -154,13 +154,15 @@ export function raidScene() {
 }
 export function guillotineScene() {
   return [
+    shot('cerco', 2.6, { cam: 'orbit', on: 'hero', r: 7, h: 3, from: -.7, to: .5 }, { with: [act('cercar-heroi')] }),
+    shot('captura', 1.6, { cam: 'look', on: 'hero', off: [2.4, 1.7, 3], at: [0, 1.1, 0] }, { with: [act('capturar')] }),
     act('golpe-por-tras'), wait(1.2), act('na-guilhotina'), wait(1),
     act('ato3-piscar'), wait(1.4),
     say(S.hero, 'Onde eu estou? O que aconteceu?'),
     shot('carrasco', 1.8, { cam: 'look', on: 'enemy', off: [1.6, 1.6, 2.8], at: [0, 1.4, 0] }),
     say(S.demon, 'Morra.'),
     say(S.hero, 'Nãooooo!'),
-    act('anjo-salva'), wait(1.4),
+    shot('resgate', 2.6, { cam: 'look', on: 'enemy', off: [3.6, 2.4, 4.4], at: [0, 1.2, 0] }, { with: [act('anjo-salva')] }),
     say(S.hero, 'Anjo! Onde você estava? Pensei que tinha morrido…'),
     say(S.guide, 'Eu, morrer? Hahaha, que piada. Esqueceu quem eu sou?'),
     say(S.guide, "Isso fazia parte do plano para achar o esconderijo de ZAR'KHAEL. Me siga.")
