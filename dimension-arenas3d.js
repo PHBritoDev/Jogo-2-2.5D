@@ -671,20 +671,47 @@ export function buildDimensionArena(THREE, theme, spec) {
 
 /* ===================== PORTAIS NO MUNDO ===================== */
 const PORTALS = {
-  // Portão gótico vermelho coberto de olhos, com a lua sorridente acima.
+  // MOD 217 — portão de VORGAZHEK, o Arauto das Almas Endividadas: arco gótico de obsidiana com coroa de espinhos,
+  // um único olho vigia na pedra-chave, correntes com moedas presas às colunas e almas que sobem do redemoinho.
+  // (A versão anterior espalhava 26 olhos e uma lua com rosto que, dentro do vulcão, parecia uma bola com olhos.)
   bishop2(THREE, g, ctx) {
-    const stone = new THREE.MeshStandardMaterial({ color: 0x180809, roughness: .7, metalness: .15, emissive: 0x3a0610, emissiveIntensity: .8 });
-    for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(3.6, 19, 3.4), stone); p.position.set(sx * 6.2, 9.5, 0); g.add(p); const cap = new THREE.Mesh(new THREE.ConeGeometry(2.4, 4, 4), stone); cap.position.set(sx * 6.2, 21, 0); cap.rotation.y = Math.PI / 4; g.add(cap); }
-    const arch = new THREE.Mesh(new THREE.TorusGeometry(6.2, 1.2, 8, 28, Math.PI), stone); arch.position.set(0, 17.2, 0); g.add(arch);
+    const stone = new THREE.MeshStandardMaterial({ color: 0x140708, roughness: .55, metalness: .25, emissive: 0x2a040a, emissiveIntensity: .7, flatShading: true });
+    const vein = new THREE.MeshBasicMaterial({ color: 0xff2a3a, toneMapped: false });
+    const iron = new THREE.MeshStandardMaterial({ color: 0x2a2426, roughness: .45, metalness: .8 });
+    const gold = new THREE.MeshStandardMaterial({ color: 0xc89a30, roughness: .4, metalness: .3, emissive: 0x7a4a0a, emissiveIntensity: 1 });
+    for (const sx of [-1, 1]) {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.1, 18, 6), stone); p.position.set(sx * 6.6, 9, 0); g.add(p);
+      const v = new THREE.Mesh(new THREE.BoxGeometry(.22, 14, .22), vein); v.position.set(sx * 6.6, 8.5, 1.75); g.add(v);
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(1.7, 5.5, 6), stone); cap.position.set(sx * 6.6, 20.6, 0); g.add(cap);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.9, 1.4, 6), stone); base.position.set(sx * 6.6, .7, 0); g.add(base);
+    }
+    // Arco ogival: dois quartos de toro que se encontram em ponta.
+    for (const sx of [-1, 1]) { const a = new THREE.Mesh(new THREE.TorusGeometry(9.2, 1.1, 6, 16, 1.285), stone); a.position.set(-sx * 2.6, 13.4, 0); if (sx < 0) a.rotation.y = Math.PI; g.add(a); }
+    for (let i = 0; i < 9; i++) { const t = i / 8, x = (t - .5) * 11, y = 13.4 + Math.sqrt(Math.max(0, 84.64 - (Math.abs(x) + 2.6) ** 2)), sp = new THREE.Mesh(new THREE.ConeGeometry(.35, 2.2 + (i % 2) * 1.4, 4), stone); sp.position.set(x, y + 1.6, 0); sp.rotation.z = -x * .07; g.add(sp); }
+    // Olho único na pedra-chave.
+    const key = new THREE.Mesh(new THREE.OctahedronGeometry(1.6, 0), stone); key.position.set(0, 22.4, .5); key.scale.set(1.2, 1.4, .7); g.add(key);
+    const eye = eyeField(THREE, { count: 1, seed: 12, tex: eyeTexture(THREE), tint: [1.25, .8, .8], place: () => ({ x: 0, y: 22.4, z: 1.7, size: 3.4 }) });
+    g.add(eye); ctx.eyes.push(eye);
     const steps = []; for (let i = 0; i < 3; i++) steps.push({ x: 0, y: .3 + i * .6, z: 3.5 + (2 - i) * 1.6, sx: 18 - i * 2, sy: .6, sz: 1.8 });
     g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), stone, steps));
-    const swirl = new THREE.Mesh(new THREE.CircleGeometry(6.2, 40), swirlMaterial(THREE, '#2a0006', '#ff2a3a')); swirl.scale.set(1, 1.55, 1); swirl.position.set(0, 9.6, .3); g.add(swirl); ctx.swirls.push(swirl.material);
-    const eyes = eyeField(THREE, { count: 26, seed: 12, tex: eyeTexture(THREE), tint: [1.1, .85, .85], place: (i, rr) => ({ x: (rr() - .5) * 16, y: 2 + rr() * 22, z: 2.1 + rr() * .6, size: 1.4 + rr() * 2.8 }) });
-    g.add(eyes); ctx.eyes.push(eyes);
-    const moon = new THREE.Mesh(new THREE.SphereGeometry(3.2, 18, 12), new THREE.MeshBasicMaterial({ color: 0xd8d4d0, fog: false })); moon.position.set(12, 27, -4); g.add(moon);
-    const mouth = new THREE.Mesh(new THREE.TorusGeometry(1.7, .16, 6, 16, Math.PI), new THREE.MeshBasicMaterial({ color: 0x100406 })); mouth.position.set(12, 26.4, -.85); mouth.rotation.z = Math.PI; g.add(mouth);
-    for (const ex of [-.95, .95]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.38, 8, 6), new THREE.MeshBasicMaterial({ color: 0xe02a38 })); e.position.set(12 + ex, 27.7, -.8); g.add(e); }
-    return { height: 28, radius: 9 };
+    const swirl = new THREE.Mesh(new THREE.CircleGeometry(5.4, 40), swirlMaterial(THREE, '#2a0006', '#ff2a3a')); swirl.scale.set(1, 1.75, 1); swirl.position.set(0, 9.6, .3); g.add(swirl); ctx.swirls.push(swirl.material);
+    // Correntes com moedas: as dívidas que prendem as almas.
+    const links = [], coins = [];
+    for (const sx of [-1, 1]) for (let c = 0; c < 2; c++) {
+      const y0 = 14 - c * 5, n = 9;
+      for (let i = 0; i <= n; i++) { const t = i / n, x = sx * (6.6 - t * 4.2), y = y0 - Math.sin(t * Math.PI) * 1.6 - t * 2.2; links.push({ x, y, z: 1.9, sx: .5, sy: .5, sz: .5, ry: i % 2 ? Math.PI / 2 : 0 }); }
+      coins.push({ x: sx * 2.4, y: y0 - 3.4, z: 1.9, sx: .55, sy: .1, sz: .55, rx: Math.PI / 2 });
+    }
+    g.add(instanced(THREE, new THREE.TorusGeometry(.42, .1, 5, 10), iron, links));
+    const coinMesh = instanced(THREE, new THREE.CylinderGeometry(1, 1, 1, 14), gold, coins); coinMesh.rotation.x = 0; g.add(coinMesh);
+    // Almas subindo do redemoinho (poucas, suaves).
+    const N = 26, sp = new Float32Array(N * 3), r = rng(5);
+    for (let i = 0; i < N; i++) { sp[i * 3] = (r() - .5) * 8; sp[i * 3 + 1] = r() * 18; sp[i * 3 + 2] = 1 + r(); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+    const souls = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xff6a70, size: .28, transparent: true, opacity: .6, depthWrite: false, blending: THREE.AdditiveBlending })); souls.frustumCulled = false; g.add(souls);
+    ctx.tick.push((t, dt) => { const a = sg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] + dt * (1.2 + (i % 4) * .3); if (y > 19) y = 1; a.array[i * 3 + 1] = y; a.array[i * 3] += Math.sin(t * 1.3 + i) * dt * .3; } a.needsUpdate = true; });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(7.4, 8, 48), new THREE.MeshBasicMaterial({ color: 0xff2a3a, transparent: true, opacity: .55, side: THREE.DoubleSide, toneMapped: false })); ring.rotation.x = -Math.PI / 2; ring.position.set(0, .06, 3.2); g.add(ring);
+    return { height: 26, radius: 9 };
   },
   // Cogumelo gigante de olhos abertos; no tronco, um redemoinho negro.
   bishop3(THREE, g, ctx) {
