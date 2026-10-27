@@ -29,7 +29,10 @@ export const SNOW_CITY = {
   // Ataque à cidade (depois do porão): 4 Enemy3 de uma vez.
   raid: [{ x: 147, z: -36 }, { x: 151, z: -36 }, { x: 145, z: -40 }, { x: 153, z: -41 }],
   // Caminho do Anjo da guilhotina até a caverna.
-  anjoPath: [[148, -44], [158, -50], [170, -58], [180, -64], [185, -68]]
+  anjoPath: [[148, -43], [156, -44], [163, -52], [170, -58], [179, -63], [183, -66.8]],
+  // MOD 217 — a boca da caverna ficava fora da área andável (o vale arredondado terminava antes dela): esta área
+  // estende o chão até a entrada, sem tirar a montanha de trás do arco.
+  caveApproach: { cx: 177, cz: -61, hx: 12.5, hz: 12.5, round: 6, wobble: 1.5, tint: [[.80, .84, .9], [.93, .95, .98]], tintStrength: .92 }
 };
 
 /** Dentro da cidade de neve (o frio só afeta aqui). */

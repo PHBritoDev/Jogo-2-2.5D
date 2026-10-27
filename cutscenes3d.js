@@ -71,7 +71,21 @@ export function createDirector(handlers = {}) {
       if (!running || !waitingAsk) return false;
       next(); return true;
     },
-    skip() { if (!skippable) return false; finish(true); return true; },
+    /** Pula a cena uma única vez: as ações 'do' que ainda não rodaram são entregues a handlers.flush (o jogo aplica
+     *  os efeitos de estado — pagamento, NPCs que saem, itens), então pular chega ao mesmo estado final da cena inteira. */
+    skip() {
+      if (!skippable || !running) return false;
+      const rest = [];
+      for (let k = i + 1; k < steps.length; k++) {
+        const s = steps[k];
+        for (const w of s.with || []) rest.push({ id: w.id, args: w.args || {} });
+        if (s.type === 'do') rest.push({ id: s.id, args: s.args || {} });
+      }
+      running = false;                                     // trava reentrada enquanto os efeitos são aplicados
+      if (h.flush) h.flush(rest, sceneId);
+      running = true; finish(true); return true;
+    },
+    get skippable() { return running && skippable; },
     get running() { return running; },
     get scene() { return sceneId; },
     get index() { return i; },

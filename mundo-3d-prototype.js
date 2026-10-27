@@ -132,7 +132,7 @@ const terrain3D=createTerrain({
  hill:hillHeightAt,
  keepouts:[{x:DESERT.statue.x,z:DESERT.statue.z,r:24,fade:8},{x:COLOSSEUM.center.x,z:COLOSSEUM.center.z,r:40,fade:8},{x:-36,z:-256,r:14,fade:6},{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:-12,z:-97,r:7,fade:5},{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z,r:9,fade:6},{x:MASSACRE_SPOT.x,z:MASSACRE_SPOT.z,r:6,fade:5},{x:SEWER_DOOR.x,z:SEWER_DOOR.z,r:5,fade:4},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:DISTRICT_SPOTS.plaza.x,z:DISTRICT_SPOTS.plaza.z,r:22,fade:8},{x:ALTAR_VALLEY.cx,z:ALTAR_VALLEY.cz,r:16,fade:8},{x:SERRA.cx,z:SERRA.cz-8,r:16,fade:8},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
  ponds:[FOREST_POND],
- extraAreas:[DISTRICT,...EXTRA_REGIONS,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
+ extraAreas:[DISTRICT,...EXTRA_REGIONS,SNOW_CITY.caveApproach,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
  paths:[{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5}]
 });
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
@@ -2126,11 +2126,14 @@ var cineActive=false,cineShot='',cineU=0,cineCut=false,cineSayWho='',cineAssets=
 const cineEl=id=>document.getElementById(id);
 const cineV=new THREE.Vector3(),cineV2=new THREE.Vector3(),cineLook=new THREE.Vector3(),cinePos=new THREE.Vector3(),cineHead=new THREE.Vector3(),cineHandL=new THREE.Vector3(),cineHandR=new THREE.Vector3();
 const cineSmooth=u=>{u=Math.min(1,Math.max(0,u));return u*u*(3-2*u);};
+var cineSkipping=false,cineSceneStartedAt=0;
 const cineDirector=createDirector({
  shot:(id,u)=>{if(cineShot!==id)cineCut=true;cineShot=id;cineU=u;},
  say:(who,text)=>{const line=personalizeLine({type:'say',who,text},playerName);cineSayWho=who;cineEl('cine-who').textContent=line.who;cineEl('cine-text').textContent=line.text;cineEl('cine-say').hidden=false;},
  hideSay:()=>{cineSayWho='';cineEl('cine-say').hidden=true;},
  do:(id,args)=>cineDo(id,args),
+ // MOD 217 — pular aplica uma vez as ações que faltavam (estado final igual ao da cena inteira), sem sons nem flashes.
+ flush:(list,scene)=>{if(scene==='ceu'||scene==='despertar')return;cineSkipping=true;try{for(const d of list){try{cineDo(d.id,d.args);}catch(e){console.warn('pular: ação',d.id,e);}}}finally{cineSkipping=false;}},
  ask:id=>cineAsk(id),
  end:(scene,skipped)=>{if(scene==='ceu')endHeavenCine(skipped);else if(scene==='despertar')endAwakeningCine(skipped);else endStory(skipped);}
 });
@@ -2268,7 +2271,7 @@ function cineAsk(id){
 bindInstantTap(cineEl('choice-yes'),()=>{if(cineEl('choice-card').hidden)return;if(choiceMode==='pergaminho')receiveScroll();else coatChoice(true);});
 bindInstantTap(cineEl('choice-no'),()=>{if(cineEl('choice-card').hidden)return;coatChoice(false);});
 bindInstantTap(cineEl('mission-accept'),()=>{if(cineEl('mission-card').hidden)return;cineEl('mission-card').hidden=true;cineAcceptMission();worldAudio.unlock();cineDirector.resume();});
-bindInstantTap(cineEl('cine-skip'),()=>{if(!cineDirector.running||cineDirector.scene==='despertar')return;const now=performance.now(),b=cineEl('cine-skip');if(now<cineSkipArmedUntil){cineSkipArmedUntil=0;cineDirector.skip();return;}cineSkipArmedUntil=now+2600;b.textContent='TOQUE DE NOVO PARA PULAR';setTimeout(()=>{if(performance.now()>=cineSkipArmedUntil)b.textContent='PULAR';},2700);});
+bindInstantTap(cineEl('cine-skip'),()=>{if(!cineDirector.running||!cineDirector.skippable||cineDirector.scene==='despertar')return;const now=performance.now(),b=cineEl('cine-skip');if(now-cineSceneStartedAt<700)return;if(now<cineSkipArmedUntil){cineSkipArmedUntil=0;cineDirector.skip();return;}cineSkipArmedUntil=now+2600;b.textContent='TOQUE DE NOVO PARA PULAR';setTimeout(()=>{if(performance.now()>=cineSkipArmedUntil)b.textContent='PULAR';},2700);});
 bindInstantTap(cineEl('cine-continue'),()=>{if(cineActive&&!namePromptOpen)cineDirector.tap();});
 function cineCam(px,py,pz,lx,ly,lz,follow,dt){
  cineV.set(px,py,pz);cineV2.set(lx,ly,lz);
@@ -2682,7 +2685,9 @@ function faceTo(obj,target){if(!obj)return;const dx=target.x-obj.position.x,dz=t
 function playStory(id,steps,opts){
  opts=opts||{};storyScene={id,focus:opts.focus||'guide',done:opts.done||null,two:!!opts.two,side:opts.side||1};
  if(opts.face){const f=actorPos(opts.face,_sa);faceTo(player,f);const o=actorObj(opts.face);if(o&&o!==player&&o!==enemy)faceTo(o,player.position);}
- cineBegin();cineDirector.play(id,steps);
+ cineBegin();cineSceneStartedAt=performance.now();cineSkipArmedUntil=0;
+ if(opts.skippable===false)cineEl('cine-skip').hidden=true;
+ cineDirector.play(id,steps,null,{skippable:opts.skippable!==false});
 }
 function endStory(skipped){
  const s=storyScene;storyScene=null;storyMove=null;
@@ -2690,7 +2695,7 @@ function endStory(skipped){
  cineEnd();if(s&&s.done)s.done(skipped);
 }
 function storyTitle(kicker,title){const el=cineEl('cine-title');el.querySelector('span').textContent=kicker||'';el.querySelector('strong').textContent=title||'';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4200);}
-function storyFlash(color,ms){const el=cineEl('cine-fade');el.classList.toggle('white',color==='white');el.style.background=color&&color!=='white'?color:'';el.style.transition='opacity .08s';el.style.opacity='.85';setTimeout(()=>{el.style.transition='opacity '+(ms/1000)+'s ease';el.style.opacity='0';setTimeout(()=>{el.style.background='';},ms+50);},90);}
+function storyFlash(color,ms){if(cineSkipping)return;const el=cineEl('cine-fade');el.classList.toggle('white',color==='white');el.style.background=color&&color!=='white'?color:'';el.style.transition='opacity .08s';el.style.opacity='.85';setTimeout(()=>{el.style.transition='opacity '+(ms/1000)+'s ease';el.style.opacity='0';setTimeout(()=>{el.style.background='';},ms+50);},90);}
 /** Puxa a câmera para perto do alvo se houver parede/casa/banca no caminho (colisão 2D do mundo ou do esgoto). */
 function storyCam(px,py,pz,lx,ly,lz,follow,dt,high){
  if(!high){const dx=px-lx,dz=pz-lz,len=Math.hypot(dx,dz);if(len>.6)for(let i=2;i<=14;i++){const f=i/14;if(blockedAt(lx+dx*f,lz+dz*f)){const k=Math.max(.3/len,(i-1.6)/14);px=lx+dx*k;pz=lz+dz*k;if(len*k<1.6){px=lx+dx/len*2.4;pz=lz+dz/len*2.4;py=Math.max(py,ly+2.2);}break;}}}
@@ -3202,7 +3207,7 @@ function updateAct2Story(dt,now){
  if(questStep===ACT2.volcano){
   if(!inVolcano){mark(DISTRICT_SPOTS.volcanoGate);return;}
   const V=VOLCANO;storyAnchors.lab={...volcanoLocal(V.lab),y:voidSpec.y,yaw:0};storyAnchors.door={...volcanoLocal(V.door),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.gold={...volcanoLocal(V.gold),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.portal={...volcanoLocal(V.portal),y:voidSpec.y,yaw:0};
-  if(act1Sub===0){mark(volcanoLocal(V.lab));if(!act1Busy()&&!pack&&near(volcanoLocal(V.lab),V.lab.r+6)){act1Lock=true;playStory('laboratorio',labScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}
+  if(act1Sub===0){mark(volcanoLocal(V.lab));if(!act1Busy()&&!pack&&near(volcanoLocal(V.lab),V.lab.r+6)){act1Lock=true;playStory('laboratorio',labScene(),{focus:'enemy',skippable:false,done:()=>{act1Lock=false;releasePack();}});}}
   else if(act1Sub===1)mark(volcanoLocal(V.door));
   else if(act1Sub===2){mark(volcanoLocal(V.hall));if(!act1Busy()&&!pack&&near(volcanoLocal(V.hall),V.hall.r+5)){act1Lock=true;guidePinned=false;playStory('galeria',hallScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}
   else{mark(volcanoLocal(V.miniboss));if(!act1Busy()&&!pack&&!enemy.visible&&near(volcanoLocal(V.throne),V.throne.r+4)){act1Lock=true;playStory('trono',throneScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}
@@ -3264,6 +3269,7 @@ function storyDo2(id,args){
    const s=Math.sin(playerYaw),c=Math.cos(playerYaw),spot={x:P.x+s*1.6,z:P.z+c*1.6};
    for(let i=0;i<14;i++){const coin=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.015,8),mat(0xd8a032));coin.position.set(spot.x+(Math.random()-.5)*1.4,groundHeightAt(spot.x,spot.z)+.02,spot.z+(Math.random()-.5)*1.4);scene.add(coin);setTimeout(()=>scene.remove(coin),9000);}
    npcBase().then(b=>{const run=b.clips.find(k=>k.name==='Running');act2Bandits.forEach((bd,i)=>{bd.target={x:spot.x+(Math.random()-.5)*1.2,z:spot.z+(Math.random()-.5)*1.2};if(run){bd.mixer.stopAllAction();bd.mixer.clipAction(run).play();}});});
+   if(cineSkipping){for(const bd of act2Bandits.splice(0))scene.remove(bd.holder);return true;}
    setTimeout(()=>{for(const bd of act2Bandits.splice(0))scene.remove(bd.holder);},9000);return true;}
   case 'surgir-misteriosa':worldAudio.whoosh();if(pack&&pack.clones[0]){const h=pack.clones[0].holder;storyAnchors.rival={x:h.position.x,z:h.position.z,yaw:h.rotation.y};}return true;
   case 'apontar-arma':if(actions.attack)playOnce('attack',.1);return true;
@@ -5192,7 +5198,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   else if(step===14)go(D.plaza.x+26,D.plaza.z);
   return this.storyState();
  },
- storyState(){const st=cineDirector.step;return{q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label()||act6Label(),form:act6Form,dimKey:dimBattle?dimBattle.key:null,sandra6:act6Sandra?[+act6Sandra.holder.position.x.toFixed(1),+act6Sandra.holder.position.z.toFixed(1)]:null,inTower,scroll:scrollOwned,round:act5Round?act5Round.n:null,sandra:act5Sandra?[+act5Sandra.holder.position.x.toFixed(1),+act5Sandra.holder.position.z.toFixed(1)]:null,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
+ storyState(){const st=cineDirector.step;return{bandits:act2Bandits.length,q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label()||act6Label(),form:act6Form,dimKey:dimBattle?dimBattle.key:null,sandra6:act6Sandra?[+act6Sandra.holder.position.x.toFixed(1),+act6Sandra.holder.position.z.toFixed(1)]:null,inTower,scroll:scrollOwned,round:act5Round?act5Round.n:null,sandra:act5Sandra?[+act5Sandra.holder.position.x.toFixed(1),+act5Sandra.holder.position.z.toFixed(1)]:null,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
  playAfterValerio(){afterValerioStory();},
  tapStory(){return cineDirector.tap();},
  speed(k){debugDtScale=Math.max(.1,Math.min(8,+k||1));return debugDtScale;},
