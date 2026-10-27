@@ -32,16 +32,23 @@
 | Captura e decapitação | Os quatro Enemy3 cercam e atacam o herói, que só então apaga.<br>• No cadafalso, eles viram guardas.<br>• O Anjo derruba o carrasco e os guardas com raios de luz visíveis.<br>• Pular não deixa inimigos órfãos. |
 | Jaula (Ato I) | Diálogo: "Me tira daqui!" e "Fala baixo, eles podem te ouvir."<br>• O Anjo olha em volta, abre a jaula e o herói sai.<br>• Só depois vem "Nunca mais seja imprudente…". |
 
+### Também entrou
+
+| Item | Correção |
+|---|---|
+| Interior do vulcão e vítimas (10) | **Caminho mais fundo:** o túnel tem 78 m (antes eram 34). No meio fica a cela das correntes, com grilhões vazios, jaulas abertas, roupas largadas, marcas de arrasto e manchas escuras, sem nada explícito. O herói comenta os rastros.<br>**Vítimas:** no laboratório há homens de Cinzária vivos, sem camisa, sujos e machucados (`Vitima-rig.glb`). Um prisioneiro explica quem são (devedores de VORGAZHEK) e o que os demônios fazem, e pede descanso.<br>**Purificação (obrigatória):** acalma cada um, as almas sobem e os corpos somem em paz. Depois chegam os demônios. |
+| Jornada até a neve (13) | O vendedor de casacos foi para o começo da subida (x 64). No caminho há fogueira dos viajantes, placa para Invernália, carroça quebrada, santuário congelado e bosques de pinheiros, com colisão. |
+| ESTALAGEM (14) | Há uma escada de verdade, com 14 degraus e corrimão, que sobe por um corredor com teto até a porta do quarto, no andar de cima. A porta abre ao chegar perto e o quarto tem paredes, teto, cama e janela. Acabou o teletransporte "SUBIR AO QUARTO". |
+| Porão (15) | Passou de 12×9 m para 18×14 m, com pilares e tochas. Os inimigos ficam longe das paredes. |
+| Anjo da Mod 215 (18) | **Asas:** penas com haste, curvatura e espessura; as primárias têm ponta dourada e a asa negra tem bordas cristalinas.<br>**Cabeça e rosto:** a auréola foi recuada (cortava a cabeça e o cabelo) e os olhos ficaram menos exagerados.<br>**Corpo:** totalmente masculino, sem volume no peito.<br>**Braços:** no jogo, `relaxGuideArms` baixa braços e antebraços depois do clipe parado, com um balanço leve. |
+
 ## Pendências (não feitas nesta entrega)
 
 - **Bispo 1:** o documento mestre do autor diz "Bispo 1 = Valério", e o histórico do repositório só tem esse nome. Não há outro nome registrado, então ele **não foi trocado**. Falta o autor confirmar o nome original. A dimensão 3D do Bispo 1 continua ligada ao portal (`startDimensionBattle('bishop1')`).
-- Profundidade do interior do vulcão e sala das vítimas (item 10).
-- Jornada maior até a neve (13).
-- Escada e quarto da ESTALAGEM com porta física (14).
-- Porão maior (15).
-- Correções do modelo do Anjo da Mod 215 (18).
-- Revisão geral de roteiro e câmera em todas as cenas (19).
-- Variedade de figurantes (parte do 7).
+- **Revisão geral de roteiro e câmera em todas as cenas (19):** feita só nas cenas citadas.
+- **Variedade de figurantes e aparência própria dos bandidos (parte do 7):** hoje é o mesmo modelo, com cores diferentes.
+- **Anjo:** o cabelo continua em mechas rígidas. As asas não têm movimento secundário, porque estão presas ao peito, sem ossos próprios.
+- **Ato II:** a cidade não tem NPCs com rotina.
 
 ## Evidência
 
