@@ -3748,7 +3748,7 @@ function stepGuideRun(dt){
  const r=guideRun;if(!r)return;guide.visible=true;guidePinned=true;const t=r.path[r.i];if(!t){guideRun=null;faceTo(guide,player.position);return;}
  const gx=guide.position.x,gz=guide.position.z,dx=t.x-gx,dz=t.z-gz,d=Math.hypot(dx,dz),far=Math.hypot(player.position.x-gx,player.position.z-gz)>9;
  if(d<.4){r.i++;return;}if(r.wait&&far){faceTo(guide,player.position);return;}
- const s=Math.min(d,dt*r.speed);guide.position.x+=dx/d*s;guide.position.z+=dz/d*s;guide.position.y=r.y!==undefined?r.y:terrainHeightAt(guide.position.x,guide.position.z);guide.rotation.y=Math.atan2(dx,dz);
+ const s=Math.min(d,dt*r.speed),ya=leaderStep(guide.position,t,dx,dz,d,s,r);if(ya===null)return;guide.position.y=r.y!==undefined?r.y:terrainHeightAt(guide.position.x,guide.position.z);guide.rotation.y=ya;
 }
 function act3Label(){
  if(cineActive||questStep<ACT3N.road||questStep>ACT3N.boss)return '';const px=player.position.x,pz=player.position.z,q=questStep,s=act1Sub,d=(p,r)=>Math.hypot(p.x-px,p.z-pz)<=r;
@@ -4030,7 +4030,7 @@ function stepRivalRun(dt){
  if(!t){rivalRun=null;act4World.arrived=true;faceTo(h,player.position);return;}
  const dx=t.x-h.position.x,dz=t.z-h.position.z,d=Math.hypot(dx,dz);if(d<.4){r.i++;return;}
  if(Math.hypot(player.position.x-h.position.x,player.position.z-h.position.z)>9){faceTo(h,player.position);return;}
- const s=Math.min(d,dt*r.speed);h.position.x+=dx/d*s;h.position.z+=dz/d*s;h.position.y=terrainHeightAt(h.position.x,h.position.z);h.rotation.y=Math.atan2(dx,dz);
+ const s=Math.min(d,dt*r.speed),ya=leaderStep(h.position,t,dx,dz,d,s,r);if(ya===null)return;h.position.y=terrainHeightAt(h.position.x,h.position.z);h.rotation.y=ya;
  if(!r.running){r.running=true;const src=rigSource('rival');if(src&&src.actions.run){c.mixer.stopAllAction();c.mixer.clipAction(src.actions.run.getClip()).play();}}
 }
 function act4Label(){
@@ -4249,12 +4249,20 @@ function updateAct5(dt,now){
  const R=roundForSub(s);
  if(R&&!act5Round&&!act1Busy()&&!pack)startRound(R.n);
 }
+/* MOD 222 — quem guia o herói (Anjo, pessoa misteriosa, aliados) anda só por onde o herói pode andar: se o passo cair
+   fora da área andável, desvia (gira até 85° para cada lado); se o ponto do caminho for inalcançável, pula para o próximo. */
+function leaderStep(o,t,dx,dz,d,s,r){
+ if(d<4&&blockedAt(t.x,t.z)){r.i++;return null;}
+ const a0=Math.atan2(dx,dz);
+ for(const da of [0,.35,-.35,.7,-.7,1.05,-1.05,1.45,-1.45]){const a=a0+da,nx=o.x+Math.sin(a)*s,nz=o.z+Math.cos(a)*s;if(!blockedAt(nx,nz)){o.x=nx;o.z=nz;return a;}}
+ r.i++;return null;
+}
 function stepSandraRun(dt){
  const r=sandraRun,c=act5Sandra;if(!r||!c){sandraRun=null;return;}const h=c.holder,t=r.path[r.i];
  if(!t){sandraRun=null;act5World.arrived=true;faceTo(h,player.position);const src=rigSource('rival');if(src&&src.actions.idle){c.mixer.stopAllAction();c.mixer.clipAction(src.actions.idle.getClip()).play();}return;}
  const dx=t.x-h.position.x,dz=t.z-h.position.z,d=Math.hypot(dx,dz);if(d<.5){r.i++;return;}
  if(Math.hypot(player.position.x-h.position.x,player.position.z-h.position.z)>12){faceTo(h,player.position);return;}
- const s=Math.min(d,dt*r.speed);h.position.x+=dx/d*s;h.position.z+=dz/d*s;h.position.y=terrainHeightAt(h.position.x,h.position.z);h.rotation.y=Math.atan2(dx,dz);
+ const s=Math.min(d,dt*r.speed),ya=leaderStep(h.position,t,dx,dz,d,s,r);if(ya===null)return;h.position.y=terrainHeightAt(h.position.x,h.position.z);h.rotation.y=ya;
  if(!r.running){r.running=true;const src=rigSource('rival');if(src&&src.actions.run){c.mixer.stopAllAction();c.mixer.clipAction(src.actions.run.getClip()).play();}}
 }
 /** Ações das cenas do Ato V (passos "do"). */
@@ -4463,7 +4471,7 @@ function stepSandra6(dt){
  if(!t){act6SandraRun=null;act6World.sandraArrived=true;faceTo(h,player.position);const src=rigSource('rival');if(src&&src.actions.idle){c.mixer.stopAllAction();c.mixer.clipAction(src.actions.idle.getClip()).play();}return;}
  const dx=t.x-h.position.x,dz=t.z-h.position.z,d=Math.hypot(dx,dz);if(d<.5){r.i++;return;}
  if(Math.hypot(player.position.x-h.position.x,player.position.z-h.position.z)>12){faceTo(h,player.position);return;}
- const s=Math.min(d,dt*r.speed);h.position.x+=dx/d*s;h.position.z+=dz/d*s;h.position.y=terrainHeightAt(h.position.x,h.position.z);h.rotation.y=Math.atan2(dx,dz);
+ const s=Math.min(d,dt*r.speed),ya=leaderStep(h.position,t,dx,dz,d,s,r);if(ya===null)return;h.position.y=terrainHeightAt(h.position.x,h.position.z);h.rotation.y=ya;
  if(!r.running){r.running=true;const src=rigSource('rival');if(src&&src.actions.run){c.mixer.stopAllAction();c.mixer.clipAction(src.actions.run.getClip()).play();}}
 }
 function act6Label(){
@@ -5358,6 +5366,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   else if(step===22){enterTower(Math.max(1,sub));}else if(step===23){enterTower(7);act4World.floorStarted=true;}else go(TOWER.view.x,TOWER.view.z+6);
   return this.storyState();
  },
+ sandra5(){return act5Sandra?[act5Sandra.holder.position.x,act5Sandra.holder.position.z]:null;},
  act5(sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;awakeningActive=false;awakeningSeen=true;if(!playerName)playerName='Davi';
   if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();if(act3Void)leaveAct3Void({x:0,z:-60});if(inTower)leaveTower();sandraRun=null;if(act5Sandra){disposeClone(act5Sandra);act5Sandra=null;}act5Round=null;clearAuras();stopAlly();
