@@ -3439,6 +3439,15 @@ function act3Local(key,p){const c=DIMENSIONS[key].center;return{x:p.x+c.x,z:p.z+
 function buildAct3World(){
  if(act3World)return act3World;const W=act3World={kit:null,folkReady:false};
  // O antigo Vale do Altar (Ato III anterior) sai de cena: ídolos, altar e moradores dele.
+ // MOD 217 — marcos da subida até a cidade de neve (geometria simples, poucas chamadas, colisão nos maiores).
+ {const wood=mat(0x5a3e28),snowM=mat(0xe8eef4),stone=mat(0x7a7e86),pineM=mat(0x1e3a2c);
+  for(const J of SC.journey){const g=new THREE.Group(),y=groundHeightAt(J.x,J.z);g.position.set(J.x,y,J.z);g.rotation.y=J.yaw||0;scene.add(g);
+   const box=(m,x,yy,z,sx,sy,sz,rz=0)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);o.position.set(x,yy,z);o.rotation.z=rz;o.castShadow=!terrainLowSpec;g.add(o);return o;};
+   if(J.k==='placa'){box(wood,0,1.2,0,.18,2.4,.18);const b=box(wood,.55,2,0,1.3,.38,.08);box(snowM,0,2.45,0,.3,.08,.3);const t=makeMarketSign('INVERNÁLIA →','#e8f0ff');t.position.set(.55,2,.06);t.scale.setScalar(.45);g.add(t);}
+   else if(J.k==='carroca'){box(wood,0,.75,0,2.6,.25,1.4,.12);box(wood,-1.1,.5,.75,.1,1,.1);const w=new THREE.Mesh(new THREE.TorusGeometry(.5,.07,6,14),wood);w.position.set(.8,.5,.75);g.add(w);const w2=w.clone();w2.position.set(1.4,.15,-.9);w2.rotation.x=Math.PI/2;g.add(w2);box(snowM,0,.92,0,2.4,.1,1.2,.12);marketObstacles.push({x:J.x,z:J.z,shape:'circle',radius:1.5,height:1.2});}
+   else if(J.k==='santuario'){box(stone,0,1.3,0,.9,2.6,.5);box(stone,0,.2,0,1.6,.4,1.2);box(snowM,0,2.66,0,1,.12,.6);for(const sx of [-.5,.5]){const c=glowSprite(0xffc070,.9,.6);c.position.set(sx,.55,.5);g.add(c);}marketObstacles.push({x:J.x,z:J.z,shape:'circle',radius:1,height:2.6});}
+   else if(J.k==='fogueira'){for(let i=0;i<5;i++){const l=box(wood,Math.cos(i*1.26)*.3,.12,Math.sin(i*1.26)*.3,.7,.12,.12);l.rotation.y=i*1.26;}const f=glowSprite(0xff8a30,.95,1.6);f.position.y=.6;g.add(f);for(const a of [0,2.2,4.2]){box(wood,Math.cos(a)*1.6,.25,Math.sin(a)*1.6,.9,.3,.35);}}
+   else if(J.k==='pinheiros'){for(let i=0;i<5;i++){const a=i*1.3,r=1.5+i*.7,c=new THREE.Mesh(new THREE.ConeGeometry(1.1+i%2*.4,3.6+i%3,7),pineM);c.position.set(Math.cos(a)*r,1.8+i%3*.5,Math.sin(a)*r);g.add(c);const sc=new THREE.Mesh(new THREE.ConeGeometry(.8,1,7),snowM);sc.position.set(c.position.x,c.position.y+1.5,c.position.z);g.add(sc);treeObstacles.push({x:J.x+c.position.x,z:J.z+c.position.z,radius:.6});}}}}
  for(const idol of lateProps.idols)idol.g.visible=false;
  for(let i=marketObstacles.length-1;i>=0;i--){const o=marketObstacles[i];if(stepDef(18).def.items.some(p=>Math.abs(p.x-o.x)<.01&&Math.abs(p.z-o.z)<.01)||(o.shape==='box'&&Math.abs(o.x-stepDef(19).def.at.x)<.01&&Math.abs(o.z-(stepDef(19).def.at.z-7))<.01))marketObstacles.splice(i,1);}
  scene.traverse(o=>{if(o.isMesh&&o.parent&&o.parent.parent===scene&&Math.abs(o.parent.position.x-stepDef(19).def.at.x)<.01&&Math.abs(o.parent.position.z-(stepDef(19).def.at.z-6))<.01)o.parent.visible=false;});

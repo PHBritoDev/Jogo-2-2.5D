@@ -15,7 +15,10 @@ export const SNOW_CITY = {
   lake: { x: 177, z: -15, r: 9 },
   fisher: { x: 173.5, z: -14, yaw: Math.PI / 2 },
   villager: { x: 141, z: -34 },
-  seller: { x: 97, z: -31 },
+  // MOD 217 — o vendedor fica no começo da subida (antes estava colado na cidade); a jornada até Invernália passa por
+  // marcos: a fogueira dos viajantes, a placa, a carroça quebrada na neve e o santuário congelado na curva.
+  seller: { x: 64, z: -31 },
+  journey: [{ k: 'fogueira', x: 71, z: -36 }, { k: 'placa', x: 80, z: -27.6 }, { k: 'carroca', x: 92.5, z: -24.5, yaw: .5 }, { k: 'santuario', x: 104.5, z: -43.5 }, { k: 'pinheiros', x: 86, z: -42 }, { k: 'pinheiros', x: 97, z: -18 }],
   cave: { x: 186, z: -70, yaw: -Math.PI * .75 },
   houses: [
     { k: 'CasaNeve', x: 133, z: -26, yaw: .5 }, { k: 'CasaNeveB', x: 126, z: -41, yaw: Math.PI / 2 }, { k: 'CasaNeve', x: 129, z: -56, yaw: 2.4 },
