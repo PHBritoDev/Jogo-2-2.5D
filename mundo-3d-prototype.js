@@ -611,7 +611,7 @@ new GLTFLoader().load('./Enemy1-lod.glb?v=mod194-lod',gltf=>{
   for(const material of materials)if(material&&!enemyMaterials.includes(material))enemyMaterials.push(material);
  });
  const bounds=new THREE.Box3().setFromObject(imported),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
- if(size.y>.001){const scale=.88/size.y;imported.scale.setScalar(scale);imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);}
+ if(size.y>.001){const scale=1.8/size.y;imported.scale.setScalar(scale);imported.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);}
  enemyModelRoot.add(imported);enemyModel=imported;enemySprite.visible=false;
  enemyClips=gltf.animations||[];enemyMixer=new THREE.AnimationMixer(imported);
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
@@ -661,7 +661,7 @@ new GLTFLoader().load('./Enemy1-lod.glb?v=mod194-lod',gltf=>{
  if(enemyActions.idle)playEnemyAnimation('idle',0);
  window.Enemy1AnimationReport=enemyClips.map(c=>c.name);
  console.info('Enemy1.glb animações:',window.Enemy1AnimationReport);
-},undefined,err=>{console.error('Enemy1.glb não carregou; mantendo sprite de segurança.',err);enemyLoadState='failed';enemyModelRoot.visible=false;});
+},undefined,err=>{console.error('Enemy1-lod.glb não carregou; tentando o Enemy1.glb original.',err);enemyLoadState='loading';enemyModelRoot.visible=false;enemySprite.visible=false;new GLTFLoader().load('./Enemy1.glb?v=enemy1-full-fallback',full=>{enemyLoadState='loading';const obj=full.scene;obj.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;const mats=Array.isArray(o.material)?o.material:[o.material];for(const m of mats)if(m&&!enemyMaterials.includes(m))enemyMaterials.push(m);}});const box=new THREE.Box3().setFromObject(obj),s=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());if(s.y>.001){const k=1.8/s.y;obj.scale.setScalar(k);obj.position.set(-center.x*k,-box.min.y*k,-center.z*k);}enemyModelRoot.add(obj);enemyModelRoot.visible=true;enemyModel=obj;enemyMixer=new THREE.AnimationMixer(obj);enemyClips=full.animations||[];enemyActions={};enemyCurrentAction=null;enemyCurrentRole='';const clipByName=new Map(enemyClips.map(a=>[a.name,a]));const knownRoles={'01a14b5a-2ee6-75dc-982f-8965372f192b':'idle','01a14b5c-5fd2-74f9-b256-af9f522f53cb':'cast','01a14b57-0772-77b2-9da3-b6644a5d1cae':'attack','01a14b51-9352-70b9-8540-e7713d7152b1':'block'};for(const [name,role] of Object.entries(knownRoles)){const clip=clipByName.get(name);if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}for(const [role,pattern] of Object.entries({idle:/idle|breath|rest/i,walk:/walk|andar/i,run:/run|correr/i,attack:/attack|atacar|slash/i,hit:/hurt|hit|damage/i,death:/death|morte/i})){if(!enemyActions[role]){const clip=enemyClips.find(a=>pattern.test(a.name));if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}}enemyHasDeathClip=!!enemyActions.death;if(enemyActions.idle)playEnemyAnimation('idle',0);else console.warn('Enemy1 original sem animação idle identificável; não usar salto como repouso.');enemyLoadState='ready';console.info('Enemy1 3D original carregado como fallback.');},undefined,e=>{console.error('Falha ao carregar ambos os modelos 3D Enemy1.',e);enemyLoadState='failed';enemyModelRoot.visible=false;enemySprite.visible=false;});});
 
 }
 
