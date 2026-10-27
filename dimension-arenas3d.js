@@ -539,17 +539,48 @@ const THEMES = {
     const stoneT = canvasTex(THREE, 256, 256, (c, w, h) => { c.fillStyle = '#2c2a2a'; c.fillRect(0, 0, w, h); const rr = rng(9); for (let y = 0; y < 8; y++) for (let x = 0; x < 6; x++) { const v = 50 + rr() * 30 | 0; c.fillStyle = 'rgb(' + v + ',' + (v - 2) + ',' + (v - 4) + ')'; c.fillRect(x * 44 + (y % 2) * 22 + 2, y * 32 + 2, 40, 28); } });
     stoneT.wrapS = stoneT.wrapT = THREE.RepeatWrapping;
     const mk = (tex, rx, ry, extra) => { const t = tex.clone(); t.needsUpdate = true; t.repeat.set(rx, ry); return new THREE.MeshStandardMaterial(Object.assign({ map: t, roughness: .9 }, extra || {})); };
-    function room(R, H, wallTex, floorTex) {
+    // MOD 217 — cômodos com altura de piso (y0) e vãos nas paredes (gaps: lado 'n'|'s'|'w'|'e' e trecho a..b ao longo dela).
+    function room(R, H, wallTex, floorTex, y0 = 0, gaps = []) {
       const W = R.hx * 2, D = R.hz * 2;
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(floorTex, W / 2.5, D / 2.5)); floor.rotation.x = -Math.PI / 2; floor.position.set(R.x, 0, R.z); floor.receiveShadow = true; g.add(floor);
-      const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(plank, W / 3, D / 3, { side: THREE.BackSide })); ceil.rotation.x = -Math.PI / 2; ceil.position.set(R.x, H, R.z); g.add(ceil);
-      for (const [x, z, w, ry] of [[R.x, R.z - R.hz, W, 0], [R.x, R.z + R.hz, W, Math.PI], [R.x - R.hx, R.z, D, Math.PI / 2], [R.x + R.hx, R.z, D, -Math.PI / 2]]) {
-        const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, H), mk(wallTex, w / 2.5, H / 2.5)); wall.position.set(x, H / 2, z); wall.rotation.y = ry; g.add(wall);
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(floorTex, W / 2.5, D / 2.5)); floor.rotation.x = -Math.PI / 2; floor.position.set(R.x, y0, R.z); floor.receiveShadow = true; g.add(floor);
+      const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(plank, W / 3, D / 3, { side: THREE.BackSide })); ceil.rotation.x = -Math.PI / 2; ceil.position.set(R.x, y0 + H, R.z); g.add(ceil);
+      const sides = { n: [R.z - R.hz, 0, 'x'], s: [R.z + R.hz, Math.PI, 'x'], w: [R.x - R.hx, Math.PI / 2, 'z'], e: [R.x + R.hx, -Math.PI / 2, 'z'] };
+      for (const [k, [c, ry, ax]] of Object.entries(sides)) {
+        const lo = ax === 'x' ? R.x - R.hx : R.z - R.hz, hi = ax === 'x' ? R.x + R.hx : R.z + R.hz, segs = [[lo, hi]];
+        for (const gp of gaps) if (gp.side === k) { const s0 = segs.pop(); segs.push([s0[0], gp.a], [gp.b, s0[1]]); }
+        for (const [a, b] of segs) { if (b - a < .05) continue; const w = b - a, m = (a + b) / 2;
+          const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, H), mk(wallTex, w / 2.5, H / 2.5)); wall.position.set(ax === 'x' ? m : c, y0 + H / 2, ax === 'x' ? c : m); wall.rotation.y = ry; g.add(wall); }
+        for (const gp of gaps) if (gp.side === k) { const w = gp.b - gp.a, m = (gp.a + gp.b) / 2, top = new THREE.Mesh(new THREE.PlaneGeometry(w, H - 2.4), mk(wallTex, w / 2.5, .4)); top.position.set(ax === 'x' ? m : c, y0 + 2.4 + (H - 2.4) / 2, ax === 'x' ? c : m); top.rotation.y = ry; g.add(top); }
       }
-      const beams = []; for (let i = 0; i < Math.floor(W / 2); i++) beams.push({ x: R.x - R.hx + 1 + i * 2, y: H - .15, z: R.z, sx: .25, sy: .3, sz: D });
+      const beams = []; for (let i = 0; i < Math.floor(W / 2); i++) beams.push({ x: R.x - R.hx + 1 + i * 2, y: y0 + H - .15, z: R.z, sx: .25, sy: .3, sz: D });
       g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), mk(plank, 1, 2), beams));
     }
-    room(INN.hall, 3.6, plank, plank); room(INN.room, 3, plank, plank); room(INN.cellar, 3.2, stoneT, stoneT);
+    const S = INN.stairs, U = INN.upper, D = INN.roomDoor, FU = INN.floorUp;
+    room(INN.hall, 3.6, plank, plank, 0, [{ side: 'n', a: S.x - S.half - .1, b: S.x + S.half + .1 }]);
+    room(INN.room, 3, plank, plank, FU, [{ side: 'e', a: D.z - D.half, b: D.z + D.half }]);
+    room(INN.cellar, 3.6, stoneT, stoneT);
+    // Escada de verdade: degraus de madeira entre paredes, subindo até o corredor do andar de cima.
+    { const wood2 = mk(plank, 1, 1), steps = [], n = 14, len = S.z0 - S.z1;
+      for (let i = 0; i < n; i++) { const h = FU * (i + 1) / n; steps.push({ x: S.x, y: h / 2, z: S.z0 - (i + .5) * len / n, sx: S.half * 2 + .2, sy: h, sz: len / n + .02 }); }
+      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood2, steps));
+      const up = new THREE.Mesh(new THREE.PlaneGeometry(S.half * 2 + .2, U.z0 - U.z1), mk(plank, 1, 4)); up.rotation.x = -Math.PI / 2; up.position.set(U.x, FU + .01, (U.z0 + U.z1) / 2); g.add(up);
+      const L = S.z0 - U.z1, H = 6.2;
+      for (const sx of [-1, 1]) { const x = S.x + sx * (S.half + .1), segs = sx < 0 ? [[S.z0, D.z + D.half], [D.z - D.half, U.z1]] : [[S.z0, U.z1]];
+        for (const [a, b] of segs) { const w = a - b; const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, H), mk(plank, w / 2.5, H / 2.5)); wall.position.set(x, H / 2, (a + b) / 2); wall.rotation.y = -sx * Math.PI / 2; g.add(wall); } }
+      const end = new THREE.Mesh(new THREE.PlaneGeometry(S.half * 2 + .2, H), mk(plank, 1, 2)); end.position.set(S.x, H / 2, U.z1); g.add(end);
+      const roof = new THREE.Mesh(new THREE.PlaneGeometry(S.half * 2 + .2, L), mk(plank, 1, 4, { side: THREE.BackSide })); roof.rotation.x = -Math.PI / 2; roof.position.set(S.x, H, (S.z0 + U.z1) / 2); g.add(roof);
+      const rail = []; for (let i = 0; i <= 6; i++) rail.push({ x: S.x + S.half - .05, y: FU * i / 6 + .5, z: S.z0 - i * len / 6, sx: .06, sy: 1, sz: .06 });
+      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood2, rail));
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffc070, toneMapped: false })); lamp.position.set(S.x, FU + 2.4, U.z1 + 1.2); g.add(lamp);
+      // Porta do quarto: abre quando o herói chega perto (o jogo gira refs.roomDoor).
+      const pivot = new THREE.Group(); pivot.position.set(D.x + .02, FU, D.z + D.half); g.add(pivot);
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(.08, 2.3, D.half * 2), new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: .8 })); leaf.position.set(0, 1.15, -D.half); pivot.add(leaf);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 5), new THREE.MeshStandardMaterial({ color: 0xc8a050, metalness: .8, roughness: .3 })); knob.position.set(.08, 1.1, -D.half * 1.7); pivot.add(knob);
+      refs.roomDoor = pivot; }
+    // Porão: pilares de pedra (sustentam o salão) e tochas.
+    { const st2 = new THREE.MeshStandardMaterial({ color: 0x4a4644, roughness: .95 });
+      g.add(instanced(THREE, new THREE.CylinderGeometry(.5, .6, 3.6, 8), st2, INN.cellarPillars.map(p => ({ x: p.x, y: 1.8, z: p.z }))));
+      for (const p of INN.cellarPillars) { const f = new THREE.Mesh(new THREE.ConeGeometry(.08, .22, 6), new THREE.MeshBasicMaterial({ color: 0xffa040, toneMapped: false })); f.position.set(p.x, 2.2, p.z + (p.z < -40 ? .62 : -.62)); g.add(f); } }
     // Lareira do salão, mesas e bancos.
     const fp = new THREE.Group(); fp.position.set(-INN.hall.hx + .5, 0, -1); g.add(fp);
     const st = new THREE.MeshStandardMaterial({ color: 0x5a5654, roughness: .95 });
@@ -561,7 +592,7 @@ const THEMES = {
     for (const [x, z] of [[-2.5, 1.5], [2.6, 1.6], [3, -1.2]]) { tables.push({ x, y: .75, z, sx: 1.6, sy: .1, sz: .9 }); for (const s of [-1, 1]) benches.push({ x, y: .42, z: z + s * .75, sx: 1.5, sy: .08, sz: .3 }); }
     g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood, tables)); g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood, benches));
     // Janela do quarto (noite lá fora) e manchas de umidade no porão.
-    const night = new THREE.Mesh(new THREE.PlaneGeometry(1, .9), new THREE.MeshBasicMaterial({ color: 0x0c1830 })); night.position.set(INN.room.x - INN.room.hx + .02, 1.6, INN.room.z); night.rotation.y = Math.PI / 2; g.add(night);
+    const night = new THREE.Mesh(new THREE.PlaneGeometry(1, .9), new THREE.MeshBasicMaterial({ color: 0x0c1830 })); night.position.set(INN.room.x - INN.room.hx + .02, INN.floorUp + 1.6, INN.room.z); night.rotation.y = Math.PI / 2; g.add(night);
     refs.hall = INN.hall; refs.room = INN.room; refs.cellar = INN.cellar;
     return { bg: 0x0a0604, fog: 0x140c08, fogNear: 6, fogFar: 26, hemi: [0xffd8a8, 0x2a1a10, 1.1], sun: [0xffc080, .25], light: [0xffb060, 3.2, 16, [0, 2.6, 0]], exposure: 1.2, lightFollow: true };
   },

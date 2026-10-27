@@ -25,7 +25,7 @@ import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inAren
 import { ACT4N, FLOORS, SPEAKERS4, act4Presentation, isAct4Step, floorFoes, nextFloor, scrollMultiplier, afterVeraxion, banditScene4, rivalReturnScene, towerViewScene, floorIntroScene, floorClearScene, restScene, leaderDefeatScene, veraxionIntroScene, veraxionDefeatScene, towerFallScene, rivalRevealScene } from './act4-flow.js';
 import { TOWER, TOWER_HALL, towerWalkable, floorTint } from './tower3d.js';
 import { ACT3N, SPEAKERS3, act3Presentation, isAct3Step, buyCoat, afterZarkhael, coatOfferScene, coatAcceptScene, coatRefuseScene, coatNoMoneyScene, COLD_LINE, snowArrivalScene, fisherScene, villagerScene, innScene, bedScene, cellarScene, cellarDefeatScene, raidScene, guillotineScene, caveArrivalScene, caveEndScene, distortedScene, distortedDefeatScene, zarkhaelIntroScene, zarkhaelDefeatScene, angelQuestionScene, angelTruthScene } from './act3-flow.js';
-import { SNOW_CITY, inSnowCity, INN, innWalkable, ICE_CAVE, iceCaveWalkable, DISTORTED, distortedWalkable, COAT, climate } from './snow3d.js';
+import { SNOW_CITY, inSnowCity, INN, innWalkable, innFloor, innCeil, ICE_CAVE, iceCaveWalkable, DISTORTED, distortedWalkable, COAT, climate } from './snow3d.js';
 import { ACT3, ACT4, LATE_ACTS, EXTRA_REGIONS, EXTRA_PASSES, ALTAR_VALLEY, SERRA, stepDef, latePresentation, lateActFor, collectItem, bossRewardOnce, COLISEUM, coliseumPayout } from './acts34-flow.js';
 import { FINALE, FINAL_PORTAL, VOID, GAUNTLET, SIN_FORMS, finaleTalkLines, gauntletIntroLines, sinIntroLines, epilogueLines, finaleAfterDeath, nextGauntlet, nextSinForm, finaleReward } from './finale-flow.js';
 import { createTerrain, buildTerrainArrays, colorTerrain, scatterForest, fbm } from './world3d-terrain.js';
@@ -1317,7 +1317,7 @@ function enemyBlockedAt(x,z){
  return Math.hypot(x-player.position.x,z-player.position.z)<.9;
 }
 function terrainHeightAt(x,z){
- if(voidMode)return voidSpec.y;
+ if(voidMode)return voidSpec.y+(voidSpec.floor&&voidSpec.walk===innWalkable?voidSpec.floor(x-voidSpec.x,z-voidSpec.z):0);
  let height=groundHeightAt(x,z);
  for(const rock of rockObstacles){const d=Math.hypot(x-rock.x,z-rock.z);if(d<rock.radius){const t=1-d/rock.radius;const smooth=t*t*(3-2*t);height=Math.max(height,rock.base+rock.height*smooth);}}
  for(const obstacle of walkableObstacles){let distance;
@@ -3524,7 +3524,7 @@ function updateClimate(dt){
 function enterAct3Void(key,at){
  act3Void=key;const a=getDimArena(key);enterDimensionArena(key);
  voidSpec.walk=key==='estalagem'?innWalkable:key==='gelo'?iceCaveWalkable:distortedWalkable;
- voidSpec.ceil=key==='estalagem'?(x,z)=>z>-10?3.6:z>-30?3:3.2:null;// MOD 217 — teto dos cômodos (a câmera fica abaixo dele)
+ voidSpec.ceil=key==='estalagem'?innCeil:null;voidSpec.floor=key==='estalagem'?innFloor:null;// MOD 217 — piso (escada, andar de cima) e teto dos cômodos
  const p=act3Local(key,at);player.position.set(p.x,voidSpec.y,p.z);playerYaw=at.yaw||0;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;moveVX=moveVZ=0;
  checkpointX=p.x;checkpointZ=p.z;camera.position.set(p.x,voidSpec.y+3,p.z+6);
  if(key==='estalagem'){furnishInn(a);if(questStep===ACT3N.city&&!act3Npcs.keeperHall)npcBase().then(b=>{if(act3Void!=='estalagem'||act3Npcs.keeperHall)return;const k=act3Local('estalagem',INN.keeper),v=makeTownsfolk(b,0x8a6a4a,'Agree_Gesture');v.holder.position.set(k.x,voidSpec.y,k.z);v.holder.rotation.y=0;act3Npcs.keeperHall=v;});}
@@ -3538,7 +3538,7 @@ function leaveAct3Void(to){
 function furnishInn(a){
  if(a.refs.furnished||!act3World||!act3World.kit)return;a.refs.furnished=true;const kit=act3World.kit,c=DIMENSIONS.estalagem.center,y=voidSpec.y;
  const put=(k,p,yaw,s)=>{const src=kit[k];if(!src)return null;const o=src.clone();o.position.set(p.x,0,p.z);o.rotation.y=yaw||0;if(s)o.scale.setScalar(s);o.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;}});a.group.add(o);return o;};
- put('Balcao',INN.counter,0);put('Escada',{x:INN.stairsUp.x,z:INN.stairsUp.z+.6},Math.PI);put('Cama',INN.bed,0);put('Escada',{x:INN.cellarStairs.x,z:INN.cellarStairs.z+.4},0);
+ put('Balcao',INN.counter,0);const bed=put('Cama',INN.bed,0);if(bed)bed.position.y=INN.floorUp;put('Escada',{x:INN.cellarStairs.x,z:INN.cellarStairs.z+.4},0);
  for(let i=-1;i<=1;i++)put('Correntes',{x:INN.chains.x+i*2.6,z:INN.chains.z-.2},0);
 }
 function decorateIceCave(a){
@@ -3561,8 +3561,9 @@ function updateAct3(dt,now){
  if(questStep<ACT3N.road||questStep>ACT3N.boss)return;
  if(questStep===ACT3N.boss&&!rigLoads.bishop3)loadRig('bishop3').catch(()=>{});
  if((questStep===ACT3N.trap||questStep===ACT3N.cave)&&!rigLoads.enemy3)loadRig('enemy3').catch(()=>{});
- const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>{questMarker.visible=true;questMarker.position.set(p.x,(voidMode?voidSpec.y:terrainHeightAt(p.x,p.z))+.06,p.z);};
+ const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>{questMarker.visible=true;questMarker.position.set(p.x,terrainHeightAt(p.x,p.z)+.06,p.z);};
  storyAnchors.snowcity={x:SC.plaza.x,z:SC.plaza.z,yaw:0};
+ if(act3Void==='estalagem'){const a=dimArenas.estalagem,dr=a&&a.refs&&a.refs.roomDoor;if(dr){const dp=act3Local('estalagem',INN.roomDoor),open=Math.hypot(px-dp.x,pz-dp.z)<2.6?1:0;dr.rotation.y+=(open*1.75-dr.rotation.y)*Math.min(1,dt*5);if(open&&!dr.userData.creak){dr.userData.creak=true;worldAudio.whoosh();}if(!open)dr.userData.creak=false;}}
  for(const k of ['seller','fisher','villager'])if(act3Npcs[k]){const h=act3Npcs[k].holder;storyAnchors[k]={x:h.position.x,z:h.position.z,yaw:h.rotation.y};}
  if(!act3World.resumed&&!act1Busy()){act3World.resumed=true;
   // Jogo salvo no meio de uma cena que não se repete sozinha: volta ao começo dela.
@@ -3585,7 +3586,7 @@ function updateAct3(dt,now){
    storyAnchors.keeper={...act3Local('estalagem',INN.keeper),y:voidSpec.y,yaw:0};
    if(s===2&&!act1Busy()&&near(act3Local('estalagem',INN.keeper),3.6)){act1Lock=true;playStory('estalagem',innScene(),{focus:'keeper',face:'keeper',two:true,done:()=>{act1Lock=false;act1Advance(ACT3N.city,4);status.textContent='Suba para o quarto e descanse.';}});}
    else if(s===2)mark(act3Local('estalagem',INN.keeper));
-   else if(s>=3&&s<=4){const inRoom=Math.abs(pz-act3Local('estalagem',INN.room).z)<5;mark(act3Local('estalagem',inRoom?INN.bed:INN.stairsUp));}
+   else if(s>=3&&s<=4){const up=player.position.y-voidSpec.y>1.5;mark(act3Local('estalagem',up?INN.bed:INN.stairsUp));}
   }
   return;
  }
@@ -3638,7 +3639,6 @@ function act3Label(){
   return '';
  }
  if(act3Void==='estalagem'){
-  if(q===ACT3N.city&&s>=3&&d(act3Local('estalagem',INN.stairsUp),2.2))return 'SUBIR AO QUARTO';
   if(q===ACT3N.city&&s>=3&&d(act3Local('estalagem',INN.bed),2.2))return 'DORMIR';
   if(q===ACT3N.city&&d(act3Local('estalagem',INN.door),2))return 'SAIR';
   if(q===ACT3N.trap&&s===1&&d(act3Local('estalagem',INN.cellarStairs),2.4))return 'SUBIR A ESCADA';
