@@ -22,7 +22,9 @@ export const DISTRICT_PASS = [[-72, -60], [-90, -57], [-104, -62], [-114, -62]];
 export const DISTRICT_SPOTS = {
   gate: { x: -112, z: -62 },
   plaza: { x: -150, z: -62 },
-  ambush: { x: -131, z: -66 },
+  // MOD 217 — os bandidos esperam no fim de um beco sem saída ao sul da rua principal (antes atacavam na entrada).
+  ambush: { x: -131, z: -76 },
+  alley: { x: -131, z0: -66, z1: -80, half: 2.3 },
   rival: { x: -156, z: -58 },
   // MOD 217 — a entrada fica no pé do cone (antes os guardas esperavam longe dela, no meio do caminho).
   volcanoGate: { x: -189.5, z: -64 },
@@ -34,6 +36,20 @@ export const DISTRICT_SPOTS = {
   family: { x: -138, z: -50 }, seal: { x: -160, z: -70 }, arena: { x: -158, z: -66 },
   ledgers: [{ x: -176, z: -42, where: 'mina' }, { x: -132, z: -84, where: 'armazém' }, { x: -168, z: -88, where: 'canal' }]
 };
+/** MOD 217 — Cinzária: ruas, praça e o beco sem saída. Casas: [x, z, largura (x), fundo (z), altura, frente (+1 = +z)]. */
+export function cityLayout() {
+  const out = [], rnd = (() => { let s = 2171; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  const row = (x0, x1, zc, face) => { let x = x0; while (x - 4.4 > x1) { const w = Math.min(5.2 + rnd() * 2.4, x - x1); const cx = x - w / 2; if (!(face > 0 && x - w < -121 && x > -141)) out.push([cx, zc, w - .5, 6 + rnd() * 1.5, 3.6 + Math.floor(rnd() * 3) * 1.6, face]); x -= w + .4 + rnd() * 1.2; } };
+  row(-116, -137, -52.5, -1); row(-163, -186, -52.5, -1);   // lado norte da rua principal (z = -62)
+  row(-116, -137, -71.5, 1); row(-163, -186, -71.5, 1);     // lado sul (o beco abre um vão em x = -131)
+  row(-118, -142, -40.5, -1);                                 // segunda fileira ao norte, numa rua de trás
+  out.push([-150, -45.5, 12, 8, 8.6, -1]);                     // casa da guilda, de frente para a praça
+  out.push([-168.5, -81, 6, 6, 5.2, 1], [-150, -80, 6.5, 6, 6.8, 1]);
+  for (const [z, sx] of [[-69.8, -1], [-69.8, 1], [-75, -1], [-75, 1], [-80.2, -1], [-80.2, 1]]) out.push([-131 - sx * 6.2, z, 7.6, 4.8, 4.2 + (z < -77 ? 3.2 : z < -72 ? 1.6 : 0), 0, sx]);   // casas do beco, de frente para ele
+  return out;
+}
+export function inAlley(x, z) { const A = DISTRICT_SPOTS.alley; return Math.abs(x - A.x) < A.half && z < A.z0 - 2 && z > A.z1; }
+
 export const DISTRICT_CANAL = [[-188, -96], [-170, -82], [-156, -84], [-140, -98], [-128, -100]];
 export const CITY_NAME = 'Cinzária';
 

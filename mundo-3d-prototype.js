@@ -14,7 +14,7 @@ import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, tur
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_STORE_KEY, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
-import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
+import { cityLayout, inAlley, ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
@@ -1457,6 +1457,9 @@ if(firstPerson){
   if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>cameraDistance+2||Math.abs(rz)>cameraDistance+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
   // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
   for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
+  // MOD 217 — casas da cidade (caixas de colisão): a câmera para antes da fachada em vez de entrar no prédio.
+  if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape==='box'&&Math.abs(o.x-target.x)<cameraDistance+8&&Math.abs(o.z-target.z)<cameraDistance+8);
+   if(near.length)for(let i=1;i<=14;i++){const f=i/14*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(near.some(o=>Math.abs(sx-o.x)<o.halfX+.25&&Math.abs(sz-o.z)<o.halfZ+.25&&sy<groundHeightAt(o.x,o.z)+(o.height||3)+1.8)){limit=Math.max(.12,(i-1.5)/14*limit);break;}}}
   // MOD 217 — interiores (estalagem, esgoto, vulcão, caverna): a câmera para antes da parede, sem mostrar o que há fora do cômodo.
   if(voidMode&&voidSpec.walk){for(let i=1;i<=14;i++){const f=i/14*limit;if(blockedAt(target.x+camOffset.x*f,target.z+camOffset.z*f)){limit=Math.max(.1,(i-1.6)/14*limit);break;}}}
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
@@ -2547,17 +2550,28 @@ const district=(()=>{
  const brick=mat(0x6d5246),brickDark=mat(0x4a3a33),plaster=mat(0x8f8270),beam=mat(0x3d2c20),slate=mat(0x2f3138),rust=new THREE.MeshStandardMaterial({color:0x7a4a2a,metalness:.4,roughness:.7});
  const boxGeo=new THREE.BoxGeometry(1,1,1);
  const add=(m,x,y,z,sx,sy,sz,ry=0,rx=0,rz=0)=>{const o=new THREE.Mesh(boxGeo,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.rotation.set(rx,ry,rz);o.castShadow=!terrainLowSpec;o.receiveShadow=true;root.add(o);return o;};
- // Casas e lojas em ruínas ao redor da praça: paredes incompletas, telhados desabados, vigas expostas.
- const lots=[[-138,-36,0],[-162,-36,.1],[-182,-56,Math.PI/2],[-128,-58,-Math.PI/2],[-178,-76,Math.PI/2+.1],[-145,-84,Math.PI],[-122,-74,-Math.PI/2+.15],[-188,-36,.2]];
- lots.forEach(([x,z,ry],i)=>{
-  const g=new THREE.Group(),y=groundHeightAt(x,z);g.position.set(x,y,z);g.rotation.y=ry;root.add(g);
-  const w=6+(i%3)*1.2,d=5+(i%2)*1.2,h=3.2+(i%3)*.6,mtl=i%2?brick:plaster;
-  const wall=(lx,lz,sx,sz,hh)=>{const o=new THREE.Mesh(boxGeo,mtl);o.position.set(lx,hh/2,lz);o.scale.set(sx,hh,sz);o.castShadow=!terrainLowSpec;o.receiveShadow=true;g.add(o);};
-  wall(0,-d/2,w,.4,h);wall(-w/2,0,.4,d,h*.85);wall(w/2,-d*.15,.4,d*.7,h*(.5+(i%2)*.3));wall(-w*.3,d/2,w*.4,.4,h*.6);
-  const roof=new THREE.Mesh(boxGeo,slate);roof.position.set(w*.1,h*.55,0);roof.scale.set(w*.9,.18,d*.8);roof.rotation.set(.35+(i%3)*.1,0,-.4);g.add(roof);
-  for(let k=0;k<3;k++){const b=new THREE.Mesh(boxGeo,beam);b.position.set(-w/2+1+k*1.8,h*.9,0);b.scale.set(.18,.18,d*1.05);b.rotation.z=(k-1)*.12;g.add(b);}
-  marketObstacles.push({x,z,shape:'box',halfX:Math.max(w,d)*.5,halfZ:Math.max(w,d)*.5,height:h});
- });
+ // MOD 217 — Cinzária de verdade: casas de basalto e reboco cor de cinza com telhados de duas águas, portas, janelas acesas
+ // e chaminés, ao longo da rua principal, de uma rua de trás, da praça e do beco sem saída. Tudo instanciado (poucas
+ // chamadas de desenho) e com colisão por casa.
+ {const instanced=(geo,m,items)=>{const im=new THREE.InstancedMesh(geo,m,items.length),d=new THREE.Object3D();items.forEach((it,i)=>{d.position.set(it.x,it.y,it.z);d.rotation.set(0,it.ry||0,0);d.scale.set(it.sx,it.sy,it.sz);d.updateMatrix();im.setMatrixAt(i,d.matrix);});im.instanceMatrix.needsUpdate=true;im.castShadow=!terrainLowSpec;im.receiveShadow=true;return im;};
+  const L=cityLayout(),bodies=[],roofs=[],doors=[],wins=[],chims=[],bases=[],tint=[];const rnd=(()=>{let k=91;return()=>(k=(k*16807)%2147483647)/2147483647;})();
+  const PAL=[0x8a7e70,0x6e6258,0x9a8a74,0x7a5e4e,0x5e5a58,0x8e7462,0x6a5448];
+  for(const [x,z,w,d,h,face,side] of L){const y=groundHeightAt(x,z)-.2;const alongX=!side;
+   const ex=side?d:w,ez=side?w:d;bodies.push({x,y:y+h/2,z,sx:ex,sy:h,sz:ez});bases.push({x,y:y+.45,z,sx:ex+.3,sy:.9,sz:ez+.3});tint.push(PAL[(rnd()*PAL.length)|0]);
+   roofs.push({x,y:y+h,z,sx:w+.7,sy:1.4+rnd()*1.2,sz:d+.7,ry:alongX?0:Math.PI/2});
+   if(rnd()<.6)chims.push({x:x+(rnd()-.5)*w*.5,y:y+h+1.2,z:z+(rnd()-.5)*d*.4,sx:.6,sy:2.2,sz:.6});
+   const fx=side?x+side*d/2:x,fz=side?z:z+face*d/2,nx=side||0,nz=side?0:face,ry=side?Math.PI/2:0;
+   doors.push({x:fx+nx*.06,y:y+1.15,z:fz+nz*.06,sx:side?.12:1.2,sy:2.3,sz:side?1.2:.12});
+   const floors=Math.max(1,Math.round(h/2.2));for(let f=0;f<floors;f++)for(const o of [-1,1]){if(f===0&&Math.abs(o)<1)continue;const off=o*Math.min(w*.3,1.9),wy=y+1.6+f*2.1;
+    wins.push({x:fx+nx*.07+(side?0:off),y:wy,z:fz+nz*.07+(side?off:0),sx:side?.1:.7,sy:.85,sz:side?.7:.1});}
+   marketObstacles.push({x,z,shape:'box',halfX:(side?d:w)/2+.15,halfZ:(side?w:d)/2+.15,height:h});}
+  // Parede do fundo do beco (sem saída).
+  {const A=DISTRICT_SPOTS.alley,y=groundHeightAt(A.x,A.z1);bodies.push({x:A.x,y:y+2.4,z:A.z1-2.2,sx:A.half*2+2.6,sy:4.8,sz:.8});tint.push(0x4e4844);marketObstacles.push({x:A.x,z:A.z1-2.2,shape:'box',halfX:A.half+1.3,halfZ:.6,height:4.8});}
+  const plasterM=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.92});
+  const roofGeo=new THREE.BufferGeometry();{const v=[-.5,0,-.5,.5,0,-.5,.5,0,.5,-.5,0,.5,-.5,1,0,.5,1,0];const ix=[0,4,1,1,4,5,3,2,5,3,5,4,0,3,4,1,5,2,0,1,2,0,2,3];roofGeo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));roofGeo.setIndex(ix);roofGeo.computeVertexNormals();}
+  const bodyMesh=instanced(boxGeo,plasterM,bodies);tint.forEach((c,i)=>bodyMesh.setColorAt(i,new THREE.Color(c)));bodyMesh.instanceColor.needsUpdate=true;root.add(bodyMesh);
+  root.add(instanced(boxGeo,mat(0x2e2826),bases),instanced(roofGeo,new THREE.MeshStandardMaterial({color:0x3a2a26,roughness:.85,flatShading:true,side:THREE.DoubleSide}),roofs),instanced(boxGeo,beam,doors),instanced(boxGeo,mat(0x3a3230),chims));
+  const winM=new THREE.MeshStandardMaterial({color:0x2a1a10,emissive:0xff9a40,emissiveIntensity:.9});root.add(instanced(boxGeo,winM,wins));}
  // Barracas de cobrança abandonadas e caixotes.
  for(const [x,z] of [[-142,-70],[-156,-52],[-166,-62],[-136,-62]]){const y=groundHeightAt(x,z);add(beam,x,y+.5,z,2.2,1,1);add(rust,x,y+1.05,z,2.4,.08,1.2,0,.08);}
  // Mina: arco escuro na encosta noroeste, trilhos e lanterna.
@@ -3181,8 +3195,10 @@ function makeTownsfolk(b,tint,clipName){const c=cloneSkinned(b.base),h=new THREE
  const m=new THREE.AnimationMixer(c),clip=b.clips.find(k=>k.name===clipName)||b.clips.find(k=>k.name==='Alert');const a=clip?m.clipAction(clip):null;if(a)a.play();scene.add(h);return{holder:h,mixer:m,action:a,model:c};}
 function spawnBandits(){
  return npcBase().then(b=>{for(const x of act2Bandits.splice(0))scene.remove(x.holder);const A=DISTRICT_SPOTS.ambush;
-  for(let i=0;i<ACT2.bandits;i++){const a=i/ACT2.bandits*6.28+.4,x=A.x+Math.cos(a)*4.2,z=A.z+Math.sin(a)*4.2,v=makeTownsfolk(b,[0x8a7a6a,0x6a5a4a,0x9a8070,0x5a6a5a,0x7a6050][i],'Alert');v.holder.position.set(x,groundHeightAt(x,z),z);act2Bandits.push({...v,home:{x,z}});}
-  storyAnchors.bandit={x:A.x+Math.cos(.4)*4.2,z:A.z+Math.sin(.4)*4.2};
+  // MOD 217 — fecham o beco: três na boca (atrás do herói) e o resto descendo dos telhados no fundo.
+  const AL=DISTRICT_SPOTS.alley,spots=[[-1.2,AL.z0-1.6],[0,AL.z0-.6],[1.2,AL.z0-1.6],[-1.3,AL.z1+2.2],[1.3,AL.z1+2.2],[0,AL.z1+1.2]];
+  for(let i=0;i<ACT2.bandits;i++){const [ox,oz]=spots[i%spots.length],x=AL.x+ox,z=oz,v=makeTownsfolk(b,[0x8a7a6a,0x6a5a4a,0x9a8070,0x5a6a5a,0x7a6050][i],'Alert');v.holder.position.set(x,groundHeightAt(x,z),z);act2Bandits.push({...v,home:{x,z}});}
+  storyAnchors.bandit={x:AL.x,z:AL.z0-.6,yaw:Math.PI};
  });
 }
 function updateBandits(dt){
@@ -3227,7 +3243,7 @@ function updateAct2Story(dt,now){
  if(questStep===ACT2.travel){mark(gorgeGate.spot.x<px&&px>-90?gorgeGate.spot:CITY);storyAnchors.city={x:CITY.x,z:CITY.z,yaw:0};
   if(!act1Busy()&&near(CITY,40)){act1Lock=true;playStory('cidade',cityArrivalScene(),{focus:'guide',done:()=>{act1Lock=false;act1Advance(ACT2.city,0);status.textContent='Atravesse a cidade.';}});}return;}
  if(questStep===ACT2.city){
-  if(act1Sub===0){const A=DISTRICT_SPOTS.ambush;mark(A);if(!act1Busy()&&near(A,7)){act1Lock=true;spawnBandits().then(()=>{playStory('bandidos',banditScene(),{focus:'bandit',face:'bandit',done:()=>{act1Lock=false;act1Advance(ACT2.city,1);status.textContent='Alguém na praça parece observar você.';}});},()=>{act1Lock=false;act1Advance(ACT2.city,1);});}}
+  if(act1Sub===0){const A=DISTRICT_SPOTS.ambush,AL=DISTRICT_SPOTS.alley;if(!inAlley(px,pz))mark({x:AL.x,z:AL.z0+1});if(!act1Busy()&&inAlley(px,pz)&&pz<AL.z0-4){act1Lock=true;spawnBandits().then(()=>{playStory('bandidos',banditScene(),{focus:'bandit',face:'bandit',done:()=>{act1Lock=false;act1Advance(ACT2.city,1);status.textContent='Alguém na praça parece observar você.';}});},()=>{act1Lock=false;act1Advance(ACT2.city,1);});}}
   else{const R=DISTRICT_SPOTS.rival;mark(R);storyAnchors.rival={x:R.x,z:R.z,yaw:Math.atan2(px-R.x,pz-R.z)};
    if(!act1Busy()&&!pack&&!enemy.visible&&near(R,9)){act1Lock=true;startPack({rig:'rival',profile:'rival',hp:ACT2.rivalHp,spots:[R],hold:true,intro:'O desconhecido saca as lâminas.',onDone:rivalDown});
     playStory('misteriosa',rivalScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;delete storyAnchors.rival;releasePack();}});}}
@@ -5241,7 +5257,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();
   questStep=step;act1Sub=sub;act2Abyss=step>=15;if(coins<20)coins=20;bishopsDefeated=Math.max(1,bishopsDefeated);valerioRewardClaimed=true;save3DProgress();updateQuestHud();gorgeGate.sync();if(!act2World)buildAct2World();syncAct2World();setGameHour(14);
   const go=(x,z)=>player.position.set(x,terrainHeightAt(x,z),z),D=DISTRICT_SPOTS;
-  if(step===9)go(D.gate.x+30,D.gate.z+2);else if(step===10&&sub===0)go(D.ambush.x+9,D.ambush.z);else if(step===10)go(D.rival.x+11,D.rival.z);else if(step===11)go(D.volcanoGate.x+16,D.volcanoGate.z);
+  if(step===9)go(D.gate.x+30,D.gate.z+2);else if(step===10&&sub===0)go(D.alley.x,D.alley.z0+3);else if(step===10)go(D.rival.x+11,D.rival.z);else if(step===11)go(D.volcanoGate.x+16,D.volcanoGate.z);
   else if(step===12||step===13){enterVolcano();if(step===13){const c=volcanoLocal(VOLCANO.portal);player.position.set(c.x,voidSpec.y,c.z+5);}}
   else if(step===14)go(D.plaza.x+26,D.plaza.z);
   return this.storyState();
