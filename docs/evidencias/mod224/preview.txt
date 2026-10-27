@@ -1,0 +1,8 @@
+cast {'calls': 5, 'triangles': 1204, 'geo': 5, 'programs': 4}
+ascent {'calls': 5, 'triangles': 1248, 'geo': 5, 'programs': 4}
+circle {'calls': 7, 'triangles': 6656, 'geo': 6, 'programs': 4}
+rain {'calls': 8, 'triangles': 7164, 'geo': 6, 'programs': 4}
+impact {'calls': 7, 'triangles': 7178, 'geo': 6, 'programs': 4}
+fade {'calls': 8, 'triangles': 6670, 'geo': 6, 'programs': 4}
+clean {'calls': 3, 'triangles': 1202, 'geo': 6, 'programs': 4}
+PASS: stages, 8 recasts stable geometry, mobile low profile, no JS or shader errors

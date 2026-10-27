@@ -1,0 +1,11 @@
+console Failed to load resource: the server responded with a status of 404 (File not found)
+SETUP False
+START {'active': True, 'remaining': 5, 'time': 0, 'hp': 300, 'blades': [{'phase': 'ready', 'p': {'x': 40, 'y': 1.5999999999999999, 'z': 17.1}, 'hit': False}, {'phase': 'ready', 'p': {'x': 42.94827520051498, 'y': 1.6757323886327105, 'z': 14.957952682562338}, 'hit': False}, {'phase': 'ready', 'p': {'x': 41.82213428210667, 'y': 1.6818367684143112, 'z': 11.492047317437663}, 'hit': False}, {'phase': 'ready', 'p': {'x': 38.17786571789333, 'y': 1.612700800725388, 'z': 11.492047317437663}, 'hit': False}, {'phase': 'ready', 'p': {'x': 37.05172479948502, 'y': 1.5318877754222864, 'z': 14.957952682562336}, 'hit': False}]}
+console Failed to load resource: the server responded with a status of 404 (File not found)
+HUD 4/5
+HUD 3/5
+HUD 2/5
+HUD 1/5
+HUD 0/5
+END {'active': False, 'remaining': 0, 'time': 5.150000000000004, 'hp': 230, 'blades': [{'phase': 'gone', 'p': {'x': 40.307608998403744, 'y': 1.382391682419207, 'z': 14.755648038049939}, 'hit': True}, {'phase': 'gone', 'p': {'x': 40.813720398742454, 'y': 1.3551853933481146, 'z': 13.94095454312061}, 'hit': True}, {'phase': 'gone', 'p': {'x': 40.19529786535821, 'y': 1.380222854938563, 'z': 13.207859862717331}, 'hit': True}, {'phase': 'gone', 'p': {'x': 39.30698031997921, 'y': 1.357449174295428, 'z': 13.569475928185692}, 'hit': True}, {'phase': 'gone', 'p': {'x': 39.376392417516364, 'y': 1.377872705813786, 'z': 14.526061627926426}, 'hit': True}]}
+PASS: five touches + synthetic clicks => five unique impacts, damage70, HUD5..0 and restored; no page errors

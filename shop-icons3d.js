@@ -39,13 +39,10 @@ const ART = {
     return defs(id, GOLD, ['#3a2a0a']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><circle cx="48" cy="54" r="38" fill="url(#gl' + id + ')"/>' + sparks('#ffe9a8', 14, 11) +
       blade(id, 48, 84, 62, 5, -24) + blade(id, 48, 84, 62, 5, 24) + blade(id, 48, 84, 70, 6, 0);
   },
-  // Julgamento Celestial — cinco espadas em leque largo e um arco de luz.
+  // Chuva de Estrelas — círculo celeste e três estrelas descendentes.
   magic2(id) {
-    let b = '';
-    for (const a of [-52, -26, 26, 52]) b += blade(id, 48, 86, 56, 4.4, a);
-    b += blade(id, 48, 86, 70, 5.4, 0);
-    return defs(id, ICE, ['#0c1c3a']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><circle cx="48" cy="52" r="40" fill="url(#gl' + id + ')"/>' +
-      '<path d="M10 54 A40 40 0 0 1 86 54" fill="none" stroke="#bfe0ff" stroke-opacity=".5" stroke-width="1.4" stroke-dasharray="3 3"/>' + sparks('#cfe6ff', 14, 5) + b;
+    let stars='';for(const [x,y] of [[25,55],[48,73],[71,57]])stars+='<path d="M'+x+' 33 V'+y+'" stroke="#83cfff" stroke-width="2"/><path d="M'+x+' '+(y-10)+' l3 7 7 3 -7 3 -3 10 -3 -10 -7 -3 7 -3Z" fill="#fff0bd" stroke="#9bddff" stroke-width="1"/>';
+    return defs(id,ICE,['#0c1c3a'])+'<rect width="96" height="96" fill="url(#bg'+id+')"/><ellipse cx="48" cy="27" rx="36" ry="14" fill="none" stroke="#9fdcff" stroke-width="2"/><ellipse cx="48" cy="27" rx="28" ry="10" fill="none" stroke="#ffe3a0" stroke-width="1.5"/><ellipse cx="48" cy="27" rx="32" ry="12" fill="none" stroke="#fff" stroke-dasharray="2 4"/>'+stars;
   },
   // Sol da Justiça — disco solar com raios.
   magic3(id) {
@@ -72,13 +69,8 @@ const ART = {
     return defs(id, GOLD, ['#3a2a0a']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><circle cx="48" cy="22" r="22" fill="url(#gl' + id + ')"/><circle cx="48" cy="20" r="7" fill="none" stroke="#ffe9a8" stroke-width="1.6"/><circle cx="48" cy="20" r="2.4" fill="#fff"/>' + p +
       '<g opacity=".9">' + blade(id, 48, 90, 40, 4, 0) + '</g>' + sparks('#ffe9a8', 10, 41);
   },
-  // Julgamento Celestial II — sete espadas caindo do céu sobre o alvo.
-  magic2_plus(id) {
-    let b = '';
-    [-48, -32, -16, 0, 16, 32, 48].forEach((a, i) => { b += '<g transform="translate(' + (48 + a * .7) + ' ' + (10 + Math.abs(a) * .2) + ') rotate(180)">' + blade(id, 0, 0, 36 + (i === 3 ? 10 : 0), 3.6, 0) + '</g>'; });
-    return defs(id, ICE, ['#0c1c3a']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><ellipse cx="48" cy="84" rx="38" ry="9" fill="url(#gl' + id + ')"/>' +
-      '<ellipse cx="48" cy="84" rx="26" ry="5" fill="none" stroke="#bfe0ff" stroke-width="1.4"/>' + b + sparks('#cfe6ff', 16, 77);
-  },
+  // Aprimoramento da Chuva de Estrelas.
+  magic2_plus(id) { return ART.magic2(id); },
   magic3_plus(id) {
     return defs(id, ['#fff2c4', '#ffc24a', '#8a5a10'], ['#2a1a06']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><ellipse cx="48" cy="80" rx="38" ry="10" fill="url(#gl' + id + ')"/>' +
       '<ellipse cx="48" cy="80" rx="34" ry="8" fill="none" stroke="#ffe39a" stroke-width="1.6"/><ellipse cx="48" cy="80" rx="22" ry="5" fill="none" stroke="#ffe39a" stroke-width="1"/>' +

@@ -1,0 +1,11 @@
+console Failed to load resource: the server responded with a status of 404 (File not found)
+SETUP ready
+console Failed to load resource: the server responded with a status of 404 (File not found)
+game-cast {'active': True, 'time': 0.39166666666666705, 'phase': 'cast', 'mana': 68, 'hp': 300, 'cooldown': 27443.099999999977}
+game-ascent {'active': True, 'time': 1.249999999999998, 'phase': 'ascent', 'mana': 68, 'hp': 300, 'cooldown': 27443.099999999977}
+game-circle {'active': True, 'time': 1.8416666666666626, 'phase': 'rain', 'mana': 68, 'hp': 300, 'cooldown': 27443.099999999977}
+game-rain {'active': True, 'time': 2.949999999999992, 'phase': 'rain', 'mana': 68, 'hp': 282, 'cooldown': 27443.099999999977}
+game-impact {'active': True, 'time': 3.9499999999999886, 'phase': 'rain', 'mana': 68, 'hp': 264, 'cooldown': 27443.099999999977}
+game-clean {'active': False, 'time': 5.000000000000038, 'phase': 'idle', 'mana': 68, 'hp': 252, 'cooldown': 27443.099999999977}
+PASS: movement during rain, live camera, encounter replacement and lethal impact cleanup
+PASS: mobile touch+click charges once; retired skills blocked; real encounter damage; cooldown; cleanup; no page errors
