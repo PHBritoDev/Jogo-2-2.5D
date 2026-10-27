@@ -44,7 +44,7 @@
 
 ## Pendências (não feitas nesta entrega)
 
-- **Bispo 1:** o documento mestre do autor diz "Bispo 1 = Valério", e o histórico do repositório só tem esse nome. Não há outro nome registrado, então ele **não foi trocado**. Falta o autor confirmar o nome original. A dimensão 3D do Bispo 1 continua ligada ao portal (`startDimensionBattle('bishop1')`).
+- **Bispo 1:** o documento mestre do autor diz "Bispo 1 = VHAZRAEL", e o histórico do repositório só tem esse nome. Não há outro nome registrado, então ele **não foi trocado**. Falta o autor confirmar o nome original. A dimensão 3D do Bispo 1 continua ligada ao portal (`startDimensionBattle('bishop1')`).
 - **Revisão geral de roteiro e câmera em todas as cenas (19):** feita só nas cenas citadas.
 - **Variedade de figurantes e aparência própria dos bandidos (parte do 7):** hoje é o mesmo modelo, com cores diferentes.
 - **Anjo:** o cabelo continua em mechas rígidas. As asas não têm movimento secundário, porque estão presas ao peito, sem ossos próprios.

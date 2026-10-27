@@ -18,7 +18,7 @@ test('falas essenciais do roteiro estão presentes, sem nome fixo', () => {
   const t = text();
   for (const re of [/Uma cidade em um vulcão/, /erupção a qualquer momento/, /tirar esse povo daqui/, /sendo seguido/, /regras desta cidade/, /lutando entre si/, /levou todo o dinheiro/, /saco de moedas e sumam/,
     /Eu sei onde ele está/, /se eu ganhar, quero a sua espada/i, /vulcão falso/, /dois demônios de guarda/, /me dizer o seu nome/, /Não se esqueça: sou \{nome\}/, /pode ser uma armadilha/, /Mesmo que seja, eu preciso ir/,
-    /brincar um pouco com você/, /enviado de Deus/, /mero humano/, /Valério foi derrotado/, /piedade dessas pobres almas/, /Purificação\./, /cadê os corpos/, /predestinadas a morrer/, /Matem ele/,
+    /brincar um pouco com você/, /enviado de Deus/, /mero humano/, /VHAZRAEL foi derrotado/, /piedade dessas pobres almas/, /Purificação\./, /cadê os corpos/, /predestinadas a morrer/, /Matem ele/,
     /chave deve abrir/, /ouro estava escondido/, /devolver esse ouro/, /Peguem ele/, /Arcanjo de alto nível/, /recém-nomeado/, /honrado de morrer/, /obstáculo/, /Sinta o desespero/,
     /Cada dimensão foi criada pelos próprios Bispos/, /rebaixado de classe/, /Te aguardo no inferno/, /Não terei piedade/, /entrou em erupção/, /com os seus próprios olhos/, /terá que me derrotar/,
     /segunda fase/, /ZAR'KHAEL/, /trágico destino/, /fugir a tempo/, /o que é aquilo no céu/, /VÉRAXION/, /Fogo do abismo/, /Fujaaaa/, /Saia daquiii/, /Cadê o Anjo/, /cidade de neve/])

@@ -9,7 +9,7 @@ export const FINAL_PORTAL = { x: 44, z: -116 };
 export const VOID = { x: 0, z: 0, y: -2000, radius: 30 };
 
 export const GAUNTLET = [
-  { rig: 'bishop1', profile: 'fallen1', name: 'VALÉRIO · O PRIMEIRO', hp: 260, line: 'Eu contava moedas para não ouvir o que dorme lá embaixo. Volta, enquanto ainda tens um nome.' },
+  { rig: 'bishop1', profile: 'fallen1', name: 'VHAZRAEL · O PRIMEIRO', hp: 260, line: 'Eu contava moedas para não ouvir o que dorme lá embaixo. Volta, enquanto ainda tens um nome.' },
   { rig: 'bishop2', profile: 'fallen2', name: 'VORGAZHEK · O SEGUNDO', hp: 300, line: 'Endividamos o mundo inteiro para que a Ganância nunca tivesse fome. Tu queres pagar a conta de uma vez?' },
   { rig: 'bishop3', profile: 'fallen3', name: "ZAR'KHAEL · O TERCEIRO", hp: 340, line: 'Ajoelhamos todos para que ninguém se levantasse até o selo. Não abras a porta que nós mesmos trancamos.' },
   { rig: 'bishop4', profile: 'fallen4', name: 'VÉRAXION · O QUARTO', hp: 380, line: 'Eu guardei o último selo com o amor dos outros. Se caíres lá dentro, ninguém mais o fecha.' }
@@ -30,7 +30,7 @@ export function finaleTalkLines(name) {
 }
 export function gauntletIntroLines() {
   return [
-    say('VALÉRIO', 'Para. Não por ódio — por medo. Nós quatro nos unimos contra ela, há muito tempo. O preço do selo fomos nós.'),
+    say('VHAZRAEL', 'Para. Não por ódio — por medo. Nós quatro nos unimos contra ela, há muito tempo. O preço do selo fomos nós.'),
     say('VÉRAXION', 'Se tu atravessares e caíres, o mundo inteiro vira moeda. Não podemos deixar.'),
     say('Anjo-Guia', 'Eles não mentem. Mas a prisão deles também é a do mundo. Um de cada vez — e sem ódio.')
   ];
@@ -44,7 +44,7 @@ export function sinIntroLines(name) {
 export function epilogueLines(name) {
   return [
     say('Anjo-Guia', 'Acabou. Os olhos se fecharam, a fenda se dobrou como papel molhado. Você voltou — e a floresta também.'),
-    say('Valério', '…Eu lembro do meu nome de antes. Era Elias. Eu vendia pão. Me perdoem as gaiolas.'),
+    say('VHAZRAEL', '…Eu lembro do meu nome de antes. Era Elias. Eu vendia pão. Me perdoem as gaiolas.'),
     say('Dona Arruda', 'O homem que cobrava a gente está ajudando a erguer a ponte do canal. Não sei se perdoo. Mas ele está ajudando.'),
     say('Irmã Celeste', 'O vale reza sem ingresso. E alguns dos zelotes rezam junto, envergonhados.'),
     say('Tomé', 'A serra devolve o eco. Ontem alguém gritou o nome da esposa — e ela respondeu.'),

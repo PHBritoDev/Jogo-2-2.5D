@@ -10,7 +10,7 @@
  */
 export const ACT6N = { desert: 27, rematch: 28, greed: 29, done: 30, reward: 250, xp: 800 };
 export const REMATCH = [
-  { key: 'bishop1', name: 'VALÉRIO', hp: 340 },
+  { key: 'bishop1', name: 'VHAZRAEL', hp: 340 },
   { key: 'bishop2', name: 'VORGAZHEK', hp: 380 },
   { key: 'bishop3', name: "ZAR'KHAEL", hp: 420 },
   { key: 'bishop4', name: 'VÉRAXION', hp: 460 }
@@ -33,7 +33,7 @@ export function nextRematch(defeated) { return defeated >= 0 && defeated < REMAT
 export function greedReward(claimed) { return claimed ? { coins: 0, xp: 0 } : { coins: ACT6N.reward, xp: ACT6N.xp }; }
 
 export const SPEAKERS6 = { hero: 'heroi', guide: 'Anjo-Guia', rival: 'Pessoa Misteriosa', sandra: 'Sandra', greed: 'Ganância', greedSky: 'Ganância (voz)', envy: 'Inveja',
-  b1: 'VALÉRIO', b2: 'VORGAZHEK', b3: "ZAR'KHAEL", b4: 'VÉRAXION' };
+  b1: 'VHAZRAEL', b2: 'VORGAZHEK', b3: "ZAR'KHAEL", b4: 'VÉRAXION' };
 const S = SPEAKERS6;
 const say = (who, text, extra) => Object.assign({ type: 'say', who, text }, extra || {});
 const shot = (id, dur, args, extra) => Object.assign({ type: 'shot', id, dur, args: args || {} }, extra || {});

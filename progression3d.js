@@ -22,7 +22,7 @@ export function statsForLevel(level) {
 
 /** Etapas da campanha usadas como requisito (questStep do Ato I). */
 export const STEP_NAMES = {
-  4: 'libertar as crianças das gaiolas', 5: 'vencer as sentinelas da subida', 6: 'derrotar o guarda da passagem', 8: 'purificar Valério, o Primeiro Bispo'
+  4: 'libertar as crianças das gaiolas', 5: 'vencer as sentinelas da subida', 6: 'derrotar o guarda da passagem', 8: 'purificar VHAZRAEL, o Primeiro Bispo'
 };
 
 export const SHOP_SECTORS = [
@@ -91,7 +91,7 @@ export const ACHIEVEMENTS = [
   { id: 'explorador', name: 'Explorador', desc: 'Descubra 5 locais da floresta.', reward: 10, goal: 5, stat: 'places' },
   { id: 'ruina', name: 'O Que Foi Esquecido', desc: 'Encontre a ruína escondida.', reward: 6, goal: 1, stat: 'ruins' },
   { id: 'cacador', name: 'Mão Firme', desc: 'Derrote 6 servos da Ganância.', reward: 15, goal: 6, stat: 'kills' },
-  { id: 'purificacao', name: 'Primeiro Selo', desc: 'Purifique Valério, o Primeiro Bispo.', reward: 25, goal: 1, stat: 'bishops' }
+  { id: 'purificacao', name: 'Primeiro Selo', desc: 'Purifique VHAZRAEL, o Primeiro Bispo.', reward: 25, goal: 1, stat: 'bishops' }
 ];
 
 export function achievementState(a, stats = {}, claimed = new Set()) {
@@ -106,9 +106,9 @@ export const BESTIARY = [
   { id: 'demon2', act: 1, name: 'Demônio da Ganância', cls: 'Servo · Enemy2', img: 'Enemy2-ui.webp', discoveryReward: 4,
     lore: 'Anda em bando pelas trilhas e cobra em sangue o que os vivos não pagam em ouro.' },
   { id: 'warden', act: 1, name: 'Guardião do Portal', cls: 'Mini-chefe · Enemy1', img: 'Enemy1-ui.webp', discoveryReward: 6,
-    lore: 'Guarda a dimensão de Valério no fundo do esgoto. Mais pesado, golpe largo e mais resistente. Implora quando perde.' },
-  { id: 'valerio', act: 1, name: 'Valério', cls: 'Primeiro Bispo', img: 'Bispo1-ui.webp', discoveryReward: 10,
-    lore: 'Guardava as moedas. Fez da floresta um livro-caixa de vidas.' },
+    lore: 'Guarda a dimensão de VHAZRAEL no fundo do esgoto. Mais pesado, golpe largo e mais resistente. Implora quando perde.' },
+  { id: 'valerio', act: 1, name: 'VHAZRAEL', cls: 'Primeiro Bispo · O Ceifador dos Condenados', img: 'Bispo1-ui.webp', discoveryReward: 10,
+    lore: 'O Ceifador dos Condenados. Cobrava cada dívida com uma alma e fez da floresta um livro-caixa de vidas.' },
   { id: 'vorgazhek', act: 2, name: 'VORGAZHEK', cls: 'Segundo Bispo', img: 'Bispo2-ui.webp', discoveryReward: 14,
     lore: 'O Arauto das Almas Endividadas. Escrevia o nome dos devedores em três livros e cobrava dos vivos o que os mortos não pagaram.' },
   { id: 'zealot', act: 3, name: 'Zelote do Altar', cls: 'Servo · Enemy3', img: 'Enemy3-ui.webp', discoveryReward: 5,

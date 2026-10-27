@@ -151,7 +151,7 @@ export function gateScene() {
 export function gateDefeatScene() {
   return [
     say(S.demon, 'Isso é impossível… como nós fomos derrotados por um mero humano? Espera… você é realmente humano?'),
-    say(S.demon, 'Ouvi rumores de que Valério foi derrotado por alguém, mas achei que era apenas um mito. Parece que foi você, né?'),
+    say(S.demon, 'Ouvi rumores de que VHAZRAEL foi derrotado por alguém, mas achei que era apenas um mito. Parece que foi você, né?'),
     shot('eliminar', 2.6, { cam: 'look', on: 'enemy', off: [2.4, 1.6, 3], at: [0, 1, 0] }, { with: [act('eliminar')] })
   ];
 }
@@ -243,7 +243,7 @@ export function minibossDefeatScene() {
 
 export function vorgazhekIntroScene() {
   return [
-    say(S.boss, 'Eu estava te esperando. Não acredito que Valério foi realmente derrotado por alguém como você. Não terei piedade.'),
+    say(S.boss, 'Eu estava te esperando. Não acredito que VHAZRAEL foi realmente derrotado por alguém como você. Não terei piedade.'),
     say(S.hero, 'Assim que eu te derrotar, irei salvar esta cidade.'),
     say(S.boss, 'Ahahahaha! Que cidade? Você não percebeu? Assim que você entrou aqui, o vulcão foi ativado e entrou em erupção. Você realmente achou que esse vulcão era falso?'),
     say(S.hero, 'Não pode ser… isso é impossível.'),

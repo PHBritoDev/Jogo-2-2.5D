@@ -18,7 +18,7 @@ export const MAP_POIS = [
   { id: 'esgoto', name: 'Entrada do Esgoto', x: 22, z: -106, kind: 'danger' },
   { id: 'lago', name: 'Lago Escuro', x: -27, z: -88, kind: 'water' },
   { id: 'ruina', name: 'Ruína Esquecida', x: -18.5, z: -52, kind: 'secret', secret: true },
-  { id: 'portal', name: 'Portal de Valério', x: 44, z: -119, kind: 'portal', revealRadius: 34 },
+  { id: 'portal', name: 'Portal de VHAZRAEL', x: 44, z: -119, kind: 'portal', revealRadius: 34 },
   { id: 'garganta', name: 'Garganta da Dívida', x: -72, z: -60, kind: 'danger' },
   { id: 'distrito', name: 'Distrito da Ferrugem', x: -150, z: -62, kind: 'village', revealRadius: 26 },
   { id: 'mina', name: 'Mina Velha', x: -184, z: -38, kind: 'danger' },

@@ -1,6 +1,6 @@
 /**
  * MOD 204 — Marco 2: o esgoto do Ato I (roteiro: túnel com água pingando e rastros de sangue, a sala dos
- * cinco Seguidores, o buraco, a cela mais abaixo, dois caminhos e o "lugar estranho" com o portal de Valério).
+ * cinco Seguidores, o buraco, a cela mais abaixo, dois caminhos e o "lugar estranho" com o portal de VHAZRAEL).
  * Só dados e geometria plana: o mundo monta o cenário (dimension-arenas3d.js, tema "sewer") e usa walkable()
  * para colisão. Coordenadas locais, com o centro da sala dos Seguidores em (0, 0) e o chão em y = 0.
  */

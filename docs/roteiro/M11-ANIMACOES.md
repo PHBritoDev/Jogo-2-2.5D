@@ -24,5 +24,5 @@
 - **Animações de poder:** são poses procedurais por cima do clipe, não animações feitas quadro a quadro.
 - **Evidência:**
   - **CONFIRMADO POR CÓDIGO:** `node --test`.
-  - **TESTADO EM NAVEGADOR:** corrida (velocidade 7, clipe carregado), poses de invocação e canalização no herói e Valério com poderes e ultimate, sem erros de página. Regressões dos Atos V e VI também.
+  - **TESTADO EM NAVEGADOR:** corrida (velocidade 7, clipe carregado), poses de invocação e canalização no herói e VHAZRAEL com poderes e ultimate, sem erros de página. Regressões dos Atos V e VI também.
   - **Android: NÃO TESTADO.**

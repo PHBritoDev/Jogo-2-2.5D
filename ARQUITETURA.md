@@ -1,7 +1,7 @@
 # Estrutura do jogo — Galáxia 1 (mundo 3D)
 
 O jogo é **100% 3D** (Three.js 0.160). O antigo mundo 2D em Canvas foi removido no Mod 202:
-a dimensão de Valério e as dos demais Bispos acontecem dentro do mesmo mundo 3D, com os mesmos
+a dimensão de VHAZRAEL e as dos demais Bispos acontecem dentro do mesmo mundo 3D, com os mesmos
 HUDs, combate, câmera, habilidades, vida e corações.
 
 ## Arquivos
@@ -19,7 +19,7 @@ HUDs, combate, câmera, habilidades, vida e corações.
 ## Dimensões dos Bispos
 
 `DIMENSIONS` (em `dimensions3d.js`) define nome, fala, foto, arena e tema de cada uma:
-1 Valério (câmara macabra de moedas), 2 VORGAZHEK (vazio de olhos vermelhos e lua sorridente),
+1 VHAZRAEL (câmara macabra de moedas), 2 VORGAZHEK (vazio de olhos vermelhos e lua sorridente),
 3 ZAR'KHAEL (cogumelos de olhos sobre piso xadrez), 4 VÉRAXION (corredor torto de claraboias) e
 5 Ganância (caverna de raízes e olhos; é o Pecado, não um quinto Bispo).
 
@@ -33,7 +33,7 @@ compilados, para a luta nunca travar. Quedas gastam um coração; sem corações
 Roteiro do autor em `docs/roteiro/M2-ATO1.md`. As cenas são dados em `act1-flow.js` e rodam no diretor (`cutscenes3d.js`)
 com câmera por atores; etapas 1–8 com sub-etapas (`act1Sub`). Lutas em grupo: um inimigo luta e os demais esperam
 visíveis (`startPack`). O esgoto é uma área abaixo do mundo (tema `sewer`, colisão por `sewerWalkable`) com o portal de
-Valério no fim. Modelos: `VilaKit.glb`, `MoradoresPose.glb`, `Enemy2-rig.glb` (scripts em `tools/blender/`).
+VHAZRAEL no fim. Modelos: `VilaKit.glb`, `MoradoresPose.glb`, `Enemy2-rig.glb` (scripts em `tools/blender/`).
 
 ## Ato II (Mod 205)
 

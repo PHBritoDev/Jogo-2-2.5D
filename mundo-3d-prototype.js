@@ -483,7 +483,7 @@ for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.
 const villageVendors=[
  {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Frutas… o que sobrou delas. Nem os bichos querem mais.',hints:['Você é novo por aqui? Não pergunte muito em voz alta.','O Téo, das provisões, escuta tudo. Mas não fala de graça.','De noite tem choro na mata. Eu fecho a porta e rezo.','Dizem que o Primeiro Bispo anda por baixo da terra, nos esgotos velhos.','Se você voltou de lá… ainda há esperança.']},
  {name:'Mara · Ervas',shortName:'ERVAS',x:marketStalls[1].x,z:marketStalls[1].z+1.55,yaw:Math.PI*.72,greeting:'Ervas para febre e para fome. A fome está ganhando.',hints:['Cuidado com quem oferece ajuda de graça. Aqui tudo tem preço.','Quer notícia? Compre do Téo. É assim que funciona agora.','A floresta à noite não é lugar de gente viva.','A encosta da montanha tem uma boca de pedra. Ninguém que entrou voltou.','A vila ainda está de pé. Por enquanto.']},
- {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[2].x,z:marketStalls[2].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','Valério caiu? Fale baixo… ainda há outros.']},
+ {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[2].x,z:marketStalls[2].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']},
  {name:'Nara · Artesanato',shortName:'ARTESANATO',x:marketStalls[3].x,z:marketStalls[3].z+1.55,yaw:Math.PI,greeting:'Faço fechaduras. Hoje só me pedem cadeado para guardar o pouco que resta.',hints:['A trilha da vila vem lá do sudeste da mata.','Os ricos sumiram com tudo. Ficou a gente e as moscas.','Gaiolas na floresta… não é trabalho meu, eu juro.','Os esgotos velhos passam por baixo da montanha.','Obrigada. A vila vai lembrar de você.']}
 ];
 function mergeGrassTuft(sourceRoot){const positions=[],colors=[],indices=[],zUpToYUp=new THREE.Matrix4().makeRotationX(-Math.PI/2);sourceRoot.updateMatrixWorld(true);sourceRoot.traverse(obj=>{if(!obj.isMesh||!obj.geometry||!obj.geometry.attributes.position)return;const geometry=obj.geometry,position=geometry.attributes.position,color=geometry.attributes.color,base=positions.length/3;const vertex=new THREE.Vector3();for(let i=0;i<position.count;i++){vertex.fromBufferAttribute(position,i).applyMatrix4(obj.matrixWorld).applyMatrix4(zUpToYUp);positions.push(vertex.x,vertex.y,vertex.z);colors.push(color?color.getX(i):.38,color?color.getY(i):.56,color?color.getZ(i):.3);}if(geometry.index){for(let i=0;i<geometry.index.count;i++)indices.push(base+geometry.index.getX(i));}else for(let i=0;i<position.count;i++)indices.push(base+i);});if(!positions.length)throw new Error('Grama.glb não contém malhas com vértices');const merged=new THREE.BufferGeometry();merged.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));merged.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));merged.setIndex(indices);merged.computeVertexNormals();merged.computeBoundingBox();merged.computeBoundingSphere();return merged;}
@@ -1024,7 +1024,7 @@ function announceShopNews(){
 let namePromptOpen=false,awakeningActive=!awakeningSeen&&questStep===0,awakeningT=0,tauntLock=false,reunionStarted=false,purseGiven=questStep>0;
 if(questStep<2)enemy.visible=false;
 if(questStep===2){{const jx=JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,jz=JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59;enemy.position.set(jx,terrainHeightAt(jx,jz),jz);}enemy.visible=false;}
-portalGroup.visible=questStep>=8; // MOD 204: no Ato I o portal de Valério fica dentro do esgoto
+portalGroup.visible=questStep>=8; // MOD 204: no Ato I o portal de VHAZRAEL fica dentro do esgoto
 /* MOD 202 — os shaders do mundo compilam enquanto a tela das galáxias está aberta (compilação paralela), não no primeiro
    quadro depois do ENTRAR: era isso que travava o jogo por alguns segundos ao entrar. */
 var worldCompiled=false,worldCompileStarted=false;
@@ -1103,7 +1103,7 @@ function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of v
 function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;const root=vendorRoots[villageVendors.indexOf(vendor)];if(root){faceTo(root,player.position);faceTo(player,root.position);}if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
 function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;const T=inSewer?sewerLocal(SEWER.portal):PORTAL,tz=T.z+(inSewer?1.2:2.4);player.position.x+=(T.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=(tz-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(T.x-player.position.x,T.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestValerioHandoff();}
-function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de Valério foi quebrado.';return;}updateHeartsHud(true);if(!canChallengeBishop(heartState)){status.textContent='Sem corações. O próximo volta em '+formatTimer(msToNextHeart(heartState))+'.';showDialogue([{who:'Anjo-Guia',text:'Não atravesse de peito vazio. Espere um coração voltar.'}]);return;}if(questStep===6){if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();act1Toast('A DIMENSÃO DE VALÉRIO SE ABRE');}if(questStep===7){status.textContent='O portal puxa você.';worldAudio.portalEnter();startPortalPull();}}
+function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de VHAZRAEL foi quebrado.';return;}updateHeartsHud(true);if(!canChallengeBishop(heartState)){status.textContent='Sem corações. O próximo volta em '+formatTimer(msToNextHeart(heartState))+'.';showDialogue([{who:'Anjo-Guia',text:'Não atravesse de peito vazio. Espere um coração voltar.'}]);return;}if(questStep===6){if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();act1Toast('A DIMENSÃO DE VHAZRAEL SE ABRE');}if(questStep===7){status.textContent='O portal puxa você.';worldAudio.portalEnter();startPortalPull();}}
 function tryInteract(){if(cineActive)return;if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen)return;if(act1Interact())return;if(act2StoryInteract())return;if(act3Ready&&act3Interact())return;if(act3Ready&&act4Interact())return;if(act3Ready&&act6Interact())return;if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
 bindInstantTap(document.getElementById('talk-button'),tryInteract);
 const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');skipAwakening.classList.add('hidden');}
@@ -1157,7 +1157,7 @@ function loadPlayerSword(modelRoot){
   swordRoot.traverse(o=>{if(o.isMesh){o.visible=true;o.castShadow=true;o.receiveShadow=false;o.frustumCulled=false;}});
   swordHand=findSwordHand(modelRoot);
   swordRoot.scale.setScalar(.62);
-  // Mesmo encaixe validado na dimensão do Valério: cabo centrado na mão e mount fora da hierarquia escalada do rig.
+  // Mesmo encaixe validado na dimensão do VHAZRAEL: cabo centrado na mão e mount fora da hierarquia escalada do rig.
   swordRoot.rotation.set(0,0,Math.PI);
   swordRoot.position.set(0,.75*.62,0);
   swordPivot=new THREE.Group();swordPivot.name='EspadaProta_AttackPivot';
@@ -1400,7 +1400,7 @@ if(dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineA
 // MOD 206 — dimensão distorcida do Ato III: frente vira trás e esquerda vira direita.
 if(distorted||performance.now()<foeInvertUntil){axisX=-axisX;axisZ=-axisZ;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
-// Mesmo princípio da dimensão do Valério: o joystick é relativo à orientação da câmera,
+// Mesmo princípio da dimensão do VHAZRAEL: o joystick é relativo à orientação da câmera,
 // com zona morta analógica e aceleração/desaceleração suaves, em vez de deslocar o modelo instantaneamente.
 const dead=.12;if(len<dead){axisX=0;axisZ=0;}else{const power=(len-dead)/(1-dead);axisX=axisX/len*power;axisZ=axisZ/len*power;}
 const worldX=axisX*Math.cos(cameraYaw)+axisZ*Math.sin(cameraYaw);
@@ -1414,7 +1414,7 @@ if(targetSpeed<.001){
  response=16;
 }else if(currentSpeed>.08&&
  (moveVX*targetVX+moveVZ*targetVZ)/(currentSpeed*targetSpeed)<.82){
- // Ao inverter a direção, conserva um pouco da inércia como na dimensão do Valério.
+ // Ao inverter a direção, conserva um pouco da inércia como na dimensão do VHAZRAEL.
  response=7.5;
 }else{
  response=10;
@@ -1688,7 +1688,7 @@ function closeWorldMap(){const panel=document.getElementById('world-map');if(pan
  addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing||e.repeat)return;if(e.code==='KeyM'){mapOpen?closeWorldMap():openWorldMap();}else if(e.code==='Escape'&&mapOpen)closeWorldMap();});
  addEventListener('pagehide',()=>saveMapState(true));
 })();
-/* MOD 187 — o portal leva à dimensão original de Valério SEM trocar de link: dentro de index.html?mundo3d=1
+/* MOD 187 — o portal leva à dimensão original de VHAZRAEL SEM trocar de link: dentro de index.html?mundo3d=1
    a própria página abre a dimensão por cima do mundo (pausado e intacto); aberto direto, o mundo cria uma
    sobreposição com a dimensão. Na vitória, o jogador volta para a frente do portal, já fechado. */
 /* MOD 202 — dimensões dos Bispos 100% dentro do mundo 3D. O portal não troca de página nem abre iframe:
@@ -1792,7 +1792,7 @@ function dimensionPlayerDown(){
  else lateBossPlayerDown();
  if(!enemy.visible)abortDimensionBattle();
 }
-// ---- Valério (Ato I) ----
+// ---- VHAZRAEL (Ato I) ----
 function requestValerioHandoff(){
  if(handoffSent||dimBattle)return;
  // MOD 204 — o portal fica no fundo do esgoto. Vitória: volta ao início do mapa (roteiro). Sem corações: fora do esgoto.
@@ -1800,14 +1800,14 @@ function requestValerioHandoff(){
  startDimensionBattle('bishop1',{hp:DIMENSIONS.bishop1.hp,returnTo:{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z},onVictory:valerioVictory,onAbort:()=>{
   const d=sewerDoorFront();player.position.set(d.x,terrainHeightAt(d.x,d.z),d.z);checkpointX=d.x;checkpointZ=d.z;
   status.textContent='O portal te expulsou: seus corações se apagaram. Recupere ao menos um para voltar.';
-  setTimeout(()=>showDialogue([{who:'Anjo-Guia',text:'Valério ainda está de pé, e você também. Espere um coração voltar a bater e desça de novo.'}]),700);}});
+  setTimeout(()=>showDialogue([{who:'Anjo-Guia',text:'VHAZRAEL ainda está de pé, e você também. Espere um coração voltar a bater e desça de novo.'}]),700);}});
 }
 function valerioVictory(){
  const result=afterValerioVictory({valerioRewardClaimed,bishopsDefeated});
  if(result.coinsGained){bumpStat('bishops');gainXp(XP_REWARDS.valerio);bestiaryKnown.add('valerio');}
  questStep=result.questStep;act1Sub=0;bishopsDefeated=result.bishopsDefeated;valerioRewardClaimed=true;coins+=result.coinsGained;
  closePortalVisuals();save3DProgress();updateQuestHud();syncAct1World();
- act1Toast('VALÉRIO FOI PURIFICADO'+(result.coinsGained?' · +'+result.coinsGained+' MOEDAS':''));
+ act1Toast('VHAZRAEL FOI PURIFICADO'+(result.coinsGained?' · +'+result.coinsGained+' MOEDAS':''));
  setGameHour(9);setTimeout(afterValerioStory,900);
 }
 // ---- Portais dos Bispos 2–4 (aparecem quando o confronto do ato está liberado) ----
@@ -3015,7 +3015,7 @@ function wardenDown(){
  // O Guardião implora antes de ser desfeito: volta à cena ajoelhado (clone, sem barra de vida).
  const w=sewerLocal(SEWER.warden),ex=enemy.position.x||w.x,ez=enemy.position.z||w.z,c=makeFoeClone('enemy1',{x:ex,z:ez},{scale:1.35,role:'hit',timeScale:.25});
  act1WardenClone=c;if(c){hordeClones.push(c);storyAnchors.enemy={x:ex,z:ez,y:c.holder.position.y,yaw:Math.atan2(player.position.x-ex,player.position.z-ez)};}
- playStory('guardiao-cai',wardenDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;delete storyAnchors.enemy;if(c){disposeClone(c);const i=hordeClones.indexOf(c);if(i>=0)hordeClones.splice(i,1);}act1WardenClone=null;act1Advance(6,0);status.textContent='O portal de Valério está aberto.';}});
+ playStory('guardiao-cai',wardenDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;delete storyAnchors.enemy;if(c){disposeClone(c);const i=hordeClones.indexOf(c);if(i>=0)hordeClones.splice(i,1);}act1WardenClone=null;act1Advance(6,0);status.textContent='O portal de VHAZRAEL está aberto.';}});
 }
 var act1WardenClone=null;
 /* ---------- Ações das cenas (passos "do" das cenas do Ato I) ---------- */
@@ -3102,7 +3102,7 @@ function storyDo(id,args){
   case 'escuro':setCineFade(1,1.1,false);break;
  }
 }
-/* ---------- Valério: falas dentro da dimensão e a volta ao início do mapa ---------- */
+/* ---------- VHAZRAEL: falas dentro da dimensão e a volta ao início do mapa ---------- */
 function valerioIntro(){if(!dimBattle||dimBattle.key!=='bishop1'||questStep>=8)return;playStory('valerio',valerioIntroScene(),{focus:'enemy',face:'enemy'});}
 function valerioOutro(then){playStory('valerio-cai',valerioDefeatScene(),{focus:'enemy',done:()=>then()});}
 function afterValerioStory(){
@@ -4616,7 +4616,7 @@ function updateVoid(dt,now){
  if(arena){const e=arena.env;scene.background.setHex(e.bg);scene.fog.color.setHex(e.fog);scene.fog.near=e.fogNear;scene.fog.far=e.fogFar;hemiLight.color.setHex(e.hemi[0]);hemiLight.groundColor.setHex(e.hemi[1]);hemiLight.intensity=e.hemi[2];sunLight.color.setHex(e.sun[0]);sunLight.intensity=e.sun[1];fill.intensity=.2;renderer.toneMappingExposure=e.exposure;
   dimLight.color.setHex(e.light[0]);dimLight.intensity=e.light[1]*(1+Math.sin(now*.004)*.05);dimLight.distance=e.light[2];if(e.lightFollow)dimLight.position.set(player.position.x+e.light[3][0],player.position.y+e.light[3][1],player.position.z+e.light[3][2]);else dimLight.position.set(voidSpec.x+e.light[3][0],voidSpec.y+e.light[3][1],voidSpec.z+e.light[3][2]);
   arena.update(now,camera,innerHeight*renderer.getPixelRatio());
-  if(dimBattle&&dimBattle.active&&dimBattle.key==='bishop1'&&enemy.visible&&enemyAlive&&!bossRageAnnounced&&bossPhase(enemyHP,enemyMaxHP)===2){bossRageAnnounced=true;showCombatCallout('FÚRIA DO GUARDIÃO');status.textContent='VALÉRIO: “'+DIMENSIONS.bishop1.rage+'”';enemyCastCooldown=0;cameraShake(.2);vibrate(60);}
+  if(dimBattle&&dimBattle.active&&dimBattle.key==='bishop1'&&enemy.visible&&enemyAlive&&!bossRageAnnounced&&bossPhase(enemyHP,enemyMaxHP)===2){bossRageAnnounced=true;showCombatCallout('FÚRIA DO CEIFADOR');status.textContent='VHAZRAEL: “'+DIMENSIONS.bishop1.rage+'”';enemyCastCooldown=0;cameraShake(.2);vibrate(60);}
  }
 }
 // ---------- Etapas ----------
@@ -4778,7 +4778,7 @@ function updateHazards(dt){
   if(h.fired){const f=(h.t-h.delay)/.4;h.fill.material.opacity=Math.max(0,.5-f);h.rim.material.opacity=Math.max(0,.85-f);h.grow.material.opacity=Math.max(0,.5-f);if(f>=1){scene.remove(h.g);h.g.traverse(o=>{if(o.material)o.material.dispose();});hazards.splice(i,1);}}
  }
 }
-// Buraco negro (Ganância e Valério caído): núcleo cresce, puxa o herói e partículas, explode; dash escapa.
+// Buraco negro (Ganância e VHAZRAEL caído): núcleo cresce, puxa o herói e partículas, explode; dash escapa.
 const blackHole={g:null,t:0,active:false};
 function castBlackHole(x,z){
  if(blackHole.active)return;const g=new THREE.Group();g.position.set(x,groundHeightAt(x,z)+2.2,z);scene.add(g);
@@ -5064,7 +5064,7 @@ function startKitUlt(kind){
  else if(kind==='inferno'){status.textContent='Dois furacões de fogo caçam você — corra e use o DASH!';fxRing(e.x,e.z,6,.4,Math.round(D*.5),c1);at(.8,()=>fxVortex(4.5,3.4,Math.round(D*.35),c1,0xffd060));at(1.6,()=>fxVortex(3.6,3,Math.round(D*.35),0xffd060,c1));dur=5.6;}
  else if(kind==='execution'){status.textContent='O carrasco salta para a execução — saia da marca!';const p=P().clone();spawnHazard({x:p.x,z:p.z,radius:3,delay:1.3,damage:D,color:c1});at(1.25,()=>{if(!blockedAt(p.x,p.z)){enemy.position.x=p.x;enemy.position.z=p.z;}cameraShake(.5);impactFrame(70);scorch(p.x,p.z,3);burstSparks(p.clone().setY(fxGy(p.x,p.z)+.5),c1);fxRing(p.x,p.z,8,0,Math.round(D*.5),c1);});at(2,()=>fxWave(3,Math.round(D*.45),c1,c2,0));dur=3.4;}
  else if(kind==='barrage'){status.textContent='Rajadas de orbes sombrios — não pare de se mover!';for(let i=0;i<3;i++)at(.3+i*.8,()=>fxOrbs(7,8.5,Math.round(D*.3),c1,c2,.28));dur=4.6;}
- else if(kind==='reaper'){status.textContent='VALÉRIO invoca o Ceifador: fique ATRÁS dele ou use o DASH no corte!';const yaw=foeYaw();
+ else if(kind==='reaper'){status.textContent='VHAZRAEL ergue a foice do Ceifador: fique ATRÁS dele ou use o DASH no corte!';const yaw=foeYaw();
   for(let i=0;i<5;i++)at(.3+i*.35,()=>fxGrab(P().x,P().z,1.6,.8,Math.round(D*.35),1,c1,c2,false));
   const sc=new THREE.Group(),bm=addMat(0xd8c8ff,0),blade=new THREE.Mesh(new THREE.TorusGeometry(4.5,.35,6,32,2.2),bm),handle=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,9,8),addMat(0x2a0a3a,0));blade.position.set(0,4.5,0);handle.position.set(4.3,0,0);sc.add(blade,handle);sc.position.set(e.x,e.y+5,e.z);sc.rotation.y=yaw;scene.add(sc);
   fxCone(e.x,e.z,yaw,9,4.4,2.4,D,c1,0xd8c8ff);fxPush(function(t){const a=Math.min(1,t/.8);bm.opacity=.8*a;handle.material.opacity=.7*a;if(t>2.4)sc.rotation.y+=.25;if(t>3.1){fxDispose(sc);return false;}});dur=3.6;}
@@ -5166,7 +5166,7 @@ function bakeRunClip(src,srcClip,target,sourceIdle){
  return new THREE.AnimationClip('Running',srcClip.duration,names.map(n=>new THREE.QuaternionKeyframeTrack(n+'.quaternion',times,vals[n])));
 }
 const BOSS_POWERS={
- valerio:{cd:8,run(){status.textContent='VALÉRIO: “Cada moeda é uma alma.” As moedas caem sobre você!';for(let i=0;i<4;i++){const a=Math.random()*6.28,r=1+Math.random()*4;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.7,delay:1+i*.3,damage:16,color:0xffc04a});}if(bossRageAnnounced)castBlackHole(enemy.position.x,enemy.position.z);}},
+ valerio:{cd:8,run(){status.textContent='VHAZRAEL: “Cada moeda é uma alma.” As moedas caem sobre você!';for(let i=0;i<4;i++){const a=Math.random()*6.28,r=1+Math.random()*4;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.7,delay:1+i*.3,damage:16,color:0xffc04a});}if(bossRageAnnounced)castBlackHole(enemy.position.x,enemy.position.z);}},
  vorgazhek:{cd:7.5,run(){status.textContent='VORGAZHEK estende o livro: as correntes da dívida caem sobre você!';const px=player.position.x,pz=player.position.z,vx=moveVX*.5,vz=moveVZ*.5;for(let i=0;i<3;i++)spawnHazard({x:px+vx*(i+1),z:pz+vz*(i+1),radius:2.1,delay:.9+i*.45,damage:18,color:0xd25a2a});}},
  zarkhael:{cd:8,run(){status.textContent="ZAR'KHAEL ergue a mão: o juízo cai em pilares!";for(let i=0;i<5;i++){const a=Math.random()*6.28,r=1+Math.random()*4.5;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.8,delay:1.1+i*.18,damage:20,color:0xffc04a});}}},
  veraxion:{cd:8.5,run(){status.textContent='VÉRAXION invoca o fogo abissal — saia das chamas!';const ex=enemy.position.x,ez=enemy.position.z,dx=player.position.x-ex,dz=player.position.z-ez,d=Math.max(1,Math.hypot(dx,dz));for(let i=0;i<5;i++){const k=(i+1)/5*Math.min(12,d+3);abyssFlame(ex+dx/d*k,ez+dz/d*k,.8+i*.22,1.9);}abyssFlame(player.position.x,player.position.z,1.6,2.6);worldAudio.abyss&&worldAudio.abyss();}},

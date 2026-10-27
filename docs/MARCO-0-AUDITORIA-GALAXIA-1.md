@@ -15,9 +15,9 @@ Legenda de evidência: **CONFIRMADO POR CÓDIGO** · **TESTADO EM NAVEGADOR** (C
 
 | Item | Situação | Evidência |
 |---|---|---|
-| Nomes dos Bispos | 1 = **Valério**, 2 = **VORGAZHEK**, 3 = **ZAR'KHAEL**, 4 = **VÉRAXION** (`dimensions3d.js`, `progression3d.js`, `acts34-flow.js`). KHRAVAZOTH não existe mais | CONFIRMADO POR CÓDIGO |
+| Nomes dos Bispos | 1 = **VHAZRAEL**, 2 = **VORGAZHEK**, 3 = **ZAR'KHAEL**, 4 = **VÉRAXION** (`dimensions3d.js`, `progression3d.js`, `acts34-flow.js`). KHRAVAZOTH não existe mais | CONFIRMADO POR CÓDIGO |
 | Mundo | Só 3D (Three.js 0.160). O mundo 2D foi removido no Mod 202 | CONFIRMADO POR CÓDIGO |
-| Dimensão de Valério | Portal → cartão VS → arena → vitória (etapa 8, volta ao portal). Queda gasta coração; sem corações, volta ao portal | TESTADO EM NAVEGADOR (25/10). Android: NÃO TESTADO |
+| Dimensão de VHAZRAEL | Portal → cartão VS → arena → vitória (etapa 8, volta ao portal). Queda gasta coração; sem corações, volta ao portal | TESTADO EM NAVEGADOR (25/10). Android: NÃO TESTADO |
 | Dimensões 2–4 e Ganância | Portal → VS → luta → etapas 14/20/26; arena do Pecado ok | TESTADO EM NAVEGADOR |
 | Testes unitários | `node --test`: 59/59 | TESTADO |
 | Desempenho | ~1,5 M → ~0,4 M triângulos por quadro; shaders pré-compilados | TESTADO EM NAVEGADOR (contagem). FPS em Android: NÃO TESTADO |
@@ -29,7 +29,7 @@ Legenda de evidência: **CONFIRMADO POR CÓDIGO** · **TESTADO EM NAVEGADOR** (C
 | Parte do roteiro | Hoje no jogo | Distância |
 |---|---|---|
 | Prólogo: vídeo do céu, trono de Deus, asas e aura retiradas; tela dos 7 planetas; despertar olhando as mãos; nome; apresentação do Anjo | Sobrevoo de 14 s com 3 frases, tela de galáxias, despertar e nome | Faltam o céu/trono, a perda das asas e o "olhar as mãos" |
-| Ato 1: vila grande; vendedor com suborno animado; floresta à noite; Enemy1 (1, depois 2); chave; crianças que viram Enemy1; desmaio e manhã; esgotos; caverna (5 Enemy1 comendo); queda; jaula com 10; dois caminhos; mini-chefe no portal; Valério | Vila pequena, suborno de 5 moedas, 3 captores, gaiolas (crianças libertadas sem transformação), 2 sentinelas, guarda (mini-chefe), portal, Valério | **Grande**: faltam transformação, desmaio, esgoto, caverna, queda, jaula, dois caminhos e vila maior |
+| Ato 1: vila grande; vendedor com suborno animado; floresta à noite; Enemy1 (1, depois 2); chave; crianças que viram Enemy1; desmaio e manhã; esgotos; caverna (5 Enemy1 comendo); queda; jaula com 10; dois caminhos; mini-chefe no portal; VHAZRAEL | Vila pequena, suborno de 5 moedas, 3 captores, gaiolas (crianças libertadas sem transformação), 2 sentinelas, guarda (mini-chefe), portal, VHAZRAEL | **Grande**: faltam transformação, desmaio, esgoto, caverna, queda, jaula, dois caminhos e vila maior |
 | Ato 2: cidade no vulcão; bandidos; duelo com NPC misterioso (Sandra); 2 Enemy2 na entrada; purificação dos corpos; laboratório; chave; sala do ouro; 5 Enemy2; mini-chefe no trono; VORGAZHEK; erupção; ataque do Bispo 4 (buraco negro); Anjo some | "Distrito da Ferrugem" com chuva, família Arruda, 3 livros-caixa, selo, VORGAZHEK | **Total**: o ato precisa ser refeito; aproveitar motor de etapas, rigs e dimensão 2 |
 | Ato 3: cidade nevada; casaco (buff/debuff); lago congelado; pousada armadilha; porão; Enemy3; cidade em chamas; guilhotina; Anjo resgata; caverna de gelo; dimensão distorcida (controles invertidos); mini-chefe; ZAR'KHAEL; revelação de identidade; Anjo 5%; Ganância fase 1 leva o Anjo | "Vale do Altar" com névoa, zelotes, ídolos, ZAR'KHAEL | **Total** |
 | Ato 4: Sandra volta; torre de 7 andares (pergaminho +20%, sala de descanso, mini-chefes); revelação de que eram humanos; passado do Bispo 4; torre cai; Sandra era o 5º Bispo | "Serra sem Ecos", cartas, servos, VÉRAXION | **Total** |
@@ -44,7 +44,7 @@ Legenda de evidência: **CONFIRMADO POR CÓDIGO** · **TESTADO EM NAVEGADOR** (C
 Diretor de cutscenes (dados) ──┬─> Prólogo (M1) ──> Ato 1 (M2) ──> Ato 2 (M3) ──> Ato 3 (M4) ──> Ato 4 (M5) ──> Ato 5 (M6) ──> Ato 6 (M7)
 Câmera (livre/lock-on/cinemática) ─┘        │              │              │              │              │              │
 Inventário + equipamentos + buffs ─────────────────────────┼──────────(casaco M4)───(pergaminho M5)──(Espada M6)───(fragmentos M7)
-Novo kit de poderes (jogador/inimigos) ────── começa em M2 (Valério) e cresce por ato ─────────────────────── ultimates M7
+Novo kit de poderes (jogador/inimigos) ────── começa em M2 (VHAZRAEL) e cresce por ato ─────────────────────── ultimates M7
 Cidades modulares + streaming/LOD ─────────── vila M2 · vulcão M3 · neve M4 · torre M5 · coliseu M6 · deserto M7
 Companheiros (Anjo acompanha; Sandra) ─────── Anjo M2+ · Sandra M3 (duelo) · M5 · M6 · M7
 Save (missões, checkpoints, NPCs, equipamentos, fragmentos, cutscenes) ── estendido em todo marco
@@ -60,9 +60,9 @@ Pré-requisitos transversais, feitos **dentro** do primeiro marco que precisar d
 
 | # | Marco | Entrega verificável |
 |---|---|---|
-| 0 | Auditoria, backup, inventário de GLBs, validação de Valério | **Este documento** |
+| 0 | Auditoria, backup, inventário de GLBs, validação de VHAZRAEL | **Este documento** |
 | 1 | Prólogo (céu, trono, asas retiradas), escolha do nome, planetas, despertar "olhando as mãos", diretor de cutscenes v1 | Cena jogável do início ao Ato 1, pulável; roteiro revisado ORIGINAL→REVISADO das cenas |
-| 2 | Vila ampliada (mercado, becos, NPCs pobres), Ato 1 completo como no roteiro até Valério; Anjo acompanha; poderes v1 do jogador | Todas as cenas do Ato 1 jogáveis e testadas; regressão da dimensão de Valério |
+| 2 | Vila ampliada (mercado, becos, NPCs pobres), Ato 1 completo como no roteiro até VHAZRAEL; Anjo acompanha; poderes v1 do jogador | Todas as cenas do Ato 1 jogáveis e testadas; regressão da dimensão de VHAZRAEL |
 | 3 | Ato 2: cidade vulcânica, Sandra (duelo), laboratório, sala do ouro, mini-chefe, VORGAZHEK, erupção, ataque do Bispo 4 | Ato 2 completo |
 | 4 | Ato 3: cidade nevada, casaco e debuffs, armadilha, guilhotina, caverna de gelo, dimensão distorcida, ZAR'KHAEL, revelação, Ganância leva o Anjo | Ato 3 completo |
 | 5 | Ato 4: torre de 7 andares, revelação dos humanos, passado do Bispo 4, VÉRAXION (ultimate Black Hole) | Ato 4 completo |
