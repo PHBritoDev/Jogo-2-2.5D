@@ -14,7 +14,7 @@ import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, tur
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_STORE_KEY, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
-import { cityLayout, inAlley, ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
+import { cityLayout, inAlley, ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
@@ -3109,7 +3109,7 @@ function afterValerioStory(){
    Usa o mesmo diretor de cenas, lutas em grupo e câmera do Ato I. */
 var inVolcano=false,volcanoArena=null,act2World=null,act2Bandits=[],rivalClone=null,guidePinned=false,visionSave=null,bishop4Sky=null,act2Abyss=questStep>=15;
 RIG_DEFS.rival={file:'./Misteriosa-rig.glb?v=mod205',height:1.0,roles:{idle:'_01a15ab5_eeba_71ae_a438_b85a938940fc',walk:'Walking',run:'Running',attack:'Attack',cast:'Triple_Combo_Attack',dash:'_01a15ab0_deed_76a9_818c_47f5fc81ba40',death:'Dead'},inPlace:['attack','cast','dash','death']};
-Object.assign(SPEAKER_ACTOR,{[SPEAKERS2.bandit]:'bandit',[SPEAKERS2.rival]:'rival',[SPEAKERS2.demon]:'enemy',[SPEAKERS2.miniboss]:'enemy',[SPEAKERS2.boss]:'enemy',[SPEAKERS2.bishop4]:'sky',[SPEAKERS2.note]:'hero'});
+Object.assign(SPEAKER_ACTOR,{[SPEAKERS2.victim]:'victim',[SPEAKERS2.bandit]:'bandit',[SPEAKERS2.rival]:'rival',[SPEAKERS2.demon]:'enemy',[SPEAKERS2.miniboss]:'enemy',[SPEAKERS2.boss]:'enemy',[SPEAKERS2.bishop4]:'sky',[SPEAKERS2.note]:'hero'});
 Object.assign(STORY_EYE,{bandit:1.5,rival:1.5,sky:0,lab:1,door:2,gold:1,portal:3,city:2});
 function volcanoLocal(p){return{x:p.x+DIMENSIONS.vulcao.center.x,z:p.z+DIMENSIONS.vulcao.center.z};}
 const CITY=DISTRICT_SPOTS.plaza;
@@ -3208,7 +3208,17 @@ function updateBandits(dt){
   h.position.y=groundHeightAt(h.position.x,h.position.z);}
 }
 /* ---------- Interior do vulcão ---------- */
-let volcanoStatues=[],volcanoPortal=null;
+let volcanoStatues=[],volcanoPortal=null,volcanoVictims=[],volcanoCellsSeen=false;
+/** MOD 217 — vítimas vivas no laboratório (ajoelhadas, exaustas, uma deitada), até a purificação. */
+function spawnVolcanoVictims(){
+ if(volcanoVictims.length||questStep!==ACT2.volcano||act1Sub!==0)return;volcanoVictims.loading=true;
+ loadRig('vitima').then(()=>{if(volcanoVictims.length||!inVolcano)return;const src=rigSource('vitima'),dead=src&&src.actions&&src.actions.death;
+  for(const v of VOLCANO.victims){const p=volcanoLocal(v),c=makeFoeClone('vitima',p,{role:'idle'});if(!c)continue;c.holder.position.y=voidSpec.y;c.holder.rotation.y=v.yaw;
+   if(dead){c.mixer.stopAllAction();const a=c.mixer.clipAction(dead.getClip());a.play();a.time=dead.getClip().duration*(v.pose==='lie'?.99:.55);c.mixer.update(0);a.paused=true;}
+   volcanoVictims.push(c);}
+  const k=volcanoVictims[0];if(k)storyAnchors.victim={x:k.holder.position.x,z:k.holder.position.z,y:voidSpec.y,yaw:k.holder.rotation.y};},()=>{});
+}
+function clearVolcanoVictims(){for(const c of volcanoVictims.splice(0))disposeClone(c);delete storyAnchors.victim;}
 function enterVolcano(at){
  inVolcano=true;volcanoArena=getDimArena('vulcao');enterDimensionArena('vulcao');
  voidSpec.walk=(lx,lz)=>volcanoWalkable(lx,lz,{doorOpen:questStep>ACT2.volcano||act1Sub>=2});
@@ -3225,7 +3235,7 @@ function syncVolcanoPortal(){
  if(questStep>=ACT2.boss&&questStep<ACT2.done&&inVolcano){if(!volcanoPortal){volcanoPortal=buildDimensionPortal(THREE,'bishop2');if(volcanoPortal){const p=volcanoLocal(VOLCANO.portal);volcanoPortal.group.position.set(p.x,voidSpec.y,p.z);volcanoPortal.group.scale.setScalar(.42);scene.add(volcanoPortal.group);}}if(volcanoPortal)volcanoPortal.setActive(true);}
  else if(volcanoPortal)volcanoPortal.setActive(false);
 }
-function leaveVolcano(to){
+function leaveVolcano(to){clearVolcanoVictims();
  inVolcano=false;voidSpec.walk=null;leaveVoid();for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);guidePinned=false;
  const g=DISTRICT_SPOTS.volcanoGate,p=to||{x:g.x+4,z:g.z};player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);checkpointX=p.x;checkpointZ=p.z;setGameHour(16);
 }
@@ -3258,7 +3268,9 @@ function updateAct2Story(dt,now){
  if(questStep===ACT2.volcano){
   if(!inVolcano){mark(DISTRICT_SPOTS.volcanoGate);return;}
   const V=VOLCANO;storyAnchors.lab={...volcanoLocal(V.lab),y:voidSpec.y,yaw:0};storyAnchors.door={...volcanoLocal(V.door),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.gold={...volcanoLocal(V.gold),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.portal={...volcanoLocal(V.portal),y:voidSpec.y,yaw:0};
-  if(act1Sub===0){mark(volcanoLocal(V.lab));if(!act1Busy()&&!pack&&near(volcanoLocal(V.lab),V.lab.r+6)){act1Lock=true;playStory('laboratorio',labScene(),{focus:'enemy',skippable:false,done:()=>{act1Lock=false;releasePack();}});}}
+  if(act1Sub===0){spawnVolcanoVictims();mark(volcanoLocal(V.lab));
+   if(!volcanoCellsSeen&&!act1Busy()&&near(volcanoLocal(V.cells),V.cells.r-1.5)){volcanoCellsSeen=true;act1Lock=true;playStory('cela',cellsScene(),{focus:'hero',done:()=>{act1Lock=false;}});}
+   else if(!act1Busy()&&!pack&&near(volcanoLocal(V.lab),V.lab.r-1.5)){act1Lock=true;playStory('laboratorio',labScene(),{focus:'enemy',skippable:false,done:()=>{act1Lock=false;releasePack();}});}}
   else if(act1Sub===1)mark(volcanoLocal(V.door));
   else if(act1Sub===2){mark(volcanoLocal(V.hall));if(!act1Busy()&&!pack&&near(volcanoLocal(V.hall),V.hall.r+5)){act1Lock=true;guidePinned=false;playStory('galeria',hallScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}
   else{mark(volcanoLocal(V.miniboss));if(!act1Busy()&&!pack&&!enemy.visible&&near(volcanoLocal(V.throne),V.throne.r+4)){act1Lock=true;playStory('trono',throneScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}
@@ -3328,6 +3340,10 @@ function storyDo2(id,args){
   case 'eliminar':{const c=act2DyingClone;foeFinalBlow(c);return true;}
   case 'circulo-magico':{const r=volcanoArena&&volcanoArena.refs;if(r&&r.circle){worldAudio.magic('magic3');storyFx.push({t:0,tick(t){r.circle.material.opacity=Math.min(1,t);r.circle.rotation.z+=.01;if(t>8){r.circle.material.opacity=0;return false;}},finish(){r.circle.material.opacity=0;}});}return true;}
   case 'purificar':{const r=volcanoArena&&volcanoArena.refs;worldAudio.celestial();storyFlash('white',1600);if(r&&r.bodies)setTimeout(()=>{r.bodies.visible=false;},700);
+   // As vítimas se acalmam, brilham e a alma de cada uma sobe; os corpos somem em paz, um por vez.
+   volcanoVictims.forEach((c,i)=>{const soul=glowSprite(0xfff4d8,.95,1.6);soul.position.copy(c.holder.position);soul.position.y+=1;scene.add(soul);
+    storyFx.push({t:-i*.45,tick(t){if(t<0)return true;soul.position.y+=.05;soul.material.opacity=Math.max(0,.95-t*.25);if(t>1.1)c.holder.visible=false;if(t>3.6){scene.remove(soul);return false;}},finish(){scene.remove(soul);c.holder.visible=false;}});});
+   if(cineSkipping)clearVolcanoVictims();else setTimeout(clearVolcanoVictims,5200);
    const L=volcanoLocal(VOLCANO.lab),beams=[];for(let i=0;i<6;i++){const s=glowSprite(0xfff2c8,.9,2);s.position.set(L.x+(Math.random()-.5)*12,voidSpec.y+1,L.z+(Math.random()-.5)*12);scene.add(s);beams.push(s);}
    storyFx.push({t:0,tick(t){for(const s of beams){s.position.y+=.08;s.material.opacity=Math.max(0,.9-t*.3);}if(t>3){for(const s of beams)scene.remove(s);return false;}},finish(){for(const s of beams)scene.remove(s);}});return true;}
   case 'surgir-tres':startPack({rig:'enemy2',profile:'demon2',hp:ACT2.enemy2Hp,spots:VOLCANO.labSpots.map(volcanoLocal),hold:true,onDone:labCleared});storyFlash('#300000',500);worldAudio.corrupt();return true;
@@ -4180,6 +4196,8 @@ function renderInventory(){
    X), a Ganância em três formas (com o Anjo e Sandra lutando junto na última), a Inveja e o epílogo. Modelos novos do
    Blender: DesertoKit.glb (estátua, fragmento, portais, deserto) e Sandra-rig.glb (Sandra revelada). */
 var act6World=null,act6Sandra=null,act6SandraRun=null,act6Allies=[],act6Fx=[],act6Form=0,greedClaimed=!!saved3DProgress.finaleClaimed,act6Chaos=0,act6Envy=null;
+// MOD 217 — vítimas do vulcão (tools/blender/m12_anjo.py com ANJO_VARIANTE=vitima): homens de Cinzária, sem camisa.
+RIG_DEFS.vitima={file:'./Vitima-rig.glb?v=mod217',height:1.0,roles:{idle:'Idle',death:'Dead'},inPlace:['death']};
 RIG_DEFS.sandra={file:'./Sandra-rig.glb?v=mod214-sandra',height:1.04,roles:RIG_DEFS.rival.roles,inPlace:RIG_DEFS.rival.inPlace};
 Object.assign(SPEAKER_ACTOR,{[SPEAKERS6.sandra]:'rival',[SPEAKERS6.greed]:'enemy',[SPEAKERS6.greedSky]:'sky',[SPEAKERS6.envy]:'envy',[SPEAKERS6.b1]:'enemy',[SPEAKERS6.b2]:'enemy',[SPEAKERS6.b3]:'enemy',[SPEAKERS6.b4]:'enemy'});
 Object.assign(STORY_EYE,{statue:20,angels:10,envy:3});

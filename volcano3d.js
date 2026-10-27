@@ -5,7 +5,10 @@
  * Coordenadas locais (centro do laboratório em 0,0; chão em y = 0).
  */
 export const VOLCANO = {
-  tunnel: { from: { x: 0, z: 44 }, to: { x: 0, z: 10 }, r: 2.8 },
+  // MOD 217 — entrada mais funda: túnel longo, a cela das correntes no meio (os primeiros sinais) e só então o laboratório.
+  tunnel: { from: { x: 0, z: 88 }, to: { x: 0, z: 10 }, r: 2.8 },
+  cells: { x: 0, z: 50, r: 7.5 },
+  victims: [{ x: -6.4, z: -3.4, pose: 'kneel', yaw: 1.2 }, { x: 6.2, z: -3.8, pose: 'kneel', yaw: -1.25 }, { x: -3.6, z: -7.2, pose: 'lie', yaw: .5 }, { x: 4.4, z: 5.4, pose: 'kneel', yaw: -2.4 }],
   lab: { x: 0, z: 0, r: 10 },
   goldPath: { from: { x: -9.6, z: 0 }, to: { x: -24, z: 0 }, r: 2.2 },
   door: { x: -22.4, z: 0 },
@@ -21,7 +24,7 @@ export const VOLCANO = {
   labSpots: [{ x: -4, z: -5 }, { x: 4.5, z: -4 }, { x: 0, z: -7.4 }],
   hallSpots: [{ x: -6, z: -42 }, { x: 6, z: -42 }, { x: -7, z: -50 }, { x: 7, z: -50 }, { x: 0, z: -54 }],
   checkpoints: {
-    entrance: { x: 0, z: 40, yaw: Math.PI },
+    entrance: { x: 0, z: 84, yaw: Math.PI },
     lab: { x: 0, z: 9, yaw: Math.PI },
     hall: { x: 0, z: -34, yaw: Math.PI },
     throne: { x: 0, z: -68, yaw: Math.PI }
@@ -39,7 +42,7 @@ export function volcanoWalkable(x, z, opts = {}) {
   const v = VOLCANO;
   if (!opts.doorOpen && x < v.door.x + .9) return false;
   for (const s of [v.tunnel, v.goldPath, v.deepPath, v.thronePath]) if (distToSegment(x, z, s.from, s.to) < s.r) return true;
-  for (const room of [v.lab, v.gold, v.hall, v.throne]) if (Math.hypot(x - room.x, z - room.z) < room.r - .6) return true;
+  for (const room of [v.lab, v.cells, v.gold, v.hall, v.throne]) if (Math.hypot(x - room.x, z - room.z) < room.r - .6) return true;
   return false;
 }
 

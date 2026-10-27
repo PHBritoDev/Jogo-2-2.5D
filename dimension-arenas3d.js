@@ -472,8 +472,21 @@ const THEMES = {
       }
       const dome = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), wm); dome.scale.y = .5; dome.position.set(c.x, h, c.z); g.add(dome);
     }
-    corridor(V.tunnel, V.tunnel.r + .6, 5); corridor(V.goldPath, V.goldPath.r + .6, 4); corridor(V.deepPath, V.deepPath.r + .6, 4.6); corridor(V.thronePath, V.thronePath.r + .6, 5);
-    room(V.lab, 5.4, [0, -Math.PI / 2, Math.PI]); room(V.gold, 4.6, [Math.PI / 2]); room(V.hall, 6, [0, Math.PI]); room(V.throne, 9, [0]);
+    for (const seg of [{ from: V.tunnel.from, to: { x: 0, z: V.cells.z + V.cells.r - .4 } }, { from: { x: 0, z: V.cells.z - V.cells.r + .4 }, to: V.tunnel.to }]) corridor(seg, V.tunnel.r + .6, 5);
+    corridor(V.goldPath, V.goldPath.r + .6, 4); corridor(V.deepPath, V.deepPath.r + .6, 4.6); corridor(V.thronePath, V.thronePath.r + .6, 5);
+    room(V.lab, 5.4, [0, -Math.PI / 2, Math.PI]); room(V.cells, 4.8, [0, Math.PI]); room(V.gold, 4.6, [Math.PI / 2]);
+    // MOD 217 — cela das correntes: grilhões vazios nas paredes, jaulas abertas, roupas largadas, marcas de arrasto e
+    // manchas escuras no chão (sinais sombrios, sem nada explícito) antes do laboratório.
+    { const C = V.cells, cl = [], cages = [], rags = [], stains = [];
+      for (let k = 0; k < 8; k++) { const a = .5 + k * .72 + (k > 3 ? .9 : 0), x = C.x + Math.sin(a) * (C.r - .2), z = C.z + Math.cos(a) * (C.r - .2); for (let j = 0; j < 8; j++) cl.push({ x, y: 2.6 - j * .2, z, s: .09, rx: j % 2 ? Math.PI / 2 : 0, ry: a }); cl.push({ x: x - Math.sin(a) * .2, y: 1.05, z: z - Math.cos(a) * .2, s: .2, rx: Math.PI / 2, ry: a }); }
+      g.add(instanced(THREE, new THREE.TorusGeometry(1, .3, 5, 10), ironMat, cl));
+      for (const [x, z] of [[-4.6, 47], [4.8, 53]]) for (let b = 0; b < 10; b++) { const a = b / 10 * Math.PI * 2; if (b === 2 || b === 3) continue; cages.push({ x: x + Math.sin(a) * .9, y: 1.1, z: z + Math.cos(a) * .9, sx: .06, sy: 2.2, sz: .06 }); }
+      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), ironMat, cages));
+      for (let i = 0; i < 6; i++) rags.push({ x: (r() - .5) * 9, y: .03, z: C.z + (r() - .5) * 9, sx: .7 + r() * .5, sy: .04, sz: .5 + r() * .3, ry: r() * 6 });
+      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), clothMat, rags));
+      const stainMat = new THREE.MeshBasicMaterial({ color: 0x2a0806, transparent: true, opacity: .55, depthWrite: false });
+      for (let i = 0; i < 7; i++) stains.push({ x: (r() - .5) * 2.4, y: .02, z: C.z - 3 - i * 4.6, sx: .5 + r() * .6, sy: 1, sz: 1.4 + r() * 1.6, ry: (r() - .5) * .4 });
+      g.add(instanced(THREE, new THREE.CircleGeometry(.5, 10).rotateX(-Math.PI / 2), stainMat, stains)); } room(V.hall, 6, [0, Math.PI]); room(V.throne, 9, [0]);
     // Caveiras e ossos pelo chão do túnel e das salas.
     const skulls = [], bones = [];
     for (let i = 0; i < 46; i++) {
@@ -488,7 +501,6 @@ const THEMES = {
     g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), ironMat, tables)); bodies.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), clothMat, shrouds));
     for (let k = 0; k < 6; k++) { const a = .6 + k * .9, x = L.x + Math.sin(a) * (L.r + .1), z = L.z + Math.cos(a) * (L.r + .1); for (let j = 0; j < 10; j++) links.push({ x, y: 3.8 - j * .2, z, s: .1, rx: j % 2 ? Math.PI / 2 : 0, ry: a }); }
     g.add(instanced(THREE, new THREE.TorusGeometry(1, .3, 5, 10), ironMat, links));
-    for (let k = 0; k < 4; k++) { const a = 1 + k * 1.5, x = L.x + Math.sin(a) * (L.r - .4), z = L.z + Math.cos(a) * (L.r - .4); const fig = new THREE.Mesh(new THREE.CapsuleGeometry(.28, 1, 4, 8), clothMat); fig.position.set(x, 1.3, z); bodies.add(fig); }
     const wheel = new THREE.Mesh(new THREE.TorusGeometry(1.1, .1, 6, 20), ironMat); wheel.position.set(L.x - 6, 1.4, L.z - 6); wheel.rotation.y = .7; g.add(wheel);
     // Círculo mágico da purificação (o jogo acende e gira).
     const circleTex = canvasTex(THREE, 512, 512, (c, w, h) => { c.strokeStyle = '#ffe6a0'; c.lineWidth = 8; c.beginPath(); c.arc(256, 256, 230, 0, 6.3); c.stroke(); c.lineWidth = 4; c.beginPath(); c.arc(256, 256, 180, 0, 6.3); c.stroke(); for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283, b = (i + 3) / 7 * 6.283; c.beginPath(); c.moveTo(256 + Math.cos(a) * 180, 256 + Math.sin(a) * 180); c.lineTo(256 + Math.cos(b) * 180, 256 + Math.sin(b) * 180); c.stroke(); } c.font = 'bold 34px serif'; c.fillStyle = '#ffe6a0'; for (let i = 0; i < 12; i++) { c.save(); c.translate(256, 256); c.rotate(i / 12 * 6.283); c.fillText('✝', -10, -196); c.restore(); } });

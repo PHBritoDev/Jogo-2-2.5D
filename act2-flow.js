@@ -84,7 +84,7 @@ export function bossPhase(hp, max) { return hp <= max * .5 ? 2 : 1; }
 export function vorgazhekRageLine() { return 'Cada golpe teu é juros. E juros… eu cobro em dobro.'; }
 
 /* ---------- Falas (texto revisado; original em docs/roteiro/M3-ATO2.md) ---------- */
-export const SPEAKERS2 = { hero: 'heroi', guide: 'Anjo-Guia', bandit: 'Bandido', rival: 'Desconhecido', demon: 'Demônio da Ganância', miniboss: 'Guardião do Trono', boss: 'VORGAZHEK', bishop4: 'VÉRAXION', note: 'Bilhete' };
+export const SPEAKERS2 = { victim: 'Prisioneiro', hero: 'heroi', guide: 'Anjo-Guia', bandit: 'Bandido', rival: 'Desconhecido', demon: 'Demônio da Ganância', miniboss: 'Guardião do Trono', boss: 'VORGAZHEK', bishop4: 'VÉRAXION', note: 'Bilhete' };
 const S = SPEAKERS2;
 const say = (who, text, extra) => Object.assign({ type: 'say', who, text }, extra || {});
 const shot = (id, dur, args, extra) => Object.assign({ type: 'shot', id, dur, args: args || {} }, extra || {});
@@ -156,15 +156,31 @@ export function gateDefeatScene() {
   ];
 }
 
+/** MOD 217 — a cela das correntes: os primeiros sinais, antes de achar quem foi trazido para cá. */
+export function cellsScene() {
+  return [
+    shot('cela', 3.2, { cam: 'look', on: 'hero', off: [-2.2, 2.2, 3.4], at: [0, .6, -5] }),
+    say(S.hero, 'Grilhões abertos… roupas largadas… e marcas de arrasto no chão.'),
+    say(S.hero, 'Trouxeram gente para cá. E os rastros seguem mais para dentro.')
+  ];
+}
+
 export function labScene() {
   return [
-    shot('ossos', 3, { cam: 'look', on: 'hero', off: [1.2, 1.4, -2.4], at: [0, 0, 6] }),
     shot('laboratorio', 3.4, { cam: 'look', on: 'lab', off: [6.5, 3.4, 6], at: [0, .8, 0] }),
+    shot('vitimas', 3, { cam: 'look', on: 'victim', off: [1.8, 1.4, 2.6], at: [0, .7, 0] }),
+    say(S.hero, 'Ainda tem gente viva aqui!'),
+    say(S.victim, 'Por favor… acabe com isso. Somos de Cinzária. Quem não pagava as dívidas de VORGAZHEK era trazido para cá.', { actor: 'victim' }),
+    say(S.hero, 'O que fizeram com vocês?'),
+    say(S.victim, 'Os demônios arrancam um pedaço da alma de cada um, todo dia, para criar outros como eles. Já não sobrou quase nada de nós.', { actor: 'victim' }),
+    say(S.victim, 'Não aguentamos mais. Deixe a gente descansar.', { actor: 'victim' }),
+    shot('ossos', 2.6, { cam: 'look', on: 'hero', off: [1.2, 1.4, -2.4], at: [0, 0, 6] }),
     say(S.hero, 'Que Deus tenha piedade dessas pobres almas. Pessoas que nem tiveram a chance de se proteger…'),
     say(S.hero, 'Em um ato de misericórdia, irei purificar suas almas.'),
     shot('circulo', 2.4, { cam: 'look', on: 'lab', off: [0, 7, 7], at: [0, 0, 0] }, { with: [act('circulo-magico')] }),
     say(S.hero, 'Purificação.', { auto: 1.6 }),
-    shot('purificacao', 3.4, { cam: 'look', on: 'lab', off: [5, 3, 5], at: [0, 1.4, 0] }, { with: [act('purificar')] }),
+    shot('purificacao', 4.2, { cam: 'look', on: 'lab', off: [5, 3, 5], at: [0, 1.4, 0] }, { with: [act('purificar')] }),
+    shot('libertacao', 2.8, { cam: 'look', on: 'lab', off: [2, 1.4, 8.5], at: [0, 3.4, 0] }),
     shot('mais-tres', 2.2, { cam: 'look', on: 'hero', off: [-2, 2.2, -3.6], at: [0, 1, 6] }, { with: [act('surgir-tres')] }),
     say(S.demon, 'Quem é você? E cadê os corpos que estavam aqui?'),
     say(S.hero, 'Pessoas que estão predestinadas a morrer não precisam saber.'),
