@@ -472,8 +472,21 @@ const THEMES = {
       }
       const dome = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), wm); dome.scale.y = .5; dome.position.set(c.x, h, c.z); g.add(dome);
     }
-    corridor(V.tunnel, V.tunnel.r + .6, 5); corridor(V.goldPath, V.goldPath.r + .6, 4); corridor(V.deepPath, V.deepPath.r + .6, 4.6); corridor(V.thronePath, V.thronePath.r + .6, 5);
-    room(V.lab, 5.4, [0, -Math.PI / 2, Math.PI]); room(V.gold, 4.6, [Math.PI / 2]); room(V.hall, 6, [0, Math.PI]); room(V.throne, 9, [0]);
+    for (const seg of [{ from: V.tunnel.from, to: { x: 0, z: V.cells.z + V.cells.r - .4 } }, { from: { x: 0, z: V.cells.z - V.cells.r + .4 }, to: V.tunnel.to }]) corridor(seg, V.tunnel.r + .6, 5);
+    corridor(V.goldPath, V.goldPath.r + .6, 4); corridor(V.deepPath, V.deepPath.r + .6, 4.6); corridor(V.thronePath, V.thronePath.r + .6, 5);
+    room(V.lab, 5.4, [0, -Math.PI / 2, Math.PI]); room(V.cells, 4.8, [0, Math.PI]); room(V.gold, 4.6, [Math.PI / 2]);
+    // MOD 217 — cela das correntes: grilhões vazios nas paredes, jaulas abertas, roupas largadas, marcas de arrasto e
+    // manchas escuras no chão (sinais sombrios, sem nada explícito) antes do laboratório.
+    { const C = V.cells, cl = [], cages = [], rags = [], stains = [];
+      for (let k = 0; k < 8; k++) { const a = .5 + k * .72 + (k > 3 ? .9 : 0), x = C.x + Math.sin(a) * (C.r - .2), z = C.z + Math.cos(a) * (C.r - .2); for (let j = 0; j < 8; j++) cl.push({ x, y: 2.6 - j * .2, z, s: .09, rx: j % 2 ? Math.PI / 2 : 0, ry: a }); cl.push({ x: x - Math.sin(a) * .2, y: 1.05, z: z - Math.cos(a) * .2, s: .2, rx: Math.PI / 2, ry: a }); }
+      g.add(instanced(THREE, new THREE.TorusGeometry(1, .3, 5, 10), ironMat, cl));
+      for (const [x, z] of [[-4.6, 47], [4.8, 53]]) for (let b = 0; b < 10; b++) { const a = b / 10 * Math.PI * 2; if (b === 2 || b === 3) continue; cages.push({ x: x + Math.sin(a) * .9, y: 1.1, z: z + Math.cos(a) * .9, sx: .06, sy: 2.2, sz: .06 }); }
+      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), ironMat, cages));
+      for (let i = 0; i < 6; i++) rags.push({ x: (r() - .5) * 9, y: .03, z: C.z + (r() - .5) * 9, sx: .7 + r() * .5, sy: .04, sz: .5 + r() * .3, ry: r() * 6 });
+      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), clothMat, rags));
+      const stainMat = new THREE.MeshBasicMaterial({ color: 0x2a0806, transparent: true, opacity: .55, depthWrite: false });
+      for (let i = 0; i < 7; i++) stains.push({ x: (r() - .5) * 2.4, y: .02, z: C.z - 3 - i * 4.6, sx: .5 + r() * .6, sy: 1, sz: 1.4 + r() * 1.6, ry: (r() - .5) * .4 });
+      g.add(instanced(THREE, new THREE.CircleGeometry(.5, 10).rotateX(-Math.PI / 2), stainMat, stains)); } room(V.hall, 6, [0, Math.PI]); room(V.throne, 9, [0]);
     // Caveiras e ossos pelo chão do túnel e das salas.
     const skulls = [], bones = [];
     for (let i = 0; i < 46; i++) {
@@ -488,7 +501,6 @@ const THEMES = {
     g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), ironMat, tables)); bodies.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), clothMat, shrouds));
     for (let k = 0; k < 6; k++) { const a = .6 + k * .9, x = L.x + Math.sin(a) * (L.r + .1), z = L.z + Math.cos(a) * (L.r + .1); for (let j = 0; j < 10; j++) links.push({ x, y: 3.8 - j * .2, z, s: .1, rx: j % 2 ? Math.PI / 2 : 0, ry: a }); }
     g.add(instanced(THREE, new THREE.TorusGeometry(1, .3, 5, 10), ironMat, links));
-    for (let k = 0; k < 4; k++) { const a = 1 + k * 1.5, x = L.x + Math.sin(a) * (L.r - .4), z = L.z + Math.cos(a) * (L.r - .4); const fig = new THREE.Mesh(new THREE.CapsuleGeometry(.28, 1, 4, 8), clothMat); fig.position.set(x, 1.3, z); bodies.add(fig); }
     const wheel = new THREE.Mesh(new THREE.TorusGeometry(1.1, .1, 6, 20), ironMat); wheel.position.set(L.x - 6, 1.4, L.z - 6); wheel.rotation.y = .7; g.add(wheel);
     // Círculo mágico da purificação (o jogo acende e gira).
     const circleTex = canvasTex(THREE, 512, 512, (c, w, h) => { c.strokeStyle = '#ffe6a0'; c.lineWidth = 8; c.beginPath(); c.arc(256, 256, 230, 0, 6.3); c.stroke(); c.lineWidth = 4; c.beginPath(); c.arc(256, 256, 180, 0, 6.3); c.stroke(); for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283, b = (i + 3) / 7 * 6.283; c.beginPath(); c.moveTo(256 + Math.cos(a) * 180, 256 + Math.sin(a) * 180); c.lineTo(256 + Math.cos(b) * 180, 256 + Math.sin(b) * 180); c.stroke(); } c.font = 'bold 34px serif'; c.fillStyle = '#ffe6a0'; for (let i = 0; i < 12; i++) { c.save(); c.translate(256, 256); c.rotate(i / 12 * 6.283); c.fillText('✝', -10, -196); c.restore(); } });
@@ -539,17 +551,48 @@ const THEMES = {
     const stoneT = canvasTex(THREE, 256, 256, (c, w, h) => { c.fillStyle = '#2c2a2a'; c.fillRect(0, 0, w, h); const rr = rng(9); for (let y = 0; y < 8; y++) for (let x = 0; x < 6; x++) { const v = 50 + rr() * 30 | 0; c.fillStyle = 'rgb(' + v + ',' + (v - 2) + ',' + (v - 4) + ')'; c.fillRect(x * 44 + (y % 2) * 22 + 2, y * 32 + 2, 40, 28); } });
     stoneT.wrapS = stoneT.wrapT = THREE.RepeatWrapping;
     const mk = (tex, rx, ry, extra) => { const t = tex.clone(); t.needsUpdate = true; t.repeat.set(rx, ry); return new THREE.MeshStandardMaterial(Object.assign({ map: t, roughness: .9 }, extra || {})); };
-    function room(R, H, wallTex, floorTex) {
+    // MOD 217 — cômodos com altura de piso (y0) e vãos nas paredes (gaps: lado 'n'|'s'|'w'|'e' e trecho a..b ao longo dela).
+    function room(R, H, wallTex, floorTex, y0 = 0, gaps = []) {
       const W = R.hx * 2, D = R.hz * 2;
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(floorTex, W / 2.5, D / 2.5)); floor.rotation.x = -Math.PI / 2; floor.position.set(R.x, 0, R.z); floor.receiveShadow = true; g.add(floor);
-      const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(plank, W / 3, D / 3, { side: THREE.BackSide })); ceil.rotation.x = -Math.PI / 2; ceil.position.set(R.x, H, R.z); g.add(ceil);
-      for (const [x, z, w, ry] of [[R.x, R.z - R.hz, W, 0], [R.x, R.z + R.hz, W, Math.PI], [R.x - R.hx, R.z, D, Math.PI / 2], [R.x + R.hx, R.z, D, -Math.PI / 2]]) {
-        const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, H), mk(wallTex, w / 2.5, H / 2.5)); wall.position.set(x, H / 2, z); wall.rotation.y = ry; g.add(wall);
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(floorTex, W / 2.5, D / 2.5)); floor.rotation.x = -Math.PI / 2; floor.position.set(R.x, y0, R.z); floor.receiveShadow = true; g.add(floor);
+      const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mk(plank, W / 3, D / 3, { side: THREE.BackSide })); ceil.rotation.x = -Math.PI / 2; ceil.position.set(R.x, y0 + H, R.z); g.add(ceil);
+      const sides = { n: [R.z - R.hz, 0, 'x'], s: [R.z + R.hz, Math.PI, 'x'], w: [R.x - R.hx, Math.PI / 2, 'z'], e: [R.x + R.hx, -Math.PI / 2, 'z'] };
+      for (const [k, [c, ry, ax]] of Object.entries(sides)) {
+        const lo = ax === 'x' ? R.x - R.hx : R.z - R.hz, hi = ax === 'x' ? R.x + R.hx : R.z + R.hz, segs = [[lo, hi]];
+        for (const gp of gaps) if (gp.side === k) { const s0 = segs.pop(); segs.push([s0[0], gp.a], [gp.b, s0[1]]); }
+        for (const [a, b] of segs) { if (b - a < .05) continue; const w = b - a, m = (a + b) / 2;
+          const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, H), mk(wallTex, w / 2.5, H / 2.5)); wall.position.set(ax === 'x' ? m : c, y0 + H / 2, ax === 'x' ? c : m); wall.rotation.y = ry; g.add(wall); }
+        for (const gp of gaps) if (gp.side === k) { const w = gp.b - gp.a, m = (gp.a + gp.b) / 2, top = new THREE.Mesh(new THREE.PlaneGeometry(w, H - 2.4), mk(wallTex, w / 2.5, .4)); top.position.set(ax === 'x' ? m : c, y0 + 2.4 + (H - 2.4) / 2, ax === 'x' ? c : m); top.rotation.y = ry; g.add(top); }
       }
-      const beams = []; for (let i = 0; i < Math.floor(W / 2); i++) beams.push({ x: R.x - R.hx + 1 + i * 2, y: H - .15, z: R.z, sx: .25, sy: .3, sz: D });
+      const beams = []; for (let i = 0; i < Math.floor(W / 2); i++) beams.push({ x: R.x - R.hx + 1 + i * 2, y: y0 + H - .15, z: R.z, sx: .25, sy: .3, sz: D });
       g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), mk(plank, 1, 2), beams));
     }
-    room(INN.hall, 3.6, plank, plank); room(INN.room, 3, plank, plank); room(INN.cellar, 3.2, stoneT, stoneT);
+    const S = INN.stairs, U = INN.upper, D = INN.roomDoor, FU = INN.floorUp;
+    room(INN.hall, 3.6, plank, plank, 0, [{ side: 'n', a: S.x - S.half - .1, b: S.x + S.half + .1 }]);
+    room(INN.room, 3, plank, plank, FU, [{ side: 'e', a: D.z - D.half, b: D.z + D.half }]);
+    room(INN.cellar, 3.6, stoneT, stoneT);
+    // Escada de verdade: degraus de madeira entre paredes, subindo até o corredor do andar de cima.
+    { const wood2 = mk(plank, 1, 1), steps = [], n = 14, len = S.z0 - S.z1;
+      for (let i = 0; i < n; i++) { const h = FU * (i + 1) / n; steps.push({ x: S.x, y: h / 2, z: S.z0 - (i + .5) * len / n, sx: S.half * 2 + .2, sy: h, sz: len / n + .02 }); }
+      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood2, steps));
+      const up = new THREE.Mesh(new THREE.PlaneGeometry(S.half * 2 + .2, U.z0 - U.z1), mk(plank, 1, 4)); up.rotation.x = -Math.PI / 2; up.position.set(U.x, FU + .01, (U.z0 + U.z1) / 2); g.add(up);
+      const L = S.z0 - U.z1, H = 6.2;
+      for (const sx of [-1, 1]) { const x = S.x + sx * (S.half + .1), segs = sx < 0 ? [[S.z0, D.z + D.half], [D.z - D.half, U.z1]] : [[S.z0, U.z1]];
+        for (const [a, b] of segs) { const w = a - b; const wall = new THREE.Mesh(new THREE.PlaneGeometry(w, H), mk(plank, w / 2.5, H / 2.5)); wall.position.set(x, H / 2, (a + b) / 2); wall.rotation.y = -sx * Math.PI / 2; g.add(wall); } }
+      const end = new THREE.Mesh(new THREE.PlaneGeometry(S.half * 2 + .2, H), mk(plank, 1, 2)); end.position.set(S.x, H / 2, U.z1); g.add(end);
+      const roof = new THREE.Mesh(new THREE.PlaneGeometry(S.half * 2 + .2, L), mk(plank, 1, 4, { side: THREE.BackSide })); roof.rotation.x = -Math.PI / 2; roof.position.set(S.x, H, (S.z0 + U.z1) / 2); g.add(roof);
+      const rail = []; for (let i = 0; i <= 6; i++) rail.push({ x: S.x + S.half - .05, y: FU * i / 6 + .5, z: S.z0 - i * len / 6, sx: .06, sy: 1, sz: .06 });
+      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood2, rail));
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffc070, toneMapped: false })); lamp.position.set(S.x, FU + 2.4, U.z1 + 1.2); g.add(lamp);
+      // Porta do quarto: abre quando o herói chega perto (o jogo gira refs.roomDoor).
+      const pivot = new THREE.Group(); pivot.position.set(D.x + .02, FU, D.z + D.half); g.add(pivot);
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(.08, 2.3, D.half * 2), new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: .8 })); leaf.position.set(0, 1.15, -D.half); pivot.add(leaf);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 5), new THREE.MeshStandardMaterial({ color: 0xc8a050, metalness: .8, roughness: .3 })); knob.position.set(.08, 1.1, -D.half * 1.7); pivot.add(knob);
+      refs.roomDoor = pivot; }
+    // Porão: pilares de pedra (sustentam o salão) e tochas.
+    { const st2 = new THREE.MeshStandardMaterial({ color: 0x4a4644, roughness: .95 });
+      g.add(instanced(THREE, new THREE.CylinderGeometry(.5, .6, 3.6, 8), st2, INN.cellarPillars.map(p => ({ x: p.x, y: 1.8, z: p.z }))));
+      for (const p of INN.cellarPillars) { const f = new THREE.Mesh(new THREE.ConeGeometry(.08, .22, 6), new THREE.MeshBasicMaterial({ color: 0xffa040, toneMapped: false })); f.position.set(p.x, 2.2, p.z + (p.z < -40 ? .62 : -.62)); g.add(f); } }
     // Lareira do salão, mesas e bancos.
     const fp = new THREE.Group(); fp.position.set(-INN.hall.hx + .5, 0, -1); g.add(fp);
     const st = new THREE.MeshStandardMaterial({ color: 0x5a5654, roughness: .95 });
@@ -561,7 +604,7 @@ const THEMES = {
     for (const [x, z] of [[-2.5, 1.5], [2.6, 1.6], [3, -1.2]]) { tables.push({ x, y: .75, z, sx: 1.6, sy: .1, sz: .9 }); for (const s of [-1, 1]) benches.push({ x, y: .42, z: z + s * .75, sx: 1.5, sy: .08, sz: .3 }); }
     g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood, tables)); g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), wood, benches));
     // Janela do quarto (noite lá fora) e manchas de umidade no porão.
-    const night = new THREE.Mesh(new THREE.PlaneGeometry(1, .9), new THREE.MeshBasicMaterial({ color: 0x0c1830 })); night.position.set(INN.room.x - INN.room.hx + .02, 1.6, INN.room.z); night.rotation.y = Math.PI / 2; g.add(night);
+    const night = new THREE.Mesh(new THREE.PlaneGeometry(1, .9), new THREE.MeshBasicMaterial({ color: 0x0c1830 })); night.position.set(INN.room.x - INN.room.hx + .02, INN.floorUp + 1.6, INN.room.z); night.rotation.y = Math.PI / 2; g.add(night);
     refs.hall = INN.hall; refs.room = INN.room; refs.cellar = INN.cellar;
     return { bg: 0x0a0604, fog: 0x140c08, fogNear: 6, fogFar: 26, hemi: [0xffd8a8, 0x2a1a10, 1.1], sun: [0xffc080, .25], light: [0xffb060, 3.2, 16, [0, 2.6, 0]], exposure: 1.2, lightFollow: true };
   },
@@ -671,20 +714,47 @@ export function buildDimensionArena(THREE, theme, spec) {
 
 /* ===================== PORTAIS NO MUNDO ===================== */
 const PORTALS = {
-  // Portão gótico vermelho coberto de olhos, com a lua sorridente acima.
+  // MOD 217 — portão de VORGAZHEK, o Arauto das Almas Endividadas: arco gótico de obsidiana com coroa de espinhos,
+  // um único olho vigia na pedra-chave, correntes com moedas presas às colunas e almas que sobem do redemoinho.
+  // (A versão anterior espalhava 26 olhos e uma lua com rosto que, dentro do vulcão, parecia uma bola com olhos.)
   bishop2(THREE, g, ctx) {
-    const stone = new THREE.MeshStandardMaterial({ color: 0x180809, roughness: .7, metalness: .15, emissive: 0x3a0610, emissiveIntensity: .8 });
-    for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(3.6, 19, 3.4), stone); p.position.set(sx * 6.2, 9.5, 0); g.add(p); const cap = new THREE.Mesh(new THREE.ConeGeometry(2.4, 4, 4), stone); cap.position.set(sx * 6.2, 21, 0); cap.rotation.y = Math.PI / 4; g.add(cap); }
-    const arch = new THREE.Mesh(new THREE.TorusGeometry(6.2, 1.2, 8, 28, Math.PI), stone); arch.position.set(0, 17.2, 0); g.add(arch);
+    const stone = new THREE.MeshStandardMaterial({ color: 0x140708, roughness: .55, metalness: .25, emissive: 0x2a040a, emissiveIntensity: .7, flatShading: true });
+    const vein = new THREE.MeshBasicMaterial({ color: 0xff2a3a, toneMapped: false });
+    const iron = new THREE.MeshStandardMaterial({ color: 0x2a2426, roughness: .45, metalness: .8 });
+    const gold = new THREE.MeshStandardMaterial({ color: 0xc89a30, roughness: .4, metalness: .3, emissive: 0x7a4a0a, emissiveIntensity: 1 });
+    for (const sx of [-1, 1]) {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.1, 18, 6), stone); p.position.set(sx * 6.6, 9, 0); g.add(p);
+      const v = new THREE.Mesh(new THREE.BoxGeometry(.22, 14, .22), vein); v.position.set(sx * 6.6, 8.5, 1.75); g.add(v);
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(1.7, 5.5, 6), stone); cap.position.set(sx * 6.6, 20.6, 0); g.add(cap);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.9, 1.4, 6), stone); base.position.set(sx * 6.6, .7, 0); g.add(base);
+    }
+    // Arco ogival: dois quartos de toro que se encontram em ponta.
+    for (const sx of [-1, 1]) { const a = new THREE.Mesh(new THREE.TorusGeometry(9.2, 1.1, 6, 16, 1.285), stone); a.position.set(-sx * 2.6, 13.4, 0); if (sx < 0) a.rotation.y = Math.PI; g.add(a); }
+    for (let i = 0; i < 9; i++) { const t = i / 8, x = (t - .5) * 11, y = 13.4 + Math.sqrt(Math.max(0, 84.64 - (Math.abs(x) + 2.6) ** 2)), sp = new THREE.Mesh(new THREE.ConeGeometry(.35, 2.2 + (i % 2) * 1.4, 4), stone); sp.position.set(x, y + 1.6, 0); sp.rotation.z = -x * .07; g.add(sp); }
+    // Olho único na pedra-chave.
+    const key = new THREE.Mesh(new THREE.OctahedronGeometry(1.6, 0), stone); key.position.set(0, 22.4, .5); key.scale.set(1.2, 1.4, .7); g.add(key);
+    const eye = eyeField(THREE, { count: 1, seed: 12, tex: eyeTexture(THREE), tint: [1.25, .8, .8], place: () => ({ x: 0, y: 22.4, z: 1.7, size: 3.4 }) });
+    g.add(eye); ctx.eyes.push(eye);
     const steps = []; for (let i = 0; i < 3; i++) steps.push({ x: 0, y: .3 + i * .6, z: 3.5 + (2 - i) * 1.6, sx: 18 - i * 2, sy: .6, sz: 1.8 });
     g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), stone, steps));
-    const swirl = new THREE.Mesh(new THREE.CircleGeometry(6.2, 40), swirlMaterial(THREE, '#2a0006', '#ff2a3a')); swirl.scale.set(1, 1.55, 1); swirl.position.set(0, 9.6, .3); g.add(swirl); ctx.swirls.push(swirl.material);
-    const eyes = eyeField(THREE, { count: 26, seed: 12, tex: eyeTexture(THREE), tint: [1.1, .85, .85], place: (i, rr) => ({ x: (rr() - .5) * 16, y: 2 + rr() * 22, z: 2.1 + rr() * .6, size: 1.4 + rr() * 2.8 }) });
-    g.add(eyes); ctx.eyes.push(eyes);
-    const moon = new THREE.Mesh(new THREE.SphereGeometry(3.2, 18, 12), new THREE.MeshBasicMaterial({ color: 0xd8d4d0, fog: false })); moon.position.set(12, 27, -4); g.add(moon);
-    const mouth = new THREE.Mesh(new THREE.TorusGeometry(1.7, .16, 6, 16, Math.PI), new THREE.MeshBasicMaterial({ color: 0x100406 })); mouth.position.set(12, 26.4, -.85); mouth.rotation.z = Math.PI; g.add(mouth);
-    for (const ex of [-.95, .95]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.38, 8, 6), new THREE.MeshBasicMaterial({ color: 0xe02a38 })); e.position.set(12 + ex, 27.7, -.8); g.add(e); }
-    return { height: 28, radius: 9 };
+    const swirl = new THREE.Mesh(new THREE.CircleGeometry(5.4, 40), swirlMaterial(THREE, '#2a0006', '#ff2a3a')); swirl.scale.set(1, 1.75, 1); swirl.position.set(0, 9.6, .3); g.add(swirl); ctx.swirls.push(swirl.material);
+    // Correntes com moedas: as dívidas que prendem as almas.
+    const links = [], coins = [];
+    for (const sx of [-1, 1]) for (let c = 0; c < 2; c++) {
+      const y0 = 14 - c * 5, n = 9;
+      for (let i = 0; i <= n; i++) { const t = i / n, x = sx * (6.6 - t * 4.2), y = y0 - Math.sin(t * Math.PI) * 1.6 - t * 2.2; links.push({ x, y, z: 1.9, sx: .5, sy: .5, sz: .5, ry: i % 2 ? Math.PI / 2 : 0 }); }
+      coins.push({ x: sx * 2.4, y: y0 - 3.4, z: 1.9, sx: .55, sy: .1, sz: .55, rx: Math.PI / 2 });
+    }
+    g.add(instanced(THREE, new THREE.TorusGeometry(.42, .1, 5, 10), iron, links));
+    const coinMesh = instanced(THREE, new THREE.CylinderGeometry(1, 1, 1, 14), gold, coins); coinMesh.rotation.x = 0; g.add(coinMesh);
+    // Almas subindo do redemoinho (poucas, suaves).
+    const N = 26, sp = new Float32Array(N * 3), r = rng(5);
+    for (let i = 0; i < N; i++) { sp[i * 3] = (r() - .5) * 8; sp[i * 3 + 1] = r() * 18; sp[i * 3 + 2] = 1 + r(); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+    const souls = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xff6a70, size: .28, transparent: true, opacity: .6, depthWrite: false, blending: THREE.AdditiveBlending })); souls.frustumCulled = false; g.add(souls);
+    ctx.tick.push((t, dt) => { const a = sg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] + dt * (1.2 + (i % 4) * .3); if (y > 19) y = 1; a.array[i * 3 + 1] = y; a.array[i * 3] += Math.sin(t * 1.3 + i) * dt * .3; } a.needsUpdate = true; });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(7.4, 8, 48), new THREE.MeshBasicMaterial({ color: 0xff2a3a, transparent: true, opacity: .55, side: THREE.DoubleSide, toneMapped: false })); ring.rotation.x = -Math.PI / 2; ring.position.set(0, .06, 3.2); g.add(ring);
+    return { height: 26, radius: 9 };
   },
   // Cogumelo gigante de olhos abertos; no tronco, um redemoinho negro.
   bishop3(THREE, g, ctx) {

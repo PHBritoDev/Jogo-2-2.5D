@@ -14,7 +14,7 @@ import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, tur
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_STORE_KEY, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
-import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
+import { cityLayout, inAlley, ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
@@ -25,7 +25,7 @@ import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inAren
 import { ACT4N, FLOORS, SPEAKERS4, act4Presentation, isAct4Step, floorFoes, nextFloor, scrollMultiplier, afterVeraxion, banditScene4, rivalReturnScene, towerViewScene, floorIntroScene, floorClearScene, restScene, leaderDefeatScene, veraxionIntroScene, veraxionDefeatScene, towerFallScene, rivalRevealScene } from './act4-flow.js';
 import { TOWER, TOWER_HALL, towerWalkable, floorTint } from './tower3d.js';
 import { ACT3N, SPEAKERS3, act3Presentation, isAct3Step, buyCoat, afterZarkhael, coatOfferScene, coatAcceptScene, coatRefuseScene, coatNoMoneyScene, COLD_LINE, snowArrivalScene, fisherScene, villagerScene, innScene, bedScene, cellarScene, cellarDefeatScene, raidScene, guillotineScene, caveArrivalScene, caveEndScene, distortedScene, distortedDefeatScene, zarkhaelIntroScene, zarkhaelDefeatScene, angelQuestionScene, angelTruthScene } from './act3-flow.js';
-import { SNOW_CITY, inSnowCity, INN, innWalkable, ICE_CAVE, iceCaveWalkable, DISTORTED, distortedWalkable, COAT, climate } from './snow3d.js';
+import { SNOW_CITY, inSnowCity, INN, innWalkable, innFloor, innCeil, ICE_CAVE, iceCaveWalkable, DISTORTED, distortedWalkable, COAT, climate } from './snow3d.js';
 import { ACT3, ACT4, LATE_ACTS, EXTRA_REGIONS, EXTRA_PASSES, ALTAR_VALLEY, SERRA, stepDef, latePresentation, lateActFor, collectItem, bossRewardOnce, COLISEUM, coliseumPayout } from './acts34-flow.js';
 import { FINALE, FINAL_PORTAL, VOID, GAUNTLET, SIN_FORMS, finaleTalkLines, gauntletIntroLines, sinIntroLines, epilogueLines, finaleAfterDeath, nextGauntlet, nextSinForm, finaleReward } from './finale-flow.js';
 import { createTerrain, buildTerrainArrays, colorTerrain, scatterForest, fbm } from './world3d-terrain.js';
@@ -132,7 +132,7 @@ const terrain3D=createTerrain({
  hill:hillHeightAt,
  keepouts:[{x:DESERT.statue.x,z:DESERT.statue.z,r:24,fade:8},{x:COLOSSEUM.center.x,z:COLOSSEUM.center.z,r:40,fade:8},{x:-36,z:-256,r:14,fade:6},{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:-12,z:-97,r:7,fade:5},{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z,r:9,fade:6},{x:MASSACRE_SPOT.x,z:MASSACRE_SPOT.z,r:6,fade:5},{x:SEWER_DOOR.x,z:SEWER_DOOR.z,r:5,fade:4},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:DISTRICT_SPOTS.plaza.x,z:DISTRICT_SPOTS.plaza.z,r:22,fade:8},{x:ALTAR_VALLEY.cx,z:ALTAR_VALLEY.cz,r:16,fade:8},{x:SERRA.cx,z:SERRA.cz-8,r:16,fade:8},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
  ponds:[FOREST_POND],
- extraAreas:[DISTRICT,...EXTRA_REGIONS,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
+ extraAreas:[DISTRICT,DISTRICT_SPOTS.volcanoApproach,...EXTRA_REGIONS,SNOW_CITY.caveApproach,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
  paths:[{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5}]
 });
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
@@ -858,6 +858,14 @@ function playNativeGuideIdle(clips){
  const clip=tracks.length?new THREE.AnimationClip(idle.name,idle.duration,tracks,idle.blendMode):idle;
  guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.reset();action.setLoop(THREE.LoopRepeat,Infinity);action.setEffectiveWeight(1);action.play();guideIdleMixer.update(0);guideProceduralBreath=true;const bones=[];guideModel.traverse(o=>{if(o.isBone&&/(spine|chest|torso|upper.?body)/i.test(o.name||''))bones.push({bone:o,baseX:o.rotation.x,baseScaleY:o.scale.y});});guideModel.userData.breathBones=bones.slice(-3);console.info('Anjo-Guia: animações disponíveis',window.GuideAnimationReport,'respiração selecionada:',idle.name);
 }
+/* MOD 217 — o clipe parado veio da Misteriosa e, no corpo do Anjo, deixava os braços abertos e rígidos (um deles
+   puxado para trás). Depois do clipe, os braços são apontados para baixo no espaço do mundo, com balanço leve. */
+const _ga=new THREE.Vector3(),_gq=new THREE.Quaternion();let guideArmT=0;
+function relaxGuideArms(dt){
+ if(!guideModel||!guide.visible)return;const rig=poseRig(guideModel);if(!rig)return;guideArmT+=dt;guideModel.getWorldQuaternion(_gq);
+ for(const [ua,la,hd,sx] of [[rig.lua,rig.lla,rig.lh,1],[rig.rua,rig.rla,rig.rh,-1]]){const sw=Math.sin(guideArmT*1.1+(sx>0?0:1.3))*.03;
+  aimBone(ua,la,_ga.set(sx*.2,-1,.05+sw).normalize().applyQuaternion(_gq),1);aimBone(la,hd,_ga.set(sx*.08,-1,.22+sw).normalize().applyQuaternion(_gq),1);}
+}
 function fitGuideModel(){
  if(!guideModel||!guideFitRoot)return;
  guideFitRoot.scale.setScalar(1);guideFitRoot.position.set(0,0,0);guideFitRoot.updateMatrixWorld(true);
@@ -1317,7 +1325,7 @@ function enemyBlockedAt(x,z){
  return Math.hypot(x-player.position.x,z-player.position.z)<.9;
 }
 function terrainHeightAt(x,z){
- if(voidMode)return voidSpec.y;
+ if(voidMode)return voidSpec.y+(voidSpec.floor&&voidSpec.walk===innWalkable?voidSpec.floor(x-voidSpec.x,z-voidSpec.z):0);
  let height=groundHeightAt(x,z);
  for(const rock of rockObstacles){const d=Math.hypot(x-rock.x,z-rock.z);if(d<rock.radius){const t=1-d/rock.radius;const smooth=t*t*(3-2*t);height=Math.max(height,rock.base+rock.height*smooth);}}
  for(const obstacle of walkableObstacles){let distance;
@@ -1368,7 +1376,7 @@ function animate(){requestAnimationFrame(animate);if(vsOpen||gamePaused||menuGat
  enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
  if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
  else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer)guideIdleMixer.update(dt);if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
+ }if(guideIdleMixer){guideIdleMixer.update(dt);relaxGuideArms(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
@@ -1457,7 +1465,13 @@ if(firstPerson){
   if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>cameraDistance+2||Math.abs(rz)>cameraDistance+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
   // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
   for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
-  if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);}
+  // MOD 217 — casas da cidade (caixas de colisão): a câmera para antes da fachada em vez de entrar no prédio.
+  if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape==='box'&&Math.abs(o.x-target.x)<cameraDistance+8&&Math.abs(o.z-target.z)<cameraDistance+8);
+   if(near.length)for(let i=1;i<=14;i++){const f=i/14*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(near.some(o=>Math.abs(sx-o.x)<o.halfX+.25&&Math.abs(sz-o.z)<o.halfZ+.25&&sy<groundHeightAt(o.x,o.z)+(o.height||3)+1.8)){limit=Math.max(.12,(i-1.5)/14*limit);break;}}}
+  // MOD 217 — interiores (estalagem, esgoto, vulcão, caverna): a câmera para antes da parede, sem mostrar o que há fora do cômodo.
+  if(voidMode&&voidSpec.walk){for(let i=1;i<=14;i++){const f=i/14*limit;if(blockedAt(target.x+camOffset.x*f,target.z+camOffset.z*f)){limit=Math.max(.1,(i-1.6)/14*limit);break;}}}
+  if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
+  if(voidMode&&voidSpec.ceil&&voidSpec.walk===innWalkable){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
  camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(target);applyUltCam(dt,target);
 }
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -2126,11 +2140,14 @@ var cineActive=false,cineShot='',cineU=0,cineCut=false,cineSayWho='',cineAssets=
 const cineEl=id=>document.getElementById(id);
 const cineV=new THREE.Vector3(),cineV2=new THREE.Vector3(),cineLook=new THREE.Vector3(),cinePos=new THREE.Vector3(),cineHead=new THREE.Vector3(),cineHandL=new THREE.Vector3(),cineHandR=new THREE.Vector3();
 const cineSmooth=u=>{u=Math.min(1,Math.max(0,u));return u*u*(3-2*u);};
+var cineSkipping=false,cineSceneStartedAt=0;
 const cineDirector=createDirector({
  shot:(id,u)=>{if(cineShot!==id)cineCut=true;cineShot=id;cineU=u;},
  say:(who,text)=>{const line=personalizeLine({type:'say',who,text},playerName);cineSayWho=who;cineEl('cine-who').textContent=line.who;cineEl('cine-text').textContent=line.text;cineEl('cine-say').hidden=false;},
  hideSay:()=>{cineSayWho='';cineEl('cine-say').hidden=true;},
  do:(id,args)=>cineDo(id,args),
+ // MOD 217 — pular aplica uma vez as ações que faltavam (estado final igual ao da cena inteira), sem sons nem flashes.
+ flush:(list,scene)=>{if(scene==='ceu'||scene==='despertar')return;cineSkipping=true;try{for(const d of list){try{cineDo(d.id,d.args);}catch(e){console.warn('pular: ação',d.id,e);}}}finally{cineSkipping=false;}},
  ask:id=>cineAsk(id),
  end:(scene,skipped)=>{if(scene==='ceu')endHeavenCine(skipped);else if(scene==='despertar')endAwakeningCine(skipped);else endStory(skipped);}
 });
@@ -2268,7 +2285,7 @@ function cineAsk(id){
 bindInstantTap(cineEl('choice-yes'),()=>{if(cineEl('choice-card').hidden)return;if(choiceMode==='pergaminho')receiveScroll();else coatChoice(true);});
 bindInstantTap(cineEl('choice-no'),()=>{if(cineEl('choice-card').hidden)return;coatChoice(false);});
 bindInstantTap(cineEl('mission-accept'),()=>{if(cineEl('mission-card').hidden)return;cineEl('mission-card').hidden=true;cineAcceptMission();worldAudio.unlock();cineDirector.resume();});
-bindInstantTap(cineEl('cine-skip'),()=>{if(!cineDirector.running||cineDirector.scene==='despertar')return;const now=performance.now(),b=cineEl('cine-skip');if(now<cineSkipArmedUntil){cineSkipArmedUntil=0;cineDirector.skip();return;}cineSkipArmedUntil=now+2600;b.textContent='TOQUE DE NOVO PARA PULAR';setTimeout(()=>{if(performance.now()>=cineSkipArmedUntil)b.textContent='PULAR';},2700);});
+bindInstantTap(cineEl('cine-skip'),()=>{if(!cineDirector.running||!cineDirector.skippable||cineDirector.scene==='despertar')return;const now=performance.now(),b=cineEl('cine-skip');if(now-cineSceneStartedAt<700)return;if(now<cineSkipArmedUntil){cineSkipArmedUntil=0;cineDirector.skip();return;}cineSkipArmedUntil=now+2600;b.textContent='TOQUE DE NOVO PARA PULAR';setTimeout(()=>{if(performance.now()>=cineSkipArmedUntil)b.textContent='PULAR';},2700);});
 bindInstantTap(cineEl('cine-continue'),()=>{if(cineActive&&!namePromptOpen)cineDirector.tap();});
 function cineCam(px,py,pz,lx,ly,lz,follow,dt){
  cineV.set(px,py,pz);cineV2.set(lx,ly,lz);
@@ -2541,17 +2558,28 @@ const district=(()=>{
  const brick=mat(0x6d5246),brickDark=mat(0x4a3a33),plaster=mat(0x8f8270),beam=mat(0x3d2c20),slate=mat(0x2f3138),rust=new THREE.MeshStandardMaterial({color:0x7a4a2a,metalness:.4,roughness:.7});
  const boxGeo=new THREE.BoxGeometry(1,1,1);
  const add=(m,x,y,z,sx,sy,sz,ry=0,rx=0,rz=0)=>{const o=new THREE.Mesh(boxGeo,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.rotation.set(rx,ry,rz);o.castShadow=!terrainLowSpec;o.receiveShadow=true;root.add(o);return o;};
- // Casas e lojas em ruínas ao redor da praça: paredes incompletas, telhados desabados, vigas expostas.
- const lots=[[-138,-36,0],[-162,-36,.1],[-182,-56,Math.PI/2],[-128,-58,-Math.PI/2],[-178,-76,Math.PI/2+.1],[-145,-84,Math.PI],[-122,-74,-Math.PI/2+.15],[-188,-36,.2]];
- lots.forEach(([x,z,ry],i)=>{
-  const g=new THREE.Group(),y=groundHeightAt(x,z);g.position.set(x,y,z);g.rotation.y=ry;root.add(g);
-  const w=6+(i%3)*1.2,d=5+(i%2)*1.2,h=3.2+(i%3)*.6,mtl=i%2?brick:plaster;
-  const wall=(lx,lz,sx,sz,hh)=>{const o=new THREE.Mesh(boxGeo,mtl);o.position.set(lx,hh/2,lz);o.scale.set(sx,hh,sz);o.castShadow=!terrainLowSpec;o.receiveShadow=true;g.add(o);};
-  wall(0,-d/2,w,.4,h);wall(-w/2,0,.4,d,h*.85);wall(w/2,-d*.15,.4,d*.7,h*(.5+(i%2)*.3));wall(-w*.3,d/2,w*.4,.4,h*.6);
-  const roof=new THREE.Mesh(boxGeo,slate);roof.position.set(w*.1,h*.55,0);roof.scale.set(w*.9,.18,d*.8);roof.rotation.set(.35+(i%3)*.1,0,-.4);g.add(roof);
-  for(let k=0;k<3;k++){const b=new THREE.Mesh(boxGeo,beam);b.position.set(-w/2+1+k*1.8,h*.9,0);b.scale.set(.18,.18,d*1.05);b.rotation.z=(k-1)*.12;g.add(b);}
-  marketObstacles.push({x,z,shape:'box',halfX:Math.max(w,d)*.5,halfZ:Math.max(w,d)*.5,height:h});
- });
+ // MOD 217 — Cinzária de verdade: casas de basalto e reboco cor de cinza com telhados de duas águas, portas, janelas acesas
+ // e chaminés, ao longo da rua principal, de uma rua de trás, da praça e do beco sem saída. Tudo instanciado (poucas
+ // chamadas de desenho) e com colisão por casa.
+ {const instanced=(geo,m,items)=>{const im=new THREE.InstancedMesh(geo,m,items.length),d=new THREE.Object3D();items.forEach((it,i)=>{d.position.set(it.x,it.y,it.z);d.rotation.set(0,it.ry||0,0);d.scale.set(it.sx,it.sy,it.sz);d.updateMatrix();im.setMatrixAt(i,d.matrix);});im.instanceMatrix.needsUpdate=true;im.castShadow=!terrainLowSpec;im.receiveShadow=true;return im;};
+  const L=cityLayout(),bodies=[],roofs=[],doors=[],wins=[],chims=[],bases=[],tint=[];const rnd=(()=>{let k=91;return()=>(k=(k*16807)%2147483647)/2147483647;})();
+  const PAL=[0x8a7e70,0x6e6258,0x9a8a74,0x7a5e4e,0x5e5a58,0x8e7462,0x6a5448];
+  for(const [x,z,w,d,h,face,side] of L){const y=groundHeightAt(x,z)-.2;const alongX=!side;
+   const ex=side?d:w,ez=side?w:d;bodies.push({x,y:y+h/2,z,sx:ex,sy:h,sz:ez});bases.push({x,y:y+.45,z,sx:ex+.3,sy:.9,sz:ez+.3});tint.push(PAL[(rnd()*PAL.length)|0]);
+   roofs.push({x,y:y+h,z,sx:w+.7,sy:1.4+rnd()*1.2,sz:d+.7,ry:alongX?0:Math.PI/2});
+   if(rnd()<.6)chims.push({x:x+(rnd()-.5)*w*.5,y:y+h+1.2,z:z+(rnd()-.5)*d*.4,sx:.6,sy:2.2,sz:.6});
+   const fx=side?x+side*d/2:x,fz=side?z:z+face*d/2,nx=side||0,nz=side?0:face,ry=side?Math.PI/2:0;
+   doors.push({x:fx+nx*.06,y:y+1.15,z:fz+nz*.06,sx:side?.12:1.2,sy:2.3,sz:side?1.2:.12});
+   const floors=Math.max(1,Math.round(h/2.2));for(let f=0;f<floors;f++)for(const o of [-1,1]){if(f===0&&Math.abs(o)<1)continue;const off=o*Math.min(w*.3,1.9),wy=y+1.6+f*2.1;
+    wins.push({x:fx+nx*.07+(side?0:off),y:wy,z:fz+nz*.07+(side?off:0),sx:side?.1:.7,sy:.85,sz:side?.7:.1});}
+   marketObstacles.push({x,z,shape:'box',halfX:(side?d:w)/2+.15,halfZ:(side?w:d)/2+.15,height:h});}
+  // Parede do fundo do beco (sem saída).
+  {const A=DISTRICT_SPOTS.alley,y=groundHeightAt(A.x,A.z1);bodies.push({x:A.x,y:y+2.4,z:A.z1-2.2,sx:A.half*2+2.6,sy:4.8,sz:.8});tint.push(0x4e4844);marketObstacles.push({x:A.x,z:A.z1-2.2,shape:'box',halfX:A.half+1.3,halfZ:.6,height:4.8});}
+  const plasterM=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.92});
+  const roofGeo=new THREE.BufferGeometry();{const v=[-.5,0,-.5,.5,0,-.5,.5,0,.5,-.5,0,.5,-.5,1,0,.5,1,0];const ix=[0,4,1,1,4,5,3,2,5,3,5,4,0,3,4,1,5,2,0,1,2,0,2,3];roofGeo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));roofGeo.setIndex(ix);roofGeo.computeVertexNormals();}
+  const bodyMesh=instanced(boxGeo,plasterM,bodies);tint.forEach((c,i)=>bodyMesh.setColorAt(i,new THREE.Color(c)));bodyMesh.instanceColor.needsUpdate=true;root.add(bodyMesh);
+  root.add(instanced(boxGeo,mat(0x2e2826),bases),instanced(roofGeo,new THREE.MeshStandardMaterial({color:0x3a2a26,roughness:.85,flatShading:true,side:THREE.DoubleSide}),roofs),instanced(boxGeo,beam,doors),instanced(boxGeo,mat(0x3a3230),chims));
+  const winM=new THREE.MeshStandardMaterial({color:0x2a1a10,emissive:0xff9a40,emissiveIntensity:.9});root.add(instanced(boxGeo,winM,wins));}
  // Barracas de cobrança abandonadas e caixotes.
  for(const [x,z] of [[-142,-70],[-156,-52],[-166,-62],[-136,-62]]){const y=groundHeightAt(x,z);add(beam,x,y+.5,z,2.2,1,1);add(rust,x,y+1.05,z,2.4,.08,1.2,0,.08);}
  // Mina: arco escuro na encosta noroeste, trilhos e lanterna.
@@ -2682,7 +2710,9 @@ function faceTo(obj,target){if(!obj)return;const dx=target.x-obj.position.x,dz=t
 function playStory(id,steps,opts){
  opts=opts||{};storyScene={id,focus:opts.focus||'guide',done:opts.done||null,two:!!opts.two,side:opts.side||1};
  if(opts.face){const f=actorPos(opts.face,_sa);faceTo(player,f);const o=actorObj(opts.face);if(o&&o!==player&&o!==enemy)faceTo(o,player.position);}
- cineBegin();cineDirector.play(id,steps);
+ cineBegin();cineSceneStartedAt=performance.now();cineSkipArmedUntil=0;
+ if(opts.skippable===false)cineEl('cine-skip').hidden=true;
+ cineDirector.play(id,steps,null,{skippable:opts.skippable!==false});
 }
 function endStory(skipped){
  const s=storyScene;storyScene=null;storyMove=null;
@@ -2690,7 +2720,7 @@ function endStory(skipped){
  cineEnd();if(s&&s.done)s.done(skipped);
 }
 function storyTitle(kicker,title){const el=cineEl('cine-title');el.querySelector('span').textContent=kicker||'';el.querySelector('strong').textContent=title||'';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4200);}
-function storyFlash(color,ms){const el=cineEl('cine-fade');el.classList.toggle('white',color==='white');el.style.background=color&&color!=='white'?color:'';el.style.transition='opacity .08s';el.style.opacity='.85';setTimeout(()=>{el.style.transition='opacity '+(ms/1000)+'s ease';el.style.opacity='0';setTimeout(()=>{el.style.background='';},ms+50);},90);}
+function storyFlash(color,ms){if(cineSkipping)return;const el=cineEl('cine-fade');el.classList.toggle('white',color==='white');el.style.background=color&&color!=='white'?color:'';el.style.transition='opacity .08s';el.style.opacity='.85';setTimeout(()=>{el.style.transition='opacity '+(ms/1000)+'s ease';el.style.opacity='0';setTimeout(()=>{el.style.background='';},ms+50);},90);}
 /** Puxa a câmera para perto do alvo se houver parede/casa/banca no caminho (colisão 2D do mundo ou do esgoto). */
 function storyCam(px,py,pz,lx,ly,lz,follow,dt,high){
  if(!high){const dx=px-lx,dz=pz-lz,len=Math.hypot(dx,dz);if(len>.6)for(let i=2;i<=14;i++){const f=i/14;if(blockedAt(lx+dx*f,lz+dz*f)){const k=Math.max(.3/len,(i-1.6)/14);px=lx+dx*k;pz=lz+dz*k;if(len*k<1.6){px=lx+dx/len*2.4;pz=lz+dz/len*2.4;py=Math.max(py,ly+2.2);}break;}}}
@@ -2728,7 +2758,23 @@ function makeFoeClone(rigName,spot,opts){
  holder.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);if(opts&&opts.scale)holder.scale.setScalar(opts.scale);scene.add(holder);
  const mixer=new THREE.AnimationMixer(c),role=(opts&&opts.role)||'idle',act=src.actions[role]||src.actions.idle;
  if(act){const a=mixer.clipAction(act.getClip());a.play();a.time=Math.random()*2;if(opts&&opts.timeScale)a.timeScale=opts.timeScale;}
- return{holder,mixer,spot,approach:opts&&opts.approach};
+ return{holder,mixer,spot,rig:rigName,approach:opts&&opts.approach};
+}
+/* MOD 217 — golpe final: o herói ataca, o golpe acerta (som, tremor), o inimigo cai com o clipe de morte do rig (ou
+   tomba para trás) e o corpo fica no chão um instante antes de afundar devagar. Substitui o "encolher até sumir". */
+var fallenFoes=[];
+function foeFinalBlow(c,byHero=true){
+ if(!c||c.fallen)return;c.fallen=true;const h=c.holder;h.scale.y=h.scale.x;if(byHero){faceTo(player,h.position);if(actions.attack)playOnce('attack',.08);}
+ setTimeout(()=>{if(!h.parent)return;worldAudio.hit();cameraShake(.25);
+  const src=rigSource(c.rig),d=src&&src.actions&&src.actions.death;
+  if(d){c.mixer.stopAllAction();const a=c.mixer.clipAction(d.getClip());a.reset();a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=true;a.play();}
+  fallenFoes.push({c,t:0,tilt:!d});},byHero?260:0);
+}
+function updateFallen(dt){
+ for(let i=fallenFoes.length-1;i>=0;i--){const f=fallenFoes[i],h=f.c.holder,inner=h.children[0];f.t+=dt;
+  if(f.tilt&&inner)inner.rotation.x=-(Math.min(1,f.t/.7)**2)*Math.PI/2;
+  if(f.t>2.6)h.position.y-=dt*.55;
+  if(f.t>4.2||!h.parent){h.visible=false;fallenFoes.splice(i,1);const k=hordeClones.indexOf(f.c);if(k>=0){hordeClones.splice(k,1);disposeClone(f.c);}}}
 }
 function disposeClone(c){if(!c)return;c.mixer.stopAllAction();scene.remove(c.holder);}
 /** Começa uma luta em grupo. spots: onde cada um espera; o primeiro (ou o mais perto) luta. */
@@ -2761,7 +2807,7 @@ function packHandleDefeat(){
  return true;
 }
 function updatePack(dt){
- const lists=[pack?pack.clones:[],hordeClones];
+ updateFallen(dt);const lists=[pack?pack.clones:[],hordeClones];
  for(const list of lists)for(const c of list){if(!c)continue;c.mixer.update(dt);const h=c.holder;if(!h.visible)continue;
   const tx=c.lookAt||player.position;h.rotation.y=Math.atan2(tx.x-h.position.x,tx.z-h.position.z);
   if(c.approach){const d=Math.hypot(tx.x-h.position.x,tx.z-h.position.z);if(d>c.approach){const s=Math.min(dt*1.1,d-c.approach);h.position.x+=(tx.x-h.position.x)/d*s;h.position.z+=(tx.z-h.position.z)/d*s;}}
@@ -3040,6 +3086,11 @@ function storyDo(id,args){
   case 'acordar-cercado':setCineFade(0,.9,false);setTimeout(()=>{if(actions.kipUp){actions.kipUp.paused=false;}},1200);break;
   case 'desmaiar-de-novo':setCineFade(1,.9,false);setTimeout(()=>{for(const cl of hordeClones.splice(0))disposeClone(cl);const c=sewerLocal(SEWER.cage);player.position.set(c.x,voidSpec.y,c.z);if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=0;}const r=sewerArena&&sewerArena.refs;if(r&&r.cage){r.cage.bars.position.y=0;r.cage.top.position.y=2.6;}storyAnchors.cell={x:c.x,z:c.z,y:voidSpec.y,yaw:0};},1000);break;
   case 'acordar-na-jaula':setCineFade(0,1.2,false);faceTo(player,sewerLocal(SEWER.emptyPath.from));storyFx.push({t:0,tick(t){if(t<1.4)return true;if(actions.kipUp)actions.kipUp.paused=false;return false;},finish(){if(actions.kipUp)actions.kipUp.paused=false;}});break;
+  // MOD 217 — resgate na jaula sem pressa: o Anjo chega em silêncio, olha em volta, abre a jaula e o herói sai.
+  case 'anjo-chega-jaula':{const c=sewerLocal(SEWER.cage);guide.position.set(c.x+2.6,voidSpec.y,c.z-1.2);faceTo(guide,P);guide.visible=true;guide.scale.setScalar(1);worldAudio.whoosh();break;}
+  case 'anjo-vigia':{const y0=guide.rotation.y;storyFx.push({t:0,tick(t){guide.rotation.y=y0+Math.sin(Math.min(1,t/2.2)*Math.PI*2)*.9;if(t>2.3){guide.rotation.y=y0;return false;}},finish(){faceTo(guide,player.position);}});break;}
+  case 'heroi-sai-jaula':{if(actions.kipUp)actions.kipUp.paused=false;const c=sewerLocal(SEWER.cage),from=player.position.clone(),to={x:c.x+1.4,z:c.z-.6};
+   storyFx.push({t:0,tick(t){if(t<.5)return true;const k=Math.min(1,(t-.5)/1.2);player.position.x=from.x+(to.x-from.x)*k;player.position.z=from.z+(to.z-from.z)*k;if(actions.walk&&k<1&&activeAction!==actions.walk)play('walk',.2);if(k>=1){if(actions.idle)play('idle',.25);faceTo(player,guide.position);return false;}},finish(){player.position.x=to.x;player.position.z=to.z;faceTo(player,guide.position);}});break;}
   case 'anjo-abre-jaula':{const c=sewerLocal(SEWER.cage);guide.position.set(c.x+2.6,voidSpec.y,c.z-1.2);faceTo(guide,P);guide.visible=true;guide.scale.setScalar(1);worldAudio.celestial();
    const r=sewerArena&&sewerArena.refs;if(r&&r.cage)storyFx.push({t:0,tick(t){const y=Math.min(3.4,t*2.4);r.cage.bars.position.y=y;r.cage.top.position.y=y+2.6;if(t>1.5)return false;},finish(){r.cage.bars.position.y=3.4;r.cage.top.position.y=6;}});
    break;}
@@ -3066,7 +3117,7 @@ function afterValerioStory(){
    Usa o mesmo diretor de cenas, lutas em grupo e câmera do Ato I. */
 var inVolcano=false,volcanoArena=null,act2World=null,act2Bandits=[],rivalClone=null,guidePinned=false,visionSave=null,bishop4Sky=null,act2Abyss=questStep>=15;
 RIG_DEFS.rival={file:'./Misteriosa-rig.glb?v=mod205',height:1.0,roles:{idle:'_01a15ab5_eeba_71ae_a438_b85a938940fc',walk:'Walking',run:'Running',attack:'Attack',cast:'Triple_Combo_Attack',dash:'_01a15ab0_deed_76a9_818c_47f5fc81ba40',death:'Dead'},inPlace:['attack','cast','dash','death']};
-Object.assign(SPEAKER_ACTOR,{[SPEAKERS2.bandit]:'bandit',[SPEAKERS2.rival]:'rival',[SPEAKERS2.demon]:'enemy',[SPEAKERS2.miniboss]:'enemy',[SPEAKERS2.boss]:'enemy',[SPEAKERS2.bishop4]:'sky',[SPEAKERS2.note]:'hero'});
+Object.assign(SPEAKER_ACTOR,{[SPEAKERS2.victim]:'victim',[SPEAKERS2.bandit]:'bandit',[SPEAKERS2.rival]:'rival',[SPEAKERS2.demon]:'enemy',[SPEAKERS2.miniboss]:'enemy',[SPEAKERS2.boss]:'enemy',[SPEAKERS2.bishop4]:'sky',[SPEAKERS2.note]:'hero'});
 Object.assign(STORY_EYE,{bandit:1.5,rival:1.5,sky:0,lab:1,door:2,gold:1,portal:3,city:2});
 function volcanoLocal(p){return{x:p.x+DIMENSIONS.vulcao.center.x,z:p.z+DIMENSIONS.vulcao.center.z};}
 const CITY=DISTRICT_SPOTS.plaza;
@@ -3075,6 +3126,16 @@ function buildAct2World(){
  if(act2World)return act2World;const W=act2World={};
  const V=DISTRICT_SPOTS.volcano,vy=groundHeightAt(DISTRICT_SPOTS.volcanoGate.x,DISTRICT_SPOTS.volcanoGate.z)-2;
  const g=new THREE.Group();g.position.set(V.x,vy,V.z);scene.add(g);W.volcano=g;
+ // MOD 217 — portão diegético no pé do cone: pilares de basalto, verga com runas, boca escura com brilho de lava e braseiros.
+ {const G=DISTRICT_SPOTS.volcanoGate,gy=groundHeightAt(G.x,G.z),gate=new THREE.Group();gate.position.set(G.x-2,gy,G.z);gate.rotation.y=Math.PI/2;scene.add(gate);W.gate=gate;
+  const basalt=new THREE.MeshStandardMaterial({color:0x2a2220,roughness:.95,flatShading:true}),rune=new THREE.MeshBasicMaterial({color:0xff6a20,toneMapped:false});
+  for(const sx of [-1,1]){const p=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.2,7.5,6),basalt);p.position.set(sx*3,3.75,0);p.rotation.y=sx*.3;gate.add(p);
+   const r=new THREE.Mesh(new THREE.BoxGeometry(.12,4.4,.12),rune);r.position.set(sx*3,3.4,.95);gate.add(r);
+   const br=new THREE.Mesh(new THREE.CylinderGeometry(.55,.35,1.1,8),basalt);br.position.set(sx*4.6,.55,1.6);gate.add(br);const f=glowSprite(0xff7a28,.9,3.2);f.position.set(sx*4.6,1.7,1.6);gate.add(f);}
+  const lintel=new THREE.Mesh(new THREE.BoxGeometry(8.4,1.3,1.6),basalt);lintel.position.y=7.6;lintel.rotation.z=.04;gate.add(lintel);
+  const mouth=new THREE.Mesh(new THREE.PlaneGeometry(5.2,6.6),new THREE.MeshBasicMaterial({color:0x050302}));mouth.position.set(0,3.3,-.2);gate.add(mouth);
+  const glow=glowSprite(0xff5010,.55,7);glow.position.set(0,1.2,0);gate.add(glow);
+  const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(7,0),basalt);rock.scale.set(1.6,1.3,1);rock.position.set(0,4,-4.5);gate.add(rock);}
  // Cone com cratera (perfil girado) e veios incandescentes.
  const prof=[];for(let i=0;i<=16;i++){const t=i/16;prof.push(new THREE.Vector2(Math.max(6,30*(1-t)+(1-t)*(1-t)*5),t*50));}prof.push(new THREE.Vector2(5,47));
  const rockC=document.createElement('canvas');rockC.width=rockC.height=256;{const c=rockC.getContext('2d');c.fillStyle='#2a221e';c.fillRect(0,0,256,256);for(let i=0;i<400;i++){const v=30+Math.random()*30|0;c.fillStyle='rgb('+v+','+(v-6)+','+(v-9)+')';c.fillRect(Math.random()*256,Math.random()*256,4+Math.random()*10,2+Math.random()*5);}c.strokeStyle='rgba(255,90,20,.55)';c.lineWidth=2;for(let i=0;i<10;i++){let x=Math.random()*256,y=0;c.beginPath();c.moveTo(x,y);while(y<256){x+=(Math.random()-.5)*24;y+=10+Math.random()*16;c.lineTo(x,y);}c.stroke();}}
@@ -3100,7 +3161,7 @@ function buildAct2World(){
  // O abismo deixado pelo buraco negro: um rombo que mostra o espaço lá no fundo, como o fim do mundo.
  const abyss=new THREE.Mesh(new THREE.CircleGeometry(24,64),new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uTime:{value:0}},
   vertexShader:'varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:'uniform float uTime;varying vec2 vP;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}void main(){float r=length(vP)/24.;float a=atan(vP.y,vP.x);float edge=.9+.06*sin(a*9.)+.04*sin(a*23.+1.);if(r>edge)discard;vec2 sc=gl_FragCoord.xy*.35;vec2 c=floor(sc);float s=step(.985,h(c))*(.5+.5*sin(uTime*2.+h(c)*30.));vec3 sky=mix(vec3(.02,.0,.06),vec3(.0,.0,.01),r);float rim=smoothstep(edge-.12,edge,r);gl_FragColor=vec4(sky+vec3(s)*(1.-rim)+vec3(.35,.08,.02)*rim*.8,1.);}'}));
+  fragmentShader:'uniform float uTime;varying vec2 vP;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}void main(){float r=length(vP)/24.;float a=atan(vP.y,vP.x);float edge=.9+.06*sin(a*9.)+.04*sin(a*23.+1.);if(r>edge)discard;float sw=sin(a*5.+r*14.-uTime*.6)*.5+.5;float mist=sw*smoothstep(.15,.85,r)*.10;vec3 sky=mix(vec3(.0,.0,.004),vec3(.05,.01,.08),r*r)+vec3(.18,.04,.3)*mist;float rim=smoothstep(edge-.1,edge,r);float ember=step(.94,h(floor(vec2(a*40.,r*30.))))*rim*(.5+.5*sin(uTime*3.+a*20.));gl_FragColor=vec4(sky+vec3(.35,.08,.02)*rim*.8+vec3(1.,.45,.1)*ember*.6,1.);}'}));
  abyss.rotation.x=-Math.PI/2;abyss.position.set(CITY.x,groundHeightAt(CITY.x,CITY.z)+.08,CITY.z);abyss.visible=false;abyss.renderOrder=3;scene.add(abyss);W.abyss=abyss;
  W.abyssBlock={x:CITY.x,z:CITY.z,radius:22.5,height:4};
  W.note=new THREE.Mesh(new THREE.PlaneGeometry(.5,.36),new THREE.MeshStandardMaterial({color:0xe8dcc0,roughness:.9,side:THREE.DoubleSide}));W.note.rotation.x=-Math.PI/2;
@@ -3136,13 +3197,16 @@ function updateAct2World(dt,now){
 /* ---------- Moradores da cidade: bandidos ---------- */
 let npcBasePromise=null;
 function npcBase(){if(!npcBasePromise)npcBasePromise=new Promise((res,rej)=>new GLTFLoader().load('./Npc-lod2.glb?v=mod202',gltf=>{const base=gltf.scene,box=measureModelBounds(base),size=box.getSize(new THREE.Vector3());res({base,clips:gltf.animations||[],scale:size.y>.01?(playerReferenceHeight*.98)/size.y:1,box});},undefined,rej));return npcBasePromise;}
-function makeTownsfolk(b,tint,clipName){const c=cloneSkinned(b.base),h=new THREE.Group();c.scale.setScalar(b.scale);c.position.y=-b.box.min.y*b.scale;c.rotation.y=Math.PI;h.add(c);
+// MOD 217 — o Npc-lod2.glb já olha para +Z (dedos dos pés à frente); o giro de 180° fazia moradores e bandidos andarem de costas.
+function makeTownsfolk(b,tint,clipName){const c=cloneSkinned(b.base),h=new THREE.Group();c.scale.setScalar(b.scale);c.position.y=-b.box.min.y*b.scale;h.add(c);
  c.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.color.multiply(new THREE.Color(tint));o.material.metalness=0;o.material.metalnessMap=null;if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x4a3e36);o.material.emissiveIntensity=.7;}}});
  const m=new THREE.AnimationMixer(c),clip=b.clips.find(k=>k.name===clipName)||b.clips.find(k=>k.name==='Alert');const a=clip?m.clipAction(clip):null;if(a)a.play();scene.add(h);return{holder:h,mixer:m,action:a,model:c};}
 function spawnBandits(){
  return npcBase().then(b=>{for(const x of act2Bandits.splice(0))scene.remove(x.holder);const A=DISTRICT_SPOTS.ambush;
-  for(let i=0;i<ACT2.bandits;i++){const a=i/ACT2.bandits*6.28+.4,x=A.x+Math.cos(a)*4.2,z=A.z+Math.sin(a)*4.2,v=makeTownsfolk(b,[0x8a7a6a,0x6a5a4a,0x9a8070,0x5a6a5a,0x7a6050][i],'Alert');v.holder.position.set(x,groundHeightAt(x,z),z);act2Bandits.push({...v,home:{x,z}});}
-  storyAnchors.bandit={x:A.x+Math.cos(.4)*4.2,z:A.z+Math.sin(.4)*4.2};
+  // MOD 217 — fecham o beco: três na boca (atrás do herói) e o resto descendo dos telhados no fundo.
+  const AL=DISTRICT_SPOTS.alley,spots=[[-1.2,AL.z0-1.6],[0,AL.z0-.6],[1.2,AL.z0-1.6],[-1.3,AL.z1+2.2],[1.3,AL.z1+2.2],[0,AL.z1+1.2]];
+  for(let i=0;i<ACT2.bandits;i++){const [ox,oz]=spots[i%spots.length],x=AL.x+ox,z=oz,v=makeTownsfolk(b,[0x8a7a6a,0x6a5a4a,0x9a8070,0x5a6a5a,0x7a6050][i],'Alert');v.holder.position.set(x,groundHeightAt(x,z),z);act2Bandits.push({...v,home:{x,z}});}
+  storyAnchors.bandit={x:AL.x,z:AL.z0-.6,yaw:Math.PI};
  });
 }
 function updateBandits(dt){
@@ -3152,7 +3216,17 @@ function updateBandits(dt){
   h.position.y=groundHeightAt(h.position.x,h.position.z);}
 }
 /* ---------- Interior do vulcão ---------- */
-let volcanoStatues=[],volcanoPortal=null;
+let volcanoStatues=[],volcanoPortal=null,volcanoVictims=[],volcanoCellsSeen=false;
+/** MOD 217 — vítimas vivas no laboratório (ajoelhadas, exaustas, uma deitada), até a purificação. */
+function spawnVolcanoVictims(){
+ if(volcanoVictims.length||questStep!==ACT2.volcano||act1Sub!==0)return;volcanoVictims.loading=true;
+ loadRig('vitima').then(()=>{if(volcanoVictims.length||!inVolcano)return;const src=rigSource('vitima'),dead=src&&src.actions&&src.actions.death;
+  for(const v of VOLCANO.victims){const p=volcanoLocal(v),c=makeFoeClone('vitima',p,{role:'idle'});if(!c)continue;c.holder.position.y=voidSpec.y;c.holder.rotation.y=v.yaw;
+   if(dead){c.mixer.stopAllAction();const a=c.mixer.clipAction(dead.getClip());a.play();a.time=dead.getClip().duration*(v.pose==='lie'?.99:.55);c.mixer.update(0);a.paused=true;}
+   volcanoVictims.push(c);}
+  const k=volcanoVictims[0];if(k)storyAnchors.victim={x:k.holder.position.x,z:k.holder.position.z,y:voidSpec.y,yaw:k.holder.rotation.y};},()=>{});
+}
+function clearVolcanoVictims(){for(const c of volcanoVictims.splice(0))disposeClone(c);delete storyAnchors.victim;}
 function enterVolcano(at){
  inVolcano=true;volcanoArena=getDimArena('vulcao');enterDimensionArena('vulcao');
  voidSpec.walk=(lx,lz)=>volcanoWalkable(lx,lz,{doorOpen:questStep>ACT2.volcano||act1Sub>=2});
@@ -3169,7 +3243,7 @@ function syncVolcanoPortal(){
  if(questStep>=ACT2.boss&&questStep<ACT2.done&&inVolcano){if(!volcanoPortal){volcanoPortal=buildDimensionPortal(THREE,'bishop2');if(volcanoPortal){const p=volcanoLocal(VOLCANO.portal);volcanoPortal.group.position.set(p.x,voidSpec.y,p.z);volcanoPortal.group.scale.setScalar(.42);scene.add(volcanoPortal.group);}}if(volcanoPortal)volcanoPortal.setActive(true);}
  else if(volcanoPortal)volcanoPortal.setActive(false);
 }
-function leaveVolcano(to){
+function leaveVolcano(to){clearVolcanoVictims();
  inVolcano=false;voidSpec.walk=null;leaveVoid();for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);guidePinned=false;
  const g=DISTRICT_SPOTS.volcanoGate,p=to||{x:g.x+4,z:g.z};player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);checkpointX=p.x;checkpointZ=p.z;setGameHour(16);
 }
@@ -3187,7 +3261,7 @@ function updateAct2Story(dt,now){
  if(questStep===ACT2.travel){mark(gorgeGate.spot.x<px&&px>-90?gorgeGate.spot:CITY);storyAnchors.city={x:CITY.x,z:CITY.z,yaw:0};
   if(!act1Busy()&&near(CITY,40)){act1Lock=true;playStory('cidade',cityArrivalScene(),{focus:'guide',done:()=>{act1Lock=false;act1Advance(ACT2.city,0);status.textContent='Atravesse a cidade.';}});}return;}
  if(questStep===ACT2.city){
-  if(act1Sub===0){const A=DISTRICT_SPOTS.ambush;mark(A);if(!act1Busy()&&near(A,7)){act1Lock=true;spawnBandits().then(()=>{playStory('bandidos',banditScene(),{focus:'bandit',face:'bandit',done:()=>{act1Lock=false;act1Advance(ACT2.city,1);status.textContent='Alguém na praça parece observar você.';}});},()=>{act1Lock=false;act1Advance(ACT2.city,1);});}}
+  if(act1Sub===0){const A=DISTRICT_SPOTS.ambush,AL=DISTRICT_SPOTS.alley;if(!inAlley(px,pz))mark({x:AL.x,z:AL.z0+1});if(!act1Busy()&&inAlley(px,pz)&&pz<AL.z0-4){act1Lock=true;spawnBandits().then(()=>{playStory('bandidos',banditScene(),{focus:'bandit',face:'bandit',done:()=>{act1Lock=false;act1Advance(ACT2.city,1);status.textContent='Alguém na praça parece observar você.';}});},()=>{act1Lock=false;act1Advance(ACT2.city,1);});}}
   else{const R=DISTRICT_SPOTS.rival;mark(R);storyAnchors.rival={x:R.x,z:R.z,yaw:Math.atan2(px-R.x,pz-R.z)};
    if(!act1Busy()&&!pack&&!enemy.visible&&near(R,9)){act1Lock=true;startPack({rig:'rival',profile:'rival',hp:ACT2.rivalHp,spots:[R],hold:true,intro:'O desconhecido saca as lâminas.',onDone:rivalDown});
     playStory('misteriosa',rivalScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;delete storyAnchors.rival;releasePack();}});}}
@@ -3202,7 +3276,9 @@ function updateAct2Story(dt,now){
  if(questStep===ACT2.volcano){
   if(!inVolcano){mark(DISTRICT_SPOTS.volcanoGate);return;}
   const V=VOLCANO;storyAnchors.lab={...volcanoLocal(V.lab),y:voidSpec.y,yaw:0};storyAnchors.door={...volcanoLocal(V.door),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.gold={...volcanoLocal(V.gold),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.portal={...volcanoLocal(V.portal),y:voidSpec.y,yaw:0};
-  if(act1Sub===0){mark(volcanoLocal(V.lab));if(!act1Busy()&&!pack&&near(volcanoLocal(V.lab),V.lab.r+6)){act1Lock=true;playStory('laboratorio',labScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}
+  if(act1Sub===0){spawnVolcanoVictims();mark(volcanoLocal(V.lab));
+   if(!volcanoCellsSeen&&!act1Busy()&&near(volcanoLocal(V.cells),V.cells.r-1.5)){volcanoCellsSeen=true;act1Lock=true;playStory('cela',cellsScene(),{focus:'hero',done:()=>{act1Lock=false;}});}
+   else if(!act1Busy()&&!pack&&near(volcanoLocal(V.lab),V.lab.r-1.5)){act1Lock=true;playStory('laboratorio',labScene(),{focus:'enemy',skippable:false,done:()=>{act1Lock=false;releasePack();}});}}
   else if(act1Sub===1)mark(volcanoLocal(V.door));
   else if(act1Sub===2){mark(volcanoLocal(V.hall));if(!act1Busy()&&!pack&&near(volcanoLocal(V.hall),V.hall.r+5)){act1Lock=true;guidePinned=false;playStory('galeria',hallScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}
   else{mark(volcanoLocal(V.miniboss));if(!act1Busy()&&!pack&&!enemy.visible&&near(volcanoLocal(V.throne),V.throne.r+4)){act1Lock=true;playStory('trono',throneScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}
@@ -3237,9 +3313,9 @@ function rivalDown(){
  playStory('misteriosa-perde',rivalDefeatScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;delete storyAnchors.rival;if(rivalClone){disposeClone(rivalClone);const i=hordeClones.indexOf(rivalClone);if(i>=0)hordeClones.splice(i,1);rivalClone=null;}act1Advance(ACT2.gate,0);status.textContent='A entrada do vulcão fica a oeste da cidade.';}});
 }
 function gateCleared(){act1Lock=true;const p=DISTRICT_SPOTS.volcanoGuards[0],c=makeFoeClone('enemy2',p,{role:'idle'});if(c){c.holder.scale.y=.8;hordeClones.push(c);storyAnchors.enemy={x:p.x,z:p.z,yaw:Math.atan2(player.position.x-p.x,player.position.z-p.z)};}
- playStory('entrada-cai',gateDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;delete storyAnchors.enemy;if(c){disposeClone(c);const i=hordeClones.indexOf(c);if(i>=0)hordeClones.splice(i,1);}act1Advance(ACT2.volcano,0);status.textContent='Entre no vulcão.';}});
+ playStory('entrada-cai',gateDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;delete storyAnchors.enemy;if(c){foeFinalBlow(c);setTimeout(()=>{disposeClone(c);const i=hordeClones.indexOf(c);if(i>=0)hordeClones.splice(i,1);},4400);}act1Advance(ACT2.volcano,0);status.textContent='Entre no vulcão.';}});
  act2DyingClone=c;}
-var act2DyingClone=null;
+var act2DyingClone=null,act2Hole=null;
 function labCleared(){act1Lock=true;playStory('chave2',keyScene(),{focus:'guide',done:()=>{act1Lock=false;act1Advance(ACT2.volcano,1);status.textContent='Procure o que a chave abre.';}});}
 function hallCleared(){act1Lock=true;playStory('galeria-cai',hallDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;act1Advance(ACT2.volcano,3);}});}
 function minibossDown(){
@@ -3264,13 +3340,18 @@ function storyDo2(id,args){
    const s=Math.sin(playerYaw),c=Math.cos(playerYaw),spot={x:P.x+s*1.6,z:P.z+c*1.6};
    for(let i=0;i<14;i++){const coin=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.015,8),mat(0xd8a032));coin.position.set(spot.x+(Math.random()-.5)*1.4,groundHeightAt(spot.x,spot.z)+.02,spot.z+(Math.random()-.5)*1.4);scene.add(coin);setTimeout(()=>scene.remove(coin),9000);}
    npcBase().then(b=>{const run=b.clips.find(k=>k.name==='Running');act2Bandits.forEach((bd,i)=>{bd.target={x:spot.x+(Math.random()-.5)*1.2,z:spot.z+(Math.random()-.5)*1.2};if(run){bd.mixer.stopAllAction();bd.mixer.clipAction(run).play();}});});
+   if(cineSkipping){for(const bd of act2Bandits.splice(0))scene.remove(bd.holder);return true;}
    setTimeout(()=>{for(const bd of act2Bandits.splice(0))scene.remove(bd.holder);},9000);return true;}
   case 'surgir-misteriosa':worldAudio.whoosh();if(pack&&pack.clones[0]){const h=pack.clones[0].holder;storyAnchors.rival={x:h.position.x,z:h.position.z,yaw:h.rotation.y};}return true;
   case 'apontar-arma':if(actions.attack)playOnce('attack',.1);return true;
   case 'misteriosa-parte':if(rivalClone)storyFx.push({t:0,tick(t){rivalClone.holder.position.x+=.06;if(t>1.2){rivalClone.holder.visible=false;return false;}},finish(){if(rivalClone)rivalClone.holder.visible=false;}});worldAudio.whoosh();return true;
-  case 'eliminar':{const c=act2DyingClone;storyFlash('#200000',500);worldAudio.hit();if(c)storyFx.push({t:0,tick(t){c.holder.scale.setScalar(Math.max(.01,1-t));if(t>1){c.holder.visible=false;return false;}},finish(){c.holder.visible=false;}});return true;}
+  case 'eliminar':{const c=act2DyingClone;foeFinalBlow(c);return true;}
   case 'circulo-magico':{const r=volcanoArena&&volcanoArena.refs;if(r&&r.circle){worldAudio.magic('magic3');storyFx.push({t:0,tick(t){r.circle.material.opacity=Math.min(1,t);r.circle.rotation.z+=.01;if(t>8){r.circle.material.opacity=0;return false;}},finish(){r.circle.material.opacity=0;}});}return true;}
   case 'purificar':{const r=volcanoArena&&volcanoArena.refs;worldAudio.celestial();storyFlash('white',1600);if(r&&r.bodies)setTimeout(()=>{r.bodies.visible=false;},700);
+   // As vítimas se acalmam, brilham e a alma de cada uma sobe; os corpos somem em paz, um por vez.
+   volcanoVictims.forEach((c,i)=>{const soul=glowSprite(0xfff4d8,.95,1.6);soul.position.copy(c.holder.position);soul.position.y+=1;scene.add(soul);
+    storyFx.push({t:-i*.45,tick(t){if(t<0)return true;soul.position.y+=.05;soul.material.opacity=Math.max(0,.95-t*.25);if(t>1.1)c.holder.visible=false;if(t>3.6){scene.remove(soul);return false;}},finish(){scene.remove(soul);c.holder.visible=false;}});});
+   if(cineSkipping)clearVolcanoVictims();else setTimeout(clearVolcanoVictims,5200);
    const L=volcanoLocal(VOLCANO.lab),beams=[];for(let i=0;i<6;i++){const s=glowSprite(0xfff2c8,.9,2);s.position.set(L.x+(Math.random()-.5)*12,voidSpec.y+1,L.z+(Math.random()-.5)*12);scene.add(s);beams.push(s);}
    storyFx.push({t:0,tick(t){for(const s of beams){s.position.y+=.08;s.material.opacity=Math.max(0,.9-t*.3);}if(t>3){for(const s of beams)scene.remove(s);return false;}},finish(){for(const s of beams)scene.remove(s);}});return true;}
   case 'surgir-tres':startPack({rig:'enemy2',profile:'demon2',hp:ACT2.enemy2Hp,spots:VOLCANO.labSpots.map(volcanoLocal),hold:true,onDone:labCleared});storyFlash('#300000',500);worldAudio.corrupt();return true;
@@ -3291,9 +3372,12 @@ function storyDo2(id,args){
   case 'fecha-cartao':cineEl('act-card').classList.add('hidden');return true;
   case 'sombra-no-ceu':{loadRig('bishop4').then(rg=>{const c=cloneSkinned(rg.model);c.visible=true;c.traverse(o=>{if(o.isMesh)o.material=new THREE.MeshBasicMaterial({color:0x020204,fog:false});});const h=new THREE.Group();h.add(c);h.scale.setScalar(4.5);const s=Math.sin(playerYaw),k=Math.cos(playerYaw),x=P.x+s*16,z=P.z+k*16;h.position.set(x,P.y+14,z);h.rotation.y=Math.atan2(P.x-x,P.z-z);scene.add(h);const m=new THREE.AnimationMixer(c);if(rg.actions.idle)m.clipAction(rg.actions.idle.getClip()).play();bishop4Sky={holder:h,mixer:m,t:0,y:h.position.y};storyAnchors.sky={x,z,y:h.position.y-6,yaw:h.rotation.y};},()=>{});
    {const s=Math.sin(playerYaw),k=Math.cos(playerYaw);storyAnchors.sky={x:P.x+s*16,z:P.z+k*16,y:P.y+8,yaw:Math.atan2(-s,-k)};}worldAudio.corrupt();return true;}
-  case 'feitico':{const g=storyAnchors.sky;if(!g)return true;const ring=glowSprite(0x8a20ff,.9,3);ring.position.set(g.x,g.y+10,g.z);scene.add(ring);storyFx.push({t:0,tick(t){ring.scale.setScalar(3+t*4);ring.material.opacity=.9-t*.15;if(t>5){scene.remove(ring);return false;}},finish(){scene.remove(ring);}});worldAudio.magic('ultimate');return true;}
-  case 'buraco-negro':{const g=storyAnchors.sky;if(!g)return true;const hole=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0}));const halo=glowSprite(0xb02aff,.9,8);const grp=new THREE.Group();grp.add(hole,halo);grp.position.set(g.x,g.y+12,g.z);scene.add(grp);
-   storyFx.push({t:0,tick(t){const k=Math.min(1,t/2.4);grp.scale.setScalar(1+k*5);grp.position.lerpVectors(new THREE.Vector3(g.x,g.y+12,g.z),new THREE.Vector3(CITY.x,groundHeightAt(CITY.x,CITY.z)+4,CITY.z),k);if(t>2.6){scene.remove(grp);return false;}},finish(){scene.remove(grp);}});cameraShake(.3);return true;}
+  // MOD 217 — o buraco negro nasce bem acima de VÉRAXION, cresce durante o encantamento e é lançado sobre a cidade e o vulcão.
+  case 'feitico':{const g=storyAnchors.sky;if(!g)return true;const ring=glowSprite(0x8a20ff,.9,3);ring.position.set(g.x,g.y+34,g.z);scene.add(ring);
+   const hole=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0}));const halo=glowSprite(0xb02aff,.9,7);const grp=new THREE.Group();grp.add(hole,halo);grp.position.set(g.x,g.y+34,g.z);grp.scale.setScalar(.2);scene.add(grp);act2Hole={grp,ring,t:0};
+   storyFx.push({t:0,tick(t){const k=Math.min(1,t/7);if(!act2Hole||act2Hole.launched){scene.remove(ring);return false;}grp.scale.setScalar(.2+k*4.2);ring.scale.setScalar(3+k*16);ring.material.opacity=.9-k*.4;grp.rotation.y+=.02;return true;},finish(){scene.remove(ring);if(act2Hole&&!act2Hole.launched){scene.remove(act2Hole.grp);act2Hole=null;}}});worldAudio.magic('ultimate');return true;}
+  case 'buraco-negro':{const g=storyAnchors.sky,h=act2Hole;if(!g||!h)return true;h.launched=true;const grp=h.grp,from=grp.position.clone(),s0=grp.scale.x,to=new THREE.Vector3((CITY.x+DISTRICT_SPOTS.volcano.x)/2,groundHeightAt(CITY.x,CITY.z)+6,CITY.z);
+   storyFx.push({t:0,tick(t){const k=Math.min(1,t/3);grp.scale.setScalar(s0+k*k*9);grp.position.lerpVectors(from,to,k*k);if(k>=1){if(!h.hit){h.hit=true;impactFrame(90);cameraShake(.6);for(let i=0;i<5;i++)lightning(to.x+(Math.random()-.5)*40,to.z+(Math.random()-.5)*20,0xb02aff,30);}if(t>3.4){scene.remove(grp);act2Hole=null;return false;}}return true;},finish(){scene.remove(grp);act2Hole=null;}});cameraShake(.3);worldAudio.whoosh();return true;}
   case 'explosao':{worldAudio.hit();worldAudio.portalEnter();cameraShake(.6);vibrate(120);setCineFade(1,.25,true);
    // O Anjo empurra o herói; a cidade some no abismo.
    setTimeout(()=>{act2Abyss=true;syncAct2World();guide.visible=false;const n=DISTRICT_SPOTS.note;player.position.set(n.x+1.2,terrainHeightAt(n.x+1.2,n.z),n.z+1);faceTo(player,CITY);if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=0;}},500);return true;}
@@ -3355,6 +3439,15 @@ function act3Local(key,p){const c=DIMENSIONS[key].center;return{x:p.x+c.x,z:p.z+
 function buildAct3World(){
  if(act3World)return act3World;const W=act3World={kit:null,folkReady:false};
  // O antigo Vale do Altar (Ato III anterior) sai de cena: ídolos, altar e moradores dele.
+ // MOD 217 — marcos da subida até a cidade de neve (geometria simples, poucas chamadas, colisão nos maiores).
+ {const wood=mat(0x5a3e28),snowM=mat(0xe8eef4),stone=mat(0x7a7e86),pineM=mat(0x1e3a2c);
+  for(const J of SC.journey){const g=new THREE.Group(),y=groundHeightAt(J.x,J.z);g.position.set(J.x,y,J.z);g.rotation.y=J.yaw||0;scene.add(g);
+   const box=(m,x,yy,z,sx,sy,sz,rz=0)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);o.position.set(x,yy,z);o.rotation.z=rz;o.castShadow=!terrainLowSpec;g.add(o);return o;};
+   if(J.k==='placa'){box(wood,0,1.2,0,.18,2.4,.18);const b=box(wood,.55,2,0,1.3,.38,.08);box(snowM,0,2.45,0,.3,.08,.3);const t=makeMarketSign('INVERNÁLIA →','#e8f0ff');t.position.set(.55,2,.06);t.scale.setScalar(.45);g.add(t);}
+   else if(J.k==='carroca'){box(wood,0,.75,0,2.6,.25,1.4,.12);box(wood,-1.1,.5,.75,.1,1,.1);const w=new THREE.Mesh(new THREE.TorusGeometry(.5,.07,6,14),wood);w.position.set(.8,.5,.75);g.add(w);const w2=w.clone();w2.position.set(1.4,.15,-.9);w2.rotation.x=Math.PI/2;g.add(w2);box(snowM,0,.92,0,2.4,.1,1.2,.12);marketObstacles.push({x:J.x,z:J.z,shape:'circle',radius:1.5,height:1.2});}
+   else if(J.k==='santuario'){box(stone,0,1.3,0,.9,2.6,.5);box(stone,0,.2,0,1.6,.4,1.2);box(snowM,0,2.66,0,1,.12,.6);for(const sx of [-.5,.5]){const c=glowSprite(0xffc070,.9,.6);c.position.set(sx,.55,.5);g.add(c);}marketObstacles.push({x:J.x,z:J.z,shape:'circle',radius:1,height:2.6});}
+   else if(J.k==='fogueira'){for(let i=0;i<5;i++){const l=box(wood,Math.cos(i*1.26)*.3,.12,Math.sin(i*1.26)*.3,.7,.12,.12);l.rotation.y=i*1.26;}const f=glowSprite(0xff8a30,.95,1.6);f.position.y=.6;g.add(f);for(const a of [0,2.2,4.2]){box(wood,Math.cos(a)*1.6,.25,Math.sin(a)*1.6,.9,.3,.35);}}
+   else if(J.k==='pinheiros'){for(let i=0;i<5;i++){const a=i*1.3,r=1.5+i*.7,c=new THREE.Mesh(new THREE.ConeGeometry(1.1+i%2*.4,3.6+i%3,7),pineM);c.position.set(Math.cos(a)*r,1.8+i%3*.5,Math.sin(a)*r);g.add(c);const sc=new THREE.Mesh(new THREE.ConeGeometry(.8,1,7),snowM);sc.position.set(c.position.x,c.position.y+1.5,c.position.z);g.add(sc);treeObstacles.push({x:J.x+c.position.x,z:J.z+c.position.z,radius:.6});}}}}
  for(const idol of lateProps.idols)idol.g.visible=false;
  for(let i=marketObstacles.length-1;i>=0;i--){const o=marketObstacles[i];if(stepDef(18).def.items.some(p=>Math.abs(p.x-o.x)<.01&&Math.abs(p.z-o.z)<.01)||(o.shape==='box'&&Math.abs(o.x-stepDef(19).def.at.x)<.01&&Math.abs(o.z-(stepDef(19).def.at.z-7))<.01))marketObstacles.splice(i,1);}
  scene.traverse(o=>{if(o.isMesh&&o.parent&&o.parent.parent===scene&&Math.abs(o.parent.position.x-stepDef(19).def.at.x)<.01&&Math.abs(o.parent.position.z-(stepDef(19).def.at.z-6))<.01)o.parent.visible=false;});
@@ -3464,6 +3557,7 @@ function updateClimate(dt){
 function enterAct3Void(key,at){
  act3Void=key;const a=getDimArena(key);enterDimensionArena(key);
  voidSpec.walk=key==='estalagem'?innWalkable:key==='gelo'?iceCaveWalkable:distortedWalkable;
+ voidSpec.ceil=key==='estalagem'?innCeil:null;voidSpec.floor=key==='estalagem'?innFloor:null;// MOD 217 — piso (escada, andar de cima) e teto dos cômodos
  const p=act3Local(key,at);player.position.set(p.x,voidSpec.y,p.z);playerYaw=at.yaw||0;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;moveVX=moveVZ=0;
  checkpointX=p.x;checkpointZ=p.z;camera.position.set(p.x,voidSpec.y+3,p.z+6);
  if(key==='estalagem'){furnishInn(a);if(questStep===ACT3N.city&&!act3Npcs.keeperHall)npcBase().then(b=>{if(act3Void!=='estalagem'||act3Npcs.keeperHall)return;const k=act3Local('estalagem',INN.keeper),v=makeTownsfolk(b,0x8a6a4a,'Agree_Gesture');v.holder.position.set(k.x,voidSpec.y,k.z);v.holder.rotation.y=0;act3Npcs.keeperHall=v;});}
@@ -3477,7 +3571,7 @@ function leaveAct3Void(to){
 function furnishInn(a){
  if(a.refs.furnished||!act3World||!act3World.kit)return;a.refs.furnished=true;const kit=act3World.kit,c=DIMENSIONS.estalagem.center,y=voidSpec.y;
  const put=(k,p,yaw,s)=>{const src=kit[k];if(!src)return null;const o=src.clone();o.position.set(p.x,0,p.z);o.rotation.y=yaw||0;if(s)o.scale.setScalar(s);o.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;}});a.group.add(o);return o;};
- put('Balcao',INN.counter,0);put('Escada',{x:INN.stairsUp.x,z:INN.stairsUp.z+.6},Math.PI);put('Cama',INN.bed,0);put('Escada',{x:INN.cellarStairs.x,z:INN.cellarStairs.z+.4},0);
+ put('Balcao',INN.counter,0);const bed=put('Cama',INN.bed,0);if(bed)bed.position.y=INN.floorUp;put('Escada',{x:INN.cellarStairs.x,z:INN.cellarStairs.z+.4},0);
  for(let i=-1;i<=1;i++)put('Correntes',{x:INN.chains.x+i*2.6,z:INN.chains.z-.2},0);
 }
 function decorateIceCave(a){
@@ -3500,8 +3594,9 @@ function updateAct3(dt,now){
  if(questStep<ACT3N.road||questStep>ACT3N.boss)return;
  if(questStep===ACT3N.boss&&!rigLoads.bishop3)loadRig('bishop3').catch(()=>{});
  if((questStep===ACT3N.trap||questStep===ACT3N.cave)&&!rigLoads.enemy3)loadRig('enemy3').catch(()=>{});
- const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>{questMarker.visible=true;questMarker.position.set(p.x,(voidMode?voidSpec.y:terrainHeightAt(p.x,p.z))+.06,p.z);};
+ const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>{questMarker.visible=true;questMarker.position.set(p.x,terrainHeightAt(p.x,p.z)+.06,p.z);};
  storyAnchors.snowcity={x:SC.plaza.x,z:SC.plaza.z,yaw:0};
+ if(act3Void==='estalagem'){const a=dimArenas.estalagem,dr=a&&a.refs&&a.refs.roomDoor;if(dr){const dp=act3Local('estalagem',INN.roomDoor),open=Math.hypot(px-dp.x,pz-dp.z)<2.6?1:0;dr.rotation.y+=(open*1.75-dr.rotation.y)*Math.min(1,dt*5);if(open&&!dr.userData.creak){dr.userData.creak=true;worldAudio.whoosh();}if(!open)dr.userData.creak=false;}}
  for(const k of ['seller','fisher','villager'])if(act3Npcs[k]){const h=act3Npcs[k].holder;storyAnchors[k]={x:h.position.x,z:h.position.z,yaw:h.rotation.y};}
  if(!act3World.resumed&&!act1Busy()){act3World.resumed=true;
   // Jogo salvo no meio de uma cena que não se repete sozinha: volta ao começo dela.
@@ -3524,7 +3619,7 @@ function updateAct3(dt,now){
    storyAnchors.keeper={...act3Local('estalagem',INN.keeper),y:voidSpec.y,yaw:0};
    if(s===2&&!act1Busy()&&near(act3Local('estalagem',INN.keeper),3.6)){act1Lock=true;playStory('estalagem',innScene(),{focus:'keeper',face:'keeper',two:true,done:()=>{act1Lock=false;act1Advance(ACT3N.city,4);status.textContent='Suba para o quarto e descanse.';}});}
    else if(s===2)mark(act3Local('estalagem',INN.keeper));
-   else if(s>=3&&s<=4){const inRoom=Math.abs(pz-act3Local('estalagem',INN.room).z)<5;mark(act3Local('estalagem',inRoom?INN.bed:INN.stairsUp));}
+   else if(s>=3&&s<=4){const up=player.position.y-voidSpec.y>1.5;mark(act3Local('estalagem',up?INN.bed:INN.stairsUp));}
   }
   return;
  }
@@ -3577,7 +3672,6 @@ function act3Label(){
   return '';
  }
  if(act3Void==='estalagem'){
-  if(q===ACT3N.city&&s>=3&&d(act3Local('estalagem',INN.stairsUp),2.2))return 'SUBIR AO QUARTO';
   if(q===ACT3N.city&&s>=3&&d(act3Local('estalagem',INN.bed),2.2))return 'DORMIR';
   if(q===ACT3N.city&&d(act3Local('estalagem',INN.door),2))return 'SAIR';
   if(q===ACT3N.trap&&s===1&&d(act3Local('estalagem',INN.cellarStairs),2.4))return 'SUBIR A ESCADA';
@@ -3681,18 +3775,27 @@ function storyDo3(id,args){
   case 'olhar-correntes':if(actions.kipUp)actions.kipUp.paused=true;return true;
   case 'matar-estalajadeiro':{const k=act3Npcs.keeper;storyFlash('#300000',600);worldAudio.hit();if(k)storyFx.push({t:0,tick(t){k.holder.rotation.x=-Math.min(1.5,t*3);if(t>.6)return false;},finish(){k.holder.rotation.x=-1.5;}});return true;}
   case 'romper-correntes':worldAudio.hit();cameraShake(.25);if(actions.kipUp)actions.kipUp.paused=false;setTimeout(()=>{if(actions.idle)play('idle',.3);},900);return true;
-  case 'eliminar3':{const c=act3World&&act3World.dying;storyFlash('#200000',500);worldAudio.hit();if(c)storyFx.push({t:0,tick(t){c.holder.scale.setScalar(Math.max(.01,1-t));if(t>1){c.holder.visible=false;return false;}},finish(){c.holder.visible=false;}});
+  case 'eliminar3':{const c=act3World&&act3World.dying;foeFinalBlow(c);
    if(act3Npcs.keeper){scene.remove(act3Npcs.keeper.holder);delete act3Npcs.keeper;}return true;}
   case 'cidade-em-chamas':syncAct3World();worldAudio.corrupt();return true;
   case 'surgir-quatro':storyFlash('#300000',400);worldAudio.corrupt();return true;
+  // MOD 217 — captura encenada: os quatro cercam o herói, atacam juntos e só então ele apaga (antes era um corte seco).
+  case 'cercar-heroi':{const P0=player.position;act3World.captors=[];act3World.rescued=false;if(cineSkipping)return true;loadRig('enemy3').then(()=>{if(act3World.rescued)return;for(let i=0;i<4;i++){const a=i/4*Math.PI*2+.4,c=makeFoeClone('enemy3',{x:P0.x+Math.sin(a)*5.5,z:P0.z+Math.cos(a)*5.5},{role:'walk',approach:1.5});if(c){hordeClones.push(c);act3World.captors.push(c);}}},()=>{});worldAudio.corrupt();return true;}
+  case 'capturar':{const cs=act3World.captors||[],src=rigSource('enemy3'),atk=src&&src.actions&&src.actions.attack;
+   cs.forEach((c,i)=>setTimeout(()=>{if(!atk||!c.holder.parent)return;c.mixer.stopAllAction();const a=c.mixer.clipAction(atk.getClip());a.reset();a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=true;a.play();},i*180));
+   setTimeout(()=>{worldAudio.hit();cameraShake(.4);if(actions.hit)playOnce('hit',.05);},520);setTimeout(()=>{worldAudio.hit();cameraShake(.3);},900);return true;}
   case 'golpe-por-tras':worldAudio.hit();cameraShake(.5);vibrate(120);setCineFade(1,.15,true);return true;
   case 'na-guilhotina':{const G=SC.guillotine,gx=G.x,gz=G.z+.2;player.position.set(gx,terrainHeightAt(gx,gz)+.9,gz-.5);playerYaw=Math.PI;player.rotation.y=playerYaw;
    if(actions.ajoelhar)playOnce('ajoelhar',0);else if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=.5;}
-   loadRig('enemy3').then(()=>{const c=makeFoeClone('enemy3',{x:gx+1.3,z:gz+.6},{role:'idle'});if(c){c.holder.position.y=terrainHeightAt(gx,gz)+.9;act3Clones.push(c);act3World.executioner=c;storyAnchors.enemy={x:gx+1.3,z:gz+.6,y:c.holder.position.y,yaw:-Math.PI/2};}},()=>{});
+   loadRig('enemy3').then(()=>{if(act3World.rescued)return;const c=makeFoeClone('enemy3',{x:gx+1.3,z:gz+.6},{role:'idle'});if(c){c.holder.position.y=terrainHeightAt(gx,gz)+.9;act3Clones.push(c);act3World.executioner=c;storyAnchors.enemy={x:gx+1.3,z:gz+.6,y:c.holder.position.y,yaw:-Math.PI/2};}},()=>{});
+   for(const [i,c] of (act3World.captors||[]).entries()){const a=-1+i*.7,x=gx+Math.sin(a)*3.4,z=gz-2.6+Math.cos(a)*1.2;c.approach=0;c.holder.position.set(x,terrainHeightAt(x,z),z);c.lookAt=player.position;const src=rigSource('enemy3'),idle=src&&src.actions&&src.actions.idle;if(idle){c.mixer.stopAllAction();c.mixer.clipAction(idle.getClip()).play();}}
    storyAnchors.enemy={x:gx+1.3,z:gz+.6,y:terrainHeightAt(gx,gz)+.9,yaw:-Math.PI/2};return true;}
   case 'ato3-piscar':{let n=0;const blink=()=>{setCineFade(n%2?.0:1,.22,true);n++;if(n<4)setTimeout(blink,330);else setCineFade(0,.8,true);};blink();return true;}
+  // MOD 217 — o Anjo aparece e ataca de verdade: raios de luz em cada demônio, o carrasco é arremessado e todos caem.
   case 'anjo-salva':{const ex=act3World.executioner;worldAudio.celestial();storyFlash('white',900);cameraShake(.3);
-   if(ex)storyFx.push({t:0,tick(t){ex.holder.position.y+=.08;ex.holder.scale.setScalar(Math.max(.01,1-t*1.4));if(t>.8){ex.holder.visible=false;return false;}},finish(){ex.holder.visible=false;}});
+   const foes=[ex,...(act3World.captors||[])].filter(c=>c&&c.holder.parent);
+   foes.forEach((c,i)=>setTimeout(()=>{const h=c.holder;lightning(h.position.x,h.position.z,0xfff0c0,14);worldAudio.thunder&&worldAudio.thunder();if(c===ex)storyFx.push({t:0,tick(t){h.position.x-=.09;h.position.y=Math.max(terrainHeightAt(h.position.x,h.position.z),h.position.y-.02);if(t>.6)return false;}});foeFinalBlow(c,false);},150+i*220));
+   act3World.captors=[];act3World.rescued=true;
    const G=SC.guillotine;guide.position.set(G.x+2.4,terrainHeightAt(G.x+2.4,G.z-2.4),G.z-2.4);guide.visible=true;guidePinned=true;faceTo(guide,P);
    setTimeout(()=>{player.position.set(G.x+.8,terrainHeightAt(G.x+.8,G.z-2.6),G.z-2.6);if(actions.idle)play('idle',.3);faceTo(player,guide.position);},500);return true;}
   case 'portal-atras':act3Portal3(act3Local('gelo',ICE_CAVE.portal));worldAudio.portalEnter();return true;
@@ -4110,6 +4213,8 @@ function renderInventory(){
    X), a Ganância em três formas (com o Anjo e Sandra lutando junto na última), a Inveja e o epílogo. Modelos novos do
    Blender: DesertoKit.glb (estátua, fragmento, portais, deserto) e Sandra-rig.glb (Sandra revelada). */
 var act6World=null,act6Sandra=null,act6SandraRun=null,act6Allies=[],act6Fx=[],act6Form=0,greedClaimed=!!saved3DProgress.finaleClaimed,act6Chaos=0,act6Envy=null;
+// MOD 217 — vítimas do vulcão (tools/blender/m12_anjo.py com ANJO_VARIANTE=vitima): homens de Cinzária, sem camisa.
+RIG_DEFS.vitima={file:'./Vitima-rig.glb?v=mod217',height:1.0,roles:{idle:'Idle',death:'Dead'},inPlace:['death']};
 RIG_DEFS.sandra={file:'./Sandra-rig.glb?v=mod214-sandra',height:1.04,roles:RIG_DEFS.rival.roles,inPlace:RIG_DEFS.rival.inPlace};
 Object.assign(SPEAKER_ACTOR,{[SPEAKERS6.sandra]:'rival',[SPEAKERS6.greed]:'enemy',[SPEAKERS6.greedSky]:'sky',[SPEAKERS6.envy]:'envy',[SPEAKERS6.b1]:'enemy',[SPEAKERS6.b2]:'enemy',[SPEAKERS6.b3]:'enemy',[SPEAKERS6.b4]:'enemy'});
 Object.assign(STORY_EYE,{statue:20,angels:10,envy:3});
@@ -5187,12 +5292,12 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();
   questStep=step;act1Sub=sub;act2Abyss=step>=15;if(coins<20)coins=20;bishopsDefeated=Math.max(1,bishopsDefeated);valerioRewardClaimed=true;save3DProgress();updateQuestHud();gorgeGate.sync();if(!act2World)buildAct2World();syncAct2World();setGameHour(14);
   const go=(x,z)=>player.position.set(x,terrainHeightAt(x,z),z),D=DISTRICT_SPOTS;
-  if(step===9)go(D.gate.x+30,D.gate.z+2);else if(step===10&&sub===0)go(D.ambush.x+9,D.ambush.z);else if(step===10)go(D.rival.x+11,D.rival.z);else if(step===11)go(D.volcanoGate.x+16,D.volcanoGate.z);
+  if(step===9)go(D.gate.x+30,D.gate.z+2);else if(step===10&&sub===0)go(D.alley.x,D.alley.z0+3);else if(step===10)go(D.rival.x+11,D.rival.z);else if(step===11)go(D.volcanoGate.x+16,D.volcanoGate.z);
   else if(step===12||step===13){enterVolcano();if(step===13){const c=volcanoLocal(VOLCANO.portal);player.position.set(c.x,voidSpec.y,c.z+5);}}
   else if(step===14)go(D.plaza.x+26,D.plaza.z);
   return this.storyState();
  },
- storyState(){const st=cineDirector.step;return{q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label()||act6Label(),form:act6Form,dimKey:dimBattle?dimBattle.key:null,sandra6:act6Sandra?[+act6Sandra.holder.position.x.toFixed(1),+act6Sandra.holder.position.z.toFixed(1)]:null,inTower,scroll:scrollOwned,round:act5Round?act5Round.n:null,sandra:act5Sandra?[+act5Sandra.holder.position.x.toFixed(1),+act5Sandra.holder.position.z.toFixed(1)]:null,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
+ storyState(){const st=cineDirector.step;return{bandits:act2Bandits.length,q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label()||act6Label(),form:act6Form,dimKey:dimBattle?dimBattle.key:null,sandra6:act6Sandra?[+act6Sandra.holder.position.x.toFixed(1),+act6Sandra.holder.position.z.toFixed(1)]:null,inTower,scroll:scrollOwned,round:act5Round?act5Round.n:null,sandra:act5Sandra?[+act5Sandra.holder.position.x.toFixed(1),+act5Sandra.holder.position.z.toFixed(1)]:null,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
  playAfterValerio(){afterValerioStory();},
  tapStory(){return cineDirector.tap();},
  speed(k){debugDtScale=Math.max(.1,Math.min(8,+k||1));return debugDtScale;},

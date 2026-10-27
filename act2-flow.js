@@ -22,16 +22,34 @@ export const DISTRICT_PASS = [[-72, -60], [-90, -57], [-104, -62], [-114, -62]];
 export const DISTRICT_SPOTS = {
   gate: { x: -112, z: -62 },
   plaza: { x: -150, z: -62 },
-  ambush: { x: -131, z: -66 },
+  // MOD 217 — os bandidos esperam no fim de um beco sem saída ao sul da rua principal (antes atacavam na entrada).
+  ambush: { x: -131, z: -76 },
+  alley: { x: -131, z0: -66, z1: -80, half: 2.3 },
   rival: { x: -156, z: -58 },
-  volcanoGate: { x: -188, z: -64 },
-  volcanoGuards: [{ x: -183, z: -61 }, { x: -183, z: -67 }],
+  // MOD 217 — a entrada fica no pé do cone (antes os guardas esperavam longe dela, no meio do caminho).
+  volcanoGate: { x: -189.5, z: -64 },
+  volcanoGuards: [{ x: -186.5, z: -61.2 }, { x: -186.5, z: -66.8 }],
+  volcanoApproach: { cx: -184, cz: -64, hx: 9, hz: 7, round: 4, wobble: 1, tint: [[.3, .24, .2], [.4, .3, .24]], tintStrength: .5 },
   volcano: { x: -228, z: -64 },
   note: { x: -121, z: -62 },
   // Pontos da versão anterior do Ato II (o cenário antigo ainda os usa; a missão não).
   family: { x: -138, z: -50 }, seal: { x: -160, z: -70 }, arena: { x: -158, z: -66 },
   ledgers: [{ x: -176, z: -42, where: 'mina' }, { x: -132, z: -84, where: 'armazém' }, { x: -168, z: -88, where: 'canal' }]
 };
+/** MOD 217 — Cinzária: ruas, praça e o beco sem saída. Casas: [x, z, largura (x), fundo (z), altura, frente (+1 = +z)]. */
+export function cityLayout() {
+  const out = [], rnd = (() => { let s = 2171; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  const row = (x0, x1, zc, face) => { let x = x0; while (x - 4.4 > x1) { const w = Math.min(5.2 + rnd() * 2.4, x - x1); const cx = x - w / 2; if (!(face > 0 && x - w < -121 && x > -141)) out.push([cx, zc, w - .5, 6 + rnd() * 1.5, 3.6 + Math.floor(rnd() * 3) * 1.6, face]); x -= w + .4 + rnd() * 1.2; } };
+  row(-116, -137, -52.5, -1); row(-163, -186, -52.5, -1);   // lado norte da rua principal (z = -62)
+  row(-116, -137, -71.5, 1); row(-163, -186, -71.5, 1);     // lado sul (o beco abre um vão em x = -131)
+  row(-118, -142, -40.5, -1);                                 // segunda fileira ao norte, numa rua de trás
+  out.push([-150, -45.5, 12, 8, 8.6, -1]);                     // casa da guilda, de frente para a praça
+  out.push([-168.5, -81, 6, 6, 5.2, 1], [-150, -80, 6.5, 6, 6.8, 1]);
+  for (const [z, sx] of [[-69.8, -1], [-69.8, 1], [-75, -1], [-75, 1], [-80.2, -1], [-80.2, 1]]) out.push([-131 - sx * 6.2, z, 7.6, 4.8, 4.2 + (z < -77 ? 3.2 : z < -72 ? 1.6 : 0), 0, sx]);   // casas do beco, de frente para ele
+  return out;
+}
+export function inAlley(x, z) { const A = DISTRICT_SPOTS.alley; return Math.abs(x - A.x) < A.half && z < A.z0 - 2 && z > A.z1; }
+
 export const DISTRICT_CANAL = [[-188, -96], [-170, -82], [-156, -84], [-140, -98], [-128, -100]];
 export const CITY_NAME = 'Cinzária';
 
@@ -66,7 +84,7 @@ export function bossPhase(hp, max) { return hp <= max * .5 ? 2 : 1; }
 export function vorgazhekRageLine() { return 'Cada golpe teu é juros. E juros… eu cobro em dobro.'; }
 
 /* ---------- Falas (texto revisado; original em docs/roteiro/M3-ATO2.md) ---------- */
-export const SPEAKERS2 = { hero: 'heroi', guide: 'Anjo-Guia', bandit: 'Bandido', rival: 'Desconhecido', demon: 'Demônio da Ganância', miniboss: 'Guardião do Trono', boss: 'VORGAZHEK', bishop4: 'VÉRAXION', note: 'Bilhete' };
+export const SPEAKERS2 = { victim: 'Prisioneiro', hero: 'heroi', guide: 'Anjo-Guia', bandit: 'Bandido', rival: 'Desconhecido', demon: 'Demônio da Ganância', miniboss: 'Guardião do Trono', boss: 'VORGAZHEK', bishop4: 'VÉRAXION', note: 'Bilhete' };
 const S = SPEAKERS2;
 const say = (who, text, extra) => Object.assign({ type: 'say', who, text }, extra || {});
 const shot = (id, dur, args, extra) => Object.assign({ type: 'shot', id, dur, args: args || {} }, extra || {});
@@ -134,19 +152,35 @@ export function gateDefeatScene() {
   return [
     say(S.demon, 'Isso é impossível… como nós fomos derrotados por um mero humano? Espera… você é realmente humano?'),
     say(S.demon, 'Ouvi rumores de que Valério foi derrotado por alguém, mas achei que era apenas um mito. Parece que foi você, né?'),
-    shot('eliminar', 1.8, { cam: 'look', on: 'enemy', off: [2.4, 1.6, 3], at: [0, 1, 0] }, { with: [act('eliminar')] })
+    shot('eliminar', 2.6, { cam: 'look', on: 'enemy', off: [2.4, 1.6, 3], at: [0, 1, 0] }, { with: [act('eliminar')] })
+  ];
+}
+
+/** MOD 217 — a cela das correntes: os primeiros sinais, antes de achar quem foi trazido para cá. */
+export function cellsScene() {
+  return [
+    shot('cela', 3.2, { cam: 'look', on: 'hero', off: [-2.2, 2.2, 3.4], at: [0, .6, -5] }),
+    say(S.hero, 'Grilhões abertos… roupas largadas… e marcas de arrasto no chão.'),
+    say(S.hero, 'Trouxeram gente para cá. E os rastros seguem mais para dentro.')
   ];
 }
 
 export function labScene() {
   return [
-    shot('ossos', 3, { cam: 'look', on: 'hero', off: [1.2, 1.4, -2.4], at: [0, 0, 6] }),
     shot('laboratorio', 3.4, { cam: 'look', on: 'lab', off: [6.5, 3.4, 6], at: [0, .8, 0] }),
+    shot('vitimas', 3, { cam: 'look', on: 'victim', off: [1.8, 1.4, 2.6], at: [0, .7, 0] }),
+    say(S.hero, 'Ainda tem gente viva aqui!'),
+    say(S.victim, 'Por favor… acabe com isso. Somos de Cinzária. Quem não pagava as dívidas de VORGAZHEK era trazido para cá.', { actor: 'victim' }),
+    say(S.hero, 'O que fizeram com vocês?'),
+    say(S.victim, 'Os demônios arrancam um pedaço da alma de cada um, todo dia, para criar outros como eles. Já não sobrou quase nada de nós.', { actor: 'victim' }),
+    say(S.victim, 'Não aguentamos mais. Deixe a gente descansar.', { actor: 'victim' }),
+    shot('ossos', 2.6, { cam: 'look', on: 'hero', off: [1.2, 1.4, -2.4], at: [0, 0, 6] }),
     say(S.hero, 'Que Deus tenha piedade dessas pobres almas. Pessoas que nem tiveram a chance de se proteger…'),
     say(S.hero, 'Em um ato de misericórdia, irei purificar suas almas.'),
     shot('circulo', 2.4, { cam: 'look', on: 'lab', off: [0, 7, 7], at: [0, 0, 0] }, { with: [act('circulo-magico')] }),
     say(S.hero, 'Purificação.', { auto: 1.6 }),
-    shot('purificacao', 3.4, { cam: 'look', on: 'lab', off: [5, 3, 5], at: [0, 1.4, 0] }, { with: [act('purificar')] }),
+    shot('purificacao', 4.2, { cam: 'look', on: 'lab', off: [5, 3, 5], at: [0, 1.4, 0] }, { with: [act('purificar')] }),
+    shot('libertacao', 2.8, { cam: 'look', on: 'lab', off: [2, 1.4, 8.5], at: [0, 3.4, 0] }),
     shot('mais-tres', 2.2, { cam: 'look', on: 'hero', off: [-2, 2.2, -3.6], at: [0, 1, 6] }, { with: [act('surgir-tres')] }),
     say(S.demon, 'Quem é você? E cadê os corpos que estavam aqui?'),
     say(S.hero, 'Pessoas que estão predestinadas a morrer não precisam saber.'),
@@ -245,12 +279,13 @@ export function afterVorgazhekScene() {
     say(S.bishop4, 'Droga, aquele fracote arrogante do VORGAZHEK não conseguiu lidar nem com um simples humano… e ainda fez eu, VÉRAXION, o mais forte entre os Bispos, vir limpar a bagunça dele.', { actor: 'sky' }),
     say(S.hero, 'Espera… o quê? Bispo 4?'),
     say(S.guide, 'Fujaaaa! Você ainda não está preparado para lutar contra ele!'),
-    shot('feitico', 3, { cam: 'look', on: 'sky', off: [10, -8, 18], at: [0, 0, 0] }, { with: [act('feitico')] }),
+    shot('feitico', 4, { cam: 'look', on: 'hero', off: [-7, 6, -12], at: [0, 17, 16] }, { with: [act('feitico')] }),
     say(S.bishop4, 'Fogo do abismo, que devora tudo pelo caminho; fogo que nunca se apaga, até que seja queimado corpo e alma.', { actor: 'sky' }),
-    shot('buraco-negro', 2.6, { cam: 'look', on: 'hero', off: [3, 3, -6], at: [0, 10, 14] }, { with: [act('buraco-negro')] }),
+    shot('buraco-cresce', 2.6, { cam: 'look', on: 'hero', off: [-4, 3, -9], at: [0, 32, 18] }),
+    shot('buraco-negro', 3.4, { cam: 'crane', anchor: 'city', from: [46, 30, 30], to: [40, 24, 26], lookFrom: [-10, 14, 0], lookTo: [-34, 4, -2] }, { with: [act('buraco-negro')] }),
     say(S.guide, 'Saia daquiii!', { auto: 1.2 }),
     act('explosao'), wait(2.8),
-    shot('silhueta', 3, { cam: 'look', on: 'sky', off: [-14, -10, 24], at: [0, -6, 0] }, { with: [act('piscar-branco')] }),
+    shot('silhueta', 3, { cam: 'look', on: 'hero', off: [6, 3, -10], at: [0, 16, 16] }, { with: [act('piscar-branco')] }),
     shot('acordar', 2.4, { cam: 'look', on: 'hero', off: [1.6, 1.6, 2.6], at: [0, .6, 0] }, { with: [act('acordar')] }),
     say(S.hero, 'O que aconteceu?'),
     say(S.hero, 'Espera… e a cidade? Cadê o Anjo?'),

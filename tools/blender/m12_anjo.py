@@ -7,6 +7,7 @@
 # Dados do MPFB2 em MPFB_DATA (padrão: /tmp/claude-0/ext/mpfb2/src/mpfb/data).
 # Uso: python m12_anjo.py <saída.glb>
 import bpy, bmesh, gzip, json, os, sys, math, random
+VITIMA = os.environ.get('ANJO_VARIANTE') == 'vitima'   # MOD 217: mesma malha masculina, sem a roupa do Anjo (vítimas do vulcão)
 import numpy as np
 from mathutils import Vector, Matrix, noise
 OUT = sys.argv[-1]
@@ -26,9 +27,9 @@ def target(rel, w):
         for l in f:
             if l[0] == '#' or not l.strip(): continue
             p = l.split(); V[int(p[0])] += w * np.array([float(t) for t in p[1:4]])
-TARGETS = [('macrodetails/universal-male-young-averagemuscle-averageweight', .85), ('macrodetails/proportions/male-young-averagemuscle-averageweight-idealproportions', 1),
+TARGETS = [('macrodetails/universal-male-young-averagemuscle-averageweight', .7), ('macrodetails/universal-male-young-maxmuscle-averageweight', .3), ('macrodetails/proportions/male-young-averagemuscle-averageweight-idealproportions', 1),
            ('macrodetails/height/male-young-averagemuscle-averageweight-maxheight', .7), ('head/head-oval', .5), ('chin/chin-width-decr', .25), ('nose/nose-scale-horiz-decr', .25),
-           ('eyes/r-eye-scale-incr', .3), ('eyes/l-eye-scale-incr', .3), ('eyes/r-eye-corner1-up', .25), ('eyes/l-eye-corner1-up', .25), ('head/head-age-decr', .4), ('cheek/r-cheek-bones-incr', .4), ('cheek/l-cheek-bones-incr', .4)]
+           ('eyes/r-eye-scale-incr', .15), ('eyes/l-eye-scale-incr', .15), ('eyes/r-eye-corner1-up', .12), ('eyes/l-eye-corner1-up', .12), ('head/head-age-decr', .4), ('cheek/r-cheek-bones-incr', .4), ('cheek/l-cheek-bones-incr', .4)]
 _UNUSED = [('macrodetails/universal-female-young-averagemuscle-minweight', .35), ('macrodetails/proportions/female-young-averagemuscle-averageweight-idealproportions', 1),
            ('macrodetails/height/female-young-averagemuscle-averageweight-maxheight', .5), ('breast/female-young-averagemuscle-averageweight-maxcup-averagefirmness', .45),
            ('torso/measure-waist-circ-decr', .6), ('stomach/stomach-pregnant-decr', .3), ('head/head-oval', 1.0), ('chin/chin-triangle', .8), ('chin/chin-width-decr', .8),
@@ -199,24 +200,24 @@ def eye_images():
     base[..., :3] = (.96, .9, .9)
     IR = .335; iris = r < IR; k = np.clip(r / IR, 0, 1)
     streak = .5 + .5 * np.sin(a * 23 + np.sin(a * 7) * 2)
-    col = np.stack([.62 + .35 * (1 - k) + .05 * streak, .4 + .3 * (1 - k) + .05 * streak, .08 + .1 * (1 - k)], -1)
+    col = np.stack([.62 + .35 * (1 - k) + .05 * streak, .4 + .3 * (1 - k) + .05 * streak, .08 + .1 * (1 - k)], -1) if not VITIMA else np.stack([.22 + .2 * (1 - k), .13 + .1 * (1 - k), .07 + .05 * (1 - k)], -1)
     col[k > .86] = (.25, .14, .02)                                                              # aro escuro
     star = (np.abs(u) < .011) & (np.abs(v) < .12) | (np.abs(v) < .011) & (np.abs(u) < .12)
     star |= (np.abs(np.abs(u) - np.abs(v)) < .008) & (r < .05)
     col[(v > .12) & (r < IR)] *= .55                                                    # sombra da pálpebra
     for c in range(3): base[..., c] = np.where(iris, col[..., c], base[..., c])
-    base[(r < .07) & iris & ~star] = (.15, .08, .0, 1); base[star & iris] = (1, .95, .7, 1)
+    base[(r < .07) & iris & ~star] = (.15, .08, .0, 1); base[star & iris] = (1, .95, .7, 1) if not VITIMA else (.05, .03, .02, 1)
     hl = np.hypot(u + .1, v - .12) < .045; base[hl] = (1, 1, 1, 1)
     em[..., :3] = 0
     for c in range(3): em[..., c] = np.where(iris, col[..., c] * .9, 0)
-    em[(r < .07) & iris & ~star] = (0, 0, 0, 1); em[star & iris] = (1, .85, .45, 1); em[hl] = (.6, .6, .6, 1)
+    em[(r < .07) & iris & ~star] = (0, 0, 0, 1); em[star & iris] = (1, .85, .45, 1) if not VITIMA else (0, 0, 0, 1); em[hl] = (.6, .6, .6, 1)
     imgs = []
     for name, arr in (('Anjo_olho', base), ('Anjo_olho_brilho', em)):
         im = bpy.data.images.new(name, N, N); im.pixels = arr.astype(np.float32).ravel(); im.pack(); imgs.append(im)
     return imgs
 EYE_B, EYE_E = eye_images()
 MAT = {'robe': mat('Manto', rough=.55, vc=True), 'steel': mat('Manopla', (.08, .08, .1), .75, .3), 'gold': mat('Ouro', (1, .78, .36), .9, .25, (.25, .15, .02), .4),
-       'feather': mat('PenaBranca', rough=.5, vc=True), 'crystal': mat('PenaNegra', (.02, .018, .025), .7, .12, (.05, .03, .08), .35), 'void': mat('Eclipse', (.01, .01, .012), .2, .35),
+       'feather': mat('PenaBranca', rough=.5, vc=True), 'crystal': mat('PenaNegra', (.02, .018, .025), .7, .12, (.05, .03, .08), .35, vc=True), 'void': mat('Eclipse', (.01, .01, .012), .2, .35),
        'skin': mat('Pele', rough=.55, vc=True), 'black': mat('Couro', (.03, .025, .03), .15, .32), 'stock': mat('Meia', (.035, .028, .035), .1, .38),
        'boot': mat('Bota', (.04, .035, .04), .55, .3), 'silver': mat('Prata', (.86, .85, .9), .55, .3), 'gem': mat('Gema', (.8, .02, .05), 0, .2, (1, .04, .08), 5),
        'hair': mat('Cabelo', rough=.45, vc=True), 'skirt': mat('Saia', rough=.6, vc=True), 'lash': mat('Cilios', (.02, .01, .015), 0, .6),
@@ -237,6 +238,7 @@ for k in ('skin', 'robe', 'steel', 'eye', 'lash'): add_mat(body, k)
 # ---------- 6) corpo: roupa pintada por região, rosto ----------
 def region(c, ws):
     d = dom(ws)
+    if VITIMA: return 'robe' if c.z < .98 and d not in ('LeftHand', 'RightHand', 'LeftLowerArm', 'RightLowerArm') else 'skin'
     if d in ('Head',) or d == 'Neck' and c.z > 1.43: return 'skin'
     if d in ('LeftLowerArm', 'RightLowerArm', 'LeftHand', 'RightHand'):
         co, no = WRIST[1 if c.x > 0 else -1]
@@ -254,6 +256,12 @@ def kintsugi(p, scale=16, w=.05):
 EYEL, EYER = SG('helper-l-eye'), SG('helper-r-eye'); ER = float(np.linalg.norm(B2[sorted(groups['helper-l-eye'])] - np.array(EYEL), axis=1).mean())
 LIP = Vector((0, -.15, 1.508))
 def skin_col(p, vi):
+    if VITIMA:                                                         # pele suja e machucada (sem nada explícito), calça rasgada
+        n = noise.noise(p * 9); d = noise.noise(p * 3 + Vector((4, 1, 2)))
+        if p.z < .98: return tuple(Vector((.22, .17, .13)) * (.75 + .35 * n))
+        c = Vector((.74, .56, .45)).lerp(Vector((.36, .28, .24)), max(0, d) * .7)
+        if abs(noise.noise(p * 22 + Vector((9, 9, 9)))) < .025 and p.z < 1.42: c = c.lerp(Vector((.42, .16, .13)), .6)
+        return tuple(c)
     if p.z < 1.44: return (1, .82, .4) if kintsugi(p) else (.9, .88, .84)          # manto: branco com veios de ouro
     c = Vector((.93, .82, .76))
     if p.z > 1.42 and p.y < -.06 and False:
@@ -338,7 +346,7 @@ def cap_off(p): return .007 + .007 * max(0, min(1, (p.z - 1.6) / .08)) + .004 * 
 me = bpy.data.meshes.new('Cabelo'); me.from_pydata([BV[i] + NRM[i] * cap_off(BV[i]) for i in used], [], [[rm[i] for i in poly.vertices] for poly in cap_faces])
 cap = bpy.data.objects.new('CabeloBase', me); bpy.context.scene.collection.objects.link(cap); me.materials.append(MAT['hair'])
 for f in me.polygons: f.use_smooth = True
-paint(cap, lambda p, vi: (.62, .57, .46))
+paint(cap, lambda p, vi: (.62, .57, .46) if not VITIMA else (.1, .07, .05))
 EXTRA.append(cap)
 HV = BV + [cap.data.vertices[i].co.copy() for i in range(len(cap.data.vertices))]
 HP = [p.vertices[:] for p in body.data.polygons] + [[i + len(BV) for i in p.vertices] for p in cap.data.polygons]
@@ -359,6 +367,7 @@ def drape(root, d0, length, off, steps=16, spread=Vector(), grav=.12, zmin=-1):
 def hair_col(base):
     def f(t):
         c = Vector((.5, .45, .36)).lerp(Vector(base), min(1, t / .2))
+        if VITIMA: return tuple(Vector(base) * (.8 + .3 * t))
         if .25 < t < .45: c = c.lerp(Vector((1, .98, .92)), (1 - abs(t - .35) / .1) * .55)
         return tuple(c.lerp(Vector((.95, .93, .86)), max(0, t - .7) / .3 * .5))
     return f
@@ -381,7 +390,7 @@ for i in range(NC):
 bm.to_mesh(me); bm.free(); sheet = bpy.data.objects.new('CabeloMassa', me); bpy.context.scene.collection.objects.link(sheet); me.materials.append(MAT['hair'])
 for f in me.polygons: f.use_smooth = True
 NR = len(COLS[0][0])
-paint(sheet, lambda p, vi: hair_col((.74, .7, .6))((vi % NR) / (NR - 1)))
+paint(sheet, lambda p, vi: hair_col((.74, .7, .6) if not VITIMA else (.14, .1, .07))((vi % NR) / (NR - 1)))
 def wavy(pts, nr, amp, freq, ph0):
     n = len(pts); out = [pts[0]]
     for k in range(1, n):
@@ -430,7 +439,7 @@ def chain_w(p):
     return {'Hips': 1.}
 HAIR = []
 for kind, pts, nr, w, th, taper in STRANDS:
-    base = (random.uniform(.78, .9), random.uniform(.72, .82), random.uniform(.58, .66))
+    base = (random.uniform(.78, .9), random.uniform(.72, .82), random.uniform(.58, .66)) if not VITIMA else (random.uniform(.12, .2), random.uniform(.08, .13), random.uniform(.05, .08))
     HAIR.append((ribbon(pts, w, w * taper, th, 'hair', 'Mecha', nr, hair_col(base), sides=4), kind in ('bang', 'side', 'top')))
 
 # ---------- 8) roupa, joias e armadura ----------
@@ -507,7 +516,7 @@ for sx in (-1, 1):
     co, no = WRIST[sx]
     for o in ring(co, no, {'LeftLowerArm', 'RightLowerArm', 'LeftHand', 'RightHand'}, co, .005, 'gold', w=.02, th=.006, name='Bracelete'): OUTFIT.append((o, None))
 # auréola eclipse: disco negro com anel e raios de ouro, atrás da cabeça
-HAL = Vector((0, .1, 1.66)); halo = []
+HAL = Vector((0, .25, 1.68)); halo = []                               # MOD 217: atrás da cabeça (antes cortava o crânio e o cabelo)
 me = bpy.data.meshes.new('eclipse'); bm = bmesh.new(); bmesh.ops.create_circle(bm, cap_ends=True, segments=48, radius=.2)
 for v in bm.verts: v.co = HAL + Vector((v.co.x, 0, v.co.y))
 bm.to_mesh(me); bm.free(); o = bpy.data.objects.new('Eclipse', me); bpy.context.scene.collection.objects.link(o); me.materials.append(MAT['void']); halo.append(o)
@@ -531,12 +540,18 @@ for sx in (-1, 1):
     OUTFIT.append((spike(toe + Vector((0, .01, .012)), Vector((0, -1, -.05)), .06, .02), None))
 # asas: esquerda branca (penas em camadas com veios de ouro), direita negra cristalina
 def feather(root, d, ln, w, flat, key, col=None):
-    me = bpy.data.meshes.new('pena'); bm = bmesh.new(); prof = [.25, .8, 1, .85, .45, 0]; side = d.cross(flat).normalized(); vs = []
+    # MOD 217 — pena com volume: haste central elevada, lâmina curvada para trás e espessura (Solidify); antes era um papel plano.
+    me = bpy.data.meshes.new('pena'); bm = bmesh.new(); prof = [.3, .8, 1, .9, .6, .25, 0]; side = d.cross(flat).normalized(); vs = []; n = len(prof) - 1
     for k, f in enumerate(prof):
-        c = root + d * ln * k / (len(prof) - 1); vs.append((bm.verts.new(c - side * w * f * .5), bm.verts.new(c + side * w * f * .5)))
-    for k in range(len(vs) - 1): bm.faces.new((vs[k][0], vs[k][1], vs[k + 1][1], vs[k + 1][0]))
+        t = k / n; c = root + d * ln * t + flat * (.07 * ln * t * t)
+        vs.append((bm.verts.new(c - side * w * f * .5 + flat * .004), bm.verts.new(c - flat * (.012 * w / .12) * (1 - t * .6)), bm.verts.new(c + side * w * f * .5 + flat * .004)))
+    for k in range(n):
+        for a in range(2): bm.faces.new((vs[k][a], vs[k][a + 1], vs[k + 1][a + 1], vs[k + 1][a]))
     bm.to_mesh(me); bm.free(); o = bpy.data.objects.new('Pena', me); bpy.context.scene.collection.objects.link(o); me.materials.append(MAT[key])
-    if col: paint(o, col)
+    for f in me.polygons: f.use_smooth = True
+    md = o.modifiers.new('esp', 'SOLIDIFY'); md.thickness = .006; md.offset = 0
+    bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier='esp')
+    paint(o, col or (lambda p, vi: (1, 1, 1)))
     return o
 WINGS = []
 for sx in (1, -1):
@@ -549,7 +564,7 @@ for sx in (1, -1):
         else: q = wr.lerp(tip, (t - .8) / .2)
         bone.append(q)
     flat = Vector((0, 1, .15)).normalized()
-    col = (lambda p, vi: (1, .82, .42) if (vi % 12) in (0, 1) else (.95, .94, .9)) if white else None
+    col = (lambda p, vi: (.97, .96, .93) if (vi % 21) < 15 else (1, .84, .46)) if white else (lambda p, vi: (.32, .2, .55) if (vi % 21) >= 18 else (.035, .03, .045))
     for layer, (ln0, ln1, w, out) in enumerate(((.95, .6, .15, 0), (.55, .38, .14, .012), (.28, .2, .12, .024))):
         n = 18 if layer == 0 else 15
         for k in range(n):
@@ -611,6 +626,10 @@ for z in (.8, .55, .3):
     q = Vector((0, -.2, z)); q = fr[min(len(fr) - 1, int((.95 - z) / .9 * 13))] + Vector((0, -.012, 0)); OUTFIT.append((gem(q, .016), None))
     for k in range(8):
         a = k / 8 * 2 * math.pi; d = Vector((math.cos(a), 0, math.sin(a))); OUTFIT.append((spike(q + d * .015, d, .035 if k % 2 else .05, .005), None))
+if VITIMA:                                                            # sem manto, asas, auréola, botas e enfeites
+    for o, _ in OUTFIT + SKIRT: bpy.data.objects.remove(o)
+    OUTFIT, SKIRT = [], []
+    MAT['brow'].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.08, .05, .04, 1)
 # ---------- 9) pesos, junta tudo e exporta ----------
 GROUPS = sorted(set(MAP.values()))
 def set_w(o, fn):

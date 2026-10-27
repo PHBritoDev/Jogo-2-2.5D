@@ -47,7 +47,7 @@ test('vitória paga uma vez; fúria na metade da vida', () => {
 });
 
 test('a cidade, a garganta e os pontos da missão são alcançáveis a pé', () => {
-  const t = createTerrain({ extraAreas: [DISTRICT], passes: [{ points: DISTRICT_PASS, r: PASS_RADIUS }], channels: [{ points: DISTRICT_CANAL, width: 3.2, depth: 1.8, level: -.6 }] });
+  const t = createTerrain({ extraAreas: [DISTRICT, DISTRICT_SPOTS.volcanoApproach], passes: [{ points: DISTRICT_PASS, r: PASS_RADIUS }], channels: [{ points: DISTRICT_CANAL, width: 3.2, depth: 1.8, level: -.6 }] });
   const spots = [DISTRICT_SPOTS.gate, DISTRICT_SPOTS.plaza, DISTRICT_SPOTS.ambush, DISTRICT_SPOTS.rival, DISTRICT_SPOTS.volcanoGate, ...DISTRICT_SPOTS.volcanoGuards, DISTRICT_SPOTS.note];
   for (const p of spots) assert.ok(t.walkable(p.x, p.z), 'inalcançável: ' + p.x + ',' + p.z);
   const path = [[-12, -44], ...DISTRICT_PASS, [DISTRICT_SPOTS.plaza.x, DISTRICT_SPOTS.plaza.z], [DISTRICT_SPOTS.volcanoGate.x, DISTRICT_SPOTS.volcanoGate.z]];
