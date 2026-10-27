@@ -1,0 +1,18 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cerco das Cinco Lâminas Celestiais — estudo VFX</title>
+<style>body{margin:0;background:#121b29;color:#e2eefb;font:15px system-ui}canvas{display:block}header{position:absolute;top:22px;left:28px;pointer-events:none}h1{font:22px Georgia;color:#e4cc95;letter-spacing:2px;margin:0 0 6px}p{margin:0;color:#acc1d3}footer{position:absolute;bottom:24px;left:28px}button{border:1px solid #ceb879;background:#15314b;color:#edf6ff;padding:12px 18px;border-radius:8px;margin-right:10px}strong{color:#ffdf9f}</style>
+<header><h1>CERCO DAS CINCO LÂMINAS CELESTIAIS</h1><p>Espada original • formação no alvo • faixas de energia azul e branca</p></header>
+<footer><button id="invoke">INVOCAR</button><button id="fire">DISPARAR</button><strong id="ammo">5/5</strong></footer>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as T from 'three';import{GLTFLoader}from'three/addons/loaders/GLTFLoader.js';import{CelestialSiege}from'./celestial-siege3d.js';import{createSiegeVFX}from'./celestial-siege-vfx3d.js';
+const scene=new T.Scene();scene.background=new T.Color('#121b29');const camera=new T.PerspectiveCamera(36,innerWidth/innerHeight,.1,50);camera.position.set(6,7,10);camera.lookAt(0,1.2,0);
+const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));document.body.appendChild(renderer.domElement);
+scene.add(new T.HemisphereLight(0xd9efff,0x303540,3));const light=new T.DirectionalLight(0xffe8bb,3);light.position.set(2,7,3);scene.add(light);
+const floor=new T.Mesh(new T.PlaneGeometry(50,50),new T.MeshStandardMaterial({color:0x172334,roughness:.9}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const target={id:1,alive:true,x:0,y:1.15,z:0};const dummy=new T.Mesh(new T.CapsuleGeometry(.36,.9,6,12),new T.MeshStandardMaterial({color:0x33485d,metalness:.7,roughness:.3}));dummy.position.y=1;scene.add(dummy);
+const asset=await new GLTFLoader().loadAsync('./EspadaProta.glb');const fx=createSiegeVFX(T,scene,asset.scene);const skill=new CelestialSiege({event:(t,b)=>fx.event(t,b)});let freeze=false;
+function start(){skill.cancel();fx.clear();skill.start(target);}start();document.querySelector('#invoke').onclick=start;document.querySelector('#fire').onclick=()=>skill.fire(target);
+function step(dt){skill.update(dt,target);fx.update(dt,skill,target,camera);document.querySelector('#ammo').textContent=skill.remaining+'/5';renderer.render(scene,camera);}
+const clock=new T.Clock();renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.04);step(freeze?0:dt);});
+window.preview={freeze(){freeze=true;},start,fire(){skill.fire(target);},step,state:()=>({active:skill.active,remaining:skill.remaining}),info:()=>({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geo:renderer.info.memory.geometries})};
+</script></html>

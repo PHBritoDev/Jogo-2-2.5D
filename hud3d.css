@@ -384,3 +384,15 @@ body.no-hints #top{display:none!important}
 @keyframes vsPop{from{transform:scale(.2);opacity:0}to{transform:none;opacity:1}}
 @keyframes vsFade{from{opacity:0}to{opacity:1}}
 @media (max-height:420px){.vs-stage{max-height:58vh}#vs-go{height:38px}}
+
+/* Mod 221: preserve the attack button's children and handlers while the magazine is active. */
+#attack.celestial-siege{background:radial-gradient(ellipse at 50% 25%,#235f8c,#102c50 65%,#071529)!important;border-color:#e7cf8a!important;box-shadow:inset 0 0 13px #74caff55,0 0 12px #56baff55}
+#attack.celestial-siege>.btn-icon,#attack.celestial-siege>.btn-label{visibility:hidden}
+#attack .siege-hud{position:absolute;inset:12% 5%;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;color:#edfbff;text-shadow:0 0 6px #87d3ff}
+#attack .siege-hud[hidden]{display:none}
+.siege-blades{display:flex;gap:3px;line-height:1;font-size:23px;color:#ffe8a8}.siege-blades i{font-style:normal;transition:opacity .12s}.siege-blades .spent{opacity:.15}
+.siege-hud strong{font-size:18px;line-height:1.3}.siege-hud small{font-size:9px;letter-spacing:1px}
+.siege-blades i{display:inline-block;width:10px;height:26px}.siege-blades svg{display:block;width:100%;height:100%}
+/* Fits the existing 60–80 px mobile attack control without clipping the counter. */
+#attack .siege-blades{gap:2px}#attack .siege-blades i{width:8px;height:19px}
+#attack .siege-hud strong{font-size:16px;line-height:1.1}#attack .siege-hud small{font-size:7px;letter-spacing:.5px;line-height:1.3}

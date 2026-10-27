@@ -8,7 +8,7 @@
 export const MANA = { max: 100, regenCalm: 6, regenCombat: 2.4, hitGain: 5, hitGainInterval: 650 };
 
 export const SKILLS = {
-  magic: { id: 'magic', name: 'Espadas da Palavra', key: '1', mana: 18, cooldown: 1800, unlockStep: 4,
+  magic: { id: 'magic', name: 'Cerco das Cinco Lâminas Celestiais', key: '1', mana: 18, cooldown: 1800, unlockStep: 4,
     lockReason: 'Compre na Loja Central depois de libertar as crianças.' },
   magic2: { id: 'magic2', name: 'Julgamento Celestial', key: '2', mana: 32, cooldown: 4200, unlockStep: 6,
     lockReason: 'Compre na Loja Central depois de vencer as sentinelas.' },
