@@ -17,7 +17,7 @@ async def main():
   await page.locator('#magic2').dispatch_event('pointerdown',{'pointerId':1,'pointerType':'touch','button':0});await page.locator('#magic2').dispatch_event('click')
   st=await page.evaluate('SevenSinsDebug3D.starfallState()');assert st['active'];assert st['mana']==before['mana']-32,st
   mana=st['mana'];await page.evaluate("SevenSinsDebug3D.cast('magic2');SevenSinsDebug3D.cast('magic3');SevenSinsDebug3D.cast('ultimate')");assert (await page.evaluate('SevenSinsDebug3D.starfallState()'))['mana']==mana
-  for dt,name in [(.4,'game-cast'),(.85,'game-ascent'),(.6,'game-circle'),(1.1,'game-rain'),(1,'game-impact'),(1.25,'game-clean')]:
+  for dt,name in [(.4,'game-cast'),(.85,'game-ascent'),(.6,'game-circle'),(1.1,'game-rain'),(1,'game-impact'),(6.25,'game-clean')]:
    st=await page.evaluate('(dt)=>SevenSinsDebug3D.starfallFrame(dt)',dt)
    await page.screenshot(path=str(out/(name+'.png')));print(name,{k:v for k,v in st.items() if k!='stars'},flush=True)
   assert not st['active'];assert 0<st['hp']<300,st

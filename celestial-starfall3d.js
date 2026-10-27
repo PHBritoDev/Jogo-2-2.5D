@@ -1,10 +1,10 @@
-/** Fixed-step combat timeline. Visual quality never changes these 18 collision events. */
-export const STARFALL = Object.freeze({ count:18, cast:.7, open:1.5, rainEnd:4.3, duration:5, height:8, flight:.65, radius:1.25 });
+/** Fixed-step combat timeline. Visual quality never changes these 90 collision events. */
+export const STARFALL = Object.freeze({ count:90, cast:.7, open:1.5, rainEnd:9.3, duration:10, height:8, flight:.65, radius:1.25 });
 const point=()=>({x:0,y:0,z:0});
 export class CelestialStarfall {
  constructor({hit=()=>{},blocked=()=>false,ground=()=>0,event=()=>{}}={}) {
   Object.assign(this,{hit,blocked,ground,event,active:false,time:0,phase:'idle',center:point(),launch:point(),source:point(),accumulator:0});
-  this.stars=Array.from({length:STARFALL.count},(_,i)=>({i,phase:'waiting',from:point(),p:point(),aim:point(),born:1.7+Math.floor(i/6)*.85+(i%6)*.065,impactAt:-1}));
+  this.stars=Array.from({length:STARFALL.count},(_,i)=>({i,phase:'waiting',from:point(),p:point(),aim:point(),born:1.7+Math.floor(i/10)*.85+(i%10)*.055,impactAt:-1}));
  }
  start(source,target,damage=6) {
   if(this.active)return false;
@@ -23,7 +23,7 @@ export class CelestialStarfall {
  }
  step(dt,target,hand){
   const before=this.time;this.time+=dt;const t=this.time;
-  this.phase=t<.7?'cast':t<1.5?'ascent':t<4.3?'rain':t<5?'fade':'idle';
+  this.phase=t<.7?'cast':t<1.5?'ascent':t<STARFALL.rainEnd?'rain':t<STARFALL.duration?'fade':'idle';
   if(t<.7&&hand){Object.assign(this.source,hand);Object.assign(this.launch,hand);}
   if(before<.7&&t>=.7){this.center.x=this.source.x;this.center.z=this.source.z;this.center.y=this.ground(this.source.x,this.source.z)+STARFALL.height;this.event('launch');}
   if(t>=.7&&t<1.5){const u=Math.min(1,(t-.7)/.8);Object.assign(this.launch,this.source);this.launch.y+=(this.center.y-this.source.y)*u*u;}

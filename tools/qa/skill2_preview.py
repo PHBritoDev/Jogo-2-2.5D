@@ -12,12 +12,12 @@ async def main():
   await page.goto('http://127.0.0.1:8767/skill2-preview.html');await page.wait_for_function('window.preview',timeout=90000)
   await page.evaluate('preview.freeze();preview.start()')
   last=0
-  for time,name in [(.4,'cast'),(1.25,'ascent'),(1.85,'circle'),(2.95,'rain'),(3.95,'impact'),(4.7,'fade'),(5.2,'clean')]:
+  for time,name in [(.4,'cast'),(1.25,'ascent'),(1.85,'circle'),(2.95,'rain'),(3.95,'impact'),(9.7,'fade'),(10.2,'clean')]:
    await page.evaluate('(dt)=>preview.step(dt)',time-last);last=time
    await page.screenshot(path=str(out/(name+'.png')))
    print(name,await page.evaluate('preview.info()'),flush=True)
   before=await page.evaluate('preview.info()')
-  await page.evaluate('for(let n=0;n<8;n++){preview.start();for(let i=0;i<26;i++)preview.step(.2)}')
+  await page.evaluate('for(let n=0;n<8;n++){preview.start();for(let i=0;i<51;i++)preview.step(.2)}')
   assert await page.evaluate('preview.info().geo')==before['geo']
   await page.set_viewport_size({'width':390,'height':844});await page.evaluate('preview.low(true);preview.start();preview.step(2.95)');await page.screenshot(path=str(out/'mobile.png'))
   assert not errors,errors
