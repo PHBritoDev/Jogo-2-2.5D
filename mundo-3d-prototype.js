@@ -3181,7 +3181,26 @@ function syncAct2World(){
  if(destroyed&&!W.sooted){W.sooted=true;district.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.color&&!o.material.userData.soot){o.material.userData.soot=true;o.material.color.multiplyScalar(.45);}});}
 }
 let eruption=0;
-function updateAct2World(dt,now){
+/* MOD 218 — Cinzária com gente: moradores com rotina andam pelas ruas e pela praça, param, conversam e seguem.
+   Somem quando a cidade cai (abismo) e dentro das áreas internas. */
+const CITY_ROUTES=[[[-118,-61],[-136,-63]],[[-142,-56],[-158,-56],[-158,-68],[-142,-68]],[[-120,-46],[-141,-46]],[[-166,-61],[-183,-63]],[[-136,-61.5],[-149,-58]],[[-152,-49.5]]];
+let cityFolk=null;
+function spawnCityFolk(){cityFolk=[];npcBase().then(b=>{const walk=b.clips.find(k=>k.name==='Walking'),talk=b.clips.find(k=>k.name==='Agree_Gesture'),idle=b.clips.find(k=>k.name==='Alert');
+ CITY_ROUTES.forEach((route,i)=>{for(let n=0;n<(route.length>2?2:1);n++){const k=(n*2)%route.length,p=route[k],v=makeTownsfolk(b,0xb0a898,route.length>1?'Walking':'Agree_Gesture');v.holder.position.set(p[0],groundHeightAt(p[0],p[1]),p[1]);
+  cityFolk.push({...v,route,k,pause:Math.random()*3,clips:{walk,talk,idle},state:'pause'});}});});}
+function folkPlay(f,clip){if(!clip||f.cur===clip)return;f.mixer.stopAllAction();f.mixer.clipAction(clip).play();f.cur=clip;}
+function updateCityFolk(dt){
+ const on=questStep>=ACT2.travel&&questStep<ACT2.done&&!act2Abyss&&!voidMode&&!cineSkipping;if(!cityFolk&&on)spawnCityFolk();if(!cityFolk)return;
+ const P=player.position,near=Math.hypot(P.x-CITY.x,P.z-CITY.z)<85;
+ for(const f of cityFolk){const h=f.holder;h.visible=on&&near;if(!h.visible)continue;f.mixer.update(dt);
+  if(f.route.length<2){folkPlay(f,f.clips.talk);continue;}
+  if(f.pause>0){f.pause-=dt;folkPlay(f,f.pause>1.2?f.clips.talk:f.clips.idle);if(f.pause<=0)f.k=(f.k+1)%f.route.length;continue;}
+  const t=f.route[f.k],dx=t[0]-h.position.x,dz=t[1]-h.position.z,d=Math.hypot(dx,dz);
+  if(d<.4){f.pause=1.5+Math.random()*3;continue;}
+  if(Math.hypot(P.x-h.position.x,P.z-h.position.z)<1.1){folkPlay(f,f.clips.idle);h.rotation.y=Math.atan2(P.x-h.position.x,P.z-h.position.z);continue;}   // dá passagem ao herói
+  folkPlay(f,f.clips.walk);const sp=Math.min(d,dt*1.25);h.position.x+=dx/d*sp;h.position.z+=dz/d*sp;h.position.y=groundHeightAt(h.position.x,h.position.z);h.rotation.y=Math.atan2(dx,dz);}
+}
+function updateAct2World(dt,now){updateCityFolk(dt);
  const W=act2World;if(!W)return;const t=now*.001;
  W.crater.material.opacity=.6+Math.sin(t*1.7)*.15+eruption*.3;
  {const a=W.smoke.geo.attributes.position;for(let i=0;i<W.smoke.v.length;i++){let y=a.array[i*3+1]+W.smoke.v[i]*dt;if(y>120)y=50;a.array[i*3+1]=y;a.array[i*3]+=dt*1.2;if(a.array[i*3]>30)a.array[i*3]=-4;}a.needsUpdate=true;}
@@ -3198,14 +3217,35 @@ function updateAct2World(dt,now){
 let npcBasePromise=null;
 function npcBase(){if(!npcBasePromise)npcBasePromise=new Promise((res,rej)=>new GLTFLoader().load('./Npc-lod2.glb?v=mod202',gltf=>{const base=gltf.scene,box=measureModelBounds(base),size=box.getSize(new THREE.Vector3());res({base,clips:gltf.animations||[],scale:size.y>.01?(playerReferenceHeight*.98)/size.y:1,box});},undefined,rej));return npcBasePromise;}
 // MOD 217 — o Npc-lod2.glb já olha para +Z (dedos dos pés à frente); o giro de 180° fazia moradores e bandidos andarem de costas.
-function makeTownsfolk(b,tint,clipName){const c=cloneSkinned(b.base),h=new THREE.Group();c.scale.setScalar(b.scale);c.position.y=-b.box.min.y*b.scale;h.add(c);
+function makeTownsfolk(b,tint,clipName,look){const c=cloneSkinned(b.base),h=new THREE.Group();c.scale.setScalar(b.scale);c.position.y=-b.box.min.y*b.scale;h.add(c);
  c.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.color.multiply(new THREE.Color(tint));o.material.metalness=0;o.material.metalnessMap=null;if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x4a3e36);o.material.emissiveIntensity=.7;}}});
- const m=new THREE.AnimationMixer(c),clip=b.clips.find(k=>k.name===clipName)||b.clips.find(k=>k.name==='Alert');const a=clip?m.clipAction(clip):null;if(a)a.play();scene.add(h);return{holder:h,mixer:m,action:a,model:c};}
+ const m=new THREE.AnimationMixer(c),clip=b.clips.find(k=>k.name===clipName)||b.clips.find(k=>k.name==='Alert');const a=clip?m.clipAction(clip):null;if(a)a.play();scene.add(h);
+ dressTownsfolk(c,h,look===undefined?(townsfolkSeed++):look);return{holder:h,mixer:m,action:a,model:c};}
+/* MOD 218 — figurantes sem clones idênticos: cada um ganha porte (altura e largura), uma cor de roupa da paleta e
+   acessórios presos aos ossos (capa curta, faixa na cintura, cachecol, bolsa, lenço de bandido, chapéu de aba).
+   look: número (figurante) ou {bandit:true, leader:true}. Tudo com geometria mínima e materiais compartilhados. */
+var townsfolkSeed=1;const TF_COLORS=[0x8a2a22,0x2a5a6a,0x6a5a1e,0x3e4a2a,0x5a2a5a,0x7a4a22,0x2a3a5a,0x9a8a6a,0x4a2a1e,0x6a6a72];const tfMats={};
+function tfMat(c){return tfMats[c]||(tfMats[c]=new THREE.MeshStandardMaterial({color:c,roughness:.85}));}
+function dressTownsfolk(model,holder,look){
+ const r=(k=>()=>(k=(k*16807+11)%2147483647)/2147483647)(typeof look==='number'?look*7919+3:97);const bandit=look&&look.bandit,leader=look&&look.leader;
+ const hs=leader?1.08:.93+r()*.12,ws=leader?1.12:.9+r()*.2;holder.scale.set(ws,hs,ws);
+ model.updateMatrixWorld(true);const bone=n=>model.getObjectByName(n);const attach=(bn,mesh,x,y,z)=>{const bo=bone(bn);if(!bo)return;const sc=new THREE.Vector3();bo.getWorldScale(sc);const k=1/Math.max(1e-4,sc.x);mesh.scale.multiplyScalar(k);mesh.position.set(x*k,y*k,z*k);bo.add(mesh);};
+ const col=TF_COLORS[(r()*TF_COLORS.length)|0],col2=TF_COLORS[(r()*TF_COLORS.length)|0];
+ if(bandit){attach('Neck',new THREE.Mesh(new THREE.TorusGeometry(.085,.035,6,14),tfMat(0x8a1a14)),0,.02,0);
+  attach('Hips',new THREE.Mesh(new THREE.TorusGeometry(.17,.03,6,16),tfMat(0x2a1a14)),0,.05,0);
+  if(leader){const hat=new THREE.Group();hat.add(new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.02,16),tfMat(0x2a1e16)));const cr=new THREE.Mesh(new THREE.CylinderGeometry(.1,.12,.13,12),tfMat(0x2a1e16));cr.position.y=.07;hat.add(cr);attach('Head',hat,0,.2,0);}
+  return;}
+ const kind=(r()*5)|0;
+ if(kind===0)attach('UpperChest',new THREE.Mesh(new THREE.BoxGeometry(.42,.22,.26),tfMat(col)),0,.2,-.02);                         // capa curta nos ombros
+ if(kind===1||kind===3)attach('Hips',new THREE.Mesh(new THREE.TorusGeometry(.17,.035,6,16),tfMat(col)),0,.06,0);                  // faixa na cintura
+ if(kind===2||kind===3)attach('Neck',new THREE.Mesh(new THREE.TorusGeometry(.085,.04,6,14),tfMat(col2)),0,.03,0);                  // cachecol
+ if(kind===4||r()<.3)attach('UpperChest',new THREE.Mesh(new THREE.BoxGeometry(.24,.3,.12),tfMat(0x4a3424)),0,0,-.17);            // bolsa nas costas
+}
 function spawnBandits(){
  return npcBase().then(b=>{for(const x of act2Bandits.splice(0))scene.remove(x.holder);const A=DISTRICT_SPOTS.ambush;
   // MOD 217 — fecham o beco: três na boca (atrás do herói) e o resto descendo dos telhados no fundo.
   const AL=DISTRICT_SPOTS.alley,spots=[[-1.2,AL.z0-1.6],[0,AL.z0-.6],[1.2,AL.z0-1.6],[-1.3,AL.z1+2.2],[1.3,AL.z1+2.2],[0,AL.z1+1.2]];
-  for(let i=0;i<ACT2.bandits;i++){const [ox,oz]=spots[i%spots.length],x=AL.x+ox,z=oz,v=makeTownsfolk(b,[0x8a7a6a,0x6a5a4a,0x9a8070,0x5a6a5a,0x7a6050][i],'Alert');v.holder.position.set(x,groundHeightAt(x,z),z);act2Bandits.push({...v,home:{x,z}});}
+  for(let i=0;i<ACT2.bandits;i++){const [ox,oz]=spots[i%spots.length],x=AL.x+ox,z=oz,v=makeTownsfolk(b,[0x8a7a6a,0x6a5a4a,0x9a8070,0x5a6a5a,0x7a6050][i],'Alert',{bandit:true,leader:i===1});v.holder.position.set(x,groundHeightAt(x,z),z);act2Bandits.push({...v,home:{x,z}});}
   storyAnchors.bandit={x:AL.x,z:AL.z0-.6,yaw:Math.PI};
  });
 }
