@@ -132,7 +132,7 @@ const terrain3D=createTerrain({
  hill:hillHeightAt,
  keepouts:[{x:DESERT.statue.x,z:DESERT.statue.z,r:24,fade:8},{x:COLOSSEUM.center.x,z:COLOSSEUM.center.z,r:40,fade:8},{x:-36,z:-256,r:14,fade:6},{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:-12,z:-97,r:7,fade:5},{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z,r:9,fade:6},{x:MASSACRE_SPOT.x,z:MASSACRE_SPOT.z,r:6,fade:5},{x:SEWER_DOOR.x,z:SEWER_DOOR.z,r:5,fade:4},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:DISTRICT_SPOTS.plaza.x,z:DISTRICT_SPOTS.plaza.z,r:22,fade:8},{x:ALTAR_VALLEY.cx,z:ALTAR_VALLEY.cz,r:16,fade:8},{x:SERRA.cx,z:SERRA.cz-8,r:16,fade:8},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
  ponds:[FOREST_POND],
- extraAreas:[DISTRICT,...EXTRA_REGIONS,SNOW_CITY.caveApproach,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
+ extraAreas:[DISTRICT,DISTRICT_SPOTS.volcanoApproach,...EXTRA_REGIONS,SNOW_CITY.caveApproach,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
  paths:[{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5}]
 });
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
@@ -3064,6 +3064,11 @@ function storyDo(id,args){
   case 'acordar-cercado':setCineFade(0,.9,false);setTimeout(()=>{if(actions.kipUp){actions.kipUp.paused=false;}},1200);break;
   case 'desmaiar-de-novo':setCineFade(1,.9,false);setTimeout(()=>{for(const cl of hordeClones.splice(0))disposeClone(cl);const c=sewerLocal(SEWER.cage);player.position.set(c.x,voidSpec.y,c.z);if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=0;}const r=sewerArena&&sewerArena.refs;if(r&&r.cage){r.cage.bars.position.y=0;r.cage.top.position.y=2.6;}storyAnchors.cell={x:c.x,z:c.z,y:voidSpec.y,yaw:0};},1000);break;
   case 'acordar-na-jaula':setCineFade(0,1.2,false);faceTo(player,sewerLocal(SEWER.emptyPath.from));storyFx.push({t:0,tick(t){if(t<1.4)return true;if(actions.kipUp)actions.kipUp.paused=false;return false;},finish(){if(actions.kipUp)actions.kipUp.paused=false;}});break;
+  // MOD 217 — resgate na jaula sem pressa: o Anjo chega em silêncio, olha em volta, abre a jaula e o herói sai.
+  case 'anjo-chega-jaula':{const c=sewerLocal(SEWER.cage);guide.position.set(c.x+2.6,voidSpec.y,c.z-1.2);faceTo(guide,P);guide.visible=true;guide.scale.setScalar(1);worldAudio.whoosh();break;}
+  case 'anjo-vigia':{const y0=guide.rotation.y;storyFx.push({t:0,tick(t){guide.rotation.y=y0+Math.sin(Math.min(1,t/2.2)*Math.PI*2)*.9;if(t>2.3){guide.rotation.y=y0;return false;}},finish(){faceTo(guide,player.position);}});break;}
+  case 'heroi-sai-jaula':{if(actions.kipUp)actions.kipUp.paused=false;const c=sewerLocal(SEWER.cage),from=player.position.clone(),to={x:c.x+1.4,z:c.z-.6};
+   storyFx.push({t:0,tick(t){if(t<.5)return true;const k=Math.min(1,(t-.5)/1.2);player.position.x=from.x+(to.x-from.x)*k;player.position.z=from.z+(to.z-from.z)*k;if(actions.walk&&k<1&&activeAction!==actions.walk)play('walk',.2);if(k>=1){if(actions.idle)play('idle',.25);faceTo(player,guide.position);return false;}},finish(){player.position.x=to.x;player.position.z=to.z;faceTo(player,guide.position);}});break;}
   case 'anjo-abre-jaula':{const c=sewerLocal(SEWER.cage);guide.position.set(c.x+2.6,voidSpec.y,c.z-1.2);faceTo(guide,P);guide.visible=true;guide.scale.setScalar(1);worldAudio.celestial();
    const r=sewerArena&&sewerArena.refs;if(r&&r.cage)storyFx.push({t:0,tick(t){const y=Math.min(3.4,t*2.4);r.cage.bars.position.y=y;r.cage.top.position.y=y+2.6;if(t>1.5)return false;},finish(){r.cage.bars.position.y=3.4;r.cage.top.position.y=6;}});
    break;}
@@ -3099,6 +3104,16 @@ function buildAct2World(){
  if(act2World)return act2World;const W=act2World={};
  const V=DISTRICT_SPOTS.volcano,vy=groundHeightAt(DISTRICT_SPOTS.volcanoGate.x,DISTRICT_SPOTS.volcanoGate.z)-2;
  const g=new THREE.Group();g.position.set(V.x,vy,V.z);scene.add(g);W.volcano=g;
+ // MOD 217 — portão diegético no pé do cone: pilares de basalto, verga com runas, boca escura com brilho de lava e braseiros.
+ {const G=DISTRICT_SPOTS.volcanoGate,gy=groundHeightAt(G.x,G.z),gate=new THREE.Group();gate.position.set(G.x-2,gy,G.z);gate.rotation.y=Math.PI/2;scene.add(gate);W.gate=gate;
+  const basalt=new THREE.MeshStandardMaterial({color:0x2a2220,roughness:.95,flatShading:true}),rune=new THREE.MeshBasicMaterial({color:0xff6a20,toneMapped:false});
+  for(const sx of [-1,1]){const p=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.2,7.5,6),basalt);p.position.set(sx*3,3.75,0);p.rotation.y=sx*.3;gate.add(p);
+   const r=new THREE.Mesh(new THREE.BoxGeometry(.12,4.4,.12),rune);r.position.set(sx*3,3.4,.95);gate.add(r);
+   const br=new THREE.Mesh(new THREE.CylinderGeometry(.55,.35,1.1,8),basalt);br.position.set(sx*4.6,.55,1.6);gate.add(br);const f=glowSprite(0xff7a28,.9,3.2);f.position.set(sx*4.6,1.7,1.6);gate.add(f);}
+  const lintel=new THREE.Mesh(new THREE.BoxGeometry(8.4,1.3,1.6),basalt);lintel.position.y=7.6;lintel.rotation.z=.04;gate.add(lintel);
+  const mouth=new THREE.Mesh(new THREE.PlaneGeometry(5.2,6.6),new THREE.MeshBasicMaterial({color:0x050302}));mouth.position.set(0,3.3,-.2);gate.add(mouth);
+  const glow=glowSprite(0xff5010,.55,7);glow.position.set(0,1.2,0);gate.add(glow);
+  const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(7,0),basalt);rock.scale.set(1.6,1.3,1);rock.position.set(0,4,-4.5);gate.add(rock);}
  // Cone com cratera (perfil girado) e veios incandescentes.
  const prof=[];for(let i=0;i<=16;i++){const t=i/16;prof.push(new THREE.Vector2(Math.max(6,30*(1-t)+(1-t)*(1-t)*5),t*50));}prof.push(new THREE.Vector2(5,47));
  const rockC=document.createElement('canvas');rockC.width=rockC.height=256;{const c=rockC.getContext('2d');c.fillStyle='#2a221e';c.fillRect(0,0,256,256);for(let i=0;i<400;i++){const v=30+Math.random()*30|0;c.fillStyle='rgb('+v+','+(v-6)+','+(v-9)+')';c.fillRect(Math.random()*256,Math.random()*256,4+Math.random()*10,2+Math.random()*5);}c.strokeStyle='rgba(255,90,20,.55)';c.lineWidth=2;for(let i=0;i<10;i++){let x=Math.random()*256,y=0;c.beginPath();c.moveTo(x,y);while(y<256){x+=(Math.random()-.5)*24;y+=10+Math.random()*16;c.lineTo(x,y);}c.stroke();}}
@@ -3124,7 +3139,7 @@ function buildAct2World(){
  // O abismo deixado pelo buraco negro: um rombo que mostra o espaço lá no fundo, como o fim do mundo.
  const abyss=new THREE.Mesh(new THREE.CircleGeometry(24,64),new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uTime:{value:0}},
   vertexShader:'varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:'uniform float uTime;varying vec2 vP;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}void main(){float r=length(vP)/24.;float a=atan(vP.y,vP.x);float edge=.9+.06*sin(a*9.)+.04*sin(a*23.+1.);if(r>edge)discard;vec2 sc=gl_FragCoord.xy*.35;vec2 c=floor(sc);float s=step(.985,h(c))*(.5+.5*sin(uTime*2.+h(c)*30.));vec3 sky=mix(vec3(.02,.0,.06),vec3(.0,.0,.01),r);float rim=smoothstep(edge-.12,edge,r);gl_FragColor=vec4(sky+vec3(s)*(1.-rim)+vec3(.35,.08,.02)*rim*.8,1.);}'}));
+  fragmentShader:'uniform float uTime;varying vec2 vP;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}void main(){float r=length(vP)/24.;float a=atan(vP.y,vP.x);float edge=.9+.06*sin(a*9.)+.04*sin(a*23.+1.);if(r>edge)discard;float sw=sin(a*5.+r*14.-uTime*.6)*.5+.5;float mist=sw*smoothstep(.15,.85,r)*.10;vec3 sky=mix(vec3(.0,.0,.004),vec3(.05,.01,.08),r*r)+vec3(.18,.04,.3)*mist;float rim=smoothstep(edge-.1,edge,r);float ember=step(.94,h(floor(vec2(a*40.,r*30.))))*rim*(.5+.5*sin(uTime*3.+a*20.));gl_FragColor=vec4(sky+vec3(.35,.08,.02)*rim*.8+vec3(1.,.45,.1)*ember*.6,1.);}'}));
  abyss.rotation.x=-Math.PI/2;abyss.position.set(CITY.x,groundHeightAt(CITY.x,CITY.z)+.08,CITY.z);abyss.visible=false;abyss.renderOrder=3;scene.add(abyss);W.abyss=abyss;
  W.abyssBlock={x:CITY.x,z:CITY.z,radius:22.5,height:4};
  W.note=new THREE.Mesh(new THREE.PlaneGeometry(.5,.36),new THREE.MeshStandardMaterial({color:0xe8dcc0,roughness:.9,side:THREE.DoubleSide}));W.note.rotation.x=-Math.PI/2;
@@ -3264,7 +3279,7 @@ function rivalDown(){
 function gateCleared(){act1Lock=true;const p=DISTRICT_SPOTS.volcanoGuards[0],c=makeFoeClone('enemy2',p,{role:'idle'});if(c){c.holder.scale.y=.8;hordeClones.push(c);storyAnchors.enemy={x:p.x,z:p.z,yaw:Math.atan2(player.position.x-p.x,player.position.z-p.z)};}
  playStory('entrada-cai',gateDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;delete storyAnchors.enemy;if(c){foeFinalBlow(c);setTimeout(()=>{disposeClone(c);const i=hordeClones.indexOf(c);if(i>=0)hordeClones.splice(i,1);},4400);}act1Advance(ACT2.volcano,0);status.textContent='Entre no vulcão.';}});
  act2DyingClone=c;}
-var act2DyingClone=null;
+var act2DyingClone=null,act2Hole=null;
 function labCleared(){act1Lock=true;playStory('chave2',keyScene(),{focus:'guide',done:()=>{act1Lock=false;act1Advance(ACT2.volcano,1);status.textContent='Procure o que a chave abre.';}});}
 function hallCleared(){act1Lock=true;playStory('galeria-cai',hallDefeatScene(),{focus:'enemy',done:()=>{act1Lock=false;act1Advance(ACT2.volcano,3);}});}
 function minibossDown(){
@@ -3317,9 +3332,12 @@ function storyDo2(id,args){
   case 'fecha-cartao':cineEl('act-card').classList.add('hidden');return true;
   case 'sombra-no-ceu':{loadRig('bishop4').then(rg=>{const c=cloneSkinned(rg.model);c.visible=true;c.traverse(o=>{if(o.isMesh)o.material=new THREE.MeshBasicMaterial({color:0x020204,fog:false});});const h=new THREE.Group();h.add(c);h.scale.setScalar(4.5);const s=Math.sin(playerYaw),k=Math.cos(playerYaw),x=P.x+s*16,z=P.z+k*16;h.position.set(x,P.y+14,z);h.rotation.y=Math.atan2(P.x-x,P.z-z);scene.add(h);const m=new THREE.AnimationMixer(c);if(rg.actions.idle)m.clipAction(rg.actions.idle.getClip()).play();bishop4Sky={holder:h,mixer:m,t:0,y:h.position.y};storyAnchors.sky={x,z,y:h.position.y-6,yaw:h.rotation.y};},()=>{});
    {const s=Math.sin(playerYaw),k=Math.cos(playerYaw);storyAnchors.sky={x:P.x+s*16,z:P.z+k*16,y:P.y+8,yaw:Math.atan2(-s,-k)};}worldAudio.corrupt();return true;}
-  case 'feitico':{const g=storyAnchors.sky;if(!g)return true;const ring=glowSprite(0x8a20ff,.9,3);ring.position.set(g.x,g.y+10,g.z);scene.add(ring);storyFx.push({t:0,tick(t){ring.scale.setScalar(3+t*4);ring.material.opacity=.9-t*.15;if(t>5){scene.remove(ring);return false;}},finish(){scene.remove(ring);}});worldAudio.magic('ultimate');return true;}
-  case 'buraco-negro':{const g=storyAnchors.sky;if(!g)return true;const hole=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0}));const halo=glowSprite(0xb02aff,.9,8);const grp=new THREE.Group();grp.add(hole,halo);grp.position.set(g.x,g.y+12,g.z);scene.add(grp);
-   storyFx.push({t:0,tick(t){const k=Math.min(1,t/2.4);grp.scale.setScalar(1+k*5);grp.position.lerpVectors(new THREE.Vector3(g.x,g.y+12,g.z),new THREE.Vector3(CITY.x,groundHeightAt(CITY.x,CITY.z)+4,CITY.z),k);if(t>2.6){scene.remove(grp);return false;}},finish(){scene.remove(grp);}});cameraShake(.3);return true;}
+  // MOD 217 — o buraco negro nasce bem acima de VÉRAXION, cresce durante o encantamento e é lançado sobre a cidade e o vulcão.
+  case 'feitico':{const g=storyAnchors.sky;if(!g)return true;const ring=glowSprite(0x8a20ff,.9,3);ring.position.set(g.x,g.y+34,g.z);scene.add(ring);
+   const hole=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:0}));const halo=glowSprite(0xb02aff,.9,7);const grp=new THREE.Group();grp.add(hole,halo);grp.position.set(g.x,g.y+34,g.z);grp.scale.setScalar(.2);scene.add(grp);act2Hole={grp,ring,t:0};
+   storyFx.push({t:0,tick(t){const k=Math.min(1,t/7);if(!act2Hole||act2Hole.launched){scene.remove(ring);return false;}grp.scale.setScalar(.2+k*4.2);ring.scale.setScalar(3+k*16);ring.material.opacity=.9-k*.4;grp.rotation.y+=.02;return true;},finish(){scene.remove(ring);if(act2Hole&&!act2Hole.launched){scene.remove(act2Hole.grp);act2Hole=null;}}});worldAudio.magic('ultimate');return true;}
+  case 'buraco-negro':{const g=storyAnchors.sky,h=act2Hole;if(!g||!h)return true;h.launched=true;const grp=h.grp,from=grp.position.clone(),s0=grp.scale.x,to=new THREE.Vector3((CITY.x+DISTRICT_SPOTS.volcano.x)/2,groundHeightAt(CITY.x,CITY.z)+6,CITY.z);
+   storyFx.push({t:0,tick(t){const k=Math.min(1,t/3);grp.scale.setScalar(s0+k*k*9);grp.position.lerpVectors(from,to,k*k);if(k>=1){if(!h.hit){h.hit=true;impactFrame(90);cameraShake(.6);for(let i=0;i<5;i++)lightning(to.x+(Math.random()-.5)*40,to.z+(Math.random()-.5)*20,0xb02aff,30);}if(t>3.4){scene.remove(grp);act2Hole=null;return false;}}return true;},finish(){scene.remove(grp);act2Hole=null;}});cameraShake(.3);worldAudio.whoosh();return true;}
   case 'explosao':{worldAudio.hit();worldAudio.portalEnter();cameraShake(.6);vibrate(120);setCineFade(1,.25,true);
    // O Anjo empurra o herói; a cidade some no abismo.
    setTimeout(()=>{act2Abyss=true;syncAct2World();guide.visible=false;const n=DISTRICT_SPOTS.note;player.position.set(n.x+1.2,terrainHeightAt(n.x+1.2,n.z),n.z+1);faceTo(player,CITY);if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=0;}},500);return true;}
