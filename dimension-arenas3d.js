@@ -366,7 +366,9 @@ const THEMES = {
     // Sala circular com parede (com vãos onde chegam os corredores), cúpula e chão. Ângulo 0 = +z, π/2 = +x.
     function room(c, h, gaps) {
       const fm = floorMat.clone(); fm.map = stoneTex.clone(); fm.map.repeat.set(c.r / 3, c.r / 3); fm.map.needsUpdate = true;
-      const floor = new THREE.Mesh(new THREE.CircleGeometry(c.r + .4, 40), fm); floor.rotation.x = -Math.PI / 2; floor.position.set(c.x, 0, c.z); floor.receiveShadow = true; g.add(floor);
+      let floorGeometry=new THREE.CircleGeometry(c.r+.4,40);
+      if(c===L.feeding){const outline=new THREE.Shape();outline.absarc(0,0,c.r+.4,0,Math.PI*2,false);const opening=new THREE.Path();opening.absarc(L.hole.x-c.x,c.z-L.hole.z,L.hole.r,0,Math.PI*2,true);outline.holes.push(opening);floorGeometry.dispose();floorGeometry=new THREE.ShapeGeometry(outline,32);}
+      const floor = new THREE.Mesh(floorGeometry, fm); floor.rotation.x = -Math.PI / 2; floor.position.set(c.x, 0, c.z); floor.receiveShadow = true; g.add(floor);
       const wm = wallMat.clone(); wm.map = brick.clone(); wm.map.repeat.set(c.r * 1.2, h / 2.2); wm.map.needsUpdate = true;
       const R = c.r + .4, cuts = gaps.map(a => ({ a, w: Math.asin(Math.min(.95, 3.2 / R)) })).sort((p, q) => p.a - q.a);
       for (let i = 0; i < cuts.length; i++) {
@@ -377,13 +379,17 @@ const THEMES = {
     }
     corridor(L.tunnel, L.tunnel.r + .5, 4.6, true);
     room(L.feeding, 5.2, [0]); room(L.cell, 5, [Math.PI / 2, Math.PI]); corridor(L.emptyPath, L.emptyPath.r + .6, 4.2, false); corridor(L.hordePath, L.hordePath.r + .6, 4.2, false);
+    // O Anjo sela o corredor da horda; uma parede opaca oculta o confronto sem sobrepor atores.
+    const seal = new THREE.Mesh(new THREE.BoxGeometry(.7,5.6,6.2), new THREE.MeshStandardMaterial({color:0xa49b82,roughness:.9,emissive:0x5a491a,emissiveIntensity:.35}));
+    seal.position.set(L.hordePath.from.x,2.8,L.hordePath.from.z);seal.visible=false;g.add(seal);refs.seal=seal;
     // Rastros de sangue do túnel até a sala.
     for (let i = 0; i < 16; i++) { const t = i / 15, z = L.tunnel.from.z - 4 + (L.feeding.z + 4 - L.tunnel.from.z + 4) * t; const b = new THREE.Mesh(new THREE.PlaneGeometry(1 + r() * .8, 1.4 + r()), bloodMat); b.rotation.set(-Math.PI / 2, 0, r() * 6); b.position.set(-.6 + Math.sin(i * 1.7) * .6, .02, z); g.add(b); }
     // A "presa" dos Seguidores: um monte escuro coberto (sem detalhe gráfico).
     const lump = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 8), new THREE.MeshStandardMaterial({ color: 0x2a0d0c, roughness: .7 })); lump.scale.set(1.3, .45, .9); lump.position.set(L.carcass.x, .2, L.carcass.z); g.add(lump);
     const pool = new THREE.Mesh(new THREE.CircleGeometry(2.4, 24), bloodMat); pool.rotation.x = -Math.PI / 2; pool.position.set(L.carcass.x, .015, L.carcass.z); g.add(pool);
     // O buraco: disco negro com borda de pedras quebradas.
-    const hole = new THREE.Mesh(new THREE.CircleGeometry(L.hole.r, 28), new THREE.MeshBasicMaterial({ color: 0x000000, polygonOffset: true, polygonOffsetFactor: -3 })); hole.rotation.x = -Math.PI / 2; hole.position.set(L.hole.x, .03, L.hole.z); g.add(hole);
+    const hole = new THREE.Mesh(new THREE.CircleGeometry(L.hole.r, 28), new THREE.MeshBasicMaterial({ color: 0x000000, polygonOffset: true, polygonOffsetFactor: -3 })); hole.rotation.x = -Math.PI / 2; hole.position.set(L.hole.x, -5.9, L.hole.z); g.add(hole);
+    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(L.hole.r,L.hole.r,6,24,1,true),wallMat);shaft.position.set(L.hole.x,-3,L.hole.z);g.add(shaft);
     const rubble = []; for (let i = 0; i < 14; i++) { const a = i / 14 * 6.28; rubble.push({ x: L.hole.x + Math.cos(a) * (L.hole.r + .3), y: .12, z: L.hole.z + Math.sin(a) * (L.hole.r + .3), s: .2 + r() * .25, ry: r() * 3 }); }
     g.add(instanced(THREE, new THREE.DodecahedronGeometry(1, 0), floorMat, rubble));
     refs.hole = { x: L.hole.x, z: L.hole.z };
@@ -426,7 +432,7 @@ const THEMES = {
     for (const sx of [-1, 1]) { const pil = new THREE.Mesh(new THREE.CylinderGeometry(.5, .7, 3.6, 10), goldM); pil.position.set(sx * 3.4, 1.8, 0); pg.add(pil); }
     const swirl = new THREE.Mesh(new THREE.CircleGeometry(3.1, 40), swirlMaterial(THREE, '#200206', '#e8b040')); swirl.scale.set(1, 1.35, 1); swirl.position.set(0, 3.7, .05); pg.add(swirl); ctx.swirls.push(swirl.material);
     refs.portal = pg;
-    return { bg: 0x070907, fog: 0x0e130d, fogNear: 10, fogFar: 60, hemi: [0xa8b89c, 0x3a2e22, 1.35], sun: [0xc0d0b0, .45], light: [0xd8e0a0, 3.6, 32, [0, 3, 0]], exposure: 1.3, lightFollow: true };
+    return { bg: 0x070907, fog: 0x0e130d, fogNear: 10, fogFar: 60, hemi: [0xc5d1bd, 0x796a54, 2.3], sun: [0xc0d0b0, .65], light: [0xd8e0a0, 5.5, 42, [0, 3, 0]], exposure: 1.3, lightFollow: true };
   },
   // MOD 205 — Interior do vulcão falso (Ato II; layout em volcano3d.js): rocha basáltica com veios incandescentes,
   // caveiras e ossos, o laboratório, a porta medonha, a sala do ouro, a galeria e a sala secreta do trono.

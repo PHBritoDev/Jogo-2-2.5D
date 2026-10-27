@@ -100,7 +100,7 @@ export function villagerScene() {
     say(S.villager, 'Enfim, eu tenho que ir. Logo vai anoitecer.', { actor: 'villager' }),
     say(S.hero, 'Mas que desespero é esse?'),
     say(S.villager, 'É que, quando chega a noite, coisas muito esquisitas acontecem. É melhor você achar um lugar para dormir o mais rápido possível.', { actor: 'villager' }),
-    shot('todos-entram', 4.2, { cam: 'crane', anchor: 'snowcity', from: [-14, 12, 22], to: [-10, 9, 16], lookFrom: [0, 1, -4], lookTo: [0, 1, -4] }, { with: [act('todos-entram'), act('anoitecer')] }),
+    shot('todos-entram', 4.2, { cam: 'crane', anchor: 'snowcity', from: [-14, 12, 22], to: [-10, 9, 16], lookFrom: [0, 1, -4], lookTo: [0, 1, -4] }, { with: [act('todos-entram'), act('ato3-anoitecer')] }),
     say(S.hero, 'Tem algo de estranho nesta cidade… Parece que estão escondendo alguma coisa. Preciso descobrir.')
   ];
 }
@@ -155,7 +155,7 @@ export function raidScene() {
 export function guillotineScene() {
   return [
     act('golpe-por-tras'), wait(1.2), act('na-guilhotina'), wait(1),
-    act('piscar'), wait(1.4),
+    act('ato3-piscar'), wait(1.4),
     say(S.hero, 'Onde eu estou? O que aconteceu?'),
     shot('carrasco', 1.8, { cam: 'look', on: 'enemy', off: [1.6, 1.6, 2.8], at: [0, 1.4, 0] }),
     say(S.demon, 'Morra.'),
@@ -189,9 +189,9 @@ export function caveEndScene() {
 }
 export function distortedScene() {
   return [
-    act('piscar'), wait(1.2),
+    act('ato3-piscar'), wait(1.2),
     say(S.hero, 'Minha percepção parece distorcida.'),
-    shot('guardiao', 2.2, { cam: 'look', on: 'enemy', off: [2, 2.2, 4.6], at: [0, 2, 0] }, { with: [act('surgir-guardiao')] }),
+    shot('guardiao', 2.2, { cam: 'look', on: 'enemy', off: [2, 2.2, 4.6], at: [0, 2, 0] }, { with: [act('ato3-surgir-guardiao')] }),
     say(S.miniboss, 'Então foi você que derrotou Valério e VORGAZHEK. Mesmo assim, fico surpreso por ter conseguido chegar até aqui. Mas é aqui que a sua jornada acaba.'),
     say(S.miniboss, 'Vou comer os seus ossos e roubar a sua alma para fortalecer a minha.'),
     say(S.hero, "Vocês não passam de vermes, usados como fantoches por ZAR'KHAEL.")
@@ -254,7 +254,7 @@ export function angelTruthScene() {
     act('ganancia-leva'), wait(1.6),
     say(S.hero, 'Anjoooooooo!'),
     say(S.greed, 'Se quiser ele de volta, venha até mim.', { actor: 'sky' }),
-    act('escuro'), wait(1.4),
+    act('ato3-escuro'), wait(1.4),
     act('ato-4'), wait(3.4), act('fecha-cartao')
   ];
 }

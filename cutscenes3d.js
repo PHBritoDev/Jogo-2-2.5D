@@ -12,7 +12,7 @@
  * Passos podem ter `with: [passos 'do']` para disparar ações no início do passo.
  */
 export function createDirector(handlers = {}) {
-  let steps = [], i = -1, t = 0, running = false, waitingTap = false, waitingAsk = false, onEnd = null, sceneId = '';
+  let steps = [], i = -1, t = 0, running = false, waitingTap = false, waitingAsk = false, onEnd = null, sceneId = '', skippable = true;
   const h = { shot() {}, say() {}, hideSay() {}, do() {}, ask() {}, end() {}, ...handlers };
 
   function enter() {
@@ -42,7 +42,8 @@ export function createDirector(handlers = {}) {
 
   return {
     /** Começa uma cena. done(skipped) é chamado no fim (ou ao pular). */
-    play(id, list, done) {
+    play(id, list, done, options = {}) {
+      skippable = options.skippable !== false;
       sceneId = id; steps = list.slice(); i = 0; running = true; onEnd = done || null;
       if (!steps.length) { finish(false); return; }
       enter();
@@ -70,7 +71,7 @@ export function createDirector(handlers = {}) {
       if (!running || !waitingAsk) return false;
       next(); return true;
     },
-    skip() { finish(true); },
+    skip() { if (!skippable) return false; finish(true); return true; },
     get running() { return running; },
     get scene() { return sceneId; },
     get index() { return i; },
