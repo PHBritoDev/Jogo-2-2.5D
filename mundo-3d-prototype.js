@@ -1,3 +1,4 @@
+import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES } from './act1-world-layout.js';
 import {prepareSandraMaterials} from './sandra-materials.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -99,9 +100,9 @@ const groundMat=mat(0xffffff),pathMat=mat(0xffffff),barkMat=mat(0x493c2e),leafMa
 groundMat.map=makeSoilTexture('#435d3e',['#536b43','#354f35','#647248'],163);groundMat.map.repeat.set(34,34);groundMat.needsUpdate=true;
 pathMat.map=makeSoilTexture('#756747',['#8a7955','#5e553d','#9a855d'],1631);pathMat.needsUpdate=true;
 // Colina escalável: a trilha sobe suavemente até o santuário do portal.
-const CLEARING={x:0,z:-29},PORTAL={x:44,z:-119},JOURNEY_ENEMIES=[{x:-12,z:-90.5},{x:-17,z:-93.5},{x:-7,z:-93.5}];
+const CLEARING={x:0,z:-29},PORTAL={x:44,z:-119};
 // MOD 204 — o despertar e o "início do mapa" ficam longe da vila (pedido do autor), no sudeste da mata.
-const AWAKE_SPOT={x:52,z:10},startTrail=[[52,10],[40,14],[24,16],[10,15],[0,14]],MASSACRE_SPOT={x:9,z:-94},SEWER_DOOR={x:22,z:-106,yaw:1.95};
+const AWAKE_SPOT={x:52,z:10},startTrail=[[52,10],[40,14],[24,16],[10,15],[0,14]];
 const MOUNTAIN_SENTRIES=[{x:20,z:-103},{x:33,z:-113}],WARDEN_SPOT={x:41,z:-117};
 function hillHeightAt(x,z){
  const progress=THREE.MathUtils.clamp((-z-70)/49,0,1),rise=progress*progress*(3-2*progress);
@@ -131,8 +132,8 @@ const terrain3D=createTerrain({
  hill:hillHeightAt,
  keepouts:[{x:DESERT.statue.x,z:DESERT.statue.z,r:24,fade:8},{x:COLOSSEUM.center.x,z:COLOSSEUM.center.z,r:40,fade:8},{x:-36,z:-256,r:14,fade:6},{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:-12,z:-97,r:7,fade:5},{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z,r:9,fade:6},{x:MASSACRE_SPOT.x,z:MASSACRE_SPOT.z,r:6,fade:5},{x:SEWER_DOOR.x,z:SEWER_DOOR.z,r:5,fade:4},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:DISTRICT_SPOTS.plaza.x,z:DISTRICT_SPOTS.plaza.z,r:22,fade:8},{x:ALTAR_VALLEY.cx,z:ALTAR_VALLEY.cz,r:16,fade:8},{x:SERRA.cx,z:SERRA.cz-8,r:16,fade:8},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
  ponds:[FOREST_POND],
- extraAreas:[DISTRICT,...EXTRA_REGIONS,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
- paths:[{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5}]
+ extraAreas:[DISTRICT,...EXTRA_REGIONS,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6}],
+ paths:[{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5}]
 });
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
 function groundHeightAt(x,z){if(voidMode)return voidSpec.y;return terrain3D.height(x,z);}
@@ -258,7 +259,7 @@ const treeObstacles=[],rockObstacles=[],marketObstacles=[],walkableObstacles=[],
 const leafMid=mat(0x245035),mossMatA=mat(0x34522e),mossMatB=mat(0x465e32),grassMatA=mat(0x58763d),grassMatB=mat(0x304d31);
 const canopyWindUniforms=[leafMat,leafMid,leafLight].map((material,i)=>addInstancedWind(material,.075,'clamp((position.y+1.175)/2.35,0.0,1.0)',.72,'forest-canopy-wind-v163-'+i));
 for(const material of [leafMat,leafMid,leafLight,barkMat])addNearCameraFade(material);
-const trailRoutes=[{points:startTrail,width:3.4},{points:mainTrail,width:5.2},{points:villageTrail,width:4.0},{points:shopTrail,width:3.4},{points:districtTrail,width:3.6},{points:altarTrail,width:3.4},{points:serraTrail,width:3.4},{points:colosseumTrail,width:3.4},{points:desertTrail,width:3.4}];
+const trailRoutes=[{points:SEWER_TRAIL,width:3.4},{points:startTrail,width:3.4},{points:mainTrail,width:5.2},{points:villageTrail,width:4.0},{points:shopTrail,width:3.4},{points:districtTrail,width:3.6},{points:altarTrail,width:3.4},{points:serraTrail,width:3.4},{points:colosseumTrail,width:3.4},{points:desertTrail,width:3.4}];
 function addTrail(points,width){
  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],groundHeightAt(p[0],p[1]),p[1])),false,'centripetal');
  const steps=Math.max(48,points.length*14),vertices=[],uvs=[],indices=[];
@@ -313,7 +314,7 @@ function forestSpotFree(x,z){
   if(t.kind==='round')t.height=(7.2+t.tint*3.2)*t.s;
   else if(t.kind==='conifer')t.height=(t.collide?8.2:9.5)*t.s*(.85+t.tint*.35);
   else t.height=(1.05+t.tint*.45)*t.s;
-  if(t.collide)treeObstacles.push({x:t.x,z:t.z,radius:t.kind==='oak'?.25*t.height+.08:t.kind==='conifer'?.24*t.s+.2:.34*t.s+.18});
+  treeObstacles.push({x:t.x,z:t.z,radius:t.kind==='oak'?.25*t.height+.08:t.kind==='conifer'?.24*t.s+.2:.34*t.s+.18});
  }
 }
 const roundTrees=treeSpecs.filter(t=>t.kind==='round'),oakTrees=treeSpecs.filter(t=>t.kind==='oak'),coniferTrees=treeSpecs.filter(t=>t.kind==='conifer');
@@ -1071,6 +1072,7 @@ function renderDialoguePage(){
 }
 function showDialogue(pages,onFinish){
  dialoguePages=pages;dialogueIndex=0;dialogueFinish=onFinish||null;dialogueOpen=true;
+ moveVX=moveVZ=0;dashRemaining=0;actionUntil=0;endJoy();if(actions.idle)play('idle',.1);
  document.getElementById('dialog-panel').classList.remove('hidden');renderDialoguePage();
 }
 function advanceDialogue(){
@@ -1090,13 +1092,13 @@ function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
 function advanceAfterEnemyDefeat(){if(dimBattle&&dimBattle.active){if(act6GreedDefeat())return;if(questStep===ACT6N.rematch&&!dimBattle.outro){const r=nextRematch(act1Sub);if(r&&r.key===dimBattle.key){dimBattle.outro=true;enemy.visible=true;playStory('revanche-cai',rematchOutroScene(r.key),{focus:'enemy',done:()=>dimensionVictory()});return;}}if(dimBattle.key==='bishop1'&&questStep<8&&!dimBattle.outro){dimBattle.outro=true;valerioOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&questStep===ACT2.boss&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
 function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
-function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
+function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;const root=vendorRoots[villageVendors.indexOf(vendor)];if(root){faceTo(root,player.position);faceTo(player,root.position);}if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
 function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;const T=inSewer?sewerLocal(SEWER.portal):PORTAL,tz=T.z+(inSewer?1.2:2.4);player.position.x+=(T.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=(tz-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(T.x-player.position.x,T.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestValerioHandoff();}
 function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de Valério foi quebrado.';return;}updateHeartsHud(true);if(!canChallengeBishop(heartState)){status.textContent='Sem corações. O próximo volta em '+formatTimer(msToNextHeart(heartState))+'.';showDialogue([{who:'Anjo-Guia',text:'Não atravesse de peito vazio. Espere um coração voltar.'}]);return;}if(questStep===6){if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();act1Toast('A DIMENSÃO DE VALÉRIO SE ABRE');}if(questStep===7){status.textContent='O portal puxa você.';worldAudio.portalEnter();startPortalPull();}}
-function tryInteract(){if(cineActive){if(!namePromptOpen)cineDirector.tap();return;}if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen){advanceDialogue();return;}if(act1Interact())return;if(act2StoryInteract())return;if(act3Ready&&act3Interact())return;if(act3Ready&&act4Interact())return;if(act3Ready&&act6Interact())return;if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
+function tryInteract(){if(cineActive)return;if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen)return;if(act1Interact())return;if(act2StoryInteract())return;if(act3Ready&&act3Interact())return;if(act3Ready&&act4Interact())return;if(act3Ready&&act6Interact())return;if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
 bindInstantTap(document.getElementById('talk-button'),tryInteract);
-const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');bindInstantTap(skipAwakening,()=>skipIntroScene());}
+const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');skipAwakening.classList.add('hidden');}
 
 updateHeroNameQuiet();
 function updateHeroNameQuiet(){updateQuestHud();}
@@ -1173,7 +1175,7 @@ new GLTFLoader().load('./Protagonista.glb?mod172-grounding',gltf=>{
  if(hit)actions.hit=mixer.clipAction(hit);{const kip=chooseClip(clips,/kip/i);if(kip)actions.kipUp=mixer.clipAction(kip);}if(death)actions.death=mixer.clipAction(death);if(dash)actions.dash=mixer.clipAction(dash);if(block)actions.block=mixer.clipAction(block);
  play(actions.idle?'idle':actions.walk?'walk':'idle',0);
  window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);
- new GLTFLoader().load('./Protagonista-corrida.glb?v=mod213',g=>{const c=g.animations.find(a=>a.name==='Running');if(c&&model&&mixer){try{actions.run=mixer.clipAction(bakeRunClip(g.scene,c,model));}catch(err){console.warn('Corrida do herói indisponível:',err);}}},undefined,()=>{});}
+ new GLTFLoader().load('./Protagonista-corrida-216.glb?v=mod216',g=>{const c=g.animations.find(a=>a.name==='Running');if(c&&model&&mixer){try{actions.run=mixer.clipAction(bakeRunClip(g.scene,c,model,g.animations.find(a=>a.name==='Idle')));}catch(err){console.warn('Corrida do herói indisponível:',err);}}},undefined,()=>{});}
  fitGuideModel();addVillageVendors();
  player.userData.ready=true;loading.classList.add('hidden');precompileWorld();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep,act1Sub)).objective;
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
@@ -1291,14 +1293,14 @@ lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))re
 const lookSensitivity=(firstPersonLook?.0022:.004)*userSettings.sensitivity;
 cameraYaw-=dx*lookSensitivity;
 cameraPitch=THREE.MathUtils.clamp(cameraPitch+dy*(firstPersonLook?.003:.004)*userSettings.sensitivity,-1.32,1.32);});
-function endLook(e){const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
+function endLook(e){const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
 lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);lookArea.addEventListener('lostpointercapture',endLook);
 lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);syncCameraToggle3D();},{passive:true});
 addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';});
 
 function blockedAt(x,z){
  if(voidMode)return voidSpec.walk?!voidSpec.walk(x-voidSpec.x,z-voidSpec.z):Math.hypot(x-voidSpec.x,z-voidSpec.z)>voidSpec.radius;
- if(!terrain3D.walkable(x,z))return true;
+ if(!terrain3D.walkable(x,z)||Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)<FOREST_POND.r+1)return true;
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const o of marketObstacles){if(o.height!==undefined&&o.height<=.68)continue;const dx=x-o.x,dz=z-o.z;if(o.shape==='box'?Math.abs(dx)<o.halfX&&Math.abs(dz)<o.halfZ:dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
@@ -1306,6 +1308,7 @@ function blockedAt(x,z){
 }
 function playerBlockedAt(x,z){
  if(blockedAt(x,z))return true;
+ if(!voidMode&&[...vendorRoots,...villagerWalkers.map(w=>w.holder)].some(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8))return true;
  if(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(s=>Math.abs(x-s.x)<.72&&Math.abs(z-s.z)<.72))return true;
  return !!(enemy&&enemy.visible&&enemyAlive&&Math.hypot(x-enemy.position.x,z-enemy.position.z)<.86);
 }
@@ -1332,13 +1335,18 @@ const childFollowers=[];
 function buildAct1Cages(){
  const barMat=woodMat,iron=mat(0x3a342c);
  for(const spot of CAGE_SPOTS){
-  const g=new THREE.Group();g.position.set(spot.x,0,spot.z);scene.add(g);
+  const g=new THREE.Group();g.position.set(spot.x,groundHeightAt(spot.x,spot.z),spot.z);scene.add(g);
   const floor=new THREE.Mesh(new THREE.BoxGeometry(1.35,.08,1.35),woodLightMat);floor.position.y=.04;floor.receiveShadow=true;g.add(floor);
   for(const x of [-.62,.62])for(const z of [-.62,.62]){const post=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,1.35,5),woodMat);post.position.set(x,.72,z);post.castShadow=true;g.add(post);}
-  for(let i=0;i<4;i++){const bar=new THREE.Mesh(new THREE.BoxGeometry(.04,1.15,.04),iron);bar.position.set(-.62+i*.41,.78,.62);g.add(bar);}
-  const door=new THREE.Group();door.position.set(0,0,-.62);g.add(door);
-  for(const x of [-.28,.28]){const bar=new THREE.Mesh(new THREE.BoxGeometry(.045,1.2,.045),iron);bar.position.set(x,.75,0);door.add(bar);}
-  const latch=new THREE.Mesh(new THREE.BoxGeometry(.7,.05,.05),iron);latch.position.set(0,1.15,0);door.add(latch);
+  for(const z of [-.62,.62])for(let i=0;i<=8;i++){
+   if(z<0)continue;
+   const bar=new THREE.Mesh(new THREE.BoxGeometry(.045,1.32,.045),iron);bar.position.set(-.62+i*.155,.72,z);g.add(bar);
+  }
+  for(const x of [-.62,.62])for(let i=0;i<=8;i++){const bar=new THREE.Mesh(new THREE.BoxGeometry(.045,1.32,.045),iron);bar.position.set(x,.72,-.62+i*.155);g.add(bar);}
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(1.35,.08,1.35),woodLightMat);roof.position.y=1.42;g.add(roof);
+  const door=new THREE.Group();door.position.set(-.62,0,-.62);g.add(door);
+  for(let i=0;i<=8;i++){const bar=new THREE.Mesh(new THREE.BoxGeometry(.045,1.32,.045),iron);bar.position.set(i*.155,.72,0);door.add(bar);}
+  for(const y of [.1,1.38]){const rail=new THREE.Mesh(new THREE.BoxGeometry(1.28,.07,.07),iron);rail.position.set(.62,y,0);door.add(rail);}
   cageDoors.push(door);
  }
  cageRootVisible();
@@ -1351,7 +1359,7 @@ function spawnAct1Children(){buildAct1Props();}
 buildAct1Cages();
 
 var debugDtScale=1;// só o modo de teste (?debug3d=1) muda isto, para acelerar as cenas no navegador sem GPU
-function animate(){requestAnimationFrame(animate);if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const rawDt=Math.min(clock.getDelta(),.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z);if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
+function animate(){requestAnimationFrame(animate);if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const rawDt=Math.min(clock.getDelta(),.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z);if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
  if(enemyAlive||enemyHasDeathClip)enemy.position.y=terrainHeightAt(enemy.position.x,enemy.position.z);
@@ -1380,7 +1388,7 @@ function animate(){requestAnimationFrame(animate);if(vsOpen||gamePaused||menuGat
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
-if(dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineActive){axisX=0;axisZ=0;}
+if(dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineActive){axisX=0;axisZ=0;moveVX=moveVZ=0;dashRemaining=0;}
 // MOD 206 — dimensão distorcida do Ato III: frente vira trás e esquerda vira direita.
 if(distorted||performance.now()<foeInvertUntil){axisX=-axisX;axisZ=-axisZ;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
@@ -1389,7 +1397,8 @@ let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
 const dead=.12;if(len<dead){axisX=0;axisZ=0;}else{const power=(len-dead)/(1-dead);axisX=axisX/len*power;axisZ=axisZ/len*power;}
 const worldX=axisX*Math.cos(cameraYaw)+axisZ*Math.sin(cameraYaw);
 const worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
-const speed=(defending?1.9:isSprinting()?7.2:4.3)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
+const engaged=enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;
+const speed=(defending?1.9:engaged?3.2:isSprinting()?7.2:4.3)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
@@ -1551,7 +1560,7 @@ const portalBeacon=(()=>{const c=document.createElement('canvas');c.width=4;c.he
  grad.addColorStop(0,'rgba(214,170,255,0.95)');grad.addColorStop(.18,'rgba(160,92,255,0.55)');grad.addColorStop(.7,'rgba(120,60,255,0.14)');grad.addColorStop(1,'rgba(120,60,255,0)');g.fillStyle=grad;g.fillRect(0,0,4,128);
  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.75,1.6,64,14,1,true),new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:.32,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false,toneMapped:false}));
- beam.position.set(PORTAL.x,groundHeightAt(PORTAL.x,PORTAL.z)+39,PORTAL.z-.6);beam.renderOrder=3;beam.frustumCulled=false;scene.add(beam);return beam;})();
+ beam.position.set(PORTAL.x,groundHeightAt(PORTAL.x,PORTAL.z)+39,PORTAL.z-.6);beam.renderOrder=3;beam.frustumCulled=false;beam.visible=false;scene.add(beam);return beam;})();
 function makeSoftDotTexture(){const c=document.createElement('canvas');c.width=32;c.height=32;const g=c.getContext('2d'),r=g.createRadialGradient(16,16,0,16,16,16);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.35,'rgba(255,255,255,.55)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,32,32);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
 const softDot=makeSoftDotTexture();
 const FIREFLY_COUNT=terrainLowSpec?36:64,LEAF_COUNT=terrainLowSpec?22:40;
@@ -2101,7 +2110,7 @@ function updatePrologue(dt){
  const text=document.getElementById('prologue-text');if(text){let line='';for(const [t,l] of PROLOGUE_LINES)if(prologueT>=t)line=l;const local=PROLOGUE_LINES.findIndex(([t])=>t>prologueT);const nextT=local<0?PROLOGUE_DURATION:PROLOGUE_LINES[local][0];const show=line&&prologueT<nextT-.7;if(text.textContent!==line)text.textContent=line;text.classList.toggle('show',!!show);}
  if(prologueT>=PROLOGUE_DURATION)endPrologue();
 }
-function skipIntroScene(){if(prologueActive){prologueActive=false;document.body.classList.remove('cinematic');const t=document.getElementById('prologue-text');if(t)t.classList.remove('show');}finishAwakening();}
+function skipIntroScene(){if(!awakeningSeen)return;if(prologueActive){prologueActive=false;document.body.classList.remove('cinematic');const t=document.getElementById('prologue-text');if(t)t.classList.remove('show');}finishAwakening();}
 const GALAXY_STORE='seven-sins-galaxies';
 function openGalaxyScreen(){
  let save={};try{save=JSON.parse(localStorage.getItem(GALAXY_STORE)||'{}');}catch(_){}
@@ -2175,7 +2184,7 @@ function cineBegin(){
  cineActive=true;cineShot='';cineCut=true;document.body.classList.add('cinematic');
  const skip=cineEl('cine-skip');if(skip){skip.hidden=false;skip.textContent='PULAR';}
  cineSavedFov=camera.fov;camera.fov=50;camera.updateProjectionMatrix();
- moveVX=moveVZ=0;dashRemaining=0;actionUntil=Infinity;setDefending(false);
+ moveVX=moveVZ=0;dashRemaining=0;actionUntil=Infinity;setDefending(false);endJoy();if(actions.idle)play('idle',.15);
 }
 function cineEnd(){
  cineActive=false;cineShot='';document.body.classList.remove('cinematic');
@@ -2220,7 +2229,7 @@ function startAwakeningCine(){
  guide.lookAt(ax,guide.position.y,az);guide.visible=false;
  cineAwake={x:ax,z:az,yaw:playerYaw};awakeningActive=false;
  cineBegin();loadCineAssets().catch(()=>{}).then(()=>{if(cineActive&&cineShot==='olhos-abrem'&&actions.olharMaos)playOnce('olharMaos',.2);});
- cineDirector.play('despertar',awakeningScene());
+ cineDirector.play('despertar',awakeningScene(),null,{skippable:false});cineEl('cine-skip').hidden=true;
 }
 function cineAcceptMission(){
  if(questStep!==0)return;
@@ -2259,8 +2268,8 @@ function cineAsk(id){
 bindInstantTap(cineEl('choice-yes'),()=>{if(cineEl('choice-card').hidden)return;if(choiceMode==='pergaminho')receiveScroll();else coatChoice(true);});
 bindInstantTap(cineEl('choice-no'),()=>{if(cineEl('choice-card').hidden)return;coatChoice(false);});
 bindInstantTap(cineEl('mission-accept'),()=>{if(cineEl('mission-card').hidden)return;cineEl('mission-card').hidden=true;cineAcceptMission();worldAudio.unlock();cineDirector.resume();});
-bindInstantTap(cineEl('cine-skip'),()=>{if(!cineDirector.running)return;const now=performance.now(),b=cineEl('cine-skip');if(now<cineSkipArmedUntil){cineSkipArmedUntil=0;cineDirector.skip();return;}cineSkipArmedUntil=now+2600;b.textContent='TOQUE DE NOVO PARA PULAR';setTimeout(()=>{if(performance.now()>=cineSkipArmedUntil)b.textContent='PULAR';},2700);});
-addEventListener('pointerdown',e=>{if(!cineActive||namePromptOpen)return;const t=e.target;if(t&&t.closest&&t.closest('button,input,#mission-card,#choice-card,#name-panel'))return;cineDirector.tap();},true);
+bindInstantTap(cineEl('cine-skip'),()=>{if(!cineDirector.running||cineDirector.scene==='despertar')return;const now=performance.now(),b=cineEl('cine-skip');if(now<cineSkipArmedUntil){cineSkipArmedUntil=0;cineDirector.skip();return;}cineSkipArmedUntil=now+2600;b.textContent='TOQUE DE NOVO PARA PULAR';setTimeout(()=>{if(performance.now()>=cineSkipArmedUntil)b.textContent='PULAR';},2700);});
+bindInstantTap(cineEl('cine-continue'),()=>{if(cineActive&&!namePromptOpen)cineDirector.tap();});
 function cineCam(px,py,pz,lx,ly,lz,follow,dt){
  cineV.set(px,py,pz);cineV2.set(lx,ly,lz);
  // A câmera do jogo mexe em camera.position a cada quadro; a câmera da cena guarda a própria posição (cinePos).
@@ -2372,38 +2381,40 @@ function closeProfile(){const panel=document.getElementById('profile-panel');if(
 })();
 /* MOD 191 — moradores de verdade: Npc.glb (versão leve Npc-lod.glb, 33 mil vértices, mesma aparência e
    animações) substitui os clones do protagonista nas bancas; três moradores caminham pela vila. */
-const VILLAGER_TINTS=[0xffffff,0xd9c6a8,0xb8c8d9,0xd6b0b0,0xc2d1b0,0xe0d0f0];
-const villagerWalkers=[];
-function loadVillagers(){
- new GLTFLoader().load('./Npc-lod2.glb?v=mod202',gltf=>{
-  const clips=gltf.animations||[],byName=n=>clips.find(c=>c.name===n);
-  const idleClips=[byName('_01a156a3_6952_769b_94bf_2cf0e9d19b46'),byName('Agree_Gesture'),byName('Alert')].filter(Boolean),walkClip=byName('Walking');
-  const base=gltf.scene;base.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
-  const box=measureModelBounds(base),size=box.getSize(new THREE.Vector3()),scale=size.y>.01?(playerReferenceHeight*.98)/size.y:1;
-  const make=(tintIndex)=>{const c=cloneSkinned(base),holder=new THREE.Group();c.scale.setScalar(scale);c.position.y=-box.min.y*scale;c.rotation.y=Math.PI;/* o Npc.glb olha para -Z */holder.add(c);
-   const tint=new THREE.Color(VILLAGER_TINTS[tintIndex%VILLAGER_TINTS.length]);c.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.color.multiply(tint);/* sem mapa de ambiente, metal vira preto: tecido e couro ficam foscos */o.material.metalness=0;o.material.metalnessMap=null;o.material.roughness=Math.max(.7,o.material.roughness||0);if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x6a5a50);o.material.emissiveIntensity=.8;}o.material.needsUpdate=true;}});
-   return{holder,model:c,mixer:new THREE.AnimationMixer(c)};};
-  // Bancas: troca os clones antigos por moradores, cada um com um gesto de repouso diferente.
-  for(const mixer of villageNpcMixers.splice(0))mixer.stopAllAction();villageNpcBreathing.length=0;
-  for(const root of vendorRoots)villageGroup.remove(root);vendorRoots.length=0;
-  villageVendors.forEach((p,i)=>{const v=make(i+1);v.holder.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.holder.rotation.y=p.yaw;villageGroup.add(v.holder);vendorRoots.push(v.holder);
-   const clip=idleClips[i%Math.max(1,idleClips.length)];if(clip){const a=v.mixer.clipAction(clip);a.play();a.time=i*.7;}villageNpcMixers.push(v.mixer);});
-  // Moradores que circulam pela praça (rotas fechadas, longe das bancas e da trilha principal).
-  const routes=[[[-20,-38],[-16,-33],[-8,-35],[-6,-41],[-12,-39]],[[-22,-50],[-15,-55],[-8,-52],[-13,-48]],[[-4,-52],[2,-49],[4,-44],[-2,-47]]];
-  if(walkClip)routes.forEach((route,i)=>{const v=make(i+3);const a=v.mixer.clipAction(walkClip);a.play();a.time=i*.4;villageGroup.add(v.holder);villageNpcMixers.push(v.mixer);villagerWalkers.push({holder:v.holder,route,leg:0,t:Math.random(),speed:.95+i*.1,pause:0,idle:idleClips[0]?v.mixer.clipAction(idleClips[0]):null,walk:a});});
-  window.SevenSinsVillagerReport={vendors:villageVendors.length,walkers:villagerWalkers.length,clips:clips.map(c=>c.name)};
- },undefined,err=>console.warn('Npc-lod.glb não carregou; mantendo os moradores antigos.',err));
+// MOD 216 — elenco próprio, gerado em Blender, com roupas, silhuetas e rostos distintos.
+const villagerWalkers=[];let villageCastPromise=null,villageCast=null;
+function loadVillageCast(){return villageCastPromise||(villageCastPromise=new Promise((resolve,reject)=>new GLTFLoader().load('./Moradores-216.glb?v=mod216',g=>{villageCast=g.scene;resolve(g.scene);},undefined,reject)));}
+function castMember(name){const src=villageCast&&villageCast.getObjectByName(name);if(!src)return null;const c=src.clone(true);c.userData.phase=0;c.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});return c;}
+function poseVillager(c,t,walking=false,fear=false){
+ c.traverse(o=>{if(/_leg[LR]$/.test(o.name))o.rotation.x=walking?Math.sin(t*6+(o.name.endsWith('L')?0:Math.PI))*.32:0;
+ if(/_arm[LR]$/.test(o.name))o.rotation.x=fear?-1.1+Math.sin(t*13)*.16:walking?Math.sin(t*6+(o.name.endsWith('L')?Math.PI:0))*.24:Math.sin(t*1.5)*.025;
+ if(/_head$/.test(o.name))o.rotation.z=Math.sin(t*(fear?11:1.3))*(fear?.14:.025);});
 }
+function loadVillagers(){loadVillageCast().then(()=>{
+ for(const mixer of villageNpcMixers.splice(0))mixer.stopAllAction();villageNpcBreathing.length=0;
+ for(const root of vendorRoots)villageGroup.remove(root);vendorRoots.length=0;
+ villageVendors.forEach((p,i)=>{const v=castMember(['Lia','Mara','Teo','Iria'][i%4]);v.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.rotation.y=p.yaw;villageGroup.add(v);vendorRoots.push(v);});
+ for(let i=0;i<3;i++){const v=castMember(['Lia','Mara','Iria'][i]);let found=false;
+  for(let n=0;n<200;n++){const a=n*2.4+i,r=3+n*.06,x=VILLAGE_CENTER.x+Math.sin(a)*r,z=VILLAGE_CENTER.z+Math.cos(a)*r;
+   if(!blockedAt(x,z)&&!vendorRoots.some(o=>Math.hypot(x-o.position.x,z-o.position.z)<1.5)){v.position.set(x,groundHeightAt(x,z),z);found=true;break;}}
+  if(found){villageGroup.add(v);villagerWalkers.push({holder:v,speed:.8+i*.08,pause:i,phase:i,direction:i*2,target:null});}}
+ window.SevenSinsVillagerReport={vendors:vendorRoots.length,walkers:villagerWalkers.length,asset:'Moradores-216.glb'};
+}).catch(err=>console.warn('Moradores não carregaram; mantendo os anteriores.',err));}
 function updateVillagers(dt){
- for(const w of villagerWalkers){
-  if(w.pause>0){w.pause-=dt;if(w.pause<=0&&w.idle){w.idle.fadeOut(.3);w.walk.reset().fadeIn(.3).play();}continue;}
-  const a=w.route[w.leg],b=w.route[(w.leg+1)%w.route.length],len=Math.hypot(b[0]-a[0],b[1]-a[1])||1;
-  w.t+=dt*w.speed/len;
-  if(w.t>=1){w.t=0;w.leg=(w.leg+1)%w.route.length;if(Math.random()<.35&&w.idle){w.pause=2+Math.random()*3;w.walk.fadeOut(.3);w.idle.reset().fadeIn(.3).play();}continue;}
-  // Desvia do herói: espera em vez de atravessá-lo.
-  const x=a[0]+(b[0]-a[0])*w.t,z=a[1]+(b[1]-a[1])*w.t;if(Math.hypot(x-player.position.x,z-player.position.z)<1.1){w.t-=dt*w.speed/len;continue;}
-  w.holder.position.set(x,groundHeightAt(x,z),z);
-  const yaw=Math.atan2(b[0]-a[0],b[1]-a[1]),d=Math.atan2(Math.sin(yaw-w.holder.rotation.y),Math.cos(yaw-w.holder.rotation.y));w.holder.rotation.y+=d*Math.min(1,dt*6);
+ for(const c of vendorRoots){c.userData.phase=(c.userData.phase||0)+dt;poseVillager(c,c.userData.phase);}
+ for(const w of villagerWalkers){const o=w.holder;w.phase+=dt;
+  if(voidMode||dialogueOpen||cineActive){poseVillager(o,w.phase);continue;}
+  if(w.pause>0){w.pause-=dt;poseVillager(o,w.phase);continue;}
+  if(!w.target){for(let i=0;i<12;i++){const a=w.direction+(i?((i%2?1:-1)*Math.ceil(i/2)*.55):0),x=o.position.x+Math.sin(a)*2,z=o.position.z+Math.cos(a)*2;
+   if(Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>19)continue;
+   if([.25,.5,.75,1].some(k=>blockedAt(o.position.x+(x-o.position.x)*k,o.position.z+(z-o.position.z)*k)))continue;
+   w.target={x,z};w.direction=a;break;}if(!w.target){w.direction+=Math.PI;w.pause=.7;continue;}}
+  const dx=w.target.x-o.position.x,dz=w.target.z-o.position.z,d=Math.hypot(dx,dz);
+  if(d<.1){w.target=null;w.direction+=(Math.random()-.5)*1.4;w.pause=.5+Math.random()*2;continue;}
+  const step=Math.min(d,w.speed*dt),x=o.position.x+dx/d*step,z=o.position.z+dz/d*step;
+  const crowd=[player,...vendorRoots,...villagerWalkers.filter(v=>v!==w).map(v=>v.holder)];
+  if(blockedAt(x,z)||crowd.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<1.05)){w.target=null;w.direction+=1.5;w.pause=.5;poseVillager(o,w.phase);continue;}
+  o.position.set(x,groundHeightAt(x,z),z);o.rotation.y=Math.atan2(dx,dz);poseVillager(o,w.phase,true);
  }
 }
 /* MOD 192 — missões opcionais da vila: ofertas nas bancas, itens no mundo, diário no quadro de missão. */
@@ -2675,14 +2686,14 @@ function playStory(id,steps,opts){
 }
 function endStory(skipped){
  const s=storyScene;storyScene=null;storyMove=null;
- if(skipped)for(const fx of storyFx.splice(0))if(fx.finish)fx.finish();
+ for(const fx of storyFx.splice(0))if(fx.finish)fx.finish();
  cineEnd();if(s&&s.done)s.done(skipped);
 }
 function storyTitle(kicker,title){const el=cineEl('cine-title');el.querySelector('span').textContent=kicker||'';el.querySelector('strong').textContent=title||'';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4200);}
 function storyFlash(color,ms){const el=cineEl('cine-fade');el.classList.toggle('white',color==='white');el.style.background=color&&color!=='white'?color:'';el.style.transition='opacity .08s';el.style.opacity='.85';setTimeout(()=>{el.style.transition='opacity '+(ms/1000)+'s ease';el.style.opacity='0';setTimeout(()=>{el.style.background='';},ms+50);},90);}
 /** Puxa a câmera para perto do alvo se houver parede/casa/banca no caminho (colisão 2D do mundo ou do esgoto). */
 function storyCam(px,py,pz,lx,ly,lz,follow,dt,high){
- if(!high){const dx=px-lx,dz=pz-lz,len=Math.hypot(dx,dz);if(len>.6)for(let i=2;i<=14;i++){const f=i/14;if(blockedAt(lx+dx*f,lz+dz*f)){const k=Math.max(.3/len,(i-1.6)/14);px=lx+dx*k;pz=lz+dz*k;break;}}}
+ if(!high){const dx=px-lx,dz=pz-lz,len=Math.hypot(dx,dz);if(len>.6)for(let i=2;i<=14;i++){const f=i/14;if(blockedAt(lx+dx*f,lz+dz*f)){const k=Math.max(.3/len,(i-1.6)/14);px=lx+dx*k;pz=lz+dz*k;if(len*k<1.6){px=lx+dx/len*2.4;pz=lz+dz/len*2.4;py=Math.max(py,ly+2.2);}break;}}}
  cineCam(px,py,pz,lx,ly,lz,follow,dt);
 }
 /** Câmera das cenas da história: falas em "por cima do ombro" de quem escuta; planos pelos argumentos do passo. */
@@ -2783,7 +2794,7 @@ function buildAct1Props(){
   const tint=m=>{m.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.metalness=0;o.material.roughness=Math.max(.75,o.material.roughness||0);if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x4a3e36);o.material.emissiveIntensity=.7;}o.castShadow=false;}});return m;};
   for(const b of BEGGARS){const m=tint(poses.MendigoSentado.clone());m.position.set(b.x,groundHeightAt(b.x,b.z),b.z);m.rotation.y=b.yaw;villageGroup.add(m);}
   // As crianças presas (sentadas, abraçando os joelhos) — são elas que se transformam.
-  for(const s of CAGE_SPOTS){const m=tint(poses.MendigoSentado.clone());m.scale.setScalar(.56);m.position.set(s.x,groundHeightAt(s.x,s.z)+.08,s.z);m.rotation.y=Math.PI;scene.add(m);act1Props.kids.push(m);}
+  loadVillageCast().then(()=>{CAGE_SPOTS.forEach((s,i)=>{const m=castMember(i?'CriancaB':'CriancaA');m.position.set(s.x,groundHeightAt(s.x,s.z)+.08,s.z);m.rotation.y=Math.PI;scene.add(m);act1Props.kids.push(m);});syncAct1World();}).catch(console.warn);
   syncAct1World();
  },undefined,e=>console.warn('MoradoresPose.glb não carregou.',e));
  // Moscas sobre a comida podre e os corpos (uma chamada de desenho).
@@ -2798,6 +2809,10 @@ function buildSewerDoor(){
  // Entrada do esgoto na encosta: arco de pedra com grade arrombada e escuridão dentro.
  const g=new THREE.Group();g.position.set(SEWER_DOOR.x,groundHeightAt(SEWER_DOOR.x,SEWER_DOOR.z),SEWER_DOOR.z);g.rotation.y=SEWER_DOOR.yaw;scene.add(g);
  const stone=mat(0x55524a),dark=new THREE.MeshBasicMaterial({color:0x020202});
+ // Contraforte conectado ao terreno atrás do arco; a entrada não fica solta no campo.
+ const ridge=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),stone);ridge.scale.set(14,13,12);ridge.position.set(0,6,-12);ridge.castShadow=true;g.add(ridge);
+ for(const side of [-1,1]){const flank=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),stone);flank.scale.set(6,7,8);flank.position.set(side*8.5,3,-5);g.add(flank);}
+ const backX=SEWER_DOOR.x-Math.sin(SEWER_DOOR.yaw)*12,backZ=SEWER_DOOR.z-Math.cos(SEWER_DOOR.yaw)*12;marketObstacles.push({x:backX,z:backZ,radius:10,height:17});
  const rocks=[];for(let i=0;i<9;i++){const a=(i/8)*Math.PI;rocks.push([Math.cos(a)*2.2,.3+Math.sin(a)*2.3,-.3]);}
  for(const [x,y,z] of rocks){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.62,0),stone);r.position.set(x,y,z);r.rotation.set(x,y,z);r.castShadow=true;g.add(r);}
  for(let i=0;i<7;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(1.4+Math.random(),0),stone);r.position.set((Math.random()-.5)*7,1+Math.random()*2.4,-1.6-Math.random()*1.5);r.castShadow=true;g.add(r);}
@@ -2813,7 +2828,7 @@ function syncAct1World(){
  if(!act1Props)return;
  for(const k of act1Props.kids)k.visible=(questStep===2||(questStep===3&&act1Sub===0))&&!childrenFreed;
  if(act1Props.door)act1Props.door.visible=questStep>=4&&questStep<8;
- portalGroup.visible=questStep>=8;
+ portalGroup.visible=questStep>=8;portalBeacon.visible=false;
 }
 function updateFlies(now){const f=act1Props&&act1Props.flies;if(!f||Math.hypot(player.position.x-VILLAGE_CENTER.x,player.position.z-VILLAGE_CENTER.z)>40)return;const t=now*.001,a=f.geo.attributes.position;
  for(let i=0;i<f.seed.length;i++){const s=f.seed[i],ang=s.a+t*s.v;a.array[i*3]=s.s.x+Math.cos(ang)*s.r;a.array[i*3+1]=groundHeightAt(s.s.x,s.s.z)+s.h+Math.sin(t*7+i)*.08;a.array[i*3+2]=s.s.z+Math.sin(ang*1.3)*s.r;}a.needsUpdate=true;}
@@ -2824,12 +2839,12 @@ function enterSewer(at){
  const c=sewerLocal(at||sewerCheckpoint(questStep,act1Sub));player.position.set(c.x,voidSpec.y,c.z);playerYaw=(at&&at.yaw!==undefined)?at.yaw:Math.PI;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;
  checkpointX=c.x;checkpointZ=c.z;camera.position.set(c.x-Math.sin(playerYaw)*6,voidSpec.y+3,c.z-Math.cos(playerYaw)*6);
  const r=sewerArena.refs;if(r.cage){r.cage.bars.position.y=questStep>=5||(questStep===4&&act1Sub>=3)?0:-3.2;r.cage.top.position.y=r.cage.bars.position.y+2.6;}
- if(r.portal)r.portal.visible=true;
+ if(r.portal)r.portal.visible=true;if(r.seal){r.seal.visible=questStep>=5;r.seal.scale.y=1;}
  worldAudio.portalEnter();
 }
 function leaveSewer(to){
  inSewer=false;voidSpec.walk=null;leaveVoid();for(const c of hordeClones.splice(0))disposeClone(c);guideFighting=false;
- const p=to||sewerDoorFront();player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);checkpointX=p.x;checkpointZ=p.z;
+ const p=to||sewerDoorFront();player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);checkpointX=p.x;checkpointZ=p.z;camera.position.set(p.x+Math.sin(cameraYaw)*6,player.position.y+3,p.z+Math.cos(cameraYaw)*6);
  setGameHour(act1Night?21.5:9);
 }
 function travelVeil(cb){const veil=document.getElementById('travel-veil');if(veil)veil.classList.add('on');setTimeout(()=>{cb();setTimeout(()=>{if(veil)veil.classList.remove('on');},180);},520);}
@@ -2945,7 +2960,7 @@ function playHole(){
  playStory('buraco',holeScene(),{focus:'guide',done:skipped=>{
   act1Lock=false;
   if(skipped){const c=sewerLocal(SEWER.checkpoints.path);player.position.set(c.x,voidSpec.y,c.z);setCineFade(0,.6,false);}
-  guideFighting=true;act1Advance(5,0);status.textContent='Siga pelo caminho vazio. O Anjo segura a horda.';
+  guideFighting=!skipped;if(sewerArena&&sewerArena.refs.seal){sewerArena.refs.seal.visible=true;sewerArena.refs.seal.scale.y=1;}if(skipped){guide.visible=false;for(const c of hordeClones.splice(0))disposeClone(c);}act1Advance(5,0);status.textContent='Siga pelo caminho vazio. O Anjo segura a horda.';
   const cp=sewerLocal(SEWER.checkpoints.path);checkpointX=cp.x;checkpointZ=cp.z;
  }});
 }
@@ -2983,8 +2998,13 @@ function storyDo(id,args){
    break;
   case 'abrir-gaiola':openCageDoors();worldAudio.reveal();break;
   case 'transformar-criancas':{
-   storyFlash('#5a0008',900);worldAudio.corrupt();
-   setTimeout(()=>{for(const k of act1Props?act1Props.kids:[])k.visible=false;startPack({rig:'enemy1',profile:'captor',hp:110,spots:CAGE_SPOTS.map(s=>({x:s.x,z:s.z+1.2})),hold:true,onDone:childrenCleared});},450);
+   worldAudio.sob();const kids=act1Props?act1Props.kids:[];
+   const finish=()=>{for(const k of kids){k.visible=false;k.rotation.z=0;}if(!pack)startPack({rig:'enemy1',profile:'captor',hp:110,spots:CAGE_SPOTS.map(s=>({x:s.x,z:s.z+1.2})),hold:true,onDone:childrenCleared});};
+   let changed=false;
+   storyFx.push({t:0,tick(t){for(let i=0;i<kids.length;i++){const k=kids[i];k.rotation.z=Math.sin(t*(10+t*3)+i)*Math.min(.2,t*.06);k.rotation.x=-Math.min(.35,t*.1);poseVillager(k,t,false,true);}
+    if(t>4.4&&!changed){changed=true;storyFlash('#420820',900);worldAudio.corrupt();finish();}
+    if(changed&&pack)for(const c of pack.clones)if(c)c.holder.scale.setScalar(Math.min(1,.35+(t-4.4)*.45));return t<6.4;
+   },finish});
    break;}
   case 'desmaiar':if(actions.ajoelhar)playOnce('ajoelhar',.4);setTimeout(()=>setCineFade(1,1.2,false),1100);break;
   case 'amanhecer':setTimeout(()=>{setGameHour(6.8);act1Night=false;if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=0;}setCineFade(0,1.8,false);},300);break;
@@ -2994,33 +3014,38 @@ function storyDo(id,args){
   case 'anjo-parte':storyFx.push({t:0,tick(t){guide.scale.setScalar(Math.max(.01,1-t/1));if(t>1){guide.visible=false;guide.scale.setScalar(1);return false;}},finish(){guide.visible=false;guide.scale.setScalar(1);}});break;
   case 'massacre-inicio':{
    const m=MASSACRE_SPOT,poses=act1Props&&act1Props.poses;
-   if(poses){for(const [dx,dz,yaw] of [[.6,.2,0],[-.8,-.4,.6]]){const v=poses.MendigoSentado.clone();v.position.set(m.x+dx,groundHeightAt(m.x+dx,m.z+dz),m.z+dz);v.rotation.y=yaw;scene.add(v);act1Props.victims.push(v);}}
+   if(poses){for(const [dx,dz,yaw] of [[.6,.2,0],[-.8,-.4,.6]]){const v=castMember(dx>0?'Lia':'Mara')||poses.MendigoSentado.clone();v.position.set(m.x+dx,groundHeightAt(m.x+dx,m.z+dz),m.z+dz);v.rotation.y=yaw;scene.add(v);act1Props.victims.push(v);}}
    storyAnchors.victim={x:m.x,z:m.z,yaw:0};
    startPack({rig:'enemy2',profile:'demon2',hp:ACT1.enemy2Hp,spots:massacreSpots(),hold:true});
    if(pack)for(const c of pack.clones)if(c)c.lookAt={x:m.x,z:m.z};
    break;}
   case 'correr-ate-massacre':{const m=MASSACRE_SPOT,dx=m.x-P.x,dz=m.z-P.z,d=Math.hypot(dx,dz)||1,to={x:m.x-dx/d*5.5,z:m.z-dz/d*5.5};storyMove={t:0,dur:2.2,from:{x:P.x,z:P.z},to};if(actions.walk){play('walk',.2);actions.walk.setEffectiveTimeScale(1.4);}storyMove.done=()=>{if(actions.walk)actions.walk.setEffectiveTimeScale(1);if(actions.idle)play('idle',.3);};break;}
   case 'massacre-fim':{
-   storyFlash('#3a0000',700);worldAudio.hit();
-   const poses=act1Props&&act1Props.poses;for(const v of act1Props?act1Props.victims:[]){if(poses){const d=poses.MoradorCaido.clone();d.position.copy(v.position);d.rotation.y=v.rotation.y+1.2;scene.add(d);}scene.remove(v);}
-   if(act1Props)act1Props.victims.length=0;if(pack)for(const c of pack.clones)if(c)c.lookAt=null;
+   worldAudio.whoosh();
+   if(pack)for(const c of pack.clones)if(c){const src=rigSource('enemy2'),a=src&&src.actions.attack;if(a){c.mixer.stopAllAction();c.mixer.clipAction(a.getClip()).setLoop(THREE.LoopOnce,1).play();}}
+   const victims=act1Props?act1Props.victims:[];let impact=false;
+   const finish=()=>{for(const v of victims){v.rotation.x=-Math.PI/2;v.position.y=groundHeightAt(v.position.x,v.position.z)+.15;}if(pack)for(const c of pack.clones)if(c)c.lookAt=null;};
+   storyFx.push({t:0,tick(t){if(t>.6&&!impact){impact=true;worldAudio.hit();cameraShake(.12);}if(t>.6)for(const v of victims){const k=Math.min(1,(t-.6)/1.1);v.rotation.x=-k*Math.PI/2;v.position.y=groundHeightAt(v.position.x,v.position.z)+Math.sin(k*Math.PI)*.2;}return t<2.2;},finish});
    storyAnchors.enemy=(()=>{const c=pack&&pack.clones[0];return c?{x:c.holder.position.x,z:c.holder.position.z,yaw:c.holder.rotation.y}:null;})()||undefined;if(!storyAnchors.enemy)delete storyAnchors.enemy;
    break;}
-  case 'correr-ao-buraco':{const h=sewerLocal(SEWER.hole),dx=h.x-P.x,dz=h.z-P.z,d=Math.hypot(dx,dz)||1,to={x:h.x-dx/d*2.1,z:h.z-dz/d*2.1};storyMove={t:0,dur:1.2,from:{x:P.x,z:P.z},to};if(actions.walk){play('walk',.15);actions.walk.setEffectiveTimeScale(1.5);}storyMove.done=()=>{if(actions.walk)actions.walk.setEffectiveTimeScale(1);};break;}
-  case 'pular':{const h=sewerLocal(SEWER.hole);storyMove={t:0,dur:.9,from:{x:P.x,z:P.z},to:{x:h.x,z:h.z}};if(actions.jump)playOnce('jump',.05);worldAudio.whoosh();setTimeout(()=>setCineFade(1,.35,false),700);break;}
-  case 'piscar':{
-   let n=0;const blink=()=>{setCineFade(n%2?0:1,.18,false);n++;if(n<6)setTimeout(blink,330);};blink();
-   setTimeout(()=>{const c=sewerLocal(SEWER.cell);player.position.set(c.x+1.4,voidSpec.y,c.z+2.2);faceTo(player,{x:c.x+6,z:c.z-3});if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=0;}
-    for(let i=0;i<ACT1.cellEnemies;i++){const a=i/ACT1.cellEnemies*6.28+.3,cl=makeFoeClone('enemy1',{x:c.x+Math.cos(a)*5.5,z:c.z+Math.sin(a)*5.5});if(cl)hordeClones.push(cl);}},1100);
+  case 'correr-ao-buraco':{const h=sewerLocal(SEWER.hole),dx=h.x-P.x,dz=h.z-P.z,d=Math.hypot(dx,dz)||1,to={x:h.x-dx/d*2.1,z:h.z-dz/d*2.1};storyMove={t:0,dur:1.2,from:{x:P.x,z:P.z},to};if(actions.walk){play('walk',.15);actions.walk.setEffectiveTimeScale(1.5);}storyMove.done=()=>{if(actions.walk)actions.walk.setEffectiveTimeScale(1);if(actions.idle)play('idle',.15);};break;}
+  case 'pular':{const h=sewerLocal(SEWER.hole),from=P.clone();storyMove=null;if(actions.jump)playOnce('jump',.05);worldAudio.whoosh();
+   storyFx.push({t:0,tick(t){const u=Math.min(1,t/1.4);P.x=THREE.MathUtils.lerp(from.x,h.x,Math.min(1,u*1.8));P.z=THREE.MathUtils.lerp(from.z,h.z,Math.min(1,u*1.8));P.y=from.y+Math.sin(u*Math.PI)*1.3-u*u*5;model.rotation.x=.3*u;if(u>.8)setCineFade(1,.25,false);return u<1;},finish(){model.rotation.x=0;P.y=voidSpec.y;}});break;}
+  case 'piscar':{model.rotation.x=0;
+   setCineFade(1,.45,false);
+   const c=sewerLocal(SEWER.cell);player.position.set(c.x,voidSpec.y,c.z);storyAnchors.cell={x:c.x,z:c.z,y:voidSpec.y,yaw:0};
+   if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=0;}
+   for(let i=0;i<ACT1.cellEnemies;i++){const a=i/ACT1.cellEnemies*6.28+.3,cl=makeFoeClone('enemy1',{x:c.x+Math.cos(a)*5.5,z:c.z+Math.sin(a)*5.5});if(cl)hordeClones.push(cl);}
    break;}
   case 'acordar-cercado':setCineFade(0,.9,false);setTimeout(()=>{if(actions.kipUp){actions.kipUp.paused=false;}},1200);break;
-  case 'desmaiar-de-novo':setCineFade(1,.9,false);setTimeout(()=>{for(const cl of hordeClones.splice(0))disposeClone(cl);const c=sewerLocal(SEWER.cage);player.position.set(c.x,voidSpec.y,c.z);if(actions.idle)play('idle',.1);const r=sewerArena&&sewerArena.refs;if(r&&r.cage){r.cage.bars.position.y=0;r.cage.top.position.y=2.6;}storyAnchors.cell={x:c.x,z:c.z,y:voidSpec.y,yaw:0};},1000);break;
-  case 'acordar-na-jaula':setCineFade(0,1.2,false);faceTo(player,sewerLocal(SEWER.emptyPath.from));break;
+  case 'desmaiar-de-novo':setCineFade(1,.9,false);setTimeout(()=>{for(const cl of hordeClones.splice(0))disposeClone(cl);const c=sewerLocal(SEWER.cage);player.position.set(c.x,voidSpec.y,c.z);if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=0;}const r=sewerArena&&sewerArena.refs;if(r&&r.cage){r.cage.bars.position.y=0;r.cage.top.position.y=2.6;}storyAnchors.cell={x:c.x,z:c.z,y:voidSpec.y,yaw:0};},1000);break;
+  case 'acordar-na-jaula':setCineFade(0,1.2,false);faceTo(player,sewerLocal(SEWER.emptyPath.from));storyFx.push({t:0,tick(t){if(t<1.4)return true;if(actions.kipUp)actions.kipUp.paused=false;return false;},finish(){if(actions.kipUp)actions.kipUp.paused=false;}});break;
   case 'anjo-abre-jaula':{const c=sewerLocal(SEWER.cage);guide.position.set(c.x+2.6,voidSpec.y,c.z-1.2);faceTo(guide,P);guide.visible=true;guide.scale.setScalar(1);worldAudio.celestial();
    const r=sewerArena&&sewerArena.refs;if(r&&r.cage)storyFx.push({t:0,tick(t){const y=Math.min(3.4,t*2.4);r.cage.bars.position.y=y;r.cage.top.position.y=y+2.6;if(t>1.5)return false;},finish(){r.cage.bars.position.y=3.4;r.cage.top.position.y=6;}});
    break;}
-  case 'horda-chega':{const a=sewerLocal(SEWER.hordePath.from),b=sewerLocal(SEWER.hordePath.to);for(let i=0;i<ACT1.pathEnemies;i++){const k=i/ACT1.pathEnemies,cl=makeFoeClone('enemy1',{x:THREE.MathUtils.lerp(a.x,b.x,k)+1,z:a.z+((i%3)-1)*1.3},{role:'walk',approach:6});if(cl)hordeClones.push(cl);}worldAudio.corrupt();break;}
-  case 'anjo-luta':{guideFighting=true;const a=sewerLocal(SEWER.hordePath.from);guide.position.set(a.x-2.5,voidSpec.y,a.z);faceTo(guide,a);for(const cl of hordeClones)cl.lookAt=guide.position;break;}
+  case 'horda-chega':{const a=sewerLocal(SEWER.hordePath.from),b=sewerLocal(SEWER.hordePath.to);for(let i=0;i<ACT1.pathEnemies;i++){const k=i/ACT1.pathEnemies,cl=makeFoeClone('enemy1',{x:THREE.MathUtils.lerp(a.x,b.x,k)+1,z:a.z+((i%3)-1)*1.3},{role:'walk',approach:10+i*.9});if(cl)hordeClones.push(cl);}worldAudio.corrupt();break;}
+  case 'anjo-luta':{guideFighting=true;const a=sewerLocal(SEWER.hordePath.from);guide.position.set(a.x+1.4,voidSpec.y,a.z);faceTo(guide,{x:a.x+5,z:a.z});for(let i=0;i<hordeClones.length;i++){const cl=hordeClones[i];cl.holder.position.set(a.x+4+(i%4)*2,voidSpec.y,a.z+(Math.floor(i/4)%3-1)*1.2);cl.lookAt=guide.position;cl.approach=null;}
+   const r=sewerArena&&sewerArena.refs;if(r&&r.seal){r.seal.visible=true;storyFx.push({t:0,tick(t){r.seal.scale.y=Math.min(1,t/1.2);return t<1.2;},finish(){r.seal.scale.y=1;}});}worldAudio.celestial();break;}
   case 'surgir-guardiao':storyFlash('#300010',600);worldAudio.corrupt();if(pack&&pack.clones[0]){const h=pack.clones[0].holder;storyAnchors.enemy={x:h.position.x,z:h.position.z,y:h.position.y,yaw:h.rotation.y};}break;
   case 'desfazer-guardiao':{const c=act1WardenClone;storyFlash('#100008',800);worldAudio.corrupt();if(c)storyFx.push({t:0,tick(t){c.holder.scale.setScalar(1.35*Math.max(.01,1-t/1.2));c.holder.position.y+=.01;if(t>1.2){c.holder.visible=false;return false;}},finish(){c.holder.visible=false;}});break;}
   case 'escuro':setCineFade(1,1.1,false);break;
@@ -3649,7 +3674,7 @@ function storyDo3(id,args){
   case 'neve-forte':if(act3World)act3World.snow.visible=true;return true;
   case 'todos-entram':for(const f of act3Folk){const h=f.home;let best=null,bd=1e9;for(const hs of SC.houses){const dd=Math.hypot(hs.x-h.x,hs.z-h.z);if(dd<bd){bd=dd;best=hs;}}if(best)f.target={x:best.x+Math.sin(best.yaw)*3,z:best.z+Math.cos(best.yaw)*3};npcBase().then(b=>{const run=b.clips.find(k=>k.name==='Running');if(run){f.mixer.stopAllAction();f.mixer.clipAction(run).play();}});}
    if(act3Npcs.villager){const v=act3Npcs.villager;act3Folk.push({...v,home:SC.villager,target:{x:SC.houses[5].x,z:SC.houses[5].z+3}});delete act3Npcs.villager;}return true;
-  case 'anoitecer':setCineFade(.55,1.6,false);setTimeout(()=>{setGameHour(21);setCineFade(0,1.4,false);},1700);return true;
+  case 'ato3-anoitecer':setCineFade(.55,1.6,false);setTimeout(()=>{setGameHour(21);setCineFade(0,1.4,false);},1700);return true;
   case 'dormir':setCineFade(1,1.4,false);return true;
   case 'acordar-preso':{let n=0;const blink=()=>{setCineFade(n%2?.0:1,.25,true);n++;if(n<4)setTimeout(blink,350);else setCineFade(0,.8,true);};blink();
    if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=.35;}return true;}
@@ -3665,14 +3690,14 @@ function storyDo3(id,args){
    if(actions.ajoelhar)playOnce('ajoelhar',0);else if(actions.kipUp){playOnce('kipUp',0);actions.kipUp.paused=true;actions.kipUp.time=.5;}
    loadRig('enemy3').then(()=>{const c=makeFoeClone('enemy3',{x:gx+1.3,z:gz+.6},{role:'idle'});if(c){c.holder.position.y=terrainHeightAt(gx,gz)+.9;act3Clones.push(c);act3World.executioner=c;storyAnchors.enemy={x:gx+1.3,z:gz+.6,y:c.holder.position.y,yaw:-Math.PI/2};}},()=>{});
    storyAnchors.enemy={x:gx+1.3,z:gz+.6,y:terrainHeightAt(gx,gz)+.9,yaw:-Math.PI/2};return true;}
-  case 'piscar':{let n=0;const blink=()=>{setCineFade(n%2?.0:1,.22,true);n++;if(n<4)setTimeout(blink,330);else setCineFade(0,.8,true);};blink();return true;}
+  case 'ato3-piscar':{let n=0;const blink=()=>{setCineFade(n%2?.0:1,.22,true);n++;if(n<4)setTimeout(blink,330);else setCineFade(0,.8,true);};blink();return true;}
   case 'anjo-salva':{const ex=act3World.executioner;worldAudio.celestial();storyFlash('white',900);cameraShake(.3);
    if(ex)storyFx.push({t:0,tick(t){ex.holder.position.y+=.08;ex.holder.scale.setScalar(Math.max(.01,1-t*1.4));if(t>.8){ex.holder.visible=false;return false;}},finish(){ex.holder.visible=false;}});
    const G=SC.guillotine;guide.position.set(G.x+2.4,terrainHeightAt(G.x+2.4,G.z-2.4),G.z-2.4);guide.visible=true;guidePinned=true;faceTo(guide,P);
    setTimeout(()=>{player.position.set(G.x+.8,terrainHeightAt(G.x+.8,G.z-2.6),G.z-2.6);if(actions.idle)play('idle',.3);faceTo(player,guide.position);},500);return true;}
   case 'portal-atras':act3Portal3(act3Local('gelo',ICE_CAVE.portal));worldAudio.portalEnter();return true;
   case 'anjo-some':storyFx.push({t:0,tick(t){guide.scale.setScalar(Math.max(.01,1-t));if(t>1){guide.visible=false;guide.scale.setScalar(1);return false;}},finish(){guide.visible=false;guide.scale.setScalar(1);}});worldAudio.whoosh();return true;
-  case 'surgir-guardiao':{distortControls(true);
+  case 'ato3-surgir-guardiao':{distortControls(true);
    // O guardião vem com 2 Enemy3: primeiro os dois, depois ele (o motor luta um por vez; todos aparecem juntos).
    const mb=act3Local('distorcida',DISTORTED.miniboss);loadRig('enemy4').then(()=>{const c=makeFoeClone('enemy4',mb,{role:'idle',scale:1.6});if(c){c.holder.position.y=voidSpec.y;act3Clones.push(c);act3World.miniboss=c;}},()=>{});
    storyAnchors.enemy={...mb,y:voidSpec.y,yaw:0};
@@ -3695,7 +3720,7 @@ function storyDo3(id,args){
   case 'ganancia-leva':{storyFlash('#200000',900);worldAudio.portalEnter();const gc=greedClone;
    storyFx.push({t:0,tick(t){const k=Math.max(.01,1-t);guide.scale.setScalar(k);if(gc)gc.holder.scale.setScalar(k);if(t>1){guide.visible=false;guide.scale.setScalar(1);if(gc)gc.holder.visible=false;return false;}},finish(){guide.visible=false;guide.scale.setScalar(1);if(gc)gc.holder.visible=false;}});
    const g=guide.position;storyAnchors.sky={x:g.x,z:g.z,y:g.y+6,yaw:0};return true;}
-  case 'escuro':setCineFade(1,1.2,false);return true;
+  case 'ato3-escuro':setCineFade(1,1.2,false);return true;
   case 'ato-4':{const card=cineEl('act-card');card.querySelector('#act-kicker').textContent='GALÁXIA 1 · GANÂNCIA';card.querySelector('h2').textContent='ATO IV';card.querySelector('#act-bishop').textContent='A próxima cidade';card.classList.remove('hidden');worldAudio.chapter();return true;}
  }
  return false;
@@ -5017,18 +5042,22 @@ let sprintToggle=false;
 function isSprinting(){return (keys.shift||sprintToggle)&&!defending;}
 /** Converte o "Running" (feito no Blender a partir da corrida da Misteriosa) para o esqueleto do herói carregado:
  *  rotação de mundo de cada osso em relação ao repouso dos dois arquivos (os eixos internos dos ossos diferem). */
-function bakeRunClip(src,srcClip,target){
+function bakeRunClip(src,srcClip,target,sourceIdle){
+ if(!sourceIdle||!actions.idle)throw new Error('Corrida sem pose de referência');
  const Q=()=>new THREE.Quaternion(),tB={},sB={};target.traverse(o=>{if(o.isBone)tB[o.name]=o;});src.traverse(o=>{sB[o.name]=o;});
  const names=Object.keys(tB).filter(n=>sB[n]);const depth=o=>{let k=0;while(o.parent){k++;o=o.parent;}return k;};names.sort((a,b)=>depth(tB[a])-depth(tB[b]));
- const saved=names.map(n=>tB[n].quaternion.clone());let sk=null;target.traverse(o=>{if(!sk&&o.isSkinnedMesh)sk=o.skeleton;});if(sk)sk.pose();
+ const saved=names.map(n=>({q:tB[n].quaternion.clone(),p:tB[n].position.clone(),s:tB[n].scale.clone()}));
+ const targetReference=new THREE.AnimationMixer(target),sourceReference=new THREE.AnimationMixer(src);
+ targetReference.clipAction(actions.idle.getClip()).play();targetReference.update(0);sourceReference.clipAction(sourceIdle).play();sourceReference.update(0);
  target.updateMatrixWorld(true);src.updateMatrixWorld(true);
  const tRoot=target.getWorldQuaternion(Q()).invert(),sRoot=src.getWorldQuaternion(Q()).invert(),T0={},S0={},restW=o=>tRoot.clone().multiply(o.getWorldQuaternion(Q()));
  for(const n of names){T0[n]=restW(tB[n]);S0[n]=sRoot.clone().multiply(sB[n].getWorldQuaternion(Q()));}
+ sourceReference.stopAllAction();
  const mx=new THREE.AnimationMixer(src);mx.clipAction(srcClip).play();const fps=30,N=Math.max(2,Math.round(srcClip.duration*fps)+1),times=[],vals={};for(const n of names)vals[n]=[];
  for(let i=0;i<N;i++){const t=Math.min(srcClip.duration,i/fps);times.push(t);mx.setTime(t);src.updateMatrixWorld(true);const W={};
   for(const n of names){const qt=sRoot.clone().multiply(sB[n].getWorldQuaternion(Q())).multiply(S0[n].clone().invert()).multiply(T0[n]);W[n]=qt;
    const par=tB[n].parent,pw=par&&W[par.name]?W[par.name]:(par?restW(par):Q()),loc=pw.clone().invert().multiply(qt);vals[n].push(loc.x,loc.y,loc.z,loc.w);}}
- mx.stopAllAction();names.forEach((n,i)=>tB[n].quaternion.copy(saved[i]));
+ mx.stopAllAction();targetReference.stopAllAction();names.forEach((n,i)=>{tB[n].quaternion.copy(saved[i].q);tB[n].position.copy(saved[i].p);tB[n].scale.copy(saved[i].s);});target.updateMatrixWorld(true);
  return new THREE.AnimationClip('Running',srcClip.duration,names.map(n=>new THREE.QuaternionKeyframeTrack(n+'.quaternion',times,vals[n])));
 }
 const BOSS_POWERS={
@@ -5072,6 +5101,8 @@ function updateFriendlyStrikes(dt){for(let i=friendlyStrikes.length-1;i>=0;i--){
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
+ regressionState(){return{busy:act1Busy(),lock:act1Lock,packFinishing,profile:encounterProfile,clip:activeAction&&activeAction.getClip().name,speed:Math.hypot(moveVX,moveVZ),pos:player.position.toArray(),cast:window.SevenSinsVillagerReport,kids:(act1Props?.kids||[]).map(k=>({name:k.name,visible:k.visible})),seal:!!sewerArena?.refs.seal?.visible,vendors:vendorRoots.map(o=>({name:o.name,pos:o.position.toArray(),yaw:o.rotation.y})),walkers:villagerWalkers.map(w=>({pos:w.holder.position.toArray(),blocked:blockedAt(w.holder.position.x,w.holder.position.z)}))};},
+ collisionAt(x,z){return playerBlockedAt(x,z);},
  /** MOD 214 — valida o mesmo carregador e os clipes usados pela Sandra na campanha. */
  async inspectSandra(){await loadRig('sandra');const r=rigs.sandra;return{roles:Object.keys(r.actions),clips:Object.fromEntries(Object.entries(r.actions).map(([k,a])=>[k,{name:a.getClip().name,duration:a.getClip().duration}])),height:measureModelBounds(r.model).getSize(new THREE.Vector3()).y};},
  teleport(x,z,yaw){player.position.set(x,terrainHeightAt(x,z),z);if(Number.isFinite(yaw)){cameraYaw=yaw;}},

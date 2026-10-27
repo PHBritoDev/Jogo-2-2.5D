@@ -94,3 +94,5 @@ body.cinematic #hint,body.cinematic #objective-arrow,body.cinematic #enemy-hud,b
 #rematch-go{border:1px solid #ff6a5a;background:#c82020;color:#fff}
 #rematch-close{border:1px solid #d9bd7988;background:transparent;color:#f2e8d0}
 @keyframes rmPulse{50%{box-shadow:0 0 34px #ff2a2acc}}
+
+#cine-continue{pointer-events:auto;position:static;width:auto;min-height:44px;padding:8px 20px;color:#ffe9ac;background:#292017;border:1px solid #c5a566;border-radius:6px;float:right}

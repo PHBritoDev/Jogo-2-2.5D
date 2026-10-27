@@ -44,7 +44,7 @@ export function createWorldAudio() {
     ambBus = ctx.createGain(); sfxBus = ctx.createGain(); ambBus.connect(comp); sfxBus.connect(comp);
     musicBus = ctx.createGain(); musicBus.connect(comp); music = createMusic();
     noiseBuf = makeNoise();
-    layers.wind = loopNoise('bandpass', 380, .55, ambBus);
+    layers.wind = loopNoise('lowpass', 240, .35, ambBus);
     layers.leaves = loopNoise('highpass', 3200, .4, ambBus);
     layers.water = loopNoise('lowpass', 900, .3, ambBus);
     // Zumbido grave do portal (duas senoides levemente desafinadas).
@@ -137,9 +137,9 @@ export function createWorldAudio() {
       if (!ready || ctx.state !== 'running') return;
       const t = ctx.currentTime, night = s.night || 0;
       if (music) { music.set(s.music || 'explore', night); music.tick(dt, night); }
-      gustTimer -= dt; if (gustTimer <= 0) { gustTimer = 3 + Math.random() * 6; layers.wind.f.frequency.setTargetAtTime(260 + Math.random() * 380, t, 1.4); }
+      gustTimer -= dt; if (gustTimer <= 0) { gustTimer = 3 + Math.random() * 6; layers.wind.f.frequency.setTargetAtTime(180 + Math.random() * 140, t, 1.4); }
       const height = Math.max(0, s.altitude || 0);
-      layers.wind.g.gain.setTargetAtTime((.16 + Math.min(.14, height * .02)) * (1 + .5 * Math.sin(t * .23)), t, .8);
+      layers.wind.g.gain.setTargetAtTime((.035 + Math.min(.025, Math.max(0, height) * .003)) * (1 + .25 * Math.sin(t * .23)), t, .8);
       layers.leaves.g.gain.setTargetAtTime(.018 + .014 * Math.max(0, Math.sin(t * .41 + Math.sin(t * .13) * 2)), t, .6);
       layers.water.g.gain.setTargetAtTime(.22 * Math.max(0, 1 - (s.pondDistance || 99) / 26), t, .5);
       layers.portal.g.gain.setTargetAtTime(.09 * Math.max(0, 1 - (s.portalDistance || 99) / 30) * (s.portalReady ? 1.6 : 1), t, .5);

@@ -287,7 +287,10 @@ export function cageScene() {
   return [
     shot('abrir-gaiola', 2.4, { cam: 'look', on: 'cage', off: [3.2, 1.8, 3.4], at: [0, .7, 0] }, { with: [act('abrir-gaiola')] }),
     say(S.hero, 'Vocês estão bem?'),
-    shot('transformacao', 3.4, { cam: 'look', on: 'cage', off: [4.2, 2.2, 4.6], at: [0, .9, 0] }, { with: [act('transformar-criancas')] }),
+    say(S.child, 'Socorro! Alguém me ajuda… eu não consigo parar!', { actor: 'cage' }),
+    say(S.hero, 'O que está acontecendo?'),
+    shot('transformacao', 6.5, { cam: 'look', on: 'cage', off: [4.2, 2.2, 4.6], at: [0, .9, 0] }, { with: [act('transformar-criancas')] }),
+    say(S.hero, 'Droga, cheguei tarde demais. Essas crianças já foram possuídas.'),
     say(S.hero, 'Que demônios imundos… estão usando as almas dessas pobres crianças como receptáculo.')
   ];
 }
@@ -318,10 +321,10 @@ export function faintScene() {
 export function massacreScene() {
   return [
     shot('massacre', 2.8, { cam: 'look', on: 'massacre', off: [7, 3, 6], at: [0, 1, 0] }, { with: [act('massacre-inicio')] }),
-    say(S.victim, 'Por favor… a gente não tem mais nada!', { actor: 'victim' }),
+    say(S.victim, 'Não faça isso! Alguém me ajuda! A gente não tem mais nada!', { actor: 'victim' }),
     say(S.hero, 'Parem!'),
     shot('correndo', 2.4, { cam: 'follow', on: 'hero', off: [0, 2.2, -4.5], at: [0, 1.2, 6] }, { with: [act('correr-ate-massacre')] }),
-    act('massacre-fim'),
+    shot('ataque-aos-moradores', 3.2, { cam: 'look', on: 'massacre', off: [5, 2.4, 5], at: [0, .9, 0] }, { with: [act('massacre-fim')] }),
     say(S.hero, 'Por que vocês fizeram isso?'),
     say(S.demon, 'Eles se recusaram a nos dar todo o dinheiro deles. Então eu os matei.'),
     say(S.hero, 'Então é isso… A existência de vocês acaba aqui.')
@@ -359,14 +362,14 @@ export function holeScene() {
     say(S.hero, 'Onde eu estou…?'),
     act('desmaiar-de-novo'),
     wait(2.6),
-    shot('na-jaula', 2.6, { cam: 'look', on: 'cell', off: [3.4, 2.2, 3.6], at: [0, 1, 0] }, { with: [act('acordar-na-jaula')] }),
+    shot('na-jaula', 4, { cam: 'look', on: 'cell', off: [3.4, 2.2, 3.6], at: [0, 1, 0] }, { with: [act('acordar-na-jaula')] }),
     shot('anjo-liberta', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: -1, dist: 4.4 }, { with: [act('anjo-abre-jaula')] }),
     say(S.guide, 'Nunca mais seja imprudente dessa maneira. Se você morrer, este mundo estará acabado, e muitas pessoas sofrerão.'),
     shot('horda', 3, { cam: 'look', on: 'hero', off: [-2.2, 2.8, -3.4], at: [0, 1, 9] }, { with: [act('horda-chega')] }),
     say(S.guide, 'Vá por aquele caminho. Eu dou um jeito neles aqui.'),
     say(S.hero, 'Você tem certeza de que consegue lidar com tantos deles assim?'),
     say(S.guide, 'Você esqueceu que eu estou entre os arcanjos mais fortes de Deus? Apenas vá.'),
-    act('anjo-luta')
+    shot('barreira-do-anjo', 1.6, { cam: 'look', on: 'hero', off: [-2.2, 2.8, -3.4], at: [7, 1.5, 0] }, { with: [act('anjo-luta')] })
   ];
 }
 
