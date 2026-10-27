@@ -865,6 +865,11 @@ function relaxGuideArms(dt){
  if(!guideModel||!guide.visible)return;const rig=poseRig(guideModel);if(!rig)return;guideArmT+=dt;guideModel.getWorldQuaternion(_gq);
  for(const [ua,la,hd,sx] of [[rig.lua,rig.lla,rig.lh,1],[rig.rua,rig.rla,rig.rh,-1]]){const sw=Math.sin(guideArmT*1.1+(sx>0?0:1.3))*.03;
   aimBone(ua,la,_ga.set(sx*.2,-1,.05+sw).normalize().applyQuaternion(_gq),1);aimBone(la,hd,_ga.set(sx*.08,-1,.22+sw).normalize().applyQuaternion(_gq),1);}
+ // MOD 218 — asas vivas: respiram devagar, batem mais quando o Anjo anda e tremulam um pouco com o vento.
+ const W=guideModel.userData.wings||(guideModel.userData.wings=['AsaEsq','AsaDir'].map(n=>{const b=guideModel.getObjectByName(n);return b?{b,rest:b.quaternion.clone()}:null;}).filter(Boolean));
+ const moving=!!guideRun,fwd=_ga.set(0,0,1).applyQuaternion(_gq);
+ for(const [i,w] of W.entries()){const sx=i?-1:1,ang=Math.sin(guideArmT*1.2)*.05+(moving?Math.sin(guideArmT*5.5)*.16:0)+Math.sin(guideArmT*3.1+i)*.012;
+  w.b.quaternion.copy(w.rest);turnBone(w.b,fwd,sx*ang);}
 }
 function fitGuideModel(){
  if(!guideModel||!guideFitRoot)return;
