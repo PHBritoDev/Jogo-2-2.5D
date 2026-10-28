@@ -17,7 +17,7 @@ export class CelestialPhoenix{
   if(t&&Math.hypot(p.x-t.x,p.z-t.z)<1+(t.radius||.6)&&Math.abs(p.y-t.y)<3){this.damage(PHOENIX.initial,'contact');this.startAngle=Math.atan2(this.bird.z-t.z,this.bird.x-t.x);this.detachRadius=Math.hypot(this.bird.x-t.x,this.bird.z-t.z);this.detachY=this.bird.y-t.y;this.phaseTo('orbit');}
   else if(this.age>=PHOENIX.flight)this.phaseTo('fade');
  }else if(this.phase==='orbit'){
-  this.angle=Math.min(1,this.age/PHOENIX.orbit)*Math.PI*2;const a=this.startAngle+this.angle,k=Math.min(1,this.age/.15),desired=Math.max(1.8,(t.radius||.6)+1.1),r=this.detachRadius+(desired-this.detachRadius)*k;this.bird.x=t.x+Math.cos(a)*r;this.bird.z=t.z+Math.sin(a)*r;this.bird.y=t.y+this.detachY+((t.height||2)*.65+Math.sin(a)*.25-this.detachY)*k;
+  this.angle=Math.min(1,this.age/PHOENIX.orbit)*Math.PI*2;const a=this.startAngle+this.angle,k=Math.min(1,this.age/.15),desired=Math.max(2.45,(t.radius||.6)+1.6),r=this.detachRadius+(desired-this.detachRadius)*k;this.bird.x=t.x+Math.cos(a)*r;this.bird.z=t.z+Math.sin(a)*r;this.bird.y=t.y+this.detachY+((t.height||2)*.65+Math.sin(a)*.25-this.detachY)*k;
   if(this.age>=PHOENIX.orbit){this.from={...this.bird};Object.assign(this.aim,{x:t.x,y:t.y+(t.height||2)*.55,z:t.z});this.phaseTo('dive');}
  }else if(this.phase==='dive'){
   const u=Math.min(1,this.age/PHOENIX.dive),k=u*u;Object.assign(this.bird,{x:this.from.x+(this.aim.x-this.from.x)*k,y:this.from.y+(this.aim.y-this.from.y)*k,z:this.from.z+(this.aim.z-this.from.z)*k});
@@ -26,6 +26,6 @@ export class CelestialPhoenix{
   else if(u===1)this.phaseTo('fade');
  }else if(this.phase==='burn'){Object.assign(this.aim,{x:t.x,y:t.y+(t.height||2)*.5,z:t.z});while(this.ticks<5&&this.age>=this.ticks+1){this.ticks++;this.damage(PHOENIX.tick,'burn');}if(this.age>=5)this.phaseTo('fade');}
  else if(this.phase==='fade'&&this.age>=.5){this.cancel();return;}
- if(['cast','form','flight'].includes(this.phase)){const a=this.time*5,r=1.3;Object.assign(this.bird,{x:p.x+Math.cos(a)*r,y:p.y+2.5+Math.sin(this.time*2)*.5,z:p.z+Math.sin(a)*r});}
+ if(['cast','form','flight'].includes(this.phase)){const a=this.time*5,r=2.05;Object.assign(this.bird,{x:p.x+Math.cos(a)*r,y:p.y+3.4+Math.sin(this.time*2)*.55,z:p.z+Math.sin(a)*r});}
  }
 }
