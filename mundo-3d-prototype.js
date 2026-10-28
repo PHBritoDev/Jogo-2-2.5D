@@ -1045,7 +1045,7 @@ portalGroup.visible=questStep>=8; // MOD 204: no Ato I o portal de VHAZRAEL fica
 var worldCompiled=false,worldCompileStarted=false;
 function precompileWorld(){
  if(worldCompileStarted)return;worldCompileStarted=true;
- if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene);
+ if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});
  if(!phoenixVFX){phoenixVFX=createPhoenixVFX(THREE,scene);phoenixVFX.root.visible=true;renderer.compile(phoenixVFX.root,camera);phoenixVFX.clear();}
  if(!whiteVFX){whiteVFX=createWhiteHoleVFX(THREE,scene);whiteVFX.root.visible=true;renderer.compile(scene,camera);whiteVFX.clear();}
  const done=()=>{worldCompiled=true;};setTimeout(done,9000);
@@ -1233,7 +1233,7 @@ let starfallVFX=null,starfallScene='',starfallCameraWeight=0;
 const starfallHand=new THREE.Vector3();
 const starfall=new CelestialStarfall({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),
  hit:(damage,id)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(damage,false,true);},
- event:(type,b)=>{if(type==='launch')worldAudio.whoosh();if(type==='open')worldAudio.magic('magic2');if(type==='impact'&&b.i%3===0)worldAudio.hit();if(type==='cancel'&&starfallVFX)starfallVFX.clear();}});
+ event:(type,b)=>{if(type==='launch')worldAudio.whoosh();if(type==='open')worldAudio.magic('magic2');if(type==='impact'&&(b.i%3===0||b.heavy))worldAudio.hit();if(type==='impact'&&b.heavy&&!userSettings.reduceShake)cameraShake(.09);if(type==='cancel'&&starfallVFX)starfallVFX.clear();}});
 function updateStarfall(dt){
  const rig=model&&poseRig(model);if(rig?.rh)rig.rh.getWorldPosition(starfallHand);else {starfallHand.copy(player.position);starfallHand.y+=1.7;}
  starfall.update(dt,siegeTarget(),{hand:starfallHand,valid:playerHP>0&&!cineActive&&!dialogueOpen&&!awakeningActive&&starfallScene===siegeContext()});
@@ -1332,7 +1332,7 @@ function castHolyMagic(kind){
  const t=phoenixTarget(),yaw=t.alive?Math.atan2(t.x-player.position.x,t.z-player.position.z):playerYaw;phoenix.start(player.position,t,yaw,1+statsForLevel(playerLevel()).damageBonus);showGrimoire(0xffa52a,.7,true);playPose(model,'cast',.7,()=>playerYaw,0);status.textContent='Tornado da Fênix Celestial';
  }
  else if(kind==='magic2'){
-  if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene);
+  if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});
   starfallScene=siegeContext();const rig=model&&poseRig(model);if(rig?.rh)rig.rh.getWorldPosition(starfallHand);else {starfallHand.copy(player.position);starfallHand.y+=1.7;}
   starfall.start(starfallHand,siegeTarget(),Math.round((ownedItems.has('magic2_plus')?8:6)*(1+statsForLevel(playerLevel()).damageBonus)));
   playPose(model,'starfall',.7,()=>playerYaw,0);actionUntil=Math.max(actionUntil,now+700);

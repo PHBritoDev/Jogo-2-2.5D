@@ -1,10 +1,11 @@
 /** Fixed-step combat timeline. Visual quality never changes these 90 collision events. */
-export const STARFALL = Object.freeze({ count:90, cast:.7, open:1.5, rainEnd:9.3, duration:10, height:8, flight:.65, radius:1.25 });
+export const STARFALL = Object.freeze({ count:90, cast:.7, open:1.5, rainEnd:9.3, duration:10, height:9, flight:.65, radius:1.25, sigil:3.6 });
 const point=()=>({x:0,y:0,z:0});
 export class CelestialStarfall {
  constructor({hit=()=>{},blocked=()=>false,ground=()=>0,event=()=>{}}={}) {
   Object.assign(this,{hit,blocked,ground,event,active:false,time:0,phase:'idle',center:point(),launch:point(),source:point(),accumulator:0});
-  this.stars=Array.from({length:STARFALL.count},(_,i)=>({i,phase:'waiting',from:point(),p:point(),aim:point(),born:1.7+Math.floor(i/10)*.85+(i%10)*.055,impactAt:-1}));
+  // MOD 229: a última estrela de cada salva é pesada (só visual: o dano por estrela não muda).
+  this.stars=Array.from({length:STARFALL.count},(_,i)=>({i,heavy:i%10===9,phase:'waiting',from:point(),p:point(),aim:point(),born:1.7+Math.floor(i/10)*.85+(i%10)*.055+(i%10===9?.12:0),impactAt:-1}));
  }
  start(source,target,damage=6) {
   if(this.active)return false;
@@ -34,8 +35,8 @@ export class CelestialStarfall {
     const a=s.i*2.399963,r=s.i%3===2?2.8+(s.i%4)*.35:.25+(s.i%3)*.35;
     const aim=target?.alive?target:this.center;
     s.aim.x=aim.x+Math.cos(a)*r;s.aim.z=aim.z+Math.sin(a)*r;s.aim.y=this.ground(s.aim.x,s.aim.z)+.08;
-    const angle=a-t*.16,open=1-Math.pow(1-Math.min(1,(t-1.5)/.35),3),z=Math.sin(angle)*2.5*open;
-    s.from.x=this.center.x+Math.cos(angle)*2.5*open;s.from.z=this.center.z+Math.cos(.38)*z;s.from.y=this.center.y-Math.sin(.38)*z;
+    const angle=a-t*.16,open=1-Math.pow(1-Math.min(1,(t-1.5)/.35),3),R=s.heavy?.6:STARFALL.sigil*(.45+.5*((s.i*7)%10)/10),z=Math.sin(angle)*R*open;
+    s.from.x=this.center.x+Math.cos(angle)*R*open;s.from.z=this.center.z+Math.cos(.38)*z;s.from.y=this.center.y-Math.sin(.38)*z;
     Object.assign(s.p,s.from);s.phase='flight';
    }
    if(s.phase!=='flight')continue;
