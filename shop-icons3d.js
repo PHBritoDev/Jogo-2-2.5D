@@ -49,13 +49,7 @@ const ART = {
     return defs(id,['#fff2a3','#ff9d16','#d52a05'],['#240833'])+'<rect width="96" height="96" fill="url(#bg'+id+')"/><path d="M36 84 C84 74 8 67 63 54 C86 45 19 44 58 31" fill="none" stroke="#ff7616" stroke-width="6"/><path d="M48 48 L15 22 26 48 8 37 30 61 46 55 60 67 84 36 69 45 80 18 51 44 57 32 48 34Z" fill="url(#bl'+id+')" stroke="#ffd45d"/>';
   },
   // Julgamento Divino — espada colossal entre asas.
-  ultimate(id) {
-    const wing = (m) => '<g transform="translate(48 0) scale(' + m + ' 1) translate(-48 0)"><path d="M50 50 C66 30 84 26 92 14 C90 34 82 50 70 60 C80 58 88 54 94 48 C88 66 74 76 56 74Z" fill="url(#bl' + id + ')" opacity=".92" stroke="#fff3c0" stroke-opacity=".6" stroke-width=".8"/>' +
-      '<path d="M58 56 C70 44 80 38 88 28 M60 64 C72 56 82 50 90 44" fill="none" stroke="#fff8dc" stroke-opacity=".55" stroke-width=".9"/></g>';
-    return defs(id, GOLD, ['#3a2606']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><circle cx="48" cy="46" r="40" fill="url(#gl' + id + ')"/>' +
-      '<circle cx="48" cy="40" r="26" fill="none" stroke="#ffe9a8" stroke-opacity=".6" stroke-width="1.6"/><circle cx="48" cy="40" r="31" fill="none" stroke="#ffe9a8" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 4"/>' +
-      wing(1) + wing(-1) + blade(id, 48, 88, 84, 7.6, 0) + sparks('#fff1c0', 18, 29);
-  },
+  ultimate(id) {return '<rect width="96" height="96" fill="#080b13"/><ellipse cx="48" cy="48" rx="43" ry="12" fill="#fff" opacity=".3"/><circle cx="48" cy="48" r="34" fill="#000" stroke="#fff" stroke-width="10"/><circle cx="48" cy="48" r="43" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="1 4"/>';},
   // Espadas da Palavra II — lâminas que perseguem (curvas com ponta).
   magic_plus(id) {
     let p = '';

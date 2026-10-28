@@ -6,7 +6,7 @@ test('começa só com a espada; Palavras chegam pela compra', () => {
   assert.equal(unlockedSkills({}).size, 0);
   assert.deepEqual([...unlockedSkills({ owned: ['magic'] })], ['magic']);
   assert.deepEqual([...unlockedSkills({ owned: new Set(['magic2', 'magic']) })], ['magic', 'magic2']);
-  assert.equal(unlockedSkills({ testAll: true }).size, 3);
+  assert.equal(unlockedSkills({ testAll: true }).size, 4);
 });
 
 test('revelação lista só o que acabou de abrir', () => {

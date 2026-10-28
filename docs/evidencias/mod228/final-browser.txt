@@ -1,0 +1,2 @@
+Final corona {'calls': 16, 'triangles': 19322, 'geo': 12}
+PASS: pause key, audio controls, stale camera gesture cleared, 160 damage, lethal encounter handed back after restoration; no page errors

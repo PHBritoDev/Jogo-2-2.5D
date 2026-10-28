@@ -396,3 +396,7 @@ body.no-hints #top{display:none!important}
 /* Fits the existing 60–80 px mobile attack control without clipping the counter. */
 #attack .siege-blades{gap:2px}#attack .siege-blades i{width:8px;height:19px}
 #attack .siege-hud strong{font-size:16px;line-height:1.1}#attack .siege-hud small{font-size:7px;letter-spacing:.5px;line-height:1.3}
+
+#whitehole-flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9999}.whitehole-cinematic #actions,.whitehole-cinematic #stick,.whitehole-cinematic #talk-button{opacity:.25;pointer-events:none}
+.whitehole-paused #whitehole-flash{visibility:hidden}
+.whitehole-cinematic #enemy-hud,.whitehole-cinematic #quest-box,.whitehole-cinematic #quest-toast{visibility:hidden}
