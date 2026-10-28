@@ -4,13 +4,13 @@
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as T from 'three';import{CelestialPhoenix}from'./celestial-phoenix3d.js';import{createPhoenixVFX}from'./celestial-phoenix-vfx3d.js';
-const scene=new T.Scene();scene.background=new T.Color('#111b29');const camera=new T.PerspectiveCamera(48,innerWidth/innerHeight,.1,100);camera.position.set(8,6,13);camera.lookAt(0,2,2);
+const scene=new T.Scene();scene.background=new T.Color('#111b29');const camera=new T.PerspectiveCamera(48,innerWidth/innerHeight,.1,100);camera.position.set(11,7,17);camera.lookAt(0,4.5,1);
 const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));document.body.appendChild(renderer.domElement);
 scene.add(new T.HemisphereLight(0xd9efff,0x303540,3));const floor=new T.Mesh(new T.PlaneGeometry(70,70),new T.MeshStandardMaterial({color:0x172334,roughness:.9}));floor.rotation.x=-Math.PI/2;scene.add(floor);
 const target={id:1,alive:true,x:0,y:0,z:0,radius:.6,height:2},hero=new T.Mesh(new T.CapsuleGeometry(.3,1,6,12),new T.MeshStandardMaterial({color:0xb9bfca}));hero.position.set(0,1,8);scene.add(hero);
 const foe=hero.clone();foe.material=new T.MeshStandardMaterial({color:0x5b3441});foe.position.set(0,1,0);scene.add(foe);
 const skill=new CelestialPhoenix(),fx=createPhoenixVFX(T,scene);let freeze=false,low=false;
-function start(){skill.cancel();skill.start({x:0,y:0,z:8},target,Math.PI);}function step(dt){skill.update(dt,target);fx.update(skill,camera,low?0:2);renderer.render(scene,camera);}start();
+function start(){skill.cancel();skill.start({x:0,y:0,z:8},target,Math.PI);}function step(dt){skill.update(dt,target);const h=skill.hold;foe.position.set(target.x+(h.active?h.x:0),1+(h.active?h.y:0),target.z+(h.active?h.z:0));foe.rotation.y=h.active?h.spin:0;fx.update(skill,camera,low?0:2);renderer.render(scene,camera);}start();
 document.querySelector('#cast').onclick=start;document.querySelector('#quality').onclick=()=>low=!low;
 const clock=new T.Clock();renderer.setAnimationLoop(()=>step(freeze?0:Math.min(clock.getDelta(),.04)));
 window.preview={freeze(){freeze=true},start,step,low(v){low=v},info:()=>({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geo:renderer.info.memory.geometries,programs:renderer.info.programs.length}),state:()=>({active:skill.active,time:skill.time,phase:skill.phase})};

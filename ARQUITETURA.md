@@ -118,6 +118,12 @@ obrigatórias usam `playStory(...,{skippable:false})`. Golpe final: `foeFinalBlo
 `docs/roteiro/M14-VHAZRAEL-E-POLIMENTO.md`. Primeiro Bispo: VHAZRAEL (chaves internas `valerio`/`bishop1` mantidas).
 Figurantes: `dressTownsfolk`; moradores de Cinzária: `CITY_ROUTES`/`updateCityFolk`. Asas do Anjo: ossos `AsaEsq`/`AsaDir`.
 
+## Mod 229 — habilidades cinematográficas
+
+`docs/MOD-229-HABILIDADES-CINEMATOGRAFICAS.md`. Kit de VFX compartilhado em `celestial-fxkit3d.js` (partículas, decalques,
+fitas, raios). Skill 3: FSM com captura (`phoenix.hold` + lease `phoenixHold` no jogo). Ultimate: asas `Asas.glb`,
+tempestade `celestial-storm3d.js` (céu, nuvens em fatias, chuva na GPU, vento, raios) restaurada pelo `whiteLease`.
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a
