@@ -44,12 +44,9 @@ const ART = {
     let stars='';for(const [x,y] of [[25,55],[48,73],[71,57]])stars+='<path d="M'+x+' 33 V'+y+'" stroke="#83cfff" stroke-width="2"/><path d="M'+x+' '+(y-10)+' l3 7 7 3 -7 3 -3 10 -3 -10 -7 -3 7 -3Z" fill="#fff0bd" stroke="#9bddff" stroke-width="1"/>';
     return defs(id,ICE,['#0c1c3a'])+'<rect width="96" height="96" fill="url(#bg'+id+')"/><ellipse cx="48" cy="27" rx="36" ry="14" fill="none" stroke="#9fdcff" stroke-width="2"/><ellipse cx="48" cy="27" rx="28" ry="10" fill="none" stroke="#ffe3a0" stroke-width="1.5"/><ellipse cx="48" cy="27" rx="32" ry="12" fill="none" stroke="#fff" stroke-dasharray="2 4"/>'+stars;
   },
-  // Sol da Justiça — disco solar com raios.
+  // Fênix com asas e coluna helicoidal: ícone da Skill 3.
   magic3(id) {
-    let rays = '';
-    for (let i = 0; i < 16; i++) rays += '<path d="M48 4 L52 22 L44 22Z" fill="url(#bl' + id + ')" opacity="' + (i % 2 ? .6 : .95) + '" transform="rotate(' + (i * 22.5) + ' 48 48)"/>';
-    return defs(id, ['#fffbe0', '#ffc94a', '#c4561a'], ['#3a1604']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><circle cx="48" cy="48" r="44" fill="url(#gl' + id + ')"/>' + rays +
-      '<circle cx="48" cy="48" r="17" fill="url(#bl' + id + ')" stroke="#fff3c0" stroke-width="1.6"/><circle cx="48" cy="48" r="9" fill="#fffdf0"/>';
+    return defs(id,['#fff2a3','#ff9d16','#d52a05'],['#240833'])+'<rect width="96" height="96" fill="url(#bg'+id+')"/><path d="M36 84 C84 74 8 67 63 54 C86 45 19 44 58 31" fill="none" stroke="#ff7616" stroke-width="6"/><path d="M48 48 L15 22 26 48 8 37 30 61 46 55 60 67 84 36 69 45 80 18 51 44 57 32 48 34Z" fill="url(#bl'+id+')" stroke="#ffd45d"/>';
   },
   // Julgamento Divino — espada colossal entre asas.
   ultimate(id) {

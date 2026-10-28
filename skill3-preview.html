@@ -1,0 +1,18 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tornado da Fênix Celestial</title>
+<style>body{margin:0;background:#111b29;color:#dfedff;font:14px system-ui}canvas{display:block}header{position:absolute;top:20px;left:24px;pointer-events:none}h1{font:20px Georgia;letter-spacing:2px;color:#ffe1a1}footer{position:absolute;bottom:24px;left:24px}button{background:#142c44;border:1px solid #acd8f4;color:#edf6ff;padding:12px;border-radius:8px;margin:4px}</style>
+<header><h1>TORNADO DA FÊNIX CELESTIAL</h1><p>Invocação · Tornado · Órbita · Investida · Queimadura</p></header><footer><button id="cast">INVOCAR</button><button id="quality">QUALIDADE</button></footer>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as T from 'three';import{CelestialPhoenix}from'./celestial-phoenix3d.js';import{createPhoenixVFX}from'./celestial-phoenix-vfx3d.js';
+const scene=new T.Scene();scene.background=new T.Color('#111b29');const camera=new T.PerspectiveCamera(48,innerWidth/innerHeight,.1,100);camera.position.set(8,6,13);camera.lookAt(0,2,2);
+const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));document.body.appendChild(renderer.domElement);
+scene.add(new T.HemisphereLight(0xd9efff,0x303540,3));const floor=new T.Mesh(new T.PlaneGeometry(70,70),new T.MeshStandardMaterial({color:0x172334,roughness:.9}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const target={id:1,alive:true,x:0,y:0,z:0,radius:.6,height:2},hero=new T.Mesh(new T.CapsuleGeometry(.3,1,6,12),new T.MeshStandardMaterial({color:0xb9bfca}));hero.position.set(0,1,8);scene.add(hero);
+const foe=hero.clone();foe.material=new T.MeshStandardMaterial({color:0x5b3441});foe.position.set(0,1,0);scene.add(foe);
+const skill=new CelestialPhoenix(),fx=createPhoenixVFX(T,scene);let freeze=false,low=false;
+function start(){skill.cancel();skill.start({x:0,y:0,z:8},target,Math.PI);}function step(dt){skill.update(dt,target);fx.update(skill,camera,low?0:2);renderer.render(scene,camera);}start();
+document.querySelector('#cast').onclick=start;document.querySelector('#quality').onclick=()=>low=!low;
+const clock=new T.Clock();renderer.setAnimationLoop(()=>step(freeze?0:Math.min(clock.getDelta(),.04)));
+window.preview={freeze(){freeze=true},start,step,low(v){low=v},info:()=>({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geo:renderer.info.memory.geometries,programs:renderer.info.programs.length}),state:()=>({active:skill.active,time:skill.time,phase:skill.phase})};
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script></html>

@@ -1,0 +1,14 @@
+cast {'active': True, 'time': 0.5000000000000007, 'phase': 'cast'} {'calls': 4, 'triangles': 2482, 'geo': 3, 'programs': 2}
+form {'active': True, 'time': 1.3916666666666642, 'phase': 'form'} {'calls': 13, 'triangles': 4504, 'geo': 8, 'programs': 5}
+flight {'active': True, 'time': 1.8916666666666624, 'phase': 'flight'} {'calls': 13, 'triangles': 4504, 'geo': 8, 'programs': 5}
+orbit {'active': True, 'time': 2.5999999999999934, 'phase': 'orbit'} {'calls': 11, 'triangles': 3208, 'geo': 8, 'programs': 5}
+dive {'active': True, 'time': 3.0999999999999917, 'phase': 'dive'} {'calls': 11, 'triangles': 3208, 'geo': 8, 'programs': 5}
+burn {'active': True, 'time': 3.59999999999999, 'phase': 'burn'} {'calls': 4, 'triangles': 2482, 'geo': 9, 'programs': 6}
+clean {'active': False, 'time': 8.808333333333474, 'phase': 'idle'} {'calls': 3, 'triangles': 1202, 'geo': 9, 'programs': 6}
+POOL: 10 recasts, low/high stable geometry 9
+GAME {'active': True, 'phase': 'form', 'time': 1.3999999999999975, 'angle': 0, 'ticks': 0, 'hp': 300, 'mana': 55}
+GAME {'active': True, 'phase': 'orbit', 'time': 2.099999999999995, 'angle': 1.9780398189269073, 'ticks': 0, 'hp': 276, 'mana': 55}
+GAME {'active': True, 'phase': 'burn', 'time': 3.0999999999999917, 'angle': 6.283185307179586, 'ticks': 0, 'hp': 248, 'mana': 55}
+GAME {'active': True, 'phase': 'burn', 'time': 4.099999999999993, 'angle': 6.283185307179586, 'ticks': 1, 'hp': 243, 'mana': 55}
+GAME {'active': False, 'phase': 'idle', 'time': 8.558333333333488, 'angle': 6.283185307179586, 'ticks': 5, 'hp': 223, 'mana': 55}
+PASS: real game input charges45 once, full sequence causes77 damage, cleanup; no page errors

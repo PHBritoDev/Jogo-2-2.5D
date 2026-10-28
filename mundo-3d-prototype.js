@@ -1,3 +1,5 @@
+import {CelestialPhoenix} from './celestial-phoenix3d.js';
+import {createPhoenixVFX} from './celestial-phoenix-vfx3d.js';
 import {CelestialStarfall} from './celestial-starfall3d.js';
 import {createStarfallVFX} from './celestial-starfall-vfx3d.js';
 import {CelestialSiege} from './celestial-siege3d.js';
@@ -1041,6 +1043,7 @@ var worldCompiled=false,worldCompileStarted=false;
 function precompileWorld(){
  if(worldCompileStarted)return;worldCompileStarted=true;
  if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene);
+ if(!phoenixVFX){phoenixVFX=createPhoenixVFX(THREE,scene);phoenixVFX.root.visible=true;renderer.compile(phoenixVFX.root,camera);phoenixVFX.clear();}
  const done=()=>{worldCompiled=true;};setTimeout(done,9000);
  try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
 }
@@ -1049,7 +1052,7 @@ function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
-const SKILL_LABELS={magic:'MAGIA',magic2:'ESTRELAS',magic3:'EM BREVE',ultimate:'EM BREVE'};
+const SKILL_LABELS={magic:'MAGIA',magic2:'ESTRELAS',magic3:'FÊNIX',ultimate:'EM BREVE'};
 const skillButtons={};
 for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;if(SKILLS[id].disabled){b.hidden=true;b.classList.add('skill-locked');b.setAttribute('aria-label','Em desenvolvimento');continue;}b.innerHTML='<span class="btn-icon skill-art">'+iconSvg(id,{size:48})+'</span><span class="btn-label" data-key="'+SKILLS[id].key+'">'+SKILL_LABELS[id]+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';b.dataset.key=SKILLS[id].key;b.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');skillButtons[id]={el:b,cost:b.querySelector('.skill-cost'),cd:-1,state:''};}
 for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧'],['defend','K'],['aim','Q']]){const b=document.getElementById(id);if(b){b.dataset.key=key;const l=b.querySelector('.btn-label');if(l)l.dataset.key=key;}}
@@ -1277,13 +1280,23 @@ function chargeDivine(){
  fxPush(function(t,dt){const a=Math.min(1,t/.6);rings.forEach((m,i)=>{m.material.opacity=.85*a*(t>1.6?Math.max(0,1-(t-1.6)*2):1);m.rotation.z+=dt*(i%2?-1.2:.8);});clouds.forEach((c,i)=>{const ang=i/10*6.28+t*.6,r=9-t*2.5;c.position.set(Math.cos(ang)*r,1.5,Math.sin(ang)*r);c.material.opacity=.6*a*(t>1.6?Math.max(0,1-(t-1.6)*2):1);});
   if(t>.4&&Math.random()<.08)cameraShake(.06);if(t>.5&&t<1.4&&Math.random()<.06)lightning(tgt.x+(Math.random()-.5)*9,tgt.z+(Math.random()-.5)*9,0xfff0b8);if(t>=1.4&&!g.userData.go){g.userData.go=true;castDivineJudgment();}if(t>2.2){fxDispose(g);return false;}});
 }
+let phoenixVFX=null,phoenixScene='';
+const phoenix=new CelestialPhoenix({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),hit:(d,id)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,false,true);},event:type=>{if(type==='flight')worldAudio.whoosh();if(type==='burn'){worldAudio.hit();cameraShake(.07);}if(type==='cancel')phoenixVFX?.clear();}});
+function phoenixTarget(){const t=siegeTarget();t.y=enemy.position.y;t.radius=Math.max(.6,enemy.userData.phoenixRadius||.6);t.height=enemy.userData.phoenixHeight||2;return t;}
+function updatePhoenix(dt){phoenix.update(dt,phoenixTarget(),{valid:playerHP>0&&!cineActive&&!dialogueOpen&&phoenixScene===siegeContext()});if(phoenixVFX)phoenixVFX.update(phoenix,camera,graphics3DMode==='low'?0:graphics3DMode==='auto'?(graphics3DScale<.75?0:1):2);}
 function castHolyMagic(kind){
  const now=performance.now();if(playerHP<=0||gamePaused||cineActive||dialogueOpen)return;
  if(kind==='magic'&&(siege.active||!siegeVFX||!siegeTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>22)){status.textContent=siege.active?'Dispare as lâminas restantes.':'Aproxime-se de um inimigo para invocar o cerco.';return;}
  if(kind==='magic2'&&starfall.active){status.textContent='A chuva de estrelas ainda está ativa.';return;}
+ if(kind==='magic3'&&phoenix.active){status.textContent='A fênix ainda está ativa.';return;}
  const check=canCast(kind,{unlocked:skillSet||new Set(),mana:playerMana,cooldownUntil:holyCooldowns,now});if(!check.ok){status.textContent=check.reason;return;}
  playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);
  if(kind==='magic'){siegeScene=siegeContext();siege.start(siegeTarget(),ownedItems.has('magic_plus')?16:14);siegeHUD();status.textContent='Cerco das Cinco Lâminas Celestiais — toque GOLPE para disparar cada espada.';}
+ else if(kind==='magic3'){
+ if(!phoenixVFX)phoenixVFX=createPhoenixVFX(THREE,scene);phoenixScene=siegeContext();
+ if(enemyModel){const size=measureModelBounds(enemyModel).getSize(new THREE.Vector3());enemy.userData.phoenixRadius=Math.max(.6,Math.min(4,Math.max(size.x,size.z)*.5));enemy.userData.phoenixHeight=Math.max(1.5,Math.min(8,size.y));}
+ const t=phoenixTarget(),yaw=t.alive?Math.atan2(t.x-player.position.x,t.z-player.position.z):playerYaw;phoenix.start(player.position,t,yaw,1+statsForLevel(playerLevel()).damageBonus);showGrimoire(0xffa52a,.7,true);playPose(model,'cast',.7,()=>playerYaw,0);status.textContent='Tornado da Fênix Celestial';
+ }
  else if(kind==='magic2'){
   if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene);
   starfallScene=siegeContext();const rig=model&&poseRig(model);if(rig?.rh)rig.rh.getWorldPosition(starfallHand);else {starfallHand.copy(player.position);starfallHand.y+=1.7;}
@@ -1293,7 +1306,7 @@ function castHolyMagic(kind){
  }
 }
 function updateHolyProjectiles(dt){
- updateSiege(dt);updateStarfall(dt);
+ updateSiege(dt);updateStarfall(dt);updatePhoenix(dt);
  for(let i=holyProjectiles.length-1;i>=0;i--){const p=holyProjectiles[i];if(p.orbit>0){p.orbit-=dt;p.oa+=dt*7;p.group.position.set(player.position.x+Math.sin(p.oa)*1.3,player.position.y+1.5+Math.sin(p.oa*2)*.15,player.position.z+Math.cos(p.oa)*1.3);p.group.rotation.y=p.oa+Math.PI/2;if(p.orbit<=0){const tx=(enemy.visible&&enemyAlive?enemy.position.x:p.group.position.x+Math.sin(playerYaw))-p.group.position.x,tz=(enemy.visible&&enemyAlive?enemy.position.z:p.group.position.z+Math.cos(playerYaw))-p.group.position.z,d=Math.hypot(tx,tz)||1;p.dirX=tx/d;p.dirZ=tz/d;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}continue;}p.delay-=dt;if(p.delay>0)continue;p.life-=dt;if(p.kind==='arc'){const k=1-p.life/.6;p.group.scale.setScalar(1+k*1.3);p.group.traverse(o=>{if(o.material&&o.material.transparent)o.material.opacity=Math.max(0,(o.material===p.arcMat?.9:.55)*(1-k));});}if(p.homing&&enemy.visible&&enemyAlive){const hx=enemy.position.x-p.group.position.x,hz=enemy.position.z-p.group.position.z,hd=Math.hypot(hx,hz)||1;p.dirX+=(hx/hd-p.dirX)*Math.min(1,dt*5);p.dirZ+=(hz/hd-p.dirZ)*Math.min(1,dt*5);const n=Math.hypot(p.dirX,p.dirZ)||1;p.dirX/=n;p.dirZ/=n;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind==='sun'){p.group.position.y+=Math.sin(performance.now()*.006)*dt*.22;p.group.rotation.y+=dt*2;}else p.group.rotation.z+=dt*2;
   const d=Math.hypot(p.group.position.x-enemy.position.x,p.group.position.z-enemy.position.z);
   if(!p.hit&&enemyAlive&&combatStepNow()&&enemy.visible&&d<(p.kind==='arc'?1.9:1.15)&&Math.abs(p.group.position.y-(enemy.position.y+1))<1.8){p.hit=true;enemyHP=Math.max(0,enemyHP-p.damage);onEnemyDamaged(p.damage,p.kind==='ultimate');if(p.kind==='sun')burnEnemy();enemyHitFlash=.2;setEnemyHitFlash(true);setTimeout(()=>setEnemyHitFlash(false),130);const fill=document.getElementById('enemy-hp-fill');if(fill)fill.style.width=enemyHpPercent()+'%';p.life=0;if(enemyHP===0){enemyAlive=false;playEnemyAnimation('death',.06,true);status.textContent='A luz venceu este inimigo. Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),650);}}
@@ -5434,7 +5447,10 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   starfallFrame(dt){if(mixer)mixer.update(dt);updatePoses(dt);updateStarfall(dt);return this.starfallState();},
   starfallState(){return {active:starfall.active,time:starfall.time,phase:starfall.phase,mana:playerMana,hp:enemyHP,cooldown:holyCooldowns.magic2,stars:starfall.stars.map(s=>({phase:s.phase,p:{...s.p}}))};},
   siegeFrame(dt){updateSiege(dt);return this.siegeState();},
-  siegeState(){return {active:siege.active,remaining:siege.remaining,time:siege.time,hp:enemyHP,blades:siege.blades.map(b=>({phase:b.phase,p:b.p,hit:b.hit}))};},
+  phoenixQA(){this.starfallQA();ownedItems.add("magic3");refreshSkillUnlocks();return this.phoenixState();},
+ phoenixState(){return {active:phoenix.active,phase:phoenix.phase,time:phoenix.time,angle:phoenix.angle,ticks:phoenix.ticks,hp:enemyHP,mana:playerMana};},
+ phoenixFrame(dt){updatePhoenix(dt);return this.phoenixState();},
+ siegeState(){return {active:siege.active,remaining:siege.remaining,time:siege.time,hp:enemyHP,blades:siege.blades.map(b=>({phase:b.phase,p:b.p,hit:b.hit}))};},
   siegeAttack(){action('attack');return this.siegeState();},
   kitInfo(){return{profile:encounterProfile,tier:tierOf(encounterProfile),cds:kitState.cds,ult:bossUlt.kind,hp:playerHP,ehp:enemyHP,fx:ultFx.length,slow:performance.now()<foeSlowUntil,inv:performance.now()<foeInvertUntil};},
  hazardCount(){return{hazards:hazards.length,blackHole:blackHole.active,combo:comboCount};},
