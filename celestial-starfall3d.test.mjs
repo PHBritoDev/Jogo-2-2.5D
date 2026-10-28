@@ -27,8 +27,8 @@ test('no target finishes coherently; already launched stars do not chase a movin
 });
 test('recasts reuse slots, reject overlap and cleanly reset',()=>{const {s}=setup();const slots=[...s.stars];assert.equal(s.start(source,target()),false);for(let i=0;i<30;i++){s.update(10.1,target());assert.equal(s.start(source,target()),true);assert.equal(s.stars[0],slots[0]);assert.equal(s.time,0);assert.ok(s.stars.every(s=>s.phase==='waiting'));}});
 test('retired skills stay disabled even with old saves or debug unlocks',()=>{
- const unlocked=new Set(['magic','magic2','magic3','ultimate']);for(const id of ['magic3','ultimate'])assert.equal(canCast(id,{unlocked,mana:999}).reason,'Em desenvolvimento.');
- assert.deepEqual([...unlockedSkills({owned:unlocked,testAll:true})],['magic','magic2']);
- for(const id of ['magic3','ultimate','magic3_plus'])assert.equal(buyItem(SHOP_ITEMS.find(i=>i.id===id),{owned:new Set(),questStep:99,level:99,coins:999}).ok,false);
+ const unlocked=new Set(['magic','magic2','magic3','ultimate']);for(const id of ['ultimate'])assert.equal(canCast(id,{unlocked,mana:999}).reason,'Em desenvolvimento.');
+ assert.deepEqual([...unlockedSkills({owned:unlocked,testAll:true})],['magic','magic2','magic3']);
+ for(const id of ['ultimate','magic3_plus'])assert.equal(buyItem(SHOP_ITEMS.find(i=>i.id===id),{owned:new Set(),questStep:99,level:99,coins:999}).ok,false);
  assert.equal(SKILLS.magic.mana,18);assert.equal(SKILLS.magic.cooldown,1800);
 });

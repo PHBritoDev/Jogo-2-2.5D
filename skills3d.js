@@ -12,7 +12,7 @@ export const SKILLS = {
     lockReason: 'Compre na Loja Central depois de libertar as crianças.' },
   magic2: { id: 'magic2', name: 'Chuva de Estrelas Celestiais', key: '2', mana: 32, cooldown: 5200, unlockStep: 6,
     lockReason: 'Compre na Loja Central depois de vencer as sentinelas.' },
-  magic3: { disabled: true, id: 'magic3', name: 'Sol da Justiça', key: '3', mana: 45, cooldown: 6200, unlockBishops: 1,
+  magic3: { id: 'magic3', name: 'Tornado da Fênix Celestial', key: '3', mana: 45, cooldown: 12000, unlockBishops: 1,
     lockReason: 'Compre na Loja Central depois de purificar VHAZRAEL.' },
   ultimate: { disabled: true, id: 'ultimate', name: 'Julgamento Divino', key: '4', mana: 80, cooldown: 14000, unlockBishops: 2,
     lockReason: 'Compre na Loja Central durante o Ato II, antes do Segundo Bispo.' }

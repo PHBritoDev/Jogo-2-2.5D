@@ -6,7 +6,7 @@ test('começa só com a espada; Palavras chegam pela compra', () => {
   assert.equal(unlockedSkills({}).size, 0);
   assert.deepEqual([...unlockedSkills({ owned: ['magic'] })], ['magic']);
   assert.deepEqual([...unlockedSkills({ owned: new Set(['magic2', 'magic']) })], ['magic', 'magic2']);
-  assert.equal(unlockedSkills({ testAll: true }).size, 2);
+  assert.equal(unlockedSkills({ testAll: true }).size, 3);
 });
 
 test('revelação lista só o que acabou de abrir', () => {
@@ -17,7 +17,7 @@ test('revelação lista só o que acabou de abrir', () => {
 test('bloqueio, recarga e mana têm motivos claros', () => {
   const unlocked = unlockedSkills({ owned: ['magic', 'magic2'] });
   assert.equal(canCast('magic3', { unlocked, mana: 100 }).ok, false);
-  assert.match(canCast('magic3', { unlocked, mana: 100 }).reason, /Em desenvolvimento/);
+  assert.match(canCast('magic3', { unlocked, mana: 100 }).reason, /Compre/);
   assert.equal(canCast('magic', { unlocked, mana: 100, cooldownUntil: { magic: 1000 }, now: 0 }).ok, false);
   assert.equal(canCast('magic2', { unlocked, mana: 10 }).ok, false);
   assert.equal(canCast('magic2', { unlocked, mana: SKILLS.magic2.mana }).ok, true);
