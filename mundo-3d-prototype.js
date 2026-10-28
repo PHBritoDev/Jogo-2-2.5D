@@ -763,6 +763,8 @@ function startEnemyAttack(role='attack'){
 }
 function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=(BOSS_PROFILES.includes(encounterProfile)?3.1:2.4)&&heightDelta<=1.2;}
 function updateEnemyAI(dt){
+ // MOD 229 — preso no ciclone da Fênix: IA, locomoção e ataques ficam pausados (lease); a posição vem do ciclone.
+ if(phoenixHold){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='hit'&&enemyCurrentRole!=='idle'&&enemyActions.idle)playEnemyAnimation(enemyActions.hit?'hit':'idle',.1);return;}
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
  if(!enemy.visible||!enemyAlive||!combatStepNow()||dialogueOpen||cineActive||playerHP<=0){if(enemyCurrentRole!=='idle'&&enemyActions.idle){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;playEnemyAnimation('idle',.1);}return;}
  if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-6000,6000),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-6000,6000);if(!enemyBlockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!enemyBlockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
@@ -1046,7 +1048,7 @@ var worldCompiled=false,worldCompileStarted=false;
 function precompileWorld(){
  if(worldCompileStarted)return;worldCompileStarted=true;
  if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});
- if(!phoenixVFX){phoenixVFX=createPhoenixVFX(THREE,scene);phoenixVFX.root.visible=true;renderer.compile(phoenixVFX.root,camera);phoenixVFX.clear();}
+ if(!phoenixVFX){phoenixVFX=createPhoenixVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});phoenixVFX.root.visible=true;renderer.compile(phoenixVFX.root,camera);phoenixVFX.clear();}
  if(!whiteVFX){whiteVFX=createWhiteHoleVFX(THREE,scene);whiteVFX.root.visible=true;renderer.compile(scene,camera);whiteVFX.clear();}
  const done=()=>{worldCompiled=true;};setTimeout(done,9000);
  try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
@@ -1285,9 +1287,18 @@ function chargeDivine(){
   if(t>.4&&Math.random()<.08)cameraShake(.06);if(t>.5&&t<1.4&&Math.random()<.06)lightning(tgt.x+(Math.random()-.5)*9,tgt.z+(Math.random()-.5)*9,0xfff0b8);if(t>=1.4&&!g.userData.go){g.userData.go=true;castDivineJudgment();}if(t>2.2){fxDispose(g);return false;}});
 }
 let phoenixVFX=null,phoenixScene='';
-const phoenix=new CelestialPhoenix({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),hit:(d,id)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,false,true);},event:type=>{if(type==='flight')worldAudio.whoosh();if(type==='burn'){worldAudio.hit();cameraShake(.07);}if(type==='cancel')phoenixVFX?.clear();}});
-function phoenixTarget(){const t=siegeTarget();t.y=enemy.position.y;t.radius=Math.max(.6,enemy.userData.phoenixRadius||.6);t.height=enemy.userData.phoenixHeight||2;return t;}
-function updatePhoenix(dt){phoenix.update(dt,phoenixTarget(),{valid:playerHP>0&&!cineActive&&!dialogueOpen&&phoenixScene===siegeContext()});if(phoenixVFX)phoenixVFX.update(phoenix,camera,graphics3DMode==='low'?0:graphics3DMode==='auto'?(graphics3DScale<.75?0:1):2);}
+const phoenix=new CelestialPhoenix({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),hit:(d,id,kind)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,kind==='strike'||kind==='burst',true);},event:type=>{if(type==='flight'||type==='dive')worldAudio.whoosh();if(type==='capture')worldAudio.magic?.('magic3');if(type==='burst'||type==='impact'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(type==='impact'?.2:.14);vibrate(type==='impact'?90:60);}if(type==='cancel'){phoenixVFX?.clear();releasePhoenixHold();}}});
+function phoenixTarget(){const t=siegeTarget();t.resist=phoenixBossResists();t.y=phoenixHold?phoenixHold.y:enemy.position.y;if(phoenixHold){t.x=phoenixHold.ax;t.z=phoenixHold.az;}t.radius=Math.max(.6,enemy.userData.phoenixRadius||.6);t.height=enemy.userData.phoenixHeight||2;return t;}
+/* MOD 229 — lease do alvo capturado: guarda posição/rotação, aplica a espiral do ciclone e SEMPRE devolve o inimigo ao chão
+   (fim da captura, cancelamento, morte, troca de cena) — nunca fica voando nem atravessando o terreno. */
+var phoenixHold=null;
+function phoenixBossResists(){const hud=document.getElementById('enemy-hud');return !!((hud&&hud.classList.contains('boss'))||(dimBattle&&dimBattle.active)||lateBossActive||finaleFighting);}
+function releasePhoenixHold(){const h=phoenixHold;if(!h)return;phoenixHold=null;try{if(enemy){enemy.position.set(h.ax,terrainHeightAt(h.ax,h.az),h.az);enemy.rotation.y=h.rotY;}}finally{enemyAttackCooldown=Math.max(enemyAttackCooldown,.6);}}
+function applyPhoenixHold(){const H=phoenix.hold;
+ if(!(phoenix.active&&H.active&&enemy.visible&&enemyAlive&&phoenix.id===siegeEpoch)){releasePhoenixHold();return;}
+ if(!phoenixHold){const a=phoenix.anchor;phoenixHold={ax:a.x,az:a.z,y:terrainHeightAt(a.x,a.z),rotY:enemy.rotation.y};}
+ const g=terrainHeightAt(phoenixHold.ax+H.x,phoenixHold.az+H.z);enemy.position.set(phoenixHold.ax+H.x,Math.max(g,phoenixHold.y)+H.y,phoenixHold.az+H.z);enemy.rotation.y=phoenixHold.rotY+H.spin;}
+function updatePhoenix(dt){try{phoenix.update(dt,phoenixTarget(),{valid:playerHP>0&&!cineActive&&!dialogueOpen&&phoenixScene===siegeContext()});}finally{applyPhoenixHold();}if(phoenixVFX)phoenixVFX.update(phoenix,camera,graphics3DMode==='low'?0:graphics3DMode==='auto'?(graphics3DScale<.75?0:1):2);}
 
 // Protagonist Ultimate owns a reversible presentation lease, never the player's physical position.
 let whiteVFX=null,whiteScene='',whitePendingDeath=false;
@@ -1327,7 +1338,7 @@ function castHolyMagic(kind){
  if(kind==='ultimate'){beginWhiteHole();status.textContent='Julgamento Divino — Colapso da Luz Eterna';}
  else if(kind==='magic'){siegeScene=siegeContext();siege.start(siegeTarget(),ownedItems.has('magic_plus')?16:14);siegeHUD();status.textContent='Cerco das Cinco Lâminas Celestiais — toque GOLPE para disparar cada espada.';}
  else if(kind==='magic3'){
- if(!phoenixVFX)phoenixVFX=createPhoenixVFX(THREE,scene);phoenixScene=siegeContext();
+ if(!phoenixVFX)phoenixVFX=createPhoenixVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});phoenixScene=siegeContext();
  if(enemyModel){const size=measureModelBounds(enemyModel).getSize(new THREE.Vector3());enemy.userData.phoenixRadius=Math.max(.6,Math.min(4,Math.max(size.x,size.z)*.5));enemy.userData.phoenixHeight=Math.max(1.5,Math.min(8,size.y));}
  const t=phoenixTarget(),yaw=t.alive?Math.atan2(t.x-player.position.x,t.z-player.position.z):playerYaw;phoenix.start(player.position,t,yaw,1+statsForLevel(playerLevel()).damageBonus);showGrimoire(0xffa52a,.7,true);playPose(model,'cast',.7,()=>playerYaw,0);status.textContent='Tornado da Fênix Celestial';
  }
@@ -5486,7 +5497,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  whiteFrame(dt){if(!gamePaused)tickWhiteHole(dt);renderer.render(scene,camera);return this.whiteState();},
  whiteCancel(){finishWhiteHole();return this.whiteState();},
  whiteState(){return {active:whiteHole.active,locked:whiteLease.locked,phase:whiteHole.phase,time:whiteHole.time,hp:enemyHP,mana:playerMana,pos:player.position.toArray(),modelPos:model.position.toArray(),savedModelPos:whiteLease.snapshot?.modelPosition.toArray(),savedCamera:whiteLease.snapshot?.cam.toArray(),camera:camera.position.toArray(),yaw:cameraYaw,pitch:cameraPitch,distance:cameraDistance,flash:whiteOverlay.style.opacity,context:siegeContext()};},
- phoenixState(){return {active:phoenix.active,phase:phoenix.phase,time:phoenix.time,angle:phoenix.angle,ticks:phoenix.ticks,hp:enemyHP,mana:playerMana};},
+ phoenixState(){return {active:phoenix.active,phase:phoenix.phase,time:phoenix.time,angle:phoenix.angle,ticks:phoenix.ticks,hp:enemyHP,mana:playerMana,enemy:enemy.position.toArray().map(v=>+v.toFixed(2)),held:!!phoenixHold,ground:+terrainHeightAt(enemy.position.x,enemy.position.z).toFixed(2)};},
  phoenixFrame(dt){updatePhoenix(dt);return this.phoenixState();},
  siegeState(){return {active:siege.active,remaining:siege.remaining,time:siege.time,hp:enemyHP,blades:siege.blades.map(b=>({phase:b.phase,p:b.p,hit:b.hit}))};},
   siegeAttack(){action('attack');return this.siegeState();},
