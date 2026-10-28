@@ -8,6 +8,7 @@ const STORE_KEY = 'seven-sins-3d-audio';
 
 export function createWorldAudio() {
   let ctx = null, master = null, ambBus = null, sfxBus = null, musicBus = null, music = null, noiseBuf = null, ready = false;
+  let cinematicGain=1;
   const settings = { ambient: .7, sfx: .8, music: .55, muted: false };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (_) {}
   const layers = {};
@@ -17,7 +18,7 @@ export function createWorldAudio() {
   function applyVolumes() {
     if (!ctx) return;
     const t = ctx.currentTime;
-    master.gain.setTargetAtTime(settings.muted ? 0 : 1, t, .08);
+    master.gain.setTargetAtTime(settings.muted ? 0 : cinematicGain, t, .08);
     ambBus.gain.setTargetAtTime(settings.ambient, t, .1);
     if (musicBus) musicBus.gain.setTargetAtTime(settings.music, t, .2);
     sfxBus.gain.setTargetAtTime(settings.sfx, t, .05);
@@ -129,6 +130,7 @@ export function createWorldAudio() {
 
   return {
     unlock,
+    setCinematicGain(value){cinematicGain=Math.max(0,Math.min(1,value));applyVolumes();},
     get settings() { return { ...settings }; },
     get state() { return ctx ? ctx.state : 'locked'; },
     setVolume(kind, value) { if (kind in settings) { settings[kind] = kind === 'muted' ? !!value : Math.max(0, Math.min(1, Number(value) || 0)); save(); applyVolumes(); } },

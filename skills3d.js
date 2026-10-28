@@ -14,7 +14,7 @@ export const SKILLS = {
     lockReason: 'Compre na Loja Central depois de vencer as sentinelas.' },
   magic3: { id: 'magic3', name: 'Tornado da Fênix Celestial', key: '3', mana: 45, cooldown: 12000, unlockBishops: 1,
     lockReason: 'Compre na Loja Central depois de purificar VHAZRAEL.' },
-  ultimate: { disabled: true, id: 'ultimate', name: 'Julgamento Divino', key: '4', mana: 80, cooldown: 14000, unlockBishops: 2,
+  ultimate: { id: 'ultimate', name: 'Julgamento Divino — Colapso da Luz Eterna', key: '4', mana: 80, cooldown: 30000, unlockBishops: 2,
     lockReason: 'Compre na Loja Central durante o Ato II, antes do Segundo Bispo.' }
 };
 export const SKILL_ORDER = ['magic', 'magic2', 'magic3', 'ultimate'];
