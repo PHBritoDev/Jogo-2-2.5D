@@ -39,7 +39,7 @@ export const SHOP_ITEMS = [
   { id: 'magic2', sector: 'escrituras', kind: 'skill', name: 'Chuva de Estrelas Celestiais', cost: 35, level: 3, step: 5,
     desc: 'Lance luz ao céu para abrir um círculo e chover 90 estrelas em ondas durante 10 s. 32 de mana; recarga de 5,2 s.' },
   { id: 'magic3', sector: 'escrituras', kind: 'skill', name: 'Tornado da Fênix Celestial', cost: 70, level: 4, step: 8,
-    desc: 'Tornado guiado, órbita da fênix, investida e 5 s de queimadura. 45 de mana; 12 s de recarga.' },
+    desc: 'Tornado guiado que prende o inimigo num ciclone por 3 s e explode; a fênix dá 2 voltas, sobe e mergulha; 3 s de queimadura. 45 de mana; 12 s de recarga.' },
   { id: 'ultimate', sector: 'escrituras', kind: 'skill', name: 'Julgamento Divino — Colapso da Luz Eterna', cost: 160, level: 6, step: 11,
     desc: 'Ascensão, coroa de luz e colapso celestial. 80 de mana, 30 s de recarga.', stepText: 'ouvir a família Arruda no Ato II — A Dívida dos Vivos' },
   { id: 'magic_plus', sector: 'escrituras', kind: 'upgrade', name: 'Cerco Celestial II', cost: 90, level: 7, step: 16, stepText: 'chegar ao Vale do Altar (Ato III)',
