@@ -2,6 +2,23 @@
 
 > **BRIEFING TEMPORÁRIO DE IMPLEMENTAÇÃO.** Este arquivo foi criado na branch `main` para o Codex ler e executar. **O usuário enviará pessoalmente a imagem de referência no chat do Codex**; ela não está anexada a este arquivo, e não deve ser inventada. Ao concluir a implementação, **excluir este arquivo na própria branch/PR antes de fazer o merge na `main`**, mantendo os arquivos definitivos da Ultimate. Não excluir documentos/arquivos de outras habilidades.
 
+## ⚠️ SE O CODEX MOSTRAR "decoded message length too large" (LIMITE 4 MiB)
+
+O erro `Operation was attempted past the valid range: ... decoded message length too large ... limit 4194304 bytes` diz que **uma mensagem/requisição transmitida ao serviço excedeu 4 MiB**. **Não prova que o briefing ou o código estejam errados**. Pode acontecer ao enviar anexos/imagens, referências de chat longo ou muitas informações numa mesma mensagem. A correção é reduzir a **mensagem enviada**, não apenas o tamanho do código lido.
+
+**Estratégia para retomar:**
+1. Se a conversa anterior não aceita mensagem, abrir uma **NOVA tarefa/conversa no Codex**, selecionando este repositório e a `main`. Não anexar a conversa anterior por `@`, nem colar o histórico todo.
+2. Primeira mensagem: apenas o **link para este briefing** e pedido para ler o arquivo no repositório, sem reenviar o texto inteiro.
+3. Mandar a **imagem de referência separadamente**. Se o upload apresentar o mesmo erro, reduzir a resolução/comprimir a imagem e enviar **apenas uma imagem** em mensagem separada; não mandar storyboard gigante e múltiplas capturas na mesma mensagem.
+4. Trabalhar com arquivos **na workspace local** quando disponível, sem despejar arquivo inteiro no chat. Para localizar pontos de integração use `rg -n "castHolyMagic|ultimate|cineActive|SKILL_LABELS" mundo-3d-prototype.js skills3d.js`, e `sed -n 'LINHA_INICIAL,LINHA_FINALp' arquivo.js` para pequenos trechos. Se usar GitHub connector, pedir `fetch_file` com `start_line` e `end_line` em janelas de aproximadamente 80–200 linhas. Evitar saídas imensas: `cat` de todo o mundo 3D, dump integral de JSON, log completo, diff gigante, dados de GLB/base64.
+5. Se um lote de anexos foi tentado e a conversa ficar bloqueada, recomeçar em tarefa nova com **mensagem curta** em vez de insistir em Retry com o mesmo payload.
+6. Não apagar nenhuma implementação já realizada; antes de continuar, verificar `git status` e commits/PRs recentes para não duplicar ou sobrescrever trabalho. O problema de limite de mensagem não significa que as alterações locais foram perdidas.
+
+**Mensagem de reinício sugerida (enviar sem anexar histórico):**
+"Implemente a Ultimate do protagonista do repositório PHBritoDev/Jogo-2-2.5D lendo apenas `docs/briefings/CODEX-ULTIMATE-PROTAGONISTA-WHITE-HOLE-TEMP.md` na main. Não imprima arquivos inteiros: inspecione só trechos necessários. Vou enviar a referência visual em mensagem separada. Quando estiver pronto, teste, faça PR, remova o briefing na PR, dê merge se autorizado e informe o link do jogo."
+
+---
+
 - Projeto: **A Batalha Contra os 7 Pecados Capitais**
 - Repositório: https://github.com/PHBritoDev/Jogo-2-2.5D
 - Branch base: `main` (obter a versão mais recente antes de começar).
