@@ -172,8 +172,8 @@ button:active{transform:scale(.96);background:#31583d}
   <form id="name-sheet" onsubmit="return false">
     <p id="name-kicker">ANJO-GUIA</p>
     <h2 id="name-title">Como devo chamar-te?</h2>
-    <input id="name-input" maxlength="16" autocomplete="off" enterkeyhint="done" aria-label="Seu nome">
-    <p id="name-error" aria-live="polite"></p>
+    <input id="name-input" type="text" minlength="3" maxlength="12" autocomplete="off" enterkeyhint="done" aria-label="Seu nome (3 a 12 caracteres, uma linha)">
+    <p class="name-hint">3 a 12 caracteres · uma linha</p><p id="name-error" aria-live="polite"></p>
     <button id="name-confirm" class="name-confirm" type="button">GUARDAR NOME</button>
   </form>
 </div>
@@ -202,7 +202,7 @@ button:active{transform:scale(.96);background:#31583d}
 <div id="cine-fade" aria-hidden="true"></div>
 <button id="cine-skip" hidden type="button">PULAR</button>
 <div id="start-gate" hidden><div><p class="sg-kicker">A BATALHA CONTRA OS 7 PECADOS CAPITAIS</p><h1>Galáxia 1</h1><button id="start-gate-go" type="button" disabled>CARREGANDO…</button></div></div>
-<section id="profile-panel" hidden aria-label="Perfil"><div id="profile-sheet"><div id="profile-portrait"></div><h2>PERFIL</h2><label for="profile-name">Nome</label><div class="profile-row"><input id="profile-name" maxlength="16" autocomplete="off" enterkeyhint="done"><button id="profile-save" type="button">GUARDAR</button></div><p id="profile-error" aria-live="polite"></p><div id="profile-stats"></div><p class="profile-note">Progresso salvo neste aparelho. Conta e nuvem chegarão em uma atualização futura.</p><button id="profile-close" type="button">FECHAR</button></div></section>
+<section id="profile-panel" hidden aria-label="Perfil"><div id="profile-sheet"><div id="profile-portrait"></div><h2>PERFIL</h2><label for="profile-name">Nome</label><div class="profile-row"><input id="profile-name" type="text" minlength="3" maxlength="12" autocomplete="off" enterkeyhint="done" aria-label="Nome do personagem (3 a 12 caracteres, uma linha)"><button id="profile-save" type="button">GUARDAR</button></div><p class="profile-note">Nome: 3 a 12 caracteres, em uma linha.</p><p id="profile-error" aria-live="polite"></p><div id="profile-stats"></div><p class="profile-note">Progresso salvo neste aparelho. Conta e nuvem chegarão em uma atualização futura.</p><button id="profile-close" type="button">FECHAR</button></div></section>
 <section id="shop-panel" hidden aria-label="Loja Central"><div id="shop-sheet"><div id="shop-head"><div class="shop-brand"><span class="shop-sigil" aria-hidden="true"></span><div><h2>LOJA</h2><span class="shop-kicker">FORTALEÇA SUA JORNADA</span></div></div><div class="shop-wallet"><span id="shop-level">NÍVEL 1</span><span class="coin-ic"></span><strong id="shop-coins">0</strong></div><button id="shop-close" type="button" aria-label="Fechar loja">✕</button></div><div id="shop-main"><nav id="shop-tabs"></nav><div id="shop-body"></div></div><div id="shop-foot-note"><span>Os itens são adquiridos com ouro e recompensas do jogo.</span><span class="shop-gx">GALÁXIA 1</span></div></div></section>
 <div id="quest-toast" class="hidden">MISSÃO CONCLUÍDA</div>
 <section id="inv-panel" hidden aria-label="Inventário"><div id="inv-sheet"><div id="inv-head"><h2>INVENTÁRIO</h2><button id="inv-best" type="button">EQUIPAR MELHOR</button><button id="inv-close" type="button" aria-label="Fechar inventário">✕</button></div><div id="inv-body"></div></div></section>
