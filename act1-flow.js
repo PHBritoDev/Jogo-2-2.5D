@@ -36,8 +36,8 @@ const BANNED = ['porra', 'merda', 'caralho', 'fdp', 'puta', 'viado', 'cuzao', 'b
 
 export function sanitizePlayerName(raw) {
   const name = String(raw || '').replace(/\s+/g, ' ').trim();
-  if (name.length < 2 || name.length > 16) return { ok: false, error: 'Use de 2 a 16 caracteres.' };
-  if (!/^[\p{L}][\p{L} '\-.]{1,15}$/u.test(name)) {
+  if (name.length < 3 || name.length > 12) return { ok: false, error: 'Use de 3 a 12 caracteres, em uma única linha.' };
+  if (!/^[\p{L}][\p{L} '\-.]{2,11}$/u.test(name)) {
     return { ok: false, error: 'Use letras, espaço, apóstrofo ou hífen.' };
   }
   const folded = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
