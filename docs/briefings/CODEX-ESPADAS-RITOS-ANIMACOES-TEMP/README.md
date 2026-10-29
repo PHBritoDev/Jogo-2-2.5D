@@ -26,6 +26,13 @@ O criador diz "duas espadas" porque quer trabalhar **agora somente com**:
 
 As duas primeiras espadas **compartilham a mesma família visual de ritos/cortes**, com variações de cor e intensidade coerentes com a identidade de cada arma; **não precisam repetir literalmente as mesmas animações de golpe**. Cada uma recebe **uma habilidade ativa própria e diferente**, independente das quatro magias existentes.
 
+### ESCLARECIMENTO DO CRIADOR — ESPADAS, BOTÃO E ANIMAÇÕES EXISTENTES (28/10/2026)
+- Confirmado: as duas espadas em foco são **a espada inicial do protagonista (Espada do Chamado, `prota`)** e **a espada que o jogador pode comprar na loja (Lâmina da Aurora, `aurora`)**. O fato de existirem outras armas cadastradas não amplia este escopo. A espada comprada deve continuar exigindo sua compra/desbloqueio normal.
+- **SIM, cada habilidade especial de espada deve ser ATIVADA PELO JOGADOR APERTANDO UM BOTÃO** (HUD mobile e atalho no PC). O botão contextual usa a habilidade da espada atualmente equipada. **O botão GOLPE continua sendo para ataques básicos e combos**, sem ativar automaticamente a skill especial. Mostrar custo, cooldown, bloqueio e nome da habilidade. As duas skills são diferentes.
+- O jogo **já tem animações/gestos básicos de ataque genéricos** (sejam clipes, fallback ou movimentação procedural). **Codex está AUTORIZADO a substituir/remover os movimentos genéricos** se necessário para entregar animações de espada profissionais, **ou aproveitar a infraestrutura útil** (mixer, transições, input, combo, colisão, cooldown, dano, áudio, VFX). Não preservar animações ruins só por existirem. Não excluir mecanismos de combate úteis nem remover clipes originais sem backup. A substituição precisa ser visualmente verificável e manter ataque funcional.
+- O criador quer **animações novas específicas para combate com espada**, com o corpo todo participando; reutilizar parte das animações antigas somente se melhoradas e coerentes. As mesmas animações de espada podem servir como base para **as skills especiais**, com movimentos exclusivos nos momentos cinematográficos.
+- Não confundir **efeitos de cortes dos golpes básicos** (automáticos a cada toque em GOLPE) com **habilidades especiais** (só ao apertar o botão próprio).
+
 ## 2. AUDITORIA OBRIGATÓRIA ANTES DE IMPLEMENTAR
 - Ler a `main` atual, histórico recente e dependências; não assumir que este briefing descreve todo o estado do repositório.
 - Ler: `mundo-3d-prototype.js`, `mundo-3d-prototype.html`, `progression3d.js`, `skills3d.js`, `mod181-loader.js`, código de câmera, input, combate, HUD, save, loja e efeitos existentes.
