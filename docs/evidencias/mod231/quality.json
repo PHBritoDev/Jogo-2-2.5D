@@ -1,0 +1,52 @@
+{
+  "combo": [
+    {
+      "hp": 9975,
+      "height": 1.9334575751408052
+    },
+    {
+      "hp": 9947,
+      "height": 1.933457562276232
+    },
+    {
+      "hp": 9914,
+      "height": 1.9391480808365105
+    }
+  ],
+  "low": {
+    "baseline": 275,
+    "judgment": {
+      "calls": 282,
+      "vfx": {
+        "cuts": 6,
+        "trails": 0,
+        "particles": 12,
+        "ghosts": 0,
+        "capacity": {
+          "cuts": 16,
+          "trails": 3,
+          "particles": 192,
+          "ghosts": 3
+        }
+      }
+    },
+    "eclipse": {
+      "calls": 287,
+      "vfx": {
+        "cuts": 4,
+        "trails": 1,
+        "particles": 18,
+        "ghosts": 0,
+        "capacity": {
+          "cuts": 16,
+          "trails": 3,
+          "particles": 192,
+          "ghosts": 3
+        }
+      }
+    }
+  },
+  "renderEngine": "Chromium SwiftShader (software)",
+  "androidPhysical": false,
+  "errors": []
+}

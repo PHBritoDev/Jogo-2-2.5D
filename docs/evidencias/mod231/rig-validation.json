@@ -1,0 +1,52 @@
+[
+  {
+    "clip": "Rite_Crescent",
+    "samples": 87,
+    "foot_drift_m": {
+      "mixamorigRightFoot": 1.865964900636105e-06,
+      "mixamorigLeftFoot": 2.0850329361025985e-06
+    },
+    "hip_vertical_m": 0.07499948858102312,
+    "root_motion_xz_m": 1.5823041402446578e-07
+  },
+  {
+    "clip": "Rite_Reverse",
+    "samples": 85,
+    "foot_drift_m": {
+      "mixamorigRightFoot": 1.9827971001271066e-06,
+      "mixamorigLeftFoot": 1.987143990543672e-06
+    },
+    "hip_vertical_m": 0.07498342876084596,
+    "root_motion_xz_m": 1.527775648268499e-07
+  },
+  {
+    "clip": "Rite_Ascendant",
+    "samples": 104,
+    "foot_drift_m": {
+      "mixamorigRightFoot": 2.6187881963284364e-06,
+      "mixamorigLeftFoot": 1.5810566152791584e-06
+    },
+    "hip_vertical_m": 0.11000002792268526,
+    "root_motion_xz_m": 1.6131570562656645e-07
+  },
+  {
+    "clip": "Rite_Judgment",
+    "samples": 171,
+    "foot_drift_m": {
+      "mixamorigRightFoot": 2.7683178536307195e-06,
+      "mixamorigLeftFoot": 1.927400345024795e-06
+    },
+    "hip_vertical_m": 0.1350000193846017,
+    "root_motion_xz_m": 1.745236034168564e-07
+  },
+  {
+    "clip": "Rite_Eclipse",
+    "samples": 277,
+    "foot_drift_m": {
+      "mixamorigRightFoot": 2.45958809523727e-06,
+      "mixamorigLeftFoot": 2.066826191063604e-06
+    },
+    "hip_vertical_m": 0.10993574158068176,
+    "root_motion_xz_m": 1.6110154404076896e-07
+  }
+]

@@ -142,3 +142,12 @@ noite. Braseiros (`BRAZIER_SPOTS`) iluminam os pontos de luta com 4 chamadas de 
 
 Ao mudar código: incremente o número visível (`#marker`), `BUILD` em `mod181-loader.js`, `?v=` em
 `mundo-3d-prototype.html` e `refresh/build` em `index.html`.
+
+## Mod 231 — ritos das duas espadas iniciais
+
+`sword-rites3d.js` simula combos e skills; `sword-rites-animation3d.js` valida clipes e isola saves de teste;
+`sword-rites-vfx3d.js` mantém trilhas, cortes e partículas em pools. `Protagonista-ritos-231.glb` contém cinco
+clipes autorais em cima do rig original, gerados por `tools/blender/mod231_sword_rites.py` (Blender 5.0.1).
+Somente `prota`/`aurora`, botão contextual e tecla R. As quatro magias permanecem separadas.
+`?todasHabilidades=1&treinoEspadas=1&v=231` abre o treino sem gravar a campanha.
+Auditoria, balanceamento e evidências: `docs/MOD-231-RITOS-DE-ESPADA.md`.

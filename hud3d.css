@@ -400,3 +400,12 @@ body.no-hints #top{display:none!important}
 #whitehole-flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9999}.whitehole-cinematic #actions,.whitehole-cinematic #stick,.whitehole-cinematic #talk-button{opacity:.25;pointer-events:none}
 .whitehole-paused #whitehole-flash{visibility:hidden}
 .whitehole-cinematic #enemy-hud,.whitehole-cinematic #quest-box,.whitehole-cinematic #quest-toast{visibility:hidden}
+
+/* Mod 231: contextual sword skill, separate from the four Palavras. */
+#actions #sword-skill{width:calc(var(--u)*1.14)!important;height:calc(var(--u)*1.14)!important;right:calc(var(--u)*3.42)!important;bottom:calc(var(--u)*2.66)!important;--c1:#c28e35;--c2:#38230c}
+#actions #sword-skill[data-sword="aurora"]{--c1:#b91b49;--c2:#250a32}
+#actions #sword-skill .btn-icon{font-size:calc(var(--u)*.7);line-height:1;color:#fff1c2;background:none!important}
+#actions #sword-skill[hidden],#sword-training[hidden]{display:none!important}
+#sword-training{position:fixed;z-index:15;left:50%;top:max(5px,env(safe-area-inset-top));transform:translateX(-50%);display:flex;gap:5px;align-items:center;max-width:94vw;padding:5px 8px;border:1px solid #a58c58;border-radius:8px;background:#0c0c16e8;color:#ffedc4;font:10px sans-serif}
+#sword-training button,#sword-training a{font:9px sans-serif;color:#fff1cd;background:#29202f;border:1px solid #8e7648;border-radius:5px;padding:7px;width:auto;height:auto;text-decoration:none;white-space:nowrap}
+@media(max-width:560px){#sword-training{top:auto;bottom:calc(var(--u)*5.4);flex-wrap:wrap;justify-content:center;width:max-content}#sword-training span{width:100%;text-align:center}}
