@@ -1,9 +1,10 @@
 import {SwordRites,SWORD_RITES} from './sword-rites3d.js';
 import {createSwordRitesVFX} from './sword-rites-vfx3d.js';
 import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage} from './sword-rites-animation3d.js';
-const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
+const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades')||new URLSearchParams(location.search).has('testeQuantum233');
 const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills);
-const swordTrainingRequested=testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas');
+const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233');
+const swordTrainingRequested=(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false;
 var swordTraining=false;
 import {CelestialWhiteHole,CinematicLease,whiteFlash} from './celestial-whitehole3d.js';
@@ -1103,7 +1104,7 @@ function updateSkillHud(now){
  const fill=document.getElementById('player-mana-fill');if(fill){const w=Math.round(playerMana/MANA.max*100);if(fill.dataset.w!==String(w)){fill.dataset.w=String(w);fill.style.width=w+'%';}}
 }
 function updateQuestHud(){
- if(swordTraining){document.getElementById('quest-title').textContent='TREINO DE ESPADAS';document.getElementById('quest-objective').textContent='GOLPE encadeia três ataques. Use o botão da espada para ativar seu rito.';return;}refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=(questStep===ACT5N.step?act5Presentation(act1Sub):null)||(isAct6Step(questStep)?act6Presentation(questStep,act1Sub):null)||finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||(isAct4Step(questStep)?act4Presentation(questStep,act1Sub):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
+ if(swordTraining){document.getElementById('quest-title').textContent=quantumShowcaseRequested?'TREINO QUANTUM · MOD 233':'TREINO DE ESPADAS';document.getElementById('quest-objective').textContent=quantumShowcaseRequested?'Alvo de 10.000 HP, sem ataques. Quantum equipada. Use 1: Ruptura, 2: Portais, 3: Dragão; inventário para trocar.':'GOLPE encadeia três ataques. Use o botão da espada para ativar seu rito.';return;}refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=(questStep===ACT5N.step?act5Presentation(act1Sub):null)||(isAct6Step(questStep)?act6Presentation(questStep,act1Sub):null)||finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||(isAct4Step(questStep)?act4Presentation(questStep,act1Sub):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
 function showActCard(){if(actCardSeen)return;actCardSeen=true;save3DProgress();const card=document.getElementById('act-card');if(!card)return;card.classList.remove('hidden');const hide=()=>{card.classList.add('hidden');card.removeEventListener('pointerdown',hide);};card.addEventListener('pointerdown',hide);setTimeout(hide,3400);}
 function finishAwakening(){if(!awakeningActive&&awakeningSeen)return;awakeningActive=false;awakeningSeen=true;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');save3DProgress();}
 let namePromptBound=null;
@@ -5535,7 +5536,13 @@ async function startSwordTraining(boss=false){
  if(!testAllSkills||!riteReady())return;await loadRig(boss?'bishop2':'enemy2');rites.cancel('training');swordTraining=true;menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
  if(cineDirector.active)cineDirector.skip();clearPack();useRig(boss?'bishop2':'enemy2');questStep=2;act1Sub=0;enemy.visible=false;revealEncounter(boss?'vorgazhek':'demon2',{x:40,z:14},10000,'Treino de espadas · GOLPE encadeia o combo; R ativa o rito.');player.position.set(40,terrainHeightAt(40,17),17);playerYaw=Math.PI;player.rotation.y=playerYaw;playerHP=playerMaxHP;playerMana=100;rites.cooldowns.prota=rites.cooldowns.aurora=0;ownedItems.add('aurora');cameraYaw=0;cameraPitch=.22;cameraDistance=6;debugCameraOverride=null;camera.position.set(40,terrainHeightAt(40,17)+2.5,23);camera.lookAt(40,terrainHeightAt(40,17)+1.1,17);
  for(const id of ['start-gate','name-panel','dialog-panel','loading']){const el=document.getElementById(id);if(el){el.hidden=true;el.classList.add('hidden');}}
- document.getElementById('sword-training').hidden=false;updateQuestHud();
+ if(quantumShowcaseRequested){
+   for(const id of ['quantum','skill_x_rupture','skill_twin_portals','skill_judgment_dragon'])ownedItems.add(id);
+   skillLoadout=['skill_x_rupture','skill_twin_portals','skill_judgment_dragon'];
+   equipSword('quantum');refreshSkillUnlocks();
+   status.textContent='TREINO MOD 233 · QUANTUM EQUIPADA · RUPTURA (1), PORTAIS (2), DRAGÃO (3) · ALVO DE 10.000 HP';
+  }
+  document.getElementById('sword-training').hidden=false;updateQuestHud();
 }
 if(testAllSkills){ownedItems.add('aurora');ownedItems.add('quantum');const panel=document.getElementById('sword-training');panel.hidden=false;bindInstantTap(document.getElementById('rite-training-start'),()=>startSwordTraining());bindInstantTap(document.getElementById('rite-training-swap'),()=>equipSword(equippedSword==='prota'?'aurora':'prota'));}
 
