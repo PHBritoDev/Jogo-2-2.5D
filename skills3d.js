@@ -19,6 +19,50 @@ export const SKILLS = {
 };
 export const SKILL_ORDER = ['magic', 'magic2', 'magic3', 'ultimate'];
 
+/* MOD 233 — três Palavras novas, compráveis e equipáveis nos três espaços normais (a ultimate fica separada).
+   IDs novos e estáveis: as quatro magias antigas e os saves continuam iguais. */
+Object.assign(SKILLS, {
+  skill_x_rupture: { id: 'skill_x_rupture', name: 'Ruptura em X', key: '·', mana: 26, cooldown: 6500, extra: true,
+    lockReason: 'Compre a Ruptura em X na Loja Central.' },
+  skill_twin_portals: { id: 'skill_twin_portals', name: 'Portais da Perseguição', key: '·', mana: 40, cooldown: 11000, extra: true,
+    lockReason: 'Compre os Portais da Perseguição na Loja Central.' },
+  skill_judgment_dragon: { id: 'skill_judgment_dragon', name: 'Dragão do Julgamento', key: '·', mana: 55, cooldown: 18000, extra: true,
+    lockReason: 'Compre o Dragão do Julgamento na Loja Central.' }
+});
+export const EXTRA_SKILLS = ['skill_x_rupture', 'skill_twin_portals', 'skill_judgment_dragon'];
+/** Palavras que podem ocupar os três espaços normais (botões 1, 2 e 3). */
+export const SLOT_SKILLS = ['magic', 'magic2', 'magic3', ...EXTRA_SKILLS];
+export const SLOT_IDS = ['magic', 'magic2', 'magic3'];                 // ids dos botões/atalhos (posições fixas no HUD)
+export const DEFAULT_LOADOUT = Object.freeze(['magic', 'magic2', 'magic3']);
+
+/** Palavras disponíveis para os espaços: compradas (ou todas no modo de teste). */
+export function ownedSlotSkills({ owned = [], testAll = false } = {}) {
+  const have = owned instanceof Set ? owned : new Set(owned);
+  return SLOT_SKILLS.filter(id => !SKILLS[id].disabled && (testAll || have.has(id)));
+}
+/** Saves antigos não têm loadout: começa no padrão. IDs inválidos ou repetidos voltam ao padrão daquele espaço. */
+export function normalizeLoadout(loadout) {
+  const out = [0, 1, 2].map(i => { const id = Array.isArray(loadout) ? loadout[i] : null; return SLOT_SKILLS.includes(id) ? id : null; });
+  for (let i = 0; i < 3; i++) if (out[i] && out.indexOf(out[i]) !== i) out[i] = null;
+  for (let i = 0; i < 3; i++) if (!out[i]) out[i] = !out.includes(DEFAULT_LOADOUT[i]) ? DEFAULT_LOADOUT[i] : SLOT_SKILLS.find(id => !out.includes(id));
+  return out;
+}
+/** Equipa uma Palavra num espaço. Fora de combate apenas, só Palavras compradas; se ela já estava em outro espaço, troca. */
+export function equipSlot(loadout, slot, id, { owned = [], testAll = false, inCombat = false, busy = false } = {}) {
+  const cur = normalizeLoadout(loadout);
+  if (inCombat) return { ok: false, reason: 'Troque as Palavras fora de combate.', loadout: cur };
+  if (busy) return { ok: false, reason: 'Espere a Palavra atual terminar.', loadout: cur };
+  if (!(slot >= 0 && slot < 3)) return { ok: false, reason: 'Espaço inválido.', loadout: cur };
+  if (!ownedSlotSkills({ owned, testAll }).includes(id)) return { ok: false, reason: (SKILLS[id] || {}).lockReason || 'Palavra desconhecida.', loadout: cur };
+  const other = cur.indexOf(id); if (other >= 0) cur[other] = cur[slot];
+  cur[slot] = id; return { ok: true, loadout: cur };
+}
+/** Primeiro espaço cuja Palavra ainda não foi comprada (para equipar automaticamente uma Palavra recém-comprada). */
+export function autoSlotFor(loadout, owned) {
+  const have = owned instanceof Set ? owned : new Set(owned), cur = normalizeLoadout(loadout);
+  return cur.findIndex(id => !have.has(id));
+}
+
 /** Conjunto de habilidades liberadas: as que o jogador comprou na Loja Central (Mod 188). */
 export function unlockedSkills({ owned = [], testAll = false } = {}) {
   const have = owned instanceof Set ? owned : new Set(owned);
