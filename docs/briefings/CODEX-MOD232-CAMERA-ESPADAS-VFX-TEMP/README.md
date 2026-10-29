@@ -44,6 +44,31 @@ Antes de concluir, testar as 3 exigências **separadamente e em conjunto**:
 
 Se qualquer um falhar, continuar corrigindo. Não substituir estes pedidos por melhorias vagas de shaders.
 
+## 1-B. ÚLTIMA ADIÇÃO DO CRIADOR — COMBATE EM MOVIMENTO, CORRIDA SEM LENTIDÃO E BRAÇOS DEFORMADOS (29/10)
+**REQUISITOS OBRIGATÓRIOS, não sugestões opcionais.** O criador relata problemas reproduzíveis na build atual:
+
+### 1. NÃO TRAVAR O PERSONAGEM AO ATACAR
+Atualmente o protagonista parece congelar/parar de andar quando aperta GOLPE; não consegue atacar enquanto anda ou corre. **Permitir locomoção contínua durante ataques básicos e combos**, inclusive correr, andar lateralmente, recuar e mudar direção, preservando input analógico e WASD. A ação de espada deve coexistir com a locomoção. Implementar animações em camadas por regiões de ossos (upper-body attack + lower-body locomotion), com máscara óssea/clip filtrado ou solução equivalente correta para Three.js AnimationMixer e o rig GLB real; root motion e movimentos de passo do ataque devem ser coordenados com deslocamento do jogador. Não usar animação full-body que zere velocidade ou capture todas as juntas e interrompa walk/run. Evitar foot sliding, pernas paradas durante avanço e cancelamentos abruptos. Ajustar janelas de combo/cancelamento para preservar hitbox e ritmo sem tornar jogador invulnerável.
+
+### 2. CORRIDA NO MEIO DA BATALHA SEM PENALIDADE ARTIFICIAL
+O criador nota uma **diminuição de velocidade ao tentar correr perto/durante o combate**. Investigar todas as fontes reais: `isSprinting`, `combatStepNow`, `lockOnActive`, `engaged`, `moveSpeed`, aceleração/desaceleração, normalização de joystick, `actionUntil`, `attack`, blend, estados do Enemy1, câmera/zoom que pode causar falsa sensação de lentidão. Remover **penalidade artificial de velocidade** para corrida em combate; preservar apenas regras deliberadas de dash/colisão e limites físicos consistentes. Não acelerar NPCs ou quebrar hit detection. **Sprint em combate deve ser tão rápido quanto sprint fora de combate** com mesmo input/terreno/stamina. Se ataques em movimento exigirem um ajuste de equilíbrio, priorizar fluidez sem transformar personagem em teleporte ou supervelocidade.
+
+### 3. BRAÇO LIVRE PARECE QUEBRADO NA CORRIDA
+O braço oposto ao que segura a espada assume uma pose estranha/torcida na animação de corrida, como se estivesse quebrado. **Corrigir deformação visual no esqueleto e na animação**, não esconder o braço nem simplesmente bloquear a corrida. Auditar: bone names/hierarchy, quaternion rest pose, bind pose, eixos, twist bones, retargeting, rotações invertidas, handedness, clip tracks duplicados, escala e ordem de aplicação de AnimationMixer, transições walk/run/attack, pesos de blending e procedurais que interferem em ombro/cotovelo/punho. Confirmar em vários ângulos e velocidades; mão livre deve balançar naturalmente, ombro e cotovelo manter anatomia crível, sem cruzar o torso de modo anormal nem esticar como borracha. Validar escala original de GLB conforme `docs/PROTOCOLO-BUG-ESCALA-GLB-PROTAGONISTA.md`. Não remendar apenas posição visual de um frame.
+
+### 4. MESMO DEFEITO EM OUTROS NPCs
+O criador observou **NPCs com a mesma animação defeituosa**. Identificar quais rigs/animadores compartilham o problema, priorizando NPCs carregados no mundo atual e em combate. Auditar funções comuns de retarget, AnimationMixer, clips e procedimentos de braço, sem aplicar correção global perigosa a esqueletos diferentes. Corrigir por rig/clip com testes de regressão. Não presumir que todos usam o mesmo GLB. Registrar quais NPCs foram efetivamente inspecionados e quais corrigidos; se algum não puder ser reproduzido, declarar limitação e não inventar teste.
+
+### 5. TESTES DE ACEITAÇÃO ADICIONAIS
+- **GOLPE + joystick/WASD:** atacar parado, andando para frente/trás/lados, correndo e em diagonal, completar 3-hit combo sem parar involuntariamente; testar em 1ª e 3ª pessoa e com as duas espadas.
+- **Velocidade:** medir distância percorrida em 5 s com sprint fora de combate vs sprint com inimigo engajado (mesma direção, terreno e input). Diferença indevida deve ser eliminada; documentar valores reais se puder medir.
+- **Anatomia:** gravar ou capturar animação correndo vista frontal, lateral e traseira, e corrida→ataque→corrida. Verificar ombro/cotovelo/punho do braço livre e estabilidade da mão da espada, sem torção ou pop.
+- **NPCs:** testar caminhada/corrida/ataque dos NPCs com rig suspeito, em particular os que reutilizam clipes/retarget. Verificar que correção não quebra braços, asas, escala, poses, idle, hit/death.
+- **Conflitos de estado:** sprint + ataque + dash/pulo + skill; transições não podem prender personagem, perder input, resetar câmera, gerar hits fantasmas nem manter braço congelado após cancelar.
+- **Performance:** bone masks e blending sem recriar tracks/actions por frame; manter 30 FPS mobile como meta e reduzir complexidade visual quando necessário, sem mudar gameplay.
+
+**Critério bloqueante:** NÃO dar missão como concluída se ainda for impossível atacar andando/correndo, se o sprint em combate continuar artificialmente lento, ou se braço do protagonista/NPCs inspecionados continuar visivelmente torcido.
+
 ## 2. AUDITORIA OBRIGATÓRIA — ENTENDA A MOD 231
 Leia antes de editar:
 - `mundo-3d-prototype.js` (entrada de `SwordRites`, `castSwordRite`, `riteFacing`, `riteTarget`, `updateRiteHud`, `updateFirstPerson`, `updateCamera`, `model.visible`, `cameraDistance`, `cameraYaw`, `cameraPitch`, `swordPivot`, `swordMount`, `equipSword`, animações, HUD e interações).
