@@ -49,7 +49,7 @@ export const SHOP_ITEMS = [
   { id: 'magic3_plus', disabled: true, sector: 'escrituras', kind: 'upgrade', name: 'Espada do Círculo', cost: 160, level: 9, step: 21, stepText: 'chegar à Torre (Ato IV)',
     desc: 'Nova Palavra do Ato IV: um círculo mágico se abre sob o inimigo e uma espada gigante irrompe do chão. Requer Tornado da Fênix Celestial.', requires: 'magic3' },
   { id: 'aurora', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Aurora', cost: 30, level: 3, step: 4,
-    desc: 'Lâmina clara e mais longa: +20% de dano e rastro dourado. Sem habilidade ativa.' },
+    desc: 'Lâmina clara e mais longa: +20% de dano. Ritos escarlates e Eclipse das Lâminas: quatro ondas de longo alcance, 38 mana, 16 s de recarga.' },
   { id: 'vigilia', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Vigília', cost: 110, level: 7, step: 16, stepText: 'encontrar quem resiste no Vale do Altar (Ato III)',
     desc: 'Aço azul-pálido para quem não dorme diante do mal: +44% de dano e alcance maior.' },
   // MOD 208 — a relíquia do torneio do coliseu (Ato V): desbloqueada ao vencer o 8º round.

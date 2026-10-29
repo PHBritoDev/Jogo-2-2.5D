@@ -1,3 +1,11 @@
+import {SwordRites,SWORD_RITES} from './sword-rites3d.js';
+import {createSwordRitesVFX} from './sword-rites-vfx3d.js';
+import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage} from './sword-rites-animation3d.js';
+const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
+const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills);
+const swordTrainingRequested=testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas');
+let swordTrainingRequestedStarted=false;
+var swordTraining=false;
 import {CelestialWhiteHole,CinematicLease,whiteFlash} from './celestial-whitehole3d.js';
 import {createWhiteHoleVFX} from './celestial-whitehole-vfx3d.js';
 import {createStorm} from './celestial-storm3d.js';
@@ -703,6 +711,7 @@ function updateEnemyHud(){
  if(fill)fill.style.width=enemyHpPercent()+'%';
 }
 function tryPlayerAttack(){
+ if(SWORD_RITES[equippedSword]){tryRiteAttack();return;}
  const now=performance.now();if(now<attackCooldown||dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive)return;
  // MOD 187 — o golpe sai sempre (treino, exploração); o dano só é resolvido quando há um inimigo ativo.
  if(defending)setDefending(false);
@@ -737,9 +746,10 @@ function updatePlayerHud(){
 function damagePlayerFromEnemyAttack(damage=ENEMY_ATTACK_DAMAGE){
  if(whiteLease.locked)return false;
  const now=performance.now();if(playerHP<=0||now<playerInvulnerableUntil||cineActive)return false;
+ if(rites.invulnerable)return false;
  const raw=encounterProfile==='warden'?Math.max(1,Math.round((Number(damage)||ENEMY_ATTACK_DAMAGE)*1.15)):Math.max(1,Number(damage)||ENEMY_ATTACK_DAMAGE);
  const scaled=applyDefenseToHit(raw);if(scaled<=0){playerInvulnerableUntil=now+450;return false;}
- fightHitTaken=true;onPlayerDamaged(scaled,defending);
+ rites.cancel('hit');fightHitTaken=true;onPlayerDamaged(scaled,defending);
  playerHP=Math.max(0,playerHP-scaled);playerInvulnerableUntil=now+850;updatePlayerHud();worldAudio.hurt();
  if(playerHP===0){
   if(encounterProfile==='warden')spendHeart('warden');
@@ -764,6 +774,8 @@ function startEnemyAttack(role='attack'){
 }
 function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=(BOSS_PROFILES.includes(encounterProfile)?3.1:2.4)&&heightDelta<=1.2;}
 function updateEnemyAI(dt){
+ if(rites.holdTarget===siegeEpoch){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;return;}
+ if(swordTraining){if(enemyActions.idle&&enemyCurrentRole!=='idle'&&enemyCurrentRole!=='hit')playEnemyAnimation('idle',.1);return;}
  // MOD 229 — preso no ciclone da Fênix: IA, locomoção e ataques ficam pausados (lease); a posição vem do ciclone.
  if(phoenixHold){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='hit'&&enemyCurrentRole!=='idle'&&enemyActions.idle)playEnemyAnimation(enemyActions.hit?'hit':'idle',.1);return;}
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
@@ -1039,7 +1051,7 @@ function announceShopNews(){
  const ctx={questStep,level:playerLevel(),coins:Infinity,owned:ownedItems};
  for(const item of SHOP_ITEMS){const st=shopStatus(item,ctx);if(st.state==='buyable'&&!announcedShop.has(item.id)){announcedShop.add(item.id);if(questStep>0){const toast=document.getElementById('quest-toast');if(toast){toast.textContent='NA LOJA CENTRAL · '+item.name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2800);}}}}
 }
-let namePromptOpen=false,awakeningActive=!awakeningSeen&&questStep===0,awakeningT=0,tauntLock=false,reunionStarted=false,purseGiven=questStep>0;
+let namePromptOpen=false,awakeningActive=!swordTrainingRequested&&!awakeningSeen&&questStep===0,awakeningT=0,tauntLock=false,reunionStarted=false,purseGiven=questStep>0;
 if(questStep<2)enemy.visible=false;
 if(questStep===2){{const jx=JOURNEY_ENEMIES[journeyEnemyIndex]?.x||0,jz=JOURNEY_ENEMIES[journeyEnemyIndex]?.z||-59;enemy.position.set(jx,terrainHeightAt(jx,jz),jz);}enemy.visible=false;}
 portalGroup.visible=questStep>=8; // MOD 204: no Ato I o portal de VHAZRAEL fica dentro do esgoto
@@ -1054,10 +1066,9 @@ function precompileWorld(){
  const done=()=>{worldCompiled=true;};setTimeout(done,9000);
  try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
 }
-function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
-const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
 const SKILL_LABELS={magic:'MAGIA',magic2:'ESTRELAS',magic3:'FÊNIX',ultimate:'JUÍZO'};
 const skillButtons={};
@@ -1081,7 +1092,8 @@ function updateSkillHud(now){
  }
  const fill=document.getElementById('player-mana-fill');if(fill){const w=Math.round(playerMana/MANA.max*100);if(fill.dataset.w!==String(w)){fill.dataset.w=String(w);fill.style.width=w+'%';}}
 }
-function updateQuestHud(){refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=(questStep===ACT5N.step?act5Presentation(act1Sub):null)||(isAct6Step(questStep)?act6Presentation(questStep,act1Sub):null)||finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||(isAct4Step(questStep)?act4Presentation(questStep,act1Sub):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
+function updateQuestHud(){
+ if(swordTraining){document.getElementById('quest-title').textContent='TREINO DE ESPADAS';document.getElementById('quest-objective').textContent='GOLPE encadeia três ataques. Use o botão da espada para ativar seu rito.';return;}refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=(questStep===ACT5N.step?act5Presentation(act1Sub):null)||(isAct6Step(questStep)?act6Presentation(questStep,act1Sub):null)||finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||(isAct4Step(questStep)?act4Presentation(questStep,act1Sub):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
 function showActCard(){if(actCardSeen)return;actCardSeen=true;save3DProgress();const card=document.getElementById('act-card');if(!card)return;card.classList.remove('hidden');const hide=()=>{card.classList.add('hidden');card.removeEventListener('pointerdown',hide);};card.addEventListener('pointerdown',hide);setTimeout(hide,3400);}
 function finishAwakening(){if(!awakeningActive&&awakeningSeen)return;awakeningActive=false;awakeningSeen=true;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');save3DProgress();}
 let namePromptBound=null;
@@ -1195,8 +1207,9 @@ function loadPlayerSword(modelRoot){
 new GLTFLoader().load('./Protagonista.glb?mod172-grounding',gltf=>{
   model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;}}});
   fitModel(model);const playerBounds=measureModelBounds(model),playerSize=playerBounds.getSize(new THREE.Vector3());if(playerSize.y>.001)playerReferenceHeight=playerSize.y;
-  player.add(model);
+  player.add(model);restoreRiteScales=lockSwordRigScales(model);
  loadPlayerSword(model);
+ new GLTFLoader().load('./Protagonista-ritos-231.glb',g=>{try{riteClips=prepareSwordClips(THREE,g.animations,model);riteVFX.setHero(model,cloneSkinned);window.SwordRiteAnimationReport=Object.values(riteClips).map(c=>({name:c.name,duration:c.duration,tracks:c.tracks.length}));}catch(e){console.error(e);status.textContent='Falha ao preparar as animações de espada.';}},undefined,e=>console.error('Kit de espadas não carregou',e));
  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;playerIdleClip=clips.find(c=>/^idle$/i.test(c.name||''))||chooseClip(clips,/idle|breath|respir|parad/i)||null;const idle=playerIdleClip||chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);attackClips=selectDimensionAttack(clips);attackClipIndex=0;const jump=chooseClip(clips,/jump|saltar|salto/i);
  const hit=chooseClip(clips,/hit.?knockback|hit.?reaction|hurt|damage|take.?damage|taking.?damage/i)||chooseClip(clips,/overhandthrow/i);
  const death=chooseClip(clips,/death|dead|dying|(^|[^a-z])die([^a-z]|$)|knockdown|collapse/i);
@@ -1211,7 +1224,7 @@ new GLTFLoader().load('./Protagonista.glb?mod172-grounding',gltf=>{
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA');if(typing)return;keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-addEventListener('keydown',e=>{if(e.repeat)return;const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA'||document.activeElement.tagName==='SELECT');if(typing)return;if(e.code==='KeyJ'||e.code==='KeyX'){action('attack');return;}if(e.code==='KeyF'||e.key==='Shift'){action('dash');return;}if(e.code==='Digit1'||e.code==='Numpad1'){action('magic');return;}if(e.code==='Digit2'||e.code==='Numpad2'){action('magic2');return;}if(e.code==='Digit3'||e.code==='Numpad3'){action('magic3');return;}if(e.code==='Digit4'||e.code==='Numpad4'){action('ultimate');return;}if(e.code==='Space'){e.preventDefault();action('jump');return;}if(e.key==='e'||e.key==='Enter')tryInteract();});
+addEventListener('keydown',e=>{if(e.repeat)return;const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA'||document.activeElement.tagName==='SELECT');if(typing)return;if(e.code==='KeyR'){action('sword-skill');return;}if(e.code==='KeyJ'||e.code==='KeyX'){action('attack');return;}if(e.code==='KeyF'||e.key==='Shift'){action('dash');return;}if(e.code==='Digit1'||e.code==='Numpad1'){action('magic');return;}if(e.code==='Digit2'||e.code==='Numpad2'){action('magic2');return;}if(e.code==='Digit3'||e.code==='Numpad3'){action('magic3');return;}if(e.code==='Digit4'||e.code==='Numpad4'){action('ultimate');return;}if(e.code==='Space'){e.preventDefault();action('jump');return;}if(e.key==='e'||e.key==='Enter')tryInteract();});
 let joyX=0,joyY=0,joyActive=false;const stick=document.getElementById('stick'),knob=document.getElementById('knob');
 function setJoy(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.32;const d=Math.hypot(dx,dy);if(d>max){dx=dx/d*max;dy=dy/d*max;}joyX=dx/max;joyY=dy/max;knob.style.transform='translate('+dx+'px,'+dy+'px)';}
 stick.addEventListener('pointerdown',e=>{joyActive=true;stick.setPointerCapture(e.pointerId);setJoy(e);});
@@ -1373,7 +1386,7 @@ function updateHolyProjectiles(dt){
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
  }
 }
-function action(kind){if(whiteLease.locked)return;if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='dash'){if(now<dashCooldownUntil)return;dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;grounded=false;verticalVelocity=jumpImpulse;worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget());siegeHUD();return;}tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){castHolyMagic(kind);return;}}
+function action(kind){if(whiteLease.locked)return;if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(now<dashCooldownUntil)return;rites.cancel('dash');dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;rites.cancel('jump');grounded=false;verticalVelocity=jumpImpulse;worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget());siegeHUD();return;}tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(kind);return;}}
 // MOD 187 — o celular não gera 'click' para um segundo dedo enquanto o primeiro segura o joystick; pointerdown responde sempre.
 function bindInstantTap(button,fn){if(!button)return;let lastTap=0,pointerSeen=false;button.addEventListener('pointerdown',e=>{pointerSeen=true;e.preventDefault();e.stopPropagation();lastTap=performance.now();fn();});button.addEventListener('click',e=>{if(pointerSeen&&e.detail>0)return;if(performance.now()-lastTap>500)fn();});}
 function bindInstantAction(id,kind){bindInstantTap(document.getElementById(id),()=>action(kind));}
@@ -1479,7 +1492,7 @@ function spawnAct1Children(){buildAct1Props();}
 buildAct1Cages();
 
 var debugDtScale=1;// só o modo de teste (?debug3d=1) muda isto, para acelerar as cenas no navegador sem GPU
-function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer)mixer.update(dt);if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z);if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
+function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z);if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
  if(enemyAlive||enemyHasDeathClip)enemy.position.y=terrainHeightAt(enemy.position.x,enemy.position.z);
@@ -1488,9 +1501,9 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
  if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
  else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer){guideIdleMixer.update(dt);relaxGuideArms(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
+ }if(guideIdleMixer){guideIdleMixer.update(dt);relaxGuideArms(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
-    updatePlayerSwordMount();
+    updatePlayerSwordMount();updateRites(dt);
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
  if(enemyCurrentRole==='hit'&&enemyCurrentAction&&!enemyCurrentAction.isRunning()&&enemyAlive)playEnemyAnimation('idle',.08);
   if(!enemyAlive&&!enemyHasDeathClip&&enemy.visible){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(terrainHeightAt(enemy.position.x,enemy.position.z)-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
@@ -1508,7 +1521,7 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
-if(dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineActive){axisX=0;axisZ=0;moveVX=moveVZ=0;dashRemaining=0;}
+if(rites.busy||dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineActive){axisX=0;axisZ=0;moveVX=moveVZ=0;dashRemaining=0;}
 // MOD 206 — dimensão distorcida do Ato III: frente vira trás e esquerda vira direita.
 if(distorted||performance.now()<foeInvertUntil){axisX=-axisX;axisZ=-axisZ;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
@@ -1969,7 +1982,7 @@ function updateFirstPerson(dt,now){
  if(!fp)return;
  ensureFpSword();
  // O herói encara a direção da câmera: golpes, magias e mira saem para onde se olha.
- if(!dialogueOpen&&!portalPull){playerYaw=cameraYaw+Math.PI;player.rotation.y=playerYaw;}
+ if(!rites.busy&&!dialogueOpen&&!portalPull){playerYaw=cameraYaw+Math.PI;player.rotation.y=playerYaw;}
  const speed=Math.hypot(moveVX,moveVZ);fpBob+=dt*(grounded&&speed>.3?8.5*Math.min(1.4,speed/3.4):1.2);
  const bobAmt=grounded&&speed>.3?1:.18;
  camera.position.y+=Math.sin(fpBob*2)*.028*bobAmt;
@@ -1991,6 +2004,7 @@ const slashTrail=new THREE.Mesh(new THREE.RingGeometry(.9,1.25,26,1,-Math.PI*.15
 slashTrail.visible=false;scene.add(slashTrail);let slashTrailT=1,slashTrailDur=.3;
 function spawnSlashTrail(duration){slashTrailT=0;slashTrailDur=Math.min(.42,Math.max(.22,(duration||.5)*.45));slashTrail.visible=true;}
 function updateSlashTrail(dt){
+ if(SWORD_RITES[equippedSword]){slashTrail.visible=false;return;}
  if(!slashTrail.visible)return;if(cameraDistance<1.05){slashTrail.visible=false;return;}slashTrailT+=dt/slashTrailDur;if(slashTrailT>=1){slashTrail.visible=false;return;}
  const fx=Math.sin(playerYaw),fz=Math.cos(playerYaw);slashTrail.position.set(player.position.x+fx*.7,player.position.y+1.05,player.position.z+fz*.7);
  slashTrail.rotation.set(-Math.PI/2+.35,0,-playerYaw+Math.PI/2-slashTrailT*1.4);slashTrail.material.opacity=Math.sin(slashTrailT*Math.PI)*.75;slashTrail.scale.setScalar(.9+slashTrailT*.3);
@@ -2004,7 +2018,7 @@ const holyShieldRim=new THREE.Mesh(new THREE.RingGeometry(.74,.84,6),new THREE.M
 holyShield.add(holyShieldRim);holyShield.visible=false;scene.add(holyShield);let shieldFlash=0;
 function setDefending(on){
  on=!!on&&playerHP>0&&!dialogueOpen&&!portalPull;if(on===defending)return;defending=on;
- if(on){defendStartedAt=performance.now();worldAudio.shieldUp();}
+ if(on){rites.cancel('defend');defendStartedAt=performance.now();worldAudio.shieldUp();}
  const b=document.getElementById('defend');if(b)b.classList.toggle('held',on);
 }
 /** Chamado quando um golpe inimigo conecta. Retorna o dano final (0 = defesa perfeita). */
@@ -2059,7 +2073,7 @@ function updateLockOn(dt){
 /* MOD 187 — pausa, contador de FPS e retrato do herói no HUD dourado. */
 let gamePaused=false;
 function setPaused(on){
- on=!!on;if(on===gamePaused)return;if(whiteLease.locked)clock.getDelta();gamePaused=on;document.body.classList.toggle('whitehole-paused',on);
+ on=!!on;if(on===gamePaused)return;if(whiteLease.locked)clock.getDelta();gamePaused=on;if(on)rites.cancel('pause');document.body.classList.toggle('whitehole-paused',on);
  const panel=document.getElementById('pause-panel');if(panel)panel.hidden=!on;
  if(!on){const g=document.getElementById('graphics-panel-3d');if(g)g.hidden=true;}
  worldAudio.pause(on);if(on){setDefending(false);joyActive=false;joyX=joyY=0;for(const k in keys)keys[k]=false;}
@@ -2213,7 +2227,7 @@ let auroraHand=null,auroraFpTemplate=null;
 const SWORD_PALETTES={aurora:{blade:0xf3f0e6,edge:0xffe6b0,fuller:0xffd56a,gold:0xe2b04a,pommel:0xffc24a},vigilia:{blade:0xdfe8f5,edge:0x9fc4ff,fuller:0x8fd0ff,gold:0x9aa8c0,pommel:0x7ab8ff},celeste:{blade:0xffffff,edge:0xfff6d8,fuller:0xfff2b0,gold:0xffd86a,pommel:0xffffff}};
 const swordHands={},swordFpTemplates={};
 function equipSword(id){
- if(id!=='prota'&&!ownedItems.has(id))return;equippedSword=id;save3DProgress();
+ if(!SWORDS[id]||(id!=='prota'&&!ownedItems.has(id)))return;if(id!==equippedSword)rites.cancel('weapon');equippedSword=id;save3DProgress();
  if(id!=='prota'&&swordRoot&&swordRoot.parent&&!swordHands[id]){const wrap=new THREE.Group();wrap.position.copy(swordRoot.position);wrap.quaternion.copy(swordRoot.quaternion);wrap.scale.copy(swordRoot.scale);wrap.add(alignAuroraToSwordRoot(buildAuroraSword(SWORD_PALETTES[id])));swordRoot.parent.add(wrap);swordHands[id]=wrap;swordFpTemplates[id]=alignAuroraToSwordRoot(buildAuroraSword(SWORD_PALETTES[id]));}
  if(swordRoot)swordRoot.visible=id==='prota';for(const [k,h] of Object.entries(swordHands))h.visible=k===id;
  auroraHand=swordHands.aurora||auroraHand;auroraFpTemplate=swordFpTemplates.aurora||auroraFpTemplate;
@@ -2222,7 +2236,7 @@ function equipSword(id){
 }
 /* MOD 189 — abertura: tela das sete galáxias (o mundo carrega por trás) e prólogo curto feito com a
    própria cena — câmera desce das serras até a clareira, com três frases. Pula com um toque. */
-let menuGate=!new URLSearchParams(location.search).has('debug3d')||new URLSearchParams(location.search).has('galaxias');
+let menuGate=!swordTrainingRequested&&(!new URLSearchParams(location.search).has('debug3d')||new URLSearchParams(location.search).has('galaxias'));
 let prologueActive=false,prologueT=0,pendingAwakening=false;
 const PROLOGUE_LINES=[[0,'Houve um tempo em que um nome valia mais que ouro.'],[4.6,'Então a Ganância aprendeu a cobrar — vidas, juramentos, crianças.'],[9.4,'E o Céu enviou alguém que não estava à venda.']];
 const PROLOGUE_DURATION=14;
@@ -5229,6 +5243,7 @@ function runFoeMove(m,k){
  }
 }
 function updateFoeKit(dt){
+ if(swordTraining)return;
  const prof=encounterProfile,kit=kitFor(prof);if(!kit)return;
  const fight=prof+':'+enemyMaxHP;if(fight!==kitState.fight){kitState.fight=fight;kitState.cds={};kitState.t=2.5;kitState.last='';if(kitState.aura){kitState.aura.dispose();kitState.aura=null;}}
  // Aura de batalha (estilo Sol's RNG) quando o chefe ou a elite entra em fúria (menos de 50% de vida).
@@ -5392,9 +5407,86 @@ function spawnHazardFriendly(x,z,delay){const g=new THREE.Group();g.position.set
 function updateFriendlyStrikes(dt){for(let i=friendlyStrikes.length-1;i>=0;i--){const f=friendlyStrikes[i];f.t+=dt;const k=Math.min(1,f.t/f.delay);f.blade.position.y=14-13.1*k*k;
  if(!f.hit&&k>=1){f.hit=true;burstSparks(new THREE.Vector3(f.x,groundHeightAt(f.x,f.z)+.5,f.z),0xfff0b8);if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-f.x,enemy.position.z-f.z)<1.4){enemyHP=Math.max(0,enemyHP-9);onEnemyDamaged(9,false);if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}}}
  if(f.t>f.delay+.5){scene.remove(f.g);f.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});friendlyStrikes.splice(i,1);}}}
+/* MOD 231 — bridge: original animation rig, authoritative combat and pooled VFX. */
+let riteClips={},riteAnimation=null,restoreRiteScales=()=>{},riteContext='';
+const riteVFX=createSwordRitesVFX(THREE,scene),riteBase=new THREE.Vector3(),riteTip=new THREE.Vector3();
+const riteBlade={base:riteBase,tip:riteTip};
+let riteTargetEpoch=-1,riteTargetModel=null,riteTargetHeight=1.75,riteTargetRadius=.48;
+function riteTarget(){const t=siegeTarget();if(enemyModel&&(riteTargetEpoch!==siegeEpoch||riteTargetModel!==enemyModel)){const size=measureModelBounds(enemyModel).getSize(new THREE.Vector3());riteTargetHeight=THREE.MathUtils.clamp(size.y,1.2,6);const boss=/^(valerio|vorgazhek|zarkhael|veraxion|greed|fallen|miniboss)/.test(encounterProfile);riteTargetRadius=boss?THREE.MathUtils.clamp(Math.min(size.x,size.z)*.42,.95,2.4):.48;riteTargetEpoch=siegeEpoch;riteTargetModel=enemyModel;}t.radius=riteTargetRadius;t.height=riteTargetHeight;t.y=enemy.position.y+riteTargetHeight*.52;return t;}
+function riteBlocked(p,body=true){
+ const x=p.x,z=p.z;if(body?playerBlockedAt(x,z):blockedAt(x,z))return true;
+ // Capsule clearance around walls, plus a conservative floor continuity check.
+ for(const [dx,dz]of [[.22,0],[-.22,0],[0,.22],[0,-.22]])if(blockedAt(x+dx,z+dz))return true;
+ return Math.abs(terrainHeightAt(x,z)-player.position.y)>.5;
+}
+const rites=new SwordRites({
+ blocked:p=>riteBlocked(p,false),
+ move:p=>{player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);moveVX=moveVZ=0;},
+ pose:(a,dt)=>{
+  if(!riteAnimation||!model||!swordRoot)return null;
+  // The same simulation time drives the baked clip and hit windows, even in hit-stop.
+  riteAnimation.time=a.t;riteAnimation.paused=true;mixer.update(0);restoreRiteScales();
+
+  player.rotation.y=playerYaw=a.yaw;player.updateMatrixWorld(true);updatePlayerSwordMount();
+  // Measured from EspadaProta.glb: grip +.75 Y, guard +.40 Y, tip -.951 Y.
+  const blade=equippedSword==='aurora'?swordHands.aurora:swordRoot;if(!blade)return null;
+  riteBase.set(0,equippedSword==='aurora'?.567:.40,0);riteTip.set(0,equippedSword==='aurora'?-1.065:-.951,0);blade.localToWorld(riteBase);blade.localToWorld(riteTip);return riteBlade;
+ },
+ hit:(damage,id,kind)=>{if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(damage,false,true,true);if(kind==='basic')({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));},
+ event:(type,e)=>{
+  riteVFX.event(type,e);
+  if(type==='start'){
+   const clip=riteClips[e.clip];if(!clip)return;riteContext=siegeContext();pendingEnemyHitAt=0;moveVX=moveVZ=0;dashRemaining=0;setDefending(false);
+   for(const j of poseJobs)if(j.root===model)j.dead=true;
+   const next=mixer.clipAction(clip);if(activeAction&&activeAction!==next)activeAction.fadeOut(.075);next.reset().setLoop(THREE.LoopOnce,1).setEffectiveWeight(1);next.clampWhenFinished=true;next.fadeIn(.075).play();next.paused=true;activeAction=riteAnimation=next;actionUntil=Infinity;
+   if(e.kind==='basic'){comboCount=e.step+1;fpSwingDir=e.step;startFpSwing();worldAudio.swing();}else{showCombatCallout(SWORD_RITES[e.sword].name.toUpperCase());worldAudio.whoosh();}
+  }else if(type==='finish'||type==='cancel'){
+   if(riteAnimation){riteAnimation.paused=false;riteAnimation.fadeOut(.13);if(activeAction===riteAnimation){activeAction=null;play('idle',.13);}riteAnimation=null;}actionUntil=performance.now()+70;pendingEnemyHitAt=0;
+  }else if(type==='wave'){worldAudio.swing();fpSwingDir=e.n%3;startFpSwing();}
+  else if(type==='impact'||type==='judgment'){worldAudio.hit();enemyHitFlash=.12;hitStop(e.final?55:22);if(e.final&&!userSettings.reduceShake)cameraShake(.055);}
+ }
+});
+function riteReady(){return model&&mixer&&swordRoot&&Object.keys(riteClips).length===5;}
+function riteFacing(){const t=riteTarget();if(t.alive&&Math.hypot(t.x-player.position.x,t.z-player.position.z)<8)return Math.atan2(t.x-player.position.x,t.z-player.position.z);return cameraDistance<1.05?cameraYaw+Math.PI:playerYaw;}
+function tryRiteAttack(){if(!riteReady()){status.textContent='Preparando os movimentos da espada…';return;}if(!grounded||dashRemaining>0||(activeAction===actions.hit&&performance.now()<actionUntil))return;rites.attack(equippedSword,{damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:riteFacing(),target:riteTarget()});}
+function castSwordRite(){
+ if(!riteReady()||!grounded||dashRemaining>0||(activeAction===actions.hit&&performance.now()<actionUntil)||siege.active||whiteLease.locked){status.textContent='Conclua a ação atual antes de usar o rito.';return;}
+ const result=rites.cast(equippedSword,{mana:playerMana,owned:equippedSword==='prota'||ownedItems.has(equippedSword),damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:riteFacing(),from:player.position,target:riteTarget()});
+ if(result.ok){playerMana-=result.cost;status.textContent=SWORD_RITES[equippedSword].name;}else status.textContent=result.reason;
+ updateRiteHud();
+}
+function updateRites(dt){
+ if(swordTrainingRequested&&!swordTrainingRequestedStarted&&riteReady()){swordTrainingRequestedStarted=true;startSwordTraining().catch(e=>{console.error(e);status.textContent='Não foi possível carregar o treino. Toque TREINAR para tentar novamente.';});}
+ const valid=playerHP>0&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&!portalPull&&!whiteLease.locked&&(!(rites.busy||rites.waves.length)||riteContext===siegeContext());
+ rites.update(dt,{valid,sword:equippedSword,from:player.position,target:riteTarget()});
+ riteVFX.update(dt,graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium',cameraDistance<1.05);updateRiteHud();
+}
+const riteButton=document.getElementById('sword-skill');
+function updateRiteHud(){
+ const def=SWORD_RITES[equippedSword];riteButton.hidden=!def;riteButton.classList.toggle('skill-locked',!def);if(!def)return;
+ const cd=rites.cooldowns[equippedSword],label=riteButton.querySelector('.btn-label'),cost=riteButton.querySelector('.skill-cost');label.textContent=def.label;cost.textContent=cd>0?Math.ceil(cd)+'s':def.mana;riteButton.dataset.sword=equippedSword;riteButton.style.setProperty('--cd',String(cd/def.cooldown));riteButton.classList.toggle('skill-cooling',cd>0);riteButton.classList.toggle('skill-nomana',playerMana<def.mana);riteButton.setAttribute('aria-disabled',String(cd>0||rites.busy||playerMana<def.mana));riteButton.setAttribute('aria-label','Habilidade da espada: '+def.name+' — '+def.mana+' de mana — '+(cd>0?Math.ceil(cd)+' segundos':rites.busy?'em ação':playerMana<def.mana?'mana insuficiente':'pronta')+' (R)');riteButton.title=riteButton.getAttribute('aria-label');
+}
+bindInstantTap(riteButton,()=>action('sword-skill'));
+async function startSwordTraining(boss=false){
+ if(!testAllSkills||!riteReady())return;await loadRig(boss?'bishop2':'enemy2');rites.cancel('training');swordTraining=true;menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
+ if(cineDirector.active)cineDirector.skip();clearPack();useRig(boss?'bishop2':'enemy2');questStep=2;act1Sub=0;enemy.visible=false;revealEncounter(boss?'vorgazhek':'demon2',{x:40,z:14},10000,'Treino de espadas · GOLPE encadeia o combo; R ativa o rito.');player.position.set(40,terrainHeightAt(40,17),17);playerYaw=Math.PI;player.rotation.y=playerYaw;playerHP=playerMaxHP;playerMana=100;rites.cooldowns.prota=rites.cooldowns.aurora=0;ownedItems.add('aurora');cameraYaw=0;cameraPitch=.22;cameraDistance=6;debugCameraOverride=null;camera.position.set(40,terrainHeightAt(40,17)+2.5,23);camera.lookAt(40,terrainHeightAt(40,17)+1.1,17);
+ for(const id of ['start-gate','name-panel','dialog-panel','loading']){const el=document.getElementById(id);if(el){el.hidden=true;el.classList.add('hidden');}}
+ document.getElementById('sword-training').hidden=false;updateQuestHud();
+}
+if(testAllSkills){ownedItems.add('aurora');const panel=document.getElementById('sword-training');panel.hidden=false;bindInstantTap(document.getElementById('rite-training-start'),()=>startSwordTraining());bindInstantTap(document.getElementById('rite-training-swap'),()=>equipSword(equippedSword==='prota'?'aurora':'prota'));}
+
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
+ async riteQA(boss=false){await startSwordTraining(boss);debugDtScale=0;return this.riteState();},
+ riteSim(seconds,fps=60){for(let i=0;i<Math.round(seconds*fps);i++){mixer.update(1/fps);restoreRiteScales();updateRites(1/fps);}renderer.render(scene,camera);return this.riteState();},
+ riteAttack(){action('attack');return this.riteState();},
+ riteCast(){action('sword-skill');return this.riteState();},
+ riteEquip(id){if(testAllSkills)ownedItems.add(id);equipSword(id);return this.riteState();},
+ riteFrame(dt){if(mixer){mixer.update(dt);restoreRiteScales();}updateRites(dt);renderer.render(scene,camera);return this.riteState();},
+ riteState(){return {ready:riteReady(),sword:equippedSword,active:rites.active?{kind:rites.active.kind,time:rites.active.t,step:rites.active.step}:null,waves:rites.waves.length,cooldowns:{...rites.cooldowns},mana:playerMana,hp:enemyHP,hero:player.position.toArray(),target:enemy.position.toArray(),clip:activeAction?.getClip().name,blade:[riteBase.toArray(),riteTip.toArray()],vfx:riteVFX.stats(),height:model?measureModelBounds(model).getSize(new THREE.Vector3()).y:0};},
+ riteCancel(reason){rites.cancel(reason);return this.riteState();},
+ ritePose(name,t){const c=riteClips[name];if(!c)return false;mixer.stopAllAction();const a=mixer.clipAction(c);a.reset().play();activeAction=a;actionUntil=Infinity;a.paused=true;a.time=t;mixer.update(0);restoreRiteScales();updatePlayerSwordMount();renderer.render(scene,camera);return this.riteState();},
  regressionState(){return{busy:act1Busy(),lock:act1Lock,packFinishing,profile:encounterProfile,clip:activeAction&&activeAction.getClip().name,speed:Math.hypot(moveVX,moveVZ),pos:player.position.toArray(),cast:window.SevenSinsVillagerReport,kids:(act1Props?.kids||[]).map(k=>({name:k.name,visible:k.visible})),seal:!!sewerArena?.refs.seal?.visible,vendors:vendorRoots.map(o=>({name:o.name,pos:o.position.toArray(),yaw:o.rotation.y})),walkers:villagerWalkers.map(w=>({pos:w.holder.position.toArray(),blocked:blockedAt(w.holder.position.x,w.holder.position.z)}))};},
  collisionAt(x,z){return playerBlockedAt(x,z);},
  /** MOD 214 — valida o mesmo carregador e os clipes usados pela Sandra na campanha. */
