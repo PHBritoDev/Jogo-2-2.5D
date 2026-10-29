@@ -15,12 +15,16 @@ import {CelestialStarfall} from './celestial-starfall3d.js';
 import {createStarfallVFX} from './celestial-starfall-vfx3d.js';
 import {CelestialSiege} from './celestial-siege3d.js';
 import {createSiegeVFX} from './celestial-siege-vfx3d.js';
+import {XRupture} from './skill-x-rupture3d.js';import {createXRuptureVFX} from './skill-x-rupture-vfx3d.js';
+import {TwinPortals} from './skill-twin-portals3d.js';import {createTwinPortalsVFX} from './skill-twin-portals-vfx3d.js';
+import {JudgmentDragon} from './skill-judgment-dragon3d.js';import {createDragonVFX} from './skill-judgment-dragon-vfx3d.js';
+import {buildQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES } from './act1-world-layout.js';
 import {prepareSandraMaterials} from './sandra-materials.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
-import { SKILLS, SKILL_ORDER, MANA, unlockedSkills, newlyUnlocked, canCast, regenMana, manaFromHit, cooldownFraction } from './skills3d.js';
+import { EXTRA_SKILLS, SLOT_IDS, normalizeLoadout, equipSlot, ownedSlotSkills, autoSlotFor, SKILLS, SKILL_ORDER, MANA, unlockedSkills, newlyUnlocked, canCast, regenMana, manaFromHit, cooldownFraction } from './skills3d.js';
 import { createWorldAudio } from './audio3d.js';
 import { showGalaxyScreen } from './galaxies3d.js';
 import { iconSvg } from './shop-icons3d.js';
@@ -731,7 +735,7 @@ function resolvePlayerAttackHit(){
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz),facing=(dx*playerAttackFacingX+dz*playerAttackFacingZ)/(distance||1);
  if(distance>SWORDS[equippedSword].reach||facing<.28||Math.abs(player.position.y-enemy.position.y)>1.05){status.textContent=distance>2.0?'Chegue mais perto para acertar o golpe':facing<.28?'O golpe não alcançou o inimigo':'O inimigo está fora da altura do golpe';return;}
- {const crit=Math.random()<.12,dmg=Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*(crit?1.6:1)*comboMultiplier()*scrollMul());enemyHP=Math.max(0,enemyHP-dmg);onEnemyDamaged(dmg,crit);}({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));worldAudio.hit();enemyHitFlash=.2;enemyKnockback=comboCount===3?.9:.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
+ {const crit=Math.random()<.12,dmg=Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*(crit?1.6:1)*comboMultiplier()*scrollMul());enemyHP=Math.max(0,enemyHP-dmg);onEnemyDamaged(dmg,crit);if(equippedSword==='quantum'&&quantumFX)quantumFX.impact(new THREE.Vector3(enemy.position.x,enemy.position.y+1.15,enemy.position.z));}({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));worldAudio.hit();enemyHitFlash=.2;enemyKnockback=comboCount===3?.9:.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
  if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.05);}
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
  if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),850);}
@@ -1022,6 +1026,8 @@ let mountainIndex=saved3DProgress.mountainIndex||0,wardenTaunted=!!saved3DProgre
 let wardenIntroLock=false,portalPull=null,handoffSent=false,bishopsDefeated=saved3DProgress.bishopsDefeated||0,valerioRewardClaimed=!!saved3DProgress.valerioRewardClaimed;
 /* MOD 188 — progressão: XP e nível, moedas por vitória, estatísticas para conquistas e catálogo de inimigos. */
 let playerXp=saved3DProgress.xp||0,ownedItems=new Set(saved3DProgress.owned||[]),equippedSword=saved3DProgress.sword||'prota';
+// MOD 233 — espaços das Palavras (saves antigos começam no padrão) e espada salva que não pertence mais ao jogador volta à inicial.
+let skillLoadout=normalizeLoadout(saved3DProgress.loadout);if(equippedSword!=='prota'&&!ownedItems.has(equippedSword))equippedSword='prota';
 const progressStats=Object.assign({kills:0,rescues:0,perfectBlocks:0,flawless:0,places:0,ruins:0,bishops:0},saved3DProgress.stats||{});
 const achievementsClaimed=new Set(saved3DProgress.achievementsClaimed||[]),bestiaryKnown=new Set(saved3DProgress.bestiary||[]),bestiaryRewarded=new Set(saved3DProgress.bestiaryRewarded||[]);
 let shopVisited=!!saved3DProgress.shopVisited,fightHitTaken=false;
@@ -1062,29 +1068,33 @@ function precompileWorld(){
  if(worldCompileStarted)return;worldCompileStarted=true;
  if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});
  if(!phoenixVFX){phoenixVFX=createPhoenixVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});phoenixVFX.root.visible=true;renderer.compile(phoenixVFX.root,camera);phoenixVFX.clear();}
+ ensureExtraVFX(true);
  if(!whiteVFX){whiteVFX=createWhiteHoleVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});loadUltimateWings();whiteVFX.root.visible=true;ensureWhiteStorm();whiteStorm.group.visible=true;whiteStorm.update(1,camera,0,0,{quality:whiteQuality()});renderer.compile(scene,camera);whiteVFX.clear();whiteStorm.hide();}
  const done=()=>{worldCompiled=true;};setTimeout(done,9000);
  try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
 }
-function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
-const SKILL_LABELS={magic:'MAGIA',magic2:'ESTRELAS',magic3:'FÊNIX',ultimate:'JUÍZO'};
+const SKILL_LABELS={magic:'MAGIA',magic2:'ESTRELAS',magic3:'FÊNIX',ultimate:'JUÍZO',skill_x_rupture:'RUPTURA',skill_twin_portals:'PORTAIS',skill_judgment_dragon:'DRAGÃO'};
+function slotSkill(slotId){const i=SLOT_IDS.indexOf(slotId);return i>=0&&typeof skillLoadout!=='undefined'?skillLoadout[i]:slotId;}
 const skillButtons={};
-for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;if(SKILLS[id].disabled){b.hidden=true;b.classList.add('skill-locked');b.setAttribute('aria-label','Em desenvolvimento');continue;}b.innerHTML='<span class="btn-icon skill-art">'+iconSvg(id,{size:48})+'</span><span class="btn-label" data-key="'+SKILLS[id].key+'">'+SKILL_LABELS[id]+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';b.dataset.key=SKILLS[id].key;b.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');skillButtons[id]={el:b,cost:b.querySelector('.skill-cost'),cd:-1,state:''};}
+/* MOD 233 — cada botão 1–3 é um ESPAÇO: mostra a Palavra equipada nele (ícone, nome, custo); a ultimate fica no 4. */
+function renderSkillSlot(slotId){const ui=skillButtons[slotId];if(!ui)return;const id=slotSkill(slotId),k=SKILLS[slotId].key;ui.skill=id;ui.el.innerHTML='<span class="btn-icon skill-art">'+iconSvg(id,{size:48})+'</span><span class="btn-label" data-key="'+k+'">'+(SKILL_LABELS[id]||id)+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';ui.el.dataset.key=k;ui.el.dataset.skill=id;ui.el.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');ui.cost=ui.el.querySelector('.skill-cost');ui.cd=-1;ui.state='';}
+for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;if(SKILLS[id].disabled){b.hidden=true;b.classList.add('skill-locked');b.setAttribute('aria-label','Em desenvolvimento');continue;}skillButtons[id]={el:b,cost:null,cd:-1,state:'',skill:id};renderSkillSlot(id);}
 for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧'],['defend','K'],['aim','Q']]){const b=document.getElementById(id);if(b){b.dataset.key=key;const l=b.querySelector('.btn-label');if(l)l.dataset.key=key;}}
 function refreshSkillUnlocks(){
- const next=unlockedSkills({owned:ownedItems,testAll:testAllSkills});
- const fresh=skillSet?newlyUnlocked(skillSet,next):[];
+ const next=unlockedSkills({owned:ownedItems,testAll:testAllSkills});for(const id of ownedSlotSkills({owned:ownedItems,testAll:testAllSkills}))if(EXTRA_SKILLS.includes(id))next.add(id);
+ const fresh=skillSet?[...next].filter(id=>!skillSet.has(id)&&SKILL_ORDER.includes(id)):[];
  skillSet=next;
- for(const id of SKILL_ORDER){const ui=skillButtons[id];if(ui)ui.el.classList.toggle('skill-locked',!skillSet.has(id));}
+ for(const id of SKILL_ORDER){const ui=skillButtons[id];if(ui){renderSkillSlot(id);ui.el.classList.toggle('skill-locked',!skillSet.has(ui.skill));}}
  if(fresh.length)worldAudio.reveal();
  for(const id of fresh){const ui=skillButtons[id];if(!ui)continue;ui.el.classList.remove('skill-reveal');void ui.el.offsetWidth;ui.el.classList.add('skill-reveal');
   const toast=document.getElementById('quest-toast');if(toast){toast.textContent='NOVA PALAVRA · '+SKILLS[id].name.toUpperCase()+' ('+SKILLS[id].key+')';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),3200);}}
 }
 function updateSkillHud(now){
- for(const id of SKILL_ORDER){const ui=skillButtons[id];if(!ui||!skillSet||!skillSet.has(id))continue;
+ for(const slot of SKILL_ORDER){const ui=skillButtons[slot];if(!ui)continue;const id=ui.skill;if(!skillSet||!skillSet.has(id))continue;
   const frac=cooldownFraction(id,holyCooldowns,now),cd=Math.round(frac*100)/100;
   if(cd!==ui.cd){ui.cd=cd;ui.el.style.setProperty('--cd',String(cd));}
   const left=Math.max(0,(holyCooldowns[id]||0)-now),state=left>0?'cd'+Math.ceil(left/1000):playerMana<SKILLS[id].mana?'nomana':'ready';
@@ -1355,15 +1365,61 @@ for(const type of ['keydown','keyup','pointerdown','pointermove','pointerup','wh
 renderer.domElement.addEventListener('webglcontextlost',()=>finishWhiteHole());
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&whiteLease.locked)setPaused(true);});
 
+/* MOD 233 — Ruptura em X, Portais da Perseguição e Dragão do Julgamento. A lógica (passo fixo de 120 Hz) decide
+   trajetória, colisão e dano; o VFX só desenha. Todas usam a mesma identidade de encontro (siegeEpoch) e o mesmo
+   contexto de cena: troca de cena, morte, diálogo ou cinemática cancelam e limpam tudo. */
+let xVFX=null,portalsVFX=null,dragonVFX=null,extraScene={};
+const extraHit=(kind,big)=>(d,id)=>{if(id===siegeEpoch&&enemyAlive){hurtEnemy(d,big,true);}};
+const xRupture=new XRupture({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),hit:(d,id)=>{if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(d,true,true);if(!phoenixBossResists()){enemyKnockback=.9;enemyKnockbackX=xRupture.dir.x;enemyKnockbackZ=xRupture.dir.z;}},
+ event:t=>{if(t==='travel')worldAudio.whoosh();if(t==='impact'||t==='wall'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(t==='impact'?.12:.06);}if(t==='cancel')xVFX?.clear();}});
+let portalsWhooshAt=0;
+const twinPortals=new TwinPortals({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,k==='burst',true);},
+ event:(t,th)=>{const n=performance.now();if(t==='open')worldAudio.portalEnter();if(t==='thread'&&n-portalsWhooshAt>160){portalsWhooshAt=n;worldAudio.whoosh();}if(t==='impact'&&th.i%2===0)worldAudio.hit();if(t==='burst'){worldAudio.burst?.();worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.16);vibrate(70);}if(t==='cancel')portalsVFX?.clear();}});
+const judgmentDragon=new JudgmentDragon({ground:(x,z)=>fxGy(x,z),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,true,true);},
+ event:t=>{if(t==='channel')worldAudio.novaCharge?.();if(t==='form')worldAudio.celestial?.();if(t==='advance')worldAudio.whoosh();if(t==='engulf'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.1);}if(t==='compress')worldAudio.voidCharge?.();if(t==='explode'){worldAudio.novaBlast?.();if(!userSettings.reduceShake)cameraShake(.24);vibrate(110);}if(t==='cancel')dragonVFX?.clear();}});
+const EXTRA_RUN={skill_x_rupture:xRupture,skill_twin_portals:twinPortals,skill_judgment_dragon:judgmentDragon};
+function extraSkillBusy(kind){return !!EXTRA_RUN[kind]?.active;}
+function ensureExtraVFX(compile=false){
+ const g={ground:(x,z)=>fxGy(x,z)};if(!xVFX)xVFX=createXRuptureVFX(THREE,scene,g);if(!portalsVFX)portalsVFX=createTwinPortalsVFX(THREE,scene,g);if(!dragonVFX)dragonVFX=createDragonVFX(THREE,scene,g);
+ if(compile){for(const v of [xVFX,portalsVFX,dragonVFX])v.root.visible=true;renderer.compile(scene,camera);for(const v of [xVFX,portalsVFX,dragonVFX])v.clear();}
+}
+function castExtraSkill(kind){
+ ensureExtraVFX();extraScene[kind]=siegeContext();const t=phoenixTarget(),now=performance.now(),mul=1+statsForLevel(playerLevel()).damageBonus;
+ if(enemyModel){const size=measureModelBounds(enemyModel).getSize(new THREE.Vector3());enemy.userData.phoenixRadius=Math.max(.6,Math.min(4,Math.max(size.x,size.z)*.5));enemy.userData.phoenixHeight=Math.max(1.5,Math.min(8,size.y));}
+ const T2={...t,radius:enemy.userData.phoenixRadius||.6,height:enemy.userData.phoenixHeight||1.9};
+ const yaw=t.alive?Math.atan2(t.x-player.position.x,t.z-player.position.z):playerYaw,hand=new THREE.Vector3();const rig=model&&poseRig(model);if(rig?.rh)rig.rh.getWorldPosition(hand);else{hand.copy(player.position);hand.y+=1.4;}
+ if(kind==='skill_x_rupture'){xRupture.start({x:player.position.x,y:hand.y,z:player.position.z},T2,yaw,mul);playPose(model,'thrust',.55,()=>playerYaw,0);showGrimoire(0xff2a5a,.45,true);status.textContent='Ruptura em X';}
+ if(kind==='skill_twin_portals'){twinPortals.start({x:player.position.x,y:player.position.y,z:player.position.z},T2,yaw,mul);playPose(model,'cast',.7,()=>playerYaw,0);showGrimoire(0xb04aff,.7,true);status.textContent='Portais da Perseguição';}
+ if(kind==='skill_judgment_dragon'){judgmentDragon.start({x:player.position.x,y:player.position.y+.2,z:player.position.z},T2,yaw,mul);playPose(model,'channel',1.2,()=>playerYaw,.2);showGrimoire(0xffb43a,1.2,true);status.textContent='Dragão do Julgamento';}
+ actionUntil=Math.max(actionUntil,now+(kind==='skill_judgment_dragon'?900:450)); // curto: o herói volta a andar logo
+}
+function extraTarget(){const t=phoenixTarget();t.radius=enemy.userData.phoenixRadius||.6;t.height=enemy.userData.phoenixHeight||1.9;return t;}
+function updateExtraSkills(dt){
+ const t=extraTarget(),q=whiteQuality(),base=playerHP>0&&!cineActive&&!dialogueOpen;
+ for(const [kind,run] of Object.entries(EXTRA_RUN))if(run.active)run.update(dt,t,{valid:base&&extraScene[kind]===siegeContext()});
+ if(xVFX)xVFX.update(xRupture,camera,q);if(portalsVFX)portalsVFX.update(twinPortals,camera,q);if(dragonVFX)dragonVFX.update(judgmentDragon,camera,q);
+ updateQuantum(dt,q);
+}
+/* MOD 233 — Quantum: a espada gira as órbitas, deixa arco e órbitas no golpe e colapsa como estrela no acerto. */
+let quantumFX=null,quantumSwingUntil=0,quantumTime=0;const qTip=new THREE.Vector3(),qBase=new THREE.Vector3();
+function quantumBlade(){const h=swordHands.quantum;return h&&h.visible?h.userData.blade:null;}
+function updateQuantum(dt,q){
+ quantumTime+=dt;const b=quantumBlade();if(b)b.userData.tick?.(quantumTime);if(fpSword&&fpSword.userData.quantum)fpSword.userData.quantum.userData.tick?.(quantumTime);
+ if(!b&&!quantumFX)return;if(!quantumFX)quantumFX=createQuantumFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});
+ let swinging=false;if(b&&performance.now()<quantumSwingUntil){b.updateMatrixWorld(true);qTip.copy(b.userData.tipLocal).applyMatrix4(b.matrixWorld);qBase.copy(b.userData.coreLocal).applyMatrix4(b.matrixWorld);swinging=true;}
+ quantumFX.update(dt,camera,{tip:qTip,base:qBase,swinging,quality:q});
+}
 function castHolyMagic(kind){
  const now=performance.now();if(whiteLease.locked||playerHP<=0||gamePaused||cineActive||dialogueOpen)return;
  if(kind==='magic'&&(siege.active||!siegeVFX||!siegeTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>22)){status.textContent=siege.active?'Dispare as lâminas restantes.':'Aproxime-se de um inimigo para invocar o cerco.';return;}
  if(kind==='magic2'&&starfall.active){status.textContent='A chuva de estrelas ainda está ativa.';return;}
  if(kind==='magic3'&&phoenix.active){status.textContent='A fênix ainda está ativa.';return;}
+ if(EXTRA_SKILLS.includes(kind)&&extraSkillBusy(kind)){status.textContent=SKILLS[kind].name+' ainda está ativa.';return;}
  if(kind==='ultimate'&&(!model||!grounded||dashRemaining>0||!phoenixTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>24)){status.textContent='Aproxime-se de um inimigo e firme os pés para o Julgamento Divino.';return;}
  const check=canCast(kind,{unlocked:skillSet||new Set(),mana:playerMana,cooldownUntil:holyCooldowns,now});if(!check.ok){status.textContent=check.reason;return;}
  playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);
  if(kind==='ultimate'){beginWhiteHole();status.textContent='Julgamento Divino — Colapso da Luz Eterna';}
+ else if(EXTRA_SKILLS.includes(kind)){castExtraSkill(kind);}
  else if(kind==='magic'){siegeScene=siegeContext();siege.start(siegeTarget(),ownedItems.has('magic_plus')?16:14);siegeHUD();status.textContent='Cerco das Cinco Lâminas Celestiais — toque GOLPE para disparar cada espada.';}
  else if(kind==='magic3'){
  if(!phoenixVFX)phoenixVFX=createPhoenixVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});phoenixScene=siegeContext();
@@ -1379,14 +1435,14 @@ function castHolyMagic(kind){
  }
 }
 function updateHolyProjectiles(dt){
- updateSiege(dt);updateStarfall(dt);updatePhoenix(dt);
+ updateSiege(dt);updateStarfall(dt);updatePhoenix(dt);updateExtraSkills(dt);
  for(let i=holyProjectiles.length-1;i>=0;i--){const p=holyProjectiles[i];if(p.orbit>0){p.orbit-=dt;p.oa+=dt*7;p.group.position.set(player.position.x+Math.sin(p.oa)*1.3,player.position.y+1.5+Math.sin(p.oa*2)*.15,player.position.z+Math.cos(p.oa)*1.3);p.group.rotation.y=p.oa+Math.PI/2;if(p.orbit<=0){const tx=(enemy.visible&&enemyAlive?enemy.position.x:p.group.position.x+Math.sin(playerYaw))-p.group.position.x,tz=(enemy.visible&&enemyAlive?enemy.position.z:p.group.position.z+Math.cos(playerYaw))-p.group.position.z,d=Math.hypot(tx,tz)||1;p.dirX=tx/d;p.dirZ=tz/d;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}continue;}p.delay-=dt;if(p.delay>0)continue;p.life-=dt;if(p.kind==='arc'){const k=1-p.life/.6;p.group.scale.setScalar(1+k*1.3);p.group.traverse(o=>{if(o.material&&o.material.transparent)o.material.opacity=Math.max(0,(o.material===p.arcMat?.9:.55)*(1-k));});}if(p.homing&&enemy.visible&&enemyAlive){const hx=enemy.position.x-p.group.position.x,hz=enemy.position.z-p.group.position.z,hd=Math.hypot(hx,hz)||1;p.dirX+=(hx/hd-p.dirX)*Math.min(1,dt*5);p.dirZ+=(hz/hd-p.dirZ)*Math.min(1,dt*5);const n=Math.hypot(p.dirX,p.dirZ)||1;p.dirX/=n;p.dirZ/=n;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind==='sun'){p.group.position.y+=Math.sin(performance.now()*.006)*dt*.22;p.group.rotation.y+=dt*2;}else p.group.rotation.z+=dt*2;
   const d=Math.hypot(p.group.position.x-enemy.position.x,p.group.position.z-enemy.position.z);
   if(!p.hit&&enemyAlive&&combatStepNow()&&enemy.visible&&d<(p.kind==='arc'?1.9:1.15)&&Math.abs(p.group.position.y-(enemy.position.y+1))<1.8){p.hit=true;enemyHP=Math.max(0,enemyHP-p.damage);onEnemyDamaged(p.damage,p.kind==='ultimate');if(p.kind==='sun')burnEnemy();enemyHitFlash=.2;setEnemyHitFlash(true);setTimeout(()=>setEnemyHitFlash(false),130);const fill=document.getElementById('enemy-hp-fill');if(fill)fill.style.width=enemyHpPercent()+'%';p.life=0;if(enemyHP===0){enemyAlive=false;playEnemyAnimation('death',.06,true);status.textContent='A luz venceu este inimigo. Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),650);}}
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
  }
 }
-function action(kind){if(whiteLease.locked)return;if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(now<dashCooldownUntil)return;rites.cancel('dash');dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;rites.cancel('jump');grounded=false;verticalVelocity=jumpImpulse;worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget());siegeHUD();return;}tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(kind);return;}}
+function action(kind){if(whiteLease.locked)return;if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(now<dashCooldownUntil)return;rites.cancel('dash');dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded)return;rites.cancel('jump');grounded=false;verticalVelocity=jumpImpulse;worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget());siegeHUD();return;}tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(slotSkill(kind));return;}}
 // MOD 187 — o celular não gera 'click' para um segundo dedo enquanto o primeiro segura o joystick; pointerdown responde sempre.
 function bindInstantTap(button,fn){if(!button)return;let lastTap=0,pointerSeen=false;button.addEventListener('pointerdown',e=>{pointerSeen=true;e.preventDefault();e.stopPropagation();lastTap=performance.now();fn();});button.addEventListener('click',e=>{if(pointerSeen&&e.detail>0)return;if(performance.now()-lastTap>500)fn();});}
 function bindInstantAction(id,kind){bindInstantTap(document.getElementById(id),()=>action(kind));}
@@ -2002,7 +2058,7 @@ function assistAimAtEnemy(){
 // Rastro dourado do golpe (uma malha reaproveitada).
 const slashTrail=new THREE.Mesh(new THREE.RingGeometry(.9,1.25,26,1,-Math.PI*.15,Math.PI*1.05),new THREE.MeshBasicMaterial({color:0xffe2a0,transparent:true,opacity:0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
 slashTrail.visible=false;scene.add(slashTrail);let slashTrailT=1,slashTrailDur=.3;
-function spawnSlashTrail(duration){slashTrailT=0;slashTrailDur=Math.min(.42,Math.max(.22,(duration||.5)*.45));slashTrail.visible=true;}
+function spawnSlashTrail(duration){if(equippedSword==='quantum')quantumSwingUntil=performance.now()+Math.max(260,(duration||.5)*700);slashTrailT=0;slashTrailDur=Math.min(.42,Math.max(.22,(duration||.5)*.45));slashTrail.visible=true;}
 function updateSlashTrail(dt){
  if(SWORD_RITES[equippedSword]){slashTrail.visible=false;return;}
  if(!slashTrail.visible)return;if(cameraDistance<1.05){slashTrail.visible=false;return;}slashTrailT+=dt/slashTrailDur;if(slashTrailT>=1){slashTrail.visible=false;return;}
@@ -2150,8 +2206,8 @@ function openShop(){
  shopOpen=true;shopConfirm=null;setDefending(false);const panel=document.getElementById('shop-panel');if(panel)panel.hidden=false;renderShop();
 }
 function closeShop(){shopOpen=false;shopConfirm=null;const panel=document.getElementById('shop-panel');if(panel)panel.hidden=true;}
-const SHOP_ART={magic:'magic',magic2:'magic2',magic3:'magic3',ultimate:'ultimate',magic_plus:'magic_plus',magic2_plus:'magic2_plus',magic3_plus:'magic3_plus',aurora:'sword_aurora',vigilia:'sword_vigilia',celeste:'sword_aurora'};
-const SHOP_TAGS={magic:'HABILIDADE 1',magic2:'HABILIDADE 2',magic3:'HABILIDADE 3',ultimate:'ULTIMATE',magic_plus:'APRIMORAMENTO 1',magic2_plus:'APRIMORAMENTO 2',magic3_plus:'APRIMORAMENTO 3',aurora:'ESPADA',vigilia:'ESPADA',celeste:'RELÍQUIA'};
+const SHOP_ART={magic:'magic',magic2:'magic2',magic3:'magic3',ultimate:'ultimate',magic_plus:'magic_plus',magic2_plus:'magic2_plus',magic3_plus:'magic3_plus',aurora:'sword_aurora',vigilia:'sword_vigilia',celeste:'sword_aurora',quantum:'sword_quantum',skill_x_rupture:'skill_x_rupture',skill_twin_portals:'skill_twin_portals',skill_judgment_dragon:'skill_judgment_dragon'};
+const SHOP_TAGS={magic:'HABILIDADE 1',magic2:'HABILIDADE 2',magic3:'HABILIDADE 3',ultimate:'ULTIMATE',magic_plus:'APRIMORAMENTO 1',magic2_plus:'APRIMORAMENTO 2',magic3_plus:'APRIMORAMENTO 3',aurora:'ESPADA',vigilia:'ESPADA',celeste:'RELÍQUIA',quantum:'ESPADA RARA',skill_x_rupture:'NOVA PALAVRA',skill_twin_portals:'NOVA PALAVRA',skill_judgment_dragon:'NOVA PALAVRA'};
 const SHOP_NAV={escrituras:['Habilidades','cat_escrituras'],arsenal:['Equipamentos','cat_arsenal'],conquistas:['Conquistas','cat_conquistas'],arquivo:['Arquivo','cat_arquivo'],fragmentos:['Especiais','cat_fragmentos']};
 function shopArt(name,locked){return '<div class="shop-art'+(locked?' is-locked':'')+'">'+iconSvg(name,{size:96})+(locked?'<span class="shop-lock">'+iconSvg('lock',{size:34}).replace('class="art-svg"','class="art-svg lock"')+'</span>':'')+'</div>';}
 function renderShop(){
@@ -2193,6 +2249,7 @@ function renderShop(){
 function purchase(item){
  const r=buyItem(item,shopCtx());shopConfirm=null;if(!r.ok){status.textContent=r.reason;renderShop();return;}
  coins=r.coins;ownedItems.add(item.id);worldAudio.reveal();if(item.kind==='sword')equipSword(item.id);
+ if(EXTRA_SKILLS.includes(item.id)){const slot=autoSlotFor(skillLoadout,ownedItems);const toast=document.getElementById('quest-toast');if(slot>=0){const r2=equipSlot(skillLoadout,slot,item.id,{owned:ownedItems});if(r2.ok)skillLoadout=r2.loadout;}if(toast){toast.textContent=slot>=0?'NOVA PALAVRA EQUIPADA NO ESPAÇO '+(slot+1):'NOVA PALAVRA · EQUIPE NO INVENTÁRIO (I)';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),3200);}save3DProgress();refreshSkillUnlocks();}
  save3DProgress();updateQuestHud();renderShop();
  const toast=document.getElementById('quest-toast');if(toast){toast.textContent=(item.kind==='sword'?'NOVA LÂMINA · ':'NOVA PALAVRA · ')+item.name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}
 }
@@ -2227,8 +2284,8 @@ let auroraHand=null,auroraFpTemplate=null;
 const SWORD_PALETTES={aurora:{blade:0xf3f0e6,edge:0xffe6b0,fuller:0xffd56a,gold:0xe2b04a,pommel:0xffc24a},vigilia:{blade:0xdfe8f5,edge:0x9fc4ff,fuller:0x8fd0ff,gold:0x9aa8c0,pommel:0x7ab8ff},celeste:{blade:0xffffff,edge:0xfff6d8,fuller:0xfff2b0,gold:0xffd86a,pommel:0xffffff}};
 const swordHands={},swordFpTemplates={};
 function equipSword(id){
- if(!SWORDS[id]||(id!=='prota'&&!ownedItems.has(id)))return;if(id!==equippedSword)rites.cancel('weapon');equippedSword=id;save3DProgress();
- if(id!=='prota'&&swordRoot&&swordRoot.parent&&!swordHands[id]){const wrap=new THREE.Group();wrap.position.copy(swordRoot.position);wrap.quaternion.copy(swordRoot.quaternion);wrap.scale.copy(swordRoot.scale);wrap.add(alignAuroraToSwordRoot(buildAuroraSword(SWORD_PALETTES[id])));swordRoot.parent.add(wrap);swordHands[id]=wrap;swordFpTemplates[id]=alignAuroraToSwordRoot(buildAuroraSword(SWORD_PALETTES[id]));}
+ if(!SWORDS[id]||(id!=='prota'&&!ownedItems.has(id)))return;quantumFX?.clear();if(id!==equippedSword)rites.cancel('weapon');equippedSword=id;save3DProgress();
+ if(id!=='prota'&&swordRoot&&swordRoot.parent&&!swordHands[id]){const wrap=new THREE.Group();wrap.position.copy(swordRoot.position);wrap.quaternion.copy(swordRoot.quaternion);wrap.scale.copy(swordRoot.scale);const make=()=>id==='quantum'?buildQuantumSword(THREE):buildAuroraSword(SWORD_PALETTES[id]);const blade=make();wrap.add(alignAuroraToSwordRoot(blade));wrap.userData.blade=blade;swordRoot.parent.add(wrap);swordHands[id]=wrap;const fpBlade=make();swordFpTemplates[id]=alignAuroraToSwordRoot(fpBlade);if(id==='quantum')swordFpTemplates[id].userData.quantum=fpBlade;}
  if(swordRoot)swordRoot.visible=id==='prota';for(const [k,h] of Object.entries(swordHands))h.visible=k===id;
  auroraHand=swordHands.aurora||auroraHand;auroraFpTemplate=swordFpTemplates.aurora||auroraFpTemplate;
  slashTrail.material.color.setHex(SWORDS[id].trail);
@@ -4393,7 +4450,7 @@ function storyDo5(id,args){
  return false;
 }
 /* ---------- Inventário (espadas, roupa, encantamentos e poderes; "Equipar melhor") ---------- */
-const SKILL_INFO={magic:{dmg:'5 × 14',what:'Cinco espadas no alvo; GOLPE dispara uma por vez.'},magic2:{dmg:'6 por impacto',what:'90 estrelas em ondas durante 10 s; dano depende da área atingida.'},magic3:{dmg:'—',what:'Em desenvolvimento.'},ultimate:{dmg:'—',what:'Em desenvolvimento.'},magic_plus:{dmg:'5 × 16',what:'Aprimora as cinco lâminas.'},magic2_plus:{dmg:'8 por impacto',what:'Aprimora o dano das estrelas.'},magic3_plus:{dmg:'—',what:'Em desenvolvimento.'}};
+const SKILL_INFO={skill_x_rupture:{dmg:'38',what:'X carmesim que viaja reto até o alvo e se rompe em dois cortes.'},skill_twin_portals:{dmg:'8 × 5 + 18',what:'Dois portais; oito fios por rotas diferentes e explosão final.'},skill_judgment_dragon:{dmg:'30 + 36',what:'Dragão dourado que engole o alvo e explode em esfera de luz.'},magic:{dmg:'5 × 14',what:'Cinco espadas no alvo; GOLPE dispara uma por vez.'},magic2:{dmg:'6 por impacto',what:'90 estrelas em ondas durante 10 s; dano depende da área atingida.'},magic3:{dmg:'—',what:'Em desenvolvimento.'},ultimate:{dmg:'—',what:'Em desenvolvimento.'},magic_plus:{dmg:'5 × 16',what:'Aprimora as cinco lâminas.'},magic2_plus:{dmg:'8 por impacto',what:'Aprimora o dano das estrelas.'},magic3_plus:{dmg:'—',what:'Em desenvolvimento.'}};
 function openInventory(){const p=document.getElementById('inv-panel');if(!p)return;inventoryOpen=true;setDefending(false);renderInventory();p.hidden=false;}
 function closeInventory(){inventoryOpen=false;const p=document.getElementById('inv-panel');if(p)p.hidden=true;}
 function equipBest(){const best=bestSword(SWORDS,ownedItems);if(best!==equippedSword)equipSword(best);if(coatOwned&&!coatOn)setCoat(true);renderInventory();status.textContent='Melhor equipamento: '+SWORDS[best].name+(coatOwned?' e Casaco de Pele':'')+'.';worldAudio.reveal();}
@@ -4406,6 +4463,13 @@ function renderInventory(){
  for(const id of Object.keys(SWORDS)){if(id!=='prota'&&!ownedItems.has(id))continue;const s=SWORDS[id],dmg=Math.round(s.damage*scrollMul());row(s.name+(id===best?' ★':''),id===best?'A melhor que você tem':'Espada',(scrollOwned?'<b>'+dmg+'</b> dano <small>(+20% pergaminho)</small>':'<b>'+dmg+'</b> dano')+' · alcance '+s.reach.toFixed(1),btn(equippedSword===id?'EQUIPADA':'EQUIPAR',equippedSword===id,()=>equipSword(id)),equippedSword===id);}
  if(coatOwned||scrollOwned){head('ROUPA E ENCANTAMENTOS');if(coatOwned)row('Casaco de Pele','Protege do frio','+15 vida · +10% mana',btn(coatOn?'DESEQUIPAR':'EQUIPAR',false,()=>setCoat(!coatOn)),coatOn);if(scrollOwned)row('Pergaminho de Encantamento','Sempre ativo','+20% dano da espada',null,true);}
  {const fr=questStep<ACT6N.desert?Math.min(4,bishopsDefeated):fragmentsHeld(questStep,act1Sub);if(bishopsDefeated>0&&questStep<ACT6N.done){head('FRAGMENTOS');row('Fragmentos espaciais','Caem dos Bispos; abrem o portal da Ganância','<b>'+fr+'</b> / 4',null,fr>=4);}}
+ {// MOD 233 — PALAVRAS EQUIPADAS: escolher qual Palavra comprada ocupa cada um dos três espaços (fora de combate)
+  const opts=ownedSlotSkills({owned:ownedItems,testAll:testAllSkills});
+  if(opts.length){head('PALAVRAS EQUIPADAS');const inCombat=enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<30,busy=Object.values(EXTRA_RUN).some(r=>r.active)||siege.active||starfall.active||phoenix.active||whiteLease.locked;
+   for(let i=0;i<3;i++){const sel=document.createElement('select');sel.className='inv-slot';sel.setAttribute('aria-label','Espaço '+(i+1));for(const id of new Set([skillLoadout[i],...opts])){const o=document.createElement('option');o.value=id;o.textContent=SKILLS[id].name+(ownedSlotSkills({owned:ownedItems,testAll:testAllSkills}).includes(id)?'':' (não comprada)');if(id===skillLoadout[i])o.selected=true;sel.appendChild(o);}
+    sel.disabled=inCombat||busy;sel.addEventListener('change',()=>{const r=equipSlot(skillLoadout,i,sel.value,{owned:ownedItems,testAll:testAllSkills,inCombat,busy});if(r.ok){skillLoadout=r.loadout;save3DProgress();refreshSkillUnlocks();status.textContent='Espaço '+(i+1)+': '+SKILLS[sel.value].name+'.';}else status.textContent=r.reason;renderInventory();});
+    const id=skillLoadout[i];row('Espaço '+(i+1)+' · tecla '+(i+1),(SKILL_INFO[id]||{}).what||SKILLS[id].name,SKILLS[id].mana+' mana · '+(SKILLS[id].cooldown/1000).toFixed(1)+' s',sel,true);}
+   if(inCombat||busy){const p=document.createElement('p');p.className='inv-empty';p.textContent='Troque as Palavras fora de combate.';body.appendChild(p);}}}
  head('PODERES');let any=false;for(const id of Object.keys(SKILL_INFO)){if(!ownedItems.has(id))continue;if((SHOP_ITEMS.find(i=>i.id===id)||{}).disabled){row('Em desenvolvimento','Habilidade reservada para reformulação.','','',false);continue;}any=true;const k=SKILLS[id]||SKILLS[id.replace('_plus','')]||{};row((SHOP_ITEMS.find(i=>i.id===id)||{}).name||id,SKILL_INFO[id].what,'<b>'+SKILL_INFO[id].dmg+'</b> dano · '+(k.mana||'—')+' mana · '+(k.cooldown?(k.cooldown/1000).toFixed(1)+' s':'—'),null,true);}
  if(!any){const p=document.createElement('p');p.className='inv-empty';p.textContent='Nenhum poder ainda. Compre na Loja.';body.appendChild(p);}
 }
@@ -5473,7 +5537,7 @@ async function startSwordTraining(boss=false){
  for(const id of ['start-gate','name-panel','dialog-panel','loading']){const el=document.getElementById(id);if(el){el.hidden=true;el.classList.add('hidden');}}
  document.getElementById('sword-training').hidden=false;updateQuestHud();
 }
-if(testAllSkills){ownedItems.add('aurora');const panel=document.getElementById('sword-training');panel.hidden=false;bindInstantTap(document.getElementById('rite-training-start'),()=>startSwordTraining());bindInstantTap(document.getElementById('rite-training-swap'),()=>equipSword(equippedSword==='prota'?'aurora':'prota'));}
+if(testAllSkills){ownedItems.add('aurora');ownedItems.add('quantum');const panel=document.getElementById('sword-training');panel.hidden=false;bindInstantTap(document.getElementById('rite-training-start'),()=>startSwordTraining());bindInstantTap(document.getElementById('rite-training-swap'),()=>equipSword(equippedSword==='prota'?'aurora':'prota'));}
 
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
@@ -5604,6 +5668,11 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  whiteFrame(dt){if(!gamePaused)tickWhiteHole(dt);renderer.render(scene,camera);return this.whiteState();},
  whiteCancel(){finishWhiteHole();return this.whiteState();},
  whiteState(){return {fog:scene.fog?[scene.fog.color.getHexString(),scene.fog.near,scene.fog.far]:null,bg:scene.background?.isColor?scene.background.getHexString():null,active:whiteHole.active,locked:whiteLease.locked,phase:whiteHole.phase,time:whiteHole.time,hp:enemyHP,mana:playerMana,pos:player.position.toArray(),modelPos:model.position.toArray(),savedModelPos:whiteLease.snapshot?.modelPosition.toArray(),savedCamera:whiteLease.snapshot?.cam.toArray(),camera:camera.position.toArray(),yaw:cameraYaw,pitch:cameraPitch,distance:cameraDistance,flash:whiteOverlay.style.opacity,context:siegeContext()};},
+ extraQA(){this.phoenixQA();for(const id of EXTRA_SKILLS)ownedItems.add(id);refreshSkillUnlocks();playerMana=999;for(const k of EXTRA_SKILLS)holyCooldowns[k]=0;return this.extraState();},
+ extraFrame(dt){updateExtraSkills(dt);return this.extraState();},
+ extraState(){const o={};for(const [k,r] of Object.entries(EXTRA_RUN))o[k]={active:r.active,phase:r.phase,time:+r.time.toFixed(2)};return {skills:o,hp:enemyHP,mana:playerMana,loadout:[...skillLoadout],enemy:enemy.position.toArray().map(v=>+v.toFixed(2)),slots:SKILL_ORDER.map(id=>skillButtons[id]?.skill)};},
+ equipSlotQA(i,id){const r=equipSlot(skillLoadout,i,id,{owned:ownedItems,testAll:testAllSkills});if(r.ok){skillLoadout=r.loadout;save3DProgress();refreshSkillUnlocks();}return {ok:r.ok,reason:r.reason,loadout:[...skillLoadout]};},
+ slotPress(slot){action(slot);return this.extraState();},
  phoenixState(){return {active:phoenix.active,phase:phoenix.phase,time:phoenix.time,angle:phoenix.angle,ticks:phoenix.ticks,hp:enemyHP,mana:playerMana,enemy:enemy.position.toArray().map(v=>+v.toFixed(2)),held:!!phoenixHold,ground:+terrainHeightAt(enemy.position.x,enemy.position.z).toFixed(2)};},
  phoenixFrame(dt){updatePhoenix(dt);return this.phoenixState();},
  siegeState(){return {active:siege.active,remaining:siege.remaining,time:siege.time,hp:enemyHP,blades:siege.blades.map(b=>({phase:b.phase,p:b.p,hit:b.hit}))};},
