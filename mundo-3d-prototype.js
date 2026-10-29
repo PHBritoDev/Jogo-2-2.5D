@@ -5521,7 +5521,7 @@ function castSwordRite(){
  updateRiteHud();
 }
 function updateRites(dt){
- if(swordTrainingRequested&&!swordTrainingRequestedStarted&&riteReady()){swordTrainingRequestedStarted=true;startSwordTraining().catch(e=>{console.error(e);status.textContent='Não foi possível carregar o treino. Toque TREINAR para tentar novamente.';});}
+ if(swordTrainingRequested&&!swordTrainingRequestedStarted&&model&&mixer&&player.userData.ready&&(quantumShowcaseRequested||riteReady())){swordTrainingRequestedStarted=true;startSwordTraining().catch(e=>{console.error(e);swordTrainingRequestedStarted=false;status.textContent='Falha ao iniciar treino: '+e.message;});}
  const valid=playerHP>0&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&!portalPull&&!whiteLease.locked&&(!(rites.busy||rites.waves.length)||riteContext===siegeContext());
  rites.update(dt,{valid,sword:equippedSword,from:player.position,target:riteTarget()});
  riteVFX.update(dt,graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium',cameraDistance<1.05);updateRiteHud();
@@ -5533,8 +5533,8 @@ function updateRiteHud(){
 }
 bindInstantTap(riteButton,()=>action('sword-skill'));
 async function startSwordTraining(boss=false){
- if(!testAllSkills||!riteReady())return;await loadRig(boss?'bishop2':'enemy2');rites.cancel('training');swordTraining=true;menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
- if(cineDirector.active)cineDirector.skip();clearPack();useRig(boss?'bishop2':'enemy2');questStep=2;act1Sub=0;enemy.visible=false;revealEncounter(boss?'vorgazhek':'demon2',{x:40,z:14},10000,'Treino de espadas · GOLPE encadeia o combo; R ativa o rito.');player.position.set(40,terrainHeightAt(40,17),17);playerYaw=Math.PI;player.rotation.y=playerYaw;playerHP=playerMaxHP;playerMana=100;rites.cooldowns.prota=rites.cooldowns.aurora=0;ownedItems.add('aurora');cameraYaw=0;cameraPitch=.22;cameraDistance=6;debugCameraOverride=null;camera.position.set(40,terrainHeightAt(40,17)+2.5,23);camera.lookAt(40,terrainHeightAt(40,17)+1.1,17);
+ if(!testAllSkills||!model||!mixer||(!quantumShowcaseRequested&&!riteReady()))return;if(!quantumShowcaseRequested)await loadRig(boss?'bishop2':'enemy2');rites.cancel('training');swordTraining=true;menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
+ if(cineDirector.active)cineDirector.skip();clearPack();if(quantumShowcaseRequested){if(enemy1Rig)useRig('enemy1');}else useRig(boss?'bishop2':'enemy2');questStep=2;act1Sub=0;enemy.visible=false;revealEncounter(boss?'vorgazhek':'demon2',{x:40,z:14},10000,'Treino de espadas · GOLPE encadeia o combo; R ativa o rito.');player.position.set(40,terrainHeightAt(40,17),17);playerYaw=Math.PI;player.rotation.y=playerYaw;playerHP=playerMaxHP;playerMana=100;rites.cooldowns.prota=rites.cooldowns.aurora=0;ownedItems.add('aurora');cameraYaw=0;cameraPitch=.22;cameraDistance=6;debugCameraOverride=null;camera.position.set(40,terrainHeightAt(40,17)+2.5,23);camera.lookAt(40,terrainHeightAt(40,17)+1.1,17);
  for(const id of ['start-gate','name-panel','dialog-panel','loading']){const el=document.getElementById(id);if(el){el.hidden=true;el.classList.add('hidden');}}
  if(quantumShowcaseRequested){
    for(const id of ['quantum','skill_x_rupture','skill_twin_portals','skill_judgment_dragon'])ownedItems.add(id);
