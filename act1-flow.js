@@ -126,10 +126,13 @@ export function migrateProgress(raw) {
   const base = baseProgress();
   if (!raw || typeof raw !== 'object') return base;
   const coins = Math.max(0, Math.floor(Number(raw.coins) || 0));
+  // Preserva nomes de saves antigos (2–16 caracteres) sem permitir novos nomes fora do limite atual.
   const named = sanitizePlayerName(raw.playerName || '');
+  const legacyName = String(raw.playerName || '').replace(/\\s+/g, ' ').trim();
+  const savedName = named.ok ? named.name : (legacyName.length >= 2 && legacyName.length <= 16 && /^[\\p{L}][\\p{L} '\\-.]{1,15}$/u.test(legacyName) && !BANNED.some(word => legacyName.toLowerCase().includes(word)) ? legacyName : '');
   const shared = {
     coins,
-    playerName: named.ok ? named.name : '',
+    playerName: savedName,
     captorsTaunted: !!raw.captorsTaunted,
     childrenFreed: !!raw.childrenFreed,
     awakeningSeen: !!raw.awakeningSeen,
