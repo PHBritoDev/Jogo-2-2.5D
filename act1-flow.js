@@ -36,8 +36,8 @@ const BANNED = ['porra', 'merda', 'caralho', 'fdp', 'puta', 'viado', 'cuzao', 'b
 
 export function sanitizePlayerName(raw) {
   const name = String(raw || '').replace(/\s+/g, ' ').trim();
-  if (name.length < 2 || name.length > 16) return { ok: false, error: 'Use de 2 a 16 caracteres.' };
-  if (!/^[\p{L}][\p{L} '\-.]{1,15}$/u.test(name)) {
+  if (name.length < 3 || name.length > 12) return { ok: false, error: 'Use de 3 a 12 caracteres, em uma única linha.' };
+  if (!/^[\p{L}][\p{L} '\-.]{2,11}$/u.test(name)) {
     return { ok: false, error: 'Use letras, espaço, apóstrofo ou hífen.' };
   }
   const folded = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -126,10 +126,13 @@ export function migrateProgress(raw) {
   const base = baseProgress();
   if (!raw || typeof raw !== 'object') return base;
   const coins = Math.max(0, Math.floor(Number(raw.coins) || 0));
+  // Preserva nomes de saves antigos (2–16 caracteres) sem permitir novos nomes fora do limite atual.
   const named = sanitizePlayerName(raw.playerName || '');
+  const legacyName = String(raw.playerName || '').replace(/\s+/g, ' ').trim();
+  const savedName = named.ok ? named.name : (legacyName.length >= 2 && legacyName.length <= 16 && /^[\p{L}][\p{L} '\-.]{1,15}$/u.test(legacyName) && !BANNED.some(word => legacyName.toLowerCase().includes(word)) ? legacyName : '');
   const shared = {
     coins,
-    playerName: named.ok ? named.name : '',
+    playerName: savedName,
     captorsTaunted: !!raw.captorsTaunted,
     childrenFreed: !!raw.childrenFreed,
     awakeningSeen: !!raw.awakeningSeen,
