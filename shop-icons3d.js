@@ -103,6 +103,31 @@ const ART = {
   cat_fragmentos(id) {
     return defs(id, ['#ffd6d6', '#ff5a5a', '#8a1420'], ['#2a0608']) + '<path d="M48 6 L74 34 L62 90 L34 90 L22 34Z" fill="url(#bl' + id + ')" stroke="#ffd6d6" stroke-opacity=".8" stroke-width="1.6"/><path d="M48 6 L48 90 M22 34 L74 34 M34 90 L48 34 L62 90" stroke="#fff" stroke-opacity=".45" fill="none" stroke-width="1.2"/>';
   },
+  // MOD 233 — Ruptura em X: duas lâminas carmesim cruzadas com núcleo branco-quente e filamentos pretos.
+  skill_x_rupture(id) {
+    const g = '<linearGradient id="xr' + id + '" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a0010"/><stop offset=".5" stop-color="#ff3a6a"/><stop offset="1" stop-color="#5a0010"/></linearGradient>';
+    const bladeX = r => '<g transform="rotate(' + r + ' 48 48)"><path d="M8 48 Q48 30 88 48 Q48 66 8 48Z" fill="url(#xr' + id + ')"/><path d="M14 48 Q48 42 82 48 Q48 54 14 48Z" fill="#fff2f4"/><path d="M20 46 Q34 44 44 47 M54 50 Q66 52 78 49" stroke="#1a0006" stroke-width="1.2" fill="none"/></g>';
+    return '<defs>' + g + '<radialGradient id="xg' + id + '"><stop offset="0" stop-color="#ff6a9a" stop-opacity=".9"/><stop offset="1" stop-color="#ff6a9a" stop-opacity="0"/></radialGradient></defs><rect width="96" height="96" fill="#12030a"/><circle cx="48" cy="48" r="40" fill="url(#xg' + id + ')"/>' + sparks('#ff8fb0', 12, 31) + bladeX(45) + bladeX(-45) + '<circle cx="48" cy="48" r="6" fill="#fff"/>';
+  },
+  // MOD 233 — Portais da Perseguição: portal rubro e violeta com fios curvos convergindo.
+  skill_twin_portals(id) {
+    const portal = (cx, c1, c2) => '<ellipse cx="' + cx + '" cy="40" rx="15" ry="19" fill="#0a020c" stroke="' + c1 + '" stroke-width="4"/><path d="M' + (cx - 8) + ' 40 Q' + cx + ' 26 ' + (cx + 8) + ' 40 Q' + cx + ' 54 ' + (cx - 8) + ' 40Z" fill="' + c2 + '" opacity=".55"/>';
+    return '<rect width="96" height="96" fill="#0b0612"/>' + sparks('#d9b0ff', 10, 41) + portal(24, '#ff2a40', '#ff6a7a') + portal(72, '#9a4aff', '#c49aff') +
+      '<path d="M30 52 Q36 80 48 78" stroke="#ff4a5a" stroke-width="2.4" fill="none"/><path d="M66 52 Q60 80 48 78" stroke="#a86aff" stroke-width="2.4" fill="none"/><path d="M24 22 Q48 0 50 74" stroke="#ff8a9a" stroke-width="1.6" fill="none" opacity=".8"/><path d="M72 22 Q90 70 50 76" stroke="#c49aff" stroke-width="1.6" fill="none" opacity=".8"/><circle cx="48" cy="77" r="6" fill="#fff"/>';
+  },
+  // MOD 233 — Dragão do Julgamento: cabeça dourada de boca aberta, olho branco e corpo em espiral de fogo.
+  skill_judgment_dragon(id) {
+    return defs(id, GOLD, ['#3a1a04']) + '<rect width="96" height="96" fill="url(#bg' + id + ')"/><circle cx="52" cy="46" r="38" fill="url(#gl' + id + ')"/>' + sparks('#ffd27a', 14, 51) +
+      '<path d="M10 86 C20 60 46 74 40 52 C36 36 54 30 62 38" stroke="#ff9a2a" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M10 86 C20 60 46 74 40 52 C36 36 54 30 62 38" stroke="#ffe08a" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+      '<path d="M56 36 L84 26 L74 38 L90 42 L70 46 L60 50Z" fill="url(#bl' + id + ')" stroke="#fff6cf" stroke-width="1"/><path d="M60 50 L86 58 L66 54Z" fill="#c8861e"/><path d="M70 38 l2 4 l2 -4 M76 40 l2 4 l2 -4" stroke="#fff" stroke-width="1"/><circle cx="66" cy="34" r="2.4" fill="#fff"/><path d="M58 30 L52 12 L62 28" fill="#fff0c8"/>';
+  },
+  // MOD 233 — Quantum: núcleo negro, órbitas dourada e violeta, lâmina de luz e empunhadura rubra.
+  sword_quantum(id) {
+    return '<defs><linearGradient id="qb' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffd27a"/><stop offset=".6" stop-color="#ff5ab0"/><stop offset="1" stop-color="#b48aff"/></linearGradient></defs><rect width="96" height="96" fill="#0a0612"/>' + sparks('#d9b0ff', 10, 61) +
+      '<path d="M48 4 L52 56 L44 56Z" fill="url(#qb' + id + ')"/><path d="M48 8 L48 54" stroke="#fff" stroke-width="1"/>' +
+      '<ellipse cx="48" cy="62" rx="20" ry="7" fill="none" stroke="#ffd98a" stroke-width="2" transform="rotate(-18 48 62)"/><ellipse cx="48" cy="62" rx="18" ry="6" fill="none" stroke="#a06aff" stroke-width="2" transform="rotate(24 48 62)"/><circle cx="48" cy="62" r="7.5" fill="#000" stroke="#ffe7b0" stroke-width="1.4"/>' +
+      '<rect x="45" y="70" width="6" height="18" rx="2" fill="#a0141e"/><path d="M45 74 h6 M45 79 h6 M45 84 h6" stroke="#ffc85a" stroke-width="1"/><circle cx="48" cy="90" r="3.2" fill="#ffc85a"/>';
+  },
   lock(id) {
     return '<path d="M30 44 L30 34 C30 22 66 22 66 34 L66 44" fill="none" stroke="#c9a24d" stroke-width="6"/><rect x="22" y="44" width="52" height="38" rx="6" fill="#c9a24d"/><circle cx="48" cy="60" r="5" fill="#1a1208"/><rect x="46" y="62" width="4" height="12" fill="#1a1208"/>';
   }

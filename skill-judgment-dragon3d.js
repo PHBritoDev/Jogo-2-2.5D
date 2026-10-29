@@ -11,7 +11,7 @@ import { sweptCapsule } from './skill-x-rupture3d.js';
  * do torso e fecha a boca ao redor de um volume de energia, sem alterar posição/rig do chefe. Dano total 30 + 36.
  */
 export const DRAGON = Object.freeze({ channel: .9, form: 1, speed: 15, maxAdvance: 3.2, wave: 1.25, freq: 2.1, cruise: 5.2,
-  open: .3, engulf: .42, compress: .38, dissipate: 1.4, bite: 30, blast: 36, trail: 150 });
+  open: .3, engulf: .42, compress: .38, dissipate: 1.4, bite: 30, blast: 36, trail: 360 });
 const smooth = k => { k = Math.min(1, Math.max(0, k)); return k * k * (3 - 2 * k); };
 
 export class JudgmentDragon {
@@ -29,7 +29,9 @@ export class JudgmentDragon {
   }
   cancel() { if (!this.active) return; this.active = false; this.phase = 'idle'; this.mouth = 0; this.event('cancel'); }
   phaseTo(p) { this.phase = p; this.age = 0; this.event(p, this); }
-  push() { this.trailHead = (this.trailHead + 1) % DRAGON.trail; Object.assign(this.trail[this.trailHead], this.head); this.trailCount = Math.min(DRAGON.trail, this.trailCount + 1); }
+  push() { // só grava quando a cabeça andou: parado, o corpo continua estendido atrás dela
+    if (this.trailCount) { const l = this.trail[this.trailHead]; if (Math.hypot(l.x - this.head.x, l.y - this.head.y, l.z - this.head.z) < .03) return; }
+    this.trailHead = (this.trailHead + 1) % DRAGON.trail; Object.assign(this.trail[this.trailHead], this.head); this.trailCount = Math.min(DRAGON.trail, this.trailCount + 1); }
   /** k-ésima amostra do corpo (0 = cabeça). */
   sample(k) { k = Math.min(this.trailCount - 1, Math.max(0, k)); return this.trail[(this.trailHead - k + DRAGON.trail) % DRAGON.trail]; }
   update(dt, target, { valid = true, paused = false } = {}) {

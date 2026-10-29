@@ -124,6 +124,12 @@ Figurantes: `dressTownsfolk`; moradores de Cinzária: `CITY_ROUTES`/`updateCityF
 fitas, raios). Skill 3: FSM com captura (`phoenix.hold` + lease `phoenixHold` no jogo). Ultimate: asas `Asas.glb`,
 tempestade `celestial-storm3d.js` (céu, nuvens em fatias, chuva na GPU, vento, raios) restaurada pelo `whiteLease`.
 
+## Mod 233 — Palavras novas e Quantum
+
+`docs/MOD-233-PALAVRAS-NOVAS-E-QUANTUM.md`. Lógica: `skill-x-rupture3d.js`, `skill-twin-portals3d.js`,
+`skill-judgment-dragon3d.js`; VFX: `*-vfx3d.js` correspondentes; espada: `quantum-sword3d.js`. Espaços 1–3 (`skillLoadout`,
+`slotSkill`, regras em `skills3d.js`), ultimate separada. Prévia: `skills-mod233-preview.html`.
+
 ## Dia e noite
 
 Relógio contínuo (`gameClock`): 24 h de jogo = 16 min reais, 12 h de dia + 12 h de noite. Nenhuma etapa força a

@@ -113,3 +113,13 @@ test('Quantum: bloqueada antes da metade do Ato III mesmo com ouro e nível; lib
   assert(SWORDS.quantum.damage > SWORDS.vigilia.damage && SWORDS.quantum.damage < SWORDS.celeste.damage);
   assert.equal(new Set(SHOP_ITEMS.map(i => i.id)).size, SHOP_ITEMS.length, 'nenhum id duplicado');
 });
+import { readFileSync } from 'node:fs';
+test('Integração: botões 1–3 lançam a Palavra do espaço; loadout salvo; Quantum com modelo próprio; nada antigo removido', () => {
+  const m = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  assert(m.includes("castHolyMagic(slotSkill(kind))"), 'o espaço decide qual Palavra sai');
+  assert(/loadout:typeof skillLoadout!=='undefined'\?skillLoadout/.test(m), 'loadout entra no save');
+  assert(m.includes('normalizeLoadout(saved3DProgress.loadout)'), 'save antigo sem loadout carrega o padrão');
+  assert(/id==='quantum'\?buildQuantumSword\(THREE\)/.test(m), 'Quantum usa malha própria, não a da Aurora recolorida');
+  for (const k of ["kind==='magic3'&&phoenix.active", 'beginWhiteHole()', "siege.start(", 'starfall.start(']) assert(m.includes(k), 'habilidade antiga preservada: ' + k);
+  assert(/extraScene\[kind\]===siegeContext\(\)/.test(m), 'troca de cena cancela as Palavras novas');
+});
