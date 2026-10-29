@@ -2,6 +2,9 @@
 
 > Documento de continuidade para qualquer IA, programador ou colaborador que trabalhar neste projeto. Leia antes de propor ou alterar código.
 
+
+> **PADRÃO DE QUALIDADE PERMANENTE (29/10/2026):** qualquer IA ou colaborador deve ler [docs/VISAO-MESTRA-QUALIDADE-VISUAL-E-GAMEPLAY.md](docs/VISAO-MESTRA-QUALIDADE-VISUAL-E-GAMEPLAY.md) antes de desenvolver poderes, armas, personagens, VFX, animações ou sistemas de combate. O criador busca o nível de direção artística de showreels profissionais de VFX em tempo real, ou superior, com originalidade, gameplay e otimização Android. Essa visão não deve ser esquecida entre Mods. A seção histórica sobre migração 2D abaixo está desatualizada: segundo `ARQUITETURA.md`, o jogo passou a ser 100% 3D no Mod 202. Confirme sempre no código atual.
+
 ## 1. Visão do jogo
 
 Estamos criando **A Batalha Contra os 7 Pecados Capitais**, um jogo de ação e fantasia sombria com identidade própria, inspirado na qualidade de combate, apresentação cinematográfica e progressão de jogos como Shadow Fight — sem copiar personagens, artes ou conteúdo protegido.
