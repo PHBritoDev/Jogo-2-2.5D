@@ -33,7 +33,7 @@ void main(){ float fres=pow(1.-abs(dot(normalize(vN),normalize(vV))),1.5); float
 
 export function createPhoenixVFX(T, scene, { ground = () => 0 } = {}) {
   const root = new T.Group(); root.name = 'TornadoFenix'; scene.add(root); root.visible = false;
-  const S = Object.freeze({ tornadoRadius: 1.5, tornadoHeight: 1.5, phoenix: 1.6 });
+  const S = Object.freeze({ tornadoRadius: 1.5, tornadoHeight: 1.5, phoenix: 1.25 });
   const shader = (frag, extra = {}, blend = true) => new T.ShaderMaterial({ vertexShader: VERT, fragmentShader: frag, transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false, fog: false,
     blending: blend ? T.CustomBlending : T.NormalBlending, blendSrc: T.OneFactor, blendDst: T.OneFactor, uniforms: { time: { value: 0 }, alpha: { value: 1 }, ...extra } });
   // ---- tornado: funil com ondulações (as camadas giram em sentidos opostos)
@@ -44,29 +44,48 @@ export function createPhoenixVFX(T, scene, { ground = () => 0 } = {}) {
   // ---- explosões: casca de fogo e coluna
   const shellGeo = new T.IcosahedronGeometry(1, 3), shellMat = shader(FIRE_FRAG, { heat: { value: 1.6 }, scroll: { value: 1.2 } }); const shell = new T.Mesh(shellGeo, shellMat); root.add(shell);
   const colGeo = new T.CylinderGeometry(.7, 1.1, 1, 28, 8, true); colGeo.translate(0, .5, 0); const colMat = shader(FIRE_FRAG, { heat: { value: 1.5 }, scroll: { value: 3.4 } }); const column = new T.Mesh(colGeo, colMat); root.add(column);
-  // ---- fênix
+  // ---- fênix: visual clássico da Mod 226 (SOMENTE ave; tornado e combate da Mod 229 intactos).
+  // Shader original da Mod 226, incluindo suporte explícito a instancing nas penas.
   const bird = new T.Group(); bird.scale.setScalar(S.phoenix); root.add(bird);
-  const featherMat = shader(FEATHER_FRAG, {}, false); featherMat.transparent = false; featherMat.depthWrite = true;
-  const goldMat = new T.MeshStandardMaterial({ color: 0xffb030, emissive: 0xff6a10, emissiveIntensity: 1.1, metalness: .3, roughness: .35 });
-  const featherGeo = new T.ConeGeometry(.11, 1, 4, 1); featherGeo.translate(0, .5, 0); featherGeo.scale(1, 1, .35);
-  const bodyGeo = new T.SphereGeometry(.22, 14, 10);
-  const body = new T.Mesh(bodyGeo, goldMat); body.scale.set(.8, .9, 2.3); bird.add(body);
-  const head = new T.Mesh(bodyGeo, goldMat); head.position.set(0, .2, .46); head.scale.setScalar(.66); bird.add(head);
-  const beak = new T.Mesh(featherGeo, goldMat); beak.scale.set(.5, .32, .9); beak.rotation.x = Math.PI / 2; beak.position.set(0, .2, .56); bird.add(beak);
-  const crest = new T.InstancedMesh(featherGeo, featherMat, 5); bird.add(crest);
-  const pose = new T.Object3D();
-  for (let i = 0; i < 5; i++) { pose.position.set(0, .3, .38 - i * .05); pose.rotation.set(-.9 - i * .12, 0, (i - 2) * .14); pose.scale.set(.5, .55 + i * .05, .5); pose.updateMatrix(); crest.setMatrixAt(i, pose.matrix); }
-  const wings = [], feathersMeshes = [crest];
+  const featherMat = new T.ShaderMaterial({
+    side: T.DoubleSide, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
+    uniforms: { time: { value: 0 }, alpha: { value: 1 } },
+    vertexShader: `varying vec2 v; void main(){v=uv;vec4 p=vec4(position,1.);
+#ifdef USE_INSTANCING
+p=instanceMatrix*p;
+#endif
+gl_Position=projectionMatrix*modelViewMatrix*p;}`,
+    fragmentShader: `varying vec2 v; uniform float time; uniform float alpha;
+void main(){float edge=pow(max(0.,sin(v.y*3.14159)),.7);
+float wave=.7+.3*sin(v.x*72.-time*15.+sin(v.x*19.+time*3.));
+vec3 c=mix(vec3(.8,.025,.002),vec3(1.,.42,.015),edge);
+c=mix(c,vec3(1.,.92,.38),pow(edge,12.)*wave);
+gl_FragColor=vec4(c,edge*wave*alpha);}`
+  });
+  const goldMat = new T.MeshStandardMaterial({ color: 0xffa820, emissive: 0xff5204, emissiveIntensity: .6, metalness: .25, roughness: .4 });
+  const featherGeo = new T.ConeGeometry(.12, 1, 4); featherGeo.translate(0, .5, 0);
+  const bodyGeo = new T.SphereGeometry(.22, 12, 8);
+  const body = new T.Mesh(bodyGeo, goldMat); body.scale.set(.8, 1, 2.2); bird.add(body);
+  const head = new T.Mesh(bodyGeo, goldMat); head.position.set(0, .22, .4); head.scale.setScalar(.7); bird.add(head);
+  const beak = new T.Mesh(featherGeo, goldMat); beak.scale.set(.5, .3, .5); beak.rotation.x = Math.PI / 2; beak.position.set(0, .22, .5); bird.add(beak);
+  const wings = [], feathersMeshes = []; const featherPose = new T.Object3D();
   for (const sign of [-1, 1]) {
-    const wing = new T.Group(); wing.position.set(sign * .12, .06, .05); bird.add(wing); wings.push(wing);
-    const fore = new T.Group(); fore.position.set(sign * .62, 0, -.05); wing.add(fore); wing.userData.fore = fore;
-    const m1 = new T.InstancedMesh(featherGeo, featherMat, 10), m2 = new T.InstancedMesh(featherGeo, featherMat, 12);
-    for (let i = 0; i < 10; i++) { pose.position.set(sign * (.06 + i * .058), 0, -i * .015); pose.rotation.set(-1.25, 0, -sign * (1.35 + i * .02)); pose.scale.set(1, .55 + i * .025, 1); pose.updateMatrix(); m1.setMatrixAt(i, pose.matrix); }
-    for (let i = 0; i < 12; i++) { pose.position.set(sign * (i * .055), 0, -.04 - i * .02); pose.rotation.set(-1.45 + i * .03, 0, -sign * (1.2 + i * .07)); pose.scale.set(1.1, .9 + i * .06, 1); pose.updateMatrix(); m2.setMatrixAt(i, pose.matrix); }
-    wing.add(m1); fore.add(m2); feathersMeshes.push(m1, m2);
+    const wing = new T.Group(); bird.add(wing); wings.push(wing);
+    const mesh = new T.InstancedMesh(featherGeo, featherMat, 9); wing.add(mesh); feathersMeshes.push(mesh);
+    for (let i = 0; i < 9; i++) {
+      featherPose.position.set(sign * (.12 + i * .09), .05, -i * .06);
+      featherPose.rotation.set(-.25, 0, -sign * (.8 + i * .09));
+      featherPose.scale.set(.8, 1.25 - i * .045, .65);
+      featherPose.updateMatrix(); mesh.setMatrixAt(i, featherPose.matrix);
+    }
   }
-  const tail = new T.InstancedMesh(featherGeo, featherMat, 9); bird.add(tail); feathersMeshes.push(tail);
-  for (let i = 0; i < 9; i++) { pose.position.set((i - 4) * .04, 0, -.42); pose.rotation.set(-Math.PI / 2 - .08, 0, (i - 4) * .1); pose.scale.set(.8, 1.7 - Math.abs(i - 4) * .14, .8); pose.updateMatrix(); tail.setMatrixAt(i, pose.matrix); }
+  const tail = new T.InstancedMesh(featherGeo, featherMat, 7); bird.add(tail); feathersMeshes.push(tail);
+  for (let i = 0; i < 7; i++) {
+    featherPose.rotation.set(-Math.PI / 2 - .12, 0, (i - 3) * .12);
+    featherPose.position.set((i - 3) * .055, 0, -.3);
+    featherPose.scale.set(.7, 1.4 - Math.abs(i - 3) * .12, .7);
+    featherPose.updateMatrix(); tail.setMatrixAt(i, featherPose.matrix);
+  }
   // ---- sistemas instanciados
   const glow = softParticles(T, 1500), smoke = softParticles(T, 260, { additive: false }), decals = groundDecals(T, 40), rib = ribbons(T, 3600, { flow: 16 });
   const debrisGeo = new T.DodecahedronGeometry(.09, 0), debrisMat = new T.MeshStandardMaterial({ color: 0x2a1a14, emissive: 0x401004, roughness: 1 });
@@ -77,11 +96,13 @@ export function createPhoenixVFX(T, scene, { ground = () => 0 } = {}) {
   const dummy = new T.Object3D(), fwd = new T.Vector3(0, 0, 1), dir = new T.Vector3(), prev = new T.Vector3(), nrm = [0, 1, 0];
   const F1 = [1, .5, .06, 1], F2 = [1, .85, .35, 1], F3 = [.85, .12, .02, 1], c4 = (c, a) => [c[0], c[1], c[2], a];
 
+  const fadeAllForBird = (phase, age) => phase === 'fade' ? Math.max(0, 1 - age / .6) : 1;
   function update(s, camera, quality = 1) {
     root.visible = s.active; if (!s.active) { lastPush = -1; burned = false; return; }
     if (s.phase === 'cast') burned = false;
     const t = s.time, ph = s.phase, A = s.age, low = quality === 0;
     for (const m of [coreMat, skinMat, shellMat, colMat, featherMat]) m.uniforms.time.value = t;
+    featherMat.uniforms.alpha.value = fadeAllForBird(s.phase, s.age);
     rib.begin(camera, t); glow.begin(); smoke.begin(); decals.begin();
     const fadeAll = ph === 'fade' ? Math.max(0, 1 - A / .6) : 1;
     // ---------- tornado (forma, viagem, captura; desmancha na explosão)
@@ -161,8 +182,8 @@ export function createPhoenixVFX(T, scene, { ground = () => 0 } = {}) {
     bird.visible = ['form', 'flight', 'capture', 'burst', 'orbit', 'ascend', 'dive'].includes(ph);
     bird.position.set(s.bird.x, s.bird.y, s.bird.z); bird.scale.setScalar(S.phoenix * (ph === 'form' ? easeOut(A / .8) : 1));
     if (lastPush >= 0) { dir.set(s.bird.x - prev.x, s.bird.y - prev.y, s.bird.z - prev.z); if (dir.lengthSq() > 1e-7) { dir.normalize(); bird.quaternion.slerp(dummy.quaternion.setFromUnitVectors(fwd, dir), .35); } }
-    const flapRate = ph === 'dive' ? 0 : ph === 'ascend' ? 9 : 12, fold = ph === 'dive' ? .9 : 0;
-    wings.forEach((w, i) => { const sg = i ? 1 : -1, f = Math.sin(t * flapRate); w.rotation.z = sg * (.1 + f * .55 - fold * .2); w.rotation.y = sg * fold * .9; w.userData.fore.rotation.z = sg * (f * .35 + .1); });
+    // Batimento original da Mod 226, com asas simples articuladas.
+    wings.forEach((w, i) => { w.rotation.z = (i ? 1 : -1) * (.15 + Math.sin(t * 14) * .32); });
     if (bird.visible) {
       glow.add(s.bird.x, s.bird.y, s.bird.z, 2.6, 2.6, 1, .55, .12, .55, 0); glow.add(s.bird.x, s.bird.y, s.bird.z, 1.2, 1.2, 1, .9, .55, .7, 0);
       if (t - lastPush > 1 / 60 || lastPush < 0) { head0 = (head0 + 1) % HN; Object.assign(hist[head0], { x: s.bird.x, y: s.bird.y, z: s.bird.z, t }); lastPush = t; }
