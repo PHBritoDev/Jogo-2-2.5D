@@ -1,93 +1,80 @@
-import { sweptCapsule } from './skill-x-rupture3d.js';
-/**
- * MOD 233 — Dragão do Julgamento (lógica de combate, passo fixo de 120 Hz).
- *
- * channel (espirais de luz sobem do herói) → form (a cabeça nasce e sobe em espiral; o corpo segue o histórico da
- * cabeça) → advance (avanço serpentino em direção ao alvo; a boca abre ao chegar) → engulf (a cabeça envolve o alvo e a
- * mandíbula FECHA: dano da mordida exatamente no fechamento) → compress (energia comprimida) → explode (esfera de luz:
- * segundo dano) → dissipate.
- *
- * Nunca move, esconde ou destrói o alvo. Chefes (target.resist) recebem a variante de superfície: a cabeça para na frente
- * do torso e fecha a boca ao redor de um volume de energia, sem alterar posição/rig do chefe. Dano total 30 + 36.
- */
-export const DRAGON = Object.freeze({ channel: .9, form: 1, speed: 15, maxAdvance: 3.2, wave: 1.25, freq: 2.1, cruise: 5.2,
-  open: .3, engulf: .42, compress: .38, dissipate: 1.4, bite: 30, blast: 36, trail: 360 });
-const smooth = k => { k = Math.min(1, Math.max(0, k)); return k * k * (3 - 2 * k); };
-
-export class JudgmentDragon {
-  constructor({ hit = () => {}, ground = () => 0, event = () => {} } = {}) {
-    Object.assign(this, { hit, ground, event, active: false, phase: 'idle', time: 0, age: 0, mouth: 0, head: { x: 0, y: 0, z: 0 }, dir: { x: 0, y: 0, z: 1 }, at: { x: 0, y: 0, z: 0 } });
-    this.trail = Array.from({ length: DRAGON.trail }, () => ({ x: 0, y: 0, z: 0 })); this.trailHead = 0; this.trailCount = 0;
-  }
-  start(source, target, yaw = 0, mul = 1) {
-    if (this.active) return false;
-    this.active = true; this.time = this.age = this.acc = 0; this.phase = 'channel'; this.mul = mul; this.mouth = 0; this.bitten = false;
-    this.id = target?.alive ? target.id : null; this.resist = !!target?.resist; this.source = { ...source };
-    this.yaw = target?.alive ? Math.atan2(target.x - source.x, target.z - source.z) : yaw;
-    Object.assign(this.head, { x: source.x, y: source.y + 1.2, z: source.z }); this.trailCount = 0; this.trailHead = 0; this.push();
-    this.event('channel'); return true;
-  }
-  cancel() { if (!this.active) return; this.active = false; this.phase = 'idle'; this.mouth = 0; this.event('cancel'); }
-  phaseTo(p) { this.phase = p; this.age = 0; this.event(p, this); }
-  push() { // só grava quando a cabeça andou: parado, o corpo continua estendido atrás dela
-    if (this.trailCount) { const l = this.trail[this.trailHead]; if (Math.hypot(l.x - this.head.x, l.y - this.head.y, l.z - this.head.z) < .03) return; }
-    this.trailHead = (this.trailHead + 1) % DRAGON.trail; Object.assign(this.trail[this.trailHead], this.head); this.trailCount = Math.min(DRAGON.trail, this.trailCount + 1); }
-  /** k-ésima amostra do corpo (0 = cabeça). */
-  sample(k) { k = Math.min(this.trailCount - 1, Math.max(0, k)); return this.trail[(this.trailHead - k + DRAGON.trail) % DRAGON.trail]; }
-  update(dt, target, { valid = true, paused = false } = {}) {
-    if (!this.active || paused) return;
-    if (!valid || (this.id !== null && !this.bitten && (!target?.alive || target.id !== this.id))) { this.cancel(); return; }
-    const t = this.id !== null && target?.alive && target.id === this.id ? target : null;
-    this.acc += Math.max(0, dt);
-    while (this.acc >= 1 / 120 && this.active) { this.acc -= 1 / 120; this.step(1 / 120, t); }
-  }
-  /** Onde a cabeça fecha a boca: centro do alvo, ou a superfície do torso de um chefe. */
-  biteAt(t) {
-    const c = { x: t.x, y: t.y + (t.height || 1.8) * .55, z: t.z };
-    if (!this.resist) return c;
-    const dx = this.head.x - t.x, dz = this.head.z - t.z, d = Math.hypot(dx, dz) || 1, R = (t.radius || .6) + .7;
-    return { x: t.x + dx / d * R, y: c.y, z: t.z + dz / d * R };
-  }
-  step(dt, t) {
-    this.time += dt; this.age += dt; const h = this.head, A = this.age, s = this.source, prev = { ...h };
-    switch (this.phase) {
-      case 'channel': if (A >= DRAGON.channel) this.phaseTo('form'); break;
-      case 'form': { // nasce acima do herói e sobe em espiral, já apontando para o alvo
-        const k = smooth(A / DRAGON.form), a = this.yaw + Math.PI + A * 5.2, r = 2.6 * (1 - k * .4);
-        h.x = s.x + Math.sin(a) * r * (1 - k) + Math.sin(this.yaw) * k * 2; h.z = s.z + Math.cos(a) * r * (1 - k) + Math.cos(this.yaw) * k * 2; h.y = s.y + 1.2 + DRAGON.cruise * k;
-        if (A >= DRAGON.form) { this.base = { ...h }; this.phaseTo('advance'); }
-        break;
-      }
-      case 'advance': {
-        const goal = t ? this.biteAt(t) : { x: s.x + Math.sin(this.yaw) * 22, y: s.y + 2, z: s.z + Math.cos(this.yaw) * 22 };
-        const dx = goal.x - h.x, dz = goal.z - h.z, dist = Math.hypot(dx, dz) || 1, fx = dx / dist, fz = dz / dist;
-        // serpenteia: deslocamento lateral senoidal que some perto do alvo (a mordida fica precisa)
-        const near = smooth((dist - 1.5) / 6), wob = Math.cos(A * Math.PI * 2 * DRAGON.freq) * DRAGON.wave * near * Math.PI * 2 * DRAGON.freq * dt;
-        const step = Math.min(dist, DRAGON.speed * dt);
-        h.x += fx * step - fz * wob; h.z += fz * step + fx * wob;
-        const wantY = dist > 7 ? Math.max(goal.y + 1.5, this.ground(h.x, h.z) + DRAGON.cruise * near + 1) : goal.y + (dist / 7) * 1.4;
-        h.y += (wantY - h.y) * Math.min(1, dt * 4);
-        this.mouth = smooth((4.2 - dist) / 3);
-        const touch = t && (this.resist ? dist < .35 : (sweptCapsule(prev, h, t, .2) || dist < .35));
-        if (touch) { Object.assign(this.at, goal); this.phaseTo('engulf'); }
-        else if (A >= DRAGON.maxAdvance || (!t && dist < .5)) { Object.assign(this.at, h); this.phaseTo('compress'); }
-        break;
-      }
-      case 'engulf': { // ataca de boca aberta e FECHA em volta do alvo: dano exatamente no fechamento
-        const goal = t ? this.biteAt(t) : this.at; Object.assign(this.at, goal);
-        h.x += (goal.x - h.x) * Math.min(1, dt * 14); h.y += (goal.y - h.y) * Math.min(1, dt * 14); h.z += (goal.z - h.z) * Math.min(1, dt * 14);
-        this.mouth = A < DRAGON.open ? 1 : 1 - smooth((A - DRAGON.open) / (DRAGON.engulf - DRAGON.open));
-        if (A >= DRAGON.engulf) { this.mouth = 0; if (t) { this.bitten = true; this.hit(Math.round(DRAGON.bite * this.mul), this.id, 'bite'); } this.phaseTo('compress'); }
-        break;
-      }
-      case 'compress': if (t) Object.assign(this.at, this.biteAt(t)); this.mouth = 0;
-        if (A >= DRAGON.compress) { if (t && this.bitten) this.hit(Math.round(DRAGON.blast * this.mul), this.id, 'blast'); this.phaseTo('explode'); } break;
-      case 'explode': if (A >= DRAGON.dissipate) { this.active = false; this.phase = 'idle'; this.event('finish'); return; } break;
+import {sweptCapsule} from './skill-x-rupture3d.js';
+import {blockedSegment} from './skill-path3d.js';
+/** Three actual collision events; fixed-step gameplay, presentation quality independent. */
+export const DRAGON=Object.freeze({range:32,channel:1.35,form:2.4,soar:.65,fire:1.35,advance:1.65,maxAdvance:2.1,cruise:19,open:.48,engulf:.9,compress:.6,dissipate:1.5,ball:16,bite:22,blast:28,trail:960});
+const smooth=k=>{k=Math.max(0,Math.min(1,k));return k*k*(3-2*k);};
+const copy=p=>({x:p.x,y:p.y,z:p.z});
+export class JudgmentDragon{
+ constructor({hit=()=>{},ground=()=>0,blocked=()=>false,event=()=>{}}={}){
+  Object.assign(this,{hit,ground,blocked,event,active:false,phase:'idle',time:0,age:0,mouth:0,head:{x:0,y:0,z:0},dir:{x:0,y:0,z:1},at:{x:0,y:0,z:0}});
+  this.trail=Array.from({length:DRAGON.trail},()=>({x:0,y:0,z:0}));this.trailHead=this.trailCount=0;
+  this.ball={active:false,p:{x:0,y:0,z:0},at:{x:0,y:0,z:0},impactTime:-1};
+ }
+ start(source,target,yaw=0,mul=1){
+  if(this.active)return false;
+  if(target&&Math.hypot(target.x-source.x,target.z-source.z)>DRAGON.range)target=null;
+  this.active=true;this.phase='channel';this.time=this.age=this.acc=0;this.mul=mul;this.mouth=0;this.bitten=false;this.bombed=false;
+  this.id=target?.alive?target.id:null;this.resist=!!target?.resist;this.source=copy(source);
+  this.yaw=target?.alive?Math.atan2(target.x-source.x,target.z-source.z):yaw;
+  this.scale=4.4*Math.max(1,Math.min(1.5,(target?.radius||.6)/2));
+  Object.assign(this.head,{x:source.x,y:source.y+1.2,z:source.z});this.trailCount=this.trailHead=0;this.push();
+  Object.assign(this.ball,{active:false,impactTime:-1});this.event('channel');return true;
+ }
+ cancel(){if(!this.active)return;this.active=false;this.phase='idle';this.mouth=0;this.ball.active=false;this.event('cancel');}
+ phaseTo(p){this.phase=p;this.age=0;this.event(p,this);}
+ push(){if(this.trailCount){const l=this.trail[this.trailHead];if(Math.hypot(l.x-this.head.x,l.y-this.head.y,l.z-this.head.z)<.045)return;}
+  this.trailHead=(this.trailHead+1)%DRAGON.trail;Object.assign(this.trail[this.trailHead],this.head);this.trailCount=Math.min(DRAGON.trail,this.trailCount+1);
+ }
+ sample(k){return this.trail[(this.trailHead-Math.min(this.trailCount-1,Math.max(0,k))+DRAGON.trail)%DRAGON.trail];}
+ update(dt,target,{valid=true,paused=false}={}){
+  if(!this.active||paused)return;
+  if(!valid||(this.id!==null&&target&&Math.hypot(target.x-this.source.x,target.z-this.source.z)>DRAGON.range+4)||(this.id!==null&&(target?.id!==this.id||(!target.alive&&!this.bitten)))){this.cancel();return;}
+  const t=this.id!==null&&target?.alive&&target.id===this.id?target:null;
+  this.acc+=Math.max(0,dt);while(this.acc>=1/120&&this.active){this.acc-=1/120;this.step(1/120,t);}
+ }
+ center(t){return t?{x:t.x,y:t.y+(t.height||1.8)*.55,z:t.z}:{x:this.source.x+Math.sin(this.yaw)*18,y:this.source.y+1,z:this.source.z+Math.cos(this.yaw)*18};}
+ biteAt(t){const c=this.center(t);return {x:c.x-Math.sin(this.yaw)*this.scale*.62,y:c.y+this.scale*.2,z:c.z-Math.cos(this.yaw)*this.scale*.62};}
+ step(dt,t){
+  this.time+=dt;this.age+=dt;const A=this.age,s=this.source,h=this.head,prev=copy(h),f={x:Math.sin(this.yaw),z:Math.cos(this.yaw)};
+  switch(this.phase){
+   case 'channel':if(A>=DRAGON.channel)this.phaseTo('form');break;
+   case 'form':{
+    const u=Math.min(1,A/DRAGON.form),r=6.5*Math.sin(u*Math.PI*.65),a=this.yaw+u*Math.PI*3;
+    h.x=s.x+Math.sin(a)*r+f.x*u*6;h.z=s.z+Math.cos(a)*r+f.z*u*6;h.y=s.y+1.2+DRAGON.cruise*smooth(u);
+    if(A>=DRAGON.form){this.crest=copy(h);this.phaseTo('soar');}break;
+   }
+   case 'soar':h.y=this.crest.y+Math.sin(A*2)*.5;this.mouth=smooth(A/.4)*.65;
+    if(A>=DRAGON.soar){Object.assign(this.ball.p,h);this.ball.active=true;this.phaseTo('fire');}break;
+   case 'fire':{
+    const b=this.ball;if(b.active){const p=copy(b.p),q=this.center(t),dx=q.x-p.x,dy=q.y-p.y,dz=q.z-p.z,l=Math.hypot(dx,dy,dz)||1,step=Math.min(l,26*dt);
+     b.p.x+=dx/l*step;b.p.y+=dy/l*step;b.p.z+=dz/l*step;
+     const wall=blockedSegment(p,b.p,v=>v.y-.7<this.ground(v.x,v.z)+2.4&&this.blocked(v),.25);
+     if(wall||(t&&sweptCapsule(p,b.p,t,.6))||l<.15){b.active=false;b.impactTime=this.time;Object.assign(b.at,wall?p:b.p);if(!wall&&t){this.bombed=true;this.hit(Math.round(DRAGON.ball*this.mul),this.id,'ball');}this.event(wall?'ball-wall':'ball-impact',this);}
     }
-    if (this.phase !== 'channel') {
-      const dx = h.x - prev.x, dy = h.y - prev.y, dz = h.z - prev.z, l = Math.hypot(dx, dy, dz);
-      if (l > 1e-5) { const k = Math.min(1, dt * 12); this.dir = { x: this.dir.x + (dx / l - this.dir.x) * k, y: this.dir.y + (dy / l - this.dir.y) * k, z: this.dir.z + (dz / l - this.dir.z) * k }; }
-      this.push();
-    }
+    if(A>=DRAGON.fire){this.ball.active=false;this.base=copy(h);this.phaseTo('advance');}break;
+   }
+   case 'advance':{
+    const q=this.biteAt(t),u=smooth(A/DRAGON.advance),arc=Math.sin(u*Math.PI);
+    h.x=this.base.x+(q.x-this.base.x)*u+Math.cos(this.yaw)*arc*5;h.z=this.base.z+(q.z-this.base.z)*u-Math.sin(this.yaw)*arc*5;h.y=this.base.y+(q.y-this.base.y)*u+arc*4;
+    this.mouth=smooth((u-.4)/.45);
+    if(h.y<this.ground(h.x,h.z)+3&&blockedSegment(prev,h,this.blocked,.35)){Object.assign(h,prev);Object.assign(this.at,h);this.phaseTo('explode');break;}
+    if(A>=DRAGON.advance){Object.assign(this.at,this.center(t));this.phaseTo(t?'engulf':'compress');}break;
+   }
+   case 'engulf':{
+    const q=this.biteAt(t);h.x+=(q.x-h.x)*Math.min(1,dt*7);h.y+=(q.y-h.y)*Math.min(1,dt*7);h.z+=(q.z-h.z)*Math.min(1,dt*7);
+    this.mouth=A<DRAGON.open?1:1-smooth((A-DRAGON.open)/(DRAGON.engulf-DRAGON.open));
+    if(A>=DRAGON.engulf){const c=this.center(t),mouth={x:h.x+f.x*this.scale*.62,y:c.y,z:h.z+f.z*this.scale*.62};Object.assign(this.at,mouth);
+     if(t&&Math.hypot(mouth.x-c.x,mouth.z-c.z)<1+(t.radius||.6)&&!blockedSegment(h,c,p=>p.y<this.ground(p.x,p.z)+2.4&&this.blocked(p),.1)){this.bitten=true;this.hit(Math.round(DRAGON.bite*this.mul),this.id,'bite');}
+     this.phaseTo('compress');}break;
+   }
+   case 'compress':this.mouth=0;if(A>=DRAGON.compress){if(t&&this.bitten&&Math.hypot(t.x-this.at.x,t.z-this.at.z)<3+(t.radius||.6))this.hit(Math.round(DRAGON.blast*this.mul),this.id,'blast');this.phaseTo('explode');}break;
+   case 'explode':if(A>=DRAGON.dissipate){this.active=false;this.phase='idle';this.event('finish');}break;
   }
+  if(this.phase!=='channel'){
+   const dx=h.x-prev.x,dy=h.y-prev.y,dz=h.z-prev.z,l=Math.hypot(dx,dy,dz);
+   if(l>.00001){const k=Math.min(1,dt*10);this.dir.x+=(dx/l-this.dir.x)*k;this.dir.y+=(dy/l-this.dir.y)*k;this.dir.z+=(dz/l-this.dir.z)*k;}
+   if(['engulf','compress','soar','fire'].includes(this.phase)){const c=this.center(t),l=Math.hypot(c.x-h.x,c.y-h.y,c.z-h.z)||1;this.dir.x+=(f.x-this.dir.x)*dt*6;this.dir.z+=(f.z-this.dir.z)*dt*6;this.dir.y+=((this.phase==='fire'?(c.y-h.y)/l:0)-this.dir.y)*dt*6;}
+   this.push();
+  }
+ }
 }

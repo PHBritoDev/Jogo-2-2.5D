@@ -18,14 +18,14 @@ const target={id:1,alive:true,x:0,y:0,z:12,radius:.6,height:1.9};
 const foe=new T.Mesh(new T.CapsuleGeometry(.5,1,6,12),new T.MeshStandardMaterial({color:0x6b2f3c}));scene.add(foe);
 const wallMesh=new T.Mesh(new T.BoxGeometry(6,3,.6),new T.MeshStandardMaterial({color:0x4a4a52}));wallMesh.position.set(0,1.5,6.3);scene.add(wallMesh);
 const ground=()=>0,blocked=p=>wall&&p.z>6&&p.z<6.6&&Math.abs(p.x)<3&&p.y<3;
-const skills={x:new XRupture({ground,blocked}),portals:new TwinPortals({ground,blocked}),dragon:new JudgmentDragon({ground})};
+const skills={x:new XRupture({ground,blocked}),portals:new TwinPortals({ground,blocked}),dragon:new JudgmentDragon({ground,blocked})};
 const vfx={x:createXRuptureVFX(T,scene,{ground}),portals:createTwinPortalsVFX(T,scene,{ground}),dragon:createDragonVFX(T,scene,{ground})};
-let freeze=false;
-function setCam(){if(kind==='dragon'){camera.position.set(13,9,-3);camera.lookAt(0,3,7);}else if(kind==='portals'){camera.position.set(-7,6,-6);camera.lookAt(0,2,6);}else{camera.position.set(6,3.5,-4);camera.lookAt(0,1.4,6);}}
+let freeze=false,quality=2;
+function setCam(){if(kind==='dragon'){camera.position.set(33,24,-24);camera.lookAt(0,13,8);}else if(kind==='portals'){camera.position.set(-7,6,-6);camera.lookAt(0,2,6);}else{camera.position.set(6,3.5,-4);camera.lookAt(0,1.4,6);}}
 function start(){for(const k in skills){skills[k].cancel();vfx[k].clear();}Object.assign(target,boss?{radius:2,height:5.5,resist:true}:{radius:.6,height:1.9,resist:false});foe.scale.set(boss?3.6:1,boss?2.8:1,boss?3.6:1);wallMesh.visible=wall;setCam();skills[kind].start({x:0,y:1.45,z:0},target,0);}
-function step(dt){for(const k in skills){skills[k].update(dt,target);vfx[k].update(skills[k],camera,low?0:2);}foe.position.set(target.x,boss?3:.87,target.z);renderer.render(scene,camera);}
+function step(dt,draw=true){for(const k in skills){skills[k].update(dt,target);vfx[k].update(skills[k],camera,low?0:quality);}foe.position.set(target.x,boss?3:.87,target.z);if(draw)renderer.render(scene,camera);}
 document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{kind=b.dataset.k;start();});document.querySelector('#quality').onclick=()=>low=!low;document.querySelector('#boss').onclick=()=>{boss=!boss;start();};document.querySelector('#wall').onclick=()=>{wall=!wall;start();};
-start();const clock=new T.Clock();renderer.setAnimationLoop(()=>step(freeze?0:Math.min(clock.getDelta(),.04)));
-window.preview={freeze(){freeze=true},start,step,low(v){low=v},cam(p,l){camera.position.set(...p);camera.lookAt(...l);},info:()=>({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geo:renderer.info.memory.geometries,programs:renderer.info.programs.length}),state:()=>({phase:skills[kind].phase,active:skills[kind].active})};
+start();const clock=new T.Clock();renderer.setAnimationLoop(()=>{if(!freeze)step(Math.min(clock.getDelta(),.04))});
+window.preview={freeze(){freeze=true},start,step,low(v){low=v},quality(v){quality=v;low=v===0},cam(p,l){camera.position.set(...p);camera.lookAt(...l);},info:()=>({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geo:renderer.info.memory.geometries,programs:renderer.info.programs.length}),state:()=>({phase:skills[kind].phase,active:skills[kind].active})};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></html>
