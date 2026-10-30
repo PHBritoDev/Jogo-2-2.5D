@@ -50,7 +50,7 @@ export class JudgmentDragon{
    case 'fire':{
     const b=this.ball;if(b.active){const p=copy(b.p),step=Math.min(b.range-b.travel,b.speed*dt);b.travel+=step;
      b.p.x+=b.direction.x*step;b.p.y+=b.direction.y*step;b.p.z+=b.direction.z*step;
-     const wall=blockedSegment(p,b.p,v=>v.y-1.05<=this.ground(v.x,v.z)||(v.y-1.05<this.ground(v.x,v.z)+2.4&&this.blocked(v)),.8);
+     const wall=blockedSegment(p,b.p,v=>v.y-1.05<=this.ground(v.x,v.z)||this.blocked({x:v.x,y:v.y-1.05,z:v.z}),.8);
      const contact=t&&sweptCapsule(p,b.p,t,1.05);
      if(wall||contact||b.travel>=b.range){b.active=false;b.impactTime=this.time;Object.assign(b.at,wall?p:contact||b.p);if(!wall&&contact){this.bombed=true;this.hit(Math.round(DRAGON.ball*this.mul),this.id,'ball');}this.event(wall?'ball-wall':'ball-impact',this);}
     }
@@ -60,14 +60,14 @@ export class JudgmentDragon{
     const q=this.biteAt(t),u=smooth(A/DRAGON.advance),arc=Math.sin(u*Math.PI);
     h.x=this.base.x+(q.x-this.base.x)*u+Math.cos(this.yaw)*arc*5;h.z=this.base.z+(q.z-this.base.z)*u-Math.sin(this.yaw)*arc*5;h.y=this.base.y+(q.y-this.base.y)*u+arc*4;
     this.mouth=smooth((u-.4)/.45);
-    if(h.y<this.ground(h.x,h.z)+3&&blockedSegment(prev,h,this.blocked,.35)){Object.assign(h,prev);Object.assign(this.at,h);this.phaseTo('explode');break;}
+    if(blockedSegment(prev,h,p=>this.blocked({x:p.x,y:p.y-this.scale*.35,z:p.z}),this.scale*.35)){Object.assign(h,prev);Object.assign(this.at,h);this.phaseTo('explode');break;}
     if(A>=DRAGON.advance){Object.assign(this.at,this.center(t));this.phaseTo(t?'engulf':'compress');}break;
    }
    case 'engulf':{
     const q=this.biteAt(t);h.x+=(q.x-h.x)*Math.min(1,dt*7);h.y+=(q.y-h.y)*Math.min(1,dt*7);h.z+=(q.z-h.z)*Math.min(1,dt*7);
     this.mouth=A<DRAGON.open?1:1-smooth((A-DRAGON.open)/(DRAGON.engulf-DRAGON.open));
     if(A>=DRAGON.engulf){const c=this.center(t),mouth={x:h.x+f.x*this.scale*.62,y:c.y,z:h.z+f.z*this.scale*.62};Object.assign(this.at,mouth);
-     if(t&&Math.hypot(mouth.x-c.x,mouth.z-c.z)<1+(t.radius||.6)&&!blockedSegment(h,c,p=>p.y<this.ground(p.x,p.z)+2.4&&this.blocked(p),.1)){this.bitten=true;this.hit(Math.round(DRAGON.bite*this.mul),this.id,'bite');}
+     if(t&&Math.hypot(mouth.x-c.x,mouth.z-c.z)<1+(t.radius||.6)&&!blockedSegment(h,c,this.blocked,.1)){this.bitten=true;this.hit(Math.round(DRAGON.bite*this.mul),this.id,'bite');}
      this.phaseTo('compress');}break;
    }
    case 'compress':this.mouth=0;if(A>=DRAGON.compress){if(t&&this.bitten&&Math.hypot(t.x-this.at.x,t.z-this.at.z)<3+(t.radius||.6))this.hit(Math.round(DRAGON.blast*this.mul),this.id,'blast');this.phaseTo('explode');}break;
@@ -75,8 +75,9 @@ export class JudgmentDragon{
   }
   if(this.phase!=='channel'){
    const dx=h.x-prev.x,dy=h.y-prev.y,dz=h.z-prev.z,l=Math.hypot(dx,dy,dz);
-   if(l>.00001){const k=Math.min(1,dt*10);this.dir.x+=(dx/l-this.dir.x)*k;this.dir.y+=(dy/l-this.dir.y)*k;this.dir.z+=(dz/l-this.dir.z)*k;}
-   if(['engulf','compress','soar','fire'].includes(this.phase)){const c=this.center(t),l=Math.hypot(c.x-h.x,c.y-h.y,c.z-h.z)||1;this.dir.x+=(f.x-this.dir.x)*dt*6;this.dir.z+=(f.z-this.dir.z)*dt*6;this.dir.y+=((this.phase==='fire'?(c.y-h.y)/l:0)-this.dir.y)*dt*6;}
+   const aimed=['engulf','compress','soar','fire'].includes(this.phase)||(this.phase==='advance'&&this.age>DRAGON.advance*.72);
+   if(l>.00001&&!aimed){const k=Math.min(1,dt*10);this.dir.x+=(dx/l-this.dir.x)*k;this.dir.y+=(dy/l-this.dir.y)*k;this.dir.z+=(dz/l-this.dir.z)*k;}
+   if(aimed){const c=this.center(t),l=Math.hypot(c.x-h.x,c.y-h.y,c.z-h.z)||1,k=1-Math.exp(-6*dt);this.dir.x+=((c.x-h.x)/l-this.dir.x)*k;this.dir.z+=((c.z-h.z)/l-this.dir.z)*k;this.dir.y+=((c.y-h.y)/l-this.dir.y)*k;}
    this.push();
   }
  }

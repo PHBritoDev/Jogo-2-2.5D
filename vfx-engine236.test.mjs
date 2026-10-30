@@ -36,3 +36,15 @@ test('lethal fireball cancels subsequent dragon damage even with a large dt; bos
 test('dragon, portals and X obey pause and explicit context cancellation without new damage',()=>{
  for(const C of [JudgmentDragon,TwinPortals,XRupture]){let hits=0;const s=new C({hit:()=>hits++}),t=target();s.start(source,t);s.update(20,t,{paused:true});assert.equal(s.time,0);s.update(.1,t,{valid:false});assert(!s.active);advance(s,t,20);assert.equal(hits,0);}
 });
+
+
+test('scenery respects roof, trunk and rock height; a low wall may be overflown',async()=>{
+ const {sceneryPoint}=await import('./skill-scenery3d.js');
+ const world={ground:()=>2,structures:[{x:0,z:5,shape:'box',halfX:2,halfZ:.3,height:9}],trees:[{x:8,z:5,radius:1,height:12}],rocks:[{x:-8,z:5,radius:2,height:3,base:1}]};
+ assert(sceneryPoint({x:0,y:10,z:5},world));assert(!sceneryPoint({x:0,y:12,z:5},world));assert(sceneryPoint({x:8,y:13,z:5},world));assert(!sceneryPoint({x:8,y:15,z:5},world));assert(sceneryPoint({x:-8,y:3.9,z:5},world));assert(!sceneryPoint({x:-8,y:4.1,z:5},world));
+ const t=target(),hits=[],s=new JudgmentDragon({blocked:p=>p.y<60&&p.z>9&&p.z<9.3,hit:(d,id,k)=>hits.push(k)});s.start(source,t);advance(s,t,16);assert(!hits.includes('ball'));assert(!hits.includes('bite'));assert(!s.active);
+});
+
+test('duplicate target proxies cannot multiply the portal damage budget',()=>{
+ const t=target(),ts=[t,{...t}],hits=[],s=new TwinPortals({hit:d=>hits.push(d)});s.start(source,ts);s.update(15,ts);assert.equal(hits.reduce((a,b)=>a+b,0),58);assert.equal(hits.length,9);
+});

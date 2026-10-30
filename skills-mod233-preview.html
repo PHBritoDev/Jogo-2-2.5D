@@ -5,9 +5,9 @@
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as T from 'three';
-import {XRupture} from './skill-x-rupture3d.js';import {createXRuptureVFX} from './skill-x-rupture-vfx3d.js';
-import {TwinPortals} from './skill-twin-portals3d.js';import {createTwinPortalsVFX} from './skill-twin-portals-vfx3d.js';
-import {JudgmentDragon} from './skill-judgment-dragon3d.js';import {createDragonVFX} from './skill-judgment-dragon-vfx3d.js';
+import {XRupture} from './skill-x-rupture3d.js?v=mod236-vfx2';import {createXRuptureVFX} from './skill-x-rupture-vfx3d.js?v=mod236-vfx2';
+import {TwinPortals} from './skill-twin-portals3d.js?v=mod236-vfx2';import {createTwinPortalsVFX} from './skill-twin-portals-vfx3d.js?v=mod236-vfx2';
+import {JudgmentDragon} from './skill-judgment-dragon3d.js?v=mod236-vfx2';import {createDragonVFX} from './skill-judgment-dragon-vfx3d.js?v=mod236-vfx2';
 const qs=new URLSearchParams(location.search);let kind=qs.get('skill')||'x',low=qs.has('low'),boss=qs.has('boss'),wall=qs.has('wall');
 const scene=new T.Scene();scene.background=new T.Color('#0d1320');const camera=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,200);
 const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=T.ACESFilmicToneMapping;document.body.appendChild(renderer.domElement);

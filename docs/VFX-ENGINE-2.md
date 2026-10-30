@@ -13,7 +13,8 @@ A lógica das três habilidades continua em módulos sem Three.js, a 120 Hz.
 | `flameGeometry(T)` | Língua de chama curva; base em Y=0, ponta em +Y, curva para -Z. Própria para instancing. | 120 triângulos; não criar uma malha/material por língua. |
 | `vfx-trail3d.js`: `volumeTrail(T,parent,preset,options)` | `update(time,point,emitting,quality)` amostra posições reais; seção fechada com twist, largura e vida decrescentes. | Buffer circular de 32–44 amostras nos consumidores atuais; sem geometria por frame. |
 | `vfx-impact3d.js`: `impactDirector(T,parent,ground,{capacity,onImpact})` | `emit({id,time,point,size,preset,kind,dir})` recebe registro de colisão autoritativo. `update(time,quality)` expande pressão, fragmentos, fissuras, poeira, brasas e luz no solo. | 4 slots no dragão, 5 nos portais; 240 fragmentos, 96 partículas de poeira, 160 brasas. Reutiliza o slot mais antigo. |
-| `vfx-dragon-model3d.js`: `dragonHead` / `dragonBody` | Cabeça com mandíbula articulada, sobrancelhas, crina e bigodes; corpo amostrado por distância no histórico da cabeça. | 128×16 segmentos radiais, 76 m de histórico visível; até 240 línguas instanciadas. Sem esferas encadeadas. |
+| `skill-scenery3d.js`: `sceneryPoint(p,world)` | Consulta alturas dos troncos, rochas e construções existentes; o sweep físico fornece as amostras do volume. | Não altera colisão do jogador/NPC nem usa raycast da malha. |
+| `vfx-dragon-model3d.js`: `dragonHead` / `dragonBody` | Cabeça com mandíbula articulada, sobrancelhas, crina e bigodes; corpo amostrado por distância no histórico da cabeça. | 128×16 segmentos radiais, 76 m de histórico visível; até 256 línguas instanciadas. Sem esferas encadeadas. |
 
 Cada componente expõe `dispose()`. Trails e ImpactDirector expõem `clear()`; os wrappers das skills
 fazem limpeza no cancelamento, término e reinício do relógio. `clear()` reaproveita buffers; `dispose()`
@@ -51,7 +52,7 @@ quantidade de luzes e não recompila todos os materiais do mundo durante o ataqu
   cumulativo preserva o total com multiplicadores. Sair do contato evita pressão; paredes bloqueiam.
 - **Dragão**: canalização, espiral, ascensão, fogo físico da boca, mergulho, mandíbula, mordida e
   explosão. Bola percorre um vetor 3D capturado na emissão, com sweep a cada tick contra cápsula,
-  terreno e obstáculos. Dano base 16 + 22 + 28 = **66**. A criatura não transporta bosses. Cabeça e
+  terreno e obstáculos com altura real. Uma parede de 4 m pode ser sobrevoada; uma fachada alta intercepta o projétil. Dano base 16 + 22 + 28 = **66**. A criatura não transporta bosses. Cabeça e
   corpo são originais, sem GLB novo nem alteração no rig do herói. A câmera abre temporariamente
   inclusive em 1ª pessoa e retorna à preferência original sem gravá-la.
 - **X**: preserva velocidade 16 m/s, tamanho duplo e travessia de 7 m após o primeiro contato,

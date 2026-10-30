@@ -1,4 +1,4 @@
-import {PORTALS} from './skill-twin-portals3d.js';
+import {PORTALS} from './skill-twin-portals3d.js?v=mod236-vfx2';
 import {energyBody} from './vfx-flow3d.js';
 import {volumeTrail} from './vfx-trail3d.js';
 import {impactDirector} from './vfx-impact3d.js';
@@ -39,8 +39,9 @@ export function createTwinPortalsVFX(T,scene,{ground=()=>0}={}){
   for(let i=0;i<2;i++){
    const f=s.flows[i],P=portals[i],at=s.portals[i];P.group.position.set(at.x,at.y,at.z);P.group.lookAt(at.x+s.f.x,at.y,at.z+s.f.z);P.group.scale.setScalar(opening);for(const m of [P.disc,P.rim]){m.material.uniforms.time.value=t+i*2;m.material.uniforms.alpha.value=opening*.85;}
    const pressure=f.phase==='contact'&&['fire','pressure','compress'].includes(ph),flying=f.phase==='flight';
+   const swell=ph==='pressure'?1+.32*smooth(s.age/PORTALS.pressure)+.08*Math.max(0,Math.sin(s.age*18)):1;
    const alive=flying||pressure,fade=ph==='compress'?1-smooth(s.age/PORTALS.compress):1;
-   bodies[i].mesh.visible=alive;if(alive)bodies[i].update(t,{position:f.p,dir:f.direction,radius:(i?.91:.87)*(1+.035*Math.sin(t*12))*fade,length:Math.max(.03,Math.min(1.6,f.travel/(i?3.9:3.4))),quality,alpha:.93*fade});
+   bodies[i].mesh.visible=alive;if(alive)bodies[i].update(t,{position:f.p,dir:f.direction,radius:swell*(i?.91:.87)*(1+.035*Math.sin(t*12))*fade,length:Math.max(.03,Math.min(1.6,f.travel/(i?3.9:3.4))),quality,alpha:.93*fade});
    trails[i].update(t,f.p,flying,quality);
    if(f.endAt>=0&&['contact','wall'].includes(f.phase))impacts.emit({id:'flow'+i,time:f.endAt,point:f.at,size:f.phase==='wall'?1.8:2.2,preset:presets[i],kind:'lance',dir:f.direction});
    if(alive){dir.set(f.direction.x,f.direction.y,f.direction.z);side.crossVectors(axis,dir).normalize();up.crossVectors(dir,side);
@@ -49,6 +50,7 @@ export function createTwinPortalsVFX(T,scene,{ground=()=>0}={}){
     }}
    }
   }
+  if(s.pressureAt>=0)for(let n=0;n<s.pulses;n++)impacts.emit({id:'pressure'+n,time:s.pressureAt+PORTALS.pulseTimes[n],point:s.center,size:1.3+n*.35,preset:presets[n%2],kind:'pressure'});
   if(ph==='burst'){impacts.emit({id:'burst-red',time:t-s.age,point:s.center,size:5.8,preset:'crimson',kind:'burst'});impacts.emit({id:'burst-violet',time:t-s.age+.12,point:s.center,size:4.7,preset:'violet',kind:'burst',dir:{x:.2,y:1,z:0}});}
   if(ph==='compress'){for(let i=0;i<2;i++){const k=s.age/PORTALS.compress;bodies[i].update(t,{position:s.center,dir:{x:i?1:-1,y:.3,z:0},radius:1.5*(1-k)+.3,length:.7*(1-k),alpha:.65,quality});}}
   arcGeo.setDrawRange(0,na*2);arcGeo.attributes.position.needsUpdate=arcGeo.attributes.color.needsUpdate=true;impacts.update(t,quality);

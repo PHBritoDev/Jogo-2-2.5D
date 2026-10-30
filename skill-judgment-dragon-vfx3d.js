@@ -3,7 +3,7 @@ import {energyBody,energyMaterial,flameGeometry} from './vfx-flow3d.js';
 import {volumeTrail} from './vfx-trail3d.js';
 import {impactDirector} from './vfx-impact3d.js';
 import {softParticles,ribbons,smooth,hash} from './celestial-fxkit3d.js';
-import {DRAGON} from './skill-judgment-dragon3d.js';
+import {DRAGON} from './skill-judgment-dragon3d.js?v=mod236-vfx2';
 /** Celestial fire creature, authored as a flowing silhouette, with a physical cinder projectile. */
 export function createDragonVFX(T,scene,{ground=()=>0}={}){
  const root=new T.Group();root.name='DragaoJulgamento';root.visible=false;scene.add(root);

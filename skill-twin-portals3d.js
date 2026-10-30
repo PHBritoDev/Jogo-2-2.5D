@@ -4,6 +4,7 @@ import {sweptCapsule} from './skill-x-rupture3d.js';
  * Pure 120 Hz simulation; no quality/renderer inputs. Optional target arrays use per-target budgets. */
 export const PORTALS=Object.freeze({range:32,open:.45,pressure:1.35,pulseTimes:[.3,.7,1.1],contact:6,pulse:4,finisher:22,compress:.42,burst:1.3,close:.6,side:2.1,height:2.1,radius:.8});
 const copy=p=>({x:p.x,y:p.y,z:p.z});
+const targetList=input=>[...new Map((Array.isArray(input)?input:input?[input]:[]).filter(t=>t?.alive).map(t=>[t.id,t])).values()];
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 export class TwinPortals{
  constructor({hit=()=>{},blocked=()=>false,ground=()=>0,event=()=>{}}={}){
@@ -12,9 +13,9 @@ export class TwinPortals{
  }
  start(source,target,yaw=0,mul=1){
   if(this.active)return false;
-  const list=Array.isArray(target)?target:target?[target]:[],t=list.find(t=>t.alive&&Math.hypot(t.x-source.x,t.z-source.z)<=PORTALS.range);
+  const list=targetList(target),t=list.find(t=>t.alive&&Math.hypot(t.x-source.x,t.z-source.z)<=PORTALS.range);
   this.ids=new Set(list.filter(t=>t.alive&&Math.hypot(t.x-source.x,t.z-source.z)<=PORTALS.range).map(t=>t.id));
-  this.id=t?.id??null;this.source=copy(source);this.active=true;this.phase='open';this.time=this.age=this.acc=0;this.mul=mul;this.hits=0;this.paid=new Map();this.pulses=0;
+  this.id=t?.id??null;this.source=copy(source);this.active=true;this.phase='open';this.time=this.age=this.acc=0;this.mul=mul;this.hits=0;this.paid=new Map();this.pulses=0;this.pressureAt=-1;
   const a=t?Math.atan2(t.x-source.x,t.z-source.z):yaw;this.f={x:Math.sin(a),y:0,z:Math.cos(a)};this.r={x:this.f.z,y:0,z:-this.f.x};
   const gy=this.ground(source.x,source.z);
   this.portals=[-1,1].map(s=>({x:source.x+this.r.x*s*PORTALS.side-this.f.x*.5,y:gy+PORTALS.height,z:source.z+this.r.z*s*PORTALS.side-this.f.z*.5}));
@@ -23,10 +24,10 @@ export class TwinPortals{
   this.event('open',this);return true;
  }
  cancel(){if(!this.active)return;this.active=false;this.phase='idle';for(const f of this.flows){f.phase='gone';f.contacts.clear();}this.event('cancel',this);}
- phaseTo(phase){this.phase=phase;this.age=0;this.event(phase,this);}
+ phaseTo(phase){this.phase=phase;this.age=0;if(phase==='pressure')this.pressureAt=this.time;this.event(phase,this);}
  update(dt,target,{valid=true,paused=false}={}){
   if(!this.active||paused)return;if(!valid){this.cancel();return;}
-  const list=(Array.isArray(target)?target:target?[target]:[]).filter(t=>t.alive&&this.ids.has(t.id)&&Math.hypot(t.x-this.source.x,t.z-this.source.z)<=PORTALS.range+4);
+  const list=targetList(target).filter(t=>t.alive&&this.ids.has(t.id)&&Math.hypot(t.x-this.source.x,t.z-this.source.z)<=PORTALS.range+4);
   this.acc+=Math.max(0,dt);while(this.acc>=1/120&&this.active){this.acc-=1/120;this.step(1/120,list.filter(t=>t.alive));}
  }
  pay(t,amount,kind){if(!t.alive)return;const prev=this.paid.get(t.id)||0,next=prev+amount;this.paid.set(t.id,next);this.hit(Math.round(next*this.mul)-Math.round(prev*this.mul),t.id,kind);}
@@ -41,7 +42,7 @@ export class TwinPortals{
   if(this.phase==='fire'){
    for(const f of this.flows){if(f.phase!=='flight')continue;const p=copy(f.p),d=Math.min(f.speed*dt,f.range-f.travel);f.travel+=d;
     f.p.x+=f.direction.x*d;f.p.y+=f.direction.y*d;f.p.z+=f.direction.z*d;
-    const wall=blockedSegment(p,f.p,q=>q.y-PORTALS.radius<=this.ground(q.x,q.z)||(q.y-PORTALS.radius<this.ground(q.x,q.z)+2.4&&this.blocked(q)),PORTALS.radius);
+    const wall=blockedSegment(p,f.p,q=>q.y-PORTALS.radius<=this.ground(q.x,q.z)||this.blocked({x:q.x,y:q.y-PORTALS.radius,z:q.z}),PORTALS.radius);
     if(wall){Object.assign(f.p,p);this.endFlow(f,'wall');continue;}
     const touched=targets.filter(t=>t.alive&&sweptCapsule(p,f.p,t,PORTALS.radius));
     if(touched.length){for(const t of touched){f.contacts.set(t.id,copy(f.p));this.pay(t,PORTALS.contact,'contact');this.hits++;}this.endFlow(f,'contact');continue;}
@@ -51,7 +52,7 @@ export class TwinPortals{
   }
   if(this.phase==='pressure'){
    while(this.pulses<PORTALS.pulseTimes.length&&this.age>=PORTALS.pulseTimes[this.pulses]){
-    for(const f of this.flows)for(const t of targets){const p=f.contacts.get(t.id);if(p&&sweptCapsule(p,p,t,PORTALS.radius+.15)&&!blockedSegment(f.origin,p,q=>q.y-PORTALS.radius<this.ground(q.x,q.z)+2.4&&this.blocked(q),PORTALS.radius))this.pay(t,PORTALS.pulse,'pressure');}
+    for(const f of this.flows)for(const t of targets){const p=f.contacts.get(t.id);if(p&&sweptCapsule(p,p,t,PORTALS.radius+.15)&&!blockedSegment(f.origin,p,q=>this.blocked({x:q.x,y:q.y-PORTALS.radius,z:q.z}),PORTALS.radius))this.pay(t,PORTALS.pulse,'pressure');}
     this.event('pressure-pulse',{n:this.pulses++,p:this.center,time:this.time});
    }
    if(this.age>=PORTALS.pressure)this.phaseTo('compress');return;

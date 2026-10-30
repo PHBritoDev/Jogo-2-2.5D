@@ -28,7 +28,7 @@ void main(){float n=flowNoise(vec2(vUv.x*11.*frequency,vUv.y*7.+seed),time,detai
  if(cells<dissolve)discard;
  float heat=smoothstep(.16,.78,n+rim*.23);vec3 col=mix(deep,body,heat);
  col=mix(col,hot,clamp(pow(smoothstep(.35,.75,n),1.4)*.72+rim*.12,0.,.85));
- col=mix(col,mix(body,hot,clamp(.34-rim*.25+(n-.5)*.35+fil*.5,0.,1.)),celestial);
+ vec3 fireColor=mix(vec3(1.,.27,.004),body,smoothstep(.32,.47,n));fireColor=mix(fireColor,hot,smoothstep(.47,.59,n)*.9);col=mix(col,fireColor,celestial);
  float a=alpha*(.82+.18*smoothstep(.18,.66,n));a*=mix(1.,(1.-smoothstep(.25,1.,vUv.x))*smoothstep(.12,.52,n),flame);a*=smoothstep(dissolve,dissolve+.16,cells);
  if(a<.015)discard;gl_FragColor=vec4(col,a);
  #include <tonemapping_fragment>

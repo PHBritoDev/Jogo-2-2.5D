@@ -21,6 +21,7 @@ import {createStarfallVFX} from './celestial-starfall-vfx3d.js';
 import {CelestialSiege} from './celestial-siege3d.js';
 import {createSiegeVFX} from './celestial-siege-vfx3d.js';
 import {XRupture} from './skill-x-rupture3d.js';import {createXRuptureVFX} from './skill-x-rupture-vfx3d.js';
+import {sceneryPoint} from './skill-scenery3d.js';
 import {TwinPortals} from './skill-twin-portals3d.js';import {createTwinPortalsVFX} from './skill-twin-portals-vfx3d.js';
 import {JudgmentDragon} from './skill-judgment-dragon3d.js';import {createDragonVFX} from './skill-judgment-dragon-vfx3d.js';
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
@@ -341,7 +342,7 @@ function forestSpotFree(x,z){
   if(t.kind==='round')t.height=(7.2+t.tint*3.2)*t.s;
   else if(t.kind==='conifer')t.height=(t.collide?8.2:9.5)*t.s*(.85+t.tint*.35);
   else t.height=(1.05+t.tint*.45)*t.s;
-  treeObstacles.push({x:t.x,z:t.z,radius:t.kind==='oak'?.25*t.height+.08:t.kind==='conifer'?.24*t.s+.2:.34*t.s+.18});
+  treeObstacles.push({x:t.x,z:t.z,height:t.height||8*t.s,radius:t.kind==='oak'?.25*t.height+.08:t.kind==='conifer'?.24*t.s+.2:.34*t.s+.18});
  }
 }
 const roundTrees=treeSpecs.filter(t=>t.kind==='round'),oakTrees=treeSpecs.filter(t=>t.kind==='oak'),coniferTrees=treeSpecs.filter(t=>t.kind==='conifer');
@@ -1340,9 +1341,14 @@ function findVfxLabLane(){
  for(let x=-20;x<=70;x+=3)for(let z=20;z>=-40;z-=4){const y=terrainHeightAt(x,z);let free=true;for(let d=-1;d<=20&&free;d+=.5)for(const dx of [-3,-2,-1,0,1,2,3])if(playerBlockedAt(x+dx,z-d)||Math.abs(terrainHeightAt(x+dx,z-d)-y)>.25){free=false;break;}if(free)return{x,z};}
  return{x:40,z:17};
 }
-function extraBlocked(p){return blockedAt(p.x,p.z)||!!(vfxLabRequested&&labWall?.visible&&Math.abs(p.x-labWall.position.x)<4&&Math.abs(p.z-labWall.position.z)<.3&&p.y<labWall.position.y+2);}
+const extraScenery={ground:groundHeightAt,trees:treeObstacles,rocks:rockObstacles,structures:marketObstacles};
+function extraBlocked(p){
+ if(vfxLabRequested&&labWall?.visible&&Math.abs(p.x-labWall.position.x)<4&&Math.abs(p.z-labWall.position.z)<.3&&p.y<labWall.position.y+2)return true;
+ if(voidMode)return blockedAt(p.x,p.z)||!!(voidSpec.ceil&&p.y>voidSpec.y+voidSpec.ceil(p.x-voidSpec.x,p.z-voidSpec.z));
+ return sceneryPoint(p,extraScenery)||(p.y<groundHeightAt(p.x,p.z)+.4&&blockedAt(p.x,p.z));
+}
 function setVfxLabMode(mode){
- labMode=mode;labAge=0;for(const run of Object.values(EXTRA_RUN))run.cancel();
+ labMode=mode;labAge=0;extraBookClear?.();extraBookClear=null;for(const run of Object.values(EXTRA_RUN))run.cancel();
  if(!labWall){labWall=new THREE.Mesh(new THREE.BoxGeometry(8,4,.6),new THREE.MeshStandardMaterial({color:0x4b4242,roughness:.9}));scene.add(labWall);}
  labLane??=findVfxLabLane();const {x,z}=labLane;player.position.set(x,terrainHeightAt(x,z),z);playerYaw=Math.PI;player.rotation.y=playerYaw;enemy.position.set(x,terrainHeightAt(x,z-12),z-12);labAnchor={x,z:z-12};enemy.visible=mode!=='ground';enemyAlive=true;enemyHP=enemyMaxHP=10000;playerMana=100;for(const id of EXTRA_SKILLS)holyCooldowns[id]=0;
  labWall.position.set(x,terrainHeightAt(x,z-6)+2,z-6);labWall.visible=mode==='wall';updatePlayerCamera(1);
@@ -1399,7 +1405,7 @@ renderer.domElement.addEventListener('webglcontextlost',()=>{finishWhiteHole();f
 /* MOD 233 — Ruptura em X, Portais da Perseguição e Dragão do Julgamento. A lógica (passo fixo de 120 Hz) decide
    trajetória, colisão e dano; o VFX só desenha. Todas usam a mesma identidade de encontro (siegeEpoch) e o mesmo
    contexto de cena: troca de cena, morte, diálogo ou cinemática cancelam e limpam tudo. */
-let xVFX=null,portalsVFX=null,dragonVFX=null,extraScene={};
+let xVFX=null,portalsVFX=null,dragonVFX=null,extraScene={},extraBookClear=null;
 const extraHit=(kind,big)=>(d,id)=>{if(id===siegeEpoch&&enemyAlive){hurtEnemy(d,big,true);}};
 const xRupture=new XRupture({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id)=>{if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(d,true,true);if(!phoenixBossResists()){enemyKnockback=.9;enemyKnockbackX=xRupture.dir.x;enemyKnockbackZ=xRupture.dir.z;}},
  event:t=>{if(t==='travel')worldAudio.whoosh();if(t==='impact'||t==='wall'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(t==='impact'?.12:.06);}if(t==='cancel')xVFX?.clear();}});
@@ -1415,13 +1421,13 @@ function ensureExtraVFX(compile=false){
  if(compile){for(const v of [xVFX,portalsVFX,dragonVFX])v.root.visible=true;renderer.compile(scene,camera);for(const v of [xVFX,portalsVFX,dragonVFX])v.clear();}
 }
 function castExtraSkill(kind){
- ensureExtraVFX();extraScene[kind]=siegeContext();const t=phoenixTarget(),now=performance.now(),mul=1+statsForLevel(playerLevel()).damageBonus;
+ ensureExtraVFX();extraBookClear?.();extraBookClear=null;extraScene[kind]=siegeContext();const t=phoenixTarget(),now=performance.now(),mul=1+statsForLevel(playerLevel()).damageBonus;
  if(enemyModel){const size=measureModelBounds(enemyModel).getSize(new THREE.Vector3());enemy.userData.phoenixRadius=Math.max(.6,Math.min(4,Math.max(size.x,size.z)*.5));enemy.userData.phoenixHeight=Math.max(1.5,Math.min(8,size.y));}
  const T2={...t,radius:enemy.userData.phoenixRadius||.6,height:enemy.userData.phoenixHeight||1.9};
  const yaw=t.alive?Math.atan2(t.x-player.position.x,t.z-player.position.z):playerYaw,hand=new THREE.Vector3();const rig=model&&poseRig(model);if(rig?.rh)rig.rh.getWorldPosition(hand);else{hand.copy(player.position);hand.y+=1.4;}
- if(kind==='skill_x_rupture'){xRupture.start({x:player.position.x,y:hand.y,z:player.position.z},T2,yaw,mul);playPose(model,'thrust',.55,()=>playerYaw,0);showGrimoire(0xff2a5a,.45,true);status.textContent='Ruptura em X';}
- if(kind==='skill_twin_portals'){twinPortals.start({x:player.position.x,y:player.position.y,z:player.position.z},T2,yaw,mul);playPose(model,'cast',.7,()=>playerYaw,0);showGrimoire(0xb04aff,.7,true);status.textContent='Portais da Perseguição';}
- if(kind==='skill_judgment_dragon'){judgmentDragon.start({x:player.position.x,y:player.position.y+.2,z:player.position.z},T2,yaw,mul);playPose(model,'channel',1.45,()=>playerYaw,0);playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+1450);showGrimoire(0xffb43a,1.2,true);status.textContent='Dragão do Julgamento';}
+ if(kind==='skill_x_rupture'){xRupture.start({x:player.position.x,y:hand.y,z:player.position.z},T2,yaw,mul);playPose(model,'thrust',.55,()=>playerYaw,0);extraBookClear=showGrimoire(0xff2a5a,.45,true,true);status.textContent='Ruptura em X';}
+ if(kind==='skill_twin_portals'){twinPortals.start({x:player.position.x,y:player.position.y,z:player.position.z},T2,yaw,mul);playPose(model,'cast',.7,()=>playerYaw,0);extraBookClear=showGrimoire(0xb04aff,.7,true,true);status.textContent='Portais da Perseguição';}
+ if(kind==='skill_judgment_dragon'){judgmentDragon.start({x:player.position.x,y:player.position.y+.2,z:player.position.z},T2,yaw,mul);playPose(model,'channel',1.45,()=>playerYaw,0);playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+1450);extraBookClear=showGrimoire(0xffb43a,1.2,true,true);status.textContent='Dragão do Julgamento';}
  actionUntil=Math.max(actionUntil,now+(kind==='skill_judgment_dragon'?1350:450)); // curto: o herói volta a andar logo
 }
 function extraTarget(){const t=phoenixTarget();t.radius=enemy.userData.phoenixRadius||.6;t.height=enemy.userData.phoenixHeight||1.9;return t;}
@@ -5124,8 +5130,9 @@ const bossUlt={kind:null,t:0,used:{},fx:null,fight:''};
 const ultFx=[];
 function addMat(color,op){return new THREE.MeshBasicMaterial({color,transparent:true,opacity:op,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});}
 function endBossUlt(){const f=bossUlt.fx;if(f){scene.remove(f.g);f.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}bossUlt.fx=null;bossUlt.kind=null;ultCam.want=0;ultDim(0,.8);}
+function tickTransientFx(dt){for(let i=ultFx.length-1;i>=0;i--){const f=ultFx[i];f.t+=dt;if(f.tick(f.t,dt)===false)ultFx.splice(i,1);}}
 function updateBossUltimates(dt,now){
- for(let i=ultFx.length-1;i>=0;i--){const f=ultFx[i];f.t+=dt;if(f.tick(f.t,dt)===false)ultFx.splice(i,1);}
+ tickTransientFx(dt);
  const fight=encounterProfile+':'+enemyMaxHP;if(fight!==bossUlt.fight){bossUlt.fight=fight;bossUlt.used={};}
  const live=combatStepNow()&&enemy.visible&&enemyAlive&&playerHP>0;
  if(bossUlt.kind){if(!live||cineActive){endBossUlt();return;}bossUlt.t+=dt;(bossUlt.kind==='void'?tickVoidUlt:bossUlt.kind==='kit'?tickKitUlt:tickSupernova)(dt,now);return;}
@@ -5214,16 +5221,16 @@ function fxDispose(o){scene.remove(o);o.traverse(m=>{if(m.geometry&&!m.geometry.
 function fxPush(fn){ultFx.push({t:0,tick:fn});}
 function fxGy(x,z){return groundHeightAt(x,z);}
 /** Grimório (Bispos/Ganância) ou Bíblia (herói) aberto, flutuando à frente de quem invoca. */
-function showGrimoire(color,dur,onPlayer){
+function showGrimoire(color,dur,onPlayer,quiet=false){
  const g=new THREE.Group(),cover=new THREE.MeshStandardMaterial({color:onPlayer?0xf2e2b8:0x1c0a16,emissive:color,emissiveIntensity:onPlayer?.45:.3,metalness:.35,roughness:.45}),page=new THREE.MeshBasicMaterial({color:onPlayer?0xfff6dc:0x2c1a30,side:THREE.DoubleSide});
  for(const s of [-1,1]){const c=new THREE.Mesh(new THREE.BoxGeometry(.4,.035,.54),cover);c.position.x=s*.2;c.rotation.z=s*.16;g.add(c);const pg=new THREE.Mesh(new THREE.PlaneGeometry(.36,.48),page);pg.rotation.set(-Math.PI/2,0,s*.16);pg.position.set(s*.19,.03,0);g.add(pg);}
  const rune=new THREE.Mesh(new THREE.RingGeometry(.36,.44,6),addMat(color,0));rune.rotation.x=-Math.PI/2;rune.position.y=.22;g.add(rune);
  const rune2=new THREE.Mesh(new THREE.RingGeometry(.22,.26,3),addMat(color,0));rune2.rotation.x=-Math.PI/2;rune2.position.y=.24;g.add(rune2);
- const glow=glowSprite(color,0,1.5);glow.position.y=.18;g.add(glow);scene.add(g);
- fxPush(function(t){const src=onPlayer?player.position:enemy.position,yaw=onPlayer?playerYaw:foeYaw();
+ const glow=glowSprite(color,0,quiet?.65:1.5);glow.position.y=.18;g.add(glow);scene.add(g);let disposed=false;const clear=()=>{if(!disposed){disposed=true;fxDispose(g);}};
+ fxPush(function(t){if(disposed)return false;const src=onPlayer?player.position:enemy.position,yaw=onPlayer?playerYaw:foeYaw();
   g.position.set(src.x+Math.sin(yaw)*.85+Math.cos(yaw)*.45,src.y+1.45+Math.sin(t*3)*.05,src.z+Math.cos(yaw)*.85-Math.sin(yaw)*.45);g.rotation.set(-.55,yaw,0,'YXZ');
-  const a=Math.min(1,t/.22)*(t>dur?Math.max(0,1-(t-dur)/.3):1);g.scale.setScalar(.2+.8*a);rune.rotation.z+=.06;rune2.rotation.z-=.09;rune.material.opacity=.9*a;rune2.material.opacity=.8*a;glow.material.opacity=.75*a;
-  if(t>dur+.3){fxDispose(g);return false;}});
+  const a=Math.min(1,t/.22)*(t>dur?Math.max(0,1-(t-dur)/.3):1);g.scale.setScalar((quiet?.65:1)*(.2+.8*a));rune.rotation.z+=.06;rune2.rotation.z-=.09;rune.material.opacity=(quiet?.3:.9)*a;rune2.material.opacity=(quiet?.25:.8)*a;glow.material.opacity=(quiet?.12:.75)*a;
+  if(t>dur+.3){clear();return false;}});return clear;
 }
 /** Erupção: aviso circular (spawnHazard dá o dano) e, no disparo, uma coluna de duas cores. */
 function fxErupt(x,z,delay,r,dmg,c1,c2,h=5){spawnHazard({x,z,radius:r,delay,damage:dmg,color:c1});const y=fxGy(x,z),a=new THREE.Mesh(new THREE.ConeGeometry(r*.8,h,12,1,true),addMat(c1,0)),b=new THREE.Mesh(new THREE.ConeGeometry(r*.45,h*.7,10,1,true),addMat(c2,0));a.position.set(x,y+h/2,z);b.position.set(x,y+h*.35,z);scene.add(a,b);
@@ -5713,7 +5720,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  whiteState(){return {fog:scene.fog?[scene.fog.color.getHexString(),scene.fog.near,scene.fog.far]:null,bg:scene.background?.isColor?scene.background.getHexString():null,active:whiteHole.active,locked:whiteLease.locked,phase:whiteHole.phase,time:whiteHole.time,hp:enemyHP,mana:playerMana,pos:player.position.toArray(),modelPos:model.position.toArray(),savedModelPos:whiteLease.snapshot?.modelPosition.toArray(),savedCamera:whiteLease.snapshot?.cam.toArray(),camera:camera.position.toArray(),yaw:cameraYaw,pitch:cameraPitch,distance:cameraDistance,flash:whiteOverlay.style.opacity,context:siegeContext()};},
  gripQA(){const a=swordHand.getWorldPosition(new THREE.Vector3()),b=swordMount.getWorldPosition(new THREE.Vector3());return {error:a.distanceTo(b),angle:swordHand.getWorldQuaternion(new THREE.Quaternion()).normalize().angleTo(swordMount.getWorldQuaternion(new THREE.Quaternion()).normalize()),hand:a.toArray(),mount:b.toArray(),run:actions.run?.getClip().name,view:swordView?.stats()};},
  extraQA(){this.phoenixQA();for(const id of EXTRA_SKILLS)ownedItems.add(id);refreshSkillUnlocks();playerMana=999;for(const k of EXTRA_SKILLS)holyCooldowns[k]=0;return this.extraState();},
- extraFrame(dt,draw=true){if(!gamePaused){mixer?.update(dt);restoreRiteScales();updateExtraSkills(dt);updatePoses(dt);updatePlayerSwordMount();if(!debugCameraOverride)updatePlayerCamera(dt);updateFirstPerson(dt,performance.now());}if(draw)renderer.render(scene,camera);return this.extraState();},
+ extraFrame(dt,draw=true){if(!gamePaused){mixer?.update(dt);restoreRiteScales();updateExtraSkills(dt);tickTransientFx(dt);updatePoses(dt);updatePlayerSwordMount();if(!debugCameraOverride)updatePlayerCamera(dt);updateFirstPerson(dt,performance.now());}if(draw)renderer.render(scene,camera);return this.extraState();},
  vfxState(){return{mode:labMode,dragonViewWeight,portals:{phase:twinPortals.phase,flows:twinPortals.flows.map(f=>({phase:f.phase,p:{...f.p},origin:{...f.origin},direction:{...f.direction},born:f.born,travel:f.travel})),visual:portalsVFX?.stats()},dragon:{phase:judgmentDragon.phase,head:{...judgmentDragon.head},ball:{...judgmentDragon.ball},visual:dragonVFX?.stats()},camera:{position:camera.position.toArray(),distance:cameraDistance,yaw:cameraYaw,pitch:cameraPitch},view:swordView?.stats()};},
  extraState(){const o={};for(const [k,r] of Object.entries(EXTRA_RUN))o[k]={active:r.active,phase:r.phase,time:+r.time.toFixed(2)};return {skills:o,hp:enemyHP,mana:playerMana,loadout:[...skillLoadout],enemy:enemy.position.toArray().map(v=>+v.toFixed(2)),slots:SKILL_ORDER.map(id=>skillButtons[id]?.skill)};},
  equipSlotQA(i,id){const r=equipSlot(skillLoadout,i,id,{owned:ownedItems,testAll:testAllSkills});if(r.ok){skillLoadout=r.loadout;save3DProgress();refreshSkillUnlocks();}return {ok:r.ok,reason:r.reason,loadout:[...skillLoadout]};},
