@@ -13,6 +13,8 @@ with sync_playwright() as pw:
    if kind=='dragon' and t in [5.3,8]:
     p.evaluate("()=>{const h=preview.skills.dragon.head;preview.cam([h.x+15,h.y+5,h.z+9],[h.x,h.y,h.z]);preview.step(0);}");p.screenshot(path=str(out/(kind+'-detail-'+str(t)+'.png')))
     p.evaluate('()=>preview.cam([33,24,-24],[0,13,8])')
+    if t==5.3:
+     p.evaluate("()=>{const h=preview.skills.dragon.ball.p;preview.cam([h.x+6,h.y+2,h.z+6],[h.x,h.y,h.z]);preview.step(0);}");p.screenshot(path=str(out/'dragon-fireball-detail.png'));p.evaluate('()=>preview.cam([33,24,-24],[0,13,8])')
   # Warm all phases before checking repeated use. Drawing every phase compiles every material.
   data=p.evaluate('''()=>{const sim=()=>{preview.start();for(let i=0;i<720;i++){preview.step(1/60,false);if(i%30===0)preview.step(0);}preview.step(0);};sim();const before=preview.info();const t=performance.now();for(let cast=0;cast<20;cast++)sim();const elapsed=performance.now()-t,after=preview.info();return{before,after,elapsedMs:elapsed};}''')
   assert data['before']['geo']==data['after']['geo'] and data['before']['programs']==data['after']['programs'],data;report[kind]['reuse']=data
