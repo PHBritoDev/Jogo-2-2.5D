@@ -202,6 +202,18 @@ export function createWorldAudio() {
      *  e a Supernova da Ganância (carga com coro dissonante, silêncio curto e estrondo longo com brilho). */
     voidCharge() { if (!ready) return; tone('sine', 38, 96, .3, 5.6); tone('sawtooth', 55, 30, .06, 5.2); burst('bandpass', 180, 1.2, .16, 5.5, sfxBus, 1400); pad(110, .04, 1.5, 2.5, 1.5, 0, 'triangle'); pad(116.5, .035, 1.5, 2.5, 1.5, .1, 'triangle'); },
     abyss() { if (!ready) return; burst('lowpass', 420, .7, .22, 1.4, sfxBus, 120); tone('sawtooth', 90, 45, .07, 1.2); },
+    /** MOD 237 — poderes sombrios do Enemy1: garras que rasgam o chão, espiral que ruge, juízo que trava e cai. */
+    dark(kind) {
+      if (!ready) return;
+      if (kind === 'claws') { tone('sawtooth', 70, 38, .08, 1.1); burst('lowpass', 300, .7, .16, 1, sfxBus, 90); }
+      else if (kind === 'rise') { burst('lowpass', 600, .8, .3, .55, sfxBus, 140); tone('triangle', 120, 55, .14, .5); }
+      else if (kind === 'spiral') { burst('bandpass', 380, 1.1, .14, .9, sfxBus, 1500); tone('sawtooth', 110, 220, .05, .9); }
+      else if (kind === 'impact') { tone('sine', 120, 40, .3, .5); burst('lowpass', 1400, .7, .24, .4); }
+      else if (kind === 'judgment') { pad(98, .04, .4, 1.2, .6, 0, 'sawtooth'); pad(103.8, .03, .4, 1.2, .6, .05, 'triangle'); }
+      else if (kind === 'lock') { tone('sine', 880, 1760, .05, .25); tone('sine', 1320, 2640, .03, .25, sfxBus, .04); }
+      else if (kind === 'beam') { burst('highpass', 3000, .6, .14, .35); tone('sawtooth', 300, 60, .08, .4); }
+      else if (kind === 'blast') { tone('sine', 62, 24, .5, 1.6); burst('lowpass', 900, .6, .4, 1.3, sfxBus, 80); burst('bandpass', 2600, .9, .1, .7, sfxBus, 500); }
+    },
     novaCharge() { if (!ready) return; tone('sine', 55, 220, .22, 2.9); [196, 207.7, 293.7, 311.1].forEach((f, i) => pad(f, .035, 1.2, 1.4, .4, i * .15, i % 2 ? 'sawtooth' : 'triangle')); burst('highpass', 1800, .6, .08, 2.8, sfxBus, 7000); },
     novaBlast() { if (!ready) return; tone('sine', 70, 22, .7, 3.4); burst('lowpass', 900, .6, .6, 2.8, sfxBus, 60); burst('bandpass', 3200, .8, .12, 1.6, sfxBus, 600); [1046.5, 1318.5, 1568].forEach((f, i) => tone('sine', f, f * .5, .04, 2.2, sfxBus, .25 + i * .07)); }
   };

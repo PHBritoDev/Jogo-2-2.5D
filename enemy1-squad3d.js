@@ -190,7 +190,7 @@ export class Enemy1Squad {
       const miss = Math.abs(rx * f.dz - rz * f.dx), tt = along / Math.max(.1, f.speed);
       if (miss > a.T.radius + f.r + .9 || tt > 1.25 || tt < .22) continue;
       if (this.seen.size > 400) this.seen.clear(); this.seen.add(key);
-      const counter = Math.min(.55, a.T.counter.chance * (1 + st.cast * 1.6) * (a.phase2 ? 1.3 : 1));
+      const counter = this.forceCounter ? 1 : Math.min(.55, a.T.counter.chance * (1 + st.cast * 1.6) * (a.phase2 ? 1.3 : 1));
       const r = this.rand();
       if (!a.cds.counter && along > 3 && r < counter) a.react = { type: 'counter', t: .12 + this.rand() * .1, spell: f };
       else if (!a.cds.dodge && r < counter + a.T.dodge.chance) a.react = { type: 'dodge', t: .1 + this.rand() * .12, from: f, side: true };
@@ -205,7 +205,7 @@ export class Enemy1Squad {
       this.begin(a, { type: 'dodge', dur: a.T.dash.time, anim: 'dash', dx, dz, iframes: true, face: false }); a.cds.dodge = a.T.dodge.cd; this.event('dodge', { actor: a });
     } else if (r.type === 'counter' && r.spell && r.spell.alive !== false) {
       this.begin(a, { type: 'counter', dur: a.T.counter.cast + .35, release: a.T.counter.cast, anim: 'cast', spell: r.spell, token: 'spell', tid: tgt && tgt.id });
-      a.cds.counter = a.T.counter.cd; this.event('counterCast', { actor: a });
+      a.cds.counter = this.forceCounter ? 1 : a.T.counter.cd; this.event('counterCast', { actor: a });
     }
   }
   decide(a, t) {

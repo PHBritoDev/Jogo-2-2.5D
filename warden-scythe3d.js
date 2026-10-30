@@ -9,9 +9,9 @@
  */
 export function buildWardenScythe(T) {
   const g = new T.Group(); g.name = 'CeifadoraDoLimiar';
-  const iron = new T.MeshStandardMaterial({ color: 0x17141a, metalness: .85, roughness: .42 });
-  const steel = new T.MeshStandardMaterial({ color: 0x3a3a44, metalness: .95, roughness: .26 });
-  const silver = new T.MeshStandardMaterial({ color: 0xb9b6c4, metalness: 1, roughness: .2 });
+  const iron = new T.MeshStandardMaterial({ color: 0x1e1a22, metalness: .55, roughness: .45 });
+  const steel = new T.MeshStandardMaterial({ color: 0x4a4852, metalness: .6, roughness: .3, emissive: 0x0c0a10 });
+  const silver = new T.MeshStandardMaterial({ color: 0xd4d0dc, metalness: .6, roughness: .22, emissive: 0x24222c });
   const bone = new T.MeshStandardMaterial({ color: 0xc9c0b2, metalness: .1, roughness: .55, emissive: 0x200404, emissiveIntensity: .4 });
   const blood = new T.MeshStandardMaterial({ color: 0x5a0008, emissive: 0xc0101c, emissiveIntensity: 1.4, metalness: .3, roughness: .35 });
   const glowM = new T.MeshBasicMaterial({ color: 0xff2030, toneMapped: false });

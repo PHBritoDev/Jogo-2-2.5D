@@ -295,7 +295,7 @@ export function createDarkPowersVFX(T, scene, { ground = () => 0 } = {}) {
     if (ph === 'blast' || ph === 'fade') {
       const age = ph === 'blast' ? s.t : .35 + s.t, kk = Math.min(1, age / (.35 + T0.fade)), e = easeOut(Math.min(1, age / .55)), cy = gy + .9 * big;
       // esfera de choque com núcleo, raios ramificados, anéis quebrados, lascas e mini-cratera
-      instQ(energy, s.mx, cy, s.mz, Q.identity(), (.8 + e * s.r * 1.25), (.8 + e * s.r * 1.1), (.8 + e * s.r * 1.25), 1, (1 - smooth(kk * 1.4)) * 1.4, s.id, kk);
+      instQ(energy, s.mx, cy, s.mz, Q.identity(), (.6 + e * s.r * .95), (.6 + e * s.r * .85), (.6 + e * s.r * .95), 1, (1 - smooth(kk * 1.6)) * 1.1, s.id, kk);
       if (age < .25) instQ(energy, s.mx, cy, s.mz, Q.identity(), 1.4 * big * (1 - age * 2), 1.4 * big * (1 - age * 2), 1.4 * big * (1 - age * 2), 2, 1, s.id, 0);
       glow.add(s.mx, cy, s.mz, s.r * 3.4 * (1 - kk * .5), s.r * 3.4 * (1 - kk * .5), .8, .45, 1, .8 * (1 - smooth(kk * 2)), 0);
       for (let i = 0; i < 4; i++) { Q.setFromEuler(new T.Euler(hash(i + s.id) * 1.2 - .6 + Math.PI / 2, hash(i * 9) * 6, kk * 2 * (i % 2 ? 1 : -1))); const rr = .6 + e * s.r * (1 + i * .22); instQ(rings, s.mx, cy + (i - 1.5) * .25, s.mz, Q, rr, rr, rr, Math.min(1, kk * 1.6), .9 * (1 - kk), s.id + 20 + i, .6); }

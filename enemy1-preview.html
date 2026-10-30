@@ -22,7 +22,7 @@ function start(){
  squad=new Enemy1Squad({seed:7,ground,damageTarget:(id,n)=>{heroHp-=n;return 'hit';},event:()=>{}});squad.setTargets([hero]);
  hero.x=0;hero.z=0;hero.vx=hero.vz=0;
  if(kind==='squad'){squad.spawn([{x:7,z:3},{x:-6,z:4},{x:3,z:9,kind:warden?'warden':'common'},{x:-3,z:-7}]);camera.position.set(10,7,-10);camera.lookAt(0,1,2);}
- else if(kind==='scythe'){scy=buildWardenScythe(T);scy.position.set(0,1.2,0);scene.add(scy);camera.position.set(0,2.2,2.6);camera.lookAt(0,1.9,0);}
+ else if(kind==='scythe'){scy=buildWardenScythe(T);scy.position.set(0,1.2,0);scene.add(scy);hero.x=40;camera.position.set(0,2.5,3.2);camera.lookAt(0,2.1,0);}
  else{const[a]=squad.spawn([{x:0,z:10,yaw:Math.PI,kind:warden?'warden':'common'}]);a.alert=999;a.decideT=999;
   if(kind==='claws'){squad.spawnClaws(a,hero);camera.position.set(5.5,3.2,-5.5);camera.lookAt(0,1,0);}
   if(kind==='spiral'){squad.spawnSpiral(a,hero);camera.position.set(6,3,1);camera.lookAt(0,1.2,5);}

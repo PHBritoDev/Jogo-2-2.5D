@@ -1,11 +1,13 @@
 import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
+import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
 import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {SwordRites,SWORD_RITES,swordAim} from './sword-rites3d.js';
 import {createSwordRitesVFX} from './sword-rites-vfx3d.js';
 import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage,swordLayers} from './sword-rites-animation3d.js';
 const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades')||new URLSearchParams(location.search).has('testeQuantum233');
-const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills);
+const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1');
+const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB);
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233');
 const swordTrainingRequested=(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false;
@@ -682,10 +684,22 @@ new GLTFLoader().load('./Enemy1-lod.glb?v=mod194-lod',gltf=>{
  if(enemyActions.idle)playEnemyAnimation('idle',0);
  window.Enemy1AnimationReport=enemyClips.map(c=>c.name);
  console.info('Enemy1.glb animações:',window.Enemy1AnimationReport);
+ normalizeEnemy1Model(imported);
 },undefined,err=>{console.error('Enemy1-lod.glb não carregou; tentando o Enemy1.glb original.',err);enemyLoadState='loading';enemyModelRoot.visible=false;enemySprite.visible=false;new GLTFLoader().load('./Enemy1.glb?v=enemy1-full-fallback',full=>{enemyLoadState='loading';const obj=full.scene;obj.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;const mats=Array.isArray(o.material)?o.material:[o.material];for(const m of mats)if(m&&!enemyMaterials.includes(m))enemyMaterials.push(m);}});const box=new THREE.Box3().setFromObject(obj),s=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());if(s.y>.001){const k=1.8/s.y;obj.scale.setScalar(k);obj.position.set(-center.x*k,-box.min.y*k,-center.z*k);}enemyModelRoot.add(obj);enemyModelRoot.visible=true;enemyModel=obj;enemyMixer=new THREE.AnimationMixer(obj);enemyClips=full.animations||[];enemyActions={};enemyCurrentAction=null;enemyCurrentRole='';const clipByName=new Map(enemyClips.map(a=>[a.name,a]));const knownRoles={'01a14b5a-2ee6-75dc-982f-8965372f192b':'idle','01a14b5c-5fd2-74f9-b256-af9f522f53cb':'cast','01a14b57-0772-77b2-9da3-b6644a5d1cae':'attack','01a14b51-9352-70b9-8540-e7713d7152b1':'block'};for(const [name,role] of Object.entries(knownRoles)){const clip=clipByName.get(name);if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}for(const [role,pattern] of Object.entries({idle:/idle|breath|rest/i,walk:/walk|andar/i,run:/run|correr/i,attack:/attack|atacar|slash/i,hit:/hurt|hit|damage/i,death:/death|morte/i})){if(!enemyActions[role]){const clip=enemyClips.find(a=>pattern.test(a.name));if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}}enemyHasDeathClip=!!enemyActions.death;if(enemyActions.idle)playEnemyAnimation('idle',0);else console.warn('Enemy1 original sem animação idle identificável; não usar salto como repouso.');enemyLoadState='ready';console.info('Enemy1 3D original carregado como fallback.');},undefined,e=>{console.error('Falha ao carregar ambos os modelos 3D Enemy1.',e);enemyLoadState='failed';enemyModelRoot.visible=false;enemySprite.visible=false;});});
 
 }
 
+/** MOD 237 — o Enemy1 era escalado pela caixa bruta da malha (sem o esqueleto) e aparecia com ~6 m, mais de três vezes
+    o herói. Agora a altura vem do esqueleto deformado (protocolo de escala GLB), até o topo da cabeça (as asas não
+    contam), e fica perto da altura do herói. Roda depois do retarget do dash/pulo para não mudar esses clipes. */
+function enemy1HeadTop(model){let top=null;model.traverse(o=>{if(top===null&&o.isBone&&/HeadTop_End$/i.test(o.name)){o.updateWorldMatrix(true,false);top=o.getWorldPosition(new THREE.Vector3()).y;}});return top;}
+function enemy1TargetHeight(){return Math.min(1.95,Math.max(1.72,(playerReferenceHeight||1.8)*.97));}
+function normalizeEnemy1Model(model){
+ const b=measureModelBounds(model),top=enemy1HeadTop(model),cur=(top!==null&&top>b.min.y+.3?top:b.max.y)-b.min.y;if(!(cur>.2))return;
+ const k=enemy1TargetHeight()/cur;if(Math.abs(k-1)<.02)return;model.scale.multiplyScalar(k);model.position.multiplyScalar(k);
+ const b2=measureModelBounds(model),root=model.parent?model.parent.getWorldPosition(new THREE.Vector3()).y:0;model.position.y+=root-b2.min.y;
+ window.Enemy1HeightReport={before:+cur.toFixed(2),after:+enemy1TargetHeight().toFixed(2),k:+k.toFixed(3)};
+}
 function spawnEnemyProjectile(kind,spreadAngle=0){
  const group=new THREE.Group(),slash=kind==='slash';
  const dark=new THREE.MeshStandardMaterial({color:0x09080d,emissive:slash?0x210d2d:0x170d28,emissiveIntensity:slash?1.15:.85,metalness:.25,roughness:.35,transparent:true,opacity:.96,depthWrite:false});
@@ -736,10 +750,11 @@ function tryPlayerAttack(){
 }
 function resolvePlayerAttackHit(){
  if(!enemyAlive||!combatStepNow()||!enemy.visible)return;
+ if(squadOn)squadSwingTarget();
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const distance=Math.hypot(dx,dz),facing=(dx*playerAttackFacingX+dz*playerAttackFacingZ)/(distance||1);
  if(distance>SWORDS[equippedSword].reach||facing<.28||Math.abs(player.position.y-enemy.position.y)>1.05){status.textContent=distance>2.0?'Chegue mais perto para acertar o golpe':facing<.28?'O golpe não alcançou o inimigo':'O inimigo está fora da altura do golpe';return;}
- {const crit=Math.random()<.12,dmg=Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*(crit?1.6:1)*comboMultiplier()*scrollMul());enemyHP=Math.max(0,enemyHP-dmg);onEnemyDamaged(dmg,crit);if(equippedSword==='quantum'&&quantumFX)quantumFX.impact(new THREE.Vector3(enemy.position.x,enemy.position.y+1.15,enemy.position.z));}({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));worldAudio.hit();enemyHitFlash=.2;enemyKnockback=comboCount===3?.9:.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
+ {const crit=Math.random()<.12,dmg=Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*(crit?1.6:1)*comboMultiplier()*scrollMul());enemyHP=Math.max(0,enemyHP-dmg);onEnemyDamaged(dmg,crit);if(squadOn)squadCleave(dmg);if(equippedSword==='quantum'&&quantumFX)quantumFX.impact(new THREE.Vector3(enemy.position.x,enemy.position.y+1.15,enemy.position.z));}({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));worldAudio.hit();enemyHitFlash=.2;enemyKnockback=comboCount===3?.9:.42;enemyKnockbackX=dx/(distance||1);enemyKnockbackZ=dz/(distance||1);
  if(enemyCurrentRole==='attack'){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;playEnemyAnimation('idle',.05);}
  status.textContent=enemyHP===0?'Inimigo derrotado!':'Acertou! Vida do inimigo: '+enemyHP+'%';
  if(enemyHP===0){enemyAlive=false;document.getElementById('enemy-hud').style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;status.textContent='Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),850);}
@@ -782,6 +797,7 @@ function startEnemyAttack(role='attack'){
 }
 function enemyAttackContactIsValid(distance,heightDelta,facing){return Number.isFinite(distance)&&distance<=(BOSS_PROFILES.includes(encounterProfile)?3.1:2.4)&&heightDelta<=1.2;}
 function updateEnemyAI(dt){
+ if(squadOn)return;// MOD 237: a esquadra tem IA própria; o inimigo legado é só o procurador do foco
  if(rites.holdTarget===siegeEpoch){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;return;}
  if(swordTraining){if(enemyActions.idle&&enemyCurrentRole!=='idle'&&enemyCurrentRole!=='hit')playEnemyAnimation('idle',.1);return;}
  // MOD 229 — preso no ciclone da Fênix: IA, locomoção e ataques ficam pausados (lease); a posição vem do ciclone.
@@ -1150,7 +1166,7 @@ function enemyHpPercent(){return Math.max(0,Math.min(100,enemyHP/Math.max(1,enem
 function nextDashCooldown(){if(encounterProfile==='warden')return 2.15;if(encounterProfile==='sentry'&&mountainIndex>0)return 1.65;return 2.7;}
 function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;const dimInfo=dimensionForProfile(encounterProfile);el.textContent=dimBattle&&dimBattle.active&&dimInfo?dimInfo.name+' · '+(dimInfo.order<5?dimInfo.order+'º BISPO':'PECADO'):(finaleReady&&finaleNameFor(encounterProfile))?finaleNameFor(encounterProfile):encounterProfile==='vorgazhek'?'VORGAZHEK · SEGUNDO BISPO':encounterProfile==='arena'?'ARENA DO VALE':(lateSystemsReady&&lateDef()&&lateDef().profile===encounterProfile)?lateDef().name:encounterProfile==='warden'?'GUARDIÃO DO PORTAL':(encounterProfile==='demon2'||encounterProfile==='demon3')?'DEMÔNIO DA GANÂNCIA':encounterProfile==='miniboss3'?'GUARDIÃO DA DISTORÇÃO':ROUND_NAMES[encounterProfile]?ROUND_NAMES[encounterProfile]:encounterProfile==='angel'?'ANJO-GUIA':encounterProfile==='demon4'?'GUARDIÃO DA TORRE':encounterProfile==='miniboss4'?'GUARDIÃO DO 6º PISO':encounterProfile==='leader4'?'LÍDER DOS GUARDIÕES':encounterProfile==='bandit4'?'BANDIDO':encounterProfile==='rival'?'DESCONHECIDO':encounterProfile==='miniboss2'?'GUARDIÃO DO TRONO':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;siegeEpoch++;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
-function advanceAfterEnemyDefeat(){if(dimBattle&&dimBattle.active){if(act6GreedDefeat())return;if(questStep===ACT6N.rematch&&!dimBattle.outro){const r=nextRematch(act1Sub);if(r&&r.key===dimBattle.key){dimBattle.outro=true;enemy.visible=true;playStory('revanche-cai',rematchOutroScene(r.key),{focus:'enemy',done:()=>dimensionVictory()});return;}}if(dimBattle.key==='bishop1'&&questStep<8&&!dimBattle.outro){dimBattle.outro=true;valerioOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&questStep===ACT2.boss&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
+function advanceAfterEnemyDefeat(){if(squadOn||performance.now()<squadSwallowUntil)return;if(dimBattle&&dimBattle.active){if(act6GreedDefeat())return;if(questStep===ACT6N.rematch&&!dimBattle.outro){const r=nextRematch(act1Sub);if(r&&r.key===dimBattle.key){dimBattle.outro=true;enemy.visible=true;playStory('revanche-cai',rematchOutroScene(r.key),{focus:'enemy',done:()=>dimensionVictory()});return;}}if(dimBattle.key==='bishop1'&&questStep<8&&!dimBattle.outro){dimBattle.outro=true;valerioOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&questStep===ACT2.boss&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
 function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
 function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;const root=vendorRoots[villageVendors.indexOf(vendor)];if(root){faceTo(root,player.position);faceTo(player,root.position);}if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
@@ -1446,6 +1462,7 @@ function castHolyMagic(kind){
 function updateHolyProjectiles(dt){
  updateSiege(dt);updateStarfall(dt);updatePhoenix(dt);updateExtraSkills(dt);
  for(let i=holyProjectiles.length-1;i>=0;i--){const p=holyProjectiles[i];if(p.orbit>0){p.orbit-=dt;p.oa+=dt*7;p.group.position.set(player.position.x+Math.sin(p.oa)*1.3,player.position.y+1.5+Math.sin(p.oa*2)*.15,player.position.z+Math.cos(p.oa)*1.3);p.group.rotation.y=p.oa+Math.PI/2;if(p.orbit<=0){const tx=(enemy.visible&&enemyAlive?enemy.position.x:p.group.position.x+Math.sin(playerYaw))-p.group.position.x,tz=(enemy.visible&&enemyAlive?enemy.position.z:p.group.position.z+Math.cos(playerYaw))-p.group.position.z,d=Math.hypot(tx,tz)||1;p.dirX=tx/d;p.dirZ=tz/d;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}continue;}p.delay-=dt;if(p.delay>0)continue;p.life-=dt;if(p.kind==='arc'){const k=1-p.life/.6;p.group.scale.setScalar(1+k*1.3);p.group.traverse(o=>{if(o.material&&o.material.transparent)o.material.opacity=Math.max(0,(o.material===p.arcMat?.9:.55)*(1-k));});}if(p.homing&&enemy.visible&&enemyAlive){const hx=enemy.position.x-p.group.position.x,hz=enemy.position.z-p.group.position.z,hd=Math.hypot(hx,hz)||1;p.dirX+=(hx/hd-p.dirX)*Math.min(1,dt*5);p.dirZ+=(hz/hd-p.dirZ)*Math.min(1,dt*5);const n=Math.hypot(p.dirX,p.dirZ)||1;p.dirX/=n;p.dirZ/=n;p.group.rotation.y=Math.atan2(p.dirX,p.dirZ);}p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind==='sun'){p.group.position.y+=Math.sin(performance.now()*.006)*dt*.22;p.group.rotation.y+=dt*2;}else p.group.rotation.z+=dt*2;
+  if(squadOn&&!p.hit&&squadProjectileHit(p))p.life=0;
   const d=Math.hypot(p.group.position.x-enemy.position.x,p.group.position.z-enemy.position.z);
   if(!p.hit&&enemyAlive&&combatStepNow()&&enemy.visible&&d<(p.kind==='arc'?1.9:1.15)&&Math.abs(p.group.position.y-(enemy.position.y+1))<1.8){p.hit=true;enemyHP=Math.max(0,enemyHP-p.damage);onEnemyDamaged(p.damage,p.kind==='ultimate');if(p.kind==='sun')burnEnemy();enemyHitFlash=.2;setEnemyHitFlash(true);setTimeout(()=>setEnemyHitFlash(false),130);const fill=document.getElementById('enemy-hp-fill');if(fill)fill.style.width=enemyHpPercent()+'%';p.life=0;if(enemyHP===0){enemyAlive=false;playEnemyAnimation('death',.06,true);status.textContent='A luz venceu este inimigo. Caminho liberado.';setTimeout(()=>advanceAfterEnemyDefeat(),650);}}
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
@@ -1508,6 +1525,7 @@ function playerBlockedAt(x,z){
  if(blockedAt(x,z))return true;
  if(!voidMode&&[...vendorRoots,...villagerWalkers.map(w=>w.holder)].some(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8))return true;
  if(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(s=>Math.abs(x-s.x)<.72&&Math.abs(z-s.z)<.72))return true;
+ if(squadBlocks(x,z))return true;
  return !!(enemy&&enemy.visible&&enemyAlive&&Math.hypot(x-enemy.position.x,z-enemy.position.z)<.86);
 }
 function enemyBlockedAt(x,z){
@@ -1669,7 +1687,7 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);
-updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);updateInstanceCulling();checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);updateInstanceCulling();checkSecretRuin();
  updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -2114,7 +2132,8 @@ const lockRing=new THREE.Mesh(new THREE.RingGeometry(.62,.72,4),new THREE.MeshBa
 lockRing.rotation.x=-Math.PI/2;lockRing.visible=false;scene.add(lockRing);
 function lockTargetValid(){return enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;}
 function toggleLockOn(){
- if(lockOnActive){lockOnActive=false;}else if(lockTargetValid()){lockOnActive=true;worldAudio.lockOn();}else{status.textContent='Nenhum inimigo por perto para travar a mira.';}
+ if(squadOn&&lockOnActive&&squadCycleFocus())return;// MOD 237: com vários inimigos, MIRAR alterna o alvo antes de soltar
+ if(lockOnActive){lockOnActive=false;squadManual=false;}else if(lockTargetValid()){lockOnActive=true;squadManual=squadOn;squadCycleN=0;worldAudio.lockOn();}else{status.textContent='Nenhum inimigo por perto para travar a mira.';}
  const b=document.getElementById('aim');if(b)b.classList.toggle('on',lockOnActive);
 }
 function updateLockOn(dt){
@@ -2978,7 +2997,7 @@ function disposeClone(c){if(!c)return;c.mixer.stopAllAction();scene.remove(c.hol
 function startPack(o){
  clearPack();pendingRelease=false;const rigName=o.rig||'enemy1';
  const go=()=>{
-  pack={...o,rig:rigName,index:0,clones:o.spots.map(s=>makeFoeClone(rigName,s,o.cloneOpts)),active:false};
+  pack={...o,rig:rigName,index:0,clones:o.spots.map(s=>makeFoeClone(rigName,s,o.cloneOpts)),active:false,squad:rigName==='enemy1'&&!SQUAD_LEGACY};
   if(!o.hold||pendingRelease){pendingRelease=false;packNext();}
  };
  if(rigName!=='enemy1'&&!rigs[rigName])loadRig(rigName).then(go,()=>{console.warn('Rig '+rigName+' não carregou; usando Enemy1.');o.rig='enemy1';startPack(o);});else go();
@@ -2986,6 +3005,7 @@ function startPack(o){
 var pendingRelease=false;
 function releasePack(){if(pack&&!pack.active)packNext();else pendingRelease=true;}
 function packNext(){
+ if(pack&&pack.squad){if(!squadOn)startSquadPack();return;}
  if(!pack||pack.index>=pack.spots.length)return;const i=pack.index,c=pack.clones[i],spot=c?{x:c.holder.position.x,z:c.holder.position.z}:pack.spots[i];
  if(c){disposeClone(c);pack.clones[i]=null;}
  enemy.visible=false;useRig(pack.rig);revealEncounter(pack.profile,spot,pack.hp,pack.intro||'');
@@ -2993,10 +3013,11 @@ function packNext(){
  if(inSewer){const cp=sewerLocal(sewerCheckpoint(questStep,act1Sub));checkpointX=cp.x;checkpointZ=cp.z;}
  pack.active=true;syncEnemyLabel();
 }
-function clearPack(){if(!pack)return;for(const c of pack.clones)disposeClone(c);pack=null;}
+function clearPack(){if(squadOn||(pack&&pack.squad))squadAbort();if(!pack)return;for(const c of pack.clones)if(c)disposeClone(c);pack=null;}
 /** Chamado quando o inimigo ativo do grupo cai. Retorna true se o grupo tratou a queda. */
 function packHandleDefeat(){
  if(!pack||!pack.active)return false;
+ if(pack.squad)return true;// MOD 237: a esquadra fecha o encontro sozinha (finishSquad)
  registerEnemyDefeat(pack.profile);enemy.visible=false;enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;
  pack.index++;pack.active=false;if(pack.onEach)pack.onEach(pack.index);
  if(pack.index>=pack.spots.length){const done=pack.onDone;pack=null;packFinishing=true;useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;setTimeout(()=>{packFinishing=false;if(done)done();},700);return true;}
@@ -3010,6 +3031,217 @@ function updatePack(dt){
   if(c.approach){const d=Math.hypot(tx.x-h.position.x,tx.z-h.position.z);if(d>c.approach){const s=Math.min(dt*1.1,d-c.approach);h.position.x+=(tx.x-h.position.x)/d*s;h.position.z+=(tx.z-h.position.z)/d*s;}}
   h.position.y=terrainHeightAt(h.position.x,h.position.z);}
 }
+/* ---------- MOD 237 — Enemy1 em esquadra simultânea ----------
+   Todos os Enemy1 de uma cena lutam ao mesmo tempo (enemy1-squad3d.js + enemy1-squad-runtime3d.js). O inimigo "legado"
+   vira um procurador invisível do ator em foco: golpes, magias, mira e HUD do herói continuam mirando enemy/enemyHP, e a
+   diferença de vida/posição vai para o ator certo. Corte da espada, projéteis e magias em área alcançam os outros atores.
+   ?esquadraLegada=1 volta ao modo antigo (um por vez). ?testeEnemy1=1 abre o laboratório isolado do progresso. */
+var squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
+const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=new Map();
+function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z);if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
+function squadRuntime(){
+ if(squadRT)return squadRT;
+ squadRT=createEnemy1SquadRuntime({T:THREE,scene,ground:terrainHeightAt,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
+  source:()=>rigSource('enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
+ return squadRT;
+}
+const squadSq=()=>squadRT&&squadRT.squad;
+const squadAlive=()=>{const s=squadSq();return s?s.actors.filter(a=>a.alive):[];};
+/** Vida por encontro: Enemy1 comum bem mais resistente (100→180 no Ato I), Guardião ~1,6×; grupos grandes um pouco menos. */
+function squadHp(P,kind,n){return kind==='warden'?Math.round((P.hp||300)*1.6):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
+function startSquadPack(){
+ const P=pack;if(!P)return;const src=rigSource('enemy1');if(!src||!src.model){P.squad=false;packNext();return;}
+ const kind=P.profile==='warden'?'warden':'common',n=P.spots.length,rt=squadRuntime();
+ const spots=P.spots.map((s,i)=>{const c=P.clones[i],x=c?c.holder.position.x:s.x,z=c?c.holder.position.z:s.z;return{x,z,yaw:Math.atan2(player.position.x-x,player.position.z-z),kind,hp:squadHp(P,kind,n)};});
+ for(let i=0;i<P.clones.length;i++)if(P.clones[i]){disposeClone(P.clones[i]);P.clones[i]=null;}
+ squadBlockCache.clear();squadStopAt=0;rt.start(spots,{seed:(questStep*131+act1Sub*17+n*7+1)|0});
+ squadOn=true;squadFocus=null;squadManual=false;squadEndAt=0;squadKnock=null;
+ enemy.visible=false;useRig('enemy1');revealEncounter(P.profile,spots[0],spots[0].hp,P.intro||'');
+ if(inSewer){const cp=sewerLocal(sewerCheckpoint(questStep,act1Sub));checkpointX=cp.x;checkpointZ=cp.z;}
+ P.active=true;P.index=0;squadLabelN=0;pickSquadFocus(true);writeSquadProxy();syncEnemyLabel();
+ if(n>1&&!P.lab)showCombatCallout(n+' SEGUIDORES ATACAM JUNTOS');
+}
+function squadAbort(){if(!squadRT)return;squadOn=false;squadFocus=null;squadRT.stop();for(const al of squadAllies.splice(0))disposeClone(al.c);enemyModelRoot.visible=true;enemyGroundShadow.visible=true;}
+function hideSquadProxy(){enemyModelRoot.visible=false;enemySprite.visible=false;enemyGroundShadow.visible=false;wardenRing.visible=false;}
+function writeSquadProxy(){
+ const f=squadFocus;if(!f)return;hideSquadProxy();
+ enemy.position.set(f.x,f.y,f.z);enemy.rotation.set(0,f.yaw,0);enemy.scale.setScalar(1);enemyHP=f.hp;enemyMaxHP=f.maxHp;enemyAlive=true;enemy.visible=true;
+ enemyKnockback=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;enemyDashRemaining=0;wardenFanPending=false;
+ squadProxy.hp=enemyHP;squadProxy.x=f.x;squadProxy.z=f.z;
+}
+/** Foco automático: o inimigo à frente e perto (com histerese); MIRAR trava e alterna entre eles. */
+function pickSquadFocus(force){
+ const live=squadAlive();if(!live.length){squadFocus=null;return;}
+ if(squadFocus&&!squadFocus.alive){squadFocus=null;squadManual=false;}
+ if(squadManual&&squadFocus&&lockOnActive)return;
+ const fx=Math.sin(playerYaw),fz=Math.cos(playerYaw),score=a=>{const dx=a.x-player.position.x,dz=a.z-player.position.z,d=Math.hypot(dx,dz)||1;return -d+(dx*fx+dz*fz)/d*2.4;};
+ let best=null,bs=-Infinity;for(const a of live){const s=score(a);if(s>bs){bs=s;best=a;}}
+ if(force||!squadFocus||bs>score(squadFocus)+.9)squadFocus=best;
+}
+function squadCycleFocus(){
+ const live=squadAlive();if(live.length<2)return false;
+ const order=live.map(a=>({a,ang:Math.atan2(a.x-player.position.x,a.z-player.position.z)})).sort((p,q)=>p.ang-q.ang).map(p=>p.a);
+ if(++squadCycleN>=order.length)return false;const i=order.indexOf(squadFocus);
+ squadFocus=order[(i+1)%order.length];squadManual=true;writeSquadProxy();worldAudio.lockOn();return true;
+}
+function squadBlocks(x,z){if(!squadOn)return false;for(const a of squadAlive())if(a!==squadFocus&&Math.hypot(x-a.x,z-a.z)<a.T.radius+.42)return true;return false;}
+/** Raio da magia do herói que está ativa agora (para o dano em área alcançar os outros atores). */
+function squadAreaRadius(){
+ if(whiteHole.active)return 9;if(phoenix.active)return 3.2;if(starfall.active)return 3;
+ const dr=EXTRA_RUN.skill_judgment_dragon;if(dr&&dr.active&&(dr.phase==='compress'||dr.phase==='explode'))return 3.5;
+ const tp=EXTRA_RUN.skill_twin_portals;if(tp&&tp.active&&tp.phase==='burst')return 2.6;
+ if(siege.active)return 1.8;return 0;
+}
+/** O corte da espada pega quem mais estiver no arco e no alcance (60% do dano). */
+function squadCleave(dmg){
+ const s=squadSq();if(!s)return;const R=SWORDS[equippedSword].reach;
+ for(const a of squadAlive()){if(a===squadFocus)continue;const dx=a.x-player.position.x,dz=a.z-player.position.z,d=Math.hypot(dx,dz)||1;if(d-a.T.radius>R||(dx*playerAttackFacingX+dz*playerAttackFacingZ)/d<.28)continue;
+  const n=s.damageActor(a.id,Math.round(dmg*.6),{x:player.position.x,z:player.position.z,kind:'melee',by:'hero'});squadHitFx(a,n);}
+}
+/** Antes de resolver o golpe: se o foco está fora do alcance e outro está à frente, o golpe vai nele. */
+function squadSwingTarget(){
+ if(squadManual&&lockOnActive)return;const R=SWORDS[equippedSword].reach;let best=null,bd=Infinity;
+ for(const a of squadAlive()){const dx=a.x-player.position.x,dz=a.z-player.position.z,d=Math.hypot(dx,dz)||1;if(d>R+.5||(dx*playerAttackFacingX+dz*playerAttackFacingZ)/d<.28)continue;if(d<bd){bd=d;best=a;}}
+ if(best&&best!==squadFocus){squadFocus=best;writeSquadProxy();}
+}
+/** Projéteis do herói também acertam os atores que não estão em foco. */
+function squadProjectileHit(p){
+ const s=squadSq();if(!s)return false;const r=p.kind==='arc'?1.9:1.15;
+ for(const a of squadAlive()){if(a===squadFocus)continue;if(Math.hypot(p.group.position.x-a.x,p.group.position.z-a.z)<r&&Math.abs(p.group.position.y-(a.y+1))<1.8){p.hit=true;const n=s.damageActor(a.id,p.damage,{x:p.group.position.x,z:p.group.position.z,kind:'spell',by:'hero'});squadHitFx(a,n);return true;}}
+ return false;
+}
+function squadHitFx(a,n){if(!squadRT)return;squadRT.flash(a.id);const p=new THREE.Vector3(a.x,a.y+1.5,a.z);damageNumber(p,n>0?String(n):'ESQUIVOU',n>0?'':'blocked');if(n>0){burstSparks(p,0xffc860);worldAudio.hit();}}
+function squadDamageTarget(id,dmg,info){
+ const n=squadAlive().length,mul=n>=4?.72:n===3?.84:1,amount=Math.max(1,Math.round(dmg*mul));
+ if(id==='hero'){
+  const wasDef=defending;if(!damagePlayerFromEnemyAttack(amount))return 'evaded';
+  if(info.guardBreak&&defending){setDefending(false);showCombatCallout('GUARDA QUEBRADA');}
+  if(info.knock&&playerHP>0){const dx=player.position.x-info.x,dz=player.position.z-info.z,l=Math.hypot(dx,dz)||1;squadKnock={x:dx/l*info.knock*3,z:dz/l*info.knock*3,t:.25};}
+  return wasDef?'blocked':'hit';
+ }
+ const al=squadAllies.find(x=>x.id===id);if(al)return allyHurt(al,amount,info);
+ return 'immune';
+}
+const SQUAD_NAMES={claws:'GARRAS DO ABISMO',spiral:'ESPIRAL DEVORADORA',judgment:'JUÍZO VIOLETA'};
+function squadNear(x,z,r){return Math.hypot(x-player.position.x,z-player.position.z)<r;}
+function squadEvent(type,d){
+ const a=d&&d.actor,s=d&&d.spell;
+ switch(type){
+  case 'cast':worldAudio.dark&&worldAudio.dark(d.skill);if(a.kind==='warden'||squadAlive().length<=2||d.skill==='judgment')showCombatCallout(SQUAD_NAMES[d.skill]);break;
+  case 'clawsRise':worldAudio.dark&&worldAudio.dark('rise');if(squadNear(s.x,s.z,9))cameraShake(.1);break;
+  case 'grab':if(d.target==='hero'){showCombatCallout('PRESO — DASH PARA SE SOLTAR');status.textContent='As Garras do Abismo te prenderam. Use o DASH para se soltar.';worldAudio.hurt();}break;
+  case 'release':if(d.target==='hero'&&d.escaped)showCombatCallout('LIVRE!');break;
+  case 'spiral':worldAudio.whoosh();break;
+  case 'burst':if(s.type==='spiral'||s.why==='hit'){worldAudio.dark&&worldAudio.dark('impact');if(squadNear(s.x,s.z,7))cameraShake(s.why==='hit'?.16:.08);}break;
+  case 'judgmentLock':worldAudio.dark&&worldAudio.dark('lock');break;
+  case 'judgmentBeam':worldAudio.dark&&worldAudio.dark('beam');break;
+  case 'judgmentBlast':worldAudio.dark&&worldAudio.dark('blast');if(squadNear(s.mx,s.mz,12))cameraShake(.24);break;
+  case 'clash':showCombatCallout(d.outcome==='enemy'?'CONTRA-SELO!':d.outcome==='foreign'?'SUA MAGIA VENCEU':'CHOQUE DE MAGIAS');worldAudio.parry();hitStop(70);cameraShake(.14);break;
+  case 'counterCast':if(squadAlive().length<=2)showCombatCallout('CONTRA-SELO');break;
+  case 'blocked':worldAudio.block();break;
+  case 'guardBreak':showCombatCallout('GUARDA DO INIMIGO QUEBRADA');worldAudio.parry();break;
+  case 'dodge':worldAudio.whoosh();break;
+  case 'reap':showCombatCallout('CEIFA DO ABISMO');break;
+  case 'phase2':showCombatCallout('O GUARDIÃO DESPERTA');worldAudio.roar();cameraShake(.3);status.textContent='O Guardião do Portal desperta a fúria: mais rápido e com garras maiores.';break;
+  case 'death':{const P=pack;if(!P)break;if(!P.lab)registerEnemyDefeat(P.profile);P.index++;if(P.onEach)P.onEach(P.index);worldAudio.hit();cameraShake(.2);if(a===squadFocus){squadFocus=null;squadManual=false;}break;}
+ }
+}
+/** Liga a esquadra ao laço: lê o que o herói fez no procurador, roda a lógica, escolhe o foco e devolve o procurador. */
+function updateSquadCombat(dt,now){
+ if(ENEMY1_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigSource('enemy1'))startEnemy1Lab('2');else loadEnemyModel();}
+ if(squadStopAt&&now>=squadStopAt&&!squadOn){squadStopAt=0;squadRT&&squadRT.stop();}
+ if(!squadOn){if(squadRT&&squadRT.squad)squadRT.update(dt,{camera,quality:graphics3DMode==='low'?0:1});return;}
+ const s=squadSq();if(!s)return;
+ // 1) o que o herói fez no procurador vai para o ator em foco
+ const f=squadFocus;
+ if(f&&f.alive){
+  const lost=squadProxy.hp-enemyHP;
+  if(lost>0){const n=s.damageActor(f.id,lost,{x:player.position.x,z:player.position.z,kind:'melee',by:'hero'});squadRT.flash(f.id);if(n<lost){const p=new THREE.Vector3(f.x,f.y+2,f.z);damageNumber(p,n>0?'DEFENDEU':'ESQUIVOU','blocked');}
+   const R=squadAreaRadius();if(R>0)for(const o of squadAlive())if(o!==f&&Math.hypot(o.x-f.x,o.z-f.z)<R){const m=s.damageActor(o.id,lost,{x:f.x,z:f.z,kind:'area',by:'hero'});squadHitFx(o,m);}}
+  const mx=enemy.position.x-squadProxy.x,mz=enemy.position.z-squadProxy.z,md=Math.hypot(mx,mz);if(md>1e-3&&md<4&&!squadBlocked(f.x+mx,f.z+mz)){f.x+=mx;f.z+=mz;}
+  if(enemyKnockback>0){f.kx+=enemyKnockbackX*enemyKnockback*3;f.kz+=enemyKnockbackZ*enemyKnockback*3;enemyKnockback=0;}
+ }
+ if(!enemyAlive||enemyHP<=0)squadSwallowUntil=now+1600;
+ // 2) sinais visíveis do herói para a memória curta dos inimigos
+ if(attackCooldown>squadEdge.atk+100){s.observe('hero','melee');}squadEdge.atk=attackCooldown;
+ const dashing=dashRemaining>0;if(dashing&&!squadEdge.dash){s.observe('hero','dash');if(s.heldBy('hero')&&!s.breakFree('hero')){dashRemaining=0;status.textContent='Ainda preso — espere as garras afrouxarem e use o DASH de novo.';}}squadEdge.dash=dashing;
+ if(defending&&!squadEdge.def)s.observe('hero','block');squadEdge.def=defending;
+ if(playerMana<squadEdge.mana-4){s.observe('hero','cast');squadEdge.castUntil=now+700;}squadEdge.mana=playerMana;
+ // 3) presa nas garras: o herói fica ancorado (pode golpear, não anda)
+ const held=s.heldBy('hero');if(held&&playerHP>0){moveVX=moveVZ=0;const k=Math.min(1,dt*7);player.position.x+=(held.ax-player.position.x)*k;player.position.z+=(held.az-player.position.z)*k;}
+ if(squadKnock&&!held){const k=Math.min(1,dt/squadKnock.t);const nx=player.position.x+squadKnock.x*dt*4,nz=player.position.z+squadKnock.z*dt*4;if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;squadKnock.t-=dt;if(squadKnock.t<=0)squadKnock=null;void k;}
+ // 4) lógica + corpos + VFX
+ const targets=[{id:'hero',team:'hero',x:player.position.x,y:player.position.y,z:player.position.z,vx:moveVX,vz:moveVZ,radius:.42,height:playerReferenceHeight||1.7,alive:playerHP>0,priority:1,
+  iframes:dashing||now<playerInvulnerableUntil,dashing,blocking:defending,attacking:now<attackCooldown-160||!!rites.active,casting:now<squadEdge.castUntil,ccResist:0}];
+ for(const al of squadAllies)targets.push(allyTarget(al));
+ const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
+ const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull;
+ squadRT.update(dt,{targets,foreign,camera,quality:graphics3DMode==='low'?0:1,paused});
+ updateAllies(dt);
+ // 5) foco e procurador
+ pickSquadFocus(false);
+ const nAlive=squadAlive().length;if(nAlive){writeSquadProxy();if(nAlive!==squadLabelN){squadLabelN=nAlive;syncEnemyLabel();const el=document.getElementById('enemy-name');if(el&&nAlive>1)el.textContent+=' ×'+nAlive;}}
+ else if(!squadEndAt){squadEndAt=now+1300;enemyAlive=false;enemy.visible=false;document.getElementById('enemy-hud').style.display='none';squadSwallowUntil=now+2600;}
+ if(squadEndAt&&now>=squadEndAt)finishSquad();
+}
+/** Fim do encontro: todos caíram. Mesmo fechamento do pacote antigo (onDone, perfil e rig de volta). */
+function finishSquad(){
+ const P=pack;squadOn=false;squadFocus=null;squadEndAt=0;squadStopAt=performance.now()+3200;enemyModelRoot.visible=true;enemyGroundShadow.visible=true;
+ lockOnActive=false;{const b=document.getElementById('aim');if(b)b.classList.remove('on');}
+ for(const al of squadAllies.splice(0))disposeClone(al.c);
+ if(P&&P.lab){pack=null;enemy.visible=false;enemyAlive=true;status.textContent='Encontro vencido. Escolha outro teste no painel.';labHud();return;}
+ const done=P&&P.onDone;pack=null;packFinishing=true;enemy.visible=false;enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;wardenRing.visible=false;
+ useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;squadSwallowUntil=performance.now()+1600;
+ setTimeout(()=>{packFinishing=false;if(done)done();},700);
+}
+/* NPC aliado (laboratório): luta contra a esquadra, foge das áreas telegrafadas e pode ser preso pelas garras. */
+function allyTarget(al){return{id:al.id,team:'ally',x:al.c.holder.position.x,y:al.c.holder.position.y,z:al.c.holder.position.z,vx:al.vx,vz:al.vz,radius:.4,height:1.85,alive:al.hp>0,priority:.85,iframes:false,dashing:false,blocking:false,attacking:al.swing>0,casting:false,ccResist:.2};}
+function allyHurt(al,n,info){if(al.hp<=0)return 'immune';al.hp=Math.max(0,al.hp-n);const h=al.c.holder,p=new THREE.Vector3(h.position.x,h.position.y+2,h.position.z);damageNumber(p,'-'+n,'hurt');if(al.hp===0){al.dead=0;foeFinalBlow(al.c,false);status.textContent='O aliado caiu.';}labHud();return 'hit';}
+function allyPlay(al,role,once){const src=rigs.anjo,act=src&&src.actions[role];if(!act)return;if(al.role===role&&!once)return;al.role=role;al.c.mixer.stopAllAction();const a=al.c.mixer.clipAction(act.getClip());a.reset();a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);a.clampWhenFinished=!!once;a.play();}
+function spawnAlly(){
+ loadRig('anjo').then(()=>{const id='ally'+(squadAllies.length+1),sp={x:player.position.x+1.6,z:player.position.z-1.2},c=makeFoeClone('anjo',sp,{role:'idle'});if(!c)return;
+  const al={id,c,hp:240,max:240,vx:0,vz:0,cd:.8,swing:0,role:'idle',flee:0};squadAllies.push(al);status.textContent='Um aliado entra na luta.';labHud();}).catch(()=>{status.textContent='O aliado não carregou.';});
+}
+function updateAllies(dt){
+ const s=squadSq();if(!s)return;const zones=s.dangerZones();
+ for(const al of squadAllies){
+  const h=al.c.holder;if(al.hp<=0)continue;al.c.mixer.update(dt);al.cd-=dt;
+  if(al.swing>0){al.swing-=dt;if(al.swing<=.25&&!al.struck){al.struck=true;const t=s.actor(al.tid);if(t&&t.alive&&Math.hypot(t.x-h.position.x,t.z-h.position.z)<2.3){const n=s.damageActor(t.id,14,{x:h.position.x,z:h.position.z,kind:'melee',by:al.id});squadHitFx(t,n);}}continue;}
+  if(s.heldBy(al.id)){al.vx=al.vz=0;allyPlay(al,'idle');continue;}
+  let wx=0,wz=0,sp=0;const z=zones.find(q=>Math.hypot(h.position.x-q.x,h.position.z-q.z)<q.r+.7);
+  if(z){const dx=h.position.x-z.x,dz=h.position.z-z.z,l=Math.hypot(dx,dz)||1;wx=dx/l;wz=dz/l;sp=4.2;}
+  else{let best=null,bd=Infinity;for(const a of s.actors)if(a.alive){const d=Math.hypot(a.x-h.position.x,a.z-h.position.z);if(d<bd){bd=d;best=a;}}
+   if(best){h.rotation.y=Math.atan2(best.x-h.position.x,best.z-h.position.z);if(bd>1.8){wx=(best.x-h.position.x)/bd;wz=(best.z-h.position.z)/bd;sp=bd>5?3.6:1.8;}else if(al.cd<=0){al.cd=1.35;al.swing=.6;al.struck=false;al.tid=best.id;allyPlay(al,'attack',true);continue;}}}
+  al.vx=wx*sp;al.vz=wz*sp;const nx=h.position.x+al.vx*dt,nz=h.position.z+al.vz*dt;if(!squadBlocked(nx,h.position.z))h.position.x=nx;if(!squadBlocked(h.position.x,nz))h.position.z=nz;
+  h.position.y=terrainHeightAt(h.position.x,h.position.z);if(sp>0&&z)h.rotation.y=Math.atan2(wx,wz);allyPlay(al,sp>2.6?'run':sp>0?'walk':'idle');
+ }
+}
+/* Laboratório do Enemy1 (?testeEnemy1=1): encontros sem tocar no progresso real. */
+function startEnemy1Lab(mode){
+ const first=!squadLab;squadLab={mode};menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
+ if(cineDirector.active)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);rites.cancel('lab');swordTraining=false;
+ for(const id of ['start-gate','name-panel','dialog-panel','loading']){const el=document.getElementById(id);if(el){el.hidden=true;el.classList.add('hidden');}}
+ if(first){questStep=2;act1Sub=0;for(const id of ['magic','magic2','magic3','ultimate'])ownedItems.add(id);refreshSkillUnlocks();player.position.set(40,terrainHeightAt(40,22),22);playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;cameraPitch=.22;cameraDistance=6;labPanel();}
+ playerHP=playerMaxHP;playerMana=100;updatePlayerHud();
+ const px=player.position.x,pz=player.position.z,ring=(n,r,a0=0)=>Array.from({length:n},(_,i)=>{const a=a0+(i-(n-1)/2)*.75;return{x:px+Math.sin(a)*r,z:pz+Math.cos(a)*r};});
+ const cfg={'1':{n:1,prof:'captor'},'2':{n:2,prof:'captor'},'4':{n:4,prof:'captor'},warden:{n:1,prof:'warden'},clash:{n:1,prof:'captor'}}[mode]||{n:2,prof:'captor'};
+ pack={lab:true,squad:true,rig:'enemy1',profile:cfg.prof,hp:cfg.prof==='warden'?ACT1.wardenHp:110,spots:ring(cfg.n,mode==='clash'?8.5:9,playerYaw),clones:[],index:0,active:false,intro:'Laboratório Enemy1'};
+ startSquadPack();
+ if(mode==='clash'){const s=squadSq();s.forceCounter=true;for(const a of s.actors){a.T={...a.T,claws:{...a.T.claws,cd:999},spiral:{...a.T.spiral,cd:999},judgment:{...a.T.judgment,cd:999}};a.intent.mode='hold';a.alert=1e9;}squadLab.clashT=1.2;squadLab.clashN=0;}
+ labHud();
+}
+function labPanel(){
+ const el=document.createElement('div');el.id='enemy1-lab';el.style.cssText='position:fixed;top:calc(env(safe-area-inset-top) + 132px);left:8px;z-index:30;display:flex;flex-wrap:wrap;gap:3px;max-width:250px;font:600 11px system-ui;pointer-events:auto';
+ const B=(t,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.style.cssText='all:unset;box-sizing:border-box;background:#1d1230d9;border:1px solid #9a6cff;color:#f2e8ff;padding:6px 8px;border-radius:7px;min-width:30px;text-align:center;font:700 11px system-ui;cursor:pointer;line-height:1.1';bindInstantTap(b,fn);el.appendChild(b);};
+ B('1',()=>startEnemy1Lab('1'));B('2',()=>startEnemy1Lab('2'));B('4',()=>startEnemy1Lab('4'));B('GUARDIÃO',()=>startEnemy1Lab('warden'));B('+ ALIADO',()=>spawnAlly());B('CLASH',()=>startEnemy1Lab('clash'));B('↺',()=>startEnemy1Lab(squadLab.mode));B('LOG',()=>{squadLab.log=!squadLab.log;labHud();});
+ const hud=document.createElement('div');hud.id='enemy1-lab-hud';hud.style.cssText='width:100%;text-align:left;color:#e9dcff;text-shadow:0 1px 2px #000;font:600 11px system-ui;white-space:pre;pointer-events:none';el.appendChild(hud);document.body.appendChild(el);
+}
+function labHud(){const el=document.getElementById('enemy1-lab-hud');if(!el||!squadLab)return;const s=squadSq();const lines=(s?s.actors:[]).map((a,i)=>(a.kind==='warden'?'GUARDIÃO':'ENEMY1 '+(i+1))+(a===squadFocus?' ◆ ':' · ')+(a.alive?a.hp+'/'+a.maxHp:'caído')+(squadLab.log&&a.alive?' · '+(a.act?(a.act.skill||a.act.type):a.intent.mode)+' · '+a.role:''));for(const al of squadAllies)lines.push('ALIADO · '+(al.hp>0?al.hp+'/'+al.max:'caído'));el.textContent=lines.join('\n');}
+function updateEnemy1Lab(dt){
+ if(!squadLab)return;if((squadLab.hudT=(squadLab.hudT||0)-dt)<=0){squadLab.hudT=.25;labHud();}
+ if(squadLab.mode==='clash'&&squadOn&&squadFocus){squadLab.clashT-=dt;if(squadLab.clashT<=0){squadLab.clashT=2.8;faceTo(player,squadFocus);spawnHolyProjectile(squadLab.clashN++%2?'sun':'arc');status.textContent='CLASH: o Enemy1 responde à sua magia com o Contra-selo.';}}
+}
+const SQUAD_LEGACY=new URLSearchParams(location.search).has('esquadraLegada');
 /* ---------- Cenários do Ato I no mundo: vila arruinada, gaiolas, massacre e entrada do esgoto ---------- */
 const VILLAGE_KIT=[
  {k:'CasaA',x:-6,z:-16},{k:'CasaB',x:2,z:-17.5},{k:'CasaC',x:10,z:-14},{k:'CasaA',x:-8,z:15},{k:'CasaC',x:1,z:17.5},{k:'CasaB',x:9.5,z:14.5},
@@ -5319,7 +5551,7 @@ function runFoeMove(m,k){
  }
 }
 function updateFoeKit(dt){
- if(swordTraining)return;
+ if(swordTraining||squadOn)return;
  const prof=encounterProfile,kit=kitFor(prof);if(!kit)return;
  const fight=prof+':'+enemyMaxHP;if(fight!==kitState.fight){kitState.fight=fight;kitState.cds={};kitState.t=2.5;kitState.last='';if(kitState.aura){kitState.aura.dispose();kitState.aura=null;}}
  // Aura de batalha (estilo Sol's RNG) quando o chefe ou a elite entra em fúria (menos de 50% de vida).
@@ -5682,6 +5914,14 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  whiteCancel(){finishWhiteHole();return this.whiteState();},
  whiteState(){return {fog:scene.fog?[scene.fog.color.getHexString(),scene.fog.near,scene.fog.far]:null,bg:scene.background?.isColor?scene.background.getHexString():null,active:whiteHole.active,locked:whiteLease.locked,phase:whiteHole.phase,time:whiteHole.time,hp:enemyHP,mana:playerMana,pos:player.position.toArray(),modelPos:model.position.toArray(),savedModelPos:whiteLease.snapshot?.modelPosition.toArray(),savedCamera:whiteLease.snapshot?.cam.toArray(),camera:camera.position.toArray(),yaw:cameraYaw,pitch:cameraPitch,distance:cameraDistance,flash:whiteOverlay.style.opacity,context:siegeContext()};},
  gripQA(){const a=swordHand.getWorldPosition(new THREE.Vector3()),b=swordMount.getWorldPosition(new THREE.Vector3());return {error:a.distanceTo(b),angle:swordHand.getWorldQuaternion(new THREE.Quaternion()).normalize().angleTo(swordMount.getWorldQuaternion(new THREE.Quaternion()).normalize()),hand:a.toArray(),mount:b.toArray(),run:actions.run?.getClip().name,view:swordView?.stats()};},
+  /** MOD 237 — esquadra Enemy1: estado, laboratório e medidas de altura (esqueleto deformado). */
+  squadState(){const s=squadSq();return{on:squadOn,focus:squadFocus&&squadFocus.id,enemyHP,enemyMaxHP,enemyAlive,visible:enemy.visible,profile:encounterProfile,q:questStep,sub:act1Sub,pack:pack?{n:pack.spots.length,i:pack.index,active:pack.active,squad:!!pack.squad,lab:!!pack.lab}:null,hero:playerHP,snap:s?s.snapshot():null,allies:squadAllies.map(a=>a.hp),lock:lockOnActive};},
+  squadLab(m){startEnemy1Lab(m);return this.squadState();},
+  squadPose(id,x,z,yaw,pause=true){const s=squadSq();if(!s)return null;const a=s.actor(id);if(!a)return null;a.x=x;a.z=z;a.y=terrainHeightAt(x,z);a.yaw=yaw||0;a.alert=pause?1e9:0;a.act=null;a.intent.mode='hold';a.decideT=pause?1e9:.2;return this.squadState();},
+  squadHit(id,n){const s=squadSq();return s?s.damageActor(id,n,{x:player.position.x,z:player.position.z}):0;},
+  squadKillAll(){const s=squadSq();if(s)for(const a of s.actors)if(a.alive)s.damageActor(a.id,9999,{x:a.x,z:a.z});return this.squadState();},
+  squadHeights(){const out={hero:playerReferenceHeight};if(squadRT)for(const a of (squadSq()?squadSq().actors:[])){const b=squadRT.body(a.id);if(b){const bb=measureModelBounds(b.holder);out[a.id]=+(bb.max.y-bb.min.y).toFixed(2);out[a.id+'_foot']=+(bb.min.y-a.y).toFixed(2);}}return out;},
+  rigHeights(){const out={hero:+playerReferenceHeight.toFixed(2)};if(enemyModel){const bb=measureModelBounds(enemyModel);out.enemyLegacy=+(bb.max.y-bb.min.y).toFixed(2);}for(const [k,r] of Object.entries(rigs)){const bb=measureModelBounds(r.model);out[k]=+(bb.max.y-bb.min.y).toFixed(2);}return out;},
  extraQA(){this.phoenixQA();for(const id of EXTRA_SKILLS)ownedItems.add(id);refreshSkillUnlocks();playerMana=999;for(const k of EXTRA_SKILLS)holyCooldowns[k]=0;return this.extraState();},
  extraFrame(dt,draw=true){if(!gamePaused){mixer?.update(dt);restoreRiteScales();updateExtraSkills(dt);updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,performance.now());}if(draw)renderer.render(scene,camera);return this.extraState();},
  extraState(){const o={};for(const [k,r] of Object.entries(EXTRA_RUN))o[k]={active:r.active,phase:r.phase,time:+r.time.toFixed(2)};return {skills:o,hp:enemyHP,mana:playerMana,loadout:[...skillLoadout],enemy:enemy.position.toArray().map(v=>+v.toFixed(2)),slots:SKILL_ORDER.map(id=>skillButtons[id]?.skill)};},
