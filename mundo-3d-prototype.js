@@ -4,9 +4,10 @@ import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {SwordRites,SWORD_RITES,swordAim} from './sword-rites3d.js';
 import {createSwordRitesVFX} from './sword-rites-vfx3d.js';
 import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage,swordLayers} from './sword-rites-animation3d.js';
-const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades')||new URLSearchParams(location.search).has('testeQuantum233');
+const vfxLabRequested=new URLSearchParams(location.search).has('vfxLab236');
+const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades')||new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills);
-const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233');
+const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false;
 var swordTraining=false,riteCinematicView=false;
@@ -1112,7 +1113,7 @@ function updateSkillHud(now){
  const fill=document.getElementById('player-mana-fill');if(fill){const w=Math.round(playerMana/MANA.max*100);if(fill.dataset.w!==String(w)){fill.dataset.w=String(w);fill.style.width=w+'%';}}
 }
 function updateQuestHud(){
- if(swordTraining){document.getElementById('quest-title').textContent=quantumShowcaseRequested?'TREINO QUANTUM · MOD 235':'TREINO DE ESPADAS';document.getElementById('quest-objective').textContent=quantumShowcaseRequested?'Alvo de 10.000 HP, sem ataques. Quantum equipada. Use 1: Ruptura, 2: Portais, 3: Dragão; inventário para trocar.':'GOLPE encadeia três ataques. Use o botão da espada para ativar seu rito.';return;}refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=(questStep===ACT5N.step?act5Presentation(act1Sub):null)||(isAct6Step(questStep)?act6Presentation(questStep,act1Sub):null)||finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||(isAct4Step(questStep)?act4Presentation(questStep,act1Sub):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
+ if(swordTraining){document.getElementById('quest-title').textContent=quantumShowcaseRequested?'TREINO QUANTUM · MOD 236':'TREINO DE ESPADAS';document.getElementById('quest-objective').textContent=quantumShowcaseRequested?'Alvo de 10.000 HP, sem ataques. Quantum equipada. Use 1: Ruptura, 2: Portais, 3: Dragão; inventário para trocar.':'GOLPE encadeia três ataques. Use o botão da espada para ativar seu rito.';return;}refreshSkillUnlocks();if(typeof refreshSideQuests==='function'&&sideReady)refreshSideQuests();const view=(questStep===ACT5N.step?act5Presentation(act1Sub):null)||(isAct6Step(questStep)?act6Presentation(questStep,act1Sub):null)||finalePresentationFor(questStep)||(isAct3Step(questStep)?act3Presentation(questStep,act1Sub,SNOW_CITY.name):null)||(isAct4Step(questStep)?act4Presentation(questStep,act1Sub):null)||latePresentation(questStep)||act2Presentation(questStep,act1Sub)||questPresentation(questStep,act1Sub);const title=document.getElementById('quest-title'),objective=document.getElementById('quest-objective'),coinCount=document.getElementById('coin-count'),hint=document.getElementById('hint'),hero=document.getElementById('hero-name');if(title)title.textContent=view.title;if(objective)objective.textContent=view.objective;if(hint)hint.textContent=view.title;if(coinCount)coinCount.textContent=String(coins);{const tag=document.getElementById('hero-name-tag');if(tag)tag.textContent=playerName?playerName.toUpperCase():'';}if(hero)hero.textContent=playerName?playerName.toUpperCase():'SEM NOME';const nameLabel=document.querySelector('#player-name span');if(nameLabel)nameLabel.textContent=(playerName||'PROTAGONISTA').toUpperCase();}
 function showActCard(){if(actCardSeen)return;actCardSeen=true;save3DProgress();const card=document.getElementById('act-card');if(!card)return;card.classList.remove('hidden');const hide=()=>{card.classList.add('hidden');card.removeEventListener('pointerdown',hide);};card.addEventListener('pointerdown',hide);setTimeout(hide,3400);}
 function finishAwakening(){if(!awakeningActive&&awakeningSeen)return;awakeningActive=false;awakeningSeen=true;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');save3DProgress();}
 let namePromptBound=null;
@@ -1257,7 +1258,7 @@ const holyProjectiles=[];let holyCooldowns={magic:0,magic2:0,magic3:0,ultimate:0
 
 // MOD 221 — a single target identity per encounter; never transfer damage to a reused enemy holder.
 let siegeVFX=null,siegeEpoch=0,siegeScene='',siegeHudCount=-1;
-const siege=new CelestialSiege({blocked:p=>blockedAt(p.x,p.z),hit:(damage,id)=>{if(id===siegeEpoch)hurtEnemy(damage,false,true);},event:(type,b)=>{if(siegeVFX)siegeVFX.event(type,b);if(type==='launch')worldAudio.whoosh();if(type==='impact')worldAudio.hit();if(type==='cancel'&&siegeVFX)siegeVFX.clear();}});
+const siege=new CelestialSiege({blocked:p=>extraBlocked(p),hit:(damage,id)=>{if(id===siegeEpoch)hurtEnemy(damage,false,true);},event:(type,b)=>{if(siegeVFX)siegeVFX.event(type,b);if(type==='launch')worldAudio.whoosh();if(type==='impact')worldAudio.hit();if(type==='cancel'&&siegeVFX)siegeVFX.clear();}});
 function siegeTarget(){return {id:siegeEpoch,x:enemy.position.x,y:enemy.position.y+1.15,z:enemy.position.z,alive:combatStepNow()&&enemy.visible&&enemyAlive};}
 function siegeContext(){return String(voidMode)+':'+(voidSpec&&[voidSpec.x,voidSpec.y,voidSpec.z].join(','))+':'+dimKey+':'+questStep;}
 function siegeHUD(){const n=siege.active?siege.remaining:-1;if(n===siegeHudCount)return;siegeHudCount=n;const button=document.getElementById('attack');button.classList.toggle('celestial-siege',n>=0);let hud=button.querySelector('.siege-hud');if(!hud){hud=document.createElement('span');hud.className='siege-hud';hud.innerHTML='<span class="siege-blades">'+Array.from({length:5},()=>'<i><svg viewBox="0 0 12 28" aria-hidden="true"><path fill="currentColor" d="M6 0 8 4 8 17 11 19 11 21 7 20 7 25 8 27 4 27 5 25 5 20 1 21 1 19 4 17 4 4Z"/></svg></i>').join('')+'</span><strong></strong><small>DISPARAR</small>';button.appendChild(hud);}hud.hidden=n<0;if(n>=0){hud.querySelector('strong').textContent=n+'/5';hud.querySelectorAll('i').forEach((e,i)=>e.classList.toggle('spent',i>=n));}button.setAttribute('aria-label',n<0?'Golpe de espada':'Disparar lâmina celestial: '+n+' de 5');}
@@ -1320,7 +1321,7 @@ function chargeDivine(){
   if(t>.4&&Math.random()<.08)cameraShake(.06);if(t>.5&&t<1.4&&Math.random()<.06)lightning(tgt.x+(Math.random()-.5)*9,tgt.z+(Math.random()-.5)*9,0xfff0b8);if(t>=1.4&&!g.userData.go){g.userData.go=true;castDivineJudgment();}if(t>2.2){fxDispose(g);return false;}});
 }
 let phoenixVFX=null,phoenixScene='';
-const phoenix=new CelestialPhoenix({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),hit:(d,id,kind)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,kind==='strike'||kind==='burst',true);},event:type=>{if(type==='flight'||type==='dive')worldAudio.whoosh();if(type==='capture')worldAudio.magic?.('magic3');if(type==='burst'||type==='impact'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(type==='impact'?.2:.14);vibrate(type==='impact'?90:60);}if(type==='cancel'){phoenixVFX?.clear();releasePhoenixHold();}}});
+const phoenix=new CelestialPhoenix({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id,kind)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,kind==='strike'||kind==='burst',true);},event:type=>{if(type==='flight'||type==='dive')worldAudio.whoosh();if(type==='capture')worldAudio.magic?.('magic3');if(type==='burst'||type==='impact'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(type==='impact'?.2:.14);vibrate(type==='impact'?90:60);}if(type==='cancel'){phoenixVFX?.clear();releasePhoenixHold();}}});
 function phoenixTarget(){const t=siegeTarget();t.resist=phoenixBossResists();t.y=phoenixHold?phoenixHold.y:enemy.position.y;if(phoenixHold){t.x=phoenixHold.ax;t.z=phoenixHold.az;}t.radius=Math.max(.6,enemy.userData.phoenixRadius||.6);t.height=enemy.userData.phoenixHeight||2;return t;}
 /* MOD 229 — lease do alvo capturado: guarda posição/rotação, aplica a espiral do ciclone e SEMPRE devolve o inimigo ao chão
    (fim da captura, cancelamento, morte, troca de cena) — nunca fica voando nem atravessando o terreno. */
@@ -1332,6 +1333,27 @@ function applyPhoenixHold(){const H=phoenix.hold;
  if(!phoenixHold){const a=phoenix.anchor;phoenixHold={ax:a.x,az:a.z,y:terrainHeightAt(a.x,a.z),rotY:enemy.rotation.y};}
  const g=terrainHeightAt(phoenixHold.ax+H.x,phoenixHold.az+H.z);enemy.position.set(phoenixHold.ax+H.x,Math.max(g,phoenixHold.y)+H.y,phoenixHold.az+H.z);enemy.rotation.y=phoenixHold.rotY+H.spin;}
 function updatePhoenix(dt){try{phoenix.update(dt,phoenixTarget(),{valid:playerHP>0&&!cineActive&&!dialogueOpen&&phoenixScene===siegeContext()});}finally{applyPhoenixHold();}if(phoenixVFX)phoenixVFX.update(phoenix,camera,graphics3DMode==='low'?0:graphics3DMode==='auto'?(graphics3DScale<.75?0:1):2);}
+
+// Mod 236: explicit laboratory, with the production renderer, physics and HUD.
+let labMode='still',labAge=0,labWall=null,labAnchor={x:-5,z:4},labHudAt=0,labLane=null;
+function findVfxLabLane(){
+ for(let x=-20;x<=70;x+=3)for(let z=20;z>=-40;z-=4){const y=terrainHeightAt(x,z);let free=true;for(let d=-1;d<=20&&free;d+=.5)for(const dx of [-3,-2,-1,0,1,2,3])if(playerBlockedAt(x+dx,z-d)||Math.abs(terrainHeightAt(x+dx,z-d)-y)>.25){free=false;break;}if(free)return{x,z};}
+ return{x:40,z:17};
+}
+function extraBlocked(p){return blockedAt(p.x,p.z)||!!(vfxLabRequested&&labWall?.visible&&Math.abs(p.x-labWall.position.x)<4&&Math.abs(p.z-labWall.position.z)<.3&&p.y<labWall.position.y+2);}
+function setVfxLabMode(mode){
+ labMode=mode;labAge=0;for(const run of Object.values(EXTRA_RUN))run.cancel();
+ if(!labWall){labWall=new THREE.Mesh(new THREE.BoxGeometry(8,4,.6),new THREE.MeshStandardMaterial({color:0x4b4242,roughness:.9}));scene.add(labWall);}
+ labLane??=findVfxLabLane();const {x,z}=labLane;player.position.set(x,terrainHeightAt(x,z),z);playerYaw=Math.PI;player.rotation.y=playerYaw;enemy.position.set(x,terrainHeightAt(x,z-12),z-12);labAnchor={x,z:z-12};enemy.visible=mode!=='ground';enemyAlive=true;enemyHP=enemyMaxHP=10000;playerMana=100;for(const id of EXTRA_SKILLS)holyCooldowns[id]=0;
+ labWall.position.set(x,terrainHeightAt(x,z-6)+2,z-6);labWall.visible=mode==='wall';updatePlayerCamera(1);
+ document.getElementById('lab-scenario').value=mode;status.textContent=mode==='ground'?'Mire adiante: os impactos no solo não causam dano remoto.':mode==='wall'?'A parede bloqueia os ataques.':mode==='moving'?'Alvo móvel: os disparos dos portais mantêm a direção de lançamento.':'Alvo parado · três habilidades prontas.';
+}
+function updateVfxLab(dt){
+ if(!vfxLabRequested||!swordTraining)return;labAge+=dt;
+ if(labMode==='moving'){enemy.position.x=labAnchor.x+Math.sin(labAge*.8)*2.5;enemy.position.z=labAnchor.z;enemy.position.y=terrainHeightAt(enemy.position.x,enemy.position.z);}
+ const now=performance.now();if(now-labHudAt>450){labHudAt=now;document.getElementById('lab-metrics').textContent=(document.getElementById('fps-badge').textContent||'')+' · '+renderer.info.render.calls+' chamadas · '+Math.round(renderer.info.render.triangles/1000)+' mil triângulos';}
+}
+if(vfxLabRequested){document.body.classList.add('vfx-lab-mode');const panel=document.getElementById('vfx-lab');panel.hidden=false;document.getElementById('lab-scenario').addEventListener('change',e=>setVfxLabMode(e.target.value));document.getElementById('lab-reset').addEventListener('click',()=>setVfxLabMode(labMode));document.getElementById('lab-quality').addEventListener('change',e=>{const g=document.getElementById('graphics-profile-3d');g.value=e.target.value;g.dispatchEvent(new Event('change'));});}
 
 // Protagonist Ultimate owns a reversible presentation lease, never the player's physical position.
 let whiteVFX=null,whiteScene='',whitePendingDeath=false;
@@ -1379,13 +1401,13 @@ renderer.domElement.addEventListener('webglcontextlost',()=>{finishWhiteHole();f
    contexto de cena: troca de cena, morte, diálogo ou cinemática cancelam e limpam tudo. */
 let xVFX=null,portalsVFX=null,dragonVFX=null,extraScene={};
 const extraHit=(kind,big)=>(d,id)=>{if(id===siegeEpoch&&enemyAlive){hurtEnemy(d,big,true);}};
-const xRupture=new XRupture({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),hit:(d,id)=>{if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(d,true,true);if(!phoenixBossResists()){enemyKnockback=.9;enemyKnockbackX=xRupture.dir.x;enemyKnockbackZ=xRupture.dir.z;}},
+const xRupture=new XRupture({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id)=>{if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(d,true,true);if(!phoenixBossResists()){enemyKnockback=.9;enemyKnockbackX=xRupture.dir.x;enemyKnockbackZ=xRupture.dir.z;}},
  event:t=>{if(t==='travel')worldAudio.whoosh();if(t==='impact'||t==='wall'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(t==='impact'?.12:.06);}if(t==='cancel')xVFX?.clear();}});
 let portalsWhooshAt=0,portalReactionAt=-9;
-const twinPortals=new TwinPortals({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive){const react=k==='burst'||twinPortals.time-portalReactionAt>.28;hurtEnemy(d,k==='burst',true,!react);if(react){portalReactionAt=twinPortals.time;if(!phoenixBossResists()){enemyKnockback=.15;const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z,l=Math.hypot(dx,dz)||1;enemyKnockbackX=dx/l;enemyKnockbackZ=dz/l;}}}},
- event:(t,th)=>{const n=performance.now();if(t==='open'){portalReactionAt=-9;worldAudio.portalEnter();}if(t==='thread'&&n-portalsWhooshAt>160){portalsWhooshAt=n;worldAudio.whoosh();}if(t==='impact'&&th.i%2===0)worldAudio.hit();if(t==='burst'){worldAudio.burst?.();worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.16);vibrate(70);}if(t==='cancel')portalsVFX?.clear();}});
-const judgmentDragon=new JudgmentDragon({ground:(x,z)=>fxGy(x,z),blocked:p=>blockedAt(p.x,p.z),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,true,true);},
- event:t=>{if(t==='channel')worldAudio.novaCharge?.();if(t==='form')worldAudio.celestial?.();if(t==='fire')worldAudio.whoosh();if(t==='ball-impact'){worldAudio.hit();hitStop(40);}if(t==='advance')worldAudio.whoosh();if(t==='engulf'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.1);}if(t==='compress')worldAudio.voidCharge?.();if(t==='explode'){worldAudio.novaBlast?.();if(!userSettings.reduceShake)cameraShake(.24);vibrate(110);}if(t==='cancel')dragonVFX?.clear();}});
+const twinPortals=new TwinPortals({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive){const react=k==='burst'||twinPortals.time-portalReactionAt>.28;hurtEnemy(d,k==='burst',true,!react);if(react){portalReactionAt=twinPortals.time;if(!phoenixBossResists()){enemyKnockback=.15;const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z,l=Math.hypot(dx,dz)||1;enemyKnockbackX=dx/l;enemyKnockbackZ=dz/l;}}}},
+ event:(t,th)=>{const n=performance.now();if(t==='open'){portalReactionAt=-9;worldAudio.portalEnter();}if(t==='launch'&&n-portalsWhooshAt>160){portalsWhooshAt=n;worldAudio.whoosh();}if(t==='impact'&&th.i%2===0)worldAudio.energyImpact(.6);if(t==='pressure-pulse')worldAudio.energyImpact(.3);if(t==='burst'){worldAudio.burst?.();worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.16);vibrate(70);}if(t==='cancel')portalsVFX?.clear();}});
+const judgmentDragon=new JudgmentDragon({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,true,true);},
+ event:t=>{if(t==='channel')worldAudio.novaCharge?.();if(t==='form')worldAudio.celestial?.();if(t==='fire')worldAudio.whoosh();if(t==='ball-impact'||t==='ball-wall'){worldAudio.energyImpact(1);hitStop(35);}if(t==='advance')worldAudio.whoosh();if(t==='engulf'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.1);}if(t==='compress')worldAudio.voidCharge?.();if(t==='explode'){worldAudio.novaBlast?.();if(!userSettings.reduceShake)cameraShake(.24);vibrate(110);}if(t==='cancel')dragonVFX?.clear();}});
 const EXTRA_RUN={skill_x_rupture:xRupture,skill_twin_portals:twinPortals,skill_judgment_dragon:judgmentDragon};
 function extraSkillBusy(kind){return !!EXTRA_RUN[kind]?.active;}
 function ensureExtraVFX(compile=false){
@@ -1404,6 +1426,7 @@ function castExtraSkill(kind){
 }
 function extraTarget(){const t=phoenixTarget();t.radius=enemy.userData.phoenixRadius||.6;t.height=enemy.userData.phoenixHeight||1.9;return t;}
 function updateExtraSkills(dt){
+ updateVfxLab(dt);
  const t=extraTarget(),q=whiteQuality(),base=playerHP>0&&!cineActive&&!dialogueOpen;
  for(const [kind,run] of Object.entries(EXTRA_RUN))if(run.active)run.update(dt,t,{valid:base&&extraScene[kind]===siegeContext()});
  if(xVFX)xVFX.update(xRupture,camera,q);if(portalsVFX)portalsVFX.update(twinPortals,camera,q);if(dragonVFX)dragonVFX.update(judgmentDragon,camera,q);
@@ -1556,16 +1579,23 @@ function updateCages(){cageRootVisible();if(childrenFreed)openCageDoors();}
 function spawnAct1Children(){buildAct1Props();}
 buildAct1Cages();
 
+let dragonViewWeight=0,dragonDiveWeight=0;
+function dragonExternalView(){return cameraDistance<1.05&&dragonViewWeight>.08;}
 function updatePlayerCamera(dt){
- const firstPerson=cameraDistance<1.05&&!riteCinematicView;if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+ const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
+ dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
+ const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  camera.position.lerp(target,1-Math.exp(-14*dt));
  const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
  camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
 }else{
- const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);target.y+=starfallCameraWeight*2;const dk=judgmentDragon.active?Math.min(1,Math.max(0,(judgmentDragon.time-1.3)/1.5))*Math.min(1,Math.max(0,(10.5-judgmentDragon.time)/1.5)):0;target.y+=dk*10;const camDistUse=effectiveCameraDistance(camFrame.engaged,dt)+starfallCameraWeight*4+dk*26;
- const orbitYaw=cameraYaw+(riteCinematicView?.45:0);const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
+ const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);target.y+=starfallCameraWeight*2;const dk=dragonViewWeight,dh=judgmentDragon.head;target.y+=dk*Math.max(2,Math.min(12,(dh.y-player.position.y)*.48));
+ const headFocus=.2+dragonDiveWeight*.4;target.x+=(dh.x-target.x)*dk*headFocus;target.z+=(dh.z-target.z)*dk*headFocus;
+ const camDistUse=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
+ const orbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
  const desired=target.clone().add(camOffset);
  // MOD 186 — se um tronco fica entre o herói e a câmera, aproxima a câmera em vez de enquadrar a casca.
  {const ox=camOffset.x,oz=camOffset.z,len2=ox*ox+oz*oz;let limit=1;
@@ -2044,7 +2074,7 @@ function ensureSwordView(){
 }
 function updateFirstPerson(dt,now){
  if(swordRoot&&equippedSword!=='prota'&&!swordHands[equippedSword])equipSword(equippedSword);
- const fp=cameraDistance<1.05&&!riteCinematicView&&!awakeningActive;
+ const fp=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!awakeningActive;
  if(fp!==fpWasActive){rites.prevBlade=null;fpWasActive=fp;camera.fov=fp?72:56;camera.updateProjectionMatrix();const cross=document.getElementById('crosshair');if(cross)cross.hidden=!fp;}
  if(swordMount)swordMount.visible=!fp;
  if(!fp){if(swordView)swordView.root.visible=false;return;}
@@ -4464,7 +4494,7 @@ function storyDo5(id,args){
  return false;
 }
 /* ---------- Inventário (espadas, roupa, encantamentos e poderes; "Equipar melhor") ---------- */
-const SKILL_INFO={skill_x_rupture:{dmg:'38',what:'X carmesim que viaja reto até o alvo e se rompe em dois cortes.'},skill_twin_portals:{dmg:'8 × 5 + 18',what:'Dois portais; oito fios por rotas diferentes e explosão final.'},skill_judgment_dragon:{dmg:'30 + 36',what:'Dragão dourado que engole o alvo e explode em esfera de luz.'},magic:{dmg:'5 × 14',what:'Cinco espadas no alvo; GOLPE dispara uma por vez.'},magic2:{dmg:'6 por impacto',what:'90 estrelas em ondas durante 10 s; dano depende da área atingida.'},magic3:{dmg:'—',what:'Em desenvolvimento.'},ultimate:{dmg:'—',what:'Em desenvolvimento.'},magic_plus:{dmg:'5 × 16',what:'Aprimora as cinco lâminas.'},magic2_plus:{dmg:'8 por impacto',what:'Aprimora o dano das estrelas.'},magic3_plus:{dmg:'—',what:'Em desenvolvimento.'}};
+const SKILL_INFO={skill_x_rupture:{dmg:'38',what:'X carmesim que viaja reto até o alvo e se rompe em dois cortes.'},skill_twin_portals:{dmg:'36 + 22',what:'Duas lanças simultâneas, pressão sustentada e explosão combinada.'},skill_judgment_dragon:{dmg:'16 + 22 + 28',what:'Dragão de fogo celestial: ascensão, bola de fogo, mergulho e mordida.'},magic:{dmg:'5 × 14',what:'Cinco espadas no alvo; GOLPE dispara uma por vez.'},magic2:{dmg:'6 por impacto',what:'90 estrelas em ondas durante 10 s; dano depende da área atingida.'},magic3:{dmg:'—',what:'Em desenvolvimento.'},ultimate:{dmg:'—',what:'Em desenvolvimento.'},magic_plus:{dmg:'5 × 16',what:'Aprimora as cinco lâminas.'},magic2_plus:{dmg:'8 por impacto',what:'Aprimora o dano das estrelas.'},magic3_plus:{dmg:'—',what:'Em desenvolvimento.'}};
 function openInventory(){const p=document.getElementById('inv-panel');if(!p)return;inventoryOpen=true;setDefending(false);renderInventory();p.hidden=false;}
 function closeInventory(){inventoryOpen=false;const p=document.getElementById('inv-panel');if(p)p.hidden=true;}
 function equipBest(){const best=bestSword(SWORDS,ownedItems);if(best!==equippedSword)equipSword(best);if(coatOwned&&!coatOn)setCoat(true);renderInventory();status.textContent='Melhor equipamento: '+SWORDS[best].name+(coatOwned?' e Casaco de Pele':'')+'.';worldAudio.reveal();}
@@ -5541,9 +5571,9 @@ async function startSwordTraining(boss=false){
    for(const id of ['quantum','skill_x_rupture','skill_twin_portals','skill_judgment_dragon'])ownedItems.add(id);
    skillLoadout=['skill_x_rupture','skill_twin_portals','skill_judgment_dragon'];
    equipSword('quantum');refreshSkillUnlocks();
-   status.textContent='TREINO MOD 235 · QUANTUM EQUIPADA · RUPTURA (1), PORTAIS (2), DRAGÃO (3) · ALVO DE 10.000 HP';
+   status.textContent='TREINO MOD 236 · QUANTUM EQUIPADA · RUPTURA (1), PORTAIS (2), DRAGÃO (3) · ALVO DE 10.000 HP';
   }
-  document.getElementById('sword-training').hidden=false;updateQuestHud();
+  document.getElementById('sword-training').hidden=false;updateQuestHud();if(vfxLabRequested)setVfxLabMode(labMode);
 }
 if(testAllSkills){ownedItems.add('aurora');ownedItems.add('quantum');const panel=document.getElementById('sword-training');panel.hidden=false;bindInstantTap(document.getElementById('rite-training-start'),()=>startSwordTraining());bindInstantTap(document.getElementById('rite-training-swap'),()=>equipSword(equippedSword==='prota'?'aurora':'prota'));}
 
@@ -5683,7 +5713,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  whiteState(){return {fog:scene.fog?[scene.fog.color.getHexString(),scene.fog.near,scene.fog.far]:null,bg:scene.background?.isColor?scene.background.getHexString():null,active:whiteHole.active,locked:whiteLease.locked,phase:whiteHole.phase,time:whiteHole.time,hp:enemyHP,mana:playerMana,pos:player.position.toArray(),modelPos:model.position.toArray(),savedModelPos:whiteLease.snapshot?.modelPosition.toArray(),savedCamera:whiteLease.snapshot?.cam.toArray(),camera:camera.position.toArray(),yaw:cameraYaw,pitch:cameraPitch,distance:cameraDistance,flash:whiteOverlay.style.opacity,context:siegeContext()};},
  gripQA(){const a=swordHand.getWorldPosition(new THREE.Vector3()),b=swordMount.getWorldPosition(new THREE.Vector3());return {error:a.distanceTo(b),angle:swordHand.getWorldQuaternion(new THREE.Quaternion()).normalize().angleTo(swordMount.getWorldQuaternion(new THREE.Quaternion()).normalize()),hand:a.toArray(),mount:b.toArray(),run:actions.run?.getClip().name,view:swordView?.stats()};},
  extraQA(){this.phoenixQA();for(const id of EXTRA_SKILLS)ownedItems.add(id);refreshSkillUnlocks();playerMana=999;for(const k of EXTRA_SKILLS)holyCooldowns[k]=0;return this.extraState();},
- extraFrame(dt,draw=true){if(!gamePaused){mixer?.update(dt);restoreRiteScales();updateExtraSkills(dt);updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,performance.now());}if(draw)renderer.render(scene,camera);return this.extraState();},
+ extraFrame(dt,draw=true){if(!gamePaused){mixer?.update(dt);restoreRiteScales();updateExtraSkills(dt);updatePoses(dt);updatePlayerSwordMount();if(!debugCameraOverride)updatePlayerCamera(dt);updateFirstPerson(dt,performance.now());}if(draw)renderer.render(scene,camera);return this.extraState();},
+ vfxState(){return{mode:labMode,dragonViewWeight,portals:{phase:twinPortals.phase,flows:twinPortals.flows.map(f=>({phase:f.phase,p:{...f.p},origin:{...f.origin},direction:{...f.direction},born:f.born,travel:f.travel})),visual:portalsVFX?.stats()},dragon:{phase:judgmentDragon.phase,head:{...judgmentDragon.head},ball:{...judgmentDragon.ball},visual:dragonVFX?.stats()},camera:{position:camera.position.toArray(),distance:cameraDistance,yaw:cameraYaw,pitch:cameraPitch},view:swordView?.stats()};},
  extraState(){const o={};for(const [k,r] of Object.entries(EXTRA_RUN))o[k]={active:r.active,phase:r.phase,time:+r.time.toFixed(2)};return {skills:o,hp:enemyHP,mana:playerMana,loadout:[...skillLoadout],enemy:enemy.position.toArray().map(v=>+v.toFixed(2)),slots:SKILL_ORDER.map(id=>skillButtons[id]?.skill)};},
  equipSlotQA(i,id){const r=equipSlot(skillLoadout,i,id,{owned:ownedItems,testAll:testAllSkills});if(r.ok){skillLoadout=r.loadout;save3DProgress();refreshSkillUnlocks();}return {ok:r.ok,reason:r.reason,loadout:[...skillLoadout]};},
  slotPress(slot){action(slot);return this.extraState();},

@@ -1,163 +1,52 @@
-import {impactFragments,dragonLoft,dragonFlames} from './skill-impact3d.js';
-import { softParticles, groundDecals, groundNormal, ribbons, smooth, easeOut, hash } from './celestial-fxkit3d.js';
-import { DRAGON } from './skill-judgment-dragon3d.js';
-/**
- * MOD 235 — Dragão do Julgamento (VFX). Escolha técnica: dragão PROCEDURAL (malhas próprias + histórico da cabeça),
- * não GLB: a cabeça, a mandíbula articulada e o corpo serpentino são montados aqui, o que dá uma mordida exata
- * (o ângulo da mandíbula vem direto da lógica) e um corpo que segue a rota real sem precisar de rig/retarget.
- *  • Cabeça: crânio esculpido (focinho afilado, sobrancelhas, maçãs), mandíbula inferior com dobradiça, dentes, olhos
- *    brilhantes, chifres curvos, crista e bigodes de fogo. Material de fogo dourado com fluxo no shader.
- *  • Corpo: malha contínua amostrada pelo comprimento do histórico da cabeça (espessura afinando até a cauda), espinhos
- *    dorsais e faixas de fogo laterais que ondulam; brasas soltas e arcos de energia.
- *  • Engolir: a boca abre de verdade, a cabeça envolve o alvo e FECHA; a energia se comprime e explode em esfera de luz
- *    em camadas, com onda de choque, fragmentos, fumaça e o corpo se desfazendo em brasas da cabeça para a cauda.
- */
-const GOLD_VERT = `varying vec3 vN; varying vec3 vV; varying vec3 vP; void main(){ vP=position; vec4 w=modelMatrix*vec4(position,1.);
-#ifdef USE_INSTANCING
- w=modelMatrix*instanceMatrix*vec4(position,1.); vN=normalize(mat3(modelMatrix*instanceMatrix)*normal);
-#else
- vN=normalize(mat3(modelMatrix)*normal);
-#endif
- vV=normalize(cameraPosition-w.xyz); gl_Position=projectionMatrix*viewMatrix*w; }`;
-const GOLD_FRAG = `varying vec3 vN; varying vec3 vV; varying vec3 vP; uniform float time, glow, dissolve;
-float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-void main(){ vec3 n=normalize(vN); float f=pow(1.-abs(dot(n,vV)),2.2);
- vec2 q=vec2(vP.x*11.+vP.y*5.,vP.z*11.-vP.y*5.); float scale=.5+.5*sin(vP.y*2.+vP.z*3.-time*4.+sin(vP.x*5.+time*2.));   // fluxo de fogo
- if(h3(floor(vP*18.))<dissolve) discard;
- float key=clamp(dot(n,normalize(vec3(.3,1.,.4)))*.5+.5,0.,1.);                // luz de cima (forma legível)
- vec3 deep=vec3(.42,.16,.03), gold=vec3(.95,.66,.22), pale=vec3(1.,.9,.6);
- vec3 c=mix(deep,gold,key*.85+.15)*(.55+.45*scale); c=mix(c,pale,pow(key,6.)*.5);
- c+=vec3(1.,.55,.12)*f*(1.1+glow*.8);                                             // contorno de fogo
- c+=vec3(1.,.82,.35)*pow(scale,5.)*.65;            // brasa entre as escamas
- gl_FragColor=vec4(c*(.85+glow*.5),1.); }`;
-const FIRE_FRAG = `varying vec3 vN; varying vec3 vV; varying vec3 vP; uniform float time, alpha, heat;
-float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
-void main(){ float fr=abs(dot(normalize(vN),vV)); float n=n2(vec2(atan(vP.z,vP.x)*3.,vP.y*3.-time*2.))*.6+n2(vec2(atan(vP.z,vP.x)*7.,vP.y*6.+time*3.))*.4;
- float i=clamp(n*heat*(.35+.65*fr),0.,1.); vec3 c=mix(vec3(.7,.2,.02),vec3(1.,.72,.2),smoothstep(.2,.55,i)); c=mix(c,vec3(1.,.97,.85),smoothstep(.6,.95,i));
- float a=i*alpha; if(a<.004) discard; gl_FragColor=vec4(c*a,a); }`;
-
-function skullGeometry(T) {
-  const g = new T.SphereGeometry(1, 28, 18), p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) {
-    let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-    const front = Math.max(0, z);                                   // +Z = focinho curto e largo
-    const taper = 1 - front * .32;
-    x *= .95 * taper * (1 + .18 * Math.exp(-Math.pow((z + .05) / .3, 2))); y *= .52 * (1 - front * .5); z *= z > 0 ? 1.05 : .95;
-    if (z > .9) y += .05 * (z - .9);                                // ponta do focinho levemente erguida
-    if (y > 0) y *= .8 + .25 * Math.exp(-Math.pow((z + .1) / .35, 2)) * (Math.abs(x) > .15 ? 1.4 : 1); // sobrancelhas
-    if (y < 0) y *= .55;                                            // base reta para encaixar a mandíbula
-    p.setXYZ(i, x, y, z);
+import {dragonHead,dragonBody} from './vfx-dragon-model3d.js';
+import {energyBody,energyMaterial,flameGeometry} from './vfx-flow3d.js';
+import {volumeTrail} from './vfx-trail3d.js';
+import {impactDirector} from './vfx-impact3d.js';
+import {softParticles,ribbons,smooth,hash} from './celestial-fxkit3d.js';
+import {DRAGON} from './skill-judgment-dragon3d.js';
+/** Celestial fire creature, authored as a flowing silhouette, with a physical cinder projectile. */
+export function createDragonVFX(T,scene,{ground=()=>0}={}){
+ const root=new T.Group();root.name='DragaoJulgamento';root.visible=false;scene.add(root);
+ const head=dragonHead(T,root),body=dragonBody(T,root),fire=energyBody(T,root,'cinder',{tail:1.5,rings:34,sides:20,warp:.18}),corona=energyBody(T,root,'celestial',{tail:2.2,rings:26,sides:14,warp:.24,seed:5});
+ const flameGeo=flameGeometry(T),flameMat=energyMaterial(T,'cinder',{alpha:.92,warp:.025,frequency:.35,flame:1}),ballFlames=new T.InstancedMesh(flameGeo,flameMat,28),fireCrown=new T.Group(),dummy=new T.Object3D();fireCrown.add(ballFlames);root.add(fireCrown);ballFlames.frustumCulled=false;
+ const trail=volumeTrail(T,root,'cinder',{capacity:44,life:.85,radius:.95}),impacts=impactDirector(T,root,ground,{capacity:4});
+ const sparks=softParticles(T,160),smoke=softParticles(T,48,{additive:false}),filaments=ribbons(T,180,{flow:13});root.add(sparks.mesh,smoke.mesh,filaments.mesh);
+ const forward=new T.Vector3(),side=new T.Vector3(),up=new T.Vector3(),worldUp=new T.Vector3(0,1,0),m=new T.Matrix4(),point=new T.Vector3(),a=new T.Vector3(),b=new T.Vector3(),mouth=new T.Vector3();let last=-1;
+ function clear(){root.visible=false;last=-1;trail.clear();impacts.clear();}
+ function update(s,camera,quality=1){if(!s.active){if(last>=0)clear();return;}root.visible=true;if(s.time<last){impacts.clear();trail.clear();}last=s.time;
+  const t=s.time,A=s.age,ph=s.phase,low=quality===0,fade=ph==='explode'?1-smooth(A/1.25):1;
+  sparks.begin();smoke.begin();filaments.begin(camera,t);
+  head.root.visible=ph!=='channel'&&fade>.03;head.root.position.set(s.head.x,s.head.y,s.head.z);
+  forward.set(s.dir.x,s.dir.y,s.dir.z).normalize();if(forward.lengthSq()<.01)forward.set(0,0,1);side.crossVectors(worldUp,forward).normalize();if(side.lengthSq()<.01)side.set(1,0,0);up.crossVectors(forward,side);m.makeBasis(side,up,forward);head.root.quaternion.setFromRotationMatrix(m);
+  const form=ph==='form'?smooth(A/.55):1;head.root.scale.setScalar(s.scale*(.18+.82*form));head.material.uniforms.dissolve.value=1-fade;head.update(t,s.mouth,quality);head.root.updateWorldMatrix(true,true);
+  body.update(s,fade,quality);body.mesh.visible=ph!=='channel'&&body.mesh.visible;
+  if(ph==='channel'||ph==='form'){
+   const charge=ph==='channel'?smooth(A/DRAGON.channel):1-smooth(A/.8),src=s.source;
+   for(let i=0;i<(low?12:22);i++){const u=(i/22+t*.4)%1,ang=i*2.4+t*.8,r=(1-u)*1.1;const C=i%2?[.7,.02,.09]:[.3,.02,.45];sparks.add(src.x+Math.cos(ang)*r,src.y+.2+u*3.5,src.z+Math.sin(ang)*r,.045,.24,...C,charge*(1-u)*.6,3,ang,i);}
   }
-  g.computeVertexNormals(); return g;
-}
-function jawGeometry(T) {
-  const g = new T.SphereGeometry(1, 22, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), p = g.attributes.position; // meia esfera de baixo
-  for (let i = 0; i < p.count; i++) { let x = p.getX(i), y = p.getY(i), z = p.getZ(i); const front = Math.max(0, z), taper = 1 - front * .28; p.setXYZ(i, x * .88 * taper, y * .27, z * 1.05 + .82); }
-  g.computeVertexNormals(); return g;                               // origem na dobradiça (atrás), estende-se para a frente
-}
-
-export function createDragonVFX(T, scene, { ground = () => 0 } = {}) {
-  const root = new T.Group(); root.name = 'DragaoJulgamento'; root.visible = false; scene.add(root);
-  const goldMat = new T.ShaderMaterial({ vertexShader: GOLD_VERT, fragmentShader: GOLD_FRAG, toneMapped: false, fog: false, uniforms: { time: { value: 0 }, glow: { value: .4 }, dissolve: { value: 0 } } });
-  const goldInst = goldMat.clone(); goldInst.uniforms = goldMat.uniforms;
-  // ---- cabeça
-  const head = new T.Group(); root.add(head);
-  const skullGeo = skullGeometry(T), jawGeo = jawGeometry(T), coneGeo = new T.ConeGeometry(1, 1, 6); coneGeo.translate(0, .5, 0);
-  const skull = new T.Mesh(skullGeo, goldMat); head.add(skull);
-  const jaw = new T.Group(); jaw.position.set(0, -.18, -.42); head.add(jaw); const jawMesh = new T.Mesh(jawGeo, goldMat); jaw.add(jawMesh);
-  const toothMat = new T.MeshBasicMaterial({ color: 0xfff6dc, toneMapped: false, fog: false });
-  const upperTeeth = new T.InstancedMesh(coneGeo, toothMat, 14), lowerTeeth = new T.InstancedMesh(coneGeo, toothMat, 12);
-  const pose = new T.Object3D();
-  upperTeeth.count=4;lowerTeeth.count=4;
-  for(let i=0;i<4;i++){const side=i%2?1:-1,z=i<2?.35:.92;
-    pose.position.set(side*(i<2?.68:.42),-.12,z);pose.rotation.set(Math.PI,0,side*.16);pose.scale.set(.09,i<2?.48:.28,.11);pose.updateMatrix();upperTeeth.setMatrixAt(i,pose.matrix);
-    pose.position.set(side*(i<2?.65:.4),-.03,z+.42);pose.rotation.set(0,0,-side*.12);pose.scale.set(.065,.26,.08);pose.updateMatrix();lowerTeeth.setMatrixAt(i,pose.matrix);
+  if(head.root.visible){
+   // Thin paired whiskers and fiery eyebrows follow the articulated head, not world axes.
+   for(const sign of [-1,1]){a.set(sign*.32,.08,.7);head.root.localToWorld(a);for(let j=1;j<=14;j++){const u=j/14;b.set(sign*(.32+u*1.25),.08+.3*Math.sin(u*3.1)+Math.sin(t*4+u*9)*.06,.7-u*1.8);head.root.localToWorld(b);filaments.seg(a.x,a.y,a.z,b.x,b.y,b.z,.035*(1-u)*fade,.025*(1-u)*fade,[1,.55,.09,.75*fade],[1,.78,.28,.55*fade],u-.07,u);a.copy(b);}}
+   for(let i=0;i<(low?20:40);i++){const j=5+Math.floor(hash(i)*115),p=body.centers[j],age=(t*.6+hash(i+10))%1,ang=i*2.4;const r=(1-j/128)*(1.2+age*1.2);sparks.add(p.x+Math.cos(ang)*r,p.y+age*1.8,p.z+Math.sin(ang)*r,.055,.25,1,.49,.05,(1-age)*fade*.6,3,ang,i);}
   }
-  head.add(upperTeeth); jaw.add(lowerTeeth);
-  const hornMat = new T.MeshStandardMaterial({ color: 0xfff0c8, emissive: 0xffb040, emissiveIntensity: .7, metalness: .4, roughness: .35, fog: false });
-  // chifres longos varridos para trás, sobrancelhas salientes, babados laterais (identidade de dragão)
-  for (const sx of [-1, 1]) { const horn = new T.Group(); horn.position.set(sx * .55, .38, -.45); horn.rotation.set(-1.15, sx * .28, 0); head.add(horn);
-    const curve=new T.CatmullRomCurve3([new T.Vector3(0,0,0),new T.Vector3(sx*.18,.65,.06),new T.Vector3(sx*.5,1.3,.3),new T.Vector3(sx*.7,1.7,.65)]);
-    const hg=new T.TubeGeometry(curve,18,.16,7,false),hp=hg.attributes.position;
-    for(let j=0;j<=18;j++){const c=curve.getPointAt(j/18),k=1-j/18*.97;for(let n=0;n<=7;n++){const i=j*8+n;hp.setXYZ(i,c.x+(hp.getX(i)-c.x)*k,c.y+(hp.getY(i)-c.y)*k,c.z+(hp.getZ(i)-c.z)*k);}}hg.computeVertexNormals();horn.add(new T.Mesh(hg,hornMat));
-    const brow = new T.Mesh(new T.SphereGeometry(1, 10, 8), goldMat); brow.scale.set(.23, .12, .42); brow.position.set(sx * .89, .38, .12); brow.rotation.set(-.25, sx * .3, 0); head.add(brow);
-    const fin = new T.InstancedMesh(coneGeo, goldMat, 4); for (let k = 0; k < 4; k++) { pose.position.set(sx * .84, -.02 - k * .06, -.25 - k * .14); pose.rotation.set(0, 0, sx * -(1.25 + k * .1)); pose.scale.set(.04, .34 - k * .05, .04); pose.updateMatrix(); fin.setMatrixAt(k, pose.matrix); } head.add(fin);
-    const nostril = new T.Mesh(new T.SphereGeometry(.035, 8, 6), new T.MeshBasicMaterial({ color: 0xffe2a0, toneMapped: false, fog: false })); nostril.position.set(sx * .27, .13, 1.02); head.add(nostril); }
-  const crest = new T.InstancedMesh(coneGeo, goldMat, 7); head.add(crest);
-  for (let i = 0; i < 7; i++) { pose.position.set(0, .3 - i * .015, .2 - i * .17); pose.rotation.set(-1.1, 0, 0); pose.scale.set(.05, .28 - i * .02, .05); pose.updateMatrix(); crest.setMatrixAt(i, pose.matrix); }
-  const eyeMat = new T.MeshBasicMaterial({ color: 0xfffbe8, toneMapped: false, fog: false }), eyes = [-1, 1].map(sx => { const e = new T.Mesh(new T.SphereGeometry(.11, 10, 8), eyeMat); e.position.set(sx * 1.02, .27, .20); e.scale.set(1.1, .55, 1.6); head.add(e); return e; });
-  const mouthGlow = new T.Mesh(new T.SphereGeometry(.35, 14, 10), new T.MeshBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }));
-  mouthGlow.position.set(0, -.12, .7); head.add(mouthGlow);
-  // ---- corpo
-  const flames=dragonFlames(T,root,goldInst),loft=dragonLoft(T,root,goldMat),fragments=impactFragments(T,root,ground,240);
-  const ballMat=new T.MeshStandardMaterial({color:0x160810,emissive:0xb80d33,emissiveIntensity:.6,roughness:.55}),ballGeo=new T.IcosahedronGeometry(.7,2),fireball=new T.Mesh(ballGeo,ballMat);root.add(fireball);
-  // ---- explosão
-  const shellGeo = new T.IcosahedronGeometry(1, 3), mkFire = (heat) => new T.ShaderMaterial({ vertexShader: GOLD_VERT, fragmentShader: FIRE_FRAG, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.CustomBlending, blendSrc: T.OneFactor, blendDst: T.OneFactor, toneMapped: false, fog: false, uniforms: { time: { value: 0 }, alpha: { value: 0 }, heat: { value: heat } } });
-  const shells = [1.8, 1.3, .9].map(h => { const m = new T.Mesh(shellGeo, mkFire(h)); root.add(m); return m; });
-  const glow = softParticles(T, 1600), smoke = softParticles(T, 160, { additive: false }), decals = groundDecals(T, 10), rib = ribbons(T, 3200, { flow: 20 });
-  root.add(glow.mesh, smoke.mesh, decals.mesh, rib.mesh);
-  const dummy = new T.Object3D(), up = new T.Vector3(0, 1, 0), tng = new T.Vector3(), side = new T.Vector3(), a3 = new T.Vector3(), b3 = new T.Vector3(), nrm = [0, 1, 0], m4 = new T.Matrix4(), upv = new T.Vector3();
-  const G1 = [1, .78, .3, 1], G2 = [1, .5, .08, 1], W = [1, .97, .85, 1], c4 = (c, a) => [c[0], c[1], c[2], a];
-  const tangentAt = (s, k, out) => { const a = s.sample(k), b = s.sample(k + 3); out.set(a.x - b.x, a.y - b.y, a.z - b.z); if (out.lengthSq() < 1e-8) out.set(s.dir.x, s.dir.y, s.dir.z); return out.normalize(); };
-  function basis(obj, f) { side.crossVectors(up, f); if (side.lengthSq() < 1e-6) side.set(1, 0, 0); side.normalize(); upv.crossVectors(f, side); m4.makeBasis(side, upv, f); obj.quaternion.setFromRotationMatrix(m4); }
-  function update(s, camera, quality = 1) {
-    root.visible = s.active; if (!s.active) return;
-    const t = s.time, A = s.age, ph = s.phase, low = quality === 0;
-    goldMat.uniforms.time.value = t; for (const m of shells) m.material.uniforms.time.value = t;
-    rib.begin(camera, t); glow.begin(); smoke.begin(); decals.begin();fragments.begin();
-    const src = s.source, formK = ph === 'channel' ? 0 : ph === 'form' ? easeOut(A / DRAGON.form) : 1;
-    const dis = ph === 'explode' ? smooth(A / 1.1) : 0; goldMat.uniforms.dissolve.value = dis; goldMat.uniforms.glow.value = .4 + (ph === 'compress' ? A * 2.2 : 0) + (ph === 'engulf' ? .4 : 0);
-    // ---- conjuração: espirais de luz e fogo sagrado sobem do herói
-    if (ph === 'channel' || ph === 'form') {
-      const k = ph === 'channel' ? smooth(A / DRAGON.channel) : 1 - smooth(A / .6);
-      for (let l = 0; l < (low ? 2 : 4); l++) for (let j = 0; j < 24; j++) {
-        const u0 = j / 24, u1 = (j + 1) / 24, h0 = u0 * 6 * k, h1 = u1 * 6 * k, r0 = 1.4 - u0 * .7, r1 = 1.4 - u1 * .7, a0 = u0 * 9 + t * 4 + l * 1.57, a1 = u1 * 9 + t * 4 + l * 1.57;
-        rib.seg(src.x + Math.cos(a0) * r0, src.y - 1 + h0, src.z + Math.sin(a0) * r0, src.x + Math.cos(a1) * r1, src.y - 1 + h1, src.z + Math.sin(a1) * r1, .07, .07, c4(l%2?[.9,.02,.15,1]:[.4,.04,.8,1],.9*k), c4(ph==='form'?G1:[.12,.01,.15,1],.8*k), u0, u1);
-      }
-      for (let i = 0; i < (low ? 20 : quality===1?35:50); i++) { const u = ((i / 50) + t * .7) % 1, a = i * 2.4 + t * 2; glow.add(src.x + Math.cos(a) * 2 * (1 - u), src.y - .8 + u * 6 * k, src.z + Math.sin(a) * 2 * (1 - u), .06, .3, 1, .7, .25, (1 - u) * k, 3, a, i); }
-      glow.add(src.x, src.y + .4, src.z, 2.5 * k + .3, 2.5 * k + .3, 1, .75, .3, .5 * k, 0);
-    }
-    // ---- cabeça
-    head.visible = ph !== 'channel' && !(ph === 'explode' && A > .5);
-    head.position.set(s.head.x, s.head.y, s.head.z); tng.set(s.dir.x, s.dir.y, s.dir.z); if (tng.lengthSq() < 1e-6) tng.set(0, 0, 1); tng.normalize(); basis(head, tng);
-    const shake = ph === 'compress' ? Math.sin(t * 70) * .05 : 0; head.position.x += shake; head.scale.setScalar(s.scale * (.3 + .7 * formK) * (1 - dis * .6));
-    jaw.rotation.x = s.mouth * 1.32; mouthGlow.material.opacity = s.mouth * .55 + (ph === 'compress' ? .6 : 0);
-    if (head.visible) {
-      for (const e of eyes) { e.getWorldPosition(a3); glow.add(a3.x, a3.y, a3.z, .6, .6, 1, .95, .7, .9, 0); }
-      // bigodes de fogo que saem do focinho e ficam para trás
-      for (const sx of [-1, 1]) { let px = s.head.x, py = s.head.y, pz = s.head.z;
-        for (let j = 1; j <= 8; j++) { const q = s.sample(j * 3); const nx = q.x + side.x * sx * .5 * (1 - j / 10) + Math.sin(t * 6 + j) * .08, ny = q.y - .15 - j * .02, nz = q.z + side.z * sx * .5 * (1 - j / 10);
-          rib.seg(px, py, pz, nx, ny, nz, .05 * (1 - j / 9), .05 * (1 - (j + 1) / 9), c4(G1, formK * (1 - dis)), c4(G2, formK * (1 - dis) * .7)); px = nx; py = ny; pz = nz; } }
-      // juba de fogo atrás da cabeça
-      for (let i = 0; i < (low ? 10 : quality===1?18:26); i++) { const a = i * 2.4 + t * 5, r = .45 + hash(i) * .4; a3.set(Math.cos(a) * r, Math.sin(a) * r * .7 + .15, -.6 - hash(i * 3) * .6).applyQuaternion(head.quaternion).multiplyScalar(head.scale.x).add(head.position);
-        glow.add(a3.x, a3.y, a3.z, .22, .55, 1, .55 + .3 * hash(i), .1, .8 * formK * (1 - dis), 3, a, i); }
-    }
-    loft.update(s,1-dis);flames.update(s,1-dis,low,loft.centers);
-    // Golden flowing mane follows the continuous spine. Curved thin filaments outline its silhouette.
-    if(ph!=='channel')for(let j=4;j<Math.min(s.trailCount,600);j+=low?22:12){const p=s.sample(j),q=s.sample(Math.min(s.trailCount-1,j+10)),u=j/600,r=1.6*(1-u),fl=Math.sin(t*6+j*.1)*.45;
-      for(const sign of [-1,1])rib.seg(p.x+sign*r,p.y+.5+fl,p.z,q.x+sign*(r+.8),q.y+1+fl,q.z,.10*(1-u),.015,c4(G1,.8*(1-dis)),c4(G2,0),u,u+.08);
-    }
-    fireball.visible=s.ball.active;fireball.position.set(s.ball.p.x,s.ball.p.y,s.ball.p.z);fireball.rotation.set(t*3,t*4,0);fireball.scale.setScalar(1+.10*Math.sin(t*19));
-    if(s.ball.active){const p=s.ball.p;glow.add(p.x,p.y,p.z,2.5,2.5,1,.03,.12,.65,0);for(let i=0;i<12;i++){const a=i*2.4+t*5;glow.add(p.x+Math.cos(a)*.8,p.y+i*.14,p.z+Math.sin(a)*.8,.18,.4,1,.03,.15,.8-i*.05,3,a,i);}}
-    const ballAge=s.ball.impactTime<0?-1:t-s.ball.impactTime;if(ballAge>=0){fragments.add(s.ball.at,ballAge,2.8,[1,.05,.18],7,'radial',low);if(ballAge<.45)glow.add(s.ball.at.x,s.ball.at.y,s.ball.at.z,4,4,1,.04,.15,1-ballAge/.45,0);}
-    // ---- engolir e comprimir: a energia é puxada para a boca
-    if (ph === 'engulf' || ph === 'compress') { const P = s.at, k = ph === 'compress' ? A / DRAGON.compress : 0;
-      for (let i = 0; i < (low ? 16 : 40); i++) { const u = ((i / 40) + t * 2) % 1, a = i * 2.4, r = (1 - u) * 2.6; glow.add(P.x + Math.cos(a) * r, P.y + Math.sin(a * 1.7) * r * .6, P.z + Math.sin(a) * r, .06, .32, 1, .8, .4, u, 3, a, i); }
-      glow.add(P.x, P.y, P.z, 1 + k * 2.5, 1 + k * 2.5, 1, .9, .6, .5 + k * .5, 0); }
-    // ---- explosão em esfera volumétrica de luz
-    shells.forEach((m, i) => { const k = (A - i * .08) / 1.1; m.visible = ph === 'explode' && k > 0 && k < 1; if (!m.visible) return; m.position.set(s.at.x, s.at.y, s.at.z);
-      m.scale.setScalar((.5 + (8.5 - i * 1.8) * easeOut(k))); m.rotation.set(t * .4 + i, t * .3, 0); m.material.uniforms.alpha.value = (1 - smooth(k)) * 1.2; m.material.uniforms.heat.value = 1.9 - k - i * .3; });
-    if (ph === 'explode') { const P = s.at, k = A / DRAGON.dissipate, gy = ground(P.x, P.z), n = groundNormal(ground, P.x, P.z, nrm);
-      if (A < .16) { const q = 1 - A / .16; glow.add(P.x, P.y, P.z, 9 * q + 1, 9 * q + 1, 1, .97, .85, q, 0); glow.add(P.x, P.y, P.z, 12 * q, .5, 1, 1, .9, q, 2, 0); }
-      fragments.add(P,A,7,[1,.6,.15],31,'radial',low);
-      for (let i = 0; i < (low ? 40 : quality===1?70:110); i++) { const a = i * 2.39996, el = hash(i) * 1.5 - .3, sp = 6 + hash(i * 3) * 12, d = sp * easeOut(A / .9);
-        glow.add(P.x + Math.cos(a) * Math.cos(el) * d, P.y + Math.sin(el) * d - 2 * A * A, P.z + Math.sin(a) * Math.cos(el) * d, .08, .55, 1, .65 + .3 * hash(i + 4), .2, 1 - k, 3, a + Math.PI / 2, i); }
-      for (let i = 0; i < (low ? 5 : 12); i++) { const a = i * 1.9, d = 1.2 + 4 * easeOut(k); smoke.add(P.x + Math.cos(a) * d, gy + .8 + k * 4 + (i % 3) * .6, P.z + Math.sin(a) * d, 2 + 3 * k, 2 + 3 * k, .2, .14, .1, .45 * (1 - smooth((k - .25) / .75)), 1, a, i); }
-    }
-    rib.end(); glow.end(); smoke.end(); decals.end(t);fragments.end();
+  const charging=ph==='soar',flying=s.ball.active;
+  fire.mesh.visible=corona.mesh.visible=fireCrown.visible=charging||flying;
+  mouth.copy(head.root.position).addScaledVector(forward,s.scale*.68);
+  if(charging||flying){const pos=charging?mouth:s.ball.p,dir=charging?forward:s.ball.direction,k=charging?smooth(A/DRAGON.soar):1;
+   fire.update(t,{position:pos,dir,radius:1.4*k,length:1.1*k,quality,alpha:.98});corona.update(t,{position:pos,dir,radius:1.67*k,length:1.22*k,quality,alpha:.33,dissolve:.34});
+   fireCrown.position.set(pos.x,pos.y,pos.z);fireCrown.quaternion.copy(fire.mesh.quaternion);fireCrown.scale.setScalar(k);flameMat.uniforms.time.value=t;ballFlames.count=low?12:24;
+   for(let i=0;i<ballFlames.count;i++){const angle=i*2.39996,r=.72+(i%3)*.14;dummy.position.set(Math.cos(angle)*r,Math.sin(angle)*r,-.1-(i%3)*.3);dummy.rotation.set(-Math.PI/2+.25*Math.sin(t*6+i),0,-angle);dummy.scale.set(1.7,1.4+.4*Math.sin(t*7+i),1.3);dummy.updateMatrix();ballFlames.setMatrixAt(i,dummy.matrix);}ballFlames.instanceMatrix.needsUpdate=true;
+   forward.set(dir.x,dir.y,dir.z).normalize();side.crossVectors(worldUp,forward).normalize();up.crossVectors(forward,side);
+   for(let i=0;i<(low?9:18);i++){const age=(t*2+hash(i))%1,angle=i*2.4,r=.8+age*.9;point.set(pos.x,pos.y,pos.z).addScaledVector(side,Math.cos(angle)*r).addScaledVector(up,Math.sin(angle)*r).addScaledVector(forward,-age*3);sparks.add(point.x,point.y,point.z,.06,.35,1,.25,.015,(1-age)*.6,3,angle,i);}
   }
-  return { root, update, clear() { root.visible = false; },
-    dispose(){scene.remove(root);const gs=new Set(),ms=new Set();root.traverse(o=>{if(o.geometry)gs.add(o.geometry);if(o.material)ms.add(o.material);if(o.isInstancedMesh)o.dispose();});for(const g of gs)g.dispose();for(const m of ms)m.dispose();}
-  };
+  if(flying)for(let i=0;i<(low?4:8);i++){const age=(t*.8+hash(i+40))%1,p=s.ball.p,d=s.ball.direction;smoke.add(p.x-d.x*age*4,p.y-d.y*age*4+.2,p.z-d.z*age*4,.4+age,.6+age,.075,.035,.025,(1-age)*.25,1,i,i);}
+  trail.update(t,s.ball.p,flying,quality);
+  if(s.ball.impactTime>=0)impacts.emit({id:'fireball',time:s.ball.impactTime,point:s.ball.at,size:3.8,preset:'cinder',kind:'ball'});
+  if(ph==='compress'){
+   for(let i=0;i<(low?8:18);i++){const u=(i/18+t*1.2)%1,angle=i*2.4,r=(1-u)*2.5;sparks.add(s.at.x+Math.cos(angle)*r,s.at.y+Math.sin(angle*1.4)*r,s.at.z+Math.sin(angle)*r,.05,.2,1,.6,.08,u*.55,3,angle,i);}
+  }
+  if(ph==='explode'){impacts.emit({id:'dragon-end',time:t-A,point:s.at,size:7,preset:'celestial',kind:'dragon'});impacts.emit({id:'dragon-cinder',time:t-A+.12,point:s.at,size:4.2,preset:'cinder',kind:'ball',dir:{x:.2,y:1,z:0}});}
+  impacts.update(t,quality);sparks.end();smoke.end();filaments.end();
+ }
+ return{root,update,clear,stats:()=>({bodyTriangles:4096,fireball:root.visible&&fire.mesh.visible,impacts:impacts.stats()}),dispose(){scene.remove(root);head.dispose();body.dispose();flameGeo.dispose();flameMat.dispose();ballFlames.dispose();fire.dispose();corona.dispose();trail.dispose();impacts.dispose();sparks.dispose();smoke.dispose();filaments.dispose();}};
 }

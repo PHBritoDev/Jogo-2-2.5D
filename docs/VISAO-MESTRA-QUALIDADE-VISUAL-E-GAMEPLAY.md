@@ -147,5 +147,16 @@ Adicionar subseções datadas apenas quando o criador estabelecer algo relevante
 **Pedido:** alcançar ou superar o padrão do showreel enviado; nunca aceitar efeitos genéricos; todas as IAs devem consultar um documento permanente no GitHub; o assistente deve agir como co-dev e registrar outras exigências duradouras quando necessário.  
 **Consequência:** este documento é a régua permanente para futuras habilidades, personagens, armas, animações e melhorias de gameplay. **Não é uma ordem para refazer tudo imediatamente.**
 
+### 30/10/2026 — linguagem dos poderes e biblioteca reutilizável
+**Pedido literal:** “Quero a VFX Engine 2.0 implementada e utilizada para reconstruir o dragão, sua bola de fogo e os ataques dos portais, além de melhorar a Skill X.”
+
+**Intenção:** energia com matéria, direção e impacto coerentes; dragão oriental colossal de fogo dourado/branco, sem aparência de estátua; portais passam a emitir exatamente duas massas simultâneas e retas. O design anterior de 24 projéteis foi substituído.
+
+**Implementações futuras:** reutilizar volumes, trilhas e impactos documentados em [VFX-ENGINE-2.md](VFX-ENGINE-2.md); manter identidade de cada poder e orçamento mobile.
+
+**Verificação:** comparar referência e frames reais, testar colisão física e fases, 1ª/3ª pessoa e qualidade baixa.
+
+**Compatibilidade:** preservar campanhas/saves, balanceamento, corrida nativa e espada montada na mão após a pose.
+
 ---
 **Mensagem final a qualquer agente:** se você estiver prestes a criar uma magia, uma espada, um NPC, um chefe ou uma animação, pergunte-se: **“O criador veria isso ao lado do showreel de VFX e reconheceria a mesma ambição de qualidade — com identidade própria e funcionando no celular?”** Se a resposta for não, identifique por quê, melhore o resultado e teste. **Somos co-devs.**
