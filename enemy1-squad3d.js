@@ -379,7 +379,7 @@ export class Enemy1Squad {
   lead(t, k) { return { x: t.x + clamp((t.vx || 0) * k, -3, 3), z: t.z + clamp((t.vz || 0) * k, -3, 3) }; }
   spawnClaws(a, t, telegraph) {
     const S = a.T.claws, p = this.lead(t, S.lead), hands = [];
-    for (let i = 0; i < S.hands; i++) { const ang = i / S.hands * TAU + this.rand() * .5, dist = S.r * (.38 + this.rand() * .5); hands.push({ a: ang, d: dist, delay: this.rand() * .18 + (i % 2) * .06, s: .85 + this.rand() * .35, curl: this.rand() }); }
+    for (let i = 0; i < S.hands; i++) { const ang = i / S.hands * TAU + this.rand() * .5, dist = S.r * (.62 + this.rand() * .3); hands.push({ a: ang, d: dist, delay: this.rand() * .18 + (i % 2) * .06, s: .85 + this.rand() * .35, curl: this.rand() }); }
     const s = { id: this.nextId++, type: 'claws', owner: a.id, kind: a.kind, T: { ...S, telegraph: telegraph || S.telegraph }, tid: t.id, x: p.x, z: p.z, y: this.ground(p.x, p.z), r: S.r, hands, t: 0, phase: 'telegraph', held: null, lashed: new Set() };
     this.spells.push(s); this.event('claws', { spell: s, actor: a }); return s;
   }

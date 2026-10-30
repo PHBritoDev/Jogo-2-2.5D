@@ -1,0 +1,50 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Enemy1 · prévia dos poderes</title>
+<style>body{margin:0;background:#0b0912;color:#ecdfff;font:14px system-ui}canvas{display:block}header{position:absolute;top:14px;left:18px;pointer-events:none}h1{font:20px Georgia;letter-spacing:2px;color:#d9b6ff;margin:0 0 4px}footer{position:absolute;bottom:16px;left:16px;right:16px}button{background:#1d1230;border:1px solid #9a6cff;color:#f2e8ff;padding:9px 11px;border-radius:8px;margin:3px}</style>
+<header><h1>ENEMY1 · PODERES SOMBRIOS</h1><p id="sub">Garras do Abismo · Espiral Devoradora · Juízo Violeta · Contra-selo · Ceifadora do Limiar</p></header>
+<footer><button data-k="claws">GARRAS</button><button data-k="spiral">ESPIRAL</button><button data-k="judgment">JUÍZO</button><button data-k="clash">CLASH</button><button data-k="squad">ESQUADRA</button><button data-k="scythe">FOICE</button><button id="warden">GUARDIÃO</button><button id="quality">QUALIDADE</button></footer>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as T from 'three';
+import {Enemy1Squad} from './enemy1-squad3d.js';import {createDarkPowersVFX} from './enemy1-dark-vfx3d.js';import {buildWardenScythe} from './warden-scythe3d.js';
+const qs=new URLSearchParams(location.search);let kind=qs.get('k')||'claws',low=qs.has('low'),warden=qs.has('warden');
+const scene=new T.Scene();scene.background=new T.Color('#0b0912');scene.fog=new T.Fog('#0b0912',30,80);const camera=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,200);
+const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=T.ACESFilmicToneMapping;document.body.appendChild(renderer.domElement);
+scene.add(new T.HemisphereLight(0xcdbfff,0x2a2433,2.1));const sun=new T.DirectionalLight(0xffffff,1.4);sun.position.set(4,8,6);scene.add(sun);
+const floor=new T.Mesh(new T.PlaneGeometry(120,120,60,60),new T.MeshStandardMaterial({color:0x2b2a26,roughness:.95}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const ground=()=>0;
+const heroM=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xd8d2c0}));scene.add(heroM);
+const hero={id:'hero',team:'hero',x:0,y:0,z:0,vx:0,vz:0,radius:.4,height:1.8,alive:true,priority:1,iframes:false};
+const foeMats=[];const foes=[];
+let squad,vfx=createDarkPowersVFX(T,scene,{ground}),freeze=false,quality=2,heroHp=999,scy=null,fore=[];
+function foeMesh(w){const g=new T.Group();const m=new T.Mesh(new T.CapsuleGeometry(w?.5:.38,w?1.3:1.05,6,12),new T.MeshStandardMaterial({color:w?0x2a1830:0x3a2a48,roughness:.6}));m.position.y=w?1.15:.9;g.add(m);scene.add(g);return g;}
+function start(){
+ for(const f of foes)scene.remove(f);foes.length=0;if(scy){scene.remove(scy);scy=null;}fore=[];
+ squad=new Enemy1Squad({seed:7,ground,damageTarget:(id,n)=>{heroHp-=n;return 'hit';},event:()=>{}});squad.setTargets([hero]);
+ hero.x=0;hero.z=0;hero.vx=hero.vz=0;
+ if(kind==='squad'){squad.spawn([{x:7,z:3},{x:-6,z:4},{x:3,z:9,kind:warden?'warden':'common'},{x:-3,z:-7}]);camera.position.set(10,7,-10);camera.lookAt(0,1,2);}
+ else if(kind==='scythe'){scy=buildWardenScythe(T);scy.position.set(0,1.2,0);scene.add(scy);camera.position.set(0,2.2,2.6);camera.lookAt(0,1.9,0);}
+ else{const[a]=squad.spawn([{x:0,z:10,yaw:Math.PI,kind:warden?'warden':'common'}]);a.alert=999;a.decideT=999;
+  if(kind==='claws'){squad.spawnClaws(a,hero);camera.position.set(5.5,3.2,-5.5);camera.lookAt(0,1,0);}
+  if(kind==='spiral'){squad.spawnSpiral(a,hero);camera.position.set(6,3,1);camera.lookAt(0,1.2,5);}
+  if(kind==='judgment'){squad.spawnJudgment(a,hero);camera.position.set(9,5,-8);camera.lookAt(0,3,2);}
+  if(kind==='clash'){const f={id:'p',team:'hero',x:0,y:1.15,z:1,dx:0,dz:1,speed:9,r:.4,power:14,alive:true,kill(){this.alive=false;},weaken(){}};fore=[f];squad.setForeignSpells(fore);squad.spawnCounter(a,f);camera.position.set(6,2.5,4);camera.lookAt(0,1.2,5);}
+ }
+ for(const a of squad.actors)foes.push(foeMesh(a.kind==='warden'));
+}
+function step(dt){
+ for(const f of fore)if(f.alive){f.z+=f.dz*f.speed*dt;f.x+=f.dx*f.speed*dt;}
+ squad.update(dt);
+ heroM.position.set(hero.x,.87,hero.z);
+ squad.actors.forEach((a,i)=>{const f=foes[i];if(!f)return;f.position.set(a.x,a.y,a.z);f.rotation.y=a.yaw;f.visible=a.alive;});
+ const charges=[];for(const a of squad.actors){const c=a.act;if(!a.alive||!c||c.released||!(c.type==='cast'||c.type==='counter'))continue;const k=Math.min(1,c.t/c.release);charges.push({skill:c.skill||'counter',k,x:a.x+Math.sin(a.yaw)*.55,y:a.y+1.3,z:a.z+Math.cos(a.yaw)*.55,dx:Math.sin(a.yaw),dz:Math.cos(a.yaw),gx:hero.x,gz:hero.z,kind:a.kind});}
+ const info=vfx.update(dt,camera,squad.spells,charges,quality===0?0:1);
+ if(scy){scy.rotation.y+=dt*.6;scy.userData.tick(performance.now()/1000,1);}
+ renderer.render(scene,camera);return info;
+}
+let last=performance.now();function loop(){requestAnimationFrame(loop);if(freeze)return;const now=performance.now(),dt=Math.min(.05,(now-last)/1000);last=now;step(dt);if(squad&&kind!=='squad'&&!squad.spells.length&&kind!=='scythe')setTimeout(()=>{if(!squad.spells.length)start();},600);}
+document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{kind=b.dataset.k;start();});
+document.getElementById('quality').onclick=()=>{quality=quality?0:2;};document.getElementById('warden').onclick=()=>{warden=!warden;start();};
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+start();loop();
+window.preview={freeze(){freeze=true;},start,step,info(){return{calls:renderer.info.render.calls,tris:renderer.info.render.triangles,spells:squad.snapshot().spells,hp:heroHp};},cam(p,l){camera.position.set(...p);camera.lookAt(...l);}};
+</script></html>
