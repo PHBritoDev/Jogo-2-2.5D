@@ -1,0 +1,59 @@
+{
+  "inputs": {
+    "attack": {
+      "kind": "basic",
+      "time": 0,
+      "step": 0
+    },
+    "defense": null,
+    "special": {
+      "kind": "prota",
+      "time": 0,
+      "step": null
+    },
+    "paused": null,
+    "touch": {
+      "kind": "aurora",
+      "time": 0,
+      "step": null
+    },
+    "otherSwordHidden": true
+  },
+  "magic": {
+    "siege": {
+      "active": true,
+      "remaining": 5
+    },
+    "stars": {
+      "active": true,
+      "phase": "cast"
+    },
+    "phoenix": {
+      "active": true,
+      "phase": "cast"
+    },
+    "white": {
+      "active": true,
+      "locked": true
+    },
+    "restored": true
+  },
+  "controls": {
+    "shift": {
+      "vx": 0,
+      "vz": 0,
+      "dash": 0,
+      "grounded": true,
+      "sprint": true
+    },
+    "dash": null,
+    "dashTime": 0.32,
+    "jump": null,
+    "air": true,
+    "death": null,
+    "hidden": false,
+    "restored": true,
+    "save": null
+  },
+  "errors": []
+}

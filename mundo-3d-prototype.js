@@ -1569,11 +1569,11 @@ if(firstPerson){
  const desired=target.clone().add(camOffset);
  // MOD 186 — se um tronco fica entre o herói e a câmera, aproxima a câmera em vez de enquadrar a casca.
  {const ox=camOffset.x,oz=camOffset.z,len2=ox*ox+oz*oz;let limit=1;
-  if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>cameraDistance+2||Math.abs(rz)>cameraDistance+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
+  if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>camDistUse+2||Math.abs(rz)>camDistUse+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
   // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
   for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
   // MOD 217 — casas da cidade (caixas de colisão): a câmera para antes da fachada em vez de entrar no prédio.
-  if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape==='box'&&Math.abs(o.x-target.x)<cameraDistance+8&&Math.abs(o.z-target.z)<cameraDistance+8);
+  if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape==='box'&&Math.abs(o.x-target.x)<camDistUse+8&&Math.abs(o.z-target.z)<camDistUse+8);
    if(near.length)for(let i=1;i<=14;i++){const f=i/14*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(near.some(o=>Math.abs(sx-o.x)<o.halfX+.25&&Math.abs(sz-o.z)<o.halfZ+.25&&sy<groundHeightAt(o.x,o.z)+(o.height||3)+1.8)){limit=Math.max(.12,(i-1.5)/14*limit);break;}}}
   // MOD 217 — interiores (estalagem, esgoto, vulcão, caverna): a câmera para antes da parede, sem mostrar o que há fora do cômodo.
   if(voidMode&&voidSpec.walk){for(let i=1;i<=14;i++){const f=i/14*limit;if(blockedAt(target.x+camOffset.x*f,target.z+camOffset.z*f)){limit=Math.max(.1,(i-1.6)/14*limit);break;}}}
@@ -2036,7 +2036,7 @@ applyLevelStats(true);announceShopNews();
 /* MOD 187 — primeira pessoa de verdade: espada na mão da câmera (com balanço ao andar e golpe visível),
    mira central, campo de visão mais aberto, herói sempre virado para onde a câmera olha. */
 scene.add(camera);
-let swordView=null,fpSwingT=1,fpBob=0,fpWasActive=false;
+let swordView=null,fpSwingT=1,fpWasActive=false;
 function startFpSwing(){fpSwingT=0;}
 function ensureSwordView(){
  if(swordView||!model||!riteClips.Rite_Crescent)return;
@@ -2291,9 +2291,8 @@ function alignAuroraToSwordRoot(aurora){
  const holder=new THREE.Group();holder.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);holder.position.copy(start);
  aurora.scale.setScalar(size[axis]*1.06/1.38);holder.add(aurora);return holder;
 }
-let auroraHand=null,auroraFpTemplate=null;
 const SWORD_PALETTES={aurora:{blade:0xf3f0e6,edge:0xffe6b0,fuller:0xffd56a,gold:0xe2b04a,pommel:0xffc24a},vigilia:{blade:0xdfe8f5,edge:0x9fc4ff,fuller:0x8fd0ff,gold:0x9aa8c0,pommel:0x7ab8ff},celeste:{blade:0xffffff,edge:0xfff6d8,fuller:0xfff2b0,gold:0xffd86a,pommel:0xffffff}};
-const swordHands={},swordFpTemplates={};
+const swordHands={};
 function equipSword(id){
  if(!SWORDS[id]||(id!=='prota'&&!ownedItems.has(id)))return;quantumFX?.clear();if(id!==equippedSword)rites.cancel('weapon');equippedSword=id;save3DProgress();
  if(id!=='prota'&&swordRoot&&swordRoot.parent&&!swordHands[id]){
@@ -2303,7 +2302,6 @@ function equipSword(id){
  }
 
  if(swordRoot)swordRoot.visible=id==='prota';for(const [k,h] of Object.entries(swordHands))h.visible=k===id;
- auroraHand=swordHands.aurora||auroraHand;auroraFpTemplate=swordFpTemplates.aurora||auroraFpTemplate;
  slashTrail.material.color.setHex(SWORDS[id].trail);
 
 }
