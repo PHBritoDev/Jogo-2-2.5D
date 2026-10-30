@@ -31,7 +31,7 @@ export function buildQuantumSword(T) {
   for (const sx of [-1, 1]) { const q = new T.Mesh(new T.ConeGeometry(.022, .14, 6), gold); q.position.set(sx * .14, guardY + .01, 0); q.rotation.z = -sx * 1.25; g.add(q); }
   const core = new T.Mesh(new T.SphereGeometry(.06, 20, 14), new T.ShaderMaterial({ vertexShader: BLADE_VERT, fragmentShader: CORE_FRAG, uniforms, toneMapped: false })); core.position.y = guardY; g.add(core);
   const orbitMats = [new T.MeshBasicMaterial({ color: 0xffe7b0, toneMapped: false }), new T.MeshBasicMaterial({ color: 0xa877ff, toneMapped: false })];
-  const orbits = orbitMats.map((m, i) => { const o = new T.Group(); o.position.y = guardY; o.rotation.set(i ? 1.1 : .35, 0, i ? -.5 : .7); const ring = new T.Mesh(new T.TorusGeometry(.13 + i * .025, .0045, 4, 48), m); ring.scale.set(1, .62, 1); o.add(ring);
+  const orbits = orbitMats.map((m, i) => { const o = new T.Group(); o.position.y = guardY; o.rotation.set(i ? 1.1 : .35, 0, i ? -.5 : .7); const ring = new T.Mesh(new T.TorusGeometry(.13 + i * .025, .0045, 4, 48), m); ring.name='QuantumOrbit'+i;ring.scale.set(1, .62, 1); o.add(ring);
     const bead = new T.Mesh(new T.SphereGeometry(.012, 6, 5), m); bead.position.set(.13 + i * .025, 0, 0); ring.add(bead); g.add(o); return { o, ring }; });
   // empunhadura vermelha ornamentada e pomo
   const grip = new T.Mesh(new T.CylinderGeometry(.024, .028, .26, 10), new T.MeshStandardMaterial({ color: 0x8a0e18, roughness: .55, metalness: .2, emissive: 0x2a0204, emissiveIntensity: .6 })); grip.position.y = .18; g.add(grip);
@@ -42,6 +42,14 @@ export function buildQuantumSword(T) {
   g.userData.tick = t => { uniforms.time.value = t; orbits[0].ring.rotation.z = t * 2.4; orbits[1].ring.rotation.z = -t * 1.8; };
   g.userData.tipLocal = new T.Vector3(0, 1.38, 0); g.userData.coreLocal = new T.Vector3(0, guardY, 0);
   return g; // origem no pomo, lâmina ao longo de +Y, comprimento ~1,38
+}
+
+/** Animate both the world object and independently cloned camera-space materials. */
+export function tickQuantumSword(root,time){
+ root.traverse(o=>{if(o.material?.uniforms?.time)o.material.uniforms.time.value=time;
+  if(o.name==='QuantumOrbit0')o.rotation.z=time*2.4;
+  if(o.name==='QuantumOrbit1')o.rotation.z=-time*1.8;
+ });
 }
 
 /**

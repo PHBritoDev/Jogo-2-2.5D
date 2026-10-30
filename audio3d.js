@@ -158,7 +158,7 @@ export function createWorldAudio() {
         }
       } else stepDistance = .5;
     },
-    swing() { if (!ready) return; burst('bandpass', 700, 1.4, .16, .2, sfxBus, 2600); },
+    swing(step=0, sword='') { if (!ready) return; const n=Math.abs(step)%3, dark=sword==='aurora'?.82:1; burst('bandpass', [700,920,540][n]*dark, 1.4, [.16,.13,.20][n], .2, sfxBus, [2600,3100,2100][n]*dark); },
     hit() { if (!ready) return; tone('sine', 150, 48, .38, .18); burst('lowpass', 1800, .7, .22, .08); },
     hurt() { if (!ready) return; tone('triangle', 110, 70, .26, .22); burst('bandpass', 500, .9, .16, .14); },
     whoosh() { if (!ready) return; burst('bandpass', 400, .8, .12, .26, sfxBus, 1300); },

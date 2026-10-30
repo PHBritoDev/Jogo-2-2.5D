@@ -1,0 +1,388 @@
+{
+  "initial": {
+    "skills": {
+      "skill_x_rupture": {
+        "active": false,
+        "phase": "idle",
+        "time": 0
+      },
+      "skill_twin_portals": {
+        "active": false,
+        "phase": "idle",
+        "time": 0
+      },
+      "skill_judgment_dragon": {
+        "active": false,
+        "phase": "idle",
+        "time": 0
+      }
+    },
+    "hp": 10000,
+    "mana": 100,
+    "loadout": [
+      "skill_x_rupture",
+      "skill_twin_portals",
+      "skill_judgment_dragon"
+    ],
+    "enemy": [
+      40,
+      0,
+      14
+    ],
+    "slots": [
+      "skill_x_rupture",
+      "skill_twin_portals",
+      "skill_judgment_dragon",
+      "ultimate"
+    ]
+  },
+  "quantum": {
+    "ready": true,
+    "sword": "quantum",
+    "active": null,
+    "waves": 0,
+    "projectiles": [],
+    "viewmodel": {
+      "visible": true,
+      "meshes": 1,
+      "triangles": 749,
+      "hand": [
+        0.19999997562601468,
+        -0.18999999832410897,
+        -0.5600000287543523
+      ],
+      "armBounds": [
+        {
+          "min": [
+            -0.4528199634845258,
+            -0.4175451192297839,
+            -0.6871110011151522
+          ],
+          "max": [
+            0.37023768817344305,
+            -0.08087518042009578,
+            -0.2467561454941869
+          ]
+        }
+      ],
+      "swords": 1
+    },
+    "cinematic": false,
+    "motion": {
+      "vx": 0,
+      "vz": 0,
+      "dash": 0,
+      "grounded": true,
+      "sprint": false
+    },
+    "camera": {
+      "distance": 0.72,
+      "yaw": 0,
+      "pitch": 0
+    },
+    "events": [],
+    "cooldowns": {
+      "prota": 0,
+      "aurora": 0
+    },
+    "mana": 100,
+    "hp": 10000,
+    "hero": [
+      -5,
+      0,
+      16
+    ],
+    "target": [
+      -5,
+      0,
+      12
+    ],
+    "clip": "Idle",
+    "blade": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "vfx": {
+      "cuts": 0,
+      "trails": 0,
+      "particles": 0,
+      "ghosts": 0,
+      "capacity": {
+        "cuts": 16,
+        "trails": 3,
+        "particles": 192,
+        "ghosts": 3
+      }
+    },
+    "height": 1.9552748166398033
+  },
+  "skills": [
+    {
+      "id": "skill_x_rupture",
+      "first": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": true,
+            "phase": "cast",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          }
+        },
+        "hp": 300,
+        "mana": 973,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          0,
+          0,
+          -29
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "end": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 1.37
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          }
+        },
+        "hp": 262,
+        "mana": 973,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          0,
+          0,
+          -29
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      }
+    },
+    {
+      "id": "skill_twin_portals",
+      "first": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 1.37
+          },
+          "skill_twin_portals": {
+            "active": true,
+            "phase": "open",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          }
+        },
+        "hp": 300,
+        "mana": 959,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          0,
+          0,
+          -29
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "end": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 1.37
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 4.68
+          },
+          "skill_judgment_dragon": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          }
+        },
+        "hp": 252,
+        "mana": 959,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          0,
+          0,
+          -29
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      }
+    },
+    {
+      "id": "skill_judgment_dragon",
+      "first": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 1.37
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 4.68
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "channel",
+            "time": 0
+          }
+        },
+        "hp": 300,
+        "mana": 944,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          0,
+          0,
+          -29
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "end": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 1.37
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 4.68
+          },
+          "skill_judgment_dragon": {
+            "active": false,
+            "phase": "idle",
+            "time": 4.39
+          }
+        },
+        "hp": 234,
+        "mana": 944,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          0,
+          0,
+          -29
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      }
+    }
+  ],
+  "equipment": [
+    {
+      "sword": "prota",
+      "visible": true,
+      "triangles": 749
+    },
+    {
+      "sword": "aurora",
+      "visible": true,
+      "triangles": 749
+    },
+    {
+      "sword": "vigilia",
+      "visible": true,
+      "triangles": 749
+    },
+    {
+      "sword": "celeste",
+      "visible": true,
+      "triangles": 749
+    },
+    {
+      "sword": "quantum",
+      "visible": true,
+      "triangles": 749
+    }
+  ],
+  "errors": []
+}

@@ -10,7 +10,7 @@ pw=sync_playwright().start()
 browser=pw.chromium.launch(executable_path=shutil.which('chromium'),headless=True,args=['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
 context=browser.new_context(viewport={'width':1000,'height':650},device_scale_factor=1)
 page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-page.goto(args.url.rstrip('/')+'/mundo-3d-prototype.html?debug3d=1&todasHabilidades=1&v=231',wait_until='domcontentloaded')
+page.goto(args.url.rstrip('/')+'/mundo-3d-prototype.html?debug3d=1&todasHabilidades=1&v=234',wait_until='domcontentloaded')
 page.wait_for_function('window.SevenSinsDebug3D && SevenSinsDebug3D.riteState().ready',timeout=120000)
 page.select_option('#graphics-profile-3d','low',force=True)
 def call(js,shot=None,**extra):
@@ -21,7 +21,7 @@ def call(js,shot=None,**extra):
  assert not errors,errors
  return result
 report={}
-report['fps']=call('''async()=>{const d=SevenSinsDebug3D,out=[];for(const fps of [30,60,120]){await d.riteQA();d.riteEquip('prota');d.nearBoss();d.face();d.riteAttack();let basic=d.riteSim(.75,fps);await d.riteQA();d.riteCast();let judgment=d.riteSim(1.5,fps);await d.riteQA();d.riteEquip('aurora');d.riteCast();let eclipse=d.riteSim(3.5,fps);out.push({fps,basic:10000-basic.hp,judgment:10000-judgment.hp,eclipse:10000-eclipse.hp,after:judgment.hero,mana:[judgment.mana,eclipse.mana]});}return out;}''')
+report['fps']=call('''async()=>{const d=SevenSinsDebug3D,out=[];for(const fps of [30,60,120]){await d.riteQA();d.riteEquip('prota');d.nearBoss();d.face();d.riteAttack();let basic=d.riteSim(.75,fps);await d.riteQA();d.riteCast();let judgment=d.riteSim(2.1,fps);await d.riteQA();d.riteEquip('aurora');d.riteCast();let eclipse=d.riteSim(3.5,fps);out.push({fps,basic:10000-basic.hp,judgment:10000-judgment.hp,eclipse:10000-eclipse.hp,after:judgment.hero,mana:[judgment.mana,eclipse.mana]});}return out;}''')
 print('FPS',report['fps'],flush=True)
 for row in report['fps']:
  assert row['basic']==25,row

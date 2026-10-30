@@ -9,3 +9,10 @@ export function prepareSwordClips(THREE,clips,root){
 }
 /** Copy-on-write test saves: all campaign/heart/map writes stay in this page. */
 export function isolatedSwordStorage(storage,isolated=false){if(!isolated)return storage;const values=new Map();return{getItem:key=>values.has(key)?values.get(key):storage.getItem(key),setItem:(key,value)=>values.set(key,String(value)),removeItem:key=>values.set(key,null)};}
+
+/** Cached, disjoint bone regions: no full-body attack can overwrite locomotion. */
+export function swordLayers(THREE,clips,locomotion){
+ const lower=t=>/mixamorig(Hips|LeftUpLeg|RightUpLeg|LeftLeg|RightLeg|LeftFoot|RightFoot|LeftToeBase|RightToeBase)\./.test(t.name);
+ const split=(clip,low)=>new THREE.AnimationClip(clip.name+(low?'_Lower':'_Upper'),clip.duration,clip.tracks.filter(t=>!t.name.endsWith('.scale')&&lower(t)===low));
+ return{upper:Object.fromEntries(Object.entries(clips).map(([k,c])=>[k,split(c,false)])),lower:Object.fromEntries(Object.entries(locomotion).filter(([,c])=>c).map(([k,c])=>[k,split(c,true)]))};
+}

@@ -1,0 +1,262 @@
+[
+  {
+    "file": "Npc-lod2.glb",
+    "clips": [
+      {
+        "name": "Running",
+        "changed": true,
+        "tracks": 136
+      },
+      {
+        "name": "Walking",
+        "changed": true,
+        "tracks": 136
+      },
+      {
+        "name": "_01a156a3_6952_769b_94bf_2cf0e9d19b46",
+        "changed": false,
+        "tracks": 136
+      },
+      {
+        "name": "Agree_Gesture",
+        "changed": false,
+        "tracks": 136
+      },
+      {
+        "name": "Alert",
+        "changed": false,
+        "tracks": 136
+      }
+    ],
+    "bindPreserved": true,
+    "allClipPosesFinite": true
+  },
+  {
+    "file": "Enemy2-rig.glb",
+    "clips": [
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Attack",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Dead",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Running",
+        "changed": true,
+        "tracks": 204
+      },
+      {
+        "name": "Skill_03",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Walking",
+        "changed": true,
+        "tracks": 204
+      }
+    ],
+    "bindPreserved": true,
+    "allClipPosesFinite": true
+  },
+  {
+    "file": "Misteriosa-rig.glb",
+    "clips": [
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40.001",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc.001",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Attack",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Attack.001",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Dead",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Dead.001",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Running",
+        "changed": true,
+        "tracks": 204
+      },
+      {
+        "name": "Running.001",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Skill_03",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Skill_03.001",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Triple_Combo_Attack.001",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Walking",
+        "changed": true,
+        "tracks": 204
+      },
+      {
+        "name": "Walking.001",
+        "changed": false,
+        "tracks": 204
+      }
+    ],
+    "bindPreserved": true,
+    "allClipPosesFinite": true
+  },
+  {
+    "file": "Anjo-rig.glb",
+    "clips": [
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "changed": false,
+        "tracks": 210
+      },
+      {
+        "name": "Attack",
+        "changed": false,
+        "tracks": 210
+      },
+      {
+        "name": "Dead",
+        "changed": false,
+        "tracks": 210
+      },
+      {
+        "name": "Idle",
+        "changed": false,
+        "tracks": 210
+      },
+      {
+        "name": "Running",
+        "changed": true,
+        "tracks": 210
+      },
+      {
+        "name": "Skill_03",
+        "changed": false,
+        "tracks": 210
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "changed": false,
+        "tracks": 210
+      },
+      {
+        "name": "Walking",
+        "changed": true,
+        "tracks": 210
+      }
+    ],
+    "bindPreserved": true,
+    "allClipPosesFinite": true
+  },
+  {
+    "file": "Sandra-rig.glb",
+    "clips": [
+      {
+        "name": "Walking",
+        "changed": true,
+        "tracks": 204
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Skill_03",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Running",
+        "changed": true,
+        "tracks": 204
+      },
+      {
+        "name": "Dead",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "Attack",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+        "changed": false,
+        "tracks": 204
+      },
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "changed": false,
+        "tracks": 204
+      }
+    ],
+    "bindPreserved": true,
+    "allClipPosesFinite": true
+  }
+]
