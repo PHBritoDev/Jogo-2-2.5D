@@ -16,6 +16,29 @@
    - **Imagem 4:** conceito de arma de haste/foice/lança dupla demoníaca, metal preto/prateado, lâminas angulares vermelho-sangue, centro de caveira e ornamentos. Criar **arma original inspirada na silhueta**, sem reproduzir um asset de terceiro.
 5. O usuário quer liberdade criativa: melhore o que julgar necessário, pesquise técnicas e referências de IA/VFX/gameplay se surgirem dúvidas; não improvise placeholders genéricos. Se usar recursos externos, respeite licenças.
 
+
+## 0-A. INSTRUÇÃO CRÍTICA — CODEX MOD 236 EM ANDAMENTO, LIMITE ÀS 18h34
+
+**Atualização enviada pelo criador após a criação deste briefing. Leia esta seção como regra obrigatória.** O Codex atingiu limite de uso enquanto finalizava a **Mod 236** e informou que poderá continuar **às 18h34 (horário indicado pelo próprio Codex)**. **NÃO presuma que suas mudanças estão salvas em commit, publicadas ou integradas.**
+
+Último relatório real do Codex, fornecido pelo criador:
+- Leu briefing mestre e referências de vídeo, inspecionou arquivos e rodou testes-base.
+- Alterou a lógica dos portais para **exatamente dois ataques simultâneos** com direção fixa e pressão no ponto de contato.
+- Fez a bola de fogo sair da boca do dragão e seguir trajetória física.
+- Trabalhou no corpo flamejante, na cabeça/crina, na silhueta e no enquadramento da mordida; ainda corrigia aspecto metálico do dragão.
+- Relatou testes de lógica aprovados, testes das três fases de dano, retorno à câmera em primeira pessoa e testes visuais em viewport mobile.
+- Houve **falhas** nos últimos comandos, seguidas de limite de uso. **Não houve confirmação de commit, PR, merge, deploy ou conclusão.**
+
+### Procedimento obrigatório para Claude
+
+1. **COMECE AGORA** a missão Enemy1 em **branch própria**, com workspace/worktree isolado do Codex. Não aguarde até 18h34 para iniciar. Verifique `git status`, `git branch`, `git log` e `git worktree list` antes de escrever. **Se a área de trabalho for compartilhada e houver mudanças locais do Codex, NÃO faça checkout/reset/clean/stash/overwrite nessas mudanças; crie worktree separado em diretório novo e branch própria a partir de commit limpo.**
+2. Implemente poderes, IA, grupo simultâneo e mini-boss em módulos separados, fazendo **commits frequentes NA SUA BRANCH**, sem tocar na branch/worktree/arquivos locais do Codex e **sem fazer merge na main enquanto a Mod 236 não estiver confirmada e integrada**. Um arquivo de briefing criado na `main` não é autorização para publicar código de Enemy1 por cima de mudanças incompletas.
+3. **Não dependa de arquivos da VFX Engine 2.0 que ainda não existam na `main`**. Faça módulos com adaptadores e interfaces compatíveis, reutilizando componentes já publicados; depois integre os componentes novos da Mod 236 assim que forem publicados. Não reimplemente a mesma engine nem substitua o sistema do Codex.
+4. **Quando Codex concluir e publicar Mod 236**, atualize sua branch com a `main` mais recente, resolva conflitos manualmente, rode testes completos das skills do protagonista e do Enemy1, e **só então faça merge seguro**. Se Codex não publicar ou houver conflito sem solução segura, mantenha PR/branch com commits preservados e informe o bloqueio no final, sem forçar.
+5. O criador pediu **economia extrema de chat**: todas essas regras ficam neste arquivo; não repita estas instruções em respostas, não envie plano nem status intermediário. Trabalhe silenciosamente e entregue apenas o resultado final, salvo bloqueio realmente incontornável.
+
+**Regra de ouro:** é proibido perder ou sobrescrever trabalho local não commitado do Codex. Não alegar que a Mod 236 terminou só porque existem alterações em arquivos ou porque os testes passaram.
+
 ## 1. Problemas reais já encontrados no código (verifique novamente)
 
 - `mundo-3d-prototype.js` concentra lógica do combate e Enemy1. O Enemy1 é carregado de `Enemy1-lod.glb` com fallback `Enemy1.glb`; existe uma tabela de clipes com nomes UUID mapeados para `idle`, `cast`, `attack`, `block` etc. Não presumir nomes convencionais nem destruir o mapeamento validado.
