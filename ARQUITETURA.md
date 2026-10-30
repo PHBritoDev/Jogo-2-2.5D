@@ -165,3 +165,14 @@ API e limites permanentes em [`docs/VFX-ENGINE-2.md`](docs/VFX-ENGINE-2.md). `vf
 simultâneos e dragão; `vfx-dragon-model3d.js` constrói cabeça/corpo de fogo. O design de 24 fios dos
 portais da Mod 235 foi substituído por **dois corpos retos**. Laboratório isolado `?vfxLab236=1`.
 A câmera abre para a sequência do dragão sem gravar distância/yaw/pitch do jogador.
+
+## Mod 237 — Enemy1 em esquadra simultânea
+
+`enemy1-squad3d.js` (lógica pura, 120 Hz, semente): atores, IA por utilidade com estudo do alvo, diretor da esquadra
+(papéis, fichas de ataque, intervalo do grupo), Garras do Abismo, Espiral Devoradora, Juízo Violeta, contra-selo
+(magia × magia) e Guardião (combo, finta, fase 2). `enemy1-squad-runtime3d.js` desenha um clone por ator (altura pelo
+esqueleto, escala travada após o mixer) e prende a `warden-scythe3d.js` na mão do Guardião; VFX em
+`enemy1-dark-vfx3d.js`. No `mundo-3d-prototype.js`, todo `startPack({rig:'enemy1'})` vira esquadra: o `enemy` legado é
+o procurador invisível do ator em foco (dano, mira e HUD repassados), `updateEnemyAI`/`updateFoeKit` ficam desligados
+e `finishSquad()` fecha o encontro como o pacote antigo. `?esquadraLegada=1` volta ao modo antigo;
+`?testeEnemy1=1&todasHabilidades=1` abre o laboratório isolado. Detalhes: `docs/MOD-237-ENEMY1-ESQUADRA.md`.
