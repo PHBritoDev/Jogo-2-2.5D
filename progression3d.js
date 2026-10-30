@@ -48,10 +48,21 @@ export const SHOP_ITEMS = [
     desc: 'Aumenta o dano de cada estrela de 6 para 8. Requer Chuva de Estrelas Celestiais.', requires: 'magic2' },
   { id: 'magic3_plus', disabled: true, sector: 'escrituras', kind: 'upgrade', name: 'Espada do Círculo', cost: 160, level: 9, step: 21, stepText: 'chegar à Torre (Ato IV)',
     desc: 'Nova Palavra do Ato IV: um círculo mágico se abre sob o inimigo e uma espada gigante irrompe do chão. Requer Tornado da Fênix Celestial.', requires: 'magic3' },
+  // MOD 233 — Palavras novas: compráveis e equipáveis em qualquer um dos três espaços normais (Inventário → PALAVRAS).
+  { id: 'skill_x_rupture', sector: 'escrituras', kind: 'skill', name: 'Ruptura em X', cost: 55, level: 4, step: 8,
+    desc: 'Duas lâminas carmesim se cruzam num X que viaja reto até o alvo e se rompe em dois cortes. 26 de mana; 6,5 s de recarga.' },
+  { id: 'skill_twin_portals', sector: 'escrituras', kind: 'skill', name: 'Portais da Perseguição', cost: 95, level: 6, step: 12, stepText: 'entrar no vulcão de Cinzária (Ato II)',
+    desc: 'Um portal rubro e um violeta disparam oito fios que caçam o alvo por rotas diferentes e convergem numa explosão. 40 de mana; 11 s de recarga.' },
+  { id: 'skill_judgment_dragon', sector: 'escrituras', kind: 'skill', name: 'Dragão do Julgamento', cost: 140, level: 7, step: 16, stepText: 'chegar a Invernália (Ato III)',
+    desc: 'Fogo sagrado toma a forma de um dragão dourado que avança, engole o alvo e explode em luz. 55 de mana; 18 s de recarga.' },
   { id: 'aurora', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Aurora', cost: 30, level: 3, step: 4,
     desc: 'Lâmina clara e mais longa: +20% de dano. Ritos escarlates e Eclipse das Lâminas: quatro ondas de longo alcance, 38 mana, 16 s de recarga.' },
   { id: 'vigilia', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Vigília', cost: 110, level: 7, step: 16, stepText: 'encontrar quem resiste no Vale do Altar (Ato III)',
     desc: 'Aço azul-pálido para quem não dorme diante do mal: +44% de dano e alcance maior.' },
+  // MOD 233 — Quantum: à venda somente a partir da METADE do Ato III (etapa 17, a armadilha de Invernália, depois da
+  // cidade e da estalagem). O ouro e o nível sozinhos nunca liberam a compra.
+  { id: 'quantum', sector: 'arsenal', kind: 'sword', name: 'Quantum', cost: 165, level: 8, step: 17, stepText: 'a metade do Ato III (a armadilha de Invernália)',
+    desc: 'Núcleo escuro em órbita dourada e violeta, lâmina de luz: +60% de dano, alcance longo e golpes que colapsam como pequenas estrelas.' },
   // MOD 208 — a relíquia do torneio do coliseu (Ato V): desbloqueada ao vencer o 8º round.
   { id: 'celeste', sector: 'arsenal', kind: 'sword', name: 'Espada Celestial', cost: 220, level: 6, step: 27, stepText: 'vencer o torneio do coliseu (Ato V)', unlock: 'celeste',
     desc: 'Caiu do céu e desintegra demônios que a tocam: +92% de dano, alcance longo e rastro branco.' }
@@ -61,6 +72,7 @@ export const SWORDS = {
   prota: { id: 'prota', name: 'Espada do Chamado', damage: 25, reach: 2.0, trail: 0xffe2a0 },
   aurora: { id: 'aurora', name: 'Lâmina da Aurora', damage: 30, reach: 2.25, trail: 0xfff1b8 },
   vigilia: { id: 'vigilia', name: 'Lâmina da Vigília', damage: 36, reach: 2.4, trail: 0xbfe0ff },
+  quantum: { id: 'quantum', name: 'Quantum', damage: 40, reach: 2.5, trail: 0xc89aff },
   celeste: { id: 'celeste', name: 'Espada Celestial', damage: 48, reach: 2.6, trail: 0xffffff }
 };
 

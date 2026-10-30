@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod232-ritos';
+const BUILD = 'mod234-camera-combat';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {

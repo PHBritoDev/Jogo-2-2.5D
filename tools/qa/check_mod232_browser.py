@@ -9,7 +9,7 @@ with sync_playwright() as pw:
  browser=pw.chromium.launch(executable_path=shutil.which('chromium'),headless=True,args=['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
  ctx=browser.new_context(viewport={'width':1000,'height':650},has_touch=True)
  page=ctx.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.on('console',lambda m:errors.append(m.text) if m.type=='error' and any(k in m.text for k in ['Shader','GL_INVALID','WebGL']) else None)
- page.goto(args.url.rstrip('/')+'/mundo-3d-prototype.html?debug3d=1&todasHabilidades=1&v=232',wait_until='domcontentloaded');page.wait_for_function('window.SevenSinsDebug3D?.riteState().ready',timeout=120000)
+ page.goto(args.url.rstrip('/')+'/mundo-3d-prototype.html?debug3d=1&todasHabilidades=1&v=234',wait_until='domcontentloaded');page.wait_for_function('window.SevenSinsDebug3D?.riteState().ready',timeout=120000)
  def call(js,shot=None):
   r=page.evaluate(js)
   if shot:page.screenshot(path=str(out/(shot+'.png')))

@@ -2,6 +2,9 @@
 
 Antes de trabalhar neste repositório, leia **[PROMPT_MESTRE_DO_JOGO.md](PROMPT_MESTRE_DO_JOGO.md)**. Ele é a referência principal para a visão do criador, prioridades atuais, limites técnicos e estilo de colaboração.
 
+
+**LEITURA OBRIGATÓRIA DE QUALIDADE:** leia também **[VISÃO MESTRA — QUALIDADE VISUAL, VFX, PERSONAGENS E GAMEPLAY](docs/VISAO-MESTRA-QUALIDADE-VISUAL-E-GAMEPLAY.md)** antes de criar ou alterar habilidades, personagens, espadas, animações, câmera ou efeitos. Este é um documento **permanente**, não um briefing temporário. Use-o como padrão artístico e de experiência; confirme o estado técnico no código. Quando o criador definir novas exigências duradouras, atualize-o com cuidado.
+
 - O criador aceita melhorias proativas. Sugira e implemente melhorias coerentes com a visão, preservando os pilares da história e as funcionalidades existentes.
 - Estado atual: o mundo 2D foi removido (Mod 202); o jogo é 100% 3D e as dimensões dos quatro Bispos acontecem dentro dele. Leia `ARQUITETURA.md`.
 - Roteiro integral (fonte da verdade narrativa): `docs/GALAXIA-1-ROTEIRO-INTEGRAL-E-DIRECAO.pdf`. Execução em marcos, um por vez: `docs/MARCO-0-AUDITORIA-GALAXIA-1.md`.

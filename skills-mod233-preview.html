@@ -1,0 +1,31 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Palavras novas · prévia</title>
+<style>body{margin:0;background:#0d1320;color:#dfedff;font:14px system-ui}canvas{display:block}header{position:absolute;top:16px;left:20px;pointer-events:none}h1{font:20px Georgia;letter-spacing:2px;color:#ffe1a1;margin:0 0 4px}footer{position:absolute;bottom:20px;left:20px}button{background:#142c44;border:1px solid #acd8f4;color:#edf6ff;padding:10px 12px;border-radius:8px;margin:3px}</style>
+<header><h1 id="title">PALAVRAS NOVAS</h1><p>Ruptura em X · Portais da Perseguição · Dragão do Julgamento</p></header>
+<footer><button data-k="x">RUPTURA EM X</button><button data-k="portals">PORTAIS</button><button data-k="dragon">DRAGÃO</button><button id="quality">QUALIDADE</button><button id="boss">CHEFE</button><button id="wall">PAREDE</button></footer>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as T from 'three';
+import {XRupture} from './skill-x-rupture3d.js';import {createXRuptureVFX} from './skill-x-rupture-vfx3d.js';
+import {TwinPortals} from './skill-twin-portals3d.js';import {createTwinPortalsVFX} from './skill-twin-portals-vfx3d.js';
+import {JudgmentDragon} from './skill-judgment-dragon3d.js';import {createDragonVFX} from './skill-judgment-dragon-vfx3d.js';
+const qs=new URLSearchParams(location.search);let kind=qs.get('skill')||'x',low=qs.has('low'),boss=qs.has('boss'),wall=qs.has('wall');
+const scene=new T.Scene();scene.background=new T.Color('#0d1320');const camera=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,200);
+const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=T.ACESFilmicToneMapping;document.body.appendChild(renderer.domElement);
+scene.add(new T.HemisphereLight(0xd9efff,0x303540,2.6));const sun=new T.DirectionalLight(0xffffff,1.2);sun.position.set(4,8,6);scene.add(sun);
+const floor=new T.Mesh(new T.PlaneGeometry(90,90),new T.MeshStandardMaterial({color:0x1c2a3a,roughness:.9}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const hero=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xb9bfca}));hero.position.set(0,.87,0);scene.add(hero);
+const target={id:1,alive:true,x:0,y:0,z:12,radius:.6,height:1.9};
+const foe=new T.Mesh(new T.CapsuleGeometry(.5,1,6,12),new T.MeshStandardMaterial({color:0x6b2f3c}));scene.add(foe);
+const wallMesh=new T.Mesh(new T.BoxGeometry(6,3,.6),new T.MeshStandardMaterial({color:0x4a4a52}));wallMesh.position.set(0,1.5,6.3);scene.add(wallMesh);
+const ground=()=>0,blocked=p=>wall&&p.z>6&&p.z<6.6&&Math.abs(p.x)<3&&p.y<3;
+const skills={x:new XRupture({ground,blocked}),portals:new TwinPortals({ground,blocked}),dragon:new JudgmentDragon({ground})};
+const vfx={x:createXRuptureVFX(T,scene,{ground}),portals:createTwinPortalsVFX(T,scene,{ground}),dragon:createDragonVFX(T,scene,{ground})};
+let freeze=false;
+function setCam(){if(kind==='dragon'){camera.position.set(13,9,-3);camera.lookAt(0,3,7);}else if(kind==='portals'){camera.position.set(-7,6,-6);camera.lookAt(0,2,6);}else{camera.position.set(6,3.5,-4);camera.lookAt(0,1.4,6);}}
+function start(){for(const k in skills){skills[k].cancel();vfx[k].clear();}Object.assign(target,boss?{radius:2,height:5.5,resist:true}:{radius:.6,height:1.9,resist:false});foe.scale.set(boss?3.6:1,boss?2.8:1,boss?3.6:1);wallMesh.visible=wall;setCam();skills[kind].start({x:0,y:1.45,z:0},target,0);}
+function step(dt){for(const k in skills){skills[k].update(dt,target);vfx[k].update(skills[k],camera,low?0:2);}foe.position.set(target.x,boss?3:.87,target.z);renderer.render(scene,camera);}
+document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{kind=b.dataset.k;start();});document.querySelector('#quality').onclick=()=>low=!low;document.querySelector('#boss').onclick=()=>{boss=!boss;start();};document.querySelector('#wall').onclick=()=>{wall=!wall;start();};
+start();const clock=new T.Clock();renderer.setAnimationLoop(()=>step(freeze?0:Math.min(clock.getDelta(),.04)));
+window.preview={freeze(){freeze=true},start,step,low(v){low=v},cam(p,l){camera.position.set(...p);camera.lookAt(...l);},info:()=>({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geo:renderer.info.memory.geometries,programs:renderer.info.programs.length}),state:()=>({phase:skills[kind].phase,active:skills[kind].active})};
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script></html>
