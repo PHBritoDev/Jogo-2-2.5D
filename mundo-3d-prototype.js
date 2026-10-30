@@ -3038,7 +3038,7 @@ function updatePack(dt){
    ?esquadraLegada=1 volta ao modo antigo (um por vez). ?testeEnemy1=1 abre o laboratório isolado do progresso. */
 var squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
 const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=new Map();
-function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z);if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
+function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
 function squadRuntime(){
  if(squadRT)return squadRT;
  squadRT=createEnemy1SquadRuntime({T:THREE,scene,ground:terrainHeightAt,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
@@ -3050,7 +3050,8 @@ const squadAlive=()=>{const s=squadSq();return s?s.actors.filter(a=>a.alive):[];
 /** Vida por encontro: Enemy1 comum bem mais resistente (100→180 no Ato I), Guardião ~1,6×; grupos grandes um pouco menos. */
 function squadHp(P,kind,n){return kind==='warden'?Math.round((P.hp||300)*1.6):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
 function startSquadPack(){
- const P=pack;if(!P)return;const src=rigSource('enemy1');if(!src||!src.model){P.squad=false;packNext();return;}
+ const P=pack;if(!P)return;const src=rigSource('enemy1');if(!src||!src.model){P.waitRig=true;loadEnemyModel();return;}// espera o Enemy1 carregar
+ P.waitRig=false;
  const kind=P.profile==='warden'?'warden':'common',n=P.spots.length,rt=squadRuntime();
  const spots=P.spots.map((s,i)=>{const c=P.clones[i],x=c?c.holder.position.x:s.x,z=c?c.holder.position.z:s.z;return{x,z,yaw:Math.atan2(player.position.x-x,player.position.z-z),kind,hp:squadHp(P,kind,n)};});
  for(let i=0;i<P.clones.length;i++)if(P.clones[i]){disposeClone(P.clones[i]);P.clones[i]=null;}
@@ -3150,6 +3151,7 @@ function squadEvent(type,d){
 function updateSquadCombat(dt,now){
  if(ENEMY1_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigSource('enemy1'))startEnemy1Lab('2');else loadEnemyModel();}
  if(squadStopAt&&now>=squadStopAt&&!squadOn){squadStopAt=0;squadRT&&squadRT.stop();}
+ if(!squadOn&&pack&&pack.squad&&pack.waitRig&&rigSource('enemy1'))startSquadPack();
  if(!squadOn){if(squadRT&&squadRT.squad)squadRT.update(dt,{camera,quality:graphics3DMode==='low'?0:1});return;}
  const s=squadSq();if(!s)return;
  // 1) o que o herói fez no procurador vai para o ator em foco
@@ -3236,7 +3238,7 @@ function labPanel(){
  B('1',()=>startEnemy1Lab('1'));B('2',()=>startEnemy1Lab('2'));B('4',()=>startEnemy1Lab('4'));B('GUARDIÃO',()=>startEnemy1Lab('warden'));B('+ ALIADO',()=>spawnAlly());B('CLASH',()=>startEnemy1Lab('clash'));B('↺',()=>startEnemy1Lab(squadLab.mode));B('LOG',()=>{squadLab.log=!squadLab.log;labHud();});
  const hud=document.createElement('div');hud.id='enemy1-lab-hud';hud.style.cssText='width:100%;text-align:left;color:#e9dcff;text-shadow:0 1px 2px #000;font:600 11px system-ui;white-space:pre;pointer-events:none';el.appendChild(hud);document.body.appendChild(el);
 }
-function labHud(){const el=document.getElementById('enemy1-lab-hud');if(!el||!squadLab)return;const s=squadSq();const lines=(s?s.actors:[]).map((a,i)=>(a.kind==='warden'?'GUARDIÃO':'ENEMY1 '+(i+1))+(a===squadFocus?' ◆ ':' · ')+(a.alive?a.hp+'/'+a.maxHp:'caído')+(squadLab.log&&a.alive?' · '+(a.act?(a.act.skill||a.act.type):a.intent.mode)+' · '+a.role:''));for(const al of squadAllies)lines.push('ALIADO · '+(al.hp>0?al.hp+'/'+al.max:'caído'));el.textContent=lines.join('\n');}
+function labHud(){const el=document.getElementById('enemy1-lab-hud');if(!el||!squadLab)return;const s=squadSq();const lines=(s?s.actors:[]).map((a,i)=>(a.kind==='warden'?'GUARDIÃO':'ENEMY1 #'+(i+1))+(a===squadFocus?' ◆ ':' · ')+(a.alive?a.hp+'/'+a.maxHp:'caído')+(squadLab.log&&a.alive?' · '+(a.act?(a.act.skill||a.act.type):a.intent.mode)+' · '+a.role:''));for(const al of squadAllies)lines.push('ALIADO · '+(al.hp>0?al.hp+'/'+al.max:'caído'));el.textContent=lines.join('\n');}
 function updateEnemy1Lab(dt){
  if(!squadLab)return;if((squadLab.hudT=(squadLab.hudT||0)-dt)<=0){squadLab.hudT=.25;labHud();}
  if(squadLab.mode==='clash'&&squadOn&&squadFocus){squadLab.clashT-=dt;if(squadLab.clashT<=0){squadLab.clashT=2.8;faceTo(player,squadFocus);spawnHolyProjectile(squadLab.clashN++%2?'sun':'arc');status.textContent='CLASH: o Enemy1 responde à sua magia com o Contra-selo.';}}
@@ -5917,6 +5919,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   /** MOD 237 — esquadra Enemy1: estado, laboratório e medidas de altura (esqueleto deformado). */
   squadState(){const s=squadSq();return{on:squadOn,focus:squadFocus&&squadFocus.id,enemyHP,enemyMaxHP,enemyAlive,visible:enemy.visible,profile:encounterProfile,q:questStep,sub:act1Sub,pack:pack?{n:pack.spots.length,i:pack.index,active:pack.active,squad:!!pack.squad,lab:!!pack.lab}:null,hero:playerHP,snap:s?s.snapshot():null,allies:squadAllies.map(a=>a.hp),lock:lockOnActive};},
   squadLab(m){startEnemy1Lab(m);return this.squadState();},
+  wardenSpot(){const w=sewerLocal(SEWER.warden);return[w.x,w.z];},
   squadPose(id,x,z,yaw,pause=true){const s=squadSq();if(!s)return null;const a=s.actor(id);if(!a)return null;a.x=x;a.z=z;a.y=terrainHeightAt(x,z);a.yaw=yaw||0;a.alert=pause?1e9:0;a.act=null;a.intent.mode='hold';a.decideT=pause?1e9:.2;return this.squadState();},
   squadHit(id,n){const s=squadSq();return s?s.damageActor(id,n,{x:player.position.x,z:player.position.z}):0;},
   squadKillAll(){const s=squadSq();if(s)for(const a of s.actors)if(a.alive)s.damageActor(a.id,9999,{x:a.x,z:a.z});return this.squadState();},

@@ -127,3 +127,40 @@ Botões do painel:
 - **LOG:** mostra a ação e o papel de cada inimigo.
 
 O painel também mostra a vida de cada alvo.
+
+## Validação executada
+
+- **Testes automáticos:** `node --test` aprova **242 testes**, sendo 21 novos (`enemy1-squad.test.mjs` e `enemy1-integration.test.mjs`). Eles cobrem:
+  - **Esquadra:** 4 inimigos simultâneos com vida independente; nunca dois golpes no mesmo alvo ao mesmo tempo; separação entre eles.
+  - **Golpe:** só causa dano se a lâmina alcança o alvo.
+  - **Garras:** aviso sem dano, prisão, dash cedo não solta, dash no tempo solta, imunidade, esquiva com i-frames e uma prisão por alvo.
+  - **Espiral:** viaja, acerta uma vez e para na parede.
+  - **Juízo:** a marca segue a previsão, trava, e o dano cai com a distância.
+  - **Contra-selo:** os três desfechos (anulação, selo vence, magia vence).
+  - **IA:** reação às vezes, não sempre.
+  - **Alvos e encontro:** NPC aliado como alvo, área do herói em vários inimigos, mortes e fim do encontro, determinismo de 20 a 144 FPS.
+  - **Guardião e defesa:** combo, fase 2 e Ceifa do Abismo; quebra de guarda.
+  - **Integração:** pontos de integração, Mod visível e cache.
+- **Chromium headless com SwiftShader (1–4 FPS, não serve como referência de desempenho):**
+  - **Laboratório com 2 e com 4 Enemy1 + aliado:** todos ativos ao mesmo tempo, com papéis distintos (agressor, flanqueador, controle, distância). Usaram Garras, Espiral, Juízo e golpe. O aliado causou e tomou dano. Sem erros de página.
+  - **Viewport de celular (851×393, toque):**
+    - Tocar em GOLPE causa dano no Enemy1 em foco; ele chegou a defender, e o jogo mostrou "DEFENDEU".
+    - Tocar em MIRAR alterna os alvos (e3 → e4 → e1 → e2) e solta no fim.
+    - O painel do laboratório cabe na tela.
+  - **Ato I real:**
+    - **Gaiolas das crianças:** os 2 Enemy1 lutam juntos e, quando ambos caem, a história avança (etapa 3.2, cena "desmaio").
+    - **Guardião no esgoto:** depois da cena de apresentação, luta como esquadra (480 de vida). Quando cai, a cena "guardiao-cai" começa normalmente.
+  - **Altura medida pelo esqueleto:**
+    - Herói 1,95 m.
+    - Enemy1 antigo: 6,23 m antes da correção, 1,96 m depois.
+    - Enemy1 da esquadra: 1,94 m.
+    - Guardião: 2,37 m.
+
+## Limitações reais
+
+- **Mod 236 do Codex:** não estava publicada durante este trabalho. Por isso não foi possível reaproveitar a VFX Engine 2.0; os poderes usam o kit compartilhado atual (`celestial-fxkit3d.js`) e módulos próprios. Quando ela sair, o módulo de VFX pode trocar partículas e fitas pelos componentes dela sem mudar a lógica.
+- **Android físico não testado** e FPS no celular não medido.
+- **Clipes do Enemy1:** não há clipe próprio de dano nem de morte. A reação é um recuo procedural e a morte é uma queda para trás. Os gestos de conjuração usam o clipe `cast` mais a camada de pose do jogo (`playPose`).
+- **NPC aliado:** só aparece no laboratório. Na campanha, o Anjo-Guia não vira alvo, porque não tem sistema de vida.
+- **Outros inimigos:** Enemy2, Enemy3, Enemy4 e os rigs de NPC já eram medidos pelo esqueleto (1,08–1,12× o herói) e não mudaram. As escalas propositais dos mini-chefes de outros tipos (1,6–2×) e dos Bispos foram preservadas.
+- **Contra-selo:** reage aos projéteis de luz do herói (Corte de Luz, sol, órbitas). Os ritos das espadas e as Palavras da Mod 233 ainda não entram na colisão magia × magia.
