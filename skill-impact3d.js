@@ -20,32 +20,3 @@ export function impactFragments(T,root,ground,max=360){
   }
  },end(){rocks.count=nr;cracks.count=nc;rocks.instanceMatrix.needsUpdate=cracks.instanceMatrix.needsUpdate=true;cracks.instanceColor.needsUpdate=true;},dispose(){root.remove(rocks,cracks);rockGeo.dispose();rockMat.dispose();lineGeo.dispose();lineMat.dispose();rocks.dispose();cracks.dispose();}};
 }
-/** A continuous loft sampled by arc length. The silhouette has flowing fins, never stacked spheres. */
-export function dragonLoft(T,root,material){
- const N=100,R=12,pos=new Float32Array((N+1)*(R+1)*3),norm=new Float32Array(pos.length),idx=[];
- for(let j=0;j<N;j++)for(let k=0;k<R;k++){const a=j*(R+1)+k,b=a+R+1;idx.push(a,b,a+1,a+1,b,b+1);}
- const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(pos,3).setUsage(T.DynamicDrawUsage));geo.setAttribute('normal',new T.BufferAttribute(norm,3).setUsage(T.DynamicDrawUsage));geo.setIndex(idx);
- const mesh=new T.Mesh(geo,material);mesh.frustumCulled=false;root.add(mesh);
- const centers=Array.from({length:N+1},()=>new T.Vector3()),f=new T.Vector3(),side=new T.Vector3(),up=new T.Vector3(),axis=new T.Vector3(0,1,0);
- return{mesh,centers,update(s,fade=1){mesh.visible=s.phase!=='channel';if(!mesh.visible)return;
-  let total=0;for(let k=1;k<s.trailCount;k++){const a=s.sample(k-1),b=s.sample(k);total+=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);}
-  const length=Math.min(58,total);let k=1,acc=0;
-  for(let j=0;j<=N;j++){const distance=length*j/N;while(k<s.trailCount-1){const a=s.sample(k-1),b=s.sample(k),l=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);if(acc+l>=distance)break;acc+=l;k++;}
-   const a=s.sample(Math.max(0,k-1)),b=s.sample(k),l=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)||1,u=Math.min(1,(distance-acc)/l);centers[j].set(a.x+(b.x-a.x)*u,a.y+(b.y-a.y)*u,a.z+(b.z-a.z)*u);
-  }
-  for(let j=0;j<=N;j++){const u=j/N,c=centers[j];f.subVectors(centers[Math.max(0,j-1)],centers[Math.min(N,j+1)]).normalize();if(f.lengthSq()<.01)f.set(0,0,1);side.crossVectors(axis,f).normalize();if(side.lengthSq()<.01)side.set(1,0,0);up.crossVectors(f,side);
-   const radius=(1.65*Math.pow(1-u,.65)+.02)*Math.min(1,length/9)*fade;
-   for(let n=0;n<=R;n++){const a=n/R*Math.PI*2,wave=Math.sin(u*64-s.time*5+a*3)*.08,fin=Math.pow(Math.max(0,Math.sin(a)),10)*(.4+.3*Math.sin(u*115-s.time*7));const r=radius*(1+wave+fin),cs=Math.cos(a),sn=Math.sin(a),o=(j*(R+1)+n)*3;
-    pos[o]=c.x+(side.x*cs+up.x*sn)*r;pos[o+1]=c.y+(side.y*cs+up.y*sn)*r;pos[o+2]=c.z+(side.z*cs+up.z*sn)*r;norm[o]=side.x*cs+up.x*sn;norm[o+1]=side.y*cs+up.y*sn;norm[o+2]=side.z*cs+up.z*sn;
-   }
-  }geo.attributes.position.needsUpdate=geo.attributes.normal.needsUpdate=true;
- },dispose(){root.remove(mesh);geo.dispose();}};
-}
-/** Curved, tapered flame tongues with closed diamond cross sections, pooled along the mane/spine. */
-export function dragonFlames(T,root,mat){
- const pos=[],idx=[],rows=10;for(let j=0;j<=rows;j++){const u=j/rows,w=Math.sin(Math.PI*u)*.34+.005;for(let k=0;k<4;k++){const a=k*Math.PI/2;pos.push(Math.cos(a)*w,u*2.4,Math.sin(a)*w*.32-u*u*.9);}}
- for(let j=0;j<rows;j++)for(let k=0;k<4;k++){const a=j*4+k,b=j*4+(k+1)%4;idx.push(a,a+4,b,b,a+4,b+4);}
- const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();const mesh=new T.InstancedMesh(g,mat,150);mesh.frustumCulled=false;root.add(mesh);const d=new T.Object3D();
- return{update(s,fade,low,centers){let n=0;if(s.phase!=='channel')for(let i=0;i<100;i+=low?5:3){const p=centers[i],u=i/100,r=1.6*Math.pow(1-u,.65);for(const sign of [-1,1]){const a=i*.32+s.time*3,w=.7+.16*Math.sin(a);d.position.set(p.x+sign*r*.6,p.y+r*.45,p.z);d.rotation.set(-.55+Math.sin(a)*.2,0,-sign*(.5+Math.sin(a)*.15));d.scale.set(w*(1-u)*fade,(.65+.2*Math.sin(a))*(1-u)*fade,w*fade);d.updateMatrix();mesh.setMatrixAt(n++,d.matrix);}}mesh.count=n;mesh.instanceMatrix.needsUpdate=true;},dispose(){g.dispose();mesh.dispose();root.remove(mesh);}};
-
-}

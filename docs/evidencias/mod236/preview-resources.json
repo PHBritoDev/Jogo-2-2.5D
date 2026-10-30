@@ -1,0 +1,265 @@
+{
+  "portals": {
+    "frames": [
+      {
+        "t": 0.3,
+        "phase": "open",
+        "active": true,
+        "calls": 8,
+        "triangles": 2434,
+        "geo": 11,
+        "programs": 9
+      },
+      {
+        "t": 1.4,
+        "phase": "fire",
+        "active": true,
+        "calls": 12,
+        "triangles": 8034,
+        "geo": 15,
+        "programs": 10
+      },
+      {
+        "t": 2.5,
+        "phase": "pressure",
+        "active": true,
+        "calls": 19,
+        "triangles": 12226,
+        "geo": 17,
+        "programs": 10
+      },
+      {
+        "t": 3.6,
+        "phase": "pressure",
+        "active": true,
+        "calls": 17,
+        "triangles": 14234,
+        "geo": 19,
+        "programs": 10
+      },
+      {
+        "t": 4.3,
+        "phase": "burst",
+        "active": true,
+        "calls": 15,
+        "triangles": 9628,
+        "geo": 19,
+        "programs": 10
+      }
+    ],
+    "reuse": {
+      "before": {
+        "calls": 3,
+        "triangles": 1202,
+        "geo": 20,
+        "programs": 10
+      },
+      "after": {
+        "calls": 3,
+        "triangles": 1202,
+        "geo": 20,
+        "programs": 10
+      },
+      "elapsedMs": 954.3000000007451
+    },
+    "quality": [
+      {
+        "q": 0,
+        "calls": 19,
+        "triangles": 11270,
+        "geo": 20,
+        "programs": 10
+      },
+      {
+        "q": 1,
+        "calls": 19,
+        "triangles": 12226,
+        "geo": 20,
+        "programs": 10
+      },
+      {
+        "q": 2,
+        "calls": 19,
+        "triangles": 12226,
+        "geo": 20,
+        "programs": 10
+      }
+    ],
+    "dispose": {
+      "calls": 3,
+      "triangles": 1202,
+      "geo": 3,
+      "programs": 1
+    }
+  },
+  "dragon": {
+    "frames": [
+      {
+        "t": 3.8,
+        "phase": "form",
+        "active": true,
+        "calls": 14,
+        "triangles": 41466,
+        "geo": 18,
+        "programs": 11
+      },
+      {
+        "t": 4.8,
+        "phase": "fire",
+        "active": true,
+        "calls": 19,
+        "triangles": 46662,
+        "geo": 22,
+        "programs": 11
+      },
+      {
+        "t": 5.3,
+        "phase": "fire",
+        "active": true,
+        "calls": 19,
+        "triangles": 47142,
+        "geo": 22,
+        "programs": 11
+      },
+      {
+        "t": 8,
+        "phase": "engulf",
+        "active": true,
+        "calls": 14,
+        "triangles": 41464,
+        "geo": 22,
+        "programs": 11
+      },
+      {
+        "t": 9.3,
+        "phase": "explode",
+        "active": true,
+        "calls": 21,
+        "triangles": 45786,
+        "geo": 24,
+        "programs": 11
+      }
+    ],
+    "reuse": {
+      "before": {
+        "calls": 3,
+        "triangles": 1202,
+        "geo": 26,
+        "programs": 11
+      },
+      "after": {
+        "calls": 3,
+        "triangles": 1202,
+        "geo": 26,
+        "programs": 11
+      },
+      "elapsedMs": 20060.699999999255
+    },
+    "quality": [
+      {
+        "q": 0,
+        "calls": 17,
+        "triangles": 23132,
+        "geo": 26,
+        "programs": 11
+      },
+      {
+        "q": 1,
+        "calls": 17,
+        "triangles": 46470,
+        "geo": 26,
+        "programs": 11
+      },
+      {
+        "q": 2,
+        "calls": 17,
+        "triangles": 46470,
+        "geo": 26,
+        "programs": 11
+      }
+    ],
+    "dispose": {
+      "calls": 3,
+      "triangles": 1202,
+      "geo": 3,
+      "programs": 1
+    }
+  },
+  "x": {
+    "frames": [
+      {
+        "t": 0.6,
+        "phase": "travel",
+        "active": true,
+        "calls": 9,
+        "triangles": 3008,
+        "geo": 14,
+        "programs": 10
+      },
+      {
+        "t": 1,
+        "phase": "travel",
+        "active": true,
+        "calls": 9,
+        "triangles": 3348,
+        "geo": 14,
+        "programs": 10
+      },
+      {
+        "t": 1.5,
+        "phase": "impact",
+        "active": true,
+        "calls": 16,
+        "triangles": 7134,
+        "geo": 15,
+        "programs": 10
+      }
+    ],
+    "reuse": {
+      "before": {
+        "calls": 3,
+        "triangles": 1202,
+        "geo": 16,
+        "programs": 10
+      },
+      "after": {
+        "calls": 3,
+        "triangles": 1202,
+        "geo": 16,
+        "programs": 10
+      },
+      "elapsedMs": 201.69999999925494
+    },
+    "quality": [
+      {
+        "q": 0,
+        "calls": 9,
+        "triangles": 3176,
+        "geo": 16,
+        "programs": 10
+      },
+      {
+        "q": 1,
+        "calls": 9,
+        "triangles": 3348,
+        "geo": 16,
+        "programs": 10
+      },
+      {
+        "q": 2,
+        "calls": 9,
+        "triangles": 3348,
+        "geo": 16,
+        "programs": 10
+      }
+    ],
+    "dispose": {
+      "calls": 3,
+      "triangles": 1202,
+      "geo": 3,
+      "programs": 1
+    }
+  },
+  "errors": [],
+  "environment": "Chromium WebGL / SwiftShader, deterministic simulated time, not a physical Android"
+}

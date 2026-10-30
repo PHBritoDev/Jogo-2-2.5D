@@ -52,7 +52,7 @@ export const SHOP_ITEMS = [
   { id: 'skill_x_rupture', sector: 'escrituras', kind: 'skill', name: 'Ruptura em X', cost: 55, level: 4, step: 8,
     desc: 'Duas lâminas carmesim se cruzam num X que viaja reto até o alvo e se rompe em dois cortes. 26 de mana; 6,5 s de recarga.' },
   { id: 'skill_twin_portals', sector: 'escrituras', kind: 'skill', name: 'Portais da Perseguição', cost: 95, level: 6, step: 12, stepText: 'entrar no vulcão de Cinzária (Ato II)',
-    desc: 'Um portal rubro e um violeta disparam oito fios que caçam o alvo por rotas diferentes e convergem numa explosão. 40 de mana; 11 s de recarga.' },
+    desc: 'Um portal rubro e um violeta lançam duas massas de energia em linha reta, sustentam a pressão e combinam uma explosão. 40 de mana; 11 s de recarga.' },
   { id: 'skill_judgment_dragon', sector: 'escrituras', kind: 'skill', name: 'Dragão do Julgamento', cost: 140, level: 7, step: 16, stepText: 'chegar a Invernália (Ato III)',
     desc: 'Fogo sagrado toma a forma de um dragão dourado que avança, engole o alvo e explode em luz. 55 de mana; 18 s de recarga.' },
   { id: 'aurora', sector: 'arsenal', kind: 'sword', name: 'Lâmina da Aurora', cost: 30, level: 3, step: 4,

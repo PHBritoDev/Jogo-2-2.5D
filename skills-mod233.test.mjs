@@ -1,6 +1,6 @@
 import test from 'node:test'; import assert from 'node:assert/strict';
 import { XRupture, XRUP, sweptCapsule } from './skill-x-rupture3d.js';
-import { TwinPortals, THREADS, PORTALS, threadPoint } from './skill-twin-portals3d.js';
+import { TwinPortals, PORTALS } from './skill-twin-portals3d.js';
 import { JudgmentDragon, DRAGON } from './skill-judgment-dragon3d.js';
 import { SKILLS, SKILL_ORDER, SLOT_SKILLS, EXTRA_SKILLS, normalizeLoadout, equipSlot, ownedSlotSkills, autoSlotFor, canCast, unlockedSkills } from './skills3d.js';
 import { SHOP_ITEMS, SWORDS, shopStatus, buyItem } from './progression3d.js';
@@ -29,38 +29,21 @@ test('X: alvo morre no meio do voo — sem dano fantasma', () => {
   const t = target(); let n = 0; const s = new XRupture({ hit: () => n++ }); s.start({ x: 0, y: 1.4, z: 0 }, t); s.update(.5, t); t.alive = false; s.update(3, t); assert.equal(n, 0);
 });
 
-// ---------- Portais
-test('Portais: dois portais separados (rubro à esquerda, violeta à direita) e oito rotas diferentes', () => {
-  const s = new TwinPortals(); s.start({ x: 0, y: 1.4, z: 0 }, target(), 0);
-  const [L, R] = s.portals; assert(Math.hypot(L.x - R.x, L.z - R.z) > 3.5); assert(L.x > R.x === (s.r.x < 0), 'esquerda/direita coerentes');
-  assert.equal(new Set(THREADS.map(t => t.pattern)).size, 8); assert.equal(new Set(THREADS.map(t => t.born)).size, 24);
-  for (const p of ['front', 'behind', 'over', 'loop']) assert(THREADS.some(t => t.pattern === p));
+// ---------- Portais (design substituído pela Mod 236: duas massas contínuas)
+test('Portais: duas fontes e dois lançamentos simultâneos, trajetória reta',()=>{
+ const emitted=[],s=new TwinPortals({event:(e,f)=>{if(e==='launch')emitted.push(f.born);}}),t=target();s.start({x:0,y:0,z:0},t);const positions=[];
+ for(let i=0;i<400;i++){s.update(1/120,t);for(const f of s.flows)if(f.phase==='flight'){const d={x:f.p.x-f.origin.x,y:f.p.y-f.origin.y,z:f.p.z-f.origin.z},v=f.direction;assert(Math.hypot(d.y*v.z-d.z*v.y,d.z*v.x-d.x*v.z,d.x*v.y-d.y*v.x)<1e-7);}}
+ assert.equal(s.flows.length,2);assert.equal(emitted.length,2);assert.equal(emitted[0],emitted[1]);assert(Math.abs(s.portals[0].x-s.portals[1].x)>4);
 });
-test('Portais: "por trás" chega pelo lado oposto, "por cima" sobe alto e a volta completa circula o alvo', () => {
-  const P = { x: 2, y: 3.5, z: 0 }, T = { x: 0, y: 1, z: 12 }, f = { x: 0, y: 0, z: 1 }, r = { x: 1, y: 0, z: 0 };
-  const near = pat => threadPoint(pat, .93, P, T, f, r, 1);
-  assert(near('behind').z > T.z, 'aproximação final por trás do alvo');
-  assert(Math.max(...[.3, .5, .7].map(u => threadPoint('over', u, P, T, f, r, -1).y)) > T.y + 4);
-  const ang = []; for (let u = .12; u <= .96; u += .01) { const q = threadPoint('loop', u, P, T, f, r, 1); ang.push(Math.atan2(q.x - T.x, q.z - T.z)); }
-  let turn = 0; for (let i = 1; i < ang.length; i++) { let d = ang[i] - ang[i - 1]; d = Math.atan2(Math.sin(d), Math.cos(d)); turn += d; }
-  assert(Math.abs(turn) > Math.PI * 1.75, 'dá a volta em torno do alvo');
+test('Portais: contato + pressão discreta + finalização somam 58 em todo FPS',()=>{
+ const r=run(TwinPortals,60);assert.equal(r.hits.reduce((n,h)=>n+h[0],0),58);assert.equal(r.hits.filter(h=>h[2]==='contact').length,2);assert.equal(r.hits.filter(h=>h[2]==='pressure').length,6);
+ for(const fps of [10,30,120])assert.deepEqual(run(TwinPortals,fps).hits,r.hits);assert(!r.s.active);
 });
-test('Portais: 24 acertos distribuídos no tempo + finalização; determinístico em qualquer FPS', () => {
-  const r = run(TwinPortals, 60);
-  assert.deepEqual(r.hits.map(h => h[2]), [...Array(24).fill('thread'), 'burst']);
-  assert.equal(r.hits.reduce((n, h) => n + h[0], 0), 24 * PORTALS.hit + PORTALS.finisher);
-  for (const f of [10, 30, 120]) assert.deepEqual(run(TwinPortals, f).hits, r.hits);
-  const times = r.s.threads.map(t => t.endAt); assert(Math.max(...times) - Math.min(...times) > .9, 'não chegam todos ao mesmo tempo');
-  assert(!r.s.active);
+test('Portais: alvo sai da linha, sem perseguição ou dano fantasma; sem alvo é finito',()=>{
+ const t=target(),hits=[],s=new TwinPortals({hit:d=>hits.push(d)});s.start({x:0,y:0,z:0},t);s.update(.6,t);t.x=10;s.update(10,t);assert.equal(hits.length,0);assert(!s.active);assert.equal(run(TwinPortals,60,{},null).hits.length,0);
 });
-test('Portais: alvo andando — rotas se reajustam e todos ainda acertam; sem alvo não há dano', () => {
-  const t = target(), hits = [], s = new TwinPortals({ hit: d => hits.push(d) }); s.start({ x: 0, y: 1.4, z: 0 }, t);
-  for (let i = 0; i < 1800; i++) { t.x = Math.sin(i / 120) * 3; s.update(1 / 120, t); } assert.equal(hits.length, 25);
-  assert.equal(run(TwinPortals, 60, {}, null).hits.length, 0);
-});
-test('Portais: parede baixa absorve os fios que passam por ela, sem atravessar', () => {
-  const r = run(TwinPortals, 60, { blocked: p => p.z > 6 && p.z < 6.6 });
-  assert(r.events.filter(e => e === 'wall').length >= 1); assert(r.hits.filter(h => h[2] === 'thread').length < 24);
+test('Portais: parede bloqueia ambos antes do alvo, sem finalização remota',()=>{
+ const r=run(TwinPortals,60,{blocked:p=>p.z>6&&p.z<6.6});assert.equal(r.hits.length,0);assert.equal(r.events.filter(e=>e==='wall').length,2);
 });
 
 // ---------- Dragão
