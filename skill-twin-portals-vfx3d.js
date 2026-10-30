@@ -1,3 +1,5 @@
+import {impactFragments} from './skill-impact3d.js';
+import {THREADS,PORTALS} from './skill-twin-portals3d.js';
 import { softParticles, groundDecals, groundNormal, ribbons, smooth, easeOut, hash } from './celestial-fxkit3d.js';
 /**
  * MOD 233 — Portais da Perseguição (VFX).
@@ -47,12 +49,14 @@ export function createTwinPortalsVFX(T, scene, { ground = () => 0 } = {}) {
     fragmentShader: 'varying vec3 vN; varying vec3 vV; varying vec3 vP; uniform float alpha, time; void main(){ float f=pow(1.-abs(dot(normalize(vN),vV)),1.6); float m=.5+.5*sin(atan(vP.z,vP.x)*3.+vP.y*4.+time*3.); vec3 c=mix(vec3(1.,.12,.22),vec3(.62,.24,1.),m); gl_FragColor=vec4(c*(.35+f*1.5),(.08+f)*alpha); }' });
   const sphere = new T.Mesh(sphereGeo, sphereMat); root.add(sphere);
   const glow = softParticles(T, 900), decals = groundDecals(T, 14), rib = ribbons(T, 1500, { flow: 26 }); root.add(glow.mesh, decals.mesh, rib.mesh);
-  const HN = 48, hist = Array.from({ length: 8 }, () => Array.from({ length: HN }, () => ({ x: 0, y: 0, z: 0, t: -9 }))), heads = new Array(8).fill(0); let lastT = -1;
+  const fragments=impactFragments(T,root,ground,420),boltGeo=new T.SphereGeometry(1,16,10),boltMat=new T.ShaderMaterial({toneMapped:false,uniforms:{time:{value:0}},vertexShader:'varying vec3 c;varying vec3 p;uniform float time;void main(){c=instanceColor;p=position;vec3 v=position;v.xy*=.8+.18*sin(v.z*12.-time*17.);gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(v,1.);}',fragmentShader:'varying vec3 c;varying vec3 p;uniform float time;void main(){float flow=pow(.5+.5*sin(atan(p.y,p.x)*4.+p.z*9.-time*16.),3.);float core=pow(max(0.,p.z),3.);gl_FragColor=vec4(c*(.55+1.2*flow)+vec3(1.,.75,.6)*core*.9,1.);}'});
+  const bolts=new T.InstancedMesh(boltGeo,boltMat,THREADS.length);bolts.frustumCulled=false;bolts.instanceColor=new T.InstancedBufferAttribute(new Float32Array(THREADS.length*3),3);root.add(bolts);
+  const HN = 48, hist = Array.from({ length: THREADS.length }, () => Array.from({ length: HN }, () => ({ x: 0, y: 0, z: 0, t: -9 }))), heads = new Array(THREADS.length).fill(0); let lastT = -1;
   const dummy = new T.Object3D(), fwd = new T.Vector3(), nrm = [0, 1, 0], c4 = (c, a) => [c[0], c[1], c[2], a], W = [1, .96, .96, 1], color = new T.Color();
   function update(s, camera, quality = 1) {
     root.visible = s.active; if (!s.active) { lastT = -1; return; }
     const t = s.time, A = s.age, ph = s.phase, low = quality === 0;
-    rib.begin(camera, t); glow.begin(); decals.begin(); sphereMat.uniforms.time.value = t;
+    rib.begin(camera, t); glow.begin(); decals.begin();fragments.begin();let boltCount=0; sphereMat.uniforms.time.value = t;boltMat.uniforms.time.value=t;
     // ---- portais: abrem com sobressalto, fecham colapsando
     const openK = ph === 'open' ? easeOut(A / .45) * (1 + .12 * Math.sin(Math.min(1, A / .6) * Math.PI)) : ph === 'close' ? 1 - smooth(A / .45) : 1;
     const squash = ph === 'close' ? Math.max(.02, 1 - smooth(A / .3)) : 1;
@@ -65,7 +69,7 @@ export function createTwinPortalsVFX(T, scene, { ground = () => 0 } = {}) {
       P.disc.material.uniforms.alpha.value = P.rim.material.uniforms.alpha.value = P.tun.material.uniforms.alpha.value = Math.min(1, openK * 1.3);
       P.rim.rotation.z = t * (i ? -1.4 : 1.4); P.rim2.rotation.z = -t * .7;
       // fragmentos: giram no aro e são sugados para o centro
-      const n = low ? 14 : 36;
+      const n = low ? 14 : quality===1?24:36;
       for (let k = 0; k < n && P.g.visible; k++) { const u = ((k / n) + t * .55 + i * .3) % 1, a = k * 2.39996 + t * (i ? -2 : 2), r = (1.35 - u * 1.1) * openK;
         dummy.position.set(Math.cos(a) * r, Math.sin(a) * r, -u * .5); dummy.position.applyQuaternion(P.g.quaternion).add(P.g.position);
         dummy.rotation.set(t * 3 + k, t * 2, k); dummy.scale.setScalar((1 - u) * 1.3 + .2); dummy.updateMatrix(); shards.setMatrixAt(ns, dummy.matrix);
@@ -78,37 +82,39 @@ export function createTwinPortalsVFX(T, scene, { ground = () => 0 } = {}) {
     // ---- fios: cabeça, rastro da rota real e faíscas que seguem a curva
     if (t !== lastT) { s.threads.forEach((th, i) => { if (th.phase === 'flight') { heads[i] = (heads[i] + 1) % HN; Object.assign(hist[i][heads[i]], { x: th.p.x, y: th.p.y, z: th.p.z, t }); } }); lastT = t; }
     s.threads.forEach((th, i) => {
-      const P = portals[th.side < 0 ? 0 : 1], C = P.col, H = hist[i], life = .5;
-      if (th.phase === 'flight') { glow.add(th.p.x, th.p.y, th.p.z, .75, .75, C[0], C[1], C[2], .95, 0); glow.add(th.p.x, th.p.y, th.p.z, .28, .28, 1, .95, .98, 1, 0); glow.add(th.p.x, th.p.y, th.p.z, 1.3, .1, 1, .9, 1, .8, 2, t * 6 + i); }
+      const P = portals[th.side < 0 ? 0 : 1], C = P.col, H = hist[i], life = .65;
+      if (th.phase === 'flight') { dummy.position.set(th.p.x,th.p.y,th.p.z);const last=H[(heads[i]-1+HN)%HN];fwd.set(th.p.x-last.x,th.p.y-last.y,th.p.z-last.z).normalize();dummy.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),fwd);dummy.scale.set(.34,.34,.65);dummy.updateMatrix();bolts.setMatrixAt(boltCount,dummy.matrix);color.setRGB(C[0],C[1],C[2]);bolts.setColorAt(boltCount++,color);glow.add(th.p.x, th.p.y, th.p.z, .75, .75, C[0], C[1], C[2], .95, 0); glow.add(th.p.x, th.p.y, th.p.z, .28, .28, 1, .95, .98, 1, 0); glow.add(th.p.x, th.p.y, th.p.z, 1.3, .1, 1, .9, 1, .8, 2, t * 6 + i); }
       for (let k = 0; k < HN - 1; k++) {
         const a = H[(heads[i] - k + HN) % HN], b = H[(heads[i] - k - 1 + HN) % HN]; if (b.t < 0 || t - b.t > life) break;
         const fa = 1 - (t - a.t) / life, fb = 1 - (t - b.t) / life;
-        rib.seg(a.x, a.y, a.z, b.x, b.y, b.z, .13 * fa + .02, .13 * fb + .02, c4(C, fa), c4(C, fb * .7), k / 16, (k + 1) / 16);
+        rib.seg(a.x, a.y, a.z, b.x, b.y, b.z, .28 * fa + .03, .28 * fb + .03, c4(C, fa), c4(C, fb * .7), k / 16, (k + 1) / 16);
         if (!low && k < 18) rib.seg(a.x, a.y, a.z, b.x, b.y, b.z, .035 * fa, .035 * fb, c4(W, fa), c4(W, fb * .6), k / 16, (k + 1) / 16);
         if (!low && k % 6 === 3) glow.add(a.x + Math.sin(k + t * 9 + i) * .12, a.y + Math.cos(k * 1.3 + t * 7) * .12, a.z, .045, .2, C[0], C[1], C[2], fa, 3, k + i, k);
       }
       // estouro de cada acerto (ou no obstáculo), distribuído no tempo
-      const age = th.endAt >= 0 ? t - th.endAt : -1;
+      const age = th.endAt >= 0 ? t - th.endAt : -1;fragments.add(th.at,age,1.1,C,i,'radial',low);
       if ((th.phase === 'hit' || th.phase === 'wall' || th.phase === 'spent') && age >= 0 && age < .45) {
         const k = 1 - age / .45, P2 = th.at, big = th.phase === 'hit' ? 1 : .6;
         if (age < .1) glow.add(P2.x, P2.y, P2.z, 2.2 * big * (1 - age / .1) + .3, 2.2 * big * (1 - age / .1) + .3, 1, .9, .95, 1, 0);
         for (let j = 0; j < (low ? 5 : 12); j++) { const a = j * 2.39996 + i, el = (hash(j + i * 7) - .3) * 1.6, sp = 3 + hash(j * 3 + i) * 4, d = sp * age;
           glow.add(P2.x + Math.cos(a) * Math.cos(el) * d, P2.y + Math.sin(el) * d - 3 * age * age, P2.z + Math.sin(a) * Math.cos(el) * d, .05, .3, C[0] + .2, C[1] + .2, C[2] + .2, k, 3, a + Math.PI / 2, j); }
-        const gy = ground(P2.x, P2.z); if (P2.y - gy < 2.5) decals.add(P2.x, gy, P2.z, 1 + 1.6 * easeOut(age / .45), C[0], C[1], C[2], k * .8, 0, age / .45, i, groundNormal(ground, P2.x, P2.z, nrm));
+
       }
     });
     // ---- convergência: esfera de pressão e anel de choque no chão
-    sphere.visible = ph === 'burst';
+    bolts.count=boltCount;bolts.instanceMatrix.needsUpdate=true;bolts.instanceColor.needsUpdate=true;
+    sphere.visible=ph==='burst'||ph==='compress';
+    if(ph==='compress'){const c=s.center,k=A/PORTALS.compress;sphere.position.set(c.x,c.y,c.z);sphere.scale.setScalar(3.8*(1-k)+.5);sphereMat.uniforms.alpha.value=.4+.4*k;}
     if (ph === 'burst') {
-      const c = s.center, k = A / .9; sphere.position.set(c.x, c.y, c.z); sphere.scale.setScalar(.4 + 2.6 * easeOut(Math.min(1, A / .3)) * (1 - smooth((A - .55) / .35) * .5)); sphereMat.uniforms.alpha.value = 1 - smooth((A - .4) / .5);
+      const c = s.center, k = A / PORTALS.burst; sphere.position.set(c.x, c.y, c.z); sphere.scale.setScalar(.5 + 7 * easeOut(Math.min(1, A / .3)) * (1 - smooth((A - .55) / .35) * .5)); sphereMat.uniforms.alpha.value = 1 - smooth((A - .4) / .5);
       if (A < .14) { const q = 1 - A / .14; glow.add(c.x, c.y, c.z, 6 * q + .5, 6 * q + .5, 1, .85, .95, q, 0); }
       const gy = ground(c.x, c.z), n = groundNormal(ground, c.x, c.z, nrm);
-      decals.add(c.x, gy, c.z, 1 + 7 * easeOut(k), 1, .25, .6, (1 - k) * .95, 0, k, 21, n); decals.add(c.x, gy, c.z, 2.6, .8, .2, .7, (1 - smooth(k)) * .8, 1, k, 22, n);
-      for (let j = 0; j < (low ? 16 : 44); j++) { const a = j * 2.39996, el = hash(j) * 1.2 - .2, sp = 5 + hash(j * 5) * 7, d = sp * easeOut(A / .6), C = j % 2 ? portals[0].col : portals[1].col;
+      fragments.add(c,A,5.5,[1,.14,.6],21,'radial',low);
+      for (let j = 0; j < (low ? 16 : quality===1?30:44); j++) { const a = j * 2.39996, el = hash(j) * 1.2 - .2, sp = 5 + hash(j * 5) * 7, d = sp * easeOut(A / .6), C = j % 2 ? portals[0].col : portals[1].col;
         glow.add(c.x + Math.cos(a) * Math.cos(el) * d, c.y + Math.sin(el) * d, c.z + Math.sin(a) * Math.cos(el) * d, .07, .45, C[0] + .2, C[1] + .2, C[2] + .2, 1 - k, 3, a + Math.PI / 2, j); }
     }
-    rib.end(); glow.end(); decals.end(t);
+    rib.end(); glow.end(); decals.end(t);fragments.end();
   }
   return { root, update, clear() { root.visible = false; lastT = -1; for (const H of hist) for (const h of H) h.t = -9; },
-    dispose() { scene.remove(root); for (const g of [discGeo, rimGeo, tunGeo, shardGeo, sphereGeo]) g.dispose(); for (const P of portals) for (const m of [P.disc, P.rim, P.rim2, P.tun]) m.material.dispose(); shardMat.dispose(); sphereMat.dispose(); shards.dispose(); glow.dispose(); decals.dispose(); rib.dispose(); } };
+    dispose() { scene.remove(root);fragments.dispose();boltGeo.dispose();boltMat.dispose();bolts.dispose(); for (const g of [discGeo, rimGeo, tunGeo, shardGeo, sphereGeo]) g.dispose(); for (const P of portals) for (const m of [P.disc, P.rim, P.rim2, P.tun]) m.material.dispose(); shardMat.dispose(); sphereMat.dispose(); shards.dispose(); glow.dispose(); decals.dispose(); rib.dispose(); } };
 }

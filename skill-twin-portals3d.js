@@ -1,9 +1,10 @@
+import {blockedSegment} from './skill-path3d.js';
 import { sweptCapsule } from './skill-x-rupture3d.js';
 /**
- * MOD 233 — Portais da Perseguição (lógica de combate, passo fixo de 120 Hz).
+ * MOD 235 — Portais da Perseguição (lógica de combate, passo fixo de 120 Hz).
  *
- * open (um portal RUBRO à esquerda e um VIOLETA à direita do herói) → fire (oito fios com rotas próprias e tempos
- * diferentes: de frente, por trás, por cima, volta completa, em S, em espiral, rasante e mergulho) → burst (explosão
+ * open (um portal RUBRO à esquerda e um VIOLETA à direita do herói) → fire (24 projéteis em três ondas, oito padrões com rotas próprias e tempos
+ * diferentes: de frente, por trás, por cima, volta completa, em S, em espiral, rasante e mergulho) → compress → burst (explosão
  * rubro-violeta no alvo depois da convergência) → close.
  *
  * As rotas são Catmull-Rom com pontos de controle presos ao referencial do alvo, recalculados a cada passo: se o alvo
@@ -11,18 +12,12 @@ import { sweptCapsule } from './skill-x-rupture3d.js';
  * no máximo uma vez; fio que encontra obstáculo baixo explode nele e não atravessa. Sem alvo, os fios terminam num ponto
  * finito à frente e se dissipam sem dano.
  */
-export const PORTALS = Object.freeze({ open: .6, hit: 5, finisher: 18, burst: .9, close: .55, side: 2.1, height: 2.1, radius: .3 });
+export const PORTALS = Object.freeze({ range: 32, open: .6, hit: 1.5, finisher: 22, compress: .55, burst: 1.15, close: .55, side: 2.1, height: 2.1, radius: .34 });
 // lado: -1 = portal rubro (esquerda), 1 = portal violeta (direita)
-export const THREADS = Object.freeze([
-  { pattern: 'front', side: -1, born: 0, dur: .5 },
-  { pattern: 'behind', side: 1, born: .18, dur: 1.35 },
-  { pattern: 'over', side: -1, born: .42, dur: 1.25 },
-  { pattern: 'loop', side: 1, born: .6, dur: 1.85 },
-  { pattern: 'sflank', side: -1, born: .85, dur: 1.15 },
-  { pattern: 'spiral', side: 1, born: 1.05, dur: 1.2 },
-  { pattern: 'skim', side: -1, born: 1.3, dur: .95 },
-  { pattern: 'dive', side: 1, born: 1.5, dur: 1.3 }
-]);
+export const THREADS=Object.freeze(Array.from({length:24},(_,i)=>Object.freeze({
+ pattern:['front','behind','over','loop','sflank','spiral','skim','dive'][i%8],side:i%2?1:-1,
+ born:Math.floor(i/8)*2.15+(i%8)*.22,dur:.85+(i%4)*.20
+})));
 const lerp = (a, b, k) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k });
 const add = (a, ...vs) => { const o = { ...a }; for (const [v, k] of vs) { o.x += v.x * k; o.y += v.y * k; o.z += v.z * k; } return o; };
 /** Catmull-Rom uniforme por uma lista de pontos (u em 0..1, segmentos iguais). */
@@ -57,7 +52,9 @@ export class TwinPortals {
   }
   start(source, target, yaw = 0, mul = 1) {
     if (this.active) return false;
-    this.active = true; this.time = this.age = this.acc = 0; this.phase = 'open'; this.mul = mul; this.hits = 0;
+    if(target&&Math.hypot(target.x-source.x,target.z-source.z)>PORTALS.range)target=null;
+    this.source={...source};
+    this.active = true; this.time = this.age = this.acc = 0; this.phase = 'open'; this.mul = mul; this.hits = 0; this.damagePaid=0;
     this.id = target?.alive ? target.id : null;
     let fx = Math.sin(yaw), fz = Math.cos(yaw);
     if (target?.alive) { const dx = target.x - source.x, dz = target.z - source.z, d = Math.hypot(dx, dz); if (d > .3) { fx = dx / d; fz = dz / d; } }
@@ -73,7 +70,7 @@ export class TwinPortals {
   update(dt, target, { valid = true, paused = false } = {}) {
     if (!this.active || paused) return;
     if (!valid) { this.cancel(); return; }
-    const t = this.id !== null && target?.alive && target.id === this.id ? target : null;
+    const t = this.id !== null && target?.alive && target.id === this.id && Math.hypot(target.x-this.source.x,target.z-this.source.z)<=PORTALS.range+4 ? target : null;
     this.acc += Math.max(0, dt);
     while (this.acc >= 1 / 120 && this.active) { this.acc -= 1 / 120; this.step(1 / 120, t); }
   }
@@ -89,17 +86,20 @@ export class TwinPortals {
         if (th.phase !== 'flight') continue; live++;
         const P = this.portals[th.side < 0 ? 0 : 1], prev = { ...th.p };
         th.u = Math.min(1, th.u + dt / th.dur);
-        const q = threadPoint(th.pattern, th.u, P, T, this.f, this.r, th.side, this.ground(T.x, T.z));
+        const q = threadPoint(th.pattern, th.u*th.u*(3-2*th.u), P, T, this.f, this.r, th.side, this.ground(T.x, T.z));
         Object.assign(th.p, q);
-        const hitAt = tg && sweptCapsule(prev, q, tg, PORTALS.radius);
-        if (hitAt) { th.phase = 'hit'; th.endAt = this.time; Object.assign(th.at, hitAt); this.hits++; this.hit(Math.round(PORTALS.hit * this.mul), this.id, 'thread'); this.event('impact', th); continue; }
-        if (q.y < this.ground(q.x, q.z) + 2.4 && this.blocked(q)) { th.phase = 'wall'; th.endAt = this.time; Object.assign(th.at, prev); this.event('wall', th); continue; }
+        if(blockedSegment(prev,q,p=>p.y<this.ground(p.x,p.z)+2.4&&this.blocked(p),.2)){th.phase='wall';th.endAt=this.time;Object.assign(th.at,prev);this.event('wall',th);continue;}
+        const hitAt=tg&&sweptCapsule(prev,q,tg,PORTALS.radius);
+        if(hitAt){th.phase='hit';th.endAt=this.time;Object.assign(th.at,hitAt);this.hits++;
+         const next=Math.round(PORTALS.hit*this.mul*this.hits),damage=next-this.damagePaid;this.damagePaid=next;
+         this.hit(damage,this.id,'thread');this.event('impact',th);continue;}
         if (th.u >= 1) { th.phase = 'spent'; th.endAt = this.time; Object.assign(th.at, q); this.event('spent', th); }
       }
-      if (!live) { if (tg && this.hits > 0) { this.hit(Math.round(PORTALS.finisher * this.mul), this.id, 'burst'); this.phaseTo('burst'); } else this.phaseTo('close'); }
+      if (!live) { if (tg && this.hits > 0) { this.phaseTo('compress'); } else this.phaseTo('close'); }
       return;
     }
-    if (this.phase === 'burst') { if (tg) Object.assign(this.center, this.aimPoint(tg)); if (this.age >= PORTALS.burst) this.phaseTo('close'); return; }
+    if(this.phase==='compress'){if(this.age>=PORTALS.compress){if(tg&&Math.hypot(tg.x-this.center.x,tg.z-this.center.z)<3+(tg.radius||.6))this.hit(Math.round(PORTALS.finisher*this.mul),this.id,'burst');this.phaseTo('burst');}return;}
+    if (this.phase === 'burst') { if (this.age >= PORTALS.burst) this.phaseTo('close'); return; }
     if (this.phase === 'close' && this.age >= PORTALS.close) { this.active = false; this.phase = 'idle'; this.event('finish'); }
   }
 }

@@ -1,0 +1,4 @@
+SKILL {'kind': 'skill_x_rupture', 'damage': 38, 'manaSpent': 26, 'gripError': 0}
+SKILL {'kind': 'skill_twin_portals', 'damage': 49, 'manaSpent': 40, 'gripError': 0}
+SKILL {'kind': 'skill_judgment_dragon', 'damage': 66, 'manaSpent': 55, 'gripError': 0}
+PASS: all skills, actual GLB run, three weapons, hand/socket, first person, pause and synthetic context loss

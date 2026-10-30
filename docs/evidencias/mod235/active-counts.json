@@ -1,0 +1,110 @@
+[
+  {
+    "skill": "x",
+    "age": 1.1,
+    "quality": 0,
+    "calls": 13,
+    "triangles": 4996,
+    "geo": 11,
+    "programs": 9
+  },
+  {
+    "skill": "x",
+    "age": 1.1,
+    "quality": 1,
+    "calls": 13,
+    "triangles": 5640,
+    "geo": 11,
+    "programs": 9
+  },
+  {
+    "skill": "x",
+    "age": 1.1,
+    "quality": 2,
+    "calls": 13,
+    "triangles": 5672,
+    "geo": 11,
+    "programs": 9
+  },
+  {
+    "skill": "portals",
+    "age": 4,
+    "quality": 0,
+    "calls": 17,
+    "triangles": 11496,
+    "geo": 13,
+    "programs": 11
+  },
+  {
+    "skill": "portals",
+    "age": 4,
+    "quality": 1,
+    "calls": 17,
+    "triangles": 14500,
+    "geo": 13,
+    "programs": 11
+  },
+  {
+    "skill": "portals",
+    "age": 4,
+    "quality": 2,
+    "calls": 17,
+    "triangles": 14612,
+    "geo": 13,
+    "programs": 11
+  },
+  {
+    "skill": "dragon",
+    "age": 6.9,
+    "quality": 0,
+    "calls": 25,
+    "triangles": 10734,
+    "geo": 23,
+    "programs": 13
+  },
+  {
+    "skill": "dragon",
+    "age": 6.9,
+    "quality": 1,
+    "calls": 25,
+    "triangles": 13498,
+    "geo": 23,
+    "programs": 13
+  },
+  {
+    "skill": "dragon",
+    "age": 6.9,
+    "quality": 2,
+    "calls": 25,
+    "triangles": 13514,
+    "geo": 23,
+    "programs": 13
+  },
+  {
+    "skill": "dragon",
+    "age": 9.3,
+    "quality": 0,
+    "calls": 29,
+    "triangles": 11792,
+    "geo": 24,
+    "programs": 14
+  },
+  {
+    "skill": "dragon",
+    "age": 9.3,
+    "quality": 1,
+    "calls": 29,
+    "triangles": 14642,
+    "geo": 24,
+    "programs": 14
+  },
+  {
+    "skill": "dragon",
+    "age": 9.3,
+    "quality": 2,
+    "calls": 29,
+    "triangles": 14738,
+    "geo": 24,
+    "programs": 14
+  }
+]

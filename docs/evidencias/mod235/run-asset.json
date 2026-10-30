@@ -1,0 +1,22 @@
+[
+  {
+    "clip": "Hero_Run",
+    "samples": 83,
+    "foot_travel_m": {
+      "mixamorigRightFoot": 0.9194742287335513,
+      "mixamorigLeftFoot": 1.0073232211008236
+    },
+    "hip_vertical_m": 0.023965017639068886,
+    "root_motion_xz_m": 4.910173872357245e-08,
+    "elbow_degrees": {
+      "Left": {
+        "min": 135.96680576662527,
+        "max": 173.49061067895548
+      },
+      "Right": {
+        "min": 150.58466027137604,
+        "max": 173.66276390383922
+      }
+    }
+  }
+]

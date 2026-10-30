@@ -6,7 +6,7 @@ import { SKILLS, SKILL_ORDER, SLOT_SKILLS, EXTRA_SKILLS, normalizeLoadout, equip
 import { SHOP_ITEMS, SWORDS, shopStatus, buyItem } from './progression3d.js';
 
 const target = (o = {}) => ({ id: 7, alive: true, x: 0, y: 0, z: 12, radius: .6, height: 1.9, ...o });
-function run(Cls, fps, opts = {}, t = target(), secs = 8, yaw = 0) {
+function run(Cls, fps, opts = {}, t = target(), secs = 14, yaw = 0) {
   const hits = [], events = [], s = new Cls({ ...opts, hit: (d, id, k) => hits.push([d, id, k]), event: (e, x) => events.push(e) });
   s.start({ x: 0, y: 1.4, z: 0 }, t, yaw); for (let i = 0; i < fps * secs; i++) s.update(1 / fps, t); return { s, hits, events };
 }
@@ -33,7 +33,7 @@ test('X: alvo morre no meio do voo — sem dano fantasma', () => {
 test('Portais: dois portais separados (rubro à esquerda, violeta à direita) e oito rotas diferentes', () => {
   const s = new TwinPortals(); s.start({ x: 0, y: 1.4, z: 0 }, target(), 0);
   const [L, R] = s.portals; assert(Math.hypot(L.x - R.x, L.z - R.z) > 3.5); assert(L.x > R.x === (s.r.x < 0), 'esquerda/direita coerentes');
-  assert.equal(new Set(THREADS.map(t => t.pattern)).size, 8); assert.equal(new Set(THREADS.map(t => t.born)).size, 8);
+  assert.equal(new Set(THREADS.map(t => t.pattern)).size, 8); assert.equal(new Set(THREADS.map(t => t.born)).size, 24);
   for (const p of ['front', 'behind', 'over', 'loop']) assert(THREADS.some(t => t.pattern === p));
 });
 test('Portais: "por trás" chega pelo lado oposto, "por cima" sobe alto e a volta completa circula o alvo', () => {
@@ -45,47 +45,47 @@ test('Portais: "por trás" chega pelo lado oposto, "por cima" sobe alto e a volt
   let turn = 0; for (let i = 1; i < ang.length; i++) { let d = ang[i] - ang[i - 1]; d = Math.atan2(Math.sin(d), Math.cos(d)); turn += d; }
   assert(Math.abs(turn) > Math.PI * 1.75, 'dá a volta em torno do alvo');
 });
-test('Portais: oito acertos distribuídos no tempo + finalização; determinístico em qualquer FPS', () => {
+test('Portais: 24 acertos distribuídos no tempo + finalização; determinístico em qualquer FPS', () => {
   const r = run(TwinPortals, 60);
-  assert.deepEqual(r.hits.map(h => h[2]), [...Array(8).fill('thread'), 'burst']);
-  assert.equal(r.hits.reduce((n, h) => n + h[0], 0), 8 * PORTALS.hit + PORTALS.finisher);
+  assert.deepEqual(r.hits.map(h => h[2]), [...Array(24).fill('thread'), 'burst']);
+  assert.equal(r.hits.reduce((n, h) => n + h[0], 0), 24 * PORTALS.hit + PORTALS.finisher);
   for (const f of [10, 30, 120]) assert.deepEqual(run(TwinPortals, f).hits, r.hits);
   const times = r.s.threads.map(t => t.endAt); assert(Math.max(...times) - Math.min(...times) > .9, 'não chegam todos ao mesmo tempo');
   assert(!r.s.active);
 });
 test('Portais: alvo andando — rotas se reajustam e todos ainda acertam; sem alvo não há dano', () => {
   const t = target(), hits = [], s = new TwinPortals({ hit: d => hits.push(d) }); s.start({ x: 0, y: 1.4, z: 0 }, t);
-  for (let i = 0; i < 960; i++) { t.x = Math.sin(i / 120) * 3; s.update(1 / 120, t); } assert.equal(hits.length, 9);
+  for (let i = 0; i < 1800; i++) { t.x = Math.sin(i / 120) * 3; s.update(1 / 120, t); } assert.equal(hits.length, 25);
   assert.equal(run(TwinPortals, 60, {}, null).hits.length, 0);
 });
 test('Portais: parede baixa absorve os fios que passam por ela, sem atravessar', () => {
   const r = run(TwinPortals, 60, { blocked: p => p.z > 6 && p.z < 6.6 });
-  assert(r.events.filter(e => e === 'wall').length >= 1); assert(r.hits.filter(h => h[2] === 'thread').length < 8);
+  assert(r.events.filter(e => e === 'wall').length >= 1); assert(r.hits.filter(h => h[2] === 'thread').length < 24);
 });
 
 // ---------- Dragão
 test('Dragão: forma, avança, abre a boca, FECHA e só então morde; explosão depois', () => {
   const t = target({ z: 14 }), events = [], hits = [], mouth = []; const s = new JudgmentDragon({ hit: (d, id, k) => hits.push([k, s.time, s.mouth]), event: e => events.push(e) });
   s.start({ x: 0, y: 1.4, z: 0 }, t, 0);
-  for (let i = 0; i < 1200 && s.active; i++) { s.update(1 / 120, t); mouth.push([s.phase, s.mouth]); }
+  for (let i = 0; i < 1800 && s.active; i++) { s.update(1 / 120, t); mouth.push([s.phase, s.mouth]); }
   assert.deepEqual(events.filter(e => ['channel', 'form', 'advance', 'engulf', 'compress', 'explode', 'finish'].includes(e)), ['channel', 'form', 'advance', 'engulf', 'compress', 'explode', 'finish']);
-  assert.deepEqual(hits.map(h => h[0]), ['bite', 'blast']); assert.equal(hits[0][2], 0, 'a mordida acontece com a boca fechada');
+  assert.deepEqual(hits.map(h => h[0]), ['ball','bite', 'blast']); assert.equal(hits[1][2], 0, 'a mordida acontece com a boca fechada');
   assert(mouth.some(([p, m]) => p === 'engulf' && m > .99), 'boca abre de verdade');
   assert.equal(t.x, 0); assert.equal(t.z, 14, 'nunca move o alvo');
 });
 test('Dragão: corpo serpentino — o histórico da cabeça ondula para os lados durante o avanço', () => {
   const t = target({ z: 30 }), s = new JudgmentDragon(); s.start({ x: 0, y: 1.4, z: 0 }, t, 0); const xs = [];
-  for (let i = 0; i < 600 && s.phase !== 'engulf'; i++) { s.update(1 / 120, t); if (s.phase === 'advance') xs.push(s.head.x); }
+  for (let i = 0; i < 1400 && s.phase !== 'engulf'; i++) { s.update(1 / 120, t); if (s.phase === 'advance') xs.push(s.head.x); }
   assert(Math.max(...xs) - Math.min(...xs) > .6);
 });
 test('Dragão: chefe imune recebe a variante de superfície (a cabeça fica fora do corpo, alvo intocado)', () => {
   const t = target({ resist: true, radius: 2.2, height: 6 }), hits = []; const s = new JudgmentDragon({ hit: d => hits.push(d) }); s.start({ x: 0, y: 1.4, z: 0 }, t, 0);
-  let minD = 99; for (let i = 0; i < 1200 && s.active; i++) { s.update(1 / 120, t); if (['engulf', 'compress'].includes(s.phase)) minD = Math.min(minD, Math.hypot(s.head.x - t.x, s.head.z - t.z)); }
-  assert.equal(hits.length, 2); assert(minD > t.radius, 'não entra no chefe');
+  let minD = 99; for (let i = 0; i < 1800 && s.active; i++) { s.update(1 / 120, t); if (['engulf', 'compress'].includes(s.phase)) minD = Math.min(minD, Math.hypot(s.head.x - t.x, s.head.z - t.z)); }
+  assert.equal(hits.length, 3); assert(minD > t.radius, 'não entra no chefe');
 });
 test('Dragão: dano determinístico; cancelamento e alvo perdido não deixam dano pendente', () => {
   const a = run(JudgmentDragon, 60).hits; for (const f of [10, 30, 120]) assert.deepEqual(run(JudgmentDragon, f).hits, a);
-  assert.equal(a.reduce((n, h) => n + h[0], 0), DRAGON.bite + DRAGON.blast);
+  assert.equal(a.reduce((n, h) => n + h[0], 0), DRAGON.ball + DRAGON.bite + DRAGON.blast);
   const t = target(), hits = []; const s = new JudgmentDragon({ hit: d => hits.push(d) }); s.start({ x: 0, y: 1.4, z: 0 }, t); s.update(1, t); t.alive = false; s.update(5, t); assert.equal(hits.length, 0); assert(!s.active);
 });
 

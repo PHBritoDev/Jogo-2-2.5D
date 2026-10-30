@@ -29,7 +29,7 @@ export function createSwordViewmodel(T,camera,hero,clone,guardClip){
  }
  const ikOrigin=v(),ikDirection=v();
  const handTarget=v(),leftTarget=v(),poleR=new T.Vector3(.48,-.42,-.35),poleL=new T.Vector3(-.48,-.42,-.35),bladeDir=v();
- function update(dt,{active,speed=0,sprint=false,defend=false,dash=false,air=false,hurt=false,sword='prota',blocked=false}={}){
+ function update(dt,{cast=0,active,speed=0,sprint=false,defend=false,dash=false,air=false,hurt=false,sword='prota',blocked=false}={}){
   time+=dt;for(const r of rest){r.b.quaternion.copy(r.q);r.b.position.copy(r.p);r.b.scale.copy(r.s);}rig.updateWorldMatrix(true,true);
   const bob=Math.sin(time*(sprint?12:8))*Math.min(speed/7.2,1),breath=Math.sin(time*1.6)*.006;
   handTarget.set(.20+bob*.012,-.19+breath+Math.abs(bob)*.013,-.56);leftTarget.set(-.30,-.31,-.53);bladeDir.set(-.28,.68,-.68);
@@ -47,6 +47,7 @@ export function createSwordViewmodel(T,camera,hero,clone,guardClip){
    else{handTarget.x+=.12*envelope;handTarget.y+=(-.17+.39*u)*envelope;bladeDir.set(-.30,-.55+u*1.4,-.9);}
    handTarget.z-=.05*envelope;leftTarget.x-=.03*envelope;leftTarget.y+=.08*envelope;
   }
+  if(cast>0){const w=Math.sin(Math.PI*Math.min(1,cast));handTarget.y+=.19*w;handTarget.z-=.07*w;leftTarget.y+=.15*w;bladeDir.set(-.22,.35+.5*w,-.8);}
   if(defend){handTarget.set(.10,-.16,-.56);bladeDir.set(-.92,.12,-.2);leftTarget.set(-.20,-.27,-.43);}
   if(blocked){handTarget.z+=.10;handTarget.y-=.13;bladeDir.set(-.25,.8,-.25);}
   ik('Right',handTarget,poleR);ik('Left',leftTarget,poleL);
