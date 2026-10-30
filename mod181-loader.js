@@ -81,7 +81,7 @@ const BUILD = 'mod237-enemy1-esquadra';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
-  if (statusEl) statusEl.textContent = 'Aplicando Mod 186…';
+  if (statusEl) statusEl.textContent = 'Preparando o mundo 3D…';
   let code = await loadText(new URL('./mundo-3d-prototype.js?v=' + BUILD, import.meta.url).href);
   code = await applyMod181(code);
   // Módulos locais importados pelo mundo (o código roda a partir de um blob, então os caminhos precisam ser absolutos).

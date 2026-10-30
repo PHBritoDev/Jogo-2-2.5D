@@ -160,6 +160,7 @@ export function createWorldAudio() {
     },
     swing(step=0, sword='') { if (!ready) return; const n=Math.abs(step)%3, dark=sword==='aurora'?.82:1; burst('bandpass', [700,920,540][n]*dark, 1.4, [.16,.13,.20][n], .2, sfxBus, [2600,3100,2100][n]*dark); },
     hit() { if (!ready) return; tone('sine', 150, 48, .38, .18); burst('lowpass', 1800, .7, .22, .08); },
+    energyImpact(strength=1) { if(!ready)return;const k=Math.max(.2,Math.min(1,strength));tone('sine',90,32,.28*k,.4);burst('lowpass',850,.65,.18*k,.22,sfxBus,180); },
     hurt() { if (!ready) return; tone('triangle', 110, 70, .26, .22); burst('bandpass', 500, .9, .16, .14); },
     whoosh() { if (!ready) return; burst('bandpass', 400, .8, .12, .26, sfxBus, 1300); },
     land() { if (!ready) return; burst('lowpass', 420, .6, .16, .12); },

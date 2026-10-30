@@ -1,0 +1,2205 @@
+{
+  "publicEntrySeconds": 11.324373483657837,
+  "save": {
+    "campaign": "{\"qa\":236}",
+    "hearts": "7"
+  },
+  "dragon": [
+    {
+      "quality": "low",
+      "fp": false,
+      "t": 3.9,
+      "mode": "still",
+      "dragonViewWeight": 0.9999628296813159,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "form",
+        "head": {
+          "x": -12.933703113410324,
+          "y": 22.220809690796113,
+          "z": -0.08591435888254217
+        },
+        "ball": {
+          "active": false,
+          "direction": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "origin": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "p": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "at": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "impactTime": -1
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": false,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          10.965466136582604,
+          19.203867758866537,
+          20.74132946422298
+        ],
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": null,
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "form",
+            "time": 3.9
+          }
+        },
+        "hp": 10000,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.710282475857383,
+          0.8970183650573891,
+          4.027901860809406
+        ],
+        "mount": [
+          -19.710282475857383,
+          0.8970183650573891,
+          4.027901860809406
+        ],
+        "run": "Hero_Run",
+        "view": null
+      }
+    },
+    {
+      "quality": "low",
+      "fp": false,
+      "t": 5.1,
+      "mode": "still",
+      "dragonViewWeight": 0.9999996940976796,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "fire",
+        "head": {
+          "x": -12.871947806493058,
+          "y": 22.733826732665186,
+          "z": -1.9999999999999964
+        },
+        "ball": {
+          "active": true,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -16.56484974180392,
+            "y": 11.41122048959777,
+            "z": -5.140390638324367
+          },
+          "at": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "impactTime": -1,
+          "speed": 20.137631548170305,
+          "travel": 9.733188581615657,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": true,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          11.389620112631848,
+          19.622759464556875,
+          19.795320985303228
+        ],
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": null,
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "fire",
+            "time": 5.1
+          }
+        },
+        "hp": 10000,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.718920777985353,
+          0.8990047293253565,
+          4.032349856070753
+        ],
+        "mount": [
+          -19.718920777985353,
+          0.8990047293253565,
+          4.032349856070753
+        ],
+        "run": "Hero_Run",
+        "view": null
+      }
+    },
+    {
+      "quality": "low",
+      "fp": false,
+      "t": 8,
+      "mode": "still",
+      "dragonViewWeight": 0.999999999997196,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "engulf",
+        "head": {
+          "x": -20,
+          "y": 1.671663125123381,
+          "z": -5.644
+        },
+        "ball": {
+          "active": false,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -19.34328009769787,
+            "y": 2.918931444802312,
+            "z": -7.4533099749737595
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": 5.558333333333399,
+          "speed": 20.137631548170305,
+          "travel": 18.962936374527036,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": false,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          -2.0192749281869937,
+          7.602223665053696,
+          8.45098323204826
+        ],
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": null,
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "engulf",
+            "time": 8
+          }
+        },
+        "hp": 9984,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.729538270314695,
+          0.8806029638197289,
+          4.003052098771532
+        ],
+        "mount": [
+          -19.729538270314695,
+          0.8806029638197289,
+          4.003052098771532
+        ],
+        "run": "Hero_Run",
+        "view": null
+      }
+    },
+    {
+      "quality": "low",
+      "fp": false,
+      "t": 12,
+      "mode": "still",
+      "dragonViewWeight": 9.452306618201747e-05,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "idle",
+        "head": {
+          "x": -20,
+          "y": 1.671663125123381,
+          "z": -5.644
+        },
+        "ball": {
+          "active": false,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -19.34328009769787,
+            "y": 2.918931444802312,
+            "z": -7.4533099749737595
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": 5.558333333333399,
+          "speed": 20.137631548170305,
+          "travel": 18.962936374527036,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": false,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          -19.578892963776777,
+          2.3128510990487867,
+          9.85964692962593
+        ],
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": null,
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": false,
+            "phase": "idle",
+            "time": 11.1
+          }
+        },
+        "hp": 9934,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.732145364077418,
+          0.8839163622250241,
+          4.007800418836653
+        ],
+        "mount": [
+          -19.732145364077418,
+          0.8839163622250241,
+          4.007800418836653
+        ],
+        "run": "Hero_Run",
+        "view": null
+      }
+    },
+    {
+      "quality": "low",
+      "fp": true,
+      "t": 3.9,
+      "mode": "still",
+      "dragonViewWeight": 0.9999628296816067,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "form",
+        "head": {
+          "x": -12.933703113410324,
+          "y": 22.220809690796113,
+          "z": -0.08591435888254217
+        },
+        "ball": {
+          "active": false,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -19.34328009769787,
+            "y": 2.918931444802312,
+            "z": -7.4533099749737595
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": -1,
+          "speed": 20.137631548170305,
+          "travel": 18.962936374527036,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": false,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          10.965465697213594,
+          19.203867631398403,
+          20.74132916153157
+        ],
+        "distance": 0.72,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": {
+        "visible": false,
+        "meshes": 1,
+        "triangles": 749,
+        "hand": [
+          0.19999998626921567,
+          -0.18510236932336233,
+          -0.5600000100487836
+        ],
+        "armBounds": [
+          {
+            "min": [
+              -0.45282011734914285,
+              -0.41754556489856753,
+              -0.6870959936948076
+            ],
+            "max": [
+              0.37086285441203337,
+              -0.07587937557640956,
+              -0.2467563676526936
+            ]
+          }
+        ],
+        "swords": 1
+      },
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "form",
+            "time": 3.9
+          }
+        },
+        "hp": 10000,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.721743718828037,
+          0.8926229965304902,
+          4.02054391826522
+        ],
+        "mount": [
+          -19.721743718828037,
+          0.8926229965304902,
+          4.02054391826522
+        ],
+        "run": "Hero_Run",
+        "view": {
+          "visible": false,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.19999998626921567,
+            -0.18510236932336233,
+            -0.5600000100487836
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.45282011734914285,
+                -0.41754556489856753,
+                -0.6870959936948076
+              ],
+              "max": [
+                0.37086285441203337,
+                -0.07587937557640956,
+                -0.2467563676526936
+              ]
+            }
+          ],
+          "swords": 1
+        }
+      }
+    },
+    {
+      "quality": "low",
+      "fp": true,
+      "t": 5.1,
+      "mode": "still",
+      "dragonViewWeight": 0.9999996940976819,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "fire",
+        "head": {
+          "x": -12.871947806493058,
+          "y": 22.733826732665186,
+          "z": -1.9999999999999964
+        },
+        "ball": {
+          "active": true,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -16.56484974180392,
+            "y": 11.41122048959777,
+            "z": -5.140390638324367
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": -1,
+          "speed": 20.137631548170305,
+          "travel": 9.733188581615657,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": true,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          11.389642265064685,
+          19.62276649624862,
+          19.795336248484592
+        ],
+        "distance": 0.72,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": {
+        "visible": false,
+        "meshes": 1,
+        "triangles": 749,
+        "hand": [
+          0.19999998626921567,
+          -0.18510236932336233,
+          -0.5600000100487836
+        ],
+        "armBounds": [
+          {
+            "min": [
+              -0.45282010336532785,
+              -0.41754557770307343,
+              -0.6870959916535213
+            ],
+            "max": [
+              0.37086287305710997,
+              -0.07587936561736441,
+              -0.24675636197261142
+            ]
+          }
+        ],
+        "swords": 1
+      },
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "fire",
+            "time": 5.1
+          }
+        },
+        "hp": 10000,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.730459592083413,
+          0.8890295992476381,
+          4.016469802402148
+        ],
+        "mount": [
+          -19.730459592083413,
+          0.8890295992476381,
+          4.016469802402148
+        ],
+        "run": "Hero_Run",
+        "view": {
+          "visible": false,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.19999998626921567,
+            -0.18510236932336233,
+            -0.5600000100487836
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.45282010336532785,
+                -0.41754557770307343,
+                -0.6870959916535213
+              ],
+              "max": [
+                0.37086287305710997,
+                -0.07587936561736441,
+                -0.24675636197261142
+              ]
+            }
+          ],
+          "swords": 1
+        }
+      }
+    },
+    {
+      "quality": "low",
+      "fp": true,
+      "t": 8,
+      "mode": "still",
+      "dragonViewWeight": 0.999999999997196,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "engulf",
+        "head": {
+          "x": -20,
+          "y": 1.671663125123381,
+          "z": -5.644
+        },
+        "ball": {
+          "active": false,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -19.34328009769787,
+            "y": 2.918931444802312,
+            "z": -7.4533099749737595
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": 5.558333333333399,
+          "speed": 20.137631548170305,
+          "travel": 18.962936374527036,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": false,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          -2.019274928202589,
+          7.602223665034413,
+          8.45098323207026
+        ],
+        "distance": 0.72,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": {
+        "visible": false,
+        "meshes": 1,
+        "triangles": 749,
+        "hand": [
+          0.19999998626921567,
+          -0.18510236932336233,
+          -0.5600000100487836
+        ],
+        "armBounds": [
+          {
+            "min": [
+              -0.4528200325198597,
+              -0.417545310714047,
+              -0.6870957830572015
+            ],
+            "max": [
+              0.3708629675177413,
+              -0.07587957327549955,
+              -0.246755781530684
+            ]
+          }
+        ],
+        "swords": 1
+      },
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "engulf",
+            "time": 8
+          }
+        },
+        "hp": 9984,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.718562978206197,
+          0.9029775844179617,
+          4.036854638909412
+        ],
+        "mount": [
+          -19.718562978206197,
+          0.9029775844179617,
+          4.036854638909412
+        ],
+        "run": "Hero_Run",
+        "view": {
+          "visible": false,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.19999998626921567,
+            -0.18510236932336233,
+            -0.5600000100487836
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.4528200325198597,
+                -0.417545310714047,
+                -0.6870957830572015
+              ],
+              "max": [
+                0.3708629675177413,
+                -0.07587957327549955,
+                -0.246755781530684
+              ]
+            }
+          ],
+          "swords": 1
+        }
+      }
+    },
+    {
+      "quality": "low",
+      "fp": true,
+      "t": 12,
+      "mode": "still",
+      "dragonViewWeight": 9.452306618201747e-05,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "idle",
+        "head": {
+          "x": -20,
+          "y": 1.671663125123381,
+          "z": -5.644
+        },
+        "ball": {
+          "active": false,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -19.34328009769787,
+            "y": 2.918931444802312,
+            "z": -7.4533099749737595
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": 5.558333333333399,
+          "speed": 20.137631548170305,
+          "travel": 18.962936374527036,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": false,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          -19.999999999911772,
+          1.3720476400382065,
+          4.000000000321694
+        ],
+        "distance": 0.72,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": {
+        "visible": true,
+        "meshes": 1,
+        "triangles": 749,
+        "hand": [
+          0.19999998459447,
+          -0.19588711974651785,
+          -0.5600000120591972
+        ],
+        "armBounds": [
+          {
+            "min": [
+              -0.4528202932719516,
+              -0.41754509562242104,
+              -0.6871268110198274
+            ],
+            "max": [
+              0.3694144338478047,
+              -0.0868853259146749,
+              -0.2467557858116236
+            ]
+          }
+        ],
+        "swords": 1
+      },
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": false,
+            "phase": "idle",
+            "time": 11.1
+          }
+        },
+        "hp": 9934,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.714168121782066,
+          0.8916145465485841,
+          4.018809756884403
+        ],
+        "mount": [
+          -19.714168121782066,
+          0.8916145465485841,
+          4.018809756884403
+        ],
+        "run": "Hero_Run",
+        "view": {
+          "visible": true,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.19999998459447,
+            -0.19588711974651785,
+            -0.5600000120591972
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.4528202932719516,
+                -0.41754509562242104,
+                -0.6871268110198274
+              ],
+              "max": [
+                0.3694144338478047,
+                -0.0868853259146749,
+                -0.2467557858116236
+              ]
+            }
+          ],
+          "swords": 1
+        }
+      }
+    },
+    {
+      "quality": "high",
+      "fp": false,
+      "t": 3.9,
+      "mode": "still",
+      "dragonViewWeight": 0.9999628296816067,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "form",
+        "head": {
+          "x": -12.933703113410324,
+          "y": 22.220809690796113,
+          "z": -0.08591435888254217
+        },
+        "ball": {
+          "active": false,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -19.34328009769787,
+            "y": 2.918931444802312,
+            "z": -7.4533099749737595
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": -1,
+          "speed": 20.137631548170305,
+          "travel": 18.962936374527036,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": false,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          10.965422295257321,
+          19.203856442656743,
+          20.74130426391601
+        ],
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": {
+        "visible": false,
+        "meshes": 1,
+        "triangles": 749,
+        "hand": [
+          0.19999998459447,
+          -0.19588711974651785,
+          -0.5600000120591972
+        ],
+        "armBounds": [
+          {
+            "min": [
+              -0.45282011734915173,
+              -0.41754556489857997,
+              -0.6871270201184139
+            ],
+            "max": [
+              0.3694146684115349,
+              -0.08688496092210585,
+              -0.24675636765117304
+            ]
+          }
+        ],
+        "swords": 1
+      },
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "form",
+            "time": 3.9
+          }
+        },
+        "hp": 10000,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.72690953823898,
+          0.8835858828702925,
+          4.007618475052864
+        ],
+        "mount": [
+          -19.72690953823898,
+          0.8835858828702925,
+          4.007618475052864
+        ],
+        "run": "Hero_Run",
+        "view": {
+          "visible": false,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.19999998459447,
+            -0.19588711974651785,
+            -0.5600000120591972
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.45282011734915173,
+                -0.41754556489857997,
+                -0.6871270201184139
+              ],
+              "max": [
+                0.3694146684115349,
+                -0.08688496092210585,
+                -0.24675636765117304
+              ]
+            }
+          ],
+          "swords": 1
+        }
+      }
+    },
+    {
+      "quality": "high",
+      "fp": false,
+      "t": 5.1,
+      "mode": "still",
+      "dragonViewWeight": 0.9999996940976819,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "fire",
+        "head": {
+          "x": -12.871947806493058,
+          "y": 22.733826732665186,
+          "z": -1.9999999999999964
+        },
+        "ball": {
+          "active": true,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -16.56484974180392,
+            "y": 11.41122048959777,
+            "z": -5.140390638324367
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": -1,
+          "speed": 20.137631548170305,
+          "travel": 9.733188581615657,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": true,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          11.38960167936769,
+          19.6227820885522,
+          19.79531444263896
+        ],
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": {
+        "visible": false,
+        "meshes": 1,
+        "triangles": 749,
+        "hand": [
+          0.19999998459447,
+          -0.19588711974651785,
+          -0.5600000120591972
+        ],
+        "armBounds": [
+          {
+            "min": [
+              -0.4528201033653456,
+              -0.41754557770334877,
+              -0.6871270180773585
+            ],
+            "max": [
+              0.3694146870566204,
+              -0.08688495096284399,
+              -0.24675636197170903
+            ]
+          }
+        ],
+        "swords": 1
+      },
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "fire",
+            "time": 5.1
+          }
+        },
+        "hp": 10000,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.71921391617688,
+          0.8867121222307235,
+          4.010806199790345
+        ],
+        "mount": [
+          -19.71921391617688,
+          0.8867121222307235,
+          4.010806199790345
+        ],
+        "run": "Hero_Run",
+        "view": {
+          "visible": false,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.19999998459447,
+            -0.19588711974651785,
+            -0.5600000120591972
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.4528201033653456,
+                -0.41754557770334877,
+                -0.6871270180773585
+              ],
+              "max": [
+                0.3694146870566204,
+                -0.08688495096284399,
+                -0.24675636197170903
+              ]
+            }
+          ],
+          "swords": 1
+        }
+      }
+    },
+    {
+      "quality": "high",
+      "fp": false,
+      "t": 8,
+      "mode": "still",
+      "dragonViewWeight": 0.999999999997196,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "engulf",
+        "head": {
+          "x": -20,
+          "y": 1.671663125123381,
+          "z": -5.644
+        },
+        "ball": {
+          "active": false,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -19.34328009769787,
+            "y": 2.918931444802312,
+            "z": -7.4533099749737595
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": 5.558333333333399,
+          "speed": 20.137631548170305,
+          "travel": 18.962936374527036,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": false,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          -2.0192749283305034,
+          7.6022236650279895,
+          8.45098323197336
+        ],
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": {
+        "visible": false,
+        "meshes": 1,
+        "triangles": 749,
+        "hand": [
+          0.19999998459447,
+          -0.19588711974651785,
+          -0.5600000120591972
+        ],
+        "armBounds": [
+          {
+            "min": [
+              -0.4528200325198597,
+              -0.417545310714047,
+              -0.6871268094813647
+            ],
+            "max": [
+              0.36941478151726237,
+              -0.08688515862118429,
+              -0.246755781530684
+            ]
+          }
+        ],
+        "swords": 1
+      },
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": true,
+            "phase": "engulf",
+            "time": 8
+          }
+        },
+        "hp": 9984,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.732145364077418,
+          0.8839321004662837,
+          4.00780041883665
+        ],
+        "mount": [
+          -19.732145364077418,
+          0.8839321004662837,
+          4.00780041883665
+        ],
+        "run": "Hero_Run",
+        "view": {
+          "visible": false,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.19999998459447,
+            -0.19588711974651785,
+            -0.5600000120591972
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.4528200325198597,
+                -0.417545310714047,
+                -0.6871268094813647
+              ],
+              "max": [
+                0.36941478151726237,
+                -0.08688515862118429,
+                -0.246755781530684
+              ]
+            }
+          ],
+          "swords": 1
+        }
+      }
+    },
+    {
+      "quality": "high",
+      "fp": false,
+      "t": 12,
+      "mode": "still",
+      "dragonViewWeight": 9.452306618201747e-05,
+      "portals": {
+        "phase": "idle",
+        "flows": [
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          },
+          {
+            "phase": "waiting",
+            "p": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "origin": {},
+            "direction": {},
+            "born": null,
+            "travel": null
+          }
+        ],
+        "visual": {
+          "bodies": 2,
+          "visible": 0,
+          "impacts": {
+            "capacity": 5,
+            "slots": 0
+          }
+        }
+      },
+      "dragon": {
+        "phase": "idle",
+        "head": {
+          "x": -20,
+          "y": 1.671663125123381,
+          "z": -5.644
+        },
+        "ball": {
+          "active": false,
+          "direction": {
+            "x": -0.301029932586869,
+            "y": -0.9200997942021445,
+            "z": -0.2505939911408815
+          },
+          "origin": {
+            "x": -13.634868639224841,
+            "y": 20.366725300473,
+            "z": -2.701312065130448
+          },
+          "p": {
+            "x": -19.34328009769787,
+            "y": 2.918931444802312,
+            "z": -7.4533099749737595
+          },
+          "at": {
+            "x": -19.318021639917017,
+            "y": 1.7666631251233822,
+            "z": -7.4322834355496745
+          },
+          "impactTime": 5.558333333333399,
+          "speed": 20.137631548170305,
+          "travel": 18.962936374527036,
+          "range": 23.144513125578822
+        },
+        "visual": {
+          "bodyTriangles": 4096,
+          "fireball": false,
+          "impacts": {
+            "capacity": 4,
+            "slots": 0
+          }
+        }
+      },
+      "camera": {
+        "position": [
+          -19.578892963776784,
+          2.312851099048784,
+          9.859646929625923
+        ],
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0.22
+      },
+      "view": {
+        "visible": false,
+        "meshes": 1,
+        "triangles": 749,
+        "hand": [
+          0.19999998459447,
+          -0.19588711974651785,
+          -0.5600000120591972
+        ],
+        "armBounds": [
+          {
+            "min": [
+              -0.45282028390144535,
+              -0.4175450835458431,
+              -0.6871268744252407
+            ],
+            "max": [
+              0.3694144463418176,
+              -0.08688533530756405,
+              -0.24675596224407131
+            ]
+          }
+        ],
+        "swords": 1
+      },
+      "state": {
+        "skills": {
+          "skill_x_rupture": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_twin_portals": {
+            "active": false,
+            "phase": "idle",
+            "time": 0
+          },
+          "skill_judgment_dragon": {
+            "active": false,
+            "phase": "idle",
+            "time": 11.1
+          }
+        },
+        "hp": 9934,
+        "mana": 45,
+        "loadout": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon"
+        ],
+        "enemy": [
+          -20,
+          -0.13,
+          -8
+        ],
+        "slots": [
+          "skill_x_rupture",
+          "skill_twin_portals",
+          "skill_judgment_dragon",
+          "ultimate"
+        ]
+      },
+      "grip": {
+        "error": 0,
+        "angle": 0,
+        "hand": [
+          -19.71678354993974,
+          0.898015153367441,
+          4.028831654220718
+        ],
+        "mount": [
+          -19.71678354993974,
+          0.898015153367441,
+          4.028831654220718
+        ],
+        "run": "Hero_Run",
+        "view": {
+          "visible": false,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.19999998459447,
+            -0.19588711974651785,
+            -0.5600000120591972
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.45282028390144535,
+                -0.4175450835458431,
+                -0.6871268744252407
+              ],
+              "max": [
+                0.3694144463418176,
+                -0.08688533530756405,
+                -0.24675596224407131
+              ]
+            }
+          ],
+          "swords": 1
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "failedResponses": [],
+  "environment": "Chromium SwiftShader; touch/mobile viewports, no physical Android"
+}

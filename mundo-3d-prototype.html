@@ -149,6 +149,8 @@ button:active{transform:scale(.96);background:#31583d}
 #crosshair{position:fixed;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;z-index:3;pointer-events:none;border-radius:50%;border:1.5px solid #fff3c4cc;box-shadow:0 0 6px #0009}
 #crosshair::after{content:'';position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#ffe7a0;box-shadow:0 0 6px #ffcf5a}
 #crosshair[hidden]{display:none}
+
+#vfx-lab select,#vfx-lab button{background:#191c26;color:#eddfc2;border:1px solid #776848;border-radius:5px;font:11px system-ui;min-height:28px;height:28px;padding:3px 6px;width:auto}body.vfx-lab-mode #sword-training,body.vfx-lab-mode #quest-box{display:none}#vfx-lab a{color:#f0d389;margin-left:10px}#vfx-lab .lab-title{font-size:10px;margin-bottom:3px}body.vfx-lab-mode #status{bottom:76px}#lab-metrics{padding-top:3px;font-size:10px}@media(max-width:600px){#vfx-lab{top:137px!important;bottom:auto!important;right:7px;left:auto!important;transform:none!important;max-width:210px!important}#vfx-lab label{display:inline-block;margin-bottom:3px}}
 </style>
 <link rel="stylesheet" href="./hud3d.css?v=mod237-enemy1-esquadra">
 <link rel="stylesheet" href="./cine3d.css?v=mod237-enemy1-esquadra">
@@ -217,12 +219,17 @@ button:active{transform:scale(.96);background:#31583d}
 <div id="dialog-footer"><span id="dialog-hint">TOQUE PARA AVANÇAR</span><button id="dialog-continue">CONTINUAR <span aria-hidden="true">↗</span></button></div>
 </div>
 <div id="stick" aria-label="Controle de movimento"><div id="knob"></div></div>
-<aside id="sword-training" hidden><span>Treino · progresso separado</span><button id="rite-training-start" type="button">TREINAR / REINICIAR</button><button id="rite-training-swap" type="button">TROCAR ESPADA</button><a href="./index.html?v=232" target="_top">VOLTAR À CAMPANHA</a></aside>
+<aside id="sword-training" hidden><span>Treino · progresso separado</span><button id="rite-training-start" type="button">TREINAR / REINICIAR</button><button id="rite-training-swap" type="button">TROCAR ESPADA</button><a href="./index.html?v=236" target="_top">VOLTAR À CAMPANHA</a></aside>
 <div id="actions">
 <button id="sword-skill" type="button" data-key="R" aria-label="Habilidade da espada"><span class="btn-icon"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M37 6 42 12 27 43 22 40Z" fill="currentColor"/><path d="m19 36 15 8M24 42l-5 12M12 29C13 13 30 6 46 14M51 33C52 48 34 57 21 52" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m47 8 3 6 6 1-5 4 1 7-5-4-6 3 2-6-4-5 7 1Z" fill="currentColor"/></svg></span><span class="btn-label" data-key="R">PASSAGEM</span><span class="skill-cost">28</span></button>
 <button id="attack" type="button" aria-label="Golpe de espada"><span class="btn-icon"></span><span class="btn-label">GOLPE</span></button><button id="defend" type="button" aria-label="Defender (segurar)"><span class="btn-icon"></span><span class="btn-label">DEF</span></button><button id="jump" type="button" aria-label="Pular"><span class="btn-icon"></span><span class="btn-label">PULO</span></button><button id="dash" type="button" aria-label="Esquiva rápida"><span class="btn-icon"></span><span class="btn-label">DASH</span></button><button id="run" type="button" aria-label="Correr (liga e desliga)"><span class="btn-icon"></span><span class="btn-label">CORRER</span></button><button id="aim" type="button" aria-label="Travar mira no inimigo"><span class="btn-icon"></span><span class="btn-label">MIRAR</span></button><button id="magic" type="button" aria-label="Cerco das Cinco Lâminas Celestiais"><span class="btn-icon"></span><span class="btn-label">MAGIA</span></button><button id="magic2" type="button" aria-label="Julgamento Celestial"><span class="btn-icon"></span><span class="btn-label">MAG.II</span></button><button id="magic3" type="button" aria-label="Tornado da Fênix Celestial"><span class="btn-icon"></span><span class="btn-label">FÊNIX</span></button><button id="ultimate" type="button" aria-label="Julgamento Divino"><span class="btn-icon"></span><span class="btn-label">ULT.</span></button>
 </div>
-<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 237: Enemy1 em esquadra, IA tática, poderes sombrios e o Guardião com a Ceifadora.</div>
+<section id="vfx-lab" hidden aria-label="Laboratório de habilidades" style="position:fixed;z-index:600;bottom:12px;left:50%;transform:translateX(-50%);max-width:95vw;background:#12131bd9;border:1px solid #a88b50;border-radius:8px;padding:5px;color:#eddfc2;font:11px system-ui;text-align:center">
+<div class="lab-title">Treino · progresso separado <a href="./index.html?v=236" target="_top">Campanha</a></div>
+<label>Alvo <select id="lab-scenario"><option value="still">Parado</option><option value="moving">Móvel</option><option value="ground">Solo</option><option value="wall">Parede</option></select></label>
+<label>Qualidade <select id="lab-quality"><option value="auto">Auto</option><option value="low">Baixa</option><option value="high">Alta</option><option value="max">Máxima</option></select></label>
+<button id="lab-reset" type="button">Reiniciar</button><div id="lab-metrics" aria-live="off"></div></section>
+<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 237: Enemy1 em esquadra, IA tática, poderes sombrios e o Guardião com a Ceifadora (sobre a VFX Engine 2.0 da Mod 236).</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module" src="./mod181-loader.js?v=mod237-enemy1-esquadra"></script>
 <script>

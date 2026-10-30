@@ -1,6 +1,8 @@
 import { Enemy1Squad } from './enemy1-squad3d.js';
 import { createDarkPowersVFX } from './enemy1-dark-vfx3d.js';
 import { buildWardenScythe } from './warden-scythe3d.js';
+import { impactDirector } from './vfx-impact3d.js';
+import { volumeTrail } from './vfx-trail3d.js';
 /**
  * MOD 237 — corpo visual da esquadra Enemy1: um clone do Enemy1 por ator, com mixer, materiais (lampejo de dano
  * individual) e estado de animação próprios. Altura normalizada pelo esqueleto deformado (protocolo de escala GLB) e
@@ -14,6 +16,9 @@ const ROLE_SPEED = { idle: .38, walk: 1, run: 1.08, attack: 1, attack2: 1, cast:
 export function createEnemy1SquadRuntime(ctx) {
   const T = ctx.T, scene = ctx.scene;
   const vfx = createDarkPowersVFX(T, scene, { ground: ctx.ground });
+  // VFX Engine 2.0 (Mod 236): impactos autoritativos (pressão, fragmentos, fissuras, poeira) e rastro volumétrico da espiral
+  const impacts = impactDirector(T, scene, ctx.ground, { capacity: 6 }), trails = [0, 1, 2].map(() => ({ trail: volumeTrail(T, scene, 'violet', { capacity: 32, life: .55, radius: .55 }), id: null }));
+  const _tp = new T.Vector3();
   const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m = new T.Matrix4(), _box = new T.Box3();
   let squad = null, bodies = new Map(), measured = null, time = 0;
   function measureSource(src) {
@@ -80,11 +85,13 @@ export function createEnemy1SquadRuntime(ctx) {
   function onEvent(type, d) {
     if (type === 'cast' && ctx.pose) { const b = bodies.get(d.actor.id); if (b) ctx.pose(b.model, POSE[d.skill] || 'cast', d.skill === 'judgment' ? 1.5 : 1.1, () => d.actor.yaw); }
     if (type === 'counterCast' && ctx.pose) { const b = bodies.get(d.actor.id); if (b) ctx.pose(b.model, 'thrust', .7, () => d.actor.yaw); }
+    if (type === 'burst' && d.spell && (d.spell.type === 'spiral' || d.why === 'clash')) { const s = d.spell; impacts.emit({ id: 'e1s' + s.id, time, point: { x: s.x, y: s.y, z: s.z }, size: (s.kind === 'warden' ? 2.3 : 1.7) * (s.type === 'counter' ? .7 : 1), preset: 'violet', kind: 'ball', dir: { x: s.dx, y: 0, z: s.dz } }); }
+    if (type === 'judgmentBlast') { const s = d.spell; impacts.emit({ id: 'e1j' + s.id, time, point: { x: s.mx, y: s.my + .6, z: s.mz }, size: s.r * 1.05, preset: 'violet', kind: 'ball', dir: { x: 0, y: 1, z: 0 } }); }
     ctx.event(type, d);
   }
   function stop() {
     for (const b of bodies.values()) { b.mixer.stopAllAction(); scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); } }
-    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
+    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); impacts.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
   }
   return {
     vfx,
@@ -135,9 +142,13 @@ export function createEnemy1SquadRuntime(ctx) {
           b.weapon.updateWorldMatrix(true, false); vfx.scythe(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld));
         }
       }
+      for (const t of trails) { const s = t.id !== null && squad.spells.find(o => o.id === t.id); if (!s) t.id = null; }
+      for (const s of squad.spells) if (s.type === 'spiral' && s.phase === 'fly' && !trails.some(t => t.id === s.id)) { const free = trails.find(t => t.id === null); if (free) { free.id = s.id; free.trail.clear(); } }
+      for (const t of trails) { const s = t.id !== null && squad.spells.find(o => o.id === t.id); t.trail.update(time, s ? _tp.set(s.x, s.y, s.z) : _tp, !!(s && s.phase === 'fly'), quality); }
+      impacts.update(time, quality);
       const info = camera ? vfx.update(dt, camera, squad.spells, charges, quality) : null;
       return info;
     },
-    dispose() { stop(); vfx.dispose(); }
+    dispose() { stop(); vfx.dispose(); impacts.dispose(); for (const t of trails) t.trail.dispose && t.trail.dispose(); }
   };
 }

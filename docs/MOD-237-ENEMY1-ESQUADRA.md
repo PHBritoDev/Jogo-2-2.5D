@@ -158,7 +158,7 @@ O painel também mostra a vida de cada alvo.
 
 ## Limitações reais
 
-- **Mod 236 do Codex:** não estava publicada durante este trabalho. Por isso não foi possível reaproveitar a VFX Engine 2.0; os poderes usam o kit compartilhado atual (`celestial-fxkit3d.js`) e módulos próprios. Quando ela sair, o módulo de VFX pode trocar partículas e fitas pelos componentes dela sem mudar a lógica.
+- **VFX Engine 2.0 (Mod 236):** integrada depois da sincronização com a `main`. As explosões da Espiral, do Contra-selo e do Juízo usam o `impactDirector` (pressão, fragmentos, fissuras e poeira) na paleta `violet`, e a Espiral deixa um `volumeTrail`. As garras, o orbe, a coluna e as faixas continuam nos módulos próprios desta Mod.
 - **Android físico não testado** e FPS no celular não medido.
 - **Clipes do Enemy1:** não há clipe próprio de dano nem de morte. A reação é um recuo procedural e a morte é uma queda para trás. Os gestos de conjuração usam o clipe `cast` mais a camada de pose do jogo (`playPose`).
 - **NPC aliado:** só aparece no laboratório. Na campanha, o Anjo-Guia não vira alvo, porque não tem sistema de vida.

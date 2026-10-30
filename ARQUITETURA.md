@@ -158,6 +158,14 @@ Somente `prota`/`aurora`, botão contextual e tecla R. As quatro magias permanec
 `?todasHabilidades=1&treinoEspadas=1&v=231` abre o treino sem gravar a campanha.
 Auditoria, balanceamento e evidências: `docs/MOD-231-RITOS-DE-ESPADA.md`.
 
+## Mod 236 — VFX Engine 2.0
+
+API e limites permanentes em [`docs/VFX-ENGINE-2.md`](docs/VFX-ENGINE-2.md). `vfx-flow3d.js`,
+`vfx-trail3d.js`, `vfx-impact3d.js` compartilham volumes, rastros e impactos entre X, dois portais
+simultâneos e dragão; `vfx-dragon-model3d.js` constrói cabeça/corpo de fogo. O design de 24 fios dos
+portais da Mod 235 foi substituído por **dois corpos retos**. Laboratório isolado `?vfxLab236=1`.
+A câmera abre para a sequência do dragão sem gravar distância/yaw/pitch do jogador.
+
 ## Mod 237 — Enemy1 em esquadra simultânea
 
 `enemy1-squad3d.js` (lógica pura, 120 Hz, semente): atores, IA por utilidade com estudo do alvo, diretor da esquadra

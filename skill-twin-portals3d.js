@@ -1,105 +1,65 @@
 import {blockedSegment} from './skill-path3d.js';
-import { sweptCapsule } from './skill-x-rupture3d.js';
-/**
- * MOD 235 — Portais da Perseguição (lógica de combate, passo fixo de 120 Hz).
- *
- * open (um portal RUBRO à esquerda e um VIOLETA à direita do herói) → fire (24 projéteis em três ondas, oito padrões com rotas próprias e tempos
- * diferentes: de frente, por trás, por cima, volta completa, em S, em espiral, rasante e mergulho) → compress → burst (explosão
- * rubro-violeta no alvo depois da convergência) → close.
- *
- * As rotas são Catmull-Rom com pontos de controle presos ao referencial do alvo, recalculados a cada passo: se o alvo
- * anda, o final da rota se reajusta suavemente (sem teleporte). Colisão contínua do segmento percorrido; cada fio acerta
- * no máximo uma vez; fio que encontra obstáculo baixo explode nele e não atravessa. Sem alvo, os fios terminam num ponto
- * finito à frente e se dissipam sem dano.
- */
-export const PORTALS = Object.freeze({ range: 32, open: .6, hit: 1.5, finisher: 22, compress: .55, burst: 1.15, close: .55, side: 2.1, height: 2.1, radius: .34 });
-// lado: -1 = portal rubro (esquerda), 1 = portal violeta (direita)
-export const THREADS=Object.freeze(Array.from({length:24},(_,i)=>Object.freeze({
- pattern:['front','behind','over','loop','sflank','spiral','skim','dive'][i%8],side:i%2?1:-1,
- born:Math.floor(i/8)*2.15+(i%8)*.22,dur:.85+(i%4)*.20
-})));
-const lerp = (a, b, k) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k });
-const add = (a, ...vs) => { const o = { ...a }; for (const [v, k] of vs) { o.x += v.x * k; o.y += v.y * k; o.z += v.z * k; } return o; };
-/** Catmull-Rom uniforme por uma lista de pontos (u em 0..1, segmentos iguais). */
-export function catmull(pts, u) {
-  const n = pts.length - 1, f = Math.min(n - 1e-6, Math.max(0, u * n)), i = Math.floor(f), t = f - i;
-  const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n, i + 2)], t2 = t * t, t3 = t2 * t;
-  const c = k => .5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3);
-  return { x: c('x'), y: c('y'), z: c('z') };
-}
-/** Ponto da rota `pattern` em u, do portal P até o centro do alvo T, no referencial f (frente) / r (direita). */
-export function threadPoint(pattern, u, P, T, f, r, side, groundY = 0) {
-  const up = { x: 0, y: 1, z: 0 }, s = side;
-  switch (pattern) {
-    case 'front': return catmull([P, add(lerp(P, T, .5), [up, .7]), T], u);
-    case 'behind': return catmull([P, add(T, [r, s * 5], [f, -1.2], [up, .4]), add(T, [r, s * 2.4], [f, 3.6], [up, .8]), add(T, [f, 2.2], [up, .3]), T], u);
-    case 'over': return catmull([P, add(lerp(P, T, .4), [up, 5]), add(T, [up, 6.5], [f, -.5]), add(T, [up, 2.2]), T], u);
-    case 'loop': { const R = 3.1, pts = [P, add(T, [f, -R], [r, s * .8], [up, .6])];
-      for (let k = 1; k <= 8; k++) { const a = Math.PI + s * k / 8 * Math.PI * 2; pts.push(add(T, [f, Math.cos(a) * R], [r, Math.sin(a) * R], [up, .6 + Math.sin(k) * .25])); }
-      pts.push(add(T, [f, -1.1], [up, .2])); pts.push(T); return catmull(pts, u); }
-    case 'sflank': return catmull([P, add(lerp(P, T, .3), [r, s * 3.4]), add(lerp(P, T, .62), [r, -s * 3.2], [up, .5]), add(T, [r, s * 1.2], [f, -1.2]), T], u);
-    case 'spiral': { const b = lerp(P, T, u), k = (1 - u) * 1.6 * Math.min(1, u * 6), a = u * Math.PI * 6 * s; return add(b, [r, Math.cos(a) * k], [up, Math.sin(a) * k]); }
-    case 'skim': { const A = add(lerp(P, T, .35), [r, s * 2.2]), B = add(T, [f, -2.2], [r, -s * 1.2]); A.y = Math.max(groundY + .45, A.y - 1.6); B.y = groundY + .55; return catmull([P, A, B, T], u); }
-    case 'dive': return catmull([P, add(P, [up, 4.5], [r, s * 1.5]), add(T, [up, 8.5], [f, -2.5]), add(T, [up, 3]), T], u);
+import {sweptCapsule} from './skill-x-rupture3d.js';
+/** Two finite, straight, simultaneous attacks. Pressure pulses belong to the same bodies.
+ * Pure 120 Hz simulation; no quality/renderer inputs. Optional target arrays use per-target budgets. */
+export const PORTALS=Object.freeze({range:32,open:.45,pressure:1.35,pulseTimes:[.3,.7,1.1],contact:6,pulse:4,finisher:22,compress:.42,burst:1.3,close:.6,side:2.1,height:2.1,radius:.8});
+const copy=p=>({x:p.x,y:p.y,z:p.z});
+const targetList=input=>[...new Map((Array.isArray(input)?input:input?[input]:[]).filter(t=>t?.alive).map(t=>[t.id,t])).values()];
+const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+export class TwinPortals{
+ constructor({hit=()=>{},blocked=()=>false,ground=()=>0,event=()=>{}}={}){
+  Object.assign(this,{hit,blocked,ground,event,active:false,phase:'idle',time:0,age:0,portals:[{},{}],center:{x:0,y:0,z:0}});
+  this.flows=[-1,1].map((side,i)=>({i,side,phase:'waiting',p:{x:0,y:0,z:0},at:{x:0,y:0,z:0},origin:{},direction:{},endAt:-1,contacts:new Map()}));
+ }
+ start(source,target,yaw=0,mul=1){
+  if(this.active)return false;
+  const list=targetList(target),t=list.find(t=>t.alive&&Math.hypot(t.x-source.x,t.z-source.z)<=PORTALS.range);
+  this.ids=new Set(list.filter(t=>t.alive&&Math.hypot(t.x-source.x,t.z-source.z)<=PORTALS.range).map(t=>t.id));
+  this.id=t?.id??null;this.source=copy(source);this.active=true;this.phase='open';this.time=this.age=this.acc=0;this.mul=mul;this.hits=0;this.paid=new Map();this.pulses=0;this.pressureAt=-1;
+  const a=t?Math.atan2(t.x-source.x,t.z-source.z):yaw;this.f={x:Math.sin(a),y:0,z:Math.cos(a)};this.r={x:this.f.z,y:0,z:-this.f.x};
+  const gy=this.ground(source.x,source.z);
+  this.portals=[-1,1].map(s=>({x:source.x+this.r.x*s*PORTALS.side-this.f.x*.5,y:gy+PORTALS.height,z:source.z+this.r.z*s*PORTALS.side-this.f.z*.5}));
+  this.fallback={x:source.x+this.f.x*18,y:gy+.35,z:source.z+this.f.z*18};Object.assign(this.center,this.fallback);
+  for(const f of this.flows){f.phase='waiting';f.endAt=-1;f.travel=0;f.contacts.clear();Object.assign(f.p,this.portals[f.i]);}
+  this.event('open',this);return true;
+ }
+ cancel(){if(!this.active)return;this.active=false;this.phase='idle';for(const f of this.flows){f.phase='gone';f.contacts.clear();}this.event('cancel',this);}
+ phaseTo(phase){this.phase=phase;this.age=0;if(phase==='pressure')this.pressureAt=this.time;this.event(phase,this);}
+ update(dt,target,{valid=true,paused=false}={}){
+  if(!this.active||paused)return;if(!valid){this.cancel();return;}
+  const list=targetList(target).filter(t=>t.alive&&this.ids.has(t.id)&&Math.hypot(t.x-this.source.x,t.z-this.source.z)<=PORTALS.range+4);
+  this.acc+=Math.max(0,dt);while(this.acc>=1/120&&this.active){this.acc-=1/120;this.step(1/120,list.filter(t=>t.alive));}
+ }
+ pay(t,amount,kind){if(!t.alive)return;const prev=this.paid.get(t.id)||0,next=prev+amount;this.paid.set(t.id,next);this.hit(Math.round(next*this.mul)-Math.round(prev*this.mul),t.id,kind);}
+ launch(targets){
+  const t=targets.find(t=>t.id===this.id),at=t?{x:t.x,y:t.y+(t.height||1.8)*.55,z:t.z}:this.fallback;Object.assign(this.center,at);
+  const lengths=this.portals.map(p=>distance(p,at)),duration=Math.min(3,1.5+Math.max(...lengths)/24);
+  for(const f of this.flows){Object.assign(f.origin,this.portals[f.i]);const l=lengths[f.i]||1;f.direction={x:(at.x-f.origin.x)/l,y:(at.y-f.origin.y)/l,z:(at.z-f.origin.z)/l};f.speed=l/duration;f.range=Math.min(PORTALS.range,l+2);f.phase='flight';f.born=this.time;this.event('launch',f);}
+ }
+ step(dt,targets){
+  this.time+=dt;this.age+=dt;
+  if(this.phase==='open'){if(this.age>=PORTALS.open){this.launch(targets);this.phaseTo('fire');}return;}
+  if(this.phase==='fire'){
+   for(const f of this.flows){if(f.phase!=='flight')continue;const p=copy(f.p),d=Math.min(f.speed*dt,f.range-f.travel);f.travel+=d;
+    f.p.x+=f.direction.x*d;f.p.y+=f.direction.y*d;f.p.z+=f.direction.z*d;
+    const wall=blockedSegment(p,f.p,q=>q.y-PORTALS.radius<=this.ground(q.x,q.z)||this.blocked({x:q.x,y:q.y-PORTALS.radius,z:q.z}),PORTALS.radius);
+    if(wall){Object.assign(f.p,p);this.endFlow(f,'wall');continue;}
+    const touched=targets.filter(t=>t.alive&&sweptCapsule(p,f.p,t,PORTALS.radius));
+    if(touched.length){for(const t of touched){f.contacts.set(t.id,copy(f.p));this.pay(t,PORTALS.contact,'contact');this.hits++;}this.endFlow(f,'contact');continue;}
+    if(f.travel>=f.range-1e-6)this.endFlow(f,'spent');
+   }
+   if(this.flows.every(f=>f.phase!=='flight')){const contacts=this.flows.filter(f=>f.phase==='contact');if(contacts.length){Object.assign(this.center,{x:0,y:0,z:0});for(const f of contacts)for(const k of ['x','y','z'])this.center[k]+=f.at[k]/contacts.length;this.phaseTo('pressure');}else this.phaseTo('close');}return;
   }
-  return lerp(P, T, u);
-}
-
-export class TwinPortals {
-  constructor({ hit = () => {}, blocked = () => false, ground = () => 0, event = () => {} } = {}) {
-    Object.assign(this, { hit, blocked, ground, event, active: false, phase: 'idle', time: 0, age: 0, portals: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }], center: { x: 0, y: 0, z: 0 } });
-    this.threads = THREADS.map((d, i) => ({ ...d, i, phase: 'waiting', u: 0, p: { x: 0, y: 0, z: 0 }, at: { x: 0, y: 0, z: 0 }, endAt: -1 }));
+  if(this.phase==='pressure'){
+   while(this.pulses<PORTALS.pulseTimes.length&&this.age>=PORTALS.pulseTimes[this.pulses]){
+    for(const f of this.flows)for(const t of targets){const p=f.contacts.get(t.id);if(p&&sweptCapsule(p,p,t,PORTALS.radius+.15)&&!blockedSegment(f.origin,p,q=>this.blocked({x:q.x,y:q.y-PORTALS.radius,z:q.z}),PORTALS.radius))this.pay(t,PORTALS.pulse,'pressure');}
+    this.event('pressure-pulse',{n:this.pulses++,p:this.center,time:this.time});
+   }
+   if(this.age>=PORTALS.pressure)this.phaseTo('compress');return;
   }
-  start(source, target, yaw = 0, mul = 1) {
-    if (this.active) return false;
-    if(target&&Math.hypot(target.x-source.x,target.z-source.z)>PORTALS.range)target=null;
-    this.source={...source};
-    this.active = true; this.time = this.age = this.acc = 0; this.phase = 'open'; this.mul = mul; this.hits = 0; this.damagePaid=0;
-    this.id = target?.alive ? target.id : null;
-    let fx = Math.sin(yaw), fz = Math.cos(yaw);
-    if (target?.alive) { const dx = target.x - source.x, dz = target.z - source.z, d = Math.hypot(dx, dz); if (d > .3) { fx = dx / d; fz = dz / d; } }
-    this.f = { x: fx, y: 0, z: fz }; this.r = { x: fz, y: 0, z: -fx };              // direita do herói olhando para o alvo
-    const gy = this.ground(source.x, source.z);
-    this.portals = [-1, 1].map(s => ({ x: source.x + this.r.x * s * PORTALS.side - fx * .5, y: gy + PORTALS.height, z: source.z + this.r.z * s * PORTALS.side - fz * .5 }));
-    this.fallback = { x: source.x + fx * 14, y: gy + 1.2, z: source.z + fz * 14 };
-    for (const t of this.threads) { t.phase = 'waiting'; t.u = 0; t.endAt = -1; }
-    this.event('open'); return true;
-  }
-  cancel() { if (!this.active) return; this.active = false; this.phase = 'idle'; for (const t of this.threads) t.phase = 'gone'; this.event('cancel'); }
-  phaseTo(p) { this.phase = p; this.age = 0; this.event(p, this); }
-  update(dt, target, { valid = true, paused = false } = {}) {
-    if (!this.active || paused) return;
-    if (!valid) { this.cancel(); return; }
-    const t = this.id !== null && target?.alive && target.id === this.id && Math.hypot(target.x-this.source.x,target.z-this.source.z)<=PORTALS.range+4 ? target : null;
-    this.acc += Math.max(0, dt);
-    while (this.acc >= 1 / 120 && this.active) { this.acc -= 1 / 120; this.step(1 / 120, t); }
-  }
-  aimPoint(t) { return t ? { x: t.x, y: t.y + (t.height || 1.8) * .55, z: t.z } : this.fallback; }
-  step(dt, tg) {
-    this.time += dt; this.age += dt;
-    if (this.phase === 'open') { if (this.age >= PORTALS.open) this.phaseTo('fire'); return; }
-    if (this.phase === 'fire') {
-      const T = this.aimPoint(tg); Object.assign(this.center, T); let live = 0;
-      for (const th of this.threads) {
-        if (th.phase === 'waiting' && this.age >= th.born) { th.phase = 'flight'; th.u = 0; Object.assign(th.p, this.portals[th.side < 0 ? 0 : 1]); this.event('thread', th); }
-        if (th.phase === 'waiting') { live++; continue; }
-        if (th.phase !== 'flight') continue; live++;
-        const P = this.portals[th.side < 0 ? 0 : 1], prev = { ...th.p };
-        th.u = Math.min(1, th.u + dt / th.dur);
-        const q = threadPoint(th.pattern, th.u*th.u*(3-2*th.u), P, T, this.f, this.r, th.side, this.ground(T.x, T.z));
-        Object.assign(th.p, q);
-        if(blockedSegment(prev,q,p=>p.y<this.ground(p.x,p.z)+2.4&&this.blocked(p),.2)){th.phase='wall';th.endAt=this.time;Object.assign(th.at,prev);this.event('wall',th);continue;}
-        const hitAt=tg&&sweptCapsule(prev,q,tg,PORTALS.radius);
-        if(hitAt){th.phase='hit';th.endAt=this.time;Object.assign(th.at,hitAt);this.hits++;
-         const next=Math.round(PORTALS.hit*this.mul*this.hits),damage=next-this.damagePaid;this.damagePaid=next;
-         this.hit(damage,this.id,'thread');this.event('impact',th);continue;}
-        if (th.u >= 1) { th.phase = 'spent'; th.endAt = this.time; Object.assign(th.at, q); this.event('spent', th); }
-      }
-      if (!live) { if (tg && this.hits > 0) { this.phaseTo('compress'); } else this.phaseTo('close'); }
-      return;
-    }
-    if(this.phase==='compress'){if(this.age>=PORTALS.compress){if(tg&&Math.hypot(tg.x-this.center.x,tg.z-this.center.z)<3+(tg.radius||.6))this.hit(Math.round(PORTALS.finisher*this.mul),this.id,'burst');this.phaseTo('burst');}return;}
-    if (this.phase === 'burst') { if (this.age >= PORTALS.burst) this.phaseTo('close'); return; }
-    if (this.phase === 'close' && this.age >= PORTALS.close) { this.active = false; this.phase = 'idle'; this.event('finish'); }
-  }
+  if(this.phase==='compress'){if(this.age>=PORTALS.compress){for(const t of targets)if(this.paid.has(t.id)&&Math.hypot(t.x-this.center.x,t.z-this.center.z)<3+(t.radius||.6)&&!blockedSegment(this.center,{x:t.x,y:t.y+1,z:t.z},this.blocked,.2))this.pay(t,PORTALS.finisher,'burst');this.phaseTo('burst');}return;}
+  if(this.phase==='burst'&&this.age>=PORTALS.burst)this.phaseTo('close');
+  if(this.phase==='close'&&this.age>=PORTALS.close){this.active=false;this.phase='idle';this.event('finish',this);}
+ }
+ endFlow(f,phase){f.phase=phase;f.endAt=this.time;Object.assign(f.at,f.p);this.event(phase==='contact'?'impact':phase,f);}
 }
