@@ -1,11 +1,14 @@
-import {SwordRites,SWORD_RITES} from './sword-rites3d.js';
+import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
+import {buildRiteSword} from './sword-design3d.js';
+import {createSwordViewmodel} from './sword-viewmodel3d.js';
+import {SwordRites,SWORD_RITES,swordAim} from './sword-rites3d.js';
 import {createSwordRitesVFX} from './sword-rites-vfx3d.js';
-import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage} from './sword-rites-animation3d.js';
+import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage,swordLayers} from './sword-rites-animation3d.js';
 const testAllSkills=new URLSearchParams(location.search).has('todasHabilidades');
 const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills);
 const swordTrainingRequested=testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas');
 let swordTrainingRequestedStarted=false;
-var swordTraining=false;
+var swordTraining=false,riteCinematicView=false;
 import {CelestialWhiteHole,CinematicLease,whiteFlash} from './celestial-whitehole3d.js';
 import {createWhiteHoleVFX} from './celestial-whitehole-vfx3d.js';
 import {createStorm} from './celestial-storm3d.js';
@@ -861,7 +864,7 @@ function updatePlayerRespawn(now){
 const guide=new THREE.Group();scene.add(guide);guide.position.set(3.3,0,-5.4);
 const guideBreathingPivot=new THREE.Group();guide.add(guideBreathingPivot);
 const guideModelRoot=new THREE.Group();guideBreathingPivot.add(guideModelRoot);
-let guideProceduralBreath=true;
+let guideProceduralBreath=true,guideMoveSpeed=0,guideMotionAction=null;const guideMotionActions={};
 let guideModel=null,guideFitRoot=null,guideIdleMixer=null,playerIdleClip=null,playerReferenceHeight=1.7,vendorsSpawned=false,guideReferenceBounds=null;
 const villageNpcMixers=[];
 var npcCullFrame=0,_npcV=null;
@@ -873,7 +876,7 @@ function updateNpcCulling(){
 }
 
 function playNativeGuideIdle(clips){
- const list=clips||[];
+ const list=guideModel?repairHumanoidLocomotion(THREE,guideModel,clips||[]):clips||[];
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  window.GuideAnimationReport=list.map(c=>({name:c.name,duration:c.duration,tracks:(c.tracks||[]).length}));
  // Nunca usar o primeiro clipe como fallback: ele pode ser corrida ou ataque.
@@ -881,14 +884,19 @@ function playNativeGuideIdle(clips){
  if(!idle||!guideModel){guideProceduralBreath=true;if(guideModel){const bones=[];guideModel.traverse(o=>{if(o.isBone&&/(spine|chest|torso|upper.?body)/i.test(o.name||''))bones.push({bone:o,baseX:o.rotation.x,baseScaleY:o.scale.y});});guideModel.userData.breathBones=bones.slice(-3);}console.warn('Anjo-Guia sem clipe de respiração/idle identificado; usando respiração procedural reforçada. Clipes reais:',window.GuideAnimationReport);return;}
  const tracks=(idle.tracks||[]).filter(track=>!String(track.name||'').toLowerCase().endsWith('.scale'));
  const clip=tracks.length?new THREE.AnimationClip(idle.name,idle.duration,tracks,idle.blendMode):idle;
- guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.reset();action.setLoop(THREE.LoopRepeat,Infinity);action.setEffectiveWeight(1);action.play();guideIdleMixer.update(0);guideProceduralBreath=true;const bones=[];guideModel.traverse(o=>{if(o.isBone&&/(spine|chest|torso|upper.?body)/i.test(o.name||''))bones.push({bone:o,baseX:o.rotation.x,baseScaleY:o.scale.y});});guideModel.userData.breathBones=bones.slice(-3);console.info('Anjo-Guia: animações disponíveis',window.GuideAnimationReport,'respiração selecionada:',idle.name);
+ guideIdleMixer=new THREE.AnimationMixer(guideModel);const action=guideIdleMixer.clipAction(clip);action.reset();action.setLoop(THREE.LoopRepeat,Infinity);action.setEffectiveWeight(1);action.play();guideIdleMixer.update(0);guideMotionAction=guideMotionActions.idle=action;for(const [role,name]of [['walk','Walking'],['run','Running']]){const c=list.find(c=>c.name===name);if(c)guideMotionActions[role]=guideIdleMixer.clipAction(new THREE.AnimationClip(c.name,c.duration,c.tracks.filter(t=>!t.name.endsWith('.scale'))));}guideProceduralBreath=true;const bones=[];guideModel.traverse(o=>{if(o.isBone&&/(spine|chest|torso|upper.?body)/i.test(o.name||''))bones.push({bone:o,baseX:o.rotation.x,baseScaleY:o.scale.y});});guideModel.userData.breathBones=bones.slice(-3);console.info('Anjo-Guia: animações disponíveis',window.GuideAnimationReport,'respiração selecionada:',idle.name);
 }
 /* MOD 217 — o clipe parado veio da Misteriosa e, no corpo do Anjo, deixava os braços abertos e rígidos (um deles
    puxado para trás). Depois do clipe, os braços são apontados para baixo no espaço do mundo, com balanço leve. */
+function updateGuideMotion(){
+ if(!guideIdleMixer)return;const moving=guideRun&&guideMoveSpeed>.1,role=moving?(guideMoveSpeed>2.6?'run':'walk'):'idle',next=guideMotionActions[role]||guideMotionActions.idle;
+ if(next&&next!==guideMotionAction){if(guideMotionAction)guideMotionAction.fadeOut(.18);next.reset().setEffectiveWeight(1).fadeIn(.18).play();guideMotionAction=next;}
+ if(moving&&next)next.setEffectiveTimeScale(guideMoveSpeed/(role==='run'?3.6:1.8));
+}
 const _ga=new THREE.Vector3(),_gq=new THREE.Quaternion();let guideArmT=0;
 function relaxGuideArms(dt){
  if(!guideModel||!guide.visible)return;const rig=poseRig(guideModel);if(!rig)return;guideArmT+=dt;guideModel.getWorldQuaternion(_gq);
- for(const [ua,la,hd,sx] of [[rig.lua,rig.lla,rig.lh,1],[rig.rua,rig.rla,rig.rh,-1]]){const sw=Math.sin(guideArmT*1.1+(sx>0?0:1.3))*.03;
+ if(!(guideRun&&guideMoveSpeed>.1))for(const [ua,la,hd,sx] of [[rig.lua,rig.lla,rig.lh,1],[rig.rua,rig.rla,rig.rh,-1]]){const sw=Math.sin(guideArmT*1.1+(sx>0?0:1.3))*.03;
   aimBone(ua,la,_ga.set(sx*.2,-1,.05+sw).normalize().applyQuaternion(_gq),1);aimBone(la,hd,_ga.set(sx*.08,-1,.22+sw).normalize().applyQuaternion(_gq),1);}
  // MOD 218 — asas vivas: respiram devagar, batem mais quando o Anjo anda e tremulam um pouco com o vento.
  const W=guideModel.userData.wings||(guideModel.userData.wings=['AsaEsq','AsaDir'].map(n=>{const b=guideModel.getObjectByName(n);return b?{b,rest:b.quaternion.clone()}:null;}).filter(Boolean));
@@ -1187,13 +1195,13 @@ function loadPlayerSword(modelRoot){
  const loader=new GLTFLoader();
  loader.load('./EspadaProta.glb?v=mod148-sword-grip',gltf=>{
   siegeVFX=createSiegeVFX(THREE,scene,gltf.scene);
-  swordRoot=gltf.scene;swordRoot.name='EspadaProta_Runtime';
+  swordRoot=buildRiteSword(THREE,'prota');swordRoot.name='EspadaProta_Runtime';
   swordRoot.traverse(o=>{if(o.isMesh){o.visible=true;o.castShadow=true;o.receiveShadow=false;o.frustumCulled=false;}});
   swordHand=findSwordHand(modelRoot);
   swordRoot.scale.setScalar(.62);
   // Mesmo encaixe validado na dimensão do VHAZRAEL: cabo centrado na mão e mount fora da hierarquia escalada do rig.
   swordRoot.rotation.set(0,0,Math.PI);
-  swordRoot.position.set(0,.75*.62,0);
+  swordRoot.position.set(0,.75*.62+.065,0);
   swordPivot=new THREE.Group();swordPivot.name='EspadaProta_AttackPivot';
   if(swordHand){
    swordMount=new THREE.Group();swordMount.name='EspadaProta_HandMount';scene.add(swordMount);
@@ -1209,7 +1217,7 @@ new GLTFLoader().load('./Protagonista.glb?mod172-grounding',gltf=>{
   fitModel(model);const playerBounds=measureModelBounds(model),playerSize=playerBounds.getSize(new THREE.Vector3());if(playerSize.y>.001)playerReferenceHeight=playerSize.y;
   player.add(model);restoreRiteScales=lockSwordRigScales(model);
  loadPlayerSword(model);
- new GLTFLoader().load('./Protagonista-ritos-231.glb',g=>{try{riteClips=prepareSwordClips(THREE,g.animations,model);riteVFX.setHero(model,cloneSkinned);window.SwordRiteAnimationReport=Object.values(riteClips).map(c=>({name:c.name,duration:c.duration,tracks:c.tracks.length}));}catch(e){console.error(e);status.textContent='Falha ao preparar as animações de espada.';}},undefined,e=>console.error('Kit de espadas não carregou',e));
+ new GLTFLoader().load('./Protagonista-ritos-232.glb',g=>{try{riteClips=prepareSwordClips(THREE,g.animations,model);riteVFX.setHero(model,cloneSkinned);const run=g.animations.find(c=>c.name==='Hero_Run');if(run)actions.run=mixer.clipAction(run);riteLayers=swordLayers(THREE,riteClips,{idle:actions.idle?.getClip(),walk:actions.walk?.getClip(),run});window.SwordRiteAnimationReport=Object.values(riteClips).map(c=>({name:c.name,duration:c.duration,tracks:c.tracks.length}));}catch(e){console.error(e);status.textContent='Falha ao preparar as animações de espada.';}},undefined,e=>console.error('Kit de espadas não carregou',e));
  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;playerIdleClip=clips.find(c=>/^idle$/i.test(c.name||''))||chooseClip(clips,/idle|breath|respir|parad/i)||null;const idle=playerIdleClip||chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);attackClips=selectDimensionAttack(clips);attackClipIndex=0;const jump=chooseClip(clips,/jump|saltar|salto/i);
  const hit=chooseClip(clips,/hit.?knockback|hit.?reaction|hurt|damage|take.?damage|taking.?damage/i)||chooseClip(clips,/overhandthrow/i);
  const death=chooseClip(clips,/death|dead|dying|(^|[^a-z])die([^a-z]|$)|knockdown|collapse/i);
@@ -1218,13 +1226,13 @@ new GLTFLoader().load('./Protagonista.glb?mod172-grounding',gltf=>{
  if(hit)actions.hit=mixer.clipAction(hit);{const kip=chooseClip(clips,/kip/i);if(kip)actions.kipUp=mixer.clipAction(kip);}if(death)actions.death=mixer.clipAction(death);if(dash)actions.dash=mixer.clipAction(dash);if(block)actions.block=mixer.clipAction(block);
  play(actions.idle?'idle':actions.walk?'walk':'idle',0);
  window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);
- new GLTFLoader().load('./Protagonista-corrida-216.glb?v=mod216',g=>{const c=g.animations.find(a=>a.name==='Running');if(c&&model&&mixer){try{actions.run=mixer.clipAction(bakeRunClip(g.scene,c,model,g.animations.find(a=>a.name==='Idle')));}catch(err){console.warn('Corrida do herói indisponível:',err);}}},undefined,()=>{});}
+ }
  fitGuideModel();addVillageVendors();
  player.userData.ready=true;loading.classList.add('hidden');precompileWorld();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep,act1Sub)).objective;
 },undefined,err=>{console.error(err);loading.innerHTML='Não foi possível carregar Protagonista.glb.<br>Verifique a conexão e tente novamente.';status.textContent='Falha ao carregar modelo';});
 const keys={};addEventListener('keydown',e=>{const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA');if(typing)return;keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-addEventListener('keydown',e=>{if(e.repeat)return;const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA'||document.activeElement.tagName==='SELECT');if(typing)return;if(e.code==='KeyR'){action('sword-skill');return;}if(e.code==='KeyJ'||e.code==='KeyX'){action('attack');return;}if(e.code==='KeyF'||e.key==='Shift'){action('dash');return;}if(e.code==='Digit1'||e.code==='Numpad1'){action('magic');return;}if(e.code==='Digit2'||e.code==='Numpad2'){action('magic2');return;}if(e.code==='Digit3'||e.code==='Numpad3'){action('magic3');return;}if(e.code==='Digit4'||e.code==='Numpad4'){action('ultimate');return;}if(e.code==='Space'){e.preventDefault();action('jump');return;}if(e.key==='e'||e.key==='Enter')tryInteract();});
+addEventListener('keydown',e=>{if(e.repeat)return;const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA'||document.activeElement.tagName==='SELECT');if(typing)return;if(e.code==='KeyR'){action('sword-skill');return;}if(e.code==='KeyJ'||e.code==='KeyX'){action('attack');return;}if(e.code==='KeyF'){action('dash');return;}if(e.code==='Digit1'||e.code==='Numpad1'){action('magic');return;}if(e.code==='Digit2'||e.code==='Numpad2'){action('magic2');return;}if(e.code==='Digit3'||e.code==='Numpad3'){action('magic3');return;}if(e.code==='Digit4'||e.code==='Numpad4'){action('ultimate');return;}if(e.code==='Space'){e.preventDefault();action('jump');return;}if(e.key==='e'||e.key==='Enter')tryInteract();});
 let joyX=0,joyY=0,joyActive=false;const stick=document.getElementById('stick'),knob=document.getElementById('knob');
 function setJoy(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.32;const d=Math.hypot(dx,dy);if(d>max){dx=dx/d*max;dy=dy/d*max;}joyX=dx/max;joyY=dy/max;knob.style.transform='translate('+dx+'px,'+dy+'px)';}
 stick.addEventListener('pointerdown',e=>{joyActive=true;stick.setPointerCapture(e.pointerId);setJoy(e);});
@@ -1319,8 +1327,8 @@ let whiteVFX=null,whiteScene='',whitePendingDeath=false;
 const whiteOverlay=document.createElement('div');whiteOverlay.id='whitehole-flash';whiteOverlay.setAttribute('aria-hidden','true');document.body.appendChild(whiteOverlay);
 const whiteHole=new CelestialWhiteHole({hit:(d,id)=>{if(id!==siegeEpoch||!enemyAlive)return;enemyHP=Math.max(0,enemyHP-d);whitePendingDeath=enemyHP===0;const fill=document.getElementById('enemy-hp-fill');if(fill)fill.style.width=enemyHpPercent()+'%';},event:phase=>{if(phase==='sword')worldAudio.magic('ultimate');if(phase==='growth')worldAudio.thunder?.();if(phase==='silence')worldAudio.setCinematicGain?.(.03);if(phase==='launch'){worldAudio.setCinematicGain?.(1);worldAudio.whoosh();}if(phase==='impact')worldAudio.hit();}});
 function clearWhiteInput(){lookPointers.clear();mouseLookStart=null;lastPinchDistance=0;setDefending(false);for(const k of Object.keys(keys))keys[k]=false;endJoy();moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;pendingEnemyHitAt=0;}
-const whiteLease=new CinematicLease({capture:()=>({modelPosition:model.position.clone(),modelVisible:model.visible,cam:camera.position.clone(),q:camera.quaternion.clone(),yaw:cameraYaw,pitch:cameraPitch,distance:cameraDistance,fov:camera.fov,exposure:renderer.toneMappingExposure,sun:sunLight.intensity,sunColor:sunLight.color.clone(),hemiSky:hemiLight.color.clone(),hemiGround:hemiLight.groundColor.clone(),hemiI:hemiLight.intensity,fogNear:scene.fog?.near,fogFar:scene.fog?.far,sky:skyDome.material.color.clone(),background:scene.background?.isColor?scene.background.clone():null,fog:scene.fog?.color.clone(),filter:renderer.domElement.style.filter,context:siegeContext(),action:activeAction,actionTime:activeAction?.time,bones:[],controls:[...document.querySelectorAll('#actions button,#stick,#camera-toggle-3d,#talk-button')].map(el=>({el,disabled:el.disabled,inert:el.inert})),mountVisible:swordMount?.visible}),enter:snap=>{model.traverse(o=>{if(o.isBone)snap.bones.push([o,o.quaternion.clone(),o.scale.clone()]);});clearWhiteInput();model.visible=true;if(swordMount)swordMount.visible=true;renderer.domElement.style.filter='';document.body.classList.add('whitehole-cinematic');snap.controls.forEach(({el})=>{el.inert=true;if('disabled'in el)el.disabled=true;});play('idle',.1);},restore:snap=>{
- try{model.position.copy(snap.modelPosition);model.visible=snap.modelVisible;for(const [bone,q,scale]of snap.bones){bone.quaternion.copy(q);bone.scale.copy(scale);}if(swordMount)swordMount.visible=snap.mountVisible;if(snap.action){if(activeAction&&activeAction!==snap.action)activeAction.stop();activeAction=snap.action;snap.action.enabled=true;snap.action.play();snap.action.time=snap.actionTime;}if(snap.context===siegeContext()){camera.position.copy(snap.cam);camera.quaternion.copy(snap.q);cameraYaw=snap.yaw;cameraPitch=snap.pitch;cameraDistance=snap.distance;}camera.fov=snap.fov;camera.updateProjectionMatrix();skyDome.material.color.copy(snap.sky);sunLight.color.copy(snap.sunColor);hemiLight.color.copy(snap.hemiSky);hemiLight.groundColor.copy(snap.hemiGround);hemiLight.intensity=snap.hemiI;if(scene.fog&&snap.fogNear!==undefined){scene.fog.near=snap.fogNear;scene.fog.far=snap.fogFar;}if(snap.context===siegeContext()){renderer.toneMappingExposure=snap.exposure;sunLight.intensity=snap.sun;if(snap.background)scene.background.copy(snap.background);if(snap.fog)scene.fog.color.copy(snap.fog);}renderer.domElement.style.filter=snap.filter;updatePlayerSwordMount();}
+const whiteLease=new CinematicLease({capture:()=>({modelPosition:model.position.clone(),modelVisible:model.visible,cam:camera.position.clone(),q:camera.quaternion.clone(),yaw:cameraYaw,pitch:cameraPitch,distance:cameraDistance,fov:camera.fov,exposure:renderer.toneMappingExposure,sun:sunLight.intensity,sunColor:sunLight.color.clone(),hemiSky:hemiLight.color.clone(),hemiGround:hemiLight.groundColor.clone(),hemiI:hemiLight.intensity,fogNear:scene.fog?.near,fogFar:scene.fog?.far,sky:skyDome.material.color.clone(),background:scene.background?.isColor?scene.background.clone():null,fog:scene.fog?.color.clone(),filter:renderer.domElement.style.filter,context:siegeContext(),action:activeAction,actionTime:activeAction?.time,bones:[],controls:[...document.querySelectorAll('#actions button,#stick,#camera-toggle-3d,#talk-button')].map(el=>({el,disabled:el.disabled,inert:el.inert})),mountVisible:swordMount?.visible,armsVisible:swordView?.root.visible}),enter:snap=>{model.traverse(o=>{if(o.isBone)snap.bones.push([o,o.quaternion.clone(),o.scale.clone()]);});clearWhiteInput();if(swordView)swordView.root.visible=false;model.visible=true;if(swordMount)swordMount.visible=true;renderer.domElement.style.filter='';document.body.classList.add('whitehole-cinematic');snap.controls.forEach(({el})=>{el.inert=true;if('disabled'in el)el.disabled=true;});play('idle',.1);},restore:snap=>{
+ try{model.position.copy(snap.modelPosition);model.visible=snap.modelVisible;if(swordView)swordView.root.visible=!!snap.armsVisible;for(const [bone,q,scale]of snap.bones){bone.quaternion.copy(q);bone.scale.copy(scale);}if(swordMount)swordMount.visible=snap.mountVisible;if(snap.action){if(activeAction&&activeAction!==snap.action)activeAction.stop();activeAction=snap.action;snap.action.enabled=true;snap.action.play();snap.action.time=snap.actionTime;}if(snap.context===siegeContext()){camera.position.copy(snap.cam);camera.quaternion.copy(snap.q);cameraYaw=snap.yaw;cameraPitch=snap.pitch;cameraDistance=snap.distance;}camera.fov=snap.fov;camera.updateProjectionMatrix();skyDome.material.color.copy(snap.sky);sunLight.color.copy(snap.sunColor);hemiLight.color.copy(snap.hemiSky);hemiLight.groundColor.copy(snap.hemiGround);hemiLight.intensity=snap.hemiI;if(scene.fog&&snap.fogNear!==undefined){scene.fog.near=snap.fogNear;scene.fog.far=snap.fogFar;}if(snap.context===siegeContext()){renderer.toneMappingExposure=snap.exposure;sunLight.intensity=snap.sun;if(snap.background)scene.background.copy(snap.background);if(snap.fog)scene.fog.color.copy(snap.fog);}renderer.domElement.style.filter=snap.filter;updatePlayerSwordMount();}
  finally{clearWhiteInput();actionUntil=0;attackCooldown=0;whiteOverlay.style.opacity='0';document.body.classList.remove('whitehole-cinematic');snap.controls.forEach(({el,disabled,inert})=>{el.inert=inert;if('disabled'in el)el.disabled=disabled;});worldAudio.setCinematicGain?.(1);whiteVFX?.clear();whiteStorm?.hide();whiteWindPhase=0;}
 }});
 function finishWhiteHole(){const death=whitePendingDeath&&whiteHole.id===siegeEpoch&&enemyHP===0;whitePendingDeath=false;whiteHole.cancel();whiteLease.release();if(death)hurtEnemy(0,false,true,true);}
@@ -1491,37 +1499,36 @@ function updateCages(){cageRootVisible();if(childrenFreed)openCageDoors();}
 function spawnAct1Children(){buildAct1Props();}
 buildAct1Cages();
 
-var debugDtScale=1;// só o modo de teste (?debug3d=1) muda isto, para acelerar as cenas no navegador sem GPU
-function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z);if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
- // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
- // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
- if(enemyAlive||enemyHasDeathClip)enemy.position.y=terrainHeightAt(enemy.position.x,enemy.position.z);
- enemy.updateMatrixWorld(true);
- const floorY=terrainHeightAt(enemy.position.x,enemy.position.z),footPoints=[];
- enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
- if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
- else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer){guideIdleMixer.update(dt);relaxGuideArms(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
- if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
-    updatePlayerSwordMount();updateRites(dt);
- if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
- if(enemyCurrentRole==='hit'&&enemyCurrentAction&&!enemyCurrentAction.isRunning()&&enemyAlive)playEnemyAnimation('idle',.08);
-  if(!enemyAlive&&!enemyHasDeathClip&&enemy.visible){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(terrainHeightAt(enemy.position.x,enemy.position.z)-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
- guide.position.y=groundHeightAt(guide.position.x,guide.position.z);guideAura.intensity=.4+Math.sin(now*.003)*.06;
- const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
- const clearingDistance=Math.hypot(CLEARING.x-player.position.x,CLEARING.z-player.position.z);
- const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);
- const talkButton=document.getElementById('talk-button');
- const nearbyVendor=nearestVillageVendor();
- const fightingNow=enemy.visible&&enemyAlive;const nearStone=nearestWaystone(),atShop=nearShopDoor(),act1Label=act1TalkLabel()||act2StoryLabel()||(act3Ready?act3Label()||act4Label()||act6Label():''),act2Label=act2TalkLabel()||(finaleReady?finaleTalkLabel():'')||(lateSystemsReady?lateTalkLabel():'');const canTalk=!!act1Label||!!act2Label||atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||!!nearbyVendor;
- if(talkButton){const label=act1Label?act1Label:act2Label?act2Label:atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · MAPA':'REGISTRAR ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull||cineActive);}
- questMarker.visible=(questStep<15||isAct3Step(questStep)||isAct4Step(questStep)||questStep===ACT5N.step||isAct6Step(questStep))&&!portalPull&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower)&&!cineActive;
- if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
- if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
- if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
+function updatePlayerCamera(dt){
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView;if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+if(firstPerson){
+ // Câmera na altura dos olhos, com direção própria em primeira pessoa.
+ camera.position.lerp(target,1-Math.exp(-14*dt));
+ const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
+ camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
+}else{
+ const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);target.y+=starfallCameraWeight*2;const camDistUse=effectiveCameraDistance(camFrame.engaged,dt)+starfallCameraWeight*4;
+ const orbitYaw=cameraYaw+(riteCinematicView?.45:0);const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
+ const desired=target.clone().add(camOffset);
+ // MOD 186 — se um tronco fica entre o herói e a câmera, aproxima a câmera em vez de enquadrar a casca.
+ {const ox=camOffset.x,oz=camOffset.z,len2=ox*ox+oz*oz;let limit=1;
+  if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>cameraDistance+2||Math.abs(rz)>cameraDistance+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
+  // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
+  for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
+  // MOD 217 — casas da cidade (caixas de colisão): a câmera para antes da fachada em vez de entrar no prédio.
+  if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape==='box'&&Math.abs(o.x-target.x)<cameraDistance+8&&Math.abs(o.z-target.z)<cameraDistance+8);
+   if(near.length)for(let i=1;i<=14;i++){const f=i/14*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(near.some(o=>Math.abs(sx-o.x)<o.halfX+.25&&Math.abs(sz-o.z)<o.halfZ+.25&&sy<groundHeightAt(o.x,o.z)+(o.height||3)+1.8)){limit=Math.max(.12,(i-1.5)/14*limit);break;}}}
+  // MOD 217 — interiores (estalagem, esgoto, vulcão, caverna): a câmera para antes da parede, sem mostrar o que há fora do cômodo.
+  if(voidMode&&voidSpec.walk){for(let i=1;i<=14;i++){const f=i/14*limit;if(blockedAt(target.x+camOffset.x*f,target.z+camOffset.z*f)){limit=Math.max(.1,(i-1.6)/14*limit);break;}}}
+  if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
+  if(voidMode&&voidSpec.ceil&&voidSpec.walk===innWalkable){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
+ camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(target);applyUltCam(dt,target);
+}
+}
+function updatePlayerMovement(dt,now){
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
-if(rites.busy||dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineActive){axisX=0;axisZ=0;moveVX=moveVZ=0;dashRemaining=0;}
+if(rites.locksMovement||dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineActive){axisX=0;axisZ=0;moveVX=moveVZ=0;dashRemaining=0;}
 // MOD 206 — dimensão distorcida do Ato III: frente vira trás e esquerda vira direita.
 if(distorted||performance.now()<foeInvertUntil){axisX=-axisX;axisZ=-axisZ;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
@@ -1531,7 +1538,7 @@ const dead=.12;if(len<dead){axisX=0;axisZ=0;}else{const power=(len-dead)/(1-dead
 const worldX=axisX*Math.cos(cameraYaw)+axisZ*Math.sin(cameraYaw);
 const worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
 const engaged=enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;
-const speed=(defending?1.9:engaged?3.2:isSprinting()?7.2:4.3)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
+const speed=(defending?1.9:isSprinting()?7.2:4.3)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
@@ -1562,10 +1569,11 @@ if(dashRemaining>0){
  if(!playerBlockedAt(player.position.x,nextZ))player.position.z=nextZ;else moveVZ=0;
  const wantedYaw=Math.atan2(moveVX,moveVZ);
  const yawDelta=Math.atan2(Math.sin(wantedYaw-playerYaw),Math.cos(wantedYaw-playerYaw));
- playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;
- if(grounded&&now>actionUntil&&actions.walk){const sp=Math.hypot(moveVX,moveVZ);if(actions.run&&sp>5.2){play('run');actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/7.2,.85,1.25));}else{play('walk');const walkAction=actions.walk;if(walkAction)walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/3.4,.55,1.45));}}
+ if(!rites.busy&&cameraDistance>=1.05){playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;}
+ if(grounded&&now>actionUntil&&actions.walk){const sp=Math.hypot(moveVX,moveVZ);if(actions.run&&sp>5.2){play('run');actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/5.2,.85,1.65));}else{play('walk');const walkAction=actions.walk;if(walkAction)walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/3.4,.55,1.45));}}
 }else if(playerHP>0&&grounded&&now>actionUntil&&actions.idle)play('idle');
 // Física vertical com altura do terreno: o personagem pode subir e descer pelas pedras.
+updateRiteLocomotion(dt);
 const floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.position.z);
 if(!grounded){
  verticalVelocity-=gravity*dt;
@@ -1574,37 +1582,45 @@ if(!grounded){
 }else{
  player.position.y=floorY;
 }
-updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);updateInstanceCulling();checkSecretRuin();
- const firstPerson=cameraDistance<1.05;if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
-if(firstPerson){
- // Câmera na altura dos olhos, com direção própria em primeira pessoa.
- camera.position.lerp(target,1-Math.exp(-14*dt));
- const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
- camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
-}else{
- const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);target.y+=starfallCameraWeight*2;const camDistUse=effectiveCameraDistance(camFrame.engaged,dt)+starfallCameraWeight*4;
- const camOffset=new THREE.Vector3(Math.sin(cameraYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(cameraYaw)*camDistUse*Math.cos(cameraPitch));
- const desired=target.clone().add(camOffset);
- // MOD 186 — se um tronco fica entre o herói e a câmera, aproxima a câmera em vez de enquadrar a casca.
- {const ox=camOffset.x,oz=camOffset.z,len2=ox*ox+oz*oz;let limit=1;
-  if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>cameraDistance+2||Math.abs(rz)>cameraDistance+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
-  // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
-  for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
-  // MOD 217 — casas da cidade (caixas de colisão): a câmera para antes da fachada em vez de entrar no prédio.
-  if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape==='box'&&Math.abs(o.x-target.x)<cameraDistance+8&&Math.abs(o.z-target.z)<cameraDistance+8);
-   if(near.length)for(let i=1;i<=14;i++){const f=i/14*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(near.some(o=>Math.abs(sx-o.x)<o.halfX+.25&&Math.abs(sz-o.z)<o.halfZ+.25&&sy<groundHeightAt(o.x,o.z)+(o.height||3)+1.8)){limit=Math.max(.12,(i-1.5)/14*limit);break;}}}
-  // MOD 217 — interiores (estalagem, esgoto, vulcão, caverna): a câmera para antes da parede, sem mostrar o que há fora do cômodo.
-  if(voidMode&&voidSpec.walk){for(let i=1;i<=14;i++){const f=i/14*limit;if(blockedAt(target.x+camOffset.x*f,target.z+camOffset.z*f)){limit=Math.max(.1,(i-1.6)/14*limit);break;}}}
-  if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
-  if(voidMode&&voidSpec.ceil&&voidSpec.walk===innWalkable){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
- camera.position.lerp(desired,1-Math.exp(-8*dt));camera.lookAt(target);applyUltCam(dt,target);
 }
+var debugDtScale=1;// só o modo de teste (?debug3d=1) muda isto, para acelerar as cenas no navegador sem GPU
+function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z);if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
+ // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
+ // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
+ if(enemyAlive||enemyHasDeathClip)enemy.position.y=terrainHeightAt(enemy.position.x,enemy.position.z);
+ enemy.updateMatrixWorld(true);
+ const floorY=terrainHeightAt(enemy.position.x,enemy.position.z),footPoints=[];
+ enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
+ if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
+ else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
+ }if(guideIdleMixer){updateGuideMotion();guideIdleMixer.update(dt);relaxGuideArms(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
+ if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
+    updatePlayerSwordMount();
+ if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
+ if(enemyCurrentRole==='hit'&&enemyCurrentAction&&!enemyCurrentAction.isRunning()&&enemyAlive)playEnemyAnimation('idle',.08);
+  if(!enemyAlive&&!enemyHasDeathClip&&enemy.visible){enemy.rotation.z=THREE.MathUtils.lerp(enemy.rotation.z,-1.35,1-Math.exp(-5*dt));enemy.position.y=Math.max(terrainHeightAt(enemy.position.x,enemy.position.z)-.55,enemy.position.y-dt*1.3);enemy.scale.multiplyScalar(Math.max(.001,1-dt*.65));}
+ guide.position.y=groundHeightAt(guide.position.x,guide.position.z);guideAura.intensity=.4+Math.sin(now*.003)*.06;
+ const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);
+ const clearingDistance=Math.hypot(CLEARING.x-player.position.x,CLEARING.z-player.position.z);
+ const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);
+ const talkButton=document.getElementById('talk-button');
+ const nearbyVendor=nearestVillageVendor();
+ const fightingNow=enemy.visible&&enemyAlive;const nearStone=nearestWaystone(),atShop=nearShopDoor(),act1Label=act1TalkLabel()||act2StoryLabel()||(act3Ready?act3Label()||act4Label()||act6Label():''),act2Label=act2TalkLabel()||(finaleReady?finaleTalkLabel():'')||(lateSystemsReady?lateTalkLabel():'');const canTalk=!!act1Label||!!act2Label||atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||!!nearbyVendor;
+ if(talkButton){const label=act1Label?act1Label:act2Label?act2Label:atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · MAPA':'REGISTRAR ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull||cineActive);}
+ questMarker.visible=(questStep<15||isAct3Step(questStep)||isAct4Step(questStep)||questStep===ACT5N.step||isAct6Step(questStep))&&!portalPull&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower)&&!cineActive;
+ if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
+ if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
+ if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
+updatePlayerMovement(dt,now);
+updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);updateInstanceCulling();checkSecretRuin();
+ updatePlayerCamera(dt);
+updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
 // A espada acompanha diretamente o osso da mão; o golpe vem do clipe de animação do personagem, sem balanço artificial por código.
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updatePoses(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateFirstPerson(dt,now);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updatePoses(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -1963,31 +1979,25 @@ applyLevelStats(true);announceShopNews();
 /* MOD 187 — primeira pessoa de verdade: espada na mão da câmera (com balanço ao andar e golpe visível),
    mira central, campo de visão mais aberto, herói sempre virado para onde a câmera olha. */
 scene.add(camera);
-const fpRig=new THREE.Group();fpRig.name='fp-viewmodel';fpRig.visible=false;camera.add(fpRig);
-const fpHolder=new THREE.Group();fpRig.add(fpHolder);
-let fpSword=null,fpSwingT=1,fpBob=0,fpWasActive=false;
-const FP_REST={x:.3,y:-.34,z:-.62,rx:-.25,ry:.1,rz:-.38};
-function ensureFpSword(){
- if(fpSword||!swordRoot)return;
- if(equippedSword!=='prota'&&!swordFpTemplates[equippedSword])equipSword(equippedSword);
- if(equippedSword!=='prota'&&swordFpTemplates[equippedSword]){fpSword=new THREE.Group();fpSword.add(swordFpTemplates[equippedSword].clone(true));}else fpSword=swordRoot.clone(true);fpSword.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=false;o.renderOrder=6;}});
- fpSword.position.set(0,0,0);fpSword.rotation.set(0,0,0);fpSword.scale.setScalar(.36);fpHolder.add(fpSword);
-}
+let swordView=null,fpSwingT=1,fpBob=0,fpWasActive=false;
 function startFpSwing(){fpSwingT=0;}
+function ensureSwordView(){
+ if(swordView||!model||!riteClips.Rite_Crescent)return;
+ swordView=createSwordViewmodel(THREE,camera,model,cloneSkinned,riteClips.Rite_Crescent);
+}
 function updateFirstPerson(dt,now){
  if(swordRoot&&equippedSword!=='prota'&&!swordHands[equippedSword])equipSword(equippedSword);
- const fp=cameraDistance<1.05&&!awakeningActive;
- if(fp!==fpWasActive){fpWasActive=fp;camera.fov=fp?72:56;camera.updateProjectionMatrix();const cross=document.getElementById('crosshair');if(cross)cross.hidden=!fp;}
- fpRig.visible=fp&&!!fpSword;if(swordMount)swordMount.visible=!fp;
- if(!fp)return;
- ensureFpSword();
- // O herói encara a direção da câmera: golpes, magias e mira saem para onde se olha.
- if(!rites.busy&&!dialogueOpen&&!portalPull){playerYaw=cameraYaw+Math.PI;player.rotation.y=playerYaw;}
- const speed=Math.hypot(moveVX,moveVZ);fpBob+=dt*(grounded&&speed>.3?8.5*Math.min(1.4,speed/3.4):1.2);
- const bobAmt=grounded&&speed>.3?1:.18;
- camera.position.y+=Math.sin(fpBob*2)*.028*bobAmt;
- fpSwingT=Math.min(1,fpSwingT+dt/.3);const k=fpSwingT<1?Math.sin(fpSwingT*Math.PI):0,arc=fpSwingT<1?fpSwingT:1;
- if(defending){fpHolder.position.set(.04,-.22,-.52);fpHolder.rotation.set(-.1,.15,1.42);}else if(fpSwingT<1)fpSwingPose(k,arc);else{fpHolder.position.set(FP_REST.x+Math.cos(fpBob)*.012*bobAmt,FP_REST.y+Math.abs(Math.sin(fpBob))*.016*bobAmt,FP_REST.z);fpHolder.rotation.set(FP_REST.rx,FP_REST.ry,FP_REST.rz);}
+ const fp=cameraDistance<1.05&&!riteCinematicView&&!awakeningActive;
+ if(fp!==fpWasActive){rites.prevBlade=null;fpWasActive=fp;camera.fov=fp?72:56;camera.updateProjectionMatrix();const cross=document.getElementById('crosshair');if(cross)cross.hidden=!fp;}
+ if(swordMount)swordMount.visible=!fp;
+ if(!fp){if(swordView)swordView.root.visible=false;return;}
+ ensureSwordView();if(!swordView)return;
+ const source=equippedSword==='prota'?swordRoot:swordHands[equippedSword];if(source)swordView.equip(equippedSword,source);
+ swordView.root.visible=playerHP>0;
+ if(!rites.locksMovement&&!dialogueOpen&&!portalPull){playerYaw=cameraYaw+Math.PI;player.rotation.y=playerYaw;}
+ fpSwingT=Math.min(1,fpSwingT+dt/.3);
+ const swing=rites.active||(!SWORD_RITES[equippedSword]&&fpSwingT<1?{kind:'basic',step:fpSwingDir%3,t:fpSwingT*.3,duration:.3}:null);
+ swordView.update(dt,{active:swing,speed:Math.hypot(moveVX,moveVZ),sprint:isSprinting(),defend:defending,dash:dashRemaining>0,air:!grounded,hurt:activeAction===actions.hit&&now<actionUntil,sword:equippedSword,blocked:blockedAt(player.position.x-Math.sin(cameraYaw)*.65,player.position.z-Math.cos(cameraYaw)*.65)});
 }
 /* MOD 187 — assistência de mira: perto do inimigo o golpe vira para ele e dá um passo curto de investida,
    evitando "golpes no ar" no celular. Longe dele, o golpe sai normalmente na direção do herói. */
@@ -2052,7 +2062,7 @@ function toggleLockOn(){
 }
 function updateLockOn(dt){
  if(lockOnActive&&!lockTargetValid()){lockOnActive=false;const b=document.getElementById('aim');if(b)b.classList.remove('on');}
- lockRing.visible=lockOnActive;if(!lockOnActive)return;
+ lockRing.visible=lockOnActive;if(!lockOnActive)return;if(rites.locksMovement)return;
  const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
  const want=cameraDistance<1.05?Math.atan2(-dx,-dz):Math.atan2(-dx,-dz);
  const diff=Math.atan2(Math.sin(want-cameraYaw),Math.cos(want-cameraYaw));cameraYaw+=diff*Math.min(1,dt*6);
@@ -2166,7 +2176,7 @@ function renderShop(){
    card.innerHTML=shopArt(art,st==='locked')+'<div class="shop-info"><h3>'+name+'</h3><span class="shop-tag">✦ '+tag+'</span><p class="shop-desc">'+desc+'</p><div class="shop-foot">'+(lvTxt?'<span class="shop-lv">'+lvTxt+'</span>':'')+'<span class="shop-price">'+priceTxt+'</span></div>'+(reason?'<p class="shop-req">'+reason+'</p>':'')+'<div class="shop-actions"></div></div>';
    const box=card.querySelector('.shop-actions');for(const el of actions)box.appendChild(el);body.appendChild(card);};
   if(sec.id==='arsenal'){const eq=document.createElement('button');eq.type='button';eq.textContent=equippedSword==='prota'?'EQUIPADA':'EQUIPAR';eq.disabled=equippedSword==='prota';bindInstantTap(eq,()=>{equipSword('prota');renderShop();});
-   addCard('sword_prota','ESPADA INICIAL',SWORDS.prota.name,'A lâmina com que você despertou. Equilibrada, sem habilidade ativa.','INICIAL','','owned','',[eq]);}
+   addCard('sword_prota','ESPADA INICIAL',SWORDS.prota.name,'Luz celestial e cortes precisos. Rito exclusivo: Passagem do Julgamento.','INICIAL','','owned','',[eq]);}
   if(sec.id==='arsenal'&&coatOwned){const cb=document.createElement('button');cb.type='button';cb.textContent=coatOn?'DESEQUIPAR':'EQUIPAR';bindInstantTap(cb,()=>{setCoat(!coatOn);coatJustUnlocked=false;renderShop();status.textContent=coatOn?'Casaco equipado: o frio não te afeta.':'Casaco guardado.';});
    if(scrollOwned)addCard('sword_prota','ENCANTAMENTO','Pergaminho de Encantamento','Presente da pessoa misteriosa, na estrada da torre. A espada equipada causa +20% de dano.','ATIVO','','owned','',[]);
    addCard('cat_arsenal','ROUPA','Casaco de Pele','Couro forrado de pele, comprado na estrada da cidade de neve. +15 de vida, +10% de recuperação de mana e proteção contra o frio.',coatOn?'EQUIPADO':'ADQUIRIDO','','owned','',[cb]);if(coatJustUnlocked){const last=body.lastElementChild;if(last)last.classList.add('is-new');}}
@@ -2228,11 +2238,11 @@ const SWORD_PALETTES={aurora:{blade:0xf3f0e6,edge:0xffe6b0,fuller:0xffd56a,gold:
 const swordHands={},swordFpTemplates={};
 function equipSword(id){
  if(!SWORDS[id]||(id!=='prota'&&!ownedItems.has(id)))return;if(id!==equippedSword)rites.cancel('weapon');equippedSword=id;save3DProgress();
- if(id!=='prota'&&swordRoot&&swordRoot.parent&&!swordHands[id]){const wrap=new THREE.Group();wrap.position.copy(swordRoot.position);wrap.quaternion.copy(swordRoot.quaternion);wrap.scale.copy(swordRoot.scale);wrap.add(alignAuroraToSwordRoot(buildAuroraSword(SWORD_PALETTES[id])));swordRoot.parent.add(wrap);swordHands[id]=wrap;swordFpTemplates[id]=alignAuroraToSwordRoot(buildAuroraSword(SWORD_PALETTES[id]));}
+ if(id!=='prota'&&swordRoot&&swordRoot.parent&&!swordHands[id]){const wrap=new THREE.Group();wrap.position.copy(swordRoot.position);wrap.quaternion.copy(swordRoot.quaternion);wrap.scale.copy(swordRoot.scale);wrap.add(id==='aurora'?buildRiteSword(THREE,'aurora'):alignAuroraToSwordRoot(buildAuroraSword(SWORD_PALETTES[id])));swordRoot.parent.add(wrap);swordHands[id]=wrap;swordFpTemplates[id]=alignAuroraToSwordRoot(buildAuroraSword(SWORD_PALETTES[id]));}
  if(swordRoot)swordRoot.visible=id==='prota';for(const [k,h] of Object.entries(swordHands))h.visible=k===id;
  auroraHand=swordHands.aurora||auroraHand;auroraFpTemplate=swordFpTemplates.aurora||auroraFpTemplate;
  slashTrail.material.color.setHex(SWORDS[id].trail);
- if(fpSword){fpHolder.remove(fpSword);fpSword=null;}
+
 }
 /* MOD 189 — abertura: tela das sete galáxias (o mundo carrega por trás) e prólogo curto feito com a
    própria cena — câmera desce das serras até a clareira, com três frases. Pula com um toque. */
@@ -2474,7 +2484,7 @@ function updateAwakeningCine(dt,now){
 function updateCine(dt,now){
  if(!cineActive)return;
  cineDirector.update(dt);if(!cineActive)return;
- if(swordMount)swordMount.visible=false;fpRig.visible=false;
+ if(swordMount)swordMount.visible=false;if(swordView)swordView.root.visible=false;
  if(cineBlurT>=0){cineBlurT+=dt;const b=Math.max(0,7*(1-cineBlurT/5.5)),r=Math.round(b*4)/4;if(r!==cineBlurLast){cineBlurLast=r;canvas.style.filter=r>0?'blur('+r+'px)':'';}if(b<=0)cineBlurT=-1;}
  if(cineDirector.scene==='ceu')updateHeavenCine(dt,now);else if(cineDirector.scene==='despertar')updateAwakeningCine(dt,now);else updateStoryCine(dt,now);
 }
@@ -2651,7 +2661,7 @@ function vibrate(ms){if(userSettings.vibration&&navigator.vibrate){try{navigator
 const _arrowV=new THREE.Vector3();
 function updateObjectiveArrow(){
  const el=document.getElementById('objective-arrow');if(!el)return;
- const show=userSettings.arrow&&questMarker.visible!==false&&!dialogueOpen&&!prologueActive&&!awakeningActive&&!cineActive&&(questStep<15||isAct3Step(questStep)||isAct4Step(questStep)||questStep===ACT5N.step||isAct6Step(questStep))&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower);
+ const show=!swordTraining&&userSettings.arrow&&questMarker.visible!==false&&!dialogueOpen&&!prologueActive&&!awakeningActive&&!cineActive&&(questStep<15||isAct3Step(questStep)||isAct4Step(questStep)||questStep===ACT5N.step||isAct6Step(questStep))&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower);
  if(!show){if(!el.hidden)el.hidden=true;return;}
  const mx=questMarker.position.x,mz=questMarker.position.z,dist=Math.hypot(mx-player.position.x,mz-player.position.z);
  _arrowV.set(mx,questMarker.position.y+1,mz).project(camera);
@@ -2759,7 +2769,7 @@ const rain=(()=>{
 let cycleT=0;
 function updateAct2Weather(dt,now){
  const raining=false; // MOD 205: a cidade do vulcão tem cinzas, não chuva
- 
+
  const r=rain.update(dt,now,raining);
  if(r.level>.01){scene.fog.color.lerp(new THREE.Color(0x4a5560),r.level*.4);scene.fog.far=Math.min(scene.fog.far,THREE.MathUtils.lerp(scene.fog.far,170,r.level));hemiLight.intensity*=1-r.level*.25;sunLight.intensity*=1-r.level*.45;
   if(r.flash>0){hemiLight.intensity+=r.flash*2.4;}}
@@ -2792,7 +2802,7 @@ function addSandraClue(model){
 function loadRig(name){
  if(rigLoads[name])return rigLoads[name];const def=RIG_DEFS[name];
  rigLoads[name]=new Promise((resolve,reject)=>rigExtraClips(def).then(extra=>new GLTFLoader().load(def.file,gltf=>{
-  const model=gltf.scene,clips=(gltf.animations||[]).concat(extra),by=n=>clips.find(c=>c.name===n);
+  const model=gltf.scene;const rawClips=(gltf.animations||[]).concat(extra),clips=['enemy2','rival','anjo','sandra'].includes(name)?repairHumanoidLocomotion(THREE,model,rawClips):rawClips,by=n=>clips.find(c=>c.name===n);
   if(name==='sandra')prepareSandraMaterials(model);
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;for(const m of [].concat(o.material))if(m&&!enemyMaterials.includes(m)){m.metalness=Math.min(m.metalness||0,.35);enemyMaterials.push(m);}}});
   const box=measureModelBounds(model),size=box.getSize(new THREE.Vector3()),scale=size.y>.01?(playerReferenceHeight*def.height)/size.y:1;
@@ -3349,7 +3359,7 @@ function updateAct2World(dt,now){updateCityFolk(dt);
 }
 /* ---------- Moradores da cidade: bandidos ---------- */
 let npcBasePromise=null;
-function npcBase(){if(!npcBasePromise)npcBasePromise=new Promise((res,rej)=>new GLTFLoader().load('./Npc-lod2.glb?v=mod202',gltf=>{const base=gltf.scene,box=measureModelBounds(base),size=box.getSize(new THREE.Vector3());res({base,clips:gltf.animations||[],scale:size.y>.01?(playerReferenceHeight*.98)/size.y:1,box});},undefined,rej));return npcBasePromise;}
+function npcBase(){if(!npcBasePromise)npcBasePromise=new Promise((res,rej)=>new GLTFLoader().load('./Npc-lod2.glb?v=mod202',gltf=>{const base=gltf.scene,box=measureModelBounds(base),size=box.getSize(new THREE.Vector3());res({base,clips:repairHumanoidLocomotion(THREE,base,gltf.animations||[]),scale:size.y>.01?(playerReferenceHeight*.98)/size.y:1,box});},undefined,rej));return npcBasePromise;}
 // MOD 217 — o Npc-lod2.glb já olha para +Z (dedos dos pés à frente); o giro de 180° fazia moradores e bandidos andarem de costas.
 function makeTownsfolk(b,tint,clipName,look){const c=cloneSkinned(b.base),h=new THREE.Group();c.scale.setScalar(b.scale);c.position.y=-b.box.min.y*b.scale;h.add(c);
  c.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.color.multiply(new THREE.Color(tint));o.material.metalness=0;o.material.metalnessMap=null;if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x4a3e36);o.material.emissiveIntensity=.7;}}});
@@ -3851,10 +3861,10 @@ function updateAct3(dt,now){updateCaveWalk(dt);
 }
 function stepGuideRun(dt){
  // O Anjo corre na frente e espera o herói se ele ficar para trás.
- const r=guideRun;if(!r)return;guide.visible=true;guidePinned=true;const t=r.path[r.i];if(!t){guideRun=null;faceTo(guide,player.position);return;}
+ guideMoveSpeed=0;const r=guideRun;if(!r)return;guide.visible=true;guidePinned=true;const t=r.path[r.i];if(!t){guideRun=null;faceTo(guide,player.position);return;}
  const gx=guide.position.x,gz=guide.position.z,dx=t.x-gx,dz=t.z-gz,d=Math.hypot(dx,dz),far=Math.hypot(player.position.x-gx,player.position.z-gz)>9;
  if(d<.4){r.i++;return;}if(r.wait&&far){faceTo(guide,player.position);return;}
- const s=Math.min(d,dt*r.speed),ya=leaderStep(guide.position,t,dx,dz,d,s,r);if(ya===null)return;guide.position.y=r.y!==undefined?r.y:terrainHeightAt(guide.position.x,guide.position.z);guide.rotation.y=ya;
+ const s=Math.min(d,dt*r.speed),ya=leaderStep(guide.position,t,dx,dz,d,s,r);if(ya===null)return;guideMoveSpeed=dt>0?s/dt:0;guide.position.y=r.y!==undefined?r.y:terrainHeightAt(guide.position.x,guide.position.z);guide.rotation.y=ya;
 }
 function act3Label(){
  if(cineActive||questStep<ACT3N.road||questStep>ACT3N.boss)return '';const px=player.position.x,pz=player.position.z,q=questStep,s=act1Sub,d=(p,r)=>Math.hypot(p.x-px,p.z-pz)<=r;
@@ -4925,20 +4935,19 @@ function computeCameraTarget(base,dt){
  return{focus:camFocus,engaged};
 }
 /** Distância efetiva: afasta um pouco em combate (vê os dois) e respeita o zoom do jogador. */
-function effectiveCameraDistance(engaged,dt){const want=cameraDistance+(engaged?1.6:0);camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;}
+function effectiveCameraDistance(engaged,dt){const want=riteCinematicView?4.8:cameraDistance;camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;}
 /** Recentraliza atrás do herói depois de um tempo andando sem mexer na câmera (opcional nos ajustes). */
 function autoRecenterCamera(dt,now){
- if(!userSettings.autoCamera||lockOnActive||cameraDistance<1.05)return;
+ if(rites.busy||!userSettings.autoCamera||lockOnActive||cameraDistance<1.05)return;
  if(now-lastLookInputAt<1600)return;const sp=Math.hypot(moveVX,moveVZ);if(sp<1.2)return;
  const want=Math.atan2(-moveVX,-moveVZ),d=Math.atan2(Math.sin(want-cameraYaw),Math.cos(want-cameraYaw));cameraYaw+=d*Math.min(1,dt*1.1);
 }
 function updateFovKick(dt){
- const fp=cameraDistance<1.05,base=fp?72:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
+ const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?72:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
  const fov=base+fovKick;if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
 }
 // ---------- Primeira pessoa: mira com alvo, golpes variados, guarda ----------
 let fpSwingDir=0,hitMarkT=0;
-const FP_SWINGS=[{x:-.42,y:.12,rz:1.6,rx:-.9},{x:.42,y:.1,rz:-1.4,rx:-.8},{x:0,y:.32,rz:.2,rx:-1.6}];
 function fpTargetInSight(){
  if(!(combatStepNow()&&enemy.visible&&enemyAlive))return false;
  const v=new THREE.Vector3(enemy.position.x,enemy.position.y+1,enemy.position.z).project(camera);
@@ -4948,7 +4957,6 @@ function updateFpExtras(dt){
  const cross=document.getElementById('crosshair');if(!cross||cross.hidden)return;
  cross.classList.toggle('on-target',fpTargetInSight());hitMarkT=Math.max(0,hitMarkT-dt);cross.classList.toggle('hit',hitMarkT>0);
 }
-function fpSwingPose(k,arc){const s=FP_SWINGS[fpSwingDir%FP_SWINGS.length];fpHolder.position.set(FP_REST.x+s.x*k*(arc<.5?-1:1)*.9,FP_REST.y+s.y*k,FP_REST.z-k*.14);fpHolder.rotation.set(FP_REST.rx+s.rx*k,FP_REST.ry+k*.4,FP_REST.rz+s.rz*k);}
 // ---------- Combo de três golpes ----------
 let comboCount=0,lastSwingAt=0;
 function nextComboStep(now){comboCount=now-lastSwingAt<900?Math.min(3,comboCount+1):1;lastSwingAt=now;fpSwingDir=comboCount-1;return comboCount;}
@@ -5349,26 +5357,6 @@ function scorch(x,z,r){if(scorchCount>=12)return;scorchCount++;const m=new THREE
 /* ---------- Corrida do herói ---------- */
 let sprintToggle=false;
 function isSprinting(){return (keys.shift||sprintToggle)&&!defending;}
-/** Converte o "Running" (feito no Blender a partir da corrida da Misteriosa) para o esqueleto do herói carregado:
- *  rotação de mundo de cada osso em relação ao repouso dos dois arquivos (os eixos internos dos ossos diferem). */
-function bakeRunClip(src,srcClip,target,sourceIdle){
- if(!sourceIdle||!actions.idle)throw new Error('Corrida sem pose de referência');
- const Q=()=>new THREE.Quaternion(),tB={},sB={};target.traverse(o=>{if(o.isBone)tB[o.name]=o;});src.traverse(o=>{sB[o.name]=o;});
- const names=Object.keys(tB).filter(n=>sB[n]);const depth=o=>{let k=0;while(o.parent){k++;o=o.parent;}return k;};names.sort((a,b)=>depth(tB[a])-depth(tB[b]));
- const saved=names.map(n=>({q:tB[n].quaternion.clone(),p:tB[n].position.clone(),s:tB[n].scale.clone()}));
- const targetReference=new THREE.AnimationMixer(target),sourceReference=new THREE.AnimationMixer(src);
- targetReference.clipAction(actions.idle.getClip()).play();targetReference.update(0);sourceReference.clipAction(sourceIdle).play();sourceReference.update(0);
- target.updateMatrixWorld(true);src.updateMatrixWorld(true);
- const tRoot=target.getWorldQuaternion(Q()).invert(),sRoot=src.getWorldQuaternion(Q()).invert(),T0={},S0={},restW=o=>tRoot.clone().multiply(o.getWorldQuaternion(Q()));
- for(const n of names){T0[n]=restW(tB[n]);S0[n]=sRoot.clone().multiply(sB[n].getWorldQuaternion(Q()));}
- sourceReference.stopAllAction();
- const mx=new THREE.AnimationMixer(src);mx.clipAction(srcClip).play();const fps=30,N=Math.max(2,Math.round(srcClip.duration*fps)+1),times=[],vals={};for(const n of names)vals[n]=[];
- for(let i=0;i<N;i++){const t=Math.min(srcClip.duration,i/fps);times.push(t);mx.setTime(t);src.updateMatrixWorld(true);const W={};
-  for(const n of names){const qt=sRoot.clone().multiply(sB[n].getWorldQuaternion(Q())).multiply(S0[n].clone().invert()).multiply(T0[n]);W[n]=qt;
-   const par=tB[n].parent,pw=par&&W[par.name]?W[par.name]:(par?restW(par):Q()),loc=pw.clone().invert().multiply(qt);vals[n].push(loc.x,loc.y,loc.z,loc.w);}}
- mx.stopAllAction();targetReference.stopAllAction();names.forEach((n,i)=>{tB[n].quaternion.copy(saved[i].q);tB[n].position.copy(saved[i].p);tB[n].scale.copy(saved[i].s);});target.updateMatrixWorld(true);
- return new THREE.AnimationClip('Running',srcClip.duration,names.map(n=>new THREE.QuaternionKeyframeTrack(n+'.quaternion',times,vals[n])));
-}
 const BOSS_POWERS={
  valerio:{cd:8,run(){status.textContent='VHAZRAEL: “Cada moeda é uma alma.” As moedas caem sobre você!';for(let i=0;i<4;i++){const a=Math.random()*6.28,r=1+Math.random()*4;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.7,delay:1+i*.3,damage:16,color:0xffc04a});}if(bossRageAnnounced)castBlackHole(enemy.position.x,enemy.position.z);}},
  vorgazhek:{cd:7.5,run(){status.textContent='VORGAZHEK estende o livro: as correntes da dívida caem sobre você!';const px=player.position.x,pz=player.position.z,vx=moveVX*.5,vz=moveVZ*.5;for(let i=0;i<3;i++)spawnHazard({x:px+vx*(i+1),z:pz+vz*(i+1),radius:2.1,delay:.9+i*.45,damage:18,color:0xd25a2a});}},
@@ -5408,7 +5396,8 @@ function updateFriendlyStrikes(dt){for(let i=friendlyStrikes.length-1;i>=0;i--){
  if(!f.hit&&k>=1){f.hit=true;burstSparks(new THREE.Vector3(f.x,groundHeightAt(f.x,f.z)+.5,f.z),0xfff0b8);if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-f.x,enemy.position.z-f.z)<1.4){enemyHP=Math.max(0,enemyHP-9);onEnemyDamaged(9,false);if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}}}
  if(f.t>f.delay+.5){scene.remove(f.g);f.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});friendlyStrikes.splice(i,1);}}}
 /* MOD 231 — bridge: original animation rig, authoritative combat and pooled VFX. */
-let riteClips={},riteAnimation=null,restoreRiteScales=()=>{},riteContext='';
+const riteAudit=[];
+let riteClips={},riteLayers=null,riteLower=null,riteAnimation=null,restoreRiteScales=()=>{},riteContext='';
 const riteVFX=createSwordRitesVFX(THREE,scene),riteBase=new THREE.Vector3(),riteTip=new THREE.Vector3();
 const riteBlade={base:riteBase,tip:riteTip};
 let riteTargetEpoch=-1,riteTargetModel=null,riteTargetHeight=1.75,riteTargetRadius=.48;
@@ -5430,36 +5419,45 @@ const rites=new SwordRites({
   player.rotation.y=playerYaw=a.yaw;player.updateMatrixWorld(true);updatePlayerSwordMount();
   // Measured from EspadaProta.glb: grip +.75 Y, guard +.40 Y, tip -.951 Y.
   const blade=equippedSword==='aurora'?swordHands.aurora:swordRoot;if(!blade)return null;
-  riteBase.set(0,equippedSword==='aurora'?.567:.40,0);riteTip.set(0,equippedSword==='aurora'?-1.065:-.951,0);blade.localToWorld(riteBase);blade.localToWorld(riteTip);return riteBlade;
+  riteBase.set(0,.40,0);riteTip.set(0,-.951,0);blade.localToWorld(riteBase);blade.localToWorld(riteTip);if(cameraDistance<1.05&&!riteCinematicView&&swordView){swordView.update(0,{active:a,speed:Math.hypot(moveVX,moveVZ),sword:equippedSword});swordView.blade(riteBase,riteTip);}return riteBlade;
  },
  hit:(damage,id,kind)=>{if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(damage,false,true,true);if(kind==='basic')({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));},
  event:(type,e)=>{
+  if(window.SevenSinsDebug3D&&['judgment','wave','impact'].includes(type)){riteAudit.push({type,n:e.n,at:rites.active?.t,position:e.p?{...e.p}:null});if(riteAudit.length>80)riteAudit.shift();}
   riteVFX.event(type,e);
   if(type==='start'){
-   const clip=riteClips[e.clip];if(!clip)return;riteContext=siegeContext();pendingEnemyHitAt=0;moveVX=moveVZ=0;dashRemaining=0;setDefending(false);
+   riteCinematicView=e.kind==='prota'&&cameraDistance<1.05;
+   const clip=e.kind==='basic'&&riteLayers?riteLayers.upper[e.clip]:riteClips[e.clip];if(!clip)return;riteContext=siegeContext();pendingEnemyHitAt=0;if(e.kind!=='basic'){moveVX=moveVZ=0;dashRemaining=0;}setDefending(false);
    for(const j of poseJobs)if(j.root===model)j.dead=true;
-   const next=mixer.clipAction(clip);if(activeAction&&activeAction!==next)activeAction.fadeOut(.075);next.reset().setLoop(THREE.LoopOnce,1).setEffectiveWeight(1);next.clampWhenFinished=true;next.fadeIn(.075).play();next.paused=true;activeAction=riteAnimation=next;actionUntil=Infinity;
-   if(e.kind==='basic'){comboCount=e.step+1;fpSwingDir=e.step;startFpSwing();worldAudio.swing();}else{showCombatCallout(SWORD_RITES[e.sword].name.toUpperCase());worldAudio.whoosh();}
+   const next=mixer.clipAction(clip);if(activeAction&&activeAction!==next)activeAction.fadeOut(.075);next.reset().setLoop(THREE.LoopOnce,1).setEffectiveWeight(1);next.clampWhenFinished=true;next.fadeIn(.075).play();next.paused=true;activeAction=riteAnimation=next;actionUntil=Infinity;if(e.kind==='basic')updateRiteLocomotion(0);
+   if(e.kind==='basic'){comboCount=e.step+1;fpSwingDir=e.step;startFpSwing();worldAudio.swing(e.step,e.sword);}else{showCombatCallout(SWORD_RITES[e.sword].name.toUpperCase());worldAudio.whoosh();}
   }else if(type==='finish'||type==='cancel'){
-   if(riteAnimation){riteAnimation.paused=false;riteAnimation.fadeOut(.13);if(activeAction===riteAnimation){activeAction=null;play('idle',.13);}riteAnimation=null;}actionUntil=performance.now()+70;pendingEnemyHitAt=0;
-  }else if(type==='wave'){worldAudio.swing();fpSwingDir=e.n%3;startFpSwing();}
-  else if(type==='impact'||type==='judgment'){worldAudio.hit();enemyHitFlash=.12;hitStop(e.final?55:22);if(e.final&&!userSettings.reduceShake)cameraShake(.055);}
+   riteCinematicView=false;
+   if(riteLower){riteLower.fadeOut(.13);riteLower=null;}if(riteAnimation){riteAnimation.paused=false;riteAnimation.fadeOut(.13);if(activeAction===riteAnimation){activeAction=null;play('idle',.13);}riteAnimation=null;}actionUntil=performance.now()+70;pendingEnemyHitAt=0;
+  }else if(type==='wave'){worldAudio.swing(e.n,'aurora');fpSwingDir=e.n%3;startFpSwing();}
+  else if(type==='impact'||type==='judgment'){if(type!=='judgment'||e.n%4===0||e.final)worldAudio.hit();enemyHitFlash=.07;if(type!=='judgment'||e.final)hitStop(e.final?45:18);if(e.final&&!userSettings.reduceShake)cameraShake(.055);}
  }
 });
 function riteReady(){return model&&mixer&&swordRoot&&Object.keys(riteClips).length===5;}
-function riteFacing(){const t=riteTarget();if(t.alive&&Math.hypot(t.x-player.position.x,t.z-player.position.z)<8)return Math.atan2(t.x-player.position.x,t.z-player.position.z);return cameraDistance<1.05?cameraYaw+Math.PI:playerYaw;}
+function updateRiteLocomotion(dt){
+ if(rites.active?.kind!=='basic'||!riteLayers)return;
+ const speed=Math.hypot(moveVX,moveVZ),role=speed>.12?(speed>5.2?'run':'walk'):'idle',clip=riteLayers.lower[role]||riteLayers.lower.walk;
+ if(!clip)return;const next=mixer.clipAction(clip);if(next!==riteLower){if(riteLower)riteLower.fadeOut(.12);next.reset().setLoop(THREE.LoopRepeat,Infinity).setEffectiveWeight(1).fadeIn(.12).play();riteLower=next;}
+ const backward=moveVX*Math.sin(playerYaw)+moveVZ*Math.cos(playerYaw)<-.1;next.setEffectiveTimeScale((backward?-1:1)*(role==='run'?Math.max(.6,speed/5.2):role==='walk'?Math.max(.45,speed/3.4):1));
+}
+function riteFacing(){return swordAim(player.position,cameraYaw+Math.PI,riteTarget(),p=>riteBlocked(p,false),{assist:lockOnActive,range:18,cone:.65});}
 function tryRiteAttack(){if(!riteReady()){status.textContent='Preparando os movimentos da espada…';return;}if(!grounded||dashRemaining>0||(activeAction===actions.hit&&performance.now()<actionUntil))return;rites.attack(equippedSword,{damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:riteFacing(),target:riteTarget()});}
 function castSwordRite(){
  if(!riteReady()||!grounded||dashRemaining>0||(activeAction===actions.hit&&performance.now()<actionUntil)||siege.active||whiteLease.locked){status.textContent='Conclua a ação atual antes de usar o rito.';return;}
  const result=rites.cast(equippedSword,{mana:playerMana,owned:equippedSword==='prota'||ownedItems.has(equippedSword),damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:riteFacing(),from:player.position,target:riteTarget()});
- if(result.ok){playerMana-=result.cost;status.textContent=SWORD_RITES[equippedSword].name;}else status.textContent=result.reason;
+ if(result.ok){playerMana-=result.cost;const t=riteTarget();status.textContent=SWORD_RITES[equippedSword].name+(equippedSword==='aurora'&&t.alive&&Math.hypot(t.x-player.position.x,t.z-player.position.z)>18?' · Alvo fora do alcance (18 m). Mire para lançar.':'');}else status.textContent=result.reason;
  updateRiteHud();
 }
 function updateRites(dt){
  if(swordTrainingRequested&&!swordTrainingRequestedStarted&&riteReady()){swordTrainingRequestedStarted=true;startSwordTraining().catch(e=>{console.error(e);status.textContent='Não foi possível carregar o treino. Toque TREINAR para tentar novamente.';});}
  const valid=playerHP>0&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&!portalPull&&!whiteLease.locked&&(!(rites.busy||rites.waves.length)||riteContext===siegeContext());
- rites.update(dt,{valid,sword:equippedSword,from:player.position,target:riteTarget()});
- riteVFX.update(dt,graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium',cameraDistance<1.05);updateRiteHud();
+ rites.update(dt,{valid,sword:equippedSword,from:player.position,target:riteTarget(),yaw:riteFacing()});
+ riteVFX.update(dt,graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium',cameraDistance<1.05&&!riteCinematicView);updateRiteHud();
 }
 const riteButton=document.getElementById('sword-skill');
 function updateRiteHud(){
@@ -5468,7 +5466,7 @@ function updateRiteHud(){
 }
 bindInstantTap(riteButton,()=>action('sword-skill'));
 async function startSwordTraining(boss=false){
- if(!testAllSkills||!riteReady())return;await loadRig(boss?'bishop2':'enemy2');rites.cancel('training');swordTraining=true;menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
+ if(!testAllSkills||!riteReady())return;await loadRig(boss?'bishop2':'enemy2');rites.cancel('training');swordTraining=true;moveVX=moveVZ=verticalVelocity=dashRemaining=0;grounded=true;riteAudit.length=0;enemyHitFlash=0;setEnemyHitFlash(false);menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
  if(cineDirector.active)cineDirector.skip();clearPack();useRig(boss?'bishop2':'enemy2');questStep=2;act1Sub=0;enemy.visible=false;revealEncounter(boss?'vorgazhek':'demon2',{x:40,z:14},10000,'Treino de espadas · GOLPE encadeia o combo; R ativa o rito.');player.position.set(40,terrainHeightAt(40,17),17);playerYaw=Math.PI;player.rotation.y=playerYaw;playerHP=playerMaxHP;playerMana=100;rites.cooldowns.prota=rites.cooldowns.aurora=0;ownedItems.add('aurora');cameraYaw=0;cameraPitch=.22;cameraDistance=6;debugCameraOverride=null;camera.position.set(40,terrainHeightAt(40,17)+2.5,23);camera.lookAt(40,terrainHeightAt(40,17)+1.1,17);
  for(const id of ['start-gate','name-panel','dialog-panel','loading']){const el=document.getElementById(id);if(el){el.hidden=true;el.classList.add('hidden');}}
  document.getElementById('sword-training').hidden=false;updateQuestHud();
@@ -5478,13 +5476,18 @@ if(testAllSkills){ownedItems.add('aurora');const panel=document.getElementById('
 let debugCameraOverride=null;
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
+ motionLane(){for(let x=-20;x<=70;x+=3)for(let z=20;z>=-50;z-=4){const y=terrainHeightAt(x,z);let ok=true;for(let d=0;d<=38;d+=.4)if(playerBlockedAt(x,z-d)||Math.abs(terrainHeightAt(x,z-d)-y)>.1){ok=false;break;}if(ok)return{x,z,y};}return null;},
+ motionQA({x=40,z=30,enemyDistance=8,enemySide=0,fp=false,sword='prota'}={}){rites.cancel('qa');moveVX=moveVZ=0;player.position.set(x,terrainHeightAt(x,z),z);playerYaw=Math.PI;player.rotation.y=playerYaw;enemy.position.set(x+enemySide,terrainHeightAt(x+enemySide,z-enemyDistance),z-enemyDistance);enemy.visible=enemyDistance>0;enemyAlive=true;cameraYaw=0;cameraPitch=0;cameraDistance=fp?.72:6;lockOnActive=false;this.riteEquip(sword);for(const k in keys)keys[k]=false;sprintToggle=false;debugDtScale=0;actionUntil=0;play('idle',0);return this.riteState();},
+ motionStep(seconds,{x=0,z=-1,sprint=false,attack=false,fps=60}={}){joyX=x;joyY=z;sprintToggle=sprint;if(attack)this.riteAttack();for(let i=0;i<Math.round(seconds*fps);i++){mixer.update(1/fps);restoreRiteScales();updatePlayerMovement(1/fps,performance.now()+i*1000/fps);if(!debugCameraOverride)updatePlayerCamera(1/fps);updateFirstPerson(1/fps,performance.now());updateRites(1/fps);}joyX=joyY=0;updateFirstPerson(0,performance.now());renderer.render(scene,camera);return this.riteState();},
+ motionPose(t){rites.cancel('qa');mixer.stopAllAction();const a=actions.run;a.reset().play();a.paused=true;a.time=t;activeAction=a;mixer.update(0);restoreRiteScales();updatePlayerSwordMount();renderer.render(scene,camera);return this.riteState();},
+ viewQA(fp,yaw=0,pitch=0){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=fp?.72:6;if(model)model.visible=!fp;if(fp){camera.position.set(player.position.x,player.position.y+1.52,player.position.z);const cp=Math.cos(pitch);camera.lookAt(camera.position.x-Math.sin(yaw)*cp,camera.position.y-Math.sin(pitch),camera.position.z-Math.cos(yaw)*cp);}debugCameraOverride=null;updateFirstPerson(0,performance.now());renderer.render(scene,camera);return this.riteState();},
  async riteQA(boss=false){await startSwordTraining(boss);debugDtScale=0;return this.riteState();},
- riteSim(seconds,fps=60){for(let i=0;i<Math.round(seconds*fps);i++){mixer.update(1/fps);restoreRiteScales();updateRites(1/fps);}renderer.render(scene,camera);return this.riteState();},
+ riteSim(seconds,fps=60){for(let i=0;i<Math.round(seconds*fps);i++){mixer.update(1/fps);restoreRiteScales();if(!debugCameraOverride)updatePlayerCamera(1/fps);updateFirstPerson(1/fps,performance.now());updateRites(1/fps);}renderer.render(scene,camera);return this.riteState();},
  riteAttack(){action('attack');return this.riteState();},
  riteCast(){action('sword-skill');return this.riteState();},
  riteEquip(id){if(testAllSkills)ownedItems.add(id);equipSword(id);return this.riteState();},
  riteFrame(dt){if(mixer){mixer.update(dt);restoreRiteScales();}updateRites(dt);renderer.render(scene,camera);return this.riteState();},
- riteState(){return {ready:riteReady(),sword:equippedSword,active:rites.active?{kind:rites.active.kind,time:rites.active.t,step:rites.active.step}:null,waves:rites.waves.length,cooldowns:{...rites.cooldowns},mana:playerMana,hp:enemyHP,hero:player.position.toArray(),target:enemy.position.toArray(),clip:activeAction?.getClip().name,blade:[riteBase.toArray(),riteTip.toArray()],vfx:riteVFX.stats(),height:model?measureModelBounds(model).getSize(new THREE.Vector3()).y:0};},
+ riteState(){return {ready:riteReady(),sword:equippedSword,active:rites.active?{kind:rites.active.kind,time:rites.active.t,step:rites.active.step}:null,waves:rites.waves.length,projectiles:rites.waves.map(w=>({p:{...w.p},origin:{...w.origin},direction:{...w.direction},travel:w.travel,n:w.n})),viewmodel:swordView?.stats(),cinematic:riteCinematicView,motion:{vx:moveVX,vz:moveVZ,dash:dashRemaining,grounded,sprint:isSprinting()},camera:{distance:cameraDistance,yaw:cameraYaw,pitch:cameraPitch},events:riteAudit.slice(),cooldowns:{...rites.cooldowns},mana:playerMana,hp:enemyHP,hero:player.position.toArray(),target:enemy.position.toArray(),clip:activeAction?.getClip().name,blade:[riteBase.toArray(),riteTip.toArray()],vfx:riteVFX.stats(),height:model?measureModelBounds(model).getSize(new THREE.Vector3()).y:0};},
  riteCancel(reason){rites.cancel(reason);return this.riteState();},
  ritePose(name,t){const c=riteClips[name];if(!c)return false;mixer.stopAllAction();const a=mixer.clipAction(c);a.reset().play();activeAction=a;actionUntil=Infinity;a.paused=true;a.time=t;mixer.update(0);restoreRiteScales();updatePlayerSwordMount();renderer.render(scene,camera);return this.riteState();},
  regressionState(){return{busy:act1Busy(),lock:act1Lock,packFinishing,profile:encounterProfile,clip:activeAction&&activeAction.getClip().name,speed:Math.hypot(moveVX,moveVZ),pos:player.position.toArray(),cast:window.SevenSinsVillagerReport,kids:(act1Props?.kids||[]).map(k=>({name:k.name,visible:k.visible})),seal:!!sewerArena?.refs.seal?.visible,vendors:vendorRoots.map(o=>({name:o.name,pos:o.position.toArray(),yaw:o.rotation.y})),walkers:villagerWalkers.map(w=>({pos:w.holder.position.toArray(),blocked:blockedAt(w.holder.position.x,w.holder.position.z)}))};},
@@ -5495,7 +5498,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  view(yaw,pitch,dist){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=dist;},
  state(){return{x:player.position.x,y:player.position.y,z:player.position.z,walkable:terrain3D.walkable(player.position.x,player.position.z),edge:terrain3D.boundaryDistance(player.position.x,player.position.z),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,terrain:window.SevenSinsTerrainReport,forest:window.SevenSinsForestReport,trees:treeSpecs.length,fog:scene.fog.color.getHexString(),fogFar:scene.fog.far,night:dayNightState.t,quest:questStep,coins,dialogueOpen,namePromptOpen,awakeningActive,hp:playerHP,enemy:{hp:enemyHP,visible:enemy.visible,alive:enemyAlive,x:+enemy.position.x.toFixed(1),z:+enemy.position.z.toFixed(1),y:+enemy.position.y.toFixed(2)},objective:(document.getElementById('quest-objective')||{}).textContent,audio:worldAudio.state,dim:{vs:vsOpen,battle:!!dimBattle,active:!!(dimBattle&&dimBattle.active),key:dimKey,sent:handoffSent,pull:!!portalPull,pt:portalPull&&portalPull.t,paused:gamePaused,gate:menuGate,voidMode:!!voidMode,hour:+gameClock.hour.toFixed(2),enemyHP,enemyMaxHP,hp:playerHP}};},
  setNight(on){setDayNightMode(on?'night':'day');dayNightState.t=dayNightState.target;applyDayNightVisual(dayNightState.t);},
- fly(from,to){debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
+ fly(from,to){if(from){camera.position.set(...from);camera.lookAt(...to);}debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
  freeRoam(){awakeningActive=false;namePromptOpen=false;dialogueOpen=false;},
  cine(id){awakeningActive=false;if(id==='ceu')return prepareHeaven().then(()=>{menuGate=false;startHeavenCine();});startAwakeningCine();return Promise.resolve();},

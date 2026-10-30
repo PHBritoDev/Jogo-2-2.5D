@@ -15,7 +15,8 @@ export function createSwordRitesVFX(T,scene){
  function ribbon(){const geometry=new T.BufferGeometry(),positions=new Float32Array(segments*2*3),uv=new Float32Array(segments*4),birth=new Float32Array(segments*2),indices=[];for(let i=0;i<segments;i++){uv[i*4]=uv[i*4+2]=i/(segments-1);uv[i*4+1]=0;uv[i*4+3]=1;if(i<segments-1){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}}geometry.setAttribute('position',new T.BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('birth',new T.BufferAttribute(birth,1).setUsage(T.DynamicDrawUsage));geometry.setIndex(indices);geometry.setDrawRange(0,0);const material=makeMaterial(),mesh=new T.Mesh(geometry,material);mesh.frustumCulled=false;root.add(mesh);return{geometry,positions,birth,mesh,material,n:0,last:0};}
  const trails=Array.from({length:3},ribbon);
  function sample({a,blade}){
-  if(a.serial!==trailSerial){trailSerial=a.serial;trailCursor=(trailCursor+1)%trails.length;const t=trails[trailCursor];t.n=0;t.geometry.setDrawRange(0,0);tint(t.material,a.sword);}
+  const serial=a.kind==='aurora'?a.serial*10+a.events:a.serial*10;
+  if(serial!==trailSerial){trailSerial=serial;trailCursor=(trailCursor+1)%trails.length;const t=trails[trailCursor];t.n=0;t.geometry.setDrawRange(0,0);tint(t.material,a.sword);}
   const t=trails[trailCursor];if(t.n===segments){t.positions.copyWithin(0,6);t.birth.copyWithin(0,2);t.n--;}
   const i=t.n++,o=i*6,b=blade.base,p=blade.tip;t.positions.set([b.x+(p.x-b.x)*.15,b.y+(p.y-b.y)*.15,b.z+(p.z-b.z)*.15,p.x,p.y,p.z],o);t.birth[i*2]=t.birth[i*2+1]=time;t.last=time;t.mesh.visible=true;t.material.uniforms.life.value=.24;t.geometry.setDrawRange(0,Math.max(0,t.n-1)*6);t.geometry.attributes.position.needsUpdate=t.geometry.attributes.birth.needsUpdate=true;
  }
@@ -39,13 +40,19 @@ export function createSwordRitesVFX(T,scene){
   else if(type==='obstructed'){burst(e.p,e.sword,6);}
   else if(type==='wave'){const c=cut(e.p,'aurora',e.radius,e.roll,e.yaw,1.5);c.wave=e;if(e.n===3){const second=cut(e.p,'aurora',e.radius,-e.roll,e.yaw,1.5);second.wave=e;}burst(e.p,'aurora',12);}
   else if(type==='waveEnd'){for(const c of cuts)if(c.wave===e){c.wave=null;c.age=.24;c.life=.45;for(const m of [c.mat,c.glow])m.uniforms.life.value=c.life;}}
-  else if(type==='judgment'){const t=e.target,roll=[-.7,.8,.1,1.35,-1.1,.65][e.n],p={x:t.x+Math.sin(e.n*2)*.18,y:t.y,z:t.z+Math.cos(e.n*2)*.25};cut(p,'prota',e.final?2:1.35,roll,e.n*.72,.32);if(!e.final)cut({x:p.x,y:p.y+.12,z:p.z+.2},'prota',1.12,roll+1.12,e.n*.72+.75,.26);if(e.final)cut(p,'prota',2,-roll,e.n*.72,.4);burst(p,'prota',e.final?30:9);}
+  else if(type==='judgment'){
+   const t=e.target,n=e.n,roll=(n*2.399)%Math.PI-Math.PI/2;
+   const p={x:t.x+Math.sin(n*2.399)*.18,y:t.y+Math.sin(n*1.7)*.28,z:t.z+Math.cos(n*2.399)*.18};
+   cut(p,'prota',e.final?2:1.25+(n%3)*.10,roll,n*.91,e.final?.38:.17);
+   if(e.final)cut(p,'prota',2,roll+Math.PI/2,n*.91,.38);
+   burst(p,'prota',e.final?24:4);
+  }
   else if(type==='impact'){const p=e.target;burst(p,e.sword,e.final?32:15);cut(p,e.sword,e.final?.9:.52,Math.PI*.5,time*3,.19);}
   else if(type==='start'){trailSerial=-1;if(e.kind==='prota'&&e.markedTarget){mark.position.set(e.markedTarget.x,e.markedTarget.y,e.markedTarget.z);markAge=0;mark.visible=true;}}
   else if(type==='cancel')clear();
  }
  function update(dt,level='high',firstPerson=false){time+=dt;quality=level;markAge+=dt;mark.visible=markAge<.3;markMaterial.opacity=Math.max(0,1-markAge/.3);mark.rotation.y+=dt*4;for(const t of trails){t.material.uniforms.clock.value=time;t.material.uniforms.opacity.value=firstPerson?.38:1;t.mesh.visible=t.n>1&&time-t.last<.25;}
-  for(const c of cuts){c.age+=dt;if(c.wave){c.g.position.set(c.wave.p.x,c.wave.p.y,c.wave.p.z);c.mat.uniforms.clock.value=c.glow.uniforms.clock.value=.06;c.g.scale.setScalar(c.wave.radius*(1+Math.min(.2,c.wave.travel*.012)));}else{c.g.visible=c.age<c.life;c.mat.uniforms.clock.value=c.glow.uniforms.clock.value=c.age;}c.g.children[1].visible=quality!=='low';}
+  for(const c of cuts){c.age+=dt;if(c.wave){c.g.position.set(c.wave.p.x,c.wave.p.y,c.wave.p.z);c.mat.uniforms.clock.value=c.glow.uniforms.clock.value=.06;c.g.scale.setScalar(c.wave.radius);const opacity=firstPerson?Math.min(1,.25+c.wave.travel/2.4):1;c.mat.uniforms.opacity.value=c.glow.uniforms.opacity.value=opacity;}else{c.g.visible=c.age<c.life;c.mat.uniforms.clock.value=c.glow.uniforms.clock.value=c.age;}c.g.children[1].visible=quality!=='low';}
   let count=0;for(let i=0;i<particles.length;i++){const p=particles[i];p.age+=dt;if(p.age<p.life){p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=2.8*dt;const s=p.size*(1-p.age/p.life);dummy.position.set(p.x,p.y,p.z);dummy.rotation.set(p.age*6,i,p.age*3);dummy.scale.set(s,s*2.8,s);count++;}else dummy.scale.setScalar(0);dummy.updateMatrix();shards.setMatrixAt(i,dummy.matrix);}shards.visible=count>0;shards.instanceMatrix.needsUpdate=true;
   for(const h of ghosts){h.age+=dt;h.g.visible=!firstPerson&&h.age<.2;h.mat.opacity=.16*Math.max(0,1-h.age/.2);}
  }
