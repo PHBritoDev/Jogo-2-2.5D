@@ -27,6 +27,7 @@ import {XRupture} from './skill-x-rupture3d.js';import {createXRuptureVFX} from 
 import {sceneryPoint} from './skill-scenery3d.js';
 import {TwinPortals} from './skill-twin-portals3d.js';import {createTwinPortalsVFX} from './skill-twin-portals-vfx3d.js';
 import {JudgmentDragon} from './skill-judgment-dragon3d.js';import {createDragonVFX} from './skill-judgment-dragon-vfx3d.js';
+import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import {createSakugaXVFX,createSphereVFX,createCelestialVFX} from './sakuga-skills-vfx3d.js';
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES } from './act1-world-layout.js';
 import {prepareSandraMaterials} from './sandra-materials.js';
@@ -1105,7 +1106,7 @@ function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
-const SKILL_LABELS={magic:'MAGIA',magic2:'ESTRELAS',magic3:'FÊNIX',ultimate:'JUÍZO',skill_x_rupture:'RUPTURA',skill_twin_portals:'PORTAIS',skill_judgment_dragon:'DRAGÃO'};
+const SKILL_LABELS={magic:'MAGIA',magic2:'ESTRELAS',magic3:'FÊNIX',ultimate:'JUÍZO',skill_x_rupture:'RUPTURA',skill_twin_portals:'PORTAIS',skill_judgment_dragon:'DRAGÃO'};if(new URLSearchParams(location.search).has('vfxSakuga'))Object.assign(SKILL_LABELS,{skill_twin_portals:'ESFERA',skill_judgment_dragon:'EXPLOSÃO'});
 function slotSkill(slotId){const i=SLOT_IDS.indexOf(slotId);return i>=0&&typeof skillLoadout!=='undefined'?skillLoadout[i]:slotId;}
 const skillButtons={};
 /* MOD 233 — cada botão 1–3 é um ESPAÇO: mostra a Palavra equipada nele (ícone, nome, custo); a ultimate fica no 4. */
@@ -1432,9 +1433,24 @@ const twinPortals=new TwinPortals({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlock
 const judgmentDragon=new JudgmentDragon({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,true,true);},
  event:t=>{if(t==='channel')worldAudio.novaCharge?.();if(t==='form')worldAudio.celestial?.();if(t==='fire')worldAudio.whoosh();if(t==='ball-impact'||t==='ball-wall'){worldAudio.energyImpact(1);hitStop(35);}if(t==='advance')worldAudio.whoosh();if(t==='engulf'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.1);}if(t==='compress')worldAudio.voidCharge?.();if(t==='explode'){worldAudio.novaBlast?.();if(!userSettings.reduceShake)cameraShake(.24);vibrate(110);}if(t==='cancel')dragonVFX?.clear();}});
 const EXTRA_RUN={skill_x_rupture:xRupture,skill_twin_portals:twinPortals,skill_judgment_dragon:judgmentDragon};
+/* VFX SAKUGA (flag ?vfxSakuga=1, sem mudar o jogo padrão): Ruptura em X ganha o visual "Impacto Cruzado"; o slot 2
+   (mesmo id/save skill_twin_portals) vira Esfera da Destruição e o slot 3 (skill_judgment_dragon) vira Explosão Celestial.
+   Os módulos dos Portais e do Dragão continuam no projeto (rollback = tirar a flag). Hitstop/impact frame só em acerto. */
+const SAKUGA=new URLSearchParams(location.search).has('vfxSakuga');let sakugaFrameEl=null,sakugaHitCd=0;
+function sakugaFrame(kind){if(!sakugaFrameEl){sakugaFrameEl=document.createElement('div');sakugaFrameEl.style.cssText='position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity .06s';document.body.appendChild(sakugaFrameEl);}
+ const flash=kind==='flash',reduce=userSettings.reduceFlash||matchMedia('(prefers-reduced-motion: reduce)').matches;sakugaFrameEl.style.background=flash?'radial-gradient(circle,#fff 0%,#fff8e0 45%,#ffd06a33 100%)':'radial-gradient(circle,#ffffff00 20%,#5a001855 60%,#08000acc 100%)';
+ sakugaFrameEl.style.opacity=String((flash?.7:.85)*(reduce?.35:1));setTimeout(()=>{sakugaFrameEl.style.opacity='0';},flash?34:150);}
+function sakugaHit(ms,shake){const n=performance.now();if(n<sakugaHitCd)return;sakugaHitCd=n+120;hitStop(ms);if(!userSettings.reduceShake)cameraShake(shake);}
+if(SAKUGA){
+ EXTRA_RUN.skill_twin_portals=new DestructionSphere({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive){hurtEnemy(d,k==='dome',true);sakugaHit(k==='dome'?55:45,k==='dome'?.16:.1);}},
+  event:t=>{if(t==='raise')worldAudio.voidCharge?.();if(t==='fly')worldAudio.whoosh();if(t==='impact')worldAudio.energyImpact?.(1);if(t==='cancel')portalsVFX?.clear();}});
+ EXTRA_RUN.skill_judgment_dragon=new CelestialExplosion({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive){hurtEnemy(d,true,true);sakugaHit(60,k==='pillar'?.24:.14);}},
+  event:t=>{if(t==='charge')worldAudio.celestial?.();if(t==='circles')worldAudio.novaCharge?.();if(t==='strike'){worldAudio.novaBlast?.();sakugaFrame('flash');vibrate(110);}if(t==='cancel')dragonVFX?.clear();}});
+ xRupture.event=(t=>{const base=xRupture.event;return(ev,a)=>{base(ev,a);if(ev==='impact'){sakugaFrame('impact');sakugaHit(50,.12);}};})();
+}
 function extraSkillBusy(kind){return !!EXTRA_RUN[kind]?.active;}
 function ensureExtraVFX(compile=false){
- const g={ground:(x,z)=>fxGy(x,z)};if(!xVFX)xVFX=createXRuptureVFX(THREE,scene,g);if(!portalsVFX)portalsVFX=createTwinPortalsVFX(THREE,scene,g);if(!dragonVFX)dragonVFX=createDragonVFX(THREE,scene,g);
+ const g={ground:(x,z)=>fxGy(x,z)};if(!xVFX)xVFX=SAKUGA?createSakugaXVFX(THREE,scene,g):createXRuptureVFX(THREE,scene,g);if(!portalsVFX)portalsVFX=SAKUGA?createSphereVFX(THREE,scene,g):createTwinPortalsVFX(THREE,scene,g);if(!dragonVFX)dragonVFX=SAKUGA?createCelestialVFX(THREE,scene,g):createDragonVFX(THREE,scene,g);
  if(compile){for(const v of [xVFX,portalsVFX,dragonVFX])v.root.visible=true;renderer.compile(scene,camera);for(const v of [xVFX,portalsVFX,dragonVFX])v.clear();}
 }
 function castExtraSkill(kind){
@@ -1443,8 +1459,8 @@ function castExtraSkill(kind){
  const T2={...t,radius:enemy.userData.phoenixRadius||.6,height:enemy.userData.phoenixHeight||1.9};
  const yaw=t.alive?Math.atan2(t.x-player.position.x,t.z-player.position.z):playerYaw,hand=new THREE.Vector3();const rig=model&&poseRig(model);if(rig?.rh)rig.rh.getWorldPosition(hand);else{hand.copy(player.position);hand.y+=1.4;}
  if(kind==='skill_x_rupture'){xRupture.start({x:player.position.x,y:hand.y,z:player.position.z},T2,yaw,mul);playPose(model,'thrust',.55,()=>playerYaw,0);extraBookClear=showGrimoire(0xff2a5a,.45,true,true);status.textContent='Ruptura em X';}
- if(kind==='skill_twin_portals'){twinPortals.start({x:player.position.x,y:player.position.y,z:player.position.z},T2,yaw,mul);playPose(model,'cast',.7,()=>playerYaw,0);extraBookClear=showGrimoire(0xb04aff,.7,true,true);status.textContent='Portais da Perseguição';}
- if(kind==='skill_judgment_dragon'){judgmentDragon.start({x:player.position.x,y:player.position.y+.2,z:player.position.z},T2,yaw,mul);playPose(model,'channel',1.45,()=>playerYaw,0);playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+1450);extraBookClear=showGrimoire(0xffb43a,1.2,true,true);status.textContent='Dragão do Julgamento';}
+ if(kind==='skill_twin_portals'){EXTRA_RUN.skill_twin_portals.start({x:player.position.x,y:player.position.y,z:player.position.z},T2,yaw,mul);playPose(model,SAKUGA?'channel':'cast',SAKUGA?.75:.7,()=>playerYaw,0);extraBookClear=showGrimoire(SAKUGA?0xfc1fd8:0xb04aff,.7,true,true);status.textContent=SAKUGA?'Esfera da Destruição':'Portais da Perseguição';}
+ if(kind==='skill_judgment_dragon'){EXTRA_RUN.skill_judgment_dragon.start({x:player.position.x,y:player.position.y+.2,z:player.position.z},T2,yaw,mul);playPose(model,'channel',1.45,()=>playerYaw,0);playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+1450);extraBookClear=showGrimoire(0xffb43a,1.2,true,true);status.textContent=SAKUGA?'Explosão Celestial':'Dragão do Julgamento';}
  actionUntil=Math.max(actionUntil,now+(kind==='skill_judgment_dragon'?1350:450)); // curto: o herói volta a andar logo
 }
 function extraTarget(){const t=phoenixTarget();t.radius=enemy.userData.phoenixRadius||.6;t.height=enemy.userData.phoenixHeight||1.9;return t;}
@@ -1452,7 +1468,7 @@ function updateExtraSkills(dt){
  updateVfxLab(dt);
  const t=extraTarget(),q=whiteQuality(),base=playerHP>0&&!cineActive&&!dialogueOpen;
  for(const [kind,run] of Object.entries(EXTRA_RUN))if(run.active)run.update(dt,t,{valid:base&&extraScene[kind]===siegeContext()});
- if(xVFX)xVFX.update(xRupture,camera,q);if(portalsVFX)portalsVFX.update(twinPortals,camera,q);if(dragonVFX)dragonVFX.update(judgmentDragon,camera,q);
+ if(xVFX)xVFX.update(xRupture,camera,q);if(portalsVFX)portalsVFX.update(EXTRA_RUN.skill_twin_portals,camera,q);if(dragonVFX)dragonVFX.update(EXTRA_RUN.skill_judgment_dragon,camera,q);
  updateQuantum(dt,q);
 }
 /* MOD 233 — Quantum: a espada gira as órbitas, deixa arco e órbitas no golpe e colapsa como estrela no acerto. */
@@ -3073,7 +3089,7 @@ function updatePack(dt){
    vira um procurador invisível do ator em foco: golpes, magias, mira e HUD do herói continuam mirando enemy/enemyHP, e a
    diferença de vida/posição vai para o ator certo. Corte da espada, projéteis e magias em área alcançam os outros atores.
    ?esquadraLegada=1 volta ao modo antigo (um por vez). ?testeEnemy1=1 abre o laboratório isolado do progresso. */
-var squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
+var squadSakugaCd=0,squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
 const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=new Map();
 function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
 function squadRuntime(){
@@ -3154,6 +3170,8 @@ function squadDamageTarget(id,dmg,info){
  const n=squadAlive().length,mul=n>=4?.72:n===3?.84:1,amount=Math.max(1,Math.round(dmg*mul));
  if(id==='hero'){
   const wasDef=defending;if(!damagePlayerFromEnemyAttack(amount))return 'evaded';
+  // hitstop/shake do Enemy2 só com acerto CONFIRMADO e com trava contra duplo disparo
+  if(/^(vortex|collapse|collapseWave|trinity)$/.test(info.kind)){const now=performance.now();if(now>squadSakugaCd){squadSakugaCd=now+160;hitStop(info.kind==='trinity'?40:55);cameraShake(info.kind==='trinity'?.08:.17);}}
   if(info.guardBreak&&defending){setDefending(false);showCombatCallout('GUARDA QUEBRADA');}
   if(info.knock&&playerHP>0){const dx=player.position.x-info.x,dz=player.position.z-info.z,l=Math.hypot(dx,dz)||1;squadKnock={x:dx/l*info.knock*3,z:dz/l*info.knock*3,t:.25};}
   return wasDef?'blocked':'hit';
@@ -3168,10 +3186,10 @@ function squadEvent(type,d){
  switch(type){
   case 'cast':worldAudio.dark&&worldAudio.dark(d.skill);if(a.T.boss||squadAlive().length<=2||d.skill==='judgment'||d.skill==='vortex')showCombatCallout(SQUAD_NAMES[d.skill]);break;
   case 'vortexLunge':worldAudio.dark&&worldAudio.dark('spiral');break;
-  case 'vortexImpact':worldAudio.dark&&worldAudio.dark('impact');if(squadNear(s.x,s.z,8))cameraShake(.16);break;
+  case 'vortexImpact':worldAudio.dark&&worldAudio.dark('impact');break;
   case 'trinity':worldAudio.dark&&worldAudio.dark('rise');break;
-  case 'collapse_erupt':worldAudio.dark&&worldAudio.dark('beam');if(squadNear(s.x,s.z,12))cameraShake(.18);break;
-  case 'collapse_wave':worldAudio.dark&&worldAudio.dark('blast');if(squadNear(s.x,s.z,14))cameraShake(.24);break;
+  case 'collapse_erupt':worldAudio.dark&&worldAudio.dark('beam');break;
+  case 'collapse_wave':worldAudio.dark&&worldAudio.dark('blast');break;
   case 'jumpedWave':if(d.target==='hero')showCombatCallout('SALTOU A ONDA!');break;
   case 'lunge':worldAudio.whoosh();break;
   case 'clawsRise':worldAudio.dark&&worldAudio.dark('rise');if(squadNear(s.x,s.z,9))cameraShake(.1);break;

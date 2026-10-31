@@ -5,6 +5,7 @@ import { impactDirector } from './vfx-impact3d.js';
 import { volumeTrail } from './vfx-trail3d.js';
 import { createChaosVFX } from './enemy2-chaos-vfx3d.js';
 import { buildInfernalScythe } from './infernal-scythe3d.js';
+import { createSakugaImpacts } from './sakuga-impact3d.js';
 import './enemy2-squad3d.js';
 /**
  * MOD 237 — corpo visual da esquadra Enemy1: um clone do Enemy1 por ator, com mixer, materiais (lampejo de dano
@@ -24,6 +25,8 @@ export function createEnemy1SquadRuntime(ctx) {
   const T = ctx.T, scene = ctx.scene;
   const vfx = createDarkPowersVFX(T, scene, { ground: ctx.ground }), chaos = createChaosVFX(T, scene, { ground: ctx.ground });
   const BOSSES = { warden: 1, e2boss: 1 };
+  // impacto sakuga do Enemy2: casca agressiva, anéis irregulares, rachaduras no terreno ao longo do golpe, placas e pedras
+  const sak = createSakugaImpacts(T, scene, { ground: ctx.ground, capacity: 8 });
   // VFX Engine 2.0 (Mod 236): impactos autoritativos (pressão, fragmentos, fissuras, poeira) e rastro volumétrico da espiral
   const impacts = impactDirector(T, scene, ctx.ground, { capacity: 6 }), trails = [0, 1, 2].map(() => ({ trail: volumeTrail(T, scene, 'violet', { capacity: 32, life: .55, radius: .55 }), id: null }));
   const _tp = new T.Vector3();
@@ -97,15 +100,15 @@ export function createEnemy1SquadRuntime(ctx) {
     if (type === 'cast' && ctx.pose) { const b = bodies.get(d.actor.id); if (b) ctx.pose(b.model, POSE[d.skill] || 'cast', d.skill === 'judgment' || d.skill === 'vortex' ? 1.5 : 1.1, () => d.actor.yaw); }
     if (type === 'counterCast' && ctx.pose) { const b = bodies.get(d.actor.id); if (b) ctx.pose(b.model, 'thrust', .7, () => d.actor.yaw); }
     if (type === 'burst' && d.spell && (d.spell.type === 'spiral' || d.why === 'clash')) { const s = d.spell; impacts.emit({ id: 'e1s' + s.id, time, point: { x: s.x, y: s.y, z: s.z }, size: (s.kind === 'warden' ? 2.3 : 1.7) * (s.type === 'counter' ? .7 : 1), preset: 'violet', kind: 'ball', dir: { x: s.dx, y: 0, z: s.dz } }); }
-    if (type === 'vortexImpact') { const s = d.spell; impacts.emit({ id: 'e2v' + s.id + '_' + d.n, time, point: { x: s.x, y: s.y, z: s.z }, size: s.kind === 'e2boss' ? 2.6 : 2, preset: 'crimson', kind: 'ball', dir: { x: s.dx, y: s.dy || 0, z: s.dz } }); }
-    if (type === 'collapse_wave') { const s = d.spell; impacts.emit({ id: 'e2c' + s.id, time, point: { x: s.x, y: s.y + .5, z: s.z }, size: s.r * 1.1, preset: 'violet', kind: 'ball', dir: { x: 0, y: 1, z: 0 } }); }
-    if (type === 'trinityEnd') for (const h of d.spell.storms) impacts.emit({ id: 'e2t' + d.spell.id + '_' + h.i, time, point: { x: h.x, y: h.y + 1, z: h.z }, size: 1.4, preset: 'crimson', kind: 'ball', dir: { x: 0, y: 1, z: 0 } });
+    if (type === 'vortexImpact') { const s = d.spell, boss = s.kind === 'e2boss'; sak.emit({ id: 'e2v' + s.id + '_' + d.n, time, point: { x: s.x, y: s.y, z: s.z }, dir: { x: s.dx, z: s.dz }, size: boss ? 3.1 : 2.1, palette: boss ? 'ember' : 'abyss', rocks: boss ? 14 : 9, furrow: d.why === 'ground' ? (boss ? 5 : 3.5) : 1.5 }); }
+    if (type === 'collapse_wave') { const s = d.spell, boss = s.kind === 'e2boss'; sak.emit({ id: 'e2c' + s.id, time, point: { x: s.x, y: s.y + .4, z: s.z }, size: s.r * .85, palette: boss ? 'ember' : 'abyss', rocks: boss ? 15 : 11 }); }
+    if (type === 'trinityEnd') for (const h of d.spell.storms) sak.emit({ id: 'e2t' + d.spell.id + '_' + h.i, time, point: { x: h.x, y: h.y + .6, z: h.z }, size: 1.3, palette: d.spell.kind === 'e2boss' ? 'ember' : 'abyss', rocks: 8 });
     if (type === 'judgmentBlast') { const s = d.spell; impacts.emit({ id: 'e1j' + s.id, time, point: { x: s.mx, y: s.my + .6, z: s.mz }, size: s.r * 1.05, preset: 'violet', kind: 'ball', dir: { x: 0, y: 1, z: 0 } }); }
     ctx.event(type, d);
   }
   function stop() {
     for (const b of bodies.values()) { b.mixer.stopAllAction(); scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); } }
-    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); impacts.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
+    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); impacts.clear(); sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
   }
   return {
     vfx,
@@ -159,11 +162,11 @@ export function createEnemy1SquadRuntime(ctx) {
       for (const t of trails) { const s = t.id !== null && squad.spells.find(o => o.id === t.id); if (!s) t.id = null; }
       for (const s of squad.spells) if (s.type === 'spiral' && s.phase === 'fly' && !trails.some(t => t.id === s.id)) { const free = trails.find(t => t.id === null); if (free) { free.id = s.id; free.trail.clear(); } }
       for (const t of trails) { const s = t.id !== null && squad.spells.find(o => o.id === t.id); t.trail.update(time, s ? _tp.set(s.x, s.y, s.z) : _tp, !!(s && s.phase === 'fly'), quality); }
-      impacts.update(time, quality);
+      impacts.update(time, quality); if (camera) sak.update(time, camera, quality);
       const info = camera ? vfx.update(dt, camera, squad.spells, charges, quality) : null;
       if (camera) chaos.update(dt, camera, squad.spells, charges, quality);
       return info;
     },
-    dispose() { stop(); vfx.dispose(); chaos.dispose(); impacts.dispose(); for (const t of trails) t.trail.dispose && t.trail.dispose(); }
+    dispose() { stop(); vfx.dispose(); chaos.dispose(); impacts.dispose(); sak.dispose(); for (const t of trails) t.trail.dispose && t.trail.dispose(); }
   };
 }
