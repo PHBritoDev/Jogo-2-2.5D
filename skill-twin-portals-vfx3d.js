@@ -85,7 +85,7 @@ export function createTwinPortalsVFX(T,scene,{ground=()=>0}={}){
     bm.sheathMat.uniforms.detail.value=quality===0?.65:1;bm.coreMat.opacity=.92*fade;
    }
    trails[i].update(t,f.p,flying,quality);
-   if(f.endAt>=0&&['contact','wall'].includes(f.phase))impacts.emit({id:'flow'+i,time:f.endAt,point:f.at,size:f.phase==='wall'?1.8:2.2,preset:presets[i],kind:'lance',dir:f.direction});
+   if(f.endAt>=0&&['contact','wall'].includes(f.phase))impacts.emit({id:'flow'+i+'-'+f.endAt,time:f.endAt,point:f.at,size:f.phase==='wall'?1.8:2.2,preset:presets[i],kind:'lance',dir:f.direction});
    if(alive){dir.set(f.direction.x,f.direction.y,f.direction.z);side.crossVectors(axis,dir).normalize();up.crossVectors(dir,side);
     for(let branch=0;branch<(quality===0?2:4);branch++){const angle=branch*Math.PI/2+i*.4,length=Math.min(4.8,f.travel);for(let j=0;j<=12;j++){const u=j/12,twist=angle+u*1.7+.18*Math.sin(t*4+u*9),r=(.35+.55*Math.sin(u*Math.PI))*(1+.17*Math.sin(j*3.7+t*11));v.set(f.p.x,f.p.y,f.p.z).addScaledVector(dir,-u*length).addScaledVector(side,Math.cos(twist)*r).addScaledVector(up,Math.sin(twist)*r);
      if(j&&na<160){prev.toArray(arcPos,na*6);v.toArray(arcPos,na*6+3);arcCol.set(colors[i],na*6);arcCol.set(colors[i],na*6+3);na++;}prev.copy(v);
@@ -98,8 +98,8 @@ export function createTwinPortalsVFX(T,scene,{ground=()=>0}={}){
    const r=(.45+.85*k)*(1+.12*Math.sin(t*24));
    singularity.update(t,{position:s.center,dir:{x:Math.sin(t*5),y:.2,z:Math.cos(t*5)},radius:r,length:r,alpha:.95,quality});
   }
-  if(s.pressureAt>=0)for(let n=0;n<s.pulses;n++)impacts.emit({id:'pressure'+n,time:s.pressureAt+PORTALS.pulseTimes[n],point:s.center,size:1.3+n*.35,preset:presets[n%2],kind:'pressure'});
-  if(ph==='burst'){impacts.emit({id:'burst-red',time:t-s.age,point:s.center,size:5.8,preset:'crimson',kind:'burst'});impacts.emit({id:'burst-violet',time:t-s.age+.12,point:s.center,size:4.7,preset:'violet',kind:'burst',dir:{x:.2,y:1,z:0}});}
+  if(s.pressureAt>=0)for(let n=0;n<s.pulses;n++)impacts.emit({id:'pressure'+n+'-'+s.pressureAt,time:s.pressureAt+PORTALS.pulseTimes[n],point:s.center,size:1.3+n*.35,preset:presets[n%2],kind:'pressure'});
+  if(ph==='burst'){impacts.emit({id:'burst-red-'+(t-s.age),time:t-s.age,point:s.center,size:5.8,preset:'crimson',kind:'burst'});impacts.emit({id:'burst-violet-'+(t-s.age),time:t-s.age+.12,point:s.center,size:4.7,preset:'violet',kind:'burst',dir:{x:.2,y:1,z:0}});}
   if(ph==='compress'){for(let i=0;i<2;i++){const k=s.age/PORTALS.compress;bodies[i].update(t,{position:s.center,dir:{x:i?1:-1,y:.3,z:0},radius:1.5*(1-k)+.3,length:.7*(1-k),alpha:.65,quality});}}
   arcGeo.setDrawRange(0,na*2);arcGeo.attributes.position.needsUpdate=arcGeo.attributes.color.needsUpdate=true;impacts.update(t,quality);
  }
