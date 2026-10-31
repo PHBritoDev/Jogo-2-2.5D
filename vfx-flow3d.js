@@ -49,13 +49,13 @@ void main(){
  #include <colorspace_fragment>
 }`;
 export function energyMaterial(T,preset='celestial',{alpha=.94,warp=.08,seed=0,frequency=1,flame=0}={}){
- const p=ENERGY_PALETTES[preset];return new T.ShaderMaterial({vertexShader:VERT,fragmentShader:FRAG,transparent:true,depthWrite:false,side:flame?T.DoubleSide:T.FrontSide,toneMapped:false,uniforms:{time:{value:0},alpha:{value:alpha},detail:{value:1},dissolve:{value:0},warp:{value:warp},seed:{value:seed},frequency:{value:frequency},flame:{value:flame},celestial:{value:preset==='celestial'?1:0},...Object.fromEntries(['deep','body','hot'].map(k=>[k,{value:new T.Color(...p[k])}]))}});
+ const p=ENERGY_PALETTES[preset] || ENERGY_PALETTES.crimson;return new T.ShaderMaterial({vertexShader:VERT,fragmentShader:FRAG,transparent:true,depthWrite:false,side:flame?T.DoubleSide:T.FrontSide,toneMapped:false,uniforms:{time:{value:0},alpha:{value:alpha},detail:{value:1},dissolve:{value:0},warp:{value:warp},seed:{value:seed},frequency:{value:frequency},flame:{value:flame},celestial:{value:preset==='celestial'?1:0},...Object.fromEntries(['deep','body','hot'].map(k=>[k,{value:new T.Color(...p[k])}]))}});
 }
 /** Closed lobed body along +Z. Front at z=0; an asymmetric swept tail extends behind. */
 export function energyGeometry(T,{rings=30,sides=14,tail=3,seed=0}={}){
  const p=[],uv=[],ix=[];
  for(let j=0;j<=rings;j++){const u=j/rings,r=Math.pow(Math.sin(Math.PI*u),.72)*(u<.65?.35+u:1.04),z=-tail+(tail+.65)*u;
-  for(let k=0;k<=sides;k++){const a=k/sides*Math.PI*2,lobe=1+.12*Math.sin(a*5+u*16+seed)+.09*Math.cos(a*3-u*11),rr=r*lobe;
+  for(let k=0;k<=sides;k++){const a=k/sides*Math.PI*2,lobe=1+.14*Math.sin(a*5+u*16+seed)+.1*Math.cos(a*3-u*11),rr=r*lobe;
    p.push(Math.cos(a)*rr+Math.sin(u*9+seed)*.09*(1-u),Math.sin(a)*rr,z);uv.push(u,k/sides);
    if(j<rings&&k<sides){const x=j*(sides+1)+k,b=x+sides+1;ix.push(x,x+1,b,x+1,b+1,b);}
   }
