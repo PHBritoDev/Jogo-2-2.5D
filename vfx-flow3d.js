@@ -1,10 +1,10 @@
 /** VFX 2.0: bounded mesh volumes with advected turbulence, no raymarch/postprocessing.
  * Same topology and collision at every quality; detail uniform changes shading only. */
 export const ENERGY_PALETTES=Object.freeze({
- celestial:{deep:[1,.13,.003],body:[1,.57,.018],hot:[1,1,.78]},
- cinder:{deep:[.018,.002,.006],body:[.8,.035,.012],hot:[1,.63,.08]},
- crimson:{deep:[.045,.002,.012],body:[.72,.012,.055],hot:[1,.35,.22]},
- violet:{deep:[.025,.004,.07],body:[.3,.025,.72],hot:[.73,.38,1]}
+ celestial:{deep:[.18,.02,.002],body:[1,.48,.015],hot:[1,.98,.78]},
+ cinder:{deep:[.015,.001,.003],body:[.82,.025,.01],hot:[1,.58,.08]},
+ crimson:{deep:[.012,.001,.004],body:[.86,.01,.035],hot:[1,.28,.22]},
+ violet:{deep:[.015,.001,.035],body:[.52,.01,.38],hot:[.95,.25,.58]}
 });
 export const FLOW_NOISE=`
 float fh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -22,15 +22,29 @@ void main(){vUv=uv;vP=position;vec3 p=position;
  w=modelMatrix*w;vN=normalize(mat3(modelMatrix)*n);vV=cameraPosition-w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`;
 const FRAG=`uniform float time,alpha,detail,dissolve,seed,frequency,flame,celestial;uniform vec3 deep,body,hot;varying vec2 vUv;varying vec3 vN,vV,vP;
 ${FLOW_NOISE}
-void main(){float n=flowNoise(vec2(vUv.x*11.*frequency,vUv.y*7.+seed),time,detail);
- float fil=pow(max(0.,1.-abs(n-.57)*5.),3.);float rim=pow(1.-abs(dot(normalize(vN),normalize(vV))),1.6);
+void main(){
+ float n=flowNoise(vec2(vUv.x*11.*frequency,vUv.y*7.+seed),time,detail);
+ float n2=flowNoise(vec2(vUv.x*23.*frequency-time*1.2,vUv.y*13.+seed*1.7),time*.85,detail);
+ float ndotv=abs(dot(normalize(vN),normalize(vV)));
+ float rim=pow(1.-ndotv,1.55);
+ float coreDark=smoothstep(.22,.78,ndotv);
+ float fil=pow(max(0.,1.-abs(n-.54)*5.5),2.6);
+ float darkVein=smoothstep(.09,.0,abs(n2-.48)-.025)*coreDark;
  float cells=flowNoise(vec2(vUv.x*22.*frequency,vUv.y*15.+seed),time*.7,detail);
  if(cells<dissolve)discard;
- float heat=smoothstep(.16,.78,n+rim*.23);vec3 col=mix(deep,body,heat);
- col=mix(col,hot,clamp(pow(smoothstep(.35,.75,n),1.4)*.72+rim*.12,0.,.85));
- vec3 fireColor=mix(vec3(1.,.27,.004),body,smoothstep(.32,.47,n));fireColor=mix(fireColor,hot,smoothstep(.47,.59,n)*.9);col=mix(col,fireColor,celestial);
- float a=alpha*(.82+.18*smoothstep(.18,.66,n));a*=mix(1.,(1.-smoothstep(.25,1.,vUv.x))*smoothstep(.12,.52,n),flame);a*=smoothstep(dissolve,dissolve+.16,cells);
- if(a<.015)discard;gl_FragColor=vec4(col,a);
+ float heat=smoothstep(.22,.74,n+rim*.32);
+ vec3 col=mix(deep,body,heat);
+ col=mix(col,hot,clamp(pow(smoothstep(.42,.82,n),1.35)*.78+rim*.35+fil*.28,0.,.96));
+ col=mix(col,deep*.25,darkVein*(1.-celestial*.55));
+ vec3 fireColor=mix(vec3(.16,.02,.005),body,smoothstep(.24,.46,n+rim*.2));
+ fireColor=mix(fireColor,hot,smoothstep(.46,.64,n+fil*.15)*.92);
+ col=mix(col,fireColor,celestial);
+ float edgeCut=smoothstep(dissolve,dissolve+.11,cells);
+ float a=alpha*(.88+.12*smoothstep(.15,.65,n));
+ a*=mix(1.,(1.-smoothstep(.22,1.,vUv.x))*smoothstep(.14,.48,n),flame);
+ a*=edgeCut;
+ if(a<.015)discard;
+ gl_FragColor=vec4(col,a);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
 }`;
