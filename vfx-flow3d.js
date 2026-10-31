@@ -1,4 +1,4 @@
-/** VFX 2.0: bounded mesh volumes with advected turbulence, no raymarch/postprocessing.
+/** VFX 2.0: bounded mesh volumes with advected turbulence, obsidian-crimson matter and dark veins.
  * Same topology and collision at every quality; detail uniform changes shading only. */
 export const ENERGY_PALETTES=Object.freeze({
  celestial:{deep:[.18,.02,.002],body:[1,.48,.015],hot:[1,.98,.78]},
@@ -8,7 +8,7 @@ export const ENERGY_PALETTES=Object.freeze({
 });
 export const FLOW_NOISE=`
 float fh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float fn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(fh(i),fh(i+vec2(1,0)),f.x),mix(h_b(i+vec2(0,1)),h_b(i+vec2(1,1)),f.x),f.y);}\nfloat h_b(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float fn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(fh(i),fh(i+vec2(1,0)),f.x),mix(fh(i+vec2(0,1)),fh(i+vec2(1,1)),f.x),f.y);}
 float flowNoise(vec2 p,float t,float detail){vec2 q=p+vec2(fn(p*.62+vec2(0,t*.35))-.5,fn(p*.8-vec2(t*.3,0))-.5)*1.5;return fn(q-vec2(t*1.7,0))*.72+fn(q*2.17-vec2(t*3.4,t*.15))*.28*detail;}
 `;
 const VERT=`uniform float time,warp;varying vec2 vUv;varying vec3 vN,vV,vP;
@@ -71,4 +71,4 @@ export function energyBody(T,parent,preset,options={}){
  },dispose(){parent.remove(mesh);geometry.dispose();material.dispose();}};
 }
 
-export function flameGeometry(T){const p=[],uv=[],ix=[],N=10;for(let j=0;j<=N;j++){const u=j/N,w=.16*Math.sin(Math.PI*u)**.68;for(let k=0;k<=6;k++){const a=k/6*Math.PI*2;p.push(Math.cos(a)*w*(1+.18*Math.cos(a*3)),u*1.85,Math.sin(a)*w*.52-u*u*.78);uv.push(u,k/6);if(j<N&&k<6){const n=j*7+k,b=n+7;ix.push(n,b,n+1,n+1,b,b+1);}}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();return g;}
+export function flameGeometry(T){const p=[],uv=[],ix=[],N=10;for(let j=0;j<=N;j++){const u=j/N,w=.16*Math.sin(Math.PI*u)**.68;for(let k=0;k<=6;k++){const a=k/6*Math.PI*2,ridge=1+.18*Math.cos(a*3);p.push(Math.cos(a)*w*ridge,u*1.85,Math.sin(a)*w*.52-u*u*.78);uv.push(u,k/6);if(j<N&&k<6){const n=j*7+k,b=n+7;ix.push(n,b,n+1,n+1,b,b+1);}}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();return g;}
