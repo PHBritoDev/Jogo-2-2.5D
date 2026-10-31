@@ -152,8 +152,8 @@ button:active{transform:scale(.96);background:#31583d}
 
 #vfx-lab select,#vfx-lab button{background:#191c26;color:#eddfc2;border:1px solid #776848;border-radius:5px;font:11px system-ui;min-height:28px;height:28px;padding:3px 6px;width:auto}body.vfx-lab-mode #sword-training,body.vfx-lab-mode #quest-box{display:none}#vfx-lab a{color:#f0d389;margin-left:10px}#vfx-lab .lab-title{font-size:10px;margin-bottom:3px}body.vfx-lab-mode #status{bottom:76px}#lab-metrics{padding-top:3px;font-size:10px}@media(max-width:600px){#vfx-lab{top:137px!important;bottom:auto!important;right:7px;left:auto!important;transform:none!important;max-width:210px!important}#vfx-lab label{display:inline-block;margin-bottom:3px}}
 </style>
-<link rel="stylesheet" href="./hud3d.css?v=mod238-enemy2-trindade">
-<link rel="stylesheet" href="./cine3d.css?v=mod238-enemy2-trindade">
+<link rel="stylesheet" href="./hud3d.css?v=mod239-gemini-vfx-3d">
+<link rel="stylesheet" href="./cine3d.css?v=mod239-gemini-vfx-3d">
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -162,7 +162,7 @@ button:active{transform:scale(.96);background:#31583d}
 <div id="top-right"><button id="inventory-btn" type="button" aria-label="Inventário (I)" title="Inventário (I)">INVENTÁRIO</button><button id="map-toggle-3d" type="button" aria-label="Abrir mapa (M)" title="Mapa (M)">MAPA</button><button id="camera-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre primeira e terceira pessoa" title="Câmera 1ª / 3ª pessoa">1ª PESSOA</button><button id="fullscreen" type="button" aria-label="Entrar em tela cheia" title="Tela cheia">⛶</button><button id="pause-button" type="button" aria-label="Pausar (Esc)" title="Pausar">❚❚</button></div>
 <section id="pause-panel" hidden aria-label="Jogo pausado"><div id="pause-sheet"><h2>PAUSA</h2><button id="pause-resume" class="primary" type="button">CONTINUAR</button><button id="pause-map" type="button">MAPA</button><button id="pause-galaxies" type="button">SETE GALÁXIAS</button><button id="graphics-toggle-3d" type="button" aria-expanded="false" aria-controls="graphics-panel-3d">⚙ AJUSTES</button><button id="daynight-toggle-3d" type="button" aria-pressed="false" aria-label="Alternar entre dia e noite">DIA</button></div></section>
 <section id="graphics-panel-3d" hidden aria-label="Configurações gráficas do mundo 3D"><h2>Qualidade gráfica</h2><label for="graphics-profile-3d">Perfil de desempenho</label><select id="graphics-profile-3d"><option value="auto">Automático (recomendado)</option><option value="low">Baixo — celular fraco</option><option value="high">Alto — mais detalhes</option><option value="max">Máximo — aparelhos fortes</option></select><p id="graphics-status-3d" aria-live="polite">Ajustando o mundo para seu aparelho…</p></section>
-<div id="marker" aria-label="Modificação 238">238</div>
+<div id="marker" aria-label="Modificação 239">239</div>
 <div id="enemy-hud"><div id="enemy-name">SEGUIDOR DA GANÂNCIA</div><div id="enemy-hp-track"><div id="enemy-hp-fill"></div></div></div>
 <div id="hud-hero"><div id="hero-portrait"><img id="hero-portrait-img" alt=""><span class="monogram">✦</span><span id="level-badge">NV 1</span></div><span id="fps-badge">-- FPS</span>
 <div id="player-hud" hidden aria-label="Vida do protagonista"><div id="player-name"><span>PROTAGONISTA</span></div><div id="player-hp-track"><div id="player-hp-fill"></div><span id="player-hp-text">100 / 100</span></div><div id="player-mana-track" aria-label="Mana"><div id="player-mana-fill"></div></div><div id="xp-track" aria-label="Experiência"><div id="xp-fill"></div></div></div>
@@ -229,7 +229,7 @@ button:active{transform:scale(.96);background:#31583d}
 <label>Alvo <select id="lab-scenario"><option value="still">Parado</option><option value="moving">Móvel</option><option value="ground">Solo</option><option value="wall">Parede</option></select></label>
 <label>Qualidade <select id="lab-quality"><option value="auto">Auto</option><option value="low">Baixa</option><option value="high">Alta</option><option value="max">Máxima</option></select></label>
 <button id="lab-reset" type="button">Reiniciar</button><div id="lab-metrics" aria-live="off"></div></section>
-<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 238: Enemy2 em esquadra (Vórtice, Trindade do Caos, Colapso), mini-chefe com a Foice do Vulcão e novos X, Portais e Dragão.</div>
+<div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 239: Enemy2 em esquadra (Vórtice, Trindade do Caos, Colapso), mini-chefe com a Foice do Vulcão e novos X, Portais e Dragão.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module" src="./mod181-loader.js?v=mod239-gemini-vfx-3d"></script>
 <script>
