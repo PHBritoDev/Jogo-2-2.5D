@@ -1,0 +1,421 @@
+[
+  {
+    "file": "Protagonista.glb",
+    "bytes": 1215824,
+    "sha": "2bec08ecf18546a78fa86e451e9ca6cdcd7be2c1",
+    "skins": 1,
+    "nodes": 57,
+    "clips": [
+      {
+        "name": "Idle",
+        "duration": 2.5,
+        "channels": 156,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Walk",
+        "duration": 1.3333333730697632,
+        "channels": 156,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Lift Air Hit Right",
+        "duration": 0.5,
+        "channels": 156,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Hit Knockback",
+        "duration": 0.8333333134651184,
+        "channels": 156,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Overhand Throw",
+        "duration": 1.3333333730697632,
+        "channels": 156,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Kip Up",
+        "duration": 1.1666666269302368,
+        "channels": 156,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Protagonista-ritos-232.glb",
+    "bytes": 820056,
+    "sha": "fc60b656293011c5f4de8f7e80747b82ee0d60ac",
+    "skins": 0,
+    "nodes": 57,
+    "clips": [
+      {
+        "name": "Rite_Crescent",
+        "duration": 0.72,
+        "channels": 53,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "Rite_Reverse",
+        "duration": 0.7,
+        "channels": 53,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "Rite_Ascendant",
+        "duration": 0.86,
+        "channels": 53,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "Rite_Judgment",
+        "duration": 1.95,
+        "channels": 53,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "Rite_Eclipse",
+        "duration": 2.3,
+        "channels": 53,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "Hero_Run",
+        "duration": 0.64,
+        "channels": 53,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Protagonista-corrida-235.glb",
+    "bytes": 96360,
+    "sha": "53e96464d2cc69cb308c5de967f8142c84054886",
+    "skins": 0,
+    "nodes": 57,
+    "clips": [
+      {
+        "name": "Hero_Run",
+        "duration": 0.68,
+        "channels": 53,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Enemy1.glb",
+    "bytes": 9284644,
+    "sha": "e03e1c44d939a5b95368121f46aaaaebcaef9724",
+    "skins": 1,
+    "nodes": 94,
+    "clips": [
+      {
+        "name": "Running",
+        "duration": 0.6666666865348816,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "Walking",
+        "duration": 1.0416666269302368,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b4d-06e7-7100-a90e-f7462489c8b9",
+        "duration": 2,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b4e-e964-72e9-9e35-9c0c586edbec",
+        "duration": 2,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b51-9352-70b9-8540-e7713d7152b1",
+        "duration": 2,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b57-0772-77b2-9da3-b6644a5d1cae",
+        "duration": 2,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b5a-2ee6-75dc-982f-8965372f192b",
+        "duration": 2.5,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b5c-5fd2-74f9-b256-af9f522f53cb",
+        "duration": 2.5,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "Skill_03",
+        "duration": 1.6666666269302368,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Enemy1-lod.glb",
+    "bytes": 2188644,
+    "sha": "e6af726688dc7a3875aa09a8ab08a80cb94fbe89",
+    "skins": 1,
+    "nodes": 94,
+    "clips": [
+      {
+        "name": "Running",
+        "duration": 0.6666666865348816,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "Walking",
+        "duration": 1.0416666269302368,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b4d-06e7-7100-a90e-f7462489c8b9",
+        "duration": 2,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b4e-e964-72e9-9e35-9c0c586edbec",
+        "duration": 2,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b51-9352-70b9-8540-e7713d7152b1",
+        "duration": 2,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b57-0772-77b2-9da3-b6644a5d1cae",
+        "duration": 2,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b5a-2ee6-75dc-982f-8965372f192b",
+        "duration": 2.5,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "01a14b5c-5fd2-74f9-b256-af9f522f53cb",
+        "duration": 2.5,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      },
+      {
+        "name": "Skill_03",
+        "duration": 1.6666666269302368,
+        "channels": 184,
+        "paths": [
+          "rotation",
+          "translation"
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Enemy2-rig.glb",
+    "bytes": 2740364,
+    "sha": "6844fd44cfddf17cf03e834edb6689aaf73b3b59",
+    "skins": 1,
+    "nodes": 70,
+    "clips": [
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "duration": 1.9583333333333333,
+        "channels": 204,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+        "duration": 2.4583333333333335,
+        "channels": 204,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Attack",
+        "duration": 2.7916666666666665,
+        "channels": 204,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Dead",
+        "duration": 2.9583333333333335,
+        "channels": 204,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Running",
+        "duration": 0.625,
+        "channels": 204,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Skill_03",
+        "duration": 1.625,
+        "channels": 204,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "duration": 4.291666666666667,
+        "channels": 204,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      },
+      {
+        "name": "Walking",
+        "duration": 1,
+        "channels": 204,
+        "paths": [
+          "rotation",
+          "scale",
+          "translation"
+        ]
+      }
+    ]
+  }
+]

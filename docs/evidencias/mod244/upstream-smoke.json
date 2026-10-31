@@ -1,0 +1,252 @@
+{
+  "errors": [],
+  "casts": [
+    {
+      "flag": false,
+      "skill": "skill_x_rupture",
+      "damage": 0,
+      "peak": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        }
+      },
+      "end": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        }
+      },
+      "manaDeltaIncludingDebugClamp": 899
+    },
+    {
+      "flag": false,
+      "skill": "skill_twin_portals",
+      "damage": 58,
+      "peak": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": true,
+          "phase": "pressure",
+          "time": 2.5
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        }
+      },
+      "end": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 5.53
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        }
+      },
+      "manaDeltaIncludingDebugClamp": 40
+    },
+    {
+      "flag": false,
+      "skill": "skill_judgment_dragon",
+      "damage": 66,
+      "peak": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 5.53
+        },
+        "skill_judgment_dragon": {
+          "active": true,
+          "phase": "form",
+          "time": 2.5
+        }
+      },
+      "end": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 5.53
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 11.1
+        }
+      },
+      "manaDeltaIncludingDebugClamp": 55
+    },
+    {
+      "flag": true,
+      "skill": "skill_x_rupture",
+      "damage": 0,
+      "peak": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        }
+      },
+      "end": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        }
+      },
+      "manaDeltaIncludingDebugClamp": 899
+    },
+    {
+      "flag": true,
+      "skill": "skill_twin_portals",
+      "damage": 44,
+      "peak": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": true,
+          "phase": "dome",
+          "time": 2.5
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        }
+      },
+      "end": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 3.43
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 0
+        }
+      },
+      "manaDeltaIncludingDebugClamp": 40
+    },
+    {
+      "flag": true,
+      "skill": "skill_judgment_dragon",
+      "damage": 66,
+      "peak": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 3.43
+        },
+        "skill_judgment_dragon": {
+          "active": true,
+          "phase": "pillar",
+          "time": 2.5
+        }
+      },
+      "end": {
+        "skill_x_rupture": {
+          "active": false,
+          "phase": "idle",
+          "time": 1.75
+        },
+        "skill_twin_portals": {
+          "active": false,
+          "phase": "idle",
+          "time": 3.43
+        },
+        "skill_judgment_dragon": {
+          "active": false,
+          "phase": "idle",
+          "time": 4.93
+        }
+      },
+      "manaDeltaIncludingDebugClamp": 55
+    }
+  ],
+  "enemyPowers": [
+    "vortex",
+    "trinity",
+    "collapse"
+  ],
+  "environment": "Chromium SwiftShader; no Android device",
+  "note": "Smoke de ciclo/renderização. A diferença de mana inclui clamp/regeneração do helper de QA (inicia em 999); não é uma medição de custo. X não acertou nesse cenário."
+}
