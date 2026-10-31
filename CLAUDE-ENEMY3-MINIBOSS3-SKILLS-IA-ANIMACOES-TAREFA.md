@@ -81,3 +81,29 @@ Máquina de estados ou behavior tree simples: idle, alert, approach, strafe, win
 - Three.js `Material.clippingPlanes` requer `WebGLRenderer.localClippingEnabled` em WebGL; checar docs oficiais antes de usar.
 - Boas práticas de telegraph de ataques: antecipação visual, janela de reação e dano evitável.
 - Redução de shake e flashes é requisito de conforto/acessibilidade, não perda de impacto.
+
+
+## 12. ADENDO VISUAL CONFIRMADO PELO CRIADOR — FOTOS E VÍDEO RECEBIDOS EM 31/10/2026
+**Este adendo prevalece sobre descrições visuais conflitantes das seções anteriores.** O criador enviou 4 imagens e um vídeo curto de referência nesta conversa. **Os arquivos não foram enviados automaticamente ao GitHub**: Claude deverá examinar os mesmos anexos quando o criador os enviar diretamente. Não afirmar que viu os anexos antes disso.
+
+### Referência A — Katana carmim do mini-boss
+Imagem: katana longa inclinada, ponta muito fina, corpo escuro com fio luminoso vermelho, cabo vermelho trançado, guarda circular negra, dragão negro detalhado enrolado na parte superior da lâmina e **grandes chamas carmim com silhuetas orgânicas, pontas pretas e brasas** envolvendo principalmente o meio/terço inferior. **O dragão é elemento escultórico da arma**, não uma simples textura pintada. Preservar proporção e perfil da lâmina; chamas devem fluir independentemente, sem transformar a espada numa barra neon. Confirmar modelo real disponível antes de qualquer reconstrução.
+
+### Referência B — Barragem Abissal
+Imagem: **portais são rasgos verticais/oblíquos irregulares no tecido espacial, não círculos ou galáxias redondas**. Centros absolutamente escuros, contornos quebrados rosa-magenta luminosos, ramificações como rachaduras. Dispostos atrás/acima do conjurador em alturas e ângulos diferentes; espadas longas e negras com fios carmim saem visivelmente das fendas, inclinadas em direção ao jogador. A galáxia giratória, se desejada, deve ser detalhe **dentro da fenda**, não substituir sua silhueta rasgada. Alternar emergências lentas com disparos acelerados, criando sensação de estoque infinito, sem spawn fora dos portais.
+
+### Referência C — Tempestade de Nadir
+Imagem: **redemoinho colossal visto por baixo**, espirais de nuvens negras e magenta contornando um vazio central negro profundo, com luz rosa cortando a borda interna. Raios negros com bordas magenta/rosa ramificados caem em diversos pontos; solo recebe crateras e fragmentos. A tempestade deve ocupar visualmente o céu e dar sensação de escala opressiva, mas cada raio precisa de indicação no chão e rotas de esquiva.
+
+### Referência D — Domo da Singularidade
+Imagem: hemisfério maciço em expansão apoiado no chão, corpo rosa/lilás/lavanda com **rasgos irregulares de tinta preta**, interior branco/laranja muito brilhante e coroa de energia roxa/preta recortada na base. Não confundir com bolha transparente, esfera completa ou fumaça; preservar **contorno nítido de domo 3D** e irregularidade das manchas.
+
+### Referência E — Vídeo de ~6 segundos: formação do buraco negro
+O vídeo mostra um personagem de anime com um **núcleo negro circular, halo amarelo-alaranjado e feixe/acréscimo de energia horizontal brilhante**, com forte contraste e sensação de energia concentrada. A interpretação para a skill é: núcleo minúsculo surge no gesto da mão, aro quente é formado em camadas e **linhas de energia horizontais passam/espiralam pelo disco**; a singularidade cresce, se eleva, gira sem parar e depois é arremessada. Não usar screenshot do vídeo como textura no jogo, nem copiar frames de anime. **Esse vídeo é referência do momento de conjuração, não da explosão final**, que segue a referência D.
+
+### Correções finais obrigatórias
+1. **Prioridade visual:** silhueta + coreografia + massa antes de partículas extras; efeitos distintos em cada estágio, legíveis no Android.
+2. **Som e feedback:** carga gravitacional grave, rasgo espacial, disparo de espada, trovão e impacto com variações; áudio espacial e limites de simultaneidade, com fallback sem arquivos externos.
+3. **Câmera e gameplay:** mostrar conjuração e escala sem forçar cinematic camera; preserve controle e visão dos avisos, mesmo com portais atrás do inimigo.
+4. **Fidelidade auditável:** comparar screenshots/vídeo do resultado às referências fornecidas pelo criador e descrever diferenças honestamente no relatório técnico.
+5. **NÃO pedir mais detalhes se as referências enviadas forem suficientes.** Implementar com liberdade criativa e proteger todo o jogo existente.
