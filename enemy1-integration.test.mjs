@@ -7,12 +7,12 @@ const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url),
 const html = fs.readFileSync(new URL('./mundo-3d-prototype.html', import.meta.url), 'utf8');
 
 test('encontros Enemy1 viram esquadra simultânea; outros tipos seguem o pacote antigo', () => {
-  assert.match(src, /squad:rigName==='enemy1'&&!SQUAD_LEGACY/);
+  assert.match(src, /squad:\(rigName==='enemy1'\|\|rigName==='enemy2'\)&&!SQUAD_LEGACY/);
   assert.match(src, /if\(pack&&pack\.squad\)\{if\(!squadOn\)startSquadPack\(\);return;\}/);
   assert.match(src, /if\(pack\.squad\)return true;/, 'packHandleDefeat não fecha o encontro por inimigo');
   assert.match(src, /function finishSquad\(\)[\s\S]{0,900}const done=P&&P\.onDone;pack=null;packFinishing=true;/, 'onDone só depois de todos caírem');
   assert.match(src, /P\.index\+\+;if\(P\.onEach\)P\.onEach\(P\.index\)/, 'onEach por inimigo derrotado');
-  for (const rig of ['enemy2', 'enemy3', 'enemy4', 'rival', 'anjo']) assert.match(src, new RegExp(`startPack\\(\\{rig:'${rig}'`));
+  for (const rig of ['enemy3', 'enemy4', 'rival', 'anjo']) assert.match(src, new RegExp(`startPack\\(\\{rig:'${rig}'`));
 });
 
 test('o inimigo legado vira procurador do foco: IA e kit antigos desligados, dano repassado', () => {
@@ -32,14 +32,24 @@ test('golpe, projéteis e magias em área alcançam os outros atores; colisão c
 
 test('MIRAR alterna entre inimigos; laboratório isolado do progresso', () => {
   assert.match(src, /if\(squadOn&&lockOnActive&&squadCycleFocus\(\)\)return;/);
-  assert.match(src, /const ENEMY1_LAB=new URLSearchParams\(location\.search\)\.has\('testeEnemy1'\);\nconst localStorage=isolatedSwordStorage\(window\.localStorage,testAllSkills\|\|ENEMY1_LAB\);/);
+  assert.ok(src.includes("ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2');") && src.includes('isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB)'));
   for (const b of ["B('1'", "B('2'", "B('4'", "B('GUARDIÃO'", "B('+ ALIADO'", "B('CLASH'"]) assert.ok(src.includes(b), b);
 });
 
-test('Mod 237 visível e cache atualizado', () => {
-  assert.match(html, /<div id="marker" aria-label="Modificação 237">237<\/div>/);
-  assert.match(html, /mod181-loader\.js\?v=mod237-enemy1-esquadra/);
-  assert.match(fs.readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /const BUILD = 'mod237-enemy1-esquadra';/);
+test('Mod visível e cache atualizado (238)', () => {
+  assert.match(html, /<div id="marker" aria-label="Modificação 238">238<\/div>/);
+  assert.match(html, /mod181-loader\.js\?v=mod238-enemy2-trindade/);
+  assert.match(fs.readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /const BUILD = 'mod238-enemy2-trindade';/);
+});
+
+test('Mod 238: Enemy2 do Ato II em esquadra, mini-chefe com foice, ultimate genérico desligado na esquadra', () => {
+  assert.match(src, /kind=P\.rig==='enemy2'\?\(P\.profile==='miniboss2'\?'e2boss':'e2'\)/);
+  assert.match(src, /source:k=>rigSource\(k==='e2'\|\|k==='e2boss'\?'enemy2':'enemy1'\)/);
+  assert.match(src, /function updateBossUltimates\(dt,now\)\{\n tickTransientFx\(dt\);\n[^\n]*\n[^\n]*\n if\(squadOn\)\{if\(bossUlt\.kind\)endBossUlt\(\);return;\}/);
+  assert.match(src, /air:Math\.max\(0,player\.position\.y-terrainHeightAt/, 'salto sobre a onda do Colapso');
+  for (const k of ["case 'surgir-tres':startPack({rig:'enemy2'", "case 'surgir-cinco':startPack({rig:'enemy2'", "case 'surgir-mini-chefe':startPack({rig:'enemy2',profile:'miniboss2'"]) assert.ok(src.includes(k), k);
+  const rt = fs.readFileSync(new URL('./enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
+  assert.match(rt, /kind === 'e2boss' \? buildInfernalScythe\(T\)/);
 });
 
 test('Guardião é bem mais resistente que o comum, sem virar esponja; comum na faixa 150–220', () => {
