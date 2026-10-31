@@ -17,23 +17,25 @@ import { softParticles, groundDecals, groundNormal, ribbons, smooth, easeOut, ha
  * incandescente por dentro. Rastros volumétricos saem do cruzamento e das pontas; sem linhas finas soltas.
  */
 const BLADE_VERT = `varying vec2 vUv; varying vec3 vN; varying vec3 vV; uniform float time; void main(){ vUv=uv;vec3 p=position;p.z+=sin(p.x*19.-time*14.)*.035*(1.-abs(p.x));p.y+=sin(p.x*23.+time*11.)*.018;vec4 w=modelMatrix*vec4(p,1.); vN=normalize(mat3(modelMatrix)*normal); vV=normalize(cameraPosition-w.xyz); gl_Position=projectionMatrix*viewMatrix*w; }`;
-const BLADE_FRAG = `varying vec2 vUv; varying vec3 vN; varying vec3 vV; uniform float time, alpha, grow, seed, detail;
+const BLADE_FRAG = `varying vec2 vUv;varying vec3 vN;varying vec3 vV;uniform float time,alpha,grow,seed,detail;
 ${FLOW_NOISE}
 void main(){
- float x=abs(vUv.x*2.-1.); if(x>grow) discard;                      // cresce do cruzamento para as pontas
- float y=abs(vUv.y*2.-1.), w=1.-x*x;                                   // perfil: grosso no meio, afiado nas pontas
- if(y>w) discard;
+ float x=abs(vUv.x*2.-1.);if(x>grow)discard;
+ float y=abs(vUv.y*2.-1.),w=1.-x*x;if(y>w)discard;
  float e=y/max(w,.001);
- float core=exp(-e*e*28.)*(1.-x*.5);                                   // filete branco-quente
- float flow=flowNoise(vec2(vUv.x*14.,vUv.y*3.+seed),time*1.8,detail), flow2=flowNoise(vec2(vUv.x*31.,vUv.y*7.+seed),-time,detail);
- float fil=smoothstep(.06,.0,abs(flow-.5)-.02)*smoothstep(.15,.6,e);  // filamentos pretos finos
- vec3 crimson=vec3(.85,.02,.08), magenta=vec3(1.,.2,.55);
- vec3 c=mix(crimson,magenta,smoothstep(.45,1.,e)+flow2*.25);
- c=mix(c,vec3(1.,.93,.9),core); c*=.9+.25*flow;
- c=mix(c,vec3(.02,0.,.02),fil*.85);
- float rim=pow(1.-abs(dot(normalize(vN),vV)),2.)*.4;
- float a=alpha*(smoothstep(1.,.75,e)*.9+core)*(1.-smoothstep(grow-.08,grow,x)*.6);
- gl_FragColor=vec4((c+rim)*a,a);
+ float core=exp(-e*e*32.)*(1.-x*.45);
+ float obsidian=1.-smoothstep(0.,.52,e);
+ float flow=flowNoise(vec2(vUv.x*14.,vUv.y*3.+seed),time*1.8,detail);
+ float flow2=flowNoise(vec2(vUv.x*31.,vUv.y*7.+seed),-time,detail);
+ float fil=(1.-smoothstep(0.,.075,abs(flow-.5)-.022))*smoothstep(.1,.75,e);
+ vec3 abyss=vec3(.015,0.,.005),crimson=vec3(.92,.01,.04),ruby=vec3(1.,.24,.18);
+ vec3 c=mix(abyss,crimson,smoothstep(.18,.68,e+flow*.22));
+ c=mix(c,ruby,clamp(smoothstep(.62,.98,e)+flow2*.2,0.,1.));
+ c=mix(c,vec3(1.,.92,.88),core*.85);
+ c=mix(c,abyss,max(fil*.9,obsidian*.65*(1.-core)));
+ float rim=pow(1.-abs(dot(normalize(vN),vV)),1.75)*.55;
+ float a=alpha*((1.-smoothstep(.72,1.,e))*.95+core)*(1.-smoothstep(grow-.08,grow,x)*.6);
+ gl_FragColor=vec4((c+rim*crimson)*a,a);
 }`;
 /** Lâmina: faixa ao longo de X (−1..1), largura em Y, levemente arqueada para trás em Z e com espessura (duas faces). */
 function bladeGeometry(T) {
@@ -54,7 +56,13 @@ function slashGeometry(T, { nx = 36, ns = 12 } = {}) {
       if (i < nx && j < ns) { const p = i * (ns + 1) + j, q = p + ns + 1; idx.push(p, q, p + 1, p + 1, q, q + 1); } } }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return g;
 }
-const CORE_FRAG = `varying vec3 vN; varying vec3 vV; uniform float alpha; void main(){ float f=abs(dot(normalize(vN),normalize(vV))); float a=alpha*pow(f,1.5); vec3 c=mix(vec3(1.,.25,.45),vec3(1.,.96,.92),pow(f,3.)); gl_FragColor=vec4(c*a,a); }`;
+const CORE_FRAG = `varying vec3 vN;varying vec3 vV;uniform float alpha;
+void main(){
+ float f=abs(dot(normalize(vN),normalize(vV))),rim=pow(1.-f,1.6);
+ vec3 c=mix(vec3(.02,0.,.005),vec3(.95,.02,.08),rim);
+ c=mix(c,vec3(1.,.88,.82),pow(rim,3.2)*.75);
+ float a=alpha*(.82+.18*rim);gl_FragColor=vec4(c*a,a);
+}`;
 const CORE_VERT = `varying vec3 vN; varying vec3 vV; void main(){ vec4 w=modelMatrix*vec4(position,1.); vN=normalize(mat3(modelMatrix)*normal); vV=cameraPosition-w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
 export function createXRuptureVFX(T, scene, { ground = () => 0 } = {}) {
   const root = new T.Group(); root.name = 'RupturaEmX'; root.visible = false; scene.add(root);
@@ -62,10 +70,13 @@ export function createXRuptureVFX(T, scene, { ground = () => 0 } = {}) {
   const mk = seed => new T.ShaderMaterial({ vertexShader: BLADE_VERT, fragmentShader: BLADE_FRAG, transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false, fog: false,
     blending: T.CustomBlending, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, uniforms: { time: { value: 0 }, alpha: { value: 1 }, grow: { value: 1 }, seed: { value: seed }, detail:{value:1} } });
   const X = new T.Group(); root.add(X);
+
   // cada lâmina: grupo inclinado ±45° com corpo volumétrico (energia carmesim) + núcleo incandescente + filete (shader antigo)
-  const sgeo = slashGeometry(T), coreMat = () => new T.ShaderMaterial({ vertexShader: CORE_VERT, fragmentShader: CORE_FRAG, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false, fog: false, uniforms: { alpha: { value: 1 } } });
+  const sgeo = slashGeometry(T), coreMat = () => new T.ShaderMaterial({ vertexShader: CORE_VERT, fragmentShader: CORE_FRAG, transparent: true, depthWrite: false, blending: T.CustomBlending, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, toneMapped: false, fog: false, uniforms: { alpha: { value: 1 } } });
+  const knotGeo = new T.OctahedronGeometry(.26,1), knotMat = coreMat();
+  const centerKnot = new T.Mesh(knotGeo,knotMat);centerKnot.scale.set(1.3,1.3,.75);X.add(centerKnot);
   const makeSlash = (parent, i, seed) => { const g = new T.Group(); g.rotation.z = i ? -Math.PI / 4 : Math.PI / 4; parent.add(g);
-    const bm = energyMaterial(T, 'crimson', { alpha: .97, warp: .025, seed, frequency: 2.2 }); bm.uniforms.deep.value.setRGB(.06, 0, .012); bm.uniforms.body.value.setRGB(.62, .0, .05); bm.uniforms.hot.value.setRGB(1, .18, .28);
+    const bm = energyMaterial(T, 'crimson', { alpha: .97, warp: .025, seed, frequency: 2.2 }); bm.uniforms.deep.value.setRGB(.015, 0, .004); bm.uniforms.body.value.setRGB(.82, .008, .03); bm.uniforms.hot.value.setRGB(1, .22, .18);
     const body = new T.Mesh(sgeo, bm), core = new T.Mesh(sgeo, coreMat()), edge = new T.Mesh(geo, mk(seed));
     core.scale.set(.97, .55, .55); edge.scale.set(1, 1.05, 1); g.add(body, core, edge); for (const m of [body, core, edge]) m.frustumCulled = false;
     return { g, body, core, edge, material: edge.material }; };
@@ -73,13 +84,13 @@ export function createXRuptureVFX(T, scene, { ground = () => 0 } = {}) {
   const cutGroup0 = new T.Group(); root.add(cutGroup0);
   const cutSl = [0, 1].map(i => makeSlash(cutGroup0, i, 5 + i * 4)), cutMats = cutSl.map(c => c.material), cuts = cutSl.map(c => c.g);
   const cutGroup = cutGroup0;
-  const glow = softParticles(T, 180), decals = groundDecals(T, 6), rib = ribbons(T, 900, { flow: 22 }); root.add(glow.mesh, decals.mesh, rib.mesh);
+  const glow = softParticles(T, 180), decals = groundDecals(T, 12), rib = ribbons(T, 900, { flow: 22 }); root.add(glow.mesh, decals.mesh, rib.mesh);
   const impacts=impactDirector(T,root,ground,{capacity:2}),volume=volumeTrail(T,root,'crimson',{radius:.6,life:.45}),tipTrails=[0,1].map(()=>volumeTrail(T,root,'crimson',{radius:.32,life:.35,capacity:24}));
   const arcGeo=new T.BufferGeometry(),arcPos=new Float32Array(80*6);arcGeo.setAttribute('position',new T.BufferAttribute(arcPos,3));const arcMat=new T.LineBasicMaterial({color:0x050008}),arcs=new T.LineSegments(arcGeo,arcMat);arcs.frustumCulled=false;arcs.visible=false;// MOD 238: sem linhas soltas
 
   const HN = 26, hist = Array.from({ length: HN }, () => ({ x: 0, y: 0, z: 0, t: -9 })); let hi = 0, lastT = -1;
   const q = new T.Quaternion(), fwd = new T.Vector3(), tip = new T.Vector3(), nrm = [0, 1, 0], UP = new T.Vector3(0, 1, 0), m4 = new T.Matrix4(), side = new T.Vector3(), upv = new T.Vector3();
-  const CR = [1, .1, .2, 1], MG = [1, .35, .7, 1], WH = [1, .95, .92, 1], c4 = (c, a) => [c[0], c[1], c[2], a];
+  const CR = [.95, .02, .08, 1], DK = [.03, 0, .01, 1], WH = [1, .92, .88, 1], c4 = (c, a) => [c[0], c[1], c[2], a];
   function orient(obj, dx, dz) { fwd.set(dx, 0, dz).normalize(); side.crossVectors(UP, fwd).normalize(); upv.crossVectors(fwd, side); m4.makeBasis(side, upv, fwd); q.setFromRotationMatrix(m4); obj.quaternion.copy(q); }
   function update(s, camera, quality = 1) {
     root.visible = s.active; if (!s.active) { lastT = -1;volume.clear();for(const v of tipTrails)v.clear();impacts.clear();return; }
@@ -90,7 +101,8 @@ export function createXRuptureVFX(T, scene, { ground = () => 0 } = {}) {
     // ---- o X
     X.visible = ph === 'cast' || ph === 'travel' || ph==='impact' || (ph === 'fade' && A < .6);
     X.position.set(s.p.x, s.p.y, s.p.z); orient(X, s.dir.x, s.dir.z);
-    const grow = ph === 'cast' ? easeOut((A - .12) / .28) : 1, fade = ph === 'fade' ? 1 - A / .6 : 1, pulse = 1 + .04 * Math.sin(t * 40);
+    const grow = ph === 'cast' ? easeOut((A - .12) / .28) : 1, fade = ph === 'fade' ? 1 - A / .6 : 1, pulse = 1 + .045 * Math.sin(t * 42);
+    knotMat.uniforms.alpha.value=fade*grow;centerKnot.rotation.z=t*8;
     for (const [i,b] of blades.entries()) { const gk = Math.max(.02,ph==='cast'?easeOut((A-.08-i*.12)/.25):1); b.material.uniforms.grow.value = gk; b.material.uniforms.alpha.value = fade*.8; const sc = 3.7 * pulse * (ph === 'fade' ? 1 + A * .6 : 1); b.g.scale.set(sc * gk, sc * (.6 + .4 * gk), sc);
       b.body.material.uniforms.time.value = t; b.body.material.uniforms.alpha.value = .95 * fade; b.body.material.uniforms.dissolve.value = ph === 'fade' ? A / .6 * .9 : 0; b.body.material.uniforms.detail.value = low ? .65 : 1; b.core.material.uniforms.alpha.value = fade * (ph === 'cast' ? gk : 1); }
     if (ph === 'cast') { // energia sugada para o centro
@@ -110,7 +122,23 @@ export function createXRuptureVFX(T, scene, { ground = () => 0 } = {}) {
       for (let k = 0; k < HN - 1; k++) {
         const a = hist[(hi - k + HN) % HN], b = hist[(hi - k - 1 + HN) % HN]; if (b.t < 0 || t - b.t > .32) break;
         const fa = 1 - (t - a.t) / .32, fb = 1 - (t - b.t) / .32;
-        rib.seg(a.x, a.y, a.z, b.x, b.y, b.z, .5 * fa, .5 * fb, c4(WH, fa * fade * .8), c4(CR, fb * .7 * fade), k / 12, (k + 1) / 12);
+        rib.seg(a.x, a.y, a.z, b.x, b.y, b.z, .54 * fa, .54 * fb, c4(WH, fa * fade * .85), c4(CR, fb * .78 * fade), k / 12, (k + 1) / 12);
+      }
+      // Rastro duplo rubro-negro e sulcos tectônicos no solo durante o voo baixo.
+      for(let k=0;k<HN-1;k++){
+        const a=hist[(hi-k+HN)%HN],b=hist[(hi-k-1+HN)%HN];
+        if(b.t<0||t-b.t>.34)break;
+        const fa=Math.max(0,1-(t-a.t)/.34),fb=Math.max(0,1-(t-b.t)/.34);
+        rib.seg(a.x,a.y,a.z,b.x,b.y,b.z,.82*fa,.82*fb,c4(DK,fa*fade*.7),c4(CR,fb*.5*fade),k/12,(k+1)/12);
+      }
+      for(let k=0;k<5;k++){
+        const h=hist[(hi-k*3+HN)%HN];if(h.t<0||t-h.t>.3)continue;
+        const gy=ground(h.x,h.z);
+        if(h.y-gy<2.6){
+          groundNormal(ground,h.x,h.z,nrm);
+          const fk=Math.max(0,1-(t-h.t)/.3);
+          decals.add(h.x,gy,h.z,1.35*fk,.9,.02,.05,fk*.75,1,1-fk,k+1,nrm,Math.atan2(s.dir.x,s.dir.z));
+        }
       }
       // rastros volumétricos das duas pontas superiores do X (seguem a lâmina de verdade)
       [[1, 1], [-1, 1]].forEach(([sx, sy], i) => { tip.set(sx * 2.2 * .707, sy * 2.2 * .707, -.6).applyQuaternion(X.quaternion).add(X.position); tipTrails[i].update(t, tip, ph === 'travel', quality); });
@@ -125,7 +153,7 @@ export function createXRuptureVFX(T, scene, { ground = () => 0 } = {}) {
       const sc = ph === 'wall' ? .75 : 1, P = s.at; cutGroup.visible = true; cutGroup.position.set(P.x, P.y, P.z); orient(cutGroup, s.dir.x, s.dir.z);
       const open = easeOut(A / .12), out = 1 - smooth((A - .25) / .45);
       cutSl.forEach((c, i) => { c.g.scale.set(3.6 * sc * (.25 + .9 * open), 2.2 * sc * (1 + A * .8), 2.2 * sc); c.material.uniforms.grow.value = Math.max(.02, open); c.material.uniforms.alpha.value = out; c.body.material.uniforms.time.value = t; c.body.material.uniforms.alpha.value = out; c.body.material.uniforms.dissolve.value = smooth((A - .2) / .6) * .9; c.core.material.uniforms.alpha.value = out * (1 - smooth(A / .35)); });
-      if (A < .5) { glow.add(P.x, P.y, P.z, 5 * sc * (1 - A), 5 * sc * (1 - A), 1, .3, .45, .7 * (1 - A * 2), 0); const gy = ground(P.x, P.z); if (P.y - gy < 2.5) { groundNormal(ground, P.x, P.z, nrm); decals.add(P.x, gy, P.z, (1.5 + easeOut(A / .5) * 5) * sc, 1, .25, .4, 1 - A * 2, 0, A * 2, 7, nrm); } }
+      if (A < .5) { glow.add(P.x, P.y, P.z, 5 * sc * (1 - A), 5 * sc * (1 - A), 1, .3, .45, .7 * (1 - A * 2), 0); const gy = ground(P.x, P.z); if (P.y - gy < 2.5) { groundNormal(ground, P.x, P.z, nrm); decals.add(P.x, gy, P.z, (1.5 + easeOut(A / .5) * 5) * sc,  .95, .02, .06, 1 - A * 2, 0, A * 2, 7, nrm); } }
       const nS = low ? 18 : quality===1?30:46;
       for (let i = 0; i < nS && A < .6; i++) { // faíscas saindo ao longo das duas diagonais do X e de volta pelo caminho
         const diag = i % 2 ? 1 : -1, along = (i % 4 < 2 ? 1 : -1), sp = (5 + hash(i) * 7) * sc, d = sp * A;
@@ -138,6 +166,6 @@ export function createXRuptureVFX(T, scene, { ground = () => 0 } = {}) {
     if (ph === 'fade') for (let i = 0; i < (low ? 14 : quality===1?24:34); i++) { const a = i * 2.4, r = A * (2 + hash(i) * 2); glow.add(s.p.x + Math.cos(a) * r, s.p.y + Math.sin(a * 1.3) * r * .6, s.p.z + Math.sin(a) * r, .05, .25, 1, .3, .55, 1 - A / .6, 3, a, i); }
     volume.update(t,s.p,ph==='travel'||ph==='impact',quality);impacts.update(t,quality);rib.end(); glow.end(); decals.end(t);
   }
-  return { root, update, clear() { root.visible = false; lastT = -1;volume.clear();impacts.clear(); for (const h of hist) h.t = -9; },
-    dispose() { scene.remove(root);volume.dispose();for(const v of tipTrails)v.dispose();sgeo.dispose();impacts.dispose();arcGeo.dispose();arcMat.dispose(); geo.dispose(); for (const b of blades) b.material.dispose(); for (const m of cutMats) m.dispose(); glow.dispose(); decals.dispose(); rib.dispose(); } };
+  return { root, update, clear() { root.visible = false; lastT = -1;volume.clear();for(const v of tipTrails)v.clear();impacts.clear();for (const h of hist) h.t = -9; },
+    dispose() { scene.remove(root);volume.dispose();for(const v of tipTrails)v.dispose();sgeo.dispose();knotGeo.dispose();knotMat.dispose();impacts.dispose();arcGeo.dispose();arcMat.dispose(); geo.dispose(); for (const b of [...blades,...cutSl]) {b.material.dispose();b.body.material.dispose();b.core.material.dispose();} glow.dispose(); decals.dispose(); rib.dispose(); } };
 }
