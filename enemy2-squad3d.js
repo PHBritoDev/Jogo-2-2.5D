@@ -218,7 +218,7 @@ registerSkill('collapse', {
 /** Soma das sucções sobre um alvo (com teto), para o jogo aplicar ao herói/NPC. */
 export function pullOn(sq, tg, cap = 1.6) {
   let x = 0, z = 0;
-  for (const s of sq.spells) { const def = PULLERS[s.type]; if (!def) continue; const p = def(sq, s, tg); if (p) { x += p.x; z += p.z; } }
+  for (const s of sq.spells) { const def = PULLERS[s.type] || (SKILLS[s.type] && SKILLS[s.type].pull && ((q, w, t) => SKILLS[w.type].pull(q, w, t))); if (!def) continue; const p = def(sq, s, tg); if (p) { x += p.x; z += p.z; } }
   const l = Math.hypot(x, z); if (l > cap) { x *= cap / l; z *= cap / l; } return { x, z };
 }
 const PULLERS = { trinity: (sq, s, t) => SKILLS.trinity.pull(sq, s, t), collapse: (sq, s, t) => SKILLS.collapse.pull(sq, s, t) };

@@ -215,6 +215,21 @@ export function createWorldAudio() {
       else if (kind === 'beam') { burst('highpass', 3000, .6, .14, .35); tone('sawtooth', 300, 60, .08, .4); }
       else if (kind === 'blast') { tone('sine', 62, 24, .5, 1.6); burst('lowpass', 900, .6, .4, 1.3, sfxBus, 80); burst('bandpass', 2600, .9, .1, .7, sfxBus, 500); }
     },
+    /** MOD 245 — Enemy3: carga gravitacional grave, rasgo espacial, disparo de espada, aviso elétrico, trovão e impacto.
+     *  gain (0..1) vem da distância até o herói; cada chamada varia o tom um pouco para não soar repetido. */
+    abyss3(kind, gain = 1) {
+      if (!ready) return; const g = Math.max(.05, Math.min(1, gain)), v = .9 + Math.random() * .2;
+      if (kind === 'gravity') { tone('sine', 34 * v, 82 * v, .26 * g, 2.1); tone('sawtooth', 52 * v, 30, .05 * g, 1.9); burst('bandpass', 160, 1.3, .12 * g, 1.9, sfxBus, 900); }
+      else if (kind === 'storm') { tone('sawtooth', 48 * v, 36, .08 * g, 2.4); burst('lowpass', 300, .7, .22 * g, 2.6, ambBus, 90); burst('highpass', 2600, .8, .04 * g, 2.2, sfxBus, 6000); }
+      else if (kind === 'tear') { burst('bandpass', 900 * v, 2.2, .14 * g, .7, sfxBus, 180); tone('triangle', 420 * v, 70, .05 * g, .6); }
+      else if (kind === 'warn') { burst('highpass', 5200 * v, 1.4, .05 * g, .28, sfxBus, 9000); tone('square', 1900 * v, 2600, .012 * g, .18); }
+      else if (kind === 'thunder') { burst('lowpass', 2400 * v, .6, .3 * g, .45, sfxBus, 120); tone('sine', 90 * v, 30, .22 * g, .6); }
+      else if (kind === 'heavy') { burst('lowpass', 1800 * v, .5, .42 * g, .9, sfxBus, 60); tone('sine', 60 * v, 22, .4 * g, 1.2); burst('highpass', 3800, .7, .08 * g, .4); }
+      else if (kind === 'blade') { burst('bandpass', 1500 * v, 1.6, .1 * g, .22, sfxBus, 4200); tone('triangle', 780 * v, 1240, .02 * g, .12); }
+      else if (kind === 'stick') { tone('triangle', 260 * v, 90, .1 * g, .2); burst('lowpass', 1200 * v, .8, .1 * g, .18); }
+      else if (kind === 'launch') { burst('bandpass', 420 * v, .9, .16 * g, .7, sfxBus, 1600); tone('sawtooth', 70 * v, 140, .06 * g, .6); }
+      else if (kind === 'boom') { tone('sine', 58 * v, 20, .55 * g, 1.6); burst('lowpass', 1000 * v, .6, .4 * g, 1.3, sfxBus, 70); burst('bandpass', 2800, .9, .1 * g, .6, sfxBus, 500); }
+    },
     novaCharge() { if (!ready) return; tone('sine', 55, 220, .22, 2.9); [196, 207.7, 293.7, 311.1].forEach((f, i) => pad(f, .035, 1.2, 1.4, .4, i * .15, i % 2 ? 'sawtooth' : 'triangle')); burst('highpass', 1800, .6, .08, 2.8, sfxBus, 7000); },
     novaBlast() { if (!ready) return; tone('sine', 70, 22, .7, 3.4); burst('lowpass', 900, .6, .6, 2.8, sfxBus, 60); burst('bandpass', 3200, .8, .12, 1.6, sfxBus, 600); [1046.5, 1318.5, 1568].forEach((f, i) => tone('sine', f, f * .5, .04, 2.2, sfxBus, .25 + i * .07)); }
   };

@@ -241,6 +241,10 @@ export class Enemy1Squad {
     const bigLive = this.spells.filter(x => SKILLS[x.type] && x.phase !== 'fade' && x.phase !== 'retract'), mine = bigLive.some(x => x.owner === a.id);
     if (T.kit && !a.cds.spellGap && !mine && bigLive.length < (T.maxBig || 2)) for (const id of T.kit) { const S = SKILLS[id], ts = T[id]; if (!S || !ts || a.cds[id] || !(d >= ts.min && d <= ts.max) || !this.canAttack(a, 'spell', t.id)) continue;
       const u = S.score(this, a, t, { d, gap, see, st, still, justDashed, recovering, R }); if (u !== null && u !== undefined) opts.push([id, u + r()]); }
+    // golpes nativos com faixa de distância própria (ex.: dash do Iaijutsu do mini-chefe Enemy3): escolha contextual
+    const BM = BOSS_MOVES[a.kind];
+    if (BM && see && !a.cds.melee && this.canAttack(a, 'melee', t.id)) for (const m of BM) if (m.range && gap >= m.range[0] && gap <= m.range[1] && !a.cds['mv_' + m.id])
+      opts.push(['mv:' + m.id, (m.score || .9) + (recovering ? .3 : 0) + (justDashed ? .2 : 0) - (t.blocking ? .2 : 0) + r()]);
     // espécies que interrompem conjuração: avançam com dash e emendam o golpe (sinal visível: o alvo está conjurando)
     if (T.interrupt && t.casting && gap > T.melee.reach && gap < 8 && !a.cds.lunge && this.canAttack(a, 'melee', t.id)) opts.push(['lunge', 1 + r()]);
     const [lo, hi] = a.T.pref || PREF[R];
@@ -252,6 +256,7 @@ export class Enemy1Squad {
     // Guardião: finta ocasional (começa o golpe, recua e lança a espiral)
     if (pick === 'melee' && a.T.feint && !a.cds[a.T.feint] && this.rand() < .12) { this.begin(a, { type: 'feint', dur: .62, anim: 'attack', token: 'melee', tid: t.id }); return; }
     if (pick === 'lunge') { const l = d || 1; a.cds.lunge = 4; this.begin(a, { type: 'dodge', dur: a.T.dash.time * 1.3, anim: 'dash', dx: (t.x - a.x) / l, dz: (t.z - a.z) / l, face: true, chain: 'melee', token: 'melee', tid: t.id }); this.event('lunge', { actor: a, target: t.id }); return; }
+    if (pick.startsWith('mv:')) { const id = pick.slice(3), m = BM.find(x => x.id === id); this.startMelee(a, t, id); a.cds['mv_' + id] = (m.cd || 6) * a.cdMul; return; }
     if (pick === 'melee') this.startMelee(a, t);
     else if (pick === 'claws') this.startCast(a, t, 'claws');
     else if (pick === 'spiral') this.startCast(a, t, 'spiral');
@@ -265,17 +270,17 @@ export class Enemy1Squad {
   }
   startMelee(a, t, forcedMove) {
     if(BOSS_MOVES[a.kind]){
-      const pool=BOSS_MOVES[a.kind],move=pool.find(m=>m.id===forcedMove)||pool[(a.meleeCycle||0)%pool.length];a.meleeCycle=(a.meleeCycle||0)+1;
+      const pool=BOSS_MOVES[a.kind],near=pool.filter(m=>!m.range),move=pool.find(m=>m.id===forcedMove)||near[(a.meleeCycle||0)%near.length];a.meleeCycle=(a.meleeCycle||0)+1;
       this.begin(a,{type:'melee',dur:move.duration,hits:move.hits,done:0,anim:move.id,token:'melee',tid:t.id,landed:false,move,contacts:new Set(),phase:'windup'});
       a.vx=a.vz=0;a.cds.melee=(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
     }
     const M = a.T.melee, hits = a.phase2 && a.T.boss ? [...M.hits, M.hits[M.hits.length - 1] + .4] : M.hits;
-    this.begin(a, { type: 'melee', dur: M.dur + (hits.length - M.hits.length) * .4, hits, done: 0, anim: 'attack', token: 'melee', tid: t.id, landed: false });
+    this.begin(a, { type: 'melee', dur: M.dur + (hits.length - M.hits.length) * .4, hits, done: 0, anim: 'attack', animSpeed: M.animSpeed, token: 'melee', tid: t.id, landed: false });
     a.cds.melee = M.cd * a.cdMul; this.event('windup', { actor: a, kind: 'melee', at: M.windup });
   }
   startCast(a, t, skill) {
     const S = a.T[skill];
-    this.begin(a, { type: 'cast', skill, dur: S.cast + .3, release: S.release, anim: S.anim || (skill === 'judgment' ? 'cast' : skill === 'spiral' ? 'attack2' : 'cast'), token: 'spell', tid: t.id });
+    this.begin(a, { type: 'cast', skill, channel: !!S.channel, dur: S.cast + .3, release: S.release, anim: S.anim || (skill === 'judgment' ? 'cast' : skill === 'spiral' ? 'attack2' : 'cast'), token: 'spell', tid: t.id });
     a.cds[skill] = S.cd * a.cdMul; if (SKILLS[skill]) a.cds.spellGap = (a.T.spellGap || 2.5) * (a.phase2 ? .8 : 1); if (skill === 'judgment') this.judgmentUntil = this.time + S.prep + S.lock + S.beam + 3;
     this.event('cast', { actor: a, skill, target: t.id });
   }
@@ -294,6 +299,7 @@ export class Enemy1Squad {
         }
       }
       act.done=m.hits.filter(h=>act.t>h+.11).length;
+      if(m.after&&!act.after&&act.t>=m.hits.at(-1)&&SKILLS[m.after]){act.after=true;SKILLS[m.after].spawn(this,a,t,{move:m,landed:act.landed});}
     }
     if (act.type === 'melee') {
       while (!act.move && act.done < act.hits.length && act.t >= act.hits[act.done]) {
@@ -312,7 +318,7 @@ export class Enemy1Squad {
         act.reap = true; a.cds[reap] = a.T[reap].cd * a.cdMul; if (RS) RS.spawn(this, a, t, { reap: true }); else this.spawnClaws(a, t, .6); this.event('reap', { actor: a, target: t.id, skill: reap });
       }
     } else if (act.type === 'cast' && !act.released && act.t >= act.release) {
-      act.released = true; if (t) { if (SKILLS[act.skill]) SKILLS[act.skill].spawn(this, a, t); else this[act.skill === 'claws' ? 'spawnClaws' : act.skill === 'spiral' ? 'spawnSpiral' : 'spawnJudgment'](a, t); }
+      act.released = true; if (t) { if (SKILLS[act.skill]) act.spellId = (SKILLS[act.skill].spawn(this, a, t) || {}).id; else this[act.skill === 'claws' ? 'spawnClaws' : act.skill === 'spiral' ? 'spawnSpiral' : 'spawnJudgment'](a, t); }
     } else if (act.type === 'counter' && !act.released && act.t >= act.release) { act.released = true; this.spawnCounter(a, act.spell); }
     else if (act.type === 'feint' && act.t >= act.dur) {
       a.act = null; const away = t ? Math.atan2(a.x - t.x, a.z - t.z) : a.yaw;
@@ -396,7 +402,7 @@ export class Enemy1Squad {
   }
   stagger(a, dur, broken) {
     // golpe que ainda não soltou é interrompido; magia já lançada segue o curso dela
-    if (a.act && a.act.type === 'cast' && a.act.released) return;
+    if (a.act && a.act.type === 'cast' && a.act.released && !a.act.channel) return;
     a.act = null; a.guard = false; this.begin(a, { type: 'stagger', dur, anim: broken ? 'block' : 'hit', face: false }); a.cds.melee = Math.max(a.cds.melee || 0, .6);
   }
   kill(a) {
