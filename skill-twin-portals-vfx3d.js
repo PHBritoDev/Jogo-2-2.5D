@@ -1,8 +1,8 @@
 import {PORTALS} from './skill-twin-portals3d.js?v=mod236-vfx2';
-import {energyBody,energyMaterial} from './vfx-flow3d.js';
-import {volumeTrail} from './vfx-trail3d.js';
-import {impactDirector} from './vfx-impact3d.js';
-import {smooth} from './celestial-fxkit3d.js';
+import {energyBody,energyMaterial} from './vfx-flow3d.js?v=mod240-vfx-integrated';
+import {volumeTrail} from './vfx-trail3d.js?v=mod240-vfx-integrated';
+import {impactDirector} from './vfx-impact3d.js?v=mod240-vfx-integrated';
+import {smooth} from './celestial-fxkit3d.js?v=mod240-vfx-integrated';
 const PORTAL_VERT = 'varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
 const DISC_FRAG = `varying vec2 vUv;uniform float time,alpha,open;uniform vec3 col;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
