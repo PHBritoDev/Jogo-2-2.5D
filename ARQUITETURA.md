@@ -176,3 +176,12 @@ esqueleto, escala travada após o mixer) e prende a `warden-scythe3d.js` na mão
 o procurador invisível do ator em foco (dano, mira e HUD repassados), `updateEnemyAI`/`updateFoeKit` ficam desligados
 e `finishSquad()` fecha o encontro como o pacote antigo. `?esquadraLegada=1` volta ao modo antigo;
 `?testeEnemy1=1&todasHabilidades=1` abre o laboratório isolado. Detalhes: `docs/MOD-237-ENEMY1-ESQUADRA.md`.
+
+## Mod 238 — Enemy2 "Trindade" e revisão de X/Portais/Dragão
+
+`enemy1-squad3d.js` aceita espécies/poderes registráveis (`registerKind`, `registerSkill`); `enemy2-squad3d.js` registra
+o Enemy2 (`e2`, `e2boss`) com Vórtice Abissal, Trindade do Caos e Colapso do Abismo; VFX em `enemy2-chaos-vfx3d.js`
+(tubos/funis/colunas com o `energyMaterial` da VFX Engine 2.0); arma do mini-chefe em `infernal-scythe3d.js`.
+Todo `startPack({rig:'enemy2'})` vira esquadra (kind por perfil); o ultimate genérico do kit antigo fica desligado na
+esquadra. Laboratório `?testeEnemy2=1&todasHabilidades=1`. X/Portais/Dragão revistos nos seus `*-vfx3d.js` e em
+`vfx-dragon-model3d.js`. Detalhes: `docs/MOD-238-ENEMY2-TRINDADE.md`.
