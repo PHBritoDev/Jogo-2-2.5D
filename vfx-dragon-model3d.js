@@ -1,4 +1,4 @@
-import {energyMaterial,flameGeometry} from './vfx-flow3d.js?v=mod240-vfx-integrated';
+import {energyMaterial,flameGeometry} from './vfx-flow3d.js?v=mod241-gemini-vfx-fixed';
 /** Original eastern-dragon silhouette: raised brow, short muzzle, hinged jaw, flame mane.
  * Geometry is authored as continuous ring profiles; no reptile scale tiles or rigid giant horns. */
 function profile(T,rows,sides=20){const pos=[],uv=[],ix=[];for(let j=0;j<rows.length;j++){const [z,rx,ry,cy]=rows[j];for(let k=0;k<=sides;k++){const a=k/sides*Math.PI*2;pos.push(Math.cos(a)*rx,cy+Math.sin(a)*ry,z);uv.push(j/(rows.length-1),k/sides);if(j<rows.length-1&&k<sides){const n=j*(sides+1)+k,b=n+sides+1;ix.push(n,n+1,b,n+1,b+1,b);}}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();return g;}
