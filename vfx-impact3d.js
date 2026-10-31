@@ -1,6 +1,6 @@
 import { impactFragments } from './skill-impact3d.js';
-import { softParticles, groundDecals, groundNormal, groundShatter, hash } from './celestial-fxkit3d.js';
-import { energyBody, ENERGY_PALETTES } from './vfx-flow3d.js';
+import { softParticles, groundDecals, groundNormal, groundShatter, hash } from './celestial-fxkit3d.js?v=mod240-vfx-integrated';
+import { energyBody, ENERGY_PALETTES } from './vfx-flow3d.js?v=mod240-vfx-integrated';
 
 /** Consumes collision records without deciding damage. Fixed reusable slots and 3D tectonic impact shatter. */
 export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () => {} } = {}) {
