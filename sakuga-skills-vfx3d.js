@@ -63,8 +63,8 @@ export function createSakugaXVFX(T, scene, { ground = () => 0 } = {}) {
     for (const m of mats) m.uniforms.time.value = t;
     glow.begin(); rib.begin(camera, t);
     X.visible = s.active && (ph === 'cast' || ph === 'travel' || (ph === 'fade' && A < .5)); X.position.set(s.p.x, s.p.y, s.p.z); frame(X, s.dir.x, s.dir.z);
-    const grow = ph === 'cast' ? easeOut(Math.min(1, A / .35)) : 1, fade = ph === 'fade' ? 1 - A / .5 : 1;
-    blades.forEach((b, i) => { const g = ph === 'cast' ? easeOut(Math.min(1, (A - i * .08) / .3)) : 1; b.scale.set(3.1 * Math.max(.05, g), 2.6, 2.4); b.material.uniforms.alpha.value = fade; b.material.uniforms.erode.value = ph === 'fade' ? A / .5 * .9 : 0; });
+    const grow = ph === 'cast' ? easeOut(Math.min(1, A / .65)) : 1, fade = ph === 'fade' ? 1 - A / .5 : 1;
+    blades.forEach((b, i) => { const g = ph === 'cast' ? easeOut(Math.min(1, (A - i * .12) / .55)) : 1; b.scale.set(3.1 * Math.max(.05, g), 2.6, 2.4); b.material.uniforms.alpha.value = fade; b.material.uniforms.erode.value = ph === 'fade' ? A / .5 * .9 : 0; });
     if (X.visible) {
       // duas fitas helicoidais cruzando o centro ao longo do voo + arcos elétricos vermelhos
       for (const sgn of [-1, 1]) for (let j = 0; j < 14; j++) { const u0 = j / 14, u1 = (j + 1) / 14, a0 = sgn * (u0 * 9 + t * 14), a1 = sgn * (u1 * 9 + t * 14), r0 = 1.5 * (1 - u0 * .6) * grow, r1 = 1.5 * (1 - u1 * .6) * grow;
@@ -75,7 +75,7 @@ export function createSakugaXVFX(T, scene, { ground = () => 0 } = {}) {
       if (!low) for (let i = 0; i < 18; i++) { const a = i / 18 * 6.283 + hash(i) * .4, r0 = .6 + hash(i * 5) * 1.6, back = 1.5 + hash(i * 7) * 3.5; const p0 = V.set(Math.cos(a) * r0, Math.sin(a) * r0, -.4).applyQuaternion(X.quaternion).add(X.position).clone(), p1 = V.set(Math.cos(a) * r0 * 1.15, Math.sin(a) * r0 * 1.15, -.4 - back).applyQuaternion(X.quaternion).add(X.position); rib.seg(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, .05, .01, c4(i % 3 ? RED : WH, .85 * fade), c4(CAR, 0)); } // rastros de velocidade
     }
     // linhas de velocidade radiais: no cast (convergem) e no impacto (estouram)
-    const hitAge = s.hitAtTime >= 0 ? t - s.hitAtTime : -1, speedK = ph === 'cast' ? 1 - A / .45 : hitAge >= 0 && hitAge < .25 ? 1 - hitAge / .25 : 0;
+    const hitAge = s.hitAtTime >= 0 ? t - s.hitAtTime : -1, speedK = ph === 'cast' ? 1 - A / .75 : hitAge >= 0 && hitAge < .25 ? 1 - hitAge / .25 : 0;
     if (hitAge >= 0 && hitAge < .15) glow.add(s.at.x, s.at.y, s.at.z, 7 * (1 - hitAge / .15) + 1, 7 * (1 - hitAge / .15) + 1, 1, .95, .95, 1, 2, .3); // clarão branco do impacto
     if (speedK > 0) { const P = ph === 'cast' ? s.p : s.at; for (let i = 0; i < (low ? 14 : 36); i++) { const a = i / 36 * 6.283 + hash(i) * .3, r0 = ph === 'cast' ? 1 + speedK * 2.5 : .8 + (1 - speedK) * 3, r1 = r0 + 1.6 + hash(i * 3) * 1.6;
       const p0 = V.set(Math.cos(a) * r0, Math.sin(a) * r0, 0).applyQuaternion(X.quaternion).add(P).clone(), p1 = V.set(Math.cos(a) * r1, Math.sin(a) * r1, 0).applyQuaternion(X.quaternion).add(P); rib.seg(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, .03, .005, c4(WH, speedK), c4(RED, 0)); } }
@@ -212,15 +212,17 @@ export function createCelestialVFX(T, scene, { ground = () => 0 } = {}) {
         rib.seg(at.x + Math.cos(a0) * r, y0, at.z + Math.sin(a0) * r * Math.cos(tilt), at.x + Math.cos(a1) * r, y1, at.z + Math.sin(a1) * r * Math.cos(tilt), .05, .05, c4(j % 3 ? ORANGE : GOLD, .8 * out), c4(MAGENTA, .7 * out)); } }
     }
     pillar.visible = pillarCore.visible = ph === 'pillar' || ph === 'fade';
-    if (pillar.visible) { const pa = ph === 'pillar' ? A : CELESTIAL.pillar + A, rise = easeOut(Math.min(1, pa / .12)), out = ph === 'fade' ? 1 - A / CELESTIAL.fade : 1, H = 34 * rise;
-      pillar.position.set(at.x, gy, at.z); pillar.scale.set(2.3 + .3 * Math.sin(t * 20), H, 2.3 + .3 * Math.sin(t * 20)); pillarMat.uniforms.time.value = t; pillarMat.uniforms.alpha.value = out; pillarMat.uniforms.erode.value = ph === 'fade' ? A / CELESTIAL.fade * .9 : 0;
-      pillarCore.position.copy(pillar.position); pillarCore.scale.set(.9, H, .9); pillarCore.material.uniforms.time.value = t * 1.6; pillarCore.material.uniforms.alpha.value = out; pillarCore.material.uniforms.erode.value = pillarMat.uniforms.erode.value;
+    if (pillar.visible) { const pa = ph === 'pillar' ? A : CELESTIAL.pillar + A, fall = smooth(Math.min(1, pa / CELESTIAL.strike)), out = ph === 'fade' ? 1 - A / CELESTIAL.fade : 1, front = gy + 34 * (1 - fall), H = Math.max(.5, gy + 34 - front), boom = Math.max(0, pa - CELESTIAL.strike), wide = pa < CELESTIAL.strike ? 1.2 : 2.6 + .4 * Math.sin(t * 20); // o feixe desce do céu e só depois engrossa
+      pillar.position.set(at.x, front, at.z); pillar.scale.set(wide, H, wide); pillarMat.uniforms.time.value = t; pillarMat.uniforms.alpha.value = out; pillarMat.uniforms.erode.value = ph === 'fade' ? A / CELESTIAL.fade * .9 : 0;
+      pillarCore.position.copy(pillar.position); pillarCore.scale.set(wide * .4, H, wide * .4); pillarCore.material.uniforms.time.value = t * 1.6; pillarCore.material.uniforms.alpha.value = out; pillarCore.material.uniforms.erode.value = pillarMat.uniforms.erode.value;
       // cúpula de pressão, anéis de choque no ar, brasas e detritos
-      const dk = easeOut(Math.min(1, pa / .35)); dome.visible = pa < 1.2; dome.position.set(at.x, gy, at.z); dome.scale.set(1 + dk * 6.5, 1 + dk * 4.5, 1 + dk * 6.5); domeMat.uniforms.alpha.value = 1 - smooth(pa / 1.2);
-      for (let i = 0; i < 3; i++) { const ra = pa - i * .12; if (ra < 0 || ra > .9) continue; const R = 2 + easeOut(ra / .9) * (9 + i * 2); P.set(at.x, gy + 3 + i * 4, at.z); Q.setFromEuler(E.set(Math.PI / 2, 0, 0)); S.set(R, R, 1); M.compose(P, Q, S); airRings.setMatrixAt(airRings.count++, M); }
-      ringMat.opacity = 1 - smooth(pa / .9);
+      const dk = easeOut(Math.min(1, boom / .45)); dome.visible = pa >= CELESTIAL.strike && boom < 1.6; dome.position.set(at.x, gy, at.z); dome.scale.set(1 + dk * 10, 1 + dk * 7, 1 + dk * 10); domeMat.uniforms.alpha.value = 1 - smooth(boom / 1.6);
+      for (let i = 0; i < 3; i++) { const ra = boom - i * .12; if (pa < CELESTIAL.strike) continue; if (ra < 0 || ra > .9) continue; const R = 2 + easeOut(ra / .9) * (13 + i * 3); P.set(at.x, gy + 3 + i * 4, at.z); Q.setFromEuler(E.set(Math.PI / 2, 0, 0)); S.set(R, R, 1); M.compose(P, Q, S); airRings.setMatrixAt(airRings.count++, M); }
+      ringMat.opacity = 1 - smooth(boom / .9);
       for (let i = 0; i < (low ? 20 : 48); i++) { const u = (t * 1.6 + i / 48) % 1, a = i * 2.4 + t * 2; sparks.add(at.x + Math.cos(a) * 2.6 * (1 + u), gy + u * 22, at.z + Math.sin(a) * 2.6 * (1 + u), .08, .5, 1, .78, .2, (1 - u) * out, 3, a, i); }
-      if (s.struck) sak.emit({ id: 'cel' + Math.round(s.time - pa), time: t - pa + CELESTIAL.strike, point: { x: at.x, y: gy + .5, z: at.z }, size: 3.6, palette: 'celestial', rocks: 15 });
+      if (s.struck) { sak.emit({ id: 'cel' + Math.round(s.time - pa), time: t - boom, point: { x: at.x, y: gy + .5, z: at.z }, size: 6, palette: 'celestial', rocks: 15 }); sak.emit({ id: 'cel2' + Math.round(s.time - pa), time: t - boom + .15, point: { x: at.x, y: gy + 2.5, z: at.z }, size: 4.2, palette: 'crimson', rocks: 10 }); }
+      if (pa < CELESTIAL.strike) { sparks.add(at.x, front, at.z, 3, 3, 1, .95, .7, 1, 0); sparks.add(at.x, front, at.z, 5, 1.2, 1, .8, .3, .8, 2, t); } // ponta do feixe descendo
+      else if (boom < .5) { sparks.add(at.x, gy + 2, at.z, 16 * (1 - boom * 1.6) + 3, 16 * (1 - boom * 1.6) + 3, 1, .9, .6, 1 - boom * 2, 0); for (let i = 0; i < (low ? 24 : 64); i++) { const a = i * 2.39996, el = hash(i) * 1.4, d = (4 + hash(i * 3) * 12) * smooth(boom / .6); sparks.add(at.x + Math.cos(a) * Math.cos(el) * d, gy + 1 + Math.sin(el) * d, at.z + Math.sin(a) * Math.cos(el) * d, .1, .8, 1, .7 + hash(i) * .3, .2, 1 - boom * 2, 3, a + 1.57, i); } } // explosão maior
     } else dome.visible = false;
     wave.visible = (ph === 'pillar' && A >= CELESTIAL.waveAt) || (ph === 'fade' && A < .3);
     if (wave.visible) { const F = Math.max(.5, s.front || CELESTIAL.waveR); wave.position.set(at.x, gy, at.z); wave.scale.set(F, CELESTIAL.waveH * 1.2, F); wave.material.uniforms.alpha.value = ph === 'fade' ? 1 - A / .3 : 1; }

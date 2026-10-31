@@ -57,3 +57,27 @@ As capturas foram tiradas no ambiente acima e não estão versionadas. Para gera
   - **X:** bordas de fogo rasgadas, clarão branco de 4 pontas no cruzamento, clarão do impacto e mais linhas de velocidade.
   - **Explosão:** círculos laranja com espirais de fogo e magenta com anel de corrente, maiores e mais intensos; faixas azuis em redemoinho na carga; cúpula final dourada.
   - O custo continuou o mesmo (+39/+50/+46 chamadas de desenho) e não houve erros de shader.
+
+## Mod 243 — ritmo e massa
+
+Mudanças pedidas pelo criador depois de testar:
+
+- **Herói: formação mais lenta, sem exagero.**
+  - **X:** o cast foi de 0,45 para 0,75 s; a velocidade de voo continua 16 m/s.
+  - **Esfera:** a mão fica erguida por 0,7 s, a concentração leva 0,9 s e o voo é de 13 m/s.
+  - **Explosão:**
+    - **Ritmo:** carga de 0,9 s e círculos de 0,9 s.
+    - **Descida:** o feixe agora **desce do céu até o alvo** em 0,45 s antes da explosão.
+    - **Explosão maior:** cúpula de ~10 m, anéis no ar de 13–19 m, dois impactos sakuga (tamanhos 6 e 4,2), brasas em esfera e onda de choque de 10 m.
+- **Enemy2: os volumes não leem mais como fumaça.**
+  - Corrente, funis e coluna usam um material sólido: textura rolando com torção, erosão alfa de corte duro e faixas de cor por limiar estreito.
+  - Raios negros, com núcleo preto e halo magenta, saem da corrente do Vórtice, enrolam os furacões e correm pelas rachaduras do Colapso.
+  - O Colapso forma mais devagar: fissura de 1,5 s, convergência de 1 s e erupção de 0,6 s. A Trindade sobe em 1,3 s.
+- **Referências técnicas:**
+  - Realtime VFX: tornado com malha e textura rolando, alfa nas pontas e erosão de borda;
+  - Realtime VFX: raios em menos traços porém mais fortes, com bordas duras por `smoothstep`.
+
+**Medido:**
+- `node --test`: 264/264.
+- **Custo extra:** X +39, Esfera +46, Explosão +46 chamadas de desenho.
+- Sem erros de página nem de shader.

@@ -20,8 +20,8 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v, wrap = a => Math.atan2(Mat
 const smooth = k => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
 
 const VORTEX = { min: 4, max: 18, cast: 1.15, release: .95, cd: 13, anim: 'attack', pose: 'channel', portal: 1.5, lift: 1.7, lunges: 3, aim: .42, speed: 15, turn: 1.5, lungeMax: 1.25, r: .7, dmg: 13, burst: .38, retract: .75, power: 18, lead: .35 };
-const TRINITY = { min: 3.5, max: 15, cast: .95, release: .72, cd: 15, anim: 'attack', pose: 'slam', n: 3, rise: .9, hunt: 4.2, fade: .8, speeds: [3, 3.6, 3.6], core: .85, pullR: 3.6, pull: 1.1, dmg: 6, tick: .8, flank: 3.8, sep: 3.1 };
-const COLLAPSE = { min: 3, max: 16, cast: 1, release: .62, cd: 12, anim: 'attack', pose: 'slam', r: 3.2, fissure: 1, gather: .7, erupt: .45, implode: .25, wave: .7, waveH: .45, waveW: .55, core: 14, waveDmg: 15, fade: 1.3, pull: .9, lead: .7 };
+const TRINITY = { min: 3.5, max: 15, cast: .95, release: .72, cd: 15, anim: 'attack', pose: 'slam', n: 3, rise: 1.3, hunt: 4.2, fade: .8, speeds: [3, 3.6, 3.6], core: .85, pullR: 3.6, pull: 1.1, dmg: 6, tick: .8, flank: 3.8, sep: 3.1 };
+const COLLAPSE = { min: 3, max: 16, cast: 1, release: .62, cd: 12, anim: 'attack', pose: 'slam', r: 3.2, fissure: 1.5, gather: 1, erupt: .6, implode: .25, wave: .7, waveH: .45, waveW: .55, core: 14, waveDmg: 15, fade: 1.3, pull: .9, lead: .7 };
 const COMMON2 = {
   ...E1.common, hp: 230, radius: .45, height: 1.9, poise: 18, flinch: 10, sight: 28, leash: 38,
   speed: { walk: 1.8, run: 3.8, strafe: 1.5, back: 2.2, turn: 9 },
