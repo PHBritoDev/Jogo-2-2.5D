@@ -50,9 +50,16 @@ const WARDEN = {
   spiral: { ...COMMON.spiral, r: .8, speed: 12, dmg: 21, knock: 2, cd: 6.5 },
   judgment: { ...COMMON.judgment, r: 3.4, dmg: 32, edge: 12, prep: 1.2, cd: 13 },
   counter: { ...COMMON.counter, chance: .42, cd: 7, power: 22, r: .6 },
-  gap: .6, phase2: .5
+  gap: .6, phase2: .5, boss: true, pref: [2, 2.9], reap: 'claws', feint: 'spiral'
 };
 export const E1 = Object.freeze({ common: COMMON, warden: WARDEN, step: STEP, ccImmune: 3.5, escapeAfter: .3 });
+/** MOD 238 — espécies e poderes registráveis: outra espécie (Enemy2) entra com tuning e kit próprios sem tocar no
+    Enemy1. Um poder registrado traz score(sq,a,t,ctx) → utilidade (ou null), spawn(sq,a,t,opts), step(sq,s,dt),
+    danger(s) → zona telegrafada e, se for projétil, clash: true (colide com magias externas como a espiral). */
+export const KINDS = { common: COMMON, warden: WARDEN };
+export const SKILLS = {};
+export function registerKind(name, T) { KINDS[name] = T; return T; }
+export function registerSkill(id, def) { SKILLS[id] = def; return def; }
 
 /** Memória curta do que um alvo fez (taxas por segundo que decaem em ~6 s). */
 export class TargetStudy {
@@ -79,7 +86,7 @@ export class Enemy1Squad {
   /** spots: [{x, z, yaw?, kind?: 'common'|'warden', hp?}] */
   spawn(spots) {
     for (const s of spots) {
-      const T = s.kind === 'warden' ? WARDEN : COMMON, hp = s.hp || T.hp;
+      const T = KINDS[s.kind] || COMMON, hp = s.hp || T.hp;
       this.actors.push({ id: 'e' + this.nextId++, kind: s.kind || 'common', T, x: s.x, z: s.z, y: this.ground(s.x, s.z), yaw: s.yaw || 0, vx: 0, vz: 0, kx: 0, kz: 0,
         hp, maxHp: hp, alive: true, deadT: 0, role: 'aggressor', targetId: null, targetT: 0, act: null, cds: {}, stamina: T.stamina, poise: T.poise, poiseT: 0,
         intent: { mode: 'hold', side: this.rand() < .5 ? -1 : 1, score: 0 }, decideT: .2 + this.rand() * .4, react: null, phase2: false, home: { x: s.x, z: s.z },
@@ -101,6 +108,7 @@ export class Enemy1Squad {
   dangerZones() {
     const out = [];
     for (const s of this.spells) {
+      if (SKILLS[s.type]) { const z = SKILLS[s.type].danger && SKILLS[s.type].danger(this, s); if (z) out.push(...[].concat(z)); continue; }
       if (s.type === 'claws' && (s.phase === 'telegraph' || s.phase === 'rise' || s.phase === 'lash')) out.push({ x: s.x, z: s.z, r: s.r, until: s.phase === 'lash' ? s.T.lashT - s.t : s.T.telegraph + s.T.rise - s.t });
       if (s.type === 'judgment' && s.phase !== 'fade') out.push({ x: s.mx, z: s.mz, r: s.r, until: Math.max(0, s.T.prep + s.T.lock + s.T.beam - s.t) });
     }
@@ -126,16 +134,16 @@ export class Enemy1Squad {
     this.roleT = 2.5; const live = this.alive; if (!live.length) return;
     const tgt = this.targets.find(t => t.alive);
     // O mais perto vira agressor; o Guardião sempre pressiona; os outros se espalham em papéis distintos.
-    const order = live.slice().sort((a, b) => (a.kind === 'warden' ? -1 : 0) - (b.kind === 'warden' ? -1 : 0) || (tgt ? Math.hypot(a.x - tgt.x, a.z - tgt.z) - Math.hypot(b.x - tgt.x, b.z - tgt.z) : 0));
+    const order = live.slice().sort((a, b) => (a.T.boss ? -1 : 0) - (b.T.boss ? -1 : 0) || (tgt ? Math.hypot(a.x - tgt.x, a.z - tgt.z) - Math.hypot(b.x - tgt.x, b.z - tgt.z) : 0));
     order.forEach((a, i) => {
       let role = live.length === 1 ? 'aggressor' : ROLES[i % ROLES.length];
-      if (a.kind !== 'warden' && a.hp < a.maxHp * .35 && live.length > 1) role = i % 2 ? 'ranged' : 'controller';
+      if (!a.T.boss && a.hp < a.maxHp * .35 && live.length > 1) role = i % 2 ? 'ranged' : 'controller';
       if (initial || role !== a.role) { a.role = role; a.intent.score = 0; }
     });
   }
   /** Ficha de ataque: no máximo um golpe e uma magia por alvo ao mesmo tempo, com intervalo mínimo no grupo. */
   canAttack(a, kind, tid) {
-    const gap = a.kind === 'warden' ? WARDEN.gap : COMMON.gap * (this.alive.length > 2 ? 1.25 : 1);
+    const gap = a.T.boss ? a.T.gap : a.T.gap * (this.alive.length > 2 ? 1.25 : 1);
     if (this.time - this.lastAttackAt < gap) return false;
     for (const o of this.actors) if (o !== a && o.alive && o.act && o.act.token === kind && o.act.tid === tid) return false;
     if (kind === 'spell') for (const s of this.spells) if (s.owner !== a.id && s.tid === tid && (s.type === 'spiral' || s.type === 'claws') && s.phase !== 'sink' && s.phase !== 'burst') return false;
@@ -221,24 +229,29 @@ export class Enemy1Squad {
     const justDashed = this.time - this.study(t.id).lastDash < 1.2;
     if (gap + T.radius <= T.melee.reach - .15 && !a.cds.melee && this.canAttack(a, 'melee', t.id))
       opts.push(['melee', .85 + (R === 'aggressor' || R === 'flanker' ? .3 : -.1) + (recovering ? .3 : 0) + (t.casting ? .25 : 0) - (t.blocking ? .35 : 0) + r()]);
-    if (see && d >= T.claws.min && d <= T.claws.max && !a.cds.claws && !this.ccImmune.has(t.id) && !this.spells.some(s => s.type === 'claws' && s.tid === t.id) && this.canAttack(a, 'spell', t.id))
+    if (!T.kit && see && d >= T.claws.min && d <= T.claws.max && !a.cds.claws && !this.ccImmune.has(t.id) && !this.spells.some(s => s.type === 'claws' && s.tid === t.id) && this.canAttack(a, 'spell', t.id))
       opts.push(['claws', .55 + (R === 'controller' ? .4 : 0) + (still ? .2 : 0) + (justDashed ? .3 : 0) - Math.min(.3, st.dash * .5) + (t.blocking ? .2 : 0) + r()]);
-    if (see && d >= T.spiral.min && d <= T.spiral.max && !a.cds.spiral && this.canAttack(a, 'spell', t.id))
+    if (!T.kit && see && d >= T.spiral.min && d <= T.spiral.max && !a.cds.spiral && this.canAttack(a, 'spell', t.id))
       opts.push(['spiral', .5 + (R === 'ranged' ? .4 : 0) + (st.dist > 6 ? .2 : 0) + (t.blocking ? .3 : 0) + r()]);
-    if (see && d >= T.judgment.min && d <= T.judgment.max && !a.cds.judgment && this.time >= this.judgmentUntil && this.canAttack(a, 'spell', t.id))
+    if (!T.kit && see && d >= T.judgment.min && d <= T.judgment.max && !a.cds.judgment && this.time >= this.judgmentUntil && this.canAttack(a, 'spell', t.id))
       opts.push(['judgment', .42 + (R === 'controller' ? .25 : 0) + (still ? .3 : 0) + (a.phase2 ? .25 : 0) + Math.min(.25, st.block * .4) + r()]);
-    const [lo, hi] = a.kind === 'warden' ? [2, 2.9] : PREF[R];
+    if (T.kit) for (const id of T.kit) { const S = SKILLS[id], ts = T[id]; if (!S || !ts || a.cds[id] || !(d >= ts.min && d <= ts.max) || !this.canAttack(a, 'spell', t.id)) continue;
+      const u = S.score(this, a, t, { d, gap, see, st, still, justDashed, recovering, R }); if (u !== null && u !== undefined) opts.push([id, u + r()]); }
+    // espécies que interrompem conjuração: avançam com dash e emendam o golpe (sinal visível: o alvo está conjurando)
+    if (T.interrupt && t.casting && gap > T.melee.reach && gap < 8 && !a.cds.lunge && this.canAttack(a, 'melee', t.id)) opts.push(['lunge', 1 + r()]);
+    const [lo, hi] = a.T.pref || PREF[R];
     let move = gap > hi + .4 ? (R === 'flanker' && gap < 9 ? 'flank' : 'approach') : gap < lo - .5 && (R === 'controller' || R === 'ranged') ? 'retreat' : 'strafe';
-    if (a.hp < a.maxHp * .25 && a.kind !== 'warden' && this.alive.length > 1 && gap < 3.5) move = 'retreat';
-    if ((R === 'aggressor' || R === 'flanker' || a.kind === 'warden') && gap > T.melee.max && gap < hi + 3 && !opts.length) move = 'approach';
+    if (a.hp < a.maxHp * .25 && !a.T.boss && this.alive.length > 1 && gap < 3.5) move = 'retreat';
+    if ((R === 'aggressor' || R === 'flanker' || a.T.boss) && gap > T.melee.max && gap < hi + 3 && !opts.length) move = 'approach';
     opts.push([move, .35 + (move === a.intent.mode ? .15 : 0) + r()]);
     opts.sort((x, y) => y[1] - x[1]); const [pick] = opts[0];
     // Guardião: finta ocasional (começa o golpe, recua e lança a espiral)
-    if (pick === 'melee' && a.kind === 'warden' && !a.cds.spiral && this.rand() < .12) { this.begin(a, { type: 'feint', dur: .62, anim: 'attack', token: 'melee', tid: t.id }); return; }
+    if (pick === 'melee' && a.T.feint && !a.cds[a.T.feint] && this.rand() < .12) { this.begin(a, { type: 'feint', dur: .62, anim: 'attack', token: 'melee', tid: t.id }); return; }
+    if (pick === 'lunge') { const l = d || 1; a.cds.lunge = 4; this.begin(a, { type: 'dodge', dur: a.T.dash.time * 1.3, anim: 'dash', dx: (t.x - a.x) / l, dz: (t.z - a.z) / l, face: true, chain: 'melee', token: 'melee', tid: t.id }); this.event('lunge', { actor: a, target: t.id }); return; }
     if (pick === 'melee') this.startMelee(a, t);
     else if (pick === 'claws') this.startCast(a, t, 'claws');
     else if (pick === 'spiral') this.startCast(a, t, 'spiral');
-    else if (pick === 'judgment') this.startCast(a, t, 'judgment');
+    else if (pick === 'judgment' || SKILLS[pick]) this.startCast(a, t, pick);
     else { if (move !== a.intent.mode && this.rand() < .3) a.intent.side = -a.intent.side; a.intent.mode = move; a.intent.score = opts[0][1]; }
   }
   begin(a, act) {
@@ -247,13 +260,13 @@ export class Enemy1Squad {
     if (act.token === 'melee' || act.token === 'spell') this.lastAttackAt = this.time;
   }
   startMelee(a, t) {
-    const M = a.T.melee, hits = a.phase2 && a.kind === 'warden' ? [...M.hits, M.hits[M.hits.length - 1] + .4] : M.hits;
+    const M = a.T.melee, hits = a.phase2 && a.T.boss ? [...M.hits, M.hits[M.hits.length - 1] + .4] : M.hits;
     this.begin(a, { type: 'melee', dur: M.dur + (hits.length - M.hits.length) * .4, hits, done: 0, anim: 'attack', token: 'melee', tid: t.id, landed: false });
     a.cds.melee = M.cd * a.cdMul; this.event('windup', { actor: a, kind: 'melee', at: M.windup });
   }
   startCast(a, t, skill) {
     const S = a.T[skill];
-    this.begin(a, { type: 'cast', skill, dur: S.cast + .3, release: S.release, anim: skill === 'judgment' ? 'cast' : skill === 'spiral' ? 'attack2' : 'cast', token: 'spell', tid: t.id });
+    this.begin(a, { type: 'cast', skill, dur: S.cast + .3, release: S.release, anim: S.anim || (skill === 'judgment' ? 'cast' : skill === 'spiral' ? 'attack2' : 'cast'), token: 'spell', tid: t.id });
     a.cds[skill] = S.cd * a.cdMul; if (skill === 'judgment') this.judgmentUntil = this.time + S.prep + S.lock + S.beam + 3;
     this.event('cast', { actor: a, skill, target: t.id });
   }
@@ -273,20 +286,22 @@ export class Enemy1Squad {
         if (act.done < act.hits.length) this.lastAttackAt = this.time;
       }
       // assinatura do Guardião: o último corte que acerta abre as Garras sob o alvo (telegraph curto, ainda dá para fugir)
-      if (a.kind === 'warden' && act.landed && act.done === act.hits.length && !act.reap && t && !a.cds.claws && !this.ccImmune.has(t.id) && !this.spells.some(s => s.type === 'claws' && s.tid === t.id)) {
-        act.reap = true; a.cds.claws = a.T.claws.cd * a.cdMul; this.spawnClaws(a, t, .6); this.event('reap', { actor: a, target: t.id });
+      const reap = a.T.reap, RS = SKILLS[reap];
+      if (a.T.boss && reap && act.landed && act.done === act.hits.length && !act.reap && t && !a.cds[reap] && (RS ? RS.canReap ? RS.canReap(this, a, t) : true : !this.ccImmune.has(t.id) && !this.spells.some(s => s.type === 'claws' && s.tid === t.id))) {
+        act.reap = true; a.cds[reap] = a.T[reap].cd * a.cdMul; if (RS) RS.spawn(this, a, t, { reap: true }); else this.spawnClaws(a, t, .6); this.event('reap', { actor: a, target: t.id, skill: reap });
       }
     } else if (act.type === 'cast' && !act.released && act.t >= act.release) {
-      act.released = true; if (t) this[act.skill === 'claws' ? 'spawnClaws' : act.skill === 'spiral' ? 'spawnSpiral' : 'spawnJudgment'](a, t);
+      act.released = true; if (t) { if (SKILLS[act.skill]) SKILLS[act.skill].spawn(this, a, t); else this[act.skill === 'claws' ? 'spawnClaws' : act.skill === 'spiral' ? 'spawnSpiral' : 'spawnJudgment'](a, t); }
     } else if (act.type === 'counter' && !act.released && act.t >= act.release) { act.released = true; this.spawnCounter(a, act.spell); }
     else if (act.type === 'feint' && act.t >= act.dur) {
       a.act = null; const away = t ? Math.atan2(a.x - t.x, a.z - t.z) : a.yaw;
-      this.begin(a, { type: 'dodge', dur: a.T.dash.time, anim: 'dash', dx: Math.sin(away), dz: Math.cos(away), iframes: true, face: false, then: 'spiral' }); this.event('feint', { actor: a }); return;
+      this.begin(a, { type: 'dodge', dur: a.T.dash.time, anim: 'dash', dx: Math.sin(away), dz: Math.cos(away), iframes: true, face: false, then: a.T.feint || 'spiral' }); this.event('feint', { actor: a }); return;
     } else if (act.type === 'phase2' && act.t >= act.dur) this.event('phase2End', { actor: a });
     if (act.t >= act.dur) {
       const then = act.then; a.act = null; a.guard = false; a.decideT = Math.min(a.decideT, act.type === 'melee' ? .25 : .12);
       if (act.type === 'melee' || act.type === 'cast') a.recover = .35;
-      if (then === 'spiral' && t && !a.cds.spiral) this.startCast(a, t, 'spiral');
+      if (then && t && !a.cds[then] && a.T[then]) this.startCast(a, t, then);
+      else if (act.chain === 'melee' && t && Math.hypot(t.x - a.x, t.z - a.z) - t.radius <= a.T.melee.reach) { a.cds.melee = 0; this.startMelee(a, t); }
     }
   }
   /** Intenção de movimento → velocidade, com separação entre aliados, desvio de obstáculos e sem colar no alvo. */
@@ -297,8 +312,8 @@ export class Enemy1Squad {
       const m = a.intent.mode, S = a.T.speed;
       if (t && m !== 'home' && m !== 'hold') {
         const dx = t.x - a.x, dz = t.z - a.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, gap = d - t.radius - a.T.radius;
-        const [lo, hi] = a.kind === 'warden' ? [2, 2.9] : PREF[a.role];
-        if (m === 'approach') { const want = a.role === 'aggressor' || a.role === 'flanker' || a.kind === 'warden' ? a.T.melee.max * .7 : (lo + hi) / 2; if (gap > want) { wx = ux; wz = uz; speed = gap > 6 ? S.run : S.walk; } }
+        const [lo, hi] = a.T.pref || PREF[a.role];
+        if (m === 'approach') { const want = a.role === 'aggressor' || a.role === 'flanker' || a.T.boss ? a.T.melee.max * .7 : (lo + hi) / 2; if (gap > want) { wx = ux; wz = uz; speed = gap > 6 ? S.run : S.walk; } }
         else if (m === 'flank') { const s = a.intent.side, fx = -uz * s, fz = ux * s; wx = ux * .55 + fx * .85; wz = uz * .55 + fz * .85; speed = gap > 5 ? S.run : S.walk; }
         else if (m === 'retreat') { wx = -ux; wz = -uz; speed = S.back; if (gap > hi + 1) a.intent.mode = 'strafe'; }
         else if (m === 'strafe') { const s = a.intent.side, radial = gap > hi ? .5 : gap < lo ? -.5 : 0; wx = -uz * s + ux * radial; wz = ux * s + uz * radial; speed = S.strafe; }
@@ -350,12 +365,12 @@ export class Enemy1Squad {
       if (a.stamina <= 0) { a.stamina = 0; this.stagger(a, .9, true); this.event('guardBreak', { actor: a }); } else this.event('blocked', { actor: a, dmg });
     }
     a.hp = Math.max(0, a.hp - dmg); if (opts.by) a.hitBy = opts.by;
-    if (opts.knock && a.kind !== 'warden') { a.kx -= ox / ol * opts.knock * 4; a.kz -= oz / ol * opts.knock * 4; }
+    if (opts.knock && !a.T.boss) { a.kx -= ox / ol * opts.knock * 4; a.kz -= oz / ol * opts.knock * 4; }
     if (a.hp === 0) { this.kill(a); return dmg; }
-    if (a.kind === 'warden' && !a.phase2 && a.hp <= a.maxHp * WARDEN.phase2) { a.phase2 = true; a.cdMul = .75; a.act = null; this.begin(a, { type: 'phase2', dur: 1.15, anim: 'block', armor: true }); this.event('phase2', { actor: a }); return dmg; }
+    if (a.T.boss && !a.phase2 && a.hp <= a.maxHp * a.T.phase2) { a.phase2 = true; a.cdMul = a.T.furyCd || .75; a.act = null; this.begin(a, { type: 'phase2', dur: 1.15, anim: 'block', armor: true }); this.event('phase2', { actor: a }); return dmg; }
     a.poise -= dmg; a.poiseT = 3;
-    const armored = a.act && (a.act.armor || (a.kind === 'warden' && a.act.type === 'melee' && a.act.done > 0));
-    if (!armored && !a.guard && (a.poise <= 0 || (a.kind !== 'warden' && dmg >= 8))) { if (a.poise <= 0) a.poise = a.T.poise; this.stagger(a, a.kind === 'warden' ? .22 : .3, false); }
+    const armored = a.act && (a.act.armor || (a.T.boss && a.act.type === 'melee' && a.act.done > 0));
+    if (!armored && !a.guard && (a.poise <= 0 || (!a.T.boss && dmg >= (a.T.flinch || 8)))) { if (a.poise <= 0) a.poise = a.T.poise; this.stagger(a, a.T.boss ? .22 : .3, false); }
     return dmg;
   }
   stagger(a, dur, broken) {
@@ -402,6 +417,7 @@ export class Enemy1Squad {
   enemyTargets() { return this.targets.filter(t => t.alive); }
   stepSpell(s, dt) {
     s.t += dt;
+    if (SKILLS[s.type]) return SKILLS[s.type].step(this, s, dt);
     if (s.type === 'claws') return this.stepClaws(s, dt);
     if (s.type === 'judgment') return this.stepJudgment(s, dt);
     return this.stepBolt(s, dt);
@@ -496,7 +512,7 @@ export class Enemy1Squad {
   /** Magia × magia: espiral ou contra-selo contra magias externas (do herói/aliado). Potência decide quem vence. */
   clashes(dt) {
     for (const s of this.spells) {
-      if (s.phase !== 'fly' || (s.type !== 'spiral' && s.type !== 'counter')) continue;
+      if (s.phase !== 'fly' || (s.type !== 'spiral' && s.type !== 'counter' && !(SKILLS[s.type] && SKILLS[s.type].clash))) continue;
       for (const f of this.foreign) {
         if (f.alive === false || !(f.power > 0)) continue;
         const tol = (s.speed + (f.speed || 0)) * dt * .5, d = Math.hypot(f.x - s.x, (f.y ?? s.y) - s.y, f.z - s.z);
