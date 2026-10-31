@@ -21,3 +21,22 @@
 - `vfx-flow3d.js`, `vfx-trail3d.js`, `vfx-impact3d.js`, `celestial-fxkit3d.js`;
 - os GLBs;
 - o marcador da Mod e o loader.
+
+## Mod 245 — Enemy3 e mini-chefe do Ato III
+
+**Base:** `e2a9505`. Detalhes em `docs/auditorias/ENEMY3-MINIBOSS3-IMPLEMENTACAO.md`.
+
+| Caminho | Estado | Depende de | Usado por |
+|---|---|---|---|
+| `enemy3-squad3d.js` | novo | `enemy1-squad3d.js`, `boss-choreography3d.js` | `enemy1-squad-runtime3d.js`, testes |
+| `enemy3-abyss-vfx3d.js` | novo | `celestial-fxkit3d.js` | `enemy1-squad-runtime3d.js` |
+| `enemy3-runtime3d.js` | novo | `crimson-katana3d.js`, `combat-choreography3d.js`, `boss-choreography3d.js` | `enemy1-squad-runtime3d.js` |
+| `crimson-katana3d.js` | novo | Three.js (injetado) | `enemy3-runtime3d.js` |
+| `enemy3-preview.html` | novo | runtime da esquadra + GLBs | prévia isolada |
+| `enemy3-squad.test.mjs` | novo | lógica | `node --test` |
+| `enemy1-squad3d.js`, `enemy2-squad3d.js` | alterado | — | ganchos genéricos (canalização, golpes por distância, pós-golpe, atração) |
+| `enemy1-squad-runtime3d.js` | alterado | + módulos Enemy3 | `mundo-3d-prototype.js` (e descarte da textura de ossos dos clones) |
+| `mundo-3d-prototype.js`, `audio3d.js` | alterado | — | integração mínima, laboratório `?testeEnemy3=1`, `abyss3` |
+| `docs/auditorias/ENEMY3-MINIBOSS3-IMPLEMENTACAO.md`, `docs/evidencias/mod245/*` | novo | — | documentação |
+
+**Não alterados:** GLBs, `boss-choreography3d.js` (só recebe `BOSS_MOVES.e3boss` em tempo de execução), coreografias `warden`/`e2boss`, IA/poderes do Enemy1/Enemy2, encontros do Ato IV.

@@ -81,3 +81,12 @@ Mudanças pedidas pelo criador depois de testar:
 - `node --test`: 264/264.
 - **Custo extra:** X +39, Esfera +46, Explosão +46 chamadas de desenho.
 - Sem erros de página nem de shader.
+
+## Mod 245 — Enemy3 e mini-chefe do Ato III
+
+- **`node --test`:** 290 aprovados. Inclui 15 testes novos do Enemy3 e 1 de integração.
+- **Navegador (SwiftShader, 430×860 com toque):** sem erros de página/shader no laboratório `?testeEnemy3=1` (comum e mini-chefe) e no caminho real `startPack` com `demon3`/`miniboss3`.
+- **Escurecimento da tempestade:** reversível. Medido: 1,55/2,10 → 0,90/0,95 → 1,55/2,10.
+- **Chamadas de desenho:** com a mesma câmera, as magias somam de +1 a +6 chamadas.
+- **Memória:** estável após 48 encontros (82 geometrias, 8 texturas, 39 programas). Isso só depois de corrigir o vazamento da textura de ossos dos clones.
+- **Não testado:** Android físico, FPS real e áudio.
