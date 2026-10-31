@@ -1,8 +1,8 @@
-import {dragonHead,dragonBody} from './vfx-dragon-model3d.js';
-import {energyBody,energyMaterial,flameGeometry} from './vfx-flow3d.js';
-import {volumeTrail} from './vfx-trail3d.js';
-import {impactDirector} from './vfx-impact3d.js';
-import {softParticles,ribbons,smooth,hash} from './celestial-fxkit3d.js';
+import {dragonHead,dragonBody} from './vfx-dragon-model3d.js?v=mod240-vfx-integrated';
+import {energyBody,energyMaterial,flameGeometry} from './vfx-flow3d.js?v=mod240-vfx-integrated';
+import {volumeTrail} from './vfx-trail3d.js?v=mod240-vfx-integrated';
+import {impactDirector} from './vfx-impact3d.js?v=mod240-vfx-integrated';
+import {softParticles,ribbons,smooth,hash} from './celestial-fxkit3d.js?v=mod240-vfx-integrated';
 import {DRAGON} from './skill-judgment-dragon3d.js?v=mod236-vfx2';
 /** Celestial fire creature, authored as a flowing silhouette, with a physical cinder projectile.
  * MOD 238: bola de fogo DOURADA e turbulenta (massa de línguas de chama que muda de forma, núcleo branco-quente,
