@@ -1,3 +1,4 @@
+import {BOSS_MOVES,bossTravel,bossLift} from './boss-choreography3d.js';
 /**
  * MOD 237 — Enemy1: esquadra simultânea, IA tática, três poderes sombrios e o Guardião do Portal.
  *
@@ -43,14 +44,14 @@ const COMMON = {
 const WARDEN = {
   ...COMMON, hp: 480, radius: .55, height: 2.25, poise: 32, leash: 40,
   speed: { walk: 1.75, run: 3.7, strafe: 1.45, back: 2.1, turn: 7 },
-  melee: { max: 3.2, reach: 3.15, arc: -.05, windup: .5, hits: [.5, .92], dur: 1.6, dmg: 15, cd: 2.3, knock: 1 },
+  melee: { max: 1.45, reach: 1.8, arc: -.05, windup: .5, hits: [.5, .92], dur: 1.6, dmg: 15, cd: 2.3, knock: 1 },
   block: { chance: .3, dur: .85, cd: 2.4, cost: 16, reduce: .75 },
   dodge: { chance: .3, cd: 3 },
   claws: { ...COMMON.claws, r: 2.6, hands: 7, hold: 1, grabDmg: 12, endDmg: 6, lash: 7, cd: 9 },
   spiral: { ...COMMON.spiral, r: .8, speed: 12, dmg: 21, knock: 2, cd: 6.5 },
   judgment: { ...COMMON.judgment, r: 3.4, dmg: 32, edge: 12, prep: 1.2, cd: 13 },
   counter: { ...COMMON.counter, chance: .42, cd: 7, power: 22, r: .6 },
-  gap: .6, phase2: .5, boss: true, pref: [2, 2.9], reap: 'claws', feint: 'spiral'
+  gap: .6, phase2: .5, boss: true, pref: [.95, 1.5], reap: 'claws', feint: 'spiral'
 };
 export const E1 = Object.freeze({ common: COMMON, warden: WARDEN, step: STEP, ccImmune: 3.5, escapeAfter: .3 });
 /** MOD 238 — espécies e poderes registráveis: outra espécie (Enemy2) entra com tuning e kit próprios sem tocar no
@@ -78,8 +79,8 @@ export class Enemy1Squad {
    * ground(x,z) altura; blocked(x,z) obstáculo; los(ax,az,bx,bz) linha de visão; hooks.damageTarget(id, dmg, info) →
    * 'hit' | 'blocked' | 'evaded' | 'immune'; hooks.event(tipo, dados).
    */
-  constructor({ ground = () => 0, blocked = () => false, los = () => true, seed = 237, damageTarget = () => 'hit', event = () => {} } = {}) {
-    Object.assign(this, { ground, blocked, los, damageTarget, event });
+  constructor({ ground = () => 0, blocked = () => false, los = () => true, seed = 237, damageTarget = () => 'hit', event = () => {}, meleeTrace = () => false } = {}) {
+    Object.assign(this, { ground, blocked, los, damageTarget, event, meleeTrace });
     this.rand = rng(seed); this.actors = []; this.spells = []; this.targets = []; this.foreign = []; this.studies = new Map();
     this.time = 0; this.acc = 0; this.nextId = 1; this.lastAttackAt = -9; this.judgmentUntil = -9; this.ccImmune = new Map(); this.roleT = 0; this.paused = false; this.seen = new Set();
   }
@@ -156,6 +157,7 @@ export class Enemy1Squad {
     for (const k in a.cds) if ((a.cds[k] -= dt) <= 0) delete a.cds[k];
     a.stamina = Math.min(a.T.stamina, a.stamina + dt * 14); if ((a.poiseT -= dt) <= 0) a.poise = a.T.poise;
     if (a.alert > 0) a.alert -= dt;
+    if(a.airY>0||a.airV>0){a.airV-=18*dt;a.airY=Math.max(0,a.airY+a.airV*dt);if(!a.airY)a.airV=0;}
     const tgt = this.pickTarget(a, dt);
     // reações rápidas (defesa, esquiva, contra-selo) agendadas com tempo de reação humano
     if (!a.react && !a.act && tgt) this.perceive(a, tgt);
@@ -244,7 +246,7 @@ export class Enemy1Squad {
     const [lo, hi] = a.T.pref || PREF[R];
     let move = gap > hi + .4 ? (R === 'flanker' && gap < 9 ? 'flank' : 'approach') : gap < lo - .5 && (R === 'controller' || R === 'ranged') ? 'retreat' : 'strafe';
     if (a.hp < a.maxHp * .25 && !a.T.boss && this.alive.length > 1 && gap < 3.5) move = 'retreat';
-    if ((R === 'aggressor' || R === 'flanker' || a.T.boss) && gap > T.melee.max && gap < hi + 3 && !opts.length) move = 'approach';
+    if ((R === 'aggressor' || R === 'flanker' || a.T.boss) && (T.boss ? gap + T.radius > T.melee.reach - .15 : gap > T.melee.max) && gap < hi + 3 && !opts.length) move = 'approach';
     opts.push([move, .35 + (move === a.intent.mode ? .15 : 0) + r()]);
     opts.sort((x, y) => y[1] - x[1]); const [pick] = opts[0];
     // Guardião: finta ocasional (começa o golpe, recua e lança a espiral)
@@ -261,7 +263,12 @@ export class Enemy1Squad {
     a.act = { t: 0, ...act }; a.guard = !!act.guard; a.anim = { role: act.anim || 'idle', once: true, speed: act.animSpeed || 1, rev: a.anim.rev + 1 };
     if (act.token === 'melee' || act.token === 'spell') this.lastAttackAt = this.time;
   }
-  startMelee(a, t) {
+  startMelee(a, t, forcedMove) {
+    if(BOSS_MOVES[a.kind]){
+      const pool=BOSS_MOVES[a.kind],move=pool.find(m=>m.id===forcedMove)||pool[(a.meleeCycle||0)%pool.length];a.meleeCycle=(a.meleeCycle||0)+1;
+      this.begin(a,{type:'melee',dur:move.duration,hits:move.hits,done:0,anim:move.id,token:'melee',tid:t.id,landed:false,move,contacts:new Set(),phase:'windup'});
+      a.vx=a.vz=0;a.cds.melee=(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
+    }
     const M = a.T.melee, hits = a.phase2 && a.T.boss ? [...M.hits, M.hits[M.hits.length - 1] + .4] : M.hits;
     this.begin(a, { type: 'melee', dur: M.dur + (hits.length - M.hits.length) * .4, hits, done: 0, anim: 'attack', token: 'melee', tid: t.id, landed: false });
     a.cds.melee = M.cd * a.cdMul; this.event('windup', { actor: a, kind: 'melee', at: M.windup });
@@ -273,11 +280,23 @@ export class Enemy1Squad {
     this.event('cast', { actor: a, skill, target: t.id });
   }
   stepAction(a, dt, t) {
-    const act = a.act; act.t += dt;
+    const act = a.act, previous=act.t; act.t += dt;
     if (act.type === 'dodge') { const s = a.T.dash.speed * (1 - act.t / act.dur * .4); this.move(a, act.dx * s * dt, act.dz * s * dt); }
-    if (act.face !== false && t && (act.type !== 'melee' || act.t < a.T.melee.windup * .8)) this.face(a, t.x, t.z, dt);
+    if (act.face !== false && t && (act.type !== 'melee' || act.t < (act.move?.open||a.T.melee.windup) * .65)) this.face(a, t.x, t.z, dt);
+    if(act.move){
+      const m=act.move;act.phase=act.t<m.open?'windup':act.t<=m.close?'active':'recovery';
+      const travel=bossTravel(m,act.t)-bossTravel(m,previous);this.move(a,Math.sin(a.yaw)*travel,Math.cos(a.yaw)*travel);a.y=this.ground(a.x,a.z)+bossLift(m,act.t);
+      for(let n=0;n<m.hits.length;n++){
+        const open=m.hits[n]-.10,close=m.hits[n]+.11;
+        if(previous<=close&&act.t>=open&&!act.contacts.has(n)&&t&&this.los(a.x,a.z,t.x,t.z)&&this.meleeTrace(a,act,t,Math.max(previous,open),Math.min(act.t,close))){
+          act.contacts.add(n);const result=this.damageTarget(t.id,Math.round(a.T.melee.dmg*m.damageScale),{kind:'melee',actor:a.id,x:a.x,z:a.z,knock:a.T.melee.knock,combo:n+1});
+          if(result==='hit')act.landed=true;this.event('meleeHit',{actor:a,target:t.id,result,n:n+1});
+        }
+      }
+      act.done=m.hits.filter(h=>act.t>h+.11).length;
+    }
     if (act.type === 'melee') {
-      while (act.done < act.hits.length && act.t >= act.hits[act.done]) {
+      while (!act.move && act.done < act.hits.length && act.t >= act.hits[act.done]) {
         act.done++; if (!t) continue;
         const d = Math.hypot(t.x - a.x, t.z - a.z), fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), dot = d > 1e-4 ? ((t.x - a.x) * fx + (t.z - a.z) * fz) / d : 1;
         // dano só se a lâmina alcança: distância real até a borda do alvo, arco do golpe, altura e linha de visão
@@ -301,7 +320,7 @@ export class Enemy1Squad {
     } else if (act.type === 'phase2' && act.t >= act.dur) this.event('phase2End', { actor: a });
     if (act.t >= act.dur) {
       const then = act.then; a.act = null; a.guard = false; a.decideT = Math.min(a.decideT, act.type === 'melee' ? .25 : .12);
-      if (act.type === 'melee' || act.type === 'cast') a.recover = .35;
+      if (act.type === 'melee' || act.type === 'cast') a.recover = act.move ? .45 : .35;
       if (then && t && !a.cds[then] && a.T[then]) this.startCast(a, t, then);
       else if (act.chain === 'melee' && t && Math.hypot(t.x - a.x, t.z - a.z) - t.radius <= a.T.melee.reach) { a.cds.melee = 0; this.startMelee(a, t); }
     }
@@ -352,7 +371,7 @@ export class Enemy1Squad {
   }
   move(a, dx, dz) {
     const nx = a.x + dx, nz = a.z + dz, ok = (x, z) => !this.blocked(x, z) && !this.targets.some(t => t.alive && Math.hypot(x - t.x, z - t.z) < t.radius + a.T.radius + .05 && Math.hypot(a.x - t.x, a.z - t.z) >= Math.hypot(x - t.x, z - t.z));
-    if (ok(nx, a.z)) a.x = nx; if (ok(a.x, nz)) a.z = nz; a.y = this.ground(a.x, a.z);
+    if (ok(nx, a.z)) a.x = nx; if (ok(a.x, nz)) a.z = nz; a.y = this.ground(a.x, a.z)+(a.act?.move?bossLift(a.act.move,a.act.t):(a.airY||0));
   }
   face(a, x, z, dt, w = 1) { const want = Math.atan2(x - a.x, z - a.z); a.yaw = wrap(a.yaw + wrap(want - a.yaw) * Math.min(1, dt * a.T.speed.turn * w)); }
 
@@ -361,7 +380,7 @@ export class Enemy1Squad {
   damageActor(id, amount, opts = {}) {
     const a = typeof id === 'string' ? this.actor(id) : id; if (!a || !a.alive || !(amount > 0)) return 0;
     if (a.act && a.act.iframes) { this.event('evade', { actor: a }); return 0; }
-    let dmg = amount; const fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), ox = (opts.x ?? a.x) - a.x, oz = (opts.z ?? a.z) - a.z, ol = Math.hypot(ox, oz) || 1, front = (ox * fx + oz * fz) / ol > .25;
+    let dmg = amount*(a.act?.move&&a.act.phase==='recovery'?1.15:1);dmg=Math.round(dmg); const fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), ox = (opts.x ?? a.x) - a.x, oz = (opts.z ?? a.z) - a.z, ol = Math.hypot(ox, oz) || 1, front = (ox * fx + oz * fz) / ol > .25;
     if (a.guard && front && opts.kind !== 'area') {
       dmg = Math.max(1, Math.round(amount * (1 - a.T.block.reduce))); a.stamina -= a.T.block.cost * Math.max(.5, amount / 15);
       if (a.stamina <= 0) { a.stamina = 0; this.stagger(a, .9, true); this.event('guardBreak', { actor: a }); } else this.event('blocked', { actor: a, dmg });
@@ -371,7 +390,7 @@ export class Enemy1Squad {
     if (a.hp === 0) { this.kill(a); return dmg; }
     if (a.T.boss && !a.phase2 && a.hp <= a.maxHp * a.T.phase2) { a.phase2 = true; a.cdMul = a.T.furyCd || .75; a.act = null; this.begin(a, { type: 'phase2', dur: 1.15, anim: 'block', armor: true }); this.event('phase2', { actor: a }); return dmg; }
     a.poise -= dmg; a.poiseT = 3;
-    const armored = a.act && (a.act.armor || (a.T.boss && a.act.type === 'melee' && a.act.done > 0));
+    const armored = a.act && (a.act.armor || (a.T.boss && a.act.type === 'melee' && (a.act.move?a.act.phase==='active':a.act.done>0)));
     if (!armored && !a.guard && (a.poise <= 0 || (!a.T.boss && dmg >= (a.T.flinch || 8)))) { if (a.poise <= 0) a.poise = a.T.poise; this.stagger(a, a.T.boss ? .22 : .3, false); }
     return dmg;
   }

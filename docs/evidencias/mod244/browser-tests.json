@@ -1,0 +1,4575 @@
+{
+  "mod": "244",
+  "upstreamBase": "ffd28b75631be48abb9521ef6cb5acaeeb2f822a",
+  "errors": [],
+  "environment": "Chromium headless / SwiftShader, viewport mobile 960x540; no Android device",
+  "moves": [
+    {
+      "s": "prota",
+      "step": 0,
+      "damage": 25,
+      "height": 1.9502679713680415,
+      "clip": "Combat_prota_ground_0",
+      "finished": true,
+      "blade": [
+        [
+          -5.48493733336378,
+          1.0706001104347598,
+          11.556201268906817
+        ],
+        [
+          -6.300416339688356,
+          0.89078732982777,
+          11.490866646283362
+        ]
+      ]
+    },
+    {
+      "s": "prota",
+      "step": 1,
+      "damage": 27,
+      "height": 1.960646782201725,
+      "clip": "Combat_prota_ground_1",
+      "finished": true,
+      "blade": [
+        [
+          -4.853849295132185,
+          1.3731019001517997,
+          10.702612414429884
+        ],
+        [
+          -4.8533611842504785,
+          1.4149717185250172,
+          9.86603967631547
+        ]
+      ]
+    },
+    {
+      "s": "prota",
+      "step": 2,
+      "damage": 29,
+      "height": 1.9456106169708252,
+      "clip": "Combat_prota_ground_2",
+      "finished": true,
+      "blade": [
+        [
+          -5.115848488442651,
+          1.867295726991722,
+          11.204493593842663
+        ],
+        [
+          -5.306007436109323,
+          2.5102264498500624,
+          10.702411005927452
+        ]
+      ]
+    },
+    {
+      "s": "prota",
+      "step": 3,
+      "damage": 31,
+      "height": 1.9437877979186633,
+      "clip": "Combat_prota_ground_3",
+      "finished": true,
+      "blade": [
+        [
+          -5.5407368033363165,
+          1.3616999581668305,
+          11.369278728774324
+        ],
+        [
+          -6.191005488579914,
+          1.4767777902314205,
+          10.853997329167974
+        ]
+      ]
+    },
+    {
+      "s": "prota",
+      "step": 4,
+      "damage": 33,
+      "height": 1.9434238844387621,
+      "clip": "Combat_prota_ground_4",
+      "finished": true,
+      "blade": [
+        [
+          -5.20880992064593,
+          1.1420398884654601,
+          11.188746124714747
+        ],
+        [
+          -5.5615726342016885,
+          0.8524756996736111,
+          10.486379876453723
+        ]
+      ]
+    },
+    {
+      "s": "aurora",
+      "step": 0,
+      "damage": 30,
+      "height": 1.9469305589269745,
+      "clip": "Combat_aurora_ground_0",
+      "finished": true,
+      "blade": [
+        [
+          -4.1790919462789216,
+          1.1243098253705475,
+          11.595480749084585
+        ],
+        [
+          -3.356781181878409,
+          1.0009639496827785,
+          11.494495084370056
+        ]
+      ]
+    },
+    {
+      "s": "aurora",
+      "step": 1,
+      "damage": 32,
+      "height": 1.9489995149323591,
+      "clip": "Combat_aurora_ground_1",
+      "finished": true,
+      "blade": [
+        [
+          -5.642100209924562,
+          1.4440129354611946,
+          11.747764197026765
+        ],
+        [
+          -6.465666360845415,
+          1.582979366224707,
+          11.811281072235625
+        ]
+      ]
+    },
+    {
+      "s": "aurora",
+      "step": 2,
+      "damage": 35,
+      "height": 1.9483726722384584,
+      "clip": "Combat_aurora_ground_2",
+      "finished": true,
+      "blade": [
+        [
+          -5.445557803446823,
+          1.0767887151822553,
+          11.458095856047148
+        ],
+        [
+          -6.2167692336876765,
+          0.862748111454026,
+          11.21105988311472
+        ]
+      ]
+    },
+    {
+      "s": "aurora",
+      "step": 3,
+      "damage": 37,
+      "height": 1.9470509956209063,
+      "clip": "Combat_aurora_ground_3",
+      "finished": true,
+      "blade": [
+        [
+          -5.111919482377738,
+          1.8435767440620159,
+          11.182381256007933
+        ],
+        [
+          -5.294143812803805,
+          2.4623918886707585,
+          10.648087913974388
+        ]
+      ]
+    },
+    {
+      "s": "aurora",
+      "step": 4,
+      "damage": 40,
+      "height": 1.945831814312627,
+      "clip": "Combat_aurora_ground_4",
+      "finished": true,
+      "blade": [
+        [
+          -5.287676551010817,
+          1.0800448438417052,
+          11.268166318821153
+        ],
+        [
+          -5.739722659071721,
+          0.7216612571472958,
+          10.660858488050332
+        ]
+      ]
+    },
+    {
+      "s": "vigilia",
+      "step": 0,
+      "damage": 36,
+      "height": 1.9255137311314092,
+      "clip": "Combat_vigilia_ground_0",
+      "finished": true,
+      "blade": [
+        [
+          -4.859859727850913,
+          1.3936722834396145,
+          10.755631985613071
+        ],
+        [
+          -4.810311719483361,
+          1.5430870283504698,
+          9.785414970739376
+        ]
+      ]
+    },
+    {
+      "s": "vigilia",
+      "step": 1,
+      "damage": 39,
+      "height": 1.9430834501841592,
+      "clip": "Combat_vigilia_ground_1",
+      "finished": true,
+      "blade": [
+        [
+          -5.354451541631076,
+          1.1505724515617273,
+          11.414867826242972
+        ],
+        [
+          -6.3300355238318735,
+          1.1441527260992612,
+          11.295304090889191
+        ]
+      ]
+    },
+    {
+      "s": "vigilia",
+      "step": 2,
+      "damage": 42,
+      "height": 1.9465764256972327,
+      "clip": "Combat_vigilia_ground_2",
+      "finished": true,
+      "blade": [
+        [
+          -4.411094945277759,
+          1.063928850297484,
+          11.464834979131693
+        ],
+        [
+          -3.4606769904990484,
+          0.9037533140114089,
+          11.272090705000423
+        ]
+      ]
+    },
+    {
+      "s": "vigilia",
+      "step": 3,
+      "damage": 45,
+      "height": 1.9580588812445556,
+      "clip": "Combat_vigilia_ground_3",
+      "finished": true,
+      "blade": [
+        [
+          -4.875526260576924,
+          1.382286929331188,
+          10.770858789009557
+        ],
+        [
+          -4.874919609333033,
+          1.4315447904849459,
+          9.789189738759514
+        ]
+      ]
+    },
+    {
+      "s": "vigilia",
+      "step": 4,
+      "damage": 48,
+      "height": 1.9430099150274007,
+      "clip": "Combat_vigilia_ground_4",
+      "finished": true,
+      "blade": [
+        [
+          -5.0849327575109236,
+          1.7954492043185428,
+          11.192152866332192
+        ],
+        [
+          -5.326562755604475,
+          2.5441230232903127,
+          10.602913285325933
+        ]
+      ]
+    },
+    {
+      "s": "quantum",
+      "step": 0,
+      "damage": 40,
+      "height": 1.9447506783521007,
+      "clip": "Combat_quantum_ground_0",
+      "finished": true,
+      "blade": [
+        [
+          -5.717109851539423,
+          1.7912486499851819,
+          11.638095853071686
+        ],
+        [
+          -6.404963586797791,
+          2.171616769225774,
+          11.560540968166972
+        ]
+      ]
+    },
+    {
+      "s": "quantum",
+      "step": 1,
+      "damage": 43,
+      "height": 1.9515318086519324,
+      "clip": "Combat_quantum_ground_1",
+      "finished": true,
+      "blade": [
+        [
+          -4.078266843152851,
+          1.075168637250024,
+          11.581761261952083
+        ],
+        [
+          -3.3074248685685763,
+          0.9534642892950898,
+          11.4599902863221
+        ]
+      ]
+    },
+    {
+      "s": "quantum",
+      "step": 2,
+      "damage": 46,
+      "height": 1.9478163661126047,
+      "clip": "Combat_quantum_ground_2",
+      "finished": true,
+      "blade": [
+        [
+          -5.757712736592266,
+          1.440454846446811,
+          11.682559383068403
+        ],
+        [
+          -6.533038373718517,
+          1.5704345926426841,
+          11.606317356043432
+        ]
+      ]
+    },
+    {
+      "s": "quantum",
+      "step": 3,
+      "damage": 50,
+      "height": 1.9670879107571475,
+      "clip": "Combat_quantum_ground_3",
+      "finished": true,
+      "blade": [
+        [
+          -4.849872830159164,
+          1.3742251926849987,
+          10.624493384283422
+        ],
+        [
+          -4.849845281560532,
+          1.412696547775257,
+          9.835597078491176
+        ]
+      ]
+    },
+    {
+      "s": "quantum",
+      "step": 4,
+      "damage": 53,
+      "height": 1.9465959490411435,
+      "clip": "Combat_quantum_ground_4",
+      "finished": true,
+      "blade": [
+        [
+          -5.59541442111701,
+          1.5831127626078434,
+          11.223286509192363
+        ],
+        [
+          -6.1817303946067215,
+          1.7828847514845043,
+          10.733223143733246
+        ]
+      ]
+    },
+    {
+      "s": "celeste",
+      "step": 0,
+      "damage": 48,
+      "height": 1.9014121313677892,
+      "clip": "Combat_celeste_ground_0",
+      "finished": true,
+      "blade": [
+        [
+          -4.841601074436357,
+          1.1297134077728725,
+          11.166811143848825
+        ],
+        [
+          -4.842609676330139,
+          0.6841155728613014,
+          10.29071617630437
+        ]
+      ]
+    },
+    {
+      "s": "celeste",
+      "step": 1,
+      "damage": 52,
+      "height": 1.900822538645492,
+      "clip": "Combat_celeste_ground_1",
+      "finished": true,
+      "blade": [
+        [
+          -4.891771093356207,
+          1.2213780783031893,
+          11.159822050693533
+        ],
+        [
+          -5.113104098996349,
+          0.9626250987498941,
+          10.237781137971812
+        ]
+      ]
+    },
+    {
+      "s": "celeste",
+      "step": 2,
+      "damage": 56,
+      "height": 1.9008984933904267,
+      "clip": "Combat_celeste_ground_2",
+      "finished": true,
+      "blade": [
+        [
+          -4.942139177926505,
+          1.270978609223917,
+          11.171980385847538
+        ],
+        [
+          -4.82511384398974,
+          1.124035884657466,
+          10.207193466846208
+        ]
+      ]
+    },
+    {
+      "s": "celeste",
+      "step": 3,
+      "damage": 60,
+      "height": 1.901064902046705,
+      "clip": "Combat_celeste_ground_3",
+      "finished": true,
+      "blade": [
+        [
+          -4.837669950094041,
+          1.3236567148939764,
+          11.175697635197563
+        ],
+        [
+          -4.808060542627142,
+          1.3562447342059276,
+          10.193780052640596
+        ]
+      ]
+    },
+    {
+      "s": "celeste",
+      "step": 4,
+      "damage": 63,
+      "height": 1.9015041621955864,
+      "clip": "Combat_celeste_ground_4",
+      "finished": true,
+      "blade": [
+        [
+          -4.843043959034175,
+          1.5085091046117096,
+          11.195348023091967
+        ],
+        [
+          -4.715362049042613,
+          1.6903281428328356,
+          10.237882619801892
+        ]
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "mode": "run",
+      "start": {
+        "ready": true,
+        "sword": "prota",
+        "active": {
+          "kind": "basic",
+          "time": 0,
+          "step": 0,
+          "mode": "run",
+          "phase": "windup",
+          "hit": false
+        },
+        "waves": 0,
+        "projectiles": [],
+        "viewmodel": null,
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": -7.068127400001114,
+          "dash": 0,
+          "grounded": true,
+          "sprint": true
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 0,
+          "aurora": 0
+        },
+        "mana": 100,
+        "hp": 8960,
+        "hero": [
+          -5,
+          0,
+          9.769547061963413
+        ],
+        "target": [
+          -5,
+          0,
+          8
+        ],
+        "clip": "Combat_prota_run_0_Upper",
+        "blade": [
+          [
+            -4.699530247493742,
+            1.6468562429987368,
+            11.275834197423366
+          ],
+          [
+            -4.363002206897327,
+            2.3679874905293508,
+            10.698929153567104
+          ]
+        ],
+        "vfx": {
+          "cuts": 0,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.9051070803590262
+      },
+      "end": {
+        "ready": true,
+        "sword": "prota",
+        "active": null,
+        "waves": 0,
+        "projectiles": [],
+        "viewmodel": null,
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": 0,
+          "dash": 0,
+          "grounded": true,
+          "sprint": true
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 0,
+          "aurora": 0
+        },
+        "mana": 100,
+        "hp": 8935,
+        "hero": [
+          -5,
+          0,
+          9.391135592678875
+        ],
+        "target": [
+          -5,
+          0,
+          8
+        ],
+        "clip": "Idle",
+        "blade": [
+          [
+            -4.599266974697815,
+            1.5042561135189372,
+            8.800772740655058
+          ],
+          [
+            -4.310896165467438,
+            2.1126322659368326,
+            8.302447545352388
+          ]
+        ],
+        "vfx": {
+          "cuts": 0,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.9438335630151753
+      }
+    },
+    {
+      "mode": "dash",
+      "start": {
+        "ready": true,
+        "sword": "prota",
+        "active": {
+          "kind": "basic",
+          "time": 0,
+          "step": 0,
+          "mode": "dash",
+          "phase": "windup",
+          "hit": false
+        },
+        "waves": 0,
+        "projectiles": [],
+        "viewmodel": null,
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": 0,
+          "dash": 0.32,
+          "grounded": true,
+          "sprint": false
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 0,
+          "aurora": 0
+        },
+        "mana": 100,
+        "hp": 8935,
+        "hero": [
+          -5,
+          0,
+          12
+        ],
+        "target": [
+          -5,
+          0,
+          8
+        ],
+        "clip": "Combat_prota_dash_0",
+        "blade": [
+          [
+            -4.599266974697815,
+            1.5042561135189372,
+            8.800772740655058
+          ],
+          [
+            -4.310896165467438,
+            2.1126322659368326,
+            8.302447545352388
+          ]
+        ],
+        "vfx": {
+          "cuts": 0,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.9438335630151753
+      },
+      "end": {
+        "ready": true,
+        "sword": "prota",
+        "active": null,
+        "waves": 0,
+        "projectiles": [],
+        "viewmodel": null,
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": 0,
+          "dash": 0,
+          "grounded": true,
+          "sprint": false
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.21666666666666665,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 0,
+          "aurora": 0
+        },
+        "mana": 100,
+        "hp": 8909,
+        "hero": [
+          -5,
+          0,
+          8.874999999999991
+        ],
+        "target": [
+          -5,
+          0,
+          8
+        ],
+        "clip": "Idle",
+        "blade": [
+          [
+            -4.602936814322919,
+            1.5189862688306204,
+            8.2887668295396
+          ],
+          [
+            -4.316151289561267,
+            2.133526255829096,
+            7.797134920656906
+          ]
+        ],
+        "vfx": {
+          "cuts": 0,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.9424001508858388
+      }
+    },
+    {
+      "mode": "air",
+      "start": {
+        "ready": true,
+        "sword": "prota",
+        "active": {
+          "kind": "basic",
+          "time": 0,
+          "step": 0,
+          "mode": "air",
+          "phase": "windup",
+          "hit": false
+        },
+        "waves": 0,
+        "projectiles": [],
+        "viewmodel": null,
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": 0,
+          "dash": 0,
+          "grounded": false,
+          "sprint": false
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.21666666666666665,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 0,
+          "aurora": 0
+        },
+        "mana": 100,
+        "hp": 8909,
+        "hero": [
+          -5,
+          0.4325,
+          12
+        ],
+        "target": [
+          -5,
+          0,
+          8
+        ],
+        "clip": "Combat_prota_air_0",
+        "blade": [
+          [
+            -4.602936814322919,
+            1.5189862688306204,
+            8.2887668295396
+          ],
+          [
+            -4.316151289561267,
+            2.133526255829096,
+            7.797134920656906
+          ]
+        ],
+        "vfx": {
+          "cuts": 0,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.9417166000272736
+      },
+      "end": {
+        "ready": true,
+        "sword": "prota",
+        "active": null,
+        "waves": 0,
+        "projectiles": [],
+        "viewmodel": null,
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": 0,
+          "dash": 0,
+          "grounded": true,
+          "sprint": false
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.21666666666666665,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 0,
+          "aurora": 0
+        },
+        "mana": 100,
+        "hp": 8909,
+        "hero": [
+          -5,
+          0,
+          12
+        ],
+        "target": [
+          -5,
+          0,
+          8
+        ],
+        "clip": "Idle",
+        "blade": [
+          [
+            -4.602936808216807,
+            1.518986269325574,
+            11.413766830283565
+          ],
+          [
+            -4.316151278145467,
+            2.1335262548210183,
+            10.922134922619401
+          ]
+        ],
+        "vfx": {
+          "cuts": 0,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.94587162995321
+      }
+    },
+    {
+      "mode": "plunge",
+      "start": {
+        "ready": true,
+        "sword": "prota",
+        "active": {
+          "kind": "basic",
+          "time": 0,
+          "step": 0,
+          "mode": "plunge",
+          "phase": "windup",
+          "hit": false
+        },
+        "waves": 0,
+        "projectiles": [],
+        "viewmodel": null,
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": 0,
+          "dash": 0,
+          "grounded": false,
+          "sprint": false
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.21666666666666665,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 0,
+          "aurora": 0
+        },
+        "mana": 100,
+        "hp": 8909,
+        "hero": [
+          -5,
+          0.8300000000000001,
+          12
+        ],
+        "target": [
+          -5,
+          0,
+          8
+        ],
+        "clip": "Combat_prota_plunge_0",
+        "blade": [
+          [
+            -4.602936808216807,
+            1.518986269325574,
+            11.413766830283565
+          ],
+          [
+            -4.316151278145467,
+            2.1335262548210183,
+            10.922134922619401
+          ]
+        ],
+        "vfx": {
+          "cuts": 0,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.9449978486789723
+      },
+      "end": {
+        "ready": true,
+        "sword": "prota",
+        "active": null,
+        "waves": 0,
+        "projectiles": [],
+        "viewmodel": null,
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": 0,
+          "dash": 0,
+          "grounded": true,
+          "sprint": false
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.21666666666666665,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 0,
+          "aurora": 0
+        },
+        "mana": 100,
+        "hp": 8909,
+        "hero": [
+          -5,
+          0,
+          12
+        ],
+        "target": [
+          -5,
+          0,
+          8
+        ],
+        "clip": "Idle",
+        "blade": [
+          [
+            -4.602936808841877,
+            1.5189862642145364,
+            11.413766829447422
+          ],
+          [
+            -4.31615127708506,
+            2.1335262465769613,
+            10.92213491885018
+          ]
+        ],
+        "vfx": {
+          "cuts": 0,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.9552009692792212
+      }
+    }
+  ],
+  "bosses": [
+    {
+      "kind": "warden",
+      "traces": [
+        {
+          "id": "Predator_Rake",
+          "frames": 37,
+          "ranges": [
+            26,
+            18,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "Predator_Rush",
+          "frames": 36,
+          "ranges": [
+            25,
+            25,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "Predator_Leap",
+          "frames": 47,
+          "ranges": [
+            24,
+            13,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "Predator_Turn",
+          "frames": 37,
+          "ranges": [
+            11,
+            6,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "Predator_Retreat",
+          "frames": 36,
+          "ranges": [
+            12,
+            10,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "moves": [
+        {
+          "started": "Predator_Rake",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 76,
+              "calls": 558,
+              "triangles": 345060,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 492,
+            "programs": 139,
+            "feet": [
+              0.09130329398320719,
+              0.0014059434406174798,
+              0.08994840636020052,
+              -1.619202716326984e-05
+            ],
+            "boss": "Predator_Rake"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 480,
+            "enemyMaxHP": 480,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "warden",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 85,
+            "snap": {
+              "time": 3.467,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "warden",
+                  "role": "aggressor",
+                  "hp": 480,
+                  "alive": true,
+                  "x": -5,
+                  "z": 10.35,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": [
+                {
+                  "id": 2,
+                  "type": "claws",
+                  "phase": "sink",
+                  "owner": "e1",
+                  "held": null
+                }
+              ]
+            },
+            "allies": [],
+            "lock": false
+          }
+        },
+        {
+          "started": "Predator_Rush",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 79,
+              "calls": 552,
+              "triangles": 332334,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 493,
+            "programs": 141,
+            "feet": [
+              0.09131469668200465,
+              0.0014452128552148863,
+              0.0900507215945694,
+              0.00010330892044910223
+            ],
+            "boss": "Predator_Rush"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 480,
+            "enemyMaxHP": 480,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "warden",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 85,
+            "snap": {
+              "time": 6.883,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "warden",
+                  "role": "aggressor",
+                  "hp": 480,
+                  "alive": true,
+                  "x": -5,
+                  "z": 11.65,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": []
+            },
+            "allies": [],
+            "lock": false
+          }
+        },
+        {
+          "started": "Predator_Leap",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 82,
+              "calls": 552,
+              "triangles": 332334,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 493,
+            "programs": 141,
+            "feet": [
+              0.09131420182707095,
+              0.001442481797751638,
+              0.09002233174565971,
+              0.00012314144671708716
+            ],
+            "boss": "Predator_Leap"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 480,
+            "enemyMaxHP": 480,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "warden",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 85,
+            "snap": {
+              "time": 10.3,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "warden",
+                  "role": "aggressor",
+                  "hp": 480,
+                  "alive": true,
+                  "x": -5,
+                  "z": 11.25,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": []
+            },
+            "allies": [],
+            "lock": false
+          }
+        },
+        {
+          "started": "Predator_Turn",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 85,
+              "calls": 558,
+              "triangles": 345064,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 493,
+            "programs": 141,
+            "feet": [
+              0.09131512195105385,
+              0.0014441183473096891,
+              0.0900848161533902,
+              0.00013655306356682995
+            ],
+            "boss": "Predator_Turn"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 480,
+            "enemyMaxHP": 480,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "warden",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 85,
+            "snap": {
+              "time": 13.717,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "warden",
+                  "role": "aggressor",
+                  "hp": 480,
+                  "alive": true,
+                  "x": -5,
+                  "z": 10.9,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": [
+                {
+                  "id": 3,
+                  "type": "claws",
+                  "phase": "sink",
+                  "owner": "e1",
+                  "held": null
+                }
+              ]
+            },
+            "allies": [],
+            "lock": false
+          }
+        },
+        {
+          "started": "Predator_Retreat",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 88,
+              "calls": 552,
+              "triangles": 332334,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 493,
+            "programs": 141,
+            "feet": [
+              0.313516902077659,
+              0.22546468215927035,
+              0.28577479838692277,
+              0.19401257899787294
+            ],
+            "boss": "Predator_Retreat"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 480,
+            "enemyMaxHP": 480,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "warden",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 85,
+            "snap": {
+              "time": 17.133,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "warden",
+                  "role": "aggressor",
+                  "hp": 480,
+                  "alive": true,
+                  "x": -5,
+                  "z": 10.3,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": []
+            },
+            "allies": [],
+            "lock": false
+          }
+        }
+      ]
+    },
+    {
+      "kind": "e2boss",
+      "traces": [
+        {
+          "id": "Executor_Sweep",
+          "frames": 52,
+          "ranges": [
+            0,
+            1,
+            7,
+            7,
+            0
+          ]
+        },
+        {
+          "id": "Executor_Spin",
+          "frames": 71,
+          "ranges": [
+            0,
+            1,
+            12,
+            16,
+            5
+          ]
+        },
+        {
+          "id": "Executor_Advance",
+          "frames": 70,
+          "ranges": [
+            0,
+            6,
+            8,
+            31,
+            0
+          ]
+        },
+        {
+          "id": "Executor_Slam",
+          "frames": 69,
+          "ranges": [
+            0,
+            5,
+            13,
+            9,
+            0
+          ]
+        },
+        {
+          "id": "Executor_Chain",
+          "frames": 88,
+          "ranges": [
+            0,
+            18,
+            28,
+            25,
+            0
+          ]
+        }
+      ],
+      "moves": [
+        {
+          "started": "Executor_Sweep",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 92,
+              "calls": 598,
+              "triangles": 344454,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 533,
+            "programs": 143,
+            "feet": [
+              0.0913101242145854,
+              0.001441402915947923,
+              0.0899910718818871,
+              7.019787261385024e-05
+            ],
+            "boss": "Executor_Sweep"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 648,
+            "enemyMaxHP": 648,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "miniboss2",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 84,
+            "snap": {
+              "time": 3.467,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "e2boss",
+                  "role": "aggressor",
+                  "hp": 648,
+                  "alive": true,
+                  "x": -5,
+                  "z": 10.3,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": [
+                {
+                  "id": 2,
+                  "type": "trinity",
+                  "phase": "hunt",
+                  "owner": "e1",
+                  "held": null
+                }
+              ]
+            },
+            "allies": [],
+            "lock": false
+          }
+        },
+        {
+          "started": "Executor_Spin",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 95,
+              "calls": 595,
+              "triangles": 343336,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 535,
+            "programs": 144,
+            "feet": [
+              0.0913201572914969,
+              0.0014499126953129576,
+              0.09011257883934043,
+              0.00013863159346817755
+            ],
+            "boss": "Executor_Spin"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 648,
+            "enemyMaxHP": 648,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "miniboss2",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 100,
+            "snap": {
+              "time": 6.883,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "e2boss",
+                  "role": "aggressor",
+                  "hp": 648,
+                  "alive": true,
+                  "x": -5,
+                  "z": 11.7,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": []
+            },
+            "allies": [],
+            "lock": false
+          }
+        },
+        {
+          "started": "Executor_Advance",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 98,
+              "calls": 592,
+              "triangles": 342922,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 535,
+            "programs": 144,
+            "feet": [
+              0.09129881516913069,
+              0.0014090568044512197,
+              0.09004093546652098,
+              9.923289542516922e-05
+            ],
+            "boss": "Executor_Advance"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 648,
+            "enemyMaxHP": 648,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "miniboss2",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 100,
+            "snap": {
+              "time": 10.3,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "e2boss",
+                  "role": "aggressor",
+                  "hp": 648,
+                  "alive": true,
+                  "x": -5,
+                  "z": 10.93,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": []
+            },
+            "allies": [],
+            "lock": false
+          }
+        },
+        {
+          "started": "Executor_Slam",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 101,
+              "calls": 592,
+              "triangles": 342922,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 535,
+            "programs": 144,
+            "feet": [
+              0.09130107022662731,
+              0.0014206544134011678,
+              0.08990457923966721,
+              -7.736654254322795e-05
+            ],
+            "boss": "Executor_Slam"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 648,
+            "enemyMaxHP": 648,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "miniboss2",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 100,
+            "snap": {
+              "time": 13.717,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "e2boss",
+                  "role": "aggressor",
+                  "hp": 648,
+                  "alive": true,
+                  "x": -5,
+                  "z": 11.07,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": []
+            },
+            "allies": [],
+            "lock": false
+          }
+        },
+        {
+          "started": "Executor_Chain",
+          "report": {
+            "ready": true,
+            "training": false,
+            "bake": {
+              "milliseconds": 413.70000000298023,
+              "clips": 45,
+              "bytes": 1198560
+            },
+            "draw": {
+              "frame": 104,
+              "calls": 592,
+              "triangles": 342922,
+              "points": 109,
+              "lines": 0
+            },
+            "geometry": 535,
+            "programs": 144,
+            "feet": [
+              0.09131498912221664,
+              0.0014436389195123661,
+              0.08995216711853748,
+              1.527718176315418e-05
+            ],
+            "boss": "Executor_Chain"
+          },
+          "state": {
+            "on": true,
+            "focus": "e1",
+            "enemyHP": 648,
+            "enemyMaxHP": 648,
+            "enemyAlive": true,
+            "visible": true,
+            "profile": "miniboss2",
+            "q": 2,
+            "sub": 0,
+            "pack": {
+              "n": 1,
+              "i": 0,
+              "active": true,
+              "squad": true,
+              "lab": true
+            },
+            "hero": 100,
+            "snap": {
+              "time": 17.133,
+              "actors": [
+                {
+                  "id": "e1",
+                  "kind": "e2boss",
+                  "role": "aggressor",
+                  "hp": 648,
+                  "alive": true,
+                  "x": -5,
+                  "z": 10.93,
+                  "act": null,
+                  "intent": "hold",
+                  "target": "hero",
+                  "phase2": false
+                }
+              ],
+              "spells": []
+            },
+            "allies": [],
+            "lock": false
+          }
+        }
+      ]
+    }
+  ],
+  "fp": {
+    "ready": true,
+    "sword": "vigilia",
+    "active": {
+      "kind": "basic",
+      "time": 0.3000000000000001,
+      "step": 0,
+      "mode": "ground",
+      "phase": "active",
+      "hit": true
+    },
+    "waves": 0,
+    "projectiles": [],
+    "viewmodel": {
+      "visible": true,
+      "meshes": 1,
+      "triangles": 749,
+      "hand": [
+        0.0751221249559686,
+        -0.22757474057106664,
+        -0.6073577299358028
+      ],
+      "armBounds": [
+        {
+          "min": [
+            -0.49803055293786525,
+            -0.3868963310753528,
+            -0.751722585014976
+          ],
+          "max": [
+            0.24656349557650437,
+            -0.07688053401274852,
+            -0.20733815680248746
+          ]
+        }
+      ],
+      "swords": 1
+    },
+    "cinematic": false,
+    "motion": {
+      "vx": 0,
+      "vz": 0,
+      "dash": 0,
+      "grounded": true,
+      "sprint": false
+    },
+    "camera": {
+      "distance": 0.72,
+      "yaw": 0,
+      "pitch": 0
+    },
+    "events": [
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.24166666666666664,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.20833333333333331,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.2833333333333334,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.3000000000000001,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.3166666666666668,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.2333333333333333,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.24999999999999997,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.26666666666666666,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.2833333333333334,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.3000000000000001,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.16666666666666666,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.2333333333333333,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.24999999999999997,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.20833333333333331,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.2833333333333334,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.22499999999999998,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.24166666666666664,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.2583333333333333,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.22499999999999998,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.29166666666666674,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.3250000000000002,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.35000000000000026,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.37500000000000033,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.4000000000000004,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.4250000000000005,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.24166666666666664,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.21666666666666665,
+        "position": null
+      },
+      {
+        "type": "impact",
+        "n": null,
+        "at": 0.16666666666666666,
+        "position": null
+      }
+    ],
+    "cooldowns": {
+      "prota": 0,
+      "aurora": 0
+    },
+    "mana": 100,
+    "hp": 8873,
+    "hero": [
+      -5,
+      0,
+      11.532467532467512
+    ],
+    "target": [
+      -5,
+      0,
+      10.5
+    ],
+    "clip": "Combat_vigilia_ground_0",
+    "blade": [
+      [
+        -4.875900687257772,
+        1.3821539174398243,
+        10.786652766753518
+      ],
+      [
+        -4.875564858634476,
+        1.429356006031716,
+        9.804882590085406
+      ]
+    ],
+    "vfx": {
+      "cuts": 1,
+      "trails": 1,
+      "particles": 11,
+      "ghosts": 0,
+      "capacity": {
+        "cuts": 16,
+        "trails": 3,
+        "particles": 192,
+        "ghosts": 3
+      }
+    },
+    "height": 1.9600796400763494
+  },
+  "specials": [
+    {
+      "s": "prota",
+      "before": {
+        "mana": 100,
+        "hp": 8873
+      },
+      "after": {
+        "ready": true,
+        "sword": "prota",
+        "active": null,
+        "waves": 0,
+        "projectiles": [],
+        "viewmodel": {
+          "visible": false,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.0751221249559686,
+            -0.22757474057106664,
+            -0.6073577299358028
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.4980305406085881,
+                -0.38689631885565023,
+                -0.75172260293105
+              ],
+              "max": [
+                0.24656350790577886,
+                -0.07688054487470608,
+                -0.20733808624069283
+              ]
+            }
+          ],
+          "swords": 1
+        },
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": 0,
+          "dash": 0,
+          "grounded": true,
+          "sprint": false
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.21666666666666665,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 0,
+            "at": 0.6500000000000001,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 1,
+            "at": 0.7166666666666666,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 2,
+            "at": 0.7749999999999997,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 3,
+            "at": 0.8333333333333328,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 4,
+            "at": 0.8916666666666659,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 5,
+            "at": 0.9583333333333324,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 6,
+            "at": 1.0166666666666655,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 7,
+            "at": 1.0749999999999986,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 8,
+            "at": 1.1333333333333317,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 9,
+            "at": 1.1916666666666649,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 10,
+            "at": 1.2583333333333313,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 11,
+            "at": 1.3166666666666644,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 12,
+            "at": 1.3749999999999976,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 13,
+            "at": 1.4333333333333307,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 14,
+            "at": 1.4916666666666638,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 15,
+            "at": 1.60833333333333,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 9.00000000000017,
+          "aurora": 0
+        },
+        "mana": 72,
+        "hp": 8797,
+        "hero": [
+          -5,
+          0,
+          7.85
+        ],
+        "target": [
+          -5,
+          0,
+          9
+        ],
+        "clip": "Idle",
+        "blade": [
+          [
+            -4.618875784390391,
+            1.364567384272968,
+            7.237746601367774
+          ],
+          [
+            -4.288807123576192,
+            1.7606496014032798,
+            6.577609625565611
+          ]
+        ],
+        "vfx": {
+          "cuts": 0,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.9481593967728357
+      }
+    },
+    {
+      "s": "aurora",
+      "before": {
+        "mana": 72,
+        "hp": 8797
+      },
+      "after": {
+        "ready": true,
+        "sword": "aurora",
+        "active": null,
+        "waves": 1,
+        "projectiles": [
+          {
+            "p": {
+              "x": -4.611188593546322,
+              "y": 1.1,
+              "z": -4.99682963691876
+            },
+            "origin": {
+              "x": -4.611188593546322,
+              "y": 1.1,
+              "z": 10.733170363081276
+            },
+            "direction": {
+              "x": 1.2246467991473532e-16,
+              "y": 0,
+              "z": -1
+            },
+            "travel": 15.73000000000007,
+            "n": 3
+          }
+        ],
+        "viewmodel": {
+          "visible": false,
+          "meshes": 1,
+          "triangles": 749,
+          "hand": [
+            0.0751221249559686,
+            -0.22757474057106664,
+            -0.6073577299358028
+          ],
+          "armBounds": [
+            {
+              "min": [
+                -0.49803054060859075,
+                -0.38689631885565057,
+                -0.7517226274254227
+              ],
+              "max": [
+                0.24656350790577886,
+                -0.07688054487470586,
+                -0.2073379897705756
+              ]
+            }
+          ],
+          "swords": 1
+        },
+        "cinematic": false,
+        "motion": {
+          "vx": 0,
+          "vz": 0,
+          "dash": 0,
+          "grounded": true,
+          "sprint": false
+        },
+        "camera": {
+          "distance": 6,
+          "yaw": 0,
+          "pitch": 0
+        },
+        "events": [
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3166666666666668,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.26666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3000000000000001,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2333333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24999999999999997,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.20833333333333331,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2833333333333334,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.2583333333333333,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.22499999999999998,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.29166666666666674,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.3250000000000002,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.35000000000000026,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.37500000000000033,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4000000000000004,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.4250000000000005,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.24166666666666664,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.21666666666666665,
+            "position": null
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.16666666666666666,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 0,
+            "at": 0.6500000000000001,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 1,
+            "at": 0.7166666666666666,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 2,
+            "at": 0.7749999999999997,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 3,
+            "at": 0.8333333333333328,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 4,
+            "at": 0.8916666666666659,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 5,
+            "at": 0.9583333333333324,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 6,
+            "at": 1.0166666666666655,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 7,
+            "at": 1.0749999999999986,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 8,
+            "at": 1.1333333333333317,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 9,
+            "at": 1.1916666666666649,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 10,
+            "at": 1.2583333333333313,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 11,
+            "at": 1.3166666666666644,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 12,
+            "at": 1.3749999999999976,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 13,
+            "at": 1.4333333333333307,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 14,
+            "at": 1.4916666666666638,
+            "position": null
+          },
+          {
+            "type": "judgment",
+            "n": 15,
+            "at": 1.60833333333333,
+            "position": null
+          },
+          {
+            "type": "wave",
+            "n": 0,
+            "at": 0.4000000000000004,
+            "position": {
+              "x": -4.895137104653832,
+              "y": 1.1932730911351166,
+              "z": 11.174316389147323
+            }
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.508333333333334,
+            "position": null
+          },
+          {
+            "type": "wave",
+            "n": 1,
+            "at": 0.8249999999999995,
+            "position": {
+              "x": -4.611174994305437,
+              "y": 1.1,
+              "z": 10.691727771832962
+            }
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 0.8833333333333326,
+            "position": null
+          },
+          {
+            "type": "wave",
+            "n": 2,
+            "at": 1.2416666666666647,
+            "position": {
+              "x": -4.903477496276253,
+              "y": 1.54037721144866,
+              "z": 11.221092500155583
+            }
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 1.3416666666666643,
+            "position": null
+          },
+          {
+            "type": "wave",
+            "n": 3,
+            "at": 1.7083333333333297,
+            "position": {
+              "x": -4.611188593546322,
+              "y": 1.1,
+              "z": 10.733170363081276
+            }
+          },
+          {
+            "type": "impact",
+            "n": null,
+            "at": 1.7583333333333295,
+            "position": null
+          }
+        ],
+        "cooldowns": {
+          "prota": 6.000000000000128,
+          "aurora": 13.00000000000017
+        },
+        "mana": 34,
+        "hp": 8680,
+        "hero": [
+          -5,
+          0,
+          12
+        ],
+        "target": [
+          -5,
+          0,
+          9
+        ],
+        "clip": "Idle",
+        "blade": [
+          [
+            -4.618875792589245,
+            1.3645673969203784,
+            11.387746599327595
+          ],
+          [
+            -4.288807142421605,
+            1.7606496271652636,
+            10.72760962605712
+          ]
+        ],
+        "vfx": {
+          "cuts": 3,
+          "trails": 0,
+          "particles": 0,
+          "ghosts": 0,
+          "capacity": {
+            "cuts": 16,
+            "trails": 3,
+            "particles": 192,
+            "ghosts": 3
+          }
+        },
+        "height": 1.9421915468720732
+      }
+    }
+  ],
+  "touch": [
+    {
+      "button": "attack",
+      "active": {
+        "kind": "basic",
+        "time": 0,
+        "step": 0,
+        "mode": "ground",
+        "phase": "windup",
+        "hit": false
+      },
+      "grounded": true
+    },
+    {
+      "button": "jump",
+      "active": {
+        "kind": "basic",
+        "time": 0,
+        "step": 0,
+        "mode": "air",
+        "phase": "windup",
+        "hit": false
+      },
+      "grounded": false
+    },
+    {
+      "button": "dash",
+      "active": {
+        "kind": "basic",
+        "time": 0,
+        "step": 0,
+        "mode": "dash",
+        "phase": "windup",
+        "hit": false
+      },
+      "grounded": true
+    }
+  ],
+  "pool": {
+    "before": 452,
+    "after": 452,
+    "vfx": {
+      "cuts": 0,
+      "trails": 0,
+      "particles": 0,
+      "ghosts": 0,
+      "capacity": {
+        "cuts": 16,
+        "trails": 3,
+        "particles": 192,
+        "ghosts": 3
+      }
+    }
+  },
+  "saveUnchanged": true,
+  "report": {
+    "ready": true,
+    "training": false,
+    "bake": {
+      "milliseconds": 413.70000000298023,
+      "clips": 45,
+      "bytes": 1198560
+    },
+    "clips": [
+      {
+        "name": "Rite_Crescent",
+        "duration": 0.7200000286102295,
+        "tracks": 53
+      },
+      {
+        "name": "Rite_Reverse",
+        "duration": 0.699999988079071,
+        "tracks": 53
+      },
+      {
+        "name": "Rite_Ascendant",
+        "duration": 0.8600000143051147,
+        "tracks": 53
+      },
+      {
+        "name": "Rite_Judgment",
+        "duration": 1.9500000476837158,
+        "tracks": 53
+      },
+      {
+        "name": "Rite_Eclipse",
+        "duration": 2.299999952316284,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_prota_ground_0",
+        "duration": 0.7,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_prota_ground_1",
+        "duration": 0.755,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_prota_ground_2",
+        "duration": 0.8099999999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_prota_ground_3",
+        "duration": 0.865,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_prota_ground_4",
+        "duration": 0.9199999999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_prota_run_0",
+        "duration": 0.7,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_prota_dash_0",
+        "duration": 0.62,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_prota_air_0",
+        "duration": 0.76,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_prota_plunge_0",
+        "duration": 1.1,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_aurora_ground_0",
+        "duration": 0.6649999999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_aurora_ground_1",
+        "duration": 0.7172499999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_aurora_ground_2",
+        "duration": 0.7695,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_aurora_ground_3",
+        "duration": 0.82175,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_aurora_ground_4",
+        "duration": 0.8739999999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_aurora_run_0",
+        "duration": 0.6649999999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_aurora_dash_0",
+        "duration": 0.589,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_aurora_air_0",
+        "duration": 0.722,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_aurora_plunge_0",
+        "duration": 1.045,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_vigilia_ground_0",
+        "duration": 0.616,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_vigilia_ground_1",
+        "duration": 0.6644,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_vigilia_ground_2",
+        "duration": 0.7128,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_vigilia_ground_3",
+        "duration": 0.7612,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_vigilia_ground_4",
+        "duration": 0.8096,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_vigilia_run_0",
+        "duration": 0.616,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_vigilia_dash_0",
+        "duration": 0.5456,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_vigilia_air_0",
+        "duration": 0.6688000000000001,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_vigilia_plunge_0",
+        "duration": 0.9680000000000001,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_quantum_ground_0",
+        "duration": 0.651,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_quantum_ground_1",
+        "duration": 0.70215,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_quantum_ground_2",
+        "duration": 0.7533,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_quantum_ground_3",
+        "duration": 0.80445,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_quantum_ground_4",
+        "duration": 0.8556,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_quantum_run_0",
+        "duration": 0.651,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_quantum_dash_0",
+        "duration": 0.5766,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_quantum_air_0",
+        "duration": 0.7068000000000001,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_quantum_plunge_0",
+        "duration": 1.0230000000000001,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_celeste_ground_0",
+        "duration": 0.826,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_celeste_ground_1",
+        "duration": 0.8908999999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_celeste_ground_2",
+        "duration": 0.9557999999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_celeste_ground_3",
+        "duration": 1.0207,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_celeste_ground_4",
+        "duration": 1.0856,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_celeste_run_0",
+        "duration": 0.826,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_celeste_dash_0",
+        "duration": 0.7315999999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_celeste_air_0",
+        "duration": 0.8967999999999999,
+        "tracks": 53
+      },
+      {
+        "name": "Combat_celeste_plunge_0",
+        "duration": 1.298,
+        "tracks": 53
+      }
+    ],
+    "draw": {
+      "frame": 104,
+      "calls": 592,
+      "triangles": 342922,
+      "points": 109,
+      "lines": 0
+    },
+    "geometry": 535,
+    "programs": 144,
+    "feet": [
+      0.09131206348853771,
+      0.0014415060271355251,
+      0.09001368530876891,
+      8.597484856219528e-05
+    ],
+    "boss": null
+  },
+  "assertionsPassed": true
+}

@@ -34,9 +34,9 @@ const COMMON2 = {
   vortex: VORTEX, trinity: TRINITY, collapse: COLLAPSE
 };
 const BOSS2 = {
-  ...COMMON2, hp: 620, radius: .6, height: 2.5, poise: 40, flinch: 99, boss: true, pref: [2.2, 3.2], phase2: .5, furyCd: .7, leash: 44,
+  ...COMMON2, hp: 620, radius: .6, height: 2.5, poise: 40, flinch: 99, boss: true, pref: [1.6, 2.35], phase2: .5, furyCd: .7, leash: 44,
   speed: { walk: 1.9, run: 4, strafe: 1.6, back: 2.3, turn: 8 },
-  melee: { max: 3.5, reach: 3.4, arc: -.1, windup: .48, hits: [.46, .86, 1.24], dur: 1.75, dmg: 14, cd: 2.2, knock: 1.1 },
+  melee: { max: 2.45, reach: 2.65, arc: -.1, windup: .48, hits: [.46, .86, 1.24], dur: 1.75, dmg: 14, cd: 2.2, knock: 1.1 },
   block: { chance: .34, dur: .85, cd: 2.2, cost: 14, reduce: .78 },
   dodge: { chance: .34, cd: 2.6 },
   counter: { ...E1.common.counter, chance: .45, cd: 7, power: 24, r: .6 },

@@ -5,7 +5,7 @@ import { Enemy1Squad, E1 } from './enemy1-squad3d.js';
 const hero = (o = {}) => ({ id: 'hero', team: 'hero', x: 0, y: 0, z: 0, vx: 0, vz: 0, radius: .4, height: 1.8, alive: true, priority: 1, iframes: false, ...o });
 function world(o = {}) {
   const log = [], dmg = [];
-  const sq = new Enemy1Squad({ seed: o.seed || 7, blocked: o.blocked || (() => false), los: o.los, damageTarget: (id, n, info) => { dmg.push({ id, n, ...info }); return o.result ? o.result(id, n, info) : 'hit'; }, event: (type, d) => log.push({ type, ...d }) });
+  const sq = new Enemy1Squad({ seed: o.seed || 7, meleeTrace:o.meleeTrace, blocked: o.blocked || (() => false), los: o.los, damageTarget: (id, n, info) => { dmg.push({ id, n, ...info }); return o.result ? o.result(id, n, info) : 'hit'; }, event: (type, d) => log.push({ type, ...d }) });
   return { sq, log, dmg };
 }
 const run = (sq, secs, dt = 1 / 60, each) => { const n = Math.round(secs / dt); for (let i = 0; i < n; i++) { if (each) each(i * dt); sq.update(dt); } };
@@ -130,13 +130,13 @@ test('determinístico em qualquer FPS (passo fixo)', () => {
   assert.equal(snap(1 / 20), snap(1 / 144));
 });
 
-test('Guardião: combo de dois cortes, fase 2 aos 50% e foice que abre as garras', () => {
-  const { sq, log, dmg } = world({ seed: 5 }); const h = hero({ x: 0, z: 0 }); sq.setTargets([h]);
+test('Guardião: garras duplas com contato, fase 2 aos 50% e poder derivado', () => {
+  const { sq, log, dmg } = world({ seed: 5, meleeTrace:()=>true }); const h = hero({ x: 0, z: 0 }); sq.setTargets([h]);
   const [w] = sq.spawn([{ x: 0, z: 2.4, yaw: Math.PI, kind: 'warden' }]); w.alert = 0; w.decideT = 99;
   assert.equal(w.maxHp, E1.warden.hp);
   sq.startMelee(w, h); run(sq, 1.8);
   assert.equal(dmg.filter(d => d.kind === 'melee').length, 2, 'dois cortes');
-  assert.ok(log.some(e => e.type === 'reap'), 'assinatura foice + garras');
+  assert.ok(log.some(e => e.type === 'reap'), 'assinatura garras + poder');
   sq.damageActor(w.id, w.maxHp * .55, { x: 0, z: 0 }); assert.equal(w.phase2, true); assert.ok(log.some(e => e.type === 'phase2'));
   assert.ok(w.cdMul < 1);
 });

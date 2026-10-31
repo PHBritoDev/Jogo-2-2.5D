@@ -1,3 +1,5 @@
+import {bakeCombatClips} from './combat-rig3d.js';
+import {BOSS_MOVES,bossPose,bossTraceContact} from './boss-choreography3d.js';
 import { Enemy1Squad } from './enemy1-squad3d.js';
 import { createDarkPowersVFX } from './enemy1-dark-vfx3d.js';
 import { buildWardenScythe } from './warden-scythe3d.js';
@@ -10,7 +12,7 @@ import './enemy2-squad3d.js';
 /**
  * MOD 237 — corpo visual da esquadra Enemy1: um clone do Enemy1 por ator, com mixer, materiais (lampejo de dano
  * individual) e estado de animação próprios. Altura normalizada pelo esqueleto deformado (protocolo de escala GLB) e
- * escala de todos os nós restaurada depois do mixer. O Guardião ganha a Ceifadora do Limiar presa ao osso da mão, olhos
+ * escala de todos os nós restaurada depois do mixer. Mod 244: o Guardião usa garras presas às mãos, olhos
  * em brasa e materiais mais escuros. A lógica (enemy1-squad3d.js) decide; aqui só se desenha e se anima.
  *
  * MOD 238: várias espécies na mesma esquadra — ctx.source(kind) devolve o rig de cada uma (Enemy1 ou Enemy2), a altura
@@ -41,6 +43,7 @@ export function createEnemy1SquadRuntime(ctx) {
   }
   /** Altura-alvo (topo da cabeça) por classe: comum ≈ a do herói (1,72–1,95 m), Guardião 1,22× o comum, sem virar gigante. */
   function heightFor(kind) { const hero = Math.max(1.4, Math.min(2.1, ctx.heroHeight() || 1.8)); const c = Math.min(1.95, Math.max(1.72, hero * .97)); return kind === 'warden' ? c * 1.22 : kind === 'e2' ? c * 1.03 : kind === 'e2boss' ? c * 1.3 : c; }
+  const combatCache=new Map();
   function makeBody(a) {
     const src = ctx.source(a.kind); if (!src || !src.model) return null;
     const m = measureSource(src), model = ctx.clone(src.model); model.visible = true; model.position.set(0, 0, 0); model.rotation.set(0, 0, 0);
@@ -54,12 +57,28 @@ export function createEnemy1SquadRuntime(ctx) {
     const scales = []; model.traverse(o => scales.push([o, o.scale.clone()]));
     const mixer = new T.AnimationMixer(model), acts = {};
     for (const [role, act] of Object.entries(src.actions || {})) { const clip = act && act.getClip && act.getClip(); if (clip) acts[role] = mixer.clipAction(clip); }
-    const b = { holder, model, mixer, acts, mats, scales, cur: null, rev: -1, flash: 0, dead: 0, hand: null, lhand: null, head: null, weapon: null, fall: 0, k };
+    const b = { height:heightFor(a.kind), holder, model, mixer, acts, mats, scales, cur: null, rev: -1, flash: 0, dead: 0, hand: null, lhand: null, head: null, weapon: null, fall: 0, k };
     model.traverse(o => { if (!b.hand && /^RightHand$/i.test(o.name)) b.hand = o; if (!b.lhand && /^LeftHand$/i.test(o.name)) b.lhand = o; if (!b.head && /^Head$/i.test(o.name)) b.head = o; });
-    if (a.kind === 'warden' || a.kind === 'e2boss') attachScythe(b, a.kind);
+    if(a.kind==='e2boss')attachScythe(b,a.kind);
+    if(BOSS_MOVES[a.kind]){
+      if(a.kind==='warden')attachClaws(b);
+      if(!combatCache.has(a.kind)){
+        const specs=a.kind==='warden'?['RightHand','LeftHand'].map(hand=>({hand,points:[[0,.08,0],[0,.53,0]]})):[{hand:'RightHand',points:[b.weapon.userData.tipA.toArray().map(x=>x*1.12),b.weapon.userData.tipB.toArray().map(x=>x*1.12)]}];
+        combatCache.set(a.kind,bakeCombatClips(T,model,ctx.clone,acts.idle?.getClip(),BOSS_MOVES[a.kind],bossPose,specs));
+      }
+      for(const [id,clip]of Object.entries(combatCache.get(a.kind)))acts[id]=mixer.clipAction(clip);
+      const angle=a.kind==='warden'?1.9:3.3,reach=a.kind==='warden'?1.8:3.2;
+      b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
+    }
     play(b, 'idle', false, 1, 0);
     return b;
   }
+  function attachClaws(b){
+    b.claws=[];for(const hand of [b.hand,b.lhand]){if(!hand)continue;const root=new T.Group(),mat=new T.MeshStandardMaterial({color:0x1c1023,emissive:0x722a8f,emissiveIntensity:.7,metalness:.65,roughness:.3});
+      for(let i=-1;i<=1;i++){const curve=new T.QuadraticBezierCurve3(new T.Vector3(i*.09,.03,0),new T.Vector3(i*.12,.32,.06),new T.Vector3(i*.10,.53,-.03));const g=new T.TubeGeometry(curve,7,.025,4,false),pos=g.attributes.position;for(let n=0;n<=7;n++){curve.getPointAt(n/7,_a);for(let j=0;j<=4;j++){const k=n*5+j;_b.fromBufferAttribute(pos,k).sub(_a).multiplyScalar(1-n/7*.95).add(_a);pos.setXYZ(k,_b.x,_b.y,_b.z);}}g.computeVertexNormals();root.add(new T.Mesh(g,mat));}scene.add(root);b.claws.push({root,hand,mat});
+    }
+  }
+  function poseClaws(b){for(const c of b.claws||[]){c.hand.getWorldPosition(c.root.position);c.hand.getWorldQuaternion(c.root.quaternion);c.root.visible=b.holder.visible;}}
   /** A foice segue a mão direita (posição no punho fechado). Em repouso, andando e conjurando fica em pé, levemente
       inclinada para a frente; no golpe passa a seguir a linha dos nós dos dedos, então o arco vem do braço de verdade. */
   function attachScythe(b, kind) {
@@ -70,7 +89,7 @@ export function createEnemy1SquadRuntime(ctx) {
   }
   const _a = new T.Vector3(), _b = new T.Vector3(), _c = new T.Vector3(), _d = new T.Vector3(), _up = new T.Vector3(), _x = new T.Vector3(), _z = new T.Vector3();
   function poseScythe(b, a, dt) {
-    const root = b.weaponRoot, h = b.hand; h.updateWorldMatrix(true, false);
+    const root = b.weaponRoot, h = b.hand; h.updateWorldMatrix(true, false);if(a.act?.move){h.getWorldPosition(root.position);h.getWorldQuaternion(root.quaternion);root.visible=b.holder.visible;return;}
     const hp = h.getWorldPosition(_a); let axis = null, grip = hp;
     if (b.mid && b.lit) { b.mid.updateWorldMatrix(false, false); b.lit.updateWorldMatrix(false, false); const mp = b.mid.getWorldPosition(_b), lp = b.lit.getWorldPosition(_c); axis = _up.copy(mp).sub(lp).normalize(); grip = _a.lerp(mp, .55);
       if (b.thumb) { b.thumb.updateWorldMatrix(false, false); const tp = b.thumb.getWorldPosition(_d); if (tp.sub(lp).dot(axis) < 0) axis.negate(); } }
@@ -107,7 +126,7 @@ export function createEnemy1SquadRuntime(ctx) {
     ctx.event(type, d);
   }
   function stop() {
-    for (const b of bodies.values()) { b.mixer.stopAllAction(); scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); } }
+    for (const b of bodies.values()) { b.mixer.stopAllAction();b.mixer.uncacheRoot(b.model);for(const c of b.claws||[]){scene.remove(c.root);c.root.traverse(o=>o.geometry?.dispose());c.mat.dispose();}if(b.tell){b.tell.geometry.dispose();b.tell.material.dispose();} scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); } }
     bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); impacts.clear(); sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
   }
   return {
@@ -117,7 +136,7 @@ export function createEnemy1SquadRuntime(ctx) {
     body(id) { return bodies.get(id) || null; },
     /** spots: [{x,z,yaw,kind,hp}] */
     start(spots, { seed = 237 } = {}) {
-      stop(); squad = new Enemy1Squad({ seed, ground: ctx.ground, blocked: ctx.blocked, los: ctx.los, damageTarget: ctx.damageTarget, event: onEvent });
+      stop(); squad = new Enemy1Squad({ seed, ground: ctx.ground, blocked: ctx.blocked, los: ctx.los, damageTarget: ctx.damageTarget, event: onEvent, meleeTrace:(a,act,t,lo,hi)=>bossTraceContact(combatCache.get(a.kind)?.[act.move.id]?.combatTrace,lo,hi,a,t,p=>ctx.blocked(p.x,p.z)) });
       squad.spawn(spots); for (const a of squad.actors) { const b = makeBody(a); if (b) bodies.set(a.id, b); }
       return squad;
     },
@@ -137,11 +156,12 @@ export function createEnemy1SquadRuntime(ctx) {
           // sem clipe de morte no Enemy1: tomba para trás, fica no chão e afunda devagar
           b.dead += dt; if (b.cur && b.dead < .05) b.cur.fadeOut(.2); b.model.rotation.x = -Math.min(1, (b.dead / .75) ** 2) * Math.PI / 2 * .92;
           if (b.dead > 2.6) b.holder.position.y = a.y - (b.dead - 2.6) * .55;
-          b.holder.visible = b.dead < 4.4; if (b.dead < 1) b.mixer.update(dt * .5); if (b.weaponRoot) poseScythe(b, a, dt); continue;
+          b.holder.visible = b.dead < 4.4; if (b.dead < 1) b.mixer.update(dt * .5); if (b.weaponRoot) poseScythe(b, a, dt);poseClaws(b);if(b.tell)b.tell.visible=false;continue;
         }
         if (a.anim.rev !== b.rev) { b.rev = a.anim.rev; play(b, a.anim.role, a.anim.once, a.anim.speed); }
         else if (!a.anim.once && b.cur) b.cur.setEffectiveTimeScale((ROLE_SPEED[a.anim.role] || 1) * a.anim.speed);
-        b.mixer.update(dt);
+        if(a.act?.move&&b.cur){b.cur.time=a.act.t;b.cur.paused=true;}else if(b.cur)b.cur.paused=false;
+        b.mixer.update(dt);if(a.act?.move){b.cur.time=a.act.t;b.mixer.update(0);b.holder.rotation.y=a.yaw;}
         for (const [o, s] of b.scales) o.scale.copy(s);
         if (b.flash > 0) b.flash -= dt;
         const on = b.flash > 0, fury = !!BOSSES[a.kind] && a.phase2;
@@ -149,13 +169,15 @@ export function createEnemy1SquadRuntime(ctx) {
         // recuo da reação curta (sem clipe de dano no Enemy1)
         b.model.rotation.x = a.act && a.act.type === 'stagger' ? -Math.sin(Math.min(1, a.act.t / a.act.dur) * Math.PI) * .22 : 0;
         if (b.weapon) { b.weapon.userData.tick(time, fury ? 1 : 0, b.wW || 0); poseScythe(b, a, dt); }
+        poseClaws(b);if(b.tell){b.tell.visible=!!a.act?.move&&a.act.phase==='windup';b.tell.position.y=.05-(a.y-ctx.ground(a.x,a.z));b.tell.material.opacity=.12+.18*(a.act?.t/(a.act?.move?.open||1));}
         const act = a.act;
         if (act && !act.released && (act.type === 'cast' || act.type === 'counter') && act.release > 0) {
           const hp = (b.hand || b.model).getWorldPosition(_v), lp = b.lhand ? b.lhand.getWorldPosition(_v2) : hp, k = Math.min(1, act.t / act.release);
           const tgt = targets.find(t => t.id === act.tid) || targets[0];
           charges.push({ skill: act.skill || 'counter', k, x: (hp.x + lp.x) / 2 + Math.sin(a.yaw) * .25, y: (hp.y + lp.y) / 2, z: (hp.z + lp.z) / 2 + Math.cos(a.yaw) * .25, dx: Math.sin(a.yaw), dz: Math.cos(a.yaw), gx: tgt ? tgt.x : a.x, gz: tgt ? tgt.z : a.z, kind: a.kind });
         }
-        if (b.weapon && act && act.type === 'melee' && act.t > .3 && act.t < act.hits[act.hits.length - 1] + .18) {
+        if(b.claws&&act?.move&&act.move.hits.some(h=>Math.abs(act.t-h)<.12)){for(const c of b.claws){c.root.updateMatrixWorld(true);vfx.scythe(_v.set(0,.08,0).applyMatrix4(c.root.matrixWorld),_v2.set(0,.53,0).applyMatrix4(c.root.matrixWorld));}}
+        if (b.weapon && act && act.type === 'melee' && (act.move?act.move.hits.some(h=>Math.abs(act.t-h)<.12):act.t > .3 && act.t < act.hits[act.hits.length - 1] + .18)) {
           b.weapon.updateWorldMatrix(true, false); vfx.scythe(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld));
         }
       }

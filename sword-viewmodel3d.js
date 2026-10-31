@@ -1,3 +1,4 @@
+import {combatPose} from './combat-choreography3d.js';
 /** Camera-space viewmodel cut from the ORIGINAL skinned arms; no second body draw.
  * Two-bone IK drives wrists and elbows together; sword is mounted at the real hand.
  * World damage remains authoritative and uses the same swing phase. */
@@ -47,6 +48,7 @@ export function createSwordViewmodel(T,camera,hero,clone,guardClip){
    else{handTarget.x+=.12*envelope;handTarget.y+=(-.17+.39*u)*envelope;bladeDir.set(-.30,-.55+u*1.4,-.9);}
    handTarget.z-=.05*envelope;leftTarget.x-=.03*envelope;leftTarget.y+=.08*envelope;
   }
+  if(active?.kind==='basic'&&active.def.pattern){const a=combatPose(active.def,active.t);handTarget.set(-a.hand[0]*.62,(a.hand[1]-1.6)*.68,-.25-a.hand[2]*.54);leftTarget.set(-a.off[0]*.7,(a.off[1]-1.6)*.68,-.28-a.off[2]*.5);bladeDir.set(-a.blade[0],a.blade[1],-a.blade[2]);}
   if(cast>0){const w=Math.sin(Math.PI*Math.min(1,cast));handTarget.y+=.19*w;handTarget.z-=.07*w;leftTarget.y+=.15*w;bladeDir.set(-.22,.35+.5*w,-.8);}
   if(defend){handTarget.set(.10,-.16,-.56);bladeDir.set(-.92,.12,-.2);leftTarget.set(-.20,-.27,-.43);}
   if(blocked){handTarget.z+=.10;handTarget.y-=.13;bladeDir.set(-.25,.8,-.25);}

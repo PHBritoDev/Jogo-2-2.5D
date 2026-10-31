@@ -3,7 +3,7 @@
  */
 export function createSwordRitesVFX(T,scene){
  const root=new T.Group();root.name='SwordRites231';scene.add(root);
- const palettes={prota:[0xffc24f,0xfff7da,0x5b260b,0xffe6ac],aurora:[0xff163a,0xffe9ec,0x100618,0xa52dff]};
+ const palettes={prota:[0xffc24f,0xfff7da,0x5b260b,0xffe6ac],aurora:[0xff163a,0xffe9ec,0x100618,0xa52dff],vigilia:[0x299bff,0xe4fcff,0x081c43,0x7acfff],quantum:[0x8f35ff,0xffdf7a,0x160925,0xff58cb],celeste:[0xffd271,0xffffff,0x705329,0xfff1b0]};
  const vertex=`attribute float birth; varying vec2 vUv; varying float vAge; uniform float clock; void main(){vUv=uv;vAge=max(0.,clock-birth);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
  const fragment=`precision highp float; varying vec2 vUv; varying float vAge; uniform vec3 ink,core,dark,filament;uniform float opacity,life,clock,glow;
  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.),f.x),f.y);}
