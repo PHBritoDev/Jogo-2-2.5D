@@ -54,7 +54,7 @@ export function createDragonVFX(T,scene,{ground=()=>0}={}){
   }
   if(flying)for(let i=0;i<(low?4:8);i++){const age=(t*.8+hash(i+40))%1,p=s.ball.p,d=s.ball.direction;smoke.add(p.x-d.x*age*4,p.y-d.y*age*4+.2,p.z-d.z*age*4,.4+age,.6+age,.25,.04,.02,(1-age)*.35,1,i,i);}
   trail.update(t,s.ball.p,flying,quality);
-  if(s.ball.impactTime>=0){impacts.emit({id:'fireball',time:s.ball.impactTime,point:s.ball.at,size:4.8,preset:'celestial',kind:'ball'});impacts.emit({id:'fireball-cinder',time:s.ball.impactTime+.06,point:s.ball.at,size:3.6,preset:'cinder',kind:'ball',dir:{x:0,y:1,z:0}});}
+  if(s.ball.impactTime>=0){impacts.emit({id:'fireball-'+s.ball.impactTime,time:s.ball.impactTime,point:s.ball.at,size:4.8,preset:'celestial',kind:'ball'});impacts.emit({id:'fireball-cinder-'+s.ball.impactTime,time:s.ball.impactTime+.06,point:s.ball.at,size:3.6,preset:'cinder',kind:'ball',dir:{x:0,y:1,z:0}});}
   // rastro de fogo no chão: marca o caminho real da cabeça quando ela passa baixa (avanço, mordida) e onde a bola cai
   if(['advance','engulf','compress'].includes(ph)&&head.root.visible){const gy=ground(s.head.x,s.head.z);if(s.head.y-gy<s.scale*2.6&&(!lastMark||Math.hypot(s.head.x-lastMark.x,s.head.z-lastMark.z)>.7)){const m=fireMarks[markHead++%fireMarks.length];Object.assign(m,{x:s.head.x+(hash(markHead)-.5)*1.4,y:gy,z:s.head.z+(hash(markHead*3)-.5)*1.4,t,s:1.2+hash(markHead*7)*1.2});lastMark={x:s.head.x,z:s.head.z};}}
   if(s.ball.impactTime>=0&&ballMarkT!==s.ball.impactTime){ballMarkT=s.ball.impactTime;for(let i=0;i<10;i++){const m=fireMarks[markHead++%fireMarks.length],a=i*.63;Object.assign(m,{x:s.ball.at.x+Math.cos(a)*(1+hash(i)*1.6),y:ground(s.ball.at.x,s.ball.at.z),z:s.ball.at.z+Math.sin(a)*(1+hash(i)*1.6),t:s.ball.impactTime,s:1+hash(i*5)*.8});}}
@@ -69,7 +69,7 @@ export function createDragonVFX(T,scene,{ground=()=>0}={}){
      dummy.rotation.set(Math.sin(t*3+mk.x)*.15,mk.x*3+j,Math.cos(t*4+mk.z)*.15);
      const h=mk.s*grow*(1+.25*Math.sin(t*9+mk.z+j));
      dummy.scale.set(h*1.4,h*1.6,h*1.4);dummy.updateMatrix();
-     groundFire.setMatrixAt(gc++,dummy.matrix);
+     if(gc<160)groundFire.setMatrixAt(gc++,dummy.matrix);
     }
     if(rc<120){
      dummy.position.set(mk.x,mk.y-.04+grow*.12,mk.z);
@@ -85,7 +85,7 @@ export function createDragonVFX(T,scene,{ground=()=>0}={}){
   if(ph==='compress'){
    for(let i=0;i<(low?8:18);i++){const u=(i/18+t*1.2)%1,angle=i*2.4,r=(1-u)*2.5;sparks.add(s.at.x+Math.cos(angle)*r,s.at.y+Math.sin(angle*1.4)*r,s.at.z+Math.sin(angle)*r,.05,.2,1,.6,.08,u*.55,3,angle,i);}
   }
-  if(ph==='explode'){impacts.emit({id:'dragon-end',time:t-A,point:s.at,size:9.5,preset:'celestial',kind:'dragon'});impacts.emit({id:'dragon-cinder',time:t-A+.1,point:s.at,size:6,preset:'cinder',kind:'ball',dir:{x:.2,y:1,z:0}});impacts.emit({id:'dragon-corona',time:t-A+.28,point:{x:s.at.x,y:s.at.y+1.5,z:s.at.z},size:7.5,preset:'celestial',kind:'ball',dir:{x:0,y:1,z:0}});
+  if(ph==='explode'){impacts.emit({id:'dragon-end-'+(t-A),time:t-A,point:s.at,size:9.5,preset:'celestial',kind:'dragon'});impacts.emit({id:'dragon-cinder-'+(t-A),time:t-A+.1,point:s.at,size:6,preset:'cinder',kind:'ball',dir:{x:.2,y:1,z:0}});impacts.emit({id:'dragon-corona-'+(t-A),time:t-A+.28,point:{x:s.at.x,y:s.at.y+1.5,z:s.at.z},size:7.5,preset:'celestial',kind:'ball',dir:{x:0,y:1,z:0}});
    // explosão enorme da mordida: clarão contido, corona e onda de calor com brasas saindo em todas as direções
    const e=smooth(A/.5),k=1-smooth(A/1.2);sparks.add(s.at.x,s.at.y+1,s.at.z,10*e+2,10*e+2,1,.85,.45,.85*k,0);sparks.add(s.at.x,s.at.y+1,s.at.z,4*(1-e)+.5,4*(1-e)+.5,1,1,.95,k,0);
    for(let i=0;i<(low?24:60);i++){const a=i*2.39996,el=(hash(i)-.3)*1.3,d=(3+hash(i*3)*9)*smooth(A/.9);sparks.add(s.at.x+Math.cos(a)*Math.cos(el)*d,s.at.y+1+Math.sin(el)*d-2*A*A,s.at.z+Math.sin(a)*Math.cos(el)*d,.08,.6,1,.65+hash(i)*.3,.15,k,3,a+1.57,i);}}
