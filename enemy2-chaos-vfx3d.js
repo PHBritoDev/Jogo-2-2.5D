@@ -83,7 +83,9 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
   const glow = softParticles(T, 700), smoke = softParticles(T, 240, { additive: false }), rib = ribbons(T, 700, { flow: 16 }), decals = groundDecals(T, 16);
   root.add(glow.mesh, smoke.mesh, rib.mesh, decals.mesh);
   const M = new T.Matrix4(), Q = new T.Quaternion(), S = new T.Vector3(), P = new T.Vector3(), E = new T.Euler(), nrm = [0, 1, 0], bolt = Array.from({ length: 30 }, () => [0, 0, 0, 0, 0, 0, 0]);
-  let time = 0, low = false;
+  let time = 0, low = false; const cam = new T.Vector3();
+  /** Volumes grandes esmaecem quando a câmera está dentro/perto deles: não cobrem a tela inteira (1ª pessoa, celular). */
+  const camFade = (x, z, r) => { const d = Math.hypot(cam.x - x, cam.z - z) - r; return d > 3 ? 1 : Math.max(.22, d / 3); };
   const MAG = [1, .3, .8], RED = [1, .1, .2], VIO = [.6, .25, 1], c4 = (c, a) => [c[0], c[1], c[2], a];
   function disc(x, y, z, size, kind, prog, seed, a, normal) {
     if (dn >= 8 || a <= .005 || size <= .01) return; P.set(x, y, z); if (normal) { C.set(normal[0], normal[1], normal[2]); Q.setFromUnitVectors(up, C); } else Q.identity(); S.set(size, 1, size); M.compose(P, Q, S); discs.setMatrixAt(dn, M); discFx.set([kind, prog, seed, a], dn * 4); dn++;
@@ -109,7 +111,7 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
     const L = pts.length - 1, at = u => { const f = u * L, i = Math.min(L - 1, Math.floor(f)), k = f - i, a = pts[i], b = pts[i + 1]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; };
     const fade = s.phase === 'retract' ? 1 - smooth(s.t / T0.retract) : 1, rB = T0.r * big, burst = s.phase === 'burst' ? Math.sin(Math.min(1, s.t / T0.burst) * Math.PI) : 0;
     const tb = take(streams), tv = take(streamVeins);
-    if (tb) { fillTube(tb, at, (u, a) => rB * (.42 + .58 * Math.pow(u, .7)) * (1 + .14 * Math.sin(a * 3 + u * 18 - time * 9) + .25 * burst * u * u) * fade, 2.5); tb.m.uniforms.time.value = time; tb.m.uniforms.alpha.value = .96 * Math.min(1, fade * 1.4); tb.m.uniforms.detail.value = low ? .65 : 1; }
+    if (tb) { fillTube(tb, at, (u, a) => rB * (.42 + .58 * Math.pow(u, .7)) * (1 + .14 * Math.sin(a * 3 + u * 18 - time * 9) + .25 * burst * u * u) * fade, 2.5); tb.m.uniforms.time.value = time; tb.m.uniforms.alpha.value = .96 * Math.min(1, fade * 1.4) * camFade(s.x, s.z, rB); tb.m.uniforms.detail.value = low ? .65 : 1; }
     if (tv) { fillTube(tv, at, (u, a) => rB * (.55 + .7 * Math.pow(u, .7)) * (1 + .22 * Math.sin(a * 2 - u * 26 + time * 12)) * fade, -6); tv.m.uniforms.time.value = time * 1.4; tv.m.uniforms.alpha.value = .6 * fade; }
     // cabeça: massa comprimida com núcleo quente e filamentos; veios elétricos ao longo do corpo
     glow.add(s.x, s.y, s.z, 2.2 * rB, 2.2 * rB, 1, .25, .65, .6 * fade, 0); glow.add(s.x, s.y, s.z, .9 * rB, .9 * rB, 1, .8, .95, .9 * fade, 0);
@@ -127,7 +129,7 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
       const H = (s.reap ? 3.6 : h.role === 'press' ? 5.6 : 4.7) * big * Math.max(.05, h.h), top = (s.reap ? .85 : h.role === 'press' ? 1.15 : .95) * big, gy = h.y, ph = time * 3.2 + h.i * 2.1;
       const center = u => [h.x + Math.sin(ph + u * 3.4) * .35 * u * big, gy + u * H, h.z + Math.cos(ph * .8 + u * 2.9) * .35 * u * big];
       const tb = take(funnels), tv = take(funnelVeins);
-      if (tb) { fillTube(tb, center, (u, a) => (.16 + top * Math.pow(u, 1.8)) * (1 + .22 * Math.sin(a * 4 + u * 14 - time * 8)), 7); tb.m.uniforms.time.value = time + h.i; tb.m.uniforms.alpha.value = .94 * fadeK; tb.m.uniforms.detail.value = low ? .65 : 1; }
+      if (tb) { fillTube(tb, center, (u, a) => (.16 + top * Math.pow(u, 1.8)) * (1 + .22 * Math.sin(a * 4 + u * 14 - time * 8)), 7); tb.m.uniforms.time.value = time + h.i; tb.m.uniforms.alpha.value = .94 * fadeK * camFade(h.x, h.z, top); tb.m.uniforms.detail.value = low ? .65 : 1; }
       if (tv && !low) { fillTube(tv, center, (u, a) => (.22 + top * 1.12 * Math.pow(u, 1.7)) * (1 + .3 * Math.sin(a * 3 - u * 18 + time * 11)), -10); tv.m.uniforms.time.value = time * 1.5 + h.i; tv.m.uniforms.alpha.value = .42 * fadeK; }
       // topo em espiral, base com cristais e poeira, detritos subindo em órbita
       disc(h.x, gy + H * .98, h.z, top * 1.5 * h.h, 0, h.h, h.i + s.id, .75 * fadeK);
@@ -155,8 +157,8 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
       const H = (7 + (big - 1) * 6) * Math.max(.05, s.col), rad = s.r * .42 * (ph === 'implode' ? s.col : ph === 'wave' ? .2 : 1);
       const center = u => [s.x + Math.sin(time * 5 + u * 4) * .25 * u, gy + u * H, s.z + Math.cos(time * 4 + u * 3) * .25 * u];
       const tb = take(columns), tv = take(columnVeins);
-      if (tb) { fillTube(tb, center, (u, a) => rad * (1 + .3 * Math.sin(u * 9 - time * 14) + .15 * Math.sin(a * 5 + u * 20)) * (1 - u * .35), 8); tb.m.uniforms.time.value = time; tb.m.uniforms.alpha.value = .95; }
-      if (tv) { fillTube(tv, center, (u, a) => rad * 1.25 * (1 + .25 * Math.sin(a * 3 - u * 22 + time * 16)), -11); tv.m.uniforms.time.value = time * 1.6; tv.m.uniforms.alpha.value = .62; }
+      if (tb) { fillTube(tb, center, (u, a) => rad * (1 + .3 * Math.sin(u * 9 - time * 14) + .15 * Math.sin(a * 5 + u * 20)) * (1 - u * .35), 8); tb.m.uniforms.time.value = time; tb.m.uniforms.alpha.value = .95 * camFade(s.x, s.z, rad * 1.3); }
+      if (tv) { fillTube(tv, center, (u, a) => rad * 1.25 * (1 + .25 * Math.sin(a * 3 - u * 22 + time * 16)), -11); tv.m.uniforms.time.value = time * 1.6; tv.m.uniforms.alpha.value = .62 * camFade(s.x, s.z, rad * 1.6); }
       for (let i = 0; i < (low ? 8 : 18); i++) { const u = (time * 1.4 + i / 18) % 1, a = i * 2.4 + time * 6; const c = center(u); shard(c[0] + Math.cos(a) * rad * 1.6, c[1], c[2] + Math.sin(a) * rad * 1.6, .1 * big * (1 - u), a, u * 7, i); }
       glow.add(s.x, gy + H * .3, s.z, rad * 4, H * .9, 1, .2, .6, .55, 0); glow.add(s.x, gy + .3, s.z, rad * 3.2, rad * 3.2, 1, .7, .95, .9, 0);
     }
@@ -178,7 +180,7 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
   return {
     root,
     update(dt, camera, spells, charges = [], quality = 1) {
-      time += dt; uTime.value = time; low = quality === 0; dn = 0; sn = 0;
+      time += dt; uTime.value = time; low = quality === 0; dn = 0; sn = 0; cam.copy(camera.position);
       for (const pool of allTubes) for (const t of pool) { t.used = false; t.mesh.visible = false; }
       glow.begin(); smoke.begin(); rib.begin(camera, time); decals.begin();
       for (const s of spells) { if (s.type === 'vortex') drawVortex(s); else if (s.type === 'trinity') drawTrinity(s); else if (s.type === 'collapse') drawCollapse(s); }

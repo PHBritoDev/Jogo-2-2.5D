@@ -26,11 +26,11 @@ void main(){ float u=vUv.x, v=abs(vUv.y*2.-1.); float flow=.6+.4*sin(u*80.-time*
  * soltas que liam como rabiscos. */
 export function createTwinPortalsVFX(T,scene,{ground=()=>0}={}){
  const root=new T.Group();root.name='PortaisPerseguicao';root.visible=false;scene.add(root);
- const circle=new T.CircleGeometry(1,48),ring=new T.TorusGeometry(1,.11,10,56),tunnelGeo=new T.CylinderGeometry(.92,.22,.95,28,6,true);tunnelGeo.rotateX(-Math.PI/2);tunnelGeo.translate(0,0,-.46);
+ const circle=new T.CircleGeometry(1,48),ring=new T.TorusGeometry(1,.075,12,64),tunnelGeo=new T.CylinderGeometry(.9,.3,.7,32,4,true);tunnelGeo.rotateX(-Math.PI/2);tunnelGeo.translate(0,0,-.34);
  const PAL=[{deep:[.05,0,.012],body:[.6,.0,.06],hot:[1,.25,.35]},{deep:[.02,0,.05],body:[.32,.02,.7],hot:[.85,.55,1]}],tint=(m,i)=>{for(const k of ['deep','body','hot'])m.uniforms[k].value.setRGB(...PAL[i][k]);return m;};
  const presets=['crimson','violet'],colors=[[.9,.035,.09],[.4,.08,.8]];
  const mat=(frag,c)=>new T.ShaderMaterial({vertexShader:PORTAL_VERT,fragmentShader:frag,transparent:true,depthWrite:false,side:T.DoubleSide,toneMapped:false,blending:T.CustomBlending,blendSrc:T.OneFactor,blendDst:T.OneMinusSrcAlphaFactor,uniforms:{time:{value:0},alpha:{value:1},open:{value:1},col:{value:new T.Color(...c)}}});
- const portals=colors.map((c,i)=>{const group=new T.Group();root.add(group);const disc=new T.Mesh(circle,mat(DISC_FRAG,c)),rim=new T.Mesh(ring,tint(energyMaterial(T,presets[i],{alpha:.95,warp:.12,frequency:3,seed:i*7}),i)),tunnel=new T.Mesh(tunnelGeo,tint(energyMaterial(T,presets[i],{alpha:.8,warp:.08,frequency:1.4,seed:i*5}),i));tunnel.material.side=T.DoubleSide;group.add(tunnel,disc,rim);return{group,disc,rim,tunnel};});
+ const portals=colors.map((c,i)=>{const group=new T.Group();root.add(group);const disc=new T.Mesh(circle,mat(DISC_FRAG,c)),rim=new T.Mesh(ring,mat(RIM_FRAG,c)),tunnel=new T.Mesh(tunnelGeo,tint(energyMaterial(T,presets[i],{alpha:.5,warp:0,frequency:2.2,seed:i*5}),i));tunnel.material.side=T.DoubleSide;group.add(tunnel,disc,rim);return{group,disc,rim,tunnel};});
  const bodies=presets.map((p,i)=>energyBody(T,root,p,{tail:i?4.2:3.8,rings:48,sides:24,seed:i*4}));bodies.forEach((b,i)=>tint(b.material,i));
  const trails=presets.map((p,i)=>volumeTrail(T,root,p,{capacity:36,life:.8,radius:.62}));
  const impacts=impactDirector(T,root,ground,{capacity:5});let last=-1;
@@ -42,8 +42,8 @@ export function createTwinPortalsVFX(T,scene,{ground=()=>0}={}){
   const opening=ph==='open'?smooth(s.age/PORTALS.open):ph==='close'?1-smooth(s.age/PORTALS.close):1;
   let na=0;
   for(let i=0;i<2;i++){
-   const f=s.flows[i],P=portals[i],at=s.portals[i];P.group.position.set(at.x,at.y,at.z);{const cx=camera.position.x-at.x,cz=camera.position.z-at.z,cl=Math.hypot(cx,cz)||1,fx=s.f.x*.55+cx/cl*.45,fz=s.f.z*.55+cz/cl*.45;P.group.lookAt(at.x+fx,at.y,at.z+fz);}P.group.scale.setScalar(opening*1.15);P.group.rotateZ(t*(i?-.8:.8));
-   P.disc.material.uniforms.time.value=t+i*2;P.disc.material.uniforms.alpha.value=opening*.95;for(const m of [P.rim.material,P.tunnel.material]){m.uniforms.time.value=t*1.5+i;m.uniforms.alpha.value=opening*(m===P.tunnel.material?.5:.95);m.uniforms.detail.value=quality===0?.65:1;}
+   const f=s.flows[i],P=portals[i],at=s.portals[i];P.group.position.set(at.x,at.y,at.z);{const cx=camera.position.x-at.x,cz=camera.position.z-at.z,cl=Math.hypot(cx,cz)||1,fx=s.f.x*.55+cx/cl*.45,fz=s.f.z*.55+cz/cl*.45;P.group.lookAt(at.x+fx,at.y,at.z+fz);}P.group.scale.setScalar(opening);P.group.rotateZ(t*(i?-.8:.8));
+   for(const m of [P.disc.material,P.rim.material]){m.uniforms.time.value=t+i*2;m.uniforms.alpha.value=opening*.95;}P.tunnel.material.uniforms.time.value=t*1.5+i;P.tunnel.material.uniforms.alpha.value=opening*.45;P.tunnel.material.uniforms.detail.value=quality===0?.65:1;
    const pressure=f.phase==='contact'&&['fire','pressure','compress'].includes(ph),flying=f.phase==='flight';
    const swell=ph==='pressure'?1+.32*smooth(s.age/PORTALS.pressure)+.08*Math.max(0,Math.sin(s.age*18)):1;
    const alive=flying||pressure,fade=ph==='compress'?1-smooth(s.age/PORTALS.compress):1;

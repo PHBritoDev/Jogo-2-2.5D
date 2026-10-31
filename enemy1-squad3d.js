@@ -235,7 +235,9 @@ export class Enemy1Squad {
       opts.push(['spiral', .5 + (R === 'ranged' ? .4 : 0) + (st.dist > 6 ? .2 : 0) + (t.blocking ? .3 : 0) + r()]);
     if (!T.kit && see && d >= T.judgment.min && d <= T.judgment.max && !a.cds.judgment && this.time >= this.judgmentUntil && this.canAttack(a, 'spell', t.id))
       opts.push(['judgment', .42 + (R === 'controller' ? .25 : 0) + (still ? .3 : 0) + (a.phase2 ? .25 : 0) + Math.min(.25, st.block * .4) + r()]);
-    if (T.kit) for (const id of T.kit) { const S = SKILLS[id], ts = T[id]; if (!S || !ts || a.cds[id] || !(d >= ts.min && d <= ts.max) || !this.canAttack(a, 'spell', t.id)) continue;
+    // pausa entre magias do mesmo inimigo e teto de poderes grandes ao mesmo tempo na esquadra (nada de spam)
+    const bigLive = this.spells.filter(x => SKILLS[x.type] && x.phase !== 'fade' && x.phase !== 'retract'), mine = bigLive.some(x => x.owner === a.id);
+    if (T.kit && !a.cds.spellGap && !mine && bigLive.length < (T.maxBig || 2)) for (const id of T.kit) { const S = SKILLS[id], ts = T[id]; if (!S || !ts || a.cds[id] || !(d >= ts.min && d <= ts.max) || !this.canAttack(a, 'spell', t.id)) continue;
       const u = S.score(this, a, t, { d, gap, see, st, still, justDashed, recovering, R }); if (u !== null && u !== undefined) opts.push([id, u + r()]); }
     // espécies que interrompem conjuração: avançam com dash e emendam o golpe (sinal visível: o alvo está conjurando)
     if (T.interrupt && t.casting && gap > T.melee.reach && gap < 8 && !a.cds.lunge && this.canAttack(a, 'melee', t.id)) opts.push(['lunge', 1 + r()]);
@@ -267,7 +269,7 @@ export class Enemy1Squad {
   startCast(a, t, skill) {
     const S = a.T[skill];
     this.begin(a, { type: 'cast', skill, dur: S.cast + .3, release: S.release, anim: S.anim || (skill === 'judgment' ? 'cast' : skill === 'spiral' ? 'attack2' : 'cast'), token: 'spell', tid: t.id });
-    a.cds[skill] = S.cd * a.cdMul; if (skill === 'judgment') this.judgmentUntil = this.time + S.prep + S.lock + S.beam + 3;
+    a.cds[skill] = S.cd * a.cdMul; if (SKILLS[skill]) a.cds.spellGap = (a.T.spellGap || 2.5) * (a.phase2 ? .8 : 1); if (skill === 'judgment') this.judgmentUntil = this.time + S.prep + S.lock + S.beam + 3;
     this.event('cast', { actor: a, skill, target: t.id });
   }
   stepAction(a, dt, t) {
