@@ -1,5 +1,5 @@
 /**
- * MOD 229 / 239 — kit de VFX compartilhado pelas Skills 2, 3 e pela Ultimate.
+ * MOD 229 / 239 — kit de VFX compartilhado pelas Skills 2, 3, Ultimate e Magias Extras.
  *
  * Tudo é instanciado (uma chamada de desenho por sistema), com buffers fixos alocados uma vez e reaproveitados a cada
  * quadro: nenhuma alocação por quadro, nenhuma luz dinâmica e nenhuma textura externa. Os formatos (brilho, fumaça,
