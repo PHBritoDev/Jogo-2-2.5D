@@ -14,7 +14,7 @@ const STEP = 1 / 120;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 const copy = p => ({ x: p.x, y: p.y, z: p.z });
 
-export const SPHERE = Object.freeze({ raise: .4, charge: .32, speed: 21, turn: 1.4, range: 30, r: .75, lift: 1.9, hit: 30, dome: 14, domeR: 3, contract: .05, domeT: .9, fade: .55 });
+export const SPHERE = Object.freeze({ raise: .4, charge: .5, speed: 19, turn: 1.4, range: 32, r: 1.25, lift: 3.6, hit: 30, dome: 14, domeR: 3, contract: .05, domeT: .9, fade: .55 });
 export class DestructionSphere {
   constructor({ ground = () => 0, blocked = () => false, hit = () => {}, event = () => {} } = {}) {
     Object.assign(this, { ground, blocked, hit, event, active: false, phase: 'idle', time: 0, age: 0, acc: 0, p: { x: 0, y: 0, z: 0 }, dir: { x: 0, y: 0, z: 1 }, at: { x: 0, y: 0, z: 0 }, hand: { x: 0, y: 0, z: 0 }, hitAt: -1, travel: 0 });

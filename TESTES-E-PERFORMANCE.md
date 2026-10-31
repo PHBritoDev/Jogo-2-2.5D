@@ -52,4 +52,8 @@ As capturas foram tiradas no ambiente acima e não estão versionadas. Para gera
 - **Android físico:** sem medição de FPS, tempo de quadro de GPU/CPU nem memória real.
 - **Morte durante o cast e volta da dimensão de Valério com a flag:** sem teste automatizado no navegador. A lógica cancela com `valid: false`, como as outras skills.
 - **Pedras do impacto:** colidem com o terreno, não com troncos ou paredes.
-- **Referências do criador:** as imagens (esfera rubro-negra, X carmim) e o vídeo citados na especificação **não chegaram nesta conversa**. A direção visual seguiu o texto, as cores hex e os critérios da especificação; não houve comparação lado a lado.
+- **Referências do criador:** chegaram depois e foram comparadas (esfera rubro-negra, X carmim e vídeo da explosão). Ajustes feitos depois da comparação:
+  - **Esfera:** muito maior, erguida acima da mão; vermelho manchado com rede de rachaduras negras **na superfície** com halo magenta, brilho magenta no centro e aura vermelha.
+  - **X:** bordas de fogo rasgadas, clarão branco de 4 pontas no cruzamento, clarão do impacto e mais linhas de velocidade.
+  - **Explosão:** círculos laranja com espirais de fogo e magenta com anel de corrente, maiores e mais intensos; faixas azuis em redemoinho na carga; cúpula final dourada.
+  - O custo continuou o mesmo (+39/+50/+46 chamadas de desenho) e não houve erros de shader.

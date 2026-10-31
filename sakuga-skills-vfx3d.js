@@ -26,8 +26,9 @@ const c3 = h => [((h >> 16) & 255) / 255, ((h >> 8) & 255) / 255, (h & 255) / 25
 
 /* ===================== Impacto Cruzado (Ruptura em X) ===================== */
 const XBLADE_FRAG = `${NOISE} uniform float time, alpha, erode, seed; varying vec3 vN; varying vec3 vV; varying vec3 vP; varying vec2 vUv;
-void main(){ float n=fbm(vec3(vUv*vec2(3.,7.)+seed,time*.8)); if(n<erode) discard; float edge=1.-smoothstep(erode,erode+.07,n);
- float y=abs(vUv.y)/.32; float core=exp(-y*y*9.)*(1.-abs(vUv.x)*.4); float f=pow(1.-abs(dot(normalize(vN),vV)),2.);
+void main(){ float n=fbm(vec3(vUv*vec2(3.,7.)+seed,time*.8)); float y=abs(vUv.y)/.32; float rag=fbm(vec3(vUv.x*14.-time*6.,vUv.y*9.,seed));
+ if(n<erode || y>.62+rag*.55) discard;                                    // borda de fogo rasgada e viva
+ float edge=1.-smoothstep(erode,erode+.07,n)+smoothstep(.45,.9,y)*.6; float core=exp(-y*y*9.)*(1.-abs(vUv.x)*.4); float f=pow(1.-abs(dot(normalize(vN),vV)),2.);
  vec3 c=mix(vec3(.851,0.,.153),vec3(1.),core); c=mix(c,vec3(.353,0.,.094),smoothstep(.55,1.,y)+f*.5);
  float blotch=smoothstep(.62,.72,fbm(vec3(vUv*vec2(5.,9.)-seed,time*1.6))); c=mix(c,vec3(.02,0.,.01),blotch*.85*(1.-core));
  c+=vec3(1.,.25,.3)*edge*1.5; gl_FragColor=vec4(c*alpha,alpha); }`;
@@ -63,18 +64,20 @@ export function createSakugaXVFX(T, scene, { ground = () => 0 } = {}) {
     glow.begin(); rib.begin(camera, t);
     X.visible = s.active && (ph === 'cast' || ph === 'travel' || (ph === 'fade' && A < .5)); X.position.set(s.p.x, s.p.y, s.p.z); frame(X, s.dir.x, s.dir.z);
     const grow = ph === 'cast' ? easeOut(Math.min(1, A / .35)) : 1, fade = ph === 'fade' ? 1 - A / .5 : 1;
-    blades.forEach((b, i) => { const g = ph === 'cast' ? easeOut(Math.min(1, (A - i * .08) / .3)) : 1; b.scale.set(2.3 * Math.max(.05, g), 2.3, 2.3); b.material.uniforms.alpha.value = fade; b.material.uniforms.erode.value = ph === 'fade' ? A / .5 * .9 : 0; });
+    blades.forEach((b, i) => { const g = ph === 'cast' ? easeOut(Math.min(1, (A - i * .08) / .3)) : 1; b.scale.set(3.1 * Math.max(.05, g), 2.6, 2.4); b.material.uniforms.alpha.value = fade; b.material.uniforms.erode.value = ph === 'fade' ? A / .5 * .9 : 0; });
     if (X.visible) {
       // duas fitas helicoidais cruzando o centro ao longo do voo + arcos elétricos vermelhos
       for (const sgn of [-1, 1]) for (let j = 0; j < 14; j++) { const u0 = j / 14, u1 = (j + 1) / 14, a0 = sgn * (u0 * 9 + t * 14), a1 = sgn * (u1 * 9 + t * 14), r0 = 1.5 * (1 - u0 * .6) * grow, r1 = 1.5 * (1 - u1 * .6) * grow;
         const p0 = V.set(Math.cos(a0) * r0, Math.sin(a0) * r0, -u0 * 3.4).applyQuaternion(X.quaternion).add(X.position).clone(), p1 = V.set(Math.cos(a1) * r1, Math.sin(a1) * r1, -u1 * 3.4).applyQuaternion(X.quaternion).add(X.position);
         rib.seg(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, .13 * (1 - u0) * fade, .13 * (1 - u1) * fade, c4(sgn > 0 ? WH : RED, (1 - u0) * fade), c4(CAR, (1 - u1) * fade), u0, u1); }
       if (!low) for (let i = 0; i < 3; i++) { const a = i * 2.1 + t * 9, p0 = bladeAt(0, new T.Vector3(Math.cos(a) * 1.9, Math.sin(a) * 1.9, 0)).clone(), p1 = bladeAt(0, new T.Vector3(Math.cos(a + 1.3) * 1.2, Math.sin(a + 1.3) * 1.2, -.6)); const n = lightningBolt(Math.floor(t * 30) + i * 7, p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, bolt, { depth: 1, jag: .35 }); for (let k = 0; k < n; k++) { const b = bolt[k]; rib.seg(b[0], b[1], b[2], b[3], b[4], b[5], .05 * b[6], .04 * b[6], c4(RED, fade), c4(WH, fade * .7)); } }
-      glow.add(s.p.x, s.p.y, s.p.z, 2.2, 2.2, 1, .2, .3, .55 * fade, 0); glow.add(s.p.x, s.p.y, s.p.z, .7, .7, 1, .95, .95, fade, 0);
+      glow.add(s.p.x, s.p.y, s.p.z, 2.6, 2.6, 1, .15, .25, .5 * fade, 0); glow.add(s.p.x, s.p.y, s.p.z, 3.4 * grow, 3.4 * grow, 1, .97, .95, .95 * fade, 2, t * .5); glow.add(s.p.x, s.p.y, s.p.z, .9, .9, 1, 1, 1, fade, 0); // clarão de 4 pontas no cruzamento
+      if (!low) for (let i = 0; i < 18; i++) { const a = i / 18 * 6.283 + hash(i) * .4, r0 = .6 + hash(i * 5) * 1.6, back = 1.5 + hash(i * 7) * 3.5; const p0 = V.set(Math.cos(a) * r0, Math.sin(a) * r0, -.4).applyQuaternion(X.quaternion).add(X.position).clone(), p1 = V.set(Math.cos(a) * r0 * 1.15, Math.sin(a) * r0 * 1.15, -.4 - back).applyQuaternion(X.quaternion).add(X.position); rib.seg(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, .05, .01, c4(i % 3 ? RED : WH, .85 * fade), c4(CAR, 0)); } // rastros de velocidade
     }
     // linhas de velocidade radiais: no cast (convergem) e no impacto (estouram)
     const hitAge = s.hitAtTime >= 0 ? t - s.hitAtTime : -1, speedK = ph === 'cast' ? 1 - A / .45 : hitAge >= 0 && hitAge < .25 ? 1 - hitAge / .25 : 0;
-    if (speedK > 0) { const P = ph === 'cast' ? s.p : s.at; for (let i = 0; i < (low ? 10 : 22); i++) { const a = i / 22 * 6.283 + hash(i) * .3, r0 = ph === 'cast' ? 1 + speedK * 2.5 : .8 + (1 - speedK) * 3, r1 = r0 + 1.6 + hash(i * 3) * 1.6;
+    if (hitAge >= 0 && hitAge < .15) glow.add(s.at.x, s.at.y, s.at.z, 7 * (1 - hitAge / .15) + 1, 7 * (1 - hitAge / .15) + 1, 1, .95, .95, 1, 2, .3); // clarão branco do impacto
+    if (speedK > 0) { const P = ph === 'cast' ? s.p : s.at; for (let i = 0; i < (low ? 14 : 36); i++) { const a = i / 36 * 6.283 + hash(i) * .3, r0 = ph === 'cast' ? 1 + speedK * 2.5 : .8 + (1 - speedK) * 3, r1 = r0 + 1.6 + hash(i * 3) * 1.6;
       const p0 = V.set(Math.cos(a) * r0, Math.sin(a) * r0, 0).applyQuaternion(X.quaternion).add(P).clone(), p1 = V.set(Math.cos(a) * r1, Math.sin(a) * r1, 0).applyQuaternion(X.quaternion).add(P); rib.seg(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, .03, .005, c4(WH, speedK), c4(RED, 0)); } }
     // impacto: X que se abre no ponto de contato, erosão com borda acesa, e impacto sakuga com sulco no vetor do golpe
     cut.visible = hitAge >= 0 && hitAge < .8;
@@ -88,11 +91,16 @@ export function createSakugaXVFX(T, scene, { ground = () => 0 } = {}) {
 
 /* ===================== Esfera da Destruição ===================== */
 const SHELL_FRAG = `${NOISE} uniform float time, alpha; varying vec3 vN; varying vec3 vV; varying vec3 vP; varying vec2 vUv;
-void main(){ vec3 q=normalize(vP)*2.2; float flow=fbm(q+vec3(time*.9,-time*.6,time*.4)); float blot=smoothstep(.56,.66,fbm(q*1.4+vec3(0.,time*1.2,0.)+flow));
- float fis=1.-smoothstep(.0,.035,abs(flow-.5)); float f=pow(1.-abs(dot(normalize(vN),vV)),2.2);
- vec3 c=vec3(.725,0.,.098)*(.75+.5*flow); c=mix(c,vec3(.043,0.,.043),blot); c+=vec3(1.,.894,.988)*fis*(1.-blot)*.9; c+=vec3(.988,.122,.847)*f*1.4;
- gl_FragColor=vec4(c*alpha,alpha); }`;
-const RIM_FRAG = `varying vec3 vN; varying vec3 vV; uniform float alpha; void main(){ float f=pow(1.-abs(dot(normalize(vN),vV)),3.); float a=f*alpha; gl_FragColor=vec4(vec3(.988,.122,.847)*a*1.6,a); }`;
+vec3 h3(vec3 p){return fract(sin(vec3(dot(p,vec3(127.1,311.7,74.7)),dot(p,vec3(269.5,183.3,246.1)),dot(p,vec3(113.5,271.9,124.6))))*43758.5453);}
+float cell(vec3 p){vec3 g=floor(p),f=fract(p);float m1=8.,m2=8.;for(int k=-1;k<=1;k++)for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec3 o=vec3(i,j,k),r=o+h3(g+o)-f;float d=dot(r,r);if(d<m1){m2=m1;m1=d;}else if(d<m2)m2=d;}return sqrt(m2)-sqrt(m1);}
+void main(){ vec3 n=normalize(vP); vec3 q=n*2.4; float flow=fbm(q+vec3(time*.5,-time*.35,time*.25));
+ float e=cell(n*2.1+vec3(flow*.35)); float crack=1.-smoothstep(.02,.07,e); float halo=(1.-smoothstep(.06,.24,e))*(1.-crack);
+ float blot=smoothstep(.5,.7,fbm(q*1.8+vec3(0.,time*.8,0.)+flow)); float f=1.-abs(dot(normalize(vN),vV)); float center=pow(1.-f,4.);
+ vec3 c=mix(vec3(.88,.05,.12),vec3(.725,0.,.098),flow); c=mix(c,vec3(.25,0.,.03),blot*.75);       // vermelho manchado
+ c+=vec3(.988,.122,.847)*center*1.1+vec3(1.,.894,.988)*pow(1.-f,10.)*.8;                          // brilho magenta no centro
+ c=mix(c,vec3(.988,.122,.847)*1.3,halo*.5); c=mix(c,vec3(.03,0.,.03),crack);                      // rachaduras negras com halo magenta
+ c+=vec3(1.,.15,.35)*pow(f,3.)*.55; gl_FragColor=vec4(c*alpha,alpha); }`;
+const RIM_FRAG = `varying vec3 vN; varying vec3 vV; uniform float alpha; void main(){ float f=pow(1.-abs(dot(normalize(vN),vV)),3.); float a=f*alpha; gl_FragColor=vec4(mix(vec3(1.,.08,.12),vec3(.988,.122,.847),f)*a*1.3,a); }`;
 const CORE_FRAG = `varying vec3 vN; varying vec3 vV; uniform float alpha; void main(){ float f=pow(abs(dot(normalize(vN),vV)),2.); float a=f*alpha; gl_FragColor=vec4(vec3(1.,.894,.988)*a*1.8,a); }`;
 export function createSphereVFX(T, scene, { ground = () => 0 } = {}) {
   const root = new T.Group(); root.name = 'EsferaDaDestruicao'; root.visible = false; scene.add(root);
@@ -117,7 +125,7 @@ export function createSphereVFX(T, scene, { ground = () => 0 } = {}) {
     if (!s.active) { if (last >= 0) { root.visible = false; sak.clear(); last = -1; } return; }
     root.visible = true; const t = s.time, A = s.age, ph = s.phase, low = quality === 0; if (t < last) sak.clear(); last = t; eye.copy(camera.position); dq = 0;
     shellMat.uniforms.time.value = t; glow.begin(); rib.begin(camera, t);
-    const charge = ph === 'raise' ? .15 * A / SPHERE.raise : ph === 'charge' ? .15 + .85 * easeOut(A / SPHERE.charge) : 1, r = SPHERE.r * charge;
+    const charge = ph === 'raise' ? .15 * A / SPHERE.raise : ph === 'charge' ? .15 + .85 * easeOut(A / SPHERE.charge) : 1, r = SPHERE.r * 1.45 * charge; // grande, acima da mão erguida
     ball.visible = ph === 'raise' || ph === 'charge' || ph === 'fly' || ph === 'contract'; ball.position.set(s.p.x, s.p.y, s.p.z);
     const squash = ph === 'contract' ? 1 - .45 * Math.sin(Math.min(1, A / SPHERE.contract) * Math.PI / 2) : 1; ball.scale.setScalar(r * squash); ball.rotation.y += .05; ball.rotation.x += .03;
     // pedrinhas sobem do chão com a mão erguida e orbitam até a esfera
@@ -133,7 +141,8 @@ export function createSphereVFX(T, scene, { ground = () => 0 } = {}) {
       if (ph === 'fly') { hi = (hi + 1) % hist.length; Object.assign(hist[hi], { x: s.p.x, y: s.p.y, z: s.p.z, t }); }
       for (let k = 0; k < hist.length - 1; k++) { const a = hist[(hi - k + hist.length) % hist.length], b = hist[(hi - k - 1 + hist.length) % hist.length]; if (b.t < 0 || t - b.t > .28) break; const fa = 1 - (t - a.t) / .28, fb = 1 - (t - b.t) / .28;
         rib.seg(a.x, a.y, a.z, b.x, b.y, b.z, r * 1.2 * fa, r * 1.2 * fb, [.73, 0, .1, fa], [.73, 0, .1, fb * .5]); dseg(a.x, a.y, a.z, b.x, b.y, b.z, r * .35 * fa); }
-      glow.add(s.p.x, s.p.y, s.p.z, r * 4, r * 4, .99, .12, .5, .45, 0);
+      glow.add(s.p.x, s.p.y, s.p.z, r * 4.2, r * 4.2, 1, .06, .1, .42, 0); glow.add(s.p.x, s.p.y, s.p.z, r * 2.6, r * 2.6, .99, .12, .6, .35, 0); // aura vermelha + magenta
+      if (!low) for (let i = 0; i < 10; i++) { const a = i * 2.39996 + t * 2, el = (hash(i) - .5) * 2, rr = r * (1.15 + hash(i * 3) * .4); glow.add(s.p.x + Math.cos(a) * Math.cos(el) * rr, s.p.y + Math.sin(el) * rr, s.p.z + Math.sin(a) * Math.cos(el) * rr, .12, .12, .05, 0, .05, .9, 0); } // lascas negras soltas
     }
     // contato: cúpula rubro-negra com fendas emissivas e detritos (impacto sakuga)
     domeMesh.visible = ph === 'contract' || ph === 'dome' || ph === 'fade';
@@ -157,9 +166,11 @@ void main(){ vec2 p=vUv*2.-1.; float d=length(p); float sp=vFx.z, prog=vFx.y; ve
  vec2 q2=rot(p,-sp*1.6); float tri2=0.; for(int i=0;i<3;i++){float a0=float(i)*2.0944+1.0472;tri2+=sg(q2,.6*vec2(cos(a0),sin(a0)),.6*vec2(cos(a0+2.0944),sin(a0+2.0944)),.008);}
  float hel=pow(max(0.,sin(an*6.+log(d+.05)*5.)),20.)*smoothstep(.3,.6,d)*smoothstep(.88,.62,d);
  float cell=floor((an+3.1416)*24./6.2832), u=fract((an+3.1416)*24./6.2832), v=(d-.89)/.055;
- float rune=(v>0.&&v<1.)?step(.35,fract(sin(cell*12.9898+vFx.w)*43758.5))*smoothstep(.16,0.,abs(u-.5)-(fract(cell*.37)<.5?.0:.18)):0.;
+ float rune=(v>0.&&v<1.)?step(.35,fract(sin(cell*12.9898+vFx.z)*43758.5))*smoothstep(.16,0.,abs(u-.5)-(fract(cell*.37)<.5?.0:.18)):0.;
  float reveal=step(d,prog*1.05);
- float a=(L+tri*.9+tri2*.7+hel*.6+rune*.9)*reveal*vFx.x; if(a<.01) discard; gl_FragColor=vec4(vCol*a*1.5,a); }`;
+ float spiral=pow(max(0.,sin(an*5.+log(d+.04)*9.)),6.)*smoothstep(.12,.3,d)*smoothstep(.95,.7,d);   // espirais de fogo (laranja)
+ float chain=(ring(d,.985,.016)+ring(d,.955,.016))*step(.35,fract(an*36./6.2832+.25*step(.5,fract(an*18./6.2832))));   // anel de corrente (magenta)
+ float st=vFx.w; float a=(L+tri*.9+tri2*.7+hel*.6+rune*.9+spiral*(1.-st)*1.4+chain*st*1.3)*reveal*vFx.x; if(a<.01) discard; gl_FragColor=vec4(vCol*a*2.6,min(1.,a*1.4)); }`;
 const CIRCLE_VERT = `attribute vec4 aFx; attribute vec3 aCol; varying vec2 vUv; varying vec4 vFx; varying vec3 vCol; void main(){ vUv=uv; vFx=aFx; vCol=aCol; gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.); }`;
 const PILLAR_FRAG = `${NOISE} uniform float time, alpha, erode; varying vec3 vN; varying vec3 vV; varying vec3 vP; varying vec2 vUv;
 void main(){ float n=fbm(vec3(vUv.x*8.,vUv.y*3.-time*4.,time*.5)); if(n<erode) discard; float f=abs(dot(normalize(vN),vV)); float core=pow(f,4.);
@@ -173,7 +184,7 @@ export function createCelestialVFX(T, scene, { ground = () => 0 } = {}) {
   const pg = new T.CylinderGeometry(1, 1.15, 1, 28, 6, true); pg.translate(0, .5, 0);
   const pillarMat = new T.ShaderMaterial({ vertexShader: LIT_VERT, fragmentShader: PILLAR_FRAG, uniforms: { time: { value: 0 }, alpha: { value: 1 }, erode: { value: 0 } }, side: T.DoubleSide, ...add(T) });
   const pillar = new T.Mesh(pg, pillarMat), pillarCore = new T.Mesh(pg, pillarMat.clone()); pillarCore.material.uniforms = { time: { value: 0 }, alpha: { value: 1 }, erode: { value: 0 } }; root.add(pillar, pillarCore); pillar.frustumCulled = pillarCore.frustumCulled = false;
-  const domeMat = new T.ShaderMaterial({ vertexShader: LIT_VERT, fragmentShader: 'varying vec3 vN; varying vec3 vV; uniform float alpha; void main(){ float f=pow(1.-abs(dot(normalize(vN),vV)),2.5); float a=f*alpha; gl_FragColor=vec4(vec3(.85,.93,1.)*a*1.4,a); }', uniforms: { alpha: { value: 1 } }, ...add(T) });
+  const domeMat = new T.ShaderMaterial({ vertexShader: LIT_VERT, fragmentShader: 'varying vec3 vN; varying vec3 vV; uniform float alpha; void main(){ float f=1.-abs(dot(normalize(vN),vV)); float a=(pow(f,2.)*.9+.25)*alpha; gl_FragColor=vec4(mix(vec3(1.,.97,.85),vec3(1.,.72,.2),f)*a*1.5,a); }', uniforms: { alpha: { value: 1 } }, ...add(T) });
   const dome = new T.Mesh(new T.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), domeMat); dome.frustumCulled = false; root.add(dome);
   const ringGeo = new T.TorusGeometry(1, .04, 6, 72), ringMat = new T.MeshBasicMaterial({ color: 0xfff2d0, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false }), airRings = new T.InstancedMesh(ringGeo, ringMat, 6); airRings.frustumCulled = false; airRings.count = 0; root.add(airRings);
   const waveGeo = new T.CylinderGeometry(1, 1, 1, 64, 1, true); waveGeo.translate(0, .5, 0); const wave = new T.Mesh(waveGeo, new T.ShaderMaterial({ vertexShader: LIT_VERT, fragmentShader: 'varying vec2 vUv; uniform float alpha; void main(){ float a=alpha*(1.-vUv.y)*(.7+.3*sin(vUv.x*120.)); gl_FragColor=vec4(vec3(1.,.82,.4)*a*1.5,a); }', uniforms: { alpha: { value: 1 } }, side: T.DoubleSide, ...add(T) })); wave.frustumCulled = false; root.add(wave);
@@ -190,12 +201,13 @@ export function createCelestialVFX(T, scene, { ground = () => 0 } = {}) {
     if (ph === 'charge') { const k = A / CELESTIAL.charge, tip = s.tip; // estrelas de quatro pontas em espiral até a ponta da arma
       stars.add(tip.x, tip.y, tip.z, .5 + k * 1.2, .5 + k * 1.2, 1, .2, .85, .9, 0);
       for (let i = 0; i < (low ? 24 : 56); i++) { const u = (i / 56 + t * .7) % 1, a = i * 2.39996 + t * 4 + u * 6, r = (1 - u) * 3.2, c = STAR[i % 4]; stars.add(tip.x + Math.cos(a) * r, tip.y - (1 - u) * 1.4 + Math.sin(a * 1.7) * .3, tip.z + Math.sin(a) * r, .22 * (1 - u * .5), .22 * (1 - u * .5), ...c, .9 * u + .1, 2, a, i); }
+      for (let h = 0; h < (low ? 3 : 7); h++) { const BLUE = [.2, .35, 1]; let px = 0, py = 0, pz = 0; for (let j = 0; j <= 16; j++) { const u = j / 16, a = h * .9 + u * 5 + t * 3.5, rr = 1.4 + u * 2.2 + Math.sin(h + t) * .3, x = s.source.x + Math.cos(a) * rr, y = s.source.y + .3 + u * 3.6, z = s.source.z + Math.sin(a) * rr; if (j) rib.seg(px, py, pz, x, y, z, .12 * (1 - u * .5), .12 * (1 - u * .5), c4(BLUE, .8 * k), c4([.5, .7, 1], .6 * k)); px = x; py = y; pz = z; } } // faixas azuis em redemoinho
       for (let i = 0; i < 3; i++) { const rr = .9 + i * .35, y = s.source.y + ((k * 2 + i * .33) % 1) * 2.2; for (let j = 0; j < 24; j++) { const a0 = j / 24 * 6.283 + t * 3, a1 = (j + 1) / 24 * 6.283 + t * 3; rib.seg(s.source.x + Math.cos(a0) * rr, y, s.source.z + Math.sin(a0) * rr, s.source.x + Math.cos(a1) * rr, y, s.source.z + Math.sin(a1) * rr, .03, .03, c4(MAGENTA, .7), c4(MAGENTA, .7)); } } }
     const circlesOn = ph === 'circles' || ph === 'pillar' || (ph === 'fade' && A < .4);
     if (circlesOn) { // 4 círculos escalonados sobre o alvo, laranja e magenta alternados, girando em sentidos opostos
       const prog = ph === 'circles' ? A / CELESTIAL.circles : 1, out = ph === 'fade' ? 1 - A / .4 : ph === 'pillar' ? 1 - smooth((A - .9) / .4) : 1;
-      for (let i = 0; i < 4; i++) { const y = gy + 2.6 + i * 2.1, R = 3.6 - i * .55, pk = Math.min(1, Math.max(0, prog * 1.6 - i * .2)); P.set(at.x, y, at.z); Q.identity(); S.set(R, 1, R); M.compose(P, Q, S); circles.setMatrixAt(circles.count, M);
-        cfx.set([out, easeOut(pk), t * (i % 2 ? -.8 : .6) + i, i * 7.1], circles.count * 4); ccol.set(i % 2 ? MAGENTA : ORANGE, circles.count * 3); circles.count++; }
+      for (let i = 0; i < 4; i++) { const y = gy + 2.6 + i * 2.3, R = 4.6 - i * .6, pk = Math.min(1, Math.max(0, prog * 1.6 - i * .2)); P.set(at.x, y, at.z); Q.identity(); S.set(R, 1, R); M.compose(P, Q, S); circles.setMatrixAt(circles.count, M);
+        cfx.set([out, easeOut(pk), t * (i % 2 ? -.8 : .6) + i, i % 2], circles.count * 4); ccol.set(i % 2 ? MAGENTA : ORANGE, circles.count * 3); circles.count++; }
       if (!low) for (let c = 0; c < 2; c++) { const tilt = c ? .5 : -.4; for (let j = 0; j < 36; j++) { const a0 = j / 36 * 6.283 + t * (c ? 1.3 : -1.1), a1 = (j + 1) / 36 * 6.283 + t * (c ? 1.3 : -1.1), r = 4.4, y0 = gy + 5 + Math.sin(a0) * r * tilt, y1 = gy + 5 + Math.sin(a1) * r * tilt;
         rib.seg(at.x + Math.cos(a0) * r, y0, at.z + Math.sin(a0) * r * Math.cos(tilt), at.x + Math.cos(a1) * r, y1, at.z + Math.sin(a1) * r * Math.cos(tilt), .05, .05, c4(j % 3 ? ORANGE : GOLD, .8 * out), c4(MAGENTA, .7 * out)); } }
     }
