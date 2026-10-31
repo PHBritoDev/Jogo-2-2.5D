@@ -1,5 +1,5 @@
 import {PORTALS} from './skill-twin-portals3d.js?v=mod236-vfx2';
-import {energyBody} from './vfx-flow3d.js';
+import {energyBody,energyMaterial} from './vfx-flow3d.js';
 import {volumeTrail} from './vfx-trail3d.js';
 import {impactDirector} from './vfx-impact3d.js';
 import {smooth} from './celestial-fxkit3d.js';
@@ -20,28 +20,34 @@ float h(float p){return fract(sin(p*91.7)*47453.3);}
 void main(){ float u=vUv.x, v=abs(vUv.y*2.-1.); float flow=.6+.4*sin(u*80.-time*14.)+.3*sin(u*23.+time*5.);
  vec3 c=mix(col,vec3(1.,.95,.95),pow(1.-v,6.)*.8)*(.6+flow*.25); float a=alpha*pow(1.-v,1.5)*(.7+.3*flow);
  gl_FragColor=vec4(c*a,a); }`;
-/** Two quiet apertures and two continuous, volumetric lance bodies. No thread swarm. */
+/** Two quiet apertures and two continuous, volumetric lance bodies. No thread swarm.
+ * MOD 238: bocas dimensionais com profundidade (túnel de energia girando atrás do disco), aro grosso e vivo, orientação
+ * que nunca fica de lado para a câmera, corpos alongados em carmesim e violeta profundos (sem tom pastel) e sem as linhas
+ * soltas que liam como rabiscos. */
 export function createTwinPortalsVFX(T,scene,{ground=()=>0}={}){
  const root=new T.Group();root.name='PortaisPerseguicao';root.visible=false;scene.add(root);
- const circle=new T.CircleGeometry(1,40),ring=new T.TorusGeometry(1,.045,6,48),presets=['crimson','violet'],colors=[[.9,.035,.09],[.4,.08,.8]];
+ const circle=new T.CircleGeometry(1,48),ring=new T.TorusGeometry(1,.11,10,56),tunnelGeo=new T.CylinderGeometry(.92,.22,.95,28,6,true);tunnelGeo.rotateX(-Math.PI/2);tunnelGeo.translate(0,0,-.46);
+ const PAL=[{deep:[.05,0,.012],body:[.6,.0,.06],hot:[1,.25,.35]},{deep:[.02,0,.05],body:[.32,.02,.7],hot:[.85,.55,1]}],tint=(m,i)=>{for(const k of ['deep','body','hot'])m.uniforms[k].value.setRGB(...PAL[i][k]);return m;};
+ const presets=['crimson','violet'],colors=[[.9,.035,.09],[.4,.08,.8]];
  const mat=(frag,c)=>new T.ShaderMaterial({vertexShader:PORTAL_VERT,fragmentShader:frag,transparent:true,depthWrite:false,side:T.DoubleSide,toneMapped:false,blending:T.CustomBlending,blendSrc:T.OneFactor,blendDst:T.OneMinusSrcAlphaFactor,uniforms:{time:{value:0},alpha:{value:1},open:{value:1},col:{value:new T.Color(...c)}}});
- const portals=colors.map(c=>{const group=new T.Group();root.add(group);const disc=new T.Mesh(circle,mat(DISC_FRAG,c)),rim=new T.Mesh(ring,mat(RIM_FRAG,c));group.add(disc,rim);return{group,disc,rim};});
- const bodies=presets.map((p,i)=>energyBody(T,root,p,{tail:i?3.5:3,rings:48,sides:24,seed:i*4}));
- const trails=presets.map(p=>volumeTrail(T,root,p,{capacity:32,life:.7,radius:.5}));
+ const portals=colors.map((c,i)=>{const group=new T.Group();root.add(group);const disc=new T.Mesh(circle,mat(DISC_FRAG,c)),rim=new T.Mesh(ring,tint(energyMaterial(T,presets[i],{alpha:.95,warp:.12,frequency:3,seed:i*7}),i)),tunnel=new T.Mesh(tunnelGeo,tint(energyMaterial(T,presets[i],{alpha:.8,warp:.08,frequency:1.4,seed:i*5}),i));tunnel.material.side=T.DoubleSide;group.add(tunnel,disc,rim);return{group,disc,rim,tunnel};});
+ const bodies=presets.map((p,i)=>energyBody(T,root,p,{tail:i?4.2:3.8,rings:48,sides:24,seed:i*4}));bodies.forEach((b,i)=>tint(b.material,i));
+ const trails=presets.map((p,i)=>volumeTrail(T,root,p,{capacity:36,life:.8,radius:.62}));
  const impacts=impactDirector(T,root,ground,{capacity:5});let last=-1;
  const arcPos=new Float32Array(160*6),arcCol=new Float32Array(160*6),arcGeo=new T.BufferGeometry();arcGeo.setAttribute('position',new T.BufferAttribute(arcPos,3).setUsage(T.DynamicDrawUsage));arcGeo.setAttribute('color',new T.BufferAttribute(arcCol,3));
- const arcMat=new T.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.65,toneMapped:false}),arcs=new T.LineSegments(arcGeo,arcMat);arcs.frustumCulled=false;root.add(arcs);
+ const arcMat=new T.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.65,toneMapped:false}),arcs=new T.LineSegments(arcGeo,arcMat);arcs.frustumCulled=false;arcs.visible=false;root.add(arcs);
  const dir=new T.Vector3(),side=new T.Vector3(),up=new T.Vector3(),axis=new T.Vector3(0,1,0),v=new T.Vector3(),prev=new T.Vector3();
  function clear(){root.visible=false;last=-1;impacts.clear();trails.forEach(t=>t.clear());bodies.forEach(b=>b.mesh.visible=false);}
  function update(s,camera,quality=1){if(!s.active){if(last>=0)clear();return;}root.visible=true;if(s.time<last){impacts.clear();trails.forEach(t=>t.clear());}last=s.time;const t=s.time,ph=s.phase;
   const opening=ph==='open'?smooth(s.age/PORTALS.open):ph==='close'?1-smooth(s.age/PORTALS.close):1;
   let na=0;
   for(let i=0;i<2;i++){
-   const f=s.flows[i],P=portals[i],at=s.portals[i];P.group.position.set(at.x,at.y,at.z);P.group.lookAt(at.x+s.f.x,at.y,at.z+s.f.z);P.group.scale.setScalar(opening);for(const m of [P.disc,P.rim]){m.material.uniforms.time.value=t+i*2;m.material.uniforms.alpha.value=opening*.85;}
+   const f=s.flows[i],P=portals[i],at=s.portals[i];P.group.position.set(at.x,at.y,at.z);{const cx=camera.position.x-at.x,cz=camera.position.z-at.z,cl=Math.hypot(cx,cz)||1,fx=s.f.x*.55+cx/cl*.45,fz=s.f.z*.55+cz/cl*.45;P.group.lookAt(at.x+fx,at.y,at.z+fz);}P.group.scale.setScalar(opening*1.15);P.group.rotateZ(t*(i?-.8:.8));
+   P.disc.material.uniforms.time.value=t+i*2;P.disc.material.uniforms.alpha.value=opening*.95;for(const m of [P.rim.material,P.tunnel.material]){m.uniforms.time.value=t*1.5+i;m.uniforms.alpha.value=opening*(m===P.tunnel.material?.5:.95);m.uniforms.detail.value=quality===0?.65:1;}
    const pressure=f.phase==='contact'&&['fire','pressure','compress'].includes(ph),flying=f.phase==='flight';
    const swell=ph==='pressure'?1+.32*smooth(s.age/PORTALS.pressure)+.08*Math.max(0,Math.sin(s.age*18)):1;
    const alive=flying||pressure,fade=ph==='compress'?1-smooth(s.age/PORTALS.compress):1;
-   bodies[i].mesh.visible=alive;if(alive)bodies[i].update(t,{position:f.p,dir:f.direction,radius:swell*(i?.91:.87)*(1+.035*Math.sin(t*12))*fade,length:Math.max(.03,Math.min(1.6,f.travel/(i?3.9:3.4))),quality,alpha:.93*fade});
+   bodies[i].mesh.visible=alive;if(alive)bodies[i].update(t,{position:f.p,dir:f.direction,radius:swell*(i?.72:.68)*(1+.05*Math.sin(t*12))*fade,length:Math.max(.03,Math.min(2.4,f.travel/(i?3.4:3))),quality,alpha:.96*fade});
    trails[i].update(t,f.p,flying,quality);
    if(f.endAt>=0&&['contact','wall'].includes(f.phase))impacts.emit({id:'flow'+i,time:f.endAt,point:f.at,size:f.phase==='wall'?1.8:2.2,preset:presets[i],kind:'lance',dir:f.direction});
    if(alive){dir.set(f.direction.x,f.direction.y,f.direction.z);side.crossVectors(axis,dir).normalize();up.crossVectors(dir,side);
@@ -55,5 +61,5 @@ export function createTwinPortalsVFX(T,scene,{ground=()=>0}={}){
   if(ph==='compress'){for(let i=0;i<2;i++){const k=s.age/PORTALS.compress;bodies[i].update(t,{position:s.center,dir:{x:i?1:-1,y:.3,z:0},radius:1.5*(1-k)+.3,length:.7*(1-k),alpha:.65,quality});}}
   arcGeo.setDrawRange(0,na*2);arcGeo.attributes.position.needsUpdate=arcGeo.attributes.color.needsUpdate=true;impacts.update(t,quality);
  }
- return{root,update,clear,stats:()=>({bodies:2,visible:bodies.filter(b=>b.mesh.visible).length,impacts:impacts.stats()}),dispose(){scene.remove(root);impacts.dispose();bodies.forEach(b=>b.dispose());trails.forEach(t=>t.dispose());circle.dispose();ring.dispose();for(const p of portals){p.disc.material.dispose();p.rim.material.dispose();}arcGeo.dispose();arcMat.dispose();}};
+ return{root,update,clear,stats:()=>({bodies:2,visible:bodies.filter(b=>b.mesh.visible).length,impacts:impacts.stats()}),dispose(){scene.remove(root);impacts.dispose();bodies.forEach(b=>b.dispose());trails.forEach(t=>t.dispose());circle.dispose();ring.dispose();for(const p of portals){p.disc.material.dispose();p.rim.material.dispose();p.tunnel.material.dispose();}tunnelGeo.dispose();arcGeo.dispose();arcMat.dispose();}};
 }

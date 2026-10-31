@@ -5383,6 +5383,9 @@ function endBossUlt(){const f=bossUlt.fx;if(f){scene.remove(f.g);f.g.traverse(o=
 function tickTransientFx(dt){for(let i=ultFx.length-1;i>=0;i--){const f=ultFx[i];f.t+=dt;if(f.tick(f.t,dt)===false)ultFx.splice(i,1);}}
 function updateBossUltimates(dt,now){
  tickTransientFx(dt);
+ // MOD 238: na esquadra Enemy1/Enemy2 o ultimate genérico do kit antigo ("Ritual"/"Furacão Infernal") disparava pelos
+ // limiares de vida do procurador do foco, junto com os poderes novos. A esquadra usa só o próprio kit.
+ if(squadOn){if(bossUlt.kind)endBossUlt();return;}
  const fight=encounterProfile+':'+enemyMaxHP;if(fight!==bossUlt.fight){bossUlt.fight=fight;bossUlt.used={};}
  const live=combatStepNow()&&enemy.visible&&enemyAlive&&playerHP>0;
  if(bossUlt.kind){if(!live||cineActive){endBossUlt();return;}bossUlt.t+=dt;(bossUlt.kind==='void'?tickVoidUlt:bossUlt.kind==='kit'?tickKitUlt:tickSupernova)(dt,now);return;}
