@@ -12,6 +12,8 @@ import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smoo
  * rachaduras desenhados no shader. Buffers fixos, alocados uma vez; tudo em poucas chamadas de desenho.
  */
 const ABYSS = { deep: [.004, 0, .008], body: [.3, .005, .24], hot: [1, .28, .7] };
+// Vórtice (especificação sakuga): abismo #08020D, roxo escuro #25002E, magenta incandescente #FF28D8, núcleo branco.
+const VORTEX_PAL = { deep: [.031, .008, .051], body: [.145, 0, .18], hot: [1, .157, .847] }, VORTEX_EMBER = { deep: [.04, .004, .02], body: [.3, .01, .12], hot: [1, .42, .3] };
 const VEIN = { deep: [.02, 0, .01], body: [.62, 0, .07], hot: [1, .12, .32] };
 const DISC_VERT = `attribute vec4 aFx; varying vec2 vUv; varying vec4 vFx; void main(){ vUv=uv; vFx=aFx; gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.); }`;
 const DISC_FRAG = `uniform float time; varying vec2 vUv; varying vec4 vFx;
@@ -68,10 +70,13 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
     }
     tb.g.attributes.position.needsUpdate = true; tb.g.attributes.normal.needsUpdate = true; tb.mesh.visible = true; tb.used = true; void px; void py; void pz;
   }
-  const streams = tubePool(2, 46, 12, ABYSS, { warp: .1, alpha: .96, frequency: 1.3 }), streamVeins = tubePool(2, 46, 10, VEIN, { warp: .16, alpha: .7, frequency: 2.2 });
+  const streams = tubePool(2, 46, 12, VORTEX_PAL, { warp: .06, alpha: 1, frequency: 1.6 }), streamsBoss = tubePool(1, 46, 12, VORTEX_EMBER, { warp: .07, alpha: 1, frequency: 1.5 }),
+    coreMat = new T.ShaderMaterial({ vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vec4 w=modelMatrix*vec4(position,1.); vN=normalize(mat3(modelMatrix)*normal); vV=cameraPosition-w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }', fragmentShader: 'varying vec3 vN; varying vec3 vV; uniform float alpha; void main(){ float f=abs(dot(normalize(vN),normalize(vV))); float a=alpha*pow(f,1.6); gl_FragColor=vec4(mix(vec3(1.,.157,.847),vec3(1.),pow(f,3.))*a,a); }', uniforms: { alpha: { value: 1 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false, fog: false }),
+    cores = tubePool(2, 46, 8, VORTEX_PAL, {}), streamVeins = tubePool(2, 46, 10, VEIN, { warp: .16, alpha: .7, frequency: 2.2 });
   const funnels = tubePool(5, 22, 16, ABYSS, { warp: .14, alpha: .94, frequency: 1.1 }), funnelVeins = tubePool(5, 22, 14, VEIN, { warp: .2, alpha: .62, frequency: 1.8 });
   const columns = tubePool(2, 20, 16, ABYSS, { warp: .18, alpha: .95, frequency: 1.2 }), columnVeins = tubePool(2, 20, 14, VEIN, { warp: .22, alpha: .66, frequency: 2 }), waves = tubePool(2, 2, 48, VEIN, { warp: .12, alpha: .8, frequency: 3 });
-  const allTubes = [streams, streamVeins, funnels, funnelVeins, columns, columnVeins, waves];
+  for (const c of cores) { c.mesh.material.dispose(); c.mesh.material = coreMat; c.m = coreMat; }
+  const allTubes = [streams, streamsBoss, cores, streamVeins, funnels, funnelVeins, columns, columnVeins, waves];
   // --- discos (portal/fissura)
   const discGeo = new T.PlaneGeometry(2, 2); discGeo.rotateX(-Math.PI / 2); const discFx = new Float32Array(8 * 4); discGeo.setAttribute('aFx', new T.InstancedBufferAttribute(discFx, 4).setUsage(T.DynamicDrawUsage));
   const discs = new T.InstancedMesh(discGeo, new T.ShaderMaterial({ vertexShader: DISC_VERT, fragmentShader: DISC_FRAG, uniforms: { time: uTime }, transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false, fog: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), 8);
@@ -110,13 +115,17 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
     const pts = [[s.px, s.py - .1, s.pz], ...path.map(p => [p.x, p.y, p.z]), [s.x, s.y, s.z]];
     const L = pts.length - 1, at = u => { const f = u * L, i = Math.min(L - 1, Math.floor(f)), k = f - i, a = pts[i], b = pts[i + 1]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; };
     const fade = s.phase === 'retract' ? 1 - smooth(s.t / T0.retract) : 1, rB = T0.r * big, burst = s.phase === 'burst' ? Math.sin(Math.min(1, s.t / T0.burst) * Math.PI) : 0;
-    const tb = take(streams), tv = take(streamVeins);
-    if (tb) { fillTube(tb, at, (u, a) => rB * (.42 + .58 * Math.pow(u, .7)) * (1 + .14 * Math.sin(a * 3 + u * 18 - time * 9) + .25 * burst * u * u) * fade, 2.5); tb.m.uniforms.time.value = time; tb.m.uniforms.alpha.value = .96 * Math.min(1, fade * 1.4) * camFade(s.x, s.z, rB); tb.m.uniforms.detail.value = low ? .65 : 1; }
+    // corpo opaco escuro com veios magenta; mini-chefe com brasas na paleta (diferente do comum); núcleo branco por dentro
+    const tb = take(s.kind === 'e2boss' ? streamsBoss : streams), tv = take(streamVeins), tc = take(cores);
+    if (tb) { fillTube(tb, at, (u, a) => rB * (.42 + .58 * Math.pow(u, .7)) * (1 + .14 * Math.sin(a * 3 + u * 18 - time * 9) + .25 * burst * u * u) * fade, 2.5); tb.m.uniforms.time.value = time; tb.m.uniforms.alpha.value = Math.min(1, fade * 1.4) * camFade(s.x, s.z, rB); tb.m.uniforms.detail.value = low ? .65 : 1; }
+    if (tc) { fillTube(tc, at, u => rB * .2 * (.4 + .6 * u) * fade, 0); coreMat.uniforms.alpha.value = .9 * fade * camFade(s.x, s.z, rB); tc.mesh.renderOrder = 7; }
+    if (s.kind === 'e2boss' && !low) for (let i = 0; i < 10; i++) { const u = (time * .8 + i / 10) % 1, p = at(u), a = i * 2.4 + time * 7; glow.add(p[0] + Math.cos(a) * rB * 1.4, p[1] + Math.sin(a) * rB, p[2] + Math.sin(a) * rB * 1.4, .07, .35, 1, .45, .1, .9 * fade, 3, a + 1.57, i); }
     if (tv) { fillTube(tv, at, (u, a) => rB * (.55 + .7 * Math.pow(u, .7)) * (1 + .22 * Math.sin(a * 2 - u * 26 + time * 12)) * fade, -6); tv.m.uniforms.time.value = time * 1.4; tv.m.uniforms.alpha.value = .6 * fade; }
     // cabeça: massa comprimida com núcleo quente e filamentos; veios elétricos ao longo do corpo
     glow.add(s.x, s.y, s.z, 2.2 * rB, 2.2 * rB, 1, .25, .65, .6 * fade, 0); glow.add(s.x, s.y, s.z, .9 * rB, .9 * rB, 1, .8, .95, .9 * fade, 0);
     if (!low) for (let i = 0; i < 3; i++) { const u0 = ((time * 1.7 + i / 3) % 1) * .8, p0 = at(u0), p1 = at(Math.min(1, u0 + .18)); boltRib(s.id * 7 + i + Math.floor(time * 18), p0[0], p0[1], p0[2], p1[0], p1[1], p1[2], .08 * big, i % 2 ? RED : MAG, .9 * fade, { depth: 1, jag: .4 }); }
-    for (let i = 0; i < (low ? 4 : 10); i++) { const u = hash(i + s.id) * .9, p = at(u); smoke.add(p[0] + (hash(i * 3) - .5) * rB * 2, p[1] + (hash(i * 5) - .5) * rB, p[2] + (hash(i * 7) - .5) * rB * 2, rB * 2.2, rB * 2.2, .05, .0, .06, .45 * fade, 1, i, i); }
+    // estilhaços angulares escuros arrastados pela corrente (no lugar das manchas redondas de fumaça)
+    for (let i = 0; i < (low ? 5 : 12); i++) { const u = (hash(i + s.id) * .9 + time * .35) % 1, p = at(u), a = i * 2.4 + time * 6; shard(p[0] + Math.cos(a) * rB * 1.25, p[1] + Math.sin(a * 1.3) * rB, p[2] + Math.sin(a) * rB * 1.25, .09 * big * fade, a, u * 9, i); }
     if (s.phase === 'burst') { const k = s.t / T0.burst, e = easeOut(k), gy = ground(s.x, s.z);
       for (let i = 0; i < (low ? 8 : 20); i++) { const a = i * 2.39996, el = hash(i + s.id) * 1.2, d = (1 + hash(i * 3) * 2.5) * e * big; glow.add(s.x + Math.cos(a) * Math.cos(el) * d, s.y + Math.sin(el) * d, s.z + Math.sin(a) * Math.cos(el) * d, .06, .4, 1, i % 2 ? .1 : .35, i % 2 ? .25 : .8, 1 - k, 3, a, i); }
       if (s.y - gy < 2) { groundNormal(ground, s.x, s.z, nrm); decals.add(s.x, gy, s.z, (1 + e * 3) * big, 1, .2, .6, (1 - k) * .9, 0, k, s.id, nrm); } }
@@ -136,7 +145,7 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
       groundNormal(ground, h.x, h.z, nrm); decals.add(h.x, gy, h.z, 1.4 * big * h.h, .9, .1, .4, .7 * fadeK, 2, 0, h.i, nrm);
       for (let i = 0; i < (low ? 4 : 8); i++) { const a = i / 8 * 6.283 + h.i, rr = (.6 + hash(i + h.i) * .5) * big; shard(h.x + Math.cos(a) * rr, gy + .15 * h.h, h.z + Math.sin(a) * rr, (.12 + hash(i * 3) * .1) * h.h * big, Math.cos(a) * .7, a, Math.sin(a) * .7); }
       for (let i = 0; i < (low ? 5 : 12); i++) { const u = (time * .45 + i / 12 + h.i * .3) % 1, a = ph * 1.6 + i * 2.4, c = center(u), rr = (.25 + top * Math.pow(u, 1.5)) * 1.15; shard(c[0] + Math.cos(a) * rr, c[1], c[2] + Math.sin(a) * rr, .07 * big * (1 - u * .5) * fadeK, a, u * 6, i); }
-      for (let i = 0; i < (low ? 3 : 6); i++) smoke.add(h.x + (hash(i + h.i) - .5) * 2, gy + .3 + hash(i * 2) * .6, h.z + (hash(i * 5 + h.i) - .5) * 2, 1.6 * big, 1.2 * big, .07, .01, .06, .5 * fadeK * h.h, 1, i + time, i);
+      for (let i = 0; i < (low ? 3 : 6); i++) smoke.add(h.x + (hash(i + h.i) - .5) * 2, gy + .3 + hash(i * 2) * .6, h.z + (hash(i * 5 + h.i) - .5) * 2, 1.6 * big, 1.2 * big, .07, .01, .06, .22 * fadeK * h.h, 1, i + time, i);
     }
     // correntes ligam os furacões que se aproximam (mini-tempestade breve)
     if (!low && s.phase === 'hunt') for (let i = 0; i < s.storms.length; i++) for (let j = i + 1; j < s.storms.length; j++) { const a = s.storms[i], b = s.storms[j]; if (Math.hypot(a.x - b.x, a.z - b.z) < 4.5) boltRib(s.id * 13 + i * 3 + j + Math.floor(time * 12), a.x, a.y + 3.4 * big, a.z, b.x, b.y + 3.4 * big, b.z, .1, j % 2 ? RED : MAG, .85, { depth: 2, jag: .3 }); }
@@ -168,7 +177,7 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
       decals.add(s.x, gy, s.z, F * 1.05, 1, .15, .5, a, 0, k, s.id, nrm); decals.add(s.x, gy, s.z, F * .9, .6, .1, 1, a * .6, 0, k, s.id + 1, nrm);
       for (let i = 0; i < (low ? 12 : 28); i++) { const an = i / 28 * 6.283 + hash(i), rr = F * (.95 + hash(i * 3) * .1); shard(s.x + Math.cos(an) * rr, gy + .1 + hash(i) * .4 * (1 - k), s.z + Math.sin(an) * rr, .09 * big * a, an, k * 6, i); glow.add(s.x + Math.cos(an) * rr, gy + .25, s.z + Math.sin(an) * rr, .07, .4, 1, i % 2 ? .1 : .4, i % 2 ? .2 : .9, a, 3, an + 1.57, i); }
     }
-    if (ph === 'fade') for (let i = 0; i < (low ? 4 : 9); i++) { const an = i * 1.9, d = s.r * (.3 + hash(i) * .9); smoke.add(s.x + Math.cos(an) * d, gy + .4 + (s.t / T0.fade) * 2, s.z + Math.sin(an) * d, 1.6 * big, 1.6 * big, .06, .01, .07, .55 * fadeK, 1, an, i); }
+    if (ph === 'fade') for (let i = 0; i < (low ? 4 : 9); i++) { const an = i * 1.9, d = s.r * (.3 + hash(i) * .9); smoke.add(s.x + Math.cos(an) * d, gy + .4 + (s.t / T0.fade) * 2, s.z + Math.sin(an) * d, 1.6 * big, 1.6 * big, .06, .01, .07, .25 * fadeK, 1, an, i); }
   }
   function drawCharge(c) {
     const k = c.k, big = c.kind === 'e2boss' ? 1.3 : 1;

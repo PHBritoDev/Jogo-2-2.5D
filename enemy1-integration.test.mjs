@@ -36,10 +36,13 @@ test('MIRAR alterna entre inimigos; laboratório isolado do progresso', () => {
   for (const b of ["B('1'", "B('2'", "B('4'", "B('GUARDIÃO'", "B('+ ALIADO'", "B('CLASH'"]) assert.ok(src.includes(b), b);
 });
 
-test('Mod visível e cache atualizado (238)', () => {
-  assert.match(html, /<div id="marker" aria-label="Modificação 238">238<\/div>/);
-  assert.match(html, /mod181-loader\.js\?v=mod238-enemy2-trindade/);
-  assert.match(fs.readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /const BUILD = 'mod238-enemy2-trindade';/);
+test('Mod visível e cache atualizado: marcador, loader, BUILD e index na mesma versão publicada', () => {
+  const marker = html.match(/<div id="marker" aria-label="Modificação (\d+)">(\d+)<\/div>/), loaderV = html.match(/mod181-loader\.js\?v=mod(\d+)-[\w-]+/);
+  const build = fs.readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8').match(/const BUILD = 'mod(\d+)-[\w-]+';/);
+  const index = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8').match(/refresh=(\d+)&build=(\d+)/);
+  assert.ok(marker && loaderV && build && index, 'marcadores presentes');
+  const v = marker[1]; assert.equal(marker[2], v); assert.equal(loaderV[1], v); assert.equal(build[1], v); assert.equal(index[1], v); assert.equal(index[2], v);
+  assert.ok(+v >= 238, 'versão não regride abaixo da Mod 238');
 });
 
 test('Mod 238: Enemy2 do Ato II em esquadra, mini-chefe com foice, ultimate genérico desligado na esquadra', () => {

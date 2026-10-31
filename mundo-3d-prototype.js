@@ -3073,7 +3073,7 @@ function updatePack(dt){
    vira um procurador invisível do ator em foco: golpes, magias, mira e HUD do herói continuam mirando enemy/enemyHP, e a
    diferença de vida/posição vai para o ator certo. Corte da espada, projéteis e magias em área alcançam os outros atores.
    ?esquadraLegada=1 volta ao modo antigo (um por vez). ?testeEnemy1=1 abre o laboratório isolado do progresso. */
-var squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
+var squadSakugaCd=0,squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
 const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=new Map();
 function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
 function squadRuntime(){
@@ -3154,6 +3154,8 @@ function squadDamageTarget(id,dmg,info){
  const n=squadAlive().length,mul=n>=4?.72:n===3?.84:1,amount=Math.max(1,Math.round(dmg*mul));
  if(id==='hero'){
   const wasDef=defending;if(!damagePlayerFromEnemyAttack(amount))return 'evaded';
+  // hitstop/shake do Enemy2 só com acerto CONFIRMADO e com trava contra duplo disparo
+  if(/^(vortex|collapse|collapseWave|trinity)$/.test(info.kind)){const now=performance.now();if(now>squadSakugaCd){squadSakugaCd=now+160;hitStop(info.kind==='trinity'?40:55);cameraShake(info.kind==='trinity'?.08:.17);}}
   if(info.guardBreak&&defending){setDefending(false);showCombatCallout('GUARDA QUEBRADA');}
   if(info.knock&&playerHP>0){const dx=player.position.x-info.x,dz=player.position.z-info.z,l=Math.hypot(dx,dz)||1;squadKnock={x:dx/l*info.knock*3,z:dz/l*info.knock*3,t:.25};}
   return wasDef?'blocked':'hit';
@@ -3168,10 +3170,10 @@ function squadEvent(type,d){
  switch(type){
   case 'cast':worldAudio.dark&&worldAudio.dark(d.skill);if(a.T.boss||squadAlive().length<=2||d.skill==='judgment'||d.skill==='vortex')showCombatCallout(SQUAD_NAMES[d.skill]);break;
   case 'vortexLunge':worldAudio.dark&&worldAudio.dark('spiral');break;
-  case 'vortexImpact':worldAudio.dark&&worldAudio.dark('impact');if(squadNear(s.x,s.z,8))cameraShake(.16);break;
+  case 'vortexImpact':worldAudio.dark&&worldAudio.dark('impact');break;
   case 'trinity':worldAudio.dark&&worldAudio.dark('rise');break;
-  case 'collapse_erupt':worldAudio.dark&&worldAudio.dark('beam');if(squadNear(s.x,s.z,12))cameraShake(.18);break;
-  case 'collapse_wave':worldAudio.dark&&worldAudio.dark('blast');if(squadNear(s.x,s.z,14))cameraShake(.24);break;
+  case 'collapse_erupt':worldAudio.dark&&worldAudio.dark('beam');break;
+  case 'collapse_wave':worldAudio.dark&&worldAudio.dark('blast');break;
   case 'jumpedWave':if(d.target==='hero')showCombatCallout('SALTOU A ONDA!');break;
   case 'lunge':worldAudio.whoosh();break;
   case 'clawsRise':worldAudio.dark&&worldAudio.dark('rise');if(squadNear(s.x,s.z,9))cameraShake(.1);break;
