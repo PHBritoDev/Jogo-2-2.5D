@@ -3353,15 +3353,36 @@ function labPanel(){
  else{B('1',()=>startEnemy1Lab('1'));B('2',()=>startEnemy1Lab('2'));B('4',()=>startEnemy1Lab('4'));B('GUARDIÃO',()=>startEnemy1Lab('warden'));B('+ ALIADO',()=>spawnAlly());B('CLASH',()=>startEnemy1Lab('clash'));}B('↺',()=>startEnemy1Lab(squadLab.mode));B('LOG',()=>{squadLab.log=!squadLab.log;labHud();});
  B('⏸ PARAR',()=>setLabBehavior(squadLab.behavior==='parado'?'combate':'parado'));
  el.lastElementChild.id='lab-behavior';
+ const select=document.createElement('select');select.id='lab-skill-select';select.setAttribute('aria-label','Poder do inimigo selecionado');select.style.cssText='max-width:220px;min-height:34px;background:#211634;color:#fff;border:1px solid #a88cff;border-radius:7px;font:600 11px system-ui';el.appendChild(select);
+ B('⚡ CONJURAR',()=>labForceSkill(select.value));el.lastElementChild.id='lab-skill-cast';
  const hud=document.createElement('div');hud.id='enemy1-lab-hud';hud.style.cssText='width:100%;text-align:left;color:#e9dcff;text-shadow:0 1px 2px #000;font:600 11px system-ui;white-space:pre;pointer-events:none';el.appendChild(hud);document.body.appendChild(el);
 }
 function labHud(){const el=document.getElementById('enemy1-lab-hud');if(!el||!squadLab)return;const s=squadSq();const lines=(s?s.actors:[]).map((a,i)=>(a.kind==='warden'?'GUARDIÃO':a.kind==='e2boss'||a.kind==='e3boss'?'MINI-CHEFE':a.kind==='e2'?'ENEMY2 #'+(i+1):a.kind==='e3'?'ENEMY3 #'+(i+1):'ENEMY1 #'+(i+1))+(a===squadFocus?' ◆ ':' · ')+(a.alive?a.hp+'/'+a.maxHp:'caído')+(squadLab.log&&a.alive?' · '+(a.act?(a.act.skill||a.act.type):a.intent.mode)+' · '+a.role:''));for(const al of squadAllies)lines.push('ALIADO · '+(al.hp>0?al.hp+'/'+al.max:'caído'));el.textContent=lines.join('\n');}
 function updateEnemy1Lab(dt){
- if(!squadLab)return;if((squadLab.hudT=(squadLab.hudT||0)-dt)<=0){squadLab.hudT=.25;labHud();}
+ if(!squadLab)return;if((squadLab.hudT=(squadLab.hudT||0)-dt)<=0){squadLab.hudT=.25;labHud();labSkillSelector();}
  if(squadLab.mode==='clash'&&squadOn&&squadFocus){squadLab.clashT-=dt;if(squadLab.clashT<=0){squadLab.clashT=2.8;faceTo(player,squadFocus);spawnHolyProjectile(squadLab.clashN++%2?'sun':'arc');status.textContent='CLASH: o inimigo responde à sua magia com o Contra-selo.';}}
 }
 /** Laboratório: força o próximo poder (Vórtice → Trindade → Colapso) no inimigo em foco, zerando a recarga. */
-function labForceSkill(){const s=squadSq(),a=squadFocus;if(!s||!a||!a.alive||!a.T.kit)return;const kit=a.T.kit,id=kit[(squadLab.forceN=(squadLab.forceN||0)+1)%kit.length];const t=s.targets[0];if(!t)return;a.act=null;a.cds[id]=0;s.lastAttackAt=-9;s.spells=s.spells.filter(x=>x.type!==id);s.startCast(a,t,id);status.textContent='Laboratório: '+SQUAD_NAMES[id];}
+function labForceSkill(selected){
+ const s=squadSq(),a=squadFocus;
+ if(!s||!a||!a.alive||!Array.isArray(a.T.kit)||!a.T.kit.length){status.textContent='Este inimigo não possui magia compatível neste laboratório.';return;}
+ const kit=a.T.kit,id=selected&&kit.includes(selected)?selected:kit[(squadLab.forceN=(squadLab.forceN||0)+1)%kit.length];
+ const t=s.targets.find(x=>x.id==='hero')||s.targets[0];if(!t)return;
+ if(squadLab.behavior==='parado')setLabBehavior('combate');
+ a.act=null;a.cds[id]=0;s.lastAttackAt=-9;s.spells=s.spells.filter(x=>x.type!==id);s.startCast(a,t,id);
+ status.textContent='Laboratório: '+(SQUAD_NAMES[id]||id);
+}
+function labSkillSelector(){
+ const select=document.getElementById('lab-skill-select'),btn=document.getElementById('lab-skill-cast');
+ if(!select||!btn)return;
+ const a=squadFocus,kit=a&&a.alive&&a.T&&Array.isArray(a.T.kit)?a.T.kit:[];
+ const signature=kit.join('|');
+ if(select.dataset.kit!==signature){
+  select.dataset.kit=signature;select.replaceChildren();
+  for(const id of kit){const option=document.createElement('option');option.value=id;option.textContent=SQUAD_NAMES[id]||id;select.appendChild(option);}
+ }
+ select.disabled=btn.disabled=!kit.length;
+}
 const SQUAD_LEGACY=new URLSearchParams(location.search).has('esquadraLegada');
 /* ---------- Cenários do Ato I no mundo: vila arruinada, gaiolas, massacre e entrada do esgoto ---------- */
 const VILLAGE_KIT=[
