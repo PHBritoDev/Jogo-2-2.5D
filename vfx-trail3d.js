@@ -1,4 +1,4 @@
-import {energyMaterial} from './vfx-flow3d.js';
+import {energyMaterial} from './vfx-flow3d.js?v=mod240-vfx-integrated';
 /** A fixed ring-buffer + closed swept bladed volume. Direction/twist come from velocity, never camera billboarding. */
 export function volumeTrail(T,parent,preset,{capacity=36,life=.65,radius=.5,sides=8}={}){
  const history=Array.from({length:capacity},()=>({p:new T.Vector3(),t:-99}));let head=0,last=-99,count=0;
