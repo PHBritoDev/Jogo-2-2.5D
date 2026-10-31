@@ -14,7 +14,7 @@ const STEP = 1 / 120;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 const copy = p => ({ x: p.x, y: p.y, z: p.z });
 
-export const SPHERE = Object.freeze({ raise: .4, charge: .5, speed: 19, turn: 1.4, range: 32, r: 1.25, lift: 3.6, hit: 30, dome: 14, domeR: 3, contract: .05, domeT: .9, fade: .55 });
+export const SPHERE = Object.freeze({ raise: .7, charge: .9, speed: 13, turn: 1.4, range: 32, r: 1.25, lift: 3.6, hit: 30, dome: 14, domeR: 3, contract: .05, domeT: .9, fade: .55 });
 export class DestructionSphere {
   constructor({ ground = () => 0, blocked = () => false, hit = () => {}, event = () => {} } = {}) {
     Object.assign(this, { ground, blocked, hit, event, active: false, phase: 'idle', time: 0, age: 0, acc: 0, p: { x: 0, y: 0, z: 0 }, dir: { x: 0, y: 0, z: 1 }, at: { x: 0, y: 0, z: 0 }, hand: { x: 0, y: 0, z: 0 }, hitAt: -1, travel: 0 });
@@ -57,7 +57,8 @@ export class DestructionSphere {
   impact(why) { Object.assign(this.at, this.p); this.why = why; this.hitAt = this.time; this.phaseTo('contract'); this.event('impact', this); }
 }
 
-export const CELESTIAL = Object.freeze({ charge: .6, circles: .6, follow: .3, pillar: 1.3, fade: .9, coreR: 3.2, pillarDmg: 40, waveR: 7.5, waveT: .55, waveH: .5, waveDmg: 26, strike: .08, waveAt: .3 });
+// Mais lenta (sem exagero): carga 0,9 s, círculos 0,9 s, e o feixe DESCE do céu até o alvo (0,45 s) antes de explodir.
+export const CELESTIAL = Object.freeze({ charge: .9, circles: .9, follow: .45, pillar: 2, fade: 1.1, coreR: 3.8, pillarDmg: 40, waveR: 10, waveT: .7, waveH: .5, waveDmg: 26, strike: .45, waveAt: .6 });
 export class CelestialExplosion {
   constructor({ ground = () => 0, blocked = () => false, hit = () => {}, event = () => {} } = {}) {
     Object.assign(this, { ground, blocked, hit, event, active: false, phase: 'idle', time: 0, age: 0, acc: 0, at: { x: 0, y: 0, z: 0 }, tip: { x: 0, y: 0, z: 0 }, front: 0 });

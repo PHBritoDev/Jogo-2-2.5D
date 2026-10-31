@@ -21,7 +21,7 @@ test('Esfera: parede/chão param o voo sem dano; alvo morto ou contexto inválid
 
 test('Explosão Celestial: círculos seguem só no começo e travam; pilar no núcleo; onda baixa saltável; um dano por fase', () => {
   const mk = () => { const hits = []; return { hits, s: new CelestialExplosion({ hit: (d, id, k) => hits.push(k) }) }; };
-  { const { s, hits } = mk(), t = tgt(); s.start({ x: 0, y: 0, z: 0 }, t, 0); run(s, CELESTIAL.charge + CELESTIAL.follow + .1, t); const lock = { ...s.at }; t.x = 10; run(s, .2, t); assert.deepEqual({ x: s.at.x, z: s.at.z }, { x: lock.x, z: lock.z }, 'travou');
+  { const { s, hits } = mk(), t = tgt(); s.start({ x: 0, y: 0, z: 0 }, t, 0); run(s, CELESTIAL.charge + CELESTIAL.follow + .1, t); const lock = { ...s.at }; t.x = 14; run(s, .2, t); assert.deepEqual({ x: s.at.x, z: s.at.z }, { x: lock.x, z: lock.z }, 'travou');
     run(s, 3, t); assert.equal(hits.length, 0, 'saiu do raio a tempo'); }
   { const { s, hits } = mk(), t = tgt(); s.start({ x: 0, y: 0, z: 0 }, t, 0); run(s, 4, t); assert.deepEqual(hits, ['pillar', 'wave']); }
   { const { s, hits } = mk(), t = tgt(); s.start({ x: 0, y: 0, z: 0 }, t, 0); run(s, CELESTIAL.charge + CELESTIAL.circles + .02, t); t.x = 4.5; t.y = 1.2; run(s, 3, t); assert.deepEqual(hits, [], 'fora do núcleo e no ar sobre a onda'); }

@@ -71,7 +71,7 @@ test('Colapso: fissura → coluna → onda horizontal; saltar a onda ou sair do 
 test('Colapso vai para a rota de fuga quando há furacões em campo (pressão territorial, sem ler comando)', () => {
   const { sq } = world(); const h = hero(); sq.setTargets([h]);
   const [a] = sq.spawn([{ x: 0, z: 9, yaw: Math.PI, kind: 'e2' }]).map(idle);
-  const tr = SKILLS.trinity.spawn(sq, a, h); run(sq, 1.2); assert.equal(tr.phase, 'hunt');
+  const tr = SKILLS.trinity.spawn(sq, a, h); run(sq, 1.5); assert.equal(tr.phase, 'hunt');
   const c = SKILLS.collapse.spawn(sq, a, h); const cx = tr.storms.reduce((s, x) => s + x.z, 0) / 3;
   assert.ok(Math.sign(c.z - h.z) === -Math.sign(cx - h.z) || Math.abs(cx - h.z) < .2);
 });

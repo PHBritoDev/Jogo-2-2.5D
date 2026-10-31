@@ -6,7 +6,7 @@ import {blockedSegment} from './skill-path3d.js';
  * terreno, com leve correção de rumo para alvos que se mexem) → impact (um único acerto por colisão contínua do segmento
  * percorrido contra a cápsula do alvo) | wall (bate no obstáculo e não atravessa) | fade (alcance esgotado, sem dano).
  */
-export const XRUP = Object.freeze({ cast: .45, speed: 16, range: 28, height: 1.3, halfSize: 2.19, damage: 38, turn: 1.1, impact: .75, fade: .6 });
+export const XRUP = Object.freeze({ cast: .75, speed: 16, range: 28, height: 1.3, halfSize: 2.19, damage: 38, turn: 1.1, impact: .75, fade: .6 });
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 /** Distância de um ponto ao segmento a–b (3D). */
 export function pointSegment(p, a, b) {

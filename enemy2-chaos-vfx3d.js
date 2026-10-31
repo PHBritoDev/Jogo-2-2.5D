@@ -43,7 +43,22 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
   const root = new T.Group(); root.name = 'Enemy2ChaosVFX'; scene.add(root);
   const uTime = { value: 0 };
   const recolor = (m, P) => { for (const k of ['deep', 'body', 'hot']) m.uniforms[k].value.setRGB(...P[k]); return m; };
-  const mat = (P, o) => recolor(energyMaterial(T, 'violet', o), P);
+  const CEL_FRAG = `uniform float time, alpha, detail, dissolve, seed, frequency; uniform vec3 deep, body, hot; varying vec2 vUv; varying vec3 vN, vV, vP;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+void main(){ vec2 uv=vec2(vUv.x*frequency*7.-time*2.6, vUv.y*4.+vUv.x*3.+seed);
+ float n=n2(uv)*.6+n2(uv*2.3+vec2(time,0.))*.4*detail;
+ float ends=smoothstep(0.,.07,vUv.x)*smoothstep(1.,.9,vUv.x);
+ if(n<(1.-alpha)*1.05+(1.-ends)*.7+dissolve) discard;                        // erosão alfa com corte duro
+ float b1=smoothstep(.56,.6,n), b2=smoothstep(.74,.77,n); float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.);
+ vec3 c=mix(deep,body,b1); c=mix(c,hot,b2); c+=hot*smoothstep(.55,.95,f)*.9;   // faixas de cor duras + borda acesa
+ gl_FragColor=vec4(c,1.);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
+}`;
+  const celMat = (P, o = {}) => recolor(new T.ShaderMaterial({ vertexShader: energyMaterial(T, 'violet').vertexShader, fragmentShader: CEL_FRAG, side: T.DoubleSide, toneMapped: false,
+    uniforms: { time: { value: 0 }, alpha: { value: 1 }, detail: { value: 1 }, dissolve: { value: 0 }, warp: { value: o.warp ?? .06 }, seed: { value: o.seed || 0 }, frequency: { value: o.frequency || 1 }, deep: { value: new T.Color() }, body: { value: new T.Color() }, hot: { value: new T.Color() } } }), P);
+  const mat = (P, o) => celMat(P, o);
   // --- tubos dinâmicos (corrente do vórtice, funis, coluna): anéis × lados, reconstruídos sobre o caminho real
   function tubePool(n, rings, sides, P, opts) {
     return Array.from({ length: n }, (_, i) => {
@@ -96,6 +111,12 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
     if (dn >= 8 || a <= .005 || size <= .01) return; P.set(x, y, z); if (normal) { C.set(normal[0], normal[1], normal[2]); Q.setFromUnitVectors(up, C); } else Q.identity(); S.set(size, 1, size); M.compose(P, Q, S); discs.setMatrixAt(dn, M); discFx.set([kind, prog, seed, a], dn * 4); dn++;
   }
   function shard(x, y, z, s, rx, ry, rz) { if (sn >= 260 || s <= .01) return; P.set(x, y, z); Q.setFromEuler(E.set(rx, ry, rz)); S.set(s, s, s); M.compose(P, Q, S); shards.setMatrixAt(sn++, M); }
+  const DR = 260, dPos = new Float32Array(DR * 12), dIdx = new Uint32Array(DR * 6); for (let i = 0; i < DR; i++) dIdx.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4 + 2, i * 4 + 1, i * 4 + 3], i * 6);
+  const dGeo = new T.BufferGeometry(); dGeo.setAttribute('position', new T.BufferAttribute(dPos, 3).setUsage(T.DynamicDrawUsage)); dGeo.setIndex(new T.BufferAttribute(dIdx, 1));
+  const darkBolts = new T.Mesh(dGeo, new T.MeshBasicMaterial({ color: 0x030004, side: T.DoubleSide, toneMapped: false })); darkBolts.frustumCulled = false; root.add(darkBolts); let dq = 0; const dA = new T.Vector3(), dB = new T.Vector3();
+  function dseg(ax, ay, az, bx, by, bz, w) { if (dq >= DR) return; dA.set(bx - ax, by - ay, bz - az); dB.set(ax - cam.x, ay - cam.y, az - cam.z); dA.cross(dB).normalize().multiplyScalar(w); dPos.set([ax - dA.x, ay - dA.y, az - dA.z, ax + dA.x, ay + dA.y, az + dA.z, bx - dA.x, by - dA.y, bz - dA.z, bx + dA.x, by + dA.y, bz + dA.z], dq * 12); dq++; }
+  /** Raio negro: núcleo preto grosso e halo magenta mais largo (aditivo). */
+  function darkBolt(seed, ax, ay, az, bx, by, bz, w, a = 1, o = { depth: 1, jag: .45, branches: .4 }) { const n = lightningBolt(seed, ax, ay, az, bx, by, bz, bolt, o); for (let i = 0; i < n; i++) { const q = bolt[i]; dseg(q[0], q[1], q[2], q[3], q[4], q[5], w * q[6]); rib.seg(q[0], q[1], q[2], q[3], q[4], q[5], w * 2.8 * q[6], w * 2.2 * q[6], c4(MAG, .85 * a), c4(MAG, .6 * a)); } }
   function boltRib(seed, ax, ay, az, bx, by, bz, w, col, a, o) { const n = lightningBolt(seed, ax, ay, az, bx, by, bz, bolt, o); for (let i = 0; i < n; i++) { const s = bolt[i]; rib.seg(s[0], s[1], s[2], s[3], s[4], s[5], w * s[6], w * s[6] * .8, c4(col, a), c4(col, a * .8)); } }
   const take = pool => pool.find(t => !t.used);
 
@@ -112,6 +133,8 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
     if (!low) for (let i = 0; i < 14; i++) { const u = (time * .5 + i / 14) % 1, a = i * 2.4 - time * 3 - u * 4, rr = R * (1.3 - u * 1.1); glow.add(s.px + Math.cos(a) * rr, s.py + .1 - u * .3, s.pz + Math.sin(a) * rr, .06, .3, 1, .3, .7, (1 - u) * open, 3, a + 1.57, i); }
     // a corrente: tubo grosso do centro do portal até a ponta, seguindo o caminho real (curvas orgânicas, sem fragmentar)
     const path = s.path; if (path.length < 2) return;
+    { const pts0 = path, nb = low ? 2 : 4; for (let i = 0; i < nb; i++) { const k = Math.floor(hash(i + Math.floor(time * 10) + s.id) * pts0.length), p = pts0[Math.min(pts0.length - 1, k)], a = hash(i * 7 + Math.floor(time * 10)) * 6.283, L = (1.6 + hash(i * 3) * 1.8) * (s.kind === 'e2boss' ? 1.35 : 1);
+      darkBolt(s.id * 31 + i + Math.floor(time * 10), p.x, p.y, p.z, p.x + Math.cos(a) * L, p.y + Math.sin(a * 1.3) * L * .7, p.z + Math.sin(a) * L, .07); } }
     const pts = [[s.px, s.py - .1, s.pz], ...path.map(p => [p.x, p.y, p.z]), [s.x, s.y, s.z]];
     const L = pts.length - 1, at = u => { const f = u * L, i = Math.min(L - 1, Math.floor(f)), k = f - i, a = pts[i], b = pts[i + 1]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; };
     const fade = s.phase === 'retract' ? 1 - smooth(s.t / T0.retract) : 1, rB = T0.r * big, burst = s.phase === 'burst' ? Math.sin(Math.min(1, s.t / T0.burst) * Math.PI) : 0;
@@ -147,6 +170,7 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
       for (let i = 0; i < (low ? 5 : 12); i++) { const u = (time * .45 + i / 12 + h.i * .3) % 1, a = ph * 1.6 + i * 2.4, c = center(u), rr = (.25 + top * Math.pow(u, 1.5)) * 1.15; shard(c[0] + Math.cos(a) * rr, c[1], c[2] + Math.sin(a) * rr, .07 * big * (1 - u * .5) * fadeK, a, u * 6, i); }
       for (let i = 0; i < (low ? 3 : 6); i++) smoke.add(h.x + (hash(i + h.i) - .5) * 2, gy + .3 + hash(i * 2) * .6, h.z + (hash(i * 5 + h.i) - .5) * 2, 1.6 * big, 1.2 * big, .07, .01, .06, .22 * fadeK * h.h, 1, i + time, i);
     }
+    for (const h of s.storms) if (h.h > .3 && !low) for (let i = 0; i < 2; i++) { const u0 = hash(i + Math.floor(time * 9) + h.i) * .6, a = u0 * 9 + time * 4 + i * 3, H = 4.4 * h.h, r = .3 + 1.05 * Math.pow(u0, 1.8); darkBolt(s.id * 17 + h.i * 5 + i + Math.floor(time * 9), h.x + Math.cos(a) * r, h.y + u0 * H, h.z + Math.sin(a) * r, h.x + Math.cos(a + 1.6) * (r + .5), h.y + (u0 + .25) * H, h.z + Math.sin(a + 1.6) * (r + .5), .06); }
     // correntes ligam os furacões que se aproximam (mini-tempestade breve)
     if (!low && s.phase === 'hunt') for (let i = 0; i < s.storms.length; i++) for (let j = i + 1; j < s.storms.length; j++) { const a = s.storms[i], b = s.storms[j]; if (Math.hypot(a.x - b.x, a.z - b.z) < 4.5) boltRib(s.id * 13 + i * 3 + j + Math.floor(time * 12), a.x, a.y + 3.4 * big, a.z, b.x, b.y + 3.4 * big, b.z, .1, j % 2 ? RED : MAG, .85, { depth: 2, jag: .3 }); }
   }
@@ -156,6 +180,7 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
     const T0 = s.T, big = s.kind === 'e2boss' ? 1.3 : 1, gy = s.y, ph = s.phase; groundNormal(ground, s.x, s.z, nrm);
     const fis = ph === 'fissure' ? s.t / T0.fissure : 1, fadeK = ph === 'fade' ? 1 - smooth(s.t / T0.fade) : 1;
     disc(s.x, gy, s.z, s.r * 1.08, 1, fis, s.id % 7, fadeK);
+    if ((ph === 'fissure' || ph === 'gather') && !low) for (let i = 0; i < 3; i++) { const a = hash(i + Math.floor(time * 8) + s.id) * 6.283, rr = s.r * (.5 + hash(i * 5) * .5); darkBolt(s.id * 13 + i + Math.floor(time * 8), s.x + Math.cos(a) * rr, gy + .08, s.z + Math.sin(a) * rr, s.x + Math.cos(a + .5) * rr * .2, gy + .5 + hash(i) * 1.2 * fis, s.z + Math.sin(a + .5) * rr * .2, .06); }
     if (ph === 'fissure' || ph === 'gather') { // detritos levantando e correntes convergindo para o centro
       const g = ph === 'gather' ? s.t / T0.gather : 0;
       for (let i = 0; i < (low ? 10 : 22); i++) { const a = i * 2.39996 + time * (1.5 + g * 3), u = (time * (.6 + g) + i / 22) % 1, rr = s.r * (1 - u); glow.add(s.x + Math.cos(a) * rr, gy + .15 + Math.sin(u * 3.14) * .5, s.z + Math.sin(a) * rr, .05, .3, 1, .2, .6, u * fis, 3, a + 1.57, i); }
@@ -189,12 +214,12 @@ export function createChaosVFX(T, scene, { ground = () => 0 } = {}) {
   return {
     root,
     update(dt, camera, spells, charges = [], quality = 1) {
-      time += dt; uTime.value = time; low = quality === 0; dn = 0; sn = 0; cam.copy(camera.position);
+      time += dt; uTime.value = time; low = quality === 0; dn = 0; sn = 0; dq = 0; cam.copy(camera.position);
       for (const pool of allTubes) for (const t of pool) { t.used = false; t.mesh.visible = false; }
       glow.begin(); smoke.begin(); rib.begin(camera, time); decals.begin();
       for (const s of spells) { if (s.type === 'vortex') drawVortex(s); else if (s.type === 'trinity') drawTrinity(s); else if (s.type === 'collapse') drawCollapse(s); }
       for (const c of charges) if (c.skill === 'vortex' || c.skill === 'trinity' || c.skill === 'collapse') drawCharge(c);
-      discs.count = dn; discs.instanceMatrix.needsUpdate = true; discGeo.attributes.aFx.needsUpdate = true; shards.count = sn; shards.instanceMatrix.needsUpdate = true;
+      dGeo.setDrawRange(0, dq * 6); dGeo.attributes.position.needsUpdate = true; discs.count = dn; discs.instanceMatrix.needsUpdate = true; discGeo.attributes.aFx.needsUpdate = true; shards.count = sn; shards.instanceMatrix.needsUpdate = true;
       glow.end(); smoke.end(); rib.end(); decals.end(time);
       return { discs: dn, shards: sn, tubes: allTubes.reduce((n, p) => n + p.filter(t => t.used).length, 0) };
     },
