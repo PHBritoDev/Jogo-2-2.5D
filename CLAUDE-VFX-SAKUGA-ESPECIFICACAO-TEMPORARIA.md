@@ -5,7 +5,7 @@
 ## 0. Missão, entradas e saída
 Atue como engenheiro sênior de WebGL/Three.js/GLSL, animador técnico e diretor de efeitos anime sakuga. Investigue o projeto REAL antes de programar. O usuário enviará junto desta tarefa **duas imagens** (esfera rubro-negra de Dragon Ball Heroes; golpe X carmim de manhwa) e **um vídeo MP4** de referência. Use-os como direção de arte, NÃO copie frames, personagens, logos, texturas ou assets protegidos. Se os anexos não estiverem acessíveis, peça-os; não invente análise visual.
 
-**Entregável obrigatório:** ZIP baixável, com `INSTRUCOES-CODEX.md`, 5 storyboards detalhados em `storyboards/`, implementações modulares em `src/` ou caminhos originais espelhados, testes e manifesto de integração. NÃO despejar arquivos de código no chat. Se tiver acesso de escrita ao GitHub, use **branch própria**, sem tocar na branch do Codex nem mesclar na main. Entregue ZIP mesmo que crie PR. Nunca declarar conclusão sem testar.
+**Entregável obrigatório:** entrega na branch do GitHub com commits e Pull Request, com `INSTRUCOES-CODEX.md`, 5 storyboards detalhados em `storyboards/`, implementações modulares em `src/` ou caminhos originais espelhados, testes e manifesto de integração. NÃO despejar arquivos de código no chat; NÃO criar ZIP. Se tiver acesso de escrita ao GitHub, use **branch própria**, sem tocar na branch do Codex nem mesclar na main. Entregue Pull Request com commits reais. Nunca declarar conclusão sem testar.
 
 ## 1. Preservação e integração concorrente
 - Codex está trabalhando separadamente no combate, cinco espadas, protagonista e mini-bosses Enemy1/Enemy2. Não editar sistemas de animação, state machine, GLBs, cinco espadas, hitboxes e movimento do Codex sem acordo explícito. Propor interfaces de eventos de impacto e cast (não substituir implementação).
@@ -21,7 +21,7 @@ Proibidos efeitos dominados por fumaça translúcida plana, círculos difusos ge
 - Separar animação de VFX de aplicação autoritativa de dano. Hitstop visual 40–60 ms apenas no impacto confirmado, nunca congelar a simulação física/IA inteira. Shake amortecido com opção de redução de movimento; flash/whiteout configuráveis para acessibilidade.
 - Geometrias e materiais reutilizados, `InstancedMesh` para pedras/partículas, buffers limitados, `dispose()`, limpeza de timers/eventos, `deltaTime` e bounds; sem crescimento de memória por casts repetidos.
 
-## 3. Chefe: Demônio da Ganância +3 — Julgamento do Vórtice Abissal
+## 3. Chefe: Enemy2 e Mini-boss Enemy2 — Julgamento do Vórtice Abissal
 Problema reportado: fumaça magenta translúcida e manchas pretas redondas sem massa. Primeiro localizar a habilidade verdadeira no projeto, confirmar se pertence ao boss e não confundir com outras fases.
 - Paleta: núcleo branco `#FFFFFF`, magenta incandescente `#FF28D8`, roxo escuro `#25002E`, abismo `#08020D`; ajustar no jogo sob iluminação noturna.
 - Impacto com expansão agressiva (primeiros 2–3 frames em 60 FPS, depois desaceleração), núcleo volumétrico, fraturas, ondas de pressão não circulares uniformes, 8–15 fragmentos de pedra com gravidade/quique e orçamento de física.
@@ -50,11 +50,11 @@ Migrar com compatibilidade de save e não excluir assets de dragão usados em ou
 - Testar pelo menos 20 casts consecutivos por habilidade, reentrância, morte/interrupção durante cast, cancelamentos, troca de qualidade, ausência de alvo, alvo em movimento, colisão em relevo, câmera, Android touch, save antigo e volta da dimensão de Valério.
 - Verificar parse de todos os JS, importações, compilação de shaders no navegador real, erros de console, descarte e regressão dos testes existentes. Falhas bloqueiam merge.
 - Deixar modo de demonstração acessível por URL de teste sem mudar experiência padrão; usar feature flag para novos VFX, fallback para legado e rollback simples.
-- **Não alterar main.** Entregar branch/PR isolado + ZIP + relatório de pendências e instruções de integração pelo Codex. Não apagar este arquivo temporário antes de aprovação explícita do usuário e merge validado.
+- **Não alterar main.** Entregar branch/PR isolado + relatório de pendências e instruções de integração pelo Codex. Não apagar este arquivo temporário antes de aprovação explícita do usuário e merge validado.
 
-## 8. Estrutura exata do ZIP
+## 8. Estrutura de arquivos na branch do GitHub
 ```text
-CLAUDE-VFX-SAKUGA-PACOTE.zip
+branch claude/vfx-sakuga-enemy2
   INSTRUCOES-CODEX.md
   MANIFESTO-ARQUIVOS.md
   TESTES-E-PERFORMANCE.md
@@ -70,3 +70,9 @@ CLAUDE-VFX-SAKUGA-PACOTE.zip
 Cada storyboard: tempo em segundos, frames assumindo 60 FPS, curvas de easing, câmeras, mesh/rig, paleta hex, material GLSL, eventos de dano, SFX, shake, detritos, custo estimado, fallback, limpeza e critérios visuais. `INSTRUCOES-CODEX.md` deve incluir SHA-base, tabela de arquivos, APIs/contratos de integração, riscos de conflito, testes e passos exatos de merge seguro.
 
 **Critério principal:** impressionar visualmente pela massa, direção e timing, sem sacrificar combate jogável e estabilidade. Pesquise documentação oficial Three.js e técnicas de VFX anime, documente links consultados, diferencie inspiração de reprodução literal e faça propostas adicionais quando tecnicamente justificadas.
+
+
+## CORREÇÃO PRIORITÁRIA DO CRIADOR (PREVALECE SOBRE TODO O TEXTO ACIMA)
+1. NÃO gerar ou pedir ZIP. Claude deve implementar diretamente numa branch própria do GitHub, fazer commits de código e documentação e abrir PR; não mesclar sem aprovação.
+2. Os alvos são Enemy2 comum e Mini-boss Enemy2, NÃO o chefe Demônio da Ganância. Auditar habilidades e VFX reais de cada um e tratar os dois separadamente; não inventar que Julgamento do Vórtice Abissal pertence a eles.
+3. Storyboards e INSTRUCOES-CODEX.md são arquivos versionados na branch, não pacote para baixar.
