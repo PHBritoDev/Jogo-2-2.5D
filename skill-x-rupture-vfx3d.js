@@ -1,7 +1,7 @@
-import {FLOW_NOISE,energyMaterial} from './vfx-flow3d.js';
-import {volumeTrail} from './vfx-trail3d.js';
-import {impactDirector} from './vfx-impact3d.js';
-import { softParticles, groundDecals, groundNormal, ribbons, smooth, easeOut, hash } from './celestial-fxkit3d.js';
+import {FLOW_NOISE,energyMaterial} from './vfx-flow3d.js?v=mod240-vfx-integrated';
+import {volumeTrail} from './vfx-trail3d.js?v=mod240-vfx-integrated';
+import {impactDirector} from './vfx-impact3d.js?v=mod240-vfx-integrated';
+import { softParticles, groundDecals, groundNormal, ribbons, smooth, easeOut, hash } from './celestial-fxkit3d.js?v=mod240-vfx-integrated';
 /**
  * MOD 233 — Ruptura em X (VFX). Duas lâminas de energia 3D (malha com espessura e curvatura, não um sprite) se cruzam
  * num X: núcleo branco-quente, corpo carmesim, bordas magenta e filamentos pretos finos que correm pela lâmina.
