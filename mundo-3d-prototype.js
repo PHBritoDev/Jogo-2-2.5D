@@ -3276,7 +3276,7 @@ function updateSquadCombat(dt,now){
  if(playerHP>0&&!dashing){const pl=pullOn(s,targets[0]);if(pl.x||pl.z){const nx=player.position.x+pl.x*dt,nz=player.position.z+pl.z*dt;if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;}}
  for(const al of squadAllies)targets.push(allyTarget(al));
  const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
- const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull;
+ const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado');
  squadRT.update(dt,{targets,foreign,camera,quality:graphics3DMode==='low'?0:1,paused});
  updateAllies(dt);
  // 5) foco e procurador
@@ -3320,7 +3320,7 @@ function updateAllies(dt){
 /* Laboratório do Enemy1 (?testeEnemy1=1): encontros sem tocar no progresso real. */
 function startEnemy1Lab(mode){
  trainingEpoch++;swordTrainingRequestedStarted=true;
- const first=!squadLab;squadLab={mode};menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
+ const first=!squadLab;squadLab={mode,behavior:'combate'};menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
  if(cineDirector.active)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);rites.cancel('lab');swordTraining=false;
  for(const id of ['start-gate','name-panel','dialog-panel','loading']){const el=document.getElementById(id);if(el){el.hidden=true;el.classList.add('hidden');}}
  if(first){questStep=2;act1Sub=0;for(const id of ['magic','magic2','magic3','ultimate'])ownedItems.add(id);refreshSkillUnlocks();{const open=combatLabRequested||ENEMY3_LAB;player.position.set(open?-5:40,terrainHeightAt(open?-5:40,open?16:22),open?16:22);}playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;cameraPitch=.22;cameraDistance=6;if(!combatLabRequested)labPanel();}
@@ -3333,21 +3333,56 @@ function startEnemy1Lab(mode){
  if(mode==='clash'||mode==='e2clash'){const s=squadSq();if(!s)return;s.forceCounter=true;for(const a of s.actors){a.T={...a.T,kit:[],claws:{...a.T.claws,cd:999},spiral:{...a.T.spiral,cd:999},judgment:{...a.T.judgment,cd:999}};a.intent.mode='hold';a.alert=1e9;}squadLab.clashT=1.2;squadLab.clashN=0;}
  labHud();
 }
+function setLabBehavior(mode){
+ if(!squadLab)return;
+ squadLab.behavior=mode;
+ const s=squadSq();
+ if(s&&mode==='parado'){
+  for(const a of s.actors){a.act=null;a.intent.mode='hold';a.alert=0;}
+  s.spells.length=0;
+ }
+ const b=document.getElementById('lab-behavior');
+ if(b){b.textContent=mode==='parado'?'▶ LUTAR':'⏸ PARAR';b.setAttribute('aria-pressed',String(mode==='parado'));}
+ status.textContent=mode==='parado'?'Laboratório: inimigos parados.':'Laboratório: combate ativo.';
+}
 function labPanel(){
  const el=document.createElement('div');el.id='enemy1-lab';el.style.cssText='position:fixed;top:calc(env(safe-area-inset-top) + 132px);left:8px;z-index:30;display:flex;flex-wrap:wrap;gap:3px;max-width:250px;font:600 11px system-ui;pointer-events:auto';
  const B=(t,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.style.cssText='all:unset;box-sizing:border-box;background:#1d1230d9;border:1px solid #9a6cff;color:#f2e8ff;padding:6px 8px;border-radius:7px;min-width:30px;text-align:center;font:700 11px system-ui;cursor:pointer;line-height:1.1';bindInstantTap(b,fn);el.appendChild(b);};
  if(ENEMY3_LAB){B('1',()=>startEnemy1Lab('x1'));B('3',()=>startEnemy1Lab('x3'));B('MINI-CHEFE',()=>startEnemy1Lab('x3boss'));B('+ ALIADO',()=>spawnAlly());B('PODER',()=>labForceSkill());}
  else if(ENEMY2_LAB){B('1',()=>startEnemy1Lab('e1'));B('3',()=>startEnemy1Lab('e3'));B('5',()=>startEnemy1Lab('e5'));B('MINI-CHEFE',()=>startEnemy1Lab('e2boss'));B('+ ALIADO',()=>spawnAlly());B('CLASH',()=>startEnemy1Lab('e2clash'));B('PODER',()=>labForceSkill());}
  else{B('1',()=>startEnemy1Lab('1'));B('2',()=>startEnemy1Lab('2'));B('4',()=>startEnemy1Lab('4'));B('GUARDIÃO',()=>startEnemy1Lab('warden'));B('+ ALIADO',()=>spawnAlly());B('CLASH',()=>startEnemy1Lab('clash'));}B('↺',()=>startEnemy1Lab(squadLab.mode));B('LOG',()=>{squadLab.log=!squadLab.log;labHud();});
+ B('⏸ PARAR',()=>setLabBehavior(squadLab.behavior==='parado'?'combate':'parado'));
+ el.lastElementChild.id='lab-behavior';
+ const select=document.createElement('select');select.id='lab-skill-select';select.setAttribute('aria-label','Poder do inimigo selecionado');select.style.cssText='max-width:220px;min-height:34px;background:#211634;color:#fff;border:1px solid #a88cff;border-radius:7px;font:600 11px system-ui';el.appendChild(select);
+ B('⚡ CONJURAR',()=>labForceSkill(select.value));el.lastElementChild.id='lab-skill-cast';
  const hud=document.createElement('div');hud.id='enemy1-lab-hud';hud.style.cssText='width:100%;text-align:left;color:#e9dcff;text-shadow:0 1px 2px #000;font:600 11px system-ui;white-space:pre;pointer-events:none';el.appendChild(hud);document.body.appendChild(el);
 }
 function labHud(){const el=document.getElementById('enemy1-lab-hud');if(!el||!squadLab)return;const s=squadSq();const lines=(s?s.actors:[]).map((a,i)=>(a.kind==='warden'?'GUARDIÃO':a.kind==='e2boss'||a.kind==='e3boss'?'MINI-CHEFE':a.kind==='e2'?'ENEMY2 #'+(i+1):a.kind==='e3'?'ENEMY3 #'+(i+1):'ENEMY1 #'+(i+1))+(a===squadFocus?' ◆ ':' · ')+(a.alive?a.hp+'/'+a.maxHp:'caído')+(squadLab.log&&a.alive?' · '+(a.act?(a.act.skill||a.act.type):a.intent.mode)+' · '+a.role:''));for(const al of squadAllies)lines.push('ALIADO · '+(al.hp>0?al.hp+'/'+al.max:'caído'));el.textContent=lines.join('\n');}
 function updateEnemy1Lab(dt){
- if(!squadLab)return;if((squadLab.hudT=(squadLab.hudT||0)-dt)<=0){squadLab.hudT=.25;labHud();}
+ if(!squadLab)return;if((squadLab.hudT=(squadLab.hudT||0)-dt)<=0){squadLab.hudT=.25;labHud();labSkillSelector();}
  if(squadLab.mode==='clash'&&squadOn&&squadFocus){squadLab.clashT-=dt;if(squadLab.clashT<=0){squadLab.clashT=2.8;faceTo(player,squadFocus);spawnHolyProjectile(squadLab.clashN++%2?'sun':'arc');status.textContent='CLASH: o inimigo responde à sua magia com o Contra-selo.';}}
 }
 /** Laboratório: força o próximo poder (Vórtice → Trindade → Colapso) no inimigo em foco, zerando a recarga. */
-function labForceSkill(){const s=squadSq(),a=squadFocus;if(!s||!a||!a.alive||!a.T.kit)return;const kit=a.T.kit,id=kit[(squadLab.forceN=(squadLab.forceN||0)+1)%kit.length];const t=s.targets[0];if(!t)return;a.act=null;a.cds[id]=0;s.lastAttackAt=-9;s.spells=s.spells.filter(x=>x.type!==id);s.startCast(a,t,id);status.textContent='Laboratório: '+SQUAD_NAMES[id];}
+function labForceSkill(selected){
+ const s=squadSq(),a=squadFocus;
+ if(!s||!a||!a.alive||!Array.isArray(a.T.kit)||!a.T.kit.length){status.textContent='Este inimigo não possui magia compatível neste laboratório.';return;}
+ const kit=a.T.kit,id=selected&&kit.includes(selected)?selected:kit[(squadLab.forceN=(squadLab.forceN||0)+1)%kit.length];
+ const t=s.targets.find(x=>x.id==='hero')||s.targets[0];if(!t)return;
+ if(squadLab.behavior==='parado')setLabBehavior('combate');
+ a.act=null;a.cds[id]=0;s.lastAttackAt=-9;s.spells=s.spells.filter(x=>x.type!==id);s.startCast(a,t,id);
+ status.textContent='Laboratório: '+(SQUAD_NAMES[id]||id);
+}
+function labSkillSelector(){
+ const select=document.getElementById('lab-skill-select'),btn=document.getElementById('lab-skill-cast');
+ if(!select||!btn)return;
+ const a=squadFocus,kit=a&&a.alive&&a.T&&Array.isArray(a.T.kit)?a.T.kit:[];
+ const signature=kit.join('|');
+ if(select.dataset.kit!==signature){
+  select.dataset.kit=signature;select.replaceChildren();
+  for(const id of kit){const option=document.createElement('option');option.value=id;option.textContent=SQUAD_NAMES[id]||id;select.appendChild(option);}
+ }
+ select.disabled=btn.disabled=!kit.length;
+}
 const SQUAD_LEGACY=new URLSearchParams(location.search).has('esquadraLegada');
 /* ---------- Cenários do Ato I no mundo: vila arruinada, gaiolas, massacre e entrada do esgoto ---------- */
 const VILLAGE_KIT=[
