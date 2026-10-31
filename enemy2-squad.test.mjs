@@ -6,7 +6,7 @@ import { E2, pullOn } from './enemy2-squad3d.js';
 const hero = (o = {}) => ({ id: 'hero', team: 'hero', x: 0, y: 0, z: 0, vx: 0, vz: 0, radius: .42, height: 1.8, alive: true, priority: 1, iframes: false, air: 0, ...o });
 function world(o = {}) {
   const log = [], dmg = [];
-  const sq = new Enemy1Squad({ seed: o.seed || 5, blocked: o.blocked || (() => false), damageTarget: (id, n, info) => { dmg.push({ id, n, ...info }); return 'hit'; }, event: (type, d) => log.push({ type, ...d }) });
+  const sq = new Enemy1Squad({ seed: o.seed || 5, meleeTrace:o.meleeTrace, blocked: o.blocked || (() => false), damageTarget: (id, n, info) => { dmg.push({ id, n, ...info }); return 'hit'; }, event: (type, d) => log.push({ type, ...d }) });
   return { sq, log, dmg };
 }
 const run = (sq, secs, dt = 1 / 60, each) => { const n = Math.round(secs / dt); for (let i = 0; i < n; i++) { if (each) each(i * dt); sq.update(dt); } };
@@ -77,9 +77,9 @@ test('Colapso vai para a rota de fuga quando há furacões em campo (pressão te
 });
 
 test('Mini-chefe: combo de três cortes, fúria aos 50% e Ceifa do Furacão saindo da lâmina', () => {
-  const { sq, log, dmg } = world({ seed: 9 }); const h = hero(); sq.setTargets([h]);
+  const { sq, log, dmg } = world({ seed: 9, meleeTrace:()=>true }); const h = hero(); sq.setTargets([h]);
   const [b] = sq.spawn([{ x: 0, z: 2.6, yaw: Math.PI, kind: 'e2boss' }]); b.alert = 0; b.decideT = 99;
-  sq.startMelee(b, h); run(sq, 2);
+  sq.startMelee(b, h, 'Executor_Chain'); run(sq, 3.0);
   assert.equal(dmg.filter(d => d.kind === 'melee').length, 3);
   const reap = log.find(e => e.type === 'reap'); assert.ok(reap && reap.skill === 'trinity');
   assert.equal(sq.spells.find(s => s.type === 'trinity').storms.length, 1, 'variação de um furacão em linha');
