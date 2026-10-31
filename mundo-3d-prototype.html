@@ -152,8 +152,8 @@ button:active{transform:scale(.96);background:#31583d}
 
 #vfx-lab select,#vfx-lab button{background:#191c26;color:#eddfc2;border:1px solid #776848;border-radius:5px;font:11px system-ui;min-height:28px;height:28px;padding:3px 6px;width:auto}body.vfx-lab-mode #sword-training,body.vfx-lab-mode #quest-box{display:none}#vfx-lab a{color:#f0d389;margin-left:10px}#vfx-lab .lab-title{font-size:10px;margin-bottom:3px}body.vfx-lab-mode #status{bottom:76px}#lab-metrics{padding-top:3px;font-size:10px}@media(max-width:600px){#vfx-lab{top:137px!important;bottom:auto!important;right:7px;left:auto!important;transform:none!important;max-width:210px!important}#vfx-lab label{display:inline-block;margin-bottom:3px}}
 </style>
-<link rel="stylesheet" href="./hud3d.css?v=mod239-gemini-vfx-3d">
-<link rel="stylesheet" href="./cine3d.css?v=mod239-gemini-vfx-3d">
+<link rel="stylesheet" href="./hud3d.css?v=mod240-vfx-integrated">
+<link rel="stylesheet" href="./cine3d.css?v=mod240-vfx-integrated">
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -231,7 +231,7 @@ button:active{transform:scale(.96);background:#31583d}
 <button id="lab-reset" type="button">Reiniciar</button><div id="lab-metrics" aria-live="off"></div></section>
 <div id="loading">Carregando os modelos e animações 3D…<br><br>Modificação 239: Enemy2 em esquadra (Vórtice, Trindade do Caos, Colapso), mini-chefe com a Foice do Vulcão e novos X, Portais e Dragão.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="./mod181-loader.js?v=mod239-gemini-vfx-3d"></script>
+<script type="module" src="./mod181-loader.js?v=mod240-vfx-integrated"></script>
 <script>
 (function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
 </script>
