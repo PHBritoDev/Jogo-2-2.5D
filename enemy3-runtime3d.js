@@ -1,4 +1,5 @@
 import { buildCrimsonKatana } from './crimson-katana3d.js';
+import { buildJawSword } from './jaw-sword3d.js';
 import { combatPose, combatMove } from './combat-choreography3d.js';
 import { bossLift } from './boss-choreography3d.js';
 /**
@@ -24,10 +25,11 @@ export function katanaPose(m, t) {
   if (m.iai && t < m.open * .92) { a.off = [.24, .98, .16]; a.offBlade = [.1, -.9, .3]; } // mão esquerda segura a "bainha" no quadril durante a carga
   a.air = bossLift(m, t) > .02; return a;
 }
-export const KATANA_SCALE = 1.05;
-export function attachKatana(T, scene, b) {
+export const KATANA_SCALE = 1.05, JAW_SCALE = 1.08;
+/** Arma do mini-chefe presa à mão: Katana Dragão Carmim (e3boss) ou Espada-Mandíbula (e4boss, Mod 246). */
+export function attachKatana(T, scene, b, kind = 'e3boss') {
   if (!b.hand) return;
-  const w = buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(KATANA_SCALE); scene.add(root); scene.add(w.userData.fx);
+  const jaw = kind === 'e4boss', w = jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(jaw ? JAW_SCALE : KATANA_SCALE); scene.add(root); scene.add(w.userData.fx);
   b.weapon = w; b.weaponRoot = root; b.katana = true; b.wW = 0; b.kCast = 0; b.wDrop = 0;
 }
 /** Katana na mão: nos golpes nativos segue o osso (o assador alinhou +Y da mão com a lâmina); fora deles, guarda
@@ -51,14 +53,19 @@ export function poseKatana(T, b, a, dt, time, low) {
 export function poseCaster(T, b, a, squad, dt) {
   const R = b.arms || (b.arms = findArms(b.model)); if (!R) return;
   const act = a.act; let want = null;
-  if (a.alive && act && act.type === 'cast' && /^(singularity|barrage|nadir)$/.test(act.skill)) want = act;
+  if (a.alive && act && act.type === 'cast' && /^(singularity|barrage|nadir|sanctum|constellation|drill|cage)$/.test(act.skill)) want = act;
   else if (a.alive && act && act.type === 'phase2') want = act;
   b.castW = (b.castW || 0) + ((want ? 1 : 0) - (b.castW || 0)) * Math.min(1, dt * (want ? 9 : 5)); const w = b.castW; if (w < .01) { b.lastCastSkill = null; return; }
   if (want) { b.lastCastSkill = want.type === 'phase2' ? 'phase2' : want.skill; b.lastSpell = want.spellId; b.lastT = want.t; }
   const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, V = b._av || (b._av = { d: new T.Vector3(), s: new T.Vector3(), q: new T.Quaternion(), q2: new T.Quaternion(), q3: new T.Quaternion(), c: new T.Vector3(), p: new T.Vector3() });
   const D = (f, u, r) => V.d.set(fy * f + rx * r, u, fz * f + rz * r).normalize();
   const s = squad && b.lastSpell ? squad.spells.find(x => x.id === b.lastSpell) : null, sk = b.lastCastSkill;
-  if (sk === 'singularity') {
+  if (sk === 'sanctum' || sk === 'cage') { // Enemy4: mãos ao alto e golpe para o chão (marca/corrente cravando)
+    const k = smooth(b.lastT / .5), down = b.lastT > .5; for (const [ua, la, sd] of [[R.rua, R.rla, 1], [R.lua, R.lla, -1]]) { aim(ua, la, down ? D(.7, -.7, .3 * sd) : D(.15, 1, .3 * sd), w * (down ? 1 : k), V); }
+    turn(R.chest, V.p.set(rx, 0, rz), (down ? .3 : -.2) * w, V);
+  } else if (sk === 'constellation') { for (const [ua, la, hd, sd] of [[R.rua, R.rla, R.rh, 1], [R.lua, R.lla, R.lh, -1]]) { aim(ua, la, D(.12, .45, 1 * sd), w, V); aim(la, hd, D(.1, .7, .7 * sd), w, V); } turn(R.chest, V.p.set(rx, 0, rz), -.22 * w, V); turn(R.head, V.p.set(rx, 0, rz), -.25 * w, V); } // braços abertos (referência)
+  else if (sk === 'drill') { const kick = Math.sin(b.lastT * 25) * .06; aim(R.rua, R.rla, D(1, .08 + kick, .12), w, V); aim(R.rla, R.rh, D(1, .05, 0), w, V); aim(R.lua, R.lla, D(-.4, -.4, -.7), w * .8, V); turn(R.chest, V.p.set(rx, 0, rz), .12 * w, V); }
+  else if (sk === 'singularity') {
     const ph = s ? s.phase : 'fly', k = s ? s.t : 0;
     if (ph === 'form') { aim(R.rua, R.rla, D(.8, .3, .25), w, V); aim(R.rla, R.rh, D(.9, .35, .05), w, V); aim(R.lua, R.lla, D(.5, .05, -.5), w * .7, V); }
     else if (ph === 'raise' || ph === 'throw') { // o braço acompanha a singularidade e a sustenta acima da cabeça

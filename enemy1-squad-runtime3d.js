@@ -10,8 +10,10 @@ import { buildInfernalScythe } from './infernal-scythe3d.js';
 import { createSakugaImpacts } from './sakuga-impact3d.js';
 import './enemy2-squad3d.js';
 import { stormDim } from './enemy3-squad3d.js';
+import './enemy4-squad3d.js';
+import { createEnemy4VFX } from './enemy4-vfx3d.js';
 import { createAbyssVFX } from './enemy3-abyss-vfx3d.js';
-import { attachKatana, poseKatana, poseCaster, katanaPose, KATANA_SCALE } from './enemy3-runtime3d.js';
+import { attachKatana, poseKatana, poseCaster, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
 /**
  * MOD 237 — corpo visual da esquadra Enemy1: um clone do Enemy1 por ator, com mixer, materiais (lampejo de dano
  * individual) e estado de animação próprios. Altura normalizada pelo esqueleto deformado (protocolo de escala GLB) e
@@ -32,7 +34,7 @@ const ROLE_SPEED = { idle: .38, walk: 1, run: 1.08, attack: 1, attack2: 1, cast:
 export function createEnemy1SquadRuntime(ctx) {
   const T = ctx.T, scene = ctx.scene;
   const vfx = createDarkPowersVFX(T, scene, { ground: ctx.ground }), chaos = createChaosVFX(T, scene, { ground: ctx.ground });
-  const BOSSES = { warden: 1, e2boss: 1, e3boss: 1 }, E3K = { e3: 1, e3boss: 1 }, abyss = createAbyssVFX(T, scene, { ground: ctx.ground });
+  const BOSSES = { warden: 1, e2boss: 1, e3boss: 1, e4boss: 1 }, E3K = { e3: 1, e3boss: 1, e4: 1, e4boss: 1 }, abyss = createAbyssVFX(T, scene, { ground: ctx.ground }), ruin = createEnemy4VFX(T, scene, { ground: ctx.ground });
   // impacto sakuga do Enemy2: casca agressiva, anéis irregulares, rachaduras no terreno ao longo do golpe, placas e pedras
   const sak = createSakugaImpacts(T, scene, { ground: ctx.ground, capacity: 8 });
   // VFX Engine 2.0 (Mod 236): impactos autoritativos (pressão, fragmentos, fissuras, poeira) e rastro volumétrico da espiral
@@ -48,7 +50,7 @@ export function createEnemy1SquadRuntime(ctx) {
     measured = { h: Math.max(.5, (top !== null && top > b.min.y + .3 ? top : b.max.y) - b.min.y), minY: b.min.y }; measuredBy.set(src.model, measured); return measured;
   }
   /** Altura-alvo (topo da cabeça) por classe: comum ≈ a do herói (1,72–1,95 m), Guardião 1,22× o comum, sem virar gigante. */
-  function heightFor(kind) { const hero = Math.max(1.4, Math.min(2.1, ctx.heroHeight() || 1.8)); const c = Math.min(1.95, Math.max(1.72, hero * .97)); return kind === 'warden' ? c * 1.22 : kind === 'e2' ? c * 1.03 : kind === 'e2boss' ? c * 1.3 : kind === 'e3' ? c * 1.04 : kind === 'e3boss' ? c * 1.36 : c; }
+  function heightFor(kind) { const hero = Math.max(1.4, Math.min(2.1, ctx.heroHeight() || 1.8)); const c = Math.min(1.95, Math.max(1.72, hero * .97)); return kind === 'warden' ? c * 1.22 : kind === 'e2' ? c * 1.03 : kind === 'e2boss' ? c * 1.3 : kind === 'e3' ? c * 1.04 : kind === 'e3boss' ? c * 1.36 : kind === 'e4' ? c * 1.05 : kind === 'e4boss' ? c * 1.42 : c; }
   const combatCache=new Map();
   function makeBody(a) {
     const src = ctx.source(a.kind); if (!src || !src.model) return null;
@@ -56,7 +58,7 @@ export function createEnemy1SquadRuntime(ctx) {
     const k = heightFor(a.kind) / m.h; model.scale.copy(src.model.scale).multiplyScalar(k); model.position.y = -m.minY * k;
     const mats = [];
     model.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
-      o.material = [].concat(o.material).map(mt => { const c = mt.clone(); if (a.kind === 'e2boss') { if (c.color) c.color.multiplyScalar(.62); if (c.emissive) { c.emissive.setHex(0x2a0a02); c.emissiveIntensity = .5; } } if (a.kind === 'warden') { if (c.color) c.color.multiplyScalar(.5); if (c.emissive) { c.emissive.setHex(0x2a0306); c.emissiveIntensity = .55; } } if (a.kind === 'e3boss') { if (c.color) c.color.multiplyScalar(.7); if (c.emissive) { c.emissive.setHex(0x2a0208); c.emissiveIntensity = .45; } } mats.push(c); return c; });
+      o.material = [].concat(o.material).map(mt => { const c = mt.clone(); if (a.kind === 'e2boss') { if (c.color) c.color.multiplyScalar(.62); if (c.emissive) { c.emissive.setHex(0x2a0a02); c.emissiveIntensity = .5; } } if (a.kind === 'warden') { if (c.color) c.color.multiplyScalar(.5); if (c.emissive) { c.emissive.setHex(0x2a0306); c.emissiveIntensity = .55; } } if (a.kind === 'e3boss') { if (c.color) c.color.multiplyScalar(.7); if (c.emissive) { c.emissive.setHex(0x2a0208); c.emissiveIntensity = .45; } } if (a.kind === 'e4boss') { if (c.color) c.color.multiplyScalar(.68); if (c.emissive) { c.emissive.setHex(0x22041e); c.emissiveIntensity = .5; } } mats.push(c); return c; });
       if (o.material.length === 1) o.material = o.material[0]; });
     for (const mt of mats) if (mt.emissive) { mt.userData.e0 = mt.emissive.getHex(); mt.userData.i0 = mt.emissiveIntensity || 0; }
     const holder = new T.Group(); holder.add(model); holder.position.set(a.x, a.y, a.z); holder.rotation.y = a.yaw; scene.add(holder);
@@ -66,16 +68,16 @@ export function createEnemy1SquadRuntime(ctx) {
     const b = { height:heightFor(a.kind), holder, model, mixer, acts, mats, scales, cur: null, rev: -1, flash: 0, dead: 0, hand: null, lhand: null, head: null, weapon: null, fall: 0, k };
     model.traverse(o => { if (!b.hand && /^RightHand$/i.test(o.name)) b.hand = o; if (!b.lhand && /^LeftHand$/i.test(o.name)) b.lhand = o; if (!b.head && /^Head$/i.test(o.name)) b.head = o; });
     if(a.kind==='e2boss')attachScythe(b,a.kind);
-    if(a.kind==='e3boss')attachKatana(T,scene,b);
+    if(a.kind==='e3boss'||a.kind==='e4boss')attachKatana(T,scene,b,a.kind);
     if(BOSS_MOVES[a.kind]){
       if(a.kind==='warden')attachClaws(b);
       if(!combatCache.has(a.kind)){
-        const ws=a.kind==='e3boss'?KATANA_SCALE:1.12,specs=a.kind==='warden'?['RightHand','LeftHand'].map(hand=>({hand,points:[[0,.08,0],[0,.53,0]]})):[{hand:'RightHand',points:[b.weapon.userData.tipA.toArray().map(x=>x*ws),b.weapon.userData.tipB.toArray().map(x=>x*ws)]}];
-        combatCache.set(a.kind,bakeCombatClips(T,model,ctx.clone,acts.idle?.getClip(),BOSS_MOVES[a.kind],a.kind==='e3boss'?katanaPose:bossPose,specs));
+        const ws=a.kind==='e3boss'?KATANA_SCALE:a.kind==='e4boss'?JAW_SCALE:1.12,specs=a.kind==='warden'?['RightHand','LeftHand'].map(hand=>({hand,points:[[0,.08,0],[0,.53,0]]})):[{hand:'RightHand',points:[b.weapon.userData.tipA.toArray().map(x=>x*ws),b.weapon.userData.tipB.toArray().map(x=>x*ws)]}];
+        combatCache.set(a.kind,bakeCombatClips(T,model,ctx.clone,acts.idle?.getClip(),BOSS_MOVES[a.kind],a.kind==='e3boss'||a.kind==='e4boss'?katanaPose:bossPose,specs));
       }
       for(const [id,clip]of Object.entries(combatCache.get(a.kind)))acts[id]=mixer.clipAction(clip);
-      const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:3.2;
-      b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
+      const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:a.kind==='e4boss'?2.5:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:a.kind==='e4boss'?3.4:3.2;
+      b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
     }
     play(b, 'idle', false, 1, 0);
     return b;
@@ -133,13 +135,16 @@ export function createEnemy1SquadRuntime(ctx) {
     if (type === 'singularityDome') { const s = d.spell, boss = s.kind === 'e3boss'; sak.emit({ id: 'e3s' + s.id, time, point: { x: s.x, y: s.y + .5, z: s.z }, size: s.T.R * .8, palette: 'abyss', rocks: boss ? 15 : 11, furrow: 1.5 }); }
     if (type === 'nadirStrike' && d.bolt.heavy) { const b = d.bolt; sak.emit({ id: 'e3n' + d.spell.id + '_' + b.id, time, point: { x: b.x, y: b.y + .3, z: b.z }, size: b.r * .9, palette: 'crimson', rocks: 8 }); }
     if (type === 'swordStick' && d.spell.kind === 'e3boss' && d.sword.id % 4 === 0) { const w = d.sword; sak.emit({ id: 'e3b' + d.spell.id + '_' + w.id, time, point: { x: w.x, y: w.y + .2, z: w.z }, dir: { x: w.dx, z: w.dz }, size: .9, palette: 'crimson', rocks: 5, furrow: 1.2 }); }
+    // Enemy4: impactos sakuga só em colisões confirmadas
+    if (type === 'orbBoom' && d.orb.i % 2 === 0) { const o = d.orb; sak.emit({ id: 'e4o' + d.spell.id + '_' + o.i, time, point: { x: o.x, y: o.y, z: o.z }, size: d.spell.T.R * .7, palette: 'abyss', rocks: 6 }); }
+    if (type === 'biteSnap') { const s = d.spell; sak.emit({ id: 'e4b' + s.id, time, point: { x: s.bx, y: s.by + .4, z: s.bz }, size: s.T.biteR * .8, palette: 'crimson', rocks: 12, furrow: 2 }); }
     if (type === 'rift') { const s = d.spell, a = d.actor; abyss.dragon(s.x0 - s.dx * .6, s.y + .2, s.z0 - s.dz * .6, a.yaw, true); sak.emit({ id: 'e3r' + s.id, time, point: { x: s.x0, y: s.y + .3, z: s.z0 }, dir: { x: s.dx, z: s.dz }, size: 1.6, palette: 'crimson', rocks: 10, furrow: 5 }); }
     if (type === 'judgmentBlast') { const s = d.spell; impacts.emit({ id: 'e1j' + s.id, time, point: { x: s.mx, y: s.my + .6, z: s.mz }, size: s.r * 1.05, preset: 'violet', kind: 'ball', dir: { x: 0, y: 1, z: 0 } }); }
     ctx.event(type, d);
   }
   function stop() {
     for (const b of bodies.values()) { b.mixer.stopAllAction();b.mixer.uncacheRoot(b.model);b.model.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();});/* textura de ossos do clone */ for(const c of b.claws||[]){scene.remove(c.root);c.root.traverse(o=>o.geometry?.dispose());c.mat.dispose();}if(b.tell){b.tell.geometry.dispose();b.tell.material.dispose();} scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); if (b.weapon.userData.fx) scene.remove(b.weapon.userData.fx); } }
-    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); abyss.clear(); impacts.clear(); sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
+    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); abyss.clear(); ruin.clear(); impacts.clear(); sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
   }
   return {
     vfx,
@@ -197,7 +202,7 @@ export function createEnemy1SquadRuntime(ctx) {
           charges.push({ skill: act.skill || 'counter', k, x: (hp.x + lp.x) / 2 + Math.sin(a.yaw) * .25, y: (hp.y + lp.y) / 2, z: (hp.z + lp.z) / 2 + Math.cos(a.yaw) * .25, dx: Math.sin(a.yaw), dz: Math.cos(a.yaw), gx: tgt ? tgt.x : a.x, gz: tgt ? tgt.z : a.z, kind: a.kind });
         }
         if(b.claws&&act?.move&&act.move.hits.some(h=>Math.abs(act.t-h)<.12)){for(const c of b.claws){c.root.updateMatrixWorld(true);vfx.scythe(_v.set(0,.08,0).applyMatrix4(c.root.matrixWorld),_v2.set(0,.53,0).applyMatrix4(c.root.matrixWorld));}}
-        if (b.katana && act && act.move && act.t > act.move.open - .14 && act.t < act.move.close + .06) { b.weapon.updateWorldMatrix(true, false); abyss.slash(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), a.phase2); }
+        if (b.katana && act && act.move && act.t > act.move.open - .14 && act.t < act.move.close + .06) { b.weapon.updateWorldMatrix(true, false); abyss.slash(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), a.phase2, a.kind === 'e4boss'); }
         else if (b.weapon && act && act.type === 'melee' && (act.move?act.move.hits.some(h=>Math.abs(act.t-h)<.12):act.t > .3 && act.t < act.hits[act.hits.length - 1] + .18)) {
           b.weapon.updateWorldMatrix(true, false); vfx.scythe(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld));
         }
@@ -209,8 +214,9 @@ export function createEnemy1SquadRuntime(ctx) {
       const info = camera ? vfx.update(dt, camera, squad.spells, charges, quality) : null;
       if (camera) chaos.update(dt, camera, squad.spells, charges, quality);
       if (camera) abyss.update(dt, camera, squad.spells, charges, quality, targets[0] || null);
+      if (camera) ruin.update(dt, camera, squad.spells, squad.actors, quality);
       return info;
     },
-    dispose() { stop(); vfx.dispose(); chaos.dispose(); abyss.dispose(); impacts.dispose(); sak.dispose(); for (const t of trails) t.trail.dispose && t.trail.dispose(); }
+    dispose() { stop(); vfx.dispose(); chaos.dispose(); abyss.dispose(); ruin.dispose(); impacts.dispose(); sak.dispose(); for (const t of trails) t.trail.dispose && t.trail.dispose(); }
   };
 }

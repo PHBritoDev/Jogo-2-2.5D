@@ -96,7 +96,17 @@ void main(){ vec2 p=vUv*2.-1.; float r=length(p), kind=vFx.w, k=vFx.y; vec3 c; f
 const SLASH_FRAG = `${NOISE} uniform float time; varying vec2 vUv; varying vec4 vFx;
 void main(){ float u=vUv.x, v=vUv.y, n=n2(vec2(u*7.-time*3.,v*6.+vFx.y))*.6+n2(vec2(u*15.,v*13.-time*4.))*.4;
  float shape=(1.-u)*.95-abs(v-.66)*1.55+(n-.5)*.55; if(shape<0.) discard;
- vec3 c=mix(vec3(.003,0.,.001),vec3(.55,0.,.015),smoothstep(.02,.14,shape)); c=mix(c,vec3(1.,.04,.06)+vFx.x*vec3(0.,.06,.02),smoothstep(.36,.44,shape)); c+=vec3(1.,.35,.25)*smoothstep(.62,.68,shape)*.5; gl_FragColor=vec4(c,1.);${TONE}
+ vec3 c=mix(vec3(.003,0.,.001),vec3(.55,0.,.015),smoothstep(.02,.14,shape)); c=mix(c,vec3(1.,.04,.06)+vFx.x*vec3(0.,.06,.02),smoothstep(.36,.44,shape)); c+=vec3(1.,.35,.25)*smoothstep(.62,.68,shape)*.5;
+ if(vFx.y>.5){ c=mix(vec3(.004,0.,.012),vec3(.16,.01,.5),smoothstep(.02,.14,shape)); c=mix(c,vec3(.55,.2,1.),smoothstep(.36,.44,shape)); c=mix(c,vec3(.95,.85,1.),smoothstep(.58,.64,shape)); } gl_FragColor=vec4(c,1.);${TONE}
+}`;
+// MOD 246 — raio carmim (referência do criador): fita larga em zigue-zague, massa #1A0004, contorno #FF0015 e filamento
+// elétrico ouro→laranja (#FFF275→#FF5500) no meio. Cores em espaço LINEAR (a saída converte para sRGB).
+const CBOLT_FRAG = `uniform float time; varying vec2 vUv;
+void main(){ float v=abs(vUv.y*2.-1.), u=vUv.x; float edge=smoothstep(.62,.7,v), fil=exp(-pow(v/.11,2.))*(.75+.25*sin(u*60.-time*70.));
+ if(v>.98) discard; vec3 c=mix(vec3(.010,0.,.0012),vec3(1.,0.,.0075),edge); c=mix(c,mix(vec3(1.,.89,.18),vec3(1.,.09,0.),smoothstep(.2,1.,v/.3)),clamp(fil*1.3,0.,1.)*(1.-edge));
+ gl_FragColor=vec4(c,1.);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
 }`;
 const CEL_VERT = `varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.); vN=normalize(mat3(modelMatrix)*normal); vV=cameraPosition-w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
 const CEL_FRAG = `${NOISE} uniform float time, alpha; uniform vec3 deep, body, hot; varying vec2 vUv; varying vec3 vN; varying vec3 vV;
@@ -149,6 +159,15 @@ export function createAbyssVFX(T, scene, { ground = () => 0 } = {}) {
   const dGeo = new T.BufferGeometry(); dGeo.setAttribute('position', new T.BufferAttribute(dPos, 3).setUsage(T.DynamicDrawUsage)); dGeo.setIndex(new T.BufferAttribute(dIdx, 1));
   const darkMat = new T.MeshBasicMaterial({ color: 0x020003, side: T.DoubleSide, toneMapped: false, fog: false }), darkBolts = new T.Mesh(dGeo, darkMat); darkBolts.frustumCulled = false; root.add(darkBolts); mats.push(darkMat); geos.push(dGeo);
   const bolt = Array.from({ length: 40 }, () => [0, 0, 0, 0, 0, 0, 0]), nrm = [0, 1, 0];
+  const CB = 120, cbPos = new Float32Array(CB * 12), cbUv = new Float32Array(CB * 8), cbIdx = new Uint32Array(CB * 6); for (let i = 0; i < CB; i++) cbIdx.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4 + 2, i * 4 + 1, i * 4 + 3], i * 6);
+  const cbGeo = new T.BufferGeometry(); cbGeo.setAttribute('position', new T.BufferAttribute(cbPos, 3).setUsage(T.DynamicDrawUsage)); cbGeo.setAttribute('uv', new T.BufferAttribute(cbUv, 2).setUsage(T.DynamicDrawUsage)); cbGeo.setIndex(new T.BufferAttribute(cbIdx, 1));
+  const cbMat = shader(`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`, CBOLT_FRAG, { side: T.DoubleSide }), cbMesh = new T.Mesh(cbGeo, cbMat); cbMesh.frustumCulled = false; cbMesh.renderOrder = 6; root.add(cbMesh); mats.push(cbMat); geos.push(cbGeo); let cq = 0;
+  const cshards = inst(new T.OctahedronGeometry(1, 0).scale(.32, 1.5, .32), new T.MeshStandardMaterial({ color: 0x140004, roughness: .3, metalness: .4, emissive: 0xff0015, emissiveIntensity: .55, flatShading: true }), 160); let csn = 0;
+  /** fita larga 3D: um quad virado para a câmera por segmento (legível de qualquer ângulo, inclusive câmera móvel) */
+  function cbSeg(ax, ay, az, bx, by, bz, wa, wb, u0, u1) { if (cq >= CB) return; A3.set(bx - ax, by - ay, bz - az); B3.set(ax - cam.x, ay - cam.y, az - cam.z); A3.cross(B3).normalize();
+    cbPos.set([ax - A3.x * wa, ay - A3.y * wa, az - A3.z * wa, ax + A3.x * wa, ay + A3.y * wa, az + A3.z * wa, bx - A3.x * wb, by - A3.y * wb, bz - A3.z * wb, bx + A3.x * wb, by + A3.y * wb, bz + A3.z * wb], cq * 12); cbUv.set([u0, 0, u0, 1, u1, 0, u1, 1], cq * 8); cq++; }
+  function crimsonBolt(seed, ax, ay, az, bx, by, bz, w) { const n = lightningBolt(seed, ax, ay, az, bx, by, bz, bolt, { depth: 1, jag: .55, branches: .35 }); for (let i = 0; i < n; i++) { const q = bolt[i]; cbSeg(q[0], q[1], q[2], q[3], q[4], q[5], w * q[6], w * q[6] * .9, i / n, (i + 1) / n); } }
+  function cshard(x, y, z, sx, sy, rx, ry, rz) { if (csn >= 160) return; P.set(x, y, z); Q.setFromEuler(E.set(rx, ry, rz)); S.set(sx, sy, sx); M.compose(P, Q, S); cshards.setMatrixAt(csn++, M); }
   let time = 0, low = false, dq = 0, nc = 0, nl = 0, nr = 0, nd = 0, nf = 0, nsw = 0, nsk = 0, nm = 0, sn = 0;
   const MAG = [1, .25, .82], RED = [1, .08, .2], HOT = [1, .62, .2], VIO = [.7, .35, 1], c4 = (c, a) => [c[0], c[1], c[2], a];
   function dseg(ax, ay, az, bx, by, bz, w) { if (dq >= DQ) return; A3.set(bx - ax, by - ay, bz - az); B3.set(ax - cam.x, ay - cam.y, az - cam.z); A3.cross(B3).normalize().multiplyScalar(w); dPos.set([ax - A3.x, ay - A3.y, az - A3.z, ax + A3.x, ay + A3.y, az + A3.z, bx - A3.x, by - A3.y, bz - A3.z, bx + A3.x, by + A3.y, bz + A3.z], dq * 12); dq++; }
@@ -269,23 +288,27 @@ export function createAbyssVFX(T, scene, { ground = () => 0 } = {}) {
         if (kk > .7) rib.seg(b.x, gy + 18, b.z, b.x, gy + .2, b.z, .015 * (b.heavy ? 2 : 1), .015, c4(MAG, .25 * kk), c4(MAG, .45 * kk));
       } else {
         const st = b.phase === 'strike', kk = st ? b.t / .12 : b.t / T0.scar, w = (b.heavy ? .42 : .26) * (boss ? 1.1 : 1);
-        if (st || b.t < .08) { const n = b.heavy ? 3 : 1; for (let i = 0; i < n; i++) darkBolt(b.seed * 13 + i + Math.floor(time * 30), b.x + (hash(b.id + i) - .5) * 6, cy + H - 2, b.z + (hash(b.id * 3 + i) - .5) * 6, b.x + (i ? (hash(i) - .5) * b.r : 0), gy, b.z + (i ? (hash(i * 5) - .5) * b.r : 0), i ? w * .5 : w, 1, { depth: 2, jag: .26, branches: .55 });
-          glow.add(b.x, gy + .6, b.z, b.r * 4, b.r * 3, 1, .55, .9, .9 * (1 - kk * .5), 0); glow.add(b.x, gy + .2, b.z, b.r * 1.6, b.r * 1.6, 1, 1, 1, 1, 2, time); }
+        if (st || b.t < .1) { const n = b.heavy ? 3 : 1; for (let i = 0; i < n; i++) crimsonBolt(b.seed * 13 + i + Math.floor(time * 24), b.x + (hash(b.id + i) - .5) * 6, cy + H - 2, b.z + (hash(b.id * 3 + i) - .5) * 6, b.x + (i ? (hash(i) - .5) * b.r : 0), gy, b.z + (i ? (hash(i * 5) - .5) * b.r : 0), (i ? w * .55 : w) * 1.7);
+          glow.add(b.x, gy + .5, b.z, b.r * 3.2, b.r * 2.4, 1, .32, .02, .9 * (1 - kk * .5), 0); glow.add(b.x, gy + .2, b.z, b.r * 1.5, b.r * 1.5, 1, .55, .1, 1, 2, time); }
+        if (b.t < .45 || st) { const e = st ? easeOut(b.t / .12) : 1, f = st ? 1 : 1 - smooth((b.t - .25) / .2), n = (b.heavy ? 14 : 9) * (low ? .6 : 1) | 0; // coroa de espinhos vermelho-preto
+          for (let i = 0; i < n; i++) { const a = i / n * 6.283 + hash(b.id + i) * .4, h = (.5 + .6 * hash(i * 7 + b.id)) * (b.heavy ? 1.5 : 1) * e * f, rr = b.r * (.35 + .25 * hash(i)); cshard(b.x + Math.cos(a) * rr, gy + h * .45, b.z + Math.sin(a) * rr, .55 * f + .05, h, Math.sin(a) * .75, -a, Math.cos(a) * -.75); }
+          for (let i = 0; i < (low ? 3 : 6); i++) { const a = i * 2.1 + b.id, rr = b.r * (.8 + .4 * hash(i * 3)); cshard(b.x + Math.cos(a) * rr, gy + .05 + .12 * e, b.z + Math.sin(a) * rr, .9 * f, .18 * f, Math.cos(a) * .35, a, Math.sin(a) * .35); } // placas de solo
+          glow.add(b.x, gy + .3, b.z, b.r * 1.3 * f, b.r * 1.1 * f, 1, .45, .05, .9 * f, 0); }
         S.set(R0 * (b.heavy ? 1.2 : 1), 1, R0 * (b.heavy ? 1.2 : 1)); M.compose(P, Q, S); marks.setMatrixAt(nm, M); markFx.set([b.seed, 1 - (st ? 0 : kk), st ? 1 : 1 - kk, 1], nm * 4); nm++;
-        if (!st && b.t < .3) { decals.add(b.x, gy, b.z, b.r * (1.3 + kk * 2.5), 1, .2, .6, (1 - kk) * .8, 0, kk, b.id, nrm); for (let i = 0; i < (low ? 3 : 7); i++) { const a = i * 2.4 + b.id, u = b.t / .3; shard(b.x + Math.cos(a) * u * b.r * 1.4, gy + Math.sin(u * 3.14) * (b.heavy ? 1.1 : .6), b.z + Math.sin(a) * u * b.r * 1.4, (.08 + hash(i) * .08) * (b.heavy ? 1.5 : 1), a, u * 6, i); } }
-        if (!st && !low && hash(Math.floor(time * 18) + b.id) < .5 * (1 - kk)) { const a = hash(b.id + Math.floor(time * 18)) * 6.283; boltRib(b.id * 5 + Math.floor(time * 18), b.x, gy + .05, b.z, b.x + Math.cos(a) * b.r, gy + .3, b.z + Math.sin(a) * b.r, .04, MAG, .8 * (1 - kk), { depth: 0, jag: .5 }); }
+        if (!st && b.t < .3) { decals.add(b.x, gy, b.z, b.r * (1.3 + kk * 2.5), 1, .2, .6, (1 - kk) * .8, 0, kk, b.id, nrm); for (let i = 0; i < (low ? 3 : 7); i++) { const a = i * 2.4 + b.id, u = b.t / .3; cshard(b.x + Math.cos(a) * u * b.r * 1.4, gy + Math.sin(u * 3.14) * (b.heavy ? 1.1 : .6), b.z + Math.sin(a) * u * b.r * 1.4, (.08 + hash(i) * .08) * (b.heavy ? 1.5 : 1), (.08 + hash(i) * .08) * (b.heavy ? 1.5 : 1), a, u * 6, i); } }
+        if (!st && !low && hash(Math.floor(time * 18) + b.id) < .5 * (1 - kk)) { const a = hash(b.id + Math.floor(time * 18)) * 6.283; boltRib(b.id * 5 + Math.floor(time * 18), b.x, gy + .05, b.z, b.x + Math.cos(a) * b.r, gy + .3, b.z + Math.sin(a) * b.r, .04, HOT, .8 * (1 - kk), { depth: 0, jag: .5 }); }
       }
     }
   }
 
   /* ---------- Katana: rastro e dragão ---------- */
-  const slash = []; let slashFury = 0;
-  function pushSlash(a, b, fury) { slash.push({ ax: a.x, ay: a.y, az: a.z, bx: b.x, by: b.y, bz: b.z, t: time }); if (slash.length > SQ + 1) slash.shift(); slashFury = fury ? 1 : 0; }
+  const slash = []; let slashFury = 0, slashPal = 0;
+  function pushSlash(a, b, fury, pal) { slashPal = pal ? 1 : 0; slash.push({ ax: a.x, ay: a.y, az: a.z, bx: b.x, by: b.y, bz: b.z, t: time }); if (slash.length > SQ + 1) slash.shift(); slashFury = fury ? 1 : 0; }
   function drawSlash() {
     while (slash.length && time - slash[0].t > .22) slash.shift(); let q = 0;
     for (let i = 1; i < slash.length && q < SQ; i++) { const p0 = slash[i - 1], p1 = slash[i], u0 = (time - p0.t) / .22, u1 = (time - p1.t) / .22;
       sPos.set([p0.ax, p0.ay, p0.az, p0.bx, p0.by, p0.bz, p1.ax, p1.ay, p1.az, p1.bx, p1.by, p1.bz], q * 12); sUv.set([u0, 0, u0, 1, u1, 0, u1, 1], q * 8); q++; }
-    slashGeo.setDrawRange(0, q * 6); slashGeo.attributes.position.needsUpdate = slashGeo.attributes.uv.needsUpdate = true; slashMesh.visible = q > 0; slashMat.uniforms.fx.value.set(slashFury, 0, 0, 0);
+    slashGeo.setDrawRange(0, q * 6); slashGeo.attributes.position.needsUpdate = slashGeo.attributes.uv.needsUpdate = true; slashMesh.visible = q > 0; slashMat.uniforms.fx.value.set(slashFury, slashPal, 0, 0);
   }
   const dragons = [];
   function drawDragon() {
@@ -320,12 +343,12 @@ export function createAbyssVFX(T, scene, { ground = () => 0 } = {}) {
   return {
     root,
     /** Rastro da katana: chamar a cada quadro do golpe com a base/ponta da lâmina em mundo. */
-    slash(a, b, fury) { pushSlash(a, b, fury); },
+    slash(a, b, fury, pal) { pushSlash(a, b, fury, pal); },
     /** Silhueta do dragão de energia que sai da lâmina (Fúria do Dragão). */
     dragon(x, y, z, yaw, boss = true) { dragons.push({ x, y, z, yaw, boss, t0: time }); if (dragons.length > 2) dragons.shift(); },
     update(dt, camera, spells, charges = [], quality = 1, focus = null) {
       time += dt; uTime.value = time; low = quality === 0; cam.copy(camera.position);
-      dq = nc = nl = nr = nd = nf = nsw = nsk = nm = sn = 0; for (const d of domes) { d.used = false; d.mesh.visible = false; }
+      dq = nc = nl = nr = nd = nf = nsw = nsk = nm = sn = cq = csn = 0; for (const d of domes) { d.used = false; d.mesh.visible = false; }
       cover.visible = false; coverMat.opacity = 0; let dim = 0;
       glow.begin(); rib.begin(camera, time); decals.begin();
       for (const s of spells) { const boss = s.kind === 'e3boss';
@@ -333,13 +356,13 @@ export function createAbyssVFX(T, scene, { ground = () => 0 } = {}) {
       for (const id of trails.keys()) if (!spells.some(s => s.id === id && s.type === 'singularity')) trails.delete(id);
       for (const c of charges) if (c.skill === 'nadir' || c.skill === 'barrage' || c.skill === 'singularity') drawCharge(c);
       drawSlash(); drawDragon();
-      for (const [m, n, fx] of [[cores, nc], [lens, nl, lensGeo], [rings, nr, ringGeo], [disks, nd, diskGeo], [rifts, nf, riftGeo], [sky, nsk, skyGeo], [marks, nm, markGeo], [shards, sn]]) { m.count = n; m.instanceMatrix.needsUpdate = true; if (fx) fx.attributes.aFx.needsUpdate = true; }
+      for (const [m, n, fx] of [[cores, nc], [lens, nl, lensGeo], [rings, nr, ringGeo], [disks, nd, diskGeo], [rifts, nf, riftGeo], [sky, nsk, skyGeo], [marks, nm, markGeo], [shards, sn], [cshards, csn]]) { m.count = n; m.instanceMatrix.needsUpdate = true; if (fx) fx.attributes.aFx.needsUpdate = true; }
       swords.count = nsw; swords.instanceMatrix.needsUpdate = true; swordGeo.attributes.aClip.needsUpdate = swordGeo.attributes.aGlow.needsUpdate = true;
-      dGeo.setDrawRange(0, dq * 6); dGeo.attributes.position.needsUpdate = true; glow.end(); rib.end(); decals.end(time);
+      dGeo.setDrawRange(0, dq * 6); dGeo.attributes.position.needsUpdate = true; cbGeo.setDrawRange(0, cq * 6); cbGeo.attributes.position.needsUpdate = cbGeo.attributes.uv.needsUpdate = true; glow.end(); rib.end(); decals.end(time);
       return { dim, swords: nsw, rifts: nf, marks: nm, shards: sn };
     },
     clear() { slash.length = 0; dragons.length = 0; trails.clear(); for (const d of domes) d.mesh.visible = false; cover.visible = false; dragonMesh.visible = false; slashMesh.visible = false;
-      for (const m of [cores, lens, rings, disks, rifts, sky, marks, shards, swords]) m.count = 0; dGeo.setDrawRange(0, 0); },
+      for (const m of [cores, lens, rings, disks, rifts, sky, marks, shards, swords, cshards]) m.count = 0; dGeo.setDrawRange(0, 0); cbGeo.setDrawRange(0, 0); },
     dispose() { scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); shardGeo.dispose(); swordGeo.dispose(); glow.dispose(); rib.dispose(); decals.dispose(); }
   };
 }
