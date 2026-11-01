@@ -8,8 +8,10 @@ import { BOSS_MOVES } from './boss-choreography3d.js';
  *    agressividade, distância favorita, uso de magia — que muda pesos e parâmetros DENTRO DE LIMITES: espinhos
  *    interceptam o lado preferido, guarda constante recebe quebra de guarda, quem foge recebe dash de aproximação,
  *    quem ataca demais recebe defesa/recuo e contra-ataque. Só sinais visíveis; nada de ler botão futuro.
- *  • Ruptura do Trono Abissal (throne): carga → ergue → corte que solta uma onda ACHATADA e larga rente ao chão
- *    (pode ser saltada), varredura por alvo, impacto com domo e coluna no fim.
+ *  • Ruptura do Trono Abissal (throne, MOD 249): golpe especial INCANCELÁVEL (superarmadura do lançamento ao fim da
+ *    recuperação: nenhum golpe, magia, stagger, knockback ou dano do herói o interrompe; vida zerada no meio adia a morte
+ *    para o fim do golpe). Erguer a espada (0–1 s) → carga com pilar colossal (1–2,3 s) → preparo e CORTE (2,55 s) →
+ *    feixe gigante que atravessa a arena rasgando o chão → colisão com explosão em várias fases → recuperação (~6,2 s).
  *  • Floresta de Espinhos Abissais (thorns): ondas de espinhos finos e diagonais; rachadura no chão mostra cada um
  *    antes; arcos assimétricos com vãos, um dano por onda e alvo.
  *  • Entidade do Terror (terror): silhueta colossal atrás do bispo; mãos dentadas saem de rachaduras marcadas,
@@ -26,7 +28,7 @@ const lead = (t, k, cap) => ({ x: t.x + clamp((t.vx || 0) * k, -cap, cap), z: t.
 const anyActive = (sq, type) => sq.spells.some(s => s.type === type && !s.dead && s.phase !== 'fade');
 const channeling = (sq, s) => { const o = sq.actor(s.owner); return !!(o && o.alive && o.act && o.act.type === 'cast' && o.act.spellId === s.id); };
 
-export const THRONE = { min: 3.5, max: 22, cast: 2.1, release: .15, cd: 11, anim: 'idle', channel: true, charge: 1, raise: .35, speed: 16, range: 22, w: 1.8, h: .9, dmg: 22, endR: 2.6, endDmg: 10, fade: .9 };
+export const THRONE = { min: 4, max: 30, cast: 5.9, release: .02, cd: 14, anim: 'idle', channel: true, unstoppable: true, raise: 1, charge: 2.3, cut: 2.55, speed: 46, range: 32, w: 2.8, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 2.3, blast: .45, fade: 2.4 };
 export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 9, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
 export const TERROR = { min: 2, max: 16, cast: 1.6, release: .4, cd: 16, anim: 'idle', channel: false, rise: 1.2, hands: 4, warn: .8, reach: .95, hold: 1.6, tick: .5, tickDmg: 4, endDmg: 6, fade: 1.1, grab: true, life: 4.6 };
 export const BROOD = { min: 0, max: 30, cast: 1.4, release: .5, cd: 14, anim: 'idle', open: .9, cap: 2, capRage: 3, kingAt: .45 };
@@ -99,44 +101,55 @@ const showDistinct = a => a.used ? [...a.used].filter(id => id !== 'orbital').le
 const varied = (a, id) => (a.lastSkill === id ? -.4 : 0) + (a.used && !a.used.has(id) ? .25 : 0); // não repete; mostra o kit inteiro
 const markUsed = (a, id) => { a.lastSkill = id; if (a.used) a.used.add(id); };
 
-/* ---------- Ruptura do Trono Abissal ---------- */
+/* ---------- Ruptura do Trono Abissal (MOD 249) ---------- */
+/** Linha do tempo única (s.age): raise → charge → slash (preparo) → wave (feixe) → impact → fade. O ATO do bispo é
+    'cast' com unstoppable (motor da esquadra): só cleanup sistêmico (parar a luta, sair da dimensão, remover o ator)
+    pode abortar — e aí a magia é limpa na hora, sem hitbox fantasma. */
 registerSkill('throne', {
   score(sq, a, t, c) { if (anyActive(sq, 'throne') || !c.see) return null; return .55 + (c.d > 6 ? .3 : 0) + clamp((a.style?.far || 0) / 4, 0, .3) + (a.T.throne.guardBreak ? .25 : 0) + (c.recovering ? .2 : 0) + varied(a, 'throne'); },
   spawn(sq, a, t) {
     const T = a.T.throne; markUsed(a, 'throne');
-    const s = { id: sq.nextId++, type: 'throne', owner: a.id, kind: a.kind, T, tid: t.id, t: 0, phase: 'charge', x: a.x, z: a.z, y: a.y, dx: 0, dz: 1, front: 0, hit: new Set(), guardBreak: !!T.guardBreak };
+    const s = { id: sq.nextId++, type: 'throne', owner: a.id, kind: a.kind, T, tid: t.id, t: 0, age: 0, phase: 'raise', x: a.x, z: a.z, y: a.y, dx: Math.sin(a.yaw), dz: Math.cos(a.yaw), front: 0, len: T.range, hit: new Set(), guardBreak: !!T.guardBreak, dim: 0 };
+    if (a.act) a.act.uninterruptibleSwordSpecial = s.id;
     sq.spells.push(s); sq.event('throne', { spell: s, actor: a }); return s;
   },
   step(sq, s, dt) {
-    const T = s.T, o = sq.actor(s.owner), t = sq.target(s.tid) || live(sq)[0];
-    if (s.phase === 'charge' || s.phase === 'raise') {
-      if (!channeling(sq, s)) { s.phase = 'fade'; s.t = 0; s.cancel = true; sq.event('throneEnd', { spell: s, why: 'interrupt' }); return; }
-      if (s.phase === 'charge' && s.t >= T.charge) { s.phase = 'raise'; s.t = 0; sq.event('throneRaise', { spell: s }); }
-      else if (s.phase === 'raise' && s.t >= T.raise) {
-        const p = t ? lead(t, .25, 2) : { x: o.x + Math.sin(o.yaw), z: o.z + Math.cos(o.yaw) }, dx = p.x - o.x, dz = p.z - o.z, l = Math.hypot(dx, dz) || 1;
-        Object.assign(s, { phase: 'wave', t: 0, x: o.x + dx / l * 1.2, z: o.z + dz / l * 1.2, y: sq.ground(o.x, o.z), dx: dx / l, dz: dz / l, front: 0 }); sq.event('throneSlash', { spell: s });
+    const T = s.T, o = sq.actor(s.owner), t = sq.target(s.tid) || live(sq)[0]; s.age += dt;
+    s.dim = s.phase === 'raise' ? .45 * smooth(s.age / T.raise) : s.phase === 'charge' || s.phase === 'slash' ? .45 + .3 * smooth((s.age - T.raise) / (T.charge - T.raise)) : s.phase === 'wave' ? .75 : s.phase === 'impact' ? .75 * (1 - smooth(s.t / 1.2)) : 0;
+    if (s.phase === 'raise' || s.phase === 'charge' || s.phase === 'slash') {
+      // só cleanup sistêmico chega aqui (o ato é incancelável): limpa sem deixar hitbox
+      if (!channeling(sq, s)) { s.phase = 'fade'; s.t = 0; s.cancel = true; s.dim = 0; sq.event('throneEnd', { spell: s, why: 'cleanup' }); return; }
+      s.x = o.x; s.z = o.z; s.y = o.y;
+      if (s.phase === 'raise' && s.age >= T.raise) { s.phase = 'charge'; s.t = 0; sq.event('throneCharge', { spell: s }); }
+      else if (s.phase === 'charge' && s.age >= T.charge) { // mira travada no preparo do corte (com antecipação do alvo)
+        const p = t ? lead(t, .3, 2.5) : { x: o.x + Math.sin(o.yaw), z: o.z + Math.cos(o.yaw) }, dx = p.x - o.x, dz = p.z - o.z, l = Math.hypot(dx, dz) || 1;
+        s.dx = dx / l; s.dz = dz / l; o.yaw = Math.atan2(s.dx, s.dz); if (o.act) o.act.face = false;
+        s.len = clamp(l - 1, 8, T.range); s.phase = 'slash'; s.t = 0; sq.event('throneRaise', { spell: s });
+      } else if (s.phase === 'slash' && s.age >= T.cut) {
+        Object.assign(s, { phase: 'wave', t: 0, x: o.x + s.dx * 1.2, z: o.z + s.dz * 1.2, y: sq.ground(o.x, o.z), front: 0 }); sq.event('throneSlash', { spell: s });
       }
       return;
     }
     if (s.phase === 'wave') {
-      const prev = s.front; s.front = Math.min(T.range, s.front + T.speed * dt); let stop = false;
+      const prev = s.front; s.front = Math.min(s.len, s.front + T.speed * dt); let stop = false;
       for (const tg of live(sq)) {
         if (s.hit.has(tg.id)) continue; const rx = tg.x - s.x, rz = tg.z - s.z, along = rx * s.dx + rz * s.dz, side = Math.abs(rx * s.dz - rz * s.dx);
         if (along < prev - tg.radius || along > s.front + tg.radius || side > T.w + tg.radius) continue;
         if ((tg.air || 0) > T.h) { if (!s.jumped) { s.jumped = true; sq.event('jumpedWave', { spell: s, target: tg.id }); } continue; }
-        if (tg.iframes) continue; s.hit.add(tg.id); sq.damageTarget(tg.id, T.dmg, { kind: 'throne', spell: s.id, x: s.x, z: s.z, knock: 1.6, guardBreak: s.guardBreak });
+        if (tg.iframes) continue; s.hit.add(tg.id); sq.damageTarget(tg.id, T.dmg, { kind: 'throne', spell: s.id, x: s.x, z: s.z, knock: 1.8, guardBreak: s.guardBreak });
       }
       const fx = s.x + s.dx * s.front, fz = s.z + s.dz * s.front; if (sq.blocked(fx, fz)) { s.front = Math.max(0, s.front - .3); stop = true; }
-      if (stop || s.front >= T.range) { s.phase = 'impact'; s.t = 0; s.ix = s.x + s.dx * s.front; s.iz = s.z + s.dz * s.front; s.iy = sq.ground(s.ix, s.iz);
-        for (const tg of live(sq)) if (!s.hit.has(tg.id) && !tg.iframes && Math.hypot(tg.x - s.ix, tg.z - s.iz) < T.endR + tg.radius) { s.hit.add(tg.id); sq.damageTarget(tg.id, T.endDmg, { kind: 'throneImpact', spell: s.id, x: s.ix, z: s.iz, knock: 1 }); }
+      if (stop || s.front >= s.len) { s.phase = 'impact'; s.t = 0; s.ix = s.x + s.dx * s.front; s.iz = s.z + s.dz * s.front; s.iy = sq.ground(s.ix, s.iz);
+        for (const tg of live(sq)) if (!s.hit.has(tg.id) && !tg.iframes && Math.hypot(tg.x - s.ix, tg.z - s.iz) < T.endR + tg.radius) { s.hit.add(tg.id); sq.damageTarget(tg.id, T.endDmg, { kind: 'throneImpact', spell: s.id, x: s.ix, z: s.iz, knock: 1.4 }); }
         sq.event('throneImpact', { spell: s }); }
       return;
     }
-    if (s.phase === 'impact' && s.t >= .5) { s.phase = 'fade'; s.t = 0; }
+    if (s.phase === 'impact') { if (!s.blasted && s.t >= T.blast) { s.blasted = true; sq.event('throneBlast', { spell: s }); } if (s.t >= T.impact) { s.phase = 'fade'; s.t = 0; } }
     else if (s.phase === 'fade' && s.t >= T.fade) s.dead = true;
   },
   danger(sq, s) { return s.phase === 'wave' ? { x: s.x + s.dx * s.front, z: s.z + s.dz * s.front, r: s.T.w + 1, until: .4 } : null; }
 });
+
 
 /* ---------- Floresta de Espinhos Abissais ---------- */
 registerSkill('thorns', {

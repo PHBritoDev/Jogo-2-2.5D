@@ -358,5 +358,5 @@ registerSkill('rift', {
 });
 
 /** Nível de escurecimento local da arena (0..1) pedido pelas tempestades ativas — o jogo aplica e restaura. */
-export function stormDim(sq) { let k = 0; if (sq) for (const s of sq.spells) if (s.type === 'nadir') k = Math.max(k, s.dim || 0); return k; }
+export function stormDim(sq) { let k = 0; if (sq) for (const s of sq.spells) if (s.type === 'nadir' || s.type === 'throne') k = Math.max(k, s.dim || 0); return k; }
 export { SKILLS };

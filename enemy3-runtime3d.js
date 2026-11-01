@@ -3,6 +3,7 @@ import { buildJawSword } from './jaw-sword3d.js';
 import { buildThroneBlade } from './vhazrael-vfx3d.js';
 import { combatPose, combatMove } from './combat-choreography3d.js';
 import { bossLift } from './boss-choreography3d.js';
+import { thronePose } from './vhazrael-choreo3d.js';
 /**
  * MOD 245 — corpo do Enemy3 / mini-chefe do Ato III dentro do runtime da esquadra (enemy1-squad-runtime3d.js).
  *
@@ -39,7 +40,12 @@ export function poseKatana(T, b, a, dt, time, low) {
   const root = b.weaponRoot, h = b.hand, w = b.weapon; if (!root || !h) return;
   const V = b._kv || (b._kv = { p: new T.Vector3(), d: new T.Vector3(), f: new T.Vector3(), x: new T.Vector3(), m: new T.Matrix4() });
   h.updateWorldMatrix(true, false); h.getWorldPosition(root.position);
-  if (a.alive && a.act && (a.act.move || (a.kind === 'vhazrael' && (a.act.skill === 'throne' || a.act.skill === 'orbital')))) h.getWorldQuaternion(root.quaternion); // a lâmina segue o osso nos golpes
+  const thr = a.alive && a.kind === 'vhazrael' && a.act && a.act.skill === 'throne' && a.act.type === 'cast' ? a.act : null;
+  if (thr) { // Ruptura: lâmina orientada pela coreografia (gume no plano do golpe), presa à mão; cruza com a guarda ao terminar
+    const P = thronePose(thr.t), fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, e = smooth((thr.dur - thr.t) / .35);
+    V.d.set(fy * P.blade[0] + rx * P.blade[2], P.blade[1], fz * P.blade[0] + rz * P.blade[2]).normalize(); V.f.set(fy * .3 + rx * .12, -1, fz * .3 + rz * .12).normalize(); V.d.lerp(V.f, 1 - e).normalize();
+    V.p.set(rx, 0, rz); V.x.crossVectors(V.p, V.d).normalize(); V.f.crossVectors(V.x, V.d).normalize(); V.m.makeBasis(V.x, V.d, V.f); root.quaternion.setFromRotationMatrix(V.m);
+  } else if (a.alive && a.act && (a.act.move || (a.kind === 'vhazrael' && a.act.skill === 'orbital'))) h.getWorldQuaternion(root.quaternion); // a lâmina segue o osso nos golpes
   else {
     const cast = a.alive && a.act && (a.act.type === 'cast' || a.act.type === 'phase2'); b.kCast += ((cast ? 1 : 0) - b.kCast) * Math.min(1, dt * 6);
     const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, k = b.kCast;
@@ -61,10 +67,11 @@ export function poseCaster(T, b, a, squad, dt) {
   const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, V = b._av || (b._av = { d: new T.Vector3(), s: new T.Vector3(), q: new T.Quaternion(), q2: new T.Quaternion(), q3: new T.Quaternion(), c: new T.Vector3(), p: new T.Vector3() });
   const D = (f, u, r) => V.d.set(fy * f + rx * r, u, fz * f + rz * r).normalize();
   const s = squad && b.lastSpell ? squad.spells.find(x => x.id === b.lastSpell) : null, sk = b.lastCastSkill;
-  if (sk === 'throne') { const ph = s ? s.phase : 'fade', k = s ? s.t : 0; // carga com a lâmina atrás, erguer, corte com follow-through
-    if (ph === 'charge') { aim(R.rua, R.rla, D(-.45, -.25, .55), w, V); aim(R.rla, R.rh, D(-.6, .1, .3), w, V); turn(R.chest, V.p.set(0, 1, 0), -.5 * w * smooth(k / .4), V); aim(R.lua, R.lla, D(.6, .1, -.5), w * .7, V); }
-    else if (ph === 'raise') { aim(R.rua, R.rla, D(.05, 1, .15), w, V); aim(R.rla, R.rh, D(0, 1, 0), w, V); aim(R.lua, R.lla, D(.05, 1, -.1), w, V); }
-    else { aim(R.rua, R.rla, D(1, -.45, -.1), w, V); aim(R.rla, R.rh, D(1, -.6, -.1), w, V); turn(R.chest, V.p.set(rx, 0, rz), .3 * w, V); aim(R.lua, R.lla, D(-.3, -.5, -.7), w * .7, V); } }
+  if (sk === 'throne') { // MOD 249: as duas mãos no cabo — erguer, sustentar o pilar, preparo, corte e follow-through
+    const P = thronePose(b.lastT), tr = Math.min(1, Math.max(0, (b.lastT - 1) / 1.3)), sh = tr * (1 - Math.min(1, Math.max(0, (b.lastT - 2.3) / .1))) * .035 * Math.sin(b.lastT * 47); // tremor da carga
+    turn(R.chest, V.p.set(rx, 0, rz), P.lean * w, V);
+    aim(R.rua, R.rla, D(P.rua[0], P.rua[1], P.rua[2]), w, V); aim(R.rla, R.rh, D(P.rla[0] + sh, P.rla[1], P.rla[2]), w, V);
+    aim(R.lua, R.lla, D(P.lua[0], P.lua[1], P.lua[2]), w, V); aim(R.lla, R.lh, D(P.lla[0] - sh, P.lla[1], P.lla[2]), w, V); }
   else if (sk === 'thorns' || sk === 'brood') { const dn = sk === 'brood' ? -.95 : -.6; for (const [ua, la, sd] of [[R.rua, R.rla, 1], [R.lua, R.lla, -1]]) aim(ua, la, D(.75, dn, .35 * sd), w, V); turn(R.chest, V.p.set(rx, 0, rz), .35 * w, V); }
   else if (sk === 'terror') { for (const [ua, la, hd, sd] of [[R.rua, R.rla, R.rh, 1], [R.lua, R.lla, R.lh, -1]]) { aim(ua, la, D(.2, .6, 1 * sd), w, V); aim(la, hd, D(.3, .8, .5 * sd), w, V); } turn(R.chest, V.p.set(rx, 0, rz), -.3 * w, V); if (R.head) turn(R.head, V.p.set(rx, 0, rz), -.3 * w, V); }
   else if (sk === 'orbital') { aim(R.rua, R.rla, D(.05, 1, .1), w, V); aim(R.rla, R.rh, D(0, 1, 0), w, V); aim(R.lua, R.lla, D(.3, .3, -1), w * .8, V); turn(R.chest, V.p.set(rx, 0, rz), -.25 * w, V); }

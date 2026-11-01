@@ -1746,7 +1746,7 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();vzUpdateLock();updateInstanceCulling();checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateInstanceCulling();checkSecretRuin();
  updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -1755,7 +1755,7 @@ updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
  updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
- if(vzCinematic())return;renderer.render(scene,camera);}
+ if(vzCinematic()){vzCamRestore();return;}renderer.render(scene,camera);vzCamRestore();}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
  skyDome.position.copy(camera.position);skyDome.scale.setScalar(SKY_SCALE);
@@ -3212,6 +3212,18 @@ function applySquadDim(){
  if(!squadDim.on||hemiLight.intensity!==squadDim.setH)squadDim.h=hemiLight.intensity;if(!squadDim.on||sunLight.intensity!==squadDim.setS)squadDim.s=sunLight.intensity;squadDim.on=true;
  squadDim.setH=hemiLight.intensity=squadDim.h*(1-.42*k);squadDim.setS=sunLight.intensity=squadDim.s*(1-.55*k);
 }
+/** MOD 249 — luz carmim da Ruptura (céu, névoa, terreno e bispo) que sobe na carga/disparo e cai devagar. Guarda a cor
+    de base a cada quadro e devolve integralmente quando acaba (também quando ninguém mais reescreve as cores, ex.: voidMode). */
+const vzTint={on:false,base:{},set:{}},VZ_CRIM=new THREE.Color(0x9a0618),VZ_CRIM_G=new THREE.Color(0x2a0006);
+function applyVzTint(){
+ const k=squadRT?Math.min(1,squadRT.vhazraelVFX.throneTint||0):0;
+ for(const [key,c] of [['bg',scene.background],['fog',scene.fog&&scene.fog.color],['hs',hemiLight.color],['hg',hemiLight.groundColor],['sun',sunLight.color],['fill',fill.color],['sky',skyDome.material.color]]){
+  if(!c||!c.isColor)continue;if(vzTint.on&&vzTint.set[key]&&c.equals(vzTint.set[key]))c.copy(vzTint.base[key]);
+  (vzTint.base[key]||(vzTint.base[key]=new THREE.Color())).copy(c);
+  if(k>.002){c.lerp(key==='hg'?VZ_CRIM_G:VZ_CRIM,k*(key==='sky'?.7:key==='bg'||key==='fog'?.55:key==='sun'?.5:.6));(vzTint.set[key]||(vzTint.set[key]=new THREE.Color())).copy(c);}
+ }
+ vzTint.on=k>.002;
+}
 function squadEvent(type,d){
  const a=d&&d.actor,s=d&&d.spell;
  switch(type){
@@ -3220,9 +3232,13 @@ function squadEvent(type,d){
   case 'cast':if(worldAudio.abyss3&&/^(nadir|barrage|singularity|sanctum|constellation|drill|cage)$/.test(d.skill))worldAudio.abyss3(d.skill==='singularity'||d.skill==='constellation'?'gravity':d.skill==='nadir'||d.skill==='sanctum'?'storm':'tear',squadGain(a.x,a.z));else worldAudio.dark&&worldAudio.dark(d.skill);if(a.T.boss||squadAlive().length<=2||d.skill==='judgment'||d.skill==='vortex'||d.skill==='nadir'||d.skill==='cage')showCombatCallout(SQUAD_NAMES[d.skill]);break;
   case 'thornWave':squadSfx('warn',0,0,150);break;
   case 'thornRise':squadSfx('stick',d.spike.x,d.spike.z,70);break;
-  case 'throneRaise':squadSfx('gravity',s.x,s.z,0);if(!userSettings.reduceFlash){renderer.domElement.style.filter='contrast(1.9) saturate(1.5)';setTimeout(()=>{renderer.domElement.style.filter='';},90);}break;
-  case 'throneSlash':squadSfx('launch',s.x,s.z,0);break;
-  case 'throneImpact':squadSfx('boom',s.ix,s.iz,0);if(squadNear(s.ix,s.iz,10)&&!userSettings.reduceShake)cameraShake(.18);break;
+  // MOD 249 — Ruptura do Trono: som/luz/tremor em sincronia com cada etapa; impact frame curtíssimo (reduzir flashes desliga)
+  case 'throneCharge':squadSfx('gravity',s.x,s.z,0);worldAudio.abyss3&&worldAudio.abyss3('storm',squadGain(s.x,s.z));if(!userSettings.reduceShake)cameraShake(.06);break;
+  case 'throneRaise':worldAudio.whoosh();squadSfx('tear',s.x,s.z,0);break;
+  case 'throneSlash':squadSfx('launch',s.x,s.z,0);worldAudio.abyss3&&worldAudio.abyss3('heavy',squadGain(s.x,s.z));if(!userSettings.reduceFlash){renderer.domElement.style.filter='contrast(2.4) saturate(2.2) hue-rotate(-12deg)';setTimeout(()=>{renderer.domElement.style.filter='invert(1) contrast(2) saturate(0)';setTimeout(()=>{renderer.domElement.style.filter='';},45);},55);}else vzFlash('#300008',.25,160);hitStop(40);if(!userSettings.reduceShake)cameraShake(.14);break;
+  case 'throneImpact':squadSfx('boom',s.ix,s.iz,0);vzFlash('#fff4f8',userSettings.reduceFlash?.12:.45,140);if(squadNear(s.ix,s.iz,28)&&!userSettings.reduceShake)cameraShake(.24);break;
+  case 'throneBlast':worldAudio.abyss3&&worldAudio.abyss3('boom',squadGain(s.ix,s.iz));squadSfx('thunder',s.ix,s.iz,0);if(squadNear(s.ix,s.iz,30)&&!userSettings.reduceShake)cameraShake(.2);break;
+  case 'superArmor':if(performance.now()>(squadSfxAt.armorCallout||0)){squadSfxAt.armorCallout=performance.now()+2500;showCombatCallout('SUPERARMADURA — O GOLPE NÃO PARA');}break;
   case 'handRise':squadSfx('stick',d.hand.x,d.hand.z,60);break;
   case 'bite':squadSfx('blade',s.x,s.z,100);break;
   case 'summon':showCombatCallout(d.king?'O COLOSSO DA NINHADA':'A NINHADA DESPERTA');squadSfx('tear',d.actor.x,d.actor.z,0);break;
@@ -3290,8 +3306,19 @@ function vzUpdateLock(){
 }
 const _vzA=new THREE.Vector3(),_vzB=new THREE.Vector3();
 /** Câmera das tomadas (despertar baixo, cena orbital isolada, entrada atmosférica). Retorna true se já renderizou. */
+const _vzQ=new THREE.Quaternion(),_vzOff=new THREE.Vector3();let vzFovAdd=0,vzCamK=0;
+/** MOD 249 — Ruptura: na carga e na colisão a câmera de 3ª pessoa recua, sobe, abre o FOV e inclina para o pilar/explosão,
+    revelando a escala. O deslocamento vale só para o quadro desenhado (vzCamRestore devolve a posição): nunca trava
+    controle nem se acumula na câmera do jogador. */
+function vzThroneCamera(){
+ const h=squadOn&&squadRT?squadRT.vhazraelVFX.throneHint:null,want=h&&cameraDistance>=1.05?h.k:0;vzCamK+=(want-vzCamK)*.1;vzFovAdd+=((h?h.fov:0)-vzFovAdd)*.12;_vzOff.set(0,0,0);
+ const k=vzCamK;if(k<.01||!h)return;
+ _vzA.set(h.look[0],h.look[1],h.look[2]);_vzOff.set(camera.position.x-_vzA.x,0,camera.position.z-_vzA.z);const l=Math.hypot(_vzOff.x,_vzOff.z)||1;_vzOff.multiplyScalar((h.back||0)*k/l);_vzOff.y=(h.lift||0)*k;const gy=terrainHeightAt(camera.position.x+_vzOff.x,camera.position.z+_vzOff.z)+1.4;if(camera.position.y+_vzOff.y<gy)_vzOff.y=gy-camera.position.y;camera.position.add(_vzOff);
+ _vzQ.copy(camera.quaternion);camera.lookAt(_vzA.lerp(_vzB.set(player.position.x,player.position.y+1.5,player.position.z),.4));camera.quaternion.slerpQuaternions(_vzQ,camera.quaternion,.5*k);
+}
+function vzCamRestore(){if(_vzOff.lengthSq()>0){camera.position.sub(_vzOff);_vzOff.set(0,0,0);}}
 function vzCinematic(){
- const o=vzOrbitState();if(!o)return false;
+ vzThroneCamera();const o=vzOrbitState();if(!o)return false;
  if(o.phase==='choice'){const mt=squadRT.vhazraelVFX.meteor;if(mt&&mt.visible){_vzB.set(player.position.x,player.position.y+1.5,player.position.z).lerp(_vzA.copy(mt.position).setY(mt.position.y-mt.scale.x),.3);camera.lookAt(_vzB);}return false;}// o meteoro domina o céu na janela de resposta
  if(!/^(awaken|orbit|entry)$/.test(o.phase))return false;
  const s=squadSq(),b=s&&s.actors.find(a=>a.kind==='vhazrael'&&a.alive);if(!b)return false;const fy=Math.sin(b.yaw),fz=Math.cos(b.yaw),T0=o.s.T;
@@ -3317,7 +3344,7 @@ function updateSquadCombat(dt,now){
   const lost=squadProxy.hp-enemyHP;
   if(lost>0){const n=s.damageActor(f.id,lost,{x:player.position.x,z:player.position.z,kind:'melee',by:'hero'});squadRT.flash(f.id);if(n<lost){const p=new THREE.Vector3(f.x,f.y+2,f.z);damageNumber(p,n>0?'DEFENDEU':'ESQUIVOU','blocked');}
    const R=squadAreaRadius();if(R>0)for(const o of squadAlive())if(o!==f&&Math.hypot(o.x-f.x,o.z-f.z)<R){const m=s.damageActor(o.id,lost,{x:f.x,z:f.z,kind:'area',by:'hero'});squadHitFx(o,m);}}
-  const mx=enemy.position.x-squadProxy.x,mz=enemy.position.z-squadProxy.z,md=Math.hypot(mx,mz);if(md>1e-3&&md<4&&!squadBlocked(f.x+mx,f.z+mz)){f.x+=mx;f.z+=mz;}
+  const mx=enemy.position.x-squadProxy.x,mz=enemy.position.z-squadProxy.z,md=Math.hypot(mx,mz);if(md>1e-3&&md<4&&!f.act?.unstoppable&&!squadBlocked(f.x+mx,f.z+mz)){f.x+=mx;f.z+=mz;}
   if(enemyKnockback>0){f.kx+=enemyKnockbackX*enemyKnockback*3;f.kz+=enemyKnockbackZ*enemyKnockback*3;enemyKnockback=0;}
  }
  if(!enemyAlive||enemyHP<=0)squadSwallowUntil=now+1600;
@@ -5448,7 +5475,7 @@ function autoRecenterCamera(dt,now){
 }
 function updateFovKick(dt){
  const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?72:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
- const fov=base+fovKick;if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
+ const fov=base+fovKick+(fp?0:vzFovAdd);if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
 }
 // ---------- Primeira pessoa: mira com alvo, golpes variados, guarda ----------
 let fpSwingDir=0,hitMarkT=0;
