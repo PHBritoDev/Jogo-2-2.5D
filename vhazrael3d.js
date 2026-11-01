@@ -1,7 +1,7 @@
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
 // Selo do motor, importado pela página para provar que a lógica nova carregou.
-export const VHAZRAEL_BUILD = '252-sword-contact';
+export const VHAZRAEL_BUILD = '253-extincao-orbital';
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
@@ -20,7 +20,7 @@ export const VHAZRAEL_BUILD = '252-sword-contact';
  *    agarram e mordem com dano periódico limitado; DASH (ou DEF, no jogo) solta; imunidade curta depois.
  *  • Ninhada (brood): criaturas de muitas patas com HP próprio que NÃO expiram; teto de vivas; variante colossal
  *    uma vez por luta; morrem com o bispo.
- *  • Extinção Orbital (orbital): ultimate ÚNICA por encontro, ~17,5 s, só depois de mostrar três poderes (ou com
+ *  • Extinção Orbital (orbital): ultimate ÚNICA por encontro, ~18 s (Mod 253: 7 fases/tomadas), só depois de mostrar três poderes (ou com
  *    pouca vida). O dano no impacto depende da RESPOSTA do jogador: guarda (dano residual), duelo de ultimates
  *    (anula) ou nada (dano massivo). Sem ponto seguro, sem dash que salve. Depois: sem exaustão nem fraqueza.
  */
@@ -34,7 +34,7 @@ export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 14, anim: 
 export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 9, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
 export const TERROR = { min: 2, max: 16, cast: 1.6, release: .4, cd: 16, anim: 'idle', channel: false, rise: 1.2, hands: 4, warn: .8, reach: .95, hold: 1.6, tick: .5, tickDmg: 4, endDmg: 6, fade: 1.1, grab: true, life: 4.6 };
 export const BROOD = { min: 0, max: 30, cast: 1.4, release: .5, cd: 14, anim: 'idle', open: .9, cap: 2, capRage: 3, kingAt: .45 };
-export const ORBITAL = { min: 0, max: 60, cast: 15.5, release: .05, cd: 999, anim: 'idle', channel: true, awaken: 3, orbit: 3.5, entry: 5, choice: 2.5, impact: .6, after: 3.2, dmg: 95, shieldDmg: 14, needSkills: 3, lowHp: .35 };
+export const ORBITAL = { min: 0, max: 60, cast: 15.8, release: .05, cd: 999, anim: 'idle', channel: true, awaken: 2.6, orbit: 3, entry: 4, arrival: 1.6, choice: 2.6, impact: 2, after: 2.2, guard: .35, dmg: 95, shieldDmg: 14, needSkills: 3, lowHp: .35 };
 export const STOMP = { min: 0, max: 5, cast: 1.3, release: .55, cd: 6, anim: 'attack', warn: .75, r: 3.4, dmg: 14, waveH: .7 };
 
 const VHAZ = {
@@ -329,7 +329,9 @@ registerSkill('stomp', { // pisão da variante colossal: anel de choque baixo (d
 });
 
 /* ---------- Extinção Orbital (ultimate única) ---------- */
-export const ORBITAL_PHASES = ['awaken', 'orbit', 'entry', 'choice', 'impact', 'after'];
+/* MOD 253 — storyboard: awaken (close do tirano, X no rosto) → orbit (Terra + ameaça distante) → entry (montagem da viagem e
+   reentrada) → arrival (arena: o meteoro surge no céu) → choice (POV jogável: DEF/ULTIMATE) → impact (choque) → after. */
+export const ORBITAL_PHASES = ['awaken', 'orbit', 'entry', 'arrival', 'choice', 'impact', 'after'];
 registerSkill('orbital', {
   score(sq, a) {
     if (a.ultUsed || anyActive(sq, 'orbital')) return null; const T = a.T.orbital;
@@ -344,13 +346,14 @@ registerSkill('orbital', {
   step(sq, s, dt) {
     const T = s.T, o = sq.actor(s.owner), t = sq.target(s.tid); s.total += dt;
     if (!o || !o.alive) { if (s.phase !== 'after') { s.phase = 'after'; s.t = 0; s.result = s.result || 'cancel'; sq.event('orbitalEnd', { spell: s, why: 'owner' }); } }
-    const dur = { awaken: T.awaken, orbit: T.orbit, entry: T.entry, choice: T.choice, impact: T.impact, after: T.after };
-    if (s.phase === 'choice' && t) { if (t.blocking) s.guardT += dt; if (t.ultimate) s.duel = true; }
+    const dur = { awaken: T.awaken, orbit: T.orbit, entry: T.entry, arrival: T.arrival, choice: T.choice, impact: T.impact, after: T.after };
+    if (s.phase === 'choice' && t) { if (t.blocking) s.guardT += dt; if (t.ultimate) s.duel = true; if (!s.guardOk && s.guardT >= T.guard) { s.guardOk = true; sq.event('orbitalGuard', { spell: s, target: t.id }); } } // retorno ANTES do impacto
+    s.dim = s.phase === 'awaken' ? .7 * smooth(s.t / .6) : s.phase === 'arrival' ? .35 * smooth(s.t / T.arrival) : s.phase === 'choice' ? .35 : s.phase === 'impact' ? .35 * (1 - smooth(s.t / 1.5)) : 0; // silhueta no despertar, sombra do meteoro
     if (s.phase === 'after') { if (s.t >= T.after) s.dead = true; return; }
     if (s.t >= dur[s.phase]) {
       s.t -= dur[s.phase]; const next = ORBITAL_PHASES[ORBITAL_PHASES.indexOf(s.phase) + 1]; s.phase = next; sq.event('orbital_' + next, { spell: s });
       if (next === 'impact') for (const tg of live(sq)) { // sem ponto seguro: o meteoro cobre a dimensão inteira
-        const guard = tg.blocking || (tg.id === s.tid && s.guardT >= .35), duel = tg.ultimate || (tg.id === s.tid && s.duel);
+        const guard = tg.blocking || (tg.id === s.tid && s.guardT >= T.guard), duel = tg.ultimate || (tg.id === s.tid && s.duel);
         const result = duel ? 'duel' : guard ? 'shield' : 'none'; if (tg.id === s.tid) s.result = result;
         if (result !== 'duel') sq.damageTarget(tg.id, result === 'shield' ? T.shieldDmg : T.dmg, { kind: 'orbital', spell: s.id, x: s.x, z: s.z, knock: result === 'shield' ? .8 : 2, unblockable: result === 'none', shieldBreak: result === 'shield' });
         sq.event('orbitalResult', { spell: s, target: tg.id, result });

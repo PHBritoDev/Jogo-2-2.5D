@@ -11,8 +11,8 @@ import { createSakugaImpacts } from './sakuga-impact3d.js';
 import './enemy2-squad3d.js';
 import { stormDim } from './enemy3-squad3d.js';
 import './enemy4-squad3d.js';
-import './vhazrael3d.js?v=mod252-sword-contact';
-import { createVhazraelVFX, buildCrawler } from './vhazrael-vfx3d.js?v=mod252-sword-contact';
+import './vhazrael3d.js?v=mod253-extincao-orbital';
+import { createVhazraelVFX, buildCrawler } from './vhazrael-vfx3d.js?v=mod253-extincao-orbital';
 import { createEnemy4VFX } from './enemy4-vfx3d.js';
 import { createAbyssVFX } from './enemy3-abyss-vfx3d.js';
 import { attachKatana, poseKatana, poseCaster, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
@@ -227,8 +227,11 @@ export function createEnemy1SquadRuntime(ctx) {
       if (camera) chaos.update(dt, camera, squad.spells, charges, quality);
       if (camera) abyss.update(dt, camera, squad.spells, charges, quality, targets[0] || null);
       if (camera) ruin.update(dt, camera, squad.spells, squad.actors, quality);
-      if (camera) { const blades = {}; for (const a of squad.actors) { const b = bodies.get(a.id); if (a.kind === 'vhazrael' && b && b.weapon) { b.weapon.updateWorldMatrix(true, false); const p = new T.Vector3().copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), q = new T.Vector3().copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld); blades[a.id] = { a: p, b: q }; } }
-        orbit = vzfx.update(dt, camera, squad.spells, squad.actors, quality, blades, targets[0] || null); }
+      if (camera) { const blades = {}, heads = {}; for (const a of squad.actors) { const b = bodies.get(a.id); if (a.kind === 'vhazrael' && b && b.weapon) { b.weapon.updateWorldMatrix(true, false); const p = new T.Vector3().copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), q = new T.Vector3().copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld); blades[a.id] = { a: p, b: q }; }
+          // MOD 253: âncora do rosto (osso Head do Bispo1) para o X de luz da Extinção Orbital — nunca flutua fora da cabeça
+          if (a.kind === 'vhazrael' && b && b.model) { if (b.headBone === undefined) { b.headBone = null; b.model.traverse(o => { if (!b.headBone && o.isBone && /Head$/.test(o.name)) b.headBone = o; }); }
+            if (b.headBone) { b.headBone.updateWorldMatrix(true, false); const hp = new T.Vector3().setFromMatrixPosition(b.headBone.matrixWorld), hu = new T.Vector3(0, 1, 0).applyQuaternion(b.headBone.getWorldQuaternion(new T.Quaternion())); heads[a.id] = { p: hp, up: hu, h: Math.max(.2, hp.y - a.y) }; } } }
+        orbit = vzfx.update(dt, camera, squad.spells, squad.actors, quality, blades, targets[0] || null, heads); }
       return info;
     },
     dispose() { stop(); vfx.dispose(); chaos.dispose(); abyss.dispose(); ruin.dispose(); vzfx.dispose(); impacts.dispose(); sak.dispose(); for (const t of trails) t.trail.dispose && t.trail.dispose(); }

@@ -570,6 +570,6 @@ export class Enemy1Squad {
   /** Estado resumido (laboratório, testes e HUD). */
   snapshot() {
     return { time: +this.time.toFixed(3), actors: this.actors.map(a => ({ id: a.id, kind: a.kind, role: a.role, hp: a.hp, alive: a.alive, x: +a.x.toFixed(2), z: +a.z.toFixed(2), act: a.act && (a.act.skill || a.act.type), intent: a.intent.mode, target: a.targetId, phase2: a.phase2 })),
-      spells: this.spells.map(s => ({ id: s.id, type: s.type, phase: s.phase, owner: s.owner, held: s.held ? s.held.id : null, age: s.age !== undefined ? +s.age.toFixed(2) : undefined })) };
+      spells: this.spells.map(s => ({ id: s.id, type: s.type, phase: s.phase, owner: s.owner, held: s.held ? s.held.id : null, age: s.age !== undefined ? +s.age.toFixed(2) : undefined, t: +(s.t || 0).toFixed(2) })) };
   }
 }
