@@ -1,0 +1,19 @@
+# ADENDO VISUAL OPCIONAL — VHAZRAEL / RUPTURA DO TRONO ABISSAL
+**Data 01/11/2026.** Complemento do briefing `CLAUDE-VHAZRAEL-RUPTURA-ESPADA-REFATORACAO-TEMP.md`. **NÃO reiniciar trabalho em curso, não sobrescrever commits ou alterar gameplay funcional.** Aplicar ao revisar/validar a implementação atual, se estiver acessível. O criador enviou comparação de imagens da Saber/Fate e capturas do desenvolvimento atual.
+
+## Diagnóstico visual
+O pilar e a energia carmim/roxa estão na direção certa; diferença dominante: a base atual mostra massas arredondadas rosa/laranja e nuvens cinza com aparência de algodão, enquanto a referência é uma **descarga de espada com lâminas de energia direcionais**, núcleo branco afiado, faixas vermelho/preto, raios laterais e chão sendo rasgado por força concentrada. **Preservar o que já funciona** e melhorar composição, geometria, movimento e iluminação. Não fazer mero recolor, bloom indiscriminado ou substituir tudo por cone liso.
+
+## Ajustes precisos e priorizados
+1. **BASE DO PILAR:** substituir bolas arredondadas amarelas/laranjas e fumaça cinza dominante por **lâminas/placas de energia oblíquas** que saem do ponto de impacto em `V`, com perfis triangulares irregulares extrudados, bordas serrilhadas, núcleo carmim/branco, casca preta e roxa. Deslocamento temporal e erosão; evitar repetição simétrica idêntica. Se houver fumaça, apenas suporte secundário, fragmentada e subordinada à silhueta.
+2. **PILAR:** conservar escala colossal; tornar **centro visualmente rígido e direcional** com faixas brancas/vermelhas verticais convergentes e regiões de sombra preta, rodeadas de fluxos afiados que se retorcem e mudam de largura. Evitar formato de casulo arredondado e evitar cone/cilindro chapado; silhueta deve parecer uma lâmina de luz, não tornado de fumaça.
+3. **LIGHTING / COMPOSIÇÃO:** iluminar céu, terreno e boss em vermelho-carmim **durante carga e disparo**, com queda gradual, sem destruir contraste ou saturar a tela inteira. Garantir que o branco central permaneça legível. Aplicar iluminação/grade temporário e restaurar integralmente no fim/interrupção; preservar performance mobile.
+4. **ELEMENTOS DA REFERÊNCIA:** raios brancos verticais irregulares nas laterais, **duas bandas horizontais escuras** cruzando o pilar (se o enquadramento permitir), pedras angulares **pretas** flutuando e girando sob sucção e sendo arremessadas no impacto. Não usar cubos repetidos de tamanho uniforme: variar escala/forma/rotação e conectar à física do ataque.
+5. **ANIMAÇÃO / SENSAÇÃO DE PESO:** espada real erguida e corte sincronizado; antecipação crescente, disparo brutal, impacto frame curto acessível, feixe atravessando arena, fissura, onda de choque e explosão em múltiplas fases. Nada de energia que só pisca parada ou disco rosa pequeno.
+6. **VFX TÉCNICO:** misturar meshes recortados/deformados, shader de erosão/flow e materiais opacos para negros; AdditiveBlending apenas nos brilhos. Bloom seletivo e exposição controlada. Usar instancing/pooling onde adequado; não impor contagem arbitrária de partículas. Medir mobile.
+
+## Critério de aceitação
+Capturas reais de frames de carga, disparo, feixe e explosão devem comunicar **corte de espada colossal, e não fumaça/bola de fogo**. Comparar lado a lado com o vídeo que o usuário enviará ao Claude; não afirmar igualdade sem avaliação. Manter o ataque incancelável por golpes e magias, boss estável, outras skills, ultimate e demais sistemas intactos.
+
+## Comunicação e limpeza
+**NÃO ENVIE MENSAGENS ENQUANTO TRABALHA.** Sem status ou spam. Se estiver em andamento, incorporar este adendo apenas na próxima revisão natural, sem reiniciar tarefas. Uma única mensagem final de no máximo 10 linhas. Após aplicar e validar, **excluir este adendo temporário**, além do briefing temporário principal quando apropriado. Não há como garantir que um agente já executando veja automaticamente um novo commit: consultar este arquivo se possível.
