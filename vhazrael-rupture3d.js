@@ -5,12 +5,12 @@ import { thronePose } from './vhazrael-choreo3d.js';
  * Linguagem visual de anime de alta energia com assets 100% originais e procedurais: cores em FAIXAS DURAS (cel/toon),
  * branco-quente no núcleo, vermelho/carmim, casca preta/violeta OPACA (preto não some como em blending aditivo).
  *
- *  A · Erguer (0–1 s): vento convergente de filamentos negros/violeta, brasas douradas subindo, veios negro/carmim
+ *  A · Erguer (0–1,65 s): vento convergente de filamentos negros/violeta, brasas douradas subindo, veios negro/carmim
  *      enrolando a lâmina a partir da guarda, detritos levantando do chão e a luz da arena caindo.
- *  B · Carga (1–2,3 s): pilar de ~58 m saindo da ponta da espada em TRÊS camadas deformadas por ruído advectado (núcleo
+ *  B · Carga (1,65–4,45 s): pilar de ~58 m saindo da ponta da espada em TRÊS camadas deformadas por ruído advectado (núcleo
  *      branco aditivo, chama carmim/magenta em faixas, casca negra/violeta rasgada com buracos), espirais helicoidais,
  *      línguas de chama negra/vermelha na base, anel de ignição, pedras subindo e a trilha de aviso no chão.
- *  C · Corte (2,43–2,62 s): o pilar acompanha a lâmina (mesma curva da pose) e desaba para a frente; leque de rastro
+ *  C · Corte (4,45–5,5 s): o pilar acompanha a lâmina (mesma curva da pose) e desaba para a frente; leque de rastro
  *      gigante, flare em cruz vermelho no instante do corte (o jogo faz o impact frame curtíssimo, com opção de reduzir).
  *  D · Feixe: tubo elíptico que alarga para a frente (núcleo branco + bainha vermelho/negra rasgada que escoa), parede de
  *      massa carmim na frente, línguas de chama abrindo em V, gavinhas negras nos flancos; o chão RACHA progressivamente
@@ -314,6 +314,24 @@ export function createRuptureVFX(T, kit) {
         const y = ground(x, z) + .21 + w * .08;
         if (j) rib.seg(ox, oy, oz, x, y, z, .22 + .28 * alpha, .22 + .28 * alpha,
           c4(w === 0 ? WHITE : RED, alpha * .98), c4(w === 0 ? RED : VIOL, alpha * .76));
+        ox = x; oy = y; oz = z;
+      }
+    }
+    // Arcos verticais de compressão, como o segundo plano da referência de Fate:
+    // são contornos de onda visíveis, NÃO esferas/cúpulas opacas nem bombas extras.
+    for (let i = 0; i < (low ? 1 : 2); i++) {
+      const k = (it - .55 - i * .29) / 1.6;
+      if (k < 0 || k > 1) continue;
+      const R = 3 + 16 * easeOut(k), alpha = (1 - smooth(k)) * .8;
+      const phi = i * 1.57 + .4, ca = Math.cos(phi), sa = Math.sin(phi);
+      const N = low ? 12 : 22; let ox, oy, oz;
+      for (let j = 0; j <= N; j++) {
+        const an = j / N * Math.PI;
+        const x = cx + Math.cos(an) * R * ca;
+        const y = cy + 1 + Math.sin(an) * R * .75;
+        const z = cz + Math.cos(an) * R * sa;
+        if (j) rib.seg(ox, oy, oz, x, y, z, .12 + .2 * alpha, .12 + .2 * alpha,
+          c4(WHITE, alpha), c4(i === 0 ? RED : VIOL, alpha * .8));
         ox = x; oy = y; oz = z;
       }
     }
