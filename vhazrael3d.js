@@ -1,5 +1,7 @@
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
+// Selo do motor, importado pela página para provar que a lógica nova carregou.
+export const VHAZRAEL_BUILD = '252-sword-contact';
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
