@@ -66,7 +66,7 @@ test('Extinção Orbital: ~17 s, sem ponto seguro; resposta decide o dano (guard
   { const { sq, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 0; a.used = new Set(['throne', 'thorns', 'terror']); run(sq, 40); assert.ok(log.filter(e => e.type === 'orbital').length <= 1); }
 });
 
-test('Mod 251 — Ruptura: coreografia completa, feixe para no alvo, núcleo e choque ancorados, sem dano duplicado', () => {
+test('Mod 252 — Ruptura: coreografia completa, feixe para no alvo, núcleo e choque ancorados, sem dano duplicado', () => {
   const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 16); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'throne');
   const phases = []; run(sq, 13.5, 1 / 60, () => { const s = sq.spells.find(x => x.type === 'throne'); if (s && phases.at(-1) !== s.phase) phases.push(s.phase); });
   assert.deepEqual(phases, ['raise', 'charge', 'slash', 'wave', 'impact', 'fade']);
@@ -79,7 +79,7 @@ test('Mod 251 — Ruptura: coreografia completa, feixe para no alvo, núcleo e c
     assert.equal(dmg.length, 0); }
 });
 
-test('Mod 251 — Ruptura INCANCELÁVEL: spam de golpes, stagger, knockback, quebra de postura e dano letal não interrompem', () => {
+test('Mod 252 — Ruptura INCANCELÁVEL: spam de golpes, stagger, knockback, quebra de postura e dano letal não interrompem', () => {
   const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 12); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'throne');
   const x0 = a.x, z0 = a.z;
   run(sq, 9, 1 / 60, t => {
@@ -102,10 +102,11 @@ test('Mod 251 — Ruptura INCANCELÁVEL: spam de golpes, stagger, knockback, que
 });
 
 
-test('Mod 251: hit imediato no feixe, contato único e choque depois no MESMO ponto', () => {
+test('Mod 252: hit imediato no feixe, contato único e choque depois no MESMO ponto', () => {
   const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]);
   const a = boss(sq, 16); a.alert = a.decideT = 1e9; cast(sq, a, h, 'throne');
-  run(sq, 6.05);
+  // Corte e contato em 5,15s (+ no máximo 1 tick de física de 120 Hz).
+  run(sq, 5.22);
   const contact = log.find(e => e.type === 'throneContact');
   const impact = log.find(e => e.type === 'throneImpact');
   assert.ok(contact && impact, 'feixe tocou o herói e encerrou a viagem');
@@ -113,6 +114,7 @@ test('Mod 251: hit imediato no feixe, contato único e choque depois no MESMO po
   assert.equal(contact.target, 'hero');
   assert.ok(Math.hypot(impact.spell.ix - h.x, impact.spell.iz - h.z) < 2,
     'explosão nasce no lugar do jogador, não no fim da arena');
+  assert.ok(contact.at !== undefined && contact.at <= contact.spell.T.cut + .1, 'contato até 100 ms após o corte'); 
   assert.deepEqual(dmg.filter(d => d.kind === 'throne').map(d => d.n), [26],
     'dano direto no toque sem esperar pelas explosões');
   assert.equal(log.some(e => e.type === 'throneShockwave'), false,
@@ -124,7 +126,7 @@ test('Mod 251: hit imediato no feixe, contato único e choque depois no MESMO po
     'um único dano por jogador, sem segunda bomba');
 });
 
-test('Mod 251: obstáculo encerra feixe antes do jogador e i-frames respeitam esquiva', () => {
+test('Mod 252: obstáculo encerra feixe antes do jogador e i-frames respeitam esquiva', () => {
   {
     const { sq, dmg, log } = world({ blocked: (x, z) => z < 8 });
     const h = hero(); sq.setTargets([h]); const a = boss(sq, 16);
@@ -141,6 +143,31 @@ test('Mod 251: obstáculo encerra feixe antes do jogador e i-frames respeitam es
     assert.equal(dmg.length, 0, 'dash invulnerável atravessa sem dano');
     assert.equal(log.some(e => e.type === 'throneContact'), false, 'sem falso contato');
   }
+});
+
+
+test('Mod 252: onda de choque NÃO persegue alvo após i-frames expirarem', () => {
+  const { sq, dmg } = world();
+  const h = hero({ iframes: true }); sq.setTargets([h]);
+  const a = boss(sq, 16); a.alert = a.decideT = 1e9;
+  cast(sq, a, h, 'throne');
+  run(sq, 6); // o corte e a onda já passaram pelo jogador protegido
+  h.iframes = false;
+  run(sq, 5);
+  assert.equal(dmg.length, 0, 'não existe hit atrasado depois da onda');
+});
+
+test('Mod 252: a onda radial alcança aliados por propagação, sem duplicar dano do alvo direto', () => {
+  const { sq, dmg, log } = world();
+  const h = hero(), ally = hero({ id: 'ally', team: 'ally', x: 5, z: 0, priority: .5 });
+  sq.setTargets([h, ally]);
+  const a = boss(sq, 16); a.alert = a.decideT = 1e9;
+  cast(sq, a, h, 'throne');
+  run(sq, 7);
+  assert.equal(dmg.filter(x => x.id === h.id && x.kind === 'throne').length, 1);
+  assert.equal(dmg.filter(x => x.id === h.id && x.kind === 'throneImpact').length, 0);
+  assert.equal(dmg.filter(x => x.id === ally.id && x.kind === 'throneImpact').length, 1);
+  assert.equal(log.filter(x => x.type === 'throneShockwave').length, 1);
 });
 
 test('Espinhos: rachadura antes de cada espinho, arcos com vãos, um dano por onda; Mãos: agarram, mordida limitada, DASH solta, imunidade', () => {

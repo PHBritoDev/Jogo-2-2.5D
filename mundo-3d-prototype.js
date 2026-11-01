@@ -2,7 +2,7 @@ import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
 import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
 import {pullOn} from './enemy2-squad3d.js';
-import {VZ} from './vhazrael3d.js';
+import {VZ,VHAZRAEL_BUILD} from './vhazrael3d.js';
 import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {BOSS_MOVES,bossTraceContact,bossLift} from './boss-choreography3d.js';
 import {bakeCombatClips} from './combat-rig3d.js';
@@ -15,6 +15,8 @@ const combatLabRequested=new URLSearchParams(location.search).has('treinoCombate
 const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has('todasHabilidades')||new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael');
 const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB);
+// O selo só mostra 252 quando o módulo de combate da versão 252 realmente importou.
+{const m=document.getElementById('marker');if(m){m.textContent=VHAZRAEL_BUILD.startsWith('252-')?'252':'?';m.title='Motor VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -3232,11 +3234,28 @@ function squadEvent(type,d){
   case 'cast':if(worldAudio.abyss3&&/^(nadir|barrage|singularity|sanctum|constellation|drill|cage)$/.test(d.skill))worldAudio.abyss3(d.skill==='singularity'||d.skill==='constellation'?'gravity':d.skill==='nadir'||d.skill==='sanctum'?'storm':'tear',squadGain(a.x,a.z));else worldAudio.dark&&worldAudio.dark(d.skill);if(a.T.boss||squadAlive().length<=2||d.skill==='judgment'||d.skill==='vortex'||d.skill==='nadir'||d.skill==='cage')showCombatCallout(SQUAD_NAMES[d.skill]);break;
   case 'thornWave':squadSfx('warn',0,0,150);break;
   case 'thornRise':squadSfx('stick',d.spike.x,d.spike.z,70);break;
-  // MOD 249 — Ruptura do Trono: som/luz/tremor em sincronia com cada etapa; impact frame curtíssimo (reduzir flashes desliga)
+  // MOD 252 — Ruptura do Trono: som/luz/tremor em sincronia com cada etapa; impact frame curtíssimo (reduzir flashes desliga)
   case 'throneCharge':squadSfx('gravity',s.x,s.z,0);worldAudio.abyss3&&worldAudio.abyss3('storm',squadGain(s.x,s.z));if(!userSettings.reduceShake)cameraShake(.06);break;
   case 'throneRaise':worldAudio.whoosh();squadSfx('tear',s.x,s.z,0);break;
   case 'throneSlash':squadSfx('launch',s.x,s.z,0);worldAudio.abyss3&&worldAudio.abyss3('heavy',squadGain(s.x,s.z));if(!userSettings.reduceFlash){renderer.domElement.style.filter='contrast(2.4) saturate(2.2) hue-rotate(-12deg)';setTimeout(()=>{renderer.domElement.style.filter='invert(1) contrast(2) saturate(0)';setTimeout(()=>{renderer.domElement.style.filter='';},45);},55);}else vzFlash('#300008',.25,160);hitStop(40);if(!userSettings.reduceShake)cameraShake(.14);break;
-  case 'throneImpact':squadSfx('boom',s.ix,s.iz,0);vzFlash('#fff4f8',userSettings.reduceFlash?.12:.45,140);if(squadNear(s.ix,s.iz,28)&&!userSettings.reduceShake)cameraShake(.24);break;
+  case 'throneContact':
+   // Mod 252: feedback do contato REAL, não só animação renderizada.
+   if(d.target==='hero'){
+    if(d.result==='hit'){hitStop(48);if(!userSettings.reduceShake)cameraShake(.12);}
+    if(VHAZRAEL_LAB)status.textContent=d.result==='hit'?
+     'MOD 252 • ACERTO DA ESPADA! HP '+playerHP+' / '+playerMaxHP:
+     d.result==='blocked'?'MOD 252 • ESPADA BLOQUEADA':
+     'MOD 252 • TOCOU, MAS O JOGADOR ESTAVA INVULNERÁVEL ('+d.result+')';
+   }
+   break;
+  case 'throneImpact':
+   squadSfx('tear',s.ix,s.iz,0);vzFlash('#fff4f8',userSettings.reduceFlash?.08:.22,90);
+   if(VHAZRAEL_LAB&&d.reason!=='target')status.textContent='MOD 252 • CORTE NO '+(d.reason==='terrain'?'OBSTÁCULO':'CHÃO')+' — sem acerto direto';
+   break;
+  case 'throneShockwave':
+   squadSfx('boom',s.ix,s.iz,0);
+   if(squadNear(s.ix,s.iz,28)&&!userSettings.reduceShake)cameraShake(.22);
+   break;
   case 'throneBlast':worldAudio.abyss3&&worldAudio.abyss3('boom',squadGain(s.ix,s.iz));squadSfx('thunder',s.ix,s.iz,0);if(squadNear(s.ix,s.iz,30)&&!userSettings.reduceShake)cameraShake(.2);break;
   case 'superArmor':if(performance.now()>(squadSfxAt.armorCallout||0)){squadSfxAt.armorCallout=performance.now()+2500;showCombatCallout('SUPERARMADURA — O GOLPE NÃO PARA');}break;
   case 'handRise':squadSfx('stick',d.hand.x,d.hand.z,60);break;
