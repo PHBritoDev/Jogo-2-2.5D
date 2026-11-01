@@ -214,7 +214,7 @@ export function createRuptureVFX(T, kit) {
       if (age < T0.cut) { const fx = Math.sin(boss.yaw), fz = Math.cos(boss.yaw), Lw = Math.min(s.len || 20, 6 + 26 * chg); crack(s.id * 7, bx + fx * 1.5, bz + fz * 1.5, bx + fx * Lw, bz + fz * Lw, .14 + .1 * chg, .25 + .45 * chg * (.6 + .4 * Math.sin(time * 14)), .8 * lit); }
     }
     // leque do golpe: a curva da própria pose, da posição de preparo até agora, com o raio do pilar
-    if (age > T0.charge + .31 && age < T0.cut + .354) { const t1 = Math.min(age, T0.cut), t0 = Math.max(T0.charge + .31, t1 - .25), fade = 1 - smooth((age - T0.cut) / .24), N = 10, Rf = 58;
+    if (age > T0.charge + .31 && age < T0.cut + .24) { const t1 = Math.min(age, T0.cut), t0 = Math.max(T0.charge + .31, t1 - .25), fade = 1 - smooth((age - T0.cut) / .24), N = 10, Rf = 58;
       const P = (t, out) => { const p = thronePose(t); world(boss, p.blade[0], p.blade[1], p.blade[2], out); if (out.y < -.04) { out.y = -.04; out.normalize(); } return out; };
       for (let i = 0; i < N; i++) { const ta = t0 + (t1 - t0) * i / N, tb = t0 + (t1 - t0) * (i + 1) / N; P(ta, A); P(tb, B); const ua = i / N, ub = (i + 1) / N;
         fan.quad([base.x + A.x * 24, base.y + A.y * 24, base.z + A.z * 24], [base.x + A.x * Rf, base.y + A.y * Rf, base.z + A.z * Rf], [base.x + B.x * 24, base.y + B.y * 24, base.z + B.z * 24], [base.x + B.x * Rf, base.y + B.y * Rf, base.z + B.z * Rf],
@@ -223,7 +223,7 @@ export function createRuptureVFX(T, kit) {
     const fk = (age - T0.cut) / .35; if (fk >= 0 && fk < 1) { const fx = Math.sin(boss.yaw), fz = Math.cos(boss.yaw), cx = bx + fx * 2.5, cy = gy + 1.6, cz = bz + fz * 2.5, Lx = 26 * easeOut(Math.min(1, fk * 3)), Ly = 34 * easeOut(Math.min(1, fk * 3)), w = .55 * (1 - fk), a = 1 - fk * fk;
       rib.seg(cx - fz * Lx, cy, cz + fx * Lx, cx + fz * Lx, cy, cz - fx * Lx, w, w, c4(RED, a), c4(RED, a)); rib.seg(cx, cy - 2, cz, cx, cy + Ly, cz, w, w * .3, c4(RED, a), c4(RED, a));
       rib.seg(cx - fz * Lx * .7, cy, cz + fx * Lx * .7, cx + fz * Lx * .7, cy, cz - fx * Lx * .7, w * .3, w * .3, c4(WHITE, a), c4(WHITE, a)); glow.add(cx, cy, cz, 9 * (1 - fk * .5), 9 * (1 - fk * .5), 1, .25, .45, a, 2, .78); glow.add(cx, cy, cz, 4, 4, 1, 1, 1, a, 0); }
-    if (age > T0.raise && age < T0.cut + .2) hint = { look: [bx, gy + 12 * lit, bz], k: lit * (1 - cutK), fov: 10 * lit * (1 - cutK), back: 5, lift: 2.5 }; // o jogo abre o plano e inclina para revelar a escala
+    if (age > T0.raise && age < T0.cut + .35) hint = { look: [bx, gy + 12 * lit, bz], k: lit * (1 - cutK), fov: 10 * lit * (1 - cutK), back: 5, lift: 2.5 }; // o jogo abre o plano e inclina para revelar a escala
   }
 
   /* ---------- D: feixe e chão rasgado ---------- */
