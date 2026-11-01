@@ -75,12 +75,12 @@ void main(){ if(cutAway(vV,near)) discard; float n=n2(vec2(vU.y*7.-time*9.+vP.w*
  vec3 c=vP.y<.5?(d<.22*vP.x?vec3(1.,.95,.98):d<.55?vec3(1.,.08,.24):d<.8?vec3(.55,0.,.07):vec3(.05,0.,.05)):vP.y<1.5?(d<.4?vec3(.5,.06,.85):vec3(.015,0.,.02)):(d<.2*vP.x?vec3(1.,.98,.86):d<.45?vec3(1.,.78,.2):d<.7?vec3(1.,.36,.05):d<.86?vec3(.45,.05,.02):vec3(.03,0.,.02));
  gl_FragColor=vec4(c,1.); }`;
 /* Mod 251: casca facetada de energia densa; cortes iluminados, não fumaça. */
-const DOME_V = `${NOISE} uniform float time; varying vec3 vN; varying vec3 vV; varying vec3 vP;
+const CORE_V = `${NOISE} uniform float time; varying vec3 vN; varying vec3 vV; varying vec3 vP;
 void main(){ vP=position; float j=n3(position*3.8+vec3(0.,time*.45,0.));
 vec3 p=position*(1.+(j-.5)*.16); vec4 w=modelMatrix*vec4(p,1.);
 vN=normalize(mat3(modelMatrix)*normal); vV=cameraPosition-w.xyz;
 gl_Position=projectionMatrix*viewMatrix*w; }`;
-const DOME_F = `${NOISE}${CUT} uniform float time, erode, near, heat;
+const CORE_F = `${NOISE}${CUT} uniform float time, erode, near, heat;
 varying vec3 vN; varying vec3 vV; varying vec3 vP;
 void main(){ if(cutAway(vV,near)) discard;
 float crack=n3(vP*5.5+vec3(time*.2,0.,-time*.17));
@@ -130,7 +130,7 @@ function strips(T, max, frag, additive, hole) {
 }
 
 /**
- * kit: { root, glow, rib, decals, shard, plate, ring, boltRib, dome, ground } — sistemas já existentes do VFX do VHAZRAEL.
+ * kit: { root, glow, rib, decals, shard, plate, ring, boltRib, impactCore, ground } — sistemas já existentes do VFX do VHAZRAEL.
  * Devolve { draw(s, blade, boss, ctx), begin(cam, time, low), end(), clear(), dispose(), camHint }.
  */
 export function createRuptureVFX(T, kit) {
@@ -155,9 +155,9 @@ export function createRuptureVFX(T, kit) {
   /** língua de chama de p na direção dir (comprimento L, largura W), virada para a câmera em torno do próprio eixo */
   const tongue = (px, py, pz, dx, dy, dz, L, W, core, pal, dis, seed) => { if (L <= .05 || dis >= 1) return; D.set(dx, dy, dz).normalize(); E.set(cam.x - px, cam.y - py, cam.z - pz); X.crossVectors(D, E).normalize(); Z.crossVectors(X, D);
     M.makeBasis(X, D, Z); Q.setFromRotationMatrix(M); A.set(px, py, pz); putI(tongues, A, Q, W, L, W, core, pal, dis, seed); };
-  const domeG = new T.IcosahedronGeometry(1, 1).toNonIndexed(); geos.push(domeG);
-  const domeM = new T.ShaderMaterial({ vertexShader: DOME_V, fragmentShader: DOME_F, uniforms: { time: uTime, erode: { value: 0 }, near: { value: 2.6 }, heat: { value: 1 }, hole: uHole }, side: T.DoubleSide, toneMapped: false, fog: false }); mats.push(domeM);
-  const dome = new T.Mesh(domeG, domeM); dome.frustumCulled = false; dome.visible = false; root.add(dome);
+  const coreG = new T.IcosahedronGeometry(1, 1).toNonIndexed(); geos.push(coreG);
+  const coreM = new T.ShaderMaterial({ vertexShader: CORE_V, fragmentShader: CORE_F, uniforms: { time: uTime, erode: { value: 0 }, near: { value: 2.6 }, heat: { value: 1 }, hole: uHole }, side: T.DoubleSide, toneMapped: false, fog: false }); mats.push(coreM);
+  const impactCore = new T.Mesh(coreG, coreM); impactCore.frustumCulled = false; impactCore.visible = false; root.add(impactCore);
   const ink = strips(T, 900, INK_F, false, uHole), fan = strips(T, 64, FAN_F, true, uHole); mats.push(ink.mat, fan.mat); geos.push(ink.geo, fan.geo); root.add(ink.mesh, fan.mesh);
   const INK = [.02, 0, .03], VIOL = [.36, .08, .7], CRIM = [.75, 0, .08], c4 = (c, a) => [c[0], c[1], c[2], a];
   const RED = [1, .05, .14], WHITE = [1, .95, 1], GOLD = [1, .62, .18], HOTV = [.62, .22, 1];
@@ -284,11 +284,11 @@ export function createRuptureVFX(T, kit) {
     const shrink = 1 - .85 * smooth((it - 1.45) / 1.25);
     if (it < 2.7) {
       const growth = smooth(it / .48), size = (.75 + 2.1 * growth) * shrink;
-      dome.visible = true;
-      dome.position.set(cx, cy + .8 + 1.1 * growth, cz);
-      dome.scale.set(size * 1.07, size * 1.4, size * .9);
-      dome.rotation.set(.1 + .14 * Math.sin(it * 3), it * .7, -.25);
-      domeM.uniforms.erode.value = smooth((it - 1.5) / 1.2);
+      impactCore.visible = true;
+      impactCore.position.set(cx, cy + .8 + 1.1 * growth, cz);
+      impactCore.scale.set(size * 1.07, size * 1.4, size * .9);
+      impactCore.rotation.set(.1 + .14 * Math.sin(it * 3), it * .7, -.25);
+      coreM.uniforms.erode.value = smooth((it - 1.5) / 1.2);
       glow.add(cx, cy + 1.8, cz, 2.7 + 2.2 * growth, 3 + 2 * growth,
         1, .73, .65, Math.max(0, 1 - smooth((it - 1.2) / 1.5)), 2, .33);
     }
@@ -377,7 +377,7 @@ export function createRuptureVFX(T, kit) {
 
   return {
     get camHint() { return hint; }, get tint() { return tint; },
-    begin(camera, t, q, target) { time = t; uTime.value = t; low = q === 0; cam.copy(camera.position); hint = null; tint = 0; dome.visible = false;
+    begin(camera, t, q, target) { time = t; uTime.value = t; low = q === 0; cam.copy(camera.position); hint = null; tint = 0; impactCore.visible = false;
       if (target && target.alive !== false) uHole.value.set(target.x, ground(target.x, target.z) + 1, target.z, 1.7); else uHole.value.w = 0; /* o herói nunca some dentro do efeito */ for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.n = tongues.n = 0; ink.begin(cam); fan.begin(cam); },
     /** blade: {a,b} em mundo (guarda e ponta); boss: ator dono (pode faltar depois do corte) */
     draw(s, blade, boss) {
@@ -387,7 +387,7 @@ export function createRuptureVFX(T, kit) {
       if ((s.phase === 'impact' || s.phase === 'fade') && s.ix !== undefined) drawImpact(s);
     },
     end() { for (const I of [puffs, tongues]) { I.o.count = I.n; I.o.instanceMatrix.needsUpdate = true; I.o.geometry.attributes.aP.needsUpdate = true; } ink.end(); fan.end(); },
-    clear() { dome.visible = false; for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.o.count = tongues.o.count = 0; ink.geo.setDrawRange(0, 0); fan.geo.setDrawRange(0, 0); hint = null; },
+    clear() { impactCore.visible = false; for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.o.count = tongues.o.count = 0; ink.geo.setDrawRange(0, 0); fan.geo.setDrawRange(0, 0); hint = null; },
     dispose() { for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); }
   };
 }
