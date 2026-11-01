@@ -7,7 +7,7 @@ test('VÉRAXION usa o Buraco Negro e a forma final da Ganância usa a Supernova'
   assert.equal(ULTIMATES.greed3.kind, 'nova');
   assert.equal(ultimateFor('fallen4').kind, 'void');
   assert.equal(ultimateFor('greed1').kind, 'gate');
-  assert.equal(ultimateFor('valerio').kind, 'reaper');
+  assert.equal(ultimateFor('vhazrael').kind, 'reaper');
   assert.equal(ultimateDue('rival', 0.1, 0), -1);
 });
 

@@ -2,7 +2,7 @@
 
 **Leia este arquivo inteiro antes de alterar código.** O criador também enviará um ZIP compacto com storyboard de CINCO vídeos de referência e uma especificação detalhada chamada INSTRUCOES-CODEX.md. O ZIP não está neste repositório: solicite-o caso ainda não tenha recebido. Este arquivo no GitHub é o ponto de entrada da tarefa.
 
-Projeto: PHBritoDev/Jogo-2-2.5D, branch main. Você deve pesquisar, implementar, testar e abrir PR. Trabalhe em branch separada. Não faça alterações destrutivas na main nem anuncie êxito sem teste. Preserve a dimensão de Valério, o mundo 3D, GLBs, habilidades, VFX, cooldowns, save, controles mobile e colisões. Não substitua os três personagens por uma mesma animação.
+Projeto: PHBritoDev/Jogo-2-2.5D, branch main. Você deve pesquisar, implementar, testar e abrir PR. Trabalhe em branch separada. Não faça alterações destrutivas na main nem anuncie êxito sem teste. Preserve a dimensão de VHAZRAEL, o mundo 3D, GLBs, habilidades, VFX, cooldowns, save, controles mobile e colisões. Não substitua os três personagens por uma mesma animação.
 
 ## Escopo exato
 1. **Protagonista:** espadachim celestial fluido. Combos variados (diagonal com avanço, estocada, launcher, giro, finalização), ataque correndo, dash-attack, salto+ataque, ataque aéreo, plunge. Cada Rito de Espada existente recebe coreografia própria que combine com sua função.

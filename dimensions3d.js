@@ -9,9 +9,9 @@ export const DIM_FLOOR_Y = -2000;
 export const DIMENSIONS = {
   bishop1: {
     key: 'bishop1', order: 1, name: 'VHAZRAEL', title: 'O Primeiro Bispo', epithet: 'O Ceifador dos Condenados',
-    kicker: 'DIMENSÃO I · A CÂMARA DOS CONDENADOS', portrait: 'Bispo1-ui.webp', rig: 'bishop1', profile: 'valerio', hp: 260,
+    kicker: 'DIMENSÃO I · A CÂMARA DOS CONDENADOS', portrait: 'Bispo1-ui.webp', rig: 'bishop1', profile: 'vhazrael', hp: 260,
     line: '“Toda alma tem um último pedido. A sua terá o privilégio de morrer sem ser ouvida.”',
-    rage: 'Cada moeda que cai é uma alma que você não salvou.',
+    rage: 'O abismo tem fome, e eu sou a boca dele.',
     center: { x: 400, z: 0 }, radius: 30, accent: '#e0b040', theme: 'vault'
   },
   bishop2: {
@@ -80,7 +80,7 @@ export const DIMENSIONS = {
 
 export const BISHOP_KEYS = ['bishop1', 'bishop2', 'bishop3', 'bishop4'];
 
-/** Dimensão do perfil de luta (valerio → bishop1, vorgazhek → bishop2 …), ou null. */
+/** Dimensão do perfil de luta (vhazrael → bishop1, vorgazhek → bishop2 …), ou null. */
 export function dimensionForProfile(profile) {
   for (const d of Object.values(DIMENSIONS)) if (d.profile === profile) return d;
   return null;

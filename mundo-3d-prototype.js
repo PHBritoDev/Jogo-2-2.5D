@@ -2,6 +2,7 @@ import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
 import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
 import {pullOn} from './enemy2-squad3d.js';
+import {VZ} from './vhazrael3d.js';
 import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {BOSS_MOVES,bossTraceContact,bossLift} from './boss-choreography3d.js';
 import {bakeCombatClips} from './combat-rig3d.js';
@@ -12,8 +13,8 @@ import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage,swordLayers} f
 const vfxLabRequested=new URLSearchParams(location.search).has('vfxLab236');
 const combatLabRequested=new URLSearchParams(location.search).has('treinoCombate244');
 const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has('todasHabilidades')||new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
-const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4');
-const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB);
+const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael');
+const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB);
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -64,7 +65,7 @@ import { SNOW_CITY, inSnowCity, INN, innWalkable, innFloor, innCeil, ICE_CAVE, i
 import { ACT3, ACT4, LATE_ACTS, EXTRA_REGIONS, EXTRA_PASSES, ALTAR_VALLEY, SERRA, stepDef, latePresentation, lateActFor, collectItem, bossRewardOnce, COLISEUM, coliseumPayout } from './acts34-flow.js';
 import { FINALE, FINAL_PORTAL, VOID, GAUNTLET, SIN_FORMS, finaleTalkLines, gauntletIntroLines, sinIntroLines, epilogueLines, finaleAfterDeath, nextGauntlet, nextSinForm, finaleReward } from './finale-flow.js';
 import { createTerrain, buildTerrainArrays, colorTerrain, scatterForest, fbm } from './world3d-terrain.js';
-import { ACT1, SPEAKERS, sanitizePlayerName, migrateProgress, questPresentation, afterEnemyDefeated, afterWardenDefeat, valerioHandoffPlan, afterValerioVictory, personalizeLine, villageArrivalScene, vendorRefusalScene, vendorScene, forestFirstScene, forestSecondScene, keyFoundScene, cageScene, faintScene, massacreScene, clueScene, feedingScene, holeScene, wardenIntroScene, wardenDefeatScene, valerioIntroScene, valerioDefeatScene, afterValerioScene } from './act1-flow.js';
+import { ACT1, SPEAKERS, sanitizePlayerName, migrateProgress, questPresentation, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, afterVhazraelVictory, personalizeLine, villageArrivalScene, vendorRefusalScene, vendorScene, forestFirstScene, forestSecondScene, keyFoundScene, cageScene, faintScene, massacreScene, clueScene, feedingScene, holeScene, wardenIntroScene, wardenDefeatScene, vhazraelIntroScene, vhazraelDefeatScene, afterVhazraelScene } from './act1-flow.js';
 import { SEWER, sewerWalkable, sewerCheckpoint, sewerZone } from './sewer3d.js';
 
 const worldAudio=createWorldAudio();
@@ -580,7 +581,7 @@ const wardenRing=new THREE.Mesh(new THREE.TorusGeometry(.78,.05,6,28),new THREE.
 wardenRing.name='warden-ring';wardenRing.rotation.x=Math.PI/2;wardenRing.position.y=.06;wardenRing.visible=false;enemy.add(wardenRing);
 let rigTimeScales=null;
 var lateSystemsReady=false,finaleReady=false;
-const BOSS_PROFILES=['vorgazhek','zarkhael','veraxion','valerio'];
+const BOSS_PROFILES=['vorgazhek','zarkhael','veraxion','vhazrael'];
 let enemyModel=null,enemyMixer=null,enemyClips=[],enemyActions={},enemyCurrentAction=null,enemyCurrentRole='idle',enemyHasDeathClip=false;
 let enemyLoadState='idle';
 let enemyHP=100,enemyMaxHP=100,enemyAlive=true,enemyHitFlash=0,enemyKnockback=0,enemyKnockbackX=0,enemyKnockbackZ=0;
@@ -1057,7 +1058,7 @@ let sideReady=false;
 let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,journeyEnemyIndex=saved3DProgress.journeyEnemyIndex,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
 let playerName=saved3DProgress.playerName,captorsTaunted=saved3DProgress.captorsTaunted,childrenFreed=saved3DProgress.childrenFreed,awakeningSeen=saved3DProgress.awakeningSeen,actCardSeen=saved3DProgress.actCardSeen;
 let mountainIndex=saved3DProgress.mountainIndex||0,wardenTaunted=!!saved3DProgress.wardenTaunted,wardenDefeated=!!saved3DProgress.wardenDefeated,portalOpened=!!saved3DProgress.portalOpened,portalRewardClaimed=!!saved3DProgress.portalRewardClaimed;
-let wardenIntroLock=false,portalPull=null,handoffSent=false,bishopsDefeated=saved3DProgress.bishopsDefeated||0,valerioRewardClaimed=!!saved3DProgress.valerioRewardClaimed;
+let wardenIntroLock=false,portalPull=null,handoffSent=false,bishopsDefeated=saved3DProgress.bishopsDefeated||0,vhazraelRewardClaimed=!!saved3DProgress.vhazraelRewardClaimed;
 /* MOD 188 — progressão: XP e nível, moedas por vitória, estatísticas para conquistas e catálogo de inimigos. */
 let playerXp=saved3DProgress.xp||0,ownedItems=new Set(saved3DProgress.owned||[]),equippedSword=saved3DProgress.sword||'prota';
 // MOD 233 — espaços das Palavras (saves antigos começam no padrão) e espada salva que não pertence mais ao jogador volta à inicial.
@@ -1107,7 +1108,7 @@ function precompileWorld(){
  const done=()=>{worldCompiled=true;};setTimeout(done,9000);
  try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
 }
-function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,valerioRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
@@ -1175,12 +1176,12 @@ function enemyHpPercent(){return Math.max(0,Math.min(100,enemyHP/Math.max(1,enem
 function nextDashCooldown(){if(encounterProfile==='warden')return 2.15;if(encounterProfile==='sentry'&&mountainIndex>0)return 1.65;return 2.7;}
 function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;const dimInfo=dimensionForProfile(encounterProfile);el.textContent=dimBattle&&dimBattle.active&&dimInfo?dimInfo.name+' · '+(dimInfo.order<5?dimInfo.order+'º BISPO':'PECADO'):(finaleReady&&finaleNameFor(encounterProfile))?finaleNameFor(encounterProfile):encounterProfile==='vorgazhek'?'VORGAZHEK · SEGUNDO BISPO':encounterProfile==='arena'?'ARENA DO VALE':(lateSystemsReady&&lateDef()&&lateDef().profile===encounterProfile)?lateDef().name:encounterProfile==='warden'?'GUARDIÃO DO PORTAL':(encounterProfile==='demon2'||encounterProfile==='demon3')?'DEMÔNIO DA GANÂNCIA':encounterProfile==='miniboss3'?'GUARDIÃO DA DISTORÇÃO':ROUND_NAMES[encounterProfile]?ROUND_NAMES[encounterProfile]:encounterProfile==='angel'?'ANJO-GUIA':encounterProfile==='demon4'?'GUARDIÃO DA TORRE':encounterProfile==='miniboss4'?'GUARDIÃO DO 6º PISO':encounterProfile==='leader4'?'LÍDER DOS GUARDIÕES':encounterProfile==='bandit4'?'BANDIDO':encounterProfile==='rival'?'DESCONHECIDO':encounterProfile==='miniboss2'?'GUARDIÃO DO TRONO':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;siegeEpoch++;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
-function advanceAfterEnemyDefeat(){if(squadOn||performance.now()<squadSwallowUntil)return;if(dimBattle&&dimBattle.active){if(act6GreedDefeat())return;if(questStep===ACT6N.rematch&&!dimBattle.outro){const r=nextRematch(act1Sub);if(r&&r.key===dimBattle.key){dimBattle.outro=true;enemy.visible=true;playStory('revanche-cai',rematchOutroScene(r.key),{focus:'enemy',done:()=>dimensionVictory()});return;}}if(dimBattle.key==='bishop1'&&questStep<8&&!dimBattle.outro){dimBattle.outro=true;valerioOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&questStep===ACT2.boss&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
+function advanceAfterEnemyDefeat(){if(squadOn||performance.now()<squadSwallowUntil)return;if(dimBattle&&dimBattle.active){if(act6GreedDefeat())return;if(questStep===ACT6N.rematch&&!dimBattle.outro){const r=nextRematch(act1Sub);if(r&&r.key===dimBattle.key){dimBattle.outro=true;enemy.visible=true;playStory('revanche-cai',rematchOutroScene(r.key),{focus:'enemy',done:()=>dimensionVictory()});return;}}if(dimBattle.key==='bishop1'&&questStep<8&&!dimBattle.outro){dimBattle.outro=true;vhazraelOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&questStep===ACT2.boss&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
 function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
 function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;const root=vendorRoots[villageVendors.indexOf(vendor)];if(root){faceTo(root,player.position);faceTo(player,root.position);}if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
-function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;const T=inSewer?sewerLocal(SEWER.portal):PORTAL,tz=T.z+(inSewer?1.2:2.4);player.position.x+=(T.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=(tz-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(T.x-player.position.x,T.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestValerioHandoff();}
-function openValerioPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de VHAZRAEL foi quebrado.';return;}updateHeartsHud(true);if(!canChallengeBishop(heartState)){status.textContent='Sem corações. O próximo volta em '+formatTimer(msToNextHeart(heartState))+'.';showDialogue([{who:'Anjo-Guia',text:'Não atravesse de peito vazio. Espere um coração voltar.'}]);return;}if(questStep===6){if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();act1Toast('A DIMENSÃO DE VHAZRAEL SE ABRE');}if(questStep===7){status.textContent='O portal puxa você.';worldAudio.portalEnter();startPortalPull();}}
+function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;const T=inSewer?sewerLocal(SEWER.portal):PORTAL,tz=T.z+(inSewer?1.2:2.4);player.position.x+=(T.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=(tz-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(T.x-player.position.x,T.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestVhazraelHandoff();}
+function openVhazraelPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de VHAZRAEL foi quebrado.';return;}updateHeartsHud(true);if(!canChallengeBishop(heartState)){status.textContent='Sem corações. O próximo volta em '+formatTimer(msToNextHeart(heartState))+'.';showDialogue([{who:'Anjo-Guia',text:'Não atravesse de peito vazio. Espere um coração voltar.'}]);return;}if(questStep===6){if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();act1Toast('A DIMENSÃO DE VHAZRAEL SE ABRE');}if(questStep===7){status.textContent='O portal puxa você.';worldAudio.portalEnter();startPortalPull();}}
 function tryInteract(){if(whiteLease.locked)return;if(cineActive)return;if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen)return;if(act1Interact())return;if(act2StoryInteract())return;if(act3Ready&&act3Interact())return;if(act3Ready&&act4Interact())return;if(act3Ready&&act6Interact())return;if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
 bindInstantTap(document.getElementById('talk-button'),tryInteract);
 const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');skipAwakening.classList.add('hidden');}
@@ -1394,7 +1395,7 @@ const whiteLease=new CinematicLease({capture:()=>({modelPosition:model.position.
  finally{clearWhiteInput();actionUntil=0;attackCooldown=0;whiteOverlay.style.opacity='0';document.body.classList.remove('whitehole-cinematic');snap.controls.forEach(({el,disabled,inert})=>{el.inert=inert;if('disabled'in el)el.disabled=disabled;});worldAudio.setCinematicGain?.(1);whiteVFX?.clear();whiteStorm?.hide();whiteWindPhase=0;}
 }});
 function finishWhiteHole(){const death=whitePendingDeath&&whiteHole.id===siegeEpoch&&enemyHP===0;whitePendingDeath=false;whiteHole.cancel();whiteLease.release();if(death)hurtEnemy(0,false,true,true);}
-function beginWhiteHole(){if(!whiteVFX){whiteVFX=createWhiteHoleVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});loadUltimateWings();}ensureWhiteStorm();whiteScene=siegeContext();whitePendingDeath=false;whiteLease.begin();try{if(!whiteHole.start(player.position,phoenixTarget(),1+statsForLevel(playerLevel()).damageBonus))finishWhiteHole();}catch(e){finishWhiteHole();throw e;}}
+function beginWhiteHole(){if(squadRT&&squadRT.orbit&&squadRT.orbit.phase==='choice')vzDuel=true;if(!whiteVFX){whiteVFX=createWhiteHoleVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});loadUltimateWings();}ensureWhiteStorm();whiteScene=siegeContext();whitePendingDeath=false;whiteLease.begin();try{if(!whiteHole.start(player.position,phoenixTarget(),1+statsForLevel(playerLevel()).damageBonus))finishWhiteHole();}catch(e){finishWhiteHole();throw e;}}
 const whiteCam=new THREE.Vector3(),whiteLook=new THREE.Vector3();
 /* MOD 229 — asas do prólogo (Asas.glb) na Ultimate, tempestade carmesim em volta da câmera e vento nas árvores. */
 const WHITE_HEMI=new THREE.Color(0xc0402a),WHITE_HEMI_G=new THREE.Color(0x2a0404),WHITE_SUN=new THREE.Color(0xff4a28),WHITE_SKY=new THREE.Color(0x4a0508),WHITE_BG=new THREE.Color(0x220305),WHITE_FOG=new THREE.Color(0x5e0c0a),whiteHoleSky=new THREE.Vector3();
@@ -1519,7 +1520,7 @@ function updateHolyProjectiles(dt){
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
  }
 }
-function action(kind){if(whiteLease.locked)return;if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(now<dashCooldownUntil||!rites.canCancel)return;rites.cancel('dash');dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded||!rites.canCancel)return;rites.cancel('jump');grounded=false;verticalVelocity=jumpImpulse;worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget());siegeHUD();return;}tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(slotSkill(kind));return;}}
+function action(kind){if(whiteLease.locked)return;if(vzLocked){if(kind==='attack'||kind==='jump')vzSkip();return;}if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(now<dashCooldownUntil||!rites.canCancel)return;rites.cancel('dash');dashCooldownUntil=now+720;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded||!rites.canCancel)return;rites.cancel('jump');grounded=false;verticalVelocity=jumpImpulse;worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget());siegeHUD();return;}tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(slotSkill(kind));return;}}
 // MOD 187 — o celular não gera 'click' para um segundo dedo enquanto o primeiro segura o joystick; pointerdown responde sempre.
 function bindInstantTap(button,fn){if(!button)return;let lastTap=0,pointerSeen=false;button.addEventListener('pointerdown',e=>{pointerSeen=true;e.preventDefault();e.stopPropagation();lastTap=performance.now();fn();});button.addEventListener('click',e=>{if(pointerSeen&&e.detail>0)return;if(performance.now()-lastTap>500)fn();});}
 function bindInstantAction(id,kind){bindInstantTap(document.getElementById(id),()=>action(kind));}
@@ -1745,7 +1746,7 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();updateInstanceCulling();checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();vzUpdateLock();updateInstanceCulling();checkSecretRuin();
  updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -1754,7 +1755,7 @@ updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
  updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
- renderer.render(scene,camera);}
+ if(vzCinematic())return;renderer.render(scene,camera);}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
  skyDome.position.copy(camera.position);skyDome.scale.setScalar(SKY_SCALE);
@@ -2021,18 +2022,23 @@ function beginDimensionFight(){
  if(panel)panel.hidden=true;vsOpen=false;portalPull=null;
  enterDimensionArena(b.key);
  enemy.visible=false;useRig(d.rig);bossRageAnnounced=false;bossComboHits=0;bossHitCounter=0;
- const sp=arenaSpots(b.key);revealEncounter(d.profile,sp.boss,b.hp,d.line);
+ const sp=arenaSpots(b.key);
+ if(b.key==='bishop1'&&!SQUAD_LEGACY){pack={squad:true,dim:true,rig:'bishop1',profile:d.profile,hp:b.hp,spots:[sp.boss],clones:[],index:0,active:false,intro:d.line,onDone:vhazraelSquadDone};startSquadPack();}
+ else revealEncounter(d.profile,sp.boss,b.hp,d.line);
  checkpointX=sp.player.x;checkpointZ=sp.player.z;
  const hud=document.getElementById('enemy-hud');if(hud){hud.style.display='';hud.classList.add('boss');}
  b.active=true;syncEnemyLabel();showCombatCallout(d.name);cameraShake(.15);
- if(b.key==='bishop1')setTimeout(valerioIntro,600);
+ if(b.key==='bishop1')setTimeout(vhazraelIntro,600);
  if(b.key==='bishop2'&&questStep===ACT2.boss)setTimeout(()=>{if(dimBattle&&dimBattle.key==='bishop2')playStory('vorgazhek',vorgazhekIntroScene(),{focus:'enemy',face:'enemy'});},600);
  if(b.key==='bishop3')setTimeout(zarkhaelIntro,600);
  if(b.key==='bishop4')setTimeout(veraxionIntro,600);
  if(questStep===ACT6N.rematch)setTimeout(rematchIntro,600);
  if(b.key==='greed')setTimeout(greedIntro,600);
 }
+/** Fim da luta em esquadra do VHAZRAEL: mesma saída de antes (fala de derrota no Ato I, depois a vitória da dimensão). */
+function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;if(questStep<8&&!b.outro){b.outro=true;enemy.visible=true;vhazraelOutro(()=>dimensionVictory());}else dimensionVictory();}
 function resetEnemyAfterDimension(){
+ if(pack&&pack.dim)clearPack();
  enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;
  clearHazards();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
  const hud=document.getElementById('enemy-hud');if(hud)hud.classList.remove('boss');
@@ -2059,7 +2065,7 @@ function abortDimensionBattle(){
 /** Queda dentro da dimensão: custa um coração; sem corações o portal expulsa o jogador. */
 function dimensionPlayerDown(){
  const b=dimBattle;if(!b||!b.active)return;
- if(b.key==='bishop1'){spendHeart('valerio');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(heartState.hearts<=0)enemy.visible=false;}
+ if(b.key==='bishop1'){spendHeart('vhazrael');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(squadOn){const s=squadSq();if(s){for(const a of s.actors)if(a.alive&&a.kind==='vhazrael')a.hp=a.maxHp;s.spells=s.spells.filter(x=>x.type!=='orbital');writeSquadProxy();}}if(heartState.hearts<=0)enemy.visible=false;}
  else if(b.key==='bishop2')bossDefeatedPlayer();
  else if(b.key==='bishop3'&&questStep===ACT3N.boss){spendHeart('zarkhael');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(heartState.hearts<=0)enemy.visible=false;}
  else if(b.key==='bishop4'&&questStep===ACT4N.boss){spendHeart('veraxion');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(heartState.hearts<=0)enemy.visible=false;}
@@ -2067,22 +2073,22 @@ function dimensionPlayerDown(){
  if(!enemy.visible)abortDimensionBattle();
 }
 // ---- VHAZRAEL (Ato I) ----
-function requestValerioHandoff(){
+function requestVhazraelHandoff(){
  if(handoffSent||dimBattle)return;
  // MOD 204 — o portal fica no fundo do esgoto. Vitória: volta ao início do mapa (roteiro). Sem corações: fora do esgoto.
  inSewer=false;voidSpec.walk=null;for(const c of hordeClones.splice(0))disposeClone(c);guideFighting=false;
- startDimensionBattle('bishop1',{hp:DIMENSIONS.bishop1.hp,returnTo:{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z},onVictory:valerioVictory,onAbort:()=>{
+ startDimensionBattle('bishop1',{hp:DIMENSIONS.bishop1.hp,returnTo:{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z},onVictory:vhazraelVictory,onAbort:()=>{
   const d=sewerDoorFront();player.position.set(d.x,terrainHeightAt(d.x,d.z),d.z);checkpointX=d.x;checkpointZ=d.z;
   status.textContent='O portal te expulsou: seus corações se apagaram. Recupere ao menos um para voltar.';
   setTimeout(()=>showDialogue([{who:'Anjo-Guia',text:'VHAZRAEL ainda está de pé, e você também. Espere um coração voltar a bater e desça de novo.'}]),700);}});
 }
-function valerioVictory(){
- const result=afterValerioVictory({valerioRewardClaimed,bishopsDefeated});
- if(result.coinsGained){bumpStat('bishops');gainXp(XP_REWARDS.valerio);bestiaryKnown.add('valerio');}
- questStep=result.questStep;act1Sub=0;bishopsDefeated=result.bishopsDefeated;valerioRewardClaimed=true;coins+=result.coinsGained;
+function vhazraelVictory(){
+ const result=afterVhazraelVictory({vhazraelRewardClaimed,bishopsDefeated});
+ if(result.coinsGained){bumpStat('bishops');gainXp(XP_REWARDS.vhazrael);bestiaryKnown.add('vhazrael');}
+ questStep=result.questStep;act1Sub=0;bishopsDefeated=result.bishopsDefeated;vhazraelRewardClaimed=true;coins+=result.coinsGained;
  closePortalVisuals();save3DProgress();updateQuestHud();syncAct1World();
  act1Toast('VHAZRAEL FOI PURIFICADO'+(result.coinsGained?' · +'+result.coinsGained+' MOEDAS':''));
- setGameHour(9);setTimeout(afterValerioStory,900);
+ setGameHour(9);setTimeout(afterVhazraelStory,900);
 }
 // ---- Portais dos Bispos 2–4 (aparecem quando o confronto do ato está liberado) ----
 const DIM_PORTAL_DEFS={
@@ -2968,7 +2974,7 @@ function useRig(name){
    (tema "sewer", layout em sewer3d.js), como as dimensões. */
 var packFinishing=false,act1Sub=saved3DProgress.act1Sub||0,storyScene=null,pack=null,inSewer=false,sewerArena=null,storyMove=null,storyFx=[],act1Props=null,act1Night=false,act1Lock=false,hordeClones=[],guideFighting=false;
 const STORY_EYE={hero:1.5,guide:2.1,enemy:1.35,vendor:1.5,cage:.7,victim:.9,feeding:.9,cell:1.2,hole:0,massacre:1,village:2};
-const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[SPEAKERS.vendor]:'vendor',[SPEAKERS.follower]:'enemy',[SPEAKERS.demon]:'enemy',[SPEAKERS.child]:'cage',[SPEAKERS.warden]:'enemy',[SPEAKERS.valerio]:'enemy',[SPEAKERS.victim]:'victim'};
+const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[SPEAKERS.vendor]:'vendor',[SPEAKERS.follower]:'enemy',[SPEAKERS.demon]:'enemy',[SPEAKERS.child]:'cage',[SPEAKERS.warden]:'enemy',[SPEAKERS.vhazrael]:'enemy',[SPEAKERS.victim]:'victim'};
 const storyAnchors={};
 const _sa=new THREE.Vector3(),_sb=new THREE.Vector3(),_sc=new THREE.Vector3();
 function sewerLocal(p){return{x:p.x+DIMENSIONS.esgoto.center.x,z:p.z+DIMENSIONS.esgoto.center.z};}
@@ -3094,13 +3100,13 @@ function updatePack(dt){
    vira um procurador invisível do ator em foco: golpes, magias, mira e HUD do herói continuam mirando enemy/enemyHP, e a
    diferença de vida/posição vai para o ator certo. Corte da espada, projéteis e magias em área alcançam os outros atores.
    ?esquadraLegada=1 volta ao modo antigo (um por vez). ?testeEnemy1=1 abre o laboratório isolado do progresso. */
-var squadSakugaCd=0,squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
+var vzDuel=false,vzLocked=false,vzLockPos=null,squadSakugaCd=0,squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
 const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=new Map();
 function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
 function squadRuntime(){
  if(squadRT)return squadRT;
  squadRT=createEnemy1SquadRuntime({T:THREE,scene,ground:terrainHeightAt,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
-  source:k=>rigSource(k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
+  source:k=>rigSource(k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':k==='vhazrael'?'bishop1':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
  return squadRT;
 }
 const squadSq=()=>squadRT&&squadRT.squad;
@@ -3111,12 +3117,12 @@ const squadAlive=()=>{const s=squadSq();return s?s.actors.filter(a=>a.alive):[];
 function e3SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy3'&&(profile==='demon3'||profile==='miniboss3');}
 /** Mod 246: Enemy4 (demon4) e mini-chefe Enemy4 (miniboss4) no MESMO Enemy4.glb; o líder (leader4) segue no pacote antigo. */
 function e4SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy4'&&(profile==='demon4'||profile==='miniboss4');}
-function squadRig(P){return P.rig==='enemy2'||P.rig==='enemy3'||P.rig==='enemy4'?P.rig:'enemy1';}
-function squadHp(P,kind,n){if(kind==='e4boss')return Math.round((P.hp||560)*1.36);if(kind==='e4')return Math.round((P.hp||190)*1.4*(n>=3?.9:1));if(kind==='e3boss')return Math.round((P.hp||520)*1.35);if(kind==='e3')return Math.round((P.hp||170)*1.48*(n>=3?.9:1));return kind==='warden'?Math.round((P.hp||300)*1.6):kind==='e2boss'?Math.round((P.hp||480)*1.35):kind==='e2'?Math.round((P.hp||150)*1.6*(n>=3?.85:1)):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
+function squadRig(P){return P.rig==='enemy2'||P.rig==='enemy3'||P.rig==='enemy4'||P.rig==='bishop1'?P.rig:'enemy1';}
+function squadHp(P,kind,n){if(kind==='vhazrael')return Math.round((P.hp||260)*2.5);if(kind==='e4boss')return Math.round((P.hp||560)*1.36);if(kind==='e4')return Math.round((P.hp||190)*1.4*(n>=3?.9:1));if(kind==='e3boss')return Math.round((P.hp||520)*1.35);if(kind==='e3')return Math.round((P.hp||170)*1.48*(n>=3?.9:1));return kind==='warden'?Math.round((P.hp||300)*1.6):kind==='e2boss'?Math.round((P.hp||480)*1.35):kind==='e2'?Math.round((P.hp||150)*1.6*(n>=3?.85:1)):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
 function startSquadPack(){
  const P=pack;if(!P)return;const rigN=squadRig(P),src=rigSource(rigN);if(!src||!src.model){P.waitRig=true;if(rigN==='enemy1')loadEnemyModel();else loadRig(rigN).catch(()=>{});return;}// espera o rig carregar
  P.waitRig=false;
- const kind=P.rig==='enemy2'?(P.profile==='miniboss2'?'e2boss':'e2'):P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3'):P.profile==='warden'?'warden':'common',n=P.spots.length,rt=squadRuntime();
+ const kind=P.rig==='bishop1'?'vhazrael':P.rig==='enemy2'?(P.profile==='miniboss2'?'e2boss':'e2'):P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3'):P.profile==='warden'?'warden':'common',n=P.spots.length,rt=squadRuntime();
  const spots=P.spots.map((s,i)=>{const c=P.clones[i],x=c?c.holder.position.x:s.x,z=c?c.holder.position.z:s.z;return{x,z,yaw:Math.atan2(player.position.x-x,player.position.z-z),kind,hp:squadHp(P,kind,n)};});
  for(let i=0;i<P.clones.length;i++)if(P.clones[i]){disposeClone(P.clones[i]);P.clones[i]=null;}
  squadBlockCache.clear();squadStopAt=0;rt.start(spots,{seed:(questStep*131+act1Sub*17+n*7+1)|0});
@@ -3124,7 +3130,7 @@ function startSquadPack(){
  enemy.visible=false;useRig(rigN);revealEncounter(P.profile,spots[0],spots[0].hp,P.intro||'');
  if(inSewer){const cp=sewerLocal(sewerCheckpoint(questStep,act1Sub));checkpointX=cp.x;checkpointZ=cp.z;}
  P.active=true;P.index=0;squadLabelN=0;pickSquadFocus(true);writeSquadProxy();syncEnemyLabel();
- if(n>1&&!P.lab)showCombatCallout(n+(rigN==='enemy2'?' DEMÔNIOS':rigN==='enemy3'?' ABISSAIS':rigN==='enemy4'?' DEMÔNIOS DA TORRE':' SEGUIDORES')+' ATACAM JUNTOS');
+ if(n>1&&!P.lab&&!P.dim)showCombatCallout(n+(rigN==='enemy2'?' DEMÔNIOS':rigN==='enemy3'?' ABISSAIS':rigN==='enemy4'?' DEMÔNIOS DA TORRE':' SEGUIDORES')+' ATACAM JUNTOS');
 }
 function squadAbort(){if(!squadRT)return;squadOn=false;squadFocus=null;squadRT.stop();for(const al of squadAllies.splice(0))disposeClone(al.c);enemyModelRoot.visible=true;enemyGroundShadow.visible=true;}
 function hideSquadProxy(){enemyModelRoot.visible=false;enemySprite.visible=false;enemyGroundShadow.visible=false;wardenRing.visible=false;}
@@ -3179,6 +3185,7 @@ function squadHitFx(a,n){if(!squadRT)return;squadRT.flash(a.id);const p=new THRE
 function squadDamageTarget(id,dmg,info){
  const n=squadAlive().length,mul=n>=4?.72:n===3?.84:1,amount=Math.max(1,Math.round(dmg*mul));
  if(id==='hero'){
+  if(info.kind==='orbital'){playerInvulnerableUntil=0;dashRemaining=0;}
   const wasDef=defending;if(!damagePlayerFromEnemyAttack(amount))return 'evaded';
   // hitstop/shake do Enemy2 só com acerto CONFIRMADO e com trava contra duplo disparo
   if(/^(vortex|collapse|collapseWave|trinity)$/.test(info.kind)){const now=performance.now();if(now>squadSakugaCd){squadSakugaCd=now+160;hitStop(info.kind==='trinity'?40:55);cameraShake(info.kind==='trinity'?.08:.17);}}
@@ -3192,7 +3199,7 @@ function squadDamageTarget(id,dmg,info){
  const al=squadAllies.find(x=>x.id===id);if(al)return allyHurt(al,amount,info);
  return 'immune';
 }
-const SQUAD_NAMES={sanctum:'ERUPÇÃO DO SANTUÁRIO CARMIM',constellation:'CONSTELAÇÃO DA RUÍNA',drill:'PERFURADOR DO ABISMO',cage:'JAULA DAS CORRENTES',nadir:'TEMPESTADE DE NADIR',barrage:'BARRAGEM ABISSAL',singularity:'SINGULARIDADE ABISSAL',claws:'GARRAS DO ABISMO',spiral:'ESPIRAL DEVORADORA',judgment:'JUÍZO VIOLETA',vortex:'JULGAMENTO DO VÓRTICE ABISSAL',trinity:'TRINDADE DO CAOS',collapse:'COLAPSO DO ABISMO'};
+const SQUAD_NAMES={throne:'RUPTURA DO TRONO ABISSAL',thorns:'FLORESTA DE ESPINHOS ABISSAIS',terror:'ENTIDADE DO TERROR',brood:'NINHADA ABISSAL',orbital:'EXTINÇÃO ORBITAL',stomp:'PISÃO COLOSSAL',sanctum:'ERUPÇÃO DO SANTUÁRIO CARMIM',constellation:'CONSTELAÇÃO DA RUÍNA',drill:'PERFURADOR DO ABISMO',cage:'JAULA DAS CORRENTES',nadir:'TEMPESTADE DE NADIR',barrage:'BARRAGEM ABISSAL',singularity:'SINGULARIDADE ABISSAL',claws:'GARRAS DO ABISMO',spiral:'ESPIRAL DEVORADORA',judgment:'JUÍZO VIOLETA',vortex:'JULGAMENTO DO VÓRTICE ABISSAL',trinity:'TRINDADE DO CAOS',collapse:'COLAPSO DO ABISMO'};
 function squadNear(x,z,r){return Math.hypot(x-player.position.x,z-player.position.z)<r;}
 /** Áudio do Enemy3: volume pela distância até o herói e teto de simultaneidade por tipo (sem arquivos externos). */
 const squadSfxAt={};function squadGain(x,z){return Math.max(.15,1-Math.hypot(x-player.position.x,z-player.position.z)/34);}
@@ -3211,6 +3218,20 @@ function squadEvent(type,d){
   case 'windup':if(d.label&&a?.T.boss){status.textContent=d.label;worldAudio.whoosh();}break;
   case 'meleeHit':if(d.result==='hit'){worldAudio.hit();if(d.target==='hero')hitStop(a?.kind==='e2boss'?45:25);}break;
   case 'cast':if(worldAudio.abyss3&&/^(nadir|barrage|singularity|sanctum|constellation|drill|cage)$/.test(d.skill))worldAudio.abyss3(d.skill==='singularity'||d.skill==='constellation'?'gravity':d.skill==='nadir'||d.skill==='sanctum'?'storm':'tear',squadGain(a.x,a.z));else worldAudio.dark&&worldAudio.dark(d.skill);if(a.T.boss||squadAlive().length<=2||d.skill==='judgment'||d.skill==='vortex'||d.skill==='nadir'||d.skill==='cage')showCombatCallout(SQUAD_NAMES[d.skill]);break;
+  case 'thornWave':squadSfx('warn',0,0,150);break;
+  case 'thornRise':squadSfx('stick',d.spike.x,d.spike.z,70);break;
+  case 'throneRaise':squadSfx('gravity',s.x,s.z,0);break;
+  case 'throneSlash':squadSfx('launch',s.x,s.z,0);break;
+  case 'throneImpact':squadSfx('boom',s.ix,s.iz,0);if(squadNear(s.ix,s.iz,10)&&!userSettings.reduceShake)cameraShake(.18);break;
+  case 'handRise':squadSfx('stick',d.hand.x,d.hand.z,60);break;
+  case 'bite':squadSfx('blade',s.x,s.z,100);break;
+  case 'summon':showCombatCallout(d.king?'O COLOSSO DA NINHADA':'A NINHADA DESPERTA');squadSfx('tear',d.actor.x,d.actor.z,0);break;
+  case 'stompBlast':squadSfx('heavy',s.x,s.z,0);if(!userSettings.reduceShake)cameraShake(.15);break;
+  case 'vzClose':worldAudio.whoosh();break;
+  case 'orbital':status.textContent='VHAZRAEL ergue a espada para o céu…';worldAudio.abyss3&&worldAudio.abyss3('storm',1);break;
+  case 'orbital_choice':showCombatCallout('DEFENDA-SE OU CONTRAPONHA COM SUA ULTIMATE');status.textContent='O meteoro cobre a dimensão inteira: segure DEF ou use sua ULTIMATE agora.';break;
+  case 'orbital_impact':worldAudio.abyss3&&worldAudio.abyss3('heavy',1);worldAudio.abyss3&&worldAudio.abyss3('boom',1);if(!userSettings.reduceShake)cameraShake(.4);break;
+  case 'orbitalResult':if(d.target==='hero'){showCombatCallout(d.result==='duel'?'DUELO DE ULTIMATES — O METEORO SE PARTIU':d.result==='shield'?'O ESCUDO SEGUROU O METEORO':'EXTINÇÃO');if(d.result==='shield'){setDefending(false);}}break;
   case 'sanctumMark':squadSfx('warn',d.mark.x,d.mark.z,90);break;
   case 'sanctumPillar':squadSfx('thunder',d.mark.x,d.mark.z,110);break;
   case 'orbShot':squadSfx('launch',d.orb.x,d.orb.z,120);break;
@@ -3239,7 +3260,7 @@ function squadEvent(type,d){
   case 'jumpedWave':if(d.target==='hero')showCombatCallout('SALTOU A ONDA!');break;
   case 'lunge':worldAudio.whoosh();break;
   case 'clawsRise':worldAudio.dark&&worldAudio.dark('rise');if(squadNear(s.x,s.z,9))cameraShake(.1);break;
-  case 'grab':if(d.target==='hero'){showCombatCallout('PRESO — DASH PARA SE SOLTAR');status.textContent='As Garras do Abismo te prenderam. Use o DASH para se soltar.';worldAudio.hurt();}break;
+  case 'grab':if(d.target==='hero'){const terror=s&&s.type==='terror';showCombatCallout(terror?'AGARRADO — DASH OU DEF PARA SE SOLTAR':'PRESO — DASH PARA SE SOLTAR');status.textContent=terror?'As Mãos Devoradoras te agarraram. Use DASH ou DEF para se soltar.':'As Garras do Abismo te prenderam. Use o DASH para se soltar.';worldAudio.hurt();}break;
   case 'release':if(d.target==='hero'&&d.escaped)showCombatCallout('LIVRE!');break;
   case 'spiral':worldAudio.whoosh();break;
   case 'burst':if(s.type==='spiral'||s.why==='hit'){worldAudio.dark&&worldAudio.dark('impact');if(squadNear(s.x,s.z,7))cameraShake(s.why==='hit'?.16:.08);}break;
@@ -3252,13 +3273,37 @@ function squadEvent(type,d){
   case 'guardBreak':showCombatCallout('GUARDA DO INIMIGO QUEBRADA');worldAudio.parry();break;
   case 'dodge':worldAudio.whoosh();break;
   case 'reap':showCombatCallout('CEIFA DO ABISMO');break;
-  case 'phase2':if(a&&a.kind==='e4boss'){showCombatCallout('A MANDÍBULA DESPERTA');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='O mini-chefe da torre entra em fúria: a espada-mandíbula pulsa e os poderes voltam mais rápido.';break;}if(a&&a.kind==='e3boss'){showCombatCallout('FÚRIA DO DRAGÃO CARMIM');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='O Guardião da Distorção entra em fúria: a katana arde, os poderes voltam mais rápido.';break;}showCombatCallout('O GUARDIÃO DESPERTA');worldAudio.roar();cameraShake(.3);status.textContent='O Guardião do Portal desperta a fúria: mais rápido e com garras maiores.';break;
-  case 'death':{const P=pack;if(!P)break;if(!P.lab)registerEnemyDefeat(P.profile);P.index++;if(P.onEach)P.onEach(P.index);worldAudio.hit();cameraShake(.2);if(a===squadFocus){squadFocus=null;squadManual=false;}break;}
+  case 'phase2':if(a&&a.kind==='vhazrael'){showCombatCallout('VHAZRAEL NÃO RECUA');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='VHAZRAEL ergue a aura carmesim: mais rápido, mais lacaios, mais pressão.';break;}if(a&&a.kind==='e4boss'){showCombatCallout('A MANDÍBULA DESPERTA');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='O mini-chefe da torre entra em fúria: a espada-mandíbula pulsa e os poderes voltam mais rápido.';break;}if(a&&a.kind==='e3boss'){showCombatCallout('FÚRIA DO DRAGÃO CARMIM');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='O Guardião da Distorção entra em fúria: a katana arde, os poderes voltam mais rápido.';break;}showCombatCallout('O GUARDIÃO DESPERTA');worldAudio.roar();cameraShake(.3);status.textContent='O Guardião do Portal desperta a fúria: mais rápido e com garras maiores.';break;
+  case 'death':{const P=pack;if(!P)break;if(!P.lab&&!P.dim)registerEnemyDefeat(P.profile);P.index++;if(P.onEach)P.onEach(P.index);worldAudio.hit();cameraShake(.2);if(a===squadFocus){squadFocus=null;squadManual=false;}break;}
  }
+}
+/** Extinção Orbital: controle travado só nas tomadas (0–11,5 s); a janela de defesa/ultimate devolve tudo. */
+function vzOrbitState(){const o=squadOn&&squadRT?squadRT.orbit:null;return o&&o.s&&!o.s.dead?o:null;}
+function vzSkip(){const o=vzOrbitState();if(o&&/^(awaken|orbit|entry)$/.test(o.phase)){o.s.phase='choice';o.s.t=0;squadSq()?.event('orbital_choice',{spell:o.s});}}
+function vzUpdateLock(){
+ const o=vzOrbitState(),lock=!!o&&/^(awaken|orbit|entry)$/.test(o.phase);
+ if(lock&&!vzLocked){vzLockPos=player.position.clone();setDefending(false);}
+ vzLocked=lock;if(!o||o.phase==='after')vzDuel=vzDuel&&!!o&&o.phase!=='after';
+ if(lock&&vzLockPos){player.position.copy(vzLockPos);moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;}
+}
+const _vzA=new THREE.Vector3(),_vzB=new THREE.Vector3();
+/** Câmera das tomadas (despertar baixo, cena orbital isolada, entrada atmosférica). Retorna true se já renderizou. */
+function vzCinematic(){
+ const o=vzOrbitState();if(!o)return false;
+ if(o.phase==='choice'){const mt=squadRT.vhazraelVFX.meteor;if(mt&&mt.visible){_vzB.set(player.position.x,player.position.y+1.5,player.position.z).lerp(_vzA.copy(mt.position).setY(mt.position.y-mt.scale.x),.3);camera.lookAt(_vzB);}return false;}// o meteoro domina o céu na janela de resposta
+ if(!/^(awaken|orbit|entry)$/.test(o.phase))return false;
+ const s=squadSq(),b=s&&s.actors.find(a=>a.kind==='vhazrael'&&a.alive);if(!b)return false;const fy=Math.sin(b.yaw),fz=Math.cos(b.yaw),T0=o.s.T;
+ if(o.phase==='awaken'){const k=o.t/T0.awaken;camera.position.set(b.x+fy*3.4+fz*1.6*(1-k),b.y+.5+k*.8,b.z+fz*3.4-fy*1.6*(1-k));camera.lookAt(b.x,b.y+2.2+k*.6,b.z);return false;}
+ if(o.phase==='orbit'){const v=squadRT.vhazraelVFX;v.orbitalCamera.aspect=camera.aspect;v.orbitalCamera.updateProjectionMatrix();renderer.render(v.orbitalScene,v.orbitalCamera);return true;}
+ const k=o.t/T0.entry,mt=squadRT.vhazraelVFX.meteor,m=mt&&mt.visible?mt:null;
+ if(m&&k<.55){_vzA.copy(m.position);camera.position.set(_vzA.x+m.scale.x*2.4,_vzA.y+m.scale.x*.6,_vzA.z+m.scale.x*1.4);camera.lookAt(_vzA.x,_vzA.y-m.scale.x*.6,_vzA.z);}
+ else{camera.position.set(b.x-fy*5-fz*2.5,b.y+1.1,b.z-fz*5+fy*2.5);_vzB.set(b.x+fy*2,b.y+5,b.z+fz*2);if(m)_vzB.lerp(m.position,.25);camera.lookAt(_vzB);}
+ return false;
 }
 /** Liga a esquadra ao laço: lê o que o herói fez no procurador, roda a lógica, escolhe o foco e devolve o procurador. */
 function updateSquadCombat(dt,now){
  if(ENEMY1_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigSource('enemy1'))startEnemy1Lab('2');else loadEnemyModel();}
+ if(VHAZRAEL_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.bishop1)startEnemy1Lab('vz');else if(!squadLabLoading){squadLabLoading=true;loadRig('bishop1').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
  if(ENEMY4_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy4)startEnemy1Lab('y3');else if(!squadLabLoading){squadLabLoading=true;loadRig('enemy4').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
  if(ENEMY3_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy3)startEnemy1Lab('x3');else if(!squadLabLoading){squadLabLoading=true;Promise.all([loadRig('enemy3')]).catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
  if(ENEMY2_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy2)startEnemy1Lab('e3');else if(!squadLabLoading){squadLabLoading=true;loadRig('enemy2').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
@@ -3279,14 +3324,14 @@ function updateSquadCombat(dt,now){
  // 2) sinais visíveis do herói para a memória curta dos inimigos
  if(attackCooldown>squadEdge.atk+100){s.observe('hero','melee');}squadEdge.atk=attackCooldown;
  const dashing=dashRemaining>0;if(dashing&&!squadEdge.dash){s.observe('hero','dash');if(s.heldBy('hero')&&!s.breakFree('hero')){dashRemaining=0;status.textContent='Ainda preso — espere as garras afrouxarem e use o DASH de novo.';}}squadEdge.dash=dashing;
- if(defending&&!squadEdge.def)s.observe('hero','block');squadEdge.def=defending;
+ if(defending&&!squadEdge.def){s.observe('hero','block');const hs=s.heldBy('hero');if(hs&&s.spells.some(x=>x.type==='terror'&&x.held))s.breakFree('hero');}squadEdge.def=defending;
  if(playerMana<squadEdge.mana-4){s.observe('hero','cast');squadEdge.castUntil=now+700;}squadEdge.mana=playerMana;
  // 3) presa nas garras: o herói fica ancorado (pode golpear, não anda)
  const held=s.heldBy('hero');if(held&&playerHP>0){moveVX=moveVZ=0;const k=Math.min(1,dt*7);player.position.x+=(held.ax-player.position.x)*k;player.position.z+=(held.az-player.position.z)*k;}
  if(squadKnock&&!held){const k=Math.min(1,dt/squadKnock.t);const nx=player.position.x+squadKnock.x*dt*4,nz=player.position.z+squadKnock.z*dt*4;if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;squadKnock.t-=dt;if(squadKnock.t<=0)squadKnock=null;void k;}
  // 4) lógica + corpos + VFX
  const targets=[{id:'hero',team:'hero',x:player.position.x,y:player.position.y,z:player.position.z,vx:moveVX,vz:moveVZ,radius:.42,height:playerReferenceHeight||1.7,alive:playerHP>0,priority:1,
-  iframes:dashing||now<playerInvulnerableUntil,dashing,blocking:defending,attacking:now<attackCooldown-160||!!rites.active,casting:now<squadEdge.castUntil,ccResist:0,air:Math.max(0,player.position.y-terrainHeightAt(player.position.x,player.position.z))}];
+  iframes:dashing||now<playerInvulnerableUntil,dashing,blocking:defending,attacking:now<attackCooldown-160||!!rites.active,casting:now<squadEdge.castUntil,ultimate:vzDuel||whiteHole.active,ccResist:0,air:Math.max(0,player.position.y-terrainHeightAt(player.position.x,player.position.z))}];
  // sucção leve dos furacões/fissura do Enemy2 (com teto: dá para sair andando ou com dash)
  if(playerHP>0&&!dashing){const pl=pullOn(s,targets[0]);if(pl.x||pl.z){const nx=player.position.x+pl.x*dt,nz=player.position.z+pl.z*dt;if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;}}
  for(const al of squadAllies)targets.push(allyTarget(al));
@@ -3338,12 +3383,12 @@ function startEnemy1Lab(mode){
  const first=!squadLab;squadLab={mode,behavior:'combate'};menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
  if(cineDirector.active)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);rites.cancel('lab');swordTraining=false;
  for(const id of ['start-gate','name-panel','dialog-panel','loading']){const el=document.getElementById(id);if(el){el.hidden=true;el.classList.add('hidden');}}
- if(first){questStep=2;act1Sub=0;for(const id of ['magic','magic2','magic3','ultimate'])ownedItems.add(id);refreshSkillUnlocks();{const open=combatLabRequested||ENEMY3_LAB||ENEMY4_LAB;player.position.set(open?-5:40,terrainHeightAt(open?-5:40,open?16:22),open?16:22);}playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;cameraPitch=.22;cameraDistance=6;if(!combatLabRequested)labPanel();}
+ if(first){questStep=2;act1Sub=0;for(const id of ['magic','magic2','magic3','ultimate'])ownedItems.add(id);refreshSkillUnlocks();{const open=combatLabRequested||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB;player.position.set(open?-5:40,terrainHeightAt(open?-5:40,open?16:22),open?16:22);}playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;cameraPitch=.22;cameraDistance=6;if(!combatLabRequested)labPanel();}
  playerHP=playerMaxHP;playerMana=100;playerRespawnAt=0;playerInvulnerableUntil=0;updatePlayerHud();
  const px=player.position.x,pz=player.position.z,ring=(n,r,a0=0)=>Array.from({length:n},(_,i)=>{const a=a0+(i-(n-1)/2)*.75;return{x:px+Math.sin(a)*r,z:pz+Math.cos(a)*r};});
- const cfg={'1':{n:1,prof:'captor'},'2':{n:2,prof:'captor'},'4':{n:4,prof:'captor'},warden:{n:1,prof:'warden'},clash:{n:1,prof:'captor'},e1:{n:1,prof:'demon2',rig:'enemy2'},e3:{n:3,prof:'demon2',rig:'enemy2'},e5:{n:5,prof:'demon2',rig:'enemy2'},e2boss:{n:1,prof:'miniboss2',rig:'enemy2'},e2clash:{n:1,prof:'demon2',rig:'enemy2'},x1:{n:1,prof:'demon3',rig:'enemy3'},x3:{n:3,prof:'demon3',rig:'enemy3'},x3boss:{n:1,prof:'miniboss3',rig:'enemy3'},y1:{n:1,prof:'demon4',rig:'enemy4'},y3:{n:3,prof:'demon4',rig:'enemy4'},y4boss:{n:1,prof:'miniboss4',rig:'enemy4'},x3duo:{n:2,prof:'demon3',rig:'enemy3'}}[mode]||{n:2,prof:'captor'};
+ const cfg={'1':{n:1,prof:'captor'},'2':{n:2,prof:'captor'},'4':{n:4,prof:'captor'},warden:{n:1,prof:'warden'},clash:{n:1,prof:'captor'},e1:{n:1,prof:'demon2',rig:'enemy2'},e3:{n:3,prof:'demon2',rig:'enemy2'},e5:{n:5,prof:'demon2',rig:'enemy2'},e2boss:{n:1,prof:'miniboss2',rig:'enemy2'},e2clash:{n:1,prof:'demon2',rig:'enemy2'},x1:{n:1,prof:'demon3',rig:'enemy3'},x3:{n:3,prof:'demon3',rig:'enemy3'},x3boss:{n:1,prof:'miniboss3',rig:'enemy3'},y1:{n:1,prof:'demon4',rig:'enemy4'},y3:{n:3,prof:'demon4',rig:'enemy4'},y4boss:{n:1,prof:'miniboss4',rig:'enemy4'},vz:{n:1,prof:'vhazrael',rig:'bishop1'},x3duo:{n:2,prof:'demon3',rig:'enemy3'}}[mode]||{n:2,prof:'captor'};
  const rigN=cfg.rig||'enemy1';squadLab.species=rigN;
- pack={lab:true,squad:true,rig:rigN,profile:cfg.prof,hp:cfg.prof==='warden'?ACT1.wardenHp:cfg.prof==='miniboss2'?ACT2.minibossHp:cfg.prof==='miniboss4'?ACT4N.minibossHp:rigN==='enemy4'?ACT4N.enemy4Hp:cfg.prof==='miniboss3'?ACT3N.minibossHp:rigN==='enemy3'?ACT3N.enemy3Hp:rigN==='enemy2'?ACT2.enemy2Hp:110,spots:ring(cfg.n,/clash/.test(mode)?8.5:cfg.n>=5?11:9,playerYaw),clones:[],index:0,active:false,intro:rigN==='enemy2'?'Laboratório Enemy2':rigN==='enemy4'?'Laboratório Enemy4':rigN==='enemy3'?'Laboratório Enemy3':'Laboratório Enemy1'};
+ pack={lab:true,squad:true,rig:rigN,profile:cfg.prof,hp:cfg.prof==='warden'?ACT1.wardenHp:cfg.prof==='miniboss2'?ACT2.minibossHp:cfg.prof==='vhazrael'?260:cfg.prof==='miniboss4'?ACT4N.minibossHp:rigN==='enemy4'?ACT4N.enemy4Hp:cfg.prof==='miniboss3'?ACT3N.minibossHp:rigN==='enemy3'?ACT3N.enemy3Hp:rigN==='enemy2'?ACT2.enemy2Hp:110,spots:ring(cfg.n,/clash/.test(mode)?8.5:cfg.n>=5?11:9,playerYaw),clones:[],index:0,active:false,intro:rigN==='enemy2'?'Laboratório Enemy2':rigN==='bishop1'?'Laboratório VHAZRAEL':rigN==='enemy4'?'Laboratório Enemy4':rigN==='enemy3'?'Laboratório Enemy3':'Laboratório Enemy1'};
  startSquadPack();
  if(mode==='clash'||mode==='e2clash'){const s=squadSq();if(!s)return;s.forceCounter=true;for(const a of s.actors){a.T={...a.T,kit:[],claws:{...a.T.claws,cd:999},spiral:{...a.T.spiral,cd:999},judgment:{...a.T.judgment,cd:999}};a.intent.mode='hold';a.alert=1e9;}squadLab.clashT=1.2;squadLab.clashN=0;}
  labHud();
@@ -3363,7 +3408,8 @@ function setLabBehavior(mode){
 function labPanel(){
  const el=document.createElement('div');el.id='enemy1-lab';el.style.cssText='position:fixed;top:calc(env(safe-area-inset-top) + 132px);left:8px;z-index:30;display:flex;flex-wrap:wrap;gap:3px;max-width:250px;font:600 11px system-ui;pointer-events:auto';
  const B=(t,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.style.cssText='all:unset;box-sizing:border-box;background:#1d1230d9;border:1px solid #9a6cff;color:#f2e8ff;padding:6px 8px;border-radius:7px;min-width:30px;text-align:center;font:700 11px system-ui;cursor:pointer;line-height:1.1';bindInstantTap(b,fn);el.appendChild(b);};
- if(ENEMY4_LAB){B('1',()=>startEnemy1Lab('y1'));B('3',()=>startEnemy1Lab('y3'));B('MINI-CHEFE',()=>startEnemy1Lab('y4boss'));B('+ ALIADO',()=>spawnAlly());B('PODER',()=>labForceSkill());}
+ if(VHAZRAEL_LAB){B('VHAZRAEL',()=>startEnemy1Lab('vz'));B('PODER',()=>labForceSkill());}
+ else if(ENEMY4_LAB){B('1',()=>startEnemy1Lab('y1'));B('3',()=>startEnemy1Lab('y3'));B('MINI-CHEFE',()=>startEnemy1Lab('y4boss'));B('+ ALIADO',()=>spawnAlly());B('PODER',()=>labForceSkill());}
  else if(ENEMY3_LAB){B('1',()=>startEnemy1Lab('x1'));B('3',()=>startEnemy1Lab('x3'));B('MINI-CHEFE',()=>startEnemy1Lab('x3boss'));B('+ ALIADO',()=>spawnAlly());B('PODER',()=>labForceSkill());}
  else if(ENEMY2_LAB){B('1',()=>startEnemy1Lab('e1'));B('3',()=>startEnemy1Lab('e3'));B('5',()=>startEnemy1Lab('e5'));B('MINI-CHEFE',()=>startEnemy1Lab('e2boss'));B('+ ALIADO',()=>spawnAlly());B('CLASH',()=>startEnemy1Lab('e2clash'));B('PODER',()=>labForceSkill());}
  else{B('1',()=>startEnemy1Lab('1'));B('2',()=>startEnemy1Lab('2'));B('4',()=>startEnemy1Lab('4'));B('GUARDIÃO',()=>startEnemy1Lab('warden'));B('+ ALIADO',()=>spawnAlly());B('CLASH',()=>startEnemy1Lab('clash'));}B('↺',()=>startEnemy1Lab(squadLab.mode));B('LOG',()=>{squadLab.log=!squadLab.log;labHud();});
@@ -3373,7 +3419,7 @@ function labPanel(){
  B('⚡ CONJURAR',()=>labForceSkill(select.value));el.lastElementChild.id='lab-skill-cast';
  const hud=document.createElement('div');hud.id='enemy1-lab-hud';hud.style.cssText='width:100%;text-align:left;color:#e9dcff;text-shadow:0 1px 2px #000;font:600 11px system-ui;white-space:pre;pointer-events:none';el.appendChild(hud);document.body.appendChild(el);
 }
-function labHud(){const el=document.getElementById('enemy1-lab-hud');if(!el||!squadLab)return;const s=squadSq();const lines=(s?s.actors:[]).map((a,i)=>(a.kind==='warden'?'GUARDIÃO':a.kind==='e2boss'||a.kind==='e3boss'||a.kind==='e4boss'?'MINI-CHEFE':a.kind==='e4'?'ENEMY4 #'+(i+1):a.kind==='e2'?'ENEMY2 #'+(i+1):a.kind==='e3'?'ENEMY3 #'+(i+1):'ENEMY1 #'+(i+1))+(a===squadFocus?' ◆ ':' · ')+(a.alive?a.hp+'/'+a.maxHp:'caído')+(squadLab.log&&a.alive?' · '+(a.act?(a.act.skill||a.act.type):a.intent.mode)+' · '+a.role:''));for(const al of squadAllies)lines.push('ALIADO · '+(al.hp>0?al.hp+'/'+al.max:'caído'));el.textContent=lines.join('\n');}
+function labHud(){const el=document.getElementById('enemy1-lab-hud');if(!el||!squadLab)return;const s=squadSq();const lines=(s?s.actors:[]).map((a,i)=>(a.kind==='warden'?'GUARDIÃO':a.kind==='e2boss'||a.kind==='e3boss'||a.kind==='e4boss'?'MINI-CHEFE':a.kind==='vhazrael'?'VHAZRAEL':a.kind==='crawler'?'NINHADA':a.kind==='colossus'?'COLOSSO':a.kind==='e4'?'ENEMY4 #'+(i+1):a.kind==='e2'?'ENEMY2 #'+(i+1):a.kind==='e3'?'ENEMY3 #'+(i+1):'ENEMY1 #'+(i+1))+(a===squadFocus?' ◆ ':' · ')+(a.alive?a.hp+'/'+a.maxHp:'caído')+(squadLab.log&&a.alive?' · '+(a.act?(a.act.skill||a.act.type):a.intent.mode)+' · '+a.role:''));for(const al of squadAllies)lines.push('ALIADO · '+(al.hp>0?al.hp+'/'+al.max:'caído'));el.textContent=lines.join('\n');}
 function updateEnemy1Lab(dt){
  if(!squadLab)return;if((squadLab.hudT=(squadLab.hudT||0)-dt)<=0){squadLab.hudT=.25;labHud();labSkillSelector();}
  if(squadLab.mode==='clash'&&squadOn&&squadFocus){squadLab.clashT-=dt;if(squadLab.clashT<=0){squadLab.clashT=2.8;faceTo(player,squadFocus);spawnHolyProjectile(squadLab.clashN++%2?'sun':'arc');status.textContent='CLASH: o inimigo responde à sua magia com o Contra-selo.';}}
@@ -3572,7 +3618,7 @@ function act1Interact(){
  if(label==='ABRIR GAIOLA'){faceTo(player,CAGE_CENTER);openCage();return true;}
  if(label==='ENTRAR NO ESGOTO'){travelVeil(()=>{if(questStep===4&&act1Sub===1)act1Advance(4,2);enterSewer();});return true;}
  if(label==='SAIR DO ESGOTO'){travelVeil(()=>leaveSewer());return true;}
- if(label==='ATRAVESSAR'){openValerioPortal();return true;}
+ if(label==='ATRAVESSAR'){openVhazraelPortal();return true;}
  return false;
 }
 function nightFalls(instant){act1Night=true;if(instant){setGameHour(21.5);return;}setCineFade(1,1.1,false);setTimeout(()=>{setGameHour(21.5);storyTitle('MAIS TARDE','A floresta à noite');setCineFade(0,1.6,false);},1250);}
@@ -3698,11 +3744,11 @@ function storyDo(id,args){
  }
 }
 /* ---------- VHAZRAEL: falas dentro da dimensão e a volta ao início do mapa ---------- */
-function valerioIntro(){if(!dimBattle||dimBattle.key!=='bishop1'||questStep>=8)return;playStory('valerio',valerioIntroScene(),{focus:'enemy',face:'enemy'});}
-function valerioOutro(then){playStory('valerio-cai',valerioDefeatScene(),{focus:'enemy',done:()=>then()});}
-function afterValerioStory(){
+function vhazraelIntro(){if(!dimBattle||dimBattle.key!=='bishop1'||questStep>=8)return;playStory('vhazrael',vhazraelIntroScene(),{focus:'enemy',face:'enemy'});}
+function vhazraelOutro(then){playStory('vhazrael-cai',vhazraelDefeatScene(),{focus:'enemy',done:()=>then()});}
+function afterVhazraelStory(){
  guide.visible=true;
- playStory('volta',afterValerioScene(),{focus:'guide',done:()=>{
+ playStory('volta',afterVhazraelScene(),{focus:'guide',done:()=>{
   // Fim do Ato I: tela escura e o Ato II começa (a viagem até a cidade seguinte).
   startAct2Travel();setCineFade(0,1.6,false);
  }});
@@ -5820,7 +5866,6 @@ function scorch(x,z,r){if(scorchCount>=12)return;scorchCount++;const m=new THREE
 let sprintToggle=false;
 function isSprinting(){return (keys.shift||sprintToggle)&&!defending;}
 const BOSS_POWERS={
- valerio:{cd:8,run(){status.textContent='VHAZRAEL: “Cada moeda é uma alma.” As moedas caem sobre você!';for(let i=0;i<4;i++){const a=Math.random()*6.28,r=1+Math.random()*4;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.7,delay:1+i*.3,damage:16,color:0xffc04a});}if(bossRageAnnounced)castBlackHole(enemy.position.x,enemy.position.z);}},
  vorgazhek:{cd:7.5,run(){status.textContent='VORGAZHEK estende o livro: as correntes da dívida caem sobre você!';const px=player.position.x,pz=player.position.z,vx=moveVX*.5,vz=moveVZ*.5;for(let i=0;i<3;i++)spawnHazard({x:px+vx*(i+1),z:pz+vz*(i+1),radius:2.1,delay:.9+i*.45,damage:18,color:0xd25a2a});}},
  zarkhael:{cd:8,run(){status.textContent="ZAR'KHAEL ergue a mão: o juízo cai em pilares!";for(let i=0;i<5;i++){const a=Math.random()*6.28,r=1+Math.random()*4.5;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.8,delay:1.1+i*.18,damage:20,color:0xffc04a});}}},
  veraxion:{cd:8.5,run(){status.textContent='VÉRAXION invoca o fogo abissal — saia das chamas!';const ex=enemy.position.x,ez=enemy.position.z,dx=player.position.x-ex,dz=player.position.z-ez,d=Math.max(1,Math.hypot(dx,dz));for(let i=0;i<5;i++){const k=(i+1)/5*Math.min(12,d+3);abyssFlame(ex+dx/d*k,ez+dz/d*k,.8+i*.22,1.9);}abyssFlame(player.position.x,player.position.z,1.6,2.6);worldAudio.abyss&&worldAudio.abyss();}},
@@ -5863,7 +5908,7 @@ let riteClips={},riteLayers=null,riteLower=null,riteAnimation=null,restoreRiteSc
 const riteVFX=createSwordRitesVFX(THREE,scene),riteBase=new THREE.Vector3(),riteTip=new THREE.Vector3();
 const riteBlade={base:riteBase,tip:riteTip};
 let riteTargetEpoch=-1,riteTargetModel=null,riteTargetHeight=1.75,riteTargetRadius=.48;
-function riteTarget(){const t=siegeTarget();if(squadOn&&squadFocus?.alive){const a=squadFocus;t.radius=a.T.radius;t.height=squadRT.body(a.id)?.height||a.T.height;t.y=a.y+t.height*.5;return t;}if(enemyModel&&(riteTargetEpoch!==siegeEpoch||riteTargetModel!==enemyModel)){const size=measureModelBounds(enemyModel).getSize(new THREE.Vector3());riteTargetHeight=THREE.MathUtils.clamp(size.y,1.2,6);const boss=/^(valerio|vorgazhek|zarkhael|veraxion|greed|fallen|miniboss)/.test(encounterProfile);riteTargetRadius=boss?THREE.MathUtils.clamp(Math.min(size.x,size.z)*.42,.95,2.4):.48;riteTargetEpoch=siegeEpoch;riteTargetModel=enemyModel;}t.radius=riteTargetRadius;t.height=riteTargetHeight;t.y=enemy.position.y+riteTargetHeight*.52;return t;}
+function riteTarget(){const t=siegeTarget();if(squadOn&&squadFocus?.alive){const a=squadFocus;t.radius=a.T.radius;t.height=squadRT.body(a.id)?.height||a.T.height;t.y=a.y+t.height*.5;return t;}if(enemyModel&&(riteTargetEpoch!==siegeEpoch||riteTargetModel!==enemyModel)){const size=measureModelBounds(enemyModel).getSize(new THREE.Vector3());riteTargetHeight=THREE.MathUtils.clamp(size.y,1.2,6);const boss=/^(vhazrael|vorgazhek|zarkhael|veraxion|greed|fallen|miniboss)/.test(encounterProfile);riteTargetRadius=boss?THREE.MathUtils.clamp(Math.min(size.x,size.z)*.42,.95,2.4):.48;riteTargetEpoch=siegeEpoch;riteTargetModel=enemyModel;}t.radius=riteTargetRadius;t.height=riteTargetHeight;t.y=enemy.position.y+riteTargetHeight*.52;return t;}
 function riteBlocked(p,body=true){
  const x=p.x,z=p.z;if(body?playerBlockedAt(x,z):blockedAt(x,z))return true;
  // Capsule clearance around walls, plus a conservative floor continuity check.
@@ -6032,7 +6077,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  act3(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;awakeningActive=false;awakeningSeen=true;if(!playerName)playerName='Davi';
   if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();if(act3Void)leaveAct3Void({x:SC.plaza.x,z:SC.plaza.z});guideRun=null;guidePinned=false;act3Raid=false;
-  questStep=step;act1Sub=sub;act2Abyss=true;if(coins<40)coins=40;bishopsDefeated=Math.max(2,bishopsDefeated);valerioRewardClaimed=true;vorgazhekRewardClaimed=true;save3DProgress();updateQuestHud();if(!act2World)buildAct2World();syncAct2World();buildAct3World();if(act3World){act3World.sellerMet=false;act3World.distStarted=false;act3World.angelAsked=false;}syncAct3World();setGameHour(step===16&&sub>=2||step===17?22:11);
+  questStep=step;act1Sub=sub;act2Abyss=true;if(coins<40)coins=40;bishopsDefeated=Math.max(2,bishopsDefeated);vhazraelRewardClaimed=true;vorgazhekRewardClaimed=true;save3DProgress();updateQuestHud();if(!act2World)buildAct2World();syncAct2World();buildAct3World();if(act3World){act3World.sellerMet=false;act3World.distStarted=false;act3World.angelAsked=false;}syncAct3World();setGameHour(step===16&&sub>=2||step===17?22:11);
   const go=(x,z)=>player.position.set(x,terrainHeightAt(x,z),z);
   if(step===15)go(SC.seller.x-12,SC.seller.z);else if(step===16&&sub<=1)go(SC.plaza.x,SC.plaza.z+4);else if(step===16)go(SC.inn.door.x,SC.inn.door.z-3);
   else if(step===17&&sub<=1){enterAct3Void('estalagem',INN.spawn.cellar);}else if(step===17)go(SC.plaza.x,SC.plaza.z+8);
@@ -6043,7 +6088,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  act4(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;awakeningActive=false;awakeningSeen=true;if(!playerName)playerName='Davi';
   if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();if(act3Void)leaveAct3Void({x:0,z:-60});if(inTower)leaveTower();rivalRun=null;if(act4Rival){disposeClone(act4Rival);act4Rival=null;}
-  questStep=step;act1Sub=sub;act2Abyss=true;if(coins<40)coins=40;bishopsDefeated=Math.max(3,bishopsDefeated);valerioRewardClaimed=true;vorgazhekRewardClaimed=true;zarkhaelClaimed=true;save3DProgress();updateQuestHud();buildAct3World();buildAct4World();act4World.met=false;act4World.arrived=false;act4World.resumed=true;act4World.fell=false;syncAct4World();setGameHour(11);
+  questStep=step;act1Sub=sub;act2Abyss=true;if(coins<40)coins=40;bishopsDefeated=Math.max(3,bishopsDefeated);vhazraelRewardClaimed=true;vorgazhekRewardClaimed=true;zarkhaelClaimed=true;save3DProgress();updateQuestHud();buildAct3World();buildAct4World();act4World.met=false;act4World.arrived=false;act4World.resumed=true;act4World.fell=false;syncAct4World();setGameHour(11);
   const go=(x,z)=>player.position.set(x,terrainHeightAt(x,z),z);
   if(step===21&&sub===0)go(-4,-140);else if(step===21&&sub===1)go(TOWER.rivalMeet.x,TOWER.rivalMeet.z+12);else if(step===21)go(TOWER.door.x,TOWER.door.z+8);
   else if(step===22){enterTower(Math.max(1,sub));}else if(step===23){enterTower(7);act4World.floorStarted=true;}else go(TOWER.view.x,TOWER.view.z+6);
@@ -6070,7 +6115,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  act2(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;awakeningActive=false;awakeningSeen=true;if(!playerName)playerName='Davi';
   if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();
-  questStep=step;act1Sub=sub;act2Abyss=step>=15;if(coins<20)coins=20;bishopsDefeated=Math.max(1,bishopsDefeated);valerioRewardClaimed=true;save3DProgress();updateQuestHud();gorgeGate.sync();if(!act2World)buildAct2World();syncAct2World();setGameHour(14);
+  questStep=step;act1Sub=sub;act2Abyss=step>=15;if(coins<20)coins=20;bishopsDefeated=Math.max(1,bishopsDefeated);vhazraelRewardClaimed=true;save3DProgress();updateQuestHud();gorgeGate.sync();if(!act2World)buildAct2World();syncAct2World();setGameHour(14);
   const go=(x,z)=>player.position.set(x,terrainHeightAt(x,z),z),D=DISTRICT_SPOTS;
   if(step===9)go(D.gate.x+30,D.gate.z+2);else if(step===10&&sub===0)go(D.alley.x,D.alley.z0+3);else if(step===10)go(D.rival.x+11,D.rival.z);else if(step===11)go(D.volcanoGate.x+16,D.volcanoGate.z);
   else if(step===12||step===13){enterVolcano();if(step===13){const c=volcanoLocal(VOLCANO.portal);player.position.set(c.x,voidSpec.y,c.z+5);}}
@@ -6078,7 +6123,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   return this.storyState();
  },
  storyState(){const st=cineDirector.step;return{bandits:act2Bandits.length,q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label()||act6Label(),form:act6Form,dimKey:dimBattle?dimBattle.key:null,sandra6:act6Sandra?[+act6Sandra.holder.position.x.toFixed(1),+act6Sandra.holder.position.z.toFixed(1)]:null,inTower,scroll:scrollOwned,round:act5Round?act5Round.n:null,sandra:act5Sandra?[+act5Sandra.holder.position.x.toFixed(1),+act5Sandra.holder.position.z.toFixed(1)]:null,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
- playAfterValerio(){afterValerioStory();},
+ playAfterVhazrael(){afterVhazraelStory();},
  tapStory(){return cineDirector.tap();},
  speed(k){debugDtScale=Math.max(.1,Math.min(8,+k||1));return debugDtScale;},
  skipStory(){if(cineActive)cineDirector.skip();},
@@ -6112,6 +6157,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   squadCam(o,id){if(!o){debugCameraOverride=null;return null;}const s=squadSq();const a=s&&((id&&s.actor(id))||s.actors.find(x=>x.alive&&x.act&&x.act.type==='cast')||s.actors.find(x=>x.alive&&x.act)||s.alive[0]);if(!a)return null;const f=[Math.sin(a.yaw),Math.cos(a.yaw)],r=[Math.cos(a.yaw),-Math.sin(a.yaw)],P=(x,y,z)=>[a.x+r[0]*x+f[0]*z,a.y+y,a.z+r[1]*x+f[1]*z];this.fly(P(o[0],o[1],o[2]),P(o[3],o[4],o[5]));return a.id;},
   /** MOD 245 — QA do caminho real do Ato III: startPack com o rig/perfil do roteiro, em volta do herói (laboratório). */
   packQA(rig,profile,n=1,hp=170){const px=player.position.x,pz=player.position.z;startPack({rig,profile,hp,spots:Array.from({length:n},(_,i)=>({x:px+Math.sin(i*1.3)*9,z:pz-9+Math.cos(i*1.3)*2})),onDone:()=>{window.__packDone=(window.__packDone||0)+1;}});return this.squadState();},
+  /** MOD 247 — QA: abre a dimensão do Bispo 1 pelo fluxo real (cartão VS → luta em esquadra → vitória/saída). */
+  vhazraelDimQA(){window.__dimWin=0;startDimensionBattle('bishop1',{hp:DIMENSIONS.bishop1.hp,returnTo:{x:player.position.x,z:player.position.z},onVictory:()=>{window.__dimWin=1;},onAbort:()=>{window.__dimWin=-1;}});return true;},
   squadRender(){return{calls:renderer.info.render.calls,tris:renderer.info.render.triangles,geos:renderer.info.memory.geometries,tex:renderer.info.memory.textures,programs:renderer.info.programs?.length,dim:squadRT?squadRT.dim:0,hemi:+hemiLight.intensity.toFixed(3),sun:+sunLight.intensity.toFixed(3)};},
   wardenSpot(){const w=sewerLocal(SEWER.warden);return[w.x,w.z];},
   squadPose(id,x,z,yaw,pause=true){const s=squadSq();if(!s)return null;const a=s.actor(id);if(!a)return null;a.x=x;a.z=z;a.y=terrainHeightAt(x,z);a.yaw=yaw||0;a.alert=pause?1e9:0;a.act=null;a.intent.mode='hold';a.decideT=pause?1e9:.2;return this.squadState();},

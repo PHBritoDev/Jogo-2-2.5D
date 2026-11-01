@@ -19,7 +19,7 @@ test('a dimensão 5 é a do Pecado, não um quinto Bispo', () => {
 });
 
 test('perfil de luta resolve a dimensão e o cartão VS traz foto, nome e fala', () => {
-  assert.equal(dimensionForProfile('valerio').key, 'bishop1');
+  assert.equal(dimensionForProfile('vhazrael').key, 'bishop1');
   assert.equal(dimensionForProfile('vorgazhek').key, 'bishop2');
   assert.equal(dimensionForProfile('captor'), null);
   const c = vsCard('bishop3', 'Davi');

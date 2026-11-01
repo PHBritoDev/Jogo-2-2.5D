@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from './act1-flow.js';
 
-const { ACT1, sanitizePlayerName, migrateProgress, questPresentation, combatStep, afterEnemyDefeated, afterWardenDefeat, valerioHandoffPlan, nextAct1Sub, personalizeLine, SPEAKERS } = A;
-const SCENES = ['villageArrivalScene', 'vendorRefusalScene', 'vendorScene', 'forestFirstScene', 'forestSecondScene', 'keyFoundScene', 'cageScene', 'faintScene', 'massacreScene', 'clueScene', 'feedingScene', 'holeScene', 'wardenIntroScene', 'wardenDefeatScene', 'valerioIntroScene', 'valerioDefeatScene', 'afterValerioScene'];
+const { ACT1, sanitizePlayerName, migrateProgress, questPresentation, combatStep, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, nextAct1Sub, personalizeLine, SPEAKERS } = A;
+const SCENES = ['villageArrivalScene', 'vendorRefusalScene', 'vendorScene', 'forestFirstScene', 'forestSecondScene', 'keyFoundScene', 'cageScene', 'faintScene', 'massacreScene', 'clueScene', 'feedingScene', 'holeScene', 'wardenIntroScene', 'wardenDefeatScene', 'vhazraelIntroScene', 'vhazraelDefeatScene', 'afterVhazraelScene'];
 const all = () => SCENES.flatMap(n => A[n]());
 const text = () => all().filter(s => s.type === 'say').map(s => s.text).join(' \n ');
 
@@ -38,9 +38,9 @@ test('save do Ato I antigo no meio do ato recomeça a etapa no formato novo, sem
   const kept = migrateProgress({ version: 6, act1Rev: ACT1.rev, questStep: 4, act1Sub: 2, coins: 3 });
   assert.equal(kept.act1Sub, 2);
   // Depois de VHAZRAEL nada muda.
-  const done = migrateProgress({ version: 6, questStep: 12, coins: 9, bishopsDefeated: 1, valerioRewardClaimed: true });
+  const done = migrateProgress({ version: 6, questStep: 12, coins: 9, bishopsDefeated: 1, vhazraelRewardClaimed: true });
   assert.equal(done.questStep, 12);
-  assert.equal(done.valerioRewardClaimed, true);
+  assert.equal(done.vhazraelRewardClaimed, true);
 });
 
 test('cada etapa e sub-etapa tem objetivo; há luta nas etapas 2 a 5', () => {
@@ -79,7 +79,7 @@ test('sub-etapas avançam na ordem e fecham a etapa', () => {
   assert.deepEqual(nextAct1Sub(4, 3), { questStep: 5, act1Sub: 0 });
   assert.deepEqual(nextAct1Sub(3, 2), { questStep: 4, act1Sub: 0 });
   assert.equal(afterWardenDefeat().questStep, 6);
-  assert.equal(valerioHandoffPlan().replaceDimension, false);
+  assert.equal(vhazraelHandoffPlan().replaceDimension, false);
 });
 
 test('falas essenciais do roteiro estão presentes', () => {
@@ -115,11 +115,11 @@ test('cenas têm a ordem do roteiro', () => {
 });
 
 test('vitória sobre VHAZRAEL fecha o Ato I uma vez só', () => {
-  const first = A.afterValerioVictory({ valerioRewardClaimed: false });
+  const first = A.afterVhazraelVictory({ vhazraelRewardClaimed: false });
   assert.equal(first.questStep, 8);
   assert.equal(first.bishopsDefeated, 1);
-  assert.equal(first.coinsGained, ACT1.valerioReward);
-  assert.equal(A.afterValerioVictory({ valerioRewardClaimed: true, bishopsDefeated: 1 }).coinsGained, 0);
+  assert.equal(first.coinsGained, ACT1.vhazraelReward);
+  assert.equal(A.afterVhazraelVictory({ vhazraelRewardClaimed: true, bishopsDefeated: 1 }).coinsGained, 0);
   assert.match(questPresentation(8).title, /CONCLUÍDO/);
 });
 
@@ -132,4 +132,15 @@ test('progresso antigo mantém Palavras já liberadas; novo começa sem elas', (
   assert.deepEqual(bought.owned, ['magic', 'aurora']);
   assert.equal(bought.sword, 'aurora');
   assert.equal(bought.stats.kills, 3);
+});
+
+test('Mod 247: save anterior ao nome VHAZRAEL migra a recompensa e o bestiário do Bispo 1 sem perder progresso', async () => {
+  const { migrateProgress, migrateBishopOneName } = await import('./act1-flow.js');
+  // chave e id legados simulados pela FORMA (o nome antigo não existe mais no código)
+  const legacy = { version: 99, questStep: 9, coins: 55, bishopsDefeated: 1, legacyBossRewardClaimed: true, bestiary: ['captor', 'vlegacy'], bestiaryRewarded: ['vlegacy'] };
+  const m = migrateBishopOneName(legacy);
+  assert.equal(m.vhazraelRewardClaimed, true); assert.equal(m.legacyBossRewardClaimed, undefined);
+  assert.deepEqual(m.bestiary, ['captor', 'vhazrael']); assert.deepEqual(m.bestiaryRewarded, ['vhazrael']);
+  const p = migrateProgress(legacy); assert.equal(p.vhazraelRewardClaimed, true); assert.equal(p.coins, 55);
+  const fresh = migrateBishopOneName({ vorgazhekRewardClaimed: true, bestiary: ['veraxion'] }); assert.equal(fresh.vhazraelRewardClaimed, undefined); assert.deepEqual(fresh.bestiary, ['veraxion']);
 });

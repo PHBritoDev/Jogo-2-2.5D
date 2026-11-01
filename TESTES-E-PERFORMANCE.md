@@ -50,7 +50,7 @@ As capturas foram tiradas no ambiente acima e não estão versionadas. Para gera
 ## Não feito ou limitações
 
 - **Android físico:** sem medição de FPS, tempo de quadro de GPU/CPU nem memória real.
-- **Morte durante o cast e volta da dimensão de Valério com a flag:** sem teste automatizado no navegador. A lógica cancela com `valid: false`, como as outras skills.
+- **Morte durante o cast e volta da dimensão de VHAZRAEL com a flag:** sem teste automatizado no navegador. A lógica cancela com `valid: false`, como as outras skills.
 - **Pedras do impacto:** colidem com o terreno, não com troncos ou paredes.
 - **Referências do criador:** chegaram depois e foram comparadas (esfera rubro-negra, X carmim e vídeo da explosão). Ajustes feitos depois da comparação:
   - **Esfera:** muito maior, erguida acima da mão; vermelho manchado com rede de rachaduras negras **na superfície** com halo magenta, brilho magenta no centro e aura vermelha.

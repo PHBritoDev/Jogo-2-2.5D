@@ -1,5 +1,6 @@
 import { buildCrimsonKatana } from './crimson-katana3d.js';
 import { buildJawSword } from './jaw-sword3d.js';
+import { buildThroneBlade } from './vhazrael-vfx3d.js';
 import { combatPose, combatMove } from './combat-choreography3d.js';
 import { bossLift } from './boss-choreography3d.js';
 /**
@@ -29,7 +30,7 @@ export const KATANA_SCALE = 1.05, JAW_SCALE = 1.08;
 /** Arma do mini-chefe presa à mão: Katana Dragão Carmim (e3boss) ou Espada-Mandíbula (e4boss, Mod 246). */
 export function attachKatana(T, scene, b, kind = 'e3boss') {
   if (!b.hand) return;
-  const jaw = kind === 'e4boss', w = jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(jaw ? JAW_SCALE : KATANA_SCALE); scene.add(root); scene.add(w.userData.fx);
+  const jaw = kind === 'e4boss', vz = kind === 'vhazrael', w = vz ? buildThroneBlade(T) : jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(vz ? 1.1 : jaw ? JAW_SCALE : KATANA_SCALE); scene.add(root); scene.add(w.userData.fx);
   b.weapon = w; b.weaponRoot = root; b.katana = true; b.wW = 0; b.kCast = 0; b.wDrop = 0;
 }
 /** Katana na mão: nos golpes nativos segue o osso (o assador alinhou +Y da mão com a lâmina); fora deles, guarda
@@ -38,7 +39,7 @@ export function poseKatana(T, b, a, dt, time, low) {
   const root = b.weaponRoot, h = b.hand, w = b.weapon; if (!root || !h) return;
   const V = b._kv || (b._kv = { p: new T.Vector3(), d: new T.Vector3(), f: new T.Vector3(), x: new T.Vector3(), m: new T.Matrix4() });
   h.updateWorldMatrix(true, false); h.getWorldPosition(root.position);
-  if (a.alive && a.act && a.act.move) h.getWorldQuaternion(root.quaternion);
+  if (a.alive && a.act && (a.act.move || (a.kind === 'vhazrael' && (a.act.type === 'melee' || a.act.skill === 'throne' || a.act.skill === 'orbital')))) h.getWorldQuaternion(root.quaternion); // a lâmina segue o osso nos golpes
   else {
     const cast = a.alive && a.act && (a.act.type === 'cast' || a.act.type === 'phase2'); b.kCast += ((cast ? 1 : 0) - b.kCast) * Math.min(1, dt * 6);
     const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, k = b.kCast;
@@ -53,14 +54,21 @@ export function poseKatana(T, b, a, dt, time, low) {
 export function poseCaster(T, b, a, squad, dt) {
   const R = b.arms || (b.arms = findArms(b.model)); if (!R) return;
   const act = a.act; let want = null;
-  if (a.alive && act && act.type === 'cast' && /^(singularity|barrage|nadir|sanctum|constellation|drill|cage)$/.test(act.skill)) want = act;
+  if (a.alive && act && act.type === 'cast' && /^(singularity|barrage|nadir|sanctum|constellation|drill|cage|throne|thorns|terror|brood|orbital)$/.test(act.skill)) want = act;
   else if (a.alive && act && act.type === 'phase2') want = act;
   b.castW = (b.castW || 0) + ((want ? 1 : 0) - (b.castW || 0)) * Math.min(1, dt * (want ? 9 : 5)); const w = b.castW; if (w < .01) { b.lastCastSkill = null; return; }
   if (want) { b.lastCastSkill = want.type === 'phase2' ? 'phase2' : want.skill; b.lastSpell = want.spellId; b.lastT = want.t; }
   const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, V = b._av || (b._av = { d: new T.Vector3(), s: new T.Vector3(), q: new T.Quaternion(), q2: new T.Quaternion(), q3: new T.Quaternion(), c: new T.Vector3(), p: new T.Vector3() });
   const D = (f, u, r) => V.d.set(fy * f + rx * r, u, fz * f + rz * r).normalize();
   const s = squad && b.lastSpell ? squad.spells.find(x => x.id === b.lastSpell) : null, sk = b.lastCastSkill;
-  if (sk === 'sanctum' || sk === 'cage') { // Enemy4: mãos ao alto e golpe para o chão (marca/corrente cravando)
+  if (sk === 'throne') { const ph = s ? s.phase : 'fade', k = s ? s.t : 0; // carga com a lâmina atrás, erguer, corte com follow-through
+    if (ph === 'charge') { aim(R.rua, R.rla, D(-.45, -.25, .55), w, V); aim(R.rla, R.rh, D(-.6, .1, .3), w, V); turn(R.chest, V.p.set(0, 1, 0), -.5 * w * smooth(k / .4), V); aim(R.lua, R.lla, D(.6, .1, -.5), w * .7, V); }
+    else if (ph === 'raise') { aim(R.rua, R.rla, D(.05, 1, .15), w, V); aim(R.rla, R.rh, D(0, 1, 0), w, V); aim(R.lua, R.lla, D(.05, 1, -.1), w, V); }
+    else { aim(R.rua, R.rla, D(1, -.45, -.1), w, V); aim(R.rla, R.rh, D(1, -.6, -.1), w, V); turn(R.chest, V.p.set(rx, 0, rz), .3 * w, V); aim(R.lua, R.lla, D(-.3, -.5, -.7), w * .7, V); } }
+  else if (sk === 'thorns' || sk === 'brood') { const dn = sk === 'brood' ? -.95 : -.6; for (const [ua, la, sd] of [[R.rua, R.rla, 1], [R.lua, R.lla, -1]]) aim(ua, la, D(.75, dn, .35 * sd), w, V); turn(R.chest, V.p.set(rx, 0, rz), .35 * w, V); }
+  else if (sk === 'terror') { for (const [ua, la, hd, sd] of [[R.rua, R.rla, R.rh, 1], [R.lua, R.lla, R.lh, -1]]) { aim(ua, la, D(.2, .6, 1 * sd), w, V); aim(la, hd, D(.3, .8, .5 * sd), w, V); } turn(R.chest, V.p.set(rx, 0, rz), -.3 * w, V); if (R.head) turn(R.head, V.p.set(rx, 0, rz), -.3 * w, V); }
+  else if (sk === 'orbital') { aim(R.rua, R.rla, D(.05, 1, .1), w, V); aim(R.rla, R.rh, D(0, 1, 0), w, V); aim(R.lua, R.lla, D(.3, .3, -1), w * .8, V); turn(R.chest, V.p.set(rx, 0, rz), -.25 * w, V); }
+  else if (sk === 'sanctum' || sk === 'cage') { // Enemy4: mãos ao alto e golpe para o chão (marca/corrente cravando)
     const k = smooth(b.lastT / .5), down = b.lastT > .5; for (const [ua, la, sd] of [[R.rua, R.rla, 1], [R.lua, R.lla, -1]]) { aim(ua, la, down ? D(.7, -.7, .3 * sd) : D(.15, 1, .3 * sd), w * (down ? 1 : k), V); }
     turn(R.chest, V.p.set(rx, 0, rz), (down ? .3 : -.2) * w, V);
   } else if (sk === 'constellation') { for (const [ua, la, hd, sd] of [[R.rua, R.rla, R.rh, 1], [R.lua, R.lla, R.lh, -1]]) { aim(ua, la, D(.12, .45, 1 * sd), w, V); aim(la, hd, D(.1, .7, .7 * sd), w, V); } turn(R.chest, V.p.set(rx, 0, rz), -.22 * w, V); turn(R.head, V.p.set(rx, 0, rz), -.25 * w, V); } // braços abertos (referência)
@@ -86,8 +94,8 @@ export function poseCaster(T, b, a, squad, dt) {
   } else if (sk === 'phase2') { const k = Math.sin(Math.min(1, b.lastT / 1.15) * Math.PI); for (const [ua, la, sd] of [[R.rua, R.rla, 1], [R.lua, R.lla, -1]]) aim(ua, la, D(.2, .25, .95 * sd), w * k, V); turn(R.chest, V.p.set(rx, 0, rz), -.32 * w * k, V); turn(R.head, V.p.set(rx, 0, rz), -.4 * w * k, V); }
 }
 function findArms(model) {
-  const r = {}; const map = { rua: 'RightUpperArm', rla: 'RightLowerArm', rh: 'RightHand', lua: 'LeftUpperArm', lla: 'LeftLowerArm', lh: 'LeftHand', chest: 'Chest', head: 'Head' };
-  model.traverse(o => { if (!o.isBone) return; for (const k in map) if (!r[k] && o.name === map[k]) r[k] = o; });
+  const r = {}; const map = { rua: ['RightUpperArm', 'mixamorigRightArm'], rla: ['RightLowerArm', 'mixamorigRightForeArm'], rh: ['RightHand', 'mixamorigRightHand'], lua: ['LeftUpperArm', 'mixamorigLeftArm'], lla: ['LeftLowerArm', 'mixamorigLeftForeArm'], lh: ['LeftHand', 'mixamorigLeftHand'], chest: ['Chest', 'mixamorigSpine2'], head: ['Head', 'mixamorigHead'] };
+  model.traverse(o => { if (!o.isBone) return; for (const k in map) if (!r[k] && map[k].includes(o.name)) r[k] = o; }); // rigs humanoides e mixamo (Bispo1)
   return r.rua && r.rla && r.rh && r.lua && r.lla && r.lh && r.chest ? r : null;
 }
 function aim(b, child, dir, w, V) {

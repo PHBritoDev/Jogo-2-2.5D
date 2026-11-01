@@ -49,7 +49,7 @@ Para reproduzir: servir a raiz com `python -m http.server 8124`, abrir `mundo-3d
 
 ## Limites e briefing temporário
 
-Não houve teste em Android físico, medição confiável de FPS/GPU/temperatura em celular ou uma passagem manual completa da campanha e de todas as dimensões. A regressão da história/Valério é automatizada. O teste de toque emulado e os limites de pools não substituem uma sessão real em aparelho intermediário.
+Não houve teste em Android físico, medição confiável de FPS/GPU/temperatura em celular ou uma passagem manual completa da campanha e de todas as dimensões. A regressão da história/VHAZRAEL é automatizada. O teste de toque emulado e os limites de pools não substituem uma sessão real em aparelho intermediário.
 
 Por isso, **`CODEX-COMBATE-CINEMATICO-TAREFA-TEMPORARIA.md` foi mantido**, conforme sua regra de só excluir após todos os critérios validados. Também permanecem os documentos temporários e permanentes do outro agente. Pendências para aceite final: Android físico, revisão visual do criador e passagem manual extensa da campanha.
 
