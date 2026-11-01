@@ -11,7 +11,7 @@ const boss = (sq, z = 9) => sq.spawn([{ x: 0, z, yaw: Math.PI, kind: 'vhazrael' 
 const cast = (sq, a, t, id) => { a.act = null; a.cds[id] = 0; sq.startCast(a, t, id); };
 
 test('VHAZRAEL é a espécie mais capaz: decide mais rápido, mais defesa/esquiva e kit próprio com ultimate única', () => {
-  const v = VZ.boss; assert.deepEqual(v.kit, ['throne', 'thorns', 'terror', 'brood', 'orbital']);
+  const v = VZ.boss; assert.deepEqual(v.kit, ['throne', 'thorns', 'bombard', 'orbital']); assert.ok(!KINDS.crawler && !KINDS.colossus && !v.terror && !v.brood, 'Terror e Ninhada removidos de verdade');
   for (const k of ['common', 'warden', 'e2', 'e2boss', 'e3', 'e3boss', 'e4', 'e4boss']) { const o = KINDS[k]; assert.ok(v.decide[1] < o.decide[1], k + ' decide'); assert.ok(v.dodge.chance >= o.dodge.chance && v.block.chance >= (o.block?.chance || 0) - .05, k); }
   assert.equal(typeof v.brain, 'function');
 });
@@ -44,15 +44,15 @@ test('IA: variedade (não repete o mesmo poder em sequência), ultimate só depo
   run(sq, 70, 1 / 30, tt => { h.x = Math.sin(tt * .7) * 5; h.vx = Math.cos(tt * .7) * 3.5; });
   const casts = log.filter(e => e.type === 'cast').map(e => e.skill), firstUlt = casts.indexOf('orbital');
   assert.ok(new Set(casts).size >= 4, 'varia: ' + casts.join(','));
-  for (let i = 1; i < casts.length; i++) if (casts[i] !== 'brood') assert.ok(casts[i] !== casts[i - 1] || casts[i] === 'orbital', 'repetição seguida: ' + casts.join(','));
+  for (let i = 1; i < casts.length; i++) assert.ok(casts[i] !== casts[i - 1] || casts[i] === 'orbital', 'repetição seguida: ' + casts.join(','));
   if (firstUlt >= 0) assert.ok(new Set(casts.slice(0, firstUlt)).size >= 3, 'mostrou o kit antes');
   assert.ok(casts.filter(c => c === 'orbital').length <= 1, 'ultimate única');
   const moves = log.filter(e => ['dodge', 'guard', 'lunge', 'vzClose', 'windup'].includes(e.type)).map(e => e.type); assert.ok(new Set(moves).size >= 2, 'move-se e defende: ' + [...new Set(moves)]);
 });
 
 test('Extinção Orbital: ~17 s, sem ponto seguro; resposta decide o dano (guarda, duelo, nada); ninguém ataca durante; sem fraqueza depois', () => {
-  const R = resp => { const { sq, log, dmg } = world(); const h = hero({ x: 30 }); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'terror']);
-    sq.spawn([{ x: 3, z: 3, kind: 'crawler' }]).at(-1).master = a.id; cast(sq, a, h, 'orbital'); let t = 0, attacks = 0;
+  const R = resp => { const { sq, log, dmg } = world(); const h = hero({ x: 30 }); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'bombard']);
+    cast(sq, a, h, 'orbital'); let t = 0, attacks = 0;
     run(sq, 18.5, 1 / 60, tt => { t = tt; const s = orbitalSpell(sq); if (s && s.phase === 'choice') { h.blocking = resp === 'shield'; h.ultimate = resp === 'duel'; } if (s && s.phase !== 'after') attacks += dmg.filter(d => d.kind !== 'orbital').length; });
     return { a, log, dmg, hits: dmg.filter(d => d.kind === 'orbital'), attacks, phases: log.filter(e => e.type.startsWith('orbital_')).map(e => e.type), res: log.find(e => e.type === 'orbitalResult') };
   };
@@ -65,7 +65,7 @@ test('Extinção Orbital: ~17 s, sem ponto seguro; resposta decide o dano (guard
   assert.equal(duel.res.result, 'duel'); assert.equal(duel.hits.length, 0);
   assert.equal(none.attacks, 0, 'nada ataca durante a cinematografia');
   assert.ok(none.a.alive && none.a.ultUsed && !none.a.act, 'retoma sem exaustão');
-  { const { sq, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 0; a.used = new Set(['throne', 'thorns', 'terror']); run(sq, 40); assert.ok(log.filter(e => e.type === 'orbital').length <= 1); }
+  { const { sq, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 0; a.used = new Set(['throne', 'thorns', 'bombard']); run(sq, 40); assert.ok(log.filter(e => e.type === 'orbital').length <= 1); }
 });
 
 test('Mod 252 — Ruptura: coreografia completa, feixe para no alvo, núcleo e choque ancorados, sem dano duplicado', () => {
@@ -179,19 +179,34 @@ test('Espinhos: rachadura antes de cada espinho, arcos com vãos, um dano por on
   { const { sq, dmg } = world({ seed: 4 }); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'thorns');
     run(sq, 6, 1 / 60, () => { const s = sq.spells.find(x => x.type === 'thorns'); if (!s) return; for (const p of s.spikes) if (p.phase === 'warn' && Math.hypot(h.x - p.x, h.z - p.z) < 2.9) { const dx = h.x - p.x, dz = h.z - p.z, l = Math.hypot(dx, dz) || 1; h.x += dx / l * 5 / 60; h.z += dz / l * 5 / 60; } });
     assert.equal(dmg.length, 0, 'quem lê as rachaduras escapa'); }
-  { const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'terror'); let freed = false;
-    run(sq, 6, 1 / 60, () => { if (!freed && sq.heldBy('hero') && sq.heldBy('hero').t > .4) freed = sq.breakFree('hero'); });
-    assert.ok(log.some(e => e.type === 'grab'), 'agarrou'); assert.ok(freed, 'DASH solta depois de 0,3 s'); assert.ok(dmg.filter(d => d.kind === 'terror').length <= 3, 'mordida limitada'); assert.ok(sq.ccImmune.has('hero') || log.some(e => e.type === 'release')); }
 });
 
-test('Ninhada: criaturas com HP que não expiram, teto de vivas, colossal uma vez, todas morrem com o bispo', () => {
-  const { sq, log } = world(); const h = hero({ z: -6 }); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9;
-  for (let i = 0; i < 4; i++) { cast(sq, a, h, 'brood'); run(sq, 2.5); }
-  const crawlers = () => sq.actors.filter(o => o.alive && o.kind === 'crawler'); assert.ok(crawlers().length >= 1 && crawlers().length <= VZ.boss.brood.cap, 'teto: ' + crawlers().length);
-  run(sq, 20); assert.ok(crawlers().length >= 1, 'não expiram enquanto vivas');
-  a.hp = a.maxHp * .4; cast(sq, a, h, 'brood'); run(sq, 2.5); assert.equal(sq.actors.filter(o => o.kind === 'colossus').length, 1); assert.ok(crawlers().length <= 1, 'menos lacaios na fase colossal');
-  cast(sq, a, h, 'brood'); run(sq, 2.5); assert.equal(sq.actors.filter(o => o.kind === 'colossus').length, 1, 'colossal só uma vez');
-  sq.damageActor(a, 99999, {}); run(sq, .2); assert.ok(sq.actors.every(o => !o.alive), 'cleanup com a morte do bispo'); assert.ok(log.some(e => e.type === 'summon' && e.king));
+test('Mod 254 — Bombardeio Abissal Perseguidor: 4–7 s, rajadas travadas, mira só entre disparos, dano no contato, fogo leve', () => {
+  const sim = (move, seed = 5) => { const { sq, dmg, log } = world({ seed }); const h = hero({ x: 0, z: 0 }); sq.setTargets([h]); const a = boss(sq, 14); a.alert = 1e9; a.decideT = 1e9;
+    let dash = 0; cast(sq, a, h, 'bombard'); let lockedOk = true, startAt = null, endAt = null, time = 0; const locked = new Map();
+    run(sq, 9, 1 / 60, tt => { time = tt; move(h, tt, () => dash); const s = sq.spells.find(x => x.type === 'bombard'); if (s) { if (startAt === null) startAt = tt; for (const p of s.shots) { const k = locked.get(p); if (k && (k[0] !== p.x || k[1] !== p.z)) lockedOk = false; if (!k) locked.set(p, [p.x, p.z]); } }
+      else if (startAt !== null && endAt === null) endAt = tt; });
+    const shots = log.filter(e => e.type === 'bombardShot'), impacts = log.filter(e => e.type === 'bombardImpact'), end = log.find(e => e.type === 'bombardEnd');
+    return { dmg, shots, impacts, lockedOk, blast: dmg.filter(d => d.kind === 'bombard').length, fire: dmg.filter(d => d.kind === 'bombardFire').length, startAt, endAt, log };
+  };
+  const still = sim(() => {}), walk = sim((h, t) => { h.vx = 3; h.vz = 0; h.x = -9 + 3 * t; }), run7 = sim((h, t) => { const ang = t * .55; h.vx = -Math.sin(ang) * 7.5; h.vz = Math.cos(ang) * 7.5; h.x = Math.cos(ang) * 13.6; h.z = Math.sin(ang) * 13.6; });
+  const dashing = sim((h, t) => { h.vx = 6; h.x = -9 + 6 * t; const s = 0; h.iframes = (t % 1.1) < .38; });
+  // duração e cadência
+  const life = still.log.findIndex(e => e.type === 'bombardEnd'); assert.ok(still.shots.length >= 9 && still.shots.length <= 16, 'rajadas: ' + still.shots.length);
+  const span = still.shots.at(-1).spell.T.rise + still.shots.at(-1).spell.T.dur; assert.ok(span >= 4 && span <= 7, 'duração ' + span);
+  assert.ok(still.lockedOk && walk.lockedOk && run7.lockedOk, 'ponto de impacto travado depois do disparo (nada teleguiado)');
+  assert.equal(still.impacts.length, still.shots.length, 'cada rajada explode no seu ponto');
+  // dano só no contato: nenhum dano antes da primeira explosão
+  const firstImpact = still.log.findIndex(e => e.type === 'bombardImpact'), firstDmg = still.log.findIndex(e => e.type === 'targetHit' || false); assert.ok(still.dmg.length > 0 && still.dmg[0].kind === 'bombard');
+  // dificuldade: parado é vulnerável, andando ainda corre risco, correndo melhora, dash com i-frames escapa bem
+  assert.ok(still.blast >= 5, 'parado: ' + still.blast); assert.ok(walk.blast >= 1 && walk.blast < still.blast, 'andando: ' + walk.blast); assert.ok(run7.blast < walk.blast + 1 && run7.blast < still.blast * .5, 'correndo: ' + run7.blast);
+  assert.ok(dashing.blast <= walk.blast, 'dash: ' + dashing.blast);
+  // fogo residual é leve e com tique por alvo
+  assert.ok(still.fire >= 1, 'quem fica no fogo toma tique'); for (const r of [still, walk]) { const ticks = r.dmg.filter(d => d.kind === 'bombardFire'); assert.ok(ticks.every(d => d.n <= 2)); }
+  const fireTimes = []; { const { sq, dmg } = world({ seed: 5 }); const h = hero(); sq.setTargets([h]); const a = boss(sq, 14); a.alert = a.decideT = 1e9; cast(sq, a, h, 'bombard'); let t = 0; run(sq, 10.5, 1 / 60, tt => { t = tt; const n = dmg.filter(d => d.kind === 'bombardFire').length; if (n > fireTimes.length) fireTimes.push(tt); });
+    for (let i = 1; i < fireTimes.length; i++) assert.ok(fireTimes[i] - fireTimes[i - 1] >= .49, 'tique de fogo respeita o intervalo'); assert.ok(!sq.spells.some(x => x.type === 'bombard'), 'tudo some no fim'); }
+  // dono morre: nada de dano fantasma depois
+  { const { sq, dmg } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 14); a.alert = a.decideT = 1e9; cast(sq, a, h, 'bombard'); run(sq, 2.2); const n = dmg.length; sq.damageActor(a, 99999, {}); run(sq, 5); assert.equal(dmg.length, n, 'sem dano depois da morte do bispo'); assert.ok(!sq.spells.some(x => x.type === 'bombard' && x.fires.length)); }
 });
 
 test('Determinismo do VHAZRAEL a 30/60/144 FPS e limpeza após ciclos', () => {
@@ -202,7 +217,7 @@ test('Determinismo do VHAZRAEL a 30/60/144 FPS e limpeza após ciclos', () => {
 test('Mod 247b: golpes do VHAZRAEL são cortes nativos estáveis (sem o clipe acrobático), contato só pela lâmina; poderes conjurados sobre o Idle', async () => {
   const { BOSS_MOVES } = await import('./boss-choreography3d.js');
   assert.deepEqual(BOSS_MOVES.vhazrael.map(m => m.id), ['Trono_Corte', 'Trono_Estocada', 'Trono_Queda']);
-  for (const k of ['throne', 'thorns', 'terror', 'brood', 'orbital']) assert.equal(VZ.boss[k].anim, 'idle', k);
+  for (const k of ['throne', 'thorns', 'bombard', 'orbital']) assert.equal(VZ.boss[k].anim, 'idle', k);
   for (const m of BOSS_MOVES.vhazrael) { const { sq, dmg } = world(); const t = hero({ z: 2.4 }); sq.meleeTrace = () => true; sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, m.id); run(sq, m.duration + .2);
     assert.equal(dmg.filter(d => d.kind === 'melee').length, m.hits.length, m.id); assert.ok(a.z < t.z - t.radius); }
   { const { sq, dmg } = world(); const t = hero({ z: 2 }); sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, 'Trono_Corte'); run(sq, 2); assert.equal(dmg.length, 0, 'sem traço da lâmina, sem dano'); }
@@ -213,7 +228,7 @@ test('Mod 253 — Extinção Orbital: storyboard de 7 fases na mesma linha do te
   assert.deepEqual(ORBITAL_PHASES, ['awaken', 'orbit', 'entry', 'arrival', 'choice', 'impact', 'after']);
   assert.ok(ORBITAL.choice >= 2, 'janela jogável de defesa com pelo menos 2 s'); assert.equal(ORBITAL.guard, .35);
   assert.ok(Math.abs(ORBITAL.cast - (ORBITAL.awaken + ORBITAL.orbit + ORBITAL.entry + ORBITAL.arrival + ORBITAL.choice + ORBITAL.impact)) < .01, 'o ato do bispo dura até o fim do impacto');
-  const { sq, log } = world(); const h = hero({ x: 12 }); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'terror']); cast(sq, a, h, 'orbital');
+  const { sq, log } = world(); const h = hero({ x: 12 }); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'bombard']); cast(sq, a, h, 'orbital');
   const dims = {}; run(sq, 19, 1 / 60, () => { const s = orbitalSpell(sq); if (s) dims[s.phase] = Math.max(dims[s.phase] || 0, s.dim || 0); });
   assert.ok(dims.awaken > .5, 'luz da arena cai no despertar (silhueta)'); assert.ok((dims.after || 0) === 0, 'luz devolvida no fim');
   assert.ok(!orbitalSpell(sq), 'nenhum meteoro fantasma depois'); assert.equal(log.filter(e => e.type === 'orbitalResult').length, 1);
@@ -222,5 +237,5 @@ test('Mod 253 — Extinção Orbital: storyboard de 7 fases na mesma linha do te
   assert.ok(src.includes("body.vz-choice #actions>button:not(#defend):not(#ultimate)"), 'na janela só DEF e ULTIMATE ficam na tela');
   assert.ok(/lock=!!o&&\/\^\(awaken\|orbit\|entry\|arrival\)\$\//.test(src), 'controles travados só nas tomadas, nunca na escolha');
   assert.ok(src.includes('vzApplyShot(sh)') && src.includes('vzCamRestore()'), 'tomada aplicada só no quadro desenhado');
-  assert.ok(vfx.includes("vhazrael-extinction3d.js?v=mod253"), 'módulo novo da Extinção com cache versionado');
+  assert.ok(vfx.includes("vhazrael-extinction3d.js?v=mod"), 'módulo novo da Extinção com cache versionado');
 });

@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VHAZRAEL · prévia</title>
 <style>body{margin:0;background:#07050b;color:#f3e2ff;font:13px system-ui}canvas{display:block}#info{position:absolute;top:8px;left:10px;font:12px monospace;white-space:pre;pointer-events:none}footer{position:absolute;bottom:10px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:4px}button{background:#24102a;border:1px solid #ff3f7e;color:#fde8ff;padding:8px 9px;border-radius:8px}</style>
-<div id="info"></div><footer><button data-k="thorns">ESPINHOS</button><button data-k="terror">TERROR</button><button data-k="brood">NINHADA</button><button data-k="throne">RUPTURA</button><button data-k="orbital">EXTINÇÃO</button><button data-k="melee">GOLPE</button><button id="q">QUALIDADE</button></footer>
+<div id="info"></div><footer><button data-k="thorns">ESPINHOS</button><button data-k="bombard">BOMBARDEIO</button><button data-k="throne">RUPTURA</button><button data-k="orbital">EXTINÇÃO</button><button data-k="melee">GOLPE</button><button id="q">QUALIDADE</button></footer>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 /* MOD 247 — prévia/QA isolada do VHAZRAEL: o MESMO runtime da esquadra do jogo com o Bispo1-lod.glb real (clipes in-place como
@@ -23,7 +23,7 @@ let rig=null;async function load(){if(rig)return rig;const g=await new GLTFLoade
 let rt=null,time=0,heroHp=0,info=document.getElementById('info');const qa={tilt:0,lift:0,sink:0,scale:[9,0],frames:0};
 async function start(){await load();if(rt)rt.dispose();heroHp=0;time=0;hero.x=0;hero.z=0;
  rt=createEnemy1SquadRuntime({T,scene,ground,blocked:()=>false,los:()=>true,source:()=>rig,clone:m=>skClone(m),measure:o=>new T.Box3().setFromObject(o),heroHeight:()=>1.8,damageTarget:(id,n)=>{heroHp+=n;return'hit';},event:()=>{}});
- const sq=rt.start([{x:0,z:+(qs.get('d')||9),yaw:Math.PI,kind:'vhazrael'}],{seed:5});const a=sq.actors[0];a.alert=1e9;a.decideT=1e9;a.used=new Set(['throne','thorns','terror']);sq.setTargets([hero]);
+ const sq=rt.start([{x:0,z:+(qs.get('d')||9),yaw:Math.PI,kind:'vhazrael'}],{seed:5});const a=sq.actors[0];a.alert=1e9;a.decideT=1e9;a.used=new Set(['throne','thorns','bombard']);sq.setTargets([hero]);
  if(kind==='melee'){hero.z=6.8;sq.startMelee(a,hero);}else if(kind!=='idle'){a.cds[kind]=0;sq.startCast(a,hero,kind);}
 }
 const _a=new T.Vector3(),_b=new T.Vector3();
@@ -33,12 +33,11 @@ function measure(){scene.updateMatrixWorld(true);const sq=rt.squad,a=sq&&sq.acto
 function cam(){const sq=rt&&rt.squad,a=sq&&sq.actors[0];if(!a)return;const s=sq.spells.find(x=>x.type===kind);
  if(camMode==='side'||kind==='melee'||kind==='idle'){camera.position.set(a.x-5.2,2.4,a.z-2.2);camera.lookAt(a.x,1.5,a.z-.6);return;}
  if(kind==='thorns'){camera.position.set(-9,4.6,-8.5);camera.lookAt(0,1.6,2);return;}
- if(kind==='terror'){camera.position.set(2.5,2.2,-6.5);camera.lookAt(0,3.5,6);return;}
- if(kind==='brood'){const c=sq.actors.find(x=>x.kind!=='vhazrael');const p=c||a;camera.position.set(p.x+3.2,2.3,p.z-4.2);camera.lookAt(p.x,.9,p.z);return;}
+ if(kind==='bombard'){if(camMode==='hero'){camera.position.set(hero.x+.6,2.6,hero.z-5.5);camera.lookAt(hero.x,1.6,hero.z+4);return;}camera.position.set(-12,7.5,-8);camera.lookAt(0,2.8,a.z*.4);return;}
  if(kind==='throne'){if(camMode==='hero'){camera.position.set(hero.x+.8,2.7,hero.z-5.2);camera.lookAt(a.x,2.2,a.z);return;}if(camMode==='wide'){camera.position.set(a.x-30,12,a.z*.5-4);camera.lookAt(a.x,9,a.z*.5);return;}if(camMode==='back'){camera.position.set(a.x+3,3.2,a.z+7);camera.lookAt(a.x,5,a.z-4);return;}
   const hint=rt.vhazraelVFX.throneHint;camera.position.set(a.x-11,4,a.z-9);camera.lookAt(a.x*.5,2.5+(hint?hint.k*8:0),a.z*.55);return;}
  camera.position.set(a.x-6,3,a.z-7);camera.lookAt(a.x,3,a.z);}
-function step(dt){time+=dt;rt.update(dt,{targets:[hero],camera,quality});heroM.position.set(hero.x,.87,hero.z);const dk=rt.dim||0,st=rt.vhazraelVFX.sceneTint,tk=st.k||0,tc=new T.Color(st.hex);hemi.intensity=1.6*(1-.42*dk);sun.intensity=1.7*(1-.55*dk);hemi.color.set(0xd8d4ff).lerp(tc,tk*.55);sun.color.set(0xfff0dd).lerp(tc,tk*.45);scene.background.set('#1b1a26').lerp(tc,tk*.5);measure();}
+function step(dt){time+=dt;if(qs.has('mv')){hero.vx=3.2*Math.cos(time*.45);hero.vz=0;hero.x+=hero.vx*dt;}rt.update(dt,{targets:[hero],camera,quality});heroM.position.set(hero.x,.87,hero.z);const dk=rt.dim||0,st=rt.vhazraelVFX.sceneTint,tk=st.k||0,tc=new T.Color(st.hex);hemi.intensity=1.6*(1-.42*dk);sun.intensity=1.7*(1-.55*dk);hemi.color.set(0xd8d4ff).lerp(tc,tk*.55);sun.color.set(0xfff0dd).lerp(tc,tk*.45);scene.background.set('#1b1a26').lerp(tc,tk*.5);measure();}
 function draw(){const sh=rt&&rt.vhazraelVFX.orbitShot;if(sh&&!sh.space&&camMode!=='free'){const b=sh.blend??1;camera.position.lerp(new T.Vector3().fromArray(sh.pos),b);camera.lookAt(new T.Vector3().fromArray(sh.look));camera.fov=sh.fov||55;camera.updateProjectionMatrix();}else if(camera.fov!==55){camera.fov=55;camera.updateProjectionMatrix();}const o=rt&&rt.orbit;if(sh&&sh.space){const v=rt.vhazraelVFX;v.orbitalCamera.aspect=camera.aspect;v.orbitalCamera.updateProjectionMatrix();renderer.render(v.orbitalScene,v.orbitalCamera);}else renderer.render(scene,camera);}
 function frame(){requestAnimationFrame(frame);if(!rt)return;if(freezeAt===null){cam();step(Math.min(.033,1/60));}const sq=rt.squad;
  info.textContent=(sq?sq.spells.map(s=>s.type+':'+s.phase).join(' '):'')+'\nt '+time.toFixed(2)+' dano '+heroHp+' chamadas '+renderer.info.render.calls+'\ninclinação máx '+qa.tilt.toFixed(1)+'° quadril '+qa.sink.toFixed(2)+'…'+qa.lift.toFixed(2)+' m';draw();}

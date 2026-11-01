@@ -11,8 +11,8 @@ import { createSakugaImpacts } from './sakuga-impact3d.js';
 import './enemy2-squad3d.js';
 import { stormDim } from './enemy3-squad3d.js';
 import './enemy4-squad3d.js';
-import './vhazrael3d.js?v=mod253-extincao-orbital';
-import { createVhazraelVFX, buildCrawler } from './vhazrael-vfx3d.js?v=mod253-extincao-orbital';
+import './vhazrael3d.js?v=mod254-bombardeio';
+import { createVhazraelVFX } from './vhazrael-vfx3d.js?v=mod254-bombardeio';
 import { createEnemy4VFX } from './enemy4-vfx3d.js';
 import { createAbyssVFX } from './enemy3-abyss-vfx3d.js';
 import { attachKatana, poseKatana, poseCaster, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
@@ -36,7 +36,7 @@ const ROLE_SPEED = { idle: .38, walk: 1, run: 1.08, attack: 1, attack2: 1, cast:
 export function createEnemy1SquadRuntime(ctx) {
   const T = ctx.T, scene = ctx.scene;
   const vfx = createDarkPowersVFX(T, scene, { ground: ctx.ground }), chaos = createChaosVFX(T, scene, { ground: ctx.ground });
-  const BOSSES = { warden: 1, e2boss: 1, e3boss: 1, e4boss: 1, vhazrael: 1 }, E3K = { e3: 1, e3boss: 1, e4: 1, e4boss: 1, vhazrael: 1 }, PROC = { crawler: 1, colossus: 1 }, vzfx = createVhazraelVFX(T, scene, { ground: ctx.ground }), abyss = createAbyssVFX(T, scene, { ground: ctx.ground }), ruin = createEnemy4VFX(T, scene, { ground: ctx.ground });
+  const BOSSES = { warden: 1, e2boss: 1, e3boss: 1, e4boss: 1, vhazrael: 1 }, E3K = { e3: 1, e3boss: 1, e4: 1, e4boss: 1, vhazrael: 1 }, vzfx = createVhazraelVFX(T, scene, { ground: ctx.ground }), abyss = createAbyssVFX(T, scene, { ground: ctx.ground }), ruin = createEnemy4VFX(T, scene, { ground: ctx.ground });
   // impacto sakuga do Enemy2: casca agressiva, anéis irregulares, rachaduras no terreno ao longo do golpe, placas e pedras
   const sak = createSakugaImpacts(T, scene, { ground: ctx.ground, capacity: 8 });
   // VFX Engine 2.0 (Mod 236): impactos autoritativos (pressão, fragmentos, fissuras, poeira) e rastro volumétrico da espiral
@@ -54,14 +54,7 @@ export function createEnemy1SquadRuntime(ctx) {
   /** Altura-alvo (topo da cabeça) por classe: comum ≈ a do herói (1,72–1,95 m), Guardião 1,22× o comum, sem virar gigante. */
   function heightFor(kind) { const hero = Math.max(1.4, Math.min(2.1, ctx.heroHeight() || 1.8)); const c = Math.min(1.95, Math.max(1.72, hero * .97)); return kind === 'warden' ? c * 1.22 : kind === 'e2' ? c * 1.03 : kind === 'e2boss' ? c * 1.3 : kind === 'e3' ? c * 1.04 : kind === 'e3boss' ? c * 1.36 : kind === 'e4' ? c * 1.05 : kind === 'e4boss' ? c * 1.42 : kind === 'vhazrael' ? c * 1.22 : c; }
   const combatCache=new Map();
-  /** Criaturas da Ninhada: corpo procedural (sem GLB), sobem da fenda e marcham com as patas. */
-  function makeProcBody(a) {
-    const pc = buildCrawler(T, a.kind === 'colossus'), holder = new T.Group(), mats = pc.mats; holder.add(pc.group); holder.position.set(a.x, a.y, a.z); holder.rotation.y = a.yaw; scene.add(holder);
-    for (const mt of mats) { mt.userData.e0 = mt.emissive.getHex(); mt.userData.i0 = mt.emissiveIntensity; }
-    return { height: a.T.height, holder, model: pc.group, mixer: new T.AnimationMixer(pc.group), acts: {}, mats, scales: [], cur: null, rev: -1, flash: 0, dead: 0, hand: null, lhand: null, head: null, weapon: null, fall: 0, k: 1, proc: pc };
-  }
   function makeBody(a) {
-    if (PROC[a.kind]) return makeProcBody(a);
     const src = ctx.source(a.kind); if (!src || !src.model) return null;
     const m = measureSource(src), model = ctx.clone(src.model); model.visible = true; model.position.set(0, 0, 0); model.rotation.set(0, 0, 0);
     const k = heightFor(a.kind) / m.h; model.scale.copy(src.model.scale).multiplyScalar(k); model.position.y = -m.minY * k;
@@ -180,7 +173,7 @@ export function createEnemy1SquadRuntime(ctx) {
       const charges = [];
       for (const a of squad.actors) {
         let b = bodies.get(a.id); if (!b && a.alive) { b = makeBody(a); if (b) bodies.set(a.id, b); } if (!b) continue; // lacaios invocados no meio da luta
-        b.holder.position.set(a.x, a.y, a.z); if (b.proc) { a.emerge = Math.min(1, (a.emerge ?? 1) + dt / .9); b.holder.position.y -= (1 - smooth01(a.emerge)) * 1.4 * a.T.height; }
+        b.holder.position.set(a.x, a.y, a.z);
         let dy = a.yaw - b.holder.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); b.holder.rotation.y += dy * Math.min(1, dt * 18);
         if (!a.alive) {
           // sem clipe de morte no Enemy1: tomba para trás, fica no chão e afunda devagar
@@ -193,7 +186,6 @@ export function createEnemy1SquadRuntime(ctx) {
         if (a.anim.rev !== b.rev) { b.rev = a.anim.rev; play(b, a.anim.role, a.anim.once && a.anim.role !== 'idle', a.anim.speed); } // Idle sempre em loop: base estável para as camadas procedurais longas
         else if (!a.anim.once && b.cur) b.cur.setEffectiveTimeScale((ROLE_SPEED[a.anim.role] || 1) * a.anim.speed);
         if(a.act?.move&&b.cur){b.cur.time=a.act.t;b.cur.paused=true;}else if(b.cur)b.cur.paused=false;
-        if (b.proc) b.proc.update(dt, a);
         b.mixer.update(dt);if(a.act?.move){b.cur.time=a.act.t;b.mixer.update(0);b.holder.rotation.y=a.yaw;}
         for (const [o, s] of b.scales) o.scale.copy(s);
         if (b.flash > 0) b.flash -= dt;

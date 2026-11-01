@@ -16,7 +16,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael');
 const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB);
 // O selo só mostra 252 quando o módulo de combate da versão 252 realmente importou.
-{const m=document.getElementById('marker');if(m){m.textContent=VHAZRAEL_BUILD.startsWith('253-')?'253':'?';m.title='Motor VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=VHAZRAEL_BUILD.startsWith('254-')?'254':'?';m.title='Motor VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -3201,7 +3201,7 @@ function squadDamageTarget(id,dmg,info){
  const al=squadAllies.find(x=>x.id===id);if(al)return allyHurt(al,amount,info);
  return 'immune';
 }
-const SQUAD_NAMES={throne:'RUPTURA DO TRONO ABISSAL',thorns:'FLORESTA DE ESPINHOS ABISSAIS',terror:'ENTIDADE DO TERROR',brood:'NINHADA ABISSAL',orbital:'EXTINÇÃO ORBITAL',stomp:'PISÃO COLOSSAL',sanctum:'ERUPÇÃO DO SANTUÁRIO CARMIM',constellation:'CONSTELAÇÃO DA RUÍNA',drill:'PERFURADOR DO ABISMO',cage:'JAULA DAS CORRENTES',nadir:'TEMPESTADE DE NADIR',barrage:'BARRAGEM ABISSAL',singularity:'SINGULARIDADE ABISSAL',claws:'GARRAS DO ABISMO',spiral:'ESPIRAL DEVORADORA',judgment:'JUÍZO VIOLETA',vortex:'JULGAMENTO DO VÓRTICE ABISSAL',trinity:'TRINDADE DO CAOS',collapse:'COLAPSO DO ABISMO'};
+const SQUAD_NAMES={throne:'RUPTURA DO TRONO ABISSAL',thorns:'FLORESTA DE ESPINHOS ABISSAIS',bombard:'BOMBARDEIO ABISSAL PERSEGUIDOR',orbital:'EXTINÇÃO ORBITAL',sanctum:'ERUPÇÃO DO SANTUÁRIO CARMIM',constellation:'CONSTELAÇÃO DA RUÍNA',drill:'PERFURADOR DO ABISMO',cage:'JAULA DAS CORRENTES',nadir:'TEMPESTADE DE NADIR',barrage:'BARRAGEM ABISSAL',singularity:'SINGULARIDADE ABISSAL',claws:'GARRAS DO ABISMO',spiral:'ESPIRAL DEVORADORA',judgment:'JUÍZO VIOLETA',vortex:'JULGAMENTO DO VÓRTICE ABISSAL',trinity:'TRINDADE DO CAOS',collapse:'COLAPSO DO ABISMO'};
 function squadNear(x,z,r){return Math.hypot(x-player.position.x,z-player.position.z)<r;}
 /** Áudio do Enemy3: volume pela distância até o herói e teto de simultaneidade por tipo (sem arquivos externos). */
 const squadSfxAt={};function squadGain(x,z){return Math.max(.15,1-Math.hypot(x-player.position.x,z-player.position.z)/34);}
@@ -3258,10 +3258,10 @@ function squadEvent(type,d){
    break;
   case 'throneBlast':worldAudio.abyss3&&worldAudio.abyss3('boom',squadGain(s.ix,s.iz));squadSfx('thunder',s.ix,s.iz,0);if(squadNear(s.ix,s.iz,30)&&!userSettings.reduceShake)cameraShake(.2);break;
   case 'superArmor':if(performance.now()>(squadSfxAt.armorCallout||0)){squadSfxAt.armorCallout=performance.now()+2500;showCombatCallout('SUPERARMADURA — O GOLPE NÃO PARA');}break;
-  case 'handRise':squadSfx('stick',d.hand.x,d.hand.z,60);break;
-  case 'bite':squadSfx('blade',s.x,s.z,100);break;
-  case 'summon':showCombatCallout(d.king?'O COLOSSO DA NINHADA':'A NINHADA DESPERTA');squadSfx('tear',d.actor.x,d.actor.z,0);break;
-  case 'stompBlast':squadSfx('heavy',s.x,s.z,0);if(!userSettings.reduceShake)cameraShake(.15);break;
+  // MOD 254 — Bombardeio Abissal Perseguidor: conjuração, rajada, impacto pesado e crepitar do fogo (tremor moderado e opcional)
+  case 'bombard':squadSfx('gravity',s.ox,s.oz,0);break;
+  case 'bombardShot':squadSfx('launch',d.shot.fx,d.shot.fz,90);break;
+  case 'bombardImpact':squadSfx('boom',d.shot.x,d.shot.z,110);if(!userSettings.reduceShake&&squadNear(d.shot.x,d.shot.z,9))cameraShake(.07);if(!userSettings.reduceFlash&&squadNear(d.shot.x,d.shot.z,4))enemyHitFlash=Math.max(enemyHitFlash,.04);if(squadNear(d.shot.x,d.shot.z,8))squadSfx('stick',d.shot.x,d.shot.z,400);break;
   case 'vzClose':worldAudio.whoosh();break;
   case 'orbital':status.textContent='VHAZRAEL ergue a espada para o céu…';worldAudio.abyss3&&worldAudio.abyss3('gravity',.6);break;
   case 'orbital_orbit':worldAudio.abyss3&&worldAudio.abyss3('storm',.8);break;
@@ -3299,7 +3299,7 @@ function squadEvent(type,d){
   case 'jumpedWave':if(d.target==='hero')showCombatCallout('SALTOU A ONDA!');break;
   case 'lunge':worldAudio.whoosh();break;
   case 'clawsRise':worldAudio.dark&&worldAudio.dark('rise');if(squadNear(s.x,s.z,9))cameraShake(.1);break;
-  case 'grab':if(d.target==='hero'){const terror=s&&s.type==='terror';if(terror)vzFlash('radial-gradient(ellipse at center,transparent 45%,rgba(160,0,10,.55) 100%)',1,700);showCombatCallout(terror?'AGARRADO — DASH OU DEF PARA SE SOLTAR':'PRESO — DASH PARA SE SOLTAR');status.textContent=terror?'As Mãos Devoradoras te agarraram. Use DASH ou DEF para se soltar.':'As Garras do Abismo te prenderam. Use o DASH para se soltar.';worldAudio.hurt();}break;
+  case 'grab':if(d.target==='hero'){showCombatCallout('PRESO — DASH PARA SE SOLTAR');status.textContent='As Garras do Abismo te prenderam. Use o DASH para se soltar.';worldAudio.hurt();}break;
   case 'release':if(d.target==='hero'&&d.escaped)showCombatCallout('LIVRE!');break;
   case 'spiral':worldAudio.whoosh();break;
   case 'burst':if(s.type==='spiral'||s.why==='hit'){worldAudio.dark&&worldAudio.dark('impact');if(squadNear(s.x,s.z,7))cameraShake(s.why==='hit'?.16:.08);}break;
@@ -3383,7 +3383,7 @@ function updateSquadCombat(dt,now){
  // 2) sinais visíveis do herói para a memória curta dos inimigos
  if(attackCooldown>squadEdge.atk+100){s.observe('hero','melee');}squadEdge.atk=attackCooldown;
  const dashing=dashRemaining>0;if(dashing&&!squadEdge.dash){s.observe('hero','dash');if(s.heldBy('hero')&&!s.breakFree('hero')){dashRemaining=0;status.textContent='Ainda preso — espere as garras afrouxarem e use o DASH de novo.';}}squadEdge.dash=dashing;
- if(defending&&!squadEdge.def){s.observe('hero','block');const hs=s.heldBy('hero');if(hs&&s.spells.some(x=>x.type==='terror'&&x.held))s.breakFree('hero');}squadEdge.def=defending;
+ if(defending&&!squadEdge.def)s.observe('hero','block');squadEdge.def=defending;
  if(playerMana<squadEdge.mana-4){s.observe('hero','cast');squadEdge.castUntil=now+700;}squadEdge.mana=playerMana;
  // 3) presa nas garras: o herói fica ancorado (pode golpear, não anda)
  const held=s.heldBy('hero');if(held&&playerHP>0){moveVX=moveVZ=0;const k=Math.min(1,dt*7);player.position.x+=(held.ax-player.position.x)*k;player.position.z+=(held.az-player.position.z)*k;}
@@ -3478,7 +3478,7 @@ function labPanel(){
  B('⚡ CONJURAR',()=>labForceSkill(select.value));el.lastElementChild.id='lab-skill-cast';
  const hud=document.createElement('div');hud.id='enemy1-lab-hud';hud.style.cssText='width:100%;text-align:left;color:#e9dcff;text-shadow:0 1px 2px #000;font:600 11px system-ui;white-space:pre;pointer-events:none';el.appendChild(hud);document.body.appendChild(el);
 }
-function labHud(){const el=document.getElementById('enemy1-lab-hud');if(!el||!squadLab)return;const s=squadSq();const lines=(s?s.actors:[]).map((a,i)=>(a.kind==='warden'?'GUARDIÃO':a.kind==='e2boss'||a.kind==='e3boss'||a.kind==='e4boss'?'MINI-CHEFE':a.kind==='vhazrael'?'VHAZRAEL':a.kind==='crawler'?'NINHADA':a.kind==='colossus'?'COLOSSO':a.kind==='e4'?'ENEMY4 #'+(i+1):a.kind==='e2'?'ENEMY2 #'+(i+1):a.kind==='e3'?'ENEMY3 #'+(i+1):'ENEMY1 #'+(i+1))+(a===squadFocus?' ◆ ':' · ')+(a.alive?a.hp+'/'+a.maxHp:'caído')+(squadLab.log&&a.alive?' · '+(a.act?(a.act.skill||a.act.type):a.intent.mode)+' · '+a.role:''));for(const al of squadAllies)lines.push('ALIADO · '+(al.hp>0?al.hp+'/'+al.max:'caído'));el.textContent=lines.join('\n');}
+function labHud(){const el=document.getElementById('enemy1-lab-hud');if(!el||!squadLab)return;const s=squadSq();const lines=(s?s.actors:[]).map((a,i)=>(a.kind==='warden'?'GUARDIÃO':a.kind==='e2boss'||a.kind==='e3boss'||a.kind==='e4boss'?'MINI-CHEFE':a.kind==='vhazrael'?'VHAZRAEL':a.kind==='e4'?'ENEMY4 #'+(i+1):a.kind==='e2'?'ENEMY2 #'+(i+1):a.kind==='e3'?'ENEMY3 #'+(i+1):'ENEMY1 #'+(i+1))+(a===squadFocus?' ◆ ':' · ')+(a.alive?a.hp+'/'+a.maxHp:'caído')+(squadLab.log&&a.alive?' · '+(a.act?(a.act.skill||a.act.type):a.intent.mode)+' · '+a.role:''));for(const al of squadAllies)lines.push('ALIADO · '+(al.hp>0?al.hp+'/'+al.max:'caído'));el.textContent=lines.join('\n');}
 function updateEnemy1Lab(dt){
  if(!squadLab)return;if((squadLab.hudT=(squadLab.hudT||0)-dt)<=0){squadLab.hudT=.25;labHud();labSkillSelector();}
  if(squadLab.mode==='clash'&&squadOn&&squadFocus){squadLab.clashT-=dt;if(squadLab.clashT<=0){squadLab.clashT=2.8;faceTo(player,squadFocus);spawnHolyProjectile(squadLab.clashN++%2?'sun':'arc');status.textContent='CLASH: o inimigo responde à sua magia com o Contra-selo.';}}

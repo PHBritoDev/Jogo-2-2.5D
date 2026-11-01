@@ -60,7 +60,7 @@ export function poseKatana(T, b, a, dt, time, low) {
 export function poseCaster(T, b, a, squad, dt) {
   const R = b.arms || (b.arms = findArms(b.model)); if (!R) return;
   const act = a.act; let want = null;
-  if (a.alive && act && act.type === 'cast' && /^(singularity|barrage|nadir|sanctum|constellation|drill|cage|throne|thorns|terror|brood|orbital)$/.test(act.skill)) want = act;
+  if (a.alive && act && act.type === 'cast' && /^(singularity|barrage|nadir|sanctum|constellation|drill|cage|throne|thorns|bombard|orbital)$/.test(act.skill)) want = act;
   else if (a.alive && act && act.type === 'phase2') want = act;
   b.castW = (b.castW || 0) + ((want ? 1 : 0) - (b.castW || 0)) * Math.min(1, dt * (want ? 9 : 5)); const w = b.castW; if (w < .01) { b.lastCastSkill = null; return; }
   if (want) { b.lastCastSkill = want.type === 'phase2' ? 'phase2' : want.skill; b.lastSpell = want.spellId; b.lastT = want.t; }
@@ -72,8 +72,8 @@ export function poseCaster(T, b, a, squad, dt) {
     turn(R.chest, V.p.set(rx, 0, rz), P.lean * w, V);
     aim(R.rua, R.rla, D(P.rua[0], P.rua[1], P.rua[2]), w, V); aim(R.rla, R.rh, D(P.rla[0] + sh, P.rla[1], P.rla[2]), w, V);
     aim(R.lua, R.lla, D(P.lua[0], P.lua[1], P.lua[2]), w, V); aim(R.lla, R.lh, D(P.lla[0] - sh, P.lla[1], P.lla[2]), w, V); }
-  else if (sk === 'thorns' || sk === 'brood') { const dn = sk === 'brood' ? -.95 : -.6; for (const [ua, la, sd] of [[R.rua, R.rla, 1], [R.lua, R.lla, -1]]) aim(ua, la, D(.75, dn, .35 * sd), w, V); turn(R.chest, V.p.set(rx, 0, rz), .35 * w, V); }
-  else if (sk === 'terror') { for (const [ua, la, hd, sd] of [[R.rua, R.rla, R.rh, 1], [R.lua, R.lla, R.lh, -1]]) { aim(ua, la, D(.2, .6, 1 * sd), w, V); aim(la, hd, D(.3, .8, .5 * sd), w, V); } turn(R.chest, V.p.set(rx, 0, rz), -.3 * w, V); if (R.head) turn(R.head, V.p.set(rx, 0, rz), -.3 * w, V); }
+  else if (sk === 'thorns') { for (const [ua, la, sd] of [[R.rua, R.rla, 1], [R.lua, R.lla, -1]]) aim(ua, la, D(.75, -.6, .35 * sd), w, V); turn(R.chest, V.p.set(rx, 0, rz), .35 * w, V); }
+  else if (sk === 'bombard') { aim(R.rua, R.rla, D(.35, .9, .25), w, V); aim(R.rla, R.rh, D(.3, .95, .1), w, V); aim(R.lua, R.lla, D(.7, .2, -.6), w * .8, V); turn(R.chest, V.p.set(rx, 0, rz), -.15 * w, V); } // MOD 254: comanda o emissor no alto
   else if (sk === 'orbital') { aim(R.rua, R.rla, D(.05, 1, .1), w, V); aim(R.rla, R.rh, D(0, 1, 0), w, V); aim(R.lua, R.lla, D(.3, .3, -1), w * .8, V); turn(R.chest, V.p.set(rx, 0, rz), -.25 * w, V); }
   else if (sk === 'sanctum' || sk === 'cage') { // Enemy4: mãos ao alto e golpe para o chão (marca/corrente cravando)
     const k = smooth(b.lastT / .5), down = b.lastT > .5; for (const [ua, la, sd] of [[R.rua, R.rla, 1], [R.lua, R.lla, -1]]) { aim(ua, la, down ? D(.7, -.7, .3 * sd) : D(.15, 1, .3 * sd), w * (down ? 1 : k), V); }

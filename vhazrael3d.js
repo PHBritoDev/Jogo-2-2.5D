@@ -1,7 +1,7 @@
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
 // Selo do motor, importado pela página para provar que a lógica nova carregou.
-export const VHAZRAEL_BUILD = '253-extincao-orbital';
+export const VHAZRAEL_BUILD = '254-bombardeio';
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
@@ -16,10 +16,11 @@ export const VHAZRAEL_BUILD = '253-extincao-orbital';
  *    feixe rasga o chão até tocar o herói/obstáculo → dano no contato → núcleo e choque no MESMO ponto → recuperação.
  *  • Floresta de Espinhos Abissais (thorns): ondas de espinhos finos e diagonais; rachadura no chão mostra cada um
  *    antes; arcos assimétricos com vãos, um dano por onda e alvo.
- *  • Entidade do Terror (terror): silhueta colossal atrás do bispo; mãos dentadas saem de rachaduras marcadas,
- *    agarram e mordem com dano periódico limitado; DASH (ou DEF, no jogo) solta; imunidade curta depois.
- *  • Ninhada (brood): criaturas de muitas patas com HP próprio que NÃO expiram; teto de vivas; variante colossal
- *    uma vez por luta; morrem com o bispo.
+ *  • Bombardeio Abissal Perseguidor (bombard, MOD 254): um emissor suspenso de lâminas rubro-negras dispara descargas em
+ *    SEQUÊNCIA contra o chão por ~5,6 s. A mira é recalculada ANTES de cada disparo (posição atual + previsão curta e
+ *    limitada da velocidade, com padrões centro/lateral e erro controlado); depois de disparada, a rajada tem rumo e ponto
+ *    de impacto TRAVADOS. Marca no chão antes de cada impacto; dano só no contato com a explosão; fogo residual leve com
+ *    tique por alvo. (MOD 254 removeu a Entidade do Terror e a Ninhada; a futura invocação terá modelo próprio.)
  *  • Extinção Orbital (orbital): ultimate ÚNICA por encontro, ~18 s (Mod 253: 7 fases/tomadas), só depois de mostrar três poderes (ou com
  *    pouca vida). O dano no impacto depende da RESPOSTA do jogador: guarda (dano residual), duelo de ultimates
  *    (anula) ou nada (dano massivo). Sem ponto seguro, sem dash que salve. Depois: sem exaustão nem fraqueza.
@@ -32,10 +33,8 @@ const channeling = (sq, s) => { const o = sq.actor(s.owner); return !!(o && o.al
 
 export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 14, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 4.6, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, shockAt: .25, shockTravel: 1.6, blast: 1.05, fade: 2.8 };
 export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 9, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
-export const TERROR = { min: 2, max: 16, cast: 1.6, release: .4, cd: 16, anim: 'idle', channel: false, rise: 1.2, hands: 4, warn: .8, reach: .95, hold: 1.6, tick: .5, tickDmg: 4, endDmg: 6, fade: 1.1, grab: true, life: 4.6 };
-export const BROOD = { min: 0, max: 30, cast: 1.4, release: .5, cd: 14, anim: 'idle', open: .9, cap: 2, capRage: 3, kingAt: .45 };
+export const BOMBARD = { min: 3, max: 26, cast: .9, release: .45, cd: 13, anim: 'idle', channel: false, rise: .6, dur: 5.6, every: .44, fall: .62, r: 1.45, dmg: 6, lead: .12, leadCap: 1.6, side: 2.6, jitter: .5, fireR: 1.45, fireLife: 2.6, fireTick: .6, fireDmg: 2, maxFires: 8, alt: 10.5 };
 export const ORBITAL = { min: 0, max: 60, cast: 15.8, release: .05, cd: 999, anim: 'idle', channel: true, awaken: 2.6, orbit: 3, entry: 4, arrival: 1.6, choice: 2.6, impact: 2, after: 2.2, guard: .35, dmg: 95, shieldDmg: 14, needSkills: 3, lowHp: .35 };
-export const STOMP = { min: 0, max: 5, cast: 1.3, release: .55, cd: 6, anim: 'attack', warn: .75, r: 3.4, dmg: 14, waveH: .7 };
 
 const VHAZ = {
   ...E1.common, hp: 900, radius: .55, height: 2.2, poise: 60, flinch: 99, stamina: 140, sight: 40, leash: 60, boss: true, pref: [1.8, 2.6], phase2: .5, furyCd: .78,
@@ -45,21 +44,8 @@ const VHAZ = {
   dash: { speed: 11, time: .3, cd: 1.6 }, block: { chance: .32, dur: .7, cd: 1.8, cost: 12, reduce: .8 }, dodge: { chance: .4, cd: 2 },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
   decide: [.16, .26], gap: .45, spellGap: 2.2, maxBig: 2, interrupt: true, feint: 'throne',
-  kit: ['throne', 'thorns', 'terror', 'brood', 'orbital'], throne: THRONE, thorns: THORNS, terror: TERROR, brood: BROOD, orbital: ORBITAL,
+  kit: ['throne', 'thorns', 'bombard', 'orbital'], throne: THRONE, thorns: THORNS, bombard: BOMBARD, orbital: ORBITAL,
   brain: vhazraelBrain
-};
-const CRAWLER = {
-  ...E1.common, hp: 85, radius: .5, height: .95, poise: 10, flinch: 7, sight: 40, leash: 60,
-  speed: { walk: 2.4, run: 5.2, strafe: 2, back: 2.4, turn: 11 },
-  melee: { max: 2, reach: 1.9, arc: .3, windup: .45, hits: [.45], dur: .95, dmg: 7, cd: 1.6, knock: .4 },
-  dash: { speed: 9, time: .3, cd: 2.4 }, block: { chance: 0, dur: .5, cd: 9, cost: 99, reduce: 0 }, dodge: { chance: .2, cd: 3 },
-  counter: { ...E1.common.counter, chance: 0, cd: 99 }, decide: [.3, .45], gap: .9, kit: [], summon: true, brain: summonBrain
-};
-const COLOSSUS = {
-  ...CRAWLER, hp: 480, radius: 1.35, height: 3, poise: 60, flinch: 99, boss: true, pref: [2.6, 3.4],
-  speed: { walk: 1.9, run: 3.4, strafe: 1.4, back: 1.8, turn: 6 },
-  melee: { max: 3.4, reach: 3.6, arc: .2, windup: .7, hits: [.7], dur: 1.45, dmg: 16, cd: 2.2, knock: 1.4 },
-  decide: [.35, .5], spellGap: 3, maxBig: 3, kit: ['stomp'], stomp: STOMP, brain: summonBrain
 };
 /* MOD 247b — golpes de espada NATIVOS (assador de IK da Mod 244 sobre o esqueleto mixamo do Bispo1): substituem o clipe
    acrobático 'Sword Aerial Combo' (girava/deitava o tronco ~56°) por cortes de montante estáveis, com contato pela lâmina. */
@@ -69,7 +55,7 @@ BOSS_MOVES.vhazrael = [
   { id: 'Trono_Queda', label: 'Sentença Vertical', patterns: ['overhead'], hits: [1.05], duration: 2, advance: 1, jump: .55, heavy: true }
 ];
 for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.jump ? 1.3 : m.range ? 1.15 : 1; }
-export const VZ = Object.freeze({ boss: registerKind('vhazrael', VHAZ), crawler: registerKind('crawler', CRAWLER), colossus: registerKind('colossus', COLOSSUS) });
+export const VZ = Object.freeze({ boss: registerKind('vhazrael', VHAZ) });
 
 /* ---------- cérebro adaptativo ---------- */
 /** Estilo observado (médias que decaem em ~8 s) e adaptação limitada dos parâmetros do PRÓPRIO bispo. */
@@ -98,7 +84,6 @@ export function vhazraelBrain(sq, a, dt, t) {
   const orbit = sq.spells.find(s => s.type === 'orbital' && s.phase !== 'after' && s.phase !== 'done');
   for (const o of sq.actors) if (o !== a && o.alive) { if (orbit) { o.alert = Math.max(o.alert, .5); if (o.act && o.act.type !== 'stagger') o.act = null; } }
 }
-function summonBrain(sq, a) { const m = sq.actor(a.master); if (!m || !m.alive) sq.kill(a); } // morrem com o bispo (cleanup imediato)
 const showDistinct = a => a.used ? [...a.used].filter(id => id !== 'orbital').length : 0;
 const varied = (a, id) => (a.lastSkill === id ? -.4 : 0) + (a.used && !a.used.has(id) ? .25 : 0); // não repete; mostra o kit inteiro
 const markUsed = (a, id) => { a.lastSkill = id; if (a.used) a.used.add(id); };
@@ -266,66 +251,52 @@ function placeWave(sq, s, t) {
   sq.event('thornWave', { spell: s, wave: s.wave });
 }
 
-/* ---------- Entidade do Terror + Mãos Devoradoras ---------- */
-registerSkill('terror', {
-  score(sq, a, t, c) { if (anyActive(sq, 'terror') || sq.ccImmune.has(t.id)) return null; return .5 + clamp((a.style?.guard || 0) / 4, 0, .35) + clamp((a.style?.far || 0) / 4, 0, .25) + (a.phase2 ? .15 : 0) + varied(a, 'terror'); },
+/* ---------- Bombardeio Abissal Perseguidor (MOD 254) ---------- */
+/** Padrões de mira por disparo (sem teleguiar depois de lançado): 0 previsão, 1 lateral +, 2 posição atual, 3 lateral −, 4 adiante. */
+const BOMB_PATTERN = [0, 1, 2, 3, 0, 4, 1, 2, 3, 0, 4, 2, 1, 3];
+registerSkill('bombard', {
+  score(sq, a, t, c) { if (anyActive(sq, 'bombard') || !c.see) return null; return .5 + (c.d > 5 ? .25 : 0) + clamp((a.style?.far || 0) / 4, 0, .25) + clamp((a.style?.dash || 0) / 4, 0, .15) + varied(a, 'bombard'); },
   spawn(sq, a, t) {
-    const T = a.T.terror; markUsed(a, 'terror'); const p = lead(t, .35, 2), hands = [], fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), n = T.hands + (a.phase2 ? 2 : 0);
-    for (let i = 0; i < n; i++) { const ang = Math.atan2(t.x - a.x, t.z - a.z) + Math.PI + (i - (n - 1) / 2) * .9 + (sq.rand() - .5) * .3, d = i === 0 ? .25 : 1.4 + sq.rand() * 1.6; hands.push({ i, x: p.x + Math.sin(ang) * d, z: p.z + Math.cos(ang) * d, y: 0, delay: .25 + i * .18, t: 0, phase: 'wait', seed: sq.rand() * 100, s: .8 + sq.rand() * .5 }); }
-    for (const h of hands) h.y = sq.ground(h.x, h.z);
-    const s = { id: sq.nextId++, type: 'terror', grab: true, owner: a.id, kind: a.kind, T, tid: t.id, t: 0, phase: 'rise', hands, held: null, ex: a.x - fx * 6, ez: a.z - fz * 6, ey: a.y, eyaw: a.yaw, ticks: 0, x: p.x, z: p.z };
-    sq.spells.push(s); sq.event('terror', { spell: s, actor: a }); return s;
+    const T = a.T.bombard; markUsed(a, 'bombard'); const fx = Math.sin(a.yaw), fz = Math.cos(a.yaw);
+    const s = { id: sq.nextId++, type: 'bombard', owner: a.id, kind: a.kind, T, tid: t.id, t: 0, age: 0, phase: 'rise', ox: a.x + fx * 2.5, oz: a.z + fz * 2.5, oy: a.y + T.alt, shots: [], fires: [], fired: 0, next: T.rise, lastFire: {}, hitAt: {} };
+    sq.spells.push(s); sq.event('bombard', { spell: s, actor: a }); return s;
   },
   step(sq, s, dt) {
-    const T = s.T; s.age = (s.age || 0) + dt;
-    for (const h of s.hands) { h.t += dt;
-      if (h.phase === 'wait' && s.t >= h.delay) { h.phase = 'warn'; h.t = 0; }
-      else if (h.phase === 'warn' && h.t >= T.warn) { h.phase = 'grab'; h.t = 0; sq.event('handRise', { spell: s, hand: h });
-        if (!s.held) for (const tg of live(sq)) { if (tg.iframes || sq.ccImmune.has(tg.id) || Math.hypot(tg.x - h.x, tg.z - h.z) > T.reach + tg.radius) continue;
-          s.held = { id: tg.id, t: 0, dur: T.hold, ax: h.x, az: h.z, hand: h.i }; s.x = h.x; s.z = h.z; s.ticks = 0; sq.damageTarget(tg.id, T.tickDmg, { kind: 'terror', spell: s.id, x: h.x, z: h.z, hold: true }); sq.event('grab', { spell: s, target: tg.id, dur: T.hold }); break; } }
-      else if (h.phase === 'grab' && h.t >= .6 && !(s.held && s.held.hand === h.i)) { h.phase = 'sink'; h.t = 0; }
+    const T = s.T, o = sq.actor(s.owner); s.age += dt;
+    if (!o || !o.alive) { if (s.phase !== 'fade') { s.phase = 'fade'; s.t = 0; s.shots = s.shots.filter(p => p.state === 'boom'); s.fires.length = 0; sq.event('bombardEnd', { spell: s, why: 'owner' }); } } // sem dano depois do dono morrer
+    if (s.phase === 'rise' && s.age >= T.rise) { s.phase = 'fire'; s.t = 0; }
+    // emissor acompanha o bispo devagar (sobre o campo, entre ele e o alvo)
+    const t = sq.target(s.tid) || live(sq)[0];
+    if (o && o.alive && t) { const wx = o.x + (t.x - o.x) * .35, wz = o.z + (t.z - o.z) * .35, k = 1 - Math.exp(-dt * 1.2); s.ox += (wx - s.ox) * k; s.oz += (wz - s.oz) * k; s.oy = sq.ground(s.ox, s.oz) + T.alt; }
+    // um disparo por vez: a mira é calculada AGORA e o ponto de impacto fica travado
+    if (s.phase === 'fire' && s.age >= s.next && s.age < T.rise + T.dur - T.fall && t && t.alive) {
+      const pat = BOMB_PATTERN[s.fired % BOMB_PATTERN.length], sp = Math.hypot(t.vx || 0, t.vz || 0), ux = sp > .3 ? t.vx / sp : 0, uz = sp > .3 ? t.vz / sp : 0;
+      const lead = Math.min(T.leadCap, sp * T.lead), r1 = sq.rand(), r2 = sq.rand(), j = T.jitter * (.35 + .65 * r1), ja = r2 * Math.PI * 2;
+      let x = t.x + ux * lead, z = t.z + uz * lead;
+      if (pat === 1 || pat === 3) { const sd = pat === 1 ? 1 : -1, px = sp > .3 ? -uz : Math.cos(s.fired), pz = sp > .3 ? ux : Math.sin(s.fired); x += px * T.side * sd; z += pz * T.side * sd; }
+      else if (pat === 2) { x = t.x; z = t.z; } else if (pat === 4) { const ah = Math.min(2.4, sp * .3); x += ux * ah; z += uz * ah; }
+      x += Math.cos(ja) * j; z += Math.sin(ja) * j;
+      const shot = { n: s.fired, fx: s.ox, fy: s.oy, fz: s.oz, x, z, y: sq.ground(x, z), tFire: s.age, tImpact: s.age + T.fall, state: 'fall', bt: 0, hit: new Set(), scale: .85 + .3 * sq.rand(), blocked: sq.blocked(x, z) };
+      s.shots.push(shot); s.fired++; s.next = s.age + T.every * (.88 + .24 * sq.rand()); sq.event('bombardShot', { spell: s, shot });
     }
-    if (s.held) { s.held.t += dt; if (!sq.target(s.held.id)) sq.release(s, false);
-      else if (s.held.t >= (s.ticks + 1) * T.tick && s.ticks < 2) { s.ticks++; sq.damageTarget(s.held.id, T.tickDmg, { kind: 'terror', spell: s.id, x: s.x, z: s.z }); sq.event('bite', { spell: s }); } // mordida periódica limitada
-      else if (s.held && s.held.t >= s.held.dur) sq.release(s, true); }
-    if (s.phase === 'sink') { s.phase = 'rise'; } // soltou (dash/DEF/tempo): a entidade continua até o fim e some
-    if (s.phase === 'rise' && s.age >= T.life) { s.phase = 'fade'; s.t = 0; if (s.held) sq.release(s, false); }
-    else if (s.phase === 'fade' && s.t >= T.fade) s.dead = true;
+    for (const p of s.shots) {
+      if (p.state === 'fall' && s.age >= p.tImpact) { // contato com o chão: dano NO ponto travado, uma vez por alvo
+        p.state = 'boom'; p.bt = 0;
+        for (const tg of live(sq)) { if (p.hit.has(tg.id) || tg.iframes || (tg.air || 0) > 2.4) continue; const d = Math.hypot(tg.x - p.x, tg.z - p.z); if (d > T.r * p.scale + tg.radius || !sq.los(p.x, p.z, tg.x, tg.z)) continue;
+          p.hit.add(tg.id); s.hitAt[tg.id] = s.age; sq.damageTarget(tg.id, T.dmg, { kind: 'bombard', spell: s.id, x: p.x, z: p.z, knock: .7 }); }
+        if (!p.blocked) { s.fires.push({ x: p.x, z: p.z, y: p.y, r: T.fireR * p.scale, born: s.age }); while (s.fires.length > T.maxFires) s.fires.shift(); }
+        sq.event('bombardImpact', { spell: s, shot: p });
+      } else if (p.state === 'boom') { p.bt += dt; if (p.bt > 2.2) p.state = 'done'; }
+    }
+    s.shots = s.shots.filter(p => p.state !== 'done');
+    // fogo residual: risco leve, tique por alvo (um só tique mesmo com várias manchas; nunca no mesmo instante da explosão)
+    s.fires = s.fires.filter(f => s.age - f.born < T.fireLife);
+    for (const tg of live(sq)) { if (tg.iframes || (tg.air || 0) > .6) continue; if (s.age - (s.lastFire[tg.id] ?? -9) < T.fireTick || s.age - (s.hitAt[tg.id] ?? -9) < T.fireTick) continue;
+      if (s.fires.some(f => s.age - f.born > .25 && Math.hypot(tg.x - f.x, tg.z - f.z) < f.r + tg.radius * .5)) { s.lastFire[tg.id] = s.age; sq.damageTarget(tg.id, T.fireDmg, { kind: 'bombardFire', spell: s.id, x: tg.x, z: tg.z, knock: 0 }); } }
+    if (s.phase === 'fire' && s.age >= T.rise + T.dur) { s.phase = 'fade'; s.t = 0; sq.event('bombardEnd', { spell: s, why: 'done' }); }
+    if (s.phase === 'fade' && !s.shots.length && !s.fires.length) s.dead = true;
   },
-  danger(sq, s) { return s.hands.filter(h => h.phase === 'warn').map(h => ({ x: h.x, z: h.z, r: s.T.reach + .5, until: s.T.warn - h.t })); }
-});
-
-/* ---------- Ninhada ---------- */
-const summons = (sq, a, kind) => sq.actors.filter(o => o.alive && o.master === a.id && (!kind || o.kind === kind));
-registerSkill('brood', {
-  score(sq, a, t, c) {
-    if (anyActive(sq, 'brood')) return null; const cap = a.phase2 ? a.T.brood.capRage : a.T.brood.cap, king = !a.kingDone && a.hp < a.maxHp * a.T.brood.kingAt;
-    if (!king && summons(sq, a, 'crawler').length >= (summons(sq, a, 'colossus').length ? 1 : cap)) return null; // teto de lacaios: espera alguém morrer
-    return .5 + (king ? .8 : 0) + (c.d > 6 ? .15 : 0) + varied(a, 'brood');
-  },
-  spawn(sq, a, t) {
-    const T = a.T.brood; markUsed(a, 'brood'); const king = !a.kingDone && a.hp < a.maxHp * T.kingAt; if (king) a.kingDone = true;
-    const cap = king ? 0 : Math.max(0, (a.phase2 ? T.capRage : T.cap) - summons(sq, a, 'crawler').length), n = king ? 1 : Math.min(2, cap), fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fx, rifts = [];
-    if (king) for (const o of summons(sq, a, 'crawler').slice(1)) sq.kill(o); // na fase colossal, menos lacaios comuns
-    for (let i = 0; i < n; i++) { const sd = n === 1 ? 0 : i ? 1 : -1, x = a.x + fx * (king ? 4 : 2.2) + rx * sd * 2.4, z = a.z + fz * (king ? 4 : 2.2) + rz * sd * 2.4; if (!sq.blocked(x, z)) rifts.push({ x, z, y: sq.ground(x, z), kind: king ? 'colossus' : 'crawler', done: false }); }
-    const s = { id: sq.nextId++, type: 'brood', owner: a.id, kind: a.kind, T, t: 0, phase: 'open', rifts, king };
-    sq.spells.push(s); sq.event('brood', { spell: s, actor: a, king }); return s;
-  },
-  step(sq, s) {
-    const T = s.T, o = sq.actor(s.owner);
-    if (s.phase === 'open' && s.t >= T.open) {
-      s.phase = 'emerge'; s.t = 0; if (!o || !o.alive) { s.phase = 'fade'; return; }
-      for (const r of s.rifts) { sq.spawn([{ x: r.x, z: r.z, yaw: o.yaw, kind: r.kind }]); const c = sq.actors[sq.actors.length - 1]; c.master = o.id; c.emerge = 0; c.alert = r.kind === 'colossus' ? 1.4 : .9; r.done = c.id; sq.event('summon', { spell: s, actor: c, king: r.kind === 'colossus' }); }
-    } else if (s.phase === 'emerge' && s.t >= 1.2) { s.phase = 'fade'; s.t = 0; }
-    else if (s.phase === 'fade' && s.t >= .6) s.dead = true;
-  },
-  danger() { return null; }
-});
-registerSkill('stomp', { // pisão da variante colossal: anel de choque baixo (dá para saltar)
-  score(sq, a, t, c) { return anyActive(sq, 'stomp') || c.d > 5 ? null : .9; },
-  spawn(sq, a) { const s = { id: sq.nextId++, type: 'stomp', owner: a.id, kind: a.kind, T: a.T.stomp, t: 0, phase: 'warn', x: a.x, z: a.z, y: a.y, hit: new Set() }; sq.spells.push(s); sq.event('stomp', { spell: s, actor: a }); return s; },
-  step(sq, s) { const T = s.T; if (s.phase === 'warn' && s.t >= T.warn) { s.phase = 'blast'; s.t = 0; for (const tg of live(sq)) { if (tg.iframes || (tg.air || 0) > T.waveH || Math.hypot(tg.x - s.x, tg.z - s.z) > T.r + tg.radius) continue; s.hit.add(tg.id); sq.damageTarget(tg.id, T.dmg, { kind: 'stomp', spell: s.id, x: s.x, z: s.z, knock: 1.3 }); } sq.event('stompBlast', { spell: s }); } else if (s.phase === 'blast' && s.t >= .6) s.dead = true; },
-  danger(sq, s) { return s.phase === 'warn' ? { x: s.x, z: s.z, r: s.T.r + .6, until: s.T.warn - s.t } : null; }
+  danger(sq, s) { return s.shots.filter(p => p.state === 'fall').map(p => ({ x: p.x, z: p.z, r: s.T.r + .6, until: p.tImpact - s.age })); }
 });
 
 /* ---------- Extinção Orbital (ultimate única) ---------- */
