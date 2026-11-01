@@ -76,6 +76,17 @@ A cratera e a fissura esfriam devagar.
 - Superfícies muito perto da lente também são recortadas.
 - O efeito usa cerca de 10 chamadas de desenho extras (tudo instanciado ou em buffers fixos, sem alocação por quadro). A qualidade baixa reduz as contagens.
 
+## Adendo visual do criador (aplicado)
+- **Base e explosão:** as massas arredondadas e a fumaça cinza dominante deram lugar a lâminas de energia oblíquas e serrilhadas, com perfil triangular, abrindo em V:
+  - carmim/branco com casca negra/violeta no choque;
+  - amarelo-branco/laranja na explosão secundária.
+
+  Algumas massas pequenas ficam só como núcleo de apoio.
+- **Pilar:** mais rígido e direcional, com faixas verticais brancas/vermelhas convergentes, menos ondulação, raios brancos verticais irregulares nas laterais e duas faixas escuras horizontais cruzando-o.
+- **Pedras negras:** angulares, de tamanhos e formas variados, sugadas em espiral e girando.
+- **Luz carmim:** cobre céu, névoa, hemisfério, sol e preenchimento durante a carga e o disparo, com queda gradual. A cor de base é guardada a cada quadro e devolvida integralmente no fim.
+- **Bloom seletivo:** não aplicado. O jogo não tem pós-processamento, e um bloom só para este golpe custaria caro no celular. O brilho vem de cores em faixas e de núcleos aditivos.
+
 ## Testes
 - **`node --test`:** 309 aprovados, 0 falhas, incluindo os testes novos do Mod 249:
   - fases e eventos na ordem;
@@ -90,7 +101,7 @@ A cratera e a fissura esfriam devagar.
   - jogo também em paisagem 900×405, com capturas por etapa;
   - teste de spam (toques no GOLPE, magia, ULTIMATE e dano de 25 por amostra, com dano letal no meio) durante o golpe, também em tela de celular: o bispo seguiu no golpe até o fim com 1 HP e só então morreu;
   - regressão: Skills 1–3 e Extinção Orbital completas no laboratório, e os labs do Enemy1/Enemy2, todos com 0 erros de console.
-- **Evidências:** `docs/evidencias/mod249/`.
+- **Evidências:** `docs/evidencias/mod249/` (prévia completa, adendo, jogo em paisagem do início à recuperação, luz carmim, pilar e herói visível).
 
 ## Limitações
 - Não testado em Android físico. FPS real não medido (SwiftShader não serve para isso). Áudio não ouvido.

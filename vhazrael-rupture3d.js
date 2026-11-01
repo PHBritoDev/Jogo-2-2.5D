@@ -37,7 +37,7 @@ void main(){ float y=position.y; vec2 q=position.xz; float ang=atan(q.y,q.x); vY
  vec4 w=modelMatrix*vec4(q.x*r,y*len,q.y*r,1.); vN=normalize(mat3(modelMatrix)*vec3(q.x,0.,q.y)); vV=cameraPosition-w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
 const PIL_F = `${NOISE}${CUT} uniform float time, k, layer, erode, near; varying vec2 vA; varying vec3 vN; varying vec3 vV; varying float vY;
 void main(){ if(cutAway(vV,near)) discard; float f=abs(dot(normalize(vN),normalize(vV)));
- float n=fbm(vec2(vA.x*1.9+layer*5.,vA.y*.11-time*(9.+layer*3.))), top=k-.07*n2(vec2(vA.x*3.,time*3.));
+ float n=fbm(vec2(vA.x*5.5+layer*5.,vA.y*.025-time*(3.+layer))), top=k-.07*n2(vec2(vA.x*3.,time*3.));
  if(vY>top) discard; if(n<erode) discard;
  if(layer<.5){ float a=pow(f,1.6)*(.75+.5*n); vec3 c=mix(vec3(1.,.45,.75),vec3(1.,.97,1.),smoothstep(.45,.85,f)); gl_FragColor=vec4(c*a*1.6,a); return; }
  vec3 c;
@@ -74,7 +74,7 @@ void main(){ if(cutAway(vV,near)) discard; float f=abs(dot(normalize(vN),normali
 const TONG_V = `attribute vec4 aP; varying vec4 vP; varying vec2 vU; varying vec3 vV; void main(){ vP=aP; vU=uv; vec4 w=modelMatrix*instanceMatrix*vec4(position,1.); vV=cameraPosition-w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
 const TONG_F = `${NOISE}${CUT} uniform float time, near; varying vec4 vP; varying vec2 vU; varying vec3 vV;
 void main(){ if(cutAway(vV,near)) discard; float n=n2(vec2(vU.y*7.-time*9.+vP.w*13.,vU.x*2.)); float d=abs(vU.x)+(n-.5)*.42+vU.y*.18; if(d>.98||n2(vU*6.+vP.w*3.)<vP.z) discard;
- vec3 c=vP.y<.5?(d<.22*vP.x?vec3(1.,.95,.98):d<.55?vec3(1.,.08,.24):d<.8?vec3(.55,0.,.07):vec3(.05,0.,.05)):(d<.4?vec3(.5,.06,.85):vec3(.015,0.,.02));
+ vec3 c=vP.y<.5?(d<.22*vP.x?vec3(1.,.95,.98):d<.55?vec3(1.,.08,.24):d<.8?vec3(.55,0.,.07):vec3(.05,0.,.05)):vP.y<1.5?(d<.4?vec3(.5,.06,.85):vec3(.015,0.,.02)):(d<.2*vP.x?vec3(1.,.98,.86):d<.45?vec3(1.,.78,.2):d<.7?vec3(1.,.36,.05):d<.86?vec3(.45,.05,.02):vec3(.03,0.,.02));
  gl_FragColor=vec4(c,1.); }`;
 /* domo de energia: roxo profundo → magenta em faixas, borda clara, RASGOS negros verticais que escorrem; erode por ruído */
 const DOME_V = `varying vec3 vN; varying vec3 vV; varying vec3 vP; void main(){ vP=position; vec4 w=modelMatrix*vec4(position,1.); vN=normalize(mat3(modelMatrix)*normal); vV=cameraPosition-w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
@@ -92,7 +92,7 @@ const FAN_F = `varying vec4 vC; varying vec2 vU; void main(){ float a=vC.a*smoot
 
 function tongueGeo(T) { // lâmina de chama: base estreita, barriga, ponta recurvada; bordas serrilhadas; uv.x ∈ [-1,1]
   const pos = [], uv = [], idx = [], N = 9;
-  for (let j = 0; j <= N; j++) { const y = j / N, w = .5 * Math.pow(Math.sin(Math.PI * Math.min(1, y * 1.15)), .7) * (1 - y * .35) * (j % 2 ? .8 : 1) + .01, bend = y * y * .35;
+  for (let j = 0; j <= N; j++) { const y = j / N, w = .5 * (y < .28 ? y / .28 : (1 - y) / .72) * (j % 2 ? .62 : 1) + .01, bend = y * y * .3;
     pos.push(-w + bend, y, 0, bend, y, 0, w + bend, y, 0); uv.push(-1, y, 0, y, 1, y); if (j < N) { const a = j * 3, b = a + 3; idx.push(a, b, a + 1, a + 1, b, b + 1, a + 1, b + 1, a + 2, a + 2, b + 1, b + 2); } }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); return g;
 }
@@ -137,7 +137,7 @@ export function createRuptureVFX(T, kit) {
   /* massas de fogo/energia e línguas de chama instanciadas */
   const mkInst = (geo, vs, fs, n) => { const a = new Float32Array(n * 4); geo.setAttribute('aP', new T.InstancedBufferAttribute(a, 4).setUsage(T.DynamicDrawUsage)); const m = new T.ShaderMaterial({ vertexShader: vs, fragmentShader: fs, uniforms: { time: uTime, near: { value: 3 }, hole: uHole }, side: T.DoubleSide, toneMapped: false, fog: false });
     mats.push(m); geos.push(geo); const o = new T.InstancedMesh(geo, m, n); o.frustumCulled = false; o.count = 0; root.add(o); return { o, a, n: 0, max: n }; };
-  const puffs = mkInst(new T.IcosahedronGeometry(1, 2), PUFF_V, PUFF_F, 110), tongues = mkInst(tongueGeo(T), TONG_V, TONG_F, 140);
+  const puffs = mkInst(new T.IcosahedronGeometry(1, 2), PUFF_V, PUFF_F, 60), tongues = mkInst(tongueGeo(T), TONG_V, TONG_F, 220);
   const putI = (I, p, q, sx, sy, sz, a, b, c, d) => { if (I.n >= I.max) return; S.set(sx, sy, sz); M.compose(p, q, S); I.o.setMatrixAt(I.n, M); I.a.set([a, b, c, d], I.n * 4); I.n++; };
   /** massa: centro, raio, calor 0–1, paleta (0 fogo, 1 carmim), dissolução 0–1, semente */
   const puff = (x, y, z, r, heat, pal, dis, seed) => { if (r <= .02 || dis >= 1) return; A.set(x, y, z); Q.setFromAxisAngle(up, seed * 6.283); putI(puffs, A, Q, r, r * .92, r, heat, pal, dis, seed); };
@@ -150,11 +150,11 @@ export function createRuptureVFX(T, kit) {
   const ink = strips(T, 900, INK_F, false, uHole), fan = strips(T, 64, FAN_F, true, uHole); mats.push(ink.mat, fan.mat); geos.push(ink.geo, fan.geo); root.add(ink.mesh, fan.mesh);
   const INK = [.02, 0, .03], VIOL = [.36, .08, .7], CRIM = [.75, 0, .08], c4 = (c, a) => [c[0], c[1], c[2], a];
   const RED = [1, .05, .14], WHITE = [1, .95, 1], GOLD = [1, .62, .18], HOTV = [.62, .22, 1];
-  let hint = null;
+  let hint = null, tint = 0;
 
   /* ---------- auxiliares ---------- */
   function setPillar(px, py, pz, dir, len, rad, k, erode, swell) {
-    Q.setFromUnitVectors(up, dir); const R = [rad * .38, rad * 1.15, rad * 1.6], W = [.3, .62, .8], FL = [.12, .22, .3];
+    Q.setFromUnitVectors(up, dir); const R = [rad * .38, rad * 1.15, rad * 1.6], W = [.12, .3, .45], FL = [.05, .1, .14];
     for (let l = 0; l < 3; l++) { const o = pillar[l], u = o.material.uniforms; o.visible = true; o.position.set(px, py, pz); o.quaternion.copy(Q); u.len.value = len; u.rad.value = R[l] * swell; u.wob.value = W[l]; u.flare.value = FL[l]; u.k.value = k; u.erode.value = erode; }
   }
   /** espiral helicoidal (tinta + linha quente) em torno do eixo p + dir*t */
@@ -187,8 +187,9 @@ export function createRuptureVFX(T, kit) {
     // veios negro/carmim enrolando a lâmina da guarda até a ponta
     const L = base.distanceTo(tip); helix(base.x, base.y, base.z, D, L * Math.min(1, rise * 1.3), .09, 3, time * 9, false, .05, .95); helix(base.x, base.y, base.z, D, L * Math.min(1, rise * 1.3), .11, 3, time * 9 + 3.1, true, .07, .9);
     glow.add(base.x, base.y, base.z, .5 + .5 * rise, .5 + .5 * rise, 1, .1, .3, .7 * rise, 0);
-    // detritos subindo do chão com a pressão
-    for (let i = 0; i < (low ? 6 : 16); i++) { const a = hash(i * 3) * 6.283, r = 1.6 + hash(i * 5) * 4.5, u = (time * (.25 + .2 * hash(i)) + hash(i * 9)) % 1; shard(bx + Math.cos(a) * r, gy + u * (1.5 + 5 * chg) * rise, bz + Math.sin(a) * r, .07 + .12 * hash(i + 1), a + time, u * 6, i); }
+    // pedras negras angulares sugadas em espiral para o pilar, girando (tamanhos e formas variados)
+    for (let i = 0; i < (low ? 8 : 22); i++) { const a = hash(i * 3) * 6.283 + time * (.6 + hash(i + 2) * .9) * (1 + chg), r = (2 + hash(i * 5) * 7) * (1 - .55 * chg), u = (time * (.2 + .2 * hash(i)) + hash(i * 9)) % 1, sc = .08 + .5 * hash(i + 1) ** 2;
+      shard(bx + Math.cos(a) * r, gy + .3 + u * (2 + 9 * chg) * rise, bz + Math.sin(a) * r, sc, a * 2 + time * (2 + hash(i + 4) * 3), u * 7 + i, i * 1.3, sc * (.6 + hash(i + 5) * 1.6)); }
     groundNormal(ground, bx, bz, nrm); decals.add(bx, gy, bz, 2.2 + 3.5 * chg + 1.5 * rise, .9, .02, .2, .55 * rise, 2, 0, s.id + 3, nrm);
     // pilar colossal a partir da ponta (mesma direção da lâmina), cresce em massa, altura e turbulência
     const swing = age > 2.3, cutK = smooth((age - T0.cut) / .07);
@@ -199,6 +200,9 @@ export function createRuptureVFX(T, kit) {
         X.set(1, 0, 0); if (Math.abs(Fv.x) > .9) X.set(0, 0, 1); Z.crossVectors(Fv, X).normalize(); X.crossVectors(Z, Fv).normalize(); const ax = AX.copy(X), az = AZ.copy(Z);
         for (let i = 0; i < (low ? 6 : 16); i++) { const hh = (hash(i + 60) * .85 + .04) * len, an = hash(i + 61) * 6.283 + time * (hash(i + 62) - .5) * 3, ca = Math.cos(an), sa = Math.sin(an), r0 = 1.4 * swell, fl = .6 + .4 * Math.sin(time * 15 + i * 1.7);
           const ox = ax.x * ca + az.x * sa, oy = ax.y * ca + az.y * sa, oz = ax.z * ca + az.z * sa; tongue(tip.x + Fv.x * hh + ox * r0, tip.y + Fv.y * hh + oy * r0, tip.z + Fv.z * hh + oz * r0, ox + Fv.x * .9, oy + Fv.y * .9, oz + Fv.z * .9, (3 + 5 * hash(i + 63)) * fl * ign, 1 + .8 * hash(i + 64), .8, i % 3 === 0 ? 1 : 0, 0, hash(i + 65)); }
+        if (!low) for (let i = 0; i < 2; i++) { const sd = i ? 1 : -1, sw = Math.floor(time * 16 + i * 3); E.set(cam.x - tip.x, 0, cam.z - tip.z).normalize(); const rx = -E.z * sd, rz = E.x * sd, rr = 3.6 * swell; // raios brancos verticais nas laterais
+          boltRib(s.id * 3 + sw + i, tip.x + rx * rr, tip.y + 2, tip.z + rz * rr, tip.x + rx * rr * 1.3, tip.y + len * .7, tip.z + rz * rr * 1.3, .1, [1, .92, 1], .95 * lit); }
+        if (age > 1.35) { E.set(cam.x - tip.x, 0, cam.z - tip.z).normalize(); const rx = -E.z, rz = E.x, bw = 14 * smooth((age - 1.35) / .3); for (const hb of [.3, .52]) { const y = tip.y + len * hb; ink.seg(tip.x - rx * bw, y, tip.z - rz * bw, tip.x + rx * bw, y, tip.z + rz * bw, .5, .5, c4(INK, .92), c4(INK, .92)); } } // duas faixas escuras cruzando o pilar
         for (let h = 0; h < (low ? 2 : 4); h++) helix(tip.x, tip.y, tip.z, Fv, len * .92, 2.6 * swell, 2.2 + h * .3, time * (h % 2 ? -3 : 4) + h * 1.6, h % 2 === 0, .16 + .06 * (h % 2), .9 * lit); }
       // ignição: anel de choque + chuva de lascas negras/vermelhas na base (línguas de chama abrindo)
       if (!swing) { const n = low ? 6 : 14; for (let i = 0; i < n; i++) { const a = i / n * 6.283 + hash(i) * .5 + time * .4, fl = .7 + .3 * Math.sin(time * 17 + i * 2.1), Lh = (2.4 + 2.2 * hash(i + 3)) * ign * fl * (.8 + .5 * chg);
@@ -225,13 +229,13 @@ export function createRuptureVFX(T, kit) {
   /* ---------- D: feixe e chão rasgado ---------- */
   function drawBeam(s, boss) {
     const T0 = s.T, sp = T0.speed, ba = s.age - T0.cut, front = s.phase === 'wave' ? s.front : s.len, it = s.phase === 'wave' ? -1 : s.phase === 'impact' ? s.t : T0.impact + s.t, gy = ground(s.x, s.z);
-    const ero = smooth((it - .45) / .9), alive = it < 1.4, px = -s.dz, pz = s.dx, w1 = 4.6, sx = s.x, sz = s.z;
+    const ero = smooth((it - .1) / .6), alive = it < .75, px = -s.dz, pz = s.dx, w1 = 4.6, sx = s.x, sz = s.z;
     if (alive && front > .6) { Fv.set(s.dx, 0, s.dz); Q.setFromUnitVectors(up, Fv); X.set(px, 0, pz); Z.set(0, 1, 0); M.makeBasis(X, Fv, Z); Q.setFromRotationMatrix(M);
-      for (let l = 0; l < 2; l++) { const o = beam[l], u = o.material.uniforms, k = l ? 1 : .5; o.visible = true; o.position.set(sx - s.dx * .6, gy + .05, sz - s.dz * .6); o.quaternion.copy(Q); u.len.value = front + .6; u.w0.value = .45 * k; u.w1.value = w1 * k; u.h0.value = .8 * k; u.h1.value = 7.2 * k; u.erode.value = ero; }
+      for (let l = 0; l < 2; l++) { const o = beam[l], u = o.material.uniforms, k = l ? 1 : .5; o.visible = true; o.position.set(sx - s.dx * .6, gy + .05, sz - s.dz * .6); o.quaternion.copy(Q); u.len.value = front + .6; u.w0.value = .45 * k; u.w1.value = w1 * k; u.h0.value = .8 * k; u.h1.value = 5.4 * k; u.erode.value = ero; }
       // parede de massa carmim e línguas na FRENTE (só enquanto avança)
       if (s.phase === 'wave') { const fx = sx + s.dx * front, fz = sz + s.dz * front, fy = ground(fx, fz);
-        for (let i = 0; i < (low ? 4 : 9); i++) { const j = hash(i * 5.3) - .5, r = 1 + hash(i + 2) * 1.1; puff(fx + px * j * 5 + s.dx * (hash(i + 8) - .3) * 2, fy + .8 + hash(i + 4) * 3.2, fz + pz * j * 5 + s.dz * (hash(i + 8) - .3) * 2, r * (.85 + .15 * Math.sin(time * 19 + i)), .95, 1, 0, hash(i + 13 + Math.floor(time * 8))); }
-        for (let i = 0; i < (low ? 4 : 10); i++) { const sd = i % 2 ? 1 : -1, a = .35 + hash(i + 3) * .7; tongue(fx + px * sd * 1.5, fy + .3, fz + pz * sd * 1.5, s.dx * .6 + px * sd * Math.sin(a), Math.cos(a) * 1.4, s.dz * .6 + pz * sd * Math.sin(a), 5 + hash(i) * 5, 2 + hash(i + 1), .9, 0, 0, hash(i + Math.floor(time * 12))); }
+        for (let i = 0; i < (low ? 2 : 3); i++) { const j = hash(i * 5.3) - .5, r = .8 + hash(i + 2) * .6; puff(fx + px * j * 5 + s.dx * (hash(i + 8) - .3) * 2, fy + .8 + hash(i + 4) * 3.2, fz + pz * j * 5 + s.dz * (hash(i + 8) - .3) * 2, r * (.85 + .15 * Math.sin(time * 19 + i)), .95, 1, 0, hash(i + 13 + Math.floor(time * 8))); }
+        for (let i = 0; i < (low ? 6 : 16); i++) { const sd = i % 2 ? 1 : -1, a = .2 + hash(i + 3) * 1.1; tongue(fx + px * sd * (.6 + hash(i + 7) * 1.6), fy + .3 + hash(i + 9) * 2.5, fz + pz * sd * (.6 + hash(i + 7) * 1.6), s.dx * (.9 - .4 * hash(i)) + px * sd * Math.sin(a), Math.cos(a) * .9, s.dz * (.9 - .4 * hash(i)) + pz * sd * Math.sin(a), 5 + hash(i) * 6, 1.6 + hash(i + 1) * 1.4, .9, i % 5 === 0 ? 1 : 0, 0, hash(i + Math.floor(time * 12))); }
         glow.add(fx, fy + 2, fz, 7, 5, 1, .2, .4, .8, 0); }
       // línguas abrindo em V nos flancos e gavinhas negras
       for (let d = 2; d < front - 1; d += low ? 4 : 2.2) { const tp = ba - d / sp, fl = .75 + .25 * Math.sin(time * 21 + d), dis = Math.max(ero, smooth((tp - .9) / .5)), x = sx + s.dx * d, z = sz + s.dz * d, y = ground(x, z), wd = 1.1 + (w1 - 1.1) * smooth(d / (front * .45 + 1));
@@ -247,7 +251,7 @@ export function createRuptureVFX(T, kit) {
       for (const sd of [-1, 1]) { const off = 1 + hash(sd0 + sd) * 1.6, x = sx + s.dx * d + px * sd * off, z = sz + s.dz * d + pz * sd * off; if (lift > .02) plate(x, ground(x, z) - .25 + .45 * lift, z, (.55 + hash(sd0 + 2 + sd) * .55) * Math.min(1, lift * 1.4), sd * (.35 + .4 * hash(sd0 + sd * 5)) * lift, Math.atan2(s.dx, s.dz) + (hash(sd0 + 9) - .5), (hash(sd0 + 4) - .5) * .6 * lift); }
       if (tp > 0 && tp < 1.3 && !low || (low && tp > 0 && tp < 1 && d % 3 < 1.3)) for (let i = 0; i < 2; i++) { const sd = i ? 1 : -1, vx = sd * (2.5 + 4 * hash(sd0 + i)), vy = 6 + 6 * hash(sd0 + i + 3), vf = 2 + 3 * hash(sd0 + i + 6), y = vy * tp - 4.9 * tp * tp; if (y < 0) continue;
         const x = sx + s.dx * (d + vf * tp) + px * vx * tp, z = sz + s.dz * (d + vf * tp) + pz * vx * tp; shard(x, ground(x, z) + y, z, .12 + .16 * hash(sd0 + i + 9), tp * 7 + i, tp * 5, i, 1.2); }
-      if (tp > 0 && tp < 1.6 && !low && hash(sd0) > .45) { const k = tp / 1.6, x = sx + s.dx * d + px * (hash(sd0 + 1) - .5) * 3, z = sz + s.dz * d + pz * (hash(sd0 + 1) - .5) * 3; puff(x, ground(x, z) + .6 + k * 3.4, z, .7 + 1.3 * k, .14 * (1 - k), 0, smooth((k - .45) / .55), hash(sd0 + 2)); } // fumaça escura que sobe da fissura
+      if (tp > 0 && tp < 1.6 && !low && hash(sd0) > .75) { const k = tp / 1.6, x = sx + s.dx * d + px * (hash(sd0 + 1) - .5) * 3, z = sz + s.dz * d + pz * (hash(sd0 + 1) - .5) * 3; puff(x, ground(x, z) + .6 + k * 3.4, z, .7 + 1.3 * k, .14 * (1 - k), 0, smooth((k - .45) / .55), hash(sd0 + 2)); } // fumaça escura que sobe da fissura
     }
   }
 
@@ -270,13 +274,15 @@ export function createRuptureVFX(T, kit) {
     if (it > .1 && it < end - .3) { const ck = smooth((it - .1) / .3), ce = smooth((it - 1.3) / 1.4); setPillar(cx, cy - .2, cz, up, 44 * ck, .8, 1, ce, 1 + .4 * Math.sin(time * 9) * (1 - ce)); }
     if (!low && it > .1 && it < 1.8) for (let i = 0; i < 5; i++) { const an = hash(i + Math.floor(time * 14)) * 6.283; boltRib(s.id + i + Math.floor(time * 14), cx, cy + Rd * .85, cz, cx + Math.cos(an) * Rd * 2, cy + .2, cz + Math.sin(an) * Rd * 2, .12, i % 2 ? [1, .2, .8] : [.6, .25, 1], .95 * (1 - er)); }
     // massa carmim que explode para fora logo no início
-    if (it < 1.1) for (let i = 0; i < (low ? 5 : 12); i++) { const k = it / 1.1, a = hash(i + 70) * 6.283, el = hash(i + 71) * 1.2, r = (2 + 7 * easeOut(Math.min(1, k * 2))), rr = (1.4 + 1.1 * hash(i + 72)) * (.6 + .6 * easeOut(Math.min(1, k * 3)));
-      puff(cx + Math.cos(a) * Math.cos(el) * r, cy + 1 + Math.sin(el) * r, cz + Math.sin(a) * Math.cos(el) * r, rr, 1 - k * .8, 1, smooth((k - .55) / .45), hash(i + 73)); }
+    if (it < 1.2) for (let i = 0; i < (low ? 8 : 20); i++) { const k = it / 1.2, a = hash(i + 70) * 6.283, el = .35 + hash(i + 71) * 1.05, g = easeOut(Math.min(1, k * 3)), L = (5 + 7 * hash(i + 72)) * g; // lâminas carmim oblíquas abrindo em V
+      tongue(cx + Math.cos(a) * .8, cy + .2, cz + Math.sin(a) * .8, Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el), L, 1.4 + 1.2 * hash(i + 74), .9, i % 4 === 0 ? 1 : 0, smooth((k - .5) / .5), hash(i + 73)); }
+    if (it < .5) puff(cx, cy + 1.2, cz, 1.6 + 1.4 * easeOut(it / .5), 1, 1, smooth((it - .25) / .25), .4); // núcleo compacto
     // 5) explosão SECUNDÁRIA amarelo-branco/laranja: fogo em camadas, cogumelo que sobe, fumaça e rochas
     if (tb > 0) { const n = low ? 12 : 32;
-      for (let i = 0; i < n; i++) { const a = hash(i + 90) * 6.283, el = .1 + hash(i + 91) * 1.1, sp = 3.5 + 5.5 * hash(i + 92), k = tb, d = sp * easeOut(Math.min(1, k / 1.1)), r = (1.1 + 1.5 * hash(i + 93)) * (.5 + .8 * easeOut(Math.min(1, k / .45))) * (1 + .35 * smooth((k - 1) / 1.2));
-        const heat = (1 - .65 * smooth(k / (2.2 + hash(i + 94) * .8))) * (1.08 - .3 * (sp - 3.5) / 5.5), dis = smooth((k - .95 - hash(i + 95) * .5) / .8); puff(cx + Math.cos(a) * Math.cos(el) * d, cy + .6 + Math.sin(el) * d + k * 2.2, cz + Math.sin(a) * Math.cos(el) * d, r, heat, 0, dis, hash(i + 96)); }
-      for (let i = 0; i < (low ? 3 : 7); i++) { const k = tb, y = 2 + i * 2.3 + 9 * easeOut(Math.min(1, k / 1.4)), r = (2.4 - i * .18) * (.5 + .7 * easeOut(Math.min(1, k / .6))); puff(cx + (hash(i + 30) - .5) * 1.5, cy + y, cz + (hash(i + 31) - .5) * 1.5, r, (1 - .75 * smooth(k / 2.2)) * (1 - i * .05), 0, smooth((k - 1.2 - i * .05) / .8), hash(i + 32)); }
+      for (let i = 0; i < n; i++) { const a = hash(i + 90) * 6.283, el = .45 + hash(i + 91) * 1.05, k = tb - hash(i + 97) * .35; if (k <= 0) continue; // lâminas de fogo direcionais em leque (não bolas)
+        const g = easeOut(Math.min(1, k / .35)), L = (6 + 9 * hash(i + 92)) * g * (1 + .25 * smooth((k - .6) / 1)), dis = smooth((k - .8 - hash(i + 95) * .5) / .7);
+        tongue(cx + Math.cos(a) * 1.2, cy + .3, cz + Math.sin(a) * 1.2, Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el), L, 1.6 + 1.6 * hash(i + 93), 1, 2, dis, hash(i + 96)); }
+      for (let i = 0; i < (low ? 3 : 6); i++) { const k = tb, a = hash(i + 30) * 6.283, r = (1 + .7 * hash(i + 31)) * (.6 + .6 * easeOut(Math.min(1, k / .4))); puff(cx + Math.cos(a) * 1.6, cy + 1 + i * .9 + k * 1.5, cz + Math.sin(a) * 1.6, r, 1 - .5 * smooth(k / 1.4), 0, smooth((k - .7 - i * .06) / .6), hash(i + 32)); } // núcleo incandescente de apoio
       for (let i = 0; i < (low ? 8 : 26); i++) { const a = hash(i + 110) * 6.283, v = 8 + 9 * hash(i + 111), vy = 6 + 10 * hash(i + 112), k = tb, y = vy * k - 4.9 * k * k; if (y < 0) continue; shard(cx + Math.cos(a) * v * k, cy + 1 + y, cz + Math.sin(a) * v * k, .25 + .4 * hash(i + 113), k * 6 + i, k * 4, i, 1.1); }
       for (let i = 0; i < (low ? 0 : 3); i++) { const k = (tb - .1 - i * .12) / 1; if (k < 0 || k > 1) continue; const R = 9 + 7 * easeOut(k) + i * 2, tilt = .25 + i * .2, sp0 = i * 2.1 + time * .3, a = (1 - k) * .9; let ox, oy, oz; // arcos crescentes brancos
         for (let j = 0; j <= 22; j++) { const t = sp0 + j / 22 * 3.6, x = cx + Math.cos(t) * R, z = cz + Math.sin(t) * R, y = cy + 3 + i * 1.5 + Math.sin(t) * R * tilt * .3; if (j) rib.seg(ox, oy, oz, x, y, z, .18 * Math.sin(j / 22 * 3.14), .18 * Math.sin((j + 1) / 22 * 3.14), c4(WHITE, a), c4([1, .6, .85], a)); ox = x; oy = y; oz = z; } }
@@ -287,12 +293,12 @@ export function createRuptureVFX(T, kit) {
   }
 
   return {
-    get camHint() { return hint; },
-    begin(camera, t, q, target) { time = t; uTime.value = t; low = q === 0; cam.copy(camera.position); hint = null; dome.visible = false;
+    get camHint() { return hint; }, get tint() { return tint; },
+    begin(camera, t, q, target) { time = t; uTime.value = t; low = q === 0; cam.copy(camera.position); hint = null; tint = 0; dome.visible = false;
       if (target && target.alive !== false) uHole.value.set(target.x, ground(target.x, target.z) + 1, target.z, 1.7); else uHole.value.w = 0; /* o herói nunca some dentro do efeito */ for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.n = tongues.n = 0; ink.begin(cam); fan.begin(cam); },
     /** blade: {a,b} em mundo (guarda e ponta); boss: ator dono (pode faltar depois do corte) */
     draw(s, blade, boss) {
-      if (s.cancel) return; const T0 = s.T;
+      if (s.cancel) return; const T0 = s.T; tint = Math.max(tint, Math.min(1, (s.dim || 0) / .75)); /* céu, terreno e bispo em carmim na carga/disparo */
       if ((s.phase === 'raise' || s.phase === 'charge' || s.phase === 'slash' || (s.phase === 'wave' && s.age < T0.cut + .25)) && blade && boss) drawCharge(s, blade, boss);
       if (s.phase === 'wave' || s.phase === 'impact' || s.phase === 'fade') drawBeam(s, boss);
       if ((s.phase === 'impact' || s.phase === 'fade') && s.ix !== undefined) drawImpact(s);

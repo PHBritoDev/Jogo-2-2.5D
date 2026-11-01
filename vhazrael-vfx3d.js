@@ -339,7 +339,7 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
       glow.end(); rib.end(); decals.end(time); rupture.end(); return orbitInfo;
     },
     /** pedido de câmera da Ruptura (abrir o plano/olhar para cima durante a carga) — o jogo decide se usa */
-    get throneHint() { return rupture.camHint; },
+    get throneHint() { return rupture.camHint; }, get throneTint() { return rupture.tint; },
     clear() { rupture.clear(); mega.visible = megaCore.visible = ent.visible = meteor.visible = column.visible = flameBg.visible = false; for (const k in kit) kit[k].m.count = 0; for (const st of spikeSets) st.m.count = 0; shards.count = plates.count = rings.count = 0; gaitOf.clear(); },
     dispose() { scene.remove(root); rupture.dispose(); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); glow.dispose(); rib.dispose(); decals.dispose(); }
   };

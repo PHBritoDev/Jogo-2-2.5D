@@ -1746,7 +1746,7 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();vzUpdateLock();updateInstanceCulling();checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateInstanceCulling();checkSecretRuin();
  updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -3211,6 +3211,18 @@ function applySquadDim(){
  if(k<=.002){if(squadDim.on){if(hemiLight.intensity===squadDim.setH)hemiLight.intensity=squadDim.h;if(sunLight.intensity===squadDim.setS)sunLight.intensity=squadDim.s;squadDim.on=false;}return;}
  if(!squadDim.on||hemiLight.intensity!==squadDim.setH)squadDim.h=hemiLight.intensity;if(!squadDim.on||sunLight.intensity!==squadDim.setS)squadDim.s=sunLight.intensity;squadDim.on=true;
  squadDim.setH=hemiLight.intensity=squadDim.h*(1-.42*k);squadDim.setS=sunLight.intensity=squadDim.s*(1-.55*k);
+}
+/** MOD 249 — luz carmim da Ruptura (céu, névoa, terreno e bispo) que sobe na carga/disparo e cai devagar. Guarda a cor
+    de base a cada quadro e devolve integralmente quando acaba (também quando ninguém mais reescreve as cores, ex.: voidMode). */
+const vzTint={on:false,base:{},set:{}},VZ_CRIM=new THREE.Color(0x9a0618),VZ_CRIM_G=new THREE.Color(0x2a0006);
+function applyVzTint(){
+ const k=squadRT?Math.min(1,squadRT.vhazraelVFX.throneTint||0):0;
+ for(const [key,c] of [['bg',scene.background],['fog',scene.fog&&scene.fog.color],['hs',hemiLight.color],['hg',hemiLight.groundColor],['sun',sunLight.color],['fill',fill.color],['sky',skyDome.material.color]]){
+  if(!c||!c.isColor)continue;if(vzTint.on&&vzTint.set[key]&&c.equals(vzTint.set[key]))c.copy(vzTint.base[key]);
+  (vzTint.base[key]||(vzTint.base[key]=new THREE.Color())).copy(c);
+  if(k>.002){c.lerp(key==='hg'?VZ_CRIM_G:VZ_CRIM,k*(key==='sky'?.7:key==='bg'||key==='fog'?.55:key==='sun'?.5:.6));(vzTint.set[key]||(vzTint.set[key]=new THREE.Color())).copy(c);}
+ }
+ vzTint.on=k>.002;
 }
 function squadEvent(type,d){
  const a=d&&d.actor,s=d&&d.spell;
