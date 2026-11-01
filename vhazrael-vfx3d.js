@@ -1,5 +1,5 @@
 import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smooth, easeOut, hash } from './celestial-fxkit3d.js';
-import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod251-vhazrael-impact-core';
+import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod252-sword-contact';
 /**
  * MOD 247b — VFX do VHAZRAEL refeito (só desenha o estado de vhazrael3d.js). Correção visual pedida pelo criador:
  *  • ANATOMIA ARTICULADA INSTANCIADA: criaturas da Ninhada e Mãos Devoradoras são montadas por cinemática direta em
