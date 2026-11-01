@@ -66,27 +66,27 @@ test('Extinção Orbital: ~17 s, sem ponto seguro; resposta decide o dano (guard
   { const { sq, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 0; a.used = new Set(['throne', 'thorns', 'terror']); run(sq, 40); assert.ok(log.filter(e => e.type === 'orbital').length <= 1); }
 });
 
-test('Mod 249 — Ruptura do Trono: coreografia completa, feixe atravessa até o alvo, colisão em fases, um dano por alvo', () => {
+test('Mod 251 — Ruptura: coreografia completa, feixe para no alvo, núcleo e choque ancorados, sem dano duplicado', () => {
   const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 16); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'throne');
-  const phases = []; run(sq, 9, 1 / 60, () => { const s = sq.spells.find(x => x.type === 'throne'); if (s && phases.at(-1) !== s.phase) phases.push(s.phase); });
+  const phases = []; run(sq, 13.5, 1 / 60, () => { const s = sq.spells.find(x => x.type === 'throne'); if (s && phases.at(-1) !== s.phase) phases.push(s.phase); });
   assert.deepEqual(phases, ['raise', 'charge', 'slash', 'wave', 'impact', 'fade']);
   for (const e of ['throne', 'throneCharge', 'throneRaise', 'throneSlash', 'throneImpact', 'throneBlast']) assert.equal(log.filter(x => x.type === e).length, 1, e);
   const slashAt = log.findIndex(e => e.type === 'throneSlash'); assert.ok(slashAt > log.findIndex(e => e.type === 'throneCharge'));
   assert.equal(dmg.filter(d => d.kind === 'throne' || d.kind === 'throneImpact').length, 1, 'um único dano por alvo');
   assert.ok(!sq.spells.some(s => s.type === 'throne'), 'magia limpa ao fim'); assert.ok(!a.act || a.act.skill !== 'throne', 'bispo volta à postura de combate');
   // dash com i-frames no instante em que a frente passa: nenhum dano (regras normais de esquiva)
-  { const { sq, dmg } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 16); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'throne'); run(sq, 2.6); h.iframes = true; run(sq, 1.4); h.iframes = false; run(sq, 4);
+  { const { sq, dmg } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 16); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'throne'); run(sq, 4.9); h.iframes = true; run(sq, 3); h.iframes = false; run(sq, 5);
     assert.equal(dmg.length, 0); }
 });
 
-test('Mod 249 — Ruptura INCANCELÁVEL: spam de golpes, stagger, knockback, quebra de postura e dano letal não interrompem', () => {
+test('Mod 251 — Ruptura INCANCELÁVEL: spam de golpes, stagger, knockback, quebra de postura e dano letal não interrompem', () => {
   const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 12); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'throne');
   const x0 = a.x, z0 = a.z;
-  run(sq, 6.1, 1 / 60, t => {
+  run(sq, 9, 1 / 60, t => {
     sq.damageActor(a.id, 6, { x: 0, z: 0, kind: 'melee', by: 'hero', knock: 3 }); // ataque básico em spam com empurrão
     if (Math.round(t * 60) % 20 === 0) { sq.stagger(a, .9, true); sq.damageActor(a.id, 30, { x: 0, z: 0, kind: 'area', by: 'hero' }); } // magias/ultimate + stagger forçado
     a.kx += 4; a.kz -= 4; // colisão/empurrão externo
-    if (t < 6) assert.ok(a.alive && a.act && a.act.skill === 'throne', 'o ato nunca é trocado: t=' + t.toFixed(2));
+    if (t < 8.9) assert.ok(a.alive && a.act && a.act.skill === 'throne', 'o ato nunca é trocado: t=' + t.toFixed(2));
   });
   assert.ok(Math.hypot(a.x - x0, a.z - z0) < .35, 'nem empurrão nem knockback deslocam o bispo');
   assert.ok(log.some(e => e.type === 'throneSlash') && log.some(e => e.type === 'throneImpact'), 'corte e impacto aconteceram');
@@ -95,10 +95,52 @@ test('Mod 249 — Ruptura INCANCELÁVEL: spam de golpes, stagger, knockback, que
   run(sq, .5); assert.equal(a.alive, false); assert.equal(a.hp, 0); assert.equal(log.filter(e => e.type === 'death').length, 1, 'morte uma única vez, sem recompensa duplicada');
   // fúria (fase 2) atravessada no meio também espera o fim do golpe
   { const { sq, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 12); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'throne'); run(sq, 1);
-    sq.damageActor(a.id, a.hp * .6, { kind: 'area' }); run(sq, 1); assert.equal(a.act.skill, 'throne'); assert.ok(!log.some(e => e.type === 'phase2')); run(sq, 5); assert.ok(log.some(e => e.type === 'phase2')); }
+    sq.damageActor(a.id, a.hp * .6, { kind: 'area' }); run(sq, 1); assert.equal(a.act.skill, 'throne'); assert.ok(!log.some(e => e.type === 'phase2')); run(sq, 8); assert.ok(log.some(e => e.type === 'phase2')); }
   // só cleanup sistêmico aborta (remover o ato): a magia some sem hitbox fantasma
   { const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; cast(sq, a, h, 'throne'); run(sq, 1.5); a.act = null; run(sq, 6);
     assert.equal(dmg.length, 0); assert.ok(log.some(e => e.type === 'throneEnd' && e.why === 'cleanup')); assert.ok(!sq.spells.some(s => s.type === 'throne')); }
+});
+
+
+test('Mod 251: hit imediato no feixe, contato único e choque depois no MESMO ponto', () => {
+  const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]);
+  const a = boss(sq, 16); a.alert = a.decideT = 1e9; cast(sq, a, h, 'throne');
+  run(sq, 6.05);
+  const contact = log.find(e => e.type === 'throneContact');
+  const impact = log.find(e => e.type === 'throneImpact');
+  assert.ok(contact && impact, 'feixe tocou o herói e encerrou a viagem');
+  assert.equal(impact.reason, 'target', 'primeiro contato determina o epicentro');
+  assert.equal(contact.target, 'hero');
+  assert.ok(Math.hypot(impact.spell.ix - h.x, impact.spell.iz - h.z) < 2,
+    'explosão nasce no lugar do jogador, não no fim da arena');
+  assert.deepEqual(dmg.filter(d => d.kind === 'throne').map(d => d.n), [26],
+    'dano direto no toque sem esperar pelas explosões');
+  assert.equal(log.some(e => e.type === 'throneShockwave'), false,
+    'a onda de choque vem depois do contato');
+  run(sq, 1.4);
+  assert.equal(log.filter(e => e.type === 'throneShockwave').length, 1);
+  assert.equal(log.filter(e => e.type === 'throneBlast').length, 1);
+  assert.equal(dmg.filter(d => d.id === 'hero').length, 1,
+    'um único dano por jogador, sem segunda bomba');
+});
+
+test('Mod 251: obstáculo encerra feixe antes do jogador e i-frames respeitam esquiva', () => {
+  {
+    const { sq, dmg, log } = world({ blocked: (x, z) => z < 8 });
+    const h = hero(); sq.setTargets([h]); const a = boss(sq, 16);
+    a.alert = a.decideT = 1e9; cast(sq, a, h, 'throne'); run(sq, 7);
+    const impact = log.find(e => e.type === 'throneImpact');
+    assert.ok(impact && impact.reason === 'terrain', 'barreira absorve o feixe');
+    assert.ok(impact.spell.iz > 7, 'colisão antes do herói');
+    assert.equal(dmg.filter(d => d.kind === 'throne').length, 0, 'não atravessa parede');
+  }
+  {
+    const { sq, dmg, log } = world(); const h = hero({ iframes: true }); sq.setTargets([h]);
+    const a = boss(sq, 16); a.alert = a.decideT = 1e9; cast(sq, a, h, 'throne');
+    run(sq, 8);
+    assert.equal(dmg.length, 0, 'dash invulnerável atravessa sem dano');
+    assert.equal(log.some(e => e.type === 'throneContact'), false, 'sem falso contato');
+  }
 });
 
 test('Espinhos: rachadura antes de cada espinho, arcos com vãos, um dano por onda; Mãos: agarram, mordida limitada, DASH solta, imunidade', () => {
