@@ -78,7 +78,7 @@ test('Mod 245/246: mini-chefe 3 no Enemy3.glb e Enemy4/mini-chefe 4 no Enemy4.gl
 test('Mod 247: VHAZRAEL na esquadra dentro da dimensão, sem as moedas antigas, Extinção Orbital com controle devolvido; nenhum nome antigo', () => {
   assert.ok(src.includes("if(b.key==='bishop1'&&!SQUAD_LEGACY){pack={squad:true,dim:true,rig:'bishop1'"));
   assert.ok(!/ vhazrael:\{cd:8,run\(\)/.test(src), 'ataque de moedas removido do kit jogável');
-  assert.ok(src.includes('function vzUpdateLock()') && src.includes('if(vzCinematic())return;renderer.render(scene,camera);'));
+  assert.ok(src.includes('function vzUpdateLock()') && src.includes('if(vzCinematic()){vzCamRestore();return;}renderer.render(scene,camera);vzCamRestore();'));
   assert.ok(src.includes("if(info.kind==='orbital'){playerInvulnerableUntil=0;dashRemaining=0;}"), 'sem dash que salve do meteoro');
   for (const f of fs.readdirSync(new URL('./', import.meta.url))) { if (!/\.(m?js|html|md|json|css|txt)$/.test(f) || /^CLAUDE-/.test(f)) continue; const t = fs.readFileSync(new URL('./' + f, import.meta.url), 'utf8'); assert.ok(!/val[eé]rio/i.test(t), 'nome antigo em ' + f); }
 });

@@ -1,4 +1,5 @@
 import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smooth, easeOut, hash } from './celestial-fxkit3d.js';
+import { createRuptureVFX } from './vhazrael-rupture3d.js';
 /**
  * MOD 247b — VFX do VHAZRAEL refeito (só desenha o estado de vhazrael3d.js). Correção visual pedida pelo criador:
  *  • ANATOMIA ARTICULADA INSTANCIADA: criaturas da Ninhada e Mãos Devoradoras são montadas por cinemática direta em
@@ -14,8 +15,8 @@ import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smoo
  *    fileiras de dentes serrilhados que abre e respira).
  *  • Espinhos: lâminas facetadas, longas e finas com farpas (não cones), negras com filetes violeta nas arestas;
  *    espinhos de dano perto do jogador + floresta decorativa de 14–22 m cruzando-se em vários planos.
- *  • Ruptura do Trono: pilar de energia de dezenas de metros (núcleo branco, faixa magenta, borda de chamas negras),
- *    cruz vermelha, frente de energia larga com fissura e placas com magma, domo com rasgos, raios e anéis de choque.
+ *  • Ruptura do Trono (MOD 249): módulo próprio vhazrael-rupture3d.js — erguer, carga com pilar colossal em camadas,
+ *    corte com leque e flare em cruz, feixe gigante que rasga o chão e colisão em várias fases (ver o cabeçalho dele).
  *  • Extinção Orbital: cena orbital ISOLADA (planeta com curvatura, atmosfera, nuvens, ciclone carmim e feixe; entrada
  *    atmosférica com plasma acompanhada de perto), fundo de chamas sólidas no despertar, meteoro que cobre o céu e
  *    impacto em camadas.
@@ -63,7 +64,7 @@ void main(){ vec2 p=vec2((vUv.x-.5)*2.2, vUv.y*1.6-.5); float t=time;
   c=mix(vec3(.004,0.,.002),vec3(.32,0.,.03),smoothstep(-.4,-.02,mouth)); c=mix(c,mix(vec3(.95,.8,.8),vec3(.85,.3,.35),rows*.45),teeth*step(rows,2.)); }
  c+=vec3(.55,0.,.04)*smoothstep(.0,-.015,body)*smoothstep(-.03,0.,body); gl_FragColor=vec4(c,alpha);${TONE}
 }`;
-// pilar da Ruptura e coluna de impacto: núcleo branco, faixa magenta e borda de chamas negras recortadas
+// coluna de impacto da Extinção: núcleo branco, faixa magenta e borda de chamas negras recortadas
 const PILLAR_F = `${NOISE} uniform float time, k; varying vec2 vUv; varying vec3 vN; varying vec3 vV;
 void main(){ float f=abs(dot(normalize(vN),normalize(vV))); float y=vUv.y, n=fbm(vec2(vUv.x*6.,y*14.-time*7.)); float edge=f-(1.-k)*.7-(n-.5)*.5;
  if(edge<.08||y>k*1.02) discard; vec3 c=vec3(.01,0.,.01); c=mix(c,vec3(.95,.05,.55),smoothstep(.08,.22,edge)); c=mix(c,vec3(1.,.97,1.),smoothstep(.45,.7,edge)); gl_FragColor=vec4(c*1.4,1.);${TONE}
@@ -74,12 +75,6 @@ void main(){ float lat=clamp(vP.y,0.,1.), ang=atan(vP.z,vP.x); float er=fbm(vec2
  float ink=smoothstep(.79,.85,1.-abs(fbm(vec2(ang*3.4+lat*4.2,lat*1.5+time*.3)*vec2(1.2,5.))*2.-1.));
  vec3 c=mix(c1,c2,smoothstep(.35,.62,body)); c=mix(c,vec3(1.,.75,.95),pow(1.-f,4.)*heat); c=mix(c,vec3(1.,.98,1.),pow(1.-f,10.)*heat);
  c=mix(c,vec3(.01,0.,.012),ink); c+=c2*smoothstep(erode+.07,erode,er)*step(.01,erode)*1.5; gl_FragColor=vec4(c,1.);${TONE}
-}`;
-const WAVE_F = `${NOISE} uniform float time, alpha; varying vec2 vUv; varying vec3 vN; varying vec3 vV;
-void main(){ float x=vUv.x, y=vUv.y; float top=.45+.55*fbm(vec2(x*7.-time*4.,time)); float edge=smoothstep(0.,.08,x)*smoothstep(1.,.92,x); if(y>top*edge*alpha) discard;
- float rim=smoothstep(top*edge*alpha-.14,top*edge*alpha,y); float streak=smoothstep(.72,.78,n2(vec2(x*22.,y*3.-time*12.)));
- vec3 c=vec3(.01,0.,.016); c=mix(c,vec3(1.,.1,.65),rim); c=mix(c,vec3(1.,.92,1.),streak*.7*(1.-rim)); c=mix(c,vec3(1.,.97,1.),smoothstep(.05,0.,y)*.9);
- gl_FragColor=vec4(c,1.);${TONE}
 }`;
 // fundo do despertar: chamas sólidas vermelho-sangue e tinta negra (superfície curva atrás do bispo)
 const FLAME_BG_F = `${NOISE} uniform float time, k; varying vec2 vUv;
@@ -175,16 +170,13 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
   /* --- domos, onda, pilar, entidade, fundo --- */
   const domeG = new T.SphereGeometry(1, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2); geos.push(domeG);
   const mkDome = (c1, c2) => { const m = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: DOME_F, uniforms: { time: uTime, erode: { value: 0 }, heat: { value: 1 }, c1: { value: new T.Color(...c1) }, c2: { value: new T.Color(...c2) } }, side: T.DoubleSide, toneMapped: false, fog: false }); mats.push(m); const d = new T.Mesh(domeG, m); d.frustumCulled = false; d.visible = false; root.add(d); return d; };
-  const dome = mkDome([.3, .02, .4], [1, .15, .8]), mega = mkDome([.3, 0, .03], [1, .06, .1]), megaCore = mkDome([1, .7, .5], [1, .95, .9]);
+  const mega = mkDome([.3, 0, .03], [1, .06, .1]), megaCore = mkDome([1, .7, .5], [1, .95, .9]);
   const ringG = new T.TorusGeometry(1, .035, 4, 48); ringG.rotateX(Math.PI / 2); geos.push(ringG); const ringM = new T.MeshBasicMaterial({ color: 0xffd6f4, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false, fog: false }); mats.push(ringM);
   const rings = new T.InstancedMesh(ringG, ringM, 12); rings.frustumCulled = false; rings.count = 0; root.add(rings); let rn = 0;
   const ring = (x, y, z, r, th) => { if (rn >= 12) return; P.set(x, y, z); Q.identity(); S.set(r, th, r); M.compose(P, Q, S); rings.setMatrixAt(rn++, M); };
-  const WC = 18, wPos = new Float32Array((WC + 1) * 2 * 3), wUv = new Float32Array((WC + 1) * 2 * 2), wIdx = []; for (let i = 0; i < WC; i++) { const a = i * 2; wIdx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } for (let i = 0; i <= WC; i++) wUv.set([i / WC, 0, i / WC, 1], i * 4);
-  const waveG = new T.BufferGeometry(); waveG.setAttribute('position', new T.BufferAttribute(wPos, 3).setUsage(T.DynamicDrawUsage)); waveG.setAttribute('uv', new T.BufferAttribute(wUv, 2)); waveG.setIndex(wIdx); geos.push(waveG);
-  const waveMat = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: WAVE_F, uniforms: { time: uTime, alpha: { value: 1 } }, side: T.DoubleSide, toneMapped: false, fog: false }); mats.push(waveMat); const wave = new T.Mesh(waveG, waveMat); wave.frustumCulled = false; wave.visible = false; root.add(wave);
   const pillarG = new T.CylinderGeometry(1, 1, 1, 24, 12, true); pillarG.translate(0, .5, 0); geos.push(pillarG);
   const mkPillar = () => { const m = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: PILLAR_F, uniforms: { time: uTime, k: { value: 1 } }, side: T.DoubleSide, toneMapped: false, fog: false }); mats.push(m); const p = new T.Mesh(pillarG, m); p.frustumCulled = false; p.visible = false; root.add(p); return p; };
-  const pillar = mkPillar(), column = mkPillar();
+  const column = mkPillar();
   const entG = new T.CylinderGeometry(15, 15, 16, 32, 1, true, -.75, 1.5); entG.translate(0, 8, 0); entG.scale(-1, 1, 1); geos.push(entG);
   const entMat = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: ENT_F, uniforms: { time: uTime, open: { value: 0 }, alpha: { value: 1 }, breathe: { value: 0 }, look: { value: new T.Vector2() } }, side: T.DoubleSide, transparent: true, depthWrite: false, toneMapped: false, fog: false }); mats.push(entMat);
   const ent = new T.Mesh(entG, entMat); ent.frustumCulled = false; ent.visible = false; ent.renderOrder = -2; root.add(ent);
@@ -298,37 +290,8 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
     for (let i = 0; i < (low ? 4 : 9); i++) { const a = i / 9 * 6.283 + s.id, rr = (.7 + hash(i) * .4) * big; shard(r.x + Math.cos(a) * rr, r.y + .1 + k * .15, r.z + Math.sin(a) * rr, .25 * big * k, Math.cos(a) * .9, a, Math.sin(a) * .9, .5 * k); }
     if (!low && s.phase === 'open') boltRib(s.id * 7 + Math.floor(time * 18), r.x, r.y + .05, r.z, r.x + (hash(time) - .5) * 2 * big, r.y + .05, r.z + (hash(time + 1) - .5) * 2 * big, .05, RED, .8); } }
   function drawStomp(s) { groundNormal(ground, s.x, s.z, nrm); if (s.phase === 'warn') decals.add(s.x, s.y, s.z, s.T.r, 1, .05, .15, .75, 0, s.t / s.T.warn, s.id, nrm); else { const k = s.t / .6; decals.add(s.x, s.y, s.z, s.T.r * (1 + k), 1, .1, .3, 1 - k, 0, k, s.id + 1, nrm); ring(s.x, s.y + .2, s.z, s.T.r * (1 + k * .6), 1 + k * 3); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; shard(s.x + Math.cos(a) * s.T.r * k, s.y + .2, s.z + Math.sin(a) * s.T.r * k, .25 * (1 - k), a, a, 0, .5); } } }
-  /* ---------- Ruptura do Trono ---------- */
-  function drawThrone(s, blade) {
-    const T0 = s.T;
-    if ((s.phase === 'charge' || s.phase === 'raise') && blade) {
-      const k = s.phase === 'charge' ? smooth(s.t / T0.charge) : 1, a = blade.a, b = blade.b;
-      for (let r = 0; r < (low ? 2 : 4); r++) { let px = a.x, py = a.y, pz = a.z; for (let i = 1; i <= 12; i++) { const u = i / 12, ang = u * 10 + time * (7 + r) + r * 1.57, rr = .16 + .14 * Math.sin(u * 3.14), x = a.x + (b.x - a.x) * u + Math.cos(ang) * rr, y = a.y + (b.y - a.y) * u + Math.sin(ang) * rr * .5, z = a.z + (b.z - a.z) * u + Math.sin(ang) * rr;
-        if (u <= k) rib.seg(px, py, pz, x, y, z, .05, .05, c4(r % 2 ? RED : [.06, 0, .04], .95), c4(r % 2 ? RED : [.06, 0, .04], .95)); px = x; py = y; pz = z; } }
-      pillar.visible = true; pillar.position.copy(b); pillar.scale.set(.55 + .35 * k, 46 * k, .55 + .35 * k); pillar.material.uniforms.k.value = Math.min(1, .2 + k);
-      glow.add(b.x, b.y + 2, b.z, 2.4 * k, 4.5 * k, 1, .1, .6, .5 * k, 0);
-      for (let i = 0; i < (low ? 4 : 10); i++) { const an = i * 2.4 + time * 3, u = (time * .9 + i / 10) % 1, rr = 1.6 * (1 - u); glow.add(a.x + Math.cos(an) * rr, a.y - .8 + u * 4, a.z + Math.sin(an) * rr, .05, .4, 1, .06, .35, .9 * k, 3, an, i); } // vento negro/carmim subindo
-      if (s.phase === 'raise' && s.t < .2) { const c = b, L = 2.8; rib.seg(c.x - L, c.y, c.z, c.x + L, c.y, c.z, .06, .06, c4(RED, 1), c4(RED, 1)); rib.seg(c.x, c.y - L, c.z, c.x, c.y + L, c.z, .06, .06, c4(RED, 1), c4(RED, 1)); glow.add(c.x, c.y, c.z, 1.6, 1.6, 1, .2, .2, 1, 2, 0); }
-    }
-    if (s.phase === 'wave') {
-      const fx = s.x + s.dx * s.front, fz = s.z + s.dz * s.front, px = -s.dz, pz = s.dx, W = T0.w * 1.25;
-      for (let i = 0; i <= WC; i++) { const u = i / WC * 2 - 1, back = (1 - u * u) * -.8, x = fx + px * u * W + s.dx * back, z = fz + pz * u * W + s.dz * back, gy = ground(x, z); wPos.set([x, gy, z, x, gy + T0.h * 2.2, z], i * 6); }
-      waveG.attributes.position.needsUpdate = true; waveG.computeVertexNormals(); wave.visible = true;
-      for (let d = 1; d < s.front; d += 1.3) { const x = s.x + s.dx * d, z = s.z + s.dz * d, gy = ground(x, z), j = (hash(s.id + d) - .5) * .5, x2 = x + s.dx * 1.3 + px * j, z2 = z + s.dz * 1.3 + pz * j; /* fissura contínua: borda negra + magma */
-        rib.seg(x + px * j * .5, gy + .03, z + pz * j * .5, x2, ground(x2, z2) + .03, z2, .32, .32, c4([.02, 0, 0], .9), c4([.02, 0, 0], .9)); rib.seg(x + px * j * .5, gy + .05, z + pz * j * .5, x2, ground(x2, z2) + .05, z2, .12, .1, c4([1, .3, .03], 1), c4([1, .45, .05], 1));
-        const sd = s.id + Math.floor(d * 7), side = hash(sd) - .5; if (d > s.front - 4) plate(x + px * side * 1.6, gy + .15 + (s.front - d < 1.5 ? .4 : 0), z + pz * side * 1.6, .8 + hash(sd + 1) * .6, (hash(sd + 2) - .5) * 1.4, hash(sd + 3) * 3, (hash(sd + 4) - .5) * 1.4); }
-      for (let i = 0; i < (low ? 3 : 8); i++) { const u = hash(i + Math.floor(time * 20)) * 2 - 1, x = fx + px * u * W, z = fz + pz * u * W; shard(x, ground(x, z) + .4 + hash(i) * .9, z, .12, i, time * 6, i); }
-    }
-    if (s.phase === 'impact' || (s.phase === 'fade' && s.ix !== undefined)) {
-      const k = s.phase === 'impact' ? s.t / .5 : 1, er = s.phase === 'fade' ? smooth(s.t / T0.fade) : 0, Rr = T0.endR * 1.6 * (s.phase === 'impact' ? easeOut(Math.min(1, k * 1.5)) : 1);
-      const inD = Math.hypot(cam.x - s.ix, cam.z - s.iz) < Rr && cam.y - s.iy < Rr; dome.visible = true; dome.position.set(s.ix, s.iy - .05, s.iz); dome.scale.set(Rr, Rr * .95, Rr); dome.material.uniforms.erode.value = Math.min(1, er + (inD ? .45 : 0)); dome.material.uniforms.heat.value = (1 - er * .6) * (inD ? .15 : 1);
-      column.visible = er < .8; column.position.set(s.ix, s.iy, s.iz); column.scale.set(Rr * .35, 24 * (1 - er), Rr * .35); column.material.uniforms.k.value = 1 - er;
-      for (let i = 0; i < 3; i++) ring(s.ix, s.iy + .3 + i * .4, s.iz, Rr * (1.2 + (k + i * .25) * 1.6) * (1 + er), 1 + (1 - k) * 2);
-      if (!low && er < .7) for (let i = 0; i < 4; i++) { const an = hash(i + Math.floor(time * 15)) * 6.283; boltRib(s.id + i + Math.floor(time * 15), s.ix, s.iy + Rr * .8, s.iz, s.ix + Math.cos(an) * Rr * 2.2, s.iy + .2, s.iz + Math.sin(an) * Rr * 2.2, .08, i % 2 ? MAG : VIO, .95); }
-      groundNormal(ground, s.ix, s.iz, nrm); decals.add(s.ix, s.iy, s.iz, Rr * (1.6 + k), 1, .1, .5, .9 * (1 - er), 0, k, s.id + 7, nrm);
-      if (s.phase === 'impact') for (let i = 0; i < (low ? 6 : 14); i++) { const an = i / 14 * 6.283, u = easeOut(k); plate(s.ix + Math.cos(an) * Rr * 1.3 * u, s.iy + Math.sin(k * 3.14) * 1.6, s.iz + Math.sin(an) * Rr * 1.3 * u, .6, an, an * 2, k * 4); }
-    }
-  }
+  /* ---------- Ruptura do Trono (MOD 249) ---------- */
+  const rupture = createRuptureVFX(T, { root, glow, rib, decals, shard, plate, ring, boltRib, ground });
   /* ---------- Extinção Orbital ---------- */
   function drawOrbital(s, boss) {
     const T0 = s.T, ph = s.phase; orbitInfo = { phase: ph, t: s.t, s };
@@ -364,18 +327,20 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
     /** blades: {id → {a,b}} pontas da Lâmina do Trono em mundo. Devolve a Extinção em curso (fase/tempo) para câmera e cena. */
     update(dt, camera, spells, actors = [], quality = 1, blades = {}, target = null) {
       time += dt; uTime.value = time; low = quality === 0; cam.copy(camera.position); sn = pn = rn = 0; for (const k in kit) kit[k].n = 0; for (const st of spikeSets) st.n = 0; orbitInfo = null;
-      dome.visible = mega.visible = megaCore.visible = wave.visible = ent.visible = meteor.visible = pillar.visible = column.visible = flameBg.visible = beam.visible = false;
-      glow.begin(); rib.begin(camera, time); decals.begin(); const boss = actors.find(a => a.alive && a.kind === 'vhazrael');
-      for (const s of spells) { if (s.type === 'thorns') drawThorns(s); else if (s.type === 'throne') drawThrone(s, blades[s.owner]); else if (s.type === 'terror') drawTerror(s, actors, target); else if (s.type === 'brood') drawBrood(s); else if (s.type === 'stomp') drawStomp(s); else if (s.type === 'orbital') drawOrbital(s, boss); }
+      mega.visible = megaCore.visible = ent.visible = meteor.visible = column.visible = flameBg.visible = beam.visible = false;
+      glow.begin(); rib.begin(camera, time); decals.begin(); rupture.begin(camera, time, quality, target); const boss = actors.find(a => a.alive && a.kind === 'vhazrael');
+      for (const s of spells) { if (s.type === 'thorns') drawThorns(s); else if (s.type === 'throne') rupture.draw(s, blades[s.owner], actors.find(a => a.id === s.owner && a.alive)); else if (s.type === 'terror') drawTerror(s, actors, target); else if (s.type === 'brood') drawBrood(s); else if (s.type === 'stomp') drawStomp(s); else if (s.type === 'orbital') drawOrbital(s, boss); }
       for (const a of actors) if (a.kind === 'crawler' || a.kind === 'colossus') creature(a);
       for (const id of gaitOf.keys()) if (!actors.some(a => a.id === id)) gaitOf.delete(id);
       if (boss && boss.phase2 && !low) for (let i = 0; i < 6; i++) { const a = i * 1.05 + time * 1.3, u = (time * .7 + i / 6) % 1; glow.add(boss.x + Math.cos(a) * .7, boss.y + u * 2.6, boss.z + Math.sin(a) * .7, .25, .5, 1, .03, .06, (1 - u) * .7, 0); }
       for (const k in kit) { const p = kit[k]; p.m.count = p.n; p.m.instanceMatrix.needsUpdate = true; p.m.geometry.attributes.aTint.needsUpdate = true; }
       for (const st of spikeSets) { st.m.count = st.n; st.m.instanceMatrix.needsUpdate = true; }
       shards.count = sn; shards.instanceMatrix.needsUpdate = true; plates.count = pn; plates.instanceMatrix.needsUpdate = true; rings.count = rn; rings.instanceMatrix.needsUpdate = true;
-      glow.end(); rib.end(); decals.end(time); return orbitInfo;
+      glow.end(); rib.end(); decals.end(time); rupture.end(); return orbitInfo;
     },
-    clear() { dome.visible = mega.visible = megaCore.visible = wave.visible = ent.visible = meteor.visible = pillar.visible = column.visible = flameBg.visible = false; for (const k in kit) kit[k].m.count = 0; for (const st of spikeSets) st.m.count = 0; shards.count = plates.count = rings.count = 0; gaitOf.clear(); },
-    dispose() { scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); glow.dispose(); rib.dispose(); decals.dispose(); }
+    /** pedido de câmera da Ruptura (abrir o plano/olhar para cima durante a carga) — o jogo decide se usa */
+    get throneHint() { return rupture.camHint; },
+    clear() { rupture.clear(); mega.visible = megaCore.visible = ent.visible = meteor.visible = column.visible = flameBg.visible = false; for (const k in kit) kit[k].m.count = 0; for (const st of spikeSets) st.m.count = 0; shards.count = plates.count = rings.count = 0; gaitOf.clear(); },
+    dispose() { scene.remove(root); rupture.dispose(); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); glow.dispose(); rib.dispose(); decals.dispose(); }
   };
 }

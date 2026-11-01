@@ -23,7 +23,7 @@ let rig=null;async function load(){if(rig)return rig;const g=await new GLTFLoade
 let rt=null,time=0,heroHp=0,info=document.getElementById('info');const qa={tilt:0,lift:0,sink:0,scale:[9,0],frames:0};
 async function start(){await load();if(rt)rt.dispose();heroHp=0;time=0;hero.x=0;hero.z=0;
  rt=createEnemy1SquadRuntime({T,scene,ground,blocked:()=>false,los:()=>true,source:()=>rig,clone:m=>skClone(m),measure:o=>new T.Box3().setFromObject(o),heroHeight:()=>1.8,damageTarget:(id,n)=>{heroHp+=n;return'hit';},event:()=>{}});
- const sq=rt.start([{x:0,z:9,yaw:Math.PI,kind:'vhazrael'}],{seed:5});const a=sq.actors[0];a.alert=1e9;a.decideT=1e9;a.used=new Set(['throne','thorns','terror']);sq.setTargets([hero]);
+ const sq=rt.start([{x:0,z:+(qs.get('d')||9),yaw:Math.PI,kind:'vhazrael'}],{seed:5});const a=sq.actors[0];a.alert=1e9;a.decideT=1e9;a.used=new Set(['throne','thorns','terror']);sq.setTargets([hero]);
  if(kind==='melee'){hero.z=6.8;sq.startMelee(a,hero);}else if(kind!=='idle'){a.cds[kind]=0;sq.startCast(a,hero,kind);}
 }
 const _a=new T.Vector3(),_b=new T.Vector3();
@@ -35,9 +35,10 @@ function cam(){const sq=rt&&rt.squad,a=sq&&sq.actors[0];if(!a)return;const s=sq.
  if(kind==='thorns'){camera.position.set(-9,4.6,-8.5);camera.lookAt(0,1.6,2);return;}
  if(kind==='terror'){camera.position.set(2.5,2.2,-6.5);camera.lookAt(0,3.5,6);return;}
  if(kind==='brood'){const c=sq.actors.find(x=>x.kind!=='vhazrael');const p=c||a;camera.position.set(p.x+3.2,2.3,p.z-4.2);camera.lookAt(p.x,.9,p.z);return;}
- if(kind==='throne'){camera.position.set(a.x-9,4.5,a.z-4.5);camera.lookAt(a.x*.4,2.5,a.z*.45);return;}
+ if(kind==='throne'){if(camMode==='hero'){camera.position.set(hero.x+.8,2.7,hero.z-5.2);camera.lookAt(a.x,2.2,a.z);return;}if(camMode==='wide'){camera.position.set(a.x-30,12,a.z*.5-4);camera.lookAt(a.x,9,a.z*.5);return;}if(camMode==='back'){camera.position.set(a.x+3,3.2,a.z+7);camera.lookAt(a.x,5,a.z-4);return;}
+  const hint=rt.vhazraelVFX.throneHint;camera.position.set(a.x-11,4,a.z-9);camera.lookAt(a.x*.5,2.5+(hint?hint.k*8:0),a.z*.55);return;}
  camera.position.set(a.x-6,3,a.z-7);camera.lookAt(a.x,3,a.z);}
-function step(dt){time+=dt;rt.update(dt,{targets:[hero],camera,quality});heroM.position.set(hero.x,.87,hero.z);measure();}
+function step(dt){time+=dt;rt.update(dt,{targets:[hero],camera,quality});heroM.position.set(hero.x,.87,hero.z);const dk=rt.dim||0;hemi.intensity=1.6*(1-.42*dk);sun.intensity=1.7*(1-.55*dk);measure();}
 function draw(){const o=rt&&rt.orbit;if(o&&(o.phase==='orbit'||o.phase==='entry')){const v=rt.vhazraelVFX;v.orbitalCamera.aspect=camera.aspect;v.orbitalCamera.updateProjectionMatrix();renderer.render(v.orbitalScene,v.orbitalCamera);}else renderer.render(scene,camera);}
 function frame(){requestAnimationFrame(frame);if(!rt)return;if(freezeAt===null){cam();step(Math.min(.033,1/60));}const sq=rt.squad;
  info.textContent=(sq?sq.spells.map(s=>s.type+':'+s.phase).join(' '):'')+'\nt '+time.toFixed(2)+' dano '+heroHp+' chamadas '+renderer.info.render.calls+'\ninclinação máx '+qa.tilt.toFixed(1)+'° quadril '+qa.sink.toFixed(2)+'…'+qa.lift.toFixed(2)+' m';draw();}

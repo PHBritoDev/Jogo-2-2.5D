@@ -163,7 +163,7 @@ export class Enemy1Squad {
     // reações rápidas (defesa, esquiva, contra-selo) agendadas com tempo de reação humano
     if (!a.react && !a.act && tgt) this.perceive(a, tgt);
     if (a.react && (a.react.t -= dt) <= 0) { const r = a.react; a.react = null; if (!a.act || a.act.type === 'move') this.startReaction(a, r, tgt); }
-    if (a.act) this.stepAction(a, dt, tgt);
+    if (a.act) { this.stepAction(a, dt, tgt); if (!a.alive) return; }
     else if ((a.decideT -= dt) <= 0) { a.decideT = a.T.decide[0] + this.rand() * (a.T.decide[1] - a.T.decide[0]); if (a.alert <= 0) this.decide(a, tgt); }
     this.locomote(a, dt, tgt);
   }
@@ -281,7 +281,7 @@ export class Enemy1Squad {
   }
   startCast(a, t, skill) {
     const S = a.T[skill];
-    this.begin(a, { type: 'cast', skill, channel: !!S.channel, dur: S.cast + .3, release: S.release, anim: S.anim || (skill === 'judgment' ? 'cast' : skill === 'spiral' ? 'attack2' : 'cast'), token: 'spell', tid: t.id });
+    this.begin(a, { type: 'cast', skill, channel: !!S.channel, dur: S.cast + .3, release: S.release, anim: S.anim || (skill === 'judgment' ? 'cast' : skill === 'spiral' ? 'attack2' : 'cast'), token: 'spell', tid: t.id, unstoppable: !!S.unstoppable, armor: !!S.unstoppable });
     a.cds[skill] = S.cd * a.cdMul; if (SKILLS[skill]) a.cds.spellGap = (a.T.spellGap || 2.5) * (a.phase2 ? .8 : 1); if (skill === 'judgment') this.judgmentUntil = this.time + S.prep + S.lock + S.beam + 3;
     this.event('cast', { actor: a, skill, target: t.id });
   }
@@ -327,6 +327,7 @@ export class Enemy1Squad {
     } else if (act.type === 'phase2' && act.t >= act.dur) this.event('phase2End', { actor: a });
     if (act.t >= act.dur) {
       const then = act.then; a.act = null; a.guard = false; a.decideT = Math.min(a.decideT, act.type === 'melee' ? .25 : .12);
+      if (act.unstoppable && this.settleArmor(a)) return;
       if (act.type === 'melee' || act.type === 'cast') a.recover = act.move ? .45 : .35;
       if (then && t && !a.cds[then] && a.T[then]) this.startCast(a, t, then);
       else if (act.chain === 'melee' && t && Math.hypot(t.x - a.x, t.z - a.z) - t.radius <= a.T.melee.reach) { a.cds.melee = 0; this.startMelee(a, t); }
@@ -366,6 +367,7 @@ export class Enemy1Squad {
       if (ok) { vx = Math.sin(ang) * sp; vz = Math.cos(ang) * sp; } else { vx = vz = 0; a.intent.side = -a.intent.side; }
     }
     // empurrão recebido
+    if (act && act.unstoppable) { a.kx = a.kz = 0; } // empurrões não deslocam um ato incancelável
     if (Math.abs(a.kx) + Math.abs(a.kz) > .01) { vx += a.kx; vz += a.kz; const k = Math.exp(-dt * 7); a.kx *= k; a.kz *= k; }
     const k = 1 - Math.exp(-dt * 10); a.vx += (vx - a.vx) * k; a.vz += (vz - a.vz) * k;
     this.move(a, a.vx * dt, a.vz * dt);
@@ -393,15 +395,27 @@ export class Enemy1Squad {
       if (a.stamina <= 0) { a.stamina = 0; this.stagger(a, .9, true); this.event('guardBreak', { actor: a }); } else this.event('blocked', { actor: a, dmg });
     }
     a.hp = Math.max(0, a.hp - dmg); if (opts.by) a.hitBy = opts.by;
-    if (opts.knock && !a.T.boss) { a.kx -= ox / ol * opts.knock * 4; a.kz -= oz / ol * opts.knock * 4; }
+    const unstoppable = !!(a.act && a.act.unstoppable);
+    if (opts.knock && !a.T.boss && !unstoppable) { a.kx -= ox / ol * opts.knock * 4; a.kz -= oz / ol * opts.knock * 4; }
+    // vida zerada durante um ato incancelável: o golpe termina primeiro, a morte vem no fim do ato (uma vez só)
+    if (a.hp === 0 && unstoppable) { a.hp = 1; if (!a.deathDue) { a.deathDue = true; this.event('deathDeferred', { actor: a }); } return dmg; }
     if (a.hp === 0) { this.kill(a); return dmg; }
+    if (a.T.boss && !a.phase2 && a.hp <= a.maxHp * a.T.phase2 && unstoppable) { a.phase2Due = true; return dmg; }
     if (a.T.boss && !a.phase2 && a.hp <= a.maxHp * a.T.phase2) { a.phase2 = true; a.cdMul = a.T.furyCd || .75; a.act = null; this.begin(a, { type: 'phase2', dur: 1.15, anim: 'block', armor: true }); this.event('phase2', { actor: a }); return dmg; }
     a.poise -= dmg; a.poiseT = 3;
     const armored = a.act && (a.act.armor || (a.T.boss && a.act.type === 'melee' && (a.act.move?a.act.phase==='active':a.act.done>0)));
     if (!armored && !a.guard && (a.poise <= 0 || (!a.T.boss && dmg >= (a.T.flinch || 8)))) { if (a.poise <= 0) a.poise = a.T.poise; this.stagger(a, a.T.boss ? .22 : .3, false); }
     return dmg;
   }
+  /** MOD 249 — fim de um ato incancelável: a morte adiada acontece agora (uma vez); a transição de fúria adiada também. */
+  settleArmor(a) {
+    if (a.deathDue) { a.deathDue = false; a.hp = 0; this.kill(a); return true; }
+    if (a.phase2Due) { a.phase2Due = false; a.phase2 = true; a.cdMul = a.T.furyCd || .75; this.begin(a, { type: 'phase2', dur: 1.15, anim: 'block', armor: true }); this.event('phase2', { actor: a }); return true; }
+    return false;
+  }
   stagger(a, dur, broken) {
+    // MOD 249: superarmadura absoluta (ex.: Ruptura do Trono) — nenhuma reação interrompe o ato
+    if (a.act && a.act.unstoppable) { this.event('superArmor', { actor: a }); return; }
     // golpe que ainda não soltou é interrompido; magia já lançada segue o curso dela
     if (a.act && a.act.type === 'cast' && a.act.released && !a.act.channel) return;
     a.act = null; a.guard = false; this.begin(a, { type: 'stagger', dur, anim: broken ? 'block' : 'hit', face: false }); a.cds.melee = Math.max(a.cds.melee || 0, .6);
@@ -556,6 +570,6 @@ export class Enemy1Squad {
   /** Estado resumido (laboratório, testes e HUD). */
   snapshot() {
     return { time: +this.time.toFixed(3), actors: this.actors.map(a => ({ id: a.id, kind: a.kind, role: a.role, hp: a.hp, alive: a.alive, x: +a.x.toFixed(2), z: +a.z.toFixed(2), act: a.act && (a.act.skill || a.act.type), intent: a.intent.mode, target: a.targetId, phase2: a.phase2 })),
-      spells: this.spells.map(s => ({ id: s.id, type: s.type, phase: s.phase, owner: s.owner, held: s.held ? s.held.id : null })) };
+      spells: this.spells.map(s => ({ id: s.id, type: s.type, phase: s.phase, owner: s.owner, held: s.held ? s.held.id : null, age: s.age !== undefined ? +s.age.toFixed(2) : undefined })) };
   }
 }
