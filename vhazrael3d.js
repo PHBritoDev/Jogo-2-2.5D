@@ -172,7 +172,7 @@ registerSkill('throne', {
           knock: 1.8, guardBreak: s.guardBreak
         });
         sq.event('throneContact', { spell: s, target: contact.tg.id,
-          result: outcome, damage: T.dmg });
+          result: outcome, damage: T.dmg, at: s.age });
       }
       s.front = stopAt;
       s.phase = 'impact'; s.t = 0; // impacto sempre é a consequência do CORTE
