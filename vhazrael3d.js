@@ -181,7 +181,8 @@ registerSkill('throne', {
         s.shocked = true;
         for (const tg of live(sq)) {
           if (s.hit.has(tg.id) || tg.iframes ||
-              Math.hypot(tg.x - s.ix, tg.z - s.iz) >= T.endR + tg.radius) continue;
+              Math.hypot(tg.x - s.ix, tg.z - s.iz) >= T.endR + tg.radius ||
+              (s.impactKind === 'terrain' && sq.los && !sq.los(s.ix, s.iz, tg.x, tg.z))) continue;
           s.hit.add(tg.id);
           sq.damageTarget(tg.id, T.endDmg, { kind: 'throneImpact', spell: s.id,
             x: s.ix, z: s.iz, knock: 1.4 });
