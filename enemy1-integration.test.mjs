@@ -32,7 +32,7 @@ test('golpe, projéteis e magias em área alcançam os outros atores; colisão c
 
 test('MIRAR alterna entre inimigos; laboratório isolado do progresso', () => {
   assert.match(src, /if\(squadOn&&lockOnActive&&squadCycleFocus\(\)\)return;/);
-  assert.ok(src.includes("ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=") && src.includes('isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB)'));
+  assert.ok(src.includes("ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=") && src.includes('isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB)'));
   for (const b of ["B('1'", "B('2'", "B('4'", "B('GUARDIÃO'", "B('+ ALIADO'", "B('CLASH'"]) assert.ok(src.includes(b), b);
 });
 
@@ -47,7 +47,7 @@ test('Mod visível e cache atualizado: marcador, loader, BUILD e index na mesma 
 
 test('Mod 238: Enemy2 do Ato II em esquadra, mini-chefe com foice, ultimate genérico desligado na esquadra', () => {
   assert.match(src, /kind=P\.rig==='enemy2'\?\(P\.profile==='miniboss2'\?'e2boss':'e2'\)/);
-  assert.match(src, /source:k=>rigSource\(k==='e2'\|\|k==='e2boss'\?'enemy2':k==='e3'\?'enemy3':k==='e3boss'\?'enemy4':'enemy1'\)/);
+  assert.match(src, /source:k=>rigSource\(k==='e2'\|\|k==='e2boss'\?'enemy2':k==='e3'\|\|k==='e3boss'\?'enemy3':k==='e4'\|\|k==='e4boss'\?'enemy4':'enemy1'\)/);
   assert.match(src, /function updateBossUltimates\(dt,now\)\{\n tickTransientFx\(dt\);\n[^\n]*\n[^\n]*\n if\(squadOn\)\{if\(bossUlt\.kind\)endBossUlt\(\);return;\}/);
   assert.match(src, /air:Math\.max\(0,player\.position\.y-terrainHeightAt/, 'salto sobre a onda do Colapso');
   for (const k of ["case 'surgir-tres':startPack({rig:'enemy2'", "case 'surgir-cinco':startPack({rig:'enemy2'", "case 'surgir-mini-chefe':startPack({rig:'enemy2',profile:'miniboss2'"]) assert.ok(src.includes(k), k);
@@ -63,12 +63,14 @@ test('Guardião é bem mais resistente que o comum, sem virar esponja; comum na 
   assert.ok(w.T.counter.chance > c.T.counter.chance, 'contra-magia mais competente no mini-chefe');
 });
 
-test('Mod 245: Enemy3 (demon3) e mini-chefe do Ato III (miniboss3 no rig enemy4) em esquadra; Ato IV intocado', () => {
-  assert.match(src, /function e3SquadPack\(rig,profile\)\{return !SQUAD_LEGACY&&\(\(rig==='enemy3'&&profile==='demon3'\)\|\|\(rig==='enemy4'&&profile==='miniboss3'\)\);\}/);
-  assert.ok(src.includes("P.rig==='enemy4'?'e3boss':P.rig==='enemy3'?'e3'"));
-  for (const k of ["startPack({rig:'enemy4',profile:'miniboss3'", "startPack({rig:'enemy3',profile:'demon3'", "startPack({rig:'enemy3',profile:'miniboss4'", "startPack({rig:'enemy4',profile:'demon4'", "startPack({rig:'enemy4',profile:'leader4'"]) assert.ok(src.includes(k), k);
-  assert.ok(src.includes("updateDayNight(dt);applySquadDim();"), 'escurecimento da tempestade aplicado depois do ciclo dia/noite e restaurado');
-  assert.ok(src.includes("ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3')"));
+test('Mod 245/246: mini-chefe 3 no Enemy3.glb e Enemy4/mini-chefe 4 no Enemy4.glb, em esquadra; líder do Ato IV no pacote antigo', () => {
+  assert.ok(src.includes("function e3SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy3'&&(profile==='demon3'||profile==='miniboss3');}"));
+  assert.ok(src.includes("function e4SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy4'&&(profile==='demon4'||profile==='miniboss4');}"));
+  assert.ok(src.includes("P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3')"));
+  for (const k of ["startPack({rig:'enemy3',profile:'miniboss3'", "startPack({rig:'enemy3',profile:'demon3'", "startPack({rig:'enemy4',profile:'miniboss4'", "startPack({rig:'enemy4',profile:'demon4'", "startPack({rig:'enemy4',profile:'leader4'"]) assert.ok(src.includes(k), k);
+  assert.ok(!src.includes("startPack({rig:'enemy4',profile:'miniboss3'") && !src.includes("startPack({rig:'enemy3',profile:'miniboss4'"), 'mini-chefe usa o mesmo GLB do comum');
+  assert.ok(src.includes("updateDayNight(dt);applySquadDim();"));
+  assert.ok(src.includes("ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4')"));
   const rt = fs.readFileSync(new URL('./enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
-  assert.match(rt, /if\(a\.kind==='e3boss'\)attachKatana\(T,scene,b\);/); assert.match(rt, /a\.kind==='e3boss'\?katanaPose:bossPose/);
+  assert.match(rt, /if\(a\.kind==='e3boss'\|\|a\.kind==='e4boss'\)attachKatana\(T,scene,b,a\.kind\);/); assert.match(rt, /a\.kind==='e3boss'\|\|a\.kind==='e4boss'\?katanaPose:bossPose/);
 });

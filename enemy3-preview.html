@@ -18,19 +18,22 @@ const ground=()=>0;const heroM=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),ne
 const hero={id:'hero',team:'hero',x:0,y:0,z:0,vx:0,vz:0,radius:.42,height:1.8,alive:true,priority:1,iframes:false,air:0};
 const loader=new GLTFLoader(),rigs={};
 const DEF={e3:{file:'./Enemy3.glb',roles:{idle:'_01a15ab5_eeba_71ae_a438_b85a938940fc',walk:'Walking',run:'Running',attack:'Attack',cast:'Skill_03',dash:'_01a15ab0_deed_76a9_818c_47f5fc81ba40',death:'Dead'}},
- e3boss:{file:'./Enemy4.glb',roles:{idle:'_01a15ace_9e83_7761_a901_661f649d465a',walk:'Walking',run:'Running',attack:'Triple_Combo_Attack',cast:'Skill_03',dash:'_01a15ad2_c637_77d6_b5f4_1b96b9e71d4b',death:'Dead'}}};
+ e4:{file:'./Enemy4.glb',roles:{idle:'_01a15ace_9e83_7761_a901_661f649d465a',walk:'Walking',run:'Running',attack:'Triple_Combo_Attack',cast:'Skill_03',dash:'_01a15ad2_c637_77d6_b5f4_1b96b9e71d4b',death:'Dead'}}};
+const sp=qs.get('sp')==='4'?4:3,KB=()=>sp===4?(boss?'e4boss':'e4'):(boss?'e3boss':'e3');
 async function load(k){if(rigs[k])return rigs[k];const g=await loader.loadAsync(DEF[k].file);const model=g.scene,mixer=new T.AnimationMixer(model),actions={};for(const [role,name] of Object.entries(DEF[k].roles)){const c=g.animations.find(a=>a.name===name);if(c)actions[role]=mixer.clipAction(c);}return rigs[k]={model,actions};}
 let rt=null,time=0,heroHp=0,info=document.getElementById('info');
 async function start(){
- await load('e3');await load('e3boss');if(rt)rt.dispose();heroHp=0;time=0;hero.x=0;hero.z=0;
- rt=createEnemy1SquadRuntime({T,scene,ground,blocked:()=>false,los:()=>true,source:k=>rigs[k==='e3boss'?'e3boss':'e3'],clone:m=>skClone(m),measure:o=>new T.Box3().setFromObject(o),heroHeight:()=>1.8,damageTarget:(id,n)=>{heroHp+=n;return'hit';},event:()=>{}});
- const sq=rt.start([{x:0,z:boss?7:11,yaw:Math.PI,kind:boss?'e3boss':'e3'}],{seed:5});const a=sq.actors[0];a.alert=1e9;a.decideT=1e9;
+ await load('e3');await load('e4');if(rt)rt.dispose();heroHp=0;time=0;hero.x=0;hero.z=0;
+ rt=createEnemy1SquadRuntime({T,scene,ground,blocked:()=>false,los:()=>true,source:k=>rigs[k==='e4'||k==='e4boss'?'e4':'e3'],clone:m=>skClone(m),measure:o=>new T.Box3().setFromObject(o),heroHeight:()=>1.8,damageTarget:(id,n)=>{heroHp+=n;return'hit';},event:()=>{}});
+ const sq=rt.start([{x:0,z:boss?7:11,yaw:Math.PI,kind:KB()}],{seed:5});const a=sq.actors[0];a.alert=1e9;a.decideT=1e9;
  sq.setTargets([hero]);if(kind==='katana'){}else if(kind.startsWith('Katana')){hero.z=boss?2.4:0;sq.startMelee(a,hero,kind);}else{a.cds[kind]=0;sq.startCast(a,hero,kind);}
 }
 function cam(){const sq=rt&&rt.squad,a=sq&&sq.actors[0];if(!a)return;const s=sq.spells[0];
  if(kind==='katana'){const b=rt.body(a.id),p=b&&b.weaponRoot?b.weaponRoot.getWorldPosition(new T.Vector3()):new T.Vector3(a.x,1.3,a.z);camera.position.set(p.x-1.7,p.y+.25,p.z-1.5);camera.lookAt(p.x-.2,p.y-.05,p.z-.5);return;}
  if(kind==='nadir'&&qs.has('ground')){camera.position.set(-7,7.5,-9);camera.lookAt(0,0,1);return;}
  if(kind==='nadir'){camera.position.set(-6,2.2,-5);camera.lookAt(a.x*.4,7,a.z*.6);return;}
+ if(kind==='sanctum'||kind==='drill'||kind==='cage'){camera.position.set(-6,5.5,-6.5);camera.lookAt(0,.8,3);return;}
+ if(kind==='constellation'){camera.position.set(a.x+6,3.4,a.z-9);camera.lookAt(a.x,3.4,a.z+1);return;}
  if(kind==='barrage'){camera.position.set(a.x+5.5,3,a.z-10.5);camera.lookAt(a.x,3.2,a.z+1);return;}
  if(kind.startsWith('Katana')){camera.position.set(a.x+4.6,2.2,a.z-3.2);camera.lookAt(a.x,1.3,a.z-1);return;}
  if(s&&(s.phase==='dome'||s.phase==='erode'||s.phase==='implode')){camera.position.set(s.x+7,3.2,s.z-7.5);camera.lookAt(s.x,1.4,s.z);return;}
