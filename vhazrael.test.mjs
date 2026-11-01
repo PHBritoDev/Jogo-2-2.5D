@@ -192,7 +192,7 @@ test('Mod 254 — Bombardeio Abissal Perseguidor: 4–7 s, rajadas travadas, mir
   const still = sim(() => {}), walk = sim((h, t) => { h.vx = 3; h.vz = 0; h.x = -9 + 3 * t; }), run7 = sim((h, t) => { const ang = t * .55; h.vx = -Math.sin(ang) * 7.5; h.vz = Math.cos(ang) * 7.5; h.x = Math.cos(ang) * 13.6; h.z = Math.sin(ang) * 13.6; });
   const dashing = sim((h, t) => { h.vx = 6; h.x = -9 + 6 * t; const s = 0; h.iframes = (t % 1.1) < .38; });
   // duração e cadência
-  const life = still.log.findIndex(e => e.type === 'bombardEnd'); assert.ok(still.shots.length >= 9 && still.shots.length <= 16, 'rajadas: ' + still.shots.length);
+  const life = still.log.findIndex(e => e.type === 'bombardEnd'); assert.ok(still.shots.length >= 21 && still.shots.length <= 27, 'rajadas: ' + still.shots.length);
   const span = still.shots.at(-1).spell.T.rise + still.shots.at(-1).spell.T.dur; assert.ok(span >= 4 && span <= 7, 'duração ' + span);
   assert.ok(still.lockedOk && walk.lockedOk && run7.lockedOk, 'ponto de impacto travado depois do disparo (nada teleguiado)');
   assert.equal(still.impacts.length, still.shots.length, 'cada rajada explode no seu ponto');
