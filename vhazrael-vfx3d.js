@@ -1,7 +1,7 @@
 import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smooth, easeOut, hash } from './celestial-fxkit3d.js';
-import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod254-bombardeio';
-import { createExtinctionVFX } from './vhazrael-extinction3d.js?v=mod254-bombardeio';
-import { createBombardVFX } from './vhazrael-bombard3d.js?v=mod254-bombardeio';
+import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod255-bombardeio-dobro';
+import { createExtinctionVFX } from './vhazrael-extinction3d.js?v=mod255-bombardeio-dobro';
+import { createBombardVFX } from './vhazrael-bombard3d.js?v=mod255-bombardeio-dobro';
 /**
  * MOD 247b — VFX do VHAZRAEL refeito (só desenha o estado de vhazrael3d.js). Correção visual pedida pelo criador:
  *  • MOD 254: Entidade do Terror (mãos) e Ninhada (criaturas) REMOVIDAS do kit; entra o Bombardeio Abissal
