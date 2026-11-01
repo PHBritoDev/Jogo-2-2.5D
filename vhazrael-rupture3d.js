@@ -294,7 +294,7 @@ export function createRuptureVFX(T, kit) {
       for (const sd of [-1, 1]) { const off = 1 + hash(sd0 + sd) * 1.6, x = sx + s.dx * d + px * sd * off, z = sz + s.dz * d + pz * sd * off; if (lift > .02) plate(x, ground(x, z) - .25 + .45 * lift, z, (.55 + hash(sd0 + 2 + sd) * .55) * Math.min(1, lift * 1.4), sd * (.35 + .4 * hash(sd0 + sd * 5)) * lift, Math.atan2(s.dx, s.dz) + (hash(sd0 + 9) - .5), (hash(sd0 + 4) - .5) * .6 * lift); }
       if (tp > 0 && tp < 1.3 && !low || (low && tp > 0 && tp < 1 && d % 3 < 1.3)) for (let i = 0; i < 2; i++) { const sd = i ? 1 : -1, vx = sd * (2.5 + 4 * hash(sd0 + i)), vy = 6 + 6 * hash(sd0 + i + 3), vf = 2 + 3 * hash(sd0 + i + 6), y = vy * tp - 4.9 * tp * tp; if (y < 0) continue;
         const x = sx + s.dx * (d + vf * tp) + px * vx * tp, z = sz + s.dz * (d + vf * tp) + pz * vx * tp; shard(x, ground(x, z) + y, z, .12 + .16 * hash(sd0 + i + 9), tp * 7 + i, tp * 5, i, 1.2); }
-      if (tp > 0 && tp < 1.6 && !low && hash(sd0) > .75) { const k = tp / 1.6, x = sx + s.dx * d + px * (hash(sd0 + 1) - .5) * 3, z = sz + s.dz * d + pz * (hash(sd0 + 1) - .5) * 3; puff(x, ground(x, z) + .6 + k * 3.4, z, .7 + 1.3 * k, .14 * (1 - k), 0, smooth((k - .45) / .55), hash(sd0 + 2)); } // fumaça escura que sobe da fissura
+      if (tp > 2.1 && tp < 3.3 && !low && hash(sd0) > .75) { const k = (tp - 2.1) / 1.2, x = sx + s.dx * d + px * (hash(sd0 + 1) - .5) * 3, z = sz + s.dz * d + pz * (hash(sd0 + 1) - .5) * 3; puff(x, ground(x, z) + .6 + k * 3.4, z, .7 + 1.3 * k, .14 * (1 - k), 0, smooth((k - .45) / .55), hash(sd0 + 2)); } // fumaça APENAS residual, depois de a onda de choque passar
     }
   }
 
