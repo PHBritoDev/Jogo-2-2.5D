@@ -57,7 +57,9 @@ test('Extinção Orbital: ~17 s, sem ponto seguro; resposta decide o dano (guard
     return { a, log, dmg, hits: dmg.filter(d => d.kind === 'orbital'), attacks, phases: log.filter(e => e.type.startsWith('orbital_')).map(e => e.type), res: log.find(e => e.type === 'orbitalResult') };
   };
   const none = R('none'), shield = R('shield'), duel = R('duel');
-  assert.deepEqual(none.phases, ['orbital_orbit', 'orbital_entry', 'orbital_choice', 'orbital_impact', 'orbital_after']);
+  assert.deepEqual(none.phases, ['orbital_orbit', 'orbital_entry', 'orbital_arrival', 'orbital_choice', 'orbital_impact', 'orbital_after']);
+  assert.ok(shield.log.some(e => e.type === 'orbitalGuard'), 'a guarda firme é confirmada antes do impacto'); assert.ok(shield.log.findIndex(e => e.type === 'orbitalGuard') < shield.log.findIndex(e => e.type === 'orbital_impact'));
+  assert.ok(!none.log.some(e => e.type === 'orbitalGuard'));
   assert.equal(none.res.result, 'none'); assert.equal(none.hits[0].n, 95, 'longe (x=30) e sem resposta: dano massivo — não existe ponto seguro');
   assert.equal(shield.res.result, 'shield'); assert.ok(shield.hits[0].n < 20 && shield.hits[0].shieldBreak);
   assert.equal(duel.res.result, 'duel'); assert.equal(duel.hits.length, 0);
@@ -204,4 +206,21 @@ test('Mod 247b: golpes do VHAZRAEL são cortes nativos estáveis (sem o clipe ac
   for (const m of BOSS_MOVES.vhazrael) { const { sq, dmg } = world(); const t = hero({ z: 2.4 }); sq.meleeTrace = () => true; sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, m.id); run(sq, m.duration + .2);
     assert.equal(dmg.filter(d => d.kind === 'melee').length, m.hits.length, m.id); assert.ok(a.z < t.z - t.radius); }
   { const { sq, dmg } = world(); const t = hero({ z: 2 }); sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, 'Trono_Corte'); run(sq, 2); assert.equal(dmg.length, 0, 'sem traço da lâmina, sem dano'); }
+});
+
+test('Mod 253 — Extinção Orbital: storyboard de 7 fases na mesma linha do tempo, silhueta no despertar, DEF jogável e cleanup', async () => {
+  const { ORBITAL, ORBITAL_PHASES } = await import('./vhazrael3d.js');
+  assert.deepEqual(ORBITAL_PHASES, ['awaken', 'orbit', 'entry', 'arrival', 'choice', 'impact', 'after']);
+  assert.ok(ORBITAL.choice >= 2, 'janela jogável de defesa com pelo menos 2 s'); assert.equal(ORBITAL.guard, .35);
+  assert.ok(Math.abs(ORBITAL.cast - (ORBITAL.awaken + ORBITAL.orbit + ORBITAL.entry + ORBITAL.arrival + ORBITAL.choice + ORBITAL.impact)) < .01, 'o ato do bispo dura até o fim do impacto');
+  const { sq, log } = world(); const h = hero({ x: 12 }); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'terror']); cast(sq, a, h, 'orbital');
+  const dims = {}; run(sq, 19, 1 / 60, () => { const s = orbitalSpell(sq); if (s) dims[s.phase] = Math.max(dims[s.phase] || 0, s.dim || 0); });
+  assert.ok(dims.awaken > .5, 'luz da arena cai no despertar (silhueta)'); assert.ok((dims.after || 0) === 0, 'luz devolvida no fim');
+  assert.ok(!orbitalSpell(sq), 'nenhum meteoro fantasma depois'); assert.equal(log.filter(e => e.type === 'orbitalResult').length, 1);
+  const fs = await import('node:fs'), src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8'), vfx = fs.readFileSync(new URL('./vhazrael-vfx3d.js', import.meta.url), 'utf8');
+  assert.ok(/vzSkip\(\)\{[^\n]*awaken\|orbit\|entry\|arrival/.test(src), 'PULAR cobre todas as tomadas travadas');
+  assert.ok(src.includes("body.vz-choice #actions>button:not(#defend):not(#ultimate)"), 'na janela só DEF e ULTIMATE ficam na tela');
+  assert.ok(/lock=!!o&&\/\^\(awaken\|orbit\|entry\|arrival\)\$\//.test(src), 'controles travados só nas tomadas, nunca na escolha');
+  assert.ok(src.includes('vzApplyShot(sh)') && src.includes('vzCamRestore()'), 'tomada aplicada só no quadro desenhado');
+  assert.ok(vfx.includes("vhazrael-extinction3d.js?v=mod253"), 'módulo novo da Extinção com cache versionado');
 });

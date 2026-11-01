@@ -16,7 +16,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael');
 const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB);
 // O selo só mostra 252 quando o módulo de combate da versão 252 realmente importou.
-{const m=document.getElementById('marker');if(m){m.textContent=VHAZRAEL_BUILD.startsWith('252-')?'252':'?';m.title='Motor VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=VHAZRAEL_BUILD.startsWith('253-')?'253':'?';m.title='Motor VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -3218,7 +3218,7 @@ function applySquadDim(){
     de base a cada quadro e devolve integralmente quando acaba (também quando ninguém mais reescreve as cores, ex.: voidMode). */
 const vzTint={on:false,base:{},set:{}},VZ_CRIM=new THREE.Color(0x9a0618),VZ_CRIM_G=new THREE.Color(0x2a0006);
 function applyVzTint(){
- const k=squadRT?Math.min(1,squadRT.vhazraelVFX.throneTint||0):0;
+ const st=squadRT?squadRT.vhazraelVFX.sceneTint:null,k=st?Math.min(1,st.k||0):0;if(st&&k>.002&&st.hex!==vzTint.hex){vzTint.hex=st.hex;VZ_CRIM.setHex(st.hex);VZ_CRIM_G.setHex(st.hex).multiplyScalar(.28);}
  for(const [key,c] of [['bg',scene.background],['fog',scene.fog&&scene.fog.color],['hs',hemiLight.color],['hg',hemiLight.groundColor],['sun',sunLight.color],['fill',fill.color],['sky',skyDome.material.color]]){
   if(!c||!c.isColor)continue;if(vzTint.on&&vzTint.set[key]&&c.equals(vzTint.set[key]))c.copy(vzTint.base[key]);
   (vzTint.base[key]||(vzTint.base[key]=new THREE.Color())).copy(c);
@@ -3263,9 +3263,13 @@ function squadEvent(type,d){
   case 'summon':showCombatCallout(d.king?'O COLOSSO DA NINHADA':'A NINHADA DESPERTA');squadSfx('tear',d.actor.x,d.actor.z,0);break;
   case 'stompBlast':squadSfx('heavy',s.x,s.z,0);if(!userSettings.reduceShake)cameraShake(.15);break;
   case 'vzClose':worldAudio.whoosh();break;
-  case 'orbital':status.textContent='VHAZRAEL ergue a espada para o céu…';worldAudio.abyss3&&worldAudio.abyss3('storm',1);break;
+  case 'orbital':status.textContent='VHAZRAEL ergue a espada para o céu…';worldAudio.abyss3&&worldAudio.abyss3('gravity',.6);break;
+  case 'orbital_orbit':worldAudio.abyss3&&worldAudio.abyss3('storm',.8);break;
+  case 'orbital_entry':worldAudio.abyss3&&worldAudio.abyss3('launch',1);worldAudio.abyss3&&worldAudio.abyss3('storm',1);break;
+  case 'orbital_arrival':worldAudio.abyss3&&worldAudio.abyss3('heavy',.8);if(!userSettings.reduceShake)cameraShake(.08);break;
+  case 'orbitalGuard':if(d.target==='hero'){showCombatCallout('GUARDA FIRME — AGUENTE O IMPACTO');worldAudio.abyss3&&worldAudio.abyss3('blade',.8);}break;
   case 'orbital_choice':showCombatCallout('DEFENDA-SE OU CONTRAPONHA COM SUA ULTIMATE');status.textContent='O meteoro cobre a dimensão inteira: segure DEF ou use sua ULTIMATE agora.';break;
-  case 'orbital_impact':vzFlash('#fff',userSettings.reduceFlash?.3:.85,120);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);worldAudio.abyss3&&worldAudio.abyss3('boom',1);if(!userSettings.reduceShake)cameraShake(.4);break;
+  case 'orbital_impact':vzFlash('#fff6e0',userSettings.reduceFlash?.2:.7,90);hitStop(60);worldAudio.abyss3&&worldAudio.abyss3('thunder',1);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);worldAudio.abyss3&&worldAudio.abyss3('boom',1);if(!userSettings.reduceShake)cameraShake(.4);break;
   case 'orbitalResult':if(d.target==='hero'){showCombatCallout(d.result==='duel'?'DUELO DE ULTIMATES — O METEORO SE PARTIU':d.result==='shield'?'O ESCUDO SEGUROU O METEORO':'EXTINÇÃO');if(d.result==='shield'){setDefending(false);}}break;
   case 'sanctumMark':squadSfx('warn',d.mark.x,d.mark.z,90);break;
   case 'sanctumPillar':squadSfx('thunder',d.mark.x,d.mark.z,110);break;
@@ -3316,9 +3320,9 @@ function squadEvent(type,d){
 /** Clarão/vinheta curtos (sem strobe), abaixo do HUD; respeita reduzir flashes. */
 function vzFlash(bg,op,ms){let el=document.getElementById('vz-flash');if(!el){el=document.createElement('div');el.id='vz-flash';el.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .25s';document.body.appendChild(el);}el.style.background=bg;el.style.transition='none';el.style.opacity=String(op);void el.offsetWidth;el.style.transition='opacity '+(ms/1000)+'s';setTimeout(()=>{el.style.opacity='0';},40);}
 function vzOrbitState(){const o=squadOn&&squadRT?squadRT.orbit:null;return o&&o.s&&!o.s.dead?o:null;}
-function vzSkip(){const o=vzOrbitState();if(o&&/^(awaken|orbit|entry)$/.test(o.phase)){o.s.phase='choice';o.s.t=0;squadSq()?.event('orbital_choice',{spell:o.s});}}
+function vzSkip(){const o=vzOrbitState();if(o&&/^(awaken|orbit|entry|arrival)$/.test(o.phase)){o.s.phase='choice';o.s.t=0;squadSq()?.event('orbital_choice',{spell:o.s});}}
 function vzUpdateLock(){
- const o=vzOrbitState(),lock=!!o&&/^(awaken|orbit|entry)$/.test(o.phase);
+ const o=vzOrbitState(),lock=!!o&&/^(awaken|orbit|entry|arrival)$/.test(o.phase);vzHud(o);
  if(lock&&!vzLocked){vzLockPos=player.position.clone();setDefending(false);}
  vzLocked=lock;if(!o||o.phase==='after')vzDuel=vzDuel&&!!o&&o.phase!=='after';
  if(lock&&vzLockPos){player.position.copy(vzLockPos);moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;}
@@ -3335,16 +3339,25 @@ function vzThroneCamera(){
  _vzA.set(h.look[0],h.look[1],h.look[2]);_vzOff.set(camera.position.x-_vzA.x,0,camera.position.z-_vzA.z);const l=Math.hypot(_vzOff.x,_vzOff.z)||1;_vzOff.multiplyScalar((h.back||0)*k/l);_vzOff.y=(h.lift||0)*k;const gy=terrainHeightAt(camera.position.x+_vzOff.x,camera.position.z+_vzOff.z)+1.4;if(camera.position.y+_vzOff.y<gy)_vzOff.y=gy-camera.position.y;camera.position.add(_vzOff);
  _vzQ.copy(camera.quaternion);camera.lookAt(_vzA.lerp(_vzB.set(player.position.x,player.position.y+1.5,player.position.z),.4));camera.quaternion.slerpQuaternions(_vzQ,camera.quaternion,.5*k);
 }
-function vzCamRestore(){if(_vzOff.lengthSq()>0){camera.position.sub(_vzOff);_vzOff.set(0,0,0);}}
+function vzCamRestore(){if(_vzOff.lengthSq()>0){camera.position.sub(_vzOff);_vzOff.set(0,0,0);}if(vzShotSaved.on){camera.position.copy(vzShotSaved.p);camera.quaternion.copy(vzShotSaved.q);if(camera.fov!==vzShotSaved.fov){camera.fov=vzShotSaved.fov;camera.updateProjectionMatrix();}vzShotSaved.on=false;}}
+/** MOD 253 — aplica a tomada da Extinção só no quadro desenhado (salva → mistura → desenha → vzCamRestore devolve).
+    Mistura (blend) entre a câmera do jogador e a da tomada para entrar/sair do POV e da tomada aberta sem tranco. */
+const vzShotSaved={on:false,p:new THREE.Vector3(),q:new THREE.Quaternion(),fov:56},_vzQ2=new THREE.Quaternion(),_vzQ3=new THREE.Quaternion();
+function vzApplyShot(sh){const b=Math.max(0,Math.min(1,sh.blend??1));if(b<.002)return;vzShotSaved.on=true;vzShotSaved.p.copy(camera.position);vzShotSaved.q.copy(camera.quaternion);vzShotSaved.fov=camera.fov;
+ _vzA.fromArray(sh.pos);const gy=terrainHeightAt(_vzA.x,_vzA.z)+.6;if(_vzA.y<gy)_vzA.y=gy;camera.position.lerp(_vzA,b);_vzQ2.copy(camera.quaternion);camera.lookAt(_vzB.fromArray(sh.look));_vzQ3.copy(camera.quaternion);camera.quaternion.slerpQuaternions(_vzQ2,_vzQ3,b);
+ const f=vzShotSaved.fov+((sh.fov||vzShotSaved.fov)-vzShotSaved.fov)*b;if(Math.abs(f-camera.fov)>.01){camera.fov=f;camera.updateProjectionMatrix();}}
+/** HUD da cinematografia: tomadas travadas escondem tudo (fica PULAR); na janela jogável só DEF, ULTIMATE e o indicador. */
+let vzHudEl=null;function vzHud(o){
+ const cine=!!o&&/^(awaken|orbit|entry|arrival|impact)$/.test(o.phase),choice=!!o&&o.phase==='choice';document.body.classList.toggle('vz-cine',cine);document.body.classList.toggle('vz-choice',choice);
+ if(!vzHudEl&&(cine||choice)){const st=document.createElement('style');st.textContent='body.vz-cine #top,body.vz-cine #hud-hero,body.vz-cine #player-hud,body.vz-cine #enemy-hud,body.vz-cine #quest-box,body.vz-cine #hint,body.vz-cine #stick,body.vz-cine #actions,body.vz-cine #enemy1-lab,body.vz-cine #combat-callout{visibility:hidden!important}body.vz-choice #top,body.vz-choice #quest-box,body.vz-choice #hint,body.vz-choice #enemy1-lab,body.vz-choice #enemy-hud,body.vz-choice #actions>button:not(#defend):not(#ultimate){visibility:hidden!important}body.vz-choice #defend{transform:scale(1.35);box-shadow:0 0 0 3px #ffb35a,0 0 26px #ff7a1a}#vz-window{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%);z-index:40;pointer-events:none;font:700 15px system-ui;color:#fff;text-shadow:0 2px 4px #000;text-align:center;display:none;width:min(80vw,420px)}#vz-window i{display:block;height:6px;margin-top:6px;border-radius:3px;background:linear-gradient(90deg,#ffd27a,#ff5a1a);transform-origin:left}#vz-window.ok{color:#9dffb8}#vz-skip{position:fixed;right:calc(env(safe-area-inset-right) + 14px);bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:41;display:none;padding:10px 16px;border-radius:10px;border:1px solid #ff5a5a;background:#1a0608cc;color:#fff;font:700 14px system-ui}body.vz-cine #vz-skip{display:block}';document.head.appendChild(st);
+  vzHudEl=document.createElement('div');vzHudEl.id='vz-window';vzHudEl.innerHTML='<span></span><i></i>';document.body.appendChild(vzHudEl);const sk=document.createElement('button');sk.id='vz-skip';sk.type='button';sk.textContent='PULAR ›';sk.addEventListener('pointerdown',e=>{e.preventDefault();vzSkip();});document.body.appendChild(sk);}
+ if(!vzHudEl)return;vzHudEl.style.display=choice?'block':'none';if(choice){const T0=o.s.T,ok=o.s.guardOk||o.s.duel;vzHudEl.className=ok?'ok':'';vzHudEl.firstChild.textContent=o.s.duel?'DUELO DE ULTIMATES!':ok?'GUARDA FIRME — AGUENTE!':'SEGURE DEF (ou ULTIMATE)';vzHudEl.lastChild.style.transform='scaleX('+Math.max(0,1-o.t/T0.choice).toFixed(3)+')';}
+}
 function vzCinematic(){
  vzThroneCamera();const o=vzOrbitState();if(!o)return false;
- if(o.phase==='choice'){const mt=squadRT.vhazraelVFX.meteor;if(mt&&mt.visible){_vzB.set(player.position.x,player.position.y+1.5,player.position.z).lerp(_vzA.copy(mt.position).setY(mt.position.y-mt.scale.x),.3);camera.lookAt(_vzB);}return false;}// o meteoro domina o céu na janela de resposta
- if(!/^(awaken|orbit|entry)$/.test(o.phase))return false;
- const s=squadSq(),b=s&&s.actors.find(a=>a.kind==='vhazrael'&&a.alive);if(!b)return false;const fy=Math.sin(b.yaw),fz=Math.cos(b.yaw),T0=o.s.T;
- if(o.phase==='awaken'){const k=o.t/T0.awaken,e=k*k*(3-2*k);// close de baixo para cima, aproximando do rosto e da lâmina
-  camera.position.set(b.x+fy*(3.6-1.4*e)+fz*1.4*(1-e),b.y+.35+e*.5,b.z+fz*(3.6-1.4*e)-fy*1.4*(1-e));camera.lookAt(b.x,b.y+1.7+e*.9,b.z);return false;}
- if(o.phase==='orbit'||o.phase==='entry'){const v=squadRT.vhazraelVFX;v.orbitalCamera.aspect=camera.aspect;v.orbitalCamera.updateProjectionMatrix();renderer.render(v.orbitalScene,v.orbitalCamera);return true;}
- return false;
+ const sh=squadRT.vhazraelVFX.orbitShot;if(!sh)return false;
+ if(sh.space){const v=squadRT.vhazraelVFX;v.orbitalCamera.aspect=camera.aspect;v.orbitalCamera.updateProjectionMatrix();renderer.render(v.orbitalScene,v.orbitalCamera);return true;}
+ vzApplyShot(sh);return false;
 }
 /** Liga a esquadra ao laço: lê o que o herói fez no procurador, roda a lógica, escolhe o foco e devolve o procurador. */
 function updateSquadCombat(dt,now){
@@ -6205,6 +6218,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   packQA(rig,profile,n=1,hp=170){const px=player.position.x,pz=player.position.z;startPack({rig,profile,hp,spots:Array.from({length:n},(_,i)=>({x:px+Math.sin(i*1.3)*9,z:pz-9+Math.cos(i*1.3)*2})),onDone:()=>{window.__packDone=(window.__packDone||0)+1;}});return this.squadState();},
   /** MOD 247 — QA: abre a dimensão do Bispo 1 pelo fluxo real (cartão VS → luta em esquadra → vitória/saída). */
   vhazraelDimQA(){window.__dimWin=0;startDimensionBattle('bishop1',{hp:DIMENSIONS.bishop1.hp,returnTo:{x:player.position.x,z:player.position.z},onVictory:()=>{window.__dimWin=1;},onAbort:()=>{window.__dimWin=-1;}});return true;},
+  vzShot(){const s=squadSq(),b=s&&s.actors.find(a=>a.kind==='vhazrael');const bb=b&&squadRT.body(b.id);let hp=null;if(bb&&bb.headBone){const v=new THREE.Vector3();bb.headBone.getWorldPosition(v);hp=v.toArray().map(x=>+x.toFixed(2));}return{shot:squadRT?.vhazraelVFX.orbitShot||null,boss:b?[b.x,b.y,b.z,b.yaw].map(x=>+x.toFixed(2)):null,head:hp,player:player.position.toArray().map(x=>+x.toFixed(2)),scale:bb?bb.model.getWorldScale(new THREE.Vector3()).x:null};},
   squadRender(){return{calls:renderer.info.render.calls,tris:renderer.info.render.triangles,geos:renderer.info.memory.geometries,tex:renderer.info.memory.textures,programs:renderer.info.programs?.length,dim:squadRT?squadRT.dim:0,hemi:+hemiLight.intensity.toFixed(3),sun:+sunLight.intensity.toFixed(3)};},
   wardenSpot(){const w=sewerLocal(SEWER.warden);return[w.x,w.z];},
   squadPose(id,x,z,yaw,pause=true){const s=squadSq();if(!s)return null;const a=s.actor(id);if(!a)return null;a.x=x;a.z=z;a.y=terrainHeightAt(x,z);a.yaw=yaw||0;a.alert=pause?1e9:0;a.act=null;a.intent.mode='hold';a.decideT=pause?1e9:.2;return this.squadState();},

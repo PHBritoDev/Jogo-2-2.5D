@@ -1,5 +1,6 @@
 import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smooth, easeOut, hash } from './celestial-fxkit3d.js';
-import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod252-sword-contact';
+import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod253-extincao-orbital';
+import { createExtinctionVFX } from './vhazrael-extinction3d.js?v=mod253-extincao-orbital';
 /**
  * MOD 247b — VFX do VHAZRAEL refeito (só desenha o estado de vhazrael3d.js). Correção visual pedida pelo criador:
  *  • ANATOMIA ARTICULADA INSTANCIADA: criaturas da Ninhada e Mãos Devoradoras são montadas por cinemática direta em
@@ -17,7 +18,7 @@ import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod252-sword-contact
  *    espinhos de dano perto do jogador + floresta decorativa de 14–22 m cruzando-se em vários planos.
  *  • Ruptura do Trono (MOD 249): módulo próprio vhazrael-rupture3d.js — erguer, carga com pilar colossal em camadas,
  *    corte com leque e flare em cruz, feixe gigante que rasga o chão e colisão em várias fases (ver o cabeçalho dele).
- *  • Extinção Orbital: cena orbital ISOLADA (planeta com curvatura, atmosfera, nuvens, ciclone carmim e feixe; entrada
+ *  • Extinção Orbital (MOD 253): módulo próprio vhazrael-extinction3d.js (storyboard em 8 tomadas). Texto antigo: cena orbital ISOLADA (entrada
  *    atmosférica com plasma acompanhada de perto), fundo de chamas sólidas no despertar, meteoro que cobre o céu e
  *    impacto em camadas.
  */
@@ -64,38 +65,6 @@ void main(){ vec2 p=vec2((vUv.x-.5)*2.2, vUv.y*1.6-.5); float t=time;
   c=mix(vec3(.004,0.,.002),vec3(.32,0.,.03),smoothstep(-.4,-.02,mouth)); c=mix(c,mix(vec3(.95,.8,.8),vec3(.85,.3,.35),rows*.45),teeth*step(rows,2.)); }
  c+=vec3(.55,0.,.04)*smoothstep(.0,-.015,body)*smoothstep(-.03,0.,body); gl_FragColor=vec4(c,alpha);${TONE}
 }`;
-// coluna de impacto da Extinção: núcleo branco, faixa magenta e borda de chamas negras recortadas
-const PILLAR_F = `${NOISE} uniform float time, k; varying vec2 vUv; varying vec3 vN; varying vec3 vV;
-void main(){ float f=abs(dot(normalize(vN),normalize(vV))); float y=vUv.y, n=fbm(vec2(vUv.x*6.,y*14.-time*7.)); float edge=f-(1.-k)*.7-(n-.5)*.5;
- if(edge<.08||y>k*1.02) discard; vec3 c=vec3(.01,0.,.01); c=mix(c,vec3(.95,.05,.55),smoothstep(.08,.22,edge)); c=mix(c,vec3(1.,.97,1.),smoothstep(.45,.7,edge)); gl_FragColor=vec4(c*1.4,1.);${TONE}
-}`;
-const DOME_F = `${NOISE} uniform float time, erode, heat; uniform vec3 c1, c2; varying vec3 vN; varying vec3 vV; varying vec3 vP;
-void main(){ float lat=clamp(vP.y,0.,1.), ang=atan(vP.z,vP.x); float er=fbm(vec2(ang*3.,lat*5.-time*.5)); if(er<erode) discard;
- float f=1.-abs(dot(normalize(vN),normalize(vV))), body=fbm(vec2(ang*2.6+time*.7+lat*2.,lat*3.6-time*1.2));
- float ink=smoothstep(.79,.85,1.-abs(fbm(vec2(ang*3.4+lat*4.2,lat*1.5+time*.3)*vec2(1.2,5.))*2.-1.));
- vec3 c=mix(c1,c2,smoothstep(.35,.62,body)); c=mix(c,vec3(1.,.75,.95),pow(1.-f,4.)*heat); c=mix(c,vec3(1.,.98,1.),pow(1.-f,10.)*heat);
- c=mix(c,vec3(.01,0.,.012),ink); c+=c2*smoothstep(erode+.07,erode,er)*step(.01,erode)*1.5; gl_FragColor=vec4(c,1.);${TONE}
-}`;
-// fundo do despertar: chamas sólidas vermelho-sangue e tinta negra (superfície curva atrás do bispo)
-const FLAME_BG_F = `${NOISE} uniform float time, k; varying vec2 vUv;
-void main(){ vec2 p=vUv; float n=fbm(vec2(p.x*5.,p.y*3.-time*1.6))*.7+fbm(vec2(p.x*11.+3.,p.y*7.-time*2.4))*.3; float lick=n-p.y*.55;
- vec3 c=mix(vec3(.02,0.,0.),vec3(.55,0.,.02),smoothstep(.0,.08,lick)); c=mix(c,vec3(1.,.08,.06),smoothstep(.16,.2,lick)); c=mix(c,vec3(.01,0.,.0),smoothstep(.62,.66,fbm(vec2(p.x*7.-time*.4,p.y*9.-time*1.1))));
- gl_FragColor=vec4(c,k);${TONE}
-}`;
-const PLANET_F = `${NOISE} uniform float time, storm; uniform vec3 eyeDir; varying vec3 vN; varying vec3 vV; varying vec3 vP;
-void main(){ vec3 p=normalize(vP); vec3 ex=normalize(cross(eyeDir,vec3(0.,1.,0.))+vec3(1e-4,0.,0.)), ey=cross(ex,eyeDir); vec2 q=vec2(dot(p,ex),dot(p,ey)); float r=length(q)*step(0.,dot(p,eyeDir));
- float lon=atan(p.z,p.x), lat=asin(clamp(p.y,-1.,1.)); float sw=atan(q.y,q.x)+r*16.-time*.7;
- float band=fbm(vec2(lon*3.+time*.02,lat*14.)), cl=fbm(vec2(lon*7.+time*.03,lat*9.)+vec2(cos(sw),sin(sw))*smoothstep(.5,0.,r)*1.6);
- vec3 c=mix(vec3(.03,.08,.26),vec3(.07,.2,.42),band); c=mix(c,vec3(.82,.85,.92),smoothstep(.45,.68,cl)); float red=smoothstep(.3,0.,r+(cl-.5)*.12)*storm;
- c=mix(c,mix(vec3(.45,0.,.02),vec3(.95,.04,.07),smoothstep(.25,.7,cl)),red); c=mix(c,vec3(.04,0.,0.),smoothstep(.03,0.,r)*storm); c+=vec3(1.,.15,.15)*exp(-pow((r-.08-fract(time*.3)*.16)/.005,2.))*storm;
- float f=1.-abs(dot(normalize(vN),normalize(vV))); float l=max(0.,dot(normalize(vN),normalize(vec3(-.4,.6,.7)))); c*=.12+.88*l; c+=vec3(.25,.55,1.)*pow(f,4.)*1.4; gl_FragColor=vec4(c,1.);${TONE}
-}`;
-const ROCK_F = `${NOISE} uniform float time, heat; varying vec3 vN; varying vec3 vV; varying vec3 vP;
-void main(){ float c1=n3(vP*1.6), cr=smoothstep(.06,.0,abs(n3(vP*2.4+3.)-.5))+smoothstep(.04,.0,abs(n3(vP*5.)-.5))*.6; float l=max(0.,dot(normalize(vN),normalize(vec3(.4,1.,.3))));
- vec3 c=vec3(.05,.03,.035)+vec3(.14,.08,.06)*l*c1; c=mix(c,vec3(1.,.35,.05)*(1.+heat),clamp(cr,0.,1.)*(.4+.6*heat)); float f=1.-abs(dot(normalize(vN),normalize(vV))); c+=vec3(1.,.5,.15)*pow(f,3.)*heat;
- gl_FragColor=vec4(c,1.);${TONE}
-}`;
-const PLASMA_F = `${NOISE} uniform float heat, time; varying vec3 vN; varying vec3 vV; varying vec3 vP; void main(){ float f=1.-abs(dot(normalize(vN),normalize(vV))); float n=n3(vP*3.+vec3(0.,time*4.,0.)); float a=pow(f,1.3)*heat*(.6+.6*n); vec3 c=mix(vec3(1.,.42,.08),vec3(1.,.97,.85),pow(1.-f,2.)); gl_FragColor=vec4(c*a,a); }`;
 
 /* ---------------- arma do bispo ---------------- */
 /** Lâmina do Trono: montante largo de seção em losango (não uma vareta), sulco carmim aceso, guarda negra com espinhos
@@ -168,40 +137,13 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
   function shard(x, y, z, s, rx, ry, rz, sy) { if (sn >= 360 || s <= .005) return; P.set(x, y, z); Q.setFromEuler(E.set(rx, ry, rz)); S.set(s, sy || s, s); M.compose(P, Q, S); shards.setMatrixAt(sn++, M); }
   function plate(x, y, z, s, rx, ry, rz) { if (pn >= 80 || s <= .01) return; P.set(x, y, z); Q.setFromEuler(E.set(rx, ry, rz)); S.setScalar(s); M.compose(P, Q, S); plates.setMatrixAt(pn++, M); }
   /* --- domos, onda, pilar, entidade, fundo --- */
-  const domeG = new T.SphereGeometry(1, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2); geos.push(domeG);
-  const mkDome = (c1, c2) => { const m = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: DOME_F, uniforms: { time: uTime, erode: { value: 0 }, heat: { value: 1 }, c1: { value: new T.Color(...c1) }, c2: { value: new T.Color(...c2) } }, side: T.DoubleSide, toneMapped: false, fog: false }); mats.push(m); const d = new T.Mesh(domeG, m); d.frustumCulled = false; d.visible = false; root.add(d); return d; };
-  const mega = mkDome([.3, 0, .03], [1, .06, .1]), megaCore = mkDome([1, .7, .5], [1, .95, .9]);
   const ringG = new T.TorusGeometry(1, .035, 4, 48); ringG.rotateX(Math.PI / 2); geos.push(ringG); const ringM = new T.MeshBasicMaterial({ color: 0xffd6f4, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false, fog: false }); mats.push(ringM);
   const rings = new T.InstancedMesh(ringG, ringM, 12); rings.frustumCulled = false; rings.count = 0; root.add(rings); let rn = 0;
   const ring = (x, y, z, r, th) => { if (rn >= 12) return; P.set(x, y, z); Q.identity(); S.set(r, th, r); M.compose(P, Q, S); rings.setMatrixAt(rn++, M); };
-  const pillarG = new T.CylinderGeometry(1, 1, 1, 24, 12, true); pillarG.translate(0, .5, 0); geos.push(pillarG);
-  const mkPillar = () => { const m = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: PILLAR_F, uniforms: { time: uTime, k: { value: 1 } }, side: T.DoubleSide, toneMapped: false, fog: false }); mats.push(m); const p = new T.Mesh(pillarG, m); p.frustumCulled = false; p.visible = false; root.add(p); return p; };
-  const column = mkPillar();
   const entG = new T.CylinderGeometry(15, 15, 16, 32, 1, true, -.75, 1.5); entG.translate(0, 8, 0); entG.scale(-1, 1, 1); geos.push(entG);
   const entMat = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: ENT_F, uniforms: { time: uTime, open: { value: 0 }, alpha: { value: 1 }, breathe: { value: 0 }, look: { value: new T.Vector2() } }, side: T.DoubleSide, transparent: true, depthWrite: false, toneMapped: false, fog: false }); mats.push(entMat);
   const ent = new T.Mesh(entG, entMat); ent.frustumCulled = false; ent.visible = false; ent.renderOrder = -2; root.add(ent);
-  const bgG = new T.CylinderGeometry(9, 9, 14, 24, 1, true, -1.2, 2.4); bgG.translate(0, 6, 0); bgG.scale(-1, 1, 1); geos.push(bgG);
-  const bgMat = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: FLAME_BG_F, uniforms: { time: uTime, k: { value: 0 } }, side: T.DoubleSide, transparent: true, depthWrite: false, toneMapped: false, fog: false }); mats.push(bgMat);
-  const flameBg = new T.Mesh(bgG, bgMat); flameBg.frustumCulled = false; flameBg.visible = false; flameBg.renderOrder = -3; root.add(flameBg);
-  /* --- cena orbital isolada (Atos 2 e 3) e meteoro da arena --- */
-  const oScene = new T.Scene(), oCam = new T.PerspectiveCamera(46, 1, .5, 9000); oScene.background = new T.Color(0x01010a);
-  const EYE = new T.Vector3(.25, .72, .65).normalize();
-  const planetMat = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: PLANET_F, uniforms: { time: uTime, storm: { value: 0 }, eyeDir: { value: EYE } }, toneMapped: false }); mats.push(planetMat);
-  const planet = new T.Mesh(new T.SphereGeometry(400, 96, 64), planetMat); oScene.add(planet); geos.push(planet.geometry);
-  const atmoMat = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){ float f=1.-abs(dot(normalize(vN),normalize(vV))); float a=pow(f,5.)*.9; gl_FragColor=vec4(vec3(.35,.65,1.)*a,a); }', transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.BackSide }); mats.push(atmoMat);
-  const atmo = new T.Mesh(new T.SphereGeometry(412, 64, 40), atmoMat); oScene.add(atmo); geos.push(atmo.geometry);
-  const beam = new T.Mesh(new T.CylinderGeometry(1.4, 1.4, 1, 8, 1, true), new T.MeshBasicMaterial({ color: 0xff1020, transparent: true, opacity: .9, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })); beam.geometry.translate(0, .5, 0); oScene.add(beam); geos.push(beam.geometry); mats.push(beam.material);
-  { const n = 1800, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const a = hash(i) * 6.283, b = Math.acos(2 * hash(i + 99) - 1), r = 5000; pos.set([Math.sin(b) * Math.cos(a) * r, Math.cos(b) * r, Math.sin(b) * Math.sin(a) * r], i * 3); }
-    const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(pos, 3)); geos.push(sg); const sm = new T.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false }); mats.push(sm); oScene.add(new T.Points(sg, sm)); }
-  const rockG = new T.IcosahedronGeometry(1, 4); { const p = rockG.attributes.position, v = new T.Vector3(); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const k = 1 + (hash(Math.floor(v.x * 3) * 7 + Math.floor(v.y * 3) * 13 + Math.floor(v.z * 3) * 29) - .5) * .32 + Math.sin(v.x * 5 + v.z * 3) * .07 + Math.sin(v.y * 9) * .03; v.multiplyScalar(k); v.y *= .82; p.setXYZ(i, v.x, v.y, v.z); } rockG.computeVertexNormals(); } geos.push(rockG);
-  const rockMat = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: ROCK_F, uniforms: { time: uTime, heat: { value: 0 } }, toneMapped: false, fog: false }); mats.push(rockMat);
-  const plasmaMat = new T.ShaderMaterial({ vertexShader: LIT_V, fragmentShader: PLASMA_F, uniforms: { heat: { value: 0 }, time: uTime }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false, fog: false }); mats.push(plasmaMat);
-  const trailG = new T.ConeGeometry(1, 9, 24, 8, true); trailG.translate(0, 4.6, 0); geos.push(trailG);
-  const mkMeteor = () => { const g = new T.Group(); g.add(new T.Mesh(rockG, rockMat)); const pl = new T.Mesh(rockG, plasmaMat); pl.scale.set(1.25, 1.1, 1.25); g.add(pl); const tr = new T.Mesh(trailG, plasmaMat); g.add(tr); g.traverse(o => { o.frustumCulled = false; }); return g; };
-  const meteorO = mkMeteor(); oScene.add(meteorO); const meteor = mkMeteor(); meteor.visible = false; root.add(meteor);
-  oScene.add(new T.AmbientLight(0xffffff, .35));
-  const frags = new T.InstancedMesh(shardG, magmaM, 40); frags.frustumCulled = false; oScene.add(frags);
-  const bolt = Array.from({ length: 30 }, () => [0, 0, 0, 0, 0, 0, 0]); let time = 0, low = false, orbitInfo = null;
+  const bolt = Array.from({ length: 30 }, () => [0, 0, 0, 0, 0, 0, 0]); let time = 0, low = false;
   const MAG = [1, .2, .8], RED = [1, .05, .12], VIO = [.6, .25, 1], WHT = [1, .95, 1], c4 = (c, a) => [c[0], c[1], c[2], a];
   const gaitOf = new Map();
   function boltRib(seed, ax, ay, az, bx, by, bz, w, col, a) { const n = lightningBolt(seed, ax, ay, az, bx, by, bz, bolt, { depth: 1, jag: .45, branches: .35 }); for (let i = 0; i < n; i++) { const q = bolt[i]; rib.seg(q[0], q[1], q[2], q[3], q[4], q[5], w * q[6], w * q[6] * .8, c4(col, a), c4(col, a * .8)); } }
@@ -292,55 +234,31 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
   function drawStomp(s) { groundNormal(ground, s.x, s.z, nrm); if (s.phase === 'warn') decals.add(s.x, s.y, s.z, s.T.r, 1, .05, .15, .75, 0, s.t / s.T.warn, s.id, nrm); else { const k = s.t / .6; decals.add(s.x, s.y, s.z, s.T.r * (1 + k), 1, .1, .3, 1 - k, 0, k, s.id + 1, nrm); ring(s.x, s.y + .2, s.z, s.T.r * (1 + k * .6), 1 + k * 3); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; shard(s.x + Math.cos(a) * s.T.r * k, s.y + .2, s.z + Math.sin(a) * s.T.r * k, .25 * (1 - k), a, a, 0, .5); } } }
   /* ---------- Ruptura do Trono (MOD 249) ---------- */
   const rupture = createRuptureVFX(T, { root, glow, rib, decals, shard, plate, ring, boltRib, ground });
-  /* ---------- Extinção Orbital ---------- */
-  function drawOrbital(s, boss) {
-    const T0 = s.T, ph = s.phase; orbitInfo = { phase: ph, t: s.t, s };
-    const cx = s.x, cz = s.z, gy = ground(cx, cz);
-    if (ph === 'awaken' && boss) { const k = smooth(s.t / T0.awaken); flameBg.visible = true; const yaw = Math.atan2(cam.x - boss.x, cam.z - boss.z); flameBg.position.set(boss.x - Math.sin(yaw) * 2.5, gy - 1, boss.z - Math.cos(yaw) * 2.5); flameBg.rotation.y = yaw; bgMat.uniforms.k.value = k;
-      for (let i = 0; i < (low ? 6 : 16); i++) { const a = i * 2.4 + time * 2, rr = 1.2 + hash(i) * 1.4, u = (time * .7 + hash(i * 3)) % 1; shard(boss.x + Math.cos(a) * rr, gy + u * 4.5 * k, boss.z + Math.sin(a) * rr, .12, a, u * 6, i); }
-      glow.add(boss.x, boss.y + 2.05, boss.z, .6, .6, 1, .05, .05, k, 2, 0); }
-    if (ph === 'orbit' || ph === 'entry') { // Atos 2 e 3 numa cena isolada: curvatura, atmosfera, ciclone, feixe e o meteoro entrando
-      const P0 = EYE.clone().multiplyScalar(400); planetMat.uniforms.storm.value = ph === 'orbit' ? smooth(s.t / T0.orbit * 1.6) : 1;
-      beam.position.copy(P0); beam.quaternion.setFromUnitVectors(up, EYE); beam.scale.set(1, 2600, 1); beam.visible = true;
-      if (ph === 'orbit') { const k = s.t / T0.orbit; meteorO.position.copy(EYE).multiplyScalar(1500 - 500 * k).add(new T.Vector3(500 - 300 * k, 260 - 120 * k, -200)); meteorO.scale.setScalar(32); rockMat.uniforms.heat.value = .1; plasmaMat.uniforms.heat.value = .15;
-        oCam.position.copy(EYE).multiplyScalar(560).add(new T.Vector3(-260, 30, 120).multiplyScalar(1 - .2 * k)); oCam.lookAt(P0.clone().addScaledVector(EYE, 60)); frags.count = 0; }
-      else { const k = s.t / T0.entry, alt = 1000 - 590 * smooth(k), side = new T.Vector3().crossVectors(EYE, up).normalize(); meteorO.position.copy(EYE).multiplyScalar(400 + alt).addScaledVector(side, 120 * (1 - k)); meteorO.scale.setScalar(32 + 10 * k);
-        D.copy(P0).sub(meteorO.position).normalize(); meteorO.quaternion.setFromUnitVectors(up, D.clone().negate()); const heat = smooth(1.2 - alt / 700); rockMat.uniforms.heat.value = .2 + heat; plasmaMat.uniforms.heat.value = .25 + heat * 1.1;
-        const shot = k < .5 ? 0 : 1; if (shot === 0) oCam.position.copy(meteorO.position).addScaledVector(side, 150).addScaledVector(EYE, 40).addScaledVector(D, -90); else oCam.position.copy(meteorO.position).addScaledVector(side, -70).addScaledVector(D, -160).addScaledVector(EYE, -20); oCam.lookAt(meteorO.position.clone().addScaledVector(D, 60));
-        frags.count = low ? 12 : 40; for (let i = 0; i < frags.count; i++) { const u = (time * .8 + hash(i)) % 1; P.copy(meteorO.position).addScaledVector(D, -u * 260).addScaledVector(side, (hash(i * 3) - .5) * 70).addScaledVector(EYE, (hash(i * 5) - .5) * 70); Q.setFromEuler(E.set(i, time * 2 + i, 0)); S.setScalar(3 + hash(i * 7) * 5); M.compose(P, Q, S); frags.setMatrixAt(i, M); } frags.instanceMatrix.needsUpdate = true; }
-      planet.rotation.y = 0; }
-    const sky = ph === 'choice' || ph === 'impact'; meteor.visible = sky;
-    if (sky) { const k = ph === 'choice' ? s.t / T0.choice : 1 + s.t / T0.impact, y = ph === 'choice' ? 230 - 130 * k : 100 * (1 - (k - 1)), Rm = 85 + 25 * Math.min(1, k);
-      meteor.position.set(cx + 30 * (1 - Math.min(1, k)), gy + Math.max(Rm * .5, y), cz - 20 * (1 - Math.min(1, k))); meteor.scale.setScalar(Rm); meteor.quaternion.identity(); rockMat.uniforms.heat.value = 1.1; plasmaMat.uniforms.heat.value = 1.1;
-      for (let i = 0; i < (low ? 6 : 18); i++) { const a = hash(i) * 6.283, d = Rm * (1.05 + hash(i * 3) * .5), u = (time * 1.5 + hash(i * 7)) % 1; glow.add(meteor.position.x + Math.cos(a) * d, meteor.position.y + Rm * (.3 + u * 2), meteor.position.z + Math.sin(a) * d, Rm * .1, Rm * .1, 1, .45, .1, (1 - u) * .9, 0); } }
-    if (ph === 'impact' || ph === 'after') { const k = ph === 'impact' ? s.t / T0.impact : 1, er = ph === 'after' ? smooth(s.t / T0.after) : 0, Rr = 48 * (ph === 'impact' ? easeOut(k) : 1);
-      if (s.result !== 'duel') { const inM = Math.hypot(cam.x - cx, cam.z - cz) < Rr && cam.y - gy < Rr * .78, inC = Math.hypot(cam.x - cx, cam.z - cz) < Rr * .45 && cam.y - gy < Rr * .5; // por dentro: casca escura rasgada, sem tela branca
-        mega.visible = true; mega.position.set(cx, gy - .5, cz); mega.scale.set(Rr, Rr * .78, Rr); mega.material.uniforms.erode.value = Math.min(1, er + (inM ? .38 : 0)); mega.material.uniforms.heat.value = (1 - er * .7) * (inM ? .12 : 1);
-        megaCore.visible = er < .6 && !inC; megaCore.position.copy(mega.position); megaCore.scale.set(Rr * .45, Rr * .5, Rr * .45); megaCore.material.uniforms.erode.value = Math.min(1, er * 1.6);
-        const cr = Math.max(1, Rr * .03); column.visible = er < .5 && Math.hypot(cam.x - cx, cam.z - cz) > cr * 1.4; column.position.set(cx, gy, cz); column.scale.set(cr, 160 * (1 - er), cr); column.material.uniforms.k.value = 1 - er;
-        for (let i = 0; i < 4; i++) ring(cx, gy + 1 + i * 2, cz, Rr * (1.1 + (k + i * .3)) * (1 + er * 1.5), 3 + (1 - k) * 6);
-        groundNormal(ground, cx, cz, nrm); decals.add(cx, gy, cz, 30 * (1 + k), 1, .2, .3, (1 - er) * .9, 0, Math.min(1, k + er), s.id, nrm); }
-      else if (ph === 'impact') for (let i = 0; i < (low ? 10 : 30); i++) { const a = hash(i) * 6.283, b = hash(i * 3), d = 60 * easeOut(k); glow.add(cx + Math.cos(a) * d, gy + 120 + b * 60, cz + Math.sin(a) * d, 6, 6, 1, .7, .9, 1 - k, 2, a, i); } }
-  }
+  /* ---------- Extinção Orbital (MOD 253): módulo próprio vhazrael-extinction3d.js ---------- */
+  const extinction = createExtinctionVFX(T, { root, glow, rib, decals, shard, plate, ring, ground });
   return {
-    root, orbitalScene: oScene, orbitalCamera: oCam, meteor,
+    root, orbitalScene: extinction.oScene, orbitalCamera: extinction.oCam, meteor: extinction.meteor,
+    /** MOD 253: tomada de câmera da Extinção ({space} = renderizar a cena orbital; senão pos/look/fov/blend na arena) */
+    get orbitShot() { return extinction.shot; },
+    /** luz temporária da cena (carmim da Ruptura/despertar, laranja quente do meteoro): { k, hex } */
+    get sceneTint() { const a = rupture.tint, b = extinction.tint; return a >= b ? { k: a, hex: 0x9a0618 } : { k: b, hex: extinction.tintHex }; },
     /** blades: {id → {a,b}} pontas da Lâmina do Trono em mundo. Devolve a Extinção em curso (fase/tempo) para câmera e cena. */
-    update(dt, camera, spells, actors = [], quality = 1, blades = {}, target = null) {
-      time += dt; uTime.value = time; low = quality === 0; cam.copy(camera.position); sn = pn = rn = 0; for (const k in kit) kit[k].n = 0; for (const st of spikeSets) st.n = 0; orbitInfo = null;
-      mega.visible = megaCore.visible = ent.visible = meteor.visible = column.visible = flameBg.visible = beam.visible = false;
-      glow.begin(); rib.begin(camera, time); decals.begin(); rupture.begin(camera, time, quality, target); const boss = actors.find(a => a.alive && a.kind === 'vhazrael');
-      for (const s of spells) { if (s.type === 'thorns') drawThorns(s); else if (s.type === 'throne') rupture.draw(s, blades[s.owner], actors.find(a => a.id === s.owner && a.alive)); else if (s.type === 'terror') drawTerror(s, actors, target); else if (s.type === 'brood') drawBrood(s); else if (s.type === 'stomp') drawStomp(s); else if (s.type === 'orbital') drawOrbital(s, boss); }
+    update(dt, camera, spells, actors = [], quality = 1, blades = {}, target = null, heads = {}) {
+      time += dt; uTime.value = time; low = quality === 0; cam.copy(camera.position); sn = pn = rn = 0; for (const k in kit) kit[k].n = 0; for (const st of spikeSets) st.n = 0;
+      ent.visible = false;
+      glow.begin(); rib.begin(camera, time); decals.begin(); rupture.begin(camera, time, quality, target); extinction.begin(camera, time, quality); const boss = actors.find(a => a.alive && a.kind === 'vhazrael');
+      for (const s of spells) { if (s.type === 'thorns') drawThorns(s); else if (s.type === 'throne') rupture.draw(s, blades[s.owner], actors.find(a => a.id === s.owner && a.alive)); else if (s.type === 'terror') drawTerror(s, actors, target); else if (s.type === 'brood') drawBrood(s); else if (s.type === 'stomp') drawStomp(s); else if (s.type === 'orbital') { const o = actors.find(a => a.id === s.owner && a.alive); extinction.draw(s, o, target, o ? heads[o.id] : null); } }
       for (const a of actors) if (a.kind === 'crawler' || a.kind === 'colossus') creature(a);
       for (const id of gaitOf.keys()) if (!actors.some(a => a.id === id)) gaitOf.delete(id);
       if (boss && boss.phase2 && !low) for (let i = 0; i < 6; i++) { const a = i * 1.05 + time * 1.3, u = (time * .7 + i / 6) % 1; glow.add(boss.x + Math.cos(a) * .7, boss.y + u * 2.6, boss.z + Math.sin(a) * .7, .25, .5, 1, .03, .06, (1 - u) * .7, 0); }
       for (const k in kit) { const p = kit[k]; p.m.count = p.n; p.m.instanceMatrix.needsUpdate = true; p.m.geometry.attributes.aTint.needsUpdate = true; }
       for (const st of spikeSets) { st.m.count = st.n; st.m.instanceMatrix.needsUpdate = true; }
       shards.count = sn; shards.instanceMatrix.needsUpdate = true; plates.count = pn; plates.instanceMatrix.needsUpdate = true; rings.count = rn; rings.instanceMatrix.needsUpdate = true;
-      glow.end(); rib.end(); decals.end(time); rupture.end(); return orbitInfo;
+      extinction.end(); glow.end(); rib.end(); decals.end(time); rupture.end(); return extinction.info;
     },
     /** pedido de câmera da Ruptura (abrir o plano/olhar para cima durante a carga) — o jogo decide se usa */
     get throneHint() { return rupture.camHint; }, get throneTint() { return rupture.tint; },
-    clear() { rupture.clear(); mega.visible = megaCore.visible = ent.visible = meteor.visible = column.visible = flameBg.visible = false; for (const k in kit) kit[k].m.count = 0; for (const st of spikeSets) st.m.count = 0; shards.count = plates.count = rings.count = 0; gaitOf.clear(); },
-    dispose() { scene.remove(root); rupture.dispose(); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); glow.dispose(); rib.dispose(); decals.dispose(); }
+    clear() { rupture.clear(); extinction.clear(); ent.visible = false; for (const k in kit) kit[k].m.count = 0; for (const st of spikeSets) st.m.count = 0; shards.count = plates.count = rings.count = 0; gaitOf.clear(); },
+    dispose() { scene.remove(root); rupture.dispose(); extinction.dispose(); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); glow.dispose(); rib.dispose(); decals.dispose(); }
   };
 }
