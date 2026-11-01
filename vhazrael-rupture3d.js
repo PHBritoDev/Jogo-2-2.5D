@@ -175,6 +175,14 @@ export function createRuptureVFX(T, kit) {
   const coreG = new T.IcosahedronGeometry(1, 1).toNonIndexed(); geos.push(coreG);
   const coreM = new T.ShaderMaterial({ vertexShader: CORE_V, fragmentShader: CORE_F, uniforms: { time: uTime, erode: { value: 0 }, near: { value: 2.6 }, heat: { value: 1 }, hole: uHole }, side: T.DoubleSide, toneMapped: false, fog: false }); mats.push(coreM);
   const impactCore = new T.Mesh(coreG, coreM); impactCore.frustumCulled = false; impactCore.visible = false; root.add(impactCore);
+  // Núcleo incandescente contido por uma crosta negra e vermelha recortada.
+  const hotCoreG = new T.IcosahedronGeometry(1, 0); geos.push(hotCoreG);
+  const hotCoreM = new T.MeshBasicMaterial({ color: 0xfff7e8, transparent: true,
+    opacity: .85, depthWrite: false, toneMapped: false, fog: false });
+  mats.push(hotCoreM);
+  const hotCore = new T.Mesh(hotCoreG, hotCoreM);
+  hotCore.frustumCulled = false; hotCore.visible = false; hotCore.renderOrder = 4;
+  root.add(hotCore);
   const ink = strips(T, 900, INK_F, false, uHole), fan = strips(T, 64, FAN_F, true, uHole); mats.push(ink.mat, fan.mat); geos.push(ink.geo, fan.geo); root.add(ink.mesh, fan.mesh);
   const INK = [.02, 0, .03], VIOL = [.36, .08, .7], CRIM = [.75, 0, .08], c4 = (c, a) => [c[0], c[1], c[2], a];
   const RED = [1, .05, .14], WHITE = [1, .95, 1], GOLD = [1, .62, .18], HOTV = [.62, .22, 1];
@@ -271,7 +279,7 @@ export function createRuptureVFX(T, kit) {
     if (alive && front > .6 && s.ix !== undefined) {
       // O centro branco fica no MESMO lugar que recebeu o dano.
       Fv.set(s.dx, 0, s.dz);
-      Q.setFromUnitVectors(new T.Vector3(0, 0, 1), Fv);
+      Z.set(0, 0, 1); Q.setFromUnitVectors(Z, Fv);
       beamCap.visible = true;
       beamCap.position.set(s.ix, ground(s.ix, s.iz) + 2.1, s.iz);
       beamCap.quaternion.copy(Q);
@@ -309,6 +317,13 @@ export function createRuptureVFX(T, kit) {
       impactCore.visible = true;
       impactCore.position.set(cx, cy + .8 + 1.1 * growth, cz);
       impactCore.scale.set(size * 1.07, size * 1.4, size * .9);
+      hotCore.visible = it < 1.85;
+      if (hotCore.visible) {
+        hotCore.position.copy(impactCore.position);
+        hotCore.scale.set(size * .43, size * .52, size * .43);
+        hotCore.rotation.y = impactCore.rotation.y;
+        hotCoreM.opacity = .86 * (1 - smooth((it - 1.1) / .75));
+      }
       impactCore.rotation.set(.1 + .14 * Math.sin(it * 3), it * .7, -.25);
       coreM.uniforms.erode.value = smooth((it - 1.7) / 1.1);
       glow.add(cx, cy + 1.8, cz, 2.7 + 2.2 * growth, 3 + 2 * growth,
@@ -336,6 +351,15 @@ export function createRuptureVFX(T, kit) {
         const y = ground(x, z) + .21 + w * .08;
         if (j) rib.seg(ox, oy, oz, x, y, z, .22 + .28 * alpha, .22 + .28 * alpha,
           c4(w === 0 ? WHITE : RED, alpha * .98), c4(w === 0 ? RED : VIOL, alpha * .76));
+        // Parede de PRESSÃO contínua (não partículas circulares): painel duro
+        // entre a borda quente do solo e a crista da onda, com altura limitada.
+        if (j && w === 0) {
+          const h = (.45 + 1.6 * alpha);
+          fan.quad([ox, oy, oz], [ox, oy + h, oz], [x, y, z], [x, y + h, z],
+            c4(RED, alpha * .56), c4(WHITE, alpha * .64),
+            c4(RED, alpha * .56), c4(WHITE, alpha * .64),
+            [0, .73], [1, .73], [0, 1], [1, 1]);
+        }
         ox = x; oy = y; oz = z;
       }
     }
@@ -417,7 +441,7 @@ export function createRuptureVFX(T, kit) {
 
   return {
     get camHint() { return hint; }, get tint() { return tint; },
-    begin(camera, t, q, target) { time = t; uTime.value = t; low = q === 0; cam.copy(camera.position); hint = null; tint = 0; impactCore.visible = false; beamCap.visible = false;
+    begin(camera, t, q, target) { time = t; uTime.value = t; low = q === 0; cam.copy(camera.position); hint = null; tint = 0; impactCore.visible = false; hotCore.visible = false; beamCap.visible = false;
       if (target && target.alive !== false) uHole.value.set(target.x, ground(target.x, target.z) + 1, target.z, 1.7); else uHole.value.w = 0; /* o herói nunca some dentro do efeito */ for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.n = tongues.n = 0; ink.begin(cam); fan.begin(cam); },
     /** blade: {a,b} em mundo (guarda e ponta); boss: ator dono (pode faltar depois do corte) */
     draw(s, blade, boss) {
@@ -427,7 +451,7 @@ export function createRuptureVFX(T, kit) {
       if ((s.phase === 'impact' || s.phase === 'fade') && s.ix !== undefined) drawImpact(s);
     },
     end() { for (const I of [puffs, tongues]) { I.o.count = I.n; I.o.instanceMatrix.needsUpdate = true; I.o.geometry.attributes.aP.needsUpdate = true; } ink.end(); fan.end(); },
-    clear() { beamCap.visible = false; impactCore.visible = false; for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.o.count = tongues.o.count = 0; ink.geo.setDrawRange(0, 0); fan.geo.setDrawRange(0, 0); hint = null; },
+    clear() { hotCore.visible = false; beamCap.visible = false; impactCore.visible = false; for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.o.count = tongues.o.count = 0; ink.geo.setDrawRange(0, 0); fan.geo.setDrawRange(0, 0); hint = null; },
     dispose() { for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); }
   };
 }
