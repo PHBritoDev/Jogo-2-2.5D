@@ -195,15 +195,21 @@ registerSkill('throne', {
       if (s.shocked) {
         const k = clamp((s.t - T.shockAt) / T.shockTravel, 0, 1);
         const waveRadius = 1.1 + 19 * (1 - (1 - k) ** 3);
+        const oldRadius = s.waveRadius || 0;
+        s.wavePassed = s.wavePassed || new Set();
         for (const tg of live(sq)) {
-          if (s.hit.has(tg.id) || tg.iframes) continue;
+          if (s.hit.has(tg.id) || s.wavePassed.has(tg.id)) continue;
           const d = Math.hypot(tg.x - s.ix, tg.z - s.iz);
           if (d > T.endR + tg.radius || d > waveRadius + tg.radius) continue;
+          // A onda PASSOU neste frame: nunca reaplica dano depois de a invulnerabilidade acabar.
+          s.wavePassed.add(tg.id);
+          if (tg.iframes || d < oldRadius - tg.radius) continue;
           if (sq.los && !sq.los(s.ix, s.iz, tg.x, tg.z)) continue;
           s.hit.add(tg.id);
           sq.damageTarget(tg.id, T.endDmg, { kind: 'throneImpact',
             spell: s.id, x: s.ix, z: s.iz, knock: 1.4 });
         }
+        s.waveRadius = waveRadius;
       }
       if (!s.blasted && s.t >= T.blast) {
         s.blasted = true;
