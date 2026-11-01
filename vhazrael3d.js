@@ -1,7 +1,7 @@
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
 // Selo do motor, importado pela página para provar que a lógica nova carregou.
-export const VHAZRAEL_BUILD = '254-bombardeio';
+export const VHAZRAEL_BUILD = '255-bombardeio-dobro';
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
@@ -33,7 +33,7 @@ const channeling = (sq, s) => { const o = sq.actor(s.owner); return !!(o && o.al
 
 export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 14, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 4.6, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, shockAt: .25, shockTravel: 1.6, blast: 1.05, fade: 2.8 };
 export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 9, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
-export const BOMBARD = { min: 3, max: 26, cast: .9, release: .45, cd: 13, anim: 'idle', channel: false, rise: .6, dur: 5.6, every: .44, fall: .62, r: 1.45, dmg: 6, lead: .12, leadCap: 1.6, side: 2.6, jitter: .5, fireR: 1.45, fireLife: 2.6, fireTick: .6, fireDmg: 2, maxFires: 8, alt: 10.5 };
+export const BOMBARD = { min: 3, max: 26, cast: .9, release: .45, cd: 13, anim: 'idle', channel: false, rise: .6, dur: 5.6, every: .22, fall: .62, r: 1.45, dmg: 6, lead: .12, leadCap: 1.6, side: 2.6, jitter: .5, fireR: 1.45, fireLife: 2.6, fireTick: .6, fireDmg: 2, maxFires: 12, alt: 10.5 };
 export const ORBITAL = { min: 0, max: 60, cast: 15.8, release: .05, cd: 999, anim: 'idle', channel: true, awaken: 2.6, orbit: 3, entry: 4, arrival: 1.6, choice: 2.6, impact: 2, after: 2.2, guard: .35, dmg: 95, shieldDmg: 14, needSkills: 3, lowHp: .35 };
 
 const VHAZ = {
