@@ -81,12 +81,12 @@ export function createEnemy1SquadRuntime(ctx) {
     if(BOSS_MOVES[a.kind]){
       if(a.kind==='warden')attachClaws(b);
       if(!combatCache.has(a.kind)){
-        const ws=a.kind==='e3boss'?KATANA_SCALE:a.kind==='e4boss'?JAW_SCALE:1.12,specs=a.kind==='warden'?['RightHand','LeftHand'].map(hand=>({hand,points:[[0,.08,0],[0,.53,0]]})):[{hand:'RightHand',points:[b.weapon.userData.tipA.toArray().map(x=>x*ws),b.weapon.userData.tipB.toArray().map(x=>x*ws)]}];
-        combatCache.set(a.kind,bakeCombatClips(T,model,ctx.clone,acts.idle?.getClip(),BOSS_MOVES[a.kind],a.kind==='e3boss'||a.kind==='e4boss'?katanaPose:bossPose,specs));
+        const ws=a.kind==='e3boss'?KATANA_SCALE:a.kind==='e4boss'?JAW_SCALE:a.kind==='vhazrael'?1:1.12,specs=a.kind==='warden'?['RightHand','LeftHand'].map(hand=>({hand,points:[[0,.08,0],[0,.53,0]]})):[{hand:'RightHand',points:[b.weapon.userData.tipA.toArray().map(x=>x*ws),b.weapon.userData.tipB.toArray().map(x=>x*ws)]}];
+        combatCache.set(a.kind,bakeCombatClips(T,model,ctx.clone,acts.idle?.getClip(),BOSS_MOVES[a.kind],a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael'?katanaPose:bossPose,specs));
       }
       for(const [id,clip]of Object.entries(combatCache.get(a.kind)))acts[id]=mixer.clipAction(clip);
-      const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:a.kind==='e4boss'?2.5:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:a.kind==='e4boss'?3.4:3.2;
-      b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
+      const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:a.kind==='e4boss'?2.5:a.kind==='vhazrael'?2.4:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:a.kind==='e4boss'?3.4:a.kind==='vhazrael'?3:3.2;
+      b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:a.kind==='vhazrael'?0xff1a5a:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
     }
     play(b, 'idle', false, 1, 0);
     return b;
@@ -190,7 +190,7 @@ export function createEnemy1SquadRuntime(ctx) {
           if (b.dead > 2.6) b.holder.position.y = a.y - (b.dead - 2.6) * .55;
           b.holder.visible = b.dead < 4.4; if (b.dead < 1 && !nativeDeath) b.mixer.update(dt * .5); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else if (b.weaponRoot) poseScythe(b, a, dt);poseClaws(b);if(b.tell)b.tell.visible=false;continue;
         }
-        if (a.anim.rev !== b.rev) { b.rev = a.anim.rev; play(b, a.anim.role, a.anim.once, a.anim.speed); }
+        if (a.anim.rev !== b.rev) { b.rev = a.anim.rev; play(b, a.anim.role, a.anim.once && a.anim.role !== 'idle', a.anim.speed); } // Idle sempre em loop: base estável para as camadas procedurais longas
         else if (!a.anim.once && b.cur) b.cur.setEffectiveTimeScale((ROLE_SPEED[a.anim.role] || 1) * a.anim.speed);
         if(a.act?.move&&b.cur){b.cur.time=a.act.t;b.cur.paused=true;}else if(b.cur)b.cur.paused=false;
         if (b.proc) b.proc.update(dt, a);
@@ -228,7 +228,7 @@ export function createEnemy1SquadRuntime(ctx) {
       if (camera) abyss.update(dt, camera, squad.spells, charges, quality, targets[0] || null);
       if (camera) ruin.update(dt, camera, squad.spells, squad.actors, quality);
       if (camera) { const blades = {}; for (const a of squad.actors) { const b = bodies.get(a.id); if (a.kind === 'vhazrael' && b && b.weapon) { b.weapon.updateWorldMatrix(true, false); const p = new T.Vector3().copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), q = new T.Vector3().copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld); blades[a.id] = { a: p, b: q }; } }
-        orbit = vzfx.update(dt, camera, squad.spells, squad.actors, quality, blades); }
+        orbit = vzfx.update(dt, camera, squad.spells, squad.actors, quality, blades, targets[0] || null); }
       return info;
     },
     dispose() { stop(); vfx.dispose(); chaos.dispose(); abyss.dispose(); ruin.dispose(); vzfx.dispose(); impacts.dispose(); sak.dispose(); for (const t of trails) t.trail.dispose && t.trail.dispose(); }

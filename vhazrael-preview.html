@@ -1,0 +1,47 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VHAZRAEL · prévia</title>
+<style>body{margin:0;background:#07050b;color:#f3e2ff;font:13px system-ui}canvas{display:block}#info{position:absolute;top:8px;left:10px;font:12px monospace;white-space:pre;pointer-events:none}footer{position:absolute;bottom:10px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:4px}button{background:#24102a;border:1px solid #ff3f7e;color:#fde8ff;padding:8px 9px;border-radius:8px}</style>
+<div id="info"></div><footer><button data-k="thorns">ESPINHOS</button><button data-k="terror">TERROR</button><button data-k="brood">NINHADA</button><button data-k="throne">RUPTURA</button><button data-k="orbital">EXTINÇÃO</button><button data-k="melee">GOLPE</button><button id="q">QUALIDADE</button></footer>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+/* MOD 247 — prévia/QA isolada do VHAZRAEL: o MESMO runtime da esquadra do jogo com o Bispo1-lod.glb real (clipes in-place como
+   no loadRig), a Lâmina do Trono, a Ninhada procedural e o VFX. ?k=poder&t=segundos congela num instante (evidência) e
+   window.__qa mede a postura do esqueleto (inclinação do tronco, altura do quadril, escala) quadro a quadro. */
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {clone as skClone} from 'three/addons/utils/SkeletonUtils.js';
+import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
+const qs=new URLSearchParams(location.search);let kind=qs.get('k')||'thorns',quality=qs.has('low')?0:1;const freezeAt=qs.has('t')?+qs.get('t'):null,camMode=qs.get('cam')||'auto';
+const scene=new T.Scene();scene.background=new T.Color('#1b1a26');scene.fog=new T.Fog('#1b1a26',45,140);const camera=new T.PerspectiveCamera(55,innerWidth/innerHeight,.1,4000);
+const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=T.ACESFilmicToneMapping;renderer.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(renderer.domElement);
+const hemi=new T.HemisphereLight(0xd8d4ff,0x3a3040,1.6);scene.add(hemi);const sun=new T.DirectionalLight(0xfff0dd,1.7);sun.position.set(6,12,4);scene.add(sun);
+const floor=new T.Mesh(new T.PlaneGeometry(260,260),new T.MeshStandardMaterial({color:0x3b4a36,roughness:.95}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+for(let i=0;i<30;i++){const a=i/30*6.283,r=26+(i%3)*6,tr=new T.Mesh(new T.ConeGeometry(1.7,8,7),new T.MeshStandardMaterial({color:0x1f3424,roughness:1}));tr.position.set(Math.cos(a)*r,4,Math.sin(a)*r);scene.add(tr);}
+const ground=()=>0;const heroM=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xe8e2d0}));heroM.position.y=.87;scene.add(heroM);
+const hero={id:'hero',team:'hero',x:0,y:0,z:0,vx:0,vz:0,radius:.42,height:1.8,alive:true,priority:1,iframes:false,air:0};
+const ROLES={idle:'Idle',walk:'Walk',attack:'Sword Aerial Combo',cast:'Sword Regular B',death:'Hit Knockback Root Motion'},IN_PLACE=['attack','cast','death'];
+let rig=null;async function load(){if(rig)return rig;const g=await new GLTFLoader().loadAsync('./Bispo1-lod.glb');const model=g.scene,mixer=new T.AnimationMixer(model),actions={};
+ const inPlace=c=>{const k=c.clone();for(const t of k.tracks){if(!/hips[^.]*\.position$/i.test(t.name))continue;const v=t.values;for(let i=3;i<v.length;i+=3){v[i]=v[0];v[i+2]=v[2];}}return k;};
+ for(const [role,name] of Object.entries(ROLES)){const c=g.animations.find(a=>a.name===name);if(c)actions[role]=mixer.clipAction(IN_PLACE.includes(role)?inPlace(c):c);}return rig={model,actions};}
+let rt=null,time=0,heroHp=0,info=document.getElementById('info');const qa={tilt:0,lift:0,sink:0,scale:[9,0],frames:0};
+async function start(){await load();if(rt)rt.dispose();heroHp=0;time=0;hero.x=0;hero.z=0;
+ rt=createEnemy1SquadRuntime({T,scene,ground,blocked:()=>false,los:()=>true,source:()=>rig,clone:m=>skClone(m),measure:o=>new T.Box3().setFromObject(o),heroHeight:()=>1.8,damageTarget:(id,n)=>{heroHp+=n;return'hit';},event:()=>{}});
+ const sq=rt.start([{x:0,z:9,yaw:Math.PI,kind:'vhazrael'}],{seed:5});const a=sq.actors[0];a.alert=1e9;a.decideT=1e9;a.used=new Set(['throne','thorns','terror']);sq.setTargets([hero]);
+ if(kind==='melee'){hero.z=6.8;sq.startMelee(a,hero);}else if(kind!=='idle'){a.cds[kind]=0;sq.startCast(a,hero,kind);}
+}
+const _a=new T.Vector3(),_b=new T.Vector3();
+function measure(){scene.updateMatrixWorld(true);const sq=rt.squad,a=sq&&sq.actors[0],b=a&&rt.body(a.id);if(!b)return;let hips=null,head=null;b.model.traverse(o=>{if(o.isBone&&/Hips$/.test(o.name))hips=o;if(o.isBone&&/Head$/.test(o.name))head=o;});if(!hips||!head)return;
+ hips.getWorldPosition(_a);head.getWorldPosition(_b);const up=_b.clone().sub(_a).normalize(),tilt=Math.acos(Math.max(-1,Math.min(1,up.y)))*57.3;qa.frames++;if(a.alive){qa.tilt=Math.max(qa.tilt,tilt);qa.lift=Math.max(qa.lift,_a.y-a.y);qa.sink=Math.min(qa.sink||9,_a.y-a.y);}
+ const s=b.model.getWorldScale(new T.Vector3()).x;qa.scale=[Math.min(qa.scale[0],s),Math.max(qa.scale[1],s)];}
+function cam(){const sq=rt&&rt.squad,a=sq&&sq.actors[0];if(!a)return;const s=sq.spells.find(x=>x.type===kind);
+ if(camMode==='side'||kind==='melee'||kind==='idle'){camera.position.set(a.x-5.2,2.4,a.z-2.2);camera.lookAt(a.x,1.5,a.z-.6);return;}
+ if(kind==='thorns'){camera.position.set(-9,4.6,-8.5);camera.lookAt(0,1.6,2);return;}
+ if(kind==='terror'){camera.position.set(2.5,2.2,-6.5);camera.lookAt(0,3.5,6);return;}
+ if(kind==='brood'){const c=sq.actors.find(x=>x.kind!=='vhazrael');const p=c||a;camera.position.set(p.x+3.2,2.3,p.z-4.2);camera.lookAt(p.x,.9,p.z);return;}
+ if(kind==='throne'){camera.position.set(a.x-9,4.5,a.z-4.5);camera.lookAt(a.x*.4,2.5,a.z*.45);return;}
+ camera.position.set(a.x-6,3,a.z-7);camera.lookAt(a.x,3,a.z);}
+function step(dt){time+=dt;rt.update(dt,{targets:[hero],camera,quality});heroM.position.set(hero.x,.87,hero.z);measure();}
+function draw(){const o=rt&&rt.orbit;if(o&&(o.phase==='orbit'||o.phase==='entry')){const v=rt.vhazraelVFX;v.orbitalCamera.aspect=camera.aspect;v.orbitalCamera.updateProjectionMatrix();renderer.render(v.orbitalScene,v.orbitalCamera);}else renderer.render(scene,camera);}
+function frame(){requestAnimationFrame(frame);if(!rt)return;if(freezeAt===null){cam();step(Math.min(.033,1/60));}const sq=rt.squad;
+ info.textContent=(sq?sq.spells.map(s=>s.type+':'+s.phase).join(' '):'')+'\nt '+time.toFixed(2)+' dano '+heroHp+' chamadas '+renderer.info.render.calls+'\ninclinação máx '+qa.tilt.toFixed(1)+'° quadril '+qa.sink.toFixed(2)+'…'+qa.lift.toFixed(2)+' m';draw();}
+start().then(()=>{if(freezeAt!==null){const n=Math.round(freezeAt*60);for(let i=0;i<n;i++){cam();step(1/60);}cam();step(0);window.__ready=true;}frame();});
+for(const b of document.querySelectorAll('[data-k]'))b.onclick=()=>{kind=b.dataset.k;start();};document.getElementById('q').onclick=()=>{quality=quality?0:1;};
+window.__qa={get qa(){return qa;},get rt(){return rt;},renderer,camera,scene,hero,step,cam,draw,start:async k=>{kind=k;await start();}};
+</script></html>
