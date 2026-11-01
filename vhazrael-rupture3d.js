@@ -192,7 +192,7 @@ export function createRuptureVFX(T, kit) {
       shard(bx + Math.cos(a) * r, gy + .3 + u * (2 + 9 * chg) * rise, bz + Math.sin(a) * r, sc, a * 2 + time * (2 + hash(i + 4) * 3), u * 7 + i, i * 1.3, sc * (.6 + hash(i + 5) * 1.6)); }
     groundNormal(ground, bx, bz, nrm); decals.add(bx, gy, bz, 2.2 + 3.5 * chg + 1.5 * rise, .9, .02, .2, .55 * rise, 2, 0, s.id + 3, nrm);
     // pilar colossal a partir da ponta (mesma direção da lâmina), cresce em massa, altura e turbulência
-    const swing = age > 2.3, cutK = smooth((age - T0.cut) / .07);
+    const swing = age > T0.charge, cutK = smooth((age - T0.cut) / .16);
     if (age >= T0.raise) {
       const ign = smooth((age - T0.raise) / .55), len = 58 * ign * (1 - cutK), swell = (.75 + .55 * chg) * (1 + .12 * Math.sin(time * 23)); Fv.copy(D); if (Fv.y < -.04) { Fv.y = -.04; Fv.normalize(); }
       if (len > .5) { setPillar(tip.x - Fv.x * .3, tip.y - Fv.y * .3, tip.z - Fv.z * .3, Fv, len, 2.7, 1, cutK * .9, swell);
@@ -202,7 +202,7 @@ export function createRuptureVFX(T, kit) {
           const ox = ax.x * ca + az.x * sa, oy = ax.y * ca + az.y * sa, oz = ax.z * ca + az.z * sa; tongue(tip.x + Fv.x * hh + ox * r0, tip.y + Fv.y * hh + oy * r0, tip.z + Fv.z * hh + oz * r0, ox + Fv.x * .9, oy + Fv.y * .9, oz + Fv.z * .9, (3 + 5 * hash(i + 63)) * fl * ign, 1 + .8 * hash(i + 64), .8, i % 3 === 0 ? 1 : 0, 0, hash(i + 65)); }
         if (!low) for (let i = 0; i < 2; i++) { const sd = i ? 1 : -1, sw = Math.floor(time * 16 + i * 3); E.set(cam.x - tip.x, 0, cam.z - tip.z).normalize(); const rx = -E.z * sd, rz = E.x * sd, rr = 3.6 * swell; // raios brancos verticais nas laterais
           boltRib(s.id * 3 + sw + i, tip.x + rx * rr, tip.y + 2, tip.z + rz * rr, tip.x + rx * rr * 1.3, tip.y + len * .7, tip.z + rz * rr * 1.3, .1, [1, .92, 1], .95 * lit); }
-        if (age > 1.35) { E.set(cam.x - tip.x, 0, cam.z - tip.z).normalize(); const rx = -E.z, rz = E.x, bw = 14 * smooth((age - 1.35) / .3); for (const hb of [.3, .52]) { const y = tip.y + len * hb; ink.seg(tip.x - rx * bw, y, tip.z - rz * bw, tip.x + rx * bw, y, tip.z + rz * bw, .5, .5, c4(INK, .92), c4(INK, .92)); } } // duas faixas escuras cruzando o pilar
+        if (age > T0.raise + .35) { E.set(cam.x - tip.x, 0, cam.z - tip.z).normalize(); const rx = -E.z, rz = E.x, bw = 14 * smooth((age - (T0.raise + .35)) / .3); for (const hb of [.3, .52]) { const y = tip.y + len * hb; ink.seg(tip.x - rx * bw, y, tip.z - rz * bw, tip.x + rx * bw, y, tip.z + rz * bw, .5, .5, c4(INK, .92), c4(INK, .92)); } } // duas faixas escuras cruzando o pilar
         for (let h = 0; h < (low ? 2 : 4); h++) helix(tip.x, tip.y, tip.z, Fv, len * .92, 2.6 * swell, 2.2 + h * .3, time * (h % 2 ? -3 : 4) + h * 1.6, h % 2 === 0, .16 + .06 * (h % 2), .9 * lit); }
       // ignição: anel de choque + chuva de lascas negras/vermelhas na base (línguas de chama abrindo)
       if (!swing) { const n = low ? 6 : 14; for (let i = 0; i < n; i++) { const a = i / n * 6.283 + hash(i) * .5 + time * .4, fl = .7 + .3 * Math.sin(time * 17 + i * 2.1), Lh = (2.4 + 2.2 * hash(i + 3)) * ign * fl * (.8 + .5 * chg);
@@ -214,16 +214,16 @@ export function createRuptureVFX(T, kit) {
       if (age < T0.cut) { const fx = Math.sin(boss.yaw), fz = Math.cos(boss.yaw), Lw = Math.min(s.len || 20, 6 + 26 * chg); crack(s.id * 7, bx + fx * 1.5, bz + fz * 1.5, bx + fx * Lw, bz + fz * Lw, .14 + .1 * chg, .25 + .45 * chg * (.6 + .4 * Math.sin(time * 14)), .8 * lit); }
     }
     // leque do golpe: a curva da própria pose, da posição de preparo até agora, com o raio do pilar
-    if (age > 2.42 && age < T0.cut + .14) { const t1 = Math.min(age, T0.cut), t0 = Math.max(2.43, t1 - .12), fade = 1 - smooth((age - T0.cut) / .14), N = 10, Rf = 58;
+    if (age > T0.charge + .31 && age < T0.cut + .24) { const t1 = Math.min(age, T0.cut), t0 = Math.max(T0.charge + .31, t1 - .25), fade = 1 - smooth((age - T0.cut) / .24), N = 10, Rf = 58;
       const P = (t, out) => { const p = thronePose(t); world(boss, p.blade[0], p.blade[1], p.blade[2], out); if (out.y < -.04) { out.y = -.04; out.normalize(); } return out; };
       for (let i = 0; i < N; i++) { const ta = t0 + (t1 - t0) * i / N, tb = t0 + (t1 - t0) * (i + 1) / N; P(ta, A); P(tb, B); const ua = i / N, ub = (i + 1) / N;
         fan.quad([base.x + A.x * 24, base.y + A.y * 24, base.z + A.z * 24], [base.x + A.x * Rf, base.y + A.y * Rf, base.z + A.z * Rf], [base.x + B.x * 24, base.y + B.y * 24, base.z + B.z * 24], [base.x + B.x * Rf, base.y + B.y * Rf, base.z + B.z * Rf],
           c4(RED, .4 * fade), c4(RED, .4 * fade), c4(RED, .4 * fade), c4(RED, .4 * fade), [0, ua], [1, ua], [0, ub], [1, ub]); } }
     // flare em cruz vermelho no instante do corte
-    const fk = (age - T0.cut) / .22; if (fk >= 0 && fk < 1) { const fx = Math.sin(boss.yaw), fz = Math.cos(boss.yaw), cx = bx + fx * 2.5, cy = gy + 1.6, cz = bz + fz * 2.5, Lx = 26 * easeOut(Math.min(1, fk * 3)), Ly = 34 * easeOut(Math.min(1, fk * 3)), w = .55 * (1 - fk), a = 1 - fk * fk;
+    const fk = (age - T0.cut) / .35; if (fk >= 0 && fk < 1) { const fx = Math.sin(boss.yaw), fz = Math.cos(boss.yaw), cx = bx + fx * 2.5, cy = gy + 1.6, cz = bz + fz * 2.5, Lx = 26 * easeOut(Math.min(1, fk * 3)), Ly = 34 * easeOut(Math.min(1, fk * 3)), w = .55 * (1 - fk), a = 1 - fk * fk;
       rib.seg(cx - fz * Lx, cy, cz + fx * Lx, cx + fz * Lx, cy, cz - fx * Lx, w, w, c4(RED, a), c4(RED, a)); rib.seg(cx, cy - 2, cz, cx, cy + Ly, cz, w, w * .3, c4(RED, a), c4(RED, a));
       rib.seg(cx - fz * Lx * .7, cy, cz + fx * Lx * .7, cx + fz * Lx * .7, cy, cz - fx * Lx * .7, w * .3, w * .3, c4(WHITE, a), c4(WHITE, a)); glow.add(cx, cy, cz, 9 * (1 - fk * .5), 9 * (1 - fk * .5), 1, .25, .45, a, 2, .78); glow.add(cx, cy, cz, 4, 4, 1, 1, 1, a, 0); }
-    if (age > 1 && age < T0.cut + .2) hint = { look: [bx, gy + 12 * lit, bz], k: lit * (1 - cutK), fov: 10 * lit * (1 - cutK), back: 5, lift: 2.5 }; // o jogo abre o plano e inclina para revelar a escala
+    if (age > T0.raise && age < T0.cut + .35) hint = { look: [bx, gy + 12 * lit, bz], k: lit * (1 - cutK), fov: 10 * lit * (1 - cutK), back: 5, lift: 2.5 }; // o jogo abre o plano e inclina para revelar a escala
   }
 
   /* ---------- D: feixe e chão rasgado ---------- */
@@ -259,28 +259,28 @@ export function createRuptureVFX(T, kit) {
   function drawImpact(s) {
     const T0 = s.T, it = s.phase === 'impact' ? s.t : T0.impact + s.t, cx = s.ix, cy = s.iy, cz = s.iz, tb = it - T0.blast, end = T0.impact + T0.fade, er = smooth((it - 1.5) / (end - 1.7));
     groundNormal(ground, cx, cz, nrm);
-    { const dc = Math.hypot(cam.x - cx, cam.z - cz); if (dc < 16 && it < 2.6) { const k = smooth(it / .25) * (1 - smooth((it - 1.9) / .7)); hint = { look: [cx, cy + 4, cz], k, fov: 14 * k, back: 10, lift: 4.5 }; } } // recua para mostrar a explosão inteira
+    { const dc = Math.hypot(cam.x - cx, cam.z - cz); if (dc < 16 && it < 3.6) { const k = smooth(it / .85) * (1 - smooth((it - 2.8) / .8)); hint = { look: [cx, cy + 4, cz], k, fov: 14 * k, back: 10, lift: 4.5 }; } } // recua para mostrar a explosão inteira
     // 1) implosão brevíssima
-    if (it < .1) { const k = it / .1; puff(cx, cy + 1.6, cz, 3.2 * (1 - k) + .6, 1, 1, 0, .3); ring(cx, cy + .4, cz, 7 * (1 - k) + .5, 2); }
+    if (it < .18) { const k = it / .18; puff(cx, cy + 1.6, cz, 3.2 * (1 - k) + .6, 1, 1, 0, .3); ring(cx, cy + .4, cz, 7 * (1 - k) + .5, 2); }
     // 2) clarão branco-quente curto (o jogo atenua com "reduzir flashes")
-    if (it > .06 && it < .4) { const k = (it - .06) / .34; glow.add(cx, cy + 3, cz, 34 * (1 - k * .4), 34 * (1 - k * .4), 1, .92, .95, (1 - k) * .95, 0); glow.add(cx, cy + 3, cz, 22, 22, 1, .4, .6, (1 - k), 2, .3); }
+    if (it > .12 && it < .65) { const k = (it - .12) / .53; glow.add(cx, cy + 3, cz, 34 * (1 - k * .4), 34 * (1 - k * .4), 1, .92, .95, (1 - k) * .95, 0); glow.add(cx, cy + 3, cz, 22, 22, 1, .4, .6, (1 - k), 2, .3); }
     // 3) choque vermelho/negro e anéis supersônicos
-    for (let i = 0; i < 4; i++) { const k = (it - .08 - i * .14) / .9; if (k < 0 || k > 1) continue; ring(cx, cy + .3 + i * 1.3, cz, 3 + 24 * easeOut(k), (1 - k) * 3 + .5); }
+    for (let i = 0; i < 4; i++) { const k = (it - .18 - i * .22) / 1.4; if (k < 0 || k > 1) continue; ring(cx, cy + .3 + i * 1.3, cz, 3 + 24 * easeOut(k), (1 - k) * 3 + .5); }
     if (it < 1) { const k = it; decals.add(cx, cy, cz, 3 + 22 * easeOut(k), 1, .05, .2, 1 - k, 0, k, s.id + 21, nrm); }
     for (let i = 0; i < (low ? 8 : 18); i++) { const k = (it - .05) / .7; if (k < 0 || k > 1) break; const a = hash(i + 50) * 6.283, r = 2 + 13 * easeOut(k); tongue(cx + Math.cos(a) * r * .4, cy + .2, cz + Math.sin(a) * r * .4, Math.cos(a), .35 + hash(i) * .5, Math.sin(a), (3 + 4 * hash(i + 2)) * (1 - k * .6), 1.5, .8, i % 3 ? 0 : 1, smooth((k - .5) / .5), hash(i + 51)); }
     // 4) domo roxo/magenta com rasgos negros (erode por dentro e no fim) + coluna vertical
     const Rd = 7 * easeOut(Math.min(1, it / .45)) * (1 + .08 * er), dC = Math.hypot(cam.x - cx, cam.z - cz), inD = dC < Rd && cam.y - cy < Rd, prox = .3 * (1 - smooth((dC - Rd) / 9));
-    if (it > .08 && er < .995) { dome.visible = true; dome.position.set(cx, cy - .1, cz); dome.scale.set(Rd, Rd * .9, Rd); domeM.uniforms.erode.value = Math.min(1, er + (inD ? .45 : prox)); domeM.uniforms.heat.value = 1 - smooth(it / 1.2); }
+    if (it > .08 && er < .995) { dome.visible = true; dome.position.set(cx, cy - .1, cz); dome.scale.set(Rd, Rd * .9, Rd); domeM.uniforms.erode.value = Math.min(1, er + (inD ? .45 : prox)); domeM.uniforms.heat.value = 1 - smooth(it / 1.8); }
     if (it > .1 && it < end - .3) { const ck = smooth((it - .1) / .3), ce = smooth((it - 1.3) / 1.4); setPillar(cx, cy - .2, cz, up, 44 * ck, .8, 1, ce, 1 + .4 * Math.sin(time * 9) * (1 - ce)); }
     if (!low && it > .1 && it < 1.8) for (let i = 0; i < 5; i++) { const an = hash(i + Math.floor(time * 14)) * 6.283; boltRib(s.id + i + Math.floor(time * 14), cx, cy + Rd * .85, cz, cx + Math.cos(an) * Rd * 2, cy + .2, cz + Math.sin(an) * Rd * 2, .12, i % 2 ? [1, .2, .8] : [.6, .25, 1], .95 * (1 - er)); }
     // massa carmim que explode para fora logo no início
-    if (it < 1.2) for (let i = 0; i < (low ? 8 : 20); i++) { const k = it / 1.2, a = hash(i + 70) * 6.283, el = .35 + hash(i + 71) * 1.05, g = easeOut(Math.min(1, k * 3)), L = (5 + 7 * hash(i + 72)) * g; // lâminas carmim oblíquas abrindo em V
+    if (it < 1.8) for (let i = 0; i < (low ? 8 : 20); i++) { const k = it / 1.8, a = hash(i + 70) * 6.283, el = .35 + hash(i + 71) * 1.05, g = easeOut(Math.min(1, k * 3)), L = (5 + 7 * hash(i + 72)) * g; // lâminas carmim oblíquas abrindo em V
       tongue(cx + Math.cos(a) * .8, cy + .2, cz + Math.sin(a) * .8, Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el), L, 1.4 + 1.2 * hash(i + 74), .9, i % 4 === 0 ? 1 : 0, smooth((k - .5) / .5), hash(i + 73)); }
     if (it < .5) puff(cx, cy + 1.2, cz, 1.6 + 1.4 * easeOut(it / .5), 1, 1, smooth((it - .25) / .25), .4); // núcleo compacto
     // 5) explosão SECUNDÁRIA amarelo-branco/laranja: fogo em camadas, cogumelo que sobe, fumaça e rochas
     if (tb > 0) { const n = low ? 12 : 32;
       for (let i = 0; i < n; i++) { const a = hash(i + 90) * 6.283, el = .45 + hash(i + 91) * 1.05, k = tb - hash(i + 97) * .35; if (k <= 0) continue; // lâminas de fogo direcionais em leque (não bolas)
-        const g = easeOut(Math.min(1, k / .35)), L = (6 + 9 * hash(i + 92)) * g * (1 + .25 * smooth((k - .6) / 1)), dis = smooth((k - .8 - hash(i + 95) * .5) / .7);
+        const g = easeOut(Math.min(1, k / .65)), L = (6 + 9 * hash(i + 92)) * g * (1 + .25 * smooth((k - .6) / 1)), dis = smooth((k - .8 - hash(i + 95) * .5) / .7);
         tongue(cx + Math.cos(a) * 1.2, cy + .3, cz + Math.sin(a) * 1.2, Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el), L, 1.6 + 1.6 * hash(i + 93), 1, 2, dis, hash(i + 96)); }
       for (let i = 0; i < (low ? 3 : 6); i++) { const k = tb, a = hash(i + 30) * 6.283, r = (1 + .7 * hash(i + 31)) * (.6 + .6 * easeOut(Math.min(1, k / .4))); puff(cx + Math.cos(a) * 1.6, cy + 1 + i * .9 + k * 1.5, cz + Math.sin(a) * 1.6, r, 1 - .5 * smooth(k / 1.4), 0, smooth((k - .7 - i * .06) / .6), hash(i + 32)); } // núcleo incandescente de apoio
       for (let i = 0; i < (low ? 8 : 26); i++) { const a = hash(i + 110) * 6.283, v = 8 + 9 * hash(i + 111), vy = 6 + 10 * hash(i + 112), k = tb, y = vy * k - 4.9 * k * k; if (y < 0) continue; shard(cx + Math.cos(a) * v * k, cy + 1 + y, cz + Math.sin(a) * v * k, .25 + .4 * hash(i + 113), k * 6 + i, k * 4, i, 1.1); }
