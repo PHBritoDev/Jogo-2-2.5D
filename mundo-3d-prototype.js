@@ -3220,7 +3220,7 @@ function squadEvent(type,d){
   case 'cast':if(worldAudio.abyss3&&/^(nadir|barrage|singularity|sanctum|constellation|drill|cage)$/.test(d.skill))worldAudio.abyss3(d.skill==='singularity'||d.skill==='constellation'?'gravity':d.skill==='nadir'||d.skill==='sanctum'?'storm':'tear',squadGain(a.x,a.z));else worldAudio.dark&&worldAudio.dark(d.skill);if(a.T.boss||squadAlive().length<=2||d.skill==='judgment'||d.skill==='vortex'||d.skill==='nadir'||d.skill==='cage')showCombatCallout(SQUAD_NAMES[d.skill]);break;
   case 'thornWave':squadSfx('warn',0,0,150);break;
   case 'thornRise':squadSfx('stick',d.spike.x,d.spike.z,70);break;
-  case 'throneRaise':squadSfx('gravity',s.x,s.z,0);break;
+  case 'throneRaise':squadSfx('gravity',s.x,s.z,0);if(!userSettings.reduceFlash){renderer.domElement.style.filter='contrast(1.9) saturate(1.5)';setTimeout(()=>{renderer.domElement.style.filter='';},90);}break;
   case 'throneSlash':squadSfx('launch',s.x,s.z,0);break;
   case 'throneImpact':squadSfx('boom',s.ix,s.iz,0);if(squadNear(s.ix,s.iz,10)&&!userSettings.reduceShake)cameraShake(.18);break;
   case 'handRise':squadSfx('stick',d.hand.x,d.hand.z,60);break;
@@ -3230,7 +3230,7 @@ function squadEvent(type,d){
   case 'vzClose':worldAudio.whoosh();break;
   case 'orbital':status.textContent='VHAZRAEL ergue a espada para o céu…';worldAudio.abyss3&&worldAudio.abyss3('storm',1);break;
   case 'orbital_choice':showCombatCallout('DEFENDA-SE OU CONTRAPONHA COM SUA ULTIMATE');status.textContent='O meteoro cobre a dimensão inteira: segure DEF ou use sua ULTIMATE agora.';break;
-  case 'orbital_impact':worldAudio.abyss3&&worldAudio.abyss3('heavy',1);worldAudio.abyss3&&worldAudio.abyss3('boom',1);if(!userSettings.reduceShake)cameraShake(.4);break;
+  case 'orbital_impact':vzFlash('#fff',userSettings.reduceFlash?.3:.85,120);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);worldAudio.abyss3&&worldAudio.abyss3('boom',1);if(!userSettings.reduceShake)cameraShake(.4);break;
   case 'orbitalResult':if(d.target==='hero'){showCombatCallout(d.result==='duel'?'DUELO DE ULTIMATES — O METEORO SE PARTIU':d.result==='shield'?'O ESCUDO SEGUROU O METEORO':'EXTINÇÃO');if(d.result==='shield'){setDefending(false);}}break;
   case 'sanctumMark':squadSfx('warn',d.mark.x,d.mark.z,90);break;
   case 'sanctumPillar':squadSfx('thunder',d.mark.x,d.mark.z,110);break;
@@ -3260,7 +3260,7 @@ function squadEvent(type,d){
   case 'jumpedWave':if(d.target==='hero')showCombatCallout('SALTOU A ONDA!');break;
   case 'lunge':worldAudio.whoosh();break;
   case 'clawsRise':worldAudio.dark&&worldAudio.dark('rise');if(squadNear(s.x,s.z,9))cameraShake(.1);break;
-  case 'grab':if(d.target==='hero'){const terror=s&&s.type==='terror';showCombatCallout(terror?'AGARRADO — DASH OU DEF PARA SE SOLTAR':'PRESO — DASH PARA SE SOLTAR');status.textContent=terror?'As Mãos Devoradoras te agarraram. Use DASH ou DEF para se soltar.':'As Garras do Abismo te prenderam. Use o DASH para se soltar.';worldAudio.hurt();}break;
+  case 'grab':if(d.target==='hero'){const terror=s&&s.type==='terror';if(terror)vzFlash('radial-gradient(ellipse at center,transparent 45%,rgba(160,0,10,.55) 100%)',1,700);showCombatCallout(terror?'AGARRADO — DASH OU DEF PARA SE SOLTAR':'PRESO — DASH PARA SE SOLTAR');status.textContent=terror?'As Mãos Devoradoras te agarraram. Use DASH ou DEF para se soltar.':'As Garras do Abismo te prenderam. Use o DASH para se soltar.';worldAudio.hurt();}break;
   case 'release':if(d.target==='hero'&&d.escaped)showCombatCallout('LIVRE!');break;
   case 'spiral':worldAudio.whoosh();break;
   case 'burst':if(s.type==='spiral'||s.why==='hit'){worldAudio.dark&&worldAudio.dark('impact');if(squadNear(s.x,s.z,7))cameraShake(s.why==='hit'?.16:.08);}break;
@@ -3278,6 +3278,8 @@ function squadEvent(type,d){
  }
 }
 /** Extinção Orbital: controle travado só nas tomadas (0–11,5 s); a janela de defesa/ultimate devolve tudo. */
+/** Clarão/vinheta curtos (sem strobe), abaixo do HUD; respeita reduzir flashes. */
+function vzFlash(bg,op,ms){let el=document.getElementById('vz-flash');if(!el){el=document.createElement('div');el.id='vz-flash';el.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .25s';document.body.appendChild(el);}el.style.background=bg;el.style.transition='none';el.style.opacity=String(op);void el.offsetWidth;el.style.transition='opacity '+(ms/1000)+'s';setTimeout(()=>{el.style.opacity='0';},40);}
 function vzOrbitState(){const o=squadOn&&squadRT?squadRT.orbit:null;return o&&o.s&&!o.s.dead?o:null;}
 function vzSkip(){const o=vzOrbitState();if(o&&/^(awaken|orbit|entry)$/.test(o.phase)){o.s.phase='choice';o.s.t=0;squadSq()?.event('orbital_choice',{spell:o.s});}}
 function vzUpdateLock(){
@@ -3293,11 +3295,9 @@ function vzCinematic(){
  if(o.phase==='choice'){const mt=squadRT.vhazraelVFX.meteor;if(mt&&mt.visible){_vzB.set(player.position.x,player.position.y+1.5,player.position.z).lerp(_vzA.copy(mt.position).setY(mt.position.y-mt.scale.x),.3);camera.lookAt(_vzB);}return false;}// o meteoro domina o céu na janela de resposta
  if(!/^(awaken|orbit|entry)$/.test(o.phase))return false;
  const s=squadSq(),b=s&&s.actors.find(a=>a.kind==='vhazrael'&&a.alive);if(!b)return false;const fy=Math.sin(b.yaw),fz=Math.cos(b.yaw),T0=o.s.T;
- if(o.phase==='awaken'){const k=o.t/T0.awaken;camera.position.set(b.x+fy*3.4+fz*1.6*(1-k),b.y+.5+k*.8,b.z+fz*3.4-fy*1.6*(1-k));camera.lookAt(b.x,b.y+2.2+k*.6,b.z);return false;}
- if(o.phase==='orbit'){const v=squadRT.vhazraelVFX;v.orbitalCamera.aspect=camera.aspect;v.orbitalCamera.updateProjectionMatrix();renderer.render(v.orbitalScene,v.orbitalCamera);return true;}
- const k=o.t/T0.entry,mt=squadRT.vhazraelVFX.meteor,m=mt&&mt.visible?mt:null;
- if(m&&k<.55){_vzA.copy(m.position);camera.position.set(_vzA.x+m.scale.x*2.4,_vzA.y+m.scale.x*.6,_vzA.z+m.scale.x*1.4);camera.lookAt(_vzA.x,_vzA.y-m.scale.x*.6,_vzA.z);}
- else{camera.position.set(b.x-fy*5-fz*2.5,b.y+1.1,b.z-fz*5+fy*2.5);_vzB.set(b.x+fy*2,b.y+5,b.z+fz*2);if(m)_vzB.lerp(m.position,.25);camera.lookAt(_vzB);}
+ if(o.phase==='awaken'){const k=o.t/T0.awaken,e=k*k*(3-2*k);// close de baixo para cima, aproximando do rosto e da lâmina
+  camera.position.set(b.x+fy*(3.6-1.4*e)+fz*1.4*(1-e),b.y+.35+e*.5,b.z+fz*(3.6-1.4*e)-fy*1.4*(1-e));camera.lookAt(b.x,b.y+1.7+e*.9,b.z);return false;}
+ if(o.phase==='orbit'||o.phase==='entry'){const v=squadRT.vhazraelVFX;v.orbitalCamera.aspect=camera.aspect;v.orbitalCamera.updateProjectionMatrix();renderer.render(v.orbitalScene,v.orbitalCamera);return true;}
  return false;
 }
 /** Liga a esquadra ao laço: lê o que o herói fez no procurador, roda a lógica, escolhe o foco e devolve o procurador. */

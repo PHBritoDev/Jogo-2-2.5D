@@ -99,3 +99,12 @@ test('Determinismo do VHAZRAEL a 30/60/144 FPS e limpeza após ciclos', () => {
   const sig = fps => { const { sq, log } = world({ seed: 12 }); const h = hero(); sq.setTargets([h]); boss(sq).alert = 0; for (let i = 0; i < 20 * fps; i++) sq.update(1 / fps); return log.filter(e => e.type === 'cast').map(e => e.skill).join(','); };
   assert.equal(sig(30), sig(60)); assert.equal(sig(60), sig(144));
 });
+
+test('Mod 247b: golpes do VHAZRAEL são cortes nativos estáveis (sem o clipe acrobático), contato só pela lâmina; poderes conjurados sobre o Idle', async () => {
+  const { BOSS_MOVES } = await import('./boss-choreography3d.js');
+  assert.deepEqual(BOSS_MOVES.vhazrael.map(m => m.id), ['Trono_Corte', 'Trono_Estocada', 'Trono_Queda']);
+  for (const k of ['throne', 'thorns', 'terror', 'brood', 'orbital']) assert.equal(VZ.boss[k].anim, 'idle', k);
+  for (const m of BOSS_MOVES.vhazrael) { const { sq, dmg } = world(); const t = hero({ z: 2.4 }); sq.meleeTrace = () => true; sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, m.id); run(sq, m.duration + .2);
+    assert.equal(dmg.filter(d => d.kind === 'melee').length, m.hits.length, m.id); assert.ok(a.z < t.z - t.radius); }
+  { const { sq, dmg } = world(); const t = hero({ z: 2 }); sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, 'Trono_Corte'); run(sq, 2); assert.equal(dmg.length, 0, 'sem traço da lâmina, sem dano'); }
+});

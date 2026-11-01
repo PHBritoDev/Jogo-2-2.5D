@@ -72,7 +72,7 @@ test('Mod 245/246: mini-chefe 3 no Enemy3.glb e Enemy4/mini-chefe 4 no Enemy4.gl
   assert.ok(src.includes("updateDayNight(dt);applySquadDim();"));
   assert.ok(src.includes("ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4')"));
   const rt = fs.readFileSync(new URL('./enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
-  assert.match(rt, /if\(a\.kind==='e3boss'\|\|a\.kind==='e4boss'\|\|a\.kind==='vhazrael'\)attachKatana\(T,scene,b,a\.kind\);/); assert.match(rt, /a\.kind==='e3boss'\|\|a\.kind==='e4boss'\?katanaPose:bossPose/);
+  assert.match(rt, /if\(a\.kind==='e3boss'\|\|a\.kind==='e4boss'\|\|a\.kind==='vhazrael'\)attachKatana\(T,scene,b,a\.kind\);/); assert.match(rt, /a\.kind==='e3boss'\|\|a\.kind==='e4boss'\|\|a\.kind==='vhazrael'\?katanaPose:bossPose/);
 });
 
 test('Mod 247: VHAZRAEL na esquadra dentro da dimensão, sem as moedas antigas, Extinção Orbital com controle devolvido; nenhum nome antigo', () => {

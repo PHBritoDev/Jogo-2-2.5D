@@ -1,4 +1,5 @@
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
+import { BOSS_MOVES } from './boss-choreography3d.js';
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
@@ -25,11 +26,11 @@ const lead = (t, k, cap) => ({ x: t.x + clamp((t.vx || 0) * k, -cap, cap), z: t.
 const anyActive = (sq, type) => sq.spells.some(s => s.type === type && !s.dead && s.phase !== 'fade');
 const channeling = (sq, s) => { const o = sq.actor(s.owner); return !!(o && o.alive && o.act && o.act.type === 'cast' && o.act.spellId === s.id); };
 
-export const THRONE = { min: 3.5, max: 22, cast: 2.1, release: .15, cd: 11, anim: 'cast', channel: true, charge: 1, raise: .35, speed: 16, range: 22, w: 1.8, h: .9, dmg: 22, endR: 2.6, endDmg: 10, fade: .9 };
-export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 9, anim: 'cast', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
-export const TERROR = { min: 2, max: 16, cast: 1.6, release: .4, cd: 16, anim: 'cast', channel: false, rise: 1.2, hands: 4, warn: .8, reach: .95, hold: 1.6, tick: .5, tickDmg: 4, endDmg: 6, fade: 1.1, grab: true, life: 4.6 };
-export const BROOD = { min: 0, max: 30, cast: 1.4, release: .5, cd: 14, anim: 'cast', open: .9, cap: 2, capRage: 3, kingAt: .45 };
-export const ORBITAL = { min: 0, max: 60, cast: 15.5, release: .05, cd: 999, anim: 'cast', channel: true, awaken: 3, orbit: 3.5, entry: 5, choice: 2.5, impact: .6, after: 3.2, dmg: 95, shieldDmg: 14, needSkills: 3, lowHp: .35 };
+export const THRONE = { min: 3.5, max: 22, cast: 2.1, release: .15, cd: 11, anim: 'idle', channel: true, charge: 1, raise: .35, speed: 16, range: 22, w: 1.8, h: .9, dmg: 22, endR: 2.6, endDmg: 10, fade: .9 };
+export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 9, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
+export const TERROR = { min: 2, max: 16, cast: 1.6, release: .4, cd: 16, anim: 'idle', channel: false, rise: 1.2, hands: 4, warn: .8, reach: .95, hold: 1.6, tick: .5, tickDmg: 4, endDmg: 6, fade: 1.1, grab: true, life: 4.6 };
+export const BROOD = { min: 0, max: 30, cast: 1.4, release: .5, cd: 14, anim: 'idle', open: .9, cap: 2, capRage: 3, kingAt: .45 };
+export const ORBITAL = { min: 0, max: 60, cast: 15.5, release: .05, cd: 999, anim: 'idle', channel: true, awaken: 3, orbit: 3.5, entry: 5, choice: 2.5, impact: .6, after: 3.2, dmg: 95, shieldDmg: 14, needSkills: 3, lowHp: .35 };
 export const STOMP = { min: 0, max: 5, cast: 1.3, release: .55, cd: 6, anim: 'attack', warn: .75, r: 3.4, dmg: 14, waveH: .7 };
 
 const VHAZ = {
@@ -56,6 +57,14 @@ const COLOSSUS = {
   melee: { max: 3.4, reach: 3.6, arc: .2, windup: .7, hits: [.7], dur: 1.45, dmg: 16, cd: 2.2, knock: 1.4 },
   decide: [.35, .5], spellGap: 3, maxBig: 3, kit: ['stomp'], stomp: STOMP, brain: summonBrain
 };
+/* MOD 247b — golpes de espada NATIVOS (assador de IK da Mod 244 sobre o esqueleto mixamo do Bispo1): substituem o clipe
+   acrobático 'Sword Aerial Combo' (girava/deitava o tronco ~56°) por cortes de montante estáveis, com contato pela lâmina. */
+BOSS_MOVES.vhazrael = [
+  { id: 'Trono_Corte', label: 'Corte do Trono', patterns: ['diagonal', 'reverse'], hits: [.5, .92], duration: 1.55, advance: .6, heavy: true },
+  { id: 'Trono_Estocada', label: 'Estocada do Condenado', patterns: ['thrust'], hits: [.68], duration: 1.4, advance: 2.4, range: [2.4, 5], score: 1, cd: 6 },
+  { id: 'Trono_Queda', label: 'Sentença Vertical', patterns: ['overhead'], hits: [1.05], duration: 2, advance: 1, jump: .55, heavy: true }
+];
+for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.jump ? 1.3 : m.range ? 1.15 : 1; }
 export const VZ = Object.freeze({ boss: registerKind('vhazrael', VHAZ), crawler: registerKind('crawler', CRAWLER), colossus: registerKind('colossus', COLOSSUS) });
 
 /* ---------- cérebro adaptativo ---------- */

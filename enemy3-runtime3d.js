@@ -30,7 +30,7 @@ export const KATANA_SCALE = 1.05, JAW_SCALE = 1.08;
 /** Arma do mini-chefe presa à mão: Katana Dragão Carmim (e3boss) ou Espada-Mandíbula (e4boss, Mod 246). */
 export function attachKatana(T, scene, b, kind = 'e3boss') {
   if (!b.hand) return;
-  const jaw = kind === 'e4boss', vz = kind === 'vhazrael', w = vz ? buildThroneBlade(T) : jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(vz ? 1.1 : jaw ? JAW_SCALE : KATANA_SCALE); scene.add(root); scene.add(w.userData.fx);
+  const jaw = kind === 'e4boss', vz = kind === 'vhazrael', w = vz ? buildThroneBlade(T) : jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(vz ? 1 : jaw ? JAW_SCALE : KATANA_SCALE); scene.add(root); scene.add(w.userData.fx);
   b.weapon = w; b.weaponRoot = root; b.katana = true; b.wW = 0; b.kCast = 0; b.wDrop = 0;
 }
 /** Katana na mão: nos golpes nativos segue o osso (o assador alinhou +Y da mão com a lâmina); fora deles, guarda
@@ -39,11 +39,11 @@ export function poseKatana(T, b, a, dt, time, low) {
   const root = b.weaponRoot, h = b.hand, w = b.weapon; if (!root || !h) return;
   const V = b._kv || (b._kv = { p: new T.Vector3(), d: new T.Vector3(), f: new T.Vector3(), x: new T.Vector3(), m: new T.Matrix4() });
   h.updateWorldMatrix(true, false); h.getWorldPosition(root.position);
-  if (a.alive && a.act && (a.act.move || (a.kind === 'vhazrael' && (a.act.type === 'melee' || a.act.skill === 'throne' || a.act.skill === 'orbital')))) h.getWorldQuaternion(root.quaternion); // a lâmina segue o osso nos golpes
+  if (a.alive && a.act && (a.act.move || (a.kind === 'vhazrael' && (a.act.skill === 'throne' || a.act.skill === 'orbital')))) h.getWorldQuaternion(root.quaternion); // a lâmina segue o osso nos golpes
   else {
     const cast = a.alive && a.act && (a.act.type === 'cast' || a.act.type === 'phase2'); b.kCast += ((cast ? 1 : 0) - b.kCast) * Math.min(1, dt * 6);
     const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, k = b.kCast;
-    V.d.set(fy * .82 + rx * .18, -.32, fz * .82 + rz * .18).lerp(V.p.set(-fy * .2 + rx * .3, -1, -fz * .2 + rz * .3), k).normalize();
+    if (a.kind === 'vhazrael') V.d.set(fy * .3 + rx * .12, -1, fz * .3 + rz * .12); else V.d.set(fy * .82 + rx * .18, -.32, fz * .82 + rz * .18); V.d.lerp(V.p.set(-fy * .2 + rx * .3, -1, -fz * .2 + rz * .3), k).normalize();
     if (!a.alive) { b.wDrop = Math.min(1, b.wDrop + dt * 1.6); V.d.lerp(V.p.set(rx, -.05, rz), b.wDrop).normalize(); }
     V.f.set(fy, 0, fz); V.f.addScaledVector(V.d, -V.f.dot(V.d)).normalize(); V.x.crossVectors(V.d, V.f).normalize(); V.m.makeBasis(V.x, V.d, V.f); root.quaternion.setFromRotationMatrix(V.m);
     if (!a.alive) root.position.y = Math.max(a.y + .12, root.position.y - b.wDrop * 1.2);
