@@ -32,7 +32,7 @@ test('golpe, projéteis e magias em área alcançam os outros atores; colisão c
 
 test('MIRAR alterna entre inimigos; laboratório isolado do progresso', () => {
   assert.match(src, /if\(squadOn&&lockOnActive&&squadCycleFocus\(\)\)return;/);
-  assert.ok(src.includes("ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=") && src.includes('isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB)'));
+  assert.ok(src.includes("ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=") && src.includes('isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB)'));
   for (const b of ["B('1'", "B('2'", "B('4'", "B('GUARDIÃO'", "B('+ ALIADO'", "B('CLASH'"]) assert.ok(src.includes(b), b);
 });
 
@@ -46,8 +46,8 @@ test('Mod visível e cache atualizado: marcador, loader, BUILD e index na mesma 
 });
 
 test('Mod 238: Enemy2 do Ato II em esquadra, mini-chefe com foice, ultimate genérico desligado na esquadra', () => {
-  assert.match(src, /kind=P\.rig==='enemy2'\?\(P\.profile==='miniboss2'\?'e2boss':'e2'\)/);
-  assert.match(src, /source:k=>rigSource\(k==='e2'\|\|k==='e2boss'\?'enemy2':k==='e3'\|\|k==='e3boss'\?'enemy3':k==='e4'\|\|k==='e4boss'\?'enemy4':'enemy1'\)/);
+  assert.match(src, /P\.rig==='enemy2'\?\(P\.profile==='miniboss2'\?'e2boss':'e2'\)/);
+  assert.match(src, /source:k=>rigSource\(k==='e2'\|\|k==='e2boss'\?'enemy2':k==='e3'\|\|k==='e3boss'\?'enemy3':k==='e4'\|\|k==='e4boss'\?'enemy4':k==='vhazrael'\?'bishop1':'enemy1'\)/);
   assert.match(src, /function updateBossUltimates\(dt,now\)\{\n tickTransientFx\(dt\);\n[^\n]*\n[^\n]*\n if\(squadOn\)\{if\(bossUlt\.kind\)endBossUlt\(\);return;\}/);
   assert.match(src, /air:Math\.max\(0,player\.position\.y-terrainHeightAt/, 'salto sobre a onda do Colapso');
   for (const k of ["case 'surgir-tres':startPack({rig:'enemy2'", "case 'surgir-cinco':startPack({rig:'enemy2'", "case 'surgir-mini-chefe':startPack({rig:'enemy2',profile:'miniboss2'"]) assert.ok(src.includes(k), k);
@@ -66,11 +66,19 @@ test('Guardião é bem mais resistente que o comum, sem virar esponja; comum na 
 test('Mod 245/246: mini-chefe 3 no Enemy3.glb e Enemy4/mini-chefe 4 no Enemy4.glb, em esquadra; líder do Ato IV no pacote antigo', () => {
   assert.ok(src.includes("function e3SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy3'&&(profile==='demon3'||profile==='miniboss3');}"));
   assert.ok(src.includes("function e4SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy4'&&(profile==='demon4'||profile==='miniboss4');}"));
-  assert.ok(src.includes("P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3')"));
+  assert.ok(src.includes("const kind=P.rig==='bishop1'?'vhazrael':P.rig==='enemy2'?") && src.includes("P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3')"));
   for (const k of ["startPack({rig:'enemy3',profile:'miniboss3'", "startPack({rig:'enemy3',profile:'demon3'", "startPack({rig:'enemy4',profile:'miniboss4'", "startPack({rig:'enemy4',profile:'demon4'", "startPack({rig:'enemy4',profile:'leader4'"]) assert.ok(src.includes(k), k);
   assert.ok(!src.includes("startPack({rig:'enemy4',profile:'miniboss3'") && !src.includes("startPack({rig:'enemy3',profile:'miniboss4'"), 'mini-chefe usa o mesmo GLB do comum');
   assert.ok(src.includes("updateDayNight(dt);applySquadDim();"));
   assert.ok(src.includes("ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4')"));
   const rt = fs.readFileSync(new URL('./enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
-  assert.match(rt, /if\(a\.kind==='e3boss'\|\|a\.kind==='e4boss'\)attachKatana\(T,scene,b,a\.kind\);/); assert.match(rt, /a\.kind==='e3boss'\|\|a\.kind==='e4boss'\?katanaPose:bossPose/);
+  assert.match(rt, /if\(a\.kind==='e3boss'\|\|a\.kind==='e4boss'\|\|a\.kind==='vhazrael'\)attachKatana\(T,scene,b,a\.kind\);/); assert.match(rt, /a\.kind==='e3boss'\|\|a\.kind==='e4boss'\?katanaPose:bossPose/);
+});
+
+test('Mod 247: VHAZRAEL na esquadra dentro da dimensão, sem as moedas antigas, Extinção Orbital com controle devolvido; nenhum nome antigo', () => {
+  assert.ok(src.includes("if(b.key==='bishop1'&&!SQUAD_LEGACY){pack={squad:true,dim:true,rig:'bishop1'"));
+  assert.ok(!/ vhazrael:\{cd:8,run\(\)/.test(src), 'ataque de moedas removido do kit jogável');
+  assert.ok(src.includes('function vzUpdateLock()') && src.includes('if(vzCinematic())return;renderer.render(scene,camera);'));
+  assert.ok(src.includes("if(info.kind==='orbital'){playerInvulnerableUntil=0;dashRemaining=0;}"), 'sem dash que salve do meteoro');
+  for (const f of fs.readdirSync(new URL('./', import.meta.url))) { if (!/\.(m?js|html|md|json|css|txt)$/.test(f) || /^CLAUDE-/.test(f)) continue; const t = fs.readFileSync(new URL('./' + f, import.meta.url), 'utf8'); assert.ok(!/val[eé]rio/i.test(t), 'nome antigo em ' + f); }
 });

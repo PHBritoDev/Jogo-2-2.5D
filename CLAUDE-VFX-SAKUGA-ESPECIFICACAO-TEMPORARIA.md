@@ -9,7 +9,7 @@ Atue como engenheiro sênior de WebGL/Three.js/GLSL, animador técnico e diretor
 
 ## 1. Preservação e integração concorrente
 - Codex está trabalhando separadamente no combate, cinco espadas, protagonista e mini-bosses Enemy1/Enemy2. Não editar sistemas de animação, state machine, GLBs, cinco espadas, hitboxes e movimento do Codex sem acordo explícito. Propor interfaces de eventos de impacto e cast (não substituir implementação).
-- Preservar a dimensão de Valério, mundo 3D, saves, missões, IA, controles mobile, habilidades existentes fora dos três slots, colisões, som, cooldowns, economia, fallback de qualidade.
+- Preservar a dimensão de VHAZRAEL, mundo 3D, saves, missões, IA, controles mobile, habilidades existentes fora dos três slots, colisões, som, cooldowns, economia, fallback de qualidade.
 - **Versão:** o HTML na main mostra 241. Há relato de 258 testes aprovados e 1 teste obsoleto esperando 238. Corrigir o teste para a versão efetivamente publicada/configurada, preservando a verificação; NÃO trocar o marcador para 238 nem forçar 259/259 sem executar testes.
 - A main pode mudar durante a tarefa. Registrar SHA-base e fornecer diff/patch aplicável e instruções de cherry-pick/rebase; resolver conflitos manualmente, sem sobrescrever o trabalho do Codex.
 - Fazer inventário dos módulos atuais antes de substituir: `vfx-flow3d.js`, `vfx-trail3d.js`, `celestial-fxkit3d.js`, `vfx-impact3d.js`, `skill-x-rupture3d.js`, `skill-x-rupture-vfx3d.js`, `skill-twin-portals3d.js`, `skill-twin-portals-vfx3d.js`, `skill-judgment-dragon3d.js`, `skill-judgment-dragon-vfx3d.js`, `mundo-3d-prototype.js`, `mundo-3d-prototype.html`, loader e testes. Verificar nomes reais antes de editar.
@@ -47,7 +47,7 @@ Migrar com compatibilidade de save e não excluir assets de dragão usados em ou
 
 ## 7. Qualidade, sincronização e aceitação
 - Antes/depois por skill: screenshots e vídeo, números de draw calls, triangles, GPU/CPU frame time quando disponível, memória e FPS em celular; registrar hardware, resolução e quality. Sem screenshots inventadas.
-- Testar pelo menos 20 casts consecutivos por habilidade, reentrância, morte/interrupção durante cast, cancelamentos, troca de qualidade, ausência de alvo, alvo em movimento, colisão em relevo, câmera, Android touch, save antigo e volta da dimensão de Valério.
+- Testar pelo menos 20 casts consecutivos por habilidade, reentrância, morte/interrupção durante cast, cancelamentos, troca de qualidade, ausência de alvo, alvo em movimento, colisão em relevo, câmera, Android touch, save antigo e volta da dimensão de VHAZRAEL.
 - Verificar parse de todos os JS, importações, compilação de shaders no navegador real, erros de console, descarte e regressão dos testes existentes. Falhas bloqueiam merge.
 - Deixar modo de demonstração acessível por URL de teste sem mudar experiência padrão; usar feature flag para novos VFX, fallback para legado e rollback simples.
 - **Não alterar main.** Entregar branch/PR isolado + relatório de pendências e instruções de integração pelo Codex. Não apagar este arquivo temporário antes de aprovação explícita do usuário e merge validado.

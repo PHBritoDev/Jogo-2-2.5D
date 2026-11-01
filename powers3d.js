@@ -18,11 +18,11 @@ export const FAMILY = {
   demon2: 'demonio', miniboss2: 'demonio', evo2: 'demonio', elite2: 'demonio',
   demon3: 'carrasco', miniboss4: 'carrasco', zealot: 'carrasco', evo3: 'carrasco', elite3: 'carrasco',
   demon4: 'guardiao', leader4: 'guardiao', miniboss3: 'guardiao', hollow: 'guardiao', elite4: 'guardiao',
-  valerio: 'valerio', fallen1: 'valerio', vorgazhek: 'vorgazhek', fallen2: 'vorgazhek',
+  vhazrael: 'vhazrael', fallen1: 'vhazrael', vorgazhek: 'vorgazhek', fallen2: 'vorgazhek',
   zarkhael: 'zarkhael', fallen3: 'zarkhael', veraxion: 'veraxion', fallen4: 'veraxion',
   greed1: 'greed1', greed2: 'greed2', greed3: 'greed3'
 };
-const BOSSES = new Set(['valerio', 'vorgazhek', 'zarkhael', 'veraxion', 'greed1', 'greed2', 'greed3', 'fallen1', 'fallen2', 'fallen3', 'fallen4']);
+const BOSSES = new Set(['vhazrael', 'vorgazhek', 'zarkhael', 'veraxion', 'greed1', 'greed2', 'greed3', 'fallen1', 'fallen2', 'fallen3', 'fallen4']);
 const ELITES = new Set(['warden', 'leader4', 'miniboss2', 'miniboss3', 'miniboss4', 'elite1', 'elite2', 'elite3', 'elite4']);
 export function tierOf(profile) { return BOSSES.has(profile) ? 'boss' : ELITES.has(profile) ? 'elite' : FAMILY[profile] ? 'common' : null; }
 /** Multiplicadores por nível: comuns batem menos e soltam poderes com menos frequência. */
@@ -57,7 +57,7 @@ export const KITS = {
     S('s3', 'Pulso do Bastião', 'ring', { dmg: 13, cd: 9, r: 6.5 })],
     sword: S('sw', 'Varrida', 'cone', { dmg: 14, cd: 6, r: 4.5, arc: 1.6 }),
     ult: S('ult', 'BASTIÃO DAS SOMBRAS', 'barrage', { dmg: 30 }) },
-  valerio: { color: 0x9d4dff, color2: 0x120018, book: true, skills: [
+  vhazrael: { color: 0x9d4dff, color2: 0x120018, book: true, skills: [
     S('s1', 'Mãos do Contrato', 'grab', { n: 3, dmg: 14, cd: 8, r: 1.7, root: 1.3 }),
     S('s2', 'Orbes das Almas', 'orbs', { n: 6, dmg: 11, cd: 9, speed: 7.5 }),
     S('s3', 'Moedas das Almas', 'rain', { n: 26, dmg: 13, cd: 11, r: 3.6, dur: 1.8, gold: true })],

@@ -5,7 +5,7 @@ Este documento registra a causa e a solução confirmada em 12/10/2026 para o bu
 ## Estado confirmado
 - O usuário testou a Modificação 23 e confirmou: **o tamanho voltou ao normal**.
 - Não reverter essa correção nem substituir os arquivos pela versão anterior só para tentar “voltar ao normal”.
-- Arquivos principais: `protagonista-model-20261012.js`, `index.html`, `valerio-test.html`.
+- Arquivos principais: `protagonista-model-20261012.js`, `index.html`, `vhazrael-test.html`.
 - A página de teste usa o GLB `Protagonista.glb).
 - PR de referência da correção original para o mesmo tipo de bug no Bispo VHAZRAEL: https://github.com/PHBritoDev/Jogo-2-2.5D/pull/49
 
@@ -32,4 +32,4 @@ Havia dois problemas relacionados, e resolver só um não bastava:
 - Não apagar nem reescrever a correção que já funciona; fazer mudanças pequenas, verificáveis e compatíveis com o estado atual.
 
 ## Link de teste
-https://phbritodev.github.io/Jogo-2-2.5D/valerio-test.html?valerioTest=1&valerioFloorOffset=-0.35&refresh=2010130&protagonista3D=1
+https://phbritodev.github.io/Jogo-2-2.5D/vhazrael-test.html?vhazraelTest=1&vhazraelFloorOffset=-0.35&refresh=2010130&protagonista3D=1

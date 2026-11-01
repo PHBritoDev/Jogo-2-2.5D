@@ -29,7 +29,7 @@ export const ACT1 = {
   sentryHp: 100,
   enemy2Hp: 140,
   wardenHp: 300,
-  valerioReward: 40
+  vhazraelReward: 40
 };
 
 const BANNED = ['porra', 'merda', 'caralho', 'fdp', 'puta', 'viado', 'cuzao', 'buceta'];
@@ -72,7 +72,7 @@ function baseProgress() {
     portalOpened: false,
     portalRewardClaimed: false,
     bishopsDefeated: 0,
-    valerioRewardClaimed: false,
+    vhazraelRewardClaimed: false,
     ...progressionFields(null, 0)
   };
 }
@@ -122,9 +122,27 @@ export function progressionFields(raw, questStep) {
   };
 }
 
+/**
+ * MOD 247 — nome canônico VHAZRAEL. Saves anteriores guardavam a recompensa do Bispo 1 numa chave `*RewardClaimed`
+ * com o nome antigo e o id antigo no bestiário. A detecção é ESTRUTURAL (o nome antigo não existe mais no código): em
+ * toda a história do projeto só existiram três chaves `*RewardClaimed` (portal, Bispo 1, VORGAZHEK) e um único id de
+ * bestiário foi renomeado, então a chave desconhecida e o id fora do catálogo são do Bispo 1. Nenhum progresso se perde.
+ */
+const REWARD_KEYS = new Set(['portalRewardClaimed', 'vhazraelRewardClaimed', 'vorgazhekRewardClaimed']);
+export const BESTIARY_IDS = new Set(['captor', 'demon2', 'warden', 'vhazrael', 'vorgazhek', 'zealot', 'zarkhael', 'hollow', 'veraxion', 'ganancia', 'sentry']);
+export function migrateBishopOneName(raw) {
+  if (!raw || typeof raw !== 'object') return raw;
+  const out = { ...raw };
+  for (const k of Object.keys(raw)) if (/RewardClaimed$/.test(k) && !REWARD_KEYS.has(k)) { if (raw[k]) out.vhazraelRewardClaimed = true; delete out[k]; }
+  const fix = list => Array.isArray(list) ? [...new Set(list.map(id => typeof id === 'string' && !BESTIARY_IDS.has(id) && /^v/.test(id) ? 'vhazrael' : id))] : list;
+  if (out.bestiary) out.bestiary = fix(out.bestiary); if (out.bestiaryRewarded) out.bestiaryRewarded = fix(out.bestiaryRewarded);
+  return out;
+}
+
 export function migrateProgress(raw) {
   const base = baseProgress();
   if (!raw || typeof raw !== 'object') return base;
+  raw = migrateBishopOneName(raw);
   const coins = Math.max(0, Math.floor(Number(raw.coins) || 0));
   // Preserva nomes de saves antigos (2–16 caracteres) sem permitir novos nomes fora do limite atual.
   const named = sanitizePlayerName(raw.playerName || '');
@@ -153,7 +171,7 @@ export function migrateProgress(raw) {
       portalOpened: !!raw.portalOpened,
       portalRewardClaimed: !!raw.portalRewardClaimed,
       bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
-      valerioRewardClaimed: !!raw.valerioRewardClaimed,
+      vhazraelRewardClaimed: !!raw.vhazraelRewardClaimed,
       ...progressionFields(raw, step)
     };
     // Save do Ato I antigo (antes do Marco 2) parado no meio do ato: a etapa é mantida, mas a etapa recomeça
@@ -214,7 +232,7 @@ export function combatStep(step) {
 /* ---------- Falas (texto revisado; o original está em docs/roteiro/M2-ATO1.md) ---------- */
 export const SPEAKERS = {
   hero: 'heroi', guide: 'Anjo-Guia', vendor: 'Téo · Provisões', follower: 'Seguidor da Ganância',
-  demon: 'Demônio da Ganância', child: 'Criança', warden: 'Guardião do Portal', valerio: 'VHAZRAEL', victim: 'Morador'
+  demon: 'Demônio da Ganância', child: 'Criança', warden: 'Guardião do Portal', vhazrael: 'VHAZRAEL', victim: 'Morador'
 };
 const S = SPEAKERS;
 const say = (who, text, extra) => Object.assign({ type: 'say', who, text }, extra || {});
@@ -407,26 +425,26 @@ export function wardenDefeatScene() {
 }
 
 /** Dentro da dimensão, antes da luta. */
-export function valerioIntroScene() {
+export function vhazraelIntroScene() {
   return [
-    say(S.valerio, 'Quem é você, e como entrou aqui?'),
+    say(S.vhazrael, 'Quem é você, e como entrou aqui?'),
     say(S.hero, 'Você não precisa saber de nada, já que logo vai morrer.'),
-    say(S.valerio, 'Hahaha! Você acha que pode matar uma divindade?'),
+    say(S.vhazrael, 'Hahaha! Você acha que pode matar uma divindade?'),
     say(S.hero, 'Cadê a divindade? Não estou vendo nenhuma. Até agora, só vi uma: no Céu.'),
-    say(S.valerio, 'Espero que esteja preparado para morrer.')
+    say(S.vhazrael, 'Espero que esteja preparado para morrer.')
   ];
 }
 
 /** VHAZRAEL caindo. */
-export function valerioDefeatScene() {
+export function vhazraelDefeatScene() {
   return [
-    say(S.valerio, 'Não… não pode ser. Isso é impossível! Eu, uma divindade, um dos quatro Bispos da Ganância… derrotado por um humano.'),
-    say(S.valerio, 'Espera… você é realmente um humano?')
+    say(S.vhazrael, 'Não… não pode ser. Isso é impossível! Eu, uma divindade, um dos quatro Bispos da Ganância… derrotado por um humano.'),
+    say(S.vhazrael, 'Espera… você é realmente um humano?')
   ];
 }
 
 /** De volta ao início do mapa: o esgoto sumiu; tela escura e o Ato II. */
-export function afterValerioScene() {
+export function afterVhazraelScene() {
   return [
     shot('volta', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: 1, dist: 4.4 }, { with: [act('anjo-aparece')] }),
     say(S.guide, 'Então você realmente voltou vivo, né?'),
@@ -467,8 +485,8 @@ export function nextAct1Sub(step, sub) {
 }
 
 /** A entrada usa a dimensão estável já publicada. Não cria arena nova. */
-export function valerioHandoffPlan() {
-  return { mode: 'existing-dimension', replaceDimension: false, entry: './index.html?valerioTest=1&fromPortal=1' };
+export function vhazraelHandoffPlan() {
+  return { mode: 'existing-dimension', replaceDimension: false, entry: './index.html?vhazraelTest=1&fromPortal=1' };
 }
 
 export function portalBlockedLines() {
@@ -476,13 +494,13 @@ export function portalBlockedLines() {
 }
 
 /** Volta da dimensão: a vitória sobre VHAZRAEL fecha o Ato I uma única vez. */
-export function afterValerioVictory(progress) {
+export function afterVhazraelVictory(progress) {
   const p = progress || {};
-  const first = !p.valerioRewardClaimed;
+  const first = !p.vhazraelRewardClaimed;
   return {
     questStep: 8,
     bishopsDefeated: Math.max(1, Math.floor(Number(p.bishopsDefeated) || 0)),
-    valerioRewardClaimed: true,
-    coinsGained: first ? ACT1.valerioReward : 0
+    vhazraelRewardClaimed: true,
+    coinsGained: first ? ACT1.vhazraelReward : 0
   };
 }

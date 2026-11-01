@@ -4,7 +4,7 @@
  * O ouro sozinho nunca libera um item: cada oferta declara etapa da campanha e nível mínimos.
  */
 export const LEVELS = [0, 60, 150, 280, 450, 680, 980, 1350, 1800, 2350, 3000, 3750];
-export const XP_REWARDS = { captor: 22, demon2: 40, sentry: 32, warden: 70, rescue: 50, ruin: 15, valerio: 160, zealot: 45, hollow: 55 };
+export const XP_REWARDS = { captor: 22, demon2: 40, sentry: 32, warden: 70, rescue: 50, ruin: 15, vhazrael: 160, zealot: 45, hollow: 55 };
 
 export function levelFromXp(xp) {
   let lvl = 1;
@@ -120,7 +120,7 @@ export const BESTIARY = [
     lore: 'Anda em bando pelas trilhas e cobra em sangue o que os vivos não pagam em ouro.' },
   { id: 'warden', act: 1, name: 'Guardião do Portal', cls: 'Mini-chefe · Enemy1', img: 'Enemy1-ui.webp', discoveryReward: 6,
     lore: 'Guarda a dimensão de VHAZRAEL no fundo do esgoto. Mais pesado, golpe largo e mais resistente. Implora quando perde.' },
-  { id: 'valerio', act: 1, name: 'VHAZRAEL', cls: 'Primeiro Bispo · O Ceifador dos Condenados', img: 'Bispo1-ui.webp', discoveryReward: 10,
+  { id: 'vhazrael', act: 1, name: 'VHAZRAEL', cls: 'Primeiro Bispo · O Ceifador dos Condenados', img: 'Bispo1-ui.webp', discoveryReward: 10,
     lore: 'O Ceifador dos Condenados. Cobrava cada dívida com uma alma e fez da floresta um livro-caixa de vidas.' },
   { id: 'vorgazhek', act: 2, name: 'VORGAZHEK', cls: 'Segundo Bispo', img: 'Bispo2-ui.webp', discoveryReward: 14,
     lore: 'O Arauto das Almas Endividadas. Escrevia o nome dos devedores em três livros e cobrava dos vivos o que os mortos não pagaram.' },

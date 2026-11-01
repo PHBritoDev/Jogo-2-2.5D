@@ -159,6 +159,7 @@ export class Enemy1Squad {
     if (a.alert > 0) a.alert -= dt;
     if(a.airY>0||a.airV>0){a.airV-=18*dt;a.airY=Math.max(0,a.airY+a.airV*dt);if(!a.airY)a.airV=0;}
     const tgt = this.pickTarget(a, dt);
+    if (a.T.brain) a.T.brain(this, a, dt, tgt); // MOD 247: cérebro adaptativo opcional por espécie
     // reações rápidas (defesa, esquiva, contra-selo) agendadas com tempo de reação humano
     if (!a.react && !a.act && tgt) this.perceive(a, tgt);
     if (a.react && (a.react.t -= dt) <= 0) { const r = a.react; a.react = null; if (!a.act || a.act.type === 'move') this.startReaction(a, r, tgt); }
@@ -480,10 +481,10 @@ export class Enemy1Squad {
   }
   /** Dash no tempo certo solta das garras (depois de 0,3 s preso). Retorna true se escapou. */
   breakFree(targetId) {
-    const s = this.spells.find(o => o.type === 'claws' && o.held && o.held.id === targetId);
+    const s = this.spells.find(o => (o.type === 'claws' || o.grab) && o.held && o.held.id === targetId);
     if (!s || s.held.t < E1.escapeAfter) return false; this.release(s, false); return true;
   }
-  heldBy(targetId) { const s = this.spells.find(o => o.type === 'claws' && o.held && o.held.id === targetId); return s ? s.held : null; }
+  heldBy(targetId) { const s = this.spells.find(o => (o.type === 'claws' || o.grab) && o.held && o.held.id === targetId); return s ? s.held : null; }
   stepJudgment(s, dt) {
     const T = s.T, t = this.target(s.tid);
     if (s.phase === 'prep') {

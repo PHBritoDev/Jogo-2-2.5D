@@ -115,7 +115,7 @@ obrigatórias usam `playStory(...,{skippable:false})`. Golpe final: `foeFinalBlo
 
 ## Mod 218 — VHAZRAEL e figurantes
 
-`docs/roteiro/M14-VHAZRAEL-E-POLIMENTO.md`. Primeiro Bispo: VHAZRAEL (chaves internas `valerio`/`bishop1` mantidas).
+`docs/roteiro/M14-VHAZRAEL-E-POLIMENTO.md`. Primeiro Bispo: VHAZRAEL (chaves internas `vhazrael`/`bishop1` mantidas).
 Figurantes: `dressTownsfolk`; moradores de Cinzária: `CITY_ROUTES`/`updateCityFolk`. Asas do Anjo: ossos `AsaEsq`/`AsaDir`.
 
 ## Mod 229 — habilidades cinematográficas

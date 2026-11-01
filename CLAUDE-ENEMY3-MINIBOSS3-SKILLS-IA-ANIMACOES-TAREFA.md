@@ -57,7 +57,7 @@ Máquina de estados ou behavior tree simples: idle, alert, approach, strafe, win
 - 120 draw calls **é alvo aspiracional para a contribuição de VFX**, não um teto global garantido. Medir draw calls, triângulos, memória, frame time, shader compilation, picos de CPU/GPU no cenário real. Meta de 60 FPS onde hardware permitir, perfil degradado estável no Android e sem travadas perceptíveis; priorizar frame pacing. Níveis alto/médio/baixo com **mesma lógica de colisão, timing e silhueta legível**, reduzindo só detalhes/quantidade visual.
 - VFX no chão respeitam altura do terreno; raios e projéteis não atravessam obstáculos; hitboxes sincronizadas ao frame de contato; evitar dano duplo, memory leaks, `setTimeout` órfãos e estados presos.
 - Hitstop curto **somente em impacto confirmado**, câmera shake opcional/regulável, flashes controlados e opção reduzir movimento/fotossensibilidade. Não sacudir câmera de modo que jogador perca controle.
-- Não destruir árvores permanentemente, não alterar dimensão de Valério, narrativa, outros bispos, HUD, economia, saves, 5 espadas, habilidades existentes, Codex Mod244, Enemy1/Enemy2 ou compatibilidade do Android.
+- Não destruir árvores permanentemente, não alterar dimensão de VHAZRAEL, narrativa, outros bispos, HUD, economia, saves, 5 espadas, habilidades existentes, Codex Mod244, Enemy1/Enemy2 ou compatibilidade do Android.
 - Preferir módulos independentes e flags de ativação/rollback. Não modificar indiscriminadamente `mundo-3d-prototype.js`; fazer integração mínima.
 
 ## 9. TESTES E CRITÉRIOS DE ACEITE
