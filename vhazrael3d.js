@@ -8,10 +8,10 @@ import { BOSS_MOVES } from './boss-choreography3d.js';
  *    agressividade, distância favorita, uso de magia — que muda pesos e parâmetros DENTRO DE LIMITES: espinhos
  *    interceptam o lado preferido, guarda constante recebe quebra de guarda, quem foge recebe dash de aproximação,
  *    quem ataca demais recebe defesa/recuo e contra-ataque. Só sinais visíveis; nada de ler botão futuro.
- *  • Ruptura do Trono Abissal (throne, MOD 249): golpe especial INCANCELÁVEL (superarmadura do lançamento ao fim da
+ *  • Ruptura do Trono Abissal (throne, MOD 251): golpe especial INCANCELÁVEL (superarmadura do lançamento ao fim da
  *    recuperação: nenhum golpe, magia, stagger, knockback ou dano do herói o interrompe; vida zerada no meio adia a morte
- *    para o fim do golpe). Erguer a espada (0–1 s) → carga com pilar colossal (1–2,3 s) → preparo e CORTE (2,55 s) →
- *    feixe gigante que atravessa a arena rasgando o chão → colisão com explosão em várias fases → recuperação (~6,2 s).
+ *    para o fim do golpe). Erguer a espada (0–1,65 s) → carga com pilar colossal (1,65–4,45 s) → preparo e CORTE (5,15 s) →
+ *    feixe rasga o chão até tocar o herói/obstáculo → dano no contato → núcleo e choque no MESMO ponto → recuperação.
  *  • Floresta de Espinhos Abissais (thorns): ondas de espinhos finos e diagonais; rachadura no chão mostra cada um
  *    antes; arcos assimétricos com vãos, um dano por onda e alvo.
  *  • Entidade do Terror (terror): silhueta colossal atrás do bispo; mãos dentadas saem de rachaduras marcadas,
@@ -28,7 +28,7 @@ const lead = (t, k, cap) => ({ x: t.x + clamp((t.vx || 0) * k, -cap, cap), z: t.
 const anyActive = (sq, type) => sq.spells.some(s => s.type === type && !s.dead && s.phase !== 'fade');
 const channeling = (sq, s) => { const o = sq.actor(s.owner); return !!(o && o.alive && o.act && o.act.type === 'cast' && o.act.spellId === s.id); };
 
-export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 14, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 2.8, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, blast: 1.05, fade: 2.8 };
+export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 14, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 2.8, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, shockAt: .65, blast: 1.05, fade: 2.8 };
 export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 9, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
 export const TERROR = { min: 2, max: 16, cast: 1.6, release: .4, cd: 16, anim: 'idle', channel: false, rise: 1.2, hands: 4, warn: .8, reach: .95, hold: 1.6, tick: .5, tickDmg: 4, endDmg: 6, fade: 1.1, grab: true, life: 4.6 };
 export const BROOD = { min: 0, max: 30, cast: 1.4, release: .5, cd: 14, anim: 'idle', open: .9, cap: 2, capRage: 3, kingAt: .45 };
@@ -131,21 +131,68 @@ registerSkill('throne', {
       return;
     }
     if (s.phase === 'wave') {
-      const prev = s.front; s.front = Math.min(s.len, s.front + T.speed * dt); let stop = false;
-      for (const tg of live(sq)) {
-        if (s.hit.has(tg.id)) continue; const rx = tg.x - s.x, rz = tg.z - s.z, along = rx * s.dx + rz * s.dz, side = Math.abs(rx * s.dz - rz * s.dx);
-        if (along < prev - tg.radius || along > s.front + tg.radius || side > T.w + tg.radius) continue;
-        if ((tg.air || 0) > T.h) { if (!s.jumped) { s.jumped = true; sq.event('jumpedWave', { spell: s, target: tg.id }); } continue; }
-        if (tg.iframes) continue; s.hit.add(tg.id); sq.damageTarget(tg.id, T.dmg, { kind: 'throne', spell: s.id, x: s.x, z: s.z, knock: 1.8, guardBreak: s.guardBreak });
+      // Mod 251: a frente é uma única lâmina de energia. O PRIMEIRO contato válido
+      // (herói ou parede) encerra o feixe exatamente no local do impacto.
+      // Varredura contínua impede atravessar obstáculos entre dois frames.
+      const prev = s.front, next = Math.min(s.len, prev + T.speed * dt);
+      let stopAt = next, contact = null, obstruction = false;
+      for (let d = Math.max(0, prev); d <= next + 1e-6; d += .25) {
+        if (sq.blocked(s.x + s.dx * d, s.z + s.dz * d)) {
+          stopAt = Math.max(prev, d - .12); obstruction = true; break;
+        }
       }
-      const fx = s.x + s.dx * s.front, fz = s.z + s.dz * s.front; if (sq.blocked(fx, fz)) { s.front = Math.max(0, s.front - .3); stop = true; }
-      if (stop || s.front >= s.len) { s.phase = 'impact'; s.t = 0; s.ix = s.x + s.dx * s.front; s.iz = s.z + s.dz * s.front; s.iy = sq.ground(s.ix, s.iz);
-        for (const tg of live(sq)) if (!s.hit.has(tg.id) && !tg.iframes && Math.hypot(tg.x - s.ix, tg.z - s.iz) < T.endR + tg.radius) { s.hit.add(tg.id); sq.damageTarget(tg.id, T.endDmg, { kind: 'throneImpact', spell: s.id, x: s.ix, z: s.iz, knock: 1.4 }); }
-        sq.event('throneImpact', { spell: s }); }
+      if (!obstruction && sq.blocked(s.x + s.dx * next, s.z + s.dz * next)) {
+        stopAt = Math.max(prev, next - .12); obstruction = true;
+      }
+      for (const tg of live(sq)) {
+        if (s.hit.has(tg.id)) continue;
+        const rx = tg.x - s.x, rz = tg.z - s.z;
+        const along = rx * s.dx + rz * s.dz, side = Math.abs(rx * s.dz - rz * s.dx);
+        if (along < prev - tg.radius || along > stopAt + tg.radius || side > T.w + tg.radius) continue;
+        if ((tg.air || 0) > T.h) {
+          if (!s.jumped) { s.jumped = true; sq.event('jumpedWave', { spell: s, target: tg.id }); }
+          continue;
+        }
+        if (tg.iframes) continue; // dash invulnerável continua atravessável
+        const at = clamp(along - tg.radius, prev, stopAt);
+        if (!contact || at < contact.at) contact = { at, id: tg.id };
+      }
+      if (contact) {
+        stopAt = contact.at; s.hit.add(contact.id);
+        sq.damageTarget(contact.id, T.dmg, { kind: 'throne', spell: s.id,
+          x: s.x + s.dx * stopAt, z: s.z + s.dz * stopAt, knock: 1.8, guardBreak: s.guardBreak });
+        sq.event('throneContact', { spell: s, target: contact.id });
+      }
+      s.front = stopAt;
+      if (contact || obstruction || next >= s.len) {
+        s.phase = 'impact'; s.t = 0;
+        s.impactKind = contact ? 'target' : obstruction ? 'terrain' : 'ground';
+        s.impactTarget = contact?.id ?? null;
+        s.ix = s.x + s.dx * stopAt; s.iz = s.z + s.dz * stopAt;
+        s.iy = sq.ground(s.ix, s.iz); // centro único para núcleo, rachaduras e ondas
+        sq.event('throneImpact', { spell: s, reason: s.impactKind });
+      }
       return;
     }
-    if (s.phase === 'impact') { if (!s.blasted && s.t >= T.blast) { s.blasted = true; sq.event('throneBlast', { spell: s }); } if (s.t >= T.impact) { s.phase = 'fade'; s.t = 0; } }
-    else if (s.phase === 'fade' && s.t >= T.fade) s.dead = true;
+    if (s.phase === 'impact') {
+      // A onda de choque nasce do ponto de colisão, NÃO é outro projétil.
+      // Dano direto já ocorreu no contato: ninguém recebe duas vezes.
+      if (!s.shocked && s.t >= T.shockAt) {
+        s.shocked = true;
+        for (const tg of live(sq)) {
+          if (s.hit.has(tg.id) || tg.iframes ||
+              Math.hypot(tg.x - s.ix, tg.z - s.iz) >= T.endR + tg.radius ||
+              (s.impactKind === 'terrain' && sq.los && !sq.los(s.ix, s.iz, tg.x, tg.z))) continue;
+          s.hit.add(tg.id);
+          sq.damageTarget(tg.id, T.endDmg, { kind: 'throneImpact', spell: s.id,
+            x: s.ix, z: s.iz, knock: 1.4 });
+        }
+        sq.event('throneShockwave', { spell: s });
+      }
+      if (!s.blasted && s.t >= T.blast) { s.blasted = true; sq.event('throneBlast', { spell: s }); }
+      if (s.t >= T.impact) { s.phase = 'fade'; s.t = 0; }
+    }
+        else if (s.phase === 'fade' && s.t >= T.fade) s.dead = true;
   },
   danger(sq, s) { return s.phase === 'wave' ? { x: s.x + s.dx * s.front, z: s.z + s.dz * s.front, r: s.T.w + 1, until: .4 } : null; }
 });
