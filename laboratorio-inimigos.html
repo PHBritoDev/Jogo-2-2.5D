@@ -6,6 +6,6 @@
 <footer>Use os botões do laboratório dentro do jogo para escolher 1, 3, 5 inimigos, guardião, mini-chefe e poderes quando disponíveis. Trocar o tipo recarrega a arena. Use ⏸ PARAR / ▶ LUTAR e ⚡ CONJURAR no painel do jogo. O seletor mostra poderes compatíveis do inimigo em foco. Escopo atual: Enemy1, Enemy2, Enemy3, Enemy4 e mini-bosses 1, 2, 3, 4.</footer>
 <script>
 const game=document.getElementById('game'),enemy=document.getElementById('enemy'),open=document.getElementById('open');
-function route(){const url='mundo-3d-prototype.html?'+enemy.value+'=1&todasHabilidades=1';game.src=url;open.href=url;}
+function route(){const url='mundo-3d-prototype.html?'+enemy.value+'=1&todasHabilidades=1&build=252';game.src=url;open.href=url;}
 document.getElementById('load').onclick=route;document.getElementById('reset').onclick=()=>{game.src=game.src};enemy.onchange=route;route();
 </script></body></html>
