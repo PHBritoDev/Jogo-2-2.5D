@@ -76,14 +76,27 @@ const TONG_F = `${NOISE}${CUT} uniform float time, near; varying vec4 vP; varyin
 void main(){ if(cutAway(vV,near)) discard; float n=n2(vec2(vU.y*7.-time*9.+vP.w*13.,vU.x*2.)); float d=abs(vU.x)+(n-.5)*.42+vU.y*.18; if(d>.98||n2(vU*6.+vP.w*3.)<vP.z) discard;
  vec3 c=vP.y<.5?(d<.22*vP.x?vec3(1.,.95,.98):d<.55?vec3(1.,.08,.24):d<.8?vec3(.55,0.,.07):vec3(.05,0.,.05)):vP.y<1.5?(d<.4?vec3(.5,.06,.85):vec3(.015,0.,.02)):(d<.2*vP.x?vec3(1.,.98,.86):d<.45?vec3(1.,.78,.2):d<.7?vec3(1.,.36,.05):d<.86?vec3(.45,.05,.02):vec3(.03,0.,.02));
  gl_FragColor=vec4(c,1.); }`;
-/* domo de energia: roxo profundo → magenta em faixas, borda clara, RASGOS negros verticais que escorrem; erode por ruído */
-const DOME_V = `varying vec3 vN; varying vec3 vV; varying vec3 vP; void main(){ vP=position; vec4 w=modelMatrix*vec4(position,1.); vN=normalize(mat3(modelMatrix)*normal); vV=cameraPosition-w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
-const DOME_F = `${NOISE}${CUT} uniform float time, erode, near, heat; varying vec3 vN; varying vec3 vV; varying vec3 vP;
-void main(){ if(cutAway(vV,near)) discard; float lat=clamp(vP.y,0.,1.), ang=atan(vP.z,vP.x); float er=fbm(vec2(ang*3.,lat*5.-time*.6)); if(er<erode) discard;
- float f=abs(dot(normalize(vN),normalize(vV))), sw=fbm(vec2(ang*2.2+lat*3.+time*.9,lat*4.-time*1.5));
- float rip=smoothstep(.62,.66,n2(vec2(ang*9.+sin(lat*6.)*.6,lat*1.4-time*.8)))*smoothstep(.1,.35,lat);
- float v=(1.-f)*.9+sw*.45+heat*.2; vec3 c=v>1.05?vec3(1.,.82,.98):v>.82?vec3(.95,.12,.62):v>.58?vec3(.6,.03,.55):vec3(.2,.01,.33);
- c=mix(c,vec3(.015,0.,.025),rip); c=mix(c,vec3(1.,.3,.8),smoothstep(erode+.06,erode,er)*step(.01,erode)); gl_FragColor=vec4(c,1.); }`;
+/* Mod 251: casca facetada de energia densa; cortes iluminados, não fumaça. */
+const DOME_V = `${NOISE} uniform float time; varying vec3 vN; varying vec3 vV; varying vec3 vP;
+void main(){ vP=position; float j=n3(position*3.8+vec3(0.,time*.45,0.));
+vec3 p=position*(1.+(j-.5)*.16); vec4 w=modelMatrix*vec4(p,1.);
+vN=normalize(mat3(modelMatrix)*normal); vV=cameraPosition-w.xyz;
+gl_Position=projectionMatrix*viewMatrix*w; }`;
+const DOME_F = `${NOISE}${CUT} uniform float time, erode, near, heat;
+varying vec3 vN; varying vec3 vV; varying vec3 vP;
+void main(){ if(cutAway(vV,near)) discard;
+float crack=n3(vP*5.5+vec3(time*.2,0.,-time*.17));
+if(crack<erode*.72) discard;
+float front=abs(dot(normalize(vN),normalize(vV))), edge=1.-front;
+float v=crack*.8+front*.28; vec3 c;
+if(v>.88) c=vec3(1.,.98,.89);
+else if(v>.67) c=vec3(1.,.58,.48);
+else if(v>.45) c=vec3(.9,.035,.12);
+else if(v>.30) c=vec3(.33,.005,.045);
+else c=vec3(.014,0.,.026);
+c=mix(c,vec3(.007,0.,.012),smoothstep(.52,.88,edge)*.9);
+if(crack>.87) c=mix(c,vec3(1.,.92,.84),.7);
+gl_FragColor=vec4(c,1.); }`;
 /* fitas de tinta (blending normal: preto e violeta escuros APARECEM) */
 const INK_V = `attribute vec4 aColor; attribute vec2 aUv2; varying vec4 vC; varying vec2 vU; varying vec3 vV; void main(){ vC=aColor; vU=aUv2; vec4 w=modelMatrix*vec4(position,1.); vV=cameraPosition-w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
 const INK_F = `${CUT} uniform float near; varying vec4 vC; varying vec2 vU; varying vec3 vV; void main(){ if(cutAway(vV,near)) discard; float e=abs(vU.y*2.-1.); float a=vC.a*(1.-smoothstep(.55,1.,e)); if(a<.02) discard; gl_FragColor=vec4(vC.rgb,a); }`;
@@ -144,7 +157,7 @@ export function createRuptureVFX(T, kit) {
   /** língua de chama de p na direção dir (comprimento L, largura W), virada para a câmera em torno do próprio eixo */
   const tongue = (px, py, pz, dx, dy, dz, L, W, core, pal, dis, seed) => { if (L <= .05 || dis >= 1) return; D.set(dx, dy, dz).normalize(); E.set(cam.x - px, cam.y - py, cam.z - pz); X.crossVectors(D, E).normalize(); Z.crossVectors(X, D);
     M.makeBasis(X, D, Z); Q.setFromRotationMatrix(M); A.set(px, py, pz); putI(tongues, A, Q, W, L, W, core, pal, dis, seed); };
-  const domeG = new T.SphereGeometry(1, 36, 14, 0, Math.PI * 2, 0, Math.PI / 2); geos.push(domeG);
+  const domeG = new T.IcosahedronGeometry(1, 1).toNonIndexed(); geos.push(domeG);
   const domeM = new T.ShaderMaterial({ vertexShader: DOME_V, fragmentShader: DOME_F, uniforms: { time: uTime, erode: { value: 0 }, near: { value: 2.6 }, heat: { value: 1 }, hole: uHole }, side: T.DoubleSide, toneMapped: false, fog: false }); mats.push(domeM);
   const dome = new T.Mesh(domeG, domeM); dome.frustumCulled = false; dome.visible = false; root.add(dome);
   const ink = strips(T, 900, INK_F, false, uHole), fan = strips(T, 64, FAN_F, true, uHole); mats.push(ink.mat, fan.mat); geos.push(ink.geo, fan.geo); root.add(ink.mesh, fan.mesh);
@@ -228,13 +241,15 @@ export function createRuptureVFX(T, kit) {
 
   /* ---------- D: feixe e chão rasgado ---------- */
   function drawBeam(s, boss) {
-    const T0 = s.T, sp = T0.speed, ba = s.age - T0.cut, front = s.phase === 'wave' ? s.front : s.len, it = s.phase === 'wave' ? -1 : s.phase === 'impact' ? s.t : T0.impact + s.t, gy = ground(s.x, s.z);
+    const T0 = s.T, sp = T0.speed, ba = s.age - T0.cut, front = s.front, it = s.phase === 'wave' ? -1 : s.phase === 'impact' ? s.t : T0.impact + s.t, gy = ground(s.x, s.z);
     const ero = smooth((it - .1) / .6), alive = it < .75, px = -s.dz, pz = s.dx, w1 = 4.6, sx = s.x, sz = s.z;
     if (alive && front > .6) { Fv.set(s.dx, 0, s.dz); Q.setFromUnitVectors(up, Fv); X.set(px, 0, pz); Z.set(0, 1, 0); M.makeBasis(X, Fv, Z); Q.setFromRotationMatrix(M);
       for (let l = 0; l < 2; l++) { const o = beam[l], u = o.material.uniforms, k = l ? 1 : .5; o.visible = true; o.position.set(sx - s.dx * .6, gy + .05, sz - s.dz * .6); o.quaternion.copy(Q); u.len.value = front + .6; u.w0.value = .45 * k; u.w1.value = w1 * k; u.h0.value = .8 * k; u.h1.value = 5.4 * k; u.erode.value = ero; }
       // parede de massa carmim e línguas na FRENTE (só enquanto avança)
       if (s.phase === 'wave') { const fx = sx + s.dx * front, fz = sz + s.dz * front, fy = ground(fx, fz);
-        for (let i = 0; i < (low ? 2 : 3); i++) { const j = hash(i * 5.3) - .5, r = .8 + hash(i + 2) * .6; puff(fx + px * j * 5 + s.dx * (hash(i + 8) - .3) * 2, fy + .8 + hash(i + 4) * 3.2, fz + pz * j * 5 + s.dz * (hash(i + 8) - .3) * 2, r * (.85 + .15 * Math.sin(time * 19 + i)), .95, 1, 0, hash(i + 13 + Math.floor(time * 8))); }
+        // Frente cortante: eixo de energia nítido sem bolas flutuantes.
+        rib.seg(fx - px * 2.3, fy + 1.9, fz - pz * 2.3, fx + px * 2.3, fy + 1.9, fz + pz * 2.3, .25, .25, c4(WHITE, .95), c4(WHITE, .95));
+        rib.seg(fx - s.dx * 2.5, fy + 2.4, fz - s.dz * 2.5, fx + s.dx * 1.5, fy + 2.4, fz + s.dz * 1.5, .29, .13, c4(RED, .94), c4(WHITE, .85));
         for (let i = 0; i < (low ? 6 : 16); i++) { const sd = i % 2 ? 1 : -1, a = .2 + hash(i + 3) * 1.1; tongue(fx + px * sd * (.6 + hash(i + 7) * 1.6), fy + .3 + hash(i + 9) * 2.5, fz + pz * sd * (.6 + hash(i + 7) * 1.6), s.dx * (.9 - .4 * hash(i)) + px * sd * Math.sin(a), Math.cos(a) * .9, s.dz * (.9 - .4 * hash(i)) + pz * sd * Math.sin(a), 5 + hash(i) * 6, 1.6 + hash(i + 1) * 1.4, .9, i % 5 === 0 ? 1 : 0, 0, hash(i + Math.floor(time * 12))); }
         glow.add(fx, fy + 2, fz, 7, 5, 1, .2, .4, .8, 0); }
       // línguas abrindo em V nos flancos e gavinhas negras
