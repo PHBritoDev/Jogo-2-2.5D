@@ -176,7 +176,7 @@ const THEMES = {
       c.fillStyle = '#100608'; c.beginPath(); c.moveTo(110, 320); c.quadraticCurveTo(256, 470, 400, 320); c.quadraticCurveTo(256, 400, 110, 320); c.fill();
       c.fillStyle = '#e8e4e0'; for (let i = 0; i < 9; i++) { const x = 130 + i * 31; c.fillRect(x, 345 + Math.sin(i / 8 * Math.PI) * 28, 20, 24); }
     });
-    const moon = new THREE.Mesh(new THREE.SphereGeometry(15, 24, 16), new THREE.MeshBasicMaterial({ map: moonTex, fog: false, toneMapped: false })); moon.position.set(70, 80, -110); moon.lookAt(0, 20, 0); g.add(moon);
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(15, 24, 16), new THREE.MeshBasicMaterial({ map: moonTex, fog: false, toneMapped: false })); moon.position.set(70, 80, -110); moon.lookAt(0, 20, 0); moon.name = 'VorgazhekMoonAmbient'; g.add(moon); // MOD 261: o eclipse da espada esconde e devolve esta lua
     ctx.tick.push((t, dt) => { monoMesh.position.y = Math.sin(t * .35) * 1.2; rim.material.color.setHSL(.99, .85, .5 + .08 * Math.sin(t * 2.2)); });
     return { bg: 0x050102, fog: 0x0c0204, fogNear: 22, fogFar: 170, hemi: [0xff8890, 0x40080c, .95], sun: [0xff9a9a, .5], light: [0xff3040, 3.4, 90, [0, 12, 0]], exposure: 1.2 };
   },

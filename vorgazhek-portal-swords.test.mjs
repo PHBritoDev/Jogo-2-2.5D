@@ -97,18 +97,18 @@ test('Mod 260 — rastros terminam e nada sobra; interrupção limpa sem dano', 
   assert.equal(hits, 0); assert.equal(fires, 0); assert.ok(ps.done && ps.st.swords.length === 0 && firedAtAbort > 0);
 });
 
-test('Mod 260 — kit do Bispo 2: só s1 (tornados) e s3 (portais); s2/espada/ultimate reservados; outros perfis intactos', () => {
+test('Mod 260/261 — kit do Bispo 2: s1 (tornados), s3 (portais) e espada (Eclipse, Mod 261); s2/ultimate reservados; outros perfis intactos', () => {
   const k = kitFor('vorgazhek'); assert.equal(k, kitFor('fallen2'));
   assert.equal(k.skills[0].type, 'tornadoes'); assert.equal(k.skills[2].type, 'portal_swords'); assert.equal(k.skills[2].name, 'DOMÍNIO DAS LÂMINAS ENDIVIDADAS');
-  assert.ok(k.skills[1].disabled && k.sword.disabled && k.ult.disabled);
+  assert.ok(k.skills[1].disabled && k.ult.disabled); assert.equal(k.sword.type, 'vorgazhek_eclipse_sword'); // MOD 261 ativou só o slot da espada
   const names = JSON.stringify(k); for (const old of ['Lâminas de Metal Líquido', 'Golpe da Forja', 'FORNALHA DA DÍVIDA', 'Explosões da Forja', "'forge'"]) assert.ok(!names.includes(old), 'removido: ' + old);
-  const seen = new Set(); for (const prof of ['vorgazhek', 'fallen2']) for (const d of [1, 2, 4, 6, 10, 15]) for (const cds of [{}, { s1: 5 }, { s3: 5 }, { s1: 5, s3: 5 }]) { const m = pickMove(prof, cds, d, ''); if (m) seen.add(m.id); }
-  assert.deepEqual([...seen].sort(), ['s1', 's3']);
+  const seen = new Set(); for (const prof of ['vorgazhek', 'fallen2']) for (const d of [1, 2, 4, 6, 10, 15]) for (const cds of [{ sw: 9 }, { sw: 9, s1: 5 }, { sw: 9, s3: 5 }, { sw: 9, s1: 5, s3: 5 }]) { const m = pickMove(prof, cds, d, ''); if (m) seen.add(m.id); }
+  assert.deepEqual([...seen].sort(), ['s1', 's3']); // com a espada em recarga, só as duas magias
   assert.equal(ultimateFor('vorgazhek'), null); assert.equal(ultimateFor('fallen2'), null); assert.equal(ultimateDue('vorgazhek', .1, 0), -1);
   for (const p of ['vhazrael', 'zarkhael', 'greed3', 'fallen1', 'fallen3']) { assert.ok(ultimateFor(p), 'ultimate de ' + p); assert.ok(pickMove(p, {}, 4, ''), 'kit de ' + p); }
   assert.equal(KITS.vhazrael.sword.disabled, undefined);
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("case 'portal_swords':startPortalSwords(m);break;") && src.includes('updatePortalSwords(dt);') && src.includes('stopPortalSwords();stopTornadoRitual();useRig'), 'ligado ao motor real e limpo ao sair');
   assert.ok(!src.includes('BOSS_POWERS.vorgazhek') && !src.includes('BOSS_POWERS.fallen2') && !src.includes("kind==='forge'"), 'sem rota secundária antiga');
-  assert.ok(src.includes('if(portalSwords||tornadoRitual)return;') && src.includes('if(tornadoRitual||portalSwords){kitState.t'), 'não empilha com os Vórtices e o bispo espera');
+  assert.ok(src.includes('if(portalSwords||tornadoRitual||eclipseSword)return;') && src.includes('if(tornadoRitual||portalSwords||eclipseSword){kitState.t'), 'não empilha com os Vórtices e o bispo espera');
 });
