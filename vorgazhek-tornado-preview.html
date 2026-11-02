@@ -1,0 +1,20 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VORGAZHEK · Vórtices · prévia</title>
+<style>body{margin:0;background:#120507;color:#ffe;font:12px monospace}canvas{display:block}#i{position:absolute;top:6px;left:8px;pointer-events:none}</style><div id="i"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+/* MOD 256 — prévia/QA dos Vórtices do Pacto Escarlate com o MESMO ritual e VFX do jogo. ?t=segundos congela; ?cam=near|wide|top; ?ground=dark|light; ?low=1 */
+import * as T from 'three';import {createTornadoRitual,createTornadoVFX} from './vorgazhek-tornado3d.js';
+const q=new URLSearchParams(location.search),freeze=q.has('t')?+q.get('t'):null,camMode=q.get('cam')||'wide',low=q.has('low')?0:1;
+const scene=new T.Scene();scene.background=new T.Color(q.get('ground')==='light'?'#9aa4a8':'#1a0608');const camera=new T.PerspectiveCamera(55,innerWidth/innerHeight,.1,500);
+const r=new T.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);r.toneMapping=T.ACESFilmicToneMapping;r.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(r.domElement);
+scene.add(new T.HemisphereLight(0xffd8d8,0x302020,1.4));const sun=new T.DirectionalLight(0xffffff,1.2);sun.position.set(5,10,4);scene.add(sun);
+const fl=new T.Mesh(new T.PlaneGeometry(120,120),new T.MeshStandardMaterial({color:q.get('ground')==='light'?0x8a8a7a:0x2a0c0e,roughness:1}));fl.rotation.x=-Math.PI/2;scene.add(fl);
+const hero=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xe8e2d0}));hero.position.y=.87;scene.add(hero);
+let s=7;const rand=()=>{s=(s*16807)%2147483647;return s/2147483647;};
+const rit=createTornadoRitual({rand,dmg:8}).start({x:0,z:0}),vfx=createTornadoVFX(T,scene,{base:'./'});let time=0,hits=0;
+function step(dt){time+=dt;for(const e of rit.step(dt,{x:0,z:0,iframes:false,radius:.4}))if(e.type==='hit')hits++;vfx.update(rit,dt,low);}
+function cam(){if(camMode==='near'){const o=rit.st.tornados[0]||{x:3,z:0};camera.position.set(o.x+5.5,2.4,o.z+6.5);camera.lookAt(o.x,3.2,o.z);}else if(camMode==='top'){camera.position.set(0,16,7);camera.lookAt(0,0,0);}else{camera.position.set(0,6.5,14);camera.lookAt(0,2.6,0);}}
+function info(){document.getElementById('i').textContent='t '+time.toFixed(2)+' fase '+rit.st.phase+' onda '+rit.st.wave+' n '+rit.st.tornados.length+' acertos '+hits+' chamadas '+r.info.render.calls+'\n'+rit.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2)).join(' ');}
+function frame(){requestAnimationFrame(frame);if(freeze===null)step(1/60);cam();info();r.render(scene,camera);}
+if(freeze!==null){const n=Math.round(freeze*60);for(let i=0;i<n;i++)step(1/60);setTimeout(()=>{window.__ready=true;},600);}frame();
+</script></html>
