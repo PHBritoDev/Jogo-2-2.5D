@@ -27,7 +27,7 @@ export function moonPlacement(cam, boss, o = {}) {
   let tx = boss.x - cam.x, ty = (boss.y + (o.aimH ?? 4.6)) - cam.y, tz = boss.z - cam.z; const hl = Math.hypot(tx, tz) || 1, hx = tx / hl, hz = tz / hl;
   let elev = Math.atan2(ty, hl) + (o.up ?? .12), yaw = Math.atan2(hx, hz) - side * (o.lat ?? .14); // pitch acima do bispo, lateral para o lado da espada
   elev = Math.max(.12, Math.min(1.05, elev));
-  const D = o.dist ?? Math.max(20, Math.min(E.moonDist, hl + 14)), /* logo além do bispo: entre ele e as construções do fundo, nunca escondida atrás delas */ c = Math.cos(elev), x = cam.x + Math.sin(yaw) * c * D, y = cam.y + Math.sin(elev) * D, z = cam.z + Math.cos(yaw) * c * D, r = Math.tan(E.moonAng) * D;
+  const D = o.dist ?? Math.max(14, Math.min(E.moonDist, hl + 6)), /* logo além do bispo: entre ele e as construções do fundo, nunca escondida atrás delas */ c = Math.cos(elev), x = cam.x + Math.sin(yaw) * c * D, y = cam.y + Math.sin(elev) * D, z = cam.z + Math.cos(yaw) * c * D, r = Math.tan(E.moonAng) * D;
   return { x, y: Math.max(y, ground + r + 3), z, r, elev, yaw, dist: D };
 }
 
@@ -165,7 +165,7 @@ function spikeGeo(T) { const pos = [], uv = [], idx = [], N = 8; for (let j = 0;
 /** Crescente com 3 lâminas empilhadas (espessura visível de lado). Plano XZ, frente +Z, corda em X; pontas em z≈0. */
 function crescentGeo(T, Ro = 3.4, span = 1.25, seg = 40, dep = 6) {
   const pos = [], uv = [], sh = [], idx = []; let base = 0;
-  for (const [yy, sc, s] of [[-.22, .9, 0], [0, 1, 1], [.22, .9, 2]]) { const R = Ro * sc;
+  for (const [yy, sc, s] of [[-.85, .62, 0], [-.45, .88, 0], [0, 1, 1], [.45, .88, 2], [.85, .62, 2]]) { const R = Ro * sc; /* 5 lâminas em cúpula: legível de frente e de lado */
     for (let i = 0; i <= seg; i++) { const u = i / seg * 2 - 1, a = u * span, th = (1.25 * (1 - Math.abs(u) ** 1.7) + .06) * sc; for (let j = 0; j <= dep; j++) { const v = j / dep, rr = R - v * th; pos.push(Math.sin(a) * rr, yy * (1 - Math.abs(u) * .6), Math.cos(a) * rr - R * Math.cos(span)); uv.push(u, v); sh.push(s); } }
     for (let i = 0; i < seg; i++) for (let j = 0; j < dep; j++) { const a = base + i * (dep + 1) + j, b = a + dep + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
     base += (seg + 1) * (dep + 1); }
@@ -262,14 +262,14 @@ export function createEclipseVFX(T, scene) {
         // espada real na mão direita, ao longo do antebraço
         if (swordReady && ctx.hand && ctx.armDir) { holder.position.copy(ctx.hand); Y.copy(ctx.armDir).normalize(); X.set(-Math.cos(B.yaw), 0, Math.sin(B.yaw)); X.addScaledVector(Y, -X.dot(Y)); if (X.lengthSq() < 1e-6) X.set(1, 0, 0); X.normalize(); Z.crossVectors(X, Y); M.makeBasis(X, Y, Z); holder.quaternion.setFromRotationMatrix(M);
           const show = st.phase === 'charge' ? Math.min(1, st.pt / .3) : st.phase === 'release' || st.phase === 'impact' ? 1 : st.moon; holder.visible = show > .01; for (const m of swordMats) { m.opacity = show; m.emissiveIntensity = .2 + 1.6 * st.aura; m.depthWrite = show > .95; } } else holder.visible = false;
-        aura(B, sm(st.level), st.aura * (st.phase === 'abort' ? st.moon : 1), low, B.yaw);
+        if (!ctx.qaHide || !ctx.qaHide.includes('aura')) aura(B, sm(st.level), st.aura * (st.phase === 'abort' ? st.moon : 1), low, B.yaw);
         const s = st.slash; slash.visible = !!s;
         if (s) { D.set(s.dx, 0, s.dz).normalize(); Z.set(s.dx, s.dy, s.dz).normalize(); X.crossVectors(UP, Z).normalize(); Y.crossVectors(Z, X); M.makeBasis(X, Y, Z); Q.setFromRotationMatrix(M); Q.multiply(Q2.setFromAxisAngle(tmp.set(0, 0, 1), .45)); // corte diagonal
-          slash.position.set(s.x, s.y, s.z); slash.quaternion.copy(Q); const sc = 1 + .15 * Math.sin(time * 30); slash.scale.set(sc, 1, 1); slashU.alpha.value = 1;
+          slash.position.set(s.x, s.y, s.z); slash.quaternion.copy(Q); const sc = 1 + .15 * Math.sin(time * 30); slash.scale.set(sc, 1, 1); slashU.alpha.value = 1; Q.identity(); S.setScalar(3.4); M.compose(slash.position, Q, S); put(glows, [.7, .4, 1, .9]);
           // pontas deixam rastro
           if (trailN < trail.length) trailN++; for (let i = trailN - 1; i > 0; i--) { trail[i][0].copy(trail[i - 1][0]); trail[i][1].copy(trail[i - 1][1]); } const R = 3.4, sp = 1.25; trail[0][0].set(Math.sin(sp) * R * .95, 0, 0).applyQuaternion(Q).add(slash.position); trail[0][1].set(-Math.sin(sp) * R * .95, 0, 0).applyQuaternion(Q).add(slash.position); }
         else if (trailN > 0 && st.phase !== 'release') trailN = Math.max(0, trailN - 2);
-        if (trailN > 2) for (const side of [0, 1]) { for (let i = 0; i < trailN; i++) pts[i].copy(trail[i][side]); strip(trailN, 3, u => (1 - u) * .9, side * 3.3, 1, u => .55 * (1 - u) + .04); }
+        if (trailN > 2 && !(ctx.qaHide && ctx.qaHide.includes('trail'))) for (const side of [0, 1]) { for (let i = 0; i < trailN; i++) pts[i].copy(trail[i][side]); strip(trailN, 3, u => (1 - u) * .9, side * 3.3, 1, u => .55 * (1 - u) + .04); }
         if (st.impact && st.phase === 'impact') vortex({ x: st.impact.x, y: st.impact.y, z: st.impact.z, R: st.impact.kind === 'hero' ? 2.3 : 3, seed: (st.impact.x * 7.13) % 1 }, Math.min(1, st.impact.t / 2.4), low);
         if (ctx.oldMoon) ctx.oldMoon.visible = false;
       } else { moon.visible = false; slash.visible = false; holder.visible = false; moonSet = false; trailN = 0; }

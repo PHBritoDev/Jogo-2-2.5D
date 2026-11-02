@@ -65,7 +65,7 @@ test('Mod 261 — eclipse composto atrás/acima do bispo, do lado da espada, aci
       const toB = Math.atan2(boss.x - cam.x, boss.z - cam.z), toM = Math.atan2(m.x - cam.x, m.z - cam.z), dyaw = Math.atan2(Math.sin(toM - toB), Math.cos(toM - toB));
       assert.ok(Math.abs(dyaw) > .08 && Math.abs(dyaw) < .3 && Math.sign(dyaw) === -side, 'ligeiramente para o lado da espada');
       const hb = Math.hypot(boss.x - cam.x, boss.z - cam.z), hm = Math.hypot(m.x - cam.x, m.z - cam.z), eB = Math.atan2(boss.y + 4.6 - cam.y, hb), eM = Math.atan2(m.y - cam.y, hm);
-      assert.ok(eM > eB && eM - eB < .4, 'logo acima da ponta da espada'); assert.ok(hm > hb + 5, 'atrás do bispo'); assert.ok(m.dist <= ECLIPSE.moonDist, 'antes das construções do fundo');
+      assert.ok(eM > eB && eM - eB < .4, 'logo acima da ponta da espada'); assert.ok(hm > hb + 3, 'atrás do bispo'); assert.ok(m.dist <= ECLIPSE.moonDist, 'antes das construções do fundo');
       assert.ok(m.y - m.r > boss.y + 2, 'nunca atravessa o chão'); assert.ok(Math.abs(Math.atan(m.r / m.dist) - ECLIPSE.moonAng) < 1e-6, 'tamanho angular fixo'); } }
 });
 
