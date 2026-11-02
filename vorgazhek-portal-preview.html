@@ -1,0 +1,25 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VORGAZHEK · Portais · prévia</title>
+<style>body{margin:0;background:#07040c;color:#eef;font:12px monospace}canvas{display:block}#i{position:absolute;top:6px;left:8px;pointer-events:none;white-space:pre}</style><div id="i"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+/* MOD 260 — prévia/QA do DOMÍNIO DAS LÂMINAS ENDIVIDADAS com a MESMA lógica e VFX do jogo. ?t=segundos congela; ?cam=wide|near|sword|impact|top; ?run=1 herói correndo; ?low=1 */
+import * as T from 'three';import {createPortalSwords,createPortalSwordsVFX,PORTAL_SWORDS} from './vorgazhek-portal-swords3d.js';
+const q=new URLSearchParams(location.search),freeze=q.has('t')?+q.get('t'):null,camMode=q.get('cam')||'wide',low=q.has('low')?0:1,runH=q.has('run');
+const scene=new T.Scene();scene.background=new T.Color('#140a1c');scene.fog=new T.Fog(0x140a1c,40,120);const camera=new T.PerspectiveCamera(55,innerWidth/innerHeight,.1,500);
+const r=new T.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);r.toneMapping=T.ACESFilmicToneMapping;r.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(r.domElement);
+scene.add(new T.HemisphereLight(0xd8c8ff,0x201828,1.3));const sun=new T.DirectionalLight(0xffffff,1.1);sun.position.set(5,10,4);scene.add(sun);
+const fl=new T.Mesh(new T.CircleGeometry(30,64),new T.MeshStandardMaterial({color:0x2a2230,roughness:1}));fl.rotation.x=-Math.PI/2;scene.add(fl);
+const hero=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xe8e2d0}));hero.position.set(0,.87,6);scene.add(hero);
+const boss=new T.Mesh(new T.CapsuleGeometry(.5,2,6,12),new T.MeshStandardMaterial({color:0x5a1a10}));boss.position.set(0,1.5,-6);scene.add(boss);
+let s=7;const rand=()=>{s=(s*16807)%2147483647;return s/2147483647;};
+const h={x:0,z:6,vx:0,vz:0,iframes:false};const ps=createPortalSwords({rand,dmg:5}).start(h,{x:0,z:-6},{x:0,z:0,r:30}),vfx=createPortalSwordsVFX(T,scene);let time=0,hits=0,lastImp=null;
+function step(dt){time+=dt;if(runH){const a=time*1.1;h.x=Math.cos(a)*9;h.z=Math.sin(a)*9;h.vx=-Math.sin(a)*9.9;h.vz=Math.cos(a)*9.9;}hero.position.set(h.x,.87,h.z);
+ for(const e of ps.step(dt,h)){if(e.type==='hit')hits++;if(e.type==='impact')lastImp=e;}vfx.update(ps,camera,dt,low);}
+function cam(){if(camMode==='near'){const p=ps.st.portals[0];camera.position.set(p.x-p.nx*1-3.5,p.y-2.2,p.z-p.nz*1+3.5);camera.lookAt(p.x,p.y,p.z);}
+ else if(camMode==='sword'){const sw=ps.st.swords.find(o=>o.state==='fly')||ps.st.swords.find(o=>o.state==='ready')||ps.st.swords[0];if(sw){camera.position.set(sw.x+3.2,sw.y+.6,sw.z+3.2);camera.lookAt(sw.x+(sw.dx||0)*.9,sw.y+(sw.dy||0)*.9,sw.z+(sw.dz||0)*.9);}}
+ else if(camMode==='impact'){const e=lastImp||{x:0,y:0,z:6};camera.position.set(e.x+4.5,e.y+2.4,e.z+5);camera.lookAt(e.x,e.y+.6,e.z);}
+ else if(camMode==='top'){camera.position.set(0,34,14);camera.lookAt(0,0,0);}else{camera.position.set(0,5,22);camera.lookAt(0,6,0);}}
+function info(){document.getElementById('i').textContent='t '+time.toFixed(2)+' portais '+ps.st.portals.length+' disparos '+ps.st.fired+' acertos '+hits+' chamadas '+r.info.render.calls+'\n'+ps.st.portals.map(p=>p.fired).join('')+' '+ps.st.swords.map(o=>o.state[0]).join('');}
+function frame(){requestAnimationFrame(frame);if(freeze===null)step(1/60);cam();info();r.render(scene,camera);}
+if(freeze!==null){const n=Math.round(freeze*60);for(let i=0;i<n;i++)step(1/60);setTimeout(()=>{window.__ready=true;},600);}frame();
+</script></html>
