@@ -19,7 +19,7 @@ const hs=buildCosmicSword(T);hs.rotation.set(-Math.PI/2,0,0);hs.position.set(0,.
 const H={x:0,z:6,y:0,iframes:false};const ult=createCosmicUlt({dmg:32}).start(H,{x:0,z:-7},{x:0,z:0,r:30}),vfx=createCosmicUltVFX(T,scene,{makeSword:()=>buildCosmicSword(T,{clip:true})});
 let time=0,hits=0,last='',yaw=0;const base=new T.Vector3(),_a=new T.Vector3(),_b=new T.Vector3(),_q=new T.Quaternion(),_q2=new T.Quaternion();
 function gameCam(){ // câmera de jogo: atrás do herói, olhando o bispo
- const dx=boss.position.x-H.x,dz=boss.position.z-H.z,l=Math.hypot(dx,dz)||1,st=ult.st,far=st.pi===3&&st.white<1?.85:0;camera.position.set(H.x-dx/l*(8.5+15.5*far),2.7+6.3*far,H.z-dz/l*(8.5+15.5*far));camera.lookAt(boss.position.x+(st.P?st.P.x-boss.position.x:0)*far,1.6+3.4*far,boss.position.z+(st.P?st.P.z-boss.position.z:0)*far);} /* igual ao ultCam do jogo na fase 4 */
+ const dx=boss.position.x-H.x,dz=boss.position.z-H.z,l=Math.hypot(dx,dz)||1,st=ult.st,far=0;camera.position.set(H.x-dx/l*(8.5+15.5*far),2.7+6.3*far,H.z-dz/l*(8.5+15.5*far));camera.lookAt(boss.position.x+(st.P?st.P.x-boss.position.x:0)*far,1.6+3.4*far,boss.position.z+(st.P?st.P.z-boss.position.z:0)*far);} /* igual ao ultCam do jogo na fase 4 */
 function step(dt){time+=dt;if(dodge&&ult.st.pi===2&&!ult.lockPlayer){H.x=Math.min(H.x+7*dt,9);}hero.position.set(H.x,.87,H.z);boss.rotation.y=Math.atan2(H.x-boss.position.x,H.z-boss.position.z);mixer.update(dt);hs.userData.tick(time);
  for(const e of ult.step(dt,H)){last=e.type;if(e.type==='hit')hits++;}}
 function render(){const st=ult.st;gameCam();const c=ult.camera({boss:{x:boss.position.x,y:0,z:boss.position.z,yaw:boss.rotation.y},hero:{x:H.x,y:0,z:H.z}});

@@ -27,7 +27,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x)), sm = x => { x = clamp01(x); re
 export function smoothNoise(t, seed = 0) { const i = Math.floor(t), f = t - i, h = n => { const s = Math.sin((n + seed * 57.3) * 127.1) * 43758.5453; return (s - Math.floor(s)) * 2 - 1; }, u = f * f * (3 - 2 * f); return h(i) * (1 - u) + h(i + 1) * u; }
 /** Tremor por trauma: offset = A·τ²·ruído(t·freq) + tranco direcional amortecido; roll pequeno. */
 export function shakeAt(trauma, t, kickT = 99, o = {}) {
-  const A = o.amp ?? .42, R = o.roll ?? .045, f = o.freq ?? 13, k = trauma * trauma;
+  const A = o.amp ?? .36, R = o.roll ?? .04, f = o.freq ?? 8, k = trauma * trauma;
   const kick = kickT < 0 ? 0 : Math.exp(-kickT / .1) * Math.cos(kickT * 22) * (o.kick ?? .55);
   return { x: A * k * smoothNoise(t * f, 1), y: A * k * smoothNoise(t * f, 2) - kick * .55, z: A * k * smoothNoise(t * f, 3), back: kick, roll: R * k * smoothNoise(t * f * .8, 4) + kick * .03 };
 }
@@ -51,7 +51,7 @@ export function createCosmicUlt(opts = {}) {
       const ev = []; if (st.done || st.phase === 'idle') return ev; st.rt += rdt;
       let dt = rdt; if (st.freeze > 0) { st.freeze -= rdt; dt = rdt * .06; } // congelamento de impacto: medido no relógio real, nunca prende
       st.t += dt; st.pt += dt; if (st.t === dt) ev.push({ type: 'phase', n: 1, name: st.phase });
-      st.kickT += rdt; st.trauma = Math.max(0, st.trauma - rdt / 1.15);
+      st.kickT += rdt; st.trauma = Math.max(0, st.trauma - rdt / 1.0);
       const [, dur] = U.phases[st.pi];
       if (st.pi === 0) { st.trauma = Math.max(st.trauma, .16 * sm((st.pt - 2.6) / .7)); }
       if (st.pi === 1) { for (const c of st.circles) { const k = clamp01((st.pt - c.from) / (c.to - c.from)); if (k >= 1 && c.k < 1) ev.push({ type: 'circle', r: c.r }); c.k = k; } }
@@ -62,7 +62,7 @@ export function createCosmicUlt(opts = {}) {
         st.flash = p < .12 ? 1 - p / .12 : 0;
         const w0 = U.whiteAt, w1 = w0 + U.whiteIn, w2 = w1 + U.whiteHold, w3 = w2 + U.whiteOut; st.white = p < w0 ? 0 : p < w1 ? sm((p - w0) / U.whiteIn) : p < w2 ? 1 : 1 - sm((p - w2) / U.whiteOut);
         if (p >= w1 && !st.whiteDone) { st.whiteDone = true; ev.push({ type: 'white' }); } // VFX some por trás do branco
-        for (const [i, at] of [[1, .05], [2, .18], [3, .32]]) if (p >= at && !st['ring' + i]) { st['ring' + i] = true; st.trauma = Math.min(1, st.trauma + .18); ev.push({ type: 'ring', n: i }); } }
+        for (const [i, at] of [[1, .05], [2, .18], [3, .32]]) if (p >= at && !st['ring' + i]) { st['ring' + i] = true; st.trauma = Math.min(1, st.trauma + .12); ev.push({ type: 'ring', n: i }); } }
       if (st.pt >= dur) {
         if (st.pi === 2 && !st.impacted) { // contato: explosão SEMPRE no ponto fixo do chão; dano só dentro do raio legível
           st.impacted = true; st.tipY = st.P.y - U.embed; const d = Math.hypot(hero.x - st.P.x, hero.z - st.P.z), hit = !hero.iframes && d <= U.impactR + .35;
@@ -84,6 +84,9 @@ export function createCosmicUlt(opts = {}) {
         const tx = P.x + ux * 9, tz = P.z + uz * 9; out.look = [H.x + ux * 2 + (tx - H.x - ux * 2) * up, H.y + 1.8 + (P.y + 15 - H.y - 1.8) * up, H.z + uz * 2 + (tz - H.z - uz * 2) * up]; out.fov = 10 + 20 * up; }
       else if (st.pi === 2) { const hx = B.x - P.x, hz = B.z - P.z, hl = Math.hypot(hx, hz) || 1, sx = -hz / hl, sz = hx / hl; out.w = p < U.release ? 1 : 1 - sm((p - U.release) / .5);
         out.pos = [P.x + sx * 21 - hx / hl * 4, P.y + 2.6, P.z + sz * 21 - hz / hl * 4]; out.look = [P.x, Math.max(P.y + 6, st.tipY + 3), P.z]; out.fov = 14; }
+      else if (st.pi === 3) { /* plano aberto de fora da explosão (nunca de dentro); troca de volta para a câmera de jogo por baixo do branco */
+        const hx = B.x - P.x, hz = B.z - P.z, hl = Math.hypot(hx, hz) || 1, ux = hx / hl, uz = hz / hl, pk = U.whiteAt + U.whiteIn; out.w = p < pk ? sm(p / .12) : 0;
+        out.pos = [P.x - ux * 25 + uz * 6, P.y + 8.5, P.z - uz * 25 - ux * 6]; out.look = [P.x, P.y + 5, P.z]; out.fov = 12; }
       return out;
     }
   };

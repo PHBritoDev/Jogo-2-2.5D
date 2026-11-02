@@ -6003,9 +6003,9 @@ function tickCosmicUlt(dt,now){
    else if(ev.n===3){status.textContent='A espada cósmica atravessa o selo — SAIA DO CÍRCULO!';worldAudio.abyss3&&worldAudio.abyss3('tear',1);}
    else if(ev.n===4){worldAudio.abyss3&&worldAudio.abyss3('heavy',1);}}
   else if(ev.type==='circle'){worldAudio.abyss3&&worldAudio.abyss3('thunder',.35);}
-  else if(ev.type==='release'){showCombatCallout('FUJA DO IMPACTO');Object.assign(ultCam,{want:.42,height:4.2,dist:11});}
+  else if(ev.type==='release'){showCombatCallout('FUJA DO IMPACTO');Object.assign(ultCam,{want:.38,height:6,dist:13});ultCam.look.set(u.st.P.x,u.st.P.y+3.5,u.st.P.z);} /* câmera de jogo (controles coerentes) inclinada para o anel de perigo e a espada */
   else if(ev.type==='impact'){ /* contato: tudo no mesmo quadro — congelamento, tranco, FOV, clarão, som, vibração, luz */
-   hitStop(110);slowMo(460,.5);vibrate(220);Object.assign(ultCam,{want:.85,height:9,dist:24});ultCam.look.set(ev.x,ev.y+5,ev.z); /* a câmera recua e sobe: a explosão é vista de fora, nunca de dentro */worldAudio.novaBlast&&worldAudio.novaBlast();worldAudio.abyss3&&worldAudio.abyss3('boom',1);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);
+   hitStop(110);slowMo(460,.5);vibrate(220);ultCam.want=0; /* o plano da fase 4 vem de u.camera(): de fora da explosão */worldAudio.novaBlast&&worldAudio.novaBlast();worldAudio.abyss3&&worldAudio.abyss3('boom',1);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);
    setTimeout(()=>{worldAudio.abyss3&&worldAudio.abyss3('storm',.9);},260); /* o vento chega depois do choque */
    if(!cosmicLightBase)cosmicLightBase={i:dimLight.intensity,c:dimLight.color.getHex()};dimLight.position.set(ev.x,ev.y+6,ev.z);dimLight.color.setHex(0xffe0a0);
    if(!ev.hit)status.textContent='Você escapou do impacto!';}
@@ -6021,7 +6021,7 @@ function tickCosmicUlt(dt,now){
  if(st.pi===1)cosmicHeadLook(sm01((st.pt-.3)/1.1)*(1-sm01((st.pt-4.1)/.3)));
  const base=fpWasActive?72:56,fov=base+cam.fov*cam.w+st.fovAdd;if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
  // tremor por trauma (aditivo, removido antes da câmera do próximo quadro) + roll pequeno
- if(!userSettings.reduceShake&&st.trauma>.001){const s=shakeAt(st.trauma,st.rt,st.kickT,{amp:fpWasActive?.16:.42});_csA.set(0,0,1).applyQuaternion(camera.quaternion);cosmicShake=new THREE.Vector3(s.x,s.y,s.z).addScaledVector(_csA,s.back*.6);camera.position.add(cosmicShake);camera.rotateZ(s.roll);}
+ if(!userSettings.reduceShake&&st.trauma>.001){const s=shakeAt(st.trauma,st.rt,st.kickT,{amp:fpWasActive?.14:.36});_csA.set(0,0,1).applyQuaternion(camera.quaternion);cosmicShake=new THREE.Vector3(s.x,s.y,s.z).addScaledVector(_csA,s.back*.6);camera.position.add(cosmicShake);camera.rotateZ(s.roll);}
  // clarão de contato e branco que nasce do núcleo
  const wEl=cosmicWhite(),wmax=userSettings.reduceFlash?.35:1,wv=Math.max(st.white*wmax,st.flash*(userSettings.reduceFlash?.15:.55));
  if(wv>.001){_csA.set(st.P.x,st.P.y+2,st.P.z).project(camera);wEl.style.setProperty('--cx',(50+_csA.x*50).toFixed(1)+'%');wEl.style.setProperty('--cy',(50-_csA.y*50).toFixed(1)+'%');}wEl.style.opacity=wv.toFixed(3);
