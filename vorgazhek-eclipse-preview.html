@@ -1,0 +1,36 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VORGAZHEK · Eclipse · prévia</title>
+<style>body{margin:0;background:#050102;color:#eef;font:12px monospace}canvas{display:block}#i{position:absolute;top:6px;left:8px;pointer-events:none;white-space:pre}</style><div id="i"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+/* MOD 261 — prévia/QA do especial de espada (Eclipse) com a MESMA lógica, pose e VFX do jogo, Bispo2-lod.glb e EspadaBispo2.glb reais.
+   ?t=segundos congela; ?cam=hero|low|side|impact|fp; ?dodge=1 herói desvia; ?low=1 */
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {createEclipseSword,createEclipseVFX,eclipseArms} from './vorgazhek-eclipse-sword3d.js';
+const q=new URLSearchParams(location.search),freeze=q.has('t')?+q.get('t'):null,camMode=q.get('cam')||'hero',low=q.has('low'),dodge=q.has('dodge');
+const scene=new T.Scene();scene.background=new T.Color(0x050102);scene.fog=new T.Fog(0x0c0204,22,170);const camera=new T.PerspectiveCamera(60,innerWidth/innerHeight,.1,760);
+const r=new T.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.2;r.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(r.domElement);
+scene.add(new T.HemisphereLight(0xff8890,0x40080c,.95));const sun=new T.DirectionalLight(0xff9a9a,.5);sun.position.set(5,10,4);scene.add(sun);const pl=new T.PointLight(0xff3040,3.4,90);pl.position.set(0,12,0);scene.add(pl);
+const fl=new T.Mesh(new T.CircleGeometry(33,72),new T.MeshStandardMaterial({color:0x120406,emissive:0x300408,roughness:.3,metalness:.45}));fl.rotation.x=-Math.PI/2;scene.add(fl);
+for(let i=0;i<14;i++){const a=i*.9,d=40+i*5,m=new T.Mesh(new T.BoxGeometry(3,10+i,3),new T.MeshStandardMaterial({color:0x150a0c,emissive:0x3a0408}));m.position.set(Math.cos(a)*d,8+i*2,Math.sin(a)*d);scene.add(m);}
+const hero=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xe8e2d0}));scene.add(hero);
+const L=new GLTFLoader();const [bg,sg]=await Promise.all([L.loadAsync('./Bispo2-lod.glb'),L.loadAsync('./EspadaBispo2.glb')]);
+const boss=new T.Group();scene.add(boss);const m=bg.scene;const box=new T.Box3().setFromObject(m);const sc=(1.7*1.45)/(box.max.y-box.min.y);m.scale.setScalar(sc);m.position.y=-box.min.y*sc;boss.add(m);
+const mixer=new T.AnimationMixer(m);mixer.clipAction(bg.animations.find(c=>c.name==='Swim Idle')).play();
+const bone=n=>{let b=null;m.traverse(o=>{if(o.isBone&&o.name===n)b=o;});return b;};const R={chest:bone('mixamorigSpine1'),rua:bone('mixamorigRightArm'),rla:bone('mixamorigRightForeArm'),rh:bone('mixamorigRightHand'),lua:bone('mixamorigLeftArm'),lla:bone('mixamorigLeftForeArm'),lh:bone('mixamorigLeftHand')};
+const _a=new T.Vector3(),_b=new T.Vector3(),_q=new T.Quaternion(),_q2=new T.Quaternion(),_q3=new T.Quaternion();
+function aim(b,c,dir,w){b.updateWorldMatrix(true,false);c.updateWorldMatrix(false,false);const cur=_b.setFromMatrixPosition(c.matrixWorld).sub(_a.setFromMatrixPosition(b.matrixWorld)).normalize();_q.setFromUnitVectors(cur,dir);_q2.identity().slerp(_q,w);b.getWorldQuaternion(_q3);_q2.multiply(_q3);b.parent.getWorldQuaternion(_q3).invert();b.quaternion.copy(_q3.multiply(_q2));b.updateMatrixWorld(true);}
+const es=createEclipseSword({dmg:18}),vfx=createEclipseVFX(T,scene);vfx.setSwordModel(sg.scene);es.start();
+const H={x:0,z:13,y:0,vx:0,vz:0,iframes:false};let time=0,hits=0,lastEv='';const hand=new T.Vector3(),armDir=new T.Vector3(),tipV=new T.Vector3();
+function bossYaw(){return Math.atan2(H.x-boss.position.x,H.z-boss.position.z);}
+function step(dt){time+=dt;if(dodge&&es.st.phase==='release'&&es.st.released){H.vx=7;H.x+=7*dt;}hero.position.set(H.x,.87,H.z);
+ if(es.holdBoss||es.st.phase==='charge')boss.rotation.y=bossYaw();mixer.update(dt);m.updateMatrixWorld(true);
+ const P=eclipseArms(es.st),yaw=boss.rotation.y;if(P&&P.w>0){const f=[Math.sin(yaw),0,Math.cos(yaw)],rr=[-Math.cos(yaw),0,Math.sin(yaw)],D=a=>new T.Vector3(f[0]*a[0]+rr[0]*a[2],a[1],f[2]*a[0]+rr[2]*a[2]).normalize();aim(R.rua,R.rla,D(P.rua),P.w);aim(R.rla,R.rh,D(P.rla),P.w);aim(R.lua,R.lla,D(P.lua),P.w*.8);aim(R.lla,R.lh,D(P.lla),P.w*.8);}
+ R.rh.getWorldPosition(hand);R.rla.getWorldPosition(armDir);armDir.subVectors(hand,armDir).normalize();
+ const from=vfx.swordTip(tipV)||{x:0,y:3,z:0};for(const e of es.step(dt,H,{from:{x:from.x,y:from.y,z:from.z},boss:{x:0,y:0,z:0}})){lastEv=e.type;if(e.type==='hit')hits++;}
+ vfx.update(es,{camera,boss:{x:boss.position.x,y:0,z:boss.position.z,yaw},hand,armDir,low},dt);}
+function cam(){const s=es.st;if(camMode==='hero'){camera.position.set(H.x+1.2,2.3,H.z+5.5);camera.lookAt(0,2.6,0);}else if(camMode==='fp'){camera.position.set(H.x,1.6,H.z);camera.lookAt(0,2.4,0);}
+ else if(camMode==='low'){camera.position.set(H.x+4.5,.6,H.z+3);camera.lookAt(0,3.2,0);}else if(camMode==='close'){camera.position.set(2.5,2.2,6.5);camera.lookAt(0,2.4,0);}else if(camMode==='side'){camera.position.set(17,3.5,7);camera.lookAt(0,2,6);}
+ else if(camMode==='impact'){const i=s.impact||{x:H.x,y:0,z:H.z};camera.position.set(i.x+5,i.y+3,i.z+7);camera.lookAt(i.x,i.y+1.4,i.z);}}
+function info(){const s=es.st;document.getElementById('i').textContent='t '+time.toFixed(2)+' fase '+s.phase+' estágio '+s.stage+' carga '+s.level.toFixed(2)+' acertos '+hits+' chamadas '+r.info.render.calls+' ev '+lastEv+'\nmão '+hand.toArray().map(v=>v.toFixed(2))+' braço '+armDir.toArray().map(v=>v.toFixed(2))+' espada '+vfx.holder.visible+' ponta '+(vfx.swordTip(new T.Vector3())||{toArray:()=>[]}).toArray().map(v=>v.toFixed(2));}
+function frame(){requestAnimationFrame(frame);if(freeze===null){if(es.done){es.start();}step(1/60);}cam();info();r.render(scene,camera);}
+cam();if(freeze!==null){const n=Math.round(freeze*60);for(let i=0;i<n;i++){cam();camera.updateMatrixWorld();step(1/60);}setTimeout(()=>{window.__ready=true;},600);}frame();
+</script></html>

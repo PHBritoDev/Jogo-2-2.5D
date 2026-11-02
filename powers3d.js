@@ -68,7 +68,7 @@ export const KITS = {
     // MOD 260: os poderes genéricos antigos (Lâminas de Metal Líquido, Golpe da Forja, FORNALHA DA DÍVIDA) saíram; s2/espada/ult ficam reservados e desligados
     S('s2', '(reservada)', 'reserved', { dmg: 1, cd: 999, disabled: true }),
     S('s3', 'DOMÍNIO DAS LÂMINAS ENDIVIDADAS', 'portal_swords', { dmg: 5, cd: 22 })], // MOD 260: 20–24 portais no alto, 3 espadas cada (vorgazhek-portal-swords3d.js)
-    sword: S('sw', '(reservado)', 'reserved', { dmg: 1, cd: 999, disabled: true }),
+    sword: S('sw', 'ECLIPSE DA DÍVIDA', 'vorgazhek_eclipse_sword', { dmg: 22, cd: 20, range: [4, 26] }), // MOD 261: eclipse + EspadaBispo2.glb + aura + corte + colapso (vorgazhek-eclipse-sword3d.js)
     ult: S('ult', '(reservada)', 'reserved', { dmg: 1, disabled: true }) },
   zarkhael: { color: 0x7ad8ff, color2: 0x08223a, book: true, skills: [
     S('s1', 'Selos do Juízo', 'circles', { n: 4, dmg: 16, cd: 8, r: 1.8 }),
@@ -113,7 +113,7 @@ export function powerStats(profile, move) {
  */
 export function pickMove(profile, cds, dist, lastId = '') {
   const k = kitFor(profile); if (!k) return null;
-  if (dist <= 4.5 && !(cds.sw > 0) && !k.sword.disabled) return k.sword;
+  const sw = k.sword; if (!sw.disabled && !(cds.sw > 0) && (sw.range ? dist >= sw.range[0] && dist <= sw.range[1] : dist <= 4.5)) return sw; // MOD 261: especial de espada à distância tem alcance próprio
   if (dist < 3 || dist > 16) return null;
   const ready = k.skills.filter(s => !s.disabled && !(cds[s.id] > 0)); // MOD 260: poderes reservados nunca saem
   if (!ready.length) return null;

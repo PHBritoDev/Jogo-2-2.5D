@@ -16,7 +16,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // O selo só mostra 252 quando o módulo de combate da versão 252 realmente importou.
-{const m=document.getElementById('marker');if(m){m.textContent=PORTAL_SWORDS_BUILD.startsWith('260-')?'260':'?';m.title='Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=ECLIPSE_SWORD_BUILD.startsWith('261-')?'261':'?';m.title='Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -59,6 +59,7 @@ import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
 import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
 import { createPortalSwords, createPortalSwordsVFX, PORTAL_SWORDS_BUILD } from './vorgazhek-portal-swords3d.js';
+import { createEclipseSword, createEclipseVFX, eclipseArms, ECLIPSE_SWORD_BUILD } from './vorgazhek-eclipse-sword3d.js';
 import { DESERT_REGION, DESERT_PASS, DESERT, inDesert, fragmentsHeld } from './desert3d.js';
 import { ACT5N, ROUNDS, SPEAKERS5, roundForSub, subForRound, act5Presentation, bestSword, journeyScene, arrivalScene, roundIntroScene, roundOutroScene, finalScene } from './act5-flow.js';
 import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inArena } from './coliseum3d.js';
@@ -816,6 +817,7 @@ function updateEnemyAI(dt){
  if(swordTraining){if(enemyActions.idle&&enemyCurrentRole!=='idle'&&enemyCurrentRole!=='hit')playEnemyAnimation('idle',.1);return;}
  // MOD 229 — preso no ciclone da Fênix: IA, locomoção e ataques ficam pausados (lease); a posição vem do ciclone.
  if(phoenixHold){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='hit'&&enemyCurrentRole!=='idle'&&enemyActions.idle)playEnemyAnimation(enemyActions.hit?'hit':'idle',.1);return;}
+ if(eclipseSword&&eclipseSword.holdBoss&&enemy.visible&&enemyAlive){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='idle'&&enemyCurrentRole!=='hit'&&enemyActions.idle)playEnemyAnimation('idle',.12);if(eclipseSword.st.phase==='charge'){const ty=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z),dl=Math.atan2(Math.sin(ty-enemy.rotation.y),Math.cos(ty-enemy.rotation.y));enemy.rotation.y+=dl*(1-Math.exp(-5*dt));}return;} // MOD 261: canaliza o Eclipse parado, de frente para o herói
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
  if(!enemy.visible||!enemyAlive||!combatStepNow()||dialogueOpen||cineActive||playerHP<=0){if(enemyCurrentRole!=='idle'&&enemyActions.idle){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;playEnemyAnimation('idle',.1);}return;}
  if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-6000,6000),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-6000,6000);if(!enemyBlockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!enemyBlockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
@@ -1758,7 +1760,7 @@ updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(d
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateEclipseSword(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  if(vzCinematic()){vzCamRestore();return;}renderer.render(scene,camera);vzCamRestore();}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -2033,6 +2035,7 @@ function beginDimensionFight(){
  const hud=document.getElementById('enemy-hud');if(hud){hud.style.display='';hud.classList.add('boss');}
  b.active=true;syncEnemyLabel();showCombatCallout(d.name);cameraShake(.15);
  if(b.key==='bishop1'&&!b.test)setTimeout(vhazraelIntro,600); // teste: sem cenas de história
+ if(b.key==='bishop2')loadEclipseSwordModel();
  if(b.key==='bishop2'&&questStep===ACT2.boss)setTimeout(()=>{if(dimBattle&&dimBattle.key==='bishop2')playStory('vorgazhek',vorgazhekIntroScene(),{focus:'enemy',face:'enemy'});},600);
  if(b.key==='bishop3')setTimeout(zarkhaelIntro,600);
  if(b.key==='bishop4')setTimeout(veraxionIntro,600);
@@ -2044,7 +2047,7 @@ function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;i
 function resetEnemyAfterDimension(){
  if(pack&&pack.dim)clearPack();
  enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;
- clearHazards();stopPortalSwords();stopTornadoRitual();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
+ clearHazards();stopEclipseSword();stopPortalSwords();stopTornadoRitual();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
  const hud=document.getElementById('enemy-hud');if(hud)hud.classList.remove('boss');
 }
 function leaveDimension(rt,flash,then){
@@ -3382,6 +3385,7 @@ function dimTestPanel(){
  const tog=document.createElement('button');tog.type='button';tog.textContent='⚙ TESTE DAS DIMENSÕES (nada é salvo) ▾';tog.style.cssText='width:100%;height:auto;max-width:none;box-sizing:border-box;min-height:34px;padding:6px 9px;border-radius:9px;border:1px solid #ff6a7a;background:#3a0a14ee;color:#ffd6dc;font:800 11px system-ui;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';bindInstantTap(tog,()=>{menu.style.display=menu.style.display==='none'?'flex':'none';});el.appendChild(tog);el.appendChild(menu);
  const B=(t,f)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.style.cssText='width:100%;height:auto;max-width:none;box-sizing:border-box;min-height:38px;padding:7px 10px;border-radius:9px;border:1px solid #ff6a7a;background:#2a0c14ee;color:#fff;font:700 12px system-ui;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';bindInstantTap(b,()=>{menu.style.display='none';f();});menu.appendChild(b);return b;};
  B('⚔ Lutar contra Bispo 1 — Dimensão de VHAZRAEL',()=>dimTestFight('bishop1'));B('⚔ Lutar contra Bispo 2 — Dimensão de VORGAZHEK',()=>dimTestFight('bishop2'));
+ B('☾ Testar ECLIPSE DA DÍVIDA (espada do Bispo 2)',()=>{if(dimBattle&&dimBattle.active&&isVorgazhekProfile(encounterProfile)&&!eclipseSword){const k=kitFor(encounterProfile);delete kitState.cds.sw;runFoeMove(powerStats(encounterProfile,k.sword),k);kitState.cds.sw=k.sword.cd;}else status.textContent='Entre na luta do Bispo 2 para testar o Eclipse.';});
  B('↻ Reiniciar luta',()=>dimTestFight(dimTest.key||DIM_TEST));B('✕ Sair da dimensão',()=>{if(dimBattle&&dimBattle.active)abortDimensionBattle();});
  B('← Voltar ao laboratório',()=>{location.href='laboratorio-inimigos.html';});
  document.body.appendChild(el);dimTest.panel=el;
@@ -5827,6 +5831,7 @@ function hurtEnemy(dmg,big,celestial=false,silent=false){if(!(combatStepNow()&&e
  if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else if(!silent)playEnemyAnimation('hit',.05,true);}
 /** Executa um poder do kit (habilidade ou golpe de espada) com os números já ajustados ao nível. */
 function runFoeMove(m,k){
+ if(m.type==='vorgazhek_eclipse_sword'){startEclipseSword(m);return;} /* MOD 261: especial de espada próprio, sem o golpe genérico */
  const P=player.position,e=enemy.position,yaw=foeYaw(),c1=k.color,c2=k.color2;
  if(m.id==='sw'){playEnemyAnimation('attack',.08,true);playPose(enemyPoseRoot(),m.type==='dash'?'thrust':'sweep',.85,foeYaw);}else{playEnemyAnimation('cast',.1,true);if(k.book)showGrimoire(c1,1.3,false);playPose(enemyPoseRoot(),m.type==='dash'||m.type==='line'?'thrust':m.type==='ring'?'slam':'cast',1.1,foeYaw);}
  showCombatCallout(m.name.toUpperCase());worldAudio.magic&&worldAudio.magic('magic2');
@@ -5852,7 +5857,7 @@ function runFoeMove(m,k){
 let tornadoRitual=null,tornadoVfx=null;
 function tornadoSlope(x,z){const e=.6,a=fxGy(x-e,z),b=fxGy(x+e,z),c=fxGy(x,z-e),d=fxGy(x,z+e);return[a-b,2*e,c-d];}
 function startTornadoRitual(m){
- if(tornadoRitual)return;if(!tornadoVfx)tornadoVfx=createTornadoVFX(THREE,scene,{base:'./'});
+ if(tornadoRitual||portalSwords||eclipseSword)return;if(!tornadoVfx)tornadoVfx=createTornadoVFX(THREE,scene,{base:'./'});
  tornadoRitual=createTornadoRitual({dmg:m.dmg,R:m.r,ground:(x,z)=>fxGy(x,z),blocked:(x,z)=>blockedAt(x,z)}).start(player.position);
  worldAudio.abyss3&&worldAudio.abyss3('gravity',.7);
 }
@@ -5886,7 +5891,7 @@ function updateTornadoRitual(dt){
 function isVorgazhekProfile(p){return p==='vorgazhek'||p==='fallen2';}
 let portalSwords=null,portalSwordsVfx=null,portalAudioT=0;
 function startPortalSwords(m){
- if(portalSwords||tornadoRitual)return; /* nunca empilha com os Vórtices */
+ if(portalSwords||tornadoRitual||eclipseSword)return; /* nunca empilha com os Vórtices nem com o Eclipse */
  if(!portalSwordsVfx)portalSwordsVfx=createPortalSwordsVFX(THREE,scene);
  const a=dimBattle&&dimBattle.active?arenaSpec(dimBattle.key):null,arena=a?{x:a.x,z:a.z,r:a.radius}:{x:(player.position.x+enemy.position.x)/2,z:(player.position.z+enemy.position.z)/2,r:20};
  portalSwords=createPortalSwords({dmg:m.dmg,ground:(x,z)=>fxGy(x,z)}).start({x:player.position.x,z:player.position.z},{x:enemy.position.x,z:enemy.position.z},arena);
@@ -5907,9 +5912,47 @@ function updatePortalSwords(dt){
  portalSwordsVfx.update(r,camera,dt,q);
  if(r.done){portalSwords=null;portalSwordsVfx.clear();kitState.t=Math.max(kitState.t,1.2);}
 }
+/* MOD 261 — ECLIPSE DA DÍVIDA (Bispo 2, especial de espada): eclipse composto atrás do bispo, EspadaBispo2.glb real
+   na mão direita, aura colossal em 3,2 s, corte crescente travado no lançamento e colapso giratório de 2,4 s
+   (vorgazhek-eclipse-sword3d.js). Um relógio só para dano, rastro e impacto. */
+let eclipseSword=null,eclipseVfx=null,eclipseSwordModel=null,eclipseSwordLoading=false;
+const ECLIPSE_TEST=new URLSearchParams(location.search).has('testSwordEclipse');
+const _ecHand=new THREE.Vector3(),_ecArm=new THREE.Vector3(),_ecTip=new THREE.Vector3();
+function loadEclipseSwordModel(){if(eclipseSwordModel||eclipseSwordLoading)return;eclipseSwordLoading=true;new GLTFLoader().load('./EspadaBispo2.glb?v=mod261',g=>{eclipseSwordModel=g.scene;eclipseSwordLoading=false;if(eclipseVfx)eclipseVfx.setSwordModel(eclipseSwordModel);},undefined,err=>{eclipseSwordLoading=false;console.warn('EspadaBispo2.glb não carregou:',err);});}
+function eclipseOldMoon(){const a=dimArenas.bishop2;return a?a.group.getObjectByName('VorgazhekMoonAmbient'):null;}
+function startEclipseSword(m){
+ if(eclipseSword||portalSwords||tornadoRitual)return; /* nunca empilha com os Vórtices nem com os portais */
+ loadEclipseSwordModel();if(!eclipseVfx){eclipseVfx=createEclipseVFX(THREE,scene);if(eclipseSwordModel)eclipseVfx.setSwordModel(eclipseSwordModel);}
+ eclipseSword=createEclipseSword({dmg:m.dmg,ground:(x,z)=>fxGy(x,z),blocked:(x,z)=>blockedAt(x,z)}).start();
+ showCombatCallout(m.name);status.textContent='VORGAZHEK ergue a espada sob o eclipse — saia da linha do corte!';
+ if(!fpWasActive){Object.assign(ultCam,{want:.55,height:1.5,dist:9.5});ultCam.look.set(enemy.position.x,enemy.position.y+3.4,enemy.position.z);} /* introdução curta, sem tirar o controle */
+ worldAudio.abyss3&&worldAudio.abyss3('thunder',.7);worldAudio.abyss3&&worldAudio.abyss3('gravity',.9);
+}
+function stopEclipseSword(){eclipseSword=null;if(eclipseVfx)eclipseVfx.clear(eclipseOldMoon());}
+function eclipsePoseBoss(){
+ const root=enemyPoseRoot(),R=root&&poseRig(root);if(!R)return false;const P=eclipseArms(eclipseSword.st);
+ if(P&&P.w>0){const yaw=enemy.rotation.y,f=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),r=new THREE.Vector3().crossVectors(f,UPV).normalize(),D=a=>new THREE.Vector3().addScaledVector(f,a[0]).addScaledVector(UPV,a[1]).addScaledVector(r,a[2]).normalize();
+  turnBone(R.chest,r,P.lean*P.w);aimBone(R.rua,R.rla,D(P.rua),P.w);aimBone(R.rla,R.rh,D(P.rla),P.w);aimBone(R.lua,R.lla,D(P.lua),P.w*.8);aimBone(R.lla,R.lh,D(P.lla),P.w*.8);}
+ R.rh.getWorldPosition(_ecHand);R.rla.getWorldPosition(_ecArm);_ecArm.subVectors(_ecHand,_ecArm);if(_ecArm.lengthSq()<1e-8)_ecArm.set(0,1,0);_ecArm.normalize();return true;
+}
+function updateEclipseSword(dt){
+ if(!eclipseSword)return;const r=eclipseSword;
+ if(!r.st.aborted&&(!enemy.visible||!enemyAlive||playerHP<=0||!isVorgazhekProfile(encounterProfile)||cineActive)){r.abort();ultCam.want=0;}
+ const posed=enemy.visible&&eclipsePoseBoss();if(r.st.t>1&&ultCam.want>0&&r.st.phase==='charge')ultCam.want=0;
+ const tip=eclipseVfx.swordTip(_ecTip),e=enemy.position,from=tip?{x:tip.x,y:tip.y,z:tip.z}:{x:e.x+Math.sin(enemy.rotation.y)*1.2,y:e.y+2.8,z:e.z+Math.cos(enemy.rotation.y)*1.2};
+ for(const ev of r.step(dt,{x:player.position.x,y:player.position.y,z:player.position.z,vx:moveVX,vz:moveVZ,iframes:dashRemaining>0||performance.now()<playerInvulnerableUntil},{from,boss:{x:e.x,y:e.y,z:e.z}})){
+  if(ev.type==='hit'){if(pHit(ev.dmg)){cameraShake(userSettings.reduceShake?0:.16);hitStop(80);}}
+  else if(ev.type==='stage'){worldAudio.abyss3&&worldAudio.abyss3('storm',.35+.15*ev.n);}
+  else if(ev.type==='swing'){worldAudio.abyss3&&worldAudio.abyss3('tear',.8);}
+  else if(ev.type==='release'){worldAudio.abyss3&&worldAudio.abyss3('launch',1);worldAudio.abyss3&&worldAudio.abyss3('blade',.8);}
+  else if(ev.type==='impact'){worldAudio.abyss3&&worldAudio.abyss3('boom',.9);worldAudio.abyss3&&worldAudio.abyss3('storm',.7);const d=Math.hypot(ev.x-player.position.x,ev.z-player.position.z);if(d<12&&!userSettings.reduceShake)cameraShake(.14*(1-d/12));}
+ }
+ eclipseVfx.update(r,{camera,boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},hand:posed?_ecHand:null,armDir:posed?_ecArm:null,low:graphics3DMode==='low',moonGround:e.y,oldMoon:eclipseOldMoon()},dt);
+ if(r.done){eclipseSword=null;eclipseVfx.clear(eclipseOldMoon());kitState.t=Math.max(kitState.t,1.5);if(ECLIPSE_TEST)delete kitState.cds.sw;}
+}
 function updateFoeKit(dt){
  if(swordTraining||squadOn)return;
- if(tornadoRitual||portalSwords){kitState.t=Math.max(kitState.t,.5);} // canalizando o ritual: a próxima magia espera as duas ondas
+ if(tornadoRitual||portalSwords||eclipseSword){kitState.t=Math.max(kitState.t,.5);} // canalizando o ritual: a próxima magia espera as duas ondas
  const prof=encounterProfile,kit=kitFor(prof);if(!kit)return;
  const fight=prof+':'+enemyMaxHP;if(fight!==kitState.fight){kitState.fight=fight;kitState.cds={};kitState.t=2.5;kitState.last='';if(kitState.aura){kitState.aura.dispose();kitState.aura=null;}}
  // Aura de batalha (estilo Sol's RNG) quando o chefe ou a elite entra em fúria (menos de 50% de vida).
@@ -6208,7 +6251,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   ultState(){return{kind:bossUlt.kind,t:+bossUlt.t.toFixed(2),hp:playerHP,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,cam:+ultCam.w.toFixed(2)};},
   bossHp(f){if(enemy.visible)enemyHP=Math.max(1,Math.round(enemyMaxHP*f));},
   hurtBoss(n){hurtEnemy(n,true);return enemyHP;},
-  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,squad:squadOn,dimTest:dimTest.key};},
+  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,eclipse:eclipseSword?{phase:eclipseSword.st.phase,t:+eclipseSword.st.t.toFixed(2),stage:eclipseSword.st.stage,level:+eclipseSword.st.level.toFixed(2),hits:eclipseSword.st.hits,impact:eclipseSword.st.impact&&eclipseSword.st.impact.kind,sword:!!(eclipseVfx&&eclipseVfx.swordReady&&eclipseVfx.holder.visible)}:null,squad:squadOn,dimTest:dimTest.key};},
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;
