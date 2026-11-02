@@ -69,7 +69,7 @@ export const KITS = {
     S('s2', '(reservada)', 'reserved', { dmg: 1, cd: 999, disabled: true }),
     S('s3', 'DOMÍNIO DAS LÂMINAS ENDIVIDADAS', 'portal_swords', { dmg: 5, cd: 22 })], // MOD 260: 20–24 portais no alto, 3 espadas cada (vorgazhek-portal-swords3d.js)
     sword: S('sw', 'ECLIPSE DA DÍVIDA', 'vorgazhek_eclipse_sword', { dmg: 22, cd: 20, range: [4, 26] }), // MOD 261: eclipse + EspadaBispo2.glb + aura + corte + colapso (vorgazhek-eclipse-sword3d.js)
-    ult: S('ult', '(reservada)', 'reserved', { dmg: 1, disabled: true }) },
+    ult: S('ult', 'O JUÍZO DA ESPADA CÓSMICA', 'vorgazhek_cosmic_judgment', { dmg: 40 }) }, // MOD 262: ultimate cinematográfica em 4 fases (vorgazhek-ultimate3d.js)
   zarkhael: { color: 0x7ad8ff, color2: 0x08223a, book: true, skills: [
     S('s1', 'Selos do Juízo', 'circles', { n: 4, dmg: 16, cd: 8, r: 1.8 }),
     S('s2', 'Gelo Distorcido', 'line', { n: 3, dmg: 14, cd: 9, len: 12, w: 1 }),

@@ -79,7 +79,7 @@ test('Mod 261 — pose: espada erguida na carga, recuo na antecipação e golpe 
 
 test('Mod 261 — kit: slot da espada ativo com tipo próprio e alcance; s2/ultimate seguem reservados; nada antigo voltou', () => {
   const k = kitFor('vorgazhek'); assert.equal(k, kitFor('fallen2')); assert.equal(k.sword.type, 'vorgazhek_eclipse_sword'); assert.equal(k.sword.name, 'ECLIPSE DA DÍVIDA');
-  assert.ok(!k.sword.disabled && k.skills[1].disabled && k.ult.disabled); assert.equal(ultimateFor('vorgazhek'), null);
+  assert.ok(!k.sword.disabled && k.skills[1].disabled); assert.equal(ultimateFor('vorgazhek').kind, 'vorgazhek_cosmic_judgment'); // MOD 262: a única ultimate é a cósmica
   assert.equal(k.skills[0].type, 'tornadoes'); assert.equal(k.skills[2].type, 'portal_swords');
   assert.ok(k.sword.cd >= 16 && k.sword.cd <= 22, 'recarga própria');
   for (const d of [5, 10, 18, 25]) assert.equal(pickMove('vorgazhek', {}, d, '').id, 'sw', 'selecionável à distância ' + d);
@@ -89,8 +89,8 @@ test('Mod 261 — kit: slot da espada ativo com tipo próprio e alcance; s2/ulti
   for (const old of ['Golpe da Forja', 'FORNALHA', "'forge'", 'Lâminas de Metal']) assert.ok(!JSON.stringify(KITS.vorgazhek).includes(old));
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("if(m.type==='vorgazhek_eclipse_sword'){startEclipseSword(m);return;}") && src.includes('updateEclipseSword(dt);') && src.includes('stopEclipseSword();stopPortalSwords();stopTornadoRitual();useRig'), 'ligado ao motor real e limpo ao sair');
-  assert.ok(src.includes('if(eclipseSword||portalSwords||tornadoRitual)return;') && src.includes('if(portalSwords||tornadoRitual||eclipseSword)return;') && src.includes('if(tornadoRitual||portalSwords||eclipseSword)return;if(!tornadoVfx)'), 'não empilha com tornados nem portais');
-  assert.ok(src.includes("'./EspadaBispo2.glb?v=mod261'") && fs.existsSync(new URL('./EspadaBispo2.glb', import.meta.url)), 'usa a EspadaBispo2.glb real');
+  assert.ok(src.includes('if(eclipseSword||portalSwords||tornadoRitual||cosmicUlt)return;') && src.includes('if(portalSwords||tornadoRitual||eclipseSword)return;') && src.includes('if(tornadoRitual||portalSwords||eclipseSword)return;if(!tornadoVfx)'), 'não empilha com tornados nem portais');
+  assert.ok(!src.includes("'./EspadaBispo2.glb") && src.includes('eclipseCosmicModel=buildCosmicSword(THREE)'), 'MOD 262: o Eclipse usa a espada cósmica; a EspadaBispo2.glb antiga não aparece mais');
   assert.ok(fs.readFileSync(new URL('./dimension-arenas3d.js', import.meta.url), 'utf8').includes("moon.name = 'VorgazhekMoonAmbient'"), 'a lua antiga é escondida e devolvida, não apagada');
   const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testSwordEclipse=1'));
 });
