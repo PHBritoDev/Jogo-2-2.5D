@@ -11,7 +11,7 @@ export const ULTIMATES = {
 /** Ultimate deste perfil: { kind, name, at } (ou null). */
 export function ultimateFor(profile) {
   if (ULTIMATES[profile]) return ULTIMATES[profile];
-  const k = kitFor(profile); if (!k) return null;
+  const k = kitFor(profile); if (!k || k.ult.disabled) return null; // MOD 260: ultimate reservada não sai
   return { kind: k.ult.type, name: k.ult.name, at: ultThresholds(profile) };
 }
 /** Índice do próximo limiar já cruzado e ainda não usado (ou -1). `used` = quantas já saíram nesta luta. */

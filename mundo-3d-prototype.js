@@ -16,7 +16,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // O selo só mostra 252 quando o módulo de combate da versão 252 realmente importou.
-{const m=document.getElementById('marker');if(m){m.textContent=VORGAZHEK_TORNADO_BUILD.startsWith('258-')?'258':'?';m.title='Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=PORTAL_SWORDS_BUILD.startsWith('260-')?'260':'?';m.title='Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -58,6 +58,7 @@ import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, n
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
 import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
+import { createPortalSwords, createPortalSwordsVFX, PORTAL_SWORDS_BUILD } from './vorgazhek-portal-swords3d.js';
 import { DESERT_REGION, DESERT_PASS, DESERT, inDesert, fragmentsHeld } from './desert3d.js';
 import { ACT5N, ROUNDS, SPEAKERS5, roundForSub, subForRound, act5Presentation, bestSword, journeyScene, arrivalScene, roundIntroScene, roundOutroScene, finalScene } from './act5-flow.js';
 import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inArena } from './coliseum3d.js';
@@ -1757,7 +1758,7 @@ updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(d
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateTornadoRitual(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  if(vzCinematic()){vzCamRestore();return;}renderer.render(scene,camera);vzCamRestore();}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -2043,7 +2044,7 @@ function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;i
 function resetEnemyAfterDimension(){
  if(pack&&pack.dim)clearPack();
  enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;
- clearHazards();stopTornadoRitual();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
+ clearHazards();stopPortalSwords();stopTornadoRitual();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
  const hud=document.getElementById('enemy-hud');if(hud)hud.classList.remove('boss');
 }
 function leaveDimension(rt,flash,then){
@@ -5843,6 +5844,8 @@ function runFoeMove(m,k){
   case 'abyss':{const d=Math.max(1,Math.hypot(P.x-e.x,P.z-e.z));for(let i=0;i<m.n;i++){const s=(i+1)/m.n*Math.min(12,d+3);abyssFlame(e.x+(P.x-e.x)/d*s,e.z+(P.z-e.z)/d*s,.8+i*.22,1.9);}abyssFlame(P.x,P.z,1.6,2.6);worldAudio.abyss&&worldAudio.abyss();break;}
   case 'blackhole':castBlackHole(e.x+(P.x-e.x)*.5,e.z+(P.z-e.z)*.5);break;
   case 'tornadoes':startTornadoRitual(m);break;
+  case 'portal_swords':startPortalSwords(m);break;
+  case 'reserved':break; /* MOD 260: poder reservado/desligado, nunca executa */
  }
 }
 /* MOD 256 — Vórtices do Pacto Escarlate (Bispo 2): ritual de 2 ondas, lógica e VFX no mesmo relógio (vorgazhek-tornado3d.js). */
@@ -5858,7 +5861,7 @@ function stopTornadoRitual(){if(tornadoRitual){tornadoRitual=null;}if(tornadoVfx
  * A força vem da mesma lógica determinística do dano/VFX; colisões bloqueiam paredes, árvores e o Bispo.
  * Corrida supera a pressão com dificuldade; durante dash a força cai a 17%. */
 function applyTornadoSuction(dt){
- if(!tornadoRitual||tornadoRitual.done||!enemyAlive||encounterProfile!=='vorgazhek'||playerHP<=0||cineActive||rites.locksMovement||portalPull||vzLocked)return;
+ if(!tornadoRitual||tornadoRitual.done||!enemyAlive||!isVorgazhekProfile(encounterProfile)||playerHP<=0||cineActive||rites.locksMovement||portalPull||vzLocked)return;
  const force=tornadoRitual.pullAt(player.position.x,player.position.z,dashRemaining>0);
  if(!force)return;
  const nx=THREE.MathUtils.clamp(player.position.x+force.x*dt,-6000,6000);
@@ -5869,7 +5872,7 @@ function applyTornadoSuction(dt){
 }
 function updateTornadoRitual(dt){
  if(!tornadoRitual)return;const r=tornadoRitual;
- if(!enemy.visible||!enemyAlive||playerHP<=0||encounterProfile!=='vorgazhek'||cineActive)r.abort();
+ if(!enemy.visible||!enemyAlive||playerHP<=0||!isVorgazhekProfile(encounterProfile)||cineActive)r.abort();
  if(gamePaused){tornadoVfx.update(r,0,graphics3DMode==='low'?0:1,tornadoSlope);return;}
  for(const ev of r.step(dt,{x:player.position.x,z:player.position.z,iframes:dashRemaining>0||performance.now()<playerInvulnerableUntil,radius:.4})){
   if(ev.type==='hit'){if(pHit(ev.dmg)){cameraShake(userSettings.reduceShake?0:.05);}}
@@ -5879,9 +5882,34 @@ function updateTornadoRitual(dt){
  tornadoVfx.update(r,dt,graphics3DMode==='low'?0:1,tornadoSlope);
  if(r.done){tornadoRitual=null;tornadoVfx.clear();kitState.t=Math.max(kitState.t,1.2);}
 }
+/* MOD 260 — DOMÍNIO DAS LÂMINAS ENDIVIDADAS (Bispo 2, s3): 20–24 portais no alto, 3 espadas cada, fila global (vorgazhek-portal-swords3d.js). */
+function isVorgazhekProfile(p){return p==='vorgazhek'||p==='fallen2';}
+let portalSwords=null,portalSwordsVfx=null,portalAudioT=0;
+function startPortalSwords(m){
+ if(portalSwords||tornadoRitual)return; /* nunca empilha com os Vórtices */
+ if(!portalSwordsVfx)portalSwordsVfx=createPortalSwordsVFX(THREE,scene);
+ const a=dimBattle&&dimBattle.active?arenaSpec(dimBattle.key):null,arena=a?{x:a.x,z:a.z,r:a.radius}:{x:(player.position.x+enemy.position.x)/2,z:(player.position.z+enemy.position.z)/2,r:20};
+ portalSwords=createPortalSwords({dmg:m.dmg,ground:(x,z)=>fxGy(x,z)}).start({x:player.position.x,z:player.position.z},{x:enemy.position.x,z:enemy.position.z},arena);
+ status.textContent='VORGAZHEK: DOMÍNIO DAS LÂMINAS ENDIVIDADAS — '+portalSwords.st.portals.length+' portais se abrem no alto!';
+ worldAudio.abyss3&&worldAudio.abyss3('gravity',.8);worldAudio.abyss3&&worldAudio.abyss3('warn',.5);
+}
+function stopPortalSwords(){portalSwords=null;if(portalSwordsVfx)portalSwordsVfx.clear();}
+function updatePortalSwords(dt){
+ if(!portalSwords)return;const r=portalSwords,q=graphics3DMode==='low'?0:1;
+ if(!enemy.visible||!enemyAlive||playerHP<=0||!isVorgazhekProfile(encounterProfile)||cineActive)r.abort();
+ if(gamePaused){portalSwordsVfx.update(r,camera,0,q);return;}
+ portalAudioT-=dt;
+ for(const ev of r.step(dt,{x:player.position.x,y:player.position.y,z:player.position.z,vx:moveVX,vz:moveVZ,iframes:dashRemaining>0||performance.now()<playerInvulnerableUntil})){
+  if(ev.type==='hit'){if(pHit(ev.dmg)){cameraShake(userSettings.reduceShake?0:.06);}}
+  else if(ev.type==='fire'){if(portalAudioT<=0){portalAudioT=.09;worldAudio.abyss3&&worldAudio.abyss3('launch',.35);}}
+  else if(ev.type==='impact'){worldAudio.abyss3&&worldAudio.abyss3(ev.kind==='hero'?'stick':'blade',.3);const d=Math.hypot(ev.x-player.position.x,ev.z-player.position.z);if(d<7&&!userSettings.reduceShake)cameraShake(.035*(1-d/7));}
+ }
+ portalSwordsVfx.update(r,camera,dt,q);
+ if(r.done){portalSwords=null;portalSwordsVfx.clear();kitState.t=Math.max(kitState.t,1.2);}
+}
 function updateFoeKit(dt){
  if(swordTraining||squadOn)return;
- if(tornadoRitual){kitState.t=Math.max(kitState.t,.5);} // canalizando o ritual: a próxima magia espera as duas ondas
+ if(tornadoRitual||portalSwords){kitState.t=Math.max(kitState.t,.5);} // canalizando o ritual: a próxima magia espera as duas ondas
  const prof=encounterProfile,kit=kitFor(prof);if(!kit)return;
  const fight=prof+':'+enemyMaxHP;if(fight!==kitState.fight){kitState.fight=fight;kitState.cds={};kitState.t=2.5;kitState.last='';if(kitState.aura){kitState.aura.dispose();kitState.aura=null;}}
  // Aura de batalha (estilo Sol's RNG) quando o chefe ou a elite entra em fúria (menos de 50% de vida).
@@ -5909,9 +5937,6 @@ function startKitUlt(kind){
   for(let i=0;i<5;i++)at(.3+i*.35,()=>fxGrab(P().x,P().z,1.6,.8,Math.round(D*.35),1,c1,c2,false));
   const sc=new THREE.Group(),bm=addMat(0xd8c8ff,0),blade=new THREE.Mesh(new THREE.TorusGeometry(4.5,.35,6,32,2.2),bm),handle=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,9,8),addMat(0x2a0a3a,0));blade.position.set(0,4.5,0);handle.position.set(4.3,0,0);sc.add(blade,handle);sc.position.set(e.x,e.y+5,e.z);sc.rotation.y=yaw;scene.add(sc);
   fxCone(e.x,e.z,yaw,9,4.4,2.4,D,c1,0xd8c8ff);fxPush(function(t){const a=Math.min(1,t/.8);bm.opacity=.8*a;handle.material.opacity=.7*a;if(t>2.4)sc.rotation.y+=.25;if(t>3.1){fxDispose(sc);return false;}});dur=3.6;}
- else if(kind==='forge'){status.textContent='A Fornalha da Dívida: ouro derretido cai do céu — fuja da área e do sol de ouro!';const p=P().clone();fxRain(p.x,p.z,6,60,3,Math.round(D*.6),0xffb020,true);for(let i=0;i<5;i++)at(.6+i*.4,()=>fxErupt(P().x+(Math.random()-.5)*5,P().z+(Math.random()-.5)*5,.8,1.8,Math.round(D*.4),0xffb020,0xff4a00));
-  const sun=new THREE.Mesh(new THREE.SphereGeometry(1.6,20,14),new THREE.MeshBasicMaterial({color:0xffc040,toneMapped:false})),glow=glowSprite(0xff8a20,.9,12);sun.add(glow);sun.position.set(p.x,fxGy(p.x,p.z)+16,p.z);scene.add(sun);
-  at(1.6,()=>spawnHazard({x:P().x,z:P().z,radius:4,delay:2.2,damage:D,color:0xff6a10}));fxPush(function(t){if(t>1.6&&t<3.8){const q=P();sun.position.x+=(q.x-sun.position.x)*.02;sun.position.z+=(q.z-sun.position.z)*.02;sun.position.y=fxGy(sun.position.x,sun.position.z)+16-12*Math.max(0,(t-2.8)/1);}if(t>3.8){burstSparks(sun.position.clone(),0xffb020);cameraShake(.5);impactFrame(80);scorch(sun.position.x,sun.position.z,4);fxDispose(sun);return false;}});dur=4.4;}
  else if(kind==='sentence'){for(let i=0;i<5;i++)at(.6+i*.5,()=>lightning(P().x+(Math.random()-.5)*4,P().z+(Math.random()-.5)*4,0x9ae6ff));status.textContent="ZAR'KHAEL inverte o espaço: CONTROLES INVERTIDOS por alguns segundos!";foeInvertUntil=performance.now()+4200;showCombatCallout('CONTROLES INVERTIDOS');
   for(let i=0;i<6;i++)at(.4+i*.45,()=>fxErupt(P().x,P().z,.9,1.9,Math.round(D*.45),c1,0xffffff,7));for(let i=0;i<6;i++)at(1.2,()=>fxLine(e.x,e.z,i/6*6.28,13,1,.8,Math.round(D*.5),c1,0xffffff));dur=4.6;}
  else if(kind==='gate'){for(let i=0;i<6;i++)at(.4+i*.7,()=>lightning(P().x+(Math.random()-.5)*7,P().z+(Math.random()-.5)*7,0xffe08a));status.textContent='Os portões da Avareza se abrem: centenas de espadas de ouro caem — não fique parado!';for(let i=0;i<4;i++)at(.2+i*1,()=>fxRain(P().x,P().z,4.2,40,1.2,Math.round(D*.55),0xffd040,false));dur=5.2;}
@@ -5987,16 +6012,17 @@ function scorch(x,z,r){if(scorchCount>=12)return;scorchCount++;const m=new THREE
 /* ---------- Corrida do herói ---------- */
 let sprintToggle=false;
 function isSprinting(){return (keys.shift||sprintToggle)&&!defending;}
+/* MOD 260: VORGAZHEK/fallen2 não têm mais poder secundário genérico; as correntes ficam só na Avareza III. */
+function greedChains(){status.textContent='A Avareza estende o livro: as correntes da dívida caem sobre você!';const px=player.position.x,pz=player.position.z,vx=moveVX*.5,vz=moveVZ*.5;for(let i=0;i<3;i++)spawnHazard({x:px+vx*(i+1),z:pz+vz*(i+1),radius:2.1,delay:.9+i*.45,damage:18,color:0xd25a2a});}
 const BOSS_POWERS={
- vorgazhek:{cd:7.5,run(){status.textContent='VORGAZHEK estende o livro: as correntes da dívida caem sobre você!';const px=player.position.x,pz=player.position.z,vx=moveVX*.5,vz=moveVZ*.5;for(let i=0;i<3;i++)spawnHazard({x:px+vx*(i+1),z:pz+vz*(i+1),radius:2.1,delay:.9+i*.45,damage:18,color:0xd25a2a});}},
  zarkhael:{cd:8,run(){status.textContent="ZAR'KHAEL ergue a mão: o juízo cai em pilares!";for(let i=0;i<5;i++){const a=Math.random()*6.28,r=1+Math.random()*4.5;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.8,delay:1.1+i*.18,damage:20,color:0xffc04a});}}},
  veraxion:{cd:8.5,run(){status.textContent='VÉRAXION invoca o fogo abissal — saia das chamas!';const ex=enemy.position.x,ez=enemy.position.z,dx=player.position.x-ex,dz=player.position.z-ez,d=Math.max(1,Math.hypot(dx,dz));for(let i=0;i<5;i++){const k=(i+1)/5*Math.min(12,d+3);abyssFlame(ex+dx/d*k,ez+dz/d*k,.8+i*.22,1.9);}abyssFlame(player.position.x,player.position.z,1.6,2.6);worldAudio.abyss&&worldAudio.abyss();}},
  greed1:{cd:9,run(){castBlackHole(enemy.position.x+(player.position.x-enemy.position.x)*.5,enemy.position.z+(player.position.z-enemy.position.z)*.5);}},
  greed2:{cd:7.5,run(){if(Math.random()<.5)castBlackHole(player.position.x+Math.sin(cameraYaw)*2,player.position.z+Math.cos(cameraYaw)*2);else BOSS_POWERS.zarkhael.run();}},
- greed3:{cd:6.5,run(){castBlackHole(player.position.x,player.position.z);BOSS_POWERS.vorgazhek.run();}}
+ greed3:{cd:6.5,run(){castBlackHole(player.position.x,player.position.z);greedChains();}}
 };
 BOSS_POWERS.fallen1={cd:9,run(){castBlackHole(enemy.position.x,enemy.position.z);}};
-BOSS_POWERS.fallen2=BOSS_POWERS.vorgazhek;BOSS_POWERS.fallen3=BOSS_POWERS.zarkhael;BOSS_POWERS.fallen4=BOSS_POWERS.veraxion;
+BOSS_POWERS.fallen3=BOSS_POWERS.zarkhael;BOSS_POWERS.fallen4=BOSS_POWERS.veraxion;
 let bossPowerCd=4;
 function updateBossPowers(dt){
  const power=BOSS_POWERS[encounterProfile];
@@ -6182,7 +6208,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   ultState(){return{kind:bossUlt.kind,t:+bossUlt.t.toFixed(2),hp:playerHP,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,cam:+ultCam.w.toFixed(2)};},
   bossHp(f){if(enemy.visible)enemyHP=Math.max(1,Math.round(enemyMaxHP*f));},
   hurtBoss(n){hurtEnemy(n,true);return enemyHP;},
-  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,squad:squadOn,dimTest:dimTest.key};},
+  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,squad:squadOn,dimTest:dimTest.key};},
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;
@@ -6255,7 +6281,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  hurtPlayer(n){playerHP=Math.max(1,playerHP-(n||10));updatePlayerHud();},
  power(){bossPowerCd=0;foeSkillCd=0;kitState.cds={};kitState.t=0;},
   /** MOD 212 — força um poder do kit do inimigo atual: 's1','s2','s3','sw' ou 'ult'. */
-  kitMove(id){const k=kitFor(encounterProfile);if(!k||!enemy.visible)return null;if(id==='ult'){const u=ultimateFor(encounterProfile);if(u.kind==='void')startVoidUlt();else if(u.kind==='nova')startSupernova();else startKitUlt(u.kind);return u.kind;}const m=id==='sw'?k.sword:k.skills.find(s=>s.id===id);runFoeMove(powerStats(encounterProfile,m),k);return m.name;},
+  kitMove(id){const k=kitFor(encounterProfile);if(!k||!enemy.visible)return null;if(id==='ult'){const u=ultimateFor(encounterProfile);if(!u)return null;if(u.kind==='void')startVoidUlt();else if(u.kind==='nova')startSupernova();else startKitUlt(u.kind);return u.kind;}const m=id==='sw'?k.sword:k.skills.find(s=>s.id===id);if(!m||m.disabled)return null;runFoeMove(powerStats(encounterProfile,m),k);return m.name;},
   god(){playerInvulnerableUntil=performance.now()+1e9;},
   sprint(on){sprintToggle=!!on;return{run:!!actions.run,speed:+Math.hypot(moveVX,moveVZ).toFixed(2)};},
   pose(kind,who){playPose(who==='enemy'?enemyPoseRoot():model,kind,2,who==='enemy'?foeYaw:()=>playerYaw,kind==='channel'?.5:0);return poseJobs.length;},

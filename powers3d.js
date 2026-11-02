@@ -65,10 +65,11 @@ export const KITS = {
     ult: S('ult', 'CONTRATO FINAL: O CEIFADOR', 'reaper', { dmg: 34 }) },
   vorgazhek: { color: 0xffb020, color2: 0x5a1a00, book: true, skills: [
     S('s1', 'Vórtices do Pacto Escarlate', 'tornadoes', { dmg: 10, cd: 16, r: 1.55 }), // MOD 256: selos rituais + 2 ondas de 3–5 tornados (vorgazhek-tornado3d.js)
-    S('s2', 'Lâminas de Metal Líquido', 'wave', { n: 5, dmg: 11, cd: 9 }),
-    S('s3', 'Explosões da Forja', 'circles', { n: 5, dmg: 15, cd: 10, r: 2 })],
-    sword: S('sw', 'Golpe da Forja', 'dash', { dmg: 16, cd: 6, len: 8 }),
-    ult: S('ult', 'FORNALHA DA DÍVIDA', 'forge', { dmg: 36 }) },
+    // MOD 260: os poderes genéricos antigos (Lâminas de Metal Líquido, Golpe da Forja, FORNALHA DA DÍVIDA) saíram; s2/espada/ult ficam reservados e desligados
+    S('s2', '(reservada)', 'reserved', { dmg: 1, cd: 999, disabled: true }),
+    S('s3', 'DOMÍNIO DAS LÂMINAS ENDIVIDADAS', 'portal_swords', { dmg: 5, cd: 22 })], // MOD 260: 20–24 portais no alto, 3 espadas cada (vorgazhek-portal-swords3d.js)
+    sword: S('sw', '(reservado)', 'reserved', { dmg: 1, cd: 999, disabled: true }),
+    ult: S('ult', '(reservada)', 'reserved', { dmg: 1, disabled: true }) },
   zarkhael: { color: 0x7ad8ff, color2: 0x08223a, book: true, skills: [
     S('s1', 'Selos do Juízo', 'circles', { n: 4, dmg: 16, cd: 8, r: 1.8 }),
     S('s2', 'Gelo Distorcido', 'line', { n: 3, dmg: 14, cd: 9, len: 12, w: 1 }),
@@ -112,9 +113,9 @@ export function powerStats(profile, move) {
  */
 export function pickMove(profile, cds, dist, lastId = '') {
   const k = kitFor(profile); if (!k) return null;
-  if (dist <= 4.5 && !(cds.sw > 0)) return k.sword;
+  if (dist <= 4.5 && !(cds.sw > 0) && !k.sword.disabled) return k.sword;
   if (dist < 3 || dist > 16) return null;
-  const ready = k.skills.filter(s => !(cds[s.id] > 0));
+  const ready = k.skills.filter(s => !s.disabled && !(cds[s.id] > 0)); // MOD 260: poderes reservados nunca saem
   if (!ready.length) return null;
   return ready.find(s => s.id !== lastId) || ready[0];
 }
