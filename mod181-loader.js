@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod263-bispo2-sem-poderes-genericos';
+const BUILD = 'mod264-exclusao-global-projeteis-legados';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
