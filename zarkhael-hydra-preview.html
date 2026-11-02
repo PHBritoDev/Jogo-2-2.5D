@@ -1,0 +1,24 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ZAR'KHAEL · Hidra do Juízo · prévia</title>
+<style>body{margin:0;background:#06040a;color:#eef;font:12px monospace}canvas{display:block}#i{position:absolute;top:6px;left:8px;pointer-events:none;white-space:pre}</style><div id="i"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+/* Prévia/QA da Skill 1 do Bispo 3 com a MESMA lógica, pose e VFX do jogo e o Bispo3-lod.glb real. ?t=segundos congela; ?cam=hero|wide|hydra|head|seal|impact; ?dodge=1; ?low=1 */
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {createHydraJudgment,createHydraVFX} from './zarkhael-hydra3d.js';
+const q=new URLSearchParams(location.search),freeze=q.has('t')?+q.get('t'):null,camMode=q.get('cam')||'hero',low=q.has('low'),dodge=q.has('dodge');
+const scene=new T.Scene();scene.background=new T.Color(0x0a0d12);scene.fog=new T.Fog(0x0a0d12,30,160);const camera=new T.PerspectiveCamera(56,innerWidth/innerHeight,.1,500);
+const r=new T.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);r.toneMapping=T.ACESFilmicToneMapping;r.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(r.domElement);
+scene.add(new T.HemisphereLight(0x9ab0c8,0x202028,1.1));const sun=new T.DirectionalLight(0xffffff,.8);sun.position.set(5,10,4);scene.add(sun);
+const tex=new T.CanvasTexture((()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');for(let y=0;y<8;y++)for(let x=0;x<8;x++){g.fillStyle=(x+y)%2?'#1c2026':'#2a3038';g.fillRect(x*32,y*32,32,32);}return c;})());tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.repeat.set(8,8);
+const fl=new T.Mesh(new T.CircleGeometry(33,72),new T.MeshStandardMaterial({map:tex,roughness:.6}));fl.rotation.x=-Math.PI/2;scene.add(fl);
+const hero=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xe8e2d0}));scene.add(hero);
+const bg=await new GLTFLoader().loadAsync('./Bispo3-lod.glb');const boss=new T.Group();scene.add(boss);const m=bg.scene;const box=new T.Box3().setFromObject(m);const sc=(1.7*1.5)/(box.max.y-box.min.y);m.scale.setScalar(sc);m.position.y=-box.min.y*sc;boss.add(m);boss.position.set(0,0,-6);
+const mixer=new T.AnimationMixer(m);mixer.clipAction(bg.animations.find(c=>c.name==='Swim Idle')).play();
+const H={x:0,z:8,y:0,vx:0,vz:0,iframes:false};const hj=createHydraJudgment({dmg:14}).start({x:0,z:-6},H,{x:0,z:0,r:30}),vfx=createHydraVFX(T,scene);let time=0,hits=0,last='';
+function step(dt){time+=dt;if(dodge&&hj.st.t>7){H.vx=7;H.x+=7*dt;}hero.position.set(H.x,.87,H.z);boss.rotation.y=Math.atan2(H.x,H.z+6);mixer.update(dt);for(const e of hj.step(dt,H)){last=e.type;if(e.type==='hit')hits++;}}
+function cam(){const C=hj.st.C,f=hj.st.f;if(camMode==='hero'){camera.position.set(H.x-1.5,2.6,H.z+6.5);camera.lookAt(C.x,5,C.z);}else if(camMode==='wide'){camera.position.set(C.x+f[0]*24+8,6,C.z+f[1]*24);camera.lookAt(C.x,5,C.z);}
+ else if(camMode==='hydra'){camera.position.set(C.x+f[0]*13-f[1]*5,3.2,C.z+f[1]*13+f[0]*5);camera.lookAt(C.x,5.8,C.z);}else if(camMode==='head'){const p=hj.poses[1];if(p.head){camera.position.set(p.head[0]+p.dir[0]*4+2,p.head[1]+.8,p.head[2]+p.dir[2]*4);camera.lookAt(p.head[0],p.head[1],p.head[2]);}}
+ else if(camMode==='seal'){camera.position.set(C.x+f[0]*9,11,C.z+f[1]*9);camera.lookAt(C.x,0,C.z);}else if(camMode==='impact'){const o=hj.st.orbs.find(o=>o.state==='impact')||{ix:H.x,iy:0,iz:H.z};camera.position.set(o.ix+6,o.iy+3.5,o.iz+8);camera.lookAt(o.ix,o.iy+1.2,o.iz);}}
+function info(){const s=hj.st;document.getElementById('i').textContent='t '+s.t.toFixed(2)+' fase '+s.phase+' acertos '+hits+' chamadas '+r.info.render.calls+' ev '+last+'\n'+s.orbs.map(o=>o.state+':'+o.k.toFixed(2)).join(' ');}
+function frame(){requestAnimationFrame(frame);if(freeze===null){if(hj.done)hj.start({x:0,z:-6},H,{x:0,z:0,r:30});step(1/60);}cam();vfx.update(hj,{camera,low},freeze===null?1/60:0);info();r.render(scene,camera);}
+if(freeze!==null){const n=Math.round(freeze*60);for(let i=0;i<n;i++){step(1/60);if(i%10===0){cam();vfx.update(hj,{camera,low},1/6);}}cam();vfx.update(hj,{camera,low},1/60);setTimeout(()=>{window.__ready=true;},600);}frame();
+</script></html>

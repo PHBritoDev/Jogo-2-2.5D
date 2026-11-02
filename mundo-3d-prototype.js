@@ -13,10 +13,10 @@ import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage,swordLayers} f
 const vfxLabRequested=new URLSearchParams(location.search).has('vfxLab236');
 const combatLabRequested=new URLSearchParams(location.search).has('treinoCombate244');
 const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has('todasHabilidades')||new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
-const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
+const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'||k==='bishop3'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // Mod 263: build de powers exclusivos do Bispo 2, além da ultimate cósmica da Mod 262.
-{const m=document.getElementById('marker');if(m){m.textContent=COSMIC_ULT_BUILD.startsWith('265-')?'265':'?';m.title='Mod 265: refino da aura, explosão e chamas negras | Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=HYDRA_BUILD.startsWith('266-')?'266':'?';m.title='Mod 266: Bispo 3 — Hidra do Juízo | Mod 265: refino da aura, explosão e chamas negras | Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -62,6 +62,8 @@ import { createPortalSwords, createPortalSwordsVFX, PORTAL_SWORDS_BUILD } from '
 import { createEclipseSword, createEclipseVFX, eclipseArms, ECLIPSE_SWORD_BUILD } from './vorgazhek-eclipse-sword3d.js';
 import { buildCosmicSword, COSMIC_SWORD } from './vorgazhek-cosmic-sword3d.js';
 import { createCosmicUlt, createCosmicUltVFX, shakeAt, COSMIC_ULT_BUILD } from './vorgazhek-ultimate3d.js';
+import { createHydraJudgment, createHydraVFX, HYDRA_BUILD } from './zarkhael-hydra3d.js';
+import { chooseZarkhaelMove } from './zarkhael-brain3d.js';
 import { DESERT_REGION, DESERT_PASS, DESERT, inDesert, fragmentsHeld } from './desert3d.js';
 import { ACT5N, ROUNDS, SPEAKERS5, roundForSub, subForRound, act5Presentation, bestSword, journeyScene, arrivalScene, roundIntroScene, roundOutroScene, finalScene } from './act5-flow.js';
 import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inArena } from './coliseum3d.js';
@@ -799,6 +801,7 @@ function updateEnemyAI(dt){
  if(phoenixHold){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='hit'&&enemyCurrentRole!=='idle'&&enemyActions.idle)playEnemyAnimation(enemyActions.hit?'hit':'idle',.1);return;}
  if(eclipseSword&&eclipseSword.holdBoss&&enemy.visible&&enemyAlive){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='idle'&&enemyCurrentRole!=='hit'&&enemyActions.idle)playEnemyAnimation('idle',.12);if(eclipseSword.st.phase==='charge'){const ty=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z),dl=Math.atan2(Math.sin(ty-enemy.rotation.y),Math.cos(ty-enemy.rotation.y));enemy.rotation.y+=dl*(1-Math.exp(-5*dt));}return;} // MOD 261: canaliza o Eclipse parado, de frente para o herói
  if(bossUlt.kind==='cosmic'&&enemy.visible&&enemyAlive){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='idle'&&enemyCurrentRole!=='hit'&&enemyActions.idle)playEnemyAnimation('idle',.15);const ty=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z),dl=Math.atan2(Math.sin(ty-enemy.rotation.y),Math.cos(ty-enemy.rotation.y));enemy.rotation.y+=dl*(1-Math.exp(-3*dt));return;} // MOD 262: conjura a ultimate parado
+ if(hydraSkill&&hydraSkill.holdBoss&&enemy.visible&&enemyAlive){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='idle'&&enemyCurrentRole!=='hit'&&enemyActions.idle)playEnemyAnimation('idle',.15);return;} // BISPO 3: conjura o selo e a Hidra parado
  if(enemyAttackCooldown>0)enemyAttackCooldown=Math.max(0,enemyAttackCooldown-dt);
  if(!enemy.visible||!enemyAlive||!combatStepNow()||dialogueOpen||cineActive||playerHP<=0){if(enemyCurrentRole!=='idle'&&enemyActions.idle){enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;playEnemyAnimation('idle',.1);}return;}
  if(enemyKnockback>0){const step=Math.min(enemyKnockback,dt*2.5),nextX=THREE.MathUtils.clamp(enemy.position.x+enemyKnockbackX*step,-6000,6000),nextZ=THREE.MathUtils.clamp(enemy.position.z+enemyKnockbackZ*step,-6000,6000);if(!enemyBlockedAt(nextX,enemy.position.z))enemy.position.x=nextX;if(!enemyBlockedAt(enemy.position.x,nextZ))enemy.position.z=nextZ;enemyKnockback=Math.max(0,enemyKnockback-step);return;}
@@ -849,6 +852,8 @@ function updateEnemyAI(dt){
  if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
   if(playEnemyAnimation('block',.06,true)){enemyBlockCooldown=3.0;const side=enemy.rotation.y+Math.PI/2,sx=enemy.position.x+Math.sin(side)*.65,sz=enemy.position.z+Math.cos(side)*.65;if(!blockedAt(sx,enemy.position.z))enemy.position.x=sx;if(!blockedAt(enemy.position.x,sz))enemy.position.z=sz;return;}
  }
+ if(isZarkhaelProfile(encounterProfile)&&!hydraSkill&&enemyCurrentRole!=='attack'){const hy=kitFor(encounterProfile)?.skills.find(m=>m.type==='hydra_judgment'),cd=hy?(kitState.cds[hy.id]||0):9;zkKite=!!hy&&cd<=1.5&&distance<5.5&&playerHP>playerMaxHP*.3;
+  if(zkKite){const st2=2.2*dt,nx=THREE.MathUtils.clamp(enemy.position.x-dx/(distance||1)*st2,-6000,6000),nz=THREE.MathUtils.clamp(enemy.position.z-dz/(distance||1)*st2,-6000,6000);let mv=false;if(!enemyBlockedAt(nx,enemy.position.z)){enemy.position.x=nx;mv=true;}if(!enemyBlockedAt(enemy.position.x,nz)){enemy.position.z=nz;mv=true;}playEnemyAnimation(mv?'walk':'idle',.12);return;}} /* BISPO 3: abre distância antes do ritual */
  const running=distance>7.5&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
  const nextX=THREE.MathUtils.clamp(enemy.position.x+dx/(distance||1)*step,-6000,6000),nextZ=THREE.MathUtils.clamp(enemy.position.z+dz/(distance||1)*step,-6000,6000);let moved=false;
  if(!enemyBlockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!enemyBlockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
@@ -1716,14 +1721,14 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);
 updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateInstanceCulling();checkSecretRuin();
- undoCosmicShake();updatePlayerCamera(dt);
+ undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
 // A espada acompanha diretamente o osso da mão; o golpe vem do clipe de animação do personagem, sem balanço artificial por código.
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateEclipseSword(dt);tickCosmicSwords(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateHydra(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateEclipseSword(dt);tickCosmicSwords(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  if(vzCinematic()){vzCamRestore();return;}renderer.render(scene,camera);vzCamRestore();}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -2010,7 +2015,7 @@ function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;i
 function resetEnemyAfterDimension(){
  if(pack&&pack.dim)clearPack();
  enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;
- clearHazards();stopCosmicUlt();stopEclipseSword();stopPortalSwords();stopTornadoRitual();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
+ stopHydra();clearHazards();stopCosmicUlt();stopEclipseSword();stopPortalSwords();stopTornadoRitual();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
  const hud=document.getElementById('enemy-hud');if(hud)hud.classList.remove('boss');
 }
 function leaveDimension(rt,flash,then){
@@ -3348,7 +3353,7 @@ function dimTestPanel(){
  const menu=document.createElement('div');menu.style.cssText='display:none;flex-direction:column;gap:5px';
  const tog=document.createElement('button');tog.type='button';tog.textContent='⚙ TESTE DAS DIMENSÕES (nada é salvo) ▾';tog.style.cssText='width:100%;height:auto;max-width:none;box-sizing:border-box;min-height:34px;padding:6px 9px;border-radius:9px;border:1px solid #ff6a7a;background:#3a0a14ee;color:#ffd6dc;font:800 11px system-ui;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';bindInstantTap(tog,()=>{menu.style.display=menu.style.display==='none'?'flex':'none';});el.appendChild(tog);el.appendChild(menu);
  const B=(t,f)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.style.cssText='width:100%;height:auto;max-width:none;box-sizing:border-box;min-height:38px;padding:7px 10px;border-radius:9px;border:1px solid #ff6a7a;background:#2a0c14ee;color:#fff;font:700 12px system-ui;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';bindInstantTap(b,()=>{menu.style.display='none';f();});menu.appendChild(b);return b;};
- B('⚔ Lutar contra Bispo 1 — Dimensão de VHAZRAEL',()=>dimTestFight('bishop1'));B('⚔ Lutar contra Bispo 2 — Dimensão de VORGAZHEK',()=>dimTestFight('bishop2'));
+ B('⚔ Lutar contra Bispo 1 — Dimensão de VHAZRAEL',()=>dimTestFight('bishop1'));B("⚔ Lutar contra Bispo 3 — Dimensão de ZAR'KHAEL",()=>dimTestFight('bishop3'));B('🐉 Testar HIDRA DO JUÍZO (Bispo 3)',()=>{if(dimBattle&&dimBattle.active&&isZarkhaelProfile(encounterProfile)&&!hydraSkill){const k=kitFor(encounterProfile),m=k.skills.find(x=>x.type==='hydra_judgment');delete kitState.cds[m.id];runFoeMove(powerStats(encounterProfile,m),k);kitState.cds[m.id]=m.cd;}else status.textContent='Entre na luta do Bispo 3 para testar a Hidra.';});B('⚔ Lutar contra Bispo 2 — Dimensão de VORGAZHEK',()=>dimTestFight('bishop2'));
  B('☄ Testar ULTIMATE — O JUÍZO DA ESPADA CÓSMICA',()=>{if(dimBattle&&dimBattle.active&&isVorgazhekProfile(encounterProfile)&&!bossUlt.kind){if(!startCosmicUlt())status.textContent='Espere a habilidade atual terminar.';}else status.textContent='Entre na luta do Bispo 2 para testar a ultimate.';});
  B('☾ Testar ECLIPSE DA DÍVIDA (espada do Bispo 2)',()=>{if(dimBattle&&dimBattle.active&&isVorgazhekProfile(encounterProfile)&&!eclipseSword){const k=kitFor(encounterProfile);delete kitState.cds.sw;runFoeMove(powerStats(encounterProfile,k.sword),k);kitState.cds.sw=k.sword.cd;}else status.textContent='Entre na luta do Bispo 2 para testar o Eclipse.';});
  B('↻ Reiniciar luta',()=>dimTestFight(dimTest.key||DIM_TEST));B('✕ Sair da dimensão',()=>{if(dimBattle&&dimBattle.active)abortDimensionBattle();});
@@ -5504,7 +5509,7 @@ function autoRecenterCamera(dt,now){
 }
 function updateFovKick(dt){
  const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?72:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
- const fov=base+fovKick+(fp?0:vzFovAdd);if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
+ const fov=base+fovKick+(fp?0:vzFovAdd+hydraFovAdd);if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
 }
 // ---------- Primeira pessoa: mira com alvo, golpes variados, guarda ----------
 let fpSwingDir=0,hitMarkT=0;
@@ -5818,6 +5823,7 @@ function runFoeMove(m,k){
   case 'abyss':{const d=Math.max(1,Math.hypot(P.x-e.x,P.z-e.z));for(let i=0;i<m.n;i++){const s=(i+1)/m.n*Math.min(12,d+3);abyssFlame(e.x+(P.x-e.x)/d*s,e.z+(P.z-e.z)/d*s,.8+i*.22,1.9);}abyssFlame(P.x,P.z,1.6,2.6);worldAudio.abyss&&worldAudio.abyss();break;}
   case 'blackhole':castBlackHole(e.x+(P.x-e.x)*.5,e.z+(P.z-e.z)*.5);break;
   case 'tornadoes':startTornadoRitual(m);break;
+  case 'hydra_judgment':startHydra(m);break;
   case 'portal_swords':startPortalSwords(m);break;
   case 'reserved':break; /* MOD 260: poder reservado/desligado, nunca executa */
  }
@@ -5993,8 +5999,41 @@ function tickCosmicUlt(dt,now){
 }
 function sm01(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);}
 let cosmicSwordTime=0;function tickCosmicSwords(dt){cosmicSwordTime+=dt;if(cosmicHandSword){cosmicHandSword.userData.tick(cosmicSwordTime);const hide=!!(eclipseVfx&&eclipseVfx.holder.visible);cosmicHandSword.visible=!hide;}if(eclipseCosmicModel)eclipseCosmicModel.userData.tick(cosmicSwordTime);}
+/* BISPO 3 — SKILL 1: HIDRA DO JUÍZO (zarkhael-hydra3d.js) e IA por utilidade (zarkhael-brain3d.js). Um relógio só; tremor
+   por trauma aditivo (desfeito antes da câmera do próximo quadro), micro hit-stop e FOV punch curtos no impacto. */
+function isZarkhaelProfile(p){return p==='zarkhael'||p==='fallen3';}
+let hydraSkill=null,hydraVfx=null,hydraShake=null,hydraFovAdd=0,zkKite=false;
+const HYDRA_TEST=new URLSearchParams(location.search).has('testHidra');
+function undoHydraShake(){if(hydraShake){camera.position.sub(hydraShake);hydraShake=null;}}
+function startHydra(m){
+ if(hydraSkill)return;if(!hydraVfx)hydraVfx=createHydraVFX(THREE,scene);
+ const a=dimBattle&&dimBattle.active?arenaSpec(dimBattle.key):null,arena=a?{x:a.x,z:a.z,r:a.radius}:null;
+ hydraSkill=createHydraJudgment({dmg:m.dmg,ground:(x,z)=>fxGy(x,z)}).start({x:enemy.position.x,z:enemy.position.z},{x:player.position.x,z:player.position.z},arena);
+ showCombatCallout(m.name);status.textContent="ZAR'KHAEL abre o selo do juízo — algo enorme sobe do chão…";
+ playPose(enemyPoseRoot(),'channel',4.6,foeYaw,.3);worldAudio.abyss3&&worldAudio.abyss3('gravity',1);worldAudio.abyss3&&worldAudio.abyss3('warn',.5);
+}
+function stopHydra(){hydraSkill=null;undoHydraShake();hydraFovAdd=0;zkKite=false;if(hydraVfx)hydraVfx.clear();}
+function updateHydra(dt){
+ hydraFovAdd*=Math.exp(-dt*5);if(!hydraSkill)return;const h=hydraSkill;
+ if(!h.st.aborted&&(!enemy.visible||!enemyAlive||playerHP<=0||!isZarkhaelProfile(encounterProfile)||cineActive))h.abort();
+ for(const ev of h.step(dt,{x:player.position.x,y:player.position.y,z:player.position.z,vx:moveVX,vz:moveVZ,iframes:dashRemaining>0||performance.now()<playerInvulnerableUntil})){
+  if(ev.type==='phase'&&ev.name==='emerge'){worldAudio.abyss3&&worldAudio.abyss3('storm',.7);status.textContent='A Hidra do Juízo emerge do selo!';}
+  else if(ev.type==='roar'){worldAudio.abyss3&&worldAudio.abyss3('heavy',.5+.15*ev.i);}
+  else if(ev.type==='orb_start'){worldAudio.abyss3&&worldAudio.abyss3('gravity',.45);}
+  else if(ev.type==='orb_ready'&&ev.i===2){status.textContent='Três esferas carregadas — prepare o dash!';}
+  else if(ev.type==='fire'){worldAudio.abyss3&&worldAudio.abyss3('launch',.9);}
+  else if(ev.type==='impact'){const d=Math.hypot(ev.x-player.position.x,ev.z-player.position.z);worldAudio.abyss3&&worldAudio.abyss3('boom',d<16?1:.6);worldAudio.abyss3&&worldAudio.abyss3('thunder',.45);
+   if(d<16){hitStop(ev.hit?75:45);hydraFovAdd=-4;vibrate(ev.hit?120:60);}}
+  else if(ev.type==='hit'){damagePlayerFromEnemyAttack(ev.dmg);}
+  else if(ev.type==='dissolve'){worldAudio.abyss3&&worldAudio.abyss3('tear',.7);}
+ }
+ hydraVfx.update(h,{camera,low:graphics3DMode==='low'},dt);
+ if(!userSettings.reduceShake&&h.st.trauma>.001){const s=shakeAt(h.st.trauma,h.st.t,h.st.kickT,{amp:fpWasActive?.12:.3,kick:.4});_csA.set(0,0,1).applyQuaternion(camera.quaternion);hydraShake=new THREE.Vector3(s.x,s.y,s.z).addScaledVector(_csA,s.back*.5);camera.position.add(hydraShake);camera.rotateZ(s.roll*.8);}
+ if(h.done){hydraSkill=null;hydraVfx.clear();kitState.t=Math.max(kitState.t,1.8);if(HYDRA_TEST)delete kitState.cds.s1;}
+}
 function updateFoeKit(dt){
  if(swordTraining||squadOn)return;
+ if(hydraSkill)kitState.t=Math.max(kitState.t,.5); /* Bispo 3: a Hidra canaliza */
  if(tornadoRitual||portalSwords||eclipseSword){kitState.t=Math.max(kitState.t,.5);} // canalizando o ritual: a próxima magia espera as duas ondas
  const prof=encounterProfile,kit=kitFor(prof);if(!kit)return;
  const fight=prof+':'+enemyMaxHP;if(fight!==kitState.fight){kitState.fight=fight;kitState.cds={};kitState.t=2.5;kitState.last='';if(kitState.aura){kitState.aura.dispose();kitState.aura=null;}}
@@ -6004,7 +6043,7 @@ function updateFoeKit(dt){
  for(const id in kitState.cds)if((kitState.cds[id]-=dt)<=0)delete kitState.cds[id];
  if(!combatStepNow()||!enemy.visible||!enemyAlive||cineActive||dialogueOpen||playerHP<=0||bossUlt.kind||blackHole.active){kitState.t=Math.max(kitState.t,1.2);return;}
  kitState.t-=dt;if(kitState.t>0)return;
- const d=Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z),m0=pickMove(prof,kitState.cds,d,kitState.last);if(!m0)return;
+ const d=Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z),m0=isZarkhaelProfile(prof)?chooseZarkhaelMove(kit,{dist:d,cds:kitState.cds,last:kitState.last,hpFrac:enemyHP/Math.max(1,enemyMaxHP),heroHpFrac:playerHP/Math.max(1,playerMaxHP),heroDashing:dashRemaining>0,heroAttacking:!!rites.busy,heroSpeed:Math.hypot(moveVX,moveVZ)}).move:pickMove(prof,kitState.cds,d,kitState.last);if(!m0)return; /* Bispo 3: IA por utilidade */
  const m=powerStats(prof,m0);runFoeMove(m,kit);kitState.cds[m.id]=m.cd;kitState.last=m.id;kitState.t=(m.id==='sw'?2.4:3.2)*(tierOf(prof)==='common'?1.6:1);
 }
 /* ---------- Ultimates das famílias (as do Bispo 4 e da Ganância final ficam no MOD 210) ---------- */
@@ -6297,7 +6336,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   ultState(){return{kind:bossUlt.kind,t:+bossUlt.t.toFixed(2),hp:playerHP,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,cam:+ultCam.w.toFixed(2)};},
   bossHp(f){if(enemy.visible)enemyHP=Math.max(1,Math.round(enemyMaxHP*f));},
   hurtBoss(n){hurtEnemy(n,true);return enemyHP;},
-  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,cosmic:cosmicUlt?{phase:cosmicUlt.st.phase,pi:cosmicUlt.st.pi,pt:+cosmicUlt.st.pt.toFixed(2),rt:+cosmicUlt.st.rt.toFixed(2),lock:cosmicUlt.lockPlayer,P:cosmicUlt.st.P,circles:cosmicUlt.st.circles.map(c=>[c.r,+(c.y-cosmicUlt.st.P.y).toFixed(1),+c.k.toFixed(2)]),tipY:+(cosmicUlt.st.tipY-cosmicUlt.st.P.y).toFixed(2),hits:cosmicUlt.st.hits,white:+cosmicUlt.st.white.toFixed(2),trauma:+cosmicUlt.st.trauma.toFixed(2)}:null,camFov:+camera.fov.toFixed(1),handSword:!!(cosmicHandSword&&cosmicHandSword.visible&&cosmicHandSword.parent),eclipse:eclipseSword?{phase:eclipseSword.st.phase,t:+eclipseSword.st.t.toFixed(2),stage:eclipseSword.st.stage,level:+eclipseSword.st.level.toFixed(2),hits:eclipseSword.st.hits,impact:eclipseSword.st.impact&&eclipseSword.st.impact.kind,sword:!!(eclipseVfx&&eclipseVfx.swordReady&&eclipseVfx.holder.visible)}:null,squad:squadOn,dimTest:dimTest.key};},
+  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,hydra:hydraSkill?{phase:hydraSkill.st.phase,t:+hydraSkill.st.t.toFixed(2),orbs:hydraSkill.st.orbs.map(o=>o.state+':'+o.k.toFixed(2)).join(','),hits:hydraSkill.st.hits,dissolve:+hydraSkill.st.dissolve.toFixed(2),trauma:+hydraSkill.st.trauma.toFixed(2)}:null,kite:zkKite,cosmic:cosmicUlt?{phase:cosmicUlt.st.phase,pi:cosmicUlt.st.pi,pt:+cosmicUlt.st.pt.toFixed(2),rt:+cosmicUlt.st.rt.toFixed(2),lock:cosmicUlt.lockPlayer,P:cosmicUlt.st.P,circles:cosmicUlt.st.circles.map(c=>[c.r,+(c.y-cosmicUlt.st.P.y).toFixed(1),+c.k.toFixed(2)]),tipY:+(cosmicUlt.st.tipY-cosmicUlt.st.P.y).toFixed(2),hits:cosmicUlt.st.hits,white:+cosmicUlt.st.white.toFixed(2),trauma:+cosmicUlt.st.trauma.toFixed(2)}:null,camFov:+camera.fov.toFixed(1),handSword:!!(cosmicHandSword&&cosmicHandSword.visible&&cosmicHandSword.parent),eclipse:eclipseSword?{phase:eclipseSword.st.phase,t:+eclipseSword.st.t.toFixed(2),stage:eclipseSword.st.stage,level:+eclipseSword.st.level.toFixed(2),hits:eclipseSword.st.hits,impact:eclipseSword.st.impact&&eclipseSword.st.impact.kind,sword:!!(eclipseVfx&&eclipseVfx.swordReady&&eclipseVfx.holder.visible)}:null,squad:squadOn,dimTest:dimTest.key};},
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;

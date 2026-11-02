@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod265-bispo2-refino-aura-explosao-chamas';
+const BUILD = 'mod266-bispo3-hidra-do-juizo';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
