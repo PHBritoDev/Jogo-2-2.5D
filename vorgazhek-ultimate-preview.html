@@ -1,0 +1,35 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VORGAZHEK · Ultimate · prévia</title>
+<style>body{margin:0;background:#050102;color:#eef;font:12px monospace}canvas{display:block}#i{position:absolute;top:6px;left:8px;pointer-events:none;white-space:pre}#w{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at var(--cx,50%) var(--cy,50%),#fff 0,#fffbea 38%,#fff4d6 70%,#ffe9b8 100%)}</style><div id="i"></div><div id="w"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+/* MOD 262 — prévia/QA da ultimate (mesma lógica, câmera, tremor e VFX do jogo) com Bispo2-lod.glb e a espada cósmica na mão.
+   ?t=segundos congela; ?cam=game|plan (plan = plano cinematográfico); ?dodge=1 herói sai do círculo; ?low=1; ?view=sword */
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {buildCosmicSword} from './vorgazhek-cosmic-sword3d.js';import {createCosmicUlt,createCosmicUltVFX,shakeAt} from './vorgazhek-ultimate3d.js';
+const q=new URLSearchParams(location.search),freeze=q.has('t')?+q.get('t'):null,low=q.has('low'),dodge=q.has('dodge'),camMode=q.get('cam')||'plan';
+const scene=new T.Scene();scene.background=new T.Color(0x050102);scene.fog=new T.Fog(0x0c0204,22,170);const camera=new T.PerspectiveCamera(56,innerWidth/innerHeight,.1,760);
+const r=new T.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.2;r.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(r.domElement);
+scene.add(new T.HemisphereLight(0xff8890,0x40080c,.95));const sun=new T.DirectionalLight(0xff9a9a,.5);sun.position.set(5,10,4);scene.add(sun);const pl=new T.PointLight(0xff3040,3.4,90,1.1);pl.position.set(0,12,0);scene.add(pl);
+const fl=new T.Mesh(new T.CircleGeometry(33,72),new T.MeshStandardMaterial({color:0x120406,emissive:0x300408,roughness:.3,metalness:.45}));fl.rotation.x=-Math.PI/2;scene.add(fl);
+for(let i=0;i<14;i++){const a=i*.9,d=40+i*5,m=new T.Mesh(new T.BoxGeometry(3,10+i,3),new T.MeshStandardMaterial({color:0x150a0c,emissive:0x3a0408}));m.position.set(Math.cos(a)*d,8+i*2,Math.sin(a)*d);scene.add(m);}
+const hero=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xe8e2d0}));scene.add(hero);
+const bg=await new GLTFLoader().loadAsync('./Bispo2-lod.glb');const boss=new T.Group();scene.add(boss);const m=bg.scene;const box=new T.Box3().setFromObject(m);const sc=(1.7*1.45)/(box.max.y-box.min.y);m.scale.setScalar(sc);m.position.y=-box.min.y*sc;boss.add(m);boss.position.set(0,0,-7);
+const mixer=new T.AnimationMixer(m);mixer.clipAction(bg.animations.find(c=>c.name==='Swim Idle')).play();
+const hand=m.getObjectByName('mixamorigRightHand');m.updateMatrixWorld(true);const rel=new T.Vector3().setFromMatrixScale(new T.Matrix4().copy(m.matrixWorld).invert().multiply(hand.matrixWorld)).x*m.scale.x;
+const hs=buildCosmicSword(T);hs.rotation.set(-Math.PI/2,0,0);hs.position.set(0,.07/rel,0);hs.scale.setScalar(1.15/rel);hand.add(hs);
+const H={x:0,z:6,y:0,iframes:false};const ult=createCosmicUlt({dmg:32}).start(H,{x:0,z:-7},{x:0,z:0,r:30}),vfx=createCosmicUltVFX(T,scene,{makeSword:()=>buildCosmicSword(T,{clip:true})});
+let time=0,hits=0,last='',yaw=0;const base=new T.Vector3(),_a=new T.Vector3(),_b=new T.Vector3(),_q=new T.Quaternion(),_q2=new T.Quaternion();
+function gameCam(){ // câmera de jogo: atrás do herói, olhando o bispo
+ const dx=boss.position.x-H.x,dz=boss.position.z-H.z,l=Math.hypot(dx,dz)||1,st=ult.st,far=st.pi===3&&st.white<1?.85:0;camera.position.set(H.x-dx/l*(8.5+15.5*far),2.7+6.3*far,H.z-dz/l*(8.5+15.5*far));camera.lookAt(boss.position.x+(st.P?st.P.x-boss.position.x:0)*far,1.6+3.4*far,boss.position.z+(st.P?st.P.z-boss.position.z:0)*far);} /* igual ao ultCam do jogo na fase 4 */
+function step(dt){time+=dt;if(dodge&&ult.st.pi===2&&!ult.lockPlayer){H.x=Math.min(H.x+7*dt,9);}hero.position.set(H.x,.87,H.z);boss.rotation.y=Math.atan2(H.x-boss.position.x,H.z-boss.position.z);mixer.update(dt);hs.userData.tick(time);
+ for(const e of ult.step(dt,H)){last=e.type;if(e.type==='hit')hits++;}}
+function render(){const st=ult.st;gameCam();const c=ult.camera({boss:{x:boss.position.x,y:0,z:boss.position.z,yaw:boss.rotation.y},hero:{x:H.x,y:0,z:H.z}});
+ if(camMode==='plan'&&c.w>.001){_a.set(...c.pos);_b.set(...c.look);_q.copy(camera.quaternion);const p0=camera.position.clone();camera.position.copy(_a);camera.lookAt(_b);_q2.copy(camera.quaternion);camera.position.lerpVectors(p0,_a,c.w);camera.quaternion.slerpQuaternions(_q,_q2,c.w);}
+ camera.fov=56+(camMode==='plan'?c.fov*c.w:0)+st.fovAdd;camera.updateProjectionMatrix();
+ if(st.trauma>.001){const s=shakeAt(st.trauma,st.rt,st.kickT);_a.set(0,0,1).applyQuaternion(camera.quaternion);camera.position.add(new T.Vector3(s.x,s.y,s.z).addScaledVector(_a,s.back*.6));camera.rotateZ(s.roll);}
+ if(q.get('view')==='sword'){camera.position.set(st.P.x+16,st.P.y+12,st.P.z+16);camera.lookAt(st.P.x,st.P.y+12,st.P.z);camera.fov=60;camera.updateProjectionMatrix();}
+ vfx.update(ult,{camera,boss:{x:boss.position.x,y:0,z:boss.position.z,yaw:boss.rotation.y},low},1/60);
+ const w=document.getElementById('w'),wv=Math.max(st.white,st.flash*.55);if(wv>.001&&st.P){_a.set(st.P.x,st.P.y+2,st.P.z).project(camera);w.style.setProperty('--cx',(50+_a.x*50)+'%');w.style.setProperty('--cy',(50-_a.y*50)+'%');}w.style.opacity=wv;
+ document.getElementById('i').textContent='t '+st.rt.toFixed(2)+' fase '+st.phase+' acertos '+hits+' trava '+ult.lockPlayer+' trauma '+st.trauma.toFixed(2)+' chamadas '+r.info.render.calls+' ev '+last;r.render(scene,camera);}
+function frame(){requestAnimationFrame(frame);if(freeze===null){if(ult.done)ult.start(H,{x:0,z:-7},{x:0,z:0,r:30});step(1/60);}render();}
+if(freeze!==null){const n=Math.round(freeze*60);for(let i=0;i<n;i++){step(1/60);if(i%6===0)render();}setTimeout(()=>{window.__ready=true;},600);}frame();
+</script></html>

@@ -78,10 +78,10 @@ export function createCosmicUlt(opts = {}) {
     camera(ctx) {
       const B = ctx.boss, H = ctx.hero, P = st.P, fx = Math.sin(B.yaw), fz = Math.cos(B.yaw), rx = -fz, rz = fx, out = { w: 0, pos: [0, 0, 0], look: [0, 0, 0], fov: 0 };
       if (st.done || st.pi < 0) return out; const p = st.pt;
-      if (st.pi === 0) { const k = sm(p / 3.3), d = 7 - 2.2 * k; out.w = sm(p / .3); out.pos = [B.x + fx * d + rx * 2.4, B.y + .7 + .25 * k, B.z + fz * d + rz * 2.4]; out.look = [B.x + rx * .4, B.y + 2.1 + 1.6 * k, B.z + rz * .4]; out.fov = 14; }
+      if (st.pi === 0) { const k = sm(p / 3.3), d = 11.5 - 2.6 * k; out.w = sm(p / .3); out.pos = [B.x + fx * d + rx * 3.4, B.y + .75 + .2 * k, B.z + fz * d + rz * 3.4]; out.look = [B.x + rx * .4, B.y + 2.6 + 3.4 * k, B.z + rz * .4]; out.fov = 16; } /* baixa, 3/4 frontal, dolly-in: bispo legível e criaturas por cima */
       else if (st.pi === 1) { const hx = B.x - H.x, hz = B.z - H.z, hl = Math.hypot(hx, hz) || 1, ux = hx / hl, uz = hz / hl, lx = -uz, lz = ux, up = sm((p - .35) / 1.3);
-        out.w = 1; out.pos = [H.x - ux * 4.4 + lx * 1.5, H.y + 1.05, H.z - uz * 4.4 + lz * 1.5];
-        out.look = [H.x + (P.x - H.x) * up + ux * 2 * (1 - up), H.y + 1.6 + (st.circles[1].y - H.y - 1.6) * up * .78, H.z + (P.z - H.z) * up + uz * 2 * (1 - up)]; out.fov = 10 + 14 * up; }
+        out.w = 1; out.pos = [H.x - ux * 6.5 + lx * 1.6, H.y + .7, H.z - uz * 6.5 + lz * 1.6]; /* atrás do herói, baixo: ele fica embaixo do quadro, olhando os selos */
+        const tx = P.x + ux * 9, tz = P.z + uz * 9; out.look = [H.x + ux * 2 + (tx - H.x - ux * 2) * up, H.y + 1.8 + (P.y + 15 - H.y - 1.8) * up, H.z + uz * 2 + (tz - H.z - uz * 2) * up]; out.fov = 10 + 20 * up; }
       else if (st.pi === 2) { const hx = B.x - P.x, hz = B.z - P.z, hl = Math.hypot(hx, hz) || 1, sx = -hz / hl, sz = hx / hl; out.w = p < U.release ? 1 : 1 - sm((p - U.release) / .5);
         out.pos = [P.x + sx * 21 - hx / hl * 4, P.y + 2.6, P.z + sz * 21 - hz / hl * 4]; out.look = [P.x, Math.max(P.y + 6, st.tipY + 3), P.z]; out.fov = 14; }
       return out;
@@ -134,7 +134,7 @@ const RIB_V = `attribute vec2 aUv; attribute vec4 aK; varying vec2 vU; varying v
 const RIB_F = `${NOISE} uniform float time; varying vec2 vU; varying vec4 vK;
 void main(){ float e=abs(vU.y*2.-1.), s=vK.z, n=n2(vec2(vU.x*7.-time*3.+s*13.,vU.y*3.)), n3=n2(vec2(vU.x*19.-time*5.+s*7.,vU.y*6.));
  float edge=.6+.4*n-.2*n3; if(e>edge) discard; float core=exp(-e*e*22.);
- vec3 c=mix(vec3(.5,.02,.03),vec3(1.,.15,.08),1.-e/edge); c=mix(c,vec3(1.,.92,.85),core*(.5+.5*vK.w)); c=mix(vec3(.02,0.,0.),c,smoothstep(edge,edge-.25,e));
+ float core2=exp(-e*e*70.); vec3 c=mix(vec3(.06,.0,.005),vec3(.75,.05,.03),(1.-e/edge)*.8); c=mix(c,vec3(1.,.9,.8),core2*(.55+.45*vK.w)); c=mix(vec3(.01,0.,0.),c,smoothstep(edge,edge-.3,e));
  if(vK.x>.5) c=mix(vec3(.02,0.,0.),vec3(.9,.1,.05),exp(-e*e*50.)*.9);
  float a=vK.y; if(a<.02) discard; gl_FragColor=vec4(c,a); }`;
 /* Traço da juba da criatura (instanciado): preto com veia vermelha, recortado */
@@ -193,10 +193,14 @@ export function createCosmicUltVFX(T, scene, { makeSword } = {}) {
   const inst = (geo, m, n, attrs, ro = 0) => { const arrs = {}; for (const [k, sz] of attrs) { arrs[k] = new Float32Array(n * sz); geo.setAttribute(k, new T.InstancedBufferAttribute(arrs[k], sz).setUsage(T.DynamicDrawUsage)); } geos.push(geo); const x = new T.InstancedMesh(geo, m, n); x.frustumCulled = false; x.count = 0; x.renderOrder = ro; root.add(x); return { mesh: x, arrs, n: 0, max: n, attrs }; };
   const put = (I, vals) => { if (I.n >= I.max) return; I.mesh.setMatrixAt(I.n, M); let o = 0; for (const [k, sz] of I.attrs) { for (let j = 0; j < sz; j++) I.arrs[k][I.n * sz + j] = vals[o + j]; o += sz; } I.n++; };
   /* fase 1: criaturas */
-  const strokes = inst(spikeGeo(T), mat({ vertexShader: STROKE_V, fragmentShader: STROKE_F, side: T.DoubleSide }), 420, [['aS', 4]], 2);
+  const strokes = inst(spikeGeo(T), mat({ vertexShader: STROKE_V, fragmentShader: STROKE_F, side: T.DoubleSide }), 460, [['aS', 4]], 2);
   const teeth = inst(new T.ConeGeometry(.5, 1, 4), new T.MeshStandardMaterial({ color: 0x0a0204, emissive: 0x2a0204, roughness: .5, metalness: .3, flatShading: true }), 140, [], 2); mats.push(teeth.mesh.material);
   const eyeU = { show: { value: 0 } }, eyeG = new T.PlaneGeometry(1, 1); const eyes = []; for (let i = 0; i < 4; i++) { const e = mesh(eyeG.clone(), mat({ vertexShader: EYE_V, fragmentShader: EYE_F, side: T.DoubleSide, uniforms: eyeU }), 3); eyes.push(e); }
-  const mouthM = mat({ vertexShader: EYE_V, fragmentShader: `uniform float show; varying vec2 vU; void main(){ vec2 p=vU*2.-1.; float d=length(vec2(p.x*.55,(p.y+.35+p.x*p.x*.55)*1.6)); if(d>1.) discard; vec3 c=mix(vec3(1.,.6,.4),vec3(.55,.02,.02),smoothstep(.0,.9,d)); gl_FragColor=vec4(c,1.); if(show<.02) discard; }`, side: T.DoubleSide, uniforms: eyeU });
+  const mouthM = mat({ vertexShader: EYE_V, fragmentShader: `uniform float show,time; varying vec2 vU; void main(){ vec2 p=vU*2.-1.; /* sorriso em crescente com dentes negros finos em serra, luz branco-rubra por dentro */
+ float yc=-.25+.62*p.x*p.x, h=.3*(1.-p.x*p.x)+.02, dy=p.y-yc; if(abs(dy)>h||abs(p.x)>.98) discard;
+ float tf=abs(fract(p.x*11.+.5)-.5)*2., top=h-dy, bot=h+dy, Lt=h*1.25*(1.-tf), Lb=h*1.05*(1.-abs(fract(p.x*11.)-.5)*2.);
+ if(top<Lt||bot<Lb){ gl_FragColor=vec4(.015,.0,.002,1.); return; }
+ float k=1.-abs(dy)/h; vec3 c=mix(vec3(.6,.02,.02),vec3(1.,.55,.35),k); c=mix(c,vec3(1.,.97,.92),pow(k,4.)*(1.-abs(p.x))); gl_FragColor=vec4(c*(1.+.15*sin(time*7.)),1.); if(show<.02) discard; }`, side: T.DoubleSide, uniforms: eyeU });
   const mouths = [mesh(new T.PlaneGeometry(1, 1), mouthM, 1), mesh(new T.PlaneGeometry(1, 1), mouthM, 1)];
   /* fitas que sobem do corpo */
   const MAXQ = 500, rp = new Float32Array(MAXQ * 12), ru = new Float32Array(MAXQ * 8), rk = new Float32Array(MAXQ * 16), ri = new Uint32Array(MAXQ * 6); for (let i = 0; i < MAXQ; i++) ri.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4 + 2, i * 4 + 1, i * 4 + 3], i * 6);
@@ -210,7 +214,7 @@ export function createCosmicUltVFX(T, scene, { makeSword } = {}) {
   const bolts = new T.LineSegments(boltG, boltM); bolts.frustumCulled = false; root.add(bolts); let boltT = 0;
   const pillarG = new T.CylinderGeometry(1, 1, 1, 24, 1, true); const pillars = [0, 1].map(() => mesh(pillarG.clone(), mat({ vertexShader: FIRE_V, fragmentShader: BEAM_F, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, uniforms: { k: { value: 0 } } }), 4));
   /* fase 3: espada gigante (o MESMO modelo da mão), telegráfico */
-  let giant = null; function ensureGiant() { if (!giant && makeSword) { giant = makeSword(); giant.scale.setScalar(COSMIC_ULT.swordScale); giant.rotation.x = Math.PI; giant.visible = false; root.add(giant); } return giant; }
+  let giant = null; function ensureGiant() { if (!giant && makeSword) { giant = makeSword(); giant.scale.setScalar(COSMIC_ULT.swordScale); for (const m of giant.userData.mats) if (m.isMeshStandardMaterial) { m.emissive.setHex(m.color.getHex() > 0x500000 ? 0x4a3a7a : 0x2a1450); m.emissiveIntensity = 1.4; } /* gigante: o metal brilha com a luz do selo para ler no céu escuro */ giant.rotation.x = Math.PI; giant.visible = false; root.add(giant); } return giant; }
   const crossRing = mesh(new T.RingGeometry(.6, 1, 48), new T.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0, side: T.DoubleSide, toneMapped: false, blending: T.AdditiveBlending, depthWrite: false }), 6); crossRing.geometry.rotateX(-Math.PI / 2); mats.push(crossRing.material);
   const teleU = { k: { value: 0 } }, tele = mesh(new T.PlaneGeometry(2, 2).rotateX(-Math.PI / 2), mat({ vertexShader: FIRE_V, fragmentShader: TELE_F, transparent: true, depthWrite: false, uniforms: teleU }), 3);
   /* fase 4: explosão */
@@ -224,18 +228,18 @@ export function createCosmicUltVFX(T, scene, { makeSword } = {}) {
   const rocks = inst(rockG, rockM, 70, [], 1); const slabG = new T.BoxGeometry(1, .35, 1.4); const slabs = inst(slabG, rockM, 18, [], 1);
   const streaks = inst(spikeGeo(T), mat({ vertexShader: SPIKE_V, fragmentShader: SPIKE_F, side: T.DoubleSide }), 40, [['aT', 4]], 4);
   const glows = inst(new T.PlaneGeometry(1, 1), mat({ vertexShader: GLOW_V, fragmentShader: GLOW_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending }), 12, [['aG', 4]], 7);
-  let time = 0; const R3 = i => { const s = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return s - Math.floor(s); };
+  let time = 0; const o3dTeeth = false; /* os dentes vêm do shader do sorriso (mais nítidos que cones) */ const R3 = i => { const s = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return s - Math.floor(s); };
   function creature(cx, cy, cz, fx, fz, side, g, low, seed) { // juba radial + olhos + sorriso + garras, crescendo por g (0..1)
-    const rx = -fz, rz = fx, NS = low ? 90 : 150, sc = 5.5 + 2.2 * g;
+    const rx = -fz, rz = fx, NS = low ? 120 : 210, sc = 5.5 + 2.2 * g;
     for (let i = 0; i < NS; i++) { const u = R3(i + seed), v = R3(i * 3.7 + seed), born = i / NS; if (born > g * 1.15) break;
       const th = u * Math.PI * 2, el = (v - .35) * 2.1, len = sc * (.55 + .7 * R3(i * 5.1 + seed)) * Math.min(1, (g * 1.15 - born) * 4);
       D.set(Math.cos(th) * Math.cos(el) * .9, Math.sin(el) * .6 - .25, 0).normalize(); const dx = D.x, dy = D.y; D.set(rx * dx * side + fx * -.25, dy, rz * dx * side + fz * -.25).normalize();
       P.set(cx + D.x * sc * .45, cy + D.y * sc * .45, cz + D.z * sc * .45); E.set(cam.x - P.x, cam.y - P.y, cam.z - P.z); X.crossVectors(D, E).normalize(); Z.crossVectors(X, D); M.makeBasis(X, D, Z); Q.setFromRotationMatrix(M);
-      S.set(.35 + .4 * R3(i * 2.3), len, 1); M.compose(P, Q, S); put(strokes, [1, 1, .8 + .2 * Math.sin(time * 4 + i), seed + i * .1]); }
+      S.set(.28 + .32 * R3(i * 2.3), len, 1); M.compose(P, Q, S); put(strokes, [1, 1, .55 + .45 * R3(i * 8.1) + .15 * Math.sin(time * 4 + i), seed + i * .1]); }
     // dentes (sorriso enorme) — fileiras superior e inferior ao longo de um arco largo
     const mY = cy - sc * .28, nT = low ? 18 : 30, open = .5 + .3 * g;
     for (const row of [1, -1]) for (let i = 0; i < nT; i++) { const t = i / (nT - 1) * 2 - 1, x = t * sc * .62, yy = mY + (t * t) * sc * .22 + row * sc * .1 * open, L = sc * (.16 + .1 * (1 - Math.abs(t))) * g;
-      P.set(cx + rx * x * side + fx * .4, yy, cz + rz * x * side + fz * .4); Q.setFromAxisAngle(D.set(fx, 0, fz), row > 0 ? Math.PI : 0); S.set(sc * .028, L, sc * .028); M.compose(P, Q, S); if (g > .2) put(teeth, []); }
+      P.set(cx + rx * x * side + fx * .4, yy, cz + rz * x * side + fz * .4); Q.setFromAxisAngle(D.set(fx, 0, fz), row > 0 ? Math.PI : 0); S.set(sc * .028, L, sc * .028); M.compose(P, Q, S); if (g > .2 && o3dTeeth) put(teeth, []); }
     return { mY, sc };
   }
   return {
@@ -248,13 +252,13 @@ export function createCosmicUltVFX(T, scene, { makeSword } = {}) {
       const B = ctx.boss, fx = Math.sin(B.yaw), fz = Math.cos(B.yaw), Pp = st.P, pi = st.pi, p = st.pt;
       // ---- fase 1 (e dissolve no começo da 2): criaturas + fitas + núcleo ----
       const g1 = pi === 0 ? sm(p / 3.1) : pi === 1 ? Math.max(0, 1 - p / .7) : 0; eyeU.show.value = g1;
-      for (const [i, side] of [[0, -1], [1, 1]]) { const rx = -fz, rz = fx, cx = B.x - fx * (4.5 + i) + rx * side * 5.6, cy = B.y + 6.5 + i * 1.6, cz = B.z - fz * (4.5 + i) + rz * side * 5.6;
+      for (const [i, side] of [[0, -1], [1, 1]]) { const rx = -fz, rz = fx, cx = B.x - fx * (6 + i) + rx * side * 6.4, cy = B.y + 8.2 + i * 1.5, cz = B.z - fz * (6 + i) + rz * side * 6.4;
         if (g1 > .01) { const C = creature(cx, cy, cz, fx, fz, side, g1, low, i * 50 + 3);
-          for (let e = 0; e < 2; e++) { const eo = eyes[i * 2 + e], es = e ? 1 : -1, ex = es * C.sc * .27; eo.visible = true; eo.position.set(cx + rx * ex * side + fx * .6, cy + C.sc * .12, cz + rz * ex * side + fz * .6); eo.lookAt(cam); eo.rotateZ(es * -.45); eo.scale.set(C.sc * .3 * g1, C.sc * .17 * g1, 1); }
-          const mo = mouths[i]; mo.visible = true; mo.position.set(cx + fx * .3, C.mY, cz + fz * .3); mo.lookAt(cam); mo.scale.set(C.sc * 1.45 * g1, C.sc * .5 * g1, 1);
+          for (let e = 0; e < 2; e++) { const eo = eyes[i * 2 + e], es = e ? 1 : -1, ex = es * C.sc * .27; eo.visible = true; eo.position.set(cx + rx * ex * side + fx * .6, cy + C.sc * .12, cz + rz * ex * side + fz * .6); eo.lookAt(cam); eo.rotateZ(es * -.45); eo.scale.set(C.sc * .24 * g1, C.sc * .12 * g1, 1); }
+          const mo = mouths[i]; mo.visible = true; mo.position.set(cx + fx * .3, C.mY, cz + fz * .3); mo.lookAt(cam); mo.scale.set(C.sc * 1.5 * g1, C.sc * .62 * g1, 1);
           P.set(cx + fx * .5, C.mY, cz + fz * .5); Q.identity(); S.setScalar(C.sc * 1.2 * g1); M.compose(P, Q, S); put(glows, [1, .2, .08, .55 * g1]); }
         else { eyes[i * 2].visible = eyes[i * 2 + 1].visible = false; mouths[i].visible = false; } }
-      if (g1 > .01) { const NS = low ? 10 : 16; for (let i = 0; i < NS; i++) { const th0 = i / NS * 6.283 + R3(i) * 2, H = (3 + 9 * g1) * (.7 + .5 * R3(i * 3)); for (let j = 0; j < 12; j++) { const u = j / 11, th = th0 + time * (1 + R3(i * 7)) * (i % 2 ? 1 : -1) + u * 2.2, rr = (.6 + 3.2 * g1 * R3(i * 5)) * Math.sin(Math.PI * (.15 + .7 * u)) + .4; pts[j].set(B.x + Math.cos(th) * rr - fx * u * 2, B.y + u * H, B.z + Math.sin(th) * rr - fz * u * 2); }
+      if (g1 > .01) { const NS = low ? 8 : 12; for (let i = 0; i < NS; i++) { const th0 = i / NS * 6.283 + R3(i) * 2, H = (3 + 9 * g1) * (.7 + .5 * R3(i * 3)); for (let j = 0; j < 12; j++) { const u = j / 11, th = th0 + time * (1 + R3(i * 7)) * (i % 2 ? 1 : -1) + u * 2.2, rr = (1.1 + 3.6 * g1 * (.5 + .5 * R3(i * 5))) * Math.sin(Math.PI * (.15 + .7 * u)) + .5; pts[j].set(B.x + Math.cos(th) * rr - fx * u * 2, B.y + u * H, B.z + Math.sin(th) * rr - fz * u * 2); }
           strip(12, i % 4 === 0 ? 1 : 0, u => g1 * (1 - u * u), i * .37, g1, u => (.15 + .45 * g1) * Math.pow(1 - u, .6) + .02); }
         P.set(B.x + fx * .3, B.y + 1.5, B.z + fz * .3); Q.identity(); S.setScalar(1 + 3.5 * g1); M.compose(P, Q, S); put(glows, [1, .25, .1, .9 * g1]); }
       // ---- círculos (fase 2 e 3; somem no impacto) ----
@@ -278,7 +282,7 @@ export function createCosmicUltVFX(T, scene, { makeSword } = {}) {
       const ex = pi === 3 && p < COSMIC_ULT.whiteAt + COSMIC_ULT.whiteIn + .05; for (const o of [core, dome, beam, crater, shock, ...rings]) o.visible = ex;
       if (ex) { const k = p / (COSMIC_ULT.whiteAt + COSMIC_ULT.whiteIn), e1 = 1 - Math.pow(1 - Math.min(1, p / .18), 3);
         core.position.set(Pp.x, Pp.y + .5, Pp.z); core.scale.setScalar(.6 + 5.4 * e1 + .6 * Math.sin(time * 14) * (1 - k)); coreU.k.value = Math.max(0, k - .55); coreU.heat.value = 1 - k * .35;
-        const e2 = 1 - Math.pow(1 - Math.min(1, p / .55), 3); dome.position.set(Pp.x, Pp.y - .2, Pp.z); dome.scale.set(3 + 10 * e2, (3 + 8 * e2), 3 + 10 * e2); domeU.k.value = Math.max(0, (p - .5) / 2);
+        const e2 = 1 - Math.pow(1 - Math.min(1, p / .55), 3); dome.position.set(Pp.x, Pp.y - .2, Pp.z); dome.scale.set(3 + 8 * e2, (3 + 7 * e2), 3 + 8 * e2); domeU.k.value = Math.max(0, (p - .5) / 2);
         rings.forEach((r, i) => { const at = [.05, .18, .32][i], h = [1, 4.8, 9][i], rr = [17, 13, 9][i], kk = Math.max(0, p - at) / 1.6, e = 1 - Math.pow(1 - Math.min(1, kk * 2.2), 3); r.visible = ex && p > at; r.position.set(Pp.x, Pp.y + h + e * 1.5, Pp.z); r.scale.setScalar(2 + rr * e); r.material.uniforms.k.value = Math.min(1, kk); });
         beam.position.set(Pp.x, Pp.y + 30, Pp.z); beam.scale.set(1.2 + 2 * e1, 60, 1.2 + 2 * e1); beamU.k.value = Math.min(1, p / 1.6);
         crater.position.set(Pp.x, Pp.y + .04, Pp.z); crater.scale.setScalar(12); craterU.k.value = 0; craterU.cool.value = Math.min(1, p / 2);

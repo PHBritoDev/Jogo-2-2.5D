@@ -6005,13 +6005,13 @@ function tickCosmicUlt(dt,now){
   else if(ev.type==='circle'){worldAudio.abyss3&&worldAudio.abyss3('thunder',.35);}
   else if(ev.type==='release'){showCombatCallout('FUJA DO IMPACTO');Object.assign(ultCam,{want:.42,height:4.2,dist:11});}
   else if(ev.type==='impact'){ /* contato: tudo no mesmo quadro — congelamento, tranco, FOV, clarão, som, vibração, luz */
-   hitStop(110);slowMo(460,.5);vibrate(220);ultCam.want=0;worldAudio.novaBlast&&worldAudio.novaBlast();worldAudio.abyss3&&worldAudio.abyss3('boom',1);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);
+   hitStop(110);slowMo(460,.5);vibrate(220);Object.assign(ultCam,{want:.85,height:9,dist:24});ultCam.look.set(ev.x,ev.y+5,ev.z); /* a câmera recua e sobe: a explosão é vista de fora, nunca de dentro */worldAudio.novaBlast&&worldAudio.novaBlast();worldAudio.abyss3&&worldAudio.abyss3('boom',1);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);
    setTimeout(()=>{worldAudio.abyss3&&worldAudio.abyss3('storm',.9);},260); /* o vento chega depois do choque */
    if(!cosmicLightBase)cosmicLightBase={i:dimLight.intensity,c:dimLight.color.getHex()};dimLight.position.set(ev.x,ev.y+6,ev.z);dimLight.color.setHex(0xffe0a0);
    if(!ev.hit)status.textContent='Você escapou do impacto!';}
   else if(ev.type==='hit'){damagePlayerFromEnemyAttack(ev.dmg);}
   else if(ev.type==='ring'){worldAudio.abyss3&&worldAudio.abyss3('thunder',.5);}
-  else if(ev.type==='white'){if(cosmicVfx)cosmicVfx.clear();if(cosmicLightBase){dimLight.intensity=cosmicLightBase.i;dimLight.color.setHex(cosmicLightBase.c);dimLight.position.set(arenaSpec('bishop2').x,arenaSpec('bishop2').y+12,arenaSpec('bishop2').z);cosmicLightBase=null;}}
+  else if(ev.type==='white'){ultCam.want=0;if(cosmicVfx)cosmicVfx.clear();if(cosmicLightBase){dimLight.intensity=cosmicLightBase.i;dimLight.color.setHex(cosmicLightBase.c);dimLight.position.set(arenaSpec('bishop2').x,arenaSpec('bishop2').y+12,arenaSpec('bishop2').z);cosmicLightBase=null;}}
  }
  if(u.done){stopCosmicUlt();kitState.t=Math.max(kitState.t,2);return;}
  if(cosmicLightBase&&st.pi===3)dimLight.intensity=cosmicLightBase.i+9*Math.max(0,1-st.pt/1.4);
