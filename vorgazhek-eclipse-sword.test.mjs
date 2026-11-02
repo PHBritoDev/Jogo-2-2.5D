@@ -34,7 +34,7 @@ test('Mod 261 — etapas e tempos: lua no 1º quadro, carga de 3,2 s em 4 estág
 
 test('Mod 261 — corte: mira travada no lançamento, acerta parado, desvia correndo de lado e com dash; um acerto só', () => {
   const still = run(); assert.equal(still.ev.filter(e => e.type === 'hit').length, 1); assert.equal(at(still, 'impact').kind, 'hero'); assert.ok(still.frozen);
-  const hit = at(still, 'impact'); assert.ok(Math.hypot(hit.x - 800, hit.z - 14) < .01 && hit.y > ground(800, 14), 'impacto no herói, no ponto de contato');
+  const hit = at(still, 'impact'); assert.ok(Math.hypot(hit.x - 800, hit.z - 14) < .5 && hit.z < 14 && hit.y > ground(800, 14), 'impacto na frente do herói, no ponto de contato');
   // correndo de lado depois do lançamento: o corte segue reto e bate no chão no ponto projetado
   const side = run((h, t) => { if (t > 3.62) { h.vx = 9; h.x += 9 / 60; } }); assert.equal(side.ev.filter(e => e.type === 'hit').length, 0);
   const g = at(side, 'impact'); assert.equal(g.kind, 'ground'); assert.ok(Math.abs(g.y - ground(g.x, g.z)) < .05); const rel = at(side, 'release');

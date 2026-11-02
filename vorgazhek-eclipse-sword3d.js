@@ -81,7 +81,7 @@ export function createEclipseSword(opts = {}) {
           if (!hero.iframes && !st.hits) { const hx = s.dx, hz = s.dz, hl = Math.hypot(hx, hz) || 1, fx = hx / hl, fz = hz / hl, rx = fz, rz = -fx, seg = Math.hypot(s.x - px, s.z - pz);
             const along = (hero.x - px) * fx + (hero.z - pz) * fz, lat = (hero.x - px) * rx + (hero.z - pz) * rz, gy = Number.isFinite(hero.y) ? hero.y : ground(hero.x, hero.z);
             if (along >= -.45 && along <= seg + .45 && Math.abs(lat) <= T.hitHalfW) { const u = seg > 1e-6 ? clamp01(along / seg) : 0, cy = py + (s.y - py) * u;
-              if (cy - T.hitHalfH <= gy + T.heroH && cy + T.hitHalfH >= gy) hit = { x: hero.x, y: Math.max(gy + .3, Math.min(gy + 1.4, cy)), z: hero.z }; } }
+              if (cy - T.hitHalfH <= gy + T.heroH && cy + T.hitHalfH >= gy) hit = { x: hero.x - fx * .45, y: Math.max(gy + .3, Math.min(gy + 1.4, cy)), z: hero.z - fz * .45 }; } } /* frente do corpo, no lado de onde o corte veio */
           const g = ground(s.x, s.z);
           if (hit) { st.hits = 1; st.slash = null; st.impact = { ...hit, kind: 'hero', t: 0 }; ev.push({ type: 'hit', dmg, ...hit }, { type: 'impact', kind: 'hero', ...hit }); }
           else if (s.y <= g + .05) { const pg = ground(px, pz), k = clamp01((py - pg) / Math.max(1e-6, (py - pg) - (s.y - g))), ix = px + (s.x - px) * k, iz = pz + (s.z - pz) * k; st.slash = null; st.impact = { x: ix, y: ground(ix, iz), z: iz, kind: 'ground', t: 0 }; ev.push({ type: 'impact', kind: 'ground', x: ix, y: st.impact.y, z: iz }); }
@@ -143,13 +143,13 @@ void main(){ float u=vU.x, v=vU.y, n=n2(vec2(u*6.+time*1.5,v*4.-time*6.)), n3=n2
 const BAND_V = `attribute vec4 aB; attribute vec4 aP; varying vec2 vU; varying vec4 vB; varying vec4 vP; varying vec3 vN; varying vec3 vW;
 void main(){ vU=uv; vB=aB; vP=aP; vec4 w=modelMatrix*instanceMatrix*vec4(position,1.); vW=w.xyz; vN=normalize(mat3(modelMatrix)*mat3(instanceMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`;
 const BAND_F = `${NOISE} uniform float time; varying vec2 vU; varying vec4 vB; varying vec4 vP; varying vec3 vN; varying vec3 vW;
-void main(){ float k=vP.x, kind=vB.w; float head=fract(vB.z+time*vB.y), d=fract(head-vU.x); if(d>vB.x) discard; float tl=d/vB.x; // cauda atrás da cabeça
+void main(){ float cd=length(cameraPosition-vW); if(cd<1.4) discard; float k=vP.x, kind=vB.w; float head=fract(vB.z+time*vB.y), d=fract(head-vU.x); if(d>vB.x) discard; float tl=d/vB.x; // cauda atrás da cabeça
  float e=abs(vU.y*2.-1.), n=n2(vec2(vU.x*28.+vB.z*9.,vU.y*3.-time*2.)), cut=.75+.25*n-tl*.45; float dis=smoothstep(.78,1.,k); if(e>cut||n<dis*1.1) discard;
  vec3 c; float lead=1.-smoothstep(0.,.18,tl);
  if(kind<.5){ c=mix(vec3(.55,.2,1.),vec3(.25,.04,.6),tl); c=mix(c,vec3(1.,.95,1.),lead*(1.-e)); c=mix(c,vec3(.03,.005,.06),smoothstep(cut-.22,cut,e)*.9); }
  else if(kind<1.5){ c=mix(vec3(.04,.01,.08),vec3(.5,.15,.95),exp(-e*e*30.)*(1.-tl)); } // lâmina negra
  else { c=mix(vec3(1.,.72,.5),vec3(.9,.4,.8),tl)*(1.-tl*.5); } // trilha quente
- float f=abs(dot(normalize(vN),normalize(cameraPosition-vW))); c*=.75+.35*f; float a=(1.-tl*.7)*(1.-smoothstep(.85,1.,k)); if(a<.03) discard; gl_FragColor=vec4(c,a); }`;
+ float f=abs(dot(normalize(vN),normalize(cameraPosition-vW))); c*=.75+.35*f; float a=(1.-tl*.7)*(1.-smoothstep(.85,1.,k))*smoothstep(1.4,3.2,cd); if(a<.03) discard; gl_FragColor=vec4(c,a); }`;
 const CORE_F = `${NOISE} uniform float time; varying vec2 vU; varying vec4 vB; varying vec4 vP; varying vec3 vN; varying vec3 vW;
 void main(){ float k=vP.x; vec3 n=normalize(vN), v=normalize(cameraPosition-vW); float f=abs(dot(n,v)); float sw=n2(vec2(atan(n.z,n.x)*3.+time*5.,n.y*4.-time*2.));
  if(sw<smoothstep(.7,1.,k)) discard; vec3 c=mix(vec3(.3,.05,.75),vec3(1.,.95,1.),pow(f,2.2)); c=mix(c,vec3(.04,0.,.08),smoothstep(.62,.8,sw)*(1.-f)); gl_FragColor=vec4(c,1.); }`;
@@ -177,7 +177,7 @@ export function createEclipseVFX(T, scene) {
   const mat = (o) => { const m = new T.ShaderMaterial({ toneMapped: false, fog: false, ...o, uniforms: { time: uTime, ...(o.uniforms || {}) } }); mats.push(m); return m; };
   /* lua */
   const moonU = { show: { value: 0 }, side: { value: 1 } }, moonG = new T.PlaneGeometry(2, 2); geos.push(moonG);
-  const moon = new T.Mesh(moonG, mat({ vertexShader: MOON_V, fragmentShader: MOON_F, transparent: true, depthWrite: false, uniforms: moonU })); moon.frustumCulled = false; moon.visible = false; moon.renderOrder = -2; root.add(moon); const moonPos = V(); let moonSet = false;
+  const moon = new T.Mesh(moonG, mat({ vertexShader: MOON_V, fragmentShader: MOON_F, transparent: true, depthWrite: false, uniforms: moonU })); moon.frustumCulled = false; moon.visible = false; moon.renderOrder = 3; /* depois do portal/olhos do fundo, antes da aura: nada do cenário distante passa por cima */ root.add(moon); const moonPos = V(); let moonSet = false;
   /* fitas */
   const MAXQ = 900, rp = new Float32Array(MAXQ * 12), ru = new Float32Array(MAXQ * 8), rk = new Float32Array(MAXQ * 16), ri = new Uint32Array(MAXQ * 6); for (let i = 0; i < MAXQ; i++) ri.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4 + 2, i * 4 + 1, i * 4 + 3], i * 6);
   const rg = new T.BufferGeometry(); rg.setAttribute('position', new T.BufferAttribute(rp, 3).setUsage(T.DynamicDrawUsage)); rg.setAttribute('aUv', new T.BufferAttribute(ru, 2).setUsage(T.DynamicDrawUsage)); rg.setAttribute('aK', new T.BufferAttribute(rk, 4).setUsage(T.DynamicDrawUsage)); rg.setIndex(new T.BufferAttribute(ri, 1)); geos.push(rg);
