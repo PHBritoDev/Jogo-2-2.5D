@@ -15,6 +15,7 @@
  * helicoidal escuro com fendas incandescentes (contra-rotação). Base estreita, topo largo e irregular; gira desde o
  * primeiro quadro, compõe-se de baixo para cima e se desfaz de cima para baixo pelas próprias fitas.
  */
+export const VORGAZHEK_TORNADO_BUILD = '258-suction-on-formation';
 export const TORNADO = { windup: .6, form: 1.3, hold: 1.3, dissolve: .8, gap: .5, waves: 2, min: 5, max: 5, R: 1.55, H: 7.2, ring: [3, 5.6], near: [1, 1.8], activeAt: 0, tick: .6, dmg: 10, pullRange: 4.3, pullSpeed: 6.1, dashResistance: .17 };
 const sm = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 
