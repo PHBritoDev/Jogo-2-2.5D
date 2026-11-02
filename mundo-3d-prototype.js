@@ -6143,14 +6143,13 @@ function isSprinting(){return (keys.shift||sprintToggle)&&!defending;}
 /* MOD 260: VORGAZHEK/fallen2 não têm mais poder secundário genérico; as correntes ficam só na Avareza III. */
 function greedChains(){status.textContent='A Avareza estende o livro: as correntes da dívida caem sobre você!';const px=player.position.x,pz=player.position.z,vx=moveVX*.5,vz=moveVZ*.5;for(let i=0;i<3;i++)spawnHazard({x:px+vx*(i+1),z:pz+vz*(i+1),radius:2.1,delay:.9+i*.45,damage:18,color:0xd25a2a});}
 const BOSS_POWERS={
- zarkhael:{cd:8,run(){status.textContent="ZAR'KHAEL ergue a mão: o juízo cai em pilares!";for(let i=0;i<5;i++){const a=Math.random()*6.28,r=1+Math.random()*4.5;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.8,delay:1.1+i*.18,damage:20,color:0xffc04a});}}},
  veraxion:{cd:8.5,run(){status.textContent='VÉRAXION invoca o fogo abissal — saia das chamas!';const ex=enemy.position.x,ez=enemy.position.z,dx=player.position.x-ex,dz=player.position.z-ez,d=Math.max(1,Math.hypot(dx,dz));for(let i=0;i<5;i++){const k=(i+1)/5*Math.min(12,d+3);abyssFlame(ex+dx/d*k,ez+dz/d*k,.8+i*.22,1.9);}abyssFlame(player.position.x,player.position.z,1.6,2.6);worldAudio.abyss&&worldAudio.abyss();}},
  greed1:{cd:9,run(){castBlackHole(enemy.position.x+(player.position.x-enemy.position.x)*.5,enemy.position.z+(player.position.z-enemy.position.z)*.5);}},
- greed2:{cd:7.5,run(){if(Math.random()<.5)castBlackHole(player.position.x+Math.sin(cameraYaw)*2,player.position.z+Math.cos(cameraYaw)*2);else BOSS_POWERS.zarkhael.run();}},
+ greed2:{cd:7.5,run(){if(Math.random()<.5)castBlackHole(player.position.x+Math.sin(cameraYaw)*2,player.position.z+Math.cos(cameraYaw)*2);else {for(let i=0;i<5;i++){const a=Math.random()*6.28,r=1+Math.random()*4.5;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.8,delay:1.1+i*.18,damage:20,color:0xffc04a});}}}},
  greed3:{cd:6.5,run(){castBlackHole(player.position.x,player.position.z);greedChains();}}
 };
 BOSS_POWERS.fallen1={cd:9,run(){castBlackHole(enemy.position.x,enemy.position.z);}};
-BOSS_POWERS.fallen3=BOSS_POWERS.zarkhael;BOSS_POWERS.fallen4=BOSS_POWERS.veraxion;
+/* MOD 267: zarkhael / fallen3 não possuem mais o ataque genérico de pilares. */BOSS_POWERS.fallen4=BOSS_POWERS.veraxion;
 let bossPowerCd=4;
 function updateBossPowers(dt){
  const power=BOSS_POWERS[encounterProfile];
