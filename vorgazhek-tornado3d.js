@@ -5,7 +5,7 @@
  * Estados: windup → onda 1 (selos → formação 1,3 s → plenitude 1,3 s → dissipação) → pausa → onda 2 → fim.
  * Cada onda: 5 selos/tornados recalculados em volta da posição ATUAL do jogador (só entre ondas); um deles pressiona
  * perto (força a reagir), os outros cercam em arco deixando saída. Dano assim que a formação começa, nunca no pré-aviso;
- * sucção progressiva em até 4,3 m prioriza a fonte mais forte (não acumula 5 forças), dash reduz a pressão;
+ * sucção progressiva em até 9,5 m prioriza a fonte mais forte (não acumula 5 forças), dash reduz a pressão;
  * hitbox acompanha o corpo visível, tique com recarga por alvo (sem acumular por sobreposição),
  * i-frames do dash respeitados. Duas ondas por ativação, nunca infinitas.
  *
@@ -15,8 +15,8 @@
  * helicoidal escuro com fendas incandescentes (contra-rotação). Base estreita, topo largo e irregular; gira desde o
  * primeiro quadro, compõe-se de baixo para cima e se desfaz de cima para baixo pelas próprias fitas.
  */
-export const VORGAZHEK_TORNADO_BUILD = '258-suction-on-formation';
-export const TORNADO = { windup: .6, form: 1.3, hold: 1.3, dissolve: .8, gap: .5, waves: 2, min: 5, max: 5, R: 1.55, H: 7.2, ring: [3, 5.6], near: [1, 1.8], activeAt: 0, tick: .6, dmg: 10, pullRange: 4.3, pullSpeed: 6.1, dashResistance: .17 };
+export const VORGAZHEK_TORNADO_BUILD = '259-suction-range-9p5';
+export const TORNADO = { windup: .6, form: 1.3, hold: 1.3, dissolve: .8, gap: .5, waves: 2, min: 5, max: 5, R: 1.55, H: 7.2, ring: [3, 5.6], near: [1, 1.8], activeAt: 0, tick: .6, dmg: 10, pullRange: 9.5, pullSpeed: 6.1, dashResistance: .17 };
 const sm = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 
 /** Ritual puro: opts { rand, ground(x,z), blocked(x,z), dmg, R } */

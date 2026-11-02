@@ -65,11 +65,14 @@ test('Mod 258 — dano no primeiro quadro do tornado, sucção progressiva e das
   const dash = r.pullAt(origin.x + 1.4, origin.z, true);
   assert.ok(early && early.x < 0 && early.strength > 0, 'sucção aponta para o centro');
   assert.ok(dash && Math.abs(dash.strength / early.strength - TORNADO.dashResistance) < .001, 'dash reduz drasticamente a sucção');
-  assert.equal(r.pullAt(origin.x + 8, origin.z), null, 'fora do alcance não há atração');
+  assert.equal(r.pullAt(origin.x + 11, origin.z), null, 'fora do alcance não há atração');
   for (let i = 0; i < 40; i++) r.step(1 / 60, p);
   const grown = r.pullAt(origin.x + 1.4, origin.z);
   assert.ok(grown && grown.strength > early.strength, 'pressão aumenta enquanto o tornado cresce');
   assert.ok(grown.strength <= TORNADO.pullSpeed * 1.02, 'pressão não supera o limite de força');
+  for (let i = 0; i < 45; i++) r.step(1 / 60, p);
+  const extended = r.pullAt(origin.x + 9, origin.z);
+  assert.ok(extended && extended.strength > 0 && extended.x < 0, 'sução alcança 9 m após crescer');
   r.abort();
   assert.equal(r.pullAt(origin.x + 1.4, origin.z), null, 'ao cancelar a habilidade, pressão cessa imediatamente');
 });
