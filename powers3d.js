@@ -71,7 +71,7 @@ export const KITS = {
     sword: S('sw', 'ECLIPSE DA DÍVIDA', 'vorgazhek_eclipse_sword', { dmg: 22, cd: 20, range: [4, 26] }), // MOD 261: eclipse + EspadaBispo2.glb + aura + corte + colapso (vorgazhek-eclipse-sword3d.js)
     ult: S('ult', 'O JUÍZO DA ESPADA CÓSMICA', 'vorgazhek_cosmic_judgment', { dmg: 40 }) }, // MOD 262: ultimate cinematográfica em 4 fases (vorgazhek-ultimate3d.js)
   zarkhael: { color: 0x7ad8ff, color2: 0x08223a, book: true, skills: [
-    S('s1', 'Selos do Juízo', 'circles', { n: 4, dmg: 16, cd: 8, r: 1.8 }),
+    S('s1', 'HIDRA DO JUÍZO', 'hydra_judgment', { dmg: 18, cd: 24, range: [6, 24] }), // Bispo 3 · Skill 1: selo + Hidra de 3 cabeças + 3 esferas (zarkhael-hydra3d.js)
     S('s2', 'Gelo Distorcido', 'line', { n: 3, dmg: 14, cd: 9, len: 12, w: 1 }),
     S('s3', 'Sentença Espectral', 'orbs', { n: 4, dmg: 13, cd: 10, speed: 5.5 })],
     sword: S('sw', 'Lua de Gelo', 'cone', { dmg: 15, cd: 6, r: 5, arc: 1.4 }),
