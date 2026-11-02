@@ -206,8 +206,10 @@ export function createEclipseVFX(T, scene) {
   const slash = new T.Mesh(slashG, mat({ vertexShader: SLASH_V, fragmentShader: SLASH_F, transparent: true, depthWrite: false, side: T.DoubleSide, uniforms: slashU })); slash.frustumCulled = false; slash.visible = false; slash.renderOrder = 6; root.add(slash);
   /* espada real (EspadaBispo2.glb) presa à mão */
   const holder = new T.Group(); holder.name = 'EspadaBispo2Holder'; holder.visible = false; root.add(holder); let swordMats = [], swordReady = false; const swordTip = V();
-  function setSwordModel(model, scale = ECLIPSE.swordScale) { if (swordReady) return; const m = model.clone(true); m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.emissive = new T.Color(0x6a20ff); o.material.emissiveIntensity = 0; swordMats.push(o.material); o.frustumCulled = false; o.castShadow = true; } });
-    m.scale.setScalar(scale); m.position.y = -ECLIPSE.grip * scale; holder.add(m); holder.userData.len = (.95 - ECLIPSE.grip) * scale; swordReady = true; }
+  /** o.own: usa o próprio modelo (espada cósmica da Mod 262, com materiais e shader próprios); o.grip/o.tip: y local da pega e da ponta. */
+  function setSwordModel(model, scale = ECLIPSE.swordScale, o = {}) { if (swordReady) return; const grip = o.grip ?? ECLIPSE.grip, tipY = o.tip ?? .95, m = o.own ? model : model.clone(true);
+    m.traverse(x => { if (x.isMesh) { if (!o.own) x.material = x.material.clone(); if (x.material.isMeshStandardMaterial) { x.material.transparent = true; x.material.emissive = new T.Color(0x6a20ff); x.material.emissiveIntensity = 0; swordMats.push(x.material); } x.frustumCulled = false; x.castShadow = true; } });
+    m.scale.setScalar(scale); m.position.y = -grip * scale; holder.add(m); holder.userData.len = (tipY - grip) * scale; swordReady = true; }
   let time = 0; const trail = []; for (let i = 0; i < 12; i++) trail.push([V(), V()]); let trailN = 0;
   const sm = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }, eo = x => 1 - (1 - Math.max(0, Math.min(1, x))) ** 3;
   function aura(B, L, A, low, yaw) { // tempestade no corpo inteiro: fitas-chama, chicotes negros, feixe da espada, farpas no chão

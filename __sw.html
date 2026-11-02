@@ -1,0 +1,9 @@
+<!doctype html><html><body style="margin:0;background:#333"><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as T from 'three';import {buildCosmicSword} from './vorgazhek-cosmic-sword3d.js';
+const q=new URLSearchParams(location.search);const scene=new T.Scene();scene.background=new T.Color(0x3a3530);const cam=new T.PerspectiveCamera(30,1,.01,100);
+const r=new T.WebGLRenderer({antialias:true});r.setSize(480,480);r.outputColorSpace=T.SRGBColorSpace;r.toneMapping=T.ACESFilmicToneMapping;document.body.appendChild(r.domElement);
+scene.add(new T.HemisphereLight(0xffffff,0x332222,1.6));const d=new T.DirectionalLight(0xffffff,2.2);d.position.set(2,3,4);scene.add(d);
+const s=buildCosmicSword(T);s.rotation.z=Math.PI;s.position.y=.45;scene.add(s);s.userData.tick(2);
+const ang=+(q.get('ang')||0);cam.position.set(Math.sin(ang)*4.2,0,Math.cos(ang)*4.2);cam.lookAt(0,0,0);r.render(scene,cam);window.__ready=true;window.__info={};
+</script></body></html>
