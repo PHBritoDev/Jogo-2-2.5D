@@ -70,12 +70,11 @@ export const KITS = {
     S('s3', 'DOMÍNIO DAS LÂMINAS ENDIVIDADAS', 'portal_swords', { dmg: 5, cd: 22 })], // MOD 260: 20–24 portais no alto, 3 espadas cada (vorgazhek-portal-swords3d.js)
     sword: S('sw', 'ECLIPSE DA DÍVIDA', 'vorgazhek_eclipse_sword', { dmg: 22, cd: 20, range: [4, 26] }), // MOD 261: eclipse + EspadaBispo2.glb + aura + corte + colapso (vorgazhek-eclipse-sword3d.js)
     ult: S('ult', 'O JUÍZO DA ESPADA CÓSMICA', 'vorgazhek_cosmic_judgment', { dmg: 40 }) }, // MOD 262: ultimate cinematográfica em 4 fases (vorgazhek-ultimate3d.js)
+  // MOD 267: os poderes antigos e genéricos de ZAR'KHAEL foram EXCLUÍDOS,
+  // não apenas bloqueados. Só a Skill 1 autoral fica cadastrada, até as próximas.
   zarkhael: { color: 0x7ad8ff, color2: 0x08223a, book: true, skills: [
-    S('s1', 'HIDRA DO JUÍZO', 'hydra_judgment', { dmg: 18, cd: 24, range: [6, 24] }), // Bispo 3 · Skill 1: selo + Hidra de 3 cabeças + 3 esferas (zarkhael-hydra3d.js)
-    S('s2', 'Gelo Distorcido', 'line', { n: 3, dmg: 14, cd: 9, len: 12, w: 1 }),
-    S('s3', 'Sentença Espectral', 'orbs', { n: 4, dmg: 13, cd: 10, speed: 5.5 })],
-    sword: S('sw', 'Lua de Gelo', 'cone', { dmg: 15, cd: 6, r: 5, arc: 1.4 }),
-    ult: S('ult', 'SENTENÇA INVERTIDA', 'sentence', { dmg: 34 }) },
+    S('s1', 'HIDRA DO JUÍZO', 'hydra_judgment', { dmg: 18, cd: 24, range: [6, 24] })],
+    sword: null, ult: null },
   veraxion: { color: 0x9a2cff, color2: 0xff5a1a, book: true, skills: [
     S('s1', 'Fogo Abissal', 'abyss', { n: 5, dmg: 18, cd: 8 }),
     S('s2', 'Furacão Negro', 'vortex', { dmg: 9, cd: 11, dur: 4, speed: 3.2 }),
@@ -113,7 +112,7 @@ export function powerStats(profile, move) {
  */
 export function pickMove(profile, cds, dist, lastId = '') {
   const k = kitFor(profile); if (!k) return null;
-  const sw = k.sword; if (!sw.disabled && !(cds.sw > 0) && (sw.range ? dist >= sw.range[0] && dist <= sw.range[1] : dist <= 4.5)) return sw; // MOD 261: especial de espada à distância tem alcance próprio
+  const sw = k.sword; if (sw && !sw.disabled && !(cds.sw > 0) && (sw.range ? dist >= sw.range[0] && dist <= sw.range[1] : dist <= 4.5)) return sw; // MOD 261: especial de espada à distância tem alcance próprio
   if (dist < 3 || dist > 16) return null;
   const ready = k.skills.filter(s => !s.disabled && !(cds[s.id] > 0)); // MOD 260: poderes reservados nunca saem
   if (!ready.length) return null;

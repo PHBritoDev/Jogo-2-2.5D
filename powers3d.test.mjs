@@ -2,11 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FAMILY, KITS, kitFor, tierOf, powerStats, pickMove } from './powers3d.js';
 
-test('toda família tem Habilidade 1, 2 e 3, golpe de espada e ultimate, com nome', () => {
+test('cada família preserva seus poderes autorais; Bispo 3 tem só a Hidra sem ataques genéricos', () => {
   for (const [f, k] of Object.entries(KITS)) {
-    assert.equal(k.skills.length, 3, f);
-    assert.deepEqual(k.skills.map(s => s.id), ['s1', 's2', 's3']);
-    for (const m of [...k.skills, k.sword, k.ult]) { assert.ok(m.name && m.type, f + ' ' + m.id); assert.ok(m.dmg > 0); }
+    if (f === 'zarkhael') {
+      assert.deepEqual(k.skills.map(s => s.id), ['s1'], 'Skill 1 autoral do Bispo 3');
+      assert.deepEqual(k.skills.map(s => s.type), ['hydra_judgment'], 'sem skills genéricas');
+      assert.equal(k.sword, null, 'antiga espada genérica excluída');
+      assert.equal(k.ult, null, 'ultimate antiga genérica excluída');
+    } else {
+      assert.equal(k.skills.length, 3, f);
+      assert.deepEqual(k.skills.map(s => s.id), ['s1', 's2', 's3']);
+    }
+    for (const m of [...k.skills, k.sword, k.ult].filter(Boolean)) { assert.ok(m.name && m.type, f + ' ' + m.id); assert.ok(m.dmg > 0); }
   }
   for (const p of ['captor', 'demon2', 'demon3', 'demon4', 'vhazrael', 'vorgazhek', 'zarkhael', 'veraxion', 'greed1', 'greed2', 'greed3', 'miniboss2', 'elite4'])
     assert.ok(kitFor(p), p);

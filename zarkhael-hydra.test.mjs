@@ -55,11 +55,11 @@ test('Hidra — some em pó depois da 3ª; interrupção limpa; o bispo só fica
 });
 
 test('IA do Bispo 3 — utilidade por distância, sem spam, espera o dash, pune quem cola, abre distância antes do ritual', () => {
-  const k = kitFor('zarkhael'); assert.equal(k.skills[0].type, 'hydra_judgment'); assert.equal(k, kitFor('fallen3'));
+  const k = kitFor('zarkhael'); assert.deepEqual(k.skills.map(s=>s.type), ['hydra_judgment']); assert.equal(k.sword, null); assert.equal(k.ult, null); assert.equal(k, kitFor('fallen3'));
   const seq = s => { let x = s; return () => { x = (x * 16807) % 2147483647; return x / 2147483647; }; };
   const pick = (ctx, s = 3) => chooseZarkhaelMove(k, { cds: {}, last: '', hpFrac: 1, heroHpFrac: 1, ...ctx }, seq(s));
   assert.equal(pick({ dist: 14 }).move.type, 'hydra_judgment', 'à distância média, o ritual');
-  assert.equal(pick({ dist: 2.5 }).move.type, 'cone', 'colado, golpe de perto');
+  assert.equal(pick({ dist: 2.5 }).move, null, 'colado, sem magia genérica: usa apenas combate físico');
   assert.ok(pick({ dist: 14, heroDashing: true }).scores.find(x => x[0].type === 'hydra_judgment')[1] < pick({ dist: 14 }).scores.find(x => x[0].type === 'hydra_judgment')[1], 'espera o dash do herói');
   assert.notEqual(pick({ dist: 14, cds: { s1: 9 } }).move?.type, 'hydra_judgment', 'respeita a recarga');
   let same = 0; for (let s = 1; s < 40; s++) if (pick({ dist: 9, last: 's3' }, s).move.id === 's3') same++; assert.ok(same < 8, 'não repete o mesmo golpe: ' + same);
@@ -69,5 +69,6 @@ test('IA do Bispo 3 — utilidade por distância, sem spam, espera o dash, pune 
   assert.ok(src.includes("case 'hydra_judgment':startHydra(m);break;") && src.includes('updateHydra(dt);') && src.includes('stopHydra();clearHazards();') && src.includes('undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);'), 'integração real e limpeza');
   assert.ok(src.includes('isZarkhaelProfile(prof)?chooseZarkhaelMove('), 'Bispo 3 usa a IA por utilidade');
   assert.ok(!/function spawnEnemyProjectile|function updateEnemyProjectiles/.test(src), 'Mod 264 preservada');
+  assert.ok(!/BOSS_POWERS\.fallen3=|BOSS_POWERS\.zarkhael/.test(src), 'poder genérico antigo de pilares do Bispo 3 excluído (Mod 267)');
   for (const p of ['vhazrael', 'vorgazhek', 'greed1']) assert.ok(pickMove(p, {}, 4, '') !== undefined, 'outros perfis intactos'); assert.equal(KITS.vorgazhek.skills[0].type, 'tornadoes');
 });
