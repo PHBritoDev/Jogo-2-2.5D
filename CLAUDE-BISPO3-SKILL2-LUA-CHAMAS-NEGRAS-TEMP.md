@@ -1,16 +1,16 @@
 # TAREFA TEMPORÁRIA PARA CLAUDE — BISPO 3 (ZAR’KHAEL) — SKILL 2: LUA TENEBROSA & CHAMAS NEGRAS
 
-> **LEIA TUDO ANTES DE ALTERAR QUALQUER ARQUIVO.** Pedido do criador de **A Batalha Contra os 7 Pecados Capitais**. Repositório: https://github.com/PHBritoDev/Jogo-2-2.5D, branch principal \`main\`. Execute você mesmo; não responda com sugestões, pseudocódigo, só um plano ou arquivos soltos. PESQUISE, PROGRAME, TESTE, FAÇA COMMIT, FAÇA MERGE SE SEGURO e remova ESTE arquivo temporário ao terminar. **Silêncio total** definido no final.
+> **LEIA TUDO ANTES DE ALTERAR QUALQUER ARQUIVO.** Pedido do criador de **A Batalha Contra os 7 Pecados Capitais**. Repositório: https://github.com/PHBritoDev/Jogo-2-2.5D, branch principal `main`. Execute você mesmo; não responda com sugestões, pseudocódigo, só um plano ou arquivos soltos. PESQUISE, PROGRAME, TESTE, FAÇA COMMIT, FAÇA MERGE SE SEGURO e remova ESTE arquivo temporário ao terminar. **Silêncio total** definido no final.
 
 ## 0. O QUE ESTÁ APROVADO E AS CONSEQUÊNCIAS PARA O JOGO
 
-**Motor atual: JavaScript + Three.js / WebGL, público no GitHub Pages, foco Android. NÃO migrar para Unity ou Godot, NÃO substituir o jogo, NÃO reconstruir a arena.** Esta é uma Skill 2 definitiva, exclusiva dos perfis \`zarkhael\` e \`fallen3\`, a ser integrada à dimensão real do Bispo 3 e ao teste. A Skill 1 autoral \`HIDRA DO JUÍZO\` (Mods 266/268) já existe; a Mod 267 **removeu de verdade** as magias genéricas do Bispo 3. Não restaurá-las, nem usar como placeholder.
+**Motor atual: JavaScript + Three.js / WebGL, público no GitHub Pages, foco Android. NÃO migrar para Unity ou Godot, NÃO substituir o jogo, NÃO reconstruir a arena.** Esta é uma Skill 2 definitiva, exclusiva dos perfis `zarkhael` e `fallen3`, a ser integrada à dimensão real do Bispo 3 e ao teste. A Skill 1 autoral `HIDRA DO JUÍZO` (Mods 266/268) já existe; a Mod 267 **removeu de verdade** as magias genéricas do Bispo 3. Não restaurá-las, nem usar como placeholder.
 
 **Consequências que você deve evitar:** queda de FPS no Galaxy A55/Android, travamentos do carregamento, câmera ocultando o personagem, poderes atravessando terreno, dano a cada frame, DOT infinito, queimadura sobreposta, lua sumindo antes do sétimo lançamento e regressões nos Bispos 1/2, inimigos ou HUD. Use o motor, os recursos e convenções REAIS encontrados no código. Se algo já existir (shader de fogo, câmera shake, áudio, impacto, colisão, gerenciamento de efeitos), investigue e reaproveite apenas se combinar artisticamente; jamais cole um efeito genérico aleatório.
 
 ## 1. VISÃO ARTÍSTICA — REFERÊNCIAS DO CRIADOR SÃO O ALVO
 
-O criador forneceu **duas imagens de referência** na conversa de origem. **Não alegue ter visto essas imagens se não estiverem visíveis para você**; se o criador as anexar à sessão Claude, analise ambas VISUALMENTE antes de programar. Até lá, as descrições minuciosas abaixo servem como requisito. Fidelidade em silhueta, movimento, expressão e materiais é prioritária. Nenhum dos desenhos precisa ser reproduzido como textura estática copiada literalmente; recrie artisticamente o estilo com recursos próprios e respeite direitos de terceiros.
+O criador forneceu **duas imagens de referência** na conversa de origem: **primeira = chamas negras** (`1000363262.jpg`); **segunda = lua/rosto tenebroso** (`1000363261.jpg`). **Esses anexos não são transportados automaticamente pelo link do GitHub: o criador deve anexar as duas imagens também no chat do Claude**, ou disponibilizar um link de arquivo acessível a ele. **Não alegue ter visto essas imagens se não estiverem visíveis para você**; se o criador as anexar à sessão Claude, analise ambas VISUALMENTE antes de programar. Até lá, as descrições minuciosas abaixo servem como requisito. Fidelidade em silhueta, movimento, expressão e materiais é prioritária. Nenhum dos desenhos precisa ser reproduzido como textura estática copiada literalmente; recrie artisticamente o estilo com recursos próprios e respeite direitos de terceiros.
 
 ### IMAGEM A — CHAMA NEGRA (primeira imagem)
 
@@ -52,13 +52,13 @@ Lua/disco celestial **muito grande e perturbador**, com aparência de máscara/c
 
 **Importantíssimo:** "não acumulativo" significa uma ÚNICA instância de queimadura por personagem, sem sobrepor DPS, somar durações ou replicar camadas VFX. Na aplicação de queimadura mais intensa sobre mais fraca, **substituir a intensidade e preservar a maior duração aplicável**, sem dobrar dano. Manchas distintas são visuais distintos, mas a checagem de contato deve consolidar o dano: não gerar múltiplos ticks por estar em 2 manchas.
 
-**Sugestão de balanceamento:** os números de dano inicial/por tick são decisão TÉCNICA fundamentada na vida atual do protagonista e na Skill 1. Use \`powerStats\`, defesa/invulnerabilidade existentes, intervalos discretos (ex.: 0,6 ou 0,75 s) e teste a batalha; não configure uma chama que mate o jogador instantaneamente nem 7 acertos inevitáveis. A queimadura deve causar dano de verdade sem ignorar permanentemente o sistema de HP. Fogo no corpo precisa respeitar morte, pausa, saída da dimensão e respawn.
+**Sugestão de balanceamento:** os números de dano inicial/por tick são decisão TÉCNICA fundamentada na vida atual do protagonista e na Skill 1. Use `powerStats`, defesa/invulnerabilidade existentes, intervalos discretos (ex.: 0,6 ou 0,75 s) e teste a batalha; não configure uma chama que mate o jogador instantaneamente nem 7 acertos inevitáveis. A queimadura deve causar dano de verdade sem ignorar permanentemente o sistema de HP. Fogo no corpo precisa respeitar morte, pausa, saída da dimensão e respawn.
 
 ## 3. COMO VENDER A QUALIDADE VISUAL — SEM EFEITO GENÉRICO
 
 ### Lua: arte e movimento
 
-- **Dimensão:** uma presença no céu bem maior do que o Bispo; proporção e posição testadas com a câmera 3ª pessoa do jogador e a opção de 1ª pessoa. Usar forma lunar assimétrica e **composição em camadas** (corpo cinza-osso, sujeira/riscos, áreas de sombra, olhos independentes, dentes e boca). NÃO usar \`SphereGeometry\` cinza com dois círculos pretos como “rosto”; NÃO usar monstruosidade dura com espinhos aleatórios.
+- **Dimensão:** uma presença no céu bem maior do que o Bispo; proporção e posição testadas com a câmera 3ª pessoa do jogador e a opção de 1ª pessoa. Usar forma lunar assimétrica e **composição em camadas** (corpo cinza-osso, sujeira/riscos, áreas de sombra, olhos independentes, dentes e boca). NÃO usar `SphereGeometry` cinza com dois círculos pretos como “rosto”; NÃO usar monstruosidade dura com espinhos aleatórios.
 - Lua acompanha visualmente o jogador **com os OLHOS**, não deslocando o corpo celestial pelo mapa. Pupilas/elementos faciais localmente orientados com limitação angular, suavização e estado válido quando jogador pula/corre ou passa por trás da lua. Evitar deformação/olhar invertido, clipping e desaparecimento por neblina/culling.
 - A expressão precisa transmitir **horror desconfortável e sobrenatural**, semelhante à imagem B: **face pálida, sorriso impossível, dentes, olhos dissonantes, um enorme vazio escuro**. Poderia haver aura fria/sombra atrás, vinheta local e pouca névoa, mas preservar personagem e combate.
 - Quando terminar o lançamento gigante: olhos podem brilhar ou olhar fixo antes de desaparecer, fade dissolve de baixo contraste. Lua realmente some e descarrega recursos.
@@ -68,46 +68,46 @@ Lua/disco celestial **muito grande e perturbador**, com aparência de máscara/c
 - Gerar **variações orgânicas** de chamas com movimento contínuo: *flow noise*, *distortion*, tiras/fitas/ribbons sinuosas, línguas alongadas, camada interna escura em movimento e contorno cinza-violeta discreto.
 - **Sem cubos, espinhos, esfera sólida, cones, cilindros, textura plana imóvel, pedra preta, tentáculos mecânicos, orbs com brilho branco no centro que pareçam bolas comuns, fumaça rosa genérica.**
 - Pequena chama individual deve parecer “uma tocha amaldiçoada atirada”. Chama final deve parecer “uma muralha/vórtice de fogo negro demoníaco” **em escala superior**, com construção gradual: faísca inicial → fluxo converge → grande núcleo de fogo → muralha de línguas → disparo → expansão no impacto.
-- O fogo deixa rastros e resíduos com cinzas, mas não interfere no núcleo do ataque seguinte. Use shaders e geometria leve/batching conforme necessidades do Android; textura sprite/flipbook legítima se disponível. Reaproveitar \`sakuga-skills-vfx3d.js\`, \`skill-impact3d.js\`, outros VFX se o visual combinar após inspecionar; **não** reintroduzir projéteis genéricos legados (Mod 264).
+- O fogo deixa rastros e resíduos com cinzas, mas não interfere no núcleo do ataque seguinte. Use shaders e geometria leve/batching conforme necessidades do Android; textura sprite/flipbook legítima se disponível. Reaproveitar `sakuga-skills-vfx3d.js`, `skill-impact3d.js`, outros VFX se o visual combinar após inspecionar; **não** reintroduzir projéteis genéricos legados (Mod 264).
 - Explosão grande precisa **crescer após contato**, e não mostrar uma bolha inteira de uma vez. Etapas: contacto/compressão brevíssima → ruptura/explosão expansiva em 0,25–0,6 s → onda de choque e chamas residuais → transição para incêndio no piso ou aura no corpo.
 
 ### Feedback de combate cinematográfico
 
 - 7 pequenas: micro telegraph, recuo do braço, pequeno impacto, micro shake direcional, feedback de dano e áudio. Preservar controle.
 - Final: aviso mais forte, som grave crescente, leve redução dinâmica do ambiente se suportado, compressão na colisão, **hit stop muito curto**, FOV punch modesto, **camera shake via sistema EXISTENTE**, pulso de luz escura/clarão controlado, onda de choque e som de baixa frequência.
-- **Reduzir efeitos em 1ª pessoa, respeitar \`reduceShake\`, nunca travar câmera ou anular entradas de movimento/dash.** Hit-stop NÃO deve estender timers ou causar DOT/colisão repetida em clocks distintos. Respeitar as configurações de qualidade existentes.
+- **Reduzir efeitos em 1ª pessoa, respeitar `reduceShake`, nunca travar câmera ou anular entradas de movimento/dash.** Hit-stop NÃO deve estender timers ou causar DOT/colisão repetida em clocks distintos. Respeitar as configurações de qualidade existentes.
 
 ## 4. TRAJETÓRIA, DETECÇÃO DE COLISÃO E AVISOS
 
 - 7 pequenas + 1 gigante = 8 projéteis reais, originados na pose/conjuração do Bispo. Trajetórias no mundo com altura convincente e cores/efeitos visíveis.
 - A mira pode se ajustar durante preparação, **mas deve travar ao disparar** (alvo na posição atual ou previsão curta limitada do movimento), para o jogador conseguir desviar. Não ajustar a direção em voo como míssil infalível.
-- **Colisão varrida por segmento** para não atravessar herói em FPS baixo; colisão do chão usa \`groundHeightAt\`/chão da dimensão, não Y absoluto fixo. Nunca causar dano se não tocar herói/área. Não avançar dano quando pausado.
+- **Colisão varrida por segmento** para não atravessar herói em FPS baixo; colisão do chão usa `groundHeightAt`/chão da dimensão, não Y absoluto fixo. Nunca causar dano se não tocar herói/área. Não avançar dano quando pausado.
 - Aviso justo e legível para a chama gigantesca antes do lançamento; se o chão tiver zona perigosa, bordas fáceis de ler sem transformá-las em marcador genérico feio. Dano por contato ao raspar borda (distância + raio efetivo do personagem, não exigir estar no centro).
 - Manchas residuais podem sobrepor visualmente, mas limite de instâncias, *pooling* ou reaproveitamento, e nunca 7x DoT sobreposto.
 
 ## 5. IA DO BISPO 3 E INTEGRAÇÃO VERDADEIRA
 
-### Estado real conferido na \`main\` (até Mod 268; inspecione novamente ANTES de editar)
+### Estado real conferido na `main` (até Mod 268; inspecione novamente ANTES de editar)
 
-- \`powers3d.js\`: \`KITS.zarkhael.skills\` contém **apenas** \`s1: 'HIDRA DO JUÍZO', type 'hydra_judgment'\`; \`sword: null\`, \`ult: null\` intencionalmente depois de excluir genéricos.
-- \`fallen3\` resolve o mesmo kit de ZAR’KHAEL.
-- \`zarkhael-hydra3d.js\`: Skill 1 autoral, selo, Hidra, orbes, impacto, e raiz apoiada no solo (Mod 268); **não mexa**.
-- \`zarkhael-brain3d.js\`: IA por utilidade; hoje considera ranges antigos de \`line/orbs/cone\` embora poderes tenham sido eliminados. Estender escolha para a NOVA Skill 2 real sem ressuscitar esses poderes.
-- \`mundo-3d-prototype.js\`: \`runFoeMove\`, \`updateFoeKit\`, \`updateHydra\`, \`stopHydra\` e ciclo do chefe. Também tem \`damagePlayerFromEnemyAttack\`, \`playerInvulnerableUntil\`, \`dashRemaining\`, gerenciamento de dimensão/reset, pause e HUD.
-- \`laboratorio-inimigos.html\`: tem botões para Bispo 3 e Hidra.
+- `powers3d.js`: `KITS.zarkhael.skills` contém **apenas** `s1: 'HIDRA DO JUÍZO', type 'hydra_judgment'`; `sword: null`, `ult: null` intencionalmente depois de excluir genéricos.
+- `fallen3` resolve o mesmo kit de ZAR’KHAEL.
+- `zarkhael-hydra3d.js`: Skill 1 autoral, selo, Hidra, orbes, impacto, e raiz apoiada no solo (Mod 268); **não mexa**.
+- `zarkhael-brain3d.js`: IA por utilidade; hoje considera ranges antigos de `line/orbs/cone` embora poderes tenham sido eliminados. Estender escolha para a NOVA Skill 2 real sem ressuscitar esses poderes.
+- `mundo-3d-prototype.js`: `runFoeMove`, `updateFoeKit`, `updateHydra`, `stopHydra` e ciclo do chefe. Também tem `damagePlayerFromEnemyAttack`, `playerInvulnerableUntil`, `dashRemaining`, gerenciamento de dimensão/reset, pause e HUD.
+- `laboratorio-inimigos.html`: tem botões para Bispo 3 e Hidra.
 - A Mod 267 apagou o ataque de pilares legado do Bispo 3. **Não readicionar** ou usar uma função padrão de ataques antigos como atalho.
 
 ### Implementação exigida
 
-1. Criar módulo específico, por ex. **\`zarkhael-blackflame3d.js\`** (lógica de gameplay pura testável + VFX separados quando fizer sentido). Pode dividir em \`zarkhael-moon3d.js\`, etc., conforme arquitetura, mas não criar módulos vazios ou esqueletos. NÃO substituir Three.js.
-2. Registrar \`s2\` exclusivo e autoral em \`KITS.zarkhael\`, com nome sugerido **\`LUA TENEBROSA — O FOGO QUE NÃO MORRE\`**, tipo próprio (\`zarkhael_black_moon_flames\`, por exemplo), cooldown real compatível com duração longa da sequência; preservar S1 e deixar S3/sw/ult NÃO criadas, sem genéricos.
-3. Integrar \`runFoeMove\` e update no ciclo **REAL** do jogo: conjuração, moon spawn, disparos 1–7, golpe final, impactos, DOT, campos no chão, VFX no corpo, animações, áudio, cleanup.
+1. Criar módulo específico, por ex. **`zarkhael-blackflame3d.js`** (lógica de gameplay pura testável + VFX separados quando fizer sentido). Pode dividir em `zarkhael-moon3d.js`, etc., conforme arquitetura, mas não criar módulos vazios ou esqueletos. NÃO substituir Three.js.
+2. Registrar `s2` exclusivo e autoral em `KITS.zarkhael`, com nome sugerido **`LUA TENEBROSA — O FOGO QUE NÃO MORRE`**, tipo próprio (`zarkhael_black_moon_flames`, por exemplo), cooldown real compatível com duração longa da sequência; preservar S1 e deixar S3/sw/ult NÃO criadas, sem genéricos.
+3. Integrar `runFoeMove` e update no ciclo **REAL** do jogo: conjuração, moon spawn, disparos 1–7, golpe final, impactos, DOT, campos no chão, VFX no corpo, animações, áudio, cleanup.
 4. Integrar nova Skill 2 ao **sistema de IA por utilidade**: apropriada a média/longa distância, sem usar simultaneamente com Hidra, cooldown correto, comportamento ao encurtar distância, uso não previsível, sem spammar e sem cancelar a skill por bug de rotinas de ataque. A IA é melhor que nos bispos anteriores, não apenas “atira a cada 5 s”.
 5. Se quiser que Bispo execute 7 conjurações como ritual contínuo, **deixar ele visualmente conjurando**, com braço movendo em cada um dos 7 lançamentos e carga final; pode tomar dano/ser derrotado normalmente. Defina política consistente para interrupção por morte, troca de dimensão, cinematografia, reset e saída do jogo.
 6. Lua visível só durante a janela de invocação/carga/disparo; **não deve permanecer após a habilidade acabar**, salvo VFX residual de DOT e incêndio. Face nunca ficar presa na cena após reset.
-7. Criar acesso ao teste sem avançar na história: já existe \`?testeDimensao=bishop3\`; acrescente **\`&testLuaNegra=1\`** com disparo repetível apropriado/sem depender de HP. Botão **“🌑 Testar LUA TENEBROSA (Bispo 3)”** no painel interno das dimensões e em \`laboratorio-inimigos.html\`. NÃO remover o teste da Hidra.
+7. Criar acesso ao teste sem avançar na história: já existe `?testeDimensao=bishop3`; acrescente **`&testLuaNegra=1`** com disparo repetível apropriado/sem depender de HP. Botão **“🌑 Testar LUA TENEBROSA (Bispo 3)”** no painel interno das dimensões e em `laboratorio-inimigos.html`. NÃO remover o teste da Hidra.
 8. Qualidade do mobile: limitar *draw calls*, instâncias e partículas, considerar shader complexity e overdraw (principalmente chama preta translúcida), reutilizar geometria/material, limpar resources, evitar allocations e leaks a cada quadro. Testar configurações low/auto; manter mesma mecânica/dano em low, simplificar só a aparência.
-9. Cache: atualizar BUILD em \`mod181-loader.js\`, \`mundo-3d-prototype.html\`, \`index.html\`, \`laboratorio-inimigos.html\` e links de teste de forma consistente ao criar a nova Mod. Não dar como “pronto” só por aumentar o número da versão.
+9. Cache: atualizar BUILD em `mod181-loader.js`, `mundo-3d-prototype.html`, `index.html`, `laboratorio-inimigos.html` e links de teste de forma consistente ao criar a nova Mod. Não dar como “pronto” só por aumentar o número da versão.
 
 ## 6. PESQUISA OBRIGATÓRIA / CAMINHO PARA PESQUISAR
 
@@ -118,7 +118,7 @@ Materiais técnicos para começar (não substituem pesquisa aprofundada e inspe�
 - Materiais, transparência, depthWrite, blending: https://threejs.org/docs/#api/en/materials/Material
 - Three.js ShaderMaterial: https://threejs.org/docs/#api/en/materials/ShaderMaterial
 - Analisar técnicas de *game feel* / micro hit-stop / camera shake sem desconforto. Conferir se já estão no jogo antes de criar outro sistema.
-- Ler \`docs/auditorias/BISPO3-SKILL1-HIDRA-MOD266.md\` e testes da Hidra para usar as mesmas convenções e verificar regressão.
+- Ler `docs/auditorias/BISPO3-SKILL1-HIDRA-MOD266.md` e testes da Hidra para usar as mesmas convenções e verificar regressão.
 - A Lua tem textura de **horror surreal e lunar**, não “lua sorridente de desenho infantil”; a chama tem aparência de **tinta e fumaça viva**, não mesh preto maciço.
 
 Se as imagens anexadas não estiverem disponíveis, **não finja fidelidade exata**; aplique estas especificações rigorosas e deixe o código/arte preparado para refinamento posterior. Não use a ausência de imagem como desculpa para não implementar.
@@ -135,18 +135,18 @@ Se as imagens anexadas não estiverem disponíveis, **não finja fidelidade exat
 - [ ] Queimadura de qualquer fonte **não acumula**; recontato renova (sem multiplicar DPS); DOT pausa corretamente e limpa ao morrer/sair.
 - [ ] Campos ficam **APOIADOS NO CHÃO REAL**, sem flutuar, e têm borda de contato que causa dano.
 - [ ] Lua, projéteis e VFX do corpo não somem indevidamente, não continuam após reset, não cegam visão/câmera, não ocultam HUD ou travam controle.
-- [ ] Integração com IA, cooldown, \`fallen3\`, gameplay de campanha e dimensão de teste.
+- [ ] Integração com IA, cooldown, `fallen3`, gameplay de campanha e dimensão de teste.
 - [ ] Nenhuma skill antiga do Bispo 3 reapareceu. Skill 1 Hidra e Mods 264/267/268 intactas. Outros personagens não alterados.
-- [ ] Testes de lógica (\`node --test\` ou equivalente) cobrindo linha do tempo, precisamente 7+1, trajetória, acerto/miss, durações, não acumulativo, interrupção/cleanup, cooldown, perfis, cache.
+- [ ] Testes de lógica (`node --test` ou equivalente) cobrindo linha do tempo, precisamente 7+1, trajetória, acerto/miss, durações, não acumulativo, interrupção/cleanup, cooldown, perfis, cache.
 - [ ] Renderização real em Chromium/Playwright se disponível; conferir frames da lua, 7 tiros, fogo no chão, aura no corpo, impacto gigante. **Não afirmar teste Android físico se não realizado**. Se disponível, verificar desempenho em GPU mobile. Não aprovar arte apenas porque o código compila; QUALIDADE VISUAL É CENTRAL.
 
 ## 8. EXECUÇÃO, GIT E SILÊNCIO TOTAL
 
-1. Leia este Markdown inteiro e examine a \`main\` mais recente antes de qualquer edição.
+1. Leia este Markdown inteiro e examine a `main` mais recente antes de qualquer edição.
 2. Pesquise referências visuais e técnicas seriamente.
 3. Faça implementação verdadeira da Skill 2 completa com atenção especial à Lua e ao fogo.
 4. Execute testes, inspeção visual e correção de regressões.
-5. Trabalhe em branch/PR se apropriado, faça commit e **merge na \`main\`** somente quando seguro; não deixe trabalho numa branch sem integrar.
+5. Trabalhe em branch/PR se apropriado, faça commit e **merge na `main`** somente quando seguro; não deixe trabalho numa branch sem integrar.
 6. **Exclua este Markdown temporário depois do merge** (pode removê-lo com commit específico), para o repositório permanecer limpo.
 7. **REGRA DE SILÊNCIO TOTAL DO CRIADOR:** NÃO envie comentários de progresso, planos, explicações, relatórios, tabelas de mudanças, recados, resumos intermediários **NEM RESUMO FINAL**, nem peça confirmação rotineira. Execute diretamente. Se a plataforma obrigar uma mensagem final, apenas **"Concluído."** (as mensagens automáticas obrigatórias da plataforma/GitHub são externas a esta preferência).
 
