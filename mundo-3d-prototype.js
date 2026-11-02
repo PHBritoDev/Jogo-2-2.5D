@@ -6003,7 +6003,7 @@ function tickCosmicUlt(dt,now){
    else if(ev.n===3){status.textContent='A espada cósmica atravessa o selo — SAIA DO CÍRCULO!';worldAudio.abyss3&&worldAudio.abyss3('tear',1);}
    else if(ev.n===4){worldAudio.abyss3&&worldAudio.abyss3('heavy',1);}}
   else if(ev.type==='circle'){worldAudio.abyss3&&worldAudio.abyss3('thunder',.35);}
-  else if(ev.type==='release'){showCombatCallout('FUJA DO IMPACTO');Object.assign(ultCam,{want:.38,height:6,dist:13});ultCam.look.set(u.st.P.x,u.st.P.y+3.5,u.st.P.z);} /* câmera de jogo (controles coerentes) inclinada para o anel de perigo e a espada */
+  else if(ev.type==='release'){showCombatCallout('FUJA DO IMPACTO');Object.assign(ultCam,{want:.38,height:6,dist:13});ultCam.look.set(u.st.P.x,u.st.P.y+7,u.st.P.z);} /* câmera de jogo (controles coerentes) inclinada para o anel de perigo e a espada */
   else if(ev.type==='impact'){ /* contato: tudo no mesmo quadro — congelamento, tranco, FOV, clarão, som, vibração, luz */
    hitStop(110);slowMo(460,.5);vibrate(220);ultCam.want=0; /* o plano da fase 4 vem de u.camera(): de fora da explosão */worldAudio.novaBlast&&worldAudio.novaBlast();worldAudio.abyss3&&worldAudio.abyss3('boom',1);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);
    setTimeout(()=>{worldAudio.abyss3&&worldAudio.abyss3('storm',.9);},260); /* o vento chega depois do choque */
