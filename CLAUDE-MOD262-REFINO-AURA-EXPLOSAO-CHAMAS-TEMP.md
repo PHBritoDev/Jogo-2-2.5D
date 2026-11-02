@@ -80,5 +80,10 @@ Pesquise também imagens/vídeos como **"manga red white negative-space demon au
 - Testar \`?testeDimensao=bishop2\`, interações de hit/miss, morte/interrupção, queda de FPS, versão Low e alta. Fazer PR, passar lint/testes, merge somente se seguro, depois remover **este arquivo temporário**; não remover as imagens de referência originais do usuário de lugar nenhum (não estão neste repositório).
 - Evitar spam de chat; o criador prefere que você trabalhe diretamente nos arquivos e que o briefing temporário desapareça quando concluir.
 
+
+## BLOQUEIO ANTI-REGRESSÃO MOD 263 (ALTERAÇÃO REAL JÁ FEITA — NÃO DESFAZER)
+O criador exigiu várias vezes REMOVER, não apenas esconder, os poderes genéricos antigos do Bispo 2. A **PR #354 (Mod 263)** já corrigiu a causa real em `mundo-3d-prototype.js`: `updateEnemyAI()` disparava três projéteis mágicos ao terminar a animação `cast` e três cortes genéricos de `attack2`, além da aura genérica do sistema de fúria. A PR bloqueou escolha, disparo, dano e projéteis residuais desses poderes em `vorgazhek`/`fallen2`, com guarda de allowlist em `runFoeMove` e bloqueio de ultimates padrão.
+**NÃO REINTRODUZA NENHUM DESSES PODERES**, inclusive ao reescrever câmera, animação, módulos e VFX para este refinamento. Preserve `vorgazhek-exclusive.test.mjs` e mantenha exclusivamente: Tornados (Skill1), portais/espadas (Skill3), Eclipse da Dívida (especial), Juízo da Espada Cósmica (Ultimate) e golpes físicos básicos. Skill2 continua desativada. Código genérico compartilhado por OUTROS inimigos deve continuar funcionando para eles, mas jamais ser chamado pelo Bispo 2. Validar em `?testeDimensao=bishop2` e `?testeDimensao=bishop2&testUltBispo2=1`.
+
 ## CRITÉRIO FINAL IRRENUNCIÁVEL
 **A aura deve parecer uma presença esmagadora feita de vermelho, rasgos brancos e pressão visual; NUNCA dois bichos sólidos/espinhentos. A explosão deve visivelmente NASCER depois do toque no solo. A espada deve pegar fogo NEGRO com línguas fluidas e contorno legível, NUNCA fumaça ou matéria rígida.**
