@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod266-bispo3-hidra-do-juizo';
+const BUILD = 'mod267-bispo3-limpeza-genericos';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
