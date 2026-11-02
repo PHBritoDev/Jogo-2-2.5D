@@ -1748,7 +1748,7 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
  if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
-updatePlayerMovement(dt,now);
+updatePlayerMovement(dt,now);applyTornadoSuction(dt);
 updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateInstanceCulling();checkSecretRuin();
  updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
@@ -5854,6 +5854,19 @@ function startTornadoRitual(m){
  worldAudio.abyss3&&worldAudio.abyss3('gravity',.7);
 }
 function stopTornadoRitual(){if(tornadoRitual){tornadoRitual=null;}if(tornadoVfx)tornadoVfx.clear();}
+/** MOD 258 — pressão do tornado: atração para o núcleo sem travar o joystick.
+ * A força vem da mesma lógica determinística do dano/VFX; colisões bloqueiam paredes, árvores e o Bispo.
+ * Corrida supera a pressão com dificuldade; durante dash a força cai a 17%. */
+function applyTornadoSuction(dt){
+ if(!tornadoRitual||tornadoRitual.done||!enemyAlive||encounterProfile!=='vorgazhek'||playerHP<=0||cineActive||rites.locksMovement||portalPull||vzLocked)return;
+ const force=tornadoRitual.pullAt(player.position.x,player.position.z,dashRemaining>0);
+ if(!force)return;
+ const nx=THREE.MathUtils.clamp(player.position.x+force.x*dt,-6000,6000);
+ const nz=THREE.MathUtils.clamp(player.position.z+force.z*dt,-6000,6000);
+ if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;
+ if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;
+ if(grounded)player.position.y=terrainHeightAt(player.position.x,player.position.z);
+}
 function updateTornadoRitual(dt){
  if(!tornadoRitual)return;const r=tornadoRitual;
  if(!enemy.visible||!enemyAlive||playerHP<=0||encounterProfile!=='vorgazhek'||cineActive)r.abort();
