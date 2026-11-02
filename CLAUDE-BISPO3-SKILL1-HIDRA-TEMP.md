@@ -274,4 +274,4 @@ Só considerar concluído se:
 6. Fazer commit/merge se estiver seguro.
 7. **Apagar este arquivo temporário** após terminar.
 
-**Não envie relatórios longos nem mensagens de progresso ao criador. Trabalhe diretamente.**
+**REGRA DE SILÊNCIO TOTAL AO CRIADOR:** Não envie mensagens de progresso, explicações, perguntas não essenciais, relatórios, resumos intermediários **nem resumo final**. Não diga o que fez, não mostre listas de arquivos alterados, não publique conclusão narrativa. Execute o trabalho diretamente no repositório, valide, faça commit/merge quando seguro e exclua este arquivo temporário. **Se a plataforma exigir obrigatoriamente uma resposta ao encerrar, responda somente "Concluído." e nada mais.** As mensagens automáticas do GitHub e exigências da plataforma podem continuar aparecendo; não há como suprimi-las por esta instrução.
