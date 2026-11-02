@@ -13,10 +13,10 @@ import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage,swordLayers} f
 const vfxLabRequested=new URLSearchParams(location.search).has('vfxLab236');
 const combatLabRequested=new URLSearchParams(location.search).has('treinoCombate244');
 const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has('todasHabilidades')||new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
-const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael');
-const localStorage=isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB);
+const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
+const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // O selo só mostra 252 quando o módulo de combate da versão 252 realmente importou.
-{const m=document.getElementById('marker');if(m){m.textContent=VHAZRAEL_BUILD.startsWith('255-')?'255':'?';m.title='Motor VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=VHAZRAEL_BUILD.startsWith('255-')?'256':'?';m.title='Motor VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -57,6 +57,7 @@ import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
 import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
+import { createTornadoRitual, createTornadoVFX } from './vorgazhek-tornado3d.js';
 import { DESERT_REGION, DESERT_PASS, DESERT, inDesert, fragmentsHeld } from './desert3d.js';
 import { ACT5N, ROUNDS, SPEAKERS5, roundForSub, subForRound, act5Presentation, bestSword, journeyScene, arrivalScene, roundIntroScene, roundOutroScene, finalScene } from './act5-flow.js';
 import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inArena } from './coliseum3d.js';
@@ -1178,7 +1179,7 @@ function enemyHpPercent(){return Math.max(0,Math.min(100,enemyHP/Math.max(1,enem
 function nextDashCooldown(){if(encounterProfile==='warden')return 2.15;if(encounterProfile==='sentry'&&mountainIndex>0)return 1.65;return 2.7;}
 function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;const dimInfo=dimensionForProfile(encounterProfile);el.textContent=dimBattle&&dimBattle.active&&dimInfo?dimInfo.name+' · '+(dimInfo.order<5?dimInfo.order+'º BISPO':'PECADO'):(finaleReady&&finaleNameFor(encounterProfile))?finaleNameFor(encounterProfile):encounterProfile==='vorgazhek'?'VORGAZHEK · SEGUNDO BISPO':encounterProfile==='arena'?'ARENA DO VALE':(lateSystemsReady&&lateDef()&&lateDef().profile===encounterProfile)?lateDef().name:encounterProfile==='warden'?'GUARDIÃO DO PORTAL':(encounterProfile==='demon2'||encounterProfile==='demon3')?'DEMÔNIO DA GANÂNCIA':encounterProfile==='miniboss3'?'GUARDIÃO DA DISTORÇÃO':ROUND_NAMES[encounterProfile]?ROUND_NAMES[encounterProfile]:encounterProfile==='angel'?'ANJO-GUIA':encounterProfile==='demon4'?'GUARDIÃO DA TORRE':encounterProfile==='miniboss4'?'GUARDIÃO DO 6º PISO':encounterProfile==='leader4'?'LÍDER DOS GUARDIÕES':encounterProfile==='bandit4'?'BANDIDO':encounterProfile==='rival'?'DESCONHECIDO':encounterProfile==='miniboss2'?'GUARDIÃO DO TRONO':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;siegeEpoch++;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
-function advanceAfterEnemyDefeat(){if(squadOn||performance.now()<squadSwallowUntil)return;if(dimBattle&&dimBattle.active){if(act6GreedDefeat())return;if(questStep===ACT6N.rematch&&!dimBattle.outro){const r=nextRematch(act1Sub);if(r&&r.key===dimBattle.key){dimBattle.outro=true;enemy.visible=true;playStory('revanche-cai',rematchOutroScene(r.key),{focus:'enemy',done:()=>dimensionVictory()});return;}}if(dimBattle.key==='bishop1'&&questStep<8&&!dimBattle.outro){dimBattle.outro=true;vhazraelOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&questStep===ACT2.boss&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
+function advanceAfterEnemyDefeat(){if(squadOn||performance.now()<squadSwallowUntil)return;if(dimBattle&&dimBattle.active){if(dimBattle.test){dimensionVictory();return;}if(act6GreedDefeat())return;if(questStep===ACT6N.rematch&&!dimBattle.outro){const r=nextRematch(act1Sub);if(r&&r.key===dimBattle.key){dimBattle.outro=true;enemy.visible=true;playStory('revanche-cai',rematchOutroScene(r.key),{focus:'enemy',done:()=>dimensionVictory()});return;}}if(dimBattle.key==='bishop1'&&questStep<8&&!dimBattle.outro){dimBattle.outro=true;vhazraelOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&questStep===ACT2.boss&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
 function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
 function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;const root=vendorRoots[villageVendors.indexOf(vendor)];if(root){faceTo(root,player.position);faceTo(player,root.position);}if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
@@ -1756,7 +1757,7 @@ updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(d
 updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateTornadoRitual(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  if(vzCinematic()){vzCamRestore();return;}renderer.render(scene,camera);vzCamRestore();}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
@@ -1985,7 +1986,7 @@ function enterDimensionArena(key){
 function warmTextures(root){const seen=new Set();root.traverse(o=>{const ms=o.material?[].concat(o.material):[];for(const m of ms)for(const k of ['map','emissiveMap','normalMap','roughnessMap']){const t=m&&m[k];if(t&&!seen.has(t)){seen.add(t);try{renderer.initTexture(t);}catch(e){}}}});}
 function startDimensionBattle(key,opts){
  if(dimBattle||vsOpen)return;const d=DIMENSIONS[key];
- dimBattle={key,profile:d.profile,hp:opts.hp||d.hp,returnTo:opts.returnTo,onVictory:opts.onVictory,onAbort:opts.onAbort,active:false};
+ dimBattle={key,profile:d.profile,hp:opts.hp||d.hp,returnTo:opts.returnTo,onVictory:opts.onVictory,onAbort:opts.onAbort,active:false,test:!!opts.test};
  handoffSent=true;setDefending(false);showPortalVeil(true);worldAudio.portalEnter();
  status.textContent='O portal puxa você para a dimensão de '+d.name+'…';
  setTimeout(()=>openVsCard(key),700);
@@ -2030,7 +2031,7 @@ function beginDimensionFight(){
  checkpointX=sp.player.x;checkpointZ=sp.player.z;
  const hud=document.getElementById('enemy-hud');if(hud){hud.style.display='';hud.classList.add('boss');}
  b.active=true;syncEnemyLabel();showCombatCallout(d.name);cameraShake(.15);
- if(b.key==='bishop1')setTimeout(vhazraelIntro,600);
+ if(b.key==='bishop1'&&!b.test)setTimeout(vhazraelIntro,600); // teste: sem cenas de história
  if(b.key==='bishop2'&&questStep===ACT2.boss)setTimeout(()=>{if(dimBattle&&dimBattle.key==='bishop2')playStory('vorgazhek',vorgazhekIntroScene(),{focus:'enemy',face:'enemy'});},600);
  if(b.key==='bishop3')setTimeout(zarkhaelIntro,600);
  if(b.key==='bishop4')setTimeout(veraxionIntro,600);
@@ -2038,11 +2039,11 @@ function beginDimensionFight(){
  if(b.key==='greed')setTimeout(greedIntro,600);
 }
 /** Fim da luta em esquadra do VHAZRAEL: mesma saída de antes (fala de derrota no Ato I, depois a vitória da dimensão). */
-function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;if(questStep<8&&!b.outro){b.outro=true;enemy.visible=true;vhazraelOutro(()=>dimensionVictory());}else dimensionVictory();}
+function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;if(b.test){dimensionVictory();return;}if(questStep<8&&!b.outro){b.outro=true;enemy.visible=true;vhazraelOutro(()=>dimensionVictory());}else dimensionVictory();}
 function resetEnemyAfterDimension(){
  if(pack&&pack.dim)clearPack();
  enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;
- clearHazards();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
+ clearHazards();stopTornadoRitual();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
  const hud=document.getElementById('enemy-hud');if(hud)hud.classList.remove('boss');
 }
 function leaveDimension(rt,flash,then){
@@ -2057,7 +2058,7 @@ function leaveDimension(rt,flash,then){
  },flash?900:600);
 }
 function dimensionVictory(){
- const b=dimBattle;if(!b)return;b.active=false;registerEnemyDefeat(b.profile);resetEnemyAfterDimension();showCombatCallout('DIMENSÃO LIBERTA');
+ const b=dimBattle;if(!b)return;b.active=false;if(!b.test)registerEnemyDefeat(b.profile);resetEnemyAfterDimension();showCombatCallout(b.test?'VITÓRIA — TESTE (nada foi salvo)':'DIMENSÃO LIBERTA');
  leaveDimension(b.returnTo,true,()=>{dimBattle=null;handoffSent=false;portalPull=null;worldAudio.pause(false);if(b.onVictory)b.onVictory();});
 }
 function abortDimensionBattle(){
@@ -2067,6 +2068,7 @@ function abortDimensionBattle(){
 /** Queda dentro da dimensão: custa um coração; sem corações o portal expulsa o jogador. */
 function dimensionPlayerDown(){
  const b=dimBattle;if(!b||!b.active)return;
+ if(b.test){showCombatCallout('DERROTA — TESTE (nada foi salvo)');abortDimensionBattle();return;} // teste: sem corações, sem história
  if(b.key==='bishop1'){spendHeart('vhazrael');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(squadOn){const s=squadSq();if(s){for(const a of s.actors)if(a.alive&&a.kind==='vhazrael')a.hp=a.maxHp;s.spells=s.spells.filter(x=>x.type!=='orbital');writeSquadProxy();}}if(heartState.hearts<=0)enemy.visible=false;}
  else if(b.key==='bishop2')bossDefeatedPlayer();
  else if(b.key==='bishop3'&&questStep===ACT3N.boss){spendHeart('zarkhael');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(heartState.hearts<=0)enemy.visible=false;}
@@ -2392,7 +2394,7 @@ function equipSword(id){
 }
 /* MOD 189 — abertura: tela das sete galáxias (o mundo carrega por trás) e prólogo curto feito com a
    própria cena — câmera desce das serras até a clareira, com três frases. Pula com um toque. */
-let menuGate=!swordTrainingRequested&&(!new URLSearchParams(location.search).has('debug3d')||new URLSearchParams(location.search).has('galaxias'));
+let menuGate=!swordTrainingRequested&&!DIM_TEST&&(!new URLSearchParams(location.search).has('debug3d')||new URLSearchParams(location.search).has('galaxias'));
 let prologueActive=false,prologueT=0,pendingAwakening=false;
 const PROLOGUE_LINES=[[0,'Houve um tempo em que um nome valia mais que ouro.'],[4.6,'Então a Ganância aprendeu a cobrar — vidas, juramentos, crianças.'],[9.4,'E o Céu enviou alguém que não estava à venda.']];
 const PROLOGUE_DURATION=14;
@@ -3359,8 +3361,33 @@ function vzCinematic(){
  if(sh.space){const v=squadRT.vhazraelVFX;v.orbitalCamera.aspect=camera.aspect;v.orbitalCamera.updateProjectionMatrix();renderer.render(v.orbitalScene,v.orbitalCamera);return true;}
  vzApplyShot(sh);return false;
 }
+/* MOD 256 — MODO TESTE das dimensões reais (botões do laboratório): mesma startDimensionBattle da campanha, com
+   flag test: sem corações, sem bestiário/recompensa, sem cenas de história e com armazenamento isolado (nada é salvo). */
+const dimTest={started:false,key:'',panel:null};
+function startDimensionTest(key){
+ dimTest.started=true;dimTest.key=key;menuGate=false;gamePaused=false;awakeningActive=namePromptOpen=dialogueOpen=false;cineActive=false;portalPull=null;
+ if(cineDirector.active)cineDirector.skip();for(const id of ['start-gate','name-panel','dialog-panel','loading']){const el=document.getElementById(id);if(el){el.hidden=true;el.classList.add('hidden');}}
+ questStep=2;act1Sub=0;for(const id of ['magic','magic2','magic3','ultimate'])ownedItems.add(id);refreshSkillUnlocks();
+ player.position.set(-5,terrainHeightAt(-5,16),16);playerHP=playerMaxHP;playerMana=100;updatePlayerHud();dimTestPanel();dimTestFight(key);
+}
+function dimTestFight(key){
+ if(dimBattle){if(dimBattle.active)abortDimensionBattle();setTimeout(()=>dimTestFight(key),1400);return;}
+ if(vsOpen)return;dimTest.key=key;playerHP=playerMaxHP;playerMana=100;updatePlayerHud();
+ startDimensionBattle(key,{hp:DIMENSIONS[key].hp,returnTo:{x:-5,z:16},test:true,onVictory:()=>{status.textContent='Teste concluído: vitória. Escolha uma luta para repetir.';},onAbort:()=>{status.textContent='Teste encerrado. Escolha uma luta para repetir.';}});
+}
+function dimTestPanel(){
+ if(dimTest.panel)return;const el=document.createElement('div');el.id='dim-test-panel';el.style.cssText='position:fixed;top:calc(env(safe-area-inset-top) + 118px);left:8px;z-index:30;display:flex;flex-direction:column;gap:5px;width:min(300px,62vw)';
+ const menu=document.createElement('div');menu.style.cssText='display:none;flex-direction:column;gap:5px';
+ const tog=document.createElement('button');tog.type='button';tog.textContent='⚙ TESTE DAS DIMENSÕES (nada é salvo) ▾';tog.style.cssText='width:100%;height:auto;max-width:none;box-sizing:border-box;min-height:34px;padding:6px 9px;border-radius:9px;border:1px solid #ff6a7a;background:#3a0a14ee;color:#ffd6dc;font:800 11px system-ui;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';bindInstantTap(tog,()=>{menu.style.display=menu.style.display==='none'?'flex':'none';});el.appendChild(tog);el.appendChild(menu);
+ const B=(t,f)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.style.cssText='width:100%;height:auto;max-width:none;box-sizing:border-box;min-height:38px;padding:7px 10px;border-radius:9px;border:1px solid #ff6a7a;background:#2a0c14ee;color:#fff;font:700 12px system-ui;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';bindInstantTap(b,()=>{menu.style.display='none';f();});menu.appendChild(b);return b;};
+ B('⚔ Lutar contra Bispo 1 — Dimensão de VHAZRAEL',()=>dimTestFight('bishop1'));B('⚔ Lutar contra Bispo 2 — Dimensão de VORGAZHEK',()=>dimTestFight('bishop2'));
+ B('↻ Reiniciar luta',()=>dimTestFight(dimTest.key||DIM_TEST));B('✕ Sair da dimensão',()=>{if(dimBattle&&dimBattle.active)abortDimensionBattle();});
+ B('← Voltar ao laboratório',()=>{location.href='laboratorio-inimigos.html';});
+ document.body.appendChild(el);dimTest.panel=el;
+}
 /** Liga a esquadra ao laço: lê o que o herói fez no procurador, roda a lógica, escolhe o foco e devolve o procurador. */
 function updateSquadCombat(dt,now){
+ if(DIM_TEST&&!dimTest.started&&model&&mixer&&player.userData.ready)startDimensionTest(DIM_TEST);
  if(ENEMY1_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigSource('enemy1'))startEnemy1Lab('2');else loadEnemyModel();}
  if(VHAZRAEL_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.bishop1)startEnemy1Lab('vz');else if(!squadLabLoading){squadLabLoading=true;loadRig('bishop1').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
  if(ENEMY4_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy4)startEnemy1Lab('y3');else if(!squadLabLoading){squadLabLoading=true;loadRig('enemy4').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
@@ -5815,10 +5842,33 @@ function runFoeMove(m,k){
   case 'vortex':fxVortex(m.dur,m.speed,m.dmg,m.gold?0xffd060:c1,c2);break;
   case 'abyss':{const d=Math.max(1,Math.hypot(P.x-e.x,P.z-e.z));for(let i=0;i<m.n;i++){const s=(i+1)/m.n*Math.min(12,d+3);abyssFlame(e.x+(P.x-e.x)/d*s,e.z+(P.z-e.z)/d*s,.8+i*.22,1.9);}abyssFlame(P.x,P.z,1.6,2.6);worldAudio.abyss&&worldAudio.abyss();break;}
   case 'blackhole':castBlackHole(e.x+(P.x-e.x)*.5,e.z+(P.z-e.z)*.5);break;
+  case 'tornadoes':startTornadoRitual(m);break;
  }
+}
+/* MOD 256 — Vórtices do Pacto Escarlate (Bispo 2): ritual de 2 ondas, lógica e VFX no mesmo relógio (vorgazhek-tornado3d.js). */
+let tornadoRitual=null,tornadoVfx=null;
+function tornadoSlope(x,z){const e=.6,a=fxGy(x-e,z),b=fxGy(x+e,z),c=fxGy(x,z-e),d=fxGy(x,z+e);return[a-b,2*e,c-d];}
+function startTornadoRitual(m){
+ if(tornadoRitual)return;if(!tornadoVfx)tornadoVfx=createTornadoVFX(THREE,scene,{base:'./'});
+ tornadoRitual=createTornadoRitual({dmg:m.dmg,R:m.r,ground:(x,z)=>fxGy(x,z),blocked:(x,z)=>blockedAt(x,z)}).start(player.position);
+ worldAudio.abyss3&&worldAudio.abyss3('gravity',.7);
+}
+function stopTornadoRitual(){if(tornadoRitual){tornadoRitual=null;}if(tornadoVfx)tornadoVfx.clear();}
+function updateTornadoRitual(dt){
+ if(!tornadoRitual)return;const r=tornadoRitual;
+ if(!enemy.visible||!enemyAlive||playerHP<=0||encounterProfile!=='vorgazhek'||cineActive)r.abort();
+ if(gamePaused){tornadoVfx.update(r,0,graphics3DMode==='low'?0:1,tornadoSlope);return;}
+ for(const ev of r.step(dt,{x:player.position.x,z:player.position.z,iframes:dashRemaining>0||performance.now()<playerInvulnerableUntil,radius:.4})){
+  if(ev.type==='hit'){if(pHit(ev.dmg)){cameraShake(userSettings.reduceShake?0:.05);}}
+  else if(ev.type==='wave'){status.textContent='VÓRTICES DO PACTO ESCARLATE — ONDA '+ev.n+'/2';worldAudio.abyss3&&worldAudio.abyss3('tear',.8);}
+  else if(ev.type==='active')worldAudio.abyss3&&worldAudio.abyss3('storm',.45);
+ }
+ tornadoVfx.update(r,dt,graphics3DMode==='low'?0:1,tornadoSlope);
+ if(r.done){tornadoRitual=null;tornadoVfx.clear();kitState.t=Math.max(kitState.t,1.2);}
 }
 function updateFoeKit(dt){
  if(swordTraining||squadOn)return;
+ if(tornadoRitual){kitState.t=Math.max(kitState.t,.5);} // canalizando o ritual: a próxima magia espera as duas ondas
  const prof=encounterProfile,kit=kitFor(prof);if(!kit)return;
  const fight=prof+':'+enemyMaxHP;if(fight!==kitState.fight){kitState.fight=fight;kitState.cds={};kitState.t=2.5;kitState.last='';if(kitState.aura){kitState.aura.dispose();kitState.aura=null;}}
  // Aura de batalha (estilo Sol's RNG) quando o chefe ou a elite entra em fúria (menos de 50% de vida).
@@ -6118,6 +6168,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   fx(k){if(k==='arc')spawnHolyProjectile('arc');else circleSword(enemy.visible?enemy.position.x:player.position.x+4,enemy.visible?enemy.position.z:player.position.z);return enemyHP;},
   ultState(){return{kind:bossUlt.kind,t:+bossUlt.t.toFixed(2),hp:playerHP,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,cam:+ultCam.w.toFixed(2)};},
   bossHp(f){if(enemy.visible)enemyHP=Math.max(1,Math.round(enemyMaxHP*f));},
+  hurtBoss(n){hurtEnemy(n,true);return enemyHP;},
+  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,squad:squadOn,dimTest:dimTest.key};},
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;

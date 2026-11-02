@@ -64,7 +64,7 @@ export const KITS = {
     sword: S('sw', 'Espadas Sombrias', 'wave', { n: 3, dmg: 13, cd: 6 }),
     ult: S('ult', 'CONTRATO FINAL: O CEIFADOR', 'reaper', { dmg: 34 }) },
   vorgazhek: { color: 0xffb020, color2: 0x5a1a00, book: true, skills: [
-    S('s1', 'Correntes da Dívida', 'grab', { n: 3, dmg: 15, cd: 8, r: 1.9, root: 1.4, chain: true }),
+    S('s1', 'Vórtices do Pacto Escarlate', 'tornadoes', { dmg: 10, cd: 16, r: 1.55 }), // MOD 256: selos rituais + 2 ondas de 3–5 tornados (vorgazhek-tornado3d.js)
     S('s2', 'Lâminas de Metal Líquido', 'wave', { n: 5, dmg: 11, cd: 9 }),
     S('s3', 'Explosões da Forja', 'circles', { n: 5, dmg: 15, cd: 10, r: 2 })],
     sword: S('sw', 'Golpe da Forja', 'dash', { dmg: 16, cd: 6, len: 8 }),
