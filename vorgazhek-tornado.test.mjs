@@ -15,10 +15,10 @@ function run(seed, move = () => {}, o = {}) {
   return { r, log };
 }
 
-test('Mod 256 — Vórtices do Pacto Escarlate: exatamente 2 ondas de 3–5 tornados, posições novas só entre ondas, fim limpo', () => {
+test('Mod 256 — Vórtices do Pacto Escarlate: exatamente 2 ondas de 5 tornados, posições novas só entre ondas, fim limpo', () => {
   for (const seed of [1, 2, 3, 7, 11, 19]) {
     const { r, log } = run(seed, (p, t) => { p.x = Math.cos(t * .5) * 6; p.z = Math.sin(t * .5) * 6; });
-    assert.equal(log.waves.length, 2, 'duas ondas'); for (const c of log.counts) assert.ok(c >= 3 && c <= 5, 'contagem ' + c);
+    assert.equal(log.waves.length, 2, 'duas ondas'); for (const c of log.counts) assert.ok(c === 5, 'contagem ' + c);
     assert.ok(log.layouts[0].some(([x, z], i) => Math.hypot(x - log.layouts[1][i]?.[0], z - log.layouts[1][i]?.[1]) > .5), 'segunda onda em posições novas');
     assert.ok(log.end !== null && r.done && r.st.tornados.length === 0, 'termina e limpa');
     assert.ok(log.waves[1] - log.waves[0] >= TORNADO.form + TORNADO.hold + TORNADO.dissolve, 'a onda 2 só começa depois que todos os da onda 1 sumiram');
@@ -26,14 +26,14 @@ test('Mod 256 — Vórtices do Pacto Escarlate: exatamente 2 ondas de 3–5 torn
   }
 });
 
-test('Mod 256 — tempos: 2,3 s de formação, 1,3 s cheio; dano só com tamanho relevante, tique sem acumular, i-frames', () => {
+test('Mod 256 — tempos: 1,3 s de formação, 1,3 s cheio; dano só com tamanho relevante, tique sem acumular, i-frames', () => {
   const r = createTornadoRitual({ rand: rng(5), dmg: 8 }); const p = { x: 0, z: 0, iframes: false, radius: .4 }; r.start(p);
   let formT = null, holdT = null, disT = null, t = 0, firstActive = null;
   for (let i = 0; i < 60 * 8; i++) { t = i / 60; const ev = r.step(1 / 60, p); const o = r.st.tornados[0]; if (!o) continue;
     if (o.state === 'form' && formT === null) formT = t; if (o.state === 'hold' && holdT === null) holdT = t; if (o.state === 'dissolve' && disT === null) disT = t;
     for (const e of ev) if (e.type === 'active' && firstActive === null) firstActive = t; }
-  assert.ok(Math.abs(holdT - formT - 2.3) < .05, 'formação ' + (holdT - formT)); assert.ok(Math.abs(disT - holdT - 1.3) < .05, 'plenitude ' + (disT - holdT));
-  assert.ok(firstActive - formT > .8, 'perigo só depois de ~40% da formação');
+  assert.ok(Math.abs(holdT - formT - 1.3) < .05, 'formação ' + (holdT - formT)); assert.ok(Math.abs(disT - holdT - 1.3) < .05, 'plenitude ' + (disT - holdT));
+  assert.ok(firstActive - formT > .45, 'perigo só depois de ~40% da formação');
   // parado sobre todos os tornados ao mesmo tempo: tiques espaçados, nunca vários no mesmo quadro
   const { log } = run(3, (pl) => { pl.x = 0; pl.z = 0; }, { T: { near: [0, .1], ring: [.2, .4] } });
   for (let i = 1; i < log.hits.length; i++) assert.ok(log.hits[i] - log.hits[i - 1] >= TORNADO.tick - 1e-6, 'tique espaçado');

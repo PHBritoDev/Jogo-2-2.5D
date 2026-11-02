@@ -2,7 +2,7 @@
  * MOD 256 — VORGAZHEK (Bispo 2), Habilidade 1: VÓRTICES DO PACTO ESCARLATE.
  *
  * Lógica pura (createTornadoRitual, testável em node) + VFX (createTornadoVFX) dirigidos pelo MESMO relógio.
- * Estados: windup → onda 1 (selos → formação 2,3 s → plenitude 1,3 s → dissipação) → pausa → onda 2 → fim.
+ * Estados: windup → onda 1 (selos → formação 1,3 s → plenitude 1,3 s → dissipação) → pausa → onda 2 → fim.
  * Cada onda: 3–5 selos/tornados recalculados em volta da posição ATUAL do jogador (só entre ondas); um deles pressiona
  * perto (força a reagir), os outros cercam em arco deixando saída. Dano só quando o tornado já tem tamanho relevante
  * (o selo pulsa antes), hitbox = raio atual do próprio tornado, tique com recarga por alvo (sem acumular por sobreposição),
@@ -14,7 +14,7 @@
  * helicoidal escuro com fendas incandescentes (contra-rotação). Base estreita, topo largo e irregular; gira desde o
  * primeiro quadro, compõe-se de baixo para cima e se desfaz de cima para baixo pelas próprias fitas.
  */
-export const TORNADO = { windup: .6, form: 2.3, hold: 1.3, dissolve: .8, gap: .5, waves: 2, min: 3, max: 5, R: 1.55, H: 7.2, ring: [3, 5.6], near: [1, 1.8], activeAt: .4, tick: .6, dmg: 10 };
+export const TORNADO = { windup: .6, form: 1.3, hold: 1.3, dissolve: .8, gap: .5, waves: 2, min: 5, max: 5, R: 1.55, H: 7.2, ring: [3, 5.6], near: [1, 1.8], activeAt: .4, tick: .6, dmg: 10 };
 const sm = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 
 /** Ritual puro: opts { rand, ground(x,z), blocked(x,z), dmg, R } */
@@ -103,7 +103,7 @@ void main(){ float n=n2(vec2(vU*14.+vK*3.,vV*3.+time*2.)), n2b=n2(vec2(vU*40.-ti
 /** VFX: { T (three), scene, base (URL dos assets) }. update(ritual, camera, quality) a cada quadro; clear(); dispose(). */
 export function createTornadoVFX(T, scene, { base = './' } = {}) {
   const root = new T.Group(); root.name = 'VorgazhekTornados'; scene.add(root); const geos = [], mats = [], uTime = { value: 0 };
-  const tex = new T.TextureLoader().load(base + 'vorgazhek-selo-ritual.png?v=mod256'); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 4;
+  const tex = new T.TextureLoader().load(base + 'vorgazhek-selo-ritual.png?v=mod257'); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 4;
   const sealG = new T.PlaneGeometry(1, 1); sealG.rotateX(-Math.PI / 2); geos.push(sealG);
   const sealMat = new T.ShaderMaterial({ vertexShader: SEAL_V, fragmentShader: SEAL_F, uniforms: { map: { value: tex }, reveal: { value: 0 }, alpha: { value: 1 }, pulse: { value: 0 }, rot: { value: 0 }, time: uTime }, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, toneMapped: false, fog: false });
   /** faixas: 4 externas + 2 do núcleo, N segmentos ao longo da altura, 2 bordas */
@@ -113,7 +113,7 @@ export function createTornadoVFX(T, scene, { base = './' } = {}) {
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('aU', new T.Float32BufferAttribute(aU, 1)); g.setAttribute('aV', new T.Float32BufferAttribute(aV, 1));
     g.setAttribute('aK', new T.Float32BufferAttribute(aK, 1)); g.setAttribute('aCore', new T.Float32BufferAttribute(aC, 1)); g.setIndex(idx); g.boundingSphere = new T.Sphere(new T.Vector3(0, 4, 0), 9); return g; }
   const torHi = torGeo(56), torLo = torGeo(30); geos.push(torHi, torLo);
-  const torMat = new T.ShaderMaterial({ vertexShader: TOR_V, fragmentShader: TOR_F, uniforms: { time: uTime, grow: { value: 0 }, dis: { value: 0 }, H: { value: 7 }, R: { value: 1.5 }, seed: { value: 0 }, spin: { value: 3.2 } }, side: T.DoubleSide, toneMapped: false, fog: false });
+  const torMat = new T.ShaderMaterial({ vertexShader: TOR_V, fragmentShader: TOR_F, uniforms: { time: uTime, grow: { value: 0 }, dis: { value: 0 }, H: { value: 7 }, R: { value: 1.5 }, seed: { value: 0 }, spin: { value: 6.0 } }, side: T.DoubleSide, toneMapped: false, fog: false });
   const pool = []; for (let i = 0; i < 5; i++) { const sm2 = sealMat.clone(); sm2.uniforms.time = uTime; sm2.uniforms.map.value = tex; const tm = torMat.clone(); tm.uniforms.time = uTime; mats.push(sm2, tm);
     const seal = new T.Mesh(sealG, sm2); seal.renderOrder = 2; seal.frustumCulled = false; seal.visible = false; const tor = new T.Mesh(torHi, tm); tor.frustumCulled = false; tor.visible = false; root.add(seal, tor); pool.push({ seal, tor }); }
   mats.push(sealMat, torMat);
@@ -129,7 +129,7 @@ export function createTornadoVFX(T, scene, { base = './' } = {}) {
         const R = ritual.R, H = ritual.T.H, k = Math.max(0, o.t - o.delay); p.seal.visible = true; p.seal.position.set(o.x, o.y + .05, o.z); const sz = R * 2.9; p.seal.scale.set(sz, 1, sz);
         if (slope) { const n = slope(o.x, o.z); P.set(n[0], n[1], n[2]).normalize(); Q.setFromUnitVectors(UP, P); p.seal.quaternion.copy(Q); }
         const su = p.seal.material.uniforms; su.reveal.value = o.state === 'seal' ? sm3(o.seal) : 1; su.alpha.value = o.state === 'dissolve' ? 1 - sm3(o.dis) : 1; su.pulse.value = o.active ? .6 + .4 * Math.sin(time * 9) : o.state === 'form' ? .25 : 0; su.rot.value = time * .35 + o.seed * 6.28;
-        p.tor.visible = o.state !== 'seal'; p.tor.geometry = low ? torLo : torHi; p.tor.position.set(o.x, o.y, o.z); const tu = p.tor.material.uniforms; tu.grow.value = o.grow; tu.dis.value = o.dis; tu.H.value = H * (.92 + .16 * o.seed); tu.R.value = R; tu.seed.value = o.seed; tu.spin.value = 3 + o.seed;
+        p.tor.visible = o.state !== 'seal'; p.tor.geometry = low ? torLo : torHi; p.tor.position.set(o.x, o.y, o.z); const tu = p.tor.material.uniforms; tu.grow.value = o.grow; tu.dis.value = o.dis; tu.H.value = H * (.92 + .16 * o.seed); tu.R.value = R; tu.seed.value = o.seed; tu.spin.value = 5.8 + o.seed * 1.2;
         if (p.tor.visible) for (let j = 0; j < (low ? 3 : 7) && dn < 40; j++) { const u = (time * (.45 + .2 * Math.sin(j + o.seed * 9)) + j / 7 + o.seed) % 1, a = j * 2.4 + time * (2.6 + j * .2), r = R * (.6 + 1.2 * u) * (.4 + .6 * sm3(o.grow));
           P.set(o.x + Math.cos(a) * r, o.y + .2 + u * H * .55 * sm3(o.grow), o.z + Math.sin(a) * r); E.set(time * 3 + j, a, j); Q.setFromEuler(E); const s = (.07 + .06 * ((j * 7) % 3)) * (1 - u) * (1 - o.dis); S.set(s, s, s); M.compose(P, Q, S); deb.setMatrixAt(dn++, M); } }
       deb.count = dn; deb.instanceMatrix.needsUpdate = true;
