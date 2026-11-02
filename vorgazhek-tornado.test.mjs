@@ -26,20 +26,52 @@ test('Mod 256 — Vórtices do Pacto Escarlate: exatamente 2 ondas de 5 tornados
   }
 });
 
-test('Mod 256 — tempos: 1,3 s de formação, 1,3 s cheio; dano só com tamanho relevante, tique sem acumular, i-frames', () => {
+test('Mod 258 — tempos: 1,3 s de formação, dano desde o início, tique sem acumular, i-frames', () => {
   const r = createTornadoRitual({ rand: rng(5), dmg: 8 }); const p = { x: 0, z: 0, iframes: false, radius: .4 }; r.start(p);
   let formT = null, holdT = null, disT = null, t = 0, firstActive = null;
   for (let i = 0; i < 60 * 8; i++) { t = i / 60; const ev = r.step(1 / 60, p); const o = r.st.tornados[0]; if (!o) continue;
     if (o.state === 'form' && formT === null) formT = t; if (o.state === 'hold' && holdT === null) holdT = t; if (o.state === 'dissolve' && disT === null) disT = t;
     for (const e of ev) if (e.type === 'active' && firstActive === null) firstActive = t; }
   assert.ok(Math.abs(holdT - formT - 1.3) < .05, 'formação ' + (holdT - formT)); assert.ok(Math.abs(disT - holdT - 1.3) < .05, 'plenitude ' + (disT - holdT));
-  assert.ok(firstActive - formT > .45, 'perigo só depois de ~40% da formação');
+  assert.ok(Math.abs(firstActive - formT) < .05, 'dano/pressão devem ativar no mesmo instante em que nasce o tornado');
   // parado sobre todos os tornados ao mesmo tempo: tiques espaçados, nunca vários no mesmo quadro
   const { log } = run(3, (pl) => { pl.x = 0; pl.z = 0; }, { T: { near: [0, .1], ring: [.2, .4] } });
   for (let i = 1; i < log.hits.length; i++) assert.ok(log.hits[i] - log.hits[i - 1] >= TORNADO.tick - 1e-6, 'tique espaçado');
   assert.ok(log.hits.length >= 2 && log.hits.length <= 14);
   const dash = run(3, (pl) => { pl.x = 0; pl.z = 0; pl.iframes = true; }, { T: { near: [0, .1], ring: [.2, .4] } }); assert.equal(dash.log.hits.length, 0, 'i-frames do dash');
   const flee = run(4, (pl, tt) => { pl.x = tt * 5.5; }); assert.ok(flee.log.hits.length <= 1, 'correndo dá para escapar: ' + flee.log.hits.length);
+});
+
+test('Mod 258 — dano no primeiro quadro do tornado, sucção progressiva e dash escapável', () => {
+  const r = createTornadoRitual({ rand: rng(31), T: { min: 1, max: 1, waves: 1 } });
+  const p = { x: 0, z: 0, iframes: false, radius: .4 };
+  r.start(p);
+  let activeAt = null, hitAt = null, origin = null, sealSafe = false;
+  for (let i = 0; i < 60 * 4 && activeAt === null; i++) {
+    const o = r.st.tornados[0];
+    if (o) {
+      p.x = o.x; p.z = o.z; origin = { x: o.x, z: o.z };
+      if (o.state === 'seal') { assert.equal(r.pullAt(o.x + 1.4, o.z), null, 'círculo é aviso, não suga'); sealSafe = true; }
+    }
+    const events = r.step(1 / 60, p);
+    for (const e of events) {
+      if (e.type === 'active') activeAt = i / 60;
+      if (e.type === 'hit') hitAt = i / 60;
+    }
+  }
+  assert.ok(sealSafe && origin && activeAt !== null, 'início da formação observado');
+  assert.equal(hitAt, activeAt, 'colisão causa dano no próprio início do tornado, não só no tamanho máximo');
+  const early = r.pullAt(origin.x + 1.4, origin.z);
+  const dash = r.pullAt(origin.x + 1.4, origin.z, true);
+  assert.ok(early && early.x < 0 && early.strength > 0, 'sucção aponta para o centro');
+  assert.ok(dash && Math.abs(dash.strength / early.strength - TORNADO.dashResistance) < .001, 'dash reduz drasticamente a sucção');
+  assert.equal(r.pullAt(origin.x + 8, origin.z), null, 'fora do alcance não há atração');
+  for (let i = 0; i < 40; i++) r.step(1 / 60, p);
+  const grown = r.pullAt(origin.x + 1.4, origin.z);
+  assert.ok(grown && grown.strength > early.strength, 'pressão aumenta enquanto o tornado cresce');
+  assert.ok(grown.strength <= TORNADO.pullSpeed * 1.02, 'pressão não supera o limite de força');
+  r.abort();
+  assert.equal(r.pullAt(origin.x + 1.4, origin.z), null, 'ao cancelar a habilidade, pressão cessa imediatamente');
 });
 
 test('Mod 256 — interrupção sistêmica (morte, saída) desfaz sem dano nem nova onda; kit e integração', () => {

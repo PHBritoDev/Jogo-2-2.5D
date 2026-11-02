@@ -3,9 +3,10 @@
  *
  * Lógica pura (createTornadoRitual, testável em node) + VFX (createTornadoVFX) dirigidos pelo MESMO relógio.
  * Estados: windup → onda 1 (selos → formação 1,3 s → plenitude 1,3 s → dissipação) → pausa → onda 2 → fim.
- * Cada onda: 3–5 selos/tornados recalculados em volta da posição ATUAL do jogador (só entre ondas); um deles pressiona
- * perto (força a reagir), os outros cercam em arco deixando saída. Dano só quando o tornado já tem tamanho relevante
- * (o selo pulsa antes), hitbox = raio atual do próprio tornado, tique com recarga por alvo (sem acumular por sobreposição),
+ * Cada onda: 5 selos/tornados recalculados em volta da posição ATUAL do jogador (só entre ondas); um deles pressiona
+ * perto (força a reagir), os outros cercam em arco deixando saída. Dano assim que a formação começa, nunca no pré-aviso;
+ * sucção progressiva em até 4,3 m prioriza a fonte mais forte (não acumula 5 forças), dash reduz a pressão;
+ * hitbox acompanha o corpo visível, tique com recarga por alvo (sem acumular por sobreposição),
  * i-frames do dash respeitados. Duas ondas por ativação, nunca infinitas.
  *
  * Arte (referências do criador): o selo é a PRÓPRIA arte enviada (vorgazhek-selo-ritual.png: recorte de alfa do fundo
@@ -14,14 +15,15 @@
  * helicoidal escuro com fendas incandescentes (contra-rotação). Base estreita, topo largo e irregular; gira desde o
  * primeiro quadro, compõe-se de baixo para cima e se desfaz de cima para baixo pelas próprias fitas.
  */
-export const TORNADO = { windup: .6, form: 1.3, hold: 1.3, dissolve: .8, gap: .5, waves: 2, min: 5, max: 5, R: 1.55, H: 7.2, ring: [3, 5.6], near: [1, 1.8], activeAt: .4, tick: .6, dmg: 10 };
+export const VORGAZHEK_TORNADO_BUILD = '258-suction-on-formation';
+export const TORNADO = { windup: .6, form: 1.3, hold: 1.3, dissolve: .8, gap: .5, waves: 2, min: 5, max: 5, R: 1.55, H: 7.2, ring: [3, 5.6], near: [1, 1.8], activeAt: 0, tick: .6, dmg: 10, pullRange: 4.3, pullSpeed: 6.1, dashResistance: .17 };
 const sm = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 
 /** Ritual puro: opts { rand, ground(x,z), blocked(x,z), dmg, R } */
 export function createTornadoRitual(opts = {}) {
   const T = { ...TORNADO, ...(opts.T || {}) }, rand = opts.rand || Math.random, ground = opts.ground || (() => 0), blocked = opts.blocked || (() => false), R = opts.R || T.R, dmg = opts.dmg || T.dmg;
   const st = { phase: 'idle', t: 0, wave: 0, tornados: [], lastHit: -9, clock: 0, done: false, aborted: false };
-  function layout(px, pz) { // 3–5 posições em volta do jogador, com pressão perto e saídas abertas
+  function layout(px, pz) { // 5 posições em volta do jogador, com pressão perto e saídas abertas
     const n = T.min + Math.floor(rand() * (T.max - T.min + 1)), out = [], a0 = rand() * Math.PI * 2, gap = Math.PI * (.55 + .25 * rand());
     const tryPut = (x, z) => { if (blocked(x, z)) return false; for (const o of out) if (Math.hypot(o.x - x, o.z - z) < R * 1.8) return false; out.push({ x, z }); return true; };
     for (let k = 0; k < 10; k++) { const a = a0 + rand() * 6.283, d = T.near[0] + rand() * (T.near[1] - T.near[0]); if (tryPut(px + Math.cos(a) * d, pz + Math.sin(a) * d)) break; } // um pressiona perto
@@ -34,6 +36,30 @@ export function createTornadoRitual(opts = {}) {
   function radiusOf(o) { return R * .78 * (.35 + .65 * sm(o.grow)) * (1 - .6 * o.dis); }
   const api = {
     T, R, st, radiusOf,
+    /** Sucção (m/s): escolhe o tornado mais forte, sem somar cinco forças.
+     * O dash vence a pressão; o motor aplica deslocamento com colisões. */
+    pullAt(x, z, dashing = false) {
+      if (st.done || st.aborted || st.phase !== 'wave') return null;
+      let strongest = 0, pullX = 0, pullZ = 0;
+      for (const o of st.tornados) {
+        if (!o.active || (o.state !== 'form' && o.state !== 'hold' && o.state !== 'dissolve')) continue;
+        const dx = o.x - x, dz = o.z - z, dist = Math.hypot(dx, dz);
+        const maturity = sm(o.grow), fade = 1 - sm(o.dis);
+        const reach = T.pullRange * (.78 + .22 * maturity) * fade;
+        if (dist < .08 || dist >= reach || reach < .1) continue;
+        const attenuation = Math.pow(1 - dist / reach, .65);
+        const speed = T.pullSpeed * (.42 + .58 * maturity) * attenuation * fade;
+        if (speed <= strongest) continue;
+        strongest = speed;
+        // Componente tangencial discreta: rotação sem anular a fuga.
+        const swirl = .13 * maturity;
+        pullX = (dx - dz * swirl) / dist * speed;
+        pullZ = (dz + dx * swirl) / dist * speed;
+      }
+      if (!strongest) return null;
+      const factor = dashing ? T.dashResistance : 1;
+      return { x: pullX * factor, z: pullZ * factor, strength: strongest * factor };
+    },
     get done() { return st.done; },
     start(p) { st.phase = 'windup'; st.t = 0; st.wave = 0; st.done = false; st.aborted = false; st.tornados = []; st.anchor = { x: p.x, z: p.z }; return api; },
     /** Encerramento sistêmico (morte, saída, troca de dimensão): tudo se desfaz rápido, sem dano e sem nova onda. */
@@ -45,8 +71,8 @@ export function createTornadoRitual(opts = {}) {
       else if (st.phase === 'gap' && st.t >= T.gap) { st.phase = 'wave'; st.t = 0; st.wave++; st.tornados = layout(player.x, player.z); ev.push({ type: 'wave', n: st.wave, count: st.tornados.length }); }
       for (const o of st.tornados) {
         o.t += dt; const k = o.t - o.delay; if (k < 0) continue;
-        if (o.state === 'seal') { o.seal = Math.min(1, k / .55); o.grow = 0; if (o.seal >= 1 && !st.aborted) { o.state = 'form'; o.ft = 0; } } // o selo se completa antes do vórtice
-        else if (o.state === 'form') { o.ft += dt; o.grow = Math.min(1, o.ft / T.form); if (o.grow >= T.activeAt && !o.active) { o.active = true; ev.push({ type: 'active', i: o.i }); } if (o.ft >= T.form) { o.state = 'hold'; o.ht = 0; } }
+        if (o.state === 'seal') { o.seal = Math.min(1, k / .55); o.grow = 0; if (o.seal >= 1 && !st.aborted) { o.state = 'form'; o.ft = 0; o.active = true; ev.push({ type: 'active', i: o.i }); } } // o selo se completa antes do vórtice
+        else if (o.state === 'form') { o.ft += dt; o.grow = Math.min(1, o.ft / T.form); if (o.ft >= T.form) { o.state = 'hold'; o.ht = 0; } }
         else if (o.state === 'hold') { o.ht += dt; o.grow = 1; if (o.ht >= T.hold) { o.state = 'dissolve'; o.dt = 0; } }
         else if (o.state === 'dissolve') { o.dt = (o.dt || 0) + dt; o.dis = Math.min(1, o.dt / (o.fast ? .4 : T.dissolve)); if (o.dis > .4 || o.fast) o.active = false; o.seal = 1 - sm(o.dis); if (o.dis >= 1) o.state = 'gone'; }
       }

@@ -16,7 +16,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // O selo só mostra 252 quando o módulo de combate da versão 252 realmente importou.
-{const m=document.getElementById('marker');if(m){m.textContent=VHAZRAEL_BUILD.startsWith('255-')?'256':'?';m.title='Motor VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=VORGAZHEK_TORNADO_BUILD.startsWith('258-')?'258':'?';m.title='Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -57,7 +57,7 @@ import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
 import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
-import { createTornadoRitual, createTornadoVFX } from './vorgazhek-tornado3d.js';
+import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
 import { DESERT_REGION, DESERT_PASS, DESERT, inDesert, fragmentsHeld } from './desert3d.js';
 import { ACT5N, ROUNDS, SPEAKERS5, roundForSub, subForRound, act5Presentation, bestSword, journeyScene, arrivalScene, roundIntroScene, roundOutroScene, finalScene } from './act5-flow.js';
 import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inArena } from './coliseum3d.js';
@@ -1748,7 +1748,7 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
  if(combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
-updatePlayerMovement(dt,now);
+updatePlayerMovement(dt,now);applyTornadoSuction(dt);
 updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateInstanceCulling();checkSecretRuin();
  updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
@@ -5854,6 +5854,19 @@ function startTornadoRitual(m){
  worldAudio.abyss3&&worldAudio.abyss3('gravity',.7);
 }
 function stopTornadoRitual(){if(tornadoRitual){tornadoRitual=null;}if(tornadoVfx)tornadoVfx.clear();}
+/** MOD 258 — pressão do tornado: atração para o núcleo sem travar o joystick.
+ * A força vem da mesma lógica determinística do dano/VFX; colisões bloqueiam paredes, árvores e o Bispo.
+ * Corrida supera a pressão com dificuldade; durante dash a força cai a 17%. */
+function applyTornadoSuction(dt){
+ if(!tornadoRitual||tornadoRitual.done||!enemyAlive||encounterProfile!=='vorgazhek'||playerHP<=0||cineActive||rites.locksMovement||portalPull||vzLocked)return;
+ const force=tornadoRitual.pullAt(player.position.x,player.position.z,dashRemaining>0);
+ if(!force)return;
+ const nx=THREE.MathUtils.clamp(player.position.x+force.x*dt,-6000,6000);
+ const nz=THREE.MathUtils.clamp(player.position.z+force.z*dt,-6000,6000);
+ if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;
+ if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;
+ if(grounded)player.position.y=terrainHeightAt(player.position.x,player.position.z);
+}
 function updateTornadoRitual(dt){
  if(!tornadoRitual)return;const r=tornadoRitual;
  if(!enemy.visible||!enemyAlive||playerHP<=0||encounterProfile!=='vorgazhek'||cineActive)r.abort();
