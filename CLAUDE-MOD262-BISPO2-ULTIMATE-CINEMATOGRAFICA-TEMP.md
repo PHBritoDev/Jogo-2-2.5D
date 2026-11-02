@@ -84,6 +84,22 @@ Investiguei práticas de game-feel que devem ser aplicadas ao Three.js deste jog
 
 **Cadência exigida para a sensação de cataclismo:** (1) prenúncio claro e silêncio/queda momentânea do ambiente, (2) crescente subgrave e câmera estável para mostrar escala, (3) *frame de contato*: deslocamento curto para trás e baixo + hit-stop + som grave + clarão, TODOS sincronizados, (4) após ~0,15s, onda de choque/rochas/vento e tremor mais grave que vai morrendo por ~0,5–1,2s, (5) branco/fade e volta imediata ao combate. Não usar tremor forte nos 15s completos. Parâmetros de amplitude, duração, flash e FOV devem ser reguláveis e validados em tela pequena; em modo de movimento reduzido desativar o shake e manter áudio/VFX legíveis. Não transformar "a sensação foda" em enjoo ou perda de controles.
 
+## REGRA EXTRA — REMOVER PODERES GENÉRICOS ANTIGOS DO BISPO 2
+
+**Pedido novo do criador, prioridade absoluta:** no Bispo 2 (VORGAZHEK), **desativar/remover TODOS os poderes antigos genéricos que o jogo tenha colocado automaticamente**, sejam golpes de kit padrão, `forge`, magias de fallback, explosões, projéteis, ataques mágicos, invocações ou ultimates de outro boss reaproveitados por engano. O Bispo 2 deve ter **APENAS os poderes personalizados definidos pelo criador**:
+
+- **Skill 1:** tornados próprios do VORGAZHEK (`vorgazhek-tornado3d.js`).
+- **Skill 2:** ainda não definida; **nenhuma magia genérica substituta** (manter desativada/reservada).
+- **Skill 3:** portais e múltiplas espadas (`vorgazhek-portal-swords3d.js`).
+- **Especial de espada:** *Eclipse da Dívida* (`vorgazhek-eclipse-sword3d.js`), com a NOVA espada cósmica permanente especificada neste arquivo.
+- **Ultimate:** somente a NOVA ultimate cinematográfica em quatro fases especificada nesta Mod 262. Desligar qualquer ultimate antiga/genérica do Bispo 2.
+
+**Inspecionar efetivamente** as rotas de seleção e execução em `powers3d.js`, `ultimates3d.js`, `mundo-3d-prototype.js`, sistema de IA/cooldowns, aliases `vorgazhek`/`fallen2`, modo de teste e handlers de animação para identificar poderes acionados por fallback, nomes antigos ou lógica herdada. Remover referências, botões de teste e gatilhos **do Bispo 2** para essas magias; não basta esconder partículas enquanto a habilidade ainda causa dano ou ocupa cooldown. **Não substituir habilidade personalizada por genérica se algum módulo falhar ao carregar:** tratar a falha de modo seguro, registrar tecnicamente e manter slot indisponível até o módulo correto estar presente.
+
+**Escopo seguro:** preservar movimentos comuns de combate, IA, caminhada, animações, ataques físicos básicos, colisões e a arma nova; eles não são, por si, "poderes genéricos" a excluir. Não apagar utilitários/shared FX, arquivos comuns ou habilidades de outros personagens; se um efeito antigo estiver em código compartilhado, remover **somente o vínculo dele com o Bispo 2**. Não mexer nas skills personalizadas existentes salvo integração e correções necessárias.
+
+**Aceitação:** testar sequências reais de IA e o laboratório `?testeDimensao=bishop2`; confirmar que só são possíveis as habilidades listadas, que Skill 2 não dispara fallback, que não existe ultimate `forge`/padrão, e que outros bosses e jogador continuam funcionando. Registrar o diagnóstico e a checagem no PR, não na conversa.
+
 ## 6. LÓGICA/INTEGRAÇÃO E NÃO REGRESSÕES
 1. Implementar uma máquina de estados de ultimate testável: `boss_aura(3.3) → circle_build(4.4) → sword_emerge_and_fall(4.0) → impact_and_return(3.2) → done`. Uma fonte de relógio, limpa sob `pause`, sem timers órfãos. Entregar novo módulo com lógica de gameplay + VFX e, se necessário, controlador cinematográfico isolado.
 2. O gatilho real da ultimate será `KITS.vorgazhek.ult` / `ultimates3d.js`, e o handler de `mundo-3d-prototype.js`. Não usar efeitos genéricos antigos `forge` para VORGAZHEK. Ajustar limites de HP, cooldown, teste do boss, `fallen2`; garantir que `ultimateFor` não lance erro `null`.
