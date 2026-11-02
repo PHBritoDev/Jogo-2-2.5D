@@ -62,6 +62,10 @@ Continuam como estavam:
 - Não causa dano.
 - O tremor é leve e respeita `reduceShake`.
 
+**Proteção da câmera:** em 1ª pessoa, faixas e brilhos a menos de 1,4 m da câmera somem, para não cegar a tela (verificado no jogo). O impacto no herói nasce na frente do corpo, do lado de onde veio o corte.
+
+**Desenho da lua:** ela é desenhada depois do portal e dos olhos do fundo e antes da aura, por isso o cenário distante não a cobre. O bispo e o herói continuam na frente dela pela profundidade.
+
 **Fim:** fade de 0,45 s. Lua, aura, espada e rastros somem e a lua antiga volta.
 
 ## Integração
