@@ -20,12 +20,15 @@ test('Bispo 2 e fallen2 só têm as magias autorais; Skill 2 está desligada', (
  }
 });
 
-test('A IA antiga não dispara projéteis mágicos de ataque2/cast para o Bispo 2', () => {
- assert.ok(source.includes("if(!isVorgazhekProfile(encounterProfile)&&distance>1.65&&distance<=8.5)"), 'não pode escolher especiais antigos');
- assert.ok(source.includes("if(isVorgazhekProfile(encounterProfile)){wardenFanPending=false;"), 'cast autoral não deve invocar três projéteis legados');
- assert.ok(source.includes("else if(role==='attack2'&&!isVorgazhekProfile(encounterProfile))"), 'o golpe secundário antigo não pode lançar cortes genéricos');
- assert.ok(source.includes("if(isVorgazhekProfile(encounterProfile))p.life=0"), 'limpar projéteis antigos pendentes');
- assert.ok(source.includes("if(!isVorgazhekProfile(encounterProfile)&&dist<"), 'projéteis legados não podem causar dano');
+test('Mod 264 — gerador e gatilhos legados de projéteis foram fisicamente EXCLUÍDOS do jogo', () => {
+ assert.ok(!source.includes('function spawnEnemyProjectile('), 'sem gerador genérico');
+ assert.ok(!source.includes('function updateEnemyProjectiles('), 'sem atualizador genérico');
+ assert.ok(!source.includes('enemyProjectiles'), 'sem array de projéteis antigos');
+ assert.ok(!source.includes('enemyNextRangedRole'), 'sem seleção de poderes à distância na IA antiga');
+ assert.ok(!source.includes("spawnEnemyProjectile('slash'"), 'sem triplo corte antigo');
+ assert.ok(!source.includes("spawnEnemyProjectile('tornado'"), 'sem triplo anel/tornado antigo');
+ assert.ok(source.includes("function updateFoeKit(dt){"), 'motor de poderes autorais preservado');
+ assert.ok(source.includes("if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0)"), 'ataques corpo a corpo preservados');
 });
 
 test('Nenhum fallback genérico, aura genérica ou ultimate padrão se aplica ao Bispo 2', () => {

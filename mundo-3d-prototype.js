@@ -16,7 +16,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // Mod 263: build de powers exclusivos do Bispo 2, além da ultimate cósmica da Mod 262.
-{const m=document.getElementById('marker');if(m){m.textContent=COSMIC_ULT_BUILD.startsWith('262-')?'263':'?';m.title='Mod 263: sem projéteis, cortes e auras genéricos no Bispo 2 | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=COSMIC_ULT_BUILD.startsWith('262-')?'264':'?';m.title='Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -595,8 +595,7 @@ let enemyHP=100,enemyMaxHP=100,enemyAlive=true,enemyHitFlash=0,enemyKnockback=0,
 let encounterProfile='captor',wardenPhaseUsed=false,wardenFanPending=false;
 let checkpointX=0,checkpointZ=4;
 let enemyAttackCooldown=0,enemyAttackElapsed=0,enemyAttackDuration=0,enemyAttackHitAt=0,enemyAttackResolved=true,enemyAttackFacingX=0,enemyAttackFacingZ=1,enemyAttackRole='attack';
-let enemyDashRemaining=0,enemyDashCooldown=0,enemySpecialCooldown=0,enemyCastCooldown=0,enemyBlockCooldown=0,enemyCastElapsed=0,enemyCastDuration=0,enemyCastResolved=true,enemyDashDirectionX=0,enemyDashDirectionZ=1,enemyNextRangedRole='cast';
-const enemyProjectiles=[];
+let enemyDashRemaining=0,enemyDashCooldown=0,enemySpecialCooldown=0,enemyCastCooldown=0,enemyBlockCooldown=0,enemyCastElapsed=0,enemyCastDuration=0,enemyCastResolved=true,enemyDashDirectionX=0,enemyDashDirectionZ=1;
 let attackCooldown=0,pendingEnemyHitAt=0,playerAttackFacingX=0,playerAttackFacingZ=1;
 let playerHP=100,playerMaxHP=100,playerInvulnerableUntil=0,playerRespawnAt=0;
 const ENEMY_ATTACK_RANGE=2.25,ENEMY_ATTACK_DAMAGE=18,PLAYER_SPAWN={x:0,z:4};
@@ -717,28 +716,7 @@ function normalizeEnemy1Model(model){
  const b2=measureModelBounds(model),root=model.parent?model.parent.getWorldPosition(new THREE.Vector3()).y:0;model.position.y+=root-b2.min.y;
  window.Enemy1HeightReport={before:+cur.toFixed(2),after:+enemy1TargetHeight().toFixed(2),k:+k.toFixed(3)};
 }
-function spawnEnemyProjectile(kind,spreadAngle=0){
- const group=new THREE.Group(),slash=kind==='slash';
- const dark=new THREE.MeshStandardMaterial({color:0x09080d,emissive:slash?0x210d2d:0x170d28,emissiveIntensity:slash?1.15:.85,metalness:.25,roughness:.35,transparent:true,opacity:.96,depthWrite:false});
- const edge=new THREE.MeshStandardMaterial({color:0x6f1728,emissive:0x8b1631,emissiveIntensity:1.35,transparent:true,opacity:.9,depthWrite:false});
- if(slash){
-  // Corte reto, escuro e estreito; sem anel giratório para não parecer um ímã.
-  const blade=new THREE.Mesh(new THREE.CylinderGeometry(.035,.16,1.45,7,1,true),dark);blade.rotation.x=Math.PI/2;group.add(blade);
-  const core=new THREE.Mesh(new THREE.CylinderGeometry(.012,.055,1.32,5,1,true),new THREE.MeshBasicMaterial({color:0x050407,transparent:true,opacity:.98,depthWrite:false}));core.rotation.x=Math.PI/2;group.add(core);
-  const sparkMat=new THREE.LineBasicMaterial({color:0x7e1830,transparent:true,opacity:.98});
-  for(let side of [-1,1]){const points=[new THREE.Vector3(side*.08,-.07,-.62),new THREE.Vector3(side*.17,.09,-.39),new THREE.Vector3(side*.08,-.12,-.17),new THREE.Vector3(side*.19,.07,.04),new THREE.Vector3(side*.07,-.05,.27),new THREE.Vector3(side*.13,.1,.48),new THREE.Vector3(0,0,.66)];const bolt=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),sparkMat);bolt.position.x=side*.09;group.add(bolt);}
-  group.scale.set(1.0,.72,1.0);
- }else{for(let i=0;i<3;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.38+i*.13,.045,5,16),i===1?edge:dark);ring.position.y=(i-1)*.25;ring.rotation.x=(i-1)*.28;group.add(ring);}const core=new THREE.Mesh(new THREE.SphereGeometry(.19,8,6),dark);group.add(core);group.scale.set(.9,1.25,.9);}
- const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,len=Math.hypot(dx,dz)||1,baseX=dx/len,baseZ=dz/len,angle=Math.atan2(baseX,baseZ)+spreadAngle,dirX=Math.sin(angle),dirZ=Math.cos(angle);
- group.position.set(enemy.position.x+dirX*.82,enemy.position.y+(slash?1.12:1.0),enemy.position.z+dirZ*.82);group.rotation.y=angle;scene.add(group);
- enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?8.2:5.2,life:slash?1.25:2.15,damage:slash?13:16,spin:slash?0:9.2});
-}
-function updateEnemyProjectiles(dt){
- for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];if(isVorgazhekProfile(encounterProfile))p.life=0;/* MOD 263: nunca manter projéteis legados no Bispo 2. */p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
-  if(!isVorgazhekProfile(encounterProfile)&&dist<(p.kind==='slash'?.78:1.05)&&Math.abs(p.group.position.y-(player.position.y+1))<1.25){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
-  if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});enemyProjectiles.splice(i,1);}
- }
-}
+// MOD 264: gerador de projéteis/cortes genéricos legados EXCLUÍDO do jogo. Poderes autorais usam módulos próprios.
 function updateEnemyHud(){
  const p=enemy.position.clone().add(new THREE.Vector3(0,2.2,0)).project(camera);
  const hud=document.getElementById('enemy-hud');
@@ -837,17 +815,16 @@ function updateEnemyAI(dt){
  }
  if(enemyCurrentRole==='dash'&&enemyDashRemaining<=0)playEnemyAnimation('idle',.08);
  const dx=player.position.x-enemy.position.x,dz=player.position.z-enemy.position.z,distance=Math.hypot(dx,dz);
+ // MOD 264: animar conjuração sem invocar projéteis/cortes legados. A magia real vem do módulo autoral.
  if(enemyCurrentRole==='cast'){
-  enemyCastElapsed+=dt;
-  const castReleaseAt=wardenFanPending?enemyCastDuration*.62:enemyCastDuration*.42;
-  if(!enemyCastResolved&&enemyCastElapsed>=castReleaseAt){enemyCastResolved=true;if(isVorgazhekProfile(encounterProfile)){wardenFanPending=false;/* MOD 263: cast autoral, sem anéis/tornados de projétil antigos. */}else if(wardenFanPending){wardenFanPending=false;wardenPhaseUsed=true;[-.62,-.31,0,.31,.62].forEach(a=>spawnEnemyProjectile('slash',a));}else{spawnEnemyProjectile('tornado',-.34);spawnEnemyProjectile('tornado',0);spawnEnemyProjectile('tornado',.34);}}
-  if(enemyCastElapsed<enemyCastDuration)return;
+  const clip=enemyCurrentAction&&enemyCurrentAction.getClip();
+  if(clip&&enemyCurrentAction.isRunning()&&enemyCurrentAction.time<clip.duration-.04)return;
   playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole!=='attack'&&enemyCurrentRole!=='attack2'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
  if(enemyCurrentRole==='attack'||enemyCurrentRole==='attack2'){
   enemyAttackElapsed+=dt;const role=enemyAttackRole,action=enemyActions[role];
-  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'&&BOSS_PROFILES.includes(encounterProfile)&&bossComboHits<2){bossComboHits++;enemyAttackResolved=false;enemyAttackHitAt+=enemyAttackDuration*.2;}if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'&&!isVorgazhekProfile(encounterProfile)){spawnEnemyProjectile('slash',-.22);spawnEnemyProjectile('slash',0);spawnEnemyProjectile('slash',.22);}}
+  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'&&BOSS_PROFILES.includes(encounterProfile)&&bossComboHits<2){bossComboHits++;enemyAttackResolved=false;enemyAttackHitAt+=enemyAttackDuration*.2;}if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}}
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
@@ -865,25 +842,8 @@ function updateEnemyAI(dt){
    enemyDashRemaining=.34;enemyDashCooldown=nextDashCooldown();return;
   }
  }
- if(encounterProfile==='warden'&&!wardenPhaseUsed&&enemyHP<=enemyMaxHP*.55&&distance>1.8&&distance<=9.5&&enemyActions.cast&&enemyCastCooldown<=0){
-  const fanClip=enemyActions.cast.getClip();
-  if(fanClip&&playEnemyAnimation('cast',.08,true)){wardenFanPending=true;enemyCastCooldown=6.4;enemyCastElapsed=0;enemyCastDuration=fanClip.duration;enemyCastResolved=false;status.textContent='O guarda abre os braços. O corte vem largo — saia da frente.';return;}
- }
- // Prioriza alternância real dos especiais antes do golpe básico quando há distância para lançar.
- if(!isVorgazhekProfile(encounterProfile)&&distance>1.65&&distance<=8.5){
-  const preferred=enemyNextRangedRole||'cast',roles=preferred==='cast'?['cast','attack2']:['attack2','cast'];
-  for(const rangedRole of roles){
-   const clipAction=enemyActions[rangedRole];
-   const available=!!clipAction&&(rangedRole==='cast'?enemyCastCooldown<=0:enemySpecialCooldown<=0);
-   if(!available)continue;
-   const duration=clipAction.getClip().duration;
-   if(!playEnemyAnimation(rangedRole,.08,true))continue;
-   enemyNextRangedRole=rangedRole==='cast'?'attack2':'cast';
-   if(rangedRole==='cast'){enemyCastCooldown=4.6;if(BOSS_PROFILES.includes(encounterProfile)&&bossRageAnnounced){wardenFanPending=true;enemyCastCooldown=3.2;}enemyCastElapsed=0;enemyCastDuration=duration;enemyCastResolved=false;}
-   else{enemySpecialCooldown=3.1;enemyAttackRole='attack2';enemyAttackElapsed=0;enemyAttackDuration=duration;enemyAttackHitAt=Math.min(duration*.52,Math.max(.12,duration*.4));enemyAttackResolved=false;enemyAttackCooldown=.25;}
-   return;
-  }
- }
+ // MOD 264: IA genérica NÃO seleciona magias, leques, projéteis ou cortes à distância.
+ // Os kits próprios de inimigos/chefes rodam em updateFoeKit() ou em seus módulos de esquadra.
  if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);return;}
  if(distance<1.55&&enemyAttackCooldown>0){playEnemyAnimation('idle',.08);return;}
  if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
@@ -1736,7 +1696,7 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  enemyModel.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||'')){o.updateWorldMatrix(true,false);const p=o.getWorldPosition(new THREE.Vector3());if(Number.isFinite(p.y))footPoints.push(p.y);}});
  if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
  else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer){updateGuideMotion();guideIdleMixer.update(dt);relaxGuideArms(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);updateEnemyProjectiles(dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
+ }if(guideIdleMixer){updateGuideMotion();guideIdleMixer.update(dt);relaxGuideArms(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
