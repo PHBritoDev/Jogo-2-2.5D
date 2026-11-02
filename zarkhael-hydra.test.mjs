@@ -31,6 +31,20 @@ test('Hidra — emerge devagar do selo (abaixo do chão antes), cabeças se ergu
   assert.ok(at(L, 'roar', e => e.i === 0).t < at(L, 'roar', e => e.i === 2).t);
 });
 
+test('Hidra — base dos três pescoços encosta no corpo apoiado sobre o selo sem mover as cabeças', () => {
+  const h = createHydraJudgment({ground:()=>12}).start({x:0,z:-6},{x:0,z:8},ARENA);
+  h.st.t=5;
+  for (let i=0;i<3;i++) {
+    const p=hydraPose(h.st,i,{});
+    assert.ok(Math.abs(p.ctrl[0][1]-(h.st.C.y+1.6-HYDRA.rootGrounding))<1e-6,
+      'raiz do pescoço une-se ao topo do corpo abaixado, sem espaço visível');
+    assert.ok(p.head[1]>h.st.C.y+4.5, 'cabeças permanecem na altura original');
+  }
+  assert.ok(HYDRA.rootGrounding>0&&HYDRA.rootGrounding<1, 'abatimento suave, não afunda a Hidra');
+  const src=fs.readFileSync(new URL('./zarkhael-hydra3d.js',import.meta.url),'utf8');
+  assert.ok(src.includes('(2.4 - T2.rootGrounding) * em0'), 'corpo visual usa o mesmo deslocamento da raiz');
+});
+
 test('Hidra — cada cabeça constrói a sua esfera devagar; disparo 1 → 2 → 3 em sequência, cada uma depois de pronta', () => {
   const L = run(); for (let i = 0; i < 3; i++) { const bs = L.ks[i].filter(x => x[1] === 'build'); assert.ok(bs.length / 60 > 1.6, 'construção lenta (' + (bs.length / 60).toFixed(2) + ' s)'); for (let j = 1; j < bs.length; j++) assert.ok(bs[j][2] >= bs[j - 1][2]); }
   const f = [0, 1, 2].map(i => at(L, 'fire', e => e.i === i)), r = [0, 1, 2].map(i => at(L, 'orb_ready', e => e.i === i));
