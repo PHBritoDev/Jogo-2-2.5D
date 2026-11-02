@@ -94,3 +94,17 @@ test('Mod 262 — interrupção restaura tudo, kit só com poderes autorais, int
   assert.ok(src.includes("if(name==='bishop2')attachCosmicSword(model);") && !src.includes("'./EspadaBispo2.glb"), 'espada cósmica permanente; a antiga não aparece');
   const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testUltBispo2=1'));
 });
+
+test('Mod 265 (refino) — presença rubra por espaço negativo, sem criaturas; chamas negras presas à espada; explosão em estágios', () => {
+  const ult = fs.readFileSync(new URL('./vorgazhek-ultimate3d.js', import.meta.url), 'utf8'), sw = fs.readFileSync(new URL('./vorgazhek-cosmic-sword3d.js', import.meta.url), 'utf8');
+  for (const bad of ['function creature', 'STROKE_F', 'teeth', 'EYE_F', 'mouths']) assert.ok(!ult.includes(bad), 'sem bicho/espinho/dentes modelados: ' + bad);
+  assert.ok(ult.includes('const PRES_F') && /slash\(wp,/.test(ult) && ult.includes('eyeRev') && ult.includes('grinRev'), 'rasgos e fenda revelados pela própria energia');
+  assert.ok(sw.includes('const FLAME_V') && sw.includes("flames.name = 'ChamasNegras'") && sw.includes('if(vWy>clipY) discard;'), 'chamas negras na mesma espada, recortadas também na gigante');
+  assert.ok(ult.includes('giant.userData.flameScale.value = .6'), 'gigante com chamas proporcionais');
+  const S = COSMIC_ULT.stages; assert.ok(S.contact < S.compress && S.compress < S.form && S.form < S.deton && S.deton < COSMIC_ULT.whiteAt, 'contato → compressão → formação → detonação → cauda');
+  assert.ok(COSMIC_ULT.rings.every(r => r >= S.form) && COSMIC_ULT.whiteAt + COSMIC_ULT.whiteIn + COSMIC_ULT.whiteHold + COSMIC_ULT.whiteOut <= 3.2 + 1e-9, 'anéis só depois da formação; tudo dentro dos 3,2 s');
+  const u = createCosmicUlt({ ground }).start({ x: 800, z: 6 }, { x: 800, z: -7 }, ARENA), seen = new Set(); let maxFlashContact = 0;
+  while (!u.done) { u.step(1 / 60, { x: 800, z: 6 }); if (u.st.pi === 3) { seen.add(u.st.stage); if (u.st.pt < S.contact) maxFlashContact = Math.max(maxFlashContact, u.st.flash); } }
+  assert.deepEqual([...seen].filter(Boolean), ['contact', 'compress', 'form', 'deton', 'tail']); assert.ok(maxFlashContact <= .31, 'no toque o clarão é pequeno');
+  const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8'); assert.ok(src.includes("ev.type==='detonate'") && src.includes("ev.type==='wind'") && !/setTimeout\(\(\)=>\{worldAudio\.abyss3&&worldAudio\.abyss3\('storm',\.9\);\},260\)/.test(src), 'som de detonação e vento no relógio da ultimate, sem timer solto');
+});
