@@ -53,12 +53,14 @@ test('Mod 262 — justiça: controle volta antes do impacto; parado leva dano, c
   assert.ok(powerStats('vorgazhek', KITS.vorgazhek.ult).dmg < 40, 'não mata por roteiro (dano finito, com multiplicador de chefe)');
 });
 
-test('Mod 262 — congelamento de impacto curto no relógio REAL, sem travar; tremor só no contato decaindo em ~1,2 s', () => {
-  const L = run(); const imp = find(L, 'impact'), after = L.ev.filter(e => e.rt > imp.rt);
-  const ring1 = find(L, 'ring', e => e.n === 1); assert.ok(ring1.rt - imp.rt < .2, 'o relógio da cena segue depois do congelamento');
+test('Mod 262 (refino) — congelamento curto no relógio REAL; a explosão nasce em estágios depois do toque; tremor decai', () => {
+  const L = run(); const imp = find(L, 'impact'), after = L.ev.filter(e => e.rt > imp.rt), det = find(L, 'detonate'), rings = L.ev.filter(e => e.type === 'ring');
+  assert.ok(det && Math.abs(det.rt - imp.rt - COSMIC_ULT.stages.form) < .15, 'detonação depois de contato → compressão → formação (' + (det.rt - imp.rt).toFixed(2) + ' s)');
+  assert.ok(rings.length === 3 && rings[0].rt >= det.rt - 1e-9 && rings[1].rt > rings[0].rt + .1 && rings[2].rt > rings[1].rt + .1, 'anéis 1 → 2 → 3 só na detonação, com atrasos distintos');
+  const wind = find(L, 'wind'), white = find(L, 'white'); assert.ok(wind.rt > det.rt && white.rt - det.rt > 1.1, 'vento depois do estouro; o branco não engole a formação');
   assert.ok(after.length > 2 && find(L, 'end'), 'não fica preso no quadro do impacto');
   const tr = L.trauma; const before = Math.max(...tr.filter(x => x[2] < 3).map(x => x[1])), peak = Math.max(...tr.filter(x => x[2] === 3).map(x => x[1]));
-  assert.ok(before <= .3 && peak >= .99, 'microtremor antes, tremor forte só no contato'); const late = tr.find(x => x[0] > imp.rt + 1.4); assert.ok(late[1] < .05, 'decai até ~1,2 s');
+  assert.ok(before <= .3 && peak >= .8, 'microtremor antes, tremor forte no contato e na detonação'); const late = tr.find(x => x[0] > det.rt + 1.3); assert.ok(late[1] < .05, 'decai em ~1,2 s');
   // ruído suave: vizinhos próximos, nunca saltos aleatórios por quadro
   let maxJump = 0; for (let t = 0; t < 2; t += 1 / 60) maxJump = Math.max(maxJump, Math.abs(shakeAt(1, t + 1 / 60, 99).x - shakeAt(1, t, 99).x)); assert.ok(maxJump < .16, 'tremor contínuo: ' + maxJump.toFixed(3));
   assert.equal(shakeAt(0, 1.3, 99).x, 0); const k0 = shakeAt(1, 0, 0), k1 = shakeAt(1, 0, .4); assert.ok(k0.back > .5 && Math.abs(k1.back) < .02, 'tranco direcional curto');
@@ -84,7 +86,7 @@ test('Mod 262 — interrupção restaura tudo, kit só com poderes autorais, int
   for (const old of ['forge', 'FORNALHA', 'Golpe da Forja', 'Lâminas de Metal']) assert.ok(!JSON.stringify(KITS.vorgazhek).includes(old));
   const seen = new Set(); for (const d of [2, 5, 10, 20]) for (const cds of [{}, { sw: 9 }, { sw: 9, s1: 9 }, { sw: 9, s3: 9 }]) { const m = pickMove('vorgazhek', cds, d, ''); if (m) seen.add(m.type); } assert.deepEqual([...seen].sort(), ['portal_swords', 'tornadoes', 'vorgazhek_eclipse_sword']);
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
-  assert.ok(src.includes("if(kind==='vorgazhek_cosmic_judgment'){startCosmicUlt();return;}") && src.includes("if(uk==='vorgazhek_cosmic_judgment'){startCosmicUlt();return;}"), 'ultimate real, sem forge/genérico');
+  assert.ok(src.includes("if(isVorgazhekProfile(encounterProfile)){if(kind==='vorgazhek_cosmic_judgment')startCosmicUlt();return;}") && src.includes("if(isVorgazhekProfile(encounterProfile)){if(uk==='vorgazhek_cosmic_judgment')startCosmicUlt();return;}"), 'ultimate real, sem forge/genérico (guarda da Mod 263)');
   assert.ok(src.includes("bossUlt.kind==='cosmic'?tickCosmicUlt:") && src.includes("function endBossUlt(){if(bossUlt.kind==='cosmic')stopCosmicUlt();") && src.includes('clearHazards();stopCosmicUlt();stopEclipseSword();'), 'limpa no fim, na interrupção e ao sair da dimensão');
   assert.ok(src.includes('undoCosmicShake();updatePlayerCamera(dt);'), 'tremor aditivo desfeito antes da câmera do próximo quadro');
   assert.ok(src.includes('||cineActive||cosmicLock()){axisX=0;') && src.includes('if(cosmicLock())return;'), 'trava só enquanto a cena pede');

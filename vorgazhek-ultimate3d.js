@@ -2,25 +2,29 @@
  * MOD 262 — ULTIMATE de VORGAZHEK (Bispo 2): O JUÍZO DA ESPADA CÓSMICA.
  *
  * Quatro fases num ÚNICO relógio de tempo real (as durações e a saída do congelamento não dependem do timeScale):
- *  1. boss_aura 3,3 s — câmera baixa 3/4 de frente para o bispo, com dolly-in; duas criaturas colossais de energia
- *     rubro-negra (juba de traços negros, olhos brancos incandescentes, sorriso de dentes negros, garras) crescem atrás
- *     dele, mais as fitas que sobem do corpo. Microtremor de pressão só no fim.
+ *  1. boss_aura 3,3 s — câmera baixa 3/4 de frente para o bispo, com dolly-in; atrás e acima dele cresce UMA presença
+ *     gigante feita só de energia e luz (refino Mod 262): campo rubro com raias negras de pressão convergindo e, por
+ *     espaço negativo, dois rasgos brancos inclinados no alto e uma fenda curva enorme embaixo — olhos e sorriso
+ *     sugeridos, nunca modelados. Línguas vermelhas sobem do corpo. Microtremor de pressão só no fim.
  *  2. circle_build 4,4 s — corte limpo para trás do herói, que olha para cima; três círculos mágicos HORIZONTAIS em
  *     pilha (raios 15 / 7,5 / 3,75 m = 1 : 0,5 : 0,25, a 15 / 23 / 30 m do chão) se DESENHAM: traços, glifos, polígonos
  *     e estrelas aparecem aos poucos, girando em sentidos alternados. No fim a ponta da espada desponta no C1.
  *  3. sword_emerge_and_fall 4,0 s — a MESMA espada cósmica da mão, ampliada 7×, ponta para baixo, atravessa o C1 por
  *     recorte real (o que está acima do plano não existe) e desce até o PONTO FIXO no chão, acelerando. O controle volta
  *     ao jogador aos 1,3 s, com o anel de perigo no chão: dá para sair correndo ou com dash.
- *  4. impact_and_return 3,2 s — contato: congelamento de 0,11 s (relógio real), câmera com tranco direcional, tremor
- *     por trauma com ruído suave e decaimento, FOV punch, núcleo branco-amarelo, 3 anéis de fogo, domo, feixe, crateras,
- *     blocos de rocha, raios e onda de choque. Depois o branco se expande do núcleo e devolve a arena limpa.
+ *  4. impact_and_return 3,2 s — a explosão NASCE do ponto de contato em estágios (refino Mod 262):
+ *     CONTATO 0–0,12 s (ponta crava, congelamento de 0,11 s em tempo real, tranco, fissura pequena e faísca);
+ *     COMPRESSÃO 0,12–0,55 s (fissuras luminosas crescem, núcleo pequeno e nítido no chão, linhas convergem, placas vibram);
+ *     FORMAÇÃO 0,55–1,05 s (o núcleo sobe e abre, a casca do domo ganha espessura, primeiro halo, rochas começam a subir);
+ *     DETONAÇÃO 1,05–1,8 s (anéis 1→2→3, domo, feixe, rochas radiais, onda de choque, luz e tremor secundário);
+ *     CAUDA 1,8–3,2 s (vento, resíduo, decaimento e o branco nascendo do núcleo que devolve a arena limpa).
  */
-export const COSMIC_ULT_BUILD = '262-cosmic-judgment';
+export const COSMIC_ULT_BUILD = '265-cosmic-judgment-refino';
 export const COSMIC_ULT = {
   phases: [['boss_aura', 3.3], ['circle_build', 4.4], ['sword_emerge_and_fall', 4.0], ['impact_and_return', 3.2]],
   circles: [{ r: 15, h: 15, spin: .14, from: .2, to: 3.2 }, { r: 7.5, h: 23, spin: -.24, from: .9, to: 3.8 }, { r: 3.75, h: 30, spin: .38, from: 1.5, to: 4.2 }],
   swordScale: 7, swordTip: 1.43, swordTotal: 1.95, embed: 1.4, impactR: 6.5, dmg: 40, release: 1.3, freeze: .11, slowMo: .45,
-  whiteAt: 2.25, whiteIn: .22, whiteHold: .1, whiteOut: .6, edge: 6
+  whiteAt: 2.3, whiteIn: .2, whiteHold: .08, whiteOut: .6, edge: 6, stages: { contact: .12, compress: .55, form: 1.05, deton: 1.8 }, rings: [1.05, 1.2, 1.38], wind: 1.4
 };
 const clamp01 = x => Math.max(0, Math.min(1, x)), sm = x => { x = clamp01(x); return x * x * (3 - 2 * x); };
 /** Ruído 1D suave (valor com interpolação suave) — nunca jitter aleatório por quadro. */
@@ -42,11 +46,11 @@ export function createCosmicUlt(opts = {}) {
     /** hero/boss {x,z}; arena {x,z,r}. O ponto de impacto fica fixo daqui em diante (no chão, dentro da arena). */
     start(hero, boss, arena) {
       let px = hero.x, pz = hero.z; if (arena) { const dx = px - arena.x, dz = pz - arena.z, d = Math.hypot(dx, dz), lim = arena.r - U.edge; if (d > lim) { px = arena.x + dx / d * lim; pz = arena.z + dz / d * lim; } }
-      const gy = ground(px, pz); Object.assign(st, { phase: U.phases[0][0], pi: 0, t: 0, pt: 0, rt: 0, P: { x: px, y: gy, z: pz }, boss: { x: boss.x, z: boss.z }, circles: U.circles.map(c => ({ ...c, y: gy + c.h, k: 0 })), tipY: gy + U.circles[0].h, freeze: 0, trauma: 0, kickT: 99, hits: 0, done: false, aborted: false, impactAt: -1, white: 0, flash: 0, fovAdd: 0, lock: true, telegraph: 0, impacted: false });
+      const gy = ground(px, pz); Object.assign(st, { phase: U.phases[0][0], pi: 0, t: 0, pt: 0, rt: 0, P: { x: px, y: gy, z: pz }, boss: { x: boss.x, z: boss.z }, circles: U.circles.map(c => ({ ...c, y: gy + c.h, k: 0 })), tipY: gy + U.circles[0].h, freeze: 0, trauma: 0, kickT: 99, hits: 0, done: false, aborted: false, impactAt: -1, white: 0, flash: 0, fovAdd: 0, lock: true, telegraph: 0, impacted: false, detonated: false, windDone: false, whiteDone: false, ring1: false, ring2: false, ring3: false, stage: '' });
       return api;
     },
     abort() { if (st.done || st.phase === 'idle') return; st.aborted = true; st.done = true; st.lock = false; st.white = 0; st.flash = 0; st.trauma = 0; st.fovAdd = 0; st.phase = 'aborted'; },
-    /** rdt = tempo REAL do quadro. hero {x,y,z,iframes}. Eventos: phase, circle, release, impact{hit}, hit, ring, white, end. */
+    /** rdt = tempo REAL do quadro. hero {x,y,z,iframes}. Eventos: phase, circle, release, impact{hit}, hit, detonate, ring, wind, white, end. */
     step(rdt, hero) {
       const ev = []; if (st.done || st.phase === 'idle') return ev; st.rt += rdt;
       let dt = rdt; if (st.freeze > 0) { st.freeze -= rdt; dt = rdt * .06; } // congelamento de impacto: medido no relógio real, nunca prende
@@ -58,15 +62,18 @@ export function createCosmicUlt(opts = {}) {
       if (st.pi === 2) { const k = clamp01(st.pt / dur); st.tipY = swordTipY(k, st.circles[0].y, st.P.y); st.telegraph = sm(st.pt / .35); st.trauma = Math.max(st.trauma, .05 + .2 * k * k);
         if (st.lock && st.pt >= U.release) { st.lock = false; ev.push({ type: 'release' }); } }
       if (st.pi === 3) { const p = st.pt;
-        st.fovAdd = p < .06 ? -7 * p / .06 : -7 * Math.max(0, 1 - (p - .06) / .7);
-        st.flash = p < .12 ? 1 - p / .12 : 0;
+        const D0 = U.stages.form; st.stage = p < U.stages.contact ? 'contact' : p < U.stages.compress ? 'compress' : p < D0 ? 'form' : p < U.stages.deton ? 'deton' : 'tail';
+        st.fovAdd = p < .06 ? -2.5 * p / .06 : p < D0 ? -2.5 * Math.max(0, 1 - (p - .06) / .4) : p < D0 + .06 ? -7 * (p - D0) / .06 : -7 * Math.max(0, 1 - (p - D0 - .06) / .7);
+        st.flash = p < .12 ? .3 * (1 - p / .12) : p >= D0 && p < D0 + .14 ? .55 * (1 - (p - D0) / .14) : 0; // clarão pequeno no toque, o maior só na detonação
+        if (p >= D0 && !st.detonated) { st.detonated = true; st.trauma = Math.min(1, st.trauma + .85); st.kickT = 0; ev.push({ type: 'detonate', x: st.P.x, y: st.P.y, z: st.P.z }); }
+        if (p >= U.wind && !st.windDone) { st.windDone = true; ev.push({ type: 'wind' }); }
         const w0 = U.whiteAt, w1 = w0 + U.whiteIn, w2 = w1 + U.whiteHold, w3 = w2 + U.whiteOut; st.white = p < w0 ? 0 : p < w1 ? sm((p - w0) / U.whiteIn) : p < w2 ? 1 : 1 - sm((p - w2) / U.whiteOut);
         if (p >= w1 && !st.whiteDone) { st.whiteDone = true; ev.push({ type: 'white' }); } // VFX some por trás do branco
-        for (const [i, at] of [[1, .05], [2, .18], [3, .32]]) if (p >= at && !st['ring' + i]) { st['ring' + i] = true; st.trauma = Math.min(1, st.trauma + .12); ev.push({ type: 'ring', n: i }); } }
+        for (let i = 1; i <= 3; i++) if (p >= U.rings[i - 1] && !st['ring' + i]) { st['ring' + i] = true; st.trauma = Math.min(1, st.trauma + .12); ev.push({ type: 'ring', n: i }); } }
       if (st.pt >= dur) {
         if (st.pi === 2 && !st.impacted) { // contato: explosão SEMPRE no ponto fixo do chão; dano só dentro do raio legível
           st.impacted = true; st.tipY = st.P.y - U.embed; const d = Math.hypot(hero.x - st.P.x, hero.z - st.P.z), hit = !hero.iframes && d <= U.impactR + .35;
-          st.freeze = U.freeze; st.trauma = 1; st.kickT = 0; st.impactAt = st.t; ev.push({ type: 'impact', x: st.P.x, y: st.P.y, z: st.P.z, hit, dist: d }); if (hit) { st.hits = 1; ev.push({ type: 'hit', dmg }); }
+          st.freeze = U.freeze; st.trauma = .7; st.kickT = 0; st.impactAt = st.t; ev.push({ type: 'impact', x: st.P.x, y: st.P.y, z: st.P.z, hit, dist: d }); if (hit) { st.hits = 1; ev.push({ type: 'hit', dmg }); }
         }
         st.pi++; st.pt = 0;
         if (st.pi >= U.phases.length) { st.done = true; st.phase = 'done'; st.lock = false; st.white = 0; st.fovAdd = 0; st.trauma = 0; ev.push({ type: 'end', hits: st.hits }); }
@@ -140,15 +147,35 @@ void main(){ float e=abs(vU.y*2.-1.), s=vK.z, n=n2(vec2(vU.x*7.-time*3.+s*13.,vU
  float core2=exp(-e*e*70.); vec3 c=mix(vec3(.06,.0,.005),vec3(.75,.05,.03),(1.-e/edge)*.8); c=mix(c,vec3(1.,.9,.8),core2*(.55+.45*vK.w)); c=mix(vec3(.01,0.,0.),c,smoothstep(edge,edge-.3,e));
  if(vK.x>.5) c=mix(vec3(.02,0.,0.),vec3(.9,.1,.05),exp(-e*e*50.)*.9);
  float a=vK.y; if(a<.02) discard; gl_FragColor=vec4(c,a); }`;
-/* Traço da juba da criatura (instanciado): preto com veia vermelha, recortado */
-const STROKE_V = `attribute vec4 aS; varying vec4 vS; varying vec2 vU; void main(){ vS=aS; vU=uv; gl_Position=projectionMatrix*viewMatrix*modelMatrix*instanceMatrix*vec4(position,1.); }`;
-const STROKE_F = `${NOISE} uniform float time; varying vec4 vS; varying vec2 vU;
-void main(){ float d=abs(vU.x)+(n2(vec2(vU.y*8.+vS.w*7.,vU.x*2.+time*.5))-.5)*.35; if(d>.95||vU.y>vS.y) discard;
- vec3 c=vec3(.025,.004,.006); float vein=exp(-d*d*30.)*(1.-vU.y)*vS.z; c=mix(c,vec3(.95,.12,.06),vein); c=mix(c,vec3(1.,.85,.75),exp(-d*d*120.)*(1.-vU.y)*vS.z*.6);
- gl_FragColor=vec4(c,1.); }`;
-const EYE_F = `uniform float time,show; varying vec2 vU; void main(){ vec2 p=vU*2.-1.; float tri=max(abs(p.x)*.9+p.y*.55,-p.y-.45); if(tri>.55) discard; float k=1.-smoothstep(.0,.55,tri);
- vec3 c=mix(vec3(.9,.05,.02),vec3(1.,.98,.95),smoothstep(.15,.6,k)); gl_FragColor=vec4(c*(1.+.3*sin(time*9.)),1.); if(show<.02) discard; }`;
-const EYE_V = `varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
+/* PRESENÇA da fase 1 (refino Mod 262): UMA manifestação feita de campo rubro, raias negras de pressão convergindo e
+   espaço negativo branco-rosado — dois rasgos inclinados no alto e uma fenda curva enorme embaixo. Nada é modelado:
+   a forma nasce da revelação da própria energia (k), com distorção suave do domínio e fluxo para fora do ponto focal.
+   layer 0 = campo + rasgos + raias (fundo); layer 1 = só raias e línguas (plano do meio, dá profundidade). */
+const PRES_V = `varying vec2 vU; void main(){ vU=uv*2.-1.; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
+const PRES_F = `${NOISE} uniform float time,k,layer,aspect; varying vec2 vU;
+float seg(vec2 p,vec2 a,vec2 b,out float h){ vec2 pa=p-a,ba=b-a; h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.); return length(pa-ba*h); }
+float slash(vec2 p,vec2 a,vec2 b,float W,float rev){ float h; float d=seg(p,a,b,h); float w=W*pow(sin(3.1416*clamp(h,0.,1.)),.55)*(.75+.5*h); return (h>rev)?1.:d-w; }
+void main(){ vec2 p=vec2(vU.x*aspect,vU.y); vec2 F=vec2(0.,-.5); vec2 q=p-F; float r=length(q), ang=atan(q.y,q.x);
+ vec2 wp=p+.035*vec2(n2(p*3.+vec2(0.,time*.6)),n2(p*3.+vec2(5.,-time*.5)))-.0175; /* distorção suave */
+ float grow=smoothstep(0.,1.,k);
+ // campo rubro: oval alto com bordas estriadas pelas próprias raias (sem borda de placa)
+ float rr=length((p-vec2(0.,.05))*vec2(.78/aspect*1.3,.92)); float sn=n2(vec2(ang*16.,r*1.5-time*1.2)); float edge=.25+.85*grow+.18*(sn-.5);
+ float field=1.-smoothstep(edge-.32,edge,rr); if(layer>.5) field*=.0;
+ float flow=n2(vec2(ang*38.,r*4.-time*2.6)), flow2=n2(vec2(ang*90.,r*9.-time*4.));
+ vec3 col=mix(vec3(.14,.0,.008),vec3(.72,.03,.035),clamp(.35+.65*(1.-rr)+.25*flow,0.,1.)); col=mix(col,col*.55,smoothstep(.55,.85,flow2)*.6);
+ // raias negras longas convergindo ao foco, esticando com a carga
+ float N=layer>.5?70.:120., id=floor((ang/6.2832+.5)*N), lf=fract((ang/6.2832+.5)*N), hsh=h1(vec2(id,layer*7.)), r0=.18+.5*hsh, len=(.35+.9*h1(vec2(id,3.)))*grow;
+ float wline=(.08+.18*h1(vec2(id,9.)))*(1.-r*.25); float line=(1.-smoothstep(wline*.5,wline,abs(lf-.5)))*step(.35,hsh)*smoothstep(r0,r0+.08,r)*(1.-smoothstep(r0+len-.1,r0+len,r+.06*sin(time*3.+id)));
+ // espaço negativo: dois rasgos inclinados e a fenda curva (sorriso) — revelados pela energia
+ float eyeRev=smoothstep(.32,.72,k), grinRev=smoothstep(.48,.95,k);
+ float dE=min(slash(wp,vec2(-.13,.3),vec2(-.66,.86),.07,eyeRev),slash(wp,vec2(.13,.3),vec2(.66,.86),.07,eyeRev));
+ float gx=wp.x/.98, gyc=.02-.34*(1.-gx*gx), gt=.13*pow(max(0.,1.-gx*gx),.75), dG=(abs(gx)>grinRev)?1.:abs(wp.y-gyc)-gt*(.6+.4*grinRev);
+ dG+=(n2(vec2(wp.x*22.,time*2.))-.5)*.02*grinRev; dE+=(n2(vec2(wp.y*30.,time*2.5))-.5)*.012;
+ float dW=min(dE,dG); float white=(1.-smoothstep(0.,.012,dW))*step(layer,.5), halo=exp(-max(dW,0.)*14.)*step(layer,.5)*max(eyeRev,grinRev);
+ col=mix(col,vec3(1.,.66,.62),halo*.75); col=mix(col,vec3(1.,.95,.94),white);
+ col=mix(col,vec3(.008,0.,.002),line*(1.-white)*.95);
+ float a=layer>.5?line*.85*grow:max(field*(.95),white); a=max(a,line*field); a*=smoothstep(-1.,-.72,vU.y)*smoothstep(1.,.85,vU.y)*smoothstep(1.,.86,abs(vU.x)); if(a<.01) discard; /* sem borda de placa */
+ gl_FragColor=vec4(col,a); }`;
 const GLOW_V = `attribute vec4 aG; varying vec4 vG; varying vec2 vU; void main(){ vG=aG; vU=uv; vec4 c=viewMatrix*modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.); vG.a*=smoothstep(1.,4.,-c.z); c.xy+=position.xy*length(instanceMatrix[0].xyz); gl_Position=projectionMatrix*c; }`;
 const GLOW_F = `varying vec4 vG; varying vec2 vU; void main(){ vec2 p=vU*2.-1.; float d=length(p); float a=exp(-d*d*5.)*vG.a; vec3 c=mix(vG.rgb,vec3(1.,.98,.92),exp(-d*d*18.)); gl_FragColor=vec4(c*a,a); }`;
 /* Explosão: núcleo/domo/anéis/feixe/cratera */
@@ -195,16 +222,9 @@ export function createCosmicUltVFX(T, scene, { makeSword } = {}) {
   const mesh = (g, m, ro = 0) => { geos.push(g); const x = new T.Mesh(g, m); x.frustumCulled = false; x.renderOrder = ro; root.add(x); return x; };
   const inst = (geo, m, n, attrs, ro = 0) => { const arrs = {}; for (const [k, sz] of attrs) { arrs[k] = new Float32Array(n * sz); geo.setAttribute(k, new T.InstancedBufferAttribute(arrs[k], sz).setUsage(T.DynamicDrawUsage)); } geos.push(geo); const x = new T.InstancedMesh(geo, m, n); x.frustumCulled = false; x.count = 0; x.renderOrder = ro; root.add(x); return { mesh: x, arrs, n: 0, max: n, attrs }; };
   const put = (I, vals) => { if (I.n >= I.max) return; I.mesh.setMatrixAt(I.n, M); let o = 0; for (const [k, sz] of I.attrs) { for (let j = 0; j < sz; j++) I.arrs[k][I.n * sz + j] = vals[o + j]; o += sz; } I.n++; };
-  /* fase 1: criaturas */
-  const strokes = inst(spikeGeo(T), mat({ vertexShader: STROKE_V, fragmentShader: STROKE_F, side: T.DoubleSide }), 460, [['aS', 4]], 2);
-  const teeth = inst(new T.ConeGeometry(.5, 1, 4), new T.MeshStandardMaterial({ color: 0x0a0204, emissive: 0x2a0204, roughness: .5, metalness: .3, flatShading: true }), 140, [], 2); mats.push(teeth.mesh.material);
-  const eyeU = { show: { value: 0 } }, eyeG = new T.PlaneGeometry(1, 1); const eyes = []; for (let i = 0; i < 4; i++) { const e = mesh(eyeG.clone(), mat({ vertexShader: EYE_V, fragmentShader: EYE_F, side: T.DoubleSide, uniforms: eyeU }), 3); eyes.push(e); }
-  const mouthM = mat({ vertexShader: EYE_V, fragmentShader: `uniform float show,time; varying vec2 vU; void main(){ vec2 p=vU*2.-1.; /* sorriso em crescente com dentes negros finos em serra, luz branco-rubra por dentro */
- float yc=-.25+.62*p.x*p.x, h=.3*(1.-p.x*p.x)+.02, dy=p.y-yc; if(abs(dy)>h||abs(p.x)>.98) discard;
- float tf=abs(fract(p.x*11.+.5)-.5)*2., top=h-dy, bot=h+dy, Lt=h*1.25*(1.-tf), Lb=h*1.05*(1.-abs(fract(p.x*11.)-.5)*2.);
- if(top<Lt||bot<Lb){ gl_FragColor=vec4(.015,.0,.002,1.); return; }
- float k=1.-abs(dy)/h; vec3 c=mix(vec3(.6,.02,.02),vec3(1.,.55,.35),k); c=mix(c,vec3(1.,.97,.92),pow(k,4.)*(1.-abs(p.x))); gl_FragColor=vec4(c*(1.+.15*sin(time*7.)),1.); if(show<.02) discard; }`, side: T.DoubleSide, uniforms: eyeU });
-  const mouths = [mesh(new T.PlaneGeometry(1, 1), mouthM, 1), mesh(new T.PlaneGeometry(1, 1), mouthM, 1)];
+  /* fase 1: a presença (dois planos em profundidade, virados para a câmera cinematográfica só em yaw) */
+  const presU = [0, 1].map(l => ({ k: { value: 0 }, layer: { value: l }, aspect: { value: 1.2 } }));
+  const pres = presU.map((u, l) => mesh(new T.PlaneGeometry(2, 2), mat({ vertexShader: PRES_V, fragmentShader: PRES_F, transparent: true, depthWrite: false, side: T.DoubleSide, uniforms: u }), l ? 2 : 1));
   /* fitas que sobem do corpo */
   const MAXQ = 500, rp = new Float32Array(MAXQ * 12), ru = new Float32Array(MAXQ * 8), rk = new Float32Array(MAXQ * 16), ri = new Uint32Array(MAXQ * 6); for (let i = 0; i < MAXQ; i++) ri.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4 + 2, i * 4 + 1, i * 4 + 3], i * 6);
   const rg = new T.BufferGeometry(); rg.setAttribute('position', new T.BufferAttribute(rp, 3).setUsage(T.DynamicDrawUsage)); rg.setAttribute('aUv', new T.BufferAttribute(ru, 2).setUsage(T.DynamicDrawUsage)); rg.setAttribute('aK', new T.BufferAttribute(rk, 4).setUsage(T.DynamicDrawUsage)); rg.setIndex(new T.BufferAttribute(ri, 1));
@@ -217,7 +237,7 @@ export function createCosmicUltVFX(T, scene, { makeSword } = {}) {
   const bolts = new T.LineSegments(boltG, boltM); bolts.frustumCulled = false; root.add(bolts); let boltT = 0;
   const pillarG = new T.CylinderGeometry(1, 1, 1, 24, 1, true); const pillars = [0, 1].map(() => mesh(pillarG.clone(), mat({ vertexShader: FIRE_V, fragmentShader: BEAM_F, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, uniforms: { k: { value: 0 } } }), 4));
   /* fase 3: espada gigante (o MESMO modelo da mão), telegráfico */
-  let giant = null; function ensureGiant() { if (!giant && makeSword) { giant = makeSword(); giant.scale.setScalar(COSMIC_ULT.swordScale); for (const m of giant.userData.mats) if (m.isMeshStandardMaterial) { m.emissive.setHex(m.color.getHex() > 0x500000 ? 0x4a3a7a : 0x2a1450); m.emissiveIntensity = 1.4; } /* gigante: o metal brilha com a luz do selo para ler no céu escuro */ giant.rotation.x = Math.PI; giant.visible = false; root.add(giant); } return giant; }
+  let giant = null; function ensureGiant() { if (!giant && makeSword) { giant = makeSword(); giant.scale.setScalar(COSMIC_ULT.swordScale); if (giant.userData.flameScale) giant.userData.flameScale.value = .6; /* chamas negras da mesma espada, proporcionais à gigante */ for (const m of giant.userData.mats) if (m.isMeshStandardMaterial) { m.emissive.setHex(m.color.getHex() > 0x500000 ? 0x4a3a7a : 0x2a1450); m.emissiveIntensity = 1.4; } /* gigante: o metal brilha com a luz do selo para ler no céu escuro */ giant.rotation.x = Math.PI; giant.visible = false; root.add(giant); } return giant; }
   const crossRing = mesh(new T.RingGeometry(.6, 1, 48), new T.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0, side: T.DoubleSide, toneMapped: false, blending: T.AdditiveBlending, depthWrite: false }), 6); crossRing.geometry.rotateX(-Math.PI / 2); mats.push(crossRing.material);
   const teleU = { k: { value: 0 } }, tele = mesh(new T.PlaneGeometry(2, 2).rotateX(-Math.PI / 2), mat({ vertexShader: FIRE_V, fragmentShader: TELE_F, transparent: true, depthWrite: false, uniforms: teleU }), 3);
   /* fase 4: explosão */
@@ -231,38 +251,21 @@ export function createCosmicUltVFX(T, scene, { makeSword } = {}) {
   const rocks = inst(rockG, rockM, 70, [], 1); const slabG = new T.BoxGeometry(1, .35, 1.4); const slabs = inst(slabG, rockM, 18, [], 1);
   const streaks = inst(spikeGeo(T), mat({ vertexShader: SPIKE_V, fragmentShader: SPIKE_F, side: T.DoubleSide }), 40, [['aT', 4]], 4);
   const glows = inst(new T.PlaneGeometry(1, 1), mat({ vertexShader: GLOW_V, fragmentShader: GLOW_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending }), 12, [['aG', 4]], 7);
-  let time = 0; const o3dTeeth = false; /* os dentes vêm do shader do sorriso (mais nítidos que cones) */ const R3 = i => { const s = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return s - Math.floor(s); };
-  function creature(cx, cy, cz, fx, fz, side, g, low, seed) { // juba radial + olhos + sorriso + garras, crescendo por g (0..1)
-    const rx = -fz, rz = fx, NS = low ? 120 : 210, sc = 5.5 + 2.2 * g;
-    for (let i = 0; i < NS; i++) { const u = R3(i + seed), v = R3(i * 3.7 + seed), born = i / NS; if (born > g * 1.15) break;
-      const th = u * Math.PI * 2, el = (v - .35) * 2.1, len = sc * (.55 + .7 * R3(i * 5.1 + seed)) * Math.min(1, (g * 1.15 - born) * 4);
-      D.set(Math.cos(th) * Math.cos(el) * .9, Math.sin(el) * .6 - .25, 0).normalize(); const dx = D.x, dy = D.y; D.set(rx * dx * side + fx * -.25, dy, rz * dx * side + fz * -.25).normalize();
-      P.set(cx + D.x * sc * .45, cy + D.y * sc * .45, cz + D.z * sc * .45); E.set(cam.x - P.x, cam.y - P.y, cam.z - P.z); X.crossVectors(D, E).normalize(); Z.crossVectors(X, D); M.makeBasis(X, D, Z); Q.setFromRotationMatrix(M);
-      S.set(.28 + .32 * R3(i * 2.3), len, 1); M.compose(P, Q, S); put(strokes, [1, 1, .55 + .45 * R3(i * 8.1) + .15 * Math.sin(time * 4 + i), seed + i * .1]); }
-    // dentes (sorriso enorme) — fileiras superior e inferior ao longo de um arco largo
-    const mY = cy - sc * .28, nT = low ? 18 : 30, open = .5 + .3 * g;
-    for (const row of [1, -1]) for (let i = 0; i < nT; i++) { const t = i / (nT - 1) * 2 - 1, x = t * sc * .62, yy = mY + (t * t) * sc * .22 + row * sc * .1 * open, L = sc * (.16 + .1 * (1 - Math.abs(t))) * g;
-      P.set(cx + rx * x * side + fx * .4, yy, cz + rz * x * side + fz * .4); Q.setFromAxisAngle(D.set(fx, 0, fz), row > 0 ? Math.PI : 0); S.set(sc * .028, L, sc * .028); M.compose(P, Q, S); if (g > .2 && o3dTeeth) put(teeth, []); }
-    return { mY, sc };
-  }
+  let time = 0; const R3 = i => { const s = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return s - Math.floor(s); };
   return {
     root,
     /** ctx: {camera, boss:{x,y,z,yaw}, low, swordTime} */
     update(ult, ctx, rdt) {
       const st = ult && ult.st; time += rdt; uTime.value = time; cam.copy(ctx.camera.position); const low = !!ctx.low; q = 0;
-      for (const I of [strokes, teeth, rocks, slabs, streaks, glows]) I.n = 0;
+      for (const I of [rocks, slabs, streaks, glows]) I.n = 0;
       root.visible = !!(st && !st.done && st.P); if (!root.visible) { if (giant) giant.visible = false; return; }
       const B = ctx.boss, fx = Math.sin(B.yaw), fz = Math.cos(B.yaw), Pp = st.P, pi = st.pi, p = st.pt;
-      // ---- fase 1 (e dissolve no começo da 2): criaturas + fitas + núcleo ----
-      const g1 = pi === 0 ? sm(p / 3.1) : pi === 1 ? Math.max(0, 1 - p / .7) : 0; eyeU.show.value = g1;
-      for (const [i, side] of [[0, -1], [1, 1]]) { const rx = -fz, rz = fx, cx = B.x - fx * (6 + i) + rx * side * 6.4, cy = B.y + 8.2 + i * 1.5, cz = B.z - fz * (6 + i) + rz * side * 6.4;
-        if (g1 > .01) { const C = creature(cx, cy, cz, fx, fz, side, g1, low, i * 50 + 3);
-          for (let e = 0; e < 2; e++) { const eo = eyes[i * 2 + e], es = e ? 1 : -1, ex = es * C.sc * .27; eo.visible = true; eo.position.set(cx + rx * ex * side + fx * .6, cy + C.sc * .12, cz + rz * ex * side + fz * .6); eo.lookAt(cam); eo.rotateZ(es * -.45); eo.scale.set(C.sc * .24 * g1, C.sc * .12 * g1, 1); }
-          const mo = mouths[i]; mo.visible = true; mo.position.set(cx + fx * .3, C.mY, cz + fz * .3); mo.lookAt(cam); mo.scale.set(C.sc * 1.5 * g1, C.sc * .62 * g1, 1);
-          P.set(cx + fx * .5, C.mY, cz + fz * .5); Q.identity(); S.setScalar(C.sc * 1.2 * g1); M.compose(P, Q, S); put(glows, [1, .2, .08, .55 * g1]); }
-        else { eyes[i * 2].visible = eyes[i * 2 + 1].visible = false; mouths[i].visible = false; } }
-      if (g1 > .01) { const NS = low ? 8 : 12; for (let i = 0; i < NS; i++) { const th0 = i / NS * 6.283 + R3(i) * 2, H = (3 + 9 * g1) * (.7 + .5 * R3(i * 3)); for (let j = 0; j < 12; j++) { const u = j / 11, th = th0 + time * (1 + R3(i * 7)) * (i % 2 ? 1 : -1) + u * 2.2, rr = (1.1 + 3.6 * g1 * (.5 + .5 * R3(i * 5))) * Math.sin(Math.PI * (.15 + .7 * u)) + .5; pts[j].set(B.x + Math.cos(th) * rr - fx * u * 2, B.y + u * H, B.z + Math.sin(th) * rr - fz * u * 2); }
-          strip(12, i % 4 === 0 ? 1 : 0, u => g1 * (1 - u * u), i * .37, g1, u => (.15 + .45 * g1) * Math.pow(1 - u, .6) + .02); }
+      // ---- fase 1: a presença (some no corte para a fase 2, sem resíduo no céu) ----
+      const g1 = pi === 0 ? sm(p / 3.1) : 0;
+      { const dx = B.x - cam.x, dz = B.z - cam.z, dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl, yaw = Math.atan2(-ux, -uz);
+        const L = [[19, 18.5, 36, 33], [8, 11.5, 26, 22]]; pres.forEach((m, l) => { m.visible = g1 > .01; if (!m.visible) return; const [d, h, w, hh] = L[l]; m.position.set(B.x + ux * d, B.y + h, B.z + uz * d); m.rotation.set(0, yaw, 0); m.scale.set(w, hh, 1); presU[l].k.value = g1; presU[l].aspect.value = w / hh; }); }
+      if (g1 > .01) { const NS = low ? 5 : 7; for (let i = 0; i < NS; i++) { const th0 = i / NS * 6.283 + R3(i) * 2, H = (3 + 7 * g1) * (.7 + .5 * R3(i * 3)); /* línguas vermelhas que sobem do corpo */ for (let j = 0; j < 12; j++) { const u = j / 11, th = th0 + time * (1 + R3(i * 7)) * (i % 2 ? 1 : -1) + u * 2.2, rr = (1.1 + 3.6 * g1 * (.5 + .5 * R3(i * 5))) * Math.sin(Math.PI * (.15 + .7 * u)) + .5; pts[j].set(B.x + Math.cos(th) * rr - fx * u * 2, B.y + u * H, B.z + Math.sin(th) * rr - fz * u * 2); }
+          strip(12, i % 4 === 0 ? 1 : 0, u => g1 * (1 - u * u), i * .37, g1, u => (.07 + .16 * g1) * Math.pow(1 - u, .7) + .015); }
         P.set(B.x + fx * .3, B.y + 1.5, B.z + fz * .3); Q.identity(); S.setScalar(1 + 3.5 * g1); M.compose(P, Q, S); put(glows, [1, .25, .1, .9 * g1]); }
       // ---- círculos (fase 2 e 3; somem no impacto) ----
       const cAlpha = pi === 1 ? sm(p / .25) : pi === 2 ? 1 : pi === 3 ? Math.max(0, 1 - p / .35) : 0;
@@ -281,24 +284,39 @@ export function createCosmicUltVFX(T, scene, { makeSword } = {}) {
       if (pi === 2 && G) { // trilha cósmica acima da ponta e brilho da ponta
         P.set(Pp.x, st.tipY + 1.2, Pp.z); Q.identity(); S.setScalar(4.5); M.compose(P, Q, S); put(glows, [.7, .55, 1, .75]); }
       tele.visible = st.telegraph > .01 && pi === 2; tele.position.set(Pp.x, Pp.y + .06, Pp.z); tele.scale.setScalar(COSMIC_ULT.impactR); teleU.k.value = st.telegraph;
-      // ---- fase 4: explosão (até o branco cobrir) ----
-      const ex = pi === 3 && p < COSMIC_ULT.whiteAt + COSMIC_ULT.whiteIn + .05; for (const o of [core, dome, beam, crater, shock, ...rings]) o.visible = ex;
-      if (ex) { const k = p / (COSMIC_ULT.whiteAt + COSMIC_ULT.whiteIn), e1 = 1 - Math.pow(1 - Math.min(1, p / .18), 3);
-        core.position.set(Pp.x, Pp.y + .5, Pp.z); core.scale.setScalar(.6 + 5.4 * e1 + .6 * Math.sin(time * 14) * (1 - k)); coreU.k.value = Math.max(0, k - .55); coreU.heat.value = 1 - k * .35;
-        const e2 = 1 - Math.pow(1 - Math.min(1, p / .55), 3); dome.position.set(Pp.x, Pp.y - .2, Pp.z); dome.scale.set(3 + 8 * e2, (3 + 7 * e2), 3 + 8 * e2); domeU.k.value = Math.max(0, (p - .5) / 2);
-        rings.forEach((r, i) => { const at = [.05, .18, .32][i], h = [1, 4.8, 9][i], rr = [17, 13, 9][i], kk = Math.max(0, p - at) / 1.6, e = 1 - Math.pow(1 - Math.min(1, kk * 2.2), 3); r.visible = ex && p > at; r.position.set(Pp.x, Pp.y + h + e * 1.5, Pp.z); r.scale.setScalar(2 + rr * e); r.material.uniforms.k.value = Math.min(1, kk); });
-        beam.position.set(Pp.x, Pp.y + 30, Pp.z); beam.scale.set(1.2 + 2 * e1, 60, 1.2 + 2 * e1); beamU.k.value = Math.min(1, p / 1.6);
-        crater.position.set(Pp.x, Pp.y + .04, Pp.z); crater.scale.setScalar(12); craterU.k.value = 0; craterU.cool.value = Math.min(1, p / 2);
-        shock.position.set(Pp.x, Pp.y + .1, Pp.z); const sk = Math.min(1, p / .9); shock.scale.setScalar(3 + 34 * (1 - Math.pow(1 - sk, 2))); shockU.k.value = sk;
-        P.set(Pp.x, Pp.y + 2, Pp.z); Q.identity(); S.setScalar(26 * (1 - Math.min(1, p / .6)) + 6); M.compose(P, Q, S); put(glows, [1, .85, .45, 1 - Math.min(1, p / 1.2) * .7]);
-        const NR = low ? 34 : 70; for (let i = 0; i < NR; i++) { const a = R3(i * 1.7) * 6.283, v = 7 + 14 * R3(i * 2.3), vy = 6 + 16 * R3(i * 3.1), t = Math.max(0, p - .03), y = Pp.y + .3 + vy * t - 9.8 * t * t; if (y < Pp.y - 1) continue; const sc = .25 + 1.1 * R3(i * 4.7) * R3(i * .3 + 1);
-          P.set(Pp.x + Math.cos(a) * (1.5 + v * t), y, Pp.z + Math.sin(a) * (1.5 + v * t)); Q.setFromAxisAngle(D.set(Math.sin(i), .5, Math.cos(i)).normalize(), t * (3 + R3(i) * 6)); S.setScalar(sc); M.compose(P, Q, S); put(rocks, []); }
-        const NSb = low ? 10 : 18; for (let i = 0; i < NSb; i++) { const a = i / NSb * 6.283 + R3(i) * .3, r = 7 + R3(i * 2) * 3, rise = Math.min(1, p / .25); P.set(Pp.x + Math.cos(a) * r, Pp.y + .2 * rise, Pp.z + Math.sin(a) * r); Q.setFromAxisAngle(D.set(-Math.sin(a), 0, Math.cos(a)), -.5 * rise - .3 * R3(i * 5)); S.set(1.4 + R3(i) * 1.2, 1 + R3(i * 3), 1.6 + R3(i * 7)); M.compose(P, Q, S); put(slabs, []); }
-        if (p < .55) { const n = low ? 18 : 36; for (let i = 0; i < n; i++) { const a = i / n * 6.283 + R3(i * 9) * .2, el = .05 + .5 * R3(i * 4), len = (6 + 10 * R3(i * 6)) * Math.min(1, p / .12) * (1 - p / .55);
-            D.set(Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el)); E.set(cam.x - Pp.x, cam.y - Pp.y, cam.z - Pp.z); X.crossVectors(D, E).normalize(); Z.crossVectors(X, D); M.makeBasis(X, D, Z); Q.setFromRotationMatrix(M); P.set(Pp.x + D.x * 2, Pp.y + 1 + D.y * 2, Pp.z + D.z * 2); S.set(.5, len, 1); M.compose(P, Q, S); put(streaks, [1.3, 1, 0, i * .17]); } } }
+      // ---- fase 4: a explosão NASCE do contato — contato → compressão → formação → detonação → cauda (até o branco) ----
+      const SG = COSMIC_ULT.stages, D0 = SG.form, ex = pi === 3 && p < COSMIC_ULT.whiteAt + COSMIC_ULT.whiteIn + .05; for (const o of [core, dome, beam, crater, shock, ...rings]) o.visible = false;
+      if (ex) { const cmp = sm((p - SG.contact) / (SG.compress - SG.contact)), frm = sm((p - SG.compress) / (D0 - SG.compress)), dt0 = Math.max(0, p - D0), det = 1 - Math.pow(1 - Math.min(1, dt0 / .45), 3), tail = sm((p - SG.deton) / (COSMIC_ULT.whiteAt - SG.deton));
+        // cratera: fissura pequena no toque → fissuras luminosas na compressão → abre na formação → cratera inteira na detonação
+        crater.visible = true; crater.position.set(Pp.x, Pp.y + .04, Pp.z); crater.scale.setScalar(1.6 + 4.4 * cmp + 3 * frm + 3 * det); craterU.k.value = 0; craterU.cool.value = Math.max(0, (p - SG.deton) / 1.2);
+        // núcleo: nasce pequeno e nítido no chão, sobe e abre, explode; dissolve na cauda
+        if (p >= SG.contact) { core.visible = true; const R = p < SG.compress ? .35 + .85 * cmp : p < D0 ? 1.2 + 2 * frm : 3.2 + 2.3 * det; core.position.set(Pp.x, Pp.y + .25 + 1.4 * frm + .6 * det, Pp.z); core.scale.setScalar(R * (1 + .06 * Math.sin(time * 18))); coreU.heat.value = 1 - .35 * tail; coreU.k.value = .55 * tail; }
+        // casca do domo: só a partir da formação, fina e rasgada, ganhando espessura; cheia na detonação
+        if (p >= SG.compress) { dome.visible = true; const ds = 2 + 4 * frm + 5 * det; dome.position.set(Pp.x, Pp.y - .2, Pp.z); dome.scale.set(ds, ds * (.85 + .1 * det), ds); domeU.k.value = p < D0 ? .9 - .5 * frm : Math.max(.1, .4 - .3 * det) + .5 * tail; }
+        // primeiro halo (formação) e onda de choque (detonação)
+        if (p >= SG.compress) { shock.visible = true; const sk = p < D0 ? frm * .5 : Math.min(1, dt0 / .9); shock.position.set(Pp.x, Pp.y + .1, Pp.z); shock.scale.setScalar(p < D0 ? 2 + 6 * frm : 4 + 33 * (1 - Math.pow(1 - sk, 2))); shockU.k.value = p < D0 ? .6 - .2 * frm : sk; }
+        // anéis 1 → 2 → 3, feixe: só na detonação
+        rings.forEach((r, i) => { const at = COSMIC_ULT.rings[i], h = [1, 4.8, 9][i], rr = [17, 13, 9][i], kk = Math.max(0, p - at) / 1.6, e = 1 - Math.pow(1 - Math.min(1, kk * 2.2), 3); r.visible = p > at; r.position.set(Pp.x, Pp.y + h + e * 1.5, Pp.z); r.scale.setScalar(2 + rr * e); r.material.uniforms.k.value = Math.min(1, kk); });
+        if (p >= D0) { beam.visible = true; beam.position.set(Pp.x, Pp.y + 30, Pp.z); beam.scale.set(1 + 2.2 * det, 60, 1 + 2.2 * det); beamU.k.value = Math.min(1, dt0 / 1.4); }
+        // luz: faísca concentrada no toque, ponto quente na compressão, clarão grande só na detonação
+        P.set(Pp.x, Pp.y + .6 + 1.4 * frm, Pp.z); Q.identity(); const gS = p < SG.contact ? 2.5 : p < D0 ? 2 + 4 * cmp + 3 * frm : 26 * (1 - Math.min(1, dt0 / .6)) + 6; S.setScalar(gS); M.compose(P, Q, S); put(glows, p < D0 ? [1, .9, .6, .85] : [1, .85, .45, 1 - Math.min(1, dt0 / 1.2) * .7]);
+        // linhas de energia convergindo para o epicentro (compressão/formação) e raios saindo (detonação)
+        const n = low ? 18 : 32;
+        if (p >= SG.contact && p < D0) { for (let i = 0; i < n; i++) { const a = i / n * 6.283 + R3(i * 9) * .2, conv = sm((p - SG.contact) / (D0 - SG.contact)), dist = 2 + 10 * (1 - conv) * (.6 + .4 * R3(i)), len = 2.5 * (1 - conv) + .6;
+            D.set(-Math.cos(a), .12, -Math.sin(a)).normalize(); E.set(cam.x - Pp.x, cam.y - Pp.y, cam.z - Pp.z); X.crossVectors(D, E).normalize(); Z.crossVectors(X, D); M.makeBasis(X, D, Z); Q.setFromRotationMatrix(M); P.set(Pp.x + Math.cos(a) * dist, Pp.y + .3, Pp.z + Math.sin(a) * dist); S.set(.35, len, 1); M.compose(P, Q, S); put(streaks, [1.1, 1, 0, i * .17]); } }
+        else if (p >= D0 && dt0 < .55) { for (let i = 0; i < n; i++) { const a = i / n * 6.283 + R3(i * 9) * .2, el = .05 + .5 * R3(i * 4), len = (6 + 10 * R3(i * 6)) * Math.min(1, dt0 / .12) * (1 - dt0 / .55);
+            D.set(Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el)); E.set(cam.x - Pp.x, cam.y - Pp.y, cam.z - Pp.z); X.crossVectors(D, E).normalize(); Z.crossVectors(X, D); M.makeBasis(X, D, Z); Q.setFromRotationMatrix(M); P.set(Pp.x + D.x * 2, Pp.y + 1 + D.y * 2, Pp.z + D.z * 2); S.set(.5, len, 1); M.compose(P, Q, S); put(streaks, [1.3, 1, 0, i * .17]); } }
+        // placas do chão: vibram na compressão, erguem na formação, tombam para fora na detonação
+        const NSb = low ? 10 : 18; for (let i = 0; i < NSb; i++) { const a = i / NSb * 6.283 + R3(i) * .3, r = 4 + 4 * cmp + R3(i * 2) * 3 + 2 * det, jit = p < D0 ? .05 * Math.sin(time * 60 + i * 3) * cmp : 0, rise = .25 * frm + .3 * det;
+          P.set(Pp.x + Math.cos(a) * r, Pp.y + .05 + rise + jit, Pp.z + Math.sin(a) * r); Q.setFromAxisAngle(D.set(-Math.sin(a), 0, Math.cos(a)), -(.15 * frm + .5 * det) - .3 * R3(i * 5) * det + jit); S.set(1.4 + R3(i) * 1.2, 1 + R3(i * 3), 1.6 + R3(i * 7)); M.compose(P, Q, S); put(slabs, []); }
+        // blocos de rocha: começam a subir na formação e voam radialmente na detonação
+        if (p >= SG.compress) { const NR = low ? 34 : 70; for (let i = 0; i < NR; i++) { const a = R3(i * 1.7) * 6.283, v = 7 + 14 * R3(i * 2.3), vy = 6 + 16 * R3(i * 3.1), r0 = 1.5 + 3 * R3(i * 8), sc = .25 + 1.1 * R3(i * 4.7) * R3(i * .3 + 1); let x, y, z;
+            if (p < D0) { if (i % 3) continue; const lift = frm * (.6 + .8 * R3(i * 5)); x = Pp.x + Math.cos(a) * r0; z = Pp.z + Math.sin(a) * r0; y = Pp.y + .2 + lift + .05 * Math.sin(time * 40 + i); }
+            else { const t = dt0; y = Pp.y + .3 + vy * t - 9.8 * t * t; if (y < Pp.y - 1) continue; x = Pp.x + Math.cos(a) * (r0 + v * t); z = Pp.z + Math.sin(a) * (r0 + v * t); }
+            P.set(x, y, z); Q.setFromAxisAngle(D.set(Math.sin(i), .5, Math.cos(i)).normalize(), p * (3 + R3(i) * 6)); S.setScalar(sc); M.compose(P, Q, S); put(rocks, []); } } }
       else rings.forEach(r => { r.visible = false; });
       rg.setDrawRange(0, q * 6); rg.attributes.position.needsUpdate = rg.attributes.aUv.needsUpdate = rg.attributes.aK.needsUpdate = true;
-      for (const I of [strokes, teeth, rocks, slabs, streaks, glows]) { I.mesh.count = I.n; I.mesh.instanceMatrix.needsUpdate = true; for (const [k] of I.attrs) I.mesh.geometry.attributes[k].needsUpdate = true; }
+      for (const I of [rocks, slabs, streaks, glows]) { I.mesh.count = I.n; I.mesh.instanceMatrix.needsUpdate = true; for (const [k] of I.attrs) I.mesh.geometry.attributes[k].needsUpdate = true; }
     },
     clear() { root.visible = false; if (giant) giant.visible = false; bolts.visible = false; },
     dispose() { scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); if (giant) giant.userData.dispose(); }

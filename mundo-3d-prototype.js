@@ -16,7 +16,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // Mod 263: build de powers exclusivos do Bispo 2, além da ultimate cósmica da Mod 262.
-{const m=document.getElementById('marker');if(m){m.textContent=COSMIC_ULT_BUILD.startsWith('262-')?'264':'?';m.title='Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=COSMIC_ULT_BUILD.startsWith('265-')?'265':'?';m.title='Mod 265: refino da aura, explosão e chamas negras | Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -5966,17 +5966,18 @@ function tickCosmicUlt(dt,now){
    else if(ev.n===4){worldAudio.abyss3&&worldAudio.abyss3('heavy',1);}}
   else if(ev.type==='circle'){worldAudio.abyss3&&worldAudio.abyss3('thunder',.35);}
   else if(ev.type==='release'){showCombatCallout('FUJA DO IMPACTO');Object.assign(ultCam,{want:.38,height:6,dist:13});ultCam.look.set(u.st.P.x,u.st.P.y+7,u.st.P.z);} /* câmera de jogo (controles coerentes) inclinada para o anel de perigo e a espada */
-  else if(ev.type==='impact'){ /* contato: tudo no mesmo quadro — congelamento, tranco, FOV, clarão, som, vibração, luz */
-   hitStop(110);slowMo(460,.5);vibrate(220);ultCam.want=0; /* o plano da fase 4 vem de u.camera(): de fora da explosão */worldAudio.novaBlast&&worldAudio.novaBlast();worldAudio.abyss3&&worldAudio.abyss3('boom',1);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);
-   setTimeout(()=>{worldAudio.abyss3&&worldAudio.abyss3('storm',.9);},260); /* o vento chega depois do choque */
+  else if(ev.type==='impact'){ /* CONTATO: congelamento, tranco, som seco grave e vibração curta — a explosão ainda não existe */
+   hitStop(110);slowMo(300,.6);vibrate(90);ultCam.want=0; /* o plano da fase 4 vem de u.camera(): de fora da explosão */worldAudio.abyss3&&worldAudio.abyss3('heavy',1);worldAudio.abyss3&&worldAudio.abyss3('stick',.9);
    if(!cosmicLightBase)cosmicLightBase={i:dimLight.intensity,c:dimLight.color.getHex()};dimLight.position.set(ev.x,ev.y+6,ev.z);dimLight.color.setHex(0xffe0a0);
    if(!ev.hit)status.textContent='Você escapou do impacto!';}
+  else if(ev.type==='detonate'){vibrate(220);worldAudio.novaBlast&&worldAudio.novaBlast();worldAudio.abyss3&&worldAudio.abyss3('boom',1);} /* DETONAÇÃO: a explosão abre depois da compressão e da formação */
+  else if(ev.type==='wind'){worldAudio.abyss3&&worldAudio.abyss3('storm',.9);} /* o vento chega depois do estouro (evento do relógio da ultimate, sem timer solto) */
   else if(ev.type==='hit'){damagePlayerFromEnemyAttack(ev.dmg);}
   else if(ev.type==='ring'){worldAudio.abyss3&&worldAudio.abyss3('thunder',.5);}
   else if(ev.type==='white'){ultCam.want=0;if(cosmicVfx)cosmicVfx.clear();if(cosmicLightBase){dimLight.intensity=cosmicLightBase.i;dimLight.color.setHex(cosmicLightBase.c);dimLight.position.set(arenaSpec('bishop2').x,arenaSpec('bishop2').y+12,arenaSpec('bishop2').z);cosmicLightBase=null;}}
  }
  if(u.done){stopCosmicUlt();kitState.t=Math.max(kitState.t,2);return;}
- if(cosmicLightBase&&st.pi===3)dimLight.intensity=cosmicLightBase.i+9*Math.max(0,1-st.pt/1.4);
+ if(cosmicLightBase&&st.pi===3){const D0=u.U.stages.form;dimLight.intensity=cosmicLightBase.i+(st.pt<D0?2.5*Math.min(1,st.pt/D0):9*Math.max(0,1-(st.pt-D0)/1.4));}
  // câmera cinematográfica (mistura com a câmera de jogo) — fases 1, 2 e início da 3
  const e=enemy.position,cam=u.camera({boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},hero:{x:player.position.x,y:player.position.y,z:player.position.z},camYaw:cameraYaw});
  if(cam.w>.001){_csA.set(cam.pos[0],cam.pos[1],cam.pos[2]);_csB.set(cam.look[0],cam.look[1],cam.look[2]);_csQ.copy(camera.quaternion);const p0=camera.position.clone();camera.position.copy(_csA);camera.lookAt(_csB);_csQ2.copy(camera.quaternion);camera.position.lerpVectors(p0,_csA,cam.w);camera.quaternion.slerpQuaternions(_csQ,_csQ2,cam.w);}

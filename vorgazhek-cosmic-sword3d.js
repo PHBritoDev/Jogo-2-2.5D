@@ -38,6 +38,36 @@ function merge(T, list) { // junta geometrias não indexadas (mesma lista de atr
 function clipStd(mat, clipY) { mat.onBeforeCompile = sh => { sh.uniforms.clipY = clipY; sh.vertexShader = 'varying float vWy;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n vWy = (modelMatrix * vec4(transformed, 1.0)).y;');
   sh.fragmentShader = 'uniform float clipY; varying float vWy;\n' + sh.fragmentShader.replace('void main() {', 'void main() {\n if (vWy > clipY) discard;'); }; mat.customProgramCacheKey = () => 'cosmicClip'; }
 
+/* CHAMAS NEGRAS (refino Mod 262): línguas fluidas presas à lâmina e às asas da guarda. A base nasce na superfície da
+   espada e a língua sobe no eixo VERTICAL DO MUNDO (fogo sobe, não importa como a espada está), afinando até uma ponta
+   finíssima. A SILHUETA vem de uma máscara de chama (base larga → topo fino) que o ruído só deforma; o ondular é contínuo
+   no tempo (senos + ruído com fase por língua, sem partículas que pulam). Núcleo preto profundo, contorno prata/cinza
+   frio e raras fissuras claras — legível no escuro, sem virar fumaça nem bloco. */
+const FLAME_V = `uniform float time, flameScale; attribute vec3 aBase; attribute vec4 aF; varying vec2 vU; varying vec4 vF; varying float vWy;
+void main(){ vU=uv; vF=aF; vec4 wb=modelMatrix*vec4(aBase,1.); float sc=length(modelMatrix[1].xyz)*flameScale, h=uv.y, L=aF.x*sc, W=aF.y*sc;
+ vec3 up=vec3(0.,1.,0.), toCam=normalize(cameraPosition-wb.xyz), side=normalize(cross(up,toCam)+vec3(1e-4,0.,1e-4));
+ float t=time*(1.5+.7*aF.w); float sway=(sin(h*3.4-t*2.2+aF.z*6.)*.3+sin(h*7.3-t*3.4+aF.z*11.)*.1)*pow(h,1.6)*L; /* S que se retorce, maior na ponta */
+ vec3 p=wb.xyz+up*(h*L)+side*((uv.x*2.-1.)*W+sway)-toCam*(.04*h*L*sin(t+aF.z*4.));
+ vWy=p.y; gl_Position=projectionMatrix*viewMatrix*vec4(p,1.); }`;
+const FLAME_F = `uniform float time, clipY; varying vec2 vU; varying vec4 vF; varying float vWy;
+float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h1(i),h1(i+vec2(1,0)),f.x),mix(h1(i+vec2(0,1)),h1(i+vec2(1,1)),f.x),f.y);}
+void main(){ if(vWy>clipY) discard; float h=vU.y, x=vU.x*2.-1., t=time*(1.5+.7*vF.w);
+ float n=n2(vec2(x*2.2+vF.z*9.,h*3.6-t*2.4)), n3=n2(vec2(x*5.+vF.z*3.,h*8.-t*3.8));
+ float xc=(n-.5)*.45*h+.25*sin(h*5.-t*2.6+vF.z*7.)*h*h; /* eixo da língua ondula */
+ float hw=pow(1.-h,1.25)*(.55+.45*smoothstep(0.,.14,h))*(.8+.32*n)+.01; /* máscara de chama: base larga, ponta finíssima */
+ float d=abs(x-xc)/hw; if(d>1.) discard;
+ float rim=smoothstep(.62,.98,d), streak=smoothstep(.75,.95,n2(vec2(x*9.+vF.z,h*12.-t*5.)))*(1.-rim);
+ float inner=1.-smoothstep(.0,.07,abs(x-xc-.42*hw*sin(h*6.5-t*3.1+vF.z*5.))); /* fio prateado interno que acompanha a curva */
+ vec3 c=vec3(.006,.006,.012); c=mix(c,vec3(.13,.13,.16),streak*.6); c=mix(c,vec3(.6,.62,.7),inner*.55*(1.-h*.6)); c=mix(c,vec3(.72,.74,.82),rim*(.65+.35*n3));
+ c+=vec3(.55,.45,.95)*smoothstep(.93,.985,n3)*(1.-rim)*.7*(1.-h); /* fissura rara */
+ gl_FragColor=vec4(c,1.); }`;
+
+function flameGeo(T, bases) { const N = 12, P = [], B = [], U = [], F = [], I = []; let o = 0;
+  for (const b of bases) { for (let j = 0; j <= N; j++) for (let k = 0; k < 2; k++) { P.push(b.p[0], b.p[1], b.p[2]); B.push(b.p[0], b.p[1], b.p[2]); U.push(k, j / N); F.push(b.len, b.w, b.seed, b.ph); }
+    for (let j = 0; j < N; j++) { const a = o + j * 2; I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } o += (N + 1) * 2; }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('aBase', new T.Float32BufferAttribute(B, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(U, 2)); g.setAttribute('aF', new T.Float32BufferAttribute(F, 4)); g.setIndex(I); return g; }
+
 export function buildCosmicSword(T, o = {}) {
   const C = COSMIC_SWORD, root = new T.Group(); root.name = 'EspadaCosmica';
   const time = { value: 0 }, clipY = { value: 1e9 }, glow = { value: 1 };
@@ -84,8 +114,15 @@ export function buildCosmicSword(T, o = {}) {
   const ps = []; for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, c = new T.ConeGeometry(.011, .07, 4); c.rotateZ(-Math.PI / 2); c.rotateY(-a); c.translate(Math.cos(a) * .06, py, Math.sin(a) * .06); ps.push(c); }
   const top = new T.ConeGeometry(.014, .09, 4); top.rotateX(Math.PI); top.translate(0, py - .085, 0); ps.push(top); const cup = new T.CylinderGeometry(.04, .025, .04, 8); cup.translate(0, py + .045, 0); ps.push(cup);
   root.add(new T.Mesh(merge(T, ps), metal));
-  root.traverse(m => { if (m.isMesh) { m.castShadow = true; m.frustumCulled = false; } });
-  root.userData = { time, clipY, glow, mats, len: C.blade + C.guardY + .05, tipY: C.blade + C.guardY + .05, gripY: 0,
+  /* chamas negras: bases nas bordas da lâmina, nas asas da guarda e no olho central */
+  const fb = [], rs = i => { const v = Math.sin(i * 12.9898 + 7.7) * 43758.5453; return v - Math.floor(v); }; let fi = 0;
+  for (let i = 0; i < 8; i++) { const u = .1 + i * .105, w = prof(u); for (const sd of [-1, 1]) { fb.push({ p: [sd * w * .95, y0 + u * L, 0], len: (.34 + .34 * rs(fi)) * (1 - u * .45), w: .04 + .025 * rs(fi + 50), seed: rs(fi + 9), ph: rs(fi + 31) }); fi++; } }
+  for (const sd of [-1, 1]) for (const th of [5, 55, 105, 150]) { const a = th * Math.PI / 180, p = [sd * (.2 + .3 * Math.sin(a)), .07 - .3 * Math.cos(a), 0]; fb.push({ p, len: .36 + .26 * rs(fi), w: .05 + .025 * rs(fi + 50), seed: rs(fi + 9), ph: rs(fi + 31) }); fi++; }
+  fb.push({ p: [0, .1, 0], len: .7, w: .08, seed: .37, ph: .8 }); fb.push({ p: [.05, .14, 0], len: .5, w: .05, seed: .71, ph: .3 });
+  const flameScale = { value: 1 }, fm = new T.ShaderMaterial({ vertexShader: FLAME_V, fragmentShader: FLAME_F, uniforms: { time, clipY, flameScale }, side: T.DoubleSide, toneMapped: false }); mats.push(fm);
+  const flames = new T.Mesh(flameGeo(T, fb), fm); flames.name = 'ChamasNegras'; flames.frustumCulled = false; flames.renderOrder = 2; root.add(flames);
+  root.traverse(m => { if (m.isMesh) { m.castShadow = m !== flames; m.frustumCulled = false; } });
+  root.userData = { time, clipY, glow, mats, flames, flameScale, len: C.blade + C.guardY + .05, tipY: C.blade + C.guardY + .05, gripY: 0,
     tick(t) { time.value = t; }, dispose() { root.traverse(m => { if (m.isMesh) m.geometry.dispose(); }); for (const m of mats) m.dispose(); } };
   return root;
 }
