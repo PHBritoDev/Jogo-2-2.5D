@@ -5942,7 +5942,7 @@ function startCosmicUlt(){
  const a=dimBattle&&dimBattle.active?arenaSpec(dimBattle.key):null,arena=a?{x:a.x,z:a.z,r:a.radius}:null;
  cosmicUlt=createCosmicUlt({dmg:powerStats(encounterProfile,kitFor(encounterProfile).ult).dmg,ground:(x,z)=>fxGy(x,z)}).start({x:player.position.x,z:player.position.z},{x:enemy.position.x,z:enemy.position.z},arena);
  bossUlt.kind='cosmic';bossUlt.t=0;bossUlt.fx=null;cosmicLastNow=performance.now();cosmicFovBase=camera.fov;moveVX=moveVZ=0;
- showCombatCallout('O JUÍZO DA ESPADA CÓSMICA');status.textContent='VORGAZHEK desperta as criaturas da dívida…';
+ showCombatCallout('O JUÍZO DA ESPADA CÓSMICA');status.textContent='Uma presença colossal rasga o céu atrás de VORGAZHEK…';
  playPose(enemyPoseRoot(),'channel',3.3,foeYaw,.35);worldAudio.abyss3&&worldAudio.abyss3('gravity',1);worldAudio.abyss3&&worldAudio.abyss3('warn',.4);
  return true;
 }
