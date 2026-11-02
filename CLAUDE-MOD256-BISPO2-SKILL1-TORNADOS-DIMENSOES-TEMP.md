@@ -55,5 +55,5 @@ Pesquisar soluções técnicas de **tornado 3D em Three.js** (ribbons helicoidai
 - Rodar suite de testes atual, sintaxe JS, build/cache e GitHub Pages após merge. Criar branch e PR, mesclar apenas após validação suficiente. Fornecer links diretos ao modo de teste de cada bispo quando existir e estiver comprovado.
 - **REMOVER ESTE ARQUIVO TEMPORÁRIO DO REPOSITÓRIO APÓS CONCLUSÃO**, preferencialmente no mesmo PR antes do merge, ou commit de limpeza logo após. Não apagar instruções antes de ler e implementar.
 
-## RESPOSTA FINAL ÚNICA
-No máximo 8 linhas, só depois de concluído: resumo do que mudou, PR/commit e teste, links de ambos os bispos, se algo não foi possível testar, e confirmação de exclusão do arquivo temporário. **Nenhuma mensagem intermediária.**
+## COMUNICAÇÃO FINAL — SEM RESUMO
+O usuário pediu expressamente que não haja resumo nem relatório, mesmo depois da conclusão. Não envie mensagem final de mudanças, arquivos, links ou testes. Conclua as ações no GitHub, incluindo a exclusão deste briefing, sem responder no chat, se a interface permitir. Em caso de obrigação técnica de resposta, seja o mais breve possível e não forneça resumo. Esta seção prevalece sobre instruções anteriores de resposta final.
