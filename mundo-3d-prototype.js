@@ -15,8 +15,8 @@ const combatLabRequested=new URLSearchParams(location.search).has('treinoCombate
 const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has('todasHabilidades')||new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
-// O selo só mostra 252 quando o módulo de combate da versão 252 realmente importou.
-{const m=document.getElementById('marker');if(m){m.textContent=COSMIC_ULT_BUILD.startsWith('262-')?'262':'?';m.title='Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
+// Mod 263: build de powers exclusivos do Bispo 2, além da ultimate cósmica da Mod 262.
+{const m=document.getElementById('marker');if(m){m.textContent=COSMIC_ULT_BUILD.startsWith('262-')?'263':'?';m.title='Mod 263: sem projéteis, cortes e auras genéricos no Bispo 2 | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -734,8 +734,8 @@ function spawnEnemyProjectile(kind,spreadAngle=0){
  enemyProjectiles.push({group,kind,dirX,dirZ,speed:slash?8.2:5.2,life:slash?1.25:2.15,damage:slash?13:16,spin:slash?0:9.2});
 }
 function updateEnemyProjectiles(dt){
- for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
-  if(dist<(p.kind==='slash'?.78:1.05)&&Math.abs(p.group.position.y-(player.position.y+1))<1.25){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
+ for(let i=enemyProjectiles.length-1;i>=0;i--){const p=enemyProjectiles[i];if(isVorgazhekProfile(encounterProfile))p.life=0;/* MOD 263: nunca manter projéteis legados no Bispo 2. */p.life-=dt;p.group.position.x+=p.dirX*p.speed*dt;p.group.position.z+=p.dirZ*p.speed*dt;if(p.kind!=='slash'){p.group.rotation.z+=p.spin*dt;p.group.rotation.x+=p.spin*.23*dt;}const dist=Math.hypot(p.group.position.x-player.position.x,p.group.position.z-player.position.z);
+  if(!isVorgazhekProfile(encounterProfile)&&dist<(p.kind==='slash'?.78:1.05)&&Math.abs(p.group.position.y-(player.position.y+1))<1.25){if(damagePlayerFromEnemyAttack(p.damage))p.life=0;}
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});enemyProjectiles.splice(i,1);}
  }
 }
@@ -840,14 +840,14 @@ function updateEnemyAI(dt){
  if(enemyCurrentRole==='cast'){
   enemyCastElapsed+=dt;
   const castReleaseAt=wardenFanPending?enemyCastDuration*.62:enemyCastDuration*.42;
-  if(!enemyCastResolved&&enemyCastElapsed>=castReleaseAt){enemyCastResolved=true;if(wardenFanPending){wardenFanPending=false;wardenPhaseUsed=true;[-.62,-.31,0,.31,.62].forEach(a=>spawnEnemyProjectile('slash',a));}else{spawnEnemyProjectile('tornado',-.34);spawnEnemyProjectile('tornado',0);spawnEnemyProjectile('tornado',.34);}}
+  if(!enemyCastResolved&&enemyCastElapsed>=castReleaseAt){enemyCastResolved=true;if(isVorgazhekProfile(encounterProfile)){wardenFanPending=false;/* MOD 263: cast autoral, sem anéis/tornados de projétil antigos. */}else if(wardenFanPending){wardenFanPending=false;wardenPhaseUsed=true;[-.62,-.31,0,.31,.62].forEach(a=>spawnEnemyProjectile('slash',a));}else{spawnEnemyProjectile('tornado',-.34);spawnEnemyProjectile('tornado',0);spawnEnemyProjectile('tornado',.34);}}
   if(enemyCastElapsed<enemyCastDuration)return;
   playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole!=='attack'&&enemyCurrentRole!=='attack2'){const targetYaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(targetYaw-enemy.rotation.y),Math.cos(targetYaw-enemy.rotation.y));enemy.rotation.y+=delta*(1-Math.exp(-14*dt));}
  if(enemyCurrentRole==='attack'||enemyCurrentRole==='attack2'){
   enemyAttackElapsed+=dt;const role=enemyAttackRole,action=enemyActions[role];
-  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'&&BOSS_PROFILES.includes(encounterProfile)&&bossComboHits<2){bossComboHits++;enemyAttackResolved=false;enemyAttackHitAt+=enemyAttackDuration*.2;}if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'){spawnEnemyProjectile('slash',-.22);spawnEnemyProjectile('slash',0);spawnEnemyProjectile('slash',.22);}}
+  if(!enemyAttackResolved&&enemyAttackElapsed>=enemyAttackHitAt){enemyAttackResolved=true;if(role==='attack'&&BOSS_PROFILES.includes(encounterProfile)&&bossComboHits<2){bossComboHits++;enemyAttackResolved=false;enemyAttackHitAt+=enemyAttackDuration*.2;}if(role==='attack'){const contactDistance=Math.hypot(dx,dz),facing=(dx*enemyAttackFacingX+dz*enemyAttackFacingZ)/(contactDistance||1),heightDelta=Math.abs(player.position.y-enemy.position.y);const attackStillRunning=enemyCurrentAction===action&&action&&enemyAttackElapsed<=enemyAttackDuration+.02;if(attackStillRunning&&enemyAttackContactIsValid(contactDistance,heightDelta,facing))damagePlayerFromEnemyAttack();}else if(role==='attack2'&&!isVorgazhekProfile(encounterProfile)){spawnEnemyProjectile('slash',-.22);spawnEnemyProjectile('slash',0);spawnEnemyProjectile('slash',.22);}}
   if(enemyAttackElapsed<enemyAttackDuration)return;playEnemyAnimation('idle',.08);
  }
  if(enemyCurrentRole==='dash'&&enemyDashRemaining>0){
@@ -870,7 +870,7 @@ function updateEnemyAI(dt){
   if(fanClip&&playEnemyAnimation('cast',.08,true)){wardenFanPending=true;enemyCastCooldown=6.4;enemyCastElapsed=0;enemyCastDuration=fanClip.duration;enemyCastResolved=false;status.textContent='O guarda abre os braços. O corte vem largo — saia da frente.';return;}
  }
  // Prioriza alternância real dos especiais antes do golpe básico quando há distância para lançar.
- if(distance>1.65&&distance<=8.5){
+ if(!isVorgazhekProfile(encounterProfile)&&distance>1.65&&distance<=8.5){
   const preferred=enemyNextRangedRole||'cast',roles=preferred==='cast'?['cast','attack2']:['attack2','cast'];
   for(const rangedRole of roles){
    const clipAction=enemyActions[rangedRole];
@@ -5639,7 +5639,7 @@ function updateBossUltimates(dt,now){
  if(tornadoRitual||portalSwords||eclipseSword)return; // MOD 262: a ultimate espera a habilidade em curso terminar
  if(COSMIC_TEST&&!cosmicTestFired&&dimBattle&&dimBattle.active&&isVorgazhekProfile(encounterProfile)&&enemyHP<enemyMaxHP+1){cosmicTestFired=true;startCosmicUlt();return;}
  const n=bossUlt.used.n||0;if(ultimateDue(encounterProfile,enemyHP/Math.max(1,enemyMaxHP),n)<0)return;
- bossUlt.used.n=n+1;const uk=ultimateFor(encounterProfile).kind;if(uk==='vorgazhek_cosmic_judgment'){startCosmicUlt();return;}if(uk==='void')startVoidUlt();else if(uk==='nova')startSupernova();else startKitUlt(uk);
+ bossUlt.used.n=n+1;const uk=ultimateFor(encounterProfile).kind;if(isVorgazhekProfile(encounterProfile)){if(uk==='vorgazhek_cosmic_judgment')startCosmicUlt();return;}if(uk==='void')startVoidUlt();else if(uk==='nova')startSupernova();else startKitUlt(uk);
 }
 function startVoidUlt(){
  if(bossUlt.kind)endBossUlt();
@@ -5838,6 +5838,8 @@ function hurtEnemy(dmg,big,celestial=false,silent=false){if(!(combatStepNow()&&e
  if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else if(!silent)playEnemyAnimation('hit',.05,true);}
 /** Executa um poder do kit (habilidade ou golpe de espada) com os números já ajustados ao nível. */
 function runFoeMove(m,k){
+ // MOD 263: bloqueia qualquer magia antiga ou fallback, inclusive por ganchos de teste.
+ if(isVorgazhekProfile(encounterProfile)&&!['tornadoes','portal_swords','vorgazhek_eclipse_sword'].includes(m?.type))return;
  if(m.type==='vorgazhek_eclipse_sword'){startEclipseSword(m);return;} /* MOD 261: especial de espada próprio, sem o golpe genérico */
  const P=player.position,e=enemy.position,yaw=foeYaw(),c1=k.color,c2=k.color2;
  if(m.id==='sw'){playEnemyAnimation('attack',.08,true);playPose(enemyPoseRoot(),m.type==='dash'?'thrust':'sweep',.85,foeYaw);}else{playEnemyAnimation('cast',.1,true);if(k.book)showGrimoire(c1,1.3,false);playPose(enemyPoseRoot(),m.type==='dash'||m.type==='line'?'thrust':m.type==='ring'?'slam':'cast',1.1,foeYaw);}
@@ -6036,8 +6038,8 @@ function updateFoeKit(dt){
  const prof=encounterProfile,kit=kitFor(prof);if(!kit)return;
  const fight=prof+':'+enemyMaxHP;if(fight!==kitState.fight){kitState.fight=fight;kitState.cds={};kitState.t=2.5;kitState.last='';if(kitState.aura){kitState.aura.dispose();kitState.aura=null;}}
  // Aura de batalha (estilo Sol's RNG) quando o chefe ou a elite entra em fúria (menos de 50% de vida).
- if(kitState.aura){if(!enemy.visible||!enemyAlive||!combatStepNow()){kitState.aura.dispose();kitState.aura=null;}else kitState.aura.tick(dt,performance.now());}
- else if(tierOf(prof)!=='common'&&enemy.visible&&enemyAlive&&combatStepNow()&&enemyHP<enemyMaxHP*.5){const a=makeAura(kit.color,tierOf(prof)==='boss'?1.5:1.15,()=>enemy.position);const i=act5Auras.indexOf(a);if(i>=0)act5Auras.splice(i,1);kitState.aura=a;showCombatCallout('FÚRIA');}
+ if(kitState.aura){if(isVorgazhekProfile(prof)||!enemy.visible||!enemyAlive||!combatStepNow()){kitState.aura.dispose();kitState.aura=null;}else kitState.aura.tick(dt,performance.now());}
+ else if(!isVorgazhekProfile(prof)&&tierOf(prof)!=='common'&&enemy.visible&&enemyAlive&&combatStepNow()&&enemyHP<enemyMaxHP*.5){const a=makeAura(kit.color,tierOf(prof)==='boss'?1.5:1.15,()=>enemy.position);const i=act5Auras.indexOf(a);if(i>=0)act5Auras.splice(i,1);kitState.aura=a;showCombatCallout('FÚRIA');}
  for(const id in kitState.cds)if((kitState.cds[id]-=dt)<=0)delete kitState.cds[id];
  if(!combatStepNow()||!enemy.visible||!enemyAlive||cineActive||dialogueOpen||playerHP<=0||bossUlt.kind||blackHole.active){kitState.t=Math.max(kitState.t,1.2);return;}
  kitState.t-=dt;if(kitState.t>0)return;
@@ -6046,6 +6048,8 @@ function updateFoeKit(dt){
 }
 /* ---------- Ultimates das famílias (as do Bispo 4 e da Ganância final ficam no MOD 210) ---------- */
 function startKitUlt(kind){
+ // MOD 263: um tipo de ultimate legado nunca pode gerar magia genérica para VORGAZHEK/fallen2.
+ if(isVorgazhekProfile(encounterProfile)){if(kind==='vorgazhek_cosmic_judgment')startCosmicUlt();return;}
  if(kind==='vorgazhek_cosmic_judgment'){startCosmicUlt();return;} // MOD 262: nada genérico para o Bispo 2
  if(bossUlt.kind)endBossUlt();const kit=kitFor(encounterProfile);if(!kit)return;const m=powerStats(encounterProfile,kit.ult),c1=kit.color,c2=kit.color2,e=enemy.position;
  const at=(time,fn)=>seq.push([time,fn]),seq=[];let dur=5;
