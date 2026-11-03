@@ -1,5 +1,5 @@
 import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smooth, easeOut, hash } from './celestial-fxkit3d.js';
-import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod255-bombardeio-dobro';
+import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod275-bispo1-ruptura-reference';
 import { createExtinctionVFX } from './vhazrael-extinction3d.js?v=mod255-bombardeio-dobro';
 import { createBombardVFX } from './vhazrael-bombard3d.js?v=mod255-bombardeio-dobro';
 /**
@@ -140,6 +140,7 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
     },
     /** pedido de câmera da Ruptura (abrir o plano/olhar para cima durante a carga) — o jogo decide se usa */
     get throneHint() { return rupture.camHint; }, get throneTint() { return rupture.tint; },
+    get throneReferenceStats() { return rupture.referenceStats; },
     clear() { rupture.clear(); extinction.clear(); bombard.clear(); for (const st of spikeSets) st.m.count = 0; shards.count = plates.count = rings.count = 0;  },
     dispose() { scene.remove(root); rupture.dispose(); extinction.dispose(); bombard.dispose(); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); glow.dispose(); rib.dispose(); decals.dispose(); }
   };
