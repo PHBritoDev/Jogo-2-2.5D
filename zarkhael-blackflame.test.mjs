@@ -15,15 +15,17 @@ function run(move = () => {}, o = {}) {
 }
 const at = (L, t, f = () => true) => L.ev.find(e => e.type === t && f(e)), all = (L, t) => L.ev.filter(e => e.type === t);
 
-test('Lua Tenebrosa — exatamente 7 chamas em sequência (0,95 s) com antecipação, depois a colossal carregada e lançada', () => {
-  const L = run(() => {}); const fires = all(L, 'fire'); assert.equal(fires.length, 7); assert.deepEqual(fires.map(f => f.i), [0, 1, 2, 3, 4, 5, 6]);
-  for (let i = 1; i < 7; i++) { const g = fires[i].t - fires[i - 1].t; assert.ok(g > .8 && g < 1.1, 'intervalo ' + g.toFixed(2)); }
-  for (let i = 0; i < 7; i++) assert.ok(at(L, 'windup', e => e.i === i).t < fires[i].t, 'antecipação antes de cada disparo');
-  const fc = at(L, 'final_charge'), ff = at(L, 'final_fire'); assert.ok(fc.t > fires[6].t && ff.t - fc.t > 2.2, 'carga final por etapas'); assert.equal(all(L, 'final_fire').length, 1);
-  assert.ok(L.s.st.fired === 7 && all(L, 'impact').length === 8, '7 + 1 projéteis reais');
+test('Lua Tenebrosa — exatamente 10 chamas em sequência (0,85 s) com antecipação, depois a colossal carregada e lançada', () => {
+  const L = run(() => {}); const fires = all(L, 'fire'); assert.equal(BF.shots, 10); assert.equal(fires.length, 10); assert.deepEqual(fires.map(f => f.i), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  for (let i = 1; i < 10; i++) { const g = fires[i].t - fires[i - 1].t; assert.ok(g > .75 && g < 1.0, 'intervalo ' + g.toFixed(2)); }
+  for (let i = 0; i < 10; i++) assert.ok(at(L, 'windup', e => e.i === i).t < fires[i].t, 'antecipação antes de cada disparo');
+  const fc = at(L, 'final_charge'), ff = at(L, 'final_fire'); assert.ok(fc.t > fires[9].t && ff.t - fc.t > 2.2, 'carga final por etapas'); assert.equal(all(L, 'final_fire').length, 1);
+  assert.ok(L.s.st.fired === 10 && all(L, 'impact').length === 11, '10 + 1 projéteis reais'); assert.equal(at(L, 'impact', e => e.big).i, 10);
+  assert.ok(Math.abs(BF.smallScale - 1.05) < 1e-9 && Math.abs(BF.bigScale / 1.05 - 3) < 1e-9, 'cada menor tem o tamanho da antiga colossal; a colossal é 3× maior');
+  assert.ok(BF.bigR > BF.smallR * 2 && BF.smallR >= .8, 'colisão acompanha o tamanho');
 });
 
-test('Lua Tenebrosa — a lua nasce no começo, fica nas 7 + carga + disparo e só some DEPOIS do lançamento da colossal', () => {
+test('Lua Tenebrosa — a lua nasce no começo, fica nas 10 + carga + disparo e só some DEPOIS do lançamento da colossal', () => {
   const L = run(() => {}); const ff = at(L, 'final_fire');
   assert.ok(L.moon.find(m => m[0] > .02)[1] > 0, 'nasce já no início'); assert.ok(L.moon.filter(m => m[0] > BF.moonIn && m[0] <= ff.t).every(m => m[1] >= .999), 'inteira até o disparo final');
   const fade = at(L, 'moon_fade'); assert.ok(fade.t >= ff.t - 1e-9); const after = L.moon.find(m => m[0] > ff.t + BF.moonOut + .05); assert.ok(!after || after[1] === 0, 'some depois');
@@ -71,6 +73,8 @@ test('Interrupção, IA e integração — some limpo, IA usa a Skill 2 à dist�
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("case 'zarkhael_black_moon_flames':startMoonFlames(m);break;") && src.includes('updateMoonFlames(dt);') && src.includes('stopMoonFlames();stopHydra();clearHazards();') && src.includes('undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);'), 'integração e limpeza');
   assert.ok(src.includes('if(moonFlames||hydraSkill)return;'), 'nunca junto com a Hidra');
+  const vfx = fs.readFileSync(new URL('./zarkhael-blackflame3d.js', import.meta.url), 'utf8'); assert.ok(!/gaze|stare/.test(vfx), 'a lua não segue o herói com os olhos');
+  assert.ok((vfx.match(/new T\.Mesh\(moonG/g) || []).length === 1, 'uma única lua, sem cópias');
   assert.ok(!/function spawnEnemyProjectile|function updateEnemyProjectiles|BOSS_POWERS\.zarkhael/.test(src), 'Mods 264/267 preservadas');
   const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testLuaNegra=1') && lab.includes('testHidra=1'));
 });

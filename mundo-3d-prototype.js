@@ -16,7 +16,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'||k==='bishop3'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // Mod 263: build de powers exclusivos do Bispo 2, além da ultimate cósmica da Mod 262.
-{const m=document.getElementById('marker');if(m){m.textContent=BLACKFLAME_BUILD.startsWith('269-')?'269':'?';m.title='Mod 269: Bispo 3 — Lua Tenebrosa | Mod 266: Bispo 3 — Hidra do Juízo | Mod 265: refino da aura, explosão e chamas negras | Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=BLACKFLAME_BUILD.startsWith('270-')?'270':'?';m.title='Mod 270: Bispo 3 — refino da Lua Tenebrosa (lua fiel à referência, 10 chamas, colossal 3×) | Mod 269: Bispo 3 — Lua Tenebrosa | Mod 266: Bispo 3 — Hidra do Juízo | Mod 265: refino da aura, explosão e chamas negras | Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -6034,7 +6034,7 @@ function updateHydra(dt){
  if(!userSettings.reduceShake&&h.st.trauma>.001){const s=shakeAt(h.st.trauma,h.st.t,h.st.kickT,{amp:fpWasActive?.12:.3,kick:.4});_csA.set(0,0,1).applyQuaternion(camera.quaternion);hydraShake=new THREE.Vector3(s.x,s.y,s.z).addScaledVector(_csA,s.back*.5);camera.position.add(hydraShake);camera.rotateZ(s.roll*.8);}
  if(h.done){hydraSkill=null;hydraVfx.clear();kitState.t=Math.max(kitState.t,1.8);if(HYDRA_TEST)delete kitState.cds.s1;}
 }
-/* BISPO 3 — SKILL 2: LUA TENEBROSA — O FOGO QUE NÃO MORRE (zarkhael-blackflame3d.js). A sequência (lua + 7 chamas +
+/* BISPO 3 — SKILL 2: LUA TENEBROSA — O FOGO QUE NÃO MORRE (zarkhael-blackflame3d.js). A sequência (lua + 10 chamas +
    colossal) prende o bispo no ritual; as manchas no chão e a queimadura do herói (uma só, nunca acumulada) seguem os
    próprios tempos depois. Tudo no relógio do jogo: pausa congela; morte, reset e saída da dimensão limpam. */
 let moonFlames=null,bfHazards=null,bfVfx=null,bfShake=null;
@@ -6074,7 +6074,7 @@ function updateMoonFlames(dt){
   else if(e.type==='burn_end'){status.textContent='O fogo negro se apagou.';}
  }
  /* câmera de jogo levemente inclinada para a lua enquanto ela existe (mesmo yaw: os controles não mudam) */
- if(s&&!fpWasActive&&bfVfx){const mp=bfVfx.moonPos;if(mp&&s.st.moon>.05&&!s.st.aborted){Object.assign(ultCam,{want:.32,height:3.4,dist:10.5});ultCam.look.set(enemy.position.x+(mp.x-enemy.position.x)*.4,enemy.position.y+2+(mp.y-enemy.position.y-2)*.45,enemy.position.z+(mp.z-enemy.position.z)*.4);s._cam=true;}else if(s._cam){ultCam.want=0;s._cam=false;}}
+ if(s&&!fpWasActive&&bfVfx){const mp=bfVfx.moonPos;if(mp&&s.st.moon>.05&&!s.st.aborted){Object.assign(ultCam,{want:.32,height:3.4,dist:10.5});ultCam.look.set(enemy.position.x+(mp.x-enemy.position.x)*.4,enemy.position.y+2+(mp.y-enemy.position.y-2)*.6,enemy.position.z+(mp.z-enemy.position.z)*.4);s._cam=true;}else if(s._cam){ultCam.want=0;s._cam=false;}}
  if(bfVfx){const e=enemy.position;bfVfx.update(s,bfHazards,{camera,hero:{x:player.position.x,y:player.position.y,z:player.position.z},boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},hand:bfHand(),low:graphics3DMode==='low',arena:dimBattle&&dimBattle.active?(a=>({x:a.x,z:a.z,r:a.radius}))(arenaSpec(dimBattle.key)):null,groundY:fxGy(e.x,e.z)},dt);}
  if(s&&!userSettings.reduceShake&&s.st.trauma>.001){const k=shakeAt(s.st.trauma,s.st.t,s.st.kickT,{amp:fpWasActive?.1:.26,kick:.35});_csA.set(0,0,1).applyQuaternion(camera.quaternion);bfShake=new THREE.Vector3(k.x,k.y,k.z).addScaledVector(_csA,k.back*.5);camera.position.add(bfShake);}
  if(s&&s.done){if(s._cam)ultCam.want=0;moonFlames=null;kitState.t=Math.max(kitState.t,1.6);if(MOONFLAME_TEST)delete kitState.cds.s2;}

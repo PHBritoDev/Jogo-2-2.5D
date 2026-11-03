@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod269-bispo3-lua-tenebrosa';
+const BUILD = 'mod270-bispo3-lua-refino';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
