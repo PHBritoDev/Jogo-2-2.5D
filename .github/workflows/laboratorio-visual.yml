@@ -12,6 +12,7 @@ on:
           - ambos
           - hidra
           - chamas
+          - agente
   push:
     branches: [main]
     paths:
@@ -54,6 +55,9 @@ jobs:
       - name: Instalar Chromium e dependencias
         run: ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
 
+      - name: Verificar o cerebro visual antes de jogar
+        run: node --test tools/visual-lab/agent-policy.test.cjs
+
       - name: Iniciar servidor HTTP local do proprio commit
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/visual-lab-http.log 2>&1 &
@@ -66,7 +70,12 @@ jobs:
           exit 1
 
       - name: Jogar via API QA, capturar frames, console e video
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.cenario != 'agente'
         run: node tools/visual-lab/run.cjs
+
+      - name: Agente visual adaptativo observa e joga
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.cenario == 'agente'
+        run: node tools/visual-lab/agent-run.cjs
 
       - name: Instalar FFmpeg para converter gravacoes a MP4
         if: always()

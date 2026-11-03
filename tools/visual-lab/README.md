@@ -49,3 +49,41 @@ Ao corrigir VFX, IA de combate, colisões ou animações, cheque o resultado des
 - Controlar a arena pelo QA existente e gravar provas **não é controle contínuo e inteligente em tempo real por duas IAs**.
 - As capturas ficam nos artefatos do GitHub Actions, não são inseridas automaticamente no chat; o assistente precisa acessar os artefatos para analisá-los.
 - O workflow **não altera o jogo principal nem cria permissões administrativas novas**.
+
+## Próximo nível — agente visual adaptativo
+
+Foi adicionado `agent-run.cjs`, sem alterar a jogabilidade normal. Ele **não é um Claude/Codex rodando dentro do jogo**: é um agente local, com regras de decisão e percepção de pixels, que consegue agir durante a luta.
+
+O ciclo é real e repetido:
+1. Playwright abre o jogo 3D verdadeiro, entra na dimensão do Bispo 3 e aguarda WebGL.
+2. Lê uma captura **do canvas WebGL** e reduz para uma amostra RGB usando Sharp.
+3. Calcula brilho médio, contraste, tela encoberta por luz, escuridão, saturação e diferença de quadros.
+4. Lê telemetria já existente de `SevenSinsDebug3D` (HP, posição, fase da Hidra/Chamas).
+5. `agent-policy.cjs` escolhe em tempo de execução entre **aproximar, esquivar, atacar, conjurar ou mudar o ângulo de câmera**; quando apropriado, aciona a habilidade do Bispo.
+6. O navegador executa o comando, volta a observar e documenta por que decidiu aquilo.
+
+Os resultados saem em `visual-lab-results/agente/`:
+- `agente-relatorio.json` com leitura visual de cada passo, motivo e comandos realmente enviados;
+- `screenshots/*.png` com capturas reais por fase;
+- `videos/*.webm` e MP4 após conversão.
+
+### Como executar
+
+Em GitHub → **Actions → Laboratorio visual do jogo 3D → Run workflow**, selecione `agente` (somente este modo). Alterações de arquivos relevantes na branch `main` executam tanto as duas gravações tradicionais quanto o agente automaticamente.
+
+Localmente, com o servidor em `http://127.0.0.1:4173` e dependências instaladas, rode:
+
+```bash
+node --test tools/visual-lab/agent-policy.test.cjs
+node tools/visual-lab/agent-run.cjs
+```
+
+### Limitações e avaliação correta
+
+- Isto **não utiliza um modelo multimodal conectado**: os pixels são inspecionados por métricas de imagem, e as ações são escolhidas por uma política de regras. Para interpretar semanticamente criaturas, modelos 3D ou animações como uma pessoa, é preciso inspecionar os PNG/MP4 ou integrar futuramente um analisador de imagens.
+- `quadro_escuro`, `brilho_encobrindo_tela`, `poucos_detalhes_visiveis` e `imagem_quase_estatica` são **suspeitas a investigar**, não diagnósticos definitivos.
+- Uma execução com sucesso comprova que navegador, WebGL e controles responderam; **não aprova automaticamente a qualidade visual**.
+- SwiftShader na nuvem não representa o FPS e o toque real de Android.
+- Se a batalha não carregar, não houver WebGL, a Hidra não for realmente observada ou não existirem capturas suficientes, o agente registra **falha**, não sucesso.
+- No modo de teste, existem comandos de depuração com vida protegida, poderes e câmera; eles não são concedidos aos jogadores normais.
+
