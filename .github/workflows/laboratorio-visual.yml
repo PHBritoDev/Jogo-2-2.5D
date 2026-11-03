@@ -1,0 +1,91 @@
+name: Laboratorio visual do jogo 3D
+
+on:
+  workflow_dispatch:
+    inputs:
+      cenario:
+        description: "Qual habilidade gravar?"
+        required: true
+        default: ambos
+        type: choice
+        options:
+          - ambos
+          - hidra
+          - chamas
+  push:
+    branches: [main]
+    paths:
+      - "*.js"
+      - "*.html"
+      - "*.glb"
+      - "tools/visual-lab/**"
+      - ".github/workflows/laboratorio-visual.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laboratorio-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visualizar:
+    name: Abrir, jogar e gravar o RPG
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      CI: "true"
+      VISUAL_SCENARIO: ${{ github.event.inputs.cenario || 'ambos' }}
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar Playwright (isolado do jogo)
+        run: npm install --prefix tools/visual-lab --no-audit --no-fund
+
+      - name: Instalar Chromium e dependencias
+        run: ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Iniciar servidor HTTP local do proprio commit
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/visual-lab-http.log 2>&1 &
+          echo $! > /tmp/visual-lab-http.pid
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/visual-lab-http.log
+          exit 1
+
+      - name: Jogar via API QA, capturar frames, console e video
+        run: node tools/visual-lab/run.cjs
+
+      - name: Converter videos WebM para MP4
+        if: always()
+        shell: bash
+        run: |
+          if command -v ffmpeg >/dev/null 2>&1; then
+            shopt -s nullglob
+            for video in visual-lab-results/videos/*.webm; do
+              ffmpeg -y -hide_banner -loglevel error -i "$video" -an -c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p "${video%.webm}.mp4" || true
+            done
+          fi
+
+      - name: Guardar videos, screenshots e diagnostico mesmo se falhar
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laboratorio-visual-${{ github.run_number }}
+          path: |
+            visual-lab-results/
+            /tmp/visual-lab-http.log
+          retention-days: 14
+          if-no-files-found: warn
