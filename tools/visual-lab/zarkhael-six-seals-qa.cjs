@@ -45,7 +45,7 @@ async function main(){
      await sleep(800);
     }
     if(!launch)throw Error("Ultimate não iniciou por kitMove(ult)");
-    const schedule=[['01-aura',1.25],['02-aura-forte',2.9],['03-selo-chao',4.0],['04-terceiro-selo',6.4],['05-sexto-selo',9.75],['06-primeira-explosao',11.0],['07-segunda-explosao',12.7],['08-terceira-explosao',14.35]];
+    const schedule=[['01-aura',1.25],['02-aura-forte',2.9],['03-selo-chao',4.0],['04-terceiro-selo',6.4],['05-sexto-selo',9.96],['06-primeira-explosao',11.0],['07-segunda-explosao',12.7],['08-terceira-explosao',14.35]];
     for(const [name,target] of schedule){
      const h=await page.waitForFunction(t=>{
       const s=window.SevenSinsDebug3D?.dimState()?.cinematic;
