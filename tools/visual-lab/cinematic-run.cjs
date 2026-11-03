@@ -8,6 +8,7 @@
 const fs=require("node:fs"),path=require("node:path");
 const {chromium}=require("playwright");
 const {assessCinematic,PHASES,auditHudCover}=require("./cinematic-criteria.cjs");
+const {inspectRun,readBaseline,prepareBaseline}=require("./cinematic-visual.cjs");
 const ROOT=path.resolve(process.env.VISUAL_OUTPUT||"visual-lab-results");
 const CINE=path.join(ROOT,"cinematica");
 const BASE=(process.env.VISUAL_BASE_URL||"http://127.0.0.1:4173").replace(/\/$/,"");
@@ -226,6 +227,9 @@ async function oneMode(browser,mode){
       }catch(e){result.warnings.push("Vídeo: "+e.message.slice(0,250));}
     }
   }
+  // Verifica conteudo dos PNGs realmente salvos, nao apenas as fases do motor.
+  result.visual=await inspectRun(dir,mode,result.captures,readBaseline()).catch(e=>({
+    frames:[],comparisons:[],warnings:[],errors:[{code:"visual_analyzer_failed",detail:String(e.message)}],contact:null}));
   result.assessment=assessCinematic(result.samples,{
     started:result.started,ended:result.ended,
     browserErrors:result.errors,startFov:result.qa.startFov,
@@ -233,7 +237,8 @@ async function oneMode(browser,mode){
     movementAttempted:result.qa.movementAttempted,moveMeters:result.qa.moveMeters,
     captures:result.captures.length,phases:EXPECTED.length?EXPECTED:TARGET==="bishop2"?PHASES:[],
     hud:result.qa.hud,perf:result.qa.perf,
-    audioStates:result.samples.map(x=>x.audio),audioMuted:result.qa.audioAtEnd?.muted??false
+    audioStates:result.samples.map(x=>x.audio),audioMuted:result.qa.audioAtEnd?.muted??false,
+    visual:result.visual
   });
   result.status=result.assessment.status;
   fs.writeFileSync(path.join(dir,"relatorio.json"),JSON.stringify(result,null,2)+"\n");
@@ -248,7 +253,9 @@ function indexReport(results){
     profiles:results.map(r=>({mode:r.mode,status:r.status,phases:r.assessment.phases,
       warnings:r.assessment.warnings.length,errors:r.assessment.problems.length,
       viewport:r.viewport,captures:r.captures.length,perf:r.qa.perf,
-      movementMeters:r.qa.moveMeters,hud:r.qa.hud,audioAtEnd:r.qa.audioAtEnd,clickedVS:r.qa.trustedStartClick})),
+      movementMeters:r.qa.moveMeters,hud:r.qa.hud,audioAtEnd:r.qa.audioAtEnd,clickedVS:r.qa.trustedStartClick,
+      visualWarnings:r.visual?.warnings?.length||0,visualErrors:r.visual?.errors?.length||0,
+      baselineComparisons:r.visual?.comparisons?.length||0})),
     note:"Analise estrutural e evidencias, sem aprovacao artistica automatica. "+
       "O Bispo 3 requer implementacao de kitMove(ult) e dimState().cinematic."
   };
@@ -257,11 +264,15 @@ function indexReport(results){
     esc(r.mode)+" — "+esc(r.status)+'</h2><p>Fases: '+esc(r.assessment.phases.join(" → "))+
     '</p><p>Problemas: '+esc(r.assessment.problems.map(x=>x.code).join(", ")||"nenhum")+
     ' · Avisos: '+esc(r.assessment.warnings.map(x=>x.code).join(", ")||"nenhum")+
+    '</p><p>Imagens auditadas: '+(r.visual?.frames?.length||0)+
+    ' · Alertas de pixels: '+(r.visual?.warnings?.length||0)+
+    ' · Comparações com histórico: '+(r.visual?.comparisons?.length||0)+
     '</p><p>Movimento após a cena: '+esc(r.qa.moveMeters??"não confirmado")+
     ' unidades · FOV final: '+esc(r.qa.endFov??"—")+
     ' · HUD central: '+esc(r.qa.hud?.centerCoverage!==undefined?Math.round(r.qa.hud.centerCoverage*100)+'%':"indisponível")+
     ' · p95 frame (SwiftShader): '+esc(r.qa.perf?.p95FrameMs!==undefined?Math.round(r.qa.perf.p95FrameMs)+' ms':"indisponível")+
     ' · WebAudio: '+esc(r.qa.audioAtEnd?.state??"não observado")+'</p>'+
+    (r.visual?.contact?'<p><a href="'+esc(r.mode+'/'+r.visual.contact)+'"><img alt="Contato com os quadros da cena" loading="lazy" style="width:100%;max-width:960px;border-radius:9px" src="'+esc(r.mode+'/'+r.visual.contact)+'"></a></p>':"")+
     (r.video?'<video controls playsinline preload="metadata" style="width:100%;max-width:760px" src="'+
        esc(r.mode+"/"+r.video)+'"></video>':"")+
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,48vw),1fr));gap:8px">'+
@@ -293,6 +304,12 @@ async function run(){
   }catch(e){process.stderr.write("Auditoria: "+String(e.stack||e)+"\n");}
   finally{if(browser)await browser.close().catch(()=>{});}
   const result=indexReport(results);
+  // Salva nova referencia apenas quando ambas as orientacoes produziram
+  // capturas validas. O cache anterior nunca e sobrescrito apos falha.
+  const baseline=prepareBaseline(results);
+  fs.writeFileSync(path.join(CINE,"baseline-status.json"),JSON.stringify(baseline,null,2)+"\n");
+  process.stdout.write("[CINEMA V7] referencia visual: "+(baseline.saved?"salva":"preservada")+
+    " | "+(baseline.reason||baseline.count)+"\n");
   if(result.status!=="capturado_para_revisao")process.exitCode=1;
 }
 if(require.main===module)run().catch(e=>{console.error(e);process.exitCode=1;});
