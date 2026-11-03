@@ -2,7 +2,7 @@ import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
 import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
 import {pullOn} from './enemy2-squad3d.js';
-import {VZ,VHAZRAEL_BUILD} from './vhazrael3d.js';
+import {VZ,VHAZRAEL_BUILD} from './vhazrael3d.js?v=mod276-trono-no-knock';
 import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {BOSS_MOVES,bossTraceContact,bossLift} from './boss-choreography3d.js';
 import {bakeCombatClips} from './combat-rig3d.js';
