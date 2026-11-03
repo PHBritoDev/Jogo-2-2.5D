@@ -1,5 +1,6 @@
 import { smooth, easeOut, hash, groundNormal } from './celestial-fxkit3d.js';
 import { thronePose } from './vhazrael-choreo3d.js?v=mod254-bombardeio';
+import {createThroneReferenceVFX,VHAZRAEL_REFERENCE_BUILD} from './vhazrael-reference-sakuga3d.js';
 /**
  * MOD 252 — RUPTURA DO TRONO ABISSAL refeita do zero (só desenha o estado de vhazrael3d.js; nenhum dano aqui).
  * Linguagem visual de anime de alta energia com assets 100% originais e procedurais: cores em FAIXAS DURAS (cel/toon),
@@ -144,6 +145,7 @@ function strips(T, max, frag, additive, hole) {
  */
 export function createRuptureVFX(T, kit) {
   const { root, glow, rib, decals, shard, plate, ring, boltRib, ground } = kit; const geos = [], mats = [], uTime = { value: 0 }, uHole = { value: new T.Vector4(0, 0, 0, 0) };
+  const reference = createThroneReferenceVFX(T,root); // Mod 275: camada exclusivamente artística
   const up = new T.Vector3(0, 1, 0), A = new T.Vector3(), B = new T.Vector3(), C = new T.Vector3(), D = new T.Vector3(), E = new T.Vector3(), Fv = new T.Vector3(), Q = new T.Quaternion(), M = new T.Matrix4(), S = new T.Vector3(), X = new T.Vector3(), Z = new T.Vector3(), nrm = [0, 1, 0];
   const cam = new T.Vector3(), AX = new T.Vector3(), AZ = new T.Vector3(); let time = 0, low = false;
   /* pilar em 3 camadas (também é a coluna do impacto: nunca estão vivos ao mesmo tempo) */
@@ -441,7 +443,8 @@ export function createRuptureVFX(T, kit) {
 
   return {
     get camHint() { return hint; }, get tint() { return tint; },
-    begin(camera, t, q, target) { time = t; uTime.value = t; low = q === 0; cam.copy(camera.position); hint = null; tint = 0; impactCore.visible = false; hotCore.visible = false; beamCap.visible = false;
+    get referenceStats() {return reference.stats();}, get referenceBuild() {return VHAZRAEL_REFERENCE_BUILD;},
+    begin(camera, t, q, target) { time = t; uTime.value = t; low = q === 0; cam.copy(camera.position); reference.begin(cam); hint = null; tint = 0; impactCore.visible = false; hotCore.visible = false; beamCap.visible = false;
       if (target && target.alive !== false) uHole.value.set(target.x, ground(target.x, target.z) + 1, target.z, 1.7); else uHole.value.w = 0; /* o herói nunca some dentro do efeito */ for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.n = tongues.n = 0; ink.begin(cam); fan.begin(cam); },
     /** blade: {a,b} em mundo (guarda e ponta); boss: ator dono (pode faltar depois do corte) */
     draw(s, blade, boss) {
@@ -449,9 +452,10 @@ export function createRuptureVFX(T, kit) {
       if ((s.phase === 'raise' || s.phase === 'charge' || s.phase === 'slash' || ((s.phase === 'wave' || s.phase === 'impact') && s.age < T0.cut + .31)) && blade && boss) drawCharge(s, blade, boss);
       if (s.phase === 'wave' || s.phase === 'impact' || s.phase === 'fade') drawBeam(s, boss);
       if ((s.phase === 'impact' || s.phase === 'fade') && s.ix !== undefined) drawImpact(s);
+      reference.render(s,blade,boss,low,ground);
     },
     end() { for (const I of [puffs, tongues]) { I.o.count = I.n; I.o.instanceMatrix.needsUpdate = true; I.o.geometry.attributes.aP.needsUpdate = true; } ink.end(); fan.end(); },
-    clear() { hotCore.visible = false; beamCap.visible = false; impactCore.visible = false; for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.o.count = tongues.o.count = 0; ink.geo.setDrawRange(0, 0); fan.geo.setDrawRange(0, 0); hint = null; },
-    dispose() { for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); }
+    clear() { reference.clear(); hotCore.visible = false; beamCap.visible = false; impactCore.visible = false; for (const o of pillar) o.visible = false; for (const o of beam) o.visible = false; puffs.o.count = tongues.o.count = 0; ink.geo.setDrawRange(0, 0); fan.geo.setDrawRange(0, 0); hint = null; },
+    dispose() { reference.dispose(); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); }
   };
 }
