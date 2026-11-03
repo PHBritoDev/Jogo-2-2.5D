@@ -8,7 +8,7 @@ test('cada família preserva seus poderes autorais; Bispo 3 tem só a Hidra sem 
       assert.deepEqual(k.skills.map(s => s.id), ['s1', 's2'], 'Skills 1 e 2 autorais do Bispo 3');
       assert.deepEqual(k.skills.map(s => s.type), ['hydra_judgment', 'zarkhael_black_moon_flames'], 'sem skills genéricas');
       assert.equal(k.sword?.type, 'zarkhael_circular_sword', 'espada autoral da Mod 278, sem genérico');
-      assert.equal(k.ult, null, 'ultimate antiga genérica excluída');
+      assert.equal(k.ult?.type, 'zarkhael_six_seals', 'somente ultimate autoral da Mod 280');
     } else {
       assert.equal(k.skills.length, 3, f);
       assert.deepEqual(k.skills.map(s => s.id), ['s1', 's2', 's3']);
