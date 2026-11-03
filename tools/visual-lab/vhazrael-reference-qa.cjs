@@ -96,14 +96,22 @@ async function run(){
       {waitUntil:"domcontentloaded",timeout:45000});
     await movie.waitForFunction(()=>!!window.__qa?.rt?.squad?.spells?.some(s=>s.type==="throne"),
       null,{timeout:115000});
-    const phases=new Set();
-    for(let i=0;i<42;i++){
+    const phases=new Set();let reachedImpact=false,reachedRecovery=false;
+    const deadline=Date.now()+105000; // no SwiftShader o tempo do jogo passa mais devagar
+    while(Date.now()<deadline){
       const phase=await movie.evaluate(()=>
         window.__qa?.rt?.squad?.spells?.find(s=>s.type==="throne")?.phase||null);
       if(phase)phases.add(phase);
-      await movie.waitForTimeout(320);
+      if(phase==="impact")reachedImpact=true;
+      if(reachedImpact&&(phase==="fade"||phase===null)){
+        reachedRecovery=true;break;
+      }
+      await movie.waitForTimeout(600);
     }
     result.moviePhases=[...phases];
+    result.movieFinished={impact:reachedImpact,recovery:reachedRecovery};
+    if(!reachedImpact||!reachedRecovery)
+      throw Error("Video nao registrou o golpe completo ate a recuperacao: "+[...phases].join(","));
     if(movieErrors.length)throw Error("Erro JS durante vídeo: "+movieErrors.join(" | "));
   }finally{
     const original=movie.video();
