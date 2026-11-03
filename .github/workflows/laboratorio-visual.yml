@@ -43,7 +43,7 @@ jobs:
   visualizar:
     name: Abrir, jogar e gravar o RPG
     runs-on: ubuntu-24.04
-    timeout-minutes: 24
+    timeout-minutes: 30
     env:
       CI: "true"
       VISUAL_SCENARIO: ${{ github.event.inputs.cenario || 'ambos' }}
