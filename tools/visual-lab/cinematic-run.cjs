@@ -35,7 +35,8 @@ async function state(page){
     let cine=null,probe=null;
     try{cine=d.cineState();}catch{}
     try{probe=d.sceneProbe();}catch{}
-    return {dim,player,cine,probe};
+    let audio=null;try{audio=d.audioState?.()||null;}catch{}
+    return {dim,player,cine,probe,audio};
   });
 }
 async function shot(page,dir,result,name){
@@ -52,8 +53,17 @@ async function readyBattle(page,result){
   while(Date.now()<deadline){
     const s=await state(page);
     if(s?.dim?.vs){
-      await page.evaluate(()=>window.SevenSinsDebug3D.vsGo()).catch(e=>
-        result.warnings.push("VS: "+String(e).slice(0,160)));
+      // Um click() feito via evaluate nao constitui ativacao de usuario para
+      // WebAudio. Playwright .click() envia um gesto verdadeiro ao navegador.
+      try{
+        const btn=page.locator("#vs-go");
+        await btn.click({timeout:6500});
+        result.qa.trustedStartClick=true;
+      }catch(e){
+        result.qa.trustedStartClick=false;
+        result.warnings.push("VS sem gesto real: "+String(e).slice(0,160));
+        await page.evaluate(()=>window.SevenSinsDebug3D.vsGo()).catch(()=>{});
+      }
     }
     if(s?.dim?.battle?.active&&s.dim.visible&&s.dim.profile===TARGETS[TARGET].profile)return s;
     await pause(1750);
@@ -91,7 +101,8 @@ async function inspectOnce(page,result,mode){
     camera:Array.isArray(camera)?camera.map(Number):null,
     fov:Number.isFinite(dim.camFov)?dim.camFov:null,
     hero:[s.player?.x,s.player?.y,s.player?.z].map(Number),
-    hp:dim.hp,drawCalls:probe.renderer?.calls??null,
+    hp:dim.hp,audio:s.audio?.state??"indisponivel",audioMuted:s.audio?.muted??null,
+    drawCalls:probe.renderer?.calls??null,
     triangles:probe.renderer?.triangles??null,mode};
   result.samples.push(row);
   return row;
@@ -113,6 +124,7 @@ async function oneMode(browser,mode){
     result.url=url;
     await page.goto(url,{waitUntil:"domcontentloaded",timeout:45000});
     const initial=await readyBattle(page,result);
+    result.qa.audioBefore=initial.audio||null;
     const gl=await page.evaluate(()=>{
       const canvas=document.getElementById("scene"),ctx=canvas?.getContext("webgl2")||canvas?.getContext("webgl");
       return {valid:!!ctx,width:canvas?.width,height:canvas?.height};
@@ -130,6 +142,7 @@ async function oneMode(browser,mode){
     });
     await launchUltimate(page,result);
     result.started=true;
+    result.qa.audioAtLaunch=(await state(page))?.audio||null;
     // Mede a interferencia geometrica do HUD, inclusive no retrato de celular.
     // Este calculo NUNCA modifica a interface e nao simula pixels invisiveis.
     const hudRects=await page.evaluate(()=>{
@@ -189,6 +202,7 @@ async function oneMode(browser,mode){
       result.qa.moveMeters=posBefore.every(Number.isFinite)&&posAfter.every(Number.isFinite)?
         rounded(Math.hypot(posAfter[0]-posBefore[0],posAfter[1]-posBefore[1])):null;
       result.qa.endFov=after?.dim?.camFov??null;
+      result.qa.audioAtEnd=after?.audio||null;
     }
     result.qa.perf=await page.evaluate(()=>{
       const m=window.__cinemaMeter;
@@ -218,7 +232,8 @@ async function oneMode(browser,mode){
     endFov:result.qa.endFov,finalLock:result.qa.finalLock,
     movementAttempted:result.qa.movementAttempted,moveMeters:result.qa.moveMeters,
     captures:result.captures.length,phases:EXPECTED.length?EXPECTED:TARGET==="bishop2"?PHASES:[],
-    hud:result.qa.hud,perf:result.qa.perf
+    hud:result.qa.hud,perf:result.qa.perf,
+    audioStates:result.samples.map(x=>x.audio),audioMuted:result.qa.audioAtEnd?.muted??false
   });
   result.status=result.assessment.status;
   fs.writeFileSync(path.join(dir,"relatorio.json"),JSON.stringify(result,null,2)+"\n");
@@ -233,7 +248,7 @@ function indexReport(results){
     profiles:results.map(r=>({mode:r.mode,status:r.status,phases:r.assessment.phases,
       warnings:r.assessment.warnings.length,errors:r.assessment.problems.length,
       viewport:r.viewport,captures:r.captures.length,perf:r.qa.perf,
-      movementMeters:r.qa.moveMeters,hud:r.qa.hud})),
+      movementMeters:r.qa.moveMeters,hud:r.qa.hud,audioAtEnd:r.qa.audioAtEnd,clickedVS:r.qa.trustedStartClick})),
     note:"Analise estrutural e evidencias, sem aprovacao artistica automatica. "+
       "O Bispo 3 requer implementacao de kitMove(ult) e dimState().cinematic."
   };
@@ -245,7 +260,8 @@ function indexReport(results){
     '</p><p>Movimento após a cena: '+esc(r.qa.moveMeters??"não confirmado")+
     ' unidades · FOV final: '+esc(r.qa.endFov??"—")+
     ' · HUD central: '+esc(r.qa.hud?.centerCoverage!==undefined?Math.round(r.qa.hud.centerCoverage*100)+'%':"indisponível")+
-    ' · p95 frame (SwiftShader): '+esc(r.qa.perf?.p95FrameMs!==undefined?Math.round(r.qa.perf.p95FrameMs)+' ms':"indisponível")+'</p>'+
+    ' · p95 frame (SwiftShader): '+esc(r.qa.perf?.p95FrameMs!==undefined?Math.round(r.qa.perf.p95FrameMs)+' ms':"indisponível")+
+    ' · WebAudio: '+esc(r.qa.audioAtEnd?.state??"não observado")+'</p>'+
     (r.video?'<video controls playsinline preload="metadata" style="width:100%;max-width:760px" src="'+
        esc(r.mode+"/"+r.video)+'"></video>':"")+
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,48vw),1fr));gap:8px">'+
