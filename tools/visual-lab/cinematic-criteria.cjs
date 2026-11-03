@@ -72,6 +72,12 @@ function assessCinematic(samples,meta={}){
    else if(audioStates.some(x=>x==="suspended"||x==="locked"))
      warnings.push(add("warning","audio_context_intermittent","O contexto de áudio alternou entre running e bloqueado/suspenso"));
  }
+ const visual=meta.visual||null;
+ if(visual){
+   for(const issue of visual.errors||[])problems.push(add("error",issue.code||"visual_failure",issue.detail||"Falha em pixels/PNG"));
+   for(const issue of visual.warnings||[])warnings.push(add("warning",issue.code||"visual_warning",issue.detail||"Alerta da auditoria visual"));
+   if((visual.frames||[]).length<4)problems.push(add("error","few_valid_images","Menos de quatro PNGs válidos foram inspecionados"));
+ }
  if((meta.captures||0)<4)problems.push(add("error","few_captures","Menos de quatro imagens reais da cena"));
  const first=samples[0].ms,last=samples[samples.length-1].ms;
  return {status:problems.length?"falhou":"capturado_para_revisao",problems,warnings,phases,
@@ -79,6 +85,7 @@ function assessCinematic(samples,meta={}){
    durationSeconds:Number.isFinite(first)&&Number.isFinite(last)?+((last-first)/1000).toFixed(1):0,
    frameCount:samples.length,sceneEnded:!!meta.ended,moveMeters:meta.moveMeters??null,hud,perf,
    webAudio:{states:[...new Set(audioStates)],muted:!!meta.audioMuted,verifiedAudible:false},
+   visualEvidence:visual?{analyzed:visual.frames?.length||0,comparisons:visual.comparisons?.length||0,previousCommit:visual.previousCommit||null}:null,
    disclaimer:"Testes estruturais no Chromium/SwiftShader. A captura nao comprova beleza, FPS Android ou ausencia de bugs visuais."};
 }
 module.exports={PHASES,finitePoint,distance,auditHudCover,assessCinematic};
