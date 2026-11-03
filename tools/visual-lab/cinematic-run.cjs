@@ -7,7 +7,7 @@
  */
 const fs=require("node:fs"),path=require("node:path");
 const {chromium}=require("playwright");
-const {assessCinematic,PHASES}=require("./cinematic-criteria.cjs");
+const {assessCinematic,PHASES,auditHudCover}=require("./cinematic-criteria.cjs");
 const ROOT=path.resolve(process.env.VISUAL_OUTPUT||"visual-lab-results");
 const CINE=path.join(ROOT,"cinematica");
 const BASE=(process.env.VISUAL_BASE_URL||"http://127.0.0.1:4173").replace(/\/$/,"");
@@ -130,9 +130,25 @@ async function oneMode(browser,mode){
     });
     await launchUltimate(page,result);
     result.started=true;
-    const observed=new Set(),phaseLastShot=new Map();
+    // Mede a interferencia geometrica do HUD, inclusive no retrato de celular.
+    // Este calculo NUNCA modifica a interface e nao simula pixels invisiveis.
+    const hudRects=await page.evaluate(()=>{
+      const ids=["#top","#top-right","#enemy-hud","#hud-hero","#player-hud",
+        "#status","#quest-box","#hint","#dim-test-panel","#combat-callout"];
+      return ids.map(selector=>{
+        const el=document.querySelector(selector);
+        if(!el)return null;
+        const style=getComputedStyle(el),box=el.getBoundingClientRect();
+        return {selector,x:box.x,y:box.y,width:box.width,height:box.height,
+          visible:style.display!=="none"&&style.visibility!=="hidden"&&
+          Number(style.opacity)>.05&&!el.hidden&&box.width>0&&box.height>0};
+      }).filter(Boolean);
+    });
+    result.qa.hud=auditHudCover(MODES[mode],hudRects);
+    result.qa.hudRectangles=hudRects;
+    const observed=new Set(),phaseStartedAt=new Map(),phaseShotTier=new Map();
     const deadline=Date.now()+115000;
-    let sawActive=false,lastPhase="",round=0;
+    let sawActive=false,round=0;
     while(Date.now()<deadline){
       const v=await inspectOnce(page,result,mode);
       const phase=v.phase;
@@ -141,15 +157,20 @@ async function oneMode(browser,mode){
       if(!v.hp||v.hp<=0||!Number.isFinite(v.fov)){
         result.warnings.push("HP ou FOV inválido na amostra "+round);
       }
-      const needsCapture=!!phase&&(phase!==lastPhase||
-        !phaseLastShot.has(phase)||
-        (Date.now()-(phaseLastShot.get(phase)||0)>5000&&result.captures.length<15));
-      if(needsCapture&&result.captures.length<18){
-        const name=mode+"-"+String(result.captures.length).padStart(2,"0")+"-"+phase;
+      // A V6 tirava somente uma imagem por fase: podia perder a magia
+      // que so aparece no meio/fim. Agora registra entrada, meio e fim,
+      // sempre que o tempo real permitir, ate 18 imagens por orientacao.
+      if(phase&&!phaseStartedAt.has(phase))phaseStartedAt.set(phase,Date.now());
+      const age=phase?(Date.now()-phaseStartedAt.get(phase)):0;
+      const tier=age>=2600?2:age>=950?1:0;
+      const before=phaseShotTier.get(phase)??-1;
+      if(phase&&tier>before&&result.captures.length<18){
+        const name=mode+"-"+String(result.captures.length).padStart(2,"0")+
+          "-"+phase+"-"+["entrada","meio","fim"][tier];
         await shot(page,dir,result,name);
-        phaseLastShot.set(phase,Date.now());
+        phaseShotTier.set(phase,tier);
       }
-      lastPhase=phase;round++;
+      round++;
       await pause(650);
     }
     result.phases=[...observed];
@@ -196,7 +217,8 @@ async function oneMode(browser,mode){
     browserErrors:result.errors,startFov:result.qa.startFov,
     endFov:result.qa.endFov,finalLock:result.qa.finalLock,
     movementAttempted:result.qa.movementAttempted,moveMeters:result.qa.moveMeters,
-    captures:result.captures.length,phases:EXPECTED.length?EXPECTED:TARGET==="bishop2"?PHASES:[]
+    captures:result.captures.length,phases:EXPECTED.length?EXPECTED:TARGET==="bishop2"?PHASES:[],
+    hud:result.qa.hud,perf:result.qa.perf
   });
   result.status=result.assessment.status;
   fs.writeFileSync(path.join(dir,"relatorio.json"),JSON.stringify(result,null,2)+"\n");
@@ -211,7 +233,7 @@ function indexReport(results){
     profiles:results.map(r=>({mode:r.mode,status:r.status,phases:r.assessment.phases,
       warnings:r.assessment.warnings.length,errors:r.assessment.problems.length,
       viewport:r.viewport,captures:r.captures.length,perf:r.qa.perf,
-      movementMeters:r.qa.moveMeters})),
+      movementMeters:r.qa.moveMeters,hud:r.qa.hud})),
     note:"Analise estrutural e evidencias, sem aprovacao artistica automatica. "+
       "O Bispo 3 requer implementacao de kitMove(ult) e dimState().cinematic."
   };
@@ -221,7 +243,9 @@ function indexReport(results){
     '</p><p>Problemas: '+esc(r.assessment.problems.map(x=>x.code).join(", ")||"nenhum")+
     ' · Avisos: '+esc(r.assessment.warnings.map(x=>x.code).join(", ")||"nenhum")+
     '</p><p>Movimento após a cena: '+esc(r.qa.moveMeters??"não confirmado")+
-    ' unidades · FOV final: '+esc(r.qa.endFov??"—")+'</p>'+
+    ' unidades · FOV final: '+esc(r.qa.endFov??"—")+
+    ' · HUD central: '+esc(r.qa.hud?.centerCoverage!==undefined?Math.round(r.qa.hud.centerCoverage*100)+'%':"indisponível")+
+    ' · p95 frame (SwiftShader): '+esc(r.qa.perf?.p95FrameMs!==undefined?Math.round(r.qa.perf.p95FrameMs)+' ms':"indisponível")+'</p>'+
     (r.video?'<video controls playsinline preload="metadata" style="width:100%;max-width:760px" src="'+
        esc(r.mode+"/"+r.video)+'"></video>':"")+
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,48vw),1fr));gap:8px">'+
