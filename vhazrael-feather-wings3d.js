@@ -67,7 +67,7 @@ export function wingFeatherProfile(u,row=0,major=false){
  return {length:primary
    ?(1.8+3.6*u+(major?7.5+4.4*u:1.15*Math.sin(Math.PI*u)))
    :(1.05+2.3*Math.sin(Math.PI*u)+.5*u),
-   width:(major?.56:primary?.28:.23)+(.26*Math.sin(Math.PI*u)),
+   width:(major?.43:primary?.25:.2)+(.23*Math.sin(Math.PI*u)),
    inward:major?.23+.47*ease((u-.45)/.5):primary?.1+.16*u:.06+.09*u};
 }
 function featherCluster(T,side,quality){
@@ -104,7 +104,7 @@ function featherCluster(T,side,quality){
      // Corpo preto fosco com nervuras escuras e bainha violeta,
      // sem preenchimento roxo luminoso no centro.
      let c;
-     if(edge>0)c=[.108+.016*u,.045+.012*u,.18+.055*u];
+     if(edge>0)c=[.062+.01*u,.023+.008*u,.125+.037*u];
      else c=[.028+.008*Math.sin(i*3),.018,.050+.019*u];
      const tip=1-ease((v-.76)/.24);
      colors.push(c[0]*tip+.015*(1-tip),c[1]*tip+.008*(1-tip),c[2]*tip+.029*(1-tip));
