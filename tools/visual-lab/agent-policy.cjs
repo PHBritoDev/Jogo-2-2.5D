@@ -63,9 +63,10 @@ function decide({tick, vision, state, seen = {}, prevPosition, lastCastTick = -9
   const flags = vision?.flags || [];
   const warnOcclusion = flags.includes("brilho_encobrindo_tela") ||
     flags.includes("quadro_escuro") || flags.includes("poucos_detalhes_visiveis") ||
-    flags.includes("possivel_objeto_escuro_obstruindo_camera");
+    flags.includes("possivel_objeto_escuro_obstruindo_camera") ||
+    flags.includes("centro_sem_visibilidade") || flags.includes("baixo_detalhe_espacial");
   const verySlow = vision?.change !== null && vision?.change < .002;
-  const stuck = prevPosition && Number.isFinite(player.x) &&
+  const stuck = prevPosition?.attemptedMove && Number.isFinite(player.x) &&
     Math.hypot(player.x - prevPosition.x, player.z - prevPosition.z) < .05;
   const decision = {
     reason: [], move: null, keys: [], cast: null,
