@@ -13,6 +13,9 @@ on:
           - hidra
           - chamas
           - agente
+  schedule:
+    # Auditoria semanal sem depender de uma nova mensagem no chat (segunda 12:00 UTC).
+    - cron: '0 12 * * 1'
   pull_request:
     branches: [main]
     paths:
@@ -40,7 +43,7 @@ jobs:
   visualizar:
     name: Abrir, jogar e gravar o RPG
     runs-on: ubuntu-24.04
-    timeout-minutes: 18
+    timeout-minutes: 24
     env:
       CI: "true"
       VISUAL_SCENARIO: ${{ github.event.inputs.cenario || 'ambos' }}
@@ -81,13 +84,55 @@ jobs:
           cat /tmp/visual-lab-http.log
           exit 1
 
+      - name: Restaurar memoria visual anterior
+        if: github.event_name != 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: visual-lab-baseline/
+          key: visual-v4-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            visual-v4-${{ runner.os }}-${{ github.ref_name }}-
+
       - name: Jogar via API QA, capturar frames, console e video
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cenario != 'agente')
+        if: github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cenario != 'agente')
         run: node tools/visual-lab/run.cjs
 
-      - name: Agente visual adaptativo observa e joga
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cenario == 'agente')
-        run: node tools/visual-lab/agent-run.cjs
+      - name: Agente visual adaptativo observa e joga (ate duas tentativas)
+        if: github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cenario == 'agente')
+        shell: bash
+        run: |
+          for tentativa in 1 2; do
+            if node tools/visual-lab/agent-run.cjs; then exit 0; fi
+            if [ "$tentativa" -eq 1 ]; then
+              mkdir -p visual-lab-results/tentativas
+              mv visual-lab-results/agente visual-lab-results/tentativas/agente-falha-1 || true
+              echo "Primeira tentativa falhou; preservada no artefato. Repetindo uma vez."
+            fi
+          done
+          exit 1
+
+      - name: Comparar imagens com a execucao de referencia
+        if: always() && github.event_name != 'pull_request' && (github.event_name == 'push' || github.event_name == 'schedule' || github.event.inputs.cenario == 'agente')
+        run: node tools/visual-lab/visual-memory.cjs
+
+      - name: Auditoria semantica opcional (uma chamada de IA, somente se chave configurada)
+        if: always() && github.event_name != 'pull_request' && (github.event_name == 'push' || github.event_name == 'schedule' || github.event.inputs.cenario == 'agente')
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VISUAL_AI_MODEL: gpt-4.1-mini
+        run: node tools/visual-lab/visual-ai.cjs
+
+      - name: Preparar nova referencia apenas apos testes aprovados
+        if: success() && github.event_name != 'pull_request' && (github.event_name == 'push' || github.event_name == 'schedule' || github.event.inputs.cenario == 'agente')
+        run: node tools/visual-lab/visual-memory.cjs prepare
+
+      - name: Persistir referencia visual em cache rotativo do GitHub
+        if: success() && github.event_name != 'pull_request' && (github.event_name == 'push' || github.event_name == 'schedule' || github.event.inputs.cenario == 'agente')
+        uses: actions/cache/save@v4
+        with:
+          path: visual-lab-baseline/
+          key: visual-v4-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+
 
       - name: Instalar FFmpeg para converter gravacoes a MP4
         if: always() && github.event_name != 'pull_request'
