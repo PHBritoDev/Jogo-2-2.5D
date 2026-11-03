@@ -10,7 +10,7 @@
  * O modelo GLB, a espada, o combate e os outros bispos não são alterados.
  */
 export const VHAZRAEL_WINGS_BUILD='276-feathered-black-violet';
-export const WING_LOD=Object.freeze({high:{primary:26,secondary:17},low:{primary:14,secondary:8}});
+export const WING_LOD=Object.freeze({high:{primary:18,secondary:9},low:{primary:11,secondary:6}});
 const sat=x=>Math.max(0,Math.min(1,Number.isFinite(x)?x:0));
 const ease=x=>{x=sat(x);return x*x*(3-2*x)};
 const anchors=[
@@ -35,7 +35,7 @@ function wingOutline(u,side){
  const dx=(b.x-a.x)*(side<0?-1:1),dy=b.y-a.y;
  const len=Math.max(.001,Math.hypot(dx,dy)),s=side<0?-1:1;
  return {point:P,normal:{x:s*dy/len,y:-dx/len},
-   width:(.6+3.1*Math.pow(Math.max(0,Math.sin(Math.PI*u)),.76))*(.85+.15*(1-u))};
+   width:(.55+1.82*Math.pow(Math.max(0,Math.sin(Math.PI*u)),.8))*(.84+.16*(1-u))};
 }
 function bufferGeo(T,positions,uv,colors,indices){
  const g=new T.BufferGeometry();
@@ -49,7 +49,7 @@ function wingBody(T,side,low){
  for(let i=0;i<=NX;i++){
   const u=i/NX,P=wingOutline(u,side);
   for(let j=0;j<=NY;j++){
-   const v=j/NY,w=P.width*(.05+v*1.85),n=P.normal;
+   const v=j/NY,w=P.width*(.05+v*1.3),n=P.normal;
    xyz.push(P.point.x+n.x*w,P.point.y+n.y*w,
      P.point.z-.16*v+.21*Math.sin(Math.PI*v)*Math.sin(u*6));
    uv.push(u,v);
@@ -62,11 +62,13 @@ function wingBody(T,side,low){
  }
  return bufferGeo(T,xyz,uv,colors,idx);
 }
-export function wingFeatherProfile(u,row=0){
+export function wingFeatherProfile(u,row=0,major=false){
  const primary=row===0;
- return {length:(primary?2.9+8.8*Math.pow(u,.93):1.6+4.1*Math.sin(Math.PI*u)+1.1*u),
-   width:(primary?.42:.27)+(.54*Math.sin(Math.PI*u)),
-   inward:(primary?.10+.39*ease((u-.38)/.6):.04+.18*u)};
+ return {length:primary
+   ?(1.8+3.6*u+(major?7.5+4.4*u:1.15*Math.sin(Math.PI*u)))
+   :(1.05+2.3*Math.sin(Math.PI*u)+.5*u),
+   width:(major?.56:primary?.28:.23)+(.26*Math.sin(Math.PI*u)),
+   inward:major?.23+.47*ease((u-.45)/.5):primary?.1+.16*u:.06+.09*u};
 }
 function featherCluster(T,side,quality){
  const low=quality==='low',xyz=[],uv=[],colors=[],idx=[],cols=3,steps=low?5:8;
@@ -74,9 +76,13 @@ function featherCluster(T,side,quality){
   const amount=WING_LOD[quality][row===0?'primary':'secondary'];
   for(let i=0;i<amount;i++){
    const u=.06+(i+.55)/amount*.89;
-   const origin=wingOutline(u,side),f=wingFeatherProfile(u,row);
-   const base={x:origin.point.x+origin.normal.x*origin.width*(row?1.05:1.68),
-     y:origin.point.y+origin.normal.y*origin.width*(row?1.05:1.68),
+   // Quatro grandes penas em forma de garras, entre as penas pequenas.
+   // Evita a borda homogênea em forma de cortina/parede genérica.
+   const major=row===0&&i>=Math.floor(amount*.43)&&
+      (i-Math.floor(amount*.43))%3===0;
+   const origin=wingOutline(u,side),f=wingFeatherProfile(u,row,major);
+   const base={x:origin.point.x+origin.normal.x*origin.width*(row?.98:1.18),
+     y:origin.point.y+origin.normal.y*origin.width*(row?.98:1.18),
      z:origin.point.z+.07-row*.32};
    const first=xyz.length/3;
    const stagger=(i%3-1)*.16;
@@ -84,8 +90,8 @@ function featherCluster(T,side,quality){
     const v=j/steps,bulge=Math.pow(Math.max(0,Math.sin(Math.PI*v)),.82);
     // Primárias caem para baixo e voltam para o centro: forma da foto,
     // não triângulos retos, cubos ou asas de fogo indistintas.
-    const sweep=(.04+.15*(1-u))*v-
-      f.inward*v*v*(.72+.28*Math.sin(Math.PI*v));
+    const sweep=(.04+.12*(1-u))*v-
+      f.inward*Math.pow(v,1.55)*(.78+.22*Math.sin(Math.PI*v));
     const cx=base.x+side*f.length*sweep;
     const cy=base.y-f.length*(v+.045*Math.sin(Math.PI*v));
     const cz=base.z+.5*Math.sin(Math.PI*v)-.7*v*v+stagger;
@@ -98,7 +104,7 @@ function featherCluster(T,side,quality){
      // Corpo preto fosco com nervuras escuras e bainha violeta,
      // sem preenchimento roxo luminoso no centro.
      let c;
-     if(edge>0)c=[.068+.014*u,.027+.012*u,.125+.06*u];
+     if(edge>0)c=[.108+.016*u,.045+.012*u,.18+.055*u];
      else c=[.028+.008*Math.sin(i*3),.018,.050+.019*u];
      const tip=1-ease((v-.76)/.24);
      colors.push(c[0]*tip+.015*(1-tip),c[1]*tip+.008*(1-tip),c[2]*tip+.029*(1-tip));
@@ -148,7 +154,7 @@ export function createVhazraelFeatherWings(T,parent){
    uniforms:{time:Utime,opacity:Uopacity},transparent:true,
    depthTest:true,depthWrite:false,side:T.DoubleSide,toneMapped:false});
  mat.push(plumeMat);
- const rim=new T.MeshBasicMaterial({color:0x7640c7,transparent:true,opacity:0,
+ const rim=new T.MeshBasicMaterial({color:0x6632b6,transparent:true,opacity:0,
    depthWrite:false,depthTest:true});mat.push(rim);
  const rimSoft=new T.MeshBasicMaterial({color:0x4d247d,transparent:true,opacity:0,
    depthWrite:false,depthTest:true});mat.push(rimSoft);
@@ -181,7 +187,7 @@ export function createVhazraelFeatherWings(T,parent){
   root.visible=visible;
   Utime.value=Math.max(0,t||0);
   Uopacity.value=sat(alpha);
-  rim.opacity=sat(alpha)*.79;
+  rim.opacity=sat(alpha)*.65;
   rimSoft.opacity=sat(alpha)*.16;
   for(const quality of ['high','low'])for(const m of models[quality])
     m.visible=visible && quality===(low?'low':'high');
