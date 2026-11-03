@@ -207,3 +207,18 @@ Agora o teste cinematográfico primeiro clica no botão VS com a interação con
 Uma cena com WebAudio permanentemente bloqueado gera alerta para inspeção. Mesmo quando running, **o agente NÃO atesta que um efeito foi ouvido**: a gravação padrão do Playwright não verifica o sinal sonoro nem a qualidade da mixagem. Sons, equilíbrio e sincronização com a ultimate ainda exigem revisão e, depois, teste real em celular. Esta mudança não adiciona bibliotecas, gravações invasivas ou APIs pagas.
 
 Pesquisa: documentação MDN Web Audio API Best practices sobre ativação por gesto e AudioContext suspended/running.
+
+
+## V7 — o agente agora inspeciona os próprios pixels das cenas
+
+A execução V6.2 no GitHub Actions run 41670502683 (cinematica-mobile-25) confirmou as quatro fases da ultimate do Bispo 2, WebAudio em running, FOV restaurado e movimento pós-cena de 1,564 unidades em cada orientação. Os números p95 de 383 ms (landscape) e 333 ms (portrait) refletem **Chromium/SwiftShader**, NÃO o FPS de Android. A inspeção real das capturas revelou a maior lacuna do sistema: até a V6.2 uma cena podia ser marcada como capturada só com telemetria de fases, sem conferir se as imagens PNG eram válidas e mostravam quadros diferentes.
+
+A V7 acrescenta o módulo cinematic-visual.cjs:
+- Abre os próprios PNGs com Sharp e extrai médias de brilho, contraste, fração quase preta e branca, fração de cores fortes, escuridão central e assinatura visual em miniatura 16x9;
+- Captura uma **folha de contato** JPEG, com todas as fases lado a lado, no diretório de cada orientação. Abrir cinematica/ver-cena.html para inspecionar a montagem e os vídeos;
+- Não aprova como simples captura válida se os PNGs forem ilegíveis, faltarem amostras ou dois frames de fases ficarem quase totalmente pretos e sem contraste. Flashes brancos e sequências repetidas geram alertas para inspeção, não afirmações de erro no jogo;
+- Em execução futura, com cache válido disponível, compara frames de **mesma fase, mesmo estágio e mesma orientação** com a referência anterior. A comparação de assinaturas gera sinais de diferença visual significativa, nunca corrige código nem determina qual versão é artisticamente melhor;
+- O baseline é atualizado **somente quando ambas as orientações passam na checagem estrutural e visual**. É guardado no cache rotativo do GitHub, que pode expirar; o material completo continua no artifact de 14 dias;
+- Qualquer falha de captura é registrada no JSON e o job sinaliza erro, em vez de inventar sucesso.
+
+Arquivos relevantes: cinematic-visual.cjs, cinematic-visual.test.cjs, cinematic-run.cjs, cinematic-criteria.cjs e workflow. Testes sintéticos validam assinaturas RGB, detecção de frames apagados, comparação do histórico e comportamento diante de PNGs corrompidos. A interpretação semântica de personagens e movimentos continua limitada sem um modelo multimodal e sem visão contínua da gravação. Não se modifica dano, IA, modelos, áudio ou controles normais; o sistema só inspeciona as evidências.
