@@ -4,7 +4,7 @@
  * núcleo da espada GLB original e 3 cúpulas de plasma com formação progressiva.
  * Geometrias reutilizadas, shaders com uniforms e estilhaços instanciados.
  */
-export const ZARK_ULT_VFX_BUILD='280-six-seals-custom-shaders';
+export const ZARK_ULT_VFX_BUILD='280-six-seals-sakuga-cinematic-refino';
 const PI=Math.PI,TAU=2*PI,clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),
  sm=v=>{v=clamp(v);return v*v*(3-2*v);};
 const VERT='varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
@@ -104,6 +104,16 @@ export function createSixSealsVFX(THREE,scene){
   plane.rotation.x=-PI/2;plane.frustumCulled=false;plane.renderOrder=19+i;
   root.add(plane);holder.add(root);circles.push({root,plane,m});
  }
+ // A arena real tem chão xadrez: esconder apenas a ÁREA de juízo para preservar leitura.
+ // A placa rubro-obsidiana põe as runas ACIMA do fundo, não uma fumaça plana.
+ const fieldMat=new THREE.MeshBasicMaterial({color:0x19010a,transparent:true,opacity:0,depthWrite:false,
+   side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1});
+ const field=new THREE.Mesh(new THREE.CircleGeometry(1,128),fieldMat);
+ field.name='ZarkhaelObsidianCrimsonField';field.rotation.x=-PI/2;field.renderOrder=10;holder.add(field);
+ const fieldRimMat=new THREE.MeshBasicMaterial({color:0xff183f,transparent:true,opacity:0,depthWrite:false,
+   blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+ const fieldRim=new THREE.Mesh(new THREE.RingGeometry(.97,1.0,128),fieldRimMat);
+ fieldRim.rotation.x=-PI/2;fieldRim.renderOrder=11;holder.add(fieldRim);
  const safetyMat=new THREE.MeshBasicMaterial({color:0x74bbff,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
  const safety=new THREE.Mesh(new THREE.RingGeometry(.995,1.007,128),safetyMat);safety.rotation.x=-PI/2;holder.add(safety);
  const aura=new THREE.Group();holder.add(aura);const ribbons=[];
@@ -129,8 +139,22 @@ export function createSixSealsVFX(THREE,scene){
   const dome=new THREE.Mesh(new THREE.SphereGeometry(1,48,24,0,TAU,0,PI/2),domeMaterial);
   dome.frustumCulled=false;dome.renderOrder=42+i;group.add(dome);
   const ringMat=new THREE.MeshBasicMaterial({color:i===1?0xff6c22:0xff314b,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
-  const wave=new THREE.Mesh(new THREE.TorusGeometry(1,.06,6,96),ringMat);wave.rotation.x=PI/2;wave.position.y=.3;group.add(wave);
-  bursts.push({group,dome,domeMaterial,wave,ringMat});
+  const wave=new THREE.Mesh(new THREE.TorusGeometry(1,.085,7,96),ringMat);wave.rotation.x=PI/2;wave.position.y=.5;group.add(wave);
+  // Véu translúcido do plasma: casca larga entre o centro branco e as fissuras escuras.
+  // A geometria aparece só durante o crescimento real, sem sprites de fumaça.
+  const veilMat=new THREE.MeshBasicMaterial({color:i===1?0xff3212:0xb30528,transparent:true,opacity:0,
+   depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+  const veil=new THREE.Mesh(new THREE.SphereGeometry(1,32,20,0,TAU,0,PI/2),veilMat);
+  veil.renderOrder=40+i;group.add(veil);
+  const kernelMat=new THREE.MeshBasicMaterial({color:0xffefd6,transparent:true,opacity:0,
+   depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+  const kernel=new THREE.Mesh(new THREE.IcosahedronGeometry(1,2),kernelMat);
+  kernel.renderOrder=45+i;group.add(kernel);
+  const railMat=new THREE.MeshBasicMaterial({color:0xf50843,transparent:true,opacity:0,
+   depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+  const rail=new THREE.Mesh(new THREE.TorusGeometry(1,.1,8,96),railMat);
+  rail.rotation.x=PI/2;rail.position.y=1.1;group.add(rail);
+  bursts.push({group,dome,domeMaterial,wave,ringMat,veil,veilMat,kernel,kernelMat,rail,railMat});
  }
  const shardMat=new THREE.MeshBasicMaterial({color:0x3b001a,transparent:true,opacity:.85,side:THREE.DoubleSide});
  const shards=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),shardMat,72);
@@ -148,6 +172,13 @@ export function createSixSealsVFX(THREE,scene){
   ribbons.forEach((r,i)=>{r.m.uniforms.uTime.value=seconds;r.m.uniforms.uPower.value=glow*(.7+.25*Math.sin(seconds*2+i));
    r.mesh.rotation.y=i/10*TAU+seconds*(i%2?-.09:.11);
   });
+  field.position.set(C.x,ground(C.x,C.z)+.055,C.z);
+  field.scale.setScalar(st.dangerR);
+  fieldMat.opacity=st.phase==='aura'?0:st.phase==='seals'?
+    .69+.13*sm(st.pt/U.seals):.94;
+  fieldRim.position.set(C.x,ground(C.x,C.z)+.14,C.z);
+  fieldRim.scale.setScalar(st.dangerR);
+  fieldRimMat.opacity=st.phase==='aura'?0:.65+.28*Math.sin(seconds*4);
   for(let i=0;i<6;i++){
    const c=st.seals[i],r=circles[i],k=c.build;
    r.root.visible=k>.001;
@@ -156,7 +187,8 @@ export function createSixSealsVFX(THREE,scene){
    r.root.position.set(C.x,yy,C.z);r.root.rotation.y=c.spin;r.root.scale.setScalar(c.r);
    r.m.uniforms.uTime.value=seconds;r.m.uniforms.uBuild.value=k;
    r.m.uniforms.uCharge.value=st.phase==='explosions'?1+Math.sin(seconds*9+i)*.18:Math.max(0,(st.pt-4.1)/U.seals);
-   r.m.uniforms.uAlpha.value=st.phase==='explosions'?Math.max(.25,1-sm((st.pt-4.55)/1)):1;
+   r.m.uniforms.uAlpha.value=st.phase==='explosions'?
+     Math.max(.10,.55-.45*sm(st.pt/2.4)):1;
   }
   safety.position.set(C.x,ground(C.x,C.z)+.16,C.z);safety.scale.setScalar(st.dangerR);
   safetyMat.opacity=st.phase==='aura'?0:st.phase==='seals'?.55+.16*Math.sin(seconds*6):.72;
@@ -175,8 +207,16 @@ export function createSixSealsVFX(THREE,scene){
    const fade=1-sm((age-1.1)/.85),growth=.02+.07*pre+.23*form+.70*open;
    vfx.group.position.set(C.x,ground(C.x,C.z)+.045,C.z);
    vfx.dome.scale.set(st.dangerR*growth,1.2+11.8*growth,st.dangerR*growth);
+   vfx.veil.scale.set(st.dangerR*growth*.96,1.45+13.2*growth,st.dangerR*growth*.96);
+   vfx.veilMat.opacity=fade*(.17+.26*form);
+   vfx.kernel.scale.setScalar(.6+st.dangerR*(.015+.14*pre+.29*form));
+   vfx.kernel.position.y=1.25+4.5*form;
+   vfx.kernelMat.opacity=fade*(.5+.42*pre);
+   vfx.rail.scale.setScalar(st.dangerR*(.07+.93*open));
+   vfx.rail.position.y=1.0+4*open;
+   vfx.railMat.opacity=fade*(.12+.68*open);
    vfx.domeMaterial.uniforms.uTime.value=seconds;vfx.domeMaterial.uniforms.uAge.value=age;
-   vfx.domeMaterial.uniforms.uAlpha.value=fade*(.28+.72*form);
+   vfx.domeMaterial.uniforms.uAlpha.value=fade*(.48+.52*form);
    vfx.wave.scale.setScalar(st.dangerR*growth);
    vfx.ringMat.opacity=fade*sm((age-.44)/.65)*.88;peak=Math.max(peak,fade*open);
   }
