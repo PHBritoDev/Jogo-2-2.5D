@@ -1,7 +1,7 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict");
 const fs=require("node:fs"),os=require("node:os"),path=require("node:path");
-const {assessCinematic,PHASES,distance}=require("./cinematic-criteria.cjs");
+const {assessCinematic,PHASES,distance,auditHudCover}=require("./cinematic-criteria.cjs");
 const {indexReport}=require("./cinematic-run.cjs");
 
 const record=(phase,ms=0,point=[0,5,9])=>({
@@ -31,7 +31,7 @@ test("camera presa, fase ausente e retorno de FOV geram alertas corretos",()=>{
     startFov:56,endFov:76,movementAttempted:true,moveMeters:0});
   assert.equal(v.status,"falhou");
   assert.ok(v.problems.some(x=>x.code==="controls_locked"));
-  for(const code of ["phases_not_sampled","abrupt_camera_jumps","fov_not_restored","movement_not_confirmed"])
+  for(const code of ["phases_not_sampled","cinematic_cut_review","fov_not_restored","movement_not_confirmed"])
     assert.ok(v.warnings.some(x=>x.code===code),"alerta ausente: "+code);
   assert.equal(distance([0,0,0],[3,4,0]),5);
 });
@@ -65,4 +65,37 @@ test("relatorio offline escapa texto e inclui perfis de telefone",()=>{
    if(before===undefined)delete process.env.VISUAL_OUTPUT;else process.env.VISUAL_OUTPUT=before;
    fs.rmSync(tmp,{recursive:true,force:true});
  }
+});
+
+
+test("camera inicial reenquadra sem falso positivo de salto interno",()=>{
+ const rows=[
+  record("boss_aura",0,[0,0,0]),
+  record("boss_aura",1500,[100,0,0]),
+  record("circle_build",2600,[150,0,0]),
+  record("circle_build",3800,[210,0,0])
+ ];
+ const v=assessCinematic(rows,{started:true,ended:true,captures:7});
+ assert.equal(v.status,"capturado_para_revisao");
+ assert.deepEqual(v.largeCameraJumps.map(x=>x.kind),
+   ["initial_reframe","phase_cut","within_phase"]);
+ assert.ok(v.warnings.some(x=>x.code==="abrupt_camera_jumps"));
+ assert.ok(v.warnings.some(x=>x.code==="cinematic_cut_review"));
+});
+test("HUD com retangulos sobrepostos nao duplica ocupacao central e alerta",()=>{
+ const vp={width:400,height:800};
+ const rects=[
+   {x:0,y:0,width:400,height:800,visible:false},
+   {x:145,y:320,width:110,height:170,visible:true},
+   {x:145,y:320,width:110,height:170,visible:true}
+ ];
+ const hud=auditHudCover(vp,rects);
+ assert.ok(hud.centerCoverage>.17&&hud.centerCoverage<.42,
+   "cobertura nao pode somar sobreposicoes: "+hud.centerCoverage);
+ assert.equal(auditHudCover({width:0,height:100},rects),null);
+ const v=assessCinematic([record("boss_aura"),record(null,2200)],
+   {started:true,ended:true,captures:5,hud,perf:{p95FrameMs:360}});
+ assert.ok(v.warnings.some(x=>x.code==="hud_covers_scene"));
+ assert.ok(v.warnings.some(x=>x.code==="slow_software_renderer"));
+ assert.equal(v.status,"capturado_para_revisao","sem confundir alerta com falha");
 });
