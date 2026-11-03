@@ -49,14 +49,20 @@ async function run(){
         const qa=window.__qa,rt=qa.rt,fx=rt.vhazraelVFX;
         const spell=rt.squad.spells.find(x=>x.type==="throne");
         const mesh=qa.scene.getObjectByName("VhazraelRupturaReferenciaMod275");
+        const wings=qa.scene.getObjectByName("VhazraelFeatherWings276");
+        const featherMeshes=wings?.children?.filter(x=>x.visible&&x.name.startsWith("PenasPrimariasLongas"))||[];
+        const featherVertices=featherMeshes.reduce((sum,x)=>sum+(x.geometry?.attributes?.position?.count||0),0);
         return {phase:spell?.phase??null,spellAge:spell?.age??null,stats:fx.throneReferenceStats,
+          wingMesh:!!wings,featherMeshCount:featherMeshes.length,featherVertices,
           exists:!!mesh,webgl:!!qa.renderer.getContext(),calls:qa.renderer.info.render.calls,
           tilt:qa.qa.tilt,heroHP:qa.hero?.alive};
       });
       if(!data.webgl||!data.exists)throw Error(id+": VFX não entrou na cena 3D");
       if(!(data.calls>0))throw Error(id+": nenhum drawcall WebGL");
       if(!data.phase)throw Error(id+": Ruptura não ativou no motor");
-      if(stage.wing&&!data.stats?.wings)throw Error(id+": não gerou massas laterais");
+      if(stage.wing&&!data.stats?.wings)throw Error(id+": asas não se abriram");
+      if(stage.wing&&(!data.wingMesh||data.featherMeshCount!==2||data.featherVertices<350))
+        throw Error(id+": faltam penas 3D nas duas asas: "+JSON.stringify(data));
       if(stage.core&&!data.stats?.core)throw Error(id+": não apareceu o núcleo branco");
       if(stage.impact&&data.stats?.impact<=.01)throw Error(id+": impacto sem energia");
       if(stage.impact&&data.stats.rocks===0&&data.stats.lightning===0)
