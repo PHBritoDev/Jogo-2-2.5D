@@ -80,7 +80,7 @@ test('Interrupção, IA e integração — some limpo, IA usa a Skill 2 à dist�
   assert.equal(chooseZarkhaelMove(k, { dist: 3, cds: {}, last: '', hpFrac: 1, heroHpFrac: 1 }).move, null, 'colado: nenhuma magia genérica');
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("case 'zarkhael_black_moon_flames':startMoonFlames(m);break;") && src.includes('updateMoonFlames(dt);') && (src.includes('stopMoonFlames();stopHydra();stopZarkhaelSword();stopZarkUlt();')&&src.includes('clearHazards();')) && src.includes('undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);'), 'integração e limpeza');
-  assert.ok(src.includes('if(moonFlames||hydraSkill||zarkSword)return;'), 'nunca junto com a Hidra');
+  assert.ok(src.includes('if(moonFlames||hydraSkill||zarkSword||zarkUlt)return;'), 'nunca junto com a Hidra');
   const vfx = fs.readFileSync(new URL('./zarkhael-blackflame3d.js', import.meta.url), 'utf8'); assert.ok(vfx.includes('moonComet.update(seq,ctx)') && vfx.includes('travelingGrowth(s.ft,s.big)'), 'lua e fogo progressivo ligados ao VFX');
   assert.ok(BF.shots===10 && BF.bigScale>BF.smallScale*2.9, 'dez chamas e uma colossal preservadas');
   assert.ok(!/function spawnEnemyProjectile|function updateEnemyProjectiles|BOSS_POWERS\.zarkhael/.test(src), 'Mods 264/267 preservadas');
