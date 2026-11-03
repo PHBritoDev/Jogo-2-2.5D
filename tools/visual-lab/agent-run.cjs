@@ -43,7 +43,8 @@ async function gameState(){
   return page.evaluate(()=>{
     const d=window.SevenSinsDebug3D;
     if(!d)return null;
-    return {dim:d.dimState(), player:d.state(), sceneProbe: typeof d.sceneProbe==="function" ? d.sceneProbe() : null};
+    let probe=null;try{if(typeof d.sceneProbe==="function")probe=d.sceneProbe();}catch(e){probe={error:String(e)};}
+    return {dim:d.dimState(), player:d.state(), sceneProbe:probe};
   });
 }
 async function sampleVision(previous){
@@ -266,7 +267,7 @@ async function execute(){
       catch(e){logs.errors.push("Acao "+tick+": "+e.message); break;}
       if(decision.bossSkill && actual.launchedSkill)seen[decision.bossSkill]=true;
       if(decision.cast)lastCastTick=tick;
-      prevPosition={x:state.player.x,z:state.player.z};
+      prevPosition={x:state.player.x,z:state.player.z,attemptedMove:!!decision.move};
       const entry={tick,elapsed:+((Date.now()-start)/1000).toFixed(1),phase,
         vision:metrics,enemyDistance:
           state.player?.enemy?+Math.hypot(state.player.x-state.player.enemy.x,
