@@ -6484,6 +6484,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   /** MOD 212 — força um poder do kit do inimigo atual: 's1','s2','s3','sw' ou 'ult'. */
   kitMove(id){const k=kitFor(encounterProfile);if(!k||!enemy.visible)return null;if(id==='ult'){const u=ultimateFor(encounterProfile);if(!u)return null;if(u.kind==='void')startVoidUlt();else if(u.kind==='nova')startSupernova();else startKitUlt(u.kind);return u.kind;}const m=id==='sw'?k.sword:k.skills.find(s=>s.id===id);if(!m||m.disabled)return null;runFoeMove(powerStats(encounterProfile,m),k);return m.name;},
   god(){playerInvulnerableUntil=performance.now()+1e9;},
+  /** QA apenas: revela se o AudioContext foi liberado, nunca o som bruto. */
+  audioState(){return{state:worldAudio.state,muted:worldAudio.settings.muted,sfx:worldAudio.settings.sfx,music:worldAudio.settings.music};},
   sprint(on){sprintToggle=!!on;return{run:!!actions.run,speed:+Math.hypot(moveVX,moveVZ).toFixed(2)};},
   pose(kind,who){playPose(who==='enemy'?enemyPoseRoot():model,kind,2,who==='enemy'?foeYaw:()=>playerYaw,kind==='channel'?.5:0);return poseJobs.length;},
   skills(){if(!skillSet)skillSet=new Set();for(const k of ['magic','magic2','magic3','ultimate'])skillSet.add(k);holyCooldowns.magic=holyCooldowns.magic2=holyCooldowns.magic3=holyCooldowns.ultimate=0;playerMana=999;return [...skillSet];},
