@@ -13,7 +13,8 @@
  *  C) impact 2,4 s — colapso esférico em espiral (faixas largas girando à volta de um centro brilhante), no ponto real do
  *     choque, sem dano contínuo. Depois tudo se desfaz (fade 0,45 s) e o cenário volta ao que era.
  */
-export const ECLIPSE_SWORD_BUILD = '261-eclipse-sword';
+import {createEclipseSakuga,ECLIPSE_SAKUGA_BUILD} from './vorgazhek-eclipse-sakuga3d.js';
+export const ECLIPSE_SWORD_BUILD = '274-eclipse-sakuga-crimson';
 export const ECLIPSE = { charge: 3.2, windup: .42, releaseMax: 2.0, impact: 2.4, fade: .45, abortFade: .3, speed: 30, lead: .3, leadCap: 2.5, hitHalfW: 1.25, hitHalfH: 1.15, heroH: 1.8, dmg: 22, maxRange: 46, stages: [.6, 1.5, 2.5], swordScale: 1.05, grip: -.3, moonDist: 45, moonAng: .135 };
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
@@ -127,18 +128,18 @@ const RIB_F = `${NOISE} uniform float time; varying vec2 vU; varying vec4 vK;
 void main(){ float e=abs(vU.y*2.-1.), kind=vK.x, s=vK.z; float n=n2(vec2(vU.x*7.-time*2.6+s*13.,vU.y*3.+s*5.)), n3=n2(vec2(vU.x*19.-time*4.+s*7.,vU.y*6.));
  float edge=.62+.38*n-.18*n3; if(e>edge) discard; float core=exp(-e*e*(kind>1.5?14.:22.)), c2=1.-smoothstep(.0,edge,e);
  vec3 c;
- if(kind<.5){ c=mix(vec3(.31,.05,.78),vec3(.66,.29,1.),c2); c=mix(c,vec3(.98,.93,1.),core*(.55+.45*vK.w)); c=mix(vec3(.03,.008,.06),c,smoothstep(edge,edge-.22,e)); } // aura: borda negra recortada, corpo violeta, núcleo branco-lilás
- else if(kind<1.5){ c=vec3(.03,.008,.06); c=mix(c,vec3(.62,.25,1.),exp(-e*e*60.)*.9*(.5+.5*n)); } // chicote negro com fio violeta
- else if(kind<2.5){ c=mix(vec3(.45,.12,1.),vec3(1.,.97,1.),core); c=mix(vec3(.08,.01,.16),c,smoothstep(edge,edge-.25,e)); } // feixe
- else { c=mix(vec3(.04,.01,.08),vec3(.55,.2,1.),c2*.8); c=mix(c,vec3(.95,.9,1.),core*.8); } // rastro do corte
+ if(kind<.5){ c=mix(vec3(.6,.009,.13),vec3(1.,.09,.23),c2); c=mix(c,vec3(1.,.93,.99),core*(.55+.45*vK.w)); c=mix(vec3(.028,.002,.067),c,smoothstep(edge,edge-.22,e)); } // aura: borda negra recortada, corpo violeta, núcleo branco-lilás
+ else if(kind<1.5){ c=vec3(.028,.002,.067); c=mix(c,vec3(.78,.04,.23),exp(-e*e*60.)*.9*(.5+.5*n)); } // chicote negro com fio violeta
+ else if(kind<2.5){ c=mix(vec3(.97,.025,.14),vec3(1.,.98,1.),core); c=mix(vec3(.045,.003,.09),c,smoothstep(edge,edge-.25,e)); } // feixe
+ else { c=mix(vec3(.027,.005,.06),vec3(.96,.028,.15),c2*.8); c=mix(c,vec3(1.,.83,.94),core*.8); } // rastro do corte
  float a=vK.y*(.85+.15*n); if(a<.02) discard; gl_FragColor=vec4(c,a); }`;
 /* Corte crescente: uv=(posição no arco -1..1, profundidade 0 frente..1 trás), aS = lâmina (0..2) */
 const SLASH_V = `attribute float aS; varying vec2 vU; varying float vS; void main(){ vU=uv; vS=aS; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
 const SLASH_F = `${NOISE} uniform float time,alpha; varying vec2 vU; varying float vS;
 void main(){ float u=vU.x, v=vU.y, n=n2(vec2(u*6.+time*1.5,v*4.-time*6.)), n3=n2(vec2(u*17.,v*9.-time*9.));
  float tail=.55+.45*n-(abs(u)*.35)+n3*.15; if(v>tail) discard; float tip=1.-smoothstep(.75,1.,abs(u)); if(n3*.6+tip<.35) discard;
- vec3 c=mix(vec3(1.,.97,1.),vec3(.78,.45,1.),smoothstep(.02,.16,v)); c=mix(c,vec3(.42,.08,.95),smoothstep(.14,.38,v)); c=mix(c,vec3(.03,.005,.06),smoothstep(tail-.3,tail-.05,v));
- c+=vec3(.6,.3,1.)*smoothstep(.85,.97,n3)*(1.-v)*.6; float a=alpha*(vS==1.?1.:.8); gl_FragColor=vec4(c,a); }`;
+ vec3 c=mix(vec3(1.,.99,1.),vec3(1.,.5,.65),smoothstep(.02,.16,v)); c=mix(c,vec3(.93,.015,.10),smoothstep(.14,.38,v)); c=mix(c,vec3(.028,.002,.047),smoothstep(tail-.3,tail-.05,v));
+ c+=vec3(1.,.12,.31)*smoothstep(.85,.97,n3)*(1.-v)*.6; float a=alpha*(vS==1.?1.:.8); gl_FragColor=vec4(c,a); }`;
 /* Faixas do colapso giratório (instanciadas): aB=(arco, velocidade, semente, tipo), aP=(progresso, raio, -, -) */
 const BAND_V = `attribute vec4 aB; attribute vec4 aP; varying vec2 vU; varying vec4 vB; varying vec4 vP; varying vec3 vN; varying vec3 vW;
 void main(){ vU=uv; vB=aB; vP=aP; vec4 w=modelMatrix*instanceMatrix*vec4(position,1.); vW=w.xyz; vN=normalize(mat3(modelMatrix)*mat3(instanceMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`;
@@ -146,17 +147,17 @@ const BAND_F = `${NOISE} uniform float time; varying vec2 vU; varying vec4 vB; v
 void main(){ float cd=length(cameraPosition-vW); if(cd<1.4) discard; float k=vP.x, kind=vB.w; float head=fract(vB.z+time*vB.y), d=fract(head-vU.x); if(d>vB.x) discard; float tl=d/vB.x; // cauda atrás da cabeça
  float e=abs(vU.y*2.-1.), n=n2(vec2(vU.x*28.+vB.z*9.,vU.y*3.-time*2.)), cut=.75+.25*n-tl*.45; float dis=smoothstep(.78,1.,k); if(e>cut||n<dis*1.1) discard;
  vec3 c; float lead=1.-smoothstep(0.,.18,tl);
- if(kind<.5){ c=mix(vec3(.55,.2,1.),vec3(.25,.04,.6),tl); c=mix(c,vec3(1.,.95,1.),lead*(1.-e)); c=mix(c,vec3(.03,.005,.06),smoothstep(cut-.22,cut,e)*.9); }
- else if(kind<1.5){ c=mix(vec3(.04,.01,.08),vec3(.5,.15,.95),exp(-e*e*30.)*(1.-tl)); } // lâmina negra
- else { c=mix(vec3(1.,.72,.5),vec3(.9,.4,.8),tl)*(1.-tl*.5); } // trilha quente
+ if(kind<.5){ c=mix(vec3(.98,.04,.20),vec3(.43,.008,.24),tl); c=mix(c,vec3(1.,.98,1.),lead*(1.-e)); c=mix(c,vec3(.028,.002,.047),smoothstep(cut-.22,cut,e)*.9); }
+ else if(kind<1.5){ c=mix(vec3(.04,.01,.08),vec3(.68,.02,.27),exp(-e*e*30.)*(1.-tl)); } // lâmina negra
+ else { c=mix(vec3(1.,.2,.17),vec3(.7,.018,.22),tl)*(1.-tl*.5); } // trilha quente
  float f=abs(dot(normalize(vN),normalize(cameraPosition-vW))); c*=.75+.35*f; float a=(1.-tl*.7)*(1.-smoothstep(.85,1.,k))*smoothstep(1.4,3.2,cd); if(a<.03) discard; gl_FragColor=vec4(c,a); }`;
 const CORE_F = `${NOISE} uniform float time; varying vec2 vU; varying vec4 vB; varying vec4 vP; varying vec3 vN; varying vec3 vW;
 void main(){ float k=vP.x; vec3 n=normalize(vN), v=normalize(cameraPosition-vW); float f=abs(dot(n,v)); float sw=n2(vec2(atan(n.z,n.x)*3.+time*5.,n.y*4.-time*2.));
- if(sw<smoothstep(.7,1.,k)) discard; vec3 c=mix(vec3(.3,.05,.75),vec3(1.,.95,1.),pow(f,2.2)); c=mix(c,vec3(.04,0.,.08),smoothstep(.62,.8,sw)*(1.-f)); gl_FragColor=vec4(c,1.); }`;
+ if(sw<smoothstep(.7,1.,k)) discard; vec3 c=mix(vec3(.3,.05,.75),vec3(1.,.98,1.),pow(f,2.2)); c=mix(c,vec3(.04,0.,.08),smoothstep(.62,.8,sw)*(1.-f)); gl_FragColor=vec4(c,1.); }`;
 const GLOW_V = `attribute vec4 aG; varying vec4 vG; varying vec2 vU; void main(){ vG=aG; vU=uv; vec4 c=viewMatrix*modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.); vG.a*=smoothstep(1.2,4.5,-c.z); /* brilho colado na câmera (1ª pessoa) some */ c.xy+=position.xy*length(instanceMatrix[0].xyz); gl_Position=projectionMatrix*c; }`;
 const GLOW_F = `varying vec4 vG; varying vec2 vU; void main(){ vec2 p=vU*2.-1.; float d=length(p); float a=exp(-d*d*5.)*vG.a; vec3 c=mix(vG.rgb,vec3(1.,.97,1.),exp(-d*d*18.)); gl_FragColor=vec4(c*a,a); }`;
 const SPIKE_V = `attribute vec4 aT; varying vec4 vT; varying vec2 vU; void main(){ vT=aT; vU=uv; gl_Position=projectionMatrix*viewMatrix*modelMatrix*instanceMatrix*vec4(position,1.); }`;
-const SPIKE_F = `${NOISE} varying vec4 vT; varying vec2 vU; void main(){ float d=abs(vU.x)+(n2(vec2(vU.y*9.+vT.w*7.,vU.x*2.))-.5)*.4; if(d>.95||vU.y>vT.y) discard; vec3 c=d<.22?mix(vec3(1.,.95,1.),vec3(.6,.3,1.),vU.y*1.6):vec3(.03,.005,.06); gl_FragColor=vec4(c,1.); }`;
+const SPIKE_F = `${NOISE} varying vec4 vT; varying vec2 vU; void main(){ float d=abs(vU.x)+(n2(vec2(vU.y*9.+vT.w*7.,vU.x*2.))-.5)*.4; if(d>.95||vU.y>vT.y) discard; vec3 c=d<.22?mix(vec3(1.,.98,1.),vec3(1.,.12,.31),vU.y*1.6):vec3(.028,.002,.047); gl_FragColor=vec4(c,1.); }`;
 
 function bandGeo(T, seg = 56) { const pos = [], uv = [], nor = [], idx = []; for (let i = 0; i <= seg; i++) { const u = i / seg, a = u * Math.PI * 2, c = Math.cos(a), s = Math.sin(a); for (let j = 0; j < 2; j++) { const w = j ? .5 : -.5; pos.push(c, w, s); uv.push(u, j); nor.push(c, 0, s); } if (i < seg) { const a0 = i * 2; idx.push(a0, a0 + 2, a0 + 1, a0 + 1, a0 + 2, a0 + 3); } }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); g.setIndex(idx); return g; }
@@ -173,6 +174,7 @@ function crescentGeo(T, Ro = 3.4, span = 1.25, seg = 40, dep = 6) {
 
 export function createEclipseVFX(T, scene) {
   const root = new T.Group(); root.name = 'VorgazhekEclipse'; scene.add(root); const geos = [], mats = [], uTime = { value: 0 };
+  const sakuga=createEclipseSakuga(T,root);
   const V = () => new T.Vector3(), M = new T.Matrix4(), Q = new T.Quaternion(), P = V(), S = V(), D = V(), E = V(), X = V(), Y = V(), Z = V(), UP = new T.Vector3(0, 1, 0), cam = V(), tmp = V(), tip = V(), right = V(), Q2 = new T.Quaternion();
   const mat = (o) => { const m = new T.ShaderMaterial({ toneMapped: false, fog: false, ...o, uniforms: { time: uTime, ...(o.uniforms || {}) } }); mats.push(m); return m; };
   /* lua */
@@ -199,7 +201,7 @@ export function createEclipseVFX(T, scene) {
   const coreSph = new T.SphereGeometry(1, 24, 16), cores = inst(coreSph, BAND_V, CORE_F, 2, [['aB', 4], ['aP', 4]], {}); cores.mesh.renderOrder = 4;
   const glows = inst(new T.PlaneGeometry(1, 1), GLOW_V, GLOW_F, 16, [['aG', 4]], { transparent: true, depthWrite: false, blending: T.AdditiveBlending }); glows.mesh.renderOrder = 7;
   const spikes = inst(spikeGeo(T), SPIKE_V, SPIKE_F, 40, [['aT', 4]], { side: T.DoubleSide });
-  const shardG = new T.OctahedronGeometry(1, 0); shardG.scale(.55, 1, .4); geos.push(shardG); const shardM = new T.MeshStandardMaterial({ color: 0x06020c, emissive: 0x3a1080, emissiveIntensity: .7, roughness: .7, flatShading: true }); mats.push(shardM);
+  const shardG = new T.OctahedronGeometry(1, 0); shardG.scale(.55, 1, .4); geos.push(shardG); const shardM = new T.MeshStandardMaterial({ color: 0x10070b, emissive: 0x801326, emissiveIntensity: .7, roughness: .7, flatShading: true }); mats.push(shardM);
   const shards = new T.InstancedMesh(shardG, shardM, 40); shards.frustumCulled = false; shards.count = 0; root.add(shards);
   /* corte */
   const slashU = { alpha: { value: 1 } }, slashG = crescentGeo(T); geos.push(slashG);
@@ -208,7 +210,7 @@ export function createEclipseVFX(T, scene) {
   const holder = new T.Group(); holder.name = 'EspadaBispo2Holder'; holder.visible = false; root.add(holder); let swordMats = [], swordReady = false; const swordTip = V();
   /** o.own: usa o próprio modelo (espada cósmica da Mod 262, com materiais e shader próprios); o.grip/o.tip: y local da pega e da ponta. */
   function setSwordModel(model, scale = ECLIPSE.swordScale, o = {}) { if (swordReady) return; const grip = o.grip ?? ECLIPSE.grip, tipY = o.tip ?? .95, m = o.own ? model : model.clone(true);
-    m.traverse(x => { if (x.isMesh) { if (!o.own) x.material = x.material.clone(); if (x.material.isMeshStandardMaterial) { x.material.transparent = true; x.material.emissive = new T.Color(0x6a20ff); x.material.emissiveIntensity = 0; swordMats.push(x.material); } x.frustumCulled = false; x.castShadow = true; } });
+    m.traverse(x => { if (x.isMesh) { if (!o.own) x.material = x.material.clone(); if (x.material.isMeshStandardMaterial) { x.material.transparent = true; x.material.emissive = new T.Color(0xe21b35); x.material.emissiveIntensity = 0; swordMats.push(x.material); } x.frustumCulled = false; x.castShadow = true; } });
     m.scale.setScalar(scale); m.position.y = -grip * scale; holder.add(m); holder.userData.len = (tipY - grip) * scale; swordReady = true; }
   let time = 0; const trail = []; for (let i = 0; i < 12; i++) trail.push([V(), V()]); let trailN = 0;
   const sm = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }, eo = x => 1 - (1 - Math.max(0, Math.min(1, x))) ** 3;
@@ -225,8 +227,8 @@ export function createEclipseVFX(T, scene) {
         strip(14, 0, u => A * (1 - u * .7), s * 3.1, 1, u => (.07 + .2 * L) * (1 - u * .6)); }
       for (let j = 0; j < 8; j++) { const u = j / 7; pts[j].copy(holder.position).addScaledVector(D, len * .25 + u * (len * .75 + ext)); }
       strip(8, 2, u => A * (.6 + .4 * L) * (1 - u * u * .8), 5.5, 1, u => (.08 + .32 * L) * (1 - u * .85) + .02);
-      tip.copy(holder.position).addScaledVector(D, len); P.copy(tip); Q.identity(); S.setScalar((1.1 + 3.2 * L) * A); M.compose(P, Q, S); put(glows, [.75, .45, 1, .85 * A]); }
-    P.set(B.x, B.y + .25, B.z); Q.identity(); S.setScalar((1.2 + 4.5 * L) * A); M.compose(P, Q, S); put(glows, [.6, .3, 1, .75 * A]); // núcleo no chão
+      tip.copy(holder.position).addScaledVector(D, len); P.copy(tip); Q.identity(); S.setScalar((1.1 + 3.2 * L) * A); M.compose(P, Q, S); put(glows, [1., .12, .28, .85 * A]); }
+    P.set(B.x, B.y + .25, B.z); Q.identity(); S.setScalar((1.2 + 4.5 * L) * A); M.compose(P, Q, S); put(glows, [1., .07, .18, .75 * A]); // núcleo no chão
     if (L > .45) { const k = sm((L - .45) / .55) * A, n = low ? 10 : 16; for (let i = 0; i < n; i++) { const a = i / n * 6.283 + Math.sin(i * 3.7) * .25, el = .55 + .55 * Math.abs(Math.sin(i * 2.3)), len = (.7 + 2.6 * k) * (.6 + .5 * Math.abs(Math.sin(i * 5.1 + time * 2))) * (.9 + .1 * Math.sin(time * 9 + i));
       D.set(Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el)); E.set(cam.x - B.x, cam.y - B.y, cam.z - B.z); X.crossVectors(D, E).normalize(); Z.crossVectors(X, D); M.makeBasis(X, D, Z); Q.setFromRotationMatrix(M);
       P.set(B.x + D.x * .5, B.y + .02, B.z + D.z * .5); S.set(.3 + .12 * k, len, 1); M.compose(P, Q, S); put(spikes, [1, 1, 0, i * .17]); } }
@@ -238,8 +240,8 @@ export function createEclipseVFX(T, scene) {
       const rr = R * (.35 + .75 * r0), w = R * (.12 + .22 * r1) * (i % 4 === 0 ? .55 : 1); P.set(I.x, cy + (r1 - .5) * R * .35, I.z); S.set(rr, w, rr); M.compose(P, Q, S);
       put(bands, [.45 + .45 * r2, (.55 + 1.1 * r1) * (i % 2 ? 1 : -1.2), r0, i % 7 === 3 ? 2 : i % 3 === 1 ? 1 : 0, k, R, 0, 0]); }
     P.set(I.x, cy, I.z); Q.identity(); S.setScalar(R * (.28 + .05 * Math.sin(t * 9))); M.compose(P, Q, S); put(cores, [0, 0, 0, 0, k, R, 0, 0]);
-    const fl = t < .15 ? 1 : Math.max(0, 1 - (t - .15) / 1.6); S.setScalar(R * (1.5 + 1.8 * fl)); M.compose(P, Q, S); put(glows, [.62, .3, 1, .55 + .45 * fl * (1 - sm((t - 1.9) / .5))]);
-    S.setScalar(R * .9); M.compose(P, Q, S); put(glows, [1, .9, 1, .9 * (1 - sm((t - 1.9) / .5))]);
+    const fl = t < .15 ? 1 : Math.max(0, 1 - (t - .15) / 1.6); S.setScalar(R * (1.5 + 1.8 * fl)); M.compose(P, Q, S); put(glows, [1., .035, .16, .55 + .45 * fl * (1 - sm((t - 1.9) / .5))]);
+    S.setScalar(R * .9); M.compose(P, Q, S); put(glows, [1., .84, .91, .9 * (1 - sm((t - 1.9) / .5))]);
     // anel de pressão no chão + farpas negras radiais no início
     P.set(I.x, I.y + .05, I.z); Q.setFromAxisAngle(tmp.set(1, 0, 0), 0); const ring = Math.min(1, t / .5); S.set(R * (.6 + 1.4 * ring), .25 * (1 - ring) + .05, R * (.6 + 1.4 * ring)); M.compose(P, Q, S); if (t < .7) put(bands, [1, .3, .2, 1, Math.max(k, ring * .8), R, 0, 0]);
     if (t < .9) { const n = low ? 8 : 14; for (let i = 0; i < n; i++) { const a = i / n * 6.283 + I.seed * 6, el = .2 + .7 * Math.abs(Math.sin(i * 3.1 + I.seed)), len = R * (.6 + .8 * Math.abs(Math.sin(i * 1.7))) * eo(t / .2) * (1 - sm((t - .5) / .4));
@@ -256,6 +258,8 @@ export function createEclipseVFX(T, scene) {
       time += dt; uTime.value = time; const camera = ctx.camera; cam.copy(camera.position); const low = !!ctx.low, st = es && es.st;
       q = 0; for (const I of [bands, cores, glows, spikes]) I.n = 0; shards.count = 0;
       if (st && !st.done) {
+        if(ctx.qaHide?.includes('sakuga'))sakuga.clear();
+        else sakuga.update(es,ctx,dt);
         // lua: aparece já no 1º quadro, composta atrás/acima do bispo pelo lado da espada
         const B = ctx.boss; right.set(-Math.cos(B.yaw), 0, Math.sin(B.yaw)); tmp.set(camera.matrixWorld.elements[0], 0, camera.matrixWorld.elements[2]); const sideSign = right.dot(tmp) >= 0 ? 1 : -1; // lado da mão direita do bispo, visto da câmera
         const mp = moonPlacement(cam, B, { side: sideSign, ground: ctx.moonGround ?? B.y }); tmp.set(mp.x, mp.y, mp.z);
@@ -267,19 +271,19 @@ export function createEclipseVFX(T, scene) {
         if (!ctx.qaHide || !ctx.qaHide.includes('aura')) aura(B, sm(st.level), st.aura * (st.phase === 'abort' ? st.moon : 1), low, B.yaw);
         const s = st.slash; slash.visible = !!s;
         if (s) { D.set(s.dx, 0, s.dz).normalize(); Z.set(s.dx, s.dy, s.dz).normalize(); X.crossVectors(UP, Z).normalize(); Y.crossVectors(Z, X); M.makeBasis(X, Y, Z); Q.setFromRotationMatrix(M); Q.multiply(Q2.setFromAxisAngle(tmp.set(0, 0, 1), .45)); // corte diagonal
-          slash.position.set(s.x, s.y, s.z); slash.quaternion.copy(Q); const sc = 1 + .15 * Math.sin(time * 30); slash.scale.set(sc, 1, 1); slashU.alpha.value = 1; Q.identity(); S.setScalar(3.4); M.compose(slash.position, Q, S); put(glows, [.7, .4, 1, .9]);
+          slash.position.set(s.x, s.y, s.z); slash.quaternion.copy(Q); const sc = 1 + .15 * Math.sin(time * 30); slash.scale.set(sc, 1, 1); slashU.alpha.value = 1; Q.identity(); S.setScalar(3.4); M.compose(slash.position, Q, S); put(glows, [1., .13, .28, .9]);
           // pontas deixam rastro
           if (trailN < trail.length) trailN++; for (let i = trailN - 1; i > 0; i--) { trail[i][0].copy(trail[i - 1][0]); trail[i][1].copy(trail[i - 1][1]); } const R = 3.4, sp = 1.25; trail[0][0].set(Math.sin(sp) * R * .95, 0, 0).applyQuaternion(Q).add(slash.position); trail[0][1].set(-Math.sin(sp) * R * .95, 0, 0).applyQuaternion(Q).add(slash.position); }
         else if (trailN > 0 && st.phase !== 'release') trailN = Math.max(0, trailN - 2);
         if (trailN > 2 && !(ctx.qaHide && ctx.qaHide.includes('trail'))) for (const side of [0, 1]) { for (let i = 0; i < trailN; i++) pts[i].copy(trail[i][side]); strip(trailN, 3, u => (1 - u) * .9, side * 3.3, 1, u => .55 * (1 - u) + .04); }
         if (st.impact && st.phase === 'impact') vortex({ x: st.impact.x, y: st.impact.y, z: st.impact.z, R: st.impact.kind === 'hero' ? 2.3 : 3, seed: (st.impact.x * 7.13) % 1 }, Math.min(1, st.impact.t / 2.4), low);
         if (ctx.oldMoon) ctx.oldMoon.visible = false;
-      } else { moon.visible = false; slash.visible = false; holder.visible = false; moonSet = false; trailN = 0; }
+      } else { sakuga.clear(); moon.visible = false; slash.visible = false; holder.visible = false; moonSet = false; trailN = 0; }
       rg.setDrawRange(0, q * 6); rg.attributes.position.needsUpdate = rg.attributes.aUv.needsUpdate = rg.attributes.aK.needsUpdate = true;
       for (const I of [bands, cores, glows, spikes]) { I.mesh.count = I.n; I.mesh.instanceMatrix.needsUpdate = true; for (const [k] of I.attrs) I.mesh.geometry.attributes[k].needsUpdate = true; }
       shards.instanceMatrix.needsUpdate = true;
     },
-    clear(oldMoon) { moon.visible = false; slash.visible = false; holder.visible = false; moonSet = false; trailN = 0; q = 0; rg.setDrawRange(0, 0); for (const I of [bands, cores, glows, spikes]) { I.n = 0; I.mesh.count = 0; } shards.count = 0; if (oldMoon) oldMoon.visible = true; },
-    dispose() { scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); for (const m of swordMats) m.dispose(); }
+    clear(oldMoon) { sakuga.clear(); moon.visible = false; slash.visible = false; holder.visible = false; moonSet = false; trailN = 0; q = 0; rg.setDrawRange(0, 0); for (const I of [bands, cores, glows, spikes]) { I.n = 0; I.mesh.count = 0; } shards.count = 0; if (oldMoon) oldMoon.visible = true; },
+    dispose() { sakuga.dispose(); scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); for (const m of swordMats) m.dispose(); }
   };
 }

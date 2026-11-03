@@ -105,3 +105,21 @@ Continuam como estavam:
 - Não testado em Android físico nem em GPU real. FPS real não medido (SwiftShader roda a 5–9 FPS e não serve de referência).
 - Sem bloom.
 - A cena do Ichigo foi usada só como linguagem de enquadramento; nada foi copiado.
+
+
+## Mod 274 — Ruptura Escarlate (upgrade da skill de espada)
+
+Referência visual enviada pelo criador: corte vertical colossal com centro branco, bordas vermelho-carmesim, massas negras/roxas abrindo para os lados, raios laterais e fragmentos de rocha no impacto. O vídeo original não é copiado para o jogo.
+
+**Preservado:** carga de 3,2 s; antecipação de 0,42 s; velocidade 30 m/s; dano, alcance, mira, colisão por varredura, i-frames de dash, animação corporal existente, a espada cósmica e a câmera atual. O VFX anterior continua por baixo: alteramos paleta e adicionamos um desenho exclusivo.
+
+Novo módulo: vorgazhek-eclipse-sakuga3d.js, ligado ao estado da habilidade:
+- Duas asas negro-violeta de geometria irregular, veios vermelhos brilhantes e movimento gradual atrás do Bispo durante a carga;
+- Rasgo vertical com núcleo branco quente e bordas carmesins no instante do golpe, seguindo a posição real do projétil e reaparecendo no impacto;
+- Quatro (ou dois, em baixo) relâmpagos ramificados, sincronizados com o contato, nunca antes;
+- Fragmentos de basalto 3D balísticos: até 52 (ou 18 na qualidade baixa), sem cubos genéricos;
+- Limpeza total ao interromper, morrer e sair. Sem temporizadores próprios, texturas remotas, alteração no dano ou nova câmera obrigatória.
+
+Teste: vorgazhek-eclipse-sakuga.test.mjs verifica tempo, colisão e animação preservados. A prévia vorgazhek-eclipse-preview.html agora usa a espada cósmica atual do jogo. O GitHub Actions tira prints de 4 momentos com WebGL real e compara a imagem de carga com a camada ligada/desligada em tools/visual-lab/eclipse-sakuga-qa.cjs. As imagens e o relatório ficam no artefato laboratorio-visual em eclipse-274. Testes de pixels não comprovam perfeição artística ou FPS de Android.
+
+Prévia: vorgazhek-eclipse-preview.html?t=2.8&cam=hero (carga); ?t=3.93&cam=side (voo); ?t=4.5&cam=impact (impacto).
