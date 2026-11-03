@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod276-bispo1-asas-plumadas-sem-knock';
+const BUILD = 'mod277-correcao-imports-blob-sem-regressao';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
@@ -85,9 +85,13 @@ try {
   let code = await loadText(new URL('./mundo-3d-prototype.js?v=' + BUILD, import.meta.url).href);
   code = await applyMod181(code);
   // Módulos locais importados pelo mundo (o código roda a partir de um blob, então os caminhos precisam ser absolutos).
-  code = code.replace(/from '\.\/([a-z0-9-]+\.js)'/gi, function(_, file) {
-    return "from '" + new URL('./' + file + '?v=' + BUILD, import.meta.url).href + "'";
-  });
+  // Este mundo roda a partir de blob:, portanto NENHUM import relativo
+  // sobrevive. Aceita imports com ?v=... para futuras mods, além de aspas duplas
+  // e import side-effect. Reescreve para URLs HTTPS absolutos da pasta do jogo.
+  code = code.replace(/\b(from\s+|import\s+)(['"])\.\/([a-z0-9-]+\.js)(?:\?[^'"]*)?\2/gi,
+    function(_, prefix, quote, file) {
+      return prefix + quote + new URL('./' + file + '?v=' + BUILD, import.meta.url).href + quote;
+    });
   code = rewriteAssetPaths(code, baseHref);
   const blob = new Blob([code], { type: 'text/javascript' });
   await import(URL.createObjectURL(blob));
