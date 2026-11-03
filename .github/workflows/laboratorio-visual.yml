@@ -97,19 +97,9 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cenario != 'agente')
         run: node tools/visual-lab/run.cjs
 
-      - name: Agente visual adaptativo observa e joga (ate duas tentativas)
+      - name: Executar rodadas consecutivas de IA visual (2 + 1 condicional)
         if: github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cenario == 'agente')
-        shell: bash
-        run: |
-          for tentativa in 1 2; do
-            if node tools/visual-lab/agent-run.cjs; then exit 0; fi
-            if [ "$tentativa" -eq 1 ]; then
-              mkdir -p visual-lab-results/tentativas
-              mv visual-lab-results/agente visual-lab-results/tentativas/agente-falha-1 || true
-              echo "Primeira tentativa falhou; preservada no artefato. Repetindo uma vez."
-            fi
-          done
-          exit 1
+        run: node tools/visual-lab/rounds.cjs
 
       - name: Comparar imagens com a execucao de referencia
         if: always() && github.event_name != 'pull_request' && (github.event_name == 'push' || github.event_name == 'schedule' || github.event.inputs.cenario == 'agente')
@@ -144,7 +134,7 @@ jobs:
         run: |
           if command -v ffmpeg >/dev/null 2>&1; then
             shopt -s nullglob
-            for video in visual-lab-results/videos/*.webm visual-lab-results/agente/videos/*.webm; do
+            for video in visual-lab-results/videos/*.webm visual-lab-results/agente/videos/*.webm visual-lab-results/rodadas/rodada-*/agente/videos/*.webm; do
               ffmpeg -y -hide_banner -loglevel error -i "$video" -an -c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p "${video%.webm}.mp4" || true
             done
           fi
