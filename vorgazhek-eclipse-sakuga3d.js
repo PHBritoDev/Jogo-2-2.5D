@@ -47,13 +47,22 @@ const BASIC_V=[
  "varying vec2 uv0;",
  "void main(){uv0=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}"
 ].join("\n");
+const WING_V=[
+ "uniform float time;varying vec2 uv0;",
+ "void main(){uv0=uv;vec3 p=position;",
+ " p.y+=(sin(uv.x*8.+time*2.1)*.38+sin(uv.x*21.-time*.9)*.21)*uv.x;",
+ " p.z+=sin(uv.x*9.+time*1.4)*1.1*uv.x;",
+ " gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}"
+].join("\n");
 const WING_F=[
  NOISE,"uniform float time;uniform float weight;varying vec2 uv0;",
  "void main(){vec2 p=uv0;float fib=fb(vec2(p.x*8.-time*.24,p.y*8.+time*.15));",
  " float edge=.12+.12*n2(vec2(p.x*19.+time*.12,p.y*7.));",
  " float tip=1.-smoothstep(.91,1.07,p.x+(.07-.05*p.y)*fib);",
  " float serration=.55+.45*sin(p.x*56.+p.y*17.+time*.28);",
- " float torn=smoothstep(.04,.18,p.y+.11*fib)*smoothstep(.02,.16,1.-p.y)*tip;",
+ " float tearLow=.03+.17*n2(vec2(p.x*12.-time*.19,1.8))+.07*sin(p.x*47.);",
+ " float tearHigh=.98-.13*n2(vec2(p.x*19.+time*.11,4.1));",
+ " float torn=smoothstep(tearLow,tearLow+.065,p.y)*(1.-smoothstep(tearHigh-.1,tearHigh,p.y))*tip;",
  " torn*=.7+.3*serration;",
  " if(torn<.035)discard;",
  " float vein=pow(max(0.,cos(p.y*17.+p.x*12.-time*.45)),22.);",
@@ -61,6 +70,8 @@ const WING_F=[
  " vec3 c=mix(vec3(.07,.007,.17),vec3(.45,.05,.68),clamp(p.y*.8+fib*.6,0.,1.));",
  " c=mix(c,vec3(1.,.016,.075),hot*(1.-p.x*.26)*.84);",
  " c+=vec3(1.,.09,.22)*vein*(.28+.72*hot);",
+ " float holes=fb(vec2(p.x*12.+time*.3,p.y*12.-time*.1));",
+ " c=mix(c,vec3(.006,.001,.016),smoothstep(.54,.72,holes)*.94*(.7+.3*p.x));",
  " c=mix(c,vec3(.02,.003,.055),smoothstep(.83,1.,p.x)*.24);",
  " gl_FragColor=vec4(c,weight*torn*(.9+.10*hot));}"
 ].join("\n");
@@ -116,7 +127,7 @@ export function createEclipseSakuga(T,parent){
   for(const mode of ["low","high"]){
     for(const side of [-1,1]){
       const geo=makeWingGeometry(T,side,mode==="low");geos.push(geo);
-      const mesh=new T.Mesh(geo,mkMat(BASIC_V,WING_F,{weight:wingAlpha}));
+      const mesh=new T.Mesh(geo,mkMat(WING_V,WING_F,{weight:wingAlpha}));
       mesh.renderOrder=7;mesh.frustumCulled=false;mesh.visible=false;
       wings.add(mesh);wingMeshes[mode].push(mesh);
     }
