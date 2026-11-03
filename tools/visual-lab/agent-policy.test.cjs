@@ -35,6 +35,17 @@ test("decisao: inicia Hidra, depois Chamas quando Hidra terminou", () => {
   assert.equal(decide({ tick: 10, vision: normal, state: world(), seen: { s1: true, hydraFinished: true } }).bossSkill, "s2");
   assert.equal(decide({ tick: 10, vision: normal, state: world(), seen: { s1: true, s2: true, hydraFinished: true } }).bossSkill, null);
 });
+test("visao: sinaliza silhueta escura que cobre o centro sem escurecer a tela toda", () => {
+  const w=30,h=20,raw=frame(140,140,140,w,h);
+  for(let y=5;y<16;y++)for(let x=9;x<22;x++){
+    const k=(y*w+x)*3;raw[k]=raw[k+1]=raw[k+2]=2;
+  }
+  const metrics=analyzePixels(raw,w,h);
+  assert.ok(metrics.flags.includes("possivel_objeto_escuro_obstruindo_camera"));
+  const move=decide({tick:1,vision:metrics,state:world(),seen:{s1:true}});
+  assert.equal(move.camera.distance,24);
+});
+
 test("decisao: responde aos pixels mudando camera, a vida baixa, e projeteis ativos", () => {
   const s = world({dim:{hp:30,hydra:{phase:"charge"}}});
   const p = decide({ tick: 4, vision: whiteout, state: s, seen: {s1:true} });
