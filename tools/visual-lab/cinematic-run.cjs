@@ -18,6 +18,10 @@ const MODES=Object.freeze({
 const wanted=(process.env.CINEMA_SIZES||"landscape,portrait").split(",").map(x=>x.trim()).filter(Boolean);
 if(!wanted.length||wanted.some(x=>!Object.prototype.hasOwnProperty.call(MODES,x)))
   throw Error("CINEMA_SIZES inválido. Permitidos: landscape,portrait");
+const TARGETS={bishop2:{profile:"vorgazhek",label:"Cosmica de Vorgazhek"},bishop3:{profile:"zarkhael",label:"Futura cinematica de Zarkhael"}};
+const TARGET=process.env.CINEMA_TARGET||"bishop2";
+if(!TARGETS[TARGET])throw Error("CINEMA_TARGET deve ser bishop2 ou bishop3");
+const EXPECTED=(process.env.CINEMA_PHASES||"").split(",").map(x=>x.trim()).filter(Boolean);
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const safeName=x=>String(x??"").replace(/[^a-zA-Z0-9_-]/g,"-").slice(0,44);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -51,10 +55,10 @@ async function readyBattle(page,result){
       await page.evaluate(()=>window.SevenSinsDebug3D.vsGo()).catch(e=>
         result.warnings.push("VS: "+String(e).slice(0,160)));
     }
-    if(s?.dim?.battle?.active&&s.dim.visible&&s.dim.profile==="vorgazhek")return s;
+    if(s?.dim?.battle?.active&&s.dim.visible&&s.dim.profile===TARGETS[TARGET].profile)return s;
     await pause(1750);
   }
-  throw Error("Bispo 2 não entrou na batalha de teste");
+  throw Error("A dimensão de "+TARGET+" não entrou na batalha de teste");
 }
 async function launchUltimate(page,result){
   const deadline=Date.now()+28000;
@@ -65,7 +69,7 @@ async function launchUltimate(page,result){
       d.power();
       // Nao confundir nome do kitMove com a prova de que a cena iniciou.
       const reply=d.kitMove("ult"),dim=d.dimState();
-      return {reply,cosmic:dim.cosmic||null,profile:dim.profile};
+      return {reply,cosmic:dim.cinematic||dim.cosmic||null,profile:dim.profile};
     });
     if(launch.cosmic){
       result.launch=launch.reply;
@@ -73,16 +77,17 @@ async function launchUltimate(page,result){
     }
     await pause(2500);
   }
-  throw Error("O motor não iniciou a ultimate cosmica; não basta kitMove retornar um nome");
+  throw Error("O motor não iniciou a ultimate de "+TARGET+"; exija kitMove(ult) e dimState().cinematic (ou cosmic, Bispo 2)");
 }
 async function inspectOnce(page,result,mode){
   const s=await state(page),now=Date.now();
   if(!s)throw Error("API QA desapareceu durante a cena");
   const dim=s.dim||{},probe=s.probe||{};
   const camera=probe.camera?.xyz||s.cine?.cam||null;
-  const row={ms:now-result.startedMs,phase:dim.cosmic?.phase||null,
-    cosmic:dim.cosmic?{phase:dim.cosmic.phase,pi:dim.cosmic.pi,pt:dim.cosmic.pt,
-      lock:dim.cosmic.lock,white:dim.cosmic.white,circles:dim.cosmic.circles}:null,
+  const cinematic=dim.cinematic||dim.cosmic||null;
+  const row={ms:now-result.startedMs,phase:cinematic?.phase||null,
+    cosmic:cinematic?{phase:cinematic.phase,pi:cinematic.pi,pt:cinematic.pt,
+      lock:cinematic.lock,white:cinematic.white,circles:cinematic.circles}:null,
     camera:Array.isArray(camera)?camera.map(Number):null,
     fov:Number.isFinite(dim.camFov)?dim.camFov:null,
     hero:[s.player?.x,s.player?.y,s.player?.z].map(Number),
@@ -94,7 +99,7 @@ async function inspectOnce(page,result,mode){
 async function oneMode(browser,mode){
   const dir=path.join(CINE,mode),shots=path.join(dir,"screenshots"),videoDir=path.join(dir,"videos");
   fs.mkdirSync(shots,{recursive:true});fs.mkdirSync(videoDir,{recursive:true});
-  const result={mode,viewport:MODES[mode],startedMs:Date.now(),started:false,ended:false,
+  const result={mode,target:TARGET,viewport:MODES[mode],startedMs:Date.now(),started:false,ended:false,
     captures:[],samples:[],warnings:[],errors:[],launch:null,video:null,qa:{},
     browser:"Chromium + WebGL SwiftShader (não é FPS de Android)"};
   let context,page;
@@ -104,7 +109,7 @@ async function oneMode(browser,mode){
     page=await context.newPage();
     page.on("pageerror",e=>{if(result.errors.length<20)result.errors.push("JS: "+e.message.slice(0,400));});
     page.on("requestfailed",r=>{if(result.warnings.length<20)result.warnings.push("Recurso: "+r.url().slice(0,130));});
-    const url=BASE+"/mundo-3d-prototype.html?testeDimensao=bishop2&debug3d=1&build=cinema-v6";
+    const url=BASE+"/mundo-3d-prototype.html?testeDimensao="+TARGET+"&debug3d=1&build=cinema-v6";
     result.url=url;
     await page.goto(url,{waitUntil:"domcontentloaded",timeout:45000});
     const initial=await readyBattle(page,result);
@@ -151,7 +156,7 @@ async function oneMode(browser,mode){
     result.qa.endFov=(await state(page))?.dim?.camFov??null;
     if(result.ended){
       const s=await state(page);
-      result.qa.finalLock=s?.dim?.cosmic?.lock??false;
+      result.qa.finalLock=(s?.dim?.cinematic||s?.dim?.cosmic)?.lock??false;
       const posBefore=[s?.player?.x,s?.player?.z];
       await page.keyboard.down("w");
       await pause(850);
@@ -191,7 +196,7 @@ async function oneMode(browser,mode){
     browserErrors:result.errors,startFov:result.qa.startFov,
     endFov:result.qa.endFov,finalLock:result.qa.finalLock,
     movementAttempted:result.qa.movementAttempted,moveMeters:result.qa.moveMeters,
-    captures:result.captures.length,phases:PHASES
+    captures:result.captures.length,phases:EXPECTED.length?EXPECTED:TARGET==="bishop2"?PHASES:[]
   });
   result.status=result.assessment.status;
   fs.writeFileSync(path.join(dir,"relatorio.json"),JSON.stringify(result,null,2)+"\n");
@@ -200,7 +205,7 @@ async function oneMode(browser,mode){
   return result;
 }
 function indexReport(results){
-  const summary={schema:1,commit:process.env.GITHUB_SHA||"local",
+  const summary={schema:1,commit:process.env.GITHUB_SHA||"local",target:TARGET,
     status:results.length&&results.every(r=>r.status==="capturado_para_revisao")?
       "capturado_para_revisao":"falhou",
     profiles:results.map(r=>({mode:r.mode,status:r.status,phases:r.assessment.phases,
@@ -208,7 +213,7 @@ function indexReport(results){
       viewport:r.viewport,captures:r.captures.length,perf:r.qa.perf,
       movementMeters:r.qa.moveMeters})),
     note:"Analise estrutural e evidencias, sem aprovacao artistica automatica. "+
-      "A ultimate do Bispo 3 ainda depende de implementacao e telemetria especifica."
+      "O Bispo 3 requer implementacao de kitMove(ult) e dimState().cinematic."
   };
   fs.writeFileSync(path.join(CINE,"resumo.json"),JSON.stringify(summary,null,2)+"\n");
   const items=results.map(r=>'<section style="margin:24px 0;padding:15px;background:#1e293b;border-radius:12px"><h2>'+
