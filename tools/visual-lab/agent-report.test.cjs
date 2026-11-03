@@ -28,11 +28,15 @@ test("cache e marcador numerico estao alinhados entre loader, HTML, pagina e lab
  const read=n=>fs.readFileSync(path.join(root,n),"utf8");
  const h=read("mundo-3d-prototype.html"),loader=read("mod181-loader.js"),
   index=read("index.html"),lab=read("laboratorio-inimigos.html"),world=read("mundo-3d-prototype.js");
- assert.match(h,/id="marker" aria-label="Modificação 272">272<\/div>/);
- assert.match(h,/mod181-loader\.js\?v=mod272-/);
- assert.match(loader,/const BUILD = 'mod272-/);
- assert.match(index,/refresh=272&build=272/);
- assert.match(lab,/build=272/);
+ const marker=h.match(/id="marker" aria-label="Modificação (\\d+)">(\\d+)<\\/div>/);
+ assert.ok(marker,"marcador deve conter numero da versao");
+ assert.equal(marker[1],marker[2],"texto e aria-label do marcador devem coincidir");
+ const version=Number(marker[1]);
+ assert.ok(version>=272,"versao nao deve regredir");
+ assert.ok(h.includes("mod181-loader.js?v=mod"+version+"-"),"HTML deve invalidar cache do loader");
+ assert.ok(loader.includes("const BUILD = 'mod"+version+"-"),"loader deve usar mesma versao");
+ assert.ok(index.includes("refresh="+version+"&build="+version),"index deve atualizar o iframe");
+ assert.ok(lab.includes("build="+version),"laboratorio deve atualizar o iframe");
  assert.match(world,/sceneProbe\(\)\{/);
  const gate=world.indexOf("if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D=");
  assert.ok(gate>=0 && world.indexOf("  sceneProbe(){",gate)>gate);
