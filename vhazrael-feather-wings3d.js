@@ -112,7 +112,7 @@ function featherCluster(T,side,quality){
  }
  return bufferGeo(T,xyz,uv,colors,idx);
 }
-const FEATHER_V=String.raw\`
+const FEATHER_V=String.raw`
 attribute vec3 color;
 uniform float time;
 varying vec3 vColor;
@@ -122,8 +122,8 @@ void main(){
  vec3 p=position;
  p.z+=.065*sin(p.x*.28+p.y*.31+time*.75)*sin(uv.y*3.14159);
  gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
-}\`;
-const FEATHER_F=String.raw\`
+}`;
+const FEATHER_F=String.raw`
 uniform float opacity;
 varying vec3 vColor;
 varying vec2 vUv;
@@ -134,7 +134,7 @@ void main(){
  float alpha=opacity*(.97-.07*abs(vUv.x*2.-1.));
  if(alpha<.012)discard;
  gl_FragColor=vec4(col,alpha);
-}\`;
+}`;
 /**
  * Renderização por lado = 1 malha corpórea + 1 malha agrupando TODAS as penas,
  * além de uma nervura contínua e um filamento de contorno violeta.
