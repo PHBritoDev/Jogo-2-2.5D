@@ -45,6 +45,10 @@ function analyzePixels(pixels, width, height, previous) {
   if (m.brightness < .055 || m.darkFraction > .96) flags.push("quadro_escuro");
   if (m.brightFraction > .56 || m.centerBrightFraction > .78) flags.push("brilho_encobrindo_tela");
   if (m.contrast < .045) flags.push("poucos_detalhes_visiveis");
+  // Na primeira gravação real, geometrias escuras próximas cobriam o centro,
+  // embora brilho e contraste globais parecessem normais.
+  if (m.centerDarkFraction > .45 && m.centerDarkFraction - m.darkFraction > .08 &&
+      m.contrast > .11) flags.push("possivel_objeto_escuro_obstruindo_camera");
   if (m.change !== null && m.change < .002) flags.push("imagem_quase_estatica");
   return { ...m, flags };
 }
@@ -58,7 +62,8 @@ function decide({tick, vision, state, seen = {}, prevPosition, lastCastTick = -9
   const phase = dim.hydra?.phase || dim.moonFlames?.phase || "livre";
   const flags = vision?.flags || [];
   const warnOcclusion = flags.includes("brilho_encobrindo_tela") ||
-    flags.includes("quadro_escuro") || flags.includes("poucos_detalhes_visiveis");
+    flags.includes("quadro_escuro") || flags.includes("poucos_detalhes_visiveis") ||
+    flags.includes("possivel_objeto_escuro_obstruindo_camera");
   const verySlow = vision?.change !== null && vision?.change < .002;
   const stuck = prevPosition && Number.isFinite(player.x) &&
     Math.hypot(player.x - prevPosition.x, player.z - prevPosition.z) < .05;
