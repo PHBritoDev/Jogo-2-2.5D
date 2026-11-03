@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod277-correcao-imports-blob-sem-regressao';
+const BUILD = 'mod278-sentenca-omnidirecional-espadabispo3';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
