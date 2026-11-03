@@ -22,6 +22,14 @@ function writeReport(log,dir){
  }).join("");
  const issueHtml=issues.length?issues.map(x=>'<li><b>'+esc(x.type)+'</b> ('+x.count+' ocorrencias) — '+esc(x.detail)+'</li>').join(""):"<li>Nenhum alerta recorrente. Ainda é necessário conferir as capturas.</li>";
  const rows=(log.decisions||[]).map(r=>'<tr><td>'+r.tick+'</td><td>'+esc(r.phase)+'</td><td>'+esc(r.vision?.quality??"—")+'</td><td>'+esc(r.vision?.flags?.join(", ")||"—")+'</td><td>'+esc(r.executed?.buttons?.join(", ")||"—")+'</td><td>'+esc(r.decision?.reason?.join(", ")||"—")+'</td></tr>').join("");
+ const probeRows=(log.decisions||[]).filter(r=>r.sceneProbe).map(r=>{
+  const p=r.sceneProbe||{},h=p.hydra||{};
+  const roots=(h.rootOffsets||[]).map(x=>x.relativeToGround??"—").join(", ");
+  return '<tr><td>'+r.tick+'</td><td>'+esc(p.heroGroundDelta??"—")+'</td><td>'+
+    esc(p.enemyGroundDelta??"—")+'</td><td>'+esc(h.bodyBottomRelativeToGround??"—")+
+    '</td><td>'+esc(roots||"—")+'</td><td>'+esc(p.renderer?.calls??"—")+
+    '</td><td>'+esc(p.camera?.distanceToBoss??"—")+'</td></tr>';
+ }).join("");
  const css=':root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0d1220;color:#f1f4fb;font:15px system-ui,sans-serif;line-height:1.5}main{max-width:1150px;margin:auto;padding:22px 14px 65px}h1{font-size:clamp(24px,5vw,35px);line-height:1.2}h2{margin:30px 0 10px}p,small{color:#afbdd3}.panel{background:#182033;border:1px solid #34435f;border-radius:12px;padding:15px;margin:12px 0}.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}.num{background:#1d2a3f;border-radius:12px;border:1px solid #34435f;padding:14px}.num strong{display:block;font-size:25px}.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,46vw),1fr));gap:10px}.gallery a{display:block;border:1px solid #33415a;border-radius:9px;overflow:hidden;text-decoration:none;color:#bbdfff}.gallery img{width:100%;aspect-ratio:16/9;object-fit:contain;display:block}.gallery small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px}video{width:100%;max-width:900px;background:black;border-radius:12px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%;min-width:820px;font-size:12px}th,td{border:1px solid #33435c;text-align:left;vertical-align:top;padding:8px}th{background:#293955}';
  const html=[
   '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agente Visual: relatório</title><style>',css,'</style></head><body><main>',
@@ -32,6 +40,7 @@ function writeReport(log,dir){
   '<h2>🔍 Suspeitas visuais</h2><div class="panel"><ul>',issueHtml,'</ul></div>',
   '<h2>📸 Galeria</h2><div class="gallery">',gallery,'</div>',
   '<h2>🧠 Decisões por etapa</h2><div class="scroll"><table><thead><tr><th>Passo</th><th>Fase</th><th>Visibilidade</th><th>Alertas</th><th>Comandos</th><th>Motivo</th></tr></thead><tbody>',rows,'</tbody></table></div>',
+  '<h2>📐 Sonda geométrica do motor</h2><p>Medidas aproximadas: malhas deformadas por shader exigem confirmação nos frames. Valores em unidades do mundo 3D.</p><div class="scroll"><table><thead><tr><th>Passo</th><th>Herói/chão</th><th>Bispo/chão</th><th>Corpo Hidra/chão</th><th>Raízes/chão</th><th>Draw calls</th><th>Câmera/bispo</th></tr></thead><tbody>',probeRows,'</tbody></table></div>',
   '<h2>Erros</h2><div class="panel"><pre style="white-space:pre-wrap;overflow-wrap:anywhere">',esc((log.errors||[]).join("\n")||"Nenhum erro registrado."),'</pre></div></main></body></html>'
  ].join("");
  fs.writeFileSync(path.join(dir,"ver-analise.html"),html);
