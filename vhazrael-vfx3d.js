@@ -1,5 +1,5 @@
 import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smooth, easeOut, hash } from './celestial-fxkit3d.js';
-import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod275-bispo1-ruptura-reference';
+import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod276-feathered-wings';
 import { createExtinctionVFX } from './vhazrael-extinction3d.js?v=mod255-bombardeio-dobro';
 import { createBombardVFX } from './vhazrael-bombard3d.js?v=mod255-bombardeio-dobro';
 /**
