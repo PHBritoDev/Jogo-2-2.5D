@@ -122,7 +122,7 @@ async function stepAction(decision, tick, s){
     try{
       await page.evaluate(()=>{
         const d=window.SevenSinsDebug3D,hp=d.dimState().hp;
-        if(hp>0 && hp<65)d.hurtPlayer(hp-100);
+        if(hp>0 && hp<95)d.hurtPlayer(hp-100);
       });
       item.buttons.push("healing QA");
     }catch(e){logs.warnings.push("cura QA: "+e.message);}
@@ -219,11 +219,32 @@ async function execute(){
       await screenshot("erro-batalha-nao-iniciou");
       throw Error("Bispo 3 nao entrou em batalha real no navegador");
     }
+    // QA-only: o poder Hidra causa dano rapido mesmo com "god".
+    // Uma captura WebGL/camera pode demorar varios segundos em SwiftShader.
+    // Curar apenas entre capturas era tarde: em execucoes reais o heroi
+    // perdeu a batalha antes do segundo poder (evidencia Run 41589780231).
     await page.evaluate(()=>{
       const d=window.SevenSinsDebug3D;
       d.god();
       d.skills();
-      d.speed(6);
+      d.speed(3);  // 6x acelerava dano enquanto Playwright fotografava.
+      if(window.__visualQAHealingInterval)clearInterval(window.__visualQAHealingInterval);
+      window.__visualQAHeals=0;
+      window.__visualQAHealErrors=0;
+      const survive=()=>{
+        try{
+          const live=window.SevenSinsDebug3D;
+          const state=live?.dimState?.();
+          if(!state?.battle?.active || !state.visible ||
+              state.profile!=="zarkhael" || !Number.isFinite(state.hp) ||
+              state.hp<=0 || state.hp>=95)return;
+          // Metodo existente da API debug; nunca habilita cura a jogador real.
+          live.hurtPlayer(state.hp-100);
+          window.__visualQAHeals++;
+        }catch(_e){window.__visualQAHealErrors++;}
+      };
+      survive();
+      window.__visualQAHealingInterval=setInterval(survive,200);
     });
     await screenshot("00-visual-inicial");
 
@@ -307,6 +328,8 @@ async function execute(){
       await delay(1700);
     }
     logs.finalState=await gameState();
+    logs.qaHealing=await page.evaluate(()=>({heals:window.__visualQAHeals||0,
+      errors:window.__visualQAHealErrors||0,active:!!window.__visualQAHealingInterval}));
     logs.summary={bossAbilitiesTriggered:[...["s1","s2"].filter(k=>seen[k])],
       hydraObserved:seen.hydraObserved,flameObserved:seen.flameObserved,
       stepCount:logs.decisions.length,activeSamples,actionSamples,framesWithFlags:flagsCount,
@@ -322,6 +345,14 @@ async function execute(){
     logs.errors.push(e.stack||String(e));
     if(page && !page.isClosed())await screenshot("erro-agente");
   }finally{
+    if(page && !page.isClosed()){
+      try{await page.evaluate(()=>{
+        if(window.__visualQAHealingInterval){
+          clearInterval(window.__visualQAHealingInterval);
+          window.__visualQAHealingInterval=null;
+        }
+      });}catch(_e){}
+    }
     if(context){
       try{
         const video=page?.video();
