@@ -1,11 +1,8 @@
 /**
- * BISPO 3 (ZAR'KHAEL) — SKILL 2: LUA TENEBROSA — O FOGO QUE NÃO MORRE.
+ * BISPO 3 (ZAR'KHAEL) — SKILL 2: CHAMAS NEGRAS — O FOGO QUE NÃO MORRE.
  *
  * Lógica pura e testável (createBlackMoonFlames = sequência; createFlameHazards = manchas no chão e queimadura NÃO
  * acumulativa) + VFX (createBlackFlameVFX) num relógio só:
- *   moon        0–1,4 s   a lua-máscara de horror da referência (crânio pálido de aquarela, vazio negro colossal à direita,
- *                         olhos esbugalhados olhando de lado em órbitas negras, nariz em cunha branca, sorriso de dentes
- *                         pontudos e rosados, sombra do queixo) se revela alta no céu. ESTÁTICA: não segue o herói.
  *   10 chamas   1,9 s +   exatamente 10 chamas negras (línguas fluidas, contorno prata/violeta), uma a cada 0,85 s, cada
  *                         uma com o tamanho da antiga colossal e antecipação de 0,36 s na mão; mira travada, arco curto,
  *                         colisão varrida. Acerto: dano + queimadura 3,4 s. Chão: mancha viva 4,0 s; tocar: queimadura 4,0 s.
@@ -15,9 +12,9 @@
  *   moon fade             a lua só começa a sumir DEPOIS do lançamento da colossal.
  * Queimadura: uma instância só por herói; recontato renova até a maior duração; a forte substitui a fraca; nunca soma ticks.
  */
-export const BLACKFLAME_BUILD = '270-black-moon-flames-refino';
+export const BLACKFLAME_BUILD = '271-black-flames-sem-lua';
 export const BF = {
-  moonIn: 1.4, firstShot: 1.9, shotGap: .85, windup: .36, shots: 10, finalAt: 10.0, finalCharge: 2.5, moonOut: 1.1,
+  firstShot: 1.9, shotGap: .85, windup: .36, shots: 10, finalAt: 10.0, finalCharge: 2.5,
   smallSpeed: 18, bigSpeed: 13, lead: .2, leadCap: 2, smallR: .9, bigR: 2.4, life: 3.4,
   smallDmg: 3, bigDmg: 20, burnSmallHit: 3.4, fieldSmall: 4.0, burnSmallField: 4.0, burnBig: 6.0, fieldBig: 7.0,
   fieldSmallR: 1.8, fieldBigR: 6.5, tick: .6, tickWeak: 1, tickStrong: 2, heroR: .45, maxFields: 12, releaseAfter: .45,
@@ -61,21 +58,20 @@ export function createFlameHazards(opts = {}) {
 /** A sequência da Skill 2 (lua + 10 chamas + colossal). hazards = createFlameHazards() compartilhado. */
 export function createBlackMoonFlames(opts = {}) {
   const T = { ...BF, ...(opts.T || {}) }, ground = opts.ground || (() => 0), dmgMul = opts.dmgMul || 1, hazards = opts.hazards || createFlameHazards({ ground, T: opts.T });
-  const st = { phase: 'idle', t: 0, shots: [], fired: 0, final: null, moon: 0, moonGone: false, done: false, aborted: false, trauma: 0, kickT: 99, finalLaunched: -1 };
+  const st = { phase: 'idle', t: 0, shots: [], fired: 0, final: null, done: false, aborted: false, trauma: 0, kickT: 99, finalLaunched: -1 };
   const shotAt = i => T.firstShot + i * T.shotGap;
   const api = {
     T, st, hazards, get done() { return st.done; },
     /** o bispo está preso no ritual (conjurando) até um instante depois do lançamento da colossal */
     get holdBoss() { return !st.done && st.phase !== 'idle' && !st.aborted && (st.finalLaunched < 0 || st.t < st.finalLaunched + T.releaseAfter); },
-    start() { Object.assign(st, { phase: 'moon', t: 0, shots: [], fired: 0, final: null, moon: 0, moonGone: false, done: false, aborted: false, trauma: 0, kickT: 99, finalLaunched: -1 }); return api; },
+    start() { Object.assign(st, { phase: 'windup', t: 0, shots: [], fired: 0, final: null, done: false, aborted: false, trauma: 0, kickT: 99, finalLaunched: -1 }); return api; },
     abort() { if (st.done || st.phase === 'idle') return; st.aborted = true; for (const s of st.shots) if (s.state === 'fly') s.state = 'gone'; if (st.final && st.final.state !== 'impact') st.final.state = 'gone'; if (st.finalLaunched < 0) st.finalLaunched = st.t; },
     /** wind-up atual (0..1) da mão para a i-ésima chama, ou da colossal (i=T.shots) */
     windup(i) { if (i < T.shots) { const a = shotAt(i) - T.windup; return clamp01((st.t - a) / T.windup); } return clamp01((st.t - T.finalAt) / T.finalCharge); },
-    /** ctx {from:{x,y,z} (mão), hero:{x,y,z,vx,vz,iframes}}. Eventos: moon, windup, fire{i}, impact{i,big,kind,x,y,z}, hit{dmg,big}, final_charge, final_fire, moon_fade, end. */
+    /** ctx {from:{x,y,z} (mão), hero:{x,y,z,vx,vz,iframes}}. Eventos: windup, fire{i}, impact{i,big,kind,x,y,z}, hit{dmg,big}, final_charge, final_fire, end. */
     step(dt, ctx) {
       const ev = [], h = ctx.hero, from = ctx.from; if (st.done || st.phase === 'idle') return ev; const t0 = st.t; st.t += dt; const t = st.t, cross = a => t0 < a && t >= a;
       st.trauma = Math.max(0, st.trauma - dt / .7); st.kickT += dt;
-      if (t0 === 0) ev.push({ type: 'moon' });
       const gy = Number.isFinite(h.y) ? h.y : ground(h.x, h.z);
       if (!st.aborted) {
         for (let i = 0; i < T.shots; i++) { if (cross(shotAt(i) - T.windup)) ev.push({ type: 'windup', i });
@@ -84,9 +80,6 @@ export function createBlackMoonFlames(opts = {}) {
         if (st.phase === 'final_charge') st.trauma = Math.max(st.trauma, .15 * sm((t - T.finalAt) / T.finalCharge));
         if (cross(T.finalAt + T.finalCharge) && !st.final) { const s = launch(from, h, gy, T.bigSpeed, true); s.i = T.shots; st.final = s; st.finalLaunched = t; st.phase = 'final'; ev.push({ type: 'final_fire', x: s.x, y: s.y, z: s.z, target: s.target }); }
       }
-      if (st.finalLaunched >= 0 && t >= st.finalLaunched && !st.moonGone) { if (!st.fadeEv) { st.fadeEv = true; ev.push({ type: 'moon_fade' }); } }
-      st.moon = st.finalLaunched >= 0 ? 1 - clamp01((t - st.finalLaunched) / T.moonOut) : sm(t / T.moonIn);
-      if (st.finalLaunched >= 0 && st.moon <= 0) st.moonGone = true;
       for (const s of [...st.shots, st.final].filter(Boolean)) { if (s.state !== 'fly') { if (s.state === 'impact') { s.it += dt; if (s.it > (s.big ? 1.4 : .7)) s.state = 'gone'; } continue; }
         const px = s.x, py = s.y, pz = s.z; s.ft += dt; const k = clamp01(s.ft / s.T); s.x = s.ox + (s.target[0] - s.ox) * k; s.z = s.oz + (s.target[2] - s.oz) * k; s.y = s.oy + (s.target[1] - s.oy) * k + s.arc * 4 * k * (1 - k);
         s.path.push([s.x, s.y, s.z]); if (s.path.length > (s.big ? 20 : 14)) s.path.shift();
@@ -99,7 +92,7 @@ export function createBlackMoonFlames(opts = {}) {
           if (hit) { ev.push({ type: 'hit', dmg: Math.round((s.big ? T.bigDmg : T.smallDmg) * dmgMul), big: s.big, i: s.i }); const res = hazards.burn(s.big ? 'strong' : 'weak', s.big ? T.burnBig : T.burnSmallHit); ev.push({ type: 'burn', tier: hazards.st.burn.tier, res, from: 'hit' }); }
           else { const f = hazards.addField(ix, iz, s.big); ev.push({ type: 'field', id: f.id, big: s.big, x: ix, y: f.y, z: iz }); } } }
       const allDone = st.fired >= T.shots && st.final && st.shots.every(s => s.state === 'gone') && st.final.state === 'gone';
-      if (!st.done && ((allDone && st.moon <= 0) || (st.aborted && st.t - st.finalLaunched > .5 && [...st.shots, st.final].filter(Boolean).every(s => s.state === 'gone' || s.state === 'impact' && s.it > .3)))) { st.done = true; st.phase = 'done'; ev.push({ type: 'end', fired: st.fired, final: !!st.final, aborted: st.aborted }); }
+      if (!st.done && (allDone || (st.aborted && st.t - st.finalLaunched > .5 && [...st.shots, st.final].filter(Boolean).every(s => s.state === 'gone' || s.state === 'impact' && s.it > .3)))) { st.done = true; st.phase = 'done'; ev.push({ type: 'end', fired: st.fired, final: !!st.final, aborted: st.aborted }); }
       return ev;
     }
   };
@@ -115,67 +108,6 @@ export function createBlackMoonFlames(opts = {}) {
 const NOISE = `float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h1(i),h1(i+vec2(1,0)),f.x),mix(h1(i+vec2(0,1)),h1(i+vec2(1,1)),f.x),f.y);}
 float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*n2(p);p*=2.02;a*=.5;}return s;}`;
-/* Lua tenebrosa (referência B, recriada à mão no shader e comparada lado a lado com a imagem): crânio pálido de topo largo
-   e queixo em diagonal, manchas de aquarela com borda escura, vazio negro colossal à direita (crescente claro fino à direita,
-   grosso em cima e embaixo), dois olhos esbugalhados desiguais em órbitas negras olhando de lado, nariz em cunha branca,
-   sorriso em cunha com dentes pontudos rosados sobre gengiva vermelha, sombra do queixo. Estática; revela/dissolve por ruído. */
-const MOON_V = `varying vec2 vU; void main(){ vU=uv*2.-1.; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
-const MOON_F = `${NOISE} uniform float time,show; varying vec2 vU;
-float ell(vec2 p,vec2 c,vec2 r){ return length((p-c)/r)-1.; }
-float seg(vec2 p,vec2 a,vec2 b){ vec2 pa=p-a,ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.); return length(pa-ba*h); }
-vec3 stain(vec3 col,float s,float a,float k){ float m=smoothstep(a,a+.025,s), e=smoothstep(.035,0.,abs(s-a)); return mix(col,col*(1.-k),m)*(1.-e*k*.45); } /* mancha de aquarela: borda mais escura */
-void main(){
- vec2 p=vec2(vU.x,vU.y*1.257); float ang=atan(p.y,p.x);
- /* contorno de crânio: topo largo e achatado, lado esquerdo quase reto, queixo cortado em diagonal, borda irregular */
- vec2 q=p/vec2(1.04,1.24); float ex=p.y>0.?2.7:2.2; float rr=pow(pow(abs(q.x),ex)+pow(abs(q.y),ex),1./ex);
- float wob=1.+.035*(n2(vec2(ang*2.4,3.1))-.5)+.02*(n2(vec2(ang*9.,1.7))-.5); float cut=dot(p,vec2(-.6,-.8))-1.02-.03*(n2(p*6.)-.5);
- float jc=mix(-1.,(length(p-vec2(-.3,-.38))-.8-.025*(n2(p*7.)-.5))*1.5,smoothstep(-.3,-.5,p.y)*smoothstep(.1,-.12,p.x)); float outl=max(rr-wob,jc); if(outl>0.) discard;
- float rev=fbm(p*2.1+3.); if(rev>show*1.3) discard;
- /* osso pálido: claro no centro do rosto, aquarela suja, papel granulado */
- float gran=n2(p*42.)*.5+n2(p*95.)*.5, brush=fbm(vec2(p.x*3.,p.y*9.)+7.), fb=fbm(p*2.3+vec2(5.,1.)), fc=fbm(p*4.6+2.), fr=fbm(p*3.+11.);
- vec3 col=mix(vec3(.42,.415,.4),vec3(.84,.83,.8),smoothstep(-.15,.75,1.-length((p-vec2(-.4,.05))/vec2(.95,1.15))+.3*(brush-.5)));
- float edgeM=smoothstep(.35,.95,rr); col*=.86+.16*gran; col=stain(col,fb+.18*edgeM-.06,.66,.4); col=stain(col,fc+.1*edgeM,.74,.3); col=mix(col,col*vec3(1.,.84,.82),smoothstep(.56,.72,fr)*.55);
- col=mix(col,col*.25,smoothstep(-.12,0.,outl)); /* borda escura contra o céu */
- col=mix(col,col*.62,smoothstep(.3,.9,fbm(p*1.3+vec2(9.,4.)))*smoothstep(-.2,-.75,p.y+.2*p.x)); col=mix(col,min(col*1.18,vec3(1.)),smoothstep(.55,.8,fbm(vec2(p.x*2.,p.y*6.)+21.))*.6);
- /* manchas escuras grandes no topo, como na pintura */
- float s1=ell(p+vec2((n2(p*7.)-.5)*.16,(n2(p*5.)-.5)*.12),vec2(-.42,1.0),vec2(.27,.18)), s2=ell(p+vec2((n2(p*9.)-.5)*.08,0.),vec2(.28,1.1),vec2(.16,.07)); vec2 pn=p+vec2(n2(p*13.)-.5,n2(p*13.+4.)-.5)*.07; float s3=ell(pn,vec2(-.66,.72),vec2(.06,.05)), s4=ell(pn,vec2(.42,-1.16),vec2(.07,.045)), s5=ell(pn,vec2(-.97,.25),vec2(.05,.2));
- col=stain(col,-s1,0.,.55); col=stain(col,-s2,0.,.45); col=stain(col,-min(s3,min(s4,s5)),0.,.6);
- float crack=seg(p+vec2((n2(p*14.)-.5)*.035,0.),vec2(-.37,.47),vec2(-.33,.14)); col=mix(col,vec3(.13,.13,.13),(1.-smoothstep(.006,.026,crack))*.75);
- /* vazio negro colossal à direita; a borda clara vira um crescente fino à direita e grosso em cima e embaixo */
- vec2 vp=p-vec2(.47,-.09); float va=atan(vp.y,vp.x); vec2 va2=abs(vp/vec2(.53,.91)); float vd=pow(pow(va2.x,2.7)+pow(va2.y,2.7),1./2.7)-1.+.045*(n2(vec2(va*3.,7.))-.5)+.02*(n2(vec2(va*11.,2.))-.5);
- col=mix(col,col*.42,smoothstep(.22,0.,vd)); col=mix(col,vec3(.006,.006,.008),smoothstep(.012,-.02,vd));
- /* queixo: crescente escuro marcado sob o sorriso, osso claro abaixo */
- vec2 jp=p-vec2(-.3,-.38); float ja=atan(jp.y,jp.x), jr=length(jp)+.025*(n2(p*9.)-.5); float jawW=smoothstep(-3.05,-2.75,ja)*smoothstep(-.55,-1.05,ja);
- col=mix(col,col*.4,(1.-smoothstep(.0,.14,.6-jr))*step(jr,.62)*jawW*.8*smoothstep(-.45,-.7,p.y)); col=mix(col,vec3(.04,.035,.035),(1.-smoothstep(.03,.085,abs(jr-.64)))*jawW);
- col=mix(col,col*.5,smoothstep(.62,.35,jr)*smoothstep(-.3,-.5,p.y)*smoothstep(-.1,-.35,p.x)*smoothstep(-2.95,-2.5,ja)*step(ja,0.)*.7);
- /* órbitas fundas (sombra pintada, não anel) e olhos esbugalhados olhando de lado */
- vec2 e1=vec2(-.69,.07), e2=vec2(-.165,.12); float nz=.06*(n2(p*11.)-.5);
- float k1=ell(p,e1+vec2(.005,0.),vec2(.225,.28))+nz, k2=ell(p,e2,vec2(.125,.245))+nz; float kk=min(k1,k2);
- col=mix(col,col*.55,(1.-smoothstep(-.05,.4,kk))*.75); col=mix(col,col*vec3(.9,.72,.72),(1.-smoothstep(.0,.3,abs(kk-.25)))*.35); col=mix(col,vec3(.03,.03,.035),1.-smoothstep(-.06,.06,kk+.05*(n2(p*23.)-.5)));
- vec2 c1=vec2(-.67,.05), c2=vec2(-.16,.09), r1=vec2(.172,.232), r2=vec2(.1,.185); float b1=ell(p,c1,r1), b2=ell(p,c2,r2);
- if(min(b1,b2)<.02){ bool L=b1<b2; vec2 ec=L?c1:c2, er=L?r1:r2; vec2 u=(p-ec)/er; float lu=length(u);
-  vec3 eye=mix(vec3(.4,.4,.39),vec3(.9,.9,.87),clamp(.55+.4*u.x-.1*u.y,0.,1.))*(.84+.16*fbm(vec2(u.x*9.,u.y*3.)+(L?1.:5.))); eye=mix(eye,eye*.4,smoothstep(.45,1.,lu)*smoothstep(.3,-.9,u.x+u.y)); eye=mix(eye,eye*.5,smoothstep(.35,.95,u.y)*.8);
-  float id=length((u-vec2(-.52,-.06))/vec2(.5,.74)); float iris=1.-smoothstep(.8,1.,id); eye=mix(eye,mix(vec3(.06,.07,.06),vec3(.24,.25,.21),smoothstep(.3,.95,id)),iris);
-  eye+=vec3(.06)*(1.-smoothstep(0.,.3,length(u-vec2(.3,.45)))); col=mix(eye,col,smoothstep(-.02,.02,L?b1:b2)); }
- /* nariz: cunha branca afilada, ponta clara e narina escura embaixo */
- float nk=clamp((p.y+.2)/-.23,0.,1.), nx=p.x-(-.315+.025*nk), nw=.01+.055*pow(nk,1.2); float nose=min(max(abs(nx)-nw,max(p.y+.19,-p.y-.42)),ell(p,vec2(-.29,-.42),vec2(.065,.035)));
- col=mix(col,col*.55,(1.-smoothstep(0.,.08,max(abs(nx+.08)-.05,abs(p.y+.31)-.13)))*.5); col=mix(col,mix(vec3(.82,.8,.77),vec3(.97,.96,.93),nk),1.-smoothstep(-.006,.01,nose));
- col=mix(col,vec3(.1,.08,.08),(1.-smoothstep(-.2,.6,ell(p,vec2(-.28,-.47),vec2(.08,.03))))*.8);
- /* boca: sorriso em cunha que cresce até o vazio, dentes grandes, pontudos e entrelaçados, gengiva vermelha */
- float mx=(p.x+.58)/.47; float top0=-.55-.01*sin(mx*3.14), mid=-.675-.055*mx+.006*sin(mx*37.), bot0=-.8-.1*mx-.015*sin(mx*3.14), tap=sqrt(clamp(mx/.12,0.,1.)); float top=mid+(top0-mid)*tap, bot=mid+(bot0-mid)*tap;
- float inM=(p.y<top&&p.y>bot&&mx>0.&&mx<1.35)?1.:0.;
- col=mix(col,col*.5,(1.-smoothstep(0.,.1,max(max(p.y-top,bot-p.y),-mx*.53)))*(1.-inM)*.75*step(-.01,vd)); col=mix(col,col*.45,step(p.y,bot)*(1.-smoothstep(.0,.12,bot-p.y))*smoothstep(-.1,.15,mx)*(1.-inM)*.8);
- if(inM>.5&&vd>-.03){
-   float NU=7., NL=6.5; vec2 pj=p+vec2(n2(p*60.)-.5,n2(p*60.+3.)-.5)*.012; float mj=(pj.x+.58)/.47; float tu=fract(mj*NU), tl=fract(mj*NL+.5); vec2 iu=vec2(floor(mx*NU),1.), il=vec2(floor(mx*NL+.5),2.);
-   float gT=top-.022, gB=bot+.02; float hU=(gT-mid)*(.96+.16*h1(iu)), hL=(mid-gB)*(.98+.16*h1(il));
-   float dU=clamp((gT-p.y)/hU,0.,2.), dL=clamp((p.y-gB)/hL,0.,2.); float wU=.5*pow(max(0.,1.-dU),.6), wL=.5*pow(max(0.,1.-dL),.6);
-   wU*=.9+.15*h1(iu+7.); wL*=.9+.15*h1(il+7.); float aU=abs(tu-.5+.08*(h1(iu+3.)-.5)*dU)-wU, aL=abs(tl-.5+.1*(h1(il+3.)-.5)*dL)-wL; float tU=(p.y<gT)?1.-smoothstep(-.06,-.025,aU):0., tL=(p.y>gB)?1.-smoothstep(-.06,-.025,aL):0.; /* vão fino escuro entre os dentes */
-   vec3 gum=vec3(.47,.17,.17), dark=vec3(.24,.08,.08), th=mix(vec3(.8,.62,.6),vec3(.94,.85,.82),n2(p*70.))*(.9+.1*n2(p*150.));
-   vec3 c=mix(dark,gum*.6,smoothstep(.0,.03,abs(p.y-mid))*.5); c=mix(c,gum*.9,smoothstep(gB+.04,gB-.01,p.y)*.45); c=mix(c,gum*.5,smoothstep(gT-.03,gT+.01,p.y)*.5);
-   float t=max(tU,tL); vec3 tc=th*(.75+.25*(tU>tL?1.-dU:1.-dL))*(.85+.15*(1.-abs((tU>tL?tu:tl)-.5)*2.)); tc=mix(tc,vec3(.62,.3,.3),smoothstep(-.12,-.03,tU>tL?aU:aL)*.5); tc=mix(tc,vec3(.6,.28,.28),(tU>tL?1.-dU:1.-dL)*.35);
-   c=mix(c,tc,t); vec3 cc=mix(c,col*.35,smoothstep(.6,1.,1.-min(top-p.y,p.y-bot)/.025)*.5); col=mix(col*.45,cc,smoothstep(0.,.014,min(top-p.y,p.y-bot))); }
- col=mix(col,vec3(.6,.6,.6),smoothstep(show*1.3-.06,show*1.3,rev)*.4);
- gl_FragColor=vec4(col,1.); }`;
 /* Fogo negro (referência A): línguas que sobem/arrastam no mundo, núcleo de tinta preta, contorno prata frio e violeta
    sombrio, ondulação contínua; tipo 1 = fio de fumaça cinza translúcido. */
 const FL_V = `uniform float time,grow,lenMul,widthMul; uniform vec3 flow; attribute vec3 aBase; attribute vec4 aF; varying vec2 vU; varying vec4 vF; varying float vWy;
@@ -220,9 +152,6 @@ export function createBlackFlameVFX(T, scene) {
   const G = {}; for (const k of ['small', 'big', 'fieldS', 'fieldB', 'auraW', 'auraS']) { G[k] = tongueGeo(T, bases(k)); geos.push(G[k]); }
   const flame = (geoKey, ro = 4) => { const u = { alpha: { value: 1 }, grow: { value: 1 }, lenMul: { value: 1 }, widthMul: { value: 1 }, flow: { value: new T.Vector3() }, groundY: { value: -1e9 } };
     const m = new T.Mesh(G[geoKey], mat({ vertexShader: FL_V, fragmentShader: FL_F, transparent: true, depthWrite: false, side: T.DoubleSide, uniforms: u })); m.frustumCulled = false; m.renderOrder = ro; m.visible = false; m.userData.u = u; root.add(m); return m; };
-  /* lua */
-  const moonU = { show: { value: 0 } }, moonG = new T.PlaneGeometry(2, 2); geos.push(moonG);
-  const moon = new T.Mesh(moonG, mat({ vertexShader: MOON_V, fragmentShader: MOON_F, transparent: true, depthWrite: false, uniforms: moonU })); moon.frustumCulled = false; moon.visible = false; moon.renderOrder = 3; root.add(moon); let moonPlaced = false;
   /* pools */
   const NS = BF.shots, shotsF = Array.from({ length: NS + 1 }, () => flame('big', 5)), handF = flame('small', 6), chargeF = flame('big', 6); /* as 10 menores usam a forma da antiga colossal; a última é a colossal 3× */
   const NF = BF.maxFields, fieldF = Array.from({ length: NF + 1 }, (_, i) => flame(i === NF ? 'fieldB' : 'fieldS', 3));
@@ -240,17 +169,11 @@ export function createBlackFlameVFX(T, scene) {
   const nearFade = (x, y, z, s) => .25 + .75 * sm((Math.hypot(x - cam.x, y - cam.y, z - cam.z) - 1.2 * s) / (3 * s)); /* chama gigante perto da câmera fica translúcida: o combate continua legível */
   const setFlame = (m, x, y, z, s, alpha, grow, flow, gy) => { m.visible = alpha > .01; if (!m.visible) return; m.position.set(x, y, z); m.scale.setScalar(s); const u = m.userData.u; u.alpha.value = alpha; u.grow.value = grow; u.flow.value.copy(flow); u.groundY.value = gy; };
   return {
-    root, get moonPos() { return moon.visible ? moon.position : null; },
+    root,
     /** ctx {camera, hero:{x,y,z}, boss:{x,y,z,yaw}, hand:{x,y,z}, low, arena:{x,z,r}} */
     update(seq, hz, ctx, dt) {
       time += dt; uTime.value = time; cam.copy(ctx.camera.position); const st = seq && seq.st, H = ctx.hero, low = !!ctx.low;
       for (const m of [...shotsF, handF, chargeF, ...burstF, ...rings, warn]) m.visible = false;
-      // ---- lua: posição fixa no alto, escolhida no início; estática e ameaçadora (não segue o herói) ----
-      const showMoon = st && !st.done && st.moon > .001; moon.visible = !!showMoon;
-      if (showMoon) { if (!moonPlaced) { moonPlaced = true; const B = ctx.boss, A = ctx.arena || { x: B.x, z: B.z, r: 30 }; let dx = B.x - H.x, dz = B.z - H.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; /* atrás do bispo visto do herói, alta e distante */
-          moon.position.set(A.x + dx * 34, (ctx.groundY ?? B.y) + 15, A.z + dz * 34); moon.scale.set(8.6, 10.8, 1); /* alta, dentro do anel de cogumelos, oval como na referência */ V.set(H.x, (ctx.groundY ?? B.y) + 4, H.z); moon.lookAt(V); moon.updateMatrixWorld(); }
-        moonU.show.value = Math.min(1, st.moon * 1.05); }
-      else if (!st || st.done) moonPlaced = false;
       if (st && !st.done) {
         const hand = ctx.hand, gyB = ctx.groundY ?? ctx.boss.y;
         // energia na mão (antecipação de cada chama) e a carga da colossal
@@ -278,7 +201,7 @@ export function createBlackFlameVFX(T, scene) {
       ashT += dt; for (let i = 0; i < AN; i++) { const a = ashA[i * 4 + 3]; if (a <= 0) continue; ashA[i * 4] += ashV[i * 3] * dt; ashA[i * 4 + 1] += ashV[i * 3 + 1] * dt; ashA[i * 4 + 2] += ashV[i * 3 + 2] * dt; ashA[i * 4 + 3] = Math.max(0, a - dt * .7); }
       ashG.attributes.aA.needsUpdate = true; root.visible = true;
     },
-    clear() { for (const m of root.children) m.visible = false; ashA.fill(0); moonPlaced = false; },
+    clear() { for (const m of root.children) m.visible = false; ashA.fill(0); },
     dispose() { scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); }
   };
 }
