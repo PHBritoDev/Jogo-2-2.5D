@@ -6049,7 +6049,7 @@ function startMoonFlames(m){
  showCombatCallout(m.name);status.textContent="ZAR'KHAEL ergue o rosto ao céu — a Lua Tenebrosa abre os olhos…";
  playPose(enemyPoseRoot(),'channel',1.5,foeYaw,.2);worldAudio.abyss3&&worldAudio.abyss3('gravity',.9);worldAudio.abyss3&&worldAudio.abyss3('warn',.4);
 }
-function stopMoonFlames(){moonFlames=null;if(bfHazards)bfHazards.clear();undoBfShake();if(bfVfx)bfVfx.clear();}
+function stopMoonFlames(){if(moonFlames&&moonFlames._cam)ultCam.want=0;moonFlames=null;if(bfHazards)bfHazards.clear();undoBfShake();if(bfVfx)bfVfx.clear();}
 function burnTick(n){ /* dano da queimadura: não dá i-frames nem interrompe o herói; só o golpe final passa pelo caminho completo */
  if(playerHP<=0||cineActive||whiteLease.locked||!enemyAlive)return;if(playerHP-n<=0){playerInvulnerableUntil=0;damagePlayerFromEnemyAttack(n);return;}
  playerHP=Math.max(0,playerHP-n);updatePlayerHud();
@@ -6073,9 +6073,11 @@ function updateMoonFlames(dt){
   else if(e.type==='tick'){burnTick(e.dmg);}
   else if(e.type==='burn_end'){status.textContent='O fogo negro se apagou.';}
  }
+ /* câmera de jogo levemente inclinada para a lua enquanto ela existe (mesmo yaw: os controles não mudam) */
+ if(s&&!fpWasActive&&bfVfx){const mp=bfVfx.moonPos;if(mp&&s.st.moon>.05&&!s.st.aborted){Object.assign(ultCam,{want:.32,height:3.4,dist:10.5});ultCam.look.set(enemy.position.x+(mp.x-enemy.position.x)*.4,enemy.position.y+2+(mp.y-enemy.position.y-2)*.45,enemy.position.z+(mp.z-enemy.position.z)*.4);s._cam=true;}else if(s._cam){ultCam.want=0;s._cam=false;}}
  if(bfVfx){const e=enemy.position;bfVfx.update(s,bfHazards,{camera,hero:{x:player.position.x,y:player.position.y,z:player.position.z},boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},hand:bfHand(),low:graphics3DMode==='low',arena:dimBattle&&dimBattle.active?(a=>({x:a.x,z:a.z,r:a.radius}))(arenaSpec(dimBattle.key)):null,groundY:fxGy(e.x,e.z)},dt);}
  if(s&&!userSettings.reduceShake&&s.st.trauma>.001){const k=shakeAt(s.st.trauma,s.st.t,s.st.kickT,{amp:fpWasActive?.1:.26,kick:.35});_csA.set(0,0,1).applyQuaternion(camera.quaternion);bfShake=new THREE.Vector3(k.x,k.y,k.z).addScaledVector(_csA,k.back*.5);camera.position.add(bfShake);}
- if(s&&s.done){moonFlames=null;kitState.t=Math.max(kitState.t,1.6);if(MOONFLAME_TEST)delete kitState.cds.s2;}
+ if(s&&s.done){if(s._cam)ultCam.want=0;moonFlames=null;kitState.t=Math.max(kitState.t,1.6);if(MOONFLAME_TEST)delete kitState.cds.s2;}
 }
 function updateFoeKit(dt){
  if(swordTraining||squadOn)return;

@@ -205,7 +205,7 @@ export function createBlackFlameVFX(T, scene) {
   let time = 0, ashT = 0; const V = new T.Vector3(), W = new T.Vector3(), cam = new T.Vector3();
   const setFlame = (m, x, y, z, s, alpha, grow, flow, gy) => { m.visible = alpha > .01; if (!m.visible) return; m.position.set(x, y, z); m.scale.setScalar(s); const u = m.userData.u; u.alpha.value = alpha; u.grow.value = grow; u.flow.value.copy(flow); u.groundY.value = gy; };
   return {
-    root,
+    root, get moonPos() { return moon.visible ? moon.position : null; },
     /** ctx {camera, hero:{x,y,z}, boss:{x,y,z,yaw}, hand:{x,y,z}, low, arena:{x,z,r}} */
     update(seq, hz, ctx, dt) {
       time += dt; uTime.value = time; cam.copy(ctx.camera.position); const st = seq && seq.st, H = ctx.hero, low = !!ctx.low;
@@ -213,7 +213,7 @@ export function createBlackFlameVFX(T, scene) {
       // ---- lua: posição fixa no alto, escolhida no início; só os olhos seguem o herói ----
       const showMoon = st && !st.done && st.moon > .001; moon.visible = !!showMoon;
       if (showMoon) { if (!moonPlaced) { moonPlaced = true; const B = ctx.boss, A = ctx.arena || { x: B.x, z: B.z, r: 30 }; let dx = B.x - H.x, dz = B.z - H.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; /* atrás do bispo visto do herói, alta e distante */
-          moon.position.set(A.x + dx * 70, (ctx.groundY ?? B.y) + 28, A.z + dz * 70); moon.scale.setScalar(14); V.set(H.x, (ctx.groundY ?? B.y) + 4, H.z); moon.lookAt(V); moon.updateMatrixWorld(); gazeS.set(0, 0); }
+          moon.position.set(A.x + dx * 34, (ctx.groundY ?? B.y) + 17, A.z + dz * 34); moon.scale.setScalar(10.5); /* dentro do anel de cogumelos, para nada da arena a esconder */ V.set(H.x, (ctx.groundY ?? B.y) + 4, H.z); moon.lookAt(V); moon.updateMatrixWorld(); gazeS.set(0, 0); }
         moonU.show.value = Math.min(1, st.moon * 1.05); moonU.stare.value = st.finalLaunched >= 0 ? 1 : 0;
         W.set(H.x, H.y + 1.2, H.z); moon.worldToLocal(W); /* direção do herói no plano da lua, limitada e suavizada */ const gx = Math.max(-1, Math.min(1, W.x / 30)), gy2 = Math.max(-1, Math.min(1, W.y / 30));
         if (st.finalLaunched < 0) gazeS.lerp(V.set(gx, gy2, 0), Math.min(1, dt * 3)); else gazeS.lerp(V.set(0, 0, 0), Math.min(1, dt * 4)); moonU.gaze.value.copy(gazeS); }
@@ -228,7 +228,7 @@ export function createBlackFlameVFX(T, scene) {
         // projéteis: a chama arrasta as línguas para trás do movimento
         [...st.shots, st.final].forEach(s => { if (!s) return; const m = shotsF[s.i]; if (s.state === 'fly') { const n = s.path.length, a = s.path[Math.max(0, n - 3)]; V.set(a[0] - s.x, a[1] - s.y, a[2] - s.z).multiplyScalar(s.big ? .5 : .9); setFlame(m, s.x, s.y, s.z, s.big ? 1.05 : .85, 1, 1, V, -1e9); if (R3(time * 60 + s.i) > .6) emit(s.x, s.y, s.z, 1, s.big ? 1.5 : .4); }
           else if (s.state === 'impact') { const k = s.it / (s.big ? 1.4 : .7); /* contato → compressão curta → ruptura que cresce → anel */
-            const bf = burstF[s.big ? 3 : s.i % 3], g = s.big ? (k < .06 ? .3 : .3 + .7 * sm((k - .06) / .35)) : sm(k / .25); setFlame(bf, s.ix, s.iy + (s.big ? .2 : .1), s.iz, (s.big ? 1.6 : .9) * (1 + .4 * g), 1 - sm((k - .6) / .4), g, V.set(0, .1, 0), s.iy - .02);
+            const bf = burstF[s.big ? 3 : s.i % 3], g = s.big ? (k < .06 ? .3 : .3 + .7 * sm((k - .06) / .35)) : sm(k / .25), ks = s.kind === 'hero' ? .5 : 1; /* no corpo do herói a explosão é menor: não cega a câmera */ setFlame(bf, s.ix, s.iy + (s.big ? .2 : .1), s.iz, (s.big ? 1.6 : .9) * (1 + .4 * g) * ks, 1 - sm((k - .6) / .4), g, V.set(0, .1, 0), s.iy - .02);
             const ri = rings[s.big ? 3 : s.i % 3]; ri.visible = true; ri.position.set(s.ix, s.iy + .06, s.iz); ri.scale.setScalar((s.big ? 2 : .8) + (s.big ? 11 : 3.5) * sm(k / .7)); ri.userData.u.k.value = clamp01(k / .8); } });
         // aviso no chão da colossal (durante o voo): onde ela vai cair
         if (st.final && st.final.state === 'fly') { warn.visible = true; warn.position.set(st.final.target[0], st.final.target[1] + .05, st.final.target[2]); warn.scale.setScalar(BF.fieldBigR * .9); warnU.k.value = Math.min(1, st.final.ft / .2); }
