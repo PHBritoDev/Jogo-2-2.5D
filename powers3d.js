@@ -75,7 +75,7 @@ export const KITS = {
   zarkhael: { color: 0x7ad8ff, color2: 0x08223a, book: true, skills: [
     S('s1', 'HIDRA DO JUÍZO', 'hydra_judgment', { dmg: 18, cd: 24, range: [6, 24] }),
     S('s2', 'CHAMAS NEGRAS — O FOGO QUE NÃO MORRE', 'zarkhael_black_moon_flames', { dmg: 4, cd: 32, range: [5, 28] })], // Bispo 3 · Skill 2: 10 chamas negras + a colossal, sem lua (zarkhael-blackflame3d.js)
-    sword: null, ult: null },
+    sword: S('sw', 'SENTENÇA OMNIDIRECIONAL — GIRO DO JUÍZO', 'zarkhael_circular_sword', { dmg: 22, cd: 22, range: [4, 23] }), ult: null },
   veraxion: { color: 0x9a2cff, color2: 0xff5a1a, book: true, skills: [
     S('s1', 'Fogo Abissal', 'abyss', { n: 5, dmg: 18, cd: 8 }),
     S('s2', 'Furacão Negro', 'vortex', { dmg: 9, cd: 11, dur: 4, speed: 3.2 }),
