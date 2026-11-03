@@ -73,7 +73,7 @@ test('Colossal — acerto direto dá dano grande e aura de 6 s; no chão vira in
 test('Interrupção, IA e integração — some limpo, IA usa a Skill 2 à distância e alterna com a Hidra; nada genérico voltou', () => {
   const hz = createFlameHazards({ ground }), s = createBlackMoonFlames({ hazards: hz, ground }).start(); for (let i = 0; i < 60 * 3; i++) s.step(1 / 60, { from: FROM, hero: { x: 0, z: 9 } }); s.abort(); const ev = []; for (let i = 0; i < 60 * 3 && !s.done; i++) ev.push(...s.step(1 / 60, { from: FROM, hero: { x: 0, z: 9 } }));
   assert.ok(s.done && !ev.some(e => e.type === 'fire' || e.type === 'final_fire')); assert.ok(!s.holdBoss);
-  const k = kitFor('zarkhael'); assert.deepEqual(k.skills.map(x => x.type), ['hydra_judgment', 'zarkhael_black_moon_flames']); assert.equal(k, kitFor('fallen3')); assert.equal(k.sword, null); assert.equal(k.ult, null);
+  const k = kitFor('zarkhael'); assert.deepEqual(k.skills.map(x => x.type), ['hydra_judgment', 'zarkhael_black_moon_flames']); assert.equal(k, kitFor('fallen3')); assert.equal(k.sword?.type, 'zarkhael_circular_sword'); assert.equal(k.ult, null);
   assert.ok(powerStats('zarkhael', k.skills[1]).dmg > 0 && k.skills[1].cd >= 25);
   const seq = s0 => { let x = s0; return () => { x = (x * 16807) % 2147483647; return x / 2147483647; }; }; let moonPicks = 0;
   for (let i = 1; i < 30; i++) if (chooseZarkhaelMove(k, { dist: 15, cds: {}, last: 's1', hpFrac: 1, heroHpFrac: 1 }, seq(i)).move.id === 's2') moonPicks++; assert.ok(moonPicks > 15, 'depois da Hidra, prefere a Lua: ' + moonPicks);
