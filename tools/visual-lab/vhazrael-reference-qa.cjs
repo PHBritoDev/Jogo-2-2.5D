@@ -84,6 +84,38 @@ async function run(){
     }finally{await context.close().catch(()=>{});}
    }
   }
+  // Movimento completo: além dos instantes congelados, reproduz uma gravação
+  // contínua REAL do ataque, sem mudar animação ou acelerar o jogo.
+  const movieCtx=await browser.newContext({viewport:{width:852,height:480},
+    deviceScaleFactor:1,isMobile:true,hasTouch:true,
+    recordVideo:{dir:out,size:{width:852,height:480}}});
+  const movie=await movieCtx.newPage(),movieErrors=[];
+  movie.on("pageerror",e=>movieErrors.push(e.message.slice(0,250)));
+  try{
+    await movie.goto(host+"/vhazrael-preview.html?k=throne&cam=wide&d=9&qa=275-movie",
+      {waitUntil:"domcontentloaded",timeout:45000});
+    await movie.waitForFunction(()=>!!window.__qa?.rt?.squad?.spells?.some(s=>s.type==="throne"),
+      null,{timeout:115000});
+    const phases=new Set();
+    for(let i=0;i<42;i++){
+      const phase=await movie.evaluate(()=>
+        window.__qa?.rt?.squad?.spells?.find(s=>s.type==="throne")?.phase||null);
+      if(phase)phases.add(phase);
+      await movie.waitForTimeout(320);
+    }
+    result.moviePhases=[...phases];
+    if(movieErrors.length)throw Error("Erro JS durante vídeo: "+movieErrors.join(" | "));
+  }finally{
+    const original=movie.video();
+    await movieCtx.close().catch(()=>{});
+    try{
+      if(original){
+        const file=await original.path(),target=path.join(out,"ataque-bispo1-mod275.webm");
+        if(file!==target)fs.renameSync(file,target);
+        result.video=path.basename(target);
+      }
+    }catch(e){result.videoError=String(e.message);}
+  }
   result.status="capturado_para_revisao";
  }catch(e){result.status="falhou";result.errors.push(String(e.stack||e));}
  finally{
@@ -95,7 +127,8 @@ async function run(){
   fs.writeFileSync(path.join(out,"comparacao.html"),
    '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Bispo 1 Mod275</title>'+
    '<style>body{background:#0f172a;color:#fff;font:16px system-ui}img{object-fit:contain;max-width:100%}</style>'+
-   '<h1>Bispo 1 — ANTES vs DEPOIS (mesmo quadro)</h1><p>Esquerda: VFX original. Direita: VFX reforçado. '+
+   '<h1>Bispo 1 — ANTES vs DEPOIS (mesmo quadro)</h1><p>Vídeo real da animação completa: <a style="color:#9cf" href="ataque-bispo1-mod275.webm">reproduzir WebM</a>. '+
+   'Esquerda: VFX original. Direita: VFX reforçado. '+
    'Não equivale a fidelidade perfeita à referência de animação.</p>'+rows);
  }
  if(result.status!=="capturado_para_revisao")process.exitCode=1;
