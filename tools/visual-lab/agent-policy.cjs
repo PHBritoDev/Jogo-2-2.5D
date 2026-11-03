@@ -70,7 +70,7 @@ function decide({tick, vision, state, seen = {}, prevPosition, lastCastTick = -9
     Math.hypot(player.x - prevPosition.x, player.z - prevPosition.z) < .05;
   const decision = {
     reason: [], move: null, keys: [], cast: null,
-    bossSkill: null, camera: null, heal: hp > 0 && hp < 95
+    bossSkill: null, camera: null, heal: hp > 0 && hp < 95 && !!dim.battle?.active && !!dim.visible && dim.profile === "zarkhael"
   };
   if (!dim.battle?.active || !dim.visible || dim.profile !== "zarkhael") {
     decision.reason.push("aguardando_batalha_real");
