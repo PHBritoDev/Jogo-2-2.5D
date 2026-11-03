@@ -22,7 +22,7 @@ export function eclipseSakugaCue(st){
   }
   if(st.phase==="impact"){
     const fade=1-smooth((t-.24)/1.2);
-    return {wing:0,rift:fade,impact:1-smooth((t-1.5)/.85),
+    return {wing:.62*(1-smooth((t-.16)/.95)),rift:fade,impact:1-smooth((t-1.5)/.85),
       debris:smooth(t/.22)*(1-smooth((t-1.35)/.8)),
       lightning:smooth(t/.07)*(1-smooth((t-.22)/1.0)),stage:"impact"};
   }
@@ -30,10 +30,10 @@ export function eclipseSakugaCue(st){
 }
 /** Curva em 3D para asa rasgada; vértices compartilhados e limites fixos. */
 export function eclipseWingPoint(side,u,v){
-  const x=side*(.68+u*10.8);
-  const arch=2.7+u*3.45+Math.sin(u*pi)*1.52;
-  const lower=arch-(.95+u*2.3)*(1+Math.sin(u*14.)*.14);
-  const upper=arch+(.46+Math.sin(u*pi)*.72);
+  const x=side*(.68+u*16.5);
+  const arch=3.1+u*4.4+Math.sin(u*pi)*2.5;
+  const lower=arch-(1.8+u*3.1)*(1+Math.sin(u*14.)*.12);
+  const upper=arch+(1.05+Math.sin(u*pi)*1.1);
   const y=lower+(upper-lower)*v;
   const z=-1.7-u*.55+Math.sin(u*11.+v*7.)*.16;
   return [x,y,z];
@@ -51,18 +51,18 @@ const WING_F=[
  NOISE,"uniform float time;uniform float weight;varying vec2 uv0;",
  "void main(){vec2 p=uv0;float fib=fb(vec2(p.x*8.-time*.24,p.y*8.+time*.15));",
  " float edge=.12+.12*n2(vec2(p.x*19.+time*.12,p.y*7.));",
- " float tip=1.-smoothstep(.75,.995,p.x+(.13-.09*p.y)*fib);",
+ " float tip=1.-smoothstep(.91,1.07,p.x+(.07-.05*p.y)*fib);",
  " float serration=.55+.45*sin(p.x*56.+p.y*17.+time*.28);",
  " float torn=smoothstep(.04,.18,p.y+.11*fib)*smoothstep(.02,.16,1.-p.y)*tip;",
  " torn*=.7+.3*serration;",
  " if(torn<.035)discard;",
  " float vein=pow(max(0.,cos(p.y*17.+p.x*12.-time*.45)),22.);",
- " float hot=smoothstep(.29,.75,fb(vec2(p.x*4.+time*.18,p.y*10.)));",
- " vec3 c=mix(vec3(.018,.002,.028),vec3(.105,.017,.29),clamp(p.y*.8+fib*.6,0.,1.));",
- " c=mix(c,vec3(.9,.006,.035),hot*(1.-p.x*.42)*.88);",
- " c+=vec3(.9,.065,.19)*vein*(.18+.65*hot);",
- " c=mix(c,vec3(.012,.002,.028),smoothstep(.67,1.,p.x)*.54);",
- " gl_FragColor=vec4(c,weight*torn*(.64+.36*hot));}"
+ " float hot=smoothstep(.24,.59,fb(vec2(p.x*4.+time*.2,p.y*8.)));",
+ " vec3 c=mix(vec3(.07,.007,.17),vec3(.45,.05,.68),clamp(p.y*.8+fib*.6,0.,1.));",
+ " c=mix(c,vec3(1.,.016,.075),hot*(1.-p.x*.26)*.84);",
+ " c+=vec3(1.,.09,.22)*vein*(.28+.72*hot);",
+ " c=mix(c,vec3(.02,.003,.055),smoothstep(.83,1.,p.x)*.24);",
+ " gl_FragColor=vec4(c,weight*torn*(.9+.10*hot));}"
 ].join("\n");
 const RIFT_F=[
  NOISE,"uniform float time;uniform float weight;varying vec2 uv0;",
@@ -193,7 +193,9 @@ export function createEclipseSakuga(T,parent){
     group.visible=true;time.value=st.t;
     const B=ctx.boss,C=ctx.camera.position,low=!!ctx.low;
     const outward=Math.atan2(C.x-B.x,C.z-B.z);
-    wings.position.set(B.x,B.y,B.z);
+    wings.position.set(st.phase==="impact"&&st.impact?st.impact.x:B.x,
+      st.phase==="impact"&&st.impact?st.impact.y:B.y,
+      st.phase==="impact"&&st.impact?st.impact.z:B.z);
     wings.rotation.set(0,outward,0);
     wingAlpha.value=cue.wing*.94;
     for(const mode of ["low","high"])for(const w of wingMeshes[mode])
