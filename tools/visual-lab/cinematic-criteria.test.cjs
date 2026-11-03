@@ -99,3 +99,28 @@ test("HUD com retangulos sobrepostos nao duplica ocupacao central e alerta",()=>
  assert.ok(v.warnings.some(x=>x.code==="slow_software_renderer"));
  assert.equal(v.status,"capturado_para_revisao","sem confundir alerta com falha");
 });
+
+
+test("WebAudio suspenso durante toda a cena gera alerta, nunca afirma som audivel",()=>{
+ const rows=PHASES.map((p,i)=>record(p,i*1200));
+ const a=assessCinematic(rows,{started:true,ended:true,captures:7,
+   audioStates:["suspended","suspended","locked"]});
+ assert.ok(a.warnings.some(x=>x.code==="audio_context_not_running"));
+ assert.equal(a.webAudio.verifiedAudible,false);
+ assert.equal(a.status,"capturado_para_revisao");
+ const b=assessCinematic(rows,{started:true,ended:true,captures:7,
+   audioStates:["running","running","running"]});
+ assert.ok(!b.warnings.some(x=>x.code==="audio_context_not_running"));
+ const c=assessCinematic(rows,{started:true,ended:true,captures:7,
+   audioStates:["suspended"],audioMuted:true});
+ assert.ok(!c.warnings.some(x=>x.code==="audio_context_not_running"),"jogador mutou de proposito");
+});
+test("estado do audio so e exposto pela API de QA, nao pelo gameplay",()=>{
+ const root=path.resolve(__dirname,"../..");
+ const game=fs.readFileSync(path.join(root,"mundo-3d-prototype.js"),"utf8");
+ assert.ok(game.includes("audioState(){return{state:worldAudio.state"),
+   "API de debug deve expor estado do AudioContext");
+ const runner=fs.readFileSync(path.join(__dirname,"cinematic-run.cjs"),"utf8");
+ assert.ok(runner.includes("btn.click({timeout:6500})"),"VS deve receber evento de usuario verdadeiro");
+ assert.ok(runner.includes("audioStates:result.samples.map(x=>x.audio)"),"auditoria deve serializar amostras reais");
+});
