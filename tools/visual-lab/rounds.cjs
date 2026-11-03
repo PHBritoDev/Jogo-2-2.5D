@@ -13,7 +13,7 @@ const roundsDir=path.join(root,"rodadas");
 const script=path.join(__dirname,"agent-run.cjs");
 const profiles=["padrao","proximidade","alternativo"];
 const MAX_ROUNDS=3;
-const RUN_TIMEOUT=180000; // Tres minutos por rodada, mais que o suficiente para o teste padrao.
+const RUN_TIMEOUT=300000; // Ate cinco minutos para WebGL software lento; evita matar uma sessao valida.
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 function statusOf(record){
@@ -40,7 +40,7 @@ function summarize(results){
     maxRounds:MAX_ROUNDS,roundsExecuted:results.length,roundsPassed:passed,
     status:passed===results.length&&passed>=2?"aprovado":"requer_investigacao",
     profiles:results.map(r=>({round:r.round,profile:r.profile,passed:statusOf(r),
-      exitCode:r.code,elapsedMs:r.elapsedMs,warningFlags:visualWarnings(r),
+      exitCode:r.code,elapsedMs:r.elapsedMs,spawnError:r.spawnError||null,warningFlags:visualWarnings(r),
       captureCount:r.report?.captures?.length||0,
       observations:r.report?.decisions?.length||0,
       errors:(r.report?.errors||[]).slice(0,3).map(e=>String(e).slice(0,200)),
