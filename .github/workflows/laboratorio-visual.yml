@@ -87,7 +87,7 @@ jobs:
         run: |
           if command -v ffmpeg >/dev/null 2>&1; then
             shopt -s nullglob
-            for video in visual-lab-results/videos/*.webm; do
+            for video in visual-lab-results/videos/*.webm visual-lab-results/agente/videos/*.webm; do
               ffmpeg -y -hide_banner -loglevel error -i "$video" -an -c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p "${video%.webm}.mp4" || true
             done
           fi
