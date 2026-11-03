@@ -49,7 +49,7 @@ test('câmera sobe a cada círculo e chega ao overhead para as três explosões'
  assert.ok(h(3.8)>boss.y+70);
  assert.ok(h(6.8)>h(3.8));
  assert.ok(h(9.5)>h(6.8));
- assert.ok(h(12)>boss.y+130);
+ assert.ok(h(12)>boss.y+95, 'plano superior alto, mas oblíquo para revelar volume');
 });
 test('três explosões espaçadas, cada uma só nasce depois do núcleo',()=>{
  const {s,ev}=run(1/60,{x:1200,z:0});
