@@ -40,7 +40,8 @@ test('Hidra — base dos três pescoços encosta no corpo apoiado sobre o selo s
       'raiz do pescoço une-se ao topo do corpo abaixado, sem espaço visível');
     assert.ok(p.head[1]>h.st.C.y+4.5, 'cabeças permanecem na altura original');
   }
-  assert.ok(HYDRA.rootGrounding>0&&HYDRA.rootGrounding<1, 'abatimento suave, não afunda a Hidra');
+  assert.ok(HYDRA.rootGrounding>=1.5 && HYDRA.rootGrounding<=1.6, 'corpo afundado até o solo, sem bolsa flutuante');
+  assert.ok(h.st.C.y + 1.6-HYDRA.rootGrounding<=h.st.C.y+.10, 'raízes conectadas no limite do piso do selo');
   const src=fs.readFileSync(new URL('./zarkhael-hydra3d.js',import.meta.url),'utf8');
   assert.ok(src.includes('(2.4 - T2.rootGrounding) * em0'), 'corpo visual usa o mesmo deslocamento da raiz');
 });

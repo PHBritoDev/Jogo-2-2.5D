@@ -7,15 +7,15 @@ import { kitFor, powerStats } from './powers3d.js';
 
 const ground = x => -2000 + .05 * Math.sin(x * .3), FROM = { x: 0, y: -1998.1, z: -5.2 };
 function run(move = () => {}, o = {}) {
-  const hz = createFlameHazards({ ground }), s = createBlackMoonFlames({ hazards: hz, ground, ...o }).start(), hero = { x: 0, z: 9, vx: 0, vz: 0, iframes: false, alive: true }, L = { ev: [], moon: [], burns: [], ticks: 0, dmg: 0 };
+  const hz = createFlameHazards({ ground }), s = createBlackMoonFlames({ hazards: hz, ground, ...o }).start(), hero = { x: 0, z: 9, vx: 0, vz: 0, iframes: false, alive: true }, L = { ev: [], burns: [], ticks: 0, dmg: 0 };
   for (let i = 0; i < 60 * 30 && (!s.done || hz.active); i++) { const t = s.st.t; move(hero, t, s); hero.y = ground(hero.x);
     const ev = [...s.step(1 / 60, { from: FROM, hero }), ...hz.step(1 / 60, hero)]; for (const e of ev) { e.t = s.st.t; L.ev.push(e); if (e.type === 'tick') { L.ticks++; L.dmg += e.dmg; } if (e.type === 'hit') L.dmg += e.dmg; }
-    L.moon.push([s.st.t, s.st.moon, s.st.finalLaunched]); L.burns.push(hz.st.burn ? hz.st.burn.tier : null); }
+    L.burns.push(hz.st.burn ? hz.st.burn.tier : null); }
   L.s = s; L.hz = hz; return L;
 }
 const at = (L, t, f = () => true) => L.ev.find(e => e.type === t && f(e)), all = (L, t) => L.ev.filter(e => e.type === t);
 
-test('Lua Tenebrosa — exatamente 10 chamas em sequência (0,85 s) com antecipação, depois a colossal carregada e lançada', () => {
+test('Chamas Negras — exatamente 10 chamas em sequência (0,85 s) com antecipação, depois a colossal carregada e lançada', () => {
   const L = run(() => {}); const fires = all(L, 'fire'); assert.equal(BF.shots, 10); assert.equal(fires.length, 10); assert.deepEqual(fires.map(f => f.i), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   for (let i = 1; i < 10; i++) { const g = fires[i].t - fires[i - 1].t; assert.ok(g > .75 && g < 1.0, 'intervalo ' + g.toFixed(2)); }
   for (let i = 0; i < 10; i++) assert.ok(at(L, 'windup', e => e.i === i).t < fires[i].t, 'antecipação antes de cada disparo');
@@ -25,13 +25,17 @@ test('Lua Tenebrosa — exatamente 10 chamas em sequência (0,85 s) com antecipa
   assert.ok(BF.bigR > BF.smallR * 2 && BF.smallR >= .8, 'colisão acompanha o tamanho');
 });
 
-test('Lua Tenebrosa — a lua nasce no começo, fica nas 10 + carga + disparo e só some DEPOIS do lançamento da colossal', () => {
-  const L = run(() => {}); const ff = at(L, 'final_fire');
-  assert.ok(L.moon.find(m => m[0] > .02)[1] > 0, 'nasce já no início'); assert.ok(L.moon.filter(m => m[0] > BF.moonIn && m[0] <= ff.t).every(m => m[1] >= .999), 'inteira até o disparo final');
-  const fade = at(L, 'moon_fade'); assert.ok(fade.t >= ff.t - 1e-9); const after = L.moon.find(m => m[0] > ff.t + BF.moonOut + .05); assert.ok(!after || after[1] === 0, 'some depois');
+test('Skill 2 — Lua removida de verdade, sem mesh, shader, câmera ou eventos; o 10+1 continua', () => {
+  const L = run(); assert.equal(all(L, 'fire').length, 10); assert.equal(all(L, 'final_fire').length, 1);
+  assert.equal(all(L, 'moon').length + all(L, 'moon_fade').length, 0, 'nenhum evento da lua');
+  assert.ok(!('moon' in L.s.st) && !('moonGone' in L.s.st), 'estado de lua removido');
+  const vfx = fs.readFileSync(new URL('./zarkhael-blackflame3d.js', import.meta.url), 'utf8');
+  assert.ok(!/\bMOON_F\b|\bMOON_V\b|moonG|moonU|moonPlaced|moonPos/.test(vfx), 'shader, mesh e rastreamento da lua foram excluídos');
+  const main = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  assert.ok(!main.includes('bfVfx.moonPos') && !main.includes("e.type==='moon_fade'"), 'câmera e áudio especiais da lua removidos');
 });
 
-test('Lua Tenebrosa — mira travada, colisão varrida, acerto direto x chão; durações exatas', () => {
+test('Chamas Negras — mira travada, colisão varrida, acerto direto x chão; durações exatas', () => {
   const still = run(() => {}); const h0 = at(still, 'impact', e => e.i === 0); assert.equal(h0.kind, 'hero'); assert.equal(at(still, 'burn', e => e.from === 'hit').res, 'start');
   // correndo para o lado: as chamas caem no chão e viram manchas de 4 s
   const dodge = run((h, t) => { if (t > 1.7) { h.vx = 8 * (Math.floor(t / 2.2) % 2 ? -1 : 1); h.x += h.vx / 60; if (Math.abs(h.x) > 14) h.x = Math.sign(h.x) * 14; } });
@@ -73,8 +77,8 @@ test('Interrupção, IA e integração — some limpo, IA usa a Skill 2 à dist�
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("case 'zarkhael_black_moon_flames':startMoonFlames(m);break;") && src.includes('updateMoonFlames(dt);') && src.includes('stopMoonFlames();stopHydra();clearHazards();') && src.includes('undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);'), 'integração e limpeza');
   assert.ok(src.includes('if(moonFlames||hydraSkill)return;'), 'nunca junto com a Hidra');
-  const vfx = fs.readFileSync(new URL('./zarkhael-blackflame3d.js', import.meta.url), 'utf8'); assert.ok(!/gaze|stare/.test(vfx), 'a lua não segue o herói com os olhos');
-  assert.ok((vfx.match(/new T\.Mesh\(moonG/g) || []).length === 1, 'uma única lua, sem cópias');
+  const vfx = fs.readFileSync(new URL('./zarkhael-blackflame3d.js', import.meta.url), 'utf8'); assert.ok(!/\bMOON_F\b|\bMOON_V\b|moonG|moonU|moonPlaced|moonPos/.test(vfx), 'nenhum shader/mesh de lua em Skill 2');
+  assert.ok(BF.shots===10 && BF.bigScale>BF.smallScale*2.9, 'dez chamas e uma colossal, sem Lua');
   assert.ok(!/function spawnEnemyProjectile|function updateEnemyProjectiles|BOSS_POWERS\.zarkhael/.test(src), 'Mods 264/267 preservadas');
   const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testLuaNegra=1') && lab.includes('testHidra=1'));
 });

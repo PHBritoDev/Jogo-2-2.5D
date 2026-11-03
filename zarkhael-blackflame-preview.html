@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ZAR'KHAEL · Lua Tenebrosa · prévia</title>
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ZAR'KHAEL · Chamas Negras · prévia</title>
 <style>body{margin:0;background:#020203;color:#eef;font:12px monospace}canvas{display:block}#i{position:absolute;top:6px;left:8px;pointer-events:none;white-space:pre}</style><div id="i"></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
@@ -20,7 +20,7 @@ function step(dt){time+=dt;if(dodge&&seq.st.t>1.8){H.vx=Math.sin(time*1.3)*7;H.x
 function cam(){const s=seq.st;if(camMode==='hero'){camera.position.set(H.x-1.4,2.6,H.z+6.5);camera.lookAt(0,3.5,-6);}else if(camMode==='wide'){camera.position.set(16,6,14);camera.lookAt(0,3,0);}
  else if(camMode==='moon'){camera.position.set(H.x,2,H.z+4);camera.lookAt(0,40,-55);}else if(camMode==='close'){camera.position.set(3.5,2.2,-2.5);camera.lookAt(0,2.2,-5.5);}
  else if(camMode==='field'){const f=hz.st.fields[hz.st.fields.length-1]||{x:0,y:0,z:8};camera.position.set(f.x+6,3.2,f.z+7);camera.lookAt(f.x,1.2,f.z);}}
-function info(){const s=seq.st;document.getElementById('i').textContent='t '+s.t.toFixed(2)+' fase '+s.phase+' disparos '+s.fired+' lua '+s.moon.toFixed(2)+' acertos '+hits+' hp '+hp+' manchas '+hz.st.fields.length+' queima '+(hz.st.burn?hz.st.burn.tier+':'+hz.st.burn.left.toFixed(1):'-')+' chamadas '+r.info.render.calls+' ev '+last;}
+function info(){const s=seq.st;document.getElementById('i').textContent='t '+s.t.toFixed(2)+' fase '+s.phase+' disparos '+s.fired+' acertos '+hits+' hp '+hp+' manchas '+hz.st.fields.length+' queima '+(hz.st.burn?hz.st.burn.tier+':'+hz.st.burn.left.toFixed(1):'-')+' chamadas '+r.info.render.calls+' ev '+last;}
 function upd(dt){vfx.update(seq,hz,{camera,hero:{x:H.x,y:0,z:H.z},boss:{x:0,y:0,z:-6,yaw:0},hand,low,arena:{x:0,z:0,r:30},groundY:0},dt);}
 function frame(){requestAnimationFrame(frame);if(freeze===null){if(seq.done&&!hz.active){seq=createBlackMoonFlames({hazards:hz}).start();}step(1/60);}cam();upd(freeze===null?1/60:0);info();r.render(scene,camera);}
 if(freeze!==null){const n=Math.round(freeze*60);for(let i=0;i<n;i++){step(1/60);if(i%6===0){cam();upd(.1);}}cam();upd(1/60);setTimeout(()=>{window.__ready=true;},600);}frame();
