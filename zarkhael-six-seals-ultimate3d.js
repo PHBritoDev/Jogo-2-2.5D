@@ -91,15 +91,19 @@ export function createZarkhaelSixSeals(opts={}){
   }else if(st.pi===1){
    const idx=Math.min(5,Math.floor(st.pt/U.sealGap));
    const progress=sm((st.pt-idx*U.sealGap)/U.sealGap);
-   const h=U.cameraBase+(idx+progress)*9.5,ratio=sm(st.pt/U.seals);
-   out.pos=[C.x+23*(1-ratio)+7,C.y+h,C.z+25*(1-ratio)+8];
-   out.look=[C.x,C.y+Math.min(22,(idx+progress)*2.7),C.z];
-   out.fov=17+7*ratio;
+   // Três-quartos aéreo (não completamente vertical): a diferença de ALTURA
+   // dos seis planos precisa ser legível, não seis círculos colados.
+   const rise=idx+progress,ratio=sm(st.pt/U.seals);
+   out.pos=[C.x+44+10*ratio,C.y+68+rise*7.2,C.z+35+8*ratio];
+   out.look=[C.x,C.y+8+rise*1.8,C.z];
+   out.fov=19+6*ratio;
   }else{
    const t=sm(st.pt/.72);
-   out.pos=[C.x+7-3*t,C.y+U.cameraTop+3*t,C.z+9-4*t];
-   out.look=[C.x,C.y+2.5,C.z];
-   out.fov=24;out.w=1;
+   // Explosão vista do ALTO em ângulo oblíquo: o hemisfério rubro deixa
+   // de parecer um disco 2D, sem perder a dimensão total do ataque.
+   out.pos=[C.x+51-7*t,C.y+101+6*t,C.z+39-3*t];
+   out.look=[C.x,C.y+11,C.z];
+   out.fov=23;out.w=1;
   }
   return out;
  }
