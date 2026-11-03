@@ -182,3 +182,17 @@ O resultado capturado_para_revisao indica evidência técnica obtida, NÃO signi
 **A futura ultimate:** o alvo padrão é bishop2; o agente já aceita CINEMA_TARGET=bishop3, mas para isso a nova ultimate deve existir de verdade e o jogo deve expor via modo QA SevenSinsDebug3D.kitMove('ult') e SevenSinsDebug3D.dimState().cinematic com pelo menos phase e lock. Também há CINEMA_PHASES com lista separada por vírgula para adaptar fases e CINEMA_SIZES=landscape,portrait para as orientações. Ele nunca finge executar uma ultimate ainda inexistente.
 
 **Segurança:** não altera as regras, danos, modelos GLB, progressão ou gameplay. Usa a dimensão isolada debug3d. Não contrata APIs pagas nem adiciona uma IA que escreve código automaticamente. Os arquivos de telemetria devem ser revisados antes de usar seus resultados para uma correção.
+
+
+## V6.1 — precisão dos laudos cinematográficos (run #41646714676)
+
+A primeira execução real do auditor V6 (GitHub Actions run 41646714676, artefato cinematica-mobile-21) capturou as quatro fases em paisagem e retrato (6 prints por orientação). A telemetria confirmou liberação de lock, FOV de volta a 56 e deslocamento de cerca de 1,9 a 2,0 unidades depois de pressionar W. **Isso não comprova qualidade artística.** O início da cena teve um grande reenquadramento de câmera (190 m no landscape e 59 m no portrait), e o p95 de frames no Chromium/SwiftShader chegou a aproximadamente 367 ms, que NÃO representa FPS Android.
+
+A V6.1 torna essa avaliação mais fiel:
+- Registra **entrada, meio e final** de cada fase sempre que a cena permitir (máx. 18 capturas por orientação), em vez de capturar somente o primeiro quadro;
+- Classifica saltos de câmera como initial_reframe, phase_cut ou within_phase. Reenquadramento inicial e corte de fase são sinais para revisão e não falhas confirmadas;
+- Calcula ocupação estimada da **região central da tela** por retângulos HUD visíveis. As áreas sobrepostas contam apenas uma vez; cálculo geométrico não mede transparência. Cobertura relevante gera aviso;
+- Adiciona aviso de renderização lenta com base no p95 real do Chromium/SwiftShader, sem confundir isso com FPS Android;
+- Expõe métricas de HUD e p95 no relatório HTML offline e no JSON.
+
+O V6.1 não altera o gameplay, os poderes nem a interface real. Os avisos precisam de revisão junto aos vídeos. Nenhuma IA paga foi adicionada.
