@@ -163,6 +163,15 @@ async function runScene(browser, key) {
     for (let i = 0; Date.now() - t0 < maxSeconds * 1000; i++) {
       await delay(2400);
       const current = await state(page);
+      // A queimadura ignora invulnerabilidade (por design do combate).
+      // Em QA, cura de volta a 100 antes da morte para manter a luta filmando.
+      if (current?.dim?.battle?.active && current?.dim?.hp > 0 && current.dim.hp < 90) {
+        await page.evaluate(() => {
+          const d = window.SevenSinsDebug3D, hp = d.dimState().hp;
+          if (hp > 0 && hp < 90) d.hurtPlayer(hp - 100);
+        });
+        data.actions.push({ action: "restaurar vida a 100 apenas no modo QA", seconds: +((Date.now() - t0) / 1000).toFixed(1) });
+      }
       const relevant = key === "hidra" ? current?.dim?.hydra : current?.dim?.moonFlames;
       const phase = relevant?.phase || (current?.dim?.battle?.active ? "entre-poderes" : "sem-batalha");
       const seconds = +((Date.now() - t0) / 1000).toFixed(1);
