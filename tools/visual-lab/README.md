@@ -158,3 +158,10 @@ A V5 substitui a tentativa de repetir uma única execução por **um ciclo de te
 O painel do ZIP possui links de cada rodada. Execute na aba Actions após um push ou por Run workflow escolhendo o cenário agente. As verificações funcionam sem resposta do usuário; o workflow termina após o limite. 
 
 **O que isso NÃO faz:** não transforma a automação em um programador que corrige arquivos sozinho nem em um processo infinito. Para produzir novos commits após cada diagnóstico seria necessário integrar, configurar e pagar separadamente um serviço de agente de programação com credenciais e permissões controladas. A V5 melhora e repete a investigação automaticamente, mas preserva as regras do jogo sem autoedição arriscada.
+
+
+## V5.1 — sobrevivência do personagem durante o teste QA
+
+Em uma execução real de Actions (run 41589780231), a Hidra causou dano até o protagonista chegar a 7 HP e a batalha acabou antes da Skill 2. A V5.1 reduz a aceleração de tempo do agente de 6x para 3x e ativa uma cura preventiva de QA a cada 200 ms enquanto estiver numa batalha válida do Bispo 3. A cura usa apenas a API já existente em debug3d; não altera gameplay, scripts de dano nem dá vida infinita ao jogador real. O relatório grava quantas curas aconteceram. Testes cobrem o limiar preventivo e que a política não aciona cura fora dessa batalha.
+
+O teste continua reprovado caso um poder não seja observado, a batalha termine cedo ou o WebGL não renderize; jamais trate uma cura de QA como prova de que o balanceamento do poder está correto.
