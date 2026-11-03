@@ -68,6 +68,10 @@ jobs:
       - name: Jogar via API QA, capturar frames, console e video
         run: node tools/visual-lab/run.cjs
 
+      - name: Instalar FFmpeg para converter gravacoes a MP4
+        if: always()
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
       - name: Converter videos WebM para MP4
         if: always()
         shell: bash
