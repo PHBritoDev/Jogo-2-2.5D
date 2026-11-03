@@ -243,7 +243,7 @@ test('Mod 253 — Extinção Orbital: storyboard de 7 fases na mesma linha do te
 
 test('Mod 276 — Ruptura do Trono não arremessa o herói para fora das explosões',()=>{
  const {sq,dmg,log}=world();
- const front=hero(),side=hero({id:'heroi_lateral',x:9,z:0,priority:.4});
+ const front=hero(),side=hero({id:'heroi_lateral',x:5.4,z:0,priority:.4});
  sq.setTargets([front,side]);
  const a=boss(sq,16);a.alert=1e9;a.decideT=1e9;
  cast(sq,a,front,'throne');
