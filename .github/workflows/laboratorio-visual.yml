@@ -97,6 +97,19 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+      - name: Auditar ultimate real do Bispo 3 em WebGL, retrato e paisagem
+        if: github.event_name == 'pull_request'
+        run: node tools/visual-lab/zarkhael-six-seals-qa.cjs
+
+      - name: Guardar os 16 frames reais dos seis selos e três explosões
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bispo3-ultimate-mod280
+          path: visual-lab-results/zarkhael-ultimate-280/
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Restaurar memoria visual anterior
         if: github.event_name != 'pull_request'
         uses: actions/cache/restore@v4
