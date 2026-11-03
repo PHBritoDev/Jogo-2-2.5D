@@ -19,7 +19,7 @@ export function chooseZarkhaelMove(kit, ctx, rand = Math.random) {
     if (ctx.last === m.id) s *= .35; /* não repete o mesmo golpe em seguida */
     if (m.type === 'hydra_judgment') { if (ctx.heroDashing) s *= .45; /* espera o herói gastar o dash */ if (ctx.heroAttacking && ctx.dist < 4) s *= .3; if (ctx.hpFrac < .5) s *= 1.25; /* desespero: o ritual vem mais */ }
     if (m.type === 'zarkhael_black_moon_flames') { s *= 1.15; if ((ctx.heroSpeed || 0) > 4) s *= 1.15; /* herói correndo: chuva de chamas o encurrala */ if (ctx.heroDashing) s *= .6; if (ctx.last === 's1') s *= 1.1; /* alterna com a Hidra */ }
-    if (m.type === 'zarkhael_circular_sword') { s *= 1.18; if (ctx.heroAttacking && ctx.dist < 9) s *= 1.32; if (ctx.heroDashing) s *= .65; }
+    if (m.type === 'zarkhael_circular_sword') { s *= .92; if (ctx.heroAttacking && ctx.dist < 9) s *= 1.5; if (ctx.heroDashing) s *= .65; }
     if (m.type === 'cone' && ctx.heroAttacking) s *= 1.4; /* pune quem vem trocar golpe */
     if (ctx.heroHpFrac < .35 && (m.type === 'cone' || m.type === 'line')) s *= 1.2; /* fecha a luta com golpes rápidos */
     if ((ctx.heroSpeed || 0) > 5 && (m.type === 'orbs' || m.type === 'line')) s *= 1.15; /* herói correndo: projéteis/linha */
