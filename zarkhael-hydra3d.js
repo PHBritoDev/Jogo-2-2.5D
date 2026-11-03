@@ -15,10 +15,10 @@
  *                    espinhos negros, rachadura, resíduos; dano uma vez por esfera, i-frames respeitados.
  *   dissolve        depois da 3ª, a Hidra se desfaz em pó violeta de baixo para cima e some.
  */
-export const HYDRA_BUILD = '268-hydra-grounded';
+export const HYDRA_BUILD = '271-hidra-ancorada';
 export const HYDRA = {
   circleR: 8.5, circle: [0, 2.4], emerge: [1.6, 4.6], charge: [4.6, 7.0], fireAt: 7.2, fireGap: .55, orbSpeed: 22, lead: .15, leadCap: 2,
-  orbR: .62, blastR: 2.8, dmg: 18, minHitGap: .3, life: 2.2, impactDur: 1.2, dissolveDelay: .45, dissolveDur: 1.6, headStagger: [0, .28, .52], rootGrounding: .45
+  orbR: .62, blastR: 2.8, dmg: 18, minHitGap: .3, life: 2.2, impactDur: 1.2, dissolveDelay: .45, dissolveDur: 1.6, headStagger: [0, .28, .52], rootGrounding: 1.55
 };
 const clamp01 = x => Math.max(0, Math.min(1, x)), sm = x => { x = clamp01(x); return x * x * (3 - 2 * x); }, eo = x => 1 - (1 - clamp01(x)) ** 3;
 
@@ -32,7 +32,7 @@ export function hydraPose(st, i, out = {}) {
   const sw = Math.sin(t * 1.3 + i * 2.1), sw2 = Math.sin(t * .9 + i * 1.3 + 1);
   /* cabeças diferentes: esquerda mais baixa e aberta, central mais alta, direita intermediária, todas em S */
   const H = [6.6, 8.9, 7.4][i] * (.25 + .75 * em) - sag, lat = [-4.6, .3, 4.4][i], fwd = [2.2, 1.4, 2.6][i] - 1.1 * ch - 1.6 * rec;
-  /* MOD 268: a base dos pescoços acompanha o corpo ao afundar suavemente no piso do selo. Cabeças, bocas e disparos não mudam. */
+  /* MOD 271: raiz termina 0,05 m acima do piso. A seção curva e sua espessura penetram o selo; o corpo fica quase inteiro abaixo do piso. As cabeças/bolas permanecem na mesma altura. */
   const base = [C.x + r[0] * side * 1.3 - f[0] * .6, gy + (1.6 - T.rootGrounding) * body - 2.2 * (1 - body), C.z + r[1] * side * 1.3 - f[1] * .6];
   const head = [C.x + r[0] * (lat + .35 * sw) + f[0] * fwd, gy + H + .3 * sw2, C.z + r[1] * (lat + .35 * sw) + f[1] * fwd];
   const P = out.ctrl || (out.ctrl = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]);
@@ -308,7 +308,7 @@ export function createHydraVFX(T, scene) {
       seal.position.set(C.x, C.y + .05, C.z); seal.scale.setScalar(T2.circleR); seal.rotation.y = Math.atan2(st.f[0], st.f[1]); /* coroa para o lado oposto ao herói, crescente com orbe perto dele (como a referência) */ for (const k of ['rim', 'disc', 'eye', 'crown', 'cres', 'pulse', 'fade']) sealU[k].value = ck[k];
       P.set(C.x, C.y + .6, C.z); Q.identity(); S.setScalar(7 * ck.pulse * ck.fade + 2 * ck.rim * ck.fade); M.compose(P, Q, S); put(glows, [.9, .08, .1, .5 * ck.fade]);
       // corpo e pescoços
-      const em0 = sm((t - T2.emerge[0]) / 1.4); /* MOD 268: corpo encosta no selo; a raiz do pescoço usa o mesmo abatimento. */ body.position.set(C.x - st.f[0] * .6, C.y - 2.4 + (2.4 - T2.rootGrounding) * em0, C.z - st.f[1] * .6); body.rotation.y = Math.atan2(st.f[0], st.f[1]);
+      const em0 = sm((t - T2.emerge[0]) / 1.4); /* MOD 271: topo do corpo só 0,05 m acima do piso, conectado às raízes dos 3 pescoços; evita a bolsa flutuante anterior. */ body.position.set(C.x - st.f[0] * .6, C.y - 2.4 + (2.4 - T2.rootGrounding) * em0, C.z - st.f[1] * .6); body.rotation.y = Math.atan2(st.f[0], st.f[1]);
       for (let i = 0; i < 3; i++) { const ps = hj.poses[i], N = necks[i]; for (let k = 0; k < 6; k++) N.ctrl[k].fromArray(ps.ctrl[k]); N.u.uFwd.value.set(st.f[0], 0, st.f[1]);
         // cabeça: posição no fim do pescoço, olhando para a direção da pose (com yaw/pitch)
         const H = heads[i]; H.g.position.fromArray(ps.head); D.fromArray(ps.dir); Z.copy(D); X.crossVectors(UP, Z).normalize(); Y.crossVectors(Z, X); M.makeBasis(X, Y, Z); H.g.quaternion.setFromRotationMatrix(M); H.jawPivot.rotation.x = ps.jaw * .75;
