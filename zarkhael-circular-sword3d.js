@@ -83,6 +83,21 @@ export function createZarkhaelCircularSwordVFX(THREE,scene){
  const color=(hex,opacity=1)=>new THREE.MeshBasicMaterial({color:hex,transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false});
  const crimson=color(0xff143f),violet=color(0x8c36ff),coreMat=color(0xfff7ff),shadow=color(0x2d0028);
  const focus=new THREE.Mesh(new THREE.SphereGeometry(.36,16,10),coreMat);root.add(focus);
+ // A lâmina cresce LATERALMENTE durante a carga; três silhuetas aninhadas
+ // com pontas rasgadas e um veio branco, e não um cilindro nem fumaça.
+ const chargeRoot=new THREE.Group();root.add(chargeRoot);
+ function bladeShape(L,H,tear){
+  const sh=new THREE.Shape();sh.moveTo(0,0);
+  const n=18;for(let i=0;i<=n;i++){const k=i/n,x=k*L,p=(.25+.75*Math.sin(Math.PI*k)**.55)*(1-.9*k*k),j=(Math.sin(k*17+tear)+Math.sin(k*35-tear)*.35)*tear*.045;
+   sh.lineTo(x,H*(p+j));}
+  for(let i=n;i>=0;i--){const k=i/n,x=k*L,p=(.25+.75*Math.sin(Math.PI*k)**.55)*(1-.9*k*k),j=(Math.sin(k*23+tear*1.8))*tear*.05;
+   sh.lineTo(x,-H*(p+j));}sh.closePath();return new THREE.ShapeGeometry(sh);
+ }
+ const chargeMaterials=[color(0x30002b,.34),color(0xdd073c,.58),color(0x842bff,.55),color(0xfff3ff,.85)];
+ [[7.9,1.16,1.1],[7.35,.86,2],[6.95,.53,3],[6.55,.13,0]].forEach(([l,h,t],i)=>{
+  const m=new THREE.Mesh(bladeShape(l,h,t),chargeMaterials[i]);m.position.z=(i-1.5)*.045;
+  chargeRoot.add(m);
+ });
  const corona=new THREE.Mesh(new THREE.IcosahedronGeometry(.76,1),crimson);root.add(corona);
  const waveRoot=new THREE.Group();root.add(waveRoot);
  const wallMat=new THREE.ShaderMaterial({uniforms:{uTime:{value:0},uOpacity:{value:0}},vertexShader:VIS_VERT,fragmentShader:VIS_FRAG,side:THREE.DoubleSide,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
@@ -93,14 +108,16 @@ export function createZarkhaelCircularSwordVFX(THREE,scene){
  const burstRoot=new THREE.Group();root.add(burstRoot);
  const burstA=new THREE.Mesh(new THREE.TorusGeometry(1,.22,7,128),coreMat);burstA.rotation.x=Math.PI/2;burstRoot.add(burstA);
  const burstB=new THREE.Mesh(new THREE.TorusGeometry(1,.35,7,128),crimson);burstB.rotation.x=Math.PI/2;burstRoot.add(burstB);
+ const pearls=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.36,0),coreMat,32);
+ pearls.frustumCulled=false;burstRoot.add(pearls);
  const shards=new THREE.InstancedMesh(new THREE.ConeGeometry(.22,2.9,3),shadow,32);
  shards.frustumCulled=false;burstRoot.add(shards);
  const vm=new THREE.Matrix4(),qp=new THREE.Quaternion(),pos=new THREE.Vector3(),sc=new THREE.Vector3();
- let weapon=null,energy=null,tip=null,seconds=0;
+ let weapon=null,energy=null,tip=null,seconds=0;const sourceP=new THREE.Vector3();
  function setWeapon(w){weapon=w||null;energy=weapon&&weapon.userData.energy;tip=weapon&&weapon.userData.tip;}
  function update(sword,ctx={},dt=0){
    seconds+=dt;const s=sword?.st;
-   if(!s||s.phase==='idle'||s.done){sigil.visible=false;focus.visible=false;corona.visible=false;waveRoot.visible=false;burstRoot.visible=false;if(energy)for(const m of energy)m.opacity=.18;return;}
+   if(!s||s.phase==='idle'||s.done){sigil.visible=false;focus.visible=false;corona.visible=false;chargeRoot.visible=false;waveRoot.visible=false;burstRoot.visible=false;if(energy)for(const m of energy)m.opacity=.18;return;}
    const b=ctx.boss||s.boss,low=ctx.low,ground=ctx.ground||(()=>b.y),yaw=b.yaw||0;
    root.position.set(b.x,0,b.z);
    const f=Math.sin(yaw),z=Math.cos(yaw);
@@ -112,6 +129,14 @@ export function createZarkhaelCircularSwordVFX(THREE,scene){
    sigil.userData.materials[0].opacity=.12+.8*rise;
    focus.visible=s.phase!=='abort';corona.visible=focus.visible;
    const charge=s.phase==='aura'?ease(s.t/ZsSafe(sword.T.aura))* .25:s.phase==='charge'?s.charge:s.phase==='spin'?1:s.phase==='wave'?Math.max(.1,1-s.radius/sword.T.range):s.phase==='detonate'?.7:0;
+   chargeRoot.visible=s.phase==='charge'||s.phase==='spin';
+   if(chargeRoot.visible){
+     if(tip){tip.getWorldPosition(sourceP);chargeRoot.position.set(sourceP.x-b.x,sourceP.y,sourceP.z-b.z);}
+     else chargeRoot.position.set(f*.6+.2,b.y+1.8,z*.6+.2);
+     chargeRoot.rotation.set(0,yaw,-.05);
+     chargeRoot.scale.set(Math.max(.02,charge),.8+.2*charge,1);
+     chargeMaterials.forEach((m,i)=>m.opacity=(i===3?.85:.52)*(.65+.35*Math.sin(seconds*11+i)));
+   }
    focus.position.set(f*.85,b.y+1.5,-0+z*.85);
    focus.scale.setScalar(.33+1.7*charge);
    corona.position.copy(focus.position);corona.rotation.set(seconds*.9,seconds*1.7,seconds*.5);corona.scale.setScalar(.38+1.9*charge);
@@ -134,15 +159,16 @@ export function createZarkhaelCircularSwordVFX(THREE,scene){
      burstA.scale.setScalar(R);burstB.scale.setScalar(R+1.4);
      burstA.material.opacity=.15+.85*pulse;burstB.material.opacity=.18+.65*pulse;
      coreMat.opacity=clamp(.25+.75*pulse);crimson.opacity=.25+.6*pulse;
-     const n=low?16:32;shards.count=n;
+     const n=low?16:32;shards.count=n;pearls.count=n;
      for(let i=0;i<n;i++){const a=i/n*Math.PI*2+current*.2,rr=r+.35+ease(clamp(since/.4))*1.25;
        pos.set(Math.cos(a)*rr,.8+.4*Math.sin(i*4+seconds*6),Math.sin(a)*rr);
        qp.setFromAxisAngle(new THREE.Vector3(0,0,1),-Math.PI/2);
        vm.compose(pos,qp,sc.set(.45+(.15*(i%3)),(.25+.9*pulse),.45));shards.setMatrixAt(i,vm);
-     }shards.instanceMatrix.needsUpdate=true;
+       pos.y=.05+1.2*pulse;qp.identity();vm.compose(pos,qp,sc.setScalar(.3+1.4*pulse));pearls.setMatrixAt(i,vm);
+     }shards.instanceMatrix.needsUpdate=true;pearls.instanceMatrix.needsUpdate=true;
    }else{coreMat.opacity=1;crimson.opacity=.9;}
  }
- function clear(){sigil.visible=false;focus.visible=false;corona.visible=false;waveRoot.visible=false;burstRoot.visible=false;if(energy)for(const m of energy)m.opacity=.18;}
+ function clear(){sigil.visible=false;focus.visible=false;corona.visible=false;chargeRoot.visible=false;waveRoot.visible=false;burstRoot.visible=false;if(energy)for(const m of energy)m.opacity=.18;}
  function dispose(){scene.remove(root);const geometries=new Set(),materials=new Set();root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of [].concat(o.material))materials.add(m);});for(const g of geometries)g.dispose();for(const m of materials)m.dispose();}
  function ZsSafe(v){return Math.max(.001,v);}
  clear();return{root,update,clear,dispose,setWeapon,get weaponReady(){return !!weapon;},get bladeTip(){if(!tip)return null;return tip.getWorldPosition(new THREE.Vector3());}};
