@@ -239,3 +239,23 @@ test('Mod 253 — Extinção Orbital: storyboard de 7 fases na mesma linha do te
   assert.ok(src.includes('vzApplyShot(sh)') && src.includes('vzCamRestore()'), 'tomada aplicada só no quadro desenhado');
   assert.ok(vfx.includes("vhazrael-extinction3d.js?v=mod"), 'módulo novo da Extinção com cache versionado');
 });
+
+
+test('Mod 276 — Ruptura do Trono não arremessa o herói para fora das explosões',()=>{
+ const {sq,dmg,log}=world();
+ const front=hero(),side=hero({id:'heroi_lateral',x:9,z:0,priority:.4});
+ sq.setTargets([front,side]);
+ const a=boss(sq,16);a.alert=1e9;a.decideT=1e9;
+ cast(sq,a,front,'throne');
+ run(sq,13.5,1/60);
+ const cut=dmg.filter(x=>x.kind==='throne');
+ const shock=dmg.filter(x=>x.kind==='throneImpact');
+ assert.ok(cut.length>=1,'deve manter contato e dano do corte');
+ assert.ok(shock.length>=1,'alvo lateral recebe onda de choque, sem ser arremessado');
+ for(const hit of [...cut,...shock]){
+   assert.equal(hit.knock,0,'sem recuo horizontal neste ataque: '+hit.kind);
+   assert.ok(hit.n>0,'dano e preservado: '+hit.kind);
+ }
+ assert.ok(log.some(x=>x.type==='throneBlast'),'explosão e seu timing permanecem');
+ assert.ok(VZ.boss.melee.knock>0,'outros golpes normais não foram modificados');
+});
