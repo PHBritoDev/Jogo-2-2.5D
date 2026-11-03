@@ -25,14 +25,18 @@ test('Chamas Negras — exatamente 10 chamas em sequência (0,85 s) com antecipa
   assert.ok(BF.bigR > BF.smallR * 2 && BF.smallR >= .8, 'colisão acompanha o tamanho');
 });
 
-test('Skill 2 — Lua removida de verdade, sem mesh, shader, câmera ou eventos; o 10+1 continua', () => {
-  const L = run(); assert.equal(all(L, 'fire').length, 10); assert.equal(all(L, 'final_fire').length, 1);
-  assert.equal(all(L, 'moon').length + all(L, 'moon_fade').length, 0, 'nenhum evento da lua');
-  assert.ok(!('moon' in L.s.st) && !('moonGone' in L.s.st), 'estado de lua removido');
-  const vfx = fs.readFileSync(new URL('./zarkhael-blackflame3d.js', import.meta.url), 'utf8');
-  assert.ok(!/\bMOON_F\b|\bMOON_V\b|moonG|moonU|moonPlaced|moonPos/.test(vfx), 'shader, mesh e rastreamento da lua foram excluídos');
-  const main = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
-  assert.ok(!main.includes('bfVfx.moonPos') && !main.includes("e.type==='moon_fade'"), 'câmera e áudio especiais da lua removidos');
+test('Skill 2 — Lua restaura imagem original do criador; 10+1 chamas preservadas', () => {
+  const L=run(); assert.equal(all(L,'fire').length,10); assert.equal(all(L,'final_fire').length,1);
+  assert.equal(all(L,'moon').length+all(L,'moon_fade').length,0,'lua e apenas VFX sem novos eventos de dano');
+  const art=fs.readFileSync(new URL('./zarkhael-moon-reference.webp',import.meta.url));
+  assert.ok(art.length>3000&&art.length<20000&&art.toString('ascii',0,4)==='RIFF'&&
+    art.toString('ascii',8,12)==='WEBP','retrato WebP local real (nao placeholder)');
+  const vfx=fs.readFileSync(new URL('./zarkhael-blackflame3d.js',import.meta.url),'utf8');
+  const view=fs.readFileSync(new URL('./zarkhael-moon-vfx3d.js',import.meta.url),'utf8');
+  assert.ok(vfx.includes('createMoonCometVFX(T, root, NS + 1)') &&
+    vfx.includes('moonComet.update(seq,ctx)'),'lua integrada ao mesmo ciclo de renderizacao');
+  assert.ok(view.includes('zarkhael-moon-reference.webp') &&
+    view.includes("moon.name='LuaTenebrosaReferenciaDoCriador'"),'arte do criador usada no céu');
 });
 
 test('Chamas Negras — mira travada, colisão varrida, acerto direto x chão; durações exatas', () => {
@@ -77,8 +81,8 @@ test('Interrupção, IA e integração — some limpo, IA usa a Skill 2 à dist�
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("case 'zarkhael_black_moon_flames':startMoonFlames(m);break;") && src.includes('updateMoonFlames(dt);') && src.includes('stopMoonFlames();stopHydra();clearHazards();') && src.includes('undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);'), 'integração e limpeza');
   assert.ok(src.includes('if(moonFlames||hydraSkill)return;'), 'nunca junto com a Hidra');
-  const vfx = fs.readFileSync(new URL('./zarkhael-blackflame3d.js', import.meta.url), 'utf8'); assert.ok(!/\bMOON_F\b|\bMOON_V\b|moonG|moonU|moonPlaced|moonPos/.test(vfx), 'nenhum shader/mesh de lua em Skill 2');
-  assert.ok(BF.shots===10 && BF.bigScale>BF.smallScale*2.9, 'dez chamas e uma colossal, sem Lua');
+  const vfx = fs.readFileSync(new URL('./zarkhael-blackflame3d.js', import.meta.url), 'utf8'); assert.ok(vfx.includes('moonComet.update(seq,ctx)') && vfx.includes('travelingGrowth(s.ft,s.big)'), 'lua e fogo progressivo ligados ao VFX');
+  assert.ok(BF.shots===10 && BF.bigScale>BF.smallScale*2.9, 'dez chamas e uma colossal preservadas');
   assert.ok(!/function spawnEnemyProjectile|function updateEnemyProjectiles|BOSS_POWERS\.zarkhael/.test(src), 'Mods 264/267 preservadas');
   const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testLuaNegra=1') && lab.includes('testHidra=1'));
 });
