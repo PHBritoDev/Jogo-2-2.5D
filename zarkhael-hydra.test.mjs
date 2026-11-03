@@ -70,7 +70,7 @@ test('Hidra — some em pó depois da 3ª; interrupção limpa; o bispo só fica
 });
 
 test('IA do Bispo 3 — utilidade por distância, sem spam, espera o dash, pune quem cola, abre distância antes do ritual', () => {
-  const k = kitFor('zarkhael'); assert.deepEqual(k.skills.map(s=>s.type), ['hydra_judgment', 'zarkhael_black_moon_flames']); assert.equal(k.sword, null); assert.equal(k.ult, null); assert.equal(k, kitFor('fallen3'));
+  const k = kitFor('zarkhael'); assert.deepEqual(k.skills.map(s=>s.type), ['hydra_judgment', 'zarkhael_black_moon_flames']); assert.equal(k.sword?.type, 'zarkhael_circular_sword'); assert.equal(k.ult, null); assert.equal(k, kitFor('fallen3'));
   const seq = s => { let x = s; return () => { x = (x * 16807) % 2147483647; return x / 2147483647; }; };
   const pick = (ctx, s = 3) => chooseZarkhaelMove(k, { cds: {}, last: '', hpFrac: 1, heroHpFrac: 1, ...ctx }, seq(s));
   assert.equal(pick({ dist: 14 }).move.type, 'hydra_judgment', 'à distância média, o ritual');
