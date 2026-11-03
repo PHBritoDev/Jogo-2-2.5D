@@ -142,3 +142,19 @@ A V4 amplia a V3 mantendo o jogo, os modelos GLB e os comandos de jogadores norm
 - GitHub Actions, cache e chamadas de API podem ter cotas, cobrança e limites de execução. A frequência foi deliberadamente limitada: push, comando manual e uma inspeção semanal.
 
 Para inspecionar pelo celular, abra o workflow, clique na execução e extraia o artefato de laboratório. Em agente/ver-analise.html ficam a galeria, a comparação visual, o vídeo e o parecer de IA (quando ativado).
+
+
+## V5 — rodadas consecutivas sem aguardar o chat
+
+A V5 substitui a tentativa de repetir uma única execução por **um ciclo de testes sequenciais**, dentro de um único job do GitHub Actions. O agendamento semanal é um acionador adicional e **não** é a espera entre rodadas.
+
+- Rodada 1: partida real do Bispo 3 em câmera padrão, com pixels WebGL, telemetria, relatório e vídeo.
+- Rodada 2: começa **imediatamente depois** da primeira, com ângulos de câmera de proximidade para inspecionar obstruções e detalhes.
+- Rodada 3: ocorre se as duas primeiras apresentarem falha ou alertas visuais recorrentes importantes, usando câmera alternativa/posterior para investigar.
+- Limites: duas rodadas garantidas + uma investigativa opcional (máximo três), com tempo máximo por execução. Sem chamadas de IA pagas e sem gerar commits automaticamente.
+- Evidências completas: visual-lab-results/rodadas/rodada-N/agente/ e visual-lab-results/rodadas/abrir-rodadas.html; visual-lab-results/agente/ conserva a rodada padrão aprovada para manter a comparação histórica V4 consistente.
+- Uma falha em qualquer rodada deixa o conjunto como requer_investigacao; evidências não são descartadas, e a qualidade visual não é aprovada só por testes de código.
+
+O painel do ZIP possui links de cada rodada. Execute na aba Actions após um push ou por Run workflow escolhendo o cenário agente. As verificações funcionam sem resposta do usuário; o workflow termina após o limite. 
+
+**O que isso NÃO faz:** não transforma a automação em um programador que corrige arquivos sozinho nem em um processo infinito. Para produzir novos commits após cada diagnóstico seria necessário integrar, configurar e pagar separadamente um serviço de agente de programação com credenciais e permissões controladas. A V5 melhora e repete a investigação automaticamente, mas preserva as regras do jogo sem autoedição arriscada.
