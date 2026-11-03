@@ -41,6 +41,10 @@ test('Mod 275: combate e animação original continuam intactos',()=>{
  assert.ok(old.includes('reference.render(s,blade,boss,low,ground)'));
  assert.ok(old.includes('reference.clear()')&&old.includes('reference.dispose()'));
  assert.ok(old.includes('drawCharge(s, blade, boss)')&&old.includes('drawImpact(s)'));
+ assert.ok(old.includes('impactCore.scale.set(size * .59, size * 2.2, size * .55)'),
+   'núcleo do impacto mantém ruptura vertical em vez de esfera genérica');
+ assert.ok(!old.includes('impactCore.scale.set(size * 1.07, size * 1.4, size * .9)'),
+   'não restaurar o núcleo arredondado de antes');
  assert.ok(body.includes('bakeCombatClips')&&body.includes('bossPose'),'sistema de animação original permanece');
  assert.ok(newFx.includes("name='NucleoBrancoCarmesimVertical'"));
  assert.ok(newFx.includes("name='AsasDeTintaNegraVioleta'"));
