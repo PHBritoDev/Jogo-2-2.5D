@@ -69,7 +69,7 @@ jobs:
       - name: Verificar todas as capacidades do agente V3
         run: |
           node --test tools/visual-lab/*.test.cjs
-          node --test enemy1-integration.test.mjs zarkhael-hydra.test.mjs zarkhael-blackflame.test.mjs
+          node --test enemy1-integration.test.mjs zarkhael-hydra.test.mjs zarkhael-blackflame.test.mjs zarkhael-moon.test.mjs
           node --input-type=module --check < mundo-3d-prototype.js
 
       - name: Iniciar servidor HTTP local do proprio commit

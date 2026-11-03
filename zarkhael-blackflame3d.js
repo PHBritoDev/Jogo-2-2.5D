@@ -1,3 +1,4 @@
+import {createMoonCometVFX,travelingGrowth} from './zarkhael-moon-vfx3d.js';
 /**
  * BISPO 3 (ZAR'KHAEL) — SKILL 2: CHAMAS NEGRAS — O FOGO QUE NÃO MORRE.
  *
@@ -12,7 +13,7 @@
  *   moon fade             a lua só começa a sumir DEPOIS do lançamento da colossal.
  * Queimadura: uma instância só por herói; recontato renova até a maior duração; a forte substitui a fraca; nunca soma ticks.
  */
-export const BLACKFLAME_BUILD = '271-black-flames-sem-lua';
+export const BLACKFLAME_BUILD = '273-lua-original-fogo-progressivo';
 export const BF = {
   firstShot: 1.9, shotGap: .85, windup: .36, shots: 10, finalAt: 10.0, finalCharge: 2.5,
   smallSpeed: 18, bigSpeed: 13, lead: .2, leadCap: 2, smallR: .9, bigR: 2.4, life: 3.4,
@@ -153,7 +154,8 @@ export function createBlackFlameVFX(T, scene) {
   const flame = (geoKey, ro = 4) => { const u = { alpha: { value: 1 }, grow: { value: 1 }, lenMul: { value: 1 }, widthMul: { value: 1 }, flow: { value: new T.Vector3() }, groundY: { value: -1e9 } };
     const m = new T.Mesh(G[geoKey], mat({ vertexShader: FL_V, fragmentShader: FL_F, transparent: true, depthWrite: false, side: T.DoubleSide, uniforms: u })); m.frustumCulled = false; m.renderOrder = ro; m.visible = false; m.userData.u = u; root.add(m); return m; };
   /* pools */
-  const NS = BF.shots, shotsF = Array.from({ length: NS + 1 }, () => flame('big', 5)), handF = flame('small', 6), chargeF = flame('big', 6); /* as 10 menores usam a forma da antiga colossal; a última é a colossal 3× */
+  const NS = BF.shots, shotsF = Array.from({ length: NS + 1 }, () => flame('big', 5)), handF = flame('small', 6), chargeF = flame('big', 6);
+  const moonComet = createMoonCometVFX(T, root, NS + 1); /* as 10 menores usam a forma da antiga colossal; a última é a colossal 3× */
   const NF = BF.maxFields, fieldF = Array.from({ length: NF + 1 }, (_, i) => flame(i === NF ? 'fieldB' : 'fieldS', 3));
   const scorchG = new T.PlaneGeometry(2, 2).rotateX(-Math.PI / 2); geos.push(scorchG);
   const scorch = Array.from({ length: NF + 1 }, (_, i) => { const u = { alpha: { value: 0 }, seed: { value: i * .37 } }; const m = new T.Mesh(scorchG, mat({ vertexShader: SCORCH_V, fragmentShader: SCORCH_F, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, uniforms: u })); m.renderOrder = 2; m.frustumCulled = false; m.visible = false; m.userData.u = u; root.add(m); return m; });
@@ -173,6 +175,7 @@ export function createBlackFlameVFX(T, scene) {
     /** ctx {camera, hero:{x,y,z}, boss:{x,y,z,yaw}, hand:{x,y,z}, low, arena:{x,z,r}} */
     update(seq, hz, ctx, dt) {
       time += dt; uTime.value = time; cam.copy(ctx.camera.position); const st = seq && seq.st, H = ctx.hero, low = !!ctx.low;
+      moonComet.update(seq,ctx);
       for (const m of [...shotsF, handF, chargeF, ...burstF, ...rings, warn]) m.visible = false;
       if (st && !st.done) {
         const hand = ctx.hand, gyB = ctx.groundY ?? ctx.boss.y;
@@ -182,9 +185,9 @@ export function createBlackFlameVFX(T, scene) {
         const fc = st.phase === 'final_charge' ? seq.windup(NS) : 0; /* carga da colossal 3× maior, erguida acima do bispo */
         if (!st.aborted && fc > 0) { const yy = hand.y + 3.2 * sm(fc / .4); setFlame(chargeF, hand.x, yy, hand.z, (.2 + .85 * sm((fc - .1) / .6) + .15 * sm((fc - .7) / .3)) * 3, Math.min(1, fc * 4), sm(fc / .9), V.set(0, .3, 0), gyB); if (fc > .1 && Math.random() < .5) emit(hand.x, yy, hand.z, 3, 6 * fc); }
         // projéteis: a chama arrasta as línguas para trás do movimento
-        [...st.shots, st.final].forEach(s => { if (!s) return; const m = shotsF[s.i]; if (s.state === 'fly') { const n = s.path.length, a = s.path[Math.max(0, n - 3)]; V.set(a[0] - s.x, a[1] - s.y, a[2] - s.z).multiplyScalar(s.big ? .35 : .5); setFlame(m, s.x, s.y, s.z, s.big ? BF.bigScale : BF.smallScale, nearFade(s.x, s.y, s.z, s.big ? BF.bigScale : BF.smallScale), 1, V, gyB); /* nunca atravessa o chão */ if (R3(time * 60 + s.i) > .6) emit(s.x, s.y, s.z, s.big ? 3 : 1, s.big ? 4.5 : 1.5); }
+        [...st.shots, st.final].forEach(s => { if (!s) return; const m = shotsF[s.i]; if (s.state === 'fly') { const n = s.path.length, a = s.path[Math.max(0, n - 3)]; V.set(a[0] - s.x, a[1] - s.y, a[2] - s.z).multiplyScalar(s.big ? .35 : .5); const size=(s.big ? BF.bigScale*.72 : BF.smallScale*.84)*travelingGrowth(s.ft,s.big); setFlame(m,s.x,s.y,s.z,size,nearFade(s.x,s.y,s.z,size)*(.4+.6*sm(s.ft/(s.big?.55:.3))),travelingGrowth(s.ft,s.big),V,gyB); /* nunca atravessa o chão */ if (R3(time * 60 + s.i) > .6) emit(s.x, s.y, s.z, s.big ? 3 : 1, s.big ? 4.5 : 1.5); }
           else if (s.state === 'impact') { const k = s.it / (s.big ? 1.4 : .7); /* contato → compressão curta → ruptura que cresce → anel */
-            const bf = burstF[s.big ? 3 : s.i % 3], g = s.big ? (k < .06 ? .3 : .3 + .7 * sm((k - .06) / .35)) : sm(k / .25), ks = s.kind === 'hero' ? (s.big ? .26 : .45) : 1; /* no corpo do herói a explosão é menor: não cega a câmera */ setFlame(bf, s.ix, s.iy + (s.big ? .2 : .1), s.iz, (s.big ? 4.8 : 1.6) * (1 + .4 * g) * ks, (1 - sm((k - .6) / .4)) * nearFade(s.ix, s.iy, s.iz, (s.big ? 4.8 : 1.6) * ks), g, V.set(0, .1, 0), s.iy - .02);
+            const bf = burstF[s.big ? 3 : s.i % 3], g = s.big ? (.04+.96*sm((k-.06)/.42)) : (.05+.95*sm(k/.30)), ks = s.kind === 'hero' ? (s.big ? .26 : .45) : 1; /* no corpo do herói a explosão é menor: não cega a câmera */ setFlame(bf, s.ix, s.iy + (s.big ? .2 : .1), s.iz, (s.big ? 4.8 : 1.6) * (1 + .4 * g) * ks, (1 - sm((k - .6) / .4)) * nearFade(s.ix, s.iy, s.iz, (s.big ? 4.8 : 1.6) * ks), g, V.set(0, .1, 0), s.iy - .02);
             const ri = rings[s.big ? 3 : s.i % 3]; ri.visible = true; ri.position.set(s.ix, s.iy + .06, s.iz); ri.scale.setScalar((s.big ? 4 : 1.4) + (s.big ? 22 : 6) * sm(k / .7)); ri.userData.u.k.value = clamp01(k / .8); } });
         // aviso no chão da colossal (durante o voo): onde ela vai cair
         if (st.final && st.final.state === 'fly') { warn.visible = true; warn.position.set(st.final.target[0], st.final.target[1] + .05, st.final.target[2]); warn.scale.setScalar(BF.fieldBigR * .9); warnU.k.value = Math.min(1, st.final.ft / .2); }
@@ -201,7 +204,7 @@ export function createBlackFlameVFX(T, scene) {
       ashT += dt; for (let i = 0; i < AN; i++) { const a = ashA[i * 4 + 3]; if (a <= 0) continue; ashA[i * 4] += ashV[i * 3] * dt; ashA[i * 4 + 1] += ashV[i * 3 + 1] * dt; ashA[i * 4 + 2] += ashV[i * 3 + 2] * dt; ashA[i * 4 + 3] = Math.max(0, a - dt * .7); }
       ashG.attributes.aA.needsUpdate = true; root.visible = true;
     },
-    clear() { for (const m of root.children) m.visible = false; ashA.fill(0); },
-    dispose() { scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); }
+    clear() { moonComet.clear(); for (const m of root.children) m.visible = false; ashA.fill(0); },
+    dispose() { moonComet.dispose(); scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); }
   };
 }
