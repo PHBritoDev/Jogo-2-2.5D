@@ -69,14 +69,14 @@ const DOME_FRAG=[
  'float veins=pow(max(0.,sin(x*19.+h*42.+uTime*8.+corr*6.)),10.);',
  'float tear=sin(x*11.+h*10.-uTime*4.)*.085+sin(x*28.-h*26.+uTime*6.)*.038;',
  'float silhouette=1.-smoothstep(.86+tear,.98+tear,h);',
- 'float core=pow(max(0.,1.-h),4.)*(.7+.3*sin(uAge*13.));',
+ 'float core=pow(max(0.,1.-h),6.)*(.7+.3*sin(uAge*13.));',
  'float ringGlow=pow(max(0.,sin(h*24.-uAge*9.)),12.)*.55;',
- 'float fire=pow(corr,2.)*.57+veins*.8+ringGlow;',
- 'vec3 cold=vec3(.15,.001,.018),crimson=vec3(.88,.01,.037),hot=vec3(1.,.37,.03),white=vec3(1.,.92,.64);',
+ 'float fire=.27+pow(corr,1.4)*.65+veins*.8+ringGlow;',
+ 'vec3 cold=vec3(.31,.001,.028),crimson=vec3(1.,.018,.071),hot=vec3(1.,.36,.025),white=vec3(1.,.92,.64);',
  'vec3 c=mix(cold,crimson,clamp(fire*.9+core*.45,0.,1.));',
  'c=mix(c,hot,clamp(fire*.52+veins*.26,0.,1.));',
  'c=mix(c,white,clamp(veins*.45+core*.68,0.,1.));',
- 'float alpha=clamp((.26+fire*.4+core*.5)*silhouette*uAlpha,0.,1.);',
+ 'float alpha=clamp((.49+fire*.5+core*.24)*silhouette*uAlpha,0.,1.);',
  'if(alpha<.025)discard;gl_FragColor=vec4(c,alpha);}'
 ].join('\n');
 const CHARGE_FRAG=[
@@ -208,15 +208,15 @@ export function createSixSealsVFX(THREE,scene){
    vfx.group.position.set(C.x,ground(C.x,C.z)+.045,C.z);
    vfx.dome.scale.set(st.dangerR*growth,1.2+11.8*growth,st.dangerR*growth);
    vfx.veil.scale.set(st.dangerR*growth*.96,1.45+13.2*growth,st.dangerR*growth*.96);
-   vfx.veilMat.opacity=fade*(.17+.26*form);
-   vfx.kernel.scale.setScalar(.6+st.dangerR*(.015+.14*pre+.29*form));
+   vfx.veilMat.opacity=fade*(.25+.38*form);
+   vfx.kernel.scale.setScalar(.42+2.5*(.12*pre+.88*form)); // núcleo pequeno; plasma vermelho domina o quadro
    vfx.kernel.position.y=1.25+4.5*form;
-   vfx.kernelMat.opacity=fade*(.5+.42*pre);
+   vfx.kernelMat.opacity=fade*(.38+.40*pre);
    vfx.rail.scale.setScalar(st.dangerR*(.07+.93*open));
    vfx.rail.position.y=1.0+4*open;
    vfx.railMat.opacity=fade*(.12+.68*open);
    vfx.domeMaterial.uniforms.uTime.value=seconds;vfx.domeMaterial.uniforms.uAge.value=age;
-   vfx.domeMaterial.uniforms.uAlpha.value=fade*(.48+.52*form);
+   vfx.domeMaterial.uniforms.uAlpha.value=fade*(.65+.35*form);
    vfx.wave.scale.setScalar(st.dangerR*growth);
    vfx.ringMat.opacity=fade*sm((age-.44)/.65)*.88;peak=Math.max(peak,fade*open);
   }
