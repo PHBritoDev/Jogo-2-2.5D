@@ -1,0 +1,63 @@
+name: Bispo 1 - Ruptura referencia Mod 275
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "vhazrael*.js"
+      - "vhazrael*.html"
+      - "enemy1-squad-runtime3d.js"
+      - "tools/visual-lab/vhazrael-reference-qa.cjs"
+      - ".github/workflows/vhazrael-rupture-reference.yml"
+  push:
+    branches: [main]
+    paths:
+      - "vhazrael*.js"
+      - "enemy1-squad-runtime3d.js"
+      - ".github/workflows/vhazrael-rupture-reference.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verificar-ruptura:
+    name: Teste real da espada e fidelidade visual
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    env:
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Testar golpe, dano, fases e shader
+        run: |
+          node --test vhazrael-reference-sakuga.test.mjs vhazrael.test.mjs
+          node --input-type=module --check < vhazrael-reference-sakuga3d.js
+          node --input-type=module --check < vhazrael-rupture3d.js
+          node --input-type=module --check < vhazrael-vfx3d.js
+      - name: Instalar o navegador do laboratorio
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Abrir servidor da branch
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/bispo1-server.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/vhazrael-preview.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/bispo1-server.log
+          exit 1
+      - name: Testar WebGL e comparar mesmos quadros com e sem melhoria
+        run: node tools/visual-lab/vhazrael-reference-qa.cjs
+      - name: Guardar comparacoes e evidencias mesmo em caso de erro
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bispo1-ruptura-mod275-${{ github.run_number }}
+          path: visual-lab-results/vhazrael-mod275/
+          retention-days: 14
+          if-no-files-found: warn
