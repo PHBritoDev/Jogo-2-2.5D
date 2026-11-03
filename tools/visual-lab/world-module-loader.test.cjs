@@ -20,7 +20,8 @@ test("Mod277 — modulo principal dentro de blob so tem imports HTTP absolutos a
  assert.ok(!world.includes("from './vhazrael3d.js?v="),
   "import versionado no topo reintroduz o crash do blob");
  assert.ok(!world.includes("from './vhazrael-feather-wings3d.js?v="));
- assert.ok(loader.includes("(?:\\?[^'\\\"]*)?"),"loader deve aceitar imports com ?v");
+ assert.ok(loader.includes("code = code.replace(/\\b(from") && loader.includes("(?:\\?"),
+   "loader deve converter imports versionados antes de executar blob");
  assert.match(html,/mod181-loader\.js\?v=mod277-/);
 });
 test("Mod277 — parser reescreve também imports versionados futuros e side-effect",()=>{
