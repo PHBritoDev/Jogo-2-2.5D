@@ -65,7 +65,6 @@ jobs:
         run: npm install --prefix tools/visual-lab --no-audit --no-fund
 
       - name: Instalar Chromium e dependencias
-        if: github.event_name != 'pull_request'
         run: ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
 
       - name: Verificar todas as capacidades do agente V3
@@ -75,7 +74,6 @@ jobs:
           node --input-type=module --check < mundo-3d-prototype.js
 
       - name: Iniciar servidor HTTP local do proprio commit
-        if: github.event_name != 'pull_request'
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/visual-lab-http.log 2>&1 &
           echo $! > /tmp/visual-lab-http.pid
@@ -85,6 +83,19 @@ jobs:
           done
           cat /tmp/visual-lab-http.log
           exit 1
+
+      - name: Smoke essencial do carregamento 3D (bloqueia imports quebrados no PR)
+        if: github.event_name == 'pull_request'
+        run: node tools/visual-lab/world-load-smoke.cjs
+
+      - name: Guardar evidencias do smoke mesmo se o mundo falhar
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mundo3d-smoke-${{ github.run_number }}
+          path: visual-lab-results/smoke-world/
+          retention-days: 7
+          if-no-files-found: warn
 
       - name: Restaurar memoria visual anterior
         if: github.event_name != 'pull_request'
