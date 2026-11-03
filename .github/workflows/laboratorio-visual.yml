@@ -71,7 +71,7 @@ jobs:
       - name: Verificar todas as capacidades do agente V3
         run: |
           node --test tools/visual-lab/*.test.cjs
-          node --test enemy1-integration.test.mjs zarkhael-hydra.test.mjs zarkhael-blackflame.test.mjs zarkhael-moon.test.mjs
+          node --test enemy1-integration.test.mjs zarkhael-hydra.test.mjs zarkhael-blackflame.test.mjs zarkhael-moon.test.mjs vorgazhek-eclipse-sword.test.mjs vorgazhek-eclipse-sakuga.test.mjs
           node --input-type=module --check < mundo-3d-prototype.js
 
       - name: Iniciar servidor HTTP local do proprio commit
@@ -125,6 +125,10 @@ jobs:
           path: visual-lab-baseline/
           key: visual-v4-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
 
+
+      - name: Verificar Eclipse Mod 274 em WebGL real (4 etapas, VFX ligado/desligado)
+        if: always() && github.event_name == 'push'
+        run: node tools/visual-lab/eclipse-sakuga-qa.cjs
 
       - name: Instalar FFmpeg para converter gravacoes a MP4
         if: always() && github.event_name != 'pull_request'
