@@ -70,7 +70,7 @@ function decide({tick, vision, state, seen = {}, prevPosition, lastCastTick = -9
     Math.hypot(player.x - prevPosition.x, player.z - prevPosition.z) < .05;
   const decision = {
     reason: [], move: null, keys: [], cast: null,
-    bossSkill: null, camera: null, heal: hp > 0 && hp < 65
+    bossSkill: null, camera: null, heal: hp > 0 && hp < 95
   };
   if (!dim.battle?.active || !dim.visible || dim.profile !== "zarkhael") {
     decision.reason.push("aguardando_batalha_real");
@@ -83,7 +83,7 @@ function decide({tick, vision, state, seen = {}, prevPosition, lastCastTick = -9
     decision.bossSkill = "s2";
     decision.reason.push("hidra_terminou_trocar_poder");
   }
-  if (hp < 65 && hp > 0) decision.reason.push("recuperar_vida_somente_QA");
+  if (hp < 95 && hp > 0) decision.reason.push("recuperar_vida_somente_QA");
   if (warnOcclusion) {
     decision.camera = { distance: 24, height: 10, orbit: tick % 4 };
     decision.reason.push("ajustar_visao_por_pixels");
