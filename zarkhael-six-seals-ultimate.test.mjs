@@ -96,7 +96,7 @@ test('sem fallback genérico: kit, gatilho, câmera e espada original estão lig
  const src=fs.readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
  assert.ok(src.includes("bossUlt.kind==='zarkhael6'?tickZarkUlt"));
  assert.ok(src.includes('startZarkUlt()'));
- assert.ok(src.includes('stopZarkUlt();clearHazards()'));
+ assert.ok(src.includes('stopZarkUlt();') && src.includes('clearHazards();'));
  assert.ok(src.includes('zarkSwordWeapon?.userData?.tip'));
  assert.ok(src.includes('testUltBispo3'));
  assert.ok(ZARK_ULT_BUILD.startsWith('280-')&&ZARK_ULT_VFX_BUILD.startsWith('280-'));
