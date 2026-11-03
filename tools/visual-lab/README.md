@@ -114,3 +114,31 @@ Baixe o artefato da execução em GitHub Actions e extraia o ZIP. Abra **agente/
 
 **Limite honesto:** o agente continua sendo um controlador autônomo com visão heurística, não um modelo multimodal que reconhece semanticamente personagens. O assistente pode analisar as capturas/vídeos depois da execução. Um workflow aprovado não significa aprovação artística.
 
+
+
+## V4 — memória visual, parecer multimodal e auditorias sequenciais
+
+A V4 amplia a V3 mantendo o jogo, os modelos GLB e os comandos de jogadores normais **inalterados**.
+
+**Executa sem precisar de outra mensagem no chat:**
+- Ao publicar modificações relevantes em main, o GitHub Actions tenta gravar o laboratório e o agente;
+- Às segundas-feiras, 12:00 UTC, roda uma auditoria programada mesmo que ninguém tenha alterado o código;
+- Se o agente falhar, há **uma segunda tentativa** na mesma execução; a evidência da primeira fica em visual-lab-results/tentativas/agente-falha-1/. Após duas falhas, o job continua vermelho;
+- O resultado possui vídeos, prints, painel HTML e relatórios, em ZIP nos artefatos do GitHub Actions (14 dias);
+- O primeiro run aprovado salva uma referência em cache do GitHub, e o próximo gera agente/comparacao.json com pares de imagens **antes (esquerda)** e **depois (direita)**. O histórico do cache **não é permanente** e pode expirar/ser removido pelo GitHub.
+
+**Parecer de IA multimodal (opcional; pode gerar custos):** se estiver presente no GitHub Actions o segredo OPENAI_API_KEY, o script visual-ai.cjs envia **no máximo 3 imagens reduzidas por execução** ao endpoint Responses da OpenAI, com armazenamento de resposta desativado (store: false). O modelo padrão é gpt-4.1-mini, e o script limita a 1 requisição por run, 45 s de timeout e 1000 tokens de saída. Grava agente/avaliacao-ia.json e incorpora conclusões no painel. Sem o segredo, registra sem_chave e segue com análise local sem gastar com API. **Nunca cole sua chave no chat nem salve em arquivo do repositório.** Para ativar: Settings → Secrets and variables → Actions → New repository secret → nome OPENAI_API_KEY. O uso da API tem cobrança separada do plano ChatGPT e envia os prints do jogo ao serviço escolhido.
+
+**Arquivos da V4:**
+- visual-memory.cjs: comparação RGB normalizada, imagens lado a lado e cache controlado da referência;
+- visual-ai.cjs: inspeção semântica opcional, de caráter sugestivo (não configura aprovação automática);
+- visual-v4.test.cjs: testes de delta RGB, formato de parecer e retenção do baseline apenas após execução bem-sucedida.
+
+**Limites que permanecem:**
+- Capturas diferentes podem representar câmera, movimento, tempo e poder diferentes; diferença visual é um indício, não um bug confirmado.
+- Os agentes e testes rodam no Chromium/SwiftShader, não no aparelho físico Android.
+- O parecer multimodal não controla o jogo em tempo real; o controlador da luta continua baseado em pixels e regras QA.
+- O sistema não faz alterações cegas no código, não dá merge automático em possíveis correções e não mantém ciclos infinitos de tentativa. **Ele produz diagnóstico e reexecuta testes automaticamente; correções de código continuam exigindo uma ferramenta de programação conectada e revisão da alteração.**
+- GitHub Actions, cache e chamadas de API podem ter cotas, cobrança e limites de execução. A frequência foi deliberadamente limitada: push, comando manual e uma inspeção semanal.
+
+Para inspecionar pelo celular, abra o workflow, clique na execução e extraia o artefato de laboratório. Em agente/ver-analise.html ficam a galeria, a comparação visual, o vídeo e o parecer de IA (quando ativado).
