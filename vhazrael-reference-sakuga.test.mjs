@@ -67,11 +67,11 @@ test('Mod 276 — asas com formato anatômico arqueado, plumas longas e simétri
  assert.ok(crown.y>rightStart.y+6,'articulação sobe acima das costas como na referência');
  assert.ok(tip.y<rightStart.y-11,'ponta externa curva para baixo e envolve o Bispo');
  assert.ok(tip.x>rightStart.x+8,'envergadura colossal para os lados');
- const primary=wingFeatherProfile(.85,0),secondary=wingFeatherProfile(.3,1);
+ const primary=wingFeatherProfile(.85,0,true),secondary=wingFeatherProfile(.3,1);
  assert.ok(primary.length>8 && primary.length>secondary.length,'penas primárias longas e pontiagudas');
- assert.ok(primary.inward>.2,'penas voltam ao centro em vez de placas retas');
+ assert.ok(primary.inward>.45,'penas voltam ao centro em vez de placas retas');
  assert.ok(WING_LOD.high.primary>WING_LOD.low.primary);
- assert.equal(WING_LOD.low.primary,14,'mobile reduz geometria, não remove as asas');
+ assert.equal(WING_LOD.low.primary,11,'mobile reduz geometria, não remove as asas');
  assert.match(VHAZRAEL_WINGS_BUILD,/^276-/);
  const source=fs.readFileSync(new URL('./vhazrael-feather-wings3d.js',import.meta.url),'utf8');
  assert.ok(source.includes('TubeGeometry')&&source.includes('featherCluster(T,side,quality)'));
