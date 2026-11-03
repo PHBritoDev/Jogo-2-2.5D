@@ -13,7 +13,8 @@
  *  C) impact 2,4 s — colapso esférico em espiral (faixas largas girando à volta de um centro brilhante), no ponto real do
  *     choque, sem dano contínuo. Depois tudo se desfaz (fade 0,45 s) e o cenário volta ao que era.
  */
-export const ECLIPSE_SWORD_BUILD = '261-eclipse-sword';
+import {createEclipseSakugaVFX} from './vorgazhek-eclipse-sakuga3d.js';
+export const ECLIPSE_SWORD_BUILD = '274-eclipse-reference-sakuga';
 export const ECLIPSE = { charge: 3.2, windup: .42, releaseMax: 2.0, impact: 2.4, fade: .45, abortFade: .3, speed: 30, lead: .3, leadCap: 2.5, hitHalfW: 1.25, hitHalfH: 1.15, heroH: 1.8, dmg: 22, maxRange: 46, stages: [.6, 1.5, 2.5], swordScale: 1.05, grip: -.3, moonDist: 45, moonAng: .135 };
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
@@ -173,6 +174,7 @@ function crescentGeo(T, Ro = 3.4, span = 1.25, seg = 40, dep = 6) {
 
 export function createEclipseVFX(T, scene) {
   const root = new T.Group(); root.name = 'VorgazhekEclipse'; scene.add(root); const geos = [], mats = [], uTime = { value: 0 };
+  const sakuga = createEclipseSakugaVFX(T, root); // sobreposição, sem substituir espada/animação
   const V = () => new T.Vector3(), M = new T.Matrix4(), Q = new T.Quaternion(), P = V(), S = V(), D = V(), E = V(), X = V(), Y = V(), Z = V(), UP = new T.Vector3(0, 1, 0), cam = V(), tmp = V(), tip = V(), right = V(), Q2 = new T.Quaternion();
   const mat = (o) => { const m = new T.ShaderMaterial({ toneMapped: false, fog: false, ...o, uniforms: { time: uTime, ...(o.uniforms || {}) } }); mats.push(m); return m; };
   /* lua */
@@ -249,6 +251,7 @@ export function createEclipseVFX(T, scene) {
   }
   return {
     root, holder, setSwordModel, get swordReady() { return swordReady; },
+    sakugaStats() { return sakuga.stats(); },
     /** Posição da ponta da espada (para o lançamento). */
     swordTip(out) { if (swordReady && holder.visible) { D.set(0, 1, 0).applyQuaternion(holder.quaternion); return out.copy(holder.position).addScaledVector(D, holder.userData.len); } return null; },
     /** ctx: {camera, boss:{x,y,z,yaw}, hand:Vector3|null, armDir:Vector3|null, low, moonGround, oldMoon} */
@@ -278,8 +281,9 @@ export function createEclipseVFX(T, scene) {
       rg.setDrawRange(0, q * 6); rg.attributes.position.needsUpdate = rg.attributes.aUv.needsUpdate = rg.attributes.aK.needsUpdate = true;
       for (const I of [bands, cores, glows, spikes]) { I.mesh.count = I.n; I.mesh.instanceMatrix.needsUpdate = true; for (const [k] of I.attrs) I.mesh.geometry.attributes[k].needsUpdate = true; }
       shards.instanceMatrix.needsUpdate = true;
+      sakuga.update(es, ctx, dt);
     },
-    clear(oldMoon) { moon.visible = false; slash.visible = false; holder.visible = false; moonSet = false; trailN = 0; q = 0; rg.setDrawRange(0, 0); for (const I of [bands, cores, glows, spikes]) { I.n = 0; I.mesh.count = 0; } shards.count = 0; if (oldMoon) oldMoon.visible = true; },
-    dispose() { scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); for (const m of swordMats) m.dispose(); }
+    clear(oldMoon) { sakuga.clear(); moon.visible = false; slash.visible = false; holder.visible = false; moonSet = false; trailN = 0; q = 0; rg.setDrawRange(0, 0); for (const I of [bands, cores, glows, spikes]) { I.n = 0; I.mesh.count = 0; } shards.count = 0; if (oldMoon) oldMoon.visible = true; },
+    dispose() { sakuga.dispose(); scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); for (const m of swordMats) m.dispose(); }
   };
 }
