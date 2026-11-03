@@ -115,7 +115,7 @@ export function createThroneReferenceVFX(T,parent) {
     shift.set(anchor.x-cameraPos.x,0,anchor.z-cameraPos.z).normalize();
     wings.position.set(anchor.x+shift.x*2.4,anchor.y+.6,anchor.z+shift.z*2.4);
     wings.lookAt(cameraPos);
-    wings.scale.setScalar(.63+.37*smooth((s.age-.4)/1.7));
+    wings.scale.setScalar(.48+.28*smooth((s.age-.4)/1.7)); // enquadra asas inteiras sem esconder o Bispo
 
   }
   current.wings=wings.visible;
