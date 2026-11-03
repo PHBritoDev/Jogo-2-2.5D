@@ -156,7 +156,7 @@ registerSkill('throne', {
         outcome = sq.damageTarget(contact.tg.id, T.dmg, {
           kind: 'throne', spell: s.id,
           x: s.x + s.dx * stopAt, z: s.z + s.dz * stopAt,
-          knock: 1.8, guardBreak: s.guardBreak
+          knock: 0, guardBreak: s.guardBreak // Bispo 1: não desloca o herói para fora das explosões
         });
         sq.event('throneContact', { spell: s, target: contact.tg.id,
           result: outcome, damage: T.dmg, at: s.age });
@@ -194,7 +194,7 @@ registerSkill('throne', {
           if (sq.los && !sq.los(s.ix, s.iz, tg.x, tg.z)) continue;
           s.hit.add(tg.id);
           sq.damageTarget(tg.id, T.endDmg, { kind: 'throneImpact',
-            spell: s.id, x: s.ix, z: s.iz, knock: 1.4 });
+            spell: s.id, x: s.ix, z: s.iz, knock: 0 // onda de choque sem empurrão });
         }
         s.waveRadius = waveRadius;
       }
