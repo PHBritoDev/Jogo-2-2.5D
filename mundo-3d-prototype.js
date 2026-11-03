@@ -2,7 +2,8 @@ import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
 import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
 import {pullOn} from './enemy2-squad3d.js';
-import {VZ,VHAZRAEL_BUILD} from './vhazrael3d.js';
+import {VZ,VHAZRAEL_BUILD} from './vhazrael3d.js?v=mod276-trono-no-knock';
+import {VHAZRAEL_WINGS_BUILD} from './vhazrael-feather-wings3d.js?v=mod276-feather-silhouette';
 import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {BOSS_MOVES,bossTraceContact,bossLift} from './boss-choreography3d.js';
 import {bakeCombatClips} from './combat-rig3d.js';
@@ -16,7 +17,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'||k==='bishop3'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // Mod 263: build de powers exclusivos do Bispo 2, além da ultimate cósmica da Mod 262.
-{const m=document.getElementById('marker');if(m){m.textContent=ECLIPSE_SWORD_BUILD.startsWith('274-')?'274':'?';m.title='Mod 274: Eclipse da Dívida — ruptura carmesim, asas abissais, raios e basalto (animação preservada) | Mod 273: Lua Tenebrosa com arte original do criador e fogo negro viajando com rastro | Mod 272: laboratório visual V3 | Mod 271: Hidra ancorada no chão (10 chamas + colossal preservadas) | Mod 269: Bispo 3 — Lua Tenebrosa | Mod 266: Bispo 3 — Hidra do Juízo | Mod 265: refino da aura, explosão e chamas negras | Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent=VHAZRAEL_WINGS_BUILD.startsWith('276-')?'276':'?';m.title='Mod 276: Bispo 1 — asas negras com penas curvas, sem repulsão no corte/onda de choque | Mod 275: Ruptura do Trono com núcleo branco-carmesim | Mod 274: Eclipse da Dívida — espada do Bispo 2 | Mod 273: Lua Tenebrosa com arte original do criador e fogo negro viajando com rastro | Mod 272: laboratório visual V3 | Mod 271: Hidra ancorada no chão (10 chamas + colossal preservadas) | Mod 269: Bispo 3 — Lua Tenebrosa | Mod 266: Bispo 3 — Hidra do Juízo | Mod 265: refino da aura, explosão e chamas negras | Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;

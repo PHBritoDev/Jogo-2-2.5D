@@ -1,6 +1,6 @@
 import { smooth, easeOut, hash, groundNormal } from './celestial-fxkit3d.js';
 import { thronePose } from './vhazrael-choreo3d.js?v=mod254-bombardeio';
-import {createThroneReferenceVFX,VHAZRAEL_REFERENCE_BUILD} from './vhazrael-reference-sakuga3d.js';
+import {createThroneReferenceVFX,VHAZRAEL_REFERENCE_BUILD} from './vhazrael-reference-sakuga3d.js?v=mod276-feathered-wings';
 /**
  * MOD 252 — RUPTURA DO TRONO ABISSAL refeita do zero (só desenha o estado de vhazrael3d.js; nenhum dano aqui).
  * Linguagem visual de anime de alta energia com assets 100% originais e procedurais: cores em FAIXAS DURAS (cel/toon),

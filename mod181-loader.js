@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod275-bispo1-nucleo-carmesim';
+const BUILD = 'mod276-bispo1-asas-plumadas-sem-knock';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {

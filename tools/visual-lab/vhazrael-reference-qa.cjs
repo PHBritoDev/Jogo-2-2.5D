@@ -11,6 +11,7 @@ const host=(process.env.VISUAL_BASE_URL||"http://127.0.0.1:4173").replace(/\/$/,
 fs.mkdirSync(out,{recursive:true});
 const stages=[
   {key:"carga",t:3.2,cam:"back",wing:true,core:true},
+  {key:"asas-enquadradas",t:3.2,cam:"wide",distance:12,wing:true,core:true},
   {key:"corte",t:5.05,cam:"hero",core:true},
   {key:"impacto",t:5.9,cam:"wide",impact:true},
   {key:"pos-impacto",t:6.7,cam:"hero",impact:true},
@@ -42,21 +43,27 @@ async function run(){
       errors.push(m.text().slice(0,600));});
     try{
       const url=host+"/vhazrael-preview.html?k=throne&t="+stage.t+"&cam="+stage.cam+
-        "&d=9"+(low?"&low=1":"")+"&qa=275";
+        "&d="+(stage.distance||9)+(low?"&low=1":"")+"&qa=276";
       await page.goto(url,{waitUntil:"domcontentloaded",timeout:45000});
       await page.waitForFunction(()=>window.__ready===true&&window.__qa?.rt,null,{timeout:115000});
       const data=await page.evaluate(()=>{
         const qa=window.__qa,rt=qa.rt,fx=rt.vhazraelVFX;
         const spell=rt.squad.spells.find(x=>x.type==="throne");
         const mesh=qa.scene.getObjectByName("VhazraelRupturaReferenciaMod275");
+        const wings=qa.scene.getObjectByName("VhazraelFeatherWings276");
+        const featherMeshes=wings?.children?.filter(x=>x.visible&&x.name.startsWith("PenasPrimariasLongas"))||[];
+        const featherVertices=featherMeshes.reduce((sum,x)=>sum+(x.geometry?.attributes?.position?.count||0),0);
         return {phase:spell?.phase??null,spellAge:spell?.age??null,stats:fx.throneReferenceStats,
+          wingMesh:!!wings,featherMeshCount:featherMeshes.length,featherVertices,
           exists:!!mesh,webgl:!!qa.renderer.getContext(),calls:qa.renderer.info.render.calls,
           tilt:qa.qa.tilt,heroHP:qa.hero?.alive};
       });
       if(!data.webgl||!data.exists)throw Error(id+": VFX não entrou na cena 3D");
       if(!(data.calls>0))throw Error(id+": nenhum drawcall WebGL");
       if(!data.phase)throw Error(id+": Ruptura não ativou no motor");
-      if(stage.wing&&!data.stats?.wings)throw Error(id+": não gerou massas laterais");
+      if(stage.wing&&!data.stats?.wings)throw Error(id+": asas não se abriram");
+      if(stage.wing&&(!data.wingMesh||data.featherMeshCount!==2||data.featherVertices<350))
+        throw Error(id+": faltam penas 3D nas duas asas: "+JSON.stringify(data));
       if(stage.core&&!data.stats?.core)throw Error(id+": não apareceu o núcleo branco");
       if(stage.impact&&data.stats?.impact<=.01)throw Error(id+": impacto sem energia");
       if(stage.impact&&data.stats.rocks===0&&data.stats.lightning===0)
@@ -76,7 +83,7 @@ async function run(){
       const on=path.join(out,id+"-novo.png");
       await page.screenshot({path:on,animations:"disabled",timeout:22000});
       const diff=difference(await pixels(on),await pixels(off));
-      const minDifference=stage.key==="pos-impacto"?.0015:.003; // dissipação tardia tem menos área visível
+      const minDifference=stage.key==="pos-impacto"?.0015:stage.key==="asas-enquadradas"?.002:.003; // dissipação tardia tem menos área visível
       if(diff<minDifference)throw Error(id+": diferença de pixels insuficiente ("+diff.toFixed(4)+")");
       result.profiles.push({...data,id,url,difference:+diff.toFixed(4),on:path.basename(on),off:path.basename(off)});
       process.stdout.write("[BISPO1] "+id+" | "+data.phase+" | "+diff.toFixed(3)+

@@ -8,7 +8,8 @@
  * Nao substitui o pilar, espada, animacao, dano, colisao ou cronologia original.
  * Nao ha emissor solto, sprites planos de HUD nem particulas aleatorias.
  */
-export const VHAZRAEL_REFERENCE_BUILD = '275-sword-reference-ink-rift';
+import {createVhazraelFeatherWings,VHAZRAEL_WINGS_BUILD} from './vhazrael-feather-wings3d.js';
+export const VHAZRAEL_REFERENCE_BUILD = '276-throne-feathered-wings-noknock';
 const clamp01=x=>Math.max(0,Math.min(1,Number.isFinite(x)?x:0));
 const smooth=x=>{x=clamp01(x);return x*x*(3-2*x);};
 const hash=i=>{const n=Math.sin(i*127.1+51.3)*43758.5453;return n-Math.floor(n);};
@@ -33,33 +34,6 @@ export function throneReferenceCue(s) {
    impact:clamp01(impact),lightning:clamp01(lightning)};
 }
 const BASE_V='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
-const WING_V=[
-'uniform float time;varying vec2 vUv;',
-'void main(){vUv=uv;vec3 p=position;float u=uv.x;',
-'p.y+=(sin(u*10.-time*2.2)*.29+sin(u*23.+time*2.1)*.16)*u;',
-'p.z+=sin(u*12.-time*1.4)*.36*u;',
-'gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}'
-].join('\n');
-const WING_F=[
-'uniform float time,alpha;varying vec2 vUv;',
-'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
-'float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);',
-'return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}',
-'void main(){vec2 p=vUv;float top=n(vec2(p.x*13.-time*.37,p.y*9.));',
-'float veins=n(vec2(p.x*29.+time*.45,p.y*17.-time*.26));',
-'float low=.035+.21*n(vec2(p.x*10.+time*.22,1.6));',
-'float high=.97-.18*n(vec2(p.x*15.-time*.28,4.7));',
-'float mask=smoothstep(low,low+.06,p.y)*(1.-smoothstep(high-.08,high,p.y));',
-'mask*=smoothstep(0.,.045,p.x)*(1.-smoothstep(.88,1.,p.x));',
-'float cut=n(vec2(p.x*36.+time*.14,p.y*19.));',
-'mask*=.8+.2*smoothstep(.23,.73,cut);',
-'vec3 c=mix(vec3(.009,.002,.018),vec3(.07,.012,.22),smoothstep(.28,.75,top));',
-'c=mix(c,vec3(.28,.008,.42),smoothstep(.57,.87,veins)*.7);',
-'float hot=pow(max(0.,1.-abs(p.y-.2)*2.2),2.)*smoothstep(.38,.8,top);',
-'c=mix(c,vec3(.96,.014,.037),hot*.87);',
-'c+=vec3(.68,.018,.08)*smoothstep(.79,.93,veins)*.45;',
-'if(mask*alpha<.018)discard;gl_FragColor=vec4(c,alpha*mask);}'
-].join('\n');
 const CORE_F=[
 'uniform float time,alpha;varying vec2 vUv;',
 'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
@@ -86,30 +60,9 @@ const FLASH_F=[
 'vec3 c=mix(vec3(1.,.065,.13),vec3(1.,.96,.89),exp(-d*d*18.));',
 'if(a*alpha<.015)discard;gl_FragColor=vec4(c,a*alpha);}'
 ].join('\n');
-function wingGeo(T,side,lod,layer) {
- const nx=lod?13:27,ny=lod?4:7,xyz=[],uv=[],idx=[];
- for(let i=0;i<=nx;i++){
-   const u=i/nx;const px=side*(.5+u*(layer?12:19));
-   const lift=1.2+u*(layer?2.0:4.4)+Math.sin(u*Math.PI)*2.3;
-   const lower=lift-(1+3*u)*(.8+.12*Math.sin(u*16.));
-   const upper=lift+(2.9+1.2*Math.sin(u*Math.PI))*(1-.18*u);
-   for(let j=0;j<=ny;j++){
-     const v=j/ny;
-     xyz.push(px,lower+(upper-lower)*v+.31*v*Math.sin(u*15+layer),-1.4-layer*.48-u*.4);
-     uv.push(u,v);
-     if(i<nx&&j<ny){
-       const a=i*(ny+1)+j,b=a+ny+1;
-       idx.push(a,b,a+1,a+1,b,b+1);
-     }
-   }
- }
- const g=new T.BufferGeometry();
- g.setAttribute('position',new T.Float32BufferAttribute(xyz,3));
- g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(idx);return g;
-}
 export function createThroneReferenceVFX(T,parent) {
  const root=new T.Group();root.name='VhazraelRupturaReferenciaMod275';parent.add(root);
- const geos=[],mats=[],cameraPos=new T.Vector3(),TICK={value:0},wingA={value:0},coreA={value:0},flashA={value:0};
+ const geos=[],mats=[],cameraPos=new T.Vector3(),TICK={value:0},coreA={value:0},flashA={value:0};
  const shader=(vs,fs,uniforms,additive=false)=>{
   const m=new T.ShaderMaterial({vertexShader:vs,fragmentShader:fs,
    uniforms:{time:TICK,alpha:uniforms},transparent:true,depthWrite:false,
@@ -117,15 +70,8 @@ export function createThroneReferenceVFX(T,parent) {
    blending:additive?T.AdditiveBlending:T.NormalBlending});
   mats.push(m);return m;
  };
- const wings=new T.Group();wings.name='AsasDeTintaNegraVioleta';root.add(wings);
- const wingM=shader(WING_V,WING_F,wingA);
- const wingModels={low:[],high:[]};
- for(const key of ['low','high'])for(const side of [-1,1])for(let layer=0;layer<2;layer++){
-  if(key==='low'&&layer)continue;
-  const g=wingGeo(T,side,key==='low',layer);geos.push(g);
-  const mesh=new T.Mesh(g,wingM);mesh.name='MantoAbissal'+side+'_'+layer;mesh.frustumCulled=false;
-  mesh.renderOrder=6;mesh.visible=false;wings.add(mesh);wingModels[key].push(mesh);
- }
+ const featherWings=createVhazraelFeatherWings(T,root);
+ const wings=featherWings.root;
  const coreG=new T.PlaneGeometry(1,1);geos.push(coreG);
  const core=new T.Mesh(coreG,shader(BASE_V,CORE_F,coreA));core.name='NucleoBrancoCarmesimVertical';
  core.frustumCulled=false;core.renderOrder=8;core.visible=false;root.add(core);
@@ -149,7 +95,7 @@ export function createThroneReferenceVFX(T,parent) {
  const AXIS=new T.Vector3(0,1,0),shift=new T.Vector3(), temp=new T.Vector3();
  const current={phase:'off',wings:false,core:false,lightning:0,rocks:0,impact:0};
  function hide(){
-  for(const m of [...wingModels.low,...wingModels.high])m.visible=false;
+  featherWings.clear();
   wings.visible=false;core.visible=false;flare.visible=false;lineGeo.setDrawRange(0,0);
   lineMat.opacity=0;rocks.count=0;Object.assign(current,{phase:'off',wings:false,core:false,lightning:0,rocks:0,impact:0});
  }
@@ -160,7 +106,8 @@ export function createThroneReferenceVFX(T,parent) {
   if(c.phase==='off'||(!boss&&!I)){hide();return;}
   const B=boss||I;
   current.phase=s.phase;current.impact=c.impact;
-  TICK.value=s.age||0;wingA.value=c.wings;coreA.value=c.whiteCore;
+  TICK.value=s.age||0;coreA.value=c.whiteCore;
+  featherWings.update(c.wings,low,s.age||0);
   wings.visible=c.wings>.025;
   if(wings.visible){
     // Abertura diretamente atras do ator (ou ponto de impacto), vista em 3D pela camera.
@@ -168,9 +115,8 @@ export function createThroneReferenceVFX(T,parent) {
     shift.set(anchor.x-cameraPos.x,0,anchor.z-cameraPos.z).normalize();
     wings.position.set(anchor.x+shift.x*2.4,anchor.y+.6,anchor.z+shift.z*2.4);
     wings.lookAt(cameraPos);
-    wings.scale.setScalar(.63+.37*smooth((s.age-.4)/1.7));
-    for(const key of ['low','high'])for(const model of wingModels[key])
-      model.visible=key===(low?'low':'high');
+    wings.scale.setScalar(.48+.28*smooth((s.age-.4)/1.7)); // enquadra asas inteiras sem esconder o Bispo
+
   }
   current.wings=wings.visible;
   core.visible=c.whiteCore>.02;
@@ -231,6 +177,6 @@ export function createThroneReferenceVFX(T,parent) {
   rocks.instanceMatrix.needsUpdate=true;current.rocks=rocks.count;
  }
  hide();
- return {begin,render,clear:hide,stats:()=>({...current}),
-  dispose(){hide();parent.remove(root);for(const g of geos)g.dispose();for(const m of mats)m.dispose();}};
+ return {begin,render,clear:hide,stats:()=>({...current,feathers:featherWings.stats(),wingBuild:VHAZRAEL_WINGS_BUILD}),
+  dispose(){hide();featherWings.dispose();parent.remove(root);for(const g of geos)g.dispose();for(const m of mats)m.dispose();}};
 }
