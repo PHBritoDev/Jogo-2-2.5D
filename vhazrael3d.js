@@ -194,7 +194,7 @@ registerSkill('throne', {
           if (sq.los && !sq.los(s.ix, s.iz, tg.x, tg.z)) continue;
           s.hit.add(tg.id);
           sq.damageTarget(tg.id, T.endDmg, { kind: 'throneImpact',
-            spell: s.id, x: s.ix, z: s.iz, knock: 0 // onda de choque sem empurrão });
+            spell: s.id, x: s.ix, z: s.iz, knock: 0 /* onda de choque sem empurrão */ });
         }
         s.waveRadius = waveRadius;
       }
