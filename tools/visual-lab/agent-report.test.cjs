@@ -28,7 +28,7 @@ test("cache e marcador numerico estao alinhados entre loader, HTML, pagina e lab
  const read=n=>fs.readFileSync(path.join(root,n),"utf8");
  const h=read("mundo-3d-prototype.html"),loader=read("mod181-loader.js"),
   index=read("index.html"),lab=read("laboratorio-inimigos.html"),world=read("mundo-3d-prototype.js");
- const marker=h.match(/id="marker" aria-label="Modificação (\\d+)">(\\d+)<\\/div>/);
+ const marker=h.match(/id="marker" aria-label="Modificação ([0-9]+)">([0-9]+)<[/]div>/);
  assert.ok(marker,"marcador deve conter numero da versao");
  assert.equal(marker[1],marker[2],"texto e aria-label do marcador devem coincidir");
  const version=Number(marker[1]);
