@@ -79,13 +79,18 @@ jobs:
             done
           fi
 
+      - name: Salvar log do servidor local
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p visual-lab-results
+          cp /tmp/visual-lab-http.log visual-lab-results/servidor.log 2>/dev/null || true
+
       - name: Guardar videos, screenshots e diagnostico mesmo se falhar
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: laboratorio-visual-${{ github.run_number }}
-          path: |
-            visual-lab-results/
-            /tmp/visual-lab-http.log
+          path: visual-lab-results/
           retention-days: 14
           if-no-files-found: warn
