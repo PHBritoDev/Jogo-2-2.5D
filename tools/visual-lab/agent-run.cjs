@@ -21,9 +21,10 @@ const png = path.join(dir, "screenshots");
 const videos = path.join(dir, "videos");
 fs.mkdirSync(png, {recursive:true});
 fs.mkdirSync(videos, {recursive:true});
+const roundProfile = ["padrao", "proximidade", "alternativo"].includes(process.env.AGENT_ROUND_PROFILE) ? process.env.AGENT_ROUND_PROFILE : "padrao";
 const base = (process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173").replace(/\/$/, "");
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const logs = { mode: "agente-visual-adaptativo", date: new Date().toISOString(),
+const logs = { mode: "agente-visual-adaptativo", roundProfile, date: new Date().toISOString(),
   commit: process.env.GITHUB_SHA || "local", browser: "Chromium/SwiftShader",
   decisions: [], captures: [], flags: [], errors: [], warnings: [], actions: [], cameraSearches: [],
   status: "iniciando", disclaimer:
@@ -64,11 +65,26 @@ async function sampleVision(previous){
 /** Examina de fato tres cameras e escolhe a imagem menos bloqueada.
  * Nao supoe que a primeira configuracao e a melhor. */
 async function cameraSweep(tick){
-  const options=[
-    {id:"frontal-alta",orbit:.35,distance:17,height:9},
-    {id:"lateral",orbit:1.92,distance:22,height:8},
-    {id:"diagonal-distante",orbit:3.55,distance:28,height:12}
-  ];
+  // Cada rodada consecutiva testa angulos diferentes do MESMO jogo.
+  // Mudar a camera nao muda dano, poderes, colisoes ou o comportamento normal.
+  const optionSets={
+    padrao:[
+      {id:"frontal-alta",orbit:.35,distance:17,height:9},
+      {id:"lateral",orbit:1.92,distance:22,height:8},
+      {id:"diagonal-distante",orbit:3.55,distance:28,height:12}
+    ],
+    proximidade:[
+      {id:"proxima-frontal",orbit:.7,distance:12,height:6.5},
+      {id:"proxima-lateral",orbit:2.25,distance:16,height:7},
+      {id:"diagonal-media",orbit:4.0,distance:21,height:8}
+    ],
+    alternativo:[
+      {id:"posterior-alta",orbit:3.1,distance:20,height:11},
+      {id:"lateral-oposta",orbit:4.7,distance:20,height:8},
+      {id:"longa-alta",orbit:5.6,distance:32,height:14}
+    ]
+  };
+  const options=optionSets[roundProfile];
   const candidates=[];
   for(const option of options){
     await page.evaluate(v=>{
