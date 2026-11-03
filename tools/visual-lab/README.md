@@ -87,3 +87,30 @@ node tools/visual-lab/agent-run.cjs
 - Se a batalha não carregar, não houver WebGL, a Hidra não for realmente observada ou não existirem capturas suficientes, o agente registra **falha**, não sucesso.
 - No modo de teste, existem comandos de depuração com vida protegida, poderes e câmera; eles não são concedidos aos jogadores normais.
 
+
+
+## V3 — percepção e diagnóstico avançados (Mod 272)
+
+A V3 adiciona três ferramentas reais sem reescrever o combate:
+
+- **Visão por 9 setores:** agent-perception.cjs processa pixels RGB capturados do WebGL, calculando brilho, contraste, saturação, bordas, movimento e possíveis oclusões. A nota de visibilidade vai de 0 a 100 e significa apenas **facilidade de inspecionar a imagem**, não beleza artística.
+- **Diretor de câmera:** em vez de assumir que uma posição é ideal, agent-run.cjs testa três ângulos em momentos de inspeção ou suspeita de bloqueio, captura cada um e escolhe o que tiver maior nota de visibilidade. Registra a escolha e os três resultados. A câmera normal do jogador não é alterada.
+- **Sonda do motor (somente em debug3d):** a API sceneProbe devolve chão do protagonista e do Bispo, coordenadas das raízes da Hidra, bounding box aproximado do corpo, distância de câmera, draw calls, triângulos e recursos WebGL.
+
+A bounding box usa a geometria CPU e não inclui deformação GLSL. Uma medida de raiz próxima do solo não prova que o corpo esteja visualmente correto; é obrigatório conferir os frames.
+
+### Painel para celular
+
+Baixe o artefato da execução em GitHub Actions e extraia o ZIP. Abra **agente/ver-analise.html** no navegador: contém gravação MP4 e WebM, capturas reais, alertas, decisões executadas, motivos e medições do terreno. Em **agente/DIAGNOSTICO.md** existe um resumo rápido para revisão.
+
+### Fluxo ao corrigir um poder
+
+1. Conserve a gravação anterior como referência.
+2. Modifique o poder no GitHub.
+3. Execute novamente o laboratório visual e confira os testes.
+4. Compare as capturas e a telemetria, procurando regressões.
+5. Corrija os problemas observados e repita até obter evidências melhores.
+6. Faça teste físico Android se a questão envolver FPS real, toque, GPU ou áudio.
+
+**Limite honesto:** o agente continua sendo um controlador autônomo com visão heurística, não um modelo multimodal que reconhece semanticamente personagens. O assistente pode analisar as capturas/vídeos depois da execução. Um workflow aprovado não significa aprovação artística.
+
