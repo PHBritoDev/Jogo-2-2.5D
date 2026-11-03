@@ -22,7 +22,13 @@ test("Mod277 — modulo principal dentro de blob so tem imports HTTP absolutos a
  assert.ok(!world.includes("from './vhazrael-feather-wings3d.js?v="));
  assert.ok(loader.includes("code = code.replace(/\\b(from") && loader.includes("(?:\\?"),
    "loader deve converter imports versionados antes de executar blob");
- assert.match(html,/mod181-loader\.js\?v=mod277-/);
+ // A pagina deve anunciar a versao atual; nao prender o teste a Mod 277.
+ const marker=html.match(/id="marker" aria-label="Modificação (\d+)">(\d+)<\/div>/);
+ assert.ok(marker && marker[1]===marker[2], "marcador e texto devem coincidir");
+ const version=Number(marker[1]);
+ assert.ok(version>=277,"nao aceitar regressao da versao publicada");
+ assert.match(html,new RegExp("mod181-loader\\.js\\?v=mod"+version+"-"));
+ assert.ok(loader.includes("const BUILD = 'mod"+version+"-"),"loader nao pode usar build antigo");
 });
 test("Mod277 — parser reescreve também imports versionados futuros e side-effect",()=>{
  const src=[
