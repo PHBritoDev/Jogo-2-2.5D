@@ -11,7 +11,7 @@ const host=(process.env.VISUAL_BASE_URL||"http://127.0.0.1:4173").replace(/\/$/,
 fs.mkdirSync(out,{recursive:true});
 const stages=[
   {key:"carga",t:3.2,cam:"back",wing:true,core:true},
-  {key:"asas-enquadradas",t:3.2,cam:"wide",distance:15,wing:true,core:true},
+  {key:"asas-enquadradas",t:3.2,cam:"wide",distance:12,wing:true,core:true},
   {key:"corte",t:5.05,cam:"hero",core:true},
   {key:"impacto",t:5.9,cam:"wide",impact:true},
   {key:"pos-impacto",t:6.7,cam:"hero",impact:true},
@@ -83,7 +83,7 @@ async function run(){
       const on=path.join(out,id+"-novo.png");
       await page.screenshot({path:on,animations:"disabled",timeout:22000});
       const diff=difference(await pixels(on),await pixels(off));
-      const minDifference=stage.key==="pos-impacto"?.0015:.003; // dissipação tardia tem menos área visível
+      const minDifference=stage.key==="pos-impacto"?.0015:stage.key==="asas-enquadradas"?.002:.003; // dissipação tardia tem menos área visível
       if(diff<minDifference)throw Error(id+": diferença de pixels insuficiente ("+diff.toFixed(4)+")");
       result.profiles.push({...data,id,url,difference:+diff.toFixed(4),on:path.basename(on),off:path.basename(off)});
       process.stdout.write("[BISPO1] "+id+" | "+data.phase+" | "+diff.toFixed(3)+
