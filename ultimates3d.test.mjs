@@ -8,9 +8,9 @@ test('VÉRAXION usa o Buraco Negro e a forma final da Ganância usa a Supernova'
   assert.equal(ultimateFor('fallen4').kind, 'void');
   assert.equal(ultimateFor('greed1').kind, 'gate');
   assert.equal(ultimateFor('vhazrael').kind, 'reaper');
-  assert.equal(ultimateFor('zarkhael'), null, 'ultimate antiga do Bispo 3 fisicamente excluída');
-  assert.equal(ultimateFor('fallen3'), null, 'mesmo para o perfil fallen3');
-  assert.equal(ultimateDue('zarkhael', 0.1, 0), -1, 'sem ultimate genérica no combate');
+  assert.equal(ultimateFor('zarkhael').kind, 'zarkhael_six_seals', 'ultimate autoral do Bispo 3');
+  assert.equal(ultimateFor('fallen3').kind, 'zarkhael_six_seals', 'mesma ultimate no perfil alternativo');
+  assert.equal(ultimateDue('zarkhael', 0.1, 0), 0, 'primeiro limiar habilita ultimate autoral');
   assert.equal(ultimateDue('rival', 0.1, 0), -1);
 });
 
