@@ -165,3 +165,20 @@ O painel do ZIP possui links de cada rodada. Execute na aba Actions após um pus
 Em uma execução real de Actions (run 41589780231), a Hidra causou dano até o protagonista chegar a 7 HP e a batalha acabou antes da Skill 2. A V5.1 reduz a aceleração de tempo do agente de 6x para 3x e ativa uma cura preventiva de QA a cada 200 ms enquanto estiver numa batalha válida do Bispo 3. A cura usa apenas a API já existente em debug3d; não altera gameplay, scripts de dano nem dá vida infinita ao jogador real. O relatório grava quantas curas aconteceram. Testes cobrem o limiar preventivo e que a política não aciona cura fora dessa batalha.
 
 O teste continua reprovado caso um poder não seja observado, a batalha termine cedo ou o WebGL não renderize; jamais trate uma cura de QA como prova de que o balanceamento do poder está correto.
+
+
+## V6 — Auditoria de cinematografia 3D para novas ultimates
+
+A V6 prepara uma forma dedicada de avaliar a cinematografia antes da ultimate seguinte. Enquanto o V5 joga e grava a Hidra e as Chamas Negras do Bispo 3, o V6 exercita uma cena que já existe no jogo: a Espada Cósmica do Bispo 2.
+
+**Execução independente no GitHub Actions:** um novo job cinematico começa em cada push da main, sem esperar pelo V5. Na aba Actions, a opção de execução manual cinematica roda somente esse job. Duas sessões reais no Chromium: celular paisagem 852x480 e retrato 393x852. O job tem limite de 26 minutos; arquivos ficam por 14 dias.
+
+**Evidências geradas em visual-lab-results/cinematica:** pasta de cada orientação com gravação, screenshots das fases, relatorio.json e métricas de desempenho *do navegador*; o painel offline cinematica/ver-cena.html e resumo.json permitem revisão. Os vídeos recebem uma cópia MP4 após a execução do teste.
+
+**Métricas:** estado das fases capturado do motor, câmera e FOV ao longo do tempo, posição do protagonista, draw calls, eventuais erros de JavaScript e tentativa de movimentar o jogador ao fim da cena. Marca falha quando não inicia ou termina, os controles permanecem bloqueados, as imagens são insuficientes ou existem erros JS. Fases não amostradas, câmera com grandes saltos, FOV divergente ou movimento não observado geram alertas para inspeção; cortes intencionais não são automaticamente bugs.
+
+O resultado capturado_para_revisao indica evidência técnica obtida, NÃO significa que os VFX estão bonitos ou que está aprovado em um Android físico. Os números p50/p95 correspondem ao software render do Chromium, não ao FPS de um celular.
+
+**A futura ultimate:** o alvo padrão é bishop2; o agente já aceita CINEMA_TARGET=bishop3, mas para isso a nova ultimate deve existir de verdade e o jogo deve expor via modo QA SevenSinsDebug3D.kitMove('ult') e SevenSinsDebug3D.dimState().cinematic com pelo menos phase e lock. Também há CINEMA_PHASES com lista separada por vírgula para adaptar fases e CINEMA_SIZES=landscape,portrait para as orientações. Ele nunca finge executar uma ultimate ainda inexistente.
+
+**Segurança:** não altera as regras, danos, modelos GLB, progressão ou gameplay. Usa a dimensão isolada debug3d. Não contrata APIs pagas nem adiciona uma IA que escreve código automaticamente. Os arquivos de telemetria devem ser revisados antes de usar seus resultados para uma correção.
