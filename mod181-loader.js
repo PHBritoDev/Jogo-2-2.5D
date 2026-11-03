@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod270-bispo3-lua-refino';
+const BUILD = 'mod271-bispo3-sem-lua-hidra-no-chao';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
