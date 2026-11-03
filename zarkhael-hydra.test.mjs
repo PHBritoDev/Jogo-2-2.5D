@@ -81,7 +81,7 @@ test('IA do Bispo 3 — utilidade por distância, sem spam, espera o dash, pune 
   assert.equal(pick({ dist: 4, cds: { s1: 1 } }).intent, 'kite'); assert.equal(pick({ dist: 12, cds: { s1: 1 } }).intent, null);
   assert.equal(rangeScore('hydra_judgment', 3), 0); assert.equal(rangeScore('hydra_judgment', 14), 1);
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
-  assert.ok(src.includes("case 'hydra_judgment':startHydra(m);break;") && src.includes('updateHydra(dt);') && src.includes('stopHydra();clearHazards();') && src.includes('undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);'), 'integração real e limpeza');
+  assert.ok(src.includes("case 'hydra_judgment':startHydra(m);break;") && src.includes('updateHydra(dt);') && src.includes('stopHydra();stopZarkhaelSword();clearHazards();') && src.includes('undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);'), 'integração real e limpeza');
   assert.ok(src.includes('isZarkhaelProfile(prof)?chooseZarkhaelMove('), 'Bispo 3 usa a IA por utilidade');
   assert.ok(!/function spawnEnemyProjectile|function updateEnemyProjectiles/.test(src), 'Mod 264 preservada');
   assert.ok(!/BOSS_POWERS\.fallen3=|BOSS_POWERS\.zarkhael/.test(src), 'poder genérico antigo de pilares do Bispo 3 excluído (Mod 267)');
