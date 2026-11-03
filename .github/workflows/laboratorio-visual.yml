@@ -13,6 +13,13 @@ on:
           - hidra
           - chamas
           - agente
+  pull_request:
+    branches: [main]
+    paths:
+      - "*.js"
+      - "*.html"
+      - "tools/visual-lab/**"
+      - ".github/workflows/laboratorio-visual.yml"
   push:
     branches: [main]
     paths:
@@ -53,12 +60,17 @@ jobs:
         run: npm install --prefix tools/visual-lab --no-audit --no-fund
 
       - name: Instalar Chromium e dependencias
+        if: github.event_name != 'pull_request'
         run: ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
 
-      - name: Verificar o cerebro visual antes de jogar
-        run: node --test tools/visual-lab/agent-policy.test.cjs
+      - name: Verificar todas as capacidades do agente V3
+        run: |
+          node --test tools/visual-lab/*.test.cjs
+          node --test enemy1-integration.test.mjs zarkhael-hydra.test.mjs zarkhael-blackflame.test.mjs
+          node --input-type=module --check < mundo-3d-prototype.js
 
       - name: Iniciar servidor HTTP local do proprio commit
+        if: github.event_name != 'pull_request'
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/visual-lab-http.log 2>&1 &
           echo $! > /tmp/visual-lab-http.pid
@@ -70,19 +82,19 @@ jobs:
           exit 1
 
       - name: Jogar via API QA, capturar frames, console e video
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.cenario != 'agente'
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cenario != 'agente')
         run: node tools/visual-lab/run.cjs
 
       - name: Agente visual adaptativo observa e joga
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.cenario == 'agente'
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cenario == 'agente')
         run: node tools/visual-lab/agent-run.cjs
 
       - name: Instalar FFmpeg para converter gravacoes a MP4
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
 
       - name: Converter videos WebM para MP4
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         shell: bash
         run: |
           if command -v ffmpeg >/dev/null 2>&1; then
@@ -93,14 +105,14 @@ jobs:
           fi
 
       - name: Salvar log do servidor local
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         shell: bash
         run: |
           mkdir -p visual-lab-results
           cp /tmp/visual-lab-http.log visual-lab-results/servidor.log 2>/dev/null || true
 
       - name: Guardar videos, screenshots e diagnostico mesmo se falhar
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: laboratorio-visual-${{ github.run_number }}

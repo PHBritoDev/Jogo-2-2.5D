@@ -12,6 +12,8 @@ const path = require("node:path");
 const sharp = require("sharp");
 const { chromium } = require("playwright");
 const { analyzePixels, decide } = require("./agent-policy.cjs");
+const { inspectFrame, cameraWinner, summarizeRun } = require("./agent-perception.cjs");
+const { writeReport } = require("./agent-report.cjs");
 
 const root = path.resolve(process.env.VISUAL_OUTPUT || "visual-lab-results");
 const dir = path.join(root, "agente");
@@ -23,7 +25,7 @@ const base = (process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173").replace(/\
 const delay = ms => new Promise(r => setTimeout(r, ms));
 const logs = { mode: "agente-visual-adaptativo", date: new Date().toISOString(),
   commit: process.env.GITHUB_SHA || "local", browser: "Chromium/SwiftShader",
-  decisions: [], captures: [], flags: [], errors: [], warnings: [], actions: [],
+  decisions: [], captures: [], flags: [], errors: [], warnings: [], actions: [], cameraSearches: [],
   status: "iniciando", disclaimer:
     "A percepcao usa pixels de capturas reais + telemetria QA, nao um modelo multimodal. Alertas visuais sao suspeitas, nao bugs confirmados."
 };
@@ -41,7 +43,8 @@ async function gameState(){
   return page.evaluate(()=>{
     const d=window.SevenSinsDebug3D;
     if(!d)return null;
-    return {dim:d.dimState(), player:d.state()};
+    let probe=null;try{if(typeof d.sceneProbe==="function")probe=d.sceneProbe();}catch(e){probe={error:String(e)};}
+    return {dim:d.dimState(), player:d.state(), sceneProbe:probe};
   });
 }
 async function sampleVision(previous){
@@ -49,9 +52,54 @@ async function sampleVision(previous){
   const {data,info}=await sharp(jpg).resize(96,54,{fit:"fill"})
     .removeAlpha().raw().toBuffer({resolveWithObject:true});
   if(info.channels!==3)throw Error("A amostra visual precisa ter 3 canais RGB");
-  const metrics=analyzePixels(data,info.width,info.height,previous);
+  const old=analyzePixels(data,info.width,info.height,previous);
+  const rich=inspectFrame(data,info.width,info.height,previous);
+  // Mantem indicadores conhecidos da politica V1 e adiciona zonas, bordas,
+  // movimento e nota de visibilidade. Nenhuma IA semantica e envolvida.
+  const metrics={...old,...rich,flags:[...new Set([...old.flags,...rich.flags])],
+    centerDarkFraction:old.centerDarkFraction,centerBrightFraction:old.centerBrightFraction};
   return {metrics,pixels:data};
 }
+
+/** Examina de fato tres cameras e escolhe a imagem menos bloqueada.
+ * Nao supoe que a primeira configuracao e a melhor. */
+async function cameraSweep(tick){
+  const options=[
+    {id:"frontal-alta",orbit:.35,distance:17,height:9},
+    {id:"lateral",orbit:1.92,distance:22,height:8},
+    {id:"diagonal-distante",orbit:3.55,distance:28,height:12}
+  ];
+  const candidates=[];
+  for(const option of options){
+    await page.evaluate(v=>{
+      const d=window.SevenSinsDebug3D,s=d.state(),e=s.enemy||{};
+      if(!Number.isFinite(e.x)||!Number.isFinite(e.z))return;
+      const angle=v.orbit;
+      d.fly([e.x+Math.cos(angle)*v.distance,s.y+v.height,
+             e.z+Math.sin(angle)*v.distance],[e.x,s.y+3.1,e.z]);
+    },option);
+    await delay(400);
+    const sample=await sampleVision(null);
+    candidates.push({...option,vision:sample.metrics});
+  }
+  const winner=cameraWinner(candidates);
+  if(winner){
+    await page.evaluate(v=>{
+      const d=window.SevenSinsDebug3D,s=d.state(),e=s.enemy||{};
+      if(!Number.isFinite(e.x)||!Number.isFinite(e.z))return;
+      d.fly([e.x+Math.cos(v.orbit)*v.distance,s.y+v.height,
+             e.z+Math.sin(v.orbit)*v.distance],[e.x,s.y+3.1,e.z]);
+    },winner);
+  }
+  logs.cameraSearches.push({
+    tick,chosen:winner?.id??null,
+    options:candidates.map(v=>({id:v.id,quality:v.vision.quality,flags:v.vision.flags}))
+  });
+  log("camera auditada: "+(winner?.id??"nenhuma")+" / notas "+
+    candidates.map(v=>v.id+"="+v.vision.quality).join(", "));
+  return winner;
+}
+
 async function stepAction(decision, tick, s){
   const item={tick, reason:decision.reason, buttons:[]};
   if(decision.heal){
@@ -164,7 +212,7 @@ async function execute(){
     await screenshot("00-visual-inicial");
 
     const seen={s1:false,s2:false,hydraObserved:false,flameObserved:false,hydraFinished:false};
-    let prevPixels=null, prevPosition=null, lastPhase="",lastCastTick=-99;
+    let prevPixels=null, prevPosition=null, lastPhase="",lastCastTick=-99, lastCameraScan=-99;
     let flagsCount=0, activeSamples=0, actionSamples=0, blackoutStreak=0;
     const start=Date.now();
     for(let tick=0;tick<32 && Date.now()-start<120000;tick++){
@@ -176,8 +224,28 @@ async function execute(){
       let visual;
       try{visual=await sampleVision(prevPixels);}
       catch(e){logs.errors.push("Captura/analise WebGL: "+e.message);break;}
+      let metrics=visual.metrics;
+      let swept=false;
+      const needsAngle=metrics.flags.some(flag=>[
+        "possivel_objeto_escuro_obstruindo_camera",
+        "centro_sem_visibilidade","brilho_encobrindo_tela","quadro_escuro"
+      ].includes(flag));
+      if((tick===1||tick===8||(needsAngle&&tick-lastCameraScan>=5))&&
+          tick-lastCameraScan>=4){
+        try{
+          const picked=await cameraSweep(tick);
+          if(picked){
+            swept=true;
+            lastCameraScan=tick;
+            await screenshot("camera-escolhida-"+String(tick).padStart(2,"0")+"-"+picked.id);
+            // A camera mudou; comparar movimento entre dois angulos seria falso.
+            visual=await sampleVision(null);
+            metrics=visual.metrics;
+          }
+        }catch(e){logs.warnings.push("varredura de camera: "+e.message);}
+      }
       prevPixels=visual.pixels;
-      const metrics=visual.metrics, phase=state.dim.hydra?.phase||
+      const phase=state.dim.hydra?.phase||
         state.dim.moonFlames?.phase||"sem-habilidade";
       if(state.dim.hydra)seen.hydraObserved=true;
       if(state.dim.moonFlames)seen.flameObserved=true;
@@ -192,18 +260,19 @@ async function execute(){
       else blackoutStreak=0;
 
       const decision=decide({tick,vision:metrics,state,seen,prevPosition,lastCastTick});
+      if(swept){decision.camera=null;decision.reason.push("camera_escolhida_por_comparacao_de_pixeis");}
       if(!decision.reason.includes("aguardando_batalha_real"))actionSamples++;
       let actual;
       try{actual=await stepAction(decision,tick,state);}
       catch(e){logs.errors.push("Acao "+tick+": "+e.message); break;}
       if(decision.bossSkill && actual.launchedSkill)seen[decision.bossSkill]=true;
       if(decision.cast)lastCastTick=tick;
-      prevPosition={x:state.player.x,z:state.player.z};
+      prevPosition={x:state.player.x,z:state.player.z,attemptedMove:!!decision.move};
       const entry={tick,elapsed:+((Date.now()-start)/1000).toFixed(1),phase,
         vision:metrics,enemyDistance:
           state.player?.enemy?+Math.hypot(state.player.x-state.player.enemy.x,
             state.player.z-state.player.enemy.z).toFixed(2):null,
-        hp:state.dim.hp,decision,executed:actual};
+        hp:state.dim.hp,sceneProbe:state.sceneProbe||null,decision,executed:actual};
       logs.decisions.push(entry);
       if(phase!==lastPhase || metrics.flags.some(f=>f==="brilho_encobrindo_tela") && tick%3===0 ||
         tick%6===0){
@@ -225,9 +294,10 @@ async function execute(){
     logs.summary={bossAbilitiesTriggered:[...["s1","s2"].filter(k=>seen[k])],
       hydraObserved:seen.hydraObserved,flameObserved:seen.flameObserved,
       stepCount:logs.decisions.length,activeSamples,actionSamples,framesWithFlags:flagsCount,
-      notes: "Alertas sao heuristicas de pixels, sem prova automatica da gravidade do defeito visual."};
+      notes: "Alertas sao heuristicas de pixels, sem prova automatica da gravidade do defeito visual.",
+      diagnostic:summarizeRun(logs),cameraAnalyses:logs.cameraSearches.length};
     await screenshot("99-visual-final");
-    if(!seen.s1||!seen.hydraObserved || actionSamples<5 || logs.captures.length<3)
+    if(!seen.s1||!seen.hydraObserved||!seen.s2||!seen.flameObserved || actionSamples<5 || logs.captures.length<3)
       throw Error("Agente nao conseguiu verificar a Hidra em batalha real com acoes/capturas suficientes");
     if(blackoutStreak>=7)throw Error("A captura visual parece escura ou sem detalhes durante varias etapas");
     logs.status="capturado_com_decisoes_adaptativas";
@@ -244,6 +314,11 @@ async function execute(){
       }catch(e){logs.errors.push("Video: "+e.message);}
     }
     if(browser)await browser.close().catch(()=>{});
+    try{
+      const report=writeReport(logs,dir);
+      logs.diagnostic={issues:report.issues,summary:report.summary,
+        dashboard:"agente/ver-analise.html",report:"agente/DIAGNOSTICO.md"};
+    }catch(e){logs.warnings.push("Gerar painel: "+e.message);}
     flush();
     log("resultado="+logs.status+
       " | decisoes="+logs.decisions.length+" | capturas="+logs.captures.length+
