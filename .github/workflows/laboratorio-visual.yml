@@ -182,8 +182,8 @@ jobs:
       - name: Instalar Chromium para renderizacao real
         run: ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
 
-      - name: Validar regras de telemetria antes de abrir o jogo
-        run: node --test tools/visual-lab/cinematic-criteria.test.cjs
+      - name: Validar telemetria e pixels (V7)
+        run: node --test tools/visual-lab/cinematic-criteria.test.cjs tools/visual-lab/cinematic-visual.test.cjs
 
       - name: Iniciar servidor local do commit
         run: |
@@ -195,8 +195,24 @@ jobs:
           cat /tmp/cinema-http.log
           exit 1
 
+      - name: Recuperar referencia por fase de runs anteriores
+        if: github.event_name == 'push'
+        uses: actions/cache/restore@v4
+        with:
+          path: visual-lab-cinema-baseline/
+          key: cinema-v7-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            cinema-v7-${{ runner.os }}-${{ github.ref_name }}-
+
       - name: Rodar cena real em paisagem e retrato
         run: node tools/visual-lab/cinematic-run.cjs
+
+      - name: Preservar memoria visual apenas apos testes completos
+        if: success() && github.event_name == 'push'
+        uses: actions/cache/save@v4
+        with:
+          path: visual-lab-cinema-baseline/
+          key: cinema-v7-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Converter vídeos da cena para MP4
         if: always()
