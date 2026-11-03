@@ -85,7 +85,7 @@ test('Mod 261 — kit: slot da espada ativo com tipo próprio e alcance; s2/ulti
   for (const d of [5, 10, 18, 25]) assert.equal(pickMove('vorgazhek', {}, d, '').id, 'sw', 'selecionável à distância ' + d);
   assert.notEqual(pickMove('vorgazhek', {}, 2, '')?.id, 'sw'); assert.notEqual(pickMove('vorgazhek', { sw: 5 }, 10, '')?.id, 'sw');
   assert.ok(powerStats('vorgazhek', k.sword).dmg > 0);
-  for (const p of ['vhazrael', 'zarkhael', 'greed3', 'fallen1']) assert.equal(pickMove(p, {}, 4, '').id, 'sw', 'golpe de perto dos outros perfis intacto: ' + p);
+  for (const p of ['vhazrael', 'greed3', 'fallen1']) assert.equal(pickMove(p, {}, 4, '').id, 'sw', 'golpe de perto dos outros perfis intacto: ' + p); /* Bispo 3 não tem mais espada genérica (Mod 267) */
   for (const old of ['Golpe da Forja', 'FORNALHA', "'forge'", 'Lâminas de Metal']) assert.ok(!JSON.stringify(KITS.vorgazhek).includes(old));
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("if(m.type==='vorgazhek_eclipse_sword'){startEclipseSword(m);return;}") && src.includes('updateEclipseSword(dt);') && src.includes('stopEclipseSword();stopPortalSwords();stopTornadoRitual();useRig'), 'ligado ao motor real e limpo ao sair');

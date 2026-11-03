@@ -5,8 +5,8 @@ import { FAMILY, KITS, kitFor, tierOf, powerStats, pickMove } from './powers3d.j
 test('cada família preserva seus poderes autorais; Bispo 3 tem só a Hidra sem ataques genéricos', () => {
   for (const [f, k] of Object.entries(KITS)) {
     if (f === 'zarkhael') {
-      assert.deepEqual(k.skills.map(s => s.id), ['s1'], 'Skill 1 autoral do Bispo 3');
-      assert.deepEqual(k.skills.map(s => s.type), ['hydra_judgment'], 'sem skills genéricas');
+      assert.deepEqual(k.skills.map(s => s.id), ['s1', 's2'], 'Skills 1 e 2 autorais do Bispo 3');
+      assert.deepEqual(k.skills.map(s => s.type), ['hydra_judgment', 'zarkhael_black_moon_flames'], 'sem skills genéricas');
       assert.equal(k.sword, null, 'antiga espada genérica excluída');
       assert.equal(k.ult, null, 'ultimate antiga genérica excluída');
     } else {

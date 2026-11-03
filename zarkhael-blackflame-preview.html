@@ -1,0 +1,27 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ZAR'KHAEL · Lua Tenebrosa · prévia</title>
+<style>body{margin:0;background:#020203;color:#eef;font:12px monospace}canvas{display:block}#i{position:absolute;top:6px;left:8px;pointer-events:none;white-space:pre}</style><div id="i"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+/* Prévia/QA da Skill 2 do Bispo 3 (mesma lógica e VFX do jogo). ?t=segundos congela; ?cam=hero|wide|moon|field|close; ?dodge=1; ?low=1 */
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {createBlackMoonFlames,createFlameHazards,createBlackFlameVFX} from './zarkhael-blackflame3d.js';
+const q=new URLSearchParams(location.search),freeze=q.has('t')?+q.get('t'):null,camMode=q.get('cam')||'hero',low=q.has('low'),dodge=q.has('dodge');
+const scene=new T.Scene();scene.background=new T.Color(0x020203);scene.fog=new T.Fog(0x050506,26,190);const camera=new T.PerspectiveCamera(56,innerWidth/innerHeight,.1,760);
+const r=new T.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.2;r.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(r.domElement);
+scene.add(new T.HemisphereLight(0xd8d0e0,0x201018,1.0));const sun=new T.DirectionalLight(0xe8e0f0,.6);sun.position.set(5,10,4);scene.add(sun);
+const tex=new T.CanvasTexture((()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');for(let y=0;y<8;y++)for(let x=0;x<8;x++){g.fillStyle=(x+y)%2?'#151515':'#c8c8c8';g.fillRect(x*32,y*32,32,32);}return c;})());tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.repeat.set(8,8);
+const fl=new T.Mesh(new T.CircleGeometry(33,72),new T.MeshStandardMaterial({map:tex,roughness:.6}));fl.rotation.x=-Math.PI/2;scene.add(fl);
+const hero=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xe8e2d0}));scene.add(hero);
+const bg=await new GLTFLoader().loadAsync('./Bispo3-lod.glb');const boss=new T.Group();scene.add(boss);const m=bg.scene;const box=new T.Box3().setFromObject(m);const sc=(1.7*1.5)/(box.max.y-box.min.y);m.scale.setScalar(sc);m.position.y=-box.min.y*sc;boss.add(m);boss.position.set(0,0,-6);
+const mixer=new T.AnimationMixer(m);mixer.clipAction(bg.animations.find(c=>c.name==='Swim Idle')).play();
+const H={x:0,z:8,y:0,vx:0,vz:0,iframes:false};const hz=createFlameHazards({});let seq=createBlackMoonFlames({hazards:hz}).start(),vfx=createBlackFlameVFX(T,scene);let time=0,hits=0,last='',hp=100;
+const hand={x:.6,y:1.9,z:-5.2};
+function step(dt){time+=dt;if(dodge&&seq.st.t>1.8){H.vx=Math.sin(time*1.3)*7;H.x+=H.vx*dt;}hero.position.set(H.x,.87,H.z);boss.rotation.y=Math.atan2(H.x,H.z+6);mixer.update(dt);
+ for(const e of [...seq.step(dt,{from:hand,hero:H}),...hz.step(dt,H)]){if(e.type!=='tick')last=e.type;if(e.type==='hit'){hits++;hp-=e.dmg;}if(e.type==='tick')hp-=e.dmg;}}
+function cam(){const s=seq.st;if(camMode==='hero'){camera.position.set(H.x-1.4,2.6,H.z+6.5);camera.lookAt(0,3.5,-6);}else if(camMode==='wide'){camera.position.set(16,6,14);camera.lookAt(0,3,0);}
+ else if(camMode==='moon'){camera.position.set(H.x,2,H.z+4);camera.lookAt(0,40,-55);}else if(camMode==='close'){camera.position.set(3.5,2.2,-2.5);camera.lookAt(0,2.2,-5.5);}
+ else if(camMode==='field'){const f=hz.st.fields[hz.st.fields.length-1]||{x:0,y:0,z:8};camera.position.set(f.x+6,3.2,f.z+7);camera.lookAt(f.x,1.2,f.z);}}
+function info(){const s=seq.st;document.getElementById('i').textContent='t '+s.t.toFixed(2)+' fase '+s.phase+' disparos '+s.fired+' lua '+s.moon.toFixed(2)+' acertos '+hits+' hp '+hp+' manchas '+hz.st.fields.length+' queima '+(hz.st.burn?hz.st.burn.tier+':'+hz.st.burn.left.toFixed(1):'-')+' chamadas '+r.info.render.calls+' ev '+last;}
+function upd(dt){vfx.update(seq,hz,{camera,hero:{x:H.x,y:0,z:H.z},boss:{x:0,y:0,z:-6,yaw:0},hand,low,arena:{x:0,z:0,r:30},groundY:0},dt);}
+function frame(){requestAnimationFrame(frame);if(freeze===null){if(seq.done&&!hz.active){seq=createBlackMoonFlames({hazards:hz}).start();}step(1/60);}cam();upd(freeze===null?1/60:0);info();r.render(scene,camera);}
+if(freeze!==null){const n=Math.round(freeze*60);for(let i=0;i<n;i++){step(1/60);if(i%6===0){cam();upd(.1);}}cam();upd(1/60);setTimeout(()=>{window.__ready=true;},600);}frame();
+</script></html>

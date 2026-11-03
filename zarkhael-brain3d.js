@@ -5,7 +5,7 @@
  * (≥ 80% da melhor) e o sorteio é ponderado pela nota — ameaçador sem ser previsível nem "spam".
  * Também diz a INTENÇÃO de posicionamento: abrir distância antes do grande ritual quando o herói cola nele.
  */
-export const ZK_RANGES = { hydra_judgment: [6, 10, 18, 24], line: [4, 6, 11, 13], orbs: [5, 7, 13, 16], cone: [0, 0, 3.6, 4.5] };
+export const ZK_RANGES = { hydra_judgment: [6, 10, 18, 24], zarkhael_black_moon_flames: [5, 8, 20, 28], line: [4, 6, 11, 13], orbs: [5, 7, 13, 16], cone: [0, 0, 3.6, 4.5] };
 const clamp01 = x => Math.max(0, Math.min(1, x));
 /** trapézio: 0 fora de [a,d], 1 entre [b,c] */
 export function rangeScore(type, dist) { const r = ZK_RANGES[type]; if (!r) return dist <= 16 && dist >= 3 ? .6 : 0; const [a, b, c, d] = r; if (dist < a || dist > d) return 0; if (dist < b) return clamp01((dist - a) / Math.max(1e-6, b - a)); if (dist > c) return clamp01((d - dist) / Math.max(1e-6, d - c)); return 1; }
@@ -18,6 +18,7 @@ export function chooseZarkhaelMove(kit, ctx, rand = Math.random) {
     let s = rangeScore(m.type, ctx.dist) * (m.type === 'hydra_judgment' ? 1.3 : m.type === 'cone' ? 1.1 : 1);
     if (ctx.last === m.id) s *= .35; /* não repete o mesmo golpe em seguida */
     if (m.type === 'hydra_judgment') { if (ctx.heroDashing) s *= .45; /* espera o herói gastar o dash */ if (ctx.heroAttacking && ctx.dist < 4) s *= .3; if (ctx.hpFrac < .5) s *= 1.25; /* desespero: o ritual vem mais */ }
+    if (m.type === 'zarkhael_black_moon_flames') { s *= 1.15; if ((ctx.heroSpeed || 0) > 4) s *= 1.15; /* herói correndo: chuva de chamas o encurrala */ if (ctx.heroDashing) s *= .6; if (ctx.last === 's1') s *= 1.1; /* alterna com a Hidra */ }
     if (m.type === 'cone' && ctx.heroAttacking) s *= 1.4; /* pune quem vem trocar golpe */
     if (ctx.heroHpFrac < .35 && (m.type === 'cone' || m.type === 'line')) s *= 1.2; /* fecha a luta com golpes rápidos */
     if ((ctx.heroSpeed || 0) > 5 && (m.type === 'orbs' || m.type === 'line')) s *= 1.15; /* herói correndo: projéteis/linha */
