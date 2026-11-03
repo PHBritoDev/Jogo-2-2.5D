@@ -11,6 +11,7 @@ const host=(process.env.VISUAL_BASE_URL||"http://127.0.0.1:4173").replace(/\/$/,
 fs.mkdirSync(out,{recursive:true});
 const stages=[
   {key:"carga",t:3.2,cam:"back",wing:true,core:true},
+  {key:"asas-enquadradas",t:3.2,cam:"wide",distance:15,wing:true,core:true},
   {key:"corte",t:5.05,cam:"hero",core:true},
   {key:"impacto",t:5.9,cam:"wide",impact:true},
   {key:"pos-impacto",t:6.7,cam:"hero",impact:true},
@@ -42,7 +43,7 @@ async function run(){
       errors.push(m.text().slice(0,600));});
     try{
       const url=host+"/vhazrael-preview.html?k=throne&t="+stage.t+"&cam="+stage.cam+
-        "&d=9"+(low?"&low=1":"")+"&qa=275";
+        "&d="+(stage.distance||9)+(low?"&low=1":"")+"&qa=276";
       await page.goto(url,{waitUntil:"domcontentloaded",timeout:45000});
       await page.waitForFunction(()=>window.__ready===true&&window.__qa?.rt,null,{timeout:115000});
       const data=await page.evaluate(()=>{
