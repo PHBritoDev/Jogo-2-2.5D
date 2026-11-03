@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod271-bispo3-sem-lua-hidra-no-chao';
+const BUILD = 'mod272-agente-visual-v3';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
