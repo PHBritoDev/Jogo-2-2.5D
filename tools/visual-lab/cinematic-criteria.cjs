@@ -63,12 +63,22 @@ function assessCinematic(samples,meta={}){
  if(perf&&Number.isFinite(perf.p95FrameMs)&&perf.p95FrameMs>150)
    warnings.push(add("warning","slow_software_renderer","Renderização lenta no Chromium/SwiftShader (p95 "+Math.round(perf.p95FrameMs)+" ms); não representa FPS Android"));
  if(meta.browserErrors?.length)problems.push(add("error","javascript_errors",meta.browserErrors.length+" erros JavaScript durante a cena"));
+ // WebAudio pode ficar suspenso quando a batalha e iniciada por script
+ // sem gesto real; context running e necessario, mas nao prova audio audivel.
+ const audioStates=Array.isArray(meta.audioStates)?meta.audioStates.filter(Boolean):[];
+ if(audioStates.length&&!meta.audioMuted){
+   if(!audioStates.includes("running"))
+     warnings.push(add("warning","audio_context_not_running","Nenhuma amostra da cena teve WebAudio running; verificar gesto inicial e sons no aparelho"));
+   else if(audioStates.some(x=>x==="suspended"||x==="locked"))
+     warnings.push(add("warning","audio_context_intermittent","O contexto de áudio alternou entre running e bloqueado/suspenso"));
+ }
  if((meta.captures||0)<4)problems.push(add("error","few_captures","Menos de quatro imagens reais da cena"));
  const first=samples[0].ms,last=samples[samples.length-1].ms;
  return {status:problems.length?"falhou":"capturado_para_revisao",problems,warnings,phases,
    expectedPhases:expected,missingPhases:omitted,largeCameraJumps:jumps,
    durationSeconds:Number.isFinite(first)&&Number.isFinite(last)?+((last-first)/1000).toFixed(1):0,
    frameCount:samples.length,sceneEnded:!!meta.ended,moveMeters:meta.moveMeters??null,hud,perf,
+   webAudio:{states:[...new Set(audioStates)],muted:!!meta.audioMuted,verifiedAudible:false},
    disclaimer:"Testes estruturais no Chromium/SwiftShader. A captura nao comprova beleza, FPS Android ou ausencia de bugs visuais."};
 }
 module.exports={PHASES,finitePoint,distance,auditHudCover,assessCinematic};

@@ -196,3 +196,14 @@ A V6.1 torna essa avaliação mais fiel:
 - Expõe métricas de HUD e p95 no relatório HTML offline e no JSON.
 
 O V6.1 não altera o gameplay, os poderes nem a interface real. Os avisos precisam de revisão junto aos vídeos. Nenhuma IA paga foi adicionada.
+
+
+## V6.2 — desbloqueio WebAudio ao iniciar a batalha de teste
+
+O jogo usa Web Audio procedural (audio3d.js), que deve receber um toque/clique real antes de reproduzir sons. Na V6 antiga, a tela VS era dispensada por uma chamada JavaScript sem gesto confiável para liberar WebAudio. Isto podia tornar a auditoria silenciosa, mesmo quando os efeitos visuais eram corretos.
+
+Agora o teste cinematográfico primeiro clica no botão VS com a interação confiável do navegador (Playwright click). Se isso falhar, registra aviso e usa o fluxo QA anterior como fallback. O jogo expõe **somente na API debug3d** o estado de WebAudio (locked, suspended, running), mute e volumes. O auditor registra os estados por fase no JSON e mostra o estado final no painel.
+
+Uma cena com WebAudio permanentemente bloqueado gera alerta para inspeção. Mesmo quando running, **o agente NÃO atesta que um efeito foi ouvido**: a gravação padrão do Playwright não verifica o sinal sonoro nem a qualidade da mixagem. Sons, equilíbrio e sincronização com a ultimate ainda exigem revisão e, depois, teste real em celular. Esta mudança não adiciona bibliotecas, gravações invasivas ou APIs pagas.
+
+Pesquisa: documentação MDN Web Audio API Best practices sobre ativação por gesto e AudioContext suspended/running.
