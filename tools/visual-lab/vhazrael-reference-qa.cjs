@@ -76,7 +76,8 @@ async function run(){
       const on=path.join(out,id+"-novo.png");
       await page.screenshot({path:on,animations:"disabled",timeout:22000});
       const diff=difference(await pixels(on),await pixels(off));
-      if(diff<.003)throw Error(id+": diferença de pixels insuficiente ("+diff.toFixed(4)+")");
+      const minDifference=stage.key==="pos-impacto"?.0015:.003; // dissipação tardia tem menos área visível
+      if(diff<minDifference)throw Error(id+": diferença de pixels insuficiente ("+diff.toFixed(4)+")");
       result.profiles.push({...data,id,url,difference:+diff.toFixed(4),on:path.basename(on),off:path.basename(off)});
       process.stdout.write("[BISPO1] "+id+" | "+data.phase+" | "+diff.toFixed(3)+
         " | core="+data.stats.core+" wings="+data.stats.wings+" stones="+data.stats.rocks+"\n");
