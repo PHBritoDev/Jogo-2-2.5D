@@ -180,7 +180,7 @@ export function createThroneReferenceVFX(T,parent) {
       {x:s.x+s.dx*Math.max(.7,s.front||0),y:ground(s.x+s.dx*(s.front||0),s.z+s.dz*(s.front||0)),z:s.z+s.dz*Math.max(.7,s.front||0)}:I);
     if(pos){
       const tall=charge?49:s.phase==='wave'?21:27;
-      core.position.set(pos.x,pos.y+(charge?20:0)+tall*.5,pos.z);
+      core.position.set(pos.x,pos.y+tall*.5,pos.z); // nasce na ponta REAL da espada (sem lacuna de 20m)
       core.lookAt(cameraPos);
       core.scale.set(charge?8.5:s.phase==='wave'?6.7:13,tall,1);
     }else core.visible=false;
