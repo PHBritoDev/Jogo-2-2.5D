@@ -38,12 +38,12 @@ const PIL_F = `${NOISE}${CUT} uniform float time, k, layer, erode, near; varying
 void main(){ if(cutAway(vV,near)) discard; float f=abs(dot(normalize(vN),normalize(vV)));
  float n=fbm(vec2(vA.x*5.5+layer*5.,vA.y*.025-time*(3.+layer))), top=k-.07*n2(vec2(vA.x*3.,time*3.));
  if(vY>top) discard; if(n<erode) discard;
- if(layer<.5){ float a=pow(f,1.6)*(.75+.5*n); vec3 c=mix(vec3(1.,.45,.75),vec3(1.,.97,1.),smoothstep(.45,.85,f)); gl_FragColor=vec4(c*a*1.6,a); return; }
+ if(layer<.5){ float a=pow(f,1.6)*(.75+.5*n); vec3 c=mix(vec3(1.,.24,.24),vec3(1.,.97,.93),smoothstep(.45,.85,f)); gl_FragColor=vec4(c*a*1.6,a); return; }
  vec3 c;
  if(layer<1.5){ float v=f*1.05+(n-.5)*.75; if(v<.2) discard;
-  c=v>.9?vec3(1.,.93,.97):v>.68?vec3(1.,.1,.38):v>.45?vec3(.85,0.,.09):v>.3?vec3(.36,0.,.06):vec3(.05,0.,.04); }
+  c=v>.9?vec3(1.,.94,.89):v>.68?vec3(1.,.023,.055):v>.45?vec3(.82,.006,.025):v>.3?vec3(.28,0.,.026):vec3(.018,0.,.025); }
  else { float hole=fbm(vec2(vA.x*2.6+time*.5,vA.y*.05-time*3.2)); if(hole<.5||f>.42+.35*hole) discard; float rim=pow(1.-f,2.5);
-  c=mix(vec3(.012,0.,.02),vec3(.42,.06,.75),rim*.9); c=mix(c,vec3(.9,.05,.3),smoothstep(.5,.47,hole-.03)*.9); }
+  c=mix(vec3(.009,0.,.014),vec3(.12,.008,.29),rim*.9); c=mix(c,vec3(.88,.012,.042),smoothstep(.5,.47,hole-.03)*.9); }
  gl_FragColor=vec4(c,1.); }`;
 /* feixe: o mesmo cilindro unitário com seção elíptica (largura w, altura h) que alarga para a frente; local Y = direção */
 const BEAM_V = `${NOISE} uniform float time, len, w0, w1, h0, h1, layer; varying vec2 vA; varying vec3 vN; varying vec3 vV; varying float vY; varying vec2 vQ;
@@ -318,11 +318,11 @@ export function createRuptureVFX(T, kit) {
       const growth = smooth(it / .62), size = (1.1 + 4.2 * growth) * shrink;
       impactCore.visible = true;
       impactCore.position.set(cx, cy + .8 + 1.1 * growth, cz);
-      impactCore.scale.set(size * 1.07, size * 1.4, size * .9);
+      impactCore.scale.set(size * .59, size * 2.2, size * .55); // faceta vertical, nunca esfera rosada
       hotCore.visible = it < 1.85;
       if (hotCore.visible) {
         hotCore.position.copy(impactCore.position);
-        hotCore.scale.set(size * .43, size * .52, size * .43);
+        hotCore.scale.set(size * .3, size * .92, size * .3); // núcleo incandescente de ruptura vertical
         hotCore.rotation.y = impactCore.rotation.y;
         hotCoreM.opacity = .86 * (1 - smooth((it - 1.1) / .75));
       }
