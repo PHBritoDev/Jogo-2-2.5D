@@ -13,6 +13,7 @@ on:
           - hidra
           - chamas
           - agente
+          - cinematica
   schedule:
     # Auditoria semanal sem depender de uma nova mensagem no chat (segunda 12:00 UTC).
     - cron: '0 12 * * 1'
@@ -41,6 +42,7 @@ concurrency:
 
 jobs:
   visualizar:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.cenario != 'cinematica'
     name: Abrir, jogar e gravar o RPG
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -152,5 +154,72 @@ jobs:
         with:
           name: laboratorio-visual-${{ github.run_number }}
           path: visual-lab-results/
+          retention-days: 14
+          if-no-files-found: warn
+
+  cinematica:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.cenario == 'cinematica')
+    name: Gravar e auditar ultimate em tela mobile
+    runs-on: ubuntu-24.04
+    timeout-minutes: 26
+    env:
+      CI: "true"
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results
+      CINEMA_SIZES: landscape,portrait
+    steps:
+      - name: Baixar codigo do jogo
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js para o laboratorio
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Dependencias Playwright
+        run: npm install --prefix tools/visual-lab --no-audit --no-fund
+
+      - name: Instalar Chromium para renderizacao real
+        run: ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Validar regras de telemetria antes de abrir o jogo
+        run: node --test tools/visual-lab/cinematic-criteria.test.cjs
+
+      - name: Iniciar servidor local do commit
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/cinema-http.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/cinema-http.log
+          exit 1
+
+      - name: Rodar cena real em paisagem e retrato
+        run: node tools/visual-lab/cinematic-run.cjs
+
+      - name: Converter vídeos da cena para MP4
+        if: always()
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          shopt -s nullglob
+          for video in visual-lab-results/cinematica/*/videos/*.webm; do
+            ffmpeg -y -hide_banner -loglevel error -i "$video" -an -c:v libx264 -preset veryfast -crf 27 -pix_fmt yuv420p "${video%.webm}.mp4" || true
+          done
+
+      - name: Anexar logs e evidencias, mesmo com erros
+        if: always()
+        run: |
+          mkdir -p visual-lab-results/cinematica
+          cp /tmp/cinema-http.log visual-lab-results/cinematica/servidor.log 2>/dev/null || true
+
+      - name: Guardar video, imagens e telemetria da cena por 14 dias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cinematica-mobile-${{ github.run_number }}
+          path: visual-lab-results/cinematica/
           retention-days: 14
           if-no-files-found: warn
