@@ -1,10 +1,10 @@
 /**
  * MOD 280 — VFX especializado da ultimate do Bispo 3, WebGL1 compatível.
  * Círculos procedurais com glifos/hexagramas/linhas, aura advectada do corpo,
- * núcleo da espada GLB original e 3 cúpulas de plasma com formação progressiva.
+ * núcleo da espada GLB original e uma cúpula de plasma com formação progressiva.
  * Geometrias reutilizadas, shaders com uniforms e estilhaços instanciados.
  */
-export const ZARK_ULT_VFX_BUILD='280-six-seals-sakuga-cinematic-refino';
+export const ZARK_ULT_VFX_BUILD='281-six-seals-single-crescendo';
 const PI=Math.PI,TAU=2*PI,clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),
  sm=v=>{v=clamp(v);return v*v*(3-2*v);};
 const VERT='varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
@@ -127,13 +127,13 @@ export function createSixSealsVFX(THREE,scene){
  const swordRoot=new THREE.Group();holder.add(swordRoot);
  const charge=mat(THREE,CHARGE_FRAG,{uTime:0,uPower:0});
  for(let i=0;i<3;i++){
-  const sheet=new THREE.Mesh(new THREE.PlaneGeometry(4.6,4.6),charge);
+  const sheet=new THREE.Mesh(new THREE.PlaneGeometry(1.75,1.75),charge);
   sheet.rotation.y=i*TAU/3;sheet.renderOrder=31;swordRoot.add(sheet);
  }
- const glowMat=new THREE.MeshBasicMaterial({color:0xffd8ac,transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+ const glowMat=new THREE.MeshBasicMaterial({color:0xffd8ac,transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
  const swordCore=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,2),glowMat);swordRoot.add(swordCore);
  const bursts=[];
- for(let i=0;i<3;i++){
+ for(let i=0;i<1;i++){
   const group=new THREE.Group();holder.add(group);
   const domeMaterial=mat(THREE,DOME_FRAG,{uTime:0,uAge:0,uAlpha:0,uPulse:i},DOME_VERT);
   const dome=new THREE.Mesh(new THREE.SphereGeometry(1,48,24,0,TAU,0,PI/2),domeMaterial);
@@ -197,28 +197,28 @@ export function createSixSealsVFX(THREE,scene){
   swordRoot.visible=st.phase!=='explosions'||st.pt<4.3;
   swordRoot.rotation.y=seconds*.75;swordRoot.rotation.x=Math.sin(seconds*1.1)*.18;
   const power=st.sword,sk=sm(power);
-  swordRoot.scale.setScalar(.55+3*sk+Math.sin(seconds*14)*.06*sk);
-  charge.uniforms.uTime.value=seconds;charge.uniforms.uPower.value=.35+.65*sk;
-  swordCore.scale.setScalar(.6+.65*sk);glowMat.opacity=.35+.55*sk;
+  swordRoot.scale.setScalar(.42+.40*sk+Math.sin(seconds*9)*.018*sk);
+  charge.uniforms.uTime.value=seconds;charge.uniforms.uPower.value=.10+.20*sk;
+  swordCore.scale.setScalar(.35+.25*sk);glowMat.opacity=.10+.14*sk;
   let peak=0;
   for(let i=0;i<3;i++){
    const vfx=bursts[i],b=st.bursts[i];vfx.group.visible=!!b;if(!b)continue;
-   const age=b.age,pre=sm(age/.45),form=sm((age-.38)/.52),open=sm((age-.64)/.9);
-   const fade=1-sm((age-1.1)/.85),growth=.02+.07*pre+.23*form+.70*open;
+   const age=b.age,pre=sm(age/.65),form=sm((age-.45)/1.25),open=sm((age-.9)/1.8);
+   const fade=1-sm((age-3.35)/1.45),growth=.018+.09*pre+.30*form+.592*open;
    vfx.group.position.set(C.x,ground(C.x,C.z)+.045,C.z);
    vfx.dome.scale.set(st.dangerR*growth,1.2+11.8*growth,st.dangerR*growth);
    vfx.veil.scale.set(st.dangerR*growth*.96,1.45+13.2*growth,st.dangerR*growth*.96);
    vfx.veilMat.opacity=fade*(.25+.38*form);
    vfx.kernel.scale.setScalar(.42+2.5*(.12*pre+.88*form)); // núcleo pequeno; plasma vermelho domina o quadro
    vfx.kernel.position.y=1.25+4.5*form;
-   vfx.kernelMat.opacity=fade*(.38+.40*pre);
+   vfx.kernelMat.opacity=fade*(.18+.30*pre);
    vfx.rail.scale.setScalar(st.dangerR*(.07+.93*open));
    vfx.rail.position.y=1.0+4*open;
    vfx.railMat.opacity=fade*(.12+.68*open);
    vfx.domeMaterial.uniforms.uTime.value=seconds;vfx.domeMaterial.uniforms.uAge.value=age;
    vfx.domeMaterial.uniforms.uAlpha.value=fade*(.65+.35*form);
    vfx.wave.scale.setScalar(st.dangerR*growth);
-   vfx.ringMat.opacity=fade*sm((age-.44)/.65)*.88;peak=Math.max(peak,fade*open);
+   vfx.ringMat.opacity=fade*sm((age-.5)/1.2)*.88;peak=Math.max(peak,fade*open);
   }
   const n=low?36:72;shards.count=n;
   const explode=st.phase==='explosions',pulse=Math.max(0,...st.bursts.map(b=>1-sm(b.age/1.65)));
