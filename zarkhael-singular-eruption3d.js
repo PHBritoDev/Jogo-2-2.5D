@@ -4,7 +4,7 @@ import {createBillowingCrown} from './zarkhael-billow-cloud3d.js';
  * A copa nasce DEPOIS da coluna. Três anéis são regiões de pressão da MESMA
  * explosão, não três explosões. GLSL WebGL1 com turbulência, veios, brilho quente.
  */
-export const ERUPTION_BUILD='283-low-wide-single-blast-v1';
+export const ERUPTION_BUILD='283-shockwaves-integrated-fire-v2';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),ease=v=>{v=clamp(v);return v*v*(3-2*v);};
 const V=[
  'uniform float uT,uWarp;varying vec3 vP;',
@@ -75,6 +75,26 @@ function crownGlowMaterial(T){return new T.ShaderMaterial({
  uniforms:{uT:{value:0},uWarp:{value:0},uAlpha:{value:0},uHot:{value:0},uSeed:{value:3.4}},
  transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending,toneMapped:false
 });}
+// Anéis de pressão não são círculos brancos sólidos: a onda de choque oscila,
+// dissolve-se em fogo dourado e atravessa a nuvem no mesmo evento de impacto.
+const SHOCK_VERT=[
+ 'uniform float uTime,uSeed;varying vec3 vLocal;',
+ 'void main(){vec3 p=position;float a=atan(p.y,p.x);',
+ 'float wiggle=sin(a*17.-uTime*2.7+uSeed*9.)*.028+sin(a*41.+uTime*6.)*.012;',
+ 'p.xy*=1.+wiggle;vLocal=p;',
+ 'gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}'
+].join('\\n');
+const SHOCK_FRAG=[
+ 'uniform float uTime,uAlpha,uSeed;varying vec3 vLocal;',
+ 'void main(){float a=atan(vLocal.y,vLocal.x);',
+ 'float x=.5+.5*sin(a*13.-uTime*2.8+uSeed)*sin(a*29.+uTime*4.5);',
+ 'float edge=smoothstep(.17,.83,x);',
+ 'float spark=pow(max(0.,sin(a*31.-uTime*7.+uSeed)),7.);',
+ 'vec3 shadow=vec3(.15,.068,.045),amber=vec3(.82,.26,.025),gold=vec3(1.,.82,.27);',
+ 'vec3 col=mix(shadow,amber,edge);col=mix(col,gold,spark*.7);',
+ 'float alpha=uAlpha*(.08+.43*edge+.25*spark);',
+ 'if(alpha<.014)discard;gl_FragColor=vec4(col,clamp(alpha,0.,.58));}'
+].join('\\n');
 function flameMaterial(T,seed){return new T.ShaderMaterial({
  vertexShader:V,fragmentShader:F,
  uniforms:{uT:{value:0},uWarp:{value:0},uAlpha:{value:0},uHot:{value:0},uSeed:{value:seed}},
@@ -103,9 +123,10 @@ export function createSingularMushroomExplosion(T,parent){
  columnLight.renderOrder=31;root.add(columnLight);
  const shock=[];
  for(let i=0;i<3;i++){
-  const m=new T.MeshBasicMaterial({color:i===0?0xfff8e5:i===1?0xffeccc:0xffdb99,
-   opacity:0,transparent:true,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false});
-  const o=new T.Mesh(new T.TorusGeometry(1,.068,8,128),m);o.rotation.x=Math.PI/2-.24-i*.11;
+  const m=new T.ShaderMaterial({vertexShader:SHOCK_VERT,fragmentShader:SHOCK_FRAG,
+   uniforms:{uTime:{value:0},uSeed:{value:i*.73},uAlpha:{value:0}},
+   transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.NormalBlending,toneMapped:false});
+  const o=new T.Mesh(new T.TorusGeometry(1,.058,8,144),m);o.rotation.x=Math.PI/2-.10-i*.07;
   root.add(o);shock.push(o);
  }
  const shards=new T.InstancedMesh(new T.TetrahedronGeometry(1,0),
@@ -146,11 +167,11 @@ export function createSingularMushroomExplosion(T,parent){
   core.position.y=born?1.4+12*up:1.2;
   core.scale.setScalar(born?(.7+1.7*up)*(1-ease((age-.78)/.42)):.45+2*pre);
   core.material.opacity=born?(1-ease((age-.55)/.61))*.66:pre*.68;
-  const heights=[21.5,14.5,5.5],delay=[.95,1.40,.46],sizes=[24.2,22.0,25.0];
+  const heights=[14.1,9.5,1.85],delay=[.95,1.40,.46],sizes=[21.0,18.3,24.7];
   shock.forEach((o,i)=>{const k=ease((age-delay[i])/1.25);
    o.visible=born&&k>.001;o.position.y=heights[i]*up;o.rotation.y=time*(.05+i*.035);
    o.scale.setScalar(unit*(.08+.92*k)*sizes[i]);
-   o.material.opacity=fade*ease((age-delay[i])/.46)*(.66-i*.11);
+   o.material.uniforms.uTime.value=time;o.material.uniforms.uAlpha.value=fade*ease((age-delay[i])/.46)*(.56-i*.1);
   });
   const N=ctx.low?24:48;shards.count=N;
   for(let i=0;i<N;i++){
