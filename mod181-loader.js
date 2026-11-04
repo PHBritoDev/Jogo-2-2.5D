@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod280-zarkhael-ultimate-seis-selos';
+const BUILD = 'mod281-bispo3-cinema-fidelidade';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
