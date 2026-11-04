@@ -320,6 +320,7 @@ export function createSixSealsVFX(THREE,scene){
   singular.update(st,{dt,low,ground:ground(C.x,C.z)});
   const peak=st.bursts[0]?Math.max(0,1-st.bursts[0].age/4.3):0;
   // Sem agulhas e fragmentos flutuantes na câmera ou na arena.
+  const explode=st.phase==='explosions';
   light.position.set(explode?C.x:B.x,explode?ground(C.x,C.z)+5:B.y+2.6,explode?C.z:B.z);
   light.intensity=1.2*glow+3.4*peak;
  }
