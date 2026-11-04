@@ -64,7 +64,7 @@ test('direção de câmera fiel: plano frontal, depois SEIS subidas individuais'
   'o primeiro círculo é filmado poucos metros acima');
  const blast=cam(12);
  assert.equal(blast.shot,'EXPLOSAO_ORGANICA_3_4');
- assert.ok(blast.pos[1]>boss.y+40,'câmera continua elevada mas revela coluna e copa');
+ assert.ok(blast.pos[1]>boss.y+12&&blast.pos[1]<boss.y+40,'câmera 3/4 aprovada sem altitude exagerada');
  assert.ok(Math.hypot(blast.pos[0]-arena.x,blast.pos[2]-arena.z)>30,
   'volume das explosões visto em 3/4 do alto, não disco zenital');
 });
@@ -144,4 +144,19 @@ test('Mod 282: copa volumétrica real em vez de disco rígido, clarão e poeira 
  for(const marker of ['SingleExplosionBillowingFire','SingleExplosionGroundCloud','SingleExplosionGroundFlash','InstancedMesh','uWarp','aSeed','aHeat','uSmoky'])
   assert.ok(billow.includes(marker),'camada ausente: '+marker);
  assert.equal((eruption.match(/const shock=\[\]/g)||[]).length,1,'anéis de pressão pertencem à mesma erupção');
+});
+
+test('Mod 283: fogo no solo ocupa a área de perigo e copa só aparece após ignição',()=>{
+ const billow=fs.readFileSync(new URL('./zarkhael-billow-cloud3d.js',import.meta.url),'utf8');
+ const erupt=fs.readFileSync(new URL('./zarkhael-singular-eruption3d.js',import.meta.url),'utf8');
+ const main=fs.readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
+ const vfx=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
+ assert.ok(billow.includes("SingleExplosionGroundFire80Pct"),'saia de fogo no chão ausente');
+ assert.ok(billow.includes("st.dangerR*o.radius*spread"),'área da erupção precisa acompanhar o raio de perigo');
+ assert.ok(billow.includes("head=ease((age-1.03)/1.30)"),'copa não deve existir na fase de carga');
+ assert.ok(billow.includes("billows.visible=active&&head>.002"),'não exibir massas de fogo antes da coluna');
+ assert.ok(eruption.includes("up*.63"),'coluna e copa devem ser mais baixas que na Mod 282');
+ assert.ok(main.includes('impactRumble')&&main.includes('tailRumble')&&main.includes('preRumble'),'câmera deve conter preparação, impacto e dissipação');
+ assert.ok(main.includes('if(!userSettings.reduceShake)'), 'respeitar acessibilidade de câmera');
+ assert.ok(vfx.includes("aura.scale.setScalar(.85+.23*glow)"),'manter modelo da aura, apenas um pouco mais forte');
 });
