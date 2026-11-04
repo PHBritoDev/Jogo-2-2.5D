@@ -10,16 +10,18 @@ const ease=v=>{v=clamp(v);return v*v*(3-2*v)};
 const seed=(n)=>{const k=Math.sin(n*127.1+78.233)*43758.5453;return k-Math.floor(k)};
 const billowVert=[
  'attribute float aSeed;attribute float aHeat;',
- 'uniform float uTime,uWarp;varying vec3 vLocal;varying float vSeed,vHeat;',
+ 'uniform float uTime,uWarp;varying vec3 vLocal,vViewNormal,vViewPos;varying float vSeed,vHeat;',
  'void main(){vec3 p=position;float t=uTime;',
  'float a=atan(p.z,p.x);float h=p.y;',
  'float w=sin(a*7.+h*9.-t*1.9+aSeed*19.)*.09+sin(a*13.-h*16.+t*2.4+aSeed*37.)*.043;',
  'p*=1.+uWarp*w;',
  'vLocal=p;vSeed=aSeed;vHeat=aHeat;',
- 'gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(p,1.);}'
+ 'vec4 mv=modelViewMatrix*instanceMatrix*vec4(p,1.);',
+ 'vViewPos=mv.xyz;vViewNormal=normalize(mat3(modelViewMatrix)*mat3(instanceMatrix)*normal);',
+ 'gl_Position=projectionMatrix*mv;}'
 ].join('\n');
 const billowFrag=[
- 'uniform float uTime,uOpacity,uSmoky;varying vec3 vLocal;varying float vSeed,vHeat;',
+ 'uniform float uTime,uOpacity,uSmoky;varying vec3 vLocal,vViewNormal,vViewPos;varying float vSeed,vHeat;',
  'float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}',
  'float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);',
  'float a=mix(hash(i),hash(i+vec3(1,0,0)),f.x),b=mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x);',
@@ -29,7 +31,8 @@ const billowFrag=[
  'vec3 p=vLocal*2.25+vec3(vSeed*17.,-t*.44,vSeed*13.);',
  'float n=n3(p),hi=n3(p*2.17+vec3(1.8,t*.32,2.4));',
  'float fold=sin(vLocal.x*9.+vLocal.y*11.-t*3.8+vSeed*23.);',
- 'float hotness=clamp(vHeat*.67+n*.45+hi*.17+fold*.085,0.,1.);',
+ 'float face=clamp(dot(normalize(vViewNormal),normalize(-vViewPos)),0.,1.);',
+ 'float hotness=clamp(vHeat*.67+n*.45+hi*.17+fold*.085-(1.-face)*.27,0.,1.);',
  'vec3 ember=vec3(.28,.008,.006),red=vec3(.90,.045,.006),orange=vec3(1.,.32,.005),gold=vec3(1.,.79,.075),white=vec3(1.,.99,.77);',
  'vec3 col=mix(ember,red,smoothstep(.08,.44,hotness));',
  'col=mix(col,orange,smoothstep(.23,.63,hotness));',
@@ -38,8 +41,8 @@ const billowFrag=[
  'vec3 soot=vec3(.06,.007,.009),smoke=vec3(.36,.07,.026);',
  'float dust=clamp(n*.7+hi*.31,0.,1.);',
  'col=mix(col,mix(soot,smoke,dust),uSmoky*(.78+.17*n));',
- 'float rim=(1.-smoothstep(.27,.94,length(vLocal)));',
- 'float alph=uOpacity*(.73+.20*n+.09*hi)*(.75+.25*rim);',
+ 'float rim=smoothstep(.07,.82,face);',
+ 'float alph=uOpacity*(.73+.20*n+.09*hi)*(.43+.57*rim);',
  'if(alph<.024)discard;gl_FragColor=vec4(col,clamp(alph,0.,.97));}'
 ].join('\n');
 const haloVert='varying vec2 vUV;void main(){vUV=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
