@@ -810,6 +810,7 @@ function updateEnemyAI(dt){
  if(phoenixHold){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='hit'&&enemyCurrentRole!=='idle'&&enemyActions.idle)playEnemyAnimation(enemyActions.hit?'hit':'idle',.1);return;}
  if(eclipseSword&&eclipseSword.holdBoss&&enemy.visible&&enemyAlive){enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;enemyCastResolved=true;pendingEnemyHitAt=0;if(enemyCurrentRole!=='idle'&&enemyCurrentRole!=='hit'&&enemyActions.idle)playEnemyAnimation('idle',.12);if(eclipseSword.st.phase==='charge'){const ty=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z),dl=Math.atan2(Math.sin(ty-enemy.rotation.y),Math.cos(ty-enemy.rotation.y));enemy.rotation.y+=dl*(1-Math.exp(-5*dt));}return;} // MOD 261: canaliza o Eclipse parado, de frente para o herói
  if(bossUlt.kind==='zarkhael6'&&enemy.visible&&enemyAlive){
+    if(zarkUltBossAnchor){enemy.position.set(zarkUltBossAnchor.x,zarkUltBossAnchor.y,zarkUltBossAnchor.z);enemy.rotation.y=zarkUltBossAnchor.yaw;}
     enemyKnockback=0;enemyDashRemaining=0;enemyAttackResolved=true;enemyAttackElapsed=enemyAttackDuration;
     enemyCastResolved=true;pendingEnemyHitAt=0;return;
   } // Mod 280: ritual não pode ser interrompido por golpes e golpes genéricos do chefe
@@ -6086,11 +6087,11 @@ function updateZarkhaelSword(dt){
 /* MOD 280 — ULTIMATE DE ZAR'KHAEL: cena autoral em três atos.
  * 3,3s de aura energética em movimento (sem fumaça), 6,7s com seis selos
  * progressivos e vivos (80% da ÁREA da arena, não do raio) e 5,5s com três
- * detonações longas que nascem de núcleos incandescentes e crescem.
+ * uma detonação autoral que nasce de um núcleo incandescente e cresce.
  * Dano, telegraph, som, câmera e VFX usam o mesmo relógio e ficam pausados
  * juntos. O herói conserva movimento/dash para escapar pelos 20% externos.
  */
-let zarkUlt=null,zarkUltVfx=null,zarkUltTestFired=false,zarkUltLastCamera=null;
+let zarkUlt=null,zarkUltVfx=null,zarkUltTestFired=false,zarkUltLastCamera=null,zarkUltBossAnchor=null;
 const ZARK_ULT_TEST=new URLSearchParams(location.search).has('testUltBispo3');
 const _zuA=new THREE.Vector3(),_zuB=new THREE.Vector3(),_zuQ=new THREE.Quaternion(),_zuQ2=new THREE.Quaternion(),_zuTip=new THREE.Vector3();
 function startZarkUlt(){
@@ -6100,14 +6101,15 @@ function startZarkUlt(){
  const kit=kitFor(encounterProfile),m=powerStats(encounterProfile,kit.ult);
  loadZarkhaelSwordModel();
  if(!zarkUltVfx)zarkUltVfx=createSixSealsVFX(THREE,scene);
- zarkUlt=createZarkhaelSixSeals({damage:[Math.round(m.dmg*.30),Math.round(m.dmg*.33),Math.round(m.dmg*.40)]})
+ zarkUlt=createZarkhaelSixSeals({damage:[Math.round(m.dmg*.84)]})
   .start({x:enemy.position.x,y:enemy.position.y,z:enemy.position.z,yaw:enemy.rotation.y},
    {x:arena.x,z:arena.z,y:arena.y,r:arena.radius});
  bossUlt.kind='zarkhael6';bossUlt.t=0;bossUlt.fx=null;
+ zarkUltBossAnchor={x:enemy.position.x,y:enemy.position.y,z:enemy.position.z,yaw:enemy.rotation.y};
  enemyKnockback=enemyDashRemaining=0;enemyAttackResolved=enemyCastResolved=true;pendingEnemyHitAt=0;
  showCombatCallout('OS SEIS SELOS DO JUÍZO ETERNO');
  status.textContent='ZAR’KHAEL exala o juízo. Os 20% EXTERNOS da arena ficarão seguros!';
- playEnemyAnimation('cast',.11,true);playPose(enemyPoseRoot(),'channel',3.3,foeYaw,.17);
+ playEnemyAnimation('idle',.08,true); // canalização imóvel: sem root motion
  worldAudio.abyss3&&worldAudio.abyss3('gravity',.9);
  worldAudio.abyss3&&worldAudio.abyss3('warn',.65);
  ultCam.want=0;zarkUltLastCamera=null;
@@ -6116,13 +6118,15 @@ function startZarkUlt(){
 }
 function stopZarkUlt(){
  if(!zarkUlt&&!zarkUltLastCamera)return;
- zarkUlt=null;zarkUltLastCamera=null;
+ zarkUlt=null;zarkUltLastCamera=null;zarkUltBossAnchor=null;
  if(zarkUltVfx)zarkUltVfx.clear();
  if(ultDimEl)ultDim(0,.48);
  camera.fov=fpWasActive?72:56;camera.updateProjectionMatrix();
 }
 function tickZarkUlt(dt,now){
  const s=zarkUlt;if(!s)return;
+ // Mantém a transformação do bispo travada até o último frame do ritual.
+ if(zarkUltBossAnchor){enemy.position.set(zarkUltBossAnchor.x,zarkUltBossAnchor.y,zarkUltBossAnchor.z);enemy.rotation.y=zarkUltBossAnchor.yaw;enemyKnockback=0;enemyDashRemaining=0;}
  if(!enemy.visible||!enemyAlive||playerHP<=0||!isZarkhaelProfile(encounterProfile)||!dimBattle?.active||cineActive){
   s.abort();stopZarkUlt();bossUlt.kind=null;return;
  }
@@ -6133,20 +6137,20 @@ function tickZarkUlt(dt,now){
  for(const ev of events){
   if(ev.type==='phase'&&ev.name==='seals'){
    status.textContent='Seis selos surgirão, um sobre outro! Corra para a faixa EXTERNA da arena!';
-   playEnemyAnimation('cast',.08,true);
+   playEnemyAnimation('idle',.08,true);
    worldAudio.abyss3&&worldAudio.abyss3('storm',.75);
   }else if(ev.type==='phase'&&ev.name==='explosions'){
-   showCombatCallout('JUÍZO EM TRÊS ONDAS');
-   status.textContent='TRÊS EXPLOSÕES SE APROXIMAM — PERMANEÇA FORA DO GRANDE CÍRCULO!';
+   showCombatCallout('O JUÍZO FINAL — EXPLOSÃO ÚNICA');
+   status.textContent='UMA EXPLOSÃO COLOSSAL SE FORMA — FUJA PARA FORA DO GRANDE CÍRCULO!';
    worldAudio.abyss3&&worldAudio.abyss3('tear',.85);
-   playEnemyAnimation('attack',.1,true);
+   playEnemyAnimation('idle',.08,true);
   }else if(ev.type==='seal'){
    worldAudio.abyss3&&worldAudio.abyss3('blade',.22+ev.n*.07);
    if(ev.n===6)worldAudio.abyss3&&worldAudio.abyss3('thunder',.9);
   }else if(ev.type==='burst'){
-   worldAudio.abyss3&&worldAudio.abyss3(ev.n===3?'boom':'heavy',.65+.12*ev.n);
-   if(!userSettings.reduceShake)cameraShake(.075+.035*ev.n);
-   if(ev.n===3){vibrate(140);worldAudio.abyss3&&worldAudio.abyss3('thunder',.7);}
+   worldAudio.abyss3&&worldAudio.abyss3('boom',.82);
+   if(!userSettings.reduceShake)cameraShake(.11);
+   vibrate(140);worldAudio.abyss3&&worldAudio.abyss3('thunder',.7);
   }else if(ev.type==='hit'){
    damagePlayerFromEnemyAttack(ev.dmg); // uma avaliação por pulso, nunca fora do círculo
   }
