@@ -65,7 +65,7 @@ function cloudMaterial(T,smoky=0){return new T.ShaderMaterial({
 });}
 export function createBillowingCrown(T,root){
  // Camadas coesas: um núcleo vertical, copa baixa e onda de fogo rente ao solo.
- const cloudGeo=new T.SphereGeometry(1,22,16),N=96,SMOKE=44,GROUND=72;
+ const cloudGeo=new T.SphereGeometry(1,22,16),N=96,SMOKE=44,GROUND=96;
  const billows=new T.InstancedMesh(cloudGeo,cloudMaterial(T,0),N);
  const smoke=new T.InstancedMesh(cloudGeo,cloudMaterial(T,1),SMOKE);
  const groundFire=new T.InstancedMesh(cloudGeo,cloudMaterial(T,0),GROUND);
@@ -98,9 +98,9 @@ export function createBillowingCrown(T,root){
  // NÃO há uma segunda explosão: é a saia lateral do MESMO impacto.
  for(let i=0;i<GROUND;i++){
   const a=i*2.399963229728653+seed(i+409)*.2;
-  const n=Math.sqrt((i+.5)/GROUND),radius=(.12+.66*n);
-  groundLobes.push({a,radius,height:1.15+2.1*seed(i+421),
-   size:4.25+1.6*seed(i+439),delay:.09+.32*seed(i+451),seed:seed(i+479)});
+  const n=Math.sqrt((i+.5)/GROUND),radius=(.10+.74*n);
+  groundLobes.push({a,radius,height:.45+1.8*seed(i+421),
+   size:4.6+2.2*seed(i+439),delay:.22+.30*seed(i+451),seed:seed(i+479)});
   groundSeeds[i]=seed(i+461);groundHot[i]=.43+.21*seed(i+499);
  }
  // Atributos por instância, economizando draw calls no celular.
@@ -121,10 +121,10 @@ export function createBillowingCrown(T,root){
   const active=age>=0&&st.phase==='explosions',t=opts.time||0;
   const low=!!opts.low,unit=st.dangerR/26.8328157;
   // A COPA NÃO EXISTE NO CARREGAMENTO: só nasce após núcleo/coluna.
-  const head=ease((age-1.03)/1.30),fade=1-ease((age-3.8)/1.1);
-  billows.visible=active&&head>.002;billows.count=low?56:N;
+  const head=ease((age-1.37)/1.04),fade=1-ease((age-3.8)/1.1);
+  billows.visible=active&&age>1.37&&head>.002;billows.count=low?56:N;
   for(let i=0;i<billows.count;i++){
-   const o=capLobes[i],progress=ease((age-(1.02+o.delay))/1.02);
+   const o=capLobes[i],progress=ease((age-(1.36+o.delay))/0.95);
    const grow=.012+.988*progress,s=o.sz*grow*unit;
    const wave=.52*Math.sin(t*.96+o.seed*TAU)*progress;
    P.set(Math.cos(o.a)*o.radius*(.02+.98*head)*unit+wave, (o.h-2.2*(1-head))*progress +.34*Math.sin(t*.9+o.seed*9.)*progress,
@@ -138,11 +138,11 @@ export function createBillowingCrown(T,root){
   billows.material.uniforms.uOpacity.value=active?head*fade*.92:0;
   // Onda de fogo cresce junto do impacto até ocupar 80% da ÁREA da arena
  // (não confundir com 80% do raio). Não aparece durante a canalização.
- const spread=ease((age-.18)/1.55),groundFade=1-ease((age-3.05)/1.60);
- groundFire.visible=active&&spread>.001;groundFire.count=low?32:GROUND;
+ const spread=ease((age-.18)/1.75),groundFade=1-ease((age-3.45)/1.25);
+ groundFire.visible=active&&spread>.001;groundFire.count=low?40:GROUND;
  for(let i=0;i<groundFire.count;i++){
-  const o=groundLobes[i],p=ease((age-o.delay)/.85),radius=st.dangerR*o.radius*spread;
-  const size=o.size*unit*(.06+.94*p);
+  const o=groundLobes[i],p=ease((age-o.delay)/.82),radius=st.dangerR*o.radius*spread;
+  const size=Math.min(o.size*unit,Math.max(.1,st.dangerR-radius)*.96)*(.06+.94*p);
   P.set(Math.cos(o.a)*radius,o.height*(.15+.85*p),Math.sin(o.a)*radius);
   Q.setFromAxisAngle(Y,o.a*.2);
   M.compose(P,Q,S.set(size*1.13,size*.52,size*1.13));groundFire.setMatrixAt(i,M);
@@ -150,7 +150,7 @@ export function createBillowingCrown(T,root){
  groundFire.instanceMatrix.needsUpdate=true;
  groundFire.material.uniforms.uTime.value=t;
  groundFire.material.uniforms.uWarp.value=.65;
- groundFire.material.uniforms.uOpacity.value=active?spread*groundFade*.88:0;
+ groundFire.material.uniforms.uOpacity.value=active?spread*groundFade*.95:0;
  const ground=ease((age-.34)/.9),smFade=1-ease((age-3.1)/1.7);
   smoke.visible=active&&ground>.001;smoke.count=low?24:SMOKE;
   for(let i=0;i<smoke.count;i++){
