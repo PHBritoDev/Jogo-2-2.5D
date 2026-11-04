@@ -43,13 +43,30 @@ test('seis círculos diferentes nascem no solo e sobem um a um, formam-se em 6.7
  const boom=ev.find(e=>e.type==='phase'&&e.name==='explosions');
  assert.ok(Math.abs(boom.time-10)<.02);
 });
-test('câmera sobe a cada círculo e chega ao overhead para as três explosões',()=>{
+test('direção de câmera fiel: plano frontal, depois SEIS subidas individuais',()=>{
  const a=run().observations;
- const h=t=>a.find(x=>x.t>=t)?.cam.pos[1];
- assert.ok(h(3.8)>boss.y+70);
- assert.ok(h(6.8)>h(3.8));
- assert.ok(h(9.5)>h(6.8));
- assert.ok(h(12)>boss.y+95, 'plano superior alto, mas oblíquo para revelar volume');
+ const cam=t=>a.find(x=>x.t>=t)?.cam;
+ const front=cam(1.4);
+ assert.equal(front.shot,'FRONTAL_BISPO');
+ assert.ok(Math.abs(front.pos[1]-(boss.y+2.2))<.2,'ângulo frontal à altura do peito');
+ assert.ok(Math.hypot(front.pos[0]-boss.x,front.pos[2]-boss.z)<5.6,'close real, sem afastamento');
+ const heights=[];
+ for(let i=0;i<6;i++){
+  const t=3.3+i*ZARK_ULT.sealGap+.4,shot=cam(t);
+  assert.equal(shot.shot,'CIRCULO_'+(i+1),'um enquadramento específico por círculo');
+  assert.equal(shot.sealIndex,i);
+  heights.push(shot.pos[1]);
+ }
+ for(let i=1;i<6;i++)
+  assert.ok(heights[i]-heights[i-1]>5.0&&heights[i]-heights[i-1]<8.0,
+   'subida de um patamar, sem saltar os círculos');
+ assert.ok(heights[0]>boss.y+7&&heights[0]<boss.y+14,
+  'o primeiro círculo é filmado poucos metros acima');
+ const blast=cam(12);
+ assert.equal(blast.shot,'EXPLOSOES_VISTA_ALTA');
+ assert.ok(blast.pos[1]>boss.y+50,'câmera sobe para mostrar as detonações');
+ assert.ok(Math.hypot(blast.pos[0]-arena.x,blast.pos[2]-arena.z)>30,
+  'volume das explosões visto em 3/4 do alto, não disco zenital');
 });
 test('três explosões espaçadas, cada uma só nasce depois do núcleo',()=>{
  const {s,ev}=run(1/60,{x:1200,z:0});
@@ -99,7 +116,7 @@ test('sem fallback genérico: kit, gatilho, câmera e espada original estão lig
  assert.ok(src.includes('stopZarkUlt();') && src.includes('clearHazards();'));
  assert.ok(src.includes('zarkSwordWeapon?.userData?.tip'));
  assert.ok(src.includes('testUltBispo3'));
- assert.ok(ZARK_ULT_BUILD.startsWith('280-')&&ZARK_ULT_VFX_BUILD.startsWith('280-'));
+ assert.ok(ZARK_ULT_BUILD.startsWith('281-')&&ZARK_ULT_VFX_BUILD.startsWith('281-'));
 });
 test('VFX usa mandalas shader, fluxo por vértices, instâncias e domos, sem fumaça genérica',()=>{
  const src=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
