@@ -6091,6 +6091,19 @@ function updateZarkhaelSword(dt){
  * juntos. O herói conserva movimento/dash para escapar pelos 20% externos.
  */
 let zarkUlt=null,zarkUltVfx=null,zarkUltTestFired=false,zarkUltLastCamera=null,zarkUltCameraShot='';
+let zarkUltOccluderState=null;
+function zarkUltCinematicOcclusion(hide){
+ if(hide){
+  if(zarkUltOccluderState)return;
+  const all=dimArenas.bishop3?.refs?.zarkhaelCinematicOccluders||[];
+  zarkUltOccluderState=all.map(mesh=>({mesh,visible:mesh.visible}));
+  for(const x of zarkUltOccluderState)x.mesh.visible=false;
+ }else if(zarkUltOccluderState){
+  for(const x of zarkUltOccluderState)x.mesh.visible=x.visible;
+  zarkUltOccluderState=null;
+ }
+}
+
 const ZARK_ULT_TEST=new URLSearchParams(location.search).has('testUltBispo3');
 const _zuA=new THREE.Vector3(),_zuB=new THREE.Vector3(),_zuQ=new THREE.Quaternion(),_zuQ2=new THREE.Quaternion(),_zuTip=new THREE.Vector3();
 function startZarkUlt(){
@@ -6111,12 +6124,15 @@ function startZarkUlt(){
  worldAudio.abyss3&&worldAudio.abyss3('gravity',.9);
  worldAudio.abyss3&&worldAudio.abyss3('warn',.65);
  ultCam.want=0;zarkUltLastCamera=null;
+ document.body.classList.add('zark-ult-cine');
  ultDim(userSettings.reduceFlash?.1:.26,.55);
  return true;
 }
 function stopZarkUlt(){
  if(!zarkUlt&&!zarkUltLastCamera)return;
  zarkUlt=null;zarkUltLastCamera=null;zarkUltCameraShot='';
+ zarkUltCinematicOcclusion(false);
+ document.body.classList.remove('zark-ult-cine');
  if(zarkUltVfx)zarkUltVfx.clear();
  if(ultDimEl)ultDim(0,.48);
  camera.fov=fpWasActive?72:56;camera.updateProjectionMatrix();
@@ -6132,6 +6148,9 @@ function tickZarkUlt(dt,now){
  const events=s.step(dt,hero);
  for(const ev of events){
   if(ev.type==='phase'&&ev.name==='seals'){
+   // Corte do plano frontal para o ritual: nenhum cogumelo gigante fica
+   // atravessando a lente dos seis círculos e das três detonações.
+   zarkUltCinematicOcclusion(true);
    status.textContent='Seis selos surgirão, um sobre outro! Corra para a faixa EXTERNA da arena!';
    playEnemyAnimation('cast',.08,true);
    worldAudio.abyss3&&worldAudio.abyss3('storm',.75);
