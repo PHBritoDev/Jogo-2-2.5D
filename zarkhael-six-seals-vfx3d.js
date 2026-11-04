@@ -1,10 +1,11 @@
+import {createSingularMushroomExplosion,ERUPTION_BUILD} from './zarkhael-singular-eruption3d.js';
 /**
  * MOD 280 — VFX especializado da ultimate do Bispo 3, WebGL1 compatível.
  * Círculos procedurais com glifos/hexagramas/linhas, aura advectada do corpo,
  * núcleo da espada GLB original e 3 cúpulas de plasma com formação progressiva.
  * Geometrias reutilizadas, shaders com uniforms e estilhaços instanciados.
  */
-export const ZARK_ULT_VFX_BUILD='281-radial-plasma-rifts-no-spheres';
+export const ZARK_ULT_VFX_BUILD='282-single-eruption-visible-plume';
 const PI=Math.PI,TAU=2*PI,clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),
  sm=v=>{v=clamp(v);return v*v*(3-2*v);};
 const VERT='varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
@@ -228,44 +229,17 @@ export function createSixSealsVFX(THREE,scene){
  auraSpines.frustumCulled=false;aura.add(auraSpines);
  const swordRoot=new THREE.Group();holder.add(swordRoot);
  const charge=mat(THREE,CHARGE_FRAG,{uTime:0,uPower:0});
- for(let i=0;i<3;i++){
-  const sheet=new THREE.Mesh(new THREE.PlaneGeometry(4.6,4.6),charge);
-  sheet.rotation.y=i*TAU/3;sheet.renderOrder=31;swordRoot.add(sheet);
- }
+ // REMOVIDAS as placas enormes e opacas da espada: só brilho discreto no GLB.
  const glowMat=new THREE.MeshBasicMaterial({color:0xffd8ac,transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
  const swordCore=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,2),glowMat);swordRoot.add(swordCore);
  // Anéis de corrente orbitam a EspadaBispo3.glb conforme energia se concentra.
  const orbitMat=new THREE.MeshBasicMaterial({color:0xff4617,transparent:true,opacity:.65,
   depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
  const swordOrbits=[];
- for(let j=0;j<5;j++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.44+j*.1,.026,5,48),orbitMat);
+ for(let j=0;j<2;j++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.22+j*.11,.011,5,48),orbitMat);
   ring.rotation.set(j*.4,j*.6,0);swordRoot.add(ring);swordOrbits.push(ring);}
 
- // Frentes 3D autorais: vinte e oito línguas rubras com nervuras amarelas
- // finas, curvadas radialmente, e outra camada de plasma irregular.
- const riftGeometry=makePlasmaRiftGeometry(THREE);
- const bursts=[];
- for(let i=0;i<3;i++){
-  const group=new THREE.Group();holder.add(group);
-  const darkMat=riftMaterial(THREE,RIFT_FRAGMENT,i*.43,false);
-  const hotMat=riftMaterial(THREE,RIFT_GLOW_FRAGMENT,i*.43,true);
-  const dark=new THREE.InstancedMesh(riftGeometry,darkMat,44);
-  const hot=new THREE.InstancedMesh(riftGeometry,hotMat,30);
-  dark.frustumCulled=false;hot.frustumCulled=false;
-  dark.renderOrder=43+i;hot.renderOrder=45+i;
-  group.add(dark,hot);
-  // Núcleo concentrado, não bola gigante. Só aparece durante ignição.
-  const kernelMat=new THREE.MeshBasicMaterial({color:0xff641b,transparent:true,opacity:0,
-   blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
-  const kernel=new THREE.Mesh(new THREE.OctahedronGeometry(.55,1),kernelMat);
-  kernel.renderOrder=42+i;group.add(kernel);
-  // Expansão junto ao chão é apenas uma linha de choque secundária.
-  const ringMat=new THREE.MeshBasicMaterial({color:0xff2c12,transparent:true,opacity:0,
-   blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(1,.032,4,96),ringMat);
-  ring.rotation.x=PI/2;ring.position.y=.25;group.add(ring);
-  bursts.push({group,dark,hot,darkMat,hotMat,kernel,kernelMat,ring,ringMat});
- }
+ const singular=createSingularMushroomExplosion(THREE,holder); // UMA detonação, nunca 3.
  const shardMat=new THREE.MeshBasicMaterial({color:0x3b001a,transparent:true,opacity:.85,side:THREE.DoubleSide});
  const shards=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),shardMat,72);
  shards.frustumCulled=false;holder.add(shards);
@@ -327,68 +301,17 @@ export function createSixSealsVFX(THREE,scene){
   swordRoot.visible=st.phase!=='explosions'||st.pt<4.3;
   swordRoot.rotation.y=seconds*.75;swordRoot.rotation.x=Math.sin(seconds*1.1)*.18;
   const power=st.sword,sk=sm(power);
-  swordRoot.scale.setScalar(.55+3*sk+Math.sin(seconds*14)*.06*sk);
+  swordRoot.scale.setScalar(.3+.30*sk);
   charge.uniforms.uTime.value=seconds;charge.uniforms.uPower.value=.35+.65*sk;
   // Correntes de plasma giram ao redor do núcleo da EspadaBispo3.glb,
   // sem substituir a arma por uma esfera branca genérica.
-  swordCore.scale.setScalar(.24+.42*sk);glowMat.opacity=.15+.43*sk;
-  orbitMat.opacity=.20+.48*sk;
+  swordCore.scale.setScalar(.14+.20*sk);glowMat.opacity=.07+.16*sk;
+  orbitMat.opacity=.10+.18*sk;
   swordOrbits.forEach((o,i)=>{o.visible=sk>.12;
    o.rotation.set(seconds*(.83+i*.11),seconds*(1.2-i*.07),i*.48);
    o.scale.setScalar(.55+1.05*sk);});
-  let peak=0;
-  for(let i=0;i<3;i++){
-   const vfx=bursts[i],b=st.bursts[i];vfx.group.visible=!!b;if(!b)continue;
-   const age=b.age;
-   // Lenta compressão (0–.42s), ignição (.42–.78s), expansão (.78–1.48s)
-   // e cauda. A forma nasce pequena; nunca surge pronta num quadro.
-   const compress=sm(age/.43),ignite=sm((age-.38)/.43);
-   const expansion=sm((age-.73)/.82);
-   const reach=Math.min(1,.03+.10*compress+.35*ignite+.76*expansion);
-   const fade=1-sm((age-1.28)/.62);
-   const energy=fade*sm((age-.26)/.42);
-   const R=st.dangerR;
-   vfx.group.position.set(C.x,ground(C.x,C.z)+.05,C.z);
-   vfx.kernel.visible=age<.96;
-   vfx.kernel.position.y=1.5+2.2*ignite;
-   vfx.kernel.scale.setScalar(.4+1.35*compress+.6*ignite);
-   vfx.kernel.rotation.set(seconds*.9,seconds*1.7,seconds*.5);
-   vfx.kernelMat.opacity=(1-sm((age-.55)/.42))*(.18+.45*compress);
-   vfx.ring.scale.setScalar(R*reach);
-   vfx.ringMat.opacity=fade*sm((age-.55)/.60)*.20;
-   const outerN=low?28:44,innerN=low?16:30;
-   vfx.dark.count=outerN;vfx.hot.count=innerN;
-   for(let j=0;j<outerN;j++){
-    const a=j/outerN*TAU+i*.37;
-    const jitter=.79+.32*((j*7)%13)/13;
-    const len=R*reach*(.71+.50*((j*17)%19)/19);
-    const rise=3+R*(.21+.19*((j*11)%17)/17)*reach;
-    // O curso das lâminas oscila em 3D, inclinando cada língua de plasma
-    // e evitando o contorno de esfera ou de disco visto de cima.
-    p.set(Math.cos(a)*R*reach*.075,.54+(j%4)*.28,Math.sin(a)*R*reach*.075);
-    q.setFromAxisAngle(up,-a);
-    const tilt=.11+.35*((j*3)%11)/11+.06*Math.sin(age*4+j);
-    q.multiply(tiltQ.setFromAxisAngle(tiltAxis,tilt));
-    S.set(len*jitter,rise*(.80+.50*((j*5)%11)/11),3.8+R*reach*.23);
-    matrix.compose(p,q,S);vfx.dark.setMatrixAt(j,matrix);
-   }
-   vfx.dark.instanceMatrix.needsUpdate=true;
-   for(let j=0;j<innerN;j++){
-    const a=(j+.25)/innerN*TAU+i*.44;
-    const len=R*reach*(.56+.32*((j*11)%17)/17);
-    p.set(Math.cos(a)*reach*.5,.87+(j%4)*.31,Math.sin(a)*reach*.5);
-    q.setFromAxisAngle(up,-a);
-    q.multiply(tiltQ.setFromAxisAngle(tiltAxis,.2+(j%5)*.055));
-    S.set(len,(3.2+R*reach*.26)*(.63+.33*(j%4)/4),.55+reach*1.7);
-    matrix.compose(p,q,S);vfx.hot.setMatrixAt(j,matrix);
-   }
-   vfx.hot.instanceMatrix.needsUpdate=true;
-   vfx.darkMat.uniforms.uTime.value=seconds;vfx.darkMat.uniforms.uAge.value=age;
-   vfx.darkMat.uniforms.uPower.value=energy*(.63+.27*ignite);
-   vfx.hotMat.uniforms.uTime.value=seconds;vfx.hotMat.uniforms.uAge.value=age;
-   vfx.hotMat.uniforms.uPower.value=energy*(.25+.35*expansion);
-   peak=Math.max(peak,energy*expansion);
-  }
+  singular.update(st,{dt,low,ground:ground(C.x,C.z)});
+  const peak=st.bursts[0]?Math.max(0,1-st.bursts[0].age/4.3):0;
   // Pré-ignição: agulhas escarlates nas SEIS alturas, crescendo antes da
   // explosão. Se o jogador se afastar, a borda segura permanece legível.
   const warn=st.phase==='seals'?sm((st.pt-5.25)/1.45):
@@ -421,7 +344,7 @@ export function createSixSealsVFX(THREE,scene){
   light.position.set(explode?C.x:B.x,explode?ground(C.x,C.z)+5:B.y+2.6,explode?C.z:B.z);
   light.intensity=1.2*glow+3.4*peak;
  }
- function clear(){holder.visible=false;light.intensity=0;}
+ function clear(){holder.visible=false;singular.clear();light.intensity=0;}
  function dispose(){scene.remove(holder);const geos=new Set(),mats=new Set();holder.traverse(o=>{if(o.geometry)geos.add(o.geometry);if(o.material)for(const m of [].concat(o.material))mats.add(m);});for(const g of geos)g.dispose();for(const m of mats)m.dispose();}
  clear();return{holder,update,clear,dispose};
 }
