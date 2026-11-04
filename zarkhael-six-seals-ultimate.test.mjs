@@ -51,7 +51,7 @@ test('câmera sobe a cada círculo e chega ao overhead para as explosão única'
  assert.ok(h(9.5)>h(6.8));
  assert.ok(h(12)>boss.y+95, 'plano superior alto, mas oblíquo para revelar volume');
 });
-test('três explosões espaçadas, cada uma só nasce depois do núcleo',()=>{
+test('uma explosão progressiva nasce depois do núcleo',()=>{
  const {s,ev}=run(1/60,{x:1200,z:0});
  const bursts=ev.filter(e=>e.type==='burst'),hits=ev.filter(e=>e.type==='hit');
  assert.deepEqual(bursts.map(e=>e.n),[1]);assert.equal(hits.length,1);
@@ -96,7 +96,7 @@ test('sem fallback genérico: kit, gatilho, câmera e espada original estão lig
  assert.ok(src.includes('stopZarkUlt();') && src.includes('clearHazards();'));
  assert.ok(src.includes('zarkSwordWeapon?.userData?.tip'));
  assert.ok(src.includes('testUltBispo3'));
- assert.ok(ZARK_ULT_BUILD.startsWith('281-')&&ZARK_ULT_VFX_BUILD.startsWith('280-'));
+ assert.ok(ZARK_ULT_BUILD.startsWith('281-')&&ZARK_ULT_VFX_BUILD.startsWith('281-'));
 });
 test('VFX usa mandalas shader, fluxo por vértices, instâncias e domos, sem fumaça genérica',()=>{
  const src=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
