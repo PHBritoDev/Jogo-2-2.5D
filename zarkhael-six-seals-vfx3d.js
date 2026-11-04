@@ -4,7 +4,7 @@
  * núcleo da espada GLB original e 3 cúpulas de plasma com formação progressiva.
  * Geometrias reutilizadas, shaders com uniforms e estilhaços instanciados.
  */
-export const ZARK_ULT_VFX_BUILD='281-organic-anime-volumetric-red-plasma';
+export const ZARK_ULT_VFX_BUILD='281-radial-plasma-rifts-no-spheres';
 const PI=Math.PI,TAU=2*PI,clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),
  sm=v=>{v=clamp(v);return v*v*(3-2*v);};
 const VERT='varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
@@ -102,6 +102,91 @@ const CHARGE_FRAG=[
  'float alpha=clamp((energy+lines*.3)*uPower,0.,1.);',
  'if(alpha<.02)discard;gl_FragColor=vec4(col,alpha);}'
 ].join('\n');
+// Mod 281.1: lâminas volumétricas de plasma. As frentes NÃO usam domos,
+// esferas nem nuvens. A malha contém três faces irregulares cruzadas, com
+// fissuras e nervuras animadas no próprio shader WebGL1.
+const RIFT_VERTEX=[
+ 'uniform float uTime,uAge,uSeed;attribute vec3 position;attribute vec2 uv;',
+ 'varying vec2 vUV;varying float vFlicker;',
+ 'void main(){vUV=uv;vec3 v=position;',
+ 'float wave=sin(uv.x*13.-uTime*4.+uSeed*6.)*.07+sin(uv.x*29.+uTime*6.)*.025;',
+ 'v.y+=wave*uv.x*(1.-uv.x);v.z+=wave*.48*uv.x;',
+ 'vFlicker=.82+.18*sin(uTime*7.+uv.x*15.+uSeed);',
+ 'vec4 pos=vec4(v,1.);',
+ '#ifdef USE_INSTANCING',
+ 'pos=instanceMatrix*pos;',
+ '#endif',
+ 'gl_Position=projectionMatrix*modelViewMatrix*pos;}'
+].join('\n');
+const RIFT_FRAGMENT=[
+ 'uniform float uTime,uAge,uPower,uSeed;varying vec2 vUV;varying float vFlicker;',
+ 'void main(){float t=vUV.x,q=vUV.y;',
+ 'float jag=sin(t*31.-uTime*6.+uSeed*7.)*.075+sin(t*67.+uTime*8.)*.035;',
+ 'float edge=abs(q-.5)*2.;',
+ 'float outside=smoothstep(.45,.96,edge+jag);',
+ 'float vein=exp(-pow((q-.5+sin(t*17.-uTime*5.)*.065)*11.,2.));',
+ 'float fissure=pow(max(0.,sin(t*40.+q*19.-uTime*7.+uSeed*4.)),16.);',
+ 'float wave=sin(t*15.-uTime*3.+uSeed*8.)*.5+.5;',
+ 'vec3 obsidian=vec3(.06,.001,.017),crimson=vec3(.78,.004,.034),red=vec3(1.,.055,.035);',
+ 'vec3 amber=vec3(1.,.40,.025),hot=vec3(1.,.78,.20);',
+ 'vec3 col=mix(obsidian,crimson,clamp(.33+.6*wave,0.,1.));',
+ 'col=mix(col,red,clamp(.33+vein*.38+fissure*.28,0.,1.));',
+ 'col=mix(col,amber,clamp(vein*.55+fissure*.15,0.,.83));',
+ 'col=mix(col,hot,clamp(vein*.18+fissure*.1,0.,.25));',
+ 'col=mix(col,obsidian,clamp(outside*.81,0.,.82));',
+ 'float birth=smoothstep(0.,.09,t),tail=1.-smoothstep(.77,1.,t);',
+ 'float alpha=clamp(birth*tail*(.65+.24*vein+.20*fissure)*uPower*vFlicker,0.,1.);',
+ 'if(alpha<.055)discard;gl_FragColor=vec4(col,alpha);}'
+].join('\n');
+const RIFT_GLOW_FRAGMENT=[
+ 'uniform float uTime,uAge,uPower,uSeed;varying vec2 vUV;varying float vFlicker;',
+ 'void main(){float t=vUV.x,q=vUV.y;',
+ 'float v=sin(t*21.-uTime*7.+uSeed*5.)*.06;',
+ 'float core=exp(-pow((q-.5+v)*10.,2.));',
+ 'float crack=pow(max(0.,sin(t*42.+uTime*8.+uSeed*4.)),16.);',
+ 'float alpha=core*(.52+.40*crack)*smoothstep(0.,.11,t)*(1.-smoothstep(.64,1.,t))*uPower;',
+ 'if(alpha<.03)discard;',
+ 'vec3 color=mix(vec3(1.,.16,.02),vec3(1.,.69,.16),core*.59+crack*.22);',
+ 'gl_FragColor=vec4(color,clamp(alpha,0.,.76));}'
+].join('\n');
+function makePlasmaRiftGeometry(THREE){
+ const pos=[],uv=[],idx=[],segments=14;
+ // Três intersectantes malhas serrilhadas formam uma língua 3D,
+ // não uma folha invisível lateralmente.
+ for(let plane=0;plane<3;plane++){
+  const off=pos.length/3;
+  for(let j=0;j<=segments;j++){
+   const t=j/segments;
+   const taper=Math.pow(Math.max(0,1-t),.64);
+   const irregular=(.92+.11*Math.sin(t*17+plane*2.1)+.07*Math.sin(t*38+plane))*taper;
+   const half=(.12+.41*Math.sin(Math.PI*t)**.72)*irregular;
+   const x=t*(1+.035*Math.sin(t*15+plane*1.3));
+   for(let side=-1;side<=1;side+=2){
+    // Placas cruzadas no eixo radial, ondulando ao longo do comprimento.
+    const w=side*half,twist=t*.13*Math.sin(t*14+plane*2);
+    if(plane===0)pos.push(x,w+twist,.12*Math.sin(t*10+plane));
+    if(plane===1)pos.push(x,.14+twist,w);
+    if(plane===2)pos.push(x,w*.70+twist,w*.67);
+    uv.push(t,(side+1)/2);
+   }
+   if(j<segments){const k=off+j*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}
+  }
+ }
+ const g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+ g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+ g.setIndex(idx);g.computeVertexNormals();
+ return g;
+}
+function riftMaterial(THREE,fragment,seed,additive){
+ return new THREE.ShaderMaterial({
+  vertexShader:RIFT_VERTEX,fragmentShader:fragment,
+  uniforms:{uTime:{value:0},uAge:{value:0},uPower:{value:0},uSeed:{value:seed}},
+  transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  blending:additive?THREE.AdditiveBlending:THREE.NormalBlending,toneMapped:false
+ });
+}
+
 function mat(THREE,frag,uniforms,vert=VERT){
  return new THREE.ShaderMaterial({vertexShader:vert,fragmentShader:frag,uniforms:Object.fromEntries(Object.entries(uniforms).map(([k,v])=>[k,{value:v}])),
   transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false});
@@ -156,42 +241,30 @@ export function createSixSealsVFX(THREE,scene){
  for(let j=0;j<5;j++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.44+j*.1,.026,5,48),orbitMat);
   ring.rotation.set(j*.4,j*.6,0);swordRoot.add(ring);swordOrbits.push(ring);}
 
+ // Frentes 3D autorais: vinte e oito línguas rubras com nervuras amarelas
+ // finas, curvadas radialmente, e outra camada de plasma irregular.
+ const riftGeometry=makePlasmaRiftGeometry(THREE);
  const bursts=[];
  for(let i=0;i<3;i++){
   const group=new THREE.Group();holder.add(group);
-  const domeMaterial=mat(THREE,DOME_FRAG,{uTime:0,uAge:0,uAlpha:0,uPulse:i},DOME_VERT);
-  domeMaterial.blending=THREE.NormalBlending;domeMaterial.forceSinglePass=true;
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(1,48,24,0,TAU,0,PI/2),domeMaterial);
-  dome.frustumCulled=false;dome.renderOrder=42+i;group.add(dome);
-  const ringMat=new THREE.MeshBasicMaterial({color:i===1?0xff6c22:0xff314b,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
-  const wave=new THREE.Mesh(new THREE.TorusGeometry(1,.085,7,96),ringMat);wave.rotation.x=PI/2;wave.position.y=.5;group.add(wave);
-  // Véu translúcido do plasma: casca larga entre o centro branco e as fissuras escuras.
-  // A geometria aparece só durante o crescimento real, sem sprites de fumaça.
-  const veilMat=new THREE.MeshBasicMaterial({color:i===1?0xff3212:0xb30528,transparent:true,opacity:0,
-   depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
-  const veil=new THREE.Mesh(new THREE.SphereGeometry(1,32,20,0,TAU,0,PI/2),veilMat);
-  veil.renderOrder=40+i;group.add(veil);
-  const kernelMat=new THREE.MeshBasicMaterial({color:0xffefd6,transparent:true,opacity:0,
-   depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
-  const kernel=new THREE.Mesh(new THREE.IcosahedronGeometry(1,2),kernelMat);
-  kernel.renderOrder=45+i;group.add(kernel);
-  const railMat=new THREE.MeshBasicMaterial({color:0xf50843,transparent:true,opacity:0,
-   depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
-  const rail=new THREE.Mesh(new THREE.TorusGeometry(1,.1,8,96),railMat);
-  rail.rotation.x=PI/2;rail.position.y=1.1;group.add(rail);
-  // Fragmentos orgânicos do blast: cada frente faz volume com bordas irregulares,
-  // além de feixes de energia saindo em todas as direções do núcleo.
-  const lobeMat=new THREE.MeshBasicMaterial({color:0xff3910,transparent:true,opacity:0,
-   depthWrite:false,blending:THREE.NormalBlending,toneMapped:false});
-  const lobes=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),lobeMat,18);
-  lobes.frustumCulled=false;lobes.renderOrder=43+i;group.add(lobes);
-  for(let j=0;j<18;j++)lobes.setColorAt(j,new THREE.Color(j%5===0?0xffb023:j%3===0?0xe62609:0x8e0519));
-  const beamMat=new THREE.MeshBasicMaterial({color:0xff8e25,transparent:true,opacity:0,
-   depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
-  const beams=new THREE.InstancedMesh(new THREE.ConeGeometry(.065,1,3),beamMat,32);
-  beams.frustumCulled=false;beams.renderOrder=46+i;group.add(beams);
-  bursts.push({group,dome,domeMaterial,wave,ringMat,veil,veilMat,kernel,kernelMat,rail,railMat,
-   lobes,lobeMat,beams,beamMat});
+  const darkMat=riftMaterial(THREE,RIFT_FRAGMENT,i*.43,false);
+  const hotMat=riftMaterial(THREE,RIFT_GLOW_FRAGMENT,i*.43,true);
+  const dark=new THREE.InstancedMesh(riftGeometry,darkMat,44);
+  const hot=new THREE.InstancedMesh(riftGeometry,hotMat,30);
+  dark.frustumCulled=false;hot.frustumCulled=false;
+  dark.renderOrder=43+i;hot.renderOrder=45+i;
+  group.add(dark,hot);
+  // Núcleo concentrado, não bola gigante. Só aparece durante ignição.
+  const kernelMat=new THREE.MeshBasicMaterial({color:0xff641b,transparent:true,opacity:0,
+   blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+  const kernel=new THREE.Mesh(new THREE.OctahedronGeometry(.55,1),kernelMat);
+  kernel.renderOrder=42+i;group.add(kernel);
+  // Expansão junto ao chão é apenas uma linha de choque secundária.
+  const ringMat=new THREE.MeshBasicMaterial({color:0xff2c12,transparent:true,opacity:0,
+   blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(1,.032,4,96),ringMat);
+  ring.rotation.x=PI/2;ring.position.y=.25;group.add(ring);
+  bursts.push({group,dark,hot,darkMat,hotMat,kernel,kernelMat,ring,ringMat});
  }
  const shardMat=new THREE.MeshBasicMaterial({color:0x3b001a,transparent:true,opacity:.85,side:THREE.DoubleSide});
  const shards=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),shardMat,72);
@@ -266,46 +339,55 @@ export function createSixSealsVFX(THREE,scene){
   let peak=0;
   for(let i=0;i<3;i++){
    const vfx=bursts[i],b=st.bursts[i];vfx.group.visible=!!b;if(!b)continue;
-   const age=b.age,pre=sm(age/.45),form=sm((age-.38)/.52),open=sm((age-.64)/.9);
-   const fade=1-sm((age-1.30)/.68),growth=.016+.05*pre+.19*form+.74*open;
-   vfx.group.position.set(C.x,ground(C.x,C.z)+.045,C.z);
-   vfx.dome.scale.set(st.dangerR*growth,1.2+11.8*growth,st.dangerR*growth);
-   vfx.veil.scale.set(st.dangerR*growth*.96,1.45+13.2*growth,st.dangerR*growth*.96);
-   vfx.veilMat.opacity=fade*(.13+.18*form);
-   vfx.kernel.scale.setScalar(.42+2.5*(.12*pre+.88*form)); // núcleo pequeno; plasma vermelho domina o quadro
-   vfx.kernel.position.y=1.25+4.5*form;
-   vfx.kernelMat.opacity=fade*(.13+.26*pre);
-   vfx.rail.scale.setScalar(st.dangerR*(.07+.93*open));
-   vfx.rail.position.y=1.0+4*open;
-   vfx.railMat.opacity=fade*(.12+.68*open);
-   vfx.domeMaterial.uniforms.uTime.value=seconds;vfx.domeMaterial.uniforms.uAge.value=age;
-   vfx.domeMaterial.uniforms.uAlpha.value=fade*(.60+.3*form);
-   vfx.wave.scale.setScalar(st.dangerR*growth);
-   vfx.ringMat.opacity=fade*sm((age-.44)/.65)*.45;peak=Math.max(peak,fade*open);
-   // Não é um círculo vermelho: dezoito frentes de fogo espacial surgem do
-   // núcleo, criam uma silhueta irregular e trinta e dois feixes atravessam
-   // os lobos em profundidade. Todas as geometrias permanecem reutilizadas.
-   const R=st.dangerR,spread=R*growth,flare=sm((age-.31)/.62)*fade;
-   for(let j=0;j<18;j++){
-    const a=j/18*TAU+i*.31,rr=spread*(.68+.29*(j%4)/4);
-    p.set(Math.cos(a)*rr,1.1+growth*(2.1+(j%6)*1.5),Math.sin(a)*rr);
-    q.setFromAxisAngle(up,seconds*(.06+j*.008));
-    const rad=(.12+growth*.23)*R*(.68+.32*((j*7)%9)/9);
-    S.set(rad,rad*(.93+(j%3)*.21),rad);
-    matrix.compose(p,q,S);vfx.lobes.setMatrixAt(j,matrix);
+   const age=b.age;
+   // Lenta compressão (0–.42s), ignição (.42–.78s), expansão (.78–1.48s)
+   // e cauda. A forma nasce pequena; nunca surge pronta num quadro.
+   const compress=sm(age/.43),ignite=sm((age-.38)/.43);
+   const expansion=sm((age-.73)/.82);
+   const reach=.025+.08*compress+.18*ignite+.79*expansion;
+   const fade=1-sm((age-1.28)/.62);
+   const energy=fade*sm((age-.26)/.42);
+   const R=st.dangerR;
+   vfx.group.position.set(C.x,ground(C.x,C.z)+.05,C.z);
+   vfx.kernel.visible=age<.96;
+   vfx.kernel.position.y=1.5+2.2*ignite;
+   vfx.kernel.scale.setScalar(.4+1.35*compress+.6*ignite);
+   vfx.kernel.rotation.set(seconds*.9,seconds*1.7,seconds*.5);
+   vfx.kernelMat.opacity=(1-sm((age-.55)/.42))*(.18+.45*compress);
+   vfx.ring.scale.setScalar(R*reach);
+   vfx.ringMat.opacity=fade*sm((age-.55)/.60)*.20;
+   const outerN=low?28:44,innerN=low?16:30;
+   vfx.dark.count=outerN;vfx.hot.count=innerN;
+   for(let j=0;j<outerN;j++){
+    const a=j/outerN*TAU+i*.37;
+    const jitter=.79+.32*((j*7)%13)/13;
+    const len=R*reach*(.71+.50*((j*17)%19)/19);
+    const rise=3+R*(.21+.19*((j*11)%17)/17)*reach;
+    // O curso das lâminas oscila em 3D, inclinando cada língua de plasma
+    // e evitando o contorno de esfera ou de disco visto de cima.
+    p.set(Math.cos(a)*R*reach*.075,.54+(j%4)*.28,Math.sin(a)*R*reach*.075);
+    q.setFromAxisAngle(up,-a);
+    const tilt=.11+.35*((j*3)%11)/11+.06*Math.sin(age*4+j);
+    q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),tilt));
+    S.set(len*jitter,rise*(.62+.47*((j*5)%11)/11),1.4+reach*3);
+    matrix.compose(p,q,S);vfx.dark.setMatrixAt(j,matrix);
    }
-   vfx.lobes.instanceMatrix.needsUpdate=true;vfx.lobeMat.opacity=.70*flare;
-   vfx.beams.count=low?16:32;
-   for(let j=0;j<vfx.beams.count;j++){
-    const a=j/vfx.beams.count*TAU+i*.27,rr=spread*(.43+.40*(j%5)/5);
-    axis.set(Math.cos(a)*.84,.26+(j%5)*.11,Math.sin(a)*.84).normalize();
-    p.set(Math.cos(a)*rr,1.1+growth*(1.8+(j%3)*1.5),Math.sin(a)*rr);
-    q.setFromUnitVectors(up,axis);
-    S.set(.17+.10*growth,R*(.024+.31*open)*(.60+(j%7)*.08),.17+.10*growth);
-    matrix.compose(p,q,S);vfx.beams.setMatrixAt(j,matrix);
+   vfx.dark.instanceMatrix.needsUpdate=true;
+   for(let j=0;j<innerN;j++){
+    const a=(j+.25)/innerN*TAU+i*.44;
+    const len=R*reach*(.56+.32*((j*11)%17)/17);
+    p.set(Math.cos(a)*reach*.5,.87+(j%4)*.31,Math.sin(a)*reach*.5);
+    q.setFromAxisAngle(up,-a);
+    q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),.2+(j%5)*.055));
+    S.set(len,(2.5+R*reach*.22)*(.63+.33*(j%4)/4),.3+reach*1.15);
+    matrix.compose(p,q,S);vfx.hot.setMatrixAt(j,matrix);
    }
-   vfx.beams.instanceMatrix.needsUpdate=true;
-   vfx.beamMat.opacity=fade*sm((age-.24)/.43)*.76;
+   vfx.hot.instanceMatrix.needsUpdate=true;
+   vfx.darkMat.uniforms.uTime.value=seconds;vfx.darkMat.uniforms.uAge.value=age;
+   vfx.darkMat.uniforms.uPower.value=energy*(.63+.27*ignite);
+   vfx.hotMat.uniforms.uTime.value=seconds;vfx.hotMat.uniforms.uAge.value=age;
+   vfx.hotMat.uniforms.uPower.value=energy*(.25+.35*expansion);
+   peak=Math.max(peak,energy*expansion);
   }
   // Pré-ignição: agulhas escarlates nas SEIS alturas, crescendo antes da
   // explosão. Se o jogador se afastar, a borda segura permanece legível.
