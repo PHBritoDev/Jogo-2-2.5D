@@ -119,7 +119,7 @@ test('sem fallback genérico: kit, gatilho, câmera e espada original estão lig
 });
 test('VFX usa escultura flamejante e único núcleo, sem 3 blasts nem esfera genérica',()=>{
  const src=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
- for(const marker of ['ShaderMaterial','PlaneGeometry','createSingularMushroomExplosion','InstancedMesh','uBuild','uCharge','uPower','uAge','uTime','ZarkhaelSixSealsUltimate280'])assert.ok(src.includes(marker),marker);
+ for(const marker of ['ShaderMaterial','PlaneGeometry','createSingularMushroomExplosion','ZarkhaelOrganicShadowPoolNoCones','uBuild','uCharge','uPower','uAge','uTime','ZarkhaelSixSealsUltimate280'])assert.ok(src.includes(marker),marker);
  assert.ok(!src.includes('for(let i=0;i<3;i++){\n   const vfx=bursts[i]'), '3 efeitos antigos completamente excluídos');
  const main=fs.readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
  assert.ok(main.includes('zarkUltBossLock'), 'Boss imóvel durante ultimate');
@@ -159,4 +159,15 @@ test('Mod 283: fogo no solo ocupa a área de perigo e copa só aparece após ign
  assert.ok(main.includes('impactRumble')&&main.includes('tailRumble')&&main.includes('preRumble'),'câmera deve conter preparação, impacto e dissipação');
  assert.ok(main.includes('if(!userSettings.reduceShake)'), 'respeitar acessibilidade de câmera');
  assert.ok(vfx.includes("aura.scale.setScalar(.85+.23*glow)"),'manter modelo da aura, apenas um pouco mais forte');
+});
+
+test('Mod 284: sem cones ou estilhaços geométricos vermelhos; sombra orgânica preserva aura',()=>{
+ const aura=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
+ const eruption=fs.readFileSync(new URL('./zarkhael-singular-eruption3d.js',import.meta.url),'utf8');
+ assert.ok(!aura.includes('new THREE.ConeGeometry')&&!aura.includes('new THREE.TetrahedronGeometry'),
+  'remover os cones e tetraedros da ultimate');
+ assert.ok(!eruption.includes('new T.TetrahedronGeometry'),'explosão sem triângulos sólidos');
+ for(const mark of ['ZarkhaelOrganicShadowPoolNoCones','SHADOW_POOL_FRAG','shadowPool.material.uniforms.uTime','ribbons.forEach','createSingularMushroomExplosion'])
+   assert.ok(aura.includes(mark),'efeito necessário ausente: '+mark);
+ assert.ok(eruption.includes('billow.update(age,st'),'nuvem principal deve permanecer intacta');
 });
