@@ -125,6 +125,9 @@ test('VFX usa escultura flamejante e único núcleo, sem 3 blasts nem esfera gen
  assert.ok(main.includes('zarkUltBossLock'), 'Boss imóvel durante ultimate');
  assert.ok(main.includes('enemyMixer.timeScale=0'), 'rig congelado');
  assert.ok(main.includes('zarkUltBossLock.mixerTimeScale'), 'restaura mixer');
+ assert.ok(main.includes('!zarkUltBossLock&&combatStepNow()'), 'sem giro automático do chefe durante a ultimate');
+ assert.ok(main.includes('enemyModelRoot.position.y=zarkUltBossLock.modelRootY'), 'sem correção vertical que desloca boss congelado');
+ assert.ok(main.includes('modelRootY:enemyModelRoot.position.y'), 'salva altura original do rig');
 
  assert.ok(!/smoke|smokeSprite|fog\.density/i.test(src));
  assert.ok(!src.includes('new THREE.SphereGeometry(1,48,24)'), 'sem cúpula arredondada');
