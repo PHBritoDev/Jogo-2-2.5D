@@ -103,7 +103,7 @@ export function createSingularMushroomExplosion(T,parent){
  columnLight.renderOrder=31;root.add(columnLight);
  const shock=[];
  for(let i=0;i<3;i++){
-  const m=new T.MeshBasicMaterial({color:i===0?0xffaa25:i===1?0xff4813:0xff9220,
+  const m=new T.MeshBasicMaterial({color:i===0?0xffedb2:i===1?0xff9b40:0xffe6bd,
    opacity:0,transparent:true,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false});
   const o=new T.Mesh(new T.TorusGeometry(1,.084,6,112),m);o.rotation.x=Math.PI/2;
   root.add(o);shock.push(o);
@@ -111,9 +111,14 @@ export function createSingularMushroomExplosion(T,parent){
  const shards=new T.InstancedMesh(new T.TetrahedronGeometry(1,0),
   new T.MeshBasicMaterial({color:0x270111,transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide}),48);
  shards.frustumCulled=false;root.add(shards);
- const arcs=new T.InstancedMesh(new T.CylinderGeometry(.017,.045,1,4),
-  new T.MeshBasicMaterial({color:0xdfb8ff,opacity:0,transparent:true,depthWrite:false,blending:T.AdditiveBlending}),36);
- arcs.frustumCulled=false;root.add(arcs);
+ // Raios violeta ramificados: caminhos quebrados, nunca cilindros retos genéricos.
+ // Todos compartilham um único LineSegments com buffer dinâmico (mobile).
+ const ARC_BOLTS=8,ARC_STEPS=9,arcPositions=new Float32Array(ARC_BOLTS*ARC_STEPS*6);
+ const arcGeo=new T.BufferGeometry();
+ arcGeo.setAttribute('position',new T.BufferAttribute(arcPositions,3));
+ const arcs=new T.LineSegments(arcGeo,new T.LineBasicMaterial({color:0xe6b2ff,opacity:0,
+  transparent:true,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}));
+ arcs.frustumCulled=false;arcs.renderOrder=47;root.add(arcs);
  const core=new T.Mesh(new T.OctahedronGeometry(.7,1),
   new T.MeshBasicMaterial({color:0xffde83,opacity:0,transparent:true,blending:T.AdditiveBlending,depthWrite:false}));
  root.add(core);
@@ -155,14 +160,24 @@ export function createSingularMushroomExplosion(T,parent){
    const r=.18+.26*((i*7)%9)/9;M.compose(P,Q,S.set(r,r*(.7+rise),r));shards.setMatrixAt(i,M);
   }
   shards.instanceMatrix.needsUpdate=true;shards.material.opacity=born*.64*fade;
-  arcs.count=ctx.low?18:36;
-  for(let i=0;i<arcs.count;i++){
-   const a=i/arcs.count*Math.PI*2,ht=2+(i%7)*4.2;
-   P.set(Math.cos(a)*(2+rise*2),ht,Math.sin(a)*(2+rise*2));
-   A.set(Math.cos(a)*.19,1,Math.sin(a)*.19).normalize();Q.setFromUnitVectors(U,A);
-   M.compose(P,Q,S.set(.07,.6+1.4*(i%5)/5,.07));arcs.setMatrixAt(i,M);
+  const boltCount=ctx.low?4:ARC_BOLTS,flare=born*fade*ease((age-.32)/.45);
+  arcs.visible=flare>.015;arcGeo.setDrawRange(0,boltCount*ARC_STEPS*2);
+  const flicker=Math.floor(time*12);
+  for(let i=0;i<boltCount;i++){
+   const a=(i+.12)*Math.PI*2/ARC_BOLTS+.08*Math.sin(time*.5+i);
+   for(let j=0;j<ARC_STEPS;j++){
+    for(let e=0;e<2;e++){
+     const f=(j+e)/ARC_STEPS,idx=(i*ARC_STEPS+j)*6+e*3;
+     const snap=Math.sin(i*17.1+Math.floor(f*15)*7.7+flicker*3.7);
+     const rad=unit*(3.1+7.0*f+snap*.85),jag=unit*(.75+1.3*f)*Math.sin(i*9.3+f*49.1+flicker*5.1);
+     arcPositions[idx]=Math.cos(a)*rad+Math.sin(a)*jag;
+     arcPositions[idx+1]=(23.9-16.5*f)*up+unit*.65*Math.sin(f*28.+i*8.2+flicker*3.3);
+     arcPositions[idx+2]=Math.sin(a)*rad-Math.cos(a)*jag;
+    }
+   }
   }
-  arcs.instanceMatrix.needsUpdate=true;arcs.material.opacity=born*fade*(.17+.2*Math.sin(time*12)**2);
+  arcGeo.attributes.position.needsUpdate=true;
+  arcs.material.opacity=flare*(.55+.32*Math.pow(Math.sin(time*17),2));
   light.position.y=11*rise;light.intensity=1.1*pre+5.2*rise*fade;
  }
  function clear(){root.visible=false;billow.clear();light.intensity=0;}
