@@ -6186,7 +6186,7 @@ function tickZarkUlt(dt,now){
    if(ev.n===6)worldAudio.abyss3&&worldAudio.abyss3('thunder',.9);
   }else if(ev.type==='burst'){
    worldAudio.abyss3&&worldAudio.abyss3('boom',1);
-   if(!userSettings.reduceShake)cameraShake(.14);
+   if(!userSettings.reduceShake)cameraShake(.16);
    vibrate(140);worldAudio.abyss3&&worldAudio.abyss3('thunder',.7);
   }else if(ev.type==='hit'){
    damagePlayerFromEnemyAttack(ev.dmg); // uma avaliação por pulso, nunca fora do círculo
@@ -6211,11 +6211,24 @@ function tickZarkUlt(dt,now){
    camera.quaternion.slerpQuaternions(gameQ,_zuQ2,pose.w);
   }else{camera.position.copy(_zuA);camera.lookAt(_zuB);}
  }
- const fov=pose.fov||56; // valor absoluto, nunca +56 graus
+ const blastAge=s.st.bursts[0]?.age??-1;
+ // Um único IMPACTO gera FOV kick breve, sem alterar o enquadramento aprovado.
+ const impactZoom=!userSettings.reduceShake&&blastAge>=0?1.15*Math.exp(-blastAge*4.6):0;
+ const fov=(pose.fov||56)+impactZoom; // FOV absoluto, zoom de impacto temporário
  if(Math.abs(camera.fov-fov)>.08){camera.fov=fov;camera.updateProjectionMatrix();}
- if(!userSettings.reduceShake&&s.st.trauma>.05){
-  const shake=shakeAt(s.st.trauma,s.st.t,100,{amp:fpWasActive?.035:.07,roll:.004,freq:5});
-  camera.position.add(_zuA.set(shake.x,shake.y,shake.z));
+ if(!userSettings.reduceShake){
+  // GDC camera juicing: trauma², ruído suave, um golpe forte e reverberação curta.
+  // Preparação quase imperceptível; sem tremor repetido de três explosões.
+  const preRumble=s.st.phase==='explosions'&&blastAge<0
+   ? .20*Math.pow(Math.min(1,s.st.pt/1.08),2):0;
+  const impactRumble=blastAge>=0? .68*Math.exp(-blastAge*3.2):0;
+  const tailRumble=blastAge>=0? .18*Math.exp(-blastAge*.85):0;
+  const trauma=Math.min(.94,Math.max(s.st.trauma*.28,preRumble+impactRumble+tailRumble));
+  if(trauma>.025){
+   const shake=shakeAt(trauma,s.st.t,100,{amp:fpWasActive?.055:.145,roll:.010,freq:9.2,kick:0});
+   camera.position.add(_zuA.set(shake.x,shake.y,shake.z));
+   camera.rotateZ(Math.max(-.012,Math.min(.012,shake.roll)));
+  }
  }
 }
 
