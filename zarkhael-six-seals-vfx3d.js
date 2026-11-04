@@ -272,7 +272,7 @@ export function createSixSealsVFX(THREE,scene){
    S.set(.10+.08*heat,.26+.85*heat,.12);matrix.compose(p,q,S);
    auraSpines.setMatrixAt(i,matrix);
   }
-  auraSpines.instanceMatrix.needsUpdate=true;auraSpineMat.opacity=.21+.56*glow;
+  auraSpines.instanceMatrix.needsUpdate=true;auraSpineMat.opacity=.23+.61*glow;
   field.position.set(C.x,ground(C.x,C.z)+.055,C.z);
   field.scale.setScalar(st.dangerR);
   fieldMat.opacity=st.phase==='aura'?0:st.phase==='seals'?
@@ -302,7 +302,7 @@ export function createSixSealsVFX(THREE,scene){
   swordRoot.rotation.y=seconds*.75;swordRoot.rotation.x=Math.sin(seconds*1.1)*.18;
   const power=st.sword,sk=sm(power);
   swordRoot.scale.setScalar(.3+.30*sk);
-  charge.uniforms.uTime.value=seconds;charge.uniforms.uPower.value=.35+.65*sk;
+  charge.uniforms.uTime.value=seconds;charge.uniforms.uPower.value=.26+.53*sk;
   // Correntes de plasma giram ao redor do núcleo da EspadaBispo3.glb,
   // sem substituir a arma por uma esfera branca genérica.
   swordCore.scale.setScalar(.14+.20*sk);glowMat.opacity=.07+.16*sk;
