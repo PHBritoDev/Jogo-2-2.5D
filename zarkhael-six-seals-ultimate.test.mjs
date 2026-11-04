@@ -134,3 +134,14 @@ test('VFX usa escultura flamejante e único núcleo, sem 3 blasts nem esfera gen
  assert.ok(!src.includes('new THREE.IcosahedronGeometry(1,1),lobeMat'), 'sem bolhas arredondadas');
  assert.ok(src.includes('singular.update(st,'), 'apenas uma explosão atualizada');
 });
+
+test('Mod 282: copa volumétrica real em vez de disco rígido, clarão e poeira de uma única detonação',()=>{
+ const eruption=fs.readFileSync(new URL('./zarkhael-singular-eruption3d.js',import.meta.url),'utf8');
+ const billow=fs.readFileSync(new URL('./zarkhael-billow-cloud3d.js',import.meta.url),'utf8');
+ assert.ok(eruption.includes("createBillowingCrown(T,root)"),'a erupção deve renderizar a copa orgânica');
+ assert.ok(!eruption.includes("const crown=new T.Mesh(lathe("),'remover de verdade a copa rígida de antes');
+ assert.ok(eruption.includes('billow.update(age,st'),'o relógio da animação controla a copa');
+ for(const marker of ['SingleExplosionBillowingFire','SingleExplosionGroundCloud','SingleExplosionGroundFlash','InstancedMesh','uWarp','aSeed','aHeat','uSmoky'])
+  assert.ok(billow.includes(marker),'camada ausente: '+marker);
+ assert.equal((eruption.match(/const shock=\[\]/g)||[]).length,1,'anéis de pressão pertencem à mesma erupção');
+});
