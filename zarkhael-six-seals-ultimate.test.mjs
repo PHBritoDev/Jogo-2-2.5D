@@ -120,6 +120,9 @@ test('sem fallback genérico: kit, gatilho, câmera e espada original estão lig
 });
 test('VFX usa mandalas shader, fluxo por vértices, instâncias e domos, sem fumaça genérica',()=>{
  const src=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
- for(const marker of ['ShaderMaterial','PlaneGeometry','SphereGeometry','InstancedMesh','uBuild','uCharge','uPower','uAge','uTime','safe','ZarkhaelSixSealsUltimate280'])assert.ok(src.includes(marker),marker);
+ for(const marker of ['ShaderMaterial','PlaneGeometry','makePlasmaRiftGeometry','RIFT_VERTEX','RIFT_FRAGMENT','RIFT_GLOW_FRAGMENT','InstancedMesh(riftGeometry,darkMat','uBuild','uCharge','uPower','uAge','uTime','safe','ZarkhaelSixSealsUltimate280'])assert.ok(src.includes(marker),marker);
  assert.ok(!/smoke|smokeSprite|fog\.density/i.test(src));
+ assert.ok(!src.includes('new THREE.SphereGeometry(1,48,24)'), 'sem cúpula arredondada');
+ assert.ok(!src.includes('new THREE.IcosahedronGeometry(1,1),lobeMat'), 'sem bolhas arredondadas');
+ assert.ok(src.includes('uPower.value=energy*'), 'a energia deve crescer gradualmente');
 });
