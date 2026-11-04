@@ -63,7 +63,8 @@ async function main(){
      ['10-explosao-1-nucleo',10.93,'EXPLOSOES_VISTA_ALTA'],
      ['11-explosao-1-expandida',11.63,'EXPLOSOES_VISTA_ALTA'],
      ['12-explosao-2-expandida',13.15,'EXPLOSOES_VISTA_ALTA'],
-     ['13-explosao-3-expandida',14.68,'EXPLOSOES_VISTA_ALTA']];
+     ['13-explosao-3-expandida',14.68,'EXPLOSOES_VISTA_ALTA'],
+     ['14-explosao-3-apice',14.95,'EXPLOSOES_VISTA_ALTA']];
     for(const [name,target,expectedShot] of schedule){
      const h=await page.waitForFunction(t=>{
       const state=window.SevenSinsDebug3D?.dimState()?.cinematic;
@@ -94,17 +95,17 @@ async function main(){
       ||data.frames[0].fov>51)
       throw Error("A câmera não começou frontal e próxima ao Bispo");
     if(data.frames[8].sealCount!==6
-      ||data.frames[12].burstCount!==3
+      ||data.frames[12].burstCount!==3 ||data.frames[13].burstCount!==3
       ||data.frames[8].camera[1]<=camHeights[5])
       throw Error("Seis selos/3 explosões/câmera final inválidos");
     if(data.glErrors.length||data.jsErrors.some(e=>/ReferenceError|SyntaxError|Asset falhou/.test(e)))
       throw Error("Erro WebGL/JS detectado: "+JSON.stringify(data.glErrors.concat(data.jsErrors)).slice(0,1200));
     data.status="approved";
     data.visualReview="As capturas precisam de comparação humana com as referências originais; aprovação técnica não mede fidelidade artística.";
-    process.stdout.write("[BISPO3 280] "+mode+" -> 6 selos, 3 bursts, screenshots reais, sem shader error.\n");
+    process.stdout.write("[BISPO3 281] "+mode+" -> 6 selos, 3 bursts, screenshots reais, sem shader error.\n");
    }catch(e){
     data.status="failed";data.failure=String(e.stack||e).slice(0,1400);
-    process.stderr.write("[BISPO3 280] "+mode+" FAIL: "+data.failure+"\n");process.exitCode=1;
+    process.stderr.write("[BISPO3 281] "+mode+" FAIL: "+data.failure+"\n");process.exitCode=1;
    }finally{
     const video=page.video();
     await ctx.close().catch(()=>{});
