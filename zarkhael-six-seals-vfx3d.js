@@ -212,10 +212,20 @@ export function createSixSealsVFX(THREE,scene){
   seconds+=Math.max(0,dt);holder.visible=true;
   const glow=st.phase==='aura'?st.aura:1;
   aura.position.set(B.x,B.y,B.z);
-  aura.scale.setScalar(.45+.55*glow);
-  ribbons.forEach((r,i)=>{r.m.uniforms.uTime.value=seconds;r.m.uniforms.uPower.value=glow*(.7+.25*Math.sin(seconds*2+i));
-   r.mesh.rotation.y=i/10*TAU+seconds*(i%2?-.09:.11);
+  aura.scale.setScalar(.83+.18*glow);
+  ribbons.forEach((r,i)=>{r.m.uniforms.uTime.value=seconds;r.m.uniforms.uPower.value=glow*(.64+.23*Math.sin(seconds*2+i));
+   r.mesh.rotation.y=i/8*TAU+seconds*(i%2?-.06:.08);
   });
+  // Aura rente ao personagem, com rachaduras negras e pontas móveis.
+  for(let i=0;i<20;i++){
+   const a=i/20*TAU,rr=.45+(i%4)*.1,heat=.5+.5*Math.sin(seconds*2.7+i*.84);
+   p.set(Math.cos(a)*rr,.62+(i%7)*.34,Math.sin(a)*rr);
+   axis.set(Math.sin(a)*.55,.8+heat*.2,Math.cos(a)*.55).normalize();
+   q.setFromUnitVectors(up,axis);
+   S.set(.10+.08*heat,.26+.85*heat,.12);matrix.compose(p,q,S);
+   auraSpines.setMatrixAt(i,matrix);
+  }
+  auraSpines.instanceMatrix.needsUpdate=true;auraSpineMat.opacity=.20+.52*glow;
   field.position.set(C.x,ground(C.x,C.z)+.055,C.z);
   field.scale.setScalar(st.dangerR);
   fieldMat.opacity=st.phase==='aura'?0:st.phase==='seals'?
@@ -230,7 +240,10 @@ export function createSixSealsVFX(THREE,scene){
    const yy=ground(C.x,C.z)+U.heights[i];
    r.root.position.set(C.x,yy,C.z);r.root.rotation.y=c.spin;r.root.scale.setScalar(c.r);
    r.m.uniforms.uTime.value=seconds;r.m.uniforms.uBuild.value=k;
-   r.m.uniforms.uCharge.value=st.phase==='explosions'?1+Math.sin(seconds*9+i)*.18:Math.max(0,(st.pt-4.1)/U.seals);
+   // ANTECIPAÇÃO: no fim, os seis círculos rangem e relampejam antes da ruptura.
+   const danger=st.phase==='seals'?sm((st.pt-5.0)/1.7):
+    st.phase==='explosions'?Math.max(.22,1-.33*st.pt):0;
+   r.m.uniforms.uCharge.value=danger*(1+.22*Math.sin(seconds*(6+danger*12)+i));
    r.m.uniforms.uAlpha.value=st.phase==='explosions'?
      Math.max(.10,.55-.45*sm(st.pt/2.4)):1;
   }
@@ -243,7 +256,13 @@ export function createSixSealsVFX(THREE,scene){
   const power=st.sword,sk=sm(power);
   swordRoot.scale.setScalar(.55+3*sk+Math.sin(seconds*14)*.06*sk);
   charge.uniforms.uTime.value=seconds;charge.uniforms.uPower.value=.35+.65*sk;
-  swordCore.scale.setScalar(.6+.65*sk);glowMat.opacity=.35+.55*sk;
+  // Correntes de plasma giram ao redor do núcleo da EspadaBispo3.glb,
+  // sem substituir a arma por uma esfera branca genérica.
+  swordCore.scale.setScalar(.24+.42*sk);glowMat.opacity=.15+.43*sk;
+  orbitMat.opacity=.20+.48*sk;
+  swordOrbits.forEach((o,i)=>{o.visible=sk>.12;
+   o.rotation.set(seconds*(.83+i*.11),seconds*(1.2-i*.07),i*.48);
+   o.scale.setScalar(.55+1.05*sk);});
   let peak=0;
   for(let i=0;i<3;i++){
    const vfx=bursts[i],b=st.bursts[i];vfx.group.visible=!!b;if(!b)continue;
