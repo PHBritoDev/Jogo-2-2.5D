@@ -38,7 +38,7 @@ const billowFrag=[
  'vec3 soot=vec3(.06,.007,.009),smoke=vec3(.36,.07,.026);',
  'float dust=clamp(n*.7+hi*.31,0.,1.);',
  'col=mix(col,mix(soot,smoke,dust),uSmoky*(.78+.17*n));',
- 'float rim=smoothstep(.94,.27,length(vLocal));',
+ 'float rim=(1.-smoothstep(.27,.94,length(vLocal)));',
  'float alph=uOpacity*(.73+.20*n+.09*hi)*(.75+.25*rim);',
  'if(alph<.024)discard;gl_FragColor=vec4(col,clamp(alph,0.,.97));}'
 ].join('\n');
