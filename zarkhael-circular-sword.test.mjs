@@ -61,7 +61,7 @@ test('Mod 278: não cancelável por dano comum; aborto só por morte/cena/saída
 test('Mod 278: kit/IA usam espada exclusiva, GLB verdadeiro e não afetam outros poderes',()=>{
  const k=KITS.zarkhael;
  assert.deepEqual(k.skills.map(x=>x.type),['hydra_judgment','zarkhael_black_moon_flames']);
- assert.equal(k.sword.type,'zarkhael_circular_sword');assert.equal(k.ult,null);
+ assert.equal(k.sword.type,'zarkhael_circular_sword');assert.equal(k.ult?.type,'zarkhael_six_seals');
  assert.equal(powerStats('zarkhael',k.sword).dmg,Math.round(k.sword.dmg*.8));
  assert.ok(rangeScore('zarkhael_circular_sword',12)>0);
  const pick=chooseZarkhaelMove(k,{dist:12,cds:{s1:9,s2:9},last:'',hpFrac:1,heroHpFrac:1},()=>.5);

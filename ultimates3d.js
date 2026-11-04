@@ -5,6 +5,7 @@
  */
 import { kitFor, ultThresholds } from './powers3d.js';
 export const ULTIMATES = {
+  zarkhael: { kind: 'zarkhael_six_seals', name: 'OS SEIS SELOS DO JUÍZO ETERNO', at: [0.6, 0.25] },
   veraxion: { kind: 'void', name: 'BURACO NEGRO', at: [0.6, 0.25] },
   greed3: { kind: 'nova', name: 'SUPERNOVA DA GANÂNCIA', at: [0.72, 0.3] }
 };

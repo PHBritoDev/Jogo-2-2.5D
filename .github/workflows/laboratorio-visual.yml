@@ -70,7 +70,7 @@ jobs:
       - name: Verificar todas as capacidades do agente V3
         run: |
           node --test tools/visual-lab/*.test.cjs
-          node --test enemy1-integration.test.mjs zarkhael-hydra.test.mjs zarkhael-blackflame.test.mjs zarkhael-moon.test.mjs vorgazhek-eclipse-sword.test.mjs vorgazhek-eclipse-sakuga.test.mjs
+          node --test enemy1-integration.test.mjs zarkhael-hydra.test.mjs zarkhael-blackflame.test.mjs zarkhael-moon.test.mjs zarkhael-six-seals-ultimate.test.mjs vorgazhek-eclipse-sword.test.mjs vorgazhek-eclipse-sakuga.test.mjs
           node --input-type=module --check < mundo-3d-prototype.js
 
       - name: Iniciar servidor HTTP local do proprio commit
@@ -95,6 +95,19 @@ jobs:
           name: mundo3d-smoke-${{ github.run_number }}
           path: visual-lab-results/smoke-world/
           retention-days: 7
+          if-no-files-found: warn
+
+      - name: Auditar ultimate real do Bispo 3 em WebGL, retrato e paisagem
+        if: github.event_name == 'pull_request'
+        run: node tools/visual-lab/zarkhael-six-seals-qa.cjs
+
+      - name: Guardar os 16 frames reais dos seis selos e três explosões
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bispo3-ultimate-mod280
+          path: visual-lab-results/zarkhael-ultimate-280/
+          retention-days: 14
           if-no-files-found: warn
 
       - name: Restaurar memoria visual anterior
