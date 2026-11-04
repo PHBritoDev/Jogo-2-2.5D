@@ -3,7 +3,7 @@
  * A copa nasce DEPOIS da coluna. Três anéis são regiões de pressão da MESMA
  * explosão, não três explosões. GLSL WebGL1 com turbulência, veios, brilho quente.
  */
-export const ERUPTION_BUILD='282-single-mushroom-plasma';
+export const ERUPTION_BUILD='282-bright-column-and-flame-crown';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),ease=v=>{v=clamp(v);return v*v*(3-2*v);};
 const V=[
  'uniform float uT,uWarp;varying vec3 vP;',
@@ -32,6 +32,47 @@ const F=[
  'float alpha=(.56+.38*fire+.07*vein)*uAlpha;',
  'if(alpha<.035)discard;gl_FragColor=vec4(c,clamp(alpha,0.,.95));}'
 ].join('\n');
+
+const HEAT_VERT=[
+ 'uniform float uT;varying vec2 vUV;',
+ 'void main(){vUV=uv;vec3 p=position;',
+ 'float f=sin(uv.y*21.-uT*4.2+uv.x*16.)*.09+sin(uv.y*43.+uT*6.)*.035;',
+ 'p.xz*=1.+f;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}'
+].join('\n');
+const HEAT_FRAG=[
+ 'uniform float uT,uAlpha;varying vec2 vUV;',
+ 'void main(){float u=vUV.x,v=vUV.y;',
+ 'float flow=.5+.5*sin(v*28.-uT*5.+u*18.);',
+ 'float licks=pow(max(0.,sin(v*41.+u*22.-uT*9.)),9.);',
+ 'float vein=pow(max(0.,sin(v*16.-uT*3.+u*9.)),4.);',
+ 'float alpha=uAlpha*(.20+.38*flow+.18*licks)*smoothstep(0.,.09,v)*(1.-smoothstep(.92,1.,v));',
+ 'vec3 orange=vec3(1.,.27,.014),gold=vec3(1.,.77,.11),hot=vec3(1.,.96,.63);',
+ 'vec3 col=mix(orange,gold,clamp(flow*.64+licks*.36,0.,1.));',
+ 'col=mix(col,hot,clamp(vein*.4+licks*.26,0.,.60));',
+ 'if(alpha<.03)discard;gl_FragColor=vec4(col,clamp(alpha,0.,.78));}'
+].join('\n');
+const CROWN_GLOW_FRAG=[
+ 'uniform float uT,uAlpha,uHot,uSeed;varying vec3 vP;',
+ 'void main(){float a=atan(vP.z,vP.x),h=vP.y*.049;',
+ 'float b=sin(a*21.+h*40.-uT*6.+uSeed)*sin(a*11.-h*25.+uT*4.);',
+ 'float hot=pow(max(0.,b),4.);',
+ 'float fold=pow(max(0.,sin(a*43.+h*27.-uT*8.)),13.);',
+ 'float alpha=uAlpha*(.14+.40*hot+.16*fold);',
+ 'vec3 red=vec3(1.,.18,.02),gold=vec3(1.,.77,.16),white=vec3(1.,.97,.63);',
+ 'vec3 c=mix(red,gold,clamp(hot*.85+fold*.5,0.,1.));',
+ 'c=mix(c,white,clamp(hot*.19+fold*.11,0.,.29));',
+ 'if(alpha<.025)discard;gl_FragColor=vec4(c,clamp(alpha,0.,.62));}'
+].join('\n');
+function heatMaterial(T){return new T.ShaderMaterial({
+ vertexShader:HEAT_VERT,fragmentShader:HEAT_FRAG,
+ uniforms:{uT:{value:0},uAlpha:{value:0}},
+ transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending,toneMapped:false
+});}
+function crownGlowMaterial(T){return new T.ShaderMaterial({
+ vertexShader:V,fragmentShader:CROWN_GLOW_FRAG,
+ uniforms:{uT:{value:0},uWarp:{value:0},uAlpha:{value:0},uHot:{value:0},uSeed:{value:3.4}},
+ transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending,toneMapped:false
+});}
 function flameMaterial(T,seed){return new T.ShaderMaterial({
  vertexShader:V,fragmentShader:F,
  uniforms:{uT:{value:0},uWarp:{value:0},uAlpha:{value:0},uHot:{value:0},uSeed:{value:seed}},
@@ -44,6 +85,19 @@ export function createSingularMushroomExplosion(T,parent){
  const crown=new T.Mesh(lathe(T,[[0,24],[6,24],[12,23.5],[18,24.5],[22.5,26.4],[24,29.3],[22,32],[18,35],[11,37.8],[4,39],[0,39.4]]),flameMaterial(T,1.8));
  const lower=new T.Mesh(lathe(T,[[0,23.5],[7,23.2],[14,24],[21,26],[22,28],[17,28.7],[8,27],[0,26.5]]),flameMaterial(T,2.9));
  root.add(trunk,crown,lower);
+ // Coluna interna branca/dourada ascendente; separada da pele rubra
+ // para que a explosão não pareça uma copa laranja flutuando.
+ const columnLight=new T.Mesh(new T.CylinderGeometry(2.2,1.45,29,24,8,true),heatMaterial(T));
+ columnLight.renderOrder=31;root.add(columnLight);
+ const crownLight=new T.Mesh(crown.geometry,crownGlowMaterial(T));
+ crownLight.renderOrder=32;root.add(crownLight);
+ // Pequenas línguas de fogo escalonadas na copa (não bolas nem fumaça).
+ const flamePetalMat=new T.MeshBasicMaterial({color:0xff9b16,transparent:true,opacity:0,
+  depthWrite:false,blending:T.AdditiveBlending,toneMapped:false});
+ const petals=new T.InstancedMesh(
+  lathe(T,[[0,0],[.34,.22],[.7,.7],[.82,1.5],[.67,2.6],[.28,3.4],[0,4.5]]),
+  flamePetalMat,36);
+ petals.frustumCulled=false;root.add(petals);
  const shock=[];
  for(let i=0;i<3;i++){
   const m=new T.MeshBasicMaterial({color:i===0?0xffaa25:i===1?0xff4813:0xff9220,
@@ -73,6 +127,24 @@ export function createSingularMushroomExplosion(T,parent){
   trunk.scale.set(unit*(.03+.97*rise),up,unit*(.03+.97*rise));
   crown.scale.set(unit*(.05+.95*head),Math.max(.006,head),unit*(.05+.95*head));
   crown.position.y=28.6*up-24*head;lower.scale.copy(crown.scale);lower.position.copy(crown.position);
+  columnLight.visible=born;columnLight.position.y=14.5*up;
+  columnLight.scale.set(unit*(.48+.52*rise),up,unit*(.48+.52*rise));
+  columnLight.material.uniforms.uT.value=time;
+  columnLight.material.uniforms.uAlpha.value=born*rise*fade*.82;
+  crownLight.visible=born;crownLight.scale.copy(crown.scale);crownLight.position.copy(crown.position);
+  crownLight.material.uniforms.uT.value=time;
+  crownLight.material.uniforms.uWarp.value=rise*fade*.9;
+  crownLight.material.uniforms.uAlpha.value=born*head*fade*.61;
+  const pCount=ctx.low?20:36;petals.count=pCount;
+  for(let i=0;i<pCount;i++){
+   const a=i/pCount*Math.PI*2,rad=unit*(17.5+((i*9)%7)*.68)*head;
+   P.set(Math.cos(a)*rad,25*up+(i%5)*1.1*head,Math.sin(a)*rad);
+   A.set(Math.cos(a)*.53,.88,Math.sin(a)*.53).normalize();Q.setFromUnitVectors(U,A);
+   const sz=unit*(.55+.5*((i*7)%13)/13)*head;
+   M.compose(P,Q,S.set(sz*2.1,sz*2.4,sz*1.7));petals.setMatrixAt(i,M);
+  }
+  petals.instanceMatrix.needsUpdate=true;
+  flamePetalMat.opacity=born*head*fade*.50;
   [trunk,crown,lower].forEach((m,i)=>{const u=m.material.uniforms;
    u.uT.value=time;u.uWarp.value=rise*fade;u.uAlpha.value=born*up*fade*(i===0?.93:.87);
    u.uHot.value=.84+.11*Math.sin(time*2.2+i);
