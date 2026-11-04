@@ -83,7 +83,7 @@ const SHOCK_VERT=[
  'float wiggle=sin(a*17.-uTime*2.7+uSeed*9.)*.028+sin(a*41.+uTime*6.)*.012;',
  'p.xy*=1.+wiggle;vLocal=p;',
  'gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}'
-].join('\\n');
+].join('\n');
 const SHOCK_FRAG=[
  'uniform float uTime,uAlpha,uSeed;varying vec3 vLocal;',
  'void main(){float a=atan(vLocal.y,vLocal.x);',
@@ -94,7 +94,7 @@ const SHOCK_FRAG=[
  'vec3 col=mix(shadow,amber,edge);col=mix(col,gold,spark*.7);',
  'float alpha=uAlpha*(.08+.43*edge+.25*spark);',
  'if(alpha<.014)discard;gl_FragColor=vec4(col,clamp(alpha,0.,.58));}'
-].join('\\n');
+].join('\n');
 function flameMaterial(T,seed){return new T.ShaderMaterial({
  vertexShader:V,fragmentShader:F,
  uniforms:{uT:{value:0},uWarp:{value:0},uAlpha:{value:0},uHot:{value:0},uSeed:{value:seed}},
