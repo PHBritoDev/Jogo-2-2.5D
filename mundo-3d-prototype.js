@@ -6091,6 +6091,13 @@ function updateZarkhaelSword(dt){
  * juntos. O herói conserva movimento/dash para escapar pelos 20% externos.
  */
 let zarkUlt=null,zarkUltVfx=null,zarkUltTestFired=false,zarkUltLastCamera=null,zarkUltCameraShot='';
+let zarkUltBossLock=null;
+function lockZarkhaelDuringUltimate(){
+ if(!zarkUltBossLock)return;
+ enemy.position.copy(zarkUltBossLock.position);enemy.quaternion.copy(zarkUltBossLock.quaternion);
+ enemyKnockback=enemyDashRemaining=0;
+ if(enemyMixer)enemyMixer.timeScale=0;
+}
 let zarkUltOccluderState=null;
 function zarkUltCinematicOcclusion(hide){
  if(hide){
@@ -6113,14 +6120,19 @@ function startZarkUlt(){
  const kit=kitFor(encounterProfile),m=powerStats(encounterProfile,kit.ult);
  loadZarkhaelSwordModel();
  if(!zarkUltVfx)zarkUltVfx=createSixSealsVFX(THREE,scene);
- zarkUlt=createZarkhaelSixSeals({damage:[Math.round(m.dmg*.30),Math.round(m.dmg*.33),Math.round(m.dmg*.40)]})
+ zarkUlt=createZarkhaelSixSeals({damage:Math.round(m.dmg)})
   .start({x:enemy.position.x,y:enemy.position.y,z:enemy.position.z,yaw:enemy.rotation.y},
    {x:arena.x,z:arena.z,y:arena.y,r:arena.radius});
  bossUlt.kind='zarkhael6';bossUlt.t=0;bossUlt.fx=null;
  enemyKnockback=enemyDashRemaining=0;enemyAttackResolved=enemyCastResolved=true;pendingEnemyHitAt=0;
  showCombatCallout('OS SEIS SELOS DO JUÍZO ETERNO');
  status.textContent='ZAR’KHAEL exala o juízo. Os 20% EXTERNOS da arena ficarão seguros!';
- playEnemyAnimation('cast',.11,true);playPose(enemyPoseRoot(),'channel',3.3,foeYaw,.17);
+ playEnemyAnimation('cast',.07,true);
+ // Segura a pose do elenco: movimento do Boss BLOQUEADO, jogador LIVRE.
+ zarkUltBossLock={position:enemy.position.clone(),quaternion:enemy.quaternion.clone(),
+  mixer:enemyMixer,mixerTimeScale:enemyMixer?.timeScale??1};
+ if(enemyMixer){enemyMixer.update(.28);enemyMixer.timeScale=0;}
+ lockZarkhaelDuringUltimate();
  worldAudio.abyss3&&worldAudio.abyss3('gravity',.9);
  worldAudio.abyss3&&worldAudio.abyss3('warn',.65);
  ultCam.want=0;zarkUltLastCamera=null;
@@ -6129,7 +6141,13 @@ function startZarkUlt(){
  return true;
 }
 function stopZarkUlt(){
- if(!zarkUlt&&!zarkUltLastCamera)return;
+ if(!zarkUlt&&!zarkUltLastCamera&&!zarkUltBossLock)return;
+ if(zarkUltBossLock){
+  enemy.position.copy(zarkUltBossLock.position);enemy.quaternion.copy(zarkUltBossLock.quaternion);
+  if(zarkUltBossLock.mixer)zarkUltBossLock.mixer.timeScale=zarkUltBossLock.mixerTimeScale;
+  zarkUltBossLock=null;
+  if(enemy.visible&&enemyAlive)playEnemyAnimation('idle',.14);
+ }
  zarkUlt=null;zarkUltLastCamera=null;zarkUltCameraShot='';
  zarkUltCinematicOcclusion(false);
  document.body.classList.remove('zark-ult-cine');
@@ -6139,6 +6157,7 @@ function stopZarkUlt(){
 }
 function tickZarkUlt(dt,now){
  const s=zarkUlt;if(!s)return;
+ lockZarkhaelDuringUltimate();
  if(!enemy.visible||!enemyAlive||playerHP<=0||!isZarkhaelProfile(encounterProfile)||!dimBattle?.active||cineActive){
   s.abort();stopZarkUlt();bossUlt.kind=null;return;
  }
@@ -6152,25 +6171,26 @@ function tickZarkUlt(dt,now){
    // atravessando a lente dos seis círculos e das três detonações.
    zarkUltCinematicOcclusion(true);
    status.textContent='Seis selos surgirão, um sobre outro! Corra para a faixa EXTERNA da arena!';
-   playEnemyAnimation('cast',.08,true);
+   // Não reinicia clipes: mantém o Boss totalmente imóvel.
    worldAudio.abyss3&&worldAudio.abyss3('storm',.75);
   }else if(ev.type==='phase'&&ev.name==='explosions'){
-   showCombatCallout('JUÍZO EM TRÊS ONDAS');
-   status.textContent='TRÊS EXPLOSÕES SE APROXIMAM — PERMANEÇA FORA DO GRANDE CÍRCULO!';
+   showCombatCallout('ERUPÇÃO — CATACLISMO ÚNICO');
+   status.textContent='UMA EXPLOSÃO GIGANTE VAI NASCER! CORRA PARA A BORDA EXTERNA!';
    worldAudio.abyss3&&worldAudio.abyss3('tear',.85);
-   playEnemyAnimation('attack',.1,true);
+   // Nada de animação de ataque durante a cinematográfica.
   }else if(ev.type==='seal'){
    worldAudio.abyss3&&worldAudio.abyss3('blade',.22+ev.n*.07);
    if(ev.n===6)worldAudio.abyss3&&worldAudio.abyss3('thunder',.9);
   }else if(ev.type==='burst'){
-   worldAudio.abyss3&&worldAudio.abyss3(ev.n===3?'boom':'heavy',.65+.12*ev.n);
-   if(!userSettings.reduceShake)cameraShake(.075+.035*ev.n);
-   if(ev.n===3){vibrate(140);worldAudio.abyss3&&worldAudio.abyss3('thunder',.7);}
+   worldAudio.abyss3&&worldAudio.abyss3('boom',1);
+   if(!userSettings.reduceShake)cameraShake(.14);
+   vibrate(140);worldAudio.abyss3&&worldAudio.abyss3('thunder',.7);
   }else if(ev.type==='hit'){
    damagePlayerFromEnemyAttack(ev.dmg); // uma avaliação por pulso, nunca fora do círculo
   }
  }
  if(s.done){stopZarkUlt();bossUlt.kind=null;kitState.t=Math.max(kitState.t,2.5);return;}
+ lockZarkhaelDuringUltimate();
  const B={x:enemy.position.x,y:enemy.position.y,z:enemy.position.z,yaw:enemy.rotation.y};
  let tip=null;if(zarkSwordWeapon?.userData?.tip){zarkSwordWeapon.updateWorldMatrix(true,true);zarkSwordWeapon.userData.tip.getWorldPosition(_zuTip);tip=_zuTip;}
  zarkUltVfx.update(s,{boss:B,tip,camera,low:graphics3DMode==='low',ground:fxGy},dt);
@@ -6605,7 +6625,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
         caveat:'Box3 considera geometria CPU, nao deslocamentos de shader'}:null
     };
   },
-  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,moonFlames:moonFlames?{phase:moonFlames.st.phase,t:+moonFlames.st.t.toFixed(2),fired:moonFlames.st.fired,final:moonFlames.st.final?moonFlames.st.final.state:null}:null,flameFields:bfHazards?bfHazards.st.fields.map(f=>(f.big?'B':'s')+f.t.toFixed(1)).join(','):'',burn:bfHazards&&bfHazards.st.burn?bfHazards.st.burn.tier+':'+bfHazards.st.burn.left.toFixed(1):null,hydra:hydraSkill?{phase:hydraSkill.st.phase,t:+hydraSkill.st.t.toFixed(2),orbs:hydraSkill.st.orbs.map(o=>o.state+':'+o.k.toFixed(2)).join(','),hits:hydraSkill.st.hits,dissolve:+hydraSkill.st.dissolve.toFixed(2),trauma:+hydraSkill.st.trauma.toFixed(2)}:null,kite:zkKite,cinematic:zarkUlt?{phase:zarkUlt.st.phase,pi:zarkUlt.st.pi,pt:+zarkUlt.st.pt.toFixed(2),t:+zarkUlt.st.t.toFixed(2),safeRadius:zarkUlt.st.dangerR,selos:zarkUlt.st.seals.map(c=>[c.i+1,+c.build.toFixed(2),+c.spin.toFixed(2)]),bursts:zarkUlt.st.bursts.map(b=>b.n),hits:zarkUlt.st.hitEvents,vfx:!!zarkUltVfx?.holder.visible,occluders:zarkUltOccluderState?.length||0,hudCompact:document.body.classList.contains('zark-ult-cine'),shot:zarkUltCameraShot,cam:camera.position.toArray().map(v=>+v.toFixed(2)),fov:+camera.fov.toFixed(2)}:null,cosmic:cosmicUlt?{phase:cosmicUlt.st.phase,pi:cosmicUlt.st.pi,pt:+cosmicUlt.st.pt.toFixed(2),rt:+cosmicUlt.st.rt.toFixed(2),lock:cosmicUlt.lockPlayer,P:cosmicUlt.st.P,circles:cosmicUlt.st.circles.map(c=>[c.r,+(c.y-cosmicUlt.st.P.y).toFixed(1),+c.k.toFixed(2)]),tipY:+(cosmicUlt.st.tipY-cosmicUlt.st.P.y).toFixed(2),hits:cosmicUlt.st.hits,white:+cosmicUlt.st.white.toFixed(2),trauma:+cosmicUlt.st.trauma.toFixed(2)}:null,camFov:+camera.fov.toFixed(1),handSword:!!(cosmicHandSword&&cosmicHandSword.visible&&cosmicHandSword.parent),eclipse:eclipseSword?{phase:eclipseSword.st.phase,t:+eclipseSword.st.t.toFixed(2),stage:eclipseSword.st.stage,level:+eclipseSword.st.level.toFixed(2),hits:eclipseSword.st.hits,impact:eclipseSword.st.impact&&eclipseSword.st.impact.kind,sword:!!(eclipseVfx&&eclipseVfx.swordReady&&eclipseVfx.holder.visible)}:null,squad:squadOn,dimTest:dimTest.key};},
+  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,moonFlames:moonFlames?{phase:moonFlames.st.phase,t:+moonFlames.st.t.toFixed(2),fired:moonFlames.st.fired,final:moonFlames.st.final?moonFlames.st.final.state:null}:null,flameFields:bfHazards?bfHazards.st.fields.map(f=>(f.big?'B':'s')+f.t.toFixed(1)).join(','):'',burn:bfHazards&&bfHazards.st.burn?bfHazards.st.burn.tier+':'+bfHazards.st.burn.left.toFixed(1):null,hydra:hydraSkill?{phase:hydraSkill.st.phase,t:+hydraSkill.st.t.toFixed(2),orbs:hydraSkill.st.orbs.map(o=>o.state+':'+o.k.toFixed(2)).join(','),hits:hydraSkill.st.hits,dissolve:+hydraSkill.st.dissolve.toFixed(2),trauma:+hydraSkill.st.trauma.toFixed(2)}:null,kite:zkKite,cinematic:zarkUlt?{phase:zarkUlt.st.phase,pi:zarkUlt.st.pi,pt:+zarkUlt.st.pt.toFixed(2),t:+zarkUlt.st.t.toFixed(2),safeRadius:zarkUlt.st.dangerR,selos:zarkUlt.st.seals.map(c=>[c.i+1,+c.build.toFixed(2),+c.spin.toFixed(2)]),bursts:zarkUlt.st.bursts.map(b=>b.n),hits:zarkUlt.st.hitEvents,bossFrozen:!!zarkUltBossLock,mixerScale:enemyMixer?.timeScale,lockPos:zarkUltBossLock?.position.toArray(),vfx:!!zarkUltVfx?.holder.visible,occluders:zarkUltOccluderState?.length||0,hudCompact:document.body.classList.contains('zark-ult-cine'),shot:zarkUltCameraShot,cam:camera.position.toArray().map(v=>+v.toFixed(2)),fov:+camera.fov.toFixed(2)}:null,cosmic:cosmicUlt?{phase:cosmicUlt.st.phase,pi:cosmicUlt.st.pi,pt:+cosmicUlt.st.pt.toFixed(2),rt:+cosmicUlt.st.rt.toFixed(2),lock:cosmicUlt.lockPlayer,P:cosmicUlt.st.P,circles:cosmicUlt.st.circles.map(c=>[c.r,+(c.y-cosmicUlt.st.P.y).toFixed(1),+c.k.toFixed(2)]),tipY:+(cosmicUlt.st.tipY-cosmicUlt.st.P.y).toFixed(2),hits:cosmicUlt.st.hits,white:+cosmicUlt.st.white.toFixed(2),trauma:+cosmicUlt.st.trauma.toFixed(2)}:null,camFov:+camera.fov.toFixed(1),handSword:!!(cosmicHandSword&&cosmicHandSword.visible&&cosmicHandSword.parent),eclipse:eclipseSword?{phase:eclipseSword.st.phase,t:+eclipseSword.st.t.toFixed(2),stage:eclipseSword.st.stage,level:+eclipseSword.st.level.toFixed(2),hits:eclipseSword.st.hits,impact:eclipseSword.st.impact&&eclipseSword.st.impact.kind,sword:!!(eclipseVfx&&eclipseVfx.swordReady&&eclipseVfx.holder.visible)}:null,squad:squadOn,dimTest:dimTest.key};},
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;
