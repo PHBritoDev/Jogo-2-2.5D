@@ -3,12 +3,12 @@
  * Um único relógio controla aura, seis selos, câmera, dano e três explosões.
  * Área segura de 20% (não 20% do raio).
  */
-export const ZARK_ULT_BUILD='281-front-stepwise-six-shots-volumetric-detonation';
+export const ZARK_ULT_BUILD='282-single-eruption-stationary-bishop';
 export const ZARK_ULT=Object.freeze({
  aura:3.3, seals:6.7, explosions:5.5, total:15.5, count:6,
  radii:[1,.50,.38,.28,.21,.16], heights:[.11,6.5,13,19.5,26,32.5],
- safeArea:.20, burstTimes:[.55,2.07,3.60], burstPeriod:1.52,
- damage:[15,17,22], sealGap:6.7/6, sealBuild:1.02,
+ safeArea:.20, burstAt:1.08, burstPeriod:5.5,
+ damage:54, sealGap:6.7/6, sealBuild:1.02,
  cameraBase:76, cameraTop:137, auraScale:7.2
 });
 const PI=Math.PI,TAU=PI*2,clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),
@@ -56,20 +56,20 @@ export function createZarkhaelSixSeals(opts={}){
     st.sword=1;st.aura=1;
     st.seals.forEach(c=>{c.build=1;c.spin+=delta*((c.i%2?-1:1)*(.14+.055*c.i));});
     st.trauma=.15+.45*sm(after/U.explosions);
-    for(let i=0;i<3;i++){
-     const born=U.burstTimes[i];
+    for(let i=0;i<1;i++){
+     const born=U.burstAt;
      if(after>=born&&!st.bursts[i]){
       const d=Math.hypot((hero?.x??Infinity)-st.center.x,(hero?.z??Infinity)-st.center.z);
       const safe=d>=st.dangerR;
       const eligible=!safe&&hero&&hero.alive!==false&&!hero.iframes;
-      const dmg=Array.isArray(damage)?damage[i]:(Number(damage)||40)*(i===2?.44:.3);
+      const dmg=Array.isArray(damage)?damage.reduce((a,v)=>a+v,0):(Number(damage)||54);
       st.bursts[i]={i,n:i+1,born:st.t-(after-born),age:after-born,hit:!!eligible,damage:dmg};
       ev.push({type:'burst',n:i+1,x:st.center.x,z:st.center.z,r:st.dangerR,hit:!!eligible});
       if(eligible){st.hitEvents++;ev.push({type:'hit',n:i+1,dmg});}
      }
      if(st.bursts[i])st.bursts[i].age=Math.max(0,after-born);
     }
-    st.flash=st.bursts.reduce((v,b)=>Math.max(v,.26*Math.max(0,1-b.age/.28)),0);
+    st.flash=st.bursts.reduce((v,b)=>Math.max(v,.24*Math.max(0,1-b.age/.36)),0);
    }
    if(after>=len-1e-8){
     st.pi++;st.pt=0;
