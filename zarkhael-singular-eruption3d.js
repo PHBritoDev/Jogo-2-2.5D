@@ -79,11 +79,24 @@ function flameMaterial(T,seed){return new T.ShaderMaterial({
  uniforms:{uT:{value:0},uWarp:{value:0},uAlpha:{value:0},uHot:{value:0},uSeed:{value:seed}},
  side:T.DoubleSide,transparent:true,depthWrite:false,blending:T.NormalBlending,toneMapped:false
 });}
-function lathe(T,p){return new T.LatheGeometry(p.map(x=>new T.Vector2(x[0],x[1])),64);}
+// Smooth fire silhouette instead of faceted radial bands.
+function lathe(T,profile){
+ const pts=[],steps=5;
+ for(let i=0;i<profile.length-1;i++){
+  const a=profile[Math.max(0,i-1)],b=profile[i],c=profile[i+1],d=profile[Math.min(profile.length-1,i+2)];
+  for(let j=0;j<steps;j++){
+   const t=j/steps,t2=t*t,t3=t2*t;
+   const p=k=>.5*(2*b[k]+(-a[k]+c[k])*t+(2*a[k]-5*b[k]+4*c[k]-d[k])*t2+(-a[k]+3*b[k]-3*c[k]+d[k])*t3);
+   pts.push(new T.Vector2(Math.max(0,p(0)),p(1)));
+  }
+ }
+ const last=profile[profile.length-1];pts.push(new T.Vector2(last[0],last[1]));
+ return new T.LatheGeometry(pts,72);
+}
 export function createSingularMushroomExplosion(T,parent){
  const root=new T.Group();root.name='ZarkhaelSingleEruption282';parent.add(root);
  const trunk=new T.Mesh(lathe(T,[[0,0],[2,0],[4,2],[3.2,8],[2.8,14],[4.2,21],[5.2,28],[4,29]]),flameMaterial(T,.4));
- const crown=new T.Mesh(lathe(T,[[0,24],[6,24],[12,23.5],[18,24.5],[22.5,26.4],[24,29.3],[22,32],[18,35],[11,37.8],[4,39],[0,39.4]]),flameMaterial(T,1.8));
+ const crown=new T.Mesh(lathe(T,[[0,24],[6,24],[12,23.5],[18,24.5],[22.5,26.4],[23,28.7],[21.5,32.2],[17,35.5],[11.5,38.4],[5,40],[0,40.6]]),flameMaterial(T,1.8));
  const lower=new T.Mesh(lathe(T,[[0,23.5],[7,23.2],[14,24],[21,26],[22,28],[17,28.7],[8,27],[0,26.5]]),flameMaterial(T,2.9));
  root.add(trunk,crown,lower);
  // Coluna interna branca/dourada ascendente; separada da pele rubra
