@@ -148,7 +148,7 @@ test('Mod 282: copa volumétrica real em vez de disco rígido, clarão e poeira 
 
 test('Mod 283: fogo no solo ocupa a área de perigo e copa só aparece após ignição',()=>{
  const billow=fs.readFileSync(new URL('./zarkhael-billow-cloud3d.js',import.meta.url),'utf8');
- const erupt=fs.readFileSync(new URL('./zarkhael-singular-eruption3d.js',import.meta.url),'utf8');
+ const eruption=fs.readFileSync(new URL('./zarkhael-singular-eruption3d.js',import.meta.url),'utf8');
  const main=fs.readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
  const vfx=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
  assert.ok(billow.includes("SingleExplosionGroundFire80Pct"),'saia de fogo no chão ausente');
