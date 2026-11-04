@@ -24,7 +24,7 @@ const SEAL_FRAG=[
  'float glyphs=pow(max(0.,sin(a*58.+uSeed*13.)),12.)*ring(r,.795,.017);',
  'float suns=(1.-smoothstep(.005,.018,abs(sin(a*8.))))*step(.32,r)*step(r,.93);',
  'float star=0.;',
- 'for(int i=0;i<8;i++){float t=6.2831853*float(i)/8.;float t2=6.2831853*float((i+3)%8)/8.;',
+ 'for(int i=0;i<8;i++){float t=6.2831853*float(i)/8.;float t2=6.2831853*mod(float(i+3),8.)/8.;',
  'star=max(star,line(seg(p,vec2(cos(t),sin(t))*.57,vec2(cos(t2),sin(t2))*.57),.005));}',
  'float tri=0.;for(int i=0;i<3;i++){float t=6.2831853*float(i)/3.;float t2=6.2831853*float(i+1)/3.;',
  'tri=max(tri,line(seg(p,vec2(cos(t),sin(t))*.30,vec2(cos(t2),sin(t2))*.30),.005));}',
@@ -128,13 +128,19 @@ export function createSixSealsVFX(THREE,scene){
  const safetyMat=new THREE.MeshBasicMaterial({color:0x74bbff,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
  const safety=new THREE.Mesh(new THREE.RingGeometry(.995,1.007,128),safetyMat);safety.rotation.x=-PI/2;holder.add(safety);
  const aura=new THREE.Group();holder.add(aura);const ribbons=[];
- for(let i=0;i<10;i++){
-  const a=i/10*TAU,geometry=new THREE.PlaneGeometry(1.2,1,1,26);
+ for(let i=0;i<8;i++){
+  const a=i/8*TAU,geometry=new THREE.PlaneGeometry(.86,1,2,28);
   geometry.translate(0,.5,0);
-  const m=mat(THREE,AURA_FRAG,{uTime:0,uPower:0,uSeed:i/10},AURA_VERT);
-  const mesh=new THREE.Mesh(geometry,m);mesh.rotation.y=a;mesh.position.set(Math.cos(a)*.82,0,Math.sin(a)*.82);
-  mesh.scale.set(1,7.8,1);mesh.frustumCulled=false;aura.add(mesh);ribbons.push({mesh,m});
+  const m=mat(THREE,AURA_FRAG,{uTime:0,uPower:0,uSeed:i/8},AURA_VERT);
+  const mesh=new THREE.Mesh(geometry,m);mesh.rotation.y=a;mesh.position.set(Math.cos(a)*.47,0,Math.sin(a)*.47);
+  mesh.scale.set(.82,3.7+(i%3)*.32,1);mesh.frustumCulled=false;aura.add(mesh);ribbons.push({mesh,m});
  }
+ // Aura negra viva rente ao corpo: pontas dinâmicas pequenas, sem fumaça,
+ // sem aquelas paredes de energia exageradas da versão anterior.
+ const auraSpineMat=new THREE.MeshBasicMaterial({color:0x25000e,transparent:true,opacity:.7,
+  depthWrite:false,blending:THREE.NormalBlending,side:THREE.DoubleSide});
+ const auraSpines=new THREE.InstancedMesh(new THREE.ConeGeometry(.14,1,3),auraSpineMat,20);
+ auraSpines.frustumCulled=false;aura.add(auraSpines);
  const swordRoot=new THREE.Group();holder.add(swordRoot);
  const charge=mat(THREE,CHARGE_FRAG,{uTime:0,uPower:0});
  for(let i=0;i<3;i++){
@@ -143,10 +149,18 @@ export function createSixSealsVFX(THREE,scene){
  }
  const glowMat=new THREE.MeshBasicMaterial({color:0xffd8ac,transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
  const swordCore=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,2),glowMat);swordRoot.add(swordCore);
+ // Anéis de corrente orbitam a EspadaBispo3.glb conforme energia se concentra.
+ const orbitMat=new THREE.MeshBasicMaterial({color:0xff4617,transparent:true,opacity:.65,
+  depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+ const swordOrbits=[];
+ for(let j=0;j<5;j++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.44+j*.1,.026,5,48),orbitMat);
+  ring.rotation.set(j*.4,j*.6,0);swordRoot.add(ring);swordOrbits.push(ring);}
+
  const bursts=[];
  for(let i=0;i<3;i++){
   const group=new THREE.Group();holder.add(group);
   const domeMaterial=mat(THREE,DOME_FRAG,{uTime:0,uAge:0,uAlpha:0,uPulse:i},DOME_VERT);
+  domeMaterial.blending=THREE.NormalBlending;domeMaterial.forceSinglePass=true;
   const dome=new THREE.Mesh(new THREE.SphereGeometry(1,48,24,0,TAU,0,PI/2),domeMaterial);
   dome.frustumCulled=false;dome.renderOrder=42+i;group.add(dome);
   const ringMat=new THREE.MeshBasicMaterial({color:i===1?0xff6c22:0xff314b,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
@@ -165,12 +179,31 @@ export function createSixSealsVFX(THREE,scene){
    depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
   const rail=new THREE.Mesh(new THREE.TorusGeometry(1,.1,8,96),railMat);
   rail.rotation.x=PI/2;rail.position.y=1.1;group.add(rail);
-  bursts.push({group,dome,domeMaterial,wave,ringMat,veil,veilMat,kernel,kernelMat,rail,railMat});
+  // Fragmentos orgânicos do blast: cada frente faz volume com bordas irregulares,
+  // além de feixes de energia saindo em todas as direções do núcleo.
+  const lobeMat=new THREE.MeshBasicMaterial({color:0xff3910,transparent:true,opacity:0,
+   depthWrite:false,blending:THREE.NormalBlending,toneMapped:false});
+  const lobes=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),lobeMat,18);
+  lobes.frustumCulled=false;lobes.renderOrder=43+i;group.add(lobes);
+  for(let j=0;j<18;j++)lobes.setColorAt(j,new THREE.Color(j%5===0?0xffb023:j%3===0?0xe62609:0x8e0519));
+  const beamMat=new THREE.MeshBasicMaterial({color:0xff8e25,transparent:true,opacity:0,
+   depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+  const beams=new THREE.InstancedMesh(new THREE.ConeGeometry(.065,1,3),beamMat,32);
+  beams.frustumCulled=false;beams.renderOrder=46+i;group.add(beams);
+  bursts.push({group,dome,domeMaterial,wave,ringMat,veil,veilMat,kernel,kernelMat,rail,railMat,
+   lobes,lobeMat,beams,beamMat});
  }
  const shardMat=new THREE.MeshBasicMaterial({color:0x3b001a,transparent:true,opacity:.85,side:THREE.DoubleSide});
  const shards=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),shardMat,72);
  shards.frustumCulled=false;holder.add(shards);
- const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),S=new THREE.Vector3(),up=new THREE.Vector3(0,1,0);
+ const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),S=new THREE.Vector3(),
+ up=new THREE.Vector3(0,1,0),axis=new THREE.Vector3();
+ // Pré-ruptura das mandalas: feixes pontiagudos convergem e pulsam antes
+ // da detonação, como na referência, sem artefatos de fumaça.
+ const warnMat=new THREE.MeshBasicMaterial({color:0xff4b16,transparent:true,opacity:0,
+   blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+ const warnSpikes=new THREE.InstancedMesh(new THREE.ConeGeometry(.075,1,3),warnMat,48);
+ warnSpikes.frustumCulled=false;holder.add(warnSpikes);
  const light=new THREE.PointLight(0xff3b21,0,110,1.5);holder.add(light);light.castShadow=false;
  let seconds=0;
  function update(skill,ctx={},dt=0){
