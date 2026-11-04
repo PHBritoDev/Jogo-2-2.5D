@@ -49,7 +49,7 @@ async function main(){
     }
     if(!launch)throw Error("Ultimate não iniciou por kitMove(ult)");
     // Storyboard real: frontal, seis tomadas separadas, pré-ruptura e
-    // TRÊS explosões com momento de formação e de expansão registrados.
+    // UMA única explosão progressiva com formação e expansão registradas.
     // Um blast só: mostrar CARGA, núcleo único, coluna subindo,
     // copa de fogo crescendo, anéis da mesma explosão e dissipação.
     const schedule=[
@@ -61,13 +61,13 @@ async function main(){
      ['06-circulo-4',7.26,'CIRCULO_4'],
      ['07-circulo-5',8.38,'CIRCULO_5'],
      ['08-circulo-6',9.49,'CIRCULO_6'],
-     ['09-carga-antes-da-explosao',10.52,'EXPLOSOES_VISTA_ALTA'],
-     ['10-nucleo-ignite',11.20,'EXPLOSOES_VISTA_ALTA'],
-     ['11-coluna-crescendo',11.94,'EXPLOSOES_VISTA_ALTA'],
-     ['12-copa-formando',12.77,'EXPLOSOES_VISTA_ALTA'],
-     ['13-cogumelo-abrindo',13.63,'EXPLOSOES_VISTA_ALTA'],
-     ['14-apice-uma-explosao',14.40,'EXPLOSOES_VISTA_ALTA'],
-     ['15-dissipacao',15.03,'EXPLOSOES_VISTA_ALTA']];
+     ['09-carga-antes-da-explosao',10.52,'EXPLOSAO_ORGANICA_3_4'],
+     ['10-nucleo-ignite',11.20,'EXPLOSAO_ORGANICA_3_4'],
+     ['11-coluna-crescendo',11.94,'EXPLOSAO_ORGANICA_3_4'],
+     ['12-copa-formando',12.77,'EXPLOSAO_ORGANICA_3_4'],
+     ['13-cogumelo-abrindo',13.63,'EXPLOSAO_ORGANICA_3_4'],
+     ['14-apice-uma-explosao',14.40,'EXPLOSAO_ORGANICA_3_4'],
+     ['15-dissipacao',15.03,'EXPLOSAO_ORGANICA_3_4']];
     for(const [name,target,expectedShot] of schedule){
      const h=await page.waitForFunction(t=>{
       const state=window.SevenSinsDebug3D?.dimState()?.cinematic;
