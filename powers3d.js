@@ -78,7 +78,7 @@ export const KITS = {
     sword: S('sw', 'SENTENÇA OMNIDIRECIONAL — GIRO DO JUÍZO', 'zarkhael_circular_sword', { dmg: 22, cd: 22, range: [4, 23] }),
     ult: S('ult', 'OS SEIS SELOS DO JUÍZO ETERNO', 'zarkhael_six_seals', { dmg: 54, cd: 46 }) },
   veraxion: { color: 0x9a2cff, color2: 0xff5a1a, book: true, skills: [
-    S('s1', 'Fogo Abissal', 'abyss', { n: 5, dmg: 18, cd: 8 }),
+    S('s1', 'QUATRO SENTENÇAS DO ABISMO', 'veraxion_four_swords', { dmg: 12, cd: 16 }), // MOD 285: Bispo 4 · Skill 1 (veraxion-four-swords3d.js); o antigo Fogo Abissal foi excluído
     S('s2', 'Furacão Negro', 'vortex', { dmg: 9, cd: 11, dur: 4, speed: 3.2 }),
     S('s3', 'Orbes do Abismo', 'orbs', { n: 6, dmg: 12, cd: 9, speed: 7 })],
     sword: S('sw', 'Corte do Abismo', 'wave', { n: 2, dmg: 15, cd: 6 }),
