@@ -6090,7 +6090,7 @@ function updateZarkhaelSword(dt){
  * Dano, telegraph, som, câmera e VFX usam o mesmo relógio e ficam pausados
  * juntos. O herói conserva movimento/dash para escapar pelos 20% externos.
  */
-let zarkUlt=null,zarkUltVfx=null,zarkUltTestFired=false,zarkUltLastCamera=null;
+let zarkUlt=null,zarkUltVfx=null,zarkUltTestFired=false,zarkUltLastCamera=null,zarkUltCameraShot='';
 const ZARK_ULT_TEST=new URLSearchParams(location.search).has('testUltBispo3');
 const _zuA=new THREE.Vector3(),_zuB=new THREE.Vector3(),_zuQ=new THREE.Quaternion(),_zuQ2=new THREE.Quaternion(),_zuTip=new THREE.Vector3();
 function startZarkUlt(){
@@ -6116,7 +6116,7 @@ function startZarkUlt(){
 }
 function stopZarkUlt(){
  if(!zarkUlt&&!zarkUltLastCamera)return;
- zarkUlt=null;zarkUltLastCamera=null;
+ zarkUlt=null;zarkUltLastCamera=null;zarkUltCameraShot='';
  if(zarkUltVfx)zarkUltVfx.clear();
  if(ultDimEl)ultDim(0,.48);
  camera.fov=fpWasActive?72:56;camera.updateProjectionMatrix();
@@ -6157,16 +6157,19 @@ function tickZarkUlt(dt,now){
  zarkUltVfx.update(s,{boss:B,tip,camera,low:graphics3DMode==='low',ground:fxGy},dt);
  const pose=s.camera({boss:B,hero:{x:player.position.x,y:player.position.y,z:player.position.z}});
  if(pose.w>.001){
-  // Câmera sobre a câmera de jogo. Não altera joystick/posição do herói.
-  _zuA.set(...pose.pos);_zuB.set(...pose.look);_zuQ.copy(camera.quaternion);
-  const previous=camera.position.clone();
-  camera.position.copy(_zuA);camera.lookAt(_zuB);_zuQ2.copy(camera.quaternion);
-  const k=pose.w*Math.min(1,dt*(s.st.pi===0?5:3.5));
-  camera.position.lerpVectors(previous,_zuA,k);
-  camera.quaternion.slerpQuaternions(_zuQ,_zuQ2,k);
+  // Mod 281: a câmera de jogo era recalculada antes de cada quadro, portanto
+  // o lerp anterior a ~5% NUNCA chegava à câmera cinematográfica.
+  // Usar POSE ABSOLUTA do storyboard por tempo real, não per-frame from gameplay.
+  zarkUltCameraShot=pose.shot;
+  _zuA.set(...pose.pos);_zuB.set(...pose.look);
+  if(pose.w<1){
+   const gamePos=camera.position.clone(),gameQ=camera.quaternion.clone();
+   camera.position.copy(_zuA);camera.lookAt(_zuB);_zuQ2.copy(camera.quaternion);
+   camera.position.lerpVectors(gamePos,_zuA,pose.w);
+   camera.quaternion.slerpQuaternions(gameQ,_zuQ2,pose.w);
+  }else{camera.position.copy(_zuA);camera.lookAt(_zuB);}
  }
- const base=fpWasActive?72:56;
- const fov=base+pose.fov*(userSettings.reduceShake?.7:1);
+ const fov=pose.fov||56; // valor absoluto, nunca +56 graus
  if(Math.abs(camera.fov-fov)>.08){camera.fov=fov;camera.updateProjectionMatrix();}
  if(!userSettings.reduceShake&&s.st.trauma>.05){
   const shake=shakeAt(s.st.trauma,s.st.t,100,{amp:fpWasActive?.035:.07,roll:.004,freq:5});
@@ -6583,7 +6586,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
         caveat:'Box3 considera geometria CPU, nao deslocamentos de shader'}:null
     };
   },
-  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,moonFlames:moonFlames?{phase:moonFlames.st.phase,t:+moonFlames.st.t.toFixed(2),fired:moonFlames.st.fired,final:moonFlames.st.final?moonFlames.st.final.state:null}:null,flameFields:bfHazards?bfHazards.st.fields.map(f=>(f.big?'B':'s')+f.t.toFixed(1)).join(','):'',burn:bfHazards&&bfHazards.st.burn?bfHazards.st.burn.tier+':'+bfHazards.st.burn.left.toFixed(1):null,hydra:hydraSkill?{phase:hydraSkill.st.phase,t:+hydraSkill.st.t.toFixed(2),orbs:hydraSkill.st.orbs.map(o=>o.state+':'+o.k.toFixed(2)).join(','),hits:hydraSkill.st.hits,dissolve:+hydraSkill.st.dissolve.toFixed(2),trauma:+hydraSkill.st.trauma.toFixed(2)}:null,kite:zkKite,cinematic:zarkUlt?{phase:zarkUlt.st.phase,pi:zarkUlt.st.pi,pt:+zarkUlt.st.pt.toFixed(2),t:+zarkUlt.st.t.toFixed(2),safeRadius:zarkUlt.st.dangerR,selos:zarkUlt.st.seals.map(c=>[c.i+1,+c.build.toFixed(2),+c.spin.toFixed(2)]),bursts:zarkUlt.st.bursts.map(b=>b.n),hits:zarkUlt.st.hitEvents,vfx:!!zarkUltVfx?.holder.visible}:null,cosmic:cosmicUlt?{phase:cosmicUlt.st.phase,pi:cosmicUlt.st.pi,pt:+cosmicUlt.st.pt.toFixed(2),rt:+cosmicUlt.st.rt.toFixed(2),lock:cosmicUlt.lockPlayer,P:cosmicUlt.st.P,circles:cosmicUlt.st.circles.map(c=>[c.r,+(c.y-cosmicUlt.st.P.y).toFixed(1),+c.k.toFixed(2)]),tipY:+(cosmicUlt.st.tipY-cosmicUlt.st.P.y).toFixed(2),hits:cosmicUlt.st.hits,white:+cosmicUlt.st.white.toFixed(2),trauma:+cosmicUlt.st.trauma.toFixed(2)}:null,camFov:+camera.fov.toFixed(1),handSword:!!(cosmicHandSword&&cosmicHandSword.visible&&cosmicHandSword.parent),eclipse:eclipseSword?{phase:eclipseSword.st.phase,t:+eclipseSword.st.t.toFixed(2),stage:eclipseSword.st.stage,level:+eclipseSword.st.level.toFixed(2),hits:eclipseSword.st.hits,impact:eclipseSword.st.impact&&eclipseSword.st.impact.kind,sword:!!(eclipseVfx&&eclipseVfx.swordReady&&eclipseVfx.holder.visible)}:null,squad:squadOn,dimTest:dimTest.key};},
+  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,moonFlames:moonFlames?{phase:moonFlames.st.phase,t:+moonFlames.st.t.toFixed(2),fired:moonFlames.st.fired,final:moonFlames.st.final?moonFlames.st.final.state:null}:null,flameFields:bfHazards?bfHazards.st.fields.map(f=>(f.big?'B':'s')+f.t.toFixed(1)).join(','):'',burn:bfHazards&&bfHazards.st.burn?bfHazards.st.burn.tier+':'+bfHazards.st.burn.left.toFixed(1):null,hydra:hydraSkill?{phase:hydraSkill.st.phase,t:+hydraSkill.st.t.toFixed(2),orbs:hydraSkill.st.orbs.map(o=>o.state+':'+o.k.toFixed(2)).join(','),hits:hydraSkill.st.hits,dissolve:+hydraSkill.st.dissolve.toFixed(2),trauma:+hydraSkill.st.trauma.toFixed(2)}:null,kite:zkKite,cinematic:zarkUlt?{phase:zarkUlt.st.phase,pi:zarkUlt.st.pi,pt:+zarkUlt.st.pt.toFixed(2),t:+zarkUlt.st.t.toFixed(2),safeRadius:zarkUlt.st.dangerR,selos:zarkUlt.st.seals.map(c=>[c.i+1,+c.build.toFixed(2),+c.spin.toFixed(2)]),bursts:zarkUlt.st.bursts.map(b=>b.n),hits:zarkUlt.st.hitEvents,vfx:!!zarkUltVfx?.holder.visible,shot:zarkUltCameraShot,cam:camera.position.toArray().map(v=>+v.toFixed(2)),fov:+camera.fov.toFixed(2)}:null,cosmic:cosmicUlt?{phase:cosmicUlt.st.phase,pi:cosmicUlt.st.pi,pt:+cosmicUlt.st.pt.toFixed(2),rt:+cosmicUlt.st.rt.toFixed(2),lock:cosmicUlt.lockPlayer,P:cosmicUlt.st.P,circles:cosmicUlt.st.circles.map(c=>[c.r,+(c.y-cosmicUlt.st.P.y).toFixed(1),+c.k.toFixed(2)]),tipY:+(cosmicUlt.st.tipY-cosmicUlt.st.P.y).toFixed(2),hits:cosmicUlt.st.hits,white:+cosmicUlt.st.white.toFixed(2),trauma:+cosmicUlt.st.trauma.toFixed(2)}:null,camFov:+camera.fov.toFixed(1),handSword:!!(cosmicHandSword&&cosmicHandSword.visible&&cosmicHandSword.parent),eclipse:eclipseSword?{phase:eclipseSword.st.phase,t:+eclipseSword.st.t.toFixed(2),stage:eclipseSword.st.stage,level:+eclipseSword.st.level.toFixed(2),hits:eclipseSword.st.hits,impact:eclipseSword.st.impact&&eclipseSword.st.impact.kind,sword:!!(eclipseVfx&&eclipseVfx.swordReady&&eclipseVfx.holder.visible)}:null,squad:squadOn,dimTest:dimTest.key};},
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;
