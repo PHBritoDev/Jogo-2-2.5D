@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod282-erupcao-unica-bispo3';
+const BUILD = 'mod283-erupcao-larga-baixa-bispo3';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
