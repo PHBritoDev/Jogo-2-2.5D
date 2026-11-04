@@ -106,7 +106,7 @@ const CHARGE_FRAG=[
 // esferas nem nuvens. A malha contém três faces irregulares cruzadas, com
 // fissuras e nervuras animadas no próprio shader WebGL1.
 const RIFT_VERTEX=[
- 'uniform float uTime,uAge,uSeed;attribute vec3 position;attribute vec2 uv;',
+ 'uniform float uTime,uAge,uSeed;',
  'varying vec2 vUV;varying float vFlicker;',
  'void main(){vUV=uv;vec3 v=position;',
  'float wave=sin(uv.x*13.-uTime*4.+uSeed*6.)*.07+sin(uv.x*29.+uTime*6.)*.025;',
@@ -270,7 +270,7 @@ export function createSixSealsVFX(THREE,scene){
  const shards=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),shardMat,72);
  shards.frustumCulled=false;holder.add(shards);
  const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),S=new THREE.Vector3(),
- up=new THREE.Vector3(0,1,0),axis=new THREE.Vector3();
+ up=new THREE.Vector3(0,1,0),axis=new THREE.Vector3(),tiltQ=new THREE.Quaternion(),tiltAxis=new THREE.Vector3(0,0,1);
  // Pré-ruptura das mandalas: feixes pontiagudos convergem e pulsam antes
  // da detonação, como na referência, sem artefatos de fumaça.
  const warnMat=new THREE.MeshBasicMaterial({color:0xff4b16,transparent:true,opacity:0,
@@ -368,7 +368,7 @@ export function createSixSealsVFX(THREE,scene){
     p.set(Math.cos(a)*R*reach*.075,.54+(j%4)*.28,Math.sin(a)*R*reach*.075);
     q.setFromAxisAngle(up,-a);
     const tilt=.11+.35*((j*3)%11)/11+.06*Math.sin(age*4+j);
-    q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),tilt));
+    q.multiply(tiltQ.setFromAxisAngle(tiltAxis,tilt));
     S.set(len*jitter,rise*(.62+.47*((j*5)%11)/11),1.4+reach*3);
     matrix.compose(p,q,S);vfx.dark.setMatrixAt(j,matrix);
    }
@@ -378,7 +378,7 @@ export function createSixSealsVFX(THREE,scene){
     const len=R*reach*(.56+.32*((j*11)%17)/17);
     p.set(Math.cos(a)*reach*.5,.87+(j%4)*.31,Math.sin(a)*reach*.5);
     q.setFromAxisAngle(up,-a);
-    q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),.2+(j%5)*.055));
+    q.multiply(tiltQ.setFromAxisAngle(tiltAxis,.2+(j%5)*.055));
     S.set(len,(2.5+R*reach*.22)*(.63+.33*(j%4)/4),.3+reach*1.15);
     matrix.compose(p,q,S);vfx.hot.setMatrixAt(j,matrix);
    }
