@@ -259,8 +259,8 @@ export function createSixSealsVFX(THREE,scene){
   seconds+=Math.max(0,dt);holder.visible=true;
   const glow=st.phase==='aura'?st.aura:1;
   aura.position.set(B.x,B.y,B.z);
-  aura.scale.setScalar(.83+.18*glow);
-  ribbons.forEach((r,i)=>{r.m.uniforms.uTime.value=seconds;r.m.uniforms.uPower.value=glow*(.64+.23*Math.sin(seconds*2+i));
+  aura.scale.setScalar(.85+.23*glow);
+  ribbons.forEach((r,i)=>{r.m.uniforms.uTime.value=seconds;r.m.uniforms.uPower.value=glow*(.71+.26*Math.sin(seconds*2+i));
    r.mesh.rotation.y=i/8*TAU+seconds*(i%2?-.06:.08);
   });
   // Aura rente ao personagem, com rachaduras negras e pontas móveis.
@@ -272,7 +272,7 @@ export function createSixSealsVFX(THREE,scene){
    S.set(.10+.08*heat,.26+.85*heat,.12);matrix.compose(p,q,S);
    auraSpines.setMatrixAt(i,matrix);
   }
-  auraSpines.instanceMatrix.needsUpdate=true;auraSpineMat.opacity=.20+.52*glow;
+  auraSpines.instanceMatrix.needsUpdate=true;auraSpineMat.opacity=.21+.56*glow;
   field.position.set(C.x,ground(C.x,C.z)+.055,C.z);
   field.scale.setScalar(st.dangerR);
   fieldMat.opacity=st.phase==='aura'?0:st.phase==='seals'?
