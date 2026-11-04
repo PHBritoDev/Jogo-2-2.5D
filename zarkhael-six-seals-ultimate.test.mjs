@@ -63,7 +63,7 @@ test('direção de câmera fiel: plano frontal, depois SEIS subidas individuais'
  assert.ok(heights[0]>boss.y+7&&heights[0]<boss.y+14,
   'o primeiro círculo é filmado poucos metros acima');
  const blast=cam(12);
- assert.equal(blast.shot,'EXPLOSOES_VISTA_ALTA');
+ assert.equal(blast.shot,'EXPLOSAO_ORGANICA_3_4');
  assert.ok(blast.pos[1]>boss.y+40,'câmera continua elevada mas revela coluna e copa');
  assert.ok(Math.hypot(blast.pos[0]-arena.x,blast.pos[2]-arena.z)>30,
   'volume das explosões visto em 3/4 do alto, não disco zenital');
