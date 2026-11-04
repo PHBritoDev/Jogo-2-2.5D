@@ -5,7 +5,7 @@ import {createSingularMushroomExplosion,ERUPTION_BUILD} from './zarkhael-singula
  * núcleo da espada GLB original e 3 cúpulas de plasma com formação progressiva.
  * Geometrias reutilizadas, shaders com uniforms e estilhaços instanciados.
  */
-export const ZARK_ULT_VFX_BUILD='282-single-eruption-visible-plume';
+export const ZARK_ULT_VFX_BUILD='282-organic-shadow-no-cones';
 const PI=Math.PI,TAU=2*PI,clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),
  sm=v=>{v=clamp(v);return v*v*(3-2*v);};
 const VERT='varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
@@ -90,6 +90,23 @@ const DOME_FRAG=[
  'col=mix(col,yellow,clamp(fissure*.15+speck*.19,0.,.3));',
  'float alpha=clamp((.47+.35*burn+.22*fissure)*contour*uAlpha,0.,1.);',
  'if(alpha<.04)discard;gl_FragColor=vec4(col,alpha);}',
+].join('\n');
+// Um único plano de sombra líquida, sem tetraedros, cones nem quads opacos.
+const SHADOW_POOL_VERT='varying vec2 vUV;void main(){vUV=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const SHADOW_POOL_FRAG=[
+ 'uniform float uTime,uOpacity;varying vec2 vUV;',
+ 'float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+ 'float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hs(i),hs(i+vec2(1.,0.)),f.x),mix(hs(i+vec2(0.,1.)),hs(i+vec2(1.,1.)),f.x),f.y);}',
+ 'void main(){vec2 p=vUV*2.-1.;float r=length(p),a=atan(p.y,p.x);',
+ 'float n=ns(p*6.+vec2(uTime*.18,-uTime*.12)),n2=ns(p*13.-vec2(uTime*.38,-uTime*.20));',
+ 'float edge=.89+.065*sin(a*8.-uTime*1.15)+.033*sin(a*19.+uTime*1.9)+.037*(n-.5);',
+ 'float flow=sin(a*10.-r*24.+uTime*2.1+n*5.)*.5+.5;',
+ 'float swirl=sin(17.*a-r*16.-uTime*1.8+n2*4.)*.5+.5;',
+ 'float alpha=(1.-smoothstep(edge-.13,edge+.07,r))*uOpacity*(.32+.31*n+.22*flow+.13*swirl);',
+ 'vec3 ink=vec3(.012,.0003,.009),wine=vec3(.17,.004,.025),rim=vec3(.35,.007,.038);',
+ 'vec3 c=mix(ink,wine,clamp(.13+flow*.37+n*.35,0.,1.));',
+ 'c=mix(c,rim,clamp(.14*swirl+.20*n2,0.,.28));',
+ 'if(alpha<.014)discard;gl_FragColor=vec4(c,clamp(alpha,0.,.56));}'
 ].join('\n');
 const CHARGE_FRAG=[
  'uniform float uTime,uPower;varying vec2 vU;',
@@ -221,12 +238,14 @@ export function createSixSealsVFX(THREE,scene){
   const mesh=new THREE.Mesh(geometry,m);mesh.rotation.y=a;mesh.position.set(Math.cos(a)*.47,0,Math.sin(a)*.47);
   mesh.scale.set(.82,3.7+(i%3)*.32,1);mesh.frustumCulled=false;aura.add(mesh);ribbons.push({mesh,m});
  }
- // Aura negra viva rente ao corpo: pontas dinâmicas pequenas, sem fumaça,
- // sem aquelas paredes de energia exageradas da versão anterior.
- const auraSpineMat=new THREE.MeshBasicMaterial({color:0x25000e,transparent:true,opacity:.7,
-  depthWrite:false,blending:THREE.NormalBlending,side:THREE.DoubleSide});
- const auraSpines=new THREE.InstancedMesh(new THREE.ConeGeometry(.14,1,3),auraSpineMat,20);
- auraSpines.frustumCulled=false;aura.add(auraSpines);
+ // Manter as 8 faixas animadas de aura aprovada; excluir só os cones sólidos.
+ const shadowPool=new THREE.Mesh(new THREE.CircleGeometry(1,80),
+  new THREE.ShaderMaterial({vertexShader:SHADOW_POOL_VERT,fragmentShader:SHADOW_POOL_FRAG,
+   uniforms:{uTime:{value:0},uOpacity:{value:0}},transparent:true,depthWrite:false,
+   depthTest:true,polygonOffset:true,polygonOffsetFactor:-2,side:THREE.DoubleSide,
+   blending:THREE.NormalBlending,toneMapped:false}));
+ shadowPool.name='ZarkhaelOrganicShadowPoolNoCones';
+ shadowPool.rotation.x=-PI/2;shadowPool.renderOrder=12;holder.add(shadowPool);
  const swordRoot=new THREE.Group();holder.add(swordRoot);
  const charge=mat(THREE,CHARGE_FRAG,{uTime:0,uPower:0});
  // REMOVIDAS as placas enormes e opacas da espada: só brilho discreto no GLB.
@@ -240,17 +259,7 @@ export function createSixSealsVFX(THREE,scene){
   ring.rotation.set(j*.4,j*.6,0);swordRoot.add(ring);swordOrbits.push(ring);}
 
  const singular=createSingularMushroomExplosion(THREE,holder); // UMA detonação, nunca 3.
- const shardMat=new THREE.MeshBasicMaterial({color:0x3b001a,transparent:true,opacity:.85,side:THREE.DoubleSide});
- const shards=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),shardMat,72);
- shards.frustumCulled=false;holder.add(shards);
- const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),S=new THREE.Vector3(),
- up=new THREE.Vector3(0,1,0),axis=new THREE.Vector3(),tiltQ=new THREE.Quaternion(),tiltAxis=new THREE.Vector3(0,0,1);
- // Pré-ruptura das mandalas: feixes pontiagudos convergem e pulsam antes
- // da detonação, como na referência, sem artefatos de fumaça.
- const warnMat=new THREE.MeshBasicMaterial({color:0xff4b16,transparent:true,opacity:0,
-   blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
- const warnSpikes=new THREE.InstancedMesh(new THREE.ConeGeometry(.075,1,3),warnMat,48);
- warnSpikes.frustumCulled=false;holder.add(warnSpikes);
+ // Removidos de verdade os estilhaços triangulares e as agulhas da ruptura.
  const light=new THREE.PointLight(0xff3b21,0,110,1.5);holder.add(light);light.castShadow=false;
  let seconds=0;
  function update(skill,ctx={},dt=0){
@@ -263,16 +272,14 @@ export function createSixSealsVFX(THREE,scene){
   ribbons.forEach((r,i)=>{r.m.uniforms.uTime.value=seconds;r.m.uniforms.uPower.value=glow*(.71+.26*Math.sin(seconds*2+i));
    r.mesh.rotation.y=i/8*TAU+seconds*(i%2?-.06:.08);
   });
-  // Aura rente ao personagem, com rachaduras negras e pontas móveis.
-  for(let i=0;i<20;i++){
-   const a=i/20*TAU,rr=.45+(i%4)*.1,heat=.5+.5*Math.sin(seconds*2.7+i*.84);
-   p.set(Math.cos(a)*rr,.62+(i%7)*.34,Math.sin(a)*rr);
-   axis.set(Math.sin(a)*.55,.8+heat*.2,Math.cos(a)*.55).normalize();
-   q.setFromUnitVectors(up,axis);
-   S.set(.10+.08*heat,.26+.85*heat,.12);matrix.compose(p,q,S);
-   auraSpines.setMatrixAt(i,matrix);
-  }
-  auraSpines.instanceMatrix.needsUpdate=true;auraSpineMat.opacity=.23+.61*glow;
+  // Sombra procedural flui no chão; sem novas peças geométricas.
+  shadowPool.position.set(st.phase==='aura'?B.x:C.x,
+    ground(st.phase==='aura'?B.x:C.x,st.phase==='aura'?B.z:C.z)+.085,
+    st.phase==='aura'?B.z:C.z);
+  shadowPool.scale.setScalar(st.phase==='aura'?3.2:st.dangerR*.91);
+  shadowPool.material.uniforms.uTime.value=seconds;
+  shadowPool.material.uniforms.uOpacity.value=st.phase==='aura'?.30+.14*glow:
+    st.phase==='seals'?.23+.13*sm(st.pt/U.seals):.25;
   field.position.set(C.x,ground(C.x,C.z)+.055,C.z);
   field.scale.setScalar(st.dangerR);
   fieldMat.opacity=st.phase==='aura'?0:st.phase==='seals'?
@@ -312,35 +319,7 @@ export function createSixSealsVFX(THREE,scene){
    o.scale.setScalar(.55+1.05*sk);});
   singular.update(st,{dt,low,ground:ground(C.x,C.z)});
   const peak=st.bursts[0]?Math.max(0,1-st.bursts[0].age/4.3):0;
-  // Pré-ignição: agulhas escarlates nas SEIS alturas, crescendo antes da
-  // explosão. Se o jogador se afastar, a borda segura permanece legível.
-  const warn=st.phase==='seals'?sm((st.pt-5.25)/1.45):
-    st.phase==='explosions'?Math.max(.12,.90-.12*st.pt):0;
-  warnSpikes.count=low?24:48;warnMat.opacity=.74*warn;
-  for(let i=0;i<warnSpikes.count;i++){
-   const a=i/warnSpikes.count*TAU+seconds*.13,level=i%6;
-   const radius=st.seals[level].r*(.60+.31*(i%4)/4);
-   const yy=ground(C.x,C.z)+U.heights[level];
-   p.set(C.x+Math.cos(a)*radius,yy+.36+(i%3)*.17,C.z+Math.sin(a)*radius);
-   axis.set(Math.cos(a)*.10,1,Math.sin(a)*.10).normalize();
-   q.setFromUnitVectors(up,axis);
-   S.set(.15,.30+1.8*warn*(.66+(i%5)*.08),.15);
-   matrix.compose(p,q,S);warnSpikes.setMatrixAt(i,matrix);
-  }
-  warnSpikes.instanceMatrix.needsUpdate=true;
-  const n=low?36:72;shards.count=n;
-  const explode=st.phase==='explosions',pulse=Math.max(0,...st.bursts.map(b=>1-sm(b.age/1.65)));
-  const span=explode?st.dangerR*.82:2.5+glow*3.2;
-  for(let i=0;i<n;i++){
-   const a=i/n*TAU+seconds*(explode?.14:.46)*(i%2?1:-1);
-   const rr=explode?span*(.12+.88*(i%11)/11):span*(.23+.72*(i%13)/13);
-   p.set((explode?C.x:B.x)+Math.cos(a)*rr,explode?ground(C.x,C.z)+.6+(i%7)*.28+pulse*(i%5):B.y+1.3+(i%9)*.52+glow*Math.sin(seconds*3+i)*.75,(explode?C.z:B.z)+Math.sin(a)*rr);
-   q.setFromAxisAngle(up,a+seconds*(explode?1.4:3.2));
-   S.set(.12+(i%3)*.07,(explode?.38:.18)+(.12+.46*glow)*(i%5)/5,.1+(i%4)*.04);
-   matrix.compose(p,q,S);shards.setMatrixAt(i,matrix);
-  }
-  shards.instanceMatrix.needsUpdate=true;
-  shardMat.opacity=explode?.3+.55*pulse:.55+.35*glow;
+  // Sem agulhas e fragmentos flutuantes na câmera ou na arena.
   light.position.set(explode?C.x:B.x,explode?ground(C.x,C.z)+5:B.y+2.6,explode?C.z:B.z);
   light.intensity=1.2*glow+3.4*peak;
  }
