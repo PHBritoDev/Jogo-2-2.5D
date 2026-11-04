@@ -110,9 +110,9 @@ export function createZarkhaelSixSeals(opts={}){
    // Plano alto e inclinado, não zenital: cúpula tem perfil tridimensional.
    // Vista elevada, aproximada e mirando o centro da coluna/copa,
    // não a superfície do chão (onde parecia um disco vermelho).
-   out.pos=[C.x+11+21*k,C.y+U.heights[5]+9+3.5*k,C.z+9+21*k];
+   out.pos=[C.x+12+28*k,C.y+U.heights[5]+9-23*k,C.z+12+36*k];
    out.look=[C.x,C.y+U.heights[5]*(1-k)+19*k,C.z];
-   out.fov=56-2*k;out.shot='EXPLOSOES_VISTA_ALTA';
+   out.fov=56-1*k;out.shot='EXPLOSAO_ORGANICA_3_4';
   }
   return out;
  }
