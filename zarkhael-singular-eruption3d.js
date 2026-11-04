@@ -4,7 +4,7 @@ import {createBillowingCrown} from './zarkhael-billow-cloud3d.js';
  * A copa nasce DEPOIS da coluna. Três anéis são regiões de pressão da MESMA
  * explosão, não três explosões. GLSL WebGL1 com turbulência, veios, brilho quente.
  */
-export const ERUPTION_BUILD='282-cloud-billows-organic-v2';
+export const ERUPTION_BUILD='283-low-wide-single-blast-v1';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),ease=v=>{v=clamp(v);return v*v*(3-2*v);};
 const V=[
  'uniform float uT,uWarp;varying vec3 vP;',
@@ -132,9 +132,9 @@ export function createSingularMushroomExplosion(T,parent){
   const fade=1-ease((age-3.50)/.90),unit=st.dangerR/26.83,up=Math.max(.005,ease((age-.02)/.48));
   root.visible=st.phase==='explosions';root.position.set(C.x,ctx.ground??C.y,C.z);
   trunk.visible=born;
-  trunk.scale.set(unit*(.03+.97*rise),up,unit*(.03+.97*rise));
-  columnLight.visible=born;columnLight.position.y=14.5*up;
-  columnLight.scale.set(unit*(.48+.52*rise),up,unit*(.48+.52*rise));
+  trunk.scale.set(unit*(.03+.97*rise),up*.63,unit*(.03+.97*rise));
+  columnLight.visible=born;columnLight.position.y=9.1*up;
+  columnLight.scale.set(unit*(.50+.50*rise),up*.63,unit*(.50+.50*rise));
   columnLight.material.uniforms.uT.value=time;
   columnLight.material.uniforms.uAlpha.value=born*rise*fade*.82;
   billow.update(age,st,{time,low:ctx.low});
@@ -146,11 +146,11 @@ export function createSingularMushroomExplosion(T,parent){
   core.position.y=born?1.4+12*up:1.2;
   core.scale.setScalar(born?(.7+1.7*up)*(1-ease((age-.78)/.42)):.45+2*pre);
   core.material.opacity=born?(1-ease((age-.55)/.61))*.66:pre*.68;
-  const heights=[35.2,24.8,13.4],delay=[.75,1.20,.46],sizes=[28.8,24.4,19.2];
+  const heights=[21.5,14.5,5.5],delay=[.95,1.40,.46],sizes=[24.2,22.0,25.0];
   shock.forEach((o,i)=>{const k=ease((age-delay[i])/1.25);
    o.visible=born&&k>.001;o.position.y=heights[i]*up;o.rotation.y=time*(.05+i*.035);
    o.scale.setScalar(unit*(.08+.92*k)*sizes[i]);
-   o.material.opacity=fade*ease((age-delay[i])/.46)*(.78-i*.12);
+   o.material.opacity=fade*ease((age-delay[i])/.46)*(.66-i*.11);
   });
   const N=ctx.low?24:48;shards.count=N;
   for(let i=0;i<N;i++){
@@ -171,14 +171,14 @@ export function createSingularMushroomExplosion(T,parent){
      const snap=Math.sin(i*17.1+Math.floor(f*15)*7.7+flicker*3.7);
      const rad=unit*(3.1+7.0*f+snap*.85),jag=unit*(.75+1.3*f)*Math.sin(i*9.3+f*49.1+flicker*5.1);
      arcPositions[idx]=Math.cos(a)*rad+Math.sin(a)*jag;
-     arcPositions[idx+1]=(23.9-16.5*f)*up+unit*.65*Math.sin(f*28.+i*8.2+flicker*3.3);
+     arcPositions[idx+1]=(16.5-12.0*f)*up+unit*.65*Math.sin(f*28.+i*8.2+flicker*3.3);
      arcPositions[idx+2]=Math.sin(a)*rad-Math.cos(a)*jag;
     }
    }
   }
   arcGeo.attributes.position.needsUpdate=true;
   arcs.material.opacity=flare*(.55+.32*Math.pow(Math.sin(time*17),2));
-  light.position.y=11*rise;light.intensity=1.1*pre+5.2*rise*fade;
+  light.position.y=6.6*rise;light.intensity=1.1*pre+5.8*rise*fade;
  }
  function clear(){root.visible=false;billow.clear();light.intensity=0;}
  function dispose(){parent.remove(root);const g=new Set(),m=new Set();root.traverse(o=>{if(o.geometry)g.add(o.geometry);if(o.material)for(const x of [].concat(o.material))m.add(x)});for(const x of g)x.dispose();for(const x of m)x.dispose();}
