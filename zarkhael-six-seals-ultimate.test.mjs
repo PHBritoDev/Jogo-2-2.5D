@@ -68,28 +68,27 @@ test('direção de câmera fiel: plano frontal, depois SEIS subidas individuais'
  assert.ok(Math.hypot(blast.pos[0]-arena.x,blast.pos[2]-arena.z)>30,
   'volume das explosões visto em 3/4 do alto, não disco zenital');
 });
-test('três explosões espaçadas, cada uma só nasce depois do núcleo',()=>{
+test('uma detonação cinematográfica única, precedida por compressão de energia',()=>{
  const {s,ev}=run(1/60,{x:1200,z:0});
  const bursts=ev.filter(e=>e.type==='burst'),hits=ev.filter(e=>e.type==='hit');
- assert.deepEqual(bursts.map(e=>e.n),[1,2,3]);assert.equal(hits.length,3);
- assert.ok(Math.abs(bursts[0].time-10.55)<.02);
- assert.ok(Math.abs(bursts[1].time-12.07)<.02);
- assert.ok(Math.abs(bursts[2].time-13.6)<.02);
- assert.ok(bursts[1].time-bursts[0].time>1.45);
+ assert.deepEqual(bursts.map(e=>e.n),[1]);
+ assert.equal(hits.length,1,'sem três danos repetidos');
+ assert.ok(Math.abs(bursts[0].time-11.08)<.025);
  assert.ok(s.done&&Math.abs(s.st.t-15.5)<.025);
+ assert.equal(s.st.bursts.length,1);
 });
-test('jogador mantém dash e mobilidade: margem externa continua segura em TODAS as ondas',()=>{
+test('jogador mantém dash e mobilidade: faixa externa continua segura durante a explosão',()=>{
  for(const p of [{x:1227,z:0},{x:1173,z:0},{x:1200,z:27},{x:1200,z:-27},{x:1219.2,z:19.2}]){
   const {ev}=run(1/60,p);
   assert.equal(ev.filter(e=>e.type==='hit').length,0);
-  assert.equal(ev.filter(e=>e.type==='burst').length,3);
+  assert.equal(ev.filter(e=>e.type==='burst').length,1);
  }
  const iframe=run(1/60,{x:1200,z:0},h=>{h.iframes=true;});
  assert.equal(iframe.ev.filter(e=>e.type==='hit').length,0);
 });
-test('cruzar o limite só conta dentro; máximo 1 dano por explosão',()=>{
+test('cruzar o limite só conta dentro; um único dano por explosão',()=>{
  const {ev}=run(1/60,{x:1226.7,z:0});
- assert.equal(ev.filter(e=>e.type==='hit').length,3);
+ assert.equal(ev.filter(e=>e.type==='hit').length,1);
  const atLine=run(1/60,{x:1200+sixSealDangerRadius(30),z:0});
  assert.equal(atLine.ev.filter(e=>e.type==='hit').length,0);
  const dodge=run(1/60,{x:1200,z:0},(h,st)=>{h.x=st.t>9.8?1229:1200;});
@@ -97,7 +96,7 @@ test('cruzar o limite só conta dentro; máximo 1 dano por explosão',()=>{
 });
 test('tempo e dano independentes do FPS; abort preserva cleanup',()=>{
  const at60=run(1/60,{x:1200,z:0}),at10=run(.1,{x:1200,z:0});
- assert.equal(at10.ev.filter(e=>e.type==='burst').length,3);
+ assert.equal(at10.ev.filter(e=>e.type==='burst').length,1);
  assert.equal(at60.ev.filter(e=>e.type==='hit').length,at10.ev.filter(e=>e.type==='hit').length);
  assert.ok(Math.abs(at10.s.st.t-at60.s.st.t)<.03);
  const s=createZarkhaelSixSeals().start(boss,arena);s.step(2,{x:1200,z:0});s.abort();
@@ -116,13 +115,19 @@ test('sem fallback genérico: kit, gatilho, câmera e espada original estão lig
  assert.ok(src.includes('stopZarkUlt();') && src.includes('clearHazards();'));
  assert.ok(src.includes('zarkSwordWeapon?.userData?.tip'));
  assert.ok(src.includes('testUltBispo3'));
- assert.ok(ZARK_ULT_BUILD.startsWith('281-')&&ZARK_ULT_VFX_BUILD.startsWith('281-'));
+ assert.ok(ZARK_ULT_BUILD.startsWith('282-')&&ZARK_ULT_VFX_BUILD.startsWith('282-'));
 });
-test('VFX usa mandalas shader, fluxo por vértices, instâncias e domos, sem fumaça genérica',()=>{
+test('VFX usa escultura flamejante e único núcleo, sem 3 blasts nem esfera genérica',()=>{
  const src=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
- for(const marker of ['ShaderMaterial','PlaneGeometry','makePlasmaRiftGeometry','RIFT_VERTEX','RIFT_FRAGMENT','RIFT_GLOW_FRAGMENT','InstancedMesh(riftGeometry,darkMat','uBuild','uCharge','uPower','uAge','uTime','safe','ZarkhaelSixSealsUltimate280'])assert.ok(src.includes(marker),marker);
+ for(const marker of ['ShaderMaterial','PlaneGeometry','createSingularMushroomExplosion','InstancedMesh','uBuild','uCharge','uPower','uAge','uTime','ZarkhaelSixSealsUltimate280'])assert.ok(src.includes(marker),marker);
+ assert.ok(!src.includes('for(let i=0;i<3;i++){\n   const vfx=bursts[i]'), '3 efeitos antigos completamente excluídos');
+ const main=fs.readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
+ assert.ok(main.includes('zarkUltBossLock'), 'Boss imóvel durante ultimate');
+ assert.ok(main.includes('enemyMixer.timeScale=0'), 'rig congelado');
+ assert.ok(main.includes('zarkUltBossLock.mixerTimeScale'), 'restaura mixer');
+
  assert.ok(!/smoke|smokeSprite|fog\.density/i.test(src));
  assert.ok(!src.includes('new THREE.SphereGeometry(1,48,24)'), 'sem cúpula arredondada');
  assert.ok(!src.includes('new THREE.IcosahedronGeometry(1,1),lobeMat'), 'sem bolhas arredondadas');
- assert.ok(src.includes('uPower.value=energy*'), 'a energia deve crescer gradualmente');
+ assert.ok(src.includes('singular.update(st,'), 'apenas uma explosão atualizada');
 });
