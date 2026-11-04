@@ -1423,7 +1423,7 @@ const xRupture=new XRupture({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),
  event:t=>{if(t==='travel')worldAudio.whoosh();if(t==='impact'||t==='wall'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(t==='impact'?.12:.06);}if(t==='cancel')xVFX?.clear();}});
 let portalsWhooshAt=0,portalReactionAt=-9;
 const twinPortals=new TwinPortals({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive){const react=k==='burst'||twinPortals.time-portalReactionAt>.28;hurtEnemy(d,k==='burst',true,!react);if(react){portalReactionAt=twinPortals.time;if(!phoenixBossResists()){enemyKnockback=.15;const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z,l=Math.hypot(dx,dz)||1;enemyKnockbackX=dx/l;enemyKnockbackZ=dz/l;}}}},
- event:(t,th)=>{const n=performance.now();if(t==='open'){portalReactionAt=-9;worldAudio.portalEnter();}if(t==='launch'&&n-portalsWhooshAt>160){portalsWhooshAt=n;worldAudio.whoosh();}if(t==='impact'&&th.i%2===0)worldAudio.energyImpact(.6);if(t==='pressure-pulse')worldAudio.energyImpact(.3);if(t==='burst'){worldAudio.burst?.();worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.16);vibrate(70);}if(t==='cancel')portalsVFX?.clear();}});
+ event:(t,th)=>{const n=performance.now();if(t==='open'){portalReactionAt=-9;worldAudio.portalEnter();}if(t==='launch'&&n-portalsWhooshAt>160){portalsWhooshAt=n;worldAudio.whoosh();}if(t==='impact'&&th.i%2===0)worldAudio.energyImpact(.6);if(t==='pressure-pulse')worldAudio.energyImpact(.3);if(t==='burst'){worldAudio.burst?.();worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.18);vibrate(70);}if(t==='cancel')portalsVFX?.clear();}});
 const judgmentDragon=new JudgmentDragon({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id,k)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,true,true);},
  event:t=>{if(t==='channel')worldAudio.novaCharge?.();if(t==='form')worldAudio.celestial?.();if(t==='fire')worldAudio.whoosh();if(t==='ball-impact'||t==='ball-wall'){worldAudio.energyImpact(1);hitStop(35);}if(t==='advance')worldAudio.whoosh();if(t==='engulf'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(.1);}if(t==='compress')worldAudio.voidCharge?.();if(t==='explode'){worldAudio.novaBlast?.();if(!userSettings.reduceShake)cameraShake(.24);vibrate(110);}if(t==='cancel')dragonVFX?.clear();}});
 const EXTRA_RUN={skill_x_rupture:xRupture,skill_twin_portals:twinPortals,skill_judgment_dragon:judgmentDragon};
@@ -6221,11 +6221,11 @@ function tickZarkUlt(dt,now){
   // Preparação quase imperceptível; sem tremor repetido de três explosões.
   const preRumble=s.st.phase==='explosions'&&blastAge<0
    ? .20*Math.pow(Math.min(1,s.st.pt/1.08),2):0;
-  const impactRumble=blastAge>=0? .68*Math.exp(-blastAge*3.2):0;
-  const tailRumble=blastAge>=0? .18*Math.exp(-blastAge*.85):0;
+  const impactRumble=blastAge>=0? .78*Math.exp(-blastAge*3.0):0;
+  const tailRumble=blastAge>=0? .21*Math.exp(-blastAge*.9):0;
   const trauma=Math.min(.94,Math.max(s.st.trauma*.28,preRumble+impactRumble+tailRumble));
   if(trauma>.025){
-   const shake=shakeAt(trauma,s.st.t,100,{amp:fpWasActive?.055:.145,roll:.010,freq:9.2,kick:0});
+   const shake=shakeAt(trauma,s.st.t,100,{amp:fpWasActive?.065:.19,roll:.011,freq:9.2,kick:0});
    camera.position.add(_zuA.set(shake.x,shake.y,shake.z));
    camera.rotateZ(Math.max(-.012,Math.min(.012,shake.roll)));
   }
