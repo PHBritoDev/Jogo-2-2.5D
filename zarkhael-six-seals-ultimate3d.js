@@ -6,7 +6,7 @@
 export const ZARK_ULT_BUILD='281-front-stepwise-six-shots-volumetric-detonation';
 export const ZARK_ULT=Object.freeze({
  aura:3.3, seals:6.7, explosions:5.5, total:15.5, count:6,
- radii:[1,.73,.55,.41,.30,.21], heights:[.11,6.5,13,19.5,26,32.5],
+ radii:[1,.50,.38,.28,.21,.16], heights:[.11,6.5,13,19.5,26,32.5],
  safeArea:.20, burstTimes:[.55,2.07,3.60], burstPeriod:1.52,
  damage:[15,17,22], sealGap:6.7/6, sealBuild:1.02,
  cameraBase:76, cameraTop:137, auraScale:7.2
