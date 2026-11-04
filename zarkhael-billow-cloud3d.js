@@ -101,7 +101,7 @@ export function createBillowingCrown(T,root){
   const n=Math.sqrt((i+.5)/GROUND),radius=(.12+.66*n);
   groundLobes.push({a,radius,height:1.15+2.1*seed(i+421),
    size:4.25+1.6*seed(i+439),delay:.09+.32*seed(i+451),seed:seed(i+479)});
-  groundSeeds[i]=seed(i+461);groundHot[i]=.64+.29*seed(i+499);
+  groundSeeds[i]=seed(i+461);groundHot[i]=.43+.21*seed(i+499);
  }
  // Atributos por instância, economizando draw calls no celular.
  const geoFire=billows.geometry.clone();geoFire.setAttribute('aSeed',new T.InstancedBufferAttribute(seeds,1));geoFire.setAttribute('aHeat',new T.InstancedBufferAttribute(hot,1));billows.geometry=geoFire;
@@ -150,7 +150,7 @@ export function createBillowingCrown(T,root){
  groundFire.instanceMatrix.needsUpdate=true;
  groundFire.material.uniforms.uTime.value=t;
  groundFire.material.uniforms.uWarp.value=.65;
- groundFire.material.uniforms.uOpacity.value=active?spread*groundFade*.94:0;
+ groundFire.material.uniforms.uOpacity.value=active?spread*groundFade*.88:0;
  const ground=ease((age-.34)/.9),smFade=1-ease((age-3.1)/1.7);
   smoke.visible=active&&ground>.001;smoke.count=low?24:SMOKE;
   for(let i=0;i<smoke.count;i++){
