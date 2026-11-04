@@ -196,10 +196,12 @@ const THEMES = {
       for (let k = 0; k < 6; k++) { const a = r() * 6.28, el = .35 + r() * .8; eyeAt.push({ x: x + Math.cos(a) * Math.cos(el) * w * 2.5, y: h + Math.sin(el) * w * 1.1, z: z + Math.sin(a) * Math.cos(el) * w * 2.5, size: w * (2 + r() * 2.5) }); } };
     for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2 + .2, d = R + 8 + r() * 14; place(Math.cos(a) * d, Math.sin(a) * d, 16 + r() * 20, 2.6 + r() * 2, i); }
     for (let i = 0; i < 14; i++) { const z = -R - 8 - i * 11, side = i % 2 ? 1 : -1; place(side * (11 + r() * 5), z, 9 + r() * 12, 1.6 + r(), i); }
-    g.add(instanced(THREE, new THREE.CylinderGeometry(.62, 1, 1, 10), stemMat, stems));
-    g.add(instanced(THREE, new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), capMat, caps));
+    const stemMesh=instanced(THREE, new THREE.CylinderGeometry(.62, 1, 1, 10), stemMat, stems);
+    const capMesh=instanced(THREE, new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), capMat, caps);
+    g.add(stemMesh,capMesh);
     const eyes = eyeField(THREE, { count: eyeAt.length, seed: 5, tex: eyeTexture(THREE, { sclera: ['#8a8a92', '#f0eee8'], iris: '#4a4a58', ring: '#101014' }), tint: [1, 1, 1], place: i => eyeAt[i] });
     g.add(eyes); ctx.eyes.push(eyes);
+    ctx.refs.zarkhaelCinematicOccluders=[stemMesh,capMesh,eyes]; // apenas visuais; restaurar depois
     const pillars = []; for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + .4; pillars.push({ x: Math.cos(a) * (R + 2), y: 3.2, z: Math.sin(a) * (R + 2), sx: 2.4, sy: 6.4 + r() * 3, sz: 2.4, ry: r() }); }
     g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x18181c, roughness: .9 }), pillars));
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(26, 26), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, map: canvasTex(THREE, 128, 128, (c, w, h) => { const gr = c.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, '#fff'); gr.addColorStop(.25, 'rgba(255,255,255,.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); }) }));
