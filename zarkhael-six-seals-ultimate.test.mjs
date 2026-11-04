@@ -64,11 +64,11 @@ test('direção de câmera fiel: plano frontal, depois SEIS subidas individuais'
   'o primeiro círculo é filmado poucos metros acima');
  const blast=cam(12);
  assert.equal(blast.shot,'EXPLOSOES_VISTA_ALTA');
- assert.ok(blast.pos[1]>boss.y+50,'câmera sobe para mostrar as detonações');
+ assert.ok(blast.pos[1]>boss.y+40,'câmera continua elevada mas revela coluna e copa');
  assert.ok(Math.hypot(blast.pos[0]-arena.x,blast.pos[2]-arena.z)>30,
   'volume das explosões visto em 3/4 do alto, não disco zenital');
 });
-test('uma detonação cinematográfica única, precedida por compressão de energia',()=>{
+test('uma detonação cinematográfica única com expansão do núcleo até copa, precedida por compressão',()=>{
  const {s,ev}=run(1/60,{x:1200,z:0});
  const bursts=ev.filter(e=>e.type==='burst'),hits=ev.filter(e=>e.type==='hit');
  assert.deepEqual(bursts.map(e=>e.n),[1]);
