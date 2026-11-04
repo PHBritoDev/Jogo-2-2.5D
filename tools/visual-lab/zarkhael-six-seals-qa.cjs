@@ -104,7 +104,7 @@ async function main(){
        data.frames[8].burstCount!==0 ||
        data.frames[9].burstCount!==1 ||
        data.frames[14].burstCount!==1 ||
-       data.frames[8].camera[1]<=camHeights[5])
+       data.frames[8].camera[1]>=camHeights[5])
       throw Error("Seis selos/uma explosão/câmera final inválidos");
     if(data.glErrors.length||data.jsErrors.some(e=>/ReferenceError|SyntaxError|Asset falhou/.test(e)))
       throw Error("Erro WebGL/JS detectado: "+JSON.stringify(data.glErrors.concat(data.jsErrors)).slice(0,1200));
