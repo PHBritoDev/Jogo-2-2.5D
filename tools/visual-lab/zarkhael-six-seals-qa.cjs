@@ -1,7 +1,7 @@
 "use strict";
 /**
  * Mod 280: captura da ULTIMATE REAL do Bispo 3 no browser 3D com WebGL,
- * sem mocks, em portrait e landscape. Audita six seals, safe zone, 3 bursts.
+ * sem mocks, em portrait e landscape. Audita six seals, safe zone, 1 blast.
  */
 const {chromium}=require("playwright"),fs=require("node:fs"),path=require("node:path");
 const base=(process.env.VISUAL_BASE_URL||"http://127.0.0.1:4173").replace(/\/$/,"");
@@ -27,7 +27,7 @@ async function main(){
    page.on("console",m=>{if(m.type()==="error"){const x=m.text().slice(0,650);data.console.push(x);if(/shader|WebGL|INVALID_OPERATION|VALIDATE_STATUS|cannot compile/i.test(x))data.glErrors.push(x);}});
    page.on("requestfailed",req=>{if(/zarkhael|six-seals/i.test(req.url()))data.jsErrors.push("Asset falhou: "+req.url().slice(0,160));});
    try{
-    const url=base+"/mundo-3d-prototype.html?testeDimensao=bishop3&debug3d=1&build=mod281-fidelidade-qa";
+    const url=base+"/mundo-3d-prototype.html?testeDimensao=bishop3&debug3d=1&build=mod282-single-eruption-qa";
     await page.goto(url,{waitUntil:"domcontentloaded",timeout:35000});
     await page.waitForFunction(()=>typeof window.SevenSinsDebug3D?.dimState==="function",null,{timeout:110000});
     let active=false;
@@ -50,6 +50,8 @@ async function main(){
     if(!launch)throw Error("Ultimate não iniciou por kitMove(ult)");
     // Storyboard real: frontal, seis tomadas separadas, pré-ruptura e
     // TRÊS explosões com momento de formação e de expansão registrados.
+    // Um blast só: mostrar CARGA, núcleo único, coluna subindo,
+    // copa de fogo crescendo, anéis da mesma explosão e dissipação.
     const schedule=[
      ['01-bispo-frente',1.25,'FRONTAL_BISPO'],
      ['02-aura-controlada',2.88,'FRONTAL_BISPO'],
@@ -59,12 +61,13 @@ async function main(){
      ['06-circulo-4',7.26,'CIRCULO_4'],
      ['07-circulo-5',8.38,'CIRCULO_5'],
      ['08-circulo-6',9.49,'CIRCULO_6'],
-     ['09-pre-ruptura',10.24,'EXPLOSOES_VISTA_ALTA'],
-     ['10-explosao-1-nucleo',10.93,'EXPLOSOES_VISTA_ALTA'],
-     ['11-explosao-1-expandida',11.63,'EXPLOSOES_VISTA_ALTA'],
-     ['12-explosao-2-expandida',13.15,'EXPLOSOES_VISTA_ALTA'],
-     ['13-explosao-3-expandida',14.68,'EXPLOSOES_VISTA_ALTA'],
-     ['14-explosao-3-apice',14.95,'EXPLOSOES_VISTA_ALTA']];
+     ['09-carga-antes-da-explosao',10.52,'EXPLOSOES_VISTA_ALTA'],
+     ['10-nucleo-ignite',11.20,'EXPLOSOES_VISTA_ALTA'],
+     ['11-coluna-crescendo',11.94,'EXPLOSOES_VISTA_ALTA'],
+     ['12-copa-formando',12.77,'EXPLOSOES_VISTA_ALTA'],
+     ['13-cogumelo-abrindo',13.63,'EXPLOSOES_VISTA_ALTA'],
+     ['14-apice-uma-explosao',14.40,'EXPLOSOES_VISTA_ALTA'],
+     ['15-dissipacao',15.03,'EXPLOSOES_VISTA_ALTA']];
     for(const [name,target,expectedShot] of schedule){
      const h=await page.waitForFunction(t=>{
       const state=window.SevenSinsDebug3D?.dimState()?.cinematic;
@@ -77,11 +80,14 @@ async function main(){
      if(bytes<9000)throw Error("Imagem inválida/sem geometria aparente: "+name+" "+bytes);
      const frame={name,time:state.t,phase:state.phase,shot:state.shot,expectedShot,
       camera:state.cam,fov:state.fov,sealCount:state.selos.filter(a=>a[1]>.95).length,
-      burstCount:state.bursts.length,vfx:state.vfx,occluders:state.occluders,hudCompact:state.hudCompact,bytes};
+      burstCount:state.bursts.length,vfx:state.vfx,bossFrozen:state.bossFrozen,mixerScale:state.mixerScale,bossPos:state.bossPos,lockPos:state.lockPos,occluders:state.occluders,hudCompact:state.hudCompact,bytes};
      data.frames.push(frame);
      if(frame.shot!==expectedShot)throw Error("PLANO ERRADO "+name+": "+frame.shot+" em vez de "+expectedShot);
      if(!frame.vfx)throw Error("VFX invisível em "+name);
      if(!frame.hudCompact)throw Error("A interface do jogo cobriu a cinematográfica "+name);
+     if(!frame.bossFrozen || frame.mixerScale!==0)throw Error('O BISPO SE MOVE DURANTE A ULTIMATE em '+name);
+     if(frame.bossPos&&frame.lockPos&&frame.bossPos.some((v,j)=>Math.abs(v-frame.lockPos[j])>.03))
+      throw Error('Bispo saiu do lugar durante a ultimate: '+name);
      if(frame.phase!=='aura'&&frame.occluders<3)
       throw Error("Cogumelos gigantes ainda atrapalham a câmera "+name);
     }
@@ -94,15 +100,17 @@ async function main(){
     if(!(data.frames[0].camera[1]<data.frames[2].camera[1])
       ||data.frames[0].fov>51)
       throw Error("A câmera não começou frontal e próxima ao Bispo");
-    if(data.frames[8].sealCount!==6
-      ||data.frames[12].burstCount!==3 ||data.frames[13].burstCount!==3
-      ||data.frames[8].camera[1]<=camHeights[5])
-      throw Error("Seis selos/3 explosões/câmera final inválidos");
+    if(data.frames[8].sealCount!==6 ||
+       data.frames[8].burstCount!==0 ||
+       data.frames[9].burstCount!==1 ||
+       data.frames[14].burstCount!==1 ||
+       data.frames[8].camera[1]<=camHeights[5])
+      throw Error("Seis selos/uma explosão/câmera final inválidos");
     if(data.glErrors.length||data.jsErrors.some(e=>/ReferenceError|SyntaxError|Asset falhou/.test(e)))
       throw Error("Erro WebGL/JS detectado: "+JSON.stringify(data.glErrors.concat(data.jsErrors)).slice(0,1200));
     data.status="approved";
     data.visualReview="As capturas precisam de comparação humana com as referências originais; aprovação técnica não mede fidelidade artística.";
-    process.stdout.write("[BISPO3 281] "+mode+" -> 6 selos, 3 bursts, screenshots reais, sem shader error.\n");
+    process.stdout.write("[BISPO3 281] "+mode+" -> 6 selos, 1 blast, screenshots reais, sem shader error.\n");
    }catch(e){
     data.status="failed";data.failure=String(e.stack||e).slice(0,1400);
     process.stderr.write("[BISPO3 281] "+mode+" FAIL: "+data.failure+"\n");process.exitCode=1;
