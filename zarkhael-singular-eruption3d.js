@@ -3,13 +3,13 @@
  * A copa nasce DEPOIS da coluna. Três anéis são regiões de pressão da MESMA
  * explosão, não três explosões. GLSL WebGL1 com turbulência, veios, brilho quente.
  */
-export const ERUPTION_BUILD='282-bright-column-and-flame-crown';
+export const ERUPTION_BUILD='283-ruffled-billowing-crown-heat-gradients';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),ease=v=>{v=clamp(v);return v*v*(3-2*v);};
 const V=[
  'uniform float uT,uWarp;varying vec3 vP;',
- 'void main(){vec3 p=position;float a=atan(p.z,p.x),h=p.y*.055;',
- 'float j=sin(a*11.+h*13.-uT*3.)*.081+sin(a*23.-h*29.+uT*4.)*.045;',
- 'p.xz*=1.+uWarp*j;p.y+=uWarp*.19*sin(a*13.+h*15.-uT*2.);',
+ 'void main(){vec3 p=position;float a=atan(p.z,p.x),h=p.y*.055;float cap=smoothstep(17.,27.,p.y);',
+ 'float j=sin(a*8.+h*17.-uT*1.7)*.15+sin(a*16.-h*31.+uT*2.2)*.085+sin(a*29.+h*39.-uT*3.)*.036;',
+ 'p.xz*=1.+uWarp*j*(.33+.77*cap);p.y+=uWarp*(.77*cap*sin(a*11.+h*18.-uT*2.4)+.23*sin(a*24.-h*15.+uT*2.));',
  'vP=p;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}'
 ].join('\n');
 const F=[
@@ -19,17 +19,18 @@ const F=[
  'return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),',
  'mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}',
  'void main(){float a=atan(vP.z,vP.x),h=vP.y*.05;',
- 'vec3 p=vec3(a*3.7,h*4.1-uT*1.3,uSeed);',
- 'float n=noise3(p),n2=noise3(p*2.3+vec3(uT*.24,-uT*.3,2.4));',
- 'float vein=pow(max(0.,sin(a*25.+h*39.-uT*7.+n*7.)),12.);',
- 'float fire=clamp(n*.61+n2*.39+.12,0.,1.);',
+ 'vec3 p=vec3(a*2.3,h*2.8-uT*.72,uSeed);',
+ 'float n=noise3(p),n2=noise3(p*2.1+vec3(uT*.25,-uT*.36,2.4));',
+ 'float vein=pow(max(0.,sin(a*20.+h*23.-uT*4.8+n*5.)),10.);',
+ 'float fire=clamp(n*.62+n2*.45+.08,0.,1.);float rolled=.5+.5*sin(a*12.+h*12.-uT*2.+n2*4.);',
  'float ash=noise3(p*1.7+vec3(2.,5.,1.));',
- 'vec3 black=vec3(.08,.001,.012),red=vec3(.78,.011,.029),orange=vec3(1.,.24,.012);',
- 'vec3 gold=vec3(1.,.65,.057),hot=vec3(1.,.94,.60);',
- 'vec3 c=mix(black,red,fire);c=mix(c,orange,clamp(fire*.63+vein*.35,0.,.94));',
- 'c=mix(c,gold,clamp(vein*.50*uHot,0.,.63));',
- 'c=mix(c,hot,clamp(vein*.15*uHot,0.,.17));c=mix(c,black,ash*.20);',
- 'float alpha=(.56+.38*fire+.07*vein)*uAlpha;',
+ 'vec3 black=vec3(.095,.001,.014),red=vec3(.92,.011,.023),orange=vec3(1.,.36,.006);',
+ 'vec3 gold=vec3(1.,.79,.075),hot=vec3(1.,.98,.74);',
+ 'float burn=clamp(fire*.88+rolled*.22+vein*.18-.06,0.,1.);vec3 c=mix(black,red,smoothstep(.12,.56,burn));',
+ 'c=mix(c,orange,smoothstep(.30,.76,burn)*.93);',
+ 'c=mix(c,gold,smoothstep(.55,.95,burn)*(.65+.24*uHot));',
+ 'c=mix(c,hot,smoothstep(.79,1.10,burn)*uHot*.61);c=mix(c,black,ash*.16);',
+ 'float alpha=(.62+.30*fire+.08*vein)*uAlpha;',
  'if(alpha<.035)discard;gl_FragColor=vec4(c,clamp(alpha,0.,.95));}'
 ].join('\n');
 
