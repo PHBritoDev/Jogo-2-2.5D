@@ -105,8 +105,8 @@ jobs:
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: bispo3-ultimate-mod280
-          path: visual-lab-results/zarkhael-ultimate-280/
+          name: bispo3-ultimate-mod281
+          path: visual-lab-results/zarkhael-ultimate-281/
           retention-days: 14
           if-no-files-found: warn
 

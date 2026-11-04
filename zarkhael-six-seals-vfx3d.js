@@ -1,83 +1,112 @@
+import {createSingularMushroomExplosion,ERUPTION_BUILD} from './zarkhael-singular-eruption3d.js';
 /**
  * MOD 280 — VFX especializado da ultimate do Bispo 3, WebGL1 compatível.
  * Círculos procedurais com glifos/hexagramas/linhas, aura advectada do corpo,
- * núcleo da espada GLB original e uma cúpula de plasma com formação progressiva.
+ * núcleo da espada GLB original e 3 cúpulas de plasma com formação progressiva.
  * Geometrias reutilizadas, shaders com uniforms e estilhaços instanciados.
  */
-export const ZARK_ULT_VFX_BUILD='281-six-seals-single-crescendo';
+export const ZARK_ULT_VFX_BUILD='282-organic-shadow-no-cones';
 const PI=Math.PI,TAU=2*PI,clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),
  sm=v=>{v=clamp(v);return v*v*(3-2*v);};
 const VERT='varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
 const SEAL_FRAG=[
- 'uniform float uTime,uBuild,uCharge,uAlpha,uSeed;varying vec2 vU;',
+ 'uniform float uTime,uBuild,uCharge,uAlpha,uSeed; varying vec2 vU;',
  'float seg(vec2 p,vec2 a,vec2 b){vec2 pa=p-a,ba=b-a;return length(pa-ba*clamp(dot(pa,ba)/max(.001,dot(ba,ba)),0.,1.));}',
- 'float line(float d,float w){return 1.-smoothstep(w,w+.005,d);}',
+ 'float line(float d,float w){return 1.-smoothstep(w,w+.004,d);}',
  'float ring(float r,float R,float w){return 1.-smoothstep(w,w+.006,abs(r-R));}',
- 'void main(){vec2 p=vU*2.-1.;float r=length(p);if(r>1.02)discard;',
+ 'void main(){vec2 p=vU*2.-1.;float r=length(p);if(r>1.025)discard;',
  'float a=atan(p.y,p.x),an=fract(a/6.2831853+.5);',
- 'float draw=1.-smoothstep(uBuild-.025,uBuild+.022,an);',
- 'float gear=abs(sin(a*24.+uSeed*4.))*.009;',
- 'float outer=ring(r,.973+gear,.008);',
- 'float rails=ring(r,.902,.0035)+ring(r,.840,.005)+ring(r,.735,.0035);',
- 'float eye=ring(r,.590,.006)+ring(r,.54,.003);',
- 'float grid=max(line(abs(p.x),.005),line(abs(p.y),.005))*step(r,.77);',
- 'float spokes=(1.-smoothstep(.009,.023,abs(sin(a*12.))))*step(.59,r)*step(r,.91);',
- 'float runes=(1.-smoothstep(.12,.20,abs(sin(a*56.+uSeed*11.))))*(1.-smoothstep(.014,.025,abs(r-.792)))*.8;',
+ 'float draw=1.-smoothstep(uBuild-.03,uBuild+.025,an);',
+ 'float breathe=.84+.16*sin(uTime*2.4+uSeed*4.+r*15.);',
+ 'float rim=ring(r,.987,.009)+ring(r,.955,.004)+ring(r,.895,.005)+ring(r,.856,.0028);',
+ 'float mid=ring(r,.738,.005)+ring(r,.682,.004)+ring(r,.598,.004)+ring(r,.545,.003);',
+ 'float inner=ring(r,.378,.006)+ring(r,.315,.003)+ring(r,.148,.009);',
+ 'float tick=(1.-smoothstep(.006,.019,abs(sin(a*36.+uSeed))))*step(.745,r)*step(r,.97);',
+ 'float glyphs=pow(max(0.,sin(a*58.+uSeed*13.)),12.)*ring(r,.795,.017);',
+ 'float suns=(1.-smoothstep(.005,.018,abs(sin(a*8.))))*step(.32,r)*step(r,.93);',
  'float star=0.;',
- 'for(int i=0;i<6;i++){float t=float(i)*1.04719755,tt=float(i+2)*1.04719755;',
- 'star=max(star,line(seg(p,vec2(cos(t),sin(t))*.68,vec2(cos(tt),sin(tt))*.68),.004));}',
- 'float spokesGlow=outer*.95+rails*.7+eye*.65+grid*.23+spokes*.75+runes+.50*star;',
- 'float core=ring(r,.09,.01)+ring(r,.16,.004);',
- 'float mid=clamp(spokesGlow+core,0.,1.)*draw;',
- 'float gold=clamp(outer*.95+runes*.8+core*.7+uCharge*.2,0.,1.);',
- 'vec3 crimson=vec3(.86,.012,.055),ember=vec3(1.,.33,.025),hot=vec3(1.,.92,.62);',
- 'float flare=.83+.17*sin(uTime*3.8+r*26.+uSeed);',
- 'vec3 col=mix(crimson,ember,gold*.8);col=mix(col,hot,clamp(core*.65+outer*.34+uCharge*.35,0.,1.));',
- 'float alpha=clamp(mid*(.7+.65*uCharge)*flare*uAlpha,0.,1.);',
- 'if(alpha<.018)discard;gl_FragColor=vec4(col,alpha);}'
+ 'for(int i=0;i<8;i++){float t=6.2831853*float(i)/8.;float t2=6.2831853*mod(float(i+3),8.)/8.;',
+ 'star=max(star,line(seg(p,vec2(cos(t),sin(t))*.57,vec2(cos(t2),sin(t2))*.57),.005));}',
+ 'float tri=0.;for(int i=0;i<3;i++){float t=6.2831853*float(i)/3.;float t2=6.2831853*float(i+1)/3.;',
+ 'tri=max(tri,line(seg(p,vec2(cos(t),sin(t))*.30,vec2(cos(t2),sin(t2))*.30),.005));}',
+ 'float spin=pow(max(0.,sin(a*11.+r*19.-uTime*2.2+uSeed)),15.)*step(.56,r)*step(r,.84);',
+ 'float flare=pow(max(0.,sin(a*31.+uTime*9.+uSeed*6.)),18.)*ring(r,.98,.025);',
+ 'float body=clamp(rim+mid+inner+tick*.8+glyphs*.85+suns*.55+star*.72+tri*.7+spin*.30,0.,1.)*draw;',
+ 'float impending=clamp(uCharge,0.,1.25);',
+ 'vec3 crimson=vec3(.85,.018,.048),orange=vec3(1.,.36,.025),gold=vec3(1.,.87,.27);',
+ 'float heat=clamp(rim*.40+tick*.3+glyphs*.9+inner*.6+impending*.35,0.,1.);',
+ 'vec3 col=mix(crimson,orange,heat);col=mix(col,gold,clamp(inner*.35+flare*.75*impending+rim*.15,0.,.85));',
+ 'float alpha=clamp((body*(.75+.4*impending)*breathe+flare*.42*impending)*uAlpha,0.,1.);',
+ 'if(alpha<.016)discard;gl_FragColor=vec4(col,alpha);}',
 ].join('\n');
 const AURA_VERT=[
  'uniform float uTime,uPower,uSeed;varying vec2 vU;',
  'void main(){vU=uv;vec3 p=position;',
- 'float f=sin(vU.y*12.+uTime*2.3+uSeed*4.)*.30+sin(vU.y*27.-uTime*4.2+uSeed*9.)*.13;',
- 'p.x+=(f+sin(uTime*.7+uSeed*6.)*.19)*(.5+vU.y*.95);',
- 'p.z+=sin(vU.y*18.-uTime*3.5+uSeed)*(.15+.43*vU.y);',
- 'p.y+=sin(vU.y*7.+uTime*1.4+uSeed)*.14*uPower;',
- 'gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}'
+ 'float rise=vU.y,flutter=sin(rise*9.-uTime*3.5+uSeed*12.)*.095+sin(rise*21.+uTime*5.+uSeed*7.)*.042;',
+ 'p.x+=(flutter+sin(rise*4.+uTime*.9+uSeed*8.)*.11)*(.12+.65*rise);',
+ 'p.z+=sin(rise*16.-uTime*2.7+uSeed*9.)*.075*(.3+rise);',
+ 'p.y+=sin(rise*8.+uTime*.8+uSeed)*.038*uPower;',
+ 'gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}',
 ].join('\n');
 const AURA_FRAG=[
  'uniform float uTime,uPower,uSeed;varying vec2 vU;',
  'void main(){float v=vU.y,u=vU.x;',
- 'float flow=sin(v*18.-uTime*4.+uSeed*5.)*.11+sin(v*37.+uTime*7.)*.045;',
- 'float width=.21+.19*v+.15*sin(v*5.+uSeed);',
- 'float body=1.-smoothstep(width*.58,width,abs(u-.5+flow));',
- 'float core=1.-smoothstep(.04,.15,abs(u-.5+flow*.45));',
- 'float height=smoothstep(0.,.12,v)*(1.-smoothstep(.84,1.,v));',
- 'float crack=pow(max(0.,sin(v*56.+uSeed*11.+uTime*6.)),17.);',
- 'vec3 col=mix(vec3(.25,.001,.028),vec3(.95,.012,.05),body*.8+crack*.3);',
- 'col=mix(col,vec3(1.,.38,.17),core*.85);',
- 'float alpha=height*(body*.65+core*.48+crack*.10)*uPower;',
- 'if(alpha<.015)discard;gl_FragColor=vec4(col,clamp(alpha,0.,1.));}'
+ 'float adv=sin(v*12.-uTime*3.2+uSeed*15.)*.08+sin(v*26.+uTime*5.+uSeed*8.)*.025;',
+ 'float taper=(1.-v)*(.38+.16*sin(v*6.+uSeed*3.));',
+ 'float body=1.-smoothstep(taper*.37,taper,abs(u-.5+adv));',
+ 'float fire=pow(max(0.,sin(v*41.-uTime*7.+uSeed*5.)),17.);',
+ 'float vein=1.-smoothstep(.025,.18,abs(u-.5+adv*.3));',
+ 'float height=smoothstep(0.,.1,v)*(1.-smoothstep(.80,1.,v));',
+ 'vec3 black=vec3(.025,.001,.015),red=vec3(.83,.008,.042),hot=vec3(1.,.19,.056);',
+ 'vec3 col=mix(black,red,clamp(body*.74+fire*.25,0.,1.));col=mix(col,hot,vein*.45+fire*.19);',
+ 'float alpha=height*(body*.46+vein*.25+fire*.12)*uPower;',
+ 'if(alpha<.017)discard;gl_FragColor=vec4(col,clamp(alpha,0.,1.));}',
 ].join('\n');
-const DOME_VERT='varying vec2 vUv;varying vec3 vPos;void main(){vUv=uv;vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const DOME_VERT=[
+ 'uniform float uTime,uAge,uAlpha,uPulse;varying vec3 vPos;varying float vWarp;',
+ 'void main(){vec3 p=position;float a=atan(p.z,p.x);float h=max(0.,p.y);',
+ 'float w=.11*sin(a*9.+h*7.-uTime*3.+uPulse*4.)+.07*sin(a*21.-h*19.+uTime*5.);',
+ 'float distortion=w*(.46+.54*clamp(uAge,0.,1.));',
+ 'p.xz*=1.+distortion;p.y*=1.+distortion*.7;',
+ 'vPos=p;vWarp=w;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}',
+].join('\n');
 const DOME_FRAG=[
- 'uniform float uTime,uAge,uAlpha,uPulse;varying vec2 vUv;varying vec3 vPos;',
- 'float hash21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
- 'float noise2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash21(i),hash21(i+vec2(1,0)),f.x),mix(hash21(i+vec2(0,1)),hash21(i+vec2(1,1)),f.x),f.y);}',
- 'void main(){float x=atan(vPos.z,vPos.x),h=clamp(vPos.y,0.,1.);',
- 'float corr=noise2(vec2(x*5.1+uTime*.6,h*9.-uTime*2.8));',
- 'float veins=pow(max(0.,sin(x*19.+h*42.+uTime*8.+corr*6.)),10.);',
- 'float tear=sin(x*11.+h*10.-uTime*4.)*.085+sin(x*28.-h*26.+uTime*6.)*.038;',
- 'float silhouette=1.-smoothstep(.86+tear,.98+tear,h);',
- 'float core=pow(max(0.,1.-h),6.)*(.7+.3*sin(uAge*13.));',
- 'float ringGlow=pow(max(0.,sin(h*24.-uAge*9.)),12.)*.55;',
- 'float fire=.27+pow(corr,1.4)*.65+veins*.8+ringGlow;',
- 'vec3 cold=vec3(.31,.001,.028),crimson=vec3(1.,.018,.071),hot=vec3(1.,.36,.025),white=vec3(1.,.92,.64);',
- 'vec3 c=mix(cold,crimson,clamp(fire*.9+core*.45,0.,1.));',
- 'c=mix(c,hot,clamp(fire*.52+veins*.26,0.,1.));',
- 'c=mix(c,white,clamp(veins*.45+core*.68,0.,1.));',
- 'float alpha=clamp((.49+fire*.5+core*.24)*silhouette*uAlpha,0.,1.);',
- 'if(alpha<.025)discard;gl_FragColor=vec4(c,alpha);}'
+ 'uniform float uTime,uAge,uAlpha,uPulse;varying vec3 vPos;varying float vWarp;',
+ 'float hsh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+ 'float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hsh(i),hsh(i+vec2(1.,0.)),f.x),mix(hsh(i+vec2(0.,1.)),hsh(i+vec2(1.,1.)),f.x),f.y);}',
+ 'void main(){float a=atan(vPos.z,vPos.x),h=clamp(vPos.y,0.,1.);',
+ 'float adv=ns(vec2(a*4.8+uTime*.25,h*5.8-uTime*2.0));',
+ 'float inner=ns(vec2(a*12.-uTime*.7,h*17.+uTime*3.1));',
+ 'float fissure=pow(max(0.,sin(a*23.+h*27.+uTime*7.+adv*4.)),11.);',
+ 'float patches=ns(vec2(a*8.+h*4.+uPulse,h*12.-uTime*.8));',
+ 'float lobe=.12*sin(a*9.+h*3.-uTime*1.3)+.08*sin(a*19.-h*11.+uTime*2.);',
+ 'float contour=1.-smoothstep(.83+lobe,.99+lobe,h);',
+ 'float speck=pow(max(0.,sin(a*15.+h*40.-uTime*8.)),17.);',
+ 'float burn=clamp(adv*.49+inner*.35+fissure*.37,0.,1.);',
+ 'vec3 black=vec3(.095,.001,.018),darkred=vec3(.49,.004,.022),red=vec3(1.,.022,.034),orange=vec3(1.,.31,.008),yellow=vec3(1.,.78,.08);',
+ 'vec3 col=mix(black,darkred,smoothstep(.04,.27,patches));',
+ 'col=mix(col,red,smoothstep(.23,.75,burn));',
+ 'col=mix(col,orange,clamp(fissure*.72+inner*.34,0.,.86));',
+ 'col=mix(col,yellow,clamp(fissure*.15+speck*.19,0.,.3));',
+ 'float alpha=clamp((.47+.35*burn+.22*fissure)*contour*uAlpha,0.,1.);',
+ 'if(alpha<.04)discard;gl_FragColor=vec4(col,alpha);}',
+].join('\n');
+// Um único plano de sombra líquida, sem tetraedros, cones nem quads opacos.
+const SHADOW_POOL_VERT='varying vec2 vUV;void main(){vUV=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+const SHADOW_POOL_FRAG=[
+ 'uniform float uTime,uOpacity;varying vec2 vUV;',
+ 'float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+ 'float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hs(i),hs(i+vec2(1.,0.)),f.x),mix(hs(i+vec2(0.,1.)),hs(i+vec2(1.,1.)),f.x),f.y);}',
+ 'void main(){vec2 p=vUV*2.-1.;float r=length(p),a=atan(p.y,p.x);',
+ 'float n=ns(p*6.+vec2(uTime*.18,-uTime*.12)),n2=ns(p*13.-vec2(uTime*.38,-uTime*.20));',
+ 'float edge=.89+.065*sin(a*8.-uTime*1.15)+.033*sin(a*19.+uTime*1.9)+.037*(n-.5);',
+ 'float flow=sin(a*10.-r*24.+uTime*2.1+n*5.)*.5+.5;',
+ 'float swirl=sin(17.*a-r*16.-uTime*1.8+n2*4.)*.5+.5;',
+ 'float alpha=(1.-smoothstep(edge-.13,edge+.07,r))*uOpacity*(.32+.31*n+.22*flow+.13*swirl);',
+ 'vec3 ink=vec3(.012,.0003,.009),wine=vec3(.17,.004,.025),rim=vec3(.35,.007,.038);',
+ 'vec3 c=mix(ink,wine,clamp(.13+flow*.37+n*.35,0.,1.));',
+ 'c=mix(c,rim,clamp(.14*swirl+.20*n2,0.,.28));',
+ 'if(alpha<.014)discard;gl_FragColor=vec4(c,clamp(alpha,0.,.56));}'
 ].join('\n');
 const CHARGE_FRAG=[
  'uniform float uTime,uPower;varying vec2 vU;',
@@ -91,6 +120,91 @@ const CHARGE_FRAG=[
  'float alpha=clamp((energy+lines*.3)*uPower,0.,1.);',
  'if(alpha<.02)discard;gl_FragColor=vec4(col,alpha);}'
 ].join('\n');
+// Mod 281.1: lâminas volumétricas de plasma. As frentes NÃO usam domos,
+// esferas nem nuvens. A malha contém três faces irregulares cruzadas, com
+// fissuras e nervuras animadas no próprio shader WebGL1.
+const RIFT_VERTEX=[
+ 'uniform float uTime,uAge,uSeed;',
+ 'varying vec2 vUV;varying float vFlicker;',
+ 'void main(){vUV=uv;vec3 v=position;',
+ 'float wave=sin(uv.x*13.-uTime*4.+uSeed*6.)*.07+sin(uv.x*29.+uTime*6.)*.025;',
+ 'v.y+=wave*uv.x*(1.-uv.x);v.z+=wave*.48*uv.x;',
+ 'vFlicker=.82+.18*sin(uTime*7.+uv.x*15.+uSeed);',
+ 'vec4 pos=vec4(v,1.);',
+ '#ifdef USE_INSTANCING',
+ 'pos=instanceMatrix*pos;',
+ '#endif',
+ 'gl_Position=projectionMatrix*modelViewMatrix*pos;}'
+].join('\n');
+const RIFT_FRAGMENT=[
+ 'uniform float uTime,uAge,uPower,uSeed;varying vec2 vUV;varying float vFlicker;',
+ 'void main(){float t=vUV.x,q=vUV.y;',
+ 'float jag=sin(t*31.-uTime*6.+uSeed*7.)*.075+sin(t*67.+uTime*8.)*.035;',
+ 'float edge=abs(q-.5)*2.;',
+ 'float outside=smoothstep(.45,.96,edge+jag);',
+ 'float vein=exp(-pow((q-.5+sin(t*17.-uTime*5.)*.065)*11.,2.));',
+ 'float fissure=pow(max(0.,sin(t*40.+q*19.-uTime*7.+uSeed*4.)),16.);',
+ 'float wave=sin(t*15.-uTime*3.+uSeed*8.)*.5+.5;',
+ 'vec3 obsidian=vec3(.06,.001,.017),crimson=vec3(.78,.004,.034),red=vec3(1.,.055,.035);',
+ 'vec3 amber=vec3(1.,.40,.025),hot=vec3(1.,.78,.20);',
+ 'vec3 col=mix(obsidian,crimson,clamp(.33+.6*wave,0.,1.));',
+ 'col=mix(col,red,clamp(.33+vein*.38+fissure*.28,0.,1.));',
+ 'col=mix(col,amber,clamp(vein*.29+fissure*.12,0.,.62));',
+ 'col=mix(col,hot,clamp(vein*.11+fissure*.06,0.,.18));',
+ 'col=mix(col,obsidian,clamp(outside*.81,0.,.82));',
+ 'float birth=smoothstep(0.,.09,t),tail=1.-smoothstep(.77,1.,t);',
+ 'float alpha=clamp(birth*tail*(.65+.24*vein+.20*fissure)*uPower*vFlicker,0.,1.);',
+ 'if(alpha<.055)discard;gl_FragColor=vec4(col,alpha);}'
+].join('\n');
+const RIFT_GLOW_FRAGMENT=[
+ 'uniform float uTime,uAge,uPower,uSeed;varying vec2 vUV;varying float vFlicker;',
+ 'void main(){float t=vUV.x,q=vUV.y;',
+ 'float v=sin(t*21.-uTime*7.+uSeed*5.)*.06;',
+ 'float core=exp(-pow((q-.5+v)*10.,2.));',
+ 'float crack=pow(max(0.,sin(t*42.+uTime*8.+uSeed*4.)),16.);',
+ 'float alpha=core*(.52+.40*crack)*smoothstep(0.,.11,t)*(1.-smoothstep(.64,1.,t))*uPower;',
+ 'if(alpha<.03)discard;',
+ 'vec3 color=mix(vec3(1.,.16,.02),vec3(1.,.69,.16),core*.59+crack*.22);',
+ 'gl_FragColor=vec4(color,clamp(alpha,0.,.76));}'
+].join('\n');
+function makePlasmaRiftGeometry(THREE){
+ const pos=[],uv=[],idx=[],segments=14;
+ // Três intersectantes malhas serrilhadas formam uma língua 3D,
+ // não uma folha invisível lateralmente.
+ for(let plane=0;plane<3;plane++){
+  const off=pos.length/3;
+  for(let j=0;j<=segments;j++){
+   const t=j/segments;
+   const taper=Math.pow(Math.max(0,1-t),.64);
+   const irregular=(.92+.11*Math.sin(t*17+plane*2.1)+.07*Math.sin(t*38+plane))*taper;
+   const half=(.12+.41*Math.sin(Math.PI*t)**.72)*irregular;
+   const x=t*(1+.035*Math.sin(t*15+plane*1.3));
+   for(let side=-1;side<=1;side+=2){
+    // Placas cruzadas no eixo radial, ondulando ao longo do comprimento.
+    const w=side*half,twist=t*.13*Math.sin(t*14+plane*2);
+    if(plane===0)pos.push(x,w+twist,.12*Math.sin(t*10+plane));
+    if(plane===1)pos.push(x,.14+twist,w);
+    if(plane===2)pos.push(x,w*.70+twist,w*.67);
+    uv.push(t,(side+1)/2);
+   }
+   if(j<segments){const k=off+j*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}
+  }
+ }
+ const g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+ g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+ g.setIndex(idx);g.computeVertexNormals();
+ return g;
+}
+function riftMaterial(THREE,fragment,seed,additive){
+ return new THREE.ShaderMaterial({
+  vertexShader:RIFT_VERTEX,fragmentShader:fragment,
+  uniforms:{uTime:{value:0},uAge:{value:0},uPower:{value:0},uSeed:{value:seed}},
+  transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  blending:additive?THREE.AdditiveBlending:THREE.NormalBlending,toneMapped:false
+ });
+}
+
 function mat(THREE,frag,uniforms,vert=VERT){
  return new THREE.ShaderMaterial({vertexShader:vert,fragmentShader:frag,uniforms:Object.fromEntries(Object.entries(uniforms).map(([k,v])=>[k,{value:v}])),
   transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false});
@@ -117,49 +231,35 @@ export function createSixSealsVFX(THREE,scene){
  const safetyMat=new THREE.MeshBasicMaterial({color:0x74bbff,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
  const safety=new THREE.Mesh(new THREE.RingGeometry(.995,1.007,128),safetyMat);safety.rotation.x=-PI/2;holder.add(safety);
  const aura=new THREE.Group();holder.add(aura);const ribbons=[];
- for(let i=0;i<10;i++){
-  const a=i/10*TAU,geometry=new THREE.PlaneGeometry(1.2,1,1,26);
+ for(let i=0;i<8;i++){
+  const a=i/8*TAU,geometry=new THREE.PlaneGeometry(.86,1,2,28);
   geometry.translate(0,.5,0);
-  const m=mat(THREE,AURA_FRAG,{uTime:0,uPower:0,uSeed:i/10},AURA_VERT);
-  const mesh=new THREE.Mesh(geometry,m);mesh.rotation.y=a;mesh.position.set(Math.cos(a)*.82,0,Math.sin(a)*.82);
-  mesh.scale.set(1,7.8,1);mesh.frustumCulled=false;aura.add(mesh);ribbons.push({mesh,m});
+  const m=mat(THREE,AURA_FRAG,{uTime:0,uPower:0,uSeed:i/8},AURA_VERT);
+  const mesh=new THREE.Mesh(geometry,m);mesh.rotation.y=a;mesh.position.set(Math.cos(a)*.47,0,Math.sin(a)*.47);
+  mesh.scale.set(.82,3.7+(i%3)*.32,1);mesh.frustumCulled=false;aura.add(mesh);ribbons.push({mesh,m});
  }
+ // Manter as 8 faixas animadas de aura aprovada; excluir só os cones sólidos.
+ const shadowPool=new THREE.Mesh(new THREE.CircleGeometry(1,80),
+  new THREE.ShaderMaterial({vertexShader:SHADOW_POOL_VERT,fragmentShader:SHADOW_POOL_FRAG,
+   uniforms:{uTime:{value:0},uOpacity:{value:0}},transparent:true,depthWrite:false,
+   depthTest:true,polygonOffset:true,polygonOffsetFactor:-2,side:THREE.DoubleSide,
+   blending:THREE.NormalBlending,toneMapped:false}));
+ shadowPool.name='ZarkhaelOrganicShadowPoolNoCones';
+ shadowPool.rotation.x=-PI/2;shadowPool.renderOrder=12;holder.add(shadowPool);
  const swordRoot=new THREE.Group();holder.add(swordRoot);
  const charge=mat(THREE,CHARGE_FRAG,{uTime:0,uPower:0});
- for(let i=0;i<3;i++){
-  const sheet=new THREE.Mesh(new THREE.PlaneGeometry(1.75,1.75),charge);
-  sheet.rotation.y=i*TAU/3;sheet.renderOrder=31;swordRoot.add(sheet);
- }
- const glowMat=new THREE.MeshBasicMaterial({color:0xffd8ac,transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+ // REMOVIDAS as placas enormes e opacas da espada: só brilho discreto no GLB.
+ const glowMat=new THREE.MeshBasicMaterial({color:0xffd8ac,transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
  const swordCore=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,2),glowMat);swordRoot.add(swordCore);
- const bursts=[];
- for(let i=0;i<1;i++){
-  const group=new THREE.Group();holder.add(group);
-  const domeMaterial=mat(THREE,DOME_FRAG,{uTime:0,uAge:0,uAlpha:0,uPulse:i},DOME_VERT);
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(1,48,24,0,TAU,0,PI/2),domeMaterial);
-  dome.frustumCulled=false;dome.renderOrder=42+i;group.add(dome);
-  const ringMat=new THREE.MeshBasicMaterial({color:i===1?0xff6c22:0xff314b,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
-  const wave=new THREE.Mesh(new THREE.TorusGeometry(1,.085,7,96),ringMat);wave.rotation.x=PI/2;wave.position.y=.5;group.add(wave);
-  // Véu translúcido do plasma: casca larga entre o centro branco e as fissuras escuras.
-  // A geometria aparece só durante o crescimento real, sem sprites de fumaça.
-  const veilMat=new THREE.MeshBasicMaterial({color:i===1?0xff3212:0xb30528,transparent:true,opacity:0,
-   depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
-  const veil=new THREE.Mesh(new THREE.SphereGeometry(1,32,20,0,TAU,0,PI/2),veilMat);
-  veil.renderOrder=40+i;group.add(veil);
-  const kernelMat=new THREE.MeshBasicMaterial({color:0xffefd6,transparent:true,opacity:0,
-   depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
-  const kernel=new THREE.Mesh(new THREE.IcosahedronGeometry(1,2),kernelMat);
-  kernel.renderOrder=45+i;group.add(kernel);
-  const railMat=new THREE.MeshBasicMaterial({color:0xf50843,transparent:true,opacity:0,
-   depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
-  const rail=new THREE.Mesh(new THREE.TorusGeometry(1,.1,8,96),railMat);
-  rail.rotation.x=PI/2;rail.position.y=1.1;group.add(rail);
-  bursts.push({group,dome,domeMaterial,wave,ringMat,veil,veilMat,kernel,kernelMat,rail,railMat});
- }
- const shardMat=new THREE.MeshBasicMaterial({color:0x3b001a,transparent:true,opacity:.85,side:THREE.DoubleSide});
- const shards=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),shardMat,72);
- shards.frustumCulled=false;holder.add(shards);
- const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),p=new THREE.Vector3(),S=new THREE.Vector3(),up=new THREE.Vector3(0,1,0);
+ // Anéis de corrente orbitam a EspadaBispo3.glb conforme energia se concentra.
+ const orbitMat=new THREE.MeshBasicMaterial({color:0xff4617,transparent:true,opacity:.65,
+  depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+ const swordOrbits=[];
+ for(let j=0;j<2;j++){const ring=new THREE.Mesh(new THREE.TorusGeometry(.22+j*.11,.011,5,48),orbitMat);
+  ring.rotation.set(j*.4,j*.6,0);swordRoot.add(ring);swordOrbits.push(ring);}
+
+ const singular=createSingularMushroomExplosion(THREE,holder); // UMA detonação, nunca 3.
+ // Removidos de verdade os estilhaços triangulares e as agulhas da ruptura.
  const light=new THREE.PointLight(0xff3b21,0,110,1.5);holder.add(light);light.castShadow=false;
  let seconds=0;
  function update(skill,ctx={},dt=0){
@@ -168,10 +268,18 @@ export function createSixSealsVFX(THREE,scene){
   seconds+=Math.max(0,dt);holder.visible=true;
   const glow=st.phase==='aura'?st.aura:1;
   aura.position.set(B.x,B.y,B.z);
-  aura.scale.setScalar(.45+.55*glow);
-  ribbons.forEach((r,i)=>{r.m.uniforms.uTime.value=seconds;r.m.uniforms.uPower.value=glow*(.7+.25*Math.sin(seconds*2+i));
-   r.mesh.rotation.y=i/10*TAU+seconds*(i%2?-.09:.11);
+  aura.scale.setScalar(.85+.23*glow);
+  ribbons.forEach((r,i)=>{r.m.uniforms.uTime.value=seconds;r.m.uniforms.uPower.value=glow*(.71+.26*Math.sin(seconds*2+i));
+   r.mesh.rotation.y=i/8*TAU+seconds*(i%2?-.06:.08);
   });
+  // Sombra procedural flui no chão; sem novas peças geométricas.
+  shadowPool.position.set(st.phase==='aura'?B.x:C.x,
+    ground(st.phase==='aura'?B.x:C.x,st.phase==='aura'?B.z:C.z)+.085,
+    st.phase==='aura'?B.z:C.z);
+  shadowPool.scale.setScalar(st.phase==='aura'?3.2:st.dangerR*.91);
+  shadowPool.material.uniforms.uTime.value=seconds;
+  shadowPool.material.uniforms.uOpacity.value=st.phase==='aura'?.30+.14*glow:
+    st.phase==='seals'?.23+.13*sm(st.pt/U.seals):.25;
   field.position.set(C.x,ground(C.x,C.z)+.055,C.z);
   field.scale.setScalar(st.dangerR);
   fieldMat.opacity=st.phase==='aura'?0:st.phase==='seals'?
@@ -186,7 +294,10 @@ export function createSixSealsVFX(THREE,scene){
    const yy=ground(C.x,C.z)+U.heights[i];
    r.root.position.set(C.x,yy,C.z);r.root.rotation.y=c.spin;r.root.scale.setScalar(c.r);
    r.m.uniforms.uTime.value=seconds;r.m.uniforms.uBuild.value=k;
-   r.m.uniforms.uCharge.value=st.phase==='explosions'?1+Math.sin(seconds*9+i)*.18:Math.max(0,(st.pt-4.1)/U.seals);
+   // ANTECIPAÇÃO: no fim, os seis círculos rangem e relampejam antes da ruptura.
+   const danger=st.phase==='seals'?sm((st.pt-5.0)/1.7):
+    st.phase==='explosions'?Math.max(.22,1-.33*st.pt):0;
+   r.m.uniforms.uCharge.value=danger*(1+.22*Math.sin(seconds*(6+danger*12)+i));
    r.m.uniforms.uAlpha.value=st.phase==='explosions'?
      Math.max(.10,.55-.45*sm(st.pt/2.4)):1;
   }
@@ -197,46 +308,23 @@ export function createSixSealsVFX(THREE,scene){
   swordRoot.visible=st.phase!=='explosions'||st.pt<4.3;
   swordRoot.rotation.y=seconds*.75;swordRoot.rotation.x=Math.sin(seconds*1.1)*.18;
   const power=st.sword,sk=sm(power);
-  swordRoot.scale.setScalar(.42+.40*sk+Math.sin(seconds*9)*.018*sk);
-  charge.uniforms.uTime.value=seconds;charge.uniforms.uPower.value=.10+.20*sk;
-  swordCore.scale.setScalar(.35+.25*sk);glowMat.opacity=.10+.14*sk;
-  let peak=0;
-  for(let i=0;i<3;i++){
-   const vfx=bursts[i],b=st.bursts[i];vfx.group.visible=!!b;if(!b)continue;
-   const age=b.age,pre=sm(age/.65),form=sm((age-.45)/1.25),open=sm((age-.9)/1.8);
-   const fade=1-sm((age-3.35)/1.45),growth=.018+.09*pre+.30*form+.592*open;
-   vfx.group.position.set(C.x,ground(C.x,C.z)+.045,C.z);
-   vfx.dome.scale.set(st.dangerR*growth,1.2+11.8*growth,st.dangerR*growth);
-   vfx.veil.scale.set(st.dangerR*growth*.96,1.45+13.2*growth,st.dangerR*growth*.96);
-   vfx.veilMat.opacity=fade*(.25+.38*form);
-   vfx.kernel.scale.setScalar(.42+2.5*(.12*pre+.88*form)); // núcleo pequeno; plasma vermelho domina o quadro
-   vfx.kernel.position.y=1.25+4.5*form;
-   vfx.kernelMat.opacity=fade*(.18+.30*pre);
-   vfx.rail.scale.setScalar(st.dangerR*(.07+.93*open));
-   vfx.rail.position.y=1.0+4*open;
-   vfx.railMat.opacity=fade*(.12+.68*open);
-   vfx.domeMaterial.uniforms.uTime.value=seconds;vfx.domeMaterial.uniforms.uAge.value=age;
-   vfx.domeMaterial.uniforms.uAlpha.value=fade*(.65+.35*form);
-   vfx.wave.scale.setScalar(st.dangerR*growth);
-   vfx.ringMat.opacity=fade*sm((age-.5)/1.2)*.88;peak=Math.max(peak,fade*open);
-  }
-  const n=low?36:72;shards.count=n;
-  const explode=st.phase==='explosions',pulse=Math.max(0,...st.bursts.map(b=>1-sm(b.age/1.65)));
-  const span=explode?st.dangerR*.82:2.5+glow*3.2;
-  for(let i=0;i<n;i++){
-   const a=i/n*TAU+seconds*(explode?.14:.46)*(i%2?1:-1);
-   const rr=explode?span*(.12+.88*(i%11)/11):span*(.23+.72*(i%13)/13);
-   p.set((explode?C.x:B.x)+Math.cos(a)*rr,explode?ground(C.x,C.z)+.6+(i%7)*.28+pulse*(i%5):B.y+1.3+(i%9)*.52+glow*Math.sin(seconds*3+i)*.75,(explode?C.z:B.z)+Math.sin(a)*rr);
-   q.setFromAxisAngle(up,a+seconds*(explode?1.4:3.2));
-   S.set(.12+(i%3)*.07,(explode?.38:.18)+(.12+.46*glow)*(i%5)/5,.1+(i%4)*.04);
-   matrix.compose(p,q,S);shards.setMatrixAt(i,matrix);
-  }
-  shards.instanceMatrix.needsUpdate=true;
-  shardMat.opacity=explode?.3+.55*pulse:.55+.35*glow;
+  swordRoot.scale.setScalar(.3+.30*sk);
+  charge.uniforms.uTime.value=seconds;charge.uniforms.uPower.value=.26+.53*sk;
+  // Correntes de plasma giram ao redor do núcleo da EspadaBispo3.glb,
+  // sem substituir a arma por uma esfera branca genérica.
+  swordCore.scale.setScalar(.14+.20*sk);glowMat.opacity=.07+.16*sk;
+  orbitMat.opacity=.10+.18*sk;
+  swordOrbits.forEach((o,i)=>{o.visible=sk>.12;
+   o.rotation.set(seconds*(.83+i*.11),seconds*(1.2-i*.07),i*.48);
+   o.scale.setScalar(.55+1.05*sk);});
+  singular.update(st,{dt,low,ground:ground(C.x,C.z)});
+  const peak=st.bursts[0]?Math.max(0,1-st.bursts[0].age/4.3):0;
+  // Sem agulhas e fragmentos flutuantes na câmera ou na arena.
+  const explode=st.phase==='explosions';
   light.position.set(explode?C.x:B.x,explode?ground(C.x,C.z)+5:B.y+2.6,explode?C.z:B.z);
-  light.intensity=2.2*glow+6.6*peak;
+  light.intensity=1.2*glow+3.4*peak;
  }
- function clear(){holder.visible=false;light.intensity=0;}
+ function clear(){holder.visible=false;singular.clear();light.intensity=0;}
  function dispose(){scene.remove(holder);const geos=new Set(),mats=new Set();holder.traverse(o=>{if(o.geometry)geos.add(o.geometry);if(o.material)for(const m of [].concat(o.material))mats.add(m);});for(const g of geos)g.dispose();for(const m of mats)m.dispose();}
  clear();return{holder,update,clear,dispose};
 }

@@ -43,22 +43,41 @@ test('seis círculos diferentes nascem no solo e sobem um a um, formam-se em 6.7
  const boom=ev.find(e=>e.type==='phase'&&e.name==='explosions');
  assert.ok(Math.abs(boom.time-10)<.02);
 });
-test('câmera sobe a cada círculo e chega ao overhead para a explosão única',()=>{
+test('direção de câmera fiel: plano frontal, depois SEIS subidas individuais',()=>{
  const a=run().observations;
- const h=t=>a.find(x=>x.t>=t)?.cam.pos[1];
- assert.ok(h(3.8)>boss.y+70);
- assert.ok(h(6.8)>h(3.8));
- assert.ok(h(9.5)>h(6.8));
- assert.ok(h(12)>boss.y+95, 'plano superior alto, mas oblíquo para revelar volume');
+ const cam=t=>a.find(x=>x.t>=t)?.cam;
+ const front=cam(1.4);
+ assert.equal(front.shot,'FRONTAL_BISPO');
+ assert.ok(Math.abs(front.pos[1]-(boss.y+2.2))<.2,'ângulo frontal à altura do peito');
+ assert.ok(Math.hypot(front.pos[0]-boss.x,front.pos[2]-boss.z)<5.6,'close real, sem afastamento');
+ const heights=[];
+ for(let i=0;i<6;i++){
+  const t=3.3+i*ZARK_ULT.sealGap+.4,shot=cam(t);
+  assert.equal(shot.shot,'CIRCULO_'+(i+1),'um enquadramento específico por círculo');
+  assert.equal(shot.sealIndex,i);
+  heights.push(shot.pos[1]);
+ }
+ for(let i=1;i<6;i++)
+  assert.ok(heights[i]-heights[i-1]>5.0&&heights[i]-heights[i-1]<8.0,
+   'subida de um patamar, sem saltar os círculos');
+ assert.ok(heights[0]>boss.y+7&&heights[0]<boss.y+14,
+  'o primeiro círculo é filmado poucos metros acima');
+ const blast=cam(12);
+ assert.equal(blast.shot,'EXPLOSAO_ORGANICA_3_4');
+ assert.ok(blast.pos[1]>boss.y+12&&blast.pos[1]<boss.y+40,'câmera 3/4 aprovada sem altitude exagerada');
+ assert.ok(Math.hypot(blast.pos[0]-arena.x,blast.pos[2]-arena.z)>30,
+  'volume das explosões visto em 3/4 do alto, não disco zenital');
 });
-test('uma explosão progressiva nasce depois do núcleo',()=>{
+test('uma detonação cinematográfica única com expansão do núcleo até copa, precedida por compressão',()=>{
  const {s,ev}=run(1/60,{x:1200,z:0});
  const bursts=ev.filter(e=>e.type==='burst'),hits=ev.filter(e=>e.type==='hit');
- assert.deepEqual(bursts.map(e=>e.n),[1]);assert.equal(hits.length,1);
- assert.ok(Math.abs(bursts[0].time-11.25)<.02);
+ assert.deepEqual(bursts.map(e=>e.n),[1]);
+ assert.equal(hits.length,1,'sem três danos repetidos');
+ assert.ok(Math.abs(bursts[0].time-11.08)<.025);
  assert.ok(s.done&&Math.abs(s.st.t-15.5)<.025);
+ assert.equal(s.st.bursts.length,1);
 });
-test('jogador mantém dash e mobilidade: margem externa permanece segura durante o impacto único',()=>{
+test('jogador mantém dash e mobilidade: faixa externa continua segura durante a explosão',()=>{
  for(const p of [{x:1227,z:0},{x:1173,z:0},{x:1200,z:27},{x:1200,z:-27},{x:1219.2,z:19.2}]){
   const {ev}=run(1/60,p);
   assert.equal(ev.filter(e=>e.type==='hit').length,0);
@@ -67,7 +86,7 @@ test('jogador mantém dash e mobilidade: margem externa permanece segura durante
  const iframe=run(1/60,{x:1200,z:0},h=>{h.iframes=true;});
  assert.equal(iframe.ev.filter(e=>e.type==='hit').length,0);
 });
-test('cruzar o limite só conta dentro; máximo 1 dano por explosão',()=>{
+test('cruzar o limite só conta dentro; um único dano por explosão',()=>{
  const {ev}=run(1/60,{x:1226.7,z:0});
  assert.equal(ev.filter(e=>e.type==='hit').length,1);
  const atLine=run(1/60,{x:1200+sixSealDangerRadius(30),z:0});
@@ -96,10 +115,59 @@ test('sem fallback genérico: kit, gatilho, câmera e espada original estão lig
  assert.ok(src.includes('stopZarkUlt();') && src.includes('clearHazards();'));
  assert.ok(src.includes('zarkSwordWeapon?.userData?.tip'));
  assert.ok(src.includes('testUltBispo3'));
- assert.ok(ZARK_ULT_BUILD.startsWith('281-')&&ZARK_ULT_VFX_BUILD.startsWith('281-'));
+ assert.ok(ZARK_ULT_BUILD.startsWith('282-')&&ZARK_ULT_VFX_BUILD.startsWith('282-'));
 });
-test('VFX usa mandalas shader, fluxo por vértices, instâncias e domos, sem fumaça genérica',()=>{
+test('VFX usa escultura flamejante e único núcleo, sem 3 blasts nem esfera genérica',()=>{
  const src=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
- for(const marker of ['ShaderMaterial','PlaneGeometry','SphereGeometry','InstancedMesh','uBuild','uCharge','uPower','uAge','uTime','safe','ZarkhaelSixSealsUltimate280'])assert.ok(src.includes(marker),marker);
+ for(const marker of ['ShaderMaterial','PlaneGeometry','createSingularMushroomExplosion','ZarkhaelOrganicShadowPoolNoCones','uBuild','uCharge','uPower','uAge','uTime','ZarkhaelSixSealsUltimate280'])assert.ok(src.includes(marker),marker);
+ assert.ok(!src.includes('for(let i=0;i<3;i++){\n   const vfx=bursts[i]'), '3 efeitos antigos completamente excluídos');
+ const main=fs.readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
+ assert.ok(main.includes('zarkUltBossLock'), 'Boss imóvel durante ultimate');
+ assert.ok(main.includes('enemyMixer.timeScale=0'), 'rig congelado');
+ assert.ok(main.includes('zarkUltBossLock.mixerTimeScale'), 'restaura mixer');
+ assert.ok(main.includes('!zarkUltBossLock&&combatStepNow()'), 'sem giro automático do chefe durante a ultimate');
+ assert.ok(main.includes('enemyModelRoot.position.y=zarkUltBossLock.modelRootY'), 'sem correção vertical que desloca boss congelado');
+ assert.ok(main.includes('modelRootY:enemyModelRoot.position.y'), 'salva altura original do rig');
+
  assert.ok(!/smoke|smokeSprite|fog\.density/i.test(src));
+ assert.ok(!src.includes('new THREE.SphereGeometry(1,48,24)'), 'sem cúpula arredondada');
+ assert.ok(!src.includes('new THREE.IcosahedronGeometry(1,1),lobeMat'), 'sem bolhas arredondadas');
+ assert.ok(src.includes('singular.update(st,'), 'apenas uma explosão atualizada');
+});
+
+test('Mod 282: copa volumétrica real em vez de disco rígido, clarão e poeira de uma única detonação',()=>{
+ const eruption=fs.readFileSync(new URL('./zarkhael-singular-eruption3d.js',import.meta.url),'utf8');
+ const billow=fs.readFileSync(new URL('./zarkhael-billow-cloud3d.js',import.meta.url),'utf8');
+ assert.ok(eruption.includes("createBillowingCrown(T,root)"),'a erupção deve renderizar a copa orgânica');
+ assert.ok(!eruption.includes("const crown=new T.Mesh(lathe("),'remover de verdade a copa rígida de antes');
+ assert.ok(eruption.includes('billow.update(age,st'),'o relógio da animação controla a copa');
+ for(const marker of ['SingleExplosionBillowingFire','SingleExplosionGroundCloud','SingleExplosionGroundFlash','InstancedMesh','uWarp','aSeed','aHeat','uSmoky'])
+  assert.ok(billow.includes(marker),'camada ausente: '+marker);
+ assert.equal((eruption.match(/const shock=\[\]/g)||[]).length,1,'anéis de pressão pertencem à mesma erupção');
+});
+
+test('Mod 283: fogo no solo ocupa a área de perigo e copa só aparece após ignição',()=>{
+ const billow=fs.readFileSync(new URL('./zarkhael-billow-cloud3d.js',import.meta.url),'utf8');
+ const eruption=fs.readFileSync(new URL('./zarkhael-singular-eruption3d.js',import.meta.url),'utf8');
+ const main=fs.readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
+ const vfx=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
+ assert.ok(billow.includes("SingleExplosionGroundFire80Pct"),'saia de fogo no chão ausente');
+ assert.ok(billow.includes("st.dangerR*o.radius*spread"),'área da erupção precisa acompanhar o raio de perigo');
+ assert.ok(billow.includes("head=ease((age-1.37)/1.04)"),'copa não deve existir na fase de carga');
+ assert.ok(billow.includes("billows.visible=active&&age>1.37&&head>.002"),'não exibir massas de fogo antes da coluna');
+ assert.ok(eruption.includes("up*.63"),'coluna e copa devem ser mais baixas que na Mod 282');
+ assert.ok(main.includes('impactRumble')&&main.includes('tailRumble')&&main.includes('preRumble'),'câmera deve conter preparação, impacto e dissipação');
+ assert.ok(main.includes('if(!userSettings.reduceShake)'), 'respeitar acessibilidade de câmera');
+ assert.ok(vfx.includes("aura.scale.setScalar(.85+.23*glow)"),'manter modelo da aura, apenas um pouco mais forte');
+});
+
+test('Mod 284: sem cones ou estilhaços geométricos vermelhos; sombra orgânica preserva aura',()=>{
+ const aura=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
+ const eruption=fs.readFileSync(new URL('./zarkhael-singular-eruption3d.js',import.meta.url),'utf8');
+ assert.ok(!aura.includes('new THREE.ConeGeometry')&&!aura.includes('new THREE.TetrahedronGeometry'),
+  'remover os cones e tetraedros da ultimate');
+ assert.ok(!eruption.includes('new T.TetrahedronGeometry'),'explosão sem triângulos sólidos');
+ for(const mark of ['ZarkhaelOrganicShadowPoolNoCones','SHADOW_POOL_FRAG','shadowPool.material.uniforms.uTime','ribbons.forEach','createSingularMushroomExplosion'])
+   assert.ok(aura.includes(mark),'efeito necessário ausente: '+mark);
+ assert.ok(eruption.includes('billow.update(age,st'),'nuvem principal deve permanecer intacta');
 });
