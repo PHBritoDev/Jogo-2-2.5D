@@ -267,22 +267,62 @@ export function createSixSealsVFX(THREE,scene){
   for(let i=0;i<3;i++){
    const vfx=bursts[i],b=st.bursts[i];vfx.group.visible=!!b;if(!b)continue;
    const age=b.age,pre=sm(age/.45),form=sm((age-.38)/.52),open=sm((age-.64)/.9);
-   const fade=1-sm((age-1.1)/.85),growth=.02+.07*pre+.23*form+.70*open;
+   const fade=1-sm((age-1.30)/.68),growth=.016+.05*pre+.19*form+.74*open;
    vfx.group.position.set(C.x,ground(C.x,C.z)+.045,C.z);
    vfx.dome.scale.set(st.dangerR*growth,1.2+11.8*growth,st.dangerR*growth);
    vfx.veil.scale.set(st.dangerR*growth*.96,1.45+13.2*growth,st.dangerR*growth*.96);
-   vfx.veilMat.opacity=fade*(.25+.38*form);
+   vfx.veilMat.opacity=fade*(.13+.18*form);
    vfx.kernel.scale.setScalar(.42+2.5*(.12*pre+.88*form)); // núcleo pequeno; plasma vermelho domina o quadro
    vfx.kernel.position.y=1.25+4.5*form;
-   vfx.kernelMat.opacity=fade*(.38+.40*pre);
+   vfx.kernelMat.opacity=fade*(.13+.26*pre);
    vfx.rail.scale.setScalar(st.dangerR*(.07+.93*open));
    vfx.rail.position.y=1.0+4*open;
    vfx.railMat.opacity=fade*(.12+.68*open);
    vfx.domeMaterial.uniforms.uTime.value=seconds;vfx.domeMaterial.uniforms.uAge.value=age;
-   vfx.domeMaterial.uniforms.uAlpha.value=fade*(.65+.35*form);
+   vfx.domeMaterial.uniforms.uAlpha.value=fade*(.60+.3*form);
    vfx.wave.scale.setScalar(st.dangerR*growth);
-   vfx.ringMat.opacity=fade*sm((age-.44)/.65)*.88;peak=Math.max(peak,fade*open);
+   vfx.ringMat.opacity=fade*sm((age-.44)/.65)*.45;peak=Math.max(peak,fade*open);
+   // Não é um círculo vermelho: dezoito frentes de fogo espacial surgem do
+   // núcleo, criam uma silhueta irregular e trinta e dois feixes atravessam
+   // os lobos em profundidade. Todas as geometrias permanecem reutilizadas.
+   const R=st.dangerR,spread=R*growth,flare=sm((age-.31)/.62)*fade;
+   for(let j=0;j<18;j++){
+    const a=j/18*TAU+i*.31,rr=spread*(.68+.29*(j%4)/4);
+    p.set(Math.cos(a)*rr,1.1+growth*(2.1+(j%6)*1.5),Math.sin(a)*rr);
+    q.setFromAxisAngle(up,seconds*(.06+j*.008));
+    const rad=(.12+growth*.23)*R*(.68+.32*((j*7)%9)/9);
+    S.set(rad,rad*(.93+(j%3)*.21),rad);
+    matrix.compose(p,q,S);vfx.lobes.setMatrixAt(j,matrix);
+   }
+   vfx.lobes.instanceMatrix.needsUpdate=true;vfx.lobeMat.opacity=.70*flare;
+   vfx.beams.count=low?16:32;
+   for(let j=0;j<vfx.beams.count;j++){
+    const a=j/vfx.beams.count*TAU+i*.27,rr=spread*(.43+.40*(j%5)/5);
+    axis.set(Math.cos(a)*.84,.26+(j%5)*.11,Math.sin(a)*.84).normalize();
+    p.set(Math.cos(a)*rr,1.1+growth*(1.8+(j%3)*1.5),Math.sin(a)*rr);
+    q.setFromUnitVectors(up,axis);
+    S.set(.17+.10*growth,R*(.024+.31*open)*(.60+(j%7)*.08),.17+.10*growth);
+    matrix.compose(p,q,S);vfx.beams.setMatrixAt(j,matrix);
+   }
+   vfx.beams.instanceMatrix.needsUpdate=true;
+   vfx.beamMat.opacity=fade*sm((age-.24)/.43)*.76;
   }
+  // Pré-ignição: agulhas escarlates nas SEIS alturas, crescendo antes da
+  // explosão. Se o jogador se afastar, a borda segura permanece legível.
+  const warn=st.phase==='seals'?sm((st.pt-5.25)/1.45):
+    st.phase==='explosions'?Math.max(.12,.90-.12*st.pt):0;
+  warnSpikes.count=low?24:48;warnMat.opacity=.74*warn;
+  for(let i=0;i<warnSpikes.count;i++){
+   const a=i/warnSpikes.count*TAU+seconds*.13,level=i%6;
+   const radius=st.seals[level].r*(.60+.31*(i%4)/4);
+   const yy=ground(C.x,C.z)+U.heights[level];
+   p.set(C.x+Math.cos(a)*radius,yy+.36+(i%3)*.17,C.z+Math.sin(a)*radius);
+   axis.set(Math.cos(a)*.10,1,Math.sin(a)*.10).normalize();
+   q.setFromUnitVectors(up,axis);
+   S.set(.15,.30+1.8*warn*(.66+(i%5)*.08),.15);
+   matrix.compose(p,q,S);warnSpikes.setMatrixAt(i,matrix);
+  }
+  warnSpikes.instanceMatrix.needsUpdate=true;
   const n=low?36:72;shards.count=n;
   const explode=st.phase==='explosions',pulse=Math.max(0,...st.bursts.map(b=>1-sm(b.age/1.65)));
   const span=explode?st.dangerR*.82:2.5+glow*3.2;
@@ -297,7 +337,7 @@ export function createSixSealsVFX(THREE,scene){
   shards.instanceMatrix.needsUpdate=true;
   shardMat.opacity=explode?.3+.55*pulse:.55+.35*glow;
   light.position.set(explode?C.x:B.x,explode?ground(C.x,C.z)+5:B.y+2.6,explode?C.z:B.z);
-  light.intensity=2.2*glow+6.6*peak;
+  light.intensity=1.2*glow+3.4*peak;
  }
  function clear(){holder.visible=false;light.intensity=0;}
  function dispose(){scene.remove(holder);const geos=new Set(),mats=new Set();holder.traverse(o=>{if(o.geometry)geos.add(o.geometry);if(o.material)for(const m of [].concat(o.material))mats.add(m);});for(const g of geos)g.dispose();for(const m of mats)m.dispose();}
