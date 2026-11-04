@@ -32,12 +32,12 @@ const billowFrag=[
  'float n=n3(p),hi=n3(p*2.17+vec3(1.8,t*.32,2.4));',
  'float fold=sin(vLocal.x*9.+vLocal.y*11.-t*3.8+vSeed*23.);',
  'float face=clamp(dot(normalize(vViewNormal),normalize(-vViewPos)),0.,1.);',
- 'float hotness=clamp(vHeat*.67+n*.45+hi*.17+fold*.085-(1.-face)*.27,0.,1.);',
+ 'float hotness=clamp(vHeat*.84+n*.40+hi*.17+fold*.065-(1.-face)*.28,0.,1.);',
  'vec3 ember=vec3(.28,.008,.006),red=vec3(.90,.045,.006),orange=vec3(1.,.32,.005),gold=vec3(1.,.79,.075),white=vec3(1.,.99,.77);',
  'vec3 col=mix(ember,red,smoothstep(.08,.44,hotness));',
  'col=mix(col,orange,smoothstep(.23,.63,hotness));',
  'col=mix(col,gold,smoothstep(.46,.88,hotness));',
- 'col=mix(col,white,smoothstep(.68,1.,hotness)*.94);',
+ 'col=mix(col,white,smoothstep(.58,.95,hotness)*.97);',
  'vec3 soot=vec3(.06,.007,.009),smoke=vec3(.36,.07,.026);',
  'float dust=clamp(n*.7+hi*.31,0.,1.);',
  'col=mix(col,mix(soot,smoke,dust),uSmoky*(.78+.17*n));',
@@ -82,7 +82,7 @@ export function createBillowingCrown(T,root){
   const sz=(ring===0?4.3:ring===1?4.75:5.5)*(.78+.44*seed(i+45));
   const delay=ring*.29+seed(i+11)*.38;
   capLobes.push({a,radius,h,sz,delay,seed:seed(i+71),stretch:.78+.42*seed(i+131)});
-  seeds[i]=seed(i+51);hot[i]=ring===0?.93:ring===1?.76:.60;
+  seeds[i]=seed(i+51);hot[i]=ring===0?1.22:ring===1?1.02:.67;
  }
  for(let i=0;i<SMOKE;i++){
   const a=i/SMOKE*TAU+seed(i+222)*.2;
