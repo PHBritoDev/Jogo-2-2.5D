@@ -43,7 +43,7 @@ test('seis círculos diferentes nascem no solo e sobem um a um, formam-se em 6.7
  const boom=ev.find(e=>e.type==='phase'&&e.name==='explosions');
  assert.ok(Math.abs(boom.time-10)<.02);
 });
-test('câmera sobe a cada círculo e chega ao overhead para as três explosões',()=>{
+test('câmera sobe a cada círculo e chega ao overhead para as explosão única',()=>{
  const a=run().observations;
  const h=t=>a.find(x=>x.t>=t)?.cam.pos[1];
  assert.ok(h(3.8)>boss.y+70);
@@ -54,25 +54,22 @@ test('câmera sobe a cada círculo e chega ao overhead para as três explosões'
 test('três explosões espaçadas, cada uma só nasce depois do núcleo',()=>{
  const {s,ev}=run(1/60,{x:1200,z:0});
  const bursts=ev.filter(e=>e.type==='burst'),hits=ev.filter(e=>e.type==='hit');
- assert.deepEqual(bursts.map(e=>e.n),[1,2,3]);assert.equal(hits.length,3);
- assert.ok(Math.abs(bursts[0].time-10.55)<.02);
- assert.ok(Math.abs(bursts[1].time-12.07)<.02);
- assert.ok(Math.abs(bursts[2].time-13.6)<.02);
- assert.ok(bursts[1].time-bursts[0].time>1.45);
+ assert.deepEqual(bursts.map(e=>e.n),[1]);assert.equal(hits.length,1);
+ assert.ok(Math.abs(bursts[0].time-11.25)<.02);
  assert.ok(s.done&&Math.abs(s.st.t-15.5)<.025);
 });
 test('jogador mantém dash e mobilidade: margem externa continua segura em TODAS as ondas',()=>{
  for(const p of [{x:1227,z:0},{x:1173,z:0},{x:1200,z:27},{x:1200,z:-27},{x:1219.2,z:19.2}]){
   const {ev}=run(1/60,p);
   assert.equal(ev.filter(e=>e.type==='hit').length,0);
-  assert.equal(ev.filter(e=>e.type==='burst').length,3);
+  assert.equal(ev.filter(e=>e.type==='burst').length,1);
  }
  const iframe=run(1/60,{x:1200,z:0},h=>{h.iframes=true;});
  assert.equal(iframe.ev.filter(e=>e.type==='hit').length,0);
 });
 test('cruzar o limite só conta dentro; máximo 1 dano por explosão',()=>{
  const {ev}=run(1/60,{x:1226.7,z:0});
- assert.equal(ev.filter(e=>e.type==='hit').length,3);
+ assert.equal(ev.filter(e=>e.type==='hit').length,1);
  const atLine=run(1/60,{x:1200+sixSealDangerRadius(30),z:0});
  assert.equal(atLine.ev.filter(e=>e.type==='hit').length,0);
  const dodge=run(1/60,{x:1200,z:0},(h,st)=>{h.x=st.t>9.8?1229:1200;});
@@ -80,7 +77,7 @@ test('cruzar o limite só conta dentro; máximo 1 dano por explosão',()=>{
 });
 test('tempo e dano independentes do FPS; abort preserva cleanup',()=>{
  const at60=run(1/60,{x:1200,z:0}),at10=run(.1,{x:1200,z:0});
- assert.equal(at10.ev.filter(e=>e.type==='burst').length,3);
+ assert.equal(at10.ev.filter(e=>e.type==='burst').length,1);
  assert.equal(at60.ev.filter(e=>e.type==='hit').length,at10.ev.filter(e=>e.type==='hit').length);
  assert.ok(Math.abs(at10.s.st.t-at60.s.st.t)<.03);
  const s=createZarkhaelSixSeals().start(boss,arena);s.step(2,{x:1200,z:0});s.abort();
@@ -99,7 +96,7 @@ test('sem fallback genérico: kit, gatilho, câmera e espada original estão lig
  assert.ok(src.includes('stopZarkUlt();') && src.includes('clearHazards();'));
  assert.ok(src.includes('zarkSwordWeapon?.userData?.tip'));
  assert.ok(src.includes('testUltBispo3'));
- assert.ok(ZARK_ULT_BUILD.startsWith('280-')&&ZARK_ULT_VFX_BUILD.startsWith('280-'));
+ assert.ok(ZARK_ULT_BUILD.startsWith('281-')&&ZARK_ULT_VFX_BUILD.startsWith('280-'));
 });
 test('VFX usa mandalas shader, fluxo por vértices, instâncias e domos, sem fumaça genérica',()=>{
  const src=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
