@@ -77,7 +77,7 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod281-zarkhael-explosao-unica';
+const BUILD = 'mod283-erupcao-larga-baixa-bispo3';
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
@@ -97,7 +97,7 @@ try {
   await import(URL.createObjectURL(blob));
 } catch (err) {
   console.error(err);
-  if (statusEl) statusEl.textContent = 'Erro na Mod 281: ' + (err && err.message ? err.message : err);
+  if (statusEl) statusEl.textContent = 'Erro na Mod 186: ' + (err && err.message ? err.message : err);
   const loading = document.getElementById('loading');
-  if (loading) loading.innerHTML = 'Falha ao montar o mundo 3D (Mod 281).<br><br>' + (err && err.message ? err.message : String(err));
+  if (loading) loading.innerHTML = 'Falha ao montar o mundo 3D (Mod 186).<br><br>' + (err && err.message ? err.message : String(err));
 }
