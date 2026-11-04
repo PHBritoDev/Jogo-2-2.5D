@@ -38,7 +38,7 @@ const billowFrag=[
  'col=mix(col,orange,smoothstep(.23,.63,hotness));',
  'col=mix(col,gold,smoothstep(.46,.88,hotness));',
  'col=mix(col,white,smoothstep(.58,.95,hotness)*.97);',
- 'vec3 soot=vec3(.06,.007,.009),smoke=vec3(.36,.07,.026);',
+ 'vec3 soot=vec3(.07,.033,.023),smoke=vec3(.32,.16,.10);',
  'float dust=clamp(n*.7+hi*.31,0.,1.);',
  'col=mix(col,mix(soot,smoke,dust),uSmoky*(.78+.17*n));',
  'float rim=smoothstep(.07,.82,face);',
@@ -132,7 +132,7 @@ export function createBillowingCrown(T,root){
   smoke.instanceMatrix.needsUpdate=true;
   smoke.material.uniforms.uTime.value=t;
   smoke.material.uniforms.uWarp.value=.55;
-  smoke.material.uniforms.uOpacity.value=active?ground*smFade*.77:0;
+  smoke.material.uniforms.uOpacity.value=active?ground*smFade*.72:0;
   halo.visible=st.phase==='explosions';halo.scale.setScalar(unit*29);
   halo.position.y=.14;
   halo.material.uniforms.uTime.value=t;
