@@ -43,7 +43,7 @@ test('seis círculos diferentes nascem no solo e sobem um a um, formam-se em 6.7
  const boom=ev.find(e=>e.type==='phase'&&e.name==='explosions');
  assert.ok(Math.abs(boom.time-10)<.02);
 });
-test('câmera sobe a cada círculo e chega ao overhead para as explosão única',()=>{
+test('câmera sobe a cada círculo e chega ao overhead para a explosão única',()=>{
  const a=run().observations;
  const h=t=>a.find(x=>x.t>=t)?.cam.pos[1];
  assert.ok(h(3.8)>boss.y+70);
@@ -58,7 +58,7 @@ test('uma explosão progressiva nasce depois do núcleo',()=>{
  assert.ok(Math.abs(bursts[0].time-11.25)<.02);
  assert.ok(s.done&&Math.abs(s.st.t-15.5)<.025);
 });
-test('jogador mantém dash e mobilidade: margem externa continua segura em TODAS as ondas',()=>{
+test('jogador mantém dash e mobilidade: margem externa permanece segura durante o impacto único',()=>{
  for(const p of [{x:1227,z:0},{x:1173,z:0},{x:1200,z:27},{x:1200,z:-27},{x:1219.2,z:19.2}]){
   const {ev}=run(1/60,p);
   assert.equal(ev.filter(e=>e.type==='hit').length,0);
