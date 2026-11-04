@@ -103,9 +103,9 @@ export function createSingularMushroomExplosion(T,parent){
  columnLight.renderOrder=31;root.add(columnLight);
  const shock=[];
  for(let i=0;i<3;i++){
-  const m=new T.MeshBasicMaterial({color:i===0?0xffedb2:i===1?0xff9b40:0xffe6bd,
+  const m=new T.MeshBasicMaterial({color:i===0?0xfff8e5:i===1?0xffeccc:0xffdb99,
    opacity:0,transparent:true,blending:T.AdditiveBlending,depthWrite:false,toneMapped:false});
-  const o=new T.Mesh(new T.TorusGeometry(1,.084,6,112),m);o.rotation.x=Math.PI/2;
+  const o=new T.Mesh(new T.TorusGeometry(1,.068,8,128),m);o.rotation.x=Math.PI/2-.24-i*.11;
   root.add(o);shock.push(o);
  }
  const shards=new T.InstancedMesh(new T.TetrahedronGeometry(1,0),
@@ -146,9 +146,9 @@ export function createSingularMushroomExplosion(T,parent){
   core.position.y=born?1.4+12*up:1.2;
   core.scale.setScalar(born?(.7+1.7*up)*(1-ease((age-.78)/.42)):.45+2*pre);
   core.material.opacity=born?(1-ease((age-.55)/.61))*.66:pre*.68;
-  const heights=[27.0,15.5,1.8],delay=[.75,1.20,.46],sizes=[22,15.4,24];
+  const heights=[35.2,24.8,13.4],delay=[.75,1.20,.46],sizes=[28.8,24.4,19.2];
   shock.forEach((o,i)=>{const k=ease((age-delay[i])/1.25);
-   o.visible=born&&k>.001;o.position.y=heights[i]*up;
+   o.visible=born&&k>.001;o.position.y=heights[i]*up;o.rotation.y=time*(.05+i*.035);
    o.scale.setScalar(unit*(.08+.92*k)*sizes[i]);
    o.material.opacity=fade*ease((age-delay[i])/.46)*(.78-i*.12);
   });
