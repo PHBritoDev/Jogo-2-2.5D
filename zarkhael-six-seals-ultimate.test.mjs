@@ -153,8 +153,8 @@ test('Mod 283: fogo no solo ocupa a área de perigo e copa só aparece após ign
  const vfx=fs.readFileSync(new URL('./zarkhael-six-seals-vfx3d.js',import.meta.url),'utf8');
  assert.ok(billow.includes("SingleExplosionGroundFire80Pct"),'saia de fogo no chão ausente');
  assert.ok(billow.includes("st.dangerR*o.radius*spread"),'área da erupção precisa acompanhar o raio de perigo');
- assert.ok(billow.includes("head=ease((age-1.03)/1.30)"),'copa não deve existir na fase de carga');
- assert.ok(billow.includes("billows.visible=active&&head>.002"),'não exibir massas de fogo antes da coluna');
+ assert.ok(billow.includes("head=ease((age-1.37)/1.04)"),'copa não deve existir na fase de carga');
+ assert.ok(billow.includes("billows.visible=active&&age>1.37&&head>.002"),'não exibir massas de fogo antes da coluna');
  assert.ok(eruption.includes("up*.63"),'coluna e copa devem ser mais baixas que na Mod 282');
  assert.ok(main.includes('impactRumble')&&main.includes('tailRumble')&&main.includes('preRumble'),'câmera deve conter preparação, impacto e dissipação');
  assert.ok(main.includes('if(!userSettings.reduceShake)'), 'respeitar acessibilidade de câmera');
