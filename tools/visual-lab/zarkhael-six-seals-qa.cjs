@@ -18,7 +18,10 @@ async function main(){
    if(!modes[mode])throw Error("Tamanho desconhecido: "+mode);
    const folder=path.join(out,mode);fs.mkdirSync(folder,{recursive:true});
    const data=report.modes[mode]={frames:[],console:[],jsErrors:[],glErrors:[],status:"started"};
-   const ctx=await browser.newContext({viewport:modes[mode],deviceScaleFactor:1,hasTouch:true,isMobile:true,recordVideo:{dir:folder,size:modes[mode]}});
+   const videoDir=path.join(require("node:os").tmpdir(),"zark281-"+process.pid+"-"+mode);
+   fs.mkdirSync(videoDir,{recursive:true});
+   const ctx=await browser.newContext({viewport:modes[mode],deviceScaleFactor:1,hasTouch:true,isMobile:true,
+    recordVideo:{dir:videoDir,size:modes[mode]}});
    const page=await ctx.newPage();
    page.on("pageerror",e=>data.jsErrors.push(e.message.slice(0,500)));
    page.on("console",m=>{if(m.type()==="error"){const x=m.text().slice(0,650);data.console.push(x);if(/shader|WebGL|INVALID_OPERATION|VALIDATE_STATUS|cannot compile/i.test(x))data.glErrors.push(x);}});
@@ -73,10 +76,13 @@ async function main(){
      if(bytes<9000)throw Error("Imagem inválida/sem geometria aparente: "+name+" "+bytes);
      const frame={name,time:state.t,phase:state.phase,shot:state.shot,expectedShot,
       camera:state.cam,fov:state.fov,sealCount:state.selos.filter(a=>a[1]>.95).length,
-      burstCount:state.bursts.length,vfx:state.vfx,bytes};
+      burstCount:state.bursts.length,vfx:state.vfx,occluders:state.occluders,hudCompact:state.hudCompact,bytes};
      data.frames.push(frame);
      if(frame.shot!==expectedShot)throw Error("PLANO ERRADO "+name+": "+frame.shot+" em vez de "+expectedShot);
      if(!frame.vfx)throw Error("VFX invisível em "+name);
+     if(!frame.hudCompact)throw Error("A interface do jogo cobriu a cinematográfica "+name);
+     if(frame.phase!=='aura'&&frame.occluders<3)
+      throw Error("Cogumelos gigantes ainda atrapalham a câmera "+name);
     }
     const camHeights=data.frames.slice(2,8).map(f=>f.camera?.[1]);
     for(let j=1;j<6;j++){
