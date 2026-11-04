@@ -131,8 +131,8 @@ const RIFT_FRAGMENT=[
  'vec3 amber=vec3(1.,.40,.025),hot=vec3(1.,.78,.20);',
  'vec3 col=mix(obsidian,crimson,clamp(.33+.6*wave,0.,1.));',
  'col=mix(col,red,clamp(.33+vein*.38+fissure*.28,0.,1.));',
- 'col=mix(col,amber,clamp(vein*.55+fissure*.15,0.,.83));',
- 'col=mix(col,hot,clamp(vein*.18+fissure*.1,0.,.25));',
+ 'col=mix(col,amber,clamp(vein*.29+fissure*.12,0.,.62));',
+ 'col=mix(col,hot,clamp(vein*.11+fissure*.06,0.,.18));',
  'col=mix(col,obsidian,clamp(outside*.81,0.,.82));',
  'float birth=smoothstep(0.,.09,t),tail=1.-smoothstep(.77,1.,t);',
  'float alpha=clamp(birth*tail*(.65+.24*vein+.20*fissure)*uPower*vFlicker,0.,1.);',
@@ -344,7 +344,7 @@ export function createSixSealsVFX(THREE,scene){
    // e cauda. A forma nasce pequena; nunca surge pronta num quadro.
    const compress=sm(age/.43),ignite=sm((age-.38)/.43);
    const expansion=sm((age-.73)/.82);
-   const reach=.025+.08*compress+.18*ignite+.79*expansion;
+   const reach=Math.min(1,.03+.10*compress+.35*ignite+.76*expansion);
    const fade=1-sm((age-1.28)/.62);
    const energy=fade*sm((age-.26)/.42);
    const R=st.dangerR;
@@ -369,7 +369,7 @@ export function createSixSealsVFX(THREE,scene){
     q.setFromAxisAngle(up,-a);
     const tilt=.11+.35*((j*3)%11)/11+.06*Math.sin(age*4+j);
     q.multiply(tiltQ.setFromAxisAngle(tiltAxis,tilt));
-    S.set(len*jitter,rise*(.62+.47*((j*5)%11)/11),1.4+reach*3);
+    S.set(len*jitter,rise*(.80+.50*((j*5)%11)/11),3.8+R*reach*.23);
     matrix.compose(p,q,S);vfx.dark.setMatrixAt(j,matrix);
    }
    vfx.dark.instanceMatrix.needsUpdate=true;
@@ -379,7 +379,7 @@ export function createSixSealsVFX(THREE,scene){
     p.set(Math.cos(a)*reach*.5,.87+(j%4)*.31,Math.sin(a)*reach*.5);
     q.setFromAxisAngle(up,-a);
     q.multiply(tiltQ.setFromAxisAngle(tiltAxis,.2+(j%5)*.055));
-    S.set(len,(2.5+R*reach*.22)*(.63+.33*(j%4)/4),.3+reach*1.15);
+    S.set(len,(3.2+R*reach*.26)*(.63+.33*(j%4)/4),.55+reach*1.7);
     matrix.compose(p,q,S);vfx.hot.setMatrixAt(j,matrix);
    }
    vfx.hot.instanceMatrix.needsUpdate=true;
