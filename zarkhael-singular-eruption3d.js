@@ -129,9 +129,7 @@ export function createSingularMushroomExplosion(T,parent){
   const o=new T.Mesh(new T.TorusGeometry(1,.058,8,144),m);o.rotation.x=Math.PI/2-.10-i*.07;
   root.add(o);shock.push(o);
  }
- const shards=new T.InstancedMesh(new T.TetrahedronGeometry(1,0),
-  new T.MeshBasicMaterial({color:0x270111,transparent:true,opacity:0,depthWrite:false,side:T.DoubleSide}),48);
- shards.frustumCulled=false;root.add(shards);
+ // Fragmentos tetraédricos eliminados; fogo volumétrico e raios dão o impacto.
  // Raios violeta ramificados: caminhos quebrados, nunca cilindros retos genéricos.
  // Todos compartilham um único LineSegments com buffer dinâmico (mobile).
  const ARC_BOLTS=8,ARC_STEPS=9,arcPositions=new Float32Array(ARC_BOLTS*ARC_STEPS*6);
@@ -173,14 +171,7 @@ export function createSingularMushroomExplosion(T,parent){
    o.scale.setScalar(unit*(.08+.92*k)*sizes[i]);
    o.material.uniforms.uTime.value=time;o.material.uniforms.uAlpha.value=fade*ease((age-delay[i])/.46)*(.56-i*.1);
   });
-  const N=ctx.low?24:48;shards.count=N;
-  for(let i=0;i<N;i++){
-   const a=i/N*Math.PI*2,rr=st.dangerR*(.11+.88*rise)*(.73+.2*(i%7)/7);
-   P.set(Math.cos(a)*rr,.3+rise*(1+(i%8)*.45),Math.sin(a)*rr);
-   Q.setFromAxisAngle(U,a+time*.27);
-   const r=.18+.26*((i*7)%9)/9;M.compose(P,Q,S.set(r,r*(.7+rise),r));shards.setMatrixAt(i,M);
-  }
-  shards.instanceMatrix.needsUpdate=true;shards.material.opacity=born*.64*fade;
+  // Sem detritos triangulares que escondem o desenho orgânico da explosão.
   const boltCount=ctx.low?4:ARC_BOLTS,flare=born*fade*ease((age-.32)/.45);
   arcs.visible=flare>.015;arcGeo.setDrawRange(0,boltCount*ARC_STEPS*2);
   const flicker=Math.floor(time*12);
