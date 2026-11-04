@@ -1,11 +1,11 @@
 "use strict";
 /**
- * Mod 280: captura da ULTIMATE REAL do Bispo 3 no browser 3D com WebGL,
- * sem mocks, em portrait e landscape. Audita six seals, safe zone, 3 bursts.
+ * Mod 281: captura da ULTIMATE REAL do Bispo 3 no browser 3D com WebGL,
+ * sem mocks, em portrait e landscape. Audita six seals, safe zone, 1 burst.
  */
 const {chromium}=require("playwright"),fs=require("node:fs"),path=require("node:path");
 const base=(process.env.VISUAL_BASE_URL||"http://127.0.0.1:4173").replace(/\/$/,"");
-const out=path.resolve(process.env.VISUAL_OUTPUT||"visual-lab-results","zarkhael-ultimate-280");
+const out=path.resolve(process.env.VISUAL_OUTPUT||"visual-lab-results","zarkhael-ultimate-281");
 fs.mkdirSync(out,{recursive:true});
 const modes={portrait:{width:393,height:852},landscape:{width:852,height:480}};
 const wanted=(process.env.ZARK_U_QA_SIZES||"portrait,landscape").split(",").map(x=>x.trim()).filter(Boolean);
@@ -24,7 +24,7 @@ async function main(){
    page.on("console",m=>{if(m.type()==="error"){const x=m.text().slice(0,650);data.console.push(x);if(/shader|WebGL|INVALID_OPERATION|VALIDATE_STATUS|cannot compile/i.test(x))data.glErrors.push(x);}});
    page.on("requestfailed",req=>{if(/zarkhael|six-seals/i.test(req.url()))data.jsErrors.push("Asset falhou: "+req.url().slice(0,160));});
    try{
-    const url=base+"/mundo-3d-prototype.html?testeDimensao=bishop3&debug3d=1&build=mod280-qa";
+    const url=base+"/mundo-3d-prototype.html?testeDimensao=bishop3&debug3d=1&build=mod281-qa";
     await page.goto(url,{waitUntil:"domcontentloaded",timeout:35000});
     await page.waitForFunction(()=>typeof window.SevenSinsDebug3D?.dimState==="function",null,{timeout:110000});
     let active=false;
@@ -59,15 +59,15 @@ async function main(){
      data.frames.push({name,time:state.t,phase:state.phase,sealCount:state.selos.filter(a=>a[1]>.95).length,bursts:state.bursts,bytes});
     }
     const first=data.frames[0],last=data.frames.at(-1);
-    if(first.phase!=='aura'||data.frames[4].sealCount!==6||last.bursts.length!==3)
+    if(first.phase!=='aura'||data.frames[4].sealCount!==6||last.bursts.length!==1)
       throw Error("Fases/círculos/bursts incorretos: "+JSON.stringify(data.frames.map(x=>({n:x.name,p:x.phase,sel:x.sealCount,b:x.bursts}))));
     if(data.glErrors.length||data.jsErrors.some(e=>/ReferenceError|SyntaxError|Asset falhou/.test(e)))
       throw Error("Erro WebGL/JS detectado: "+JSON.stringify(data.glErrors.concat(data.jsErrors)).slice(0,1200));
     data.status="approved";
-    process.stdout.write("[BISPO3 280] "+mode+" -> 6 selos, 3 bursts, screenshots reais, sem shader error.\n");
+    process.stdout.write("[BISPO3 281] "+mode+" -> 6 selos, 1 burst, screenshots reais, sem shader error.\n");
    }catch(e){
     data.status="failed";data.failure=String(e.stack||e).slice(0,1400);
-    process.stderr.write("[BISPO3 280] "+mode+" FAIL: "+data.failure+"\n");process.exitCode=1;
+    process.stderr.write("[BISPO3 281] "+mode+" FAIL: "+data.failure+"\n");process.exitCode=1;
    }finally{await ctx.close().catch(()=>{});}
   }
   report.ok=wanted.every(m=>report.modes[m].status==="approved");
