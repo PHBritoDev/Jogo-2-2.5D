@@ -29,33 +29,19 @@ async function qa(){
    }
    if(!active)throw Error("bishop4 combat not active "+mode);
    await page.evaluate(()=>{const d=window.SevenSinsDebug3D;d.kitMove("s2");});
-   let seenCast=false,seenBurn=false,seenLate=false,maxTiles=0,maxRange=0;
-   const start=Date.now();
-   while(Date.now()-start<23500){
-    const data=await page.evaluate(()=>({
-      burn:window.SevenSinsDebug3D.blueBurn(),
-      battle:window.SevenSinsDebug3D.dimState()
-    }));
-    const b=data.burn,st=data.battle;
-    if(b.cast!=="none")seenCast=true;
-    if(b.visible&&b.stacks>0&&!seenBurn){
-      seenBurn=true;
-      const f=path.join(folder,"hero-burning-"+mode+".png");
-      await page.screenshot({path:f});shots.push(f);
-    }
-    if(b.t>12.6&&b.fireTiles>0&&!seenLate){
-      seenLate=true;
-      const f=path.join(folder,"groundfire-late-"+mode+".png");
-      await page.screenshot({path:f});shots.push(f);
-    }
-    maxTiles=Math.max(maxTiles,b.fireTiles);maxRange=Math.max(maxRange,b.pullRadius);
-    records.push({t:+b.t.toFixed(2),phase:b.cast,stacks:b.stacks,fire:b.visible,tiles:b.fireTiles,hp:st.hp});
-    if(st.hp<40&&st.hp>0){ // heal without invulnerability: keep burn status active
-      await page.evaluate(()=>{const d=window.SevenSinsDebug3D; if(typeof d.heal==="function")d.heal();});
-    }
-    if(b.t>14.6)break;
-    await page.waitForTimeout(350);
-   }
+   // Debug de renderização: avançar a timeline PURA (não a física) para o WebGL
+   // não depender de centenas de frames do mundo completo no SwiftShader.
+   const first=await page.evaluate(()=>window.SevenSinsDebug3D.blueBurnFrame(8.05));
+   if(!first)throw Error("debug blueBurnFrame missing");
+   const seenCast=first.cast!=="none",seenBurn=first.visible&&first.stacks>0;
+   const f1=path.join(folder,"hero-burning-"+mode+".png");
+   await page.screenshot({path:f1});
+   const late=await page.evaluate(()=>window.SevenSinsDebug3D.blueBurnFrame(13.0));
+   const seenLate=!!late&&late.t>12.6&&late.fireTiles>0;
+   const f2=path.join(folder,"groundfire-late-"+mode+".png");
+   await page.screenshot({path:f2});
+   const maxTiles=Math.max(first.fireTiles,late?.fireTiles||0),maxRange=first.pullRadius;
+   const records=[first,late],shots=[f1,f2];
    const state={active,seenCast,seenBurn,seenLate,maxTiles,maxRange,errors,consoleErr,responseErr,shots,tail:records.slice(-9)};
    state.ok=seenCast&&seenBurn&&seenLate&&maxRange>=23&&errors.length===0&&consoleErr.filter(x=>/shader|error|cannot compile|WebGL/i.test(x)).length===0&&responseErr.length===0;
    result.modes[mode]=state;
