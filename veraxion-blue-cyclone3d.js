@@ -4,26 +4,26 @@
  *   aim       0–0,6     o bispo aponta a espada para o herói; aura ciano cresce (fica até o FIM do poder)
  *   draw      0,4–1,9   mandala horizontal desenhada sob p0 (posição do herói no INÍCIO; fica fixa no mundo)
  *   spawn     1,9–3,2   um tornado nasce em cada um dos quatro selos satélites (diagonais)
- *   approach  3,2–5,9   os quatro andam juntos, em arco, até perto de p0 (não seguem o herói); deixam fogo azul (4 s)
+ *   approach  3,2–5,9   os quatro andam juntos, em arco, até perto de p0 (não seguem o herói); deixam fogo azul (7 s)
  *   merge     5,9–7,0   espiralam para o centro e se fundem num mega tornado ~3,5× maior (visual; hitbox limitado)
  *   mega      7,0–9,6   sucção forte com queda radial e teto; dash reduz a força
  *   implode   9,6–10,15 tudo é sugado para o núcleo e a coluna some
  *   silence   10,15–10,45 pausa quase vazia + micro-pulso de aviso no chão
  *   blast     10,45     UMA explosão azul (dano único, raio sinalizado)
- *   afterfire 10,45–12,4 campo de fogo azul residual; a aura some só no fim (12,5)
+ *   afterfire 10,45–14,55 campo de fogo azul residual; a aura some só no fim (14,95)
  * Riscos separados: sucção (não fere), contato com tornado (dano + queimadura), fogo (queimadura), explosão (dano único).
  * Queimadura: 3,7 s renovável, até 3 acúmulos (um novo acúmulo só a cada 0,9 s), um tick canônico a cada 0,95 s.
  */
 export const VERAXION_CYCLONE_BUILD = '286-quatro-vortices-azuis';
 export const CY = {
   aimEnd: .6, drawAt: .4, drawEnd: 1.9, spawnAt: 1.9, spawnStagger: .12, spawnDur: 1.0, spawnEnd: 3.2, approachAt: 3.2, approachEnd: 5.9, mergeEnd: 7.0, megaGrowAt: 6.0, megaGrowEnd: 7.2,
-  megaEnd: 9.6, implodeEnd: 10.15, blastAt: 10.45, fireEnd: 12.35, end: 12.95,
+  megaEnd: 9.6, implodeEnd: 10.15, blastAt: 10.45, fireEnd: 14.5, end: 14.95,
   R: 12.5, satDist: 13.4, satR: 4.2, approachR: 3.2, edge: 2.2,
   tornR: 1.35, megaR: 2.9, heroR: .45, heroH: 1.8, tornH: 9, megaScale: 3.5,
   contactDmg: 5, megaDmg: 7, contactCd: .9, burnDur: 3.7, burnTick: .95, burnPerStack: 2, maxStacks: 3, stackWindow: .9,
-  fireLife: 4, fireGap: .85, fireR: .9, afterFireR: 7.5, afterFireN: 22, afterLife: 1.9,
+  fireLife: 7, fireGap: .62, fireR: 1.05, afterFireR: 8.0, afterFireN: 24, afterLife: 4.1,
   blastR: 8.5, blastDmg: 20,
-  pull: { infl: 7, max: 2.6, tangent: .35 }, megaPull: { infl: 15, max: 6.0, tangent: .25 }, dashMul: .18, pullCap: 6.0
+  pull: { infl: 12, max: 4.2, tangent: .32 }, megaPull: { infl: 24, max: 7.8, tangent: .22 }, dashMul: .18, pullCap: 7.8
 };
 const clamp01 = x => Math.max(0, Math.min(1, x)), sm = x => { x = clamp01(x); return x * x * (3 - 2 * x); };
 
@@ -55,7 +55,7 @@ export function createBlueCyclone(opts = {}) {
       for (const o of st.torn) { const k = o.grow * o.alpha; if (k < .3) continue; const dx = o.x - x, dz = o.z - z, d = Math.hypot(dx, dz); if (d >= P.infl || d < 1e-3) continue;
         const m = P.max * k * Math.pow(1 - d / P.infl, 1.2); if (m > bm) { bm = m; best = [dx / d * m + (-dz / d) * m * P.tangent, dz / d * m + (dx / d) * m * P.tangent]; } }
       const M = st.mega, MP = T.megaPull; if (M.alpha > .05 && st.implode < 1) { const dx = st.p0.x - x, dz = st.p0.z - z, d = Math.hypot(dx, dz), k = M.alpha * clamp01(M.scale / T.megaScale) * (1 - st.implode);
-        if (d < MP.infl && d > 1e-3) { const m = MP.max * k * Math.pow(1 - d / MP.infl, 1.1); if (m > bm) { bm = m; best = [dx / d * m + (-dz / d) * m * MP.tangent, dz / d * m + (dx / d) * m * MP.tangent]; } } }
+        if (d < MP.infl && d > 1e-3) { const m = MP.max * k * Math.pow(1 - d / MP.infl, 1.55); if (m > bm) { bm = m; best = [dx / d * m + (-dz / d) * m * MP.tangent, dz / d * m + (dx / d) * m * MP.tangent]; } } }
       if (!best) return null; const l = Math.hypot(best[0], best[1]), cap = Math.min(T.pullCap, l) / (l || 1), dm = dashing ? T.dashMul : 1;
       return { x: best[0] * cap * dm, z: best[1] * cap * dm, mag: Math.min(T.pullCap, l) * dm };
     },
