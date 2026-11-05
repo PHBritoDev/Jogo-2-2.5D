@@ -40,16 +40,16 @@ test('Quatro Vórtices — mandala 24–30 de diâmetro sob p0 FIXO; satélites 
   assert.ok(s.done);
 });
 
-test('Quatro Vórtices — sucção: nunca soma os quatro, teto global, dash 18%, mega mais forte; sem sucção antes dos tornados', () => {
+test('Quatro Vórtices — sucção ampliada: nunca soma os quatro, teto global, dash 18%, mega mais forte; sem sucção antes dos tornados', () => {
   const s = createBlueCyclone({ ground }).start(BOSS, { x: 1601, z: 3 }, ARENA); const hero = { x: 1601, z: 3, y: GY, alive: true };
   for (let i = 0; i < 60 * 1.5; i++) s.step(1 / 60, { hero }); assert.equal(s.pullAt(1601, 3, false), null, 'nada durante o desenho');
   for (let i = 0; i < 60 * 3; i++) s.step(1 / 60, { hero }); let mx = 0; for (let x = -15; x <= 15; x += .5) for (let z = -15; z <= 15; z += .5) { const p = s.pullAt(1601 + x, 3 + z, false); if (p) mx = Math.max(mx, p.mag); } assert.ok(mx <= CY.pull.max * Math.hypot(1, CY.pull.tangent) + 1e-6, 'quatro tornados não somam: ' + mx.toFixed(2));
   for (let i = 0; i < 60 * 3.5; i++) s.step(1 / 60, { hero }); const pm = s.pullAt(1601 + 4, 3, false), pd = s.pullAt(1601 + 4, 3, true); assert.ok(pm.mag > CY.pull.max, 'mega mais forte'); assert.ok(pm.mag <= CY.pullCap + 1e-6, 'teto');
-  assert.ok(Math.abs(pd.mag / pm.mag - CY.dashMul) < 1e-6, 'dash reduz a 18%'); assert.equal(s.pullAt(1601 + 20, 3, false), null, 'alcance limitado');
+  assert.ok(Math.abs(pd.mag / pm.mag - CY.dashMul) < 1e-6, 'dash reduz a 18%'); assert.ok(s.pullAt(1601 + 20, 3, false)?.mag > 0, 'sucção agora alcança 20 m do mega tornado'); assert.equal(s.pullAt(1601 + CY.megaPull.infl + .5, 3, false), null, 'sucção tem alcance finito');
   // corrida a 7,2 m/s escapa do mega a partir de ~5 m; 3 dashes de 0,25 s a 18 m/s escapam até do centro
   const run2 = (x0, sp, dash) => { const q = createBlueCyclone({ ground }).start(BOSS, { x: 1601, z: 3 }, ARENA); for (let i = 0; i < 60 * 7.2; i++) q.step(1 / 60, { hero: { x: 1640, z: 0, y: GY, alive: true } }); let x = 1601 + x0;
     for (let i = 0; i < 60 * 2.2; i++) { const d = dash && (i % 40) < 15, v = d ? 18 : sp, p = q.pullAt(x, 3, d); x += (v + (p ? p.x : 0)) / 60; q.step(1 / 60, { hero: { x, z: 3, y: GY, alive: true } }); } return x - 1601; };
-  assert.ok(run2(5, 7.2, false) > 10, 'correndo escapa'); assert.ok(run2(1, 4.3, true) > 9, 'dash repetido escapa do centro');
+  assert.ok(run2(5, 7.2, false) > 8, 'corrida progride para fora mesmo sob sucção forte'); assert.ok(run2(1, 4.3, true) > 9, 'dash repetido escapa do centro');
 });
 
 test('Quatro Vórtices — dano: contato com cooldown global, queimadura 3,7 s até 3 acúmulos, um tick por vez, explosão única; i-frames; sem empurrão', () => {
@@ -64,7 +64,7 @@ test('Quatro Vórtices — dano: contato com cooldown global, queimadura 3,7 s a
   const dash = run((h2) => { h2.iframes = true; }); assert.equal(dmg(dash), 0); assert.ok(all(dash, 'blast_dodge').length === 1);
   // longe do círculo: nada
   const far = run((h2, tt) => { if (tt > .2) { h2.x = 1600 - 26; h2.z = 0; } }, { pull: false }); assert.equal(dmg(far), 0);
-  // fogo perde dano no instante em que some (4 s de vida por segmento)
+  // fogo perde dano no instante em que some (7 s de vida por segmento de rastro)
   const fz = run(() => {}); assert.ok(fz.s.st.fires.length === 0);
 });
 
@@ -88,4 +88,32 @@ test('Bispo 4 — só as duas magias autorais; nada genérico no kit, IA, ultima
   assert.ok(!/function startVoidUlt|tickVoidUlt|BOSS_POWERS\.veraxion|veraxion:\{cd:/.test(src), 'Buraco Negro e Fogo Abissal genéricos excluídos');
   assert.ok(src.includes('if(vxSwords||cySkill)return;') && src.includes('if(cySkill||vxSwords)return;'), 'S1 e S2 nunca simultâneas');
   const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testCicloneAzul=1') && lab.includes('testQuatroEspadas=1'));
+});
+
+
+test('Mod 287 — fogo azul permanece após a convergência e após o grande impacto', () => {
+  assert.ok(CY.fireLife >= 6.5, 'rastro persiste pelo menos 6,5 s');
+  assert.ok(CY.afterLife >= 4, 'fogo residual persiste por ~4 s');
+  assert.ok(CY.megaPull.infl >= 23, 'mega suga além dos antigos 15 metros');
+  assert.ok(CY.pull.infl >= 11, 'quatro tornados sugam além dos antigos 7 metros');
+  assert.ok(CY.dashMul <= .2, 'dash mantém resistência forte');
+  const c = createBlueCyclone({ground}).start(BOSS,{x:1601,z:3},ARENA);
+  const h = {x:1640,z:3,y:GY,alive:true,iframes:false};
+  for(let i=0;i<60*13;i++)c.step(1/60,{hero:h});
+  assert.ok(c.st.fires.some(f=>f.big&&c.st.t-f.born >= 2.2), 'fogo grande permanece bem depois do impacto');
+  assert.ok(c.st.fires.some(f=>!f.big&&c.st.t-f.born >= 6), 'rastro permanece após convergência');
+  while(!c.done)c.step(1/60,{hero:h});
+  assert.equal(c.st.fires.length,0,'limpa fogo no fim');
+});
+
+test('Mod 287 — queimadura visual acompanha o protagonista e não usa copa/cone genérico', () => {
+  const src = fs.readFileSync(new URL('./veraxion-blue-burn3d.js',import.meta.url),'utf8');
+  assert.match(src,/uAnchor\[10\]/,'flamas 3D ancoradas a dez regiões do rig');
+  assert.match(src,/getWorldPosition/,'ancoragem acompanha animação');
+  assert.match(src,/uHeat/,'intensidade depende do status de queimadura');
+  assert.doesNotMatch(src,/ConeGeometry|CylinderGeometry|SphereGeometry|IcosahedronGeometry/,'não é capa/copa/cone/esfera genérica');
+  const world=fs.readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
+  assert.match(world,/createVeraxionHeroBurnVFX/);
+  assert.match(world,/cyBurnFx.update\(dt,!s.st.aborted&&playerHP>0&&s.st.burn\?s.st.burn.stacks:0\)/);
+  assert.match(world,/cyBurnFx.clear\(\)/,'limpa o fogo ao encerrar ou cancelar');
 });
