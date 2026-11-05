@@ -15,7 +15,7 @@ export function enhanceLunarMonster(T, root, { low = false } = {}) {
   };
   const dark = m(0x090414), bone = m(0xae72eb, 0x371078, .14), ivory = m(0xdbc2eb, 0x4b155f, .1);
   const lip = m(0x35164e, 0x691caf, .25), pit = m(0x010004);
-  const eyeSocket = m(0x010004), iris = m(0x8d36ee, 0x9f32ff, 2.1);
+  const eyeSocket = m(0x010004), iris = m(0x8d36ee, 0x9f32ff, 1.45);
   const eyeCore = m(0x05020a), eyeRim = m(0xb579ff, 0x7324cf, .7);
   const ellipse = (parent, mat, pos, scale, detail = 16) => {
     const o = new T.Mesh(g(new T.SphereGeometry(1, detail, detail >> 1)), mat);
@@ -40,12 +40,12 @@ export function enhanceLunarMonster(T, root, { low = false } = {}) {
     eyes.push(e);
   }
   // Grin ameaçador: fenda larga com cantos altos, gengivas curvas e dentes cônicos irregulares.
-  ellipse(head, pit, [0,-1.08,1.27], [1.03,.315,.19], low ? 18 : 28);
+  ellipse(head, pit, [0,-1.09,1.58], [1.14,.35,.25], low ? 18 : 28);
   const top = [], bottom = [];
   for (let i=0;i<=14;i++) {
     const x = (i/14*2-1)*1.07, arc = Math.pow(Math.abs(x)/1.07,1.8);
-    top.push([x, -.92+.16*arc, 1.31-.11*arc]);
-    bottom.push([x, -1.32+.1*arc, 1.33-.1*arc]);
+    top.push([x, -.91+.16*arc, 1.73-.11*arc]);
+    bottom.push([x, -1.35+.1*arc, 1.73-.1*arc]);
   }
   curve(head, top, .058, lip, 32); curve(head, bottom, .045, bone, 32);
   const fangs = [];
@@ -53,19 +53,19 @@ export function enhanceLunarMonster(T, root, { low = false } = {}) {
     const x = (i/14*2-1)*.94, edge=Math.pow(Math.abs(x),1.6);
     const len=(i%5===2?.32:.15)+(i%3)*.018;
     const tooth = new T.Mesh(g(new T.ConeGeometry(.064+(i%4)*.008,len,5,1)), ivory);
-    tooth.position.set(x,-.94+.14*edge-len*.40,1.39-.11*edge); tooth.rotation.z = -.13*x;
+    tooth.position.set(x,-.94+.14*edge-len*.40,1.79-.11*edge); tooth.rotation.z = -.13*x;
     head.add(tooth); parts.push(tooth); fangs.push(tooth);
   }
   for(let i=0;i<13;i++){
     const x=(i/12*2-1)*.87, edge=Math.pow(Math.abs(x),1.6);
     const len=(i%4===1?.21:.13)+(i%3)*.016;
     const tooth = new T.Mesh(g(new T.ConeGeometry(.05,len,5,1)), ivory);
-    tooth.position.set(x,-.86+.11*edge+len*.35,1.04-.1*edge);
+    tooth.position.set(x,-.86+.11*edge+len*.35,1.48-.1*edge);
     tooth.rotation.z=Math.PI+.1*x; jaw.add(tooth); parts.push(tooth);
   }
   // Nariz pequeno e baixo para que a boca domine a expressão, com fendas escuras minúsculas.
-  ellipse(head, dark, [0,-1.47,1.58],[.17,.10,.12], 12);
-  for(const s of [-1,1])ellipse(head,pit,[s*.078,-1.47,1.679],[.04,.022,.014],10);
+  ellipse(head, dark, [0,-1.51,1.84],[.16,.095,.09], 12);
+  for(const s of [-1,1])ellipse(head,pit,[s*.078,-1.51,1.932],[.04,.022,.014],10);
   // Cristas de tecido sobre as bochechas; quebram a aparência de cabeça lisa de GLB.
   for(const s of [-1,1]) {
     for(let i=0;i<3;i++)curve(head,[[s*(.48+i*.12),-.54,1.02],[s*(.84+i*.07),-.67,1.0],[s*(1.02+i*.03),-.84,.82]], .025+i*.009, i===0?bone:dark, 12);
@@ -84,7 +84,7 @@ export function enhanceLunarMonster(T, root, { low = false } = {}) {
   }
   return {
     update(t, charge=0) {
-      for(let i=0;i<eyes.length;i++)eyes[i].material.emissiveIntensity = 1.8 + charge*.85 + .25*Math.sin(t*2.4+i);
+      for(let i=0;i<eyes.length;i++)eyes[i].material.emissiveIntensity = 1.25 + charge*.75 + .2*Math.sin(t*2.4+i);
       eyeRim.emissiveIntensity=.65+charge*.3;
     },
     dispose(){
