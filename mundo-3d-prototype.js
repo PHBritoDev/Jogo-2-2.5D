@@ -6640,6 +6640,25 @@ function installCombatLab(){
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},
+
+ /** Instrumento de QA: avança APENAS a timeline determinística da Skill 2 sem a física do mundo;
+  * permite validar o shader no Chromium SwiftShader (render de mundo completo roda a FPS muito baixo).
+  * Ativo somente com ?debug3d&testCicloneAzul=1; sem efeito no gameplay normal. */
+ blueBurnFrame(seconds=8){
+  if(!CY_TEST||!cySkill||!cyBurnFx||!cyVfx)return null;
+  const s=cySkill,p=s.st.p0,y=fxGy(p.x,p.z);
+  const target=Math.min(s.T.end-.25,Math.max(s.st.t,Number(seconds)||8));
+  const n=Math.min(480,Math.ceil((target-s.st.t)*30));
+  for(let i=0;i<n;i++)s.step(Math.min(1/30,target-s.st.t),{hero:{x:p.x,y,z:p.z,alive:true,iframes:false}});
+  player.position.set(p.x,y,p.z);
+  cyBurnFx.setTarget(player,model);
+  cyBurnFx.update(.13,s.st.burn?.stacks||0);
+  const e=enemy.position;
+  cyVfx.update(s,{camera,boss:{x:e.x,y:fxGy(e.x,e.z),z:e.z,h:vxBossH()},low:graphics3DMode==='low'},.033);
+  renderer.render(scene,camera);
+  return this.blueBurn();
+ },
+
  combatStudio(boss=false){player.visible=!boss;const keep=new Set([player,camera]);for(const a of squadSq()?.actors||[]){const b=squadRT.body(a.id);if(b){keep.add(b.holder);keep.add(b.weaponRoot);for(const c of b.claws||[])keep.add(c.root);}}for(const o of scene.children){if(o.isDirectionalLight||o.isHemisphereLight||o.isAmbientLight||o.name==='SwordRites231')keep.add(o);if(!keep.has(o))o.visible=false;}scene.background=new THREE.Color(0x18202c);scene.fog=new THREE.Fog(0x18202c,100,200);const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshStandardMaterial({color:0x3b4659,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.set(player.position.x,terrainHeightAt(player.position.x,player.position.z)-.04,player.position.z);scene.add(floor);const light=new THREE.HemisphereLight(0xf2e7d1,0x555776,1.8);scene.add(light);renderer.render(scene,camera);},
  combatMoveQA(sword,mode='ground',step=0){rites.cancel('qa');this.riteEquip(sword);rites.next=step;rites.lastEnd=rites.time;return rites.attack(sword,{damage:SWORDS[sword].damage,mode,target:riteTarget(),yaw:playerYaw});},
  combatStep(seconds,{fps=60,draw=true}={}){for(let i=0;i<Math.round(seconds*fps);i++){const dt=1/fps;mixer.update(dt);restoreRiteScales();updatePlayerMovement(dt,performance.now()+i*1000/fps);updateRites(dt);updateSquadCombat(dt,performance.now()+i*1000/fps);updatePlayerSwordMount();updateFirstPerson(dt,performance.now());if(!debugCameraOverride)updatePlayerCamera(dt);}if(!player.visible){if(swordMount)swordMount.visible=false;if(swordView)swordView.root.visible=false;}if(draw)renderer.render(scene,camera);return{hero:this.riteState(),squad:this.squadState()};},
