@@ -11,7 +11,7 @@ async function qa(){
  const browser=await chromium.launch({headless:true,args:["--no-sandbox","--disable-dev-shm-usage","--enable-webgl","--ignore-gpu-blocklist","--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});
  try{
   for(const mode of modes){
-   const errors=[],consoleErr=[],responseErr=[],records=[],shots=[],vp=specs[mode];if(!vp)throw Error("invalid mode "+mode);
+   const errors=[],consoleErr=[],responseErr=[],vp=specs[mode];if(!vp)throw Error("invalid mode "+mode);
    const ctx=await browser.newContext({viewport:vp,deviceScaleFactor:1,isMobile:true,hasTouch:true});
    const page=await ctx.newPage();
    page.on("pageerror",e=>errors.push(e.message));
