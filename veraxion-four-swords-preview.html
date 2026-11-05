@@ -1,0 +1,49 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VÉRAXION · Quatro Sentenças do Abismo · prévia</title>
+<style>body{margin:0;background:#030204;color:#eef;font:12px monospace;overflow:hidden}canvas{display:block}#i{position:absolute;top:6px;left:8px;pointer-events:none;white-space:pre;text-shadow:0 0 3px #000}</style><div id="i"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+/* Prévia/QA da Skill 1 do Bispo 4 (mesma lógica, mesmo VFX, mesmo GLB do jogo). ?t=segundos congela; ?cam=hero|wide|boss|impact|top; ?low=1; ?dodge=1 */
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {createFourSwords} from './veraxion-four-swords3d.js';import {createFourSwordsVFX} from './veraxion-four-swords-vfx3d.js';
+const q=new URLSearchParams(location.search),freeze=q.has('t')?+q.get('t'):null,camMode=q.get('cam')||'hero',low=q.has('low'),dodge=q.has('dodge');
+const scene=new T.Scene();scene.background=new T.Color(0x040306);scene.fog=new T.Fog(0x050407,30,140);const camera=new T.PerspectiveCamera(56,innerWidth/innerHeight,.1,500);
+const r=new T.WebGLRenderer({antialias:!low});r.setPixelRatio(1);r.setSize(innerWidth,innerHeight);r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.15;r.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(r.domElement);
+scene.add(new T.HemisphereLight(0x8890b0,0x201018,1.1));const dl=new T.DirectionalLight(0xffe8e0,1.2);dl.position.set(-6,14,8);scene.add(dl);
+const GY=-1000,C={x:1600,z:0};const floorTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.fillStyle='#1a1620';g.fillRect(0,0,256,256);g.strokeStyle='#2c2533';g.lineWidth=3;for(let i=0;i<=256;i+=64){g.beginPath();g.moveTo(i,0);g.lineTo(i,256);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(256,i);g.stroke();}const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(16,16);t.colorSpace=T.SRGBColorSpace;return t;})();
+const floor=new T.Mesh(new T.CircleGeometry(34,64).rotateX(-Math.PI/2),new T.MeshStandardMaterial({map:floorTex,roughness:.85,metalness:.1}));floor.position.set(C.x,GY,C.z);scene.add(floor);
+for(let i=0;i<14;i++){const a=i/14*6.283,p=new T.Mesh(new T.BoxGeometry(1.6,22,1.6),new T.MeshStandardMaterial({color:0x221c2a,roughness:.9}));p.position.set(C.x+Math.cos(a)*31,GY+11,C.z+Math.sin(a)*31);scene.add(p);}
+const hero=new T.Mesh(new T.CapsuleGeometry(.42,1,4,12),new T.MeshStandardMaterial({color:0xd8d0c0}));scene.add(hero);
+const L=new GLTFLoader(),[bg,sg]=await Promise.all([L.loadAsync('./Bispo4-lod.glb?v=mod196'),L.loadAsync('./EspadaVeraxion.glb?v=mod285')]);
+const boss=new T.Group();scene.add(boss);const m=bg.scene;const box=new T.Box3().setFromObject(m);const sc=(1.5*1.6)/(box.max.y-box.min.y);m.scale.setScalar(sc);m.position.y=-box.min.y*sc;boss.add(m);
+const mixer=new T.AnimationMixer(m);const idle=bg.animations.find(a=>a.name==='Idle Torch');if(idle)mixer.clipAction(idle).play();
+boss.position.set(C.x,GY,C.z-4);boss.updateMatrixWorld(true);const bb=new T.Box3().setFromObject(m),BH=bb.max.y-bb.min.y;
+const swordGeo=sg.scene.getObjectByProperty('isMesh',true).geometry;
+const vfx=createFourSwordsVFX(T,scene,{low,swordGeometry:swordGeo});vfx.attachBoss(m);
+const H={x:C.x,z:C.z+8,y:GY,vx:0,vz:0,iframes:false,alive:true};
+const seq=createFourSwords({ground:()=>GY}).start({x:boss.position.x,y:GY,z:boss.position.z,yaw:0,h:BH},{x:C.x,z:C.z,r:30});
+/* poses das duas mãos (mesma técnica do jogo: apontar ossos em espaço de mundo) */
+const B=n=>m.getObjectByName(n),R={chest:B('mixamorigSpine1'),head:B('mixamorigHead'),lua:B('mixamorigLeftArm'),lla:B('mixamorigLeftForeArm'),lh:B('mixamorigLeftHand'),rua:B('mixamorigRightArm'),rla:B('mixamorigRightForeArm'),rh:B('mixamorigRightHand')};
+const _q=new T.Quaternion(),_q2=new T.Quaternion(),_q3=new T.Quaternion(),_v=new T.Vector3(),_v2=new T.Vector3(),UPV=new T.Vector3(0,1,0);
+function aimBone(b,child,dir,w){if(w<=0)return;b.updateWorldMatrix(true,false);child.updateWorldMatrix(false,false);const cur=_v2.setFromMatrixPosition(child.matrixWorld).sub(_v.setFromMatrixPosition(b.matrixWorld)).normalize();_q.setFromUnitVectors(cur,dir);_q2.identity().slerp(_q,w);b.getWorldQuaternion(_q3);_q2.multiply(_q3);b.parent.getWorldQuaternion(_q3).invert();b.quaternion.copy(_q3.multiply(_q2));b.updateMatrixWorld(true);}
+function turnBone(b,axis,ang){b.updateWorldMatrix(true,false);_q.setFromAxisAngle(axis,ang);b.getWorldQuaternion(_q3);_q.multiply(_q3);b.parent.getWorldQuaternion(_q3).invert();b.quaternion.copy(_q3.multiply(_q));b.updateMatrixWorld(true);}
+function arms(t){const T2=seq.T,up=Math.min(1,Math.max(0,(t-T2.raiseAt)/.45)),down=Math.min(1,Math.max(0,(t-T2.releaseAt+.12)/.2)),out=1-Math.min(1,Math.max(0,(t-T2.releaseAt-.5)/.4));const w=up*out;if(w<=0)return;
+ const f=new T.Vector3(0,0,1),rr=new T.Vector3().crossVectors(f,UPV).normalize(),D=(x,y,z)=>new T.Vector3().addScaledVector(f,x).addScaledVector(UPV,y).addScaledVector(rr,z).normalize();
+ const a=1-down;turnBone(R.chest,rr,(-.16*a+.3*down)*w);for(const[ua,la,s] of [[R.rua,R.rla,1],[R.lua,R.lla,-1]]){aimBone(ua,la,a>.5?D(.12,1,.32*s):D(.9,-.35,.18*s),w);aimBone(la,ua===R.rua?R.rh:R.lh,a>.5?D(.05,1,.18*s):D(.95,-.25,.1*s),w);}turnBone(R.head,rr,-.12*w*a);}
+let t=0,camModeV=camMode,dodgeV=dodge;const dt=1/60;function sim(d){seq.step(d,{hero:H});mixer.update(d);arms(seq.st.t);vfx.update(seq,{camera,boss:{x:boss.position.x,y:GY,z:boss.position.z,yaw:0,h:BH},low},d);t+=d;}
+function place(){if(dodgeV&&seq.st.t>2.2){H.vx=7;H.x+=H.vx*dt;}hero.position.set(H.x,GY+.92,H.z);
+ const bx=boss.position.x,bz=boss.position.z;
+ if(camModeV==='hero'){camera.position.set(H.x+1.2,GY+3.6,H.z+9.5);camera.lookAt(bx,GY+4.2,bz);}
+ else if(camModeV==='wide'){camera.position.set(bx+17,GY+7,bz+19);camera.lookAt(bx,GY+3,bz+6);}
+ else if(camModeV==='boss'){camera.position.set(bx+5,GY+4.5,bz+10.5);camera.lookAt(bx,GY+4.6,bz-1);}
+ else if(camModeV==='impact'){const tg=seq.st.targets?.[0]||{x:H.x,z:H.z};camera.position.set(tg.x+10,GY+5,tg.z+13);camera.lookAt(tg.x,GY+3.5,tg.z);}
+ else if(camModeV==='close'){camera.position.set(bx+1.2,GY+1.7,bz+5.2);camera.lookAt(bx,GY+1.35,bz);}
+ else if(camModeV==='crown'){camera.position.set(bx+3,GY+3.2,bz+12);camera.lookAt(bx,GY+4.3,bz-1.5);}
+ else if(camModeV==='sword'){const sw=seq.st.swords[1];const g=sw?sw.tip:[bx,GY+5,bz];camera.position.set(g[0]+.6,g[1]+seq.st.L*.45,g[2]+seq.st.L*1.05);camera.lookAt(g[0],g[1]+seq.st.L*.5,g[2]);}
+ else if(camModeV==='top'){camera.position.set(bx,GY+38,bz+16);camera.lookAt(bx,GY,bz+7);}
+ camera.updateMatrixWorld();}
+window.__shot=(tt,cm,dg)=>{camModeV=cm||camModeV;dodgeV=!!dg;Object.assign(H,{x:C.x,z:C.z+8,vx:0,vz:0,iframes:false});vfx.clear();seq.start({x:boss.position.x,y:GY,z:boss.position.z,yaw:0,h:BH},{x:C.x,z:C.z,r:30});t=0;
+ while(t<tt-1e-9){place();sim(Math.min(dt,tt-t));}place();vfx.update(seq,{camera,boss:{x:boss.position.x,y:GY,z:boss.position.z,yaw:0,h:BH},low},0);r.render(scene,camera);
+ const st=seq.st;document.getElementById('i').textContent=`t ${st.t.toFixed(2)} fase ${st.phase} aura ${st.aura.toFixed(2)} H_boss ${BH.toFixed(2)} L ${st.L.toFixed(2)} draw ${r.info.render.calls} tri ${r.info.render.triangles}`;const v=new T.Vector3();window.__hands=[R.lh.getWorldPosition(v).y,R.rh.getWorldPosition(v.clone()).y,R.head.getWorldPosition(new T.Vector3()).y].map(x=>(x-GY).toFixed(2)).join(',');return document.getElementById('i').textContent+' hands '+window.__hands;};
+if(freeze!==null){window.__shot(freeze,camMode,dodge);window.__ready=1;}
+else{const clock=new T.Clock();(function loop(){requestAnimationFrame(loop);const d=Math.min(.05,clock.getDelta());place();sim(d);r.render(scene,camera);if(seq.done)seq.start({x:boss.position.x,y:GY,z:boss.position.z,yaw:0,h:BH},{x:C.x,z:C.z,r:30});document.getElementById('i').textContent=`t ${seq.st.t.toFixed(2)} ${seq.st.phase}`;})();window.__ready=1;}
+</script></html>

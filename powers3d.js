@@ -77,12 +77,10 @@ export const KITS = {
     S('s2', 'CHAMAS NEGRAS — O FOGO QUE NÃO MORRE', 'zarkhael_black_moon_flames', { dmg: 4, cd: 32, range: [5, 28] })], // Bispo 3 · Skill 2: 10 chamas negras + a colossal, sem lua (zarkhael-blackflame3d.js)
     sword: S('sw', 'SENTENÇA OMNIDIRECIONAL — GIRO DO JUÍZO', 'zarkhael_circular_sword', { dmg: 22, cd: 22, range: [4, 23] }),
     ult: S('ult', 'OS SEIS SELOS DO JUÍZO ETERNO', 'zarkhael_six_seals', { dmg: 54, cd: 46 }) },
-  veraxion: { color: 0x9a2cff, color2: 0xff5a1a, book: true, skills: [
-    S('s1', 'Fogo Abissal', 'abyss', { n: 5, dmg: 18, cd: 8 }),
-    S('s2', 'Furacão Negro', 'vortex', { dmg: 9, cd: 11, dur: 4, speed: 3.2 }),
-    S('s3', 'Orbes do Abismo', 'orbs', { n: 6, dmg: 12, cd: 9, speed: 7 })],
-    sword: S('sw', 'Corte do Abismo', 'wave', { n: 2, dmg: 15, cd: 6 }),
-    ult: S('ult', 'BURACO NEGRO', 'void', { dmg: 28 }) },
+  veraxion: { color: 0x9a2cff, color2: 0x2ab8ff, book: false, skills: [ // MOD 286: só as duas magias autorais; Orbes, Corte do Abismo especial, Buraco Negro, Fogo Abissal e Furacão Negro foram excluídos
+    S('s1', 'QUATRO SENTENÇAS DO ABISMO', 'veraxion_four_swords', { dmg: 12, cd: 16 }), // MOD 285: Bispo 4 · Skill 1 (veraxion-four-swords3d.js)
+    S('s2', 'QUATRO VÓRTICES DO JUÍZO AZUL', 'veraxion_four_blue_tornadoes', { dmg: 20, cd: 24 })], // MOD 286: Bispo 4 · Skill 2 (veraxion-blue-cyclone3d.js)
+    sword: null, ult: null }, // ultimate autoral ainda será criada com o autor: nenhum substituto genérico
   greed1: { color: 0xffd040, color2: 0x3a2400, book: true, skills: [
     S('s1', 'Portões do Tesouro', 'rain', { n: 30, dmg: 13, cd: 9, r: 3.8, dur: 1.8, gold: true }),
     S('s2', 'Orbes de Ouro', 'orbs', { n: 5, dmg: 12, cd: 8, speed: 8 }),
