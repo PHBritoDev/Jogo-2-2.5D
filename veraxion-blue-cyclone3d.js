@@ -17,10 +17,10 @@
 export const VERAXION_CYCLONE_BUILD = '286-quatro-vortices-azuis';
 export const CY = {
   aimEnd: .6, drawAt: .4, drawEnd: 1.9, spawnAt: 1.9, spawnStagger: .12, spawnDur: 1.0, spawnEnd: 3.2, approachAt: 3.2, approachEnd: 5.9, mergeEnd: 7.0, megaGrowAt: 6.0, megaGrowEnd: 7.2,
-  megaEnd: 9.6, implodeEnd: 10.15, blastAt: 10.45, fireEnd: 14.5, end: 14.95,
+  megaEnd: 9.6, implodeEnd: 10.15, blastAt: 10.45, fireEnd: 14.35, end: 14.95,
   R: 12.5, satDist: 13.4, satR: 4.2, approachR: 3.2, edge: 2.2,
   tornR: 1.35, megaR: 2.9, heroR: .45, heroH: 1.8, tornH: 9, megaScale: 3.5,
-  contactDmg: 5, megaDmg: 7, contactCd: .9, burnDur: 3.7, burnTick: .95, burnPerStack: 2, maxStacks: 3, stackWindow: .9,
+  contactDmg: 4, megaDmg: 6, contactCd: .9, burnDur: 3.7, burnTick: .95, burnPerStack: 2, maxStacks: 3, stackWindow: .9,
   fireLife: 7, fireGap: .62, fireR: 1.05, afterFireR: 8.0, afterFireN: 24, afterLife: 4.1,
   blastR: 8.5, blastDmg: 20,
   pull: { infl: 12, max: 4.2, tangent: .32 }, megaPull: { infl: 24, max: 7.8, tangent: .22 }, dashMul: .18, pullCap: 7.8
