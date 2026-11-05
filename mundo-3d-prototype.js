@@ -76,6 +76,7 @@ import { createBlueCycloneVFX, VERAXION_CYCLONE_VFX_BUILD } from './veraxion-blu
 import { createLunarUltimate, LU, VERAXION_LUNAR_BUILD } from './veraxion-lunar-ultimate3d.js';
 import { createLunarCosmos } from './veraxion-lunar-cosmos3d.js';
 import { createLunarBossVFX } from './veraxion-lunar-vfx3d.js';
+import { createLunarArenaImpact, LUNAR_ARENA_BUILD } from './veraxion-lunar-arena-impact3d.js';
 import { createVeraxionHeroBurnVFX } from './veraxion-blue-burn3d.js';
 import { DESERT_REGION, DESERT_PASS, DESERT, inDesert, fragmentsHeld } from './desert3d.js';
 import { ACT5N, ROUNDS, SPEAKERS5, roundForSub, subForRound, act5Presentation, bestSword, journeyScene, arrivalScene, roundIntroScene, roundOutroScene, finalScene } from './act5-flow.js';
@@ -6385,7 +6386,7 @@ function updateVeraxionCyclone(dt){
    Filme de ~26 s com câmera própria (a câmera do jogador nunca é alterada): VÉRAXION com aura escarlate e X no olho → cosmos → Lua e o
    Devorador → buraco negro na boca → travessia → explosão em domo na Terra → a onda chega à arena. O combate fica CONGELADO durante o filme
    (nada de dano, recarga ou IA). Ao voltar, um aviso de 0,9 s sob o herói antecede UM golpe capado (pHit: dash/i-frames/defesa evitam). */
-let lunarTestWait=0,lunarUlt=null,lunarCosmos=null,lunarBossFx=null,lunarCam=null,lunarGLTF=null,lunarLoad=null,lunarRing=null,lunarShake=null,lunarTestFired=false;
+let lunarTestWait=0,lunarUlt=null,lunarCosmos=null,lunarBossFx=null,lunarCam=null,lunarGLTF=null,lunarLoad=null,lunarRing=null,lunarShake=null,lunarTestFired=false,lunarImpact=null,lunarImpactStarted=false;
 const LUNAR_TEST=new URLSearchParams(location.search).has('testUltBispo4');
 function lunarCosmosReady(){if(!lunarLoad)lunarLoad=new Promise(res=>new GLTFLoader().load('./DevoradorLunar.glb?v=mod288',g=>{lunarGLTF=g;res(g);},undefined,e=>{console.error('DevoradorLunar.glb não carregou',e);lunarLoad=null;res(null);}));return !!lunarGLTF;}
 function lunarVeil(a,col){const v=document.getElementById('lunar-veil');if(v){v.style.opacity=String(Math.max(0,Math.min(1,a)));if(col)v.style.background=col;}}
@@ -6394,6 +6395,8 @@ function startLunarUlt(){
  if(!lunarCosmos)lunarCosmos=createLunarCosmos(THREE,{monsterGLTF:lunarGLTF,low:graphics3DMode==='low'});
  if(!lunarBossFx)lunarBossFx=createLunarBossVFX(THREE,scene);lunarBossFx.attach(enemyPoseRoot());
  if(!lunarCam)lunarCam=new THREE.PerspectiveCamera(52,camera.aspect,.05,900);
+ if(!lunarImpact)lunarImpact=createLunarArenaImpact(THREE,scene,{low:graphics3DMode==='low'});
+ lunarImpact.clear();lunarImpactStarted=false;
  lunarUlt=createLunarUltimate().start({x:player.position.x,z:player.position.z});lunarUlt._boss={x:enemy.position.x,y:enemy.position.y,z:enemy.position.z,yaw:enemy.rotation.y,h:typeof vxBossH==='function'?vxBossH():2.4};
  lunarUlt._cam={pos:camera.position.clone(),q:camera.quaternion.clone(),fov:camera.fov};
  moveVX=moveVZ=0;dashRemaining=0;enemyKnockback=enemyDashRemaining=0;pendingEnemyHitAt=0;rites.cancel&&rites.cancel('cine');
@@ -6402,7 +6405,7 @@ function startLunarUlt(){
  worldAudio.abyss3&&worldAudio.abyss3('gravity',1);worldAudio.abyss3&&worldAudio.abyss3('warn',.4);
  return true;
 }
-function stopLunarUlt(){if(!lunarUlt)return;lunarUlt=null;document.body.classList.remove('lunar-ult-cine');lunarVeil(0);const tt=document.getElementById('lunar-title');if(tt)tt.style.opacity='0';if(lunarBossFx){lunarBossFx.clear();lunarBossFx.detach();}if(lunarRing){lunarRing.visible=false;}if(lunarShake){camera.position.sub(lunarShake);lunarShake=null;}}
+function stopLunarUlt(){if(!lunarUlt)return;lunarUlt=null;lunarImpact?.clear();lunarImpactStarted=false;document.body.classList.remove('lunar-ult-cine');lunarVeil(0);const tt=document.getElementById('lunar-title');if(tt)tt.style.opacity='0';if(lunarBossFx){lunarBossFx.clear();lunarBossFx.detach();}if(lunarRing){lunarRing.visible=false;}if(lunarShake){camera.position.sub(lunarShake);lunarShake=null;}}
 function lunarAudio(ev){const A=worldAudio.abyss3;if(!A)return;const m={cosmos:['storm',.5],moon:['tear',.4],mouth:['gravity',1],launch:['launch',1],impact:['boom',1],return:['heavy',1],warn:['warn',.8],hit:['boom',.8],dodge:['blade',.6]}[ev.type];if(m)A(m[0],m[1]);if(ev.type==='impact')A('thunder',.8);}
 /** devolve true quando desenhou o quadro do filme (o resto do laço do jogo não roda) */
 function tickLunarUlt(dt){
@@ -6410,14 +6413,24 @@ function tickLunarUlt(dt){
  if(!enemy.visible||!dimBattle?.active||!isVeraxionProfile(encounterProfile)){stopLunarUlt();return false;}
  const hero={x:player.position.x,z:player.position.z,iframes:dashRemaining>0||performance.now()<playerInvulnerableUntil,alive:playerHP>0};
  for(const ev of s.step(dt,{hero})){lunarAudio(ev);
+  if(ev.type==='return'&&!lunarImpactStarted){lunarImpactStarted=true;
+   lunarImpact.reset(player.position.x,groundHeightAt(player.position.x,player.position.z)+.08,player.position.z);
+   impactFrame(userSettings.reduceShake?25:115);if(!userSettings.reduceShake)cameraShake(.6);vibrate(190);
+   status.textContent='A pressão do DEVORADOR atinge a dimensão!';}
   if(ev.type==='warn'){document.body.classList.remove('lunar-ult-cine');lunarVeil(0);if(!lunarRing){lunarRing=new THREE.Mesh(new THREE.RingGeometry(.86,1,72).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xff2a3a,transparent:true,opacity:.0,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));lunarRing.renderOrder=6;scene.add(lunarRing);}lunarRing.visible=true;lunarRing.position.set(ev.x,groundHeightAt(ev.x,ev.z)+.06,ev.z);lunarRing.userData.t0=s.st.t;status.textContent='A onda do Devorador chega — use o DASH!';}
   else if(ev.type==='hit'){if(pHit(Math.round(ev.dmg*(powerStats(encounterProfile,kitFor(encounterProfile).ult).dmg/32))))cameraShake(userSettings.reduceShake?.05:.3);vibrate(160);}
   else if(ev.type==='dodge'){status.textContent='Você atravessou a onda do Devorador!';}
   else if(ev.type==='end'){stopLunarUlt();kitState.t=Math.max(kitState.t,2.2);return false;}}
  if(!lunarUlt)return false;
  const t=s.st.t,T2=s.T,B=s._boss,aspect=innerWidth/Math.max(1,innerHeight);
+ if(t>=T2.ret&&!lunarImpactStarted){lunarImpactStarted=true;
+  lunarImpact.reset(player.position.x,groundHeightAt(player.position.x,player.position.z)+.08,player.position.z);
+  if(!userSettings.reduceShake)cameraShake(.45);vibrate(100);
+ }
  const title=document.getElementById('lunar-title');if(title)title.style.opacity=String(t>.6&&t<3.3?Math.min(1,(t-.6)/.5,(3.3-t)/.5):0);
- if(t>=T2.control){ /* de volta ao jogo: aviso crescente sob o herói */ if(lunarRing&&lunarRing.visible){const k=Math.min(1,(t-T2.control)/(T2.hit-T2.control));lunarRing.scale.setScalar(T2.hitR*(.35+.65*k));lunarRing.material.opacity=t<T2.hit?.35+.5*k:Math.max(0,.85-(t-T2.hit)*2);}return false;}
+ if(t>=T2.control){ /* de volta ao jogo: fogo/fumaça continuam enquanto o herói pode dar DASH */
+  lunarImpact?.update(t-T2.ret,camera,!!userSettings.reduceShake);
+  if(lunarRing&&lunarRing.visible){const k=Math.min(1,(t-T2.control)/(T2.hit-T2.control));lunarRing.scale.setScalar(T2.hitR*(.35+.65*k));lunarRing.material.opacity=t<T2.hit?.35+.5*k:Math.max(0,.85-(t-T2.hit)*2);}return false;}
  // ---- quadros do filme ----
  lunarCam.aspect=aspect;if(enemyMixer)enemyMixer.update(dt);updatePoses(dt);
  const H=B.h,fx=Math.sin(B.yaw),fz=Math.cos(B.yaw),rx=fz,rz=-fx,portrait=aspect<1;
@@ -6438,9 +6451,10 @@ function tickLunarUlt(dt){
  const k=(t-T2.ret)/(T2.control-T2.ret),e=k*k*(3-2*k),hi=new THREE.Vector3(player.position.x+fx*6,player.position.y+8.5,player.position.z+fz*6);
  lunarCam.position.lerpVectors(hi,C.pos,e);lunarCam.quaternion.copy(new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(hi,player.position,new THREE.Vector3(0,1,0)))).slerp(C.q,e);lunarCam.fov=C.fov;lunarCam.updateProjectionMatrix();
  if(!userSettings.reduceShake){const a=.25*(1-e);lunarCam.position.x+=Math.sin(t*49)*a;lunarCam.position.y+=Math.cos(t*43)*a;}
- if(!lunarRing){lunarRing=new THREE.Mesh(new THREE.RingGeometry(.86,1,72).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xff2a3a,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));lunarRing.renderOrder=6;scene.add(lunarRing);}
- lunarRing.visible=true;lunarRing.position.set(player.position.x,groundHeightAt(player.position.x,player.position.z)+.06,player.position.z);lunarRing.scale.setScalar(2+30*(1-e));lunarRing.material.color.setHex(0xffc890);lunarRing.material.opacity=.8*(1-e);
- lunarVeil(k<.1?.8*(1-k/.1):0,'#fff4dc');renderer.render(scene,lunarCam);if(e>.98)lunarRing.material.color.setHex(0xff2a3a);return true;
+ lunarImpact?.update(t-T2.ret,lunarCam,!!userSettings.reduceShake);
+ lunarVeil(k<.08?.88*(1-k/.08):0,'#fff3df');
+ if(!userSettings.reduceShake){const bump=.12*(1-e)*Math.max(0,1-k*.4);lunarCam.position.x+=Math.sin(t*68)*bump;lunarCam.position.y+=Math.cos(t*63)*bump;}
+ renderer.render(scene,lunarCam);return true;
 }
 function updateFoeKit(dt){
  if(swordTraining||squadOn)return;
