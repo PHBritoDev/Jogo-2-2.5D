@@ -104,13 +104,28 @@ void main(){ vec3 N=normalize(vN); float dif=clamp(dot(N,normalize(uSunD)),0.,1.
 const CORE_F = `${NOISE} uniform float time,uA; uniform vec3 uC; varying vec3 vN,vW,vO; void main(){ vec3 V=normalize(cameraPosition-vW); float ndv=clamp(dot(normalize(vN),V),0.,1.), rim=pow(1.-ndv,10.); vec3 c=vec3(0.)+vec3(1.,.45,.25)*rim*1.6+vec3(.7,.3,1.)*pow(1.-ndv,18.)*2.5; /* núcleo negro que recorta: só um fio de luz na borda */ gl_FragColor=vec4(c,1.); }`;
 const DISK_V = `varying vec2 vP; varying vec3 vW; void main(){ vP=position.xy; vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
 const DISK_F = `${NOISE} uniform float time,uA,uSpin,uLayer,uHot; varying vec2 vP; varying vec3 vW;
-void main(){ float r=length(vP), a=atan(vP.y,vP.x); if(r<1.||r>3.4) discard; float k=(r-1.)/2.4; float sw=a*2.+log(r)*6.5-time*uSpin*(1.6/r)+uLayer*2.1;
- float s=fbm(vec2(sw*1.3,r*3.-time*.5+uLayer)); float st=smoothstep(.35,.85,s)*(.6+.4*sin(sw*5.+s*4.));
- float a2=uA*(1.-smoothstep(.55,1.,k))*smoothstep(.0,.06,k)*(.35+.9*st); if(a2<.01) discard;
- vec3 hot=vec3(1.,.82,.55), mid=vec3(1.,.38,.12), cool=vec3(.55,.12,.55), deep=vec3(.25,.04,.35); vec3 c=mix(hot,mid,smoothstep(.0,.3,k)); c=mix(c,cool,smoothstep(.3,.7,k)); c=mix(c,deep,smoothstep(.7,1.,k));
- c*=.8+.5*st; c*=1.+uHot; float dop=.65+.55*sin(a+1.2); /* lado que se aproxima mais brilhante */ gl_FragColor=vec4(c*a2*dop,1.); }`;
-const LENS_F = `${NOISE} uniform float uA,time; varying vec2 vU; void main(){ float r=length(vU), a=atan(vU.y,vU.x); float ring=exp(-pow((r-.33)/.025,2.))*1.2+exp(-pow((r-.36)/.08,2.))*.35; float arc=exp(-pow((r-.5)/.05,2.))*smoothstep(.2,.9,sin(a*1.+time*.3))*.35;
- float halo=exp(-r*r*5.)*.25*(1.-smoothstep(.0,.32,.32-r)); float al=uA*(ring+arc+halo)*(.8+.2*n2(vec2(a*6.,time))); if(al<.004) discard; vec3 c=mix(vec3(1.,.55,.3),vec3(.65,.35,1.),smoothstep(.3,.55,r)); gl_FragColor=vec4(c*al,1.); }`;
+void main(){ float r=length(vP), ang=atan(vP.y,vP.x); if(r<1.||r>3.4) discard;
+ float k=(r-1.)/2.4; float spin=ang*2.5+log(max(1.,r))*6.8-time*uSpin*(2.1/r)+uLayer*1.7;
+ float turbulence=fbm(vec2(spin*.83,k*7.-time*.29+uLayer));
+ float whorl=pow(max(0.,sin(spin*6.+turbulence*8.)),4.)*.5;
+ float hair=pow(max(0.,sin(spin*17.+turbulence*14.)),9.)*.33;
+ float inner=exp(-pow((k-.12)/.2,2.)); float outer=smoothstep(.30,.78,k);
+ float density=(.28+.65*turbulence+whorl+hair)*(1.-smoothstep(.72,1.,k))*smoothstep(0.,.055,k);
+ float doppler=.55+.6*smoothstep(-.7,.9,cos(ang+.9));
+ float alpha=uA*density*doppler; if(alpha<.009)discard;
+ vec3 warm=mix(vec3(1.,.98,.69),vec3(1.,.33,.045),smoothstep(.10,.45,k));
+ vec3 color=mix(warm,vec3(.27,.045,.53),outer*.9);
+ color=mix(color,vec3(1.,.77,.46),whorl*inner*.8);
+ gl_FragColor=vec4(color*alpha*(1.+uHot*.4),alpha); }`;
+const LENS_F = `${NOISE} uniform float uA,time; varying vec2 vU;
+void main(){ float r=length(vU), a=atan(vU.y,vU.x);
+ float ring=exp(-pow((r-.323)/.015,2.))*1.75+exp(-pow((r-.35)/.07,2.))*.52;
+ float f=fbm(vec2(a*7.+time*.45,r*21.-time*.4));
+ float arc=exp(-pow((r-.52-f*.028)/.04,2.))*(.5+.5*sin(a*3.-time*.65))*.45;
+ float photon=exp(-pow((r-.275)/.011,2.))*.65;
+ float al=uA*(ring+arc+photon)*(.78+.22*f);if(al<.006)discard;
+ vec3 c=mix(vec3(1.,.55,.13),vec3(.67,.18,.95),smoothstep(.32,.56,r));
+ c=mix(c,vec3(1.,.95,.76),photon);gl_FragColor=vec4(c*al,1.); }`;
 const PT_V = `attribute vec4 aC; varying vec4 vC; void main(){ vC=aC; vec4 mv=viewMatrix*vec4(position,1.); gl_PointSize=clamp(260./-mv.z,1.,7.); gl_Position=projectionMatrix*mv; }`;
 const PT_F = `varying vec4 vC; void main(){ vec2 p=gl_PointCoord*2.-1.; float d=dot(p,p); if(d>1.||vC.a<.01) discard; gl_FragColor=vec4(vC.rgb*vC.a*(1.-d),1.); }`;
 const TRAIL_V = `attribute vec2 aT; varying vec2 vT; void main(){ vT=aT; gl_Position=projectionMatrix*viewMatrix*vec4(position,1.); }`;
@@ -176,13 +191,13 @@ export function createLunarCosmos(T, opts = {}) {
    haunt.frustumCulled=false;haunt.renderOrder=0;scene.add(haunt);
   const shadow = new T.Mesh(g(new T.CircleGeometry(1, 40).rotateX(-Math.PI / 2)), new T.MeshBasicMaterial({ color: 0, transparent: true, opacity: .55, depthWrite: false })); mats.push(shadow.material); shadow.scale.set(13, 1, 17); shadow.position.set(0, craterH(0, 0) + .25, 0); shadow.rotation.y = monster.rotation.y; scene.add(shadow);
   /* poeira lilás em volta do monstro e partículas gerais */
-  const PN = low ? 700 : 1500, pP = new Float32Array(PN * 3), pC = new Float32Array(PN * 4), pV = new Float32Array(PN * 3), pL = new Float32Array(PN * 2), ptG = g(new T.BufferGeometry());
+  const PN = low ? 650 : 1200, pP = new Float32Array(PN * 3), pC = new Float32Array(PN * 4), pV = new Float32Array(PN * 3), pL = new Float32Array(PN * 2), ptG = g(new T.BufferGeometry());
   ptG.setAttribute('position', new T.BufferAttribute(pP, 3).setUsage(T.DynamicDrawUsage)); ptG.setAttribute('aC', new T.BufferAttribute(pC, 4).setUsage(T.DynamicDrawUsage)); const pts = new T.Points(ptG, mat({ vertexShader: PT_V, fragmentShader: PT_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending })); pts.frustumCulled = false; scene.add(pts); let pI = 0;
   const emit = (x, y, z, vx, vy, vz, r, gg, b, life) => { const i = pI++ % PN; pP.set([x, y, z], i * 3); pV.set([vx, vy, vz], i * 3); pC.set([r, gg, b, 1], i * 4); pL[i * 2] = life; pL[i * 2 + 1] = life; };
   /* buraco negro */
   const bh = new T.Group(); scene.add(bh); bh.visible = false;
   const core = new T.Mesh(g(new T.SphereGeometry(1, 48, 32)), mat({ vertexShader: BODY_V, fragmentShader: CORE_F, uniforms: { uA: { value: 1 }, uC: { value: new T.Vector3() } } })); bh.add(core);
-  const diskG = g(new T.RingGeometry(1, 3.4, low?72:128, 5)); const disks = [0, 1, 2].map(k => { const u = { uA: { value: 1 }, uSpin: { value: 2 + k * .9 }, uLayer: { value: k }, uHot: { value: 0 } }; const d = new T.Mesh(diskG, mat({ vertexShader: DISK_V, fragmentShader: DISK_F, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, uniforms: u })); d.rotation.x = .12 + k * .08; d.rotation.z = k * .08; d.scale.setScalar(1 + k * .12); bh.add(d); return { d, u }; });
+  const diskG = g(new T.RingGeometry(1, 3.4, low?72:128, 5)); const disks = [0, 1, 2].map(k => { const u = { uA: { value: 1 }, uSpin: { value: 2.9 + k * 1.2 }, uLayer: { value: k }, uHot: { value: 0 } }; const d = new T.Mesh(diskG, mat({ vertexShader: DISK_V, fragmentShader: DISK_F, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, uniforms: u })); d.rotation.x = .12 + k * .08; d.rotation.z = k * .08; d.scale.setScalar(1 + k * .12); bh.add(d); return { d, u }; });
   const lensU = { uC: { value: new T.Vector3() }, uS: { value: 1 }, uA: { value: 1 } }; const lens = new T.Mesh(quad, mat({ vertexShader: GLOWB_V, fragmentShader: LENS_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: lensU })); lens.frustumCulled = false; scene.add(lens);
   const TN = 40, trailG = strip(T, TN); geos.push(trailG); const trailU = { uA: { value: 0 } }, trail = new T.Mesh(trailG, mat({ vertexShader: TRAIL_V, fragmentShader: TRAIL_F, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, uniforms: trailU })); trail.frustumCulled = false; scene.add(trail); const trailPts = [];
   /* explosão sobre a Terra: lóbulos instanciados num domo apoiado na superfície + casca com anel de choque */
@@ -264,7 +279,7 @@ export function createLunarCosmos(T, opts = {}) {
     },
     dispose() { facial?.dispose(); for (const x of geos) x.dispose(); for (const m of mats) m.dispose(); }
   };
-  function placeBH(p, s, grow) { bh.visible = true; bh.position.copy(p); core.scale.setScalar(s * (1 + .03 * Math.sin(time * 9))); for (const D of disks) { const rad=s*(1+D.u.uLayer.value*.13);D.d.scale.set(rad,rad*(.35+.09*D.u.uLayer.value),rad);D.d.rotation.z=time*(D.u.uLayer.value%2?-.3:.35); D.u.uA.value = sm(grow * 3); D.u.uHot.value = .3 * grow; }
+  function placeBH(p, s, grow) { bh.visible = true; bh.position.copy(p); core.scale.setScalar(s * (1 + .03 * Math.sin(time * 9))); for (const D of disks) { const rad=s*(1+D.u.uLayer.value*.13);D.d.scale.set(rad,rad*(.35+.09*D.u.uLayer.value),rad);D.d.rotation.z=time*(D.u.uLayer.value%2?-.3:.35); D.u.uA.value = sm(grow * 3); D.u.uHot.value = .65 * grow; }
     lens.visible = true; lensU.uC.value.copy(p); lensU.uS.value = s * 3.1; lensU.uA.value = sm(grow * 2.5); bh.lookAt(camera.position); bh.rotateX(-.28); }
   function setTrail(a, b, w, ph) { const arr = []; for (let j = 0; j < TN; j++) { const k = j / (TN - 1); arr.push(new T.Vector3().lerpVectors(b, a, k).add(V3.set(Math.sin(k * 9 + ph) * 25, Math.cos(k * 7 + ph) * 18, 0))); } setTrailPts(arr, w); }
   function setTrailPts(arr, w) { const P = trailG.attributes.position.array, n = arr.length; for (let j = 0; j < TN; j++) { const a = arr[Math.min(n - 1, j)], b = arr[Math.min(n - 1, j + 1)] || a; V1.subVectors(a, b); if (V1.lengthSq() < 1e-8) V1.set(1, 0, 0); V2.subVectors(camera.position, a); const X = V3.crossVectors(V1, V2).normalize(), ww = w * (1 - j / TN) * (j >= n ? 0 : 1);
