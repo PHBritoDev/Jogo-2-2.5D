@@ -71,7 +71,21 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
     const obj=new T.Mesh(G(new T.TorusGeometry(1,.035+i*.038,6,low?64:110)),mm);
     obj.rotation.x=Math.PI/2;obj.position.y=.24+i*.1;obj.renderOrder=12+i;root.add(obj);shockRings.push(obj);
   }
-  const smokeG=G(new T.IcosahedronGeometry(1,1)),smokeMat=M(new T.MeshBasicMaterial({color:0x1c101d,transparent:true,opacity:0,depthWrite:false}));
+  // Fumaça em quadros suaves voltados para a câmera: nada de icosaedros gigantes cobrindo o personagem.
+  const smokeVS='varying vec2 vUv;void main(){vUv=uv*2.-1.;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}';
+  const smokeFS=`
+    varying vec2 vUv;uniform float uA,uT;
+    float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+    float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}
+    void main(){float r=length(vUv),f=n(vUv*5.+uT*.21),fringe=n(vUv*11.-uT*.12);
+     float edge=smoothstep(1.02,.45,r+.13*(f-.5))*(.6+.4*fringe);
+     float alpha=uA*edge;if(alpha<.012)discard;
+     vec3 col=mix(vec3(.11,.07,.15),vec3(.23,.15,.27),f);
+     gl_FragColor=vec4(col,alpha);}
+  `;
+  const smokeU={uA:{value:0},uT:{value:0}},smokeG=G(new T.PlaneGeometry(2,2));
+  const smokeMat=M(new T.ShaderMaterial({vertexShader:smokeVS,fragmentShader:smokeFS,
+    uniforms:smokeU,transparent:true,depthWrite:false,side:T.DoubleSide}));
   const SN=low?18:42,smoke=new T.InstancedMesh(smokeG,smokeMat,SN);smoke.instanceMatrix.setUsage(T.DynamicDrawUsage);smoke.frustumCulled=false;smoke.renderOrder=15;root.add(smoke);
   const debrisG=G(new T.TetrahedronGeometry(1,0)),debrisMat=M(new T.MeshBasicMaterial({color:0x4d2734,transparent:true,opacity:0,depthWrite:false}));
   const DN=low?16:38,debris=new T.InstancedMesh(debrisG,debrisMat,DN);debris.instanceMatrix.setUsage(T.DynamicDrawUsage);debris.frustumCulled=false;root.add(debris);
@@ -95,10 +109,10 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
     if(!active)return;
     if(age>3.2){clear();return;}const a=Math.max(0,age),burst=ease(a/.35);
     waveU.uT.value=a;waveU.uA.value=(1-ease((a-1.8)/1.25))*.92;
-    dome.scale.set(1+19*ease(a/.66),.2+14*ease(a/.85),1+19*ease(a/.66));
+    dome.scale.set(1+11*ease(a/.78),.2+12*ease(a/.88),1+11*ease(a/.78));
     plumeU.uT.value=a;plumeU.uA.value=(1-ease((a-1.25)/1.75))*.88;
-    core.scale.set(1+9*ease(a/.23),.2+7*ease(a/.25),1+9*ease(a/.23));
-    core.material.opacity=(1-ease((a-.09)/.42))*.72;
+    core.scale.set(1+9*ease(a/.32),.2+7*ease(a/.3),1+9*ease(a/.32));
+    core.material.opacity=(1-ease((a-.12)/.72))*.72;
     for(let i=0;i<shockRings.length;i++){
       const s=shockRings[i],delay=i*.115,age2=Math.max(0,a-delay);
       const radius=1+(i===0?34:i===1?24:16)*ease(age2/(.8+i*.24));
@@ -106,13 +120,13 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
       s.material.opacity=a<delay?0:(1-ease((age2-.25)/(1.35+i*.2)))*(.86-i*.16);
       s.rotation.z=a*(i%2?-.35:.26);
     }
-    smokeMat.opacity=.57*(1-ease((a-1.5)/1.55))*ease(a/.38);
+    smokeU.uA.value=.28*(1-ease((a-1.9)/1.35))*ease((a-.45)/.55);smokeU.uT.value=a;
     for(let i=0;i<SN;i++){
       const ang=hash(i+3)*Math.PI*2, radius=(4+hash(i+9)*21)*ease(a/.9);
       const rise=(.65+hash(i+19)*1.3)*Math.min(a,2.5)*4;
       v3.set(Math.cos(ang)*radius,rise+hash(i+6)*3,Math.sin(ang)*radius);
-      q.setFromAxisAngle(up,a*.2*hash(i+2));
-      const size=(1.8+hash(i+13)*3.4)*(.5+.6*ease(a/.5));
+      q.copy(camera.quaternion);
+      const size=(1.2+hash(i+13)*2.15)*(.5+.6*ease(a/.7));
       m4.compose(v3,q,sz.set(size,size*.64,size));smoke.setMatrixAt(i,m4);
     }smoke.instanceMatrix.needsUpdate=true;
     debrisMat.opacity=(1-ease((a-1)/1.6))*.9;
@@ -124,7 +138,7 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
       const size=.28+hash(i+7)*.9;
       m4.compose(v3,q,sz.set(size,size*2.5,size));debris.setMatrixAt(i,m4);
     }debris.instanceMatrix.needsUpdate=true;
-    flashU.uA.value=1.1*(1-ease(a/(reduced?.18:.32)));
+    flashU.uA.value=1.18*(1-ease(a/(reduced?.35:.75)));
     flashU.uT.value=a;flash.position.set(0,4,0);flash.quaternion.copy(camera.quaternion);
     flash.scale.setScalar(7+25*ease(a/.3));
     if(a>2.8)root.visible=false;
