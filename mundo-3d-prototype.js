@@ -6414,7 +6414,7 @@ function tickLunarUlt(dt){
  const hero={x:player.position.x,z:player.position.z,iframes:dashRemaining>0||performance.now()<playerInvulnerableUntil,alive:playerHP>0};
  for(const ev of s.step(dt,{hero})){lunarAudio(ev);
   if(ev.type==='return'&&!lunarImpactStarted){lunarImpactStarted=true;
-   lunarImpact.reset(player.position.x,groundHeightAt(player.position.x,player.position.z)+.08,player.position.z);
+   lunarImpact.reset(enemy.position.x,groundHeightAt(enemy.position.x,enemy.position.z)+.08,enemy.position.z);
    impactFrame(userSettings.reduceShake?25:115);if(!userSettings.reduceShake)cameraShake(.6);vibrate(190);
    status.textContent='A pressão do DEVORADOR atinge a dimensão!';}
   if(ev.type==='warn'){document.body.classList.remove('lunar-ult-cine');lunarVeil(0);if(!lunarRing){lunarRing=new THREE.Mesh(new THREE.RingGeometry(.86,1,72).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xff2a3a,transparent:true,opacity:.0,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));lunarRing.renderOrder=6;scene.add(lunarRing);}lunarRing.visible=true;lunarRing.position.set(ev.x,groundHeightAt(ev.x,ev.z)+.06,ev.z);lunarRing.userData.t0=s.st.t;status.textContent='A onda do Devorador chega — use o DASH!';}
@@ -6424,7 +6424,7 @@ function tickLunarUlt(dt){
  if(!lunarUlt)return false;
  const t=s.st.t,T2=s.T,B=s._boss,aspect=innerWidth/Math.max(1,innerHeight);
  if(t>=T2.ret&&!lunarImpactStarted){lunarImpactStarted=true;
-  lunarImpact.reset(player.position.x,groundHeightAt(player.position.x,player.position.z)+.08,player.position.z);
+  lunarImpact.reset(enemy.position.x,groundHeightAt(enemy.position.x,enemy.position.z)+.08,enemy.position.z);
   if(!userSettings.reduceShake)cameraShake(.45);vibrate(100);
  }
  const title=document.getElementById('lunar-title');if(title)title.style.opacity=String(t>.6&&t<3.3?Math.min(1,(t-.6)/.5,(3.3-t)/.5):0);
@@ -6448,7 +6448,7 @@ function tickLunarUlt(dt){
  /* Plano 7: a onda chega à arena; câmera desce do alto até a câmera do jogador (restaurada sem tocar nela) */
  updatePlayerCamera(dt);const C={pos:camera.position.clone(),q:camera.quaternion.clone(),fov:camera.fov}; /* alvo = câmera real do jogador, atualizada agora */
  if(C.pos.distanceTo(player.position)>25){C.pos.set(player.position.x+Math.sin(cameraYaw)*6,player.position.y+3,player.position.z+Math.cos(cameraYaw)*6);C.q.setFromRotationMatrix(new THREE.Matrix4().lookAt(C.pos,player.position,new THREE.Vector3(0,1,0)));} /* câmera do jogo ainda chegando: usa a pose padrão atrás do herói */
- const k=(t-T2.ret)/(T2.control-T2.ret),e=k*k*(3-2*k),hi=new THREE.Vector3(player.position.x+fx*6,player.position.y+8.5,player.position.z+fz*6);
+ const k=(t-T2.ret)/(T2.control-T2.ret),e=k*k*(3-2*k),hi=C.pos.clone().add(new THREE.Vector3(0,4.5,0));
  lunarCam.position.lerpVectors(hi,C.pos,e);lunarCam.quaternion.copy(new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(hi,player.position,new THREE.Vector3(0,1,0)))).slerp(C.q,e);lunarCam.fov=C.fov;lunarCam.updateProjectionMatrix();
  if(!userSettings.reduceShake){const a=.25*(1-e);lunarCam.position.x+=Math.sin(t*49)*a;lunarCam.position.y+=Math.cos(t*43)*a;}
  lunarImpact?.update(t-T2.ret,lunarCam,!!userSettings.reduceShake);
