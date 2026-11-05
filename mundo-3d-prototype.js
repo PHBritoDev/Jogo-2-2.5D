@@ -73,6 +73,7 @@ import { createFourSwords, VERAXION_SWORDS_BUILD } from './veraxion-four-swords3
 import { createFourSwordsVFX, VERAXION_VFX_BUILD } from './veraxion-four-swords-vfx3d.js';
 import { createBlueCyclone, VERAXION_CYCLONE_BUILD } from './veraxion-blue-cyclone3d.js';
 import { createBlueCycloneVFX, VERAXION_CYCLONE_VFX_BUILD } from './veraxion-blue-cyclone-vfx3d.js';
+import { createVeraxionHeroBurnVFX } from './veraxion-blue-burn3d.js';
 import { DESERT_REGION, DESERT_PASS, DESERT, inDesert, fragmentsHeld } from './desert3d.js';
 import { ACT5N, ROUNDS, SPEAKERS5, roundForSub, subForRound, act5Presentation, bestSword, journeyScene, arrivalScene, roundIntroScene, roundOutroScene, finalScene } from './act5-flow.js';
 import { COLOSSEUM_REGION, COLOSSEUM_PASS, COLOSSEUM, colosseumColliders, inArena } from './coliseum3d.js';
@@ -6321,20 +6322,22 @@ function updateVeraxionSwords(dt){
  if(s.done){if(s._cam)ultCam.want=0;vxSwords=null;if(vxVfx){vxVfx.clear();vxVfx.detachBoss();}kitState.t=Math.max(kitState.t,1.6);if(VX4_TEST)delete kitState.cds.s1;}
 }
 /* MOD 286 — BISPO 4 (VÉRAXION) · SKILL 2: QUATRO VÓRTICES DO JUÍZO AZUL (veraxion-blue-cyclone3d.js + veraxion-blue-cyclone-vfx3d.js).
-   Aponta a espada → mandala desenhada sob p0 (fixa) → 4 tornados nos selos → convergem deixando fogo azul (4 s) → fusão →
+   Aponta a espada → mandala desenhada sob p0 (fixa) → 4 tornados nos selos → convergem deixando fogo azul (7 s) → fusão →
    mega sucção → implosão → pausa → UMA explosão azul → fogo residual. Sucção capada (dash 18%), dano por pHit (i-frames/defesa). */
-let cySkill=null,cyVfx=null,cyShake=null,cyFovAdd=0;
+let cySkill=null,cyVfx=null,cyBurnFx=null,cyShake=null,cyFovAdd=0;
 const CY_TEST=new URLSearchParams(location.search).has('testCicloneAzul');
 function undoCyShake(){if(cyShake){camera.position.sub(cyShake);cyShake=null;}}
 function startVeraxionCyclone(m){
  if(cySkill||vxSwords)return;
  if(!cyVfx)cyVfx=createBlueCycloneVFX(THREE,scene,{low:graphics3DMode==='low'});
+ if(!cyBurnFx)cyBurnFx=createVeraxionHeroBurnVFX(THREE,scene,{low:graphics3DMode==='low',height:()=>playerReferenceHeight});
+ cyBurnFx.setTarget(player,model);cyBurnFx.clear();
  const root=enemyPoseRoot();cyVfx.attachBoss(root);const e=enemy.position,a=dimBattle&&dimBattle.active?arenaSpec(dimBattle.key):null;
  cySkill=createBlueCyclone({ground:(x,z)=>fxGy(x,z),dmgMul:m.dmg/20,blocked:(x,z)=>blockedAt(x,z)}).start({x:e.x,y:fxGy(e.x,e.z),z:e.z,yaw:enemy.rotation.y},{x:player.position.x,z:player.position.z},a?{x:a.x,z:a.z,r:a.radius}:null);
  showCombatCallout(m.name);status.textContent='VÉRAXION aponta a espada: um círculo de juízo azul se desenha sob você!';
  playPose(root,'vxcy',cySkill.T.end,foeYaw,0);worldAudio.abyss3&&worldAudio.abyss3('warn',.5);worldAudio.abyss3&&worldAudio.abyss3('gravity',.6);
 }
-function stopVeraxionCyclone(){if(cySkill&&cySkill._cam)ultCam.want=0;cySkill=null;undoCyShake();cyFovAdd=0;if(cyVfx){cyVfx.clear();cyVfx.detachBoss();}}
+function stopVeraxionCyclone(){if(cySkill&&cySkill._cam)ultCam.want=0;cySkill=null;undoCyShake();cyFovAdd=0;if(cyBurnFx)cyBurnFx.clear();if(cyVfx){cyVfx.clear();cyVfx.detachBoss();}}
 /** sucção: sem teleporte, colisões respeitadas, nunca para dentro do bispo; dash reduz a força a 18% */
 function applyCycloneSuction(dt){
  const s=cySkill;if(!s||s.done||!enemyAlive||playerHP<=0||cineActive||rites.locksMovement||portalPull||vzLocked)return;
@@ -6364,9 +6367,13 @@ function updateVeraxionCyclone(dt){
  }
  /* câmera: plano aberto e leve para ler o círculo e os tornados (mesmo yaw; joystick e câmera livres) */
  if(!fpWasActive){const p0=s.st.p0;if(!s.st.aborted&&s.st.t>.4&&s.st.t<s.T.blastAt+1.2){const drawing=s.st.t<s.T.spawnAt,mk=Math.min(1,s.st.mega.scale/s.T.megaScale)*s.st.mega.alpha;Object.assign(ultCam,drawing?{want:.4,height:12,dist:11}:{want:.5,height:6+4*mk,dist:15+6*mk});ultCam.look.set(p0.x,p0.y+(drawing?0:2.5+6*mk),p0.z);s._cam=true;} /* plano aberto: círculo visto de cima, depois tornados e mega vórtice inteiros */else if(s._cam){ultCam.want=0;s._cam=false;}}
+ /* Mod 287: fogo azul realmente aderido ao protagonista, em braços, pernas e tronco,
+    apenas enquanto o status BURN existe (3,7 s renováveis); movimento, dash e
+    animações do GLB não interrompem o efeito. Sem cones/coplas genéricos. */
+ if(cyBurnFx){cyBurnFx.setTarget(player,model);cyBurnFx.update(dt,!s.st.aborted&&playerHP>0&&s.st.burn?s.st.burn.stacks:0);}
  if(cyVfx){const e=enemy.position;cyVfx.update(s,{camera,boss:{x:e.x,y:fxGy(e.x,e.z),z:e.z,h:vxBossH()},low:graphics3DMode==='low'},dt);}
  if(!userSettings.reduceShake&&s.st.trauma>.001){const k=shakeAt(s.st.trauma,s.st.t,s.st.kickT,{amp:fpWasActive?.08:.24,kick:.3});_csA.set(0,0,1).applyQuaternion(camera.quaternion);cyShake=new THREE.Vector3(k.x,k.y,k.z).addScaledVector(_csA,k.back*.5);camera.position.add(cyShake);}
- if(s.done){if(s._cam)ultCam.want=0;cySkill=null;if(cyVfx){cyVfx.clear();cyVfx.detachBoss();}kitState.t=Math.max(kitState.t,1.6);if(CY_TEST)delete kitState.cds.s2;}
+ if(s.done){if(s._cam)ultCam.want=0;cySkill=null;if(cyBurnFx)cyBurnFx.clear();if(cyVfx){cyVfx.clear();cyVfx.detachBoss();}kitState.t=Math.max(kitState.t,1.6);if(CY_TEST)delete kitState.cds.s2;}
 }
 function updateFoeKit(dt){
  if(swordTraining||squadOn)return;
