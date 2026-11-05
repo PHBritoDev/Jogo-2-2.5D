@@ -70,7 +70,7 @@ test('Quatro Sentenças — o bispo fica preso só no cast; interrupção limpa 
     assert.ok(s.done, 'termina depois de abortar em ' + cut); assert.ok(!ev.some(e => e.t > cut + .02 && (e.type === 'sword_hit' || e.type === 'blast_hit' || e.type === 'release_all4')), 'sem dano depois de abortar'); assert.ok(!s.holdBoss); }
   const k = kitFor('veraxion'); assert.equal(k.skills[0].type, 'veraxion_four_swords'); assert.equal(k.skills[0].name, 'QUATRO SENTENÇAS DO ABISMO'); assert.equal(k, kitFor('fallen4'));
   assert.ok(!Object.values(KITS).some(x => x.skills.some(s => s.type === 'abyss')), 'tipo genérico "abyss" removido');
-  assert.deepEqual(k.skills.slice(1).map(s => s.type), ['vortex', 'orbs']); assert.equal(k.ult.type, 'void'); assert.equal(k.sword.type, 'wave');
+  assert.deepEqual(k.skills.slice(1).map(s => s.type), ['veraxion_four_blue_tornadoes']); assert.equal(k.ult, null); assert.equal(k.sword, null);
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(!/BOSS_POWERS\.fallen4\s*=|\bveraxion:\{cd:8\.5/.test(src), 'disparo periódico genérico do Fogo Abissal excluído');
   assert.ok(!/case 'abyss'/.test(src) && !/function abyssFlame/.test(src), 'Fogo Abissal antigo excluído');

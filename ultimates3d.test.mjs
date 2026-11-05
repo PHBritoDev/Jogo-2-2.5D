@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
 
-test('VÉRAXION usa o Buraco Negro e a forma final da Ganância usa a Supernova', () => {
-  assert.equal(ULTIMATES.veraxion.kind, 'void');
+test('VÉRAXION não tem ultimate genérica (será autoral) e a forma final da Ganância usa a Supernova', () => {
+  assert.equal(ULTIMATES.veraxion, undefined); assert.equal(ultimateFor('veraxion'), null);
   assert.equal(ULTIMATES.greed3.kind, 'nova');
-  assert.equal(ultimateFor('fallen4').kind, 'void');
+  assert.equal(ultimateFor('fallen4'), null);
   assert.equal(ultimateFor('greed1').kind, 'gate');
   assert.equal(ultimateFor('vhazrael').kind, 'reaper');
   assert.equal(ultimateFor('zarkhael').kind, 'zarkhael_six_seals', 'ultimate autoral do Bispo 3');
@@ -15,11 +15,12 @@ test('VÉRAXION usa o Buraco Negro e a forma final da Ganância usa a Supernova'
 });
 
 test('cada ultimate sai uma vez por limiar, na ordem; comuns e elites só uma vez', () => {
-  assert.equal(ultimateDue('veraxion', 0.9, 0), -1);
-  assert.equal(ultimateDue('veraxion', 0.59, 0), 0);
-  assert.equal(ultimateDue('veraxion', 0.4, 1), -1);
-  assert.equal(ultimateDue('veraxion', 0.2, 1), 1);
-  assert.equal(ultimateDue('veraxion', 0.05, 2), -1);
+  assert.equal(ultimateDue('veraxion', 0.2, 0), -1, 'sem ultimate genérica no Bispo 4');
+  assert.equal(ultimateDue('zarkhael', 0.9, 0), -1);
+  assert.equal(ultimateDue('zarkhael', 0.59, 0), 0);
+  assert.equal(ultimateDue('zarkhael', 0.4, 1), -1);
+  assert.equal(ultimateDue('zarkhael', 0.2, 1), 1);
+  assert.equal(ultimateDue('zarkhael', 0.05, 2), -1);
   assert.equal(ultimateDue('greed3', 0.7, 0), 0);
   assert.equal(ultimateDue('captor', 0.4, 0), -1);
   assert.equal(ultimateDue('captor', 0.2, 0), 0);

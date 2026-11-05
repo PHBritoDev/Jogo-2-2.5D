@@ -1,6 +1,8 @@
 # Mod 285 — VÉRAXION (Bispo 4): Skill 1 "QUATRO SENTENÇAS DO ABISMO"
 
-**Situação: o PR fica ABERTO, sem merge.** A cena funciona de ponta a ponta no jogo. Os testes passam, e no Chromium não houve erro de JavaScript nem de shader, nem arquivo faltando. Mas, na comparação lado a lado com as quatro referências, a fidelidade visual **ainda não chega aos 80–100%** que o criador exige para o merge. As estimativas abaixo são subjetivas, feitas olhando as capturas, não calculadas por software.
+> **Atualização (Mod 286):** o autor testou a prévia e aprovou esta Skill 1. Ela foi integrada junto com a Skill 2 (`docs/auditorias/BISPO4-SKILL2-QUATRO-VORTICES-MOD286.md`). O texto abaixo registra a avaliação da época.
+
+**Situação na época: o PR ficava ABERTO, sem merge.** A cena funciona de ponta a ponta no jogo. Os testes passam, e no Chromium não houve erro de JavaScript nem de shader, nem arquivo faltando. Mas, na comparação lado a lado com as quatro referências, a fidelidade visual **ainda não chega aos 80–100%** que o criador exige para o merge. As estimativas abaixo são subjetivas, feitas olhando as capturas, não calculadas por software.
 
 ## O que foi implementado
 - **Lógica** (`veraxion-four-swords3d.js`, sem WebGL, testável):
