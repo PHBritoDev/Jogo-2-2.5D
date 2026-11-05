@@ -60,7 +60,7 @@ export function enhanceLunarMonster(T, root, { low = false } = {}) {
     const x=(i/12*2-1)*.87, edge=Math.pow(Math.abs(x),1.6);
     const len=(i%4===1?.21:.13)+(i%3)*.016;
     const tooth = new T.Mesh(g(new T.ConeGeometry(.05,len,5,1)), ivory);
-    tooth.position.set(x,-1.31+.11*edge+len*.35,1.39-.1*edge);
+    tooth.position.set(x,-.86+.11*edge+len*.35,1.04-.1*edge);
     tooth.rotation.z=Math.PI+.1*x; jaw.add(tooth); parts.push(tooth);
   }
   // Nariz pequeno e baixo para que a boca domine a expressão, com fendas escuras minúsculas.
