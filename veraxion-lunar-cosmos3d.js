@@ -227,7 +227,10 @@ export function createLunarCosmos(T, opts = {}) {
     /** t = tempo da ultimate; T = tabela de tempos; aspect da tela */
     update(t, T2, dt, aspect) {
       time += dt; uTime.value = time; if (Math.abs(camera.aspect - aspect) > 1e-3) { camera.aspect = aspect; camera.updateProjectionMatrix(); } const portrait = aspect < 1, pf = portrait ? 1.35 : 1;
-      if (mixer) mixer.update(dt); if (monMat) monMat.uniforms.time.value = time;
+      if (mixer) mixer.update(dt);
+       // O Devorador encara o espectador na revelação, expondo os olhos e o sorriso abaixo do focinho.
+       if(headBone&&t>=T2.moon&&t<T2.mouth)headBone.rotation.x-=.22*sm((t-T2.moon)/.75);
+       if (monMat) monMat.uniforms.time.value = time;
        if (facial) facial.update(time,t>=T2.mouth?Math.min(1,(t-T2.mouth)/3):0);
        haunt.visible=t>=T2.moon&&t<T2.launch;hauntU.uA.value=haunt.visible?.33+.10*Math.sin(time*1.8):0;
        if (haunt.visible) {hauntU.uC.value.copy(M(0,4.7,0));hauntU.uS.value=62+5*Math.sin(time*1.3);}
