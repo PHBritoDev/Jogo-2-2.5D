@@ -78,15 +78,15 @@ test('Quatro Vórtices — 10/30/60 FPS sem divergência; interrupção limpa; n
 });
 
 test('Bispo 4 — só as duas magias autorais; nada genérico no kit, IA, ultimate ou roteamento; outros perfis intactos', () => {
-  const k = kitFor('veraxion'); assert.deepEqual(k.skills.map(s => s.type), ['veraxion_four_swords', 'veraxion_four_blue_tornadoes']); assert.equal(k.sword, null); assert.equal(k.ult, null); assert.equal(k, kitFor('fallen4'));
-  assert.equal(ultimateFor('veraxion'), null); assert.equal(ultimateFor('fallen4'), null);
+  const k = kitFor('veraxion'); assert.deepEqual(k.skills.map(s => s.type), ['veraxion_four_swords', 'veraxion_four_blue_tornadoes']); assert.equal(k.sword, null); assert.equal(k.ult.type, 'veraxion_lunar_devourer'); assert.equal(k, kitFor('fallen4'));
+  assert.equal(ultimateFor('veraxion').kind, 'veraxion_lunar_devourer'); assert.equal(ultimateFor('fallen4').kind, 'veraxion_lunar_devourer'); /* MOD 288: ultimate autoral */
   const seen = new Set(); let last = ''; const cds = {}; for (let i = 0; i < 400; i++) { const m = pickMove('veraxion', cds, 4 + (i % 12), last); if (m) { seen.add(m.type); last = m.id; } } assert.deepEqual([...seen].sort(), ['veraxion_four_blue_tornadoes', 'veraxion_four_swords'], 'a IA só escolhe as duas');
   assert.equal(KITS.greed2.skills[0].type, 'vortex', 'o vórtice genérico continua para quem o usa'); assert.equal(KITS.zarkhael.skills[0].type, 'hydra_judgment');
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("if(m.type==='veraxion_four_blue_tornadoes'){startVeraxionCyclone(m);return;}") && src.includes('if(isVeraxionProfile(encounterProfile))return;'), 'roteamento exclusivo, sem fallback genérico');
   assert.ok(src.includes('updateVeraxionCyclone(dt);') && src.includes('applyCycloneSuction(dt);') && src.includes('stopVeraxionCyclone();stopVeraxionSwords();'), 'integração e limpeza');
   assert.ok(!/function startVoidUlt|tickVoidUlt|BOSS_POWERS\.veraxion|veraxion:\{cd:/.test(src), 'Buraco Negro e Fogo Abissal genéricos excluídos');
-  assert.ok(src.includes('if(vxSwords||cySkill)return;') && src.includes('if(cySkill||vxSwords)return;'), 'S1 e S2 nunca simultâneas');
+  assert.ok(src.includes('if(vxSwords||cySkill||lunarUlt)return;') && src.includes('if(cySkill||vxSwords||lunarUlt)return;'), 'S1 e S2 nunca simultâneas');
   const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testCicloneAzul=1') && lab.includes('testQuatroEspadas=1'));
 });
 

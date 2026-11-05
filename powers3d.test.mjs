@@ -11,7 +11,7 @@ test('cada família preserva seus poderes autorais; Bispo 3 tem só a Hidra sem 
       assert.equal(k.ult?.type, 'zarkhael_six_seals', 'somente ultimate autoral da Mod 280');
     } else if (f === 'veraxion') {
       assert.deepEqual(k.skills.map(s => s.type), ['veraxion_four_swords', 'veraxion_four_blue_tornadoes'], 'Bispo 4: só as duas magias autorais');
-      assert.equal(k.sword, null, 'sem Corte do Abismo especial'); assert.equal(k.ult, null, 'sem Buraco Negro genérico');
+      assert.equal(k.sword, null, 'sem Corte do Abismo especial'); assert.equal(k.ult?.type, 'veraxion_lunar_devourer', 'só a ultimate autoral (sem Buraco Negro genérico)');
     } else {
       assert.equal(k.skills.length, 3, f);
       assert.deepEqual(k.skills.map(s => s.id), ['s1', 's2', 's3']);
@@ -20,7 +20,7 @@ test('cada família preserva seus poderes autorais; Bispo 3 tem só a Hidra sem 
   }
   for (const p of ['captor', 'demon2', 'demon3', 'demon4', 'vhazrael', 'vorgazhek', 'zarkhael', 'veraxion', 'greed1', 'greed2', 'greed3', 'miniboss2', 'elite4'])
     assert.ok(kitFor(p), p);
-  assert.equal(KITS.veraxion.ult, null); assert.equal(KITS.greed3.ult.type, 'nova');
+  assert.equal(KITS.veraxion.ult.type, 'veraxion_lunar_devourer'); assert.equal(KITS.greed3.ult.type, 'nova');
   for (const f of ['vhazrael', 'vorgazhek', 'zarkhael', 'greed1', 'greed2', 'greed3']) assert.ok(KITS[f].book, f + ' invoca com grimório');
 });
 

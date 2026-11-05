@@ -1,0 +1,15 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VÉRAXION · A Queda do Devorador Lunar · prévia</title>
+<style>body{margin:0;background:#000;color:#eef;font:12px monospace;overflow:hidden}canvas{display:block}#i{position:absolute;top:6px;left:8px;pointer-events:none;white-space:pre;text-shadow:0 0 3px #000}</style><div id="i"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+/* Prévia/QA das cenas cósmicas da ultimate do Bispo 4 (mesmo módulo e GLB do jogo). ?t=segundos congela (3,8–24,8); ?low=1 */
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {createLunarCosmos} from './veraxion-lunar-cosmos3d.js';import {LU} from './veraxion-lunar-ultimate3d.js';
+const q=new URLSearchParams(location.search),freeze=q.has('t')?+q.get('t'):null,low=q.has('low');
+const r=new T.WebGLRenderer({antialias:!low});r.setPixelRatio(1);r.setSize(innerWidth,innerHeight);r.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(r.domElement);
+const g=await new GLTFLoader().loadAsync('./DevoradorLunar.glb?v=mod288');const C=createLunarCosmos(T,{monsterGLTF:g,low});
+let t=LU.cosmos;const info=()=>`t ${t.toFixed(2)} draw ${r.info.render.calls} tri ${r.info.render.triangles}`;
+window.__shot=tt=>{t=LU.cosmos;const dt=1/30;while(t<tt-1e-9){const d=Math.min(dt,tt-t);t+=d;C.update(t,LU,d,innerWidth/innerHeight);}C.update(t,LU,0,innerWidth/innerHeight);r.render(C.scene,C.camera);document.getElementById('i').textContent=info();return info();};
+if(freeze!==null){window.__shot(freeze);window.__ready=1;}
+else{const clock=new T.Clock();(function loop(){requestAnimationFrame(loop);const d=Math.min(.05,clock.getDelta());t+=d;if(t>LU.ret)t=LU.cosmos;C.update(t,LU,d,innerWidth/innerHeight);r.render(C.scene,C.camera);document.getElementById('i').textContent=info();})();window.__ready=1;}
+</script></html>
