@@ -74,7 +74,7 @@ import { createFourSwordsVFX, VERAXION_VFX_BUILD } from './veraxion-four-swords-
 import { createBlueCyclone, VERAXION_CYCLONE_BUILD } from './veraxion-blue-cyclone3d.js';
 import { createBlueCycloneVFX, VERAXION_CYCLONE_VFX_BUILD } from './veraxion-blue-cyclone-vfx3d.js';
 import { createLunarUltimate, LU, VERAXION_LUNAR_BUILD } from './veraxion-lunar-ultimate3d.js';
-import { createLunarCosmos } from './veraxion-lunar-cosmos3d.js';
+import { createLunarCosmos, LUNAR_COSMOS_BUILD } from './veraxion-lunar-cosmos3d.js';
 import { createLunarBossVFX } from './veraxion-lunar-vfx3d.js';
 import { createLunarArenaImpact, LUNAR_ARENA_BUILD } from './veraxion-lunar-arena-impact3d.js';
 import { createVeraxionHeroBurnVFX } from './veraxion-blue-burn3d.js';
