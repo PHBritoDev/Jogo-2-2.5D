@@ -40,18 +40,19 @@ async function main(){
      {waitUntil:"domcontentloaded",timeout:40000});
    await page.waitForFunction(()=>typeof window.SevenSinsDebug3D?.luState==="function",null,{timeout:110000});
    let started=false;
-   for(let i=0;i<85;i++){
+   for(let i=0;i<180;i++){
     const state=await page.evaluate(()=>{
      const D=window.SevenSinsDebug3D;
      if(D.dimState().vs){try{D.vsGo();}catch{}}
      return {dim:D.dimState(),lu:D.luState()};
     });
     if(state.lu.t>=.2&&state.dim.battle?.active){started=true;break;}
-    if(i>25&&state.dim.battle?.active&&state.lu.ready){
+    if(i>8&&state.dim.battle?.active){
+     // Inicializa o GLB mesmo se o game loop ainda não o pediu; o primeiro luStart() inicia preload.
      const startedNow=await page.evaluate(()=>window.SevenSinsDebug3D.luStart());
      if(startedNow){started=true;break;}
     }
-    await pause(550);
+    await pause(450);
    }
    if(!started)throw Error("Ultimate não iniciou em luta real do Bispo 4");
    data.ready=true;
