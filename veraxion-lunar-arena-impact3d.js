@@ -10,7 +10,7 @@ const hash = x => {const n=Math.sin(x*127.1+41.5)*43758.5453;return n-Math.floor
 
 export function createLunarArenaImpact(T,scene,{low=false}={}){
   const root=new T.Group();root.name='LunarDevoradorImpactoDimension';scene.add(root);
-  const geos=[],mats=[],v3=new T.Vector3(),q=new T.Quaternion(),m4=new T.Matrix4(),up=new T.Vector3(0,1,0);
+  const geos=[],mats=[],v3=new T.Vector3(),q=new T.Quaternion(),m4=new T.Matrix4(),up=new T.Vector3(0,1,0),sz=new T.Vector3();
   const G=x=>(geos.push(x),x), M=x=>(mats.push(x),x);
   const groundVS=[
     'varying vec2 vUv;',
@@ -113,7 +113,7 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
       v3.set(Math.cos(ang)*radius,rise+hash(i+6)*3,Math.sin(ang)*radius);
       q.setFromAxisAngle(up,a*.2*hash(i+2));
       const size=(1.8+hash(i+13)*3.4)*(.5+.6*ease(a/.5));
-      m4.compose(v3,q,new T.Vector3(size,size*.64,size));smoke.setMatrixAt(i,m4);
+      m4.compose(v3,q,sz.set(size,size*.64,size));smoke.setMatrixAt(i,m4);
     }smoke.instanceMatrix.needsUpdate=true;
     debrisMat.opacity=(1-ease((a-1)/1.6))*.9;
     for(let i=0;i<DN;i++){
@@ -122,7 +122,7 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
       v3.set(Math.cos(ang)*r,Math.max(0,(5+hash(i+17)*6)*a-8*a*a),Math.sin(ang)*r);
       q.setFromAxisAngle(up, a*(1+hash(i+4)*5));
       const size=.28+hash(i+7)*.9;
-      m4.compose(v3,q,new T.Vector3(size,size*2.5,size));debris.setMatrixAt(i,m4);
+      m4.compose(v3,q,sz.set(size,size*2.5,size));debris.setMatrixAt(i,m4);
     }debris.instanceMatrix.needsUpdate=true;
     flashU.uA.value=1.1*(1-ease(a/(reduced?.18:.32)));
     flashU.uT.value=a;flash.position.set(0,4,0);flash.quaternion.copy(camera.quaternion);
