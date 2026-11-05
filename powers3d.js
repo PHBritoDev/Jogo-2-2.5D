@@ -80,7 +80,7 @@ export const KITS = {
   veraxion: { color: 0x9a2cff, color2: 0x2ab8ff, book: false, skills: [ // MOD 286: só as duas magias autorais; Orbes, Corte do Abismo especial, Buraco Negro, Fogo Abissal e Furacão Negro foram excluídos
     S('s1', 'QUATRO SENTENÇAS DO ABISMO', 'veraxion_four_swords', { dmg: 12, cd: 16 }), // MOD 285: Bispo 4 · Skill 1 (veraxion-four-swords3d.js)
     S('s2', 'QUATRO VÓRTICES DO JUÍZO AZUL', 'veraxion_four_blue_tornadoes', { dmg: 20, cd: 24 })], // MOD 286: Bispo 4 · Skill 2 (veraxion-blue-cyclone3d.js)
-    sword: null, ult: null }, // ultimate autoral ainda será criada com o autor: nenhum substituto genérico
+    sword: null, ult: S('ult', 'A QUEDA DO DEVORADOR LUNAR', 'veraxion_lunar_devourer', { dmg: 32 }) }, // MOD 288: ultimate autoral (veraxion-lunar-ultimate3d.js); uma vez por luta
   greed1: { color: 0xffd040, color2: 0x3a2400, book: true, skills: [
     S('s1', 'Portões do Tesouro', 'rain', { n: 30, dmg: 13, cd: 9, r: 3.8, dur: 1.8, gold: true }),
     S('s2', 'Orbes de Ouro', 'orbs', { n: 5, dmg: 12, cd: 8, speed: 8 }),

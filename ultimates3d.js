@@ -6,6 +6,8 @@
 import { kitFor, ultThresholds } from './powers3d.js';
 export const ULTIMATES = {
   zarkhael: { kind: 'zarkhael_six_seals', name: 'OS SEIS SELOS DO JUÍZO ETERNO', at: [0.6, 0.25] },
+  veraxion: { kind: 'veraxion_lunar_devourer', name: 'A QUEDA DO DEVORADOR LUNAR', at: [0.4] }, // MOD 288: filme de ~26 s, UMA vez por luta
+  fallen4: { kind: 'veraxion_lunar_devourer', name: 'A QUEDA DO DEVORADOR LUNAR', at: [0.4] },
   greed3: { kind: 'nova', name: 'SUPERNOVA DA GANÂNCIA', at: [0.72, 0.3] }
 };
 /** Ultimate deste perfil: { kind, name, at } (ou null). */
