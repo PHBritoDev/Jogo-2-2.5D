@@ -4,7 +4,7 @@
 <script type="module">
 /* Prévia/QA da Skill 2 do Bispo 4 (mesma lógica e VFX do jogo). ?t=segundos congela; ?cam=hero|wide|circle|tornado|mega|blast; ?low=1 */
 import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {createBlueCyclone} from './veraxion-blue-cyclone3d.js';import {createBlueCycloneVFX} from './veraxion-blue-cyclone-vfx3d.js';
+import {createBlueCyclone} from './veraxion-blue-cyclone3d.js';import {createBlueCycloneVFX} from './veraxion-blue-cyclone-vfx3d.js';import {createVeraxionHeroBurnVFX} from './veraxion-blue-burn3d.js';
 const q=new URLSearchParams(location.search),freeze=q.has('t')?+q.get('t'):null,camMode=q.get('cam')||'wide',low=q.has('low');
 const scene=new T.Scene();scene.background=new T.Color(0x060812);scene.fog=new T.Fog(0x070910,40,160);const camera=new T.PerspectiveCamera(56,innerWidth/innerHeight,.1,500);
 const r=new T.WebGLRenderer({antialias:!low});r.setPixelRatio(1);r.setSize(innerWidth,innerHeight);r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.1;r.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(r.domElement);
@@ -12,23 +12,24 @@ scene.add(new T.HemisphereLight(0x8890b0,0x201018,1.1));const dl=new T.Direction
 const GY=-1000,C={x:1600,z:0};const floorTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.fillStyle='#181a24';g.fillRect(0,0,256,256);g.strokeStyle='#262a36';g.lineWidth=3;for(let i=0;i<=256;i+=64){g.beginPath();g.moveTo(i,0);g.lineTo(i,256);g.stroke();g.beginPath();g.moveTo(0,i);g.lineTo(256,i);g.stroke();}const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(16,16);t.colorSpace=T.SRGBColorSpace;return t;})();
 const floor=new T.Mesh(new T.CircleGeometry(34,64).rotateX(-Math.PI/2),new T.MeshStandardMaterial({map:floorTex,roughness:.85,metalness:.1}));floor.position.set(C.x,GY,C.z);scene.add(floor);
 for(let i=0;i<14;i++){const a=i/14*6.283,p=new T.Mesh(new T.BoxGeometry(1.6,22,1.6),new T.MeshStandardMaterial({color:0x1c1f2a,roughness:.9}));p.position.set(C.x+Math.cos(a)*31,GY+11,C.z+Math.sin(a)*31);scene.add(p);}
-const hero=new T.Mesh(new T.CapsuleGeometry(.42,1,4,12),new T.MeshStandardMaterial({color:0xd8d0c0}));scene.add(hero);
+const heroRoot=new T.Group();scene.add(heroRoot);const hero=new T.Mesh(new T.CapsuleGeometry(.42,1,4,12),new T.MeshStandardMaterial({color:0xd8d0c0}));hero.position.y=.92;heroRoot.add(hero);
 const bg=await new GLTFLoader().loadAsync('./Bispo4-lod.glb?v=mod196');const boss=new T.Group();scene.add(boss);const m=bg.scene;const box=new T.Box3().setFromObject(m);const sc=(1.5*1.6)/(box.max.y-box.min.y);m.scale.setScalar(sc);m.position.y=-box.min.y*sc;boss.add(m);
 const mixer=new T.AnimationMixer(m);const idle=bg.animations.find(a=>a.name==='Idle Torch');if(idle)mixer.clipAction(idle).play();
 boss.position.set(C.x,GY,C.z-9);boss.updateMatrixWorld(true);const BH=new T.Box3().setFromObject(m).getSize(new T.Vector3()).y;
-const vfx=createBlueCycloneVFX(T,scene,{low});vfx.attachBoss(m);
+const vfx=createBlueCycloneVFX(T,scene,{low});vfx.attachBoss(m);const burnVfx=createVeraxionHeroBurnVFX(T,scene,{low,height:()=>1.8});burnVfx.setTarget(heroRoot,null);
 const H={x:C.x+1,z:C.z+3,y:GY,iframes:false,alive:true};const seq=createBlueCyclone({ground:()=>GY});
 let t=0,camModeV=camMode;const dt=1/60;
-function sim(d){seq.step(d,{hero:H});mixer.update(d);vfx.update(seq,{camera,boss:{x:boss.position.x,y:GY,z:boss.position.z,h:BH},low},d);t+=d;}
-function place(){hero.position.set(H.x,GY+.92,H.z);const p0=seq.st.p0||{x:C.x,z:C.z},bx=boss.position.x,bz=boss.position.z;
- if(camModeV==='hero'){camera.position.set(H.x+1.5,GY+4,H.z+10);camera.lookAt(bx,GY+3,bz);}
+function sim(d){seq.step(d,{hero:H});mixer.update(d);burnVfx.update(d,seq.st.burn?.stacks||0);vfx.update(seq,{camera,boss:{x:boss.position.x,y:GY,z:boss.position.z,h:BH},low},d);t+=d;}
+function place(){heroRoot.position.set(H.x,GY,H.z);const p0=seq.st.p0||{x:C.x,z:C.z},bx=boss.position.x,bz=boss.position.z;
+ if(camModeV==='burn'){camera.position.set(H.x+3.5,GY+3.6,H.z+6);camera.lookAt(H.x,GY+1,H.z);}else if(camModeV==='hero'){camera.position.set(H.x+1.5,GY+4,H.z+10);camera.lookAt(bx,GY+3,bz);}
  else if(camModeV==='wide'){camera.position.set(p0.x+12,GY+11,p0.z+17);camera.lookAt(p0.x,GY+2.5,p0.z);}
  else if(camModeV==='circle'){camera.position.set(p0.x,GY+34,p0.z+10);camera.lookAt(p0.x,GY,p0.z);}
  else if(camModeV==='tornado'){const o=seq.st.torn&&seq.st.torn[0]||{x:p0.x,z:p0.z};camera.position.set(o.x+6,GY+3.2,o.z+7.5);camera.lookAt(o.x,GY+4.4,o.z);}
  else if(camModeV==='mega'){camera.position.set(p0.x+14,GY+7,p0.z+19);camera.lookAt(p0.x,GY+9,p0.z);}
  else if(camModeV==='blast'){camera.position.set(p0.x+14,GY+5,p0.z+18);camera.lookAt(p0.x,GY+4.5,p0.z);}
  camera.updateMatrixWorld();}
-window.__shot=(tt,cm)=>{camModeV=cm||camModeV;Object.assign(H,{x:C.x+1,z:C.z+3});vfx.clear();seq.start({x:boss.position.x,y:GY,z:boss.position.z,yaw:0},{x:H.x,z:H.z},{x:C.x,z:C.z,r:30});t=0;
+window.__burnDiag=()=>({visible:burnVfx.active,stacks:seq.st.burn?.stacks||0,fireTiles:seq.st.fires.length,t:seq.st.t});
+window.__shot=(tt,cm)=>{camModeV=cm||camModeV;Object.assign(H,{x:C.x+1,z:C.z+3});vfx.clear();seq.start({x:boss.position.x,y:GY,z:boss.position.z,yaw:0},{x:H.x,z:H.z},{x:C.x,z:C.z,r:30});t=0;burnVfx.clear();
  while(t<tt-1e-9){place();sim(Math.min(dt,tt-t));}place();vfx.update(seq,{camera,boss:{x:boss.position.x,y:GY,z:boss.position.z,h:BH},low},0);r.render(scene,camera);
  const st=seq.st;document.getElementById('i').textContent=`t ${st.t.toFixed(2)} fase ${st.phase} aura ${st.aura.toFixed(2)} mega ${st.mega.scale.toFixed(2)} fogo ${st.fires.length} draw ${r.info.render.calls} tri ${r.info.render.triangles}`;return document.getElementById('i').textContent;};
 if(freeze!==null){window.__shot(freeze,camMode);window.__ready=1;}

@@ -160,7 +160,7 @@ const GLOW_F = `uniform float uA; uniform vec3 uCol; varying vec2 vU; void main(
 
 /* ---------- fogo azul (quads cruzados instanciados) ---------- */
 const FIRE_V = `attribute vec3 aF; uniform float time; varying vec2 vU; varying float vK,vSeed; void main(){ vU=uv; float age=time-aF.x; vK=clamp(age/aF.y,0.,1.); vSeed=aF.z;
- vec3 p=position; float grow=smoothstep(0.,.18,age/max(.01,aF.y)*4.)*(1.-smoothstep(.72,1.,vK)); p.y*=grow*(.85+.3*sin(time*7.+aF.z*20.)); p.x*=.75+.25*grow;
+ vec3 p=position; float grow=smoothstep(0.,.18,age/max(.01,aF.y)*4.)*(1.-smoothstep(.88,1.,vK)); p.y*=grow*(.85+.3*sin(time*7.+aF.z*20.)); p.x*=.75+.25*grow;
  gl_Position=projectionMatrix*viewMatrix*modelMatrix*instanceMatrix*vec4(p,1.); }`;
 const FIRE_F = `${NOISE} uniform float time; varying vec2 vU; varying float vK,vSeed;
 void main(){ if(vK>=1.) discard; float x=vU.x*2.-1., y=vU.y; float tt=time*1.1+vSeed*30.;
@@ -168,7 +168,7 @@ void main(){ if(vK>=1.) discard; float x=vU.x*2.-1., y=vU.y; float tt=time*1.1+v
  float hgt=(.35+.65*fbm(vec2(xs*2.4+vSeed*9.,tt*.55)))*(1.-.55*x*x); float tongues=.5+.5*sin(xs*9.+fbm(vec2(xs*3.,tt))*4.); hgt*=.7+.45*tongues;
  float body=smoothstep(hgt,hgt-.22,y); float holes=smoothstep(.62,.8,fbm(vec2(xs*5.,y*4.-tt*3.)))*smoothstep(.25,.6,y/max(hgt,.05)); body*=1.-holes;
  if(body<.02) discard; float k=y/max(.05,hgt); vec3 c=mix(vec3(.75,.95,1.),vec3(.15,.6,1.),smoothstep(.05,.45,k)); c=mix(c,vec3(.03,.12,.6),smoothstep(.45,1.,k));
- float a=body*smoothstep(0.,.04,y)*(1.-smoothstep(.7,1.,vK))*smoothstep(1.,.75,abs(x)); gl_FragColor=vec4(c*a,1.); }`;
+ float a=body*smoothstep(0.,.04,y)*(1.-smoothstep(.87,1.,vK))*smoothstep(1.,.75,abs(x)); gl_FragColor=vec4(c*a,1.); }`;
 
 /* ---------- explosão final (lóbulos ciano-brancos com veios escuros) ---------- */
 const BLB_V = `${N3} attribute float aSeed; attribute float aHeat; uniform float time; varying float vSeed,vHeat; varying vec3 vN,vV,vP;
@@ -230,7 +230,7 @@ export function createBlueCycloneVFX(T, scene, opts = {}) {
   const pts = add(new T.Points(ptG, mat({ vertexShader: PT_V, fragmentShader: PT_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending })), 9); pts.visible = true; let pI = 0;
   const emit = (x, y, z, vx, vy, vz, r, g, b, life) => { const i = pI++ % PN; pP.set([x, y, z], i * 3); pV.set([vx, vy, vz], i * 3); pC.set([r, g, b, 1], i * 4); pL[i * 2] = life; pL[i * 2 + 1] = life; };
   /* fogo azul */
-  const FN = 180, fireG = (() => { const g = new T.BufferGeometry(), P = [], U = [], I = []; for (let q = 0; q < 3; q++) { const a = q * Math.PI / 3, c = Math.cos(a), s = Math.sin(a), o = P.length / 3; for (const [x, y] of [[-1, 0], [1, 0], [1, 1], [-1, 1]]) { P.push(x * c * .5, y, x * s * .5); U.push((x + 1) / 2, y); } I.push(o, o + 1, o + 2, o, o + 2, o + 3); }
+  const FN = low ? 170 : 230, fireG = (() => { const g = new T.BufferGeometry(), P = [], U = [], I = []; for (let q = 0; q < 3; q++) { const a = q * Math.PI / 3, c = Math.cos(a), s = Math.sin(a), o = P.length / 3; for (const [x, y] of [[-1, 0], [1, 0], [1, 1], [-1, 1]]) { P.push(x * c * .5, y, x * s * .5); U.push((x + 1) / 2, y); } I.push(o, o + 1, o + 2, o, o + 2, o + 3); }
     g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(U, 2)); g.setIndex(I); return g; })(); geos.push(fireG);
   const fA = new Float32Array(FN * 3); fireG.setAttribute('aF', new T.InstancedBufferAttribute(fA, 3).setUsage(T.DynamicDrawUsage));
   const fire = add(new T.InstancedMesh(fireG, mat({ vertexShader: FIRE_V, fragmentShader: FIRE_F, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending }), FN), 7); fire.instanceMatrix.setUsage(T.DynamicDrawUsage);
@@ -318,7 +318,7 @@ export function createBlueCycloneVFX(T, scene, opts = {}) {
       }
       // fogo azul: cada segmento tem um slot; some exatamente no fim da vida (mesmo instante em que perde o dano)
       const fs = live ? st.fires : [], seen = new Set();
-      for (const f of fs) { seen.add(f.id); if (!fireSlots.has(f.id)) { let slot = fireNext++ % FN; fireSlots.set(f.id, slot); const s = f.big ? 2.4 + R3(f.id) * 1.4 : 1.7 + R3(f.id) * .9;
+      for (const f of fs) { seen.add(f.id); if (!fireSlots.has(f.id)) { let slot = fireNext++ % FN; fireSlots.set(f.id, slot); const s = f.big ? 2.65 + R3(f.id) * 1.5 : 1.85 + R3(f.id) * 1.05;
           for (const [k, v] of fireSlots) if (v === slot && k !== f.id) fireSlots.delete(k);
           M4.compose(PV.set(f.x, f.y, f.z), Q.setFromAxisAngle(UP, R3(f.id * 3) * 3), SV.set(s * (f.big ? 1.9 : 1.5), s, s * (f.big ? 1.9 : 1.5))); fire.setMatrixAt(slot, M4); fA.set([time - (st.t - f.born), f.life, R3(f.id)], slot * 3); } }
       for (const [id, slot] of fireSlots) if (!seen.has(id)) { fA[slot * 3] = -99; M4.makeScale(0, 0, 0); fire.setMatrixAt(slot, M4); fireSlots.delete(id); }
