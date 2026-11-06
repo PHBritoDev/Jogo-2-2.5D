@@ -14,6 +14,11 @@ Antes de trabalhar neste repositório, leia **[PROMPT_MESTRE_DO_JOGO.md](PROMPT_
 - Nunca alegue que executou testes que não realizou.
 - Leia também o código atual: as notas do prompt são contexto e o repositório é a fonte de verdade para o estado técnico.
 
-## Regra permanente — upgrades proativos de ferramentas e agentes (05/11/2026)
-
-O criador autoriza a iniciativa de melhorar, criar e testar agentes, conectores e ferramentas reutilizáveis para este jogo e futuros jogos/sites, sem solicitar aprovação a cada melhoria gratuita e reversível. Após cada upgrade, relatar de forma concisa o que foi feito, o benefício, os testes e o PR. Não publicar, fazer merge, contratar serviço pago, usar créditos, conectar novas contas ou mudar permissões sem as autorizações e controles exigidos pela plataforma. Manter melhorias em branch/PR isolados, preservar versões estáveis e não alegar validação sem evidência. Nunca colocar prompts longos no chat: usar arquivos no GitHub. Não alterar o Devorador Lunar até nova ordem; será feito futuramente no Meshy. Memória técnica dos agentes: docs/agent-memory/README.md.
+## Regra permanente — melhoria proativa dos agentes e ferramentas (pedido do criador em 05/11/2026)
+- O assistente e demais agentes podem identificar, criar e melhorar autonomamente ferramentas, pipelines de QA, diretores cinematográficos, agentes e integrações que beneficiem este jogo **e projetos futuros** (jogos, sites e aplicativos). Não é necessário pedir aprovação prévia para melhorias técnicas gratuitas e reversíveis no repositório.
+- Avisar o criador após realizar qualquer melhoria ou mudança de ferramenta, explicando resumidamente o que mudou, benefício, testes feitos e links/PRs. Não alegar que foi validado visualmente só porque CI passou.
+- Novas conexões de contas, instalação de plugins, permissões, autenticação e serviços externos exigem a ação explícita da conta quando a plataforma solicitar; **não** presumir autorização para gastos, compras, alterações de cobrança, publicação ou operações destrutivas. Não pedir credenciais em mensagens.
+- Preferir agentes reutilizáveis com documentação e testes automatizados. Separar criação, medição objetiva e julgamento artístico: não inventar notas nem afirmar 80% de semelhança sem referência e avaliação comprovadas.
+- Trabalhar em branches/PRs pequenos, reversíveis e com CI. Proteger jogo publicado, segurança, desempenho mobile e compatibilidade de versões. Nunca mesclar código não aprovado apenas para concluir uma tarefa.
+- Se o criador congelar um elemento visual (ex.: Devorador Lunar a ser substituído futuramente por Meshy), não tocar nesse elemento; focar no restante até nova ordem.
+- Para economizar o chat, **não colar prompts longos** aqui: armazenar instruções para outros agentes em arquivos do repositório e fornecer somente resumo e link.
