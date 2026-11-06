@@ -1,0 +1,51 @@
+name: QA V8 — comprovar habilidades no jogo real
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/visual-lab/agent-run.cjs"
+      - "tools/visual-lab/ability-observer-v8*"
+      - ".github/workflows/agent-v8.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-ability:
+    name: Reproduzir falha no perfil proximidade (WebGL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      CI: "true"
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results
+      AGENT_ROUND_PROFILE: proximidade
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar navegador WebGL
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Testar deteccao de habilidades sem falso positivo
+        run: node --test tools/visual-lab/ability-observer-v8.test.cjs
+      - name: Servidor local do jogo
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/qa-v8-http.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/qa-v8-http.log
+          exit 1
+      - name: Rejogar Hidra e Chamas em navegador
+        run: node tools/visual-lab/agent-run.cjs
+      - name: Preservar capturas, videos e prova da falha, mesmo se reprovado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provas-v8-proximidade-${{ github.run_number }}
+          path: visual-lab-results/agente/
+          retention-days: 14
+          if-no-files-found: warn
