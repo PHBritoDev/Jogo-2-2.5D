@@ -48,9 +48,9 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
     'float n(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(h(i),h(i+vec3(1.,0.,0.)),f.x),mix(h(i+vec3(0.,1.,0.)),h(i+vec3(1.,1.,0.)),f.x),f.y),mix(mix(h(i+vec3(0.,0.,1.)),h(i+vec3(1.,0.,1.)),f.x),mix(h(i+vec3(0.,1.,1.)),h(i+vec3(1.,1.,1.)),f.x),f.y),f.z);}',
     'void main(){float noise=n(vP*7.+vec3(0.,-uT*3.,0.))*.55+n(vP*17.-uT*1.9)*.45;',
     'float heat=pow(max(.0,1.-vP.y),.6);float burning=clamp(noise*.75+heat*.72,0.,1.);',
-    'vec3 c=mix(vec3(.12,.016,.03),vec3(.86,.22,.045),smoothstep(.3,.67,burning));',
-    'c=mix(c,vec3(1.,.7,.29),smoothstep(.7,.98,burning));',
-    'float edge=pow(1.-abs(normalize(vN).y),1.5);float alpha=uA*(.15+.6*noise)*(.5+.5*edge);',
+    'vec3 c=mix(vec3(.075,.012,.024),vec3(.79,.18,.045),smoothstep(.34,.7,burning));',
+    'c=mix(c,vec3(1.,.67,.23),smoothstep(.78,.99,burning));',
+    'float edge=pow(1.-abs(normalize(vN).y),1.5);float alpha=clamp(uA*(.54+.35*noise)*(.6+.4*edge),0.,.9);',
     'if(alpha<.01)discard;gl_FragColor=vec4(c,alpha);}'
   ].join('\n');
   const plumeU={uT:{value:0},uA:{value:0}};
@@ -110,7 +110,7 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
     if(age>3.2){clear();return;}const a=Math.max(0,age),burst=ease(a/.35);
     waveU.uT.value=a;waveU.uA.value=(1-ease((a-1.8)/1.25))*.92;
     dome.scale.set(1+14.5*ease(a/.78),.2+14.8*ease(a/.88),1+14.5*ease(a/.78));
-    plumeU.uT.value=a;plumeU.uA.value=(1-ease((a-1.25)/1.75))*.82;
+    plumeU.uT.value=a;plumeU.uA.value=(1-ease((a-1.25)/1.75))*1.08;
     core.scale.set(1+9.2*ease(a/.32),.2+6.4*ease(a/.3),1+9.2*ease(a/.32));
     core.material.opacity=(1-ease((a-.12)/.72))*.50;
     for(let i=0;i<shockRings.length;i++){
