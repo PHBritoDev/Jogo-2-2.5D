@@ -7,7 +7,7 @@
  * choque que corre pela esfera. Tudo criado uma vez (pool); a câmera é guiada pelo relógio de veraxion-lunar-ultimate3d.js.
  */
 import { enhanceLunarMonster } from './veraxion-lunar-facial3d.js';
-export const LUNAR_COSMOS_BUILD = '290-cinema-grin-abyss-surge';
+export const LUNAR_COSMOS_BUILD = '291-sculpted-crescent-face';
 const clamp01 = x => Math.max(0, Math.min(1, x)), sm = x => { x = clamp01(x); return x * x * (3 - 2 * x); }, lerp = (a, b, k) => a + (b - a) * k;
 const R3 = i => { const s = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return s - Math.floor(s); };
 const NOISE = `float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -29,7 +29,7 @@ void main(){ vC=color; vU=uv;
  #include <skinning_vertex>
  vec4 w=modelMatrix*vec4(transformed,1.); vW=w.xyz; vN=normalize(mat3(modelMatrix)*objectNormal); gl_Position=projectionMatrix*viewMatrix*w; }`;
 export const MONSTER_F = `${NOISE} uniform float time,uGlow,uReveal; uniform vec3 uKey,uRim; varying vec3 vC,vN,vW; varying vec2 vU;
-void main(){ float part=vC.r, along=vC.g; vec3 N=normalize(vN), V=normalize(cameraPosition-vW); float ndv=clamp(dot(N,V),0.,1.), fres=pow(1.-ndv,2.2);
+void main(){ float part=vC.r, along=vC.g; if(part>=.12&&part<.87)discard; vec3 N=normalize(vN), V=normalize(cameraPosition-vW); float ndv=clamp(dot(N,V),0.,1.), fres=pow(1.-ndv,2.2);
  float key=clamp(dot(N,normalize(uKey))*.5+.5,0.,1.), rimL=pow(clamp(dot(N,normalize(uRim)),0.,1.),2.);
  /* revelação de baixo para cima (silhueta se ergue) */ if(vW.y>uReveal) discard;
  float u=vU.x, v=vU.y; vec3 c;
@@ -181,7 +181,7 @@ export function createLunarCosmos(T, opts = {}) {
   const atm = new T.Mesh(quad, mat({ vertexShader: GLOWB_V, fragmentShader: ATM_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: atmU })); atm.frustumCulled = false; scene.add(atm);
   /* o Devorador */
   const monster = new T.Group(); scene.add(monster); let monsterRoot = null, mixer = null, clips = {}, jawBone = null, headBone = null, monMat = null, acts = {}, facial = null;
-  const dirE = new T.Vector3().subVectors(EARTH, new T.Vector3(0, 0, 0)).setY(0).normalize(); monster.rotation.y = Math.atan2(dirE.x, dirE.z); monster.position.set(0, craterH(0, 0) - .15, 0); monster.scale.setScalar(4.05);
+  const dirE = new T.Vector3().subVectors(EARTH, new T.Vector3(0, 0, 0)).setY(0).normalize(); monster.rotation.y = Math.atan2(dirE.x, dirE.z); monster.position.set(0, craterH(0, 0) - .15, 0); monster.scale.setScalar(4.45);
   if (opts.monsterGLTF) { monsterRoot = opts.monsterGLTF.scene; monMat = monsterMaterial(T); mats.push(monMat); monsterRoot.traverse(o => { if (o.isSkinnedMesh) { o.material = monMat; o.frustumCulled = false; } if (o.isBone && o.name === 'jaw') jawBone = o; if (o.isBone && o.name === 'head') headBone = o; });
     monster.add(monsterRoot); facial=enhanceLunarMonster(T,monsterRoot,{low}); mixer = new T.AnimationMixer(monsterRoot); for (const c of opts.monsterGLTF.animations) { clips[c.name] = c; acts[c.name] = mixer.clipAction(c); } }
   moonU.uMon.value.copy(monster.position);
