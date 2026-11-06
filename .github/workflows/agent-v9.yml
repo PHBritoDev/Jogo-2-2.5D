@@ -1,0 +1,28 @@
+name: Agente V9 — prontidao dos personagens 3D
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/visual-lab/asset-readiness-v9*"
+      - "tools/visual-lab/rounds.cjs"
+      - ".github/workflows/agent-v9.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract-tests:
+    name: Validar swaps de GLB e diagnosticos QA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe dos agentes
+        run: |
+          node --check tools/visual-lab/asset-readiness-v9.cjs
+          node --check tools/visual-lab/rounds.cjs
+          node --check tools/visual-lab/asset-readiness-v9-run.cjs
+      - name: Executar testes novos e regressao de orquestracao
+        run: node --test tools/visual-lab/asset-readiness-v9.test.cjs tools/visual-lab/rounds.test.cjs
