@@ -1,0 +1,39 @@
+name: Agente V6 — autocorretor seguro
+on:
+  pull_request:
+    branches: [main, feat/agent-v5-performance-regression-memory]
+    paths:
+      - "tools/visual-lab/agent-v6-*"
+      - ".github/workflows/agent-v6.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: agent-v6-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  safe-autofix:
+    name: Testar autocorretor sem alterar jogo
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe
+        run: |
+          node --check tools/visual-lab/agent-v6-autofix-core.cjs
+          node --check tools/visual-lab/agent-v6-run.cjs
+      - name: Testar protecoes e regras deterministicas
+        run: node --test tools/visual-lab/agent-v6-autofix.test.cjs
+      - name: Autocorretor — executar analise sem modificar codigo
+        run: node tools/visual-lab/agent-v6-run.cjs
+      - name: Guardar diagnosticos e sugestoes para revisao
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autocorretor-v6-${{ github.run_number }}
+          path: visual-lab-results/agente-v6/
+          retention-days: 14
+          if-no-files-found: warn
