@@ -55,6 +55,8 @@ async function main(){
     await pause(450);
    }
    if(!started)throw Error("Ultimate não iniciou em luta real do Bispo 4");
+   // Somente no QA: acelera o relógio da cinematográfica, mantendo todas as 11 fases e as capturas reais WebGL.
+   await page.evaluate(()=>window.SevenSinsDebug3D.speed(2.4));
    data.ready=true;
    for(const [name,target] of frames){
     let h=await page.waitForFunction(t=>{

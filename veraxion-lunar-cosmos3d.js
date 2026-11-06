@@ -7,7 +7,7 @@
  * choque que corre pela esfera. Tudo criado uma vez (pool); a câmera é guiada pelo relógio de veraxion-lunar-ultimate3d.js.
  */
 import { enhanceLunarMonster } from './veraxion-lunar-facial3d.js';
-export const LUNAR_COSMOS_BUILD = '289-colossal-horror-gravity';
+export const LUNAR_COSMOS_BUILD = '292-dark-horror-face';
 const clamp01 = x => Math.max(0, Math.min(1, x)), sm = x => { x = clamp01(x); return x * x * (3 - 2 * x); }, lerp = (a, b, k) => a + (b - a) * k;
 const R3 = i => { const s = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return s - Math.floor(s); };
 const NOISE = `float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -29,18 +29,18 @@ void main(){ vC=color; vU=uv;
  #include <skinning_vertex>
  vec4 w=modelMatrix*vec4(transformed,1.); vW=w.xyz; vN=normalize(mat3(modelMatrix)*objectNormal); gl_Position=projectionMatrix*viewMatrix*w; }`;
 export const MONSTER_F = `${NOISE} uniform float time,uGlow,uReveal; uniform vec3 uKey,uRim; varying vec3 vC,vN,vW; varying vec2 vU;
-void main(){ float part=vC.r, along=vC.g; vec3 N=normalize(vN), V=normalize(cameraPosition-vW); float ndv=clamp(dot(N,V),0.,1.), fres=pow(1.-ndv,2.2);
+void main(){ float part=vC.r, along=vC.g; if(part>=.12&&part<.87)discard; vec3 N=normalize(vN), V=normalize(cameraPosition-vW); float ndv=clamp(dot(N,V),0.,1.), fres=pow(1.-ndv,2.2);
  float key=clamp(dot(N,normalize(uKey))*.5+.5,0.,1.), rimL=pow(clamp(dot(N,normalize(uRim)),0.,1.),2.);
  /* revelação de baixo para cima (silhueta se ergue) */ if(vW.y>uReveal) discard;
  float u=vU.x, v=vU.y; vec3 c;
  if(part<.12){ /* corpo: preto quase absoluto; hachuras de gravura só onde a luz/borda pega, crostas e fendas */
   float wav=fbm(vec2(u*7.,v*5.)), wav2=fbm(vec2(u*21.+5.,v*17.));
-  float K=39.48*max(.05,vC.b)*6.5; /* densidade constante no mundo: ~7 traços por metro de circunferência */
-  float hatch=smoothstep(.62,.97,sin(u*K+wav*22.+sin(v*14.+u*9.)*4.)*.5+.5)*(.5+.5*wav2); float cross2=smoothstep(.8,1.,sin(v*K*1.6+u*K*.3+wav*7.)*.5+.5)*.7;
+  float K=39.48*max(.05,vC.b)*5.1; /* densidade constante no mundo: ~7 traços por metro de circunferência */
+  float hatch=smoothstep(.77,.99,sin(u*K+wav*30.+sin(v*14.+u*9.)*4.)*.5+.5)*(.5+.5*wav2); float cross2=smoothstep(.89,1.,sin(v*K*1.6+u*K*.3+wav*7.)*.5+.5)*.55;
   float crack=smoothstep(.64,.7,fbm(vec2(u*24.+3.,v*28.)));
   float lit=pow(key,2.)*.75+pow(fres,1.2)*1.2+rimL*.9; float lines=(hatch*.9+cross2*.35)*smoothstep(.12,.9,lit)+crack*.3*lit;
-  c=vec3(.015,.006,.04)+vec3(.12,.05,.3)*pow(key,2.)*.5; c+=mix(vec3(.32,.18,.9),vec3(.95,.6,1.),clamp(fres*1.3,0.,1.))*lines*(.55+.9*fres)*1.15;
-  c+=vec3(1.,.6,1.)*pow(fres,4.)*.55;
+  c=vec3(.015,.006,.04)+vec3(.12,.05,.3)*pow(key,2.)*.5; c+=mix(vec3(.32,.18,.9),vec3(.95,.6,1.),clamp(fres*1.3,0.,1.))*lines*(.48+.72*fres)*.94;
+  c+=vec3(.8,.43,.95)*pow(fres,4.)*.42;
  } else if(part<.37){ /* chifres: escuros com anéis de crescimento; contorno rosa-claro forte (como no desenho) */
   float ring=smoothstep(.6,1.,sin(along*190.+fbm(vec2(u*6.,along*9.))*4.)*.5+.5)*(1.-along); float lit=pow(key,2.)*.5+pow(fres,1.);
   c=vec3(.06,.025,.12)+vec3(.5,.3,.9)*lit*.6+vec3(.7,.45,1.)*ring*.12*lit; c+=vec3(1.,.78,1.)*pow(fres,1.1)*1.35; float sc=smoothstep(.55,.95,fbm(vec2(u*14.,along*80.)))*.25; c+=vec3(.8,.55,1.)*sc*lit; c+=vec3(1.,.85,1.)*smoothstep(.9,1.,along)*.6;
@@ -114,18 +114,18 @@ void main(){ float r=length(vP), ang=atan(vP.y,vP.x); if(r<1.||r>3.4) discard;
  float doppler=.55+.6*smoothstep(-.7,.9,cos(ang+.9));
  float alpha=uA*density*doppler; if(alpha<.009)discard;
  vec3 warm=mix(vec3(1.,.98,.69),vec3(1.,.33,.045),smoothstep(.10,.45,k));
- vec3 color=mix(warm,vec3(.27,.045,.53),outer*.9);
+ vec3 color=mix(warm,vec3(.66,.11,.22),outer*.78);
  color=mix(color,vec3(1.,.77,.46),whorl*inner*.8);
- gl_FragColor=vec4(color*alpha*(1.+uHot*.4),alpha); }`;
+ gl_FragColor=vec4(color*(.70+uHot*.22),min(.88,alpha*.9)); }`;
 const LENS_F = `${NOISE} uniform float uA,time; varying vec2 vU;
 void main(){ float r=length(vU), a=atan(vU.y,vU.x);
- float ring=exp(-pow((r-.323)/.015,2.))*1.75+exp(-pow((r-.35)/.07,2.))*.52;
+ float ring=exp(-pow((r-.323)/.019,2.))*1.08+exp(-pow((r-.35)/.075,2.))*.35;
  float f=fbm(vec2(a*7.+time*.45,r*21.-time*.4));
  float arc=exp(-pow((r-.52-f*.028)/.04,2.))*(.5+.5*sin(a*3.-time*.65))*.45;
- float photon=exp(-pow((r-.275)/.011,2.))*.65;
+ float photon=exp(-pow((r-.275)/.012,2.))*.2;
  float al=uA*(ring+arc+photon)*(.78+.22*f);if(al<.006)discard;
- vec3 c=mix(vec3(1.,.55,.13),vec3(.67,.18,.95),smoothstep(.32,.56,r));
- c=mix(c,vec3(1.,.95,.76),photon);gl_FragColor=vec4(c*al,1.); }`;
+ vec3 c=mix(vec3(1.,.47,.09),vec3(.72,.16,.34),smoothstep(.32,.56,r));
+ c=mix(c,vec3(1.,.83,.51),photon);gl_FragColor=vec4(c*.78,clamp(al*.63,0.,.8)); }`;
 const PT_V = `attribute vec4 aC; varying vec4 vC; void main(){ vC=aC; vec4 mv=viewMatrix*vec4(position,1.); gl_PointSize=clamp(260./-mv.z,1.,7.); gl_Position=projectionMatrix*mv; }`;
 const PT_F = `varying vec4 vC; void main(){ vec2 p=gl_PointCoord*2.-1.; float d=dot(p,p); if(d>1.||vC.a<.01) discard; gl_FragColor=vec4(vC.rgb*vC.a*(1.-d),1.); }`;
 const TRAIL_V = `attribute vec2 aT; varying vec2 vT; void main(){ vT=aT; gl_Position=projectionMatrix*viewMatrix*vec4(position,1.); }`;
@@ -137,7 +137,7 @@ void main(){ vSeed=aSeed; vHeat=aHeat; vec3 p=position; float d=n3(p*2.2+aSeed*7
 const DOME_F = `${N3} uniform float time; varying float vSeed,vHeat; varying vec3 vN,vV,vP;
 void main(){ vec3 N=normalize(vN),V=normalize(vV); float ndv=clamp(dot(N,V),0.,1.); if(vHeat<.02) discard; float n=n3(vP*3.+vSeed*4.)*.6+n3(vP*7.-time)*.4; float fib=smoothstep(.06,0.,abs(n3(vP*4.5+vSeed)-.5));
  float h=vHeat*(.5+.6*pow(ndv,.8))+(n-.5)*.3; vec3 c=mix(vec3(.55,.05,.02),vec3(1.,.32,.04),smoothstep(.15,.45,h)); c=mix(c,vec3(1.,.72,.15),smoothstep(.4,.72,h)); c=mix(c,vec3(1.,.97,.8),smoothstep(.72,1.05,h)); c=mix(c,vec3(.45,.06,.02),fib*.45);
- c=mix(c*.6,c,smoothstep(0.,.45,ndv)); c+=vec3(1.,.3,.1)*pow(1.-ndv,2.5)*.6; /* casca vermelha nas bordas */ gl_FragColor=vec4(c*(.75+.5*vHeat),1.); }`;
+ c=mix(c*.6,c,smoothstep(0.,.45,ndv)); c+=vec3(1.,.3,.1)*pow(1.-ndv,2.5)*.6; /* casca vermelha nas bordas */ gl_FragColor=vec4(c*(.7+.3*vHeat),clamp(vHeat*.68,0.,.78)); }`;
 const SHELL_F = `${NOISE} uniform float uTheta,uA,uW,time; uniform vec3 uImp; varying vec3 vN,vW,vO; void main(){ vec3 o=normalize(vO); float ang=acos(clamp(dot(o,normalize(uImp)),-1.,1.)); float d=(ang-uTheta)/uW;
  float band=exp(-d*d)*(.8+.4*fbm(vec2(atan(o.z,o.x)*8.,time))); float inner=smoothstep(uTheta,uTheta*.3,ang)*.35; float a=uA*(band+inner*.6); if(a<.004) discard; vec3 c=mix(vec3(1.,.95,.88),vec3(1.,.55,.2),smoothstep(.0,1.5,abs(d))); c=mix(c,vec3(1.,.4,.1),inner); gl_FragColor=vec4(c*a,1.); }`;
 
@@ -181,7 +181,7 @@ export function createLunarCosmos(T, opts = {}) {
   const atm = new T.Mesh(quad, mat({ vertexShader: GLOWB_V, fragmentShader: ATM_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: atmU })); atm.frustumCulled = false; scene.add(atm);
   /* o Devorador */
   const monster = new T.Group(); scene.add(monster); let monsterRoot = null, mixer = null, clips = {}, jawBone = null, headBone = null, monMat = null, acts = {}, facial = null;
-  const dirE = new T.Vector3().subVectors(EARTH, new T.Vector3(0, 0, 0)).setY(0).normalize(); monster.rotation.y = Math.atan2(dirE.x, dirE.z); monster.position.set(0, craterH(0, 0) - .15, 0); monster.scale.setScalar(3.65);
+  const dirE = new T.Vector3().subVectors(EARTH, new T.Vector3(0, 0, 0)).setY(0).normalize(); monster.rotation.y = Math.atan2(dirE.x, dirE.z); monster.position.set(0, craterH(0, 0) - .15, 0); monster.scale.setScalar(4.45);
   if (opts.monsterGLTF) { monsterRoot = opts.monsterGLTF.scene; monMat = monsterMaterial(T); mats.push(monMat); monsterRoot.traverse(o => { if (o.isSkinnedMesh) { o.material = monMat; o.frustumCulled = false; } if (o.isBone && o.name === 'jaw') jawBone = o; if (o.isBone && o.name === 'head') headBone = o; });
     monster.add(monsterRoot); facial=enhanceLunarMonster(T,monsterRoot,{low}); mixer = new T.AnimationMixer(monsterRoot); for (const c of opts.monsterGLTF.animations) { clips[c.name] = c; acts[c.name] = mixer.clipAction(c); } }
   moonU.uMon.value.copy(monster.position);
@@ -196,24 +196,24 @@ export function createLunarCosmos(T, opts = {}) {
   const emit = (x, y, z, vx, vy, vz, r, gg, b, life) => { const i = pI++ % PN; pP.set([x, y, z], i * 3); pV.set([vx, vy, vz], i * 3); pC.set([r, gg, b, 1], i * 4); pL[i * 2] = life; pL[i * 2 + 1] = life; };
   /* buraco negro */
   const bh = new T.Group(); scene.add(bh); bh.visible = false;
-  const core = new T.Mesh(g(new T.SphereGeometry(1, 48, 32)), mat({ vertexShader: BODY_V, fragmentShader: CORE_F, uniforms: { uA: { value: 1 }, uC: { value: new T.Vector3() } } })); bh.add(core);
-  const diskG = g(new T.RingGeometry(1, 3.4, low?72:128, 5)); const disks = [0, 1, 2].map(k => { const u = { uA: { value: 1 }, uSpin: { value: 2.9 + k * 1.2 }, uLayer: { value: k }, uHot: { value: 0 } }; const d = new T.Mesh(diskG, mat({ vertexShader: DISK_V, fragmentShader: DISK_F, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, uniforms: u })); d.rotation.x = .12 + k * .08; d.rotation.z = k * .08; d.scale.setScalar(1 + k * .12); bh.add(d); return { d, u }; });
+  const core = new T.Mesh(g(new T.SphereGeometry(1, 48, 32)), mat({ vertexShader: BODY_V, fragmentShader: CORE_F, transparent:true, depthWrite:true, uniforms: { uA: { value: 1 }, uC: { value: new T.Vector3() } } })); core.renderOrder=8; bh.add(core);
+  const diskG = g(new T.RingGeometry(1, 3.4, low?72:128, 5)); const disks = [0, 1, 2].map(k => { const u = { uA: { value: 1 }, uSpin: { value: 2.9 + k * 1.2 }, uLayer: { value: k }, uHot: { value: 0 } }; const d = new T.Mesh(diskG, mat({ vertexShader: DISK_V, fragmentShader: DISK_F, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, uniforms: u })); d.rotation.x = .92 + k * .075; d.rotation.z = k * .08; d.scale.setScalar(1 + k * .12); bh.add(d); return { d, u }; });
   const lensU = { uC: { value: new T.Vector3() }, uS: { value: 1 }, uA: { value: 1 } }; const lens = new T.Mesh(quad, mat({ vertexShader: GLOWB_V, fragmentShader: LENS_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: lensU })); lens.frustumCulled = false; scene.add(lens);
   const TN = 40, trailG = strip(T, TN); geos.push(trailG); const trailU = { uA: { value: 0 } }, trail = new T.Mesh(trailG, mat({ vertexShader: TRAIL_V, fragmentShader: TRAIL_F, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, uniforms: trailU })); trail.frustumCulled = false; scene.add(trail); const trailPts = [];
   /* explosão sobre a Terra: lóbulos instanciados num domo apoiado na superfície + casca com anel de choque */
-  const DL = low ? 90 : 170, ico = g(new T.IcosahedronGeometry(1, low ? 1 : 2)), dSeed = new Float32Array(DL), dHeat = new Float32Array(DL); for (let i = 0; i < DL; i++) dSeed[i] = R3(i * 1.9);
+  const DL = low ? 72 : 132, ico = g(new T.IcosahedronGeometry(1, low ? 1 : 2)), dSeed = new Float32Array(DL), dHeat = new Float32Array(DL); for (let i = 0; i < DL; i++) dSeed[i] = R3(i * 1.9);
   ico.setAttribute('aSeed', new T.InstancedBufferAttribute(dSeed, 1)); ico.setAttribute('aHeat', new T.InstancedBufferAttribute(dHeat, 1).setUsage(T.DynamicDrawUsage));
-  const dome = new T.InstancedMesh(ico, mat({ vertexShader: DOME_V, fragmentShader: DOME_F }), DL); dome.instanceMatrix.setUsage(T.DynamicDrawUsage); dome.frustumCulled = false; dome.visible = false; scene.add(dome);
+  const dome = new T.InstancedMesh(ico, mat({ vertexShader: DOME_V, fragmentShader: DOME_F, transparent:true, depthWrite:false }), DL); dome.instanceMatrix.setUsage(T.DynamicDrawUsage); dome.frustumCulled = false; dome.visible = false; scene.add(dome);
   const domeLay = Array.from({ length: DL }, (_, i) => { const yy = 1 - (i + .5) / DL * .92, r = Math.sqrt(1 - yy * yy); return { a: i * 2.39996, el: yy, r, s: .16 + .1 * R3(i + 3) }; });
-  const PF = low ? 40 : 70, puffG = g(new T.IcosahedronGeometry(1, 1)); const puffHeat = new Float32Array(PF), puffSeed = new Float32Array(PF); for (let i = 0; i < PF; i++) puffSeed[i] = R3(i * 4.1); puffG.setAttribute('aSeed', new T.InstancedBufferAttribute(puffSeed, 1)); puffG.setAttribute('aHeat', new T.InstancedBufferAttribute(puffHeat, 1).setUsage(T.DynamicDrawUsage));
-  const PUFF_F = `${N3} varying float vSeed,vHeat; varying vec3 vN,vV,vP; void main(){ vec3 N=normalize(vN),V=normalize(vV); float ndv=clamp(dot(N,V),0.,1.); if(vHeat<.02) discard; float n=n3(vP*3.+vSeed*5.); vec3 c=mix(vec3(1.,.55,.35),vec3(1.,.97,.93),smoothstep(.1,.8,ndv)*(.7+.3*n)); gl_FragColor=vec4(c*(.6+.5*vHeat),1.); }`;
-  const puffs = new T.InstancedMesh(puffG, mat({ vertexShader: DOME_V, fragmentShader: PUFF_F }), PF); puffs.instanceMatrix.setUsage(T.DynamicDrawUsage); puffs.frustumCulled = false; puffs.visible = false; scene.add(puffs); /* anel branco de choque "fofo" que abraça a base do domo */
+  const PF = low ? 28 : 48, puffG = g(new T.IcosahedronGeometry(1, 1)); const puffHeat = new Float32Array(PF), puffSeed = new Float32Array(PF); for (let i = 0; i < PF; i++) puffSeed[i] = R3(i * 4.1); puffG.setAttribute('aSeed', new T.InstancedBufferAttribute(puffSeed, 1)); puffG.setAttribute('aHeat', new T.InstancedBufferAttribute(puffHeat, 1).setUsage(T.DynamicDrawUsage));
+  const PUFF_F = `${N3} varying float vSeed,vHeat; varying vec3 vN,vV,vP; void main(){ vec3 N=normalize(vN),V=normalize(vV); float ndv=clamp(dot(N,V),0.,1.); if(vHeat<.02) discard; float n=n3(vP*3.+vSeed*5.); vec3 c=mix(vec3(1.,.55,.35),vec3(1.,.97,.93),smoothstep(.1,.8,ndv)*(.7+.3*n)); gl_FragColor=vec4(c*(.46+.32*vHeat),clamp(vHeat*.52,0.,.72)); }`;
+  const puffs = new T.InstancedMesh(puffG, mat({ vertexShader: DOME_V, fragmentShader: PUFF_F, transparent:true, depthWrite:false }), PF); puffs.instanceMatrix.setUsage(T.DynamicDrawUsage); puffs.frustumCulled = false; puffs.visible = false; scene.add(puffs); /* anel branco de choque "fofo" que abraça a base do domo */
   const shellU = { uTheta: { value: 0 }, uA: { value: 0 }, uW: { value: .03 }, uImp: { value: new T.Vector3(0, 0, 1) } }, shell = new T.Mesh(sphereG, mat({ vertexShader: BODY_V, fragmentShader: SHELL_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: shellU })); shell.visible = false; scene.add(shell);
   const CAP_F = `${N3} uniform float uA,uK,time; varying vec3 vN,vW,vO; void main(){ vec3 V=normalize(cameraPosition-vW), N=normalize(vN); float ndv=clamp(dot(N,V),0.,1.); float y=vO.y; if(y<-.02) discard;
    float n=f3(vO*3.+vec3(0.,-time*.6,0.)), n2=f3(vO*8.+time*.3); float h=pow(ndv,.7)*(.75+.35*n)*(1.-.25*uK);
-   vec3 c=mix(vec3(.75,.08,.03),vec3(1.,.42,.05),smoothstep(.15,.5,h)); c=mix(c,vec3(1.,.8,.25),smoothstep(.45,.75,h)); c=mix(c,vec3(1.,.98,.86),smoothstep(.75,1.,h)); c+=vec3(1.,.25,.08)*pow(1.-ndv,2.)*.8;
-   c=mix(c,c*.7,smoothstep(.06,0.,abs(n2-.5))*.6); /* fibras escuras */ float a=uA*(.55+.45*pow(ndv,.5))*smoothstep(-.02,.08,y); gl_FragColor=vec4(c*a,1.); }`;
-  const capU = { uA: { value: 0 }, uK: { value: 0 } }, cap = new T.Mesh(sphereG, mat({ vertexShader: BODY_V, fragmentShader: CAP_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: capU })); cap.visible = false; cap.frustumCulled = false; scene.add(cap);
+   vec3 c=mix(vec3(.42,.035,.015),vec3(1.,.36,.045),smoothstep(.15,.5,h)); c=mix(c,vec3(1.,.8,.25),smoothstep(.45,.75,h)); c=mix(c,vec3(1.,.91,.6),smoothstep(.75,1.,h)); c+=vec3(1.,.25,.08)*pow(1.-ndv,2.)*.8;
+   c=mix(c,c*.7,smoothstep(.06,0.,abs(n2-.5))*.6); /* fibras escuras */ float a=uA*(.55+.45*pow(ndv,.5))*smoothstep(-.02,.08,y); gl_FragColor=vec4(c,clamp(a,0.,.94)); }`;
+  const capU = { uA: { value: 0 }, uK: { value: 0 } }, cap = new T.Mesh(sphereG, mat({ vertexShader: BODY_V, fragmentShader: CAP_F, transparent: true, depthWrite: false, blending: T.NormalBlending, uniforms: capU })); cap.visible = false; cap.frustumCulled = false; scene.add(cap);
   const flashU = { uC: { value: new T.Vector3() }, uS: { value: 1 }, uA: { value: 0 }, uCol: { value: new T.Color(1, .9, .7) } }, flash = new T.Mesh(quad, mat({ vertexShader: GLOWB_V, fragmentShader: CORONA_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: flashU })); flash.frustumCulled = false; flash.visible = false; scene.add(flash);
   const E1 = new T.Vector3(), E2 = new T.Vector3(), M4 = new T.Matrix4(), Q = new T.Quaternion(), V1 = new T.Vector3(), V2 = new T.Vector3(), V3 = new T.Vector3(), UP = new T.Vector3(0, 1, 0), mouth = new T.Vector3(), look = new T.Vector3();
   for (let i = 0; i < DL; i++) { M4.makeScale(0, 0, 0); dome.setMatrixAt(i, M4); } for (let i = 0; i < PF; i++) puffs.setMatrixAt(i, M4);
@@ -232,7 +232,7 @@ export function createLunarCosmos(T, opts = {}) {
        if(headBone&&t>=T2.moon&&t<T2.mouth)headBone.rotation.x-=.22*sm((t-T2.moon)/.75);
        if (monMat) monMat.uniforms.time.value = time;
        if (facial) facial.update(time,t>=T2.mouth?Math.min(1,(t-T2.mouth)/3):0);
-       haunt.visible=t>=T2.moon&&t<T2.launch;hauntU.uA.value=haunt.visible?.33+.10*Math.sin(time*1.8):0;
+       haunt.visible=t>=T2.moon&&t<T2.launch;hauntU.uA.value=haunt.visible?.38+.08*Math.sin(time*1.8):0;
        if (haunt.visible) {hauntU.uC.value.copy(M(0,4.7,0));hauntU.uS.value=62+5*Math.sin(time*1.3);}
       moon.visible = monster.visible = shadow.visible = t >= T2.moon && t < T2.impact; bh.visible = false; lens.visible = false; trail.visible = false; dome.visible = puffs.visible = shell.visible = flash.visible = cap.visible = false; skyU.uTint.value.x = 1;
       // ---- Plano 2: o cosmos (Sol e planetas) ----
@@ -250,11 +250,11 @@ export function createLunarCosmos(T, opts = {}) {
         const tm = t - T2.moon;
         if (t < T2.mouth) { /* revelação: câmera rasante que sobe da cratera e circula até o 3/4 frontal */ const k = clamp01(tm / (T2.mouth - T2.moon)), e = sm(k); playClip('lunar_idle');
           const fwd = monster.rotation.y;
-          if (k < .45) { /* rasante atrás da crista, olhando para a Terra: a silhueta se ergue contra o céu */ const kk = sm(k / .45); const ang = Math.PI - .42 + .18 * kk, rad = lerp(74, 62, kk) * pf; camera.position.set(Math.sin(fwd + ang) * rad, 2.2 + craterH(Math.sin(fwd + ang) * rad, Math.cos(fwd + ang) * rad) + 1.5 * kk, Math.cos(fwd + ang) * rad); look.copy(M(0, 4.7, .4)); }
-          else { const kk = sm((k - .45) / .55), ang = lerp(-.95, -.35, kk), rad = lerp(58, 45, kk) * pf; camera.position.set(Math.sin(fwd + ang) * rad, lerp(4, 9, kk) + craterH(0, 0), Math.cos(fwd + ang) * rad); look.copy(M(0, 4.45, 1.8)); }
-          camera.lookAt(look); camera.fov = lerp(48, 43, e) * (portrait ? 1.3 : 1); camera.updateProjectionMatrix(); if (monMat) monMat.uniforms.uReveal.value = lerp(-2, 40, sm(k / .55)); }
+          if (k < .45) { /* rasante atrás da crista, olhando para a Terra: a silhueta se ergue contra o céu */ const kk = sm(k / .45); const ang = Math.PI - .42 + .18 * kk, rad = lerp(68, 53, kk) * pf; camera.position.set(Math.sin(fwd + ang) * rad, 2.2 + craterH(Math.sin(fwd + ang) * rad, Math.cos(fwd + ang) * rad) + 1.5 * kk, Math.cos(fwd + ang) * rad); look.copy(M(0, 4.7, .4)); }
+          else { const kk = sm((k - .45) / .55), ang = lerp(-.83, -.08, kk), rad = lerp(52, 45, kk) * pf; camera.position.set(Math.sin(fwd + ang) * rad, lerp(3.2, 8.0, kk) + craterH(0, 0), Math.cos(fwd + ang) * rad); look.copy(M(0, 4.65, 2.45)); }
+          camera.lookAt(look); camera.fov = lerp(51, 50, e) * (portrait ? 1.3 : 1); camera.updateProjectionMatrix(); if (monMat) monMat.uniforms.uReveal.value = lerp(-2, 40, sm(k / .55)); }
         else if (t < T2.launch) { /* boca abre; núcleo negro nasce e cresce */ const k = clamp01((t - T2.mouth) / (T2.launch - T2.mouth)); if (monMat) monMat.uniforms.uReveal.value = 99; playClip('jaw_charge', .4, true); if (monMat) monMat.uniforms.uGlow.value = .6 * k;
-          const fwd = monster.rotation.y, ang = lerp(-.35, -.9, sm(k)), rad = lerp(23, 27, sm(k)) * pf; const m = mouthWorld(); camera.position.set(m.x + Math.sin(fwd + ang) * rad, m.y + lerp(3, 6, k), m.z + Math.cos(fwd + ang) * rad); look.copy(m).lerp(M(0, 7, 2), .3).lerp(EARTH, .06 * k); camera.lookAt(look); /* a câmera sai da frente para o 3/4: boca, chifres e a Terra ao fundo */ camera.fov = (46 - 4 * k) * (portrait ? 1.3 : 1); camera.updateProjectionMatrix();
+          const fwd = monster.rotation.y, ang = lerp(-.35, -.9, sm(k)), rad = lerp(22, 26, sm(k)) * pf; const m = mouthWorld(); camera.position.set(m.x + Math.sin(fwd + ang) * rad, m.y + lerp(3, 6, k), m.z + Math.cos(fwd + ang) * rad); look.copy(m).lerp(M(0, 7, 2), .3).lerp(EARTH, .06 * k); camera.lookAt(look); /* a câmera sai da frente para o 3/4: boca, chifres e a Terra ao fundo */ camera.fov = (46 - 4 * k) * (portrait ? 1.3 : 1); camera.updateProjectionMatrix();
           const s = .18 + 2.55 * Math.pow(k, 1.5); /* recuo elegante do monstro; disco de acreção rotaciona à frente da boca */
            placeBH(V1.copy(m).add(V2.set(Math.sin(fwd), 0, Math.cos(fwd)).multiplyScalar(1.5 + s * .9)), s, k); bhPos.copy(bh.position);
            // Enquadrar pelo núcleo e olho, jamais deixar o buraco negro desaparecer fora da lateral da tela.
@@ -285,7 +285,7 @@ export function createLunarCosmos(T, opts = {}) {
     },
     dispose() { facial?.dispose(); for (const x of geos) x.dispose(); for (const m of mats) m.dispose(); }
   };
-  function placeBH(p, s, grow) { bh.visible = true; bh.position.copy(p); core.scale.setScalar(s * (1 + .03 * Math.sin(time * 9))); for (const D of disks) { const rad=s*(1+D.u.uLayer.value*.13);D.d.scale.set(rad,rad*(.35+.09*D.u.uLayer.value),rad);D.d.rotation.z=time*(D.u.uLayer.value%2?-.3:.35); D.u.uA.value = sm(grow * 3); D.u.uHot.value = .65 * grow; }
+  function placeBH(p, s, grow) { bh.visible = true; bh.position.copy(p); core.scale.setScalar(s * (1 + .03 * Math.sin(time * 9))); for (const D of disks) { const rad=s*(1+D.u.uLayer.value*.13);D.d.scale.setScalar(rad);D.d.rotation.z=time*(D.u.uLayer.value%2?-.3:.35); D.u.uA.value = sm(grow * 3); D.u.uHot.value = .65 * grow; }
     lens.visible = true; lensU.uC.value.copy(p); lensU.uS.value = s * 3.1; lensU.uA.value = sm(grow * 2.5); bh.lookAt(camera.position); bh.rotateX(-.28); }
   function setTrail(a, b, w, ph) { const arr = []; for (let j = 0; j < TN; j++) { const k = j / (TN - 1); arr.push(new T.Vector3().lerpVectors(b, a, k).add(V3.set(Math.sin(k * 9 + ph) * 25, Math.cos(k * 7 + ph) * 18, 0))); } setTrailPts(arr, w); }
   function setTrailPts(arr, w) { const P = trailG.attributes.position.array, n = arr.length; for (let j = 0; j < TN; j++) { const a = arr[Math.min(n - 1, j)], b = arr[Math.min(n - 1, j + 1)] || a; V1.subVectors(a, b); if (V1.lengthSq() < 1e-8) V1.set(1, 0, 0); V2.subVectors(camera.position, a); const X = V3.crossVectors(V1, V2).normalize(), ww = w * (1 - j / TN) * (j >= n ? 0 : 1);
@@ -297,7 +297,7 @@ export function createLunarCosmos(T, opts = {}) {
     dome.instanceMatrix.needsUpdate = true; ico.attributes.aHeat.needsUpdate = true;
     puffs.visible = true; const th = (Dr * 1.32) / R; for (let i = 0; i < PF; i++) { const a = i / PF * 6.2832 + .2 * R3(i), q = new T.Vector3().copy(nrm).applyAxisAngle(V1.crossVectors(nrm, UP).normalize(), th).applyAxisAngle(nrm, a); const p = V3.copy(EARTH).addScaledVector(q, R + Dr * .06);
       M4.compose(p, Q.identity(), V2.setScalar(Dr * (.07 + .05 * R3(i + 9)) * g1)); puffs.setMatrixAt(i, M4); puffHeat[i] = fade * (.8 + .3 * R3(i)); } puffs.instanceMatrix.needsUpdate = true; puffG.attributes.aHeat.needsUpdate = true;
-    cap.visible = true; cap.position.copy(impactP); cap.quaternion.setFromUnitVectors(UP, nrm); cap.scale.set(Dr * 1.28, Dr * .72 * (.4 + .6 * g1), Dr * 1.28); capU.uA.value = fade * 1.05; capU.uK.value = g2;
+    cap.visible = true; cap.position.copy(impactP); cap.quaternion.setFromUnitVectors(UP, nrm); cap.scale.set(Dr * 1.28, Dr * .72 * (.4 + .6 * g1), Dr * 1.28); capU.uA.value = fade * .88; capU.uK.value = g2;
     shell.visible = true; shell.position.copy(EARTH); shell.scale.setScalar(R * 1.004); shellU.uImp.value.copy(nrm); shellU.uTheta.value = (Dr * 1.5 + R * .5 * sm(age / 3.2)) / R; shellU.uA.value = (1 - sm((age - 1.8) / 1.6)) * 1.1; shellU.uW.value = .035 + .05 * sm(age / 3);
     flash.visible = age < 1.4; flashU.uC.value.copy(impactP).addScaledVector(nrm, Dr * .4); flashU.uS.value = Dr * (1.2 + 2.2 * sm(age / .35)); flashU.uA.value = (age < .2 ? 1.5 : 1.35 * (1 - sm((age - .2) / 1.25)));
     if (age < .05) for (let q = 0; q < (low ? 80 : 180); q++) { const a = R3(q * 1.3) * 6.283, el = R3(q * 2.7); const dir = V1.copy(nrm).multiplyScalar(.4 + el).addScaledVector(t1, Math.cos(a)).addScaledVector(t2, Math.sin(a)).normalize(); emit(impactP.x, impactP.y, impactP.z, dir.x * 30, dir.y * 30, dir.z * 30, 1, .6 + .3 * R3(q), .25, 2 + R3(q)); } }
