@@ -7,7 +7,7 @@
  * choque que corre pela esfera. Tudo criado uma vez (pool); a câmera é guiada pelo relógio de veraxion-lunar-ultimate3d.js.
  */
 import { enhanceLunarMonster } from './veraxion-lunar-facial3d.js';
-export const LUNAR_COSMOS_BUILD = '292-dark-horror-face';
+export const LUNAR_COSMOS_BUILD = '293-anatomical-model';
 const clamp01 = x => Math.max(0, Math.min(1, x)), sm = x => { x = clamp01(x); return x * x * (3 - 2 * x); }, lerp = (a, b, k) => a + (b - a) * k;
 const R3 = i => { const s = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return s - Math.floor(s); };
 const NOISE = `float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
