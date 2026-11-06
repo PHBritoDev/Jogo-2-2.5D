@@ -1,0 +1,58 @@
+name: Agentes V5 — performance e regressao
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/visual-lab/dev-agent-v5*"
+      - "tools/visual-lab/package.json"
+      - "docs/agent-memory/**"
+      - ".github/workflows/agent-v5.yml"
+      - "*.js"
+      - "*.html"
+      - "*.glb"
+permissions:
+  contents: read
+concurrency:
+  group: agente-v5-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  performance-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      CI: "true"
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar ferramentas do laboratorio
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Testar logica dos quatro agentes
+        run: node --test tools/visual-lab/dev-agent-v5.test.cjs
+      - name: Iniciar jogo 3D do commit
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/agente-v5-http.log 2>&1 &
+          for i in $(seq 1 35); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/agente-v5-http.log
+          exit 1
+      - name: Agentes V5 — jogar, medir FPS simulado, registrar regressao e plano
+        run: node tools/visual-lab/dev-agent-v5-run.cjs
+      - name: Salvar relatorios e capturas mesmo quando falhar
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentes-v5-${{ github.run_number }}
+          path: visual-lab-results/agentes-v5/
+          retention-days: 14
+          if-no-files-found: warn

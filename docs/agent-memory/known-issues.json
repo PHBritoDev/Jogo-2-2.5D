@@ -1,0 +1,25 @@
+[
+  {
+    "id": "4eb873d03917bd73",
+    "project": "7-pecados-capitais",
+    "source": "Revisao visual anterior",
+    "issue": "Modelagem do Devorador Lunar ficou abaixo da referencia; usuario prefere criar modelo no Meshy mais tarde",
+    "solution": "Congelar DevoradorLunar.glb e detalhes do monstro; trabalhar apenas em VFX externos, agentes e testes ate nova ordem",
+    "status": "protected",
+    "evidence": [
+      "PR #392",
+      "PR #393"
+    ]
+  },
+  {
+    "id": "2fb82766f7e095cc",
+    "project": "7-pecados-capitais",
+    "source": "GitHub Actions QA",
+    "issue": "QA acelerado perdia quadros finais do retorno cinematografico",
+    "solution": "Nao acelerar as fases com transicoes breves; registrar limite de frames e evitar esperas sem fim",
+    "status": "documented",
+    "evidence": [
+      "PR #393"
+    ]
+  }
+]
