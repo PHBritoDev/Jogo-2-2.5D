@@ -4,6 +4,7 @@
  * Não finge medir semelhança artística com referência que não foi entregue ao runner.
  */
 const {chromium}=require("playwright"),sharp=require("sharp"),fs=require("node:fs"),path=require("node:path");
+const cinematicDirector=require("./cinematic-director.cjs");
 const base=(process.env.VISUAL_BASE_URL||"http://127.0.0.1:4173").replace(/\/$/,"");
 const out=path.resolve(process.env.VISUAL_OUTPUT||"visual-lab-results","devorador-mod289");
 fs.mkdirSync(out,{recursive:true});
@@ -86,6 +87,14 @@ async function main(){
      if(delta.changeFraction<.025)data.qualityFlags.push(label+": transição visual quase estática — revisar VFX");
    }
    data.qualityFlags.push("Fidelidade artística 80% depende de comparação humana com referências; não avaliada pelo bot");
+   // Diretor cinematografico reutilizavel: mede exposicao, movimento e comparacoes com baseline.
+   const baselineRoot=process.env.CINEMA_BASELINE_DIR||null;
+   const referenceRoot=process.env.CINEMA_REFERENCE_DIR||null;
+   data.director=await cinematicDirector.evaluate({folder,frameNames:frames.map(([name])=>name),
+     baselineFolder:baselineRoot?path.join(baselineRoot,mode):null,
+     referenceFolder:referenceRoot?path.join(referenceRoot,mode):null});
+   fs.writeFileSync(path.join(folder,"diretor-cinematografico.json"),JSON.stringify(data.director,null,2)+"\n");
+   data.qualityFlags.push(...data.director.findings.map(f=>f.code+": "+f.message));
    if(data.pageErrors.length)throw Error("JS: "+data.pageErrors.slice(0,4).join("; "));
    if(data.consoleErrors.some(x=>/shader|WebGLProgram|CompileError|ERROR: 0:|Failed to compile/i.test(x)))
      throw Error("Shader: "+data.consoleErrors.slice(0,4).join("; "));
@@ -97,7 +106,7 @@ async function main(){
  }
  report.approved=Object.values(report.modes).every(x=>x.approved===true);
  fs.writeFileSync(path.join(out,"relatorio.json"),JSON.stringify(report,null,2)+"\n");
- console.log("[MOD 294] "+JSON.stringify({approved:report.approved,modes:Object.fromEntries(Object.entries(report.modes).map(([k,v])=>[k,{approved:v.approved,frames:v.frames.length,transitions:v.visualTransitions,qualityFlags:v.qualityFlags,error:v.error?.slice(0,280)}]))}));
+ console.log("[MOD 294] "+JSON.stringify({approved:report.approved,modes:Object.fromEntries(Object.entries(report.modes).map(([k,v])=>[k,{approved:v.approved,frames:v.frames.length,transitions:v.visualTransitions,qualityFlags:v.qualityFlags,director:v.director?{findings:v.director.findings.length,artistic:v.director.artisticSimilarity.status}:null,error:v.error?.slice(0,280)}]))}));
  if(!report.approved)process.exitCode=1;
  }finally{await browser.close().catch(()=>{});}
 }
