@@ -17,6 +17,15 @@ function perfSummary(samples,opts={}){
    conditions:{softwareRenderer:!!opts.softwareRenderer,simulatedMobile:!!opts.simulatedMobile,
      caution:"Chromium/SwiftShader nao representa FPS real de Android; GPU e memoria do aparelho exigem teste em dispositivo."}};
 }
+function absolutePerfFlags(summary){
+ const issues=[];
+ if(!summary||!summary.count)return issues;
+ if(summary.frameP95>100)issues.push({code:"FRAME_STALL_SPIKES",severity:"review",
+   frameP95:summary.frameP95,message:"Picos de tempo de quadro no navegador de teste; nao inferir FPS do Android."});
+ if(summary.drawCallsMedian>300)issues.push({code:"HIGH_DRAW_CALL_COUNT",severity:"review",
+   drawCalls:summary.drawCallsMedian,message:"Investigar materiais e instancias quando o cenario estiver comparavel."});
+ return issues;
+}
 function comparePerf(current,baseline,{maxRegressionPct=20}={}){
  const issues=[];if(!baseline||!current)return {status:"no-baseline",issues};
  if(current.frameP95&&baseline.frameP95&&current.frameP95>baseline.frameP95*(1+maxRegressionPct/100))
@@ -79,4 +88,4 @@ function writeJsonAtomic(p,obj){
  const tmp=p+".tmp-"+process.pid;fs.writeFileSync(tmp,JSON.stringify(obj,null,2)+"\n");
  fs.renameSync(tmp,p);
 }
-module.exports={median,pct,perfSummary,comparePerf,scanSource,regressionChecks,planFixes,memoryRecord,mergeMemory,writeJsonAtomic};
+module.exports={median,pct,perfSummary,absolutePerfFlags,comparePerf,scanSource,regressionChecks,planFixes,memoryRecord,mergeMemory,writeJsonAtomic};
