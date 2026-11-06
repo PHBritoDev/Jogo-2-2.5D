@@ -1,5 +1,7 @@
 # PROMPT MESTRE — A BATALHA CONTRA OS 7 PECADOS CAPITAIS
 
+> **ESTADO TÉCNICO ATUAL (06/11/2026):** a seção 3 e partes da seção 9 abaixo **são históricas e estão desatualizadas**. O antigo mundo 2D foi removido na Mod 202; o RPG publicado é 3D. Para trabalhar, use primeiro [GUIA-PARA-IAS.md](docs/GUIA-PARA-IAS.md), [AGENTS.md](AGENTS.md) e [ARQUITETURA.md](ARQUITETURA.md), confirmando tudo no código da branch atual. Este documento preserva a direção criativa e registros do passado, não autoriza refazer a migração 2D.
+
 > Documento de continuidade para qualquer IA, programador ou colaborador que trabalhar neste projeto. Leia antes de propor ou alterar código.
 
 
