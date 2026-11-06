@@ -88,7 +88,8 @@ async function main(){
  }
  const comparisons=modes.map(m=>{
   const old=baseline?.modes?.find(x=>x.mode===m.mode);
-  return {mode:m.mode,...A.comparePerf(m.summary,old?.summary)};
+  const relative=A.comparePerf(m.summary,old?.summary);
+  return {mode:m.mode,...relative,issues:[...relative.issues,...A.absolutePerfFlags(m.summary)]};
  });
  out("comparativo",comparisons);
  const proposals=A.planFixes({perf:{issues:comparisons.flatMap(x=>x.issues)},regression,errors:issues});
