@@ -57,6 +57,12 @@ node --input-type=module --check < mundo-3d-prototype.js
 
 Testes Playwright em nuvem: [GitHub Actions](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/workflows/laboratorio-visual.yml). Em caso de falha, baixe o artifact e leia `rodadas/rodadas.json`, `rodada-N/executor.log`, `agente/agente-relatorio.json`, PNGs e vídeo. Nunca classifique uma habilidade como validada apenas porque `kitMove()` retornou um nome: exija fase observada no runtime.
 
+## Prompts antigos: política de descarte
+
+Os briefings isolados das Mods antigas (por exemplo, tarefas antigas destinadas a Claude/Codex, instruções já executadas de Skill 1 e manifestos de uma branch VFX antiga) foram removidos da árvore ativa. Suas versões continuam recuperáveis no histórico de commits do GitHub. **Não os trate como tarefas pendentes nem como fonte de verdade.** Use o guia e os testes atuais. Se precisar do histórico de uma implementação, procure `docs/auditorias/`, `docs/MOD-*.md` e `git log -- <caminho>`.
+
+Ao criar um novo briefing temporário para uma IA: indique branch, objetivo, arquivos, critérios de aceite e prazo de descarte; depois remova-o após integração, preservando somente documentação técnica útil. Não acumule prompts finalizados na raiz.
+
 ## Segurança para a próxima expansão
 
 - Não mudar sistemas estáveis sem regressão: jogo publicado precisa continuar funcionando.
