@@ -3,7 +3,7 @@
  * Prende os volumes aos ossos do GLB original: não precisa de novos downloads binários.
  * Sem luzes adicionais, geometrias compartilhadas, nenhuma alocação por quadro.
  */
-export const LUNAR_FACE_BUILD = '290-expression-reconstruction';
+export const LUNAR_FACE_BUILD = '291-engraved-crescent-anatomy';
 export function enhanceLunarMonster(T, root, { low = false } = {}) {
   const head = root.getObjectByName('head'), jaw = root.getObjectByName('jaw');
   if (!head || !jaw) return { update(){}, dispose(){} };
@@ -26,41 +26,92 @@ export function enhanceLunarMonster(T, root, { low = false } = {}) {
     const mesh = new T.Mesh(g(new T.TubeGeometry(path, seg, radius, 5, false)), mat);
     parent.add(mesh); parts.push(mesh); return mesh;
   };
+  // Chifres de obsidiana com nervuras esculpidas: silhueta ampla em meia-lua e borda lilás.
+  // A malha antiga dos chifres é ocultada no shader do GLB; estes novos chifres acompanham os ossos animados.
+  const hornV = `varying vec3 vN,vW;varying vec2 vUv;
+    void main(){vUv=uv;vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;
+    vN=normalize(mat3(modelMatrix)*normal);gl_Position=projectionMatrix*viewMatrix*w;}`;
+  const hornF = `varying vec3 vN,vW;varying vec2 vUv;
+    void main(){vec3 N=normalize(vN),V=normalize(cameraPosition-vW);
+    float rim=pow(1.-clamp(dot(N,V),0.,1.),2.15);
+    float fine=sin(vUv.y*220.+sin(vUv.x*23.+vUv.y*35.)*.9)*.5+.5;
+    float ribs=smoothstep(.74,.98,fine);
+    float key=clamp(dot(N,normalize(vec3(.35,.84,.47)))*.5+.5,0.,1.);
+    float hatch=smoothstep(.79,.97,sin(vUv.x*92.+vUv.y*170.)*.5+.5);
+    vec3 c=vec3(.024,.008,.047)+vec3(.11,.052,.23)*key+
+      vec3(.48,.27,.72)*(ribs*(.16+.32*key)+hatch*.07);
+    c+=vec3(.97,.61,1.)*rim*(.65+.18*ribs);
+    gl_FragColor=vec4(c,1.);}`;
+  const hornMat = new T.ShaderMaterial({vertexShader:hornV,fragmentShader:hornF,side:T.DoubleSide,toneMapped:false});
+  materials.push(hornMat);
+  for(const side of [-1,1]){
+    const bone=root.getObjectByName(side>0?'hornL':'hornR');
+    if(!bone)continue;
+    const base=[side*.45,3.25,3.05];
+    const way=[
+      [side*.42,3.30,3.0],[side*1.52,3.08,3.27],[side*2.94,3.42,3.17],
+      [side*3.66,5.03,2.78],[side*3.52,6.7,2.46],[side*2.73,8.10,2.2],
+      [side*1.41,9.04,2.06],[side*.35,9.37,1.98]
+    ].map(p=>new T.Vector3(p[0]-base[0],p[1]-base[1],p[2]-base[2]));
+    const route=new T.CatmullRomCurve3(way),v=[],uv=[],indices=[],n=88,r=16;
+    const UP=new T.Vector3(0,0,1),N=new T.Vector3(),B=new T.Vector3();
+    for(let j=0;j<=n;j++){
+      const t=j/n,center=route.getPoint(t),tangent=route.getTangent(t).normalize();
+      N.crossVectors(tangent,UP).normalize();
+      if(N.lengthSq()<.1)N.set(1,0,0);
+      B.crossVectors(tangent,N).normalize();
+      const radius=(.56*Math.pow(1-t,.83)+.007)*(1+.027*Math.sin(t*199));
+      for(let k=0;k<=r;k++){
+        const a=k/r*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a),
+          swell=1+.025*Math.sin(a*7+t*87);
+        const pos=center.clone().addScaledVector(N,Math.cos(a)*radius*swell)
+          .addScaledVector(B,Math.sin(a)*radius*.95*swell);
+        v.push(pos.x,pos.y,pos.z);uv.push(k/r,t);
+        if(j<n&&k<r){const q=j*(r+1)+k;indices.push(q,q+r+1,q+1,q+1,q+r+1,q+r+2);}
+      }
+    }
+    const geometry=g(new T.BufferGeometry());
+    geometry.setAttribute('position',new T.Float32BufferAttribute(v,3));
+    geometry.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
+    geometry.setIndex(indices);geometry.computeVertexNormals();
+    const horn=new T.Mesh(geometry,hornMat);
+    horn.frustumCulled=false;bone.add(horn);parts.push(horn);
+  }
   // Olhos grandes, afundados e levemente puxados para trás, com íris e pupila legíveis mesmo em perfil.
   const eyes = [];
   for (const s of [-1, 1]) {
-    const base = ellipse(head, eyeSocket, [s*.64, .26, .91], [.45,.29,.37], low ? 12 : 20);
+    const base = ellipse(head, eyeSocket, [s*.66, .25, 1.03], [.29,.19,.24], low ? 12 : 20);
     base.rotation.z = -s*.2;
-    ellipse(head, eyeRim, [s*.70, .26, 1.08], [.265,.174,.072], low ? 10 : 16);
-    const e = ellipse(head, iris, [s*.70, .26, 1.14], [.20,.148,.046], low ? 10 : 16);
-    ellipse(head, eyeCore, [s*.70, .267, 1.18], [.068,.12,.028], 12);
-    ellipse(head, ivory, [s*.752, .31, 1.212], [.032,.027,.018], 10);
+    ellipse(head, eyeRim, [s*.68, .25, 1.295], [.21,.14,.035], low ? 10 : 16);
+    const e = ellipse(head, iris, [s*.68, .25, 1.36], [.15,.106,.027], low ? 10 : 16);
+    ellipse(head, eyeCore, [s*.68, .252, 1.398], [.042,.084,.018], 12);
+    ellipse(head, ivory, [s*.725, .30, 1.425], [.025,.022,.013], 10);
     curve(head, [[s*.35,.19,.65],[s*.59,.25,.75],[s*.89,.17,.71],[s*1.0,.07,.57]], .082, dark, 14);
     curve(head, [[s*.42,-.12,.71],[s*.68,-.19,.77],[s*.91,-.1,.63]], .036, lip, 12);
     eyes.push(e);
   }
   // Grin ameaçador: fenda larga com cantos altos, gengivas curvas e dentes cônicos irregulares.
-  ellipse(head, pit, [0,-1.07,1.62], [1.26,.42,.29], low ? 18 : 28);
+  ellipse(head, pit, [0,-1.08,1.66], [1.02,.33,.22], low ? 18 : 28);
   const top = [], bottom = [];
   for (let i=0;i<=14;i++) {
-    const x = (i/14*2-1)*1.19, arc = Math.pow(Math.abs(x)/1.19,1.65);
-    top.push([x, -.86+.22*arc, 1.79-.14*arc]);
-    bottom.push([x, -1.39+.19*arc, 1.78-.14*arc]);
+    const x = (i/14*2-1)*.98, arc = Math.pow(Math.abs(x)/.98,1.65);
+    top.push([x, -.86+.18*arc, 1.90-.10*arc]);
+    bottom.push([x, -1.36+.15*arc, 1.89-.10*arc]);
   }
   curve(head, top, .058, lip, 32); curve(head, bottom, .045, bone, 32);
   const fangs = [];
-  for (let i=0;i<13;i++) {
-    const x = (i/12*2-1)*1.02, edge=Math.pow(Math.abs(x),1.7);
-    const len=(i%4===2?.47:.23)+(i%3)*.038;
-    const tooth = new T.Mesh(g(new T.ConeGeometry(.07+(i%4)*.007,len,5,1)), ivory);
-    tooth.position.set(x,-.90+.19*edge-len*.41,1.84-.12*edge); tooth.rotation.z = -.13*x;
+  for (let i=0;i<19;i++) {
+    const x = (i/18*2-1)*.87, edge=Math.pow(Math.abs(x),1.7);
+    const len=(i%5===2?.43:.21)+(i%3)*.032;
+    const tooth = new T.Mesh(g(new T.ConeGeometry(.041+(i%4)*.005,len,5,1)), ivory);
+    tooth.position.set(x,-.91+.14*edge-len*.40,1.958-.09*edge); tooth.rotation.z = -.13*x;
     head.add(tooth); parts.push(tooth); fangs.push(tooth);
   }
-  for(let i=0;i<11;i++){
-    const x=(i/10*2-1)*.94, edge=Math.pow(Math.abs(x),1.6);
-    const len=(i%4===1?.31:.18)+(i%3)*.03;
-    const tooth = new T.Mesh(g(new T.ConeGeometry(.065,len,5,1)), ivory);
-    tooth.position.set(x,-1.27+.14*edge+len*.38,1.66-.09*edge);
+  for(let i=0;i<17;i++){
+    const x=(i/16*2-1)*.79, edge=Math.pow(Math.abs(x),1.6);
+    const len=(i%4===1?.32:.19)+(i%3)*.02;
+    const tooth = new T.Mesh(g(new T.ConeGeometry(.039,len,5,1)), ivory);
+    tooth.position.set(x,-1.33+.12*edge+len*.38,1.938-.08*edge);
     tooth.rotation.z=Math.PI+.1*x; jaw.add(tooth); parts.push(tooth);
   }
   // Dobras nas maçãs do rosto criam um sorriso ameaçador, assimétrico e legível em close.
