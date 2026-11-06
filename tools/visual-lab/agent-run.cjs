@@ -143,13 +143,22 @@ async function stepAction(decision, tick, s){
   }
   if(decision.bossSkill) {
     try{
-      const spell=await page.evaluate(id=>{
+      const action=await page.evaluate(id=>{
         const d=window.SevenSinsDebug3D;
+        const before=d.dimState();
+        // Combos nao podem nascer sobre outro cast ativo. O kitMove antigo
+        // retorna nome mesmo se startHydra recusar por conflito.
+        const busy=!!(before.hydra||before.moonFlames);
+        if(busy)return {accepted:false,reason:"conflito_de_habilidade",active:before.hydra?"hydra":"flames"};
         d.power();
-        return d.kitMove(id);
+        const name=d.kitMove(id);
+        const after=d.dimState();
+        const started=id==="s1"?!!after.hydra:id==="s2"?!!after.moonFlames:!!name;
+        return {accepted:!!name&&started,name,reason:started?"fase_ativa_confirmada":"sem_estado_ativo"};
       },decision.bossSkill);
-      item.buttons.push("Bispo "+decision.bossSkill+" "+String(spell));
-      item.launchedSkill=spell || null;
+      item.buttons.push("Bispo "+decision.bossSkill+" "+String(action.name||action.reason));
+      item.skillConfirmation=action;
+      item.launchedSkill=action.accepted?action.name:null;
     }catch(e){logs.warnings.push("magia chefe: "+e.message);}
   }
   // Movimento nao-determinista: reage aos pixels, ao ataque do bispo e a distancia.
