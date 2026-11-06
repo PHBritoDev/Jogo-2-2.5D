@@ -1,5 +1,5 @@
 "use strict";
-/** Mod 289 — QA REAL em WebGL do filme do Devorador Lunar no mesmo jogo publicado.
+/** Mod 294 — QA REAL em WebGL do filme do Devorador Lunar no mesmo jogo publicado.
  * Capturas + vídeo em landscape e portrait; valida efeitos realmente visíveis.
  * Não finge medir semelhança artística com referência que não foi entregue ao runner.
  */
@@ -23,13 +23,19 @@ async function brightness(file){
  for(let i=0;i<x.length;i+=3){let r=x[i],g=x[i+1],b=x[i+2];if(Math.max(r,g,b)>22)bright++;if(Math.max(r,g,b)-Math.min(r,g,b)>36)color++;if(Math.max(r,g,b)<9)dark++;}
  return {lit:+(bright/(x.length/3)).toFixed(3),chromatic:+(color/(x.length/3)).toFixed(3),black:+(dark/(x.length/3)).toFixed(3)};
 }
+async function pixelDifference(a,b){
+ const x=await sharp(a).resize(160,90).removeAlpha().raw().toBuffer();
+ const y=await sharp(b).resize(160,90).removeAlpha().raw().toBuffer();
+ let sum=0,changed=0;for(let i=0;i<x.length;i+=3){const d=Math.abs(x[i]-y[i])+Math.abs(x[i+1]-y[i+1])+Math.abs(x[i+2]-y[i+2]);sum+=d;if(d>30)changed++;}
+ return {meanDelta:+(sum/x.length).toFixed(2),changeFraction:+(changed/(x.length/3)).toFixed(3)};
+}
 async function main(){
- const report={mod:289,build:process.env.GITHUB_SHA||"local",platform:"Chromium headless SwiftShader",modes:{},approved:false,artisticSimilarity:"NÃO MEDIDA: exige referências carregadas e avaliação visual humana"};
+ const report={mod:294,build:process.env.GITHUB_SHA||"local",platform:"Chromium headless SwiftShader",modes:{},approved:false,artisticSimilarity:"NÃO MEDIDA: nunca confundir QA funcional com 80% de fidelidade artística",scope:"Câmera, buraco negro, impacto planetário e retorno à arena; monstro lunar congelado"};
  const browser=await chromium.launch({headless:true,args:["--no-sandbox","--disable-dev-shm-usage","--enable-webgl","--ignore-gpu-blocklist","--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});
  try{
  for(const [mode,viewport] of Object.entries(sizes)){
   const folder=path.join(out,mode);fs.mkdirSync(folder,{recursive:true});
-  const data=report.modes[mode]={frames:[],pageErrors:[],consoleErrors:[],failedRequests:[],ready:false};
+  const data=report.modes[mode]={frames:[],pageErrors:[],consoleErrors:[],failedRequests:[],ready:false,visualTransitions:{},qualityFlags:[]};
   const ctx=await browser.newContext({viewport,deviceScaleFactor:1,hasTouch:true,isMobile:true,recordVideo:{dir:folder,size:viewport}});
   const page=await ctx.newPage(),vid=page.video();
   page.on("pageerror",e=>data.pageErrors.push(e.message.slice(0,350)));
@@ -55,6 +61,8 @@ async function main(){
     await pause(450);
    }
    if(!started)throw Error("Ultimate não iniciou em luta real do Bispo 4");
+   // Acelera exclusivamente o relógio de QA. Não altera o jogo normal nem pula quadros.
+   await page.evaluate(()=>window.SevenSinsDebug3D.speed(2));
    data.ready=true;
    for(const [name,target] of frames){
     let h=await page.waitForFunction(t=>{
@@ -71,6 +79,13 @@ async function main(){
     if(st.t<26&&metric.lit<.065)throw Error(name+": quadro quase completamente preto ("+metric.lit+")");
     if(st.t<26&&st.calls===0)throw Error(name+": nenhuma geometria renderizada");
    }
+   // Testa se a transição do planeta para a arena realmente altera pixels, não apenas um evento JS.
+   const scene=(name)=>path.join(folder,name+".png");
+   for(const [label,a,b] of [["planet-to-arena","08-cupula-terra","09-explosao-na-dimensao"],["arena-explosion-to-smoke","09-explosao-na-dimensao","10-onda-fumaca"]]){
+     const delta=await pixelDifference(scene(a),scene(b));data.visualTransitions[label]=delta;
+     if(delta.changeFraction<.025)data.qualityFlags.push(label+": transição visual quase estática — revisar VFX");
+   }
+   data.qualityFlags.push("Fidelidade artística 80% depende de comparação humana com referências; não avaliada pelo bot");
    if(data.pageErrors.length)throw Error("JS: "+data.pageErrors.slice(0,4).join("; "));
    if(data.consoleErrors.some(x=>/shader|WebGLProgram|CompileError|ERROR: 0:|Failed to compile/i.test(x)))
      throw Error("Shader: "+data.consoleErrors.slice(0,4).join("; "));
@@ -82,7 +97,7 @@ async function main(){
  }
  report.approved=Object.values(report.modes).every(x=>x.approved===true);
  fs.writeFileSync(path.join(out,"relatorio.json"),JSON.stringify(report,null,2)+"\n");
- console.log("[MOD 289] "+JSON.stringify({approved:report.approved,modes:Object.fromEntries(Object.entries(report.modes).map(([k,v])=>[k,{approved:v.approved,frames:v.frames.length,error:v.error?.slice(0,280)}]))}));
+ console.log("[MOD 294] "+JSON.stringify({approved:report.approved,modes:Object.fromEntries(Object.entries(report.modes).map(([k,v])=>[k,{approved:v.approved,frames:v.frames.length,transitions:v.visualTransitions,qualityFlags:v.qualityFlags,error:v.error?.slice(0,280)}]))}));
  if(!report.approved)process.exitCode=1;
  }finally{await browser.close().catch(()=>{});}
 }
