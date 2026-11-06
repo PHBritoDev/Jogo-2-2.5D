@@ -16,6 +16,12 @@ Antes de trabalhar neste repositório, leia **[PROMPT_MESTRE_DO_JOGO.md](PROMPT_
 - Nunca alegue que executou testes que não realizou.
 - Leia também o código atual: as notas do prompt são contexto e o repositório é a fonte de verdade para o estado técnico.
 
+## Ciclo de vida de prompts temporários (06/11/2026)
+- **Prompts de tarefas específicas não são documentação permanente**: devem ser criados somente quando necessários, com escopo e referência ao commit/PR da tarefa.
+- Ao finalizar ou substituir a tarefa, **remova o briefing temporário do branch de integração/`main`**. Preserve no repositório apenas as decisões duradouras, testes, o resultado técnico e, quando necessário, uma nota histórica em `docs/auditorias/`.
+- Nunca execute um briefing de Mod antiga porque ele ainda está no histórico do Git: compare com `AGENTS.md`, `docs/GUIA-PARA-IAS.md`, a Visão Mestra e o código atual. O histórico do Git preserva os textos excluídos sem poluir a raiz ativa.
+- Não apague os arquivos mestres, roteiros, relatórios de auditoria nem testes como se fossem prompts descartáveis.
+
 ## Regra permanente — melhoria proativa dos agentes e ferramentas (pedido do criador em 05/11/2026)
 - O assistente e demais agentes podem identificar, criar e melhorar autonomamente ferramentas, pipelines de QA, diretores cinematográficos, agentes e integrações que beneficiem este jogo **e projetos futuros** (jogos, sites e aplicativos). Não é necessário pedir aprovação prévia para melhorias técnicas gratuitas e reversíveis no repositório.
 - Avisar o criador após realizar qualquer melhoria ou mudança de ferramenta, explicando resumidamente o que mudou, benefício, testes feitos e links/PRs. Não alegar que foi validado visualmente só porque CI passou.
