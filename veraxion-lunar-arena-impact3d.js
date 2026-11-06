@@ -109,10 +109,10 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
     if(!active)return;
     if(age>3.2){clear();return;}const a=Math.max(0,age),burst=ease(a/.35);
     waveU.uT.value=a;waveU.uA.value=(1-ease((a-1.8)/1.25))*.92;
-    dome.scale.set(1+9.8*ease(a/.78),.2+10.7*ease(a/.88),1+9.8*ease(a/.78));
-    plumeU.uT.value=a;plumeU.uA.value=(1-ease((a-1.25)/1.75))*.72;
-    core.scale.set(1+7.5*ease(a/.32),.2+5.7*ease(a/.3),1+7.5*ease(a/.32));
-    core.material.opacity=(1-ease((a-.12)/.72))*.43;
+    dome.scale.set(1+14.5*ease(a/.78),.2+14.8*ease(a/.88),1+14.5*ease(a/.78));
+    plumeU.uT.value=a;plumeU.uA.value=(1-ease((a-1.25)/1.75))*.82;
+    core.scale.set(1+9.2*ease(a/.32),.2+6.4*ease(a/.3),1+9.2*ease(a/.32));
+    core.material.opacity=(1-ease((a-.12)/.72))*.50;
     for(let i=0;i<shockRings.length;i++){
       const s=shockRings[i],delay=i*.115,age2=Math.max(0,a-delay);
       const radius=1+(i===0?34:i===1?24:16)*ease(age2/(.8+i*.24));
@@ -120,7 +120,7 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
       s.material.opacity=a<delay?0:(1-ease((age2-.25)/(1.35+i*.2)))*(.72-i*.13);
       s.rotation.z=a*(i%2?-.35:.26);
     }
-    smokeU.uA.value=.40*(1-ease((a-1.9)/1.35))*ease((a-.18)/.42);smokeU.uT.value=a;
+    smokeU.uA.value=.47*(1-ease((a-1.9)/1.35))*ease((a-.18)/.42);smokeU.uT.value=a;
     for(let i=0;i<SN;i++){
       const ang=hash(i+3)*Math.PI*2, radius=(4+hash(i+9)*21)*ease(a/.9);
       const rise=(.65+hash(i+19)*1.3)*Math.min(a,2.5)*4;
@@ -138,7 +138,7 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
       const size=.28+hash(i+7)*.9;
       m4.compose(v3,q,sz.set(size,size*2.5,size));debris.setMatrixAt(i,m4);
     }debris.instanceMatrix.needsUpdate=true;
-    flashU.uA.value=.85*(1-ease(a/(reduced?.35:.68)));
+    flashU.uA.value=.94*(1-ease(a/(reduced?.35:.68)));
     flashU.uT.value=a;flash.position.set(0,4,0);flash.quaternion.copy(camera.quaternion);
     flash.scale.setScalar(8+20*ease(a/.3));
     if(a>2.8)root.visible=false;
