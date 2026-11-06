@@ -304,3 +304,49 @@ jobs:
           path: visual-lab-results/eclipse-274/
           retention-days: 14
           if-no-files-found: warn
+
+  lunar_289:
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/mod289-devorador-lunar-cinema'
+    name: Mod 289 — auditar Devorador Lunar no jogo 3D
+    runs-on: ubuntu-24.04
+    timeout-minutes: 21
+    env:
+      CI: "true"
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results
+    steps:
+      - name: Baixar código da branch
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar dependências e Chromium
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verificar sintaxe das três camadas alteradas
+        run: |
+          node --check veraxion-lunar-facial3d.js
+          node --check veraxion-lunar-arena-impact3d.js
+          node --check veraxion-lunar-cosmos3d.js
+          node --input-type=module --check < mundo-3d-prototype.js
+      - name: Subir servidor da branch
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/lunar-289-http.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl --silent --fail http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/lunar-289-http.log
+          exit 1
+      - name: Agente QA — filmar lua, buraco, Terra e retorno em mobile
+        run: node tools/visual-lab/veraxion-lunar-qa.cjs
+      - name: Guardar imagens, vídeos e telemetria mesmo se falhar
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bispo4-devorador-lunar-mod289
+          path: visual-lab-results/devorador-mod289/
+          retention-days: 14
+          if-no-files-found: warn
