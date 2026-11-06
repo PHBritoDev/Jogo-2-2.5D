@@ -34,5 +34,5 @@ test('Devorador Lunar — GLB autoral com esqueleto, mandíbula, chifres e os 4 
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("if(uk==='veraxion_lunar_devourer'&&lunarCosmosReady()&&startLunarUlt())") && src.includes('if(lunarUlt&&tickLunarUlt(') && src.includes('stopLunarUlt();stopVeraxionCyclone();'), 'rota própria, filme e limpeza');
   assert.ok(!/startVoidUlt|tickVoidUlt/.test(src), 'Buraco Negro genérico continua excluído');
-  assert.ok(src.includes("'./DevoradorLunar.glb?v=mod288'"), 'o monstro vem do GLB');
+  assert.ok(src.includes("'./DevoradorLunar.glb?v=mod293'"), 'o monstro vem do GLB');
 });
