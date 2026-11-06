@@ -14,6 +14,7 @@ const { chromium } = require("playwright");
 const { analyzePixels, decide } = require("./agent-policy.cjs");
 const { inspectFrame, cameraWinner, summarizeRun } = require("./agent-perception.cjs");
 const { writeReport } = require("./agent-report.cjs");
+const abilityObserver = require("./ability-observer-v8.cjs");
 
 const root = path.resolve(process.env.VISUAL_OUTPUT || "visual-lab-results");
 const dir = path.join(root, "agente");
@@ -142,13 +143,22 @@ async function stepAction(decision, tick, s){
   }
   if(decision.bossSkill) {
     try{
-      const spell=await page.evaluate(id=>{
+      const action=await page.evaluate(id=>{
         const d=window.SevenSinsDebug3D;
+        const before=d.dimState();
+        // Combos nao podem nascer sobre outro cast ativo. O kitMove antigo
+        // retorna nome mesmo se startHydra recusar por conflito.
+        const busy=!!(before.hydra||before.moonFlames);
+        if(busy)return {accepted:false,reason:"conflito_de_habilidade",active:before.hydra?"hydra":"flames"};
         d.power();
-        return d.kitMove(id);
+        const name=d.kitMove(id);
+        const after=d.dimState();
+        const started=id==="s1"?!!after.hydra:id==="s2"?!!after.moonFlames:!!name;
+        return {accepted:!!name&&started,name,reason:started?"fase_ativa_confirmada":"sem_estado_ativo"};
       },decision.bossSkill);
-      item.buttons.push("Bispo "+decision.bossSkill+" "+String(spell));
-      item.launchedSkill=spell || null;
+      item.buttons.push("Bispo "+decision.bossSkill+" "+String(action.name||action.reason));
+      item.skillConfirmation=action;
+      item.launchedSkill=action.accepted?action.name:null;
     }catch(e){logs.warnings.push("magia chefe: "+e.message);}
   }
   // Movimento nao-determinista: reage aos pixels, ao ataque do bispo e a distancia.
@@ -228,6 +238,22 @@ async function execute(){
       d.god();
       d.skills();
       d.speed(3);  // 6x acelerava dano enquanto Playwright fotografava.
+      if(window.__qaAbilityRecorderInterval)clearInterval(window.__qaAbilityRecorderInterval);
+      window.__qaAbilityBuffer=[];
+      const captureAbility=()=>{
+        try{
+          const dim=window.SevenSinsDebug3D?.dimState?.();
+          if(!dim?.battle?.active||dim.profile!=="zarkhael")return;
+          const record={at:performance.now(),hydra:dim.hydra?{phase:dim.hydra.phase}:null,
+            moonFlames:dim.moonFlames?{phase:dim.moonFlames.phase}:null};
+          // Keep short proof of positive phase samples, not a giant screenshot buffer.
+          if(record.hydra||record.moonFlames){
+            if(window.__qaAbilityBuffer.length<300)window.__qaAbilityBuffer.push(record);
+          }
+        }catch(_e){}
+      };
+      captureAbility();
+      window.__qaAbilityRecorderInterval=setInterval(captureAbility,85);
       if(window.__visualQAHealingInterval)clearInterval(window.__visualQAHealingInterval);
       window.__visualQAHeals=0;
       window.__visualQAHealErrors=0;
@@ -249,11 +275,21 @@ async function execute(){
     await screenshot("00-visual-inicial");
 
     const seen={s1:false,s2:false,hydraObserved:false,flameObserved:false,hydraFinished:false};
+    const abilityState=abilityObserver.newState();
+    const drainAbility=async()=>{
+      const samples=await page.evaluate(()=>window.__qaAbilityBuffer?.splice(0)||[]);
+      for(const sample of samples)abilityObserver.ingest(abilityState,sample);
+      const proof=abilityObserver.evidence(abilityState);
+      if(proof.hydraObserved)seen.hydraObserved=true;
+      if(proof.flameObserved)seen.flameObserved=true;
+      return proof;
+    };
     let prevPixels=null, prevPosition=null, lastPhase="",lastCastTick=-99, lastCameraScan=-99;
     let flagsCount=0, activeSamples=0, actionSamples=0, blackoutStreak=0;
     const start=Date.now();
     for(let tick=0;tick<32 && Date.now()-start<120000;tick++){
       const state=await gameState();
+      await drainAbility();
       if(!state?.dim?.battle?.active || state?.dim?.hp<=0){
         logs.flags.push({tick,issue:"batalha_interrompida",state:state?.dim||null});
         break;
@@ -327,6 +363,8 @@ async function execute(){
       if(seen.hydraObserved&&seen.flameObserved&&tick>=22&&!state.dim.moonFlames)break;
       await delay(1700);
     }
+    await drainAbility();
+    logs.abilityEvidence=abilityObserver.evidence(abilityState);
     logs.finalState=await gameState();
     logs.qaHealing=await page.evaluate(()=>({heals:window.__visualQAHeals||0,
       errors:window.__visualQAHealErrors||0,active:!!window.__visualQAHealingInterval}));
@@ -347,6 +385,7 @@ async function execute(){
   }finally{
     if(page && !page.isClosed()){
       try{await page.evaluate(()=>{
+        if(window.__qaAbilityRecorderInterval){clearInterval(window.__qaAbilityRecorderInterval);window.__qaAbilityRecorderInterval=null;}
         if(window.__visualQAHealingInterval){
           clearInterval(window.__visualQAHealingInterval);
           window.__visualQAHealingInterval=null;
