@@ -7,7 +7,7 @@
  * choque que corre pela esfera. Tudo criado uma vez (pool); a câmera é guiada pelo relógio de veraxion-lunar-ultimate3d.js.
  */
 import { enhanceLunarMonster } from './veraxion-lunar-facial3d.js';
-export const LUNAR_COSMOS_BUILD = '291-sculpted-crescent-face';
+export const LUNAR_COSMOS_BUILD = '292-dark-horror-face';
 const clamp01 = x => Math.max(0, Math.min(1, x)), sm = x => { x = clamp01(x); return x * x * (3 - 2 * x); }, lerp = (a, b, k) => a + (b - a) * k;
 const R3 = i => { const s = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return s - Math.floor(s); };
 const NOISE = `float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -251,8 +251,8 @@ export function createLunarCosmos(T, opts = {}) {
         if (t < T2.mouth) { /* revelação: câmera rasante que sobe da cratera e circula até o 3/4 frontal */ const k = clamp01(tm / (T2.mouth - T2.moon)), e = sm(k); playClip('lunar_idle');
           const fwd = monster.rotation.y;
           if (k < .45) { /* rasante atrás da crista, olhando para a Terra: a silhueta se ergue contra o céu */ const kk = sm(k / .45); const ang = Math.PI - .42 + .18 * kk, rad = lerp(68, 53, kk) * pf; camera.position.set(Math.sin(fwd + ang) * rad, 2.2 + craterH(Math.sin(fwd + ang) * rad, Math.cos(fwd + ang) * rad) + 1.5 * kk, Math.cos(fwd + ang) * rad); look.copy(M(0, 4.7, .4)); }
-          else { const kk = sm((k - .45) / .55), ang = lerp(-.83, -.08, kk), rad = lerp(52, 40, kk) * pf; camera.position.set(Math.sin(fwd + ang) * rad, lerp(3.2, 8.0, kk) + craterH(0, 0), Math.cos(fwd + ang) * rad); look.copy(M(0, 4.3, 2.6)); }
-          camera.lookAt(look); camera.fov = lerp(49, 44, e) * (portrait ? 1.3 : 1); camera.updateProjectionMatrix(); if (monMat) monMat.uniforms.uReveal.value = lerp(-2, 40, sm(k / .55)); }
+          else { const kk = sm((k - .45) / .55), ang = lerp(-.83, -.08, kk), rad = lerp(52, 45, kk) * pf; camera.position.set(Math.sin(fwd + ang) * rad, lerp(3.2, 8.0, kk) + craterH(0, 0), Math.cos(fwd + ang) * rad); look.copy(M(0, 4.65, 2.45)); }
+          camera.lookAt(look); camera.fov = lerp(51, 50, e) * (portrait ? 1.3 : 1); camera.updateProjectionMatrix(); if (monMat) monMat.uniforms.uReveal.value = lerp(-2, 40, sm(k / .55)); }
         else if (t < T2.launch) { /* boca abre; núcleo negro nasce e cresce */ const k = clamp01((t - T2.mouth) / (T2.launch - T2.mouth)); if (monMat) monMat.uniforms.uReveal.value = 99; playClip('jaw_charge', .4, true); if (monMat) monMat.uniforms.uGlow.value = .6 * k;
           const fwd = monster.rotation.y, ang = lerp(-.35, -.9, sm(k)), rad = lerp(22, 26, sm(k)) * pf; const m = mouthWorld(); camera.position.set(m.x + Math.sin(fwd + ang) * rad, m.y + lerp(3, 6, k), m.z + Math.cos(fwd + ang) * rad); look.copy(m).lerp(M(0, 7, 2), .3).lerp(EARTH, .06 * k); camera.lookAt(look); /* a câmera sai da frente para o 3/4: boca, chifres e a Terra ao fundo */ camera.fov = (46 - 4 * k) * (portrait ? 1.3 : 1); camera.updateProjectionMatrix();
           const s = .18 + 2.55 * Math.pow(k, 1.5); /* recuo elegante do monstro; disco de acreção rotaciona à frente da boca */
