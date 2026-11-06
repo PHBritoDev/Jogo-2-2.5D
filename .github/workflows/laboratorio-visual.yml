@@ -306,7 +306,7 @@ jobs:
           if-no-files-found: warn
 
   lunar_289:
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/mod289-devorador-lunar-cinema'
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/mod289-devorador-lunar-cinema' || github.head_ref == 'feat/mod294-ultimate-impact-qa-agent')
     name: Mod 289 — auditar Devorador Lunar no jogo 3D
     runs-on: ubuntu-24.04
     timeout-minutes: 21
