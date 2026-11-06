@@ -1,5 +1,7 @@
 # Instruções para agentes de IA e colaboradores
 
+**PORTA DE ENTRADA:** [README.md](README.md) e [GUIA-PARA-IAS.md](docs/GUIA-PARA-IAS.md) mostram os sistemas, os caminhos reais e o fluxo de testes/PR. **Não inicie uma migração 2D**: ela é histórica; o runtime atual é 3D. Antes de editar, confira branch, commit e PRs pendentes. Não mova GLBs ou módulos sem auditoria dos imports e URLs do loader.
+
 Antes de trabalhar neste repositório, leia **[PROMPT_MESTRE_DO_JOGO.md](PROMPT_MESTRE_DO_JOGO.md)**. Ele é a referência principal para a visão do criador, prioridades atuais, limites técnicos e estilo de colaboração.
 
 

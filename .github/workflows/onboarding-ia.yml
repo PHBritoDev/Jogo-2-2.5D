@@ -1,0 +1,26 @@
+name: Documentação e mapa para IAs
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "AGENTS.md"
+      - "PROMPT_MESTRE_DO_JOGO.md"
+      - "docs/GUIA-PARA-IAS.md"
+      - "tools/qa/check-ai-onboarding.mjs"
+      - ".github/workflows/onboarding-ia.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validar-mapa:
+    name: Validar links e arquivos essenciais
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check tools/qa/check-ai-onboarding.mjs
+      - run: node tools/qa/check-ai-onboarding.mjs
