@@ -9,7 +9,7 @@
  * da parte (para o shader de hachuras). Cabeça voltada para +Z; ~10 m de comprimento; pés em y=0.
  * Clipes: lunar_idle (respira), jaw_charge (abre a boca e ergue a cabeça), launch (arremesso), recoil (recuo).
  */
-export const MONSTER_BUILD = '293-anatomical-cosmic-goat';
+export const MONSTER_BUILD = '288-devorador-lunar';
 
 /* ---------- esqueleto (posições de mundo em repouso; rotações de repouso = identidade) ---------- */
 export const BONES = [
@@ -55,19 +55,12 @@ export function buildMonsterData() {
   const M = makeMesh(), B = n => BI[n];
   // tronco: do pescoço (frente, baixo) subindo à corcova e descendo ao quadril
   loft(M, [[0, 3.55, 2.3], [0, 4.4, 1.0], [0, 4.85, -.4], [0, 4.6, -1.8], [0, 3.9, -3.1], [0, 3.35, -4.0]],
-    t => { const hump = Math.sin(Math.min(1, t * 1.2) * Math.PI); return [1.02 + 1.5 * hump - .31 * t, .9 + 1.22 * hump - .27 * t]; },
+    t => { const hump = Math.sin(Math.min(1, t * 1.2) * Math.PI); return [1.0 + 1.35 * hump - .35 * t, .9 + 1.05 * hump - .3 * t]; },
     [[0, B('neck')], [.25, B('chest')], [.55, B('spine')], [1, B('hips')]], 0, { sides: 20, seg: 34, wob: .07, cap: false });
   // pescoço → cabeça: crânio longo que desce para o focinho (voltado para baixo/frente)
-  loft(M, [[0, 3.96, 1.9], [0, 3.63, 2.67], [0, 3.12, 3.3], [0, 2.48, 3.88], [0, 1.73, 4.43], [0, 1.14, 4.75]],
-    t => { const w = 1.16 - .84 * Math.pow(t, 1.28), h = .98 - .68 * Math.pow(t, 1.17);
-      return [w*(1+.035*Math.sin(t*29)), h]; },
-    [[0, B('neck')], [.27, B('head')], [1, B('head')]], 0, { sides: 22, seg: 36, wob: .06 });
-  // A ponte estreita do focinho acentua a face triangular, não um crânio arredondado.
-  loft(M, [[0,3.33,3.28],[0,2.94,3.66],[0,2.35,4.16],[0,1.62,4.54]],
-    t => [.22*(1-t)+.055,.21*(1-t)+.04], [[0,B('head')],[1,B('head')]],0,{sides:10,seg:18,wob:.03});
-  // Maçãs do rosto descem como cristas ósseas e sombreiam a órbita.
-  for(const side of [-1,1])loft(M, [[side*.49,3.34,3.22],[side*.77,3.06,3.55],[side*.74,2.56,4.01],[side*.43,2.08,4.42]],
-    t=>[.31*(1-.63*t),.27*(1-.7*t)],[[0,B('head')],[1,B('head')]],0,{sides:10,seg:16,wob:.05});
+  loft(M, [[0, 3.9, 1.9], [0, 3.55, 2.65], [0, 3.15, 3.2], [0, 2.55, 3.75], [0, 1.95, 4.25], [0, 1.45, 4.55]],
+    t => { const s = t < .25 ? 1.05 - .2 * t : 1.0 * Math.pow(1 - (t - .25) / .75, .62) + .12; return [s * (1.15 - .3 * t), s * .9]; },
+    [[0, B('neck')], [.25, B('head')], [1, B('head')]], 0, { sides: 18, seg: 26, wob: .05 });
   // arcadas das órbitas (sobrancelhas fundas)
   for (const s of [1, -1]) loft(M, [[.2 * s, 3.35, 3.2], [.55 * s, 3.25, 3.35], [.72 * s, 3.0, 3.42]], t => [.17 * (1 - .5 * t), .14 * (1 - .5 * t)], [[0, B('head')], [1, B('head')]], 0, { sides: 8, seg: 6 });
   // mandíbula separada
@@ -84,7 +77,7 @@ export function buildMonsterData() {
     loft(M, [[.42 * s, 3.3, 3.0], [1.5 * s, 3.05, 3.15], [2.85 * s, 3.45, 3.05], [3.35 * s, 5.0, 2.8], [3.3 * s, 6.6, 2.45], [2.55 * s, 7.95, 2.1], [1.35 * s, 8.75, 1.85], [.35 * s, 9.05, 1.75]],
       t => { const r = .5 * Math.pow(1 - t, .8) + .02; return [r, r * (1.05 + .05 * Math.sin(t * 60))]; }, [[0, bone], [1, bone]], .25, { sides: 14, seg: 60, wob: 0 }); }
   // patas: coxa → canela → pé, cotovelos abertos para fora; garras
-  const leg = (s, u, l, f, z, clawDir) => { loft(M, [u, add(mul(add(u, l), .5), [s * .35, .35, 0]), l, f], t => { const r = .98 - .62 * t; return [r * (t < .5 ? 1.22 : .9), r]; }, [[0, B(z + 'U')], [.45, B(z + 'L')], [.9, B(z + 'F')], [1, B(z + 'F')]], 0, { sides: 12, seg: 20, wob: .08 });
+  const leg = (s, u, l, f, z, clawDir) => { loft(M, [u, add(mul(add(u, l), .5), [s * .35, .35, 0]), l, f], t => { const r = .9 - .58 * t; return [r * (t < .5 ? 1.2 : .9), r]; }, [[0, B(z + 'U')], [.45, B(z + 'L')], [.9, B(z + 'F')], [1, B(z + 'F')]], 0, { sides: 12, seg: 20, wob: .08 });
     for (let c = 0; c < 4; c++) { const a = (c - 1.5) * .35; spike(M, add(f, [s * .1 + Math.sin(a) * .2, .05, .1]), add(f, [s * .25 + Math.sin(a) * .65, -.32, .55 * clawDir + Math.cos(a) * .1]), .08, B(z + 'F'), 1, [0, -.15, 0]); } };
   for (const s of [1, -1]) { const L = s > 0 ? 'l' : 'r'; leg(s, [1.2 * s, 3.9, 1.3], [3.0 * s, 2.4, 2.3], [3.6 * s, .35, 3.0], 'f' + L, 1); leg(s, [1.05 * s, 3.4, -3.1], [2.0 * s, 1.7, -3.5], [1.9 * s, .3, -4.4], 'b' + L, -.5); }
   // cauda longa que se enrola
