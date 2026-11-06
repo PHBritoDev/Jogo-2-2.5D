@@ -13,9 +13,9 @@ export function enhanceLunarMonster(T, root, { low = false } = {}) {
     const mat = new T.MeshStandardMaterial({ color, emissive, emissiveIntensity: intensity, metalness: .14, roughness: .82, side: T.DoubleSide });
     materials.push(mat); return mat;
   };
-  const dark = m(0x090414), bone = m(0x8866b2, 0x260d46, .1), ivory = m(0xe7dce8, 0x421b56, .07);
+  const dark = m(0x090414), bone = m(0x8866b2, 0x260d46, .1), ivory = m(0xf0e3f8, 0x8a64b2, .25);
   const lip = m(0x241031, 0x491062, .13), pit = m(0x010004);
-  const eyeSocket = m(0x010004), iris = m(0x7345af, 0x9d68ef, .95);
+  const eyeSocket = m(0x010004), iris = m(0x6f4fbc, 0xac7cfc, 1.25);
   const eyeCore = m(0x05020a), eyeRim = m(0x765698, 0x4e237b, .3);
   const ellipse = (parent, mat, pos, scale, detail = 16) => {
     const o = new T.Mesh(g(new T.SphereGeometry(1, detail, detail >> 1)), mat);
@@ -29,12 +29,12 @@ export function enhanceLunarMonster(T, root, { low = false } = {}) {
   // Olhos grandes, afundados e levemente puxados para trás, com íris e pupila legíveis mesmo em perfil.
   const eyes = [];
   for (const s of [-1, 1]) {
-    const base = ellipse(head, eyeSocket, [s*.67, .04, .62], [.42,.28,.31], low ? 12 : 20);
+    const base = ellipse(head, eyeSocket, [s*.64, .26, .91], [.45,.29,.37], low ? 12 : 20);
     base.rotation.z = -s*.2;
-    ellipse(head, eyeRim, [s*.72, .035, .84], [.26,.17,.063], low ? 10 : 16);
-    const e = ellipse(head, iris, [s*.72, .035, .875], [.185,.136,.043], low ? 10 : 16);
-    ellipse(head, eyeCore, [s*.72, .04, .912], [.065,.116,.026], 12);
-    ellipse(head, ivory, [s*.764, .09, .943], [.036,.033,.018], 10);
+    ellipse(head, eyeRim, [s*.70, .26, 1.08], [.265,.174,.072], low ? 10 : 16);
+    const e = ellipse(head, iris, [s*.70, .26, 1.14], [.20,.148,.046], low ? 10 : 16);
+    ellipse(head, eyeCore, [s*.70, .267, 1.18], [.068,.12,.028], 12);
+    ellipse(head, ivory, [s*.752, .31, 1.212], [.032,.027,.018], 10);
     curve(head, [[s*.35,.19,.65],[s*.59,.25,.75],[s*.89,.17,.71],[s*1.0,.07,.57]], .082, dark, 14);
     curve(head, [[s*.42,-.12,.71],[s*.68,-.19,.77],[s*.91,-.1,.63]], .036, lip, 12);
     eyes.push(e);
@@ -90,7 +90,7 @@ export function enhanceLunarMonster(T, root, { low = false } = {}) {
   return {
     update(t, charge=0) {
       for(let i=0;i<eyes.length;i++)eyes[i].material.emissiveIntensity = 1.1 + charge*.7 + .17*Math.sin(t*2.4+i);
-      eyeRim.emissiveIntensity=.22+charge*.2;
+      eyeRim.emissiveIntensity=.42+charge*.25;
     },
     dispose(){
       for(const x of parts) x.parent?.remove(x);
