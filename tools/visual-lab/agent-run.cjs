@@ -207,6 +207,10 @@ async function execute(){
     await page.goto(logs.url,{waitUntil:"domcontentloaded",timeout:45000});
     await page.waitForFunction(()=>typeof window.SevenSinsDebug3D?.dimState==="function",
       null,{timeout:115000});
+    // Reserva o kit do boss para os comandos verificados deste laboratorio,
+    // antes de iniciar a batalha. A IA natural permanece ativa no jogo normal.
+    await page.evaluate(()=>{window.__qaManualBossSkills=true;});
+    logs.qaManualBossKit=true;
     logs.webgl=await page.evaluate(()=>{
       const canvas=document.getElementById("scene");
       const gl=canvas?.getContext("webgl2")||canvas?.getContext("webgl");
@@ -385,6 +389,7 @@ async function execute(){
   }finally{
     if(page && !page.isClosed()){
       try{await page.evaluate(()=>{
+        window.__qaManualBossSkills=false;
         if(window.__qaAbilityRecorderInterval){clearInterval(window.__qaAbilityRecorderInterval);window.__qaAbilityRecorderInterval=null;}
         if(window.__visualQAHealingInterval){
           clearInterval(window.__visualQAHealingInterval);

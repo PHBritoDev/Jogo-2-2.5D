@@ -6458,6 +6458,9 @@ function tickLunarUlt(dt){
 }
 function updateFoeKit(dt){
  if(swordTraining||squadOn)return;
+ // Somente debug3d + opt-in do agente: impede que a IA automatica roube a janela
+ // das habilidades solicitadas pelo QA. Nao muda nenhuma batalha publicada.
+ if(window.SevenSinsDebug3D&&window.__qaManualBossSkills===true)return;
  if(moonFlames)kitState.t=Math.max(kitState.t,.5); /* Bispo 3: chamas negras canalizadas */
  if(vxSwords)kitState.t=Math.max(kitState.t,.5); /* Bispo 4: quatro sentenças, nenhuma magia em paralelo */
  if(cySkill)kitState.t=Math.max(kitState.t,.5); /* Bispo 4: quatro vórtices, nenhuma magia em paralelo */

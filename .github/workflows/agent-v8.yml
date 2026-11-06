@@ -11,14 +11,13 @@ permissions:
   contents: read
 jobs:
   verify-ability:
-    name: Reproduzir falha no perfil proximidade (WebGL)
+    name: Reproduzir falhas nos perfis padrao e alternativo (WebGL)
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 20
     env:
       CI: "true"
       VISUAL_BASE_URL: http://127.0.0.1:4173
       VISUAL_OUTPUT: visual-lab-results
-      AGENT_ROUND_PROFILE: proximidade
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,13 +38,20 @@ jobs:
           done
           cat /tmp/qa-v8-http.log
           exit 1
-      - name: Rejogar Hidra e Chamas em navegador
-        run: node tools/visual-lab/agent-run.cjs
+      - name: Rejogar Hidra e Chamas nos dois perfis antes reprovados
+        run: |
+          result=0
+          for p in padrao alternativo; do
+            echo "::group::Perfil ${p}"
+            AGENT_ROUND_PROFILE="$p" VISUAL_OUTPUT="visual-lab-results/perfil-$p" node tools/visual-lab/agent-run.cjs || result=1
+            echo "::endgroup::"
+          done
+          exit "$result"
       - name: Preservar capturas, videos e prova da falha, mesmo se reprovado
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: provas-v8-proximidade-${{ github.run_number }}
-          path: visual-lab-results/agente/
+          name: provas-v8-padrao-alternativo-${{ github.run_number }}
+          path: visual-lab-results/
           retention-days: 14
           if-no-files-found: warn
