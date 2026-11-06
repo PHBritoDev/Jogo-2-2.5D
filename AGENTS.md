@@ -13,3 +13,7 @@ Antes de trabalhar neste repositório, leia **[PROMPT_MESTRE_DO_JOGO.md](PROMPT_
 - Após cada mudança de código, incremente o marcador numérico visível da modificação e forneça um link direto de teste compatível com celular.
 - Nunca alegue que executou testes que não realizou.
 - Leia também o código atual: as notas do prompt são contexto e o repositório é a fonte de verdade para o estado técnico.
+
+## Regra permanente — upgrades proativos de ferramentas e agentes (05/11/2026)
+
+O criador autoriza a iniciativa de melhorar, criar e testar agentes, conectores e ferramentas reutilizáveis para este jogo e futuros jogos/sites, sem solicitar aprovação a cada melhoria gratuita e reversível. Após cada upgrade, relatar de forma concisa o que foi feito, o benefício, os testes e o PR. Não publicar, fazer merge, contratar serviço pago, usar créditos, conectar novas contas ou mudar permissões sem as autorizações e controles exigidos pela plataforma. Manter melhorias em branch/PR isolados, preservar versões estáveis e não alegar validação sem evidência. Nunca colocar prompts longos no chat: usar arquivos no GitHub. Não alterar o Devorador Lunar até nova ordem; será feito futuramente no Meshy. Memória técnica dos agentes: docs/agent-memory/README.md.
