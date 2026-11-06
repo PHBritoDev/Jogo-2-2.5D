@@ -8,6 +8,7 @@
 const fs=require("node:fs");
 const path=require("node:path");
 const {spawnSync}=require("node:child_process");
+const {classifyRound}=require("./asset-readiness-v9.cjs");
 const root=path.resolve(process.env.VISUAL_OUTPUT||"visual-lab-results");
 const roundsDir=path.join(root,"rodadas");
 const script=path.join(__dirname,"agent-run.cjs");
@@ -43,6 +44,8 @@ function summarize(results){
       exitCode:r.code,elapsedMs:r.elapsedMs,spawnError:r.spawnError||null,warningFlags:visualWarnings(r),
       captureCount:r.report?.captures?.length||0,
       observations:r.report?.decisions?.length||0,
+      abilityEvidence:r.report?.abilityEvidence||null,
+      diagnostics:classifyRound(r),
       errors:(r.report?.errors||[]).slice(0,3).map(e=>String(e).slice(0,200)),
       path:"rodadas/rodada-"+r.round+"/agente/ver-analise.html"})),
     note:"Cada rodada testa o jogo 3D no Chromium/SwiftShader em angulos diferentes. "+
@@ -94,7 +97,7 @@ function writeIndex(summary){
     "- Estado: "+summary.status+"\n- Aprovadas: "+summary.roundsPassed+"/"+summary.roundsExecuted+
     "\n- Primeiro perfil é referência para comparação histórica; outras rodadas ficam preservadas no ZIP.\n\n"+
     summary.profiles.map(x=>"- Rodada "+x.round+" ("+x.profile+"): "+(x.passed?"PASSOU":"FALHOU")+
-      ", "+x.observations+" decisões, "+x.captureCount+" prints, "+x.warningFlags.length+" alertas recorrentes").join("\n")+
+      ", "+x.observations+" decisões, "+x.captureCount+" prints, "+x.warningFlags.length+" alertas recorrentes; diagnostico="+(x.diagnostics?.codes.join(",")||"sem_alertas")).join("\n")+
     "\n\nAbrir abrir-rodadas.html. Toda falha deve ser investigada; não houve correção de código automática.\n";
   fs.writeFileSync(path.join(roundsDir,"RESUMO.md"),md);
 }
