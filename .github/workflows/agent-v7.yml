@@ -1,0 +1,32 @@
+name: Agente V7 — auditoria de GLBs
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/visual-lab/agent-v7-*"
+      - ".github/workflows/agent-v7.yml"
+      - "*.glb"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  glb-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testes do leitor GLB e contratos de animacao
+        run: node --test tools/visual-lab/agent-v7-glb-audit.test.cjs
+      - name: Escanear arquivos GLB existentes sem alterar nenhum
+        run: node tools/visual-lab/agent-v7-run.cjs
+      - name: Guardar catalogo GLB e avisos tecnicos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auditoria-glb-v7-${{ github.run_number }}
+          path: visual-lab-results/agente-v7/
+          retention-days: 14
+          if-no-files-found: warn
