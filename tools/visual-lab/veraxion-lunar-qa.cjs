@@ -63,14 +63,17 @@ async function main(){
    }
    if(!started)throw Error("Ultimate não iniciou em luta real do Bispo 4");
    // Acelera exclusivamente o relógio de QA. Não altera o jogo normal nem pula quadros.
-   await page.evaluate(()=>window.SevenSinsDebug3D.speed(2));
+   // Velocidade real evita perder quadros curtos entre o retorno à arena e a fumaça.
+   await page.evaluate(()=>window.SevenSinsDebug3D.speed(1));
    data.ready=true;
    for(const [name,target] of frames){
     let h=await page.waitForFunction(t=>{
       const d=window.SevenSinsDebug3D?.luState();
-      return d&&!d.none&&d.t>=t?d:null;
+      if(!d||d.none)return {finished:true,t:0};
+      return d.t>=t?d:null;
      },target,{timeout:90000,polling:130});
     const st=await h.jsonValue();
+    if(st.finished)throw Error(name+": fase não alcançada antes do fim da cinematic (não esperar 90s)");
     const file=path.join(folder,name+".png");
     await page.screenshot({path:file,animations:"disabled",timeout:30000});
     const bytes=fs.statSync(file).size;
