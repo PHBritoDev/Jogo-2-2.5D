@@ -30,3 +30,9 @@ test("scanner so sinaliza riscos potenciais",()=>{
  const findings=a.scanSource("eval(source); el.innerHTML = data;","app.js");
  assert.deepEqual(findings.filter(x=>x.severity==="review").map(x=>x.code),["DYNAMIC_EVAL","DOM_INNER_HTML"]);
 });
+
+test("primeira execucao identifica picos sem fingir que mede FPS de celular",()=>{
+ const flags=a.absolutePerfFlags({count:110,frameP95:400,drawCallsMedian:349});
+ assert.deepEqual(flags.map(x=>x.code),["FRAME_STALL_SPIKES","HIGH_DRAW_CALL_COUNT"]);
+ assert.equal(a.absolutePerfFlags({count:110,frameP95:20,drawCallsMedian:100}).length,0);
+});
