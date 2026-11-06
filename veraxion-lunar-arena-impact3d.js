@@ -3,7 +3,7 @@
  * Um único evento de 2.6 s: núcleo de fogo → anel de pressão → estilhaços → fumaça.
  * Pools de instâncias sem criar partículas por quadro; respeita qualidade low.
  */
-export const LUNAR_ARENA_BUILD='289-shockwave-dimension';
+export const LUNAR_ARENA_BUILD='294-dimension-pressure-fire';
 const clamp = x => Math.max(0,Math.min(1,x));
 const ease = x => {x=clamp(x);return x*x*(3-2*x);};
 const hash = x => {const n=Math.sin(x*127.1+41.5)*43758.5453;return n-Math.floor(n);};
@@ -28,14 +28,14 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
     'float fissure=pow(max(0.,cos(a*19.+n(vec2(a*3.,4.))*2.)),32.)*smoothstep(.07,.21,r)*(1.-smoothstep(.5,1.,r));',
     'float embers=pow(n(vec2(a*49.,r*60.-uT*5.)),7.)*smoothstep(.05,.25,r)*(1.-smoothstep(shock*.86,shock,r));',
     'float core=exp(-r*r*150.)*(1.-smoothstep(.35,.8,uT));',
-    'vec3 c=vec3(.55,.025,.01)*(fissure*.85)+vec3(1.,.34,.035)*ring+vec3(1.,.8,.42)*second+vec3(1.,.2,.055)*embers;',
-    'c+=vec3(1.,.95,.8)*core;float alpha=uA*clamp(ring*.95+second*.85+fissure*.4+embers*.26+core,0.,1.);',
+    'vec3 c=vec3(.34,.018,.025)*(fissure*.82)+vec3(1.,.38,.105)*ring+vec3(.96,.61,.28)*second+vec3(.76,.17,.07)*embers;',
+    'c+=vec3(1.,.82,.55)*core;float alpha=uA*clamp(ring*.78+second*.55+fissure*.32+embers*.18+core*.65,0.,.9);',
     'if(alpha<.008)discard;gl_FragColor=vec4(c,alpha);}'
   ].join('\n');
   const waveU={uT:{value:0},uA:{value:0}};
   const ground=new T.Mesh(G(new T.PlaneGeometry(2,2).rotateX(-Math.PI/2)),M(new T.ShaderMaterial({
     vertexShader:groundVS,fragmentShader:groundFS,transparent:true,depthWrite:false,depthTest:true,
-    blending:T.AdditiveBlending,toneMapped:false,uniforms:waveU,side:T.DoubleSide
+    blending:T.NormalBlending,toneMapped:false,uniforms:waveU,side:T.DoubleSide
   })));
   ground.scale.setScalar(41);ground.position.y=.13;ground.renderOrder=11;root.add(ground);
   const shellVS=[
@@ -48,16 +48,16 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
     'float n(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(h(i),h(i+vec3(1.,0.,0.)),f.x),mix(h(i+vec3(0.,1.,0.)),h(i+vec3(1.,1.,0.)),f.x),f.y),mix(mix(h(i+vec3(0.,0.,1.)),h(i+vec3(1.,0.,1.)),f.x),mix(h(i+vec3(0.,1.,1.)),h(i+vec3(1.,1.,1.)),f.x),f.y),f.z);}',
     'void main(){float noise=n(vP*7.+vec3(0.,-uT*3.,0.))*.55+n(vP*17.-uT*1.9)*.45;',
     'float heat=pow(max(.0,1.-vP.y),.6);float burning=clamp(noise*.75+heat*.72,0.,1.);',
-    'vec3 c=mix(vec3(.26,.016,.014),vec3(1.,.18,.025),smoothstep(.3,.67,burning));',
-    'c=mix(c,vec3(1.,.88,.39),smoothstep(.63,.98,burning));',
-    'float edge=pow(1.-abs(normalize(vN).y),1.5);float alpha=uA*(.25+.65*noise)*(.55+.45*edge);',
+    'vec3 c=mix(vec3(.09,.009,.017),vec3(.89,.23,.065),smoothstep(.33,.72,burning));',
+    'c=mix(c,vec3(1.,.8,.41),smoothstep(.77,.98,burning));',
+    'float edge=pow(1.-abs(normalize(vN).y),1.5);float alpha=uA*(.35+.53*noise)*(.56+.44*edge);',
     'if(alpha<.01)discard;gl_FragColor=vec4(c,alpha);}'
   ].join('\n');
   const plumeU={uT:{value:0},uA:{value:0}};
   const plumeG=G(new T.SphereGeometry(1,low?16:24,low?10:16,0,Math.PI*2,0,Math.PI/2));
   const dome=new T.Mesh(plumeG,M(new T.ShaderMaterial({
     vertexShader:shellVS,fragmentShader:shellFS,uniforms:plumeU,transparent:true,depthWrite:false,
-    blending:T.AdditiveBlending,toneMapped:false,side:T.DoubleSide
+    blending:T.NormalBlending,toneMapped:false,side:T.DoubleSide
   })));
   dome.renderOrder=10;root.add(dome);
   const core=new T.Mesh(plumeG,M(new T.MeshBasicMaterial({
@@ -109,10 +109,10 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
     if(!active)return;
     if(age>3.2){clear();return;}const a=Math.max(0,age),burst=ease(a/.35);
     waveU.uT.value=a;waveU.uA.value=(1-ease((a-1.8)/1.25))*.92;
-    dome.scale.set(1+11*ease(a/.78),.2+12*ease(a/.88),1+11*ease(a/.78));
-    plumeU.uT.value=a;plumeU.uA.value=(1-ease((a-1.25)/1.75))*.88;
-    core.scale.set(1+9*ease(a/.32),.2+7*ease(a/.3),1+9*ease(a/.32));
-    core.material.opacity=(1-ease((a-.12)/.72))*.72;
+    dome.scale.set(1+14*ease(a/.78),.2+12.8*ease(a/.88),1+14*ease(a/.78));
+    plumeU.uT.value=a;plumeU.uA.value=(1-ease((a-1.35)/1.65))*.84;
+    core.scale.set(1+10*ease(a/.32),.2+7.4*ease(a/.3),1+10*ease(a/.32));
+    core.material.opacity=(1-ease((a-.12)/.72))*.56;
     for(let i=0;i<shockRings.length;i++){
       const s=shockRings[i],delay=i*.115,age2=Math.max(0,a-delay);
       const radius=1+(i===0?34:i===1?24:16)*ease(age2/(.8+i*.24));
@@ -120,7 +120,7 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
       s.material.opacity=a<delay?0:(1-ease((age2-.25)/(1.35+i*.2)))*(.86-i*.16);
       s.rotation.z=a*(i%2?-.35:.26);
     }
-    smokeU.uA.value=.28*(1-ease((a-1.9)/1.35))*ease((a-.45)/.55);smokeU.uT.value=a;
+    smokeU.uA.value=.48*(1-ease((a-2.05)/1.1))*ease((a-.24)/.43);smokeU.uT.value=a;
     for(let i=0;i<SN;i++){
       const ang=hash(i+3)*Math.PI*2, radius=(4+hash(i+9)*21)*ease(a/.9);
       const rise=(.65+hash(i+19)*1.3)*Math.min(a,2.5)*4;
@@ -138,9 +138,9 @@ export function createLunarArenaImpact(T,scene,{low=false}={}){
       const size=.28+hash(i+7)*.9;
       m4.compose(v3,q,sz.set(size,size*2.5,size));debris.setMatrixAt(i,m4);
     }debris.instanceMatrix.needsUpdate=true;
-    flashU.uA.value=1.18*(1-ease(a/(reduced?.35:.75)));
+    flashU.uA.value=.98*(1-ease(a/(reduced?.35:.72)));
     flashU.uT.value=a;flash.position.set(0,4,0);flash.quaternion.copy(camera.quaternion);
-    flash.scale.setScalar(7+25*ease(a/.3));
+    flash.scale.setScalar(9+22*ease(a/.3));
     if(a>2.8)root.visible=false;
   }
   function clear(){active=false;root.visible=false;}

@@ -306,7 +306,7 @@ jobs:
           if-no-files-found: warn
 
   lunar_289:
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/mod289-devorador-lunar-cinema'
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/mod289-devorador-lunar-cinema' || github.head_ref == 'feat/mod294-ultimate-impact-qa-agent')
     name: Mod 289 — auditar Devorador Lunar no jogo 3D
     runs-on: ubuntu-24.04
     timeout-minutes: 21
@@ -325,6 +325,9 @@ jobs:
         run: |
           npm install --prefix tools/visual-lab --no-audit --no-fund
           ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Testar Diretor Cinematografico e comparador de quadros
+        run: node --test tools/visual-lab/cinematic-director.test.cjs
+
       - name: Verificar sintaxe das três camadas alteradas
         run: |
           node --check veraxion-lunar-facial3d.js
