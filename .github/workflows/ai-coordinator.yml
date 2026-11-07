@@ -31,6 +31,9 @@ jobs:
             echo "sha=$(git rev-parse HEAD^)" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Autoteste do roteador de QA
+        run: node --test tools/qa/ai-test-router.test.mjs
+
       - name: Analisar alterações sem modificar arquivos do jogo
         run: node tools/qa/ai-change-guard.mjs "${{ steps.base.outputs.sha }}"
 
