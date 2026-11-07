@@ -23,7 +23,7 @@ void main(){
 const FRAG = /* glsl */`
 #include <common>
 #include <fog_pars_fragment>
-uniform float uTime, uFlow, uNight, uRadial, uAlpha;
+uniform float uTime, uFlow, uNight, uRadial, uAlpha, uFoamEnd;
 uniform vec3 uDeep, uShallow, uSky, uSkyNight, uSun, uFoam;
 uniform vec4 uRocks[${WATER_MAX_ROCKS}];
 uniform int uRockCount;
@@ -58,6 +58,8 @@ void main(){
   // Lago parado nao tem faixa de arrebentacao: preserve transparencia e reflexos suaves.
   // Rio mantem espuma de margem; lago recebe somente vestigios discretos de espuma.
   if (uRadial > .5) foam *= .06;
+  // Foz: a espuma do rio some nos últimos metros, onde a fita entra no lago parado.
+  if (uRadial < .5 && uFoamEnd > 0.0) foam *= 1.0 - smoothstep(uFoamEnd - 14.0, uFoamEnd - 2.0, vUv.x);
   for (int i = 0; i < ${WATER_MAX_ROCKS}; i++){ if (i >= uRockCount) break;
     vec4 r = uRocks[i]; float d = length(vWorld.xz - r.xy) - r.z;
     float ring = (1.0 - smoothstep(0.0, .9, d)) * (.55 + .45 * fbm(vWorld.xz * 2.0 - vec2(uTime * speed, 0.0)));
@@ -73,7 +75,7 @@ void main(){
 export function createFlowWaterMaterial(THREE, o = {}) {
   const rocks = []; for (let i = 0; i < WATER_MAX_ROCKS; i++) rocks.push(new THREE.Vector4(0, 0, 0, 0));
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-    uTime: { value: 0 }, uFlow: { value: o.flow ?? 1 }, uNight: { value: 0 }, uRadial: { value: o.radial ? 1 : 0 }, uAlpha: { value: o.alpha ?? .86 },
+    uTime: { value: 0 }, uFoamEnd: { value: 0 }, uFlow: { value: o.flow ?? 1 }, uNight: { value: 0 }, uRadial: { value: o.radial ? 1 : 0 }, uAlpha: { value: o.alpha ?? .86 },
     uDeep: { value: new THREE.Color(o.deep ?? 0x0d4f55) }, uShallow: { value: new THREE.Color(o.shallow ?? 0x37a9a2) },
     uSky: { value: new THREE.Color(o.sky ?? 0xbfdbe0) }, uSkyNight: { value: new THREE.Color(0x24344e) },
     uSun: { value: new THREE.Vector3(.4, .8, .3) }, uFoam: { value: new THREE.Color(0xeef6f2) },
@@ -116,6 +118,7 @@ export function buildRiverMesh(THREE, points, o = {}) {
   g.setAttribute('position', new THREE.BufferAttribute(r.positions, 3)); g.setAttribute('uv', new THREE.BufferAttribute(r.uvs, 2)); g.setIndex(r.indices);
   g.computeVertexNormals(); g.computeBoundingSphere();
   const material = createFlowWaterMaterial(THREE, { flow: o.flow ?? 1.15 });
+  material.uniforms.uFoamEnd.value = r.length;
   const mesh = new THREE.Mesh(g, material); mesh.name = 'eldoria-river-mod291'; mesh.renderOrder = 2; mesh.frustumCulled = true;
   return { mesh, material, ribbon: r };
 }

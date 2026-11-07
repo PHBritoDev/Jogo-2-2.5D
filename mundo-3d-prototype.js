@@ -43,6 +43,7 @@ import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js'
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
 import {buildUndergrowth} from './eldoria-undergrowth.js';
+import {mountMatureForest} from './eldoria-mature-forest.js';
 import {ROAD,ROAD_STORE,ROAD_SPEAKERS,RIDE,initialRoadStage,roadPresentation,terenMeetScene,tarpScene,rideDozeScene,ambushScene,hungerScene,choiceScene,dawnRideScene,dawnHourAt} from './prologue-road-flow.js';
 import {prepareSandraMaterials} from './sandra-materials.js';
 import * as THREE from 'three';
@@ -182,7 +183,7 @@ function hillHeightAt(x,z){
    a colina isolada e os cones instanciados. Altura, cor e limite físico vêm de world3d-terrain.js. */
 const VILLAGE_CENTER={x:-12.2,z:-44.5},VILLAGE_CLEAR_RADIUS=22,SECRET_RUIN_SPOT={x:-18.5,z:-52};
 // Lago da mata: ponto de interesse visível da trilha, com margem rasa caminhável e fundo bloqueado.
-const FOREST_POND={x:-27,z:-88,r:11.5,depth:2.4,level:-.42};
+const FOREST_POND={x:-27,z:-88,r:11.5,depth:2.4,level:-.42,wobble:.6}; // MOD 291: margem orgânica (menos círculo)
 const mainTrail=[[0,14],[0,4],[.5,-6],[-1.8,-17],[0,-29],[2.2,-43],[-1.2,-59],[-2,-76],[5,-91],[15,-99],[27,-108],[44,-119],[46,-132],[45,-140]];
 const villageTrail=[[2.2,-43],[0,-41],[-4.6,-41.4],[-8.7,-43.3],[-12.2,-44.5]];
 // Mod 188 — caminho da vila até a Loja Central (oeste da praça).
@@ -199,6 +200,8 @@ const terrain3D=createTerrain({
  hill:hillHeightAt,
  keepouts:[{x:DESERT.statue.x,z:DESERT.statue.z,r:24,fade:8},{x:COLOSSEUM.center.x,z:COLOSSEUM.center.z,r:40,fade:8},{x:-36,z:-256,r:14,fade:6},{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:-12,z:-97,r:7,fade:5},{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z,r:9,fade:6},{x:ROAD_JUNCTION.x,z:ROAD_JUNCTION.z,r:7,fade:6},{x:MASSACRE_SPOT.x,z:MASSACRE_SPOT.z,r:6,fade:5},{x:SEWER_DOOR.x,z:SEWER_DOOR.z,r:5,fade:4},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:DISTRICT_SPOTS.plaza.x,z:DISTRICT_SPOTS.plaza.z,r:22,fade:8},{x:ALTAR_VALLEY.cx,z:ALTAR_VALLEY.cz,r:16,fade:8},{x:SERRA.cx,z:SERRA.cz-8,r:16,fade:8},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
  ponds:[FOREST_POND],
+ // MOD 291: chão mais escuro e musgoso sob a mata fechada (faixa entre o rio e a serra e anel do lago).
+ shade:(x,z)=>{const zone=Math.min(1,Math.max(0,(-79-z)/10))*Math.min(1,Math.max(0,(z+150)/10))*Math.min(1,Math.max(0,(x+72)/10))*Math.min(1,Math.max(0,(42-x)/10)),lake=1-Math.min(1,Math.max(0,(Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r-2)/16));const m=Math.max(zone,lake*.8)*(.75+.25*Math.sin(x*.3+Math.cos(z*.21)*2));return 1-.55*Math.max(0,m);},
  extraAreas:[PROLOGUE_MEADOW,DISTRICT,DISTRICT_SPOTS.volcanoApproach,...EXTRA_REGIONS,SNOW_CITY.caveApproach,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:TEREN_ROAD,r:8.5},{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6},{points:RIVER_POINTS,width:RIVER.width,depth:RIVER.depth,level:RIVER.level}],
  paths:[{points:RIVER_POINTS,r:RIVER.width+2.2,fade:5},{points:TEREN_ROAD,r:4,fade:5},{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5}]
 });
@@ -573,6 +576,11 @@ const undergrowthBanks=[];{const cl=eldoriaRiver.ribbon.centerline;for(let i=2;i
 const eldoriaUndergrowth=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,trees:treeSpecs,banks:undergrowthBanks,
  isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-8&&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+2&&!insideMeadow(x,z,4)&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+.6)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!bridgeDeck(x,z)});
 window.SevenSinsUndergrowthReport=eldoriaUndergrowth.stats;
+// MOD 291 — mata fechada com ArvoreFloresta01.glb do criador (instanciada; LOD1 perto, copa barata longe).
+const matureForest=mountMatureForest(THREE,GLTFLoader,{scene,groundHeightAt,registerCull:registerInstanceCull,obstacles:treeObstacles,lowSpec:terrainLowSpec,
+ lake:FOREST_POND,zone:{x0:-70,x1:40,z0:-148,z1:-80},
+ isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-7&&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+3&&Math.hypot(x+12,z+97)>10&&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<4)&&Math.hypot(x-MASSACRE_SPOT.x,z-MASSACRE_SPOT.z)>8&&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+6&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+3)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+2.6))&&!bridgeDeck(x,z)&&!treeObstacles.some(o=>Math.abs(o.x-x)<2.6&&Math.hypot(o.x-x,o.z-z)<o.radius+2.2)});
+matureForest.ready.then(r=>{window.SevenSinsMatureForestReport={trees:matureForest.plan.length,...(r||{failed:true})};});
 /* MOD 291 — streaming por zona: a cidade (e o resto do vale) fica atrás da serra quando o herói está no prado/estrada do
    sul, e o prado some quando ele está no vale. Nada é descarregado; só deixa de ser enviado à GPU. */
 let zoneFrame=0;const zoneState={south:null};

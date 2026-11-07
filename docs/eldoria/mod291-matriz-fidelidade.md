@@ -53,3 +53,28 @@ mas isso precisa ser medido no aparelho.
    jogável, boca da montanha, prisão/Ilyan, Zarkun, fuga) **não foram reescritas**: o jogo segue o fluxo do Ato I existente
    (vendedor, floresta, jaulas, esgoto, portal de VHAZRAEL). Exige personagens inéditos (Teren tem placeholder humano, Osren,
    Ilyan, Varkhen, Drazek, Zarkun) e várias cenas novas.
+
+## Marco 2 (revisão ChatGPT de 07/11): mata fechada e lago
+O que mudou:
+- **Mata fechada** com `ArvoreFloresta01.glb`, o modelo do criador (tronco grosso, raízes, musgo).
+  - 118 árvores maduras no celular e mais no desktop, instanciadas: LOD1 até 42–58 m e copa barata até 150 m.
+  - Ficam num anel em volta do lago e em manchas entre o rio e a serra, sem fileiras e sem clones de pinheiro.
+- **Chão musgoso e sombreado** sob a mata, pela cor do relevo (custo zero de GPU).
+- **Margem do lago** com ruído em duas escalas: menos círculo.
+- **Espuma**: no lago, limitada pelo PR #414 do ChatGPT; no rio, some nos últimos 14 m antes da foz.
+
+Capturas: `docs/evidencias/mod291/marco2-mata-*.jpg`.
+
+| Local | Antes (marco 1) | Agora | Por quê |
+|---|---|---|---|
+| Lago da mata | 69 | **76** | lago emoldurado por árvores maduras, margem orgânica, sem faixa de espuma. Falta reflexo dos troncos e luz filtrada |
+| Mata densa | 56 | **72** | dossel fechado e visão curta na trilha. Copas escuras demais no topo, raízes e musgo ainda pouco variados |
+
+Custo medido (SwiftShader/CPU, mesma câmera; **não é Android**):
+
+| Local | Draw calls | Triângulos | Frametime SwiftShader |
+|---|---|---|---|
+| Lago | 70 → 76 | 190 mil → 309 mil | 198 → 445 ms |
+| Mata | 43 → 45 | 161 mil → 261 mil | 201 → 520 ms |
+
+No SwiftShader o custo cresce com os triângulos (raster por CPU). Num celular com GPU a relação é outra, mas **precisa ser medida no A55** antes de aumentar a densidade. Próximo passo de otimização, se o aparelho pedir: setores espaciais (sugestão do ChatGPT) e LOD2 da árvore.

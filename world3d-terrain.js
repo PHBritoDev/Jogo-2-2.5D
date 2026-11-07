@@ -137,7 +137,7 @@ export function createTerrain(opts = {}) {
       if (d < c.width) cut = Math.max(cut, c.depth * smoothstep(c.width, c.width * .45, d));
     }
     for (const p of ponds) {
-      const wob = (fbm(x * .09 + p.x, z * .09 + p.z, 2, 13) - .5) * p.r * .35;
+      const wob = (fbm(x * .09 + p.x, z * .09 + p.z, 2, 13) - .5) * p.r * (p.wobble ?? .35) + (fbm(x * .23 - p.z, z * .23 + p.x, 2, 29) - .5) * p.r * (p.wobble ? .18 : 0);
       const d = Math.hypot(x - p.x, z - p.z) - wob;
       if (d < p.r) cut = Math.max(cut, p.depth * smoothstep(p.r, p.r * .35, d));
     }
@@ -159,7 +159,9 @@ export function createTerrain(opts = {}) {
   const WALK_LIMIT = -5.5;
   function walkable(x, z) { return boundaryDistance(x, z) < WALK_LIMIT && waterDepth(x, z) < .38; }
 
-  return { height, boundaryDistance, flatMask, relief, walkable, mountainHeight, waterDepth, ponds, channels, area, extraAreas, WALK_LIMIT };
+  // Mod 291: sombra opcional do dossel (1 = sem sombra) usada só na cor do relevo.
+  const shade = opts.shade || null;
+  return { height, boundaryDistance, flatMask, relief, walkable, mountainHeight, waterDepth, ponds, channels, area, extraAreas, WALK_LIMIT, shade };
 }
 
 /**
@@ -260,6 +262,7 @@ export function colorTerrain(terrain, positions, normals) {
     const snowy = smoothstep(snowLine, snowLine + 14, y) * (1 - smoothstep(.22, .42, slope));
     c = mix(c, snow, snowy);
     // Paleta escrita em sRGB; o renderizador espera cores de vértice lineares.
+    if (terrain.shade) { const sh = terrain.shade(x, z); if (sh < 1) c = mix(c, [c[0] * .62, c[1] * .78, c[2] * .6], 1 - sh); } // chão musgoso sob a mata fechada
     colors[k] = Math.pow(c[0], 2.2); colors[k + 1] = Math.pow(c[1], 2.2); colors[k + 2] = Math.pow(c[2], 2.2);
   }
   return colors;

@@ -137,3 +137,20 @@ test('marcador visível e build do Mod 291', () => {
   assert.match(html, /aria-label="Modificação 291">291</);
   assert.match(readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /const BUILD = 'mod291-eldoria';/);
 });
+
+test('marco 2: mata fechada usa o GLB do criador, respeita trilha/água e não forma fileiras', async () => {
+  const { planMatureForest } = await import('./eldoria-mature-forest.js');
+  const lake = { x: -27, z: -88, r: 11.5 }, zone = { x0: -70, x1: 40, z0: -148, z1: -80 };
+  const isFree = (x, z) => Math.hypot(x - lake.x, z - lake.z) > lake.r + 3 && Math.abs(x) > 3; // trilha falsa em x=0
+  const plan = planMatureForest({ lake, zone, isFree });
+  assert.ok(plan.length >= 110, 'mata densa: ' + plan.length);
+  for (const t of plan) assert.ok(isFree(t.x, t.z) && t.h >= 11 && t.h <= 22);
+  for (let i = 0; i < plan.length; i++) for (let j = i + 1; j < plan.length; j++) assert.ok(Math.hypot(plan[i].x - plan[j].x, plan[i].z - plan[j].z) > 4, 'troncos colados');
+  assert.ok(plan.filter(t => Math.hypot(t.x - lake.x, t.z - lake.z) < lake.r + 20).length >= 20, 'anel de árvores emoldura o lago');
+  const xs = new Set(plan.map(t => Math.round(t.x / 4))); assert.ok(xs.size > 20, 'distribuição não alinhada em colunas');
+  const lib = readFileSync(new URL('./eldoria-mature-forest.js', import.meta.url), 'utf8');
+  assert.match(lib, /'\.\/ArvoreFloresta01\.glb'/); assert.match(lib, /'\.\/ArvoreFloresta01-lod1\.glb'/);
+  assert.match(src, /mountMatureForest\(THREE,GLTFLoader,\{/);
+  assert.match(src, /wobble:\.6\}/, 'margem do lago orgânica');
+  assert.match(readFileSync(new URL('./eldoria-water.js', import.meta.url), 'utf8'), /uFoamEnd - 14\.0/, 'sem espuma de rio dentro do lago');
+});
