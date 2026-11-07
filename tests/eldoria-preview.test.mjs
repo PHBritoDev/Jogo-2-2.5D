@@ -140,6 +140,8 @@ test('interior da caverna possui salão monumental e ala obscura instanciados',(
 
 test('caverna autoral tem geologia distinta, vestígios históricos e modelo de cristal próprio',()=>{
  assert.match(cavern,/buildEldoriaCaveGeology\(THREE,group/);
+ assert.match(cavern,/SeleniteTransverseBeams/);
+ assert.match(cavern,/beamHelper.quaternion.setFromUnitVectors/);
  assert.match(html,/loadStage\('interior'\)/);
  assert.match(geology,/stratifiedRocks/);
  assert.match(geology,/approachStones/);
