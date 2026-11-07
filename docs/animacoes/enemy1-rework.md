@@ -1,30 +1,51 @@
-# Enemy1 Rework — registro de animações
+# Enemy1 Rework — inventário das animações mostradas no vídeo
 
-> Registro de produção para a nova versão de Enemy1. **Estes nomes são convenções planejadas**; não confirmam que arquivos foram enviados ao GitHub ou que os clipes já estejam implementados. Ao exportar do Meshy, renomear/mapear os clipes conforme esta tabela para evitar ambiguidades.
+**Fonte:** vídeo `1000363809.mp4` enviado pelo usuário, 8,08 segundos, aba **Animar → Adicionado** do Meshy. Conferido quadro a quadro em 07/11/2026.
 
-| Nome canônico no jogo | Nome da animação no Meshy | Finalidade | Duração alvo | Loop | Estado |
-|---|---|---|---|---|---|
-| `enemy1_breathing_idle` | **Demonic Breathing Idle** | Respiração lenta e antinatural, expansão do tórax, contração, inclinação sutil da cabeça e leve movimento das garras, pés imóveis | 5 s | Sim | Prompt definido; arquivo/clipe ainda não verificado |
-| `enemy1_hit_reaction` | **Enemy1 — Hit Reaction** | Recuo do torso e da cabeça após impacto frontal, tensão das garras, recuperação da postura de combate | 2 s (reprodução ajustável para ~0,6–0,9 s no combate) | Não | Prompt definido; arquivo/clipe ainda não verificado |
+**Importante:** o vídeo mostra 16 cartões de animação na lista. **9 têm o nome legível; 7 estão escurecidos, com a legenda “Clique para visualizar” e botão “Remover” cobrindo o nome.** Por isso, os 7 nomes não podem ser confirmados por esse vídeo. **Não inventar nomes nem assumir que o GLB já foi exportado/integrado.** O fato de estarem em “Adicionado” confirma somente que aparecem adicionados no Meshy.
 
-## Diretrizes para integração
+## Nomes CONFIRMADOS visualmente e suas funções
 
-- Reutilizar o mesmo esqueleto/rig entre as animações do novo Enemy1; evitar retargeting inadequado e root motion involuntário.
-- Não mexer nos arquivos/ataques do Enemy1 antigo até o novo modelo e as animações passarem por teste.
-- A espiral dos olhos e as quatro lâminas articuladas nas costas exigem animações/VFX próprios no Three.js; **não** pressupor que movimentos esqueléticos do Meshy animem automaticamente esses elementos.
-- Antes de integrar, inspecionar os nomes reais dos clipes no GLB exportado e confirmar compatibilidade com o controlador de animação do jogo.
-- Animações adicionais (andar, correr, ataques, morte etc.) ainda **não têm prompt final aprovado nesta etapa**; registrar aqui apenas quando forem definidas ou recebidas.
+| # | Nome exibido no Meshy | Nome de mapeamento sugerido | Função no Enemy1 |
+|---|---|---|---|
+| 1 | **Idle** | `idle` | Ficar parado, postura básica de espera |
+| 2 | **Rit damege** *(grafia conforme aparece no vídeo; pode ser uma denominação truncada ou com erro)* | `hit_reaction` | Reação a impacto/dano, recuo e recuperação |
+| 3 | **Alerta** | `alert` | Ficar em estado de alerta ao detectar ameaça |
+| 4 | **Andando** | `walk` | Deslocamento normal |
+| 5 | **Chute circular** | `roundhouse_kick` | Ataque com chute circular |
+| 6 | **Chute varrido** | `sweep_kick` | Chute rasteiro/de varredura, para atingir ou desequilibrar |
+| 7 | **Correndo** | `run` | Deslocamento rápido |
+| 8 | **Erguer** | `get_up` | Levantar após queda |
+| 9 | **Gancho de esquerda da guarda** | `left_hook` | Soco em gancho com a mão esquerda, partindo da guarda |
 
-## Prompts usados
+> Os nomes `idle`, `walk` etc. são **apelidos sugeridos** para o futuro controlador do jogo, não nomes comprovados dos clipes no GLB.
 
-### Demonic Breathing Idle
+## Outros 7 cartões — adicionados, mas com nomes ocultos no vídeo
 
-```text
-Seamless 5-second horror idle loop. A sinister humanoid stands rooted, breathing slowly and unnaturally. Ribcage expands deeply, shoulders rise slightly, then chest contracts with a faint shudder. Head hangs low, then tilts subtly toward the viewer. Long clawed fingers twitch once. Slight irregular body sway, tense posture, feet firmly planted, no walking, no large gestures. Return smoothly to starting pose.
-```
+| Referência visual da grade | O que pode ser confirmado |
+|---|---|
+| Linha 2, coluna 3 | Cartão escurecido; silhueta em postura de combate, botão “Remover”; nome não legível |
+| Linha 3, coluna 2 | Cartão escurecido; figura em movimento de braço, botão “Remover”; nome não legível |
+| Linha 3, coluna 3 | Cartão escurecido; personagem agachado/baixo, botão “Remover”; nome não legível |
+| Linha 4, coluna 2 | Cartão escurecido; personagem caído na horizontal, botão “Remover”; nome não legível |
+| Linha 5, coluna 1 | Cartão escurecido; personagem em pé, botão “Remover”; nome não legível |
+| Linha 5, coluna 3 | Cartão escurecido; personagem inclinado/erguendo braços, botão “Remover”; nome não legível |
+| Linha 6, coluna 1 | Cartão escurecido; personagem baixo/caído, botão “Remover”; nome não legível |
 
-### Enemy1 — Hit Reaction
+**Para identificar os sete restantes sem adivinhação:** abrir cada cartão “Clique para visualizar” no Meshy, mostrar nome completo e registrar; ou exportar o GLB com animações e inspecionar a lista real de `animations[].name` (essa opção depende do formato/organização da exportação). A contagem e as posições são da grade exibida no vídeo, **não dos arquivos do jogo**.
 
-```text
-A terrifying humanoid demon takes a powerful frontal hit to the chest. His torso snaps backward, shoulders recoil and head jerks violently. Long clawed hands tense and spread, one foot slides slightly backward to absorb the impact. He briefly hunches forward in pain, then regains his menacing combat stance. Heavy, realistic body weight, sharp impact followed by controlled recovery. Feet remain grounded, no falling, no spinning, no exaggerated flailing.
-```
+## Prompts personalizados definidos na conversa (SEPARADOS dos nomes vistos no vídeo)
+
+| Nome do prompt | Mapeamento futuro sugerido | O que faz | Duração sugerida |
+|---|---|---|---|
+| **Demonic Breathing Idle** | `enemy1_breathing_idle` | Respiração lenta e antinatural; peito expande e contrai, cabeça inclina e garras tremem discretamente | 5 s, loop |
+| **Enemy1 — Hit Reaction** | `enemy1_hit_reaction` | Reage a golpe frontal com recuo do tronco/cabeça, tensão das garras e retorno à postura | 2 s, sem loop |
+
+**Atenção:** a animação “Rit damege” exibida na grade pode corresponder à função do prompt “Hit Reaction”, mas **não há prova de que seja o mesmo clipe**. O “Idle” da grade também pode ser diferente do prompt personalizado “Demonic Breathing Idle”. Não duplicar ou substituir sem conferir.
+
+## Orientações de integração
+
+- Conferir **nomes reais dos clipes, duração e esqueleto** dos arquivos do Meshy antes de mapear.
+- Preservar o Enemy1 antigo até validar o novo no jogo; manter compatibilidade de rig e evitar deslocamento involuntário da raiz.
+- As quatro lâminas das costas e o vórtice nos olhos precisam de controle/VFX específicos; não assumir que a animação esquelética faça isso automaticamente.
+- **Estado:** registro documental feito; nenhuma das 16 animações do vídeo foi comprovadamente integrada ao jogo por esta alteração.
