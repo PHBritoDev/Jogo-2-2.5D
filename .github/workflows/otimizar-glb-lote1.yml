@@ -4,6 +4,7 @@ on:
     branches: [perf/glb-texturas-lote1]
     paths:
       - '.github/workflows/otimizar-glb-lote1.yml'
+      - 'tools/visual-lab/optimize-glb-textures.py'
   workflow_dispatch:
 permissions:
   contents: write
