@@ -10,6 +10,9 @@ on:
       - '.github/workflows/eldoria-preview-qa.yml'
       - 'tools/visual-lab/eldoria-visual-qa.cjs'
   workflow_dispatch:
+concurrency:
+  group: eldoria-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
