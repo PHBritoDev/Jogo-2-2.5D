@@ -12,6 +12,7 @@ export const ELDORIA_ZONES=Object.freeze({
   floresta:{target:[-38,13,5],distance:65,heading:'Floresta ancestral'},
   ritual:{target:[76,9,76],distance:49,heading:'Clareira do ritual — estudo'},
   caverna:{target:[-79,11,75],distance:54,heading:'Encosta da caverna — estudo'},
+  tunel:{target:[-80,9,370],distance:38,heading:'Galeria dos Ecos — cristais na escuridão'},
   interior:{target:[-80,14,290],distance:40,heading:'Caverna ancestral — salão de cristais'},
   abismo:{target:[-106,8,307],distance:28,heading:'Caverna ancestral — ala obscura'}
 });
