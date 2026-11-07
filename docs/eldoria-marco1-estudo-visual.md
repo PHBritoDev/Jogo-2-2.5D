@@ -1,6 +1,6 @@
 # Eldória — Marco 1: estudo espacial isolado (07/11/2026)
 
-**Roteiro vigente:** [Ato 1 — Eldória, as Raízes Esquecidas](docs/narrativa/ato-1-eldoria-roteiro-v1.md). Não executar o roteiro antigo de `docs/roteiro/M2-ATO1.md` como verdade narrativa.
+**Roteiro vigente:** [Ato 1 — Eldória, as Raízes Esquecidas](narrativa/ato-1-eldoria-roteiro-v1.md). Não executar o roteiro antigo de `docs/roteiro/M2-ATO1.md` como verdade narrativa.
 
 **Referências visuais examinadas:** sete imagens na Biblioteca do projeto, em `/Jogo-7-Pecados/Referencias-Ato-1/` (não incorporadas ao Git nem usadas como textura).
 - 1000363692.jpg: arquitetura com telhados verdes, árvores monumentais, passarelas claras e ponte sobre o rio.
@@ -16,6 +16,9 @@
 - Quatro pontos de câmera para revisão no celular; gesto de arrasto e zoom.
 - Sem alterações em arquivos de personagens antigos, combate, missões ou página principal.
 - Escala e posicionamento dos GLBs são **experimentais** e precisam de avaliação visual, colisão e custo de renderização antes de ligação à campanha.
+- Vegetação rasteira, flores, pedras e juncos usam `InstancedMesh`; árvores auxiliares são agrupadas em quatro malhas instanciadas em vez de centenas de objetos separados.
+- Botão `FPS` mostra taxa de quadros, draw calls, triângulos e quantidade de GLBs carregados/falhas.
+- QA estático de assets e sintaxe em `tests/eldoria-preview.test.mjs` e workflow separado; CI não equivale a teste visual ou de performance Android.
 
 ## Direção narrativa da região
 A chegada deve mostrar a beleza natural antes da pobreza. No mercado, revelar feiras vazias, escassez e histórias pequenas. Osren só entrega a pista após as interações previstas no roteiro novo. A floresta de investigação é mais afastada; à noite, clareiras de observação e as jaulas introduzem Varkhen e Drazek. O incêndio vem depois do ritual e o resgate dos sobreviventes é jogável.
@@ -26,5 +29,7 @@ A chegada deve mostrar a beleza natural antes da pobreza. No mercado, revelar fe
 3. Refazer a região caminhável com estradas e zonas de interesse maiores sem deslocar arbitrariamente coordenadas usadas pelo Ato 1 antigo; migração narrativa controlada.
 4. Testar visualmente no Android e aferir FPS, uso de memória, distância de visão e número de draw calls.
 5. Somente então incorporar em `mundo-3d-prototype.js`, atualizar versão visível e cache e adequar missões ao roteiro de 06/11/2026.
+
+**Observação sobre o teste:** a página está somente na branch do PR #407; o GitHub Pages atual publica a `main` e não publica essa prévia automaticamente. Um deploy de preview isolado ou validação controlada é necessário antes do teste mobile.
 
 **Limitação:** uma página de prévia que carrega não prova fidelidade estética, FPS em celular, sucesso de GLB ou colisão. Não mesclar em `main` antes de inspecionar.
