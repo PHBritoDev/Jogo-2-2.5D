@@ -9,6 +9,8 @@ const manifest=readFileSync(new URL('../eldoria-asset-plan.js',import.meta.url),
 const lighting=readFileSync(new URL('../eldoria-light-water.js',import.meta.url),'utf8');
 const art=readFileSync(new URL('../eldoria-environment-art.js',import.meta.url),'utf8');
 const canopy=readFileSync(new URL('../eldoria-forest-canopy.js',import.meta.url),'utf8');
+const liveVillage=readFileSync(new URL('../eldoria-live-village3d.js',import.meta.url),'utf8');
+const gameWorld=readFileSync(new URL('../mundo-3d-prototype.js',import.meta.url),'utf8');
 const cavern=readFileSync(new URL('../eldoria-crystal-cavern.js',import.meta.url),'utf8');
 const geology=readFileSync(new URL('../eldoria-cave-geology.js',import.meta.url),'utf8');
 const gallery=readFileSync(new URL('../eldoria-cave-tunnel.js',import.meta.url),'utf8');
@@ -43,7 +45,7 @@ test('carregamento da cena principal não inclui caverna e ritual',()=>{
 test('sintaxe dos scripts da prévia e dos módulos ambientais',()=>{
   const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script?.length>3000);
-  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art],['canopy',canopy],['cavern',cavern],['geology',geology],['gallery',gallery],['entrance',entrance]]){
+  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art],['canopy',canopy],['live-village',liveVillage],['cavern',cavern],['geology',geology],['gallery',gallery],['entrance',entrance]]){
     const result=spawnSync(process.execPath,['--input-type=module','--check'],{input:source,encoding:'utf8'});
     assert.equal(result.status,0,name+': '+result.stderr);
   }
@@ -163,4 +165,23 @@ test('galeria subterrânea e entrada botânica têm arquitetura distintiva e ren
  assert.match(entrance,/new THREE\.InstancedMesh/);
  assert.match(entrance,/steppingStones/);
  assert.doesNotMatch(gallery,/Protagonista\.glb|Enemy1\.glb/);
+});
+
+test('integração real da Cidade 1 preserva história e mantém a floresta afastada do spawn',()=>{
+  assert.match(gameWorld,/import \{mountEldoriaLiveVillage\} from '\.\/eldoria-live-village3d\.js'/);
+  assert.match(gameWorld,/mountEldoriaLiveVillage\(\{/);
+  assert.doesNotMatch(gameWorld,/L\.load\('\.\/VilaKit\.glb\?v=mod204'/);
+  assert.doesNotMatch(gameWorld,/for\(const stall of marketStalls\)makeFruitStall/);
+  assert.match(gameWorld,/Math\.hypot\(x,z-4\)<30/);
+  assert.match(liveVillage,/CasaEldoria01\.glb/);
+  assert.match(liveVillage,/CasaEldoria02\.glb/);
+  assert.match(liveVillage,/BarracaFrutasEldoria\.glb/);
+  assert.match(liveVillage,/PocoEldoria\.glb/);
+  assert.match(liveVillage,/FerreiroEldoria\.glb/);
+  assert.match(liveVillage,/obstacles\.push/);
+  assert.match(liveVillage,/groundHeightAt/);
+  assert.match(gameWorld,/villageVendors/);
+  assert.match(gameWorld,/buildSewerDoor\(\)/);
+  const syntax=spawnSync(process.execPath,['--input-type=module','--check'],{input:liveVillage,encoding:'utf8'});
+  assert.equal(syntax.status,0,syntax.stderr);
 });
