@@ -1,0 +1,125 @@
+# ORDEM DE EXECUÇÃO — CLAUDE — RECONSTRUÇÃO TOTAL DE ELDÓRIA (07/11/2026)
+> **Este arquivo é uma ordem de execução, NÃO um convite a explicar ou prometer trabalho.**
+> Repositório: `PHBritoDev/Jogo-2-2.5D`. Trabalhe no projeto real e entregue mudanças verificadas.
+> **COMUNICAÇÃO ABSOLUTA**: nenhuma mensagem de progresso, nenhuma pergunta redundante, nenhum resumo, nenhuma imagem/screenshot no chat, nenhum plano longo. Trabalhe em silêncio. Ao terminar, sua resposta textual deverá ser **EXATAMENTE: `CONCLUIDO`**. O silêncio se aplica apenas à conversa: registre logs, comparativos e diagnósticos EM ARQUIVOS/ARTIFACTS DO GITHUB. Nunca minta dizendo concluído se não executou. Se houver bloqueio técnico incontornável, NÃO diga concluído; registre o bloqueio no GitHub e use apenas `BLOQUEADO` como mensagem. Depois de finalizar e validar TODO o trabalho, **exclua este mesmo arquivo de instruções do repositório, via commit, como última mudança**. Se precisar dele ao longo de várias rodadas, NÃO apague até concluir o trabalho integral e não alegue conclusão prematura.
+
+## 0. Prioridade absoluta: entender o fracasso atual antes de modificar qualquer coisa
+O CRIADOR TESTOU AS DUAS URLs e REPROVOU o resultado. Não faça defesa da implementação anterior, nem reaproveite cegamente estruturas deficientes:
+- Jogo 3D em `mundo-3d-prototype.html`: cidade fica **quase ao lado do jogador** no spawn, layout incorreto; **10–20 FPS no aparelho dele**. Este valor é relato do criador, NÃO benchmark seu. Corrija a causa medida; o mundo NÃO pode simplesmente virar um cenário mais pesado.
+- Prévia `eldoria-cenario-preview.html`: cidade com modelos mal encaixados/flutuando/intersecções e falta de identidade; floresta com árvores genéricas dispersas e sem densidade; rio artificial, pouco detalhado e **sem percepção de correnteza**; cristais parecem CONES. A prévia NÃO prova que o mundo jogável está bom.
+- PR #407 foi mesclado na `main` (`ba43de4`), mas é **uma fundação insuficiente**. Você precisa auditar e refazer os sistemas visuais necessários, não apenas alterar uma cor/escala ou criar outra prévia isolada.
+- O trabalho precisa resultar no **jogo realmente jogável**, além da prévia, com roteiro, travessia e ambiente alinhados; não apenas screenshots bonitas.
+
+**ANTES DE QUALQUER ALTERAÇÃO**: ler integralmente `AGENTS.md`, `PROMPT_MESTRE_DO_JOGO.md`, `ARQUITETURA.md`, `docs/narrativa/ato-1-eldoria-roteiro-v1.md`, `docs/OBJETIVO-GALAXIA-1.md`, `docs/eldoria-direcao-artistica-referencias.md`, `docs/eldoria-direcao-artistica-v2.md`, `docs/eldoria-geologia-e-narrativa-ambiental.md`; inspecionar `act1-flow.js`, `prologue-flow.js`, `act1-world-layout.js`, `mundo-3d-prototype.js/html`, `world3d-terrain.js`, `eldoria-*.js`, `tools/visual-lab/`, todos os GLBs/texturas disponíveis; identificar contradições entre documentos: **roteiro Eldória v1 e referências novas do criador prevalecem sobre os marcos antigos quando incompatíveis**. NUNCA reinserir um rascunho oral descartado. Não presumir que o roteiro esteja implementado só porque existe em Markdown.
+
+## 1. Referências e autoridade visual — exigência inegociável
+O usuário já forneceu sete referências ao projeto e **enviará outras imagens a você diretamente**. Localize e abra os arquivos reais — não invente suas aparências. A Biblioteca do projeto foi citada como `Jogo-7-Pecados/Referencias-Ato-1`; verifique acesso. Os nomes catalogados:
+- `1000363694.jpg`: SP AWN / prólogo: **campo ensolarado amplo entre rochas e flores, fora da floresta**, personagem sente isolamento, estrada distante.
+- `1000363692.jpg`: ELDÓRIA: árvore ancestral monumental, casas organicamente integradas à mata, caminhos e pontes; pobreza revelada nos detalhes.
+- `1000363693.jpg`: FLORESTA/LAGO: folhagem em múltiplas camadas, margem viva, água turquesa, troncos e sub-bosque em profundidade, não gramado com árvores espaçadas.
+- `1000363695.jpg`: RITUAL noturno: atmosfera ritualística e enquadramento de tensão sem gore explícito gratuito.
+- `1000363696.jpg`: ENTRADA da caverna incrustada profundamente numa encosta de MONTANHA DENTRO DA FLORESTA, sem portal/rocha soltos.
+- `1000363697.jpg`: CAVERNA cristalina azul monumental, passagens, espaços profundos claros e escuros. Cristais NÃO são cones de geometria primitiva.
+- `1793986649346.jpeg`: horror do arco posterior, NÃO decoração genérica de Eldória.
+As novas fotos/vídeos entregues ao Claude têm prioridade artística adicional nos respectivos lugares. Atribua cada referência a local e plano de câmera; arquive comparações e a matriz de correspondência no GitHub, **NUNCA em mensagem no chat**. NÃO reutilize modelos protegidos de jogos comerciais nem copie pinturas literalmente; converta referências em direção visual original.
+**Regra de aceite >79% (>=80%)**: antes de marcar um local concluído, comparar frame REAL do jogo contra referência do mesmo local e ângulo; atribuir nota auditável 0–100 em: (a) silhueta/composição 25, (b) vegetação/arquitetura/rochas 25, (c) materiais/iluminação/atmosfera 20, (d) escala/profundidade/paralaxe 15, (e) água/movimento/contato/efeitos quando aplicável 15. Ajustar pesos apenas se categoria não se aplicar, justificando no relatório. **Se qualquer local <80/100, reimplementar e repetir teste.** Nota subjetiva é critério interno, não afirmar medida científica ou "80% igual" como fato matemático. O CRIADOR deseja resultado superior às referências quando possível, sem sacrificar estilo ou FPS. Não passar com uma única foto favorável: capturar **câmera real do jogador**, mobile e desktop, ao aproximar, no centro e na saída.
+
+## 2. GEOGRAFIA — mapa maior com jornada real, sem atalhos sem sentido
+Reconstruir a PRIMEIRA REGIÃO DO ATO 1 (não deslocar indiscriminadamente todos os outros atos). Criar mapa topológico/narrativo e coordenadas de zonas; atualizar `world3d-terrain.js`, trilhas, spawn, povoamento, streaming, minimapa, checkpoints, triggers, IA, colisões e distância de visão de modo COERENTE. Não aumentar distâncias só para caminhar vazio; cada trecho deve conter descobertas e ritmo.
+
+**Percurso canônico:**
+1. **PRÓLOGO**: queda no campo ABERTO, isolado, com flores e grandes rochas, brilho suave e vista longa. A FLORESTA NÃO ESTÁ COLADA AO JOGADOR e a cidade NÃO PODE APARECER DO LADO DO SPAWN. Implementar zona de respiro e visadas orientadas para a estrada no horizonte. Controlar floresta no spawn por zonas/biomas, não apenas um círculo de 30 unidades cercado de árvores como anel. Contato de botas com solo, relevo real, qualidade de rochas, luz, som.
+2. Conversa/nome com **Aethraziel** (anjo guia; **Vaelthar** é o mesmo personagem, nome público). Despertar, orientação, encontrar estrada. Preservar personagem, GLB e gameplay já existentes.
+3. **Estrada/Carroça**: Teren, ações com cargas, viagem com deslocamento convincente, ataque dos quatro bandidos humanos motivados pela fome; noite, transição e amanhecer. Época de diálogos naturais e justiça moral, sem teleporte incoerente.
+4. **Chegada real a Eldória** após jornada perceptível: cidade na MATA, mas NÃO logo ao lado do ponto inicial. Construção original densa em detalhes com imagem de referência; ampliação orgânica; habitantes, fonte seca, casas variadas, feira vazia, pontes e marcos altos, barris e mantas, trilhas naturais; contraste BELEZA × PRIVACÃO. Os vendedores/moradores existentes precisam manter propósito e rotinas; adaptar event triggers e NPC positions, não deixá-los numa praça desaparecida.
+5. **Saída da cidade e entrada gradual na FLORESTA DENSA**: transição ecológica entre clareiras, bosques e mata fechada; profundidade e desafios de navegação; rio com corrente, margens, lago/plataformas como descobertas; rastros e inquietação crescentes. Nenhuma floresta aleatória uniformemente espalhada nem um corredor retilíneo de árvores.
+6. **Ritual profundo na mata** e jaulas conforme o roteiro revisado; ambiente interativo, iluminação noturna significativa, tensão; narrativa e escolhas com efeitos reais quando previstas, sem gore exagerado.
+7. **Retorno a Eldória incendiada**: resgate jogável e sobreviventes, não mera cutscene. Manter consequências visíveis e localização coerente com o mapa.
+8. **Longa jornada floresta adentro, subida até montanha**: a **BOCA DA CAVERNA fica PROFUNDA NA FLORESTA CONECTADA À MONTANHA**, não ao lado da cidade nem um GLB solto no chão. Maciço contínuo com erosão, contrafortes, raízes, caminho, horizonte. Distância de travessia significativa com marcos únicos e episódios; evitar inflar extensão sem conteúdo.
+9. **Interior colossal**: catedral natural de rocha, cristais reais com facetas variadas, afloramentos e fissuras, galerias/corredeiras/pontes, celas/mineração e abismos, alternância beleza × claustrofobia/horror, navegação e legibilidade; Ilyan, cativeiro, avanço até Vhazrael e o portal da DIMENSÃO ORIGINAL do bispo. **NÃO recriar nem destruir a dimensão do Primeiro Bispo, não alterar seus GLBs/skills sem necessidade.**
+10. Encerrar Ato 1 no ponto narrativo previsto; só então Ato 2 na região vulcânica, sem confundir com o início de Eldória.
+
+**NADA DE CIDADE NO SPAWN**, e não mover somente uma casa para longe deixando NPCs, caminhos, lojas, missões, inimigos e checkpoints para trás. Registrar e migrar referências espaciais; coordenadas em módulos de dados de mundo e transformação compartilhada por todos os sistemas, com testes para caminho completo jogável e retornos.
+
+## 3. FLORESTA — densidade imersiva SEM quedas de FPS
+A floresta atual é espaçada e genérica. A direção correta é um bioma com copas sobrepostas, múltiplos estratos e profundidade real:
+- Estrato alto: árvores ancestrais enormes, silhuetas únicas, raízes tabulares, galhos e copas irregulares; não usar cones, cilindros/bolas idênticas, padrão grid, rotação repetitiva ou clones reconhecíveis.
+- Estrato médio: árvores secundárias de espécies contrastantes, troncos curvos, ramos, folhagem com translucência controlada.
+- Estrato baixo: samambaias, arbustos, cipós, musgos, fungos, flores, raízes e serapilheira distribuídos por umidade/luz/altitude/inclinação; densidade ecológica não significa empilhar malhas caras.
+- Planos: chão em primeiro plano, sub-bosque médio, copas ao fundo, névoa por profundidade, relevo real; luz dappled filtrada e sombras selecionadas. Trilhas reconhecíveis e pequenas clareiras de descanso/prospecto, sem transformar mata em jardim espaçado.
+- Variar biomas de transição: pradaria spawn -> campos e estrada -> Eldória enraizada -> mata iluminada -> mata úmida densa -> encosta sombria -> caverna.
+- Instancing/mesh batching, clusters com LOD, frustum+distance culling, baixa geometria para fundo, áudio e movimento perceptual de folhas; jamais "FPS alto" só porque reduz draw calls. Distinguir overdraw de transparência, custo de sombra, pico de compilação, uso de VRAM.
+- Se faltar GLB: **CRIAR NOVOS ASSETS 3D ORIGINAIS com Blender/scripts procedurais e exportação glTF/GLB**, incluindo UV/texturas/LOD e colisões simples; evitar placeholder. Não limitar criatividade ao inventário atual. Assets precisam ser versionados no repo (se a licença permitir e tamanho for viável) e carregados de fato.
+
+## 4. ÁGUA — refazer totalmente o rio e lago
+O rio atual NÃO tem qualidade nem movimento percebido. Um plano azul/ruído animado não basta. Implementar geografia de bacia e seção do rio sobre curva contínua em terreno; largura, profundidade, bancos, afluentes, pedras de leito, poças, corredeiras, vãos de ponte e margens erosivas/vegetadas.
+- Escoamento animado **na direção tangente do canal** usando `flow map`/campo de velocidade associado à curva, advectando normals, perturbações/ondas e espuma de colisão; variações por velocidade, curva e obstáculos. Evitar deslizar toda a textura de modo uniforme.
+- Fazer ilusão de refração e translucidez/profundidade controlada, realce Fresnel e acoplamento à margem, sem SSR obrigatório no celular. Caústicas APENAS se perf/custo permitir. Espuma local nas pedras, saltos e curvas; nada de borda branca contínua tipo anel.
+- Testar MOVIMENTO EM VÍDEO ou frames com timestamps diferentes, não só screenshot estática; olhar direção da corrente em curvas, fluxo junto a pedras, margem, atravessamento e correlação de altura terreno/água.
+- Lago deve parecer parte do ecossistema e da bacia, não disco turquesa de tinta no gramado. Rio e lago podem diferir em turbulência, velocidade, profundidade e cor.
+- Use curve-based mesh + flow map com shaders GPU econômicos, sem depender de pós-processamento pesado.
+
+## 5. CIDADE — reconstrução arquitetônica, encaixe e emoção
+NÃO aceitar casas genéricas vistas ao longe nem modelos mal apoiados no terreno. Para cada GLB: validar eixos Y-up, escala real, origem, pivô, unidades, bbox, piso/portas/janelas, profundidade, orientação, normals, material PBR, textura e pés de apoio. Assentamento com inclinação controlada do terreno/fundação, colisor coerente e rocha/escadaria quando houver diferença de nível. Nenhuma casa levitando, cortando árvores, mercado sobreposto nem porta enterrada.
+- Conjunto urbano irregular com praça, vielas, ponte, barranco, rio e diferentes cotas, telhados/casas com identidade própria, fachadas orgânicas e detalhes não clonados. Reutilização limitada de silhuetas hero e variação procedural legítima; casas não precisam ficar uniformemente centralizadas em um círculo.
+- Narrativa por vestígios: fonte seca, estoque confiscado, utensílios limpos mas vazios, remendos, portas protegidas, uma tigela repartida, rastros de interrupção do trabalho, sinais concretos de que alguém tenta preservar dignidade apesar da fome. **Pobreza não é "decoração de horror".** Pessoas têm rotina, escolhas, gestos e nome; pistas visuais antecedem exposição textual.
+- A primeira vista da cidade precisa causar encanto (luz, formas, profundidade e unidade visual). A aproximação revela escassez e silêncio; interações revelam responsabilidade moral. Não saturar a cena de cadáveres, placas explicativas ou aura dramática.
+- Substituir **apenas os componentes genéricos antigos** de VilaKit, bancas primitivas, disco da vila e decorações inadequadas. Não remover lojas funcionais, portais, saves, triggers, HUD, NPCs nem quebrar o resto do jogo.
+- Avaliar pelo menos: chegada, porta de casa, mercado, praça, via para floresta, vista do rio; no retrato Android e no desktop.
+
+## 6. CAVERNA — arquitetura mineral, NÃO cones
+A caverna atual usa `CylinderGeometry`, `ConeGeometry`, instâncias de prismas repetidos e "sprites de brilho" sem formas naturais. A geometria pode usar polígonos, porém **não pode parecer CONE**, pirâmide genérica ou catedral feita de primitivas soltas.
+- Investigar mineralogia de gipsita/selenita (Naica) como princípio de crescimento (não copiar local literalmente): cristais prismáticos hexagonais com faces/bordas, fraturas, inclusões, transparência parcial simulada, diferentes ângulos e agrupamentos geologicamente plausíveis; crostas minerais, sedimentos e estratos realmente ligados à rocha.
+- Escala: teto monumental irregular e câmara reconhecível à distância, plataformas/dutos e morfologia 3D contínua de montanha interior; grotões e túneis escuros ligados espacialmente, não "caverna em outra coordenada isolada" disfarçada.
+- Luz de cristais com emissive seletivo, luz rebatida falsa econômica, volume sugerido por fog de distância e partículas discretas. Não aumentar point lights indiscriminadamente. Estrutura de sombras físicas e contraste; nada estourado nem local invisível.
+- Detalhes de prisão/exploração ligados à história: trilho de transporte, marcas de trabalho, ferramentas quebradas, registros, cela selada, aberturas e ecos, gotas de água com som posicional. JORNADA EMOCIONAL: encantamento -> curiosidade -> desconforto -> ameaça -> compaixão/responsabilidade -> esperança custosa.
+- Faça assets novos se necessário, não force geometric primitives a fingirem artes finais. Garanta navegação, colisão, NPC Ilyan e ligações com portal/dimensão (sem mudar dimensão existente).
+
+## 7. PSICOLOGIA E NARRATIVA: técnica para criar emoções, não manipulação
+Leia o roteiro v1 inteiro. O tom é fantasia sombria, mas **emoções vêm de vínculo, agência, contexto e consequências**, não de explosões, choques gratuitos nem monólogos grandiloquentes:
+- Padrão espacial: segurança/prospecto no campo de spawn -> curiosidade da estrada -> admiração urbana -> empatia e inquietação -> mata como mistério e desorientação CONTROLADA -> horror do ritual -> silêncio e luto -> esperança com resgate -> suspense na subida -> maravilha da caverna -> sensação de aprisionamento -> conflito moral.
+- Câmera e composição usam revelação gradual e landmarks; travessia deve orientar sem seta obrigatória: árvore monumental, sinuosidade do rio, abertura entre rochas, crista e boca da caverna. Alternar perspectiva aberta e íntima, sem perder orientação.
+- Aumente tensão por contraste de espaço, ritmo, áudio e consequência, não pela quantidade de sustos. Deixe períodos de silêncio e escolha, com atenção a acessibilidade e avisos apropriados.
+- Aethraziel / Vaelthar: mesmo personagem. Teren (cocheiro), Osren (vendedor) e Ilyan (prisioneiro) conforme roteiro canônico v1. Vhazrael, primeiro Bispo ligado à Ganância, **não** confundir com Vorgazhek (segundo Bispo).
+- Os vínculos precisam existir antes das perdas. No ritual, não transformar o sofrimento infantil em espetáculo gráfico; assegurar ações com consequência e honestidade da narrativa. O resgate na cidade atacada é JOGÁVEL e deixa sobreviventes.
+- Para cada local, registrar a emoção/intenção e como cena, ação, som, caminho e narrativa a comunicam. Validar com testes de observação/playtesting quando possível, não afirmar que a psicologia prova emoção universal.
+
+## 8. INVESTIGAÇÃO TÉCNICA — 10–20 FPS NÃO É ACEITÁVEL
+Antes de redesenhar o mundo: instrumentar tempos CPU/GPU acessíveis, frametime, 1% low, render.calls, triângulos, drawcalls, memória JS, contagem de malhas/instâncias, número de point lights e sombras, tamanho de texturas, tamanho dos GLBs, shader compilation, overdraw de transparências, alocação durante gameplay e streaming.
+- Usar perf do jogo REAL durante jornada em Android (perfil do Samsung A55 do criador quando acessível via teste real) + emulador/Chromium como diagnóstico adicional. **Não dizer "Android testado" se só executou SwiftShader**.
+- Diagnosticar gargalo por área e transição, particularmente ao entrar na cidade, no rio e na floresta. Comparar baseline pré-refatoração, implementação e pós-correções com mesmas configurações/câmera. Medir aquecimento/frames sustentados se aparelho físico estiver disponível.
+- Alvos iniciais de produto (não garantias): **>=30 FPS sustentados no Android de referência em percurso real**, ideal 45–60 na qualidade ajustada; 1% low e picos de frame também precisam melhorar. Se aparelho não estiver disponível, NÃO declarar que atingiu metas. Definir perf budgets por dispositivo, qualidade auto+manual sem jitter, sombras, LOD, resolução interna, render distance, streaming por área, descarte recursos e instancing com culling.
+- Carregar conteúdo por proximidade e zonas, sem 100+ GLBs bloqueando o spawn. Pré-carregar assets de caminho próximo; memória limitada com `dispose` seguro, cache e referências; não criar/destruir geometria toda frame. Sem 100 point lights / dezenas de draw calls transparentes num plano inteiro.
+- Profundidade perceptiva pode ser conquistada com ART DIRECTION, 3 a 5 camadas de vegetação, LOD, nebulosidade e áudio, não necessariamente alta densidade geométrica perto da câmera.
+
+## 9. PESQUISA TÉCNICA E ACADÊMICA — aplique em código
+Pesquisar de verdade antes de cada sistema e registrar os achados úteis em `docs/eldoria/implementacao-pesquisa.md` (poucos parágrafos por técnica, fonte e compromisso de performance). FONTES INICIAIS verificáveis:
+1. GDC, Harvey Smith / Matthias Worch, Environmental Storytelling: https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental
+2. GDC level design roundtable (composição, landmarks e movimento): https://www.gamedeveloper.com/design/gdc-2018-level-design-workshop-an-expert-roundtable-q-a
+3. Kaplan & Kaplan, *The Experience of Nature*, legibilidade/mistério: https://www.hse.ru/data/2019/03/04/1196348207/%5BRachel_Kaplan%2C_Stephen_Kaplan%5D_The_Experience_of_%28b-ok.xyz%29.pdf
+4. Meta-analysis preference/mystery/coherence (efeitos heterogêneos, NÃO regra psicológica rígida): https://www.sciencedirect.com/science/article/pii/S0272494403000239
+5. Prospect-refuge meta-analysis (resultados mistos): https://link.springer.com/article/10.1186/s40410-016-0033-1
+6. GDC, storytelling espacial: https://www.worch.com/files/gdc/Player_Stories_Designer_Stories.pdf
+7. Godot Waterways: river mesh along curves + flow/foam maps (adaptar conceito a Three.js): https://godotengine.org/asset-library/asset/805
+8. Unreal HLOD e instancing (conceito aplicável em glTF/Three.js): https://dev.epicgames.com/documentation/unreal-engine/world-partition---hierarchical-level-of-detail-in-unreal-engine
+9. Meta GPUOpen, custo de translucidez/folhagem/overdraw: https://gpuopen.com/learn/unreal-engine-performance-guide/
+10. Three.js: https://threejs.org/docs/#api/en/objects/InstancedMesh , https://threejs.org/manual/#en/optimize-lots-of-objects , https://threejs.org/manual/#en/shadows
+11. Cristais de Naica, propriedades reais de cristalização: https://www.nationalgeographic.com/science/article/photos-mexico-cave-of-crystals
+Pesquisar literatura adicional sobre wayfinding em florestas, coerência espacial, dinâmica da água, distribuição de espécies, técnicas de modelagem geológica e soundscape. Não copiar obras, shaders fechados, imagens de Pinterest ou assets sem licença.
+
+## 10. PROCESSO DE EXECUÇÃO COM PORTAS REAIS (NÃO SÓ PROMPTS)
+1. Abrir branch nova a partir da `main` para a reconstrução; criar uma issue/task checklist no GitHub ou docs. **Não editar `main` diretamente**; sem force push.
+2. Auditoria atual: reproduzir 10–20 FPS se puder, inspecionar screenshot da cena ruim e registrar rastros de perf; mapear artefatos, loaders, geometria, colisão, NPCs, diálogos e ordenação das áreas. Compare screenshot atual vs usuário, classifique falhas por impacto.
+3. Corrigir estrutura MAPA/SPAWN primeiro, com jornada e biomas coerentes + tráfego/carroça; garantir que o usuário não veja cidade ou floresta pegada ao spawn.
+4. Refazer o núcleo da cidade e interação; validar aterramento das casas e triggers; duplicações dos GLBs, material e animações. Apagar primitivas antigas só depois de migrar dependências com testes.
+5. Floresta **densa** com biomas e caminho funcional, sem aumentar FPS para pior; água de corrente visível, lago com margem e fluxo.
+6. Ritual/cidade queimada, montanha e caverna PROFUNDA, interior e dimensão já existente; implementar eventos do roteiro canônico em marcos coerentes sem inventar outro enredo.
+7. Executar testes reais do gameplay: spawn->carroça->cidade->mata->ritual->resgate->montanha->caverna->Vhazrael; câmera e input Android, PC, HUD, colisão, FPS, GLB, carregamento, saves, checkpoints, quests e retorno sem softlock.
+8. Executar `node --test` relevante, workflows CI, agentes Playwright, capturas em mobile+desktop. Criar **comparações no GitHub/artefatos** referenciadas, não anexar fotos ao chat. Para cada área e nova referência aplicar o score rubric >=80, refazer se abaixo, e registrar justificativa.
+9. Abrir PR com commits claros, benchmarks honestos, lista de regressões, locais e arquivo de comparativo; merge **somente após CI e QA aprovados e validação apropriada**, sem depender de aprovar apenas testes estáticos. Não confundir mera página de estudo com conteúdo jogável. Evitar fazer merge destrutivo sem revisão.
+10. **ÚLTIMO ATO**: após código/QA/PR concluídos, remover `CLAUDE_EXECUTAR_ELDORIA_E_APAGAR_AO_FINAL.md` por commit no branch/PR correspondente (ou commit separado de limpeza depois de integração aprovada). Enquanto houver execução pendente, manter arquivo acessível.
+
+## 11. O que é inaceitável
+Proibido: cones "cristais", bosque ralo com árvores sem contato, rio azul parado, "cidade" com casas sobrepostas/boiando, spawn olhando diretamente uma cidade, mapa longo vazio, luz exagerada para esconder a forma ruim, desligar sombras indiscriminadamente e chamar de otimização, dizer "60 FPS" sem benchmark, mexer em bosses/skills sem necessidade, reescrever a história sem consultar o roteiro, tornar sofrimento de crianças decorativo, mudar NPC sem alterar triggers, prometer resultado sem implementação, enviar imagens ou textões ao chat.
+
+**ORDEM FINAL AO CLAUDE:** leia e execute; receba as referências adicionais do criador e use-as para a comparação obrigatória. Trabalhe SILENCIOSAMENTE. Escreva TODA a prova no GitHub. Exclua ESTE arquivo SOMENTE depois de terminar e verificar tudo. Responda EXATAMENTE **`CONCLUIDO`** se realmente estiver pronto.
