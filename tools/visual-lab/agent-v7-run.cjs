@@ -5,7 +5,7 @@ const {inspectFile}=require("./agent-v7-glb-audit.cjs");
 const root=path.resolve(__dirname,"../..");
 const out=path.resolve(process.env.VISUAL_OUTPUT||"visual-lab-results","agente-v7");
 fs.mkdirSync(out,{recursive:true});
-const files=cp.execFileSync("git",["ls-files","--","*.glb"],{cwd:root,encoding:"utf8",timeout:20000}).split(/\r?\n/).filter(Boolean);
+const files=cp.execFileSync("git",["ls-files","-z","--","*.glb"],{cwd:root,encoding:"utf8",timeout:20000}).split("\0").filter(Boolean);
 const limit=+(process.env.GLB_AUDIT_MAX_MB||50)*1024*1024;
 const results=[];
 for(const file of files){
