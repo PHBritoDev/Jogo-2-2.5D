@@ -177,7 +177,7 @@ export function buildAxis(fineHalf, fineCell, outerSteps, growth) {
 }
 
 /** Gera posições, cores e índices do terreno. */
-export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, fineHalfZ = fineHalf, fineCell = 2, outerSteps = 40, growth = 1.075 } = {}) {
+export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, fineHalfZ = fineHalf, fineCell = 2, outerSteps = 40, growth = 1.075, holes = [] } = {}) {
   const ax = buildAxis(fineHalf, fineCell, outerSteps, growth).map(v => v + cx);
   const az = buildAxis(fineHalfZ, fineCell, outerSteps, growth).map(v => v + cz);
   const nx = ax.length, nz = az.length;
@@ -191,10 +191,42 @@ export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, 
   for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
     const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
     // Alterna a diagonal para não criar serrilhado direcional nas encostas.
+    // Mod 291: células cobertas por um retalho fino (prado do prólogo) saem da malha principal.
+    if (holes.length) { const mx = (ax[i] + ax[i + 1]) * .5, mz = (az[j] + az[j + 1]) * .5; if (holes.some(h => mx > h.x0 && mx < h.x1 && mz > h.z0 && mz < h.z1)) continue; }
     if ((i + j) & 1) { indices[t++] = a; indices[t++] = c; indices[t++] = b; indices[t++] = b; indices[t++] = c; indices[t++] = d; }
     else { indices[t++] = a; indices[t++] = c; indices[t++] = d; indices[t++] = a; indices[t++] = d; indices[t++] = b; }
   }
-  return { positions, indices, nx, nz, ax, az };
+  return { positions, indices: t < indices.length ? indices.slice(0, t) : indices, nx, nz, ax, az };
+}
+
+/**
+ * Mod 291 — retalho de terreno com células finas para uma região fora da grade fina principal
+ * (o prado da queda e a estrada de Teren ficam ao sul). Usa a MESMA função de altura; a borda
+ * encostada na malha principal compartilha os vértices e as outras bordas ganham uma saia para
+ * esconder frestas de T-junction nas encostas.
+ */
+export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt = 4, skirtEdges = ['x0', 'x1', 'z1'] } = {}) {
+  const nx = Math.round((x1 - x0) / cell) + 1, nz = Math.round((z1 - z0) / cell) + 1;
+  const pos = [], idx = [];
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const x = x0 + i * cell, z = z0 + j * cell; pos.push(x, terrain.height(x, z), z); }
+  for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+    if ((i + j) & 1) idx.push(a, c, b, b, c, d); else idx.push(a, c, d, a, d, b);
+  }
+  const edge = (name) => {
+    const ids = [];
+    if (name === 'x0') for (let j = 0; j < nz; j++) ids.push(j * nx);
+    if (name === 'x1') for (let j = nz - 1; j >= 0; j--) ids.push(j * nx + nx - 1);
+    if (name === 'z0') for (let i = nx - 1; i >= 0; i--) ids.push(i);
+    if (name === 'z1') for (let i = 0; i < nx; i++) ids.push((nz - 1) * nx + i);
+    return ids;
+  };
+  for (const name of skirtEdges) {
+    const ids = edge(name), base = pos.length / 3;
+    for (const id of ids) pos.push(pos[id * 3], pos[id * 3 + 1] - skirt, pos[id * 3 + 2]);
+    for (let k = 0; k < ids.length - 1; k++) { const a = ids[k], b = ids[k + 1], c = base + k, d = base + k + 1; idx.push(a, b, c, b, d, c, a, c, b, b, c, d); }
+  }
+  return { positions: new Float32Array(pos), indices: new Uint32Array(idx), nx, nz };
 }
 
 /** Paleta por altitude/inclinação. normals: Float32Array alinhado às posições. */
