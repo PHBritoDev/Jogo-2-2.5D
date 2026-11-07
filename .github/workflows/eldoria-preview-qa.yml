@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'eldoria-cenario-preview.html'
+      - 'eldoria-live-village3d.js'
+      - 'mundo-3d-prototype.js'
       - 'eldoria-scene-details.js'
       - 'eldoria-asset-plan.js'
       - 'eldoria-light-water.js'
