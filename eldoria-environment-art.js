@@ -123,6 +123,48 @@ fountain.position.set(1.5,height(1.5,-41.5)+.05,-41.5);
   arch.position.set(x,height(x,z)+.12,z);arch.rotation.y=rotation;
   arch.receiveShadow=true;scene.add(arch);counts.arches++;
  }
+
+ // Margens do lago: colchões musgosos, folhagens aquáticas e transição fina.
+ // A água central continua livre, criando pausa visual entre árvores densas.
+ const shoreRocks=[],pads=[];
+ for(let i=0;i<58;i++){
+   const angle=i*Math.PI*2/58;
+   const contour=1+.075*Math.sin(angle*5+.4)+.036*Math.sin(angle*11-1.2);
+   const radius=1.035+rand(i,117)*.30;
+   const x=-42+Math.cos(angle)*14.8*contour*radius;
+   const z=24+Math.sin(angle)*10.8*contour*radius;
+   const scale=.4+rand(i,38)*.75;
+   shoreRocks.push({x,z,y:height(x,z)+scale*.17,
+     sx:scale*1.4,sy:scale*.36,sz:scale});
+ }
+ for(let i=0;i<15;i++){
+   const angle=rand(i,67)*Math.PI*2,r=.22+rand(i,127)*.58;
+   const x=-42+Math.cos(angle)*14.8*r,z=24+Math.sin(angle)*10.8*r;
+   const scale=.23+rand(i,87)*.33;
+   pads.push({x,z,y:-.917,rotation:angle,sx:scale,sy:.025,sz:scale*.75});
+ }
+ batch(new THREE.IcosahedronGeometry(1,0),mat(0x637950),shoreRocks);
+ batch(new THREE.CylinderGeometry(1,1,1,8),mat(0x517f50,{side:THREE.DoubleSide}),pads);
+ counts.shoreRocks=shoreRocks.length;counts.lilyPads=pads.length;
+ // Linha de espuma discreta que acompanha o contorno real do lago.
+ const foamPositions=[],foamTriangles=[];
+ for(let i=0;i<=96;i++){
+   const a=i/96*Math.PI*2;
+   const contour=1+.075*Math.sin(a*5+.4)+.036*Math.sin(a*11-1.2);
+   for(const r of [.965,1.012]){
+     foamPositions.push(-42+Math.cos(a)*14.8*contour*r,-.915,
+       24+Math.sin(a)*10.8*contour*r);
+   }
+   if(i>0){const j=(i-1)*2;foamTriangles.push(j,j+1,j+2,j+1,j+3,j+2);}
+ }
+ const foamGeo=new THREE.BufferGeometry();
+ foamGeo.setAttribute('position',new THREE.Float32BufferAttribute(foamPositions,3));
+ foamGeo.setIndex(foamTriangles);foamGeo.computeVertexNormals();
+ const foam=new THREE.Mesh(foamGeo,new THREE.MeshBasicMaterial({
+   color:0xb2e3cf,transparent:true,opacity:.24,depthWrite:false,
+   side:THREE.DoubleSide
+ }));
+ foam.renderOrder=2;scene.add(foam);
  // Raízes de apoio ao redor de troncos ancestrais, sem alterar os GLBs.
  const roots=[];
  for(const [cx,cz,radius] of [[55,-36,6.1],[-53,-28,5.7]]){
