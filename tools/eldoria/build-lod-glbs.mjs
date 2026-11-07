@@ -38,7 +38,15 @@ for (const [file, ratio] of LOD_PLAN) {
   }
   for (const t of doc.getRoot().listTextures()) t.dispose();
   for (const m of doc.getRoot().listMaterials()) { m.setBaseColorTexture(null); m.setNormalTexture(null); m.setMetallicRoughnessTexture(null); m.setOcclusionTexture(null); m.setEmissiveTexture(null); }
-  await doc.transform(prune(), dedup());
+  // Retirar as texturas do arquivo LOD evita duplicar imagens no download, mas NÃO
+  // podemos retirar TEXCOORD_0: o runtime reutiliza material/textura do LOD0.
+  // prune() sem keepAttributes remove UVs tidas como não utilizadas após remover mapas.
+  await doc.transform(prune({ keepAttributes: true }), dedup());
+  for (const mesh of doc.getRoot().listMeshes()) for (const prim of mesh.listPrimitives()) {
+    if (prim.getAttribute('POSITION') && !prim.getAttribute('TEXCOORD_0')) {
+      throw new Error('LOD sem TEXCOORD_0: ' + file + ' — não publicar sem UVs');
+    }
+  }
   await io.write(out, doc);
   console.log(file, before, '->', count(doc));
 }
