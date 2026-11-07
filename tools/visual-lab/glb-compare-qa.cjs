@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("node:fs"),path=require("node:path"),sharp=require("sharp");
 const {chromium}=require("playwright");
-const files=["ArvoreAncestralEldoria.glb","CasaEldoria01.glb","CasaEldoria02.glb","Carroça.glb","RochedoMusgoEldoria.glb"];
+const files=(process.env.GLB_COMPARE_FILES||"ArvoreAncestralEldoria.glb,CasaEldoria01.glb,CasaEldoria02.glb,Carroça.glb,RochedoMusgoEldoria.glb").split(",").map(s=>s.trim()).filter(Boolean);
 const root=path.resolve(__dirname,"../..");
 const out=path.join(root,"visual-lab-results","glb-visual-qa");
 const origin=path.join("visual-lab-results","glb-originals");
