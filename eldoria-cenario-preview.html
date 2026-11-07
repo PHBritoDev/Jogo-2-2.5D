@@ -65,7 +65,15 @@ ridgeMesh.receiveShadow=false;scene.add(ridgeMesh);
 const water=createEldoriaWater(THREE,{lowSpec});
 const waterPoints=[],waterIdx=[];for(let i=0;i<stream.length-1;i++){const a=new THREE.Vector2(...stream[i]),b=new THREE.Vector2(...stream[i+1]);for(let j=0;j<12;j++){const t=j/12,px=THREE.MathUtils.lerp(a.x,b.x,t),pz=THREE.MathUtils.lerp(a.y,b.y,t);const dir=b.clone().sub(a).normalize(),normal=new THREE.Vector2(-dir.y,dir.x);for(const sign of [-1,1])waterPoints.push(px+normal.x*sign*3.15,-.55,pz+normal.y*sign*3.15);}}const end=stream[stream.length-1],prev=stream[stream.length-2],dir=new THREE.Vector2(end[0]-prev[0],end[1]-prev[1]).normalize(),norm=new THREE.Vector2(-dir.y,dir.x);for(const sign of [-1,1])waterPoints.push(end[0]+norm.x*sign*3.15,-.55,end[1]+norm.y*sign*3.15);for(let i=0;i<waterPoints.length/3/2-1;i++){let a=i*2;waterIdx.push(a,a+2,a+1,a+1,a+2,a+3);}const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(waterPoints,3));wg.setIndex(waterIdx);wg.setAttribute('uv',new THREE.Float32BufferAttribute(waterPoints.filter((_,i)=>i%3!==1).map(v=>v*.02),2));wg.computeVertexNormals();const riverMesh=new THREE.Mesh(wg,water.river);riverMesh.receiveShadow=false;scene.add(riverMesh);
 // Lago oculto: água azul-clara, clareira e rochedos musgosos conforme referência 1000363693.jpg.
-const pondWater=new THREE.Mesh(new THREE.CircleGeometry(1,64),water.lake);pondWater.rotation.x=-Math.PI/2;pondWater.scale.set(14.8,10.8,1);pondWater.position.set(-42,-.95,24);pondWater.renderOrder=1;scene.add(pondWater);
+const pondGeometry=new THREE.CircleGeometry(1,96);
+const pondVerts=pondGeometry.attributes.position;
+for(let i=1;i<pondVerts.count;i++){
+ const x=pondVerts.getX(i),y=pondVerts.getY(i),a=Math.atan2(y,x);
+ const contour=1+.075*Math.sin(a*5+.4)+.036*Math.sin(a*11-1.2);
+ pondVerts.setXY(i,x*contour,y*contour);
+}
+pondVerts.needsUpdate=true;pondGeometry.computeVertexNormals();
+const pondWater=new THREE.Mesh(pondGeometry,water.lake);pondWater.rotation.x=-Math.PI/2;pondWater.scale.set(14.8,10.8,1);pondWater.position.set(-42,-.95,24);pondWater.renderOrder=1;scene.add(pondWater);
 const groundMat=new THREE.MeshStandardMaterial({color:0xc3ab78,roughness:1});
 function path(points,width=3){
  // Malha seguindo as elevações locais: sem faixas retas flutuando ou soterradas.
