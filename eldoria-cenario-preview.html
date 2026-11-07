@@ -10,7 +10,7 @@
 #warning{position:fixed;top:90px;left:10px;right:10px;text-align:center;font-size:11px;color:#fce8ce;text-shadow:0 1px 4px #000}#stats{position:fixed;top:112px;right:10px;background:#081e19d9;padding:9px 11px;border-radius:10px;font:11px monospace;pointer-events:none;white-space:pre-line}#stats[hidden]{display:none}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script></head>
-<body><div id="hud"><section><strong>ELDÓRIA</strong><small>Estudo visual do Ato 1 · cenário isolado</small><small id="location-heading">Estrada da chegada</small><small id="status">Carregando modelos reais…</small></section><div id="view"><button data-place="chegada">Entrada</button><button data-place="cidade">Cidade 1</button><button data-place="aguas">Rio</button><button data-place="lago">Lago</button><button data-place="floresta">Floresta</button><button data-place="ritual">Ritual</button><button data-place="caverna">Caverna</button><button id="time-toggle" aria-pressed="false" type="button">Noite</button><button id="stats-toggle" aria-pressed="false" type="button">FPS</button></div></div><div id="warning"></div><div id="help">Arraste para girar · toque com dois dedos para aproximar · botões alternam o ponto de vista. Não altera o jogo original.</div>
+<body><div id="hud"><section><strong>ELDÓRIA</strong><small>Estudo visual do Ato 1 · cenário isolado</small><small id="location-heading">Estrada da chegada</small><small id="status">Carregando modelos reais…</small></section><div id="view"><button data-place="chegada">Entrada</button><button data-place="cidade">Cidade 1</button><button data-place="aguas">Rio</button><button data-place="lago">Lago</button><button data-place="floresta">Floresta</button><button data-place="ritual">Ritual</button><button data-place="caverna">Caverna</button><button data-place="interior">Cristais</button><button data-place="abismo">Abismo</button><button id="time-toggle" aria-pressed="false" type="button">Noite</button><button id="stats-toggle" aria-pressed="false" type="button">FPS</button></div></div><div id="warning"></div><div id="help">Arraste para girar · toque com dois dedos para aproximar · botões alternam o ponto de vista. Não altera o jogo original.</div>
 <div id="stats" hidden></div><script type="module">
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -19,6 +19,7 @@ import {ELDORIA_ZONES,ELDORIA_ASSETS,assetsForStage} from './eldoria-asset-plan.
 import {createEldoriaLighting,createEldoriaWater} from './eldoria-light-water.js';
 import {buildEldoriaArt} from './eldoria-environment-art.js';
 import {createEldoriaCanopy} from './eldoria-forest-canopy.js';
+import {buildEldoriaCrystalCavern} from './eldoria-crystal-cavern.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xafd2c9);scene.fog=new THREE.FogExp2(0xaed2c4,.0029);
 const camera=new THREE.PerspectiveCamera(57,innerWidth/innerHeight,.1,900);
 
@@ -107,6 +108,7 @@ function path(points,width=3){
 path([[5,-115],[1,-94],[-3,-76],[3,-62],[6,-45],[10,-30],[6,-10]],4.4);path([[-20,-46],[-8,-44],[7,-43],[24,-39],[32,-32]],3.8);path([[6,-43],[22,-47],[46,-59],[66,-83]],3);
 const details=buildEldoriaDetails(THREE,scene,{height,streamDistance,rand,lowSpec,pondSdf});
 const artistic=buildEldoriaArt(THREE,scene,{height,streamDistance,pondSdf,rand,lowSpec});
+const cavern=buildEldoriaCrystalCavern(THREE,scene,{lowSpec});
 const material=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:1});
 const trunkMat=material(0x61533e),leafMat=[0x9cc879,0x79b86e,0xb0d58d].map(color=>new THREE.MeshStandardMaterial({color,vertexColors:true,roughness:1,flatShading:false}));
 const {trunk:tg,canopy:cg}=createEldoriaCanopy(THREE);
@@ -167,10 +169,12 @@ loadStage('core');
 let target=new THREE.Vector3(...ELDORIA_ZONES.chegada.target),yaw=.42,pitch=.34,distance=64;const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function view(name){
  const info=ELDORIA_ZONES[name];if(!info)return;
+ const inCavern=name==='interior'||name==='abismo';cavern.setVisible(inCavern);
  target.set(...info.target);distance=name==='cidade'?36:info.distance;yaw=name==='cidade'?.12:name==='aguas'?.55:name==='lago'?.55:name==='caverna'?Math.PI:.42;pitch=name==='cidade'?.34:name==='lago'?.18:name==='caverna'?.20:.40;lighting.focus(info.target[0],info.target[2],true);
  document.querySelectorAll('button[data-place]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.place===name)));
  if(name==='ritual'||name==='caverna')loadStage(name);
- if(name==='ritual')setNight(true);
+ if(name==='ritual'||inCavern)setNight(true);
+ if(inCavern){scene.fog.density=.0008;renderer.toneMappingExposure=1.35;}
  document.getElementById('location-heading').textContent=info.heading;
 }
 document.querySelectorAll('button[data-place]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.place)));view('chegada');
@@ -184,6 +188,7 @@ window.EldoriaVisualQA=Object.freeze({
     waterRiverShader:!!water.river.userData.waterUniforms,
     waterLakeShader:!!water.lake.userData.waterUniforms,
     waterTime:water.river.userData.waterUniforms.time.value,
+    cavernVisible:cavern.group.visible,cavernCrystals:cavern.stats.crystals,
     camera:[camera.position.x,camera.position.y,camera.position.z],night
   })
 });
