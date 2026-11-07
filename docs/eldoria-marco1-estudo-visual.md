@@ -44,3 +44,13 @@ A chegada deve mostrar a beleza natural antes da pobreza. No mercado, revelar fe
 **Critério de aprovação:** nenhum modelo flutuando ou soterrado, ruas legíveis e transitáveis, ponte encaixada nas margens, rio/lago sem cortes evidentes, 0 falhas de GLB, medição de FPS/draw calls no celular e inspeção das sete referências. A composição atual ainda é **estudo de escala/posicionamento**, não cenário final.
 
 **Limitação:** uma página de prévia que carrega não prova fidelidade estética, FPS em celular, sucesso de GLB ou colisão. Não mesclar em `main` antes de inspecionar.
+
+## Marco 1.3 — Iluminação e água (implementado na branch do PR #407)
+- `eldoria-light-water.js` implementa sol único com shadow mapping PCFSoft: mapa 1024² em perfil de toque e 2048² em desktop; frustum focado no ponto de interesse e atualização de sombras apenas quando há mudança de região, iluminação ou GLB carregado.
+- Terreno recebe sombras; no mobile casas do tipo 01 e árvores ancestrais projetam sombras, enquanto vegetação pequena não projeta. Desktop permite mais objetos de cenário projetando sombra. O limite continua sujeito a medição no dispositivo.
+- Água do rio e lago usam materiais PBR separados (Standard para mobile e Physical com clearcoat para desktop), normais procedurais leves e ondas vertex GPU distintas para rio e lago. Nenhuma reflexão via render target a cada quadro.
+- Normal map gerado localmente em memória sem download extra. UVs foram adicionadas ao rio. O lago ondula no eixo normal de sua malha rotacionada, não horizontalmente.
+- Ambiente PMREM de baixa resolução somente na versão desktop para reflexo especular aproximado; não há reflexo em tempo real de casas/árvores. Isso é intencional para custo GPU razoável.
+- Dia/noite regula temperatura, intensidade da luz e exposição; só o sol gera sombras.
+- Pesquisa técnica: [Three.js shadows](https://threejs.org/manual/pages/shadows.html), [Color Management](https://threejs.org/manual/pages/color-management.html), [WebGLRenderer](https://threejs.org/docs/pages/WebGLRenderer), [PMREMGenerator](https://threejs.org/docs/pages/PMREMGenerator).
+- **Não equivale a validação visual ou benchmark Android.** É obrigatório revisar foco de sombras, clipping da água, reflexos, materiais e FPS antes da integração à main.
