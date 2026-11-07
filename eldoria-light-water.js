@@ -94,10 +94,17 @@ export function createEldoriaWater(THREE,{lowSpec}){
       shader.uniforms.uEldoriaAmplitude=uniforms.amplitude;
       shader.vertexShader=shader.vertexShader.replace(
         '#include <common>',
-        '#include <common>\nuniform float uEldoriaTime;\nuniform float uEldoriaAmplitude;'
+        '#include <common>\\nuniform float uEldoriaTime;\\nuniform float uEldoriaAmplitude;\\nvarying vec2 vEldoriaWater;'
       ).replace(
         '#include <begin_vertex>',
-        '#include <begin_vertex>\n' + waveExpression
+        '#include <begin_vertex>\\n' + waveExpression + '\\nvEldoriaWater = ' + (lake?'position.xy;':'position.xz;')
+      );
+      shader.fragmentShader=shader.fragmentShader.replace(
+        '#include <common>',
+        '#include <common>\\nuniform float uEldoriaTime;\\nvarying vec2 vEldoriaWater;'
+      ).replace(
+        '#include <color_fragment>',
+        '#include <color_fragment>\\nfloat rippleA=sin(vEldoriaWater.x*1.47+uEldoriaTime*.8);\\nfloat rippleB=sin(vEldoriaWater.y*1.9-uEldoriaTime*.63);\\nfloat shimmer=pow(max(0.,rippleA*rippleB),10.);\\ndiffuseColor.rgb += vec3(.045,.075,.085)*shimmer;'
       );
     };
     material.customProgramCacheKey=()=>lake?'eldoria-water-lake-v2':'eldoria-water-stream-v2';
