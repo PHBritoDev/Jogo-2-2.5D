@@ -88,6 +88,16 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
     }
     for (const t of [.35, .7]) parts.push({ x: cx, y: gy + H * t, z: cz, sx: 2.4, sy: .16, sz: .16, ry: yaw + Math.PI / 2, color: 0x7a5c3a });
     parts.push({ x: cx, y: y - .1, z: cz, sx: 2.9, sy: .22, sz: 2.4, ry: yaw, color: 0x8a6a44 });
+    // Módulo central autoral: tabuleiro contínuo e corrimãos atravessando as duas torres + verga ligando os topos,
+    // para os dois vãos lerem como UMA passarela com torre central (revisão 23:26), sem duplicar o GLB.
+    const LM = 3.6;
+    for (let k = -3; k <= 3; k++) parts.push({ x: cx + ux * k * .5, y: y + .06, z: cz + uz * k * .5, sx: .46, sy: .07, sz: 2.2, ry: yaw, color: [0x8a6a44, 0x7a5c3a, 0x93734a][(k + 3) % 3] });
+    for (const sd of [-1, 1]) {
+      parts.push({ x: cx + px * sd * 1.08, y: y + .95, z: cz + pz * sd * 1.08, sx: LM, sy: .09, sz: .09, ry: yaw, color: 0x6a4e32 });
+      parts.push({ x: cx + px * sd * 1.08, y: y + .5, z: cz + pz * sd * 1.08, sx: LM, sy: .06, sz: .06, ry: yaw, color: 0x6a4e32 });
+      parts.push({ x: cx + px * sd * 1.15, y: y + sz.y * ky * .93, z: cz + pz * sd * 1.15, sx: LM * .9, sy: .22, sz: .22, ry: yaw, color: 0x5e4630 });
+    }
+    parts.push({ x: cx, y: y + sz.y * ky * .98, z: cz, sx: .3, sy: .18, sz: 2.6, ry: yaw, color: 0x5e4630 });
     const pylon = new THREE.Mesh(merge(THREE, parts), woodMat); pylon.castShadow = !lowSpec; pylon.receiveShadow = true; pylon.name = 'eldoria-walkway-pylon'; root.add(pylon);
     obstacles.push({ x: cx, z: cz, radius: 1.5, height: H });
     const sz2 = { y: sz.y * ky, z: sz.z * kw };
