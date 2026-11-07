@@ -52,7 +52,7 @@ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float
 const ridgePos=[],ridgeIdx=[],ridgeSegments=72;
 for(let i=0;i<=ridgeSegments;i++){
  const a=i/ridgeSegments*Math.PI*2,x=Math.cos(a)*158,z=Math.sin(a)*158;
- const crest=12+6*Math.sin(a*3+1.2)+9*Math.sin(a*6-.3)+3*Math.cos(a*13);
+ const crest=6+2.5*Math.sin(a*3+1.2)+3.5*Math.sin(a*6-.3)+1.5*Math.cos(a*13);
  ridgePos.push(x,-8,z,x,crest,z);
 }
 for(let i=0;i<ridgeSegments;i++){const a=i*2,b=a+1,c=a+2,d=a+3;ridgeIdx.push(a,b,c,b,d,c);}
@@ -67,7 +67,33 @@ const waterPoints=[],waterIdx=[];for(let i=0;i<stream.length-1;i++){const a=new 
 // Lago oculto: água azul-clara, clareira e rochedos musgosos conforme referência 1000363693.jpg.
 const pondWater=new THREE.Mesh(new THREE.CircleGeometry(1,64),water.lake);pondWater.rotation.x=-Math.PI/2;pondWater.scale.set(14.8,10.8,1);pondWater.position.set(-42,-.95,24);pondWater.renderOrder=1;scene.add(pondWater);
 const groundMat=new THREE.MeshStandardMaterial({color:0xc3ab78,roughness:1});
-function path(points,width=3){for(let i=1;i<points.length;i++){const [ax,az]=points[i-1],[bx,bz]=points[i],length=Math.hypot(bx-ax,bz-az);const mesh=new THREE.Mesh(new THREE.PlaneGeometry(width,length),groundMat);mesh.rotation.x=-Math.PI/2;mesh.rotation.z=-Math.atan2(bx-ax,bz-az);mesh.position.set((ax+bx)/2,Math.max(height(ax,az),height(bx,bz))+.07,(az+bz)/2);scene.add(mesh);}}
+function path(points,width=3){
+ // Malha seguindo as elevações locais: sem faixas retas flutuando ou soterradas.
+ const geometryPositions=[],uv=[],idx=[],samples=[];
+ for(let i=1;i<points.length;i++){
+  const [ax,az]=points[i-1],[bx,bz]=points[i],len=Math.hypot(bx-ax,bz-az);
+  const steps=Math.max(2,Math.ceil(len/1.6));
+  for(let k=i===1?0:1;k<=steps;k++){
+   const t=k/steps;samples.push([ax+(bx-ax)*t,az+(bz-az)*t]);
+  }
+ }
+ for(let i=0;i<samples.length;i++){
+  const p=samples[i],a=samples[Math.max(0,i-1)],b=samples[Math.min(samples.length-1,i+1)];
+  const tx=b[0]-a[0],tz=b[1]-a[1],length=Math.hypot(tx,tz)||1;
+  const nx=tz/length,nz=-tx/length;
+  for(const side of [-1,1]){
+   const x=p[0]+nx*width*.5*side,z=p[1]+nz*width*.5*side;
+   geometryPositions.push(x,height(x,z)+.085,z);
+   uv.push((side+1)*.5,i*.25);
+  }
+  if(i>0){const j=(i-1)*2;idx.push(j,j+2,j+1,j+1,j+2,j+3);}
+ }
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(geometryPositions,3));
+ geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+ geo.setIndex(idx);geo.computeVertexNormals();
+ const mesh=new THREE.Mesh(geo,groundMat);mesh.receiveShadow=true;scene.add(mesh);
+}
 path([[5,-115],[1,-94],[-3,-76],[3,-62],[6,-45],[10,-30],[6,-10]],4.4);path([[-20,-46],[-8,-44],[7,-43],[24,-39],[32,-32]],3.8);path([[6,-43],[22,-47],[46,-59],[66,-83]],3);
 const details=buildEldoriaDetails(THREE,scene,{height,streamDistance,rand,lowSpec,pondSdf});
 const material=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:1});
