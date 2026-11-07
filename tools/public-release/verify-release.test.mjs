@@ -34,3 +34,28 @@ test('release SHA-256 manifest matches every distributed content file',()=>{
     assert.equal(manifest.files[n],digest,'hash mismatch for '+n);
   }
 });
+
+test('source-transforming game loader is never minified or corrupted',()=>{
+  for(const name of ['mundo-3d-prototype.js','mod181-loader.js']){
+    const source=fs.readFileSync(path.resolve(name));
+    const release=fs.readFileSync(path.join(out,name));
+    assert.deepEqual(release,source,`${name} must preserve loader rewrites`);
+  }
+  const loader=fs.readFileSync(path.join(out,'mod181-loader.js'),'utf8');
+  assert.match(loader,/code\.replace\(/);
+  assert.match(loader,/mundo-3d-prototype\.js/);
+});
+
+test('browser-side local JavaScript module imports exist in the distribution',()=>{
+  const files=fs.readdirSync(out).filter(x=>x.endsWith('.js'));
+  for(const file of files){
+    const code=fs.readFileSync(path.join(out,file),'utf8');
+    // Static ES module imports and literal dynamic imports only. Other
+    // runtime-generated URLs cannot be resolved by static analysis.
+    const re=/\b(?:from\s*|import\s*\(\s*|import\s*)['"]\.\/([^'"?#]+\.js)(?:\?[^'"]*)?['"]/g;
+    let m;
+    while((m=re.exec(code))){
+      assert.ok(fs.existsSync(path.join(out,m[1])),`${file} refers to missing runtime module ${m[1]}`);
+    }
+  }
+});

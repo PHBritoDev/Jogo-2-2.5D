@@ -28,7 +28,13 @@ for(const name of entries){
   const ext=path.extname(name).toLowerCase();
   if(FORBIDDEN.test(name)||!EXTENSIONS.has(ext))continue;
   const input=path.join(src,name),output=path.join(dst,name);
-  if(ext==='.js'){
+  // The legacy loader fetches and performs literal string/regex substitutions on the
+  // world source before importing it from blob:. Minifying either file can break
+  // its import-path rewriting and fall back to obsolete Mod 181 snippets.
+  // Preserve these two bytes exactly until the loader is safely refactored.
+  if(name==='mundo-3d-prototype.js'||name==='mod181-loader.js'){
+    fs.copyFileSync(input,output);
+  }else if(ext==='.js'){
     const js=fs.readFileSync(input,'utf8');
     const result=esbuild.transformSync(js,{
       loader:'js',target:'esnext',minifyWhitespace:true,
