@@ -28,10 +28,11 @@ export const ELDORIA_ASSETS=Object.freeze([
   {file:'RochedoMusgoEldoria.glb',stage:'core',placements:[at(37,-78,6),at(-30,-93,7),at(-64,26,7,-.4),at(-23,37,6,.6)]},
   {file:'Carroça.glb',stage:'core',placements:[at(3,-108,5,1.1)]},
   {file:'Ponte.glb',stage:'core',placements:[at(-21,-6,9,-.4)]},
+  {file:'CristalCaverna01.glb',stage:'interior',placements:[at(-63,302,11,.55),at(-104,277,8,-.6),at(-105,318,7,.2)]},
   {file:'JaulaRitualAto1.glb',stage:'ritual',placements:[at(75,73,10,0)]},
   {file:'EntradaCavernaAto1.glb',stage:'caverna',placements:[at(-79,78,20,2)]},
   {file:'MontanhaEldoria01.glb',stage:'caverna',placements:[at(-100,90,58,1.5),at(-55,108,44,-.4)]}
 ]);
-export const ELDORIA_STAGES=Object.freeze(['core','ritual','caverna']);
+export const ELDORIA_STAGES=Object.freeze(['core','ritual','caverna','interior']);
 export function assetsForStage(stage){return ELDORIA_ASSETS.filter(a=>a.stage===stage);}
 export function isSceneryOnly(file){return ELDORIA_ASSETS.some(a=>a.file===file);}
