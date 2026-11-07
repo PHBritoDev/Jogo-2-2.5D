@@ -6,6 +6,7 @@ on:
       - 'eldoria-scene-details.js'
       - 'eldoria-asset-plan.js'
       - 'eldoria-light-water.js'
+      - 'eldoria-crystal-cavern.js'
       - 'eldoria-environment-art.js'
       - 'eldoria-forest-canopy.js'
       - 'tests/eldoria-preview.test.mjs'
@@ -52,7 +53,7 @@ jobs:
           done
           cat /tmp/eldoria-http.log
           exit 1
-      - name: Renderizar e avaliar 12 capturas com WebGL real
+      - name: Renderizar e avaliar 16 capturas WebGL, incluindo caverna
         run: node tools/visual-lab/eldoria-visual-qa.cjs
       - name: Guardar capturas e diagnósticos mesmo em caso de erro
         if: always()
