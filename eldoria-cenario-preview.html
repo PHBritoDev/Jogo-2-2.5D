@@ -19,6 +19,16 @@ import {ELDORIA_ZONES,ELDORIA_ASSETS,assetsForStage} from './eldoria-asset-plan.
 import {createEldoriaLighting,createEldoriaWater} from './eldoria-light-water.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xafd2c9);scene.fog=new THREE.FogExp2(0xaed2c4,.0029);
 const camera=new THREE.PerspectiveCamera(57,innerWidth/innerHeight,.1,900);
+
+const skyGradient=new THREE.ShaderMaterial({
+  uniforms:{uNight:{value:0}},
+  vertexShader:'varying vec3 vWorld; void main(){vWorld=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:'varying vec3 vWorld;uniform float uNight;void main(){float k=smoothstep(-0.20,0.80,normalize(vWorld).y);vec3 day=mix(vec3(.72,.84,.77),vec3(.27,.54,.79),k);vec3 dark=mix(vec3(.10,.17,.25),vec3(.025,.055,.12),k);gl_FragColor=vec4(mix(day,dark,uNight),1.0);}',
+  side:THREE.BackSide,depthWrite:false,fog:false
+});
+const skyDome=new THREE.Mesh(new THREE.SphereGeometry(390,24,12),skyGradient);
+skyDome.frustumCulled=false;scene.add(skyDome);
+
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.3));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.14;document.body.prepend(renderer.domElement);
 const lowSpec=matchMedia('(pointer: coarse)').matches || innerWidth<740 || new URLSearchParams(location.search).has('qa');
 const ambient=new THREE.HemisphereLight(0xe5f9e6,0x60755d,1.7);scene.add(ambient);
@@ -26,7 +36,7 @@ const sun=new THREE.DirectionalLight(0xffeed1,2.35);sun.position.set(-65,120,35)
 const lighting=createEldoriaLighting(THREE,{renderer,scene,camera,sun,ambient,lowSpec});
 const twilight=new THREE.Color(0x243950),daySky=new THREE.Color(0xafd2c9),dayFog=new THREE.Color(0xaed2c4);
 const timeButton=document.getElementById("time-toggle");let night=false;
-function setNight(value){night=value;timeButton.setAttribute("aria-pressed",String(night));timeButton.textContent=night?"Dia":"Noite";lighting.setNight(night);scene.background.copy(night?twilight:daySky);scene.fog.color.copy(night?twilight:dayFog);scene.fog.density=night?.005:.0029;renderer.toneMappingExposure=night?.99:1.14;}
+function setNight(value){night=value;timeButton.setAttribute("aria-pressed",String(night));timeButton.textContent=night?"Dia":"Noite";lighting.setNight(night);scene.background.copy(night?twilight:daySky);scene.fog.color.copy(night?twilight:dayFog);scene.fog.density=night?.007:.0058;skyGradient.uniforms.uNight.value=night?1:0;renderer.toneMappingExposure=night?.99:1.14;}
 timeButton.addEventListener("click",()=>setNight(!night));
 const rand=(x,z)=>{let n=Math.sin(x*127.1+z*311.7)*43758.5453123;return n-Math.floor(n)};
 const smooth=(a,b,x)=>{let t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
@@ -34,10 +44,24 @@ const pondSdf=(x,z)=>Math.hypot((x+42)/15,(z-24)/11);
 const stream=[[-88,12],[-65,1],[-43,-11],[-22,-5],[2,4],[27,-2],[50,-18],[82,-22]];
 function streamDistance(x,z){let best=1e9;for(let i=1;i<stream.length;i++){const [ax,az]=stream[i-1],[bx,bz]=stream[i];const dx=bx-ax,dz=bz-az;const t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz)));best=Math.min(best,Math.hypot(x-ax-t*dx,z-az-t*dz));}return best;}
 function height(x,z){const hill=1.4*Math.sin(x*.031)*Math.cos(z*.039)+.5*Math.sin(z*.13+x*.07);const cut=3.5*(1-smooth(2.4,10.5,streamDistance(x,z)));const plaza=1-smooth(24,50,Math.hypot(x-5,z+43));const pondCut=2.5*(1-smooth(.35,1.28,pondSdf(x,z)));return hill*(1-plaza*.84)-cut-pondCut;}
-const nx=115,nz=115,positions=[],colors=[],indices=[],gcol=new THREE.Color();
-for(let iz=0;iz<=nz;iz++)for(let ix=0;ix<=nx;ix++){const x=(ix/nx-.5)*240,z=(iz/nz-.5)*240,y=height(x,z),wet=streamDistance(x,z);positions.push(x,y,z);const grass=.5+.24*Math.sin(x*.085+Math.cos(z*.051)*2.1)+.15*Math.cos(z*.11-x*.064)+.08*Math.sin(x*.21+z*.17);gcol.set(wet<10?0x6e9974:0x648b50);gcol.offsetHSL(0,Math.min(.08,Math.abs(grass-.5)*.12),(grass-.5)*.16);colors.push(gcol.r,gcol.g,gcol.b);}
+const nx=140,nz=140,positions=[],colors=[],indices=[],gcol=new THREE.Color();
+for(let iz=0;iz<=nz;iz++)for(let ix=0;ix<=nx;ix++){const x=(ix/nx-.5)*360,z=(iz/nz-.5)*360,y=height(x,z),wet=streamDistance(x,z);positions.push(x,y,z);const grass=.5+.24*Math.sin(x*.085+Math.cos(z*.051)*2.1)+.15*Math.cos(z*.11-x*.064)+.08*Math.sin(x*.21+z*.17);gcol.set(wet<10?0x6e9974:0x648b50);gcol.offsetHSL(0,Math.min(.08,Math.abs(grass-.5)*.12),(grass-.5)*.16);colors.push(gcol.r,gcol.g,gcol.b);}
 for(let z=0;z<nz;z++)for(let x=0;x<nx;x++){const a=z*(nx+1)+x,b=a+1,c=a+nx+1,d=c+1;indices.push(a,c,b,b,c,d);}
 const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();const terrainMesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide}));terrainMesh.receiveShadow=true;scene.add(terrainMesh);
+
+const ridgePos=[],ridgeIdx=[],ridgeSegments=72;
+for(let i=0;i<=ridgeSegments;i++){
+ const a=i/ridgeSegments*Math.PI*2,x=Math.cos(a)*158,z=Math.sin(a)*158;
+ const crest=12+6*Math.sin(a*3+1.2)+9*Math.sin(a*6-.3)+3*Math.cos(a*13);
+ ridgePos.push(x,-8,z,x,crest,z);
+}
+for(let i=0;i<ridgeSegments;i++){const a=i*2,b=a+1,c=a+2,d=a+3;ridgeIdx.push(a,b,c,b,d,c);}
+const ridgeGeometry=new THREE.BufferGeometry();
+ridgeGeometry.setAttribute('position',new THREE.Float32BufferAttribute(ridgePos,3));
+ridgeGeometry.setIndex(ridgeIdx);ridgeGeometry.computeVertexNormals();
+const ridgeMesh=new THREE.Mesh(ridgeGeometry,new THREE.MeshStandardMaterial({color:0x718f76,roughness:1,flatShading:true,side:THREE.DoubleSide}));
+ridgeMesh.receiveShadow=false;scene.add(ridgeMesh);
+
 const water=createEldoriaWater(THREE,{lowSpec});
 const waterPoints=[],waterIdx=[];for(let i=0;i<stream.length-1;i++){const a=new THREE.Vector2(...stream[i]),b=new THREE.Vector2(...stream[i+1]);for(let j=0;j<12;j++){const t=j/12,px=THREE.MathUtils.lerp(a.x,b.x,t),pz=THREE.MathUtils.lerp(a.y,b.y,t);const dir=b.clone().sub(a).normalize(),normal=new THREE.Vector2(-dir.y,dir.x);for(const sign of [-1,1])waterPoints.push(px+normal.x*sign*3.15,-.55,pz+normal.y*sign*3.15);}}const end=stream[stream.length-1],prev=stream[stream.length-2],dir=new THREE.Vector2(end[0]-prev[0],end[1]-prev[1]).normalize(),norm=new THREE.Vector2(-dir.y,dir.x);for(const sign of [-1,1])waterPoints.push(end[0]+norm.x*sign*3.15,-.55,end[1]+norm.y*sign*3.15);for(let i=0;i<waterPoints.length/3/2-1;i++){let a=i*2;waterIdx.push(a,a+2,a+1,a+1,a+2,a+3);}const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(waterPoints,3));wg.setIndex(waterIdx);wg.setAttribute('uv',new THREE.Float32BufferAttribute(waterPoints.filter((_,i)=>i%3!==1).map(v=>v*.02),2));wg.computeVertexNormals();const riverMesh=new THREE.Mesh(wg,water.river);riverMesh.receiveShadow=false;scene.add(riverMesh);
 // Lago oculto: água azul-clara, clareira e rochedos musgosos conforme referência 1000363693.jpg.
@@ -131,6 +155,6 @@ renderer.domElement.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,
 renderer.domElement.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const old=pointers.get(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===1){yaw-=(e.clientX-old[0])*.005;pitch=clamp(pitch+(e.clientY-old[1])*.004,-.05,1.35);}else if(pointers.size===2){const p=[...pointers.values()],d=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]);if(touchDist!==null)distance=clamp(distance*(touchDist/d),14,130);touchDist=d;}});
 for(const ev of ['pointerup','pointercancel'])renderer.domElement.addEventListener(ev,e=>{pointers.delete(e.pointerId);touchDist=null});
 renderer.domElement.addEventListener('wheel',e=>{distance=clamp(distance+e.deltaY*.05,14,130)},{passive:true});
-let t=0,last=performance.now(),frameCount=0,fps=0;function draw(now){t+=.012;water.update(now*.001,night);camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*distance,target.y+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.lookAt(target);renderer.render(scene,camera);frameCount++;if(now-last>1000){fps=Math.round(frameCount*1000/(now-last));frameCount=0;last=now;if(!readyStats.hidden)readyStats.textContent='FPS: '+fps+'\nDraw calls: '+renderer.info.render.calls+'\nTriângulos: '+renderer.info.render.triangles+'\nFlora: '+(details.grass+details.flowers+details.reeds)+'\nGLBs: '+loaded+'/'+requested+'\nFalhas: '+failed;}requestAnimationFrame(draw);}requestAnimationFrame(draw);
+let t=0,last=performance.now(),frameCount=0,fps=0;function draw(now){t+=.012;water.update(now*.001,night);camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*distance,target.y+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.lookAt(target);skyDome.position.copy(camera.position);renderer.render(scene,camera);frameCount++;if(now-last>1000){fps=Math.round(frameCount*1000/(now-last));frameCount=0;last=now;if(!readyStats.hidden)readyStats.textContent='FPS: '+fps+'\nDraw calls: '+renderer.info.render.calls+'\nTriângulos: '+renderer.info.render.triangles+'\nFlora: '+(details.grass+details.flowers+details.reeds)+'\nGLBs: '+loaded+'/'+requested+'\nFalhas: '+failed;}requestAnimationFrame(draw);}requestAnimationFrame(draw);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
