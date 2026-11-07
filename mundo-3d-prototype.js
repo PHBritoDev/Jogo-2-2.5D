@@ -3915,7 +3915,11 @@ function roadStoryDo(id){
   case 'bandidos-reparam':{const c=road.cart.position;road.bandits.forEach((b,i)=>{b.go={x:c.x+(i%2?1.2:-1.2),z:c.z+(i<2?1.4:-1.4)};});setTimeout(()=>{for(const b of road.bandits){b.go={x:c.x+(Math.random()-.5)*16,z:c.z-16};b.leave=true;}walkBanditsAway();},4200);return true;}
   case 'viagem-retomar':placeRoadCart(road.s,true);startRoadRide(RIDE.revealAt-30,ROAD.rideSpeed);road.dawnK=0;worldAudio.setCart&&worldAudio.setCart(1);return true;
   case 'timelapse-amanhecer':return true;
-  case 'pular-madrugada':setCineFade(1,.5,false);setTimeout(()=>{placeRoadCart(RIDE.end-22,true);seatPassengers();startRoadRide(RIDE.end,3.6);setCineFade(0,1.2,false);storyTitle('AO AMANHECER','Eldória');},560);return true;
+  case 'pular-madrugada':{
+   // Ao pular a cena, as ações restantes rodam na hora (carroca-parar/descer-chegada/finishRoad): nada pode ficar agendado.
+   const jump=()=>{if(roadStage>=ROAD.done||!road.passengers)return;placeRoadCart(RIDE.end-22,true);seatPassengers();startRoadRide(RIDE.end,3.6);setCineFade(0,1.2,false);storyTitle('AO AMANHECER','Eldória');};
+   if(cineSkipping){placeRoadCart(RIDE.end-22,true);return true;}
+   setCineFade(1,.5,false);setTimeout(jump,560);return true;}
   case 'carroca-parar':road.ride=false;road.speed=0;placeRoadCart(RIDE.end,true);road.dawnK=-1;setGameHour(6.9);worldAudio.setCart&&worldAudio.setCart(0);return true;
   case 'descer-chegada':stepOutOfCart(-1);faceTo(player,VILLAGE_CENTER);return true;
  }
@@ -3943,10 +3947,11 @@ function roadInteract(){
 }
 function roadBanditsDown(){
  act1Lock=true;spawnSurrendered().then(()=>{playStory('bandidos-fome',hungerScene(),{focus:'bandit',done:()=>{
+  {const card=cineEl('choice-card');if(card&&choiceMode==='bandidos')card.hidden=true;}
   playStory('bandidos-escolha',choiceScene(!!road.choice),{focus:'teren',done:()=>{act1Lock=false;setRoadStage(ROAD.freed);status.textContent='Volte à carroça de Teren.';}});}});},()=>{act1Lock=false;setRoadStage(ROAD.freed);});
 }
 function finishRoad(){
- if(road.ride)return;stepOutOfCart(-1);road.passengers=false;setRoadStage(ROAD.done);
+ road.ride=false;road.speed=0;stepOutOfCart(-1);road.passengers=false;setCineFade(0,.4,false);setRoadStage(ROAD.done);
  status.textContent='Procure a pequena vila e fale com um vendedor.';road.leaving=7;road.obstacle.radius=0;startRoadRide(RIDE.total,2.4,false);
  act1Toast('ELDÓRIA');
 }
@@ -7090,7 +7095,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  /** MOD 291 — estrada de Teren: road(0) prado/encontro, road(1) lona presa, road(2) pós-bandidos. */
  road(stage=0){this.act1(1,0);roadStage=stage;road.met=stage>0;try{localStorage.setItem(ROAD_STORE,String(stage));}catch(_){}ensureRoadProps();placeRoadCart(stage>=2?RIDE.ambush:RIDE.start,true);const c=road.cart.position,x=stage===0?FALL_SPOT.x:c.x+2.6,z=stage===0?FALL_SPOT.z:c.z;player.position.set(x,terrainHeightAt(x,z),z);updateQuestHud();return this.roadState();},
- roadState(){return{stage:roadStage,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
+ roadState(){return{stage:roadStage,visible:player.visible,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
  interact(){tryInteract();return this.roadState();},
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;
