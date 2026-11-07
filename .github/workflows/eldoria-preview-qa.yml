@@ -8,6 +8,7 @@ on:
       - 'eldoria-light-water.js'
       - 'tests/eldoria-preview.test.mjs'
       - '.github/workflows/eldoria-preview-qa.yml'
+      - 'tools/visual-lab/eldoria-visual-qa.cjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,3 +22,38 @@ jobs:
         with:
           node-version: '22'
       - run: node --test tests/eldoria-preview.test.mjs
+
+  visual-webgl:
+    name: Renderizar Eldória em Chromium mobile e desktop
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Playwright e navegador
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Subir servidor da prévia
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/eldoria-http.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/eldoria-cenario-preview.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/eldoria-http.log
+          exit 1
+      - name: Renderizar e avaliar 12 capturas com WebGL real
+        run: node tools/visual-lab/eldoria-visual-qa.cjs
+      - name: Guardar capturas e diagnósticos mesmo em caso de erro
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eldoria-visual-${{ github.run_number }}
+          path: visual-lab-results/eldoria/
+          retention-days: 14
+          if-no-files-found: warn
