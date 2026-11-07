@@ -86,6 +86,9 @@ export function createEldoriaWater(THREE,{lowSpec}){
       new THREE.MeshPhysicalMaterial({...shared,clearcoat:.7,clearcoatRoughness:.13,ior:1.33});
     // onBeforeCompile keeps built-in PBR lighting/tone mapping and normals.
     const uniforms={time:{value:0},amplitude:{value:lake?.045:.09}};
+    const waveExpression=lake
+      ? 'transformed.z += sin(position.x*0.36 + uEldoriaTime*0.9)*cos(position.y*0.27-uEldoriaTime*0.7)*uEldoriaAmplitude;'
+      : 'transformed.y += sin(position.x*0.36 + uEldoriaTime*0.9)*cos(position.z*0.27-uEldoriaTime*0.7)*uEldoriaAmplitude;';
     material.onBeforeCompile=shader=>{
       shader.uniforms.uEldoriaTime=uniforms.time;
       shader.uniforms.uEldoriaAmplitude=uniforms.amplitude;
