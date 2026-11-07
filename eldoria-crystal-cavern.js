@@ -1,4 +1,5 @@
 import {buildEldoriaCaveGeology} from './eldoria-cave-geology.js';
+import {buildEldoriaCaveTunnel} from './eldoria-cave-tunnel.js';
 /**
  * Eldória — caverna cristalina original do Ato 1.
  * Duas câmaras monumentais: santuário luminoso e abismo de silêncio.
@@ -36,7 +37,9 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
       positions.push(x,y,z);
       if(j&&i){
         const v=j*(columns+1)+i;
-        indices.push(v,v-1,v-columns-2,v,v-columns-2,v-columns-1);
+        // Opening is cut from the vault so the crystal gallery truly connects.
+        const door=Math.abs(a-Math.PI/2)<.30 && y>0 && y<28;
+        if(!door)indices.push(v,v-1,v-columns-2,v,v-columns-2,v-columns-1);
       }
     }
   }
@@ -196,9 +199,10 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
   if(beamMesh.instanceColor)beamMesh.instanceColor.needsUpdate=true;
   beamMesh.computeBoundingSphere();group.add(beamMesh);
   const geology=buildEldoriaCaveGeology(THREE,group,{lowSpec});
+  const tunnel=buildEldoriaCaveTunnel(THREE,group,{lowSpec});
   group.visible=false;
   scene.add(group);
   return {group,center:[ox,8,oz],dark:[ox-26,7,oz+17],
-    stats:{crystals:spires.length,stalactites:ceilings.length,stalagmites:pillars.length,seleniteBeams:beams,geology},
+    stats:{crystals:spires.length,stalactites:ceilings.length,stalagmites:pillars.length,seleniteBeams:beams,tunnel,geology},
     setVisible(visible){group.visible=!!visible;},dispose(){group.traverse(o=>{o.geometry?.dispose();});}};
 }
