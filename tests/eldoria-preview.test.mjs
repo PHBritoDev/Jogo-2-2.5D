@@ -11,6 +11,8 @@ const art=readFileSync(new URL('../eldoria-environment-art.js',import.meta.url),
 const canopy=readFileSync(new URL('../eldoria-forest-canopy.js',import.meta.url),'utf8');
 const cavern=readFileSync(new URL('../eldoria-crystal-cavern.js',import.meta.url),'utf8');
 const geology=readFileSync(new URL('../eldoria-cave-geology.js',import.meta.url),'utf8');
+const gallery=readFileSync(new URL('../eldoria-cave-tunnel.js',import.meta.url),'utf8');
+const entrance=readFileSync(new URL('../eldoria-cave-entrance-art.js',import.meta.url),'utf8');
 test('prévia isolada mantém o jogo principal e os personagens fora',()=>{
   assert.match(html,/import \{buildEldoriaDetails\}/);
   for(const zone of Object.keys(ELDORIA_ZONES)) assert.match(html,new RegExp('data-place="'+zone+'"'));
@@ -41,7 +43,7 @@ test('carregamento da cena principal não inclui caverna e ritual',()=>{
 test('sintaxe dos scripts da prévia e dos módulos ambientais',()=>{
   const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script?.length>3000);
-  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art],['canopy',canopy],['cavern',cavern],['geology',geology]]){
+  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art],['canopy',canopy],['cavern',cavern],['geology',geology],['gallery',gallery],['entrance',entrance]]){
     const result=spawnSync(process.execPath,['--input-type=module','--check'],{input:source,encoding:'utf8'});
     assert.equal(result.status,0,name+': '+result.stderr);
   }
@@ -148,4 +150,17 @@ test('caverna autoral tem geologia distinta, vestígios históricos e modelo de 
  assert.match(geology,/erosionRibs/);
  assert.match(geology,/new THREE\.InstancedMesh/);
  assert.equal(assetsForStage('interior')[0].file,'CristalCaverna01.glb');
+});
+
+test('galeria subterrânea e entrada botânica têm arquitetura distintiva e renderização leve',()=>{
+ assert.match(cavern,/buildEldoriaCaveTunnel\(THREE,group/);
+ assert.match(html,/buildEldoriaCaveEntranceArt\(THREE,scene/);
+ assert.match(html,/data-place="tunel"/);
+ assert.match(gallery,/GaleriaDosEcosOrganicVault/);
+ assert.match(gallery,/new THREE\.InstancedMesh/);
+ assert.match(gallery,/PointLight/);
+ assert.match(entrance,/rockPieces/);
+ assert.match(entrance,/new THREE\.InstancedMesh/);
+ assert.match(entrance,/steppingStones/);
+ assert.doesNotMatch(gallery,/Protagonista\.glb|Enemy1\.glb/);
 });
