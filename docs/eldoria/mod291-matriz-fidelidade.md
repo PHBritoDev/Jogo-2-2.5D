@@ -78,3 +78,16 @@ Custo medido (SwiftShader/CPU, mesma câmera; **não é Android**):
 | Mata | 43 → 45 | 161 mil → 261 mil | 201 → 520 ms |
 
 No SwiftShader o custo cresce com os triângulos (raster por CPU). Num celular com GPU a relação é outra, mas **precisa ser medida no A55** antes de aumentar a densidade. Próximo passo de otimização, se o aparelho pedir: setores espaciais (sugestão do ChatGPT) e LOD2 da árvore.
+
+### Marco 2b (após a revisão visual de 19:27)
+- **Fim das copas facetadas genéricas** na faixa da mata: o 2º passe procedural saiu e a faixa ficou exclusiva de `ArvoreFloresta01.glb`.
+  - 97 árvores no jogo, depois dos filtros de trilha, água, jaulas e ponte.
+- **Dois níveis de detalhe**: malha completa do criador até 24 m (tronco texturizado, sem facetas grandes) e LOD1 de 24 a 58 m. Copa barata de 55 a 150 m.
+- **Variação de silhueta**: largura 0,8–1,35×, tons por instância, inclinação.
+- **Meio-tom na copa**: emissão fraca com a própria textura. Casca com rugosidade alta, sem brilho de plástico.
+- **Manchas de sol filtradas** no chão da mata: discos aditivos, 1 draw call, somem à noite.
+- **Lago**:
+  - reflexo aproximado da mata na faixa da margem (bandas verde-escuras recortadas, sem render target);
+  - margem rasa mais transparente, para a água não parecer placa sobreposta.
+- Custo SwiftShader nos pontos da sequência: 46–77 draw calls e 275–289 mil triângulos (sob o dossel olhando a cidade: 256 / 553 mil). Não é A55.
+- Capturas: `docs/evidencias/mod291/marco2b-*.jpg`.

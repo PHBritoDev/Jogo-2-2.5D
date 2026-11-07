@@ -24,6 +24,7 @@ const FRAG = /* glsl */`
 #include <common>
 #include <fog_pars_fragment>
 uniform float uTime, uFlow, uNight, uRadial, uAlpha, uFoamEnd;
+uniform vec2 uLakeC;
 uniform vec3 uDeep, uShallow, uSky, uSkyNight, uSun, uFoam;
 uniform vec4 uRocks[${WATER_MAX_ROCKS}];
 uniform int uRockCount;
@@ -47,6 +48,9 @@ void main(){
   float fres = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 4.0) * .5 + .04;
   vec3 body = mix(uDeep, uShallow, smoothstep(.15, .95, across) * .8 + (n0 - .5) * .25);
   vec3 sky = mix(mix(uSky, uDeep, .3), uSkyNight, uNight);
+  // Reflexo aproximado da mata (lago cercado de árvores): verde-escuro na faixa da margem, recortado por ruído
+  // que imita troncos/copas refletidos; sem render target.
+  if (uRadial > .5) { float trunks = .55 + .45 * sin(atan(vWorld.z - uLakeC.y, vWorld.x - uLakeC.x) * 23.0 + n0 * 3.0); sky = mix(sky, vec3(.05, .11, .07) * (1.0 - uNight * .5), smoothstep(.35, .95, across) * (.45 + .4 * trunks)); }
   vec3 col = mix(body, sky, fres);
   vec3 L = normalize(uSun); float spec = pow(max(dot(reflect(-L, N), V), 0.0), 90.0) * (1.0 - uNight * .7);
   col += vec3(1.0, .96, .86) * spec * 1.4;
@@ -66,6 +70,8 @@ void main(){
     foam = max(foam, ring * r.w); }
   col = mix(col, uFoam * (1.0 - uNight * .55), clamp(foam, 0.0, 1.0) * .85);
   float alpha = mix(uAlpha, .97, clamp(foam, 0.0, 1.0)) * (1.0 - smoothstep(.97, 1.0, across) * .6);
+  // Margem rasa do lago mais transparente (o fundo aparece): a água deixa de parecer uma placa sobreposta.
+  if (uRadial > .5) alpha *= mix(1.0, .55, smoothstep(.7, 1.0, across));
   gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -75,7 +81,7 @@ void main(){
 export function createFlowWaterMaterial(THREE, o = {}) {
   const rocks = []; for (let i = 0; i < WATER_MAX_ROCKS; i++) rocks.push(new THREE.Vector4(0, 0, 0, 0));
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-    uTime: { value: 0 }, uFoamEnd: { value: 0 }, uFlow: { value: o.flow ?? 1 }, uNight: { value: 0 }, uRadial: { value: o.radial ? 1 : 0 }, uAlpha: { value: o.alpha ?? .86 },
+    uTime: { value: 0 }, uFoamEnd: { value: 0 }, uLakeC: { value: new THREE.Vector2() }, uFlow: { value: o.flow ?? 1 }, uNight: { value: 0 }, uRadial: { value: o.radial ? 1 : 0 }, uAlpha: { value: o.alpha ?? .86 },
     uDeep: { value: new THREE.Color(o.deep ?? 0x0d4f55) }, uShallow: { value: new THREE.Color(o.shallow ?? 0x37a9a2) },
     uSky: { value: new THREE.Color(o.sky ?? 0xbfdbe0) }, uSkyNight: { value: new THREE.Color(0x24344e) },
     uSun: { value: new THREE.Vector3(.4, .8, .3) }, uFoam: { value: new THREE.Color(0xeef6f2) },
@@ -129,6 +135,7 @@ export function buildLakeMesh(THREE, { x, z, r, level }) {
   const p = g.attributes.position, uv = g.attributes.uv;
   for (let i = 0; i < p.count; i++) { const d = Math.hypot(p.getX(i), p.getZ(i)) / r; uv.setXY(i, 0, d); }
   const material = createFlowWaterMaterial(THREE, { radial: true, flow: .28, deep: 0x0b4a52, shallow: 0x3fb4ad, alpha: .9 });
+  material.uniforms.uLakeC.value.set(x, z);
   const mesh = new THREE.Mesh(g, material); mesh.position.set(x, level, z); mesh.name = 'eldoria-lake-mod291'; mesh.renderOrder = 2;
   return { mesh, material };
 }

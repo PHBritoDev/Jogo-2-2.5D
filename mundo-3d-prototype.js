@@ -258,7 +258,7 @@ const riverRockPlan=planRiverRocks(eldoriaRiver.ribbon.centerline,{width:RIVER.w
 // Pedras dos encontros da ponte também espumam (a água bate no pé do arco).
 riverRockPlan.push({x:BRIDGE.x+BRIDGE.axisZ*1.6,z:BRIDGE.z-BRIDGE.axisX*1.6,r:.6,foam:.55,hidden:true},{x:BRIDGE.x-BRIDGE.axisZ*1.6,z:BRIDGE.z+BRIDGE.axisX*1.6,r:.6,foam:.55,hidden:true});
 scene.add(buildRiverRocks(THREE,riverRockPlan.filter(r=>!r.hidden),{level:RIVER.level,lowSpec:terrainLowSpec}));eldoriaRiver.material.setRocks(riverRockPlan);
-function updateEldoriaWater(now){const t=now*.001,night=dayNightState.t;for(const m of waterMaterials){const u=m.uniforms;u.uTime.value=t;u.uNight.value=night;u.uSun.value.copy(LIGHT_DIRECTION);u.uSky.value.copy(scene.fog.color);}}
+function updateEldoriaWater(now){const t=now*.001,night=dayNightState.t;if(typeof matureForest!=='undefined'&&matureForest.dapples)matureForest.dapples.opacity=.16*(1-night);for(const m of waterMaterials){const u=m.uniforms;u.uTime.value=t;u.uNight.value=night;u.uSun.value.copy(LIGHT_DIRECTION);u.uSky.value.copy(scene.fog.color);}}
 
 /* MOD 181 — Lua 3D + ciclo dia/noite + expansão controlada do horizonte. */
 const moonPosition=new THREE.Vector3(42,72,95);
@@ -391,6 +391,7 @@ let seed=9137;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/429
    pois ficam fora da área caminhável). Tudo instanciado: poucos draw calls para o celular. */
 function forestSpotFree(x,z){
  // MOD 291 — o prado da queda é campo aberto: nada de mata colada; só árvores isoladas na orla externa.
+ if(z<-82&&z>-146&&x>-68&&x<38)return false; // MOD 291: faixa da mata fechada é só de ArvoreFloresta01.glb (sem copas facetadas genéricas)
  if(insideMeadow(x,z,8)){if(insideMeadow(x,z,-6))return false;const h=Math.abs(Math.sin(x*12.9898+z*78.233)*43758.5453)%1;if(h>.18)return false;}
  if(Math.hypot(x,z-4)<11||Math.hypot(x-CLEARING.x,z-CLEARING.z)<8.6||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1)return false;
  if(WAYSTONES.some(w=>Math.hypot(x-w.x,z-w.z)<4.2)||Math.hypot(x-SHOP_SPOT.x,z-SHOP_SPOT.z)<10)return false;
@@ -405,9 +406,7 @@ function forestSpotFree(x,z){
  return !trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+1.25));
 }
 {
- // MOD 291 — mata fechada entre o rio e a serra (lago, trilha das jaulas): segunda passada só nessa faixa.
- const forestZone=(x,z)=>z<-79&&z>-150&&x>-72&&x<42;
- const raw=scatterForest(terrain3D,{seed:9137,attempts:terrainLowSpec?3000:3800,isFree:forestSpotFree,lowSpec:terrainLowSpec}).concat(scatterForest(terrain3D,{seed:7311,attempts:terrainLowSpec?1500:2300,isFree:(x,z)=>forestZone(x,z)&&forestSpotFree(x,z),lowSpec:terrainLowSpec})),grid=new Map();
+ const raw=scatterForest(terrain3D,{seed:9137,attempts:terrainLowSpec?3000:3800,isFree:forestSpotFree,lowSpec:terrainLowSpec}),grid=new Map(); // a mata fechada da faixa sul agora vem de ArvoreFloresta01.glb (eldoria-mature-forest.js), não de copas facetadas
  const key=(x,z)=>Math.floor(x/4)+','+Math.floor(z/4);
  for(const t of raw){
   const gx=Math.floor(t.x/4),gz=Math.floor(t.z/4);let crowded=false;
