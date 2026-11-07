@@ -98,6 +98,8 @@ test('rio com correnteza: fita ao longo da curva, flow/espuma/Fresnel no shader;
 
 test('cidade: nenhuma pegada sobreposta, casas fora da trilha e do rio, aterramento pelo chão mais baixo, LOD real', () => {
   assert.deepEqual(planOverlaps(), []);
+  // Loja Central (CasaEldoria01.glb no lugar do prédio antigo): pegada ~4 m em volta de (−33,9; −45) sem casas coladas.
+  for (const s of eldoriaSpecs()) assert.ok(Math.hypot(ELDORIA_CENTER.x + s.x + 33.9, ELDORIA_CENTER.z + s.z + 45) > 4.2 + footprintRadius(s), s.file + ' colada na Loja');
   for (const s of eldoriaSpecs()) {
     const x = ELDORIA_CENTER.x + s.x, z = ELDORIA_CENTER.z + s.z;
     if (s.kind === 'house' || s.kind === 'prop') assert.ok(segDist(x, z, mainTrail) > footprintRadius(s) + 2, s.file + ' em cima da trilha principal');

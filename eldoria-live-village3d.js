@@ -13,7 +13,8 @@ export const ELDORIA_PLOTS = [
   [3, -15, 'CasaEldoria01.glb', 6.0, .18], [20.5, -8, 'CasaEldoria02.glb', 5.9, -.22],
   [-18, 13, 'CasaEldoria02.glb', 6.3, .16], [-8, 17, 'CasaEldoria01.glb', 5.7, -.32],
   [5, 20.5, 'CasaEldoria01.glb', 6.0, .4], [18, 12, 'CasaEldoria02.glb', 6.1, -.22], // (8,17) encostava na trilha da clareira
-  [-19, -3, 'CasaEldoria01.glb', 5.1, .23], [19, 2.5, 'CasaEldoria02.glb', 5.4, -.34]
+  // Mod 291: (-19,-3) ficava encostada na Loja Central (agora com GLB e visível) → (-24,8).
+  [-24, 8, 'CasaEldoria01.glb', 5.1, .23], [19, 2.5, 'CasaEldoria02.glb', 5.4, -.34]
 ];
 export const ELDORIA_MARKET = [[2.85, -2.5, 3.65, .15], [-2.05, 3.75, 3.55, Math.PI], [4.5, 3, 3.7, .2], [1.8, -7.6, 3.5, Math.PI]];
 export const ELDORIA_PROPS = [
