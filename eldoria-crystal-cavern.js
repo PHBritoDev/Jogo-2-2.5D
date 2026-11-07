@@ -79,7 +79,6 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
     mesh.receiveShadow=false;mesh.castShadow=false;group.add(mesh);
   }
   const crystalGeometry=new THREE.CylinderGeometry(0,1,1,5,1);
-  crystalGeometry.translate(0,.5,0); // pointed gems growing upward from floor
   for(let i=0;i<3;i++)instances(spires.filter(p=>p.type===i),crystalGeometry,crystalMat[i]);
   const stalagmiteGeo=new THREE.ConeGeometry(.9,1,6);
   instances(pillars,stalagmiteGeo,stone);
