@@ -89,7 +89,7 @@ function loadStage(stage){
        const factor=(asset.placements[0]?.size||1)/Math.max(size.x,size.y,size.z,.001);
        // Use geometric center in X/Z and bbox floor in Y; rotations are around the origin recentered by pivot.
        const normalized=new THREE.Group();model.position.set(-center.x*factor,-bounds.min.y*factor,-center.z*factor);model.scale.setScalar(factor);normalized.add(model);
-       normalized.traverse(o=>{if(o.isMesh){o.castShadow=!lowSpec && asset.stage==='core' && !/barraca|ferreiro|passarela/i.test(asset.file);o.receiveShadow=true;}});
+       normalized.traverse(o=>{if(o.isMesh){o.castShadow=asset.stage==='core' && (lowSpec ? /CasaEldoria01|ArvoreAncestralEldoria/.test(asset.file) : !/barraca|ferreiro|passarela/i.test(asset.file));o.receiveShadow=true;}});
        for(const point of asset.placements){
          const root=normalized.clone(true),scale=point.size/(asset.placements[0]?.size||1);
          root.scale.setScalar(scale);root.position.set(point.x,height(point.x,point.z),point.z);root.rotation.y=point.rotation||0;
