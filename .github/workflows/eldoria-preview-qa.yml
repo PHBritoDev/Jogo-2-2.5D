@@ -7,6 +7,7 @@ on:
       - 'eldoria-asset-plan.js'
       - 'eldoria-light-water.js'
       - 'eldoria-environment-art.js'
+      - 'eldoria-forest-canopy.js'
       - 'tests/eldoria-preview.test.mjs'
       - '.github/workflows/eldoria-preview-qa.yml'
       - 'tools/visual-lab/eldoria-visual-qa.cjs'
