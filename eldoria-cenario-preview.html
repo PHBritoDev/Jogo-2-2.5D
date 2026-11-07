@@ -18,6 +18,7 @@ import {buildEldoriaDetails} from './eldoria-scene-details.js';
 import {ELDORIA_ZONES,ELDORIA_ASSETS,assetsForStage} from './eldoria-asset-plan.js';
 import {createEldoriaLighting,createEldoriaWater} from './eldoria-light-water.js';
 import {buildEldoriaArt} from './eldoria-environment-art.js';
+import {createEldoriaCanopy} from './eldoria-forest-canopy.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xafd2c9);scene.fog=new THREE.FogExp2(0xaed2c4,.0029);
 const camera=new THREE.PerspectiveCamera(57,innerWidth/innerHeight,.1,900);
 
@@ -107,8 +108,8 @@ path([[5,-115],[1,-94],[-3,-76],[3,-62],[6,-45],[10,-30],[6,-10]],4.4);path([[-2
 const details=buildEldoriaDetails(THREE,scene,{height,streamDistance,rand,lowSpec,pondSdf});
 const artistic=buildEldoriaArt(THREE,scene,{height,streamDistance,pondSdf,rand,lowSpec});
 const material=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:1});
-const trunkMat=material(0x61533e),leafMat=[material(0x325e34),material(0x45753c),material(0x578a45)];
-const tg=new THREE.CylinderGeometry(.95,1.6,1,7),cg=new THREE.IcosahedronGeometry(1,1);
+const trunkMat=material(0x61533e),leafMat=[0x9cc879,0x79b86e,0xb0d58d].map(color=>new THREE.MeshStandardMaterial({color,vertexColors:true,roughness:1,flatShading:false}));
+const {trunk:tg,canopy:cg}=createEldoriaCanopy(THREE);
 const treeSpecs=[];
 function tree(x,z,scale,giant=false){treeSpecs.push({x,z,scale,giant});}
 for(let i=0;i<(lowSpec?285:470);i++){const x=(rand(i,5)-.5)*310,z=(rand(i,21)-.5)*300,dv=Math.hypot(x-5,z+43),river=streamDistance(x,z);const onRoad=(Math.abs(x-5)<8&&z<-35)||(Math.abs(z+43)<8&&x>-30&&x<36);if(dv<35||river<6||pondSdf(x,z)<1.4||onRoad)continue;tree(x,z,.75+rand(i,8)*.8,i%41===0);}
