@@ -37,7 +37,7 @@ classified.forEach(x=>counts[x.risk]++);
 const areas=[...new Set(classified.flatMap(x=>x.areas))];
 const checks=[...new Set(rules.filter(x=>areas.includes(x.id)).map(x=>x.tests))];
 if(!checks.length)checks.push('Executar validações relevantes para os arquivos do PR.');
-const suspicious=files.filter(f=>/(^|\/)(?:\.env(?:\.|$)|id_rsa|private[-_.]?key|credentials?\.(?:json|txt)|.*\.(?:pem|p12|pfx))$/i.test(f));
+const suspicious=files.filter(f=>/(^|\/)(?:\.env(?:\.[^/]*)?|id_rsa|private[-_.]?key|credentials?\.(?:json|txt)|.*\.(?:pem|p12|pfx))$/i.test(f));
 const out={base,head:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),files:classified,counts,areas,checks,suspiciousPaths:suspicious,advisoryOnly:true};
 const lines=[
  '# Coordenador de IAs — parecer consultivo',
