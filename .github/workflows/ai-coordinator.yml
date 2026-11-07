@@ -1,0 +1,79 @@
+name: Coordenador de IAs - riscos e conflitos
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout da revisão a analisar
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Definir base do diff
+        id: base
+        shell: bash
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ -n "$PR_BASE" ]]; then
+            echo "sha=$PR_BASE" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=$(git rev-parse HEAD^)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Analisar alterações sem modificar arquivos do jogo
+        run: node tools/qa/ai-change-guard.mjs "${{ steps.base.outputs.sha }}"
+
+      - name: Verificar sobreposição com PRs abertos
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          CURRENT_PR: ${{ github.event.pull_request.number }}
+        with:
+          script: |
+            const fs = require('fs');
+            const {owner, repo} = context.repo;
+            const current = Number(process.env.CURRENT_PR);
+            const ours = await github.paginate(github.rest.pulls.listFiles, {owner,repo,pull_number:current,per_page:100});
+            const names = new Set(ours.map(f=>f.filename));
+            const prs = await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+            const overlaps = [];
+            for(const pr of prs.filter(p=>p.number!==current).slice(0,40)){
+              const theirs = await github.paginate(github.rest.pulls.listFiles,{owner,repo,pull_number:pr.number,per_page:100});
+              const same=theirs.map(f=>f.filename).filter(f=>names.has(f));
+              if(same.length) overlaps.push({number:pr.number,title:pr.title,files:same});
+            }
+            fs.mkdirSync('artifacts/ai-coordinator',{recursive:true});
+            fs.writeFileSync('artifacts/ai-coordinator/overlaps.json',JSON.stringify({current,comparedPRs:Math.min(prs.length-1,40),overlaps,warning:'Sobreposição de caminhos não prova conflito de linhas. Limite de 40 PRs.'},null,2));
+            const md=['','## Sobreposição com PRs abertos',overlaps.length?
+              overlaps.map(p=>'- PR #'+p.number+' ('+p.title.replace(/[\r\n]/g,' ')+'): '+p.files.map(f=>'\`'+f+'\`').join(', ')).join('\n'):
+              'Nenhum arquivo coincidente entre os PRs abertos examinados.',''];
+            fs.appendFileSync('artifacts/ai-coordinator/report.md',md.join('\n'));
+            core.info(md.join('\n'));
+
+      - name: Mostrar resumo
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f artifacts/ai-coordinator/report.md ]]; then
+            cat artifacts/ai-coordinator/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Guardar relatório para as outras IAs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-coordinator-${{ github.run_id }}
+          path: artifacts/ai-coordinator/
+          if-no-files-found: warn
+          retention-days: 14
