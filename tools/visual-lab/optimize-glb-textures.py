@@ -39,10 +39,10 @@ def optimize(filename,maxedge):
   if vi in replace:continue
   with Image.open(io.BytesIO(original[vi])) as tex:
    tex.load();w,h=tex.size
-   if max(w,h)<=maxedge:continue
+   if max(w,h)<=maxedge and len(original[vi])<512000:continue
    alpha='A' in tex.getbands() or 'transparency' in tex.info
    tex=tex.convert('RGBA' if alpha else 'RGB')
-   tex.thumbnail((maxedge,maxedge),Image.Resampling.LANCZOS)
+   if max(w,h)>maxedge:tex.thumbnail((maxedge,maxedge),Image.Resampling.LANCZOS)
    out=io.BytesIO();tex.save(out,format='WEBP',quality=91,method=6,exact=True)
    compressed=out.getvalue()
    if len(compressed)>=len(original[vi])*.97:continue
