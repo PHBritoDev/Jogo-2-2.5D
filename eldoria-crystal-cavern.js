@@ -97,6 +97,70 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
   const lightA=new THREE.PointLight(0x5fbff5,lowSpec?28:45,43,2);lightA.position.set(12,15,4);lightA.castShadow=false;group.add(lightA);
   const lightB=new THREE.PointLight(0x75f1c7,lowSpec?18:26,28,2);lightB.position.set(-19,8,-11);lightB.castShadow=false;group.add(lightB);
   const lightC=new THREE.PointLight(0x7180ed,lowSpec?10:17,29,2);lightC.position.set(28,12,-24);lightC.castShadow=false;group.add(lightC);
+  // O coração mineral: ponto de reverência visível de qualquer entrada do salão.
+  // Cada cristal inclina-se para fora, como pétalas petrificadas em torno de um núcleo.
+  const core=new THREE.Group();core.name='CoracaoCristalino';
+  const heroMaterial=new THREE.MeshStandardMaterial({
+    color:0xc5f8ff,emissive:0x70dffe,emissiveIntensity:2.8,roughness:.15,
+    metalness:.05,flatShading:true,side:THREE.DoubleSide
+  });
+  const heroGeometry=new THREE.CylinderGeometry(0,1,1,6,1);
+  const central=new THREE.Mesh(heroGeometry,heroMaterial);
+  central.scale.set(2.4,21,2.4);central.position.y=10.5;
+  core.add(central);
+  for(let i=0;i<9;i++){
+    const a=i/9*Math.PI*2,height=8+(i%3)*3;
+    const crystal=new THREE.Mesh(heroGeometry,crystalMat[i%3]);
+    crystal.position.set(Math.cos(a)*3.3,height*.47,Math.sin(a)*3.3);
+    crystal.scale.set(1.15,height,1.25);
+    crystal.rotation.z=Math.cos(a)*.24;
+    crystal.rotation.x=Math.sin(a)*.22;
+    core.add(crystal);
+  }
+  core.position.set(0,3.65,0);group.add(core);
+  // Veios minerais e pequenos fragmentos orientam a aproximação ao centro.
+  const vein=new THREE.MeshStandardMaterial({
+    color:0x4cc4ba,emissive:0x218d8d,emissiveIntensity:1.5,
+    roughness:.55,side:THREE.DoubleSide
+  });
+  for(let i=0;i<18;i++){
+    const a=i/18*Math.PI*2,r=10+((i*7)%11),len=1.7+rand(i,312)*5;
+    const path=new THREE.LineCurve3(new THREE.Vector3(Math.cos(a)*r,1.49,Math.sin(a)*r),
+      new THREE.Vector3(Math.cos(a)*(r+len),1.49,Math.sin(a)*(r+len)));
+    const strand=new THREE.Mesh(new THREE.TubeGeometry(path,1,.065,4,false),vein);
+    strand.castShadow=false;group.add(strand);
+  }
+  // Brilho difuso em sprites aditivos, sem render target nem pós-processamento.
+  const glowsize=64,pixels=new Uint8Array(glowsize*glowsize*4);
+  for(let y=0;y<glowsize;y++)for(let x=0;x<glowsize;x++){
+    const r=Math.hypot((x+0.5-glowsize/2)/(glowsize/2),(y+0.5-glowsize/2)/(glowsize/2));
+    const alpha=Math.pow(Math.max(0,1-r),2.8);
+    const i=(y*glowsize+x)*4;pixels[i]=167;pixels[i+1]=231;pixels[i+2]=255;pixels[i+3]=Math.round(alpha*225);
+  }
+  const glowTexture=new THREE.DataTexture(pixels,glowsize,glowsize,THREE.RGBAFormat);
+  glowTexture.needsUpdate=true;
+  const glowMaterial=new THREE.SpriteMaterial({map:glowTexture,color:0x95deff,transparent:true,
+    opacity:lowSpec?.32:.46,blending:THREE.AdditiveBlending,depthWrite:false});
+  for(const [x,y,z,size] of [[0,17,0,25],[0,9,0,17],[20,7,20,13],[-22,7,-11,12],
+    [25,9,-22,14],[-30,6,12,7]]){
+    const spr=new THREE.Sprite(glowMaterial);
+    spr.position.set(x,y,z);spr.scale.set(size,size,1);group.add(spr);
+  }
+  // O setor obscuro é deliberadamente legível: farol violeta e obelisco rachado.
+  const abyssMaterial=new THREE.MeshStandardMaterial({color:0x1a2032,roughness:.97,flatShading:true});
+  const obelisk=new THREE.Mesh(new THREE.CylinderGeometry(.8,2.3,14,5),abyssMaterial);
+  obelisk.position.set(-29,8,17);obelisk.rotation.z=.1;group.add(obelisk);
+  const abyssLineMaterial=new THREE.MeshBasicMaterial({color:0x8569e8,transparent:true,opacity:.8});
+  for(let i=0;i<5;i++){
+    const a=i/5*Math.PI*2,x=-29+Math.cos(a)*2,z=17+Math.sin(a)*1.2;
+    const fracture=new THREE.Mesh(new THREE.BoxGeometry(.12,4.5,.12),abyssLineMaterial);
+    fracture.position.set(x,5.9,z);fracture.rotation.z=(i-2)*.13;group.add(fracture);
+  }
+  const abyssGlow=new THREE.Sprite(new THREE.SpriteMaterial({
+    map:glowTexture,color:0x8b64de,transparent:true,opacity:.3,
+    blending:THREE.AdditiveBlending,depthWrite:false
+  }));
+  abyssGlow.position.set(-29,9,17);abyssGlow.scale.set(16,16,1);group.add(abyssGlow);
   group.visible=false;
   scene.add(group);
   return {group,center:[ox,8,oz],dark:[ox-26,7,oz+17],
