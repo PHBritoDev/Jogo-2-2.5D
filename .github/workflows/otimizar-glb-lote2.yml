@@ -1,0 +1,62 @@
+name: Otimizar GLBs — lote 2 (cenario Eldoria)
+on:
+  push:
+    branches: [perf/glb-texturas-lote2]
+    paths:
+      - '.github/workflows/otimizar-glb-lote2.yml'
+permissions:
+  contents: write
+jobs:
+  otimizar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar Pillow
+        run: python -m pip install 'Pillow>=11,<13'
+      - name: Otimizar texturas dos 10 cenarios sem modificar geometria
+        run: |
+          python tools/visual-lab/optimize-glb-textures.py --max-edge 2048 --report visual-lab-results/glb-lote2.json \
+            'MontanhaEldoria01.glb' \
+            'EntradaCavernaAto1.glb' \
+            'PocoEldoria.glb' \
+            'ArreiosCavalo.glb' \
+            'FerreiroEldoria.glb' \
+            'PassarelaSuspensaEldoria.glb' \
+            'CristalCaverna01.glb' \
+            'BarracaFrutasEldoria.glb' \
+            'Ponte.glb' \
+            'JaulaRitualAto1.glb'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar GLBs e testes do Demonio1
+        run: |
+          node tools/visual-lab/agent-v7-run.cjs
+          node --test demonio1-migration.test.mjs
+      - name: Salvar relatorios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: glb-lote2-relatorio
+          path: |
+            visual-lab-results/glb-lote2.json
+            visual-lab-results/agente-v7/catalogo-glb.json
+          retention-days: 14
+      - name: Commitar somente na branch de teste
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'MontanhaEldoria01.glb' 'EntradaCavernaAto1.glb' 'PocoEldoria.glb' 'ArreiosCavalo.glb' 'FerreiroEldoria.glb' 'PassarelaSuspensaEldoria.glb' 'CristalCaverna01.glb' 'BarracaFrutasEldoria.glb' 'Ponte.glb' 'JaulaRitualAto1.glb'
+          if git diff --cached --quiet; then
+            echo 'Nada a alterar'
+          else
+            git commit -m 'perf: compactar texturas em 10 GLBs de Eldoria'
+            git push origin HEAD:perf/glb-texturas-lote2
+          fi
