@@ -11,7 +11,9 @@ export const ELDORIA_ZONES=Object.freeze({
   lago:{target:[-42,-.4,24],distance:32,heading:'Lago escondido da floresta'},
   floresta:{target:[-38,13,5],distance:65,heading:'Floresta ancestral'},
   ritual:{target:[76,9,76],distance:49,heading:'Clareira do ritual — estudo'},
-  caverna:{target:[-79,11,75],distance:54,heading:'Encosta da caverna — estudo'}
+  caverna:{target:[-79,11,75],distance:54,heading:'Encosta da caverna — estudo'},
+  interior:{target:[-80,14,290],distance:40,heading:'Caverna ancestral — salão de cristais'},
+  abismo:{target:[-106,8,307],distance:28,heading:'Caverna ancestral — ala obscura'}
 });
 const at=(x,z,size,rotation=0)=>({x,z,size,rotation});
 export const ELDORIA_ASSETS=Object.freeze([
