@@ -177,16 +177,17 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
     finish=new THREE.Vector3(),axis=new THREE.Vector3(),middle=new THREE.Vector3();
   const beamHelper=new THREE.Object3D();
   for(let i=0;i<beams;i++){
-    const a=(i+.37)/beams*Math.PI*2;
-    const outside=29+rand(i,901)*8,inside=14+rand(i,902)*7;
+    // Reserve o setor noroeste para a ala obscura e sua visão livre.
+    const a=3.0+(i+.45)/beams*(Math.PI*2-1.15);
+    const outside=39+rand(i,901)*5,inside=29+rand(i,902)*5;
     begin.set(Math.cos(a)*outside,1.5,Math.sin(a)*outside);
-    finish.set(Math.cos(a+.11)*(inside),13+rand(i,903)*12,
+    finish.set(Math.cos(a+.11)*(inside),20+rand(i,903)*10,
       Math.sin(a+.11)*inside);
     axis.copy(finish).sub(begin);
     middle.copy(begin).add(finish).multiplyScalar(.5);
     beamHelper.position.copy(middle);
     beamHelper.quaternion.setFromUnitVectors(vertical,axis.clone().normalize());
-    const width=.75+rand(i,904)*1.15;
+    const width=.48+rand(i,904)*.64;
     beamHelper.scale.set(width,axis.length(),width*.83);beamHelper.updateMatrix();
     beamMesh.setMatrixAt(i,beamHelper.matrix);
     beamMesh.setColorAt(i,new THREE.Color(i%3===0?0x9fffe3:i%3===1?0xb8c6ff:0xe4faff));
