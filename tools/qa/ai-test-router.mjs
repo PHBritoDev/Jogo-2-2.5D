@@ -60,7 +60,7 @@ const handoff=[
  '- Estado e conclusão dos outros PRs após este commit. Verificar GitHub novamente.',
  ''
 ];
-writeFileSync(root+'HANDOFF.md',handoff.join('\\n')+'\\n');
+writeFileSync(root+'HANDOFF.md',handoff.join('\n')+'\n');
 
 const md=['','## Plano de validação direcionado','',
  'O coordenador **não executou os testes abaixo**; consulte os checks e artifacts da PR. Não confunda plano com aprovação.',
