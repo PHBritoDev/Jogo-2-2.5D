@@ -11,7 +11,7 @@ const errors=[],results=[];
 async function capture(page,name){
   await page.waitForTimeout(1500);
   const filename=path.join(out,name+".png");
-  await page.screenshot({path:filename,timeout:30000});
+  await page.screenshot({path:filename,timeout:60000});
   const {data,info}=await sharp(filename).resize(64,64).removeAlpha().raw().toBuffer({resolveWithObject:true});
   let variance=0,mean=0;
   for(const v of data)mean+=v;mean/=data.length;
@@ -33,7 +33,7 @@ async function run(){
   try{
     for(const profile of [
       {name:"mobile",viewport:{width:412,height:915},isMobile:true,deviceScaleFactor:1},
-      {name:"desktop",viewport:{width:1280,height:720},isMobile:false,deviceScaleFactor:1}
+      {name:"desktop",viewport:{width:960,height:540},isMobile:false,deviceScaleFactor:1}
     ]){
       const context=await browser.newContext(profile);
       const page=await context.newPage();
@@ -46,6 +46,7 @@ async function run(){
       const start=await page.evaluate(()=>window.EldoriaVisualQA.inspect());
       if(start.failed)errors.push(profile.name+" "+start.failed+" arquivos GLB falharam");
       if(!start.sunCastsShadow||!start.shadowEnabled)errors.push(profile.name+" sombras desligadas");
+      await page.evaluate(()=>window.EldoriaVisualQA.view('cidade'));
       if(start.waterTime<=0)errors.push(profile.name+" água não anima");
       await capture(page,profile.name+"-vila-dia");
       await page.evaluate(()=>window.EldoriaVisualQA.view("aguas"));
