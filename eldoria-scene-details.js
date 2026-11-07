@@ -60,9 +60,40 @@ export function buildEldoriaDetails(THREE, scene, {height,streamDistance,rand,po
       reeds.push({x,z,y:y+.48,rot:rand(i,12)*6.28,sx:.16,sy:.9+rand(i,91)*.5,sz:.16,tint:0x749f69});
     }
   }
-  instances(new THREE.ConeGeometry(.43,1,4),makeMaterial(0xffffff,{side:THREE.DoubleSide}),grass);
+  // Lâminas triangulares curvas no lugar de cones: silhueta de gramínea real,
+  // 2 triângulos por tufo, sem alpha sorting e com instancing mobile.
+  const grassGeo=new THREE.BufferGeometry();
+  grassGeo.setAttribute('position',new THREE.Float32BufferAttribute([
+    -.43,-.5,0, .35,-.5,0, .06,.5,.11,
+    0,-.5,-.32, 0,-.5,.32, -.12,.5,.08
+  ],3));
+  grassGeo.setIndex([0,1,2,3,4,5]);grassGeo.computeVertexNormals();
+  instances(grassGeo,makeMaterial(0xffffff,{side:THREE.DoubleSide}),grass);
   instances(new THREE.DodecahedronGeometry(1,0),makeMaterial(0xffffff),rocks);
-  instances(new THREE.IcosahedronGeometry(1,0),makeMaterial(0xffffff,{emissive:0x1c170b,emissiveIntensity:.08}),flowers);
+  // Flor com 5 pétalas e miolo: reduz o aspecto de pedras coloridas.
+  const flower=new THREE.Group();
+  const petalsGeo=new THREE.SphereGeometry(.48,6,4);
+  const petalMat=makeMaterial(0xffffff,{side:THREE.DoubleSide});
+  for(let k=0;k<5;k++){
+    const a=k*Math.PI*2/5;
+    const petal=new THREE.Mesh(petalsGeo,petalMat);
+    petal.position.set(Math.cos(a)*.44,.08,Math.sin(a)*.44);
+    petal.scale.set(.64,.18,.46);petal.rotation.y=-a;
+    flower.add(petal);
+  }
+  // Uma malha combinada para todas as pétalas, mantendo 1 draw call.
+  const petalVerts=[],petalIndex=[];
+  for(const petal of flower.children){
+    petal.updateMatrix();const g=petal.geometry.clone().applyMatrix4(petal.matrix);
+    const pos=g.attributes.position,offset=petalVerts.length/3;
+    for(let i=0;i<pos.count;i++)petalVerts.push(pos.getX(i),pos.getY(i),pos.getZ(i));
+    for(let i=0;i<g.index.count;i++)petalIndex.push(offset+g.index.getX(i));
+    g.dispose();
+  }
+  const petalGeometry=new THREE.BufferGeometry();
+  petalGeometry.setAttribute('position',new THREE.Float32BufferAttribute(petalVerts,3));
+  petalGeometry.setIndex(petalIndex);petalGeometry.computeVertexNormals();
+  instances(petalGeometry,petalMat,flowers);
   instances(new THREE.ConeGeometry(.6,1,5),makeMaterial(0xffffff,{side:THREE.DoubleSide}),reeds);
   // Pedras para delimitar visualmente as margens sem gerar colisores invisíveis.
   const bankStones=[];
