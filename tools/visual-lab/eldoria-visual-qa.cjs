@@ -67,6 +67,12 @@ async function run(){
       await context.close();
     }
   }finally{await browser.close();}
+  for(const profile of ["mobile","desktop"]){
+    const day=results.find(x=>x.name===profile+"-vila-dia");
+    const night=results.find(x=>x.name===profile+"-vila-noite");
+    if(day&&night&&night.mean<day.mean*.30)
+      errors.push(profile+" noite ilegível: brilho "+night.mean.toFixed(1)+" vs dia "+day.mean.toFixed(1));
+  }
   const report={status:errors.length?"failed":"passed",errors,results,notes:"Capturas são pixels renderizados em SwiftShader CI, não benchmark Android real."};
   fs.writeFileSync(path.join(out,"report.json"),JSON.stringify(report,null,2)+"\n");
   console.log(JSON.stringify({status:report.status,errors,count:results.length,frames:results.map(x=>({name:x.name,variance:Math.round(x.variance),drawCalls:x.telemetry.drawCalls}))},null,2));
