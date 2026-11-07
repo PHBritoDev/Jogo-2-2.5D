@@ -521,7 +521,7 @@ const rockInstances=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),
 for(let i=0;i<rockSpecs.length;i++){const r=rockSpecs[i];treeDummy.position.set(r.x,r.base+r.height*.48,r.z);treeDummy.scale.set(r.radius,r.height,r.radius);treeDummy.rotation.set(rand(),rand()*Math.PI*2,rand());treeDummy.updateMatrix();rockInstances.setMatrixAt(i,treeDummy.matrix);}
 rockInstances.instanceMatrix.needsUpdate=true;rockInstances.computeBoundingSphere();rockInstances.castShadow=!terrainLowSpec;rockInstances.receiveShadow=true;scene.add(rockInstances);
 const villageGroup=new THREE.Group();scene.add(villageGroup);
-const villageGround=new THREE.Mesh(new THREE.CircleGeometry(13.2,40),mat(0x71694d));villageGround.rotation.x=-Math.PI/2;villageGround.position.set(VILLAGE_CENTER.x,.003,VILLAGE_CENTER.z);villageGround.receiveShadow=true;villageGroup.add(villageGround);
+// Eldória: terreno do vale e trilhas originais substituem o disco circular genérico da antiga vila.
 const woodMat=mat(0x59442f),woodLightMat=mat(0x806343),roofMat=mat(0x49362b),fabricGoldMat=mat(0xb76e3b),fabricCreamMat=mat(0xd5b77b),fabricGreenMat=mat(0x587a4b),basketMat=mat(0x765536),doorMat=mat(0x28251c),windowMat=mat(0x93b5ad,.55);
 function addVillageBox(parent,geometry,material,x,y,z,sx,sy,sz){const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=false;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
 // MOD 204 — a cabana e as casas de caixa deram lugar às casas do VilaKit.glb (feitas no Blender), carregadas em buildAct1Props().
