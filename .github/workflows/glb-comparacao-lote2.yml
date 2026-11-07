@@ -1,0 +1,53 @@
+name: GLB — comparacao visual lote 2
+on:
+  push:
+    branches: [perf/glb-texturas-lote2]
+    paths:
+      - '.github/workflows/glb-comparacao-lote2.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/glb-comparacao-lote2.yml'
+      - 'tools/visual-lab/glb-compare-qa.cjs'
+permissions:
+  contents: read
+jobs:
+  comparar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GLB_COMPARE_FILES: 'MontanhaEldoria01.glb,EntradaCavernaAto1.glb,PocoEldoria.glb,ArreiosCavalo.glb,FerreiroEldoria.glb,PassarelaSuspensaEldoria.glb,CristalCaverna01.glb,BarracaFrutasEldoria.glb,Ponte.glb,JaulaRitualAto1.glb'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar Chromium e ferramentas
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Extrair modelos originais da main
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main --depth=1
+          mkdir -p visual-lab-results/glb-originals
+          for file in 'MontanhaEldoria01.glb' 'EntradaCavernaAto1.glb' 'PocoEldoria.glb' 'ArreiosCavalo.glb' 'FerreiroEldoria.glb' 'PassarelaSuspensaEldoria.glb' 'CristalCaverna01.glb' 'BarracaFrutasEldoria.glb' 'Ponte.glb' 'JaulaRitualAto1.glb'; do
+            git show "origin/main:$file" > "visual-lab-results/glb-originals/$file"
+          done
+      - name: Servir GLBs
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/glb2-qa-http.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/tools/visual-lab/glb-compare-viewer.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/glb2-qa-http.log
+          exit 1
+      - name: Comparar 10 modelos no Chromium WebGL
+        run: node tools/visual-lab/glb-compare-qa.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: glb-visual-lote2
+          path: visual-lab-results/glb-visual-qa/
+          retention-days: 14
+          if-no-files-found: warn
