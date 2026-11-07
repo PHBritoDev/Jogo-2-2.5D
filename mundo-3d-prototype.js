@@ -38,6 +38,7 @@ import {JudgmentDragon} from './skill-judgment-dragon3d.js';import {createDragon
 import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import {createSakugaXVFX,createSphereVFX,createCelestialVFX} from './sakuga-skills-vfx3d.js';
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES } from './act1-world-layout.js';
+import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
 import {prepareSandraMaterials} from './sandra-materials.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -347,7 +348,7 @@ let seed=9137;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/429
    árvore de copa redonda e conífera. Coníferas sobem as encostas até a linha das árvores (sem colisão,
    pois ficam fora da área caminhável). Tudo instanciado: poucos draw calls para o celular. */
 function forestSpotFree(x,z){
- if(Math.hypot(x,z-4)<6.5||Math.hypot(x-CLEARING.x,z-CLEARING.z)<8.6||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1)return false;
+ if(Math.hypot(x,z-4)<30||Math.hypot(x-CLEARING.x,z-CLEARING.z)<8.6||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1)return false;
  if(WAYSTONES.some(w=>Math.hypot(x-w.x,z-w.z)<4.2)||Math.hypot(x-SHOP_SPOT.x,z-SHOP_SPOT.z)<10)return false;
  if(Math.abs(x-DISTRICT.cx)<DISTRICT.hx+4&&Math.abs(z-DISTRICT.cz)<DISTRICT.hz+4)return false; // distrito em ruínas: sem mata densa
  if(Math.hypot(x-ALTAR_VALLEY.cx,z-ALTAR_VALLEY.cz)<24||Math.hypot(x-SERRA.cx,z-SERRA.cz+8)<18)return false;
@@ -535,7 +536,7 @@ function makeFruitStall(x,z,label,green){const stall=new THREE.Group();stall.pos
  for(let basket=0;basket<3;basket++){const bx=(basket-1)*.72;const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.25,.34,.3,8),basketMat);bowl.position.set(bx,1.27,0);stall.add(bowl);for(let j=0;j<4;j++){const fruit=new THREE.Mesh(fruitGeo,fruitMats[(basket*3+j)%fruitMats.length]);fruit.position.set(bx+((j%2)-.5)*.2,1.5+Math.floor(j/2)*.03,(Math.floor(j/2)-.5)*.19);fruit.castShadow=false;stall.add(fruit);}}
  marketObstacles.push({x,z,shape:'box',halfX:1.225,halfZ:.76,height:2.4});return stall;}
 const marketStalls=[{x:VILLAGE_CENTER.x+2.85,z:VILLAGE_CENTER.z-2.5,label:'FRUTAS',green:false},{x:VILLAGE_CENTER.x-2.05,z:VILLAGE_CENTER.z+3.75,label:'ERVAS',green:true},{x:VILLAGE_CENTER.x+4.5,z:VILLAGE_CENTER.z+3.0,label:'PROVISÕES',green:false},{x:VILLAGE_CENTER.x+1.8,z:VILLAGE_CENTER.z-7.6,label:'ARTESANATO',green:true}];
-for(const stall of marketStalls)makeFruitStall(stall.x,stall.z,stall.label,stall.green);
+// Eldória: as quatro barracas usam BarracaFrutasEldoria.glb; as posições dos vendedores permanecem.
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
 const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
 for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},{x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}]){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,2.05,5),woodMat);pole.position.set(p.x,1.02,p.z);villageGroup.add(pole);const glow=new THREE.Mesh(new THREE.SphereGeometry(.16,7,6),lanternMat);glow.position.set(p.x,1.92,p.z);villageGroup.add(glow);}
@@ -3555,17 +3556,24 @@ const VILLAGE_PROPS=[
  {k:'Barril',x:-5.6,z:-12.4},{k:'Barril',x:5.2,z:-11.8},{k:'Caixote',x:-9.6,z:7.6},{k:'Caixote',x:11.8,z:-3.4},{k:'Cerca',x:-14,z:-1.5,yaw:1.57},{k:'Cerca',x:13.6,z:-1.8,yaw:1.57},{k:'Barril',x:6.6,z:11.4}
 ].map(p=>({...p,x:VILLAGE_CENTER.x+p.x,z:VILLAGE_CENTER.z+p.z}));
 const BEGGARS=[{x:-5.2,z:-13.6,yaw:0},{x:4.4,z:14.8,yaw:Math.PI},{x:13.2,z:-6.4,yaw:-1.5},{x:-13.4,z:7.4,yaw:1.5}].map(p=>({...p,x:VILLAGE_CENTER.x+p.x,z:VILLAGE_CENTER.z+p.z}));
-for(const h of VILLAGE_KIT){h.yaw=Math.atan2(VILLAGE_CENTER.x-h.x,VILLAGE_CENTER.z-h.z);marketObstacles.push({x:h.x,z:h.z,radius:h.k==='CasaC'?2.3:2.55,height:3});}
-for(const p of VILLAGE_PROPS)if(p.k==='Poco'||p.k==='Barraca')marketObstacles.push({x:p.x,z:p.z,radius:p.k==='Poco'?1.2:1.3,height:2});
+// As colisões das casas passam a ser registradas pelo módulo da cidade de Eldória.
+// Os adereços novos registram a própria colisão; os moradores continuam nas coordenadas originais.
 function buildAct1Props(){
  if(act1Props)return act1Props;act1Props={kit:null,poses:null,flies:null,door:null,victims:[],kids:[]};
  const L=new GLTFLoader();
- L.load('./VilaKit.glb?v=mod204',gltf=>{
-  const kit={};for(const c of gltf.scene.children)kit[c.name]=c;act1Props.kit=kit;
-  const place=(p,shadow)=>{const src=kit[p.k];if(!src)return;const o=src.clone();o.position.set(p.x,groundHeightAt(p.x,p.z),p.z);o.rotation.y=p.yaw||0;o.traverse(m=>{if(m.isMesh){m.castShadow=!!shadow;m.receiveShadow=true;}});villageGroup.add(o);};
-  for(const h of VILLAGE_KIT)place(h,true);for(const p of VILLAGE_PROPS)place(p,false);
-  buildSewerDoor();
- },undefined,e=>console.warn('VilaKit.glb não carregou.',e));
+ // Substitui a cidade antiga por GLBs autorais de Eldória, sem mover vendedores,
+ // moradores ou pontos de missão. O roteiro v1 permanece documento de produção.
+ const eldoriaCity=mountEldoriaLiveVillage({
+   THREE,GLTFLoader,group:villageGroup,groundHeightAt,center:VILLAGE_CENTER,
+   obstacles:marketObstacles,lowSpec:terrainLowSpec
+ });
+ act1Props.eldoria=eldoriaCity;
+ eldoriaCity.complete.then(report=>{
+   window.EldoriaLiveCityQA={loaded:report.loaded,expected:report.expected,failures:report.failures,
+     village:{...VILLAGE_CENTER},spawnClearance:30};
+   if(report.failures.length)console.warn('Eldória: falha de modelos na cidade',report.failures);
+ }).catch(error=>console.warn('Eldória: falha de montagem',error));
+ buildSewerDoor();
  L.load('./MoradoresPose.glb?v=mod204',gltf=>{
   const poses={};for(const c of gltf.scene.children)poses[c.name]=c;act1Props.poses=poses;
   const tint=m=>{m.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.metalness=0;o.material.roughness=Math.max(.75,o.material.roughness||0);if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x4a3e36);o.material.emissiveIntensity=.7;}o.castShadow=false;}});return m;};
