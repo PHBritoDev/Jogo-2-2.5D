@@ -23,9 +23,9 @@ let model,baseY=0,height=2,rad=1;
 function pose(angle=0,close=false){
   if(!model)return;
   model.rotation.y=angle;
-  const focus=close?Math.max(height*0.82,height*0.4):height*0.52;
-  const distance=close?Math.max(height*0.64,rad*1.7):Math.max(height*2.0,rad*3.6);
-  camera.position.set(0,focus+(close?height*0.07:height*0.1),distance);
+  const visualHeight=Math.max(3.0,height*5.5); const focus=close?visualHeight*0.78:visualHeight*0.48;
+  const distance=close?Math.max(visualHeight*0.75,2.6):Math.max(visualHeight*2.0,6.3);
+  camera.position.set(0,focus,distance);
   camera.lookAt(0,focus,0);camera.updateProjectionMatrix();
   renderer.render(scene,camera);
 }
