@@ -54,7 +54,7 @@ export function mountMatureForest(THREE, GLTFLoader, o) {
   const d = new THREE.Object3D(), place = (m, sx = 1) => { plan.forEach((t, i) => { d.position.set(t.x, groundHeightAt(t.x, t.z) - .25, t.z); d.rotation.set(t.lean, t.rot, t.lean * .6); d.scale.set(t.h * sx * (t.w || 1), t.h, t.h * sx * (t.w || 1) * (.9 + ((i * 7) % 5) * .05)); d.updateMatrix(); m.setMatrixAt(i, d.matrix); }); m.count = plan.length; plan.forEach((t, i) => m.setColorAt(i, tints[i])); m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.computeBoundingSphere(); };
   const far = new THREE.InstancedMesh(farTreeGeometry(THREE), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95 }), Math.max(1, plan.length));
   place(far, 1.6); far.name = 'mature-forest-far'; group.add(far);
-  if (registerCull) registerCull(far, 150, 0, lowSpec ? 40 : 55);
+  // Copa simplificada só começa DEPOIS do limite do LOD médio: evita dois modelos da mesma árvore no mesmo quadro.\n  if (registerCull) registerCull(far, 150, 0, lowSpec ? 42 : 58);
   // LOD1 é opcional: se não carregar (ou vier sem UV), a malha completa do criador serve aos dois níveis.
   const loader = new GLTFLoader(), build = (full, lod) => {
     const tex = bakeUnitTree(THREE, full.scene); if (!tex) return null;
