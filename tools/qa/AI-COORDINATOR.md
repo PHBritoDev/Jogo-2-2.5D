@@ -31,3 +31,10 @@ node tools/qa/ai-change-guard.mjs "$(git rev-parse main)"
 ```
 
 Saída local em `artifacts/ai-coordinator/` (gerada, não adicionar ao Git).
+
+## Planejador de testes por alteração
+O arquivo `tools/qa/ai-test-router.mjs` lê o relatório de caminhos e gera `test-plan.json` com verificações específicas para Ato 1, personagens, inimigos, Bispos, bootstrap, mobile e segurança. Ele **só recomenda** testes; não reivindica execuções, não cria falsos resultados nem roda cenas pesadas sem necessidade. O próprio workflow roda `node --test tools/qa/ai-test-router.test.mjs` e mostra o plano no resumo.
+
+**Como aproveitar com Claude/Codex:** ao abrir PR, acompanhe o Actions `Coordenador de IAs - riscos e conflitos`, leia `report.md` e `test-plan.json` no artifact. Se dois trabalhos tocarem o mesmo arquivo, acordem a ordem de integração e revisem o diff em vez de sobrescrever código. Em seguida execute os testes recomendados no ambiente adequado; o coordenador não substitui os laboratórios existentes.
+
+**Custo e segurança:** não há chamadas pagas de IA nem segredos adicionais, apenas GitHub Actions; execução usa minutos da conta conforme o plano. Os resultados são consultivos e sujeitos a limitação de tempo e quantidade de PRs analisados.
