@@ -35,7 +35,7 @@ const stream=[[-88,12],[-65,1],[-43,-11],[-22,-5],[2,4],[27,-2],[50,-18],[82,-22
 function streamDistance(x,z){let best=1e9;for(let i=1;i<stream.length;i++){const [ax,az]=stream[i-1],[bx,bz]=stream[i];const dx=bx-ax,dz=bz-az;const t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz)));best=Math.min(best,Math.hypot(x-ax-t*dx,z-az-t*dz));}return best;}
 function height(x,z){const hill=1.4*Math.sin(x*.031)*Math.cos(z*.039)+.5*Math.sin(z*.13+x*.07);const cut=3.5*(1-smooth(2.4,10.5,streamDistance(x,z)));const plaza=1-smooth(24,50,Math.hypot(x-5,z+43));const pondCut=2.5*(1-smooth(.35,1.28,pondSdf(x,z)));return hill*(1-plaza*.84)-cut-pondCut;}
 const nx=115,nz=115,positions=[],colors=[],indices=[],gcol=new THREE.Color();
-for(let iz=0;iz<=nz;iz++)for(let ix=0;ix<=nx;ix++){const x=(ix/nx-.5)*240,z=(iz/nz-.5)*240,y=height(x,z),wet=streamDistance(x,z);positions.push(x,y,z);const grass=rand(Math.floor(x/7),Math.floor(z/7));gcol.set(wet<10?0x688766:grass>.6?0x639047:0x527d42);gcol.offsetHSL(0,0,(grass-.5)*.13);colors.push(gcol.r,gcol.g,gcol.b);}
+for(let iz=0;iz<=nz;iz++)for(let ix=0;ix<=nx;ix++){const x=(ix/nx-.5)*240,z=(iz/nz-.5)*240,y=height(x,z),wet=streamDistance(x,z);positions.push(x,y,z);const grass=.5+.24*Math.sin(x*.085+Math.cos(z*.051)*2.1)+.15*Math.cos(z*.11-x*.064)+.08*Math.sin(x*.21+z*.17);gcol.set(wet<10?0x6e9974:0x648b50);gcol.offsetHSL(0,Math.min(.08,Math.abs(grass-.5)*.12),(grass-.5)*.16);colors.push(gcol.r,gcol.g,gcol.b);}
 for(let z=0;z<nz;z++)for(let x=0;x<nx;x++){const a=z*(nx+1)+x,b=a+1,c=a+nx+1,d=c+1;indices.push(a,c,b,b,c,d);}
 const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();const terrainMesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide}));terrainMesh.receiveShadow=true;scene.add(terrainMesh);
 const water=createEldoriaWater(THREE,{lowSpec});
@@ -103,10 +103,10 @@ function loadStage(stage){
  }))).then(()=>{loadedStages.add(stage);loadingStages.delete(stage);if(failures.length)document.getElementById('warning').textContent='Falhas de modelos: '+failures.join(', ');});
 }
 loadStage('core');
-let target=new THREE.Vector3(...ELDORIA_ZONES.chegada.target),yaw=.6,pitch=.37,distance=64;const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+let target=new THREE.Vector3(...ELDORIA_ZONES.chegada.target),yaw=.42,pitch=.34,distance=64;const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function view(name){
  const info=ELDORIA_ZONES[name];if(!info)return;
- target.set(...info.target);distance=info.distance;lighting.focus(info.target[0],info.target[2],true);
+ target.set(...info.target);distance=name==='cidade'?36:info.distance;yaw=name==='cidade'?.12:name==='aguas'?.55:name==='lago'?.6:.42;pitch=name==='cidade'?.34:.40;lighting.focus(info.target[0],info.target[2],true);
  document.querySelectorAll('button[data-place]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.place===name)));
  if(name==='ritual'||name==='caverna')loadStage(name);
  if(name==='ritual')setNight(true);
