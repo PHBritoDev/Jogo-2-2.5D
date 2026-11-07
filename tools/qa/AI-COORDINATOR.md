@@ -44,3 +44,10 @@ O arquivo `tools/qa/ai-test-router.mjs` lê o relatório de caminhos e gera `tes
 - A pesquisa de sobreposição com PRs é **consultiva** (`continue-on-error`): instabilidades na API do GitHub não impedem que outras IAs avancem.
 - Testes do detector de alterações usam repositórios temporários com Git; os testes do roteador usam diretórios temporários. Nenhum teste manipula arquivos do jogo.
 - **Não habilitar este workflow como status obrigatório de proteção de branch** sem avaliar seu valor e possíveis custos. Ele não deve substituir as verificações reais de compilação, segurança e gameplay.
+
+## Passagem entre Claude, ChatGPT e outras IAs
+O workflow também gera **`HANDOFF.md`**, uma página curta, extraída dos arquivos realmente modificados no PR: SHA de base e cabeça, áreas afetadas, arquivos, testes sugeridos e instruções para consultar outros PRs. É um documento **por execução**, no artifact, não uma instrução permanente editando `AGENTS.md`.
+
+Ao trocar de IA, forneça o link do PR e do artifact ao novo desenvolvedor. Ele deve ler o `HANDOFF.md`, **confirmar o estado atual do GitHub** e conferir os últimos pedidos do criador. O documento não conhece o progresso fora do GitHub e **não pode** afirmar que o Claude terminou uma tarefa ou que testes WebGL/Android passaram.
+
+Não cria automações concorrentes nem scripts que editam código ou acionam testes de navegador automaticamente. Aproveita apenas o workflow já existente.
