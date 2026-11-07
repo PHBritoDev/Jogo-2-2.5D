@@ -38,3 +38,9 @@ O arquivo `tools/qa/ai-test-router.mjs` lê o relatório de caminhos e gera `tes
 **Como aproveitar com Claude/Codex:** ao abrir PR, acompanhe o Actions `Coordenador de IAs - riscos e conflitos`, leia `report.md` e `test-plan.json` no artifact. Se dois trabalhos tocarem o mesmo arquivo, acordem a ordem de integração e revisem o diff em vez de sobrescrever código. Em seguida execute os testes recomendados no ambiente adequado; o coordenador não substitui os laboratórios existentes.
 
 **Custo e segurança:** não há chamadas pagas de IA nem segredos adicionais, apenas GitHub Actions; execução usa minutos da conta conforme o plano. Os resultados são consultivos e sujeitos a limitação de tempo e quantidade de PRs analisados.
+
+## Proteção de coexistência — novembro de 2026
+- O workflow tem grupo de concorrência **próprio**, sem cancelar jobs de segurança, Ato 1 ou laboratório visual.
+- A pesquisa de sobreposição com PRs é **consultiva** (`continue-on-error`): instabilidades na API do GitHub não impedem que outras IAs avancem.
+- Testes do detector de alterações usam repositórios temporários com Git; os testes do roteador usam diretórios temporários. Nenhum teste manipula arquivos do jogo.
+- **Não habilitar este workflow como status obrigatório de proteção de branch** sem avaliar seu valor e possíveis custos. Ele não deve substituir as verificações reais de compilação, segurança e gameplay.
