@@ -26,8 +26,9 @@ export function buildEldoriaArt(THREE,scene,{height,streamDistance,pondSdf,rand,
  const fountain=new THREE.Group();
  const stone=new THREE.Mesh(new THREE.CylinderGeometry(3.45,3.6,.55,40),ivory);
  stone.position.y=.27;stone.receiveShadow=true;fountain.add(stone);
+ // O roteiro canônico especifica fonte SECA; decoração do mundo reforça a fome.
  const pool=new THREE.Mesh(new THREE.CircleGeometry(3.05,48),
-   new THREE.MeshPhysicalMaterial({color:0x238c9f,roughness:.16,metalness:0,clearcoat:.65,transparent:true,opacity:.9,side:THREE.DoubleSide}));
+   new THREE.MeshStandardMaterial({color:0x8a9580,roughness:1,side:THREE.DoubleSide}));
  pool.rotation.x=-Math.PI/2;pool.position.y=.59;fountain.add(pool);
  const rim=new THREE.Mesh(new THREE.TorusGeometry(3.22,.28,7,40),cream);
  rim.rotation.x=Math.PI/2;rim.position.y=.77;rim.receiveShadow=true;fountain.add(rim);
@@ -35,8 +36,31 @@ export function buildEldoriaArt(THREE,scene,{height,streamDistance,pondSdf,rand,
  center.position.y=.96;fountain.add(center);
  const spout=new THREE.Mesh(new THREE.SphereGeometry(.19,10,8),cream);
  spout.position.y=1.48;fountain.add(spout);
- fountain.position.set(1.5,height(1.5,-41.5)+.05,-41.5);
+ // Sulcos finos e pedra rachada dentro da bacia, sem água corrente.
+ const cracks=new THREE.Group();
+ const crackMat=new THREE.LineBasicMaterial({color:0x59664f,transparent:true,opacity:.72});
+ for(let i=0;i<6;i++){
+  const a=(i/6)*Math.PI*2+.3,pts=[];
+  for(let k=0;k<6;k++){
+   const t=k/5*2.25;
+   pts.push(new THREE.Vector3(Math.cos(a+.11*Math.sin(k*3+i))*t,.603,Math.sin(a+.11*Math.sin(k*3+i))*t));
+  }
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  cracks.add(new THREE.Line(g,crackMat));
+ }
+ fountain.add(cracks);
+fountain.position.set(1.5,height(1.5,-41.5)+.05,-41.5);
  scene.add(fountain);
+ // Caixotes vazios e sacas abandonadas: pista visual da falta de mercadorias.
+ const emptyBoxes=[],emptySacks=[];
+ for(const [x,z,rot] of [[11,-40,.2],[14,-39,.8],[16,-40,-.2],[21,-62,.5],[-5,-45,.3],[-7,-44,.6]]){
+   emptyBoxes.push({x,y:height(x,z)+.36,z,rotation:rot,sx:.9,sy:.72,sz:.78});
+ }
+ for(const [x,z] of [[9,-43],[19,-61],[-5,-48]]){
+   emptySacks.push({x,y:height(x,z)+.22,z,sx:.6,sy:.40,sz:1.1});
+ }
+ batch(new THREE.BoxGeometry(1,1,1),mat(0x776046),emptyBoxes);
+ batch(new THREE.IcosahedronGeometry(1,1),mat(0x9f9c7c),emptySacks);
  // Cercas claras delimitam quintais sem isolar o mercado ou impedir as ruas.
  const posts=[],rails=[];
  const gardens=[
