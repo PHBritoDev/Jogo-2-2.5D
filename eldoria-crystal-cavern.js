@@ -162,10 +162,42 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
     blending:THREE.AdditiveBlending,depthWrite:false
   }));
   abyssGlow.position.set(-29,9,17);abyssGlow.scale.set(16,16,1);group.add(abyssGlow);
+  // Feixes de selenita cruzados: contraste de escala inspirado na geologia
+  // real de Naica, sem copiar formato de um jogo ou espalhar cones genéricos.
+  const longCrystalGeometry=new THREE.CylinderGeometry(.42,1,1,6,1);
+  const longCrystalMaterial=lowSpec
+    ? new THREE.MeshStandardMaterial({color:0x97d9eb,roughness:.24,metalness:.04,
+       emissive:0x194d66,emissiveIntensity:.38,flatShading:true})
+    : new THREE.MeshPhysicalMaterial({color:0xa2dfef,roughness:.2,metalness:.02,
+       clearcoat:.72,clearcoatRoughness:.1,emissive:0x164c61,
+       emissiveIntensity:.33,flatShading:true});
+  const beams=12,beamMesh=new THREE.InstancedMesh(longCrystalGeometry,longCrystalMaterial,beams);
+  beamMesh.name='SeleniteTransverseBeams';
+  const vertical=new THREE.Vector3(0,1,0),begin=new THREE.Vector3(),
+    finish=new THREE.Vector3(),axis=new THREE.Vector3(),middle=new THREE.Vector3();
+  const beamHelper=new THREE.Object3D();
+  for(let i=0;i<beams;i++){
+    const a=(i+.37)/beams*Math.PI*2;
+    const outside=29+rand(i,901)*8,inside=14+rand(i,902)*7;
+    begin.set(Math.cos(a)*outside,1.5,Math.sin(a)*outside);
+    finish.set(Math.cos(a+.11)*(inside),13+rand(i,903)*12,
+      Math.sin(a+.11)*inside);
+    axis.copy(finish).sub(begin);
+    middle.copy(begin).add(finish).multiplyScalar(.5);
+    beamHelper.position.copy(middle);
+    beamHelper.quaternion.setFromUnitVectors(vertical,axis.clone().normalize());
+    const width=.75+rand(i,904)*1.15;
+    beamHelper.scale.set(width,axis.length(),width*.83);beamHelper.updateMatrix();
+    beamMesh.setMatrixAt(i,beamHelper.matrix);
+    beamMesh.setColorAt(i,new THREE.Color(i%3===0?0x9fffe3:i%3===1?0xb8c6ff:0xe4faff));
+  }
+  beamMesh.instanceMatrix.needsUpdate=true;
+  if(beamMesh.instanceColor)beamMesh.instanceColor.needsUpdate=true;
+  beamMesh.computeBoundingSphere();group.add(beamMesh);
   const geology=buildEldoriaCaveGeology(THREE,group,{lowSpec});
   group.visible=false;
   scene.add(group);
   return {group,center:[ox,8,oz],dark:[ox-26,7,oz+17],
-    stats:{crystals:spires.length,stalactites:ceilings.length,stalagmites:pillars.length,geology},
+    stats:{crystals:spires.length,stalactites:ceilings.length,stalagmites:pillars.length,seleniteBeams:beams,geology},
     setVisible(visible){group.visible=!!visible;},dispose(){group.traverse(o=>{o.geometry?.dispose();});}};
 }
