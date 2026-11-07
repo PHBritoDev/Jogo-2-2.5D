@@ -38,7 +38,8 @@ for (const [file, ratio] of LOD_PLAN) {
   }
   for (const t of doc.getRoot().listTextures()) t.dispose();
   for (const m of doc.getRoot().listMaterials()) { m.setBaseColorTexture(null); m.setNormalTexture(null); m.setMetallicRoughnessTexture(null); m.setOcclusionTexture(null); m.setEmissiveTexture(null); }
-  await doc.transform(prune(), dedup());
+  // keepAttributes: sem textura própria o prune apagaria TEXCOORD_0, e o LOD1 usa a textura do LOD0.
+  await doc.transform(prune({ keepAttributes: true }), dedup());
   await io.write(out, doc);
   console.log(file, before, '->', count(doc));
 }

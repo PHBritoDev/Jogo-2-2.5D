@@ -55,8 +55,10 @@ export function mountMatureForest(THREE, GLTFLoader, o) {
   const far = new THREE.InstancedMesh(farTreeGeometry(THREE), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95 }), Math.max(1, plan.length));
   place(far, 1.6); far.name = 'mature-forest-far'; group.add(far);
   if (registerCull) registerCull(far, 150, 0, lowSpec ? 40 : 55);
-  const loader = new GLTFLoader(), ready = new Promise(res => loader.load('./ArvoreFloresta01.glb', full => loader.load('./ArvoreFloresta01-lod1.glb', lod => {
-    const tex = bakeUnitTree(THREE, full.scene), geo = bakeUnitTree(THREE, lod.scene) || tex; if (!tex) { res(null); return; }
+  // LOD1 é opcional: se não carregar (ou vier sem UV), a malha completa do criador serve aos dois níveis.
+  const loader = new GLTFLoader(), build = (full, lod) => {
+    const tex = bakeUnitTree(THREE, full.scene); if (!tex) return null;
+    let geo = lod ? bakeUnitTree(THREE, lod.scene) : null; if (!geo || !geo.geo.attributes.uv) { if (lod) console.warn('ArvoreFloresta01-lod1.glb sem UV; usando a malha completa no nível médio.'); geo = tex; }
     // Copa menos "buraco negro": emissão fraca com a própria textura (meio-tom sob o dossel, sem estourar a luz).
     const mat = tex.material.clone(); if (mat.map) { mat.emissiveMap = mat.map; mat.emissive = new THREE.Color(0x3a4a2a); mat.emissiveIntensity = .55; } mat.metalness = 0;
     mat.roughness = Math.max(.92, mat.roughness ?? 1); // casca sem brilho especular de plástico
@@ -66,8 +68,11 @@ export function mountMatureForest(THREE, GLTFLoader, o) {
     const mid = new THREE.InstancedMesh(geo.geo, mat, Math.max(1, plan.length)); place(mid, 1);
     mid.castShadow = !lowSpec; mid.receiveShadow = true; mid.name = 'mature-forest-mid'; group.add(mid);
     if (registerCull) { registerCull(near, 24, 24); registerCull(mid, lowSpec ? 42 : 58, 0, 24); }
-    res({ near: plan.length, triangles: (geo.geo.index ? geo.geo.index.count : geo.geo.attributes.position.count) / 3 });
-  }, undefined, () => res(null)), undefined, () => res(null)));
+    return { near: plan.length, lodFallback: geo === tex, triangles: (geo.geo.index ? geo.geo.index.count : geo.geo.attributes.position.count) / 3 };
+  };
+  const ready = new Promise(res => loader.load('./ArvoreFloresta01.glb', full => loader.load('./ArvoreFloresta01-lod1.glb', lod => res(build(full, lod)),
+    undefined, err => { console.warn('ArvoreFloresta01-lod1.glb não carregou; usando a malha completa.', err); res(build(full, null)); }),
+    undefined, err => { console.warn('ArvoreFloresta01.glb não carregou; mata só com copas distantes.', err); res(null); }));
   // Manchas de sol filtradas pela copa: discos aditivos quentes no chão, entre os troncos (1 draw call).
   const dapples = []; { let k = 0; for (const t of plan) for (let j = 0; j < 2; j++) { const a = (k++ * 2.399) % 6.28, r = 2.5 + ((k * 3.7) % 4); dapples.push({ x: t.x + Math.cos(a) * r, z: t.z + Math.sin(a) * r, s: .9 + ((k * 1.3) % 1.6) }); } }
   const dg = new THREE.CircleGeometry(1, 14); dg.rotateX(-Math.PI / 2);

@@ -154,3 +154,13 @@ test('marco 2: mata fechada usa o GLB do criador, respeita trilha/água e não f
   assert.match(src, /wobble:\.6\}/, 'margem do lago orgânica');
   assert.match(readFileSync(new URL('./eldoria-water.js', import.meta.url), 'utf8'), /uFoamEnd - 14\.0/, 'sem espuma de rio dentro do lago');
 });
+
+test('LOD1 dos GLBs mantém TEXCOORD_0 (usa a textura do LOD0) e a mata tem fallback sem LOD1', () => {
+  for (const f of ['CasaEldoria01', 'CasaEldoria02', 'ArvoreAncestralEldoria', 'RochedoMusgoEldoria', 'PocoEldoria', 'BarracaFrutasEldoria', 'FerreiroEldoria', 'Carroça', 'ArvoreFloresta01']) {
+    const b = readFileSync(new URL('./' + f + '-lod1.glb', import.meta.url)), j = JSON.parse(b.slice(20, 20 + b.readUInt32LE(12)).toString());
+    for (const m of j.meshes) for (const pr of m.primitives) assert.ok('TEXCOORD_0' in pr.attributes, f + ' LOD1 sem UV');
+  }
+  const lib = readFileSync(new URL('./eldoria-mature-forest.js', import.meta.url), 'utf8');
+  assert.match(lib, /res\(build\(full, null\)\)/, 'LOD1 ausente usa a malha completa');
+  assert.match(readFileSync(new URL('./tools/eldoria/build-lod-glbs.mjs', import.meta.url), 'utf8'), /prune\(\{ keepAttributes: true \}\)/);
+});
