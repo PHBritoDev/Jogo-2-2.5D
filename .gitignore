@@ -1,0 +1,23 @@
+# Local secrets and credentials: never commit these to a public repository.
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.keystore
+*.jks
+id_rsa
+id_ed25519
+credentials.json
+service-account*.json
+*-service-account.json
+# Local development/build output
+node_modules/
+dist/
+build/
+.cache/
+coverage/
+*.log
+.DS_Store
