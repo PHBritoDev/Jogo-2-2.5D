@@ -97,7 +97,7 @@ export function createEldoriaWater(THREE,{lowSpec}){
         '#include <common>\nuniform float uEldoriaTime;\nuniform float uEldoriaAmplitude;'
       ).replace(
         '#include <begin_vertex>',
-        '#include <begin_vertex>\ntransformed.y += sin(position.x*0.36 + uEldoriaTime*0.9)*cos(position.z*0.27-uEldoriaTime*0.7)*uEldoriaAmplitude;'
+        '#include <begin_vertex>\n' + waveExpression
       );
     };
     material.customProgramCacheKey=()=>lake?'eldoria-water-lake-v2':'eldoria-water-stream-v2';
