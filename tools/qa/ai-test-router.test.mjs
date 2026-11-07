@@ -14,7 +14,7 @@ function run(files){
   writeFileSync(join(dir,'artifacts/ai-coordinator/report.md'),'# Relatório inicial\n');
   const res=spawnSync(process.execPath,[script],{cwd:dir,encoding:'utf8'});
   assert.equal(res.status,0,res.stderr);
-  return {data:JSON.parse(readFileSync(join(dir,'artifacts/ai-coordinator/test-plan.json'),'utf8')),report:readFileSync(join(dir,'artifacts/ai-coordinator/report.md'),'utf8')};
+  return {data:JSON.parse(readFileSync(join(dir,'artifacts/ai-coordinator/test-plan.json'),'utf8')),report:readFileSync(join(dir,'artifacts/ai-coordinator/report.md'),'utf8'),handoff:readFileSync(join(dir,'artifacts/ai-coordinator/HANDOFF.md'),'utf8')};
  }finally{rmSync(dir,{recursive:true,force:true});}
 }
 test('Ato 1 pede validação narrativa e Android, sem aprovar automaticamente',()=>{
@@ -35,4 +35,13 @@ test('Mudança só na documentação não inventa teste executado',()=>{
 test('Testes duplicados são deduplicados',()=>{
  const {data}=run(['zarkhael-hydra3d.js','zarkhael-blackflame3d.js']);
  assert.equal(data.commands.length,new Set(data.commands).size);
+});
+
+test('Handoff contém alterações reais e não reivindica testes executados',()=>{
+ const {handoff}=run(['act1-flow.js','world3d-terrain.js']);
+ assert.ok(handoff.includes('act1-flow.js'));
+ assert.ok(handoff.includes('world3d-terrain.js'));
+ assert.ok(handoff.includes('não executadas'));
+ assert.ok(handoff.includes('não fazer merge') || handoff.includes('Não fazer merge'));
+ assert.ok(!handoff.includes('Todos os testes passaram'));
 });
