@@ -8,6 +8,7 @@ const details=readFileSync(new URL('../eldoria-scene-details.js',import.meta.url
 const manifest=readFileSync(new URL('../eldoria-asset-plan.js',import.meta.url),'utf8');
 const lighting=readFileSync(new URL('../eldoria-light-water.js',import.meta.url),'utf8');
 const art=readFileSync(new URL('../eldoria-environment-art.js',import.meta.url),'utf8');
+const canopy=readFileSync(new URL('../eldoria-forest-canopy.js',import.meta.url),'utf8');
 test('prévia isolada mantém o jogo principal e os personagens fora',()=>{
   assert.match(html,/import \{buildEldoriaDetails\}/);
   for(const zone of Object.keys(ELDORIA_ZONES)) assert.match(html,new RegExp('data-place="'+zone+'"'));
@@ -37,7 +38,7 @@ test('carregamento da cena principal não inclui caverna e ritual',()=>{
 test('sintaxe dos scripts da prévia e dos módulos ambientais',()=>{
   const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script?.length>3000);
-  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art]]){
+  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art],['canopy',canopy]]){
     const result=spawnSync(process.execPath,['--input-type=module','--check'],{input:source,encoding:'utf8'});
     assert.equal(result.status,0,name+': '+result.stderr);
   }
@@ -82,4 +83,12 @@ test('cenografia da vila e bosque segue referências com instancing e centro vis
  assert.match(art,/CatmullRomCurve3/);
  assert.match(art,/QuadraticBezierCurve3/);
  assert.doesNotMatch(art,/Protagonista|Demonio1|Bispo/);
+});
+
+test('árvores de apoio recebem canopy irregular com cores por vértice',()=>{
+ assert.match(html,/createEldoriaCanopy\(THREE\)/);
+ assert.match(canopy,/IcosahedronGeometry/);
+ assert.match(canopy,/positions\.setXYZ/);
+ assert.match(canopy,/computeVertexNormals/);
+ assert.match(html,/vertexColors:true/);
 });
