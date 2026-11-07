@@ -113,6 +113,19 @@ function view(name){
  document.getElementById('location-heading').textContent=info.heading;
 }
 document.querySelectorAll('button[data-place]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.place)));view('chegada');
+// API de inspeção somente da prévia; não altera o jogo principal.
+window.EldoriaVisualQA=Object.freeze({
+  view,setNight,
+  inspect:()=>({loaded,failed,requested,stages:[...loadedStages],
+    drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
+    shadowEnabled:renderer.shadowMap.enabled,sunCastsShadow:sun.castShadow,
+    shadowResolution:lighting.shadowResolution,
+    waterRiverShader:!!water.river.userData.waterUniforms,
+    waterLakeShader:!!water.lake.userData.waterUniforms,
+    waterTime:water.river.userData.waterUniforms.time.value,
+    camera:[camera.position.x,camera.position.y,camera.position.z],night
+  })
+});
 const pointers=new Map();let touchDist=null;
 renderer.domElement.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,[e.clientX,e.clientY]);renderer.domElement.setPointerCapture(e.pointerId)});
 renderer.domElement.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const old=pointers.get(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===1){yaw-=(e.clientX-old[0])*.005;pitch=clamp(pitch+(e.clientY-old[1])*.004,-.05,1.35);}else if(pointers.size===2){const p=[...pointers.values()],d=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]);if(touchDist!==null)distance=clamp(distance*(touchDist/d),14,130);touchDist=d;}});
