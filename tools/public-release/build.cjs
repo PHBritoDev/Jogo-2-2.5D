@@ -31,7 +31,7 @@ for(const name of entries){
   if(ext==='.js'){
     const js=fs.readFileSync(input,'utf8');
     const result=esbuild.transformSync(js,{
-      loader:'js',target:'es2020',minifyWhitespace:true,
+      loader:'js',target:'esnext',minifyWhitespace:true,
       minifySyntax:true,minifyIdentifiers:false,charset:'utf8',
       legalComments:'none',sourcefile:name
     });
