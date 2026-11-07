@@ -8,6 +8,7 @@ export const ELDORIA_ZONES=Object.freeze({
   chegada:{target:[5,13,-102],distance:64,heading:'Estrada da chegada'},
   cidade:{target:[5,8,-44],distance:61,heading:'Cidade 1 — Eldória'},
   aguas:{target:[0,3,-10],distance:43,heading:'Águas da floresta'},
+  lago:{target:[-42,2,24],distance:42,heading:'Lago escondido da floresta'},
   floresta:{target:[-38,13,5],distance:65,heading:'Floresta ancestral'},
   ritual:{target:[76,9,76],distance:49,heading:'Clareira do ritual — estudo'},
   caverna:{target:[-79,11,75],distance:54,heading:'Encosta da caverna — estudo'}
