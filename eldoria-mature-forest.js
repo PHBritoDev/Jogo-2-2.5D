@@ -38,11 +38,15 @@ function bakeUnitTree(THREE, scene) {
   return { geo, material, width: Math.max(b.max.x - b.min.x, b.max.z - b.min.z) / h };
 }
 
+/** Árvore distante: copa irregular de 3 volumes (sem bola única) que cobre o tronco escuro e fino — evita a
+    "parede de troncos claros" que o tronco cilíndrico largo criava atrás das copas (revisão 19:42). */
 function farTreeGeometry(THREE) {
-  const crown = new THREE.IcosahedronGeometry(1, 1).toNonIndexed(), trunk = new THREE.CylinderGeometry(.05, .09, .5, 6).toNonIndexed();
-  crown.scale(.42, .3, .42); crown.translate(0, .68, 0); trunk.translate(0, .25, 0);
+  const parts = [[.36, .62, 0, 0, .34], [.26, .74, .2, .08, .28], [.24, .7, -.18, -.1, .26]].map(([r, y, x, z, sy], i) => { const g = new THREE.IcosahedronGeometry(1, 1).toNonIndexed(); g.scale(r * 1.25, sy, r * 1.1); g.rotateY(i * 1.3); g.translate(x, y, z); return g; });
+  const trunk = new THREE.CylinderGeometry(.022, .04, .42, 5).toNonIndexed(); trunk.translate(0, .21, 0);
   const pos = [], col = [];
-  for (const [g, c] of [[crown, [.14, .25, .1]], [trunk, [.25, .17, .1]]]) { const p = g.attributes.position; for (let i = 0; i < p.count; i++) { pos.push(p.getX(i), p.getY(i), p.getZ(i)); const k = .8 + .35 * Math.max(0, p.getY(i) - .5); col.push(c[0] * k, c[1] * k, c[2] * k); } }
+  for (const [g, c] of [...parts.map((g, i) => [g, [[.13, .24, .1], [.16, .27, .11], [.11, .21, .09]][i]]), [trunk, [.12, .09, .06]]]) {
+    const p = g.attributes.position; for (let i = 0; i < p.count; i++) { pos.push(p.getX(i), p.getY(i), p.getZ(i)); const k = .75 + .4 * Math.max(0, p.getY(i) - .45); col.push(c[0] * k, c[1] * k, c[2] * k); }
+  }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals(); return g;
 }
 
@@ -53,7 +57,7 @@ export function mountMatureForest(THREE, GLTFLoader, o) {
   const tints = plan.map((t, i) => { const v = Math.sin(i * 12.9898 + t.x * .37) * 43758.5453, r = v - Math.floor(v); return new THREE.Color().setRGB(.82 + r * .3, .88 + ((r * 7) % 1) * .26, .74 + ((r * 13) % 1) * .2); });
   const d = new THREE.Object3D(), place = (m, sx = 1) => { plan.forEach((t, i) => { d.position.set(t.x, groundHeightAt(t.x, t.z) - .25, t.z); d.rotation.set(t.lean, t.rot, t.lean * .6); d.scale.set(t.h * sx * (t.w || 1), t.h, t.h * sx * (t.w || 1) * (.9 + ((i * 7) % 5) * .05)); d.updateMatrix(); m.setMatrixAt(i, d.matrix); }); m.count = plan.length; plan.forEach((t, i) => m.setColorAt(i, tints[i])); m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.computeBoundingSphere(); };
   const far = new THREE.InstancedMesh(farTreeGeometry(THREE), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95 }), Math.max(1, plan.length));
-  place(far, 1.6); far.name = 'mature-forest-far'; group.add(far);
+  place(far, 1.25); far.name = 'mature-forest-far'; group.add(far);
   if (registerCull) registerCull(far, 150, 0, lowSpec ? 40 : 55);
   // LOD1 é opcional: se não carregar (ou vier sem UV), a malha completa do criador serve aos dois níveis.
   const loader = new GLTFLoader(), build = (full, lod) => {
