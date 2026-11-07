@@ -10,11 +10,12 @@
 #warning{position:fixed;top:90px;left:10px;right:10px;text-align:center;font-size:11px;color:#fce8ce;text-shadow:0 1px 4px #000}#stats{position:fixed;top:112px;right:10px;background:#081e19d9;padding:9px 11px;border-radius:10px;font:11px monospace;pointer-events:none;white-space:pre-line}#stats[hidden]{display:none}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script></head>
-<body><div id="hud"><section><strong>ELDÓRIA</strong><small>Estudo visual do Ato 1 · cenário isolado</small><small id="status">Carregando modelos reais…</small></section><div id="view"><button data-place="entrada">Entrada</button><button data-place="vila">Vila</button><button data-place="rio">Rio</button><button data-place="mata">Floresta</button><button id="stats-toggle" aria-pressed="false" type="button">FPS</button></div></div><div id="warning"></div><div id="help">Arraste para girar · toque com dois dedos para aproximar · botões alternam o ponto de vista. Não altera o jogo original.</div>
+<body><div id="hud"><section><strong>ELDÓRIA</strong><small>Estudo visual do Ato 1 · cenário isolado</small><small id="location-heading">Estrada da chegada</small><small id="status">Carregando modelos reais…</small></section><div id="view"><button data-place="chegada">Entrada</button><button data-place="cidade">Cidade 1</button><button data-place="aguas">Rio</button><button data-place="floresta">Floresta</button><button data-place="ritual">Ritual</button><button data-place="caverna">Caverna</button><button id="stats-toggle" aria-pressed="false" type="button">FPS</button></div></div><div id="warning"></div><div id="help">Arraste para girar · toque com dois dedos para aproximar · botões alternam o ponto de vista. Não altera o jogo original.</div>
 <div id="stats" hidden></div><script type="module">
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {buildEldoriaDetails} from './eldoria-scene-details.js';
+import {ELDORIA_ZONES,ELDORIA_ASSETS,assetsForStage} from './eldoria-asset-plan.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xafd2c9);scene.fog=new THREE.FogExp2(0xaed2c4,.0029);
 const camera=new THREE.PerspectiveCamera(57,innerWidth/innerHeight,.1,900);
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.3));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.14;document.body.prepend(renderer.domElement);
@@ -62,17 +63,50 @@ canopies.forEach((mesh,i)=>{mesh.count=counts[i];mesh.instanceMatrix.needsUpdate
 
 const loader=new GLTFLoader(),status=document.getElementById('status');
 const failures=[];const readyStats=document.getElementById('stats');const toggle=document.getElementById('stats-toggle');toggle.addEventListener('click',()=>{readyStats.hidden=!readyStats.hidden;toggle.setAttribute('aria-pressed',String(!readyStats.hidden));});
-const assets=[['ArvoreAncestralEldoria.glb',[[43,-37,32],[-38,-28,27]]],['ArvoreFloresta01.glb',[[-62,-37,14],[62,-42,13],[-50,-75,10]]],['CasaEldoria01.glb',[[-19,-51,10],[-7,-52,9],[18,-53,10],[29,-43,9]]],['CasaEldoria02.glb',[[-23,-32,10],[-9,-29,9],[15,-28,10],[29,-29,9]]],['BarracaFrutasEldoria.glb',[[8,-39,6]]],['PocoEldoria.glb',[[3,-47,5]]],['FerreiroEldoria.glb',[[20,-63,7]]],['PassarelaSuspensaEldoria.glb',[[0,-10,12]]],['RochedoMusgoEldoria.glb',[[37,-78,6],[-30,-93,7]]]];
-let loaded=0,failed=0;for(const [file,spots] of assets){loader.load('./'+file,g=>{const model=g.scene;const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());for(const [x,z,target] of spots){const copy=model.clone(true);const factor=target/Math.max(size.x,size.y,size.z,0.01);copy.scale.setScalar(factor);copy.position.set(x-center.x*factor,height(x,z)-bounds.min.y*factor,z-center.z*factor);copy.rotation.y=file==='PassarelaSuspensaEldoria.glb' ? -.72 : rand(x,z)*Math.PI*.5;copy.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});scene.add(copy);}loaded++;status.textContent='Modelos reais: '+loaded+'/'+assets.length+(failed?' · '+failed+' falhas':'');},undefined,err=>{failed++;failures.push(file);status.textContent='Modelos reais: '+loaded+'/'+assets.length+' · '+failed+' falhas';document.getElementById('warning').textContent='Falha em: '+failures.join(', ');console.warn('Falha ao carregar GLB da prévia:',file,err);});}
-const targets={entrada:[5,13,-102],vila:[5,8,-44],rio:[0,3,-10],mata:[-38,13,5]};
-let target=new THREE.Vector3(...targets.entrada),yaw=.6,pitch=.37,distance=64;const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-function view(name){target.set(...targets[name]);distance=name==='vila'?63:name==='rio'?42:64;document.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.place===name)));}
-document.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>view(b.dataset.place)));view('entrada');
+const loadedStages=new Set(),loadingStages=new Set(),assetLoadPromises=new Map();
+let loaded=0,failed=0,requested=0;
+function updateLoadStatus(){
+  status.textContent='Modelos reais: '+loaded+'/'+requested+(failed?' · '+failed+' falhas':'');
+}
+function loadStage(stage){
+ if(loadedStages.has(stage)||loadingStages.has(stage))return;
+ loadingStages.add(stage);
+ const assets=assetsForStage(stage);requested+=assets.length;updateLoadStatus();
+ Promise.all(assets.map(asset=>new Promise(resolve=>{
+   loader.load('./'+asset.file,g=>{
+     try{
+       const model=g.scene,bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+       if(bounds.isEmpty())throw new Error('Bounding box vazia');
+       const factor=(asset.placements[0]?.size||1)/Math.max(size.x,size.y,size.z,.001);
+       // Use geometric center in X/Z and bbox floor in Y; rotations are around the origin recentered by pivot.
+       const normalized=new THREE.Group();model.position.set(-center.x*factor,-bounds.min.y*factor,-center.z*factor);model.scale.setScalar(factor);normalized.add(model);
+       normalized.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});
+       for(const point of asset.placements){
+         const root=normalized.clone(true),scale=point.size/(asset.placements[0]?.size||1);
+         root.scale.setScalar(scale);root.position.set(point.x,height(point.x,point.z),point.z);root.rotation.y=point.rotation||0;
+         scene.add(root);
+       }
+       loaded++;
+     }catch(error){failed++;failures.push(asset.file);console.warn('GLB inválido',asset.file,error);}
+     updateLoadStatus();resolve();
+   },undefined,error=>{failed++;failures.push(asset.file);console.warn('Falha no modelo de Eldória',asset.file,error);updateLoadStatus();resolve();});
+ }))).then(()=>{loadedStages.add(stage);loadingStages.delete(stage);if(failures.length)document.getElementById('warning').textContent='Falhas de modelos: '+failures.join(', ');});
+}
+loadStage('core');
+let target=new THREE.Vector3(...ELDORIA_ZONES.chegada.target),yaw=.6,pitch=.37,distance=64;const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+function view(name){
+ const info=ELDORIA_ZONES[name];if(!info)return;
+ target.set(...info.target);distance=info.distance;
+ document.querySelectorAll('button[data-place]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.place===name)));
+ if(name==='ritual'||name==='caverna')loadStage(name);
+ document.getElementById('location-heading').textContent=info.heading;
+}
+document.querySelectorAll('button[data-place]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.place)));view('chegada');
 const pointers=new Map();let touchDist=null;
 renderer.domElement.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,[e.clientX,e.clientY]);renderer.domElement.setPointerCapture(e.pointerId)});
 renderer.domElement.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const old=pointers.get(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===1){yaw-=(e.clientX-old[0])*.005;pitch=clamp(pitch+(e.clientY-old[1])*.004,-.05,1.35);}else if(pointers.size===2){const p=[...pointers.values()],d=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]);if(touchDist!==null)distance=clamp(distance*(touchDist/d),14,130);touchDist=d;}});
 for(const ev of ['pointerup','pointercancel'])renderer.domElement.addEventListener(ev,e=>{pointers.delete(e.pointerId);touchDist=null});
 renderer.domElement.addEventListener('wheel',e=>{distance=clamp(distance+e.deltaY*.05,14,130)},{passive:true});
-let t=0,last=performance.now(),frameCount=0,fps=0;function draw(now){t+=.012;camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*distance,target.y+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.lookAt(target);waterMat.opacity=.72+Math.sin(t)*.025;renderer.render(scene,camera);frameCount++;if(now-last>1000){fps=Math.round(frameCount*1000/(now-last));frameCount=0;last=now;if(!readyStats.hidden)readyStats.textContent='FPS: '+fps+'\nDraw calls: '+renderer.info.render.calls+'\nTriângulos: '+renderer.info.render.triangles+'\nFlora: '+(details.grass+details.flowers+details.reeds)+'\nGLBs: '+loaded+'/'+assets.length+'\nFalhas: '+failed;}requestAnimationFrame(draw);}requestAnimationFrame(draw);
+let t=0,last=performance.now(),frameCount=0,fps=0;function draw(now){t+=.012;camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*distance,target.y+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.lookAt(target);waterMat.opacity=.72+Math.sin(t)*.025;renderer.render(scene,camera);frameCount++;if(now-last>1000){fps=Math.round(frameCount*1000/(now-last));frameCount=0;last=now;if(!readyStats.hidden)readyStats.textContent='FPS: '+fps+'\nDraw calls: '+renderer.info.render.calls+'\nTriângulos: '+renderer.info.render.triangles+'\nFlora: '+(details.grass+details.flowers+details.reeds)+'\nGLBs: '+loaded+'/'+requested+'\nFalhas: '+failed;}requestAnimationFrame(draw);}requestAnimationFrame(draw);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
