@@ -1,0 +1,92 @@
+name: Private-source readiness / public game build
+on:
+  pull_request:
+    paths:
+      - 'tools/public-release/**'
+      - '.github/workflows/public-release.yml'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to separate public repository (requires configured repo variable and secret)'
+        required: true
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - 'tools/public-release/**'
+      - '.github/workflows/public-release.yml'
+permissions:
+  contents: read
+concurrency:
+  group: game-release-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TARGET_REPO: ${{ vars.PUBLIC_GAME_REPO }}
+      TARGET_TOKEN: ${{ secrets.PUBLIC_GAME_DEPLOY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned packager
+        run: npm install --no-save --no-package-lock --ignore-scripts esbuild@0.25.12
+      - name: Assemble only browser runtime
+        run: node tools/public-release/build.cjs
+      - name: Check distribution rules and SHA-256 integrity
+        run: node --test tools/public-release/verify-release.test.mjs
+      - name: Upload verified distribution (no automatic public deployment)
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-game-${{ github.sha }}
+          path: dist-public/
+          include-hidden-files: true
+          retention-days: 5
+          compression-level: 3
+      - name: Publish to explicitly configured public repository
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$TARGET_REPO" || -z "$TARGET_TOKEN" ]]; then
+            echo "::error::Configure vars.PUBLIC_GAME_REPO and secrets.PUBLIC_GAME_DEPLOY_TOKEN first."
+            exit 1
+          fi
+          if [[ ! "$TARGET_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            echo "::error::Invalid target repository identifier"
+            exit 1
+          fi
+          if [[ "$TARGET_REPO" == "$GITHUB_REPOSITORY" ]]; then
+            echo "::error::Refusing to publish into source repository"
+            exit 1
+          fi
+          git config --global user.name "GitHub Actions release bot"
+          git config --global user.email "actions@users.noreply.github.com"
+          work="$(mktemp -d)"
+          # Clone the intended PUBLIC distribution repo, not the source repo.
+          # Use masked token, and avoid a force-push or rewriting any history.
+          export GIT_TERMINAL_PROMPT=0
+          repo_url="https://x-access-token:${TARGET_TOKEN}@github.com/${TARGET_REPO}.git"
+          git clone --quiet "$repo_url" "$work/site"
+          cd "$work/site"
+          if git ls-remote --exit-code --heads origin gh-pages > /dev/null; then
+            git checkout -q gh-pages
+          else
+            git checkout --orphan gh-pages
+          fi
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$GITHUB_WORKSPACE/dist-public/." ./
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "release: ${GITHUB_SHA}"
+            git push -q origin gh-pages
+          else
+            echo "No changes to publish"
+          fi
+          echo "Published static build to ${TARGET_REPO} gh-pages; verify target Settings > Pages."
