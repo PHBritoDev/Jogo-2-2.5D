@@ -7,6 +7,7 @@ on:
       - 'eldoria-asset-plan.js'
       - 'eldoria-light-water.js'
       - 'eldoria-crystal-cavern.js'
+      - 'eldoria-cave-geology.js'
       - 'eldoria-environment-art.js'
       - 'eldoria-forest-canopy.js'
       - 'tests/eldoria-preview.test.mjs'
