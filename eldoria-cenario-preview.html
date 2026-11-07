@@ -39,9 +39,27 @@ const details=buildEldoriaDetails(THREE,scene,{height,streamDistance,rand,lowSpe
 const material=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:1});
 const trunkMat=material(0x61533e),leafMat=[material(0x325e34),material(0x45753c),material(0x578a45)];
 const tg=new THREE.CylinderGeometry(.95,1.6,1,7),cg=new THREE.IcosahedronGeometry(1,1);
-function tree(x,z,scale,giant=false){const root=new THREE.Group();root.position.set(x,height(x,z),z);const h=(giant?25:8)*scale;let trunk=new THREE.Mesh(tg,trunkMat);trunk.scale.set(giant?2.1:1,h,giant?2.1:1);trunk.position.y=h*.5;root.add(trunk);for(let k=0;k<3;k++){const ball=new THREE.Mesh(cg,leafMat[(k+Math.round(x))%3<0?0:(k+Math.round(x))%3]);ball.position.set((k-1)*h*.17,h*(.78+.12*(k%2)),(k%2-.5)*h*.13);ball.scale.set(h*.29,h*.25,h*.29);root.add(ball);}scene.add(root);}
-for(let i=0;i<155;i++){const x=(rand(i,5)-.5)*224,z=(rand(i,21)-.5)*220,dv=Math.hypot(x-5,z+43),river=streamDistance(x,z);const onRoad=(Math.abs(x-5)<8&&z<-35)||(Math.abs(z+43)<8&&x>-30&&x<36);if(dv<39||river<7||onRoad)continue;tree(x,z,.75+rand(i,8)*.8,i%41===0);}
+const treeSpecs=[];
+function tree(x,z,scale,giant=false){treeSpecs.push({x,z,scale,giant});}
+for(let i=0;i<(lowSpec?94:155);i++){const x=(rand(i,5)-.5)*224,z=(rand(i,21)-.5)*220,dv=Math.hypot(x-5,z+43),river=streamDistance(x,z);const onRoad=(Math.abs(x-5)<8&&z<-35)||(Math.abs(z+43)<8&&x>-30&&x<36);if(dv<39||river<7||onRoad)continue;tree(x,z,.75+rand(i,8)*.8,i%41===0);}
 for(const [x,z,s] of [[-40,-48,1.05],[40,-48,.9],[-36,1,1.1],[53,10,1.05],[-58,-82,1.1]])tree(x,z,s,true);
+// Instancing: 100+ árvores de apoio com quatro chamadas de renderização, não centenas.
+const n=treeSpecs.length,helper=new THREE.Object3D();
+const trunks=new THREE.InstancedMesh(tg,trunkMat,n);
+const canopies=leafMat.map(mat=>new THREE.InstancedMesh(cg,mat,n));
+const counts=[0,0,0];
+for(let i=0;i<n;i++){
+  const t=treeSpecs[i],h=(t.giant?25:8)*t.scale,baseY=height(t.x,t.z);
+  helper.position.set(t.x,baseY+h*.5,t.z);helper.rotation.set(0,0,0);helper.scale.set(t.giant?2.1:1,h,t.giant?2.1:1);helper.updateMatrix();trunks.setMatrixAt(i,helper.matrix);
+  for(let k=0;k<3;k++){
+    const kind=((k+Math.round(t.x))%3+3)%3,idx=counts[kind]++;
+    helper.position.set(t.x+(k-1)*h*.17,baseY+h*(.78+.12*(k%2)),t.z+(k%2-.5)*h*.13);
+    helper.scale.set(h*.29,h*.25,h*.29);helper.rotation.set(0,0,0);helper.updateMatrix();canopies[kind].setMatrixAt(idx,helper.matrix);
+  }
+}
+trunks.instanceMatrix.needsUpdate=true;trunks.computeBoundingSphere();scene.add(trunks);
+canopies.forEach((mesh,i)=>{mesh.count=counts[i];mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();scene.add(mesh);});
+
 const loader=new GLTFLoader(),status=document.getElementById('status');
 const failures=[];const readyStats=document.getElementById('stats');const toggle=document.getElementById('stats-toggle');toggle.addEventListener('click',()=>{readyStats.hidden=!readyStats.hidden;toggle.setAttribute('aria-pressed',String(!readyStats.hidden));});
 const assets=[['ArvoreAncestralEldoria.glb',[[43,-37,32],[-38,-28,27]]],['ArvoreFloresta01.glb',[[-62,-37,14],[62,-42,13],[-50,-75,10]]],['CasaEldoria01.glb',[[-19,-51,10],[-7,-52,9],[18,-53,10],[29,-43,9]]],['CasaEldoria02.glb',[[-23,-32,10],[-9,-29,9],[15,-28,10],[29,-29,9]]],['BarracaFrutasEldoria.glb',[[8,-39,6]]],['PocoEldoria.glb',[[3,-47,5]]],['FerreiroEldoria.glb',[[20,-63,7]]],['PassarelaSuspensaEldoria.glb',[[0,-10,12]]],['RochedoMusgoEldoria.glb',[[37,-78,6],[-30,-93,7]]]];
