@@ -60,7 +60,12 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
   const root = new THREE.Group(); root.name = 'EldoriaCityDressing-mod291'; group.add(root);
   const woodMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9 });
   // Deques nas árvores ancestrais.
-  const decks = trees.map((t, i) => planTreeDeck({ x: center.x + t.x, z: center.z + t.z, trunk: t.trunk, height: t.deck, y0: groundHeightAt(center.x + t.x, center.z + t.z), seed: 31 + i }));
+  // Os dois deques ligados pela passarela ficam na MESMA cota absoluta (a passarela não pode ter um lado no ar).
+  const ys = trees.map(t => groundHeightAt(center.x + t.x, center.z + t.z)), level = ys[0] + trees[0].deck;
+  const decks = trees.map((t, i) => planTreeDeck({ x: center.x + t.x, z: center.z + t.z, trunk: t.trunk, height: i === 1 ? Math.max(4, level - ys[1]) : t.deck, y0: ys[i], seed: 31 + i }));
+  // Nesta etapa deques, escadas e passarela são CENOGRÁFICOS (não há piso elevado caminhável): a colisão cobre o
+  // anel inteiro do deque, para o herói não atravessar escoras/escada nem ficar sob o piso.
+  decks.forEach((d, i) => obstacles.push({ x: center.x + trees[i].x, z: center.z + trees[i].z, radius: d.ring + .3, height: d.deckY - ys[i] + 1 }));
   const deckMesh = new THREE.Mesh(merge(THREE, decks.flatMap(d => d.parts)), woodMat); deckMesh.castShadow = !lowSpec; deckMesh.receiveShadow = true; deckMesh.name = 'eldoria-tree-decks'; root.add(deckMesh);
   // Passarela suspensa do criador entre as duas primeiras árvores com deque.
   if (decks.length >= 2) new GLTFLoader().load('./PassarelaSuspensaEldoria.glb', g => {
@@ -69,8 +74,9 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
     const m = g.scene, bb = new THREE.Box3().setFromObject(m), sz = bb.getSize(new THREE.Vector3()), c = bb.getCenter(new THREE.Vector3()), k = span / Math.max(.01, sz.x);
     m.scale.setScalar(k); m.position.set(-c.x * k, -bb.min.y * k, -c.z * k); m.traverse(x => { if (x.isMesh) { x.castShadow = !lowSpec; x.receiveShadow = true; } });
     const w = new THREE.Group(); w.add(m); const mid = (decks[0].ring - decks[1].ring) / 2;
-    w.position.set((ax + bx) / 2 + ux * mid, Math.min(decks[0].deckY, decks[1].deckY) + .08, (az + bz) / 2 + uz * mid); w.rotation.y = Math.atan2(-uz, ux); root.add(w);
-    root.userData.walkway = { span: +span.toFixed(1), scale: +k.toFixed(2) };
+    w.position.set((ax + bx) / 2 + ux * mid, decks[0].deckY + .08, (az + bz) / 2 + uz * mid); w.rotation.y = Math.atan2(-uz, ux); root.add(w);
+    root.userData.walkway = { span: +span.toFixed(1), scale: +k.toFixed(2), deckA: +decks[0].deckY.toFixed(2), deckB: +decks[1].deckY.toFixed(2), walkable: false };
+    if (typeof window !== 'undefined') window.EldoriaCityDressingQA = { ...root.userData.walkway, rings: decks.map(d => +d.ring.toFixed(2)) };
   }, undefined, e => console.warn('PassarelaSuspensaEldoria.glb não carregou.', e));
   // Jardins: flores (3 cores), sebes, cercas claras e lampiões.
   const plan = planGardens({ center, plots, isFree });
