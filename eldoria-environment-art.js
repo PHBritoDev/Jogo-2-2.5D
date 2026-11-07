@@ -61,6 +61,32 @@ fountain.position.set(1.5,height(1.5,-41.5)+.05,-41.5);
  }
  batch(new THREE.BoxGeometry(1,1,1),mat(0x776046),emptyBoxes);
  batch(new THREE.IcosahedronGeometry(1,1),mat(0x9f9c7c),emptySacks);
+ // Detalhes narrativos de Eldória: beleza do lugar contrastando com escassez.
+ // Nenhum NPC antigo ou missão é modificado.
+ const dryBaskets=[],emptyJars=[],brokenBoards=[];
+ for(const [x,z] of [[7,-36],[10,-36],[12,-35],[20,-42],[-6,-40],[-12,-44],[16,-60]]){
+   const scale=.34+.1*rand(x,z);
+   dryBaskets.push({x,y:height(x,z)+.16,z,sx:scale,sy:scale*.54,sz:scale});
+ }
+ for(const [x,z] of [[9,-35],[11,-35],[-13,-43],[22,-61],[25,-60]]){
+   emptyJars.push({x,y:height(x,z)+.27,z,sx:.24,sy:.45,sz:.24});
+ }
+ for(const [x,z,rotation] of [[-10,-42,.2],[-11,-41,-.5],[17,-39,.6],[18,-40,-.2],[22,-62,.7]]){
+   brokenBoards.push({x,y:height(x,z)+.06,z,rotation,sx:1.1,sy:.10,sz:.19});
+ }
+ batch(new THREE.CylinderGeometry(.85,1,.75,9),mat(0x98764c),dryBaskets);
+ batch(new THREE.CylinderGeometry(.52,.70,1,8),mat(0x928a76),emptyJars);
+ batch(new THREE.BoxGeometry(1,1,1),wood,brokenBoards);
+ counts.emptyBaskets=dryBaskets.length;
+ // Postes baixos e traves gastos nas rotas do mercado, sem bloqueio de passagem.
+ const signPosts=[],signBeams=[];
+ for(const [x,z,rotation] of [[-28,-43,.2],[32,-42,-.4],[6,-23,.35]]){
+   signPosts.push({x,y:height(x,z)+1.4,z,rotation,sx:.18,sy:2.8,sz:.18});
+   signBeams.push({x,y:height(x,z)+2.5,z,rotation,sx:1.6,sy:.16,sz:.16});
+ }
+ batch(new THREE.BoxGeometry(1,1,1),wood,signPosts);
+ batch(new THREE.BoxGeometry(1,1,1),wood,signBeams);
+ counts.signPosts=signPosts.length;
  // Cercas claras delimitam quintais sem isolar o mercado ou impedir as ruas.
  const posts=[],rails=[];
  const gardens=[
