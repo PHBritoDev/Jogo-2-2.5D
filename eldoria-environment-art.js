@@ -125,7 +125,7 @@ fountain.position.set(1.5,height(1.5,-41.5)+.05,-41.5);
  }
  // Raízes de apoio ao redor de troncos ancestrais, sem alterar os GLBs.
  const roots=[];
- for(const [cx,cz,radius] of [[43,-37,5.2],[-38,-28,4.6]]){
+ for(const [cx,cz,radius] of [[55,-36,6.1],[-53,-28,5.7]]){
   for(let i=0;i<7;i++){
    const angle=i*Math.PI*2/7+.2,s=radius*(.82+rand(i,cx)*.45);
    const a=new THREE.Vector3(cx,height(cx,cz)+2.25,cz);
