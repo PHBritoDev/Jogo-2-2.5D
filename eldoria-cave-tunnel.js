@@ -1,3 +1,4 @@
+import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 /**
  * Eldória — Galeria dos Ecos.
  * Transição dramática: salão luminoso -> cristais azul-violeta -> escuridão.
@@ -60,7 +61,7 @@ export function buildEldoriaCaveTunnel(THREE,group,{lowSpec=false}={}){
     new THREE.MeshStandardMaterial({color:0x78d5f6,emissive:0x196c98,
       emissiveIntensity:1.15,roughness:.25,flatShading:true})
   ];
-  const prism=new THREE.CylinderGeometry(.04,1,1,6);
+  const prism=crystalPrismGeometry(THREE,{seed:4,tip:.28}); // Mod 291: facetado, sem cone
   const clusters=[[],[]];
   const count=lowSpec?120:205;
   for(let i=0;i<count;i++){

@@ -55,6 +55,7 @@ export function createWorldAudio() {
     layers.rain = loopNoise('highpass', 1800, .3, ambBus);
     layers.rainLow = loopNoise('lowpass', 420, .5, ambBus);
     // MOD 208 — multidão do coliseu: murmúrio de vozes (ruído em banda de fala com leve vibrato).
+    layers.cart = loopNoise('lowpass', 150, .8, sfxBus); layers.cartHi = loopNoise('bandpass', 900, 4, sfxBus); // MOD 291: rodas na terra + madeira rangendo
     layers.crowd = loopNoise('bandpass', 620, .55, ambBus); layers.crowdHi = loopNoise('bandpass', 1500, 1.2, ambBus);
     ready = true; applyVolumes();
     document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); });
@@ -180,6 +181,8 @@ export function createWorldAudio() {
     lockOn() { if (!ready) return; tone('sine', 880, 1320, .06, .12); },
     /** Chuva do Ato II (0..1): chiado agudo + rumor grave. */
     /** MOD 208 — torcida do coliseu (0..1): murmúrio contínuo; roar() é a explosão de gritos pedindo morte. */
+    /** MOD 291 — carroça de Teren: rolamento grave das rodas e rangido de madeira (0 = parada). */
+    setCart(level) { if (!ready || !layers.cart) return; const t = ctx.currentTime, k = Math.max(0, Math.min(1, level)); layers.cart.g.gain.setTargetAtTime(.34 * k, t, .5); layers.cartHi.g.gain.setTargetAtTime(.05 * k, t, .6); if (k > 0) layers.cartHi.f.frequency.setTargetAtTime(760 + Math.random() * 260, t, .3); },
     setCrowd(level) { if (!ready || !layers.crowd) return; const t = ctx.currentTime; layers.crowd.g.gain.setTargetAtTime(.26 * level, t, .6); layers.crowdHi.g.gain.setTargetAtTime(.09 * level, t, .6); layers.crowd.f.frequency.setTargetAtTime(560 + Math.random() * 160, t, .5); },
     roar() { if (!ready) return; burst('bandpass', 700, .5, .3, 1.8, ambBus, 260); burst('bandpass', 1400, .9, .14, 1.5, ambBus, 500); [0, .35, .7].forEach(d => tone('sawtooth', 140 + Math.random() * 30, 120, .03, .3, ambBus, d)); },
     setRain(level) { if (!ready) return; const t = ctx.currentTime; layers.rain.g.gain.setTargetAtTime(.2 * level, t, .8); layers.rainLow.g.gain.setTargetAtTime(.14 * level, t, .8); },

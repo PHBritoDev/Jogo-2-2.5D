@@ -6,6 +6,7 @@
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
 import { SEWER } from './sewer3d.js';
+import { crystalClusterGeometry } from './eldoria-crystal-geometry.js';
 import { VOLCANO } from './volcano3d.js';
 import { INN, ICE_CAVE, DISTORTED } from './snow3d.js';
 import { TOWER_HALL } from './tower3d.js';
@@ -424,6 +425,13 @@ const THEMES = {
     const floating = []; for (let i = 0; i < 22; i++) { const a = r() * 6.28, d = 6 + r() * (S2.r - 2); floating.push({ x: S2.x + Math.cos(a) * d, y: 3 + r() * 6, z: S2.z + Math.sin(a) * d, s: .3 + r() * .9, ry: r() * 3 }); }
     const rocks = instanced(THREE, new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: 0x241820, roughness: .9, emissive: 0x200810, emissiveIntensity: .5 }), floating); g.add(rocks);
     ctx.tick.push(t => { rocks.position.y = Math.sin(t * .6) * .35; });
+    // MOD 291 — aglomerados de cristal facetado (prismas hexagonais, nunca cones) brotando da rocha da câmara:
+    // brilho azul seletivo por emissão, sem luzes extras; os mais altos perto da parede dão escala ao salão.
+    { const crystalM = new THREE.MeshStandardMaterial({ color: 0x7fd6ff, vertexColors: true, roughness: .22, metalness: .05, emissive: 0x1876b8, emissiveIntensity: 1.15, flatShading: true });
+      const clusters = [];
+      for (let i = 0; i < 16; i++) { const a = i / 16 * 6.28 + r() * .3, wall = S2.r - .8 - r() * 2.2, s = 1.2 + r() * 2.4; clusters.push({ x: S2.x + Math.cos(a) * wall, y: -.15, z: S2.z - 2 + Math.sin(a) * wall * 1.18, s, sy: s * (1.4 + r()), rx: -Math.sin(a) * .35, rz: Math.cos(a) * .35, ry: r() * 6 }); }
+      for (let i = 0; i < 7; i++) { const a = r() * 6.28, d = 5 + r() * 5; clusters.push({ x: S2.x + Math.cos(a) * d, y: -.1, z: S2.z + Math.sin(a) * d, s: .5 + r() * .6, ry: r() * 6 }); }
+      const cm = instanced(THREE, crystalClusterGeometry(THREE, { count: 7, seed: 17 }), crystalM, clusters); cm.name = 'sewer-crystals-mod291'; g.add(cm); refs.crystalsMod291 = clusters.length; }
     const eyes = eyeField(THREE, { count: 40, seed: 31, tex: eyeTexture(THREE), tint: [1, .8, .8], place: (i, rr) => { const a = rr() * 6.28; return { x: S2.x + Math.cos(a) * (S2.r + 1), y: 1.5 + rr() * 6, z: S2.z - 2 + Math.sin(a) * (S2.r + 2) * 1.2, size: .8 + rr() * 1.6 }; } });
     g.add(eyes); ctx.eyes.push(eyes);
     // Portal de VHAZRAEL: arco de moedas douradas e redemoinho carmim.
