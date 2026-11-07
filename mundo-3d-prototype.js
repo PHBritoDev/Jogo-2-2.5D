@@ -38,7 +38,8 @@ import {JudgmentDragon} from './skill-judgment-dragon3d.js';import {createDragon
 import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import {createSakugaXVFX,createSphereVFX,createCelestialVFX} from './sakuga-skills-vfx3d.js';
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow } from './act1-world-layout.js';
-import {mountEldoriaLiveVillage,ELDORIA_PLOTS} from './eldoria-live-village3d.js';
+import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
+import {ELDORIA_PLOTS} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
