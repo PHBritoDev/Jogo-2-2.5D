@@ -1,51 +1,47 @@
-# Enemy1 Rework — inventário das animações mostradas no vídeo
+# Enemy1 Rework — inventário das animações do Meshy
 
-**Fonte:** vídeo `1000363809.mp4` enviado pelo usuário, 8,08 segundos, aba **Animar → Adicionado** do Meshy. Conferido quadro a quadro em 07/11/2026.
+**Fontes:** vídeo `1000363809.mp4` (8,08 s), enviado pelo usuário, e captura de tela `1794020150089.jpeg` da aba **Animar → Adicionado** do Meshy. Conferência visual em 07/11/2026.
 
-**Importante:** o vídeo mostra 16 cartões de animação na lista. **9 têm o nome legível; 7 estão escurecidos, com a legenda “Clique para visualizar” e botão “Remover” cobrindo o nome.** Por isso, os 7 nomes não podem ser confirmados por esse vídeo. **Não inventar nomes nem assumir que o GLB já foi exportado/integrado.** O fato de estarem em “Adicionado” confirma somente que aparecem adicionados no Meshy.
+**Estado:** os 16 cartões aparecem na interface do Meshy; isso **não comprova** exportação, existência de clipes no GLB ou integração com o jogo. As descrições a seguir são a **função esperada pelo nome**; o movimento exato deve ser conferido na prévia ou no arquivo exportado.
 
-## Nomes CONFIRMADOS visualmente e suas funções
+## 16 animações adicionadas — nomes e funções
 
-| # | Nome exibido no Meshy | Nome de mapeamento sugerido | Função no Enemy1 |
+| Nº | Nome exibido no Meshy | Mapeamento proposto | Função no Enemy1 |
 |---|---|---|---|
-| 1 | **Idle** | `idle` | Ficar parado, postura básica de espera |
-| 2 | **Rit damege** *(grafia conforme aparece no vídeo; pode ser uma denominação truncada ou com erro)* | `hit_reaction` | Reação a impacto/dano, recuo e recuperação |
-| 3 | **Alerta** | `alert` | Ficar em estado de alerta ao detectar ameaça |
-| 4 | **Andando** | `walk` | Deslocamento normal |
-| 5 | **Chute circular** | `roundhouse_kick` | Ataque com chute circular |
-| 6 | **Chute varrido** | `sweep_kick` | Chute rasteiro/de varredura, para atingir ou desequilibrar |
-| 7 | **Correndo** | `run` | Deslocamento rápido |
-| 8 | **Erguer** | `get_up` | Levantar após queda |
-| 9 | **Gancho de esquerda da guarda** | `left_hook` | Soco em gancho com a mão esquerda, partindo da guarda |
+| 1 | **Idle** | `idle` | Manter postura de espera sem locomoção. |
+| 2 | **Rit damege** (grafia conforme leitura do vídeo, confirmar nome exato) | `hit_reaction` | Reação ao receber dano, recuar e recuperar a postura. |
+| 3 | **Alerta** | `alert` | Reagir à percepção de uma ameaça, preparando o combate. |
+| 4 | **Andando** | `walk` | Caminhar em deslocamento normal. |
+| 5 | **Chute circular** | `roundhouse_kick` | Atacar com um chute circular. |
+| 6 | **Chute varrido** (primeira ocorrência visível no vídeo) | `sweep_kick_a` | Chute rasteiro de varredura, para atingir ou desequilibrar. |
+| 7 | **Chute varrido** (segunda ocorrência visível na captura, aparentemente duplicada) | `sweep_kick_b` | Outro cartão com esse título; verificar se é realmente um segundo clipe ou duplicação visual antes de integrar. |
+| 8 | **Combo de Armas 2** | `weapon_combo_2` | Sequência combinada de ataques com arma; confirmar se o movimento usa arma inexistente no novo Enemy1. |
+| 9 | **Corra, pule e role** | `run_jump_roll` | Encadear corrida, salto e rolamento evasivo. |
+| 10 | **Correndo** | `run` | Corrida para perseguir ou se reposicionar. |
+| 11 | **Derrubar** | `knockdown` | Movimento de queda/ser derrubado; confirmar prévia para diferenciar de um golpe que derruba outro personagem. |
+| 12 | **Erguer** | `get_up` | Levantar-se após uma queda. |
+| 13 | **Esquiva Rolante** | `dodge_roll` | Rolamento defensivo para esquivar de um ataque. |
+| 14 | **Gancho de esquerda da guarda** | `left_hook` | Golpe de punho esquerdo em arco partindo da guarda. |
+| 15 | **Mage Spell Cast 8** | `spell_cast_8` | Gesto de conjuração de magia, sem presumir que o Meshy tenha gerado efeitos mágicos. |
+| 16 | **Morto** | `death` | Animação de morrer/queda final do Enemy1. |
 
-> Os nomes `idle`, `walk` etc. são **apelidos sugeridos** para o futuro controlador do jogo, não nomes comprovados dos clipes no GLB.
+**Sobre “Chute varrido”:** a captura parece exibir o mesmo nome em dois cartões, um na faixa superior cortada e outro imediatamente abaixo. O inventário registra ambos para preservar os **16 cartões** vistos; é necessário confirmar se são dois clipes distintos.
 
-## Outros 7 cartões — adicionados, mas com nomes ocultos no vídeo
+**Nomes de mapeamento propostos** são convencionais para o controlador de animações; não são os nomes extraídos do GLB.
 
-| Referência visual da grade | O que pode ser confirmado |
-|---|---|
-| Linha 2, coluna 3 | Cartão escurecido; silhueta em postura de combate, botão “Remover”; nome não legível |
-| Linha 3, coluna 2 | Cartão escurecido; figura em movimento de braço, botão “Remover”; nome não legível |
-| Linha 3, coluna 3 | Cartão escurecido; personagem agachado/baixo, botão “Remover”; nome não legível |
-| Linha 4, coluna 2 | Cartão escurecido; personagem caído na horizontal, botão “Remover”; nome não legível |
-| Linha 5, coluna 1 | Cartão escurecido; personagem em pé, botão “Remover”; nome não legível |
-| Linha 5, coluna 3 | Cartão escurecido; personagem inclinado/erguendo braços, botão “Remover”; nome não legível |
-| Linha 6, coluna 1 | Cartão escurecido; personagem baixo/caído, botão “Remover”; nome não legível |
+## Prompts personalizados definidos na conversa
 
-**Para identificar os sete restantes sem adivinhação:** abrir cada cartão “Clique para visualizar” no Meshy, mostrar nome completo e registrar; ou exportar o GLB com animações e inspecionar a lista real de `animations[].name` (essa opção depende do formato/organização da exportação). A contagem e as posições são da grade exibida no vídeo, **não dos arquivos do jogo**.
-
-## Prompts personalizados definidos na conversa (SEPARADOS dos nomes vistos no vídeo)
-
-| Nome do prompt | Mapeamento futuro sugerido | O que faz | Duração sugerida |
+| Nome aprovado | Mapeamento proposto | O que faz | Duração sugerida |
 |---|---|---|---|
-| **Demonic Breathing Idle** | `enemy1_breathing_idle` | Respiração lenta e antinatural; peito expande e contrai, cabeça inclina e garras tremem discretamente | 5 s, loop |
-| **Enemy1 — Hit Reaction** | `enemy1_hit_reaction` | Reage a golpe frontal com recuo do tronco/cabeça, tensão das garras e retorno à postura | 2 s, sem loop |
+| **Demonic Breathing Idle** | `enemy1_breathing_idle` | Respiração lenta e antinatural; tórax se expande e contrai, cabeça inclina e garras se contraem discretamente. | 5 s, loop |
+| **Enemy1 — Hit Reaction** | `enemy1_hit_reaction` | Reage ao impacto frontal com recuo do torso e da cabeça, tensão das garras e recuperação da postura. | 2 s, sem loop |
 
-**Atenção:** a animação “Rit damege” exibida na grade pode corresponder à função do prompt “Hit Reaction”, mas **não há prova de que seja o mesmo clipe**. O “Idle” da grade também pode ser diferente do prompt personalizado “Demonic Breathing Idle”. Não duplicar ou substituir sem conferir.
+Esses são prompts personalizados da conversa, **não uma comprovação de que foram exportados ou de que correspondam exatamente** a `Idle` e `Rit damege`.
 
 ## Orientações de integração
 
-- Conferir **nomes reais dos clipes, duração e esqueleto** dos arquivos do Meshy antes de mapear.
-- Preservar o Enemy1 antigo até validar o novo no jogo; manter compatibilidade de rig e evitar deslocamento involuntário da raiz.
-- As quatro lâminas das costas e o vórtice nos olhos precisam de controle/VFX específicos; não assumir que a animação esquelética faça isso automaticamente.
-- **Estado:** registro documental feito; nenhuma das 16 animações do vídeo foi comprovadamente integrada ao jogo por esta alteração.
+- Inspecionar `animations[].name`, durações, rig/esqueleto e movimento de raiz no(s) GLB(s) exportado(s) antes de implementar.
+- Preservar o Enemy1 antigo até o novo passar por testes; confirmar que todos os clipes compartilham um esqueleto compatível.
+- Checar se `Combo de Armas 2` cabe ao combate com garras e se `Derrubar` representa queda recebida ou golpe.
+- Controlar as quatro lâminas nas costas e o vórtice vermelho dos olhos com mecanismos próprios; não presumir que as animações esqueléticas os movimentem.
+- **Estado:** registro documental atualizado. Nenhum arquivo de animação foi integrado por esta alteração.
