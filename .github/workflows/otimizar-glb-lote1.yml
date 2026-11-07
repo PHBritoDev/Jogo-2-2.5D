@@ -1,0 +1,60 @@
+name: Otimizar GLBs — lote 1 (somente branch de teste)
+on:
+  push:
+    branches: [perf/glb-texturas-lote1]
+    paths:
+      - '.github/workflows/otimizar-glb-lote1.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  otimizar:
+    if: github.ref_name == 'perf/glb-texturas-lote1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar conversor de imagens
+        run: python -m pip install 'Pillow>=11,<13'
+      - name: Otimizar 5 modelos de cenário, preservando as malhas
+        run: |
+          python tools/visual-lab/optimize-glb-textures.py --max-edge 2048 --report visual-lab-results/glb-lote1.json \
+            'ArvoreAncestralEldoria.glb' \
+            'CasaEldoria01.glb' \
+            'CasaEldoria02.glb' \
+            'Carroça.glb' \
+            'RochedoMusgoEldoria.glb'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar carregamento estrutural e animacoes
+        run: |
+          node tools/visual-lab/agent-v7-run.cjs
+          node --test demonio1-migration.test.mjs
+      - name: Guardar inventario e relatorio
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: glb-lote1-relatorio
+          path: |
+            visual-lab-results/glb-lote1.json
+            visual-lab-results/agente-v7/catalogo-glb.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Commitar arquivos otimizados SOMENTE na branch de teste
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'ArvoreAncestralEldoria.glb' 'CasaEldoria01.glb' 'CasaEldoria02.glb' 'Carroça.glb' 'RochedoMusgoEldoria.glb'
+          if git diff --cached --quiet; then
+            echo 'Nada para otimizar'
+          else
+            git commit -m 'perf: compactar texturas 2K em cinco GLBs de Eldoria'
+            git push origin HEAD:perf/glb-texturas-lote1
+          fi
