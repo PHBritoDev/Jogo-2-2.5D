@@ -14,7 +14,7 @@ fs.writeFileSync(path.join(out,file+".json"),JSON.stringify(r,null,2));
 console.log(JSON.stringify({file,bytes:r.bytes,triangles:r.triangles,skins:r.skins.length,clips:r.clips.map(a=>({name:a.name,duration:+a.duration.toFixed(3)}))}));
 // nenhum carregamento do modelo antigo pode sobrar
 const legacy=["Enemy1.glb","Enemy1-lod.glb"],hits=[];
-for(const f of fs.readdirSync(".").filter(n=>/\.(js|mjs|html)$/.test(n)))for(const [i,l] of fs.readFileSync(f,"utf8").split("\n").entries())if(legacy.some(x=>l.includes("./"+x)))hits.push(f+":"+(i+1));
+for(const f of fs.readdirSync(".").filter(n=>/\.(js|mjs|html)$/.test(n)&&!/\.test\.mjs$/.test(n))) /* testes podem citar os nomes antigos para checar a ausência */for(const [i,l] of fs.readFileSync(f,"utf8").split("\n").entries())if(legacy.some(x=>l.includes("./"+x)))hits.push(f+":"+(i+1));
 const leftover=legacy.filter(x=>fs.existsSync(x));
 fs.writeFileSync(path.join(out,"summary.json"),JSON.stringify({file,bytes:r.bytes,triangles:r.triangles,clips:r.clips.length,legacyLoads:hits,legacyFiles:leftover},null,2));
 if(hits.length||leftover.length){console.error("Referências/arquivos antigos do Enemy1:",hits,leftover);process.exit(1);}
