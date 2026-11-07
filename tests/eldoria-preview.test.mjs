@@ -6,6 +6,7 @@ import {ELDORIA_ASSETS,ELDORIA_ZONES,assetsForStage} from '../eldoria-asset-plan
 const html=readFileSync(new URL('../eldoria-cenario-preview.html',import.meta.url),'utf8');
 const details=readFileSync(new URL('../eldoria-scene-details.js',import.meta.url),'utf8');
 const manifest=readFileSync(new URL('../eldoria-asset-plan.js',import.meta.url),'utf8');
+const lighting=readFileSync(new URL('../eldoria-light-water.js',import.meta.url),'utf8');
 test('prévia isolada mantém o jogo principal e os personagens fora',()=>{
   assert.match(html,/import \{buildEldoriaDetails\}/);
   for(const zone of Object.keys(ELDORIA_ZONES)) assert.match(html,new RegExp('data-place="'+zone+'"'));
@@ -35,7 +36,7 @@ test('carregamento da cena principal não inclui caverna e ritual',()=>{
 test('sintaxe dos scripts da prévia e dos módulos ambientais',()=>{
   const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script?.length>3000);
-  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest]]){
+  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting]]){
     const result=spawnSync(process.execPath,['--input-type=module','--check'],{input:source,encoding:'utf8'});
     assert.equal(result.status,0,name+': '+result.stderr);
   }
@@ -50,4 +51,24 @@ test('indicadores FPS, falha de GLBs e árvore com instancing',()=>{
   assert.match(details,/streamDistance\(x,z\)/);
   assert.match(details,/roadDistance\(x,z\)/);
   assert.match(details,/village<18/);
+});
+
+test('sombras focadas no sol e água animada na GPU com qualidade mobile',()=>{
+  assert.match(html,/lighting=createEldoriaLighting/);
+  assert.match(html,/water=createEldoriaWater/);
+  assert.match(html,/water\.update\(now\*\.001,night\)/);
+  assert.match(html,/terrainMesh\.receiveShadow=true/);
+  assert.match(html,/lighting\.focus\(/);
+  assert.match(lighting,/renderer\.shadowMap\.enabled=true/);
+  assert.match(lighting,/THREE\.PCFSoftShadowMap/);
+  assert.match(lighting,/sun\.castShadow=true/);
+  assert.match(lighting,/renderer\.shadowMap\.autoUpdate=false/);
+  assert.match(lighting,/lowSpec\?1024:2048/);
+  assert.match(lighting,/new THREE\.DataTexture/);
+  assert.match(lighting,/new THREE\.MeshPhysicalMaterial/);
+  assert.match(lighting,/new THREE\.MeshStandardMaterial/);
+  assert.match(lighting,/waveExpression/);
+  assert.match(lighting,/transformed\.z \+=/);
+  assert.match(lighting,/transformed\.y \+=/);
+  assert.doesNotMatch(lighting,/WebGLRenderTarget|Reflector\(/);
 });
