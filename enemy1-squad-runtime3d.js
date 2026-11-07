@@ -33,6 +33,7 @@ import { attachKatana, poseKatana, poseCaster, katanaPose, KATANA_SCALE, JAW_SCA
  *   measure(model) → Box3, heroHeight(), damageTarget(id,dmg,info), event(type,data), pose?(root,kind,dur,yawFn) }
  */
 const ROLE_SPEED = { idle: .38, walk: 1, run: 1.08, attack: 1, attack2: 1, cast: 1, block: 1, dash: 1, jump: 1 };
+/* MOD 289: o rig pode trazer as próprias velocidades (Demonio1: respiração de ~5 s, roll/salto mais longos) */
 export function createEnemy1SquadRuntime(ctx) {
   const T = ctx.T, scene = ctx.scene;
   const vfx = createDarkPowersVFX(T, scene, { ground: ctx.ground }), chaos = createChaosVFX(T, scene, { ground: ctx.ground });
@@ -47,7 +48,7 @@ export function createEnemy1SquadRuntime(ctx) {
   function measureSource(src) {
     let measured = measuredBy.get(src.model); if (measured) return measured;
     const probe = ctx.clone(src.model); probe.position.set(0, 0, 0); probe.rotation.set(0, 0, 0); probe.scale.copy(src.model.scale); probe.updateMatrixWorld(true);
-    const b = ctx.measure(probe); let top = null; probe.traverse(o => { if (top === null && o.isBone && /HeadTop_End$/i.test(o.name)) top = o.getWorldPosition(new T.Vector3()).y; });
+    const b = ctx.measure(probe); let top = null; probe.traverse(o => { if (top === null && o.isBone && /(HeadTop_End|HeadEnd)$/i.test(o.name)) top = o.getWorldPosition(new T.Vector3()).y; });
     // altura até o topo da cabeça (as asas do Enemy1 não contam)
     measured = { h: Math.max(.5, (top !== null && top > b.min.y + .3 ? top : b.max.y) - b.min.y), minY: b.min.y }; measuredBy.set(src.model, measured); return measured;
   }
@@ -67,7 +68,7 @@ export function createEnemy1SquadRuntime(ctx) {
     const scales = []; model.traverse(o => scales.push([o, o.scale.clone()]));
     const mixer = new T.AnimationMixer(model), acts = {};
     for (const [role, act] of Object.entries(src.actions || {})) { const clip = act && act.getClip && act.getClip(); if (clip) acts[role] = mixer.clipAction(clip); }
-    const b = { height:heightFor(a.kind), holder, model, mixer, acts, mats, scales, cur: null, rev: -1, flash: 0, dead: 0, hand: null, lhand: null, head: null, weapon: null, fall: 0, k };
+    const b = { timeScales: src.timeScales || null, hasDeath: !!src.nativeDeath, /* só rigs que pedem (Demonio1); Enemy2 etc. mantêm a queda procedural */ height:heightFor(a.kind), holder, model, mixer, acts, mats, scales, cur: null, rev: -1, flash: 0, dead: 0, hand: null, lhand: null, head: null, weapon: null, fall: 0, k };
     model.traverse(o => { if (!b.hand && /^(mixamorig)?RightHand$/i.test(o.name)) b.hand = o; if (!b.lhand && /^(mixamorig)?LeftHand$/i.test(o.name)) b.lhand = o; if (!b.head && /^(mixamorig)?Head$/i.test(o.name)) b.head = o; });
     if(a.kind==='e2boss')attachScythe(b,a.kind);
     if(a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael')attachKatana(T,scene,b,a.kind);
@@ -119,7 +120,7 @@ export function createEnemy1SquadRuntime(ctx) {
   }
   function play(b, role, once, speed, fade = .14) {
     const act = b.acts[role] || (role === 'hit' ? b.acts.block : null) || (role === 'attack2' ? b.acts.attack : null) || b.acts.idle; if (!act) return;
-    const ts = (ROLE_SPEED[role] || 1) * speed * (role === 'hit' ? 1.8 : 1);
+    const ts = ((b.timeScales && b.timeScales[role]) || ROLE_SPEED[role] || 1) * speed * (role === 'hit' && !(b.timeScales && b.timeScales.hit) ? 1.8 : 1);
     if (b.cur === act) { act.setEffectiveTimeScale(ts); if (!once) return; }
     if (b.cur && b.cur !== act) b.cur.fadeOut(fade);
     act.reset(); act.enabled = true; act.setEffectiveWeight(1); act.setEffectiveTimeScale(ts); act.setLoop(once ? T.LoopOnce : T.LoopRepeat, once ? 1 : Infinity); act.clampWhenFinished = !!once;
@@ -176,8 +177,8 @@ export function createEnemy1SquadRuntime(ctx) {
         b.holder.position.set(a.x, a.y, a.z);
         let dy = a.yaw - b.holder.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); b.holder.rotation.y += dy * Math.min(1, dt * 18);
         if (!a.alive) {
-          // sem clipe de morte no Enemy1: tomba para trás, fica no chão e afunda devagar
-          b.dead += dt; const nativeDeath = E3K[a.kind] && b.acts.death;
+          // rig sem clipe de morte: tomba para trás, fica no chão e afunda devagar. MOD 289: o Demonio1 tem 'Dead' real e usa o clipe.
+          b.dead += dt; const nativeDeath = (E3K[a.kind] || b.hasDeath) && b.acts.death;
           if (nativeDeath) { if (!b.deathPlayed) { b.deathPlayed = true; play(b, 'death', true, 1, .12); } b.mixer.update(b.dead < 3 ? dt : 0); for (const [o, s] of b.scales) o.scale.copy(s); b.model.rotation.z = 0; }
           else { if (b.cur && b.dead < .05) b.cur.fadeOut(.2); b.model.rotation.x = -Math.min(1, (b.dead / .75) ** 2) * Math.PI / 2 * .92; }
           if (b.dead > 2.6) b.holder.position.y = a.y - (b.dead - 2.6) * .55;

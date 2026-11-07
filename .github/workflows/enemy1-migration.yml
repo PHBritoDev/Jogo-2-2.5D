@@ -6,6 +6,8 @@ on:
       - 'tools/visual-lab/enemy1-migration*'
       - 'enemy1-model3d*'
       - 'enemy1-squad-runtime3d.js'
+      - 'demonio1-migration.test.mjs'
+      - 'Demonio1.glb'
       - '.github/workflows/enemy1-migration.yml'
 permissions:
   contents: read
@@ -22,6 +24,7 @@ jobs:
         with:
           node-version: '22'
       - run: node tools/visual-lab/enemy1-migration-audit.cjs
+      - run: node --test demonio1-migration.test.mjs enemy1-squad.test.mjs enemy1-integration.test.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: enemy1-migration-source-${{ github.run_number }}
