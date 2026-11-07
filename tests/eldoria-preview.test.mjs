@@ -99,3 +99,12 @@ test('lago utiliza margem orgânica e trilha verde de plantas aquáticas',()=>{
  assert.match(art,/lilyPads/);
  assert.match(art,/pondSdf/);
 });
+
+test('árvores GLB não nascem dentro da lâmina do lago',()=>{
+ const forest=ELDORIA_ASSETS.find(a=>a.file==='ArvoreFloresta01.glb');
+ assert.ok(forest?.placements?.length>=8);
+ for(const p of forest.placements){
+  const lakeDistance=Math.hypot((p.x+42)/15,(p.z-24)/11);
+  assert.ok(lakeDistance>=1.25,'GLB no lago: '+p.x+','+p.z);
+ }
+});
