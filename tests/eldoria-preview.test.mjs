@@ -9,6 +9,7 @@ const manifest=readFileSync(new URL('../eldoria-asset-plan.js',import.meta.url),
 const lighting=readFileSync(new URL('../eldoria-light-water.js',import.meta.url),'utf8');
 const art=readFileSync(new URL('../eldoria-environment-art.js',import.meta.url),'utf8');
 const canopy=readFileSync(new URL('../eldoria-forest-canopy.js',import.meta.url),'utf8');
+const cavern=readFileSync(new URL('../eldoria-crystal-cavern.js',import.meta.url),'utf8');
 test('prévia isolada mantém o jogo principal e os personagens fora',()=>{
   assert.match(html,/import \{buildEldoriaDetails\}/);
   for(const zone of Object.keys(ELDORIA_ZONES)) assert.match(html,new RegExp('data-place="'+zone+'"'));
@@ -38,7 +39,7 @@ test('carregamento da cena principal não inclui caverna e ritual',()=>{
 test('sintaxe dos scripts da prévia e dos módulos ambientais',()=>{
   const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script?.length>3000);
-  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art],['canopy',canopy]]){
+  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art],['canopy',canopy],['cavern',cavern]]){
     const result=spawnSync(process.execPath,['--input-type=module','--check'],{input:source,encoding:'utf8'});
     assert.equal(result.status,0,name+': '+result.stderr);
   }
@@ -120,4 +121,17 @@ test('árvores GLB não bloqueiam o eixo principal da câmera do lago',()=>{
   const distance=Math.hypot(dx-vx*t,dz-vz*t);
   assert.ok(distance>=9,'árvore bloqueia visão do lago: '+p.x+','+p.z);
  }
+});
+
+test('interior da caverna possui salão monumental e ala obscura instanciados',()=>{
+ assert.match(html,/buildEldoriaCrystalCavern\(THREE,scene/);
+ assert.match(html,/cavern\.setVisible\(inCavern\)/);
+ assert.match(html,/data-place="interior"/);
+ assert.match(html,/data-place="abismo"/);
+ assert.match(cavern,/chamberRadius=47/);
+ assert.match(cavern,/new THREE\.InstancedMesh/);
+ assert.match(cavern,/emissiveIntensity/);
+ assert.match(cavern,/PointLight/);
+ assert.match(cavern,/lightA\.castShadow=false/);
+ assert.doesNotMatch(cavern,/Protagonista\.glb|Enemy1\.glb|Demonio1\.glb/);
 });
