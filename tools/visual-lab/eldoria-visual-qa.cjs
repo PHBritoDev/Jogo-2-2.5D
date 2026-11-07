@@ -61,6 +61,13 @@ async function run(){
       await page.evaluate(()=>{window.EldoriaVisualQA.setNight(false);window.EldoriaVisualQA.view("caverna");});
       await page.waitForFunction(()=>{const q=window.EldoriaVisualQA.inspect();return q.stages.includes("caverna");},{timeout:45000});
       await capture(page,profile.name+"-caverna-dia");
+      await page.evaluate(()=>window.EldoriaVisualQA.view("interior"));
+      await page.waitForFunction(()=>window.EldoriaVisualQA.inspect().cavernVisible,{timeout:25000});
+      await capture(page,profile.name+"-sala-cristais");
+      await page.evaluate(()=>window.EldoriaVisualQA.view("abismo"));
+      await capture(page,profile.name+"-abismo");
+      const cave=await page.evaluate(()=>window.EldoriaVisualQA.inspect());
+      if(cave.cavernCrystals<80)errors.push(profile.name+" densidade de cristais insuficiente");
       const end=await page.evaluate(()=>window.EldoriaVisualQA.inspect());
       if(end.failed)errors.push(profile.name+" falhas GLB: "+end.failed);
       if(end.loaded<14)errors.push(profile.name+" GLBs incompletos: "+end.loaded+"/14");
