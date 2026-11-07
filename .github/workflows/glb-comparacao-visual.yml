@@ -1,0 +1,52 @@
+name: GLB — comparacao visual antes/depois
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/visual-lab/glb-compare-*'
+      - '.github/workflows/glb-comparacao-visual.yml'
+  push:
+    branches: [perf/glb-texturas-lote1]
+    paths:
+      - '.github/workflows/glb-comparacao-visual.yml'
+permissions:
+  contents: read
+jobs:
+  comparar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar Chromium, Three.js e imagens
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Recuperar originais da main para comparacao
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main --depth=1
+          mkdir -p visual-lab-results/glb-originals
+          for file in 'ArvoreAncestralEldoria.glb' 'CasaEldoria01.glb' 'CasaEldoria02.glb' 'Carroça.glb' 'RochedoMusgoEldoria.glb'; do
+            git show "origin/main:$file" > "visual-lab-results/glb-originals/$file"
+          done
+      - name: Servidor HTTP local
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/glb-qa-http.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/tools/visual-lab/glb-compare-viewer.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/glb-qa-http.log
+          exit 1
+      - name: Renderizar comparacoes em WebGL real
+        run: node tools/visual-lab/glb-compare-qa.cjs
+      - name: Salvar capturas e relatorio de geometria
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: glb-visual-lote1
+          path: visual-lab-results/glb-visual-qa/
+          retention-days: 14
+          if-no-files-found: warn
