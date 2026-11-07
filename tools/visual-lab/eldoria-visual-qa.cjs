@@ -62,15 +62,16 @@ async function run(){
       await page.waitForFunction(()=>{const q=window.EldoriaVisualQA.inspect();return q.stages.includes("caverna");},{timeout:45000});
       await capture(page,profile.name+"-caverna-dia");
       await page.evaluate(()=>window.EldoriaVisualQA.view("interior"));
-      await page.waitForFunction(()=>window.EldoriaVisualQA.inspect().cavernVisible,{timeout:25000});
+      await page.waitForFunction(()=>{const q=window.EldoriaVisualQA.inspect();return q.cavernVisible&&q.stages.includes('interior');},{timeout:60000});
       await capture(page,profile.name+"-sala-cristais");
       await page.evaluate(()=>window.EldoriaVisualQA.view("abismo"));
       await capture(page,profile.name+"-abismo");
       const cave=await page.evaluate(()=>window.EldoriaVisualQA.inspect());
       if(cave.cavernCrystals<80)errors.push(profile.name+" densidade de cristais insuficiente");
+      if(cave.cavernRocks<100||cave.cavernVeins<8)errors.push(profile.name+" geologia incompleta");
       const end=await page.evaluate(()=>window.EldoriaVisualQA.inspect());
       if(end.failed)errors.push(profile.name+" falhas GLB: "+end.failed);
-      if(end.loaded<14)errors.push(profile.name+" GLBs incompletos: "+end.loaded+"/14");
+      if(end.loaded<15)errors.push(profile.name+" GLBs incompletos: "+end.loaded+"/15");
       await context.close();
     }
   }finally{await browser.close();}
