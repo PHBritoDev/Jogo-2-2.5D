@@ -3,7 +3,7 @@
  * Determinístico, InstancedMesh para evitar centenas de draw calls em Android.
  * Direção: prado luminoso, margens úmidas, pedras musgosas e bosque orgânico.
  */
-export function buildEldoriaDetails(THREE, scene, {height,streamDistance,rand,lowSpec=false}){
+export function buildEldoriaDetails(THREE, scene, {height,streamDistance,rand,pondSdf=()=>Infinity,lowSpec=false}){
   const makeMaterial=(color,params={})=>new THREE.MeshStandardMaterial({color,roughness:1,...params});
   const dummy=new THREE.Object3D(), color=new THREE.Color();
   function instances(geometry,material,items){
@@ -44,7 +44,7 @@ export function buildEldoriaDetails(THREE, scene, {height,streamDistance,rand,lo
     const x=(rand(i,28)-.5)*212,z=(rand(i,42)-.5)*214;
     const bank=streamDistance(x,z),village=Math.hypot(x-5,z+43),road=roadDistance(x,z);
     const y=height(x,z);
-    if(bank<2.9 || road<2.5 || village<18)continue;
+    if(bank<2.9 || road<2.5 || village<18 || pondSdf(x,z)<1.2)continue;
     const wet=bank<10;
     if(i%7===0 && bank>5 && road>5){
       const s=.22+rand(i,76)*.65;
@@ -69,7 +69,7 @@ export function buildEldoriaDetails(THREE, scene, {height,streamDistance,rand,lo
   for(let x=-101;x<=105;x+=3.8){
     for(let z=-96;z<=90;z+=3.8){
       const d=streamDistance(x,z),salt=rand(x,z);
-      if(d<3.6||d>6.6||salt<.77)continue;
+      if(d<3.6||d>6.6||salt<.77||pondSdf(x,z)<1.3)continue;
       const s=.45+salt*.45;
       bankStones.push({x:x+(salt-.5),z:z+(salt-.5),y:height(x,z)+.1,rot:salt*6.28,sx:s,sy:s*.34,sz:s*.73,tint:0x879486});
     }
