@@ -55,7 +55,7 @@ export function mountEldoriaLiveVillage({
   }
   for(const spec of specs){
     promises.push(fetchModel(spec.file).then(asset=>{
-      if(!asset)return;
+      if(!asset)return false;
       const obj=new THREE.Group();
       const model=asset.src.clone(true);
       const normalizedScale=spec.size/Math.max(.01,asset.size.x,asset.size.y,asset.size.z);
@@ -68,12 +68,13 @@ export function mountEldoriaLiveVillage({
       obj.traverse(child=>{if(child.isMesh){child.receiveShadow=true;child.castShadow=!lowSpec&&spec.kind==='house';}});
       root.add(obj);
       obstacles.push({x:obj.position.x,z:obj.position.z,radius:spec.collision,height:spec.size});
+      return true;
     }));
   }
   // Os NPCs ficam nas mesmas posições que usavam na vila antiga.
   // Não eliminar objetos interativos nem recolocar os NPCs por estética.
-  const complete=Promise.all(promises).then(()=>({
-    loaded:specs.length-failures.length,expected:specs.length,failures:[...failures],
+  const complete=Promise.all(promises).then(results=>({
+    loaded:results.filter(Boolean).length,expected:specs.length,failures:[...failures],
     root
   }));
   return {root,complete,expected:specs.length,failures};
