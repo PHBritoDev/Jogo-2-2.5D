@@ -200,6 +200,46 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
   beamMesh.computeBoundingSphere();group.add(beamMesh);
   const geology=buildEldoriaCaveGeology(THREE,group,{lowSpec});
   const tunnel=buildEldoriaCaveTunnel(THREE,group,{lowSpec});
+  // História ambiental: uma antiga expedição tentou alcançar o coração mineral.
+  // Vestígios convergem para a descoberta, mas terminam antes do obelisco sombrio.
+  // Os objetos não são coletáveis e não antecipam o roteiro canônico.
+  const relicBronze=new THREE.MeshStandardMaterial({color:0x77644e,roughness:.86,metalness:.18});
+  const relicStone=new THREE.MeshStandardMaterial({color:0x4d6065,roughness:.97,flatShading:true});
+  const relics=new THREE.Group();relics.name='VestigiosDaExpedicao';
+  const route=[[2,31],[-1,25],[1,19],[-2,13],[0,7]];
+  for(let i=0;i<route.length;i++){
+    const [x,z]=route[i],base=1.55;
+    const slab=new THREE.Mesh(new THREE.BoxGeometry(2.2,.14,1.5),relicStone);
+    slab.position.set(x,base,z);slab.rotation.y=Math.sin(i*2.17)*.22;
+    slab.rotation.z=(i%2?-.06:.05);relics.add(slab);
+    if(i===1||i===3){
+      const hoop=new THREE.Mesh(new THREE.TorusGeometry(.47,.07,6,16,Math.PI*1.75),relicBronze);
+      hoop.rotation.x=-Math.PI/2;hoop.position.set(x+.8,base+.12,z+.2);relics.add(hoop);
+    }
+  }
+  // Dois marcos assimétricos enquadram a revelação do coração cristalino.
+  for(const [x,z,scale,angle] of [[-10,21,1,.14],[12,14,1.23,-.12]]){
+    const plinth=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.8,3.6,7),relicStone);
+    plinth.position.set(x,3.1,z);plinth.rotation.z=angle;
+    plinth.scale.setScalar(scale);relics.add(plinth);
+    const cap=new THREE.Mesh(new THREE.IcosahedronGeometry(1.25,0),relicBronze);
+    cap.position.set(x,5.2*scale,z);cap.scale.set(.9,.3,.9);relics.add(cap);
+  }
+  group.add(relics);
+  // Poeira mineral em profundidade: partículas estáticas e discretas,
+  // sem sprites grandes que lavem o contraste do cenário.
+  const dustCount=lowSpec?105:230,dustPositions=new Float32Array(dustCount*3);
+  for(let i=0;i<dustCount;i++){
+    const a=rand(i,604)*Math.PI*2,r=5+Math.sqrt(rand(i,605))*37;
+    dustPositions[i*3]=Math.cos(a)*r;
+    dustPositions[i*3+1]=3+rand(i,606)*29;
+    dustPositions[i*3+2]=Math.sin(a)*r;
+  }
+  const dustGeo=new THREE.BufferGeometry();
+  dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPositions,3));
+  const dustMat=new THREE.PointsMaterial({color:0xa8d6de,size:lowSpec?.13:.19,
+    sizeAttenuation:true,transparent:true,opacity:.45,depthWrite:false});
+  const dust=new THREE.Points(dustGeo,dustMat);dust.name='PoeiraMineral';group.add(dust);
   group.visible=false;
   scene.add(group);
   return {group,center:[ox,8,oz],dark:[ox-26,7,oz+17],
