@@ -43,11 +43,11 @@ export function createEldoriaLighting(THREE,{renderer,scene,camera,sun,ambient,l
   }
   function setNight(night){
     // Nocturnal shadows remain soft and understated, without adding shadow lights.
-    sun.intensity=night?.35:2.35;
+    sun.intensity=night?.7:2.35;
     sun.color.set(night?0x9caedf:0xffeed1);
-    ambient.intensity=night?.9:1.7;
+    ambient.intensity=night?1.35:1.7;
     ambient.color.set(night?0x8aa5c6:0xeaf4e5);
-    scene.environmentIntensity=night?.20:.55;
+    scene.environmentIntensity=night?.32:.55;
     renderer.shadowMap.needsUpdate=true;
   }
   return {focus,setNight,shadowResolution:resolution,dispose(){envTarget?.dispose();}};
@@ -86,6 +86,9 @@ export function createEldoriaWater(THREE,{lowSpec}){
       new THREE.MeshPhysicalMaterial({...shared,clearcoat:.7,clearcoatRoughness:.13,ior:1.33});
     // onBeforeCompile keeps built-in PBR lighting/tone mapping and normals.
     const uniforms={time:{value:0},amplitude:{value:lake?.045:.09}};
+    const shoreTint=lake
+      ? '\nfloat shore=smoothstep(.22,1.06,length(vEldoriaWater));\ndiffuseColor.rgb *= mix(vec3(.74,.86,.91),vec3(1.08,1.06,1.01),shore);'
+      : '';
     const waveExpression=lake
       ? 'transformed.z += sin(position.x*0.36 + uEldoriaTime*0.9)*cos(position.y*0.27-uEldoriaTime*0.7)*uEldoriaAmplitude;'
       : 'transformed.y += sin(position.x*0.36 + uEldoriaTime*0.9)*cos(position.z*0.27-uEldoriaTime*0.7)*uEldoriaAmplitude;';
@@ -104,7 +107,7 @@ export function createEldoriaWater(THREE,{lowSpec}){
         '#include <common>\nuniform float uEldoriaTime;\nvarying vec2 vEldoriaWater;'
       ).replace(
         '#include <color_fragment>',
-        '#include <color_fragment>\nfloat rippleA=sin(vEldoriaWater.x*1.47+uEldoriaTime*.8);\nfloat rippleB=sin(vEldoriaWater.y*1.9-uEldoriaTime*.63);\nfloat shimmer=pow(max(0.,rippleA*rippleB),10.);\ndiffuseColor.rgb += vec3(.045,.075,.085)*shimmer;'
+        '#include <color_fragment>\nfloat rippleA=sin(vEldoriaWater.x*1.47+uEldoriaTime*.8);\nfloat rippleB=sin(vEldoriaWater.y*1.9-uEldoriaTime*.63);\nfloat shimmer=pow(max(0.,rippleA*rippleB),10.);\ndiffuseColor.rgb += vec3(.045,.075,.085)*shimmer;' + shoreTint
       );
     };
     material.customProgramCacheKey=()=>lake?'eldoria-water-lake-v2':'eldoria-water-stream-v2';
