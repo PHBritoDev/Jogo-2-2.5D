@@ -26,7 +26,7 @@ export function buildEldoriaCaveTunnel(THREE,group,{lowSpec=false}={}){
   geom.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   geom.setIndex(idx);geom.computeVertexNormals();
   const material=new THREE.MeshStandardMaterial({
-    color:0x282b35,roughness:1,metalness:0,flatShading:true,
+    color:0x424858,emissive:0x0d1a2c,emissiveIntensity:.62,roughness:1,metalness:0,flatShading:true,
     side:THREE.DoubleSide
   });
   const shell=new THREE.Mesh(geom,material);
@@ -62,12 +62,12 @@ export function buildEldoriaCaveTunnel(THREE,group,{lowSpec=false}={}){
   ];
   const prism=new THREE.CylinderGeometry(.04,1,1,6);
   const clusters=[[],[]];
-  const count=lowSpec?70:125;
+  const count=lowSpec?120:205;
   for(let i=0;i<count;i++){
     const z=41+rand(i,8)*61,side=i%2===0?1:-1;
     const taper=1-.27*((z-start)/(end-start));
     const x=side*(9.5+rand(i,9)*2.2)*taper;
-    const h=2+rand(i,10)*6.5;
+    const h=3.2+rand(i,10)*8.5;
     clusters[i%2].push({x,y:1.3+h*.5,z,h,a:(rand(i,11)-.5)*.36});
   }
   clusters.forEach((data,kind)=>{
@@ -94,7 +94,11 @@ export function buildEldoriaCaveTunnel(THREE,group,{lowSpec=false}={}){
     hanging.setMatrixAt(i,dummy.matrix);
   });hanging.instanceMatrix.needsUpdate=true;hanging.computeBoundingSphere();group.add(hanging);
   // Uma fonte fria orienta a entrada; o fim permanece escuro.
-  const beacon=new THREE.PointLight(0x8c9ce8,lowSpec?12:20,29,2);
+  const beacon=new THREE.PointLight(0x8c9ce8,lowSpec?19:30,36,2);
   beacon.position.set(-6,10,48);beacon.castShadow=false;group.add(beacon);
+  const midLight=new THREE.PointLight(0x7199e5,lowSpec?10:16,38,2);
+  midLight.position.set(7,9,75);midLight.castShadow=false;group.add(midLight);
+  const deepLight=new THREE.PointLight(0x568cbd,lowSpec?5:10,26,2);
+  deepLight.position.set(-8,7,98);deepLight.castShadow=false;group.add(deepLight);
   return {length:end-start,crystals:count,rockFragments:fragments.length};
 }
