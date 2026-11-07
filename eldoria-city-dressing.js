@@ -71,13 +71,27 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
   if (decks.length >= 2) new GLTFLoader().load('./PassarelaSuspensaEldoria.glb', g => {
     const a = trees[0], b = trees[1], ax = center.x + a.x, az = center.z + a.z, bx = center.x + b.x, bz = center.z + b.z;
     const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, span = L - decks[0].ring - decks[1].ring + 2.2;
-    const m = g.scene, bb = new THREE.Box3().setFromObject(m), sz = bb.getSize(new THREE.Vector3()), c = bb.getCenter(new THREE.Vector3()), k = span / Math.max(.01, sz.x);
-    // Escala só no comprimento: largura/altura na proporção humana (tabuleiro ~2,6 m, torres ~3,2 m), não 11×.
-    const kw = Math.min(k, 2.6 / Math.max(.01, sz.z)), ky = Math.min(k, 3.2 / Math.max(.01, sz.y));
-    m.scale.set(k, ky, kw); m.position.set(-c.x * k, -bb.min.y * ky, -c.z * kw); m.traverse(x => { if (x.isMesh) { x.castShadow = !lowSpec; x.receiveShadow = true; } });
-    const w = new THREE.Group(); w.add(m); const mid = (decks[0].ring - decks[1].ring) / 2;
-    w.position.set((ax + bx) / 2 + ux * mid, decks[0].deckY + .08, (az + bz) / 2 + uz * mid); w.rotation.y = Math.atan2(-uz, ux); root.add(w);
-    root.userData.walkway = { span: +span.toFixed(1), scale: +k.toFixed(2), width: +(sz.z * kw).toFixed(2), height: +(sz.y * ky).toFixed(2), deckA: +decks[0].deckY.toFixed(2), deckB: +decks[1].deckY.toFixed(2), walkable: false };
+    const src = g.scene, bb = new THREE.Box3().setFromObject(src), sz = bb.getSize(new THREE.Vector3()), c = bb.getCenter(new THREE.Vector3());
+    // Dois vãos com o modelo do criador em escala quase uniforme (tábuas e cordas sem esticar) e um pilar central de
+    // madeira do chão até o tabuleiro — em vez de um único vão esticado 11,7× no comprimento (revisão 21:26).
+    const half = span / 2, k = half / Math.max(.01, sz.x), ky = Math.min(k, 3.2 / Math.max(.01, sz.y)), kw = Math.min(k, 2.6 / Math.max(.01, sz.z));
+    const mid = (decks[0].ring - decks[1].ring) / 2, cx = (ax + bx) / 2 + ux * mid, cz = (az + bz) / 2 + uz * mid, yaw = Math.atan2(-uz, ux), y = decks[0].deckY + .08;
+    for (const sgn of [-1, 1]) {
+      const m = src.clone(true); m.scale.set(k, ky, kw); m.position.set(-c.x * k, -bb.min.y * ky, -c.z * kw);
+      m.traverse(x => { if (x.isMesh) { x.castShadow = !lowSpec; x.receiveShadow = true; } });
+      const w = new THREE.Group(); w.add(m); w.position.set(cx + ux * sgn * half / 2, y, cz + uz * sgn * half / 2); w.rotation.y = yaw; root.add(w);
+    }
+    const gy = groundHeightAt(cx, cz), H = y - gy, px = -uz, pz = ux, parts = [];
+    for (const sd of [-1, 1]) {
+      parts.push({ x: cx + px * sd * 1.05, y: gy + H / 2, z: cz + pz * sd * 1.05, sx: .34, sy: H, sz: .34, color: 0x6a4e32 });
+      parts.push({ x: cx + px * sd * 1.05, y: gy + H * .45, z: cz + pz * sd * 1.05, sx: .14, sy: H * .9, sz: .14, rx: .35 * sd, ry: yaw, color: 0x5e4630 });
+    }
+    for (const t of [.35, .7]) parts.push({ x: cx, y: gy + H * t, z: cz, sx: 2.4, sy: .16, sz: .16, ry: yaw + Math.PI / 2, color: 0x7a5c3a });
+    parts.push({ x: cx, y: y - .1, z: cz, sx: 2.9, sy: .22, sz: 2.4, ry: yaw, color: 0x8a6a44 });
+    const pylon = new THREE.Mesh(merge(THREE, parts), woodMat); pylon.castShadow = !lowSpec; pylon.receiveShadow = true; pylon.name = 'eldoria-walkway-pylon'; root.add(pylon);
+    obstacles.push({ x: cx, z: cz, radius: 1.5, height: H });
+    const sz2 = { y: sz.y * ky, z: sz.z * kw };
+    root.userData.walkway = { span: +span.toFixed(1), spans: 2, scale: +k.toFixed(2), stretch: +(k / kw).toFixed(2), width: +sz2.z.toFixed(2), height: +sz2.y.toFixed(2), deckA: +decks[0].deckY.toFixed(2), deckB: +decks[1].deckY.toFixed(2), walkable: false };
     if (typeof window !== 'undefined') window.EldoriaCityDressingQA = { ...root.userData.walkway, rings: decks.map(d => +d.ring.toFixed(2)) };
   }, undefined, e => console.warn('PassarelaSuspensaEldoria.glb não carregou.', e));
   // Jardins: flores (3 cores), sebes, cercas claras e lampiões.

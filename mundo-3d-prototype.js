@@ -2370,6 +2370,13 @@ const shopBuilding=(()=>{
  // Colisão: salão e pórtico; a porta fica livre para interagir.
  marketObstacles.push({x:SHOP_SPOT.x-.9,z:SHOP_SPOT.z,shape:'box',halfX:2.95,halfZ:4.15,height:4.6});
  for(const zc of [-3.2,-1.1,1.1,3.2])marketObstacles.push({x:SHOP_SPOT.x+2.5,z:SHOP_SPOT.z-zc,shape:'circle',radius:.36,height:4});
+ /* MOD 291 — a Loja Central ganha a arquitetura de Eldória (CasaEldoria01.glb do criador, telhado verde de musgo e
+    enxaimel claro) no lugar do bloco branco de torre azul que dominava o primeiro plano. Placa, estrela, lanterna, porta,
+    colisão e interação continuam iguais (mesmas coordenadas). As peças antigas ficam de reserva se o GLB falhar. */
+ new GLTFLoader().load('./CasaEldoria01.glb',gl=>{const m=gl.scene,b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=8.6/Math.max(.01,sz.x);
+  m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k-.05,-c.z*k-.9);m.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;}});
+  for(const o of [...g.children])if(o!==sign&&o!==star&&o!==lamp)o.visible=false;
+  g.add(m);star.position.set(0,sz.y*k+1.1,-.9);sign.position.set(0,3.4,sz.z*k/2-.75);window.SevenSinsShopReport={asset:'CasaEldoria01.glb',height:+(sz.y*k).toFixed(1)};},undefined,e=>console.warn('Loja: CasaEldoria01.glb não carregou; mantendo o prédio antigo.',e));
  return {group:g,star,lamp,door:{x:SHOP_SPOT.x+4.6,z:SHOP_SPOT.z}};
 })();
 function nearShopDoor(){return Math.hypot(shopBuilding.door.x-player.position.x,shopBuilding.door.z-player.position.z)<3.1;}
