@@ -26,8 +26,8 @@ export function buildEldoriaCaveEntranceArt(THREE,scene,{height,rand,lowSpec=fal
   const cx=-79,cz=70,ground=height(cx,cz);
   for(let i=0;i<=18;i++){
     const a=i/18*Math.PI;
-    const x=cx+Math.cos(a)*11.4;
-    const y=ground+7.1+Math.sin(a)*12.3;
+    const x=cx+Math.cos(a)*(10.5+1.1*Math.sin(a*4.7)+rand(i,101)*1.5);
+    const y=ground+7.1+Math.sin(a)*(11.5+1.3*Math.cos(a*3.9))+(rand(i,102)-.5)*2.0;
     const z=cz+(rand(i,110)-.5)*2.2;
     const scale=2.0+rand(i,115)*1.8;
     blocks.push({x,y,z,ry:rand(i,112)*6.28,
