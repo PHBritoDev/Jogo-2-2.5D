@@ -1,3 +1,4 @@
+import {buildEldoriaCaveGeology} from './eldoria-cave-geology.js';
 /**
  * Eldória — caverna cristalina original do Ato 1.
  * Duas câmaras monumentais: santuário luminoso e abismo de silêncio.
@@ -161,9 +162,10 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
     blending:THREE.AdditiveBlending,depthWrite:false
   }));
   abyssGlow.position.set(-29,9,17);abyssGlow.scale.set(16,16,1);group.add(abyssGlow);
+  const geology=buildEldoriaCaveGeology(THREE,group,{lowSpec});
   group.visible=false;
   scene.add(group);
   return {group,center:[ox,8,oz],dark:[ox-26,7,oz+17],
-    stats:{crystals:spires.length,stalactites:ceilings.length,stalagmites:pillars.length},
+    stats:{crystals:spires.length,stalactites:ceilings.length,stalagmites:pillars.length,geology},
     setVisible(visible){group.visible=!!visible;},dispose(){group.traverse(o=>{o.geometry?.dispose();});}};
 }
