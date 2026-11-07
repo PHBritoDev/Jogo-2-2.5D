@@ -173,6 +173,7 @@ function view(name){
  target.set(...info.target);distance=name==='cidade'?36:info.distance;yaw=name==='cidade'?.12:name==='aguas'?.55:name==='lago'?.55:name==='caverna'?Math.PI:name==='abismo'?2.7:name==='interior'?.25:.42;pitch=name==='cidade'?.34:name==='lago'?.18:name==='caverna'?.20:.40;lighting.focus(info.target[0],info.target[2],true);
  document.querySelectorAll('button[data-place]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.place===name)));
  if(name==='ritual'||name==='caverna')loadStage(name);
+ if(inCavern)loadStage('interior');
  if(name==='ritual'||inCavern)setNight(true);
  if(inCavern){scene.fog.density=.0008;renderer.toneMappingExposure=1.35;}
  else {scene.fog.density=night?.007:.0058;renderer.toneMappingExposure=night?.99:1.14;}
@@ -190,6 +191,7 @@ window.EldoriaVisualQA=Object.freeze({
     waterLakeShader:!!water.lake.userData.waterUniforms,
     waterTime:water.river.userData.waterUniforms.time.value,
     cavernVisible:cavern.group.visible,cavernCrystals:cavern.stats.crystals,
+    cavernRocks:cavern.stats.geology.stratifiedRocks,cavernVeins:cavern.stats.geology.veinLines,
     camera:[camera.position.x,camera.position.y,camera.position.z],night
   })
 });
