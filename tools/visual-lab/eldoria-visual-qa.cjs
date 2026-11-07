@@ -66,10 +66,13 @@ async function run(){
       await capture(page,profile.name+"-sala-cristais");
       await page.evaluate(()=>window.EldoriaVisualQA.view("abismo"));
       await capture(page,profile.name+"-abismo");
+      await page.evaluate(()=>window.EldoriaVisualQA.view("tunel"));
+      await capture(page,profile.name+"-galeria-dos-ecos");
       const cave=await page.evaluate(()=>window.EldoriaVisualQA.inspect());
       if(cave.cavernCrystals<80)errors.push(profile.name+" densidade de cristais insuficiente");
       if(cave.cavernRocks<100||cave.cavernVeins<8)errors.push(profile.name+" geologia incompleta");
       if(cave.seleniteBeams!==12)errors.push(profile.name+" feixes monumentais de selenita ausentes");
+      if(cave.tunnelCrystals<60||cave.entranceRocks<20)errors.push(profile.name+" passagens da gruta incompletas");
       const end=await page.evaluate(()=>window.EldoriaVisualQA.inspect());
       if(end.failed)errors.push(profile.name+" falhas GLB: "+end.failed);
       if(end.loaded<15)errors.push(profile.name+" GLBs incompletos: "+end.loaded+"/15");
