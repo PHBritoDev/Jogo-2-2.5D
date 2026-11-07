@@ -34,6 +34,9 @@ jobs:
       - name: Analisar alterações sem modificar arquivos do jogo
         run: node tools/qa/ai-change-guard.mjs "${{ steps.base.outputs.sha }}"
 
+      - name: Sugerir testes direcionados por área
+        run: node tools/qa/ai-test-router.mjs
+
       - name: Verificar sobreposição com PRs abertos
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
