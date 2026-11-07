@@ -5,6 +5,7 @@ on:
       - 'eldoria-cenario-preview.html'
       - 'eldoria-scene-details.js'
       - 'eldoria-asset-plan.js'
+      - 'eldoria-light-water.js'
       - 'tests/eldoria-preview.test.mjs'
       - '.github/workflows/eldoria-preview-qa.yml'
   workflow_dispatch:
