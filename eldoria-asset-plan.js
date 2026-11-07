@@ -15,7 +15,7 @@ export const ELDORIA_ZONES=Object.freeze({
 });
 const at=(x,z,size,rotation=0)=>({x,z,size,rotation});
 export const ELDORIA_ASSETS=Object.freeze([
-  {file:'ArvoreAncestralEldoria.glb',stage:'core',placements:[at(43,-37,32,.3),at(-38,-28,27,-.5)]},
+  {file:'ArvoreAncestralEldoria.glb',stage:'core',placements:[at(55,-36,45,.3),at(-53,-28,43,-.5)]},
   {file:'ArvoreFloresta01.glb',stage:'core',placements:[at(-62,-37,14),at(62,-42,13,.4),at(-50,-75,10),at(-48,17,14,.7),at(-65,38,16),at(39,24,14,-.4),at(-80,-65,15,.5),at(72,-65,16,-.3)]},
   {file:'CasaEldoria01.glb',stage:'core',placements:[at(-19,-51,10,.2),at(-7,-52,9,-.4),at(18,-53,10,.15),at(29,-43,9,-.3)]},
   {file:'CasaEldoria02.glb',stage:'core',placements:[at(-23,-32,10,-.2),at(-9,-29,9,.3),at(15,-28,10,-.3),at(29,-29,9,.45)]},
