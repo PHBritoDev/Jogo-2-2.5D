@@ -17,7 +17,7 @@ const testAllSkills=combatLabRequested||new URLSearchParams(location.search).has
 const ENEMY1_LAB=new URLSearchParams(location.search).has('testeEnemy1'),ENEMY2_LAB=new URLSearchParams(location.search).has('testeEnemy2'),ENEMY3_LAB=new URLSearchParams(location.search).has('testeEnemy3'),ENEMY4_LAB=new URLSearchParams(location.search).has('testeEnemy4'),VHAZRAEL_LAB=new URLSearchParams(location.search).has('testeVhazrael'),DIM_TEST=(k=>k==='bishop1'||k==='bishop2'||k==='bishop3'||k==='bishop4'?k:'')(new URLSearchParams(location.search).get('testeDimensao'));
 const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true):isolatedSwordStorage(window.localStorage,testAllSkills||ENEMY1_LAB||ENEMY2_LAB||ENEMY3_LAB||ENEMY4_LAB||VHAZRAEL_LAB); // MOD 256: teste de dimensão nunca grava progresso
 // Mod 263: build de powers exclusivos do Bispo 2, além da ultimate cósmica da Mod 262.
-{const m=document.getElementById('marker');if(m){m.textContent=LUNAR_COSMOS_BUILD.startsWith('289-')?'289':'?';m.title='Mod 289: Bispo 4 — ultimate cinematográfica A Queda do Devorador Lunar (monstro GLB, cosmos, buraco negro, explosão na Terra) | Mod 286: Bispo 4 — Quatro Vórtices do Juízo Azul (mandala, 4 tornados, fusão, explosão azul) e só as 2 magias autorais | Mod 285: Bispo 4 — Quatro Sentenças do Abismo (aura, quatro espadas, sucção e explosões) | Mod 282: único cataclismo, espada discreta e boss congelado | Mod 281: câmera frontal e seis degraus; aura orgânica e explosões com plasma 3D | Mod 280: Bispo 3 — Ultimate 6 selos, aura fluida e três explosões em 15,5 s | Mod 278: Bispo 3 — espada GLB e Sentença Omnidirecional, aura, núcleo e 3 explosões | Mod 277: mundo 3D restaurado e imports corrigidos | Mod 276: Bispo 1 — asas negras com penas curvas, sem repulsão no corte/onda de choque | Mod 275: Ruptura do Trono com núcleo branco-carmesim | Mod 274: Eclipse da Dívida — espada do Bispo 2 | Mod 273: Lua Tenebrosa com arte original do criador e fogo negro viajando com rastro | Mod 272: laboratório visual V3 | Mod 271: Hidra ancorada no chão (10 chamas + colossal preservadas) | Mod 269: Bispo 3 — Lua Tenebrosa | Mod 266: Bispo 3 — Hidra do Juízo | Mod 265: refino da aura, explosão e chamas negras | Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
+{const m=document.getElementById('marker');if(m){m.textContent='290';m.title='Mod 290: Enemy1 migrado para o modelo único Demonio1.glb (16 clipes reais; poderes intactos) | Mod 289: Bispo 4 — ultimate cinematográfica A Queda do Devorador Lunar (monstro GLB, cosmos, buraco negro, explosão na Terra) | Mod 286: Bispo 4 — Quatro Vórtices do Juízo Azul (mandala, 4 tornados, fusão, explosão azul) e só as 2 magias autorais | Mod 285: Bispo 4 — Quatro Sentenças do Abismo (aura, quatro espadas, sucção e explosões) | Mod 282: único cataclismo, espada discreta e boss congelado | Mod 281: câmera frontal e seis degraus; aura orgânica e explosões com plasma 3D | Mod 280: Bispo 3 — Ultimate 6 selos, aura fluida e três explosões em 15,5 s | Mod 278: Bispo 3 — espada GLB e Sentença Omnidirecional, aura, núcleo e 3 explosões | Mod 277: mundo 3D restaurado e imports corrigidos | Mod 276: Bispo 1 — asas negras com penas curvas, sem repulsão no corte/onda de choque | Mod 275: Ruptura do Trono com núcleo branco-carmesim | Mod 274: Eclipse da Dívida — espada do Bispo 2 | Mod 273: Lua Tenebrosa com arte original do criador e fogo negro viajando com rastro | Mod 272: laboratório visual V3 | Mod 271: Hidra ancorada no chão (10 chamas + colossal preservadas) | Mod 269: Bispo 3 — Lua Tenebrosa | Mod 266: Bispo 3 — Hidra do Juízo | Mod 265: refino da aura, explosão e chamas negras | Mod 264: ataque genérico legado excluído globalmente | Ultimate cósmica: '+COSMIC_ULT_BUILD+' | Eclipse: '+ECLIPSE_SWORD_BUILD+' | Portais: '+PORTAL_SWORDS_BUILD+' | Motor tornados: '+VORGAZHEK_TORNADO_BUILD+' | VHAZRAEL: '+VHAZRAEL_BUILD;}}
 const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQuantum233')||vfxLabRequested;
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
@@ -589,7 +589,7 @@ const grassMaterial=new THREE.MeshStandardMaterial({color:0x93a67c,vertexColors:
 addInstancedWind(grassMaterial,.045,'clamp(position.y*3.25,0.0,1.0)',1.05,'mod163-grass-wind');
 new GLTFLoader().load('./Grama.glb?v=mod163-forest-grass-instances',gltf=>{try{const tuftGeometry=buildLightGrassTuft(mergeGrassTuft(gltf.scene));scatterGrassTufts(tuftGeometry);const disposedGeometries=new Set(),disposedMaterials=new Set();gltf.scene.traverse(obj=>{if(!obj.isMesh)return;if(obj.geometry&&!disposedGeometries.has(obj.geometry)){obj.geometry.dispose();disposedGeometries.add(obj.geometry);}for(const material of (Array.isArray(obj.material)?obj.material:[obj.material]))if(material&&!disposedMaterials.has(material)){material.dispose();disposedMaterials.add(material);}});}catch(err){console.warn('Grama.glb não foi instanciada; mantendo a vegetação leve de reserva.',err);}},undefined,err=>console.warn('Grama.glb não carregou; mantendo a vegetação leve de reserva.',err));
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
-// Inimigo comum: usa Enemy1.glb com as animações que realmente existirem no arquivo.
+// Inimigo comum (Enemy1): modelo visual ÚNICO Demonio1.glb (Mod 289) com os clipes que realmente existem no arquivo.
 const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(0,0,-3.2);enemy.visible=false;
 const enemyTexture=new THREE.TextureLoader().load('./Enemy1-sprite.png');
 enemyTexture.colorSpace=THREE.SRGBColorSpace;
@@ -655,8 +655,13 @@ function retargetEnemyMovementClipToPlayer(role,sourceRoot,sourceClip){
   actions[role]=mixer.clipAction(clip);console.info('Animação Enemy1 aplicada ao protagonista:',role,sourceClip.name,clip.tracks.length,'canais');return true;
  }catch(err){console.warn('Não foi possível retargetar '+role+' do Enemy1:',err);return false;}
 }
+/* MOD 289 — o Enemy1 usa Demonio1.glb (16 clipes reais conferidos por introspecção do GLB). Papéis abaixo; sem fallback para o modelo antigo. */
+const ENEMY1_MODEL_URL='./Demonio1.glb?v=mod290-demonio1';
+/* a respiração do Demonio1 dura ~5 s (o idle antigo tinha 2,5 s e rodava a .38); hit de 2,5 s acelerado para a reação curta do combate atual */
+const ENEMY1_TIME_SCALES={idle:.85,run:1.08,hit:1.6,dash:1.25,jump:1.15,block:1,cast:1.1,attack:1,attack2:1.15};
+const DEMONIO1_CLIP_TABLE={'_01a1b3e4_6f0c_705b_82f5_e9447d85cbef':'idle','_01a1b3e6_e46e_7367_9007_2e104dc2e6b7':'hit','Walking':'walk','Running':'run','Left_Hook_from_Guard':'attack','Roundhouse_Kick':'attack2','mage_soell_cast_8':'cast','Alert':'block','Roll_Dodge':'dash','Run_Jump_and_Roll':'jump','Dead':'death','Arise':'arise','Knock_Down':'knockdown','Sweep_Kick':'sweep','Sweeping_Kick':'sweep2','Weapon_Combo_2':'combo'};
 function loadEnemyModel(){if(enemyLoadState!=='idle')return;enemyLoadState='loading';
-new GLTFLoader().load('./Enemy1-lod.glb?v=mod194-lod',gltf=>{
+new GLTFLoader().load(ENEMY1_MODEL_URL,gltf=>{
  const imported=gltf.scene;
  imported.traverse(o=>{
   if(!o.isMesh)return;
@@ -673,23 +678,24 @@ new GLTFLoader().load('./Enemy1-lod.glb?v=mod194-lod',gltf=>{
  const has=part=>enemyClips.find(c=>key(c).includes(part));
  // MOD 186 — o Enemy1.glb exporta 6 clipes com nomes UUID. Papéis conferidos por prévia visual e pelo
  // movimento dos ossos (quadril/mão); sem isso o "cast" podia cair no salto e o inimigo não tinha repouso.
- const ENEMY1_CLIP_TABLE={'01a14b5a-2ee6-75dc-982f-8965372f192b':'idle','01a14b5c-5fd2-74f9-b256-af9f522f53cb':'cast','01a14b57-0772-77b2-9da3-b6644a5d1cae':'attack','01a14b51-9352-70b9-8540-e7713d7152b1':'block','01a14b4e-e964-72e9-9e35-9c0c586edbec':'dash','01a14b4d-06e7-7100-a90e-f7462489c8b9':'jump'};
+ const ENEMY1_CLIP_TABLE=DEMONIO1_CLIP_TABLE; /* MOD 289: tabela dos clipes do Demonio1 (o Enemy1.glb antigo e seus UUIDs foram retirados) */
  const byTable=role=>enemyClips.find(c=>ENEMY1_CLIP_TABLE[c.name]===role);
  // Clipes com deslocamento do quadril (investida/esquiva/salto) viram "no lugar": quem move o inimigo é o código.
  const inPlace=clip=>{if(!clip)return clip;const copy=clip.clone();for(const track of copy.tracks){if(!/(hips|pelvis)[^.]*\.position$/i.test(track.name))continue;const v=track.values;for(let i=3;i<v.length;i+=3){v[i]=v[0];v[i+2]=v[2];}}return copy;};
  const retargetSources={dash:exact('dash'),jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto')};
  const clipsByRole={
   idle:byTable('idle')||exact('idle')||exact('breath')||exact('breathing')||exact('respiracao'),
-  walk:exact('andar')||exact('walk')||exact('walking'),
-  run:exact('correr')||exact('run')||exact('running'),
+  walk:byTable('walk')||exact('andar')||exact('walk')||exact('walking'),
+  run:byTable('run')||exact('correr')||exact('run')||exact('running'),
   attack:byTable('attack')||exact('atq1')||exact('attack1')||exact('attack01'),
-  attack2:enemyClips.find(c=>/(habilidade3|skill3|skill03|atq2|attack2|skill2)/.test(key(c))),
+  attack2:byTable('attack2')||enemyClips.find(c=>/(habilidade3|skill3|skill03|atq2|attack2|skill2)/.test(key(c))),
   cast:byTable('cast')||enemyClips.find(c=>/(handforward|handfront|maofrente|point|apont|cast|spell|magic|power|shoot|projectile|habilidade2|skill2|atq2|attack2)/.test(key(c))),
   dash:inPlace(byTable('dash'))||exact('dash'),
   block:inPlace(byTable('block'))||exact('block'),
   jump:inPlace(byTable('jump'))||exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
-  hit:exact('hit')||exact('hurt')||exact('damage'),
-  death:exact('death')||exact('die')||exact('morte')
+  hit:byTable('hit')||exact('hit')||exact('hurt')||exact('damage'),
+  death:byTable('death')||exact('death')||exact('dead')||exact('die')||exact('morte'),
+  arise:byTable('arise')||exact('arise'),knockdown:byTable('knockdown'),sweep:byTable('sweep'),sweep2:byTable('sweep2'),combo:byTable('combo') /* reservados para a coreografia futura; nenhum golpe novo usa ainda */
  };
  // Não depender de um único nome: distribui clipes reais ainda não usados em papéis especiais distintos.
  const usedClips=new Set([...Object.values(clipsByRole).filter(Boolean),...Object.keys(ENEMY1_CLIP_TABLE).map(n=>enemyClips.find(c=>c.name===n)).filter(Boolean)]);
@@ -714,17 +720,17 @@ new GLTFLoader().load('./Enemy1-lod.glb?v=mod194-lod',gltf=>{
  if(!enemyActions.idle)console.warn('Enemy1 sem clipe de repouso identificado.');
  if(enemyActions.idle)playEnemyAnimation('idle',0);
  window.Enemy1AnimationReport=enemyClips.map(c=>c.name);
- console.info('Enemy1.glb animações:',window.Enemy1AnimationReport);
+ console.info('Demonio1.glb (Enemy1) animações:',window.Enemy1AnimationReport);
  normalizeEnemy1Model(imported);
- enemyLoadState='ready';enemy1Rig={model:imported,mixer:enemyMixer,actions:enemyActions,hasDeath:enemyHasDeathClip};if(activeRig!=='enemy1'){const previous=activeRig;activeRig='enemy1';useRig(previous);}
-},undefined,err=>{console.error('Enemy1-lod.glb não carregou; tentando o Enemy1.glb original.',err);enemyLoadState='loading';enemyModelRoot.visible=false;enemySprite.visible=false;new GLTFLoader().load('./Enemy1.glb?v=enemy1-full-fallback',full=>{enemyLoadState='loading';const obj=full.scene;obj.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;const mats=Array.isArray(o.material)?o.material:[o.material];for(const m of mats)if(m&&!enemyMaterials.includes(m))enemyMaterials.push(m);}});const box=new THREE.Box3().setFromObject(obj),s=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());if(s.y>.001){const k=1.8/s.y;obj.scale.setScalar(k);obj.position.set(-center.x*k,-box.min.y*k,-center.z*k);}enemyModelRoot.add(obj);enemyModelRoot.visible=true;enemyModel=obj;enemyMixer=new THREE.AnimationMixer(obj);enemyClips=full.animations||[];enemyActions={};enemyCurrentAction=null;enemyCurrentRole='';const clipByName=new Map(enemyClips.map(a=>[a.name,a]));const knownRoles={'01a14b5a-2ee6-75dc-982f-8965372f192b':'idle','01a14b5c-5fd2-74f9-b256-af9f522f53cb':'cast','01a14b57-0772-77b2-9da3-b6644a5d1cae':'attack','01a14b51-9352-70b9-8540-e7713d7152b1':'block'};for(const [name,role] of Object.entries(knownRoles)){const clip=clipByName.get(name);if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}for(const [role,pattern] of Object.entries({idle:/idle|breath|rest/i,walk:/walk|andar/i,run:/run|correr/i,attack:/attack|atacar|slash/i,hit:/hurt|hit|damage/i,death:/death|morte/i})){if(!enemyActions[role]){const clip=enemyClips.find(a=>pattern.test(a.name));if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}}enemyHasDeathClip=!!enemyActions.death;if(enemyActions.idle)playEnemyAnimation('idle',0);else console.warn('Enemy1 original sem animação idle identificável; não usar salto como repouso.');enemyLoadState='ready';enemy1Rig={model:obj,mixer:enemyMixer,actions:enemyActions,hasDeath:enemyHasDeathClip};if(activeRig!=='enemy1'){const previous=activeRig;activeRig='enemy1';useRig(previous);}console.info('Enemy1 3D original carregado como fallback.');},undefined,e=>{console.error('Falha ao carregar ambos os modelos 3D Enemy1.',e);enemyLoadState='failed';enemyModelRoot.visible=false;enemySprite.visible=false;});});
+ enemyLoadState='ready';enemy1Rig={model:imported,mixer:enemyMixer,actions:enemyActions,hasDeath:enemyHasDeathClip,nativeDeath:enemyHasDeathClip,timeScales:ENEMY1_TIME_SCALES};if(activeRig==='enemy1')rigTimeScales=ENEMY1_TIME_SCALES;if(activeRig!=='enemy1'){const previous=activeRig;activeRig='enemy1';useRig(previous);}
+},undefined,err=>{console.error('Demonio1.glb não carregou; o Enemy1 fica no sprite de reserva (nenhum modelo antigo é usado).',err);enemyLoadState='idle';enemySprite.visible=true;});
 
 }
 
 /** MOD 237 — o Enemy1 era escalado pela caixa bruta da malha (sem o esqueleto) e aparecia com ~6 m, mais de três vezes
     o herói. Agora a altura vem do esqueleto deformado (protocolo de escala GLB), até o topo da cabeça (as asas não
     contam), e fica perto da altura do herói. Roda depois do retarget do dash/pulo para não mudar esses clipes. */
-function enemy1HeadTop(model){let top=null;model.traverse(o=>{if(top===null&&o.isBone&&/HeadTop_End$/i.test(o.name)){o.updateWorldMatrix(true,false);top=o.getWorldPosition(new THREE.Vector3()).y;}});return top;}
+function enemy1HeadTop(model){let top=null;model.traverse(o=>{if(top===null&&o.isBone&&/(HeadTop_End|HeadEnd)$/i.test(o.name)){ /* Demonio1: HeadEnd */o.updateWorldMatrix(true,false);top=o.getWorldPosition(new THREE.Vector3()).y;}});return top;}
 function enemy1TargetHeight(){return Math.min(1.95,Math.max(1.72,(playerReferenceHeight||1.8)*.97));}
 function normalizeEnemy1Model(model){
  const b=measureModelBounds(model),top=enemy1HeadTop(model),cur=(top!==null&&top>b.min.y+.3?top:b.max.y)-b.min.y;if(!(cur>.2))return;
@@ -2967,7 +2973,7 @@ function loadRig(name){
     deslocamento do quadril, para o corpo não flutuar nem afundar com as proporções diferentes. */
 function rigExtraClips(def){if(!def.extra)return Promise.resolve([]);return new Promise(res=>new GLTFLoader().load(def.extra,g=>res((g.animations||[]).map(c=>{const k=c.clone();k.tracks=k.tracks.filter(t=>!/hips[^.]*\.position$/i.test(t.name));return k;})),undefined,()=>res([])));}
 function useRig(name){
- if(activeRig==='enemy1'&&enemyModel&&!Object.values(rigs).some(r=>r.model===enemyModel))enemy1Rig={model:enemyModel,mixer:enemyMixer,actions:enemyActions,hasDeath:enemyHasDeathClip};
+ if(activeRig==='enemy1'&&enemyModel&&!Object.values(rigs).some(r=>r.model===enemyModel))enemy1Rig={model:enemyModel,mixer:enemyMixer,actions:enemyActions,hasDeath:enemyHasDeathClip,nativeDeath:enemyHasDeathClip,timeScales:ENEMY1_TIME_SCALES};
  const rig=name==='enemy1'?enemy1Rig:rigs[name];if(!rig)return false;if(activeRig===name&&enemyModel===rig.model)return true;
  if(enemyModel)enemyModel.visible=false;if(enemyCurrentAction)enemyCurrentAction.stop();
  enemyModel=rig.model;enemyModel.visible=true;enemyMixer=rig.mixer;enemyActions=rig.actions;enemyHasDeathClip=rig.hasDeath;rigTimeScales=rig.timeScales||null;enemyCurrentAction=null;enemyCurrentRole='';enemySprite.visible=false;enemyModelRoot.visible=true;activeRig=name;return true;
@@ -6928,6 +6934,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   /** MOD 237 — esquadra Enemy1: estado, laboratório e medidas de altura (esqueleto deformado). */
   squadState(){const s=squadSq();return{on:squadOn,focus:squadFocus&&squadFocus.id,enemyHP,enemyMaxHP,enemyAlive,visible:enemy.visible,profile:encounterProfile,q:questStep,sub:act1Sub,pack:pack?{n:pack.spots.length,i:pack.index,active:pack.active,squad:!!pack.squad,lab:!!pack.lab}:null,hero:playerHP,snap:s?s.snapshot():null,allies:squadAllies.map(a=>a.hp),lock:lockOnActive};},
   squadLab(m){startEnemy1Lab(m);return this.squadState();},
+  /** QA: altura real do terreno (capturas do Demonio1). */
+  groundAt(x,z){return terrainHeightAt(x,z);},
   /** MOD 245 — força um poder do Enemy3 (laboratório/QA) e mede a cena: chamadas, triângulos, luz da tempestade. */
   squadForce(skill,id){const s=squadSq();if(!s)return null;const a=id?s.actor(id):(squadFocus||s.alive[0]),t=s.targets[0];if(!a||!t)return null;a.act=null;a.cds[skill]=0;a.cds.spellGap=0;s.lastAttackAt=-9;s.startCast(a,t,skill);return this.squadState();},
   squadMove(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;s.startMelee(a,t,move);return this.squadState();},

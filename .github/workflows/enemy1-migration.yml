@@ -1,0 +1,34 @@
+name: Enemy1 migration evidence
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/visual-lab/enemy1-migration*'
+      - 'enemy1-model3d*'
+      - 'enemy1-squad-runtime3d.js'
+      - 'demonio1-migration.test.mjs'
+      - 'Demonio1.glb'
+      - '.github/workflows/enemy1-migration.yml'
+permissions:
+  contents: read
+concurrency:
+  group: enemy1-migration-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tools/visual-lab/enemy1-migration-audit.cjs
+      - run: node --test demonio1-migration.test.mjs enemy1-squad.test.mjs enemy1-integration.test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: enemy1-migration-source-${{ github.run_number }}
+          path: |
+            visual-lab-results/enemy1-migration/
+            Demonio1.glb
+          retention-days: 7
