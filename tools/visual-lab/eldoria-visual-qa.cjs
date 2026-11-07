@@ -69,6 +69,7 @@ async function run(){
       const cave=await page.evaluate(()=>window.EldoriaVisualQA.inspect());
       if(cave.cavernCrystals<80)errors.push(profile.name+" densidade de cristais insuficiente");
       if(cave.cavernRocks<100||cave.cavernVeins<8)errors.push(profile.name+" geologia incompleta");
+      if(cave.seleniteBeams!==12)errors.push(profile.name+" feixes monumentais de selenita ausentes");
       const end=await page.evaluate(()=>window.EldoriaVisualQA.inspect());
       if(end.failed)errors.push(profile.name+" falhas GLB: "+end.failed);
       if(end.loaded<15)errors.push(profile.name+" GLBs incompletos: "+end.loaded+"/15");
