@@ -38,7 +38,8 @@ import {JudgmentDragon} from './skill-judgment-dragon3d.js';import {createDragon
 import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import {createSakugaXVFX,createSphereVFX,createCelestialVFX} from './sakuga-skills-vfx3d.js';
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow } from './act1-world-layout.js';
-import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
+import {mountEldoriaLiveVillage,ELDORIA_PLOTS} from './eldoria-live-village3d.js';
+import {mountCityDressing} from './eldoria-city-dressing.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
@@ -3657,6 +3658,12 @@ function buildAct1Props(){
    obstacles:marketObstacles,lowSpec:terrainLowSpec,mergeStatic:mergeGroupMeshes
  });
  act1Props.eldoria=eldoriaCity;
+ /* MOD 291 — marco 3: cidade bonita e íntegra (o Bispo levou o dinheiro, não as casas): deques e escadas nas árvores
+    ancestrais, a passarela suspensa do criador entre duas delas, canteiros, sebes, cercas claras e lampiões. */
+ act1Props.dressing=mountCityDressing(THREE,GLTFLoader,{group:villageGroup,groundHeightAt,center:VILLAGE_CENTER,plots:ELDORIA_PLOTS,lowSpec:terrainLowSpec,obstacles:marketObstacles,
+  trees:[{x:-34,z:5,trunk:3.4,deck:8.2},{x:-24,z:-24,trunk:3,deck:7.4},{x:24,z:24,trunk:3.2,deck:7.8}],
+  lamps:[{x:1.2,z:-38.6},{x:-4.4,z:-38.4},{x:-9.8,z:-40.4},{x:-17.6,z:-42.6},{x:-24.2,z:-47.9},{x:3.6,z:-47.2},{x:-.2,z:-55.5},{x:-3.6,z:-65}],
+  isFree:(x,z)=>!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+1)&&!marketObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<(o.radius||1)+.4)});
  eldoriaCity.complete.then(report=>{
    window.EldoriaLiveCityQA={loaded:report.loaded,expected:report.expected,failures:report.failures,
      village:{...VILLAGE_CENTER},spawnDistance:+Math.hypot(FALL_SPOT.x-VILLAGE_CENTER.x,FALL_SPOT.z-VILLAGE_CENTER.z).toFixed(1),

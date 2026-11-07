@@ -91,3 +91,19 @@ No SwiftShader o custo cresce com os triângulos (raster por CPU). Num celular c
   - margem rasa mais transparente, para a água não parecer placa sobreposta.
 - Custo SwiftShader nos pontos da sequência: 46–77 draw calls e 275–289 mil triângulos (sob o dossel olhando a cidade: 256 / 553 mil). Não é A55.
 - Capturas: `docs/evidencias/mod291/marco2b-*.jpg`.
+
+## Marco 3 (cidade bonita e íntegra — correção canônica do criador)
+O Bispo levou o **dinheiro**, não as casas. Eldória fica encantadora; a pobreza está nas pessoas e na comida (moradores fracos, frutas podres e moscas discretas, já existentes). `eldoria-city-dressing.js`:
+- **Deques de madeira em anel** presos a três árvores ancestrais: tábuas, balaústres, corrimão, escoras e **escada em espiral** do chão ao deque. Uma malha mesclada.
+- **Passarela suspensa do criador** (`PassarelaSuspensaEldoria.glb`) ligando os deques de duas ancestrais. O vão é medido entre os anéis.
+- **Canteiros floridos** em três cores na frente das casas, **sebes**, **cercas claras** baixas atrás das casas e **8 lampiões** de madeira com lanterna emissiva (sem luz extra) ao longo das trilhas.
+- Nada de ruínas.
+
+Capturas: `docs/evidencias/mod291/marco3-c1-chegada.jpg`, `-c2-praca.jpg`, `-c3-passarela.jpg`.
+
+Custo SwiftShader (não é A55): chegada 311 draw calls e 457 mil triângulos (antes 299 / 407 mil); praça 295 / 346 mil (antes 286 / 322 mil).
+
+**Pendências para ≥80**, mantendo as coordenadas da loja:
+- A **Loja Central** (bloco branco de torre azul) e os vendedores/props procedurais antigos (losango bege da banca) ainda destoam dos GLBs.
+- Falta o espelho/fonte circular central da referência: o roteiro pede a fonte seca, então ela fica pequena.
+- Falta mais densidade de telhados verdes integrados às copas.
