@@ -576,7 +576,7 @@ const eldoriaUndergrowth=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:te
  isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-8&&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+2&&!insideMeadow(x,z,4)&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+.6)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!bridgeDeck(x,z)});
 window.SevenSinsUndergrowthReport=eldoriaUndergrowth.stats;
 // MOD 291 — mata fechada com ArvoreFloresta01.glb do criador (instanciada; LOD1 perto, copa barata longe).
-const matureForest=mountMatureForest(THREE,GLTFLoader,{scene,groundHeightAt,registerCull:registerInstanceCull,obstacles:treeObstacles,lowSpec:terrainLowSpec,
+const matureForest=mountMatureForest(THREE,GLTFLoader,{scene,renderer,groundHeightAt,registerCull:registerInstanceCull,obstacles:treeObstacles,lowSpec:terrainLowSpec,
  lake:FOREST_POND,zone:{x0:-70,x1:40,z0:-148,z1:-80},
  isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-7&&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+3&&Math.hypot(x+12,z+97)>10&&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<4)&&Math.hypot(x-MASSACRE_SPOT.x,z-MASSACRE_SPOT.z)>8&&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+6&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+3)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+2.6))&&!bridgeDeck(x,z)&&!treeObstacles.some(o=>Math.abs(o.x-x)<2.6&&Math.hypot(o.x-x,o.z-z)<o.radius+2.2)});
 matureForest.ready.then(r=>{window.SevenSinsMatureForestReport={trees:matureForest.plan.length,...(r||{failed:true})};});

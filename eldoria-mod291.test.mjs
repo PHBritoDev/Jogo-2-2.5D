@@ -164,3 +164,12 @@ test('LOD1 dos GLBs mantém TEXCOORD_0 (usa a textura do LOD0) e a mata tem fall
   assert.match(lib, /res\(build\(full, null\)\)/, 'LOD1 ausente usa a malha completa');
   assert.match(readFileSync(new URL('./tools/eldoria/build-lod-glbs.mjs', import.meta.url), 'utf8'), /prune\(\{ keepAttributes: true \}\)/);
 });
+
+test('marco 2d: faixa distante usa impostor renderizado do GLB do criador (não primitivas), sem sobrepor o LOD médio', () => {
+  const lib = readFileSync(new URL('./eldoria-mature-forest.js', import.meta.url), 'utf8');
+  assert.match(lib, /export function renderImpostor\(THREE, renderer, geo, material/);
+  assert.match(lib, /renderer\.setRenderTarget\(rt\); renderer\.render\(sc, cam\);/, 'viewport do alvo reaplicado por vista');
+  assert.match(lib, /alphaTest: \.45/);
+  assert.equal((lib.match(/registerCull\(far,/g) || []).length, 1, 'copa distante registrada no corte uma vez só');
+  assert.match(src, /mountMatureForest\(THREE,GLTFLoader,\{scene,renderer,/);
+});
