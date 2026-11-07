@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Eldória — estudo de cenário 3D</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#a8d3ce;color:#fff;font-family:system-ui,sans-serif;touch-action:none}canvas{display:block;touch-action:none}
+#hud{position:fixed;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:start;gap:9px;pointer-events:none}
+#hud section,#help{background:#0c231dc9;border:1px solid #d6e9c65e;border-radius:12px;padding:10px 12px;backdrop-filter:blur(6px);font-size:12px}
+#hud strong{font-size:17px;letter-spacing:.08em}#hud small{display:block;color:#d4e7d5;font-size:10px;margin-top:4px}#help{position:fixed;bottom:15px;left:12px;right:12px;text-align:center;pointer-events:none;font-size:11px}
+#view{pointer-events:auto;display:flex;gap:5px;flex-wrap:wrap;justify-content:end;max-width:55%}button{border:1px solid #c8e7d3b0;border-radius:10px;background:#173c2fe8;color:#fff;padding:9px;font-weight:700;font-size:11px}button[aria-pressed=true]{background:#4b7953}
+#warning{position:fixed;top:90px;left:10px;right:10px;text-align:center;font-size:11px;color:#fce8ce;text-shadow:0 1px 4px #000}#stats{position:fixed;top:112px;right:10px;background:#081e19d9;padding:9px 11px;border-radius:10px;font:11px monospace;pointer-events:none;white-space:pre-line}#stats[hidden]{display:none}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script></head>
+<body><div id="hud"><section><strong>ELDÓRIA</strong><small>Estudo visual do Ato 1 · cenário isolado</small><small id="location-heading">Estrada da chegada</small><small id="status">Carregando modelos reais…</small></section><div id="view"><button data-place="chegada">Entrada</button><button data-place="cidade">Cidade 1</button><button data-place="aguas">Rio</button><button data-place="lago">Lago</button><button data-place="floresta">Floresta</button><button data-place="ritual">Ritual</button><button data-place="caverna">Caverna</button><button data-place="tunel">Galeria</button><button data-place="interior">Cristais</button><button data-place="abismo">Abismo</button><button id="time-toggle" aria-pressed="false" type="button">Noite</button><button id="stats-toggle" aria-pressed="false" type="button">FPS</button></div></div><div id="warning"></div><div id="help">Arraste para girar · toque com dois dedos para aproximar · botões alternam o ponto de vista. Não altera o jogo original.</div>
+<div id="stats" hidden></div><script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {buildEldoriaDetails} from './eldoria-scene-details.js';
+import {ELDORIA_ZONES,ELDORIA_ASSETS,assetsForStage} from './eldoria-asset-plan.js';
+import {createEldoriaLighting,createEldoriaWater} from './eldoria-light-water.js';
+import {buildEldoriaArt} from './eldoria-environment-art.js';
+import {createEldoriaCanopy} from './eldoria-forest-canopy.js';
+import {buildEldoriaCrystalCavern} from './eldoria-crystal-cavern.js';
+import {buildEldoriaCaveEntranceArt} from './eldoria-cave-entrance-art.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xafd2c9);scene.fog=new THREE.FogExp2(0xaed2c4,.0029);
+const camera=new THREE.PerspectiveCamera(57,innerWidth/innerHeight,.1,900);
+
+const skyGradient=new THREE.ShaderMaterial({
+  uniforms:{uNight:{value:0}},
+  vertexShader:'varying vec3 vWorld; void main(){vWorld=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:'varying vec3 vWorld;uniform float uNight;void main(){float k=smoothstep(-0.20,0.80,normalize(vWorld).y);vec3 day=mix(vec3(.72,.84,.77),vec3(.27,.54,.79),k);vec3 dark=mix(vec3(.10,.17,.25),vec3(.025,.055,.12),k);gl_FragColor=vec4(mix(day,dark,uNight),1.0);}',
+  side:THREE.BackSide,depthWrite:false,fog:false
+});
+const skyDome=new THREE.Mesh(new THREE.SphereGeometry(390,24,12),skyGradient);
+skyDome.frustumCulled=false;scene.add(skyDome);
+
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.3));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.14;document.body.prepend(renderer.domElement);
+const lowSpec=matchMedia('(pointer: coarse)').matches || innerWidth<740 || new URLSearchParams(location.search).has('qa');
+const ambient=new THREE.HemisphereLight(0xe5f9e6,0x60755d,1.7);scene.add(ambient);
+const sun=new THREE.DirectionalLight(0xffeed1,2.35);sun.position.set(-65,120,35);scene.add(sun);
+const lighting=createEldoriaLighting(THREE,{renderer,scene,camera,sun,ambient,lowSpec});
+const twilight=new THREE.Color(0x243950),daySky=new THREE.Color(0xafd2c9),dayFog=new THREE.Color(0xaed2c4);
+const timeButton=document.getElementById("time-toggle");let night=false;
+function setNight(value){night=value;timeButton.setAttribute("aria-pressed",String(night));timeButton.textContent=night?"Dia":"Noite";lighting.setNight(night);scene.background.copy(night?twilight:daySky);scene.fog.color.copy(night?twilight:dayFog);scene.fog.density=night?.007:.0058;skyGradient.uniforms.uNight.value=night?1:0;renderer.toneMappingExposure=night?.99:1.14;}
+timeButton.addEventListener("click",()=>setNight(!night));
+const rand=(x,z)=>{let n=Math.sin(x*127.1+z*311.7)*43758.5453123;return n-Math.floor(n)};
+const smooth=(a,b,x)=>{let t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
+const pondSdf=(x,z)=>Math.hypot((x+42)/15,(z-24)/11);
+const stream=[[-88,12],[-65,1],[-43,-11],[-22,-5],[2,4],[27,-2],[50,-18],[82,-22]];
+function streamDistance(x,z){let best=1e9;for(let i=1;i<stream.length;i++){const [ax,az]=stream[i-1],[bx,bz]=stream[i];const dx=bx-ax,dz=bz-az;const t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz)));best=Math.min(best,Math.hypot(x-ax-t*dx,z-az-t*dz));}return best;}
+function height(x,z){const hill=1.4*Math.sin(x*.031)*Math.cos(z*.039)+.5*Math.sin(z*.13+x*.07);const cut=3.5*(1-smooth(2.4,10.5,streamDistance(x,z)));const plaza=1-smooth(24,50,Math.hypot(x-5,z+43));const pondCut=2.5*(1-smooth(.35,1.28,pondSdf(x,z)));return hill*(1-plaza*.84)-cut-pondCut;}
+const nx=140,nz=140,positions=[],colors=[],indices=[],gcol=new THREE.Color();
+for(let iz=0;iz<=nz;iz++)for(let ix=0;ix<=nx;ix++){const x=(ix/nx-.5)*360,z=(iz/nz-.5)*360,y=height(x,z),wet=streamDistance(x,z);positions.push(x,y,z);const grass=.5+.24*Math.sin(x*.085+Math.cos(z*.051)*2.1)+.15*Math.cos(z*.11-x*.064)+.08*Math.sin(x*.21+z*.17);gcol.set(wet<10?0x6e9974:0x648b50);gcol.offsetHSL(0,Math.min(.08,Math.abs(grass-.5)*.12),(grass-.5)*.16);colors.push(gcol.r,gcol.g,gcol.b);}
+for(let z=0;z<nz;z++)for(let x=0;x<nx;x++){const a=z*(nx+1)+x,b=a+1,c=a+nx+1,d=c+1;indices.push(a,c,b,b,c,d);}
+const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();const terrainMesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide}));terrainMesh.receiveShadow=true;scene.add(terrainMesh);
+
+const ridgePos=[],ridgeIdx=[],ridgeSegments=72;
+for(let i=0;i<=ridgeSegments;i++){
+ const a=i/ridgeSegments*Math.PI*2,x=Math.cos(a)*158,z=Math.sin(a)*158;
+ const crest=6+2.5*Math.sin(a*3+1.2)+3.5*Math.sin(a*6-.3)+1.5*Math.cos(a*13);
+ ridgePos.push(x,-8,z,x,crest,z);
+}
+for(let i=0;i<ridgeSegments;i++){const a=i*2,b=a+1,c=a+2,d=a+3;ridgeIdx.push(a,b,c,b,d,c);}
+const ridgeGeometry=new THREE.BufferGeometry();
+ridgeGeometry.setAttribute('position',new THREE.Float32BufferAttribute(ridgePos,3));
+ridgeGeometry.setIndex(ridgeIdx);ridgeGeometry.computeVertexNormals();
+const ridgeMesh=new THREE.Mesh(ridgeGeometry,new THREE.MeshStandardMaterial({color:0x718f76,roughness:1,flatShading:true,side:THREE.DoubleSide}));
+ridgeMesh.receiveShadow=false;scene.add(ridgeMesh);
+
+const water=createEldoriaWater(THREE,{lowSpec});
+const waterPoints=[],waterIdx=[];for(let i=0;i<stream.length-1;i++){const a=new THREE.Vector2(...stream[i]),b=new THREE.Vector2(...stream[i+1]);for(let j=0;j<12;j++){const t=j/12,px=THREE.MathUtils.lerp(a.x,b.x,t),pz=THREE.MathUtils.lerp(a.y,b.y,t);const dir=b.clone().sub(a).normalize(),normal=new THREE.Vector2(-dir.y,dir.x);for(const sign of [-1,1])waterPoints.push(px+normal.x*sign*3.15,-.55,pz+normal.y*sign*3.15);}}const end=stream[stream.length-1],prev=stream[stream.length-2],dir=new THREE.Vector2(end[0]-prev[0],end[1]-prev[1]).normalize(),norm=new THREE.Vector2(-dir.y,dir.x);for(const sign of [-1,1])waterPoints.push(end[0]+norm.x*sign*3.15,-.55,end[1]+norm.y*sign*3.15);for(let i=0;i<waterPoints.length/3/2-1;i++){let a=i*2;waterIdx.push(a,a+2,a+1,a+1,a+2,a+3);}const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(waterPoints,3));wg.setIndex(waterIdx);wg.setAttribute('uv',new THREE.Float32BufferAttribute(waterPoints.filter((_,i)=>i%3!==1).map(v=>v*.02),2));wg.computeVertexNormals();const riverMesh=new THREE.Mesh(wg,water.river);riverMesh.receiveShadow=false;scene.add(riverMesh);
+// Lago oculto: água azul-clara, clareira e rochedos musgosos conforme referência 1000363693.jpg.
+const pondGeometry=new THREE.CircleGeometry(1,96);
+const pondVerts=pondGeometry.attributes.position;
+for(let i=1;i<pondVerts.count;i++){
+ const x=pondVerts.getX(i),y=pondVerts.getY(i),a=Math.atan2(y,x);
+ const contour=1+.075*Math.sin(a*5+.4)+.036*Math.sin(a*11-1.2);
+ pondVerts.setXY(i,x*contour,y*contour);
+}
+pondVerts.needsUpdate=true;pondGeometry.computeVertexNormals();
+const pondWater=new THREE.Mesh(pondGeometry,water.lake);pondWater.rotation.x=-Math.PI/2;pondWater.scale.set(14.8,10.8,1);pondWater.position.set(-42,-.95,24);pondWater.renderOrder=1;scene.add(pondWater);
+const groundMat=new THREE.MeshStandardMaterial({color:0xc3ab78,roughness:1});
+function path(points,width=3){
+ // Malha seguindo as elevações locais: sem faixas retas flutuando ou soterradas.
+ const geometryPositions=[],uv=[],idx=[],samples=[];
+ for(let i=1;i<points.length;i++){
+  const [ax,az]=points[i-1],[bx,bz]=points[i],len=Math.hypot(bx-ax,bz-az);
+  const steps=Math.max(2,Math.ceil(len/1.6));
+  for(let k=i===1?0:1;k<=steps;k++){
+   const t=k/steps;samples.push([ax+(bx-ax)*t,az+(bz-az)*t]);
+  }
+ }
+ for(let i=0;i<samples.length;i++){
+  const p=samples[i],a=samples[Math.max(0,i-1)],b=samples[Math.min(samples.length-1,i+1)];
+  const tx=b[0]-a[0],tz=b[1]-a[1],length=Math.hypot(tx,tz)||1;
+  const nx=tz/length,nz=-tx/length;
+  for(const side of [-1,1]){
+   const x=p[0]+nx*width*.5*side,z=p[1]+nz*width*.5*side;
+   geometryPositions.push(x,height(x,z)+.085,z);
+   uv.push((side+1)*.5,i*.25);
+  }
+  if(i>0){const j=(i-1)*2;idx.push(j,j+2,j+1,j+1,j+2,j+3);}
+ }
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(geometryPositions,3));
+ geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+ geo.setIndex(idx);geo.computeVertexNormals();
+ const mesh=new THREE.Mesh(geo,groundMat);mesh.receiveShadow=true;scene.add(mesh);
+}
+path([[5,-115],[1,-94],[-3,-76],[3,-62],[6,-45],[10,-30],[6,-10]],4.4);path([[-20,-46],[-8,-44],[7,-43],[24,-39],[32,-32]],3.8);path([[6,-43],[22,-47],[46,-59],[66,-83]],3);
+const details=buildEldoriaDetails(THREE,scene,{height,streamDistance,rand,lowSpec,pondSdf});
+const artistic=buildEldoriaArt(THREE,scene,{height,streamDistance,pondSdf,rand,lowSpec});
+const cavern=buildEldoriaCrystalCavern(THREE,scene,{lowSpec});
+const caveEntrance=buildEldoriaCaveEntranceArt(THREE,scene,{height,rand,lowSpec});
+caveEntrance.group.visible=false;
+const material=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:1});
+const trunkMat=material(0x61533e),leafMat=[0x9cc879,0x79b86e,0xb0d58d].map(color=>new THREE.MeshStandardMaterial({color,vertexColors:true,roughness:1,flatShading:false}));
+const {trunk:tg,canopy:cg}=createEldoriaCanopy(THREE);
+const treeSpecs=[];
+function tree(x,z,scale,giant=false){treeSpecs.push({x,z,scale,giant});}
+for(let i=0;i<(lowSpec?285:470);i++){const x=(rand(i,5)-.5)*310,z=(rand(i,21)-.5)*300,dv=Math.hypot(x-5,z+43),river=streamDistance(x,z);const onRoad=(Math.abs(x-5)<8&&z<-35)||(Math.abs(z+43)<8&&x>-30&&x<36);if(dv<35||river<6||pondSdf(x,z)<1.4||onRoad)continue;tree(x,z,.75+rand(i,8)*.8,i%41===0);}
+for(const [x,z,s] of [[-40,-48,1.05],[40,-48,.9],[-36,1,1.1],[53,10,1.05],[-58,-82,1.1]])tree(x,z,s,true);
+// Instancing: 100+ árvores de apoio com quatro chamadas de renderização, não centenas.
+const n=treeSpecs.length,helper=new THREE.Object3D();
+const trunks=new THREE.InstancedMesh(tg,trunkMat,n);
+const canopies=leafMat.map(mat=>new THREE.InstancedMesh(cg,mat,n));
+const counts=[0,0,0];
+for(let i=0;i<n;i++){
+  const t=treeSpecs[i],h=(t.giant?25:8)*t.scale,baseY=height(t.x,t.z);
+  helper.position.set(t.x,baseY+h*.5,t.z);helper.rotation.set(0,0,0);helper.scale.set(t.giant?2.1:1,h,t.giant?2.1:1);helper.updateMatrix();trunks.setMatrixAt(i,helper.matrix);
+  for(let k=0;k<3;k++){
+    const kind=((k+Math.round(t.x))%3+3)%3,idx=counts[kind]++;
+    helper.position.set(t.x+(k-1)*h*.17,baseY+h*(.78+.12*(k%2)),t.z+(k%2-.5)*h*.13);
+    helper.scale.set(h*.29,h*.25,h*.29);helper.rotation.set(0,0,0);helper.updateMatrix();canopies[kind].setMatrixAt(idx,helper.matrix);
+  }
+}
+trunks.instanceMatrix.needsUpdate=true;trunks.computeBoundingSphere();trunks.castShadow=!lowSpec;scene.add(trunks);
+canopies.forEach((mesh,i)=>{mesh.count=counts[i];mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=!lowSpec;scene.add(mesh);});
+
+const loader=new GLTFLoader(),status=document.getElementById('status');
+const failures=[];const readyStats=document.getElementById('stats');const toggle=document.getElementById('stats-toggle');toggle.addEventListener('click',()=>{readyStats.hidden=!readyStats.hidden;toggle.setAttribute('aria-pressed',String(!readyStats.hidden));});
+const loadedStages=new Set(),loadingStages=new Set(),assetLoadPromises=new Map();
+let loaded=0,failed=0,requested=0;
+function updateLoadStatus(){
+  status.textContent='Modelos reais: '+loaded+'/'+requested+(failed?' · '+failed+' falhas':'');
+}
+function loadStage(stage){
+ if(loadedStages.has(stage)||loadingStages.has(stage))return;
+ loadingStages.add(stage);
+ const assets=assetsForStage(stage);requested+=assets.length;updateLoadStatus();
+ Promise.all(assets.map(asset=>new Promise(resolve=>{
+   loader.load('./'+asset.file,g=>{
+     try{
+       const model=g.scene,bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+       if(bounds.isEmpty())throw new Error('Bounding box vazia');
+       const factor=(asset.placements[0]?.size||1)/Math.max(size.x,size.y,size.z,.001);
+       // Use geometric center in X/Z and bbox floor in Y; rotations are around the origin recentered by pivot.
+       const normalized=new THREE.Group();model.position.set(-center.x*factor,-bounds.min.y*factor,-center.z*factor);model.scale.setScalar(factor);normalized.add(model);
+       normalized.traverse(o=>{if(o.isMesh){o.castShadow=asset.stage==='core' && (lowSpec ? /CasaEldoria01|ArvoreAncestralEldoria/.test(asset.file) : !/barraca|ferreiro|passarela/i.test(asset.file));o.receiveShadow=true;}});
+       for(const point of asset.placements){
+         const root=normalized.clone(true),scale=point.size/(asset.placements[0]?.size||1);
+         root.scale.setScalar(scale);root.position.set(point.x,height(point.x,point.z),point.z);root.rotation.y=point.rotation||0;
+         scene.add(root);
+       }
+       renderer.shadowMap.needsUpdate=true;
+       loaded++;
+     }catch(error){failed++;failures.push(asset.file);console.warn('GLB inválido',asset.file,error);}
+     updateLoadStatus();resolve();
+   },undefined,error=>{failed++;failures.push(asset.file);console.warn('Falha no modelo de Eldória',asset.file,error);updateLoadStatus();resolve();});
+ }))).then(()=>{loadedStages.add(stage);loadingStages.delete(stage);if(failures.length)document.getElementById('warning').textContent='Falhas de modelos: '+failures.join(', ');});
+}
+loadStage('core');
+let target=new THREE.Vector3(...ELDORIA_ZONES.chegada.target),yaw=.42,pitch=.34,distance=64;const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+function view(name){
+ const info=ELDORIA_ZONES[name];if(!info)return;
+ const inCavern=name==='interior'||name==='abismo'||name==='tunel';cavern.setVisible(inCavern);
+ caveEntrance.group.visible=name==='caverna';
+ target.set(...info.target);distance=name==='cidade'?52:info.distance;yaw=name==='cidade'?Math.PI+.09:name==='aguas'?.55:name==='lago'?.55:name==='caverna'?Math.PI:name==='abismo'?2.7:name==='interior'?.25:name==='tunel'?Math.PI:.42;pitch=name==='cidade'?.34:name==='lago'?.18:name==='caverna'?.20:.40;lighting.focus(info.target[0],info.target[2],true);
+ document.querySelectorAll('button[data-place]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.place===name)));
+ if(name==='ritual'||name==='caverna')loadStage(name);
+ if(inCavern)loadStage('interior');
+ if(name==='ritual'||inCavern)setNight(true);
+ if(inCavern){scene.fog.density=.0008;renderer.toneMappingExposure=1.35;}
+ else {scene.fog.density=night?.007:.0058;renderer.toneMappingExposure=night?.99:1.14;}
+ document.getElementById('location-heading').textContent=info.heading;
+}
+document.querySelectorAll('button[data-place]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.place)));view('chegada');
+// API de inspeção somente da prévia; não altera o jogo principal.
+window.EldoriaVisualQA=Object.freeze({
+  view,setNight,
+  inspect:()=>({loaded,failed,requested,stages:[...loadedStages],
+    drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
+    shadowEnabled:renderer.shadowMap.enabled,sunCastsShadow:sun.castShadow,
+    shadowResolution:lighting.shadowResolution,
+    waterRiverShader:!!water.river.userData.waterUniforms,
+    waterLakeShader:!!water.lake.userData.waterUniforms,
+    waterTime:water.river.userData.waterUniforms.time.value,
+    cavernVisible:cavern.group.visible,cavernCrystals:cavern.stats.crystals,
+    entranceRocks:caveEntrance.rockPieces,tunnelCrystals:cavern.stats.tunnel.crystals,
+    cavernRocks:cavern.stats.geology.stratifiedRocks,cavernVeins:cavern.stats.geology.veinLines,
+    seleniteBeams:cavern.stats.seleniteBeams,
+    camera:[camera.position.x,camera.position.y,camera.position.z],night
+  })
+});
+const pointers=new Map();let touchDist=null;
+renderer.domElement.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,[e.clientX,e.clientY]);renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const old=pointers.get(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===1){yaw-=(e.clientX-old[0])*.005;pitch=clamp(pitch+(e.clientY-old[1])*.004,-.05,1.35);}else if(pointers.size===2){const p=[...pointers.values()],d=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]);if(touchDist!==null)distance=clamp(distance*(touchDist/d),14,130);touchDist=d;}});
+for(const ev of ['pointerup','pointercancel'])renderer.domElement.addEventListener(ev,e=>{pointers.delete(e.pointerId);touchDist=null});
+renderer.domElement.addEventListener('wheel',e=>{distance=clamp(distance+e.deltaY*.05,14,130)},{passive:true});
+let t=0,last=performance.now(),frameCount=0,fps=0;function draw(now){t+=.012;water.update(now*.001,night);camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*distance,target.y+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.lookAt(target);skyDome.position.copy(camera.position);renderer.render(scene,camera);frameCount++;if(now-last>1000){fps=Math.round(frameCount*1000/(now-last));frameCount=0;last=now;if(!readyStats.hidden)readyStats.textContent='FPS: '+fps+'\nDraw calls: '+renderer.info.render.calls+'\nTriângulos: '+renderer.info.render.triangles+'\nFlora: '+(details.grass+details.flowers+details.reeds+artistic.understory)+'\nGLBs: '+loaded+'/'+requested+'\nFalhas: '+failed;}requestAnimationFrame(draw);}requestAnimationFrame(draw);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script></body></html>
