@@ -17,6 +17,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {buildEldoriaDetails} from './eldoria-scene-details.js';
 import {ELDORIA_ZONES,ELDORIA_ASSETS,assetsForStage} from './eldoria-asset-plan.js';
 import {createEldoriaLighting,createEldoriaWater} from './eldoria-light-water.js';
+import {buildEldoriaArt} from './eldoria-environment-art.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xafd2c9);scene.fog=new THREE.FogExp2(0xaed2c4,.0029);
 const camera=new THREE.PerspectiveCamera(57,innerWidth/innerHeight,.1,900);
 
@@ -104,6 +105,7 @@ function path(points,width=3){
 }
 path([[5,-115],[1,-94],[-3,-76],[3,-62],[6,-45],[10,-30],[6,-10]],4.4);path([[-20,-46],[-8,-44],[7,-43],[24,-39],[32,-32]],3.8);path([[6,-43],[22,-47],[46,-59],[66,-83]],3);
 const details=buildEldoriaDetails(THREE,scene,{height,streamDistance,rand,lowSpec,pondSdf});
+const artistic=buildEldoriaArt(THREE,scene,{height,streamDistance,pondSdf,rand,lowSpec});
 const material=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:1});
 const trunkMat=material(0x61533e),leafMat=[material(0x325e34),material(0x45753c),material(0x578a45)];
 const tg=new THREE.CylinderGeometry(.95,1.6,1,7),cg=new THREE.IcosahedronGeometry(1,1);
@@ -189,6 +191,6 @@ renderer.domElement.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,
 renderer.domElement.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const old=pointers.get(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===1){yaw-=(e.clientX-old[0])*.005;pitch=clamp(pitch+(e.clientY-old[1])*.004,-.05,1.35);}else if(pointers.size===2){const p=[...pointers.values()],d=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]);if(touchDist!==null)distance=clamp(distance*(touchDist/d),14,130);touchDist=d;}});
 for(const ev of ['pointerup','pointercancel'])renderer.domElement.addEventListener(ev,e=>{pointers.delete(e.pointerId);touchDist=null});
 renderer.domElement.addEventListener('wheel',e=>{distance=clamp(distance+e.deltaY*.05,14,130)},{passive:true});
-let t=0,last=performance.now(),frameCount=0,fps=0;function draw(now){t+=.012;water.update(now*.001,night);camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*distance,target.y+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.lookAt(target);skyDome.position.copy(camera.position);renderer.render(scene,camera);frameCount++;if(now-last>1000){fps=Math.round(frameCount*1000/(now-last));frameCount=0;last=now;if(!readyStats.hidden)readyStats.textContent='FPS: '+fps+'\nDraw calls: '+renderer.info.render.calls+'\nTriângulos: '+renderer.info.render.triangles+'\nFlora: '+(details.grass+details.flowers+details.reeds)+'\nGLBs: '+loaded+'/'+requested+'\nFalhas: '+failed;}requestAnimationFrame(draw);}requestAnimationFrame(draw);
+let t=0,last=performance.now(),frameCount=0,fps=0;function draw(now){t+=.012;water.update(now*.001,night);camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*distance,target.y+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.lookAt(target);skyDome.position.copy(camera.position);renderer.render(scene,camera);frameCount++;if(now-last>1000){fps=Math.round(frameCount*1000/(now-last));frameCount=0;last=now;if(!readyStats.hidden)readyStats.textContent='FPS: '+fps+'\nDraw calls: '+renderer.info.render.calls+'\nTriângulos: '+renderer.info.render.triangles+'\nFlora: '+(details.grass+details.flowers+details.reeds+artistic.understory)+'\nGLBs: '+loaded+'/'+requested+'\nFalhas: '+failed;}requestAnimationFrame(draw);}requestAnimationFrame(draw);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
