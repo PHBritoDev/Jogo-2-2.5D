@@ -92,3 +92,10 @@ test('árvores de apoio recebem canopy irregular com cores por vértice',()=>{
  assert.match(canopy,/computeVertexNormals/);
  assert.match(html,/vertexColors:true/);
 });
+
+test('lago utiliza margem orgânica e trilha verde de plantas aquáticas',()=>{
+ assert.match(art,/foamPositions/);
+ assert.match(art,/shoreRocks/);
+ assert.match(art,/lilyPads/);
+ assert.match(art,/pondSdf/);
+});
