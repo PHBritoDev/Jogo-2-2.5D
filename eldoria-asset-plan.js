@@ -16,14 +16,14 @@ export const ELDORIA_ZONES=Object.freeze({
 const at=(x,z,size,rotation=0)=>({x,z,size,rotation});
 export const ELDORIA_ASSETS=Object.freeze([
   {file:'ArvoreAncestralEldoria.glb',stage:'core',placements:[at(55,-36,45,.3),at(-53,-28,43,-.5),at(-40,-88,39,.65),at(46,-85,42,-.35)]},
-  {file:'ArvoreFloresta01.glb',stage:'core',placements:[at(-62,-37,14),at(62,-42,13,.4),at(-50,-75,10),at(-48,17,14,.7),at(-65,38,16),at(39,24,14,-.4),at(-80,-65,15,.5),at(72,-65,16,-.3)]},
+  {file:'ArvoreFloresta01.glb',stage:'core',placements:[at(-62,-37,14),at(62,-42,13,.4),at(-50,-75,10),at(-67,14,19,.7),at(-66,42,18),at(-19,13,17,-.3),at(-28,45,16,.5),at(39,24,14,-.4),at(-80,-65,15,.5),at(72,-65,16,-.3)]},
   {file:'CasaEldoria01.glb',stage:'core',placements:[at(-19,-51,10,.2),at(-7,-52,9,-.4),at(18,-53,10,.15),at(29,-43,9,-.3)]},
   {file:'CasaEldoria02.glb',stage:'core',placements:[at(-23,-32,10,-.2),at(-9,-29,9,.3),at(15,-28,10,-.3),at(29,-29,9,.45)]},
   {file:'BarracaFrutasEldoria.glb',stage:'core',placements:[at(8,-39,6)]},
   {file:'PocoEldoria.glb',stage:'core',placements:[at(3,-47,5)]},
   {file:'FerreiroEldoria.glb',stage:'core',placements:[at(20,-63,7)]},
   {file:'PassarelaSuspensaEldoria.glb',stage:'core',placements:[at(0,-10,12,-.72)]},
-  {file:'RochedoMusgoEldoria.glb',stage:'core',placements:[at(37,-78,6),at(-30,-93,7)]},
+  {file:'RochedoMusgoEldoria.glb',stage:'core',placements:[at(37,-78,6),at(-30,-93,7),at(-64,26,7,-.4),at(-23,37,6,.6)]},
   {file:'Carroça.glb',stage:'core',placements:[at(3,-108,5,1.1)]},
   {file:'Ponte.glb',stage:'core',placements:[at(-21,-6,9,-.4)]},
   {file:'JaulaRitualAto1.glb',stage:'ritual',placements:[at(75,73,10,0)]},
