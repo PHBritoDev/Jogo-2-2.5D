@@ -42,7 +42,7 @@ void main(){
   float n0 = fbm(a) * .65 + fbm(b) * .35;
   float nx = fbm(a + vec2(e, 0)) * .65 + fbm(b + vec2(e, 0)) * .35;
   float nz = fbm(a + vec2(0, e)) * .65 + fbm(b + vec2(0, e)) * .35;
-  vec3 N = normalize(vec3((n0 - nx) * 3.2 * (.35 + .65 * smoothstep(80.0, 15.0, length(cameraPosition - vWorld))), 1.0, (n0 - nz) * 3.2 * (.35 + .65 * smoothstep(80.0, 15.0, length(cameraPosition - vWorld)))));
+  vec3 N = normalize(vec3((n0 - nx) * 3.2 * (.35 + .65 * (1.0 - smoothstep(15.0, 80.0, length(cameraPosition - vWorld)))), 1.0, (n0 - nz) * 3.2 * (.35 + .65 * (1.0 - smoothstep(15.0, 80.0, length(cameraPosition - vWorld))))));
   vec3 V = normalize(cameraPosition - vWorld);
   float fres = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 4.0) * .5 + .04;
   vec3 body = mix(uDeep, uShallow, smoothstep(.15, .95, across) * .8 + (n0 - .5) * .25);
@@ -52,12 +52,12 @@ void main(){
   col += vec3(1.0, .96, .86) * spec * 1.4;
   // Espuma: margens recortadas por ruído e riscos que descem com a correnteza.
   float streak = fbm(vec2(vUv.x * .9 - uTime * speed * 1.3, vUv.y * 5.0));
-  float camDist = length(cameraPosition - vWorld), near = smoothstep(70.0, 18.0, camDist); // longe: sem cintilar
+  float camDist = length(cameraPosition - vWorld), near = (1.0 - smoothstep(18.0, 70.0, camDist)); // longe: sem cintilar
   float foam = smoothstep(.8, .99, across + (streak - .5) * .3 * near);
   foam += smoothstep(.78, .93, streak) * .1 * (1.0 - across) * near;
   for (int i = 0; i < ${WATER_MAX_ROCKS}; i++){ if (i >= uRockCount) break;
     vec4 r = uRocks[i]; float d = length(vWorld.xz - r.xy) - r.z;
-    float ring = smoothstep(.9, 0.0, d) * (.55 + .45 * fbm(vWorld.xz * 2.0 - vec2(uTime * speed, 0.0)));
+    float ring = (1.0 - smoothstep(0.0, .9, d)) * (.55 + .45 * fbm(vWorld.xz * 2.0 - vec2(uTime * speed, 0.0)));
     foam = max(foam, ring * r.w); }
   col = mix(col, uFoam * (1.0 - uNight * .55), clamp(foam, 0.0, 1.0) * .85);
   float alpha = mix(uAlpha, .97, clamp(foam, 0.0, 1.0)) * (1.0 - smoothstep(.97, 1.0, across) * .6);
