@@ -10,16 +10,17 @@ const lighting=readFileSync(new URL('../eldoria-light-water.js',import.meta.url)
 const art=readFileSync(new URL('../eldoria-environment-art.js',import.meta.url),'utf8');
 const canopy=readFileSync(new URL('../eldoria-forest-canopy.js',import.meta.url),'utf8');
 const cavern=readFileSync(new URL('../eldoria-crystal-cavern.js',import.meta.url),'utf8');
+const geology=readFileSync(new URL('../eldoria-cave-geology.js',import.meta.url),'utf8');
 test('prévia isolada mantém o jogo principal e os personagens fora',()=>{
   assert.match(html,/import \{buildEldoriaDetails\}/);
   for(const zone of Object.keys(ELDORIA_ZONES)) assert.match(html,new RegExp('data-place="'+zone+'"'));
   for(const source of [html,manifest]) assert.doesNotMatch(source,/Demonio1\.glb|Protagonista\.glb|Bispo1\.0\.glb|Enemy2\.glb/);
 });
-test('14 modelos de cenário listados e presentes',()=>{
-  assert.equal(ELDORIA_ASSETS.length,14);
+test('15 modelos de cenário listados e presentes',()=>{
+  assert.equal(ELDORIA_ASSETS.length,15);
   assert.equal(new Set(ELDORIA_ASSETS.map(a=>a.file)).size,ELDORIA_ASSETS.length);
   const required=['ArvoreAncestralEldoria.glb','ArvoreFloresta01.glb','BarracaFrutasEldoria.glb',
-    'CasaEldoria01.glb','CasaEldoria02.glb','EntradaCavernaAto1.glb','FerreiroEldoria.glb',
+    'CasaEldoria01.glb','CasaEldoria02.glb','EntradaCavernaAto1.glb','CristalCaverna01.glb','FerreiroEldoria.glb',
     'JaulaRitualAto1.glb','MontanhaEldoria01.glb','PassarelaSuspensaEldoria.glb',
     'PocoEldoria.glb','RochedoMusgoEldoria.glb'];
   for(const file of required) assert.ok(ELDORIA_ASSETS.some(a=>a.file===file),'model missing: '+file);
@@ -33,13 +34,14 @@ test('carregamento da cena principal não inclui caverna e ritual',()=>{
   assert.equal(assetsForStage('core').length,11);
   assert.equal(assetsForStage('ritual').length,1);
   assert.equal(assetsForStage('caverna').length,2);
+  assert.equal(assetsForStage('interior').length,1);
   assert.match(html,/loadStage\('core'\)/);
   assert.match(html,/if\(name==='ritual'\|\|name==='caverna'\)loadStage\(name\)/);
 });
 test('sintaxe dos scripts da prévia e dos módulos ambientais',()=>{
   const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script?.length>3000);
-  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art],['canopy',canopy],['cavern',cavern]]){
+  for(const [name,source] of [['preview',script],['details',details],['manifest',manifest],['lighting',lighting],['art',art],['canopy',canopy],['cavern',cavern],['geology',geology]]){
     const result=spawnSync(process.execPath,['--input-type=module','--check'],{input:source,encoding:'utf8'});
     assert.equal(result.status,0,name+': '+result.stderr);
   }
@@ -134,4 +136,14 @@ test('interior da caverna possui salão monumental e ala obscura instanciados',(
  assert.match(cavern,/PointLight/);
  assert.match(cavern,/lightA\.castShadow=false/);
  assert.doesNotMatch(cavern,/Protagonista\.glb|Enemy1\.glb|Demonio1\.glb/);
+});
+
+test('caverna autoral tem geologia distinta, vestígios históricos e modelo de cristal próprio',()=>{
+ assert.match(cavern,/buildEldoriaCaveGeology\(THREE,group/);
+ assert.match(html,/loadStage\('interior'\)/);
+ assert.match(geology,/stratifiedRocks/);
+ assert.match(geology,/approachStones/);
+ assert.match(geology,/erosionRibs/);
+ assert.match(geology,/new THREE\.InstancedMesh/);
+ assert.equal(assetsForStage('interior')[0].file,'CristalCaverna01.glb');
 });
