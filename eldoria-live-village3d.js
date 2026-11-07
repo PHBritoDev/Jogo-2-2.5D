@@ -31,6 +31,9 @@ export function mountEldoriaLiveVillage({
     ['Carroça.glb',-10,-27,3.6,.7,1.45],
     ['RochedoMusgoEldoria.glb',-23,-19,3.8,.2,1.75],
     ['RochedoMusgoEldoria.glb',22,17,4.1,.8,2],
+    // Marco visual de Eldória: árvore gigante além da praça, nunca no spawn.
+    ['ArvoreAncestralEldoria.glb',-34,5,32,-.18,3.9],
+    ['ArvoreFloresta01.glb',30,-28,14,.4,2.5],
   ];
   const specs=[];
   for(const [x,z,file,size,rotation] of plots)specs.push({file,x,z,size,rotation,collision:2.25,kind:'house'});
