@@ -108,3 +108,16 @@ test('árvores GLB não nascem dentro da lâmina do lago',()=>{
   assert.ok(lakeDistance>=1.25,'GLB no lago: '+p.x+','+p.z);
  }
 });
+
+test('árvores GLB não bloqueiam o eixo principal da câmera do lago',()=>{
+ const forest=ELDORIA_ASSETS.find(a=>a.file==='ArvoreFloresta01.glb');
+ const origin={x:-42,z:24},reach=42*Math.cos(.4);
+ const vx=Math.sin(.6)*reach,vz=Math.cos(.6)*reach;
+ for(const p of forest.placements){
+  const dx=p.x-origin.x,dz=p.z-origin.z;
+  const t=(dx*vx+dz*vz)/(vx*vx+vz*vz);
+  if(t<=0||t>=1)continue;
+  const distance=Math.hypot(dx-vx*t,dz-vz*t);
+  assert.ok(distance>=9,'árvore bloqueia visão do lago: '+p.x+','+p.z);
+ }
+});
