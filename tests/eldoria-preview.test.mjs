@@ -111,8 +111,8 @@ test('árvores GLB não nascem dentro da lâmina do lago',()=>{
 
 test('árvores GLB não bloqueiam o eixo principal da câmera do lago',()=>{
  const forest=ELDORIA_ASSETS.find(a=>a.file==='ArvoreFloresta01.glb');
- const origin={x:-42,z:24},reach=42*Math.cos(.4);
- const vx=Math.sin(.6)*reach,vz=Math.cos(.6)*reach;
+ const origin={x:-42,z:24},reach=32*Math.cos(.18);
+ const vx=Math.sin(.55)*reach,vz=Math.cos(.55)*reach;
  for(const p of forest.placements){
   const dx=p.x-origin.x,dz=p.z-origin.z;
   const t=(dx*vx+dz*vz)/(vx*vx+vz*vz);
