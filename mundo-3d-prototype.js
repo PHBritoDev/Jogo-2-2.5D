@@ -243,6 +243,14 @@ const eldoriaRiver=buildRiverMesh(THREE,RIVER_POINTS,{width:RIVER.width*.98,leve
 const eldoriaLake=buildLakeMesh(THREE,{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.32,level:FOREST_POND.level});scene.add(eldoriaLake.mesh);
 const waterMaterials=[eldoriaRiver.material,eldoriaLake.material];
 const eldoriaBridge=buildBridge(THREE,BRIDGE,{level:RIVER.level,lowSpec:terrainLowSpec});scene.add(eldoriaBridge);
+/* Ponte.glb (asset do criador) substitui a ponte procedural de reserva: escala pelo vão, tabuleiro medido por raio para
+   a caminhada (bridgeDeck usa a mesma curva) e cabeceiras assentadas no barranco. */
+new GLTFLoader().load('./Ponte.glb',gltf=>{const m=gltf.scene,b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=BRIDGE.halfLength*2.18/Math.max(.01,sz.x);
+ m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k,-c.z*k);const g=new THREE.Group();g.add(m);g.rotation.y=Math.atan2(-BRIDGE.axisZ,BRIDGE.axisX);g.position.set(BRIDGE.x,0,BRIDGE.z);scene.add(g);g.updateMatrixWorld(true);
+ m.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;}});
+ const ray=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0),deckAt=t=>{const x=BRIDGE.x+BRIDGE.axisX*BRIDGE.halfLength*t,z=BRIDGE.z+BRIDGE.axisZ*BRIDGE.halfLength*t;ray.set(new THREE.Vector3(x,40,z),down);const h=ray.intersectObject(m,true)[0];return h?h.point.y:null;};
+ const end=Math.min(...[-.96,.96].map(deckAt).filter(v=>v!==null));if(!Number.isFinite(end))return;g.position.y=.1-end;g.updateMatrixWorld(true);
+ const mid=deckAt(0);if(mid!==null)BRIDGE.rise=Math.max(.3,mid-.08);eldoriaBridge.visible=false;window.SevenSinsBridgeReport={asset:'Ponte.glb',rise:+BRIDGE.rise.toFixed(2),scale:+k.toFixed(2)};},undefined,e=>console.warn('Ponte.glb não carregou; ponte procedural mantida.',e));
 const riverRockPlan=planRiverRocks(eldoriaRiver.ribbon.centerline,{width:RIVER.width,count:9,avoid:[{x:BRIDGE.x,z:BRIDGE.z,r:BRIDGE.halfLength+1.5}]});
 // Pedras dos encontros da ponte também espumam (a água bate no pé do arco).
 riverRockPlan.push({x:BRIDGE.x+BRIDGE.axisZ*1.6,z:BRIDGE.z-BRIDGE.axisX*1.6,r:.6,foam:.55,hidden:true},{x:BRIDGE.x-BRIDGE.axisZ*1.6,z:BRIDGE.z+BRIDGE.axisX*1.6,r:.6,foam:.55,hidden:true});
@@ -3839,6 +3847,16 @@ function ensureRoadProps(){
  if(road.group)return;road.group=new THREE.Group();road.group.name='teren-road-mod291';scene.add(road.group);
  road.cart=new THREE.Group();road.group.add(road.cart);
  road.mule=buildMule();road.group.add(road.mule);
+ /* Asset do criador (Cavalo.glb, animado, + ArreiosCavalo.glb) substitui a mula procedural assim que carrega; a mula fica
+    só como reserva se o GLB falhar. O cavalo vem em escala ~1e-3: mede pelos ossos (a caixa do SkinnedMesh não serve). */
+ new GLTFLoader().load('./Cavalo.glb',gltf=>{const h=gltf.scene,mix=new THREE.AnimationMixer(h),clip=gltf.animations[0];if(clip){road.horseAction=mix.clipAction(clip);road.horseAction.play();}mix.update(.4);h.updateMatrixWorld(true);
+  const b=new THREE.Box3(),v=new THREE.Vector3();h.traverse(o=>{if(o.isBone){o.getWorldPosition(v);b.expandByPoint(v);}if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;o.frustumCulled=false;}});
+  if(b.isEmpty())return;const k=1.62/Math.max(1e-9,b.max.y-b.min.y);h.scale.setScalar(k);h.position.set(-(b.min.x+b.max.x)/2*k,-b.min.y*k+.04,-(b.min.z+b.max.z)/2*k);
+  const horse=new THREE.Group();horse.add(h);road.horseMixer=mix;
+  new GLTFLoader().load('./ArreiosCavalo.glb',g2=>{const a=g2.scene,ab=new THREE.Box3().setFromObject(a),as=ab.getSize(new THREE.Vector3()),ac=ab.getCenter(new THREE.Vector3()),ak=2.75/Math.max(.01,as.z);
+   a.scale.setScalar(ak);a.position.set(-ac.x*ak,-ab.min.y*ak+.62,-ac.z*ak);const aw=new THREE.Group();aw.rotation.y=Math.PI;aw.position.z=-.45;aw.add(a); // coelheira no pescoço, varais para trás até a carroça
+   a.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;}});horse.add(aw);},undefined,()=>{});
+  const parent=road.mule.parent;if(parent){road.mule.visible=false;road.horse=horse;horse.position.copy(road.mule.position);horse.rotation.y=road.mule.rotation.y;parent.add(horse);}},undefined,e=>console.warn('Cavalo.glb não carregou; mantendo a mula procedural.',e));
  // Lona solta (antes) / presa (depois) sobre os sacos vazios da traseira.
  // Lona solta caída atrás da carroça (antes de prender); depois de presa ela some sob a cobertura do próprio modelo.
  {const tg=new THREE.PlaneGeometry(1.7,1.2,6,4),tp=tg.attributes.position;for(let i=0;i<tp.count;i++)tp.setZ(i,Math.sin(tp.getX(i)*3.1)*.08+Math.cos(tp.getY(i)*4.3)*.06);tg.computeVertexNormals();
@@ -3859,7 +3877,7 @@ function placeRoadCart(s,snap){
  if(road.yaw===null||snap)road.yaw=p.yaw;else{let d=p.yaw-road.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));road.yaw+=d*.08;}
  const fx=Math.sin(road.yaw),fz=Math.cos(road.yaw),ahead=groundHeightAt(p.x+fx*1.6,p.z+fz*1.6),behind=groundHeightAt(p.x-fx*1.6,p.z-fz*1.6);
  road.cart.position.set(p.x,y,p.z);road.cart.rotation.set(0,road.yaw,0);road.cart.rotateX(-Math.atan2(ahead-behind,3.2));
- const mx=p.x+fx*3.35,mz=p.z+fz*3.35;road.mule.position.set(mx,groundHeightAt(mx,mz),mz);road.mule.rotation.y=road.yaw;
+ const mx=p.x+fx*3.35,mz=p.z+fz*3.35;road.mule.position.set(mx,groundHeightAt(mx,mz),mz);road.mule.rotation.y=road.yaw;if(road.horse){road.horse.position.copy(road.mule.position);road.horse.rotation.y=road.yaw;}
  if(road.teren){const tx=mx+Math.cos(road.yaw)*.95,tz=mz-Math.sin(road.yaw)*.95;road.teren.holder.position.set(tx,groundHeightAt(tx,tz),tz);road.teren.holder.rotation.y=road.yaw;}
  road.obstacle.x=p.x;road.obstacle.z=p.z;road.obstacle.base=y;
  storyAnchors.cart={x:p.x,z:p.z,y:y,yaw:road.yaw};
@@ -3886,6 +3904,7 @@ function updateRoad(dt){
   if(road.dawnK>=0){const k=(road.s-RIDE.ambush)/Math.max(1,RIDE.end-RIDE.ambush);setGameHour(dawnHourAt(k));}}
  const moving=road.ride&&road.speed>.2;road.legT+=dt*(moving?road.speed*2.6:0);
  for(const l of road.legs)l.pivot.rotation.x=moving?Math.sin(road.legT+l.ph)*.5:0;
+ if(road.horseMixer){if(road.horseAction)road.horseAction.timeScale=moving?Math.min(1.6,road.speed*.3):0;road.horseMixer.update(dt);}
  if(road.teren){road.teren.mixer.update(dt);if(road.teren.action)road.teren.action.timeScale=moving?Math.min(2.4,road.speed*.48):0;}
  if(road.cartModel&&moving)road.cartModel.position.y=Math.abs(Math.sin(road.legT*.9))*.035;
  if(road.lamp){const n=dayNightState.t;road.lamp.intensity=n*2.4;road.lampGlow.visible=n>.2;}
@@ -7095,7 +7114,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  /** MOD 291 — estrada de Teren: road(0) prado/encontro, road(1) lona presa, road(2) pós-bandidos. */
  road(stage=0){this.act1(1,0);roadStage=stage;road.met=stage>0;try{localStorage.setItem(ROAD_STORE,String(stage));}catch(_){}ensureRoadProps();placeRoadCart(stage>=2?RIDE.ambush:RIDE.start,true);const c=road.cart.position,x=stage===0?FALL_SPOT.x:c.x+2.6,z=stage===0?FALL_SPOT.z:c.z;player.position.set(x,terrainHeightAt(x,z),z);updateQuestHud();return this.roadState();},
- roadState(){return{stage:roadStage,visible:player.visible,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
+ roadState(){return{stage:roadStage,visible:player.visible,yaw:road.yaw,horse:road.horse?(()=>{const b=new THREE.Box3().setFromObject(road.horse);return{min:b.min.toArray().map(v=>+v.toFixed(2)),max:b.max.toArray().map(v=>+v.toFixed(2))};})():null,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
  interact(){tryInteract();return this.roadState();},
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;
