@@ -55,6 +55,9 @@ void main(){
   float camDist = length(cameraPosition - vWorld), near = (1.0 - smoothstep(18.0, 70.0, camDist)); // longe: sem cintilar
   float foam = smoothstep(.8, .99, across + (streak - .5) * .3 * near);
   foam += smoothstep(.78, .93, streak) * .1 * (1.0 - across) * near;
+  // Lago parado nao tem faixa de arrebentacao: preserve transparencia e reflexos suaves.
+  // Rio mantem espuma de margem; lago recebe somente vestigios discretos de espuma.
+  if (uRadial > .5) foam *= .06;
   for (int i = 0; i < ${WATER_MAX_ROCKS}; i++){ if (i >= uRockCount) break;
     vec4 r = uRocks[i]; float d = length(vWorld.xz - r.xy) - r.z;
     float ring = (1.0 - smoothstep(0.0, .9, d)) * (.55 + .45 * fbm(vWorld.xz * 2.0 - vec2(uTime * speed, 0.0)));
