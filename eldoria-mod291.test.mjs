@@ -134,8 +134,8 @@ test('sub-bosque respeita trilhas/água e cristais são prismas facetados (não 
 });
 
 test('marcador visível e build do Mod 291', () => {
-  assert.match(html, /aria-label="Modificação 291">291</);
-  assert.match(readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /const BUILD = 'mod291-eldoria';/);
+  assert.match(html, /aria-label="Modificação 29[12]">29[12]</); // Mod 292 manteve a cadeia
+  assert.match(readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /const BUILD = 'mod29[12]-eldoria';/);
 });
 
 test('marco 2: mata fechada usa o GLB do criador, respeita trilha/água e não forma fileiras', async () => {

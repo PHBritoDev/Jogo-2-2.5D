@@ -4072,7 +4072,7 @@ function roadBanditsDown(){
 }
 function finishRoad(){
  road.ride=false;road.speed=0;stepOutOfCart(-1);road.passengers=false;setCineFade(0,.4,false);setRoadStage(ROAD.done);
- status.textContent='Procure a pequena vila e fale com um vendedor.';road.leaving=7;road.obstacle.radius=0;startRoadRide(RIDE.total,2.4,false);
+ status.textContent='Atravesse a ponte até Eldória e fale com um vendedor.';road.leaving=7;road.obstacle.radius=0;startRoadRide(RIDE.total,2.4,false);
  act1Toast('ELDÓRIA');
 }
 function updateRoadQuest(px,pz,near,mark){
