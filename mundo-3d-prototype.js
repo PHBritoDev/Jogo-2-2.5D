@@ -1983,8 +1983,9 @@ function updateAutoGraphics3D(dt,now){
  if(graphics3DSampleTime<2)return;
  graphics3DFps=graphics3DSampleFrames/graphics3DSampleTime;
  const elapsed=graphics3DSampleTime;graphics3DSampleTime=0;graphics3DSampleFrames=0;
- if(graphics3DFps<34){graphics3DLowTime+=elapsed;graphics3DHighTime=0;}
- else if(graphics3DFps>52){graphics3DHighTime+=elapsed;graphics3DLowTime=0;}
+ // Em 34–35 FPS o Auto anterior nunca baixava a carga (<34), ficando preso na cidade.
+ if(graphics3DFps<42){graphics3DLowTime+=elapsed;graphics3DHighTime=0;}
+ else if(graphics3DFps>55){graphics3DHighTime+=elapsed;graphics3DLowTime=0;}
  else{graphics3DLowTime=0;graphics3DHighTime=0;}
  if(graphics3DLowTime>=3.5&&now-graphics3DLastChange>4000){
   graphics3DLowTime=0;graphics3DLastChange=now;
