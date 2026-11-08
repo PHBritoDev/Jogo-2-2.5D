@@ -199,7 +199,10 @@ const altarTrail=[[2.2,-43],[20,-38],[44,-33],[60,-32]].concat(EXTRA_PASSES[0],[
 const desertTrail=[[COLOSSEUM.gate.x,COLOSSEUM.gate.z]].concat(DESERT_PASS,[[DESERT.offer.x,DESERT.offer.z]]);
 const colosseumTrail=[[-36,-238]].concat(COLOSSEUM_PASS,[[COLOSSEUM.gate.x,COLOSSEUM.gate.z]]);
 const districtTrail=[[-27.4,-45],[-40,-49],[-56,-56]].concat(DISTRICT_PASS,[[-130,-62],[DISTRICT_SPOTS.plaza.x,DISTRICT_SPOTS.plaza.z]]);
+// 10 km² = 3.162 km × 3.162 km (not 10 km × 10 km).
+const ELDORIA_FLAT_10KM2={cx:0,cz:-64,halfSide:Math.sqrt(10_000_000)/2,transition:80};
 const terrain3D=createTerrain({
+ flatSquare:ELDORIA_FLAT_10KM2,
  hill:hillHeightAt,
  keepouts:[{x:DESERT.statue.x,z:DESERT.statue.z,r:24,fade:8},{x:COLOSSEUM.center.x,z:COLOSSEUM.center.z,r:40,fade:8},{x:-36,z:-256,r:14,fade:6},{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:-12,z:-97,r:7,fade:5},{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z,r:9,fade:6},{x:ROAD_JUNCTION.x,z:ROAD_JUNCTION.z,r:7,fade:6},{x:MASSACRE_SPOT.x,z:MASSACRE_SPOT.z,r:6,fade:5},{x:SEWER_DOOR.x,z:SEWER_DOOR.z,r:5,fade:4},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:DISTRICT_SPOTS.plaza.x,z:DISTRICT_SPOTS.plaza.z,r:22,fade:8},{x:ALTAR_VALLEY.cx,z:ALTAR_VALLEY.cz,r:16,fade:8},{x:SERRA.cx,z:SERRA.cz-8,r:16,fade:8},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
  ponds:[FOREST_POND],
@@ -215,7 +218,7 @@ const terrainLowSpec=(window.matchMedia&&window.matchMedia('(pointer: coarse)').
 // MOD 291 — o retalho começa exatamente na última linha da grade fina (z = cz + passos·célula) para dividir os vértices.
 const terrainCell=terrainLowSpec?2.5:2,terrainPatchRect={...ROAD_TERRAIN_PATCH,z0:-126+Math.round(166/terrainCell)*terrainCell};
 const terrainMesh=(()=>{
- const built=buildTerrainArrays(terrain3D,{cx:-2,cz:-126,fineHalf:206,fineHalfZ:166,fineCell:terrainLowSpec?2.5:2,outerSteps:terrainLowSpec?32:40,growth:terrainLowSpec?1.095:1.075,holes:[terrainPatchRect]});
+ const built=buildTerrainArrays(terrain3D,{cx:-2,cz:-126,fineHalf:206,fineHalfZ:166,fineCell:terrainLowSpec?2.5:2,outerSteps:terrainLowSpec?36:38,growth:terrainLowSpec?1.16:1.16,holes:[terrainPatchRect]});
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.BufferAttribute(built.positions,3));geo.setIndex(new THREE.BufferAttribute(built.indices,1));geo.computeVertexNormals();
  geo.setAttribute('color',new THREE.BufferAttribute(colorTerrain(terrain3D,built.positions,geo.attributes.normal.array),3));
@@ -1656,7 +1659,7 @@ function blockedAt(x,z){
  if(voidMode)return voidSpec.walk?!voidSpec.walk(x-voidSpec.x,z-voidSpec.z):Math.hypot(x-voidSpec.x,z-voidSpec.z)>voidSpec.radius;
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
  {const bd=bridgeDeck(x,z);if(bd)return bd.edge;} // MOD 291: a ponte atravessa o rio (parapeitos bloqueiam)
- if(terrain3D.boundaryDistance(x,z)>45||terrain3D.waterDepth(x,z)>=.38||Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)<FOREST_POND.r+1)return true;
+ if((terrain3D.flatSquare ? !terrain3D.walkable(x,z) : terrain3D.boundaryDistance(x,z)>45)||terrain3D.waterDepth(x,z)>=.38||Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)<FOREST_POND.r+1)return true;
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const o of marketObstacles){if(o.height!==undefined&&o.height<=.68)continue;const dx=x-o.x,dz=z-o.z;if(o.shape==='box'?Math.abs(dx)<o.halfX&&Math.abs(dz)<o.halfZ:dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
