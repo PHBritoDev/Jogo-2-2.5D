@@ -19,13 +19,16 @@ async def main():
    await page.add_init_script("const qaRAF=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=cb=>{if(cb.name==='animate'){window.qaWorldFrame=cb;return 1;}return qaRAF(cb)};localStorage.setItem('seven-sins-3d-graphics','low');localStorage.setItem('aerial-save-sentinel','unchanged')")
    await page.goto(os.environ.get('VISUAL_BASE_URL','http://127.0.0.1:4181')+'/mundo-3d-prototype.html?debug3d&todasHabilidades&prota='+kind,wait_until='domcontentloaded')
    await page.wait_for_function('window.SevenSinsDebug3D?.riteState().ready');js=page.evaluate
+   async def capture(name):
+    await js('(()=>{const p=SevenSinsDebug3D.riteState().hero;SevenSinsDebug3D.fly([p[0]+3.5,p[1]+2.4,p[2]+4.5],[p[0],p[1]+1,p[2]]);SevenSinsDebug3D.combatStep(0);})()')
+    await page.screenshot(path=str(out/name))
    await js('SevenSinsDebug3D.siegeQA();SevenSinsDebug3D.motionQA({x:40,z:21,enemyDistance:3});SevenSinsDebug3D.motionStep(.1,{x:0,z:0});')
    r={'model':await js('window.WorldProtagonistReport||{file:"Protagonista.glb"}'),'initial':await js('SevenSinsDebug3D.riteState()')}
-   await page.screenshot(path=str(out/f'{kind}-world.png'))
+   await capture(f'{kind}-world.png')
    r['run']=await js('SevenSinsDebug3D.motionStep(.45,{sprint:true})');r['gripRun']=await js('SevenSinsDebug3D.gripQA()')
-   await page.screenshot(path=str(out/f'{kind}-run.png'))
+   await capture(f'{kind}-run.png')
    r['jump']=await js("SevenSinsDebug3D.combatAction('jump');SevenSinsDebug3D.combatStep(.25)")
-   await page.screenshot(path=str(out/f'{kind}-jump.png'));await js('SevenSinsDebug3D.combatStep(1.2,{draw:false})')
+   await capture(f'{kind}-jump.png');await js('SevenSinsDebug3D.combatStep(1.2,{draw:false})')
    r['dash']=await js("SevenSinsDebug3D.combatAction('dash');SevenSinsDebug3D.combatStep(.08)")
    await js('SevenSinsDebug3D.combatStep(.6,{draw:false})')
    r['cuts']=[]
@@ -33,7 +36,7 @@ async def main():
     await js('SevenSinsDebug3D.siegeQA();SevenSinsDebug3D.motionQA({x:40,z:21,enemyDistance:1.35});')
     await js(f"SevenSinsDebug3D.combatMoveQA('prota','ground',{i})")
     r['cuts'].append(await js('SevenSinsDebug3D.combatStep(.46)'))
-    if kind=='novo':await page.screenshot(path=str(out/f'{kind}-cut-{i}.png'))
+    if kind=='novo':await capture(f'{kind}-cut-{i}.png')
     await js('SevenSinsDebug3D.combatStep(1,{draw:false})')
    r['gripAttack']=await js('SevenSinsDebug3D.gripQA()')
    # The pre-existing Skills 1–3 keep their original controllers, costs and VFX.
@@ -48,7 +51,7 @@ async def main():
    r['firstPerson']=await js('SevenSinsDebug3D.gripQA()');await page.screenshot(path=str(out/f'{kind}-first-person.png'));await js('SevenSinsDebug3D.viewQA(false);SevenSinsDebug3D.fly([44,3,25],[40,1,21])')
    if kind=='novo':
     for name in ['Rite_Judgment','Rite_Eclipse']:
-     await js(f'SevenSinsDebug3D.ritePose("{name}",.5)');await page.screenshot(path=str(out/(name+'.png')))
+     await js(f'SevenSinsDebug3D.ritePose("{name}",.5)');await capture(name+'.png')
    r['saveUnchanged']=await js("localStorage.getItem('aerial-save-sentinel')==='unchanged' && localStorage.getItem('sevenSins3DCampaignV6')===null")
    r['checks']={'ready':r['initial']['ready'],'run':r['run']['motion']['sprint'],'jump':not r['jump']['hero']['motion']['grounded'],'handSocket':r['gripRun']['error']<.001 and r['gripAttack']['error']<.001,'fiveNativeMoves':all(c['hero']['active'] is not None for c in r['cuts']),'physicalDamage':all(c['hero']['hp']<300 for c in r['cuts']),'skills123':all(v['active'] for v in r['skills'].values()),'firstPerson':r['firstPerson']['view']['triangles']>0,'save':r['saveUnchanged']}
    report['rigs'][kind]=r;print(kind,r['checks'],flush=True);await page.close()

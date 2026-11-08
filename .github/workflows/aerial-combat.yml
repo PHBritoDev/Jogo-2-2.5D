@@ -1,5 +1,7 @@
 name: Aerial combat prototype
 on:
+  push:
+    branches: [codex/combate-aereo-prototipo-uma-espada]
   pull_request:
     branches: [main]
     paths:
@@ -30,7 +32,7 @@ jobs:
             Prota_otimizado_2K.glb
           retention-days: 7
   regression:
-    if: github.head_ref == 'codex/combate-aereo-prototipo-uma-espada'
+    if: github.head_ref == 'codex/combate-aereo-prototipo-uma-espada' || github.ref == 'refs/heads/codex/combate-aereo-prototipo-uma-espada'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
@@ -41,7 +43,7 @@ jobs:
       - run: node --test experiments/aerial-combat/controller.test.mjs sword-rites3d.test.mjs combat244.test.mjs skills3d.test.mjs movement-bounds.test.mjs world3d-terrain.test.mjs progression3d.test.mjs hearts3d.test.mjs
       - run: node --check mundo-3d-prototype.js
   browser:
-    if: github.head_ref == 'codex/combate-aereo-prototipo-uma-espada'
+    if: github.head_ref == 'codex/combate-aereo-prototipo-uma-espada' || github.ref == 'refs/heads/codex/combate-aereo-prototipo-uma-espada'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     strategy:
