@@ -3,6 +3,10 @@
 **Responsável: Codex. Autor aprova visual por teste real antes de expansão.**
 **Branch obrigatória:** `codex/combate-aereo-prototipo-uma-espada`. **Não fazer merge**, não modificar `main`, a branch de Eldória/Claude (#412) nem as ultimates existentes. Trabalho em etapas curtas, testáveis, commits incrementais apenas nesta branch. **Ao terminar, apagar ESTE arquivo da branch num último commit**, mantendo só código, testes e documentação técnica concisa. Se não conseguir apagar, deixar falha explícita em commit/PR — não alegar concluído.
 
+
+## REGRA CRÍTICA — NÃO INTERFERIR NO TRABALHO DO CLAUDE
+Claude está **neste momento construindo a cidade de Eldória** em outro trabalho/PR. **Não modificar, reformatar, renomear, mover, substituir, fazer merge, rebase ou cherry-pick de arquivos, commits ou branches de Eldória/cidade/floresta. Não disparar automações ou alterações que interfiram na execução dele.** Trabalhar **somente na branch isolada de combate** e nos arquivos estritamente necessários ao protótipo; se algum arquivo compartilhado tiver alterações recentes do Claude, não sobrescrever, interromper a edição nesse ponto e relatar o conflito. Não abrir PR que misture as mudanças de cidade com combate. Sem merge na `main` até aprovação do criador.
+
 ## PREFERÊNCIAS DE EXECUÇÃO E LIMITE DO CODEX
 - **Economia extrema de resposta:** executar ferramentas e código sem narrar progresso, sem mensagens intermediárias, sem repetir plano e **sem relatório final**. Se a interface exigir resposta, emitir apenas URL do PR/preview ou impedimento verificável (uma linha). Não gastar tokens descrevendo o que foi feito. Comentários novos só se esclarecerem lógica não óbvia.
 - Raciocínio e pesquisas profundas **internamente quando necessários**: leia apenas os arquivos relevantes, faça buscas técnicas específicas, reutilize testes existentes. Não desperdice contexto lendo repositório inteiro, copiando logs enormes, reabrindo arquivos ou pesquisando assuntos irrelevantes; use `rg` com linhas e focos. Não omitir testes para economizar tokens.
