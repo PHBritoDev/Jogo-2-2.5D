@@ -10,6 +10,9 @@ on:
       - 'mod181-loader.js'
       - 'laboratorio-inimigos.html'
       - 'eldoria-mod291.test.mjs'
+      - 'enemy1-integration.test.mjs'
+      - 'tools/visual-lab/agent-report.test.cjs'
+      - 'tools/visual-lab/world-module-loader.test.cjs'
       - '.github/workflows/build-info-integration.yml'
 permissions:
   contents: read
@@ -29,7 +32,7 @@ jobs:
           node --check build-info.js
           node --check mod181-loader.js
           node --check mundo-3d-prototype.js
-          node --test build-info.test.mjs eldoria-mod291.test.mjs eldoria-mod292.test.mjs dimensions3d.test.mjs zarkhael-dimension.test.mjs
+          node --test build-info.test.mjs eldoria-mod291.test.mjs eldoria-mod292.test.mjs dimensions3d.test.mjs zarkhael-dimension.test.mjs enemy1-integration.test.mjs tools/visual-lab/agent-report.test.cjs tools/visual-lab/world-module-loader.test.cjs
       - name: Contrato de integracao
         run: |
           node tools/qa/check-ai-onboarding.mjs
