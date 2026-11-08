@@ -1,5 +1,6 @@
 import {buildEldoriaCaveGeology} from './eldoria-cave-geology.js';
 import {buildEldoriaCaveTunnel} from './eldoria-cave-tunnel.js';
+import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 /**
  * Eldória — caverna cristalina original do Ato 1.
  * Duas câmaras monumentais: santuário luminoso e abismo de silêncio.
@@ -82,7 +83,7 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
     mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();
     mesh.receiveShadow=false;mesh.castShadow=false;group.add(mesh);
   }
-  const crystalGeometry=new THREE.CylinderGeometry(0,1,1,5,1);
+  const crystalGeometry=crystalPrismGeometry(THREE,{seed:2,tip:.3}); // Mod 291: prisma hexagonal facetado (não cone)
   for(let i=0;i<3;i++)instances(spires.filter(p=>p.type===i),crystalGeometry,crystalMat[i]);
   const stalagmiteGeo=new THREE.ConeGeometry(.9,1,6);
   instances(pillars,stalagmiteGeo,stone);
@@ -108,7 +109,7 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
     color:0xc5f8ff,emissive:0x70dffe,emissiveIntensity:2.8,roughness:.15,
     metalness:.05,flatShading:true,side:THREE.DoubleSide
   });
-  const heroGeometry=new THREE.CylinderGeometry(0,1,1,6,1);
+  const heroGeometry=crystalPrismGeometry(THREE,{seed:5,tip:.24,taper:.88});
   const central=new THREE.Mesh(heroGeometry,heroMaterial);
   central.scale.set(2.4,21,2.4);central.position.y=10.5;
   core.add(central);
@@ -167,7 +168,7 @@ export function buildEldoriaCrystalCavern(THREE,scene,{lowSpec=false}={}){
   abyssGlow.position.set(-29,9,17);abyssGlow.scale.set(16,16,1);group.add(abyssGlow);
   // Feixes de selenita cruzados: contraste de escala inspirado na geologia
   // real de Naica, sem copiar formato de um jogo ou espalhar cones genéricos.
-  const longCrystalGeometry=new THREE.CylinderGeometry(.42,1,1,6,1);
+  const longCrystalGeometry=crystalPrismGeometry(THREE,{seed:8,tip:.16,taper:.7});
   const longCrystalMaterial=lowSpec
     ? new THREE.MeshStandardMaterial({color:0x97d9eb,roughness:.24,metalness:.04,
        emissive:0x194d66,emissiveIntensity:.38,flatShading:true})

@@ -172,7 +172,11 @@ test('integração real da Cidade 1 preserva história e mantém a floresta afas
   assert.match(gameWorld,/mountEldoriaLiveVillage\(\{/);
   assert.doesNotMatch(gameWorld,/L\.load\('\.\/VilaKit\.glb\?v=mod204'/);
   assert.doesNotMatch(gameWorld,/for\(const stall of marketStalls\)makeFruitStall/);
-  assert.match(gameWorld,/Math\.hypot\(x,z-4\)<30/);
+  // Mod 291: o anel artificial de 30 m em volta do spawn antigo saiu; a queda agora é no prado do prólogo
+  // (bioma aberto, sem mata colada) a mais de 200 m da cidade, atrás de uma serra.
+  assert.doesNotMatch(gameWorld,/Math\.hypot\(x,z-4\)<30/);
+  assert.match(gameWorld,/if\(insideMeadow\(x,z,8\)\)/);
+  assert.match(gameWorld,/const AWAKE_SPOT=\{x:FALL_SPOT\.x,z:FALL_SPOT\.z\}/);
   assert.match(liveVillage,/CasaEldoria01\.glb/);
   assert.match(liveVillage,/CasaEldoria02\.glb/);
   assert.match(liveVillage,/BarracaFrutasEldoria\.glb/);
