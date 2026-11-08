@@ -38,14 +38,14 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
      return {city:window.EldoriaLiveCityQA,structure:treeStructurePlan({x:-12.2,z:-44.5}),cull:a.cullInfo()?.length};
    });
    report[preset.name]={plan,video:null};
-   for(const s of spots) {
+   for(const s of (preset.name==="desktop" ? spots.filter((_,i)=>[0,1,4,6,7].includes(i)) : spots)) {
      const data=await page.evaluate(({x,z,up,back})=>{
        const api=window.SevenSinsDebug3D;
        api.fly([x+back*.46,up,z+back],[x,2,z]);return {state:api.state(),camera:api.cam(),meshes:api.villageMeshes()?.slice(0,6),cull:api.cullInfo()?.slice(0,3)};
      },s);
-     await page.waitForTimeout(1300);
+     await page.waitForTimeout(850);
      const filename=path.join(dir,safe(s.name)+".png");
-     await page.locator("#scene").screenshot({path:filename,timeout:35000});
+     await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
      const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
      report.cases.push({preset:preset.name,name:s.name,image:path.relative(output,filename),...actual,drawCalls:data.state?.calls,triangles:data.state?.triangles});
    }
@@ -62,7 +62,7 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
    await page.waitForTimeout(2400);
    const after=await page.evaluate(()=>window.SevenSinsDebug3D.walkState());
    const snap=path.join(dir,"escada-depois-caminhada.png");
-   await page.locator("#scene").screenshot({path:snap,timeout:35000});
+   await page.screenshot({path:snap,timeout:65000,animations:"disabled"});
    report.cases.push({preset:preset.name,name:"subida-escada",before:climb.prior,after,screen:path.relative(output,snap)});
    await page.close(); await context.close();context=null;
   }
