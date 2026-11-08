@@ -19,6 +19,7 @@ function parseShots(raw){
   const yaw=Number(v.yaw??0);
   if(![x,z,y,distance,height,yaw].every(Number.isFinite)||distance<2||distance>500||height<1||height>250)throw Error("Coordenadas invalidas para foto "+i);
   const name=String(v.name||v.preset||"foto-"+i).replace(/[^a-zA-Z0-9_-]/g,"-").slice(0,60);
+  if(!name)throw Error("Nome da foto vazio");
   return {name,x,z,y,distance,height,yaw};
  });
 }
@@ -64,4 +65,5 @@ async function main(){
   console.error(errors.join(" | "));process.exitCode=1;
  }finally{await browser?.close().catch(()=>{});}
 }
-main();
+if(require.main===module)main();
+module.exports={parseShots,presets};
