@@ -1,0 +1,45 @@
+name: Eldoria — varredura visual com video e fotos
+on:
+  pull_request:
+    paths:
+      - 'mundo-3d-prototype.js'
+      - 'eldoria-live-village3d.js'
+      - 'eldoria-tropical-trees.js'
+      - 'world3d-terrain.js'
+      - 'tools/visual-lab/eldoria-city-sweep.cjs'
+      - '.github/workflows/eldoria-city-sweep.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scene-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Playwright Chromium
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Subir servidor local
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/eldoria-city-http.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/eldoria-city-http.log
+          exit 1
+      - name: Gravar video e capturas de todas as areas importantes
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/eldoria-city-sweep.cjs
+      - name: Publicar gravacoes, screenshots e relatorio
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eldoria-city-sweep-${{ github.run_number }}
+          path: visual-lab-results/eldoria-city-sweep/
+          retention-days: 14
+          if-no-files-found: warn

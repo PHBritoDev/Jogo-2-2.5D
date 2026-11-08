@@ -87,25 +87,9 @@ fountain.position.set(1.5,height(1.5,-41.5)+.05,-41.5);
  batch(new THREE.BoxGeometry(1,1,1),wood,signPosts);
  batch(new THREE.BoxGeometry(1,1,1),wood,signBeams);
  counts.signPosts=signPosts.length;
- // Cercas claras delimitam quintais sem isolar o mercado ou impedir as ruas.
- const posts=[],rails=[];
- const gardens=[
-  {x:-19,z:-51,r:7.7,phase:.5},{x:18,z:-53,r:7.8,phase:-.1},
-  {x:-22,z:-32,r:7.5,phase:1.2},{x:28,z:-29,r:7.6,phase:.9}
- ];
- for(const g of gardens){
-  const sections=18,angle0=g.phase;
-  for(let i=0;i<sections;i++){
-   const a=angle0+i/sections*Math.PI*2,centerX=g.x+Math.cos(a)*g.r,centerZ=g.z+Math.sin(a)*g.r;
-   if(Math.hypot(centerX-1.5,centerZ+41.5)<8)continue;
-   if(streamDistance(centerX,centerZ)<5)continue;
-   if(Math.abs(centerZ+43)<3.3)continue;
-   const h=height(centerX,centerZ);
-   posts.push({x:centerX,z:centerZ,y:h+.57,rotation:a,sx:.16,sy:1.15,sz:.16});
-   counts.fencePosts++;
-  }
- }
- batch(new THREE.BoxGeometry(1,1,1),cream,posts);
+ // Cercas brancas antigas foram removidas: os quatro círculos de postes não delimitavam
+ // lotes reais e apareciam espalhados por ruas/casas. Preservamos placas e jardins.
+ // Nenhuma instância branca é criada; counts.fencePosts permanece zero.
  // Pequenas pedras claras e flores junto à arquitetura, preservando as travessias.
  const petals=[],leaves=[],ferns=[];
  const num=lowSpec?580:1030;

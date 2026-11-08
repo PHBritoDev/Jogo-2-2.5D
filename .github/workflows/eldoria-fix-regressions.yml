@@ -1,0 +1,30 @@
+name: Eldoria — cercas mercado escada e visibilidade
+on:
+  pull_request:
+    paths:
+      - 'eldoria-city-dressing.js'
+      - 'eldoria-environment-art.js'
+      - 'eldoria-live-village3d.js'
+      - 'mundo-3d-prototype.js'
+      - 'eldoria-mod291.test.mjs'
+      - 'eldoria-layout-regression.test.mjs'
+      - '.github/workflows/eldoria-fix-regressions.yml'
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Sintaxe e QA espacial
+        run: |
+          node --check mundo-3d-prototype.js
+          node --check eldoria-live-village3d.js
+          node --check eldoria-city-dressing.js
+          node --check eldoria-environment-art.js
+          node --test eldoria-layout-regression.test.mjs eldoria-mod291.test.mjs eldoria-mod292.test.mjs
+          node tools/qa/check-ai-onboarding.mjs
