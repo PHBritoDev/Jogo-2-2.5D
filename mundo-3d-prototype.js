@@ -471,9 +471,9 @@ function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
  mesh.frustumCulled=false;instanceCullers.push({mesh,n,src,col,pos,r2:radius*radius,min2:minRadius*minRadius,near2:keepNear*keepNear});cullLastX=1e9;
 }
 function updateInstanceCulling(){
- if(!instanceCullers.length||(++cullFrame%4))return;
+ if(!instanceCullers.length||(++cullFrame%2))return;
  camera.getWorldDirection(_cullDir);const yaw=Math.atan2(_cullDir.x,_cullDir.z),px=player.position.x,pz=player.position.z;
- if(Math.abs(px-cullLastX)<3&&Math.abs(pz-cullLastZ)<3&&Math.abs(yaw-cullLastYaw)<.12)return;
+ if(Math.abs(px-cullLastX)<.75&&Math.abs(pz-cullLastZ)<.75&&Math.abs(yaw-cullLastYaw)<.045)return;
  cullLastX=px;cullLastZ=pz;cullLastYaw=yaw;
  const cx=camera.position.x,cz=camera.position.z,fl=Math.hypot(_cullDir.x,_cullDir.z)||1,fx=_cullDir.x/fl,fz=_cullDir.z/fl;
  for(const c of instanceCullers){
