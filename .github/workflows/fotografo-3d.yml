@@ -1,0 +1,41 @@
+name: Fotografo 3D sob demanda
+on:
+  workflow_dispatch:
+    inputs:
+      fotos:
+        description: 'JSON de fotos: [{"name":"ponte","x":-12,"z":-44,"distance":30,"height":12}]'
+        required: true
+        default: '[{"name":"eldoria","preset":"eldoria"},{"name":"floresta","preset":"floresta"}]'
+        type: string
+permissions:
+  contents: read
+jobs:
+  fotos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results
+      VISUAL_SHOTS: ${{ inputs.fotos }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix tools/visual-lab --no-audit --no-fund
+      - run: ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Servidor
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/photographer-http.log 2>&1 &
+          for i in $(seq 1 30); do curl --silent --fail http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Fotografar destinos solicitados
+        run: node tools/visual-lab/photographer.cjs
+      - name: Entregar fotos e coordenadas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fotos-3d-${{ github.run_number }}
+          path: visual-lab-results/photographer/
+          retention-days: 14
+          if-no-files-found: warn
