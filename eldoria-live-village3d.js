@@ -76,12 +76,22 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
     }));
     return sources.get(file);
   }
-  /** LOD1 sem textura: herda o material do LOD0 (mesma ordem de malhas). */
+  /** Never assign a textured LOD0 material to a different LOD1 mesh by traversal index:
+   *  its UV layout/mesh ordering may differ, producing incorrect colors at a distance.
+   *  Keep authored buildings at full texture fidelity until a validated textured LOD exists. */
   function fetchLod(file, asset) {
     if (!LOD_FILES.has(file)) return Promise.resolve(null);
+    if (specs.some(s => s.file === file && s.kind === 'house')) return Promise.resolve(null);
     if (!lods.has(file)) lods.set(file, new Promise(resolve => loader.load('./' + file.replace(/\.glb$/, '-lod1.glb'), gltf => {
-      const mats = []; asset.src.traverse(o => { if (o.isMesh) mats.push(o.material); });
-      let k = 0; gltf.scene.traverse(o => { if (o.isMesh) { o.material = mats[Math.min(k, mats.length - 1)] || o.material; k++; } });
+      const srcMeshes = [], lodMeshes = [];
+      asset.src.traverse(o => { if (o.isMesh) srcMeshes.push(o); });
+      gltf.scene.traverse(o => { if (o.isMesh) lodMeshes.push(o); });
+      // Reuse only matching UV-compatible materials; otherwise keep the GLB's own materials.
+      for (let i = 0; i < lodMeshes.length; i++) {
+        const mesh = lodMeshes[i], source = srcMeshes.find(m => m.name === mesh.name);
+        if (source && source.geometry?.attributes?.uv && mesh.geometry?.attributes?.uv)
+          mesh.material = source.material;
+      }
       resolve(gltf.scene);
     }, undefined, () => resolve(null))));
     return lods.get(file);
