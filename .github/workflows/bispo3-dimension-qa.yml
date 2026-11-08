@@ -1,0 +1,45 @@
+name: Bispo 3 — dimension evidence (no deployment)
+on:
+  pull_request:
+    paths:
+      - 'zarkhael-dimension*'
+      - 'dimension-arenas3d.js'
+      - 'tools/visual-lab/bispo3-*'
+      - '.github/workflows/bispo3-dimension-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rules and syntax
+        run: |
+          node --test dimensions3d.test.mjs zarkhael-dimension.test.mjs
+          node --input-type=module --check < zarkhael-dimension3d.js
+          node tools/qa/check-ai-onboarding.mjs
+      - name: Pinned browser dependencies
+        run: |
+          npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
+          work/qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Real WebGL, blinking, tracking, LOD, disposal and gameplay
+        env:
+          NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
+          VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
+        run: |
+          python3 -m http.server 4173 > /tmp/bispo3-http.log 2>&1 &
+          node tools/visual-lab/bispo3-dimension-qa.cjs
+          node tools/visual-lab/bispo3-runtime-qa.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bispo3-dimension-${{ github.sha }}
+          path: work/evidence/
+          retention-days: 14

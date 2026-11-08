@@ -1,0 +1,572 @@
+{
+  "errors": [],
+  "assets": [],
+  "skills": {
+    "s1": {
+      "phase": "charge",
+      "t": 5.13,
+      "orbs": "build:0.25,build:0.13,build:0.01",
+      "hits": 0,
+      "dissolve": 0,
+      "trauma": 0
+    },
+    "s2": {
+      "phase": "shots",
+      "t": 1.98,
+      "fired": 1,
+      "final": null
+    },
+    "sw": "spin",
+    "ult": {
+      "phase": "aura",
+      "pi": 0,
+      "pt": 0.3,
+      "t": 0.3,
+      "safeRadius": 26.832815729997474,
+      "selos": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          2,
+          0,
+          0
+        ],
+        [
+          3,
+          0,
+          0
+        ],
+        [
+          4,
+          0,
+          0
+        ],
+        [
+          5,
+          0,
+          0
+        ],
+        [
+          6,
+          0,
+          0
+        ]
+      ],
+      "bursts": [],
+      "hits": 0,
+      "bossFrozen": true,
+      "mixerScale": 0,
+      "lockPos": [
+        1200.3618088394903,
+        -2000,
+        0.2605422173586658
+      ],
+      "bossPos": [
+        1200.3618088394903,
+        -2000,
+        0.2605422173586658
+      ],
+      "vfx": true,
+      "occluders": 0,
+      "hudCompact": true,
+      "shot": "FRONTAL_BISPO",
+      "cam": [
+        1200.91,
+        -1997.85,
+        5.47
+      ],
+      "fov": 47.93
+    }
+  },
+  "ok": true,
+  "initial": {
+    "state": {
+      "x": 1200,
+      "y": -2000,
+      "z": 10,
+      "walkable": false,
+      "edge": 1002.6947279978524,
+      "calls": 22,
+      "triangles": 203534,
+      "terrain": {
+        "vertices": 48035,
+        "triangles": 93584,
+        "patchTriangles": 5968,
+        "extent": [
+          -661.935143267781,
+          657.935143267781
+        ]
+      },
+      "trees": 0,
+      "fog": "010102",
+      "fogFar": 265,
+      "night": 0,
+      "quest": 2,
+      "coins": 0,
+      "dialogueOpen": false,
+      "namePromptOpen": false,
+      "awakeningActive": false,
+      "hp": 100,
+      "enemy": {
+        "hp": 640,
+        "visible": true,
+        "alive": true,
+        "x": 1200,
+        "z": 1,
+        "y": -2000
+      },
+      "objective": "Fale com o Anjo-Guia",
+      "audio": "locked",
+      "dim": {
+        "vs": false,
+        "battle": true,
+        "active": true,
+        "key": "bishop3",
+        "sent": true,
+        "pull": false,
+        "pt": null,
+        "paused": false,
+        "gate": false,
+        "voidMode": true,
+        "hour": 9.02,
+        "enemyHP": 640,
+        "enemyMaxHP": 640,
+        "hp": 100
+      }
+    },
+    "visual": {
+      "quality": "low",
+      "mushrooms": 24,
+      "eyes": 336,
+      "drawCalls": 5,
+      "disposed": false,
+      "time": 19.25260000000149,
+      "frame": 32,
+      "visible": true,
+      "target": [
+        0,
+        1.3500000046788097,
+        10
+      ],
+      "camera": [
+        -2.600587035379249,
+        53.65358211988496,
+        16.247711064558814
+      ],
+      "architectureVisible": [
+        true,
+        true,
+        true
+      ],
+      "swordPhase": null
+    },
+    "memory": {
+      "geo": 279,
+      "tex": 37,
+      "prog": 195,
+      "shadow": false,
+      "pr": 0.62,
+      "lights": 7
+    }
+  },
+  "navigation": {
+    "before": {
+      "x": 1200,
+      "y": -2000,
+      "z": 10,
+      "walkable": false,
+      "edge": 1002.6947279978524,
+      "calls": 22,
+      "triangles": 203534,
+      "terrain": {
+        "vertices": 48035,
+        "triangles": 93584,
+        "patchTriangles": 5968,
+        "extent": [
+          -661.935143267781,
+          657.935143267781
+        ]
+      },
+      "trees": 0,
+      "fog": "010102",
+      "fogFar": 265,
+      "night": 0,
+      "quest": 2,
+      "coins": 0,
+      "dialogueOpen": false,
+      "namePromptOpen": false,
+      "awakeningActive": false,
+      "hp": 100,
+      "enemy": {
+        "hp": 640,
+        "visible": true,
+        "alive": true,
+        "x": 1200,
+        "z": -4,
+        "y": -2000
+      },
+      "objective": "Fale com o Anjo-Guia",
+      "audio": "locked",
+      "dim": {
+        "vs": false,
+        "battle": true,
+        "active": true,
+        "key": "bishop3",
+        "sent": true,
+        "pull": false,
+        "pt": null,
+        "paused": false,
+        "gate": false,
+        "voidMode": true,
+        "hour": 9.02,
+        "enemyHP": 640,
+        "enemyMaxHP": 640,
+        "hp": 100
+      }
+    },
+    "walk": {
+      "ready": true,
+      "sword": "prota",
+      "active": null,
+      "waves": 0,
+      "projectiles": [],
+      "cinematic": false,
+      "motion": {
+        "vx": 0,
+        "vz": -4.29980478030202,
+        "dash": 0,
+        "grounded": true,
+        "sprint": false
+      },
+      "camera": {
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0
+      },
+      "events": [],
+      "cooldowns": {
+        "prota": 0,
+        "aurora": 0
+      },
+      "mana": 100,
+      "hp": 640,
+      "hero": [
+        1200,
+        -2000,
+        6.095143636214168
+      ],
+      "target": [
+        1200,
+        -2000,
+        -4
+      ],
+      "clip": "Walk",
+      "blade": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "vfx": {
+        "cuts": 0,
+        "trails": 0,
+        "particles": 0,
+        "ghosts": 0,
+        "capacity": {
+          "cuts": 16,
+          "trails": 3,
+          "particles": 192,
+          "ghosts": 3
+        }
+      },
+      "height": 1.9907256569040328
+    },
+    "attack": {
+      "ready": true,
+      "sword": "prota",
+      "active": {
+        "kind": "basic",
+        "time": 0.4000000000000004,
+        "step": 0,
+        "mode": "ground",
+        "phase": "active",
+        "hit": false
+      },
+      "waves": 0,
+      "projectiles": [],
+      "cinematic": false,
+      "motion": {
+        "vx": 2.7173466995982225,
+        "vz": -0.11946119222675897,
+        "dash": 0,
+        "grounded": true,
+        "sprint": false
+      },
+      "camera": {
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0
+      },
+      "events": [],
+      "cooldowns": {
+        "prota": 0,
+        "aurora": 0
+      },
+      "mana": 100,
+      "hp": 640,
+      "hero": [
+        1200.801922474441,
+        -2000,
+        5.608892596734512
+      ],
+      "target": [
+        1200,
+        -2000,
+        -4
+      ],
+      "clip": "Combat_prota_ground_0_Upper",
+      "blade": [
+        [
+          1200.27020089175,
+          -1998.8373194946712,
+          5.4856825517005365
+        ],
+        [
+          1199.4723810688986,
+          -1998.985625981379,
+          5.693278318790156
+        ]
+      ],
+      "vfx": {
+        "cuts": 0,
+        "trails": 1,
+        "particles": 0,
+        "ghosts": 0,
+        "capacity": {
+          "cuts": 16,
+          "trails": 3,
+          "particles": 192,
+          "ghosts": 3
+        }
+      },
+      "height": 1.9989505980065587
+    },
+    "inside": false,
+    "outside": true
+  },
+  "quality": [
+    {
+      "quality": "high",
+      "mushrooms": 24,
+      "eyes": 336,
+      "drawCalls": 5,
+      "disposed": false,
+      "time": 24.480800000000745,
+      "frame": 57,
+      "visible": true,
+      "target": [
+        0.9208449669969059,
+        1.35,
+        5.604560318891154
+      ],
+      "camera": [
+        3.795349357367513,
+        1.972823981074498,
+        10.124447584518713
+      ],
+      "architectureVisible": [
+        true,
+        true,
+        true
+      ],
+      "swordPhase": null
+    },
+    {
+      "quality": "medium",
+      "mushrooms": 24,
+      "eyes": 336,
+      "drawCalls": 5,
+      "disposed": false,
+      "time": 27.0405,
+      "frame": 64,
+      "visible": true,
+      "target": [
+        0.9208449670554532,
+        1.35,
+        5.604560318856905
+      ],
+      "camera": [
+        3.8322358224720574,
+        1.9813656253743375,
+        10.261119302199385
+      ],
+      "architectureVisible": [
+        true,
+        true,
+        true
+      ],
+      "swordPhase": null
+    },
+    {
+      "quality": "low",
+      "mushrooms": 24,
+      "eyes": 336,
+      "drawCalls": 5,
+      "disposed": false,
+      "time": 28.757300000000747,
+      "frame": 72,
+      "visible": true,
+      "target": [
+        0.9208449670554728,
+        1.35,
+        5.604560318856893
+      ],
+      "camera": [
+        3.8539139123213317,
+        1.985315644525599,
+        10.373950852371552
+      ],
+      "architectureVisible": [
+        true,
+        true,
+        true
+      ],
+      "swordPhase": null
+    }
+  ],
+  "cinematic": {
+    "phase": "seals",
+    "pi": 1,
+    "pt": 0.21,
+    "t": 3.51,
+    "safeRadius": 26.832815729997474,
+    "selos": [
+      [
+        1,
+        0.11,
+        0.03
+      ],
+      [
+        2,
+        0,
+        -0.04
+      ],
+      [
+        3,
+        0,
+        0.05
+      ],
+      [
+        4,
+        0,
+        -0.06
+      ],
+      [
+        5,
+        0,
+        0.08
+      ],
+      [
+        6,
+        0,
+        -0.09
+      ]
+    ],
+    "bursts": [],
+    "hits": 0,
+    "bossFrozen": true,
+    "mixerScale": 0,
+    "lockPos": [
+      1200.3618088394903,
+      -2000,
+      0.2605422173586658
+    ],
+    "bossPos": [
+      1200.3618088394903,
+      -2000,
+      0.2605422173586658
+    ],
+    "vfx": true,
+    "occluders": 3,
+    "hudCompact": true,
+    "shot": "CIRCULO_1",
+    "cam": [
+      1210.2,
+      -1990.79,
+      9.18
+    ],
+    "fov": 62
+  },
+  "restored": {
+    "quality": "low",
+    "mushrooms": 24,
+    "eyes": 336,
+    "drawCalls": 5,
+    "disposed": false,
+    "time": 72.95080000000074,
+    "frame": 321,
+    "visible": true,
+    "target": [
+      0.9208449670554728,
+      1.35,
+      5.604560318856893
+    ],
+    "camera": [
+      6.682123822007725,
+      3.2640634720248727,
+      13.552767644877953
+    ],
+    "architectureVisible": [
+      true,
+      true,
+      true
+    ],
+    "swordPhase": null
+  },
+  "exit": {
+    "visual": null,
+    "memory": {
+      "geo": 408,
+      "tex": 42,
+      "prog": 261,
+      "shadow": false,
+      "pr": 0.62,
+      "lights": 7
+    }
+  },
+  "reentry": {
+    "quality": "low",
+    "mushrooms": 24,
+    "eyes": 336,
+    "drawCalls": 5,
+    "disposed": false,
+    "time": 79.1496000000015,
+    "frame": 358,
+    "visible": true,
+    "target": [
+      0,
+      1.3500000000191672,
+      10
+    ],
+    "camera": [
+      0.02459564644823331,
+      10.644255986213466,
+      15.173393243056879
+    ],
+    "architectureVisible": [
+      true,
+      true,
+      true
+    ],
+    "swordPhase": null
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "renderer": "Chromium / SwiftShader — not Android FPS",
+  "screenshots": [
+    "01-corredor.png",
+    "02-olhos-abertos.png",
+    "03-piscar-meio.png",
+    "04-piscar-fechado.png",
+    "05-piscar-reaberto.png",
+    "06-olhar-esquerda.png",
+    "07-olhar-direita.png",
+    "08-qualidade-low.png",
+    "08-qualidade-medium.png",
+    "08-qualidade-high.png",
+    "09-close-low.png",
+    "09-close-medium.png"
+  ],
+  "errors": [],
+  "quality": {
+    "low": {
+      "render": {
+        "frame": 105,
+        "calls": 5,
+        "triangles": 80517,
+        "points": 0,
+        "lines": 0
+      },
+      "memory": {
+        "geometries": 7,
+        "textures": 0
+      },
+      "stats": {
+        "quality": "low",
+        "mushrooms": 24,
+        "eyes": 336,
+        "drawCalls": 5,
+        "disposed": false
+      }
+    },
+    "medium": {
+      "render": {
+        "frame": 107,
+        "calls": 5,
+        "triangles": 121605,
+        "points": 0,
+        "lines": 0
+      },
+      "memory": {
+        "geometries": 9,
+        "textures": 0
+      },
+      "stats": {
+        "quality": "medium",
+        "mushrooms": 24,
+        "eyes": 336,
+        "drawCalls": 5,
+        "disposed": false
+      }
+    },
+    "high": {
+      "render": {
+        "frame": 109,
+        "calls": 5,
+        "triangles": 169797,
+        "points": 0,
+        "lines": 0
+      },
+      "memory": {
+        "geometries": 9,
+        "textures": 0
+      },
+      "stats": {
+        "quality": "high",
+        "mushrooms": 24,
+        "eyes": 336,
+        "drawCalls": 5,
+        "disposed": false
+      }
+    }
+  },
+  "memory": [
+    {
+      "disposed": 5,
+      "oldDisposed": true,
+      "memory": {
+        "geometries": 4,
+        "textures": 0
+      }
+    },
+    {
+      "disposed": 5,
+      "oldDisposed": true,
+      "memory": {
+        "geometries": 4,
+        "textures": 0
+      }
+    },
+    {
+      "disposed": 5,
+      "oldDisposed": true,
+      "memory": {
+        "geometries": 4,
+        "textures": 0
+      }
+    }
+  ],
+  "ok": true,
+  "blink": {
+    "start": 23.15949959009886,
+    "seed": 0.2999553205445409,
+    "eye": 57
+  },
+  "06-olhar-esquerda": {
+    "target": [
+      -27.956608463677437,
+      22.0791862132669,
+      -9.865270087857265
+    ]
+  },
+  "07-olhar-direita": {
+    "target": [
+      2.0431016839474276,
+      22.079176456335464,
+      -9.86524092945522
+    ]
+  }
+}

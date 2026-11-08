@@ -135,9 +135,10 @@ test('sub-bosque respeita trilhas/água e cristais são prismas facetados (não 
   assert.match(readFileSync(new URL('./dimension-arenas3d.js', import.meta.url), 'utf8'), /crystalClusterGeometry\(THREE/);
 });
 
-test('marcador visível e build do Mod 291', () => {
-  assert.match(html, /aria-label="Modificação 291">291</);
-  assert.match(readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /const BUILD = 'mod291-eldoria';/);
+// O marcador é global: avança também quando a alteração não é de Eldória.
+test('marcador visível e build global do Mod 296', () => {
+  assert.match(html, /aria-label="Modificação 296">296</);
+  assert.match(readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /const BUILD = 'mod296-bispo3-olhos';/);
 });
 
 test('marco 2: mata fechada usa o GLB do criador, respeita trilha/água e não forma fileiras', async () => {
