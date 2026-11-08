@@ -50,8 +50,8 @@ export function planGardens({ center, plots, isFree, seed = 717 }) {
     // canteiro na frente e nas laterais (gira com a casa)
     for (let k = 0; k < 26; k++) { const a = rot + (rnd() - .5) * 2.2, r = r0 + rnd() * 1.4, x = hx + Math.sin(a) * r, z = hz + Math.cos(a) * r; if (isFree(x, z)) flowers.push({ x, z, s: .9 + rnd() * .6, rot: rnd() * 6.28, tilt: (rnd() - .5) * .3, yellow: rnd() < .4, pink: rnd() < .3 }); }
     for (let k = 0; k < 3; k++) { const a = rot + Math.PI * (.5 + (k - 1) * .35) * (rnd() < .5 ? 1 : -1), r = r0 + .3, x = hx + Math.sin(a) * r, z = hz + Math.cos(a) * r; if (isFree(x, z)) hedges.push({ x, z, s: .55 + rnd() * .35, rot: rnd() * 6.28 }); }
-    // cerca clara baixa em arco atrás da casa
-    for (let k = 0; k < 6; k++) { const a = rot + Math.PI + (k - 2.5) * .22, r = r0 + 1.3, x = hx + Math.sin(a) * r, z = hz + Math.cos(a) * r; if (isFree(x, z)) fences.push({ x, z, ry: a + Math.PI / 2 }); }
+    // Sem cercas claras procedurais: geravam trechos soltos ao redor das casas.
+    // Flores, sebes e iluminação continuam; cercas estruturais dos deques ficam intactas.
   }
   return { flowers, hedges, fences, lamps };
 }
@@ -197,7 +197,7 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
     m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); m.name = 'eldoria-garden-flowers'; root.add(m);
   }
   if (plan.hedges.length) { const m = new THREE.InstancedMesh(bushGeometry(THREE, 9), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9 }), plan.hedges.length); plan.hedges.forEach((h, i) => { d.position.set(h.x, groundHeightAt(h.x, h.z) + h.s * .3, h.z); d.rotation.set(0, h.rot, 0); d.scale.set(h.s * 1.3, h.s * .9, h.s); d.updateMatrix(); m.setMatrixAt(i, d.matrix); }); m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); m.receiveShadow = true; m.name = 'eldoria-garden-hedges'; root.add(m); }
-  const fenceParts = []; for (const f of plan.fences) { const y = groundHeightAt(f.x, f.z); fenceParts.push({ x: f.x, y: y + .45, z: f.z, sx: .1, sy: .9, sz: .1, color: 0xe8e2d2 }, { x: f.x, y: y + .62, z: f.z, sx: 1.25, sy: .07, sz: .06, ry: f.ry, color: 0xdcd5c2 }, { x: f.x, y: y + .32, z: f.z, sx: 1.25, sy: .07, sz: .06, ry: f.ry, color: 0xdcd5c2 }); }
+  const fenceParts = []; // só bases/postes das luminárias: nenhuma cerca branca ornamental
   for (const l of lamps) { const y = groundHeightAt(l.x, l.z); fenceParts.push({ x: l.x, y: y + 1.35, z: l.z, sx: .12, sy: 2.7, sz: .12, color: 0x4a3828 }, { x: l.x + .28, y: y + 2.62, z: l.z, sx: .62, sy: .08, sz: .08, color: 0x4a3828 }); obstacles.push({ x: l.x, z: l.z, radius: .28, height: 2.7 }); }
   if (fenceParts.length) { const m = new THREE.Mesh(merge(THREE, fenceParts), woodMat); m.receiveShadow = true; m.castShadow = !lowSpec; m.name = 'eldoria-fences-lamps'; root.add(m); }
   if (lamps.length) {

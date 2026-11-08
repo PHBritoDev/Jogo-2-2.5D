@@ -40,7 +40,7 @@ import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
-import {ELDORIA_PLOTS} from './eldoria-live-village3d.js';
+import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
 import {ELDORIA_STREETS,doorPaths,treeStructurePlan} from './eldoria-city-layout.js';
@@ -482,7 +482,15 @@ function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
  const n=mesh.count,src=mesh.instanceMatrix.array.slice(0,n*16),col=mesh.instanceColor?mesh.instanceColor.array.slice(0,n*3):null,pos=new Float32Array(n*3),rad=new Float32Array(n);
  if(!mesh.geometry.boundingSphere)mesh.geometry.computeBoundingSphere();const bs=mesh.geometry.boundingSphere;
  // MOD 292 — esfera de cada instância (centro e raio da geometria na escala da instância) para o corte por FRUSTUM.
- for(let i=0;i<n;i++){const o=i*16,sx=Math.hypot(src[o],src[o+1],src[o+2]),sy=Math.hypot(src[o+4],src[o+5],src[o+6]);pos[i*3]=src[o+12];pos[i*3+1]=src[o+13]+bs.center.y*sy;pos[i*3+2]=src[o+14];rad[i]=(bs.radius+Math.hypot(bs.center.x,bs.center.z))*Math.max(sx,sy)*1.05;}
+ for(let i=0;i<n;i++){const o=i*16,sx=Math.hypot(src[o],src[o+1],src[o+2]),sy=Math.hypot(src[o+4],src[o+5],src[o+6]),sz=Math.hypot(src[o+8],src[o+9],src[o+10]);
+  // Transformar o centro REAL da esfera pelo matrix4 da instância (incluindo inclinação/eixo Z).
+  // Antes só a escala Y era aplicada: em movimento rápido, copas e barracas podiam sumir fora do frustum.
+  const bx=bs.center.x,by=bs.center.y,bz=bs.center.z;
+  pos[i*3]=src[o]*bx+src[o+4]*by+src[o+8]*bz+src[o+12];
+  pos[i*3+1]=src[o+1]*bx+src[o+5]*by+src[o+9]*bz+src[o+13];
+  pos[i*3+2]=src[o+2]*bx+src[o+6]*by+src[o+10]*bz+src[o+14];
+  rad[i]=bs.radius*Math.max(sx,sy,sz)*1.12;
+ }
  mesh.frustumCulled=false;const c={mesh,n,src,col,pos,rad,r2:radius*radius,min2:minRadius*minRadius,near2:keepNear*keepNear};instanceCullers.push(c);cullLastX=1e9;return c;
 }
 function refreshInstanceCulling(){cullLastX=1e9;_cullLastPos.set(1e9,0,0);}
@@ -647,7 +655,8 @@ function tropicalProfile(){return graphics3DMode==='low'?'low':graphics3DMode===
 let zoneFrame=0;const zoneState={south:null};
 function updateZoneStreaming(){
  if((++zoneFrame%12)&&zoneState.south!==null)return;
- const p=(typeof cineActive!=='undefined'&&cineActive&&camera)?camera.position:player.position,south=!voidMode&&p.z>46;
+ // Use a posição física do jogador: durante chegada rápida a câmera/cinematic pode ficar atrasada e ocultar a vila.
+ const p=player.position,south=!voidMode&&p.z>46;
  if(south===zoneState.south)return;zoneState.south=south;
  villageGroup.visible=!south;prologueMeadow.group.visible=south;
 }
@@ -666,8 +675,10 @@ function makeFruitStall(x,z,label,green){const stall=new THREE.Group();stall.pos
  const sign=makeMarketSign(label,green?'#d7ebae':'#ffe3a0');sign.position.set(0,2.14,.47);stall.add(sign);
  for(let basket=0;basket<3;basket++){const bx=(basket-1)*.72;const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.25,.34,.3,8),basketMat);bowl.position.set(bx,1.27,0);stall.add(bowl);for(let j=0;j<4;j++){const fruit=new THREE.Mesh(fruitGeo,fruitMats[(basket*3+j)%fruitMats.length]);fruit.position.set(bx+((j%2)-.5)*.2,1.5+Math.floor(j/2)*.03,(Math.floor(j/2)-.5)*.19);fruit.castShadow=false;stall.add(fruit);}}
  marketObstacles.push({x,z,shape:'box',halfX:1.225,halfZ:.76,height:2.4});return stall;}
-const marketStalls=[{x:VILLAGE_CENTER.x+2.85,z:VILLAGE_CENTER.z-2.5,label:'FRUTAS',green:false},{x:VILLAGE_CENTER.x-2.05,z:VILLAGE_CENTER.z+3.75,label:'ERVAS',green:true},{x:VILLAGE_CENTER.x+4.5,z:VILLAGE_CENTER.z+3.0,label:'PROVISÕES',green:false},{x:VILLAGE_CENTER.x+1.8,z:VILLAGE_CENTER.z-7.6,label:'ARTESANATO',green:true}];
-// Eldória: as quatro barracas usam BarracaFrutasEldoria.glb; as posições dos vendedores permanecem.
+const marketLabels=[['FRUTAS',false],['ERVAS',true],['PROVISÕES',false],['ARTESANATO',true]];
+// Vendedores seguem a MESMA fonte de coordenadas dos GLBs das barracas; nunca ficam abandonados.
+const marketStalls=ELDORIA_MARKET.map(([x,z,size,yaw],i)=>({x:VILLAGE_CENTER.x+x,z:VILLAGE_CENTER.z+z,size,yaw,label:marketLabels[i][0],green:marketLabels[i][1]}));
+// Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
 const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
 for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},{x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}]){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,2.05,5),woodMat);pole.position.set(p.x,1.02,p.z);villageGroup.add(pole);const glow=new THREE.Mesh(new THREE.SphereGeometry(.16,7,6),lanternMat);glow.position.set(p.x,1.92,p.z);villageGroup.add(glow);}
@@ -1874,7 +1885,8 @@ if(!grounded){
 }
 }
 var debugDtScale=1;// só o modo de teste (?debug3d=1) muda isto, para acelerar as cenas no navegador sem GPU
-function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;if(lunarUlt&&tickLunarUlt(Math.min(frameDelta,.05)*debugDtScale))return; /* MOD 288: o filme da ultimate congela o combate */updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);const floorY=terrainHeightAt(player.position.x,player.position.z);if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
+function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;if(lunarUlt&&tickLunarUlt(Math.min(frameDelta,.05)*debugDtScale))return; /* MOD 288: o filme da ultimate congela o combate */updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);// O modelo deve acompanhar o piso REAL sob o root (escada/deque), não o terreno abaixo dele.
+ const floorY=player.position.y;if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
  if(!zarkUltBossLock&&(enemyAlive||enemyHasDeathClip))enemy.position.y=terrainHeightAt(enemy.position.x,enemy.position.z);
@@ -1903,7 +1915,7 @@ function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen|
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);applyCycloneSuction(dt);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);updateInstanceCulling();checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
  undoCyShake();undoVxShake();undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -1912,7 +1924,8 @@ updateAutoGraphics3D(dt,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
  updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateHydra(dt);updateMoonFlames(dt);updateVeraxionSwords(dt);updateVeraxionCyclone(dt);updateZarkhaelSword(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateEclipseSword(dt);tickCosmicSwords(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
- if(vzCinematic()){vzCamRestore();return;}renderer.render(scene,camera);vzCamRestore();}
+ // Recalcular culling DEPOIS da câmera definitiva deste quadro (antes havia 1 frame de atraso).
+ updateInstanceCulling();if(vzCinematic()){vzCamRestore();return;}renderer.render(scene,camera);vzCamRestore();}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
  skyDome.position.copy(camera.position);skyDome.scale.setScalar(SKY_SCALE);
@@ -1970,8 +1983,9 @@ function updateAutoGraphics3D(dt,now){
  if(graphics3DSampleTime<2)return;
  graphics3DFps=graphics3DSampleFrames/graphics3DSampleTime;
  const elapsed=graphics3DSampleTime;graphics3DSampleTime=0;graphics3DSampleFrames=0;
- if(graphics3DFps<34){graphics3DLowTime+=elapsed;graphics3DHighTime=0;}
- else if(graphics3DFps>52){graphics3DHighTime+=elapsed;graphics3DLowTime=0;}
+ // Em 34–35 FPS o Auto anterior nunca baixava a carga (<34), ficando preso na cidade.
+ if(graphics3DFps<42){graphics3DLowTime+=elapsed;graphics3DHighTime=0;}
+ else if(graphics3DFps>55){graphics3DHighTime+=elapsed;graphics3DLowTime=0;}
  else{graphics3DLowTime=0;graphics3DHighTime=0;}
  if(graphics3DLowTime>=3.5&&now-graphics3DLastChange>4000){
   graphics3DLowTime=0;graphics3DLastChange=now;
@@ -3755,7 +3769,7 @@ function buildAct1Props(){
  eldoriaCity.complete.then(report=>{
    window.EldoriaLiveCityQA={loaded:report.loaded,expected:report.expected,failures:report.failures,
      village:{...VILLAGE_CENTER},spawnDistance:+Math.hypot(FALL_SPOT.x-VILLAGE_CENTER.x,FALL_SPOT.z-VILLAGE_CENTER.z).toFixed(1),
-     overlaps:report.overlaps,lodDistance:report.lodDistance,lodAudit:report.lodAudit,maxSlope:Math.max(0,...report.grounding.map(g=>g.slope)),lods:report.grounding.filter(g=>g.lod).length};
+     overlaps:report.overlaps,market:marketStalls.map(m=>({label:m.label,x:+m.x.toFixed(1),z:+m.z.toFixed(1)})),well:{x:VILLAGE_CENTER.x-1.4,z:VILLAGE_CENTER.z-.6},fountain:{x:VILLAGE_CENTER.x+ELDORIA_DRY_FOUNTAIN.x,z:VILLAGE_CENTER.z+ELDORIA_DRY_FOUNTAIN.z},grounding:report.grounding,lodDistance:report.lodDistance,lodAudit:report.lodAudit,maxSlope:Math.max(0,...report.grounding.map(g=>g.slope)),lods:report.grounding.filter(g=>g.lod).length};
    if(report.failures.length)console.warn('Eldória: falha de modelos na cidade',report.failures);
  }).catch(error=>console.warn('Eldória: falha de montagem',error));
  buildSewerDoor();

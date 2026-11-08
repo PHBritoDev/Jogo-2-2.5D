@@ -13,7 +13,9 @@ import { housePlots, ELDORIA_HOUSES, ELDORIA_SMITHY, ELDORIA_MAIN_TREE, ELDORIA_
    Norte, Leste, Oeste), cada uma com função e porta voltada para a rua; a árvore colossal ao fundo da praça e uma
    árvore lateral com a casa da árvore. As árvores menores saíram do núcleo urbano (a mata fica no cinturão). */
 export const ELDORIA_PLOTS = housePlots();
-export const ELDORIA_MARKET = [[2.85, -2.5, 3.65, .15], [-2.05, 3.75, 3.55, Math.PI], [4.5, 3, 3.7, .2], [1.8, -7.6, 3.5, Math.PI]];
+// Quatro barracas em bolsões de circulação, longe do poço, fonte, portas e caminho principal.
+// Coordenadas relativas a ELDORIA_CENTER; as posições antigas concentravam 4 barracas em ~10 m.
+export const ELDORIA_MARKET = [[-10, -4, 3.65, .4], [10, 4, 3.55, -.5], [-1, 7, 3.7, Math.PI], [-1, -10, 3.5, .1]];
 const S = ELDORIA_SMITHY, MT = ELDORIA_MAIN_TREE, ST = ELDORIA_SIDE_TREE;
 export const ELDORIA_PROPS = [
   ['PocoEldoria.glb', -1.4, -.6, 3.15, 0, 1.2],
@@ -32,7 +34,8 @@ export { ELDORIA_HOUSES };
    costuras só reduz 12–31 % — não compensa: os modelos da cidade ficam no LOD0 (cor certa) e os LOD1 foram apagados.
    O mecanismo de LOD continua, protegido por uvCompatible (vértice E triângulo), para um LOD futuro re-assado. */
 // LOD1 re-assados (tools/eldoria/bake-house-lod.mjs): malha ~16 % com textura PRÓPRIA projetada do modelo completo.
-const LOD_FILES = new Set(['CasaEldoria01.glb', 'CasaEldoria02.glb', 'FerreiroEldoria.glb', 'PocoEldoria.glb', 'BarracaFrutasEldoria.glb', 'RochedoMusgoEldoria.glb']);
+// Barracas mantêm LOD0: transição assíncrona do LOD de mercado podia ocultar banca visível enquanto collider persistia.
+const LOD_FILES = new Set(['CasaEldoria01.glb', 'CasaEldoria02.glb', 'FerreiroEldoria.glb', 'PocoEldoria.glb', 'RochedoMusgoEldoria.glb']);
 
 export function eldoriaSpecs() {
   const specs = [];
@@ -144,7 +147,7 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
       // Base no chão mais baixo da pegada: nenhum canto fica no ar; árvores afundam 2,5 % da altura (perfil das raízes medido no GLB).
       const y = spec.kind === 'tree' ? lo - spec.size * ANCESTRAL_ROOT_SINK : lo - .03;
       obj.position.set(cx, y, cz); obj.rotation.y = spec.rotation; obj.name = 'Eldoria_' + spec.kind + '_' + spec.file;
-      obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && (spec.kind === 'house' || spec.kind === 'tree'); } });
+      obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && (spec.kind === 'house' || spec.kind === 'tree'); if (spec.kind === 'market') child.frustumCulled = false; } });
       root.add(obj);
       if (spec.kind === 'house') plinths.push({ x: cx, y: lo, z: cz, sx: hx * 2.08, sz: hz * 2.08, h: .26 + (hi - lo), rot: spec.rotation });
       grounding.push({ file: spec.file, kind: spec.kind, x: +cx.toFixed(1), z: +cz.toFixed(1), slope: +(hi - lo).toFixed(3), lod: !!lodSrc });
