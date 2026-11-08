@@ -44,6 +44,7 @@ import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
 import {ELDORIA_STREETS,doorPaths,treeStructurePlan} from './eldoria-city-layout.js';
 import {createWalkables} from './eldoria-walkable.js';
+import {clampBakedMips} from './eldoria-baked-texture.js';
 import {loadTropicalTrees,mountTropicalForest,planTropicalBelt} from './eldoria-tropical-trees.js';
 import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
@@ -258,7 +259,7 @@ const waterMaterials=[eldoriaRiver.material,eldoriaLake.material];
 const eldoriaBridge=buildBridge(THREE,BRIDGE,{level:RIVER.level,lowSpec:terrainLowSpec});scene.add(eldoriaBridge);
 /* Ponte.glb (asset do criador) substitui a ponte procedural de reserva: escala pelo vão, tabuleiro medido por raio para
    a caminhada (bridgeDeck usa a mesma curva) e cabeceiras assentadas no barranco. */
-new GLTFLoader().load('./Ponte.glb',gltf=>{const m=gltf.scene,b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=BRIDGE.halfLength*2.18/Math.max(.01,sz.x);
+new GLTFLoader().load('./Ponte.glb',gltf=>{clampBakedMips(THREE,gltf.scene,terrainLowSpec?4:3.5);const m=gltf.scene,b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=BRIDGE.halfLength*2.18/Math.max(.01,sz.x);
  m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k,-c.z*k);const g=new THREE.Group();g.add(m);g.rotation.y=Math.atan2(-BRIDGE.axisZ,BRIDGE.axisX);g.position.set(BRIDGE.x,0,BRIDGE.z);scene.add(g);g.updateMatrixWorld(true);
  m.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;}});
  const ray=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0),deckAt=t=>{const x=BRIDGE.x+BRIDGE.axisX*BRIDGE.halfLength*t,z=BRIDGE.z+BRIDGE.axisZ*BRIDGE.halfLength*t;ray.set(new THREE.Vector3(x,40,z),down);const h=ray.intersectObject(m,true)[0];return h?h.point.y:null;};
@@ -2449,7 +2450,7 @@ const shopBuilding=(()=>{
  /* MOD 291 — a Loja Central ganha a arquitetura de Eldória (CasaEldoria01.glb do criador, telhado verde de musgo e
     enxaimel claro) no lugar do bloco branco de torre azul que dominava o primeiro plano. Placa, estrela, lanterna, porta,
     colisão e interação continuam iguais (mesmas coordenadas). As peças antigas ficam de reserva se o GLB falhar. */
- new GLTFLoader().load('./CasaEldoria01.glb',gl=>{const m=gl.scene,b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=8.6/Math.max(.01,sz.x);
+ new GLTFLoader().load('./CasaEldoria01.glb',gl=>{clampBakedMips(THREE,gl.scene,terrainLowSpec?4:3.5);const m=gl.scene,b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=8.6/Math.max(.01,sz.x);
   m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k-.05,-c.z*k-.9);m.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;}});
   for(const o of [...g.children])if(o!==sign&&o!==star&&o!==lamp)o.visible=false;
   // Colisão acompanha a casa nova (câmera não entra na parede) e saem as colunas invisíveis do pórtico antigo.
@@ -3753,7 +3754,7 @@ function buildAct1Props(){
  eldoriaCity.complete.then(report=>{
    window.EldoriaLiveCityQA={loaded:report.loaded,expected:report.expected,failures:report.failures,
      village:{...VILLAGE_CENTER},spawnDistance:+Math.hypot(FALL_SPOT.x-VILLAGE_CENTER.x,FALL_SPOT.z-VILLAGE_CENTER.z).toFixed(1),
-     overlaps:report.overlaps,lodDistance:report.lodDistance,maxSlope:Math.max(0,...report.grounding.map(g=>g.slope)),lods:report.grounding.filter(g=>g.lod).length};
+     overlaps:report.overlaps,lodDistance:report.lodDistance,lodAudit:report.lodAudit,maxSlope:Math.max(0,...report.grounding.map(g=>g.slope)),lods:report.grounding.filter(g=>g.lod).length};
    if(report.failures.length)console.warn('Eldória: falha de modelos na cidade',report.failures);
  }).catch(error=>console.warn('Eldória: falha de montagem',error));
  buildSewerDoor();
@@ -7164,6 +7165,11 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  whyBlocked(x,z){const y=player.position.y,w=eldoriaWalk.blocked(x,z,y,groundHeightAt);const t=treeObstacles.find(o=>Math.hypot(x-o.x,z-o.z)<o.radius),mo=marketObstacles.find(o=>o.height>.68&&(o.shape==='box'?Math.abs(x-o.x)<o.halfX&&Math.abs(z-o.z)<o.halfZ:Math.hypot(x-o.x,z-o.z)<o.radius)),np=[...vendorRoots,...villagerWalkers.map(v=>v.holder)].find(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8);return{blockedAt:blockedAt(x,z),player:playerBlockedAt(x,z),walk:w?(w.name||w.type):null,tree:t?[t.x,t.z,t.radius]:null,market:mo?[mo.x,mo.z,mo.radius||mo.halfX]:null,npc:np?[np.position.x,np.position.z]:null,water:terrain3D.waterDepth(x,z),edge:terrain3D.boundaryDistance(x,z)};},
  walkJump(){action('jump');return true;},
  placeAt(x,y,z,yaw=0){player.position.set(x,y,z);playerYaw=yaw;player.rotation.y=yaw;cameraYaw=yaw+Math.PI;grounded=true;verticalVelocity=0;moveVX=moveVZ=0;return this.walkState();},
+ /** MOD 292 — auditoria de cor ao longe: por objeto da cidade com LOD, material/textura/UV de cada nível (mesmo material
+  *  em todos os níveis = mesma cor perto e longe) e o mesmo para as árvores tropicais. */
+ materialAudit(){const out={city:[],tropical:[]};villageGroup.traverse(o=>{if(!o.isLOD)return;const lv=o.levels.map(l=>{const ms=[];l.object.traverse(c=>{if(c.isMesh)ms.push({mat:c.material.uuid.slice(0,8),map:!!c.material.map,cs:c.material.map?c.material.map.colorSpace:null,uv:!!c.geometry.attributes.uv});});return{d:l.distance,ms};});out.city.push({name:o.name,levels:lv,sameMaterial:lv.every(l=>l.ms.every((m,i)=>m.mat===lv[0].ms[i]?.mat))});});
+  if(tropicalBelt)for(const m of tropicalBelt.meshes)out.tropical.push({name:m.name,mat:m.material.name,map:!!m.material.map,cs:m.material.map?m.material.map.colorSpace:null,normalMap:!!m.material.normalMap});return out;},
+ beltSample(sp,near=[0,-20]){let best=null;for(const t of tropicalPlan)if(t.sp===sp){const d=Math.hypot(t.x-near[0],t.z-near[1]);if(!best||d<best.d)best={...t,d};}return best;},
  beltWhy(x,z){return{free:beltFree(x,z,1),dry:dryGround(x,z),edge:terrain3D.boundaryDistance(x,z),meadow:insideMeadow(x,z,6),block:beltBlocks.find(b=>Math.hypot(x-b.x,z-b.z)<b.r+1)||null,river:closeToPolyline(x,z,RIVER_POINTS,RIVER.width*.5+3.6),trail:trailRoutes.findIndex(t=>closeToPolyline(x,z,t.points,t.width*.5+2.8)),tree:treeObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+4)};},
  terrainProbe(pts){return pts.map(([x,z])=>({x,z,h:+terrain3D.height(x,z).toFixed(2),edge:+terrain3D.boundaryDistance(x,z).toFixed(1),water:+terrain3D.waterDepth(x,z).toFixed(2)}));},
  drawList(){return new Promise(res=>{const orig=renderer.renderBufferDirect.bind(renderer),agg={};let n=0,tri=0;renderer.renderBufferDirect=function(cam,sc,geo,mat,obj,grp){n++;let top=obj,q=obj;while(q&&q.parent){if(q.parent.isScene){top=q;break;}q=q.parent;}const k=(top.name||(top.type+'@'+Math.round(top.position.x)+','+Math.round(top.position.z)+'#'+top.children.length))+'>'+(obj.name||obj.type);const t=(geo.index?geo.index.count:geo.attributes.position.count)/3*(obj.isInstancedMesh?obj.count:1);const a=agg[k]||(agg[k]={c:0,t:0});a.c++;a.t+=t;tri+=t;return orig(cam,sc,geo,mat,obj,grp);};requestAnimationFrame(()=>{renderer.renderBufferDirect=orig;res({calls:n,tris:Math.round(tri),top:Object.entries(agg).sort((a,b)=>b[1].c-a[1].c).slice(0,30).map(([k,v])=>k+':'+v.c+'/'+Math.round(v.t/1000)+'k')});});});},

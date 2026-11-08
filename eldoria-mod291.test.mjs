@@ -110,14 +110,11 @@ test('cidade: nenhuma pegada sobreposta, casas fora da trilha e do rio, aterrame
   const lib = readFileSync(new URL('./eldoria-live-village3d.js', import.meta.url), 'utf8');
   assert.match(lib, /const y = spec\.kind === 'tree' \? lo - spec\.size \* ANCESTRAL_ROOT_SINK : lo - \.03;/); // Mod 292: afundamento medido no perfil das raízes
   assert.match(lib, /new THREE\.LOD\(\)/);
-  for (const f of ['CasaEldoria01', 'CasaEldoria02', 'ArvoreAncestralEldoria', 'RochedoMusgoEldoria', 'PocoEldoria', 'BarracaFrutasEldoria', 'FerreiroEldoria', 'Carroça', 'ArvoreFloresta01']) {
-    const p = new URL('./' + f + '-lod1.glb', import.meta.url); assert.ok(existsSync(p), f + ' LOD1');
-    const b = readFileSync(p), json = JSON.parse(b.slice(20, 20 + b.readUInt32LE(12)).toString());
-    assert.equal((json.images || []).length, 0, 'LOD1 sem textura própria'); assert.ok(statSync(p).size < 160 * 1024);
-    const full = readFileSync(new URL('./' + f + '.glb', import.meta.url)), fj = JSON.parse(full.slice(20, 20 + full.readUInt32LE(12)).toString());
-    const tris = j => j.meshes.flatMap(m => m.primitives).reduce((a, pr) => a + j.accessors[pr.indices].count / 3, 0);
-    assert.ok(tris(json) < tris(fj) * .7, f + ' LOD1 precisa ter menos triângulos');
-  }
+  // Mod 292: os LOD1 do Mod 291 borravam a UV (costuras soldadas) e foram apagados; a cidade usa o LOD0 (cor certa)
+  // e o mecanismo de LOD só aceita um arquivo que passe na prova de UV por vértice E por triângulo.
+  assert.ok(!existsSync(new URL('./ArvoreFloresta01-lod1.glb', import.meta.url)), 'LOD1 borrado da mata não pode voltar');
+  assert.match(lib, /triângulos com UV esticada/);
+
   assert.match(src, /mergeGroupMeshes\(villageCast\)/, 'moradores procedurais agrupados por material');
   assert.match(src, /trails-merged-mod291/);
   assert.match(src, /villageGroup\.visible=!south;prologueMeadow\.group\.visible=south;/, 'streaming por zona');
@@ -152,20 +149,26 @@ test('marco 2: mata fechada usa o GLB do criador, respeita trilha/água e não f
   assert.ok(plan.filter(t => Math.hypot(t.x - lake.x, t.z - lake.z) < lake.r + 20).length >= 20, 'anel de árvores emoldura o lago');
   const xs = new Set(plan.map(t => Math.round(t.x / 4))); assert.ok(xs.size > 20, 'distribuição não alinhada em colunas');
   const lib = readFileSync(new URL('./eldoria-mature-forest.js', import.meta.url), 'utf8');
-  assert.match(lib, /'\.\/ArvoreFloresta01\.glb'/); assert.match(lib, /'\.\/ArvoreFloresta01-lod1\.glb'/);
+  assert.match(lib, /'\.\/ArvoreFloresta01\.glb'/); assert.doesNotMatch(lib, /'\.\/ArvoreFloresta01-lod1\.glb'/); // Mod 292: LOD1 borrado removido
   assert.match(src, /mountMatureForest\(THREE,GLTFLoader,\{/);
   assert.match(src, /wobble:\.6\}/, 'margem do lago orgânica');
   assert.match(readFileSync(new URL('./eldoria-water.js', import.meta.url), 'utf8'), /uFoamEnd - 14\.0/, 'sem espuma de rio dentro do lago');
 });
 
-test('LOD1 dos GLBs mantém TEXCOORD_0 (usa a textura do LOD0) e a mata tem fallback sem LOD1', () => {
+test('LOD1: nenhum arquivo com UV borrada; a mata usa a malha completa; a ferramenta só grava LOD com UV íntegra', () => {
+  // Mod 292: o LOD1 que existir é RE-ASSADO (textura própria por projeção do modelo completo) — nunca o antigo borrado
   for (const f of ['CasaEldoria01', 'CasaEldoria02', 'ArvoreAncestralEldoria', 'RochedoMusgoEldoria', 'PocoEldoria', 'BarracaFrutasEldoria', 'FerreiroEldoria', 'Carroça', 'ArvoreFloresta01']) {
-    const b = readFileSync(new URL('./' + f + '-lod1.glb', import.meta.url)), j = JSON.parse(b.slice(20, 20 + b.readUInt32LE(12)).toString());
-    for (const m of j.meshes) for (const pr of m.primitives) assert.ok('TEXCOORD_0' in pr.attributes, f + ' LOD1 sem UV');
+    const p = new URL('./' + f + '-lod1.glb', import.meta.url); if (!existsSync(p)) continue;
+    const b = readFileSync(p), j = JSON.parse(b.slice(20, 20 + b.readUInt32LE(12)).toString());
+    assert.ok((j.images || []).length === 1 && j.materials.every(m => m.pbrMetallicRoughness.baseColorTexture), f + ' LOD1 com textura própria');
+    assert.ok(j.nodes.some(n => /projeção/.test(n.extras?.metodo || '')), f + ' LOD1 assado por projeção');
+    const tri = j.meshes.flatMap(m => m.primitives).reduce((s, pr) => s + j.accessors[pr.indices].count / 3, 0), src = j.nodes.find(n => n.extras?.triangulosLOD0).extras.triangulosLOD0;
+    assert.ok(tri < src * .25, f + ' LOD1 ≥75 % mais leve'); assert.ok(statSync(p).size < 450 * 1024);
   }
   const lib = readFileSync(new URL('./eldoria-mature-forest.js', import.meta.url), 'utf8');
-  assert.match(lib, /res\(build\(full, null\)\)/, 'LOD1 ausente usa a malha completa');
-  assert.match(readFileSync(new URL('./tools/eldoria/build-lod-glbs.mjs', import.meta.url), 'utf8'), /prune\(\{ keepAttributes: true \}\)/);
+  assert.match(lib, /res\(build\(full, null\)\)/, 'faixa média usa a malha completa');
+  const tool = readFileSync(new URL('./tools/eldoria/build-lod-glbs.mjs', import.meta.url), 'utf8');
+  assert.match(tool, /prune\(\{ keepAttributes: true \}\)/); assert.match(tool, /worst < \.02 && saving >= \.35/); assert.doesNotMatch(tool, /wpos\.push/, 'sem solda por posição');
 });
 
 test('marco 2d: faixa distante usa impostor renderizado do GLB do criador (não primitivas), sem sobrepor o LOD médio', () => {

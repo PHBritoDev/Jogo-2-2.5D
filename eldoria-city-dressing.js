@@ -9,6 +9,7 @@
  */
 import { flowerGeometry, makeRng } from './eldoria-prologue-meadow.js';
 import { bushGeometry } from './eldoria-undergrowth.js';
+import { clampBakedMips } from './eldoria-baked-texture.js';
 
 function merge(THREE, parts) {
   const pos = [], nrm = [], col = [], m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), c = new THREE.Color();
@@ -164,7 +165,7 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
     for (const sd of [-1, 1]) { const o = P.walkway.w / 2 + .05; walk.addWall([A[0] + dxw * t0 + pxw * sd * o, A[1] + dzw * t0 + pzw * sd * o], [A[0] + dxw * t1 + pxw * sd * o, A[1] + dzw * t1 + pzw * sd * o], Y, Y + 1.05, 'corrimão passarela'); }
   }
   new GLTFLoader().load('./PassarelaSuspensaEldoria.glb', g => {
-    const src = g.scene, bb = new THREE.Box3().setFromObject(src), sz = bb.getSize(new THREE.Vector3()), c = bb.getCenter(new THREE.Vector3());
+    const src = g.scene, bb = new THREE.Box3().setFromObject(src), sz = bb.getSize(new THREE.Vector3()), c = bb.getCenter(new THREE.Vector3()); clampBakedMips(THREE, src, lowSpec ? 4 : 3.5);
     const half = Lw / 2, k = (half + 1.1) / Math.max(.01, sz.x), ky = Math.min(k, 3.2 / Math.max(.01, sz.y)), kw = Math.min(k, (P.walkway.w + .9) / Math.max(.01, sz.z));
     const cx = (A[0] + B[0]) / 2, cz = (A[1] + B[1]) / 2, yaw = Math.atan2(-uz, ux), y = Y + .02;
     for (const sgn of [-1, 1]) {
