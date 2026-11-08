@@ -11,9 +11,12 @@ export function hallSection(z) {
 function dFor(z){return Math.max(0,-z-40);}
 export function hallPoint(x,y,z) {
   const s=hallSection(z),c=Math.cos(s.angle),n=Math.sin(s.angle);
-  // Near the arena: only a slight shear of the upper structure, floor stays flat.
+  // Anchor the bottom corners to the continuous flat floor. The upper corners
+  // rotate progressively; connected wall panels become skewed quadrilaterals.
   const shear=-.065*Math.exp(-Math.max(0,-z-40)/80);
-  return [x*c-(y-HALL.height/2)*n+s.shift+shear*y,(y-HALL.height/2)*c+x*n+HALL.height/2-.20*x*(y/HALL.height)*Math.exp(-dFor(z)/70),z];
+  const u=y/HALL.height,topX=x*c-HALL.height*.5*n+s.shift+shear*HALL.height;
+  const topY=HALL.height*.5*c+x*n+HALL.height*.5-.20*x*Math.exp(-dFor(z)/70);
+  return [x+(topX-x)*u,topY*u,z];
 }
 export function hallLayout(){return Array.from({length:HALL.count},(_,i)=>({index:i,z0:HALL.start-i*HALL.step,z1:HALL.start-(i+1)*HALL.step,lampZ:HALL.start-(i+.5)*HALL.step}));}
 const GLSL=`
@@ -58,7 +61,7 @@ function material(THREE,kind,uniforms){
     float check=filt.x+filt.y-2.*filt.x*filt.y;
     check=mix(check,.5,smoothstep(.5,1.5,max(aa.x,aa.y)));
     vec2 seam=abs(fract(cell+.5)-.5);float grout=1.-smoothstep(.003,.009,min(seam.x,seam.y));
-    diffuseColor.rgb=vec3(mix(.006,.18,check)*(.65+.35*wear));diffuseColor.rgb*=1.-grout*.27;`:
+    diffuseColor.rgb=vec3(mix(.006,.18,check)*(.65+.35*wear));diffuseColor.rgb*=(1.-grout*.27)*(.94+.06*g);`:
     `diffuseColor.rgb=vec3(${door?'.004':trim?'.030':'.026'}*(.65+.35*g)*(.80+.20*wear));`}
   `);
   s.fragmentShader=s.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
@@ -68,12 +71,13 @@ function material(THREE,kind,uniforms){
     int nearLamp=int(clamp(floor((44.-vHall.z)/22.),0.,31.));
     vec3 toward=uLampCenter[nearLamp]-vHall;float dist=length(toward);
     float incidence=max(.08,dot(normalize(vHallNormal)*(gl_FrontFacing?1.:-1.),normalize(toward)));
-    float baked=incidence*1200./(dist*dist+250.);
+    float baked=incidence*1600./(dist*dist+250.);
     reflectedLight.indirectDiffuse+=diffuseColor.rgb*(baked+${door?'.04':'.06'});
   `);
   if(floor)s.fragmentShader=s.fragmentShader.replace('#include <opaque_fragment>',`
     vec3 incident=normalize(vHall-uHallCamera),N=normalize(vHallNormal);
     if(N.y<0.)N=-N;
+    N=normalize(N+vec3(sin(vHall.x*4.3+vHall.z*1.3)*.0018,0.,cos(vHall.z*3.7-vHall.x*.8)*.0018));
     vec3 ray=reflect(incident,N);
     // Estimate the candidate by the ceiling plane, then intersect its actual quad.
     float estimate=(52.-vHall.y)/max(.01,ray.y);
@@ -145,6 +149,9 @@ export function buildHallDimension(THREE,group,spec,ctx){
  frontPatch(wall,-2.3,2.3,0,21,end);frontPatch(wall,-2.3,2.3,29,H,end);
  frontPatch(lamps,-2.3,2.3,21,29,end-.05);
  const meshes=[wall.mesh(),floor.mesh(),doors.mesh(),trim.mesh(),lamps.mesh()];meshes.forEach(m=>group.add(m));
+ // Cinematics can render with a different camera while the gameplay update is
+ // paused. Reflection must use the actual render camera, including those shots.
+ meshes[1].onBeforeRender=(_renderer,_scene,camera)=>group.worldToLocal(camera.getWorldPosition(uniforms.uHallCamera.value));
  const boltGeo=new THREE.BoxGeometry(.15,.15,.15),bolts=new THREE.InstancedMesh(boltGeo,mats.trim,details.length),obj=new THREE.Object3D();
  details.forEach((d,i)=>{obj.position.set(...d.p);obj.updateMatrix();bolts.setMatrixAt(i,obj.matrix);});bolts.instanceMatrix.needsUpdate=true;bolts.computeBoundingSphere();bolts.name='hall-jamb-fasteners';group.add(bolts);
  let quality='high',disposed=false,updates=0;
