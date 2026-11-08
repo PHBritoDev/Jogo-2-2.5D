@@ -5,7 +5,9 @@
 export const HALL = Object.freeze({ halfWidth: 36, height: 52, start: 44, step: 22, count: 32, tile: 6 });
 export const HALL_QUALITY = Object.freeze({low:{detail:10,samples:1},medium:{detail:20,samples:3},high:{detail:32,samples:5}});
 export function hallSection(z) {
-  const d=Math.max(0,-z-40), angle=-.65*(1-Math.exp(-d/160));
+  // Irregularidade arquitetônica em larga escala, contínua entre seções: não parecer cópia do mesmo módulo 32 vezes.
+  // A deformação só começa além da arena jogável e não gira a câmera nem o chão.
+  const d=Math.max(0,-z-40),progress=1-Math.exp(-d/160),angle=-.65*progress-.12*(1-Math.exp(-d/100))*Math.sin(d*.045);
   return {z,angle,shift:Math.sin(d*.006)*1.2};
 }
 function dFor(z){return Math.max(0,-z-40);}
