@@ -31,3 +31,10 @@ Pesquisar documentação e exemplos confiáveis para Three.js: `InstancedMesh`, 
 - PR draft com resumo dos arquivos, before/after, screenshots, técnicas adotadas, custo de renderização e checklist de regressões. Não mesclar nem mexer no trabalho do Claude.
 
 **Prioridade:** olhos orgânicos piscando e acompanhando jogador + iluminação/composição fiel > quantidade de efeitos. Qualidade visual e atmosfera primeiro, sem sacrificar jogabilidade e mobile.
+
+## MODO SILENCIOSO EXTREMO — OBRIGATÓRIO
+- **Não enviar atualizações de progresso, mensagens de confirmação, relatórios parciais, explicações repetitivas, perguntas opcionais ou narração das ações.** Trabalhar silenciosamente e com autonomia até concluir.
+- Não parar para pedir aprovação a cada etapa; pesquisar, implementar, corrigir e testar por conta própria dentro do escopo e da branch isolada.
+- **Só se manifestar ao final**, com mensagem curtíssima contendo link do PR, capturas, testes e pendências reais.
+- **Exceções estritamente necessárias:** pedir intervenção somente se houver bloqueio incontornável (credenciais, referência inacessível essencial ou decisão que possa afetar trabalho de outro agente), risco de perda de dados ou autorização explícita para merge. Nesse caso, enviar uma única pergunta objetiva e aguardar.
+- Não confundir silêncio com ausência de registros: manter commits, evidências, testes e descrição do PR completos. **Nunca mesclar sem aprovação.**
