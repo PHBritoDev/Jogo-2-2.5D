@@ -87,5 +87,6 @@ test('região extra ligada por garganta é caminhável de ponta a ponta', () => 
   for (let x = -60; x >= -140; x -= 2) assert.ok(t.walkable(x, -60), 'garganta fechada em x=' + x);
   assert.ok(!t.walkable(-90, -20), 'fora da garganta continua montanha');
   assert.ok(t.waterDepth(-150, -60) > .3, 'canal tem água');
-  assert.ok(!t.walkable(-150, -60), 'canal fundo não é caminhável');
+  // Mod 298: água rasa pode ser atravessada; a profundidade >=0,9 m ainda bloqueia.
+  assert.equal(t.walkable(-150, -60), t.waterDepth(-150, -60) < .9, 'colisão da água respeita o limiar de profundidade');
 });
