@@ -87,7 +87,9 @@ export function mountMatureForest(THREE, GLTFLoader, o) {
   place(far, 1.25); far.name = 'mature-forest-far'; group.add(far);
   // A copa distante só começa no fim do LOD médio (PR #416): nunca dois modelos da mesma árvore no mesmo quadro.
   // O registro do corte acontece uma vez só, depois de decidir entre impostor autoral e copa simples.
-  const registerFar = () => { if (registerCull) registerCull(far, 150, 0, lowSpec ? 42 : 58); };
+  const nearLimit = lowSpec ? 15 : 24;
+  const midLimit = lowSpec ? 38 : 58;
+  const registerFar = () => { if (registerCull) registerCull(far, lowSpec ? 115 : 150, 0, midLimit); };
   // LOD1 é opcional: se não carregar (ou vier sem UV), a malha completa do criador serve aos dois níveis.
   const loader = new GLTFLoader(), build = (full, lod) => {
     const tex = bakeUnitTree(THREE, full.scene); if (!tex) { registerFar(); return null; }
@@ -97,10 +99,10 @@ export function mountMatureForest(THREE, GLTFLoader, o) {
     mat.roughness = Math.max(.92, mat.roughness ?? 1); // casca sem brilho especular de plástico
     // Dois níveis: malha completa do criador perto (sem facetas grandes no tronco) e LOD1 na faixa média.
     const near = new THREE.InstancedMesh(tex.geo, mat, Math.max(1, plan.length)); place(near, 1);
-    near.castShadow = !lowSpec; near.receiveShadow = true; near.name = 'mature-forest-near'; group.add(near);
+    near.castShadow = !lowSpec; near.receiveShadow = !lowSpec; near.name = 'mature-forest-near'; group.add(near);
     const mid = new THREE.InstancedMesh(geo.geo, mat, Math.max(1, plan.length)); place(mid, 1);
-    mid.castShadow = !lowSpec; mid.receiveShadow = true; mid.name = 'mature-forest-mid'; group.add(mid);
-    if (registerCull) { registerCull(near, 24, 24); registerCull(mid, lowSpec ? 42 : 58, 0, 24); }
+    mid.castShadow = false; mid.receiveShadow = !lowSpec; mid.name = 'mature-forest-mid'; group.add(mid);
+    if (registerCull) { registerCull(near, nearLimit, nearLimit); registerCull(mid, midLimit, 0, nearLimit); }
     // Impostor autoral: a própria ArvoreFloresta01 renderizada uma vez (duas vistas) numa textura com alfa,
     // aplicada em dois planos cruzados por árvore — substitui a copa procedural na faixa distante (revisão 19:59).
     let impostor = false;
