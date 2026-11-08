@@ -60,10 +60,12 @@ jobs:
           python-version: '3.12'
       - run: pip install playwright==1.62.0 Pillow==12.3.0
       - run: python -m playwright install --with-deps chromium
+      - run: npm install --prefix /tmp/aerial-deps --no-package-lock --ignore-scripts three@0.160.0
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Render actual GLBs and exercise gameplay
         env:
           VISUAL_BASE_URL: http://127.0.0.1:4181
+          AERIAL_THREE_DIR: /tmp/aerial-deps/node_modules/three
         run: |
           python -m http.server 4181 > /tmp/aerial-http.log 2>&1 &
           SERVER_PID=$!

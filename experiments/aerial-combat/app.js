@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {Mobility,AerialCombo,CAPABILITIES,moveWithCollision} from './controller.js';
-import {loadRig,measure} from './rig.js';
+import {loadRig,measure,inPlace} from './rig.js';
 import {shadowPool} from './shadows.js';
 import {SwordRites,segmentBlocked,segmentDistance} from '../../sword-rites3d.js';
 import {createAerialEffects} from './effects.js';
@@ -48,9 +48,9 @@ async function selectRig(kind){ready=false;if(combo)combo.cancel('rig-change');g
  legacy=new SwordRites({choreography:true,blocked:v=>obstruction(v.x,v.z,v.y),move(v){moveWithCollision(p,v.x-p.x,v.z-p.z,blocked);},pose(a){return rig.sample(a.clip,a.t);},hit(n,id){const t=targets.find(t=>t.id===id);if(t)damage(t,n,{kind:'physical'});},event(type,e){vfx.event(type,e);}});
  $('clip').replaceChildren(...rig.originals.map(c=>Object.assign(document.createElement('option'),{value:c.name,textContent:c.name+' · '+c.duration.toFixed(2)+' s'})));
  $('status').textContent='Treino isolado · sem alterar a campanha';ready=true;record('rig',{kind});}
-async function loadEnemy(){const g=await new GLTFLoader().loadAsync(new URL('../../Enemy1-lod.glb',import.meta.url).href);enemyRoot=g.scene;const b=measure(enemyRoot),s=1.8/(b.max.y-b.min.y);enemyRoot.scale.setScalar(s);enemyRoot.position.y=-b.min.y*s;const holder=new T.Group();holder.add(enemyRoot);scene.add(holder);enemy.holder=holder;
- enemyRoot.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;}});enemyMixer=new T.AnimationMixer(enemyRoot);const map={idle:'01a14b5a-2ee6-75dc-982f-8965372f192b',walk:'Walking',attack:'01a14b57-0772-77b2-9da3-b6644a5d1cae'};
- for(const[n,k]of Object.entries(map)){const c=g.animations.find(c=>c.name===k);if(c)enemyActs[n]=enemyMixer.clipAction(c);}enemyGhost=shadowPool(scene,enemyRoot,2);foePlay('idle');
+async function loadEnemy(){const g=await new GLTFLoader().loadAsync(new URL('../../Demonio1.glb',import.meta.url).href);enemyRoot=g.scene;const b=measure(enemyRoot),s=1.8/(b.max.y-b.min.y);enemyRoot.scale.setScalar(s);enemyRoot.position.y=-b.min.y*s;const holder=new T.Group();holder.add(enemyRoot);scene.add(holder);enemy.holder=holder;
+ enemyRoot.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;}});enemyMixer=new T.AnimationMixer(enemyRoot);const map={idle:'_01a1b3e4_6f0c_705b_82f5_e9447d85cbef',walk:'Walking',attack:'Left_Hook_from_Guard'};
+ for(const[n,k]of Object.entries(map)){const c=g.animations.find(c=>c.name===k);if(c)enemyActs[n]=enemyMixer.clipAction(inPlace(c,{reference:enemyRoot.getObjectByName('Hips').position.toArray()}));}enemyGhost=shadowPool(scene,enemyRoot,2);foePlay('idle');
  const d=new T.Group(),mat=new T.MeshStandardMaterial({color:0x947451,roughness:.65,metalness:.15});for(const[y,h,r]of [[.85,1.3,.27],[1.62,.26,.19]]){const m=new T.Mesh(new T.CylinderGeometry(r,r,h,8),mat);m.position.y=y;m.castShadow=true;d.add(m);}const arms=new T.Mesh(new T.BoxGeometry(1.05,.16,.18),mat);arms.position.y=1.25;d.add(arms);d.position.set(dummy.p.x,0,dummy.p.z);scene.add(d);dummy.holder=d;
 }
 function foePlay(name){const a=enemyActs[name]||enemyActs.idle;if(!a||a===enemyAction)return;if(enemyAction)enemyAction.fadeOut(.08);a.reset().fadeIn(.08).play();enemyAction=a;}

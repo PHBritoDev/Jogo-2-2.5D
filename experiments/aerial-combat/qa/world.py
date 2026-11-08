@@ -2,6 +2,7 @@
 import asyncio,json,os
 from pathlib import Path
 from playwright.async_api import async_playwright
+from qa_support import configure,ready
 
 async def main():
  out=Path('aerial-results/world');out.mkdir(parents=True,exist_ok=True);report={'rigs':{},'errors':[],'missing':[]}
@@ -17,8 +18,9 @@ async def main():
    page.on('response',lambda r:report['missing'].append(r.url) if r.status==404 else None)
    # Pause the RAF scheduler, not the renderer: manual existing debug steps render the actual world.
    await page.add_init_script("const qaRAF=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=cb=>{if(cb.name==='animate'){window.qaWorldFrame=cb;return 1;}return qaRAF(cb)};localStorage.setItem('seven-sins-3d-graphics','low');localStorage.setItem('aerial-save-sentinel','unchanged')")
+   await configure(page,report)
    await page.goto(os.environ.get('VISUAL_BASE_URL','http://127.0.0.1:4181')+'/mundo-3d-prototype.html?debug3d&todasHabilidades&prota='+kind,wait_until='domcontentloaded')
-   await page.wait_for_function('window.SevenSinsDebug3D?.riteState().ready');js=page.evaluate
+   await ready(page,'window.SevenSinsDebug3D?.riteState().ready',out,report);js=page.evaluate
    async def capture(name):
     await js('(()=>{const p=SevenSinsDebug3D.riteState().hero;SevenSinsDebug3D.fly([p[0]+3.5,p[1]+2.4,p[2]+4.5],[p[0],p[1]+1,p[2]]);SevenSinsDebug3D.combatStep(0);})()')
     await page.screenshot(path=str(out/name))

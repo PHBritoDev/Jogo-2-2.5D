@@ -2,6 +2,7 @@
 import asyncio,json,os
 from pathlib import Path
 from playwright.async_api import async_playwright
+from qa_support import configure,ready
 
 async def main():
  out=Path('aerial-results/interaction');out.mkdir(parents=True,exist_ok=True)
@@ -13,7 +14,8 @@ async def main():
   browser=await pw.chromium.launch(**opts);page=await browser.new_page(viewport={'width':960,'height':540},has_touch=True,ignore_https_errors=True)
   page.on('pageerror',lambda e:report['errors'].append(str(e)))
   page.on('console',lambda m:report['errors'].append(m.text) if m.type=='error' and any(t in m.text for t in ['WebGL','INVALID_OPERATION','OUT_OF_MEMORY']) else None);page.set_default_timeout(120000)
-  await page.goto(os.environ.get('VISUAL_BASE_URL','http://127.0.0.1:4181')+'/experiments/aerial-combat/',wait_until='domcontentloaded');await page.wait_for_function('window.AerialLab?.ready')
+  await configure(page,report)
+  await page.goto(os.environ.get('VISUAL_BASE_URL','http://127.0.0.1:4181')+'/experiments/aerial-combat/',wait_until='domcontentloaded');await ready(page,'window.AerialLab?.ready',out,report)
   async def js(code):return await page.evaluate(code)
   await js('AerialLab.ai(false);AerialLab.step();AerialLab.reset()')
   # Five complete five-hit chains using the real input buffer, not forced combo indices.

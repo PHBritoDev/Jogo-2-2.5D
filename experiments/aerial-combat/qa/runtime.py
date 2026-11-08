@@ -2,6 +2,7 @@
 import asyncio,os,json,subprocess,base64,time
 from pathlib import Path
 from playwright.async_api import async_playwright
+from qa_support import configure,ready
 from PIL import Image,ImageDraw
 OUT=Path(os.environ.get('AERIAL_OUTPUT','aerial-results/runtime'));BASE=os.environ.get('VISUAL_BASE_URL','http://127.0.0.1:4181')
 async def main():
@@ -14,7 +15,8 @@ async def main():
   page.on('pageerror',lambda e:report['errors'].append(str(e)))
   page.on('console',lambda m:report['errors'].append(m.text) if m.type=='error' and any(t in m.text for t in ['WebGL','INVALID_OPERATION','OUT_OF_MEMORY']) else None);page.set_default_timeout(120000)
   await page.add_init_script("localStorage.setItem('aerial-save-sentinel','preserve-me')")
-  t=time.monotonic();await page.goto(BASE+'/experiments/aerial-combat/',wait_until='domcontentloaded');await page.wait_for_function('window.AerialLab?.ready');report['loadSeconds']=time.monotonic()-t
+  await configure(page,report)
+  t=time.monotonic();await page.goto(BASE+'/experiments/aerial-combat/',wait_until='domcontentloaded');await ready(page,'window.AerialLab?.ready',OUT,report);report['loadSeconds']=time.monotonic()-t
   await page.evaluate('AerialLab.ai(false);AerialLab.step();AerialLab.reset()')
   async def js(code):return await page.evaluate(code)
   report['initial']=await js('AerialLab.snapshot()');report['checks']['assetsReady']=len(await js('AerialLab.rig().originals'))==19
