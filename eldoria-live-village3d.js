@@ -15,7 +15,7 @@ import { housePlots, ELDORIA_HOUSES, ELDORIA_SMITHY, ELDORIA_MAIN_TREE, ELDORIA_
 export const ELDORIA_PLOTS = housePlots();
 // Quatro barracas em bolsões de circulação, longe do poço, fonte, portas e caminho principal.
 // Coordenadas relativas a ELDORIA_CENTER; as posições antigas concentravam 4 barracas em ~10 m.
-export const ELDORIA_MARKET = [[-10, -4, 3.65, .4], [10, 4, 3.55, -.5], [0, 10, 3.7, Math.PI], [1, -10, 3.5, .1]];
+export const ELDORIA_MARKET = [[-10, -4, 3.65, .4], [10, 4, 3.55, -.5], [-1, 7, 3.7, Math.PI], [-1, -10, 3.5, .1]];
 const S = ELDORIA_SMITHY, MT = ELDORIA_MAIN_TREE, ST = ELDORIA_SIDE_TREE;
 export const ELDORIA_PROPS = [
   ['PocoEldoria.glb', -1.4, -.6, 3.15, 0, 1.2],
