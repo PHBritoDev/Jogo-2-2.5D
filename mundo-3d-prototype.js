@@ -409,7 +409,7 @@ function forestSpotFree(x,z){
  return !trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+1.25));
 }
 {
- const raw=scatterForest(terrain3D,{seed:9137,attempts:terrainLowSpec?3000:3800,isFree:forestSpotFree,lowSpec:terrainLowSpec}),grid=new Map(); // a mata fechada da faixa sul agora vem de ArvoreFloresta01.glb (eldoria-mature-forest.js), não de copas facetadas
+ const raw=[],grid=new Map(); // Remove legacy scattered procedural trees; preserve authored Eldoria mature forest and village trees. // a mata fechada da faixa sul agora vem de ArvoreFloresta01.glb (eldoria-mature-forest.js), não de copas facetadas
  const key=(x,z)=>Math.floor(x/4)+','+Math.floor(z/4);
  for(const t of raw){
   const gx=Math.floor(t.x/4),gz=Math.floor(t.z/4);let crowded=false;
@@ -557,18 +557,7 @@ for(let i=0;i<580;i++){
  if(i%3){if(grassAIndex<grassInstancesA.count)grassInstancesA.setMatrixAt(grassAIndex++,treeDummy.matrix);}else if(grassBIndex<grassInstancesB.count)grassInstancesB.setMatrixAt(grassBIndex++,treeDummy.matrix);
 }
 grassInstancesA.count=grassAIndex;grassInstancesB.count=grassBIndex;grassInstancesA.instanceMatrix.needsUpdate=true;grassInstancesB.instanceMatrix.needsUpdate=true;grassInstancesA.castShadow=false;grassInstancesB.castShadow=false;const grassGroup=new THREE.Group();grassGroup.add(grassInstancesA,grassInstancesB);scene.add(grassGroup);
-const rockSpecs=[];
-for(let i=0;i<150;i++){
- const boulder=i>=70,x=(rand()-.5)*168,z=28-rand()*186,radius=boulder?1.1+rand()*1.9:.28+rand()*.62,scaleY=boulder?.55+rand()*.5:.48+rand()*.42;
- const edge=terrain3D.boundaryDistance(x,z);if(boulder?(edge<-15||edge>-4):edge>-6)continue;
- if(Math.hypot(x,z-4)<7||Math.hypot(x-CLEARING.x,z-CLEARING.z)<7.5||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1.1)continue;
- if(trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+1.2)))continue;
- if(treeObstacles.some(o=>{const dx=x-o.x,dz=z-o.z;return dx*dx+dz*dz<(o.radius+radius+.35)*(o.radius+radius+.35);}))continue;
- const height=radius*scaleY,base=groundHeightAt(x,z)-radius*.12;rockSpecs.push({x,z,radius,scaleY,height,base});rockObstacles.push({x,z,radius:radius*.92,height,base});
-}
-const rockInstances=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),rockMat,rockSpecs.length);
-for(let i=0;i<rockSpecs.length;i++){const r=rockSpecs[i];treeDummy.position.set(r.x,r.base+r.height*.48,r.z);treeDummy.scale.set(r.radius,r.height,r.radius);treeDummy.rotation.set(rand(),rand()*Math.PI*2,rand());treeDummy.updateMatrix();rockInstances.setMatrixAt(i,treeDummy.matrix);}
-rockInstances.instanceMatrix.needsUpdate=true;rockInstances.computeBoundingSphere();rockInstances.castShadow=!terrainLowSpec;rockInstances.receiveShadow=true;scene.add(rockInstances);
+// Remove legacy random dodecahedron rocks; authored river rocks and meadow formations remain.
 // MOD 291 — prado da queda: rochedos musgosos, capim, flores e vestígios de saque (tudo instanciado e procedural).
 const prologueMeadow=buildPrologueMeadow(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,rockObstacles,meadow:PROLOGUE_MEADOW,road:TEREN_ROAD,fall:FALL_SPOT,wheel:BROKEN_WHEEL,stop:TEREN_STOP,isFree:(x,z)=>dryGround(x,z)});
 window.SevenSinsMeadowReport=prologueMeadow.stats;
