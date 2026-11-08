@@ -1,0 +1,64 @@
+name: Reconciliar Eldoria e Bispo3 uma vez
+on:
+  push:
+    branches: [ccr-8ab771c0-yqmwv4]
+    paths: ['.github/workflows/eldoria-reconcile-once.yml']
+permissions:
+  contents: write
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Conciliar apenas as duas branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git merge --no-edit --no-commit --no-ff -X ours origin/main
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const main = p => execFileSync('git',['show','origin/main:'+p],{encoding:'utf8'});
+          const replaceLine = (path,test,source) => {
+            const a=fs.readFileSync(path,'utf8').split('\n');
+            const b=main(path).split('\n');
+            const i=a.findIndex(test),j=b.findIndex(test);
+            if(i<0||j<0)throw new Error('Missing anchor '+path);
+            a[i]=b[j];fs.writeFileSync(path,a.join('\n'));
+          };
+          replaceLine('index.html',x=>x.includes("frame.src='mundo-3d-prototype.html?refresh"),null);
+          replaceLine('mod181-loader.js',x=>x.startsWith('const BUILD = '),null);
+          for(const phrase of ['function route(){','function dim(k,x){'])replaceLine('laboratorio-inimigos.html',x=>x.startsWith(phrase),null);
+          for(const phrase of ['<div id="marker"','<div id="loading">','<script type="module" src="./mod181-loader.js?'])replaceLine('mundo-3d-prototype.html',x=>x.startsWith(phrase),null);
+          for(const phrase of ["{const m=document.getElementById('marker');",'function leaveVoid(){','  arena.update(now,camera,innerHeight*renderer.getPixelRatio()'])replaceLine('mundo-3d-prototype.js',x=>x.startsWith(phrase),null);
+          {
+            const p='mundo-3d-prototype.js',lines=fs.readFileSync(p,'utf8').split('\n'),ref=main(p).split('\n');
+            const diag=ref.find(x=>x.includes('dimensionVisualState(){'));
+            if(!diag)throw new Error('Missing Bispo 3 diag');
+            if(!lines.some(x=>x.includes('dimensionVisualState(){'))){const i=lines.findIndex(x=>x.includes('  dimState(){'));if(i<0)throw new Error('Missing dimState');lines.splice(i,0,diag);}
+            fs.writeFileSync(p,lines.join('\n'));
+          }
+          {
+            const p='eldoria-mod291.test.mjs',source=fs.readFileSync(p,'utf8'),reference=main(p);
+            const begin=s=>s.indexOf("test('marcador visível");
+            const end=(s,i)=>s.indexOf('\n});',i)+4;
+            const a=begin(source),b=begin(reference);if(a<0||b<0)throw new Error('Missing marker test');
+            fs.writeFileSync(p,source.slice(0,a)+reference.slice(b,end(reference,b))+source.slice(end(source,a)));
+          }
+          NODE
+          git rm -- .github/workflows/eldoria-reconcile-once.yml
+          node --check mundo-3d-prototype.js
+          node --test dimensions3d.test.mjs zarkhael-dimension.test.mjs eldoria-mod291.test.mjs eldoria-mod292.test.mjs
+          git add -A
+          git commit -m "Merge main Bispo3 Mod296 into Eldoria Mod292 retaining both"
+          git push origin HEAD:ccr-8ab771c0-yqmwv4
