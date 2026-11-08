@@ -23,7 +23,7 @@ const GLSL=`
  varying vec3 vHall; varying vec3 vHallNormal; varying vec2 vHallUV;
  uniform vec3 uHallCamera;
  uniform vec3 uLampCenter[32]; uniform vec3 uLampRight[32]; uniform vec3 uLampForward[32];
- uniform float uSamples; uniform float uReflection;
+ uniform float uSamples; uniform float uReflection; uniform float uPixelCone;
  float hashHall(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
  float grainHall(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hashHall(i),hashHall(i+vec3(1,0,0)),f.x),mix(hashHall(i+vec3(0,1,0)),hashHall(i+vec3(1,1,0)),f.x),f.y),mix(mix(hashHall(i+vec3(0,0,1)),hashHall(i+vec3(1,0,1)),f.x),mix(hashHall(i+vec3(0,1,1)),hashHall(i+vec3(1,1,1)),f.x),f.y),f.z);}
  float lampImage(int j,vec3 ray,float blur){
@@ -31,6 +31,8 @@ const GLSL=`
    vec3 n=normalize(cross(r,f)); float den=dot(ray,n);
    if(abs(den)<.001)return 0.;
    float t=dot(c-vHall,n)/den; if(t<=0.)return 0.;
+   // Estimate the footprint without derivatives across a discontinuous lamp ID.
+   blur=max(blur,min(10.,t*uPixelCone*.5));
    vec3 hit=vHall+ray*t-c;
    vec2 q=vec2(dot(hit,r),dot(hit,f));
    float edge=max(abs(q.x)-18.0,abs(q.y)-2.1);
@@ -77,7 +79,8 @@ function material(THREE,kind,uniforms){
   if(floor)s.fragmentShader=s.fragmentShader.replace('#include <opaque_fragment>',`
     vec3 incident=normalize(vHall-uHallCamera),N=normalize(vHallNormal);
     if(N.y<0.)N=-N;
-    N=normalize(N+vec3(sin(vHall.x*4.3+vHall.z*1.3)*.0018,0.,cos(vHall.z*3.7-vHall.x*.8)*.0018));
+    float ripple=.0018*(1.-smoothstep(70.,180.,length(vHall-uHallCamera)));
+    N=normalize(N+vec3(sin(vHall.x*4.3+vHall.z*1.3)*ripple,0.,cos(vHall.z*3.7-vHall.x*.8)*ripple));
     vec3 ray=reflect(incident,N);
     // Estimate the candidate by the ceiling plane, then intersect its actual quad.
     float estimate=(52.-vHall.y)/max(.01,ray.y);
@@ -102,7 +105,7 @@ function batch(THREE,name,mat){
 }
 export function buildHallDimension(THREE,group,spec,ctx){
  if(spec.radius>32)throw new RangeError('Hall visual footprint expects the existing 30 m combat arena');
- const layout=hallLayout(),uniforms={uHallCamera:{value:new THREE.Vector3()},uLampCenter:{value:[]},uLampRight:{value:[]},uLampForward:{value:[]},uSamples:{value:5},uReflection:{value:1}};
+ const layout=hallLayout(),uniforms={uHallCamera:{value:new THREE.Vector3()},uLampCenter:{value:[]},uLampRight:{value:[]},uLampForward:{value:[]},uSamples:{value:5},uReflection:{value:1},uPixelCone:{value:.002}};
  const mats={wall:material(THREE,'wall',uniforms),floor:material(THREE,'floor',uniforms),door:material(THREE,'door',uniforms),trim:material(THREE,'trim',uniforms)};
  const lampMat=new THREE.MeshBasicMaterial({color:0xe1e1df,toneMapped:false,fog:false,side:THREE.DoubleSide});lampMat.name='hall-luminaires';
  const wall=batch(THREE,'hall-connected-walls',mats.wall),floor=batch(THREE,'hall-checker-floor',mats.floor),doors=batch(THREE,'hall-recessed-doors',mats.door),trim=batch(THREE,'hall-structural-frames',mats.trim),lamps=batch(THREE,'hall-ceiling-luminaires',lampMat),details=[];
@@ -151,7 +154,8 @@ export function buildHallDimension(THREE,group,spec,ctx){
  const meshes=[wall.mesh(),floor.mesh(),doors.mesh(),trim.mesh(),lamps.mesh()];meshes.forEach(m=>group.add(m));
  // Cinematics can render with a different camera while the gameplay update is
  // paused. Reflection must use the actual render camera, including those shots.
- meshes[1].onBeforeRender=(_renderer,_scene,camera)=>group.worldToLocal(camera.getWorldPosition(uniforms.uHallCamera.value));
+ const bufferSize=new THREE.Vector2();
+ meshes[1].onBeforeRender=(renderer,_scene,camera)=>{group.worldToLocal(camera.getWorldPosition(uniforms.uHallCamera.value));renderer.getDrawingBufferSize(bufferSize);uniforms.uPixelCone.value=2*Math.tan(camera.fov*Math.PI/360)/Math.max(1,bufferSize.y);};
  const boltGeo=new THREE.BoxGeometry(.15,.15,.15),bolts=new THREE.InstancedMesh(boltGeo,mats.trim,details.length),obj=new THREE.Object3D();
  details.forEach((d,i)=>{obj.position.set(...d.p);obj.updateMatrix();bolts.setMatrixAt(i,obj.matrix);});bolts.instanceMatrix.needsUpdate=true;bolts.computeBoundingSphere();bolts.name='hall-jamb-fasteners';group.add(bolts);
  let quality='high',disposed=false,updates=0;
