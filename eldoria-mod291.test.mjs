@@ -136,8 +136,8 @@ test('sub-bosque respeita trilhas/água e cristais são prismas facetados (não 
 // O marcador é global: avança também quando a alteração não é de Eldória.
 test('marcador e versão são derivados da metadata central', () => {
   assert.match(html, /id="marker" aria-label="Modificação"/);
-  assert.match(html, /build-info\\.js/);
-  assert.match(readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /build-info\\.js/);
+  assert.match(html, /build-info\.js/);
+  assert.match(readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8'), /build-info\.js/);
 });
 
 test('marco 2: mata fechada usa o GLB do criador, respeita trilha/água e não forma fileiras', async () => {
