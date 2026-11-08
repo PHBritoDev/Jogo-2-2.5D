@@ -25,9 +25,9 @@ test("Mod277 — modulo principal dentro de blob so tem imports HTTP absolutos a
  // A pagina deve anunciar a versao atual; nao prender o teste a Mod 277.
  const meta=fs.readFileSync(path.join(root,'build-info.js'),'utf8');
  const version=Number(meta.match(/export const MOD = (\d+);/)[1]);
- const build=meta.match(/export const BUILD = '([^']+)';/)[1];
+ const buildId=meta.match(/export const BUILD = '([^']+)';/)[1];
  assert.ok(version>=277,"nao aceitar regressao da versao publicada");
- assert.ok(build.startsWith('mod'+version+'-'),"identidade da build consistente");
+ assert.ok(buildId.startsWith('mod'+version+'-'),"identidade da build consistente");
  assert.match(html,/meta\.syncBuildMarker\(marker\)/);
  assert.match(html,/import\('\.\/mod181-loader\.js\?v='/);
  assert.match(loader,/searchParams\.get\('v'\)/);
