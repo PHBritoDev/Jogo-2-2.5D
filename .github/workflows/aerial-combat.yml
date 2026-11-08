@@ -1,0 +1,29 @@
+name: Aerial combat prototype
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'experiments/aerial-combat/**'
+      - '.github/workflows/aerial-combat.yml'
+permissions:
+  contents: read
+concurrency:
+  group: aerial-combat-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node experiments/aerial-combat/qa/audit-glb.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aerial-source-${{ github.run_number }}
+          path: |
+            aerial-results/source/
+            Prota_otimizado_2K.glb
+          retention-days: 7
