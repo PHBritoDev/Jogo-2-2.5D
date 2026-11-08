@@ -7,7 +7,7 @@
 <script>
 const game=document.getElementById('game'),enemy=document.getElementById('enemy'),open=document.getElementById('open');
 let buildVersion='latest';
-function route(){const url='mundo-3d-prototype.html?'+enemy.value+'=1&todasHabilidades=1&build=296';game.src=url;open.href=url;}
+function route(){const url='mundo-3d-prototype.html?'+enemy.value+'=1&todasHabilidades=1&build='+encodeURIComponent(buildVersion);game.src=url;open.href=url;}
 function dim(k,x){const url='mundo-3d-prototype.html?testeDimensao='+k+(x||'')+'&build='+encodeURIComponent(buildVersion);game.src=url;open.href=url;}document.getElementById('dim1').onclick=()=>dim('bishop1');document.getElementById('dim2').onclick=()=>dim('bishop2');document.getElementById('dim2e').onclick=()=>dim('bishop2','&testSwordEclipse=1');document.getElementById('dim2u').onclick=()=>dim('bishop2','&testUltBispo2=1');document.getElementById('dim3').onclick=()=>dim('bishop3');document.getElementById('dim3h').onclick=()=>dim('bishop3','&testHidra=1');document.getElementById('dim3l').onclick=()=>dim('bishop3','&testLuaNegra=1');document.getElementById('dim3u').onclick=()=>dim('bishop3','&testUltBispo3=1');document.getElementById('dim4').onclick=()=>dim('bishop4');document.getElementById('dim4s').onclick=()=>dim('bishop4','&testQuatroEspadas=1');document.getElementById('dim4c').onclick=()=>dim('bishop4','&testCicloneAzul=1');
 document.getElementById('load').onclick=route;document.getElementById('reset').onclick=()=>{game.src=game.src};enemy.onchange=route;
 import('./build-info.js?stamp='+Date.now()).then(meta=>{buildVersion=String(meta.MOD);route();}).catch(err=>{console.error('Falha ao carregar build-info',err);route();});
