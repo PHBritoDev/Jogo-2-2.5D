@@ -162,7 +162,7 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
       // Base no chão mais baixo da pegada: nenhum canto fica no ar; árvores afundam 2,5 % da altura (perfil das raízes medido no GLB).
       const y = spec.kind === 'tree' ? lo - spec.size * ANCESTRAL_ROOT_SINK : lo - .03;
       obj.position.set(cx, y, cz); obj.rotation.y = spec.rotation; obj.name = 'Eldoria_' + spec.kind + '_' + spec.file;
-      obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && (spec.kind === 'house' || spec.kind === 'tree'); if (spec.kind === 'market') child.frustumCulled = false; } });
+      obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && spec.kind === 'house'; if (spec.kind === 'market') child.frustumCulled = false; } });
       root.add(obj);
       if (spec.file === 'PocoEldoria.glb') {
         // Pingos parados ao fundo do poço, não um volume de água: simbolizam escassez.
