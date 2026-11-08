@@ -617,7 +617,7 @@ function beltFree(x,z,r){
  if(beltBlocks.some(b=>Math.hypot(x-b.x,z-b.z)<b.r+r))return false;
  if(closeToPolyline(x,z,RIVER_POINTS,RIVER.width*.5+2.6+r))return false;
  // corredor de chegada mais largo: da trilha inicial até a ponte (a mata emoldura, não fecha)
- if(closeToPolyline(x,z,[[0,14],[0,4],[.1,-3],[-.4,-12.3]],6.5+r)||closeToPolyline(x,z,startTrail,5+r))return false;
+ if(closeToPolyline(x,z,[[0,14],[0,4],[.1,-3],[-.4,-12.3]],12+r)||closeToPolyline(x,z,startTrail,5+r))return false;
  if(trailRoutes.some(t=>closeToPolyline(x,z,t.points,t.width*.5+1.8+r)))return false;
  return !treeObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+3+r);
 }
