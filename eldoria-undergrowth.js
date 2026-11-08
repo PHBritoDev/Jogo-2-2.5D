@@ -108,7 +108,7 @@ export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242
     const nv = (rnd() < .7 ? 2 : 1) + (rnd() < .3 ? 1 : 0);
     for (let k = 0; k < nv; k++) { const a = rnd() * 6.28, r = 1.4 + rnd() * 2.2; vines.push({ x: t.x + Math.cos(a) * r, z: t.z + Math.sin(a) * r, top: t.h * (.62 + rnd() * .2), len: t.h * (.35 + rnd() * .35), rot: rnd() * 6.28 }); }
   }
-  for (let i = 0; i < (lowSpec ? 500 : 1100) && leaves.length < maxL; i++) { const x = zone.x0 + rnd() * (zone.x1 - zone.x0), z = zone.z0 + rnd() * (zone.z1 - zone.z0); if (isFree(x, z)) leaves.push({ x, z, s: .8 + rnd() * .9, rot: rnd() * 6.28 }); }
+  if (zone) for (let i = 0; i < (lowSpec ? 500 : 1100) && leaves.length < maxL; i++) { const x = zone.x0 + rnd() * (zone.x1 - zone.x0), z = zone.z0 + rnd() * (zone.z1 - zone.z0); if (isFree(x, z)) leaves.push({ x, z, s: .8 + rnd() * .9, rot: rnd() * 6.28 }); }
   return { leaves, vines };
 }
 export function buildTropical(THREE, o) {

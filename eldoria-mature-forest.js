@@ -110,13 +110,15 @@ export function mountMatureForest(THREE, GLTFLoader, o) {
       const tex2 = renderImpostor(THREE, o.renderer, tex.geo, mat, lowSpec ? 192 : 256);
       const imat = new THREE.MeshLambertMaterial({ map: tex2, alphaTest: .45, side: THREE.DoubleSide, transparent: false });
       const igeo = impostorGeometry(THREE, tex.width);
-      far.geometry.dispose(); far.geometry = igeo; far.material.dispose(); far.material = imat; place(far, 1); impostor = true;
+      far.geometry.dispose(); far.geometry = igeo; far.material = imat; // Mod 292: sem dispose do material antigo — se a pré-compilação assíncrona do mundo ainda o espera, o three quebra (currentProgram indefinido) place(far, 1); impostor = true;
     } catch (e) { console.warn('Impostor da mata não gerado; mantendo a copa simples.', e); }
     registerFar();
     return { near: plan.length, impostor, lodFallback: geo === tex, triangles: (geo.geo.index ? geo.geo.index.count : geo.geo.attributes.position.count) / 3 };
   };
-  const ready = new Promise(res => loader.load('./ArvoreFloresta01.glb', full => loader.load('./ArvoreFloresta01-lod1.glb', lod => res(build(full, lod)),
-    undefined, err => { console.warn('ArvoreFloresta01-lod1.glb não carregou; usando a malha completa.', err); res(build(full, null)); }),
+  // Mod 292: o ArvoreFloresta01-lod1.glb antigo soldava vértices por posição e 96,5 % dos triângulos esticavam a UV
+  // entre ilhas do atlas (cor errada na faixa média). Simplificar preservando as costuras só tira 6 % (6,2 → 5,8 mil),
+  // então a faixa média usa a MESMA malha completa (cor idêntica) e o impostor assado cobre a distância.
+  const ready = new Promise(res => loader.load('./ArvoreFloresta01.glb', full => res(build(full, null)),
     undefined, err => { console.warn('ArvoreFloresta01.glb não carregou; mata só com copas distantes.', err); registerFar(); res(null); }));
   // Manchas de sol filtradas pela copa: discos aditivos quentes no chão, entre os troncos (1 draw call).
   const dapples = []; { let k = 0; for (const t of plan) for (let j = 0; j < 2; j++) { const a = (k++ * 2.399) % 6.28, r = 2.5 + ((k * 3.7) % 4); dapples.push({ x: t.x + Math.cos(a) * r, z: t.z + Math.sin(a) * r, s: .9 + ((k * 1.3) % 1.6) }); } }

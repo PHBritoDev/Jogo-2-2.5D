@@ -1,0 +1,120 @@
+{
+ "vp": "land",
+ "logs": [],
+ "shots": [
+  {
+   "n": "01-chegada-floresta",
+   "file": "01-chegada-floresta-land.jpg",
+   "cam": [
+    1.02,
+    2.5,
+    24.39
+   ],
+   "target": null,
+   "player": [
+    0.6,
+    0,
+    16
+   ],
+   "surface": null,
+   "canvas": [
+    652,
+    293,
+    "scene"
+   ],
+   "frameHash": "567fdc97"
+  },
+  {
+   "n": "02-ponte-entrada",
+   "file": "02-ponte-entrada-land.jpg",
+   "cam": [
+    0.12,
+    2.5,
+    3.89
+   ],
+   "target": null,
+   "player": [
+    -0.3,
+    0,
+    -4.5
+   ],
+   "surface": null,
+   "canvas": [
+    652,
+    293,
+    "scene"
+   ],
+   "frameHash": "b5861d3d"
+  },
+  {
+   "n": "04-praca-casas",
+   "file": "04-praca-casas-land.jpg",
+   "cam": [
+    3.58,
+    2.5,
+    -29.78
+   ],
+   "target": null,
+   "player": [
+    -3,
+    0,
+    -35
+   ],
+   "surface": null,
+   "canvas": [
+    652,
+    293,
+    "scene"
+   ],
+   "frameHash": "cf37f88d"
+  },
+  {
+   "n": "07-aerea-floresta",
+   "file": "07-aerea-floresta-land.jpg",
+   "cam": [
+    40,
+    75,
+    55
+   ],
+   "target": [
+    -8,
+    0,
+    -42
+   ],
+   "player": [
+    -5,
+    0,
+    -30
+   ],
+   "surface": null,
+   "canvas": [
+    652,
+    293,
+    "scene"
+   ],
+   "frameHash": "271fb962"
+  },
+  {
+   "n": "11-escada",
+   "file": "11-escada-land.jpg",
+   "cam": [
+    20.07,
+    2.5,
+    -48.03
+   ],
+   "target": null,
+   "player": [
+    12.4,
+    0,
+    -44.6
+   ],
+   "surface": null,
+   "canvas": [
+    652,
+    293,
+    "scene"
+   ],
+   "frameHash": "f1a53070"
+  }
+ ]
+}

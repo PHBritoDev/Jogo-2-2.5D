@@ -7,30 +7,32 @@
  *    ancestrais extras para a silhueta da referência (cidade ENTRE árvores gigantes) e fonte seca do roteiro.
  * NPCs, lojas, checkpoints e gatilhos continuam nas coordenadas originais (módulo só de cenário).
  */
-export const ELDORIA_PLOTS = [
-  [-16, -16, 'CasaEldoria01.glb', 5.7, .3], [-5, -18, 'CasaEldoria02.glb', 5.9, -.3],
-  // Mod 291: (9,-17) ficava em cima da trilha principal → (3,-15); (18,-9) encostava nela → (20.5,-8).
-  [3, -15, 'CasaEldoria01.glb', 6.0, .18], [20.5, -8, 'CasaEldoria02.glb', 5.9, -.22],
-  [-18, 13, 'CasaEldoria02.glb', 6.3, .16], [-8, 17, 'CasaEldoria01.glb', 5.7, -.32],
-  [5, 20.5, 'CasaEldoria01.glb', 6.0, .4], [18, 12, 'CasaEldoria02.glb', 6.1, -.22], // (8,17) encostava na trilha da clareira
-  // Mod 291: (-19,-3) ficava encostada na Loja Central (agora com GLB e visível) → (-24,8).
-  [-24, 8, 'CasaEldoria01.glb', 5.1, .23], [19, 2.5, 'CasaEldoria02.glb', 5.4, -.34]
-];
+import { clampBakedMips } from './eldoria-baked-texture.js';
+import { housePlots, ELDORIA_HOUSES, ELDORIA_SMITHY, ELDORIA_MAIN_TREE, ELDORIA_SIDE_TREE, ANCESTRAL_ROOT_SINK, yawFacing } from './eldoria-city-layout.js';
+/* Mod 292 — plano urbano refeito em dados estruturados (eldoria-city-layout.js): casas em bairros (Entrada, Praça,
+   Norte, Leste, Oeste), cada uma com função e porta voltada para a rua; a árvore colossal ao fundo da praça e uma
+   árvore lateral com a casa da árvore. As árvores menores saíram do núcleo urbano (a mata fica no cinturão). */
+export const ELDORIA_PLOTS = housePlots();
 export const ELDORIA_MARKET = [[2.85, -2.5, 3.65, .15], [-2.05, 3.75, 3.55, Math.PI], [4.5, 3, 3.7, .2], [1.8, -7.6, 3.5, Math.PI]];
+const S = ELDORIA_SMITHY, MT = ELDORIA_MAIN_TREE, ST = ELDORIA_SIDE_TREE;
 export const ELDORIA_PROPS = [
   ['PocoEldoria.glb', -1.4, -.6, 3.15, 0, 1.2],
-  ['FerreiroEldoria.glb', 16, -17.5, 5.6, Math.PI * .3, 2.4], // Mod 291: fora da trilha e da margem do rio
-  ['Carroça.glb', -10, -27, 3.6, .7, 1.45],
+  [S.file, S.x, S.z, S.size, yawFacing(S.file, S.faceTo[0] - S.x, S.faceTo[1] - S.z), S.collision],
+  ['Carroça.glb', 17.7, 23.4, 3.6, -.35, 1.45],            // estacionada no largo depois da ponte
   ['RochedoMusgoEldoria.glb', -23, -19, 3.8, .2, 1.75],
-  ['RochedoMusgoEldoria.glb', 22, 17, 4.1, .8, 2],
-  // Árvores ancestrais: a principal além da praça e três que fecham a silhueta (nunca no spawn nem nas trilhas).
-  ['ArvoreAncestralEldoria.glb', -34, 5, 32, -.18, 3.9],
-  ['ArvoreAncestralEldoria.glb', -24, -24, 27, 1.9, 3.4],
-  ['ArvoreAncestralEldoria.glb', 24, 24, 29, 3.4, 3.6],
-  ['ArvoreFloresta01.glb', 30, -28, 14, .4, 2.5],
+  ['RochedoMusgoEldoria.glb', 30, 23, 4.1, .8, 2],          // na margem norte do rio, fora da rua
+  [MT.file, MT.x, MT.z, MT.size, MT.rotation, 3.9],         // árvore colossal (fundo da praça)
+  [ST.file, ST.x, ST.z, ST.size, ST.rotation, 3.4],         // árvore lateral com a casa da árvore
 ];
 export const ELDORIA_DRY_FOUNTAIN = { x: -7.5, z: 7.5, r: 1.55 };
-const LOD_FILES = new Set(['CasaEldoria01.glb', 'CasaEldoria02.glb', 'ArvoreAncestralEldoria.glb', 'RochedoMusgoEldoria.glb', 'PocoEldoria.glb', 'BarracaFrutasEldoria.glb', 'FerreiroEldoria.glb', 'Carroça.glb', 'ArvoreFloresta01.glb']);
+export { ELDORIA_HOUSES };
+/* Mod 292 — causa concreta das cores erradas ao longe: os <Nome>-lod1.glb (Mod 291) soldavam vértices por posição antes
+   de simplificar; como o atlas assado tem costura de UV em quase todo vértice, 68–97 % dos triângulos do LOD1 ligavam
+   ilhas diferentes do atlas (UV esticada > 6×) e a casa virava uma mancha cáqui/cinza. Simplificar preservando as
+   costuras só reduz 12–31 % — não compensa: os modelos da cidade ficam no LOD0 (cor certa) e os LOD1 foram apagados.
+   O mecanismo de LOD continua, protegido por uvCompatible (vértice E triângulo), para um LOD futuro re-assado. */
+// LOD1 re-assados (tools/eldoria/bake-house-lod.mjs): malha ~16 % com textura PRÓPRIA projetada do modelo completo.
+const LOD_FILES = new Set(['CasaEldoria01.glb', 'CasaEldoria02.glb', 'FerreiroEldoria.glb', 'PocoEldoria.glb', 'BarracaFrutasEldoria.glb', 'RochedoMusgoEldoria.glb']);
 
 export function eldoriaSpecs() {
   const specs = [];
@@ -69,6 +71,7 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
       loader.load('./' + file, gltf => {
         try {
           const src = gltf.scene, bounds = new THREE.Box3().setFromObject(src);
+          clampBakedMips(THREE, src, lowSpec ? 4 : 3.5); // atlas assado: sem mistura de ilhas UV ao longe (ver eldoria-baked-texture.js)
           if (bounds.isEmpty()) throw Error('empty GLB');
           resolve({ src, size: bounds.getSize(new THREE.Vector3()), centerPoint: bounds.getCenter(new THREE.Vector3()), bottom: bounds.min.y });
         } catch (error) { failures.push(file + ': ' + error.message); resolve(null); }
@@ -76,24 +79,54 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
     }));
     return sources.get(file);
   }
-  /** Never assign a textured LOD0 material to a different LOD1 mesh by traversal index:
-   *  its UV layout/mesh ordering may differ, producing incorrect colors at a distance.
-   *  Keep authored buildings at full texture fidelity until a validated textured LOD exists. */
+  /** Mod 292 — LOD1 só herda o material do LOD0 depois de PROVAR que o mapeamento UV é o mesmo: amostra vértices do
+   *  LOD1, acha o vértice mais próximo do LOD0 pela posição e compara as UVs (erro < 0,02). Nada de índice de
+   *  travessia nem de nome cego. Se alguma malha falhar, aquele modelo fica só com o LOD0 (registrado em lodAudit). */
+  function uvCompatible(src, lod) {
+    const ps = src.geometry?.attributes?.position, us = src.geometry?.attributes?.uv, pl = lod.geometry?.attributes?.position, ul = lod.geometry?.attributes?.uv;
+    if (!ps || !us || !pl || !ul) return { ok: false, why: 'sem UV' };
+    const N = Math.min(48, pl.count), step = Math.max(1, Math.floor(pl.count / N)); let bad = 0, worst = 0;
+    for (let i = 0, n = 0; n < N && i < pl.count; i += step, n++) {
+      const x = pl.getX(i), y = pl.getY(i), z = pl.getZ(i); let best = Infinity, bj = -1;
+      for (let j = 0; j < ps.count; j++) { const dx = ps.getX(j) - x, dy = ps.getY(j) - y, dz = ps.getZ(j) - z, d = dx * dx + dy * dy + dz * dz; if (d < best) { best = d; bj = j; if (d < 1e-12) break; } }
+      const du = Math.abs(us.getX(bj) - ul.getX(i)), dv = Math.abs(us.getY(bj) - ul.getY(i)), e = Math.max(du, dv);
+      worst = Math.max(worst, e); if (e > .02) bad++;
+    }
+    // triângulos: razão |ΔUV|/|Δposição| comparada à mediana do LOD0 (costura borrada = triângulo ligando ilhas)
+    const ratio = (g, t) => { const ix = g.index, p = g.attributes.position, u = g.attributes.uv; let su = 0, sp = 0; for (let e = 0; e < 3; e++) { const a = ix ? ix.getX(t + e) : t + e, b = ix ? ix.getX(t + (e + 1) % 3) : t + (e + 1) % 3; su += Math.hypot(u.getX(a) - u.getX(b), u.getY(a) - u.getY(b)); sp += Math.hypot(p.getX(a) - p.getX(b), p.getY(a) - p.getY(b), p.getZ(a) - p.getZ(b)); } return sp > 1e-9 ? su / sp : 0; };
+    const triCount = g => (g.index ? g.index.count : g.attributes.position.count) / 3, rs = [];
+    for (let t = 0, n = triCount(src.geometry); t < n * 3 && rs.length < 400; t += 3 * Math.max(1, Math.floor(n / 400))) rs.push(ratio(src.geometry, t));
+    rs.sort((a, b) => a - b); const med = rs[rs.length >> 1] || 1; let stretched = 0, tot = 0;
+    for (let t = 0, n = triCount(lod.geometry); t < n * 3; t += 3 * Math.max(1, Math.floor(n / 600))) { tot++; if (ratio(lod.geometry, t) > med * 6) stretched++; }
+    const share = tot ? stretched / tot : 0;
+    return { ok: bad <= 2 && share < .02, why: bad + '/' + N + ' vértices fora (pior ' + worst.toFixed(3) + '); ' + (share * 100).toFixed(1) + '% triângulos com UV esticada' };
+  }
+  const lodAudit = [];
   function fetchLod(file, asset) {
     if (!LOD_FILES.has(file)) return Promise.resolve(null);
-    if (specs.some(s => s.file === file && s.kind === 'house')) return Promise.resolve(null);
+    // Casas: no PR #423 o LOD1 ficou desligado porque a troca de material por índice/nome deixava a fachada de outra
+    // cor ao longe. Agora ele só entra se a UV for PROVADA igual à do LOD0 (uvCompatible) e usa o MESMO material.
     if (!lods.has(file)) lods.set(file, new Promise(resolve => loader.load('./' + file.replace(/\.glb$/, '-lod1.glb'), gltf => {
       const srcMeshes = [], lodMeshes = [];
       asset.src.traverse(o => { if (o.isMesh) srcMeshes.push(o); });
       gltf.scene.traverse(o => { if (o.isMesh) lodMeshes.push(o); });
-      // Reuse only matching UV-compatible materials; otherwise keep the GLB's own materials.
-      for (let i = 0; i < lodMeshes.length; i++) {
-        const mesh = lodMeshes[i], source = srcMeshes.find(m => m.name === mesh.name);
-        if (source && source.geometry?.attributes?.uv && mesh.geometry?.attributes?.uv)
-          mesh.material = source.material;
+      // LOD1 assado com textura própria: usa o PRÓPRIO material (nenhuma reassociação com o LOD0)
+      let baked = false; gltf.scene.traverse(o => { if (/projeção/.test(o.userData?.metodo || '')) baked = true; });
+      if (baked && lodMeshes.every(m => m.material?.map && m.geometry.attributes.uv)) {
+        clampBakedMips(THREE, gltf.scene, lowSpec ? 4 : 3.5);
+        lodMeshes.forEach(m => { m.material.roughness = .95; m.material.metalness = 0; });
+        lodAudit.push({ file, lod: true, notes: ['LOD1 assado: textura própria por projeção (' + lodMeshes.length + ' malha)'] }); resolve(gltf.scene); return;
       }
-      resolve(gltf.scene);
-    }, undefined, () => resolve(null))));
+      let ok = lodMeshes.length > 0 && lodMeshes.length === srcMeshes.length; const notes = [];
+      for (const mesh of lodMeshes) {
+        const source = srcMeshes.find(m => m.name === mesh.name) || (srcMeshes.length === 1 ? srcMeshes[0] : null);
+        const c = source ? uvCompatible(source, mesh) : { ok: false, why: 'sem malha correspondente' };
+        notes.push((mesh.name || '?') + ': ' + c.why);
+        if (c.ok) mesh.material = source.material; else ok = false;
+      }
+      lodAudit.push({ file, lod: ok, notes });
+      resolve(ok ? gltf.scene : null);
+    }, undefined, () => { lodAudit.push({ file, lod: false, notes: ['LOD1 não carregou'] }); resolve(null); })));
     return lods.get(file);
   }
   const plinths = [];
@@ -103,13 +136,13 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
       const { asset, lodSrc } = res, k = spec.size / Math.max(.01, asset.size.x, asset.size.y, asset.size.z);
       const wrap = m => { m.scale.setScalar(k); m.position.set(-asset.centerPoint.x * k, -asset.bottom * k, -asset.centerPoint.z * k); const g = new THREE.Group(); g.add(m); return g; };
       const obj = lodSrc ? new THREE.LOD() : new THREE.Group();
-      if (lodSrc) { obj.addLevel(wrap(asset.src.clone(true)), 0); obj.addLevel(wrap(lodSrc.clone(true)), spec.kind === 'tree' ? lodDistance * 1.6 : lodDistance); }
+      if (lodSrc) { obj.addLevel(wrap(asset.src.clone(true)), 0); obj.addLevel(wrap(lodSrc.clone(true)), spec.kind === 'tree' ? lodDistance * 1.6 : spec.kind === 'house' ? lodDistance * 1.3 : lodDistance); }
       else obj.add(wrap(asset.src.clone(true)));
       const cx = center.x + spec.x, cz = center.z + spec.z, hx = asset.size.x * k * .46, hz = asset.size.z * k * .46;
       const ys = footprintSamples(cx, cz, spec.kind === 'tree' ? Math.min(hx, 2.2) : hx, spec.kind === 'tree' ? Math.min(hz, 2.2) : hz, spec.rotation).map(([x, z]) => groundHeightAt(x, z));
       const lo = Math.min(...ys), hi = Math.max(...ys);
-      // Base no chão mais baixo da pegada: nenhum canto fica no ar; árvores afundam as raízes.
-      const y = spec.kind === 'tree' ? lo - .3 : lo - .03;
+      // Base no chão mais baixo da pegada: nenhum canto fica no ar; árvores afundam 2,5 % da altura (perfil das raízes medido no GLB).
+      const y = spec.kind === 'tree' ? lo - spec.size * ANCESTRAL_ROOT_SINK : lo - .03;
       obj.position.set(cx, y, cz); obj.rotation.y = spec.rotation; obj.name = 'Eldoria_' + spec.kind + '_' + spec.file;
       obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && (spec.kind === 'house' || spec.kind === 'tree'); } });
       root.add(obj);
@@ -144,7 +177,7 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
       const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x7d776a, roughness: 1 })); m.name = 'EldoriaHousePlinths'; m.receiveShadow = true; root.add(m);
     }
-    return { loaded: results.filter(Boolean).length, expected: specs.length, failures: [...failures], root, grounding, overlaps: planOverlaps(specs), lodDistance };
+    return { loaded: results.filter(Boolean).length, expected: specs.length, failures: [...failures], root, grounding, overlaps: planOverlaps(specs), lodDistance, lodAudit };
   });
   return { root, complete, expected: specs.length, failures, fetchModel };
 }

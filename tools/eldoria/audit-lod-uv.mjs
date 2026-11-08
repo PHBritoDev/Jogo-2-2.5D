@@ -1,5 +1,5 @@
 /** Audita atributos UV dos LODs de Eldória diretamente no cabeçalho glTF de cada GLB. */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,6 +12,8 @@ const names = [
 let failures = 0;
 for (const name of names) {
   const filename = path.join(root, name + '-lod1.glb');
+  // Mod 292: LOD1 com costura borrada foi apagado (ver build-lod-glbs.mjs); ausência = modelo usa só o LOD0 (cor certa).
+  if (!existsSync(filename)) { console.log('OK', name, 'sem LOD1 (LOD0 em todas as distâncias)'); continue; }
   try {
     const b = readFileSync(filename);
     if (b.toString('ascii', 0, 4) !== 'glTF' || b.readUInt32LE(16) !== 0x4e4f534a) throw new Error('GLB inválido');

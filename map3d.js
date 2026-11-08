@@ -33,7 +33,8 @@ export const MAP_POIS = [
 
 export const WAYSTONES = [
   { id: 'abrigo-vila', name: 'Abrigo da Vila', x: -4.6, z: -36.5 },
-  { id: 'abrigo-mata', name: 'Abrigo da Mata Funda', x: 4.6, z: -70 },
+  // Mod 292: a passarela suspensa da cidade cruza o antigo ponto; o abrigo foi para a orla da mata funda, junto à trilha.
+  { id: 'abrigo-mata', name: 'Abrigo da Mata Funda', x: 6.5, z: -79 },
   { id: 'abrigo-sope', name: 'Abrigo do Sopé', x: 9.5, z: -92.5 }
 ];
 
