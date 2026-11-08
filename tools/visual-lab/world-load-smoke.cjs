@@ -36,6 +36,34 @@ async function main(){
     throw Error("Erro de importacao capturado: "+errors.join(" | "));
   output.status="aprovado";
   await page.screenshot({path:path.join(root,"mundo-3d-carregado.png"),timeout:20000});
+  // Real game capture (not the isolated Eldoria preview): inspect both LOD distances.
+  // The debug camera is available only in ?debug3d=1; no production gameplay changes.
+  try {
+    const real=await page.evaluate(()=>{
+      const api=window.SevenSinsDebug3D;
+      api.freeRoam();
+      const village=window.EldoriaLiveCityQA?.village || {x:0,z:0};
+      api.teleport(village.x+18,village.z+34);
+      api.fly([village.x+42,24,village.z+64],[village.x,4,village.z]);
+      return {village,diagnostics:api.state(),materials:api.villageMeshes(),render:api.rinfo()};
+    });
+    output.eldoriaReal=real;
+    await page.waitForTimeout(2500);
+    await page.screenshot({path:path.join(root,"eldoria-real-distante.png"),timeout:30000});
+    const near=await page.evaluate(()=>{
+      const api=window.SevenSinsDebug3D,v=window.EldoriaLiveCityQA?.village||{x:0,z:0};
+      api.fly([v.x+17,9,v.z+22],[v.x,4,v.z]);
+      return {diagnostics:api.state(),render:api.rinfo()};
+    });
+    output.eldoriaNear=near;
+    await page.waitForTimeout(2000);
+    await page.screenshot({path:path.join(root,"eldoria-real-perto.png"),timeout:30000});
+  } catch(e) {
+    output.eldoriaCaptureError=String(e.message||e);
+    errors.push("Captura real Eldoria: "+output.eldoriaCaptureError);
+    process.exitCode=1;
+  }
+
   process.stdout.write("[SMOKE] mundo 3D abriu com modulo valido: "+JSON.stringify(sample)+"\n");
  }catch(e){
   output.status="falhou";output.failure=String(e.message||e);
