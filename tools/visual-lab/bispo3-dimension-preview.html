@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zar’khael · dimensão · Mod 296</title>
+<style>html,body{margin:0;background:#010102;color:#ded5c8;font:14px system-ui;height:100%;overflow:hidden}canvas{display:block;touch-action:none}nav{position:fixed;bottom:12px;left:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap}button,select,a{color:inherit;background:#170d0ed9;border:1px solid #604044;padding:9px;border-radius:7px;text-decoration:none}#label{position:fixed;top:12px;left:14px;text-shadow:0 1px 4px #000}body.capture nav,body.capture #label{display:none}</style>
+<div id="label">ZAR’KHAEL · Mod 296 · prévia do cenário real</div>
+<nav><button id="wide">Corredor</button><button id="close">Olhos</button><button id="left">Olhar à esquerda</button><button id="right">Olhar à direita</button><select id="quality" aria-label="Qualidade"><option value="high">Alto</option><option value="medium">Médio</option><option value="low">Baixo</option></select><a href="../../mundo-3d-prototype.html?testeDimensao=bishop3&debug3d=1&build=296">Jogar a dimensão</a></nav>
+<script type="module">
+import * as THREE from 'https://esm.sh/three@0.160.0';
+import {buildDimensionArena} from '../../dimension-arenas3d.js?v=296';
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,400);
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+let arena;const player=new THREE.Vector3(0,0,0);let quality='high',running=true;
+function build(){arena=buildDimensionArena(THREE,'mushrooms',{x:0,y:0,z:0,radius:30});scene.add(arena.group);arena.group.visible=true;return arena;}
+build();const e=arena.env;scene.background=new THREE.Color(e.bg);scene.fog=new THREE.Fog(e.fog,e.fogNear,e.fogFar);renderer.toneMappingExposure=e.exposure;
+scene.add(new THREE.HemisphereLight(...e.hemi));const sun=new THREE.DirectionalLight(...e.sun);sun.position.set(14,32,18);scene.add(sun);
+const light=new THREE.PointLight(e.light[0],e.light[1],e.light[2],1.1);light.position.set(...e.light[3]);scene.add(light);
+function wide(){camera.position.set(0,4,0);camera.up.set(0,1,0);camera.lookAt(0,6,-210);}
+const eyeIndex=57;
+function close(){const eye=arena.refs.mushrooms.eyes[eyeIndex];camera.position.set(...eye.center).addScaledVector(new THREE.Vector3(...eye.out),9);camera.lookAt(...eye.center);}
+function gaze(side){const eye=arena.refs.mushrooms.eyes[eyeIndex];player.set(eye.center[0]+side*15,eye.center[1]-1.35,eye.center[2]+15);}
+function frame(time){arena.update(time,camera,innerHeight,{player,quality});renderer.render(scene,camera);return {...renderer.info.render};}
+wide();renderer.setAnimationLoop(time=>{if(running)frame(time);});
+document.querySelector('#wide').onclick=wide;document.querySelector('#close').onclick=close;document.querySelector('#left').onclick=()=>gaze(-1);document.querySelector('#right').onclick=()=>gaze(1);document.querySelector('#quality').onchange=ev=>quality=ev.target.value;
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+// Drag to inspect the architecture; QA API is confined to this explicit preview.
+let drag=null;renderer.domElement.onpointerdown=ev=>{drag=[ev.clientX,ev.clientY];renderer.domElement.setPointerCapture(ev.pointerId);};renderer.domElement.onpointerup=()=>drag=null;renderer.domElement.onpointermove=ev=>{if(!drag)return;camera.rotateY(-(ev.clientX-drag[0])*.003);camera.rotateX(-(ev.clientY-drag[1])*.003);drag=[ev.clientX,ev.clientY];};
+window.mushroomQA={THREE,scene,camera,renderer,player,get arena(){return arena},eyeIndex,wide,close,gaze,frame,
+  stop(){running=false},quality(q){quality=q},rebuild(){scene.remove(arena.group);arena.dispose();build();return arena.refs.mushrooms.stats()}};
+window.ready=true;
+</script></html>

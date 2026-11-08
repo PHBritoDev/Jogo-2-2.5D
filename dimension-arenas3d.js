@@ -5,6 +5,7 @@
  * Referências do criador: VHAZRAEL (câmara macabra de moedas e correntes), Vorgazhek (vazio de olhos vermelhos e
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
+import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=296';
 import { SEWER } from './sewer3d.js';
 import { crystalClusterGeometry } from './eldoria-crystal-geometry.js';
 import { VOLCANO } from './volcano3d.js';
@@ -184,30 +185,7 @@ const THEMES = {
 
   // Zar'khael — cogumelos gigantes de olhos abertos, piso xadrez e uma luz distante no fim do corredor.
   mushrooms(THREE, g, spec, ctx) {
-    const r = rng(303), R = spec.radius;
-    const chk = checkerTexture(THREE, 4);
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(R + 3, 64), new THREE.MeshStandardMaterial({ map: chk, roughness: .22, metalness: .2, emissiveMap: chk, emissive: 0x505058, emissiveIntensity: .16 }));
-    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; g.add(floor);
-    const runwayTex = checkerTexture(THREE, 1, {}); runwayTex.wrapS = runwayTex.wrapT = THREE.RepeatWrapping; runwayTex.repeat.set(2, 14);
-    const runway = new THREE.Mesh(new THREE.PlaneGeometry(16, 180), new THREE.MeshStandardMaterial({ map: runwayTex, roughness: .2, metalness: .2, emissiveMap: runwayTex, emissive: 0x585860, emissiveIntensity: .3 }));
-    runway.rotation.x = -Math.PI / 2; runway.position.set(0, .01, -R - 90); g.add(runway);
-    const stemMat = new THREE.MeshStandardMaterial({ color: 0xcfc4ae, roughness: .85, emissive: 0x5a5444, emissiveIntensity: .7 }), capMat = new THREE.MeshStandardMaterial({ color: 0xb01420, roughness: .4, emissive: 0x80101a, emissiveIntensity: 1 });
-    const stems = [], caps = [], eyeAt = [];
-    const place = (x, z, h, w, i) => { stems.push({ x, y: h / 2, z, sx: w, sy: h, sz: w }); caps.push({ x, y: h, z, sx: w * 2.7, sy: w * 1.15, sz: w * 2.7 });
-      for (let k = 0; k < 6; k++) { const a = r() * 6.28, el = .35 + r() * .8; eyeAt.push({ x: x + Math.cos(a) * Math.cos(el) * w * 2.5, y: h + Math.sin(el) * w * 1.1, z: z + Math.sin(a) * Math.cos(el) * w * 2.5, size: w * (2 + r() * 2.5) }); } };
-    for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2 + .2, d = R + 8 + r() * 14; place(Math.cos(a) * d, Math.sin(a) * d, 16 + r() * 20, 2.6 + r() * 2, i); }
-    for (let i = 0; i < 14; i++) { const z = -R - 8 - i * 11, side = i % 2 ? 1 : -1; place(side * (11 + r() * 5), z, 9 + r() * 12, 1.6 + r(), i); }
-    const stemMesh=instanced(THREE, new THREE.CylinderGeometry(.62, 1, 1, 10), stemMat, stems);
-    const capMesh=instanced(THREE, new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), capMat, caps);
-    g.add(stemMesh,capMesh);
-    const eyes = eyeField(THREE, { count: eyeAt.length, seed: 5, tex: eyeTexture(THREE, { sclera: ['#8a8a92', '#f0eee8'], iris: '#4a4a58', ring: '#101014' }), tint: [1, 1, 1], place: i => eyeAt[i] });
-    g.add(eyes); ctx.eyes.push(eyes);
-    ctx.refs.zarkhaelCinematicOccluders=[stemMesh,capMesh,eyes]; // apenas visuais; restaurar depois
-    const pillars = []; for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + .4; pillars.push({ x: Math.cos(a) * (R + 2), y: 3.2, z: Math.sin(a) * (R + 2), sx: 2.4, sy: 6.4 + r() * 3, sz: 2.4, ry: r() }); }
-    g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x18181c, roughness: .9 }), pillars));
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(26, 26), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, map: canvasTex(THREE, 128, 128, (c, w, h) => { const gr = c.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, '#fff'); gr.addColorStop(.25, 'rgba(255,255,255,.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); }) }));
-    glow.position.set(0, 4, -R - 180); g.add(glow); ctx.tick.push((t) => { glow.material.opacity = .82 + Math.sin(t * 1.4) * .12; });
-    return { bg: 0x020203, fog: 0x050506, fogNear: 26, fogFar: 190, hemi: [0xd8d0e0, 0x201018, 1.0], sun: [0xe8e0f0, .6], light: [0xffe8e8, 2.4, 90, [0, 14, 0]], exposure: 1.2 };
+    return buildMushroomDimension(THREE, g, spec, ctx);
   },
 
   // Véraxion — corredor torto: paredes inclinadas, portas escuras, claraboias e piso xadrez lustroso.
@@ -723,14 +701,14 @@ export function buildDimensionArena(THREE, theme, spec) {
   let last = 0;
   return {
     group, env, refs: ctx.refs,
-    update(now, camera, viewH) {
+    update(now, camera, viewH, options) {
       const t = now * .001, dt = Math.min(.1, t - last || .016); last = t;
       const scale = viewH / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
       for (const e of ctx.eyes) { e.material.uniforms.uTime.value = t; e.material.uniforms.uScale.value = scale; }
       for (const s of ctx.swirls) s.uniforms.uTime.value = t;
-      for (const fn of ctx.tick) fn(t, dt);
+      for (const fn of ctx.tick) fn(t, dt, camera, options);
     },
-    dispose() { dispose(group); }
+    dispose() { if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else dispose(group); }
   };
 }
 
