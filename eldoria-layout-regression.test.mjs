@@ -47,5 +47,5 @@ test('chegada rápida: a câmera final é aplicada antes de cortar instâncias',
  assert.match(src,/const p=player\.position,south=!voidMode&&p\.z>46/);
  assert.ok(src.indexOf('updatePlayerCamera(dt);')<src.indexOf('updateInstanceCulling();if(vzCinematic()'),'culling após câmera');
  assert.match(src,/sz=Math\.hypot\(src\[o\+8\]/);
- assert.match(txt('eldoria-live-village3d.js'),/spec\.kind === 'market' \|\| spec\.kind === 'tree'/);
+ assert.match(txt('eldoria-live-village3d.js'),/spec\.kind === 'market'\) child\.frustumCulled = false/);
 });
