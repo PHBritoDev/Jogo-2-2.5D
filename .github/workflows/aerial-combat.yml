@@ -1,0 +1,79 @@
+name: Aerial combat prototype
+on:
+  push:
+    branches: [codex/combate-aereo-prototipo-uma-espada]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'experiments/aerial-combat/**'
+      - '.github/workflows/aerial-combat.yml'
+      - 'protagonist-aerial3d.js'
+      - 'mundo-3d-prototype.js'
+permissions:
+  contents: read
+concurrency:
+  group: aerial-combat-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node experiments/aerial-combat/qa/audit-glb.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aerial-source-${{ github.run_number }}
+          path: |
+            aerial-results/source/
+            Prota_otimizado_2K.glb
+          retention-days: 7
+  regression:
+    if: github.head_ref == 'codex/combate-aereo-prototipo-uma-espada' || github.ref == 'refs/heads/codex/combate-aereo-prototipo-uma-espada'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test experiments/aerial-combat/controller.test.mjs sword-rites3d.test.mjs combat244.test.mjs skills3d.test.mjs movement-bounds.test.mjs world3d-terrain.test.mjs progression3d.test.mjs hearts3d.test.mjs
+      - run: node --check mundo-3d-prototype.js
+  browser:
+    if: github.head_ref == 'codex/combate-aereo-prototipo-uma-espada' || github.ref == 'refs/heads/codex/combate-aereo-prototipo-uma-espada'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [runtime, interaction, world]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright==1.62.0 Pillow==12.3.0
+      - run: python -m playwright install --with-deps chromium
+      - run: npm install --prefix /tmp/aerial-deps --no-package-lock --ignore-scripts three@0.160.0
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Render actual GLBs and exercise gameplay
+        env:
+          VISUAL_BASE_URL: http://127.0.0.1:4181
+          AERIAL_THREE_DIR: /tmp/aerial-deps/node_modules/three
+        run: |
+          python -m http.server 4181 > /tmp/aerial-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID"' EXIT
+          python experiments/aerial-combat/qa/${{ matrix.suite }}.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aerial-${{ matrix.suite }}-${{ github.run_number }}
+          path: aerial-results/${{ matrix.suite }}/
+          retention-days: 14
