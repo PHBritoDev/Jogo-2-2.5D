@@ -33,9 +33,16 @@
   var frame=document.createElement('iframe');
   frame.id='primary-3d-frame';
   frame.title='Mundo 3D — A Batalha Contra os 7 Pecados Capitais';
-  frame.src='mundo-3d-prototype.html?refresh=296&build=296'+(params.has('todasHabilidades')?'&todasHabilidades=1':'')+(params.has('debug3d')?'&debug3d=1':'')+(params.has('galaxias')?'&galaxias=1':'')+(params.has('treinoEspadas')?'&treinoEspadas=1':'')+(params.has('treinoCombate244')?'&treinoCombate244=1':'')+(params.has('vfxLab236')?'&vfxLab236=1':'')+(params.has('testeQuantum233')?'&testeQuantum233=1':'')+(params.has('testeVhazrael')?'&testeVhazrael=1':'');
+  var suffix=(params.has('todasHabilidades')?'&todasHabilidades=1':'')+(params.has('debug3d')?'&debug3d=1':'')+(params.has('galaxias')?'&galaxias=1':'')+(params.has('treinoEspadas')?'&treinoEspadas=1':'')+(params.has('treinoCombate244')?'&treinoCombate244=1':'')+(params.has('vfxLab236')?'&vfxLab236=1':'')+(params.has('testeQuantum233')?'&testeQuantum233=1':'')+(params.has('testeVhazrael')?'&testeVhazrael=1':'');
   frame.allow='fullscreen';
   document.body.appendChild(frame);
+  // Metadata único, atualizado sem tocar este shell ou o loader.
+  import('./build-info.js?stamp='+Date.now()).then(function(meta){
+    frame.src='mundo-3d-prototype.html?refresh='+encodeURIComponent(meta.MOD)+'&build='+encodeURIComponent(meta.MOD)+suffix;
+  }).catch(function(err){
+    console.error('Falha ao obter build-info',err);
+    frame.src='mundo-3d-prototype.html?build='+Date.now()+suffix;
+  });
 })();
 </script>
 </body>

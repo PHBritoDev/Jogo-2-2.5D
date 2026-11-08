@@ -77,7 +77,8 @@ async function applyMod181(code) {
   return applyCombatFixes(code);
 }
 
-const BUILD = 'mod296-bispo3-olhos';
+// O HTML passa ?v=BUILD ao carregar este módulo; execução direta usa metadata central.
+const BUILD = new URL(import.meta.url).searchParams.get('v') || (await import('./build-info.js?stamp='+Date.now())).BUILD;
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
 try {
