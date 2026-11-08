@@ -482,7 +482,15 @@ function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
  const n=mesh.count,src=mesh.instanceMatrix.array.slice(0,n*16),col=mesh.instanceColor?mesh.instanceColor.array.slice(0,n*3):null,pos=new Float32Array(n*3),rad=new Float32Array(n);
  if(!mesh.geometry.boundingSphere)mesh.geometry.computeBoundingSphere();const bs=mesh.geometry.boundingSphere;
  // MOD 292 — esfera de cada instância (centro e raio da geometria na escala da instância) para o corte por FRUSTUM.
- for(let i=0;i<n;i++){const o=i*16,sx=Math.hypot(src[o],src[o+1],src[o+2]),sy=Math.hypot(src[o+4],src[o+5],src[o+6]);pos[i*3]=src[o+12];pos[i*3+1]=src[o+13]+bs.center.y*sy;pos[i*3+2]=src[o+14];rad[i]=(bs.radius+Math.hypot(bs.center.x,bs.center.z))*Math.max(sx,sy)*1.05;}
+ for(let i=0;i<n;i++){const o=i*16,sx=Math.hypot(src[o],src[o+1],src[o+2]),sy=Math.hypot(src[o+4],src[o+5],src[o+6]),sz=Math.hypot(src[o+8],src[o+9],src[o+10]);
+  // Transformar o centro REAL da esfera pelo matrix4 da instância (incluindo inclinação/eixo Z).
+  // Antes só a escala Y era aplicada: em movimento rápido, copas e barracas podiam sumir fora do frustum.
+  const bx=bs.center.x,by=bs.center.y,bz=bs.center.z;
+  pos[i*3]=src[o]*bx+src[o+4]*by+src[o+8]*bz+src[o+12];
+  pos[i*3+1]=src[o+1]*bx+src[o+5]*by+src[o+9]*bz+src[o+13];
+  pos[i*3+2]=src[o+2]*bx+src[o+6]*by+src[o+10]*bz+src[o+14];
+  rad[i]=bs.radius*Math.max(sx,sy,sz)*1.12;
+ }
  mesh.frustumCulled=false;const c={mesh,n,src,col,pos,rad,r2:radius*radius,min2:minRadius*minRadius,near2:keepNear*keepNear};instanceCullers.push(c);cullLastX=1e9;return c;
 }
 function refreshInstanceCulling(){cullLastX=1e9;_cullLastPos.set(1e9,0,0);}
