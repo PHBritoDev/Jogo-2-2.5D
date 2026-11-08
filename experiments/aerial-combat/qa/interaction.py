@@ -11,7 +11,8 @@ async def main():
   if Path('/usr/bin/chromium').exists():opts['executable_path']='/usr/bin/chromium'
   if os.environ.get('HTTPS_PROXY'):opts['proxy']={'server':os.environ['HTTPS_PROXY'],'bypass':'localhost,127.0.0.1'}
   browser=await pw.chromium.launch(**opts);page=await browser.new_page(viewport={'width':960,'height':540},has_touch=True,ignore_https_errors=True)
-  page.on('pageerror',lambda e:report['errors'].append(str(e)));page.set_default_timeout(120000)
+  page.on('pageerror',lambda e:report['errors'].append(str(e)))
+  page.on('console',lambda m:report['errors'].append(m.text) if m.type=='error' and any(t in m.text for t in ['WebGL','INVALID_OPERATION','OUT_OF_MEMORY']) else None);page.set_default_timeout(120000)
   await page.goto(os.environ.get('VISUAL_BASE_URL','http://127.0.0.1:4181')+'/experiments/aerial-combat/',wait_until='domcontentloaded');await page.wait_for_function('window.AerialLab?.ready')
   async def js(code):return await page.evaluate(code)
   await js('AerialLab.ai(false);AerialLab.step();AerialLab.reset()')
@@ -61,7 +62,7 @@ async def main():
   values=report['cameraSensitivity'];report['checks']['independentTouchSensitivity']=values[1]['delta']>values[0]['delta']*3 and values[3]['delta']>values[2]['delta']*3
   # Render ghosts while visible to warm GPU buffers; then compare after another 50 dashes.
   await page.set_viewport_size({'width':960,'height':540})
-  report['pool']=await js("(()=>{AerialLab.reset();AerialLab.pose(-8,0,8);AerialLab.command('dash');AerialLab.step(.05);const before=AerialLab.snapshot();for(let i=0;i<50;i++){AerialLab.step(.5);AerialLab.pose(-8,0,8);AerialLab.command('dash');AerialLab.step(.05);}return{before,after:AerialLab.snapshot()};})()")
+  report['pool']=await js("(()=>{AerialLab.reset();AerialLab.pose(-8,0,8);for(let warm=0;warm<3;warm++){AerialLab.command('dash');AerialLab.step(.05);AerialLab.step(.5);}const before=AerialLab.snapshot();for(let i=0;i<50;i++){AerialLab.step(.5);AerialLab.pose(-8,0,8);AerialLab.command('dash');AerialLab.step(.05);}return{before,after:AerialLab.snapshot()};})()")
   report['checks']['warmPoolStable']=report['pool']['before']['resources']==report['pool']['after']['resources'] and report['pool']['after']['ghosts']['active']<=3
   # Frame-by-frame workload includes contact, trails and shadows, not only idle frames.
   report['renderComparison']=[]

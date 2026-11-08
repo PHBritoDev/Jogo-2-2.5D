@@ -11,7 +11,8 @@ async def main():
   if Path('/usr/bin/chromium').exists():opts['executable_path']='/usr/bin/chromium'
   if os.environ.get('HTTPS_PROXY'):opts['proxy']={'server':os.environ['HTTPS_PROXY'],'bypass':'localhost,127.0.0.1'}
   browser=await pw.chromium.launch(**opts);page=await browser.new_page(viewport={'width':960,'height':540},ignore_https_errors=True,has_touch=True)
-  page.on('pageerror',lambda e:report['errors'].append(str(e)));page.set_default_timeout(120000)
+  page.on('pageerror',lambda e:report['errors'].append(str(e)))
+  page.on('console',lambda m:report['errors'].append(m.text) if m.type=='error' and any(t in m.text for t in ['WebGL','INVALID_OPERATION','OUT_OF_MEMORY']) else None);page.set_default_timeout(120000)
   await page.add_init_script("localStorage.setItem('aerial-save-sentinel','preserve-me')")
   t=time.monotonic();await page.goto(BASE+'/experiments/aerial-combat/',wait_until='domcontentloaded');await page.wait_for_function('window.AerialLab?.ready');report['loadSeconds']=time.monotonic()-t
   await page.evaluate('AerialLab.ai(false);AerialLab.step();AerialLab.reset()')
