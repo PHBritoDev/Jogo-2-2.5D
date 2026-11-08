@@ -37,6 +37,18 @@ Usuário forneceu imagem de vila fantástica com casas organizadas ao redor de �
 - Não mesclar se faltarem testes essenciais ou houver regressão. Não quebrar outros atos, missões, inimigos, biomas, controles, ou funcionalidades.
 - Ao terminar e verificar o trabalho, **deletar este arquivo temporário em commit**. Não mandar resumo final nem mensagens durante o trabalho. Se for preciso avisar de bloqueio real (por exemplo, licença ou falta de arquivo), faça apenas a pergunta estritamente necessária.
 
+
+## DIRETRIZ ARTÍSTICA ADICIONAL — ÁRVORES 3D (pedido posterior do usuário)
+O usuário enviará ao Claude referências visuais de árvores. **A missão inclui criar e adicionar ao repositório modelos 3D reais de árvores de alta qualidade artística**, não apenas copiar cores em primitivas geométricas. Use as referências enviadas como ponto de partida; você tem liberdade criativa para desenvolver espécies alternativas ou modelos próprios superiores, desde que preservem o estilo de floresta tropical fantástica e **não tenham aparência genérica, improvisada ou mal acabada**. Não é obrigatório reproduzir exatamente as árvores das imagens nem usar todos os arquivos enviados: a prioridade é qualidade visual, coerência com a cidade e bom desempenho em Android.
+
+- Preferir pipeline de modelagem adequado (Blender, geração/modelagem 3D ou ferramentas disponíveis) para criar **GLB/glTF com malhas, UVs, materiais e texturas válidos**, e versionar no GitHub os assets finais e suas licenças/proveniência. Se usar geração procedural, ela deve produzir malhas 3D artisticamente convincentes, não cilindros e esferas disfarçados.
+- Criar uma pequena biblioteca de **3–5 espécies visualmente distintas**, com troncos, ramificações e copas naturais; variar escala, rotação e composição sem criar duplicatas óbvias. Árvores monumentais podem ter versões únicas; árvores repetidas da floresta devem compartilhar malhas e materiais.
+- Para cada espécie repetida, fornecer LOD0/LOD1/LOD2 ou impostor distante quando apropriado, **preservando a silhueta, as cores e as texturas em todas as distâncias**. Evitar remapear materiais entre geometrias com UV incompatível. Fazer comparações de perto e de longe no jogo principal.
+- Otimizar peso em MB **sem destruir o visual**: reduzir geometria desnecessária, compartilhar materiais, comprimir texturas quando suportado, controlar alpha overdraw e sombras, usar instancing e culling. Registrar peso final, triângulos e materiais por espécie, e verificar que os modelos realmente carregam no celular.
+- Pode criar outras espécies além das referências, ou escolher modelos alternativos de qualidade superior **com licença de uso comprovada**; não baixar e reutilizar modelos sem autorização. Não afirmar que um JPG/EPS é um modelo 3D pronto. Se referências ainda não tiverem sido enviadas diretamente ao Claude, usar apenas as que estiverem de fato disponíveis.
+- Integrar as árvores à nova composição da cidade e ao cinturão florestal; não colocar árvores dentro de caminhos, portas ou pontes, e não deixar raízes atravessarem pisos. Colisores simplificados nos troncos; copa não deve virar parede invisível.
+- Critério de aceite: as árvores precisam parecer intencionais e bem modeladas **tanto em primeiro plano quanto no horizonte**. Não entregar protótipos genéricos como resultado final. Se as ferramentas disponíveis não permitirem atingir a qualidade desejada, explicar objetivamente a limitação em vez de fingir sucesso.
+
 ## Referências técnicas consultadas
 - Three.js Color Management: https://threejs.org/manual/pages/color-management.html
 - Three.js GLTFLoader: https://threejs.org/docs/pages/GLTFLoader.html
