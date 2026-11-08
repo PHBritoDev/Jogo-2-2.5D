@@ -1,0 +1,32 @@
+{
+ "vp": "desk",
+ "logs": [],
+ "shots": [
+  {
+   "n": "05-arvore-colossal",
+   "file": "05-arvore-colossal-desk.jpg",
+   "cam": [
+    -4.5,
+    3.2,
+    -46
+   ],
+   "target": [
+    -13.2,
+    9,
+    -70.5
+   ],
+   "player": [
+    -11.6,
+    0,
+    -56.5
+   ],
+   "surface": null,
+   "canvas": [
+    870,
+    489,
+    "scene"
+   ],
+   "frameHash": "1fef5280"
+  }
+ ]
+}
