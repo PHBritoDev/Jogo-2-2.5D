@@ -6,7 +6,7 @@ fs.mkdirSync(root,{recursive:true});
 const base=process.env.VISUAL_BASE_URL||"http://127.0.0.1:4173";
 const presets={
  eldoria:{x:-12.2,z:-44.5,distance:40,height:18},
- floresta:{x:0,z:-85,distance:35,height:17}
+ floresta:{x:0,z:-85,distance:35,height:17} // Coordenada aproximada, verificar visualmente
 };
 function parseShots(raw){
  const arr=raw?JSON.parse(raw):[{name:"eldoria",preset:"eldoria"},{name:"floresta",preset:"floresta"}];
@@ -35,6 +35,7 @@ async function main(){
    return typeof window.SevenSinsDebug3D?.fly==="function"?"ready":false;
   },null,{timeout:115000}).then(x=>x.jsonValue());
   if(ready!=="ready")throw Error("Mundo nao carregou: "+ready);
+  const hashes=new Set();
   for(const shot of shots){
    const target=[shot.x,shot.y,shot.z];
    const from=[shot.x+Math.sin(shot.yaw)*shot.distance,shot.y+shot.height,shot.z+Math.cos(shot.yaw)*shot.distance];
@@ -43,10 +44,13 @@ async function main(){
    const camera=await page.evaluate(()=>window.SevenSinsDebug3D.cam());
    const error=Math.hypot(...camera.map((v,i)=>v-from[i]));
    if(error>2)throw Error("Camera foi sobrescrita durante "+shot.name+" (erro "+error.toFixed(2)+"m)");
-   const file=shot.name+".png";
-   await page.locator("#scene").screenshot({path:path.join(root,file),timeout:30000});
-   const metrics=await page.evaluate(()=>({state:window.SevenSinsDebug3D.state(),render:window.SevenSinsDebug3D.rinfo()}));
-   results.push({shot,file,from,target,camera,error,metrics});
+   const file=String(results.length+1).padStart(2,"0")+"-"+shot.name+".png";
+   const capture=await page.locator("#scene").screenshot({path:path.join(root,file),timeout:30000});
+   const crypto=require("node:crypto");const hash=crypto.createHash("sha256").update(capture).digest("hex");
+   if(hashes.has(hash))throw Error("Imagem duplicada: "+shot.name+" (camera ou renderizador travado)");
+   hashes.add(hash);
+   const metrics=await page.evaluate(()=>({state:window.SevenSinsDebug3D.state?.()??null,render:window.SevenSinsDebug3D.rinfo?.()??null}));
+   results.push({shot,file,from,target,camera,error,metrics,sha256:hash});
   }
   fs.writeFileSync(path.join(root,"report.json"),JSON.stringify({ok:true,results,errors},null,2));
   console.log("FOTOGRAFO QA: "+results.length+" capturas");
