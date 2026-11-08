@@ -182,14 +182,14 @@ test('marco 2d: faixa distante usa impostor renderizado do GLB do criador (não 
   assert.match(src, /mountMatureForest\(THREE,GLTFLoader,\{scene,renderer,/);
 });
 
-test('marco 3: cidade bonita — deques/escadas nas ancestrais, passarela do criador, jardins, cercas claras, lampiões', async () => {
+test('marco 3: cidade bonita — deques/escadas nas ancestrais, passarela do criador, jardins sem cercas brancas soltas, lampiões', async () => {
   const { planTreeDeck, planGardens } = await import('./eldoria-city-dressing.js');
   const { ELDORIA_PLOTS } = await import('./eldoria-live-village3d.js');
   const d = planTreeDeck({ x: 0, z: 0, trunk: 3, height: 7 });
   assert.ok(d.parts.length > 60 && d.deckY === 7 && d.ring > 3);
   assert.ok(d.parts.some(p => p.y < 1) && d.parts.some(p => p.y > 7), 'escada do chão ao deque');
   const g = planGardens({ center: ELDORIA_CENTER, plots: ELDORIA_PLOTS, isFree: () => true });
-  assert.ok(g.flowers.length > 150 && g.hedges.length >= 10 && g.fences.length >= 30);
+  assert.ok(g.flowers.length > 150 && g.hedges.length >= 10 && g.fences.length === 0, 'sem cercas brancas soltas');
   const lib = readFileSync(new URL('./eldoria-city-dressing.js', import.meta.url), 'utf8');
   assert.match(lib, /'\.\/PassarelaSuspensaEldoria\.glb'/);
   assert.doesNotMatch(lib, /Ruina\w*\.glb|Destrocos|Escombro/, 'nada de ruínas: a pobreza fica nas pessoas e na comida');
