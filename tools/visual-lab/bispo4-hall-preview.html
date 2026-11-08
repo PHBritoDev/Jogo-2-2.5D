@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Véraxion — corredor sem fim</title>
+<style>html,body{margin:0;background:#030303;color:#ddd;font:13px system-ui;overflow:hidden}canvas{display:block;touch-action:none}nav{position:fixed;bottom:12px;left:12px;right:12px;display:flex;gap:7px;flex-wrap:wrap}button,select,a{background:#141414e8;color:#ddd;border:1px solid #666;padding:10px;border-radius:5px;text-decoration:none}#label{position:fixed;top:12px;left:14px;text-shadow:0 1px 4px #000}.capture nav,.capture #label{display:none}</style>
+<div id="label">VÉRAXION · Corredor sem fim · prévia da branch</div>
+<nav><button id="wide">Corredor</button><button id="door">Porta</button><button id="ceiling">Teto</button><button id="floor">Reflexos</button><select id="quality" aria-label="Qualidade"><option value="high">Máximo</option><option value="medium">Auto / Alto</option><option value="low">Baixo</option></select><a href="../../mundo-3d-prototype.html?testeDimensao=bishop4&debug3d=1">Jogar a dimensão</a></nav>
+<script type="module">
+import * as THREE from 'https://esm.sh/three@0.160.0';
+import {buildDimensionArena} from '../../dimension-arenas3d.js';
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,3000);
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;document.body.append(renderer.domElement);
+let arena,quality='high',running=true;
+function build(){arena=buildDimensionArena(THREE,'hall',{x:0,y:0,z:0,radius:30});scene.add(arena.group);arena.group.visible=true;return arena;}
+build();const e=arena.env;scene.background=new THREE.Color(e.bg);scene.fog=new THREE.Fog(e.fog,e.fogNear,e.fogFar);
+scene.add(new THREE.HemisphereLight(...e.hemi));const sun=new THREE.DirectionalLight(...e.sun);sun.position.set(14,32,18);scene.add(sun);const light=new THREE.PointLight(e.light[0],e.light[1],e.light[2],1.1);light.position.set(...e.light[3]);scene.add(light);
+const poses={wide:[[0,12,38],[0,24,-2000]],door:[[16,13,16],[35,20,-10]],ceiling:[[0,14,-25],[-4,53,-85]],floor:[[0,9,20],[0,0,-90]]};
+function pose(name){camera.position.set(...poses[name][0]);camera.up.set(0,1,0);camera.lookAt(...poses[name][1]);}
+function frame(time){arena.update(time,camera,innerHeight,{quality});renderer.render(scene,camera);return {...renderer.info.render};}
+pose('wide');renderer.setAnimationLoop(t=>{if(running)frame(t)});
+for(const name of Object.keys(poses))document.getElementById(name).onclick=()=>pose(name);
+document.getElementById('quality').onchange=e=>quality=e.target.value;
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+let drag=null;renderer.domElement.onpointerdown=e=>{drag=[e.clientX,e.clientY];renderer.domElement.setPointerCapture(e.pointerId);};renderer.domElement.onpointerup=()=>drag=null;renderer.domElement.onpointermove=e=>{if(!drag)return;camera.rotateY(-(e.clientX-drag[0])*.003);camera.rotateX(-(e.clientY-drag[1])*.003);drag=[e.clientX,e.clientY];};
+window.hallQA={scene,camera,renderer,get arena(){return arena},pose,frame,stop(){running=false},quality(q){quality=q},rebuild(){scene.remove(arena.group);arena.dispose();build();}};window.ready=true;
+</script></html>
