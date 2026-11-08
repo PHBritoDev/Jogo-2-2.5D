@@ -65,3 +65,65 @@ export function buildUndergrowth(THREE, o) {
   if (registerCull) { registerCull(ferns, lowSpec ? 38 : 52, 12); registerCull(bushes, lowSpec ? 60 : 80, 16); }
   return { group, stats: { ferns: plan.ferns.length, bushes: plan.bushes.length } };
 }
+
+/* MOD 291 — densidade de floresta tropical úmida (direção do criador, 08/11): plantas de folha larga em leque
+   (tipo costela-de-adão/helicônia, desenho próprio) e cipós pendendo das copas. Instanciados e cortados por distância. */
+export function broadLeafGeometry(THREE) {
+  const pos = [], col = [], dark = [.06, .2, .07], light = [.22, .48, .16], N = 7;
+  for (let k = 0; k < N; k++) {
+    const a = k / N * Math.PI * 2 + (k % 2) * .4, L = .9 + (k % 3) * .25, W = .32 + (k % 2) * .08, lift = .35 + (k % 3) * .12;
+    const dx = Math.cos(a), dz = Math.sin(a), px = -dz, pz = dx;
+    // haste até a base da folha + lâmina em 3 segmentos que arqueia para baixo
+    const base = [dx * .15, lift, dz * .15], segs = [[.0, 0, 0], [.35, .12, .55], [.7, .02, .9], [1, -.22, .12]];
+    for (let i = 0; i < segs.length - 1; i++) {
+      const [t0, h0, w0] = segs[i], [t1, h1, w1] = segs[i + 1];
+      const a0 = [base[0] + dx * L * t0, base[1] + h0, base[2] + dz * L * t0], a1 = [base[0] + dx * L * t1, base[1] + h1, base[2] + dz * L * t1];
+      const l0 = [a0[0] - px * W * w0, a0[1], a0[2] - pz * W * w0], r0 = [a0[0] + px * W * w0, a0[1], a0[2] + pz * W * w0];
+      const l1 = [a1[0] - px * W * w1, a1[1], a1[2] - pz * W * w1], r1 = [a1[0] + px * W * w1, a1[1], a1[2] + pz * W * w1];
+      const c0 = i === 0 ? dark : light, c1 = light;
+      pos.push(...l0, ...r0, ...r1, ...l0, ...r1, ...l1); col.push(...c0, ...c0, ...c1, ...c0, ...c1, ...c1);
+    }
+    pos.push(-.02, 0, 0, .02, 0, 0, base[0], base[1], base[2]); col.push(...dark, ...dark, ...dark);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  const n = new Float32Array(pos.length); for (let i = 1; i < n.length; i += 3) n[i] = 1; g.setAttribute('normal', new THREE.BufferAttribute(n, 3)); g.computeBoundingSphere(); return g;
+}
+/** Cipó: fita fina curva de altura 1 (topo em y=1), balança com o vento do jogo. */
+export function vineGeometry(THREE) {
+  const pos = [], col = [], S = 8, w = .035;
+  for (let i = 0; i < S; i++) {
+    const t0 = i / S, t1 = (i + 1) / S, x0 = Math.sin(t0 * 3.1) * .05, x1 = Math.sin(t1 * 3.1) * .05;
+    const y0 = 1 - t0, y1 = 1 - t1, c0 = [.16, .2 + t0 * .1, .1], c1 = [.16, .2 + t1 * .1, .1];
+    pos.push(x0 - w, y0, 0, x0 + w, y0, 0, x1 + w, y1, 0, x0 - w, y0, 0, x1 + w, y1, 0, x1 - w, y1, 0);
+    col.push(...c0, ...c0, ...c1, ...c0, ...c1, ...c1);
+    if (i % 2 === 1) { pos.push(x1, y1, 0, x1 + .14, y1 - .03, .05, x1 + .05, y1 - .1, -.04); col.push(.12, .32, .1, .2, .45, .14, .2, .45, .14); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals(); g.computeBoundingSphere(); return g;
+}
+export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242 }) {
+  const rnd = makeRng(seed), leaves = [], vines = [], maxL = lowSpec ? 380 : 720;
+  for (const t of trees) {
+    const n = 2 + ((rnd() * 3) | 0);
+    for (let k = 0; k < n && leaves.length < maxL; k++) { const a = rnd() * 6.28, r = 2.2 + rnd() * 4, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) leaves.push({ x, z, s: .9 + rnd() * 1.1, rot: rnd() * 6.28 }); }
+    const nv = (rnd() < .7 ? 2 : 1) + (rnd() < .3 ? 1 : 0);
+    for (let k = 0; k < nv; k++) { const a = rnd() * 6.28, r = 1.4 + rnd() * 2.2; vines.push({ x: t.x + Math.cos(a) * r, z: t.z + Math.sin(a) * r, top: t.h * (.62 + rnd() * .2), len: t.h * (.35 + rnd() * .35), rot: rnd() * 6.28 }); }
+  }
+  for (let i = 0; i < (lowSpec ? 500 : 1100) && leaves.length < maxL; i++) { const x = zone.x0 + rnd() * (zone.x1 - zone.x0), z = zone.z0 + rnd() * (zone.z1 - zone.z0); if (isFree(x, z)) leaves.push({ x, z, s: .8 + rnd() * .9, rot: rnd() * 6.28 }); }
+  return { leaves, vines };
+}
+export function buildTropical(THREE, o) {
+  const { scene, groundHeightAt, addWind, registerCull, lowSpec } = o, plan = planTropical(o), d = new THREE.Object3D(), group = new THREE.Group();
+  group.name = 'eldoria-tropical-mod291'; scene.add(group);
+  const leafMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, side: THREE.DoubleSide });
+  if (addWind) addWind(leafMat, .05, 'clamp(position.y*1.6,0.0,1.0)', .8, 'mod291-broadleaf');
+  const leaves = new THREE.InstancedMesh(broadLeafGeometry(THREE), leafMat, Math.max(1, plan.leaves.length));
+  plan.leaves.forEach((l, i) => { d.position.set(l.x, groundHeightAt(l.x, l.z) - .02, l.z); d.rotation.set(0, l.rot, 0); d.scale.setScalar(l.s); d.updateMatrix(); leaves.setMatrixAt(i, d.matrix); });
+  leaves.count = plan.leaves.length; leaves.instanceMatrix.needsUpdate = true; leaves.receiveShadow = true; leaves.name = 'eldoria-broadleaf'; group.add(leaves);
+  const vineMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9, side: THREE.DoubleSide });
+  if (addWind) addWind(vineMat, .12, 'clamp(1.0-position.y,0.0,1.0)', .6, 'mod291-vine');
+  const vines = new THREE.InstancedMesh(vineGeometry(THREE), vineMat, Math.max(1, plan.vines.length));
+  plan.vines.forEach((v, i) => { const gy = groundHeightAt(v.x, v.z); d.position.set(v.x, gy + v.top - v.len, v.z); d.rotation.set(0, v.rot, 0); d.scale.set(1.4, v.len, 1.4); d.updateMatrix(); vines.setMatrixAt(i, d.matrix); });
+  vines.count = plan.vines.length; vines.instanceMatrix.needsUpdate = true; vines.name = 'eldoria-vines'; group.add(vines);
+  if (registerCull) { registerCull(leaves, lowSpec ? 40 : 55, 12); registerCull(vines, lowSpec ? 45 : 60, 14); }
+  return { group, stats: { leaves: plan.leaves.length, vines: plan.vines.length } };
+}

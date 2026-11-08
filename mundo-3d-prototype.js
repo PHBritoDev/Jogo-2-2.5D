@@ -41,10 +41,11 @@ import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, PROLOGUE_MEADO
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
 import {ELDORIA_PLOTS} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
+import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
-import {buildUndergrowth} from './eldoria-undergrowth.js';
+import {buildUndergrowth,buildTropical} from './eldoria-undergrowth.js';
 import {mountMatureForest} from './eldoria-mature-forest.js';
 import {ROAD,ROAD_STORE,ROAD_SPEAKERS,RIDE,initialRoadStage,roadPresentation,terenMeetScene,tarpScene,rideDozeScene,ambushScene,hungerScene,choiceScene,dawnRideScene,dawnHourAt} from './prologue-road-flow.js';
 import {prepareSandraMaterials} from './sandra-materials.js';
@@ -582,6 +583,10 @@ const matureForest=mountMatureForest(THREE,GLTFLoader,{scene,renderer,groundHeig
  lake:FOREST_POND,zone:{x0:-70,x1:40,z0:-148,z1:-80},
  isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-7&&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+3&&Math.hypot(x+12,z+97)>10&&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<4)&&Math.hypot(x-MASSACRE_SPOT.x,z-MASSACRE_SPOT.z)>8&&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+6&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+3)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+2.6))&&!bridgeDeck(x,z)&&!treeObstacles.some(o=>Math.abs(o.x-x)<2.6&&Math.hypot(o.x-x,o.z-z)<o.radius+2.2)});
 matureForest.ready.then(r=>{window.SevenSinsMatureForestReport={trees:matureForest.plan.length,...(r||{failed:true})};});
+// MOD 291 — densidade de mata tropical úmida (direção do criador): plantas de folha larga e cipós pendendo das copas.
+const tropical=buildTropical(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,trees:matureForest.plan,zone:{x0:-70,x1:40,z0:-148,z1:-80},
+ isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-6&&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+1.5&&Math.hypot(x+12,z+97)>8&&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<3)&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+.8)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+1.1))&&!bridgeDeck(x,z)});
+window.SevenSinsTropicalReport=tropical.stats;
 /* MOD 291 — streaming por zona: a cidade (e o resto do vale) fica atrás da serra quando o herói está no prado/estrada do
    sul, e o prado some quando ele está no vale. Nada é descarregado; só deixa de ser enviado à GPU. */
 let zoneFrame=0;const zoneState={south:null};
@@ -1983,7 +1988,8 @@ let mapDirty=false,mapSaveAt=0,mapScanAt=0,mapBase=null,mapOpen=false;
 function saveMapState(force){if(!mapDirty&&!force)return;mapDirty=false;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));}catch(_){}}
 const waystoneVisuals=WAYSTONES.map(w=>{const g=new THREE.Group();g.position.set(w.x,groundHeightAt(w.x,w.z),w.z);scene.add(g);
  const stone=new THREE.Mesh(new THREE.CylinderGeometry(.34,.5,1.75,6),rockMat);stone.position.y=.86;stone.castShadow=true;stone.receiveShadow=true;g.add(stone);
- const cap=new THREE.Mesh(new THREE.OctahedronGeometry(.3,0),new THREE.MeshStandardMaterial({color:0x6b6450,emissive:0x8a6a20,emissiveIntensity:.25,roughness:.6}));cap.position.y=2.02;g.add(cap);
+ // MOD 291 — o topo do abrigo vira um cristal facetado (prisma hexagonal) no lugar do losango genérico.
+ const cap=new THREE.Mesh(crystalPrismGeometry(THREE,{seed:7,tip:.32,taper:.8}),new THREE.MeshStandardMaterial({color:0x6b6450,emissive:0x8a6a20,emissiveIntensity:.25,roughness:.45,flatShading:true}));cap.scale.set(.2,.62,.2);cap.position.y=2.0;g.add(cap);
  const ring=new THREE.Mesh(new THREE.TorusGeometry(.62,.035,6,28),new THREE.MeshBasicMaterial({color:0x9a8650,transparent:true,opacity:.55}));ring.rotation.x=Math.PI/2;ring.position.y=.06;g.add(ring);
  marketObstacles.push({x:w.x,z:w.z,shape:'circle',radius:.62,height:1.8});return{data:w,group:g,cap,ring};});
 function syncWaystoneVisuals(){for(const v of waystoneVisuals){const on=mapState.waystones.has(v.data.id);v.cap.material.emissive.setHex(on?0x66d6ff:0x8a6a20);v.cap.material.emissiveIntensity=on?1.6:.25;v.ring.material.color.setHex(on?0x8fe3ff:0x9a8650);v.ring.material.opacity=on?.9:.55;}}
