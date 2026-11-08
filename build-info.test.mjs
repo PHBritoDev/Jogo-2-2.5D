@@ -13,7 +13,7 @@ test('entradas usam build-info em vez de strings de versão duplicadas', () => {
   for (const path of ['index.html','mundo-3d-prototype.html','mod181-loader.js','laboratorio-inimigos.html','mundo-3d-prototype.js']) {
     const text=read(path);
     assert.match(text, /build-info\.js/);
-    assert.doesNotMatch(text, /(?:build|refresh)=29\d|const BUILD = 'mod29\d|mod181-loader\.js\?v=mod29\d/);
+    assert.doesNotMatch(text, /(?:build|refresh)=\d{2,}|const BUILD = ['\"]mod\d+|mod181-loader\.js\?v=mod\d+/);
   }
 });
 test('marcador funciona sem navegador', () => {
