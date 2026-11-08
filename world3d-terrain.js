@@ -70,6 +70,9 @@ export function createTerrain(opts = {}) {
   const passes = opts.passes || [];
   const channels = opts.channels || [];
   const area = Object.assign({}, PLAY_AREA, opts.area || {});
+  // Optional large flat playable region. Preserve the authored river/lake beds.
+  const flatSquare = opts.flatSquare || null;
+  const flatEdge = (x, z) => flatSquare ? Math.max(Math.abs(x - flatSquare.cx), Math.abs(z - flatSquare.cz)) - flatSquare.halfSide : Infinity;
 
   /** Distância assinada até a borda explorável (negativa dentro do vale). */
   function rectDistance(a, x, z) {
@@ -145,7 +148,11 @@ export function createTerrain(opts = {}) {
   }
   function height(x, z) {
     const d = boundaryDistance(x, z);
-    return hill(x, z) + relief(x, z) + mountainHeight(x, z, d) - pondCut(x, z);
+    const authored = hill(x, z) + relief(x, z) + mountainHeight(x, z, d);
+    const edge = flatEdge(x, z);
+    // Entire 10 km² footprint is level; retain water-bed excavation and blend beyond its edge.
+    const elevation = flatSquare ? authored * smoothstep(0, flatSquare.transition || 80, edge) : authored;
+    return elevation - pondCut(x, z);
   }
   /** Altura da lâmina d'água acima do chão (negativa = seco; -99 longe de lagos). */
   function waterDepth(x, z) {
@@ -157,11 +164,11 @@ export function createTerrain(opts = {}) {
 
   /** Limite físico: o jogador sobe o começo do contraforte e para onde a encosta fica íngreme. */
   const WALK_LIMIT = -5.5;
-  function walkable(x, z) { return boundaryDistance(x, z) < WALK_LIMIT && waterDepth(x, z) < .38; }
+  function walkable(x, z) { return (flatEdge(x, z) <= 0 || boundaryDistance(x, z) < WALK_LIMIT) && waterDepth(x, z) < .38; }
 
   // Mod 291: sombra opcional do dossel (1 = sem sombra) usada só na cor do relevo.
   const shade = opts.shade || null;
-  return { height, boundaryDistance, flatMask, relief, walkable, mountainHeight, waterDepth, ponds, channels, area, extraAreas, WALK_LIMIT, shade };
+  return { height, boundaryDistance, flatMask, relief, walkable, mountainHeight, waterDepth, ponds, channels, area, extraAreas, WALK_LIMIT, shade, flatSquare };
 }
 
 /**
