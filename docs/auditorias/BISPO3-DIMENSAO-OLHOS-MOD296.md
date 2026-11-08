@@ -8,6 +8,7 @@ Execução iniciada em 07/11/2026 e retomada em 08/11/2026 (São Paulo), baseada
 - `mundo-3d-prototype.js`: somente marcador 296, passagem de jogador/qualidade ao cenário, descarte de `bishop3` ao sair e leitura de diagnóstico em `?debug3d=1`.
 - `dimension-arenas3d.js`: somente tema do Bispo 3, argumentos opcionais de atualização e descarte específico. Demais temas preservados.
 - `index.html`, `mod181-loader.js`, `mundo-3d-prototype.html`: marcador/cache e descrição de carregamento. Não houve publicação no Pages.
+- `eldoria-mod291.test.mjs`: somente as duas expectativas do marcador/build global foram atualizadas para 296; testes e implementação de Eldória permanecem preservados.
 - Havia sobreposição **de caminhos**, não implementação de Eldória, com #412 nesses cinco arquivos compartilhados. Na retomada, esse trabalho já estava na main e foi preservado na atualização da base. A necessidade foi comunicada no chat antes das edições. A integração futura deve conciliar o marcador/cache com a branch que for aprovada primeiro. Não houve escrita na branch do Claude, no PR dele ou na `main`.
 - O brief temporário não existe nesta branch criada da `main`; não foi copiado nem removido da branch de instruções.
 
@@ -68,7 +69,7 @@ O disco visual preserva sua silhueta circular, agora unido à passarela sem sobr
 
 [Galeria completa, antes/depois, piscar, tracking, combate e vídeo](../evidencias/mod296-bispo3/README.md).
 
-- `node --test *.test.mjs tests/*.test.mjs`: **427 aprovados / 2 falhas preexistentes**, contra **423 / 2** na base. As mesmas falhas: `vorgazhek-ultimate.test.mjs` (Mod 262, interrupção/integração) e `zarkhael-circular-sword.test.mjs` (Mod 278, kit/IA/GLB). Não foram apagadas ou enfraquecidas.
+- `node --test *.test.mjs tests/*.test.mjs`: após atualizar a base, **442 aprovados / 3 falhas preexistentes**, contra **438 / 3** na main `89a6dee`, executada em worktree separada. Falhas: `eldoria-forest-lod-overlap.test.mjs` (sobreposição das faixas LOD), `vorgazhek-ultimate.test.mjs` (Mod 262, interrupção/integração) e `zarkhael-circular-sword.test.mjs` (Mod 278, kit/IA/GLB). Não foram apagadas ou enfraquecidas. O teste de marcador global trazido pela nova base ainda exigia 291: suas duas expectativas foram atualizadas para 296, resolvendo a única falha de integração introduzida pelo avanço obrigatório de versão. Na base inicial `f0e5da5`, eram 423 aprovados / 2 falhas, e nesta implementação antes da atualização eram 427 / 2.
 - `node --test dimensions3d.test.mjs zarkhael-dimension.test.mjs`: **9/9**.
 - Sintaxe dos módulos alterados e `git diff --check`: passaram.
 - `node tools/qa/check-ai-onboarding.mjs`: passou (26 caminhos).
