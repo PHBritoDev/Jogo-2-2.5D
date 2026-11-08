@@ -609,7 +609,7 @@ const BELT_AREAS=[{x0:-82,x1:-40,z0:-82,z1:-15},{x0:22,x1:82,z0:-80,z1:-15},{x0:
 const ELDORIA_HOUSES_ALL=()=>[...ELDORIA_HOUSES,ELDORIA_SMITHY];
 const beltBlocks=(()=>{const out=[];const L=VILLAGE_CENTER;
  for(const h of [...ELDORIA_HOUSES_ALL()])out.push({x:L.x+h.x,z:L.z+h.z,r:h.size*.42+3.2});
- const P=treeStructurePlan(VILLAGE_CENTER);out.push({x:P.ringM.cx,z:P.ringM.cz,r:34*.42+2},{x:P.ringS.cx,z:P.ringS.cz,r:28*.42+2},{x:P.plat.cx,z:P.plat.cz,r:7},{x:(P.walkway.a[0]+P.walkway.b[0])/2,z:(P.walkway.a[1]+P.walkway.b[1])/2,r:4});
+ const P=treeStructurePlan(VILLAGE_CENTER);out.push({x:P.ringM.cx,z:P.ringM.cz,r:34*.42+2},{x:P.ringS.cx,z:P.ringS.cz,r:28*.42+2},{x:P.plat.cx,z:P.plat.cz,r:7},{x:(P.walkway.a[0]+P.walkway.b[0])/2,z:(P.walkway.a[1]+P.walkway.b[1])/2,r:10});
  out.push({x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:28},{x:CLEARING.x,z:CLEARING.z,r:9},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:12},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:7},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.32+3},{x:ELDORIA_DROP.x,z:ELDORIA_DROP.z,r:9},{x:ROAD_JUNCTION.x,z:ROAD_JUNCTION.z,r:9},{x:PORTAL.x,z:PORTAL.z,r:14});
  for(const w of WAYSTONES)out.push({x:w.x,z:w.z,r:5});return out;})();
 function beltFree(x,z,r){
@@ -622,7 +622,7 @@ function beltFree(x,z,r){
  return !treeObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+3+r);
 }
 const tropicalWind={value:0};forestWindUniforms.push(tropicalWind);
-const tropicalPlan=planTropicalBelt({areas:BELT_AREAS,isFree:beltFree,density:terrainLowSpec?.8:1}).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s}));
+const tropicalPlan=planTropicalBelt({areas:BELT_AREAS,isFree:beltFree,density:terrainLowSpec?.55:.68}).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s}));
 let tropicalBelt=null;
 /* Chão sob o dossel: escurece e puxa para o musgo/serapilheira as cores de vértice do terreno sob as copas do cinturão
    (uma passada única na carga, grade espacial; a cor do terreno fora da mata não muda). */
@@ -1722,7 +1722,7 @@ function blockedAt(x,z){
  if(voidMode)return voidSpec.walk?!voidSpec.walk(x-voidSpec.x,z-voidSpec.z):Math.hypot(x-voidSpec.x,z-voidSpec.z)>voidSpec.radius;
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
  {const bd=bridgeDeck(x,z);if(bd)return bd.edge;} // MOD 291: a ponte atravessa o rio (parapeitos bloqueiam)
- if(terrain3D.boundaryDistance(x,z)>45||terrain3D.waterDepth(x,z)>=.38||Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)<FOREST_POND.r+1)return true;
+ if(terrain3D.boundaryDistance(x,z)>45||terrain3D.waterDepth(x,z)>=.9)return true;
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const o of marketObstacles){if(o.height!==undefined&&o.height<=.68)continue;const dx=x-o.x,dz=z-o.z;if(o.shape==='box'?Math.abs(dx)<o.halfX&&Math.abs(dz)<o.halfZ:dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}

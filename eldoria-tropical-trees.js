@@ -85,7 +85,8 @@ export function mountTropicalForest(THREE, lib, { group, plan, registerCull, low
       });
       m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.computeBoundingSphere();
       m.name = `${name}-${id}-lod${lod}-${part}`; m.userData.lod = lod; m.userData.species = id;
-      m.castShadow = lod === 0 && !lowSpec; m.receiveShadow = lod < 2 && !lowSpec;
+      // Folhas instanciadas de árvores enormes custam muito em shadow map no Android.
+       m.castShadow = lod === 0 && part === 'bark' && !lowSpec; m.receiveShadow = lod < 2 && !lowSpec;
       if (part === 'leaves' && m.castShadow) m.customDepthMaterial = lib.materials.leafDepth;
       const tri = (geo.index ? geo.index.count : geo.attributes.position.count) / 3; stats.triangles[lod] += tri * list.length;
       root.add(m); meshes.push(m); return m;

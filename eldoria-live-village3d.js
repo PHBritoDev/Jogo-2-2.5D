@@ -132,6 +132,21 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
     }, undefined, () => { lodAudit.push({ file, lod: false, notes: ['LOD1 não carregou'] }); resolve(null); })));
     return lods.get(file);
   }
+  // Quase sem água: três gotas azuis muito pequenas, SEM espelho/piscina/partículas caras.
+  // Uma única draw call por conjunto, sem simular água potável abundante.
+  function addScarceWaterDrops(parent, positions, name) {
+    const geo = new THREE.SphereGeometry(1, 7, 5);
+    const material = new THREE.MeshStandardMaterial({ color: 0x83bac5, roughness: .25, metalness: .05, transparent: true, opacity: .8, depthWrite: false });
+    const drops = new THREE.InstancedMesh(geo, material, positions.length), dummy = new THREE.Object3D();
+    positions.forEach(([x, y, z, sx, sy, sz], i) => {
+      dummy.position.set(x, y, z); dummy.scale.set(sx, sy, sz);
+      dummy.updateMatrix(); drops.setMatrixAt(i, dummy.matrix);
+    });
+    drops.instanceMatrix.needsUpdate = true; drops.name = name;
+    drops.castShadow = false; drops.receiveShadow = false; drops.computeBoundingSphere();
+    parent.add(drops);
+    return drops;
+  }
   const plinths = [];
   for (const spec of specs) {
     promises.push(fetchModel(spec.file).then(asset => asset ? fetchLod(spec.file, asset).then(lodSrc => ({ asset, lodSrc })) : null).then(res => {
@@ -149,6 +164,11 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
       obj.position.set(cx, y, cz); obj.rotation.y = spec.rotation; obj.name = 'Eldoria_' + spec.kind + '_' + spec.file;
       obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && (spec.kind === 'house' || spec.kind === 'tree'); if (spec.kind === 'market') child.frustumCulled = false; } });
       root.add(obj);
+      if (spec.file === 'PocoEldoria.glb') {
+        // Pingos parados ao fundo do poço, não um volume de água: simbolizam escassez.
+        const localY = Math.max(.16, spec.size * .11);
+        addScarceWaterDrops(obj, [[-.13,localY,0,.09,.022,.07],[.16,localY+.012,.09,.055,.015,.047],[0,localY-.015,-.16,.045,.012,.035]],'EldoriaWellLastDrops');
+      }
       if (spec.kind === 'house') plinths.push({ x: cx, y: lo, z: cz, sx: hx * 2.08, sz: hz * 2.08, h: .26 + (hi - lo), rot: spec.rotation });
       grounding.push({ file: spec.file, kind: spec.kind, x: +cx.toFixed(1), z: +cz.toFixed(1), slope: +(hi - lo).toFixed(3), lod: !!lodSrc });
       obstacles.push({ x: cx, z: cz, radius: spec.collision, height: spec.size });
@@ -165,6 +185,8 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
   const bowl = new THREE.Mesh(new THREE.CylinderGeometry(.62, .3, .26, 14), stoneMat); bowl.position.y = 1.42; fountain.add(bowl);
   for (let i = 0; i < 7; i++) { const crack = new THREE.Mesh(new THREE.BoxGeometry(.03, .01, .5 + (i % 3) * .2), new THREE.MeshBasicMaterial({ color: 0x3a3227 })); const a = i * .9; crack.position.set(Math.cos(a) * .6, .155, Math.sin(a) * .6); crack.rotation.y = a + .6; fountain.add(crack); }
   for (let i = 0; i < 9; i++) { const leaf = new THREE.Mesh(new THREE.CircleGeometry(.07, 5), new THREE.MeshStandardMaterial({ color: i % 2 ? 0x7a5a2a : 0x5c4a24, roughness: 1, side: THREE.DoubleSide })); leaf.rotation.x = -Math.PI / 2; const a = i * 2.1; leaf.position.set(Math.cos(a) * (.3 + (i % 4) * .25), .16, Math.sin(a) * (.3 + (i % 4) * .25)); fountain.add(leaf); }
+  // Gotas residuais visíveis na bacia superior; sem jato, cachoeira ou poça cheia.
+  addScarceWaterDrops(fountain, [[-.15,1.56,.12,.065,.019,.05],[.12,1.565,-.08,.05,.015,.042],[.02,1.562,.24,.037,.013,.031]],'EldoriaFountainLastDrops');
   fountain.traverse(o => { if (o.isMesh) { o.receiveShadow = true; o.castShadow = !lowSpec; } });
   if (mergeStatic) mergeStatic(fountain);
   root.add(fountain); obstacles.push({ x: fx, z: fz, radius: F.r + .25, height: .7 });
