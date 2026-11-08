@@ -1,10 +1,10 @@
-# Combate aéreo — branch de avaliação
+# Combate aéreo — Mod 301 integrada à campanha
 
-PR: https://github.com/PHBritoDev/Jogo-2-2.5D/pull/419. **Sem merge.**
+Entrega integrada: [PR #433](https://github.com/PHBritoDev/Jogo-2-2.5D/pull/433) — mesclado na main da Mod 301 após passar a suíte de navegador. Origem experimental: PR #419, que não deve ser mesclado novamente.
 
 ## Como jogar
 
-- Mundo principal: `mundo-3d-prototype.html` usa o novo protagonista nesta branch. `?prota=antigo` restaura o anterior. O seletor também aparece em **Pausa → Ajustes → Protagonista**; a troca recarrega a página, sem converter o save.
+- Mundo principal: `mundo-3d-prototype.html` usa o novo protagonista na Mod 301. `?prota=antigo` restaura o anterior. O seletor também aparece em **Pausa → Ajustes → Protagonista**; a troca recarrega a página, sem converter o save.
 - Arena complementar: `experiments/aerial-combat/`. Novo/antigo e combate aéreo/legado são seleções independentes. WASD/joystick, Shift dash, Espaço salto, J golpe, K magia, R corrida; arraste para câmera, pinça para distância. L alterna foco suave. Reiniciar restaura o treino.
 - Não usar a arena como substituto da campanha. O mundo mantém missões, magias, ultimates e IA; os novos recortes entram apenas na espada Chamado. A arena exercita regras experimentais de mana por hit e adversário aéreo, sem migrar globalmente os chefes.
 
