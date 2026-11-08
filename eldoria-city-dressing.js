@@ -192,7 +192,7 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
   for (const [pick, petal, mid] of kinds) {
     const list = plan.flowers.filter(pick); if (!list.length) continue;
     const m = new THREE.InstancedMesh(flowerGeometry(THREE, petal, mid), flowerMat, list.length);
-    list.forEach((f, i) => { d.position.set(f.x, groundHeightAt(f.x, f.z) - .02, f.z); d.rotation.set(f.tilt, f.rot, 0); d.scale.setScalar(f.s * 1.25); d.updateMatrix(); m.setMatrixAt(i, d.matrix); });
+    list.forEach((f, i) => { d.position.set(f.x, groundHeightAt(f.x, f.z) - .02, f.z); d.rotation.set(f.tilt, f.rot, 0); d.scale.setScalar(f.s * .85); d.updateMatrix(); m.setMatrixAt(i, d.matrix); });
     m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); m.name = 'eldoria-garden-flowers'; root.add(m);
   }
   if (plan.hedges.length) { const m = new THREE.InstancedMesh(bushGeometry(THREE, 9), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9 }), plan.hedges.length); plan.hedges.forEach((h, i) => { d.position.set(h.x, groundHeightAt(h.x, h.z) + h.s * .3, h.z); d.rotation.set(0, h.rot, 0); d.scale.set(h.s * 1.3, h.s * .9, h.s); d.updateMatrix(); m.setMatrixAt(i, d.matrix); }); m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); m.receiveShadow = true; m.name = 'eldoria-garden-hedges'; root.add(m); }

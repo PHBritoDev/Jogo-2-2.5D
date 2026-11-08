@@ -27,7 +27,7 @@ export const ELDORIA_STREETS = {
   // praça → árvore colossal (para ao pé das raízes)
   norte: [[-12.2, -44.5], [-12, -51.5], [-11.6, -57.5]],
   // largo da entrada → praça (atalho diagonal de quem vem da ponte)
-  entrada: [[0, -29], [-4.5, -33.5], [-9, -38.5], [-11.6, -41.6]],
+  entrada: [[0, -29], [-3.8, -31.8], [-8.2, -35.2], [-11.6, -41.6]], // contorna o Abrigo da Vila (−4,6; −36,5)
   // rua principal → pé da escada da casa da árvore (árvore lateral, leste)
   // rua do altar → pé da escada da casa da árvore
   leste: [[9.6, -40.4], [10.4, -42.6], [10.9, -44.4]],

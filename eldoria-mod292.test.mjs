@@ -111,3 +111,30 @@ test('estruturas das árvores: escada nasce no chão, anéis acima do tronco med
   // a rua leste é o acesso: termina no pé da escada
   const foot = P.stair[0].a, end = ELDORIA_STREETS.leste.at(-1); assert.ok(Math.hypot(foot[0] - end[0], foot[1] - end[1]) < 2.5, 'rua leste chega ao pé da escada');
 });
+
+test('árvores autorais: GLB com 5 espécies × LOD0/LOD1/impostor, 3 materiais, UV e peso de celular', () => {
+  const p = new URL('./EldoriaArvoresTropicais.glb', import.meta.url), b = readFileSync(p), json = JSON.parse(b.slice(20, 20 + b.readUInt32LE(12)).toString());
+  assert.ok(statSync(p).size < 1.4 * 1024 * 1024, 'peso total < 1,4 MB');
+  const nodes = json.nodes.filter(n => n.extras && n.extras.especie);
+  for (const sp of ['sumauma', 'copaLarga', 'figueira', 'palmeira', 'embauba']) for (const lod of [0, 1, 2]) assert.ok(nodes.some(n => n.extras.especie === sp && n.extras.lod === lod), sp + ' LOD' + lod);
+  assert.deepEqual(json.materials.map(m => m.name).sort(), ['Casca', 'Folhas', 'Impostor']);
+  for (const m of json.meshes) for (const pr of m.primitives) { assert.ok(pr.attributes.TEXCOORD_0 !== undefined, m.name + ' sem UV'); assert.ok(pr.attributes.NORMAL !== undefined); }
+  const imp = json.materials.find(m => m.name === 'Impostor'); assert.ok(imp.normalTexture, 'impostor com mapa de normais');
+  const tri = name => json.meshes.find(m => m.name === name).primitives.reduce((s, pr) => s + json.accessors[pr.indices].count / 3, 0);
+  for (const sp of ['sumauma', 'copaLarga', 'figueira']) { assert.ok(tri(sp + '_LOD1') < tri(sp + '_LOD0') * .3, sp + ' LOD1 ≥70 % mais leve'); assert.ok(tri(sp + '_LOD0') < 7000); }
+});
+
+test('cinturão: espécies em manchas, espaçamento por estrato e respeito à função de área livre', async () => {
+  const { planTropicalBelt, speciesBandK, TROPICAL_BANDS } = await import('./eldoria-tropical-trees.js');
+  const free = (x, z) => !(Math.abs(x) < 6); // corredor central
+  const a = planTropicalBelt({ areas: [{ x0: -60, x1: 60, z0: 0, z1: 60 }], isFree: free }), b = planTropicalBelt({ areas: [{ x0: -60, x1: 60, z0: 0, z1: 60 }], isFree: free });
+  assert.deepEqual(a, b, 'determinístico');
+  assert.ok(a.length > 120, 'denso: ' + a.length);
+  const count = sp => a.filter(t => t.sp === sp).length;
+  for (const sp of ['sumauma', 'copaLarga', 'figueira', 'palmeira', 'embauba']) assert.ok(count(sp) > 0, sp);
+  assert.ok(count('sumauma') < a.length * .12, 'emergentes raras');
+  assert.ok(a.every(t => Math.abs(t.x) >= 6), 'corredor livre');
+  for (const t of a) for (const o of a) if (o !== t && o.sp === t.sp) assert.ok(Math.hypot(o.x - t.x, o.z - t.z) >= Math.max(t.gap, o.gap) - 1e-6);
+  for (const k of ['low', 'auto', 'high']) { const [n, m, f] = TROPICAL_BANDS[k]; assert.ok(n < m && m < f); }
+  assert.ok(speciesBandK({ height: 30 }) > speciesBandK({ height: 14 }));
+});

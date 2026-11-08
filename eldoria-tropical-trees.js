@@ -128,20 +128,22 @@ function vnoise(x, z, seed) {
 export function planTropicalBelt({ areas, isFree, seed = 2925, density = 1, rnd: rndIn }) {
   let s = seed >>> 0; const rnd = rndIn || (() => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; });
   const kinds = [
-    { sp: 'sumauma', gap: 15, share: .07, s: [.8, 1.12] },
+    { sp: 'sumauma', gap: 22, share: .03, s: [.8, 1.1] },
     { sp: 'figueira', gap: 9.5, share: .16, s: [.75, 1.15] },
     { sp: 'copaLarga', gap: 7.2, share: .37, s: [.78, 1.25] },
     { sp: 'embauba', gap: 5.2, share: .2, s: [.8, 1.2] },
     { sp: 'palmeira', gap: 4.6, share: .2, s: [.78, 1.18] },
   ];
   const out = [], cell = 4, grid = new Map(), key = (x, z) => Math.floor(x / cell) + ',' + Math.floor(z / cell);
-  const clear = (x, z, gap) => {
-    const r = Math.ceil(16 / cell), gx = Math.floor(x / cell), gz = Math.floor(z / cell);
-    for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) { const l = grid.get((gx + i) + ',' + (gz + j)); if (!l) continue; for (const o of l) { const need = Math.max(gap, o.gap) * .5 + Math.min(gap, o.gap) * .5; if ((o.x - x) ** 2 + (o.z - z) ** 2 < need * need) return false; } }
+  // espaçamento: mesma espécie respeita o próprio raio de copa; espécies de estratos diferentes podem ficar
+  // mais perto (a palmeira e a embaúba crescem sob a copa da sumaúma) — dossel em camadas, não grade.
+  const clear = (x, z, gap, sp) => {
+    const r = Math.ceil(27 / cell), gx = Math.floor(x / cell), gz = Math.floor(z / cell);
+    for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) { const l = grid.get((gx + i) + ',' + (gz + j)); if (!l) continue; for (const o of l) { const need = o.sp === sp ? Math.max(gap, o.gap) : (gap + o.gap) * .3 + 1; if ((o.x - x) ** 2 + (o.z - z) ** 2 < need * need) return false; } }
     return true;
   };
   for (const area of areas) {
-    const W = area.x1 - area.x0, H = area.z1 - area.z0, tries = Math.round(W * H / 6 * density);
+    const W = area.x1 - area.x0, H = area.z1 - area.z0, tries = Math.round(W * H / 3.2 * density);
     for (const kind of kinds) {
       const want = Math.round(tries * kind.share);
       for (let t = 0; t < want * 3; t++) {
@@ -150,7 +152,7 @@ export function planTropicalBelt({ areas, isFree, seed = 2925, density = 1, rnd:
         // manchas: cada espécie domina onde o seu ruído é alto (composição natural, sem distribuição uniforme)
         if (rnd() > .35 + patch * .9) continue;
         const gap = kind.gap * (.85 + rnd() * .3);
-        if (!isFree(x, z, gap * .35) || !clear(x, z, gap)) continue;
+        if (!isFree(x, z, gap * .35) || !clear(x, z, gap, kind.sp)) continue;
         const o = { sp: kind.sp, x, z, gap, rot: rnd() * Math.PI * 2, s: kind.s[0] + rnd() * (kind.s[1] - kind.s[0]) };
         const v = .9 + rnd() * .16, warm = rnd() < .25 ? .06 : 0; o.tint = [v * (1 + warm), v, v * (1 - warm)];
         out.push(o); const kk = key(x, z); if (!grid.has(kk)) grid.set(kk, []); grid.get(kk).push(o);

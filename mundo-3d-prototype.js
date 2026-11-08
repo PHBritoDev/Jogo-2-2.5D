@@ -37,10 +37,11 @@ import {TwinPortals} from './skill-twin-portals3d.js';import {createTwinPortalsV
 import {JudgmentDragon} from './skill-judgment-dragon3d.js';import {createDragonVFX} from './skill-judgment-dragon-vfx3d.js';
 import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import {createSakugaXVFX,createSphereVFX,createCelestialVFX} from './sakuga-skills-vfx3d.js';
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
-import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow } from './act1-world-layout.js';
+import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
 import {ELDORIA_PLOTS} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
+import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
 import {ELDORIA_STREETS,doorPaths,treeStructurePlan} from './eldoria-city-layout.js';
 import {createWalkables} from './eldoria-walkable.js';
 import {loadTropicalTrees,mountTropicalForest,planTropicalBelt} from './eldoria-tropical-trees.js';
@@ -474,24 +475,29 @@ const coniferGeometry=(()=>{
 })();
 /* MOD 202 — corte de instâncias: florestas inteiras eram desenhadas todo quadro (inclusive árvores atrás da
    câmera e a 300 m). Mantemos o conjunto completo na memória e enviamos à GPU só as instâncias perto e à frente. */
-const instanceCullers=[],_cullDir=new THREE.Vector3();let cullFrame=0,cullLastX=1e9,cullLastZ=1e9,cullLastYaw=1e9;
+const instanceCullers=[],_cullDir=new THREE.Vector3(),_cullFrustum=new THREE.Frustum(),_cullMat=new THREE.Matrix4(),_cullSphere=new THREE.Sphere(),_cullLastDir=new THREE.Vector3(0,0,0),_cullLastPos=new THREE.Vector3(1e9,0,0);let cullFrame=0,cullLastX=1e9,cullLastZ=1e9,cullLastYaw=1e9;
 function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
- const n=mesh.count,src=mesh.instanceMatrix.array.slice(0,n*16),col=mesh.instanceColor?mesh.instanceColor.array.slice(0,n*3):null,pos=new Float32Array(n*3);
- for(let i=0;i<n;i++){pos[i*3]=src[i*16+12];pos[i*3+1]=src[i*16+13];pos[i*3+2]=src[i*16+14];}
- mesh.frustumCulled=false;instanceCullers.push({mesh,n,src,col,pos,r2:radius*radius,min2:minRadius*minRadius,near2:keepNear*keepNear});cullLastX=1e9;
+ const n=mesh.count,src=mesh.instanceMatrix.array.slice(0,n*16),col=mesh.instanceColor?mesh.instanceColor.array.slice(0,n*3):null,pos=new Float32Array(n*3),rad=new Float32Array(n);
+ if(!mesh.geometry.boundingSphere)mesh.geometry.computeBoundingSphere();const bs=mesh.geometry.boundingSphere;
+ // MOD 292 — esfera de cada instância (centro e raio da geometria na escala da instância) para o corte por FRUSTUM.
+ for(let i=0;i<n;i++){const o=i*16,sx=Math.hypot(src[o],src[o+1],src[o+2]),sy=Math.hypot(src[o+4],src[o+5],src[o+6]);pos[i*3]=src[o+12];pos[i*3+1]=src[o+13]+bs.center.y*sy;pos[i*3+2]=src[o+14];rad[i]=(bs.radius+Math.hypot(bs.center.x,bs.center.z))*Math.max(sx,sy)*1.05;}
+ mesh.frustumCulled=false;const c={mesh,n,src,col,pos,rad,r2:radius*radius,min2:minRadius*minRadius,near2:keepNear*keepNear};instanceCullers.push(c);cullLastX=1e9;return c;
 }
+function refreshInstanceCulling(){cullLastX=1e9;_cullLastPos.set(1e9,0,0);}
 function updateInstanceCulling(){
  if(!instanceCullers.length||(++cullFrame%2))return;
  camera.getWorldDirection(_cullDir);const yaw=Math.atan2(_cullDir.x,_cullDir.z),px=player.position.x,pz=player.position.z;
- if(Math.abs(px-cullLastX)<.75&&Math.abs(pz-cullLastZ)<.75&&Math.abs(yaw-cullLastYaw)<.045)return;
- cullLastX=px;cullLastZ=pz;cullLastYaw=yaw;
- const cx=camera.position.x,cz=camera.position.z,fl=Math.hypot(_cullDir.x,_cullDir.z)||1,fx=_cullDir.x/fl,fz=_cullDir.z/fl;
+ // MOD 292: também reage a câmera (altura/inclinação), não só ao jogador — olhar para baixo/vistas aéreas não cortam árvores visíveis.
+ if(Math.abs(px-cullLastX)<.75&&Math.abs(pz-cullLastZ)<.75&&Math.abs(yaw-cullLastYaw)<.045&&camera.position.distanceToSquared(_cullLastPos)<.5&&_cullDir.dot(_cullLastDir)>.9995)return;
+ cullLastX=px;cullLastZ=pz;cullLastYaw=yaw;_cullLastPos.copy(camera.position);_cullLastDir.copy(_cullDir);
+ camera.updateMatrixWorld();_cullMat.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);_cullFrustum.setFromProjectionMatrix(_cullMat);
+ const cx=camera.position.x,cz=camera.position.z;
  for(const c of instanceCullers){
   const arr=c.mesh.instanceMatrix.array,carr=c.col&&c.mesh.instanceColor?c.mesh.instanceColor.array:null;let k=0;
   for(let i=0;i<c.n;i++){
    const dx=c.pos[i*3]-cx,dz=c.pos[i*3+2]-cz,d2=dx*dx+dz*dz;
    if(d2>c.r2||d2<c.min2)continue;
-   if(d2>c.near2&&(dx*fx+dz*fz)<-.1*Math.sqrt(d2))continue;
+   if(d2>c.near2){_cullSphere.center.set(c.pos[i*3],c.pos[i*3+1],c.pos[i*3+2]);_cullSphere.radius=c.rad[i];if(!_cullFrustum.intersectsSphere(_cullSphere))continue;}
    arr.set(c.src.subarray(i*16,i*16+16),k*16);if(carr)carr.set(c.col.subarray(i*3,i*3+3),k*3);k++;
   }
   c.mesh.count=k;c.mesh.instanceMatrix.needsUpdate=true;if(carr)c.mesh.instanceColor.needsUpdate=true;
@@ -586,6 +592,54 @@ matureForest.ready.then(r=>{window.SevenSinsMatureForestReport={trees:matureFore
 const tropical=buildTropical(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,trees:matureForest.plan,zone:{x0:-70,x1:40,z0:-148,z1:-80},
  isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-6&&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+1.5&&Math.hypot(x+12,z+97)>8&&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<3)&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+.8)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+1.1))&&!bridgeDeck(x,z)});
 window.SevenSinsTropicalReport=tropical.stats;
+/* MOD 292 — cinturão de mata tropical densa EM VOLTA da cidade (menos o corredor de chegada pela ponte), com as
+   5 espécies autorais de EldoriaArvoresTropicais.glb: instâncias por espécie/nível, LOD0/LOD1/impostor em faixas
+   exclusivas, colisão só nos troncos. A copa nunca vira parede: o corte por câmera/setor do jogo decide o que vai à GPU. */
+const BELT_AREAS=[{x0:-82,x1:-40,z0:-82,z1:-15},{x0:22,x1:82,z0:-80,z1:-15},{x0:-40,x1:22,z0:-86,z1:-75},{x0:-82,x1:82,z0:-7,z1:42}];
+const ELDORIA_HOUSES_ALL=()=>[...ELDORIA_HOUSES,ELDORIA_SMITHY];
+const beltBlocks=(()=>{const out=[];const L=VILLAGE_CENTER;
+ for(const h of [...ELDORIA_HOUSES_ALL()])out.push({x:L.x+h.x,z:L.z+h.z,r:h.size*.42+3.2});
+ const P=treeStructurePlan(VILLAGE_CENTER);out.push({x:P.ringM.cx,z:P.ringM.cz,r:34*.42+2},{x:P.ringS.cx,z:P.ringS.cz,r:28*.42+2},{x:P.plat.cx,z:P.plat.cz,r:7},{x:(P.walkway.a[0]+P.walkway.b[0])/2,z:(P.walkway.a[1]+P.walkway.b[1])/2,r:4});
+ out.push({x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:28},{x:CLEARING.x,z:CLEARING.z,r:9},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:12},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:7},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.32+3},{x:ELDORIA_DROP.x,z:ELDORIA_DROP.z,r:9},{x:ROAD_JUNCTION.x,z:ROAD_JUNCTION.z,r:9},{x:PORTAL.x,z:PORTAL.z,r:14});
+ for(const w of WAYSTONES)out.push({x:w.x,z:w.z,r:5});return out;})();
+function beltFree(x,z,r){
+ if(!dryGround(x,z)||terrain3D.boundaryDistance(x,z)>-6||insideMeadow(x,z,6)||bridgeDeck(x,z))return false;
+ if(beltBlocks.some(b=>Math.hypot(x-b.x,z-b.z)<b.r+r))return false;
+ if(closeToPolyline(x,z,RIVER_POINTS,RIVER.width*.5+2.6+r))return false;
+ // corredor de chegada mais largo: da trilha inicial até a ponte (a mata emoldura, não fecha)
+ if(closeToPolyline(x,z,[[0,14],[0,4],[.1,-3],[-.4,-12.3]],6.5+r)||closeToPolyline(x,z,startTrail,5+r))return false;
+ if(trailRoutes.some(t=>closeToPolyline(x,z,t.points,t.width*.5+1.8+r)))return false;
+ return !treeObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+3+r);
+}
+const tropicalWind={value:0};forestWindUniforms.push(tropicalWind);
+const tropicalPlan=planTropicalBelt({areas:BELT_AREAS,isFree:beltFree,density:terrainLowSpec?.8:1}).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s}));
+let tropicalBelt=null;
+/* Chão sob o dossel: escurece e puxa para o musgo/serapilheira as cores de vértice do terreno sob as copas do cinturão
+   (uma passada única na carga, grade espacial; a cor do terreno fora da mata não muda). */
+(function shadeUnderCanopy(){
+ const cell=8,grid=new Map(),R={sumauma:11,copaLarga:6.2,figueira:8.5,palmeira:3.6,embauba:4.4};
+ for(const t of tropicalPlan){const k=Math.floor(t.x/cell)+','+Math.floor(t.z/cell);if(!grid.has(k))grid.set(k,[]);grid.get(k).push(t);}
+ const g=terrainMesh.geometry,p=g.attributes.position,c=g.attributes.color;let touched=0;
+ for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i);let cover=0;const gx=Math.floor(x/cell),gz=Math.floor(z/cell);
+  for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++){const l=grid.get((gx+a)+','+(gz+b));if(!l)continue;for(const t of l){const r=(R[t.sp]||6)*t.s,d=Math.hypot(x-t.x,z-t.z);if(d<r)cover+=(1-d/r)*(t.sp==='palmeira'?.35:.7);}}
+  if(cover<=0)continue;const k=Math.min(1,cover);touched++;
+  c.setXYZ(i,c.getX(i)*(1-.42*k)+.035*k,c.getY(i)*(1-.3*k)+.03*k,c.getZ(i)*(1-.45*k)+.012*k);}
+ c.needsUpdate=true;window.SevenSinsCanopyShade={vertices:touched};
+})();
+const tropicalReady=loadTropicalTrees(THREE,GLTFLoader,{windUniform:tropicalWind,lowSpec:terrainLowSpec}).then(lib=>{
+ tropicalBelt=mountTropicalForest(THREE,lib,{group:scene,plan:tropicalPlan,registerCull:registerInstanceCull,lowSpec:terrainLowSpec,profile:tropicalProfile(),name:'cinturao'});
+ for(const o of tropicalBelt.obstacles)treeObstacles.push(o);refreshInstanceCulling();
+ // câmera encostada numa copa/tronco: pontilhado em vez de tela tapada (mesmo recurso das coníferas)
+ addNearCameraFade(lib.materials.leaves,3.4);addNearCameraFade(lib.materials.bark,2.6);
+ window.SevenSinsTropicalBeltReport={...tropicalBelt.stats,perArea:BELT_AREAS.map(a=>tropicalPlan.filter(t=>t.x>=a.x0&&t.x<=a.x1&&t.z>=a.z0&&t.z<=a.z1).length),glb:'EldoriaArvoresTropicais.glb'};return tropicalBelt;
+}).catch(e=>{console.warn('Árvores tropicais não carregaram.',e);window.SevenSinsTropicalBeltReport={failed:String(e&&e.message||e)};});
+// sub-bosque e cipós sob o cinturão (mesmos módulos da mata do Mod 291)
+const beltUnder=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,seed:2926,trees:tropicalPlan.map(t=>({x:t.x,z:t.z,s:t.s,collide:true})),
+ isFree:(x,z)=>beltFree(x,z,-1.2)});
+const beltTropical=buildTropical(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,seed:2927,zone:null,
+ trees:tropicalPlan.filter(t=>t.sp==='copaLarga'||t.sp==='figueira'||t.sp==='sumauma').map(t=>({x:t.x,z:t.z,h:(t.sp==='sumauma'?26:11)*t.s})),isFree:(x,z)=>beltFree(x,z,-1.5)});
+{const seen=new Set();for(const g of [beltTropical.group,beltUnder.group])g&&g.traverse(o=>{if(o.isMesh&&!seen.has(o.material)){seen.add(o.material);addNearCameraFade(o.material,2.2);}});}
+function tropicalProfile(){return graphics3DMode==='low'?'low':graphics3DMode==='auto'?(graphics3DScale<.7?'low':'auto'):'high';}
 /* MOD 291 — streaming por zona: a cidade (e o resto do vale) fica atrás da serra quando o herói está no prado/estrada do
    sul, e o prado some quando ele está no vale. Nada é descarregado; só deixa de ser enviado à GPU. */
 let zoneFrame=0;const zoneState={south:null};
@@ -1903,6 +1957,7 @@ function applyGraphics3D(mode,autoScale){
  grassGroup.visible=mode==='auto'?graphics3DScale>=.6:baseline.foliage;
  mossInstancesA.visible=grassGroup.visible;mossInstancesB.visible=grassGroup.visible;
  for(const cloud of movingClouds)cloud.group.visible=mode==='auto'?graphics3DScale>=.7:baseline.clouds;
+ if(typeof tropicalBelt!=='undefined'&&tropicalBelt){tropicalBelt.setProfile(tropicalProfile());refreshInstanceCulling();}
  const label=mode==='auto'?'Automático':mode==='low'?'Baixo':mode==='high'?'Alto':'Máximo';
  const status=document.getElementById('graphics-status-3d');
  if(status)status.textContent=label+' · '+Math.round(graphics3DScale*100)+'% de resolução'+(mode==='auto'?(graphics3DFps?' · '+Math.round(graphics3DFps)+' FPS':' · medindo FPS'):'');
@@ -3693,7 +3748,7 @@ function buildAct1Props(){
     ancestrais, a passarela suspensa do criador entre duas delas, canteiros, sebes, cercas claras e lampiões. */
  act1Props.dressing=mountCityDressing(THREE,GLTFLoader,{group:villageGroup,groundHeightAt,center:VILLAGE_CENTER,plots:ELDORIA_PLOTS,lowSpec:terrainLowSpec,obstacles:marketObstacles,
   structures:treeStructurePlan(VILLAGE_CENTER),walk:eldoriaWalk,fetchModel:eldoriaCity.fetchModel,
-  lamps:[{x:3.4,z:-19.5},{x:-3.8,z:-26.5},{x:4.6,z:-37},{x:-5.4,z:-37.4},{x:-17.6,z:-42.6},{x:-24.2,z:-47.9},{x:4.4,z:-47.6},{x:-14.6,z:-52.5},{x:-4.2,z:-62.5},{x:-9,z:-58.5}],
+  lamps:[{x:3.4,z:-19.5},{x:-3.8,z:-26.5},{x:4.6,z:-37},{x:-6.6,z:-31.4},{x:-17.6,z:-42.6},{x:-24.2,z:-47.9},{x:4.4,z:-47.6},{x:-14.6,z:-52.5},{x:-4.2,z:-62.5},{x:-9,z:-58.5}],
   isFree:(x,z)=>!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+1)&&!marketObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<(o.radius||1)+.4)});
  eldoriaCity.complete.then(report=>{
    window.EldoriaLiveCityQA={loaded:report.loaded,expected:report.expected,failures:report.failures,
@@ -7109,6 +7164,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  whyBlocked(x,z){const y=player.position.y,w=eldoriaWalk.blocked(x,z,y,groundHeightAt);const t=treeObstacles.find(o=>Math.hypot(x-o.x,z-o.z)<o.radius),mo=marketObstacles.find(o=>o.height>.68&&(o.shape==='box'?Math.abs(x-o.x)<o.halfX&&Math.abs(z-o.z)<o.halfZ:Math.hypot(x-o.x,z-o.z)<o.radius)),np=[...vendorRoots,...villagerWalkers.map(v=>v.holder)].find(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8);return{blockedAt:blockedAt(x,z),player:playerBlockedAt(x,z),walk:w?(w.name||w.type):null,tree:t?[t.x,t.z,t.radius]:null,market:mo?[mo.x,mo.z,mo.radius||mo.halfX]:null,npc:np?[np.position.x,np.position.z]:null,water:terrain3D.waterDepth(x,z),edge:terrain3D.boundaryDistance(x,z)};},
  walkJump(){action('jump');return true;},
  placeAt(x,y,z,yaw=0){player.position.set(x,y,z);playerYaw=yaw;player.rotation.y=yaw;cameraYaw=yaw+Math.PI;grounded=true;verticalVelocity=0;moveVX=moveVZ=0;return this.walkState();},
+ beltWhy(x,z){return{free:beltFree(x,z,1),dry:dryGround(x,z),edge:terrain3D.boundaryDistance(x,z),meadow:insideMeadow(x,z,6),block:beltBlocks.find(b=>Math.hypot(x-b.x,z-b.z)<b.r+1)||null,river:closeToPolyline(x,z,RIVER_POINTS,RIVER.width*.5+3.6),trail:trailRoutes.findIndex(t=>closeToPolyline(x,z,t.points,t.width*.5+2.8)),tree:treeObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+4)};},
  terrainProbe(pts){return pts.map(([x,z])=>({x,z,h:+terrain3D.height(x,z).toFixed(2),edge:+terrain3D.boundaryDistance(x,z).toFixed(1),water:+terrain3D.waterDepth(x,z).toFixed(2)}));},
  drawList(){return new Promise(res=>{const orig=renderer.renderBufferDirect.bind(renderer),agg={};let n=0,tri=0;renderer.renderBufferDirect=function(cam,sc,geo,mat,obj,grp){n++;let top=obj,q=obj;while(q&&q.parent){if(q.parent.isScene){top=q;break;}q=q.parent;}const k=(top.name||(top.type+'@'+Math.round(top.position.x)+','+Math.round(top.position.z)+'#'+top.children.length))+'>'+(obj.name||obj.type);const t=(geo.index?geo.index.count:geo.attributes.position.count)/3*(obj.isInstancedMesh?obj.count:1);const a=agg[k]||(agg[k]={c:0,t:0});a.c++;a.t+=t;tri+=t;return orig(cam,sc,geo,mat,obj,grp);};requestAnimationFrame(()=>{renderer.renderBufferDirect=orig;res({calls:n,tris:Math.round(tri),top:Object.entries(agg).sort((a,b)=>b[1].c-a[1].c).slice(0,30).map(([k,v])=>k+':'+v.c+'/'+Math.round(v.t/1000)+'k')});});});},
  /** MOD 291 — draw calls estimados por grupo de topo (só malhas visíveis dentro do frustum da câmera). */
