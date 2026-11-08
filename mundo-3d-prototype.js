@@ -1602,9 +1602,10 @@ function action(kind){if(whiteLease.locked)return;if(cosmicLock())return;if(vzLo
 // MOD 187 — o celular não gera 'click' para um segundo dedo enquanto o primeiro segura o joystick; pointerdown responde sempre.
 /* MOD 291 — "clique fantasma": um toque que FECHA um painel (ex.: ✕ da Loja, no canto superior direito) dispara no
    pointerdown; o click que o navegador gera no pointerup cai no botão que ficou embaixo (⏸) e abria a PAUSA.
-   Clicks sintéticos logo depois de um toque instantâneo em OUTRO botão são ignorados. */
+   Só o click de PONTEIRO (detail>0 ou pointerType de toque/mouse) sem pointerdown próprio, logo após um toque em OUTRO botão, é ignorado: teclado
+   (detail=0), multitoque e toques voluntários (têm pointerdown próprio) continuam funcionando. */
 var instantTapAt=-1e9;
-function bindInstantTap(button,fn){if(!button)return;let lastTap=0,pointerSeen=false;button.addEventListener('pointerdown',e=>{pointerSeen=true;e.preventDefault();e.stopPropagation();lastTap=performance.now();instantTapAt=lastTap;fn();});button.addEventListener('click',e=>{if(pointerSeen&&e.detail>0)return;const now=performance.now();if(now-instantTapAt<650&&now-lastTap>650)return;if(now-lastTap>500)fn();});}
+function bindInstantTap(button,fn){if(!button)return;let lastTap=0,pointerSeen=false;button.addEventListener('pointerdown',e=>{pointerSeen=true;e.preventDefault();e.stopPropagation();lastTap=performance.now();instantTapAt=lastTap;fn();});button.addEventListener('click',e=>{if(pointerSeen&&e.detail>0)return;const now=performance.now();const fromPointer=e.detail>0||!!e.pointerType;if(fromPointer&&now-instantTapAt<650&&now-lastTap>650)return;if(now-lastTap>500)fn();});}
 function bindInstantAction(id,kind){bindInstantTap(document.getElementById(id),()=>action(kind));}
 bindInstantAction('attack','attack');bindInstantAction('dash','dash');
 // MOD 213 — botão de correr (liga/desliga; no teclado, segure Shift).
@@ -1736,6 +1737,10 @@ if(firstPerson){
   // MOD 217 — casas da cidade (caixas de colisão): a câmera para antes da fachada em vez de entrar no prédio.
   if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape==='box'&&Math.abs(o.x-target.x)<camDistUse+8&&Math.abs(o.z-target.z)<camDistUse+8);
    if(near.length)for(let i=1;i<=14;i++){const f=i/14*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(near.some(o=>Math.abs(sx-o.x)<o.halfX+.25&&Math.abs(sz-o.z)<o.halfZ+.25&&sy<groundHeightAt(o.x,o.z)+(o.height||3)+1.8)){limit=Math.max(.12,(i-1.5)/14*limit);break;}}}
+  // MOD 291 — poço, barracas, lampiões e deques (colisões circulares altas): a câmera para antes deles em vez de
+  // atravessar telhados e vigas (a vista da trilha da Loja ficava tomada pelo telhado do poço).
+  if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape!=='box'&&(o.height||0)>1.6&&Math.abs(o.x-target.x)<camDistUse+7&&Math.abs(o.z-target.z)<camDistUse+7);
+   if(near.length)for(let i=2;i<=14;i++){const f=i/14*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(near.some(o=>{const dx=sx-o.x,dz=sz-o.z,r=(o.radius||1)+.3;return dx*dx+dz*dz<r*r&&sy<groundHeightAt(o.x,o.z)+(o.height||3)+.6;})){limit=Math.max(.14,(i-1.5)/14*limit);break;}}}
   // MOD 217 — interiores (estalagem, esgoto, vulcão, caverna): a câmera para antes da parede, sem mostrar o que há fora do cômodo.
   if(voidMode&&voidSpec.walk){for(let i=1;i<=14;i++){const f=i/14*limit;if(blockedAt(target.x+camOffset.x*f,target.z+camOffset.z*f)){limit=Math.max(.1,(i-1.6)/14*limit);break;}}}
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
