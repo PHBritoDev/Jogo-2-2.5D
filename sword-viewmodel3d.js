@@ -6,12 +6,12 @@ export function createSwordViewmodel(T,camera,hero,clone,guardClip){
  const root=new T.Group();root.name='SwordArms232';camera.add(root);
  const rig=clone(hero);rig.visible=true;rig.position.set(0,-1.55,-.10);rig.rotation.set(0,Math.PI,0);root.add(rig);
  const mixer=new T.AnimationMixer(rig);const guard=mixer.clipAction(guardClip);guard.play();mixer.update(0);guard.paused=true;
- const bones={};rig.traverse(o=>{if(o.isBone)bones[o.name.replace('mixamorig','').replace(':','')]=o;});
+ const bones={};rig.traverse(o=>{if(o.isBone)bones[o.name.replace('mixamorig','').replace(':','').replace('UpperArm','Arm').replace('LowerArm','ForeArm')]=o;});
  root.updateWorldMatrix(true,true);rig.updateMatrixWorld(true);
- const capsules=[];for(const b of Object.values(bones)){if(!/Arm|ForeArm|Hand/.test(b.name))continue;for(const child of b.children){if(!child.isBone)continue;capsules.push({a:b.getWorldPosition(new T.Vector3()),b:child.getWorldPosition(new T.Vector3()),r:/ForeArm/.test(b.name)?.085:/Hand/.test(b.name)?.060:.105});}}
+ const capsules=[];for(const b of Object.values(bones)){if(!/Arm|ForeArm|Hand/.test(b.name))continue;for(const child of b.children){if(!child.isBone)continue;capsules.push({a:b.getWorldPosition(new T.Vector3()),b:child.getWorldPosition(new T.Vector3()),r:/ForeArm|LowerArm/.test(b.name)?.085:/Hand/.test(b.name)?.060:.105});}}
  const meshes=[];rig.traverse(o=>{if(!o.isMesh)return;if(!o.isSkinnedMesh){o.visible=false;return;}
   o.skeleton.update();const geo=o.geometry,weights=geo.attributes.skinWeight,joints=geo.attributes.skinIndex;
-  const armIds=new Set(o.skeleton.bones.map((b,i)=>/ForeArm|Hand/.test(b.name)?i:-1).filter(i=>i>=0));
+  const armIds=new Set(o.skeleton.bones.map((b,i)=>/ForeArm|LowerArm|Hand/.test(b.name)?i:-1).filter(i=>i>=0));
   const near=new Map(),probe=new T.Vector3(),segment=new T.Line3(),closest=new T.Vector3();
   const arm=v=>{if(near.has(v))return near.get(v);let weight=0;for(let k=0;k<4;k++)if(armIds.has(joints[['getX','getY','getZ','getW'][k]](v)))weight+=weights[['getX','getY','getZ','getW'][k]](v);probe.fromBufferAttribute(geo.attributes.position,v);o.applyBoneTransform(v,probe);o.localToWorld(probe);const keep=weight>.48&&capsules.some(c=>{segment.set(c.a,c.b).closestPointToPoint(probe,true,closest);return probe.distanceToSquared(closest)<c.r*c.r;});near.set(v,keep);return keep;};
   const ix=geo.index,indices=[];for(let i=0;i<(ix?ix.count:geo.attributes.position.count);i+=3){const a=ix?ix.getX(i):i,b=ix?ix.getX(i+1):i+1,c=ix?ix.getX(i+2):i+2;if(arm(a)&&arm(b)&&arm(c))indices.push(a,b,c);}
