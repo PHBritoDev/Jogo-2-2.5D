@@ -1,0 +1,174 @@
+{
+  "ok": true,
+  "errors": [],
+  "quality": {
+    "low": {
+      "stats": {
+        "quality": "low",
+        "sections": 32,
+        "doors": 64,
+        "luminaires": 32,
+        "drawCalls": 6,
+        "triangles": 2796,
+        "disposed": false,
+        "updates": 11,
+        "reflection": "analytic ceiling quads; no scene/character reflection"
+      },
+      "render": {
+        "frame": 11,
+        "calls": 6,
+        "triangles": 2796,
+        "points": 0,
+        "lines": 0
+      },
+      "memory": {
+        "geometries": 6,
+        "textures": 0
+      }
+    },
+    "medium": {
+      "stats": {
+        "quality": "medium",
+        "sections": 32,
+        "doors": 64,
+        "luminaires": 32,
+        "drawCalls": 6,
+        "triangles": 3276,
+        "disposed": false,
+        "updates": 12,
+        "reflection": "analytic ceiling quads; no scene/character reflection"
+      },
+      "render": {
+        "frame": 12,
+        "calls": 6,
+        "triangles": 3276,
+        "points": 0,
+        "lines": 0
+      },
+      "memory": {
+        "geometries": 6,
+        "textures": 0
+      }
+    },
+    "high": {
+      "stats": {
+        "quality": "high",
+        "sections": 32,
+        "doors": 64,
+        "luminaires": 32,
+        "drawCalls": 6,
+        "triangles": 3852,
+        "disposed": false,
+        "updates": 13,
+        "reflection": "analytic ceiling quads; no scene/character reflection"
+      },
+      "render": {
+        "frame": 13,
+        "calls": 6,
+        "triangles": 3852,
+        "points": 0,
+        "lines": 0
+      },
+      "memory": {
+        "geometries": 6,
+        "textures": 0
+      }
+    }
+  },
+  "memory": [
+    {
+      "frees": 6,
+      "old": {
+        "quality": "high",
+        "sections": 32,
+        "doors": 64,
+        "luminaires": 32,
+        "drawCalls": 6,
+        "triangles": 3852,
+        "disposed": true,
+        "updates": 14,
+        "reflection": "analytic ceiling quads; no scene/character reflection"
+      },
+      "memory": {
+        "geometries": 6,
+        "textures": 0
+      }
+    },
+    {
+      "frees": 6,
+      "old": {
+        "quality": "high",
+        "sections": 32,
+        "doors": 64,
+        "luminaires": 32,
+        "drawCalls": 6,
+        "triangles": 3852,
+        "disposed": true,
+        "updates": 1,
+        "reflection": "analytic ceiling quads; no scene/character reflection"
+      },
+      "memory": {
+        "geometries": 6,
+        "textures": 0
+      }
+    },
+    {
+      "frees": 6,
+      "old": {
+        "quality": "high",
+        "sections": 32,
+        "doors": 64,
+        "luminaires": 32,
+        "drawCalls": 6,
+        "triangles": 3852,
+        "disposed": true,
+        "updates": 1,
+        "reflection": "analytic ceiling quads; no scene/character reflection"
+      },
+      "memory": {
+        "geometries": 6,
+        "textures": 0
+      }
+    }
+  ],
+  "renderer": "Chromium / SwiftShader, not Android FPS",
+  "cinematicCamera": {
+    "actual": [
+      9,
+      12,
+      38
+    ],
+    "expected": [
+      9,
+      12,
+      38
+    ]
+  },
+  "frameCpuMs": {
+    "median": 0.09999999997671694,
+    "p95": 1,
+    "note": "CPU submission including shader overhead; not GPU time or device FPS"
+  },
+  "otherDimensions": [
+    {
+      "theme": "vault",
+      "calls": 16,
+      "triangles": 37856
+    },
+    {
+      "theme": "eyes",
+      "calls": 7,
+      "triangles": 1598
+    },
+    {
+      "theme": "mushrooms",
+      "calls": 5,
+      "triangles": 80517
+    },
+    {
+      "theme": "root",
+      "calls": 18,
+      "triangles": 12402
+    }
+  ]
+}
