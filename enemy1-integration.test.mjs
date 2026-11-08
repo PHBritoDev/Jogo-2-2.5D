@@ -37,12 +37,18 @@ test('MIRAR alterna entre inimigos; laboratório isolado do progresso', () => {
 });
 
 test('Mod visível e cache atualizado: marcador, loader, BUILD e index na mesma versão publicada', () => {
-  const marker = html.match(/<div id="marker" aria-label="Modificação (\d+)">(\d+)<\/div>/), loaderV = html.match(/mod181-loader\.js\?v=mod(\d+)-[\w-]+/);
-  const build = fs.readFileSync(new URL('./mod181-loader.js', import.meta.url), 'utf8').match(/const BUILD = 'mod(\d+)-[\w-]+';/);
-  const index = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8').match(/refresh=(\d+)&build=(\d+)/);
-  assert.ok(marker && loaderV && build && index, 'marcadores presentes');
-  const v = marker[1]; assert.equal(marker[2], v); assert.equal(loaderV[1], v); assert.equal(build[1], v); assert.equal(index[1], v); assert.equal(index[2], v);
-  assert.ok(+v >= 238, 'versão não regride abaixo da Mod 238');
+  const info=fs.readFileSync(new URL('./build-info.js',import.meta.url),'utf8');
+  const version=Number(info.match(/export const MOD = (\d+);/)[1]);
+  const build=info.match(/export const BUILD = '([^']+)';/)[1];
+  assert.ok(version>=238,'versão não regride abaixo da Mod 238');
+  assert.ok(build.startsWith('mod'+version+'-'),'build e mod correspondem');
+  assert.match(html,/meta\.syncBuildMarker\(marker\)/);
+  assert.match(html,/import\('\.\/mod181-loader\.js\?v='/);
+  const loader=fs.readFileSync(new URL('./mod181-loader.js',import.meta.url),'utf8');
+  const index=fs.readFileSync(new URL('./index.html',import.meta.url),'utf8');
+  assert.match(loader,/searchParams\.get\('v'\)/);
+  assert.match(index,/encodeURIComponent\(meta\.MOD\)/);
+  assert.match(src,/syncBuildMarker\(document\.getElementById\('marker'\)\)/);
 });
 
 test('Mod 238: Enemy2 do Ato II em esquadra, mini-chefe com foice, ultimate genérico desligado na esquadra', () => {
