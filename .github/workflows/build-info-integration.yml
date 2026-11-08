@@ -31,4 +31,4 @@ jobs:
       - name: Contrato de integracao
         run: |
           node tools/qa/check-ai-onboarding.mjs
-          git diff --check HEAD^ HEAD || true
+          git diff --check HEAD^ HEAD
