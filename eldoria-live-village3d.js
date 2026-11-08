@@ -147,7 +147,7 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
       // Base no chão mais baixo da pegada: nenhum canto fica no ar; árvores afundam 2,5 % da altura (perfil das raízes medido no GLB).
       const y = spec.kind === 'tree' ? lo - spec.size * ANCESTRAL_ROOT_SINK : lo - .03;
       obj.position.set(cx, y, cz); obj.rotation.y = spec.rotation; obj.name = 'Eldoria_' + spec.kind + '_' + spec.file;
-      obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && (spec.kind === 'house' || spec.kind === 'tree'); if (spec.kind === 'market' || spec.kind === 'tree') child.frustumCulled = false; } });
+      obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && (spec.kind === 'house' || spec.kind === 'tree'); if (spec.kind === 'market') child.frustumCulled = false; } });
       root.add(obj);
       if (spec.kind === 'house') plinths.push({ x: cx, y: lo, z: cz, sx: hx * 2.08, sz: hz * 2.08, h: .26 + (hi - lo), rot: spec.rotation });
       grounding.push({ file: spec.file, kind: spec.kind, x: +cx.toFixed(1), z: +cz.toFixed(1), slope: +(hi - lo).toFixed(3), lod: !!lodSrc });
