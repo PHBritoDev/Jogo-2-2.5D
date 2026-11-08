@@ -5,6 +5,7 @@
  * Referências do criador: VHAZRAEL (câmara macabra de moedas e correntes), Vorgazhek (vazio de olhos vermelhos e
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
+import { buildHallDimension } from './veraxion-hall-dimension3d.js';
 import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=296';
 import { SEWER } from './sewer3d.js';
 import { crystalClusterGeometry } from './eldoria-crystal-geometry.js';
@@ -190,26 +191,7 @@ const THEMES = {
 
   // Véraxion — corredor torto: paredes inclinadas, portas escuras, claraboias e piso xadrez lustroso.
   hall(THREE, g, spec, ctx) {
-    const r = rng(404), R = spec.radius;
-    const chk = checkerTexture(THREE, 4, { a: '#050507', b: '#c0c0ca' });
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(R + 4, 64), new THREE.MeshStandardMaterial({ map: chk, roughness: .14, metalness: .3, emissiveMap: chk, emissive: 0x606070, emissiveIntensity: .14 }));
-    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; g.add(floor);
-    const walls = [], doors = [], sky = [];
-    const N = 22;
-    for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2, x = Math.cos(a) * (R + 3), z = Math.sin(a) * (R + 3), tilt = Math.sin(i * 1.7) * .22;
-      walls.push({ x, y: 12, z, ry: -a + Math.PI / 2, rz: tilt, sx: 9.6, sy: 26, sz: 1.4 });
-      if (i % 2 === 0) doors.push({ x: Math.cos(a) * (R + 2.2), y: 6, z: Math.sin(a) * (R + 2.2), ry: -a + Math.PI / 2, rz: tilt, sx: 4.4, sy: 10, sz: .2 }); }
-    for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2, d = 10 + (i % 3) * 8; sky.push({ x: Math.cos(a) * d, y: 24.6 - (i % 3) * .3, z: Math.sin(a) * d, ry: -a + (r() - .5) * .8, rx: Math.PI / 2, sx: 7, sy: 2.6, sz: 1 }); }
-    g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x3a3a44, roughness: .95, emissive: 0x24242e, emissiveIntensity: 1 }), walls));
-    g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x020203 }), doors));
-    const ceil = new THREE.Mesh(new THREE.CircleGeometry(R + 6, 48), new THREE.MeshStandardMaterial({ color: 0x2a2a30, emissive: 0x16161c, emissiveIntensity: 1, roughness: 1, side: THREE.DoubleSide })); ceil.rotation.x = Math.PI / 2; ceil.position.y = 25; g.add(ceil);
-    const skyMesh = instanced(THREE, new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xf2f4ff, toneMapped: false, side: THREE.DoubleSide }), sky); g.add(skyMesh);
-    // Quadros de porta flutuando em fuga, como no corredor da referência.
-    const frames = []; for (let i = 0; i < 12; i++) { const z = -R - 6 - i * 7; frames.push({ x: 0, y: 7.5, z, rz: i * .09, sx: 15 - i * .6, sy: 15 - i * .6, sz: .8 }); }
-    g.add(instanced(THREE, new THREE.TorusGeometry(.5, .04, 4, 4), new THREE.MeshBasicMaterial({ color: 0x9aa0b8, toneMapped: false }), frames.map(f => ({ ...f, rz: f.rz + Math.PI / 4, sx: f.sx * 1.6, sy: f.sy * 1.6, sz: 1 }))));
-    const lamp = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false })); lamp.position.set(0, 7, -R - 90); g.add(lamp);
-    ctx.tick.push((t) => { lamp.material.opacity = .78 + Math.sin(t * 1.1) * .12; });
-    return { bg: 0x030304, fog: 0x07070a, fogNear: 22, fogFar: 160, hemi: [0xc8d0f0, 0x101018, .95], sun: [0xdfe6ff, .75], light: [0xb8c8ff, 2.8, 80, [0, 16, 0]], exposure: 1.2 };
+    return buildHallDimension(THREE, g, spec, ctx);
   },
   // Dimensão do Pecado (5) — caverna monocromática de raízes com olhos, uma boca colossal ao fundo e moedas sobre a rocha.
   root(THREE, g, spec, ctx) {
@@ -708,7 +690,7 @@ export function buildDimensionArena(THREE, theme, spec) {
       for (const s of ctx.swirls) s.uniforms.uTime.value = t;
       for (const fn of ctx.tick) fn(t, dt, camera, options);
     },
-    dispose() { if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else dispose(group); }
+    dispose() { if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else if (ctx.refs.hall) ctx.refs.hall.dispose(); else dispose(group); }
   };
 }
 

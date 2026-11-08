@@ -1,0 +1,613 @@
+{
+  "ok": true,
+  "errors": [],
+  "assets": [],
+  "skills": {
+    "s1": {
+      "t": 0.79,
+      "phase": "raise",
+      "aura": 1,
+      "L": 4.8,
+      "H": 2.4,
+      "swords": "hidden,hidden,hidden,hidden",
+      "hold": true,
+      "handsUp": -0.47,
+      "hp": 100,
+      "fov": 56,
+      "calls": 30,
+      "tris": 237160,
+      "poses": "vx4:0.8"
+    },
+    "s2": {
+      "t": 0.72,
+      "phase": "draw",
+      "aura": 1.15,
+      "p0": [
+        1600,
+        1.63
+      ],
+      "torn": "0,0,0,0",
+      "mega": 1,
+      "fires": 0,
+      "burn": 0,
+      "hp": 100,
+      "hero": [
+        1600,
+        1.63
+      ],
+      "hold": true,
+      "fov": 56,
+      "calls": 35,
+      "tris": 237442,
+      "poses": "vxcy"
+    },
+    "ultimateBoss": {
+      "state": {
+        "t": 0.81,
+        "phase": "boss",
+        "cine": true,
+        "hit": false,
+        "hp": 100,
+        "ready": true,
+        "calls": 31,
+        "tris": 327503,
+        "cam": [
+          1606.99,
+          -1997.59,
+          7.46
+        ],
+        "lc": [
+          1601.9,
+          -1998.7,
+          4.9,
+          -0.34,
+          -0.02,
+          -0.94
+        ],
+        "pl": [
+          1600.4,
+          -2000,
+          2
+        ],
+        "fov": 56
+      },
+      "hall": {
+        "quality": "low",
+        "sections": 32,
+        "doors": 64,
+        "luminaires": 32,
+        "drawCalls": 6,
+        "triangles": 2796,
+        "disposed": false,
+        "updates": 165,
+        "reflection": "analytic ceiling quads; no scene/character reflection",
+        "visible": true,
+        "frame": 199,
+        "camera": [
+          1.9111126909381255,
+          1.3062009876693992,
+          4.931895732681046
+        ],
+        "architectureVisible": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "swordAvailable": false
+      }
+    },
+    "ultimateReturn": {
+      "state": {
+        "t": 24.86,
+        "phase": "return",
+        "cine": true,
+        "hit": false,
+        "hp": 100,
+        "ready": true,
+        "calls": 38,
+        "tris": 149989,
+        "cam": [
+          1606.99,
+          -1997.59,
+          7.46
+        ],
+        "lc": [
+          1606.9,
+          -1993,
+          7.5,
+          -0.6,
+          -0.62,
+          -0.5
+        ],
+        "pl": [
+          1600.4,
+          -2000,
+          2
+        ],
+        "fov": 56
+      },
+      "hall": {
+        "quality": "low",
+        "sections": 32,
+        "doors": 64,
+        "luminaires": 32,
+        "drawCalls": 6,
+        "triangles": 2796,
+        "disposed": false,
+        "updates": 165,
+        "reflection": "analytic ceiling quads; no scene/character reflection",
+        "visible": true,
+        "frame": 728,
+        "camera": [
+          6.9237681068577785,
+          6.952348987766072,
+          7.4607936166201965
+        ],
+        "architectureVisible": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "swordAvailable": false
+      }
+    }
+  },
+  "navigation": {
+    "before": {
+      "x": 1600,
+      "y": -2000,
+      "z": 10,
+      "walkable": false,
+      "edge": 1405.8366909412316,
+      "calls": 25,
+      "triangles": 145709,
+      "terrain": {
+        "vertices": 48035,
+        "triangles": 93584,
+        "patchTriangles": 5968,
+        "extent": [
+          -661.935143267781,
+          657.935143267781
+        ]
+      },
+      "trees": 0,
+      "fog": "030303",
+      "fogFar": 800,
+      "night": 0,
+      "quest": 2,
+      "coins": 0,
+      "dialogueOpen": false,
+      "namePromptOpen": false,
+      "awakeningActive": false,
+      "hp": 100,
+      "enemy": {
+        "hp": 760,
+        "visible": true,
+        "alive": true,
+        "x": 1600,
+        "z": -4,
+        "y": -2000
+      },
+      "objective": "Fale com o Anjo-Guia",
+      "audio": "locked",
+      "dim": {
+        "vs": false,
+        "battle": true,
+        "active": true,
+        "key": "bishop4",
+        "sent": true,
+        "pull": false,
+        "pt": null,
+        "paused": false,
+        "gate": false,
+        "voidMode": true,
+        "hour": 9.01,
+        "enemyHP": 760,
+        "enemyMaxHP": 760,
+        "hp": 100
+      }
+    },
+    "walk": {
+      "ready": true,
+      "sword": "prota",
+      "active": null,
+      "waves": 0,
+      "projectiles": [],
+      "cinematic": false,
+      "motion": {
+        "vx": 0,
+        "vz": -4.29980478030202,
+        "dash": 0,
+        "grounded": true,
+        "sprint": false
+      },
+      "camera": {
+        "distance": 6,
+        "yaw": 0,
+        "pitch": 0
+      },
+      "events": [],
+      "cooldowns": {
+        "prota": 0,
+        "aurora": 0
+      },
+      "mana": 100,
+      "hp": 760,
+      "hero": [
+        1600,
+        -2000,
+        6.095143636214168
+      ],
+      "target": [
+        1600,
+        -2000,
+        -4
+      ],
+      "clip": "Walk",
+      "blade": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "vfx": {
+        "cuts": 0,
+        "trails": 0,
+        "particles": 0,
+        "ghosts": 0,
+        "capacity": {
+          "cuts": 16,
+          "trails": 3,
+          "particles": 192,
+          "ghosts": 3
+        }
+      },
+      "height": 1.9907256569056244
+    },
+    "inside": false,
+    "outside": true
+  },
+  "jump": {
+    "ready": true,
+    "sword": "prota",
+    "active": null,
+    "waves": 0,
+    "projectiles": [],
+    "cinematic": false,
+    "motion": {
+      "vx": 0,
+      "vz": -0.6649143491264944,
+      "dash": 0,
+      "grounded": false,
+      "sprint": false
+    },
+    "camera": {
+      "distance": 6,
+      "yaw": 0,
+      "pitch": 0
+    },
+    "events": [],
+    "cooldowns": {
+      "prota": 0,
+      "aurora": 0
+    },
+    "mana": 100,
+    "hp": 760,
+    "hero": [
+      1600,
+      -1999.51,
+      5.896909075009218
+    ],
+    "target": [
+      1600,
+      -2000,
+      -4
+    ],
+    "clip": "Walk",
+    "blade": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "vfx": {
+      "cuts": 0,
+      "trails": 0,
+      "particles": 0,
+      "ghosts": 0,
+      "capacity": {
+        "cuts": 16,
+        "trails": 3,
+        "particles": 192,
+        "ghosts": 3
+      }
+    },
+    "height": 1.9527481449079005
+  },
+  "dash": {
+    "ready": true,
+    "sword": "prota",
+    "active": null,
+    "waves": 0,
+    "projectiles": [],
+    "cinematic": false,
+    "motion": {
+      "vx": 0,
+      "vz": -2.431227703419563,
+      "dash": 0.2366666666666667,
+      "grounded": true,
+      "sprint": false
+    },
+    "camera": {
+      "distance": 6,
+      "yaw": 0,
+      "pitch": 0
+    },
+    "events": [],
+    "cooldowns": {
+      "prota": 0,
+      "aurora": 0
+    },
+    "mana": 100,
+    "hp": 760,
+    "hero": [
+      1600,
+      -2000,
+      4.82630144650785
+    ],
+    "target": [
+      1600,
+      -2000,
+      -4
+    ],
+    "clip": "Walk",
+    "blade": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "vfx": {
+      "cuts": 0,
+      "trails": 0,
+      "particles": 0,
+      "ghosts": 0,
+      "capacity": {
+        "cuts": 16,
+        "trails": 3,
+        "particles": 192,
+        "ghosts": 3
+      }
+    },
+    "height": 1.9351103423680343
+  },
+  "attack": {
+    "ready": true,
+    "sword": "prota",
+    "active": {
+      "kind": "basic",
+      "time": 0.24999999999999997,
+      "step": 0,
+      "mode": "ground",
+      "phase": "active",
+      "hit": false
+    },
+    "waves": 0,
+    "projectiles": [],
+    "cinematic": false,
+    "motion": {
+      "vx": 0,
+      "vz": 0,
+      "dash": 0,
+      "grounded": true,
+      "sprint": false
+    },
+    "camera": {
+      "distance": 6,
+      "yaw": 0,
+      "pitch": 0
+    },
+    "events": [],
+    "cooldowns": {
+      "prota": 0,
+      "aurora": 0
+    },
+    "mana": 100,
+    "hp": 760,
+    "hero": [
+      1600,
+      -2000,
+      1.756469855334795
+    ],
+    "target": [
+      1600,
+      -2000,
+      -4
+    ],
+    "clip": "Combat_prota_ground_0",
+    "blade": [
+      [
+        1600.1417866482464,
+        -1998.7320762772665,
+        0.9922839128250234
+      ],
+      [
+        1600.0319291793494,
+        -1998.9383077444493,
+        0.1879163355491692
+      ]
+    ],
+    "vfx": {
+      "cuts": 0,
+      "trails": 1,
+      "particles": 0,
+      "ghosts": 0,
+      "capacity": {
+        "cuts": 16,
+        "trails": 3,
+        "particles": 192,
+        "ghosts": 3
+      }
+    },
+    "height": 1.9420310341756704
+  },
+  "quality": [
+    {
+      "quality": "high",
+      "sections": 32,
+      "doors": 64,
+      "luminaires": 32,
+      "drawCalls": 6,
+      "triangles": 3852,
+      "disposed": false,
+      "updates": 60,
+      "reflection": "analytic ceiling quads; no scene/character reflection",
+      "visible": true,
+      "frame": 77,
+      "camera": [
+        6.006800019923048,
+        2.2994526259963095,
+        6.742749187503973
+      ],
+      "architectureVisible": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "swordAvailable": false
+    },
+    {
+      "quality": "medium",
+      "sections": 32,
+      "doors": 64,
+      "luminaires": 32,
+      "drawCalls": 6,
+      "triangles": 3276,
+      "disposed": false,
+      "updates": 65,
+      "reflection": "analytic ceiling quads; no scene/character reflection",
+      "visible": true,
+      "frame": 82,
+      "camera": [
+        6.371650708221523,
+        2.350829516437443,
+        6.825507520294808
+      ],
+      "architectureVisible": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "swordAvailable": false
+    },
+    {
+      "quality": "low",
+      "sections": 32,
+      "doors": 64,
+      "luminaires": 32,
+      "drawCalls": 6,
+      "triangles": 2796,
+      "disposed": false,
+      "updates": 70,
+      "reflection": "analytic ceiling quads; no scene/character reflection",
+      "visible": true,
+      "frame": 87,
+      "camera": [
+        6.518526916718201,
+        2.3748190777355376,
+        6.903112937430412
+      ],
+      "architectureVisible": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "swordAvailable": false
+    }
+  ],
+  "sword": {
+    "available": false,
+    "request": null,
+    "note": "The current production kit deliberately has no separate boss sword power; s1 supplies the four swords. Player attack tested above."
+  },
+  "restored": {
+    "quality": "low",
+    "sections": 32,
+    "doors": 64,
+    "luminaires": 32,
+    "drawCalls": 6,
+    "triangles": 2796,
+    "disposed": false,
+    "updates": 195,
+    "reflection": "analytic ceiling quads; no scene/character reflection",
+    "visible": true,
+    "frame": 784,
+    "camera": [
+      6.993450903577923,
+      2.40589601520378,
+      7.467000184841123
+    ],
+    "architectureVisible": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "swordAvailable": false
+  },
+  "reentry": {
+    "quality": "low",
+    "sections": 32,
+    "doors": 64,
+    "luminaires": 32,
+    "drawCalls": 6,
+    "triangles": 2796,
+    "disposed": false,
+    "updates": 36,
+    "reflection": "analytic ceiling quads; no scene/character reflection",
+    "visible": true,
+    "frame": 838,
+    "camera": [
+      0.391377956598717,
+      3.2215100531832377,
+      17.353167647526046
+    ],
+    "architectureVisible": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "swordAvailable": false
+  }
+}

@@ -1,0 +1,47 @@
+name: Bispo 4 — hall WebGL evidence (no deploy)
+on:
+  pull_request:
+    paths:
+      - 'veraxion-hall-*'
+      - 'dimension-arenas3d.js'
+      - 'mundo-3d-prototype.js'
+      - 'tools/visual-lab/bispo4-hall-*'
+      - '.github/workflows/bispo4-hall-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Domain tests and syntax
+        run: |
+          node --test dimensions3d.test.mjs veraxion-hall-dimension.test.mjs veraxion-four-swords.test.mjs veraxion-blue-cyclone.test.mjs veraxion-lunar.test.mjs
+          node --input-type=module --check < veraxion-hall-dimension3d.js
+          node --input-type=module --check < mundo-3d-prototype.js
+          node tools/qa/check-ai-onboarding.mjs
+      - name: Isolated pinned browser dependencies
+        run: |
+          npm install --prefix work/qa --save-exact --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
+          work/qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Capture actual architecture and gameplay
+        env:
+          NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
+          VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
+        run: |
+          python3 -m http.server 4174 > /tmp/bispo4-http.log 2>&1 &
+          node tools/visual-lab/bispo4-hall-qa.cjs
+          node tools/visual-lab/bispo4-hall-runtime-qa.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bispo4-hall-${{ github.sha }}
+          path: work/evidence/
+          retention-days: 14
