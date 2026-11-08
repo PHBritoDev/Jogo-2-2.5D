@@ -61,12 +61,12 @@ Criar `tools/visual-lab/bispo4-hall-preview.html` e script Playwright para rende
 - Criar workflow CI de evidência só com permissões de leitura, sem deploy e sem merge.
 
 ## 6 — CONTRATO DE ENTREGA / PROTEÇÃO DE OUTRAS IAs
-1. Trabalhar **somente na branch `feat/bispo4-corredor-codex`**, criada por você a partir da `main` MAIS RECENTE, não nesta branch de briefing; não mexer nas branches da cidade, do combate ou do Bispo 3. Se outra IA estiver mexendo nos mesmos arquivos centrais, evitar conflito e mostrar patches mínimos.
+1. Trabalhar **somente nesta branch `brief/bispo4-corredor-infinito-codex`**, que já foi criada a partir da `main` atual. Não criar branch concorrente desnecessária. Antes de programar, verificar se `main` avançou e integrar semanticamente as alterações pertinentes sem sobrescrever outros agentes. Não mexer nas branches da cidade, do combate ou do Bispo 3. Se outra IA estiver mexendo nos mesmos arquivos centrais, evitar conflito e mostrar patches mínimos.
 2. Alterações normais: **novo módulo `veraxion-hall-dimension3d.js`**, registro pequeno em `dimension-arenas3d.js`, testes, QA e documentação. Outros arquivos só com justificativa específica.
 3. Não editar `build-info.js` nem versões espalhadas; integrador final cuida disso. Não modificar `PORTALS.bishop4` sem necessidade.
 4. Nada de modificar gameplay do Bispo 4 ou outro chefe, poderes, IA, inventário, salvamento, mundo da cidade.
 5. PR **DRAFT**, sem merge automático; implementações têm que ser testáveis na branch. O criador/assistente revisará e decidirá sobre merge.
-6. **Remover ESTE arquivo `CODEX_BISPO4_CORREDOR_INFINITO_TEMP_APAGAR.md` ao concluir o trabalho.** Como o arquivo está em outra branch, a limpeza segura é: depois de ler, pode excluir o briefing da **branch de briefing** (se tiver permissão) OU optar por iniciar a branch de trabalho derivada desta branch de briefing para então removê-lo no commit final; neste segundo caso, garanta que a branch inclui a `main` mais recente e NÃO incorpora alterações não relacionadas. Se optar por branch de trabalho criada da `main`, apagar o arquivo da branch temporária separadamente e não modificar o trabalho de outros agentes. Não excluir documentos persistentes nem evidências.
+6. **Remover ESTE arquivo `CODEX_BISPO4_CORREDOR_INFINITO_TEMP_APAGAR.md` desta própria branch no ÚLTIMO commit**, após a implementação e a captura dos testes; não apagar documentos persistentes nem evidências. O PR deve terminar sem o arquivo de briefing.
 7. Caso a imagem original ainda não esteja visível na sua sessão, **solicite/anexe somente a imagem necessária e NÃO declare comparação final sem ela**. Não inventar referência. Como o usuário geralmente envia imagens na sessão do Codex, usá-la diretamente.
 8. Não responder mensagens durante execução. Ao fim, só URL de PR/preview, sem resumo.
 
