@@ -38,3 +38,8 @@ Pesquisar documentação e exemplos confiáveis para Three.js: `InstancedMesh`, 
 - **Só se manifestar ao final**, com mensagem curtíssima contendo link do PR, capturas, testes e pendências reais.
 - **Exceções estritamente necessárias:** pedir intervenção somente se houver bloqueio incontornável (credenciais, referência inacessível essencial ou decisão que possa afetar trabalho de outro agente), risco de perda de dados ou autorização explícita para merge. Nesse caso, enviar uma única pergunta objetiva e aguardar.
 - Não confundir silêncio com ausência de registros: manter commits, evidências, testes e descrição do PR completos. **Nunca mesclar sem aprovação.**
+
+## ECONOMIA EXTREMA DE TOKENS E CONTEXTO — COMPLEMENTO OBRIGATÓRIO
+- **Limite de uso é prioridade operacional:** durante a execução, zero mensagens de progresso, planos, narrativas, explicações, repetições de briefing, logs e códigos despejados no chat. Trabalhe nos arquivos e ferramentas, não no diálogo. Se resposta final for exigida, **somente link da PR/preview e bloqueio real em até uma linha**; detalhes técnicos ficam nos commits, evidências e descrição da PR.
+- **Economize o contexto interno:** faça buscas direcionadas (ex.: `rg -n`), leia apenas intervalos de linhas necessários, filtre logs e diffs, evite varreduras integrais e repetidas do repositório e pesquisas redundantes. Agrupe operações relacionadas e use testes pequenos e reproduzíveis. Não releia nem resuma todo este briefing a cada etapa.
+- **Não sacrifique qualidade pela economia:** inspeção visual, testes reais, QA dos olhos piscando e acompanhando o jogador, capturas e prevenção de regressões continuam obrigatórios. Nunca alegar testes que não executou.
