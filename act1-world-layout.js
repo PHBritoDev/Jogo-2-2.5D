@@ -12,11 +12,12 @@ export const FALL_SPOT = { x: 54, z: 160 };
 export const ROAD_JUNCTION = { x: 52, z: 10 };
 export const TEREN_ROAD = [[54, 156], [58, 140], [66, 120], [76, 98], [71, 76], [58, 56], [53, 34], [52, 10]];
 /** Continuação da viagem de carroça pelas trilhas existentes até a entrada de Eldória. */
-export const CART_ROUTE = TEREN_ROAD.concat([[40, 14], [24, 16], [10, 15], [0, 14], [0, 4], [.5, -6], [-.6, -15]]);
+/** Mod 292: a carroça para no largo ANTES da ponte (estreita, de pedestres): o jogador atravessa a pé e entra pela ponte. */
+export const CART_ROUTE = TEREN_ROAD.concat([[40, 14], [24, 16], [10, 15], [0, 14], [0, 4], [.2, -1.2]]);
 export const TEREN_STOP = { x: 59.5, z: 136 };
 export const BROKEN_WHEEL = { x: 62.4, z: 128.5 };
 export const BANDIT_AMBUSH = { x: 73.6, z: 90 };
-export const ELDORIA_DROP = { x: -.6, z: -15 };
+export const ELDORIA_DROP = { x: .2, z: -1.2 };
 export const ROAD_TERRAIN_PATCH = { x0: 18, x1: 118, z0: 40, z1: 204 };
 /** Bandidos humanos famintos (sem magia): fecham a estrada à frente e atrás da carroça. */
 export const ROAD_BANDITS = [{ x: 75.2, z: 85.6 }, { x: 72.2, z: 84.8 }, { x: 77.4, z: 93.8 }, { x: 70.2, z: 94.6 }];
@@ -51,13 +52,13 @@ export function nearestAlong(points, x, z) {
   return { s: at, d: best };
 }
 
-/* Mod 291 — Eldória: centro, rio e ponte (roteiro v1: "a cidade aparece entre árvores gigantes, com telhados
-   inclinados, pontes e água corrente"). O rio nasce no contraforte leste, passa ao sul das casas, cruza a trilha
-   principal sob uma ponte de pedra em arco e deságua no lago da mata. */
+/* Mod 291/292 — Eldória: centro, rio e ponte (roteiro v1: "a cidade aparece entre árvores gigantes, com telhados
+   inclinados, pontes e água corrente"). Mod 292: o rio desce do contraforte leste e corre AO SUL da cidade até a
+   garganta oeste; quem chega da floresta (sul) tem de atravessar a ponte de pedra — a entrada da cidade. */
 export const ELDORIA_CENTER = { x: -12.2, z: -44.5 };
-export const RIVER_POINTS = [[78, -47], [62, -51], [44, -56], [27, -62], [12, -68], [-1.8, -72], [-13, -75.5], [-20.5, -80.5], [-24.5, -86]];
+export const RIVER_POINTS = [[88, -9], [74, -8.5], [60, -10.5], [46, -12.5], [32, -13.6], [18, -13.2], [7, -12.4], [-.4, -12.3], [-8, -12.9], [-18, -14.6], [-29, -15.6], [-40, -14.4], [-52, -11.8], [-64, -9.8], [-76, -10], [-88, -11]];
 export const RIVER = { width: 3.4, depth: 1.75, level: -.5, flow: 1.15 };
-export const BRIDGE = { x: -1.8, z: -72, axisX: -.047, axisZ: -.999, halfLength: 6.2, halfWidth: 1.9, rise: 1.05 };
+export const BRIDGE = { x: -.4, z: -12.3, axisX: -.02, axisZ: -.9998, halfLength: 6.2, halfWidth: 1.9, rise: 1.05 };
 /** Altura do tabuleiro da ponte (0 nas cabeceiras, arco suave no meio); null fora da ponte. */
 export function bridgeDeck(x, z, b = BRIDGE) {
   const dx = x - b.x, dz = z - b.z, along = dx * b.axisX + dz * b.axisZ, side = dx * b.axisZ - dz * b.axisX;

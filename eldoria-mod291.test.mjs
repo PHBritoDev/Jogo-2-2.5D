@@ -14,7 +14,7 @@ import { crystalPrismData, crystalProfile } from './eldoria-crystal-geometry.js'
 
 const src = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
 const html = readFileSync(new URL('./mundo-3d-prototype.html', import.meta.url), 'utf8');
-const mainTrail = JSON.parse(src.match(/const mainTrail=(\[\[[^;]*\]\]);/)[1].replace(/([[,])\./g, "$10."));
+const mainTrail = JSON.parse(src.match(/const mainTrail=(\[\[[^;]*\]\]);/)[1].replace(/([[,])(-?)\./g, "$1$20."));
 const segDist = (x, z, pts) => { let b = Infinity; for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], c = pts[i], dx = c[0] - a[0], dz = c[1] - a[1], L = dx * dx + dz * dz, t = L ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / L)) : 0; b = Math.min(b, Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t)); } return b; };
 const terrain = createTerrain({ extraAreas: [PROLOGUE_MEADOW], passes: [{ points: TEREN_ROAD, r: 8.5 }], paths: [{ points: TEREN_ROAD, r: 4, fade: 5 }, { points: RIVER_POINTS, r: RIVER.width + 2.2, fade: 5 }], channels: [{ points: RIVER_POINTS, width: RIVER.width, depth: RIVER.depth, level: RIVER.level }] });
 
@@ -58,7 +58,8 @@ test('Missão P1: Teren, lona, carroça, cochilo, 4 bandidos humanos, escolha se
   assert.equal(initialRoadStage(1, '2'), 2); assert.equal(initialRoadStage(2, '0'), ROAD.done); assert.equal(initialRoadStage(1, '1', 1), ROAD.done);
   assert.ok(RIDE.start < RIDE.dozeAt && RIDE.dozeAt < RIDE.ambush && RIDE.ambush < RIDE.revealAt && RIDE.revealAt < RIDE.end && RIDE.end <= RIDE.total + .01);
   assert.ok(RIDE.end - RIDE.start > 180, 'viagem real de carroça, não teleporte');
-  assert.ok(Math.hypot(CART_ROUTE.at(-1)[0] - ELDORIA_CENTER.x, CART_ROUTE.at(-1)[1] - ELDORIA_CENTER.z) < 35, 'desce na entrada de Eldória');
+  // Mod 292: a carroça para no largo diante da PONTE de entrada (a cidade agora fica do outro lado do rio)
+  assert.ok(Math.hypot(CART_ROUTE.at(-1)[0] - BRIDGE.x, CART_ROUTE.at(-1)[1] - (BRIDGE.z - BRIDGE.axisZ * BRIDGE.halfLength)) < 6, 'desce diante da ponte de entrada de Eldória');
   const texts = s => s.filter(x => x.type === 'say').map(x => x.text).join(' | ');
   assert.match(texts(terenMeetScene()), /Vocês vieram daquela trilha\?/); assert.match(texts(terenMeetScene()), /Vou até Eldória/);
   assert.match(texts(ambushScene()), /Acorde/); assert.match(texts(ambushScene()), /Não vamos pedir duas vezes/);
@@ -107,7 +108,7 @@ test('cidade: nenhuma pegada sobreposta, casas fora da trilha e do rio, aterrame
   }
   assert.equal(footprintSamples(0, 0, 2, 1, .4).length, 9);
   const lib = readFileSync(new URL('./eldoria-live-village3d.js', import.meta.url), 'utf8');
-  assert.match(lib, /const y = spec\.kind === 'tree' \? lo - \.3 : lo - \.03;/);
+  assert.match(lib, /const y = spec\.kind === 'tree' \? lo - spec\.size \* ANCESTRAL_ROOT_SINK : lo - \.03;/); // Mod 292: afundamento medido no perfil das raízes
   assert.match(lib, /new THREE\.LOD\(\)/);
   for (const f of ['CasaEldoria01', 'CasaEldoria02', 'ArvoreAncestralEldoria', 'RochedoMusgoEldoria', 'PocoEldoria', 'BarracaFrutasEldoria', 'FerreiroEldoria', 'Carroça', 'ArvoreFloresta01']) {
     const p = new URL('./' + f + '-lod1.glb', import.meta.url); assert.ok(existsSync(p), f + ' LOD1');

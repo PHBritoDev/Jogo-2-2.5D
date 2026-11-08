@@ -41,6 +41,9 @@ import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, PROLOGUE_MEADO
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
 import {ELDORIA_PLOTS} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
+import {ELDORIA_STREETS,doorPaths,treeStructurePlan} from './eldoria-city-layout.js';
+import {createWalkables} from './eldoria-walkable.js';
+import {loadTropicalTrees,mountTropicalForest,planTropicalBelt} from './eldoria-tropical-trees.js';
 import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
@@ -187,7 +190,8 @@ function hillHeightAt(x,z){
 const VILLAGE_CENTER={x:-12.2,z:-44.5},VILLAGE_CLEAR_RADIUS=22,SECRET_RUIN_SPOT={x:-18.5,z:-52};
 // Lago da mata: ponto de interesse visível da trilha, com margem rasa caminhável e fundo bloqueado.
 const FOREST_POND={x:-27,z:-88,r:11.5,depth:2.4,level:-.42,wobble:.6}; // MOD 291: margem orgânica (menos círculo)
-const mainTrail=[[0,14],[0,4],[.5,-6],[-1.8,-17],[0,-29],[2.2,-43],[-1.2,-59],[-2,-76],[5,-91],[15,-99],[27,-108],[44,-119],[46,-132],[45,-140]];
+// Mod 292: a rua principal atravessa a ponte de entrada (rio ao sul da cidade) e segue reta pelo eixo da ponte.
+const mainTrail=[[0,14],[0,4],[.1,-3],[-.4,-12.3],[-.6,-20],[-.3,-24.5],[0,-29],[1.2,-36],[2.2,-43],[.4,-51],[-1.2,-59],[-.4,-67],[-2,-76],[5,-91],[15,-99],[27,-108],[44,-119],[46,-132],[45,-140]];
 const villageTrail=[[2.2,-43],[0,-41],[-4.6,-41.4],[-8.7,-43.3],[-12.2,-44.5]];
 // Mod 188 — caminho da vila até a Loja Central (oeste da praça).
 const SHOP_SPOT={x:-33,z:-45},shopTrail=[[-12.2,-44.5],[-18,-45.6],[-24,-45.2],[-27.4,-45]];
@@ -198,7 +202,9 @@ const altarTrail=[[2.2,-43],[20,-38],[44,-33],[60,-32]].concat(EXTRA_PASSES[0],[
 // MOD 209 — trilha do coliseu até o deserto da estátua (ao norte).
 const desertTrail=[[COLOSSEUM.gate.x,COLOSSEUM.gate.z]].concat(DESERT_PASS,[[DESERT.offer.x,DESERT.offer.z]]);
 const colosseumTrail=[[-36,-238]].concat(COLOSSEUM_PASS,[[COLOSSEUM.gate.x,COLOSSEUM.gate.z]]);
-const districtTrail=[[-27.4,-45],[-40,-49],[-56,-56]].concat(DISTRICT_PASS,[[-130,-62],[DISTRICT_SPOTS.plaza.x,DISTRICT_SPOTS.plaza.z]]);
+const districtTrail=[[-27.4,-45],[-28.5,-51],[-38,-52.5],[-56,-56]].concat(DISTRICT_PASS,[[-130,-62],[DISTRICT_SPOTS.plaza.x,DISTRICT_SPOTS.plaza.z]]);
+// MOD 292 — ruas novas da cidade e caminhos das soleiras (porta → rua) entram no relevo e na malha de trilhas.
+const cityLanes=Object.values(ELDORIA_STREETS),cityDoorPaths=doorPaths(VILLAGE_CENTER).map(p=>p.points);
 const terrain3D=createTerrain({
  hill:hillHeightAt,
  keepouts:[{x:DESERT.statue.x,z:DESERT.statue.z,r:24,fade:8},{x:COLOSSEUM.center.x,z:COLOSSEUM.center.z,r:40,fade:8},{x:-36,z:-256,r:14,fade:6},{x:0,z:4,r:11,fade:8},{x:3.3,z:-5.4,r:5},{x:CLEARING.x,z:CLEARING.z,r:10,fade:7},{x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,r:VILLAGE_CLEAR_RADIUS+3,fade:8},{x:SECRET_RUIN_SPOT.x,z:SECRET_RUIN_SPOT.z,r:5},{x:PORTAL.x,z:PORTAL.z,r:12,fade:8},{x:-12,z:-97,r:7,fade:5},{x:AWAKE_SPOT.x,z:AWAKE_SPOT.z,r:9,fade:6},{x:ROAD_JUNCTION.x,z:ROAD_JUNCTION.z,r:7,fade:6},{x:MASSACRE_SPOT.x,z:MASSACRE_SPOT.z,r:6,fade:5},{x:SEWER_DOOR.x,z:SEWER_DOOR.z,r:5,fade:4},{x:SHOP_SPOT.x,z:SHOP_SPOT.z,r:9,fade:6},{x:DISTRICT_SPOTS.plaza.x,z:DISTRICT_SPOTS.plaza.z,r:22,fade:8},{x:ALTAR_VALLEY.cx,z:ALTAR_VALLEY.cz,r:16,fade:8},{x:SERRA.cx,z:SERRA.cz-8,r:16,fade:8},{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.3,fade:6}],
@@ -206,7 +212,7 @@ const terrain3D=createTerrain({
  // MOD 291: chão mais escuro e musgoso sob a mata fechada (faixa entre o rio e a serra e anel do lago).
  shade:(x,z)=>{const zone=Math.min(1,Math.max(0,(-79-z)/10))*Math.min(1,Math.max(0,(z+150)/10))*Math.min(1,Math.max(0,(x+72)/10))*Math.min(1,Math.max(0,(42-x)/10)),lake=1-Math.min(1,Math.max(0,(Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r-2)/16));const m=Math.max(zone,lake*.8)*(.75+.25*Math.sin(x*.3+Math.cos(z*.21)*2));return 1-.55*Math.max(0,m);},
  extraAreas:[PROLOGUE_MEADOW,DISTRICT,DISTRICT_SPOTS.volcanoApproach,...EXTRA_REGIONS,SNOW_CITY.caveApproach,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:TEREN_ROAD,r:8.5},{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6},{points:RIVER_POINTS,width:RIVER.width,depth:RIVER.depth,level:RIVER.level}],
- paths:[{points:RIVER_POINTS,r:RIVER.width+2.2,fade:5},{points:TEREN_ROAD,r:4,fade:5},{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5}]
+ paths:[...cityLanes.map(points=>({points,r:2.2,fade:3})),...cityDoorPaths.map(points=>({points,r:1.2,fade:2})),{points:RIVER_POINTS,r:RIVER.width+2.2,fade:5},{points:TEREN_ROAD,r:4,fade:5},{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5}]
 });
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
 function groundHeightAt(x,z){if(voidMode)return voidSpec.y;return terrain3D.height(x,z);}
@@ -357,10 +363,12 @@ function updateDayNight(dt){
 
 const treeGroup=new THREE.Group();scene.add(treeGroup);
 const treeObstacles=[],rockObstacles=[],marketObstacles=[],walkableObstacles=[],treeSpecs=[];
+/* MOD 292 — camada de superfícies caminháveis elevadas (deques, escada, passarela) só do jogador; o terreno não muda. */
+const eldoriaWalk=createWalkables();let walkRailingsOn=true,qaMove=null;
 const leafMid=mat(0x245035),mossMatA=mat(0x34522e),mossMatB=mat(0x465e32),grassMatA=mat(0x58763d),grassMatB=mat(0x304d31);
 const canopyWindUniforms=[leafMat,leafMid,leafLight].map((material,i)=>addInstancedWind(material,.075,'clamp((position.y+1.175)/2.35,0.0,1.0)',.72,'forest-canopy-wind-v163-'+i));
 for(const material of [leafMat,leafMid,leafLight,barkMat])addNearCameraFade(material);
-const trailRoutes=[{points:TEREN_ROAD,width:3.6},{points:SEWER_TRAIL,width:3.4},{points:startTrail,width:3.4},{points:mainTrail,width:5.2},{points:villageTrail,width:4.0},{points:shopTrail,width:3.4},{points:districtTrail,width:3.6},{points:altarTrail,width:3.4},{points:serraTrail,width:3.4},{points:colosseumTrail,width:3.4},{points:desertTrail,width:3.4}];
+const trailRoutes=[{points:TEREN_ROAD,width:3.6},{points:SEWER_TRAIL,width:3.4},{points:startTrail,width:3.4},{points:mainTrail,width:5.2},{points:villageTrail,width:4.0},{points:shopTrail,width:3.4},{points:districtTrail,width:3.6},{points:altarTrail,width:3.4},{points:serraTrail,width:3.4},{points:colosseumTrail,width:3.4},{points:desertTrail,width:3.4},...cityLanes.map(points=>({points,width:3})),...cityDoorPaths.map(points=>({points,width:1.6}))];
 function addTrail(points,width){
  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],groundHeightAt(p[0],p[1]),p[1])),false,'centripetal');
  const steps=Math.max(48,points.length*14),vertices=[],uvs=[],indices=[];
@@ -369,7 +377,9 @@ function addTrail(points,width){
   const x1=center.x+side.x*width*.5,z1=center.z+side.z*width*.5,x2=center.x-side.x*width*.5,z2=center.z-side.z*width*.5;
   vertices.push(x1,groundHeightAt(x1,z1)+.045,z1,x2,groundHeightAt(x2,z2)+.045,z2);
    uvs.push(x1*.14,z1*.14,x2*.14,z2*.14);
-  if(i<steps)indices.push(k,k+1,k+2,k+1,k+3,k+2);
+  // MOD 292: nada de faixa de trilha no leito do rio (a rua atravessa pela ponte)
+  const wet=terrain3D.waterDepth(center.x,center.z)>-.05;
+  if(i<steps&&!wet&&terrain3D.waterDepth(curve.getPoint((i+1)/steps).x,curve.getPoint((i+1)/steps).z)<=-.05)indices.push(k,k+1,k+2,k+1,k+3,k+2);
  }
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeVertexNormals();
  trailGeometries.push(geometry); // MOD 291: todas as trilhas viram uma malha só (1 draw call em vez de 12)
@@ -1653,6 +1663,7 @@ function blockedAt(x,z){
 }
 function playerBlockedAt(x,z){
  if(blockedAt(x,z))return true;
+ if(!voidMode&&walkRailingsOn&&eldoriaWalk.blocked(x,z,player.position.y,groundHeightAt))return true;
  if(!voidMode&&[...vendorRoots,...villagerWalkers.map(w=>w.holder)].some(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8))return true;
  if(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(s=>Math.abs(x-s.x)<.72&&Math.abs(z-s.z)<.72))return true;
  if(squadBlocks(x,z))return true;
@@ -1752,8 +1763,10 @@ let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
 // Mesmo princípio da dimensão do VHAZRAEL: o joystick é relativo à orientação da câmera,
 // com zona morta analógica e aceleração/desaceleração suaves, em vez de deslocar o modelo instantaneamente.
 const dead=.12;if(len<dead){axisX=0;axisZ=0;}else{const power=(len-dead)/(1-dead);axisX=axisX/len*power;axisZ=axisZ/len*power;}
-const worldX=axisX*Math.cos(cameraYaw)+axisZ*Math.sin(cameraYaw);
-const worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
+let worldX=axisX*Math.cos(cameraYaw)+axisZ*Math.sin(cameraYaw);
+let worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
+// MOD 292 — só QA (?debug3d): caminhada guiada numa direção do mundo, para testar escadas, deques e bordas.
+if(qaMove&&!(rites.locksMovement||dialogueOpen||cineActive)){if(qaMove.left>0){qaMove.left-=dt;worldX=qaMove.x;worldZ=qaMove.z;}else qaMove=null;}
 const engaged=enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;
 const speed=(defending?1.9:isSprinting()?7.2:4.3)*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
@@ -1775,8 +1788,9 @@ const moving=Math.hypot(moveVX,moveVZ)>.12;
 // Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
 if(dashRemaining>0){
  const dashDt=Math.min(dt,dashRemaining);const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*12.5*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*12.5*dashDt,-6000,6000);
- if(!playerBlockedAt(nextX,player.position.z))player.position.x=nextX;
- if(!playerBlockedAt(player.position.x,nextZ))player.position.z=nextZ;
+ // MOD 292: o ponto do meio também é testado (o dash anda até 0,5 m por quadro e não pode atravessar guarda-corpo fino)
+ if(!playerBlockedAt(nextX,player.position.z)&&!playerBlockedAt((player.position.x+nextX)/2,player.position.z))player.position.x=nextX;
+ if(!playerBlockedAt(player.position.x,nextZ)&&!playerBlockedAt(player.position.x,(player.position.z+nextZ)/2))player.position.z=nextZ;
  playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;dashRemaining=Math.max(0,dashRemaining-dt);
 }else if(moving){
  const nextX=THREE.MathUtils.clamp(player.position.x+moveVX*dt,-6000,6000);
@@ -1791,7 +1805,10 @@ if(dashRemaining>0){
 }else if(playerHP>0&&grounded&&now>actionUntil&&actions.idle)play('idle');
 // Física vertical com altura do terreno: o personagem pode subir e descer pelas pedras.
 updateRiteLocomotion(dt);
-const floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.position.z);
+let floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.position.z);
+// MOD 292 — apoio em deque/escada/passarela: a superfície mais alta até um degrau acima dos pés (por baixo do deque o chão continua sendo o terreno).
+if(!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.position.x,player.position.z,player.position.y+(grounded?0:.05));if(sup&&sup.y>floorY)floorY=sup.y;}
+if(grounded&&!caveWalk&&!voidMode&&floorY<player.position.y-.6){grounded=false;verticalVelocity=0;} // saiu pela borda: cai em vez de teleportar para o chão
 if(!grounded){
  verticalVelocity-=gravity*dt;
  player.position.y+=verticalVelocity*dt;
@@ -3675,8 +3692,8 @@ function buildAct1Props(){
  /* MOD 291 — marco 3: cidade bonita e íntegra (o Bispo levou o dinheiro, não as casas): deques e escadas nas árvores
     ancestrais, a passarela suspensa do criador entre duas delas, canteiros, sebes, cercas claras e lampiões. */
  act1Props.dressing=mountCityDressing(THREE,GLTFLoader,{group:villageGroup,groundHeightAt,center:VILLAGE_CENTER,plots:ELDORIA_PLOTS,lowSpec:terrainLowSpec,obstacles:marketObstacles,
-  trees:[{x:-34,z:5,trunk:3.4,deck:8.2},{x:-24,z:-24,trunk:3,deck:7.4},{x:24,z:24,trunk:3.2,deck:7.8}],
-  lamps:[{x:1.2,z:-38.6},{x:-4.4,z:-38.4},{x:-9.8,z:-40.4},{x:-17.6,z:-42.6},{x:-24.2,z:-47.9},{x:3.6,z:-47.2},{x:-.2,z:-55.5},{x:-3.6,z:-65}],
+  structures:treeStructurePlan(VILLAGE_CENTER),walk:eldoriaWalk,fetchModel:eldoriaCity.fetchModel,
+  lamps:[{x:3.4,z:-19.5},{x:-3.8,z:-26.5},{x:4.6,z:-37},{x:-5.4,z:-37.4},{x:-17.6,z:-42.6},{x:-24.2,z:-47.9},{x:4.4,z:-47.6},{x:-14.6,z:-52.5},{x:-4.2,z:-62.5},{x:-9,z:-58.5}],
   isFree:(x,z)=>!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+1)&&!marketObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<(o.radius||1)+.4)});
  eldoriaCity.complete.then(report=>{
    window.EldoriaLiveCityQA={loaded:report.loaded,expected:report.expected,failures:report.failures,
@@ -7083,6 +7100,16 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  villageMeshes(){const agg={};villageGroup.traverse(o=>{if(!o.isMesh)return;let path=[],q=o.parent;while(q&&q!==villageGroup){path.push(q.name||q.type);q=q.parent;}const k=path.slice(-2).join('<')+'|'+(o.geometry.type)+'|'+(o.material&&o.material.map?'tex':'col');agg[k]=(agg[k]||0)+1;});return Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,30);},
  sceneTop(){return scene.children.map(o=>{let n=0,t=0;const names=new Set();o.traverse(x=>{if(x.isMesh){n++;const g=x.geometry;t+=(g.index?g.index.count:g.attributes.position.count)/3*(x.isInstancedMesh?x.count:1);if(names.size<6)names.add(x.name||(x.parent&&x.parent.name)||'');}});return{name:o.name||o.type,vis:o.visible,meshes:n,ktri:Math.round(t/1000),pos:[Math.round(o.position.x),Math.round(o.position.z)],kids:o.children.length,sample:[...names].join('|')};}).filter(r=>r.meshes>3).sort((a,b)=>b.meshes-a.meshes).slice(0,30);},
  /** MOD 291 — lista real de draw calls do próximo quadro (intercepta renderBufferDirect uma vez). */
+ /** MOD 292 — sonda de relevo para QA/planejamento: altura, distância à borda caminhável e profundidade de água. */
+ /** MOD 292 — QA das superfícies caminháveis: estado do apoio e liga/desliga guarda-corpos (teste de queda pela borda). */
+ walkState(){const p=player.position,s=eldoriaWalk.supportAt(p.x,p.z,p.y+.05);return{x:+p.x.toFixed(2),y:+p.y.toFixed(3),z:+p.z.toFixed(2),grounded,surface:s?s.s.name:null,surfaceY:s?+s.y.toFixed(3):null,terrain:+terrainHeightAt(p.x,p.z).toFixed(3),surfaces:eldoriaWalk.surfaces.length,walls:eldoriaWalk.walls.length};},
+ walkRailings(on=true){walkRailingsOn=!!on;return walkRailingsOn;},
+ walkMove(dx,dz,seconds=1){const l=Math.hypot(dx,dz)||1;qaMove={x:dx/l,z:dz/l,left:seconds};return true;},
+ walkBusy(){return !!qaMove;},
+ whyBlocked(x,z){const y=player.position.y,w=eldoriaWalk.blocked(x,z,y,groundHeightAt);const t=treeObstacles.find(o=>Math.hypot(x-o.x,z-o.z)<o.radius),mo=marketObstacles.find(o=>o.height>.68&&(o.shape==='box'?Math.abs(x-o.x)<o.halfX&&Math.abs(z-o.z)<o.halfZ:Math.hypot(x-o.x,z-o.z)<o.radius)),np=[...vendorRoots,...villagerWalkers.map(v=>v.holder)].find(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8);return{blockedAt:blockedAt(x,z),player:playerBlockedAt(x,z),walk:w?(w.name||w.type):null,tree:t?[t.x,t.z,t.radius]:null,market:mo?[mo.x,mo.z,mo.radius||mo.halfX]:null,npc:np?[np.position.x,np.position.z]:null,water:terrain3D.waterDepth(x,z),edge:terrain3D.boundaryDistance(x,z)};},
+ walkJump(){action('jump');return true;},
+ placeAt(x,y,z,yaw=0){player.position.set(x,y,z);playerYaw=yaw;player.rotation.y=yaw;cameraYaw=yaw+Math.PI;grounded=true;verticalVelocity=0;moveVX=moveVZ=0;return this.walkState();},
+ terrainProbe(pts){return pts.map(([x,z])=>({x,z,h:+terrain3D.height(x,z).toFixed(2),edge:+terrain3D.boundaryDistance(x,z).toFixed(1),water:+terrain3D.waterDepth(x,z).toFixed(2)}));},
  drawList(){return new Promise(res=>{const orig=renderer.renderBufferDirect.bind(renderer),agg={};let n=0,tri=0;renderer.renderBufferDirect=function(cam,sc,geo,mat,obj,grp){n++;let top=obj,q=obj;while(q&&q.parent){if(q.parent.isScene){top=q;break;}q=q.parent;}const k=(top.name||(top.type+'@'+Math.round(top.position.x)+','+Math.round(top.position.z)+'#'+top.children.length))+'>'+(obj.name||obj.type);const t=(geo.index?geo.index.count:geo.attributes.position.count)/3*(obj.isInstancedMesh?obj.count:1);const a=agg[k]||(agg[k]={c:0,t:0});a.c++;a.t+=t;tri+=t;return orig(cam,sc,geo,mat,obj,grp);};requestAnimationFrame(()=>{renderer.renderBufferDirect=orig;res({calls:n,tris:Math.round(tri),top:Object.entries(agg).sort((a,b)=>b[1].c-a[1].c).slice(0,30).map(([k,v])=>k+':'+v.c+'/'+Math.round(v.t/1000)+'k')});});});},
  /** MOD 291 — draw calls estimados por grupo de topo (só malhas visíveis dentro do frustum da câmera). */
  callBreakdown(){camera.updateMatrixWorld();const fr=new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse)),agg={};let calls=0,tris=0;scene.traverse(o=>{if(!(o.isMesh||o.isPoints||o.isSprite))return;let q=o,top=o;while(q){if(!q.visible)return;if(q.parent===scene)top=q;q=q.parent;}if(o.frustumCulled!==false&&o.geometry&&!o.isInstancedMesh){if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();const sp=o.geometry.boundingSphere.clone().applyMatrix4(o.matrixWorld);if(!fr.intersectsSphere(sp))return;}if(o.isInstancedMesh&&o.count===0)return;const g=o.geometry,n=g&&(g.index?g.index.count/3:(g.attributes.position?g.attributes.position.count/3:0))*(o.isInstancedMesh?o.count:1)||0;const k=(top.name||top.type)+(top.children.length?'['+top.children.length+']':'');const a=agg[k]||(agg[k]={calls:0,tris:0});const mats=Array.isArray(o.material)?o.material.length:1;a.calls+=mats;a.tris+=n;calls+=mats;tris+=n;});return{calls,tris:Math.round(tris),top:Object.entries(agg).sort((a,b)=>b[1].calls-a[1].calls).slice(0,24).map(([k,v])=>k+':'+v.calls+'/'+Math.round(v.tris/1000)+'k')};},
