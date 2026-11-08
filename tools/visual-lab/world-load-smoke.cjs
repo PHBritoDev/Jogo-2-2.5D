@@ -39,25 +39,27 @@ async function main(){
   // Real game capture (not the isolated Eldoria preview): inspect both LOD distances.
   // The debug camera is available only in ?debug3d=1; no production gameplay changes.
   try {
+    await page.waitForFunction(()=>!!window.EldoriaLiveCityQA,{timeout:45000});
+    await page.evaluate(()=>{const canvas=document.getElementById("scene");for(const el of document.body.querySelectorAll("*"))if(el!==canvas&&!el.contains(canvas))el.style.setProperty("visibility","hidden","important");});
     const real=await page.evaluate(()=>{
       const api=window.SevenSinsDebug3D;
       api.freeRoam();
-      const village=window.EldoriaLiveCityQA?.village || {x:0,z:0};
+      const village=window.EldoriaLiveCityQA?.village || {x:-12.2,z:-44.5};
       api.teleport(village.x+18,village.z+34);
       api.fly([village.x+42,24,village.z+64],[village.x,4,village.z]);
       return {village,diagnostics:api.state(),materials:api.villageMeshes(),render:api.rinfo()};
     });
     output.eldoriaReal=real;
     await page.waitForTimeout(2500);
-    await page.screenshot({path:path.join(root,"eldoria-real-distante.png"),timeout:30000});
+    await page.locator("#scene").screenshot({path:path.join(root,"eldoria-real-distante.png"),timeout:30000});
     const near=await page.evaluate(()=>{
-      const api=window.SevenSinsDebug3D,v=window.EldoriaLiveCityQA?.village||{x:0,z:0};
+      const api=window.SevenSinsDebug3D,v=window.EldoriaLiveCityQA?.village||{x:-12.2,z:-44.5};
       api.fly([v.x+17,9,v.z+22],[v.x,4,v.z]);
       return {diagnostics:api.state(),render:api.rinfo()};
     });
     output.eldoriaNear=near;
     await page.waitForTimeout(2000);
-    await page.screenshot({path:path.join(root,"eldoria-real-perto.png"),timeout:30000});
+    await page.locator("#scene").screenshot({path:path.join(root,"eldoria-real-perto.png"),timeout:30000});
   } catch(e) {
     output.eldoriaCaptureError=String(e.message||e);
     errors.push("Captura real Eldoria: "+output.eldoriaCaptureError);
