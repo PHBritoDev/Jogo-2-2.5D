@@ -36,33 +36,50 @@ async function main(){
     throw Error("Erro de importacao capturado: "+errors.join(" | "));
   output.status="aprovado";
   await page.screenshot({path:path.join(root,"mundo-3d-carregado.png"),timeout:20000});
-  // Real game capture (not the isolated Eldoria preview): inspect both LOD distances.
-  // The debug camera is available only in ?debug3d=1; no production gameplay changes.
+  // Isolated smoke verifies boss loading only. Eldoria QA MUST use a fresh normal-world page.
   try {
-    await page.waitForFunction(()=>!!window.EldoriaLiveCityQA,{timeout:45000});
-    await page.evaluate(()=>{const canvas=document.getElementById("scene");for(const el of document.body.querySelectorAll("*"))if(el!==canvas&&!el.contains(canvas))el.style.setProperty("visibility","hidden","important");});
-    const real=await page.evaluate(()=>{
-      const api=window.SevenSinsDebug3D;
-      api.freeRoam();
-      const village=window.EldoriaLiveCityQA?.village || {x:-12.2,z:-44.5};
-      api.teleport(village.x+18,village.z+34);
-      api.fly([village.x+42,24,village.z+64],[village.x,4,village.z]);
-      return {village,diagnostics:api.state(),materials:api.villageMeshes(),render:api.rinfo()};
-    });
-    output.eldoriaReal=real;
-    await page.waitForTimeout(2500);
-    await page.locator("#scene").screenshot({path:path.join(root,"eldoria-real-distante.png"),timeout:30000});
-    const near=await page.evaluate(()=>{
-      const api=window.SevenSinsDebug3D,v=window.EldoriaLiveCityQA?.village||{x:-12.2,z:-44.5};
-      api.fly([v.x+17,9,v.z+22],[v.x,4,v.z]);
-      return {diagnostics:api.state(),render:api.rinfo()};
-    });
-    output.eldoriaNear=near;
-    await page.waitForTimeout(2000);
-    await page.locator("#scene").screenshot({path:path.join(root,"eldoria-real-perto.png"),timeout:30000});
-  } catch(e) {
+    const sharp=require("sharp");
+    const qa=await context.newPage();
+    qa.on("pageerror",e=>errors.push("Eldoria: "+e.message.slice(0,500)));
+    const qaUrl=base+"/mundo-3d-prototype.html?debug3d=1&qaEldoria=1";
+    await qa.goto(qaUrl,{waitUntil:"domcontentloaded",timeout:35000});
+    const ready=await qa.waitForFunction(()=>{
+      const loading=document.getElementById("loading")?.textContent||"";
+      if(loading.includes("Falha ao montar o mundo 3D"))return "failed";
+      return typeof window.SevenSinsDebug3D?.fly==="function"&&!!window.EldoriaLiveCityQA?"ready":false;
+    },null,{timeout:115000}).then(x=>x.jsonValue());
+    if(ready!=="ready")throw Error("Eldoria not ready: "+ready);
+    const v=await qa.evaluate(()=>window.EldoriaLiveCityQA.village||{x:-12.2,z:-44.5});
+    const positions=[
+      {name:"distante",from:[v.x+65,25,v.z+95],to:[v.x,5,v.z]},
+      {name:"perto",from:[v.x+12,10,v.z+21],to:[v.x,4,v.z]}
+    ];
+    const shots=[];
+    for(const p of positions){
+      const before=await qa.evaluate(({from,to})=>{
+        const api=window.SevenSinsDebug3D;
+        api.freeRoam();api.fly(from,to);
+        return {camera:api.cam(),state:api.state(),render:api.rinfo()};
+      },p);
+      await qa.waitForTimeout(2000);
+      const after=await qa.evaluate(()=>window.SevenSinsDebug3D.cam());
+      const filename=path.join(root,"eldoria-real-"+p.name+".png");
+      await qa.locator("#scene").screenshot({path:filename,timeout:30000});
+      shots.push({name:p.name,filename,before,after});
+    }
+    const a=await sharp(shots[0].filename).resize(64,64).removeAlpha().raw().toBuffer();
+    const b=await sharp(shots[1].filename).resize(64,64).removeAlpha().raw().toBuffer();
+    let diff=0;for(let i=0;i<a.length;i++)diff+=Math.abs(a[i]-b[i]);
+    diff/=a.length;
+    output.eldoriaReal={shots:shots.map(({filename,...rest})=>rest),pixelDifference:diff};
+    const distance=Math.hypot(...shots[0].after.map((n,i)=>n-shots[1].after[i]));
+    if(distance<15)throw Error("Camera near/far did not move: "+distance.toFixed(2));
+    if(diff<7)throw Error("Near/far screenshots almost identical: "+diff.toFixed(2));
+    await qa.close();
+  }catch(e){
+    output.status="falhou";
     output.eldoriaCaptureError=String(e.message||e);
-    errors.push("Captura real Eldoria: "+output.eldoriaCaptureError);
+    errors.push("Eldoria QA: "+output.eldoriaCaptureError);
     process.exitCode=1;
   }
 
