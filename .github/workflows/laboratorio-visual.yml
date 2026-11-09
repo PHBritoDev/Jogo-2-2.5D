@@ -84,6 +84,18 @@ jobs:
           cat /tmp/visual-lab-http.log
           exit 1
 
+      - name: Fotografar o Bispo 1 com o agente WebGL (PR de paisagem)
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/bishop1-sunset-wind-ridge'
+        run: node tools/qa/valerio-visual.cjs
+
+      - name: Publicar evidencias WebGL do Bispo 1
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'feature/bishop1-sunset-wind-ridge'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bishop1-refino-${{ github.run_number }}
+          path: valerio-qa-results/
+          retention-days: 14
+
       - name: Smoke essencial do carregamento 3D (bloqueia imports quebrados no PR)
         if: github.event_name == 'pull_request'
         run: node tools/visual-lab/world-load-smoke.cjs
