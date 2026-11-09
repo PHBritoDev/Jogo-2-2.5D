@@ -55,7 +55,7 @@ import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js'
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
 import {buildUndergrowth,buildTropical} from './eldoria-undergrowth.js';
-import {mountMatureForest} from './eldoria-mature-forest.js';
+// Heavy ArvoreFloresta01.glb retired; its territory now uses the same optimized tropical LOD system.
 import {ROAD,ROAD_STORE,ROAD_SPEAKERS,RIDE,initialRoadStage,roadPresentation,terenMeetScene,tarpScene,rideDozeScene,ambushScene,hungerScene,choiceScene,dawnRideScene,dawnHourAt} from './prologue-road-flow.js';
 import {prepareSandraMaterials} from './sandra-materials.js';
 import * as THREE from 'three';
@@ -596,11 +596,24 @@ const undergrowthBanks=[];{const cl=eldoriaRiver.ribbon.centerline;for(let i=2;i
 const eldoriaUndergrowth=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,trees:treeSpecs,banks:undergrowthBanks,
  isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-8&&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+2&&!insideMeadow(x,z,4)&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+.6)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!bridgeDeck(x,z)});
 window.SevenSinsUndergrowthReport=eldoriaUndergrowth.stats;
-// MOD 291 — mata fechada com ArvoreFloresta01.glb do criador (instanciada; LOD1 perto, copa barata longe).
-const matureForest=mountMatureForest(THREE,GLTFLoader,{scene,renderer,groundHeightAt,registerCull:registerInstanceCull,obstacles:treeObstacles,lowSpec:terrainLowSpec,
- lake:FOREST_POND,zone:{x0:-70,x1:40,z0:-148,z1:-80},
- isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-7&&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+3&&Math.hypot(x+12,z+97)>10&&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<4)&&Math.hypot(x-MASSACRE_SPOT.x,z-MASSACRE_SPOT.z)>8&&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+6&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+3)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+2.6))&&!bridgeDeck(x,z)&&!treeObstacles.some(o=>Math.abs(o.x-x)<2.6&&Math.hypot(o.x-x,o.z-z)<o.radius+2.2)});
-matureForest.ready.then(r=>{window.SevenSinsMatureForestReport={trees:matureForest.plan.length,...(r||{failed:true})};});
+// Replaces the heavy ArvoreFloresta01.glb with Claude's lighter instanced tropical species.
+// Keep the southern dense jungle, swimming lake and road clearances. No ancestral city tree is touched.
+const southernForestPlan=planTropicalBelt({
+ areas:[{x0:-76,x1:47,z0:-153,z1:-77}],
+ seed:29251,density:.88,
+ isFree:(x,z,r)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-7
+  &&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+3+r
+  &&Math.hypot(x+12,z+97)>11+r
+  &&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<4+r)
+  &&Math.hypot(x-MASSACRE_SPOT.x,z-MASSACRE_SPOT.z)>8+r
+  &&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+6+r
+  &&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+3+r)
+  &&!trailRoutes.some(t=>closeToPolyline(x,z,t.points,t.width*.5+2+r))
+  &&!bridgeDeck(x,z)
+  &&!treeObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<o.radius+2+r)
+}).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s}));
+const matureForest={plan:southernForestPlan,ready:Promise.resolve({replacement:'EldoriaArvoresTropicais.glb — optimized LOD instancing'})};
+window.SevenSinsMatureForestReport={trees:southernForestPlan.length,replacement:'tropical instanced LOD'};
 // MOD 291 — densidade de mata tropical úmida (direção do criador): plantas de folha larga e cipós pendendo das copas.
 const tropical=buildTropical(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,trees:matureForest.plan,zone:{x0:-70,x1:40,z0:-148,z1:-80},
  isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-6&&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+1.5&&Math.hypot(x+12,z+97)>8&&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<3)&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+.8)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+1.1))&&!bridgeDeck(x,z)});
@@ -608,7 +621,7 @@ window.SevenSinsTropicalReport=tropical.stats;
 /* MOD 292 — cinturão de mata tropical densa EM VOLTA da cidade (menos o corredor de chegada pela ponte), com as
    5 espécies autorais de EldoriaArvoresTropicais.glb: instâncias por espécie/nível, LOD0/LOD1/impostor em faixas
    exclusivas, colisão só nos troncos. A copa nunca vira parede: o corte por câmera/setor do jogo decide o que vai à GPU. */
-const BELT_AREAS=[{x0:-82,x1:-40,z0:-82,z1:-15},{x0:22,x1:82,z0:-80,z1:-15},{x0:-40,x1:22,z0:-86,z1:-75},{x0:-82,x1:82,z0:-7,z1:42}];
+const BELT_AREAS=[{x0:-106,x1:-40,z0:-92,z1:-13},{x0:22,x1:105,z0:-94,z1:-12},{x0:-40,x1:22,z0:-97,z1:-74},{x0:-100,x1:100,z0:-8,z1:59}];
 const ELDORIA_HOUSES_ALL=()=>[...ELDORIA_HOUSES,ELDORIA_SMITHY];
 const beltBlocks=(()=>{const out=[];const L=VILLAGE_CENTER;
  for(const h of [...ELDORIA_HOUSES_ALL()])out.push({x:L.x+h.x,z:L.z+h.z,r:h.size*.42+3.2});
@@ -625,7 +638,10 @@ function beltFree(x,z,r){
  return !treeObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+3+r);
 }
 const tropicalWind={value:0};forestWindUniforms.push(tropicalWind);
-const tropicalPlan=planTropicalBelt({areas:BELT_AREAS,isFree:beltFree,density:terrainLowSpec?.55:.68}).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s}));
+const villageBeltPlan=planTropicalBelt({areas:BELT_AREAS,isFree:beltFree,density:terrainLowSpec?.74:1.05}).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s}));
+// One shared library and one family of materials/LODs for jungle AND expanded town belt.
+// Individual trunks keep collision; foliage/shadow/LOD stays optimized at every quality.
+const tropicalPlan=[...southernForestPlan,...villageBeltPlan];
 let tropicalBelt=null;
 /* Chão sob o dossel: escurece e puxa para o musgo/serapilheira as cores de vértice do terreno sob as copas do cinturão
    (uma passada única na carga, grade espacial; a cor do terreno fora da mata não muda). */
@@ -643,8 +659,8 @@ const tropicalReady=loadTropicalTrees(THREE,GLTFLoader,{windUniform:tropicalWind
  tropicalBelt=mountTropicalForest(THREE,lib,{group:scene,plan:tropicalPlan,registerCull:registerInstanceCull,lowSpec:terrainLowSpec,profile:tropicalProfile(),name:'cinturao'});
  for(const o of tropicalBelt.obstacles)treeObstacles.push(o);refreshInstanceCulling();
  // câmera encostada numa copa/tronco: pontilhado em vez de tela tapada (mesmo recurso das coníferas)
- addNearCameraFade(lib.materials.leaves,3.4);addNearCameraFade(lib.materials.bark,2.6);
- window.SevenSinsTropicalBeltReport={...tropicalBelt.stats,perArea:BELT_AREAS.map(a=>tropicalPlan.filter(t=>t.x>=a.x0&&t.x<=a.x1&&t.z>=a.z0&&t.z<=a.z1).length),glb:'EldoriaArvoresTropicais.glb'};return tropicalBelt;
+ addNearCameraFade(lib.materials.leaves,8.0);addNearCameraFade(lib.materials.bark,2.6);
+ window.SevenSinsTropicalBeltReport={...tropicalBelt.stats,southern:southernForestPlan.length,perArea:BELT_AREAS.map(a=>villageBeltPlan.filter(t=>t.x>=a.x0&&t.x<=a.x1&&t.z>=a.z0&&t.z<=a.z1).length),glb:'EldoriaArvoresTropicais.glb'};return tropicalBelt;
 }).catch(e=>{console.warn('Árvores tropicais não carregaram.',e);window.SevenSinsTropicalBeltReport={failed:String(e&&e.message||e)};});
 // sub-bosque e cipós sob o cinturão (mesmos módulos da mata do Mod 291)
 const beltUnder=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,seed:2926,trees:tropicalPlan.map(t=>({x:t.x,z:t.z,s:t.s,collide:true})),
@@ -678,7 +694,7 @@ function makeFruitStall(x,z,label,green){const stall=new THREE.Group();stall.pos
  const sign=makeMarketSign(label,green?'#d7ebae':'#ffe3a0');sign.position.set(0,2.14,.47);stall.add(sign);
  for(let basket=0;basket<3;basket++){const bx=(basket-1)*.72;const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.25,.34,.3,8),basketMat);bowl.position.set(bx,1.27,0);stall.add(bowl);for(let j=0;j<4;j++){const fruit=new THREE.Mesh(fruitGeo,fruitMats[(basket*3+j)%fruitMats.length]);fruit.position.set(bx+((j%2)-.5)*.2,1.5+Math.floor(j/2)*.03,(Math.floor(j/2)-.5)*.19);fruit.castShadow=false;stall.add(fruit);}}
  marketObstacles.push({x,z,shape:'box',halfX:1.225,halfZ:.76,height:2.4});return stall;}
-const marketLabels=[['FRUTAS',false],['ERVAS',true],['PROVISÕES',false],['ARTESANATO',true]];
+const marketLabels=[['FRUTAS',false],['PROVISÕES',false]];
 // Vendedores seguem a MESMA fonte de coordenadas dos GLBs das barracas; nunca ficam abandonados.
 const marketStalls=ELDORIA_MARKET.map(([x,z,size,yaw],i)=>({x:VILLAGE_CENTER.x+x,z:VILLAGE_CENTER.z+z,size,yaw,label:marketLabels[i][0],green:marketLabels[i][1]}));
 // Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
@@ -688,9 +704,7 @@ for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.
 for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},{x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}]){const torch=new THREE.PointLight(0xffb060,.35,11,.9);torch.position.set(p.x,1.95,p.z);torch.castShadow=false;villageGroup.add(torch);villageTorchLights.push(torch);}
 const villageVendors=[
  {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Frutas… o que sobrou delas. Nem os bichos querem mais.',hints:['Você é novo por aqui? Não pergunte muito em voz alta.','O Téo, das provisões, escuta tudo. Mas não fala de graça.','De noite tem choro na mata. Eu fecho a porta e rezo.','Dizem que o Primeiro Bispo anda por baixo da terra, nos esgotos velhos.','Se você voltou de lá… ainda há esperança.']},
- {name:'Mara · Ervas',shortName:'ERVAS',x:marketStalls[1].x,z:marketStalls[1].z+1.55,yaw:Math.PI*.72,greeting:'Ervas para febre e para fome. A fome está ganhando.',hints:['Cuidado com quem oferece ajuda de graça. Aqui tudo tem preço.','Quer notícia? Compre do Téo. É assim que funciona agora.','A floresta à noite não é lugar de gente viva.','A encosta da montanha tem uma boca de pedra. Ninguém que entrou voltou.','A vila ainda está de pé. Por enquanto.']},
- {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[2].x,z:marketStalls[2].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']},
- {name:'Nara · Artesanato',shortName:'ARTESANATO',x:marketStalls[3].x,z:marketStalls[3].z+1.55,yaw:Math.PI,greeting:'Faço fechaduras. Hoje só me pedem cadeado para guardar o pouco que resta.',hints:['A trilha da vila vem lá do sudeste da mata.','Os ricos sumiram com tudo. Ficou a gente e as moscas.','Gaiolas na floresta… não é trabalho meu, eu juro.','Os esgotos velhos passam por baixo da montanha.','Obrigada. A vila vai lembrar de você.']}
+ {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x,z:marketStalls[1].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']}
 ];
 function mergeGrassTuft(sourceRoot){const positions=[],colors=[],indices=[],zUpToYUp=new THREE.Matrix4().makeRotationX(-Math.PI/2);sourceRoot.updateMatrixWorld(true);sourceRoot.traverse(obj=>{if(!obj.isMesh||!obj.geometry||!obj.geometry.attributes.position)return;const geometry=obj.geometry,position=geometry.attributes.position,color=geometry.attributes.color,base=positions.length/3;const vertex=new THREE.Vector3();for(let i=0;i<position.count;i++){vertex.fromBufferAttribute(position,i).applyMatrix4(obj.matrixWorld).applyMatrix4(zUpToYUp);positions.push(vertex.x,vertex.y,vertex.z);colors.push(color?color.getX(i):.38,color?color.getY(i):.56,color?color.getZ(i):.3);}if(geometry.index){for(let i=0;i<geometry.index.count;i++)indices.push(base+geometry.index.getX(i));}else for(let i=0;i<position.count;i++)indices.push(base+i);});if(!positions.length)throw new Error('Grama.glb não contém malhas com vértices');const merged=new THREE.BufferGeometry();merged.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));merged.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));merged.setIndex(indices);merged.computeVertexNormals();merged.computeBoundingBox();merged.computeBoundingSphere();return merged;}
 /** Tufo de grama leve: ~9 lâminas (≈30 triângulos) com a altura e as cores do tufo original, que tinha ~380 triângulos. */
@@ -3974,7 +3988,7 @@ function updateAct1(dt,now){
  if(questStep===1){
   if(act1Sub===0&&roadStage<ROAD.done){updateRoadQuest(px,pz,near,mark);return;}
   if(act1Sub===0){mark(VILLAGE_CENTER);if(!act1Busy()&&near(VILLAGE_CENTER,VILLAGE_CLEAR_RADIUS+2)){act1Lock=true;storyAnchors.village={x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,yaw:0};playStory('vila-chegada',villageArrivalScene(),{done:()=>{act1Lock=false;act1Advance(1,1);status.textContent='Pergunte ao vendedor sobre o Pecado da Ganância.';}});}}
-  else{const t=villageVendors[2];mark(t);}
+  else{const t=villageVendors[1];mark(t);}
   return;
  }
  if(questStep===2){
@@ -4029,7 +4043,7 @@ function updateAct1(dt,now){
 }
 function act1TalkLabel(){
  if(cineActive)return '';const px=player.position.x,pz=player.position.z;
- if(questStep===1&&act1Sub>=1){const t=villageVendors[2];if(Math.hypot(t.x-px,t.z-pz)<=2.9)return 'PERGUNTAR · TÉO';}
+ if(questStep===1&&act1Sub>=1){const t=villageVendors[1];if(Math.hypot(t.x-px,t.z-pz)<=2.9)return 'PERGUNTAR · TÉO';}
  if(questStep===3&&act1Sub===0&&Math.hypot(CAGE_CENTER.x-px,CAGE_CENTER.z-pz)<=4.2)return 'ABRIR GAIOLA';
  if(questStep===4&&act1Sub===1&&!inSewer){const d=sewerDoorFront();if(Math.hypot(d.x-px,d.z-pz)<=3.4)return 'ENTRAR NO ESGOTO';}
  if(questStep>=4&&questStep<8&&!inSewer&&act1Sub>=2||(questStep>=5&&questStep<8&&!inSewer)){const d=sewerDoorFront();if(Math.hypot(d.x-px,d.z-pz)<=3.4)return 'ENTRAR NO ESGOTO';}
@@ -4039,7 +4053,7 @@ function act1TalkLabel(){
 }
 function act1Interact(){
  const label=act1TalkLabel();if(!label)return false;
- if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[2]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor'});return true;}
+ if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor'});return true;}
   playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
  if(label==='ABRIR GAIOLA'){faceTo(player,CAGE_CENTER);openCage();return true;}
  if(label==='ENTRAR NO ESGOTO'){travelVeil(()=>{if(questStep===4&&act1Sub===1)act1Advance(4,2);enterSewer();});return true;}
@@ -7408,7 +7422,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   questStep=step;act1Sub=sub;journeyEnemyIndex=step>2?ACT1.enemyTotal:0;childrenFreed=step>3||(step===3&&sub>0);wardenTaunted=step>5;wardenDefeated=step>5;act1Night=step===2||step===3;setGameHour(act1Night?21.5:9);
   if(coins<ACT1.bribe)coins=ACT1.purse;save3DProgress();updateQuestHud();syncAct1World();
   const go=(x,z)=>{if(inSewer)leaveSewer({x,z});player.position.set(x,terrainHeightAt(x,z),z);};
-  if(step===1){roadStage=ROAD.done;go(sub?villageVendors[2].x+1.6:VILLAGE_CENTER.x+30,sub?villageVendors[2].z+1.6:VILLAGE_CENTER.z+4);}
+  if(step===1){roadStage=ROAD.done;go(sub?villageVendors[1].x+1.6:VILLAGE_CENTER.x+30,sub?villageVendors[1].z+1.6:VILLAGE_CENTER.z+4);}
   else if(step===2||step===3)go(CAGE_CENTER.x+(step===2?2:2.4),CAGE_CENTER.z+(step===2?16:2.6));
   else if(step===4&&sub===0)go(MASSACRE_SPOT.x+4,MASSACRE_SPOT.z+20);
   else if(step===4&&sub===1){const d=sewerDoorFront();go(d.x+1,d.z+1);}
@@ -7528,7 +7542,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  shop(){shopVisited=true;openShop();},
  grant(xp,gold,step){playerXp+=xp||0;coins+=gold||0;if(step!==undefined)questStep=step;applyLevelStats(true);updateQuestHud();},
  stats(){return{xp:playerXp,level:playerLevel(),owned:[...ownedItems],sword:equippedSword,coins,maxHP:playerMaxHP};},
- teo(){const t=villageVendors[2];return{x:t.x,z:t.z};},
+ teo(){const t=villageVendors[1];return{x:t.x,z:t.z};},
  face(){if(enemy.visible){playerYaw=Math.atan2(enemy.position.x-player.position.x,enemy.position.z-player.position.z);player.rotation.y=playerYaw;}},
  target(){const m=questMarker.position;return questMarker.visible===false?null:{x:m.x,z:m.z};}
 };

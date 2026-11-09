@@ -152,7 +152,8 @@ test('marco 2: mata fechada usa o GLB do criador, respeita trilha/água e não f
   const xs = new Set(plan.map(t => Math.round(t.x / 4))); assert.ok(xs.size > 20, 'distribuição não alinhada em colunas');
   const lib = readFileSync(new URL('./eldoria-mature-forest.js', import.meta.url), 'utf8');
   assert.match(lib, /'\.\/ArvoreFloresta01\.glb'/); assert.doesNotMatch(lib, /'\.\/ArvoreFloresta01-lod1\.glb'/); // Mod 292: LOD1 borrado removido
-  assert.match(src, /mountMatureForest\(THREE,GLTFLoader,\{/);
+  assert.match(src, /const southernForestPlan=planTropicalBelt\(/, 'mata fechada utiliza instancing tropical leve');
+   assert.doesNotMatch(src,/mountMatureForest\(THREE,GLTFLoader/, 'modelo pesado retirado do mundo');
   assert.match(src, /wobble:\.6\}/, 'margem do lago orgânica');
   assert.match(readFileSync(new URL('./eldoria-water.js', import.meta.url), 'utf8'), /uFoamEnd - 14\.0/, 'sem espuma de rio dentro do lago');
 });
@@ -179,7 +180,7 @@ test('marco 2d: faixa distante usa impostor renderizado do GLB do criador (não 
   assert.match(lib, /renderer\.setRenderTarget\(rt\); renderer\.render\(sc, cam\);/, 'viewport do alvo reaplicado por vista');
   assert.match(lib, /alphaTest: \.45/);
   assert.equal((lib.match(/registerCull\(far,/g) || []).length, 1, 'copa distante registrada no corte uma vez só');
-  assert.match(src, /mountMatureForest\(THREE,GLTFLoader,\{scene,renderer,/);
+  assert.match(src, /const tropicalPlan=\[\.\.\.southernForestPlan,\.\.\.villageBeltPlan\]/, 'mata e cinturão usam um mesmo pipeline LOD');
 });
 
 test('marco 3: cidade bonita — deques/escadas nas ancestrais, passarela do criador, jardins sem cercas brancas soltas, lampiões', async () => {

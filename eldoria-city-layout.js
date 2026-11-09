@@ -44,14 +44,12 @@ export const ANCESTRAL_ROOT_SPREAD = .42;
 
 export const ELDORIA_HOUSES = [
   { id: 'A1', file: 'CasaEldoria02.glb', x: 4.5, z: 20, size: 5.9, faceTo: [11.6, 20.5], bairro: 'Entrada', funcao: 'Casa do guarda da ponte' },
-  { id: 'A2', file: 'CasaEldoria01.glb', x: 20, z: 16.5, size: 5.8, faceTo: [12.4, 16.5], bairro: 'Entrada', funcao: 'Casa da tecelã' },
   { id: 'A4', file: 'CasaEldoria01.glb', x: -1, z: 13, size: 5.6, faceTo: [5, 10], bairro: 'Entrada', funcao: 'Casa do padeiro (forno apagado)' },
   { id: 'B1', file: 'CasaEldoria02.glb', x: -12, z: -12, size: 6.1, faceTo: [0, 0], bairro: 'Praça', funcao: 'Casa da família de Lia' },
   { id: 'B2', file: 'CasaEldoria01.glb', x: 6, z: -9, size: 5.7, faceTo: [0, 0], bairro: 'Praça', funcao: 'Casa do conselho (sem dinheiro, mas inteira)' },
   { id: 'B3', file: 'CasaEldoria02.glb', x: -15.5, z: 11, size: 5.9, faceTo: [0, 0], bairro: 'Praça', funcao: 'Casa da curandeira' },
   { id: 'C1', file: 'CasaEldoria02.glb', x: -12.8, z: -18.5, size: 5.8, faceTo: [-.6, -13], bairro: 'Norte', funcao: 'Casa do lenhador' },
   { id: 'D2', file: 'CasaEldoria01.glb', x: 28, z: 14, size: 5.6, faceTo: [28.7, 5.6], bairro: 'Leste', funcao: 'Casa do apicultor' },
-  { id: 'W1', file: 'CasaEldoria01.glb', x: -22.8, z: 14.5, size: 5.5, faceTo: [-18.3, 7], bairro: 'Oeste', funcao: 'Casa do sapateiro' },
   { id: 'W2', file: 'CasaEldoria02.glb', x: -21.4, z: -13, size: 5.9, faceTo: [-21.6, -7.5], bairro: 'Oeste', funcao: 'Casa do pastor de cabras' },
 ];
 export const ELDORIA_SMITHY = { id: 'F1', file: 'FerreiroEldoria.glb', x: 21, z: 10, size: 5.6, faceTo: [13.4, 8.8], bairro: 'Entrada', funcao: 'Ferraria (forja aberta para a rua principal)', collision: 2.4 };
