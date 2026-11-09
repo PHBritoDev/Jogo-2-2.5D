@@ -46,11 +46,14 @@ try {
  await page.evaluate(()=>{window.SevenSinsDebug3D.fly?.([400,-1997.5,16],[400,-1999,0]);});
  await page.waitForTimeout(600);
  await page.screenshot({path:path.join(out,'meadow-before-impact.png'),timeout:90000});
+ console.log('MEADOW_FRAME_BEFORE='+ (await page.screenshot({type:'jpeg',quality:32})).toString('base64'));
  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('golden-meadow-impact',{detail:{x:400,z:0,radius:19}})));
  await page.waitForTimeout(350);
  await page.screenshot({path:path.join(out,'meadow-impact.png'),timeout:90000});
+ console.log('MEADOW_FRAME_IMPACT='+ (await page.screenshot({type:'jpeg',quality:32})).toString('base64'));
  await page.waitForTimeout(11100);
  await page.screenshot({path:path.join(out,'meadow-regrown.png'),timeout:90000});
+ console.log('MEADOW_FRAME_REGROWN='+ (await page.screenshot({type:'jpeg',quality:32})).toString('base64'));
  report.shots.push('meadow-before-impact.png','meadow-impact.png','meadow-regrown.png');
  report.status='captured';report.render=report.state.render;
  if(report.errors.some(x=>/SyntaxError|WebGLProgram|Shader Error|Failed to fetch dynamically imported/i.test(x)))throw Error('WebGL/module errors');
