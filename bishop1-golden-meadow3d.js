@@ -134,6 +134,32 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   }
   plot(13000,0,45,0);plot(17000,45,115,1);plot(11000,115,196,2);
 
+
+  // Endless pastel sky dome; distant glow remains behind the foreground grass.
+  // The original reference has a warm ivory sky, not an outdoor blue daytime sky.
+  const skyGeo=new THREE.SphereGeometry(204,36,20);
+  const skyMat=new THREE.ShaderMaterial({
+    side:THREE.BackSide,depthWrite:false,depthTest:true,fog:false,
+    vertexShader:`varying vec3 vSkyDir;
+      void main(){vSkyDir=normalize(position);
+      gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`varying vec3 vSkyDir;
+      void main(){
+        float up=clamp(vSkyDir.y,-1.0,1.0);
+        vec3 horizon=vec3(0.98,0.87,0.72);
+        vec3 zenith=vec3(0.98,0.95,0.89);
+        vec3 low=vec3(0.71,0.52,0.33);
+        vec3 sky=mix(horizon,zenith,smoothstep(-0.02,0.72,up));
+        sky=mix(low,sky,smoothstep(-0.34,-0.03,up));
+        vec3 sunDir=normalize(vec3(0.0,0.02,-1.0));
+        float corona=pow(max(dot(normalize(vSkyDir),sunDir),0.0),24.0);
+        sky+=vec3(0.09,0.075,0.055)*corona;
+        gl_FragColor=vec4(min(sky,vec3(1.0)),1.0);
+      }`
+  });
+  const skyMesh=add(new THREE.Mesh(skyGeo,skyMat));
+  skyMesh.renderOrder=-100;
+
   // Far sun halo: the main light comes from the existing dimension lighting contract.
   const glowCanvas = document.createElement('canvas'); glowCanvas.width=128;glowCanvas.height=128;
   const brush=glowCanvas.getContext('2d'),gr=brush.createRadialGradient(64,64,5,64,64,64);
@@ -145,7 +171,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   sun.position.set(0,4,-167);sun.scale.set(105,105,1);add(sun);
 
   ctx.refs.goldenMeadow={
-    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();material.dispose();sunTexture.dispose();sun.material.dispose();}
+    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();material.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();}
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xf5e4cf,fog:0xe0c6a5,fogNear:95,fogFar:250,
