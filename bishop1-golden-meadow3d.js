@@ -57,11 +57,11 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   // Soft feathery head: many separate downy strands, wider at the middle,
   // strongly backlit and with curved tips blowing toward the right.
   for(let k=0;k<220;k++){
-    const t=grassRandom(),y=72+t*235,wide=Math.sin(t*Math.PI)*44+5;
+    const t=grassRandom(),y=72+t*235,wide=Math.sin(t*Math.PI)*27+3;
     const side=grassRandom()>.5?1:-1;
     const center=125+31*t*t;
     const x=center+side*(grassRandom()*.92+.08)*wide;
-    const length=19+grassRandom()*52;
+    const length=32+grassRandom()*64;
     const bend=(.3+grassRandom()*.7)*length;
     const light=grassRandom();
     ink.strokeStyle=light>.72?'rgba(255,249,222,.94)':light>.37?'rgba(255,234,185,.88)':'rgba(241,203,139,.72)';
@@ -113,7 +113,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       transformed.z += gust * .39 * bladeHeight;
       transformed.y -= abs(gust) * .08 * bladeHeight;`);
   };
-  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v6';
+  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v7';
 
   function plot(count,near,far,seedOffset){
     // Distinct tiles/LOD bands avoid overdraw-heavy endless dense stalks.
@@ -128,7 +128,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       const y=-.055+(1.8*Math.sin(x*.019+z*.008)+2.1*Math.sin(z*.026-x*.011)+2*Math.cos(x*.033))*hillFade;
       dummy.position.set(x,y,z);
       dummy.rotation.set(0,random()*6.283,0);
-      const s=(.69+random()*.62)*(r>95?1.2:1);
+      const s=(.50+random()*.48)*(r>95?1.1:1);
       dummy.scale.set(s,s*(.79+random()*.36),track?.11*s:s);
       dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
       golden.setHSL(.102+random()*.025,.28+random()*.18,.87+random()*.11);
