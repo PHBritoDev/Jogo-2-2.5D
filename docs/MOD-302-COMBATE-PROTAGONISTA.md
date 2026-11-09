@@ -72,6 +72,9 @@ Regras de dano (`sword-rites3d.js`):
 - **Motion warping** (`warpStep`): durante o startup o herói gira (≤ 12 rad/s) e desliza no máximo `warp.max` (1–3,6 m), a no máximo
   14 m/s, até o alvo ficar no ponto de contato medido do clipe; root motion + aproximação passam pela colisão (`moveWorldHero`):
   parede, árvore e guarda-corpo param o avanço; nunca teleporta, nunca entra no corpo do alvo. Alvo atrás (> 109°) só gira.
+  Alvo em movimento: a velocidade do alvo é estimada a cada quadro e a aproximação mira onde ele estará no meio da janela ativa.
+  A estocada em corrida aproveita o embalo (até 24 m/s durante 0,15 s). A hitbox física dos golpes do protagonista tem 0,2 m de
+  tolerância além do raio do corpo (largura do gume + arrasto), contra 0,12 m antes.
 - **Alvo aéreo**: no ar, o startup ajusta a altura até o alvo e o golpe segura a queda (gravidade a 35 % durante o ativo); dois arcos
   aéreos e o terceiro vira a Queda do julgamento.
 - **Câmera**: enquadra herói + alvo (foco puxa 22 %, 30 % durante golpe), oclusão já existente (árvore, encosta, casas),
@@ -81,35 +84,51 @@ Regras de dano (`sword-rites3d.js`):
 
 Quadro a quadro da referência (30 fps): 0:00,6 o corpo se desfaz em fiapos verticais pretos que sobem e se esticam; ~0,33 s invisível;
 na chegada uma mancha horizontal escura, alongada no sentido do deslocamento, se contrai em ~3 quadros e o corpo reaparece.
-Implementação: 5,4 m em 0,13 s, i-frames 0,30 s, recarga 0,48 s; o modelo some, 28 fiapos de fumaça (pool) sobem na origem
+Implementação: 5,4 m em 0,17 s (≈ 5 quadros invisível a 30 fps), i-frames 0,30 s, recarga 0,48 s; o modelo some, 28 fiapos de fumaça (pool) sobem na origem
 deixando a silhueta escura residual (`heroShadows`), a travessia é invisível e varrida contra parede (atravessa corpos de inimigos,
 nunca obstáculos; nunca termina dentro de um corpo), na chegada o rastro horizontal se fecha no corpo e o clipe de
 rematerialização toca. Golpe até 0,26 s depois do dash = Corte do retorno.
 
 ## 6. Evidências
 
-Gravações no **mesmo cenário** do mundo principal (prado do prólogo, x 66 / z 150, mesmo inimigo, câmera de jogo), passo fixo de
-1/30 s com a simulação real (`motionStep`), em `docs/evidencias/mod302/`:
+Gravações no **mesmo cenário** do mundo principal (prado do prólogo, x 66 / z 150, mesmo inimigo "Seguidor da Ganância",
+câmera do próprio jogo), em passo fixo de 1/30 s com a simulação real (`motionStep`). O "antes" é a `main` da Mod 301 com apenas
+os ganchos de QA (ligar o combate no prado, ação com direção do analógico) — nenhuma mudança de jogabilidade. Arquivos em
+`docs/evidencias/mod302/`:
 
-- `antes_movimento.mp4` × `depois_movimento.mp4`: parado, andar sem correr, parar, correr com CORRER, parar, dash lateral, salto,
-  dash de frente, giro 360.
-- `antes_combo.mp4` × `depois_combo.mp4`: 5 golpes no alvo parado (câmera de jogo e lateral), close da espada.
-- `depois_alvos.mp4`: alvo em movimento, dash + corte do retorno, corrida + estocada, alvo aéreo (salto, aéreos, queda).
-- `espada-branca.png` (render do modelo) e `espada-close.png` (na mão, no jogo).
-- `sonda-acertos.json`: log por quadro (golpe, fase, acertou, por lâmina/energia, distância mínima da lâmina ao corpo).
+| Arquivo | Conteúdo |
+|---|---|
+| `movimento-antes-x-depois.mp4` | lado a lado: parado, andar com o analógico, parar, correr com CORRER, parar, dash lateral, salto, dash de frente, andar |
+| `giro360-antes-x-depois.mp4` | volta completa do analógico andando (sem CORRER) |
+| `combo-antes-x-depois.mp4` | combo no alvo parado (câmera do jogo e lateral) e close da espada no golpe |
+| `alvos-movel-dash-corrida.mp4` | combo de 5 em alvo andando em círculo, dash + Corte do retorno, corrida + estocada |
+| `alvo-aereo.mp4` | salto, dois arcos aéreos no alvo flutuando a 1,6 m e Queda do julgamento |
+| `rocha-obstaculo-camera.mp4` | combo de costas para uma rocha, recuo até ela e dash contra ela (para no obstáculo) |
+| `combo-5-golpes-quadros.jpg` | quadros de contato dos 5 golpes |
+| `espada-branca.jpg`, `espada-referencia-x-modelo.jpg`, `espada-close-no-jogo.jpg` | modelo, comparação com a referência (só a espada branca) e close na mão |
+| `mobile/*.jpg`, `mobile/resultado.json` | emulação de celular em paisagem (854×384, toque via CDP) |
+| `sonda-acertos.json` | log por quadro de cada golpe: fase, acertou, por lâmina/energia, distância mínima lâmina→corpo |
 
-Resultados da sonda (mesmo cenário, alvo com vida alta):
+Medições nas próprias gravações:
 
 | Situação | Antes (Mod 301) | Depois (Mod 302) |
 |---|---|---|
-| Distância mínima lâmina→corpo no golpe 1 | 0,62 m (erra) | −0,01 m (acerta) |
-| Combo de 5, alvo parado | — (ver vídeo) | 5/5 acertos (lâmina, energia, lâmina, lâmina, lâmina+anel sem dano dobrado) |
-| Combo de 5, alvo andando em círculo | — | 5/5 acertos |
-| Corrida + estocada | — | acerto pela lâmina |
-| Alvo aéreo a 1,5 m | — | 3/3 acertos no ar |
+| Analógico sem CORRER | toca `Running` a 2,7 m/s (corre sem querer) | `Walking` a 2,2 m/s, cadência sincronizada |
+| Giro 360 sem CORRER | alterna `Walk`/`Run`, até 4,2 m/s | só `Walk`, ≤ 2,2 m/s |
+| CORRER ligado | `Running` | `Running` a 6,8 m/s |
+| Salto | ~1,0 m acima do ponto de saída | ~0,4–0,6 m (apogeu teórico 0,61 m), pouso com clipe próprio |
+| Dash | 0,16 s com o corpo visível e fantasma | some em fumaça 5 quadros, atravessa 5,4 m, reaparece no rastro (2,2 m quando a rocha bloqueia) |
+| Combo no alvo parado (12 toques) | **2 acertos** | **10 golpes executados, 10 acertos** (lâmina 8, energia 2) |
+| Alvo andando em círculo | — | 5/5 |
+| Dash + Corte do retorno / corrida + estocada | — | acerto (energia) / acerto (lâmina) |
+| Alvo aéreo a 1,6 m | — | arco aéreo acerta pela lâmina; Queda acerta pelo anel de energia |
+| Celular (emulação) | — | analógico → `Walk` 2,2 m/s; CORRER → `Run` 6,8 m/s; DASH some; GOLPE causou 50 de dano; PULO → salto; 0 erros de página |
 
-Testes automáticos: `node --test *.test.mjs tests/*.test.mjs` (os dois que já falhavam na main — Mod 262 e Mod 278 — seguem
-falhando pelos mesmos motivos; nenhum novo).
+Antes de alinhar o golpe ao ponto de contato do clipe, a sonda mediu a lâmina passando a 0,62 m do corpo no 1.º golpe
+(corta o vento); depois, contato em todos os golpes de chão (distância mínima ≤ 0).
+
+Testes automáticos: `node --test *.test.mjs tests/*.test.mjs` → 472 passam; 2 falham **igual à `main`** (Mod 262 e Mod 278,
+já falhavam antes desta mudança). Novos: `tests/prota-combat302.test.mjs` (10 testes).
 
 ## 7. Matriz das referências
 
@@ -118,14 +137,14 @@ negativo `1000364197.mp4` **não foi enviado** — não houve comparação com e
 
 | Referência (arquivo) | Brief | Timestamp | O que acontece | Câmera / VFX / contato | Equivalente implementado | Evidência |
 |---|---|---|---|---|---|---|
-| `3087d4ad…` (4,4 s) | 3900 | 0:00,6–0:01,4 | some em fumaça vertical, invisível, reaparece em rastro horizontal | câmera fixa; fumaça preta esticando para cima; mancha alongada no sentido do movimento | Dash 302 (fiapos + silhueta, travessia invisível, rastro que se fecha) | `depois_movimento.mp4` dash lateral/frente |
-| `acf4e763…` (32 s) | 3895 | 0:02–0:03 | arco horizontal largo acerta à média distância | lua azul nasce na lâmina e viaja | Golpe 2 — Lua horizontal (energia pura) | `depois_combo.mp4` 2.º golpe |
+| `3087d4ad…` (4,4 s) | 3900 | 0:00,6–0:01,4 | some em fumaça vertical, invisível, reaparece em rastro horizontal | câmera fixa; fumaça preta esticando para cima; mancha alongada no sentido do movimento | Dash 302 (fiapos + silhueta, travessia invisível, rastro que se fecha) | `movimento-antes-x-depois.mp4` (dash lateral e de frente) |
+| `acf4e763…` (32 s) | 3895 | 0:02–0:03 | arco horizontal largo acerta à média distância | lua azul nasce na lâmina e viaja | Golpe 2 — Lua horizontal (energia pura) | `combo-antes-x-depois.mp4` 2.º golpe |
 | `acf4e763…` | 3895 | 0:04, 0:08 | corte vertical em crescente | crescente vertical | Golpe 3 — Ascensão (onda vertical híbrida) | 3.º golpe |
-| `acf4e763…` | 3895 | 0:22–0:23 | golpes no ar e estouro no chão | arcos aéreos, explosão no impacto | Arco aéreo ×2 + Queda do julgamento (anel no chão) | `depois_alvos.mp4` alvo aéreo |
+| `acf4e763…` | 3895 | 0:22–0:23 | golpes no ar e estouro no chão | arcos aéreos, explosão no impacto | Arco aéreo ×2 + Queda do julgamento (anel no chão) | `alvo-aereo.mp4` |
 | `7e4b2554…` (15 s) | 3896 | 0:01, 0:05 | crescente dourado preso ao corte do corpo inteiro | arco grosso com gradiente seguindo a lâmina | Rastro da lâmina real (marfim/vermelho) + Golpe 1 | 1.º golpe |
 | `0240a0f0…` (32 s) | 3897 | 0:10–0:12 | investida curta, faíscas no contato | câmera atrás, micro-pausa | Golpe 4 — Estocada com aproximação (≤ 3,6 m) e clarão no ponto do contato | 4.º golpe |
 | `0240a0f0…` | 3897 | 0:03, 0:06 | golpe que lança / impacto com estouro | pilar de luz no lançamento | Ascensão (lançador do esquadrão) / Queda | 3.º golpe / queda |
-| `9dacd64c…` (26 s) | 3898 | 0:03, 0:07 | crescente lançado logo após o deslocamento | crescentes preto/branco | Corte do retorno (onda de 8,5 m após o dash) | `depois_alvos.mp4` dash + golpe |
+| `9dacd64c…` (26 s) | 3898 | 0:03, 0:07 | crescente lançado logo após o deslocamento | crescentes preto/branco | Corte do retorno (onda de 8,5 m após o dash) | `alvos-movel-dash-corrida.mp4` dash + golpe |
 | `9dacd64c…` | 3898 | 0:24 | corte circular em espiral | anel em volta do corpo | Golpe 5 — Sentença giratória (anel 360°) | 5.º golpe |
 | `523a21e1…` (10,8 s) | 3899 | 0:00, 0:08 | finalizador com explosão e micro-pausa | clarão forte, quadro dramático | Finalizador: hitstop 90 ms, tremor, FOV +3,2°, clarão maior | 5.º golpe |
 
@@ -144,8 +163,8 @@ y=0,75, ponta y=−0,951): escala, hitbox e primeira pessoa preservadas; as outr
 
 ## 9. Limitações honestas
 
-- Gravações feitas em Chromium com SwiftShader (sem GPU): servem para pose, tempo e contato, **não** para FPS. Não houve teste em
-  Android físico; o teste mobile foi por emulação de viewport/toque.
+- Gravações feitas em Chromium com SwiftShader (sem GPU, 2–4 FPS reais): servem para pose, tempo e contato, **não** para FPS.
+  Não houve teste em Android físico; o teste mobile foi por emulação de viewport/toque (CDP), sem alegar 30/60 FPS no aparelho.
 - Os SFX reutilizam os sons existentes do jogo (`worldAudio.swing/hit/whoosh`) sincronizados aos eventos novos; não há áudio novo.
 - O enquadramento usa a câmera existente com ajustes; não há cortes de câmera cinematográficos durante o combo (o controle
   continua com o jogador).
