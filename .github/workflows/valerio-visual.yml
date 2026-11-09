@@ -1,0 +1,46 @@
+name: Valerio visual QA
+on:
+  push:
+    branches: [feature/valerio-golden-meadow]
+    paths:
+      - 'valerio-golden-meadow3d.js'
+      - 'dimension-arenas3d.js'
+      - 'dimensions3d.js'
+      - 'tools/qa/valerio-visual.cjs'
+      - '.github/workflows/valerio-visual.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  webgl:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static JS syntax
+        run: |
+          node --check valerio-golden-meadow3d.js
+          node --check dimension-arenas3d.js
+          node --test dimensions3d.test.mjs
+      - name: Playwright browser
+        run: |
+          mkdir -p /tmp/valerio-deps
+          npm install --prefix /tmp/valerio-deps --no-package-lock --ignore-scripts playwright@1.58.2
+          /tmp/valerio-deps/node_modules/.bin/playwright install --with-deps chromium
+      - name: Capture real WebGL screenshots
+        env:
+          NODE_PATH: /tmp/valerio-deps/node_modules
+        run: |
+          python3 -m http.server 4181 >/tmp/valerio-server.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID"' EXIT
+          node tools/qa/valerio-visual.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: valerio-visual-captures
+          path: valerio-qa-results/
+          retention-days: 14
