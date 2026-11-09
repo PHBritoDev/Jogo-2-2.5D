@@ -1,8 +1,8 @@
 // ÚNICO lugar para atualizar identidade/cache da build publicada.
 // NÃO editar HTML, loader ou mundo 3D apenas para trocar número de versão.
-export const MOD = 306;
-export const BUILD = 'mod306-vorgazhek-water-refine';
-export const DESCRIPTION = 'Mod 306: água fluida e observadores distantes da Dimensão II, preservando melhorias anteriores';
+export const MOD = 307;
+export const BUILD = 'mod307-floresta-serra-fps';
+export const DESCRIPTION = 'Mod 307: Eldória — mata contínua até a serra, gaiolas na nova clareira e orçamento de luzes para FPS';
 export function syncBuildMarker(marker) {
   if (!marker) return;
   marker.textContent = String(MOD);
