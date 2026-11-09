@@ -129,32 +129,36 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   };
   material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v7';
 
-  function plot(count,near,far,seedOffset){
-    // Distinct tiles/LOD bands avoid overdraw-heavy endless dense stalks.
-    const mesh = new THREE.InstancedMesh(near>=45?liteGeo:stalkGeo,material,count);
-    const dummy = new THREE.Object3D(), golden = new THREE.Color();
-    for(let i=0;i<count;i++) {
-      const angle = random() * Math.PI*2;
-      const r=Math.sqrt(near*near+random()*(far*far-near*near));
-      const x=Math.cos(angle)*r,z=Math.sin(angle)*r;
-      const track = false; // original video is an uninterrupted sea of gold
-      const hillFade=THREE.MathUtils.smoothstep(r,radius+5,radius+70);
-      const y=-.055+(1.8*Math.sin(x*.019+z*.008)+2.1*Math.sin(z*.026-x*.011)+2*Math.cos(x*.033))*hillFade;
-      dummy.position.set(x,y,z);
-      dummy.rotation.set(0,random()*6.283,0);
-      const s=(.50+random()*.48)*(r>95?1.1:1);
-      dummy.scale.set(s,s*(.79+random()*.36),track?.11*s:s);
-      dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-      golden.setHSL(.102+random()*.025,.28+random()*.18,.87+random()*.11);
-      mesh.setColorAt(i,golden);
+
+  function plot(count,near,far){
+    // Twelve polar sectors per LOD band. Each has its own bounding volume,
+    // so Three.js culls off-screen blades rather than sending the whole field
+    // to the GPU on every camera angle. Density and visual fidelity are unchanged.
+    const sectors=12,dummy=new THREE.Object3D(),golden=new THREE.Color();
+    for(let sector=0;sector<sectors;sector++){
+      const n=Math.floor(count/sectors)+(sector<count%sectors?1:0);
+      const mesh=new THREE.InstancedMesh(near>=45?liteGeo:stalkGeo,material,n);
+      for(let i=0;i<n;i++){
+        const angle=(sector+random())/sectors*Math.PI*2;
+        const r=Math.sqrt(near*near+random()*(far*far-near*near));
+        const x=Math.cos(angle)*r,z=Math.sin(angle)*r;
+        const fade=THREE.MathUtils.smoothstep(r,radius+5,radius+70);
+        const y=-.055+(1.8*Math.sin(x*.019+z*.008)+2.1*Math.sin(z*.026-x*.011)+2*Math.cos(x*.033))*fade;
+        dummy.position.set(x,y,z);dummy.rotation.set(0,random()*6.283,0);
+        const scale=(.50+random()*.48)*(r>95?1.1:1);
+        dummy.scale.set(scale,scale*(.79+random()*.36),scale);
+        dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+        golden.setHSL(.102+random()*.025,.28+random()*.18,.87+random()*.11);
+        mesh.setColorAt(i,golden);
+      }
+      mesh.instanceMatrix.needsUpdate=true;
+      if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+      mesh.frustumCulled=true;mesh.computeBoundingSphere();
+      if(mesh.boundingSphere)mesh.boundingSphere.radius+=1.6; // allow wind displacements
+      mesh.castShadow=false;mesh.receiveShadow=false;add(mesh);
     }
-    mesh.instanceMatrix.needsUpdate=true;
-    if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
-    mesh.frustumCulled=false;
-    mesh.castShadow=false;mesh.receiveShadow=false;
-    add(mesh);
   }
-  plot(18500,0,45,0);plot(14000,45,115,1);plot(8000,115,196,2);
+  plot(18500,0,45);plot(14000,45,115);plot(8000,115,196);
 
 
 
@@ -179,22 +183,28 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       transformed.z+=cos(uGoldenWind*.66+phase)*.12*tall*tall;`);
   };
   leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v1';
-  const leafCount=24500,leafMesh=new THREE.InstancedMesh(leafGeo,leafMat,leafCount);
-  const dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
-  for(let i=0;i<leafCount;i++){
-    const a=random()*Math.PI*2,rr=Math.sqrt(random())*72,x=Math.cos(a)*rr,z=Math.sin(a)*rr;
-    const fade=THREE.MathUtils.smoothstep(rr,radius+5,radius+70);
-    const y=-.045+(1.8*Math.sin(x*.019+z*.008)+2.1*Math.sin(z*.026-x*.011)+2*Math.cos(x*.033))*fade;
-    dummyLeaf.position.set(x,y,z);dummyLeaf.rotation.set(0,random()*6.283,0);
-    const sc=.5+random()*.68;dummyLeaf.scale.set(sc,sc,sc);dummyLeaf.updateMatrix();
-    leafMesh.setMatrixAt(i,dummyLeaf.matrix);
-    colLeaf.setHSL(.105+random()*.022,.39+random()*.2,.72+random()*.21);
-    leafMesh.setColorAt(i,colLeaf);
-  }
-  leafMesh.instanceMatrix.needsUpdate=true;
-  if(leafMesh.instanceColor)leafMesh.instanceColor.needsUpdate=true;
-  leafMesh.frustumCulled=false;leafMesh.castShadow=false;add(leafMesh);
 
+  const leafCount=24500,leafSectors=12,dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
+  for(let sector=0;sector<leafSectors;sector++){
+    const n=Math.floor(leafCount/leafSectors)+(sector<leafCount%leafSectors?1:0);
+    const leafMesh=new THREE.InstancedMesh(leafGeo,leafMat,n);
+    for(let i=0;i<n;i++){
+      const a=(sector+random())/leafSectors*Math.PI*2,rr=Math.sqrt(random())*72;
+      const x=Math.cos(a)*rr,z=Math.sin(a)*rr;
+      const fade=THREE.MathUtils.smoothstep(rr,radius+5,radius+70);
+      const y=-.045+(1.8*Math.sin(x*.019+z*.008)+2.1*Math.sin(z*.026-x*.011)+2*Math.cos(x*.033))*fade;
+      dummyLeaf.position.set(x,y,z);dummyLeaf.rotation.set(0,random()*6.283,0);
+      const sc=.5+random()*.68;dummyLeaf.scale.set(sc,sc,sc);dummyLeaf.updateMatrix();
+      leafMesh.setMatrixAt(i,dummyLeaf.matrix);
+      colLeaf.setHSL(.105+random()*.022,.39+random()*.2,.72+random()*.21);
+      leafMesh.setColorAt(i,colLeaf);
+    }
+    leafMesh.instanceMatrix.needsUpdate=true;
+    if(leafMesh.instanceColor)leafMesh.instanceColor.needsUpdate=true;
+    leafMesh.frustumCulled=true;leafMesh.computeBoundingSphere();
+    if(leafMesh.boundingSphere)leafMesh.boundingSphere.radius+=1.6;
+    leafMesh.castShadow=false;add(leafMesh);
+  }
 
   // Endless pastel sky dome; distant glow remains behind the foreground grass.
   // The original reference has a warm ivory sky, not an outdoor blue daytime sky.
