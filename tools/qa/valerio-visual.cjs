@@ -18,7 +18,18 @@ try {
    return null;
  },null,{timeout:110000}).then(x=>x.jsonValue());
  if(result.failed)throw new Error(result.failed);
- await page.waitForTimeout(5000);
+ // Enter the real battle: the URL only schedules it and the VS card needs a click.
+ let entered=false;
+ const deadline=Date.now()+95000;
+ while(Date.now()<deadline){
+   const state=await page.evaluate(()=>window.SevenSinsDebug3D.dimState());
+   if(state?.vs)await page.evaluate(()=>window.SevenSinsDebug3D.vsGo()).catch(e=>report.errors.push('VS: '+e.message));
+   if(state?.battle?.active && state.visible && state.profile==='vhazrael'){entered=true;break;}
+   await page.waitForTimeout(1500);
+ }
+ if(!entered)throw Error('The bishop1 test route did not enter the real dimension battle');
+ await page.waitForTimeout(1200);
+ await page.evaluate(()=>{window.SevenSinsDebug3D.god?.();});
  report.state=await page.evaluate(()=>({dimensions:window.SevenSinsDebug3D.dimState(),render:window.SevenSinsDebug3D.rinfo?.()}));
  if(!/bishop1|vhazrael/i.test(JSON.stringify(report.state.dimensions)))throw Error('Bishop I dimension did not activate; refusing false screenshot validation');
  const poses=[{id:'entrada',camera:[400, -1983, 13],target:[400,-1997,-28]},
