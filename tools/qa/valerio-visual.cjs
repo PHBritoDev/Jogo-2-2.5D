@@ -40,6 +40,12 @@ try {
    const filename='valerio-'+pose.id+'.png';
    await page.screenshot({path:path.join(out,filename),timeout:90000,animations:'disabled'});
    report.shots.push(filename);
+   if(pose.id==='olhos'){
+     await page.waitForTimeout(2300);
+     const second='valerio-vento-segundo-instante.png';
+     await page.screenshot({path:path.join(out,second),timeout:90000,animations:'disabled'});
+     report.shots.push(second);
+   }
  }
  report.status='captured';report.render=report.state.render;
  if(report.errors.some(x=>/SyntaxError|WebGLProgram|Shader Error|Failed to fetch dynamically imported/i.test(x)))throw Error('WebGL/module errors');
