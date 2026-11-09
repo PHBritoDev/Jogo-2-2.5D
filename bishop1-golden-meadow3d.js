@@ -145,14 +145,17 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     const d=event.detail||{}; impact(Number(d.x),Number(d.z),Number(d.radius??d.r??5));
   };
   if(typeof window!=='undefined')window.addEventListener('golden-meadow-impact',onMeadowImpact);
-  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.26,side:THREE.DoubleSide,roughness:.94,metalness:0,emissive:0xb68b54,emissiveIntensity:.41});
+  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.26,side:THREE.DoubleSide,roughness:.94,metalness:0,emissive:0xb68b54,emissiveIntensity:.29});
   material.onBeforeCompile = shader => {
     shader.uniforms.uGoldenWind = wind;
     shader.uniforms.uMeadowTime=wind;
     shader.uniforms.uMeadowImpacts=impactUniform;
-    shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;\n'+impactGLSL);
+    shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;\nvarying float vMeadowTipGlow;\n'+impactGLSL);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vMeadowTipGlow;');
+    shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance += vec3(.155,.092,.038)*vMeadowTipGlow;');
     shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float bladeHeight = clamp(position.y / 2.22, 0.0, 1.0);
+      vMeadowTipGlow = smoothstep(.45,.95,bladeHeight);
       vec2 worldXZ = instanceMatrix[3].xz;
       // Large waves travel across the whole meadow, while each plume flickers independently.
       float seedPhase=fract(sin(dot(worldXZ,vec2(12.9898,78.233)))*43758.5453);
@@ -166,13 +169,13 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       float fine=sin(uGoldenWind*5.8+phase*1.74+dot(worldXZ,vec2(.19,.15)))*.09;
       float bend=(.54+sway*.43+counter+fine)*gustEnvelope;
       float flex=bladeHeight*bladeHeight*(3.0-2.0*bladeHeight);
-      transformed.x += bend*1.70*flex;
+      transformed.x += bend*1.92*flex;
       transformed.z += bend*.73*flex;
       // Curved silhouette and tip droop in strong gusts.
       transformed.y -= bend*bend*.34*flex;
       transformed.y *= meadowSurvival(worldXZ);`);
   };
-  material.customProgramCacheKey=()=>'golden-memories-wind-v11';
+  material.customProgramCacheKey=()=>'golden-memories-wind-v12';
 
 
   function plot(count,near,far){
@@ -192,7 +195,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
         const scale=(.42+random()*.40)*(r>95?1.20:1);
         dummy.scale.set(scale,scale*(.79+random()*.36),scale);
         dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-        golden.setHSL(.102+random()*.025,.28+random()*.18,.87+random()*.11);
+        golden.setHSL(.102+random()*.025,.33+random()*.18,.76+random()*.15);
         mesh.setColorAt(i,golden);
       }
       mesh.instanceMatrix.needsUpdate=true;
