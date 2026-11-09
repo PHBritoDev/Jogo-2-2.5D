@@ -2,7 +2,7 @@
  * Bishop I — Campo do Último Sol.
  * Reference: 34 s clip supplied by the creator, tall golden wheat under a low sun,
  * pale sunset horizon and backlit feathery wild grass; NO tree or wheat crop. Isolated from combat.
- * The real playable surface remains flat inside arenaSpec.radius (combat physics).
+ * The battle circle stays physically flat, while the visible distant approach rises into a long ridge.
  */
 export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const radius = spec.radius;
@@ -11,16 +11,20 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const owned = [];
   const add = o => { group.add(o); owned.push(o); return o; };
 
-  // Geometry only rolls past the playable arena, maintaining combat collision assumptions.
+  // Ground outside the combat radius rises toward the backlit ridge; physics stays flat where the boss fights.
+  const terrainHeight = (x,z) => {
+    const r=Math.hypot(x,z),fade=THREE.MathUtils.smoothstep(r,radius+1,radius+38);
+    const approach=THREE.MathUtils.smoothstep(-z,20,152);
+    const ridge=7.6*approach*approach + 1.15*Math.sin(x*.022+z*.012)+.8*Math.sin(x*.055-z*.018);
+    return -.055+fade*ridge;
+  };
   const groundSize = 420, segments = 112;
   const geo = new THREE.PlaneGeometry(groundSize, groundSize, segments, segments);
   geo.rotateX(-Math.PI / 2);
   const p = geo.attributes.position;
   for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z);
-    const fade = THREE.MathUtils.smoothstep(r, radius + 5, radius + 70);
-    const hills = (1.8 * Math.sin(x * .019 + z * .008) + 2.1 * Math.sin(z * .026 - x * .011) + 2.0 * Math.cos(x * .033)) * fade;
-    p.setY(i, -0.055 + hills);
+    const x = p.getX(i), z = p.getZ(i);
+    p.setY(i, terrainHeight(x,z));
   }
   geo.computeVertexNormals();
 
@@ -39,17 +43,6 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   earthTex.repeat.set(18,18);earthTex.anisotropy=4;
   const soil = new THREE.MeshStandardMaterial({map:earthTex,color:0xb39264,roughness:1,metalness:0});
   add(new THREE.Mesh(geo,soil)).receiveShadow = true;
-
-  // The reference has no built road; the entire arena is covered in windblown wild grass.
-  const trackShape = new THREE.Shape();
-  trackShape.moveTo(-1.25, 9); trackShape.bezierCurveTo(-1.4,-20,-2.5,-58,-1,-112);
-  trackShape.lineTo(1.2,-112);trackShape.bezierCurveTo(2.4,-58,1.3,-20,1.25,9);trackShape.closePath();
-  const pathGeo = new THREE.ShapeGeometry(trackShape,20);
-  pathGeo.rotateX(-Math.PI/2);
-  const trail = new THREE.Mesh(pathGeo,new THREE.MeshStandardMaterial({color:0xad8c54,roughness:1,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide}));
-  trail.position.y=.015; add(trail);
-
-
 
   // Procedural diffuse+opacity atlas for feathery susuki / pampas. Several crossed
   // alpha-tested cards per tuft create a natural silhouette with few triangles.
@@ -114,20 +107,23 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const stalkGeo=makeCards(2);
   const liteGeo=makeCards(1);
   const wind = {value:0};
-  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.25,side:THREE.DoubleSide,roughness:.9,metalness:0,emissive:0x483016,emissiveIntensity:.17});
+  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.35,side:THREE.DoubleSide,roughness:.9,metalness:0,emissive:0x483016,emissiveIntensity:.17});
   material.onBeforeCompile = shader => {
     shader.uniforms.uGoldenWind = wind;
     shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
     shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float bladeHeight = clamp(position.y / 2.22, 0.0, 1.0);
-      float instancePhase = instanceMatrix[3].x * .19 + instanceMatrix[3].z * .16;
-      float gust = sin(uGoldenWind * 1.05 + instancePhase) * .17
-                 + sin(uGoldenWind * .41 + instancePhase * 2.0) * .17;
-      transformed.x += gust * bladeHeight * bladeHeight;
-      transformed.z += gust * .51 * bladeHeight;
-      transformed.y -= abs(gust) * .08 * bladeHeight;`);
+      vec2 worldXZ = instanceMatrix[3].xz;
+      // Large waves travel across the whole meadow, while each plume flickers independently.
+      float sweeping = sin(uGoldenWind * 2.45 - worldXZ.x * .086 + worldXZ.y * .063);
+      float secondary = sin(uGoldenWind * 3.7 + worldXZ.x * .17 + worldXZ.y * .11);
+      float flutter = sin(uGoldenWind * 6.7 + worldXZ.x * .41 - worldXZ.y * .34);
+      float gust = .36 + .34*sweeping + .16*secondary + .085*flutter;
+      transformed.x += gust * .91 * bladeHeight * bladeHeight;
+      transformed.z += gust * .37 * bladeHeight * bladeHeight;
+      transformed.y -= abs(gust)*.24*bladeHeight*bladeHeight;`);
   };
-  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v8';
+  material.customProgramCacheKey=()=>'golden-ridge-wind-v9';
 
 
   function plot(count,near,far){
@@ -142,8 +138,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
         const angle=(sector+random())/sectors*Math.PI*2;
         const r=Math.sqrt(near*near+random()*(far*far-near*near));
         const x=Math.cos(angle)*r,z=Math.sin(angle)*r;
-        const fade=THREE.MathUtils.smoothstep(r,radius+5,radius+70);
-        const y=-.055+(1.8*Math.sin(x*.019+z*.008)+2.1*Math.sin(z*.026-x*.011)+2*Math.cos(x*.033))*fade;
+        const y=terrainHeight(x,z);
         dummy.position.set(x,y,z);dummy.rotation.set(0,random()*6.283,0);
         const scale=(.50+random()*.48)*(r>95?1.1:1);
         dummy.scale.set(scale,scale*(.79+random()*.36),scale);
@@ -158,7 +153,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       mesh.castShadow=false;mesh.receiveShadow=false;add(mesh);
     }
   }
-  plot(18500,0,45);plot(14000,45,115);plot(8000,115,196);
+  plot(13000,0,45);plot(10500,45,115);plot(4500,115,196);
 
 
 
@@ -178,21 +173,22 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float tall=clamp(position.y/1.47,0.0,1.0);
-      float phase=instanceMatrix[3].x*.16+instanceMatrix[3].z*.12;
-      transformed.x+=sin(uGoldenWind*.9+phase)*.38*tall*tall;
-      transformed.z+=cos(uGoldenWind*.66+phase)*.12*tall*tall;`);
+      vec2 xy=instanceMatrix[3].xz;
+      float wave=sin(uGoldenWind*2.45-xy.x*.086+xy.y*.063);
+      float micro=sin(uGoldenWind*5.0+xy.x*.23-xy.y*.18);
+      transformed.x+=(.32+.3*wave+.13*micro)*tall*tall;
+      transformed.z+=(.11+.12*wave)*tall*tall;`);
   };
-  leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v1';
+  leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v2';
 
-  const leafCount=24500,leafSectors=12,dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
+  const leafCount=12500,leafSectors=12,dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
   for(let sector=0;sector<leafSectors;sector++){
     const n=Math.floor(leafCount/leafSectors)+(sector<leafCount%leafSectors?1:0);
     const leafMesh=new THREE.InstancedMesh(leafGeo,leafMat,n);
     for(let i=0;i<n;i++){
       const a=(sector+random())/leafSectors*Math.PI*2,rr=Math.sqrt(random())*72;
       const x=Math.cos(a)*rr,z=Math.sin(a)*rr;
-      const fade=THREE.MathUtils.smoothstep(rr,radius+5,radius+70);
-      const y=-.045+(1.8*Math.sin(x*.019+z*.008)+2.1*Math.sin(z*.026-x*.011)+2*Math.cos(x*.033))*fade;
+      const y=terrainHeight(x,z)+.01;
       dummyLeaf.position.set(x,y,z);dummyLeaf.rotation.set(0,random()*6.283,0);
       const sc=.5+random()*.68;dummyLeaf.scale.set(sc,sc,sc);dummyLeaf.updateMatrix();
       leafMesh.setMatrixAt(i,dummyLeaf.matrix);
@@ -205,6 +201,20 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     if(leafMesh.boundingSphere)leafMesh.boundingSphere.radius+=1.6;
     leafMesh.castShadow=false;add(leafMesh);
   }
+
+  // Horizon landmark from the final seconds of the reference: a solitary, flat-canopy tree.
+  // It sits beyond the arena, and its silhouette is framed by the sun, not made interactive.
+  const distantTree=new THREE.Group();
+  distantTree.position.set(0,terrainHeight(0,-151),-151);
+  const darkBark=new THREE.MeshStandardMaterial({color:0x44321d,roughness:1});
+  const darkFoliage=new THREE.MeshStandardMaterial({color:0x4a432b,roughness:1,flatShading:true});
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.24,.55,8.1,7),darkBark);
+  trunk.position.y=4.1;distantTree.add(trunk);
+  for(const [x,y,z,rx,ry,rz] of [[-2.9,8.4,0,3.9,.95,2.6],[1.4,9.2,0,4.9,1.05,3.2],[3.6,8.1,-.2,3.7,.7,2.4]]){
+    const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),darkFoliage);
+    crown.position.set(x,y,z);crown.scale.set(rx,ry,rz);distantTree.add(crown);
+  }
+  add(distantTree);
 
   // Endless pastel sky dome; distant glow remains behind the foreground grass.
   // The original reference has a warm ivory sky, not an outdoor blue daytime sky.
@@ -223,8 +233,10 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
         vec3 sky=mix(horizon,zenith,smoothstep(-0.02,0.72,up));
         sky=mix(low,sky,smoothstep(-0.34,-0.03,up));
         vec3 sunDir=normalize(vec3(0.0,0.02,-1.0));
-        float corona=pow(max(dot(normalize(vSkyDir),sunDir),0.0),24.0);
-        sky+=vec3(0.09,0.075,0.055)*corona;
+        float facing=max(dot(normalize(vSkyDir),sunDir),0.0);
+        float corona=pow(facing,14.0);
+        float burning=pow(facing,140.0);
+        sky+=vec3(.18,.145,.095)*corona+vec3(.23,.18,.10)*burning;
         gl_FragColor=vec4(min(sky,vec3(1.0)),1.0);
       }`
   });
@@ -239,13 +251,13 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   brush.fillStyle=gr;brush.fillRect(0,0,128,128);
   const sunTexture=new THREE.CanvasTexture(glowCanvas);sunTexture.colorSpace=THREE.SRGBColorSpace;
   const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTexture,color:0xffffff,transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
-  sun.position.set(0,4,-167);sun.scale.set(105,105,1);add(sun);
+  sun.position.set(0,12,-177);sun.scale.set(118,118,1);add(sun);
 
   ctx.refs.goldenMeadow={
-    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();}
+    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();darkBark.dispose();darkFoliage.dispose();distantTree.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xf5e4cf,fog:0xe0c6a5,fogNear:95,fogFar:250,
     hemi:[0xfff1d7,0xb08350,1.75],sun:[0xffe4b5,2.25],
-    light:[0xffd8a0,1.05,135,[0,17,-46]],exposure:1.2};
+    light:[0xffecd0,1.32,155,[0,15,-48]],exposure:1.22};
 }
