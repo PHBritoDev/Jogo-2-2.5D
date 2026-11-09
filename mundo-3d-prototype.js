@@ -5996,7 +5996,6 @@ function lateHandleDefeat(){
   const rw=bossRewardOnce(!!lateBossClaimed[d.profile],d);lateBossClaimed[d.profile]=true;if(rw.coins){coins+=rw.coins;gainXp(rw.xp);bumpStat('bishops');}
   bestiaryKnown.add(d.profile);bishopsDefeated=Math.max(bishopsDefeated,d.profile==='zarkhael'?3:4);questStep=d.step+1;save3DProgress();updateQuestHud();
   if(rw.coins)showRewardPop('+'+rw.coins+' MOEDAS · +'+rw.xp+' XP');
-  
   setTimeout(()=>showDialogue(d.defeat(playerName),()=>{const toast=document.getElementById('quest-toast');if(toast){toast.textContent=(d.profile==='zarkhael'?'ATO III CONCLUÍDO · TERCEIRO SELO':'ATO IV CONCLUÍDO · QUARTO SELO');toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),3200);}}),1400);
   return true;}
  return false;
