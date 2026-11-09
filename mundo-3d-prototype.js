@@ -704,7 +704,7 @@ for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.
 for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},{x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}]){const torch=new THREE.PointLight(0xffb060,.35,11,.9);torch.position.set(p.x,1.95,p.z);torch.castShadow=false;villageGroup.add(torch);villageTorchLights.push(torch);}
 const villageVendors=[
  {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Frutas… o que sobrou delas. Nem os bichos querem mais.',hints:['Você é novo por aqui? Não pergunte muito em voz alta.','O Téo, das provisões, escuta tudo. Mas não fala de graça.','De noite tem choro na mata. Eu fecho a porta e rezo.','Dizem que o Primeiro Bispo anda por baixo da terra, nos esgotos velhos.','Se você voltou de lá… ainda há esperança.']},
- {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x,z:marketStalls[2].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']}
+ {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x,z:marketStalls[1].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']}
 ];
 function mergeGrassTuft(sourceRoot){const positions=[],colors=[],indices=[],zUpToYUp=new THREE.Matrix4().makeRotationX(-Math.PI/2);sourceRoot.updateMatrixWorld(true);sourceRoot.traverse(obj=>{if(!obj.isMesh||!obj.geometry||!obj.geometry.attributes.position)return;const geometry=obj.geometry,position=geometry.attributes.position,color=geometry.attributes.color,base=positions.length/3;const vertex=new THREE.Vector3();for(let i=0;i<position.count;i++){vertex.fromBufferAttribute(position,i).applyMatrix4(obj.matrixWorld).applyMatrix4(zUpToYUp);positions.push(vertex.x,vertex.y,vertex.z);colors.push(color?color.getX(i):.38,color?color.getY(i):.56,color?color.getZ(i):.3);}if(geometry.index){for(let i=0;i<geometry.index.count;i++)indices.push(base+geometry.index.getX(i));}else for(let i=0;i<position.count;i++)indices.push(base+i);});if(!positions.length)throw new Error('Grama.glb não contém malhas com vértices');const merged=new THREE.BufferGeometry();merged.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));merged.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));merged.setIndex(indices);merged.computeVertexNormals();merged.computeBoundingBox();merged.computeBoundingSphere();return merged;}
 /** Tufo de grama leve: ~9 lâminas (≈30 triângulos) com a altura e as cores do tufo original, que tinha ~380 triângulos. */
@@ -3988,7 +3988,7 @@ function updateAct1(dt,now){
  if(questStep===1){
   if(act1Sub===0&&roadStage<ROAD.done){updateRoadQuest(px,pz,near,mark);return;}
   if(act1Sub===0){mark(VILLAGE_CENTER);if(!act1Busy()&&near(VILLAGE_CENTER,VILLAGE_CLEAR_RADIUS+2)){act1Lock=true;storyAnchors.village={x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,yaw:0};playStory('vila-chegada',villageArrivalScene(),{done:()=>{act1Lock=false;act1Advance(1,1);status.textContent='Pergunte ao vendedor sobre o Pecado da Ganância.';}});}}
-  else{const t=villageVendors[2];mark(t);}
+  else{const t=villageVendors[1];mark(t);}
   return;
  }
  if(questStep===2){
@@ -4043,7 +4043,7 @@ function updateAct1(dt,now){
 }
 function act1TalkLabel(){
  if(cineActive)return '';const px=player.position.x,pz=player.position.z;
- if(questStep===1&&act1Sub>=1){const t=villageVendors[2];if(Math.hypot(t.x-px,t.z-pz)<=2.9)return 'PERGUNTAR · TÉO';}
+ if(questStep===1&&act1Sub>=1){const t=villageVendors[1];if(Math.hypot(t.x-px,t.z-pz)<=2.9)return 'PERGUNTAR · TÉO';}
  if(questStep===3&&act1Sub===0&&Math.hypot(CAGE_CENTER.x-px,CAGE_CENTER.z-pz)<=4.2)return 'ABRIR GAIOLA';
  if(questStep===4&&act1Sub===1&&!inSewer){const d=sewerDoorFront();if(Math.hypot(d.x-px,d.z-pz)<=3.4)return 'ENTRAR NO ESGOTO';}
  if(questStep>=4&&questStep<8&&!inSewer&&act1Sub>=2||(questStep>=5&&questStep<8&&!inSewer)){const d=sewerDoorFront();if(Math.hypot(d.x-px,d.z-pz)<=3.4)return 'ENTRAR NO ESGOTO';}
@@ -4053,7 +4053,7 @@ function act1TalkLabel(){
 }
 function act1Interact(){
  const label=act1TalkLabel();if(!label)return false;
- if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[2]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor'});return true;}
+ if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor'});return true;}
   playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
  if(label==='ABRIR GAIOLA'){faceTo(player,CAGE_CENTER);openCage();return true;}
  if(label==='ENTRAR NO ESGOTO'){travelVeil(()=>{if(questStep===4&&act1Sub===1)act1Advance(4,2);enterSewer();});return true;}
@@ -7422,7 +7422,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   questStep=step;act1Sub=sub;journeyEnemyIndex=step>2?ACT1.enemyTotal:0;childrenFreed=step>3||(step===3&&sub>0);wardenTaunted=step>5;wardenDefeated=step>5;act1Night=step===2||step===3;setGameHour(act1Night?21.5:9);
   if(coins<ACT1.bribe)coins=ACT1.purse;save3DProgress();updateQuestHud();syncAct1World();
   const go=(x,z)=>{if(inSewer)leaveSewer({x,z});player.position.set(x,terrainHeightAt(x,z),z);};
-  if(step===1){roadStage=ROAD.done;go(sub?villageVendors[2].x+1.6:VILLAGE_CENTER.x+30,sub?villageVendors[2].z+1.6:VILLAGE_CENTER.z+4);}
+  if(step===1){roadStage=ROAD.done;go(sub?villageVendors[1].x+1.6:VILLAGE_CENTER.x+30,sub?villageVendors[1].z+1.6:VILLAGE_CENTER.z+4);}
   else if(step===2||step===3)go(CAGE_CENTER.x+(step===2?2:2.4),CAGE_CENTER.z+(step===2?16:2.6));
   else if(step===4&&sub===0)go(MASSACRE_SPOT.x+4,MASSACRE_SPOT.z+20);
   else if(step===4&&sub===1){const d=sewerDoorFront();go(d.x+1,d.z+1);}
@@ -7542,7 +7542,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  shop(){shopVisited=true;openShop();},
  grant(xp,gold,step){playerXp+=xp||0;coins+=gold||0;if(step!==undefined)questStep=step;applyLevelStats(true);updateQuestHud();},
  stats(){return{xp:playerXp,level:playerLevel(),owned:[...ownedItems],sword:equippedSword,coins,maxHP:playerMaxHP};},
- teo(){const t=villageVendors[2];return{x:t.x,z:t.z};},
+ teo(){const t=villageVendors[1];return{x:t.x,z:t.z};},
  face(){if(enemy.visible){playerYaw=Math.atan2(enemy.position.x-player.position.x,enemy.position.z-player.position.z);player.rotation.y=playerYaw;}},
  target(){const m=questMarker.position;return questMarker.visible===false?null:{x:m.x,z:m.z};}
 };
