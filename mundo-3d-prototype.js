@@ -494,7 +494,7 @@ function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
   pos[i*3+2]=src[o+2]*bx+src[o+6]*by+src[o+10]*bz+src[o+14];
   rad[i]=bs.radius*Math.max(sx,sy,sz)*1.12;
  }
- mesh.frustumCulled=false;const c={mesh,n,src,col,pos,rad,r2:radius*radius,min2:minRadius*minRadius,near2:keepNear*keepNear};instanceCullers.push(c);cullLastX=1e9;return c;
+ mesh.frustumCulled=false;const c={mesh,n,src,col,pos,rad,r2:radius*radius,min2:minRadius*minRadius,near2:keepNear*keepNear,visibleIds:new Int32Array(n),lastCount:-1};c.visibleIds.fill(-1);instanceCullers.push(c);cullLastX=1e9;return c;
 }
 function refreshInstanceCulling(){cullLastX=1e9;_cullLastPos.set(1e9,0,0);}
 function updateInstanceCulling(){
@@ -506,14 +506,21 @@ function updateInstanceCulling(){
  camera.updateMatrixWorld();_cullMat.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);_cullFrustum.setFromProjectionMatrix(_cullMat);
  const cx=camera.position.x,cz=camera.position.z;
  for(const c of instanceCullers){
-  const arr=c.mesh.instanceMatrix.array,carr=c.col&&c.mesh.instanceColor?c.mesh.instanceColor.array:null;let k=0;
+  const arr=c.mesh.instanceMatrix.array,carr=c.col&&c.mesh.instanceColor?c.mesh.instanceColor.array:null;let k=0,changed=false;
   for(let i=0;i<c.n;i++){
    const dx=c.pos[i*3]-cx,dz=c.pos[i*3+2]-cz,d2=dx*dx+dz*dz;
    if(d2>c.r2||d2<c.min2)continue;
    if(d2>c.near2){_cullSphere.center.set(c.pos[i*3],c.pos[i*3+1],c.pos[i*3+2]);_cullSphere.radius=c.rad[i];if(!_cullFrustum.intersectsSphere(_cullSphere))continue;}
-   arr.set(c.src.subarray(i*16,i*16+16),k*16);if(carr)carr.set(c.col.subarray(i*3,i*3+3),k*3);k++;
+   if(c.visibleIds[k]!==i){
+    arr.set(c.src.subarray(i*16,i*16+16),k*16);
+    if(carr)carr.set(c.col.subarray(i*3,i*3+3),k*3);
+    c.visibleIds[k]=i;changed=true;
+   }
+   k++;
   }
-  c.mesh.count=k;c.mesh.instanceMatrix.needsUpdate=true;if(carr)c.mesh.instanceColor.needsUpdate=true;
+  if(k!==c.lastCount){changed=true;c.lastCount=k;}
+  c.mesh.count=k;
+  if(changed){c.mesh.instanceMatrix.needsUpdate=true;if(carr)c.mesh.instanceColor.needsUpdate=true;}
  }
 }
 const coniferMaterial=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.95,flatShading:true});
