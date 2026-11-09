@@ -148,7 +148,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
         const scale=(.50+random()*.48)*(r>95?1.1:1);
         dummy.scale.set(scale,scale*(.79+random()*.36),scale);
         dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-        golden.setHSL(.102+random()*.025,.28+random()*.18,.87+random()*.11);
+        golden.setHSL(.099+random()*.023,.42+random()*.17,.77+random()*.16);
         mesh.setColorAt(i,golden);
       }
       mesh.instanceMatrix.needsUpdate=true;
@@ -158,7 +158,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       mesh.castShadow=false;mesh.receiveShadow=false;add(mesh);
     }
   }
-  plot(14900,0,45);plot(9500,45,115);plot(4500,115,196);
+  plot(16900,0,45);plot(10000,45,115);plot(4500,115,196);
 
 
 
