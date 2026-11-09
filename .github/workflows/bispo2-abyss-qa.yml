@@ -28,6 +28,7 @@ jobs:
           node --input-type=module --check < vorgazhek-abyss-dimension3d.js
           node --input-type=module --check < dimension-arenas3d.js
           node --check tools/visual-lab/vorgazhek-abyss-qa.cjs
+          node --check tools/visual-lab/vorgazhek-runtime-qa.cjs
       - name: Pinned browser dependencies
         run: |
           npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
@@ -39,6 +40,7 @@ jobs:
         run: |
           python3 -m http.server 4173 > /tmp/bispo2-http.log 2>&1 &
           node tools/visual-lab/vorgazhek-abyss-qa.cjs
+          node tools/visual-lab/vorgazhek-runtime-qa.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
