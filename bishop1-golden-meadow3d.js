@@ -23,7 +23,21 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     p.setY(i, -0.055 + hills);
   }
   geo.computeVertexNormals();
-  const soil = new THREE.MeshStandardMaterial({color:0x8c6531,roughness:1,metalness:0});
+
+  // Shared micro-grass ground pattern fills exposed patches without thousands more meshes.
+  const earthCanvas=document.createElement('canvas');earthCanvas.width=512;earthCanvas.height=512;
+  const earthInk=earthCanvas.getContext('2d'),earthRandom=(()=>{let n=34577;return()=>((n=(n*1664525+1013904223)>>>0)/4294967296)})();
+  earthInk.fillStyle='#ad8751';earthInk.fillRect(0,0,512,512);
+  for(let i=0;i<21000;i++){
+    const x=earthRandom()*512,y=earthRandom()*512,len=1+earthRandom()*6;
+    earthInk.strokeStyle=earthRandom()>.5?'rgba(238,204,138,.42)':'rgba(100,74,37,.38)';
+    earthInk.lineWidth=.35+earthRandom()*.65;
+    earthInk.beginPath();earthInk.moveTo(x,y);earthInk.lineTo(x+(earthRandom()-.4)*3,y-len);earthInk.stroke();
+  }
+  const earthTex=new THREE.CanvasTexture(earthCanvas);
+  earthTex.colorSpace=THREE.SRGBColorSpace;earthTex.wrapS=earthTex.wrapT=THREE.RepeatWrapping;
+  earthTex.repeat.set(18,18);earthTex.anisotropy=4;
+  const soil = new THREE.MeshStandardMaterial({map:earthTex,color:0xd9b47a,roughness:1,metalness:0});
   add(new THREE.Mesh(geo,soil)).receiveShadow = true;
 
   // The reference has no built road; the entire arena is covered in windblown wild grass.
@@ -143,6 +157,45 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   plot(12500,0,45,0);plot(12000,45,115,1);plot(6500,115,196,2);
 
 
+
+  // Individual wispy stems between the main plumes, so the ground is not planted
+  // in identical spaced rows. One low-triangle instanced mesh, with shared wind.
+  const leafV=[-.022,0,0, .022,0,0, -.032,.46,0, .029,.46,.01,
+               -.016,1.1,.08, .01,1.1,.1, 0,1.47,.16];
+  const leafC=[.48,.35,.14,.48,.35,.14,.60,.44,.20,.63,.47,.22,
+               .90,.69,.33,.90,.70,.35,1,.82,.47];
+  const leafGeo=new THREE.BufferGeometry();
+  leafGeo.setAttribute('position',new THREE.Float32BufferAttribute(leafV,3));
+  leafGeo.setAttribute('color',new THREE.Float32BufferAttribute(leafC,3));
+  leafGeo.setIndex([0,1,2,1,3,2,2,3,4,3,5,4,4,5,6]);leafGeo.computeVertexNormals();
+  const leafMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.94,side:THREE.DoubleSide});
+  leafMat.onBeforeCompile=shader=>{
+    shader.uniforms.uGoldenWind=wind;
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\\nuniform float uGoldenWind;');
+    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+      float tall=clamp(position.y/1.47,0.0,1.0);
+      float phase=instanceMatrix[3].x*.16+instanceMatrix[3].z*.12;
+      transformed.x+=sin(uGoldenWind*.9+phase)*.26*tall*tall;
+      transformed.z+=cos(uGoldenWind*.66+phase)*.12*tall*tall;`);
+  };
+  leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v1';
+  const leafCount=14500,leafMesh=new THREE.InstancedMesh(leafGeo,leafMat,leafCount);
+  const dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
+  for(let i=0;i<leafCount;i++){
+    const a=random()*Math.PI*2,rr=Math.sqrt(random())*94,x=Math.cos(a)*rr,z=Math.sin(a)*rr;
+    const fade=THREE.MathUtils.smoothstep(rr,radius+5,radius+70);
+    const y=-.045+(1.8*Math.sin(x*.019+z*.008)+2.1*Math.sin(z*.026-x*.011)+2*Math.cos(x*.033))*fade;
+    dummyLeaf.position.set(x,y,z);dummyLeaf.rotation.set(0,random()*6.283,0);
+    const sc=.5+random()*.68;dummyLeaf.scale.set(sc,sc,sc);dummyLeaf.updateMatrix();
+    leafMesh.setMatrixAt(i,dummyLeaf.matrix);
+    colLeaf.setHSL(.105+random()*.022,.39+random()*.2,.72+random()*.21);
+    leafMesh.setColorAt(i,colLeaf);
+  }
+  leafMesh.instanceMatrix.needsUpdate=true;
+  if(leafMesh.instanceColor)leafMesh.instanceColor.needsUpdate=true;
+  leafMesh.frustumCulled=false;leafMesh.castShadow=false;add(leafMesh);
+
+
   // Endless pastel sky dome; distant glow remains behind the foreground grass.
   // The original reference has a warm ivory sky, not an outdoor blue daytime sky.
   const skyGeo=new THREE.SphereGeometry(204,36,20);
@@ -179,7 +232,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   sun.position.set(0,4,-167);sun.scale.set(105,105,1);add(sun);
 
   ctx.refs.goldenMeadow={
-    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();}
+    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();}
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xf5e4cf,fog:0xe0c6a5,fogNear:95,fogFar:250,
