@@ -5,7 +5,7 @@
  * Referências do criador: VHAZRAEL (câmara macabra de moedas e correntes), Vorgazhek (vazio de olhos vermelhos e
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
-import { buildGoldenMeadow } from './valerio-golden-meadow3d.js';
+import { buildGoldenMeadow } from './bishop1-golden-meadow3d.js';
 import { buildHallDimension } from './veraxion-hall-dimension3d.js';
 import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=296';
 import { SEWER } from './sewer3d.js';
