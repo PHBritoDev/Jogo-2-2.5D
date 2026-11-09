@@ -40,6 +40,20 @@ try {
    const filename='valerio-'+pose.id+'.png';
    await page.screenshot({path:path.join(out,filename),timeout:90000,animations:'disabled'});
    report.shots.push(filename);
+   if(pose.id==='olhos'){
+     // Keep camera locked and compare only actual field pixels after 2.5 s.
+     // This distinguishes continuous gusts from merely static grass screenshots.
+     const sharp=require('../visual-lab/node_modules/sharp');
+     const before=await page.screenshot({timeout:90000});
+     await page.waitForTimeout(2700);
+     const after=await page.screenshot({path:path.join(out,'valerio-vento-2s.png'),timeout:90000});
+     report.shots.push('valerio-vento-2s.png');
+     const crop={left:215,top:255,width:430,height:215};
+     const x=await sharp(before).extract(crop).resize(96,48).removeAlpha().raw().toBuffer();
+     const y=await sharp(after).extract(crop).resize(96,48).removeAlpha().raw().toBuffer();
+     let total=0;for(let i=0;i<x.length;i++)total+=Math.abs(x[i]-y[i]);
+     report.grassMotionPixelDifference=total/x.length;
+   }
  }
  report.status='captured';report.render=report.state.render;
  if(report.errors.some(x=>/SyntaxError|WebGLProgram|Shader Error|Failed to fetch dynamically imported/i.test(x)))throw Error('WebGL/module errors');
