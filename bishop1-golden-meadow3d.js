@@ -37,7 +37,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const earthTex=new THREE.CanvasTexture(earthCanvas);
   earthTex.colorSpace=THREE.SRGBColorSpace;earthTex.wrapS=earthTex.wrapT=THREE.RepeatWrapping;
   earthTex.repeat.set(18,18);earthTex.anisotropy=4;
-  const soil = new THREE.MeshStandardMaterial({map:earthTex,color:0xd9b47a,roughness:1,metalness:0});
+  const soil = new THREE.MeshStandardMaterial({map:earthTex,color:0xb39264,roughness:1,metalness:0});
   add(new THREE.Mesh(geo,soil)).receiveShadow = true;
 
   // The reference has no built road; the entire arena is covered in windblown wild grass.
@@ -154,7 +154,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     mesh.castShadow=false;mesh.receiveShadow=false;
     add(mesh);
   }
-  plot(12500,0,45,0);plot(12000,45,115,1);plot(6500,115,196,2);
+  plot(18500,0,45,0);plot(14000,45,115,1);plot(8000,115,196,2);
 
 
 
@@ -179,10 +179,10 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       transformed.z+=cos(uGoldenWind*.66+phase)*.12*tall*tall;`);
   };
   leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v1';
-  const leafCount=14500,leafMesh=new THREE.InstancedMesh(leafGeo,leafMat,leafCount);
+  const leafCount=24500,leafMesh=new THREE.InstancedMesh(leafGeo,leafMat,leafCount);
   const dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
   for(let i=0;i<leafCount;i++){
-    const a=random()*Math.PI*2,rr=Math.sqrt(random())*94,x=Math.cos(a)*rr,z=Math.sin(a)*rr;
+    const a=random()*Math.PI*2,rr=Math.sqrt(random())*72,x=Math.cos(a)*rr,z=Math.sin(a)*rr;
     const fade=THREE.MathUtils.smoothstep(rr,radius+5,radius+70);
     const y=-.045+(1.8*Math.sin(x*.019+z*.008)+2.1*Math.sin(z*.026-x*.011)+2*Math.cos(x*.033))*fade;
     dummyLeaf.position.set(x,y,z);dummyLeaf.rotation.set(0,random()*6.283,0);
