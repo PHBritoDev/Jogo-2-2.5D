@@ -12,7 +12,7 @@ export const DIMENSIONS = {
     kicker: 'DIMENSÃO I · A CÂMARA DOS CONDENADOS', portrait: 'Bispo1-ui.webp', rig: 'bishop1', profile: 'vhazrael', hp: 260,
     line: '“Toda alma tem um último pedido. A sua terá o privilégio de morrer sem ser ouvida.”',
     rage: 'O abismo tem fome, e eu sou a boca dele.',
-    center: { x: 400, z: 0 }, radius: 30, accent: '#e0b040', theme: 'vault'
+    center: { x: 400, z: 0 }, radius: 30, accent: '#e9be6f', theme: 'goldenMeadow'
   },
   bishop2: {
     key: 'bishop2', order: 2, name: 'VORGAZHEK', title: 'O Segundo Bispo', epithet: 'O Arauto das Almas Endividadas',

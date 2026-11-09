@@ -5,6 +5,7 @@
  * Referências do criador: VHAZRAEL (câmara macabra de moedas e correntes), Vorgazhek (vazio de olhos vermelhos e
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
+import { buildGoldenMeadow } from './bishop1-golden-meadow3d.js';
 import { buildHallDimension } from './veraxion-hall-dimension3d.js';
 import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=296';
 import { SEWER } from './sewer3d.js';
@@ -87,6 +88,7 @@ function checkerTexture(THREE, repeat, { a = '#0a0a0c', b = '#c8c8d0', cracks = 
 
 /* ===================== ARENAS ===================== */
 const THEMES = {
+  goldenMeadow: buildGoldenMeadow,
   // VHAZRAEL — a câmara macabra: pedra preta, ouro velho, correntes, gaiolas com enforcados e sangue seco.
   vault(THREE, g, spec, ctx) {
     const r = rng(101), R = spec.radius;
@@ -690,7 +692,7 @@ export function buildDimensionArena(THREE, theme, spec) {
       for (const s of ctx.swirls) s.uniforms.uTime.value = t;
       for (const fn of ctx.tick) fn(t, dt, camera, options);
     },
-    dispose() { if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else if (ctx.refs.hall) ctx.refs.hall.dispose(); else dispose(group); }
+    dispose() { if (ctx.refs.goldenMeadow) ctx.refs.goldenMeadow.dispose(); else if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else if (ctx.refs.hall) ctx.refs.hall.dispose(); else dispose(group); }
   };
 }
 
