@@ -19,6 +19,36 @@ async function main(){
   await page.setViewportSize({width:393,height:852});await shot('05-retrato-mobile','wide',42000);
   const data=await page.evaluate(()=>({watchers:abyssQA.arena.refs.vorgazhekAbyss.watchers,geometry:abyssQA.renderer.info.memory.geometries}));
   report.scene=data;assert.equal(data.watchers,11);assert.ok(data.geometry>0);
+  report.layout=await page.evaluate(()=>{
+    const q=abyssQA,watchers=q.arena.group.children.filter(o=>o.name.startsWith('VorgazhekWatcher_'));
+    let minDistance=Infinity,minRadius=Infinity,maxWidth=0,active=0;
+    for(const t of [5000,17000,28000,42000]){
+      q.frame(t);
+      for(let i=0;i<watchers.length;i++){
+        const a=watchers[i]; minRadius=Math.min(minRadius,Math.hypot(a.position.x,a.position.z));
+        maxWidth=Math.max(maxWidth,a.children[0].scale.x);
+        if(a.visible)active++;
+        for(let j=i+1;j<watchers.length;j++){
+          const b=watchers[j],dist=Math.hypot(a.position.x-b.position.x,a.position.z-b.position.z);
+          minDistance=Math.min(minDistance,dist);
+        }
+      }
+    }
+    return {minDistance,minRadius,maxWidth,active};
+  });
+  assert.ok(report.layout.minDistance>50,'watchers must never overlap across relocation cycles');
+  assert.ok(report.layout.minRadius>145,'watchers remain well beyond battle area');
+  assert.ok(report.layout.maxWidth<12,'no giant or flattened billboard faces');
+  assert.ok(report.layout.active>0,'watchers are animated and visible');
+  report.waterMotion=await page.evaluate(()=>{
+    const q=abyssQA;q.camera('wide');q.frame(3000);
+    const first=q.renderer.domElement.toDataURL('image/png');
+    q.frame(5500);
+    const second=q.renderer.domElement.toDataURL('image/png');
+    return {changed:first!==second,firstLength:first.length,secondLength:second.length};
+  });
+  assert.ok(report.waterMotion.changed,'water surface must animate');
+
   // Memory disposal: capture before/after, no duplicate live scene after exit.
   report.disposal=await page.evaluate(()=>{const q=abyssQA;const before={...q.renderer.info.memory};q.rebuild();q.renderer.render(q.scene,q.cam);return {before,after:{...q.renderer.info.memory}};});
   assert.ok(report.disposal.after.geometries<report.disposal.before.geometries);
