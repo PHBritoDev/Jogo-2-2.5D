@@ -105,7 +105,7 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
  const angles=Array.from({length:sectors},(_,i)=>-Math.PI+.18+i*(Math.PI*2/sectors));
  const depth=[2.35,2.67,2.48,2.74,2.42,2.65,2.51,2.78,2.38,2.61,2.47];
  for(let i=0;i<11;i++){
-  const type=types[i%4],scale=.74+(i%4)*.042,root=new T.Group();
+  const type=types[i%4],scale=.74+(i%4)*.042,root=new T.Group();root.name='VorgazhekWatcher_'+i;
   const fm=own(mat,new T.MeshBasicMaterial({map:faces[i%4],transparent:true,depthWrite:false,opacity:0,fog:false,toneMapped:false,side:T.DoubleSide}));
   const face=new T.Mesh(faceGeo,fm);face.scale.set(12.4*scale,17.1*scale,1);root.add(face);
   const eyes=[];
