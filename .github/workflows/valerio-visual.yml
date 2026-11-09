@@ -3,7 +3,7 @@ on:
   push:
     branches: [feature/valerio-golden-meadow]
     paths:
-      - 'valerio-golden-meadow3d.js'
+      - 'bishop1-golden-meadow3d.js'
       - 'dimension-arenas3d.js'
       - 'dimensions3d.js'
       - 'tools/qa/valerio-visual.cjs'
@@ -22,7 +22,7 @@ jobs:
           node-version: '22'
       - name: Static JS syntax
         run: |
-          node --check valerio-golden-meadow3d.js
+          node --check bishop1-golden-meadow3d.js
           node --check dimension-arenas3d.js
           node --test dimensions3d.test.mjs
       - name: Playwright browser
