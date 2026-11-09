@@ -262,18 +262,31 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       void main(){vSkyDir=normalize(position);
       gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
     fragmentShader:`varying vec3 vSkyDir;
+      float cloudHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float cloudNoise(vec2 p){
+        vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+        return mix(mix(cloudHash(i),cloudHash(i+vec2(1.,0.)),f.x),
+                   mix(cloudHash(i+vec2(0.,1.)),cloudHash(i+vec2(1.,1.)),f.x),f.y);
+      }
       void main(){
-        float up=clamp(vSkyDir.y,-1.0,1.0);
-        vec3 horizon=vec3(0.98,0.87,0.72);
-        vec3 zenith=vec3(0.98,0.95,0.89);
-        vec3 low=vec3(0.71,0.52,0.33);
-        vec3 sky=mix(horizon,zenith,smoothstep(-0.02,0.72,up));
-        sky=mix(low,sky,smoothstep(-0.34,-0.03,up));
-        vec3 sunDir=normalize(vec3(0.0,0.02,-1.0));
-        float facing=max(dot(normalize(vSkyDir),sunDir),0.0);
-        float corona=pow(facing,14.0);
-        float burning=pow(facing,140.0);
-        sky+=vec3(.18,.145,.095)*corona+vec3(.23,.18,.10)*burning;
+        vec3 d=normalize(vSkyDir);
+        float up=clamp(d.y,-1.0,1.0);
+        vec3 horizon=vec3(.99,.86,.69);
+        vec3 zenith=vec3(.70,.78,.83);
+        vec3 low=vec3(.70,.48,.31);
+        vec3 sky=mix(horizon,zenith,smoothstep(-.035,.75,up));
+        sky=mix(low,sky,smoothstep(-.34,-.025,up));
+        // Broad, broken clouds, without extra meshes or texture downloads.
+        vec2 cp=vec2(atan(d.x,-d.z)*1.7,up*5.0);
+        float n=cloudNoise(cp*2.5)*.64+cloudNoise(cp*5.2)*.36;
+        float clouds=smoothstep(.48,.72,n)*smoothstep(-.02,.20,up);
+        sky=mix(sky,vec3(.94,.85,.78),clouds*.54);
+        vec3 sunDir=normalize(vec3(0.0,.045,-1.0));
+        float facing=max(dot(d,sunDir),0.0);
+        float haze=pow(facing,7.0);
+        float corona=pow(facing,48.0);
+        float burning=pow(facing,310.0);
+        sky+=vec3(.19,.13,.065)*haze+vec3(.28,.205,.11)*corona+vec3(.38,.29,.18)*burning;
         gl_FragColor=vec4(min(sky,vec3(1.0)),1.0);
       }`
   });
@@ -299,6 +312,6 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xf5e4cf,fog:0xe0c6a5,fogNear:95,fogFar:250,
-    hemi:[0xfff1d7,0xb08350,1.75],sun:[0xffe4b5,2.25],
-    light:[0xffedcc,1.42,155,[0,15,-48]],exposure:1.23};
+    hemi:[0xfff2dc,0x806849,1.45],sun:[0xffdfaa,2.65],
+    light:[0xffe4bb,1.45,155,[0,15,-48]],exposure:1.08};
 }
