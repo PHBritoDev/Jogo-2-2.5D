@@ -10,7 +10,7 @@ try {
  const page=await context.newPage();
  page.on('pageerror',e=>report.errors.push('page: '+e.message));
  page.on('console',m=>{if(m.type()==='error')report.errors.push('console: '+m.text().slice(0,400))});
- await page.goto('http://127.0.0.1:4181/mundo-3d-prototype.html?testeDimensao=bishop1&debug3d=1&valerio=qa',{waitUntil:'domcontentloaded',timeout:45000});
+ await page.goto((process.env.VISUAL_BASE_URL||'http://127.0.0.1:4173')+'/mundo-3d-prototype.html?testeDimensao=bishop1&debug3d=1&meadowQA=1',{waitUntil:'domcontentloaded',timeout:45000});
  const result=await page.waitForFunction(()=>{
    const load=document.getElementById('loading')?.textContent||'';
    if(/Falha ao montar o mundo 3D/i.test(load))return {failed:load.slice(0,400)};
