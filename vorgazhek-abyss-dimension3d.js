@@ -42,7 +42,7 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
  const sm=(a,b,x)=>{let v=T.MathUtils.clamp((x-a)/(b-a),0,1);return v*v*(3-2*v);};
  ctx.tick.push((t,dt,camera,options)=>{
   water.uniforms.uTime.value=t;
-  const p=options?.playerPosition||options?.player?.position||null;
+  const p=options?.playerPosition||options?.player?.position||options?.player||null;
   if(p)focus.set(p.x-spec.x,(p.y||0)-spec.y,p.z-spec.z);
   else if(camera)focus.copy(camera.position).sub(g.position);
   if(camera)cameraPos.copy(camera.position).sub(g.position);
