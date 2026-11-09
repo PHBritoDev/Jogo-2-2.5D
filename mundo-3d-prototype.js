@@ -1668,6 +1668,11 @@ function castHolyMagic(kind){
  if(kind==='ultimate'&&(!model||!grounded||dashRemaining>0||!phoenixTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>24)){status.textContent='Aproxime-se de um inimigo e firme os pés para o Julgamento Divino.';return;}
  const check=canCast(kind,{unlocked:skillSet||new Set(),mana:playerMana,cooldownUntil:holyCooldowns,now});if(!check.ok){status.textContent=check.reason;return;}
  playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);
+ // Large player abilities flatten grass where their main impact is aimed.
+ if(kind==='ultimate'||kind==='magic3'||kind==='magic2'||kind==='skill_judgment_dragon'||kind==='skill_twin_portals'){
+   const target=enemy.visible&&enemyAlive?enemy.position:player.position;
+   meadowImpact(target.x,target.z,kind==='ultimate'?13:kind==='magic3'?9:kind==='magic2'?6:8);
+ }
  if(kind==='ultimate'){beginWhiteHole();status.textContent='Julgamento Divino — Colapso da Luz Eterna';}
  else if(EXTRA_SKILLS.includes(kind)){castExtraSkill(kind);}
  else if(kind==='magic'){siegeScene=siegeContext();siege.start(siegeTarget(),ownedItems.has('magic_plus')?16:14);siegeHUD();status.textContent='Cerco das Cinco Lâminas Celestiais — toque GOLPE para disparar cada espada.';}
@@ -2264,6 +2269,11 @@ const dimArenas={},dimPortals={};
 const dimLight=new THREE.PointLight(0xffffff,0,90,1.1);dimLight.castShadow=false;scene.add(dimLight);
 function showPortalVeil(on){const veil=document.getElementById('portal-veil');if(veil)veil.classList.toggle('on',!!on);}
 function getDimArena(key){if(!dimArenas[key]){const d=DIMENSIONS[key],a=buildDimensionArena(THREE,d.theme,arenaSpec(key));scene.add(a.group);dimArenas[key]=a;}return dimArenas[key];}
+// GPU vegetation reaction for the first dimension only; no work in Eldoria.
+function meadowImpact(x,z,radius){
+ if(dimKey!=='bishop1'||!voidMode||!dimArenas.bishop1?.group.visible)return;
+ dimArenas.bishop1.refs?.goldenMeadow?.impact?.(x,z,radius);
+}
 function enterDimensionArena(key){
  const sp=arenaSpec(key),spots=arenaSpots(key),arena=getDimArena(key);
  voidSpec={x:sp.x,z:sp.z,y:sp.y,radius:sp.radius};dimKey=key;voidMode=true;arena.group.visible=true;
@@ -6088,7 +6098,7 @@ function clearHazards(){for(const h of hazards.splice(0)){scene.remove(h.g);h.g.
 function updateHazards(dt){
  for(let i=hazards.length-1;i>=0;i--){const h=hazards[i];h.t+=dt;const k=Math.min(1,h.t/h.delay);h.grow.scale.setScalar(k);
   if(h.pull&&!h.fired){const dx=h.x-player.position.x,dz=h.z-player.position.z,d=Math.hypot(dx,dz);if(d<h.radius*3.2&&d>.4&&dashRemaining<=0){const f=h.pull*dt*(1-d/(h.radius*3.2));const nx=player.position.x+dx/d*f,nz=player.position.z+dz/d*f;if(!blockedAt(nx,nz)){player.position.x=nx;player.position.z=nz;}}}
-  if(!h.fired&&h.t>=h.delay){h.fired=true;if(Math.hypot(h.x-player.position.x,h.z-player.position.z)<h.radius&&playerHP>0&&dashRemaining<=0)damagePlayerFromEnemyAttack(h.damage);burstSparks(new THREE.Vector3(h.x,groundHeightAt(h.x,h.z)+.6,h.z),h.rim.material.color.getHex());cameraShake(.09);}
+  if(!h.fired&&h.t>=h.delay){h.fired=true;meadowImpact(h.x,h.z,Math.max(2,h.radius*1.15));if(Math.hypot(h.x-player.position.x,h.z-player.position.z)<h.radius&&playerHP>0&&dashRemaining<=0)damagePlayerFromEnemyAttack(h.damage);burstSparks(new THREE.Vector3(h.x,groundHeightAt(h.x,h.z)+.6,h.z),h.rim.material.color.getHex());cameraShake(.09);}
   if(h.fired){const f=(h.t-h.delay)/.4;h.fill.material.opacity=Math.max(0,.5-f);h.rim.material.opacity=Math.max(0,.85-f);h.grow.material.opacity=Math.max(0,.5-f);if(f>=1){scene.remove(h.g);h.g.traverse(o=>{if(o.material)o.material.dispose();});hazards.splice(i,1);}}
  }
 }
