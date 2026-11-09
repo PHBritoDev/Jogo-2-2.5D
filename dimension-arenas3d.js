@@ -6,6 +6,7 @@
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
 import { buildGoldenMeadow } from './bishop1-golden-meadow3d.js';
+import { buildVorgazhekAbyss } from './vorgazhek-abyss-dimension3d.js';
 import { buildHallDimension } from './veraxion-hall-dimension3d.js';
 import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=296';
 import { SEWER } from './sewer3d.js';
@@ -145,46 +146,8 @@ const THEMES = {
     return { bg: 0x090303, fog: 0x1a0807, fogNear: 22, fogFar: 140, hemi: [0xb89868, 0x2a1408, .75], sun: [0xffc880, .55], light: [0xffa040, 2.6, 80, [0, 12, 0]], exposure: 1.15 };
   },
 
-  // Vorgazhek — vazio de olhos vermelhos, monólitos que pingam e uma lua que sorri.
-  eyes(THREE, g, spec, ctx) {
-    const r = rng(202), R = spec.radius;
-    const floorTex = canvasTex(THREE, 1024, 1024, (c, w, h) => {
-      c.fillStyle = '#120406'; c.fillRect(0, 0, w, h); const rr = rng(9);
-      c.strokeStyle = 'rgba(230,40,50,.65)'; c.lineWidth = 3;
-      for (const rad of [80, 170, 270, 390, 470]) { c.beginPath(); c.arc(w / 2, h / 2, rad, 0, 6.3); c.stroke(); }
-      for (let i = 0; i < 70; i++) { let x = w / 2, y = h / 2, a = rr() * 6.28; c.beginPath(); c.moveTo(x, y); for (let k = 0; k < 9; k++) { a += (rr() - .5) * .8; x += Math.cos(a) * 55; y += Math.sin(a) * 55; c.lineTo(x, y); } c.stroke(); }
-      for (let i = 0; i < 40; i++) { const x = rr() * w, y = rr() * h; c.fillStyle = 'rgba(190,20,30,.35)'; c.beginPath(); c.ellipse(x, y, 20 + rr() * 30, 9 + rr() * 14, rr() * 3, 0, 6.3); c.fill(); }
-    });
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(R + 3, 72), new THREE.MeshStandardMaterial({ map: floorTex, emissiveMap: floorTex, emissive: 0xa01018, emissiveIntensity: .75, roughness: .25, metalness: .45 }));
-    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; g.add(floor);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(R + 1.6, .14, 6, 96), new THREE.MeshBasicMaterial({ color: 0xff2a38, toneMapped: false })); rim.rotation.x = Math.PI / 2; rim.position.y = .06; g.add(rim);
-    // Degraus e portão ao fundo, coberto de olhos.
-    const steps = []; for (let i = 0; i < 4; i++) steps.push({ x: 0, y: .35 + i * .7, z: -R - 4 - i * 1.4, sx: 26 - i * 3, sy: .7, sz: 1.6 });
-    g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x1a0a0c, roughness: .5, metalness: .3, emissive: 0x300408, emissiveIntensity: .6 }), steps));
-    const gateMat = new THREE.MeshStandardMaterial({ color: 0x140608, roughness: .6, metalness: .2, emissive: 0x4a0a10, emissiveIntensity: .8 });
-    const gate = new THREE.Mesh(new THREE.BoxGeometry(30, 46, 5), gateMat); gate.position.set(0, 24, -R - 12); g.add(gate);
-    const gateInner = new THREE.Mesh(new THREE.PlaneGeometry(14, 32), swirlMaterial(THREE, '#300008', '#ff2a3a')); gateInner.position.set(0, 18, -R - 9.4); g.add(gateInner); ctx.swirls.push(gateInner.material);
-    // Monólitos flutuantes.
-    const mono = []; for (let i = 0; i < 26; i++) { const a = r() * 6.28, d = 36 + r() * 70; mono.push({ x: Math.cos(a) * d, y: 4 + r() * 50, z: Math.sin(a) * d, sx: 2 + r() * 3, sy: 6 + r() * 14, sz: 2 + r() * 3, ry: r() * 3, rz: (r() - .5) * .4 }); }
-    const monoMesh = instanced(THREE, new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x150a0c, roughness: .8, emissive: 0x3a0408, emissiveIntensity: .7 }), mono); g.add(monoMesh);
-    // Campo de olhos por todo o céu e abaixo.
-    const tex = eyeTexture(THREE);
-    const eyes = eyeField(THREE, { count: 520, seed: 77, tex, tint: [1.05, .85, .85],
-      place: (i, rr) => { const a = rr() * 6.28, el = (rr() - .35) * 1.9, d = 42 + rr() * 150; return { x: Math.cos(a) * Math.cos(el) * d, y: Math.sin(el) * d * .8 + 18, z: Math.sin(a) * Math.cos(el) * d, size: 2 + rr() * rr() * 16 }; } });
-    g.add(eyes); ctx.eyes.push(eyes);
-    // Lua que sorri.
-    const moonTex = canvasTex(THREE, 512, 512, (c, w, h) => {
-      const gr = c.createRadialGradient(256, 256, 40, 256, 256, 250); gr.addColorStop(0, '#d8d4d0'); gr.addColorStop(1, '#6a6460'); c.fillStyle = gr; c.fillRect(0, 0, w, h);
-      const rr = rng(3); for (let i = 0; i < 40; i++) { c.fillStyle = 'rgba(40,36,34,.35)'; c.beginPath(); c.arc(rr() * w, rr() * h, 6 + rr() * 24, 0, 6.3); c.fill(); }
-      c.fillStyle = '#100608'; c.beginPath(); c.ellipse(180, 200, 28, 38, 0, 0, 6.3); c.fill(); c.beginPath(); c.ellipse(330, 200, 28, 38, 0, 0, 6.3); c.fill();
-      c.fillStyle = '#e02a38'; c.beginPath(); c.arc(180, 205, 10, 0, 6.3); c.fill(); c.beginPath(); c.arc(330, 205, 10, 0, 6.3); c.fill();
-      c.fillStyle = '#100608'; c.beginPath(); c.moveTo(110, 320); c.quadraticCurveTo(256, 470, 400, 320); c.quadraticCurveTo(256, 400, 110, 320); c.fill();
-      c.fillStyle = '#e8e4e0'; for (let i = 0; i < 9; i++) { const x = 130 + i * 31; c.fillRect(x, 345 + Math.sin(i / 8 * Math.PI) * 28, 20, 24); }
-    });
-    const moon = new THREE.Mesh(new THREE.SphereGeometry(15, 24, 16), new THREE.MeshBasicMaterial({ map: moonTex, fog: false, toneMapped: false })); moon.position.set(70, 80, -110); moon.lookAt(0, 20, 0); moon.name = 'VorgazhekMoonAmbient'; g.add(moon); // MOD 261: o eclipse da espada esconde e devolve esta lua
-    ctx.tick.push((t, dt) => { monoMesh.position.y = Math.sin(t * .35) * 1.2; rim.material.color.setHSL(.99, .85, .5 + .08 * Math.sin(t * 2.2)); });
-    return { bg: 0x050102, fog: 0x0c0204, fogNear: 22, fogFar: 170, hemi: [0xff8890, 0x40080c, .95], sun: [0xff9a9a, .5], light: [0xff3040, 3.4, 90, [0, 12, 0]], exposure: 1.2 };
-  },
+  // Vorgazhek — infinite midnight water and the distant watchers.
+  eyes(THREE, g, spec, ctx) { return buildVorgazhekAbyss(THREE, g, spec, ctx); },
 
   // Zar'khael — cogumelos gigantes de olhos abertos, piso xadrez e uma luz distante no fim do corredor.
   mushrooms(THREE, g, spec, ctx) {
@@ -692,7 +655,7 @@ export function buildDimensionArena(THREE, theme, spec) {
       for (const s of ctx.swirls) s.uniforms.uTime.value = t;
       for (const fn of ctx.tick) fn(t, dt, camera, options);
     },
-    dispose() { if (ctx.refs.goldenMeadow) ctx.refs.goldenMeadow.dispose(); else if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else if (ctx.refs.hall) ctx.refs.hall.dispose(); else dispose(group); }
+    dispose() { if (ctx.refs.goldenMeadow) ctx.refs.goldenMeadow.dispose(); else if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else if (ctx.refs.hall) ctx.refs.hall.dispose(); else if (ctx.refs.vorgazhekAbyss) ctx.refs.vorgazhekAbyss.dispose(); else dispose(group); }
   };
 }
 

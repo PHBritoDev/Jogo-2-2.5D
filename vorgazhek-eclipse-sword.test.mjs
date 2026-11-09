@@ -91,6 +91,9 @@ test('Mod 261 — kit: slot da espada ativo com tipo próprio e alcance; s2/ulti
   assert.ok(src.includes("if(m.type==='vorgazhek_eclipse_sword'){startEclipseSword(m);return;}") && src.includes('updateEclipseSword(dt);') && src.includes('stopEclipseSword();stopPortalSwords();stopTornadoRitual();useRig'), 'ligado ao motor real e limpo ao sair');
   assert.ok(src.includes('if(eclipseSword||portalSwords||tornadoRitual||cosmicUlt)return;') && src.includes('if(portalSwords||tornadoRitual||eclipseSword)return;') && src.includes('if(tornadoRitual||portalSwords||eclipseSword)return;if(!tornadoVfx)'), 'não empilha com tornados nem portais');
   assert.ok(!src.includes("'./EspadaBispo2.glb") && src.includes('eclipseCosmicModel=buildCosmicSword(THREE)'), 'MOD 262: o Eclipse usa a espada cósmica; a EspadaBispo2.glb antiga não aparece mais');
-  assert.ok(fs.readFileSync(new URL('./dimension-arenas3d.js', import.meta.url), 'utf8').includes("moon.name = 'VorgazhekMoonAmbient'"), 'a lua antiga é escondida e devolvida, não apagada');
+  const arenaSource = fs.readFileSync(new URL('./dimension-arenas3d.js', import.meta.url), 'utf8');
+  const abyssSource = fs.readFileSync(new URL('./vorgazhek-abyss-dimension3d.js', import.meta.url), 'utf8');
+  assert.ok(arenaSource.includes('buildVorgazhekAbyss(THREE, g, spec, ctx)'), 'a arena da dimensão 2 usa o vazio de água negra');
+  assert.ok(abyssSource.includes('VorgazhekMidnightWater') && abyssSource.includes('VeiledWatcher'), 'água e observadores autorais presentes');
   const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testSwordEclipse=1'));
 });

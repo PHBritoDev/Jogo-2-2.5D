@@ -19,7 +19,7 @@ export const DIMENSIONS = {
     kicker: 'DIMENSÃO II · O OLHO QUE COBRA', portrait: 'Bispo2-ui.webp', rig: 'bishop2', profile: 'vorgazhek', hp: 560,
     line: '“Ouro compra riquezas. Sangue compra tempo. Mas a tua alma… essa já me pertence.”',
     rage: 'Cada golpe teu é juros. E juros… eu cobro em dobro.',
-    center: { x: 800, z: 0 }, radius: 30, accent: '#e0303c', theme: 'eyes'
+    center: { x: 800, z: 0 }, radius: 85, accent: '#e0303c', theme: 'eyes'
   },
   bishop3: {
     key: 'bishop3', order: 3, name: "ZAR'KHAEL", title: 'O Terceiro Bispo', epithet: 'O Carrasco do Juízo Eterno',
