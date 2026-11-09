@@ -6,8 +6,9 @@ const out=path.resolve('valerio-qa-results');fs.mkdirSync(out,{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const report={reference:'1000364204.mp4 (provided by creator, not available in CI)',shots:[],errors:[],render:null,status:'unverified'};
 try {
- const context=await browser.newContext({viewport:{width:900,height:540},deviceScaleFactor:1});
+ const context=await browser.newContext({viewport:{width:900,height:540},deviceScaleFactor:1,recordVideo:{dir:out,size:{width:900,height:540}}});
  const page=await context.newPage();
+ let videoFile=null;
  page.on('pageerror',e=>report.errors.push('page: '+e.message));
  page.on('console',m=>{if(m.type()==='error')report.errors.push('console: '+m.text().slice(0,400))});
  await page.goto((process.env.VISUAL_BASE_URL||'http://127.0.0.1:4173')+'/mundo-3d-prototype.html?testeDimensao=bishop1&debug3d=1&meadowQA=1',{waitUntil:'domcontentloaded',timeout:45000});
@@ -45,5 +46,5 @@ try {
  if(report.errors.some(x=>/SyntaxError|WebGLProgram|Shader Error|Failed to fetch dynamically imported/i.test(x)))throw Error('WebGL/module errors');
  await context.close();
 }catch(e){report.status='failed';report.failure=String(e.message||e);process.exitCode=1}
-finally{fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));await browser.close()}
+finally{fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));console.log('BISHOP1_QA_REPORT='+JSON.stringify(report));await browser.close()}
 })();
