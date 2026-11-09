@@ -1,6 +1,6 @@
 "use strict";
 // Agent de inspeção visual real do campo de Valério. Isolado do combate/Claude.
-const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path');
+const {chromium}=require('../visual-lab/node_modules/playwright'),fs=require('node:fs'),path=require('node:path');
 const out=path.resolve('valerio-qa-results');fs.mkdirSync(out,{recursive:true});
 (async()=>{
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
@@ -20,6 +20,7 @@ try {
  if(result.failed)throw new Error(result.failed);
  await page.waitForTimeout(5000);
  report.state=await page.evaluate(()=>({dimensions:window.SevenSinsDebug3D.dimState(),render:window.SevenSinsDebug3D.rinfo?.()}));
+ if(!/bishop1|vhazrael/i.test(JSON.stringify(report.state.dimensions)))throw Error('Bishop I dimension did not activate; refusing false screenshot validation');
  const poses=[{id:'entrada',camera:[400, -1983, 13],target:[400,-1997,-28]},
               {id:'campo',camera:[400,-1988,-5],target:[400,-1999,-80]},
               {id:'horizonte',camera:[412,-1981,20],target:[400,-1998,-115]}];
