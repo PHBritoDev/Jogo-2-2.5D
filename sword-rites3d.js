@@ -1,4 +1,5 @@
 import {combatMove,WEAPON_STYLES} from './combat-choreography3d.js';
+import {makeEnergy,energyStep} from './prota-combat3d.js';
 /** Mod 231. Deterministic sword combat, independent of Three, DOM and wall time. */
 export const SWORD_RITES=Object.freeze({
  prota:{name:'Passagem do Julgamento',label:'PASSAGEM',mana:28,cooldown:12,duration:1.95,clip:'Rite_Judgment'},
@@ -46,7 +47,7 @@ export function passagePath(from,target,blocked){
  }return null;
 }
 export class SwordRites {
- constructor(api={}){this.api={event(){},pose(){},hit(){},move(){},blocked:()=>false,...api};this.cooldowns={prota:0,aurora:0};this.active=null;this.waves=[];this.time=0;this.next=0;this.lastEnd=-100;this.serial=0;this.prevBlade=null;this.queued=false;}
+ constructor(api={}){this.api={event(){},pose(){},hit(){},move(){},blocked:()=>false,...api};this.cooldowns={prota:0,aurora:0};this.active=null;this.waves=[];this.time=0;this.next=0;this.lastEnd=-100;this.serial=0;this.prevBlade=null;this.queued=false;this.energies=[];}
  get canCancel(){return !this.active||(this.active.kind==='basic'&&(this.active.t<this.active.def.open*.65||this.active.t>this.active.def.close+.04));}
  get busy(){return !!this.active;}
  get locksMovement(){return !!this.active&&this.active.kind!=='basic';}
@@ -56,7 +57,8 @@ export class SwordRites {
  attack(sword,{damage=25,yaw=0,target=null,mode='ground'}={}){
   if(!SWORD_RITES[sword]&&!(this.api.choreography&&WEAPON_STYLES[sword]))return false;
   if(this.busy){if(this.active.kind==='basic'&&this.active.t>=this.active.def.buffer)this.queued=true;return false;}
-  const step=this.time-this.lastEnd<.32?this.next:0,profile=this.api.choreography?combatMove(sword,mode,step):null,def=profile?{...profile,clip:profile.id}:SWORD_COMBO[step];this.active={kind:'basic',sword,step,def,mode:profile?mode:'ground',phase:'windup',clip:def.clip,duration:def.duration,t:0,damage,yaw,targetId:target?.id,hit:false,serial:++this.serial};this.prevBlade=null;this.queued=false;this.api.event('start',this.active);return true;
+  // Mod 302: o protagonista pode trazer o próprio repertório (api.moveset); sem ele, nada muda para as outras espadas.
+  const chain=this.lastDef?.chain||.32,stepFor=this.time-this.lastEnd<chain?this.next:0,own=this.api.moveset?.(sword,mode,stepFor),step=own?stepFor%(own.count||5):stepFor,profile=own||(this.api.choreography?combatMove(sword,mode,step):null),def=profile?{...profile,clip:profile.id}:SWORD_COMBO[step];this.active={kind:'basic',sword,step,def,mode:profile?mode:'ground',phase:'windup',clip:def.clip,duration:def.duration,t:0,damage,yaw,targetId:target?.id,hit:false,serial:++this.serial};this.prevBlade=null;this.queued=false;this.api.event('start',this.active);return true;
  }
  cast(sword,{mana,owned=true,damage=25,yaw=0,from,target}={}){
   const ready=this.status(sword,mana);if(!ready.ok)return ready;if(!owned)return{ok:false,reason:'Adquira esta espada na loja.'};
@@ -67,7 +69,16 @@ export class SwordRites {
   const def=SWORD_RITES[sword];this.cooldowns[sword]=def.cooldown;this.active={kind:sword,sword,clip:def.clip,duration:def.duration,t:0,damage,yaw,targetId:target?.id,markedTarget:target?copy(target):null,path,pathIndex:0,events:0,serial:++this.serial};this.prevBlade=null;this.queued=false;this.api.event('start',this.active);return{ok:true,cost:def.mana};
  }
  cancel(reason='cancel'){
-  if(this.active||this.waves.length)this.api.event('cancel',{reason});this.active=null;this.waves.length=0;this.prevBlade=null;this.queued=false;this.next=0;this.lastEnd=-100;
+  if(this.active||this.waves.length||this.energies.length)this.api.event('cancel',{reason});this.active=null;this.waves.length=0;this.prevBlade=null;this.queued=false;this.next=0;this.lastEnd=-100;
+  for(const e of this.energies)e.done=true;this.energies.length=0;
+ }
+ /** Solta a energia de um golpe a partir da lâmina real (altura do meio da lâmina, centrada no corpo para o setor). */
+ release(a,blade,ctx){
+  a.energyOut=true;const from=ctx.from||{x:0,y:0,z:0},spec=a.def.energy,mid=blade?{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2}:{x:from.x,y:from.y+1.05,z:from.z};
+  const ground=ctx.ground??from.y,y=Math.max(ground+.35,Math.min(ground+1.9,mid.y));
+  const ay=a.aimYaw??a.yaw,origin=spec.kind==='wave'?{x:from.x+Math.sin(ay)*.6,y,z:from.z+Math.cos(ay)*.6}:{x:from.x,y,z:from.z};
+  if(spec.kind==='wave'&&segmentBlocked({x:from.x,y,z:from.z},origin,this.api.blocked)){this.api.event('obstructed',{p:origin,sword:a.sword});return;}
+  const e=makeEnergy(spec,{x:origin.x,y:origin.y,z:origin.z},a.aimYaw??a.yaw,0);e.owner=a;e.sword=a.sword;e.serial=++this.serial;this.energies.push(e);this.api.event('energy',e);
  }
  update(dt,ctx={}){
   if(ctx.paused)return;if(!Number.isFinite(dt)||dt<=0)return;
@@ -83,10 +94,11 @@ export class SwordRites {
    if(a.kind==='prota'&&(!target?.alive||target.id!==a.targetId||dist(ctx.from,target)>9)){this.cancel('target');return;}
    a.t=Math.min(a.duration,a.t+dt);
    if(a.kind==='basic'){a.phase=a.t<a.def.open?'windup':a.t<=a.def.close?'active':'recovery';if(a.mode==='plunge'&&!ctx.grounded){a.fallTime=(a.fallTime||0)+dt;a.t=Math.min(a.t,a.def.open-.015);a.phase='windup';if(a.fallTime>4){this.cancel('fall-timeout');return;}}
-    if(this.api.choreography&&a.mode==='ground'&&a.def.advance&&a.t<a.def.close&&a.t>a.def.open*.5&&!ctx.moving){const speed=a.def.advance/(a.def.close-a.def.open*.5);this.api.advance?.(Math.sin(a.yaw)*speed*dt,Math.cos(a.yaw)*speed*dt);}
+    if(a.def.drive)this.api.drive?.(a,dt,target);
+    else if(this.api.choreography&&a.mode==='ground'&&a.def.advance&&a.t<a.def.close&&a.t>a.def.open*.5&&!ctx.moving){const speed=a.def.advance/(a.def.close-a.def.open*.5);this.api.advance?.(Math.sin(a.yaw)*speed*dt,Math.cos(a.yaw)*speed*dt);}
    }
    if(a.kind==='basic'&&a.t>=a.def.open&&!a.released){a.released=true;this.api.event('active',a);}
-   if(a.kind==='basic'&&Number.isFinite(ctx.yaw)&&(!this.api.choreography||a.t<a.def.open*.65)&&a.mode!=='dash')a.yaw=ctx.yaw;
+   if(a.kind==='basic'&&!a.def.drive&&Number.isFinite(ctx.yaw)&&(!this.api.choreography||a.t<a.def.open*.65)&&a.mode!=='dash')a.yaw=ctx.yaw;
    if(a.kind==='prota'&&a.t>=.30&&a.t<=.47){
     const until=Math.min(a.path.length-1,Math.floor(clamp((a.t-.30)/.16,0,1)*(a.path.length-1)));
     while(a.pathIndex<until){const p=a.path[++a.pathIndex];if(this.api.blocked(p)||dist(p,target)<(target.radius||.5)+.45){this.cancel('obstacle');return;}this.api.move(p,a);}
@@ -95,9 +107,11 @@ export class SwordRites {
    const blade=this.api.pose(a,dt);
    const live=a.kind==='basic'?a.t>=a.def.open&&a.t<=a.def.close:a.kind==='prota'?a.t>=.3&&a.t<.48:[.4,.82,1.24,1.70].some(t=>a.t>=t-.08&&a.t<=t+.09);
    if(blade){if(live)this.api.event('blade',{a,blade});
-    if(a.kind==='basic'&&live&&!a.hit&&target?.alive&&target.id===a.targetId){const prev=this.prevBlade||blade;
+    if(a.kind==='basic'&&a.def.energy&&!a.energyOut&&a.t>=a.def.energy.at)this.release(a,blade,ctx);
+    if(a.def?.drive&&live&&target?.alive){let m=Infinity;for(let j=0;j<=4;j++)m=Math.min(m,segmentDistance({x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},blade.base,blade.tip));a.closest=Math.min(a.closest??Infinity,m-(target.radius||.48));}
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive)){const prev=this.prevBlade||blade;
      if(bladeContact(prev.base,prev.tip,blade.base,blade.tip,target,(target.radius||.48)+.12)&&!segmentBlocked(ctx.from,target,this.api.blocked)&&!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
-      a.hit=true;this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode});
+      a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:a.def.hitstop,shake:a.def.shake});
      }
     }this.prevBlade={base:copy(blade.base),tip:copy(blade.tip)};
    }
@@ -116,7 +130,18 @@ export class SwordRites {
      const w={p,origin:copy(p),direction:{x:Math.sin(a.yaw),y:0,z:Math.cos(a.yaw)},previous:copy(p),yaw:a.yaw,roll:[.12,-.78,1.24,.75][n],maxRadius:n===3?2.1:1.55,radius:(n===3?2.1:1.55)*.28,travel:0,speed:10+n*.7,range:18,damage:Math.round(a.damage*(n===3?1.5:.8)),hits:new Set(),n,age:0,serial:++this.serial};this.waves.push(w);this.api.event('wave',w);
     }
    }
-   if(a.t>=a.duration){this.lastEnd=this.time;this.next=a.kind==='basic'?(a.step+1)%(this.api.choreography?5:3):0;const queued=this.queued;this.active=null;this.prevBlade=null;this.queued=false;this.api.event('finish',a);if(queued&&a.kind==='basic')this.attack(a.sword,{damage:a.damage,yaw:a.yaw,target,mode:ctx.grounded===false?'air':'ground'});}
+   // Mod 302: com golpe enfileirado, o follow-through vira o startup do próximo (cancelAt), sem esperar a recuperação inteira.
+   if(a.t>=a.duration||(a.kind==='basic'&&this.queued&&a.def.cancelAt&&a.t>=a.def.cancelAt)){this.lastDef=a.kind==='basic'?a.def:null;this.lastEnd=this.time;this.next=a.kind==='basic'?(a.step+1)%(a.def.count||(this.api.choreography?5:3)):0;const queued=this.queued;this.active=null;this.prevBlade=null;this.queued=false;this.api.event('finish',a);if(queued&&a.kind==='basic')this.attack(a.sword,{damage:a.damage,yaw:a.yaw,target,mode:ctx.grounded===false?(this.api.airMode?.()||'air'):'ground'});}
+  }
+  // Mod 302: volumes de energia (setor que se expande / onda que viaja). O dano sai quando a FRENTE visível toca o corpo;
+  // compartilha o "acertou" do golpe (híbrido nunca dá dano dobrado) e respeita parede/linha de visão.
+  for(let i=this.energies.length-1;i>=0;i--){const e=this.energies[i],owner=e.owner;
+   if(e.kind==='wave'){const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),end=Math.min(e.range,e.travel+e.speed*dt);for(let d=e.travel;d<=end+1e-6&&!e.done;d+=Math.max(.05,Math.min(.06,end-d||.06)))for(const k of [-1,0,1]){const off=k*e.radius*.7*Math.cos(e.roll);if(this.api.blocked({x:e.x+fx*d+fz*off,y:e.y,z:e.z+fz*d-fx*off})){e.done=true;e.blockedAt=d;break;}}}
+   const touched=!e.done&&energyStep(e,dt,target,{blocked:(a,b)=>segmentBlocked(a,b,this.api.blocked)});
+   if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){owner.hit=true;owner.hitBy='energy';this.api.hit(Math.round(owner.damage*owner.def.multiplier),target.id,'basic');
+    const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
+    this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});}
+   if(e.done){this.api.event('energyEnd',e);this.energies.splice(i,1);}
   }
   for(let i=this.waves.length-1;i>=0;i--){const w=this.waves[i];w.age+=dt;const distance=Math.min(w.speed*dt,w.range-w.travel),steps=Math.max(1,Math.ceil(distance/.06));let gone=false;Object.assign(w.previous,w.p);
    for(let j=0;j<steps;j++){
