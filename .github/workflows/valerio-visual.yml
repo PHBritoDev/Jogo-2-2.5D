@@ -2,7 +2,7 @@ name: Campo Dourado do Bispo 1 — QA WebGL
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/bishop1-wind-sunset-slope-v2]
     paths:
       - 'bishop1-golden-meadow3d.js'
       - 'dimension-arenas3d.js'
