@@ -6,8 +6,9 @@ const out=path.resolve('valerio-qa-results');fs.mkdirSync(out,{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const report={reference:'1000364204.mp4 (provided by creator, not available in CI)',shots:[],errors:[],render:null,status:'unverified'};
 try {
- const context=await browser.newContext({viewport:{width:900,height:540},deviceScaleFactor:1});
+ const context=await browser.newContext({viewport:{width:900,height:540},deviceScaleFactor:1,recordVideo:{dir:out,size:{width:900,height:540}}});
  const page=await context.newPage();
+ let videoFile=null;
  page.on('pageerror',e=>report.errors.push('page: '+e.message));
  page.on('console',m=>{if(m.type()==='error')report.errors.push('console: '+m.text().slice(0,400))});
  await page.goto((process.env.VISUAL_BASE_URL||'http://127.0.0.1:4173')+'/mundo-3d-prototype.html?testeDimensao=bishop1&debug3d=1&meadowQA=1',{waitUntil:'domcontentloaded',timeout:45000});
@@ -41,9 +42,28 @@ try {
    await page.screenshot({path:path.join(out,filename),timeout:90000,animations:'disabled'});
    report.shots.push(filename);
  }
+ // Visual evidence for deform/recovery: same camera, real running shaders.
+ await page.evaluate(()=>{window.SevenSinsDebug3D.fly?.([400,-1997.5,16],[400,-1999,0]);});
+ await page.waitForTimeout(600);
+ await page.screenshot({path:path.join(out,'meadow-before-impact.png'),timeout:90000});
+ console.log('MEADOW_FRAME_BEFORE='+ (await page.screenshot({type:'jpeg',quality:32})).toString('base64'));
+ await page.evaluate(()=>window.dispatchEvent(new CustomEvent('golden-meadow-impact',{detail:{x:400,z:0,radius:19}})));
+ await page.waitForTimeout(350);
+ await page.screenshot({path:path.join(out,'meadow-impact.png'),timeout:90000});
+ console.log('MEADOW_FRAME_IMPACT='+ (await page.screenshot({type:'jpeg',quality:32})).toString('base64'));
+ await page.waitForTimeout(11100);
+ await page.screenshot({path:path.join(out,'meadow-regrown.png'),timeout:90000});
+ console.log('MEADOW_FRAME_REGROWN='+ (await page.screenshot({type:'jpeg',quality:32})).toString('base64'));
+ report.shots.push('meadow-before-impact.png','meadow-impact.png','meadow-regrown.png');
+ // Camera offset removes the boss silhouette, allowing review of sky, hill, and fine vegetation.
+ await page.evaluate(()=>window.SevenSinsDebug3D.fly?.([430,-1997.7,28],[452,-1994,-85]));
+ await page.waitForTimeout(650);
+ await page.screenshot({path:path.join(out,'meadow-landscape.png'),timeout:90000});
+ console.log('MEADOW_FRAME_LANDSCAPE='+(await page.screenshot({type:'jpeg',quality:32})).toString('base64'));
+ report.shots.push('meadow-landscape.png');
  report.status='captured';report.render=report.state.render;
  if(report.errors.some(x=>/SyntaxError|WebGLProgram|Shader Error|Failed to fetch dynamically imported/i.test(x)))throw Error('WebGL/module errors');
  await context.close();
 }catch(e){report.status='failed';report.failure=String(e.message||e);process.exitCode=1}
-finally{fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));await browser.close()}
+finally{fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));console.log('BISHOP1_QA_REPORT='+JSON.stringify(report));await browser.close()}
 })();

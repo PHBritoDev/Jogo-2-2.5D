@@ -54,11 +54,11 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   ink.clearRect(0,0,256,512);
   // Dark stalk, with slender green-bronze lower leaves.
   ink.lineCap='round';
-  ink.strokeStyle='rgba(194,152,89,.74)';ink.lineWidth=2.1;
+  ink.strokeStyle='rgba(211,178,120,.55)';ink.lineWidth=1.25;
   ink.beginPath();ink.moveTo(129,510);ink.bezierCurveTo(116,365,123,235,134,122);ink.stroke();
   for(let k=0;k<6;k++){
     const y=325+k*26,side=k%2?-1:1;
-    ink.strokeStyle='rgba(218,181,110,.67)';ink.lineWidth=1.2;
+    ink.strokeStyle='rgba(227,194,139,.62)';ink.lineWidth=.85;
     ink.beginPath();ink.moveTo(125,y+29);ink.quadraticCurveTo(125+side*52,y-5,125+side*91,y-28);ink.stroke();
   }
   // Soft feathery head: many separate downy strands, wider at the middle,
@@ -94,7 +94,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     for(let j=0;j<planes;j++){
       const angle=j*Math.PI/planes,dx=Math.cos(angle),dz=Math.sin(angle),n=vertices.length/3;
       for(const [side,y,v] of [[-1,0,0],[1,0,0],[-1,2.22,1],[1,2.22,1]]){
-        vertices.push(side*.54*dx,y,side*.54*dz);
+        vertices.push(side*.39*dx,y,side*.39*dz);
         uvs.push((side+1)/2,v);
       }
       ind.push(n,n+1,n+2,n+1,n+3,n+2);
@@ -107,10 +107,43 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const stalkGeo=makeCards(2);
   const liteGeo=makeCards(1);
   const wind = {value:0};
-  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.35,side:THREE.DoubleSide,roughness:.9,metalness:0,emissive:0x483016,emissiveIntensity:.17});
+  // Eight transient GPU impact zones; no per-blade CPU updates or buffer uploads.
+  const impactSlots=Array.from({length:8},()=>new THREE.Vector4(100000,100000,0,-10000));
+  const impactUniform={value:impactSlots};
+  let nextImpact=0;
+  const impact=(x,z,radius=5)=>{
+    if(!Number.isFinite(x)||!Number.isFinite(z)||!Number.isFinite(radius)||radius<=0)return;
+    // Accept world-space coordinates from combat and convert them to arena-local coordinates.
+    const lx=Math.abs(x-spec.x)<220?x-spec.x:x;
+    const lz=Math.abs(z-spec.z)<220?z-spec.z:z;
+    impactSlots[nextImpact].set(lx,lz,Math.min(35,Math.max(.5,radius)),wind.value);
+    nextImpact=(nextImpact+1)%impactSlots.length;
+  };
+  const impactGLSL=`uniform vec4 uMeadowImpacts[8];
+    uniform float uMeadowTime;
+    float meadowSurvival(vec2 site) {
+      float survival=1.0;
+      for(int i=0;i<8;i++){
+        vec4 zone=uMeadowImpacts[i];
+        float age=uMeadowTime-zone.w;
+        float impactEnabled=step(0.0,age)*(1.0-step(11.5,age));
+        float within=1.0-smoothstep(zone.z*.77,zone.z, distance(site,zone.xy));
+        float recovery=smoothstep(1.25,10.5,age);
+        survival=min(survival,1.0-impactEnabled*within*(1.0-recovery));
+      }
+      return survival;
+    }`;
+  // Public event for gameplay VFX, also exposed via refs.goldenMeadow.impact().
+  const onMeadowImpact=event=>{
+    const d=event.detail||{}; impact(Number(d.x),Number(d.z),Number(d.radius??d.r??5));
+  };
+  if(typeof window!=='undefined')window.addEventListener('golden-meadow-impact',onMeadowImpact);
+  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.27,side:THREE.DoubleSide,roughness:.96,metalness:0,emissive:0x947448,emissiveIntensity:.36});
   material.onBeforeCompile = shader => {
     shader.uniforms.uGoldenWind = wind;
-    shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
+    shader.uniforms.uMeadowTime=wind;
+    shader.uniforms.uMeadowImpacts=impactUniform;
+    shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;\n'+impactGLSL);
     shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float bladeHeight = clamp(position.y / 2.22, 0.0, 1.0);
       vec2 worldXZ = instanceMatrix[3].xz;
@@ -118,12 +151,13 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       float sweeping = sin(uGoldenWind * 2.45 - worldXZ.x * .086 + worldXZ.y * .063);
       float secondary = sin(uGoldenWind * 3.7 + worldXZ.x * .17 + worldXZ.y * .11);
       float flutter = sin(uGoldenWind * 6.7 + worldXZ.x * .41 - worldXZ.y * .34);
-      float gust = .36 + .34*sweeping + .16*secondary + .085*flutter;
-      transformed.x += gust * .91 * bladeHeight * bladeHeight;
-      transformed.z += gust * .37 * bladeHeight * bladeHeight;
-      transformed.y -= abs(gust)*.24*bladeHeight*bladeHeight;`);
+      float gust = .35 + .52*sweeping + .25*secondary + .12*flutter;
+      transformed.x += gust * 1.55 * bladeHeight * bladeHeight;
+      transformed.z += gust * .71 * bladeHeight * bladeHeight;
+      transformed.y -= abs(gust)*.38*bladeHeight*bladeHeight;
+      transformed.y *= meadowSurvival(worldXZ);`);
   };
-  material.customProgramCacheKey=()=>'golden-ridge-wind-v9';
+  material.customProgramCacheKey=()=>'golden-ridge-wind-impact-v10';
 
 
   function plot(count,near,far){
@@ -140,7 +174,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
         const x=Math.cos(angle)*r,z=Math.sin(angle)*r;
         const y=terrainHeight(x,z);
         dummy.position.set(x,y,z);dummy.rotation.set(0,random()*6.283,0);
-        const scale=(.50+random()*.48)*(r>95?1.1:1);
+        const scale=(.42+random()*.40)*(r>95?1.20:1);
         dummy.scale.set(scale,scale*(.79+random()*.36),scale);
         dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
         golden.setHSL(.102+random()*.025,.28+random()*.18,.87+random()*.11);
@@ -153,7 +187,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       mesh.castShadow=false;mesh.receiveShadow=false;add(mesh);
     }
   }
-  plot(13000,0,45);plot(10500,45,115);plot(4500,115,196);
+  plot(19500,0,45);plot(12500,45,115);plot(4500,115,196);
 
 
 
@@ -167,21 +201,24 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   leafGeo.setAttribute('position',new THREE.Float32BufferAttribute(leafV,3));
   leafGeo.setAttribute('color',new THREE.Float32BufferAttribute(leafC,3));
   leafGeo.setIndex([0,1,2,1,3,2,2,3,4,3,5,4,4,5,6]);leafGeo.computeVertexNormals();
-  const leafMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.94,side:THREE.DoubleSide});
+  const leafMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.94,side:THREE.DoubleSide,emissive:0x58452a,emissiveIntensity:.23});
   leafMat.onBeforeCompile=shader=>{
     shader.uniforms.uGoldenWind=wind;
-    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
+    shader.uniforms.uMeadowTime=wind;
+    shader.uniforms.uMeadowImpacts=impactUniform;
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;\n'+impactGLSL);
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float tall=clamp(position.y/1.47,0.0,1.0);
       vec2 xy=instanceMatrix[3].xz;
       float wave=sin(uGoldenWind*2.45-xy.x*.086+xy.y*.063);
       float micro=sin(uGoldenWind*5.0+xy.x*.23-xy.y*.18);
-      transformed.x+=(.32+.3*wave+.13*micro)*tall*tall;
-      transformed.z+=(.11+.12*wave)*tall*tall;`);
+      transformed.x+=(.42+.52*wave+.21*micro)*tall*tall;
+      transformed.z+=(.16+.22*wave)*tall*tall;
+      transformed.y *= meadowSurvival(xy);`);
   };
-  leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v2';
+  leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-impact-v3';
 
-  const leafCount=12500,leafSectors=12,dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
+  const leafCount=17500,leafSectors=12,dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
   for(let sector=0;sector<leafSectors;sector++){
     const n=Math.floor(leafCount/leafSectors)+(sector<leafCount%leafSectors?1:0);
     const leafMesh=new THREE.InstancedMesh(leafGeo,leafMat,n);
@@ -190,9 +227,9 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       const x=Math.cos(a)*rr,z=Math.sin(a)*rr;
       const y=terrainHeight(x,z)+.01;
       dummyLeaf.position.set(x,y,z);dummyLeaf.rotation.set(0,random()*6.283,0);
-      const sc=.5+random()*.68;dummyLeaf.scale.set(sc,sc,sc);dummyLeaf.updateMatrix();
+      const sc=.42+random()*.56;dummyLeaf.scale.set(sc,sc,sc);dummyLeaf.updateMatrix();
       leafMesh.setMatrixAt(i,dummyLeaf.matrix);
-      colLeaf.setHSL(.105+random()*.022,.39+random()*.2,.72+random()*.21);
+      colLeaf.setHSL(.106+random()*.022,.30+random()*.17,.78+random()*.17);
       leafMesh.setColorAt(i,colLeaf);
     }
     leafMesh.instanceMatrix.needsUpdate=true;
@@ -225,18 +262,31 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       void main(){vSkyDir=normalize(position);
       gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
     fragmentShader:`varying vec3 vSkyDir;
+      float cloudHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float cloudNoise(vec2 p){
+        vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+        return mix(mix(cloudHash(i),cloudHash(i+vec2(1.,0.)),f.x),
+                   mix(cloudHash(i+vec2(0.,1.)),cloudHash(i+vec2(1.,1.)),f.x),f.y);
+      }
       void main(){
-        float up=clamp(vSkyDir.y,-1.0,1.0);
-        vec3 horizon=vec3(0.98,0.87,0.72);
-        vec3 zenith=vec3(0.98,0.95,0.89);
-        vec3 low=vec3(0.71,0.52,0.33);
-        vec3 sky=mix(horizon,zenith,smoothstep(-0.02,0.72,up));
-        sky=mix(low,sky,smoothstep(-0.34,-0.03,up));
-        vec3 sunDir=normalize(vec3(0.0,0.02,-1.0));
-        float facing=max(dot(normalize(vSkyDir),sunDir),0.0);
-        float corona=pow(facing,14.0);
-        float burning=pow(facing,140.0);
-        sky+=vec3(.18,.145,.095)*corona+vec3(.23,.18,.10)*burning;
+        vec3 d=normalize(vSkyDir);
+        float up=clamp(d.y,-1.0,1.0);
+        vec3 horizon=vec3(.99,.86,.69);
+        vec3 zenith=vec3(.70,.78,.83);
+        vec3 low=vec3(.70,.48,.31);
+        vec3 sky=mix(horizon,zenith,smoothstep(-.035,.75,up));
+        sky=mix(low,sky,smoothstep(-.34,-.025,up));
+        // Broad, broken clouds, without extra meshes or texture downloads.
+        vec2 cp=vec2(atan(d.x,-d.z)*1.7,up*5.0);
+        float n=cloudNoise(cp*2.5)*.64+cloudNoise(cp*5.2)*.36;
+        float clouds=smoothstep(.48,.72,n)*smoothstep(-.02,.20,up);
+        sky=mix(sky,vec3(.94,.85,.78),clouds*.54);
+        vec3 sunDir=normalize(vec3(0.0,.045,-1.0));
+        float facing=max(dot(d,sunDir),0.0);
+        float haze=pow(facing,7.0);
+        float corona=pow(facing,48.0);
+        float burning=pow(facing,310.0);
+        sky+=vec3(.19,.13,.065)*haze+vec3(.28,.205,.11)*corona+vec3(.38,.29,.18)*burning;
         gl_FragColor=vec4(min(sky,vec3(1.0)),1.0);
       }`
   });
@@ -257,10 +307,11 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   sunCore.position.set(0,10.5,-175);sunCore.scale.set(38,30,1);add(sunCore);
 
   ctx.refs.goldenMeadow={
-    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();sunCore.material.dispose();darkBark.dispose();darkFoliage.dispose();distantTree.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
+    impact,
+    dispose(){if(typeof window!=='undefined')window.removeEventListener('golden-meadow-impact',onMeadowImpact);group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();sunCore.material.dispose();darkBark.dispose();darkFoliage.dispose();distantTree.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xf5e4cf,fog:0xe0c6a5,fogNear:95,fogFar:250,
-    hemi:[0xfff1d7,0xb08350,1.75],sun:[0xffe4b5,2.25],
-    light:[0xffedcc,1.42,155,[0,15,-48]],exposure:1.23};
+    hemi:[0xfff2dc,0x806849,1.45],sun:[0xffdfaa,2.65],
+    light:[0xffe4bb,1.45,155,[0,15,-48]],exposure:1.08};
 }
