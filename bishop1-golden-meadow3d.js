@@ -126,10 +126,10 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       for(int i=0;i<8;i++){
         vec4 zone=uMeadowImpacts[i];
         float age=uMeadowTime-zone.w;
-        float active=step(0.0,age)*(1.0-step(11.5,age));
+        float impactEnabled=step(0.0,age)*(1.0-step(11.5,age));
         float within=1.0-smoothstep(zone.z*.77,zone.z, distance(site,zone.xy));
         float recovery=smoothstep(1.25,10.5,age);
-        survival=min(survival,1.0-active*within*(1.0-recovery));
+        survival=min(survival,1.0-impactEnabled*within*(1.0-recovery));
       }
       return survival;
     }`;
