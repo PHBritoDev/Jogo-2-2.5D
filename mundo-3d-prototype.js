@@ -668,7 +668,7 @@ const beltUnder=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowS
 const beltTropical=buildTropical(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,seed:2927,zone:null,
  trees:tropicalPlan.filter(t=>t.sp==='copaLarga'||t.sp==='figueira'||t.sp==='sumauma').map(t=>({x:t.x,z:t.z,h:(t.sp==='sumauma'?26:11)*t.s})),isFree:(x,z)=>beltFree(x,z,-1.5)});
 {const seen=new Set();for(const g of [beltTropical.group,beltUnder.group])g&&g.traverse(o=>{if(o.isMesh&&!seen.has(o.material)){seen.add(o.material);addNearCameraFade(o.material,2.2);}});}
-function tropicalProfile(){return graphics3DMode==='low'?'low':graphics3DMode==='auto'?(graphics3DScale<.7?'low':'auto'):'high';}
+function tropicalProfile(){return graphics3DMode==='low'?'low':graphics3DMode==='medium'?'auto':graphics3DMode==='auto'?(graphics3DAutoTier<=1?'low':graphics3DAutoTier===2?'auto':'high'):'high';}
 /* MOD 291 — streaming por zona: a cidade (e o resto do vale) fica atrás da serra quando o herói está no prado/estrada do
    sul, e o prado some quando ele está no vale. Nada é descarregado; só deixa de ser enviado à GPU. */
 let zoneFrame=0;const zoneState={south:null};
@@ -2075,60 +2075,93 @@ function keepCameraAboveTerrain(){
  if(camera.position.y<floor)camera.position.y=floor;
 }
 
-/* MOD 176 — perfis gráficos reais para o mundo 3D; Auto ajusta a qualidade conforme FPS. */
+/* MOD 304 — perfis gráficos reais e controlador adaptativo com histerese.
+   A resolução interna, o LOD da mata e os efeitos secundários são degradados
+   primeiro; modelos, texturas, NPCs e combate continuam carregados.
+   O modo Auto usa o tempo de frame real, não o número mágico de pixels do aparelho. */
 const graphics3DProfiles={
- low:{scale:.62,shadows:false,shadowSize:256,foliage:false,clouds:false},
- high:{scale:.9,shadows:true,shadowSize:512,foliage:true,clouds:true},
- max:{scale:1.2,shadows:true,shadowSize:1024,foliage:true,clouds:true}
+ low:{scale:.56,shadows:false,shadowSize:256,foliage:false,clouds:false},
+ medium:{scale:.82,shadows:true,shadowSize:384,foliage:true,clouds:true},
+ high:{scale:1.10,shadows:true,shadowSize:512,foliage:true,clouds:true},
+ max:{scale:1.4,shadows:true,shadowSize:1024,foliage:true,clouds:true}
 };
-let graphics3DMode='auto',graphics3DScale=.78,graphics3DFps=0,graphics3DSampleTime=0,graphics3DSampleFrames=0,graphics3DLowTime=0,graphics3DHighTime=0,graphics3DLastChange=0;
+const AUTO_GRAPHICS_STEPS=[
+ {scale:.53,foliage:false,clouds:false}, // emergency, model remains detailed near player
+ {scale:.68,foliage:true,clouds:false},
+ {scale:.88,foliage:true,clouds:true},
+ {scale:1.08,foliage:true,clouds:true}
+];
+let graphics3DMode='auto',graphics3DAutoTier=2,graphics3DScale=.88,graphics3DFps=0,graphics3DSampleTime=0,graphics3DSampleFrames=0,graphics3DLowTime=0,graphics3DHighTime=0,graphics3DLastChange=0;
+let graphics3DLongFrameCount=0;
+function graphics3DIsLow(){return graphics3DMode==='low'||(graphics3DMode==='auto'&&graphics3DAutoTier===0);}
 var autoShadowDecision=null;
-function autoShadowsDecision(){if(autoShadowDecision===null)autoShadowDecision=!terrainLowSpec;return autoShadowDecision;}
+function autoShadowsDecision(){
+ // Switching shadow shaders each time the FPS changes causes multi-second stutters.
+ // On phones, keep a single decision for the entire session.
+ if(autoShadowDecision===null)autoShadowDecision=!terrainLowSpec&&!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+ return autoShadowDecision;
+}
 function applyGraphics3D(mode,autoScale){
  const previousMode=graphics3DMode;
- if(mode!==previousMode){graphics3DFps=0;graphics3DSampleTime=0;graphics3DSampleFrames=0;graphics3DLowTime=0;graphics3DHighTime=0;}
+ if(mode!==previousMode){graphics3DFps=0;graphics3DSampleTime=0;graphics3DSampleFrames=0;graphics3DLowTime=0;graphics3DHighTime=0;graphics3DLongFrameCount=0;}
  graphics3DMode=mode;
  const baseline=graphics3DProfiles[mode]||graphics3DProfiles.high;
- graphics3DScale=mode==='auto'?autoScale:baseline.scale;
- /* MOD 202 — ligar/desligar sombras muda os shaders (recompilação = travada de alguns segundos). No modo Auto a
-    decisão é tomada uma única vez; só a resolução sobe e desce com o FPS. */
- const shadowEnabled=mode==='auto'?autoShadowsDecision():baseline.shadows;
- const shadowSize=mode==='auto'?512:baseline.shadowSize;
- const nextRatio=Math.min((devicePixelRatio||1)*graphics3DScale,1.5);
- if(Math.abs(renderer.getPixelRatio()-nextRatio)>.001||renderer.domElement.width!==Math.floor(innerWidth*nextRatio)){renderer.setPixelRatio(nextRatio);renderer.setSize(innerWidth,innerHeight);}
- renderer.shadowMap.enabled=shadowEnabled;
- sunLight.castShadow=shadowEnabled;
- if(sunLight.shadow.mapSize.x!==shadowSize){sunLight.shadow.mapSize.set(shadowSize,shadowSize);if(sunLight.shadow.map){sunLight.shadow.map.dispose();sunLight.shadow.map=null;}}
- sunLight.shadow.needsUpdate=true;
- renderer.shadowMap.needsUpdate=true;
- grassGroup.visible=mode==='auto'?graphics3DScale>=.6:baseline.foliage;
- mossInstancesA.visible=grassGroup.visible;mossInstancesB.visible=grassGroup.visible;
- for(const cloud of movingClouds)cloud.group.visible=mode==='auto'?graphics3DScale>=.7:baseline.clouds;
+ const auto=mode==='auto';
+ graphics3DScale=auto?THREE.MathUtils.clamp(autoScale,.48,1.12):baseline.scale;
+ const effective=auto?AUTO_GRAPHICS_STEPS[graphics3DAutoTier]:baseline;
+ const shadowEnabled=auto?autoShadowsDecision():baseline.shadows;
+ const shadowSize=auto?384:baseline.shadowSize;
+ // Previous code multiplied scale by devicePixelRatio then capped at 1.5;
+ // on DPR 3 phones even .55 and .82 produced the SAME pixel resolution.
+ // These are real pixel ratios, capped for GPU fill rate.
+ const nextRatio=Math.min(devicePixelRatio||1,graphics3DScale);
+ if(Math.abs(renderer.getPixelRatio()-nextRatio)>.035){
+  renderer.setPixelRatio(nextRatio);
+  renderer.setSize(innerWidth,innerHeight,false);
+ }
+ if(renderer.shadowMap.enabled!==shadowEnabled){renderer.shadowMap.enabled=shadowEnabled;sunLight.castShadow=shadowEnabled;renderer.shadowMap.needsUpdate=true;}
+ else sunLight.castShadow=shadowEnabled;
+ if(sunLight.shadow.mapSize.x!==shadowSize){
+  sunLight.shadow.mapSize.set(shadowSize,shadowSize);
+  if(sunLight.shadow.map){sunLight.shadow.map.dispose();sunLight.shadow.map=null;}
+  sunLight.shadow.needsUpdate=true;
+ }
+ // Preserve primary grass on all except an explicit low or emergency setting.
+ grassGroup.visible=effective.foliage;
+ mossInstancesA.visible=effective.foliage;mossInstancesB.visible=effective.foliage;
+ for(const cloud of movingClouds)cloud.group.visible=effective.clouds;
  if(typeof tropicalBelt!=='undefined'&&tropicalBelt){tropicalBelt.setProfile(tropicalProfile());refreshInstanceCulling();}
- const label=mode==='auto'?'Automático':mode==='low'?'Baixo':mode==='high'?'Alto':'Máximo';
  const status=document.getElementById('graphics-status-3d');
- if(status)status.textContent=label+' · '+Math.round(graphics3DScale*100)+'% de resolução'+(mode==='auto'?(graphics3DFps?' · '+Math.round(graphics3DFps)+' FPS':' · medindo FPS'):'');
+ const labels={auto:'Automático',low:'Baixo',medium:'Médio',high:'Alto',max:'Máximo'};
+ if(status)status.textContent=labels[mode]+' · '+Math.round(nextRatio*100)+'% resolução'+(auto?' · nível '+(graphics3DAutoTier+1)+'/4'+(graphics3DFps?' · '+Math.round(graphics3DFps)+' FPS':' · medindo FPS'):'');
 }
 function updateAutoGraphics3D(dt,now){
- if(graphics3DMode!=='auto'||!Number.isFinite(dt)||dt<=0||dt>.25)return;
+ if(graphics3DMode!=='auto'||!Number.isFinite(dt)||dt<=0)return;
+ // Ignore tab-resume pauses. Do not mistake a frozen/background tab for overloaded GPU.
+ if(dt>.3){graphics3DSampleTime=0;graphics3DSampleFrames=0;return;}
  graphics3DSampleTime+=dt;graphics3DSampleFrames++;
+ if(dt>.09)graphics3DLongFrameCount++;
  if(graphics3DSampleTime<2)return;
  graphics3DFps=graphics3DSampleFrames/graphics3DSampleTime;
- const elapsed=graphics3DSampleTime;graphics3DSampleTime=0;graphics3DSampleFrames=0;
- // Em 34–35 FPS o Auto anterior nunca baixava a carga (<34), ficando preso na cidade.
- if(graphics3DFps<42){graphics3DLowTime+=elapsed;graphics3DHighTime=0;}
- else if(graphics3DFps>55){graphics3DHighTime+=elapsed;graphics3DLowTime=0;}
- else{graphics3DLowTime=0;graphics3DHighTime=0;}
- if(graphics3DLowTime>=3.5&&now-graphics3DLastChange>4000){
-  graphics3DLowTime=0;graphics3DLastChange=now;
-  applyGraphics3D('auto',Math.max(.55,graphics3DScale-.12));
- }else if(graphics3DHighTime>=8&&now-graphics3DLastChange>8000){
-  graphics3DHighTime=0;graphics3DLastChange=now;
-  applyGraphics3D('auto',Math.min(.95,graphics3DScale+.08));
- }else{
-  const status=document.getElementById('graphics-status-3d');
-  if(status)status.textContent='Automático · '+Math.round(graphics3DScale*100)+'% de resolução · '+Math.round(graphics3DFps)+' FPS';
+ const elapsed=graphics3DSampleTime,stalls=graphics3DLongFrameCount;
+ graphics3DSampleTime=0;graphics3DSampleFrames=0;graphics3DLongFrameCount=0;
+ if(graphics3DFps<28||stalls>=5){graphics3DLowTime+=elapsed;graphics3DHighTime=0;}
+ else if(graphics3DFps>49&&stalls<=1){graphics3DHighTime+=elapsed;graphics3DLowTime=0;}
+ else{graphics3DHighTime=0;graphics3DLowTime=0;}
+ // Performance emergency: rapidly recover from 9 FPS with a large resolution/LOD step.
+ if(graphics3DFps<17&&now-graphics3DLastChange>2600&&graphics3DAutoTier>0){
+  graphics3DAutoTier=Math.max(0,graphics3DAutoTier-2);
+  graphics3DLastChange=now;graphics3DLowTime=0;
+  applyGraphics3D('auto',AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale);
+ }else if(graphics3DLowTime>=4&&now-graphics3DLastChange>4200&&graphics3DAutoTier>0){
+  graphics3DAutoTier--;graphics3DLastChange=now;graphics3DLowTime=0;
+  applyGraphics3D('auto',AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale);
+ }else if(graphics3DHighTime>=16&&now-graphics3DLastChange>16000&&graphics3DAutoTier<AUTO_GRAPHICS_STEPS.length-1){
+  graphics3DAutoTier++;graphics3DLastChange=now;graphics3DHighTime=0;
+  applyGraphics3D('auto',AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale);
  }
+ const status=document.getElementById('graphics-status-3d');
+ if(status)status.textContent='Automático · '+Math.round(graphics3DScale*100)+'% resolução · nível '+(graphics3DAutoTier+1)+'/4 · '+Math.round(graphics3DFps)+' FPS';
 }
 (function initAudioSettings(){
  const panel=document.getElementById('graphics-panel-3d');if(!panel)return;
@@ -2140,9 +2173,10 @@ function updateAutoGraphics3D(dt,now){
 (function initGraphics3D(){
  const toggle=document.getElementById('graphics-toggle-3d'),panel=document.getElementById('graphics-panel-3d'),select=document.getElementById('graphics-profile-3d');
  if(toggle&&panel){bindInstantTap(toggle,()=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));});}
- let saved='auto';try{const value=localStorage.getItem('seven-sins-3d-graphics');if(['auto','low','high','max'].includes(value))saved=value;}catch(e){}
- if(select){select.value=saved;select.addEventListener('change',()=>{const mode=select.value;try{localStorage.setItem('seven-sins-3d-graphics',mode);}catch(e){};const initial=mode==='auto'?((navigator.deviceMemory&&navigator.deviceMemory<=4)? .68:.82):(graphics3DProfiles[mode]||graphics3DProfiles.high).scale;applyGraphics3D(mode,initial);});}
- const initial=saved==='auto'?((navigator.deviceMemory&&navigator.deviceMemory<=4)||((navigator.hardwareConcurrency||8)<=4)? .68:.82):graphics3DProfiles[saved].scale;
+ let saved='auto';try{const value=localStorage.getItem('seven-sins-3d-graphics');if(['auto','low','medium','high','max'].includes(value))saved=value;}catch(e){}
+ if(select){select.value=saved;select.addEventListener('change',()=>{const mode=select.value;try{localStorage.setItem('seven-sins-3d-graphics',mode);}catch(e){};if(mode==='auto')graphics3DAutoTier=2;const initial=mode==='auto'?AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale:(graphics3DProfiles[mode]||graphics3DProfiles.high).scale;applyGraphics3D(mode,initial);});}
+ graphics3DAutoTier=((navigator.deviceMemory&&navigator.deviceMemory<=4)||((navigator.hardwareConcurrency||8)<=4))?1:2;
+ const initial=saved==='auto'?AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale:graphics3DProfiles[saved].scale;
  applyGraphics3D(saved,initial);
  syncCameraToggle3D();
 })();
@@ -3734,7 +3768,7 @@ function updateSquadCombat(dt,now){
  if(ENEMY2_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy2)startEnemy1Lab('e3');else if(!squadLabLoading){squadLabLoading=true;loadRig('enemy2').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
  if(squadStopAt&&now>=squadStopAt&&!squadOn){squadStopAt=0;squadRT&&squadRT.stop();}
  if(!squadOn&&pack&&pack.squad&&pack.waitRig&&rigSource(squadRig(pack)))startSquadPack();
- if(!squadOn){if(squadRT&&squadRT.squad)squadRT.update(dt,{camera,quality:graphics3DMode==='low'?0:1});return;}
+ if(!squadOn){if(squadRT&&squadRT.squad)squadRT.update(dt,{camera,quality:graphics3DIsLow()?0:1});return;}
  const s=squadSq();if(!s)return;
  // 1) o que o herói fez no procurador vai para o ator em foco
  const f=squadFocus;
@@ -3762,7 +3796,7 @@ function updateSquadCombat(dt,now){
  for(const al of squadAllies)targets.push(allyTarget(al));
  const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
  const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado');
- squadRT.update(dt,{targets,foreign,camera,quality:graphics3DMode==='low'?0:1,paused});
+ squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused});
  updateAllies(dt);
  // 5) foco e procurador
  pickSquadFocus(false);
@@ -5944,7 +5978,7 @@ function updateVoid(dt,now){
  const arena=dimKey?dimArenas[dimKey]:null;
  if(arena){const e=arena.env;scene.background.setHex(e.bg);scene.fog.color.setHex(e.fog);scene.fog.near=e.fogNear;scene.fog.far=e.fogFar;hemiLight.color.setHex(e.hemi[0]);hemiLight.groundColor.setHex(e.hemi[1]);hemiLight.intensity=e.hemi[2];sunLight.color.setHex(e.sun[0]);sunLight.intensity=e.sun[1];fill.intensity=.2;renderer.toneMappingExposure=e.exposure;
   dimLight.color.setHex(e.light[0]);dimLight.intensity=e.light[1]*(1+Math.sin(now*.004)*.05);dimLight.distance=e.light[2];if(e.lightFollow)dimLight.position.set(player.position.x+e.light[3][0],player.position.y+e.light[3][1],player.position.z+e.light[3][2]);else dimLight.position.set(voidSpec.x+e.light[3][0],voidSpec.y+e.light[3][1],voidSpec.z+e.light[3][2]);
-  arena.update(now,camera,innerHeight*renderer.getPixelRatio(),{player:player.position,quality:graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium'});
+  arena.update(now,camera,innerHeight*renderer.getPixelRatio(),{player:player.position,quality:graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium'});
   if(dimBattle&&dimBattle.active&&dimBattle.key==='bishop1'&&enemy.visible&&enemyAlive&&!bossRageAnnounced&&bossPhase(enemyHP,enemyMaxHP)===2){bossRageAnnounced=true;showCombatCallout('FÚRIA DO CEIFADOR');status.textContent='VHAZRAEL: “'+DIMENSIONS.bishop1.rage+'”';enemyCastCooldown=0;cameraShake(.2);vibrate(60);}
  }
 }
@@ -6382,13 +6416,13 @@ function applyTornadoSuction(dt){
 function updateTornadoRitual(dt){
  if(!tornadoRitual)return;const r=tornadoRitual;
  if(!enemy.visible||!enemyAlive||playerHP<=0||!isVorgazhekProfile(encounterProfile)||cineActive)r.abort();
- if(gamePaused){tornadoVfx.update(r,0,graphics3DMode==='low'?0:1,tornadoSlope);return;}
+ if(gamePaused){tornadoVfx.update(r,0,graphics3DIsLow()?0:1,tornadoSlope);return;}
  for(const ev of r.step(dt,{x:player.position.x,z:player.position.z,iframes:dashRemaining>0||performance.now()<playerInvulnerableUntil,radius:.4})){
   if(ev.type==='hit'){if(pHit(ev.dmg)){cameraShake(userSettings.reduceShake?0:.05);}}
   else if(ev.type==='wave'){status.textContent='VÓRTICES DO PACTO ESCARLATE — ONDA '+ev.n+'/2';worldAudio.abyss3&&worldAudio.abyss3('tear',.8);}
   else if(ev.type==='active')worldAudio.abyss3&&worldAudio.abyss3('storm',.45);
  }
- tornadoVfx.update(r,dt,graphics3DMode==='low'?0:1,tornadoSlope);
+ tornadoVfx.update(r,dt,graphics3DIsLow()?0:1,tornadoSlope);
  if(r.done){tornadoRitual=null;tornadoVfx.clear();kitState.t=Math.max(kitState.t,1.2);}
 }
 /* MOD 260 — DOMÍNIO DAS LÂMINAS ENDIVIDADAS (Bispo 2, s3): 20–24 portais no alto, 3 espadas cada, fila global (vorgazhek-portal-swords3d.js). */
@@ -6404,7 +6438,7 @@ function startPortalSwords(m){
 }
 function stopPortalSwords(){portalSwords=null;if(portalSwordsVfx)portalSwordsVfx.clear();}
 function updatePortalSwords(dt){
- if(!portalSwords)return;const r=portalSwords,q=graphics3DMode==='low'?0:1;
+ if(!portalSwords)return;const r=portalSwords,q=graphics3DIsLow()?0:1;
  if(!enemy.visible||!enemyAlive||playerHP<=0||!isVorgazhekProfile(encounterProfile)||cineActive)r.abort();
  if(gamePaused){portalSwordsVfx.update(r,camera,0,q);return;}
  portalAudioT-=dt;
@@ -6452,7 +6486,7 @@ function updateEclipseSword(dt){
   else if(ev.type==='release'){worldAudio.abyss3&&worldAudio.abyss3('launch',1);worldAudio.abyss3&&worldAudio.abyss3('blade',.8);}
   else if(ev.type==='impact'){worldAudio.abyss3&&worldAudio.abyss3('boom',.9);worldAudio.abyss3&&worldAudio.abyss3('storm',.7);const d=Math.hypot(ev.x-player.position.x,ev.z-player.position.z);if(d<12&&!userSettings.reduceShake)cameraShake(.14*(1-d/12));}
  }
- eclipseVfx.update(r,{camera,boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},hand:posed?_ecHand:null,armDir:posed?_ecArm:null,low:graphics3DMode==='low',moonGround:e.y,oldMoon:eclipseOldMoon()},dt);
+ eclipseVfx.update(r,{camera,boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},hand:posed?_ecHand:null,armDir:posed?_ecArm:null,low:graphics3DIsLow(),moonGround:e.y,oldMoon:eclipseOldMoon()},dt);
  if(r.done){eclipseSword=null;eclipseVfx.clear(eclipseOldMoon());kitState.t=Math.max(kitState.t,1.5);if(ECLIPSE_TEST)delete kitState.cds.sw;}
 }
 /* MOD 262 — Espada cósmica permanente do Bispo 2 (presa ao osso da mão direita) e ULTIMATE "O JUÍZO DA ESPADA CÓSMICA"
@@ -6524,7 +6558,7 @@ function tickCosmicUlt(dt,now){
  const wEl=cosmicWhite(),wmax=userSettings.reduceFlash?.35:1,wv=Math.max(st.white*wmax,st.flash*(userSettings.reduceFlash?.15:.55));
  if(wv>.001){_csA.set(st.P.x,st.P.y+2,st.P.z).project(camera);wEl.style.setProperty('--cx',(50+_csA.x*50).toFixed(1)+'%');wEl.style.setProperty('--cy',(50-_csA.y*50).toFixed(1)+'%');}wEl.style.opacity=wv.toFixed(3);
  if(cosmicHandSword)cosmicHandSword.userData.glow.value=1+1.5*(st.pi===0?sm01(st.pt/3.3):st.pi===1?1:0);
- cosmicVfx.update(u,{camera,boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},low:graphics3DMode==='low'},rdt);
+ cosmicVfx.update(u,{camera,boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},low:graphics3DIsLow()},rdt);
 }
 function sm01(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);}
 let cosmicSwordTime=0;function tickCosmicSwords(dt){cosmicSwordTime+=dt;if(cosmicHandSword){cosmicHandSword.userData.tick(cosmicSwordTime);const hide=!!(eclipseVfx&&eclipseVfx.holder.visible);cosmicHandSword.visible=!hide;}if(eclipseCosmicModel)eclipseCosmicModel.userData.tick(cosmicSwordTime);}
@@ -6586,7 +6620,7 @@ function updateZarkhaelSword(dt){
    if(dist<9){cameraShake(userSettings.reduceShake?0:.13*(1-dist/9));if(ev.n===1)hitStop(55);}
   }
  }
- if(zarkSwordVfx)zarkSwordVfx.update(s,{boss:{x:enemy.position.x,y:enemy.position.y,z:enemy.position.z,yaw:enemy.rotation.y},camera,low:graphics3DMode==='low',ground:fxGy},dt);
+ if(zarkSwordVfx)zarkSwordVfx.update(s,{boss:{x:enemy.position.x,y:enemy.position.y,z:enemy.position.z,yaw:enemy.rotation.y},camera,low:graphics3DIsLow(),ground:fxGy},dt);
  if(s.done){enemy.rotation.y=zarkSwordYaw;stopZarkhaelSword();kitState.t=Math.max(kitState.t,1.5);if(ZARK_SWORD_TEST)delete kitState.cds.sw;if(enemyAlive)playEnemyAnimation('idle',.14);}
 }
 
@@ -6703,7 +6737,7 @@ function tickZarkUlt(dt,now){
  lockZarkhaelDuringUltimate();
  const B={x:enemy.position.x,y:enemy.position.y,z:enemy.position.z,yaw:enemy.rotation.y};
  let tip=null;if(zarkSwordWeapon?.userData?.tip){zarkSwordWeapon.updateWorldMatrix(true,true);zarkSwordWeapon.userData.tip.getWorldPosition(_zuTip);tip=_zuTip;}
- zarkUltVfx.update(s,{boss:B,tip,camera,low:graphics3DMode==='low',ground:fxGy},dt);
+ zarkUltVfx.update(s,{boss:B,tip,camera,low:graphics3DIsLow(),ground:fxGy},dt);
  const pose=s.camera({boss:B,hero:{x:player.position.x,y:player.position.y,z:player.position.z}});
  if(pose.w>.001){
   // Mod 281: a câmera de jogo era recalculada antes de cada quadro, portanto
@@ -6767,7 +6801,7 @@ function updateHydra(dt){
   else if(ev.type==='hit'){damagePlayerFromEnemyAttack(ev.dmg);}
   else if(ev.type==='dissolve'){worldAudio.abyss3&&worldAudio.abyss3('tear',.7);}
  }
- hydraVfx.update(h,{camera,low:graphics3DMode==='low'},dt);
+ hydraVfx.update(h,{camera,low:graphics3DIsLow()},dt);
  if(!userSettings.reduceShake&&h.st.trauma>.001){const s=shakeAt(h.st.trauma,h.st.t,h.st.kickT,{amp:fpWasActive?.12:.3,kick:.4});_csA.set(0,0,1).applyQuaternion(camera.quaternion);hydraShake=new THREE.Vector3(s.x,s.y,s.z).addScaledVector(_csA,s.back*.5);camera.position.add(hydraShake);camera.rotateZ(s.roll*.8);}
  if(h.done){hydraSkill=null;hydraVfx.clear();kitState.t=Math.max(kitState.t,1.8);if(HYDRA_TEST)delete kitState.cds.s1;}
 }
@@ -6809,7 +6843,7 @@ function updateMoonFlames(dt){
   else if(e.type==='tick'){burnTick(e.dmg);}
   else if(e.type==='burn_end'){status.textContent='O fogo negro se apagou.';}
  }
- if(bfVfx){const e=enemy.position;bfVfx.update(s,bfHazards,{camera,hero:{x:player.position.x,y:player.position.y,z:player.position.z},boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},hand:bfHand(),low:graphics3DMode==='low',arena:dimBattle&&dimBattle.active?(a=>({x:a.x,z:a.z,r:a.radius}))(arenaSpec(dimBattle.key)):null,groundY:fxGy(e.x,e.z)},dt);}
+ if(bfVfx){const e=enemy.position;bfVfx.update(s,bfHazards,{camera,hero:{x:player.position.x,y:player.position.y,z:player.position.z},boss:{x:e.x,y:e.y,z:e.z,yaw:enemy.rotation.y},hand:bfHand(),low:graphics3DIsLow(),arena:dimBattle&&dimBattle.active?(a=>({x:a.x,z:a.z,r:a.radius}))(arenaSpec(dimBattle.key)):null,groundY:fxGy(e.x,e.z)},dt);}
  if(s&&!userSettings.reduceShake&&s.st.trauma>.001){const k=shakeAt(s.st.trauma,s.st.t,s.st.kickT,{amp:fpWasActive?.1:.26,kick:.35});_csA.set(0,0,1).applyQuaternion(camera.quaternion);bfShake=new THREE.Vector3(k.x,k.y,k.z).addScaledVector(_csA,k.back*.5);camera.position.add(bfShake);}
  if(s&&s.done){moonFlames=null;kitState.t=Math.max(kitState.t,1.6);if(MOONFLAME_TEST)delete kitState.cds.s2;}
 }
@@ -6824,7 +6858,7 @@ function undoVxShake(){if(vxShake){camera.position.sub(vxShake);vxShake=null;}}
 function vxBossH(){const r=enemyPoseRoot();if(!r)return 2.4;const b=new THREE.Box3().setFromObject(r),h=b.max.y-b.min.y;return h>.5&&h<12?h:2.4;}
 function startVeraxionSwords(m){
  if(vxSwords||cySkill||lunarUlt)return;if(!vxSwordGeo){loadVeraxionSword();kitState.t=Math.max(kitState.t,.6);return;} /* espera o GLB da espada; nunca cai para uma magia genérica */
- if(!vxVfx)vxVfx=createFourSwordsVFX(THREE,scene,{swordGeometry:vxSwordGeo,low:graphics3DMode==='low'});
+ if(!vxVfx)vxVfx=createFourSwordsVFX(THREE,scene,{swordGeometry:vxSwordGeo,low:graphics3DIsLow()});
  const root=enemyPoseRoot();vxVfx.attachBoss(root);const e=enemy.position,a=dimBattle&&dimBattle.active?arenaSpec(dimBattle.key):null;
  vxSwords=createFourSwords({ground:(x,z)=>fxGy(x,z),dmgMul:m.dmg/12,blocked:(x,z)=>blockedAt(x,z),seed:Math.random()}).start({x:e.x,y:fxGy(e.x,e.z),z:e.z,yaw:foeYaw(),h:vxBossH()},a?{x:a.x,z:a.z,r:a.radius}:null);
  showCombatCallout(m.name);status.textContent='VÉRAXION exala a aura do abismo e ergue as duas mãos…';
@@ -6848,7 +6882,7 @@ function updateVeraxionSwords(dt){
  }
  /* plano 3/4 leve que mostra o bispo e as quatro espadas (mesmo yaw: os controles não mudam) */
  if(!fpWasActive){const e=enemy.position;if(!s.st.aborted&&s.st.released<0&&s.st.t>.45){Object.assign(ultCam,{want:.3,height:4.2,dist:12});ultCam.look.set(e.x,e.y+s.st.L*.65,e.z);s._cam=true;}else if(s._cam){ultCam.want=0;s._cam=false;}}
- if(vxVfx){const e=enemy.position;vxVfx.update(s,{camera,boss:{x:e.x,y:fxGy(e.x,e.z),z:e.z,yaw:enemy.rotation.y,h:s.st.boss.h},low:graphics3DMode==='low'},dt);}
+ if(vxVfx){const e=enemy.position;vxVfx.update(s,{camera,boss:{x:e.x,y:fxGy(e.x,e.z),z:e.z,yaw:enemy.rotation.y,h:s.st.boss.h},low:graphics3DIsLow()},dt);}
  if(!userSettings.reduceShake&&s.st.trauma>.001){const k=shakeAt(s.st.trauma,s.st.t,s.st.kickT,{amp:fpWasActive?.08:.22,kick:.3});_csA.set(0,0,1).applyQuaternion(camera.quaternion);vxShake=new THREE.Vector3(k.x,k.y,k.z).addScaledVector(_csA,k.back*.5);camera.position.add(vxShake);}
  if(s.done){if(s._cam)ultCam.want=0;vxSwords=null;if(vxVfx){vxVfx.clear();vxVfx.detachBoss();}kitState.t=Math.max(kitState.t,1.6);if(VX4_TEST)delete kitState.cds.s1;}
 }
@@ -6860,8 +6894,8 @@ const CY_TEST=new URLSearchParams(location.search).has('testCicloneAzul');
 function undoCyShake(){if(cyShake){camera.position.sub(cyShake);cyShake=null;}}
 function startVeraxionCyclone(m){
  if(cySkill||vxSwords||lunarUlt)return;
- if(!cyVfx)cyVfx=createBlueCycloneVFX(THREE,scene,{low:graphics3DMode==='low'});
- if(!cyBurnFx)cyBurnFx=createVeraxionHeroBurnVFX(THREE,scene,{low:graphics3DMode==='low',height:()=>playerReferenceHeight});
+ if(!cyVfx)cyVfx=createBlueCycloneVFX(THREE,scene,{low:graphics3DIsLow()});
+ if(!cyBurnFx)cyBurnFx=createVeraxionHeroBurnVFX(THREE,scene,{low:graphics3DIsLow(),height:()=>playerReferenceHeight});
  cyBurnFx.setTarget(player,model);cyBurnFx.clear();
  const root=enemyPoseRoot();cyVfx.attachBoss(root);const e=enemy.position,a=dimBattle&&dimBattle.active?arenaSpec(dimBattle.key):null;
  cySkill=createBlueCyclone({ground:(x,z)=>fxGy(x,z),dmgMul:m.dmg/20,blocked:(x,z)=>blockedAt(x,z)}).start({x:e.x,y:fxGy(e.x,e.z),z:e.z,yaw:enemy.rotation.y},{x:player.position.x,z:player.position.z},a?{x:a.x,z:a.z,r:a.radius}:null);
@@ -6902,7 +6936,7 @@ function updateVeraxionCyclone(dt){
     apenas enquanto o status BURN existe (3,7 s renováveis); movimento, dash e
     animações do GLB não interrompem o efeito. Sem cones/coplas genéricos. */
  if(cyBurnFx){cyBurnFx.setTarget(player,model);cyBurnFx.update(dt,!s.st.aborted&&playerHP>0&&s.st.burn?s.st.burn.stacks:0);}
- if(cyVfx){const e=enemy.position;cyVfx.update(s,{camera,boss:{x:e.x,y:fxGy(e.x,e.z),z:e.z,h:vxBossH()},low:graphics3DMode==='low'},dt);}
+ if(cyVfx){const e=enemy.position;cyVfx.update(s,{camera,boss:{x:e.x,y:fxGy(e.x,e.z),z:e.z,h:vxBossH()},low:graphics3DIsLow()},dt);}
  if(!userSettings.reduceShake&&s.st.trauma>.001){const k=shakeAt(s.st.trauma,s.st.t,s.st.kickT,{amp:fpWasActive?.08:.24,kick:.3});_csA.set(0,0,1).applyQuaternion(camera.quaternion);cyShake=new THREE.Vector3(k.x,k.y,k.z).addScaledVector(_csA,k.back*.5);camera.position.add(cyShake);}
  if(s.done){if(s._cam)ultCam.want=0;cySkill=null;if(cyBurnFx)cyBurnFx.clear();if(cyVfx){cyVfx.clear();cyVfx.detachBoss();}kitState.t=Math.max(kitState.t,1.6);if(CY_TEST)delete kitState.cds.s2;}
 }
@@ -6916,10 +6950,10 @@ function lunarCosmosReady(){if(!lunarLoad)lunarLoad=new Promise(res=>new GLTFLoa
 function lunarVeil(a,col){const v=document.getElementById('lunar-veil');if(v){v.style.opacity=String(Math.max(0,Math.min(1,a)));if(col)v.style.background=col;}}
 function startLunarUlt(){
  if(lunarUlt||!lunarGLTF||!isVeraxionProfile(encounterProfile)||!enemy.visible||!enemyAlive||!dimBattle?.active||vxSwords||cySkill||cineActive||bossUlt.kind)return false;
- if(!lunarCosmos)lunarCosmos=createLunarCosmos(THREE,{monsterGLTF:lunarGLTF,low:graphics3DMode==='low'});
+ if(!lunarCosmos)lunarCosmos=createLunarCosmos(THREE,{monsterGLTF:lunarGLTF,low:graphics3DIsLow()});
  if(!lunarBossFx)lunarBossFx=createLunarBossVFX(THREE,scene);lunarBossFx.attach(enemyPoseRoot());
  if(!lunarCam)lunarCam=new THREE.PerspectiveCamera(52,camera.aspect,.05,900);
- if(!lunarImpact)lunarImpact=createLunarArenaImpact(THREE,scene,{low:graphics3DMode==='low'});
+ if(!lunarImpact)lunarImpact=createLunarArenaImpact(THREE,scene,{low:graphics3DIsLow()});
  lunarImpact.clear();lunarImpactStarted=false;
  lunarUlt=createLunarUltimate().start({x:player.position.x,z:player.position.z});lunarUlt._boss={x:enemy.position.x,y:enemy.position.y,z:enemy.position.z,yaw:enemy.rotation.y,h:typeof vxBossH==='function'?vxBossH():2.4};
  lunarUlt._cam={pos:camera.position.clone(),q:camera.quaternion.clone(),fov:camera.fov};
@@ -7225,7 +7259,7 @@ function updateRites(dt){
  if(swordTrainingRequested&&!swordTrainingRequestedStarted&&model&&mixer&&player.userData.ready&&(quantumShowcaseRequested||riteReady())){swordTrainingRequestedStarted=true;startSwordTraining().catch(e=>{console.error(e);swordTrainingRequestedStarted=false;status.textContent='Falha ao iniciar treino: '+e.message;});}
  const valid=playerHP>0&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&!portalPull&&!whiteLease.locked&&(!(rites.busy||rites.waves.length)||riteContext===siegeContext());
  rites.update(dt,{valid,grounded,moving:Math.hypot(moveVX,moveVZ)>.12,sword:equippedSword,from:player.position,target:riteTarget(),yaw:riteFacing()});
- riteVFX.update(dt,graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium',cameraDistance<1.05&&!riteCinematicView);protaVFX.update(dt,camera,graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium');updateRiteHud();
+ riteVFX.update(dt,graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium',cameraDistance<1.05&&!riteCinematicView);protaVFX.update(dt,camera,graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium');updateRiteHud();
 }
 const riteButton=document.getElementById('sword-skill');
 function updateRiteHud(){
@@ -7279,7 +7313,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   cyBurnFx.setTarget(player,model);
   cyBurnFx.update(.13,s.st.burn?.stacks||0);
   const e=enemy.position;
-  cyVfx.update(s,{camera,boss:{x:e.x,y:fxGy(e.x,e.z),z:e.z,h:vxBossH()},low:graphics3DMode==='low'},.033);
+  cyVfx.update(s,{camera,boss:{x:e.x,y:fxGy(e.x,e.z),z:e.z,h:vxBossH()},low:graphics3DIsLow()},.033);
   renderer.render(scene,camera);
   return this.blueBurn();
  },
