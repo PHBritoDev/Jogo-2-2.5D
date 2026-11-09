@@ -84,18 +84,6 @@ jobs:
           cat /tmp/visual-lab-http.log
           exit 1
 
-      - name: Capturar a dimensao I no WebGL (somente PR da paisagem)
-        if: github.event_name == 'pull_request' && github.head_ref == 'feature/valerio-golden-meadow'
-        run: node tools/qa/valerio-visual.cjs
-
-      - name: Publicar fotos reais da dimensao I
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'feature/valerio-golden-meadow'
-        uses: actions/upload-artifact@v4
-        with:
-          name: bishop1-golden-meadow-${{ github.run_number }}
-          path: valerio-qa-results/
-          retention-days: 14
-
       - name: Smoke essencial do carregamento 3D (bloqueia imports quebrados no PR)
         if: github.event_name == 'pull_request'
         run: node tools/visual-lab/world-load-smoke.cjs
