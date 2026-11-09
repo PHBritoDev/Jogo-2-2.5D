@@ -55,6 +55,12 @@ try {
  await page.screenshot({path:path.join(out,'meadow-regrown.png'),timeout:90000});
  console.log('MEADOW_FRAME_REGROWN='+ (await page.screenshot({type:'jpeg',quality:32})).toString('base64'));
  report.shots.push('meadow-before-impact.png','meadow-impact.png','meadow-regrown.png');
+ // Camera offset removes the boss silhouette, allowing review of sky, hill, and fine vegetation.
+ await page.evaluate(()=>window.SevenSinsDebug3D.fly?.([430,-1997.7,28],[452,-1994,-85]));
+ await page.waitForTimeout(650);
+ await page.screenshot({path:path.join(out,'meadow-landscape.png'),timeout:90000});
+ console.log('MEADOW_FRAME_LANDSCAPE='+(await page.screenshot({type:'jpeg',quality:32})).toString('base64'));
+ report.shots.push('meadow-landscape.png');
  report.status='captured';report.render=report.state.render;
  if(report.errors.some(x=>/SyntaxError|WebGLProgram|Shader Error|Failed to fetch dynamically imported/i.test(x)))throw Error('WebGL/module errors');
  await context.close();
