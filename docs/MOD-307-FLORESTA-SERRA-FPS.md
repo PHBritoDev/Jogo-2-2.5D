@@ -1,4 +1,4 @@
-# Mod 305 — Floresta contínua até a serra, gaiolas na mata e FPS
+# Mod 307 — Floresta contínua até a serra, gaiolas na mata e FPS
 
 ## Onde era o "círculo vermelho"
 A captura do criador (quest "Investigue o choro de crianças", marcador a 107 m e **atrás** da câmera) foi reproduzida no

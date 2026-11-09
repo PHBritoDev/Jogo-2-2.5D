@@ -2,9 +2,40 @@
 export function buildVorgazhekAbyss(T,g,spec,ctx){
  const R=spec.radius,geo=[],mat=[],tex=[],watchers=[];
  const own=(a,o)=>{a.push(o);return o;};
- const water=own(mat,new T.ShaderMaterial({fog:false,uniforms:{uTime:{value:0},uR:{value:R}},
+ const water=own(mat,new T.ShaderMaterial({fog:false,uniforms:{uTime:{value:0},uR:{value:R},uPlayer:{value:new T.Vector2(0,12)}},
  vertexShader:'varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:'precision mediump float;varying vec2 p;uniform float uTime;uniform float uR;void main(){float r=length(p);float a=atan(p.y,p.x);float warp=sin(p.x*.095+uTime*.19)*2.2+sin(p.y*.16-uTime*.12)*1.5;float wave=sin((r+warp)*.72-uTime*.50+sin(a*5.+uTime*.12)*.43);float w2=sin((r+warp)*1.54+uTime*.25+sin(p.x*.25)*1.9);float streak=pow(max(0.,wave*.5+.5),32.)*.48+pow(max(0.,w2*.5+.5),42.)*.11;float streaks=sin(p.x*.72+sin(p.y*.27+uTime*.33)*5.5)+sin(p.x*1.84-sin(p.y*.19-uTime*.18)*4.1);float shards=pow(max(0.,streaks*.25+.5),19.)*smoothstep(.02,.82,abs(sin(p.y*.09+uTime*.2)));float fade=1.-smoothstep(uR*.7,uR*1.3,r);float shine=streak*.4+shards*.34*fade;gl_FragColor=vec4(vec3(.002,.003,.005)+vec3(.91,.90,.87)*shine,1.);}' }));
+
+ fragmentShader:`precision mediump float;
+ varying vec2 p;
+ uniform float uTime;
+ uniform float uR;
+ uniform vec2 uPlayer;
+ void main(){
+   float t=uTime;
+   float r=length(p);
+   vec2 q=p+vec2(sin(p.y*.09+t*.36),cos(p.x*.11-t*.31))*1.45;
+   // One broken, uneven current; no repetitive arena-wide circles.
+   float current=sin(q.y*.14+sin(q.x*.071+t*.12)*2.8-t*.28);
+   float fast=sin(q.x*1.32+sin(q.y*.12+t*.22)*5.2);
+   float mid=sin(q.x*.56+q.y*.028+sin(q.y*.19-t*.22)*3.4);
+   float breakup=.5+.5*sin(q.x*.11+sin(q.y*.075+t*.19)*4.0);
+   float line=pow(max(0.0,fast*.5+.5),13.0)*.48+
+              pow(max(0.0,mid*.5+.5),11.0)*.27;
+   float ribbons=line*pow(max(0.0,current*.5+.5),3.0)*(.23+breakup*.77);
+   float crossCurrent=sin(q.x*.23+q.y*.08+t*.31);
+   float silverPatch=pow(max(0.0,crossCurrent*.5+.5),8.0)*
+                    pow(max(0.0,sin(q.y*.27+sin(q.x*.13+t*.18)*4.0)*.5+.5),5.0);
+   float pr=length(p-uPlayer);
+   float foot=pow(max(0.0,sin(pr*2.1-t*4.3)),11.0)*
+              exp(-pr*.35)*smoothstep(.5,1.5,pr);
+   // A low-frequency liquid gleam distinguishes water from a static patterned floor.
+   float gleam=pow(max(0.0,sin(q.x*.095+q.y*.032+t*.21)*.5+.5),7.0)*.065;
+   float edge=1.0-smoothstep(uR*.78,uR*1.21,r);
+   float shine=(ribbons*.82+silverPatch*.17+foot*.25+gleam)*edge;
+   vec3 base=vec3(.0045,.006,.010);
+   vec3 silver=vec3(.86,.88,.90);
+   gl_FragColor=vec4(base+silver*shine,1.0);
+ }` }));
  const floor=new T.Mesh(own(geo,new T.CircleGeometry(R+25,128)),water);floor.rotation.x=-Math.PI/2;floor.position.y=.03;floor.name='VorgazhekMidnightWater';g.add(floor);
  const outer=new T.Mesh(own(geo,new T.RingGeometry(R+23,R+280,128)),own(mat,new T.MeshBasicMaterial({color:0x010102,side:T.DoubleSide,fog:false})));outer.rotation.x=-Math.PI/2;g.add(outer);
  const types=[
@@ -71,20 +102,24 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
  const eyeT=own(tex,new T.CanvasTexture(eyeC));eyeT.colorSpace=T.SRGBColorSpace;eyeT.generateMipmaps=false;
  const eyeG=own(geo,new T.PlaneGeometry(1,1));
  // Hand-composed silhouettes around the arena, with deep staggered distances.
- const slots=[[-.95,1.46],[-.48,1.74],[-.15,1.33],[.42,1.57],[.88,1.38],[1.36,1.77],[1.92,1.49],[2.37,1.62],[2.87,1.36],[3.42,1.72],[3.90,1.48],[4.45,1.67],[4.98,1.38],[5.37,1.81],[5.82,1.45],[6.13,1.68]];
+ // Stable dedicated sectors prevent entities occupying the same spot as others.
+ const sectors=11;
+ const angles=Array.from({length:sectors},(_,i)=>-Math.PI+.18+i*(Math.PI*2/sectors));
+ const depth=[1.76,2.05,1.85,2.18,1.80,2.12,1.90,2.15,1.79,2.04,1.88];
  for(let i=0;i<11;i++){
-  const type=types[i%4],scale=1+(i%5)*.19,root=new T.Group();
+  const type=types[i%4],scale=.74+(i%4)*.042,root=new T.Group();root.name='VorgazhekWatcher_'+i;
   const fm=own(mat,new T.MeshBasicMaterial({map:faces[i%4],transparent:true,depthWrite:false,opacity:0,fog:false,toneMapped:false,side:T.DoubleSide}));
-  const face=new T.Mesh(faceGeo,fm);face.scale.set(24*scale,28*scale,1);root.add(face);
+  const face=new T.Mesh(faceGeo,fm);face.scale.set(12.4*scale,17.1*scale,1);root.add(face);
   const eyes=[];
-  for(const [xp,yp] of type.eyes){const em=own(mat,new T.MeshBasicMaterial({map:eyeT,transparent:true,opacity:0,depthWrite:false,fog:false,toneMapped:false,side:T.DoubleSide}));const eye=new T.Mesh(eyeG,em);eye.position.set(xp*(172/256)*24*scale,(yp*(160/320)-4/320)*28*scale,.08);eye.userData.baseX=eye.position.x;eye.userData.baseY=eye.position.y;eye.scale.set(3.8*scale,2.45*scale,1);root.add(eye);eyes.push(eye);}
-  root.visible=false;g.add(root);watchers.push({root,face,eyes,i,slot:(i*3+2)%slots.length,phase:i*1.37,scale});
+  for(const [xp,yp] of type.eyes){const em=own(mat,new T.MeshBasicMaterial({map:eyeT,transparent:true,opacity:0,depthWrite:false,fog:false,toneMapped:false,side:T.DoubleSide}));const eye=new T.Mesh(eyeG,em);eye.position.set(xp*(172/256)*12.4*scale,(yp*(160/320)-4/320)*17.1*scale,.08);eye.userData.baseX=eye.position.x;eye.userData.baseY=eye.position.y;eye.scale.set(1.9*scale,1.25*scale,1);root.add(eye);eyes.push(eye);}
+  root.visible=false;g.add(root);watchers.push({root,face,eyes,i,phase:i*.77,scale});
  }
  const cameraPos=new T.Vector3(),focus=new T.Vector3();
  const sm=(a,b,x)=>{let v=T.MathUtils.clamp((x-a)/(b-a),0,1);return v*v*(3-2*v);};
  ctx.tick.push((t,dt,camera,options)=>{
   water.uniforms.uTime.value=t;
   const p=options?.playerPosition||options?.player?.position||options?.player||null;
+  if(p)water.uniforms.uPlayer.value.set(p.x-spec.x,p.z-spec.z);
   if(p)focus.set(p.x-spec.x,(p.y||0)-spec.y,p.z-spec.z);
   else if(camera)focus.copy(camera.position).sub(g.position);
   if(camera)cameraPos.copy(camera.position).sub(g.position);
@@ -92,14 +127,16 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
    const progress=(t*.055+w.phase*.39)%1,opacity=sm(.025,.13,progress)*(1-sm(.72,.91,progress));
    const budget=options?.quality==='low'?5:options?.quality==='medium'?8:11;
    w.root.visible=w.i<budget&&opacity>.015;if(!w.root.visible)continue;
-   const turn=Math.floor(t*.055+w.phase*.39),slot=slots[(w.slot+turn*7)%slots.length],r=R*slot[1]+15;
-   w.root.position.set(Math.cos(slot[0])*r,13+(w.i%5)*5,Math.sin(slot[0])*r);
+   const turn=Math.floor(t*.055+w.phase*.39);
+   const angle=angles[w.i]+Math.sin(turn*1.71+w.i*3.2)*.075;
+   const r=R*depth[w.i]+9+6*Math.sin(turn*2.1+w.i);
+   w.root.position.set(Math.cos(angle)*r,11+(w.i%4)*3.5,Math.sin(angle)*r);
    if(camera)w.root.lookAt(cameraPos.x,w.root.position.y,cameraPos.z);
    else w.root.lookAt(focus.x,w.root.position.y,focus.z);
-   w.face.material.opacity=opacity*(w.i%4===2?.76:.97);
+   w.face.material.opacity=opacity*(w.i%4===2?.55:.86);
    const dx=T.MathUtils.clamp((focus.x-w.root.position.x)/130,-.28,.28),dy=T.MathUtils.clamp((focus.z-w.root.position.z)/200,-.17,.17);
    const blink=Math.abs(Math.sin(t*(.85+(w.i%4)*.16)+w.phase*7.1))>.997?.08:1.;
-   for(const eye of w.eyes){eye.position.x=eye.userData.baseX+dx;eye.position.y=eye.userData.baseY+dy;eye.scale.y=2.45*w.scale*blink;eye.material.opacity=opacity*.70;}
+   for(const eye of w.eyes){eye.position.x=eye.userData.baseX+dx;eye.position.y=eye.userData.baseY+dy;eye.scale.y=1.25*w.scale*blink;eye.material.opacity=opacity*.70;}
   }
  });
  ctx.refs.vorgazhekAbyss={watchers:watchers.length,dispose(){geo.forEach(o=>o.dispose());mat.forEach(o=>o.dispose());tex.forEach(o=>o.dispose());}};
