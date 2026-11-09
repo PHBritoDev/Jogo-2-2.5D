@@ -25,6 +25,45 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
   for(const [ex,ey] of type.eyes){const xx=128+ex*172,yy=164-ey*160;const gr=x.createRadialGradient(xx,yy,2,xx,yy,40);gr.addColorStop(0,type.color);gr.addColorStop(.5,type.color);gr.addColorStop(1,'rgba(80,0,0,0)');x.fillStyle=gr;x.beginPath();x.ellipse(xx,yy,40,24,0,0,6.283);x.fill();x.fillStyle='#020102';x.beginPath();x.ellipse(xx,yy,17,19,0,0,6.283);x.fill();}
   if(type.mouth!==2){x.save();x.translate(128,209);x.fillStyle='#000';x.beginPath();if(type.mouth===3){x.ellipse(0,5,51,66,0,0,6.283);}else{x.moveTo(-82,-13);x.quadraticCurveTo(0,85,82,-13);x.quadraticCurveTo(0,31,-82,-13);}x.fill();x.strokeStyle=type.color;x.lineWidth=type.mouth===1?6:2;x.stroke();
    if(type.mouth!==3){x.fillStyle=type.mouth===1?'#e1b7b1':'#9c2e31';for(let i=0;i<14;i++){const t=i/13,xx=-75+t*150,yy=-5+Math.sin(Math.PI*t)*22;x.beginPath();x.moveTo(xx-5,yy);x.lineTo(xx+5,yy);x.lineTo(xx,yy+13+(i%3)*5);x.fill();}}x.restore();}
+
+  // Individual morphologies instead of repeating the same cartoon mouth/eyes.
+  if(type.mouth===1){
+    x.fillStyle='rgba(2,1,2,.95)';x.beginPath();x.moveTo(63,205);x.quadraticCurveTo(142,276,204,198);x.quadraticCurveTo(145,228,63,205);x.fill();
+    x.fillStyle='rgba(234,186,176,.95)';
+    for(let i=0;i<7;i++){const px=82+i*18,py=216+Math.sin((i/6)*Math.PI)*8;x.beginPath();x.moveTo(px-8,py);x.lineTo(px+7,py+1);x.lineTo(px+5,py+20);x.lineTo(px-4,py+19);x.closePath();x.fill();}
+    x.strokeStyle='rgba(229,137,131,.44)';x.lineWidth=5;x.beginPath();x.moveTo(43,190);x.quadraticCurveTo(122,289,219,181);x.stroke();
+  }
+  if(type.mouth===2){
+    // Inhuman horizontal headdress and tiny irregular eyes, like a figure seen through film grain.
+    x.fillStyle='rgba(2,2,4,.97)';x.beginPath();x.moveTo(25,93);x.lineTo(228,93);x.lineTo(189,119);x.lineTo(74,120);x.closePath();x.fill();
+    x.strokeStyle='rgba(182,181,173,.17)';x.lineWidth=5;x.beginPath();x.moveTo(29,94);x.lineTo(229,94);x.stroke();
+    x.fillStyle='rgba(221,215,202,.66)';x.beginPath();x.arc(86,126,8,0,6.283);x.fill();x.beginPath();x.ellipse(165,120,5,9,-.45,0,6.283);x.fill();
+  }
+  if(type.mouth===3){
+    // Exposed asymmetrical jaw, angled sockets and thin thornlike scalp appendages.
+    x.strokeStyle='rgba(153,52,40,.67)';x.lineWidth=3;
+    for(let i=0;i<13;i++){
+      const px=35+i*15,py=49+Math.abs(i-6)*7;
+      x.beginPath();x.moveTo(px,py);x.lineTo(px+(i%3-1)*10,py-20-(i%4)*12);x.stroke();
+    }
+    x.fillStyle='rgba(0,0,0,.92)';x.beginPath();x.ellipse(128,222,53,60,-.13,0,6.283);x.fill();
+    x.strokeStyle='rgba(191,67,50,.40)';x.lineWidth=5;x.beginPath();x.arc(125,220,59,-.2,2.95);x.stroke();
+    x.fillStyle='rgba(140,43,33,.90)';
+    for(let i=0;i<9;i++){let a=i/8*Math.PI,xx=130+50*Math.cos(a),yy=221+50*Math.sin(a);x.beginPath();x.moveTo(xx-6,yy-2);x.lineTo(xx+5,yy-2);x.lineTo(xx,yy-17);x.fill();}
+  }
+  // Analog film grit integrated into the head's alpha, not a fullscreen postprocess.
+  const image=x.getImageData(0,0,256,320),p=image.data;
+  let seed=type.mouth*173+19;
+  for(let i=0;i<9000;i++){
+    seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+    const idx=(seed%81920)*4;
+    if(p[idx+3]<30)continue;
+    const grain=((seed>>>17)&31)-16;
+    p[idx]=Math.min(255,Math.max(0,p[idx]+grain));
+    p[idx+1]=Math.min(255,Math.max(0,p[idx+1]+grain));
+    p[idx+2]=Math.min(255,Math.max(0,p[idx+2]+grain));
+  }
+  x.putImageData(image,0,0);
   const t=own(tex,new T.CanvasTexture(c));t.colorSpace=T.SRGBColorSpace;t.generateMipmaps=false;t.minFilter=T.LinearFilter;return t;
  }
  const faces=types.map(drawFace),faceGeo=own(geo,new T.PlaneGeometry(1,1));
