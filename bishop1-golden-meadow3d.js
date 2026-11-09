@@ -14,8 +14,12 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   // Reference has a gently ascending golden ridge toward -Z. Physics inside 30m stays flat.
   const terrainY=(x,z)=>{
     const r=Math.hypot(x,z),fade=THREE.MathUtils.smoothstep(r,radius+3,radius+24);
-    const ridge=THREE.MathUtils.smoothstep(-z,27,156)*9.2;
-    const swell=1.1*Math.sin(x*.021+z*.010)+.7*Math.cos(x*.033-z*.016);
+    const dist=THREE.MathUtils.smoothstep(-z,27,156);
+    // Ridge isn't a straight horizontal strip: a broad rise in the middle,
+    // flanked by lower rolling shoulders, matching the filmed uphill journey.
+    const crown=Math.exp(-Math.pow((x-4)/78,2));
+    const ridge=dist*(3.3+7.5*crown+1.3*Math.sin(x*.025));
+    const swell=(1.1*Math.sin(x*.021+z*.010)+.7*Math.cos(x*.033-z*.016))*dist;
     return -.055+fade*(ridge+swell);
   };
   const groundSize=420,segments=112;
