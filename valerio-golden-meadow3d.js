@@ -75,7 +75,23 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   stalkGeo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
   stalkGeo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
   stalkGeo.setIndex(indices);
+
   stalkGeo.computeVertexNormals();
+
+  // Detail LOD: wheat heads near player, lower vertex cost in the far meadow.
+  const liteGeo = new THREE.BufferGeometry(), lv=[], lc=[], li=[];
+  for(let k=0;k<2;k++) {
+    const a=k*Math.PI/2,dx=Math.cos(a),dz=Math.sin(a),n=lv.length/3;
+    lv.push(-.15*dx,0,-.15*dz,.15*dx,0,.15*dz,
+      -.06*dx,1.31,-.06*dz,.06*dx,1.31,.06*dz,
+      -.075*dx,1.05,-.075*dz,.075*dx,1.05,.075*dz,0,1.47,0);
+    for(const rgb of [[.55,.35,.13],[.55,.35,.13],[.95,.72,.35],[.95,.72,.35],[.92,.67,.30],[.92,.67,.30],[1,.85,.50]])lc.push(...rgb);
+    li.push(n,n+1,n+2,n+1,n+3,n+2,n+4,n+5,n+6);
+  }
+  liteGeo.setAttribute('position',new THREE.Float32BufferAttribute(lv,3));
+  liteGeo.setAttribute('color',new THREE.Float32BufferAttribute(lc,3));
+  liteGeo.setIndex(li);
+  liteGeo.computeVertexNormals();
 
   const wind = {value:0};
   const material = new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.91,metalness:0});
@@ -95,7 +111,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
 
   function plot(count,near,far,seedOffset){
     // Distinct tiles/LOD bands avoid overdraw-heavy endless dense stalks.
-    const mesh = new THREE.InstancedMesh(stalkGeo,material,count);
+    const mesh = new THREE.InstancedMesh(near>=45?liteGeo:stalkGeo,material,count);
     const dummy = new THREE.Object3D(), golden = new THREE.Color();
     for(let i=0;i<count;i++) {
       const angle = random() * Math.PI*2;
@@ -118,7 +134,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     mesh.castShadow=false;mesh.receiveShadow=false;
     add(mesh);
   }
-  plot(21000,0,45,0);plot(18000,45,115,1);plot(10000,115,196,2);
+  plot(15500,0,45,0);plot(17500,45,115,1);plot(10000,115,196,2);
 
   // A solitary dark tree on the distant ridge: silhouette anchors the composition.
   const tree = new THREE.Group(); tree.position.set(0,.5,-116);
@@ -149,7 +165,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   sun.position.set(5,18,-175);sun.scale.set(58,58,1);add(sun);
 
   ctx.refs.goldenMeadow={
-    dispose(){group.remove(...owned);stalkGeo.dispose();geo.dispose();pathGeo.dispose();soil.dispose();trail.material.dispose();material.dispose();bark.dispose();leaves.dispose();sunTexture.dispose();sun.material.dispose();}
+    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();pathGeo.dispose();soil.dispose();trail.material.dispose();material.dispose();bark.dispose();leaves.dispose();sunTexture.dispose();sun.material.dispose();}
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xc6b48f,fog:0xd1b990,fogNear:55,fogFar:230,
