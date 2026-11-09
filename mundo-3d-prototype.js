@@ -1820,7 +1820,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  camera.position.lerp(target,1-Math.exp(-14*dt));
@@ -1859,7 +1859,7 @@ if(rites.locksMovement||dialogueOpen||namePromptOpen||awakeningActive||playerHP<
 // Mexer o analógico depois do follow-through cancela a recuperação e volta a andar.
 const driven=newHero&&rites.active?.kind==='basic'&&rites.active.def?.drive;
 if(driven){if(Math.hypot(axisX,axisZ)>.5&&rites.active.t>=rites.active.def.cancelAt+.04)rites.cancel('move');else{axisX=0;axisZ=0;}}
-prota302.clock+=dt;stepSwordGrip(dt);
+prota302.clock+=dt;stepSwordGrip(dt);if(prota302.hidden&&!(dashRemaining>0))protaDashEnd();// dash interrompido (diálogo, cena, rito): nunca deixa o herói invisível
 // MOD 206 — dimensão distorcida do Ato III: frente vira trás e esquerda vira direita.
 if(distorted||performance.now()<foeInvertUntil){axisX=-axisX;axisZ=-axisZ;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
@@ -1930,7 +1930,8 @@ if(!grounded){
  *  velocidade real no chão (1,63 m/s e 5,48 m/s medidos pelo pé de apoio), então o pé não patina. */
 function protaLocomotion(sp){
  if(sp<PROTA_LOCO.idleBelow){if(actions.idle)play('idle',.2);return;}
- if(isSprinting()&&actions.run&&sp>PROTA_LOCO.walk*1.15){play('run',.16);actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.runNatural,.75,1.3));}
+ // corre só com CORRER/Shift; ao soltar, a passada de corrida só continua enquanto o corpo ainda está acima do ritmo de andar (frenagem)
+ if(actions.run&&(isSprinting()&&sp>PROTA_LOCO.walk*1.15||sp>PROTA_LOCO.walk*1.45)){play('run',.16);actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.runNatural,.75,1.3));}
  else{play('walk',.2);actions.walk.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.walkNatural,.5,1.4));}
 }
 /** Pouso/rematerialização em andamento (tempo de jogo), para a locomoção não atropelar o clipe curto. */
@@ -1951,12 +1952,12 @@ function protaDashStart(now){
  actionUntil=now+40;
 }
 function protaDashEnd(){
- if(!prota302.hidden&&!(dashRemaining>0))return;
+ if(!prota302.hidden&&!(dashRemaining>0)){prota302.attackAfterDash=prota302.clock+.26;return;}
  const dir={x:dashDirX,z:dashDirZ};
  // nunca termina dentro de um corpo: segue até sair dele (ou recua), sempre com teste de parede
  for(let i=0;i<30&&playerBlockedAt(player.position.x,player.position.z);i++){const nx=player.position.x+dir.x*.07,nz=player.position.z+dir.z*.07;if(dashBlockedAt(nx,nz))break;player.position.x=nx;player.position.z=nz;}
  for(let i=0;i<40&&playerBlockedAt(player.position.x,player.position.z);i++){player.position.x-=dir.x*.07;player.position.z-=dir.z*.07;}
- if(prota302.hidden){prota302.hidden=false;if(model)model.visible=prota302.wasVisible;if(swordMount)swordMount.visible=true;
+ if(prota302.hidden){prota302.hidden=false;if(model)model.visible=prota302.wasVisible;if(swordMount)swordMount.visible=cameraDistance>=1.05;
   protaVFX.reappear(player.position,dir,Math.max(1.2,Math.min(3,prota302.dashSpent*.55)));
   if(actions.Prota302_arrive&&!rites.busy){playOnce('Prota302_arrive',.03);actions.Prota302_arrive.setEffectiveTimeScale(1.35);prota302.arriveT=prota302.clock+PROTA_DASH.recover+.06;}}
  prota302.attackAfterDash=prota302.clock+.26;
@@ -1986,7 +1987,10 @@ function protaDrive(a,dt,target){
  const def=a.def,root=protaRoots[def.id],valid=target&&target.alive&&a.lockId!=null&&target.id===a.lockId;
  // manual: sem alvo, o startup ainda obedece ao analógico (vira até 10 rad/s)
  if(!valid&&a.t<def.open*.8){const it=protaIntentYaw();if(it.input){const d=Math.atan2(Math.sin(it.yaw-a.yaw),Math.cos(it.yaw-a.yaw));a.yaw+=Math.max(-10*dt,Math.min(10*dt,d));}}
- a.rootAcc=a.rootAcc||{x:0,z:0};const w=valid?warpStep(a,def,player.position,target,dt,a.rootAcc):{dx:0,dz:0,yaw:a.yaw};a.yaw=w.yaw;
+ // alvo em movimento: estima a velocidade e mira onde ele vai estar no meio da janela ativa (sem perseguir além do warp.max)
+ let aimAt=target;if(valid){if(a.lastT&&dt>0){const vx=(target.x-a.lastT.x)/dt,vz=(target.z-a.lastT.z)/dt;a.tv={x:(a.tv?.x||0)*.6+vx*.4,z:(a.tv?.z||0)*.6+vz*.4};}a.lastT={x:target.x,z:target.z};
+  const lead=Math.max(0,(def.open+def.close)/2-a.t),sp=a.tv?Math.hypot(a.tv.x,a.tv.z):0;if(sp>.2&&sp<9)aimAt={...target,x:target.x+a.tv.x*lead,z:target.z+a.tv.z*lead};}
+ a.rootAcc=a.rootAcc||{x:0,z:0};const w=valid?warpStep(a,def,player.position,aimAt,dt,a.rootAcc):{dx:0,dz:0,yaw:a.yaw};a.yaw=w.yaw;
  a.aimYaw=valid?Math.atan2(target.x-player.position.x,target.z-player.position.z):a.yaw;// a energia sai na direção do alvo travado
  let dx=w.dx,dz=w.dz;
  if(root&&root.length>=4){const n=root.length/2-1,at=f=>{const i=Math.min(n,Math.max(0,f)),k=Math.min(n-1,Math.floor(i)),u=i-k;return[root[k*2]+(root[k*2+2]-root[k*2])*u,root[k*2+1]+(root[k*2+3]-root[k*2+1])*u];};
@@ -2417,7 +2421,7 @@ function updateFirstPerson(dt,now){
  if(swordRoot&&equippedSword!=='prota'&&!swordHands[equippedSword])equipSword(equippedSword);
  const fp=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!awakeningActive;
  if(fp!==fpWasActive){rites.prevBlade=null;fpWasActive=fp;camera.fov=fp?72:56;camera.updateProjectionMatrix();const cross=document.getElementById('crosshair');if(cross)cross.hidden=!fp;}
- if(swordMount)swordMount.visible=!fp;
+ if(swordMount)swordMount.visible=!fp&&!prota302.hidden;
  if(!fp){if(swordView)swordView.root.visible=false;return;}
  ensureSwordView();if(!swordView)return;
  const source=equippedSword==='prota'?swordRoot:swordHands[equippedSword];if(source)swordView.equip(equippedSword,source);
@@ -7287,6 +7291,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  act(kind,x,z){if(x!==undefined){joyX=x;joyY=z;}action(kind);if(x!==undefined)joyX=joyY=0;return this.riteState();},
  pickAt(px,py){const rc=new THREE.Raycaster(),v=new THREE.Vector2(px/innerWidth*2-1,-(py/innerHeight)*2+1);rc.setFromCamera(v,camera);return rc.intersectObjects(scene.children,true).slice(0,6).map(h=>{let o=h.object,n=[];while(o&&n.length<4){n.push(o.name||o.type);o=o.parent;}return n.join('<')+' @'+h.distance.toFixed(1);});},
  vfxHide(which){const r={prota:protaVFX.root,rites:scene.getObjectByName('SwordRites231')}[which];if(r)r.visible=false;renderer.render(scene,camera);return !!r;},
+ realtime(){debugDtScale=1;return true;},
  combatQA(on=true,hp=0){debugCombat=!!on;if(hp>0){enemyHP=enemyMaxHP=hp;}return debugCombat;},
  protaReport(){const a=rites.active;return{move:a?{id:a.def?.id||a.clip,name:a.def?.name||null,t:+a.t.toFixed(3),phase:a.phase,hit:!!a.hit,by:a.hitBy||null,lock:a.lockId??null,closest:a.closest!=null&&isFinite(a.closest)?+a.closest.toFixed(2):null}:null,energies:rites.energies.map(e=>({kind:e.kind,r:+(e.radius||0).toFixed(2),travel:+(e.travel||0).toFixed(2),age:+e.age.toFixed(2)})),grip:+swordGrip.k.toFixed(2),hidden:prota302.hidden,vfx:protaVFX.stats(),hp:enemyHP,visible:!!model?.visible};},
  enemyAt(x,y,z,visible=true){enemy.position.set(x,y===null?terrainHeightAt(x,z):y,z);enemy.visible=visible;enemyAlive=visible;return enemy.position.toArray();},

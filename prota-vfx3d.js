@@ -17,7 +17,7 @@ export function createProtaVFX(T, scene) {
     vertexShader: vtx,
     fragmentShader: `precision highp float;varying vec2 vUv;uniform float age,seed;uniform vec3 tint;${noise}
       void main(){float x=vUv.x,y=vUv.y;float fil=n(vec2(x*9.+seed,y*3.-age*7.));float wisp=n(vec2(x*23.+seed*2.,y*9.-age*11.));float core=1.-smoothstep(.04+.22*fil,.42,abs(x-.5+.12*(fil-.5)));
-      float tip=smoothstep(0.,.22,y)*(1.-smoothstep(.45+.4*fil,1.,y));float a=core*tip*(.45+.55*wisp)*(1.-smoothstep(.3,1.,age))*.78;if(a<.03)discard;
+      float tip=smoothstep(0.,.22,y)*(1.-smoothstep(.45+.4*fil,1.,y));float a=core*tip*(.55+.45*wisp)*(1.-smoothstep(.35,1.,age))*.95;if(a<.03)discard;
       gl_FragColor=vec4(tint+vec3(.05,.02,.08)*fil,a);}` });
   const plane = new T.PlaneGeometry(1, 1); plane.translate(0, .5, 0);
   const smoke = Array.from({ length: 28 }, (_, i) => { const m = new T.Mesh(plane, smokeMat()); m.visible = false; m.frustumCulled = false; m.renderOrder = 5; root.add(m); return { m, age: 1, life: .3, vx: 0, vy: 0, vz: 0, w: .1, h: 1, seed: i * 1.37 }; });
@@ -25,9 +25,9 @@ export function createProtaVFX(T, scene) {
   function vanish(p, dir) {
     const count = quality === 'low' ? 10 : quality === 'medium' ? 18 : 28;
     for (let i = 0; i < count; i++) {
-      const s = smoke[smokeCursor++ % smoke.length], a = i * 2.399, r = .12 + (i % 4) * .07;
+      const s = smoke[smokeCursor++ % smoke.length], a = i * 2.399, r = .08 + (i % 4) * .08;
       s.m.position.set(p.x + Math.sin(a) * r, p.y + .05 + (i % 5) * .2, p.z + Math.cos(a) * r);
-      s.age = 0; s.life = .24 + (i % 3) * .05; s.w = .05 + (i % 4) * .03; s.h = .4 + (i % 5) * .1;
+      s.age = 0; s.life = .26 + (i % 3) * .06; s.w = .09 + (i % 4) * .05; s.h = .55 + (i % 5) * .14;
       s.vx = -dir.x * (1.2 + (i % 3) * .5); s.vz = -dir.z * (1.2 + (i % 3) * .5); s.vy = 2.2 + (i % 4) * .7; s.m.visible = true;
       s.m.material.uniforms.seed.value = s.seed + time;
     }
@@ -76,7 +76,7 @@ export function createProtaVFX(T, scene) {
         float taper=span<6.2?pow(sin(3.14159*vUv.x),.7):1.;float edge=exp(-pow(v*2.1/(.3+taper),2.));
         float streak=smoothstep(.35,.95,n(vec2(vUv.x*24.+seed,vUv.y*1.5-age*5.)));
         float a=edge*taper*(.35+.65*streak)*(1.-smoothstep(.45,1.,t))*fade*(.55+.45*brush);
-        vec3 c=mix(rim,core,edge);c+=fil*step(.88,n(vec2(vUv.x*120.+seed,vUv.y*9.)))*.7;a*=.85;if(a<.015)discard;gl_FragColor=vec4(c,a);}` });
+        vec3 c=mix(rim,core,edge);c+=fil*step(.88,n(vec2(vUv.x*120.+seed,vUv.y*9.)))*.7;a=min(1.,a*1.05);if(a<.015)discard;gl_FragColor=vec4(c,a);}` });
   const wallCache = new Map(), getWall = span => { const k = span.toFixed(2); if (!wallCache.has(k)) wallCache.set(k, wallGeo(span)); return wallCache.get(k); };
   const geoCache = new Map(), getSector = span => { const k = span.toFixed(2); if (!geoCache.has(k)) geoCache.set(k, sectorGeo(span)); return geoCache.get(k); }, wGeo = waveGeo();
   const energies = Array.from({ length: 8 }, () => { const g = new T.Group(), tilt = new T.Group(), mat = energyMat(), mesh = new T.Mesh(wGeo, mat), echo = new T.Mesh(wGeo, mat), wmat = wallMat(), wall = new T.Mesh(getWall(2), wmat); mesh.frustumCulled = echo.frustumCulled = wall.frustumCulled = false; echo.position.y = .06; tilt.add(mesh, echo, wall); g.add(tilt); g.visible = false; root.add(g); return { g, tilt, mesh, echo, wall, wmat, mat, e: null, after: 1 }; });

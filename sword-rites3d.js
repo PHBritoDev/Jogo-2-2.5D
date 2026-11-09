@@ -108,9 +108,9 @@ export class SwordRites {
    const live=a.kind==='basic'?a.t>=a.def.open&&a.t<=a.def.close:a.kind==='prota'?a.t>=.3&&a.t<.48:[.4,.82,1.24,1.70].some(t=>a.t>=t-.08&&a.t<=t+.09);
    if(blade){if(live)this.api.event('blade',{a,blade});
     if(a.kind==='basic'&&a.def.energy&&!a.energyOut&&a.t>=a.def.energy.at)this.release(a,blade,ctx);
-    if(a.def?.drive&&live&&target?.alive){let m=Infinity;for(let j=0;j<=4;j++)m=Math.min(m,segmentDistance({x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},blade.base,blade.tip));a.closest=Math.min(a.closest??Infinity,m-(target.radius||.48));}
+    if(a.def?.drive&&live&&target?.alive){let m=Infinity;for(let j=0;j<=4;j++)m=Math.min(m,segmentDistance({x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},blade.base,blade.tip));a.closest=Math.min(a.closest??Infinity,m-(target.radius||.48)-.2);}
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive)){const prev=this.prevBlade||blade;
-     if(bladeContact(prev.base,prev.tip,blade.base,blade.tip,target,(target.radius||.48)+.12)&&!segmentBlocked(ctx.from,target,this.api.blocked)&&!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
+     if(bladeContact(prev.base,prev.tip,blade.base,blade.tip,target,(target.radius||.48)+(a.def.drive?.2:.12))&&!segmentBlocked(ctx.from,target,this.api.blocked)&&!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
       a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:a.def.hitstop,shake:a.def.shake});
      }
     }this.prevBlade={base:copy(blade.base),tip:copy(blade.tip)};
