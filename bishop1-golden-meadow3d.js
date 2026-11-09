@@ -15,7 +15,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const terrainHeight = (x,z) => {
     const r=Math.hypot(x,z),fade=THREE.MathUtils.smoothstep(r,radius+1,radius+38);
     const approach=THREE.MathUtils.smoothstep(-z,20,152);
-    const ridge=7.6*approach*approach + 1.15*Math.sin(x*.022+z*.012)+.8*Math.sin(x*.055-z*.018);
+    const ridge=5.1*approach*approach + .84*Math.sin(x*.022+z*.012)+.47*Math.sin(x*.055-z*.018);
     return -.055+fade*ridge;
   };
   const groundSize = 420, segments = 112;
@@ -31,17 +31,17 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   // Shared micro-grass ground pattern fills exposed patches without thousands more meshes.
   const earthCanvas=document.createElement('canvas');earthCanvas.width=512;earthCanvas.height=512;
   const earthInk=earthCanvas.getContext('2d'),earthRandom=(()=>{let n=34577;return()=>((n=(n*1664525+1013904223)>>>0)/4294967296)})();
-  earthInk.fillStyle='#ad8751';earthInk.fillRect(0,0,512,512);
+  earthInk.fillStyle='#c8aa73';earthInk.fillRect(0,0,512,512);
   for(let i=0;i<21000;i++){
     const x=earthRandom()*512,y=earthRandom()*512,len=1+earthRandom()*6;
-    earthInk.strokeStyle=earthRandom()>.5?'rgba(238,204,138,.42)':'rgba(100,74,37,.38)';
+    earthInk.strokeStyle=earthRandom()>.5?'rgba(251,227,171,.62)':'rgba(144,112,64,.27)';
     earthInk.lineWidth=.35+earthRandom()*.65;
     earthInk.beginPath();earthInk.moveTo(x,y);earthInk.lineTo(x+(earthRandom()-.4)*3,y-len);earthInk.stroke();
   }
   const earthTex=new THREE.CanvasTexture(earthCanvas);
   earthTex.colorSpace=THREE.SRGBColorSpace;earthTex.wrapS=earthTex.wrapT=THREE.RepeatWrapping;
   earthTex.repeat.set(18,18);earthTex.anisotropy=4;
-  const soil = new THREE.MeshStandardMaterial({map:earthTex,color:0xb39264,roughness:1,metalness:0});
+  const soil = new THREE.MeshStandardMaterial({map:earthTex,color:0xffdfb5,roughness:1,metalness:0});
   add(new THREE.Mesh(geo,soil)).receiveShadow = true;
 
   // Procedural diffuse+opacity atlas for feathery susuki / pampas. Several crossed
@@ -251,13 +251,16 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   brush.fillStyle=gr;brush.fillRect(0,0,128,128);
   const sunTexture=new THREE.CanvasTexture(glowCanvas);sunTexture.colorSpace=THREE.SRGBColorSpace;
   const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTexture,color:0xffffff,transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
-  sun.position.set(0,12,-177);sun.scale.set(118,118,1);add(sun);
+  sun.position.set(0,10,-177);sun.scale.set(89,59,1);add(sun);
+  // Compact white core against a wider amber atmosphere, at the crest of the hill.
+  const sunCore=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTexture,color:0xffffff,transparent:true,opacity:.88,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
+  sunCore.position.set(0,10.5,-175);sunCore.scale.set(38,30,1);add(sunCore);
 
   ctx.refs.goldenMeadow={
-    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();darkBark.dispose();darkFoliage.dispose();distantTree.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
+    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();sunCore.material.dispose();darkBark.dispose();darkFoliage.dispose();distantTree.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xf5e4cf,fog:0xe0c6a5,fogNear:95,fogFar:250,
     hemi:[0xfff1d7,0xb08350,1.75],sun:[0xffe4b5,2.25],
-    light:[0xffecd0,1.32,155,[0,15,-48]],exposure:1.22};
+    light:[0xffedcc,1.42,155,[0,15,-48]],exposure:1.23};
 }
