@@ -206,6 +206,48 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     leafMesh.castShadow=false;add(leafMesh);
   }
 
+  // Final seconds of the creator's reference (32–35 s): umbrella-shaped tree
+  // silhouette on the far ridge and a small gate just to its left. Natural scale,
+  // not a giant boss model in the playable combat space.
+  const silhouetteMat=new THREE.MeshStandardMaterial({
+    color:0x47351e,roughness:1,metalness:0
+  });
+  const canopyMat=new THREE.MeshStandardMaterial({
+    color:0x56502c,roughness:1,metalness:0,side:THREE.DoubleSide
+  });
+  function connectBranch(parent,start,end,width,material){
+    const vec=new THREE.Vector3().subVectors(end,start);
+    const mesh=new THREE.Mesh(new THREE.CylinderGeometry(width*.62,width,vec.length(),7),material);
+    mesh.position.copy(start).add(end).multiplyScalar(.5);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vec.normalize());
+    parent.add(mesh);return mesh;
+  }
+  const loneTree=new THREE.Group();
+  loneTree.position.set(13,terrainY(13,-151),-151);
+  const base=new THREE.Vector3(0,0,0),top=new THREE.Vector3(.35,7.5,0);
+  connectBranch(loneTree,base,top,.68,silhouetteMat);
+  for(const [x,z,h,rx,rz] of [[-4,0,8.1,3.8,2.2],[3.4,0,8.0,3.7,2.4],
+    [0,-1.3,8.8,4.5,2.5],[-1.3,1.2,8.5,4.3,2.6]]){
+    connectBranch(loneTree,new THREE.Vector3(.2,5.6,0),
+      new THREE.Vector3(x,h,z),.25,silhouetteMat);
+    const canopy=new THREE.Mesh(new THREE.SphereGeometry(1,10,6),canopyMat);
+    canopy.position.set(x,h,z);canopy.scale.set(rx,1.0+Math.abs(x)*.07,rz);
+    loneTree.add(canopy);
+  }
+  add(loneTree);
+  // Subtle wooden gateway / crossbar on the same horizon, recognizable when approaching.
+  const gate=new THREE.Group();gate.position.set(-17,terrainY(-17,-150),-150);
+  const gateWood=new THREE.MeshStandardMaterial({color:0x67513a,roughness:1});
+  for(const x of [-2.5,2.5]){
+    const leg=new THREE.Mesh(new THREE.CylinderGeometry(.22,.28,5.8,6),gateWood);
+    leg.position.set(x,2.9,0);gate.add(leg);
+  }
+  const bar=new THREE.Mesh(new THREE.BoxGeometry(7.1,.36,.5),gateWood);
+  bar.position.y=5.65;gate.add(bar);
+  const beam=new THREE.Mesh(new THREE.BoxGeometry(5.8,.28,.48),gateWood);
+  beam.position.y=4.4;gate.add(beam);
+  add(gate);
+
   // Endless pastel sky dome; distant glow remains behind the foreground grass.
   // The original reference has a warm ivory sky, not an outdoor blue daytime sky.
   const skyGeo=new THREE.SphereGeometry(204,36,20);
@@ -243,7 +285,8 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   sun.position.set(0,14,-185);sun.scale.set(90,90,1);add(sun);
 
   ctx.refs.goldenMeadow={
-    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();}
+    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();silhouetteMat.dispose();canopyMat.dispose();gateWood.dispose();
+      loneTree.traverse(o=>{if(o.isMesh)o.geometry.dispose();});gate.traverse(o=>{if(o.isMesh)o.geometry.dispose();});skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();}
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xf8e2c8,fog:0xe6c6a0,fogNear:110,fogFar:275,
