@@ -58,3 +58,12 @@ test('medição de FPS recebe delta real sem teto de .04 da física',()=>{
  assert.match(source,/updateAutoGraphics3D\(frameDelta,now\);/);
  assert.doesNotMatch(source,/updateAutoGraphics3D\(dt,now\);/);
 });
+
+test('Mod 305: Auto não oscila — nível que cai logo depois de subir fica bloqueado',()=>{
+ const {api}=build();
+ api.applyGraphics3D('auto',.88);api.setTier(1);api.applyGraphics3D('auto',.68);
+ let t=20000;const run=(dt,n)=>{for(let i=0;i<n;i++){t+=dt*1000;api.updateAutoGraphics3D(dt,t);}};
+ run(.016,1300);assert.equal(api.get().tier,2,'sobe com folga sustentada');
+ run(.04,200);assert.equal(api.get().tier,1,'cai quando o nível novo não aguenta');
+ run(.016,1300);assert.equal(api.get().tier,1,'não volta a subir para o nível que acabou de falhar');
+});
