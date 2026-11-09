@@ -16,6 +16,9 @@ async function main(){
   await page.waitForFunction(()=>!!window.SevenSinsDebug3D,null,{timeout:180000});
   await page.waitForFunction(()=>{const d=window.SevenSinsDebug3D;const s=d?.dimState?.();if(s?.vs)d.vsGo();const n=d?.dimState?.();return !!(n?.battle?.active&&!n.vs&&n.voidMode);},null,{timeout:180000});
   await page.evaluate(()=>{SevenSinsDebug3D.god();SevenSinsDebug3D.speed(1);});
+  // The VS / boss reveal briefly holds an overhead camera; inspect actual play after it releases.
+  await page.waitForTimeout(8000);
+  await page.evaluate(()=>{SevenSinsDebug3D.fly(null);SevenSinsDebug3D.view(0,.1,8.5);});
   await page.waitForTimeout(1800);
   async function shot(label){await page.screenshot({path:path.join(out,label+'.png'),timeout:60000});report.screenshots.push(label+'.png');}
   report.state=await page.evaluate(()=>({dimension:SevenSinsDebug3D.dimState(),render:SevenSinsDebug3D.rinfo(),state:SevenSinsDebug3D.state()}));
@@ -23,7 +26,7 @@ async function main(){
   await shot('01-batalha-real-paisagem');
   report.navigation=await page.evaluate(()=>({centerBlocked:SevenSinsDebug3D.collisionAt(800,0),innerBlocked:SevenSinsDebug3D.collisionAt(862,0),outsideBlocked:SevenSinsDebug3D.collisionAt(893,0)}));
   assert.equal(report.navigation.centerBlocked,false);assert.equal(report.navigation.innerBlocked,false);assert.equal(report.navigation.outsideBlocked,true);
-  await page.evaluate(()=>SevenSinsDebug3D.view(.6,.12,9));await page.waitForTimeout(800);await shot('02-angulo-lateral');
+  await page.evaluate(()=>{SevenSinsDebug3D.fly(null);SevenSinsDebug3D.view(.65,.08,8.5);});await page.waitForTimeout(1500);await shot('02-angulo-lateral');
   await page.setViewportSize({width:393,height:852});await page.waitForTimeout(1000);await shot('03-retrato-celular');
   assert.deepEqual(report.errors,[]);report.ok=true;
   await context.close();
