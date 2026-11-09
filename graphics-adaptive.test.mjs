@@ -53,3 +53,8 @@ test('9 FPS dispara emergência, qualidade volta apenas depois de boa estabilida
  for(let i=0;i<1100;i++)api.updateAutoGraphics3D(.016,32000+i*16);
  assert.ok(api.get().tier>=1);
 });
+
+test('medição de FPS recebe delta real sem teto de .04 da física',()=>{
+ assert.match(source,/updateAutoGraphics3D\(frameDelta,now\);/);
+ assert.doesNotMatch(source,/updateAutoGraphics3D\(dt,now\);/);
+});
