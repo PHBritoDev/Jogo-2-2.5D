@@ -659,7 +659,7 @@ const tropicalReady=loadTropicalTrees(THREE,GLTFLoader,{windUniform:tropicalWind
  tropicalBelt=mountTropicalForest(THREE,lib,{group:scene,plan:tropicalPlan,registerCull:registerInstanceCull,lowSpec:terrainLowSpec,profile:tropicalProfile(),name:'cinturao'});
  for(const o of tropicalBelt.obstacles)treeObstacles.push(o);refreshInstanceCulling();
  // câmera encostada numa copa/tronco: pontilhado em vez de tela tapada (mesmo recurso das coníferas)
- addNearCameraFade(lib.materials.leaves,3.4);addNearCameraFade(lib.materials.bark,2.6);
+ addNearCameraFade(lib.materials.leaves,8.0);addNearCameraFade(lib.materials.bark,2.6);
  window.SevenSinsTropicalBeltReport={...tropicalBelt.stats,southern:southernForestPlan.length,perArea:BELT_AREAS.map(a=>villageBeltPlan.filter(t=>t.x>=a.x0&&t.x<=a.x1&&t.z>=a.z0&&t.z<=a.z1).length),glb:'EldoriaArvoresTropicais.glb'};return tropicalBelt;
 }).catch(e=>{console.warn('Árvores tropicais não carregaram.',e);window.SevenSinsTropicalBeltReport={failed:String(e&&e.message||e)};});
 // sub-bosque e cipós sob o cinturão (mesmos módulos da mata do Mod 291)
