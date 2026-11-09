@@ -275,14 +275,28 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   skyMesh.renderOrder=-100;
 
   // Far sun halo: the main light comes from the existing dimension lighting contract.
-  const glowCanvas = document.createElement('canvas'); glowCanvas.width=128;glowCanvas.height=128;
-  const brush=glowCanvas.getContext('2d'),gr=brush.createRadialGradient(64,64,5,64,64,64);
-  gr.addColorStop(0,'rgba(255,255,245,1)');gr.addColorStop(.065,'rgba(255,254,238,1)');
-  gr.addColorStop(.23,'rgba(255,233,165,.78)');gr.addColorStop(.62,'rgba(255,195,112,.18)');gr.addColorStop(1,'rgba(255,179,89,0)');
-  brush.fillStyle=gr;brush.fillRect(0,0,128,128);
+  // Single inexpensive billboard atlas: tiny white sun, wide amber bloom and
+  // soft asymmetric shafts, avoiding the flat white perfect circle of v1.
+  const glowCanvas = document.createElement('canvas'); glowCanvas.width=256;glowCanvas.height=256;
+  const brush=glowCanvas.getContext('2d'),gr=brush.createRadialGradient(128,128,3,128,128,128);
+  gr.addColorStop(0,'rgba(255,255,250,1)');gr.addColorStop(.055,'rgba(255,254,244,1)');
+  gr.addColorStop(.13,'rgba(255,241,194,.82)');gr.addColorStop(.36,'rgba(255,211,133,.33)');
+  gr.addColorStop(.77,'rgba(255,180,93,.075)');gr.addColorStop(1,'rgba(255,170,74,0)');
+  brush.fillStyle=gr;brush.fillRect(0,0,256,256);
+  // Translucent vertical/diagonal rays taper into the horizon; all baked once.
+  for(let i=0;i<18;i++){
+    const angle=(i/18)*Math.PI*2 + .13*Math.sin(i*8.2);
+    const len=35+(i%5)*15;
+    brush.save();brush.translate(128,128);brush.rotate(angle);
+    const beam=brush.createLinearGradient(10,0,115,0);
+    beam.addColorStop(0,'rgba(255,250,225,.25)');
+    beam.addColorStop(1,'rgba(255,225,148,0)');
+    brush.fillStyle=beam;brush.beginPath();brush.moveTo(8,-2.5);brush.lineTo(8+len,-.65);
+    brush.lineTo(8+len,.65);brush.lineTo(8,2.5);brush.closePath();brush.fill();brush.restore();
+  }
   const sunTexture=new THREE.CanvasTexture(glowCanvas);sunTexture.colorSpace=THREE.SRGBColorSpace;
   const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTexture,color:0xffffff,transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
-  sun.position.set(0,14,-185);sun.scale.set(90,90,1);add(sun);
+  sun.position.set(0,14,-185);sun.scale.set(92,92,1);add(sun);
 
   ctx.refs.goldenMeadow={
     dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();silhouetteMat.dispose();canopyMat.dispose();gateWood.dispose();
