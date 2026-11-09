@@ -23,7 +23,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     p.setY(i, -0.055 + hills);
   }
   geo.computeVertexNormals();
-  const soil = new THREE.MeshStandardMaterial({color:0x9b7537,roughness:1,metalness:0});
+  const soil = new THREE.MeshStandardMaterial({color:0x8c6531,roughness:1,metalness:0});
   add(new THREE.Mesh(geo,soil)).receiveShadow = true;
 
   // The reference has no built road; the entire arena is covered in windblown wild grass.
@@ -56,16 +56,16 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   }
   // Soft feathery head: many separate downy strands, wider at the middle,
   // strongly backlit and with curved tips blowing toward the right.
-  for(let k=0;k<390;k++){
-    const t=grassRandom(),y=72+t*235,wide=Math.sin(t*Math.PI)*60+8;
+  for(let k=0;k<220;k++){
+    const t=grassRandom(),y=72+t*235,wide=Math.sin(t*Math.PI)*44+5;
     const side=grassRandom()>.5?1:-1;
     const center=131+14*t*t;
     const x=center+side*(grassRandom()*.92+.08)*wide;
-    const length=8+grassRandom()*36;
+    const length=19+grassRandom()*52;
     const bend=(.3+grassRandom()*.7)*length;
     const light=grassRandom();
-    ink.strokeStyle=light>.72?'rgba(255,243,206,.78)':light>.37?'rgba(237,211,154,.65)':'rgba(184,142,79,.56)';
-    ink.lineWidth=.6+grassRandom()*1.35;
+    ink.strokeStyle=light>.72?'rgba(255,249,222,.94)':light>.37?'rgba(255,234,185,.88)':'rgba(241,203,139,.72)';
+    ink.lineWidth=.45+grassRandom()*.92;
     ink.beginPath();ink.moveTo(center+side*(2+grassRandom()*5),y+length*.32);
     ink.quadraticCurveTo(x-side*bend*.2,y-length*.26,x+side*bend*.35,y-length*.65);
     ink.stroke();
@@ -73,10 +73,10 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   // Grainy cream highlight spine for coherent plume volume rather than dots.
   const headGradient=ink.createLinearGradient(0,55,0,310);
   headGradient.addColorStop(0,'rgba(251,239,202,0)');
-  headGradient.addColorStop(.25,'rgba(255,231,181,.6)');
-  headGradient.addColorStop(.73,'rgba(204,164,100,.4)');
+  headGradient.addColorStop(.25,'rgba(255,246,211,.62)');
+  headGradient.addColorStop(.73,'rgba(255,230,183,.42)');
   headGradient.addColorStop(1,'rgba(180,130,70,0)');
-  ink.lineWidth=7;ink.strokeStyle=headGradient;
+  ink.lineWidth=3;ink.strokeStyle=headGradient;
   ink.beginPath();ink.moveTo(131,290);ink.quadraticCurveTo(120,174,137,71);ink.stroke();
 
   const foliageTex=new THREE.CanvasTexture(texCanvas);
@@ -87,7 +87,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     for(let j=0;j<planes;j++){
       const angle=j*Math.PI/planes,dx=Math.cos(angle),dz=Math.sin(angle),n=vertices.length/3;
       for(const [side,y,v] of [[-1,0,0],[1,0,0],[-1,2.22,1],[1,2.22,1]]){
-        vertices.push(side*.75*dx,y,side*.75*dz);
+        vertices.push(side*.5*dx,y,side*.5*dz);
         uvs.push((side+1)/2,v);
       }
       ind.push(n,n+1,n+2,n+1,n+3,n+2);
@@ -100,7 +100,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const stalkGeo=makeCards(3);
   const liteGeo=makeCards(2);
   const wind = {value:0};
-  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.22,side:THREE.DoubleSide,roughness:.88,metalness:0});
+  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.29,side:THREE.DoubleSide,roughness:.88,metalness:0});
   material.onBeforeCompile = shader => {
     shader.uniforms.uGoldenWind = wind;
     shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
@@ -113,7 +113,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       transformed.z += gust * .39 * bladeHeight;
       transformed.y -= abs(gust) * .08 * bladeHeight;`);
   };
-  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v4';
+  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v5';
 
   function plot(count,near,far,seedOffset){
     // Distinct tiles/LOD bands avoid overdraw-heavy endless dense stalks.
@@ -131,7 +131,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       const s=(.69+random()*.62)*(r>95?1.2:1);
       dummy.scale.set(s,s*(.79+random()*.36),track?.11*s:s);
       dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-      golden.setHSL(.105+random()*.02,.30+random()*.18,.83+random()*.12);
+      golden.setHSL(.100+random()*.018,.22+random()*.18,.91+random()*.07);
       mesh.setColorAt(i,golden);
     }
     mesh.instanceMatrix.needsUpdate=true;
@@ -140,7 +140,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     mesh.castShadow=false;mesh.receiveShadow=false;
     add(mesh);
   }
-  plot(10500,0,45,0);plot(11500,45,115,1);plot(6500,115,196,2);
+  plot(9000,0,45,0);plot(10000,45,115,1);plot(5300,115,196,2);
 
 
   // Endless pastel sky dome; distant glow remains behind the foreground grass.
