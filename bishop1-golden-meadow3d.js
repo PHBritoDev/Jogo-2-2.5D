@@ -94,7 +94,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     for(let j=0;j<planes;j++){
       const angle=j*Math.PI/planes,dx=Math.cos(angle),dz=Math.sin(angle),n=vertices.length/3;
       for(const [side,y,v] of [[-1,0,0],[1,0,0],[-1,2.22,1],[1,2.22,1]]){
-        vertices.push(side*.54*dx,y,side*.54*dz);
+        vertices.push(side*.39*dx,y,side*.39*dz);
         uvs.push((side+1)/2,v);
       }
       ind.push(n,n+1,n+2,n+1,n+3,n+2);
@@ -107,10 +107,43 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const stalkGeo=makeCards(2);
   const liteGeo=makeCards(1);
   const wind = {value:0};
+  // Eight transient GPU impact zones; no per-blade CPU updates or buffer uploads.
+  const impactSlots=Array.from({length:8},()=>new THREE.Vector4(100000,100000,0,-10000));
+  const impactUniform={value:impactSlots};
+  let nextImpact=0;
+  const impact=(x,z,radius=5)=>{
+    if(!Number.isFinite(x)||!Number.isFinite(z)||!Number.isFinite(radius)||radius<=0)return;
+    // Accept world-space coordinates from combat and convert them to arena-local coordinates.
+    const lx=Math.abs(x-spec.x)<220?x-spec.x:x;
+    const lz=Math.abs(z-spec.z)<220?z-spec.z:z;
+    impactSlots[nextImpact].set(lx,lz,Math.min(35,Math.max(.5,radius)),wind.value);
+    nextImpact=(nextImpact+1)%impactSlots.length;
+  };
+  const impactGLSL=`uniform vec4 uMeadowImpacts[8];
+    uniform float uMeadowTime;
+    float meadowSurvival(vec2 site) {
+      float survival=1.0;
+      for(int i=0;i<8;i++){
+        vec4 zone=uMeadowImpacts[i];
+        float age=uMeadowTime-zone.w;
+        float active=step(0.0,age)*(1.0-step(11.5,age));
+        float within=1.0-smoothstep(zone.z*.77,zone.z, distance(site,zone.xy));
+        float recovery=smoothstep(1.25,10.5,age);
+        survival=min(survival,1.0-active*within*(1.0-recovery));
+      }
+      return survival;
+    }`;
+  // Public event for gameplay VFX, also exposed via refs.goldenMeadow.impact().
+  const onMeadowImpact=event=>{
+    const d=event.detail||{}; impact(Number(d.x),Number(d.z),Number(d.radius??d.r??5));
+  };
+  if(typeof window!=='undefined')window.addEventListener('golden-meadow-impact',onMeadowImpact);
   const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.35,side:THREE.DoubleSide,roughness:.9,metalness:0,emissive:0x483016,emissiveIntensity:.17});
   material.onBeforeCompile = shader => {
     shader.uniforms.uGoldenWind = wind;
-    shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
+    shader.uniforms.uMeadowTime=wind;
+    shader.uniforms.uMeadowImpacts=impactUniform;
+    shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;\n'+impactGLSL);
     shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float bladeHeight = clamp(position.y / 2.22, 0.0, 1.0);
       vec2 worldXZ = instanceMatrix[3].xz;
@@ -118,12 +151,13 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       float sweeping = sin(uGoldenWind * 2.45 - worldXZ.x * .086 + worldXZ.y * .063);
       float secondary = sin(uGoldenWind * 3.7 + worldXZ.x * .17 + worldXZ.y * .11);
       float flutter = sin(uGoldenWind * 6.7 + worldXZ.x * .41 - worldXZ.y * .34);
-      float gust = .36 + .34*sweeping + .16*secondary + .085*flutter;
-      transformed.x += gust * .91 * bladeHeight * bladeHeight;
-      transformed.z += gust * .37 * bladeHeight * bladeHeight;
-      transformed.y -= abs(gust)*.24*bladeHeight*bladeHeight;`);
+      float gust = .35 + .52*sweeping + .25*secondary + .12*flutter;
+      transformed.x += gust * 1.55 * bladeHeight * bladeHeight;
+      transformed.z += gust * .71 * bladeHeight * bladeHeight;
+      transformed.y -= abs(gust)*.38*bladeHeight*bladeHeight;
+      transformed.y *= meadowSurvival(worldXZ);`);
   };
-  material.customProgramCacheKey=()=>'golden-ridge-wind-v9';
+  material.customProgramCacheKey=()=>'golden-ridge-wind-impact-v10';
 
 
   function plot(count,near,far){
@@ -170,16 +204,19 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const leafMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.94,side:THREE.DoubleSide});
   leafMat.onBeforeCompile=shader=>{
     shader.uniforms.uGoldenWind=wind;
-    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
+    shader.uniforms.uMeadowTime=wind;
+    shader.uniforms.uMeadowImpacts=impactUniform;
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;\n'+impactGLSL);
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float tall=clamp(position.y/1.47,0.0,1.0);
       vec2 xy=instanceMatrix[3].xz;
       float wave=sin(uGoldenWind*2.45-xy.x*.086+xy.y*.063);
       float micro=sin(uGoldenWind*5.0+xy.x*.23-xy.y*.18);
-      transformed.x+=(.32+.3*wave+.13*micro)*tall*tall;
-      transformed.z+=(.11+.12*wave)*tall*tall;`);
+      transformed.x+=(.42+.52*wave+.21*micro)*tall*tall;
+      transformed.z+=(.16+.22*wave)*tall*tall;
+      transformed.y *= meadowSurvival(xy);`);
   };
-  leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v2';
+  leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-impact-v3';
 
   const leafCount=12500,leafSectors=12,dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
   for(let sector=0;sector<leafSectors;sector++){
@@ -257,7 +294,8 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   sunCore.position.set(0,10.5,-175);sunCore.scale.set(38,30,1);add(sunCore);
 
   ctx.refs.goldenMeadow={
-    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();sunCore.material.dispose();darkBark.dispose();darkFoliage.dispose();distantTree.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
+    impact,
+    dispose(){if(typeof window!=='undefined')window.removeEventListener('golden-meadow-impact',onMeadowImpact);group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();sunCore.material.dispose();darkBark.dispose();darkFoliage.dispose();distantTree.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xf5e4cf,fog:0xe0c6a5,fogNear:95,fogFar:250,
