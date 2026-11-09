@@ -9,7 +9,7 @@ export const newHero=new URLSearchParams(location.search).get('prota')!=='antigo
 export const heroURL=newHero?'./Prota_otimizado_2K.glb':'./Protagonista.glb?mod172-grounding';
 const fallback=new URL(location.href);fallback.searchParams.set('prota','antigo');
 export const heroFallbackURL=fallback.href;
-let sourceClips=null,reference=null;
+let sourceClips=null,reference=null,heroRaw=null;
 export function prepareWorldHero(gltf){
  if(!newHero)return gltf;
  sourceClips=new Map(gltf.animations.map(c=>[c.name,c]));reference=gltf.scene.getObjectByName('Hips').position.toArray();
@@ -20,10 +20,28 @@ export function prepareWorldHero(gltf){
  const guard=aliases[0].clone();guard.name='Block';aliases.push(guard);
  for(const m of CLIP_CUTS)aliases.push(cut(m.id,m.clip,m.start,m.end));
  const raw=gltf.scene,bounds=measure(raw),scale=1.9/(bounds.max.y-bounds.min.y);raw.scale.multiplyScalar(scale);raw.position.y-=bounds.min.y*scale;
- const wrapper=new T.Group();wrapper.name='ProtaNovoWorld';wrapper.add(raw);wrapper.userData.newHero=true;
+ const wrapper=new T.Group();wrapper.name='ProtaNovoWorld';wrapper.add(raw);heroRaw=raw;wrapper.userData.newHero=true;
  gltf.scene=wrapper;gltf.animations=aliases;
  window.WorldProtagonistReport={file:'Prota_otimizado_2K.glb',clips:[...sourceClips.keys()],height:1.9,scale,hand:!!raw.getObjectByName('RightHand'),fallback:'?prota=antigo'};
  return gltf;
+}
+/**
+ * Mod 302: recorta os trechos do repertório do protagonista (prota-combat3d.js) e devolve, para cada um, o
+ * deslocamento real do quadril no chão (root motion em metros, no espaço do modelo, a 30 Hz). O clipe fica no lugar
+ * e o jogo aplica esse avanço na cápsula COM colisão — o golpe anda o que a animação anda, sem patinar nem atravessar.
+ */
+export function protaClips(segments){
+ if(!newHero||!sourceClips||!heroRaw)return{clips:{},roots:{}};
+ const hips=heroRaw.getObjectByName('Hips');heroRaw.updateMatrixWorld(true);const m3=new T.Matrix3().setFromMatrix4(hips.parent.matrixWorld),v=new T.Vector3();
+ const clips={},roots={};
+ for(const s of segments){const src=sourceClips.get(s.clip);if(!src)continue;
+  const c=T.AnimationUtils.subclip(src,s.id,Math.round(s.start*30),Math.round(s.end*30),30);c.duration=s.end-s.start;
+  const track=src.tracks.find(t=>/Hips\.position$/i.test(t.name)),root=[];
+  if(track){const at=time=>{const vals=track.values,ts=track.times;let i=0;while(i<ts.length-2&&ts[i+1]<time)i++;const u=Math.max(0,Math.min(1,(time-ts[i])/((ts[i+1]-ts[i])||1)));return[0,1,2].map(k=>vals[i*3+k]+(vals[i*3+3+k]-vals[i*3+k])*u);};
+   const p0=at(s.start);for(let f=0;f<=Math.ceil((s.end-s.start)*30);f++){const p=at(Math.min(s.end,s.start+f/30));v.set(p[0]-p0[0],p[1]-p0[1],p[2]-p0[2]).applyMatrix3(m3);root.push(+v.x.toFixed(4),+v.z.toFixed(4));}}
+  clips[s.id]=inPlace(c,{vertical:!!s.vertical,reference});roots[s.id]=root;
+ }
+ return{clips,roots};
 }
 export function nativeWorldCombos(){
  if(!newHero||!sourceClips)return{};const result={};

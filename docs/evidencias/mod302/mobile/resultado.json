@@ -1,0 +1,407 @@
+{
+ "joystick": {
+  "p": [
+   66,
+   -0.489,
+   148.447
+  ],
+  "yaw": 3.142,
+  "grounded": true,
+  "vy": 0,
+  "dash": 0,
+  "clip": "Walk",
+  "speed": 2.2,
+  "sprint": false,
+  "cam": [
+   66.41,
+   0.66,
+   154.85
+  ],
+  "hp": 100,
+  "e": [
+   66,
+   -0.5,
+   150
+  ],
+  "r": {
+   "move": null,
+   "energies": [],
+   "grip": 1,
+   "hidden": false,
+   "vfx": {
+    "smoke": 0,
+    "smears": 0,
+    "energies": 0,
+    "flashes": 0
+   },
+   "hp": 100,
+   "visible": true
+  }
+ },
+ "correrLigado": true,
+ "corrSamples": [
+  [
+   "Run",
+   6.71,
+   true
+  ],
+  [
+   "Run",
+   6.76,
+   true
+  ],
+  [
+   "Run",
+   6.78,
+   true
+  ],
+  [
+   "Run",
+   6.79,
+   true
+  ],
+  [
+   "Run",
+   6.8,
+   true
+  ],
+  [
+   "Run",
+   6.8,
+   true
+  ]
+ ],
+ "correr": {
+  "p": [
+   66,
+   -0.248,
+   142.318
+  ],
+  "yaw": 3.142,
+  "grounded": true,
+  "vy": 0,
+  "dash": 0,
+  "clip": "Run",
+  "speed": 6.8,
+  "sprint": true,
+  "cam": [
+   66.42,
+   0.81,
+   149.33
+  ],
+  "hp": 100,
+  "e": [
+   66,
+   -0.5,
+   150
+  ],
+  "r": {
+   "move": null,
+   "energies": [],
+   "grip": 1,
+   "hidden": false,
+   "vfx": {
+    "smoke": 0,
+    "smears": 0,
+    "energies": 0,
+    "flashes": 0
+   },
+   "hp": 100,
+   "visible": true
+  }
+ },
+ "correrDesligado": false,
+ "dash": {
+  "p": [
+   66,
+   -0.14,
+   140.552
+  ],
+  "yaw": 3.142,
+  "grounded": true,
+  "vy": 0,
+  "dash": 0.17,
+  "clip": "Idle",
+  "speed": 0,
+  "sprint": false,
+  "cam": [
+   66.42,
+   0.99,
+   146.63
+  ],
+  "hp": 100,
+  "e": [
+   66,
+   -0.5,
+   150
+  ],
+  "r": {
+   "move": null,
+   "energies": [],
+   "grip": 1,
+   "hidden": true,
+   "vfx": {
+    "smoke": 18,
+    "smears": 0,
+    "energies": 0,
+    "flashes": 0
+   },
+   "hp": 100,
+   "visible": false
+  }
+ },
+ "posDash": {
+  "p": [
+   66,
+   -0.008,
+   135.152
+  ],
+  "yaw": 3.142,
+  "grounded": true,
+  "vy": 0,
+  "dash": 0,
+  "clip": "Idle",
+  "speed": 0,
+  "sprint": false,
+  "cam": [
+   66.42,
+   1.13,
+   141.36
+  ],
+  "hp": 100,
+  "e": [
+   66,
+   -0.5,
+   150
+  ],
+  "r": {
+   "move": null,
+   "energies": [],
+   "grip": 1,
+   "hidden": false,
+   "vfx": {
+    "smoke": 0,
+    "smears": 0,
+    "energies": 0,
+    "flashes": 0
+   },
+   "hp": 100,
+   "visible": true
+  }
+ },
+ "golpe0": {
+  "p": [
+   66.671,
+   -0.444,
+   147.969
+  ],
+  "yaw": 3.212,
+  "grounded": true,
+  "vy": 0,
+  "dash": 0,
+  "clip": "Prota302_ground_0",
+  "speed": 0,
+  "sprint": false,
+  "cam": [
+   66.73,
+   0.74,
+   153.5
+  ],
+  "hp": 2975,
+  "e": [
+   66,
+   -0.48,
+   147.03
+  ],
+  "r": {
+   "move": {
+    "id": "Prota302_ground_0",
+    "name": "Fenda diagonal",
+    "t": 0.376,
+    "phase": "recovery",
+    "hit": true,
+    "by": "blade",
+    "lock": 0,
+    "closest": -0.21
+   },
+   "energies": [],
+   "grip": 1,
+   "hidden": false,
+   "vfx": {
+    "smoke": 0,
+    "smears": 0,
+    "energies": 0,
+    "flashes": 0
+   },
+   "hp": 2975,
+   "visible": true
+  }
+ },
+ "golpe1": {
+  "p": [
+   66.756,
+   -0.437,
+   147.939
+  ],
+  "yaw": -1.965,
+  "grounded": true,
+  "vy": 0,
+  "dash": 0,
+  "clip": "Idle",
+  "speed": 0,
+  "sprint": false,
+  "cam": [
+   66.99,
+   0.7,
+   153.73
+  ],
+  "hp": 2975,
+  "e": [
+   66,
+   -0.48,
+   147.03
+  ],
+  "r": {
+   "move": null,
+   "energies": [],
+   "grip": 1,
+   "hidden": false,
+   "vfx": {
+    "smoke": 0,
+    "smears": 0,
+    "energies": 0,
+    "flashes": 0
+   },
+   "hp": 2975,
+   "visible": true
+  }
+ },
+ "golpe2": {
+  "p": [
+   67.088,
+   -0.405,
+   147.187
+  ],
+  "yaw": -2.484,
+  "grounded": true,
+  "vy": 0,
+  "dash": 0,
+  "clip": "Prota302_ground_0",
+  "speed": 0,
+  "sprint": false,
+  "cam": [
+   66.99,
+   0.73,
+   153.26
+  ],
+  "hp": 2950,
+  "e": [
+   64.65,
+   -0.5,
+   146.18
+  ],
+  "r": {
+   "move": {
+    "id": "Prota302_ground_0",
+    "name": "Fenda diagonal",
+    "t": 0.4,
+    "phase": "recovery",
+    "hit": true,
+    "by": "blade",
+    "lock": 0,
+    "closest": -0.07
+   },
+   "energies": [],
+   "grip": 1,
+   "hidden": false,
+   "vfx": {
+    "smoke": 0,
+    "smears": 0,
+    "energies": 0,
+    "flashes": 0
+   },
+   "hp": 2950,
+   "visible": true
+  }
+ },
+ "golpes": {
+  "p": [
+   67.07,
+   -0.405,
+   147.108
+  ],
+  "yaw": -2.484,
+  "grounded": true,
+  "vy": 0,
+  "dash": 0,
+  "clip": "Idle",
+  "speed": 0,
+  "sprint": false,
+  "cam": [
+   66.82,
+   0.74,
+   152.81
+  ],
+  "hp": 2950,
+  "e": [
+   64.24,
+   -0.43,
+   145.83
+  ],
+  "r": {
+   "move": null,
+   "energies": [],
+   "grip": 1,
+   "hidden": false,
+   "vfx": {
+    "smoke": 0,
+    "smears": 0,
+    "energies": 0,
+    "flashes": 0
+   },
+   "hp": 2950,
+   "visible": true
+  }
+ },
+ "danoTotal": 50,
+ "salto": {
+  "p": [
+   67.07,
+   -0.232,
+   147.108
+  ],
+  "yaw": -2.484,
+  "grounded": false,
+  "vy": 4.32,
+  "dash": 0,
+  "clip": "Prota302_jump",
+  "speed": 0,
+  "sprint": false,
+  "cam": [
+   66.86,
+   0.76,
+   152.82
+  ],
+  "hp": 2950,
+  "e": [
+   64.39,
+   -0.45,
+   145.89
+  ],
+  "r": {
+   "move": null,
+   "energies": [],
+   "grip": 1,
+   "hidden": false,
+   "vfx": {
+    "smoke": 0,
+    "smears": 0,
+    "energies": 0,
+    "flashes": 0
+   },
+   "hp": 2950,
+   "visible": true
+  }
+ },
+ "erros": []
+}

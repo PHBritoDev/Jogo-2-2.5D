@@ -1,5 +1,7 @@
 import { syncBuildMarker } from './build-info.js';
-import {newHero,heroURL,heroFallbackURL,moveWorldHero,prepareWorldHero,nativeWorldCombos,retargetWorldRites,worldSwordLayers,worldHeroShadows,installHeroSelector} from './protagonist-aerial3d.js';
+import {newHero,heroURL,heroFallbackURL,moveWorldHero,prepareWorldHero,nativeWorldCombos,retargetWorldRites,worldSwordLayers,worldHeroShadows,installHeroSelector,protaClips} from './protagonist-aerial3d.js';
+import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep} from './prota-combat3d.js';
+import {createProtaVFX} from './prota-vfx3d.js';
 import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
 import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
@@ -10,7 +12,7 @@ import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {BOSS_MOVES,bossTraceContact,bossLift} from './boss-choreography3d.js';
 import {bakeCombatClips} from './combat-rig3d.js';
 import {COMBAT_MOVES,WEAPON_STYLES} from './combat-choreography3d.js';
-import {SwordRites,SWORD_RITES,swordAim} from './sword-rites3d.js';
+import {SwordRites,SWORD_RITES,swordAim,segmentBlocked} from './sword-rites3d.js';
 import {createSwordRitesVFX} from './sword-rites-vfx3d.js';
 import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage,swordLayers} from './sword-rites-animation3d.js';
 const vfxLabRequested=new URLSearchParams(location.search).has('vfxLab236');
@@ -1322,7 +1324,8 @@ function advanceDialogue(){
 function talkToGuide(){if(questStep!==0||dialogueOpen||namePromptOpen||cineActive)return;startAwakeningCine();}
 
 function finalePresentationFor(step){const pages={26:['ARCO FINAL · QUATRO FENDAS','Fale com o Anjo-Guia na vila'],27:['ARCO FINAL · OS GUARDIÕES','Vá ao portal da montanha e enfrente os quatro guardiões'],28:['ARCO FINAL · O PECADO DA GANÂNCIA','Derrote as três formas da Ganância'],29:['EPÍLOGO','O mundo respira'],30:['GALÁXIA 1 · LIBERTADA','Escolha a próxima jornada na tela das galáxias']};const p=pages[step];return p?{title:p[0],objective:p[1]}:null;}
-function combatStepNow(){return (dimBattle&&dimBattle.active)||(typeof pack!=="undefined"&&!!pack&&pack.active)||questStep===2||questStep===3||questStep===4||questStep===5||questStep===13||(lateSystemsReady&&(lateEngaged()||coliseum.active))||(finaleReady&&finaleCombatActive());}
+var debugCombat=false;// MOD 302: só o QA (?debug3d) liga, para filmar golpes num cenário real do mundo
+function combatStepNow(){return debugCombat||(dimBattle&&dimBattle.active)||(typeof pack!=="undefined"&&!!pack&&pack.active)||questStep===2||questStep===3||questStep===4||questStep===5||questStep===13||(lateSystemsReady&&(lateEngaged()||coliseum.active))||(finaleReady&&finaleCombatActive());}
 function enemyHpPercent(){return Math.max(0,Math.min(100,enemyHP/Math.max(1,enemyMaxHP)*100));}
 function nextDashCooldown(){if(encounterProfile==='warden')return 2.15;if(encounterProfile==='sentry'&&mountainIndex>0)return 1.65;return 2.7;}
 function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;const dimInfo=dimensionForProfile(encounterProfile);el.textContent=dimBattle&&dimBattle.active&&dimInfo?dimInfo.name+' · '+(dimInfo.order<5?dimInfo.order+'º BISPO':'PECADO'):(finaleReady&&finaleNameFor(encounterProfile))?finaleNameFor(encounterProfile):encounterProfile==='vorgazhek'?'VORGAZHEK · SEGUNDO BISPO':encounterProfile==='arena'?'ARENA DO VALE':(lateSystemsReady&&lateDef()&&lateDef().profile===encounterProfile)?lateDef().name:encounterProfile==='warden'?'GUARDIÃO DO PORTAL':(encounterProfile==='demon2'||encounterProfile==='demon3')?'DEMÔNIO DA GANÂNCIA':encounterProfile==='miniboss3'?'GUARDIÃO DA DISTORÇÃO':ROUND_NAMES[encounterProfile]?ROUND_NAMES[encounterProfile]:encounterProfile==='angel'?'ANJO-GUIA':encounterProfile==='demon4'?'GUARDIÃO DA TORRE':encounterProfile==='miniboss4'?'GUARDIÃO DO 6º PISO':encounterProfile==='leader4'?'LÍDER DOS GUARDIÕES':encounterProfile==='bandit4'?'BANDIDO':encounterProfile==='rival'?'DESCONHECIDO':encounterProfile==='miniboss2'?'GUARDIÃO DO TRONO':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
@@ -1378,7 +1381,20 @@ function findSwordHand(root){
  return bones.find(b=>rightHand.test(b.name||''))||null;
 }
 let swordRoot=null,swordHand=null,swordPivot=null,swordMount=null,swordWorldPosition=new THREE.Vector3(),swordWorldQuaternion=new THREE.Quaternion();
-function updatePlayerSwordMount(){if(!swordHand||!swordMount)return;swordHand.updateWorldMatrix(true,false);swordHand.getWorldPosition(swordWorldPosition);swordHand.getWorldQuaternion(swordWorldQuaternion);swordMount.position.copy(swordWorldPosition);swordMount.quaternion.copy(swordWorldQuaternion);swordMount.scale.set(1,1,1);swordMount.updateMatrixWorld(true);}
+function updatePlayerSwordMount(){if(!swordHand||!swordMount)return;swordHand.updateWorldMatrix(true,false);swordHand.getWorldPosition(swordWorldPosition);swordHand.getWorldQuaternion(swordWorldQuaternion);swordMount.position.copy(swordWorldPosition);swordMount.quaternion.copy(swordWorldQuaternion);swordMount.scale.set(1,1,1);applySwordGrip();swordMount.updateMatrixWorld(true);}
+/* MOD 302 — empunhadura do protagonista novo. O rig fecha o punho com os nós dos dedos no eixo +X da mão; prender a
+   lâmina no eixo dos dedos (+Y) deixava a espada "grudada" e o pulso torto. Nos clipes nativos (parado, andar, correr,
+   salto, dash e o repertório 302) a lâmina sai do punho pelo eixo dos nós; golpes assados/ritos antigos (calibrados
+   em +Y) mantêm o encaixe antigo, com transição suave entre os dois. */
+const swordGrip={k:0,ready:false,pos:new THREE.Vector3(),q:new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,-Math.PI/2)),id:new THREE.Quaternion()};
+function swordGripWanted(){const a=rites.active;return newHero&&!!swordHand&&(!a||(a.kind==='basic'&&!!a.def?.drive))?1:0;}
+function stepSwordGrip(dt){if(!newHero)return;const want=swordGripWanted();swordGrip.k+=(want-swordGrip.k)*(1-Math.exp(-16*Math.max(0,dt)));if(Math.abs(want-swordGrip.k)<.002)swordGrip.k=want;}
+function applySwordGrip(){
+ if(!newHero||!swordPivot||!swordRoot)return;
+ if(!swordGrip.ready){swordGrip.ready=true;const hs=swordHand.getWorldScale(new THREE.Vector3()).x||1,handle=new THREE.Vector3(0,.63,0).multiplyScalar(swordRoot.scale.x).applyQuaternion(swordRoot.quaternion).add(swordRoot.position);
+  swordGrip.pos.set(-.07,.085,.02).multiplyScalar(hs).sub(handle.applyQuaternion(swordGrip.q));}
+ const k=swordGrip.k;swordPivot.position.copy(swordGrip.pos).multiplyScalar(k);swordPivot.quaternion.slerpQuaternions(swordGrip.id,swordGrip.q,k);
+}
 function loadPlayerSword(modelRoot){
  const loader=new GLTFLoader();
  loader.load('./EspadaProta.glb?v=mod148-sword-grip',gltf=>{
@@ -1400,14 +1416,14 @@ function loadPlayerSword(modelRoot){
   }
  },undefined,err=>{console.warn('EspadaProta.glb não carregou:',err);});
 }
-installHeroSelector();let heroShadows=null;
+installHeroSelector();let heroShadows=null,protaRoots={},protaClipSet=null;const protaVFX=createProtaVFX(THREE,scene);
 new GLTFLoader().load(heroURL,gltf=>{
   prepareWorldHero(gltf);
   model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;}}});
   fitModel(model);const playerBounds=measureModelBounds(model),playerSize=playerBounds.getSize(new THREE.Vector3());if(playerSize.y>.001)playerReferenceHeight=playerSize.y;
   player.add(model);restoreRiteScales=lockSwordRigScales(model);if(newHero)heroShadows=worldHeroShadows(scene,model);
  loadPlayerSword(model);
- new GLTFLoader().load('./Protagonista-ritos-232.glb',g=>{try{riteClips={...(newHero?retargetWorldRites(g,model):prepareSwordClips(THREE,g.animations,model)),...bakeCombatClips(THREE,model,cloneSkinned,playerIdleClip),...nativeWorldCombos()};riteVFX.setHero(model,cloneSkinned);const run=newHero?actions.run?.getClip():g.animations.find(c=>c.name==='Hero_Run');if(run)actions.run=mixer.clipAction(run);if(!newHero)new GLTFLoader().load('./Protagonista-corrida-235.glb',asset=>{const r=asset.animations.find(c=>c.name==='Hero_Run');if(r){actions.run=mixer.clipAction(r);if(riteLayers)riteLayers.lower.run=swordLayers(THREE,{}, {run:r}).lower.run;window.HeroRun235Ready=true;}},undefined,e=>console.error('Corrida 235',e));riteLayers=(newHero?worldSwordLayers:(clips,locomotion)=>swordLayers(THREE,clips,locomotion))(riteClips,{idle:actions.idle?.getClip(),walk:actions.walk?.getClip(),run});window.SwordRiteAnimationReport=Object.values(riteClips).map(c=>({name:c.name,duration:c.duration,tracks:c.tracks.length}));}catch(e){console.error(e);status.textContent='Falha ao preparar as animações de espada.';}},undefined,e=>console.error('Kit de espadas não carregou',e));
+ new GLTFLoader().load('./Protagonista-ritos-232.glb',g=>{try{riteClips={...(newHero?retargetWorldRites(g,model):prepareSwordClips(THREE,g.animations,model)),...bakeCombatClips(THREE,model,cloneSkinned,playerIdleClip),...nativeWorldCombos(),...(protaClipSet||{})};riteVFX.setHero(model,cloneSkinned);const run=newHero?actions.run?.getClip():g.animations.find(c=>c.name==='Hero_Run');if(run)actions.run=mixer.clipAction(run);if(!newHero)new GLTFLoader().load('./Protagonista-corrida-235.glb',asset=>{const r=asset.animations.find(c=>c.name==='Hero_Run');if(r){actions.run=mixer.clipAction(r);if(riteLayers)riteLayers.lower.run=swordLayers(THREE,{}, {run:r}).lower.run;window.HeroRun235Ready=true;}},undefined,e=>console.error('Corrida 235',e));riteLayers=(newHero?worldSwordLayers:(clips,locomotion)=>swordLayers(THREE,clips,locomotion))(riteClips,{idle:actions.idle?.getClip(),walk:actions.walk?.getClip(),run});window.SwordRiteAnimationReport=Object.values(riteClips).map(c=>({name:c.name,duration:c.duration,tracks:c.tracks.length}));}catch(e){console.error(e);status.textContent='Falha ao preparar as animações de espada.';}},undefined,e=>console.error('Kit de espadas não carregou',e));
  if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);const clips=gltf.animations;playerIdleClip=clips.find(c=>/^idle$/i.test(c.name||''))||chooseClip(clips,/idle|breath|respir|parad/i)||null;const idle=playerIdleClip||chooseClip(clips,/idle|breath|respir|parad/i);const walk=chooseClip(clips,/walk|caminh/i);attackClips=selectDimensionAttack(clips);attackClipIndex=0;const jump=chooseClip(clips,/jump|saltar|salto/i);
  const hit=chooseClip(clips,/hit.?knockback|hit.?reaction|hurt|damage|take.?damage|taking.?damage/i)||chooseClip(clips,/overhandthrow/i);
  const death=chooseClip(clips,/death|dead|dying|(^|[^a-z])die([^a-z]|$)|knockdown|collapse/i);
@@ -1415,6 +1431,7 @@ new GLTFLoader().load(heroURL,gltf=>{
  if(newHero){const run=clips.find(c=>c.name==='Run');if(run)actions.run=mixer.clipAction(run);}if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);
  if(hit)actions.hit=mixer.clipAction(hit);{const kip=chooseClip(clips,/kip/i);if(kip)actions.kipUp=mixer.clipAction(kip);}if(death)actions.death=mixer.clipAction(death);if(dash)actions.dash=mixer.clipAction(dash);if(block)actions.block=mixer.clipAction(block);
  play(actions.idle?'idle':actions.walk?'walk':'idle',0);
+ if(newHero){const pc=protaClips(protaSegments());protaRoots=pc.roots;protaClipSet=pc.clips;for(const k of ['Prota302_jump','Prota302_land','Prota302_arrive'])if(pc.clips[k])actions[k]=mixer.clipAction(pc.clips[k]);}
  window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);
  }
  fitGuideModel();addVillageVendors();
@@ -1431,6 +1448,9 @@ function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
 let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
+/* MOD 302 — estado do protagonista em tempo de JOGO (segundos): não depende do relógio real, então a filmagem em passo
+   fixo e o jogo a 30/60/120 FPS veem a mesma coisa. */
+const prota302={clock:0,hidden:false,wasVisible:true,dashFrom:new THREE.Vector3(),dashSpent:0,attackAfterDash:0,landT:0,arriveT:0,airAttacks:0,airborneT:0,punch:0,lockId:null};
 const holyProjectiles=[];let holyCooldowns={magic:0,magic2:0,magic3:0,ultimate:0};
 
 
@@ -1673,7 +1693,7 @@ function updateHolyProjectiles(dt){
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
  }
 }
-function action(kind){if(whiteLease.locked)return;if(cosmicLock())return;if(vzLocked){if(kind==='attack'||kind==='jump')vzSkip();return;}if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(now<dashCooldownUntil||!rites.canCancel)return;rites.cancel('dash');dashCooldownUntil=now+(newHero?400:720);let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}dashRemaining=newHero?.16:.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+(newHero?120:330));heroShadows?.emit();worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded||!rites.canCancel)return;rites.cancel('jump');grounded=false;verticalVelocity=newHero?6.2:jumpImpulse;if(newHero)dashRemaining=0;heroShadows?.emit();worldAudio.whoosh();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget());siegeHUD();return;}tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(slotSkill(kind));return;}}
+function action(kind){if(whiteLease.locked)return;if(cosmicLock())return;if(vzLocked){if(kind==='attack'||kind==='jump')vzSkip();return;}if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(now<dashCooldownUntil||!rites.canCancel)return;rites.cancel('dash');dashCooldownUntil=now+(newHero?PROTA_DASH.cooldown*1000:720);let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}if(newHero){protaDashStart(now);return;}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);heroShadows?.emit();worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!grounded||!rites.canCancel)return;rites.cancel('jump');grounded=false;verticalVelocity=newHero?PROTA_JUMP.impulse:jumpImpulse;if(newHero){protaDashEnd();dashRemaining=0;prota302.airAttacks=0;prota302.airborneT=0;}worldAudio.whoosh();if(newHero&&actions.Prota302_jump){const a=actions.Prota302_jump,air=2*PROTA_JUMP.impulse/PROTA_JUMP.gravity;playOnce('Prota302_jump',.06);a.setEffectiveTimeScale(a.getClip().duration/air);actionUntil=now+60;return;}heroShadows?.emit();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget());siegeHUD();return;}tryPlayerAttack();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(slotSkill(kind));return;}}
 // MOD 187 — o celular não gera 'click' para um segundo dedo enquanto o primeiro segura o joystick; pointerdown responde sempre.
 /* MOD 291 — "clique fantasma": um toque que FECHA um painel (ex.: ✕ da Loja, no canto superior direito) dispara no
    pointerdown; o click que o navegador gera no pointerup cai no botão que ficou embaixo (⏸) e abria a PAUSA.
@@ -1731,6 +1751,13 @@ function blockedAt(x,z){
  for(const o of marketObstacles){if(o.height!==undefined&&o.height<=.68)continue;const dx=x-o.x,dz=z-o.z;if(o.shape==='box'?Math.abs(dx)<o.halfX&&Math.abs(dz)<o.halfZ:dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
  return false;
+}
+/** MOD 302: o dash atravessa corpos (como a referência 3900), nunca parede/obstáculo/guarda-corpo. */
+function dashBlockedAt(x,z){
+ if(blockedAt(x,z))return true;
+ if(!voidMode&&walkRailingsOn&&eldoriaWalk.blocked(x,z,player.position.y,groundHeightAt))return true;
+ if(!voidMode&&[...vendorRoots,...villagerWalkers.map(w=>w.holder)].some(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8))return true;
+ return questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(s=>Math.abs(x-s.x)<.72&&Math.abs(z-s.z)<.72);
 }
 function playerBlockedAt(x,z){
  if(blockedAt(x,z))return true;
@@ -1793,7 +1820,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  camera.position.lerp(target,1-Math.exp(-14*dt));
@@ -1828,6 +1855,11 @@ function updatePlayerMovement(dt,now){
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
 if(rites.locksMovement||dialogueOpen||namePromptOpen||awakeningActive||playerHP<=0||portalPull||cineActive||cosmicLock()){axisX=0;axisZ=0;moveVX=moveVZ=0;dashRemaining=0;}
+// MOD 302: golpe do repertório do protagonista é corpo inteiro (o avanço vem do root motion + aproximação ao alvo).
+// Mexer o analógico depois do follow-through cancela a recuperação e volta a andar.
+const driven=newHero&&rites.active?.kind==='basic'&&rites.active.def?.drive;
+if(driven){if(Math.hypot(axisX,axisZ)>.5&&rites.active.t>=rites.active.def.cancelAt+.04)rites.cancel('move');else{axisX=0;axisZ=0;}}
+prota302.clock+=dt;stepSwordGrip(dt);if(prota302.hidden&&!(dashRemaining>0))protaDashEnd();// dash interrompido (diálogo, cena, rito): nunca deixa o herói invisível
 // MOD 206 — dimensão distorcida do Ato III: frente vira trás e esquerda vira direita.
 if(distorted||performance.now()<foeInvertUntil){axisX=-axisX;axisZ=-axisZ;}
 let len=Math.hypot(axisX,axisZ);if(len>1){axisX/=len;axisZ/=len;len=1;}
@@ -1839,7 +1871,7 @@ let worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
 // MOD 292 — só QA (?debug3d): caminhada guiada numa direção do mundo, para testar escadas, deques e bordas.
 if(qaMove&&!(rites.locksMovement||dialogueOpen||cineActive)){if(qaMove.left>0){qaMove.left-=dt;worldX=qaMove.x;worldZ=qaMove.z;}else qaMove=null;}
 const engaged=enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;
-const speed=(defending?1.9:isSprinting()?7.2:4.3)*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
+const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
@@ -1858,14 +1890,14 @@ if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
 const moving=Math.hypot(moveVX,moveVZ)>.12;
 // Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
 if(dashRemaining>0){
- const dashDt=Math.min(dt,dashRemaining);const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*(newHero?18:12.5)*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*(newHero?18:12.5)*dashDt,-6000,6000);
- if(newHero)moveWorldHero(player.position,nextX-player.position.x,nextZ-player.position.z,playerBlockedAt);
+ const dashDt=Math.min(dt,dashRemaining),dashSpeed=newHero?PROTA_DASH.distance/PROTA_DASH.travel:12.5;const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*dashSpeed*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*dashSpeed*dashDt,-6000,6000);
+ if(newHero){const bx=player.position.x,bz=player.position.z;moveWorldHero(player.position,nextX-player.position.x,nextZ-player.position.z,dashBlockedAt);const got=Math.hypot(player.position.x-bx,player.position.z-bz);prota302.dashSpent+=got;if(got<Math.hypot(nextX-bx,nextZ-bz)*.35)dashRemaining=dashDt;/* parede: o dash termina ali, sem atravessar */}
  else{
  // MOD 292: o ponto do meio também é testado (o dash anda até 0,5 m por quadro e não pode atravessar guarda-corpo fino)
  if(!playerBlockedAt(nextX,player.position.z)&&!playerBlockedAt((player.position.x+nextX)/2,player.position.z))player.position.x=nextX;
  if(!playerBlockedAt(player.position.x,nextZ)&&!playerBlockedAt(player.position.x,(player.position.z+nextZ)/2))player.position.z=nextZ;
  }
- playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;dashRemaining=Math.max(0,dashRemaining-dt);
+ playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;dashRemaining=Math.max(0,dashRemaining-dt);if(newHero&&dashRemaining<=0)protaDashEnd();
 }else if(moving){
  const nextX=THREE.MathUtils.clamp(player.position.x+moveVX*dt,-6000,6000);
  const nextZ=THREE.MathUtils.clamp(player.position.z+moveVZ*dt,-6000,6000);
@@ -1875,8 +1907,9 @@ if(dashRemaining>0){
  const wantedYaw=Math.atan2(moveVX,moveVZ);
  const yawDelta=Math.atan2(Math.sin(wantedYaw-playerYaw),Math.cos(wantedYaw-playerYaw));
  if(!rites.busy&&cameraDistance>=1.05){playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;}
- if(grounded&&now>actionUntil&&actions.walk){const sp=Math.hypot(moveVX,moveVZ);if(actions.run&&sp>(newHero?2.6:5.2)){play('run');actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/(newHero?4.3:5.2),.65,1.65));}else{play('walk');const walkAction=actions.walk;if(walkAction)walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/3.4,.55,1.45));}}
-}else if(playerHP>0&&grounded&&now>actionUntil&&actions.idle)play('idle');
+ if(newHero){if(grounded&&now>actionUntil&&!protaPoseBusy()&&actions.walk)protaLocomotion(Math.hypot(moveVX,moveVZ));}
+ else if(grounded&&now>actionUntil&&actions.walk){const sp=Math.hypot(moveVX,moveVZ);if(actions.run&&sp>5.2){play('run');actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/5.2,.65,1.65));}else{play('walk');const walkAction=actions.walk;if(walkAction)walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/3.4,.55,1.45));}}
+}else if(playerHP>0&&grounded&&now>actionUntil&&actions.idle&&!(newHero&&protaPoseBusy()))play('idle');
 // Física vertical com altura do terreno: o personagem pode subir e descer pelas pedras.
 updateRiteLocomotion(dt);
 heroShadows?.update(dt);
@@ -1885,12 +1918,89 @@ let floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.p
 if(!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.position.x,player.position.z,player.position.y+(grounded?0:.05));if(sup&&sup.y>floorY)floorY=sup.y;}
 if(grounded&&!caveWalk&&!voidMode&&floorY<player.position.y-.6){grounded=false;verticalVelocity=0;} // saiu pela borda: cai em vez de teleportar para o chão
 if(!grounded){
- verticalVelocity-=gravity*dt;
+ if(newHero){prota302.airborneT+=dt;const hang=rites.active?.kind==='basic'&&rites.active.mode==='air'&&rites.active.t<=rites.active.def.close;verticalVelocity-=(hang?PROTA_JUMP.gravity*.35:PROTA_JUMP.gravity)*dt;}else verticalVelocity-=gravity*dt;
  player.position.y+=verticalVelocity*dt;
- if(player.position.y<=floorY){player.position.y=floorY;verticalVelocity=0;grounded=true;worldAudio.land();}
+ if(player.position.y<=floorY){player.position.y=floorY;const fall=verticalVelocity;verticalVelocity=0;grounded=true;worldAudio.land();if(newHero)protaLand(fall);}
 }else{
  player.position.y=floorY;
 }
+}
+/* ===================== MOD 302 — COMBATE DO PROTAGONISTA (só o herói novo) ===================== */
+/** Andar é o padrão (clipe Walking); correr só com CORRER/Shift (clipe Running). A cadência do clipe segue a
+ *  velocidade real no chão (1,63 m/s e 5,48 m/s medidos pelo pé de apoio), então o pé não patina. */
+function protaLocomotion(sp){
+ if(sp<PROTA_LOCO.idleBelow){if(actions.idle)play('idle',.2);return;}
+ // corre só com CORRER/Shift; ao soltar, a passada de corrida só continua enquanto o corpo ainda está acima do ritmo de andar (frenagem)
+ if(actions.run&&(isSprinting()&&sp>PROTA_LOCO.walk*1.15||sp>PROTA_LOCO.walk*1.45)){play('run',.16);actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.runNatural,.75,1.3));}
+ else{play('walk',.2);actions.walk.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.walkNatural,.5,1.4));}
+}
+/** Pouso/rematerialização em andamento (tempo de jogo), para a locomoção não atropelar o clipe curto. */
+function protaPoseBusy(){return prota302.clock<prota302.landT||prota302.clock<prota302.arriveT||prota302.hidden;}
+function protaLand(fall){
+ if(rites.active?.kind==='basic'&&rites.active.mode==='plunge'){prota302.landT=0;return;}
+ const a=actions.Prota302_land;prota302.airAttacks=0;
+ if(!a||rites.busy||fall>-2.2)return;// degrau/queda curta: sem pose de pouso
+ playOnce('Prota302_land',.05);a.setEffectiveTimeScale(Math.hypot(moveVX,moveVZ)>1.5?1.6:1.15);prota302.landT=prota302.clock+a.getClip().duration/a.getEffectiveTimeScale()*.85;
+}
+/** Dash da referência 3900: o corpo some numa coluna de fumaça escura que sobe, atravessa o trecho invisível
+ *  (com colisão de parede: não passa por obstáculo) e reaparece adiante dentro de um rastro horizontal que se fecha. */
+function protaDashStart(now){
+ const fp=cameraDistance<1.05;dashRemaining=PROTA_DASH.travel;prota302.dashSpent=0;prota302.dashFrom.copy(player.position);
+ playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+PROTA_DASH.iframes*1000);prota302.iframesUntil=prota302.clock+PROTA_DASH.iframes;
+ heroShadows?.emit();protaVFX.vanish(player.position,{x:dashDirX,z:dashDirZ});worldAudio.whoosh();
+ if(!fp&&model){prota302.wasVisible=model.visible;model.visible=false;if(swordMount)swordMount.visible=false;prota302.hidden=true;}
+ actionUntil=now+40;
+}
+function protaDashEnd(){
+ if(!prota302.hidden&&!(dashRemaining>0)){prota302.attackAfterDash=prota302.clock+.26;return;}
+ const dir={x:dashDirX,z:dashDirZ};
+ // nunca termina dentro de um corpo: segue até sair dele (ou recua), sempre com teste de parede
+ for(let i=0;i<30&&playerBlockedAt(player.position.x,player.position.z);i++){const nx=player.position.x+dir.x*.07,nz=player.position.z+dir.z*.07;if(dashBlockedAt(nx,nz))break;player.position.x=nx;player.position.z=nz;}
+ for(let i=0;i<40&&playerBlockedAt(player.position.x,player.position.z);i++){player.position.x-=dir.x*.07;player.position.z-=dir.z*.07;}
+ if(prota302.hidden){prota302.hidden=false;if(model)model.visible=prota302.wasVisible;if(swordMount)swordMount.visible=cameraDistance>=1.05;
+  protaVFX.reappear(player.position,dir,Math.max(1.2,Math.min(3,prota302.dashSpent*.55)));
+  if(actions.Prota302_arrive&&!rites.busy){playOnce('Prota302_arrive',.03);actions.Prota302_arrive.setEffectiveTimeScale(1.35);prota302.arriveT=prota302.clock+PROTA_DASH.recover+.06;}}
+ prota302.attackAfterDash=prota302.clock+.26;
+}
+/** Alvos candidatos (esquadrão ou inimigo único) no formato do escolhedor de alvo. */
+function protaCandidates(){
+ if(squadOn&&typeof squadAlive==='function'){return squadAlive().map(a=>{const h=squadRT?.body?.(a.id)?.height||a.T?.height||1.8;return{id:a.id,x:a.x,y:a.y+h*.5,z:a.z,alive:a.alive,radius:a.T?.radius||.5,height:h,actor:a,threat:a.T?.boss?1:0};});}
+ const t=riteTarget();return t.alive?[t]:[];
+}
+/** Direção pedida (analógico/teclas relativo à câmera); sem entrada, o rosto do herói. */
+function protaIntentYaw(){
+ let ix=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX,iz=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
+ if(Math.hypot(ix,iz)<.2)return{yaw:playerYaw,input:false};const wx=ix*Math.cos(cameraYaw)+iz*Math.sin(cameraYaw),wz=-ix*Math.sin(cameraYaw)+iz*Math.cos(cameraYaw);return{yaw:Math.atan2(wx,wz),input:true};
+}
+const protaBlocked=(a,b)=>segmentBlocked({x:a.x,y:a.y,z:a.z},{x:b.x,y:b.y,z:b.z},p=>riteBlocked(p,false));
+/** Escolhe o alvo do golpe: cone na direção pedida, distância, altura, linha de visão; MIRAR mantém o travado. */
+function protaPick(){
+ const intent=protaIntentYaw(),from={x:player.position.x,y:player.position.y+1,z:player.position.z},cands=protaCandidates();
+ let t=null;if(lockOnActive){const cur=riteTarget();if(cur.alive)t=cands.find(c=>c.id===cur.id)||cur;}
+ if(!t)t=pickTarget(from,intent.yaw,cands,{blocked:protaBlocked,range:8.5,cone:intent.input?1.0:1.35,current:prota302.lockId});
+ if(t?.actor&&squadOn&&squadFocus!==t.actor){squadFocus=t.actor;}
+ prota302.lockId=t?t.id:null;
+ return{target:t,yaw:t?Math.atan2(t.x-player.position.x,t.z-player.position.z):intent.yaw};
+}
+/** Root motion do trecho do clipe + aproximação curta ao alvo (motion warping), sempre com colisão. */
+function protaDrive(a,dt,target){
+ const def=a.def,root=protaRoots[def.id],valid=target&&target.alive&&a.lockId!=null&&target.id===a.lockId;
+ // manual: sem alvo, o startup ainda obedece ao analógico (vira até 10 rad/s)
+ if(!valid&&a.t<def.open*.8){const it=protaIntentYaw();if(it.input){const d=Math.atan2(Math.sin(it.yaw-a.yaw),Math.cos(it.yaw-a.yaw));a.yaw+=Math.max(-10*dt,Math.min(10*dt,d));}}
+ // alvo em movimento: estima a velocidade e mira onde ele vai estar no meio da janela ativa (sem perseguir além do warp.max)
+ let aimAt=target;if(valid){if(a.lastT&&dt>0){const vx=(target.x-a.lastT.x)/dt,vz=(target.z-a.lastT.z)/dt;a.tv={x:(a.tv?.x||0)*.6+vx*.4,z:(a.tv?.z||0)*.6+vz*.4};}a.lastT={x:target.x,z:target.z};
+  const lead=Math.max(0,(def.open+def.close)/2-a.t),sp=a.tv?Math.hypot(a.tv.x,a.tv.z):0;if(sp>.2&&sp<9)aimAt={...target,x:target.x+a.tv.x*lead,z:target.z+a.tv.z*lead};}
+ a.rootAcc=a.rootAcc||{x:0,z:0};const w=valid?warpStep(a,def,player.position,aimAt,dt,a.rootAcc):{dx:0,dz:0,yaw:a.yaw};a.yaw=w.yaw;
+ a.aimYaw=valid?Math.atan2(target.x-player.position.x,target.z-player.position.z):a.yaw;// a energia sai na direção do alvo travado
+ let dx=w.dx,dz=w.dz;
+ if(root&&root.length>=4){const n=root.length/2-1,at=f=>{const i=Math.min(n,Math.max(0,f)),k=Math.min(n-1,Math.floor(i)),u=i-k;return[root[k*2]+(root[k*2+2]-root[k*2])*u,root[k*2+1]+(root[k*2+3]-root[k*2+1])*u];};
+  const p0=at((a.t-dt)*30),p1=at(a.t*30),lx=p1[0]-p0[0],lz=p1[1]-p0[1],c=Math.cos(a.yaw),sn=Math.sin(a.yaw);let rx=lx*c+lz*sn,rz=-lx*sn+lz*c;
+  // não entra no corpo do alvo: o avanço do clipe para a ~0,8 m da superfície
+  if(valid){const ex=target.x-player.position.x,ez=target.z-player.position.z,d=Math.hypot(ex,ez);if(d<(target.radius||.5)+.5&&rx*ex+rz*ez>0){rx=rz=0;}}
+  a.rootAcc.x+=rx;a.rootAcc.z+=rz;dx+=rx;dz+=rz;}
+ if(Math.abs(dx)+Math.abs(dz)>1e-5)moveWorldHero(player.position,dx,dz,playerBlockedAt);
+ // alvo aéreo: no ar, ajusta a altura até o alvo durante o startup e segura no ar durante o golpe
+ if(!grounded&&valid&&a.mode==='air'&&a.t<def.close){const dy=(target.y-(target.height||1.7)*.25)-(player.position.y+1.05);if(a.t<def.open)verticalVelocity=Math.max(-3,Math.min(5,dy*5));else verticalVelocity=Math.max(verticalVelocity,-1.2);}
 }
 var debugDtScale=1;// só o modo de teste (?debug3d=1) muda isto, para acelerar as cenas no navegador sem GPU
 function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;if(lunarUlt&&tickLunarUlt(Math.min(frameDelta,.05)*debugDtScale))return; /* MOD 288: o filme da ultimate congela o combate */updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(heroShadows){heroShadows.quality(graphics3DMode);}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);// O modelo deve acompanhar o piso REAL sob o root (escada/deque), não o terreno abaixo dele.
@@ -2311,7 +2421,7 @@ function updateFirstPerson(dt,now){
  if(swordRoot&&equippedSword!=='prota'&&!swordHands[equippedSword])equipSword(equippedSword);
  const fp=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!awakeningActive;
  if(fp!==fpWasActive){rites.prevBlade=null;fpWasActive=fp;camera.fov=fp?72:56;camera.updateProjectionMatrix();const cross=document.getElementById('crosshair');if(cross)cross.hidden=!fp;}
- if(swordMount)swordMount.visible=!fp;
+ if(swordMount)swordMount.visible=!fp&&!prota302.hidden;
  if(!fp){if(swordView)swordView.root.visible=false;return;}
  ensureSwordView();if(!swordView)return;
  const source=equippedSword==='prota'?swordRoot:swordHands[equippedSword];if(source)swordView.equip(equippedSword,source);
@@ -2557,9 +2667,10 @@ function buildAuroraSword(pal=SWORD_PALETTES.aurora){
  return g; // origem no pomo, lâmina ao longo de +Y, comprimento ~1,38
 }
 // Encaixa a nova lâmina no mesmo eixo e posição de empunhadura da EspadaProta (medidos no próprio modelo).
+let legacySwordRef=null;// MOD 302: as outras espadas continuam medidas pelo desenho antigo do Chamado (não mudam de tamanho com a espada branca)
 function alignAuroraToSwordRoot(aurora){
- swordRoot.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(swordRoot.matrixWorld).invert(),box=new THREE.Box3();
- swordRoot.traverse(o=>{if(o.isMesh&&o.geometry){if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();box.union(o.geometry.boundingBox.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)));}});
+ legacySwordRef=legacySwordRef||buildRiteSword(THREE,'prota-legacy');legacySwordRef.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(legacySwordRef.matrixWorld).invert(),box=new THREE.Box3();
+ legacySwordRef.traverse(o=>{if(o.isMesh&&o.geometry){if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();box.union(o.geometry.boundingBox.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)));}});
  const size=box.getSize(new THREE.Vector3()),axis=size.x>size.y?(size.x>size.z?'x':'z'):(size.y>size.z?'y':'z');
  const minV=box.min[axis],maxV=box.max[axis],tipPositive=Math.abs(maxV)>=Math.abs(minV),dir=new THREE.Vector3();dir[axis]=tipPositive?1:-1;
  const center=box.getCenter(new THREE.Vector3()),start=center.clone();start[axis]=tipPositive?minV:maxV;
@@ -2959,7 +3070,8 @@ function trySideQuestTalk(vendor){
 sideReady=true;refreshSideQuests();
 /* MOD 193 — peso no combate: números de dano, pausa de impacto (hit-stop), tremor de câmera e faíscas. */
 let hitStopUntil=0,shakeAmt=0;const shakeOffset=new THREE.Vector3();
-function hitStop(ms){hitStopUntil=Math.max(hitStopUntil,performance.now()+ms);}
+let debugHitstopLeft=0;// MOD 302: no passo fixo do QA o hitstop vira tempo de jogo (a filmagem mostra a micro-pausa real)
+function hitStop(ms){hitStopUntil=Math.max(hitStopUntil,performance.now()+ms);debugHitstopLeft=Math.max(debugHitstopLeft,ms/1000);}
 function cameraShake(amount){shakeAmt=Math.min(.35,shakeAmt+amount);}
 const dmgPool=[];
 function damageNumber(worldPos,text,kind){
@@ -5919,8 +6031,11 @@ let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vecto
 function computeCameraTarget(base,dt){
  const shoulder=.42,rx=Math.cos(cameraYaw),rz=-Math.sin(cameraYaw);
  const t=base.clone();t.x+=rx*shoulder;t.z+=rz*shoulder;
- const engaged=combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<12;
- if(engaged&&!lockOnActive){t.x+=(enemy.position.x-player.position.x)*.22;t.z+=(enemy.position.z-player.position.z)*.22;}
+ // MOD 302: no esquadrão, enquadra o alvo em foco (não o líder escondido); durante o golpe do protagonista o enquadramento
+ // puxa um pouco mais para o alvo, sem girar a câmera (o jogador mantém o controle).
+ const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
+ const engaged=combatStepNow()&&foeOn&&Math.hypot(foe.x-player.position.x,foe.z-player.position.z)<12;
+ if(engaged&&!lockOnActive){const k=newHero&&rites.active?.def?.drive?.3:.22;t.x+=(foe.x-player.position.x)*k;t.z+=(foe.z-player.position.z)*k;}
  if(!camFocusReady){camFocus.copy(t);camFocusReady=true;}
  camFocus.x+=(t.x-camFocus.x)*Math.min(1,dt*12);camFocus.z+=(t.z-camFocus.z)*Math.min(1,dt*12);camFocus.y+=(t.y-camFocus.y)*Math.min(1,dt*6);
  return{focus:camFocus,engaged};
@@ -5935,7 +6050,7 @@ function autoRecenterCamera(dt,now){
 }
 function updateFovKick(dt){
  const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?72:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
- const fov=base+fovKick+(fp?0:vzFovAdd+hydraFovAdd+vxFovAdd+cyFovAdd);if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
+ prota302.punch*=Math.exp(-7*dt);const fov=base+fovKick+(fp?0:vzFovAdd+hydraFovAdd+vxFovAdd+cyFovAdd+prota302.punch);if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
 }
 // ---------- Primeira pessoa: mira com alvo, golpes variados, guarda ----------
 let fpSwingDir=0,hitMarkT=0;
@@ -7026,6 +7141,9 @@ function riteBlocked(p,body=true){
 }
 const rites=new SwordRites({
  choreography:true,
+ moveset:(sword,mode,step)=>newHero&&sword==='prota'&&riteClips.Prota302_ground_0?protaMoveDef(mode,step):null,
+ drive:(a,dt,target)=>protaDrive(a,dt,target),
+ airMode:()=>newHero&&equippedSword==='prota'&&prota302.airAttacks>=2?'plunge':'air',
  advance:(dx,dz)=>{const x=player.position.x+dx,z=player.position.z+dz;if(!riteBlocked({x,z})&&(!enemyAlive||Math.hypot(x-enemy.position.x,z-enemy.position.z)>riteTargetRadius+.4)){player.position.x=x;player.position.z=z;}},
  blocked:p=>riteBlocked(p,false),
  move:p=>{player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);moveVX=moveVZ=0;},
@@ -7037,7 +7155,7 @@ const rites=new SwordRites({
   player.rotation.y=playerYaw=a.yaw;player.updateMatrixWorld(true);updatePlayerSwordMount();
   // Measured from EspadaProta.glb: grip +.75 Y, guard +.40 Y, tip -.951 Y.
   const blade=equippedSword==='prota'?swordRoot:swordHands[equippedSword];if(!blade)return null;
-  if(equippedSword==='prota'||equippedSword==='aurora'){riteBase.set(0,.40,0);riteTip.set(0,-.951,0);blade.localToWorld(riteBase);blade.localToWorld(riteTip);}else{const geometryRoot=blade.getObjectByName(equippedSword==='quantum'?'Quantum':'LaminaCelestial');riteBase.set(0,equippedSword==='quantum'?.48:.26,0);riteTip.set(0,1.38,0);geometryRoot.localToWorld(riteBase);geometryRoot.localToWorld(riteTip);}return riteBlade;
+  if(equippedSword==='prota'||equippedSword==='aurora'){const bd=blade.userData.blade;riteBase.set(0,bd?bd.base[1]:.40,0);riteTip.set(0,bd?bd.tip[1]:-.951,0);blade.localToWorld(riteBase);blade.localToWorld(riteTip);}else{const geometryRoot=blade.getObjectByName(equippedSword==='quantum'?'Quantum':'LaminaCelestial');riteBase.set(0,equippedSword==='quantum'?.48:.26,0);riteTip.set(0,1.38,0);geometryRoot.localToWorld(riteBase);geometryRoot.localToWorld(riteTip);}return riteBlade;
  },
  hit:(damage,id,kind)=>{if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(damage,false,true,true);if(kind==='basic')({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));},
  event:(type,e)=>{
@@ -7045,15 +7163,20 @@ const rites=new SwordRites({
   riteVFX.event(type,e);
   if(type==='start'){
    riteCinematicView=e.kind==='prota'&&cameraDistance<1.05;
-   e.layered=e.kind==='basic'&&grounded&&(Math.hypot(moveVX,moveVZ)>.12&&e.mode!=='dash');const clip=e.layered&&riteLayers?riteLayers.upper[e.clip]:riteClips[e.clip];if(!clip)return;riteContext=siegeContext();pendingEnemyHitAt=0;if(e.kind!=='basic'){moveVX=moveVZ=0;dashRemaining=0;}setDefending(false);
+   e.layered=e.kind==='basic'&&!e.def?.drive&&grounded&&(Math.hypot(moveVX,moveVZ)>.12&&e.mode!=='dash');if(e.def?.drive){moveVX=moveVZ=0;prota302.landT=prota302.arriveT=0;if(e.mode==='air')prota302.airAttacks++;if(e.lockId===undefined){const pk=protaPick();e.lockId=pk.target?pk.target.id:null;if(pk.target)e.yaw=pk.yaw;}}const clip=e.layered&&riteLayers?riteLayers.upper[e.clip]:riteClips[e.clip];if(!clip)return;riteContext=siegeContext();pendingEnemyHitAt=0;if(e.kind!=='basic'){moveVX=moveVZ=0;dashRemaining=0;}setDefending(false);
    for(const j of poseJobs)if(j.root===model)j.dead=true;
    const next=mixer.clipAction(clip);if(activeAction&&activeAction!==next)activeAction.fadeOut(.075);next.reset().setLoop(THREE.LoopOnce,1).setEffectiveWeight(1);next.clampWhenFinished=true;next.fadeIn(.075).play();next.paused=true;activeAction=riteAnimation=next;actionUntil=Infinity;if(e.kind==='basic')updateRiteLocomotion(0);
-   if(e.kind==='basic'){if(e.mode==='plunge')verticalVelocity=Math.min(verticalVelocity,-9);attackCooldown=performance.now()+e.duration*1000;comboCount=e.step+1;fpSwingDir=e.step;startFpSwing();worldAudio.swing(e.step,e.sword);}else{showCombatCallout(SWORD_RITES[e.sword].name.toUpperCase());worldAudio.whoosh();}
+   if(e.kind==='basic'){if(e.mode==='plunge')verticalVelocity=Math.min(verticalVelocity,e.def?.drive?-14:-9);attackCooldown=performance.now()+e.duration*1000;comboCount=e.step+1;fpSwingDir=e.step;startFpSwing();worldAudio.swing(e.step,e.sword);}else{showCombatCallout(SWORD_RITES[e.sword].name.toUpperCase());worldAudio.whoosh();}
   }else if(type==='finish'||type==='cancel'){
    riteCinematicView=false;
    if(riteLower){riteLower.fadeOut(.13);riteLower=null;}if(riteAnimation){riteAnimation.paused=false;riteAnimation.fadeOut(.13);if(activeAction===riteAnimation){if(grounded){activeAction=null;play('idle',.13);}else{riteAnimation.stopFading();riteAnimation.setEffectiveWeight(1);riteAnimation.paused=true;}}riteAnimation=null;}actionUntil=performance.now()+70;pendingEnemyHitAt=0;
   }else if(type==='active'&&e.step===2&&e.mode==='ground'&&!SWORD_RITES[e.sword]){showCombatCallout(isNightHour(gameClock.hour)?'CORTE NEGRO':'CORTE DE LUZ');spawnHolyProjectile('arc',0,.16);}
   else if(type==='wave'){worldAudio.swing(e.n,'aurora');fpSwingDir=e.n%3;startFpSwing();}
+  else if(type==='energy'){protaVFX.energy(e);worldAudio.whoosh();}
+  else if(type==='impact'&&e.hitstop!==undefined){// MOD 302: impacto do repertório do protagonista — micro hitstop, clarão no ponto real do contato, tremor só nos golpes grandes
+   if(e.pattern==='rise'&&squadFocus&&!squadFocus.T.boss){squadFocus.airV=6;squadFocus.airY=.01;squadSq()?.stagger(squadFocus,.72,false);}
+   worldAudio.hit();enemyHitFlash=.07;hitStop(Math.round(e.hitstop*1000));protaVFX.impact(e.p||e.target,e.final,e.sword);
+   if(e.shake&&!userSettings.reduceShake)cameraShake(e.shake);if(e.final)prota302.punch=Math.max(prota302.punch,3.2);}
   else if(type==='impact'||type==='judgment'){if(type==='impact'&&e.pattern==='rise'&&squadFocus&&!squadFocus.T.boss){squadFocus.airV=6;squadFocus.airY=.01;squadSq()?.stagger(squadFocus,.72,false);}if(type!=='judgment'||e.n%4===0||e.final)worldAudio.hit();enemyHitFlash=.07;if(type!=='judgment'||e.final)hitStop(e.final?45:18);if(e.final&&!userSettings.reduceShake)cameraShake(.055);}
  }
 });
@@ -7065,7 +7188,18 @@ function updateRiteLocomotion(dt){
  const backward=moveVX*Math.sin(playerYaw)+moveVZ*Math.cos(playerYaw)<-.1;next.setEffectiveTimeScale((backward?-1:1)*(role==='run'?Math.max(.6,speed/5.2):role==='walk'?Math.max(.45,speed/3.4):1));
 }
 function riteFacing(){return swordAim(player.position,cameraYaw+Math.PI,riteTarget(),p=>riteBlocked(p,false),{assist:lockOnActive,range:18,cone:.65});}
-function tryRiteAttack(){if(!riteReady()){status.textContent='Preparando os movimentos da espada…';return;}if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive||(activeAction===actions.hit&&performance.now()<actionUntil))return;const mode=!grounded?(verticalVelocity<-.6?'plunge':'air'):dashRemaining>0?'dash':isSprinting()&&Math.hypot(moveVX,moveVZ)>3?'run':'ground';rites.attack(equippedSword,{damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:dashRemaining>0?Math.atan2(dashDirX,dashDirZ):riteFacing(),target:riteTarget(),mode});}
+function tryRiteAttack(){if(!riteReady()){status.textContent='Preparando os movimentos da espada…';return;}if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive||(activeAction===actions.hit&&performance.now()<actionUntil))return;
+ if(newHero&&equippedSword==='prota'&&riteClips.Prota302_ground_0){protaAttack();return;}const mode=!grounded?(verticalVelocity<-.6?'plunge':'air'):dashRemaining>0?'dash':isSprinting()&&Math.hypot(moveVX,moveVZ)>3?'run':'ground';rites.attack(equippedSword,{damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:dashRemaining>0?Math.atan2(dashDirX,dashDirZ):riteFacing(),target:riteTarget(),mode});}
+/** MOD 302: modo do golpe (chão, corrida, saída do dash, aéreo, mergulho), alvo escolhido e aproximação travada nele. */
+function protaAttack(){
+ const air=!grounded,high=air&&player.position.y-terrainHeightAt(player.position.x,player.position.z)>1.1;
+ const mode=air?((verticalVelocity<-.6&&high)||prota302.airAttacks>=2?'plunge':'air'):(dashRemaining>0||prota302.clock<prota302.attackAfterDash)?'dash':isSprinting()&&Math.hypot(moveVX,moveVZ)>PROTA_LOCO.walk*1.3?'run':'ground';
+ if(rites.busy){rites.attack(equippedSword,{mode});return;}// só enfileira (o buffer do golpe atual decide)
+ const pick=protaPick();
+ if(dashRemaining>0){dashRemaining=0;protaDashEnd();}
+ const ok=rites.attack(equippedSword,{damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:mode==='dash'&&!pick.target?Math.atan2(dashDirX,dashDirZ):pick.yaw,target:pick.target||riteTarget(),mode});
+ if(ok&&rites.active)rites.active.lockId=pick.target?pick.target.id:null;
+}
 function castSwordRite(){
  if(!riteReady()||!grounded||dashRemaining>0||(activeAction===actions.hit&&performance.now()<actionUntil)||siege.active||whiteLease.locked){status.textContent='Conclua a ação atual antes de usar o rito.';return;}
  const result=rites.cast(equippedSword,{mana:playerMana,owned:equippedSword==='prota'||ownedItems.has(equippedSword),damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:riteFacing(),from:player.position,target:riteTarget()});
@@ -7077,7 +7211,7 @@ function updateRites(dt){
  if(swordTrainingRequested&&!swordTrainingRequestedStarted&&model&&mixer&&player.userData.ready&&(quantumShowcaseRequested||riteReady())){swordTrainingRequestedStarted=true;startSwordTraining().catch(e=>{console.error(e);swordTrainingRequestedStarted=false;status.textContent='Falha ao iniciar treino: '+e.message;});}
  const valid=playerHP>0&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&!portalPull&&!whiteLease.locked&&(!(rites.busy||rites.waves.length)||riteContext===siegeContext());
  rites.update(dt,{valid,grounded,moving:Math.hypot(moveVX,moveVZ)>.12,sword:equippedSword,from:player.position,target:riteTarget(),yaw:riteFacing()});
- riteVFX.update(dt,graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium',cameraDistance<1.05&&!riteCinematicView);updateRiteHud();
+ riteVFX.update(dt,graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium',cameraDistance<1.05&&!riteCinematicView);protaVFX.update(dt,camera,graphics3DMode==='low'?'low':graphics3DMode==='max'?'high':'medium');updateRiteHud();
 }
 const riteButton=document.getElementById('sword-skill');
 function updateRiteHud(){
@@ -7147,12 +7281,21 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  bossAttack(id){playerHP=playerMaxHP;playerInvulnerableUntil=0;squadKnock=null;const s=squadSq(),a=squadFocus,t=s?.targets[0];if(!a||!t)return null;a.act=null;a.alert=1e9;a.decideT=1e9;s.startMelee(a,t,id);return a.act.move?.id;},
  motionLane(){for(let x=-20;x<=70;x+=3)for(let z=20;z>=-50;z-=4){const y=terrainHeightAt(x,z);let ok=true;for(let d=0;d<=38;d+=.4)if(playerBlockedAt(x,z-d)||Math.abs(terrainHeightAt(x,z-d)-y)>.1){ok=false;break;}if(ok)return{x,z,y};}return null;},
  motionQA({x=40,z=30,enemyDistance=8,enemySide=0,fp=false,sword='prota'}={}){rites.cancel('qa');moveVX=moveVZ=0;player.position.set(x,terrainHeightAt(x,z),z);playerYaw=Math.PI;player.rotation.y=playerYaw;enemy.position.set(x+enemySide,terrainHeightAt(x+enemySide,z-enemyDistance),z-enemyDistance);enemy.visible=enemyDistance>0;enemyAlive=true;cameraYaw=0;cameraPitch=0;cameraDistance=fp?.72:6;lockOnActive=false;this.riteEquip(sword);for(const k in keys)keys[k]=false;sprintToggle=false;debugDtScale=0;actionUntil=0;play('idle',0);return this.riteState();},
- motionStep(seconds,{x=0,z=-1,sprint=false,attack=false,fps=60}={}){joyX=x;joyY=z;sprintToggle=sprint;if(attack)this.riteAttack();for(let i=0;i<Math.round(seconds*fps);i++){mixer.update(1/fps);restoreRiteScales();updatePlayerMovement(1/fps,performance.now()+i*1000/fps);if(!debugCameraOverride)updatePlayerCamera(1/fps);updatePoses(1/fps);updatePlayerSwordMount();updateFirstPerson(1/fps,performance.now());updateRites(1/fps);}joyX=joyY=0;updateFirstPerson(0,performance.now());renderer.render(scene,camera);return this.riteState();},
+ motionStep(seconds,{x=0,z=-1,sprint=false,attack=false,fps=60}={}){joyX=x;joyY=z;sprintToggle=sprint;if(attack)this.riteAttack();for(let i=0;i<Math.round(seconds*fps);i++){const raw=1/fps,sd=debugHitstopLeft>0?raw*.06:raw;debugHitstopLeft=Math.max(0,debugHitstopLeft-raw);if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-raw);setEnemyHitFlash(enemyHitFlash>0);}mixer.update(sd);restoreRiteScales();updatePlayerMovement(sd,performance.now()+i*1000/fps);if(!debugCameraOverride)updatePlayerCamera(raw);updatePoses(sd);updatePlayerSwordMount();updateFirstPerson(sd,performance.now());updateRites(sd);updateFovKick(raw);}joyX=joyY=0;updateFirstPerson(0,performance.now());renderer.render(scene,camera);return this.riteState();},
  motionPose(t){rites.cancel('qa');mixer.stopAllAction();const a=actions.run;a.reset().play();a.paused=true;a.time=t;activeAction=a;mixer.update(0);restoreRiteScales();updatePlayerSwordMount();renderer.render(scene,camera);return this.riteState();},
  viewQA(fp,yaw=0,pitch=0){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=fp?.72:6;if(model)model.visible=!fp;if(fp){camera.position.set(player.position.x,player.position.y+1.52,player.position.z);const cp=Math.cos(pitch);camera.lookAt(camera.position.x-Math.sin(yaw)*cp,camera.position.y-Math.sin(pitch),camera.position.z-Math.cos(yaw)*cp);}debugCameraOverride=null;updateFirstPerson(0,performance.now());renderer.render(scene,camera);return this.riteState();},
  async riteQA(boss=false){await startSwordTraining(boss);debugDtScale=0;return this.riteState();},
  riteSim(seconds,fps=60){for(let i=0;i<Math.round(seconds*fps);i++){mixer.update(1/fps);restoreRiteScales();if(!debugCameraOverride)updatePlayerCamera(1/fps);updatePoses(1/fps);updatePlayerSwordMount();updateFirstPerson(1/fps,performance.now());updateRites(1/fps);}renderer.render(scene,camera);return this.riteState();},
  riteAttack(){action('attack');return this.riteState();},
+ /** Combate do protagonista (QA de filmagem): ação real do jogador, alvo no mundo e passo fixo com inimigo. */
+ act(kind,x,z){if(x!==undefined){joyX=x;joyY=z;}action(kind);if(x!==undefined)joyX=joyY=0;return this.riteState();},
+ pickAt(px,py){const rc=new THREE.Raycaster(),v=new THREE.Vector2(px/innerWidth*2-1,-(py/innerHeight)*2+1);rc.setFromCamera(v,camera);return rc.intersectObjects(scene.children,true).slice(0,6).map(h=>{let o=h.object,n=[];while(o&&n.length<4){n.push(o.name||o.type);o=o.parent;}return n.join('<')+' @'+h.distance.toFixed(1);});},
+ vfxHide(which){const r={prota:protaVFX.root,rites:scene.getObjectByName('SwordRites231')}[which];if(r)r.visible=false;renderer.render(scene,camera);return !!r;},
+ realtime(){debugDtScale=1;return true;},
+ combatQA(on=true,hp=0){debugCombat=!!on;if(hp>0){enemyHP=enemyMaxHP=hp;}return debugCombat;},
+ protaReport(){const a=rites.active;return{move:a?{id:a.def?.id||a.clip,name:a.def?.name||null,t:+a.t.toFixed(3),phase:a.phase,hit:!!a.hit,by:a.hitBy||null,lock:a.lockId??null,closest:a.closest!=null&&isFinite(a.closest)?+a.closest.toFixed(2):null}:null,energies:rites.energies.map(e=>({kind:e.kind,r:+(e.radius||0).toFixed(2),travel:+(e.travel||0).toFixed(2),age:+e.age.toFixed(2)})),grip:+swordGrip.k.toFixed(2),hidden:prota302.hidden,vfx:protaVFX.stats(),hp:enemyHP,visible:!!model?.visible};},
+ enemyAt(x,y,z,visible=true){enemy.position.set(x,y===null?terrainHeightAt(x,z):y,z);enemy.visible=visible;enemyAlive=visible;return enemy.position.toArray();},
+ heroState(){return{p:player.position.toArray().map(v=>+v.toFixed(3)),yaw:+playerYaw.toFixed(3),grounded,vy:+verticalVelocity.toFixed(3),dash:+dashRemaining.toFixed(3),clip:activeAction?.getClip().name||null,speed:+Math.hypot(moveVX,moveVZ).toFixed(2),sprint:isSprinting(),cam:camera.position.toArray().map(v=>+v.toFixed(2)),hp:enemyHP,e:enemy.position.toArray().map(v=>+v.toFixed(2))};},
  riteCast(){action('sword-skill');return this.riteState();},
  riteEquip(id){if(testAllSkills)ownedItems.add(id);equipSword(id);return this.riteState();},
  riteFrame(dt){if(mixer){mixer.update(dt);restoreRiteScales();}updateRites(dt);renderer.render(scene,camera);return this.riteState();},
