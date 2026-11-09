@@ -48,11 +48,11 @@ try {
      await page.waitForTimeout(2700);
      const after=await page.screenshot({path:path.join(out,'valerio-vento-2s.png'),timeout:90000});
      report.shots.push('valerio-vento-2s.png');
-     const crop={left:215,top:255,width:430,height:215};
+     const crop={left:170,top:325,width:125,height:130};
      const x=await sharp(before).extract(crop).resize(96,48).removeAlpha().raw().toBuffer();
      const y=await sharp(after).extract(crop).resize(96,48).removeAlpha().raw().toBuffer();
      let total=0;for(let i=0;i<x.length;i++)total+=Math.abs(x[i]-y[i]);
-     report.grassMotionPixelDifference=total/x.length;
+     report.grassRegionPixelDifference=total/x.length; // may include scene effects; visual QA only
    }
  }
  report.status='captured';report.render=report.state.render;
