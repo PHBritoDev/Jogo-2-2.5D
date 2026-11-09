@@ -1,8 +1,8 @@
 // ÚNICO lugar para atualizar identidade/cache da build publicada.
 // NÃO editar HTML, loader ou mundo 3D apenas para trocar número de versão.
-export const MOD = 302;
-export const BUILD = 'mod302-combate-protagonista';
-export const DESCRIPTION = 'Mod 302: Combate do protagonista reconstruído (espada branca, dash de sombra, golpes de energia) · Eldória';
+export const MOD = 303;
+export const BUILD = 'mod303-eldoria-floresta-tropical-otimizada';
+export const DESCRIPTION = 'Mod 303: Eldória com 2 barracas, 2 casas removidas e floresta tropical densa otimizada';
 export function syncBuildMarker(marker) {
   if (!marker) return;
   marker.textContent = String(MOD);
