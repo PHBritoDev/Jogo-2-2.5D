@@ -14,22 +14,24 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
    float t=uTime;
    float r=length(p);
    vec2 q=p+vec2(sin(p.y*.09+t*.36),cos(p.x*.11-t*.31))*1.45;
-   float broad=sin(length(q)*.43-t*.82+sin(atan(q.y,q.x)*4.0+t*.15)*.36);
-   float secondary=sin(length(q)*.96+t*.44+sin(p.x*.19+t*.23));
-   float rings=pow(max(0.0,broad*.5+.5),17.0)*.44+
-               pow(max(0.0,secondary*.5+.5),27.0)*.19;
-   // Broken silver reflection streaks, rather than thin painted concentric circles.
-   float flow=sin(q.x*.28+sin(q.y*.14+t*.22)*2.8+t*.35);
-   float striation=sin(q.x*1.22+sin(q.y*.23-t*.27)*4.4);
-   float reflected=pow(max(0.0,flow*.5+.5),7.0)*
-                   pow(max(0.0,striation*.5+.5),9.0);
-   // Soft ripples follow the player's feet and fade before the arena boundary.
+   // One broken, uneven current; no repetitive arena-wide circles.
+   float current=sin(q.y*.14+sin(q.x*.071+t*.12)*2.8-t*.28);
+   float fast=sin(q.x*1.32+sin(q.y*.12+t*.22)*5.2);
+   float mid=sin(q.x*.56+q.y*.028+sin(q.y*.19-t*.22)*3.4);
+   float breakup=.5+.5*sin(q.x*.11+sin(q.y*.075+t*.19)*4.0);
+   float line=pow(max(0.0,fast*.5+.5),13.0)*.48+
+              pow(max(0.0,mid*.5+.5),11.0)*.27;
+   float ribbons=line*pow(max(0.0,current*.5+.5),3.0)*(.23+breakup*.77);
+   float crossCurrent=sin(q.x*.23+q.y*.08+t*.31);
+   float silverPatch=pow(max(0.0,crossCurrent*.5+.5),8.0)*
+                    pow(max(0.0,sin(q.y*.27+sin(q.x*.13+t*.18)*4.0)*.5+.5),5.0);
    float pr=length(p-uPlayer);
-   float foot=pow(max(0.0,sin(pr*2.25-t*4.3)),8.0)*
-              exp(-pr*.24)*smoothstep(.6,2.0,pr)*.85;
-   float shimmer=.10+.14*sin(q.x*.08+t*.30)*sin(q.y*.10-t*.21);
-   float edge=1.0-smoothstep(uR*.76,uR*1.22,r);
-   float shine=(rings*(.34+shimmer)+reflected*.52+foot*.43)*edge;
+   float foot=pow(max(0.0,sin(pr*2.1-t*4.3)),11.0)*
+              exp(-pr*.35)*smoothstep(.5,1.5,pr);
+   // A low-frequency liquid gleam distinguishes water from a static patterned floor.
+   float gleam=pow(max(0.0,sin(q.x*.095+q.y*.032+t*.21)*.5+.5),7.0)*.065;
+   float edge=1.0-smoothstep(uR*.78,uR*1.21,r);
+   float shine=(ribbons*.82+silverPatch*.17+foot*.25+gleam)*edge;
    vec3 base=vec3(.0045,.006,.010);
    vec3 silver=vec3(.86,.88,.90);
    gl_FragColor=vec4(base+silver*shine,1.0);
@@ -103,7 +105,7 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
  // Stable dedicated sectors prevent entities occupying the same spot as others.
  const sectors=11;
  const angles=Array.from({length:sectors},(_,i)=>-Math.PI+.18+i*(Math.PI*2/sectors));
- const depth=[2.35,2.67,2.48,2.74,2.42,2.65,2.51,2.78,2.38,2.61,2.47];
+ const depth=[1.76,2.05,1.85,2.18,1.80,2.12,1.90,2.15,1.79,2.04,1.88];
  for(let i=0;i<11;i++){
   const type=types[i%4],scale=.74+(i%4)*.042,root=new T.Group();root.name='VorgazhekWatcher_'+i;
   const fm=own(mat,new T.MeshBasicMaterial({map:faces[i%4],transparent:true,depthWrite:false,opacity:0,fog:false,toneMapped:false,side:T.DoubleSide}));
@@ -127,7 +129,7 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
    w.root.visible=w.i<budget&&opacity>.015;if(!w.root.visible)continue;
    const turn=Math.floor(t*.055+w.phase*.39);
    const angle=angles[w.i]+Math.sin(turn*1.71+w.i*3.2)*.075;
-   const r=R*depth[w.i]+10+7*Math.sin(turn*2.1+w.i);
+   const r=R*depth[w.i]+9+6*Math.sin(turn*2.1+w.i);
    w.root.position.set(Math.cos(angle)*r,11+(w.i%4)*3.5,Math.sin(angle)*r);
    if(camera)w.root.lookAt(cameraPos.x,w.root.position.y,cameraPos.z);
    else w.root.lookAt(focus.x,w.root.position.y,focus.z);
