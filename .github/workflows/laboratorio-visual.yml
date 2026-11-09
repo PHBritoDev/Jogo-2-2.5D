@@ -84,6 +84,17 @@ jobs:
           cat /tmp/visual-lab-http.log
           exit 1
 
+      - name: Testar paisagem da dimensao 1 em WebGL (PR isolada)
+        if: github.event_name == 'pull_request' && github.head_ref == 'feature/bishop1-wind-sunset-slope-v2'
+        run: node tools/qa/valerio-visual.cjs
+      - name: Salvar prints da dimensao 1
+        if: always() && github.event_name == 'pull_request' && github.head_ref == 'feature/bishop1-wind-sunset-slope-v2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bishop1-wind-sunset-${{ github.run_number }}
+          path: valerio-qa-results/
+          retention-days: 7
+
       - name: Smoke essencial do carregamento 3D (bloqueia imports quebrados no PR)
         if: github.event_name == 'pull_request'
         run: node tools/visual-lab/world-load-smoke.cjs
