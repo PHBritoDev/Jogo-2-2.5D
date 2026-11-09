@@ -54,11 +54,11 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   ink.clearRect(0,0,256,512);
   // Dark stalk, with slender green-bronze lower leaves.
   ink.lineCap='round';
-  ink.strokeStyle='rgba(194,152,89,.74)';ink.lineWidth=2.1;
+  ink.strokeStyle='rgba(211,178,120,.55)';ink.lineWidth=1.25;
   ink.beginPath();ink.moveTo(129,510);ink.bezierCurveTo(116,365,123,235,134,122);ink.stroke();
   for(let k=0;k<6;k++){
     const y=325+k*26,side=k%2?-1:1;
-    ink.strokeStyle='rgba(218,181,110,.67)';ink.lineWidth=1.2;
+    ink.strokeStyle='rgba(227,194,139,.62)';ink.lineWidth=.85;
     ink.beginPath();ink.moveTo(125,y+29);ink.quadraticCurveTo(125+side*52,y-5,125+side*91,y-28);ink.stroke();
   }
   // Soft feathery head: many separate downy strands, wider at the middle,
@@ -138,7 +138,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     const d=event.detail||{}; impact(Number(d.x),Number(d.z),Number(d.radius??d.r??5));
   };
   if(typeof window!=='undefined')window.addEventListener('golden-meadow-impact',onMeadowImpact);
-  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.35,side:THREE.DoubleSide,roughness:.9,metalness:0,emissive:0x483016,emissiveIntensity:.17});
+  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.27,side:THREE.DoubleSide,roughness:.96,metalness:0,emissive:0x947448,emissiveIntensity:.36});
   material.onBeforeCompile = shader => {
     shader.uniforms.uGoldenWind = wind;
     shader.uniforms.uMeadowTime=wind;
@@ -174,7 +174,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
         const x=Math.cos(angle)*r,z=Math.sin(angle)*r;
         const y=terrainHeight(x,z);
         dummy.position.set(x,y,z);dummy.rotation.set(0,random()*6.283,0);
-        const scale=(.50+random()*.48)*(r>95?1.1:1);
+        const scale=(.42+random()*.40)*(r>95?1.20:1);
         dummy.scale.set(scale,scale*(.79+random()*.36),scale);
         dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
         golden.setHSL(.102+random()*.025,.28+random()*.18,.87+random()*.11);
@@ -187,7 +187,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       mesh.castShadow=false;mesh.receiveShadow=false;add(mesh);
     }
   }
-  plot(13000,0,45);plot(10500,45,115);plot(4500,115,196);
+  plot(19500,0,45);plot(12500,45,115);plot(4500,115,196);
 
 
 
@@ -201,7 +201,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   leafGeo.setAttribute('position',new THREE.Float32BufferAttribute(leafV,3));
   leafGeo.setAttribute('color',new THREE.Float32BufferAttribute(leafC,3));
   leafGeo.setIndex([0,1,2,1,3,2,2,3,4,3,5,4,4,5,6]);leafGeo.computeVertexNormals();
-  const leafMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.94,side:THREE.DoubleSide});
+  const leafMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.94,side:THREE.DoubleSide,emissive:0x58452a,emissiveIntensity:.23});
   leafMat.onBeforeCompile=shader=>{
     shader.uniforms.uGoldenWind=wind;
     shader.uniforms.uMeadowTime=wind;
@@ -218,7 +218,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   };
   leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-impact-v3';
 
-  const leafCount=12500,leafSectors=12,dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
+  const leafCount=17500,leafSectors=12,dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
   for(let sector=0;sector<leafSectors;sector++){
     const n=Math.floor(leafCount/leafSectors)+(sector<leafCount%leafSectors?1:0);
     const leafMesh=new THREE.InstancedMesh(leafGeo,leafMat,n);
@@ -227,9 +227,9 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       const x=Math.cos(a)*rr,z=Math.sin(a)*rr;
       const y=terrainHeight(x,z)+.01;
       dummyLeaf.position.set(x,y,z);dummyLeaf.rotation.set(0,random()*6.283,0);
-      const sc=.5+random()*.68;dummyLeaf.scale.set(sc,sc,sc);dummyLeaf.updateMatrix();
+      const sc=.42+random()*.56;dummyLeaf.scale.set(sc,sc,sc);dummyLeaf.updateMatrix();
       leafMesh.setMatrixAt(i,dummyLeaf.matrix);
-      colLeaf.setHSL(.105+random()*.022,.39+random()*.2,.72+random()*.21);
+      colLeaf.setHSL(.106+random()*.022,.30+random()*.17,.78+random()*.17);
       leafMesh.setColorAt(i,colLeaf);
     }
     leafMesh.instanceMatrix.needsUpdate=true;
