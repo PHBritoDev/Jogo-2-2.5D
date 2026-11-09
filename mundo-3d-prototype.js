@@ -55,7 +55,7 @@ import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js'
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
 import {buildUndergrowth,buildTropical} from './eldoria-undergrowth.js';
-import {mountMatureForest} from './eldoria-mature-forest.js';
+// Heavy ArvoreFloresta01.glb retired; its territory now uses the same optimized tropical LOD system.
 import {ROAD,ROAD_STORE,ROAD_SPEAKERS,RIDE,initialRoadStage,roadPresentation,terenMeetScene,tarpScene,rideDozeScene,ambushScene,hungerScene,choiceScene,dawnRideScene,dawnHourAt} from './prologue-road-flow.js';
 import {prepareSandraMaterials} from './sandra-materials.js';
 import * as THREE from 'three';
@@ -596,11 +596,24 @@ const undergrowthBanks=[];{const cl=eldoriaRiver.ribbon.centerline;for(let i=2;i
 const eldoriaUndergrowth=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,trees:treeSpecs,banks:undergrowthBanks,
  isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-8&&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+2&&!insideMeadow(x,z,4)&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+.6)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!bridgeDeck(x,z)});
 window.SevenSinsUndergrowthReport=eldoriaUndergrowth.stats;
-// MOD 291 — mata fechada com ArvoreFloresta01.glb do criador (instanciada; LOD1 perto, copa barata longe).
-const matureForest=mountMatureForest(THREE,GLTFLoader,{scene,renderer,groundHeightAt,registerCull:registerInstanceCull,obstacles:treeObstacles,lowSpec:terrainLowSpec,
- lake:FOREST_POND,zone:{x0:-70,x1:40,z0:-148,z1:-80},
- isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-7&&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+3&&Math.hypot(x+12,z+97)>10&&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<4)&&Math.hypot(x-MASSACRE_SPOT.x,z-MASSACRE_SPOT.z)>8&&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+6&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+3)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+2.6))&&!bridgeDeck(x,z)&&!treeObstacles.some(o=>Math.abs(o.x-x)<2.6&&Math.hypot(o.x-x,o.z-z)<o.radius+2.2)});
-matureForest.ready.then(r=>{window.SevenSinsMatureForestReport={trees:matureForest.plan.length,...(r||{failed:true})};});
+// Replaces the heavy ArvoreFloresta01.glb with Claude's lighter instanced tropical species.
+// Keep the southern dense jungle, swimming lake and road clearances. No ancestral city tree is touched.
+const southernForestPlan=planTropicalBelt({
+ areas:[{x0:-76,x1:47,z0:-153,z1:-77}],
+ seed:29251,density:.88,
+ isFree:(x,z,r)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-7
+  &&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+3+r
+  &&Math.hypot(x+12,z+97)>11+r
+  &&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<4+r)
+  &&Math.hypot(x-MASSACRE_SPOT.x,z-MASSACRE_SPOT.z)>8+r
+  &&Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>VILLAGE_CLEAR_RADIUS+6+r
+  &&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+3+r)
+  &&!trailRoutes.some(t=>closeToPolyline(x,z,t.points,t.width*.5+2+r))
+  &&!bridgeDeck(x,z)
+  &&!treeObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<o.radius+2+r)
+}).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s}));
+const matureForest={plan:southernForestPlan,ready:Promise.resolve({replacement:'EldoriaArvoresTropicais.glb — optimized LOD instancing'})};
+window.SevenSinsMatureForestReport={trees:southernForestPlan.length,replacement:'tropical instanced LOD'};
 // MOD 291 — densidade de mata tropical úmida (direção do criador): plantas de folha larga e cipós pendendo das copas.
 const tropical=buildTropical(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,trees:matureForest.plan,zone:{x0:-70,x1:40,z0:-148,z1:-80},
  isFree:(x,z)=>dryGround(x,z)&&terrain3D.boundaryDistance(x,z)<-6&&Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)>FOREST_POND.r+1.5&&Math.hypot(x+12,z+97)>8&&!JOURNEY_ENEMIES.some(e=>Math.hypot(x-e.x,z-e.z)<3)&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+.8)&&!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+1.1))&&!bridgeDeck(x,z)});
@@ -608,7 +621,7 @@ window.SevenSinsTropicalReport=tropical.stats;
 /* MOD 292 — cinturão de mata tropical densa EM VOLTA da cidade (menos o corredor de chegada pela ponte), com as
    5 espécies autorais de EldoriaArvoresTropicais.glb: instâncias por espécie/nível, LOD0/LOD1/impostor em faixas
    exclusivas, colisão só nos troncos. A copa nunca vira parede: o corte por câmera/setor do jogo decide o que vai à GPU. */
-const BELT_AREAS=[{x0:-82,x1:-40,z0:-82,z1:-15},{x0:22,x1:82,z0:-80,z1:-15},{x0:-40,x1:22,z0:-86,z1:-75},{x0:-82,x1:82,z0:-7,z1:42}];
+const BELT_AREAS=[{x0:-106,x1:-40,z0:-92,z1:-13},{x0:22,x1:105,z0:-94,z1:-12},{x0:-40,x1:22,z0:-97,z1:-74},{x0:-100,x1:100,z0:-8,z1:59}];
 const ELDORIA_HOUSES_ALL=()=>[...ELDORIA_HOUSES,ELDORIA_SMITHY];
 const beltBlocks=(()=>{const out=[];const L=VILLAGE_CENTER;
  for(const h of [...ELDORIA_HOUSES_ALL()])out.push({x:L.x+h.x,z:L.z+h.z,r:h.size*.42+3.2});
@@ -625,7 +638,10 @@ function beltFree(x,z,r){
  return !treeObstacles.some(o=>Math.hypot(x-o.x,z-o.z)<o.radius+3+r);
 }
 const tropicalWind={value:0};forestWindUniforms.push(tropicalWind);
-const tropicalPlan=planTropicalBelt({areas:BELT_AREAS,isFree:beltFree,density:terrainLowSpec?.55:.68}).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s}));
+const villageBeltPlan=planTropicalBelt({areas:BELT_AREAS,isFree:beltFree,density:terrainLowSpec?.74:1.05}).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s}));
+// One shared library and one family of materials/LODs for jungle AND expanded town belt.
+// Individual trunks keep collision; foliage/shadow/LOD stays optimized at every quality.
+const tropicalPlan=[...southernForestPlan,...villageBeltPlan];
 let tropicalBelt=null;
 /* Chão sob o dossel: escurece e puxa para o musgo/serapilheira as cores de vértice do terreno sob as copas do cinturão
    (uma passada única na carga, grade espacial; a cor do terreno fora da mata não muda). */
@@ -644,7 +660,7 @@ const tropicalReady=loadTropicalTrees(THREE,GLTFLoader,{windUniform:tropicalWind
  for(const o of tropicalBelt.obstacles)treeObstacles.push(o);refreshInstanceCulling();
  // câmera encostada numa copa/tronco: pontilhado em vez de tela tapada (mesmo recurso das coníferas)
  addNearCameraFade(lib.materials.leaves,3.4);addNearCameraFade(lib.materials.bark,2.6);
- window.SevenSinsTropicalBeltReport={...tropicalBelt.stats,perArea:BELT_AREAS.map(a=>tropicalPlan.filter(t=>t.x>=a.x0&&t.x<=a.x1&&t.z>=a.z0&&t.z<=a.z1).length),glb:'EldoriaArvoresTropicais.glb'};return tropicalBelt;
+ window.SevenSinsTropicalBeltReport={...tropicalBelt.stats,southern:southernForestPlan.length,perArea:BELT_AREAS.map(a=>villageBeltPlan.filter(t=>t.x>=a.x0&&t.x<=a.x1&&t.z>=a.z0&&t.z<=a.z1).length),glb:'EldoriaArvoresTropicais.glb'};return tropicalBelt;
 }).catch(e=>{console.warn('Árvores tropicais não carregaram.',e);window.SevenSinsTropicalBeltReport={failed:String(e&&e.message||e)};});
 // sub-bosque e cipós sob o cinturão (mesmos módulos da mata do Mod 291)
 const beltUnder=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,seed:2926,trees:tropicalPlan.map(t=>({x:t.x,z:t.z,s:t.s,collide:true})),
