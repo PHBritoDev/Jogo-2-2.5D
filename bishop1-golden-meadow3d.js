@@ -152,30 +152,35 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     shader.uniforms.uMeadowImpacts=impactUniform;
     shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;\nvarying float vMeadowTipGlow;\n'+impactGLSL);
     shader.fragmentShader = shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vMeadowTipGlow;');
-    shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance += vec3(.155,.092,.038)*vMeadowTipGlow;');
+    shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance += vec3(.20,.112,.042)*vMeadowTipGlow;');
     shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float bladeHeight = clamp(position.y / 2.22, 0.0, 1.0);
-      vMeadowTipGlow = smoothstep(.45,.95,bladeHeight);
+      vMeadowTipGlow = smoothstep(.43,.96,bladeHeight);
       vec2 worldXZ = instanceMatrix[3].xz;
       // Large waves travel across the whole meadow, while each plume flickers independently.
+      // Two advection scales create a travelling wind FIELD, not synchronized oscillation.
+      // Neighbouring plumes share the gust; individual plumes retain a small delayed response.
       float seedPhase=fract(sin(dot(worldXZ,vec2(12.9898,78.233)))*43758.5453);
-      // Moving weather front with variable-strength gusts, travelling in a diagonal direction.
-      float gustFront=sin(dot(worldXZ,vec2(.092,.047))-uGoldenWind*1.35);
-      float swell=sin(dot(worldXZ,vec2(.038,-.026))-uGoldenWind*.59+.8);
-      float gustEnvelope=.40+.36*smoothstep(-.65,.8,gustFront)+.24*smoothstep(-.5,.9,swell);
+      vec2 advected=worldXZ-vec2(uGoldenWind*7.4,uGoldenWind*2.8);
+      float longWave=sin(dot(advected,vec2(.046,.018))+
+                         .36*sin(dot(advected,vec2(.018,-.025))));
+      float crossWave=sin(dot(advected,vec2(-.028,.061))*.84+uGoldenWind*.32);
+      float gust=smoothstep(-.78,.82,longWave*.80+crossWave*.25);
+      float weather=.32+.66*gust;
       float phase=seedPhase*6.28318;
-      float sway=sin(uGoldenWind*2.15+dot(worldXZ,vec2(.046,.032))+phase*.47);
-      float counter=sin(uGoldenWind*3.32-dot(worldXZ,vec2(.071,-.027))+phase)*.28;
-      float fine=sin(uGoldenWind*5.8+phase*1.74+dot(worldXZ,vec2(.19,.15)))*.09;
-      float bend=(.54+sway*.43+counter+fine)*gustEnvelope;
+      float localSway=sin(uGoldenWind*1.48+dot(worldXZ,vec2(.039,.022))+phase*.24);
+      float delayedTip=sin(uGoldenWind*2.42+dot(worldXZ,vec2(.046,.018))+phase*.68-bladeHeight*.86);
+      float tiny=sin(uGoldenWind*4.65+phase*1.63+dot(worldXZ,vec2(.15,-.12)))*.07;
+      float bend=(.33+.68*weather)*(.69+.24*localSway)+.21*weather*delayedTip+tiny;
       float flex=bladeHeight*bladeHeight*(3.0-2.0*bladeHeight);
-      transformed.x += bend*1.92*flex;
-      transformed.z += bend*.73*flex;
-      // Curved silhouette and tip droop in strong gusts.
-      transformed.y -= bend*bend*.34*flex;
+      float tipFlex=flex*(.78+.22*bladeHeight);
+      transformed.x += bend*1.77*tipFlex;
+      transformed.z += (bend*.51+.12*crossWave*weather)*tipFlex;
+      // Compression follows the square of the lean; stems remain rooted.
+      transformed.y -= bend*bend*.29*flex;
       transformed.y *= meadowSurvival(worldXZ);`);
   };
-  material.customProgramCacheKey=()=>'golden-memories-wind-v12';
+  material.customProgramCacheKey=()=>'golden-last-sun-wind-v13';
 
 
   function plot(count,near,far){
@@ -229,18 +234,21 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       float tall=clamp(position.y/1.47,0.0,1.0);
       vec2 xy=instanceMatrix[3].xz;
       float seedPhase=fract(sin(dot(xy,vec2(12.9898,78.233)))*43758.5453);
-      float front=sin(dot(xy,vec2(.092,.047))-uGoldenWind*1.35);
-      float gust=.43+.47*smoothstep(-.65,.8,front);
-      float wave=sin(uGoldenWind*2.15+dot(xy,vec2(.046,.032))+seedPhase*3.1);
-      float flutter=sin(uGoldenWind*4.7+seedPhase*9.1+dot(xy,vec2(.20,-.12)));
-      float bend=(.65+.46*wave+.17*flutter)*gust;
+      vec2 advected=xy-vec2(uGoldenWind*7.4,uGoldenWind*2.8);
+      float longWave=sin(dot(advected,vec2(.046,.018))+
+                         .36*sin(dot(advected,vec2(.018,-.025))));
+      float crossWave=sin(dot(advected,vec2(-.028,.061))*.84+uGoldenWind*.32);
+      float weather=.32+.66*smoothstep(-.78,.82,longWave*.80+crossWave*.25);
+      float swing=sin(uGoldenWind*1.48+dot(xy,vec2(.039,.022))+seedPhase*1.5);
+      float flutter=sin(uGoldenWind*3.4+seedPhase*7.0+dot(xy,vec2(.12,-.09)));
+      float bend=(.33+.68*weather)*(.69+.24*swing)+.12*weather*flutter;
       float flex=tall*tall*(3.0-2.0*tall);
-      transformed.x+=bend*1.02*flex;
-      transformed.z+=bend*.46*flex;
-      transformed.y-=bend*bend*.14*flex;
+      transformed.x+=bend*.99*flex;
+      transformed.z+=(bend*.33+.08*crossWave*weather)*flex;
+      transformed.y-=bend*bend*.13*flex;
       transformed.y *= meadowSurvival(xy);`);
   };
-  leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v4';
+  leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v5';
 
   const leafCount=17500,leafSectors=12,dummyLeaf=new THREE.Object3D(),colLeaf=new THREE.Color();
   for(let sector=0;sector<leafSectors;sector++){
@@ -310,7 +318,10 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
         float haze=pow(facing,7.0);
         float corona=pow(facing,48.0);
         float burning=pow(facing,310.0);
-        sky+=vec3(.31,.19,.07)*haze+vec3(.38,.25,.125)*corona+vec3(.46,.34,.22)*burning;
+        // Sunlit air: a bright ivory horizon, broad amber scattering and restrained hot core.
+        float amberBelt=exp(-pow((up-.065)*5.8,2.0))*pow(facing,2.1);
+        sky+=vec3(.33,.20,.075)*haze+vec3(.41,.27,.13)*corona+vec3(.46,.33,.21)*burning;
+        sky+=vec3(.17,.095,.026)*amberBelt;
         gl_FragColor=vec4(min(sky,vec3(1.0)),1.0);
       }`
   });
@@ -321,21 +332,22 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const glowCanvas = document.createElement('canvas'); glowCanvas.width=128;glowCanvas.height=128;
   const brush=glowCanvas.getContext('2d'),gr=brush.createRadialGradient(64,64,5,64,64,64);
   gr.addColorStop(0,'rgba(255,253,235,1)');gr.addColorStop(.10,'rgba(255,243,192,1)');
-  gr.addColorStop(.29,'rgba(255,207,132,.51)');gr.addColorStop(.64,'rgba(255,168,89,.14)');gr.addColorStop(1,'rgba(255,179,89,0)');
+  gr.addColorStop(.29,'rgba(255,212,140,.63)');gr.addColorStop(.64,'rgba(255,163,78,.21)');gr.addColorStop(1,'rgba(255,179,89,0)');
   brush.fillStyle=gr;brush.fillRect(0,0,128,128);
   const sunTexture=new THREE.CanvasTexture(glowCanvas);sunTexture.colorSpace=THREE.SRGBColorSpace;
   const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTexture,color:0xffffff,transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
-  sun.position.set(0,10,-177);sun.scale.set(122,83,1);add(sun);
+  sun.position.set(0,10,-177);sun.scale.set(142,91,1);add(sun);
   // Compact white core against a wider amber atmosphere, at the crest of the hill.
   const sunCore=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTexture,color:0xffffff,transparent:true,opacity:.88,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
-  sunCore.position.set(0,10.5,-175);sunCore.scale.set(46,36,1);add(sunCore);
+  sunCore.position.set(0,10.5,-175);sunCore.scale.set(52,39,1);add(sunCore);
 
   ctx.refs.goldenMeadow={
     impact,
     dispose(){if(typeof window!=='undefined')window.removeEventListener('golden-meadow-impact',onMeadowImpact);group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();earthTex.dispose();leafGeo.dispose();leafMat.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();sunCore.material.dispose();darkBark.dispose();darkFoliage.dispose();distantTree.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}
   };
   ctx.tick.push(t=>{wind.value=t;});
-  return {bg:0xffead0,fog:0xeed7af,fogNear:104,fogFar:260,
-    hemi:[0xfff5e2,0xb49360,2.00],sun:[0xffe5ba,3.05],
-    light:[0xffeac4,1.65,165,[0,15,-48]],exposure:1.29};
+  // Stronger golden-hour light without lifting exposure until all hues clip to white.
+  return {bg:0xffead0,fog:0xeed7b1,fogNear:101,fogFar:255,
+    hemi:[0xfff5df,0xb48c55,2.18],sun:[0xffdda8,3.48],
+    light:[0xffe4af,1.95,165,[0,15,-48]],exposure:1.20};
 }
