@@ -2023,8 +2023,38 @@ function protaDrive(a,dt,target){
  // alvo aéreo: no ar, ajusta a altura até o alvo durante o startup e segura no ar durante o golpe
  if(!grounded&&valid&&a.mode==='air'&&a.t<def.close){const dy=(target.y-(target.height||1.7)*.25)-(player.position.y+1.05);if(a.t<def.open)verticalVelocity=Math.max(-3,Math.min(5,dy*5));else verticalVelocity=Math.max(verticalVelocity,-1.2);}
 }
+// Opt-in profiler shows update CPU cost, render submission, triangles and draw calls.
+// It never changes visual quality or progression and is invisible to normal players.
+const forestPerfEnabled=new URLSearchParams(location.search).has('perfFloresta');
+const forestPerf={sumUpdate:0,sumRender:0,frames:0,last:0};
+const forestPerfPanel=forestPerfEnabled?document.createElement('pre'):null;
+if(forestPerfPanel){
+ forestPerfPanel.id='forest-perf-diagnostics';
+ Object.assign(forestPerfPanel.style,{position:'fixed',left:'10px',bottom:'8px',zIndex:'99999',
+   background:'rgba(0,0,0,.84)',color:'#aefac0',padding:'8px',font:'12px monospace',
+   pointerEvents:'none',whiteSpace:'pre-wrap',maxWidth:'330px'});
+ document.body.appendChild(forestPerfPanel);
+}
+function forestPerfUpdate(start,renderStart,end){
+ if(!forestPerfPanel)return;
+ forestPerf.sumUpdate+=renderStart-start;forestPerf.sumRender+=end-renderStart;forestPerf.frames++;
+ if(end-forestPerf.last<2500)return;
+ const n=forestPerf.frames||1,render=renderer.info.render;
+ const count=instanceCullers.reduce((n,c)=>n+c.mesh.count,0);
+ forestPerfPanel.textContent='FLORESTA — diagnóstico real\\n'+
+  'CPU simulação: '+(forestPerf.sumUpdate/n).toFixed(1)+'ms/quad\\n'+
+  'CPU chamada render: '+(forestPerf.sumRender/n).toFixed(1)+'ms/quad\\n'+
+  'Draw calls: '+render.calls+' | triângulos: '+Math.round(render.triangles/1000)+'k\\n'+
+  'Instâncias visíveis: '+count+' | perfis: '+graphics3DMode+
+  (graphics3DMode==='auto'?'/'+graphics3DAutoTier:'')+
+  ' | escala: '+Math.round(graphics3DScale*100)+'%';
+ window.SevenSinsForestPerf={cpuUpdateMs:forestPerf.sumUpdate/n,cpuRenderMs:forestPerf.sumRender/n,
+  drawCalls:render.calls,triangles:render.triangles,visibleInstances:count,mode:graphics3DMode,
+  scale:graphics3DScale};
+ forestPerf.sumUpdate=0;forestPerf.sumRender=0;forestPerf.frames=0;forestPerf.last=end;
+}
 var debugDtScale=1;// só o modo de teste (?debug3d=1) muda isto, para acelerar as cenas no navegador sem GPU
-function animate(){requestAnimationFrame(animate);if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;if(lunarUlt&&tickLunarUlt(Math.min(frameDelta,.05)*debugDtScale))return; /* MOD 288: o filme da ultimate congela o combate */updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(heroShadows){heroShadows.quality(graphics3DMode);}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);// O modelo deve acompanhar o piso REAL sob o root (escada/deque), não o terreno abaixo dele.
+function animate(){requestAnimationFrame(animate);const forestFrameStart=forestPerfEnabled?performance.now():0;if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;if(lunarUlt&&tickLunarUlt(Math.min(frameDelta,.05)*debugDtScale))return; /* MOD 288: o filme da ultimate congela o combate */updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(heroShadows){heroShadows.quality(graphics3DMode);}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);// O modelo deve acompanhar o piso REAL sob o root (escada/deque), não o terreno abaixo dele.
  const floorY=player.position.y;if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
@@ -2064,7 +2094,7 @@ updateAutoGraphics3D(dt,now);
  updateCages();updateAct1(dt,now);
  updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateHydra(dt);updateMoonFlames(dt);updateVeraxionSwords(dt);updateVeraxionCyclone(dt);updateZarkhaelSword(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateEclipseSword(dt);tickCosmicSwords(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  // Recalcular culling DEPOIS da câmera definitiva deste quadro (antes havia 1 frame de atraso).
- updateInstanceCulling();if(vzCinematic()){vzCamRestore();return;}renderer.render(scene,camera);vzCamRestore();}
+ updateInstanceCulling();if(vzCinematic()){vzCamRestore();return;}const forestRenderStart=forestPerfEnabled?performance.now():0;renderer.render(scene,camera);if(forestPerfEnabled)forestPerfUpdate(forestFrameStart,forestRenderStart,performance.now());vzCamRestore();}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 function updateSkyAndShadows(){
  skyDome.position.copy(camera.position);skyDome.scale.setScalar(SKY_SCALE);
