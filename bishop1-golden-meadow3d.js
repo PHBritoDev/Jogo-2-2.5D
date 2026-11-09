@@ -36,68 +36,76 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   trail.position.y=.015; add(trail);
 
 
-  // Thin stalks and several drooping plume ribbons. Silhouette follows pampas/susuki
-  // reference rather than agricultural wheat spikes; tips arc with the prevailing wind.
-  const stalkGeo=new THREE.BufferGeometry(),vertices=[],colors=[],indices=[];
-  const addTriangle=(a,b,c,ca,cb,cc)=>{
-    const k=vertices.length/3;vertices.push(...a,...b,...c);
-    colors.push(...ca,...cb,...cc);indices.push(k,k+1,k+2);
-  };
-  const stemColor=[.47,.33,.14],headBase=[.73,.51,.25],headLight=[1,.83,.55],tip=[.99,.9,.7];
-  for(let plane=0;plane<3;plane++){
-    const theta=plane*Math.PI/3,dx=Math.cos(theta),dz=Math.sin(theta);
-    const v=(x,y)=>[dx*x,y,dz*x];
-    addTriangle(v(-.012,0),v(.012,0),v(0,1.47),stemColor,stemColor,headBase);
-    // Plume: airy tapering silhouette, arching slightly under gravity and wind.
-    for(let k=0;k<7;k++){
-      const t0=k/7,t1=(k+1)/7;
-      const cy0=1.08+t0*.78,cy1=1.08+t1*.78;
-      const lean0=.075*Math.sin(t0*Math.PI)+.12*t0*t0;
-      const lean1=.075*Math.sin(t1*Math.PI)+.12*t1*t1;
-      const wide0=.19*Math.pow(Math.sin((.06+.91*t0)*Math.PI),.75);
-      const wide1=.19*Math.pow(Math.sin((.06+.91*t1)*Math.PI),.75);
-      const shade=k>=5?tip:k>=2?headLight:headBase;
-      addTriangle(v(lean0-wide0,cy0),v(lean0+wide0,cy0),v(lean1-wide1,cy1),shade,shade,headLight);
-      addTriangle(v(lean0+wide0,cy0),v(lean1+wide1,cy1),v(lean1-wide1,cy1),shade,headLight,headLight);
-    }
-    // Pale individual filaments branch off the feather head into the wind.
-    for(let k=0;k<7;k++){
-      const y=1.12+k*.105,wide=.20*(1-k/8),lean=.09*k/7;
-      for(const sign of [-1,1]){
-        addTriangle(v(lean+sign*.012,y),v(lean+sign*(wide+.19),y+.105),
-          v(lean+sign*(wide+.09),y+.085),headBase,tip,headLight);
+
+  // Procedural diffuse+opacity atlas for feathery susuki / pampas. Several crossed
+  // alpha-tested cards per tuft create a natural silhouette with few triangles.
+  // A single shared 256x512 texture; no transparent blending or overdraw sorting.
+  const texCanvas=document.createElement('canvas');
+  texCanvas.width=256;texCanvas.height=512;
+  const ink=texCanvas.getContext('2d');
+  const grassRandom=(()=>{let n=913;return()=>((n=(n*1664525+1013904223)>>>0)/4294967296)})();
+  ink.clearRect(0,0,256,512);
+  // Dark stalk, with slender green-bronze lower leaves.
+  ink.lineCap='round';
+  ink.strokeStyle='rgba(115,83,38,.92)';ink.lineWidth=3;
+  ink.beginPath();ink.moveTo(129,510);ink.bezierCurveTo(116,365,123,235,134,122);ink.stroke();
+  for(let k=0;k<6;k++){
+    const y=325+k*26,side=k%2?-1:1;
+    ink.strokeStyle='rgba(170,123,55,.83)';ink.lineWidth=2.1;
+    ink.beginPath();ink.moveTo(125,y+29);ink.quadraticCurveTo(125+side*52,y-5,125+side*91,y-28);ink.stroke();
+  }
+  // Soft feathery head: many separate downy strands, wider at the middle,
+  // strongly backlit and with curved tips blowing toward the right.
+  for(let k=0;k<390;k++){
+    const t=grassRandom(),y=72+t*235,wide=Math.sin(t*Math.PI)*60+8;
+    const side=grassRandom()>.5?1:-1;
+    const center=131+14*t*t;
+    const x=center+side*(grassRandom()*.92+.08)*wide;
+    const length=8+grassRandom()*36;
+    const bend=(.3+grassRandom()*.7)*length;
+    const light=grassRandom();
+    ink.strokeStyle=light>.72?'rgba(255,243,206,.78)':light>.37?'rgba(237,211,154,.65)':'rgba(184,142,79,.56)';
+    ink.lineWidth=.6+grassRandom()*1.35;
+    ink.beginPath();ink.moveTo(center+side*(2+grassRandom()*5),y+length*.32);
+    ink.quadraticCurveTo(x-side*bend*.2,y-length*.26,x+side*bend*.35,y-length*.65);
+    ink.stroke();
+  }
+  // Grainy cream highlight spine for coherent plume volume rather than dots.
+  const headGradient=ink.createLinearGradient(0,55,0,310);
+  headGradient.addColorStop(0,'rgba(251,239,202,0)');
+  headGradient.addColorStop(.25,'rgba(255,231,181,.6)');
+  headGradient.addColorStop(.73,'rgba(204,164,100,.4)');
+  headGradient.addColorStop(1,'rgba(180,130,70,0)');
+  ink.lineWidth=7;ink.strokeStyle=headGradient;
+  ink.beginPath();ink.moveTo(131,290);ink.quadraticCurveTo(120,174,137,71);ink.stroke();
+
+  const foliageTex=new THREE.CanvasTexture(texCanvas);
+  foliageTex.colorSpace=THREE.SRGBColorSpace;
+  foliageTex.anisotropy=4;
+  function makeCards(planes){
+    const vertices=[],uvs=[],ind=[];
+    for(let j=0;j<planes;j++){
+      const angle=j*Math.PI/planes,dx=Math.cos(angle),dz=Math.sin(angle),n=vertices.length/3;
+      for(const [side,y,v] of [[-1,0,0],[1,0,0],[-1,2.22,1],[1,2.22,1]]){
+        vertices.push(side*.75*dx,y,side*.75*dz);
+        uvs.push((side+1)/2,v);
       }
+      ind.push(n,n+1,n+2,n+1,n+3,n+2);
     }
-    // Long, fine leaf crossing at lower stalk.
-    addTriangle(v(-.025,.26),v(.028,.31),v(.34,.83),stemColor,headBase,headLight);
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    g.setIndex(ind);g.computeVertexNormals();return g;
   }
-  stalkGeo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-  stalkGeo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  stalkGeo.setIndex(indices);
-  stalkGeo.computeVertexNormals();
-
-  const liteGeo=new THREE.BufferGeometry(),lv=[],lc=[],li=[];
-  for(let plane=0;plane<2;plane++){
-    const a=plane*Math.PI/2,dx=Math.cos(a),dz=Math.sin(a),n=lv.length/3;
-    // One pale tapering plume + stem per crossed plane for distant 3D silhouette.
-    lv.push(-.014*dx,0,-.014*dz,.014*dx,0,.014*dz,0,1.37,0,
-      -.15*dx,1.18,-.15*dz,.15*dx,1.18,.15*dz,
-      -.13*dx,1.6,-.13*dz,.13*dx,1.6,.13*dz,0,1.88,0);
-    for(const c of [stemColor,stemColor,headBase,headBase,headBase,headLight,headLight,tip])lc.push(...c);
-    li.push(n,n+1,n+2,n+3,n+4,n+5,n+4,n+6,n+5,n+5,n+6,n+7);
-  }
-  liteGeo.setAttribute('position',new THREE.Float32BufferAttribute(lv,3));
-  liteGeo.setAttribute('color',new THREE.Float32BufferAttribute(lc,3));
-  liteGeo.setIndex(li);
-  liteGeo.computeVertexNormals();
-
+  const stalkGeo=makeCards(3);
+  const liteGeo=makeCards(2);
   const wind = {value:0};
-  const material = new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.91,metalness:0});
+  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.22,side:THREE.DoubleSide,roughness:.88,metalness:0});
   material.onBeforeCompile = shader => {
     shader.uniforms.uGoldenWind = wind;
     shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
     shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
-      float bladeHeight = clamp(position.y / 1.95, 0.0, 1.0);
+      float bladeHeight = clamp(position.y / 2.22, 0.0, 1.0);
       float instancePhase = instanceMatrix[3].x * .19 + instanceMatrix[3].z * .16;
       float gust = sin(uGoldenWind * 1.05 + instancePhase) * .17
                  + sin(uGoldenWind * .53 + instancePhase * 2.0) * .13;
@@ -105,7 +113,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       transformed.z += gust * .39 * bladeHeight;
       transformed.y -= abs(gust) * .08 * bladeHeight;`);
   };
-  material.customProgramCacheKey=()=>'golden-golden-plumes-wind-v3';
+  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v4';
 
   function plot(count,near,far,seedOffset){
     // Distinct tiles/LOD bands avoid overdraw-heavy endless dense stalks.
@@ -123,7 +131,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       const s=(.69+random()*.62)*(r>95?1.2:1);
       dummy.scale.set(s,s*(.79+random()*.36),track?.11*s:s);
       dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-      golden.setHSL(.095+random()*.033,.39+random()*.18,.62+random()*.18);
+      golden.setHSL(.105+random()*.02,.30+random()*.18,.83+random()*.12);
       mesh.setColorAt(i,golden);
     }
     mesh.instanceMatrix.needsUpdate=true;
@@ -132,7 +140,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     mesh.castShadow=false;mesh.receiveShadow=false;
     add(mesh);
   }
-  plot(13000,0,45,0);plot(17000,45,115,1);plot(11000,115,196,2);
+  plot(10500,0,45,0);plot(11500,45,115,1);plot(6500,115,196,2);
 
 
   // Endless pastel sky dome; distant glow remains behind the foreground grass.
@@ -171,7 +179,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   sun.position.set(0,4,-167);sun.scale.set(105,105,1);add(sun);
 
   ctx.refs.goldenMeadow={
-    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();material.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();}
+    dispose(){group.remove(...owned);stalkGeo.dispose();liteGeo.dispose();geo.dispose();soil.dispose();material.dispose();foliageTex.dispose();skyGeo.dispose();skyMat.dispose();sunTexture.dispose();sun.material.dispose();}
   };
   ctx.tick.push(t=>{wind.value=t;});
   return {bg:0xf5e4cf,fog:0xe0c6a5,fogNear:95,fogFar:250,
