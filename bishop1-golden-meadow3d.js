@@ -171,7 +171,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const leafMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.94,side:THREE.DoubleSide});
   leafMat.onBeforeCompile=shader=>{
     shader.uniforms.uGoldenWind=wind;
-    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\\nuniform float uGoldenWind;');
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float tall=clamp(position.y/1.47,0.0,1.0);
       float phase=instanceMatrix[3].x*.16+instanceMatrix[3].z*.12;
