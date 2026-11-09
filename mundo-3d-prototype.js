@@ -668,7 +668,7 @@ const beltUnder=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowS
 const beltTropical=buildTropical(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,seed:2927,zone:null,
  trees:tropicalPlan.filter(t=>t.sp==='copaLarga'||t.sp==='figueira'||t.sp==='sumauma').map(t=>({x:t.x,z:t.z,h:(t.sp==='sumauma'?26:11)*t.s})),isFree:(x,z)=>beltFree(x,z,-1.5)});
 {const seen=new Set();for(const g of [beltTropical.group,beltUnder.group])g&&g.traverse(o=>{if(o.isMesh&&!seen.has(o.material)){seen.add(o.material);addNearCameraFade(o.material,2.2);}});}
-function tropicalProfile(){return graphics3DMode==='low'?'low':graphics3DMode==='auto'?(graphics3DScale<.7?'low':'auto'):'high';}
+function tropicalProfile(){return graphics3DMode==='low'?'low':graphics3DMode==='medium'?'auto':graphics3DMode==='auto'?(graphics3DAutoTier<=1?'low':graphics3DAutoTier===2?'auto':'high'):'high';}
 /* MOD 291 — streaming por zona: a cidade (e o resto do vale) fica atrás da serra quando o herói está no prado/estrada do
    sul, e o prado some quando ele está no vale. Nada é descarregado; só deixa de ser enviado à GPU. */
 let zoneFrame=0;const zoneState={south:null};
@@ -2075,60 +2075,92 @@ function keepCameraAboveTerrain(){
  if(camera.position.y<floor)camera.position.y=floor;
 }
 
-/* MOD 176 — perfis gráficos reais para o mundo 3D; Auto ajusta a qualidade conforme FPS. */
+/* MOD 304 — perfis gráficos reais e controlador adaptativo com histerese.
+   A resolução interna, o LOD da mata e os efeitos secundários são degradados
+   primeiro; modelos, texturas, NPCs e combate continuam carregados.
+   O modo Auto usa o tempo de frame real, não o número mágico de pixels do aparelho. */
 const graphics3DProfiles={
- low:{scale:.62,shadows:false,shadowSize:256,foliage:false,clouds:false},
- high:{scale:.9,shadows:true,shadowSize:512,foliage:true,clouds:true},
- max:{scale:1.2,shadows:true,shadowSize:1024,foliage:true,clouds:true}
+ low:{scale:.56,shadows:false,shadowSize:256,foliage:false,clouds:false},
+ medium:{scale:.82,shadows:true,shadowSize:384,foliage:true,clouds:true},
+ high:{scale:1.10,shadows:true,shadowSize:512,foliage:true,clouds:true},
+ max:{scale:1.4,shadows:true,shadowSize:1024,foliage:true,clouds:true}
 };
-let graphics3DMode='auto',graphics3DScale=.78,graphics3DFps=0,graphics3DSampleTime=0,graphics3DSampleFrames=0,graphics3DLowTime=0,graphics3DHighTime=0,graphics3DLastChange=0;
+const AUTO_GRAPHICS_STEPS=[
+ {scale:.53,foliage:false,clouds:false}, // emergency, model remains detailed near player
+ {scale:.68,foliage:true,clouds:false},
+ {scale:.88,foliage:true,clouds:true},
+ {scale:1.08,foliage:true,clouds:true}
+];
+let graphics3DMode='auto',graphics3DAutoTier=2,graphics3DScale=.88,graphics3DFps=0,graphics3DSampleTime=0,graphics3DSampleFrames=0,graphics3DLowTime=0,graphics3DHighTime=0,graphics3DLastChange=0;
+let graphics3DLongFrameCount=0;
 var autoShadowDecision=null;
-function autoShadowsDecision(){if(autoShadowDecision===null)autoShadowDecision=!terrainLowSpec;return autoShadowDecision;}
+function autoShadowsDecision(){
+ // Switching shadow shaders each time the FPS changes causes multi-second stutters.
+ // On phones, keep a single decision for the entire session.
+ if(autoShadowDecision===null)autoShadowDecision=!terrainLowSpec&&!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+ return autoShadowDecision;
+}
 function applyGraphics3D(mode,autoScale){
  const previousMode=graphics3DMode;
- if(mode!==previousMode){graphics3DFps=0;graphics3DSampleTime=0;graphics3DSampleFrames=0;graphics3DLowTime=0;graphics3DHighTime=0;}
+ if(mode!==previousMode){graphics3DFps=0;graphics3DSampleTime=0;graphics3DSampleFrames=0;graphics3DLowTime=0;graphics3DHighTime=0;graphics3DLongFrameCount=0;}
  graphics3DMode=mode;
  const baseline=graphics3DProfiles[mode]||graphics3DProfiles.high;
- graphics3DScale=mode==='auto'?autoScale:baseline.scale;
- /* MOD 202 — ligar/desligar sombras muda os shaders (recompilação = travada de alguns segundos). No modo Auto a
-    decisão é tomada uma única vez; só a resolução sobe e desce com o FPS. */
- const shadowEnabled=mode==='auto'?autoShadowsDecision():baseline.shadows;
- const shadowSize=mode==='auto'?512:baseline.shadowSize;
- const nextRatio=Math.min((devicePixelRatio||1)*graphics3DScale,1.5);
- if(Math.abs(renderer.getPixelRatio()-nextRatio)>.001||renderer.domElement.width!==Math.floor(innerWidth*nextRatio)){renderer.setPixelRatio(nextRatio);renderer.setSize(innerWidth,innerHeight);}
- renderer.shadowMap.enabled=shadowEnabled;
- sunLight.castShadow=shadowEnabled;
- if(sunLight.shadow.mapSize.x!==shadowSize){sunLight.shadow.mapSize.set(shadowSize,shadowSize);if(sunLight.shadow.map){sunLight.shadow.map.dispose();sunLight.shadow.map=null;}}
- sunLight.shadow.needsUpdate=true;
- renderer.shadowMap.needsUpdate=true;
- grassGroup.visible=mode==='auto'?graphics3DScale>=.6:baseline.foliage;
- mossInstancesA.visible=grassGroup.visible;mossInstancesB.visible=grassGroup.visible;
- for(const cloud of movingClouds)cloud.group.visible=mode==='auto'?graphics3DScale>=.7:baseline.clouds;
+ const auto=mode==='auto';
+ graphics3DScale=auto?THREE.MathUtils.clamp(autoScale,.48,1.12):baseline.scale;
+ const effective=auto?AUTO_GRAPHICS_STEPS[graphics3DAutoTier]:baseline;
+ const shadowEnabled=auto?autoShadowsDecision():baseline.shadows;
+ const shadowSize=auto?384:baseline.shadowSize;
+ // Previous code multiplied scale by devicePixelRatio then capped at 1.5;
+ // on DPR 3 phones even .55 and .82 produced the SAME pixel resolution.
+ // These are real pixel ratios, capped for GPU fill rate.
+ const nextRatio=Math.min(devicePixelRatio||1,graphics3DScale);
+ if(Math.abs(renderer.getPixelRatio()-nextRatio)>.035){
+  renderer.setPixelRatio(nextRatio);
+  renderer.setSize(innerWidth,innerHeight,false);
+ }
+ if(renderer.shadowMap.enabled!==shadowEnabled){renderer.shadowMap.enabled=shadowEnabled;sunLight.castShadow=shadowEnabled;renderer.shadowMap.needsUpdate=true;}
+ else sunLight.castShadow=shadowEnabled;
+ if(sunLight.shadow.mapSize.x!==shadowSize){
+  sunLight.shadow.mapSize.set(shadowSize,shadowSize);
+  if(sunLight.shadow.map){sunLight.shadow.map.dispose();sunLight.shadow.map=null;}
+  sunLight.shadow.needsUpdate=true;
+ }
+ // Preserve primary grass on all except an explicit low or emergency setting.
+ grassGroup.visible=effective.foliage;
+ mossInstancesA.visible=effective.foliage;mossInstancesB.visible=effective.foliage;
+ for(const cloud of movingClouds)cloud.group.visible=effective.clouds;
  if(typeof tropicalBelt!=='undefined'&&tropicalBelt){tropicalBelt.setProfile(tropicalProfile());refreshInstanceCulling();}
- const label=mode==='auto'?'Automático':mode==='low'?'Baixo':mode==='high'?'Alto':'Máximo';
  const status=document.getElementById('graphics-status-3d');
- if(status)status.textContent=label+' · '+Math.round(graphics3DScale*100)+'% de resolução'+(mode==='auto'?(graphics3DFps?' · '+Math.round(graphics3DFps)+' FPS':' · medindo FPS'):'');
+ const labels={auto:'Automático',low:'Baixo',medium:'Médio',high:'Alto',max:'Máximo'};
+ if(status)status.textContent=labels[mode]+' · '+Math.round(nextRatio*100)+'% resolução'+(auto?' · nível '+(graphics3DAutoTier+1)+'/4'+(graphics3DFps?' · '+Math.round(graphics3DFps)+' FPS':' · medindo FPS'):'');
 }
 function updateAutoGraphics3D(dt,now){
- if(graphics3DMode!=='auto'||!Number.isFinite(dt)||dt<=0||dt>.25)return;
+ if(graphics3DMode!=='auto'||!Number.isFinite(dt)||dt<=0)return;
+ // Ignore tab-resume pauses. Do not mistake a frozen/background tab for overloaded GPU.
+ if(dt>.3){graphics3DSampleTime=0;graphics3DSampleFrames=0;return;}
  graphics3DSampleTime+=dt;graphics3DSampleFrames++;
+ if(dt>.09)graphics3DLongFrameCount++;
  if(graphics3DSampleTime<2)return;
  graphics3DFps=graphics3DSampleFrames/graphics3DSampleTime;
- const elapsed=graphics3DSampleTime;graphics3DSampleTime=0;graphics3DSampleFrames=0;
- // Em 34–35 FPS o Auto anterior nunca baixava a carga (<34), ficando preso na cidade.
- if(graphics3DFps<42){graphics3DLowTime+=elapsed;graphics3DHighTime=0;}
- else if(graphics3DFps>55){graphics3DHighTime+=elapsed;graphics3DLowTime=0;}
- else{graphics3DLowTime=0;graphics3DHighTime=0;}
- if(graphics3DLowTime>=3.5&&now-graphics3DLastChange>4000){
-  graphics3DLowTime=0;graphics3DLastChange=now;
-  applyGraphics3D('auto',Math.max(.55,graphics3DScale-.12));
- }else if(graphics3DHighTime>=8&&now-graphics3DLastChange>8000){
-  graphics3DHighTime=0;graphics3DLastChange=now;
-  applyGraphics3D('auto',Math.min(.95,graphics3DScale+.08));
- }else{
-  const status=document.getElementById('graphics-status-3d');
-  if(status)status.textContent='Automático · '+Math.round(graphics3DScale*100)+'% de resolução · '+Math.round(graphics3DFps)+' FPS';
+ const elapsed=graphics3DSampleTime,stalls=graphics3DLongFrameCount;
+ graphics3DSampleTime=0;graphics3DSampleFrames=0;graphics3DLongFrameCount=0;
+ if(graphics3DFps<28||stalls>=5){graphics3DLowTime+=elapsed;graphics3DHighTime=0;}
+ else if(graphics3DFps>49&&stalls<=1){graphics3DHighTime+=elapsed;graphics3DLowTime=0;}
+ else{graphics3DHighTime=0;graphics3DLowTime=0;}
+ // Performance emergency: rapidly recover from 9 FPS with a large resolution/LOD step.
+ if(graphics3DFps<17&&now-graphics3DLastChange>2600&&graphics3DAutoTier>0){
+  graphics3DAutoTier=Math.max(0,graphics3DAutoTier-2);
+  graphics3DLastChange=now;graphics3DLowTime=0;
+  applyGraphics3D('auto',AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale);
+ }else if(graphics3DLowTime>=4&&now-graphics3DLastChange>4200&&graphics3DAutoTier>0){
+  graphics3DAutoTier--;graphics3DLastChange=now;graphics3DLowTime=0;
+  applyGraphics3D('auto',AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale);
+ }else if(graphics3DHighTime>=16&&now-graphics3DLastChange>16000&&graphics3DAutoTier<AUTO_GRAPHICS_STEPS.length-1){
+  graphics3DAutoTier++;graphics3DLastChange=now;graphics3DHighTime=0;
+  applyGraphics3D('auto',AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale);
  }
+ const status=document.getElementById('graphics-status-3d');
+ if(status)status.textContent='Automático · '+Math.round(graphics3DScale*100)+'% resolução · nível '+(graphics3DAutoTier+1)+'/4 · '+Math.round(graphics3DFps)+' FPS';
 }
 (function initAudioSettings(){
  const panel=document.getElementById('graphics-panel-3d');if(!panel)return;
@@ -2140,9 +2172,10 @@ function updateAutoGraphics3D(dt,now){
 (function initGraphics3D(){
  const toggle=document.getElementById('graphics-toggle-3d'),panel=document.getElementById('graphics-panel-3d'),select=document.getElementById('graphics-profile-3d');
  if(toggle&&panel){bindInstantTap(toggle,()=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));});}
- let saved='auto';try{const value=localStorage.getItem('seven-sins-3d-graphics');if(['auto','low','high','max'].includes(value))saved=value;}catch(e){}
- if(select){select.value=saved;select.addEventListener('change',()=>{const mode=select.value;try{localStorage.setItem('seven-sins-3d-graphics',mode);}catch(e){};const initial=mode==='auto'?((navigator.deviceMemory&&navigator.deviceMemory<=4)? .68:.82):(graphics3DProfiles[mode]||graphics3DProfiles.high).scale;applyGraphics3D(mode,initial);});}
- const initial=saved==='auto'?((navigator.deviceMemory&&navigator.deviceMemory<=4)||((navigator.hardwareConcurrency||8)<=4)? .68:.82):graphics3DProfiles[saved].scale;
+ let saved='auto';try{const value=localStorage.getItem('seven-sins-3d-graphics');if(['auto','low','medium','high','max'].includes(value))saved=value;}catch(e){}
+ if(select){select.value=saved;select.addEventListener('change',()=>{const mode=select.value;try{localStorage.setItem('seven-sins-3d-graphics',mode);}catch(e){};if(mode==='auto')graphics3DAutoTier=2;const initial=mode==='auto'?AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale:(graphics3DProfiles[mode]||graphics3DProfiles.high).scale;applyGraphics3D(mode,initial);});}
+ graphics3DAutoTier=((navigator.deviceMemory&&navigator.deviceMemory<=4)||((navigator.hardwareConcurrency||8)<=4))?1:2;
+ const initial=saved==='auto'?AUTO_GRAPHICS_STEPS[graphics3DAutoTier].scale:graphics3DProfiles[saved].scale;
  applyGraphics3D(saved,initial);
  syncCameraToggle3D();
 })();
