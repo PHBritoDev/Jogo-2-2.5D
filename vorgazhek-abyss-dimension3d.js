@@ -90,7 +90,8 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
   if(camera)cameraPos.copy(camera.position).sub(g.position);
   for(const w of watchers){
    const progress=(t*.055+w.phase*.39)%1,opacity=sm(.025,.13,progress)*(1-sm(.72,.91,progress));
-   w.root.visible=opacity>.015;if(!w.root.visible)continue;
+   const budget=options?.quality==='low'?5:options?.quality==='medium'?8:11;
+   w.root.visible=w.i<budget&&opacity>.015;if(!w.root.visible)continue;
    const turn=Math.floor(t*.055+w.phase*.39),slot=slots[(w.slot+turn*7)%slots.length],r=R*slot[1]+15;
    w.root.position.set(Math.cos(slot[0])*r,13+(w.i%5)*5,Math.sin(slot[0])*r);
    if(camera)w.root.lookAt(cameraPos.x,w.root.position.y,cameraPos.z);
