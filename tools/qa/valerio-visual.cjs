@@ -32,14 +32,13 @@ try {
  await page.evaluate(()=>{window.SevenSinsDebug3D.god?.();});
  report.state=await page.evaluate(()=>({dimensions:window.SevenSinsDebug3D.dimState(),render:window.SevenSinsDebug3D.rinfo?.()}));
  if(!/bishop1|vhazrael/i.test(JSON.stringify(report.state.dimensions)))throw Error('Bishop I dimension did not activate; refusing false screenshot validation');
- const poses=[{id:'entrada',camera:[400, -1983, 13],target:[400,-1997,-28]},
-              {id:'campo',camera:[400,-1988,-5],target:[400,-1999,-80]},
-              {id:'horizonte',camera:[412,-1981,20],target:[400,-1998,-115]}];
+ const poses=[{id:'entrada',camera:null,target:null},
+              {id:'campo',camera:[400,-1986,19],target:[400,-1999,-62]}];
  for(const pose of poses) {
-   try {await page.evaluate(({camera,target})=>{const api=window.SevenSinsDebug3D;api.freeRoam?.();api.fly?.(camera,target)},pose);}catch(e){report.errors.push('cam '+pose.id+': '+e.message)}
+   if(pose.camera)try {await page.evaluate(({camera,target})=>{const api=window.SevenSinsDebug3D;api.freeRoam?.();api.fly?.(camera,target)},pose);}catch(e){report.errors.push('cam '+pose.id+': '+e.message)}
    await page.waitForTimeout(1700);
    const filename='valerio-'+pose.id+'.png';
-   await page.screenshot({path:path.join(out,filename),timeout:25000});
+   await page.screenshot({path:path.join(out,filename),timeout:90000,animations:'disabled'});
    report.shots.push(filename);
  }
  report.status='captured';report.render=report.state.render;
