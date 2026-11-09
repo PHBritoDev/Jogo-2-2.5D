@@ -122,12 +122,12 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       float bladeHeight = clamp(position.y / 2.22, 0.0, 1.0);
       float instancePhase = instanceMatrix[3].x * .19 + instanceMatrix[3].z * .16;
       float gust = sin(uGoldenWind * 1.05 + instancePhase) * .17
-                 + sin(uGoldenWind * .53 + instancePhase * 2.0) * .13;
+                 + sin(uGoldenWind * .41 + instancePhase * 2.0) * .17;
       transformed.x += gust * bladeHeight * bladeHeight;
-      transformed.z += gust * .39 * bladeHeight;
+      transformed.z += gust * .51 * bladeHeight;
       transformed.y -= abs(gust) * .08 * bladeHeight;`);
   };
-  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v7';
+  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v8';
 
 
   function plot(count,near,far){
@@ -179,7 +179,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float tall=clamp(position.y/1.47,0.0,1.0);
       float phase=instanceMatrix[3].x*.16+instanceMatrix[3].z*.12;
-      transformed.x+=sin(uGoldenWind*.9+phase)*.26*tall*tall;
+      transformed.x+=sin(uGoldenWind*.9+phase)*.38*tall*tall;
       transformed.z+=cos(uGoldenWind*.66+phase)*.12*tall*tall;`);
   };
   leafMat.customProgramCacheKey=()=>'golden-ground-leaf-wind-v1';
