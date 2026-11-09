@@ -10,7 +10,7 @@
 export const TROPICAL_TREES_URL = './EldoriaArvoresTropicais.glb';
 export const TROPICAL_SPECIES = ['sumauma', 'copaLarga', 'figueira', 'palmeira', 'embauba'];
 /** Faixas de distância (m) por perfil: [fim do LOD0, fim do LOD1, fim do impostor]. Espécies altas usam ×bandK. */
-export const TROPICAL_BANDS = { low: [15, 44, 170], auto: [22, 60, 230], high: [28, 74, 270] };
+export const TROPICAL_BANDS = { low: [11, 32, 150], auto: [19, 54, 205], high: [28, 74, 270] };
 export function speciesBandK(meta) { return Math.max(1, Math.min(1.6, (meta?.height || 15) / 18)); }
 
 /** Shader da folhagem: normais de volume não invertem no verso (sem franja preta) + vento pela altura local. */
