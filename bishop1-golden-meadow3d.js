@@ -47,11 +47,11 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   ink.clearRect(0,0,256,512);
   // Dark stalk, with slender green-bronze lower leaves.
   ink.lineCap='round';
-  ink.strokeStyle='rgba(115,83,38,.92)';ink.lineWidth=3;
+  ink.strokeStyle='rgba(194,152,89,.74)';ink.lineWidth=2.1;
   ink.beginPath();ink.moveTo(129,510);ink.bezierCurveTo(116,365,123,235,134,122);ink.stroke();
   for(let k=0;k<6;k++){
     const y=325+k*26,side=k%2?-1:1;
-    ink.strokeStyle='rgba(170,123,55,.83)';ink.lineWidth=2.1;
+    ink.strokeStyle='rgba(218,181,110,.67)';ink.lineWidth=1.2;
     ink.beginPath();ink.moveTo(125,y+29);ink.quadraticCurveTo(125+side*52,y-5,125+side*91,y-28);ink.stroke();
   }
   // Soft feathery head: many separate downy strands, wider at the middle,
@@ -59,7 +59,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   for(let k=0;k<220;k++){
     const t=grassRandom(),y=72+t*235,wide=Math.sin(t*Math.PI)*44+5;
     const side=grassRandom()>.5?1:-1;
-    const center=131+14*t*t;
+    const center=125+31*t*t;
     const x=center+side*(grassRandom()*.92+.08)*wide;
     const length=19+grassRandom()*52;
     const bend=(.3+grassRandom()*.7)*length;
@@ -87,7 +87,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     for(let j=0;j<planes;j++){
       const angle=j*Math.PI/planes,dx=Math.cos(angle),dz=Math.sin(angle),n=vertices.length/3;
       for(const [side,y,v] of [[-1,0,0],[1,0,0],[-1,2.22,1],[1,2.22,1]]){
-        vertices.push(side*.5*dx,y,side*.5*dz);
+        vertices.push(side*.54*dx,y,side*.54*dz);
         uvs.push((side+1)/2,v);
       }
       ind.push(n,n+1,n+2,n+1,n+3,n+2);
@@ -97,10 +97,10 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
     g.setIndex(ind);g.computeVertexNormals();return g;
   }
-  const stalkGeo=makeCards(3);
-  const liteGeo=makeCards(2);
+  const stalkGeo=makeCards(2);
+  const liteGeo=makeCards(1);
   const wind = {value:0};
-  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.29,side:THREE.DoubleSide,roughness:.88,metalness:0});
+  const material = new THREE.MeshStandardMaterial({map:foliageTex,alphaTest:.25,side:THREE.DoubleSide,roughness:.9,metalness:0,emissive:0x483016,emissiveIntensity:.17});
   material.onBeforeCompile = shader => {
     shader.uniforms.uGoldenWind = wind;
     shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;');
@@ -113,7 +113,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       transformed.z += gust * .39 * bladeHeight;
       transformed.y -= abs(gust) * .08 * bladeHeight;`);
   };
-  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v5';
+  material.customProgramCacheKey=()=>'golden-golden-feather-atlas-wind-v6';
 
   function plot(count,near,far,seedOffset){
     // Distinct tiles/LOD bands avoid overdraw-heavy endless dense stalks.
@@ -131,7 +131,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
       const s=(.69+random()*.62)*(r>95?1.2:1);
       dummy.scale.set(s,s*(.79+random()*.36),track?.11*s:s);
       dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-      golden.setHSL(.100+random()*.018,.22+random()*.18,.91+random()*.07);
+      golden.setHSL(.102+random()*.025,.28+random()*.18,.87+random()*.11);
       mesh.setColorAt(i,golden);
     }
     mesh.instanceMatrix.needsUpdate=true;
@@ -140,7 +140,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     mesh.castShadow=false;mesh.receiveShadow=false;
     add(mesh);
   }
-  plot(9000,0,45,0);plot(10000,45,115,1);plot(5300,115,196,2);
+  plot(12500,0,45,0);plot(12000,45,115,1);plot(6500,115,196,2);
 
 
   // Endless pastel sky dome; distant glow remains behind the foreground grass.
