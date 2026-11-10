@@ -763,9 +763,11 @@ new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
   const p=villageTorchSites[i],model=source.clone(true);
   const anchor=new THREE.Group();anchor.name='TochaMedievalTripo-'+(i+1);
   anchor.position.set(p.x,0,p.z);anchor.add(model);villageGroup.add(anchor);
-  torchFallbacks[i].pole.visible=false; // brilho e PointLight mantidos; nenhuma luz extra
+  // Elimina as tochas antigas depois de confirmar o GLB; sem geometrias duplicadas.
+  villageGroup.remove(torchFallbacks[i].pole,torchFallbacks[i].glow);
  }
-},undefined,()=>{});
+ torchPoleGeo.dispose();torchEmberGeo.dispose();
+},undefined,()=>{console.warn('TochaMedievalTripo.glb indisponível: usando tochas de segurança.');});
 const villageVendors=[
  {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Frutas… o que sobrou delas. Nem os bichos querem mais.',hints:['Você é novo por aqui? Não pergunte muito em voz alta.','O Téo, das provisões, escuta tudo. Mas não fala de graça.','De noite tem choro na mata. Eu fecho a porta e rezo.','Dizem que o Primeiro Bispo anda por baixo da terra, nos esgotos velhos.','Se você voltou de lá… ainda há esperança.']},
  {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x,z:marketStalls[1].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']}
