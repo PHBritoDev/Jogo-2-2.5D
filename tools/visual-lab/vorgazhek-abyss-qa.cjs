@@ -62,9 +62,9 @@ async function main(){
   assert.ok(report.gaze.moved>=4,'watchers must follow lateral player movement in their own local orientation');
   report.blink=await page.evaluate(()=>{
     const q=abyssQA,watcher=q.arena.group.children.find(x=>x.name==='VorgazhekWatcher_0');
-    q.frame(5450);const open=watcher.children[1].scale.y;
-    q.frame(5530);const shut=watcher.children[1].scale.y;
-    q.frame(5700);const reopened=watcher.children[1].scale.y;
+    q.frame(5380);const open=watcher.children[1].scale.y;
+    q.frame(5490);const shut=watcher.children[1].scale.y;
+    q.frame(5640);const reopened=watcher.children[1].scale.y;
     return {open,shut,reopened};
   });
   assert.ok(report.blink.shut<report.blink.open*.4 && report.blink.reopened>report.blink.shut*2,
