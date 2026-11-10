@@ -34,6 +34,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin fix/crianca-npc-asset-optimization
+          git checkout -B fix/crianca-npc-asset-optimization origin/fix/crianca-npc-asset-optimization
           git add CriancaNpc-otimizado.glb
           git commit -m "asset(child): optimized animation-preserving 1K GLB"
           git push origin HEAD:refs/heads/fix/crianca-npc-asset-optimization
