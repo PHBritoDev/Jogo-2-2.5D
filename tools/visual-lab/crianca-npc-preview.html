@@ -18,9 +18,18 @@ try {
  ground.position.y=-.045;
  const span=Math.max(size.y, size.x*1.6,size.z*1.6),dist=span/(2*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)))*1.35;
  cam.position.set(span*.12,span*.58,dist);cam.lookAt(0,span*.48,0);
- const mixer=gltf.animations.length?new THREE.AnimationMixer(root):null;
- if(mixer&&gltf.animations[0]) {mixer.clipAction(gltf.animations[0]).play();mixer.update(.04);}
- window.modelReport={animations:gltf.animations.map(a=>a.name),meshes:0,triangles:0,size:size.toArray(),skins:0,materials:[]};
+ // Preview the rest pose without forcing a running animation.
+ // Recalculate bounds after the skinned mesh has updated its bones.
+ root.updateMatrixWorld(true);
+ const actualBox=new THREE.Box3().setFromObject(root);
+ const actualSize=actualBox.getSize(new THREE.Vector3());
+ root.position.set(0,0,0).sub(actualBox.getCenter(new THREE.Vector3()));
+ root.position.y+=actualSize.y*.5;
+ const trueSpan=Math.max(actualSize.y,actualSize.x*1.6,actualSize.z*1.6);
+ const distance=trueSpan/(2*Math.tan(THREE.MathUtils.degToRad(cam.fov/2)))*1.5;
+ cam.position.set(trueSpan*.10,trueSpan*.57,distance);
+ cam.lookAt(0,trueSpan*.43,0);
+ window.modelReport={animations:gltf.animations.map(a=>a.name),meshes:0,triangles:0,size:size.toArray(),actualSize:actualSize.toArray(),skins:0,materials:[]};
  root.traverse(o=>{if(o.isMesh){window.modelReport.meshes++;if(o.isSkinnedMesh)window.modelReport.skins++;const p=o.geometry?.index?.count??o.geometry?.attributes.position?.count??0;window.modelReport.triangles+=Math.round(p/3);const m=[].concat(o.material||[]);for(const mat of m)if(mat&&!window.modelReport.materials.includes(mat.name))window.modelReport.materials.push(mat.name);}});
  function pose(yaw=0){root.rotation.y=yaw;renderer.render(scene,cam);return window.modelReport;}
  window.preview={pose,root,cam,renderer,scene};pose();window.ready=true;
