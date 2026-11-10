@@ -21,7 +21,21 @@ try {
  // Preview the rest pose without forcing a running animation.
  // Recalculate bounds after the skinned mesh has updated its bones.
  root.updateMatrixWorld(true);
- const actualBox=new THREE.Box3().setFromObject(root);
+ const actualBox=new THREE.Box3().makeEmpty();
+ const v=new THREE.Vector3();
+ root.traverse(obj=>{
+   if(!obj.isMesh)return;
+   if(obj.isSkinnedMesh&&obj.geometry?.attributes?.position){
+     const attrib=obj.geometry.attributes.position;
+     for(let i=0;i<attrib.count;i++){
+       v.fromBufferAttribute(attrib,i);
+       obj.applyBoneTransform(i,v);
+       v.applyMatrix4(obj.matrixWorld);
+       actualBox.expandByPoint(v);
+     }
+   }else actualBox.union(new THREE.Box3().setFromObject(obj));
+ });
+ if(actualBox.isEmpty())throw Error('Skinned bounds could not be computed');
  const actualSize=actualBox.getSize(new THREE.Vector3());
  root.position.set(0,0,0).sub(actualBox.getCenter(new THREE.Vector3()));
  root.position.y+=actualSize.y*.5;
