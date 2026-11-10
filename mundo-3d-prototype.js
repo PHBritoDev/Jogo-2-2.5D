@@ -3179,10 +3179,46 @@ function loadVillagers(){loadVillageCast().then(()=>{
    if(!blockedAt(x,z)&&!vendorRoots.some(o=>Math.hypot(x-o.position.x,z-o.position.z)<1.5)){v.position.set(x,groundHeightAt(x,z),z);found=true;break;}}
   if(found){villageGroup.add(v);villagerWalkers.push({holder:v,speed:.8+i*.08,pause:i,phase:i,direction:i*2,target:null});}}
  window.SevenSinsVillagerReport={vendors:vendorRoots.length,walkers:villagerWalkers.length,asset:'Moradores-216.glb'};
+ loadChildVillageNpc();
 }).catch(err=>console.warn('Moradores não carregaram; mantendo os anteriores.',err));}
+// NPC infantil masculino autoral: um único exemplar em Eldória, com o GLB real
+// e esqueleto próprio. Carrega após os moradores, sem alterar as crianças do roteiro.
+let childVillageNpc=null;
+function loadChildVillageNpc(){
+ if(childVillageNpc)return;
+ childVillageNpc={pending:true};
+ new GLTFLoader().load('./CriancaNpc.glb?v=child-npc-1',gltf=>{
+  const base=gltf.scene,box=measureModelBounds(base),height=box.getSize(new THREE.Vector3()).y;
+  if(!Number.isFinite(height)||height<.01)throw new Error('Altura inválida no GLB infantil');
+  const holder=new THREE.Group();holder.name='CriancaNpcMasculina';
+  const scale=1.18/height;base.scale.setScalar(scale);base.position.y=-box.min.y*scale;holder.add(base);
+  base.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+  let x=VILLAGE_CENTER.x+6,z=VILLAGE_CENTER.z+5;
+  for(let i=0;i<48;i++){
+   const angle=i*2.39996,radius=5+(i%6)*2.0;
+   const nx=VILLAGE_CENTER.x+Math.cos(angle)*radius,nz=VILLAGE_CENTER.z+Math.sin(angle)*radius;
+   if(blockedAt(nx,nz)||vendorRoots.some(v=>Math.hypot(v.position.x-nx,v.position.z-nz)<2))continue;
+   x=nx;z=nz;break;
+  }
+  holder.position.set(x,groundHeightAt(x,z),z);villageGroup.add(holder);
+  const clip=(gltf.animations||[]).find(c=>/walking/i.test(c.name))||null;
+  const mixer=clip?new THREE.AnimationMixer(base):null;
+  const action=mixer?mixer.clipAction(clip):null;
+  if(action){action.play();action.paused=true;}
+  const child={holder,speed:.72,pause:1.1,phase:0,direction:2,target:null,mixer,action,isChild:true};
+  villagerWalkers.push(child);childVillageNpc=child;
+  window.SevenSinsChildNpcReport={loaded:true,mesh:holder.name,source:'CriancaNpc.glb',height:1.18,animations:(gltf.animations||[]).map(c=>c.name)};
+ },undefined,error=>{
+  childVillageNpc=null;
+  window.SevenSinsChildNpcReport={loaded:false,error:String(error)};
+  console.warn('CriancaNpc.glb indisponível; restante da vila preservado.',error);
+ });
+}
 function updateVillagers(dt){
  for(const c of vendorRoots){c.userData.phase=(c.userData.phase||0)+dt;poseVillager(c,c.userData.phase);}
  for(const w of villagerWalkers){const o=w.holder;w.phase+=dt;
+  if(w.isChild){o.visible=!voidMode&&Math.hypot(player.position.x-o.position.x,player.position.z-o.position.z)<37;if(!o.visible){if(w.action)w.action.paused=true;continue;}}
+  if(w.mixer){if(w.action)w.action.paused=voidMode||dialogueOpen||cineActive||w.pause>0;w.mixer.update(dt);}
   if(voidMode||dialogueOpen||cineActive){poseVillager(o,w.phase);continue;}
   if(w.pause>0){w.pause-=dt;poseVillager(o,w.phase);continue;}
   if(!w.target){for(let i=0;i<12;i++){const a=w.direction+(i?((i%2?1:-1)*Math.ceil(i/2)*.55):0),x=o.position.x+Math.sin(a)*2,z=o.position.z+Math.cos(a)*2;
