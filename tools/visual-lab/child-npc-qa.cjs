@@ -14,7 +14,7 @@ const dir=path.resolve('work/child-npc-evidence');fs.mkdirSync(dir,{recursive:tr
   await page.waitForFunction(()=>window.SevenSinsChildNpcReport!=null,null,{timeout:180000});
   report.child=await page.evaluate(()=>window.SevenSinsChildNpcReport);
   assert.equal(report.child.loaded,true,report.child.error||'child model did not load');
-  assert.equal(report.child.source,'CriancaNpc.glb');
+  assert.equal(report.child.source,'CriancaNpc-otimizado.glb');
   assert.ok(report.child.animations.some(c=>/walking/i.test(c)));
   report.scene=await page.evaluate(()=>{
     const n=window.SevenSinsChildNpcReport;

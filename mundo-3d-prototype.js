@@ -3187,7 +3187,7 @@ let childVillageNpc=null;
 function loadChildVillageNpc(){
  if(childVillageNpc)return;
  childVillageNpc={pending:true};
- new GLTFLoader().load('./CriancaNpc.glb?v=child-npc-1',gltf=>{
+ new GLTFLoader().load('./CriancaNpc-otimizado.glb?v=child-npc-1k',gltf=>{
   const base=gltf.scene,box=measureModelBounds(base),height=box.getSize(new THREE.Vector3()).y;
   if(!Number.isFinite(height)||height<.01)throw new Error('Altura inválida no GLB infantil');
   const holder=new THREE.Group();holder.name='CriancaNpcMasculina';
@@ -3207,7 +3207,7 @@ function loadChildVillageNpc(){
   if(action){action.play();action.paused=true;}
   const child={holder,speed:.72,pause:1.1,phase:0,direction:2,target:null,mixer,action,isChild:true};
   villagerWalkers.push(child);childVillageNpc=child;
-  window.SevenSinsChildNpcReport={loaded:true,mesh:holder.name,source:'CriancaNpc.glb',height:1.18,animations:(gltf.animations||[]).map(c=>c.name)};
+  window.SevenSinsChildNpcReport={loaded:true,mesh:holder.name,source:'CriancaNpc-otimizado.glb',height:1.18,animations:(gltf.animations||[]).map(c=>c.name)};
  },undefined,error=>{
   childVillageNpc=null;
   window.SevenSinsChildNpcReport={loaded:false,error:String(error)};
