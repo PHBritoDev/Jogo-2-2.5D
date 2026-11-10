@@ -44,6 +44,7 @@ import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
+import {createVillageTorchFire} from './eldoria-torch-fire3d.js';
 import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
@@ -748,6 +749,8 @@ for(const p of villageTorchSites){
  torchLight.position.set(p.x,1.95,p.z);torchLight.castShadow=false;
  villageGroup.add(torchLight);villageTorchLights.push(torchLight);
 }
+// Um único efeito compartilhado: 3 chamas GLSL e um lote GPU de brasas.
+const torchFlames=createVillageTorchFire(THREE,villageGroup,villageTorchSites,villageTorchLights,camera);
 // Normaliza a tocha (vertical 2,05 m) e reaproveita geometria/texturas entre cópias.
 // A ausência do arquivo não interrompe o mapa, o carregamento nem o sistema de iluminação.
 new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
@@ -2151,7 +2154,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);applyCycloneSuction(dt);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);torchFlames.update(now*.001,dayNightState.t);applySquadDim();applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
  undoCyShake();undoVxShake();undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
