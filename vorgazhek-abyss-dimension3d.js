@@ -114,7 +114,7 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
   for(const [xp,yp] of type.eyes){const em=own(mat,new T.MeshBasicMaterial({map:eyeT,transparent:true,opacity:0,depthWrite:false,fog:false,toneMapped:false,side:T.DoubleSide}));const eye=new T.Mesh(eyeG,em);eye.position.set(xp*(172/256)*12.4*scale,(yp*(160/320)-4/320)*17.1*scale,.08);eye.userData.baseX=eye.position.x;eye.userData.baseY=eye.position.y;eye.scale.set(1.9*scale,1.25*scale,1);root.add(eye);eyes.push(eye);}
   root.visible=false;g.add(root);watchers.push({root,face,eyes,i,phase:i*.77,scale});
  }
- const cameraPos=new T.Vector3(),focus=new T.Vector3();
+ const cameraPos=new T.Vector3(),focus=new T.Vector3(),localGaze=new T.Vector3(),inverseFace=new T.Quaternion();
  const sm=(a,b,x)=>{let v=T.MathUtils.clamp((x-a)/(b-a),0,1);return v*v*(3-2*v);};
  ctx.tick.push((t,dt,camera,options)=>{
   water.uniforms.uTime.value=t;
@@ -134,8 +134,16 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
    if(camera)w.root.lookAt(cameraPos.x,w.root.position.y,cameraPos.z);
    else w.root.lookAt(focus.x,w.root.position.y,focus.z);
    w.face.material.opacity=opacity*(w.i%4===2?.55:.86);
-   const dx=T.MathUtils.clamp((focus.x-w.root.position.x)/130,-.28,.28),dy=T.MathUtils.clamp((focus.z-w.root.position.z)/200,-.17,.17);
-   const blink=Math.abs(Math.sin(t*(.85+(w.i%4)*.16)+w.phase*7.1))>.997?.08:1.;
+   // Aim in the observer's own face plane, not world X/Z: tracking works from every camera angle.
+   inverseFace.copy(w.root.quaternion).invert();
+   localGaze.copy(focus).sub(w.root.position).applyQuaternion(inverseFace);
+   const dx=T.MathUtils.clamp(localGaze.x/75,-.26,.26);
+   const dy=T.MathUtils.clamp(localGaze.y/90,-.16,.16);
+   // One soft closure every 5.4–8.1 s, with each entity on a different phase.
+   const blinkPeriod=5.4+(w.i%5)*.67;
+   const blinkPhase=((t+w.phase*4.3)%blinkPeriod+blinkPeriod)%blinkPeriod;
+   const close=sm(0,.068,blinkPhase)*(1-sm(.08,.18,blinkPhase));
+   const blink=1-close*.93;
    for(const eye of w.eyes){eye.position.x=eye.userData.baseX+dx;eye.position.y=eye.userData.baseY+dy;eye.scale.y=1.25*w.scale*blink;eye.material.opacity=opacity*.70;}
   }
  });
