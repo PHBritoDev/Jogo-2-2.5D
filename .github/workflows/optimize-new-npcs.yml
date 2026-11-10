@@ -1,0 +1,57 @@
+name: Preparar modelos NPC femininos otimizados
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/optimize-new-npcs.yml'
+      - 'tools/qa/verify_npc_glb_compression.py'
+permissions:
+  contents: write
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install asset optimizer
+        run: npm install --prefix work/npc-opt-deps --no-package-lock --no-audit --no-fund @gltf-transform/cli@4.5.1
+      - name: Generate optimized models with 2K texture limit
+        run: |
+          set -eu
+          OPT=work/npc-opt-deps/node_modules/.bin/gltf-transform
+          for name in MulherNpc MeninaNpc; do
+            "$OPT" optimize "$name.glb" "$name-otimizado.glb" --compress false --texture-compress auto --texture-size 2048 --flatten false --join false --weld false --resample true --prune false
+            orig=$(stat -c%s "$name.glb")
+            size=$(stat -c%s "$name-otimizado.glb")
+            if [ "$size" -gt $((orig * 80 / 100)) ]; then
+              echo "$name: 2K saved less than 20 percent; trying 1K textures"
+              "$OPT" optimize "$name.glb" "$name-otimizado-1k.glb" --compress false --texture-compress auto --texture-size 1024 --flatten false --join false --weld false --resample true --prune false
+              small=$(stat -c%s "$name-otimizado-1k.glb")
+              if [ "$small" -lt "$size" ]; then mv "$name-otimizado-1k.glb" "$name-otimizado.glb"; else rm "$name-otimizado-1k.glb"; fi
+            fi
+          done
+          python3 tools/qa/verify_npc_glb_compression.py MulherNpc.glb MulherNpc-otimizado.glb MeninaNpc.glb MeninaNpc-otimizado.glb
+      - name: Upload optimized copies to this PR branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add MulherNpc-otimizado.glb MeninaNpc-otimizado.glb
+          if ! git diff --cached --quiet; then
+            git commit -m "asset(npc): optimize woman and girl GLBs with mesh and clips preserved"
+            git push origin HEAD:refs/heads/${{ github.event.pull_request.head.ref }}
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npc-feminino-otimizacao
+          path: |
+            npc-asset-compression-report.json
+            MulherNpc-otimizado.glb
+            MeninaNpc-otimizado.glb
+          retention-days: 14
