@@ -152,7 +152,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
     shader.uniforms.uMeadowImpacts=impactUniform;
     shader.vertexShader = shader.vertexShader.replace('#include <common>','#include <common>\nuniform float uGoldenWind;\nvarying float vMeadowTipGlow;\n'+impactGLSL);
     shader.fragmentShader = shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vMeadowTipGlow;');
-    shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance += vec3(.20,.112,.042)*vMeadowTipGlow;');
+    shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance += vec3(.25,.16,.048)*vMeadowTipGlow;');
     shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
       float bladeHeight = clamp(position.y / 2.22, 0.0, 1.0);
       vMeadowTipGlow = smoothstep(.43,.96,bladeHeight);
@@ -320,8 +320,8 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
         float burning=pow(facing,310.0);
         // Sunlit air: a bright ivory horizon, broad amber scattering and restrained hot core.
         float amberBelt=exp(-pow((up-.065)*5.8,2.0))*pow(facing,2.1);
-        sky+=vec3(.33,.20,.075)*haze+vec3(.41,.27,.13)*corona+vec3(.46,.33,.21)*burning;
-        sky+=vec3(.17,.095,.026)*amberBelt;
+        sky+=vec3(.40,.25,.08)*haze+vec3(.50,.34,.15)*corona+vec3(.55,.39,.18)*burning;
+        sky+=vec3(.24,.15,.032)*amberBelt;
         gl_FragColor=vec4(min(sky,vec3(1.0)),1.0);
       }`
   });
@@ -332,14 +332,14 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   const glowCanvas = document.createElement('canvas'); glowCanvas.width=128;glowCanvas.height=128;
   const brush=glowCanvas.getContext('2d'),gr=brush.createRadialGradient(64,64,5,64,64,64);
   gr.addColorStop(0,'rgba(255,253,235,1)');gr.addColorStop(.10,'rgba(255,243,192,1)');
-  gr.addColorStop(.29,'rgba(255,212,140,.63)');gr.addColorStop(.64,'rgba(255,163,78,.21)');gr.addColorStop(1,'rgba(255,179,89,0)');
+  gr.addColorStop(.22,'rgba(255,231,122,.82)');gr.addColorStop(.48,'rgba(255,197,79,.42)');gr.addColorStop(.72,'rgba(255,164,56,.17)');gr.addColorStop(1,'rgba(255,179,89,0)');
   brush.fillStyle=gr;brush.fillRect(0,0,128,128);
   const sunTexture=new THREE.CanvasTexture(glowCanvas);sunTexture.colorSpace=THREE.SRGBColorSpace;
   const sun=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTexture,color:0xffffff,transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
-  sun.position.set(0,10,-177);sun.scale.set(142,91,1);add(sun);
+  sun.position.set(0,10,-177);sun.scale.set(153,97,1);add(sun);
   // Compact white core against a wider amber atmosphere, at the crest of the hill.
   const sunCore=new THREE.Sprite(new THREE.SpriteMaterial({map:sunTexture,color:0xffffff,transparent:true,opacity:.88,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
-  sunCore.position.set(0,10.5,-175);sunCore.scale.set(52,39,1);add(sunCore);
+  sunCore.position.set(0,10.5,-175);sunCore.scale.set(57,42,1);add(sunCore);
 
   ctx.refs.goldenMeadow={
     impact,
@@ -347,7 +347,7 @@ export function buildGoldenMeadow(THREE, group, spec, ctx) {
   };
   ctx.tick.push(t=>{wind.value=t;});
   // Stronger golden-hour light without lifting exposure until all hues clip to white.
-  return {bg:0xffead0,fog:0xeed7b1,fogNear:101,fogFar:255,
-    hemi:[0xfff5df,0xb48c55,2.18],sun:[0xffdda8,3.48],
-    light:[0xffe4af,1.95,165,[0,15,-48]],exposure:1.20};
+  return {bg:0xffebcf,fog:0xf1dbab,fogNear:100,fogFar:252,
+    hemi:[0xfff6d8,0xc18d36,2.35],sun:[0xffd35a,3.95],
+    light:[0xffdd86,2.18,170,[0,15,-48]],exposure:1.20};
 }
