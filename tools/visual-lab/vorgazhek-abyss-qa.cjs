@@ -49,6 +49,26 @@ async function main(){
   });
   assert.ok(report.waterMotion.changed,'water surface must animate');
 
+  // The entities must look at the real player, even from opposite sides of the abyss.
+  report.gaze=await page.evaluate(()=>{
+    const q=abyssQA,eyes=q.arena.group.children.filter(x=>x.name.startsWith('VorgazhekWatcher_'));
+    q.hero.position.x=-35;q.frame(9500);
+    const left=eyes.map(w=>w.children[1]?.position.x);
+    q.hero.position.x=35;q.frame(9500);
+    const right=eyes.map(w=>w.children[1]?.position.x);
+    q.hero.position.x=0;
+    return {moved:left.filter((n,i)=>Math.abs(n-right[i])>.005).length};
+  });
+  assert.ok(report.gaze.moved>=4,'watchers must follow lateral player movement in their own local orientation');
+  report.blink=await page.evaluate(()=>{
+    const q=abyssQA,watcher=q.arena.group.children.find(x=>x.name==='VorgazhekWatcher_0');
+    q.frame(5450);const open=watcher.children[1].scale.y;
+    q.frame(5530);const shut=watcher.children[1].scale.y;
+    q.frame(5700);const reopened=watcher.children[1].scale.y;
+    return {open,shut,reopened};
+  });
+  assert.ok(report.blink.shut<report.blink.open*.4 && report.blink.reopened>report.blink.shut*2,
+    'watcher must close and reopen its eyes smoothly');
   // Memory disposal: capture before/after, no duplicate live scene after exit.
   report.disposal=await page.evaluate(()=>{const q=abyssQA;const before={...q.renderer.info.memory};q.rebuild();q.renderer.render(q.scene,q.cam);return {before,after:{...q.renderer.info.memory}};});
   assert.ok(report.disposal.after.geometries<report.disposal.before.geometries);
