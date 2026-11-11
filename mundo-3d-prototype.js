@@ -773,7 +773,8 @@ for(const p of villageTorchSites){
  torchLight.castShadow=false;
  villageGroup.add(torchLight);villageTorchLights.push(torchLight);
 }
-const torchFlames=createVillageTorchFire(THREE,villageGroup,villageTorchSites,villageTorchLights,camera);
+// Somente o GLB do criador: nenhuma malha de fogo procedural é gerada.
+const torchFlames={update(){},dispose(){}};
 const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
  const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
@@ -1925,13 +1926,13 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.45:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
  // lentidao e podia arrasta-la para dentro da parede da caverna.
- if(ascKey==='cave')camera.position.copy(target);
- else camera.position.lerp(target,1-Math.exp(-14*dt));
+ // Primeira pessoa precisa seguir a posição real do corpo sem arrasto ou salto de escala.
+ camera.position.copy(target);
  const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
  camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
 }else{
@@ -1956,7 +1957,9 @@ if(firstPerson){
   if(voidMode&&voidSpec.walk){const cs=voidSpec.camSolid;for(let i=1;i<=22;i++){const f=i/22*limit,cx=target.x+camOffset.x*f,cz=target.z+camOffset.z*f;if(cs?cs(cx-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,cz-voidSpec.z):blockedAt(cx,cz)){limit=Math.max(.035,(i-1.7)/22*limit);break;}}} // MOD 311: zonas com volume (caverna/escadaria) testam o sólido em 3D
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
- camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?15:8)*dt));
+ // Dentro da caverna o lerp atravessava rochas e gerava saltos bruscos ao corrigir a colisão.
+ if(ascKey==='cave')camera.position.copy(desired);
+ else camera.position.lerp(desired,1-Math.exp(-8*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
  if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);
  camera.lookAt(target);applyUltCam(dt,target);
@@ -3459,7 +3462,8 @@ const district=(()=>{
  // Substituição definitiva dos postes/esferas feitos por código: somente GLB autoral.
  const districtTorchSites=[[-146,-56],[-156,-68],[-140,-68]].map(([x,z])=>({x,z,y:groundHeightAt(x,z)}));
  const districtTorchLights=districtTorchSites.map(p=>{const l=new THREE.PointLight(0xffa860,.45,12,1.6);l.position.set(p.x,p.y+1.95,p.z);l.castShadow=false;root.add(l);return l;});
- const districtTorchFlames=createVillageTorchFire(THREE,root,districtTorchSites,districtTorchLights,camera);
+ // O fogo triangular feito por shader era a tocha genérica visível no caminho.
+const districtTorchFlames={update(){},dispose(){}};
  authoredTorchAsset.then(source=>{
   if(!source)return;
   for(let i=0;i<districtTorchSites.length;i++){
