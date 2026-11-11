@@ -745,26 +745,19 @@ const marketStalls=ELDORIA_MARKET.map(([x,z,size,yaw],i)=>({x:VILLAGE_CENTER.x+x
 // Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
 const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
-// Tochas do criador: um GLB compartilhado por 3 pontos já iluminados da vila.
- // Até o arquivo ficar disponível, as tochas procedurais existentes permanecem visíveis.
-const villageTorchSites=[{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},
+// Tochas originais do criador; sem postes/bacias/chamas de placeholder em codigo.
+// Somente dois pontos intencionais de orientacao na vila, com GLB compartilhado.
+const villageTorchSites=[
+ {x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},
  {x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},
- {x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}];
-const torchFallbacks=[];
-const torchPoleGeo=new THREE.CylinderGeometry(.045,.07,2.05,5);
-const torchEmberGeo=new THREE.SphereGeometry(.16,7,6);
+];
 for(const p of villageTorchSites){
- const pole=new THREE.Mesh(torchPoleGeo,woodMat);pole.position.set(p.x,1.02,p.z);villageGroup.add(pole);
- const glow=new THREE.Mesh(torchEmberGeo,lanternMat);glow.position.set(p.x,1.92,p.z);villageGroup.add(glow);
- torchFallbacks.push({pole,glow});
  const torchLight=new THREE.PointLight(0xffb060,.35,11,.9);
- torchLight.position.set(p.x,1.95,p.z);torchLight.castShadow=false;
+ torchLight.position.set(p.x,1.95,p.z);
+ torchLight.castShadow=false;
  villageGroup.add(torchLight);villageTorchLights.push(torchLight);
 }
-// Um único efeito compartilhado: 3 chamas GLSL e um lote GPU de brasas.
 const torchFlames=createVillageTorchFire(THREE,villageGroup,villageTorchSites,villageTorchLights,camera);
-// Normaliza a tocha (vertical 2,05 m) e reaproveita geometria/texturas entre cópias.
-// A ausência do arquivo não interrompe o mapa, o carregamento nem o sistema de iluminação.
 new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
  const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
@@ -778,11 +771,8 @@ new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
   const p=villageTorchSites[i],model=source.clone(true);
   const anchor=new THREE.Group();anchor.name='TochaMedievalTripo-'+(i+1);
   anchor.position.set(p.x,0,p.z);anchor.add(model);villageGroup.add(anchor);
-  // Elimina as tochas antigas depois de confirmar o GLB; sem geometrias duplicadas.
-  villageGroup.remove(torchFallbacks[i].pole,torchFallbacks[i].glow);
  }
- torchPoleGeo.dispose();torchEmberGeo.dispose();
-},undefined,()=>{console.warn('TochaMedievalTripo.glb indisponível: usando tochas de segurança.');});
+},undefined,()=>console.warn('Asset de tocha 3D ausente; nao gerar postes temporarios.'));
 const villageVendors=[
  {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Frutas… o que sobrou delas. Nem os bichos querem mais.',hints:['Você é novo por aqui? Não pergunte muito em voz alta.','O Téo, das provisões, escuta tudo. Mas não fala de graça.','De noite tem choro na mata. Eu fecho a porta e rezo.','Dizem que o Primeiro Bispo anda por baixo da terra, nos esgotos velhos.','Se você voltou de lá… ainda há esperança.']},
  {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x,z:marketStalls[1].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']}
@@ -1135,6 +1125,7 @@ function updateEnemyAI(dt){
 }
 function updatePlayerRespawn(now){
  if(playerHP>0||!playerRespawnAt||now<playerRespawnAt)return;
+ ascFallFrom=null;
  player.position.set(checkpointX,terrainHeightAt(checkpointX,checkpointZ),checkpointZ);playerHP=playerMaxHP;playerInvulnerableUntil=now+1000;playerRespawnAt=0;
  moveVX=moveVZ=0;verticalVelocity=0;grounded=true;dashRemaining=0;actionUntil=0;pendingEnemyHitAt=0;if(mixer){mixer.stopAllAction();activeAction=null;}if(actions.idle)play('idle',.08);updatePlayerHud();status.textContent='Você voltou à trilha; o inimigo continua à espreita.';
 }
@@ -1928,7 +1919,10 @@ function updatePlayerCamera(dt){
  const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
- camera.position.lerp(target,1-Math.exp(-14*dt));
+ // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
+ // lentidao e podia arrasta-la para dentro da parede da caverna.
+ if(ascKey==='cave')camera.position.copy(target);
+ else camera.position.lerp(target,1-Math.exp(-14*dt));
  const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
  camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
 }else{
@@ -1979,7 +1973,7 @@ let worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
 // MOD 292 — só QA (?debug3d): caminhada guiada numa direção do mundo, para testar escadas, deques e bordas.
 if(qaMove&&!(rites.locksMovement||dialogueOpen||cineActive)){if(qaMove.left>0){qaMove.left-=dt;worldX=qaMove.x;worldZ=qaMove.z;}else qaMove=null;}
 const engaged=enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;
-const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
+const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul()*(ascKey==='cave'&&cameraDistance<1.05?1.22:1),targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
@@ -2021,10 +2015,14 @@ if(dashRemaining>0){
 // Física vertical com altura do terreno: o personagem pode subir e descer pelas pedras.
 updateRiteLocomotion(dt);
 heroShadows?.update(dt);
-const ascVoidFall=!!(ascKey&&voidSpec.hazard?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z));
+// Caiu na borda? Conservar a queda ate morrer/respawn. Sem permitir que o
+// piso ficticio da ilha/escada volte a "teletransportar" o heroi para cima.
+const ascVoidEdge=!!(ascKey&&voidSpec.hazard?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z));
+if(ascVoidEdge&&ascFallFrom===null)ascFallFrom=player.position.y;
+const ascVoidFall=!!(ascKey&&ascFallFrom!==null);
 let floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.position.z);
 // Sem piso debaixo do herói: gravidade real em vez de colisão vertical falsa.
-if(ascVoidFall){floorY-=1000;if(grounded){grounded=false;verticalVelocity=Math.min(0,verticalVelocity);}}
+if(ascVoidFall){floorY=ascFallFrom-1000;if(grounded){grounded=false;verticalVelocity=Math.min(-1.8,verticalVelocity);}}
 // MOD 292 — apoio em deque/escada/passarela: a superfície mais alta até um degrau acima dos pés (por baixo do deque o chão continua sendo o terreno).
 if(!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.position.x,player.position.z,player.position.y+(grounded?0:.05));if(sup&&sup.y>floorY)floorY=sup.y;}
 if(grounded&&!caveWalk&&!voidMode&&floorY<player.position.y-.6){grounded=false;verticalVelocity=0;} // saiu pela borda: cai em vez de teleportar para o chão
@@ -2036,7 +2034,7 @@ if(!grounded){
  player.position.y=floorY;
 }
 // Atravessar a borda do abismo termina em morte e retorna ao checkpoint da zona.
-if(ascVoidFall&&playerHP>0&&!ascBusy&&player.position.y<terrainHeightAt(player.position.x,player.position.z)-18){
+if(ascVoidFall&&playerHP>0&&!ascBusy&&player.position.y<ascFallFrom-30){
  playerHP=0;playerRespawnAt=now+1250;moveVX=moveVZ=0;dashRemaining=0;
  status.textContent='Você caiu no abismo. Retornando ao último ponto seguro…';updatePlayerHud();
 }
@@ -4194,12 +4192,13 @@ function travelVeil(cb){const veil=document.getElementById('travel-veil');if(vei
    ATRAVESSA o plano do disco no sentido certo, com tempo de recarga na volta. Cenas montadas antes (pré-carga)
    e shaders compilados de forma assíncrona para não travar no meio da passagem. */
 const ascZones={},ascVeil=(()=>{const d=document.createElement('div');d.id='ascensao-escuro';d.style.cssText='position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:40;transition:opacity .45s ease';document.body.appendChild(d);return d;})();
-let ascKey=null,ascBusy=false,ascCooldownUntil=0,ascPrev={x:0,z:0},ascPreload=null;
+let ascKey=null,ascBusy=false,ascCooldownUntil=0,ascPrev={x:0,z:0},ascPreload=null,ascFallFrom=null;
 const ascBuilders={cave:()=>buildCave(THREE,{GLTFLoader,prepareBaked:r=>clampBakedMips(THREE,r,terrainLowSpec?4:3.5),lowSpec:terrainLowSpec,origin:ASC_ZONES.cave}),ascent:()=>buildAscent(THREE,{GLTFLoader,prepareBaked:r=>clampBakedMips(THREE,r,terrainLowSpec?4:3.5),lowSpec:terrainLowSpec,origin:ASC_ZONES.ascent})};
 function ascZone(key){if(!ascZones[key]){const z=ascBuilders[key]();scene.add(z.group);z.warm=z.ready.then(()=>{z.group.visible=true;const c=renderer.compileAsync?renderer.compileAsync(z.group,camera,scene):Promise.resolve();return Promise.race([c,new Promise(r=>setTimeout(r,2500))]).catch(()=>{}).finally(()=>{if(ascKey!==key)z.group.visible=false;});});ascZones[key]=z;}return ascZones[key];}
 function ascWhenReady(key){const z=ascZone(key);return Promise.race([z.warm,new Promise(r=>setTimeout(r,6000))]).then(()=>z);}
 function ascDarken(on,ms){ascVeil.style.transition='opacity '+((ms||450)/1000)+'s ease';ascVeil.style.opacity=on===true?1:on===false?0:String(on);}
 function ascEnter(key,at){
+ ascFallFrom=null;
  const z=ascZone(key),O=ASC_ZONES[key];if(ascKey&&ascKey!==key&&ascZones[ascKey])ascZones[ascKey].group.visible=false;
  voidSpec={x:O.x,z:O.z,y:0,radius:1e4,walk:(lx,lz)=>z.walk(lx,lz),floor:z.floor,ceil:z.roof||null,camSolid:z.camSolid,hazard:z.hazard||null,solid:true};
  voidMode=true;dimKey=null;ascKey=key;z.group.visible=true;
@@ -4207,7 +4206,7 @@ function ascEnter(key,at){
  const x=O.x+at.x,zz=O.z+at.z;player.position.set(x,z.floor(at.x,at.z),zz);playerYaw=at.yaw;player.rotation.y=at.yaw;cameraYaw=at.yaw+Math.PI;cameraPitch=.14;moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;grounded=true;
  checkpointX=x;checkpointZ=zz;camera.position.set(x-Math.sin(at.yaw)*5.5,player.position.y+2.6,zz-Math.cos(at.yaw)*5.5);ascPrev={x:at.x,z:at.z};ascCooldownUntil=performance.now()+1600;
 }
-function ascHide(){if(ascKey&&ascZones[ascKey])ascZones[ascKey].group.visible=false;ascKey=null;}
+function ascHide(){ascFallFrom=null;if(ascKey&&ascZones[ascKey])ascZones[ascKey].group.visible=false;ascKey=null;}
 function ascLeaveToWorld(){
  const M=CAVE_MOUTH,x=M.x-5.5,z=M.z;ascHide();voidSpec.walk=null;leaveVoid();
  player.position.set(x,terrainHeightAt(x,z),z);playerYaw=Math.PI/2;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;moveVX=moveVZ=0;checkpointX=x;checkpointZ=z;

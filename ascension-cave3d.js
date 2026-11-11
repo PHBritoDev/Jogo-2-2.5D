@@ -29,9 +29,9 @@ export function caveFloorVisual(x, z) { return caveFloor(x, z) - chasmDrop(x, z)
 /** Câmera: sólido fora do volume, acima da abóbada ou abaixo do piso. */
 export function caveCamSolid(x, y, z) {
   // Raio de câmera com pequena folga; não tratar o ar dos abismos como parede.
-  if (caveField(x, z) < .15) return true;
-  if (y > caveRoofAt(x, z) - .45) return true;
-  if (y < caveFloor(x, z) - .45 && !caveHazard(x, z)) return true;
+  if (caveField(x, z) < .55) return true; // folga da camera para largura do enquadramento, nao apenas um ponto
+  if (y > caveRoofAt(x, z) - .65) return true;
+  if (y < caveFloor(x, z) - .35 && !caveHazard(x, z)) return true;
   for (const p of CAVE.pillars) if (Math.hypot(x - p.x, z - p.z) < p.r + .15) return true;
   return false;
 }

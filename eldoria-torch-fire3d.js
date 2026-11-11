@@ -11,10 +11,10 @@ export function createVillageTorchFire(THREE, parent, sites, lights, camera) {
   for(let plane=0;plane<2;plane++){
     const angle=plane*Math.PI*.5,c=Math.cos(angle),s=Math.sin(angle),start=pos.length/3;
     for(let row=0;row<=10;row++){
-      const v=row/10,w=.37*(1-.49*v);
+      const v=row/10,w=.27*(1-.57*v);
       for(const side of [-1,1]){
         const x=side*w;
-        pos.push(x*c,1.90+v*1.02,-x*s);
+        pos.push(x*c,1.90+v*.73,-x*s);
         uv.push(side===-1?0:1,v);
       }
       if(row<10){
@@ -62,12 +62,12 @@ export function createVillageTorchFire(THREE, parent, sites, lights, camera) {
       float n=noise(vec2(vUv.x*3.7+h*.8-t*.68,h*4.8-t*2.3));
       float n2=noise(vec2(vUv.x*7.0+t*.41,h*9.0-t*3.2));
       float tip=clamp(1.0-h,0.0,1.0);
-      float width=mix(.41,.075,smoothstep(.22,1.0,h));
+      float width=mix(.37,.035,smoothstep(.15,1.0,h));
       float x=vUv.x-.5;
-      float lick=.095*(n-.5)*h+.038*sin(t*2.6+h*10.0+uPhase)*h;
+      float lick=.17*(n-.5)*h+.065*sin(t*2.6+h*10.0+uPhase)*h;
       float mask=1.0-smoothstep(width-.075,width+.036,abs(x-lick));
-      float breakup=smoothstep(.16,.43,tip+.29*n2-.14*n);
-      float alpha=mask*breakup*smoothstep(0.0,.10,h)*(.68+.26*n);
+      float breakup=smoothstep(.12,.45,tip+.36*n2-.24*n);
+      float alpha=mask*breakup*smoothstep(0.0,.13,h)*(.54+.36*n);
       if(alpha<.018)discard;
       float inner=1.0-smoothstep(.07,.22,abs(x-lick));
       vec3 ember=vec3(1.0,.18,.016),gold=vec3(1.0,.56,.055),hot=vec3(1.0,.94,.50);

@@ -6,7 +6,10 @@ on:
       - 'mundo-3d-prototype.js'
       - 'eldoria-torch-fire3d.js'
       - 'tests/ascension311.test.mjs'
+      - 'tests/mod312-spatial.test.mjs'
       - 'tools/visual-lab/ascension-zone-sweep.cjs'
+      - 'eldoria-undergrowth.js'
+      - 'eldoria-city-layout.js'
       - '.github/workflows/ascension-zone-sweep.yml'
   workflow_dispatch:
 permissions:
@@ -21,11 +24,11 @@ jobs:
         with:
           node-version: '22'
       - name: Verificar layouts, fisica e colisao
-        run: node --test tests/ascension311.test.mjs
+        run: node --test tests/ascension311.test.mjs tests/mod312-spatial.test.mjs
       - name: Instalar Chromium e Playwright
         run: |
           npm install --prefix tools/visual-lab --no-audit --no-fund
-          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+          ./tools/visual-lab/node_modules/.bin/playwright install chromium --only-shell
       - name: Iniciar jogo local
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ascension-qa-http.log 2>&1 &

@@ -57,6 +57,22 @@ export function buildAscent(THREE, { GLTFLoader, prepareBaked, lowSpec = false, 
     const m = new THREE.Mesh(g, stoneMat); m.name = 'estrutura-escada'; group.add(m);
     // Sem esferas/lâmpadas visíveis acima dos patamares: a luz vem do alto, sem fonte aparente.
   }
+  // Plataforma de intersecao entre o ultimo patamar e a ilha.
+  // Antes a escada acabava onde a malha da ilha comecava, mas as duas tinham
+  // funcoes diferentes de colisao: o personagem caia por uma fissura invisivel.
+  {
+    const end = ascentStairsEnd();
+    const startZ = -end + 7, finishZ = -end - 22;
+    const bridgeLength = startZ - finishZ;
+    const connection = new THREE.Mesh(
+      ensureUv(THREE, new THREE.BoxGeometry(ASCENT.width + .16, 1.12, bridgeLength)),
+      stoneMat
+    );
+    connection.name = 'passagem-solida-escada-ilha';
+    connection.position.set(0, top - .56, (startZ + finishZ) / 2);
+    connection.receiveShadow = true;
+    group.add(connection);
+  }
   // ---------- feixes de luz no vazio (de cima, levemente inclinados) e poeira ----------
   const shafts = [];
   for (let k = 0; k <= ASCENT.flights; k++) {

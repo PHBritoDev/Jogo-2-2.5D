@@ -130,9 +130,9 @@ export function planTropicalBelt({ areas, isFree, seed = 2925, density = 1, rnd:
   let s = seed >>> 0; const rnd = rndIn || (() => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; });
   const kinds = [
     { sp: 'sumauma', gap: 22, share: .03, s: [.8, 1.1] },
-    { sp: 'figueira', gap: 9.5, share: .16, s: [.75, 1.15] },
-    { sp: 'copaLarga', gap: 7.2, share: .37, s: [.78, 1.25] },
-    { sp: 'embauba', gap: 5.2, share: .2, s: [.8, 1.2] },
+    { sp: 'figueira', gap: 9.5, share: .21, s: [.75, 1.15] },
+    { sp: 'copaLarga', gap: 7.2, share: .42, s: [.78, 1.25] },
+    { sp: 'embauba', gap: 7.2, share: .10, s: [.8, 1.2] },
     { sp: 'palmeira', gap: 4.6, share: .2, s: [.78, 1.18] },
   ];
   const out = [], cell = 4, grid = new Map(), key = (x, z) => Math.floor(x / cell) + ',' + Math.floor(z / cell);
@@ -155,7 +155,7 @@ export function planTropicalBelt({ areas, isFree, seed = 2925, density = 1, rnd:
         const gap = kind.gap * (.85 + rnd() * .3);
         if (!isFree(x, z, gap * .35) || !clear(x, z, gap, kind.sp)) continue;
         const o = { sp: kind.sp, x, z, gap, rot: rnd() * Math.PI * 2, s: kind.s[0] + rnd() * (kind.s[1] - kind.s[0]) };
-        const v = .9 + rnd() * .16, warm = rnd() < .25 ? .06 : 0; o.tint = [v * (1 + warm), v, v * (1 - warm)];
+        const v = .9 + rnd() * .16, warm = rnd() < .25 ? .06 : 0; o.tint = kind.sp === 'embauba' ? [v * .75, v * .83, v * .74] : [v * (1 + warm), v, v * (1 - warm)];
         out.push(o); const kk = key(x, z); if (!grid.has(kk)) grid.set(kk, []); grid.get(kk).push(o);
       }
     }
