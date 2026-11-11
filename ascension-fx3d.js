@@ -153,10 +153,14 @@ export function dustField(THREE, { count = 600, box = [40, 20, 40], color = 0xcf
 }
 
 /** Libera geometrias/materiais/texturas próprios de um grupo (texturas compartilhadas de GLB ficam: são do cache). */
-export function disposeGroup(root, keep = new Set()) {
+export function disposeGroup(root, keep = new Set(), textures = false) {
   const seen = new Set();
   root.traverse(o => {
     if (o.geometry && !seen.has(o.geometry) && !keep.has(o.geometry)) { seen.add(o.geometry); o.geometry.dispose(); }
-    for (const m of o.material ? [].concat(o.material) : []) if (m && !seen.has(m) && !keep.has(m)) { seen.add(m); m.dispose(); }
+    for (const m of o.material ? [].concat(o.material) : []) if (m && !seen.has(m) && !keep.has(m)) {
+      seen.add(m);
+      if (textures) for (const k of ['map', 'emissiveMap', 'normalMap', 'roughnessMap', 'metalnessMap']) { const t = m[k]; if (t && !seen.has(t) && !keep.has(t)) { seen.add(t); t.dispose(); } }
+      m.dispose();
+    }
   });
 }

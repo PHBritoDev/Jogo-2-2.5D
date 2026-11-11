@@ -254,7 +254,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
     group, ready, portal, walk, floor: (x, z) => caveFloor(x, z), roof: (x, z) => caveRoofAt(x, z), camSolid: caveCamSolid,
     env: { bg: 0x03090c, fog: 0x0a2329, fogNear: 9, fogFar: 92, hemi: [0x7cc2cf, 0x0c1416, 1.35], sun: [0xa9dcff, .5], exposure: 1.32 },
     update(dt) { t += dt; for (const u of updaters) u(t, dt); },
-    dispose() { disposeGroup(group); },
+    dispose() { disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
     stats() { let tris = 0; group.traverse(o => { if (o.isMesh && o.geometry) { const n = (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; tris += o.isInstancedMesh ? n * o.count : n; } }); return { tris: Math.round(tris), clusters: clusters.length }; },
   };
 }

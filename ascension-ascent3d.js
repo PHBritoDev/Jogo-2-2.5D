@@ -219,7 +219,7 @@ export function buildAscent(THREE, { GLTFLoader, prepareBaked, lowSpec = false, 
       isleLight.intensity = 2.2 * smooth(.6, 1, prog);
       for (const r of rings) r.rotation.y = Math.sin(t * .01) * .02;
     },
-    dispose() { disposeGroup(group); },
+    dispose() { disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
     stats() { let tris = 0; group.traverse(q => { if (q.isMesh && q.geometry) { const k = (q.geometry.index ? q.geometry.index.count : q.geometry.attributes.position.count) / 3; tris += q.isInstancedMesh ? k * q.count : k; } }); return { tris: Math.round(tris), steps: ASCENT.flights * N, top }; },
   };
 }

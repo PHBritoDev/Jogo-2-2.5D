@@ -4196,8 +4196,12 @@ function ascHide(){if(ascKey&&ascZones[ascKey])ascZones[ascKey].group.visible=fa
 function ascLeaveToWorld(){
  const M=CAVE_MOUTH,x=M.x-5.5,z=M.z;ascHide();voidSpec.walk=null;leaveVoid();
  player.position.set(x,terrainHeightAt(x,z),z);playerYaw=Math.PI/2;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;moveVX=moveVZ=0;checkpointX=x;checkpointZ=z;
- camera.position.set(x-6,player.position.y+2.8,z);ascCooldownUntil=performance.now()+1800;
+ camera.position.set(x-6,player.position.y+2.8,z);ascCooldownUntil=performance.now()+1800;ascScheduleUnload();
 }
+/** Descarrega as zonas (GPU e memória) depois de um tempo longe da boca; voltar remonta tudo com pré-carga. */
+let ascUnloadTimer=0;
+function ascScheduleUnload(){clearTimeout(ascUnloadTimer);ascUnloadTimer=setTimeout(()=>{const P=player.position;if(ascKey||ascBusy||Math.hypot(P.x-CAVE_MOUTH.x,P.z-CAVE_MOUTH.z)<120){ascScheduleUnload();return;}
+ for(const k of Object.keys(ascZones)){const z=ascZones[k];scene.remove(z.group);z.dispose();delete ascZones[k];}ascPreload=null;ascUnloadTimer=0;},45000);}
 function ascTravel(fn,{color='#000',hold=260}={}){if(ascBusy)return;ascBusy=true;ascVeil.style.background=color;ascDarken(true,380);
  setTimeout(()=>{Promise.resolve(fn()).catch(e=>console.warn('Ascensão: transição',e)).finally(()=>{setTimeout(()=>{ascDarken(false,620);ascBusy=false;ascVeil.style.background='#000';},hold);});},400);}
 function updateAscension(dt,now){
@@ -4207,6 +4211,7 @@ function updateAscension(dt,now){
   if(voidMode||ascBusy)return;
   const dm=Math.hypot(P.x-CAVE_MOUTH.x,P.z-CAVE_MOUTH.z);
   if(dm<75&&!ascPreload){ascPreload=(window.requestIdleCallback||setTimeout)(()=>{ascZone('cave');});}
+  else if(dm>150&&ascPreload&&!ascUnloadTimer)ascScheduleUnload();
   if(inMouthTunnel(P.x,P.z)){const d=mouthDepth(P.x);ascDarken(Math.max(0,Math.min(.92,(d-.18)/(CAVE_MOUTH.enterDepth-.18)*.92)),180);
    if(d>=CAVE_MOUTH.enterDepth&&P.x<ascPrev.x-1e-4&&now>ascCooldownUntil)ascTravel(()=>ascWhenReady('cave').then(()=>{const S=ASC_CAVE.spawn;ascEnter('cave',S);status.textContent='Caverna da Fronteira — o frio vem lá de dentro.';}));}
   else if(ascVeil.style.opacity!=='0'&&!ascBusy)ascDarken(false,300);
