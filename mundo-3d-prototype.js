@@ -759,7 +759,6 @@ const marketLabels=[['FRUTAS',false],['PROVISÕES',false]];
 const marketStalls=ELDORIA_MARKET.map(([x,z,size,yaw],i)=>({x:VILLAGE_CENTER.x+x,z:VILLAGE_CENTER.z+z,size,yaw,label:marketLabels[i][0],green:marketLabels[i][1]}));
 // Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
-const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
 // Tochas originais do criador; sem postes/bacias/chamas de placeholder em codigo.
 // Somente dois pontos intencionais de orientacao na vila, com GLB compartilhado.
 const villageTorchSites=[
