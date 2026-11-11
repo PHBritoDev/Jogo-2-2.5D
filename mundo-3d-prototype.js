@@ -7577,7 +7577,9 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  torchAudit(){const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});const districtModels=[];district.root.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Distrito-'))districtModels.push(o.name);});
  const legacy=[];for(const root of [villageGroup,district.root,...Object.values(ascZones).map(z=>z.group)])root?.traverse(o=>{if(/^(ChamaFluidaTocha|TochasVentoFogoGPU|BrasasCompartilhadas)/.test(o.name||''))legacy.push(o.name);});
  const torchParts=[];const first=villageGroup.getObjectByName('TochaMedievalTripo-1');
- first?.traverse(o=>{if(o.isMesh){const m=Array.isArray(o.material)?o.material[0]:o.material;torchParts.push({name:o.name,material:m?.name,color:m?.color?.getHexString?.(),emissive:m?.emissive?.getHexString?.(),tri:(o.geometry?.index?.count||o.geometry?.attributes?.position?.count||0)/3});}});
+ first?.traverse(o=>{if(o.isMesh){const m=Array.isArray(o.material)?o.material[0]:o.material;const g=o.geometry;g.computeBoundingBox();const box=g.boundingBox,pt=g.attributes.position,steps=Array(10).fill(0);
+ for(let i=0;i<pt.count;i++){const k=Math.min(9,Math.max(0,Math.floor(10*(pt.getY(i)-box.min.y)/(box.max.y-box.min.y||1))));steps[k]++;}
+ torchParts.push({name:o.name,material:m?.name,color:m?.color?.getHexString?.(),emissive:m?.emissive?.getHexString?.(),tri:(g.index?.count||pt.count)/3,bounds:{min:box.min.toArray(),max:box.max.toArray()},histY:steps,texture:m?.map?.name,vertices:pt.count});}});
  return {expected:villageTorchSites.length,loaded:placed.length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels},genericFire:legacy,torchParts};},
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},
 
