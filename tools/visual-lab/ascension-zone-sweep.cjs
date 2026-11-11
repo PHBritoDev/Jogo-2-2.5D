@@ -41,6 +41,7 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
   await enter('cave');
   await snap('caverna-entrada',0,2,{yaw:Math.PI});
   await snap('caverna-corredor',-2,-98,{yaw:Math.PI});
+  await snap('caverna-corredor-1p',-2,-98,{yaw:Math.PI,distance:.72});
   await snap('caverna-grota',-42,-62,{yaw:-.7});
   await snap('caverna-portal',-4,-136,{yaw:Math.PI});
   // Checkpoint foi definido na entrada segura: atravessar abismo deve resultar em respawn.
@@ -57,6 +58,8 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
   await snap('escadaria-base',0,-3,{yaw:Math.PI});
   await snap('escadaria-intermediaria',0,-160,{yaw:Math.PI});
   const island=await page.evaluate(async()=>{const m=await import('./ascension-layout.js');return m.islandCenter();});
+  await snap('escadaria-ultima-passagem',0,-372,{yaw:Math.PI,distance:5.2});
+  await snap('escadaria-ponte-ilha',0,-380,{yaw:Math.PI,distance:4});
   await snap('ilha-deserto-negro',island.x,island.z,{yaw:Math.PI, distance:7});
   await page.evaluate(()=>{
    const a=window.SevenSinsDebug3D,st=a.ascState(),O={x:st.world.x-st.local.x,z:st.world.z-st.local.z};
