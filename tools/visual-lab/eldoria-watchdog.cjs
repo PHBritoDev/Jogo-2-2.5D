@@ -18,6 +18,7 @@ const report={date:new Date().toISOString(),commit:process.env.GITHUB_SHA||'loca
 ]};
 const WORLD=[
  {name:'tochas-antigas-relatadas',zone:null,x:-20.6,z:-38.0,yaw:0,distance:.72,why:'Confirmar substituicao das tochas da vila pelo GLB do criador'},
+ {name:'dez-lampioes-genericos-retirados',zone:null,x:-4.2,z:-62.5,yaw:2.3,distance:4.8,why:'Provar que todos os dez postes procedurais da cidade foram substituidos por TochaMedievalTripo.glb'},
  {name:'arbustos-e-arvores-claras',zone:null,x:34,z:-56,yaw:2.8,why:'Verificar plantas repetidas e troncos excessivamente claros'},
  {name:'raizes-arvore-ancestral',zone:null,x:-13.2,z:-57,yaw:0,distance:.72,why:'Verificar raiz exposta e colisao em ramo atraves do jogador'},
  {name:'caverna-corredor',zone:'cave',x:0,z:-99,yaw:Math.PI,why:'Investigar parede, teto baixo e camera cortando rocha'},
@@ -43,6 +44,11 @@ const WORLD=[
   // Esperar os GLBs antes da primeira foto; snapshots durante loading geravam alarmes falsos.
   try{await page.waitForFunction(()=>window.SevenSinsDebug3D?.torchAudit?.().loaded>=2,null,{timeout:90000});}
   catch(e){report.errors.push({type:'load',message:'Tochas GLB nao carregaram antes do limite de 90 segundos'});}
+  try{await page.waitForFunction(()=>window.SevenSinsDebug3D?.torchAudit?.().city?.loaded===10,null,{timeout:90000});}
+  catch(e){report.errors.push({type:'torch',message:'As dez tochas GLB da cidade nao foram carregadas'});}
+  const cityTorchAudit=await page.evaluate(()=>window.SevenSinsDebug3D.torchAudit());
+  if(cityTorchAudit.procedural?.length)report.errors.push({type:'torch',message:'Geometria antiga de chamas/postes ainda presente: '+cityTorchAudit.procedural.join(',')});
+  report.torchAudit=cityTorchAudit;
   let zone=null;
   for(const c of WORLD){
    if(c.zone!==zone){
