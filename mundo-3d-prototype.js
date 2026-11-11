@@ -3231,8 +3231,18 @@ function loadVillagers(){
     {sex:'woman',role:'walk',offset:[4,-7],yaw:0}
    ];
    return Promise.all(extras.map(async(p,i)=>{
-    const x=VILLAGE_CENTER.x+p.offset[0],z=VILLAGE_CENTER.z+p.offset[1];
-    if(blockedAt(x,z)){console.warn('NPC extra: posição ocupada, não foi criado',i);return null;}
+    let x=VILLAGE_CENTER.x+p.offset[0],z=VILLAGE_CENTER.z+p.offset[1];
+    // Busca limitada, determinística, de um chão livre perto da função do morador.
+    if(blockedAt(x,z)||vendorRoots.some(v=>Math.hypot(v.position.x-x,v.position.z-z)<2)){
+     let found=false;
+     for(let k=0;k<36;k++){
+      const angle=k*2.39996,radius=.8+Math.floor(k/8)*.85;
+      const nx=x+Math.cos(angle)*radius,nz=z+Math.sin(angle)*radius;
+      if(blockedAt(nx,nz)||vendorRoots.some(v=>Math.hypot(v.position.x-nx,v.position.z-nz)<2))continue;
+      x=nx;z=nz;found=true;break;
+     }
+     if(!found){console.warn('NPC extra sem posição segura',i);return null;}
+    }
     const c=await npcFactory.create({...p,x,z});
     villageGroup.add(c.holder);villageNpcs.push(c);
     if(p.role==='down')flyNpcTargets.push(c.holder);
