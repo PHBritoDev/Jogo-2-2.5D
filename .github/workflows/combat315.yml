@@ -1,0 +1,45 @@
+name: Combate cinematográfico (Mod 315)
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  combat315:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --prefix /tmp/combat-deps --no-package-lock --ignore-scripts three@0.160.0
+      - name: Dash 0,5 s, saltos, escudo, dano único, VFX e IA do Demônio1
+        env:
+          COMBAT_THREE_DIR: /tmp/combat-deps/node_modules/three
+        run: node --test tests/combat315.test.mjs tests/prota-combat302.test.mjs enemy1-squad.test.mjs sword-rites3d.test.mjs
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Navegador isolado
+        run: |
+          npm install --prefix work/qa --save-exact --no-package-lock --ignore-scripts playwright@1.56.1
+          work/qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Combate real no jogo integrado (celular, vídeo e capturas)
+        env:
+          NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
+          VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
+        run: |
+          python3 -m http.server 4176 > /tmp/combat315-http.log 2>&1 &
+          node tools/visual-lab/combat315-qa.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: combat315-${{ github.sha }}
+          path: work/evidence/
+          retention-days: 14

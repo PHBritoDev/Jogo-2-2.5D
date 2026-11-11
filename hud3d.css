@@ -409,3 +409,10 @@ body.no-hints #top{display:none!important}
 #sword-training{position:fixed;z-index:15;left:50%;top:max(5px,env(safe-area-inset-top));transform:translateX(-50%);display:flex;gap:5px;align-items:center;max-width:94vw;padding:5px 8px;border:1px solid #a58c58;border-radius:8px;background:#0c0c16e8;color:#ffedc4;font:10px sans-serif}
 #sword-training button,#sword-training a{font:9px sans-serif;color:#fff1cd;background:#29202f;border:1px solid #8e7648;border-radius:5px;padding:7px;width:auto;height:auto;text-decoration:none;white-space:nowrap}
 @media(max-width:560px){#sword-training{top:auto;bottom:calc(var(--u)*5.4);flex-wrap:wrap;justify-content:center;width:max-content}#sword-training span{width:100%;text-align:center}}
+/* MOD 315 — ESCUDO hexagonal: botão próprio (toque e tecla G), recarga e integridade discretas */
+#actions #shield{width:calc(var(--u)*0.92)!important;height:calc(var(--u)*0.92)!important;right:calc(var(--u)*4.52)!important;bottom:calc(var(--u)*1.39)!important;--c1:#3a8fd0;--c2:#0c2446;--glow:rgba(140,220,255,.8)}
+#actions #shield .btn-icon{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23dff6ff' stroke-width='3.2' stroke-linejoin='round'%3E%3Cpath d='M32 5 55 18v28L32 59 9 46V18Z' fill='%2366c4ff33'/%3E%3Cpath d='M32 20 42 26v12L32 44 22 38V26Z' fill='%23bfeaff55'/%3E%3Cpath d='M32 5v15M55 18l-13 8M55 46l-13-8M32 59V44M9 46l13-8M9 18l13 8'/%3E%3C/g%3E%3C/svg%3E")}
+#actions #shield.on{box-shadow:0 0 0 calc(var(--u)*.05) rgba(160,230,255,calc(.35 + var(--hp,1)*.6)),0 0 18px rgba(110,200,255,.85)!important}
+#actions #shield.on .btn-icon{animation:hudUltGlow .6s ease-in-out infinite alternate}
+#actions #shield .skill-cost,#actions #dash .skill-cost{border-color:#bfe9ff}
+#actions #dash.skill-cooling .skill-cost{font-size:10px!important}

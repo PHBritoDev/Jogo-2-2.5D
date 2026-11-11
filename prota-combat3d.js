@@ -1,3 +1,4 @@
+import { MOBILITY } from './combat-mobility3d.js';
 /**
  * Mod 302 — combate do PROTAGONISTA reconstruído (só o herói; inimigos e bispos não usam este módulo).
  * Puro JS, sem Three/DOM: parâmetros medidos nos clipes reais do Prota_otimizado_2K.glb e funções testáveis
@@ -13,21 +14,25 @@ export const PROTA_LOCO = Object.freeze({ walk: 2.2, run: 6.8, walkNatural: 1.63
 export const PROTA_JUMP = Object.freeze({ gravity: 22, impulse: 5.2, clip: 'Jump_Over_Obstacle_2', takeoff: .10, airFrom: .20, airTo: .52, land: .60, landEnd: .80, recover: .16 });
 /** Dash da referência 3900: some em fumaça vertical na origem, atravessa invisível e reaparece adiante
  *  num rastro horizontal escuro que se fecha no corpo. Curto, imediato, com i-frames e recarga. */
-export const PROTA_DASH = Object.freeze({ distance: 5.4, travel: .17, vanish: .03, reappear: .20, total: .34, iframes: .30, cooldown: .48, recover: .14 });
+/* Mod 315: recarga ÚNICA de 0,50 s contada desde a ativação (combat-mobility3d.MOBILITY.dashCooldown) — o jogo usa a mesma. */
+export const PROTA_DASH = Object.freeze({ distance: 5.4, travel: .17, vanish: .03, reappear: .20, total: .34, iframes: .30, cooldown: MOBILITY.dashCooldown, recover: .14 });
 
 /** Trechos [início, fim] dos clipes (segundos) e janelas relativas ao trecho. hit: physical | energy | hybrid. */
 export const PROTA_MOVES = Object.freeze({
   ground: [
-    { name: 'Fenda diagonal', clip: 'Weapon_Combo', start: .52, end: 1.08, open: .19, close: .36, hit: 'physical', dmg: 1, warp: { max: 3.2, speed: 18 }, aim: { r: 1.4, ang: .52 }, hitstop: .05, ref: '7e4b2554 0:01 crescente que nasce na lâmina num corte ascendente de corpo inteiro' },
+    { name: 'Fenda diagonal', clip: 'Weapon_Combo', start: .52, end: 1.08, open: .19, close: .36, hit: 'hybrid', dmg: 1, warp: { max: 3.2, speed: 18 }, aim: { r: 1.4, ang: .52 }, hitstop: .05,
+      energy: { kind: 'wave', at: .27, roll: .85, radius: 1.7, speed: 17, range: 6.5, band: .8, life: .5, falloff: true }, ref: '7e4b2554 0:01 crescente que nasce na lâmina num corte ascendente de corpo inteiro' },
     { name: 'Lua horizontal', clip: 'Triple_Combo_Attack', start: 1.10, end: 1.76, open: .22, close: .46, hit: 'energy', dmg: .95, warp: { max: 1.4 }, aim: { r: 1.9, ang: -.61 }, hitstop: .045,
       energy: { kind: 'sector', at: .38, span: 2.6, roll: 0, r0: .9, r1: 7.2, speed: 26, band: 1.0, half: .55, life: .42 }, ref: 'acf4e763 0:02–0:03 arco horizontal largo que alcança o inimigo à média distância · 7e4b2554 0:05' },
     { name: 'Ascensão', clip: 'Triple_Combo_Attack', start: 1.95, end: 2.45, open: .10, close: .33, hit: 'hybrid', dmg: 1.12, launcher: true, warp: { max: 2.2 }, aim: { r: 1.5, ang: 1.22 }, hitstop: .06,
       energy: { kind: 'wave', at: .24, roll: Math.PI / 2, radius: 1.3, speed: 15, range: 4.6, band: .7, life: .4 }, ref: 'acf4e763 0:04 e 0:08 corte vertical em crescente · 0240a0f0 0:06 lançamento' },
-    { name: 'Estocada', clip: 'Weapon_Combo_1', start: .88, end: 1.45, open: .15, close: .36, hit: 'physical', dmg: 1.18, warp: { max: 3.6 }, aim: { r: 1.8, ang: .61 }, hitstop: .06, ref: '0240a0f0 0:10–0:12 investida curta com faíscas no contato · acf4e763 0:07 perseguição' },
+    { name: 'Estocada', clip: 'Weapon_Combo_1', start: .88, end: 1.45, open: .15, close: .36, hit: 'hybrid', dmg: 1.18, warp: { max: 3.6 }, aim: { r: 1.8, ang: .61 }, hitstop: .06,
+      energy: { kind: 'wave', at: .24, roll: .2, radius: 1.15, speed: 22, range: 6.5, band: .65, life: .4, falloff: true }, ref: '0240a0f0 0:10–0:12 investida curta com faíscas no contato · acf4e763 0:07 perseguição' },
     { name: 'Sentença giratória', clip: '_360_Power_Spin_Jump', start: .70, end: 1.80, open: .40, close: .56, hit: 'hybrid', dmg: 1.55, finisher: true, warp: { max: 2.4 }, aim: { r: 1.6, ang: -.44 }, hitstop: .09, shake: .07,
       energy: { kind: 'sector', at: .78, span: Math.PI * 2, roll: 0, r0: 1, r1: 5.6, speed: 18, band: 1.1, half: .7, life: .45 }, ref: '9dacd64c 0:24 corte circular em espiral · 523a21e1 0:00 e 0:08 explosão de finalizador' },
   ],
-  run: { name: 'Estocada em corrida', clip: 'Weapon_Combo_1', start: .88, end: 1.45, open: .15, close: .36, hit: 'physical', dmg: 1.05, warp: { max: 3.6, speed: 24 }, aim: { r: 1.8, ang: .61 }, hitstop: .05 },
+  run: { name: 'Estocada em corrida', clip: 'Weapon_Combo_1', start: .88, end: 1.45, open: .15, close: .36, hit: 'hybrid', dmg: 1.05, warp: { max: 3.6, speed: 24 }, aim: { r: 1.8, ang: .61 }, hitstop: .05,
+    energy: { kind: 'wave', at: .24, roll: -.35, radius: 1.4, speed: 24, range: 7.5, band: .7, life: .42, falloff: true } },
   dash: { name: 'Corte do retorno', clip: 'Skill_03', start: .35, end: 1.30, open: .20, close: .34, hit: 'hybrid', dmg: 1.1, warp: { max: 1.6 }, aim: { r: 2.2, ang: 0 }, hitstop: .055,
     energy: { kind: 'wave', at: .84, roll: 1.1, radius: 1.5, speed: 22, range: 8.5, band: .8, life: .5 }, ref: '9dacd64c 0:03 crescente lançado logo após o deslocamento · 0:07' },
   air: { name: 'Arco aéreo', clip: 'Weapon_Combo_2', start: 2.60, end: 3.15, open: .10, close: .40, hit: 'hybrid', dmg: .9, warp: { max: 1.2 }, aim: { r: 1.6, ang: -1.22 }, hitstop: .045,
@@ -54,6 +59,8 @@ export function protaSegments() {
   return out;
 }
 export function moveDuration(m) { return m.end - m.start; }
+/** Mod 315: a onda vale menos longe do herói (alcance não vira dano grátis): 100 % até 2,5 m, 60 % a partir de 7,5 m. */
+export function energyFalloff(spec, dist) { return spec && spec.falloff ? 1 - .4 * Math.max(0, Math.min(1, (dist - 2.5) / 5)) : 1; }
 
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
@@ -99,38 +106,5 @@ export function warpStep(a, def, from, target, dt, acc = { x: 0, z: 0 }) {
   return { dx: nx / need * step, dz: nz / need * step, yaw };
 }
 
-/** Cria o volume de energia de um golpe na direção do herói (setor que se expande ou onda que viaja). */
-export function makeEnergy(spec, from, yaw, height = 1.05) {
-  return { ...spec, x: from.x, y: from.y + height, z: from.z, yaw, age: 0, radius: spec.kind === 'sector' ? spec.r0 : 0, travel: 0, done: false };
-}
-/** Avança o volume; devolve true quando a frente da energia alcança o corpo do alvo (dano neste quadro). */
-export function energyStep(e, dt, target, { blocked = () => false } = {}) {
-  e.age += dt;
-  if (e.kind === 'sector') e.radius = Math.min(e.r1, e.radius + e.speed * dt);
-  else e.travel = Math.min(e.range, e.travel + e.speed * dt);
-  if (e.age >= e.life || (e.kind === 'sector' ? e.radius >= e.r1 : e.travel >= e.range)) e.done = true;
-  if (!target || !target.alive) return false;
-  return energyTouches(e, target, blocked);
-}
-export function energyTouches(e, target, blocked = () => false) {
-  const r = target.radius || .5, h = target.height || 1.7, ty = target.y;
-  if (e.kind === 'sector') {
-    const dx = target.x - e.x, dz = target.z - e.z, d = Math.hypot(dx, dz);
-    // banda radial da frente do setor (a energia já passou ou ainda não chegou → não acerta)
-    if (d + r < e.radius - e.band || d - r > e.radius) return false;
-    const a = Math.abs(wrap(Math.atan2(dx, dz) - e.yaw));
-    if (e.span < Math.PI * 2 - 1e-3 && a > e.span / 2 + Math.atan2(r, Math.max(.3, d))) return false;
-    // altura do disco inclinado (roll) no ponto do alvo
-    const side = dx * Math.cos(e.yaw) - dz * Math.sin(e.yaw), planeY = e.y + Math.tan(e.roll || 0) * side;
-    if (Math.abs(ty - planeY) > (e.half || .55) + h * .5) return false;
-  } else {
-    const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw), cx = e.x + fx * e.travel, cz = e.z + fz * e.travel;
-    const dx = target.x - cx, dz = target.z - cz, along = dx * fx + dz * fz, side = dx * fz - dz * fx, dy = ty - e.y;
-    // crescente inclinado pelo roll: largura no plano do arco, espessura fina na direção do avanço
-    const across = side * Math.cos(e.roll) + dy * Math.sin(e.roll);
-    if (Math.abs(along) > e.band * .5 + r) return false;
-    if (Math.abs(across) > e.radius + r) return false;
-    if (Math.abs(-side * Math.sin(e.roll) + dy * Math.cos(e.roll)) > .5 + h * .45) return false;
-  }
-  return !blocked({ x: e.x, y: e.y, z: e.z }, { x: target.x, y: ty, z: target.z });
-}
+/* Mod 315: volumes de energia (setor/onda) moram em combat-energy3d.js — interface compartilhada com as garras do Demônio1. */
+export { makeEnergy, energyStep, energyTouches } from './combat-energy3d.js';

@@ -1,4 +1,8 @@
 import {BOSS_MOVES,bossTravel,bossLift} from './boss-choreography3d.js';
+import { EnergyShield, SHIELD_SPECS } from './combat-defense3d.js';
+import { MOBILITY } from './combat-mobility3d.js';
+import { DEMON1_MOVES, DEMON1_COMBOS, DEMON1_LEAP, DEMON1_SHIELD, clawReaches } from './demon1-combat3d.js';
+import { makeEnergy, energyStep } from './combat-energy3d.js';
 /**
  * MOD 237 — Enemy1: esquadra simultânea, IA tática, três poderes sombrios e o Guardião do Portal.
  *
@@ -41,6 +45,9 @@ const COMMON = {
   counter: { chance: .16, cd: 11, cast: .3, speed: 16, r: .45, power: 14, life: 1.5 },
   decide: [.3, .45], gap: .85, cdMul: 1
 };
+/** Mod 315: o Demônio1 (Enemy1 comum) luta com GARRAS — clipes nativos recortados, salto predatório (2 saltos + dash aéreo)
+    e escudo próprio. Só ele: as outras espécies que herdam o tuning base não ganham estes campos. */
+const DEMON1 = { ...COMMON, native: DEMON1_MOVES, combos: DEMON1_COMBOS, leap: DEMON1_LEAP, shield: SHIELD_SPECS.demon1 };
 const WARDEN = {
   ...COMMON, hp: 480, radius: .55, height: 2.25, poise: 32, leash: 40,
   speed: { walk: 1.75, run: 3.7, strafe: 1.45, back: 2.1, turn: 7 },
@@ -53,11 +60,11 @@ const WARDEN = {
   counter: { ...COMMON.counter, chance: .42, cd: 7, power: 22, r: .6 },
   gap: .6, phase2: .5, boss: true, pref: [.95, 1.5], reap: 'claws', feint: 'spiral'
 };
-export const E1 = Object.freeze({ common: COMMON, warden: WARDEN, step: STEP, ccImmune: 3.5, escapeAfter: .3 });
+export const E1 = Object.freeze({ common: COMMON, demon1: DEMON1, warden: WARDEN, step: STEP, ccImmune: 3.5, escapeAfter: .3 });
 /** MOD 238 — espécies e poderes registráveis: outra espécie (Enemy2) entra com tuning e kit próprios sem tocar no
     Enemy1. Um poder registrado traz score(sq,a,t,ctx) → utilidade (ou null), spawn(sq,a,t,opts), step(sq,s,dt),
     danger(s) → zona telegrafada e, se for projétil, clash: true (colide com magias externas como a espiral). */
-export const KINDS = { common: COMMON, warden: WARDEN };
+export const KINDS = { common: DEMON1, warden: WARDEN };
 export const SKILLS = {};
 export function registerKind(name, T) { KINDS[name] = T; return T; }
 export function registerSkill(id, def) { SKILLS[id] = def; return def; }
@@ -87,11 +94,12 @@ export class Enemy1Squad {
   /** spots: [{x, z, yaw?, kind?: 'common'|'warden', hp?}] */
   spawn(spots) {
     for (const s of spots) {
-      const T = KINDS[s.kind] || COMMON, hp = s.hp || T.hp;
+      const T = KINDS[s.kind] || DEMON1, hp = s.hp || T.hp;
       this.actors.push({ id: 'e' + this.nextId++, kind: s.kind || 'common', T, x: s.x, z: s.z, y: this.ground(s.x, s.z), yaw: s.yaw || 0, vx: 0, vz: 0, kx: 0, kz: 0,
         hp, maxHp: hp, alive: true, deadT: 0, role: 'aggressor', targetId: null, targetT: 0, act: null, cds: {}, stamina: T.stamina, poise: T.poise, poiseT: 0,
         intent: { mode: 'hold', side: this.rand() < .5 ? -1 : 1, score: 0 }, decideT: .2 + this.rand() * .4, react: null, phase2: false, home: { x: s.x, z: s.z },
-        anim: { role: 'idle', once: false, speed: 1, rev: 0 }, speed: 0, alert: .5 + this.rand() * .4, hitBy: null, cdMul: 1, cast: null });
+        anim: { role: 'idle', once: false, speed: 1, rev: 0 }, speed: 0, alert: .5 + this.rand() * .4, hitBy: null, cdMul: 1, cast: null,
+        shield: T.shield ? new EnergyShield(T.shield) : null, jumps: 0, airY: 0, airV: 0, combo: null, lastDash: -9 });
     }
     this.assignRoles(true); return this.actors;
   }
@@ -157,7 +165,8 @@ export class Enemy1Squad {
     for (const k in a.cds) if ((a.cds[k] -= dt) <= 0) delete a.cds[k];
     a.stamina = Math.min(a.T.stamina, a.stamina + dt * 14); if ((a.poiseT -= dt) <= 0) a.poise = a.T.poise;
     if (a.alert > 0) a.alert -= dt;
-    if(a.airY>0||a.airV>0){a.airV-=18*dt;a.airY=Math.max(0,a.airY+a.airV*dt);if(!a.airY)a.airV=0;}
+    if (a.shield) a.shield.update(this.time);
+    if((a.airY>0||a.airV>0)&&!(a.act&&a.act.type==='leap')){a.airV-=18*dt;a.airY=Math.max(0,a.airY+a.airV*dt);if(!a.airY){a.airV=0;a.jumps=0;}}
     const tgt = this.pickTarget(a, dt);
     if (a.T.brain) a.T.brain(this, a, dt, tgt); // MOD 247: cérebro adaptativo opcional por espécie
     // reações rápidas (defesa, esquiva, contra-selo) agendadas com tempo de reação humano
@@ -186,6 +195,11 @@ export class Enemy1Squad {
   /** Só reage a sinais visíveis: golpe começando perto, magia/projétil vindo. Com chance de errar. */
   perceive(a, t) {
     const d = Math.hypot(t.x - a.x, t.z - a.z), st = this.study(t.id).rates;
+    // Mod 315: escudo — vale defender contra golpe começando perto ou magia/projétil vindo; nunca em spam
+    if (a.shield && !a.act && a.shield.canActivate(this.time) && !a.cds.shieldGap && ((t.attacking && d < 4.6) || (t.casting && d < DEMON1_SHIELD.maxGap)) && d > DEMON1_SHIELD.minGap) {
+      const k = t.casting ? DEMON1_SHIELD.chanceVsCast : DEMON1_SHIELD.chanceVsMelee * (d < 3.4 ? 1 : .4);
+      a.cds.shieldGap = 1.2; if (this.rand() < k * (a.hp < a.maxHp * .5 ? 1.3 : 1)) { a.react = { type: 'shield', t: DEMON1_SHIELD.react + this.rand() * .12 }; return; }
+    }
     if (t.attacking && !a.sawAttack && d < 3.4 && !a.cds.guard) {
       a.sawAttack = true;
       const block = a.T.block.chance + Math.min(.22, st.melee * .12), dodge = a.T.dodge.chance;
@@ -209,11 +223,12 @@ export class Enemy1Squad {
     }
   }
   startReaction(a, r, tgt) {
+    if (r.type === 'shield') { if (a.shield && a.shield.activate(this.time)) { this.event('shield', { actor: a }); if (a.intent) { a.intent.mode = 'strafe'; a.intent.side = this.rand() < .5 ? -1 : 1; } } return; } // não imobiliza: segue se reposicionando
     if (r.type === 'block') { this.begin(a, { type: 'block', dur: a.T.block.dur, anim: 'block', guard: true }); a.cds.guard = a.T.block.cd; this.event('guard', { actor: a }); }
     else if (r.type === 'dodge') {
       const src = r.from || tgt; if (!src) return; let dx = a.x - src.x, dz = a.z - src.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
       if (r.side || this.rand() < .5) { const s = this.rand() < .5 ? 1 : -1; [dx, dz] = [dz * s, -dx * s]; if (r.side && src.dx !== undefined) { const ps = this.rand() < .5 ? 1 : -1; dx = src.dz * ps; dz = -src.dx * ps; } }
-      this.begin(a, { type: 'dodge', dur: a.T.dash.time, anim: 'dash', dx, dz, iframes: true, face: false }); a.cds.dodge = a.T.dodge.cd; this.event('dodge', { actor: a });
+      this.begin(a, { type: 'dodge', dur: a.T.dash.time, anim: 'dash', dx, dz, iframes: true, face: false, chain: a.T.native ? 'native' : undefined, token: a.T.native ? 'melee' : undefined, tid: tgt && tgt.id }); a.cds.dodge = a.T.dodge.cd; a.lastDash = this.time; this.event('dodge', { actor: a });
     } else if (r.type === 'counter' && r.spell && r.spell.alive !== false) {
       this.begin(a, { type: 'counter', dur: a.T.counter.cast + .35, release: a.T.counter.cast, anim: 'cast', spell: r.spell, token: 'spell', tid: tgt && tgt.id });
       a.cds.counter = this.forceCounter ? 1 : a.T.counter.cd; this.event('counterCast', { actor: a });
@@ -230,6 +245,8 @@ export class Enemy1Squad {
     const see = this.los(a.x, a.z, t.x, t.z), opts = [], r = () => (this.rand() - .5) * .16;
     const recovering = !t.attacking && this.time - this.study(t.id).lastAttack < .9, still = Math.hypot(t.vx || 0, t.vz || 0) < 1;
     const justDashed = this.time - this.study(t.id).lastDash < 1.2;
+    if (T.leap && see && !a.cds.leap && !a.airY && gap >= T.leap.min && gap <= T.leap.max && this.canAttack(a, 'melee', t.id))
+      opts.push(['leap', .5 + ((t.y || 0) - a.y > .6 ? .55 : 0) + (justDashed ? .25 : 0) + (st.dist > 5 ? .15 : 0) + (R === 'aggressor' || R === 'flanker' ? .15 : -.1) + r()]);
     if (gap + T.radius <= T.melee.reach - .15 && !a.cds.melee && this.canAttack(a, 'melee', t.id))
       opts.push(['melee', .85 + (R === 'aggressor' || R === 'flanker' ? .3 : -.1) + (recovering ? .3 : 0) + (t.casting ? .25 : 0) - (t.blocking ? .35 : 0) + r()]);
     if (!T.kit && see && d >= T.claws.min && d <= T.claws.max && !a.cds.claws && !this.ccImmune.has(t.id) && !this.spells.some(s => s.type === 'claws' && s.tid === t.id) && this.canAttack(a, 'spell', t.id))
@@ -258,6 +275,7 @@ export class Enemy1Squad {
     if (pick === 'melee' && a.T.feint && !a.cds[a.T.feint] && this.rand() < .12) { this.begin(a, { type: 'feint', dur: .62, anim: 'attack', token: 'melee', tid: t.id }); return; }
     if (pick === 'lunge') { const l = d || 1; a.cds.lunge = 4; this.begin(a, { type: 'dodge', dur: a.T.dash.time * 1.3, anim: 'dash', dx: (t.x - a.x) / l, dz: (t.z - a.z) / l, face: true, chain: 'melee', token: 'melee', tid: t.id }); this.event('lunge', { actor: a, target: t.id }); return; }
     if (pick.startsWith('mv:')) { const id = pick.slice(3), m = BM.find(x => x.id === id); this.startMelee(a, t, id); a.cds['mv_' + id] = (m.cd || 6) * a.cdMul; return; }
+    if (pick === 'leap') { this.startLeap(a, t); return; }
     if (pick === 'melee') this.startMelee(a, t);
     else if (pick === 'claws') this.startCast(a, t, 'claws');
     else if (pick === 'spiral') this.startCast(a, t, 'spiral');
@@ -266,7 +284,7 @@ export class Enemy1Squad {
   }
   begin(a, act) {
     if (a.act && a.act.type === 'block') a.guard = false;
-    a.act = { t: 0, ...act }; a.guard = !!act.guard; a.anim = { role: act.anim || 'idle', once: true, speed: act.animSpeed || 1, rev: a.anim.rev + 1 };
+    a.act = { t: 0, ...act }; a.guard = !!act.guard; a.anim = { role: act.anim || 'idle', once: true, speed: act.animSpeed || 1, from: act.animFrom || 0, rev: a.anim.rev + 1 };
     if (act.token === 'melee' || act.token === 'spell') this.lastAttackAt = this.time;
   }
   startMelee(a, t, forcedMove) {
@@ -275,9 +293,51 @@ export class Enemy1Squad {
       this.begin(a,{type:'melee',dur:move.duration,hits:move.hits,done:0,anim:move.id,token:'melee',tid:t.id,landed:false,move,contacts:new Set(),phase:'windup'});
       a.vx=a.vz=0;a.cds.melee=(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
     }
+    if (a.T.native) return this.startNative(a, t, forcedMove);
     const M = a.T.melee, hits = a.phase2 && a.T.boss ? [...M.hits, M.hits[M.hits.length - 1] + .4] : M.hits;
     this.begin(a, { type: 'melee', dur: M.dur + (hits.length - M.hits.length) * .4, hits, done: 0, anim: 'attack', animSpeed: M.animSpeed, token: 'melee', tid: t.id, landed: false });
     a.cds.melee = M.cd * a.cdMul; this.event('windup', { actor: a, kind: 'melee', at: M.windup });
+  }
+  /** Mod 315: combos de garra nativos. O combo escolhido segue enquanto o alvo continua ao alcance. */
+  pickCombo(a, t) {
+    const C = a.T.combos, st = this.study(t.id).rates, gap = Math.hypot(t.x - a.x, t.z - a.z) - t.radius - a.T.radius;
+    const recovering = this.time - this.study(t.id).lastAttack < .9;
+    let list = C.pressao;
+    if (recovering) list = C.castigo; else if (t.blocking || st.block > .3) list = C.rasteira; else if (this.rand() < .38) list = C.giro; else if (gap < .5 && this.rand() < .3) list = C.rasteira;
+    return { list, i: 0 };
+  }
+  startNative(a, t, forced) {
+    if (!a.combo || a.combo.i >= a.combo.list.length || forced) a.combo = forced && a.T.native[forced] ? { list: [forced], i: 0 } : this.pickCombo(a, t);
+    const m = a.T.native[a.combo.list[a.combo.i++]] || a.T.native.gancho;
+    this.begin(a, { type: 'melee', nm: m, dur: m.dur, hits: m.hits.map(h => h.t), done: 0, anim: m.role, animSpeed: m.speed, animFrom: m.from, token: 'melee', tid: t.id, landed: false, lunged: 0 });
+    a.vx = a.vz = 0; a.cds.melee = (m.dur + .35) * a.cdMul;
+    this.event('windup', { actor: a, kind: m.id, at: m.hits[0].t, label: m.label, move: m });
+  }
+  /** Salto predatório: chão → 2º salto → dash aéreo para onde o alvo ESTÁ → garra descendente no pouso. */
+  startLeap(a, t) {
+    const L = a.T.leap; a.cds.leap = L.cd * a.cdMul; a.cds.melee = Math.max(a.cds.melee || 0, .6); a.combo = null;
+    this.begin(a, { type: 'leap', dur: L.maxAir + L.recover + .3, anim: L.role, animSpeed: L.speed, animFrom: L.from, token: 'melee', tid: t.id, phase: 'crouch', face: true, iframes: false });
+    this.event('leap', { actor: a, target: t.id });
+  }
+  stepLeap(a, act, t, dt) {
+    const L = a.T.leap;
+    if (act.phase === 'crouch') { if (act.t >= L.crouch) { act.phase = 'rise'; a.airV = L.v1; a.jumps = 1; act.air = 0; this.event('jump', { actor: a, n: 1 }); } return; }
+    if (act.phase === 'land') { if (act.t >= act.landAt + L.recover) act.t = act.dur; return; }
+    act.air += dt; a.airV -= L.gravity * dt;
+    if (a.jumps === 1 && act.air >= L.second) { a.airV = L.v2; a.jumps = 2; this.event('jump', { actor: a, n: 2 }); }
+    // dash aéreo (não gasta salto): mira na posição ATUAL do alvo, travado à frente
+    if (a.jumps === 2 && !act.dashed && act.air >= L.second + .12 && t) { act.dashed = true; act.dashT = L.dash; const dx = t.x - a.x, dz = t.z - a.z, l = Math.hypot(dx, dz) || 1; act.dx = dx / l; act.dz = dz / l; a.yaw = Math.atan2(dx, dz); this.event('airDash', { actor: a }); }
+    if (act.dashT > 0) { act.dashT -= dt; const gap = t ? Math.hypot(t.x - a.x, t.z - a.z) - t.radius - a.T.radius : 9; if (gap > .35) this.move(a, act.dx * L.dashSpeed * dt, act.dz * L.dashSpeed * dt); a.airV = Math.max(a.airV, -1); if (act.dashT <= 0) a.airV = L.fall; }
+    else if (t && act.phase === 'rise') { const dx = t.x - a.x, dz = t.z - a.z, l = Math.hypot(dx, dz) || 1, gap = l - t.radius - a.T.radius; if (gap > .6) this.move(a, dx / l * 4.2 * dt, dz / l * 4.2 * dt); }
+    a.airY = Math.max(0, a.airY + a.airV * dt);
+    const ground = this.ground(a.x, a.z); a.y = ground + a.airY;
+    if ((a.airY <= 0 && a.airV < 0) || act.air > L.maxAir) {
+      a.airY = 0; a.airV = 0; a.jumps = 0; a.y = ground; act.phase = 'land'; act.landAt = act.t;
+      // garra descendente: área curta à frente no pouso
+      const S = L.strike; this.event('leapStrike', { actor: a });
+      for (const tg of this.enemyTargets()) { if (!clawReaches(a, tg, { arc: S.arc, low: false }, S.r) || !this.los(a.x, a.z, tg.x, tg.z)) continue;
+        const res = this.damageTarget(tg.id, S.dmg, { kind: 'melee', actor: a.id, x: a.x, z: a.z, knock: 1.1, combo: 1 }); if (res === 'hit') act.landed = true; this.event('meleeHit', { actor: a, target: tg.id, result: res, n: 1, move: 'salto' }); }
+    }
   }
   startCast(a, t, skill) {
     const S = a.T[skill];
@@ -302,7 +362,23 @@ export class Enemy1Squad {
       act.done=m.hits.filter(h=>act.t>h+.11).length;
       if(m.after&&!act.after&&act.t>=m.hits.at(-1)&&SKILLS[m.after]){act.after=true;SKILLS[m.after].spawn(this,a,t,{move:m,landed:act.landed});}
     }
-    if (act.type === 'melee') {
+    if (act.type === 'leap') { this.stepLeap(a, act, t, dt); }
+    if (act.type === 'melee' && act.nm) {
+      const m = act.nm, first = m.hits[0].t;
+      // avanço curto do startup: só até ficar no alcance (nunca entra no corpo do alvo)
+      if (t && act.t < first && act.lunged < m.lunge) { const dx = t.x - a.x, dz = t.z - a.z, l = Math.hypot(dx, dz) || 1, gap = l - t.radius - a.T.radius, want = m.reach - .55;
+        if (gap > want) { const step = Math.min(m.lunge - act.lunged, (gap - want), m.lunge / Math.max(.08, first) * dt); this.move(a, dx / l * step, dz / l * step); act.lunged += step; } }
+      while (act.done < m.hits.length && act.t >= m.hits[act.done].t) {
+        const h = m.hits[act.done++]; if (!t) continue;
+        if (clawReaches(a, t, h, m.reach) && this.los(a.x, a.z, t.x, t.z)) {
+          const res = this.damageTarget(t.id, h.dmg, { kind: 'melee', actor: a.id, x: a.x, z: a.z, knock: a.T.melee.knock, combo: act.done });
+          if (res === 'hit') act.landed = true; this.event('meleeHit', { actor: a, target: t.id, result: res, n: act.done, move: m.id });
+        } else this.event('meleeMiss', { actor: a, n: act.done, move: m.id });
+        if (h.wave && !act.landed) this.spawnClawWave(a, h.wave);
+        if (act.done < m.hits.length) this.lastAttackAt = this.time;
+      }
+    }
+    if (act.type === 'melee' && !act.nm) {
       while (!act.move && act.done < act.hits.length && act.t >= act.hits[act.done]) {
         act.done++; if (!t) continue;
         const d = Math.hypot(t.x - a.x, t.z - a.z), fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), dot = d > 1e-4 ? ((t.x - a.x) * fx + (t.z - a.z) * fz) / d : 1;
@@ -328,9 +404,16 @@ export class Enemy1Squad {
     if (act.t >= act.dur) {
       const then = act.then; a.act = null; a.guard = false; a.decideT = Math.min(a.decideT, act.type === 'melee' ? .25 : .12);
       if (act.unstoppable && this.settleArmor(a)) return;
-      if (act.type === 'melee' || act.type === 'cast') a.recover = act.move ? .45 : .35;
+      if (act.type === 'melee' || act.type === 'cast') a.recover = act.move ? .45 : act.nm ? .22 : .35;
+      if (act.nm && t) { // Mod 315: continua o combo se o alvo segue ao alcance; senão recua e conjura (avanço→garras→recuo→magia)
+        const gap = Math.hypot(t.x - a.x, t.z - a.z) - t.radius - a.T.radius;
+        if (a.combo && a.combo.i < a.combo.list.length && gap <= a.T.melee.reach && this.canAttack(a, 'melee', t.id)) { a.cds.melee = 0; this.lastAttackAt = -9; this.startNative(a, t); return; }
+        a.combo = null;
+        if (!a.cds.dodge && !a.cds.spiral && this.time - a.lastDash > 1.5 && this.rand() < (a.role === 'aggressor' ? .35 : .6)) { const away = Math.atan2(a.x - t.x, a.z - t.z) + (this.rand() - .5) * .8; a.cds.dodge = a.T.dodge.cd; a.lastDash = this.time; this.begin(a, { type: 'dodge', dur: a.T.dash.time, anim: 'dash', dx: Math.sin(away), dz: Math.cos(away), iframes: true, face: false, then: 'spiral' }); this.event('dodge', { actor: a, retreat: true }); return; }
+      }
       if (then && t && !a.cds[then] && a.T[then]) this.startCast(a, t, then);
       else if (act.chain === 'melee' && t && Math.hypot(t.x - a.x, t.z - a.z) - t.radius <= a.T.melee.reach) { a.cds.melee = 0; this.startMelee(a, t); }
+      else if (act.chain === 'native' && t && Math.hypot(t.x - a.x, t.z - a.z) - t.radius <= a.T.melee.reach + .6 && !a.cds.counterHit) { a.cds.counterHit = 2.5; a.cds.melee = 0; this.lastAttackAt = -9; this.startNative(a, t, 'gancho'); this.event('counterAttack', { actor: a }); }
     }
   }
   /** Intenção de movimento → velocidade, com separação entre aliados, desvio de obstáculos e sem colar no alvo. */
@@ -389,6 +472,11 @@ export class Enemy1Squad {
   damageActor(id, amount, opts = {}) {
     const a = typeof id === 'string' ? this.actor(id) : id; if (!a || !a.alive || !(amount > 0)) return 0;
     if (a.act && a.act.iframes) { this.event('evade', { actor: a }); return 0; }
+    // Mod 315: escudo hexagonal do Demônio1 — mesma regra do herói (área por tiques, limiar de ruptura com dano integral)
+    if (a.shield && a.shield.active) { const ox = (opts.x ?? a.x) - a.x, oz = (opts.z ?? a.z) - a.z, ol = Math.hypot(ox, oz) || 1;
+      const r = a.shield.absorb({ dmg: amount, kind: opts.kind || 'melee', source: opts.source ?? opts.by ?? opts.kind, area: opts.kind === 'area', dir: { x: ox / ol, y: .15, z: oz / ol } }, this.time);
+      this.event(r.broke ? 'shieldBreak' : 'shieldHit', { actor: a, result: r });
+      if (r.passed <= 0) return 0; amount = r.passed; }
     let dmg = amount*(a.act?.move&&a.act.phase==='recovery'?1.15:1);dmg=Math.round(dmg); const fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), ox = (opts.x ?? a.x) - a.x, oz = (opts.z ?? a.z) - a.z, ol = Math.hypot(ox, oz) || 1, front = (ox * fx + oz * fz) / ol > .25;
     if (a.guard && front && opts.kind !== 'area') {
       dmg = Math.max(1, Math.round(amount * (1 - a.T.block.reduce))); a.stamina -= a.T.block.cost * Math.max(.5, amount / 15);
@@ -457,8 +545,21 @@ export class Enemy1Squad {
     this.spells.push(s); this.event('counter', { spell: s, actor: a }); return s;
   }
   enemyTargets() { return this.targets.filter(t => t.alive); }
+  spawnClawWave(a, spec) {
+    const e = makeEnergy(spec, { x: a.x + Math.sin(a.yaw) * .5, y: a.y + a.T.height * .5, z: a.z + Math.cos(a.yaw) * .5 }, a.yaw, 0);
+    const s = Object.assign(e, { id: this.nextId++, type: 'clawwave', owner: a.id, t: 0, phase: 'fly', dmg: spec.dmg, hitIds: new Set() });
+    this.spells.push(s); this.event('clawWave', { spell: s, actor: a }); return s;
+  }
+  stepClawWave(s, dt) {
+    const fx = Math.sin(s.yaw), fz = Math.cos(s.yaw);
+    if (this.blocked(s.x + fx * (s.travel + .3), s.z + fz * (s.travel + .3))) { s.done = true; s.blockedAt = s.travel; }
+    for (const t of this.enemyTargets()) { if (s.done || s.hitIds.has(t.id)) continue;
+      if (energyStep(s, 0, t, { blocked: (p, q) => !this.los(p.x, p.z, q.x, q.z) })) { s.hitIds.add(t.id); this.damageTarget(t.id, s.dmg, { kind: 'melee', spell: s.id, actor: s.owner, x: s.x, z: s.z, knock: .5 }); this.event('clawWaveHit', { spell: s, target: t.id }); } }
+    energyStep(s, dt, null); if (s.done) { s.phase = 'gone'; s.dead = true; }
+  }
   stepSpell(s, dt) {
     s.t += dt;
+    if (s.type === 'clawwave') return this.stepClawWave(s, dt);
     if (SKILLS[s.type]) return SKILLS[s.type].step(this, s, dt);
     if (s.type === 'claws') return this.stepClaws(s, dt);
     if (s.type === 'judgment') return this.stepJudgment(s, dt);
