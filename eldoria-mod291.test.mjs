@@ -108,7 +108,8 @@ test('cidade: nenhuma pegada sobreposta, casas fora da trilha e do rio, aterrame
   }
   assert.equal(footprintSamples(0, 0, 2, 1, .4).length, 9);
   const lib = readFileSync(new URL('./eldoria-live-village3d.js', import.meta.url), 'utf8');
-  assert.match(lib, /const y = spec\.kind === 'tree' \? lo - spec\.size \* ANCESTRAL_ROOT_SINK : lo - \.03;/); // Mod 292: afundamento medido no perfil das raízes
+  assert.match(lib, /const rootSink = spec\.file === ELDORIA_MAIN_TREE\.file \? \.20 : ANCESTRAL_ROOT_SINK;/); // Mod 313: árvore principal enterrada sem deslocar casa lateral
+  assert.match(lib, /const y = spec\.kind === 'tree' \? lo - spec\.size \* rootSink : lo - \.03;/);
   assert.match(lib, /new THREE\.LOD\(\)/);
   // Mod 292: os LOD1 do Mod 291 borravam a UV (costuras soldadas) e foram apagados; a cidade usa o LOD0 (cor certa)
   // e o mecanismo de LOD só aceita um arquivo que passe na prova de UV por vértice E por triângulo.
