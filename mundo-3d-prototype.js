@@ -1,4 +1,5 @@
 import { syncBuildMarker } from './build-info.js';
+import {createMeshyNpcFactory,ELDORIA_NPC_MODELS} from './eldoria-meshy-npcs.js';
 import {newHero,heroURL,heroFallbackURL,moveWorldHero,prepareWorldHero,nativeWorldCombos,retargetWorldRites,worldSwordLayers,worldHeroShadows,installHeroSelector,protaClips} from './protagonist-aerial3d.js';
 import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep} from './prota-combat3d.js';
 import {createProtaVFX} from './prota-vfx3d.js';
@@ -755,7 +756,7 @@ function makeFruitStall(x,z,label,green){const stall=new THREE.Group();stall.pos
  const sign=makeMarketSign(label,green?'#d7ebae':'#ffe3a0');sign.position.set(0,2.14,.47);stall.add(sign);
  for(let basket=0;basket<3;basket++){const bx=(basket-1)*.72;const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.25,.34,.3,8),basketMat);bowl.position.set(bx,1.27,0);stall.add(bowl);for(let j=0;j<4;j++){const fruit=new THREE.Mesh(fruitGeo,fruitMats[(basket*3+j)%fruitMats.length]);fruit.position.set(bx+((j%2)-.5)*.2,1.5+Math.floor(j/2)*.03,(Math.floor(j/2)-.5)*.19);fruit.castShadow=false;stall.add(fruit);}}
  marketObstacles.push({x,z,shape:'box',halfX:1.225,halfZ:.76,height:2.4});return stall;}
-const marketLabels=[['FRUTAS',false],['PROVISÕES',false]];
+const marketLabels=[['ALIMENTOS',false],['PROVISÕES',false],['FRUTAS',false]];
 // Vendedores seguem a MESMA fonte de coordenadas dos GLBs das barracas; nunca ficam abandonados.
 const marketStalls=ELDORIA_MARKET.map(([x,z,size,yaw],i)=>({x:VILLAGE_CENTER.x+x,z:VILLAGE_CENTER.z+z,size,yaw,label:marketLabels[i][0],green:marketLabels[i][1]}));
 // Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
@@ -791,8 +792,9 @@ const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedi
  resolve(source);
 },undefined,()=>{console.warn('TochaMedievalTripo.glb indisponível; nenhum poste genérico será criado.');resolve(null);}));
 const villageVendors=[
- {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Frutas… o que sobrou delas. Nem os bichos querem mais.',hints:['Você é novo por aqui? Não pergunte muito em voz alta.','O Téo, das provisões, escuta tudo. Mas não fala de graça.','De noite tem choro na mata. Eu fecho a porta e rezo.','Dizem que o Primeiro Bispo anda por baixo da terra, nos esgotos velhos.','Se você voltou de lá… ainda há esperança.']},
- {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x,z:marketStalls[1].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']}
+ {name:'Bento · Alimentos',shortName:'ALIMENTOS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Não sobrou quase nada, forasteiro. Ainda tento salvar o que posso.',hints:['Minha idade já pesa, mas ninguém mais cuida desta barraca.','Procure Téo nas provisões. Ele sabe dos rumores.','Ouço pedidos de socorro vindos da floresta à noite.','O povo vive com medo dos cobradores.','Ainda estamos aqui, apesar de tudo.']},
+ {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x,z:marketStalls[1].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']},
+ {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[2].x,z:marketStalls[2].z+1.65,yaw:Math.PI,greeting:'Escolho as frutas que ainda podem alimentar alguém.',hints:['As que estão boas vão primeiro para quem está doente.','Téo conhece histórias da mata.','Ninguém tem coragem de sair à noite.','A caverna é um lugar perigoso.','Talvez a vila ainda possa se recuperar.']}
 ];
 function mergeGrassTuft(sourceRoot){const positions=[],colors=[],indices=[],zUpToYUp=new THREE.Matrix4().makeRotationX(-Math.PI/2);sourceRoot.updateMatrixWorld(true);sourceRoot.traverse(obj=>{if(!obj.isMesh||!obj.geometry||!obj.geometry.attributes.position)return;const geometry=obj.geometry,position=geometry.attributes.position,color=geometry.attributes.color,base=positions.length/3;const vertex=new THREE.Vector3();for(let i=0;i<position.count;i++){vertex.fromBufferAttribute(position,i).applyMatrix4(obj.matrixWorld).applyMatrix4(zUpToYUp);positions.push(vertex.x,vertex.y,vertex.z);colors.push(color?color.getX(i):.38,color?color.getY(i):.56,color?color.getZ(i):.3);}if(geometry.index){for(let i=0;i<geometry.index.count;i++)indices.push(base+geometry.index.getX(i));}else for(let i=0;i<position.count;i++)indices.push(base+i);});if(!positions.length)throw new Error('Grama.glb não contém malhas com vértices');const merged=new THREE.BufferGeometry();merged.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));merged.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));merged.setIndex(indices);merged.computeVertexNormals();merged.computeBoundingBox();merged.computeBoundingSphere();return merged;}
 /** Tufo de grama leve: ~9 lâminas (≈30 triângulos) com a altura e as cores do tufo original, que tinha ~380 triângulos. */
@@ -3208,42 +3210,48 @@ function mergeGroupMeshes(root){
    for(const c of list)gp.remove(c);gp.add(m);after++;}}
  return{before,after};
 }
-function loadVillageCast(){return villageCastPromise||(villageCastPromise=new Promise((resolve,reject)=>new GLTFLoader().load('./Moradores-216.glb?v=mod216',g=>{villageCast=g.scene;const r=mergeGroupMeshes(villageCast);window.SevenSinsCastMerge=r;resolve(g.scene);},undefined,reject)));}
-function castMember(name){const src=villageCast&&villageCast.getObjectByName(name);if(!src)return null;const c=src.clone(true);c.userData.phase=0;c.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});return c;}
-function poseVillager(c,t,walking=false,fear=false){
- c.traverse(o=>{if(/_leg[LR]$/.test(o.name))o.rotation.x=walking?Math.sin(t*6+(o.name.endsWith('L')?0:Math.PI))*.32:0;
- if(/_arm[LR]$/.test(o.name))o.rotation.x=fear?-1.1+Math.sin(t*13)*.16:walking?Math.sin(t*6+(o.name.endsWith('L')?Math.PI:0))*.24:Math.sin(t*1.5)*.025;
- if(/_head$/.test(o.name))o.rotation.z=Math.sin(t*(fear?11:1.3))*(fear?.14:.025);});
+const npcFactory=createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeightAt});
+const villageNpcs=[];
+function loadVillagers(){
+ const roles=[
+  {sex:'man',age:'elder',role:'idle'},
+  {sex:'man',role:'idle'},
+  {sex:'woman',role:'idle'}
+ ];
+ // Barracas: Bento idoso, Téo adulto, Lia adulta. Uma função por pessoa.
+ return Promise.all(villageVendors.map((p,i)=>npcFactory.create({...roles[i],x:p.x,z:p.z,yaw:p.yaw})))
+ .then(cast=>{
+   for(const c of cast){villageGroup.add(c.holder);villageNpcs.push(c);vendorRoots.push(c.holder);if(c.mixer)villageNpcMixers.push(c.mixer);}
+   // A vila permanece pouco habitada: 3 vendedores + 4 moradores, nenhum menor.
+   const extras=[
+    {sex:'man',role:'down',offset:[-6,-9],yaw:.8},
+    {sex:'woman',role:'down',offset:[7,9],yaw:-.4},
+    {sex:'man',role:'sit',offset:[-9,8],yaw:1.3},
+    {sex:'woman',role:'walk',offset:[4,-7],yaw:0}
+   ];
+   return Promise.all(extras.map(async(p,i)=>{
+    const x=VILLAGE_CENTER.x+p.offset[0],z=VILLAGE_CENTER.z+p.offset[1];
+    if(blockedAt(x,z)){console.warn('NPC extra: posição ocupada, não foi criado',i);return null;}
+    const c=await npcFactory.create({...p,x,z});
+    villageGroup.add(c.holder);villageNpcs.push(c);
+    if(c.mixer)villageNpcMixers.push(c.mixer);
+    if(p.role==='walk')villagerWalkers.push({holder:c.holder,mixer:c.mixer,role:p.role,home:{x,z},speed:.48,phase:0});
+    return c;
+   }));
+ }).then(()=>{
+   window.SevenSinsVillagerReport={vendors:vendorRoots.length,residents:villageNpcs.length-vendorRoots.length,childrenInVillage:0,models:[ELDORIA_NPC_MODELS.man,ELDORIA_NPC_MODELS.woman],roles:villageNpcs.map(c=>c.role)};
+ }).catch(e=>console.error('NPC Meshy: carregamento falhou (sem fallback procedural)',e));
 }
-function loadVillagers(){loadVillageCast().then(()=>{
- for(const mixer of villageNpcMixers.splice(0))mixer.stopAllAction();villageNpcBreathing.length=0;
- for(const root of vendorRoots)villageGroup.remove(root);vendorRoots.length=0;
- villageVendors.forEach((p,i)=>{const v=castMember(['Lia','Teo'][i%2]);v.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.rotation.y=p.yaw;villageGroup.add(v);vendorRoots.push(v);});
- for(let i=0;i<3;i++){const v=castMember(['Lia','Mara','Iria'][i]);let found=false;
-  for(let n=0;n<200;n++){const a=n*2.4+i,r=3+n*.06,x=VILLAGE_CENTER.x+Math.sin(a)*r,z=VILLAGE_CENTER.z+Math.cos(a)*r;
-   if(!blockedAt(x,z)&&!vendorRoots.some(o=>Math.hypot(x-o.position.x,z-o.position.z)<1.5)){v.position.set(x,groundHeightAt(x,z),z);found=true;break;}}
-  if(found){villageGroup.add(v);villagerWalkers.push({holder:v,speed:.8+i*.08,pause:i,phase:i,direction:i*2,target:null});}}
- window.SevenSinsVillagerReport={vendors:vendorRoots.length,walkers:villagerWalkers.length,asset:'Moradores-216.glb'};
- // Crianças não residem na vila.
-}).catch(err=>console.warn('Moradores não carregaram; mantendo os anteriores.',err));}
-// O menino autoral foi transferido para a gaiola; nenhum NPC infantil na vila.
 function updateVillagers(dt){
- for(const c of vendorRoots){c.userData.phase=(c.userData.phase||0)+dt;poseVillager(c,c.userData.phase);}
- for(const w of villagerWalkers){const o=w.holder;w.phase+=dt;
-  if(w.isChild){o.visible=!voidMode&&Math.hypot(player.position.x-o.position.x,player.position.z-o.position.z)<37;if(!o.visible){if(w.action)w.action.paused=true;continue;}}
-  if(w.mixer){if(w.action)w.action.paused=voidMode||dialogueOpen||cineActive||w.pause>0;w.mixer.update(dt);}
-  if(voidMode||dialogueOpen||cineActive){poseVillager(o,w.phase);continue;}
-  if(w.pause>0){w.pause-=dt;poseVillager(o,w.phase);continue;}
-  if(!w.target){for(let i=0;i<12;i++){const a=w.direction+(i?((i%2?1:-1)*Math.ceil(i/2)*.55):0),x=o.position.x+Math.sin(a)*2,z=o.position.z+Math.cos(a)*2;
-   if(Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)>19)continue;
-   if([.25,.5,.75,1].some(k=>blockedAt(o.position.x+(x-o.position.x)*k,o.position.z+(z-o.position.z)*k)))continue;
-   w.target={x,z};w.direction=a;break;}if(!w.target){w.direction+=Math.PI;w.pause=.7;continue;}}
-  const dx=w.target.x-o.position.x,dz=w.target.z-o.position.z,d=Math.hypot(dx,dz);
-  if(d<.1){w.target=null;w.direction+=(Math.random()-.5)*1.4;w.pause=.5+Math.random()*2;continue;}
-  const step=Math.min(d,w.speed*dt),x=o.position.x+dx/d*step,z=o.position.z+dz/d*step;
-  const crowd=[player,...vendorRoots,...villagerWalkers.filter(v=>v!==w).map(v=>v.holder)];
-  if(blockedAt(x,z)||crowd.some(c=>Math.hypot(x-c.position.x,z-c.position.z)<1.05)){w.target=null;w.direction+=1.5;w.pause=.5;poseVillager(o,w.phase);continue;}
-  o.position.set(x,groundHeightAt(x,z),z);o.rotation.y=Math.atan2(dx,dz);poseVillager(o,w.phase,true);
+ // Animações dos NPCs são atualizadas pelo laço global villageNpcMixers.
+ // Único caminhante circula lentamente num espaço curto, sem busca de caminho cara.
+ if(voidMode||dialogueOpen||cineActive)return;
+ for(const w of villagerWalkers){
+  w.phase+=dt;const dx=Math.sin(w.phase*.31)*1.3,dz=Math.cos(w.phase*.31)*.7;
+  const x=w.home.x+dx,z=w.home.z+dz;
+  if(blockedAt(x,z))continue;
+  w.holder.position.set(x,groundHeightAt(x,z),z);
+  w.holder.rotation.y=Math.atan2(Math.cos(w.phase*.31),-Math.sin(w.phase*.31));
  }
 }
 /* MOD 192 — missões opcionais da vila: ofertas nas bancas, itens no mundo, diário no quadro de missão. */
@@ -4117,29 +4125,15 @@ function buildAct1Props(){
    if(report.failures.length)console.warn('Eldória: falha de modelos na cidade',report.failures);
  }).catch(error=>console.warn('Eldória: falha de montagem',error));
  buildSewerDoor();
- L.load('./MoradoresPose.glb?v=mod204',gltf=>{
-  const poses={};for(const c of gltf.scene.children)poses[c.name]=c;act1Props.poses=poses;
-  const tint=m=>{m.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.metalness=0;o.material.roughness=Math.max(.75,o.material.roughness||0);if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x4a3e36);o.material.emissiveIntensity=.7;}o.castShadow=false;}});return m;};
-  for(const b of BEGGARS){const m=tint(poses.MendigoSentado.clone());m.position.set(b.x,groundHeightAt(b.x,b.z),b.z);m.rotation.y=b.yaw;villageGroup.add(m);}
-  // As crianças presas (sentadas, abraçando os joelhos) — são elas que se transformam.
-  // Modelo masculino otimizado do criador, exclusivo do ritual das gaiolas.
-  L.load('./CriancaNpc-otimizado.glb?v=child-npc-1k',gltf=>{
-    const base=gltf.scene,box=measureModelBounds(base),size=box.getSize(new THREE.Vector3());
-    if(!Number.isFinite(size.y)||size.y<.01){console.warn('Menino GLB: dimensões inválidas');return;}
-    const holder=new THREE.Group();holder.name='MeninoGaiolaMeshy';
-    const k=1.18/size.y,center=box.getCenter(new THREE.Vector3());
-    base.scale.setScalar(k);base.position.set(-center.x*k,-box.min.y*k,-center.z*k);holder.add(base);
-    const p=CAGE_SPOTS[0];holder.position.set(p.x,groundHeightAt(p.x,p.z)+.08,p.z);holder.rotation.y=Math.PI;
-    base.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});
-    const idle=(gltf.animations||[]).find(a=>/idle|breath|sit/i.test(a.name));
-    if(idle){const mixer=new THREE.AnimationMixer(base);mixer.clipAction(idle).play();villageNpcMixers.push(mixer);}
-    scene.add(holder);act1Props.kids.push(holder);syncAct1World();
-    window.SevenSinsChildNpcReport={loaded:true,source:'CriancaNpc-otimizado.glb',mesh:holder.name,animations:(gltf.animations||[]).map(a=>a.name)};
-  },undefined,e=>console.warn('Menino da gaiola: GLB indisponível',e));
-  // Menina ainda exige confirmação do caminho do GLB feminino; preservar lógica do resgate.
-  loadVillageCast().then(()=>{const m=castMember('CriancaB'),p=CAGE_SPOTS[1];if(!m)return;m.position.set(p.x,groundHeightAt(p.x,p.z)+.08,p.z);m.rotation.y=Math.PI;scene.add(m);act1Props.kids.push(m);syncAct1World();}).catch(console.warn);
+ // Dois personagens infantis Meshy; nunca se instanciam crianças no povoado.
+ Promise.all([
+  npcFactory.create({sex:'boy',role:'idle',x:CAGE_SPOTS[0].x,z:CAGE_SPOTS[0].z,yaw:Math.PI}),
+  npcFactory.create({sex:'girl',role:'idle',x:CAGE_SPOTS[1].x,z:CAGE_SPOTS[1].z,yaw:Math.PI})
+ ]).then(children=>{
+  children.forEach((c,i)=>{c.holder.name=i?'MeninaGaiolaMeshy':'MeninoGaiolaMeshy';c.holder.position.y+=.08;scene.add(c.holder);act1Props.kids.push(c.holder);if(c.mixer)villageNpcMixers.push(c.mixer);});
+  window.SevenSinsChildNpcReport={loaded:true,source:ELDORIA_NPC_MODELS.boy,girlSource:ELDORIA_NPC_MODELS.girl,childrenInVillage:0,animations:children[0].clips,girlAnimations:children[1].clips};
   syncAct1World();
- },undefined,e=>console.warn('MoradoresPose.glb não carregou.',e));
+ }).catch(e=>console.error('GLBs infantis Meshy indisponíveis; não criar substitutos procedurais',e));
  // Moscas sobre a comida podre e os corpos (uma chamada de desenho).
  const spots=VILLAGE_PROPS.filter(p=>p.k==='CorpoCoberto'||p.k==='Barraca').concat(marketStalls.map(s=>({x:s.x,z:s.z})));
  const N=spots.length*7,pos=new Float32Array(N*3),seed=[];for(let i=0;i<N;i++){const s=spots[i%spots.length];seed.push({s,a:Math.random()*6.28,r:.25+Math.random()*.5,h:.5+Math.random()*.9,v:2+Math.random()*3});}
