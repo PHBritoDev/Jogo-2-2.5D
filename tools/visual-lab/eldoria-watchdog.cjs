@@ -50,7 +50,7 @@ const WORLD=[
     const a=window.SevenSinsDebug3D,s=a.ascState();
     if(zone){const ox=s.world.x-s.local.x,oz=s.world.z-s.local.z;a.teleport(ox+x,oz+z);}else a.teleport(x,z);
     a.fly(null);a.view(yaw,.10,distance||5.5);
-    return {camera:a.snapCam(),state:a.ascState(),renderer:a.rinfo(),world:a.state()};
+    return {camera:a.snapCam(),state:a.ascState(),renderer:a.rinfo(),world:a.state(),torches:a.torchAudit?.()};
    },c);
    await page.waitForTimeout(1600);
    const filename=c.name+'.png',filepath=path.join(out,filename);
@@ -59,9 +59,10 @@ const WORLD=[
    const percept=analyzePixels(raw.data,raw.info.width,raw.info.height,null);
    const flags=percept.flags||[];
    if(!data.camera?.every(Number.isFinite))flags.push('camera_invalida');
+   if(c.name==='tochas-antigas-relatadas'&&data.torches?.loaded<data.torches?.expected)flags.push('tocha_glb_faltando');
    if(percept.darkFraction>.985&&percept.contrast<.025)flags.push('tela_quase_totalmente_preta');
    if(percept.brightFraction>.8)flags.push('tela_quase_totalmente_branca');
-   report.suspects.push({name:c.name,image:filename,reason:c.why,detected:flags,metrics:percept,camera:data.camera,position:data.state?.local||data.state?.world,draw:data.world?.calls,triangles:data.world?.triangles});
+   report.suspects.push({name:c.name,image:filename,reason:c.why,detected:flags,metrics:percept,camera:data.camera,position:data.state?.local||data.state?.world,draw:data.world?.calls,triangles:data.world?.triangles,torches:data.torches});
    console.log('AUDIT '+c.name+' '+flags.join(','));
   }
   report.status=report.errors.length?'suspected_errors':'captured';
