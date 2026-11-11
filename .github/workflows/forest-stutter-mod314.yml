@@ -5,6 +5,7 @@ on:
       - 'tools/visual-lab/forest-stutter-mod314.cjs'
       - 'mundo-3d-prototype.js'
       - 'eldoria-torch-fire3d.js'
+      - 'eldoria-torch-cleanup3d.js'
       - '.github/workflows/forest-stutter-mod314.yml'
   workflow_dispatch:
 permissions:
