@@ -24,6 +24,7 @@ const report={status:'incomplete',platform:'Chromium SwiftShader 852x480, nao An
   await page.evaluate(()=>window.SevenSinsDebug3D.freeRoam());
   await page.waitForFunction(()=>window.SevenSinsDebug3D?.torchAudit?.().loaded>=2,null,{timeout:90000});
   report.torches=await page.evaluate(()=>window.SevenSinsDebug3D.torchAudit());
+  report.torchMeshes=await page.evaluate(()=>window.SevenSinsTorchMeshAudit||[]);
   await page.evaluate(()=>{const a=window.SevenSinsDebug3D;a.teleport(-20.6,-45.5);a.fly(null);a.view(1.2,.12,5.5);});
   await page.waitForTimeout(1000);
   await page.screenshot({path:path.join(out,'tochas-vila.png')});
