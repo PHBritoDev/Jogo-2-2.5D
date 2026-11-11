@@ -716,6 +716,10 @@ const tropicalReady=loadTropicalTrees(THREE,GLTFLoader,{windUniform:tropicalWind
  for(const o of tropicalBelt.obstacles)treeObstacles.push(o);refreshInstanceCulling();
  // câmera encostada numa copa/tronco: pontilhado em vez de tela tapada (mesmo recurso das coníferas)
  addNearCameraFade(lib.materials.leaves,8.0);addNearCameraFade(lib.materials.bark,2.6);
+ // O GLB chega de modo assíncrono: compilar materiais das 5 espécies ANTES
+ // de o jogador girar a câmera para a mata evita compilação de shader no giro.
+ // Não troca LOD, resolução, textura nem quantidade de árvores.
+ if(renderer.compileAsync)renderer.compileAsync(tropicalBelt.root,camera,scene).catch(e=>console.warn('Pré-compilação da floresta:',e));
  window.SevenSinsTropicalBeltReport={...tropicalBelt.stats,southern:southernForestPlan.length,serra:serraForestPlan.length,perArea:BELT_AREAS.map(a=>villageBeltPlan.filter(t=>t.x>=a.x0&&t.x<=a.x1&&t.z>=a.z0&&t.z<=a.z1).length),glb:'EldoriaArvoresTropicais.glb'};return tropicalBelt;
 }).catch(e=>{console.warn('Árvores tropicais não carregaram.',e);window.SevenSinsTropicalBeltReport={failed:String(e&&e.message||e)};});
 // sub-bosque e cipós sob o cinturão (mesmos módulos da mata do Mod 291)
