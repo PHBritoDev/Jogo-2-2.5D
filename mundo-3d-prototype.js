@@ -3,6 +3,7 @@ import {newHero,heroURL,heroFallbackURL,moveWorldHero,prepareWorldHero,nativeWor
 import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep} from './prota-combat3d.js';
 import {createProtaVFX} from './prota-vfx3d.js';
 import {createLightBudget} from './light-budget3d.js';
+import {removeTorchBakedFlames} from './eldoria-torch-cleanup3d.js';
 import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
 import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
@@ -773,7 +774,7 @@ for(const p of villageTorchSites){
 }
 // Sem chamas em planos/shaders: apenas TochaMedievalTripo.glb original + iluminação.
 const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
- const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
+ const source=gltf.scene;const torchCleanup=removeTorchBakedFlames(source,.74);console.info('Tocha GLB: fogo embutido removido',torchCleanup);const bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(bounds.isEmpty()||!Number.isFinite(size.y)||size.y<.001)return;
  clampBakedMips(THREE,source,terrainLowSpec?4:3.5);
