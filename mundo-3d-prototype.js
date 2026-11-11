@@ -3194,7 +3194,7 @@ function closeProfile(){const panel=document.getElementById('profile-panel');if(
 /* MOD 191 — moradores de verdade: Npc.glb (versão leve Npc-lod.glb, 33 mil vértices, mesma aparência e
    animações) substitui os clones do protagonista nas bancas; três moradores caminham pela vila. */
 // MOD 216 — elenco próprio, gerado em Blender, com roupas, silhuetas e rostos distintos.
-const villagerWalkers=[];let villageCastPromise=null,villageCast=null;
+const villagerWalkers=[];
 /** MOD 291 — os moradores procedurais tinham ~25 peças por cabeça (centenas de draw calls na praça). Junta as malhas
     irmãs de cada grupo que dividem o mesmo material; os grupos animados (_head, _armL/R, _legL/R) continuam separados. */
 function mergeGroupMeshes(root){
@@ -4099,7 +4099,7 @@ const VILLAGE_PROPS=[
  {k:'Poco',x:-1.4,z:-.6},{k:'Barraca',x:-4.4,z:-8.5,yaw:.3},{k:'Barraca',x:6.2,z:6.4,yaw:-2.4},{k:'CorpoCoberto',x:-12.3,z:-1.2,yaw:1.2},{k:'CorpoCoberto',x:12.5,z:2.6,yaw:-.4},{k:'CorpoCoberto',x:-3.6,z:12.6,yaw:.2},
  {k:'Barril',x:-5.6,z:-12.4},{k:'Barril',x:5.2,z:-11.8},{k:'Caixote',x:-9.6,z:7.6},{k:'Caixote',x:11.8,z:-3.4},{k:'Cerca',x:-14,z:-1.5,yaw:1.57},{k:'Cerca',x:13.6,z:-1.8,yaw:1.57},{k:'Barril',x:6.6,z:11.4}
 ].map(p=>({...p,x:VILLAGE_CENTER.x+p.x,z:VILLAGE_CENTER.z+p.z}));
-const BEGGARS=[{x:-5.2,z:-13.6,yaw:0},{x:4.4,z:14.8,yaw:Math.PI},{x:13.2,z:-6.4,yaw:-1.5},{x:-13.4,z:7.4,yaw:1.5}].map(p=>({...p,x:VILLAGE_CENTER.x+p.x,z:VILLAGE_CENTER.z+p.z}));
+
 // As colisões das casas passam a ser registradas pelo módulo da cidade de Eldória.
 // Os adereços novos registram a própria colisão; os moradores continuam nas coordenadas originais.
 function buildAct1Props(){
@@ -4586,8 +4586,13 @@ function storyDo(id,args){
   case 'levantar':if(actions.kipUp){actions.kipUp.paused=false;}else if(actions.idle)play('idle',.4);setTimeout(()=>{if(cineActive&&actions.idle)play('idle',.5);},2400);break;
   case 'anjo-parte':storyFx.push({t:0,tick(t){guide.scale.setScalar(Math.max(.01,1-t/1));if(t>1){guide.visible=false;guide.scale.setScalar(1);return false;}},finish(){guide.visible=false;guide.scale.setScalar(1);}});break;
   case 'massacre-inicio':{
-   const m=MASSACRE_SPOT,poses=act1Props&&act1Props.poses;
-   if(poses){for(const [dx,dz,yaw] of [[.6,.2,0],[-.8,-.4,.6]]){const v=castMember(dx>0?'Lia':'Mara')||poses.MendigoSentado.clone();v.position.set(m.x+dx,groundHeightAt(m.x+dx,m.z+dz),m.z+dz);v.rotation.y=yaw;scene.add(v);act1Props.victims.push(v);}}
+   const m=MASSACRE_SPOT;
+   // Vítimas adultas autorais; o combate e as falas permanecem inalterados.
+   if(act1Props)Promise.all([[.6,.2,0,'woman'],[-.8,-.4,.6,'man']].map(async([dx,dz,yaw,sex])=>{
+    const npc=await npcFactory.create({sex,role:'idle',x:m.x+dx,z:m.z+dz,yaw});
+    scene.add(npc.holder);if(npc.mixer)villageNpcMixers.push(npc.mixer);
+    act1Props.victims.push(npc.holder);
+   })).catch(e=>console.warn('Vitimas Meshy indisponiveis',e));
    storyAnchors.victim={x:m.x,z:m.z,yaw:0};
    startPack({rig:'enemy2',profile:'demon2',hp:ACT1.enemy2Hp,spots:massacreSpots(),hold:true});
    if(pack)for(const c of pack.clones)if(c)c.lookAt={x:m.x,z:m.z};
