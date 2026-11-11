@@ -1,0 +1,47 @@
+name: Eldoria — auditoria recorrente de possiveis bugs (fotos)
+on:
+  schedule:
+    # A cada 6 horas: controle de custo do Actions/Playwright, sem poluir o chat.
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/visual-lab/eldoria-watchdog.cjs'
+      - '.github/workflows/eldoria-watchdog.yml'
+permissions:
+  contents: read
+concurrency:
+  group: eldoria-watchdog-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  photo-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar browser headless sem dependencias Ubuntu via apt
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install chromium --only-shell
+      - name: Servir jogo real localmente
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/watchdog-http.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/watchdog-http.log
+          exit 1
+      - name: Inspecionar locais suspeitos e registrar apenas fotos e diagnostico objetivo
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/eldoria-watchdog.cjs
+      - name: Evidencias (sem alterar o jogo)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eldoria-watchdog-${{ github.run_number }}
+          path: visual-lab-results/eldoria-watchdog/
+          retention-days: 10
+          if-no-files-found: warn
