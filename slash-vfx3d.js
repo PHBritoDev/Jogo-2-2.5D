@@ -13,8 +13,8 @@
  * elétrica, três riscos paralelos de garra). Um golpe comum nunca usa o tamanho/brilho de ultimate.
  */
 const STYLES = {
-  prota: { core: 0xffffff, body: 0xdfe8ff, rim: 0x9fd8ff, accent: 0xffe7a8, dark: 0x000000, blend: 'add', rakes: 1, width: 1, ext: 1.25, inner: .25, life: .22, sparks: 0xf4fbff, spark2: 0xffe3a0, star: 0xffffff },
-  demon: { core: 0xf3d9ff, body: 0x8b2cff, rim: 0x4a0f8f, accent: 0x1a0626, dark: 0x0b0212, blend: 'add', rakes: 3, width: .55, ext: .9, inner: .1, life: .22, sparks: 0xc57cff, spark2: 0x2b0a40, star: 0xe7c2ff },
+  prota: { core: 0xffffff, body: 0xe8efff, rim: 0x8fd0ff, accent: 0xffe7a8, dark: 0x0a1020, blend: 'add', rakes: 1, width: 1, ext: 1.25, inner: .1, life: .26, sparks: 0xf4fbff, spark2: 0xffe3a0, star: 0xffffff },
+  demon: { core: 0xf3d9ff, body: 0x8b2cff, rim: 0x4a0f8f, accent: 0x1a0626, dark: 0x07010d, blend: 'add', rakes: 3, width: .55, ext: .9, inner: .1, life: .22, sparks: 0xc57cff, spark2: 0x2b0a40, star: 0xe7c2ff },
 };
 const NOISE = 'float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h1(i),h1(i+vec2(1,0)),f.x),mix(h1(i+vec2(0,1)),h1(i+1.),f.x),f.y);}';
 
@@ -33,9 +33,18 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
         float rake=1.;if(uRakes>1.5){float r=fract(v*3.);rake=smoothstep(.0,.18,r)*(1.-smoothstep(.42,.62,r));core=exp(-pow((r-.3)*9.,2.));edgeV=rake;}
         float erode=smoothstep(age*1.05,age*1.05+.25,n*.75+n2*.25+(1.-v)*.15);
         float halo=smoothstep(0.,.55,v)*(1.-smoothstep(.9,1.,v));
-        float a=(halo*.45+edgeV*.9+core*2.2)*tail*(.6+.4*lead)*erode*(1.-smoothstep(.6,1.,age))*uGain;
+        float a=(halo*.7+edgeV*1.1+core*2.6)*tail*(.6+.4*lead)*erode*(1.-smoothstep(.6,1.,age))*uGain;
         vec3 c=mix(uRim,uBody,smoothstep(.2,.7,v));c=mix(c,uCore,clamp(core*(.7+.3*lead),0.,1.));c+=uAccent*step(.82,n2)*smoothstep(.45,.9,v)*.8;
         if(a<.012)discard;gl_FragColor=vec4(c*(1.2+core*.8),min(1.,a));}` });
+  /* Sombra/fumaça sob o corte (mistura normal): dá contraste em cenário claro como nas referências — núcleo claro sobre
+     uma esteira escura que se esgarça, em vez de só somar luz (que some sobre grama ensolarada). */
+  const smokeMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false,
+    uniforms: { uTime: { value: 0 }, uLife: { value: st.life * 1.25 }, uDark: { value: new T.Color(st.dark || 0x05070d) }, uGain: { value: 1 }, uSeed: { value: 0 }, uRakes: { value: st.rakes } },
+    vertexShader: 'attribute float aBirth;varying vec2 vUv;varying float vBirth;void main(){vUv=uv;vBirth=aBirth;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader: `precision highp float;varying vec2 vUv;varying float vBirth;uniform float uTime,uLife,uGain,uSeed,uRakes;uniform vec3 uDark;${NOISE}
+      void main(){float age=(uTime-vBirth)/uLife;if(age>1.)discard;float u=vUv.x,v=vUv.y;float n=vn(vec2(u*9.+uSeed,v*4.-uTime*3.));
+        float band=uRakes>1.5?smoothstep(.0,.3,fract(v*3.))*(1.-smoothstep(.5,.8,fract(v*3.))):smoothstep(.05,.45,v)*(1.-smoothstep(.7,.92,v));
+        float a=band*smoothstep(0.,.25,u)*smoothstep(age,age+.35,n)*(1.-smoothstep(.4,1.,age))*.5*uGain;if(a<.02)discard;gl_FragColor=vec4(uDark,a);}` });
   function makeSlash() {
     const N = segments, pos = new Float32Array(N * 2 * 3), uv = new Float32Array(N * 2 * 2), birth = new Float32Array(N * 2), idx = [];
     for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
@@ -43,7 +52,8 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     g.setAttribute('aBirth', new T.BufferAttribute(birth, 1).setUsage(T.DynamicDrawUsage)); g.setIndex(idx); g.setDrawRange(0, 0);
     const mats = { prota: slashMat(STYLES.prota), demon: slashMat(STYLES.demon) };
     const m = new T.Mesh(g, mats.prota); m.frustumCulled = false; m.renderOrder = 10; m.visible = false; root.add(m);
-    return { m, g, pos, uv, birth, mats, n: 0, key: null, last: 0, style: 'prota', lastP: null };
+    const smokes = { prota: smokeMat(STYLES.prota), demon: smokeMat(STYLES.demon) }, sm = new T.Mesh(g, smokes.prota); sm.frustumCulled = false; sm.renderOrder = 9; m.add(sm);
+    return { m, sm, smokes, g, pos, uv, birth, mats, n: 0, key: null, last: 0, style: 'prota', lastP: null };
   }
   const slashPool = Array.from({ length: slashes }, makeSlash), byKey = new Map();
   let slashCursor = 0;
@@ -54,7 +64,7 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
    */
   function sample(key, base, tip, { style = 'prota', gain = 1, extend, inner } = {}) {
     let s = byKey.get(key);
-    if (!s) { s = slashPool[slashCursor++ % slashPool.length]; if (s.key !== null) byKey.delete(s.key); s.key = key; s.n = 0; s.style = style; s.m.material = s.mats[style] || s.mats.prota; s.m.material.uniforms.uSeed.value = Math.random() * 50; s.m.material.uniforms.uGain.value = gain; s.m.visible = true; byKey.set(key, s); s.lastP = null; }
+    if (!s) { s = slashPool[slashCursor++ % slashPool.length]; if (s.key !== null) byKey.delete(s.key); s.key = key; s.n = 0; s.style = style; s.m.material = s.mats[style] || s.mats.prota; s.sm.material = s.smokes[style] || s.smokes.prota; s.sm.material.uniforms.uSeed.value = Math.random() * 50; s.m.material.uniforms.uSeed.value = Math.random() * 50; s.m.material.uniforms.uGain.value = gain; s.m.visible = true; byKey.set(key, s); s.lastP = null; }
     const st = STYLES[s.style] || STYLES.prota, ext = extend ?? st.ext, inn = inner ?? st.inner;
     _d.set(tip.x - base.x, tip.y - base.y, tip.z - base.z); const L = _d.length() || 1; _d.multiplyScalar(1 / L);
     _a.set(base.x + _d.x * L * inn, base.y + _d.y * L * inn, base.z + _d.z * L * inn);
@@ -87,23 +97,38 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
   function crescentGeo() { const pos = [], uv = [], idx = [], N = 36, M = 6;
     for (let i = 0; i <= N; i++) { const u = i / N, ang = (u - .5) * 2.3; for (let j = 0; j <= M; j++) { const v = j / M, r = .55 + .45 * v; pos.push(Math.sin(ang) * r, 0, Math.cos(ang) * r - .75); uv.push(u, v); if (i < N && j < M) { const k = i * (M + 1) + j; idx.push(k, k + M + 1, k + 1, k + 1, k + M + 1, k + M + 2); } } }
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); return g; }
-  const cGeo = crescentGeo();
-  const wavePool = Array.from({ length: waves }, () => { const g = new T.Group(), tilt = new T.Group(), mats = { prota: waveMat(STYLES.prota), demon: waveMat(STYLES.demon) }, m = new T.Mesh(cGeo, mats.prota), halo = new T.Mesh(cGeo, mats.prota);
-    halo.scale.set(1.12, 1, 1.12); halo.position.y = .05; m.frustumCulled = halo.frustumCulled = false; m.renderOrder = halo.renderOrder = 10; tilt.add(m, halo); g.add(tilt); g.visible = false; root.add(g); return { g, tilt, m, halo, mats, e: null, after: 0 }; });
+  /* Onda viajante: lua crescente de FRENTE para quem a vê partir (plano largura × espessura, abaulada para a frente),
+     igual ao volume de energyTouches (fino no avanço, largo no "across", espessura no eixo restante). O setor usa a
+     versão deitada (corte horizontal que se expande). */
+  function waveGeo() { const pos = [], uv = [], idx = [], N = 40, M = 6;
+    for (let i = 0; i <= N; i++) { const u = i / N, ang = (u - .5) * 2.4, taper = Math.pow(Math.max(0, Math.cos(ang * .62)), 1.6); for (let j = 0; j <= M; j++) { const v = j / M;
+      pos.push(Math.sin(ang), (v - .5) * .95 * taper + (Math.cos(ang) - .55) * .55, (Math.cos(ang) - .4) * .55); uv.push(u, v); if (i < N && j < M) { const k = i * (M + 1) + j; idx.push(k, k + M + 1, k + 1, k + 1, k + M + 1, k + M + 2); } } }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); return g; }
+  const cGeo = crescentGeo(), wGeo = waveGeo();
+  const waveSmokeMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false,
+    uniforms: { uAge: { value: 0 }, uLife: { value: .4 }, uFade: { value: 1 }, uSeed: { value: 0 }, uDark: { value: new T.Color(st.dark || 0x05070d) }, uRakes: { value: st.rakes } },
+    vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader: `precision highp float;varying vec2 vUv;uniform float uAge,uLife,uFade,uSeed,uRakes;uniform vec3 uDark;${NOISE}
+      void main(){float t=clamp(uAge/uLife,0.,1.);float x=vUv.x*2.-1.,v=vUv.y;float taper=pow(max(0.,1.-x*x),.8);float band=uRakes>1.5?fract(v*3.):v;
+        float n=vn(vec2(vUv.x*14.+uSeed,v*3.-uAge*8.));float a=smoothstep(0.,.55,band)*(1.-smoothstep(.7,.95,band))*taper*smoothstep(t,t+.35,n)*(1.-smoothstep(.45,1.,t))*uFade*.55;
+        if(a<.02)discard;gl_FragColor=vec4(uDark,a);}` });
+  const wavePool = Array.from({ length: waves }, () => { const g = new T.Group(), tilt = new T.Group(), mats = { prota: waveMat(STYLES.prota), demon: waveMat(STYLES.demon) }, smokes = { prota: waveSmokeMat(STYLES.prota), demon: waveSmokeMat(STYLES.demon) }, m = new T.Mesh(cGeo, mats.prota), halo = new T.Mesh(cGeo, smokes.prota);
+    halo.scale.set(1.08, 1, 1.18); halo.position.y = -.03; m.frustumCulled = halo.frustumCulled = false; m.renderOrder = 10; halo.renderOrder = 9; tilt.add(m, halo); g.add(tilt); g.visible = false; root.add(g); return { g, tilt, m, halo, mats, smokes, e: null, after: 0 }; });
   let waveCursor = 0;
   /** e: volume de energia (prota-combat3d.makeEnergy ou equivalente das garras). */
   function wave(e, { style = 'prota', gain = 1 } = {}) {
     const w = wavePool[waveCursor++ % wavePool.length], mat = w.mats[style] || w.mats.prota;
-    w.m.material = w.halo.material = mat; w.e = e; w.after = 0; w.g.visible = true; w.style = style;
+    w.m.geometry = w.halo.geometry = e.kind === 'sector' ? cGeo : wGeo;
+    w.m.material = mat; w.halo.material = w.smokes[style] || w.smokes.prota; w.halo.material.uniforms.uLife.value = e.life * 1.2; w.halo.material.uniforms.uSeed.value = Math.random() * 40; w.halo.material.uniforms.uFade.value = 1; w.e = e; w.after = 0; w.g.visible = true; w.style = style;
     const u = mat.uniforms; u.uLife.value = e.life; u.uSeed.value = Math.random() * 40; u.uGain.value = gain; u.uFade.value = 1;
     w.g.position.set(e.x, e.y, e.z); w.g.rotation.set(0, e.yaw, 0); w.tilt.rotation.set(0, 0, e.roll || 0);
   }
   function syncWave(w, dt) {
-    const e = w.e; if (!e) return; const u = w.m.material.uniforms;
-    if (e.done) { w.after += dt; u.uFade.value = Math.max(0, 1 - w.after / .1); if (w.after > .1) { w.g.visible = false; w.e = null; return; } }
-    u.uAge.value = e.age;
-    if (e.kind === 'sector') { const r = Math.max(.05, e.radius); w.g.position.set(e.x, e.y, e.z); w.tilt.scale.set(r * (e.span < 6.2 ? Math.min(1.4, e.span / 2.3) : 2.6), 1, r); w.m.position.z = w.halo.position.z = .75; }
-    else { const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw), along = e.blockedAt ? Math.min(e.travel, e.blockedAt) : e.travel; w.g.position.set(e.x + fx * along, e.y, e.z + fz * along); const s = e.radius * 1.05; w.tilt.scale.set(s, 1, Math.max(.6, e.band * 1.6)); w.m.position.z = w.halo.position.z = .75; }
+    const e = w.e; if (!e) return; const u = w.m.material.uniforms, hu = w.halo.material.uniforms;
+    if (e.done) { w.after += dt; u.uFade.value = hu.uFade.value = Math.max(0, 1 - w.after / .12); if (w.after > .12) { w.g.visible = false; w.e = null; return; } }
+    u.uAge.value = hu.uAge.value = e.age;
+    if (e.kind === 'sector') { const r = Math.max(.05, e.radius); w.g.position.set(e.x, e.y, e.z); w.tilt.scale.set(r * (e.span < 6.2 ? Math.min(1.4, e.span / 2.3) : 2.6), 1, r); w.m.position.z = w.halo.position.z = .75; w.halo.position.y = -.03; }
+    else { const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw), along = e.blockedAt ? Math.min(e.travel, e.blockedAt) : e.travel; w.g.position.set(e.x + fx * along, e.y, e.z + fz * along); const s = e.radius * (1 + .2 * Math.min(1, e.age / .15)); w.tilt.scale.set(s, 1.15, Math.max(.7, e.band * 1.4)); w.m.position.z = w.halo.position.z = 0; }
   }
   // ---------------- faíscas / estilhaços (instanciados) ----------------
   const quad = new T.PlaneGeometry(1, 1); quad.translate(0, .5, 0);
@@ -145,7 +170,7 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
   const camQ = new T.Quaternion();
   function update(dt, camera, level = 'high') {
     time += dt; quality = level; camera.getWorldQuaternion(camQ);
-    for (const s of slashPool) { if (!s.m.visible) continue; s.m.material.uniforms.uTime.value = time; if (time - s.last > (STYLES[s.style] || STYLES.prota).life + .05) { s.m.visible = false; if (s.key !== null) { byKey.delete(s.key); s.key = null; } s.n = 0; s.g.setDrawRange(0, 0); } }
+    for (const s of slashPool) { if (!s.m.visible) continue; s.m.material.uniforms.uTime.value = time; s.sm.material.uniforms.uTime.value = time; if (time - s.last > (STYLES[s.style] || STYLES.prota).life + .05) { s.m.visible = false; if (s.key !== null) { byKey.delete(s.key); s.key = null; } s.n = 0; s.g.setDrawRange(0, 0); } }
     for (const w of wavePool) syncWave(w, dt);
     let live = 0; const P = aPos.array, V = aVel.array, K = aK.array, C = aCol.array;
     for (let i = 0; i < sparks; i++) { if (sp.age[i] >= 1) continue; sp.age[i] += dt / sp.life[i]; if (sp.age[i] >= 1) continue;

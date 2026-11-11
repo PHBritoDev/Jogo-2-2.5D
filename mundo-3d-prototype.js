@@ -63,7 +63,7 @@ import {ROAD,ROAD_STORE,ROAD_SPEAKERS,RIDE,initialRoadStage,roadPresentation,ter
 import {prepareSandraMaterials} from './sandra-materials.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { clone as cloneSkinned, retargetClip } from 'three/addons/utils/SkeletonUtils.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 import { EXTRA_SKILLS, SLOT_IDS, normalizeLoadout, equipSlot, ownedSlotSkills, autoSlotFor, SKILLS, SKILL_ORDER, MANA, unlockedSkills, newlyUnlocked, canCast, regenMana, manaFromHit, cooldownFraction } from './skills3d.js';
 import { createWorldAudio } from './audio3d.js';
 import { showGalaxyScreen } from './galaxies3d.js';
@@ -823,12 +823,13 @@ new GLTFLoader().load('./Grama.glb?v=mod163-forest-grass-instances',gltf=>{try{c
 const player=new THREE.Group();scene.add(player);player.position.set(0,0,4);
 // Inimigo comum (Enemy1): modelo visual ÚNICO Demonio1.glb (Mod 289) com os clipes que realmente existem no arquivo.
 const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(0,0,-3.2);enemy.visible=false;
-const enemyTexture=new THREE.TextureLoader().load('./Enemy1-sprite.png');
-enemyTexture.colorSpace=THREE.SRGBColorSpace;
-const enemySpriteMaterial=new THREE.MeshStandardMaterial({map:enemyTexture,transparent:true,alphaTest:.06,side:THREE.DoubleSide,roughness:1,emissive:0x000000});
+/* MOD 314 — legado do Enemy1 retirado do caminho normal: o sprite de reserva só é baixado se o Demonio1.glb falhar
+   (ou se o inimigo precisar aparecer antes do GLB terminar); nada do modelo antigo é carregado na partida comum. */
+const enemySpriteMaterial=new THREE.MeshStandardMaterial({transparent:true,alphaTest:.06,side:THREE.DoubleSide,roughness:1,emissive:0x000000});
+function ensureEnemySprite(){if(enemySpriteMaterial.map)return;const t=new THREE.TextureLoader().load('./Enemy1-sprite.png');t.colorSpace=THREE.SRGBColorSpace;enemySpriteMaterial.map=t;enemySpriteMaterial.needsUpdate=true;}
 const enemyMaterials=[enemySpriteMaterial];
 const enemySprite=new THREE.Mesh(new THREE.PlaneGeometry(1.55,1.95),enemySpriteMaterial);
-enemySprite.position.y=.98;enemySprite.castShadow=true;enemy.add(enemySprite);
+enemySprite.position.y=.98;enemySprite.castShadow=true;enemySprite.onBeforeRender=()=>{if(!enemyModel)ensureEnemySprite();};enemy.add(enemySprite);
 const enemyModelRoot=new THREE.Group();enemy.add(enemyModelRoot);
 const enemyGroundShadow=new THREE.Mesh(new THREE.CircleGeometry(.48,20),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.35,depthWrite:false}));
 enemyGroundShadow.rotation.x=-Math.PI/2;enemyGroundShadow.position.y=.012;enemy.add(enemyGroundShadow);
@@ -865,29 +866,6 @@ function setEnemyHitFlash(active){
   else{material.emissive.setHex(material.userData.enemyBaseEmissive);material.emissiveIntensity=material.userData.enemyBaseEmissiveIntensity;}
  }
 }
-function retargetEnemyMovementClipToPlayer(role,sourceRoot,sourceClip){
- if(newHero)return false; // novo rig recebe suas animações nativas
- if(!model||!mixer||!sourceRoot||!sourceClip)return false;
- let sourceMesh=null,targetMesh=null;
- sourceRoot.traverse(o=>{if(!sourceMesh&&o.isSkinnedMesh&&o.skeleton)sourceMesh=o;});
- model.traverse(o=>{if(!targetMesh&&o.isSkinnedMesh&&o.skeleton)targetMesh=o;});
- if(!sourceMesh||!targetMesh)return false;
- // Não aplicar uma animação retargetada se os rigs compartilham poucos ossos nomeados.
- // Isso evita deformar o protagonista com um clipe do Enemy1 incompatível.
- const normalizeBone=name=>String(name||'').toLowerCase().replace(/^mixamorig[:_]?/,'').replace(/[^a-z0-9]/g,'');
- const sourceBones=new Set(sourceMesh.skeleton.bones.map(b=>normalizeBone(b.name)));
- const targetBones=new Set(targetMesh.skeleton.bones.map(b=>normalizeBone(b.name)));
- const sharedBones=[...sourceBones].filter(name=>name&&targetBones.has(name));
- const hasPelvis=sharedBones.some(name=>/^(hips|pelvis)$/.test(name)),hasLeftLeg=sharedBones.some(name=>/left.*(upleg|thigh|leg)$/.test(name)),hasRightLeg=sharedBones.some(name=>/right.*(upleg|thigh|leg)$/.test(name)),hasCoreLegs=hasPelvis&&hasLeftLeg&&hasRightLeg;
- console.info('Compatibilidade de rig Enemy1 → protagonista:',role,sharedBones.length,'ossos compartilhados');
- if(sharedBones.length<12||!hasCoreLegs){console.warn('Retarget cancelado por compatibilidade insuficiente:',role);return false;}
- try{
-  const clip=retargetClip(targetMesh,sourceMesh,sourceClip,{useFirstFramePosition:false,preservePosition:false});
-  if(!clip||!clip.tracks||!clip.tracks.length){console.warn('Retarget sem canais compatíveis para '+role,sourceClip.name);return false;}
-  clip.name='Enemy1_'+sourceClip.name+'_retarget_'+role;
-  actions[role]=mixer.clipAction(clip);console.info('Animação Enemy1 aplicada ao protagonista:',role,sourceClip.name,clip.tracks.length,'canais');return true;
- }catch(err){console.warn('Não foi possível retargetar '+role+' do Enemy1:',err);return false;}
-}
 /* MOD 289 — o Enemy1 usa Demonio1.glb (16 clipes reais conferidos por introspecção do GLB). Papéis abaixo; sem fallback para o modelo antigo. */
 const ENEMY1_MODEL_URL='./Demonio1.glb?v=mod290-demonio1';
 /* a respiração do Demonio1 dura ~5 s (o idle antigo tinha 2,5 s e rodava a .38); hit de 2,5 s acelerado para a reação curta do combate atual */
@@ -909,13 +887,10 @@ new GLTFLoader().load(ENEMY1_MODEL_URL,gltf=>{
  const key=c=>String(c&&c.name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
  const exact=name=>enemyClips.find(c=>key(c)===name);
  const has=part=>enemyClips.find(c=>key(c).includes(part));
- // MOD 186 — o Enemy1.glb exporta 6 clipes com nomes UUID. Papéis conferidos por prévia visual e pelo
- // movimento dos ossos (quadril/mão); sem isso o "cast" podia cair no salto e o inimigo não tinha repouso.
  const ENEMY1_CLIP_TABLE=DEMONIO1_CLIP_TABLE; /* MOD 289: tabela dos clipes do Demonio1 (o Enemy1.glb antigo e seus UUIDs foram retirados) */
  const byTable=role=>enemyClips.find(c=>ENEMY1_CLIP_TABLE[c.name]===role);
  // Clipes com deslocamento do quadril (investida/esquiva/salto) viram "no lugar": quem move o inimigo é o código.
  const inPlace=clip=>{if(!clip)return clip;const copy=clip.clone();for(const track of copy.tracks){if(!/(hips|pelvis)[^.]*\.position$/i.test(track.name))continue;const v=track.values;for(let i=3;i<v.length;i+=3){v[i]=v[0];v[i+2]=v[2];}}return copy;};
- const retargetSources={dash:exact('dash'),jump:exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto')};
  const clipsByRole={
   idle:byTable('idle')||exact('idle')||exact('breath')||exact('breathing')||exact('respiracao'),
   walk:byTable('walk')||exact('andar')||exact('walk')||exact('walking'),
@@ -928,7 +903,7 @@ new GLTFLoader().load(ENEMY1_MODEL_URL,gltf=>{
   jump:inPlace(byTable('jump'))||exact('jump')||exact('jumping')||exact('pulo')||exact('pular')||exact('saltar')||exact('salto'),
   hit:byTable('hit')||exact('hit')||exact('hurt')||exact('damage'),
   death:byTable('death')||exact('death')||exact('dead')||exact('die')||exact('morte'),
-  arise:byTable('arise')||exact('arise'),knockdown:byTable('knockdown'),sweep:byTable('sweep'),sweep2:byTable('sweep2'),combo:byTable('combo') /* reservados para a coreografia futura; nenhum golpe novo usa ainda */
+  arise:byTable('arise')||exact('arise'),knockdown:byTable('knockdown'),sweep:inPlace(byTable('sweep')),sweep2:inPlace(byTable('sweep2')),combo:inPlace(byTable('combo')) /* MOD 314: trechos destes clipes viram combos de GARRA (demon1-combat3d.js); no lugar — quem desloca é o avanço da IA (sem patinar) */
  };
  // Não depender de um único nome: distribui clipes reais ainda não usados em papéis especiais distintos.
  const usedClips=new Set([...Object.values(clipsByRole).filter(Boolean),...Object.keys(ENEMY1_CLIP_TABLE).map(n=>enemyClips.find(c=>c.name===n)).filter(Boolean)]);
@@ -945,10 +920,7 @@ new GLTFLoader().load(ENEMY1_MODEL_URL,gltf=>{
  window.Enemy1AnimationRoleReport=Object.fromEntries(Object.entries(clipsByRole).map(([role,clip])=>[role,clip?clip.name:null]));
  for(const role of Object.keys(clipsByRole)){const clip=clipsByRole[role];if(clip)enemyActions[role]=enemyMixer.clipAction(clip);}
  enemyHasDeathClip=!!clipsByRole.death;
- // Usa Dash e Jump reais do Enemy1 no protagonista, convertidos para o esqueleto dele.
- // Só clipes nomeados seguem para o protagonista (comportamento anterior preservado; rigs diferentes).
- if(retargetSources.dash)retargetEnemyMovementClipToPlayer('dash',imported,retargetSources.dash);
- if(retargetSources.jump)retargetEnemyMovementClipToPlayer('jump',imported,retargetSources.jump);
+ // MOD 314: o antigo retarget de dash/salto do Enemy1 para o protagonista saiu (o Demonio1 não tem esses nomes e o herói usa clipes nativos).
  // Sem clipe de repouso identificado, não forçar caminhada ou pulo como idle.
  if(!enemyActions.idle)console.warn('Enemy1 sem clipe de repouso identificado.');
  if(enemyActions.idle)playEnemyAnimation('idle',0);
@@ -956,7 +928,7 @@ new GLTFLoader().load(ENEMY1_MODEL_URL,gltf=>{
  console.info('Demonio1.glb (Enemy1) animações:',window.Enemy1AnimationReport);
  normalizeEnemy1Model(imported);
  enemyLoadState='ready';enemy1Rig={model:imported,mixer:enemyMixer,actions:enemyActions,hasDeath:enemyHasDeathClip,nativeDeath:enemyHasDeathClip,timeScales:ENEMY1_TIME_SCALES};if(activeRig==='enemy1')rigTimeScales=ENEMY1_TIME_SCALES;if(activeRig!=='enemy1'){const previous=activeRig;activeRig='enemy1';useRig(previous);}
-},undefined,err=>{console.error('Demonio1.glb não carregou; o Enemy1 fica no sprite de reserva (nenhum modelo antigo é usado).',err);enemyLoadState='idle';enemySprite.visible=true;});
+},undefined,err=>{console.error('Demonio1.glb não carregou; o Enemy1 fica no sprite de reserva (nenhum modelo antigo é usado).',err);ensureEnemySprite();enemyLoadState='idle';enemySprite.visible=true;});
 
 }
 
@@ -2013,7 +1985,7 @@ if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
 const moving=Math.hypot(moveVX,moveVZ)>.12;
 // Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
 if(dashRemaining>0){
- const dashDt=Math.min(dt,dashRemaining),dashSpeed=newHero?PROTA_DASH.distance/PROTA_DASH.travel:12.5;const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*dashSpeed*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*dashSpeed*dashDt,-6000,6000);
+ const dashDt=Math.min(dt,dashRemaining),dashU=newHero?1-dashRemaining/PROTA_DASH.travel:0,dashSpeed=newHero?PROTA_DASH.distance/PROTA_DASH.travel*(1.55-1.1*dashU):12.5;/* MOD 314: saída explosiva e desaceleração (mesma distância total, sem freada seca) */const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*dashSpeed*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*dashSpeed*dashDt,-6000,6000);
  if(newHero){const bx=player.position.x,bz=player.position.z;moveWorldHero(player.position,nextX-player.position.x,nextZ-player.position.z,dashBlockedAt);const got=Math.hypot(player.position.x-bx,player.position.z-bz);prota302.dashSpent+=got;if(got<Math.hypot(nextX-bx,nextZ-bz)*.35)dashRemaining=dashDt;/* parede: o dash termina ali, sem atravessar */}
  else{
  // MOD 292: o ponto do meio também é testado (o dash anda até 0,5 m por quadro e não pode atravessar guarda-corpo fino)
@@ -2086,11 +2058,14 @@ function protaLand(fall){
  *  (com colisão de parede: não passa por obstáculo) e reaparece adiante dentro de um rastro horizontal que se fecha. */
 function protaDashStart(now){
  const fp=cameraDistance<1.05;dashRemaining=PROTA_DASH.travel;prota302.dashSpent=0;prota302.dashFrom.copy(player.position);
+ // MOD 314: sem mira travada, o herói reaparece olhando para onde foi; com mira, mantém o rosto no alvo (dash lateral/para trás)
+ if(!lockOnActive){playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;}
  playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+PROTA_DASH.iframes*1000);prota302.iframesUntil=prota302.clock+PROTA_DASH.iframes;
  heroShadows?.emit();protaVFX.vanish(player.position,{x:dashDirX,z:dashDirZ});worldAudio.whoosh();
  if(!fp&&model){prota302.wasVisible=model.visible;model.visible=false;if(swordMount)swordMount.visible=false;prota302.hidden=true;}
  actionUntil=now+40;
 }
+function dirOrZero(v){return Number.isFinite(v)?v:0;}
 function protaDashEnd(){
  if(!prota302.hidden&&!(dashRemaining>0)){prota302.attackAfterDash=prota302.clock+.26;return;}
  const dir={x:dashDirX,z:dashDirZ};
@@ -2100,6 +2075,8 @@ function protaDashEnd(){
  if(prota302.hidden){prota302.hidden=false;if(model)model.visible=prota302.wasVisible;if(swordMount)swordMount.visible=cameraDistance>=1.05;
   protaVFX.reappear(player.position,dir,Math.max(1.2,Math.min(3,prota302.dashSpent*.55)));
   if(actions.Prota302_arrive&&!rites.busy){playOnce('Prota302_arrive',.03);actions.Prota302_arrive.setEffectiveTimeScale(1.35);prota302.arriveT=prota302.clock+PROTA_DASH.recover+.06;}}
+ // MOD 314: o corpo sai do dash ainda deslizando na direção do avanço (a velocidade decai pela aceleração normal), sem freada seca
+ if(dashRemaining<=0&&!rites.busy){const k=grounded?3.1:2.2;moveVX=dirOrZero(dashDirX)*k;moveVZ=dirOrZero(dashDirZ)*k;}
  prota302.attackAfterDash=prota302.clock+.26;
 }
 /** Alvos candidatos (esquadrão ou inimigo único) no formato do escolhedor de alvo. */
@@ -3675,6 +3652,7 @@ function updatePack(dt){
    vira um procurador invisível do ator em foco: golpes, magias, mira e HUD do herói continuam mirando enemy/enemyHP, e a
    diferença de vida/posição vai para o ator certo. Corte da espada, projéteis e magias em área alcançam os outros atores.
    ?esquadraLegada=1 volta ao modo antigo (um por vez). ?testeEnemy1=1 abre o laboratório isolado do progresso. */
+var squadQAPause=false; // MOD 314: QA congela a IA da esquadra (o dano do herói continua valendo)
 var vzDuel=false,vzLocked=false,vzLockPos=null,squadSakugaCd=0,squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
 const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=new Map();
 function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
@@ -4000,7 +3978,7 @@ function updateSquadCombat(dt,now){
  for(const al of squadAllies)targets.push(allyTarget(al));
  const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
  const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado');
- squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused});
+ squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause});
  updateAllies(dt);
  // 5) foco e procurador
  pickSquadFocus(false);
@@ -7471,7 +7449,7 @@ const rites=new SwordRites({
   if(window.SevenSinsDebug3D&&['judgment','wave','impact'].includes(type)){riteAudit.push({type,n:e.n,at:rites.active?.t,position:e.p?{...e.p}:null});if(riteAudit.length>80)riteAudit.shift();}
   riteVFX.event(type,e);
   // MOD 314: espada inicial — crescente varrido amostrado da lâmina real, onda (= volume de dano) e impacto estrelado
-  if(type==='blade'&&e.a.kind==='basic'&&e.a.sword==='prota'){const d=e.a.def||{},gain=d.finisher?1.15:e.a.mode==='air'||e.a.mode==='plunge'?.95:d.launcher?1:.82;slashVFX.sample(e.a.serial,e.blade.base,e.blade.tip,{style:'prota',gain,extend:d.finisher?1.65:d.launcher||e.a.mode==='plunge'?1.4:1.2});}
+  if(type==='blade'&&e.a.kind==='basic'&&e.a.sword==='prota'){const d=e.a.def||{},gain=d.finisher?1.2:e.a.mode==='air'||e.a.mode==='plunge'?1:d.launcher?1.05:.92;slashVFX.sample(e.a.serial,e.blade.base,e.blade.tip,{style:'prota',gain,extend:d.finisher?1.65:d.launcher||e.a.mode==='plunge'?1.4:1.2});}
   else if(type==='energy'&&e.sword==='prota'&&!(e.kind==='sector'&&e.span>6)){slashVFX.wave(e,{style:'prota',gain:e.owner?.def?.finisher?1.1:.85});worldAudio.whoosh();e.vfx314=true;}
   if(type==='start'){
    riteCinematicView=e.kind==='prota'&&cameraDistance<1.05;
@@ -7615,7 +7593,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  /** QA: joystick/correr determinísticos para combatStep e um quadro desenhado depois de posicionar a câmera. */
  setJoy(x=0,z=0,sprint=false){joyX=x;joyY=z;sprintToggle=!!sprint;},
  /** QA (Mod 314): estado dos cortes, escudos e mobilidade. */
- combat314(){return{clock:+combatClock.toFixed(3),slash:slashVFX.stats(),shieldVfx:shieldVFX.stats(),hero:{state:heroShield.state,hp:+heroShield.hp.toFixed(1),left:+heroShield.remaining(combatClock).toFixed(2),cd:+heroShield.cooldownLeft(combatClock).toFixed(2)},mob:{jumps:heroMob.jumps,air:heroMob.airborne,dashLeft:+heroMob.dashLeft(combatClock).toFixed(3)},enemies:(squadSq()?.actors||[]).map(a=>{const b=squadRT.body(a.id),c=b?.dclaws||[],v=new THREE.Vector3(),w=new THREE.Vector3();return{id:a.id,shield:a.shield?a.shield.state:null,act:a.act?a.act.type+(a.act.nm?':'+a.act.nm.id:''):null,airY:+(a.airY||0).toFixed(2),jumps:a.jumps,talons:c.map(k=>{k.tip.getWorldPosition(v);k.base.getWorldPosition(w);return [+v.distanceTo(w).toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+v.z.toFixed(2)];})};})};},
+ riteDebug(){return{rites,target:riteTarget(),blocked:p=>riteBlocked(p,false)};},
+ combat314(){const T=riteTarget();return{target:{x:+T.x.toFixed(2),y:+T.y.toFixed(2),z:+T.z.toFixed(2),r:T.radius,h:T.height,alive:T.alive,id:T.id},energies:rites.energies.map(e=>({kind:e.kind,x:+e.x.toFixed(2),y:+e.y.toFixed(2),z:+e.z.toFixed(2),yaw:+e.yaw.toFixed(2),travel:+(e.travel||0).toFixed(2),age:+e.age.toFixed(2),done:e.done,blockedAt:e.blockedAt})),clock:+combatClock.toFixed(3),slash:slashVFX.stats(),shieldVfx:shieldVFX.stats(),hero:{state:heroShield.state,hp:+heroShield.hp.toFixed(1),left:+heroShield.remaining(combatClock).toFixed(2),cd:+heroShield.cooldownLeft(combatClock).toFixed(2)},mob:{jumps:heroMob.jumps,air:heroMob.airborne,dashLeft:+heroMob.dashLeft(combatClock).toFixed(3)},enemies:(squadSq()?.actors||[]).map(a=>{const b=squadRT.body(a.id),c=b?.dclaws||[],v=new THREE.Vector3(),w=new THREE.Vector3();return{id:a.id,shield:a.shield?a.shield.state:null,act:a.act?a.act.type+(a.act.nm?':'+a.act.nm.id:''):null,airY:+(a.airY||0).toFixed(2),jumps:a.jumps,talons:c.map(k=>{k.tip.getWorldPosition(v);k.base.getWorldPosition(w);return [+v.distanceTo(w).toFixed(2),+v.x.toFixed(2),+v.y.toFixed(2),+v.z.toFixed(2)];})};})};},
  /** QA (Mod 314): velocidade das mãos/pés do Demônio1 ao longo de um clipe (picos = janelas de golpe). */
  enemyClipProbe(role,step=1/30){const r=enemy1Rig;if(!r)return null;const act=r.actions[role];if(!act)return null;const clip=act.getClip(),m=cloneSkinned(r.model),mx=new THREE.AnimationMixer(m),a=mx.clipAction(clip);a.play();const bones={};m.traverse(o=>{if(/^(RightHand|LeftHand|RightFoot|LeftFoot|Hips|RightMiddleDistal|LeftMiddleDistal)$/.test(o.name))bones[o.name]=o;});
   const out=[],prev={};for(let t=0;t<=clip.duration+1e-6;t+=step){mx.setTime(t);m.updateMatrixWorld(true);const row={t:+t.toFixed(3)};for(const [n,b] of Object.entries(bones)){const p=b.getWorldPosition(new THREE.Vector3());if(prev[n])row[n]=+(p.distanceTo(prev[n])/step).toFixed(2);prev[n]=p;if(n==='Hips')row.hy=+p.y.toFixed(2);}out.push(row);}return{name:clip.name,dur:clip.duration,out};},
@@ -7857,6 +7836,11 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   groundAt(x,z){return terrainHeightAt(x,z);},
   /** MOD 245 — força um poder do Enemy3 (laboratório/QA) e mede a cena: chamadas, triângulos, luz da tempestade. */
   squadForce(skill,id){const s=squadSq();if(!s)return null;const a=id?s.actor(id):(squadFocus||s.alive[0]),t=s.targets[0];if(!a||!t)return null;a.act=null;a.cds[skill]=0;a.cds.spellGap=0;s.lastAttackAt=-9;s.startCast(a,t,skill);return this.squadState();},
+  /** QA (Mod 314): força salto predatório / escudo / combo de garra do Demônio1. */
+  squadPause(on=true){squadQAPause=!!on;return !!squadSq();},
+  squadLeap(id){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;a.alert=0;a.cds.leap=0;s.startLeap(a,t);return this.combat314();},
+  squadShield(id){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus;if(!a||!a.shield)return null;a.shield.readyAt=-1e9;a.shield.update(s.time);a.shield.activate(s.time);return this.combat314();},
+  squadNative(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;a.alert=0;a.combo=null;s.startNative(a,t,move);return this.combat314();},
   squadMove(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;s.startMelee(a,t,move);return this.squadState();},
   squadCam(o,id){if(!o){debugCameraOverride=null;return null;}const s=squadSq();const a=s&&((id&&s.actor(id))||s.actors.find(x=>x.alive&&x.act&&x.act.type==='cast')||s.actors.find(x=>x.alive&&x.act)||s.alive[0]);if(!a)return null;const f=[Math.sin(a.yaw),Math.cos(a.yaw)],r=[Math.cos(a.yaw),-Math.sin(a.yaw)],P=(x,y,z)=>[a.x+r[0]*x+f[0]*z,a.y+y,a.z+r[1]*x+f[1]*z];this.fly(P(o[0],o[1],o[2]),P(o[3],o[4],o[5]));return a.id;},
   /** MOD 245 — QA do caminho real do Ato III: startPack com o rig/perfil do roteiro, em volta do herói (laboratório). */

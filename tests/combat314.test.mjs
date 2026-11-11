@@ -81,7 +81,10 @@ test('Mod 314: espada + onda acertam o mesmo alvo uma vez por golpe; onda acerta
   // alturas: a onda passa a 1,0 m; alvo voando a 4 m não é atingido; alvo no chão à frente sim; atrás nunca
   const e = makeEnergy({ kind: 'wave', roll: .2, radius: 1.2, speed: 20, range: 6, band: .7, life: .4 }, { x: 0, y: 1, z: 0 }, 0, 0);
   for (let i = 0; i < 12; i++) energyStep(e, 1 / 60, null);
+  assert.equal(e.radius, 1.2, 'a onda guarda o próprio raio (largura do crescente = largura do dano)');
   assert.equal(energyTouches(e, { x: 0, y: .9, z: e.travel, radius: .45, height: 1.8 }), true);
+  assert.equal(energyTouches(e, { x: 1.3, y: .9, z: e.travel, radius: .45, height: 1.8 }), true, 'pega quem está na ponta do crescente');
+  assert.equal(energyTouches(e, { x: 2.4, y: .9, z: e.travel, radius: .45, height: 1.8 }), false, 'fora da largura do crescente');
   assert.equal(energyTouches(e, { x: 0, y: 4.2, z: e.travel, radius: .45, height: 1.8 }), false);
   assert.equal(energyTouches(e, { x: 0, y: .9, z: -e.travel, radius: .45, height: 1.8 }), false);
   assert.equal(energyTouches(e, { x: 0, y: .9, z: e.travel, radius: .45, height: 1.8 }, () => true), false, 'parede bloqueia');
@@ -149,4 +152,12 @@ test('Mod 314: integração real (HUD, teclado, mundo e esquadra)', () => {
   assert.match(src, /updateCombat314\(dt\);/);
   const rt = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
   assert.match(rt, /attachDemonClaws\(b\)/); assert.match(rt, /demonSlashes\(b, a\)/);
+});
+test('Mod 314: legado do Enemy1 fora do jogo em execução (sem asset morto, sem carga do sprite antigo na partida comum)', () => {
+  assert.equal(fs.existsSync(new URL('../Enemy1.png', import.meta.url)), false, 'imagem antiga sem uso removida');
+  assert.equal(fs.existsSync(new URL('../Enemy1-sprite.png', import.meta.url)), true, 'reserva continua existindo (sem inimigo invisível se o GLB falhar)');
+  assert.doesNotMatch(src, /const enemyTexture=new THREE\.TextureLoader\(\)\.load\('\.\/Enemy1-sprite\.png'\)/, 'não baixa o sprite antigo no início');
+  assert.match(src, /function ensureEnemySprite\(\)/); assert.match(src, /ensureEnemySprite\(\);enemyLoadState='idle';/);
+  assert.doesNotMatch(src, /retargetEnemyMovementClipToPlayer/, 'retarget morto do Enemy1 → herói removido');
+  assert.match(src, /new GLTFLoader\(\)\.load\(ENEMY1_MODEL_URL,/, 'Demonio1.glb continua sendo o modelo');
 });

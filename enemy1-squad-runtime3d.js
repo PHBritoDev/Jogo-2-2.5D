@@ -107,6 +107,14 @@ export function createEnemy1SquadRuntime(ctx) {
     for (let n = 0; n <= 10; n++) { const c = curve.getPointAt(n / 10), k = n / 10; for (let j = 0; j <= 6; j++) { const i = n * 7 + j; _b.fromBufferAttribute(P, i).sub(c).multiplyScalar(Math.pow(1 - k, .8) * 1 + .04).add(c); P.setXYZ(i, _b.x, _b.y, _b.z); const e = Math.pow(k, 2.2); col[i * 3] = .07 + .55 * e; col[i * 3 + 1] = .03 + .16 * e; col[i * 3 + 2] = .12 + .95 * e; } }
     g.setAttribute('color', new T.BufferAttribute(col, 3)); g.computeVertexNormals(); clawGeo = g; return g;
   }
+  let fanGeo = null;
+  function talonFan() {
+    if (fanGeo) return fanGeo; const base = talonGeometry(), parts = [], m = new T.Matrix4(), e = new T.Euler();
+    for (const [ox, rz, sc] of [[-.045, .22, 1.0], [0, 0, 1.18], [.045, -.22, 1.0]]) { const g = base.clone(); m.compose(new T.Vector3(ox, 0, 0), new T.Quaternion().setFromEuler(e.set(0, 0, rz)), new T.Vector3(sc, sc, sc)); g.applyMatrix4(m); parts.push(g.index ? g.toNonIndexed() : g); }
+    const n = parts.reduce((k, g) => k + g.attributes.position.count, 0), pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3); let o = 0;
+    for (const g of parts) { pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); col.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; g.dispose(); }
+    fanGeo = new T.BufferGeometry(); fanGeo.setAttribute('position', new T.BufferAttribute(pos, 3)); fanGeo.setAttribute('normal', new T.BufferAttribute(nor, 3)); fanGeo.setAttribute('color', new T.BufferAttribute(col, 3)); return fanGeo;
+  }
   const talonMat = new T.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, metalness: .55, roughness: .28, emissive: 0x3a1078, emissiveIntensity: .55 });
   function attachDemonClaws(b) {
     b.dclaws = []; b.model.updateMatrixWorld(true);
@@ -116,8 +124,8 @@ export function createEnemy1SquadRuntime(ctx) {
       const ws = mid.getWorldScale(new T.Vector3()).x || 1, dir = (end ? end.position.clone() : new T.Vector3(0, 1, 0)).normalize(), q = new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), dir);
       const g = new T.Group(); g.quaternion.copy(q); g.scale.setScalar(1 / ws); mid.add(g);
       // três garras longas saindo da luva do dedo médio (leque lateral) — ~0,4 m no mundo, proporcional ao corpo de 1,85 m
-      for (const [ox, rz, s] of [[-.045, .22, 1.0], [0, 0, 1.18], [.045, -.22, 1.0]]) { const m = new T.Mesh(talonGeometry(), talonMat); m.position.set(ox, -.02, 0); m.rotation.set(0, 0, rz); m.scale.setScalar(s); m.castShadow = true; g.add(m); }
-      if (thumb) { const ts = thumb.getWorldScale(new T.Vector3()).x || 1, tg = new T.Group(); tg.scale.setScalar(1 / ts); const tm = new T.Mesh(talonGeometry(), talonMat); tm.scale.setScalar(.72); tg.add(tm); thumb.add(tg); }
+      const fan = new T.Mesh(talonFan(), talonMat); fan.position.y = -.02; fan.castShadow = true; g.add(fan); // 1 draw por mão (3 garras fundidas)
+      if (thumb) { const ts = thumb.getWorldScale(new T.Vector3()).x || 1, tg = new T.Group(); tg.scale.setScalar(1 / ts); const tm = new T.Mesh(talonGeometry(), talonMat); tm.scale.setScalar(.72); tm.castShadow = false; tg.add(tm); thumb.add(tg); }
       const tip = new T.Object3D(); tip.position.set(0, .44, .14); g.add(tip); const base = new T.Object3D(); base.position.set(0, -.1, 0); g.add(base);
       b.dclaws.push({ side: side[0], g, tip, base });
     }

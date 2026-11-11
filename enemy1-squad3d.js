@@ -196,7 +196,7 @@ export class Enemy1Squad {
   perceive(a, t) {
     const d = Math.hypot(t.x - a.x, t.z - a.z), st = this.study(t.id).rates;
     // Mod 314: escudo — vale defender contra golpe começando perto ou magia/projétil vindo; nunca em spam
-    if (a.shield && !a.act && a.shield.canActivate(this.time) && !a.cds.shieldGap && (t.attacking || t.casting) && d > DEMON1_SHIELD.minGap && d < DEMON1_SHIELD.maxGap) {
+    if (a.shield && !a.act && a.shield.canActivate(this.time) && !a.cds.shieldGap && ((t.attacking && d < 4.6) || (t.casting && d < DEMON1_SHIELD.maxGap)) && d > DEMON1_SHIELD.minGap) {
       const k = t.casting ? DEMON1_SHIELD.chanceVsCast : DEMON1_SHIELD.chanceVsMelee * (d < 3.4 ? 1 : .4);
       a.cds.shieldGap = 1.2; if (this.rand() < k * (a.hp < a.maxHp * .5 ? 1.3 : 1)) { a.react = { type: 'shield', t: DEMON1_SHIELD.react + this.rand() * .12 }; return; }
     }
