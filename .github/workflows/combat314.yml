@@ -1,0 +1,18 @@
+name: Combate cinematográfico (Mod 314)
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  combat314:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --prefix /tmp/combat-deps --no-package-lock --ignore-scripts three@0.160.0
+      - name: Dash 0,5 s, saltos, escudo, dano único, VFX e IA do Demônio1
+        env:
+          COMBAT_THREE_DIR: /tmp/combat-deps/node_modules/three
+        run: node --test tests/combat314.test.mjs tests/prota-combat302.test.mjs enemy1-squad.test.mjs sword-rites3d.test.mjs

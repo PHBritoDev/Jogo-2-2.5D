@@ -63,6 +63,7 @@ export function createEnemy1SquadRuntime(ctx) {
     model.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
       o.material = [].concat(o.material).map(mt => { const c = mt.clone(); if (a.kind === 'e2boss') { if (c.color) c.color.multiplyScalar(.62); if (c.emissive) { c.emissive.setHex(0x2a0a02); c.emissiveIntensity = .5; } } if (a.kind === 'warden') { if (c.color) c.color.multiplyScalar(.5); if (c.emissive) { c.emissive.setHex(0x2a0306); c.emissiveIntensity = .55; } } if (a.kind === 'e3boss') { if (c.color) c.color.multiplyScalar(.7); if (c.emissive) { c.emissive.setHex(0x2a0208); c.emissiveIntensity = .45; } } if (a.kind === 'e4boss') { if (c.color) c.color.multiplyScalar(.68); if (c.emissive) { c.emissive.setHex(0x22041e); c.emissiveIntensity = .5; } } mats.push(c); return c; });
       if (o.material.length === 1) o.material = o.material[0]; });
+    if (a.kind === 'common') for (const mt of mats) demonAura(mt); // Mod 314: aura violeta (contorno elétrico, não mancha preta)
     for (const mt of mats) if (mt.emissive) { mt.userData.e0 = mt.emissive.getHex(); mt.userData.i0 = mt.emissiveIntensity || 0; }
     const holder = new T.Group(); holder.add(model); holder.position.set(a.x, a.y, a.z); holder.rotation.y = a.yaw; scene.add(holder);
     const scales = []; model.traverse(o => scales.push([o, o.scale.clone()]));
@@ -70,6 +71,7 @@ export function createEnemy1SquadRuntime(ctx) {
     for (const [role, act] of Object.entries(src.actions || {})) { const clip = act && act.getClip && act.getClip(); if (clip) acts[role] = mixer.clipAction(clip); }
     const b = { timeScales: src.timeScales || null, hasDeath: !!src.nativeDeath, /* só rigs que pedem (Demonio1); Enemy2 etc. mantêm a queda procedural */ height:heightFor(a.kind), holder, model, mixer, acts, mats, scales, cur: null, rev: -1, flash: 0, dead: 0, hand: null, lhand: null, head: null, weapon: null, fall: 0, k };
     model.traverse(o => { if (!b.hand && /^(mixamorig)?RightHand$/i.test(o.name)) b.hand = o; if (!b.lhand && /^(mixamorig)?LeftHand$/i.test(o.name)) b.lhand = o; if (!b.head && /^(mixamorig)?Head$/i.test(o.name)) b.head = o; });
+    if(a.kind==='common')attachDemonClaws(b);
     if(a.kind==='e2boss')attachScythe(b,a.kind);
     if(a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael')attachKatana(T,scene,b,a.kind);
     if(BOSS_MOVES[a.kind]){
@@ -84,6 +86,51 @@ export function createEnemy1SquadRuntime(ctx) {
     }
     play(b, 'idle', false, 1, 0);
     return b;
+  }
+  /* ---------- Mod 314: garras do Demônio1 (ancoradas nos ossos dos dedos, sem deformar mão/rig) e aura ---------- */
+  const auraU = { value: 0 };
+  function demonAura(m) {
+    if (!m || !m.isMeshStandardMaterial || m.userData.aura314) return; m.userData.aura314 = true;
+    m.onBeforeCompile = sh => { sh.uniforms.uAuraT = auraU;
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uAuraT;')
+        .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+          { float fr = pow(1.0 - clamp(abs(dot(normalize(normal), normalize(vViewPosition))), 0.0, 1.0), 2.6);
+            float fl = .75 + .25 * sin(uAuraT * 9.0 + vViewPosition.y * 14.0) * sin(uAuraT * 3.7 + vViewPosition.x * 9.0);
+            totalEmissiveRadiance += vec3(.42, .12, 1.0) * fr * 1.05 * fl; }`); };
+    m.customProgramCacheKey = () => 'demonio1-aura314'; m.needsUpdate = true;
+  }
+  let clawGeo = null;
+  function talonGeometry() {
+    if (clawGeo) return clawGeo;
+    // garra curva afinando até a ponta, em +Y, curvando para +Z; cor de vértice: base escura → ponta violeta incandescente
+    const curve = new T.QuadraticBezierCurve3(new T.Vector3(0, 0, 0), new T.Vector3(0, .2, .02), new T.Vector3(0, .36, .11)), g = new T.TubeGeometry(curve, 10, .028, 6, false), P = g.attributes.position, col = new Float32Array(P.count * 3);
+    for (let n = 0; n <= 10; n++) { const c = curve.getPointAt(n / 10), k = n / 10; for (let j = 0; j <= 6; j++) { const i = n * 7 + j; _b.fromBufferAttribute(P, i).sub(c).multiplyScalar(Math.pow(1 - k, .8) * 1 + .04).add(c); P.setXYZ(i, _b.x, _b.y, _b.z); const e = Math.pow(k, 2.2); col[i * 3] = .07 + .55 * e; col[i * 3 + 1] = .03 + .16 * e; col[i * 3 + 2] = .12 + .95 * e; } }
+    g.setAttribute('color', new T.BufferAttribute(col, 3)); g.computeVertexNormals(); clawGeo = g; return g;
+  }
+  const talonMat = new T.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, metalness: .55, roughness: .28, emissive: 0x3a1078, emissiveIntensity: .55 });
+  function attachDemonClaws(b) {
+    b.dclaws = []; b.model.updateMatrixWorld(true);
+    for (const side of ['Right', 'Left']) {
+      let mid = null, end = null, thumb = null; b.model.traverse(o => { if (o.name === side + 'MiddleDistal') mid = o; if (o.name === side + 'MiddleDistalEnd') end = o; if (o.name === side + 'ThumbDistal') thumb = o; });
+      if (!mid) continue;
+      const ws = mid.getWorldScale(new T.Vector3()).x || 1, dir = (end ? end.position.clone() : new T.Vector3(0, 1, 0)).normalize(), q = new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), dir);
+      const g = new T.Group(); g.quaternion.copy(q); g.scale.setScalar(1 / ws); mid.add(g);
+      // três garras longas saindo da luva do dedo médio (leque lateral) — ~0,4 m no mundo, proporcional ao corpo de 1,85 m
+      for (const [ox, rz, s] of [[-.045, .22, 1.0], [0, 0, 1.18], [.045, -.22, 1.0]]) { const m = new T.Mesh(talonGeometry(), talonMat); m.position.set(ox, -.02, 0); m.rotation.set(0, 0, rz); m.scale.setScalar(s); m.castShadow = true; g.add(m); }
+      if (thumb) { const ts = thumb.getWorldScale(new T.Vector3()).x || 1, tg = new T.Group(); tg.scale.setScalar(1 / ts); const tm = new T.Mesh(talonGeometry(), talonMat); tm.scale.setScalar(.72); tg.add(tm); thumb.add(tg); }
+      const tip = new T.Object3D(); tip.position.set(0, .44, .14); g.add(tip); const base = new T.Object3D(); base.position.set(0, -.1, 0); g.add(base);
+      b.dclaws.push({ side: side[0], g, tip, base });
+    }
+    b.model.traverse(o => { if (o.name === 'RightFoot') b.rfoot = o; if (o.name === 'LeftFoot') b.lfoot = o; if (o.name === 'RightLeg') b.rleg = o; if (o.name === 'LeftLeg') b.lleg = o; });
+  }
+  const _ct = new T.Vector3(), _cb = new T.Vector3();
+  /** Rasgos de garra: amostra a ponta e a base reais da garra (e a perna nos chutes) durante a janela do impacto. */
+  function demonSlashes(b, a) {
+    const act = a.act; if (!ctx.slash || !act || !act.nm || !b.dclaws) return;
+    for (let n = 0; n < act.nm.hits.length; n++) { const h = act.nm.hits[n], dtw = act.t - h.t; if (dtw < -.13 || dtw > .08) continue;
+      const key = a.id + ':' + (a.anim.rev) + ':' + n;
+      if (h.hand === 'F') { const f = b.rfoot, l = b.rleg; if (f && l) { f.getWorldPosition(_ct); l.getWorldPosition(_cb); ctx.slash.sample(key + 'f', _cb, _ct, { style: 'demon', gain: .8, extend: .45, inner: .2 }); } continue; }
+      for (const c of b.dclaws) { if (h.hand !== 'B' && h.hand !== c.side) continue; c.tip.getWorldPosition(_ct); c.base.getWorldPosition(_cb); ctx.slash.sample(key + c.side, _cb, _ct, { style: 'demon', gain: .9, extend: .55, inner: 0 }); } }
   }
   function attachClaws(b){
     b.claws=[];for(const hand of [b.hand,b.lhand]){if(!hand)continue;const root=new T.Group(),mat=new T.MeshStandardMaterial({color:0x1c1023,emissive:0x722a8f,emissiveIntensity:.7,metalness:.65,roughness:.3});
@@ -118,13 +165,13 @@ export function createEnemy1SquadRuntime(ctx) {
     root.position.copy(grip); if (!a.alive) root.position.y = Math.max(a.y + .12, root.position.y - b.wDrop * 1.2);
     root.visible = b.holder.visible;
   }
-  function play(b, role, once, speed, fade = .14) {
+  function play(b, role, once, speed, fade = .14, from = 0) {
     const act = b.acts[role] || (role === 'hit' ? b.acts.block : null) || (role === 'attack2' ? b.acts.attack : null) || b.acts.idle; if (!act) return;
     const ts = ((b.timeScales && b.timeScales[role]) || ROLE_SPEED[role] || 1) * speed * (role === 'hit' && !(b.timeScales && b.timeScales.hit) ? 1.8 : 1);
     if (b.cur === act) { act.setEffectiveTimeScale(ts); if (!once) return; }
     if (b.cur && b.cur !== act) b.cur.fadeOut(fade);
     act.reset(); act.enabled = true; act.setEffectiveWeight(1); act.setEffectiveTimeScale(ts); act.setLoop(once ? T.LoopOnce : T.LoopRepeat, once ? 1 : Infinity); act.clampWhenFinished = !!once;
-    if (ts < 0) act.time = act.getClip().duration; act.fadeIn(fade).play(); b.cur = act;
+    if (ts < 0) act.time = act.getClip().duration; else if (from > 0) act.time = Math.min(from, act.getClip().duration - .01); act.fadeIn(fade).play(); b.cur = act; // Mod 314: trecho do clipe (golpes de garra recortados)
   }
   const POSE = { claws: 'slam', spiral: 'cast', judgment: 'channel', vortex: 'channel', trinity: 'slam', collapse: 'slam' };
   function onEvent(type, d) {
@@ -142,11 +189,18 @@ export function createEnemy1SquadRuntime(ctx) {
     if (type === 'orbBoom' && d.orb.i % 2 === 0) { const o = d.orb; sak.emit({ id: 'e4o' + d.spell.id + '_' + o.i, time, point: { x: o.x, y: o.y, z: o.z }, size: d.spell.T.R * .7, palette: 'abyss', rocks: 6 }); }
     if (type === 'biteSnap') { const s = d.spell; sak.emit({ id: 'e4b' + s.id, time, point: { x: s.bx, y: s.by + .4, z: s.bz }, size: s.T.biteR * .8, palette: 'crimson', rocks: 12, furrow: 2 }); }
     if (type === 'rift') { const s = d.spell, a = d.actor; abyss.dragon(s.x0 - s.dx * .6, s.y + .2, s.z0 - s.dz * .6, a.yaw, true); sak.emit({ id: 'e3r' + s.id, time, point: { x: s.x0, y: s.y + .3, z: s.z0 }, dir: { x: s.dx, z: s.dz }, size: 1.6, palette: 'crimson', rocks: 10, furrow: 5 }); }
+    if (ctx.slash) { // Mod 314: impactos e ondas de garra do Demônio1
+      if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'common') { const tg = squad && squad.targets.find(t => t.id === d.target); if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: 'demon', power: d.move === 'salto' ? .85 : .45 }); }
+      if (type === 'clawWave') ctx.slash.wave(d.spell, { style: 'demon', gain: .95 });
+      if (type === 'leapStrike') { const a = d.actor; ctx.slash.impact({ x: a.x + Math.sin(a.yaw) * .8, y: a.y + .25, z: a.z + Math.cos(a.yaw) * .8 }, { x: 0, y: 1, z: 0 }, { style: 'demon', power: .7 }); }
+      if (type === 'jump' && d.n === 2) { const a = d.actor; ctx.slash.impact({ x: a.x, y: a.y + .1, z: a.z }, { x: 0, y: -1, z: 0 }, { style: 'demon', power: .2 }); }
+    }
     if (type === 'judgmentBlast') { const s = d.spell; impacts.emit({ id: 'e1j' + s.id, time, point: { x: s.mx, y: s.my + .6, z: s.mz }, size: s.r * 1.05, preset: 'violet', kind: 'ball', dir: { x: 0, y: 1, z: 0 } }); }
     ctx.event(type, d);
   }
   function stop() {
     for (const b of bodies.values()) { b.mixer.stopAllAction();b.mixer.uncacheRoot(b.model);b.model.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();});/* textura de ossos do clone */ for(const c of b.claws||[]){scene.remove(c.root);c.root.traverse(o=>o.geometry?.dispose());c.mat.dispose();}if(b.tell){b.tell.geometry.dispose();b.tell.material.dispose();} scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); if (b.weapon.userData.fx) scene.remove(b.weapon.userData.fx); } if (b.proc) b.proc.dispose(); }
+    if (squad && ctx.shields) for (const a of squad.actors) ctx.shields.release(a.id);
     bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); abyss.clear(); ruin.clear(); vzfx.clear(); impacts.clear(); orbit = null; sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
   }
   return {
@@ -169,7 +223,7 @@ export function createEnemy1SquadRuntime(ctx) {
     flash(id) { const b = bodies.get(id); if (b) b.flash = .16; },
     handPos(id, out) { const b = bodies.get(id); if (!b) return null; const h = b.hand || b.model; h.getWorldPosition(out); return out; },
     update(dt, { targets = [], foreign = [], camera, quality = 1, paused = false } = {}) {
-      if (!squad) return null; time += dt;
+      if (!squad) return null; time += dt; auraU.value = time;
       squad.setTargets(targets); squad.setForeignSpells(foreign); squad.paused = paused; squad.update(dt);
       const charges = [];
       for (const a of squad.actors) {
@@ -181,10 +235,11 @@ export function createEnemy1SquadRuntime(ctx) {
           b.dead += dt; const nativeDeath = (E3K[a.kind] || b.hasDeath) && b.acts.death;
           if (nativeDeath) { if (!b.deathPlayed) { b.deathPlayed = true; play(b, 'death', true, 1, .12); } b.mixer.update(b.dead < 3 ? dt : 0); for (const [o, s] of b.scales) o.scale.copy(s); b.model.rotation.z = 0; }
           else { if (b.cur && b.dead < .05) b.cur.fadeOut(.2); b.model.rotation.x = -Math.min(1, (b.dead / .75) ** 2) * Math.PI / 2 * .92; }
+          if (a.shield && ctx.shields && b.dead < .1) { a.shield.end(squad.time, 'broken'); ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, 'abismo', dt); } else if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, 'abismo', dt);
           if (b.dead > 2.6) b.holder.position.y = a.y - (b.dead - 2.6) * .55;
           b.holder.visible = b.dead < 4.4; if (b.dead < 1 && !nativeDeath) b.mixer.update(dt * .5); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else if (b.weaponRoot) poseScythe(b, a, dt);poseClaws(b);if(b.tell)b.tell.visible=false;continue;
         }
-        if (a.anim.rev !== b.rev) { b.rev = a.anim.rev; play(b, a.anim.role, a.anim.once && a.anim.role !== 'idle', a.anim.speed); } // Idle sempre em loop: base estável para as camadas procedurais longas
+        if (a.anim.rev !== b.rev) { b.rev = a.anim.rev; play(b, a.anim.role, a.anim.once && a.anim.role !== 'idle', a.anim.speed, .1, a.anim.from || 0); } // Idle sempre em loop: base estável para as camadas procedurais longas
         else if (!a.anim.once && b.cur) b.cur.setEffectiveTimeScale((ROLE_SPEED[a.anim.role] || 1) * a.anim.speed);
         if(a.act?.move&&b.cur){b.cur.time=a.act.t;b.cur.paused=true;}else if(b.cur)b.cur.paused=false;
         b.mixer.update(dt);if(a.act?.move){b.cur.time=a.act.t;b.mixer.update(0);b.holder.rotation.y=a.yaw;}
@@ -199,6 +254,7 @@ export function createEnemy1SquadRuntime(ctx) {
           if (a.act && a.act.spellId && b.hand) { const s = squad.spells.find(x => x.id === a.act.spellId); if (s && s.type === 'singularity') { b.hand.getWorldPosition(_v); s.hand = s.hand || {}; s.hand.x = _v.x + Math.sin(a.yaw) * .18; s.hand.y = _v.y + .12; s.hand.z = _v.z + Math.cos(a.yaw) * .18; } }
         }
         if (b.weapon) { b.weapon.userData.tick(time, fury ? 1 : 0, b.wW || 0); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else poseScythe(b, a, dt); }
+        demonSlashes(b, a); if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, 'abismo', dt);
         poseClaws(b);if(b.tell){b.tell.visible=!!a.act?.move&&a.act.phase==='windup';b.tell.position.y=.05-(a.y-ctx.ground(a.x,a.z));b.tell.material.opacity=.12+.18*(a.act?.t/(a.act?.move?.open||1));}
         const act = a.act;
         if (act && !act.released && (act.type === 'cast' || act.type === 'counter') && act.release > 0) {
