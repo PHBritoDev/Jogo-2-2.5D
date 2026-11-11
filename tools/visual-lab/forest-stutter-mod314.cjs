@@ -29,7 +29,14 @@ const report={status:'incomplete',platform:'Chromium SwiftShader 852x480, nao An
   await page.screenshot({path:path.join(out,'tochas-vila.png')});
   await page.evaluate(()=>{const a=window.SevenSinsDebug3D;a.teleport(-145,-61);a.fly(null);a.view(1.2,.12,6);});
   await page.waitForTimeout(1400);
+  try{await page.waitForFunction(()=>window.SevenSinsDebug3D?.torchAudit?.().district?.loaded===3,null,{timeout:45000});}
+  catch(e){report.errors.push('Distrito ainda nao carregou as 3 tochas GLB');}
   report.torches.district=await page.evaluate(()=>window.SevenSinsDebug3D.torchAudit()?.district||null);
+  const source=fs.readFileSync(path.resolve(__dirname,'../../mundo-3d-prototype.js'),'utf8');
+  if(/const pole=new THREE.Mesh\(new THREE.CylinderGeometry\(\.06,\.08,2\.6,5\)/.test(source))
+    report.errors.push('Postes procedurais antigos ainda presentes no codigo');
+  if(report.torches.loaded!==2||report.torches.district?.loaded!==3)
+    report.errors.push('Numero de GLBs de tochas diferente do esperado');
   await page.screenshot({path:path.join(out,'tochas-distrito.png')});
   const spots=[[34,-56],[-52,-111]];
   for(let k=0;k<spots.length;k++){
