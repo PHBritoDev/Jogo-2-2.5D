@@ -45,11 +45,11 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
   const caveMovement=await page.evaluate(()=>{
    const a=window.SevenSinsDebug3D,st=a.ascState(),ox=st.world.x-st.local.x,oz=st.world.z-st.local.z;
    a.teleport(ox-2,oz-98);a.fly(null);a.view(0,.1,.72);
-   const before=a.ascState().local;a.motionStep(1,{x:0,z:-1,fps:30});
+   const before=a.ascState().local;a.motionStep(6,{x:0,z:-1,fps:30});
    const after=a.ascState().local;return {before,after,meters:Math.hypot(after.x-before.x,after.z-before.z)};
   });
-  report.checks.push({name:'deslocamento-primeira-pessoa-caverna',passed:caveMovement.meters>1,measurement:caveMovement});
-  assert.ok(caveMovement.meters>1,'Movimento em primeira pessoa lento/bloqueado na caverna');
+  report.checks.push({name:'travessia-corredor-da-caverna-1p',passed:caveMovement.meters>18&&caveMovement.after.z<-116,measurement:caveMovement});
+  assert.ok(caveMovement.meters>18&&caveMovement.after.z<-116,'Corredor principal da caverna bloqueado ou movimento lento em primeira pessoa');
 
   await snap('caverna-grota',-42,-62,{yaw:-.7});
   await snap('caverna-portal',-4,-136,{yaw:Math.PI});
