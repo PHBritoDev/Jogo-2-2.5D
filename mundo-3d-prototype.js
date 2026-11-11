@@ -3212,6 +3212,7 @@ function mergeGroupMeshes(root){
 }
 const npcFactory=createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeightAt});
 const villageNpcs=[];
+const flyNpcTargets=[];
 function loadVillagers(){
  const roles=[
   {sex:'man',age:'elder',role:'idle'},
@@ -3234,6 +3235,7 @@ function loadVillagers(){
     if(blockedAt(x,z)){console.warn('NPC extra: posição ocupada, não foi criado',i);return null;}
     const c=await npcFactory.create({...p,x,z});
     villageGroup.add(c.holder);villageNpcs.push(c);
+    if(p.role==='down')flyNpcTargets.push(c.holder);
     if(c.mixer)villageNpcMixers.push(c.mixer);
     if(p.role==='walk')villagerWalkers.push({holder:c.holder,mixer:c.mixer,role:p.role,home:{x,z},speed:.48,phase:0});
     return c;
@@ -4135,7 +4137,10 @@ function buildAct1Props(){
   syncAct1World();
  }).catch(e=>console.error('GLBs infantis Meshy indisponíveis; não criar substitutos procedurais',e));
  // Moscas sobre a comida podre e os corpos (uma chamada de desenho).
- const spots=VILLAGE_PROPS.filter(p=>p.k==='CorpoCoberto'||p.k==='Barraca').concat(marketStalls.map(s=>({x:s.x,z:s.z})));
+ // Apenas bancas reais e moradores efetivamente caídos: sem moscas em corpos genéricos removidos.
+ const spots=marketStalls.map(s=>({x:s.x,z:s.z,h:.95})).concat(flyNpcTargets.map(n=>({npc:n,h:.4})));
+ // Reservar posições para os corpos que carregam de modo assíncrono.
+ while(spots.length<marketStalls.length+2)spots.push({npcIndex:spots.length-marketStalls.length,h:.4});
  const N=spots.length*7,pos=new Float32Array(N*3),seed=[];for(let i=0;i<N;i++){const s=spots[i%spots.length];seed.push({s,a:Math.random()*6.28,r:.25+Math.random()*.5,h:.5+Math.random()*.9,v:2+Math.random()*3});}
  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
  const flies=new THREE.Points(geo,new THREE.PointsMaterial({color:0x111111,size:.045}));flies.frustumCulled=false;villageGroup.add(flies);
@@ -4168,7 +4173,12 @@ function syncAct1World(){
  portalGroup.visible=questStep>=8;portalBeacon.visible=false;
 }
 function updateFlies(now){const f=act1Props&&act1Props.flies;if(!f||Math.hypot(player.position.x-VILLAGE_CENTER.x,player.position.z-VILLAGE_CENTER.z)>40)return;const t=now*.001,a=f.geo.attributes.position;
- for(let i=0;i<f.seed.length;i++){const s=f.seed[i],ang=s.a+t*s.v;a.array[i*3]=s.s.x+Math.cos(ang)*s.r;a.array[i*3+1]=groundHeightAt(s.s.x,s.s.z)+s.h+Math.sin(t*7+i)*.08;a.array[i*3+2]=s.s.z+Math.sin(ang*1.3)*s.r;}a.needsUpdate=true;}
+ for(let i=0;i<f.seed.length;i++){const s=f.seed[i],ang=s.a+t*s.v;const npc=s.s.npc||((s.s.npcIndex!==undefined)?flyNpcTargets[s.s.npcIndex]:null);
+  const x=npc?npc.position.x:s.s.x,z=npc?npc.position.z:s.s.z;
+  if(!Number.isFinite(x)||!Number.isFinite(z)){a.array[i*3+1]=-999;continue;}
+  a.array[i*3]=x+Math.cos(ang)*s.r;
+  a.array[i*3+1]=groundHeightAt(x,z)+s.h+Math.sin(t*7+i)*.08;
+  a.array[i*3+2]=z+Math.sin(ang*1.3)*s.r;}a.needsUpdate=true;}
 /* ---------- Esgoto ---------- */
 function enterSewer(at){
  inSewer=true;sewerArena=getDimArena('esgoto');enterDimensionArena('esgoto');
