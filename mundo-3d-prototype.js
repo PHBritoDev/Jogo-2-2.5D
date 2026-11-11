@@ -774,7 +774,7 @@ for(const p of villageTorchSites){
 }
 // Sem chamas em planos/shaders: apenas TochaMedievalTripo.glb original + iluminação.
 const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
- const source=gltf.scene;const torchCleanup=removeTorchBakedFlames(source,.74);console.info('Tocha GLB: fogo embutido removido',torchCleanup);const bounds=new THREE.Box3().setFromObject(source);
+ const source=gltf.scene;const torchCleanup=removeTorchBakedFlames(source,.90);console.info('Tocha GLB: fogo embutido removido',torchCleanup);const bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(bounds.isEmpty()||!Number.isFinite(size.y)||size.y<.001)return;
  clampBakedMips(THREE,source,terrainLowSpec?4:3.5);
