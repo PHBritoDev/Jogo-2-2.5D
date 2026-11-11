@@ -491,6 +491,10 @@ const coniferGeometry=(()=>{
    câmera e a 300 m). Mantemos o conjunto completo na memória e enviamos à GPU só as instâncias perto e à frente. */
 const instanceCullers=[],_cullDir=new THREE.Vector3(),_cullFrustum=new THREE.Frustum(),_cullMat=new THREE.Matrix4(),_cullSphere=new THREE.Sphere(),_cullLastDir=new THREE.Vector3(0,0,0),_cullLastPos=new THREE.Vector3(1e9,0,0);let cullFrame=0,cullPending=2,cullLastX=1e9,cullLastZ=1e9,cullLastYaw=1e9;
 function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
+ // Matrizes/cores repactadas ao girar a câmera são dados DINÂMICOS, não StaticDraw.
+ // A hint deve ser definida ANTES do primeiro upload ao WebGL.
+ mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+ if(mesh.instanceColor)mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
  const n=mesh.count,src=mesh.instanceMatrix.array.slice(0,n*16),col=mesh.instanceColor?mesh.instanceColor.array.slice(0,n*3):null,pos=new Float32Array(n*3),rad=new Float32Array(n);
  if(!mesh.geometry.boundingSphere)mesh.geometry.computeBoundingSphere();const bs=mesh.geometry.boundingSphere;
  // MOD 292 — esfera de cada instância (centro e raio da geometria na escala da instância) para o corte por FRUSTUM.
