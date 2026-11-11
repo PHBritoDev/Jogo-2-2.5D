@@ -759,6 +759,32 @@ function makeFruitStall(x,z,label,green){const stall=new THREE.Group();stall.pos
 const marketLabels=[['ALIMENTOS',false],['PROVISÕES',false],['FRUTAS',false]];
 // Vendedores seguem a MESMA fonte de coordenadas dos GLBs das barracas; nunca ficam abandonados.
 const marketStalls=ELDORIA_MARKET.map(([x,z,size,yaw],i)=>({x:VILLAGE_CENTER.x+x,z:VILLAGE_CENTER.z+z,size,yaw,label:marketLabels[i][0],green:marketLabels[i][1]}));
+// Pequenas frutas descartadas, escurecidas e com variação de cor. Um único draw call
+// compartilhado pelas três bancas; não cria barracas nem NPCs procedurais.
+const discardedFruits=new THREE.InstancedMesh(
+ new THREE.IcosahedronGeometry(.14,1),
+ new THREE.MeshStandardMaterial({color:0xffffff,roughness:1,metalness:0}),
+ marketStalls.length*4
+);
+{
+ const helper=new THREE.Object3D(),tones=[0x493521,0x40351e,0x66502a,0x343b23];
+ let idx=0;
+ for(const p of marketStalls){
+  const dx=Math.sin(p.yaw),dz=Math.cos(p.yaw),rx=Math.cos(p.yaw),rz=-Math.sin(p.yaw);
+  for(let k=0;k<4;k++){
+   const localX=((k%2)-.5)*.38,localZ=.73+Math.floor(k/2)*.3;
+   const x=p.x+rx*localX+dx*localZ,z=p.z+rz*localX+dz*localZ;
+   helper.position.set(x,groundHeightAt(x,z)+.13,z);
+   helper.rotation.set(.11*k,.8*k,.2*k);helper.scale.set(.84+(k%2)*.17,.65,.9);
+   helper.updateMatrix();discardedFruits.setMatrixAt(idx,helper.matrix);
+   discardedFruits.setColorAt(idx,new THREE.Color(tones[(k+idx)%tones.length]));idx++;
+  }
+ }
+ discardedFruits.instanceMatrix.needsUpdate=true;
+ if(discardedFruits.instanceColor)discardedFruits.instanceColor.needsUpdate=true;
+ discardedFruits.castShadow=false;discardedFruits.receiveShadow=true;discardedFruits.name='EldoriaFrutasDescartadas';
+ villageGroup.add(discardedFruits);
+}
 // Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
 const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
