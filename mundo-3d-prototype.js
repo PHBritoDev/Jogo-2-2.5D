@@ -2227,6 +2227,10 @@ function updateSkyAndShadows(){
 }
 /* MOD 186 — a câmera em terceira pessoa não atravessa encostas nem a subida do portal. */
 function keepCameraAboveTerrain(){
+ // Causa-raiz da camera gigante/travando na caverna: este limitador usa o SOLO
+ // DO MUNDO EXTERNO! Em interiores/submundos ele elevava a camera varios metros
+ // acima da altura real do personagem, anulando o spring-arm e a primeira pessoa.
+ if(voidMode)return;
  const floor=groundHeightAt(camera.position.x,camera.position.z)+.55;
  if(camera.position.y<floor)camera.position.y=floor;
 }
