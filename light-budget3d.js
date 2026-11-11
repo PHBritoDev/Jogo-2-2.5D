@@ -15,26 +15,29 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     const l = new T.PointLight(0xffffff, 0, 10, 2); l.name = 'orcamento-luz-' + i; l.userData.budgetSlot = true; scene.add(l);
     return { light: l, src: null, next: undefined };
   });
-  const sources = new Set();
+  const sources = new Set(), sourceScore = new Map(), ranked = [];
   let frame = 0;
   const v = new T.Vector3(), cam = new T.Vector3();
   function scan() {
     scene.traverse(o => {
       if (!o.isPointLight || o.userData.budgetSlot || o.castShadow || sources.has(o)) return;
-      sources.add(o); o.layers.set(hiddenLayer);
+      sources.add(o); sourceScore.set(o,{s:o,score:0}); o.layers.set(hiddenLayer);
     });
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
   function update(camera, dt = 1 / 60) {
     if (frame++ % rescanEvery === 0) scan();
     camera.getWorldPosition(cam);
-    const ranked = [];
+    ranked.length=0;
     for (const s of sources) {
       if (!s.parent || s.intensity <= .001 || !effectiveVisible(s)) continue;
       v.setFromMatrixPosition(s.matrixWorld);
       const d = v.distanceTo(cam), reach = (s.distance || 40);
       if (d > reach + 30) continue;
-      ranked.push({ s, score: d - reach * .5 - Math.min(6, s.intensity) * 1.5 });
+      // Reaproveita o mesmo objeto por luz (sem milhares de alocacoes por minuto).
+      const item=sourceScore.get(s);
+      item.score=d-reach*.5-Math.min(6,s.intensity)*1.5;
+      ranked.push(item);
     }
     ranked.sort((a, b) => a.score - b.score);
     const chosen = ranked.slice(0, slots).map(r => r.s);
