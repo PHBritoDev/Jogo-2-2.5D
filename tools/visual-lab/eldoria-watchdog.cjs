@@ -17,9 +17,9 @@ const report={date:new Date().toISOString(),commit:process.env.GITHUB_SHA||'loca
  'https://threejs.org/docs/pages/Raycaster.html'
 ]};
 const WORLD=[
- {name:'tochas-antigas-relatadas',zone:null,x:-20.6,z:-45.5,yaw:1.2,why:'Confirmar substituicao das tochas da vila pelo GLB do criador'},
+ {name:'tochas-antigas-relatadas',zone:null,x:-20.6,z:-38.0,yaw:0,distance:.72,why:'Confirmar substituicao das tochas da vila pelo GLB do criador'},
  {name:'arbustos-e-arvores-claras',zone:null,x:34,z:-56,yaw:2.8,why:'Verificar plantas repetidas e troncos excessivamente claros'},
- {name:'raizes-arvore-ancestral',zone:null,x:-13,z:-70,yaw:.4,why:'Verificar raiz exposta e colisao em ramo atraves do jogador'},
+ {name:'raizes-arvore-ancestral',zone:null,x:-13.2,z:-57,yaw:0,distance:.72,why:'Verificar raiz exposta e colisao em ramo atraves do jogador'},
  {name:'caverna-corredor',zone:'cave',x:0,z:-99,yaw:Math.PI,why:'Investigar parede, teto baixo e camera cortando rocha'},
  {name:'caverna-primeira-pessoa',zone:'cave',x:0,z:-99,yaw:Math.PI,distance:.72,why:'Verificar enquadramento sem corpo, paredes e visibilidade em primeira pessoa'},
  {name:'caverna-primeira-pessoa-portal',zone:'cave',x:-4,z:-136,yaw:Math.PI,distance:.72,why:'Verificar tunel do portal com camera na altura dos olhos'},
@@ -40,6 +40,9 @@ const WORLD=[
   await page.goto((process.env.VISUAL_BASE_URL||'http://127.0.0.1:4173')+'/mundo-3d-prototype.html?debug3d=1',{waitUntil:'domcontentloaded',timeout:60000});
   await page.waitForFunction(()=>typeof window.SevenSinsDebug3D?.ascension==='function',null,{timeout:160000});
   await page.evaluate(()=>window.SevenSinsDebug3D.freeRoam());
+  // Esperar os GLBs antes da primeira foto; snapshots durante loading geravam alarmes falsos.
+  try{await page.waitForFunction(()=>window.SevenSinsDebug3D?.torchAudit?.().loaded>=2,null,{timeout:90000});}
+  catch(e){report.errors.push({type:'load',message:'Tochas GLB nao carregaram antes do limite de 90 segundos'});}
   let zone=null;
   for(const c of WORLD){
    if(c.zone!==zone){
