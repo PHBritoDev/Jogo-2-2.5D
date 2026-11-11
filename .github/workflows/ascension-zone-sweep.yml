@@ -1,0 +1,47 @@
+name: Ascensao — agente WebGL da caverna e escadaria
+on:
+  pull_request:
+    paths:
+      - 'ascension-*.js'
+      - 'mundo-3d-prototype.js'
+      - 'eldoria-torch-fire3d.js'
+      - 'tests/ascension311.test.mjs'
+      - 'tools/visual-lab/ascension-zone-sweep.cjs'
+      - '.github/workflows/ascension-zone-sweep.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cave-and-stair-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar layouts, fisica e colisao
+        run: node --test tests/ascension311.test.mjs
+      - name: Instalar Chromium e Playwright
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Iniciar jogo local
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ascension-qa-http.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ascension-qa-http.log
+          exit 1
+      - name: Jogar zonas em Chromium e gravar fotos e video
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/ascension-zone-sweep.cjs
+      - name: Publicar evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ascension-zone-qa-${{ github.run_number }}
+          path: visual-lab-results/ascension-zones/
+          retention-days: 14
+          if-no-files-found: warn

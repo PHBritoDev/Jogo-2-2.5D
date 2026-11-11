@@ -5,8 +5,9 @@
  * Direção de arte (referências 2 e 3): salão vertical escuro com abismo e ponte natural; gruta verde-azulada com poças
  * luminosas, névoa e feixes frios; acentos violeta por emissivo nos cristais (sem dezenas de luzes). Quatro luzes no total.
  */
-import { CAVE, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, hash2, fbm } from './ascension-layout.js';
+import { CAVE, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, caveHazard, hash2, fbm } from './ascension-layout.js';
 import { triplanarRock, ensureUv, vortexPortal, lightShaft, dustField, disposeGroup } from './ascension-fx3d.js';
+import { createVillageTorchFire } from './eldoria-torch-fire3d.js';
 
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -27,9 +28,10 @@ function poolDrop(x, z) { let d = 0; for (const p of CAVE.pools) { const r = Mat
 export function caveFloorVisual(x, z) { return caveFloor(x, z) - chasmDrop(x, z) - poolDrop(x, z); }
 /** Câmera: sólido fora do volume, acima da abóbada ou abaixo do piso. */
 export function caveCamSolid(x, y, z) {
-  if (caveField(x, z) < .3) return true;
+  // Raio de câmera com pequena folga; não tratar o ar dos abismos como parede.
+  if (caveField(x, z) < .15) return true;
   if (y > caveRoofAt(x, z) - .45) return true;
-  if (y < caveFloor(x, z) - .25 && !inChasm(x, z)) return true;
+  if (y < caveFloor(x, z) - .45 && !caveHazard(x, z)) return true;
   for (const p of CAVE.pillars) if (Math.hypot(x - p.x, z - p.z) < p.r + .15) return true;
   return false;
 }
@@ -37,6 +39,8 @@ export function caveCamSolid(x, y, z) {
 export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, origin = { x: 0, z: 0 } } = {}) {
   const group = new THREE.Group(); group.name = 'caverna-fronteira'; group.position.set(origin.x, 0, origin.z); group.visible = false;
   const updaters = [];
+  let torchFlames = null;
+  const torchView = { position: { x: 0, z: 0 } }; // câmera em coordenadas locais
   // ---------- piso + abóbada: duas folhas sobre a mesma grade (vértices com jitter para quebrar a grade) ----------
   const cell = lowSpec ? 1.35 : 1, X0 = -66, X1 = 50, Z0 = -160, Z1 = 16;
   const nx = Math.ceil((X1 - X0) / cell) + 1, nz = Math.ceil((Z1 - Z0) / cell) + 1;
@@ -235,8 +239,40 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   const loader = GLTFLoader ? new GLTFLoader() : null;
   const ready = new Promise(res => {
     if (!loader) { res(); return; }
-    let left = 2;
+    let left = 3;
     const done = () => { if (--left === 0) res(); };
+    // Apenas três tochas 3D nos pontos de orientação. O fogo GLSL existente é reutilizado;
+    // nenhuma haste/esfera procedural é criada e não se acrescentam point lights caras.
+    loader.load('./TochaMedievalTripo.glb', gltf => {
+      const source = gltf.scene, bounds = new THREE.Box3().setFromObject(source);
+      const size = bounds.getSize(new THREE.Vector3()), center = bounds.getCenter(new THREE.Vector3());
+      if (!bounds.isEmpty() && Number.isFinite(size.y) && size.y > .001) {
+        prepareBaked?.(source);
+        const scale = 2.05 / size.y;
+        source.scale.setScalar(scale);
+        source.position.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
+        const sites = [
+          { x: 2.5, z: -12 }, // recepção: saída reconhecível
+          { x: -38, z: -62 }, // gruta lateral, antes das poças
+          { x: CAVE.portal.x + 10, z: CAVE.portal.z + 8 }, // orientação na câmara final
+        ].filter(p => caveWalk(p.x, p.z) && !CAVE.pillars.some(q => Math.hypot(p.x-q.x,p.z-q.z) < q.r+1));
+        for (const p of sites) {
+          const holder = new THREE.Group();
+          holder.name = 'tocha-medieval-3d';
+          holder.position.set(p.x, caveFloor(p.x, p.z), p.z);
+          const model = source.clone(true);
+          model.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
+          holder.add(model);group.add(holder);
+        }
+        if (sites.length) {
+          const flameGroup = new THREE.Group();group.add(flameGroup);
+          // O utilitário posiciona a chama em y=1.9; deslocamos a origem de cada sítio ao piso.
+          const relative = sites.map(p => ({ x: p.x, y: caveFloor(p.x, p.z), z: p.z }));
+          torchFlames = createVillageTorchFire(THREE, flameGroup, relative, [], torchView);
+        }
+      }
+      done();
+    }, undefined, done);
     loader.load('./MontanhaEldoria01.glb', g => { let mesh = null; g.scene.traverse(o => { if (!mesh && o.isMesh) mesh = o; }); prepareBaked && prepareBaked(g.scene); const tex = mesh && mesh.material.map; for (const m of tpMats) { m.map = tex; m.needsUpdate = true; } disposeGroup(g.scene, new Set([tex])); done(); }, undefined, done);
     loader.load('./CristalCaverna01.glb', g => {
       prepareBaked && prepareBaked(g.scene); let mesh = null; g.scene.traverse(o => { if (!mesh && o.isMesh) mesh = o; });
@@ -251,10 +287,11 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   const walk = (x, z) => caveWalk(x, z) && !menires.some(m => Math.hypot(x - m.x, z - m.z) < m.r + .3);
   let t = 0;
   return {
-    group, ready, portal, walk, floor: (x, z) => caveFloor(x, z), roof: (x, z) => caveRoofAt(x, z), camSolid: caveCamSolid,
+    group, ready, portal, walk, hazard: caveHazard, floor: (x, z) => caveFloor(x, z), roof: (x, z) => caveRoofAt(x, z), camSolid: caveCamSolid,
     env: { bg: 0x03090c, fog: 0x0a2329, fogNear: 9, fogFar: 92, hemi: [0x7cc2cf, 0x0c1416, 1.35], sun: [0xa9dcff, .5], exposure: 1.32 },
-    update(dt) { t += dt; for (const u of updaters) u(t, dt); },
-    dispose() { disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
+    update(dt, cam) { t += dt; if (cam) { torchView.position.x = cam.position.x - origin.x; torchView.position.z = cam.position.z - origin.z; }
+      torchFlames?.update(t, 1); for (const u of updaters) u(t, dt); },
+    dispose() { torchFlames?.dispose(); disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
     stats() { let tris = 0; group.traverse(o => { if (o.isMesh && o.geometry) { const n = (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; tris += o.isInstancedMesh ? n * o.count : n; } }); return { tris: Math.round(tris), clusters: clusters.length }; },
   };
 }

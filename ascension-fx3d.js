@@ -125,7 +125,7 @@ export function lightShaft(THREE, { top = 1.2, bottom = 4, height = 20, color = 
     vertexShader: 'varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
     fragmentShader: `uniform vec3 uColor; uniform float uI, uTime; varying vec2 vUv; varying vec3 vN; varying vec3 vV; ${NOISE}
       void main(){ float facing = pow(abs(dot(vN, vV)), 1.6);
-        float fall = pow(vUv.y, 1.3) * smoothstep(0.0, .18, vUv.y);
+        float fall = pow(vUv.y, 1.1) * smoothstep(0.02, .22, vUv.y) * (1.0 - smoothstep(.84, 1.0, vUv.y)); // some no alto: luz sem emissor visível
         float dust = .65 + .7 * fb(vec2(vUv.x * 9.0, vUv.y * 3.0 - uTime * .05));
         gl_FragColor = vec4(uColor * facing * fall * dust * uI, 1.0); }`,
   });

@@ -71,3 +71,23 @@ test('Mod 311: assets reaproveitados existem (sem 404) e a integração está li
  assert.match(src,/renderer\.compileAsync/);
  for(const z of Object.values(L.ZONES))assert.ok(Math.abs(z.x)<6000&&Math.abs(z.z)<6000,'dentro do limite de movimento');
 });
+
+
+test('Caverna: queda real no abismo, mas ponte e rocha continuam sólidas',()=>{
+ assert.equal(L.caveHazard(8,-60),true,'borda da fenda não pode virar parede invisível');
+ assert.equal(L.caveHazard(0,-60),false,'ponte de pedra sustenta o herói');
+ assert.equal(L.caveHazard(0,-20),false,'corredor não deve causar queda');
+ assert.ok(L.CAVE.corridors.find(c=>c.id==='norte').r>=4,'passagem principal aceita o corpo/câmera');
+});
+test('Escadaria e ilha: bordas abertas para queda, trilha central caminhável',()=>{
+ assert.equal(L.ascentHazard(0,-20),false,'degrau central é seguro');
+ assert.equal(L.ascentHazard(L.ASCENT.width/2+.2,-20),true,'sem guarda-corpo invisível');
+ const c=L.islandCenter();
+ assert.equal(L.ascentHazard(c.x,c.z),false,'centro da arena seguro');
+ assert.equal(L.ascentHazard(c.x+L.ASCENT.island.r+5,c.z),true,'queda fora da ilha');
+});
+test('Câmera da caverna não colide com terreno externo e queda termina em respawn',()=>{
+ assert.match(src,/if\(!voidMode\)for\(let i=1;i<=6;i\+\+\)/);
+ assert.match(src,/ascVoidFall/);
+ assert.match(src,/voidSpec\.hazard/);
+});

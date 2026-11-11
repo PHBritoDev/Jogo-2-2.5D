@@ -142,10 +142,10 @@ export const CAVE = Object.freeze({
     { id: 'eco', x: 34, z: -100, r: 10, floor: -4.4, ceil: 14, wob: 2.4, s: 14 },    // nicho lateral (expansão futura)
   ],
   corridors: [
-    { id: 'entrada', a: [0, 10], b: [0, -32], r: 4.1, fa: 0, fb: -6, ceil: 8.5 },
-    { id: 'ligacao-gruta', a: [-20, -60], b: [-29, -61], r: 3.1, fa: -6, fb: -7.6, ceil: 7 },
-    { id: 'norte', a: [0, -84], b: [-3, -113], r: 3.3, fa: -6, fb: -1.6, ceil: 8 },
-    { id: 'eco', a: [18, -76], b: [30, -94], r: 2.8, fa: -6, fb: -4.4, ceil: 6.5 },
+    { id: 'entrada', a: [0, 10], b: [0, -32], r: 4.5, fa: 0, fb: -6, ceil: 9.2 },
+    { id: 'ligacao-gruta', a: [-20, -60], b: [-29, -61], r: 3.9, fa: -6, fb: -7.6, ceil: 8.2 },
+    { id: 'norte', a: [0, -84], b: [-3, -113], r: 4.1, fa: -6, fb: -1.6, ceil: 9.2 },
+    { id: 'eco', a: [18, -76], b: [30, -94], r: 3.6, fa: -6, fb: -4.4, ceil: 8.0 },
     // ramificações seladas por desabamento (expansão futura): caminhável só até o entulho
     { id: 'leste-selado', a: [24, -50], b: [38, -44], r: 2.9, fa: -6, fb: -5, ceil: 6.5, sealed: true },
     { id: 'noroeste-selado', a: [-20, -126], b: [-34, -118], r: 2.5, fa: -1.6, fb: -1.2, ceil: 6, sealed: true },
@@ -171,6 +171,8 @@ export function caveField(x, z) {
 }
 export function inChasm(x, z, pad = 0) { const c = CAVE.chasm, w = .9 * (fbm(x * .2, z * .2, 41, 2) - .5); return ((x - c.x) / (c.rx + pad + w)) ** 2 + ((z - c.z) / (c.rz + pad + w)) ** 2 < 1; }
 export function onBridge(x, z) { const b = CAVE.bridge; return segDist(x, z, b.a[0], b.a[1], b.b[0], b.b[1]).d < b.r; }
+/** Zona sem piso: bordas atravessáveis; a queda é resolvida pela física vertical do jogador. */
+export function caveHazard(x, z) { return caveField(x, z) > .45 && inChasm(x, z) && !onBridge(x, z); }
 /** Onde o herói pode pisar. */
 export function caveWalk(x, z) {
   if (caveField(x, z) < .45) return false;
@@ -252,6 +254,14 @@ export function ascentWalk(x, z) {
   const info = stairsInfo(x, z);
   if (info.kind === 'topo') return Math.abs(x) < ASCENT.width / 2;   // último trecho até a borda da ilha
   return Math.abs(x) < (info.kind === 'patamar' ? ASCENT.landingWidth : ASCENT.width) / 2 - .3;
+}
+/** O vazio fora da escada/ilha não tem parede de colisão: sair da plataforma provoca queda. */
+export function ascentHazard(x, z) {
+  if (onIsland(x, z)) return false;
+  const c = islandCenter();
+  if (Math.hypot(x - c.x, z - c.z) < ASCENT.island.r + 14 && !onIsland(x, z)) return true;
+  if (z <= -4 && z >= -ascentStairsEnd() - 4) return Math.abs(x) >= ASCENT.width / 2 - .28;
+  return z > -4 && z < 9 && Math.abs(x) >= 6.2;
 }
 export function ascentFloor(x, z) {
   if (onIsland(x, z, -.5)) return ascentTopY() + islandRelief(x, z);

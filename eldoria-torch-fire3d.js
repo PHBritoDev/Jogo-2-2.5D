@@ -82,14 +82,14 @@ export function createVillageTorchFire(THREE, parent, sites, lights, camera) {
       vertexShader,fragmentShader,transparent:true,depthWrite:false,depthTest:true,
       side:THREE.DoubleSide,blending:THREE.NormalBlending});
     const flame=new THREE.Mesh(geometry,material);
-    flame.name='ChamaFluidaTocha'+(i+1);flame.position.set(p.x,0,p.z);
+    flame.name='ChamaFluidaTocha'+(i+1);flame.position.set(p.x,p.y||0,p.z);
     flame.frustumCulled=false;flame.renderOrder=4;
     group.add(flame);flames.push(flame);
   });
   // Shared GPU particle cloud: 8 embers per torch in ONE Points draw call.
   const embPos=[],embSite=[],embSeed=[];
   for(let i=0;i<sites.length;i++)for(let j=0;j<8;j++){
-    embPos.push(sites[i].x,1.98,sites[i].z);
+    embPos.push(sites[i].x,(sites[i].y||0)+1.98,sites[i].z);
     embSite.push(i);embSeed.push((j+.73)/8+i*.23);
   }
   const emberGeo=new THREE.BufferGeometry();
