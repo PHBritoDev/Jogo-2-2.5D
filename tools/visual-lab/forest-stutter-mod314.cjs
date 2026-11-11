@@ -37,6 +37,12 @@ const report={status:'incomplete',platform:'Chromium SwiftShader 852x480, nao An
     report.errors.push('Postes procedurais antigos ainda presentes no codigo');
   if(report.torches.loaded!==2||report.torches.district?.loaded!==3)
     report.errors.push('Numero de GLBs de tochas diferente do esperado');
+  // A captura do usuario provou que os GLBs existiam, mas um segundo mesh shader
+  // em forma de triangulo gigante era renderizado por cima deles.
+  const sourceCave=fs.readFileSync(path.resolve(__dirname,'../../ascension-cave3d.js'),'utf8');
+  if(/createVillageTorchFire\(THREE,\s*flameGroup/.test(sourceCave)||/createVillageTorchFire\(THREE,\s*villageGroup/.test(source)||/createVillageTorchFire\(THREE,\s*root/.test(source))
+    report.errors.push('Chama triangular procedural ainda criada na vila, distrito ou caverna');
+  if(report.errors.length)throw Error(report.errors.join('; '));
   await page.screenshot({path:path.join(out,'tochas-distrito.png')});
   const spots=[[34,-56],[-52,-111]];
   for(let k=0;k<spots.length;k++){
