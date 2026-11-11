@@ -5,7 +5,7 @@
  * Direção de arte (referências 2 e 3): salão vertical escuro com abismo e ponte natural; gruta verde-azulada com poças
  * luminosas, névoa e feixes frios; acentos violeta por emissivo nos cristais (sem dezenas de luzes). Quatro luzes no total.
  */
-import { CAVE, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, hash2, fbm } from './ascension-layout.js';
+import { CAVE, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, caveHazard, hash2, fbm } from './ascension-layout.js';
 import { triplanarRock, ensureUv, vortexPortal, lightShaft, dustField, disposeGroup } from './ascension-fx3d.js';
 
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -27,9 +27,10 @@ function poolDrop(x, z) { let d = 0; for (const p of CAVE.pools) { const r = Mat
 export function caveFloorVisual(x, z) { return caveFloor(x, z) - chasmDrop(x, z) - poolDrop(x, z); }
 /** Câmera: sólido fora do volume, acima da abóbada ou abaixo do piso. */
 export function caveCamSolid(x, y, z) {
-  if (caveField(x, z) < .3) return true;
+  // Raio de câmera com pequena folga; não tratar o ar dos abismos como parede.
+  if (caveField(x, z) < .15) return true;
   if (y > caveRoofAt(x, z) - .45) return true;
-  if (y < caveFloor(x, z) - .25 && !inChasm(x, z)) return true;
+  if (y < caveFloor(x, z) - .45 && !caveHazard(x, z)) return true;
   for (const p of CAVE.pillars) if (Math.hypot(x - p.x, z - p.z) < p.r + .15) return true;
   return false;
 }
@@ -251,7 +252,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   const walk = (x, z) => caveWalk(x, z) && !menires.some(m => Math.hypot(x - m.x, z - m.z) < m.r + .3);
   let t = 0;
   return {
-    group, ready, portal, walk, floor: (x, z) => caveFloor(x, z), roof: (x, z) => caveRoofAt(x, z), camSolid: caveCamSolid,
+    group, ready, portal, walk, hazard: caveHazard, floor: (x, z) => caveFloor(x, z), roof: (x, z) => caveRoofAt(x, z), camSolid: caveCamSolid,
     env: { bg: 0x03090c, fog: 0x0a2329, fogNear: 9, fogFar: 92, hemi: [0x7cc2cf, 0x0c1416, 1.35], sun: [0xa9dcff, .5], exposure: 1.32 },
     update(dt) { t += dt; for (const u of updaters) u(t, dt); },
     dispose() { disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
