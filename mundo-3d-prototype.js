@@ -6368,7 +6368,7 @@ function autoRecenterCamera(dt,now){
  const want=Math.atan2(-moveVX,-moveVZ),d=Math.atan2(Math.sin(want-cameraYaw),Math.cos(want-cameraYaw));cameraYaw+=d*Math.min(1,dt*1.1);
 }
 function updateFovKick(dt){
- const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?72:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
+ const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?62:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
  prota302.punch*=Math.exp(-7*dt);const fov=base+fovKick+(fp?0:vzFovAdd+hydraFovAdd+vxFovAdd+cyFovAdd+prota302.punch);if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
 }
 // ---------- Primeira pessoa: mira com alvo, golpes variados, guarda ----------
