@@ -45,7 +45,6 @@ import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, CAGE_TRAIL, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
-import {createVillageTorchFire} from './eldoria-torch-fire3d.js';
 import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
@@ -773,9 +772,23 @@ for(const p of villageTorchSites){
  torchLight.castShadow=false;
  villageGroup.add(torchLight);villageTorchLights.push(torchLight);
 }
-const torchFlames=createVillageTorchFire(THREE,villageGroup,villageTorchSites,villageTorchLights,camera);
+// Somente os GLBs autorais: NENHUMA chama geometrica gerada por codigo.
 const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
- const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
+ const source=gltf.scene;
+ // O arquivo GLB também pode conter uma malha de fogo em formato de triângulo.
+ // Preservar haste/bacia do modelo 3D, ocultando somente malhas nomeadas como fogo.
+ source.traverse(o=>{if(!o.isMesh)return;
+  const mats=Array.isArray(o.material)?o.material:[o.material];
+  if(/(^|[^a-z])(flame|fire|fogo|chama|ember|spark)([^a-z]|$)/i.test([o.name,...mats.map(m=>m?.name||'')].join(' ')))o.visible=false;
+ });
+ const bounds=new THREE.Box3().setFromObject(source);
+ if(new URLSearchParams(location.search).has('debug3d')){
+  window.SevenSinsTorchMeshAudit=[];
+  source.traverse(o=>{if(!o.isMesh)return;const bb=new THREE.Box3().setFromObject(o),m=o.material;
+   window.SevenSinsTorchMeshAudit.push({name:o.name,material:m?.name,color:m?.color?.getHexString(),emissive:m?.emissive?.getHexString(),
+    minY:+bb.min.y.toFixed(3),maxY:+bb.max.y.toFixed(3),height:+bb.getSize(new THREE.Vector3()).y.toFixed(3)});
+  });
+ }
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(bounds.isEmpty()||!Number.isFinite(size.y)||size.y<.001)return;
  clampBakedMips(THREE,source,terrainLowSpec?4:3.5);
@@ -1925,12 +1938,17 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.35:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
  // lentidao e podia arrasta-la para dentro da parede da caverna.
- if(ascKey==='cave')camera.position.copy(target);
+ if(ascKey==='cave'){
+  // Ajustar altura dos olhos ao teto real: nunca colocar a camera dentro da abobada.
+  const roof=voidSpec.ceil?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z);
+  if(Number.isFinite(roof))target.y=Math.min(target.y,voidSpec.y+roof-.38);
+  camera.position.copy(target);
+ }
  else camera.position.lerp(target,1-Math.exp(-14*dt));
  const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
  camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
@@ -1956,9 +1974,29 @@ if(firstPerson){
   if(voidMode&&voidSpec.walk){const cs=voidSpec.camSolid;for(let i=1;i<=22;i++){const f=i/22*limit,cx=target.x+camOffset.x*f,cz=target.z+camOffset.z*f;if(cs?cs(cx-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,cz-voidSpec.z):blockedAt(cx,cz)){limit=Math.max(.035,(i-1.7)/22*limit);break;}}} // MOD 311: zonas com volume (caverna/escadaria) testam o sólido em 3D
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
- camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?15:8)*dt));
+ camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?22:8)*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
- if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);
+ if(voidMode&&voidSpec.camSolid){
+  const cs=voidSpec.camSolid,solid=p=>cs(p.x-voidSpec.x,p.y-voidSpec.y,p.z-voidSpec.z);
+  if(solid(camera.position)||solid(desired)){
+   // Nunca saltar para desired sem testar: em corredor estreito desired tambem pode ser rocha.
+   // Procurar do foco para fora o ultimo ponto realmente livre.
+   const focus=target.clone();
+   if(solid(focus)&&ascKey==='cave'){
+    const lx=player.position.x-voidSpec.x,lz=player.position.z-voidSpec.z;
+    const floor=voidSpec.floor?.(lx,lz),roof=voidSpec.ceil?.(lx,lz);
+    focus.set(player.position.x,Number.isFinite(floor)?floor+.85:player.position.y+.85,player.position.z);
+    if(Number.isFinite(roof))focus.y=Math.min(focus.y,voidSpec.y+roof-.5);
+   }
+   const dir=desired.clone().sub(focus),safe=focus.clone();
+   for(let n=1;n<=24;n++){
+    const p=focus.clone().addScaledVector(dir,n/24);
+    if(solid(p))break;
+    safe.copy(p);
+   }
+   camera.position.copy(safe);
+  }
+ }
  camera.lookAt(target);applyUltCam(dt,target);
 }
 }
@@ -2199,7 +2237,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);applyCycloneSuction(dt);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();torchFlames.update(now*.001,dayNightState.t);district.torchFlames.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
  undoCyShake();undoVxShake();undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -3459,7 +3497,7 @@ const district=(()=>{
  // Substituição definitiva dos postes/esferas feitos por código: somente GLB autoral.
  const districtTorchSites=[[-146,-56],[-156,-68],[-140,-68]].map(([x,z])=>({x,z,y:groundHeightAt(x,z)}));
  const districtTorchLights=districtTorchSites.map(p=>{const l=new THREE.PointLight(0xffa860,.45,12,1.6);l.position.set(p.x,p.y+1.95,p.z);l.castShadow=false;root.add(l);return l;});
- const districtTorchFlames=createVillageTorchFire(THREE,root,districtTorchSites,districtTorchLights,camera);
+ // Nao gerar chamas 2D/Shader sobre as tochas 3D do criador.
  authoredTorchAsset.then(source=>{
   if(!source)return;
   for(let i=0;i<districtTorchSites.length;i++){
@@ -3468,7 +3506,7 @@ const district=(()=>{
    holder.add(source.clone(true));root.add(holder);
   }
  });
- return{root,seal,sealLight,sealMat,altar,ledgers,torchFlames:districtTorchFlames};
+ return{root,seal,sealLight,sealMat,altar,ledgers};
 })();
 // ---------- Chuva (shader: sem atualizar vértices na CPU) e relâmpagos ----------
 const rain=(()=>{
@@ -7591,6 +7629,7 @@ function installCombatLab(){
 }
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
+ cameraCollisionAudit(){const p=camera.position;return {mode:cameraDistance<1.05?'first':'third',solid:!!voidSpec.camSolid?.(p.x-voidSpec.x,p.y-voidSpec.y,p.z-voidSpec.z),distance:+camera.position.distanceTo(player.position).toFixed(3),position:p.toArray()};},
  torchAudit(){const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});const districtModels=[];district.root.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Distrito-'))districtModels.push(o.name);});
  return {expected:villageTorchSites.length,loaded:placed.length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels}};},
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},

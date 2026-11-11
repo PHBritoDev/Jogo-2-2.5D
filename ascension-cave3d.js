@@ -7,7 +7,6 @@
  */
 import { CAVE, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, caveHazard, hash2, fbm } from './ascension-layout.js';
 import { triplanarRock, ensureUv, vortexPortal, lightShaft, dustField, disposeGroup } from './ascension-fx3d.js';
-import { createVillageTorchFire } from './eldoria-torch-fire3d.js';
 
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -29,7 +28,7 @@ export function caveFloorVisual(x, z) { return caveFloor(x, z) - chasmDrop(x, z)
 /** Câmera: sólido fora do volume, acima da abóbada ou abaixo do piso. */
 export function caveCamSolid(x, y, z) {
   // Raio de câmera com pequena folga; não tratar o ar dos abismos como parede.
-  if (caveField(x, z) < .55) return true; // folga da camera para largura do enquadramento, nao apenas um ponto
+  if (caveField(x, z) < .08) return true; // tolerancia menor: evitar camera colada no personagem nos corredores
   if (y > caveRoofAt(x, z) - .65) return true;
   if (y < caveFloor(x, z) - .35 && !caveHazard(x, z)) return true;
   for (const p of CAVE.pillars) if (Math.hypot(x - p.x, z - p.z) < p.r + .15) return true;
@@ -39,8 +38,6 @@ export function caveCamSolid(x, y, z) {
 export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, origin = { x: 0, z: 0 } } = {}) {
   const group = new THREE.Group(); group.name = 'caverna-fronteira'; group.position.set(origin.x, 0, origin.z); group.visible = false;
   const updaters = [];
-  let torchFlames = null;
-  const torchView = { position: { x: 0, z: 0 } }; // câmera em coordenadas locais
   // ---------- piso + abóbada: duas folhas sobre a mesma grade (vértices com jitter para quebrar a grade) ----------
   const cell = lowSpec ? 1.35 : 1, X0 = -66, X1 = 50, Z0 = -160, Z1 = 16;
   const nx = Math.ceil((X1 - X0) / cell) + 1, nz = Math.ceil((Z1 - Z0) / cell) + 1;
@@ -244,7 +241,11 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
     // Apenas três tochas 3D nos pontos de orientação. O fogo GLSL existente é reutilizado;
     // nenhuma haste/esfera procedural é criada e não se acrescentam point lights caras.
     loader.load('./TochaMedievalTripo.glb', gltf => {
-      const source = gltf.scene, bounds = new THREE.Box3().setFromObject(source);
+      const source = gltf.scene;
+      source.traverse(o=>{if(!o.isMesh)return;const mats=Array.isArray(o.material)?o.material:[o.material];
+       if(/(^|[^a-z])(flame|fire|fogo|chama|ember|spark)([^a-z]|$)/i.test([o.name,...mats.map(m=>m?.name||'')].join(' ')))o.visible=false;
+      });
+      const bounds = new THREE.Box3().setFromObject(source);
       const size = bounds.getSize(new THREE.Vector3()), center = bounds.getCenter(new THREE.Vector3());
       if (!bounds.isEmpty() && Number.isFinite(size.y) && size.y > .001) {
         prepareBaked?.(source);
@@ -264,12 +265,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
           model.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
           holder.add(model);group.add(holder);
         }
-        if (sites.length) {
-          const flameGroup = new THREE.Group();group.add(flameGroup);
-          // O utilitário posiciona a chama em y=1.9; deslocamos a origem de cada sítio ao piso.
-          const relative = sites.map(p => ({ x: p.x, y: caveFloor(p.x, p.z), z: p.z }));
-          torchFlames = createVillageTorchFire(THREE, flameGroup, relative, [], torchView);
-        }
+        // Tochas exclusivamente GLB: sem chamas/placas shader procedurais.
       }
       done();
     }, undefined, done);
@@ -289,9 +285,8 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   return {
     group, ready, portal, walk, hazard: caveHazard, floor: (x, z) => caveFloor(x, z), roof: (x, z) => caveRoofAt(x, z), camSolid: caveCamSolid,
     env: { bg: 0x03090c, fog: 0x0a2329, fogNear: 9, fogFar: 92, hemi: [0x7cc2cf, 0x0c1416, 1.35], sun: [0xa9dcff, .5], exposure: 1.32 },
-    update(dt, cam) { t += dt; if (cam) { torchView.position.x = cam.position.x - origin.x; torchView.position.z = cam.position.z - origin.z; }
-      torchFlames?.update(t, 1); for (const u of updaters) u(t, dt); },
-    dispose() { torchFlames?.dispose(); disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
+    update(dt, cam) { t += dt; for (const u of updaters) u(t, dt); },
+    dispose() { disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
     stats() { let tris = 0; group.traverse(o => { if (o.isMesh && o.geometry) { const n = (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; tris += o.isInstancedMesh ? n * o.count : n; } }); return { tris: Math.round(tris), clusters: clusters.length }; },
   };
 }
