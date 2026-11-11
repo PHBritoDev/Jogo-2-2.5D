@@ -24,10 +24,10 @@ const report={status:'incomplete',platform:'Chromium SwiftShader 852x480, nao An
   await page.evaluate(()=>window.SevenSinsDebug3D.freeRoam());
   await page.waitForFunction(()=>window.SevenSinsDebug3D?.torchAudit?.().loaded>=2,null,{timeout:90000});
   report.torches=await page.evaluate(()=>window.SevenSinsDebug3D.torchAudit());
-  await page.evaluate(()=>{const a=window.SevenSinsDebug3D;a.teleport(-20.6,-45.5);a.fly(null);a.view(1.2,.12,5.5);});
+  await page.evaluate(()=>{const a=window.SevenSinsDebug3D;a.teleport(-20.6,-39.8);a.fly(null);a.view(0,.12,5.5);});
   await page.waitForTimeout(1000);
   await page.screenshot({path:path.join(out,'tochas-vila.png')});
-  await page.evaluate(()=>{const a=window.SevenSinsDebug3D;a.teleport(-145,-61);a.fly(null);a.view(1.2,.12,6);});
+  await page.evaluate(()=>{const a=window.SevenSinsDebug3D;a.teleport(-146,-49.5);a.fly(null);a.view(0,.12,5.5);});
   await page.waitForTimeout(1400);
   try{await page.waitForFunction(()=>window.SevenSinsDebug3D?.torchAudit?.().district?.loaded===3,null,{timeout:45000});}
   catch(e){report.errors.push('Distrito ainda nao carregou as 3 tochas GLB');}
@@ -37,6 +37,7 @@ const report={status:'incomplete',platform:'Chromium SwiftShader 852x480, nao An
     report.errors.push('Postes procedurais antigos ainda presentes no codigo');
   if(report.torches.loaded!==2||report.torches.district?.loaded!==3)
     report.errors.push('Numero de GLBs de tochas diferente do esperado');
+  if(report.torches.genericFire?.length)report.errors.push('Fogo generico detectado: '+report.torches.genericFire.join(','));
   await page.screenshot({path:path.join(out,'tochas-distrito.png')});
   const spots=[[34,-56],[-52,-111]];
   for(let k=0;k<spots.length;k++){
