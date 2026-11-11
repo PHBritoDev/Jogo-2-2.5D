@@ -4142,8 +4142,27 @@ function buildAct1Props(){
   npcFactory.create({sex:'boy',role:'idle',x:CAGE_SPOTS[0].x,z:CAGE_SPOTS[0].z,yaw:Math.PI}),
   npcFactory.create({sex:'girl',role:'idle',x:CAGE_SPOTS[1].x,z:CAGE_SPOTS[1].z,yaw:Math.PI})
  ]).then(children=>{
-  children.forEach((c,i)=>{c.holder.name=i?'MeninaGaiolaMeshy':'MeninoGaiolaMeshy';c.holder.position.y+=.08;scene.add(c.holder);act1Props.kids.push(c.holder);if(c.mixer)villageNpcMixers.push(c.mixer);});
-  window.SevenSinsChildNpcReport={loaded:true,source:ELDORIA_NPC_MODELS.boy,girlSource:ELDORIA_NPC_MODELS.girl,childrenInVillage:0,animations:children[0].clips,girlAnimations:children[1].clips};
+  children.forEach((c,i)=>{
+    c.holder.name=i?'MeninaGaiolaMeshy':'MeninoGaiolaMeshy';
+    const cageFloor=cageDoors[i]?.parent?.position.y;
+    if(Number.isFinite(cageFloor)){
+      // Chão REAL da gaiola; não tratar o telhado/colisor como terreno caminhável.
+      c.holder.updateMatrixWorld(true);
+      const feet=new THREE.Box3().setFromObject(c.holder).min.y;
+      c.holder.position.y+=cageFloor+.075-feet;
+    }
+    scene.add(c.holder);act1Props.kids.push(c.holder);
+    if(c.mixer)villageNpcMixers.push(c.mixer);
+  });
+  window.SevenSinsChildNpcReport={
+    loaded:true,source:ELDORIA_NPC_MODELS.boy,girlSource:ELDORIA_NPC_MODELS.girl,
+    childrenInVillage:0,animations:children[0].clips,girlAnimations:children[1].clips,
+    cages:children.map((c,i)=>{
+      c.holder.updateMatrixWorld(true);
+      const b=new THREE.Box3().setFromObject(c.holder);
+      return {feetY:+b.min.y.toFixed(3),height:+b.getSize(new THREE.Vector3()).y.toFixed(3),floorY:+(cageDoors[i]?.parent?.position.y||0).toFixed(3)};
+    })
+  };
   syncAct1World();
  }).catch(e=>console.error('GLBs infantis Meshy indisponíveis; não criar substitutos procedurais',e));
  // Moscas sobre a comida podre e os corpos (uma chamada de desenho).
