@@ -267,10 +267,8 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
         if (sites.length) {
           const flameGroup = new THREE.Group();group.add(flameGroup);
           // O utilitário posiciona a chama em y=1.9; deslocamos a origem de cada sítio ao piso.
-          const relative = sites.map(p => ({ x: p.x, z: p.z }));
+          const relative = sites.map(p => ({ x: p.x, y: caveFloor(p.x, p.z), z: p.z }));
           torchFlames = createVillageTorchFire(THREE, flameGroup, relative, [], torchView);
-          // Os sítios estão em elevações diferentes; compensação local no grupo das chamas.
-          flameGroup.position.y = caveFloor(sites[0].x, sites[0].z);
         }
       }
       done();
