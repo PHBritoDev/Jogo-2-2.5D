@@ -11,6 +11,9 @@ test('Mod 316: nunca renderizar fogo/chamas procedurais no lugar do GLB de tocha
  assert.doesNotMatch(cave,/createVillageTorchFire\s*\(/);
  assert.match(source,/TochaMedievalTripo\.glb/);
  assert.match(cave,/TochaMedievalTripo\.glb/);
+ assert.ok(existsSync(new URL('../eldoria-torch-cleanup3d.js',import.meta.url)));
+ assert.match(source,/removeTorchBakedFlames\(source\)/);
+ assert.match(cave,/removeTorchBakedFlames\(source\)/);
  assert.doesNotMatch(source,/const pole=new THREE\.Mesh\(new THREE\.CylinderGeometry\(\.06,\.08,2\.6,5\)/);
  assert.doesNotMatch(dressing,/const fenceParts = \[\]/);
  assert.doesNotMatch(dressing,/new THREE\.InstancedMesh\(new THREE\.BoxGeometry\(\.24, \.32, \.24\)/);
