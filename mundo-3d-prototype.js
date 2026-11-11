@@ -745,26 +745,19 @@ const marketStalls=ELDORIA_MARKET.map(([x,z,size,yaw],i)=>({x:VILLAGE_CENTER.x+x
 // Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
 const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
-// Tochas do criador: um GLB compartilhado por 3 pontos já iluminados da vila.
- // Até o arquivo ficar disponível, as tochas procedurais existentes permanecem visíveis.
-const villageTorchSites=[{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},
+// Tochas originais do criador; sem postes/bacias/chamas de placeholder em codigo.
+// Somente dois pontos intencionais de orientacao na vila, com GLB compartilhado.
+const villageTorchSites=[
+ {x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},
  {x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},
- {x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}];
-const torchFallbacks=[];
-const torchPoleGeo=new THREE.CylinderGeometry(.045,.07,2.05,5);
-const torchEmberGeo=new THREE.SphereGeometry(.16,7,6);
+];
 for(const p of villageTorchSites){
- const pole=new THREE.Mesh(torchPoleGeo,woodMat);pole.position.set(p.x,1.02,p.z);villageGroup.add(pole);
- const glow=new THREE.Mesh(torchEmberGeo,lanternMat);glow.position.set(p.x,1.92,p.z);villageGroup.add(glow);
- torchFallbacks.push({pole,glow});
  const torchLight=new THREE.PointLight(0xffb060,.35,11,.9);
- torchLight.position.set(p.x,1.95,p.z);torchLight.castShadow=false;
+ torchLight.position.set(p.x,1.95,p.z);
+ torchLight.castShadow=false;
  villageGroup.add(torchLight);villageTorchLights.push(torchLight);
 }
-// Um único efeito compartilhado: 3 chamas GLSL e um lote GPU de brasas.
 const torchFlames=createVillageTorchFire(THREE,villageGroup,villageTorchSites,villageTorchLights,camera);
-// Normaliza a tocha (vertical 2,05 m) e reaproveita geometria/texturas entre cópias.
-// A ausência do arquivo não interrompe o mapa, o carregamento nem o sistema de iluminação.
 new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
  const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
@@ -778,11 +771,8 @@ new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
   const p=villageTorchSites[i],model=source.clone(true);
   const anchor=new THREE.Group();anchor.name='TochaMedievalTripo-'+(i+1);
   anchor.position.set(p.x,0,p.z);anchor.add(model);villageGroup.add(anchor);
-  // Elimina as tochas antigas depois de confirmar o GLB; sem geometrias duplicadas.
-  villageGroup.remove(torchFallbacks[i].pole,torchFallbacks[i].glow);
  }
- torchPoleGeo.dispose();torchEmberGeo.dispose();
-},undefined,()=>{console.warn('TochaMedievalTripo.glb indisponível: usando tochas de segurança.');});
+},undefined,()=>console.warn('Asset de tocha 3D ausente; nao gerar postes temporarios.'));
 const villageVendors=[
  {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Frutas… o que sobrou delas. Nem os bichos querem mais.',hints:['Você é novo por aqui? Não pergunte muito em voz alta.','O Téo, das provisões, escuta tudo. Mas não fala de graça.','De noite tem choro na mata. Eu fecho a porta e rezo.','Dizem que o Primeiro Bispo anda por baixo da terra, nos esgotos velhos.','Se você voltou de lá… ainda há esperança.']},
  {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x,z:marketStalls[1].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']}
