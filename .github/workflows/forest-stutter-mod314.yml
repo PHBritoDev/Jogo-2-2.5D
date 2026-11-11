@@ -1,0 +1,43 @@
+name: Mod 314 — auditor visual de FPS e tochas 3D
+on:
+  pull_request:
+    paths:
+      - 'tools/visual-lab/forest-stutter-mod314.cjs'
+      - 'mundo-3d-prototype.js'
+      - 'eldoria-torch-fire3d.js'
+      - '.github/workflows/forest-stutter-mod314.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  forest-stutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar navegador WebGL
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install chromium --only-shell
+      - name: Servir o jogo de teste sem publicar
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/forest314.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/forest314.log
+          exit 1
+      - name: Gravar giro da camera e conferir tochas autorais
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/forest-stutter-mod314.cjs
+      - name: Publicar capturas e video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forest-stutter-mod314-${{ github.run_number }}
+          path: visual-lab-results/forest-stutter-mod314/
+          retention-days: 10
+          if-no-files-found: warn

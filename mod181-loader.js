@@ -59,13 +59,7 @@ async function applyMod181(code) {
   const ridge = 'const forestMountainRidge=buildMountainRidge(mountainNearLayout,mountainNearMaterial,0x3e5b4a,0x71836a);';
   if (code.indexOf(ridge) >= 0) code = code.replace(ridge, ridge + '\n\n' + moonBlock);
 
-  const lanternLoop = 'for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},{x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}]){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,2.05,5),woodMat);pole.position.set(p.x,1.02,p.z);villageGroup.add(pole);const glow=new THREE.Mesh(new THREE.SphereGeometry(.16,7,6),lanternMat);glow.position.set(p.x,1.92,p.z);villageGroup.add(glow);}';
-  const torchAdd = "for(const p of [{x:VILLAGE_CENTER.x-8.4,z:VILLAGE_CENTER.z-1},{x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1},{x:VILLAGE_CENTER.x-1,z:VILLAGE_CENTER.z+11}]){const torch=new THREE.PointLight(0xffb060,.35,11,.9);torch.position.set(p.x,1.95,p.z);torch.castShadow=false;villageGroup.add(torch);villageTorchLights.push(torch);}";
-  if (code.indexOf(lanternLoop) >= 0 && code.indexOf('villageTorchLights.push') < 0) {
-    code = code.replace(lanternLoop, lanternLoop + '\n' + torchAdd);
-  }
-
-  const clearing = '// Clareira natural com tronco caído e pedras pequenas: sem runas e sem personagem freira.';
+  // Tochas de código removidas definitivamente: nenhum patch legado deve recriar postes ou esferas.\n\n  const clearing = '// Clareira natural com tronco caído e pedras pequenas: sem runas e sem personagem freira.';
   if (code.indexOf(clearing) >= 0) code = code.replace(clearing, ruinBlock + clearing);
 
   const aiHook = 'updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();';
