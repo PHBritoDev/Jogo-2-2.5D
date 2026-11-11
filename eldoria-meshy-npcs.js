@@ -71,10 +71,36 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
     }catch(error){console.warn('Cabelo Meshy não carregou:',hairFile,error);}
    }else console.warn('NPC sem osso Head identificado; cabelo separado não anexado:',file);
   }
-  const clip=clipFor(gltf.animations||[],role),mixer=clip?new THREE.AnimationMixer(src):null;
+  const nativeClips=gltf.animations||[];
+  // Em alguns GLBs só há Walking/Running: evitar a pose rígida em T.
+  const clip=clipFor(nativeClips,role)||nativeClips.find(c=>/walking/i.test(c.name))||null;
+  const mixer=clip?new THREE.AnimationMixer(src):null;
   const action=mixer?mixer.clipAction(clip):null;
-  if(action){action.play();if(role==='down'||role==='sit')action.paused=true;}
-  return {holder,mixer,action,role,file,hair:hair?((sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair):null,clips:(gltf.animations||[]).map(c=>c.name)};
+  if(action){
+   action.play();
+   if(role==='idle'||role==='sit'||role==='down'){
+    // Captura uma pose natural do clipe, mas não anima caminhada parado.
+    mixer.update(Math.min(Math.max(clip.duration*.28,.08),.55));
+    action.paused=true;
+   }
+  }
+  // Verificação após rig, cabelo e pose: os pés devem tocar o terreno,
+  // independentemente do deslocamento presente no GLB.
+  holder.updateMatrixWorld(true);
+  let finalBox=new THREE.Box3().setFromObject(holder);
+  if(finalBox.isEmpty())throw Error('NPC sem geometria visível: '+file);
+  const actualHeight=finalBox.getSize(new THREE.Vector3()).y;
+  if(actualHeight>target*1.25||actualHeight<target*.75){
+   const correction=target/Math.max(.01,actualHeight);
+   src.scale.multiplyScalar(correction);
+   src.position.multiplyScalar(correction);
+   holder.updateMatrixWorld(true);
+   finalBox.setFromObject(holder);
+  }
+  holder.position.y+=groundHeightAt(x,z)-finalBox.min.y+.015;
+  holder.updateMatrixWorld(true);
+  finalBox.setFromObject(holder);
+  return {holder,mixer,action,role,file,actualHeight:finalBox.getSize(new THREE.Vector3()).y,hair:hair?((sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair):null,clips:nativeClips.map(c=>c.name)};
  }
  return {create};
 }
