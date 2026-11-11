@@ -21,8 +21,11 @@ const WORLD=[
  {name:'arbustos-e-arvores-claras',zone:null,x:34,z:-56,yaw:2.8,why:'Verificar plantas repetidas e troncos excessivamente claros'},
  {name:'raizes-arvore-ancestral',zone:null,x:-13,z:-70,yaw:.4,why:'Verificar raiz exposta e colisao em ramo atraves do jogador'},
  {name:'caverna-corredor',zone:'cave',x:0,z:-99,yaw:Math.PI,why:'Investigar parede, teto baixo e camera cortando rocha'},
+ {name:'caverna-primeira-pessoa',zone:'cave',x:0,z:-99,yaw:Math.PI,distance:.72,why:'Verificar enquadramento sem corpo, paredes e visibilidade em primeira pessoa'},
+ {name:'caverna-primeira-pessoa-portal',zone:'cave',x:-4,z:-136,yaw:Math.PI,distance:.72,why:'Verificar tunel do portal com camera na altura dos olhos'},
  {name:'caverna-borda-abismo',zone:'cave',x:7,z:-60,yaw:-.4,why:'Inspecionar suporte falso sobre abismo'},
  {name:'escadaria-juncao-ilha',zone:'ascent',x:0,z:-367,yaw:Math.PI,why:'Inspecionar emenda solida entre escada e ilha'},
+ {name:'escadaria-ponte-centro',zone:'ascent',x:0,z:-378,yaw:Math.PI,why:'Verificar passarela entre escada e ilha, sem vao visual'},
  {name:'deserto-negro-topo',zone:'ascent',x:0,z:-428,yaw:2,why:'Inspecionar solo da ilha, rochas e composicao da neblina'}
 ];
 (async()=>{
@@ -43,10 +46,10 @@ const WORLD=[
     await page.evaluate(async zone=>{const a=window.SevenSinsDebug3D;if(zone)await a.ascension(zone);else if(a.ascState().key)await a.ascension(null);},c.zone);
     zone=c.zone;
    }
-   const data=await page.evaluate(({x,z,yaw,zone})=>{
+   const data=await page.evaluate(({x,z,yaw,zone,distance})=>{
     const a=window.SevenSinsDebug3D,s=a.ascState();
     if(zone){const ox=s.world.x-s.local.x,oz=s.world.z-s.local.z;a.teleport(ox+x,oz+z);}else a.teleport(x,z);
-    a.fly(null);a.view(yaw,.10,5.5);
+    a.fly(null);a.view(yaw,.10,distance||5.5);
     return {camera:a.snapCam(),state:a.ascState(),renderer:a.rinfo(),world:a.state()};
    },c);
    await page.waitForTimeout(1600);
