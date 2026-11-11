@@ -19,6 +19,11 @@ const dir=path.resolve('work/child-npc-evidence');fs.mkdirSync(dir,{recursive:tr
   assert.equal(report.child.childrenInVillage,0);
   assert.ok(Array.isArray(report.child.animations));
   assert.ok(Array.isArray(report.child.girlAnimations));
+  assert.equal(report.child.cages.length,2);
+  for(const c of report.child.cages){
+    assert.ok(Math.abs(c.feetY-c.floorY)<.16,'a criança está acima/abaixo do piso da gaiola: '+JSON.stringify(c));
+    assert.ok(c.height<=1.40,'a criança não cabe na gaiola: '+JSON.stringify(c));
+  }
   report.village=await page.evaluate(()=>window.SevenSinsVillagerReport);
   assert.equal(report.village.vendors,3);
   assert.equal(report.village.childrenInVillage,0);
