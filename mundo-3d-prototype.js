@@ -1836,7 +1836,8 @@ addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=
 function blockedAt(x,z){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
   // Em abismos não existe parede invisível: deixar atravessar a borda e cair.
-  if(ascKey&&voidSpec.hazard?.(lx,lz))return false;
+  // Depois de iniciar uma queda, nao criar paredes invisiveis dentro do vazio.
+  if(ascKey&&(ascFallFrom!==null||voidSpec.hazard?.(lx,lz)))return false;
   return voidSpec.walk?!voidSpec.walk(lx,lz):Math.hypot(lx,lz)>voidSpec.radius;
  }
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
