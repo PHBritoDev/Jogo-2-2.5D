@@ -55,16 +55,16 @@ export function bushGeometry(THREE, seed = 3) {
 
 /** Plano puro: samambaias ao pé das árvores do vale, arbustos entre elas e faixa densa nas margens d'água. */
 export function planUndergrowth({ trees, banks = [], isFree, lowSpec = false, seed = 9911 }) {
-  const rnd = makeRng(seed), ferns = [], bushes = [], maxF = lowSpec ? 750 : 1400, maxB = lowSpec ? 90 : 180;
+  const rnd = makeRng(seed), ferns = [], bushes = [], maxF = lowSpec ? 750 : 1400, maxB = lowSpec ? 48 : 96;
   const valley = trees.filter(t => t.collide);
   for (const t of valley) {
     const n = 2 + ((rnd() * 4) | 0);
     for (let k = 0; k < n && ferns.length < maxF; k++) { const a = rnd() * 6.28, r = .9 + rnd() * 2.8 * t.s, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) ferns.push({ x, z, s: .7 + rnd() * .7, rot: rnd() * 6.28 }); }
-    if (rnd() < .20 && bushes.length < maxB) { const a = rnd() * 6.28, r = 1.6 + rnd() * 2.6, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) bushes.push({ x, z, s: .45 + rnd() * .55, rot: rnd() * 6.28 }); }
+    if (rnd() < .13 && bushes.length < maxB) { const a = rnd() * 6.28, r = 1.6 + rnd() * 2.6, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) bushes.push({ x, z, s: .45 + rnd() * .55, rot: rnd() * 6.28 }); }
   }
   for (const p of banks) {
     for (let k = 0; k < 3 && ferns.length < maxF + 400; k++) { const x = p.x + (rnd() - .5) * 3, z = p.z + (rnd() - .5) * 3; if (isFree(x, z)) ferns.push({ x, z, s: .8 + rnd() * .6, rot: rnd() * 6.28 }); }
-    if (rnd() < .12 && bushes.length < maxB + 35) { const x = p.x + (rnd() - .5) * 4, z = p.z + (rnd() - .5) * 4; if (isFree(x, z)) bushes.push({ x, z, s: .5 + rnd() * .5, rot: rnd() * 6.28 }); }
+    if (rnd() < .07 && bushes.length < maxB + 18) { const x = p.x + (rnd() - .5) * 4, z = p.z + (rnd() - .5) * 4; if (isFree(x, z)) bushes.push({ x, z, s: .5 + rnd() * .5, rot: rnd() * 6.28 }); }
   }
   return { ferns, bushes };
 }
