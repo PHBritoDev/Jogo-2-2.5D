@@ -241,7 +241,11 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
     // Apenas três tochas 3D nos pontos de orientação. O fogo GLSL existente é reutilizado;
     // nenhuma haste/esfera procedural é criada e não se acrescentam point lights caras.
     loader.load('./TochaMedievalTripo.glb', gltf => {
-      const source = gltf.scene, bounds = new THREE.Box3().setFromObject(source);
+      const source = gltf.scene;
+      source.traverse(o=>{if(!o.isMesh)return;const mats=Array.isArray(o.material)?o.material:[o.material];
+       if(/(^|[^a-z])(flame|fire|fogo|chama|ember|spark)([^a-z]|$)/i.test([o.name,...mats.map(m=>m?.name||'')].join(' ')))o.visible=false;
+      });
+      const bounds = new THREE.Box3().setFromObject(source);
       const size = bounds.getSize(new THREE.Vector3()), center = bounds.getCenter(new THREE.Vector3());
       if (!bounds.isEmpty() && Number.isFinite(size.y) && size.y > .001) {
         prepareBaked?.(source);
