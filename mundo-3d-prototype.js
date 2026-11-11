@@ -489,7 +489,7 @@ const coniferGeometry=(()=>{
 })();
 /* MOD 202 — corte de instâncias: florestas inteiras eram desenhadas todo quadro (inclusive árvores atrás da
    câmera e a 300 m). Mantemos o conjunto completo na memória e enviamos à GPU só as instâncias perto e à frente. */
-const instanceCullers=[],_cullDir=new THREE.Vector3(),_cullFrustum=new THREE.Frustum(),_cullMat=new THREE.Matrix4(),_cullSphere=new THREE.Sphere(),_cullLastDir=new THREE.Vector3(0,0,0),_cullLastPos=new THREE.Vector3(1e9,0,0);let cullFrame=0,cullLastX=1e9,cullLastZ=1e9,cullLastYaw=1e9;
+const instanceCullers=[],_cullDir=new THREE.Vector3(),_cullFrustum=new THREE.Frustum(),_cullMat=new THREE.Matrix4(),_cullSphere=new THREE.Sphere(),_cullLastDir=new THREE.Vector3(0,0,0),_cullLastPos=new THREE.Vector3(1e9,0,0);let cullFrame=0,cullPending=2,cullLastX=1e9,cullLastZ=1e9,cullLastYaw=1e9;
 function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
  const n=mesh.count,src=mesh.instanceMatrix.array.slice(0,n*16),col=mesh.instanceColor?mesh.instanceColor.array.slice(0,n*3):null,pos=new Float32Array(n*3),rad=new Float32Array(n);
  if(!mesh.geometry.boundingSphere)mesh.geometry.computeBoundingSphere();const bs=mesh.geometry.boundingSphere;
@@ -507,14 +507,17 @@ function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
 }
 function refreshInstanceCulling(){cullLastX=1e9;_cullLastPos.set(1e9,0,0);}
 function updateInstanceCulling(){
- if(!instanceCullers.length||(++cullFrame%2))return;
+ if(!instanceCullers.length)return;
+ ++cullFrame;
  camera.getWorldDirection(_cullDir);const yaw=Math.atan2(_cullDir.x,_cullDir.z),px=player.position.x,pz=player.position.z;
  // MOD 292: também reage a câmera (altura/inclinação), não só ao jogador — olhar para baixo/vistas aéreas não cortam árvores visíveis.
- if(Math.abs(px-cullLastX)<.75&&Math.abs(pz-cullLastZ)<.75&&Math.abs(yaw-cullLastYaw)<.045&&camera.position.distanceToSquared(_cullLastPos)<.5&&_cullDir.dot(_cullLastDir)>.9995)return;
- cullLastX=px;cullLastZ=pz;cullLastYaw=yaw;_cullLastPos.copy(camera.position);_cullLastDir.copy(_cullDir);
+ const changedCamera=!(Math.abs(px-cullLastX)<.75&&Math.abs(pz-cullLastZ)<.75&&Math.abs(yaw-cullLastYaw)<.045&&camera.position.distanceToSquared(_cullLastPos)<.5&&_cullDir.dot(_cullLastDir)>.9995);
+ if(!changedCamera&&!cullPending)return;
+ if(changedCamera){cullPending=2;cullLastX=px;cullLastZ=pz;cullLastYaw=yaw;_cullLastPos.copy(camera.position);_cullLastDir.copy(_cullDir);}
  camera.updateMatrixWorld();_cullMat.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);_cullFrustum.setFromProjectionMatrix(_cullMat);
  const cx=camera.position.x,cz=camera.position.z;
- for(const c of instanceCullers){
+ // Atualiza todos os lotes em dois quadros consecutivos, nunca todos de uma vez.
+ for(let ci=(cullFrame&1);ci<instanceCullers.length;ci+=2){const c=instanceCullers[ci];
   const arr=c.mesh.instanceMatrix.array,carr=c.col&&c.mesh.instanceColor?c.mesh.instanceColor.array:null;let k=0,changed=false,first=-1;
   for(let i=0;i<c.n;i++){
    const dx=c.pos[i*3]-cx,dz=c.pos[i*3+2]-cz,d2=dx*dx+dz*dz;
@@ -535,6 +538,7 @@ function updateInstanceCulling(){
   // MOD 305: envia à GPU só o trecho que mudou (antes ia o buffer inteiro de todas as instâncias a cada passo da câmera)
   if(changed&&first>=0&&k>first){const im=c.mesh.instanceMatrix;if(im.addUpdateRange){im.clearUpdateRanges();im.addUpdateRange(first*16,(k-first)*16);}im.needsUpdate=true;if(carr){const ic=c.mesh.instanceColor;if(ic.addUpdateRange){ic.clearUpdateRanges();ic.addUpdateRange(first*3,(k-first)*3);}ic.needsUpdate=true;}}
  }
+ if(cullPending>0)cullPending--;
 }
 const coniferMaterial=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.95,flatShading:true});
 addInstancedWind(coniferMaterial,.035,'clamp((position.y-0.2)*1.3,0.0,1.0)',.64,'mod186-conifer-wind');addNearCameraFade(coniferMaterial,4.4);
