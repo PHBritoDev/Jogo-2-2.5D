@@ -11,10 +11,10 @@ export function createVillageTorchFire(THREE, parent, sites, lights, camera) {
   for(let plane=0;plane<2;plane++){
     const angle=plane*Math.PI*.5,c=Math.cos(angle),s=Math.sin(angle),start=pos.length/3;
     for(let row=0;row<=10;row++){
-      const v=row/10,w=.27*(1-.57*v);
+      const v=row/10,w=.19*(1-.70*v);
       for(const side of [-1,1]){
         const x=side*w;
-        pos.push(x*c,1.90+v*.73,-x*s);
+        pos.push(x*c,1.90+v*.58,-x*s);
         uv.push(side===-1?0:1,v);
       }
       if(row<10){
@@ -67,10 +67,10 @@ export function createVillageTorchFire(THREE, parent, sites, lights, camera) {
       float lick=.17*(n-.5)*h+.065*sin(t*2.6+h*10.0+uPhase)*h;
       float mask=1.0-smoothstep(width-.075,width+.036,abs(x-lick));
       float breakup=smoothstep(.12,.45,tip+.36*n2-.24*n);
-      float alpha=mask*breakup*smoothstep(0.0,.13,h)*(.54+.36*n);
+      float alpha=mask*breakup*smoothstep(0.0,.13,h)*(.48+.30*n);
       if(alpha<.018)discard;
       float inner=1.0-smoothstep(.07,.22,abs(x-lick));
-      vec3 ember=vec3(1.0,.18,.016),gold=vec3(1.0,.56,.055),hot=vec3(1.0,.94,.50);
+      vec3 ember=vec3(1.0,.18,.016),gold=vec3(1.0,.56,.055),hot=vec3(1.0,.78,.33);
       vec3 color=mix(ember,gold,clamp(tip*.95+.20*n,0.0,1.0));
       color=mix(color,hot,inner*tip*.86);
       // Tip becomes semi-transparent and darker, avoiding a solid orange triangle.

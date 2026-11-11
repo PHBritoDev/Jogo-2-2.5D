@@ -490,8 +490,12 @@ const coniferGeometry=(()=>{
 })();
 /* MOD 202 — corte de instâncias: florestas inteiras eram desenhadas todo quadro (inclusive árvores atrás da
    câmera e a 300 m). Mantemos o conjunto completo na memória e enviamos à GPU só as instâncias perto e à frente. */
-const instanceCullers=[],_cullDir=new THREE.Vector3(),_cullFrustum=new THREE.Frustum(),_cullMat=new THREE.Matrix4(),_cullSphere=new THREE.Sphere(),_cullLastDir=new THREE.Vector3(0,0,0),_cullLastPos=new THREE.Vector3(1e9,0,0);let cullFrame=0,cullLastX=1e9,cullLastZ=1e9,cullLastYaw=1e9;
+const instanceCullers=[],_cullDir=new THREE.Vector3(),_cullFrustum=new THREE.Frustum(),_cullMat=new THREE.Matrix4(),_cullSphere=new THREE.Sphere(),_cullLastDir=new THREE.Vector3(0,0,0),_cullLastPos=new THREE.Vector3(1e9,0,0);let cullFrame=0,cullPending=2,cullLastX=1e9,cullLastZ=1e9,cullLastYaw=1e9;
 function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
+ // Matrizes/cores repactadas ao girar a câmera são dados DINÂMICOS, não StaticDraw.
+ // A hint deve ser definida ANTES do primeiro upload ao WebGL.
+ mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+ if(mesh.instanceColor)mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
  const n=mesh.count,src=mesh.instanceMatrix.array.slice(0,n*16),col=mesh.instanceColor?mesh.instanceColor.array.slice(0,n*3):null,pos=new Float32Array(n*3),rad=new Float32Array(n);
  if(!mesh.geometry.boundingSphere)mesh.geometry.computeBoundingSphere();const bs=mesh.geometry.boundingSphere;
  // MOD 292 — esfera de cada instância (centro e raio da geometria na escala da instância) para o corte por FRUSTUM.
@@ -508,22 +512,28 @@ function registerInstanceCull(mesh,radius,keepNear=30,minRadius=0){
 }
 function refreshInstanceCulling(){cullLastX=1e9;_cullLastPos.set(1e9,0,0);}
 function updateInstanceCulling(){
- if(!instanceCullers.length||(++cullFrame%2))return;
+ if(!instanceCullers.length)return;
+ ++cullFrame;
  camera.getWorldDirection(_cullDir);const yaw=Math.atan2(_cullDir.x,_cullDir.z),px=player.position.x,pz=player.position.z;
  // MOD 292: também reage a câmera (altura/inclinação), não só ao jogador — olhar para baixo/vistas aéreas não cortam árvores visíveis.
- if(Math.abs(px-cullLastX)<.75&&Math.abs(pz-cullLastZ)<.75&&Math.abs(yaw-cullLastYaw)<.045&&camera.position.distanceToSquared(_cullLastPos)<.5&&_cullDir.dot(_cullLastDir)>.9995)return;
- cullLastX=px;cullLastZ=pz;cullLastYaw=yaw;_cullLastPos.copy(camera.position);_cullLastDir.copy(_cullDir);
+ const changedCamera=!(Math.abs(px-cullLastX)<.75&&Math.abs(pz-cullLastZ)<.75&&Math.abs(yaw-cullLastYaw)<.045&&camera.position.distanceToSquared(_cullLastPos)<.5&&_cullDir.dot(_cullLastDir)>.9995);
+ if(!changedCamera&&!cullPending)return;
+ if(changedCamera){cullPending=2;cullLastX=px;cullLastZ=pz;cullLastYaw=yaw;_cullLastPos.copy(camera.position);_cullLastDir.copy(_cullDir);}
  camera.updateMatrixWorld();_cullMat.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);_cullFrustum.setFromProjectionMatrix(_cullMat);
  const cx=camera.position.x,cz=camera.position.z;
- for(const c of instanceCullers){
+ // Atualiza todos os lotes em dois quadros consecutivos, nunca todos de uma vez.
+ for(let ci=(cullFrame&1);ci<instanceCullers.length;ci+=2){const c=instanceCullers[ci];
   const arr=c.mesh.instanceMatrix.array,carr=c.col&&c.mesh.instanceColor?c.mesh.instanceColor.array:null;let k=0,changed=false,first=-1;
   for(let i=0;i<c.n;i++){
    const dx=c.pos[i*3]-cx,dz=c.pos[i*3+2]-cz,d2=dx*dx+dz*dz;
    if(d2>c.r2||d2<c.min2)continue;
    if(d2>c.near2){_cullSphere.center.set(c.pos[i*3],c.pos[i*3+1],c.pos[i*3+2]);_cullSphere.radius=c.rad[i];if(!_cullFrustum.intersectsSphere(_cullSphere))continue;}
    if(c.visibleIds[k]!==i){
-    arr.set(c.src.subarray(i*16,i*16+16),k*16);
-    if(carr)carr.set(c.col.subarray(i*3,i*3+3),k*3);
+    // Sem subarray() por instância: a câmera girando alocava centenas de views tipadas,
+    // provocando picos de GC no Android mesmo quando a GPU mantinha 30-47 FPS.
+    const from=i*16,to=k*16;
+    for(let n=0;n<16;n++)arr[to+n]=c.src[from+n];
+    if(carr){const fc=i*3,tc=k*3;carr[tc]=c.col[fc];carr[tc+1]=c.col[fc+1];carr[tc+2]=c.col[fc+2];}
     c.visibleIds[k]=i;changed=true;if(first<0)first=k;
    }
    k++;
@@ -533,6 +543,7 @@ function updateInstanceCulling(){
   // MOD 305: envia à GPU só o trecho que mudou (antes ia o buffer inteiro de todas as instâncias a cada passo da câmera)
   if(changed&&first>=0&&k>first){const im=c.mesh.instanceMatrix;if(im.addUpdateRange){im.clearUpdateRanges();im.addUpdateRange(first*16,(k-first)*16);}im.needsUpdate=true;if(carr){const ic=c.mesh.instanceColor;if(ic.addUpdateRange){ic.clearUpdateRanges();ic.addUpdateRange(first*3,(k-first)*3);}ic.needsUpdate=true;}}
  }
+ if(cullPending>0)cullPending--;
 }
 const coniferMaterial=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.95,flatShading:true});
 addInstancedWind(coniferMaterial,.035,'clamp((position.y-0.2)*1.3,0.0,1.0)',.64,'mod186-conifer-wind');addNearCameraFade(coniferMaterial,4.4);
@@ -706,6 +717,10 @@ const tropicalReady=loadTropicalTrees(THREE,GLTFLoader,{windUniform:tropicalWind
  for(const o of tropicalBelt.obstacles)treeObstacles.push(o);refreshInstanceCulling();
  // câmera encostada numa copa/tronco: pontilhado em vez de tela tapada (mesmo recurso das coníferas)
  addNearCameraFade(lib.materials.leaves,8.0);addNearCameraFade(lib.materials.bark,2.6);
+ // O GLB chega de modo assíncrono: compilar materiais das 5 espécies ANTES
+ // de o jogador girar a câmera para a mata evita compilação de shader no giro.
+ // Não troca LOD, resolução, textura nem quantidade de árvores.
+ if(renderer.compileAsync)renderer.compileAsync(tropicalBelt.root,camera,scene).catch(e=>console.warn('Pré-compilação da floresta:',e));
  window.SevenSinsTropicalBeltReport={...tropicalBelt.stats,southern:southernForestPlan.length,serra:serraForestPlan.length,perArea:BELT_AREAS.map(a=>villageBeltPlan.filter(t=>t.x>=a.x0&&t.x<=a.x1&&t.z>=a.z0&&t.z<=a.z1).length),glb:'EldoriaArvoresTropicais.glb'};return tropicalBelt;
 }).catch(e=>{console.warn('Árvores tropicais não carregaram.',e);window.SevenSinsTropicalBeltReport={failed:String(e&&e.message||e)};});
 // sub-bosque e cipós sob o cinturão (mesmos módulos da mata do Mod 291)
@@ -759,7 +774,7 @@ for(const p of villageTorchSites){
  villageGroup.add(torchLight);villageTorchLights.push(torchLight);
 }
 const torchFlames=createVillageTorchFire(THREE,villageGroup,villageTorchSites,villageTorchLights,camera);
-new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
+const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
  const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(bounds.isEmpty()||!Number.isFinite(size.y)||size.y<.001)return;
@@ -773,7 +788,8 @@ new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
   const anchor=new THREE.Group();anchor.name='TochaMedievalTripo-'+(i+1);
   anchor.position.set(p.x,0,p.z);anchor.add(model);villageGroup.add(anchor);
  }
-},undefined,()=>console.warn('Asset de tocha 3D ausente; nao gerar postes temporarios.'));
+ resolve(source);
+},undefined,()=>{console.warn('TochaMedievalTripo.glb indisponível; nenhum poste genérico será criado.');resolve(null);}));
 const villageVendors=[
  {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[0].x,z:marketStalls[0].z+1.65,yaw:Math.PI,greeting:'Frutas… o que sobrou delas. Nem os bichos querem mais.',hints:['Você é novo por aqui? Não pergunte muito em voz alta.','O Téo, das provisões, escuta tudo. Mas não fala de graça.','De noite tem choro na mata. Eu fecho a porta e rezo.','Dizem que o Primeiro Bispo anda por baixo da terra, nos esgotos velhos.','Se você voltou de lá… ainda há esperança.']},
  {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x,z:marketStalls[1].z+1.65,yaw:Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']}
@@ -2183,7 +2199,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);applyCycloneSuction(dt);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();torchFlames.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();torchFlames.update(now*.001,dayNightState.t);district.torchFlames.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
  undoCyShake();undoVxShake();undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -3440,9 +3456,19 @@ const district=(()=>{
   const stand=new THREE.Mesh(new THREE.CylinderGeometry(.08,.14,.55,6),beam);stand.position.y=.28;g.add(stand);
   const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:softDot,color:0xffc860,transparent:true,opacity:.7,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));glow.position.y=.75;glow.scale.set(1.3,1.3,1);g.add(glow);
   return{group:g,book,glow,index:i};});
- // Lampiões da praça (luz quente sob a chuva).
- const lampLights=[];for(const [x,z] of [[-146,-56],[-156,-68],[-140,-68]]){const y=groundHeightAt(x,z);const pole=new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,2.6,5),beam);pole.position.set(x,y+1.3,z);root.add(pole);const l=new THREE.PointLight(0xffa860,1.1,12,1.6);l.position.set(x,y+2.6,z);root.add(l);lampLights.push(l);const glass=new THREE.Mesh(new THREE.SphereGeometry(.18,8,6),lanternMat);glass.position.copy(l.position);root.add(glass);}
- return{root,seal,sealLight,sealMat,altar,ledgers};
+ // Substituição definitiva dos postes/esferas feitos por código: somente GLB autoral.
+ const districtTorchSites=[[-146,-56],[-156,-68],[-140,-68]].map(([x,z])=>({x,z,y:groundHeightAt(x,z)}));
+ const districtTorchLights=districtTorchSites.map(p=>{const l=new THREE.PointLight(0xffa860,.45,12,1.6);l.position.set(p.x,p.y+1.95,p.z);l.castShadow=false;root.add(l);return l;});
+ const districtTorchFlames=createVillageTorchFire(THREE,root,districtTorchSites,districtTorchLights,camera);
+ authoredTorchAsset.then(source=>{
+  if(!source)return;
+  for(let i=0;i<districtTorchSites.length;i++){
+   const p=districtTorchSites[i],holder=new THREE.Group();holder.name='TochaMedievalTripo-Distrito-'+(i+1);
+   holder.position.set(p.x,p.y,p.z);
+   holder.add(source.clone(true));root.add(holder);
+  }
+ });
+ return{root,seal,sealLight,sealMat,altar,ledgers,torchFlames:districtTorchFlames};
 })();
 // ---------- Chuva (shader: sem atualizar vértices na CPU) e relâmpagos ----------
 const rain=(()=>{
@@ -7565,7 +7591,8 @@ function installCombatLab(){
 }
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
- torchAudit(){const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});return {expected:villageTorchSites.length,loaded:placed.length,placed};},
+ torchAudit(){const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});const districtModels=[];district.root.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Distrito-'))districtModels.push(o.name);});
+ return {expected:villageTorchSites.length,loaded:placed.length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels}};},
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},
 
  /** Instrumento de QA: avança APENAS a timeline determinística da Skill 2 sem a física do mundo;
