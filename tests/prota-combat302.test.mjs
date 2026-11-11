@@ -13,7 +13,7 @@ test('Mod 302: cinco golpes de chão visualmente distintos, com fases e classifi
   assert(['physical','energy','hybrid'].includes(m.hit));assert(d.open>0&&d.open<d.close&&d.close<d.duration,'startup < ativo < recuperação');
   assert(d.buffer<d.open&&d.cancelAt>d.close&&d.cancelAt<d.duration,'buffer no startup, cancelamento depois do follow-through');
   if(m.hit!=='physical'){assert(m.energy,'energia/híbrido precisam do volume de energia');assert(m.energy.at>=m.open-.05&&m.energy.at<=d.duration);}}
- // Mod 314: todo golpe da espada inicial solta onda de energia (hitbox real): os dois golpes antes só físicos viraram híbridos
+ // Mod 315: todo golpe da espada inicial solta onda de energia (hitbox real): os dois golpes antes só físicos viraram híbridos
  assert.deepEqual(g.map(m=>m.hit),['hybrid','energy','hybrid','hybrid','hybrid']);
  assert(g[2].launcher&&g[4].finisher);
  for(const mode of ['run','dash','air','plunge'])assert(protaMoveDef(mode,0).id.startsWith('Prota302_'+mode));

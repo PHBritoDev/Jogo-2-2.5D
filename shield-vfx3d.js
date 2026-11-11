@@ -1,5 +1,5 @@
 /**
- * Mod 314 — cúpula de escudo esférica de hexágonos (poliedro de Goldberg: dual de um icosaedro subdividido).
+ * Mod 315 — cúpula de escudo esférica de hexágonos (poliedro de Goldberg: dual de um icosaedro subdividido).
  *
  * Cada célula (hexágono; 12 pentágonos) é um polígono próprio com centro, semente e coordenada radial nos atributos,
  * então o shader faz tudo sem CPU por quadro: borda luminosa por célula, preenchimento translúcido pulsante,

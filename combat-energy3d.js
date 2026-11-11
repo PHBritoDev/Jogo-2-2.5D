@@ -1,9 +1,9 @@
 /**
- * Mod 314 — volumes de energia compartilhados (setor que se expande / crescente que viaja). Interface única de hit detection
+ * Mod 315 — volumes de energia compartilhados (setor que se expande / crescente que viaja). Interface única de hit detection
  * para a onda da espada do protagonista e os rasgos das garras do Demônio1 — cada um com coreografia e estética próprias.
  */
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
-/* Mod 314: a onda guarda o próprio raio (antes o raio era zerado e a onda só acertava por dentro do corpo do alvo,
+/* Mod 315: a onda guarda o próprio raio (antes o raio era zerado e a onda só acertava por dentro do corpo do alvo,
    e o desenho escalado pelo raio ficava invisível). */
 /** Cria o volume de energia de um golpe na direção do herói (setor que se expande ou onda que viaja). */
 export function makeEnergy(spec, from, yaw, height = 1.05) {

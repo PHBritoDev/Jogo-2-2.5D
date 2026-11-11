@@ -12,7 +12,7 @@
 | `enemy1-dark-vfx3d.js` (VFX dos poderes) | Usa as mãos e a cabeça do corpo visual. | **Intacto.** O Demonio1 tem `RightHand`, `LeftHand` e `Head`. |
 | `Enemy1-sprite.png` | Sprite de reserva enquanto o GLB carrega. | Mantido (é carregado pelo jogo). |
 | `Enemy1-ui.webp` | Retrato no bestiário (`progression3d.js`). | Mantido. |
-| `Enemy1.png` | Não era carregado por nenhum código. | **Removido no Mod 314** (2 MiB do legado). |
+| `Enemy1.png` | Não era carregado por nenhum código. | **Removido no Mod 315** (2 MiB do legado). |
 | `docs/auditorias/COMBATE-CINEMATICO-GLBS.json` | Auditoria histórica que cita os GLBs antigos. | Documento histórico, sem efeito no jogo. |
 
 ## B) Clipes reais do `Demonio1.glb` → papéis do jogo

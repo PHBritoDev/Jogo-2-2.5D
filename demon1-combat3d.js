@@ -1,5 +1,5 @@
 /**
- * Mod 314 — repertório do Demônio1 (Enemy1 comum): GARRAS, nunca espada. Lógica pura.
+ * Mod 315 — repertório do Demônio1 (Enemy1 comum): GARRAS, nunca espada. Lógica pura.
  *
  * Os golpes usam os clipes REAIS do Demonio1.glb, recortados por trecho. As janelas de dano saem do pico de velocidade
  * de mãos/pés medido no próprio clipe (SevenSinsDebug3D.enemyClipProbe, 20 amostras/s):

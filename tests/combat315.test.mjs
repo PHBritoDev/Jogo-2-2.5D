@@ -11,13 +11,13 @@ import { DEMON1_MOVES, DEMON1_LEAP, clawReaches } from '../demon1-combat3d.js';
 import { createSlashVFX } from '../slash-vfx3d.js';
 import { createShieldVFX } from '../shield-vfx3d.js';
 const src = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
-// three.js real para os pools de VFX: o CI (combat314.yml) instala three@0.160.0 e aponta COMBAT_THREE_DIR
+// three.js real para os pools de VFX: o CI (combat315.yml) instala three@0.160.0 e aponta COMBAT_THREE_DIR
 let THREE = null;
 for (const dir of [process.env.COMBAT_THREE_DIR, process.env.AERIAL_THREE_DIR, new URL('../node_modules/three', import.meta.url).pathname]) {
   if (!dir) continue; try { THREE = await import(dir.replace(/\/$/, '') + '/build/three.module.js'); break; } catch { /* tenta o próximo */ }
 }
 
-test('Mod 314: dash com recarga ÚNICA de 0,50 s contada desde a ativação (herói e jogo real)', () => {
+test('Mod 315: dash com recarga ÚNICA de 0,50 s contada desde a ativação (herói e jogo real)', () => {
   assert.equal(MOBILITY.dashCooldown, .5); assert.equal(PROTA_DASH.cooldown, .5);
   const m = new Mobility2();
   assert.equal(m.dash(10), true); assert.equal(m.dash(10.25), false); assert.equal(m.dash(10.499), false);
@@ -28,7 +28,7 @@ test('Mod 314: dash com recarga ÚNICA de 0,50 s contada desde a ativação (her
   assert.match(src, /bindInstantAction\('dash','dash'\)/);
 });
 
-test('Mod 314: dois saltos por sequência aérea, nunca um terceiro; o dash não gasta salto; reset só no pouso', () => {
+test('Mod 315: dois saltos por sequência aérea, nunca um terceiro; o dash não gasta salto; reset só no pouso', () => {
   const m = new Mobility2();
   assert.equal(m.jump(true, 0), 1); assert.equal(m.dash(.1), true, 'dash entre os saltos');
   assert.equal(m.jump(false, .3), 2, 'segundo salto no ar'); assert.equal(m.dash(.65), true, 'dash depois do segundo');
@@ -40,7 +40,7 @@ test('Mod 314: dois saltos por sequência aérea, nunca um terceiro; o dash não
   assert.match(src, /if\(grounded&&heroMob\.airborne\)heroMob\.land\(\);else if\(!grounded&&!heroMob\.airborne\)heroMob\.leaveGround\(combatClock\)/);
 });
 
-test('Mod 314: escudo dura no máximo 2,7 s e a recarga de 8 s começa quando ele SOME', () => {
+test('Mod 315: escudo dura no máximo 2,7 s e a recarga de 8 s começa quando ele SOME', () => {
   const s = new EnergyShield(SHIELD_SPECS.hero);
   assert.equal(s.activate(0), true); assert.equal(s.activate(1), false);
   s.update(2.69); assert.equal(s.state, 'active'); s.update(2.7); assert.equal(s.state, 'cooldown'); assert.equal(s.endedAt, 2.7);
@@ -49,7 +49,7 @@ test('Mod 314: escudo dura no máximo 2,7 s e a recarga de 8 s começa quando el
   assert.equal(b.state, 'cooldown'); assert.equal(b.endReason, 'broken'); assert.equal(b.canActivate(8.99), false); assert.equal(b.canActivate(9), true, 'quebra em 1 s → pronto em 9 s');
 });
 
-test('Mod 314: golpe extremo rompe na hora e passa o dano INTEGRAL; golpes normais drenam e são mitigados', () => {
+test('Mod 315: golpe extremo rompe na hora e passa o dano INTEGRAL; golpes normais drenam e são mitigados', () => {
   const s = new EnergyShield(SHIELD_SPECS.hero); s.activate(0);
   const n = s.absorb({ dmg: 20, kind: 'melee' }, .2); assert.equal(n.broke, false); assert.equal(n.passed, Math.round(20 * (1 - SHIELD_SPECS.hero.mitigation))); assert.ok(s.hp < SHIELD_SPECS.hero.durability && s.damage > 0);
   const x = s.absorb({ dmg: 80, kind: 'melee' }, .4); assert.equal(x.broke, true); assert.equal(x.passed, 80, 'dano integral'); assert.equal(s.active, false);
@@ -61,14 +61,14 @@ test('Mod 314: golpe extremo rompe na hora e passa o dano INTEGRAL; golpes norma
   assert.match(src, /if\(heroShield\.active\)\{const sh=heroShieldAbsorb\(raw,info\);/);
 });
 
-test('Mod 314: magia em área drena por tiques deduplicados — o mesmo total a 30 e a 144 FPS', () => {
+test('Mod 315: magia em área drena por tiques deduplicados — o mesmo total a 30 e a 144 FPS', () => {
   const run = fps => { const s = new EnergyShield(SHIELD_SPECS.hero); s.activate(0); let passed = 0; for (let t = 0; t < 2.6; t += 1 / fps) passed += s.absorb({ dmg: 6, kind: 'area', source: 'juizo-1' }, t).passed; return { hp: s.hp, passed, state: s.state }; };
   const a = run(30), b = run(144); assert.equal(a.hp, b.hp); assert.equal(a.passed, b.passed);
   assert.ok(a.hp > 0, 'tiques limitados não quebram o escudo em um quadro');
   const s = new EnergyShield(SHIELD_SPECS.hero); s.activate(0); s.absorb({ dmg: 6, kind: 'area', source: 'A' }, 0); const k = s.absorb({ dmg: 6, kind: 'area', source: 'B' }, .01); assert.equal(k.ignored, false, 'fontes diferentes contam separado');
 });
 
-test('Mod 314: espada + onda acertam o mesmo alvo uma vez por golpe; onda acerta sem toque físico', () => {
+test('Mod 315: espada + onda acertam o mesmo alvo uma vez por golpe; onda acerta sem toque físico', () => {
   const target = { id: 'e1', x: 0, y: .9, z: 4.2, radius: .45, height: 1.8, alive: true };
   const def = protaMoveDef('ground', 0); assert.ok(def.energy && def.hit === 'hybrid', 'Fenda diagonal agora solta onda');
   for (const blade of [{ base: { x: 0, y: 1.1, z: 3.5 }, tip: { x: 0, y: 1.2, z: 4.4 } }, { base: { x: 0, y: 1.1, z: .4 }, tip: { x: 0, y: 1.2, z: 1.1 } }]) {
@@ -91,7 +91,7 @@ test('Mod 314: espada + onda acertam o mesmo alvo uma vez por golpe; onda acerta
   for (const m of [...PROTA_MOVES.ground, PROTA_MOVES.run, PROTA_MOVES.dash, PROTA_MOVES.air, PROTA_MOVES.plunge]) assert.ok(m.energy, m.name + ' tem onda');
 });
 
-test('Mod 314: VFX com pools fixos — sem crescer, sem vazar, limpos ao cancelar', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+test('Mod 315: VFX com pools fixos — sem crescer, sem vazar, limpos ao cancelar', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
   assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
   const scene = new THREE.Scene(), v = createSlashVFX(THREE, scene), cam = new THREE.PerspectiveCamera();
   const count = () => { let n = 0; scene.traverse(() => n++); return n; }, before = count();
@@ -108,7 +108,7 @@ function squad(opts = {}) {
   const hits = []; const sq = new Enemy1Squad({ seed: opts.seed || 7, blocked: (x, z) => (opts.wall ? wallAt(x) : false) || Math.abs(x) > 40 || Math.abs(z) > 40, los: (ax, az, bx, bz) => !opts.wall || !((ax < 3.3) !== (bx < 3.3)), damageTarget: (id, d, i) => { hits.push({ id, d, i }); return 'hit'; }, event: opts.event || (() => {}) });
   sq.spawn(opts.spots || [{ x: 0, z: -6, kind: 'common' }]); return { sq, hits };
 }
-test('Mod 314: Demônio1 luta com garras (clipes reais), sem espada, alcança o alvo e não é invencível', () => {
+test('Mod 315: Demônio1 luta com garras (clipes reais), sem espada, alcança o alvo e não é invencível', () => {
   assert.ok(E1.demon1.native && !E1.common.native, 'só o Demônio1 ganha o repertório (as outras espécies herdam o tuning base)');
   for (const m of Object.values(DEMON1_MOVES)) assert.ok(['attack', 'attack2', 'combo', 'sweep'].includes(m.role), 'papel de clipe real do Demonio1.glb');
   const ev = [], { sq, hits } = squad({ event: (t, d) => ev.push([t, d && d.kind || d && d.move]) });
@@ -122,7 +122,7 @@ test('Mod 314: Demônio1 luta com garras (clipes reais), sem espada, alcança o 
   assert.equal(clawReaches({ x: 0, z: 0, y: 0, yaw: 0 }, { x: 0, z: -2, y: 0, radius: .45 }, { arc: .3 }, 2.3), false, 'não acerta atrás');
   assert.equal(clawReaches({ x: 0, z: 0, y: 0, yaw: 0 }, { x: 0, z: 2, y: 2.5, radius: .45 }, { arc: .3 }, 2.3), false, 'não acerta alvo no alto');
 });
-test('Mod 314: IA do Demônio1 — salto duplo + dash aéreo, escudo e dash sem spam, nunca atravessa parede', () => {
+test('Mod 315: IA do Demônio1 — salto duplo + dash aéreo, escudo e dash sem spam, nunca atravessa parede', () => {
   const ev = [], { sq } = squad({ wall: true, spots: [{ x: 0, z: -6, kind: 'common' }, { x: -4, z: -5, kind: 'common' }], event: (t, d) => ev.push(t) });
   const hero = { id: 'hero', team: 'hero', x: 6, y: 0, z: 0, vx: 0, vz: 0, radius: .45, height: 1.85, alive: true, attacking: false, casting: false };
   sq.setTargets([hero]); let maxJ = 0, inWall = 0, t = 0;
@@ -138,12 +138,12 @@ test('Mod 314: IA do Demônio1 — salto duplo + dash aéreo, escudo e dash sem 
   assert.ok(n('dodge') <= 2 * (60 / E1.demon1.dodge.cd + 6), 'dash/esquiva sem spam');
   for (const a of sq.actors) assert.equal(a.airY, 0, 'não flutua eternamente');
 });
-test('Mod 314: escudo do Demônio1 usa a mesma resolução (mitiga, rompe com golpe extremo)', () => {
+test('Mod 315: escudo do Demônio1 usa a mesma resolução (mitiga, rompe com golpe extremo)', () => {
   const { sq } = squad(); const a = sq.actors[0]; a.shield.activate(sq.time);
   const hp0 = a.hp, d = sq.damageActor(a, 10, { x: 0, z: 0, kind: 'melee' }); assert.ok(d < 10 && a.shield.active);
   const big = sq.damageActor(a, 60, { x: 0, z: 0, kind: 'melee' }); assert.ok(!a.shield.active && a.shield.endReason === 'broken'); assert.ok(hp0 - a.hp >= 60 + d - 1, 'dano integral ao romper');
 });
-test('Mod 314: integração real (HUD, teclado, mundo e esquadra)', () => {
+test('Mod 315: integração real (HUD, teclado, mundo e esquadra)', () => {
   const html = fs.readFileSync(new URL('../mundo-3d-prototype.html', import.meta.url), 'utf8');
   assert.match(html, /<button id="shield" type="button" data-key="G"/);
   assert.match(src, /if\(e\.code==='KeyG'\)\{action\('shield'\);return;\}/);
@@ -153,7 +153,7 @@ test('Mod 314: integração real (HUD, teclado, mundo e esquadra)', () => {
   const rt = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
   assert.match(rt, /attachDemonClaws\(b\)/); assert.match(rt, /demonSlashes\(b, a\)/);
 });
-test('Mod 314: legado do Enemy1 fora do jogo em execução (sem asset morto, sem carga do sprite antigo na partida comum)', () => {
+test('Mod 315: legado do Enemy1 fora do jogo em execução (sem asset morto, sem carga do sprite antigo na partida comum)', () => {
   assert.equal(fs.existsSync(new URL('../Enemy1.png', import.meta.url)), false, 'imagem antiga sem uso removida');
   assert.equal(fs.existsSync(new URL('../Enemy1-sprite.png', import.meta.url)), true, 'reserva continua existindo (sem inimigo invisível se o GLB falhar)');
   assert.doesNotMatch(src, /const enemyTexture=new THREE\.TextureLoader\(\)\.load\('\.\/Enemy1-sprite\.png'\)/, 'não baixa o sprite antigo no início');

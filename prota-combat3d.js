@@ -14,7 +14,7 @@ export const PROTA_LOCO = Object.freeze({ walk: 2.2, run: 6.8, walkNatural: 1.63
 export const PROTA_JUMP = Object.freeze({ gravity: 22, impulse: 5.2, clip: 'Jump_Over_Obstacle_2', takeoff: .10, airFrom: .20, airTo: .52, land: .60, landEnd: .80, recover: .16 });
 /** Dash da referência 3900: some em fumaça vertical na origem, atravessa invisível e reaparece adiante
  *  num rastro horizontal escuro que se fecha no corpo. Curto, imediato, com i-frames e recarga. */
-/* Mod 314: recarga ÚNICA de 0,50 s contada desde a ativação (combat-mobility3d.MOBILITY.dashCooldown) — o jogo usa a mesma. */
+/* Mod 315: recarga ÚNICA de 0,50 s contada desde a ativação (combat-mobility3d.MOBILITY.dashCooldown) — o jogo usa a mesma. */
 export const PROTA_DASH = Object.freeze({ distance: 5.4, travel: .17, vanish: .03, reappear: .20, total: .34, iframes: .30, cooldown: MOBILITY.dashCooldown, recover: .14 });
 
 /** Trechos [início, fim] dos clipes (segundos) e janelas relativas ao trecho. hit: physical | energy | hybrid. */
@@ -59,7 +59,7 @@ export function protaSegments() {
   return out;
 }
 export function moveDuration(m) { return m.end - m.start; }
-/** Mod 314: a onda vale menos longe do herói (alcance não vira dano grátis): 100 % até 2,5 m, 60 % a partir de 7,5 m. */
+/** Mod 315: a onda vale menos longe do herói (alcance não vira dano grátis): 100 % até 2,5 m, 60 % a partir de 7,5 m. */
 export function energyFalloff(spec, dist) { return spec && spec.falloff ? 1 - .4 * Math.max(0, Math.min(1, (dist - 2.5) / 5)) : 1; }
 
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
@@ -106,5 +106,5 @@ export function warpStep(a, def, from, target, dt, acc = { x: 0, z: 0 }) {
   return { dx: nx / need * step, dz: nz / need * step, yaw };
 }
 
-/* Mod 314: volumes de energia (setor/onda) moram em combat-energy3d.js — interface compartilhada com as garras do Demônio1. */
+/* Mod 315: volumes de energia (setor/onda) moram em combat-energy3d.js — interface compartilhada com as garras do Demônio1. */
 export { makeEnergy, energyStep, energyTouches } from './combat-energy3d.js';

@@ -1,5 +1,5 @@
 /**
- * Mod 314 — cortes cinematográficos reutilizáveis (espada do protagonista e garras do Demônio1).
+ * Mod 315 — cortes cinematográficos reutilizáveis (espada do protagonista e garras do Demônio1).
  *
  *  • Crescente varrido: a cada passo da janela ATIVA o host entrega a base e a ponta reais da arma no mundo; a malha é
  *    uma faixa larga que vai da metade da lâmina até ALÉM da ponta (halo de energia), com nascimento por amostra —

@@ -1,5 +1,5 @@
 /**
- * Mod 314 — mobilidade compartilhada (protagonista e Demônio1): dash com recarga ÚNICA de 0,50 s contada desde a
+ * Mod 315 — mobilidade compartilhada (protagonista e Demônio1): dash com recarga ÚNICA de 0,50 s contada desde a
  * ativação e dois saltos por sequência aérea (chão + um no ar). Lógica pura, relógio injetado em segundos.
  *
  *  - O dash não consome salto e pode sair no chão, entre os saltos, depois do segundo e em janelas de cancelamento.

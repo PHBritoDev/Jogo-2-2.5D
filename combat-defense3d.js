@@ -1,5 +1,5 @@
 /**
- * Mod 314 — camada única de resolução de dano + escudo esférico hexagonal (protagonista, Demônio1 e futuros).
+ * Mod 315 — camada única de resolução de dano + escudo esférico hexagonal (protagonista, Demônio1 e futuros).
  *
  * Lógica pura (sem Three/DOM, relógio injetado em segundos): o mesmo resultado a 20, 60 ou 144 FPS. Todo dano que
  * chega a uma entidade com escudo — golpe físico, espada, arco de energia, projétil, magia em área — passa por

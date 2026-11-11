@@ -1,6 +1,6 @@
-# Mod 314: combate cinematográfico (espada inicial e Demônio1)
+# Mod 315: combate cinematográfico (espada inicial e Demônio1)
 
-Este é o registro técnico da missão `docs/missoes/CLAUDE-COMBATE-CINEMATOGRAFICO-PROTA-ENEMY1.md`. As evidências ficam no CI: o workflow **Combate cinematográfico (Mod 314)**, job `evidence`, guarda o vídeo, as capturas e o `resultado.json` como artifact.
+Este é o registro técnico da missão `docs/missoes/CLAUDE-COMBATE-CINEMATOGRAFICO-PROTA-ENEMY1.md`. As evidências ficam no CI: o workflow **Combate cinematográfico (Mod 315)**, job `evidence`, guarda o vídeo, as capturas e o `resultado.json` como artifact.
 
 ## Auditoria (antes de editar)
 - **Caminho real do herói:** `mundo-3d-prototype.js` chama `SwordRites` (`sword-rites3d.js`), que recebe o repertório de `prota-combat3d.js`. A pose real vem de `api.pose`, com as pontas da lâmina tiradas do `EspadaProta.glb`.
@@ -31,11 +31,11 @@ Este é o registro técnico da missão `docs/missoes/CLAUDE-COMBATE-CINEMATOGRAF
 | Legado do Enemy1 | Saíram `Enemy1.png` (2 MiB sem uso), o retarget morto Enemy1 → herói e o import `retargetClip`. O sprite de reserva só é baixado se o `Demonio1.glb` falhar ou se o inimigo aparecer antes do GLB terminar. |
 
 ## Testes
-- `tests/combat314.test.mjs`: dash 0,50 s; 2 saltos sem terceiro; dash entre e depois dos saltos; escudo 2,7 s com recarga só após sumir; ruptura com dano integral; área independente de FPS; um único dano por golpe (lâmina + onda); onda acertando sem toque; altura, costas e parede; pools sem crescer e limpos; garras do Demônio1 (sem espada, alcançam, não acertam atrás nem no alto); salto duplo e dash aéreo da IA sem atravessar parede nem abusar; escudo do Demônio1; integração do HUD e do teclado; legado removido.
-- `tools/visual-lab/combat314-qa.cjs` (CI, celular 844x390 com toque): reproduz no jogo integrado a onda acertando sem toque, o dash de 0,5 s, os 2 saltos, o escudo 2,7 s + 8 s, o escudo do Demônio1, o salto duplo do Demônio1 e as garras. Exige zero erros de console/shader e zero respostas 4xx.
+- `tests/combat315.test.mjs`: dash 0,50 s; 2 saltos sem terceiro; dash entre e depois dos saltos; escudo 2,7 s com recarga só após sumir; ruptura com dano integral; área independente de FPS; um único dano por golpe (lâmina + onda); onda acertando sem toque; altura, costas e parede; pools sem crescer e limpos; garras do Demônio1 (sem espada, alcançam, não acertam atrás nem no alto); salto duplo e dash aéreo da IA sem atravessar parede nem abusar; escudo do Demônio1; integração do HUD e do teclado; legado removido.
+- `tools/visual-lab/combat315-qa.cjs` (CI, celular 844x390 com toque): reproduz no jogo integrado a onda acertando sem toque, o dash de 0,5 s, os 2 saltos, o escudo 2,7 s + 8 s, o escudo do Demônio1, o salto duplo do Demônio1 e as garras. Exige zero erros de console/shader e zero respostas 4xx.
 
 ## Desempenho (SwiftShader, mesma cena do laboratório; não representa o FPS de um A55)
-| Cena | Antes (main) | Mod 314 |
+| Cena | Antes (main) | Mod 315 |
 |---|---|---|
 | Laboratório, parado | 263 calls · 538k tri | 269 calls · 528k tri |
 | Laboratório, golpe ativo | 274 calls · 565k tri | 284 calls · 566k tri |

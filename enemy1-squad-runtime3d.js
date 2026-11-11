@@ -63,7 +63,7 @@ export function createEnemy1SquadRuntime(ctx) {
     model.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
       o.material = [].concat(o.material).map(mt => { const c = mt.clone(); if (a.kind === 'e2boss') { if (c.color) c.color.multiplyScalar(.62); if (c.emissive) { c.emissive.setHex(0x2a0a02); c.emissiveIntensity = .5; } } if (a.kind === 'warden') { if (c.color) c.color.multiplyScalar(.5); if (c.emissive) { c.emissive.setHex(0x2a0306); c.emissiveIntensity = .55; } } if (a.kind === 'e3boss') { if (c.color) c.color.multiplyScalar(.7); if (c.emissive) { c.emissive.setHex(0x2a0208); c.emissiveIntensity = .45; } } if (a.kind === 'e4boss') { if (c.color) c.color.multiplyScalar(.68); if (c.emissive) { c.emissive.setHex(0x22041e); c.emissiveIntensity = .5; } } mats.push(c); return c; });
       if (o.material.length === 1) o.material = o.material[0]; });
-    if (a.kind === 'common') for (const mt of mats) demonAura(mt); // Mod 314: aura violeta (contorno elétrico, não mancha preta)
+    if (a.kind === 'common') for (const mt of mats) demonAura(mt); // Mod 315: aura violeta (contorno elétrico, não mancha preta)
     for (const mt of mats) if (mt.emissive) { mt.userData.e0 = mt.emissive.getHex(); mt.userData.i0 = mt.emissiveIntensity || 0; }
     const holder = new T.Group(); holder.add(model); holder.position.set(a.x, a.y, a.z); holder.rotation.y = a.yaw; scene.add(holder);
     const scales = []; model.traverse(o => scales.push([o, o.scale.clone()]));
@@ -87,7 +87,7 @@ export function createEnemy1SquadRuntime(ctx) {
     play(b, 'idle', false, 1, 0);
     return b;
   }
-  /* ---------- Mod 314: garras do Demônio1 (ancoradas nos ossos dos dedos, sem deformar mão/rig) e aura ---------- */
+  /* ---------- Mod 315: garras do Demônio1 (ancoradas nos ossos dos dedos, sem deformar mão/rig) e aura ---------- */
   const auraU = { value: 0 };
   function demonAura(m) {
     if (!m || !m.isMeshStandardMaterial || m.userData.aura314) return; m.userData.aura314 = true;
@@ -179,7 +179,7 @@ export function createEnemy1SquadRuntime(ctx) {
     if (b.cur === act) { act.setEffectiveTimeScale(ts); if (!once) return; }
     if (b.cur && b.cur !== act) b.cur.fadeOut(fade);
     act.reset(); act.enabled = true; act.setEffectiveWeight(1); act.setEffectiveTimeScale(ts); act.setLoop(once ? T.LoopOnce : T.LoopRepeat, once ? 1 : Infinity); act.clampWhenFinished = !!once;
-    if (ts < 0) act.time = act.getClip().duration; else if (from > 0) act.time = Math.min(from, act.getClip().duration - .01); act.fadeIn(fade).play(); b.cur = act; // Mod 314: trecho do clipe (golpes de garra recortados)
+    if (ts < 0) act.time = act.getClip().duration; else if (from > 0) act.time = Math.min(from, act.getClip().duration - .01); act.fadeIn(fade).play(); b.cur = act; // Mod 315: trecho do clipe (golpes de garra recortados)
   }
   const POSE = { claws: 'slam', spiral: 'cast', judgment: 'channel', vortex: 'channel', trinity: 'slam', collapse: 'slam' };
   function onEvent(type, d) {
@@ -197,7 +197,7 @@ export function createEnemy1SquadRuntime(ctx) {
     if (type === 'orbBoom' && d.orb.i % 2 === 0) { const o = d.orb; sak.emit({ id: 'e4o' + d.spell.id + '_' + o.i, time, point: { x: o.x, y: o.y, z: o.z }, size: d.spell.T.R * .7, palette: 'abyss', rocks: 6 }); }
     if (type === 'biteSnap') { const s = d.spell; sak.emit({ id: 'e4b' + s.id, time, point: { x: s.bx, y: s.by + .4, z: s.bz }, size: s.T.biteR * .8, palette: 'crimson', rocks: 12, furrow: 2 }); }
     if (type === 'rift') { const s = d.spell, a = d.actor; abyss.dragon(s.x0 - s.dx * .6, s.y + .2, s.z0 - s.dz * .6, a.yaw, true); sak.emit({ id: 'e3r' + s.id, time, point: { x: s.x0, y: s.y + .3, z: s.z0 }, dir: { x: s.dx, z: s.dz }, size: 1.6, palette: 'crimson', rocks: 10, furrow: 5 }); }
-    if (ctx.slash) { // Mod 314: impactos e ondas de garra do Demônio1
+    if (ctx.slash) { // Mod 315: impactos e ondas de garra do Demônio1
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'common') { const tg = squad && squad.targets.find(t => t.id === d.target); if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: 'demon', power: d.move === 'salto' ? .85 : .45 }); }
       if (type === 'clawWave') ctx.slash.wave(d.spell, { style: 'demon', gain: .95 });
       if (type === 'leapStrike') { const a = d.actor; ctx.slash.impact({ x: a.x + Math.sin(a.yaw) * .8, y: a.y + .25, z: a.z + Math.cos(a.yaw) * .8 }, { x: 0, y: 1, z: 0 }, { style: 'demon', power: .7 }); }

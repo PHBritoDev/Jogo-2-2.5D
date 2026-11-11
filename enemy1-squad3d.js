@@ -45,7 +45,7 @@ const COMMON = {
   counter: { chance: .16, cd: 11, cast: .3, speed: 16, r: .45, power: 14, life: 1.5 },
   decide: [.3, .45], gap: .85, cdMul: 1
 };
-/** Mod 314: o Demônio1 (Enemy1 comum) luta com GARRAS — clipes nativos recortados, salto predatório (2 saltos + dash aéreo)
+/** Mod 315: o Demônio1 (Enemy1 comum) luta com GARRAS — clipes nativos recortados, salto predatório (2 saltos + dash aéreo)
     e escudo próprio. Só ele: as outras espécies que herdam o tuning base não ganham estes campos. */
 const DEMON1 = { ...COMMON, native: DEMON1_MOVES, combos: DEMON1_COMBOS, leap: DEMON1_LEAP, shield: SHIELD_SPECS.demon1 };
 const WARDEN = {
@@ -195,7 +195,7 @@ export class Enemy1Squad {
   /** Só reage a sinais visíveis: golpe começando perto, magia/projétil vindo. Com chance de errar. */
   perceive(a, t) {
     const d = Math.hypot(t.x - a.x, t.z - a.z), st = this.study(t.id).rates;
-    // Mod 314: escudo — vale defender contra golpe começando perto ou magia/projétil vindo; nunca em spam
+    // Mod 315: escudo — vale defender contra golpe começando perto ou magia/projétil vindo; nunca em spam
     if (a.shield && !a.act && a.shield.canActivate(this.time) && !a.cds.shieldGap && ((t.attacking && d < 4.6) || (t.casting && d < DEMON1_SHIELD.maxGap)) && d > DEMON1_SHIELD.minGap) {
       const k = t.casting ? DEMON1_SHIELD.chanceVsCast : DEMON1_SHIELD.chanceVsMelee * (d < 3.4 ? 1 : .4);
       a.cds.shieldGap = 1.2; if (this.rand() < k * (a.hp < a.maxHp * .5 ? 1.3 : 1)) { a.react = { type: 'shield', t: DEMON1_SHIELD.react + this.rand() * .12 }; return; }
@@ -298,7 +298,7 @@ export class Enemy1Squad {
     this.begin(a, { type: 'melee', dur: M.dur + (hits.length - M.hits.length) * .4, hits, done: 0, anim: 'attack', animSpeed: M.animSpeed, token: 'melee', tid: t.id, landed: false });
     a.cds.melee = M.cd * a.cdMul; this.event('windup', { actor: a, kind: 'melee', at: M.windup });
   }
-  /** Mod 314: combos de garra nativos. O combo escolhido segue enquanto o alvo continua ao alcance. */
+  /** Mod 315: combos de garra nativos. O combo escolhido segue enquanto o alvo continua ao alcance. */
   pickCombo(a, t) {
     const C = a.T.combos, st = this.study(t.id).rates, gap = Math.hypot(t.x - a.x, t.z - a.z) - t.radius - a.T.radius;
     const recovering = this.time - this.study(t.id).lastAttack < .9;
@@ -405,7 +405,7 @@ export class Enemy1Squad {
       const then = act.then; a.act = null; a.guard = false; a.decideT = Math.min(a.decideT, act.type === 'melee' ? .25 : .12);
       if (act.unstoppable && this.settleArmor(a)) return;
       if (act.type === 'melee' || act.type === 'cast') a.recover = act.move ? .45 : act.nm ? .22 : .35;
-      if (act.nm && t) { // Mod 314: continua o combo se o alvo segue ao alcance; senão recua e conjura (avanço→garras→recuo→magia)
+      if (act.nm && t) { // Mod 315: continua o combo se o alvo segue ao alcance; senão recua e conjura (avanço→garras→recuo→magia)
         const gap = Math.hypot(t.x - a.x, t.z - a.z) - t.radius - a.T.radius;
         if (a.combo && a.combo.i < a.combo.list.length && gap <= a.T.melee.reach && this.canAttack(a, 'melee', t.id)) { a.cds.melee = 0; this.lastAttackAt = -9; this.startNative(a, t); return; }
         a.combo = null;
@@ -472,7 +472,7 @@ export class Enemy1Squad {
   damageActor(id, amount, opts = {}) {
     const a = typeof id === 'string' ? this.actor(id) : id; if (!a || !a.alive || !(amount > 0)) return 0;
     if (a.act && a.act.iframes) { this.event('evade', { actor: a }); return 0; }
-    // Mod 314: escudo hexagonal do Demônio1 — mesma regra do herói (área por tiques, limiar de ruptura com dano integral)
+    // Mod 315: escudo hexagonal do Demônio1 — mesma regra do herói (área por tiques, limiar de ruptura com dano integral)
     if (a.shield && a.shield.active) { const ox = (opts.x ?? a.x) - a.x, oz = (opts.z ?? a.z) - a.z, ol = Math.hypot(ox, oz) || 1;
       const r = a.shield.absorb({ dmg: amount, kind: opts.kind || 'melee', source: opts.source ?? opts.by ?? opts.kind, area: opts.kind === 'area', dir: { x: ox / ol, y: .15, z: oz / ol } }, this.time);
       this.event(r.broke ? 'shieldBreak' : 'shieldHit', { actor: a, result: r });
