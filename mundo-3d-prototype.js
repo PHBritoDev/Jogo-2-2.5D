@@ -521,8 +521,11 @@ function updateInstanceCulling(){
    if(d2>c.r2||d2<c.min2)continue;
    if(d2>c.near2){_cullSphere.center.set(c.pos[i*3],c.pos[i*3+1],c.pos[i*3+2]);_cullSphere.radius=c.rad[i];if(!_cullFrustum.intersectsSphere(_cullSphere))continue;}
    if(c.visibleIds[k]!==i){
-    arr.set(c.src.subarray(i*16,i*16+16),k*16);
-    if(carr)carr.set(c.col.subarray(i*3,i*3+3),k*3);
+    // Sem subarray() por instância: a câmera girando alocava centenas de views tipadas,
+    // provocando picos de GC no Android mesmo quando a GPU mantinha 30-47 FPS.
+    const from=i*16,to=k*16;
+    for(let n=0;n<16;n++)arr[to+n]=c.src[from+n];
+    if(carr){const fc=i*3,tc=k*3;carr[tc]=c.col[fc];carr[tc+1]=c.col[fc+1];carr[tc+2]=c.col[fc+2];}
     c.visibleIds[k]=i;changed=true;if(first<0)first=k;
    }
    k++;
