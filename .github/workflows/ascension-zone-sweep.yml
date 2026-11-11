@@ -5,6 +5,7 @@ on:
       - 'ascension-*.js'
       - 'mundo-3d-prototype.js'
       - 'eldoria-torch-fire3d.js'
+      - 'eldoria-torch-cleanup3d.js'
       - 'tests/ascension311.test.mjs'
       - 'tests/mod312-spatial.test.mjs'
       - 'tools/visual-lab/ascension-zone-sweep.cjs'
