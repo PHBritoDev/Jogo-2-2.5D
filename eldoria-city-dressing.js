@@ -201,7 +201,6 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
   // de caixas e luzes emissivas. Usar exclusivamente o GLB do criador.
   // A mesma Promise/mesmas texturas do modelo já carregado na vila: sem
   // network extra, novos shaders nem clones de textura por tocha.
-  for (const l of lamps) obstacles.push({ x:l.x,z:l.z,radius:.28,height:2.1 });
   if (torchAsset) Promise.resolve(torchAsset).then(source=>{
     if(!source)return; // proibido criar fallback generico
     lamps.forEach((l,i)=>{
@@ -209,6 +208,8 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
       holder.name='TochaMedievalTripo-Cidade-'+(i+1);
       holder.position.set(l.x,groundHeightAt(l.x,l.z),l.z);
       holder.add(source.clone(true));root.add(holder);
+      // Collider só existe quando o GLB correspondente existe; sem obstáculo invisível.
+      obstacles.push({ x:l.x,z:l.z,radius:.28,height:2.1 });
     });
   }).catch(e=>console.warn('Tochas originais do criador indisponiveis:',e));
   return { root, plan, deckY: Y };
