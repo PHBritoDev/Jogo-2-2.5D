@@ -36,9 +36,8 @@ export const ELDORIA_STREETS = {
 };
 export const ELDORIA_MAIN_TREE = { x: -1, z: -26, size: 34, rotation: -.18, file: 'ArvoreAncestralEldoria.glb', funcao: 'Árvore colossal ao fundo da praça (marco visual de quem cruza a ponte)' };
 export const ELDORIA_SIDE_TREE = { x: 27, z: -14, size: 28, rotation: 1.9, file: 'ArvoreAncestralEldoria.glb', funcao: 'Árvore ancestral lateral com casa da árvore, escada e passarela' };
-/** Medido no GLB (raio/altura): o fundo das raízes fica a 1–2 % da altura acima do ponto mais baixo e o colo do
- *  tronco a 3–4 %. Afundar 2,5 % da altura enterra os arcos das raízes sem cobrir tronco nem acesso. */
-export const ANCESTRAL_ROOT_SINK = .055;
+/** Profundidade de enterramento das raízes ancestrais. Ajuste isolado para evitar arcos de raízes acima do solo; validar visualmente ambos os exemplares e os acessos elevados antes de mesclar. */
+export const ANCESTRAL_ROOT_SINK = .075;
 /** Raio de raízes (fração da altura): casas não ficam em cima delas. */
 export const ANCESTRAL_ROOT_SPREAD = .42;
 
