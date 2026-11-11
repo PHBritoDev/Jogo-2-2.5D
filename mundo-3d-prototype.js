@@ -774,7 +774,14 @@ for(const p of villageTorchSites){
 }
 // Somente os GLBs autorais: NENHUMA chama geometrica gerada por codigo.
 const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
- const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
+ const source=gltf.scene;
+ // O arquivo GLB também pode conter uma malha de fogo em formato de triângulo.
+ // Preservar haste/bacia do modelo 3D, ocultando somente malhas nomeadas como fogo.
+ source.traverse(o=>{if(!o.isMesh)return;
+  const mats=Array.isArray(o.material)?o.material:[o.material];
+  if(/(^|[^a-z])(flame|fire|fogo|chama|ember|spark)([^a-z]|$)/i.test([o.name,...mats.map(m=>m?.name||'')].join(' ')))o.visible=false;
+ });
+ const bounds=new THREE.Box3().setFromObject(source);
  if(new URLSearchParams(location.search).has('debug3d')){
   window.SevenSinsTorchMeshAudit=[];
   source.traverse(o=>{if(!o.isMesh)return;const bb=new THREE.Box3().setFromObject(o),m=o.material;
