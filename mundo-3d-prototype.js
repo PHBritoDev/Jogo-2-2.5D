@@ -1932,7 +1932,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?(ascKey==='cave'?1.30:1.52):1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
@@ -1964,8 +1964,19 @@ if(firstPerson){
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
  camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?15:8)*dt));
- // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
- if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);
+ // Ao girar, o lerp pode cortar uma parede mesmo quando o destino esta livre.
+ // A versao anterior teletransportava para "desired" (as vezes DENTRO da rocha),
+ // gerando travadas e saltos de camera no corredor.
+ if(voidMode&&voidSpec.camSolid){
+  const blocked=p=>voidSpec.camSolid(p.x-voidSpec.x,p.y-voidSpec.y,p.z-voidSpec.z);
+  if(blocked(camera.position)){
+   const safe=target.clone(),candidate=new THREE.Vector3();
+   if(!blocked(safe)){
+    for(let i=1;i<=32;i++){candidate.lerpVectors(target,desired,i/32);if(blocked(candidate))break;safe.copy(candidate);}
+    camera.position.copy(safe);
+   }else camera.position.copy(target);
+  }
+ }
  camera.lookAt(target);applyUltCam(dt,target);
 }
 }
@@ -2221,6 +2232,9 @@ function updateSkyAndShadows(){
 }
 /* MOD 186 — a câmera em terceira pessoa não atravessa encostas nem a subida do portal. */
 function keepCameraAboveTerrain(){
+ // A caverna e interiores nao usam o terreno externo: essa correção fazia a camera
+ // subir para o relevo do mundo de fora a cada quadro, travando e aumentando o ponto de vista.
+ if(voidMode)return;
  const floor=groundHeightAt(camera.position.x,camera.position.z)+.55;
  if(camera.position.y<floor)camera.position.y=floor;
 }
