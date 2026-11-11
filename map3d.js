@@ -14,7 +14,7 @@ export const MAP_POIS = [
   { id: 'vila', name: 'Vila da Clareira', x: -12.2, z: -44.5, kind: 'village' },
   { id: 'clareira', name: 'Clareira do Tronco', x: 0, z: -29, kind: 'clearing' },
   { id: 'loja', name: 'Loja Central', x: -33, z: -45, kind: 'shop', revealRadius: 26 },
-  { id: 'gaiolas', name: 'Gaiolas da Floresta', x: -46, z: -216, kind: 'danger' }, // Mod 305: clareira na mata da serra
+  { id: 'gaiolas', name: 'Gaiolas da Floresta', x: 66, z: -70, kind: 'danger' }, // Mod 305: clareira na mata da serra
   { id: 'esgoto', name: 'Entrada do Esgoto', x: 22, z: -106, kind: 'danger' },
   { id: 'lago', name: 'Lago Escuro', x: -27, z: -88, kind: 'water' },
   { id: 'ruina', name: 'Ruína Esquecida', x: -18.5, z: -52, kind: 'secret', secret: true },

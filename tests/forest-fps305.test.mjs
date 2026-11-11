@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {createLightBudget} from '../light-budget3d.js';
 import {CAGE_CLEARING,JOURNEY_ENEMIES} from '../act1-world-layout.js';
 import {MAP_POIS} from '../map3d.js';
+import {CAVE_MOUTH} from '../ascension-layout.js';
 const src=fs.readFileSync(new URL('../mundo-3d-prototype.js',import.meta.url),'utf8');
 
 // THREE mínimo para o orçamento de luzes (só o que o módulo usa).
@@ -28,8 +29,8 @@ test('Mod 305: luz desligada/oculta não ocupa slot e a troca é suave (sem pisc
  for(let i=0;i<60;i++)lb.update(cam,1/60);assert.ok(Math.abs(slot.intensity-2)<.05);
  a.visible=false;lb.update(cam,1/60);assert.ok(slot.intensity>.5,'não apaga de uma vez');
 });
-test('Mod 305: gaiolas e Demônio 1 na clareira da mata da serra; antigo evento removido',()=>{
- assert.ok(CAGE_CLEARING.z<-200&&CAGE_CLEARING.x<-30);
+test('Mod 305/311: gaiolas e Demônio 1 numa clareira da mata (Mod 311: longe da fronteira da caverna); antigo evento removido',()=>{
+ assert.ok(Math.hypot(CAGE_CLEARING.x-CAVE_MOUTH.x,CAGE_CLEARING.z-CAVE_MOUTH.z)>180,'bem longe da nova boca da caverna');
  for(const e of JOURNEY_ENEMIES)assert.ok(Math.hypot(e.x-CAGE_CLEARING.x,e.z-CAGE_CLEARING.z)<9);
  assert.deepEqual(MAP_POIS.find(p=>p.id==='gaiolas').x,CAGE_CLEARING.x);
  assert.doesNotMatch(src,/Observatório da Serra: anel de pedras altas/);

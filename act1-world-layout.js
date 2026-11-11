@@ -2,10 +2,13 @@
 export const MASSACRE_SPOT={x:49,z:-139};
 export const SEWER_DOOR={x:73,z:-170,yaw:-.64};
 export const SEWER_TRAIL=[[15,-99],[27,-115],[39,-130],[49,-139],[59,-150],[68,-162],[72,-168]];
-/* Mod 305 — as gaiolas e os Seguidores (Demônio 1) saíram da antiga clareira (-12,-97) para uma clareira dentro da mata
-   na encosta oeste do vale da serra (direção do criador: o "X" da captura). Mesmos deslocamentos relativos de antes. */
-export const CAGE_CLEARING={x:-46,z:-216};
-export const JOURNEY_ENEMIES=[{x:-46,z:-209.5},{x:-46,z:-219.5},{x:-41,z:-212.5}];
+/* Mod 311 — o vale da serra virou a fronteira montanhosa com a boca da caverna (direção do criador): as gaiolas e os
+   Seguidores (Demônio 1) foram para bem longe dela, numa clareira fechada da mata densa a leste da vila, ao fim de uma
+   trilha própria que sai do caminho do Vale do Altar. Mesmos deslocamentos relativos de antes (gatilhos/ritual iguais). */
+export const CAGE_CLEARING={x:66,z:-70};
+export const JOURNEY_ENEMIES=[{x:66,z:-63.5},{x:66,z:-73.5},{x:71,z:-66.5}];
+/** Trilha da mata: do caminho do altar até a clareira das gaiolas, serpenteando entre as copas. */
+export const CAGE_TRAIL=[[44,-33],[51,-38],[57,-46],[64,-50],[69,-56],[67,-62]];
 
 /* Mod 291 — Prólogo longe de Eldória (roteiro v1, P0/P1). A queda acontece num prado aberto ao sul do vale,
    separado da cidade por uma serra; a estrada de Teren atravessa a garganta e encontra a trilha antiga no
