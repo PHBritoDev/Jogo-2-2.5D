@@ -132,7 +132,7 @@ export function planTropicalBelt({ areas, isFree, seed = 2925, density = 1, rnd:
     { sp: 'sumauma', gap: 22, share: .03, s: [.8, 1.1] },
     { sp: 'figueira', gap: 9.5, share: .21, s: [.75, 1.15] },
     { sp: 'copaLarga', gap: 7.2, share: .42, s: [.78, 1.25] },
-    { sp: 'embauba', gap: 7.2, share: .10, s: [.8, 1.2] },
+    { sp: 'embauba', gap: 9.8, share: .035, s: [.8, 1.2] },
     { sp: 'palmeira', gap: 4.6, share: .2, s: [.78, 1.18] },
   ];
   const out = [], cell = 4, grid = new Map(), key = (x, z) => Math.floor(x / cell) + ',' + Math.floor(z / cell);
