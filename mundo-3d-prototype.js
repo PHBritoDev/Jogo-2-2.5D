@@ -1192,7 +1192,7 @@ function fitGuideModel(){
 }
 const villageNpcBreathing=[];
 const vendorRoots=[];
-function addVillageVendors(){if(!model||vendorsSpawned)return;vendorsSpawned=true;loadVillagers();for(let i=0;i<villageVendors.length;i++){const p=villageVendors[i],cloned=cloneSkinned(model),root=new THREE.Group();root.position.set(p.x,0,p.z);root.rotation.y=p.yaw;root.scale.setScalar(.76);root.userData.breathPhase=i*1.73;root.add(cloned);vendorRoots.push(root);cloned.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});villageGroup.add(root);if(playerIdleClip){const npcMixer=new THREE.AnimationMixer(cloned),idle=npcMixer.clipAction(playerIdleClip);idle.setLoop(THREE.LoopRepeat,Infinity);idle.play();villageNpcMixers.push(npcMixer);}else villageNpcBreathing.push({root,baseY:0,phase:i*1.73});}}
+function addVillageVendors(){if(vendorsSpawned)return;vendorsSpawned=true;loadVillagers();}
 
 const guideAura=new THREE.PointLight(0xffe6a3,.45,2.8);guideAura.position.set(0,.78,.1);guide.add(guideAura);
 const guideShadow=new THREE.Mesh(new THREE.CircleGeometry(.28,20),new THREE.MeshBasicMaterial({color:0x142019,transparent:true,opacity:.28,depthWrite:false}));
@@ -1915,7 +1915,7 @@ function buildAct1Cages(){
 function cageRootVisible(){for(const door of cageDoors){const root=door.parent;if(root)root.visible=questStep>=2;}}
 function openCageDoors(){for(const door of cageDoors)door.rotation.y=-1.15;}
 function updateCages(){cageRootVisible();if(childrenFreed)openCageDoors();}
-// MOD 204 — as crianças agora são moradores sentados (MoradoresPose.glb) dentro das gaiolas; ver buildAct1Props().
+// Personagens infantis só aparecem nas gaiolas, nunca na vila.
 function spawnAct1Children(){buildAct1Props();}
 buildAct1Cages();
 
@@ -3218,47 +3218,15 @@ function poseVillager(c,t,walking=false,fear=false){
 function loadVillagers(){loadVillageCast().then(()=>{
  for(const mixer of villageNpcMixers.splice(0))mixer.stopAllAction();villageNpcBreathing.length=0;
  for(const root of vendorRoots)villageGroup.remove(root);vendorRoots.length=0;
- villageVendors.forEach((p,i)=>{const v=castMember(['Lia','Mara','Teo','Iria'][i%4]);v.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.rotation.y=p.yaw;villageGroup.add(v);vendorRoots.push(v);});
+ villageVendors.forEach((p,i)=>{const v=castMember(['Lia','Teo'][i%2]);v.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.rotation.y=p.yaw;villageGroup.add(v);vendorRoots.push(v);});
  for(let i=0;i<3;i++){const v=castMember(['Lia','Mara','Iria'][i]);let found=false;
   for(let n=0;n<200;n++){const a=n*2.4+i,r=3+n*.06,x=VILLAGE_CENTER.x+Math.sin(a)*r,z=VILLAGE_CENTER.z+Math.cos(a)*r;
    if(!blockedAt(x,z)&&!vendorRoots.some(o=>Math.hypot(x-o.position.x,z-o.position.z)<1.5)){v.position.set(x,groundHeightAt(x,z),z);found=true;break;}}
   if(found){villageGroup.add(v);villagerWalkers.push({holder:v,speed:.8+i*.08,pause:i,phase:i,direction:i*2,target:null});}}
  window.SevenSinsVillagerReport={vendors:vendorRoots.length,walkers:villagerWalkers.length,asset:'Moradores-216.glb'};
- loadChildVillageNpc();
+ // Crianças não residem na vila.
 }).catch(err=>console.warn('Moradores não carregaram; mantendo os anteriores.',err));}
-// NPC infantil masculino autoral: um único exemplar em Eldória, com o GLB real
-// e esqueleto próprio. Carrega após os moradores, sem alterar as crianças do roteiro.
-let childVillageNpc=null;
-function loadChildVillageNpc(){
- if(childVillageNpc)return;
- childVillageNpc={pending:true};
- new GLTFLoader().load('./CriancaNpc-otimizado.glb?v=child-npc-1k',gltf=>{
-  const base=gltf.scene,box=measureModelBounds(base),height=box.getSize(new THREE.Vector3()).y;
-  if(!Number.isFinite(height)||height<.01)throw new Error('Altura inválida no GLB infantil');
-  const holder=new THREE.Group();holder.name='CriancaNpcMasculina';
-  const scale=1.18/height;base.scale.setScalar(scale);base.position.y=-box.min.y*scale;holder.add(base);
-  base.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
-  let x=VILLAGE_CENTER.x+6,z=VILLAGE_CENTER.z+5;
-  for(let i=0;i<48;i++){
-   const angle=i*2.39996,radius=5+(i%6)*2.0;
-   const nx=VILLAGE_CENTER.x+Math.cos(angle)*radius,nz=VILLAGE_CENTER.z+Math.sin(angle)*radius;
-   if(blockedAt(nx,nz)||vendorRoots.some(v=>Math.hypot(v.position.x-nx,v.position.z-nz)<2))continue;
-   x=nx;z=nz;break;
-  }
-  holder.position.set(x,groundHeightAt(x,z),z);villageGroup.add(holder);
-  const clip=(gltf.animations||[]).find(c=>/walking/i.test(c.name))||null;
-  const mixer=clip?new THREE.AnimationMixer(base):null;
-  const action=mixer?mixer.clipAction(clip):null;
-  if(action){action.play();action.paused=true;}
-  const child={holder,speed:.72,pause:1.1,phase:0,direction:2,target:null,mixer,action,isChild:true};
-  villagerWalkers.push(child);childVillageNpc=child;
-  window.SevenSinsChildNpcReport={loaded:true,mesh:holder.name,source:'CriancaNpc-otimizado.glb',height:1.18,animations:(gltf.animations||[]).map(c=>c.name)};
- },undefined,error=>{
-  childVillageNpc=null;
-  window.SevenSinsChildNpcReport={loaded:false,error:String(error)};
-  console.warn('CriancaNpc.glb indisponível; restante da vila preservado.',error);
- });
-}
+// O menino autoral foi transferido para a gaiola; nenhum NPC infantil na vila.
 function updateVillagers(dt){
  for(const c of vendorRoots){c.userData.phase=(c.userData.phase||0)+dt;poseVillager(c,c.userData.phase);}
  for(const w of villagerWalkers){const o=w.holder;w.phase+=dt;
@@ -4154,7 +4122,22 @@ function buildAct1Props(){
   const tint=m=>{m.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.metalness=0;o.material.roughness=Math.max(.75,o.material.roughness||0);if(o.material.map){o.material.emissiveMap=o.material.map;o.material.emissive=new THREE.Color(0x4a3e36);o.material.emissiveIntensity=.7;}o.castShadow=false;}});return m;};
   for(const b of BEGGARS){const m=tint(poses.MendigoSentado.clone());m.position.set(b.x,groundHeightAt(b.x,b.z),b.z);m.rotation.y=b.yaw;villageGroup.add(m);}
   // As crianças presas (sentadas, abraçando os joelhos) — são elas que se transformam.
-  loadVillageCast().then(()=>{CAGE_SPOTS.forEach((s,i)=>{const m=castMember(i?'CriancaB':'CriancaA');m.position.set(s.x,groundHeightAt(s.x,s.z)+.08,s.z);m.rotation.y=Math.PI;scene.add(m);act1Props.kids.push(m);});syncAct1World();}).catch(console.warn);
+  // Modelo masculino otimizado do criador, exclusivo do ritual das gaiolas.
+  L.load('./CriancaNpc-otimizado.glb?v=child-npc-1k',gltf=>{
+    const base=gltf.scene,box=measureModelBounds(base),size=box.getSize(new THREE.Vector3());
+    if(!Number.isFinite(size.y)||size.y<.01){console.warn('Menino GLB: dimensões inválidas');return;}
+    const holder=new THREE.Group();holder.name='MeninoGaiolaMeshy';
+    const k=1.18/size.y,center=box.getCenter(new THREE.Vector3());
+    base.scale.setScalar(k);base.position.set(-center.x*k,-box.min.y*k,-center.z*k);holder.add(base);
+    const p=CAGE_SPOTS[0];holder.position.set(p.x,groundHeightAt(p.x,p.z)+.08,p.z);holder.rotation.y=Math.PI;
+    base.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});
+    const idle=(gltf.animations||[]).find(a=>/idle|breath|sit/i.test(a.name));
+    if(idle){const mixer=new THREE.AnimationMixer(base);mixer.clipAction(idle).play();villageNpcMixers.push(mixer);}
+    scene.add(holder);act1Props.kids.push(holder);syncAct1World();
+    window.SevenSinsChildNpcReport={loaded:true,source:'CriancaNpc-otimizado.glb',mesh:holder.name,animations:(gltf.animations||[]).map(a=>a.name)};
+  },undefined,e=>console.warn('Menino da gaiola: GLB indisponível',e));
+  // Menina ainda exige confirmação do caminho do GLB feminino; preservar lógica do resgate.
+  loadVillageCast().then(()=>{const m=castMember('CriancaB'),p=CAGE_SPOTS[1];if(!m)return;m.position.set(p.x,groundHeightAt(p.x,p.z)+.08,p.z);m.rotation.y=Math.PI;scene.add(m);act1Props.kids.push(m);syncAct1World();}).catch(console.warn);
   syncAct1World();
  },undefined,e=>console.warn('MoradoresPose.glb não carregou.',e));
  // Moscas sobre a comida podre e os corpos (uma chamada de desenho).
