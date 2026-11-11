@@ -1974,7 +1974,7 @@ let worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
 // MOD 292 — só QA (?debug3d): caminhada guiada numa direção do mundo, para testar escadas, deques e bordas.
 if(qaMove&&!(rites.locksMovement||dialogueOpen||cineActive)){if(qaMove.left>0){qaMove.left-=dt;worldX=qaMove.x;worldZ=qaMove.z;}else qaMove=null;}
 const engaged=enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;
-const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul()*(ascKey==='cave'&&cameraDistance<1.05?1.22:1),targetVX=worldX*speed,targetVZ=worldZ*speed;
+const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul()*(ascKey==='cave'&&cameraDistance<1.05?1.85:1),targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
