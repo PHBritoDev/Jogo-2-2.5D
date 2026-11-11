@@ -37,7 +37,7 @@ export function buildFrontier(THREE, { scene, groundHeightAt, GLTFLoader, regist
         const back = H * (.05 * v + .42 * v * v) + (r === 0 ? 0 : (r === 1 ? Math.max(0, lump) * .7 : lump * 3.8 + strata * 2.2 + fine * 1.3 + gully));
         pos.push(x + nx * back, y0 + (r ? (fbm(u * .2, v * 5, 814, 2) - .5) * 1.4 : 0), z + nz * back);
         const k = hash2(i, r, 815);
-        rock.setRGB(.74 + .2 * k, .72 + .17 * k, .68 + .14 * k).multiplyScalar(.75 + .35 * fbm(u * .03, y0 * .05, 816, 2));
+        rock.setRGB(.5 + .16 * k, .49 + .13 * k, .46 + .1 * k).multiplyScalar(.72 + .4 * fbm(u * .03, y0 * .05, 816, 2));
         col.push(rock.r, rock.g, rock.b);
       }
     }
@@ -74,7 +74,8 @@ export function buildFrontier(THREE, { scene, groundHeightAt, GLTFLoader, regist
 
   const cliff = new THREE.Mesh(cliffGeo, cliffMat); cliff.name = 'penhasco-fronteira'; cliff.receiveShadow = true; cliff.castShadow = false; group.add(cliff);
   // ---------- boca da caverna: túnel escurecendo até o breu (cartões pretos crescentes) e luz fria vinda de dentro ----------
-  const tunnel = new THREE.Group(); tunnel.name = 'tunel-boca'; group.add(tunnel);
+  const mouthGroup = new THREE.Group(); mouthGroup.name = 'boca-detalhes'; group.add(mouthGroup); // fachada, cristais e túnel: só de perto
+  const tunnel = new THREE.Group(); tunnel.name = 'tunel-boca'; mouthGroup.add(tunnel);
   const veilMat = d => new THREE.MeshBasicMaterial({ color: 0x010203, transparent: true, opacity: d, depthWrite: false, fog: false, side: THREE.DoubleSide });
   for (let k = 0; k < 5; k++) {
     const x = m.x - 5 - k * 2.6, card = new THREE.Mesh(new THREE.PlaneGeometry(m.width + 3, 9), veilMat(.2 + k * .14));
@@ -82,13 +83,13 @@ export function buildFrontier(THREE, { scene, groundHeightAt, GLTFLoader, regist
   }
   const back = new THREE.Mesh(new THREE.PlaneGeometry(m.width + 6, 11), new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }));
   back.position.set(m.x - m.depth - .4, mouthFloorAt(m.x - m.depth) + 4, m.z); back.rotation.y = Math.PI / 2; tunnel.add(back);
-  const coldLight = new THREE.PointLight(0x7fd8e8, 2.4, 15, 1.6); coldLight.name = 'boca-luz-fria'; coldLight.position.set(m.x - 7, m.floor + 2.6, m.z); tunnel.add(coldLight);
+  const coldLight = new THREE.PointLight(0x7fd8e8, 2.4, 15, 1.6); coldLight.layers.set(31); coldLight.name = 'boca-luz-fria'; // fora do shader: o orçamento de luzes decide coldLight.position.set(m.x - 7, m.floor + 2.6, m.z); tunnel.add(coldLight);
   function mouthFloorAt(x) { return m.floor - Math.max(0, Math.min(1, (m.x - x) / m.depth)) * m.drop; }
   // ---------- GLBs: maciços, fachada da boca, cristais e rochedos de transição ----------
   const loader = new GLTFLoader(), stats = { mountains: 0, cliffTris: cliffGeo.attributes.position.count / 3 };
   const loadGLB = url => new Promise((res, rej) => loader.load(url, g => res(g.scene), undefined, rej));
   const firstMesh = root => { let f = null; root.traverse(o => { if (!f && o.isMesh) f = o; }); return f; };
-  const ready = Promise.all([loadGLB('./MontanhaEldoria01.glb'), loadGLB('./EntradaCavernaAto1.glb'), loadGLB('./CristalCaverna01.glb'), loadGLB('./RochedoMusgoEldoria.glb')]).then(([mont, ent, cri, roc]) => {
+  const ready = Promise.all([loadGLB('./MontanhaEldoria01.glb'), loadGLB('./EntradaCavernaAto1.glb'), loadGLB('./CristalCaverna01.glb'), loadGLB('./RochedoMusgoEldoria.glb'), loadGLB('./MontanhaEldoria01-lod1.glb').catch(() => null)]).then(([mont, ent, cri, roc, montLod]) => {
     for (const r of [mont, ent, cri, roc]) prepareBaked && prepareBaked(r);
     // maciços ao longo da linha, recuados para dentro da rocha (cobrem o topo do penhasco e a caixa do túnel)
     const mm = firstMesh(mont), spots = []; if (mm.material.map) triplanar(mm.material.map);
@@ -106,11 +107,22 @@ export function buildFrontier(THREE, { scene, groundHeightAt, GLTFLoader, regist
     const inst = new THREE.InstancedMesh(mm.geometry, mm.material, spots.length), o = new THREE.Object3D();
     spots.forEach((p, i) => { o.position.set(p.x, groundHeightAt(p.x, p.z) - p.s * (p.lift || .12), p.z); o.rotation.set(0, p.yaw, 0); o.scale.set(p.s, p.s * (.78 + .3 * hash2(i, 4, 824)), p.s); o.updateMatrix(); inst.setMatrixAt(i, o.matrix); });
     inst.name = 'macicos-fronteira'; inst.castShadow = false; inst.receiveShadow = true; inst.instanceMatrix.needsUpdate = true; group.add(inst);
-    if (registerCull) registerCull(inst, 900, 120); stats.mountains = spots.length;
+    stats.mountains = spots.length;
+    /* LOD: de longe, a mesma silhueta com ~2,1 mil triângulos (gerada sem costuras de UV) e a rocha assada aplicada em
+       triplanar — 7× menos triângulos por maciço; de perto, o modelo completo. Troca por distância ao centro do maciço. */
+    const lm = montLod && firstMesh(montLod);
+    if (lm && registerCull) {
+      lm.geometry.computeVertexNormals();
+      const lodMat = new THREE.MeshStandardMaterial({ roughness: .95, metalness: 0, color: 0x8f8a82 }); lodMat.map = mm.material.map;
+      lodMat.onBeforeCompile = cliffMat.onBeforeCompile; lodMat.customProgramCacheKey = () => 'macico-lod-triplanar';
+      const lod = new THREE.InstancedMesh(lm.geometry, lodMat, spots.length); for (let i = 0; i < spots.length; i++) { inst.getMatrixAt(i, o.matrix); lod.setMatrixAt(i, o.matrix); }
+      lod.name = 'macicos-fronteira-lod'; lod.receiveShadow = true; group.add(lod);
+      registerCull(inst, 80, 30); registerCull(lod, 1400, 0, 80); stats.lod = lm.geometry.index ? lm.geometry.index.count / 3 : 0;
+    } else if (registerCull) registerCull(inst, 1400, 120);
     // fachada da boca: o GLB tem o arco em +Z; giramos para +X (vale). x_w = px + z_l·s ; z_w = pz − x_l·s
     const S = m.scale, face = ent; face.scale.setScalar(S); face.rotation.y = Math.PI / 2;
     face.position.set(m.x - m.glb.front * S, m.floor - m.glb.base * S - .35, m.z + m.glb.lateral * S);
-    face.traverse(q => { if (q.isMesh) { q.castShadow = true; q.receiveShadow = true; } }); face.name = 'boca-caverna'; group.add(face);
+    face.traverse(q => { if (q.isMesh) { q.castShadow = true; q.receiveShadow = true; } }); face.name = 'boca-caverna'; mouthGroup.add(face);
     // cristais na soleira (prenúncio da gruta): emissivo, sem luz extra
     const cm = firstMesh(cri); cm.material.emissive = new THREE.Color(0x6a4cff); cm.material.emissiveMap = cm.material.map; cm.material.emissiveIntensity = .55;
     for (const [dx, dz, s, yaw] of [[-3.2, 2.6, .9, .4], [-6.4, -2.75, .7, 2.2], [-1.2, -3.6, .55, 4.1]]) {
@@ -125,9 +137,11 @@ export function buildFrontier(THREE, { scene, groundHeightAt, GLTFLoader, regist
     }
     const ri = new THREE.InstancedMesh(rm.geometry, rm.material, rocks.length);
     rocks.forEach((p, i) => { o.position.set(p.x, groundHeightAt(p.x, p.z) + p.s * .22, p.z); o.rotation.set(0, hash2(i, 7, 827) * 6.283, 0); o.scale.setScalar(p.s); o.updateMatrix(); ri.setMatrixAt(i, o.matrix); });
-    ri.name = 'rochedos-fronteira'; ri.receiveShadow = true; group.add(ri); if (registerCull) registerCull(ri, 260, 40);
+    ri.name = 'rochedos-fronteira'; ri.receiveShadow = true; group.add(ri); if (registerCull) registerCull(ri, 120, 30);
     stats.rocks = rocks.length;
     return stats;
   });
-  return { group, cliff, ready, stats, mouthFloorAt, coldLight };
+  /** Detalhes da boca (fachada 15 mil triângulos, cristais, cartões de escuridão) só a até 165 m da câmera. */
+  function update(cam) { const dx = cam.position.x - m.x, dz = cam.position.z - m.z; mouthGroup.visible = dx * dx + dz * dz < 165 * 165; }
+  return { group, cliff, ready, stats, mouthFloorAt, coldLight, update };
 }

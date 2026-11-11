@@ -222,7 +222,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
     [0x42e6d0, 2.2, 20, [-43, -5, -62]],  // gruta das poças
     [0x8a5cff, 3.2, 22, [P.x, portalY, P.z + 2.5]], // portal
     [0x6fa8ff, 1.2, 16, [0, 2.8, -6]],    // entrada
-  ].map(([c, i, d, p]) => { const l = new THREE.PointLight(c, i, d, 1.6); l.position.set(...p); l.name = 'caverna-luz'; group.add(l); return { l, base: i }; });
+  ].map(([c, i, d, p]) => { const l = new THREE.PointLight(c, i, d, 1.6); l.position.set(...p); l.name = 'caverna-luz'; l.layers.set(31); group.add(l); return { l, base: i }; });
   updaters.push(t => { L[2].l.intensity = L[2].base * (1 + .12 * Math.sin(t * 2.3)); L[1].l.intensity = L[1].base * (1 + .06 * Math.sin(t * 1.1)); });
   // ---------- cristais: poucos GLB "herói" em fendas + aglomerados procedurais leves (emissivo violeta/azul) ----------
   const crystalSpots = [[-24.5, -49, 1.6, .3], [22.5, -60, 1.9, 2.4], [-52, -55, 1.3, 1.2], [-31, -75, 1.1, 4], [12.5, -130, 1.5, 2], [-20, -136, 1.7, .8], [5, -20, .9, 1.7], [31, -96, 1.1, 3.4]];

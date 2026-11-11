@@ -4203,6 +4203,7 @@ function ascTravel(fn,{color='#000',hold=260}={}){if(ascBusy)return;ascBusy=true
 function updateAscension(dt,now){
  const P=player.position;
  if(!ascKey){
+  if(!voidMode)frontier.update(camera);
   if(voidMode||ascBusy)return;
   const dm=Math.hypot(P.x-CAVE_MOUTH.x,P.z-CAVE_MOUTH.z);
   if(dm<75&&!ascPreload){ascPreload=(window.requestIdleCallback||setTimeout)(()=>{ascZone('cave');});}

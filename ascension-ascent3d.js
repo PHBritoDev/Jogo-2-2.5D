@@ -192,8 +192,8 @@ export function buildAscent(THREE, { GLTFLoader, prepareBaked, lowSpec = false, 
         gl_FragColor = vec4(c * smoothstep(.2, .8, uProg), 1.0); }` }));
   moon.position.set(C.x - 380, top + 260, C.z - 620); moon.renderOrder = -9; moon.frustumCulled = false; group.add(moon);
   // ---------- luzes: brilho do portal de volta e luar da ilha ----------
-  const portalLight = new THREE.PointLight(0x5f86ff, 2.6, 18, 1.6); portalLight.position.set(P.x, P.h, P.z - 2); portalLight.name = 'ascensao-luz-portal'; group.add(portalLight);
-  const isleLight = new THREE.PointLight(0xa58cff, 0, 140, 1.2); isleLight.position.set(C.x, top + 30, C.z); isleLight.name = 'ascensao-luz-ilha'; group.add(isleLight);
+  const portalLight = new THREE.PointLight(0x5f86ff, 2.6, 18, 1.6); portalLight.position.set(P.x, P.h, P.z - 2); portalLight.name = 'ascensao-luz-portal'; portalLight.layers.set(31); group.add(portalLight);
+  const isleLight = new THREE.PointLight(0xa58cff, 0, 140, 1.2); isleLight.position.set(C.x, top + 30, C.z); isleLight.name = 'ascensao-luz-ilha'; isleLight.layers.set(31); group.add(isleLight);
   // ---------- texturas assadas (rocha do maciço) para o triplanar ----------
   const ready = new Promise(res => {
     if (!GLTFLoader) { res(); return; }
