@@ -81,7 +81,10 @@ export function mountTropicalForest(THREE, lib, { group, plan, registerCull, low
       const m = new THREE.InstancedMesh(geo, material, list.length);
       list.forEach((p, i) => {
         dummy.position.set(p.x, p.y, p.z); dummy.rotation.set(0, p.rot || 0, 0); dummy.scale.setScalar(p.s || 1); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
-        const t = p.tint || [1, 1, 1]; m.setColorAt(i, color.setRGB(t[0], t[1], t[2]));
+        const t = p.tint || [1, 1, 1];
+        // Casca muito clara da embauba: escurece SOMENTE o tronco, preservando folhas, LODs e texturas.
+        const barkShade = id === 'embauba' && part === 'bark' ? .53 : 1;
+        m.setColorAt(i, color.setRGB(t[0] * barkShade, t[1] * barkShade, t[2] * barkShade));
       });
       m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.computeBoundingSphere();
       m.name = `${name}-${id}-lod${lod}-${part}`; m.userData.lod = lod; m.userData.species = id;
