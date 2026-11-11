@@ -1836,7 +1836,8 @@ addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=
 function blockedAt(x,z){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
   // Em abismos não existe parede invisível: deixar atravessar a borda e cair.
-  if(ascKey&&voidSpec.hazard?.(lx,lz))return false;
+  // Depois de iniciar uma queda, nao criar paredes invisiveis dentro do vazio.
+  if(ascKey&&(ascFallFrom!==null||voidSpec.hazard?.(lx,lz)))return false;
   return voidSpec.walk?!voidSpec.walk(lx,lz):Math.hypot(lx,lz)>voidSpec.radius;
  }
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
@@ -1947,7 +1948,7 @@ if(firstPerson){
   if(voidMode&&voidSpec.walk){const cs=voidSpec.camSolid;for(let i=1;i<=22;i++){const f=i/22*limit,cx=target.x+camOffset.x*f,cz=target.z+camOffset.z*f;if(cs?cs(cx-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,cz-voidSpec.z):blockedAt(cx,cz)){limit=Math.max(.035,(i-1.7)/22*limit);break;}}} // MOD 311: zonas com volume (caverna/escadaria) testam o sólido em 3D
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
- camera.position.lerp(desired,1-Math.exp(-8*dt));
+ camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?15:8)*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
  if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);
  camera.lookAt(target);applyUltCam(dt,target);
@@ -1973,7 +1974,7 @@ let worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
 // MOD 292 — só QA (?debug3d): caminhada guiada numa direção do mundo, para testar escadas, deques e bordas.
 if(qaMove&&!(rites.locksMovement||dialogueOpen||cineActive)){if(qaMove.left>0){qaMove.left-=dt;worldX=qaMove.x;worldZ=qaMove.z;}else qaMove=null;}
 const engaged=enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;
-const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul()*(ascKey==='cave'&&cameraDistance<1.05?1.22:1),targetVX=worldX*speed,targetVZ=worldZ*speed;
+const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul()*(ascKey==='cave'&&cameraDistance<1.05?1.85:1),targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
@@ -2024,7 +2025,8 @@ let floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.p
 // Sem piso debaixo do herói: gravidade real em vez de colisão vertical falsa.
 if(ascVoidFall){floorY=ascFallFrom-1000;if(grounded){grounded=false;verticalVelocity=Math.min(-1.8,verticalVelocity);}}
 // MOD 292 — apoio em deque/escada/passarela: a superfície mais alta até um degrau acima dos pés (por baixo do deque o chão continua sendo o terreno).
-if(!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.position.x,player.position.z,player.position.y+(grounded?0:.05));if(sup&&sup.y>floorY)floorY=sup.y;}
+// Nunca permitir que suportes de Eldoria anulem a queda em um abismo da Ascensao.
+if(!ascVoidFall&&!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.position.x,player.position.z,player.position.y+(grounded?0:.05));if(sup&&sup.y>floorY)floorY=sup.y;}
 if(grounded&&!caveWalk&&!voidMode&&floorY<player.position.y-.6){grounded=false;verticalVelocity=0;} // saiu pela borda: cai em vez de teleportar para o chão
 if(!grounded){
  if(newHero){prota302.airborneT+=dt;const hang=rites.active?.kind==='basic'&&rites.active.mode==='air'&&rites.active.t<=rites.active.def.close;verticalVelocity-=(hang?PROTA_JUMP.gravity*.35:PROTA_JUMP.gravity)*dt;}else verticalVelocity-=gravity*dt;
@@ -7533,6 +7535,7 @@ function installCombatLab(){
 }
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
+ torchAudit(){const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});return {expected:villageTorchSites.length,loaded:placed.length,placed};},
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},
 
  /** Instrumento de QA: avança APENAS a timeline determinística da Skill 2 sem a física do mundo;

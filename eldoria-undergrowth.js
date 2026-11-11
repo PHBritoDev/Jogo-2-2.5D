@@ -55,16 +55,16 @@ export function bushGeometry(THREE, seed = 3) {
 
 /** Plano puro: samambaias ao pé das árvores do vale, arbustos entre elas e faixa densa nas margens d'água. */
 export function planUndergrowth({ trees, banks = [], isFree, lowSpec = false, seed = 9911 }) {
-  const rnd = makeRng(seed), ferns = [], bushes = [], maxF = lowSpec ? 750 : 1400, maxB = lowSpec ? 90 : 180;
+  const rnd = makeRng(seed), ferns = [], bushes = [], maxF = lowSpec ? 750 : 1400, maxB = lowSpec ? 48 : 96;
   const valley = trees.filter(t => t.collide);
   for (const t of valley) {
     const n = 2 + ((rnd() * 4) | 0);
     for (let k = 0; k < n && ferns.length < maxF; k++) { const a = rnd() * 6.28, r = .9 + rnd() * 2.8 * t.s, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) ferns.push({ x, z, s: .7 + rnd() * .7, rot: rnd() * 6.28 }); }
-    if (rnd() < .20 && bushes.length < maxB) { const a = rnd() * 6.28, r = 1.6 + rnd() * 2.6, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) bushes.push({ x, z, s: .45 + rnd() * .55, rot: rnd() * 6.28 }); }
+    if (rnd() < .13 && bushes.length < maxB) { const a = rnd() * 6.28, r = 1.6 + rnd() * 2.6, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) bushes.push({ x, z, s: .45 + rnd() * .55, rot: rnd() * 6.28 }); }
   }
   for (const p of banks) {
     for (let k = 0; k < 3 && ferns.length < maxF + 400; k++) { const x = p.x + (rnd() - .5) * 3, z = p.z + (rnd() - .5) * 3; if (isFree(x, z)) ferns.push({ x, z, s: .8 + rnd() * .6, rot: rnd() * 6.28 }); }
-    if (rnd() < .12 && bushes.length < maxB + 35) { const x = p.x + (rnd() - .5) * 4, z = p.z + (rnd() - .5) * 4; if (isFree(x, z)) bushes.push({ x, z, s: .5 + rnd() * .5, rot: rnd() * 6.28 }); }
+    if (rnd() < .07 && bushes.length < maxB + 18) { const x = p.x + (rnd() - .5) * 4, z = p.z + (rnd() - .5) * 4; if (isFree(x, z)) bushes.push({ x, z, s: .5 + rnd() * .5, rot: rnd() * 6.28 }); }
   }
   return { ferns, bushes };
 }
@@ -88,24 +88,32 @@ export function buildUndergrowth(THREE, o) {
 /* MOD 291 — densidade de floresta tropical úmida (direção do criador, 08/11): plantas de folha larga em leque
    (tipo costela-de-adão/helicônia, desenho próprio) e cipós pendendo das copas. Instanciados e cortados por distância. */
 export function broadLeafGeometry(THREE) {
-  const pos = [], col = [], dark = [.055, .16, .055], light = [.12, .32, .11], N = 7;
-  for (let k = 0; k < N; k++) {
-    const a = k / N * Math.PI * 2 + (k % 2) * .4, L = .9 + (k % 3) * .25, W = .32 + (k % 2) * .08, lift = .35 + (k % 3) * .12;
-    const dx = Math.cos(a), dz = Math.sin(a), px = -dz, pz = dx;
-    // haste até a base da folha + lâmina em 3 segmentos que arqueia para baixo
-    const base = [dx * .15, lift, dz * .15], segs = [[.0, 0, 0], [.35, .12, .55], [.7, .02, .9], [1, -.22, .12]];
-    for (let i = 0; i < segs.length - 1; i++) {
-      const [t0, h0, w0] = segs[i], [t1, h1, w1] = segs[i + 1];
-      const a0 = [base[0] + dx * L * t0, base[1] + h0, base[2] + dz * L * t0], a1 = [base[0] + dx * L * t1, base[1] + h1, base[2] + dz * L * t1];
-      const l0 = [a0[0] - px * W * w0, a0[1], a0[2] - pz * W * w0], r0 = [a0[0] + px * W * w0, a0[1], a0[2] + pz * W * w0];
-      const l1 = [a1[0] - px * W * w1, a1[1], a1[2] - pz * W * w1], r1 = [a1[0] + px * W * w1, a1[1], a1[2] + pz * W * w1];
-      const c0 = i === 0 ? dark : light, c1 = light;
-      pos.push(...l0, ...r0, ...r1, ...l0, ...r1, ...l1); col.push(...c0, ...c0, ...c1, ...c0, ...c1, ...c1);
+  // Folhas lanceoladas estreitas, curvas e de tamanhos desencontrados:
+  // elimina o aspecto de estrelas de triangulos grandes sem texturas extras.
+  const pos=[],col=[],N=6;
+  const shades=[[.045,.145,.048],[.065,.20,.064],[.085,.235,.075]];
+  for(let k=0;k<N;k++){
+    const angle=k*2.399963+(k%3)*.13,dx=Math.cos(angle),dz=Math.sin(angle),px=-dz,pz=dx;
+    const len=.52+(k%3)*.10,width=.15+(k%2)*.025,lift=.22+(k%3)*.045;
+    const color=shades[k%shades.length];
+    const point=(t,side)=>{
+      const taper=Math.pow(Math.max(0,Math.sin(Math.PI*t)),.85);
+      const d=.09+len*t, bend=Math.sin(t*Math.PI)*.065;
+      return [dx*d+px*(side*width*taper+bend),lift+.21*Math.sin(Math.PI*t)-.19*t*t,dz*d+pz*(side*width*taper+bend)];
+    };
+    for(let i=0;i<5;i++){
+      const t0=i/5,t1=(i+1)/5,l0=point(t0,-1),r0=point(t0,1),l1=point(t1,-1),r1=point(t1,1);
+      const edge=color.map(v=>v*.81),face=color.map(v=>v*(1+.07*Math.sin(t1*Math.PI)));
+      pos.push(...l0,...r0,...r1,...l0,...r1,...l1);
+      col.push(...edge,...face,...face,...edge,...face,...edge);
     }
-    pos.push(-.02, 0, 0, .02, 0, 0, base[0], base[1], base[2]); col.push(...dark, ...dark, ...dark);
+    pos.push(0,.035,0,.015,.035,0,dx*.09,lift,dz*.09);
+    col.push(...color,...color,...color);
   }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  const n = new Float32Array(pos.length); for (let i = 1; i < n.length; i += 3) n[i] = 1; g.setAttribute('normal', new THREE.BufferAttribute(n, 3)); g.computeBoundingSphere(); return g;
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.computeVertexNormals();g.computeBoundingSphere();return g;
 }
 /** Cipó: fita fina curva de altura 1 (topo em y=1), balança com o vento do jogo. */
 export function vineGeometry(THREE) {
