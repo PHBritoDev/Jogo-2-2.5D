@@ -3,6 +3,7 @@ import {newHero,heroURL,heroFallbackURL,moveWorldHero,prepareWorldHero,nativeWor
 import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep} from './prota-combat3d.js';
 import {createProtaVFX} from './prota-vfx3d.js';
 import {createLightBudget} from './light-budget3d.js';
+import {removeTorchBakedFlames} from './eldoria-torch-cleanup3d.js';
 import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
 import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
@@ -44,7 +45,6 @@ import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, CAGE_TRAIL, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
-import {createVillageTorchFire} from './eldoria-torch-fire3d.js';
 import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
@@ -772,9 +772,9 @@ for(const p of villageTorchSites){
  torchLight.castShadow=false;
  villageGroup.add(torchLight);villageTorchLights.push(torchLight);
 }
-const torchFlames=createVillageTorchFire(THREE,villageGroup,villageTorchSites,villageTorchLights,camera);
+// Sem chamas em planos/shaders: apenas TochaMedievalTripo.glb original + iluminação.
 const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
- const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
+ const source=gltf.scene;const torchCleanup=removeTorchBakedFlames(source,.90);console.info('Tocha GLB: fogo embutido removido',torchCleanup);const bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(bounds.isEmpty()||!Number.isFinite(size.y)||size.y<.001)return;
  clampBakedMips(THREE,source,terrainLowSpec?4:3.5);
@@ -785,7 +785,7 @@ const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedi
  for(let i=0;i<villageTorchSites.length;i++){
   const p=villageTorchSites[i],model=source.clone(true);
   const anchor=new THREE.Group();anchor.name='TochaMedievalTripo-'+(i+1);
-  anchor.position.set(p.x,0,p.z);anchor.add(model);villageGroup.add(anchor);
+  anchor.position.set(p.x,groundHeightAt(p.x,p.z),p.z);anchor.add(model);villageGroup.add(anchor);
  }
  resolve(source);
 },undefined,()=>{console.warn('TochaMedievalTripo.glb indisponível; nenhum poste genérico será criado.');resolve(null);}));
@@ -1933,7 +1933,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?(ascKey==='cave'?1.30:1.52):1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
@@ -1965,8 +1965,19 @@ if(firstPerson){
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
  camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?15:8)*dt));
- // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
- if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);
+ // Ao girar, o lerp pode cortar uma parede mesmo quando o destino esta livre.
+ // A versao anterior teletransportava para "desired" (as vezes DENTRO da rocha),
+ // gerando travadas e saltos de camera no corredor.
+ if(voidMode&&voidSpec.camSolid){
+  const blocked=p=>voidSpec.camSolid(p.x-voidSpec.x,p.y-voidSpec.y,p.z-voidSpec.z);
+  if(blocked(camera.position)){
+   const safe=target.clone(),candidate=new THREE.Vector3();
+   if(!blocked(safe)){
+    for(let i=1;i<=32;i++){candidate.lerpVectors(target,desired,i/32);if(blocked(candidate))break;safe.copy(candidate);}
+    camera.position.copy(safe);
+   }else camera.position.copy(target);
+  }
+ }
  camera.lookAt(target);applyUltCam(dt,target);
 }
 }
@@ -2198,7 +2209,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);applyCycloneSuction(dt);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();torchFlames.update(now*.001,dayNightState.t);district.torchFlames.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();// Sem atualização de fogo procedural; as tochas GLB têm luz estável controlada pelo light budget.applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
  undoCyShake();undoVxShake();undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -2222,6 +2233,9 @@ function updateSkyAndShadows(){
 }
 /* MOD 186 — a câmera em terceira pessoa não atravessa encostas nem a subida do portal. */
 function keepCameraAboveTerrain(){
+ // A caverna e interiores nao usam o terreno externo: essa correção fazia a camera
+ // subir para o relevo do mundo de fora a cada quadro, travando e aumentando o ponto de vista.
+ if(voidMode)return;
  const floor=groundHeightAt(camera.position.x,camera.position.z)+.55;
  if(camera.position.y<floor)camera.position.y=floor;
 }
@@ -3458,7 +3472,7 @@ const district=(()=>{
  // Substituição definitiva dos postes/esferas feitos por código: somente GLB autoral.
  const districtTorchSites=[[-146,-56],[-156,-68],[-140,-68]].map(([x,z])=>({x,z,y:groundHeightAt(x,z)}));
  const districtTorchLights=districtTorchSites.map(p=>{const l=new THREE.PointLight(0xffa860,.45,12,1.6);l.position.set(p.x,p.y+1.95,p.z);l.castShadow=false;root.add(l);return l;});
- const districtTorchFlames=createVillageTorchFire(THREE,root,districtTorchSites,districtTorchLights,camera);
+ // Não gerar geometria de fogo: os pontos exibem somente modelos 3D autorais.
  authoredTorchAsset.then(source=>{
   if(!source)return;
   for(let i=0;i<districtTorchSites.length;i++){
@@ -3467,7 +3481,7 @@ const district=(()=>{
    holder.add(source.clone(true));root.add(holder);
   }
  });
- return{root,seal,sealLight,sealMat,altar,ledgers,torchFlames:districtTorchFlames};
+ return{root,seal,sealLight,sealMat,altar,ledgers};
 })();
 // ---------- Chuva (shader: sem atualizar vértices na CPU) e relâmpagos ----------
 const rain=(()=>{
@@ -7562,7 +7576,12 @@ function installCombatLab(){
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  torchAudit(){const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});const districtModels=[];district.root.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Distrito-'))districtModels.push(o.name);});
- return {expected:villageTorchSites.length,loaded:placed.length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels}};},
+ const legacy=[];for(const root of [villageGroup,district.root,...Object.values(ascZones).map(z=>z.group)])root?.traverse(o=>{if(/^(ChamaFluidaTocha|TochasVentoFogoGPU|BrasasCompartilhadas)/.test(o.name||''))legacy.push(o.name);});
+ const torchParts=[];const first=villageGroup.getObjectByName('TochaMedievalTripo-1');
+ first?.traverse(o=>{if(o.isMesh){const m=Array.isArray(o.material)?o.material[0]:o.material;const g=o.geometry;g.computeBoundingBox();const box=g.boundingBox,pt=g.attributes.position,steps=Array(10).fill(0);
+ for(let i=0;i<pt.count;i++){const k=Math.min(9,Math.max(0,Math.floor(10*(pt.getY(i)-box.min.y)/(box.max.y-box.min.y||1))));steps[k]++;}
+ torchParts.push({name:o.name,material:m?.name,color:m?.color?.getHexString?.(),emissive:m?.emissive?.getHexString?.(),tri:(g.index?.count||pt.count)/3,bounds:{min:box.min.toArray(),max:box.max.toArray()},histY:steps,texture:m?.map?.name,vertices:pt.count});}});
+ return {expected:villageTorchSites.length,loaded:placed.length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels},genericFire:legacy,torchParts};},
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},
 
  /** Instrumento de QA: avança APENAS a timeline determinística da Skill 2 sem a física do mundo;

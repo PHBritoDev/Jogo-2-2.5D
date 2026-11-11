@@ -42,6 +42,35 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
   await snap('caverna-entrada',0,2,{yaw:Math.PI});
   await snap('caverna-corredor',-2,-98,{yaw:Math.PI});
   await snap('caverna-corredor-1p',-2,-98,{yaw:Math.PI,distance:.72});
+  // Prova: altura de camera em 1p acompanha o MESMO heroi, nao o relevo do mundo externo.
+  // Testar tambem girando para ambos os lados — a camera nunca pode entrar na rocha.
+  for(const yaw of [0,Math.PI/2,Math.PI,-Math.PI/2]){
+   await page.evaluate(yaw=>window.SevenSinsDebug3D.view(yaw,.12,.72),yaw);
+   await page.waitForTimeout(450);
+   const check=await page.evaluate(async()=>{
+    const a=window.SevenSinsDebug3D,s=a.ascState(),cam=a.snapCam();
+    const m=await import('./ascension-cave3d.js');
+    return {yaw:cam[3],eyeOffset:cam[1]-s.world.y,blocked:m.caveCamSolid(s.local.x+cam[0]-s.world.x,cam[1],s.local.z+cam[2]-s.world.z),cam,local:s.local};
+   });
+   report.checks.push({name:'caverna-camera-1p-giro',passed:!check.blocked&&check.eyeOffset>1.15&&check.eyeOffset<1.43,measurement:check});
+   assert.ok(!check.blocked&&check.eyeOffset>1.15&&check.eyeOffset<1.43,'Camera 1p entra na rocha ou fica alta demais: '+JSON.stringify(check));
+  }
+  await page.screenshot({path:path.join(output,'caverna-1p-altura-verificada.png')});
+  // Com o modelo visível, a câmera 3p deve encurtar ao encostar na rocha,
+  // sem atravessar paredes nem usar a altura do terreno externo.
+  await page.evaluate(()=>window.SevenSinsDebug3D.view(0,.12,5.5));
+  for(const yaw of [0,1.57,3.14,-1.57]){
+    await page.evaluate(yaw=>window.SevenSinsDebug3D.view(yaw,.12,5.5),yaw);
+    await page.waitForTimeout(650);
+    const check=await page.evaluate(async()=>{
+      const a=window.SevenSinsDebug3D,s=a.ascState(),cam=a.snapCam(),m=await import('./ascension-cave3d.js');
+      return {cam,blocked:m.caveCamSolid(cam[0]-s.world.x+s.local.x,cam[1],cam[2]-s.world.z+s.local.z),local:s.local};
+    });
+    report.checks.push({name:'caverna-camera-3p-sem-parede',passed:!check.blocked,measurement:check});
+    assert.equal(check.blocked,false,'Camera em terceira pessoa atravessou a rocha: '+JSON.stringify(check));
+  }
+  await page.screenshot({path:path.join(output,'caverna-3p-giro-verificado.png')});
+
   const caveMovement=await page.evaluate(()=>{
    const a=window.SevenSinsDebug3D,st=a.ascState(),ox=st.world.x-st.local.x,oz=st.world.z-st.local.z;
    a.teleport(ox-2,oz-98);a.fly(null);a.view(0,.1,.72);
@@ -89,6 +118,9 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
   },null,{timeout:50000});
   report.checks.push({name:'queda-escadaria',passed:true,respawn:await page.evaluate(()=>window.SevenSinsDebug3D.ascState())});
   assert.deepEqual(report.assetErrors.filter(x=>/TochaMedievalTripo/.test(x.url)),[],'Tocha 3D ausente na cena');
+  const fireAudit=await page.evaluate(()=>window.SevenSinsDebug3D.torchAudit());
+  report.checks.push({name:'nenhuma-chama-generica-de-codigo',passed:fireAudit.genericFire.length===0,measurement:fireAudit});
+  assert.deepEqual(fireAudit.genericFire,[],'Chamas genericas persistem sobre os modelos GLB');
   report.status='passed';
   await page.close();
  }catch(e){report.status='failed';report.error=String(e.stack||e).slice(0,3000);process.exitCode=1;}
