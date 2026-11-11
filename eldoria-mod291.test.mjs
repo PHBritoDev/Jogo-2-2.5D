@@ -116,7 +116,7 @@ test('cidade: nenhuma pegada sobreposta, casas fora da trilha e do rio, aterrame
   assert.ok(!existsSync(new URL('./ArvoreFloresta01-lod1.glb', import.meta.url)), 'LOD1 borrado da mata não pode voltar');
   assert.match(lib, /triângulos com UV esticada/);
 
-  assert.match(src, /mergeGroupMeshes\(villageCast\)/, 'moradores procedurais agrupados por material');
+  assert.match(src, /createMeshyNpcFactory\(\{THREE,GLTFLoader,cloneSkinned,groundHeightAt\}\)/, 'moradores autorais Meshy substituem o antigo elenco procedural');
   assert.match(src, /trails-merged-mod291/);
   assert.match(src, /villageGroup\.visible=!south;prologueMeadow\.group\.visible=south;/, 'streaming por zona');
 });
