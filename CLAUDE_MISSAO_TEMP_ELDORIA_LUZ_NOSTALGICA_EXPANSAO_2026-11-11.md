@@ -83,3 +83,27 @@ O criador enviou uma nova referência visual de **água estilizada realista em u
 - A meta é *visual mais bonito e jogo tão ou mais fluido*, nunca trocar qualidade por FPS. Priorizar eliminar hitch de câmera, long tasks, shader compilation durante movimento, criação/destruição de recursos em runtime, GLB/textures carregados tarde, overdraw e gasto de luz/sombra; manter qualidade percebida alta. Expandir a floresta/caverna com streaming/culling e referências espaciais consistentes; evitar vazamento de memória e tornar alterações reversíveis.
 - Registrar comparativos p50/p95/p99 de frametime e memória quando possível e validar portais, controles, água, colisões e passagens. Não declarar desempenho comprovado no celular com resultado SwiftShader/desktop. Se necessário, reduzir *apenas conteúdo novo* de baixo valor, sem rebaixar gráficos já aprovados.
 - Atualizar testes para prevenir retorno das tochas procedurais e para verificar qualidade estrutural/integração das águas. Prioridade de revisão: luz nostálgica + água bonita + fluidez + nenhuma tocha feita de geometria genérica.
+
+
+## ADENDO PRIORITÁRIO — CLAUDE ASSUME INTEGRALMENTE A MISSÃO DO CODEX (11/11/2026)
+**ORDEM EXPRESSA DO CRIADOR:** Claude é agora o RESPONSÁVEL ÚNICO pela execução das tarefas ambientais deste arquivo **E** por TODAS as cinco prioridades do documento `CODEX_MISSAO_CORRECOES_ELDORIA_2026-11-11.md`. A missão do Codex deixa de ser uma dependência externa: **não espere o Codex corrigir nada**. Leia o documento do Codex INTEGRALMENTE, preserve seus critérios e implemente/corrija/teste o que faltar. Este adendo substitui as orientações anteriores de “deixar a parte do Codex com outro agente”.
+**Atenção a concorrência:** Claude não tem poder de cancelar automaticamente uma sessão Codex ativa. Verifique branches, PRs e commits atuais. Aproveite correções já concluídas e comprovadas; não sobrescreva mudanças concorrentes; caso o Codex ainda esteja editando a mesma área, use branch isolada, faça integração cuidadosa e registre conflito/bloqueio real. Solicitar ao criador que interrompa Codex se necessário; NÃO presumir que ele parou.
+
+### Etapas adicionais, obrigatórias, que Claude executará
+1. **TOCHAS DEFINITIVAS** — remover 100% das estruturas físicas procedurais e fallbacks em todo o jogo; usar apenas o GLB Meshy real identificado, e posicionar pouquíssimas tochas apenas onde há necessidade justificada; auditar código, screenshots, LOD e load/reload, fogo leve quando apropriado.
+2. **CÂMERA DA CAVERNA** — identificar/corrigir a CAUSA do jitter, tremedeira, clipping, enquadramento ruim e terceira pessoa inutilizável. Testar giros rápidos, corredores baixos, escadas, buracos, paredes e portais. Não mascarar suavizando tudo artificialmente.
+3. **PRIMEIRA PESSOA** — corrigir percepção de personagem gigante/lento; verificar escala do modelo, FOV, altura de olhos, velocidade verdadeira, collider e transição 1ª→3ª. Testar todas as ações em floresta, vila e caverna.
+4. **PICOS DE FRAME TIME DA FLORESTA** — investigar e resolver quedas relatadas de 30–47 FPS para 2–9 FPS com pausas ~0,3–0,5 s e recuperação em 1–2 s; medir p50/p95/p99, main-thread, GPU quando acessível, compilação de shader, GC, carga de GLB/texturas, LOD, sombras, churn de objetos. Usar `tools/visual-lab/forest-stutter-mod314.cjs`. Preservar detalhe e qualidade, otimizando arquitetura.
+5. **NOVO MODELO DO ANJO GUIA** — localizar `AnjoGuiador-Otimizado.gbl` **ou extensão real `.glb`** no Git. Só substituir o antigo após validar que o novo existe e funciona em todas as cenas, escala/rig/animações/materiais/colliders. Se inexistente, registrar falta com evidência, NÃO fingir substituição e NÃO gerar placeholder.
+6. **ÁGUA + ILUMINAÇÃO NOSTÁLGICA + EXPANSÃO** — executar integralmente demais fases deste briefing, incluindo referência de águas, cachoeira, pássaros, floresta maior, caverna maior, cenário natural, otimização, testes de percurso do Ato 1 e preservação da dimensão do primeiro bispo.
+
+### Nova ordem de execução
+0. Inventariar e medir baseline; identificar conflitos e componentes já corrigidos pelo Codex.
+1. Corrigir stutters/câmeras/collision fundamentais e remover tochas procedurais.
+2. Validar/substituir o Anjo-Guia caso o GLB novo exista.
+3. Reformar luz, color management, clima nostálgico e águas.
+4. Refinar montanhas, vegetação, paisagem e expandir floresta/caverna.
+5. Rodar auditorias visuais, gameplay completo, benchmarks, regressões e gravações de antes/depois.
+6. Registrar evidências no PR, revisar todos os critérios dos DOIS documentos, excluir apenas este briefing TEMPORÁRIO como último commit e responder apenas `CONCLUIDO` se realmente finalizado; em bloqueio real, somente `BLOQUEADO` no chat.
+
+**Este bloco prevalece sobre trechos anteriores que atribuem correções ao Codex ou que instruem Claude a se limitar à parte estética.** Não diminuir qualidade para compensar stutter. Não duplicar funcionalidade. Não fazer merge arriscado nem descartar dados. O documento do Codex continua como referência de especificações, não deve ser excluído unilateralmente.
