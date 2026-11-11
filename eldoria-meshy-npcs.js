@@ -38,9 +38,20 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   // Normaliza dimensoes mantendo rig e clips no mesmo espaço local.
   src.scale.setScalar(k);src.position.set(-center.x*k,-box.min.y*k,-center.z*k);
   body.add(src);holder.add(body);holder.name='NPC-Meshy-'+sex+'-'+role;
-  holder.position.set(x,groundHeightAt(x,z)+(role==='down'?.25:0),z);holder.rotation.y=yaw;
-  if(role==='down'){body.rotation.x=-Math.PI/2;body.position.y=.15;}
-  if(role==='sit'){body.rotation.x=-.38;}
+  holder.position.set(x,groundHeightAt(x,z),z);holder.rotation.y=yaw;
+  if(role==='down'){
+   body.rotation.z=(sex==='woman'||sex==='girl'?-1:1)*Math.PI/2;
+   body.rotation.x=.12;
+   holder.updateMatrixWorld(true);
+   const lying=new THREE.Box3().setFromObject(holder);
+   body.position.y+=groundHeightAt(x,z)-lying.min.y+.035;
+  }
+  if(role==='sit'){
+   body.rotation.x=-.14;
+   holder.updateMatrixWorld(true);
+   const sitting=new THREE.Box3().setFromObject(holder);
+   body.position.y+=groundHeightAt(x,z)-sitting.min.y+.025;
+  }
   src.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});
   // Cabelos autorais: somente se o modelo tiver osso de cabeça válido.
   // Evita posicionar cabelo no ar com rig incompatível.
@@ -52,16 +63,17 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
      const hairGltf=await load(hairFile),hairScene=hairGltf.scene.clone(true);
      const hb=new THREE.Box3().setFromObject(hairScene),hs=hb.getSize(new THREE.Vector3()),hc=hb.getCenter(new THREE.Vector3());
      // Pequeno acessório fixado ao osso, sem animação extra por frame.
-     const mesh=new THREE.Group();const scale=.34/Math.max(.01,hs.x,hs.z);
+     const mesh=new THREE.Group();const child=sex==='boy'||sex==='girl';
+     const width=child?.245:.335,scale=width/Math.max(.01,hs.x,hs.z);
      hairScene.scale.setScalar(scale);hairScene.position.set(-hc.x*scale,-hb.min.y*scale,-hc.z*scale);mesh.add(hairScene);
-     mesh.name='CabeloMeshy';mesh.position.y=.09;
+     mesh.name='CabeloMeshy';mesh.position.set(0,child?.045:.075,0);
      head[0].add(mesh);
     }catch(error){console.warn('Cabelo Meshy não carregou:',hairFile,error);}
    }else console.warn('NPC sem osso Head identificado; cabelo separado não anexado:',file);
   }
   const clip=clipFor(gltf.animations||[],role),mixer=clip?new THREE.AnimationMixer(src):null;
   const action=mixer?mixer.clipAction(clip):null;
-  if(action){action.play();if(role==='down')action.paused=true;}
+  if(action){action.play();if(role==='down'||role==='sit')action.paused=true;}
   return {holder,mixer,action,role,file,hair:hair?((sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair):null,clips:(gltf.animations||[]).map(c=>c.name)};
  }
  return {create};
