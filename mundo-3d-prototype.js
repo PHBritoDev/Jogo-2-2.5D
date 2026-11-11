@@ -1948,7 +1948,7 @@ if(firstPerson){
   if(voidMode&&voidSpec.walk){const cs=voidSpec.camSolid;for(let i=1;i<=22;i++){const f=i/22*limit,cx=target.x+camOffset.x*f,cz=target.z+camOffset.z*f;if(cs?cs(cx-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,cz-voidSpec.z):blockedAt(cx,cz)){limit=Math.max(.035,(i-1.7)/22*limit);break;}}} // MOD 311: zonas com volume (caverna/escadaria) testam o sólido em 3D
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
- camera.position.lerp(desired,1-Math.exp(-8*dt));
+ camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?15:8)*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
  if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);
  camera.lookAt(target);applyUltCam(dt,target);
