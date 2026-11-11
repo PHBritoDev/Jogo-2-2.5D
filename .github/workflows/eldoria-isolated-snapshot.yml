@@ -1,0 +1,32 @@
+name: Eldoria isolated QA snapshot
+on:
+  push:
+    branches: ['codex/eldoria-correcoes-2026-11-11']
+    paths: ['.github/workflows/eldoria-isolated-snapshot.yml']
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        part: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage pinned files for local visual validation
+        env:
+          PART: ${{ matrix.part }}
+        run: |
+          python3 - <<'PY'
+          import json,os,pathlib,shutil
+          groups=json.loads("[[\".gitignore\",\".nojekyll\",\"Anjo-rig.glb\",\"AnjoGuiador-otimizado.glb\",\"ArreiosCavalo.glb\",\"ArvoreAncestralEldoria.glb\"],[\"ArvoreFloresta01.glb\",\"BarracaFrutasEldoria-lod1.glb\",\"BarracaFrutasEldoria.glb\",\"CLAUDE_EXECUTAR_ELDORIA_E_APAGAR_AO_FINAL.md\",\"CODEX_MISSAO_CORRECOES_ELDORIA_2026-11-11.md\",\"COPYRIGHT.md\",\"Cabelo-otimizado.glb\",\"CabeloMulher-otimizado.glb\",\"Carroça.glb\",\"CasaEldoria01-lod1.glb\",\"CasaEldoria01.glb\",\"CasaEldoria02-lod1.glb\",\"CasaEldoria02.glb\"],[\"Cavalo.glb\",\"CriancaNpc-otimizado.glb\",\"CristalCaverna01.glb\",\"DevoradorLunar.glb\",\"ENEMY_AI_BUG_PLAYBOOK.md\",\"EldoriaArvoresTropicais.glb\",\"EntradaCavernaAto1.glb\",\"EspadaVeraxion.glb\",\"FerreiroEldoria-lod1.glb\",\"FerreiroEldoria.glb\",\"JaulaRitualAto1.glb\"],[\"MeninaNpc-otimizado.glb\",\"MontanhaEldoria01-lod1.glb\",\"MontanhaEldoria01.glb\",\"MulherNpc-otimizado.glb\"],[\"NPC_Masculino_Animado_Otimizado_1K.glb\",\"NpcEspecial-otimizado.glb\",\"PassarelaSuspensaEldoria.glb\",\"PocoEldoria-lod1.glb\"],[\"PocoEldoria.glb\",\"Ponte.glb\",\"RochedoMusgoEldoria-lod1.glb\",\"RochedoMusgoEldoria.glb\",\"TESTES-E-PERFORMANCE.md\",\"TochaMedievalTripo.glb\",\"Vitima-rig.glb\",\"act1-world-layout.js\",\"ascension-ascent3d.js\",\"ascension-fx3d.js\",\"ascension-layout.js\",\"audio3d.js\",\"bishop1-golden-meadow3d.js\",\"build-info.js\",\"build-info.test.mjs\",\"combat-defense3d.js\",\"combat-energy3d.js\",\"combat-mobility3d.js\",\"demon1-combat3d.js\",\"dimension-arenas3d.js\",\"dimensions3d.js\",\"eldoria-asset-plan.js\",\"eldoria-baked-texture.js\",\"eldoria-cave-entrance-art.js\",\"eldoria-cave-geology.js\",\"eldoria-cave-tunnel.js\",\"eldoria-cenario-preview.html\",\"eldoria-city-dressing.js\",\"eldoria-city-layout.js\",\"eldoria-crystal-cavern.js\",\"eldoria-crystal-geometry.js\",\"eldoria-environment-art.js\",\"eldoria-forest-canopy.js\",\"eldoria-forest-lod-overlap.test.mjs\",\"eldoria-lake-foam.test.mjs\",\"eldoria-layout-regression.test.mjs\",\"eldoria-light-water.js\",\"eldoria-mature-forest.js\",\"eldoria-mod291.test.mjs\",\"eldoria-mod292.test.mjs\",\"eldoria-prologue-meadow.js\",\"eldoria-river-props.js\",\"eldoria-scene-details.js\",\"eldoria-tropical-trees.js\",\"eldoria-undergrowth.js\",\"eldoria-walkable.js\",\"eldoria-water-glsl.test.mjs\",\"eldoria-water.js\",\"enemy1-integration.test.mjs\",\"enemy1-squad-runtime3d.js\",\"enemy1-squad3d.js\",\"frontier3d.js\",\"graphics-adaptive.test.mjs\",\"hud3d.css\",\"index.html\",\"laboratorio-inimigos.html\",\"light-budget3d.js\",\"map3d.js\",\"mod181-loader.js\",\"mundo-3d-prototype.html\",\"prologue-road-flow.js\",\"prota-combat3d.js\",\"prota-vfx3d.js\",\"shield-vfx3d.js\",\"slash-vfx3d.js\",\"sword-design3d.js\",\"sword-rites-vfx3d.js\",\"sword-rites3d.js\",\"sword-viewmodel3d.js\",\"tests/ascension311.test.mjs\",\"tests/combat315.test.mjs\",\"tests/eldoria-preview.test.mjs\",\"tests/forest-fps305.test.mjs\",\"tests/mod312-spatial.test.mjs\",\"tests/prota-combat302.test.mjs\",\"tools/visual-lab/AGENTE-AUTOCORRETOR-V6.md\",\"tools/visual-lab/AGENTE-V7-GLB.md\",\"tools/visual-lab/DIRETOR-CINEMATOGRAFICO.md\",\"tools/visual-lab/README.md\",\"tools/visual-lab/agent-report.test.cjs\",\"tools/visual-lab/ascension-zone-sweep.cjs\",\"tools/visual-lab/bispo3-dimension-preview.html\",\"tools/visual-lab/bispo3-dimension-qa.cjs\",\"tools/visual-lab/bispo3-runtime-qa.cjs\",\"tools/visual-lab/bispo4-hall-preview.html\",\"tools/visual-lab/bispo4-hall-qa.cjs\",\"tools/visual-lab/bispo4-hall-runtime-qa.cjs\",\"tools/visual-lab/child-npc-qa.cjs\",\"tools/visual-lab/combat315-qa.cjs\",\"tools/visual-lab/eldoria-city-sweep.cjs\",\"tools/visual-lab/eldoria-visual-qa.cjs\",\"tools/visual-lab/optimize-glb-textures.py\",\"tools/visual-lab/photographer.cjs\",\"tools/visual-lab/photographer.test.cjs\",\"tools/visual-lab/vorgazhek-abyss-preview.html\",\"tools/visual-lab/vorgazhek-abyss-qa.cjs\",\"tools/visual-lab/vorgazhek-runtime-qa.cjs\",\"tools/visual-lab/world-load-smoke.cjs\",\"tools/visual-lab/world-module-loader.test.cjs\",\"veraxion-hall-dimension.test.mjs\",\"veraxion-hall-dimension3d.js\",\"vorgazhek-abyss-dimension3d.js\",\"vorgazhek-eclipse-sword.test.mjs\",\"vorgazhek-selo-ritual.png\",\"world3d-terrain.js\",\"world3d-terrain.test.mjs\",\"zarkhael-dimension.test.mjs\",\"zarkhael-dimension3d.js\",\"zarkhael-moon-reference.webp\"]]")
+          for name in groups[int(os.environ['PART'])]:
+              target=pathlib.Path('/tmp/eldoria-snapshot')/name
+              target.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copyfile(name,target)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eldoria-source-${{ matrix.part }}
+          path: /tmp/eldoria-snapshot/
+          retention-days: 2
