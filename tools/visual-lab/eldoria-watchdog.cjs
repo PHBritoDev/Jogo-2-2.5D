@@ -29,8 +29,9 @@ const WORLD=[
  let browser,context;
  try{
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-  context=await browser.newContext({viewport:{width:852,height:480},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+  context=await browser.newContext({viewport:{width:852,height:480},deviceScaleFactor:1,isMobile:true,hasTouch:true,recordVideo:{dir:out,size:{width:852,height:480}}});
   const page=await context.newPage();
+  const video=page.video();
   page.on('pageerror',e=>report.errors.push({type:'browser',message:String(e.message||e).slice(0,550)}));
   page.on('response',r=>{if(r.status()>=400&&/\.(glb|js)(?:[?#]|$)/.test(r.url()))report.errors.push({type:'asset',status:r.status(),url:r.url().slice(0,200)});});
   await page.goto((process.env.VISUAL_BASE_URL||'http://127.0.0.1:4173')+'/mundo-3d-prototype.html?debug3d=1',{waitUntil:'domcontentloaded',timeout:60000});
@@ -48,7 +49,7 @@ const WORLD=[
     a.fly(null);a.view(yaw,.10,5.5);
     return {camera:a.snapCam(),state:a.ascState(),renderer:a.rinfo(),world:a.state()};
    },c);
-   await page.waitForTimeout(900);
+   await page.waitForTimeout(1600);
    const filename=c.name+'.png',filepath=path.join(out,filename);
    const png=await page.screenshot({path:filepath,animations:'disabled',timeout:65000});
    const raw=await sharp(png).removeAlpha().raw().toBuffer({resolveWithObject:true});
@@ -61,8 +62,10 @@ const WORLD=[
    console.log('AUDIT '+c.name+' '+flags.join(','));
   }
   report.status=report.errors.length?'suspected_errors':'captured';
+  // O video do Playwright permanece associado ao navegador; o arquivo e fechado no finally.
+  report.video='percurso-completo.webm';
  }catch(e){report.status='failed';report.errors.push({type:'runner',message:String(e.stack||e).slice(0,1700)});process.exitCode=1;}
- finally{if(context)await context.close().catch(()=>{});if(browser)await browser.close().catch(()=>{});
+ finally{if(context){const pages=context.pages();const videos=pages.map(p=>p.video()).filter(Boolean);await context.close().catch(()=>{});for(const v of videos){try{const original=await v.path();if(fs.existsSync(original))fs.renameSync(original,path.join(out,'percurso-completo.webm'));}catch(e){report.errors.push({type:'video',message:String(e).slice(0,300)});}}}if(browser)await browser.close().catch(()=>{});
   fs.writeFileSync(path.join(out,'candidatos.json'),JSON.stringify(report,null,2));
   console.log(JSON.stringify({status:report.status,candidates:report.suspects.length,errors:report.errors.length}));
  }
