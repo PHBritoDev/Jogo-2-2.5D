@@ -7,12 +7,12 @@ import {planGardens} from './eldoria-city-dressing.js';
 import {ELDORIA_CENTER} from './act1-world-layout.js';
 const txt=p=>readFileSync(new URL('./'+p,import.meta.url),'utf8');
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
-test('mercado: duas barracas distintas, poço e fonte acessíveis, sem encostar em casas nem árvores',()=>{
- assert.equal(ELDORIA_MARKET.length,2);
+test('mercado: tres barracas distintas, poço e fonte acessíveis, sem encostar em casas nem árvores',()=>{
+ assert.equal(ELDORIA_MARKET.length,3);
  const specs=eldoriaSpecs();
  assert.deepEqual(planOverlaps(specs),[], 'nenhum par de GLBs pode se sobrepor');
  const stalls=specs.filter(s=>s.kind==='market');
- assert.equal(stalls.length,2);
+ assert.equal(stalls.length,3);
  const well=specs.find(s=>s.file==='PocoEldoria.glb');
  const fountain={x:ELDORIA_DRY_FOUNTAIN.x,z:ELDORIA_DRY_FOUNTAIN.z};
  for(const s of stalls){
