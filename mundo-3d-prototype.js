@@ -1929,8 +1929,13 @@ if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
  // lentidao e podia arrasta-la para dentro da parede da caverna.
- if(ascKey==='cave')camera.position.copy(target);
- else camera.position.lerp(target,1-Math.exp(-14*dt));
+ if(ascKey==='cave'){
+  const lx=player.position.x-voidSpec.x,lz=player.position.z-voidSpec.z;
+  const roof=voidSpec.ceil?.(lx,lz);
+  // Olhos na altura real: só baixar quando a abóbada está fisicamente próxima.
+  if(Number.isFinite(roof))target.y=Math.min(target.y,voidSpec.y+roof-.72);
+  camera.position.copy(target);
+ }else camera.position.lerp(target,1-Math.exp(-14*dt));
  const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
  camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
 }else{
@@ -1961,21 +1966,23 @@ if(firstPerson){
  camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?11:8)*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
  if(ascKey==='cave'&&voidSpec.camSolid){
-  // O lerp pode cruzar a rocha durante giros. O destino tambem pode estar
-  // bloqueado: nesse caso nunca teleportar a camera para dentro da parede.
-  const blocked=p=>voidSpec.camSolid(p.x-voidSpec.x,p.y-voidSpec.y,p.z-voidSpec.z);
-  if(blocked(camera.position)){
-    const safe=target.clone(),candidate=new THREE.Vector3();
-    if(!blocked(safe)){
-      for(let i=1;i<=28;i++){
-        candidate.lerpVectors(target,desired,i/28);
-        if(blocked(candidate))break;
-        safe.copy(candidate);
-      }
-      camera.position.copy(safe);
-    }else{
-      camera.position.copy(player.position).add(new THREE.Vector3(0,1.42,0));
+  const solid=p=>voidSpec.camSolid(p.x-voidSpec.x,p.y-voidSpec.y,p.z-voidSpec.z);
+  if(solid(camera.position)||solid(desired)){
+    // Varredura tipo spring-arm: nunca saltar diretamente para um destino rochoso.
+    const focus=target.clone();
+    if(solid(focus)){
+      const lx=player.position.x-voidSpec.x,lz=player.position.z-voidSpec.z;
+      const floor=voidSpec.floor?.(lx,lz),roof=voidSpec.ceil?.(lx,lz);
+      focus.set(player.position.x,Number.isFinite(floor)?voidSpec.y+floor+.85:player.position.y+.85,player.position.z);
+      if(Number.isFinite(roof))focus.y=Math.min(focus.y,voidSpec.y+roof-.72);
     }
+    const delta=desired.clone().sub(focus),sample=new THREE.Vector3(),safe=focus.clone();
+    for(let i=1;i<=28;i++){
+      sample.copy(focus).addScaledVector(delta,i/28);
+      if(solid(sample))break;
+      safe.copy(sample);
+    }
+    camera.position.copy(safe);
   }
  }
  camera.lookAt(target);applyUltCam(dt,target);
