@@ -1958,9 +1958,23 @@ if(firstPerson){
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
  camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?11:8)*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
- if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z)){
-  // Se o interpolador cruzou rocha, usa o ponto seguro encontrado pelo braço.
-  camera.position.copy(desired);
+ if(ascKey==='cave'&&voidSpec.camSolid){
+  // O lerp pode cruzar a rocha durante giros. O destino tambem pode estar
+  // bloqueado: nesse caso nunca teleportar a camera para dentro da parede.
+  const blocked=p=>voidSpec.camSolid(p.x-voidSpec.x,p.y-voidSpec.y,p.z-voidSpec.z);
+  if(blocked(camera.position)){
+    const safe=target.clone(),candidate=new THREE.Vector3();
+    if(!blocked(safe)){
+      for(let i=1;i<=28;i++){
+        candidate.lerpVectors(target,desired,i/28);
+        if(blocked(candidate))break;
+        safe.copy(candidate);
+      }
+      camera.position.copy(safe);
+    }else{
+      camera.position.copy(player.position).add(new THREE.Vector3(0,1.42,0));
+    }
+  }
  }
  camera.lookAt(target);applyUltCam(dt,target);
 }
