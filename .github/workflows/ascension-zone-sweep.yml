@@ -6,6 +6,7 @@ on:
       - 'mundo-3d-prototype.js'
       - 'eldoria-torch-fire3d.js'
       - 'tests/ascension311.test.mjs'
+      - 'tests/mod312-spatial.test.mjs'
       - 'tools/visual-lab/ascension-zone-sweep.cjs'
       - 'eldoria-undergrowth.js'
       - 'eldoria-city-layout.js'
@@ -23,7 +24,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verificar layouts, fisica e colisao
-        run: node --test tests/ascension311.test.mjs
+        run: node --test tests/ascension311.test.mjs tests/mod312-spatial.test.mjs
       - name: Instalar Chromium e Playwright
         run: |
           npm install --prefix tools/visual-lab --no-audit --no-fund
