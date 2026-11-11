@@ -24,14 +24,33 @@ export function fernGeometry(THREE) {
   g.computeBoundingSphere(); return g;
 }
 
+/** Arbusto folhoso de folhas curvas, sem esfera verde facetada.
+ *  Geometria unica e barata (~80 triangulos), instanciavel em toda a mata.
+ */
 export function bushGeometry(THREE, seed = 3) {
-  const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position, cols = new Float32Array(p.count * 3), c = new THREE.Color(), a = new THREE.Color(0x24401f), b = new THREE.Color(0x4f6b2c);
-  const rnd = makeRng(seed);
-  for (let i = 0; i < p.count; i++) {
-    const y = p.getY(i), k = .82 + rnd() * .3; p.setXYZ(i, p.getX(i) * k, (y < 0 ? y * .35 : y) * k, p.getZ(i) * k);
-    c.copy(a).lerp(b, Math.max(0, Math.min(1, .35 + y * .45 + (rnd() - .5) * .3))); cols[i * 3] = c.r; cols[i * 3 + 1] = c.g; cols[i * 3 + 2] = c.b;
+  const rnd = makeRng(seed), pos = [], col = [];
+  const push = (p,c) => { pos.push(...p);col.push(...c); };
+  for(let i=0;i<18;i++){
+    const angle=i*2.39996+(rnd()-.5)*.28;
+    const radius=.16+rnd()*.26;
+    const len=.55+rnd()*.5;
+    const height=.32+rnd()*.43;
+    const w=.10+rnd()*.09;
+    const dx=Math.cos(angle),dz=Math.sin(angle),sx=-dz,sz=dx;
+    const bx=dx*radius,bz=dz*radius;
+    const tip=[bx+dx*len,height+.10+rnd()*.15,bz+dz*len];
+    const mid=[bx+dx*len*.55,height+.24,bz+dz*len*.55];
+    const root=[bx*.25,.12,bz*.25];
+    const left=[mid[0]+sx*w,mid[1],mid[2]+sz*w],right=[mid[0]-sx*w,mid[1],mid[2]-sz*w];
+    const shade=.78+rnd()*.22, dark=[.055*shade,.19*shade,.065*shade], light=[.13*shade,.36*shade,.11*shade];
+    push(root,dark);push(left,light);push(right,light);
+    push(left,light);push(tip,dark);push(right,light);
   }
-  g.computeVertexNormals(); g.setAttribute('color', new THREE.BufferAttribute(cols, 3)); g.computeBoundingSphere(); return g;
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.computeVertexNormals();g.computeBoundingSphere();
+  return g;
 }
 
 /** Plano puro: samambaias ao pé das árvores do vale, arbustos entre elas e faixa densa nas margens d'água. */
@@ -58,7 +77,7 @@ export function buildUndergrowth(THREE, o) {
   const ferns = new THREE.InstancedMesh(fernGeometry(THREE), fernMat, Math.max(1, plan.ferns.length));
   plan.ferns.forEach((f, i) => { d.position.set(f.x, groundHeightAt(f.x, f.z) - .03, f.z); d.rotation.set(0, f.rot, 0); d.scale.setScalar(f.s); d.updateMatrix(); ferns.setMatrixAt(i, d.matrix); });
   ferns.count = plan.ferns.length; ferns.instanceMatrix.needsUpdate = true; ferns.receiveShadow = true; ferns.name = 'eldoria-ferns'; group.add(ferns);
-  const bushMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .92, flatShading: false });
+  const bushMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .92, flatShading: false, side: THREE.DoubleSide });
   const bushes = new THREE.InstancedMesh(bushGeometry(THREE), bushMat, Math.max(1, plan.bushes.length));
   plan.bushes.forEach((b, i) => { d.position.set(b.x, groundHeightAt(b.x, b.z) + b.s * .25, b.z); d.rotation.set(0, b.rot, 0); d.scale.set(b.s * 1.4, b.s, b.s * 1.2); d.updateMatrix(); bushes.setMatrixAt(i, d.matrix); });
   bushes.count = plan.bushes.length; bushes.instanceMatrix.needsUpdate = true; bushes.receiveShadow = true; bushes.castShadow = !lowSpec; bushes.name = 'eldoria-bushes'; group.add(bushes);
