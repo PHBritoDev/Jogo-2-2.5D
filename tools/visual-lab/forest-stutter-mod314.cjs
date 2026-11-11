@@ -38,6 +38,23 @@ const report={status:'incomplete',platform:'Chromium SwiftShader 852x480, nao An
   if(report.torches.loaded!==2||report.torches.district?.loaded!==3)
     report.errors.push('Numero de GLBs de tochas diferente do esperado');
   await page.screenshot({path:path.join(out,'tochas-distrito.png')});
+  // Regressão explícita: nenhuma geometria/chama genérica de tochas deve voltar.
+  const caveSource=fs.readFileSync(path.resolve(__dirname,'../../ascension-cave3d.js'),'utf8');
+  if(/createVillageTorchFire|TochasVentoFogoGPU|ChamaFluidaTocha/.test(source+caveSource))
+    report.errors.push('Chama procedural de tocha voltou a ser criada');
+  if(fs.existsSync(path.resolve(__dirname,'../../eldoria-torch-fire3d.js')))
+    report.errors.push('Gerador legado de chamas ainda existe');
+  // Capturar ambas as câmeras na caverna real, sem teleporte para dentro de parede.
+  await page.evaluate(async()=>{const a=window.SevenSinsDebug3D;await a.ascension('cave',{x:0,z:-12,yaw:Math.PI});a.view(0,.08,5.5);});
+  await page.waitForTimeout(1100);
+  await page.screenshot({path:path.join(out,'caverna-terceira-pessoa.png')});
+  await page.evaluate(()=>window.SevenSinsDebug3D.view(0,.08,.72));
+  await page.waitForTimeout(950);
+  await page.screenshot({path:path.join(out,'caverna-primeira-pessoa.png')});
+  report.cave=await page.evaluate(()=>({camera:window.SevenSinsDebug3D.snapCam(),state:window.SevenSinsDebug3D.ascState()}));
+  if(!report.cave.camera.every(Number.isFinite))report.errors.push('Camera da caverna inválida');
+  await page.evaluate(()=>window.SevenSinsDebug3D.ascension(null));
+
   const spots=[[34,-56],[-52,-111]];
   for(let k=0;k<spots.length;k++){
     await page.evaluate(([x,z])=>{const a=window.SevenSinsDebug3D;a.teleport(x,z);a.fly(null);a.view(0,.12,6);},spots[k]);
@@ -66,6 +83,7 @@ const report={status:'incomplete',platform:'Chromium SwiftShader 852x480, nao An
   report.summary={torchesLoaded:report.torches.loaded,districtTorches:report.torches.district,
     p95Max:Math.max(...report.samples.map(x=>x.p95)),spikes300:report.samples.reduce((n,x)=>n+x.spikes300,0)};
   report.status=report.errors.length?'suspected_errors':'captured';
+  if(report.errors.length)process.exitCode=1;
  }catch(e){report.status='failed';report.errors.push(String(e.stack||e).slice(0,1700));process.exitCode=1;}
  finally{if(ctx)await ctx.close().catch(()=>{});if(browser)await browser.close().catch(()=>{});
   report.videos=fs.readdirSync(out).filter(x=>x.endsWith('.webm'));
