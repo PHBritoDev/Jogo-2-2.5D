@@ -7600,9 +7600,10 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  torchAudit(){
   const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});
   const districtModels=[];district.root.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Distrito-'))districtModels.push(o.name);});
+  const cityModels=[];act1Props?.dressing?.root?.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Cidade-'))cityModels.push(o.name);});
   const caveModels=[];ascZones?.cave?.group?.traverse(o=>{if(o.name==='tocha-medieval-3d')caveModels.push(o.name);});
-  const procedural=[];scene.traverse(o=>{if(/^(?:ChamaFluidaTocha|TochasVentoFogoGPU|BrasasCompartilhadas)/.test(o.name||''))procedural.push(o.name);});
-  return {expected:villageTorchSites.length,loaded:placed.length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels},cave:{loaded:caveModels.length},procedural};
+  const procedural=[];scene.traverse(o=>{if(/^(?:ChamaFluidaTocha|TochasVentoFogoGPU|BrasasCompartilhadas|eldoria-fences-lamps|eldoria-lanterns)/.test(o.name||''))procedural.push(o.name);});
+  return {expected:villageTorchSites.length,loaded:placed.filter(o=>!o.name.includes('Cidade')).length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels},city:{expected:10,loaded:cityModels.length,names:cityModels},cave:{loaded:caveModels.length},procedural};
  },
  cameraAudit(){return {mode:cameraDistance<1.05?'first':'third',distance:cameraDistance,fov:camera.fov,height:camera.position.y-player.position.y,position:camera.position.toArray(),zone:ascKey,blocked:!!(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))};},
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},
