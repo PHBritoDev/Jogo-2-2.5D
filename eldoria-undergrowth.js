@@ -36,16 +36,16 @@ export function bushGeometry(THREE, seed = 3) {
 
 /** Plano puro: samambaias ao pé das árvores do vale, arbustos entre elas e faixa densa nas margens d'água. */
 export function planUndergrowth({ trees, banks = [], isFree, lowSpec = false, seed = 9911 }) {
-  const rnd = makeRng(seed), ferns = [], bushes = [], maxF = lowSpec ? 900 : 1800, maxB = lowSpec ? 260 : 520;
+  const rnd = makeRng(seed), ferns = [], bushes = [], maxF = lowSpec ? 750 : 1400, maxB = lowSpec ? 90 : 180;
   const valley = trees.filter(t => t.collide);
   for (const t of valley) {
     const n = 2 + ((rnd() * 4) | 0);
     for (let k = 0; k < n && ferns.length < maxF; k++) { const a = rnd() * 6.28, r = .9 + rnd() * 2.8 * t.s, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) ferns.push({ x, z, s: .7 + rnd() * .7, rot: rnd() * 6.28 }); }
-    if (rnd() < .45 && bushes.length < maxB) { const a = rnd() * 6.28, r = 1.6 + rnd() * 2.6, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) bushes.push({ x, z, s: .45 + rnd() * .55, rot: rnd() * 6.28 }); }
+    if (rnd() < .20 && bushes.length < maxB) { const a = rnd() * 6.28, r = 1.6 + rnd() * 2.6, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) bushes.push({ x, z, s: .45 + rnd() * .55, rot: rnd() * 6.28 }); }
   }
   for (const p of banks) {
     for (let k = 0; k < 3 && ferns.length < maxF + 400; k++) { const x = p.x + (rnd() - .5) * 3, z = p.z + (rnd() - .5) * 3; if (isFree(x, z)) ferns.push({ x, z, s: .8 + rnd() * .6, rot: rnd() * 6.28 }); }
-    if (rnd() < .3 && bushes.length < maxB + 120) { const x = p.x + (rnd() - .5) * 4, z = p.z + (rnd() - .5) * 4; if (isFree(x, z)) bushes.push({ x, z, s: .5 + rnd() * .5, rot: rnd() * 6.28 }); }
+    if (rnd() < .12 && bushes.length < maxB + 35) { const x = p.x + (rnd() - .5) * 4, z = p.z + (rnd() - .5) * 4; if (isFree(x, z)) bushes.push({ x, z, s: .5 + rnd() * .5, rot: rnd() * 6.28 }); }
   }
   return { ferns, bushes };
 }
@@ -69,7 +69,7 @@ export function buildUndergrowth(THREE, o) {
 /* MOD 291 — densidade de floresta tropical úmida (direção do criador, 08/11): plantas de folha larga em leque
    (tipo costela-de-adão/helicônia, desenho próprio) e cipós pendendo das copas. Instanciados e cortados por distância. */
 export function broadLeafGeometry(THREE) {
-  const pos = [], col = [], dark = [.06, .2, .07], light = [.22, .48, .16], N = 7;
+  const pos = [], col = [], dark = [.055, .16, .055], light = [.12, .32, .11], N = 7;
   for (let k = 0; k < N; k++) {
     const a = k / N * Math.PI * 2 + (k % 2) * .4, L = .9 + (k % 3) * .25, W = .32 + (k % 2) * .08, lift = .35 + (k % 3) * .12;
     const dx = Math.cos(a), dz = Math.sin(a), px = -dz, pz = dx;
@@ -101,14 +101,14 @@ export function vineGeometry(THREE) {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals(); g.computeBoundingSphere(); return g;
 }
 export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242 }) {
-  const rnd = makeRng(seed), leaves = [], vines = [], maxL = lowSpec ? 380 : 720;
+  const rnd = makeRng(seed), leaves = [], vines = [], maxL = lowSpec ? 180 : 360;
   for (const t of trees) {
-    const n = 2 + ((rnd() * 3) | 0);
+    const n = 1 + ((rnd() * 2) | 0);
     for (let k = 0; k < n && leaves.length < maxL; k++) { const a = rnd() * 6.28, r = 2.2 + rnd() * 4, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) leaves.push({ x, z, s: .9 + rnd() * 1.1, rot: rnd() * 6.28 }); }
     const nv = (rnd() < .7 ? 2 : 1) + (rnd() < .3 ? 1 : 0);
     for (let k = 0; k < nv; k++) { const a = rnd() * 6.28, r = 1.4 + rnd() * 2.2; vines.push({ x: t.x + Math.cos(a) * r, z: t.z + Math.sin(a) * r, top: t.h * (.62 + rnd() * .2), len: t.h * (.35 + rnd() * .35), rot: rnd() * 6.28 }); }
   }
-  if (zone) for (let i = 0; i < (lowSpec ? 500 : 1100) && leaves.length < maxL; i++) { const x = zone.x0 + rnd() * (zone.x1 - zone.x0), z = zone.z0 + rnd() * (zone.z1 - zone.z0); if (isFree(x, z)) leaves.push({ x, z, s: .8 + rnd() * .9, rot: rnd() * 6.28 }); }
+  if (zone) for (let i = 0; i < (lowSpec ? 280 : 560) && leaves.length < maxL; i++) { const x = zone.x0 + rnd() * (zone.x1 - zone.x0), z = zone.z0 + rnd() * (zone.z1 - zone.z0); if (isFree(x, z)) leaves.push({ x, z, s: .8 + rnd() * .9, rot: rnd() * 6.28 }); }
   return { leaves, vines };
 }
 export function buildTropical(THREE, o) {
