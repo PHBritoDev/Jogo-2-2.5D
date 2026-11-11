@@ -1928,7 +1928,10 @@ function updatePlayerCamera(dt){
  const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
- camera.position.lerp(target,1-Math.exp(-14*dt));
+ // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
+ // lentidao e podia arrasta-la para dentro da parede da caverna.
+ if(ascKey==='cave')camera.position.copy(target);
+ else camera.position.lerp(target,1-Math.exp(-14*dt));
  const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
  camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
 }else{
@@ -1979,7 +1982,7 @@ let worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
 // MOD 292 — só QA (?debug3d): caminhada guiada numa direção do mundo, para testar escadas, deques e bordas.
 if(qaMove&&!(rites.locksMovement||dialogueOpen||cineActive)){if(qaMove.left>0){qaMove.left-=dt;worldX=qaMove.x;worldZ=qaMove.z;}else qaMove=null;}
 const engaged=enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;
-const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul(),targetVX=worldX*speed,targetVZ=worldZ*speed;
+const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul()*(ascKey==='cave'&&cameraDistance<1.05?1.22:1),targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
@@ -2024,7 +2027,7 @@ heroShadows?.update(dt);
 const ascVoidFall=!!(ascKey&&voidSpec.hazard?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z));
 let floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.position.z);
 // Sem piso debaixo do herói: gravidade real em vez de colisão vertical falsa.
-if(ascVoidFall){floorY-=1000;if(grounded){grounded=false;verticalVelocity=Math.min(0,verticalVelocity);}}
+if(ascVoidFall){floorY-=1000;if(grounded){grounded=false;verticalVelocity=Math.min(-1.8,verticalVelocity);}}
 // MOD 292 — apoio em deque/escada/passarela: a superfície mais alta até um degrau acima dos pés (por baixo do deque o chão continua sendo o terreno).
 if(!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.position.x,player.position.z,player.position.y+(grounded?0:.05));if(sup&&sup.y>floorY)floorY=sup.y;}
 if(grounded&&!caveWalk&&!voidMode&&floorY<player.position.y-.6){grounded=false;verticalVelocity=0;} // saiu pela borda: cai em vez de teleportar para o chão
@@ -2036,7 +2039,7 @@ if(!grounded){
  player.position.y=floorY;
 }
 // Atravessar a borda do abismo termina em morte e retorna ao checkpoint da zona.
-if(ascVoidFall&&playerHP>0&&!ascBusy&&player.position.y<terrainHeightAt(player.position.x,player.position.z)-18){
+if(ascVoidFall&&playerHP>0&&!ascBusy&&player.position.y<terrainHeightAt(player.position.x,player.position.z)-32){
  playerHP=0;playerRespawnAt=now+1250;moveVX=moveVZ=0;dashRemaining=0;
  status.textContent='Você caiu no abismo. Retornando ao último ponto seguro…';updatePlayerHud();
 }
