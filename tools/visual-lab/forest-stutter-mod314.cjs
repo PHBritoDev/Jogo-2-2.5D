@@ -49,10 +49,13 @@ const report={status:'incomplete',platform:'Chromium SwiftShader 852x480, nao An
   await page.evaluate(async()=>{const a=window.SevenSinsDebug3D;await a.ascension('cave',{x:0,z:-12,yaw:Math.PI});a.view(0,.08,5.5);});
   await page.waitForTimeout(1100);
   await page.screenshot({path:path.join(out,'caverna-terceira-pessoa.png')});
+  report.caveThird=await page.evaluate(()=>window.SevenSinsDebug3D.cameraCollisionAudit());
+  if(report.caveThird.solid)report.errors.push('Camera terceira pessoa dentro de rocha da caverna');
   await page.evaluate(()=>window.SevenSinsDebug3D.view(0,.08,.72));
   await page.waitForTimeout(950);
   await page.screenshot({path:path.join(out,'caverna-primeira-pessoa.png')});
-  report.cave=await page.evaluate(()=>({camera:window.SevenSinsDebug3D.snapCam(),state:window.SevenSinsDebug3D.ascState()}));
+  report.cave=await page.evaluate(()=>({camera:window.SevenSinsDebug3D.snapCam(),state:window.SevenSinsDebug3D.ascState(),collision:window.SevenSinsDebug3D.cameraCollisionAudit()}));
+  if(report.cave.collision.solid)report.errors.push('Camera primeira pessoa dentro de rocha da caverna');
   if(!report.cave.camera.every(Number.isFinite))report.errors.push('Camera da caverna inválida');
   await page.evaluate(()=>window.SevenSinsDebug3D.ascension(null));
 
