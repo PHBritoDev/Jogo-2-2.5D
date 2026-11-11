@@ -16,9 +16,9 @@
  *  - escudo não imobiliza: nada aqui trava movimento.
  */
 export const SHIELD_SPECS = Object.freeze({
-  hero: Object.freeze({ id: 'hero', duration: 2.7, cooldown: 8.0, durability: 120, mitigation: .85, drain: 1, areaDrain: .55, areaTick: .3, breakAt: 46, radiusK: .72, skin: 'celeste',
+  hero: Object.freeze({ id: 'hero', duration: 2.7, cooldown: 8.0, durability: 120, mitigation: .85, drain: 1, areaDrain: .55, areaTick: .3, breakAt: 46, radiusK: .6, skin: 'celeste',
     colors: { core: 0x9fe6ff, edge: 0xe9fbff, glow: 0x5fb8ff, crack: 0xffffff } }),
-  demon1: Object.freeze({ id: 'demon1', duration: 2.7, cooldown: 9.5, durability: 70, mitigation: .75, drain: 1.1, areaDrain: .6, areaTick: .3, breakAt: 38, radiusK: .74, skin: 'abismo',
+  demon1: Object.freeze({ id: 'demon1', duration: 2.7, cooldown: 9.5, durability: 70, mitigation: .75, drain: 1.1, areaDrain: .6, areaTick: .3, breakAt: 38, radiusK: .6, skin: 'abismo',
     colors: { core: 0x2a0b3d, edge: 0xb04dff, glow: 0x7a2cff, crack: 0xe6b3ff } }),
 });
 

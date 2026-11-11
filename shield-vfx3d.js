@@ -8,8 +8,8 @@
  * duas passadas (fundo e frente) por escudo; sem luzes dinâmicas. Pele por entidade (cores, mistura, runas).
  */
 const SKINS = {
-  celeste: { core: 0x8fd8ff, edge: 0xf1fdff, glow: 0x4aa8ff, crack: 0xffffff, blend: 'add', fill: .16, edgeW: .16, runes: 0, ring: 0x9fe2ff },
-  abismo: { core: 0x14051f, edge: 0xb455ff, glow: 0x6b1fd6, crack: 0xf0c8ff, blend: 'normal', fill: .38, edgeW: .2, runes: 1, ring: 0x8a3cff },
+  celeste: { core: 0x6fc6ff, edge: 0xeafcff, glow: 0x3f9cff, crack: 0xffffff, blend: 'add', fill: .045, edgeW: .12, runes: 0, ring: 0x9fe2ff, gain: .55 },
+  abismo: { core: 0x14051f, edge: 0xa94cff, glow: 0x5d1ac0, crack: 0xd9a8ff, blend: 'normal', fill: .12, edgeW: .14, runes: 1, ring: 0x8a3cff, gain: .8 },
 };
 let SHARED = null;
 function goldberg(T, detail = 3) {
@@ -54,7 +54,7 @@ void main(){vRad=aRad;vRand=aRand;vec3 p=position;vec3 c=aCenter;
     p=c+l*(1.-k*.55)+off;}
   vN=normalize(normalMatrix*c);vC=c;vec4 w=modelMatrix*vec4(p,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`;
 const FRAG = `precision highp float;varying float vRad;varying float vRand;varying vec3 vN;varying vec3 vW;varying vec3 vC;
-uniform vec3 uCore,uEdge,uGlow,uCrack;uniform float uTime,uAppear,uShatter,uFade,uDamage,uFill,uEdgeW,uRunes,uSide,uPulse;uniform vec4 uHits[4];
+uniform vec3 uCore,uEdge,uGlow,uCrack;uniform float uTime,uAppear,uShatter,uFade,uDamage,uFill,uEdgeW,uRunes,uSide,uPulse,uGain;uniform vec4 uHits[4];
 float h1(float n){return fract(sin(n)*43758.5453);}
 void main(){vec3 V=normalize(cameraPosition-vW);float fres=pow(1.-abs(dot(normalize(vN),V)),2.2);
   float edge=smoothstep(1.-uEdgeW,1.,vRad);float inner=smoothstep(1.-uEdgeW*2.2,1.-uEdgeW,vRad)*.35;
@@ -65,10 +65,10 @@ void main(){vec3 V=normalize(cameraPosition-vW);float fres=pow(1.-abs(dot(normal
   float cracked=step(vRand,uDamage*1.05);float hole=step(vRand,max(0.,uDamage-.55)*1.4);
   float cl=0.;if(cracked>0.){float a=vRand*40.;vec3 q=normalize(vW*7.+vec3(a));cl=smoothstep(.93,.99,abs(sin(dot(vC,vec3(13.1,7.7,9.3))*9.+atan(q.y,q.x)*3.)))*(1.-vRad*.3);}
   float runes=uRunes*smoothstep(.75,.95,abs(sin(vRad*9.+vRand*20.)))*step(.55,vRand)*.6;
-  float a=(uFill*(.55+.45*pulse)*(1.-vRad*.25)+edge*(.75+.25*pulse)+inner+fres*.35+hit*.9+cl*.9+runes*.5)*(1.-hole*.85);
-  vec3 col=mix(uCore,uGlow,fres)*(uFill>.3?.9:1.)+uEdge*edge*1.4+uGlow*hit*1.6+uCrack*cl*1.6+uEdge*runes;
+  float rim=max(edge,inner*.6);float a=(uFill*(.6+.4*pulse)+rim*(.6+.25*pulse)+fres*.28+hit*(.25+.75*rim)*.7+cl*.7+runes*.35)*(1.-hole);
+  vec3 col=mix(uCore,uGlow,fres)+uEdge*edge*1.2+uGlow*hit*1.2+uCrack*cl*1.3+uEdge*runes*.8;
   float flick=1.-cracked*uDamage*.35*step(.5,fract(uTime*11.+vRand*7.));
-  a*=uAppear*uFade*(1.-smoothstep(.55,1.,uShatter))*flick*uSide;if(a<.01)discard;gl_FragColor=vec4(col,min(1.,a));}`;
+  float near=smoothstep(.8,2.6,length(cameraPosition-vW));a*=uAppear*uFade*(1.-smoothstep(.55,1.,uShatter))*flick*uSide*uGain*near;if(a<.01)discard;gl_FragColor=vec4(col,min(1.,a));}`;
 
 export function createShieldVFX(T, scene, { ground = () => 0 } = {}) {
   if (!SHARED) SHARED = goldberg(T, 3);
@@ -77,7 +77,7 @@ export function createShieldVFX(T, scene, { ground = () => 0 } = {}) {
   function make(skinName) {
     const S = SKINS[skinName] || SKINS.celeste, hits = Array.from({ length: 4 }, () => new T.Vector4(0, 1, 0, -1));
     const uni = () => ({ uCore: { value: new T.Color(S.core) }, uEdge: { value: new T.Color(S.edge) }, uGlow: { value: new T.Color(S.glow) }, uCrack: { value: new T.Color(S.crack) },
-      uTime: { value: 0 }, uAppear: { value: 0 }, uShatter: { value: 0 }, uFade: { value: 1 }, uDamage: { value: 0 }, uFill: { value: S.fill }, uEdgeW: { value: S.edgeW }, uRunes: { value: S.runes }, uSide: { value: 1 }, uPulse: { value: 0 }, uHits: { value: hits } });
+      uTime: { value: 0 }, uAppear: { value: 0 }, uShatter: { value: 0 }, uFade: { value: 1 }, uDamage: { value: 0 }, uFill: { value: S.fill }, uEdgeW: { value: S.edgeW }, uRunes: { value: S.runes }, uSide: { value: 1 }, uPulse: { value: 0 }, uGain: { value: S.gain ?? 1 }, uHits: { value: hits } });
     const mat = side => { const m = new T.ShaderMaterial({ uniforms: uni(), vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, side, toneMapped: false, blending: S.blend === 'add' ? T.AdditiveBlending : T.NormalBlending }); m.uniforms.uHits.value = hits; return m; };
     const back = new T.Mesh(SHARED.geometry, mat(T.BackSide)), front = new T.Mesh(SHARED.geometry, mat(T.FrontSide));
     back.material.uniforms.uSide.value = .55; back.renderOrder = 8; front.renderOrder = 9; back.frustumCulled = front.frustumCulled = false;

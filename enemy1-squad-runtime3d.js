@@ -254,7 +254,7 @@ export function createEnemy1SquadRuntime(ctx) {
         for (const [o, s] of b.scales) o.scale.copy(s);
         if (b.flash > 0) b.flash -= dt;
         const on = b.flash > 0, fury = !!BOSSES[a.kind] && a.phase2;
-        for (const m of b.mats) if (m.emissive) { if (on) { m.emissive.setHex(0x9a2a3c); m.emissiveIntensity = 1.2; } else { m.emissive.setHex(fury ? 0x4a0508 : m.userData.e0); m.emissiveIntensity = fury ? .9 + .3 * Math.sin(time * 6) : m.userData.i0; } }
+        for (const m of b.mats) if (m.emissive) { if (on) { m.emissive.setHex(a.kind === 'common' ? 0x7a52c8 : 0x9a2a3c); m.emissiveIntensity = a.kind === 'common' ? .55 : 1.2; } /* Mod 315: no Demônio1 o lampejo é violeta-claro curto (não pinta o corpo todo de magenta) */ else { m.emissive.setHex(fury ? 0x4a0508 : m.userData.e0); m.emissiveIntensity = fury ? .9 + .3 * Math.sin(time * 6) : m.userData.i0; } }
         // recuo da reação curta (sem clipe de dano no Enemy1)
         b.model.rotation.x = a.act && a.act.type === 'stagger' ? -Math.sin(Math.min(1, a.act.t / a.act.dur) * Math.PI) * (E3K[a.kind] && a.act.dur > .5 ? .42 : .22) : 0;
         if (E3K[a.kind]) { // Enemy3: camada de conjuração, inclinação no strafe e mão da singularidade

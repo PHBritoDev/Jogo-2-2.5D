@@ -24,8 +24,8 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
   // ---------------- crescente varrido (faixa com nascimento por amostra) ----------------
   const slashMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false, blending: T.AdditiveBlending,
     uniforms: { uTime: { value: 0 }, uLife: { value: st.life }, uCore: { value: new T.Color(st.core) }, uBody: { value: new T.Color(st.body) }, uRim: { value: new T.Color(st.rim) }, uAccent: { value: new T.Color(st.accent) }, uRakes: { value: st.rakes }, uGain: { value: 1 }, uSeed: { value: 0 }, uHead: { value: 0 } },
-    vertexShader: 'attribute float aBirth;varying vec2 vUv;varying float vBirth;void main(){vUv=uv;vBirth=aBirth;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: `precision highp float;varying vec2 vUv;varying float vBirth;uniform float uTime,uLife,uRakes,uGain,uSeed,uHead;uniform vec3 uCore,uBody,uRim,uAccent;${NOISE}
+    vertexShader: 'attribute float aBirth;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=uv;vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
+    fragmentShader: `precision highp float;varying vec2 vUv;varying float vBirth;varying float vNear;uniform float uTime,uLife,uRakes,uGain,uSeed,uHead;uniform vec3 uCore,uBody,uRim,uAccent;${NOISE}
       void main(){float age=(uTime-vBirth)/uLife;if(age>1.)discard;float u=vUv.x,v=vUv.y;
         float lead=smoothstep(uHead-.35,uHead,u);float tail=smoothstep(0.,.22,u);
         float n=vn(vec2(u*14.+uSeed,v*3.-uTime*6.)),n2=vn(vec2(u*38.+uSeed*2.,v*9.+uTime*3.));
@@ -35,16 +35,16 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
         float halo=smoothstep(0.,.55,v)*(1.-smoothstep(.9,1.,v));
         float a=(halo*.7+edgeV*1.1+core*2.6)*tail*(.6+.4*lead)*erode*(1.-smoothstep(.6,1.,age))*uGain;
         vec3 c=mix(uRim,uBody,smoothstep(.2,.7,v));c=mix(c,uCore,clamp(core*(.7+.3*lead),0.,1.));c+=uAccent*step(.82,n2)*smoothstep(.45,.9,v)*.8;
-        if(a<.012)discard;gl_FragColor=vec4(c*(1.2+core*.8),min(1.,a));}` });
+        a*=vNear;if(a<.012)discard;gl_FragColor=vec4(c*(1.2+core*.8),min(1.,a));}` });
   /* Sombra/fumaça sob o corte (mistura normal): dá contraste em cenário claro como nas referências — núcleo claro sobre
      uma esteira escura que se esgarça, em vez de só somar luz (que some sobre grama ensolarada). */
   const smokeMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false,
     uniforms: { uTime: { value: 0 }, uLife: { value: st.life * 1.25 }, uDark: { value: new T.Color(st.dark || 0x05070d) }, uGain: { value: 1 }, uSeed: { value: 0 }, uRakes: { value: st.rakes } },
-    vertexShader: 'attribute float aBirth;varying vec2 vUv;varying float vBirth;void main(){vUv=uv;vBirth=aBirth;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: `precision highp float;varying vec2 vUv;varying float vBirth;uniform float uTime,uLife,uGain,uSeed,uRakes;uniform vec3 uDark;${NOISE}
+    vertexShader: 'attribute float aBirth;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=uv;vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
+    fragmentShader: `precision highp float;varying vec2 vUv;varying float vBirth;varying float vNear;uniform float uTime,uLife,uGain,uSeed,uRakes;uniform vec3 uDark;${NOISE}
       void main(){float age=(uTime-vBirth)/uLife;if(age>1.)discard;float u=vUv.x,v=vUv.y;float n=vn(vec2(u*9.+uSeed,v*4.-uTime*3.));
         float band=uRakes>1.5?smoothstep(.0,.3,fract(v*3.))*(1.-smoothstep(.5,.8,fract(v*3.))):smoothstep(.05,.45,v)*(1.-smoothstep(.7,.92,v));
-        float a=band*smoothstep(0.,.25,u)*smoothstep(age,age+.35,n)*(1.-smoothstep(.4,1.,age))*.5*uGain;if(a<.02)discard;gl_FragColor=vec4(uDark,a);}` });
+        float a=band*smoothstep(0.,.25,u)*smoothstep(age,age+.35,n)*(1.-smoothstep(.4,1.,age))*.5*uGain;a*=vNear;if(a<.02)discard;gl_FragColor=vec4(uDark,a);}` });
   function makeSlash() {
     const N = segments, pos = new Float32Array(N * 2 * 3), uv = new Float32Array(N * 2 * 2), birth = new Float32Array(N * 2), idx = [];
     for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
@@ -84,8 +84,8 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
   // ---------------- onda destacada (volume de dano visível) ----------------
   const waveMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false, blending: T.AdditiveBlending,
     uniforms: { uAge: { value: 0 }, uLife: { value: .4 }, uFade: { value: 1 }, uSeed: { value: 0 }, uCore: { value: new T.Color(st.core) }, uBody: { value: new T.Color(st.body) }, uRim: { value: new T.Color(st.rim) }, uAccent: { value: new T.Color(st.accent) }, uRakes: { value: st.rakes }, uGain: { value: 1 } },
-    vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: `precision highp float;varying vec2 vUv;uniform float uAge,uLife,uFade,uSeed,uRakes,uGain;uniform vec3 uCore,uBody,uRim,uAccent;${NOISE}
+    vertexShader: 'varying vec2 vUv;varying float vNear;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
+    fragmentShader: `precision highp float;varying vec2 vUv;varying float vNear;uniform float uAge,uLife,uFade,uSeed,uRakes,uGain;uniform vec3 uCore,uBody,uRim,uAccent;${NOISE}
       void main(){float t=clamp(uAge/uLife,0.,1.);float x=vUv.x*2.-1.,v=vUv.y;float taper=pow(max(0.,1.-x*x),.6);
         float band=v;if(uRakes>1.5){band=fract(v*3.);}
         float front=exp(-pow((band-.8)*6./(.35+taper),2.));float body=smoothstep(0.,.75,band)*(1.-smoothstep(.85,1.,band));
@@ -93,7 +93,7 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
         float erode=smoothstep(t*.9,t*.9+.3,n*.8+.2*(1.-v));
         float a=(front*2.1+body*.7)*taper*erode*(1.-smoothstep(.6,1.,t))*uFade*uGain;
         vec3 c=mix(uRim,uBody,body);c=mix(c,uCore,front);c+=uAccent*step(.84,n2)*front*.7;
-        if(a<.012)discard;gl_FragColor=vec4(c*1.25,min(1.,a));}` });
+        a*=vNear;if(a<.012)discard;gl_FragColor=vec4(c*1.25,min(1.,a));}` });
   function crescentGeo() { const pos = [], uv = [], idx = [], N = 36, M = 6;
     for (let i = 0; i <= N; i++) { const u = i / N, ang = (u - .5) * 2.3; for (let j = 0; j <= M; j++) { const v = j / M, r = .55 + .45 * v; pos.push(Math.sin(ang) * r, 0, Math.cos(ang) * r - .75); uv.push(u, v); if (i < N && j < M) { const k = i * (M + 1) + j; idx.push(k, k + M + 1, k + 1, k + 1, k + M + 1, k + M + 2); } } }
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); return g; }
@@ -104,21 +104,28 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     for (let i = 0; i <= N; i++) { const u = i / N, ang = (u - .5) * 2.4, taper = Math.pow(Math.max(0, Math.cos(ang * .62)), 1.6); for (let j = 0; j <= M; j++) { const v = j / M;
       pos.push(Math.sin(ang), (v - .5) * .95 * taper + (Math.cos(ang) - .55) * .55, (Math.cos(ang) - .4) * .55); uv.push(u, v); if (i < N && j < M) { const k = i * (M + 1) + j; idx.push(k, k + M + 1, k + 1, k + 1, k + M + 1, k + M + 2); } } }
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); return g; }
+  /* Setor (corte horizontal que se expande): arco do próprio vão do golpe, em anel fino na FRENTE do raio — curvo, com
+     pontas afinando (nada de leque de triângulos). Uma geometria por vão, em cache. */
+  const arcCache = new Map();
+  function arcGeo(span) { const k = Math.min(6.283, span).toFixed(2); if (arcCache.has(k)) return arcCache.get(k);
+    const sp = Math.min(6.283, span), N = Math.max(24, Math.ceil(sp * 18)), M = 5, pos = [], uv = [], idx = [];
+    for (let i = 0; i <= N; i++) { const u = i / N, a = (u - .5) * sp; for (let j = 0; j <= M; j++) { const v = j / M, r = .78 + .22 * v; pos.push(Math.sin(a) * r, 0, Math.cos(a) * r); uv.push(u, v); if (i < N && j < M) { const q = i * (M + 1) + j; idx.push(q, q + M + 1, q + 1, q + 1, q + M + 1, q + M + 2); } } }
+    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); arcCache.set(k, g); return g; }
   const cGeo = crescentGeo(), wGeo = waveGeo();
   const waveSmokeMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false,
     uniforms: { uAge: { value: 0 }, uLife: { value: .4 }, uFade: { value: 1 }, uSeed: { value: 0 }, uDark: { value: new T.Color(st.dark || 0x05070d) }, uRakes: { value: st.rakes } },
-    vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: `precision highp float;varying vec2 vUv;uniform float uAge,uLife,uFade,uSeed,uRakes;uniform vec3 uDark;${NOISE}
+    vertexShader: 'varying vec2 vUv;varying float vNear;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
+    fragmentShader: `precision highp float;varying vec2 vUv;varying float vNear;uniform float uAge,uLife,uFade,uSeed,uRakes;uniform vec3 uDark;${NOISE}
       void main(){float t=clamp(uAge/uLife,0.,1.);float x=vUv.x*2.-1.,v=vUv.y;float taper=pow(max(0.,1.-x*x),.8);float band=uRakes>1.5?fract(v*3.):v;
         float n=vn(vec2(vUv.x*14.+uSeed,v*3.-uAge*8.));float a=smoothstep(0.,.55,band)*(1.-smoothstep(.7,.95,band))*taper*smoothstep(t,t+.35,n)*(1.-smoothstep(.45,1.,t))*uFade*.55;
-        if(a<.02)discard;gl_FragColor=vec4(uDark,a);}` });
+        a*=vNear;if(a<.02)discard;gl_FragColor=vec4(uDark,a);}` });
   const wavePool = Array.from({ length: waves }, () => { const g = new T.Group(), tilt = new T.Group(), mats = { prota: waveMat(STYLES.prota), demon: waveMat(STYLES.demon) }, smokes = { prota: waveSmokeMat(STYLES.prota), demon: waveSmokeMat(STYLES.demon) }, m = new T.Mesh(cGeo, mats.prota), halo = new T.Mesh(cGeo, smokes.prota);
     halo.scale.set(1.08, 1, 1.18); halo.position.y = -.03; m.frustumCulled = halo.frustumCulled = false; m.renderOrder = 10; halo.renderOrder = 9; tilt.add(m, halo); g.add(tilt); g.visible = false; root.add(g); return { g, tilt, m, halo, mats, smokes, e: null, after: 0 }; });
   let waveCursor = 0;
   /** e: volume de energia (prota-combat3d.makeEnergy ou equivalente das garras). */
   function wave(e, { style = 'prota', gain = 1 } = {}) {
     const w = wavePool[waveCursor++ % wavePool.length], mat = w.mats[style] || w.mats.prota;
-    w.m.geometry = w.halo.geometry = e.kind === 'sector' ? cGeo : wGeo;
+    w.m.geometry = w.halo.geometry = e.kind === 'sector' ? arcGeo(e.span || 2.6) : wGeo; w.full = e.kind === 'sector' && (e.span || 0) > 6.2;
     w.m.material = mat; w.halo.material = w.smokes[style] || w.smokes.prota; w.halo.material.uniforms.uLife.value = e.life * 1.2; w.halo.material.uniforms.uSeed.value = Math.random() * 40; w.halo.material.uniforms.uFade.value = 1; w.e = e; w.after = 0; w.g.visible = true; w.style = style;
     const u = mat.uniforms; u.uLife.value = e.life; u.uSeed.value = Math.random() * 40; u.uGain.value = gain; u.uFade.value = 1;
     w.g.position.set(e.x, e.y, e.z); w.g.rotation.set(0, e.yaw, 0); w.tilt.rotation.set(0, 0, e.roll || 0);
@@ -127,7 +134,7 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     const e = w.e; if (!e) return; const u = w.m.material.uniforms, hu = w.halo.material.uniforms;
     if (e.done) { w.after += dt; u.uFade.value = hu.uFade.value = Math.max(0, 1 - w.after / .12); if (w.after > .12) { w.g.visible = false; w.e = null; return; } }
     u.uAge.value = hu.uAge.value = e.age;
-    if (e.kind === 'sector') { const r = Math.max(.05, e.radius); w.g.position.set(e.x, e.y, e.z); w.tilt.scale.set(r * (e.span < 6.2 ? Math.min(1.4, e.span / 2.3) : 2.6), 1, r); w.m.position.z = w.halo.position.z = .75; w.halo.position.y = -.03; }
+    if (e.kind === 'sector') { const r = Math.max(.05, e.radius); w.g.position.set(e.x, e.y, e.z); w.tilt.scale.set(r, 1, r); w.m.position.z = w.halo.position.z = 0; w.halo.position.y = -.03; w.halo.scale.set(.97, 1, .97); }
     else { const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw), along = e.blockedAt ? Math.min(e.travel, e.blockedAt) : e.travel; w.g.position.set(e.x + fx * along, e.y, e.z + fz * along); const s = e.radius * (1 + .2 * Math.min(1, e.age / .15)); w.tilt.scale.set(s, 1.15, Math.max(.7, e.band * 1.4)); w.m.position.z = w.halo.position.z = 0; }
   }
   // ---------------- faíscas / estilhaços (instanciados) ----------------

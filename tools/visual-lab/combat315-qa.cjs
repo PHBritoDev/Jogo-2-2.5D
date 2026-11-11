@@ -13,7 +13,8 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   p.on('response',r=>{if(r.status()>=400&&!/favicon/.test(r.url()))report.assets.push(r.status()+' '+r.url());});
   await p.goto(base+'/mundo-3d-prototype.html?testeEnemy1=1&debug3d=1',{waitUntil:'domcontentloaded',timeout:90000});
   await p.waitForFunction(()=>window.SevenSinsDebug3D&&SevenSinsDebug3D.riteState&&SevenSinsDebug3D.riteState().ready,null,{timeout:300000});
-  const E=(f,a)=>p.evaluate(f,a),shot=n=>p.screenshot({path:path.join(out,n+'.png'),timeout:120000});
+  const E=(f,a)=>p.evaluate(f,a),shot=async n=>{await E(()=>{const D=SevenSinsDebug3D,h=D.heroState(),q=D.squadState().snap.actors[0],mx=(h.p[0]+q.x)/2,mz=(h.p[2]+q.z)/2;D.fly([mx+5.2,h.p[1]+2.3,mz+1.2],[mx,h.p[1]+1,mz]);D.render();});await p.screenshot({path:path.join(out,n+'.png'),timeout:120000});await E(()=>SevenSinsDebug3D.fly(null));};
+  await E(()=>{for(const id of ['vfx-lab','quest-hud','status'])document.getElementById(id)&&(document.getElementById(id).style.display='none');});
   await E(()=>{const D=SevenSinsDebug3D;D.setHour&&D.setHour(10);D.squadLab('1');});
   await p.waitForFunction(()=>SevenSinsDebug3D.squadState().on&&SevenSinsDebug3D.combat315().enemies.length===1,null,{timeout:120000});
   // 1) onda acerta sem toque físico: inimigo parado a 4,6 m (fora do alcance da lâmina)
@@ -28,12 +29,12 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   assert.equal(report.steps.jump.j2,2);assert.equal(report.steps.jump.j3,2);assert.ok(report.steps.jump.landed);
   // 4) escudo do herói: 2,7 s, recarga 8 s só depois de sumir, ruptura com dano integral
   report.steps.heroShield=await E(()=>{const D=SevenSinsDebug3D,C=window.__combat315;D.combatAction('shield');D.combatStep(.25,{fps:30,draw:true});const on=D.combat315().hero;D.combatStep(2.6,{fps:30,draw:false});const off=D.combat315().hero;return {on,off};});
-  await E(()=>{const D=SevenSinsDebug3D;D.squadPause(false);});
   assert.equal(report.steps.heroShield.on.state,'active');assert.equal(report.steps.heroShield.off.state,'cooldown');assert.ok(Math.abs(report.steps.heroShield.off.cd-8)<.25);
   // 5) Demônio1: escudo próprio absorve a espada; garras e salto predatório
   report.steps.demon=await E(()=>{const D=SevenSinsDebug3D;D.squadPose('e1',-5,13.8,0,true);D.squadShield('e1');D.combatStep(.1,{fps:30,draw:false});const h0=D.squadState().enemyHP;D.combatAction('attack');D.combatStep(.5,{fps:60,draw:true});const s=D.combat315().enemies[0];return {h0,h1:D.squadState().enemyHP,shield:s.shield};});
+  assert.ok(report.steps.demon.shield==='active'&&report.steps.demon.h0-report.steps.demon.h1<12,'escudo do Demônio1 mitiga o golpe');
   await shot('02-escudo-demonio');
-  report.steps.leap=await E(()=>{const D=SevenSinsDebug3D;D.squadPose('e1',-5,9.6,0,true);D.squadLeap('e1');let maxY=0,j=0;for(let i=0;i<40;i++){D.combatStep(1/30,{fps:60,draw:false});const e=D.combat315().enemies[0];maxY=Math.max(maxY,e.airY);j=Math.max(j,e.jumps);}D.combatStep(.6,{fps:30,draw:true});return {maxY,j};});
+  report.steps.leap=await E(()=>{const D=SevenSinsDebug3D;D.squadPause(false);D.squadPose('e1',-5,9.6,0,true);D.squadLeap('e1');let maxY=0,j=0;for(let i=0;i<40;i++){D.combatStep(1/30,{fps:60,draw:false});const e=D.combat315().enemies[0];maxY=Math.max(maxY,e.airY);j=Math.max(j,e.jumps);}D.combatStep(.6,{fps:30,draw:true});return {maxY,j};});
   assert.ok(report.steps.leap.maxY>.8&&report.steps.leap.j===2,'salto duplo do Demônio1');await shot('03-salto-demonio');
   report.steps.claws=await E(()=>{const D=SevenSinsDebug3D;D.squadPose('e1',-5,14.1,0,true);const hp0=D.heroState().hp;D.squadNative('e1','rasgo');D.combatStep(.55,{fps:60,draw:true});return {hp0};});await shot('04-garras');
   report.perf=await E(()=>SevenSinsDebug3D.perfProbe(4));
