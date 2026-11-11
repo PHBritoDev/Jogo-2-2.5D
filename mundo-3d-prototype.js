@@ -44,7 +44,6 @@ import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, CAGE_TRAIL, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
-import {createVillageTorchFire} from './eldoria-torch-fire3d.js';
 import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
@@ -772,7 +771,7 @@ for(const p of villageTorchSites){
  torchLight.castShadow=false;
  villageGroup.add(torchLight);villageTorchLights.push(torchLight);
 }
-const torchFlames=createVillageTorchFire(THREE,villageGroup,villageTorchSites,villageTorchLights,camera);
+// Sem chamas em planos/shaders: apenas TochaMedievalTripo.glb original + iluminação.
 const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
  const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
@@ -785,7 +784,7 @@ const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedi
  for(let i=0;i<villageTorchSites.length;i++){
   const p=villageTorchSites[i],model=source.clone(true);
   const anchor=new THREE.Group();anchor.name='TochaMedievalTripo-'+(i+1);
-  anchor.position.set(p.x,0,p.z);anchor.add(model);villageGroup.add(anchor);
+  anchor.position.set(p.x,groundHeightAt(p.x,p.z),p.z);anchor.add(model);villageGroup.add(anchor);
  }
  resolve(source);
 },undefined,()=>{console.warn('TochaMedievalTripo.glb indisponível; nenhum poste genérico será criado.');resolve(null);}));
@@ -2198,7 +2197,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);applyCycloneSuction(dt);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();torchFlames.update(now*.001,dayNightState.t);district.torchFlames.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();// Sem atualização de fogo procedural; as tochas GLB têm luz estável controlada pelo light budget.applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
  undoCyShake();undoVxShake();undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -3458,7 +3457,7 @@ const district=(()=>{
  // Substituição definitiva dos postes/esferas feitos por código: somente GLB autoral.
  const districtTorchSites=[[-146,-56],[-156,-68],[-140,-68]].map(([x,z])=>({x,z,y:groundHeightAt(x,z)}));
  const districtTorchLights=districtTorchSites.map(p=>{const l=new THREE.PointLight(0xffa860,.45,12,1.6);l.position.set(p.x,p.y+1.95,p.z);l.castShadow=false;root.add(l);return l;});
- const districtTorchFlames=createVillageTorchFire(THREE,root,districtTorchSites,districtTorchLights,camera);
+ // Não gerar geometria de fogo: os pontos exibem somente modelos 3D autorais.
  authoredTorchAsset.then(source=>{
   if(!source)return;
   for(let i=0;i<districtTorchSites.length;i++){
@@ -3467,7 +3466,7 @@ const district=(()=>{
    holder.add(source.clone(true));root.add(holder);
   }
  });
- return{root,seal,sealLight,sealMat,altar,ledgers,torchFlames:districtTorchFlames};
+ return{root,seal,sealLight,sealMat,altar,ledgers};
 })();
 // ---------- Chuva (shader: sem atualizar vértices na CPU) e relâmpagos ----------
 const rain=(()=>{
