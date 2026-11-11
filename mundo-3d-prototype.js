@@ -7535,6 +7535,7 @@ function installCombatLab(){
 }
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
+ torchAudit(){const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});return {expected:villageTorchSites.length,loaded:placed.length,placed};},
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},
 
  /** Instrumento de QA: avança APENAS a timeline determinística da Skill 2 sem a física do mundo;
