@@ -22,12 +22,25 @@ const dir=path.resolve('work/child-npc-evidence');fs.mkdirSync(dir,{recursive:tr
   report.village=await page.evaluate(()=>window.SevenSinsVillagerReport);
   assert.equal(report.village.vendors,3);
   assert.equal(report.village.childrenInVillage,0);
-  assert.ok(report.village.residents<=4);
+  assert.equal(report.village.residents,4,'todos os quatro adultos devem aparecer');
   report.scene=await page.evaluate(()=>{
     const n=window.SevenSinsChildNpcReport;
     return {npc:n.loaded,render:SevenSinsDebug3D.rinfo()};
   });
-  await page.screenshot({path:path.join(dir,'jogo-real.png')});
+  // Auditar personagens, não uma parede próxima ao spawn.
+  await page.evaluate(()=>{
+    const api=window.SevenSinsDebug3D;api.freeRoam();
+    api.fly([-12.2,8,-32],[-12.2,1.6,-44.5]);
+  });
+  await page.waitForTimeout(900);
+  await page.screenshot({path:path.join(dir,'vila-npcs-barracas.png')});
+  await page.evaluate(()=>{
+    const api=window.SevenSinsDebug3D;api.act1(2,0);api.freeRoam();
+    api.fly([66,5,-60],[66,1.1,-70]);
+  });
+  await page.waitForTimeout(950);
+  await page.screenshot({path:path.join(dir,'criancas-gaiolas.png')});
+  report.captures=['vila-npcs-barracas.png','criancas-gaiolas.png'];
   assert.equal(report.network.length,0);
   report.ok=true;
  }finally{fs.writeFileSync(path.join(dir,'resultado.json'),JSON.stringify(report,null,2));await browser.close();}
