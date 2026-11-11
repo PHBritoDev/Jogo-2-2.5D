@@ -45,7 +45,7 @@ import {DestructionSphere,CelestialExplosion} from './sakuga-skills3d.js';import
 import {buildQuantumSword,tickQuantumSword,createQuantumFX} from './quantum-sword3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, CAGE_TRAIL, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
-import {createVillageTorchFire} from './eldoria-torch-fire3d.js';
+import {removeTorchBakedFlames} from './eldoria-torch-cleanup3d.js';
 import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
@@ -760,7 +760,6 @@ const marketLabels=[['FRUTAS',false],['PROVISÕES',false]];
 const marketStalls=ELDORIA_MARKET.map(([x,z,size,yaw],i)=>({x:VILLAGE_CENTER.x+x,z:VILLAGE_CENTER.z+z,size,yaw,label:marketLabels[i][0],green:marketLabels[i][1]}));
 // Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
-const lanternMat=new THREE.MeshStandardMaterial({color:0xf0bb57,emissive:0x72451a,emissiveIntensity:.65,roughness:.75});
 // Tochas originais do criador; sem postes/bacias/chamas de placeholder em codigo.
 // Somente dois pontos intencionais de orientacao na vila, com GLB compartilhado.
 const villageTorchSites=[
@@ -773,9 +772,9 @@ for(const p of villageTorchSites){
  torchLight.castShadow=false;
  villageGroup.add(torchLight);villageTorchLights.push(torchLight);
 }
-const torchFlames=createVillageTorchFire(THREE,villageGroup,villageTorchSites,villageTorchLights,camera);
 const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
- const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
+ const source=gltf.scene;removeTorchBakedFlames(source);
+ const bounds=new THREE.Box3().setFromObject(source);
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(bounds.isEmpty()||!Number.isFinite(size.y)||size.y<.001)return;
  clampBakedMips(THREE,source,terrainLowSpec?4:3.5);
@@ -1925,19 +1924,27 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.52:1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?1.42:1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
  // lentidao e podia arrasta-la para dentro da parede da caverna.
- if(ascKey==='cave')camera.position.copy(target);
- else camera.position.lerp(target,1-Math.exp(-14*dt));
+ if(ascKey==='cave'){
+  const lx=player.position.x-voidSpec.x,lz=player.position.z-voidSpec.z;
+  const roof=voidSpec.ceil?.(lx,lz);
+  // Olhos na altura real: só baixar quando a abóbada está fisicamente próxima.
+  if(Number.isFinite(roof))target.y=Math.min(target.y,voidSpec.y+roof-.72);
+  camera.position.copy(target);
+ }else camera.position.lerp(target,1-Math.exp(-14*dt));
  const cp=Math.cos(cameraPitch),lookDir=new THREE.Vector3(-Math.sin(cameraYaw)*cp,-Math.sin(cameraPitch),-Math.cos(cameraYaw)*cp);
  camera.lookAt(camera.position.clone().add(lookDir.multiplyScalar(12)));
 }else{
  const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);target.y+=starfallCameraWeight*2;const dk=dragonViewWeight,dh=judgmentDragon.head;target.y+=dk*Math.max(2,Math.min(12,(dh.y-player.position.y)*.48));
  const headFocus=.2+dragonDiveWeight*.4;target.x+=(dh.x-target.x)*dk*headFocus;target.z+=(dh.z-target.z)*dk*headFocus;
- const camDistUse=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
+ // Camera da caverna: braço curto com colisão, sem ficar preso em paredes distantes.
+ // A dimensão e a escala do protagonista NÃO mudam entre 1ª e 3ª pessoa.
+ const naturalDistance=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
+ const camDistUse=ascKey==='cave'&&!riteCinematicView?Math.min(naturalDistance,4.25):naturalDistance;
  const orbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
  const desired=target.clone().add(camOffset);
  // MOD 186 — se um tronco fica entre o herói e a câmera, aproxima a câmera em vez de enquadrar a casca.
@@ -1956,9 +1963,28 @@ if(firstPerson){
   if(voidMode&&voidSpec.walk){const cs=voidSpec.camSolid;for(let i=1;i<=22;i++){const f=i/22*limit,cx=target.x+camOffset.x*f,cz=target.z+camOffset.z*f;if(cs?cs(cx-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,cz-voidSpec.z):blockedAt(cx,cz)){limit=Math.max(.035,(i-1.7)/22*limit);break;}}} // MOD 311: zonas com volume (caverna/escadaria) testam o sólido em 3D
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
- camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?15:8)*dt));
+ camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?11:8)*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
- if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);
+ if(ascKey==='cave'&&voidSpec.camSolid){
+  const solid=p=>voidSpec.camSolid(p.x-voidSpec.x,p.y-voidSpec.y,p.z-voidSpec.z);
+  if(solid(camera.position)||solid(desired)){
+    // Varredura tipo spring-arm: nunca saltar diretamente para um destino rochoso.
+    const focus=target.clone();
+    if(solid(focus)){
+      const lx=player.position.x-voidSpec.x,lz=player.position.z-voidSpec.z;
+      const floor=voidSpec.floor?.(lx,lz),roof=voidSpec.ceil?.(lx,lz);
+      focus.set(player.position.x,Number.isFinite(floor)?voidSpec.y+floor+.85:player.position.y+.85,player.position.z);
+      if(Number.isFinite(roof))focus.y=Math.min(focus.y,voidSpec.y+roof-.72);
+    }
+    const delta=desired.clone().sub(focus),sample=new THREE.Vector3(),safe=focus.clone();
+    for(let i=1;i<=28;i++){
+      sample.copy(focus).addScaledVector(delta,i/28);
+      if(solid(sample))break;
+      safe.copy(sample);
+    }
+    camera.position.copy(safe);
+  }
+ }
  camera.lookAt(target);applyUltCam(dt,target);
 }
 }
@@ -2199,7 +2225,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);applyCycloneSuction(dt);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();torchFlames.update(now*.001,dayNightState.t);district.torchFlames.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
  undoCyShake();undoVxShake();undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -2223,6 +2249,10 @@ function updateSkyAndShadows(){
 }
 /* MOD 186 — a câmera em terceira pessoa não atravessa encostas nem a subida do portal. */
 function keepCameraAboveTerrain(){
+ // Causa-raiz da camera gigante/travando na caverna: este limitador usa o SOLO
+ // DO MUNDO EXTERNO! Em interiores/submundos ele elevava a camera varios metros
+ // acima da altura real do personagem, anulando o spring-arm e a primeira pessoa.
+ if(ascKey==='cave')return;
  const floor=groundHeightAt(camera.position.x,camera.position.z)+.55;
  if(camera.position.y<floor)camera.position.y=floor;
 }
@@ -2629,7 +2659,7 @@ function ensureSwordView(){
 function updateFirstPerson(dt,now){
  if(swordRoot&&equippedSword!=='prota'&&!swordHands[equippedSword])equipSword(equippedSword);
  const fp=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!awakeningActive;
- if(fp!==fpWasActive){rites.prevBlade=null;fpWasActive=fp;camera.fov=fp?72:56;camera.updateProjectionMatrix();const cross=document.getElementById('crosshair');if(cross)cross.hidden=!fp;}
+ if(fp!==fpWasActive){rites.prevBlade=null;fpWasActive=fp;camera.fov=fp?62:56;camera.updateProjectionMatrix();const cross=document.getElementById('crosshair');if(cross)cross.hidden=!fp;}
  if(swordMount)swordMount.visible=!fp&&!prota302.hidden;
  if(!fp){if(swordView)swordView.root.visible=false;return;}
  ensureSwordView();if(!swordView)return;
@@ -3459,8 +3489,7 @@ const district=(()=>{
  // Substituição definitiva dos postes/esferas feitos por código: somente GLB autoral.
  const districtTorchSites=[[-146,-56],[-156,-68],[-140,-68]].map(([x,z])=>({x,z,y:groundHeightAt(x,z)}));
  const districtTorchLights=districtTorchSites.map(p=>{const l=new THREE.PointLight(0xffa860,.45,12,1.6);l.position.set(p.x,p.y+1.95,p.z);l.castShadow=false;root.add(l);return l;});
- const districtTorchFlames=createVillageTorchFire(THREE,root,districtTorchSites,districtTorchLights,camera);
- authoredTorchAsset.then(source=>{
+  authoredTorchAsset.then(source=>{
   if(!source)return;
   for(let i=0;i<districtTorchSites.length;i++){
    const p=districtTorchSites[i],holder=new THREE.Group();holder.name='TochaMedievalTripo-Distrito-'+(i+1);
@@ -3468,7 +3497,7 @@ const district=(()=>{
    holder.add(source.clone(true));root.add(holder);
   }
  });
- return{root,seal,sealLight,sealMat,altar,ledgers,torchFlames:districtTorchFlames};
+ return{root,seal,sealLight,sealMat,altar,ledgers};
 })();
 // ---------- Chuva (shader: sem atualizar vértices na CPU) e relâmpagos ----------
 const rain=(()=>{
@@ -4139,7 +4168,7 @@ function buildAct1Props(){
  /* MOD 291 — marco 3: cidade bonita e íntegra (o Bispo levou o dinheiro, não as casas): deques e escadas nas árvores
     ancestrais, a passarela suspensa do criador entre duas delas, canteiros, sebes, cercas claras e lampiões. */
  act1Props.dressing=mountCityDressing(THREE,GLTFLoader,{group:villageGroup,groundHeightAt,center:VILLAGE_CENTER,plots:ELDORIA_PLOTS,lowSpec:terrainLowSpec,obstacles:marketObstacles,
-  structures:treeStructurePlan(VILLAGE_CENTER),walk:eldoriaWalk,fetchModel:eldoriaCity.fetchModel,
+  structures:treeStructurePlan(VILLAGE_CENTER),walk:eldoriaWalk,fetchModel:eldoriaCity.fetchModel,torchAsset:authoredTorchAsset,
   lamps:[{x:3.4,z:-19.5},{x:-3.8,z:-26.5},{x:4.6,z:-37},{x:-6.6,z:-31.4},{x:-17.6,z:-42.6},{x:-24.2,z:-47.9},{x:4.4,z:-47.6},{x:-14.6,z:-52.5},{x:-4.2,z:-62.5},{x:-9,z:-58.5}],
   isFree:(x,z)=>!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+1)&&!marketObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<(o.radius||1)+.4)});
  eldoriaCity.complete.then(report=>{
@@ -6362,7 +6391,7 @@ function autoRecenterCamera(dt,now){
  const want=Math.atan2(-moveVX,-moveVZ),d=Math.atan2(Math.sin(want-cameraYaw),Math.cos(want-cameraYaw));cameraYaw+=d*Math.min(1,dt*1.1);
 }
 function updateFovKick(dt){
- const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?72:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
+ const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?62:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
  prota302.punch*=Math.exp(-7*dt);const fov=base+fovKick+(fp?0:vzFovAdd+hydraFovAdd+vxFovAdd+cyFovAdd+prota302.punch);if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
 }
 // ---------- Primeira pessoa: mira com alvo, golpes variados, guarda ----------
@@ -7591,8 +7620,15 @@ function installCombatLab(){
 }
 /* Ganchos de verificação automática: só existem com ?debug3d=1 (nada aparece para o jogador). */
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
- torchAudit(){const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});const districtModels=[];district.root.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Distrito-'))districtModels.push(o.name);});
- return {expected:villageTorchSites.length,loaded:placed.length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels}};},
+ torchAudit(){
+  const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});
+  const districtModels=[];district.root.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Distrito-'))districtModels.push(o.name);});
+  const cityModels=[];act1Props?.dressing?.root?.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Cidade-'))cityModels.push(o.name);});
+  const caveModels=[];ascZones?.cave?.group?.traverse(o=>{if(o.name==='tocha-medieval-3d')caveModels.push(o.name);});
+  const procedural=[];scene.traverse(o=>{if(/^(?:ChamaFluidaTocha|TochasVentoFogoGPU|BrasasCompartilhadas|eldoria-fences-lamps|eldoria-lanterns)/.test(o.name||''))procedural.push(o.name);});
+  return {expected:villageTorchSites.length,loaded:placed.filter(o=>!o.name.includes('Cidade')).length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels},city:{expected:10,loaded:cityModels.length,names:cityModels},cave:{loaded:caveModels.length},procedural};
+ },
+ cameraAudit(){return {mode:cameraDistance<1.05?'first':'third',distance:cameraDistance,fov:camera.fov,height:camera.position.y-player.position.y,position:camera.position.toArray(),zone:ascKey,blocked:!!(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))};},
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},
 
  /** Instrumento de QA: avança APENAS a timeline determinística da Skill 2 sem a física do mundo;
@@ -7635,7 +7671,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  motionQA({x=40,z=30,enemyDistance=8,enemySide=0,fp=false,sword='prota'}={}){rites.cancel('qa');moveVX=moveVZ=0;player.position.set(x,terrainHeightAt(x,z),z);playerYaw=Math.PI;player.rotation.y=playerYaw;enemy.position.set(x+enemySide,terrainHeightAt(x+enemySide,z-enemyDistance),z-enemyDistance);enemy.visible=enemyDistance>0;enemyAlive=true;cameraYaw=0;cameraPitch=0;cameraDistance=fp?.72:6;lockOnActive=false;this.riteEquip(sword);for(const k in keys)keys[k]=false;sprintToggle=false;debugDtScale=0;actionUntil=0;play('idle',0);return this.riteState();},
  motionStep(seconds,{x=0,z=-1,sprint=false,attack=false,fps=60}={}){joyX=x;joyY=z;sprintToggle=sprint;if(attack)this.riteAttack();for(let i=0;i<Math.round(seconds*fps);i++){const raw=1/fps,sd=debugHitstopLeft>0?raw*.06:raw;debugHitstopLeft=Math.max(0,debugHitstopLeft-raw);if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-raw);setEnemyHitFlash(enemyHitFlash>0);}mixer.update(sd);restoreRiteScales();updatePlayerMovement(sd,performance.now()+i*1000/fps);if(!debugCameraOverride)updatePlayerCamera(raw);updatePoses(sd);updatePlayerSwordMount();updateFirstPerson(sd,performance.now());updateRites(sd);updateFovKick(raw);lightBudget.update(camera,raw);}joyX=joyY=0;updateFirstPerson(0,performance.now());renderer.render(scene,camera);return this.riteState();},
  motionPose(t){rites.cancel('qa');mixer.stopAllAction();const a=actions.run;a.reset().play();a.paused=true;a.time=t;activeAction=a;mixer.update(0);restoreRiteScales();updatePlayerSwordMount();renderer.render(scene,camera);return this.riteState();},
- viewQA(fp,yaw=0,pitch=0){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=fp?.72:6;if(model)model.visible=!fp;if(fp){camera.position.set(player.position.x,player.position.y+1.52,player.position.z);const cp=Math.cos(pitch);camera.lookAt(camera.position.x-Math.sin(yaw)*cp,camera.position.y-Math.sin(pitch),camera.position.z-Math.cos(yaw)*cp);}debugCameraOverride=null;updateFirstPerson(0,performance.now());renderer.render(scene,camera);return this.riteState();},
+ viewQA(fp,yaw=0,pitch=0){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=fp?.72:6;if(model)model.visible=!fp;if(fp){camera.position.set(player.position.x,player.position.y+1.42,player.position.z);const cp=Math.cos(pitch);camera.lookAt(camera.position.x-Math.sin(yaw)*cp,camera.position.y-Math.sin(pitch),camera.position.z-Math.cos(yaw)*cp);}debugCameraOverride=null;updateFirstPerson(0,performance.now());renderer.render(scene,camera);return this.riteState();},
  async riteQA(boss=false){await startSwordTraining(boss);debugDtScale=0;return this.riteState();},
  riteSim(seconds,fps=60){for(let i=0;i<Math.round(seconds*fps);i++){mixer.update(1/fps);restoreRiteScales();if(!debugCameraOverride)updatePlayerCamera(1/fps);updatePoses(1/fps);updatePlayerSwordMount();updateFirstPerson(1/fps,performance.now());updateRites(1/fps);}renderer.render(scene,camera);return this.riteState();},
  riteAttack(){action('attack');return this.riteState();},

@@ -28,7 +28,7 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
    const state=await page.evaluate(({x,z,yaw,pitch,distance})=>{
     const a=window.SevenSinsDebug3D,st=a.ascState(),O={x:st.world.x-st.local.x,z:st.world.z-st.local.z};
     a.teleport(O.x+x,O.z+z);a.fly(null);a.view(yaw,pitch,distance);
-    const cam=a.snapCam();return {state:a.ascState(),camera:cam,rinfo:a.rinfo(),draw:a.state()?.calls,tri:a.state()?.triangles};
+    const cam=a.snapCam();return {state:a.ascState(),camera:cam,cameraAudit:a.cameraAudit(),rinfo:a.rinfo(),draw:a.state()?.calls,tri:a.state()?.triangles};
    },{x,z,yaw,pitch,distance});
    await page.waitForTimeout(800);
    const filename=safe(name)+'.png';
@@ -39,9 +39,22 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
    return state;
   }
   await enter('cave');
+  await page.waitForFunction(()=>window.SevenSinsDebug3D?.torchAudit?.().cave?.loaded>=2,null,{timeout:90000});
+  const torchAudit=await page.evaluate(()=>window.SevenSinsDebug3D.torchAudit());
+  report.checks.push({name:'apenas-tochas-GLB-sem-fogo-procedural',passed:torchAudit.procedural.length===0&&torchAudit.cave.loaded>=2,measurement:torchAudit});
+  assert.equal(torchAudit.procedural.length,0,'Tochas genericas procedurais ainda desenhadas na cena');
   await snap('caverna-entrada',0,2,{yaw:Math.PI});
-  await snap('caverna-corredor',-2,-98,{yaw:Math.PI});
-  await snap('caverna-corredor-1p',-2,-98,{yaw:Math.PI,distance:.72});
+  const third=await snap('caverna-corredor',-2,-98,{yaw:Math.PI});
+  const first=await snap('caverna-corredor-1p',-2,-98,{yaw:Math.PI,distance:.72});
+  const eye=first.cameraAudit;
+  report.checks.push({name:'altura-real-da-primeira-pessoa',passed:Math.abs(eye.height-1.42)<.12&&!eye.blocked,measurement:eye});
+  assert.ok(Math.abs(eye.height-1.42)<.12,'Primeira pessoa elevada acima da altura do personagem: '+eye.height);
+  assert.equal(eye.blocked,false,'Camera 1p dentro de rocha na caverna');
+  report.checks.push({name:'braco-curto-camera-da-caverna',passed:third.cameraAudit.mode==='third'&&!third.cameraAudit.blocked,measurement:third.cameraAudit});
+  for(const [name,yaw] of [['caverna-giro-direita',Math.PI/2],['caverna-giro-esquerda',-Math.PI/2],['caverna-giro-costas',0]]){
+    const view=await snap(name,-2,-98,{yaw,distance:6});
+    assert.ok(view.camera.every(Number.isFinite),'Giro da camera em local estreito: '+name);
+  }
   const caveMovement=await page.evaluate(()=>{
    const a=window.SevenSinsDebug3D,st=a.ascState(),ox=st.world.x-st.local.x,oz=st.world.z-st.local.z;
    a.teleport(ox-2,oz-98);a.fly(null);a.view(0,.1,.72);

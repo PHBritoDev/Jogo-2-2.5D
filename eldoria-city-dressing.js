@@ -63,7 +63,7 @@ export function planGardens({ center, plots, isFree, seed = 717 }) {
  * (pilares até o chão ou escoras no tronco), guarda-corpo e superfície de colisão registrada em `walk`.
  */
 export function mountCityDressing(THREE, GLTFLoader, o) {
-  const { group, groundHeightAt, center, plots, structures, lamps = [], isFree, lowSpec = false, obstacles = [], walk = null, fetchModel = null } = o;
+  const { group, groundHeightAt, center, plots, structures, lamps = [], torchAsset = null, isFree, lowSpec = false, obstacles = [], walk = null, fetchModel = null } = o;
   const root = new THREE.Group(); root.name = 'EldoriaCityDressing-mod292'; group.add(root);
   const woodMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9 });
   const P = structures, parts = [], wood = [0x8a6a44, 0x7a5c3a, 0x93734a], railC = 0x6a4e32, dark = 0x5e4630;
@@ -197,13 +197,20 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
     m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); m.name = 'eldoria-garden-flowers'; root.add(m);
   }
   if (plan.hedges.length) { const m = new THREE.InstancedMesh(bushGeometry(THREE, 9), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9 }), plan.hedges.length); plan.hedges.forEach((h, i) => { d.position.set(h.x, groundHeightAt(h.x, h.z) + h.s * .3, h.z); d.rotation.set(0, h.rot, 0); d.scale.set(h.s * 1.3, h.s * .9, h.s); d.updateMatrix(); m.setMatrixAt(i, d.matrix); }); m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); m.receiveShadow = true; m.name = 'eldoria-garden-hedges'; root.add(m); }
-  const fenceParts = []; // só bases/postes das luminárias: nenhuma cerca branca ornamental
-  for (const l of lamps) { const y = groundHeightAt(l.x, l.z); fenceParts.push({ x: l.x, y: y + 1.35, z: l.z, sx: .12, sy: 2.7, sz: .12, color: 0x4a3828 }, { x: l.x + .28, y: y + 2.62, z: l.z, sx: .62, sy: .08, sz: .08, color: 0x4a3828 }); obstacles.push({ x: l.x, z: l.z, radius: .28, height: 2.7 }); }
-  if (fenceParts.length) { const m = new THREE.Mesh(merge(THREE, fenceParts), woodMat); m.receiveShadow = true; m.castShadow = !lowSpec; m.name = 'eldoria-fences-lamps'; root.add(m); }
-  if (lamps.length) {
-    const lm = new THREE.InstancedMesh(new THREE.BoxGeometry(.24, .32, .24), new THREE.MeshStandardMaterial({ color: 0xffd9a0, emissive: 0xffb860, emissiveIntensity: .9, roughness: .6 }), lamps.length);
-    lamps.forEach((l, i) => { d.position.set(l.x + .5, groundHeightAt(l.x, l.z) + 2.4, l.z); d.rotation.set(0, 0, 0); d.scale.setScalar(1); d.updateMatrix(); lm.setMatrixAt(i, d.matrix); });
-    lm.instanceMatrix.needsUpdate = true; lm.computeBoundingSphere(); lm.name = 'eldoria-lanterns'; root.add(lm); root.userData.lanterns = lm.material;
-  }
+  // O antigo "eldoria-fences-lamps" criava DEZ postes e lanternas falsos
+  // de caixas e luzes emissivas. Usar exclusivamente o GLB do criador.
+  // A mesma Promise/mesmas texturas do modelo já carregado na vila: sem
+  // network extra, novos shaders nem clones de textura por tocha.
+  if (torchAsset) Promise.resolve(torchAsset).then(source=>{
+    if(!source)return; // proibido criar fallback generico
+    lamps.forEach((l,i)=>{
+      const holder=new THREE.Group();
+      holder.name='TochaMedievalTripo-Cidade-'+(i+1);
+      holder.position.set(l.x,groundHeightAt(l.x,l.z),l.z);
+      holder.add(source.clone(true));root.add(holder);
+      // Collider só existe quando o GLB correspondente existe; sem obstáculo invisível.
+      obstacles.push({ x:l.x,z:l.z,radius:.28,height:2.1 });
+    });
+  }).catch(e=>console.warn('Tochas originais do criador indisponiveis:',e));
   return { root, plan, deckY: Y };
 }
