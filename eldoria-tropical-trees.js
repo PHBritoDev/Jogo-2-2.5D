@@ -54,6 +54,9 @@ export function loadTropicalTrees(THREE, GLTFLoader, { url = TROPICAL_TREES_URL,
       const bark = mats.Casca, leaves = mats.Folhas, imp = mats.Impostor;
       if (!bark || !leaves) throw new Error('GLB sem materiais Casca/Folhas');
       bark.vertexColors = true; bark.roughness = .95; bark.metalness = 0;
+      // Embaúbas tinham troncos muito claros/acinzentados no sol: tintura musgo natural,
+      // mantendo a textura original de casca, sem árvores brancas artificiais.
+      if (sp.id === 'embauba' || id === 'embauba') bark.color.multiply(new THREE.Color(0x8da38b));
       leaves.vertexColors = true; leaves.alphaTest = .5; leaves.transparent = false; leaves.side = THREE.DoubleSide; leaves.roughness = 1; leaves.metalness = 0;
       foliageShader(THREE, leaves, windUniform, lowSpec ? .07 : .11, 'mod292-tropical-leaves');
       const leafDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: leaves.map, alphaTest: .5 });
@@ -130,9 +133,9 @@ export function planTropicalBelt({ areas, isFree, seed = 2925, density = 1, rnd:
   let s = seed >>> 0; const rnd = rndIn || (() => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; });
   const kinds = [
     { sp: 'sumauma', gap: 22, share: .03, s: [.8, 1.1] },
-    { sp: 'figueira', gap: 9.5, share: .16, s: [.75, 1.15] },
-    { sp: 'copaLarga', gap: 7.2, share: .37, s: [.78, 1.25] },
-    { sp: 'embauba', gap: 5.2, share: .2, s: [.8, 1.2] },
+    { sp: 'figueira', gap: 9.5, share: .21, s: [.75, 1.15] },
+    { sp: 'copaLarga', gap: 7.2, share: .42, s: [.78, 1.25] },
+    { sp: 'embauba', gap: 7.2, share: .10, s: [.8, 1.2] },
     { sp: 'palmeira', gap: 4.6, share: .2, s: [.78, 1.18] },
   ];
   const out = [], cell = 4, grid = new Map(), key = (x, z) => Math.floor(x / cell) + ',' + Math.floor(z / cell);
