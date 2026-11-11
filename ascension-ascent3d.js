@@ -5,7 +5,7 @@
  * anéis cósmicos violeta; deserto negro com arcos e agulhas curvas e lua. A névoa abre e o céu cósmico acende conforme
  * a altura (ascentProgress): a ilha surge aos poucos durante a subida.
  */
-import { ASCENT, ASCENT_PORTAL, ARENA_ROCKS, arenaRockAt, arenaRockFeet, ascentRise, ascentStairsEnd, ascentTopY, islandCenter, onIsland, islandRelief, ascentWalk, ascentFloor, ascentProgress, hash2, fbm } from './ascension-layout.js';
+import { ASCENT, ASCENT_PORTAL, ARENA_ROCKS, arenaRockAt, arenaRockFeet, ascentRise, ascentStairsEnd, ascentTopY, islandCenter, onIsland, islandRelief, ascentWalk, ascentFloor, ascentHazard, ascentProgress, hash2, fbm } from './ascension-layout.js';
 import { triplanarRock, ensureUv, vortexPortal, lightShaft, dustField, disposeGroup } from './ascension-fx3d.js';
 import { mergeGeos } from './ascension-cave3d.js';
 
@@ -55,9 +55,7 @@ export function buildAscent(THREE, { GLTFLoader, prepareBaked, lowSpec = false, 
     const base = new THREE.BoxGeometry(12.4, 1.4, 13); base.translate(0, -.7, 2.2); geos.push(base.toNonIndexed());
     const g = mergeGeos(THREE, geos); g.computeVertexNormals(); ensureUv(THREE, g);
     const m = new THREE.Mesh(g, stoneMat); m.name = 'estrutura-escada'; group.add(m);
-    const lampGeo = new THREE.SphereGeometry(.17, 8, 6), lamps = new THREE.InstancedMesh(lampGeo, new THREE.MeshBasicMaterial({ color: 0xe4e8ff }), ASCENT.flights * 2);
-    let q = 0; for (let k = 0; k < ASCENT.flights; k++) for (const sx of [-1, 1]) { o.position.set(sx * (ASCENT.landingWidth / 2 - .25), (k + 1) * rise + 1.7, -(4 + k * per + ASCENT.flightLen + ASCENT.landing / 2)); o.updateMatrix(); lamps.setMatrixAt(q++, o.matrix); }
-    group.add(lamps);
+    // Sem esferas/lâmpadas visíveis acima dos patamares: a luz vem do alto, sem fonte aparente.
   }
   // ---------- feixes de luz no vazio (de cima, levemente inclinados) e poeira ----------
   const shafts = [];
@@ -200,9 +198,9 @@ export function buildAscent(THREE, { GLTFLoader, prepareBaked, lowSpec = false, 
     new GLTFLoader().load('./MontanhaEldoria01.glb', g => { let mesh = null; g.scene.traverse(q => { if (!mesh && q.isMesh) mesh = q; }); prepareBaked && prepareBaked(g.scene); const tex = mesh && mesh.material.map; for (const m of tpMats) { m.map = tex; m.needsUpdate = true; } disposeGroup(g.scene, new Set([tex])); res(); }, undefined, () => res());
   });
   let t = 0, prog = 0;
-  const env = { bg: 0x08090b, fog: 0x0b0c0f, fogNear: 18, fogFar: 150, hemi: [0x9aa0b4, 0x101014, .55], sun: [0xe8ecff, 1.0], exposure: 1.05 };
+  const env = { bg: 0x06070b, fog: 0x0a0c12, fogNear: 12, fogFar: 130, hemi: [0x9aa0b4, 0x101014, .55], sun: [0xe8ecff, 1.0], exposure: 1.05 };
   return {
-    group, ready, portal, walk: ascentWalk, floor: ascentFloor, camSolid: ascentCamSolid, env,
+    group, ready, portal, walk: ascentWalk, hazard: ascentHazard, floor: ascentFloor, camSolid: ascentCamSolid, env,
     progress: () => prog,
     update(dt, cam, player) {
       t += dt; for (const s of shafts) s.update(t); dust.update(t); portal.update(dt);
@@ -212,8 +210,9 @@ export function buildAscent(THREE, { GLTFLoader, prepareBaked, lowSpec = false, 
       skyU.uTime.value = t; skyU.uProg.value = prog;
       if (cam) sky.position.copy(cam.position).sub(group.position);
       // revelação: a névoa abre com a altura; no alto o mundo vira céu cósmico com a ilha recortada
-      env.fogNear = lerp(18, 180, smooth(.05, .95, prog)); env.fogFar = lerp(150, 1500, smooth(.05, .9, prog));
-      const c = new THREE.Color(0x0b0c0f).lerp(new THREE.Color(0x120a22), smooth(.2, .9, prog)); env.fog = c.getHex(); env.bg = env.fog;
+      // Preserva a vastidão, porém escurece discretamente o topo com névoa moderada.
+      env.fogNear = lerp(12, 78, smooth(.05, .95, prog)); env.fogFar = lerp(130, 530, smooth(.05, .9, prog));
+      const c = new THREE.Color(0x0a0c12).lerp(new THREE.Color(0x0b0917), smooth(.2, .9, prog)); env.fog = c.getHex(); env.bg = env.fog;
       env.hemi = [new THREE.Color(0x9aa0b4).lerp(new THREE.Color(0x8f7cff), prog).getHex(), 0x0b0a10, lerp(.55, .75, prog)];
       env.sun = [new THREE.Color(0xe8ecff).lerp(new THREE.Color(0xc8c0ff), prog).getHex(), lerp(1.0, .7, prog)];
       isleLight.intensity = 2.2 * smooth(.6, 1, prog);
