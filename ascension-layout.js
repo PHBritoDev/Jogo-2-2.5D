@@ -172,10 +172,10 @@ export function caveField(x, z) {
 export function inChasm(x, z, pad = 0) { const c = CAVE.chasm, w = .9 * (fbm(x * .2, z * .2, 41, 2) - .5); return ((x - c.x) / (c.rx + pad + w)) ** 2 + ((z - c.z) / (c.rz + pad + w)) ** 2 < 1; }
 export function onBridge(x, z) { const b = CAVE.bridge; return segDist(x, z, b.a[0], b.a[1], b.b[0], b.b[1]).d < b.r; }
 /** Zona sem piso: bordas atravessáveis; a queda é resolvida pela física vertical do jogador. */
-export function caveHazard(x, z) { return caveField(x, z) > .45 && inChasm(x, z) && !onBridge(x, z); }
+export function caveHazard(x, z) { return caveField(x, z) > .75 && inChasm(x, z) && !onBridge(x, z); }
 /** Onde o herói pode pisar. */
 export function caveWalk(x, z) {
-  if (caveField(x, z) < .45) return false;
+  if (caveField(x, z) < .75) return false;
   if (inChasm(x, z) && !onBridge(x, z)) return false;
   for (const p of CAVE.pools) if (Math.hypot(x - p.x, z - p.z) < p.r + .35) return false;
   for (const p of CAVE.pillars) if (Math.hypot(x - p.x, z - p.z) < p.r + .35) return false;
@@ -240,7 +240,13 @@ export function stairsInfo(x, z) {
 }
 /** Portal de volta (base): aro sólido; atravessar o disco para +z leva à caverna. */
 export const ASCENT_PORTAL = Object.freeze({ x: 0, z: 6.5, r: 3.1, h: 3.9 });
+/** Faixa de pedra que sobrepoe fisicamente o ultimo patamar e a ilha — sem seam de colisao. */
+export function onAscentBridge(x, z) {
+  const end = ascentStairsEnd();
+  return Math.abs(x) < ASCENT.width * .5 + .08 && z <= -end + 7 && z >= -end - 22;
+}
 export function ascentWalk(x, z) {
+  if (onAscentBridge(x, z)) return true;
   if (onIsland(x, z)) {
     for (const r of ARENA_ROCKS) for (const f of arenaRockFeet(r)) if (Math.hypot(x - f.x, z - f.z) < f.r) return false;
     return true;
@@ -257,13 +263,19 @@ export function ascentWalk(x, z) {
 }
 /** O vazio fora da escada/ilha não tem parede de colisão: sair da plataforma provoca queda. */
 export function ascentHazard(x, z) {
-  if (onIsland(x, z)) return false;
-  const c = islandCenter();
-  if (Math.hypot(x - c.x, z - c.z) < ASCENT.island.r + 14 && !onIsland(x, z)) return true;
-  if (z <= -4 && z >= -ascentStairsEnd() - 4) return Math.abs(x) >= ASCENT.width / 2 - .28;
-  return z > -4 && z < 9 && Math.abs(x) >= 6.2;
+  if (onIsland(x, z) || onAscentBridge(x, z)) return false;
+  // Nao confundir borda visual com volume colidivel: QUALQUER area fora das
+  // escadas/patamares e ilha e espaco aberto, mesmo apos fim dos degraus.
+  if (z > -4) return z > ASCENT_PORTAL.z + 2.2 || Math.abs(x) > 6.2;
+  if (z >= -ascentStairsEnd()) {
+    const inf = stairsInfo(x, z);
+    const width = inf.kind === 'patamar' ? ASCENT.landingWidth : ASCENT.width;
+    return Math.abs(x) >= width * .5 - .12;
+  }
+  return true;
 }
 export function ascentFloor(x, z) {
+  if (onAscentBridge(x, z)) return ascentTopY();
   if (onIsland(x, z, -.5)) return ascentTopY() + islandRelief(x, z);
   if (z > -4) return 0;
   return stairsInfo(x, z).y;
