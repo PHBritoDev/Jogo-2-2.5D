@@ -4145,7 +4145,7 @@ function buildAct1Props(){
  /* MOD 291 — marco 3: cidade bonita e íntegra (o Bispo levou o dinheiro, não as casas): deques e escadas nas árvores
     ancestrais, a passarela suspensa do criador entre duas delas, canteiros, sebes, cercas claras e lampiões. */
  act1Props.dressing=mountCityDressing(THREE,GLTFLoader,{group:villageGroup,groundHeightAt,center:VILLAGE_CENTER,plots:ELDORIA_PLOTS,lowSpec:terrainLowSpec,obstacles:marketObstacles,
-  structures:treeStructurePlan(VILLAGE_CENTER),walk:eldoriaWalk,fetchModel:eldoriaCity.fetchModel,
+  structures:treeStructurePlan(VILLAGE_CENTER),walk:eldoriaWalk,fetchModel:eldoriaCity.fetchModel,torchAsset:authoredTorchAsset,
   lamps:[{x:3.4,z:-19.5},{x:-3.8,z:-26.5},{x:4.6,z:-37},{x:-6.6,z:-31.4},{x:-17.6,z:-42.6},{x:-24.2,z:-47.9},{x:4.4,z:-47.6},{x:-14.6,z:-52.5},{x:-4.2,z:-62.5},{x:-9,z:-58.5}],
   isFree:(x,z)=>!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+1)&&!marketObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<(o.radius||1)+.4)});
  eldoriaCity.complete.then(report=>{
