@@ -42,6 +42,15 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
   await snap('caverna-entrada',0,2,{yaw:Math.PI});
   await snap('caverna-corredor',-2,-98,{yaw:Math.PI});
   await snap('caverna-corredor-1p',-2,-98,{yaw:Math.PI,distance:.72});
+  const caveMovement=await page.evaluate(()=>{
+   const a=window.SevenSinsDebug3D,st=a.ascState(),ox=st.world.x-st.local.x,oz=st.world.z-st.local.z;
+   a.teleport(ox-2,oz-98);a.fly(null);a.view(0,.1,.72);
+   const before=a.ascState().local;a.motionStep(1,{x:0,z:-1,fps:30});
+   const after=a.ascState().local;return {before,after,meters:Math.hypot(after.x-before.x,after.z-before.z)};
+  });
+  report.checks.push({name:'deslocamento-primeira-pessoa-caverna',passed:caveMovement.meters>1,measurement:caveMovement});
+  assert.ok(caveMovement.meters>1,'Movimento em primeira pessoa lento/bloqueado na caverna');
+
   await snap('caverna-grota',-42,-62,{yaw:-.7});
   await snap('caverna-portal',-4,-136,{yaw:Math.PI});
   // Checkpoint foi definido na entrada segura: atravessar abismo deve resultar em respawn.
@@ -60,6 +69,15 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
   const island=await page.evaluate(async()=>{const m=await import('./ascension-layout.js');return m.islandCenter();});
   await snap('escadaria-ultima-passagem',0,-372,{yaw:Math.PI,distance:5.2});
   await snap('escadaria-ponte-ilha',0,-380,{yaw:Math.PI,distance:4});
+  const bridgeMovement=await page.evaluate(()=>{
+   const a=window.SevenSinsDebug3D,st=a.ascState(),ox=st.world.x-st.local.x,oz=st.world.z-st.local.z;
+   a.teleport(ox,oz-365);a.fly(null);a.view(0,.1,5.5);
+   const before=a.ascState().local;a.motionStep(4,{x:0,z:-1,fps:30});
+   const after=a.ascState().local;return {before,after,meters:Math.hypot(after.x-before.x,after.z-before.z)};
+  });
+  report.checks.push({name:'travessia-escada-ilha',passed:bridgeMovement.after.z<-369&&bridgeMovement.after.y>158,measurement:bridgeMovement});
+  assert.ok(bridgeMovement.after.z<-369&&bridgeMovement.after.y>158,'Falha ao caminhar sobre junção escada/ilha');
+
   await snap('ilha-deserto-negro',island.x,island.z,{yaw:Math.PI, distance:7});
   await page.evaluate(()=>{
    const a=window.SevenSinsDebug3D,st=a.ascState(),O={x:st.world.x-st.local.x,z:st.world.z-st.local.z};
