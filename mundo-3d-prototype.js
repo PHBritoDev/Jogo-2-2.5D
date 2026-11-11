@@ -1125,6 +1125,7 @@ function updateEnemyAI(dt){
 }
 function updatePlayerRespawn(now){
  if(playerHP>0||!playerRespawnAt||now<playerRespawnAt)return;
+ ascFallFrom=null;
  player.position.set(checkpointX,terrainHeightAt(checkpointX,checkpointZ),checkpointZ);playerHP=playerMaxHP;playerInvulnerableUntil=now+1000;playerRespawnAt=0;
  moveVX=moveVZ=0;verticalVelocity=0;grounded=true;dashRemaining=0;actionUntil=0;pendingEnemyHitAt=0;if(mixer){mixer.stopAllAction();activeAction=null;}if(actions.idle)play('idle',.08);updatePlayerHud();status.textContent='Você voltou à trilha; o inimigo continua à espreita.';
 }
@@ -2014,10 +2015,14 @@ if(dashRemaining>0){
 // Física vertical com altura do terreno: o personagem pode subir e descer pelas pedras.
 updateRiteLocomotion(dt);
 heroShadows?.update(dt);
-const ascVoidFall=!!(ascKey&&voidSpec.hazard?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z));
+// Caiu na borda? Conservar a queda ate morrer/respawn. Sem permitir que o
+// piso ficticio da ilha/escada volte a "teletransportar" o heroi para cima.
+const ascVoidEdge=!!(ascKey&&voidSpec.hazard?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z));
+if(ascVoidEdge&&ascFallFrom===null)ascFallFrom=player.position.y;
+const ascVoidFall=!!(ascKey&&ascFallFrom!==null);
 let floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.position.z);
 // Sem piso debaixo do herói: gravidade real em vez de colisão vertical falsa.
-if(ascVoidFall){floorY-=1000;if(grounded){grounded=false;verticalVelocity=Math.min(-1.8,verticalVelocity);}}
+if(ascVoidFall){floorY=ascFallFrom-1000;if(grounded){grounded=false;verticalVelocity=Math.min(-1.8,verticalVelocity);}}
 // MOD 292 — apoio em deque/escada/passarela: a superfície mais alta até um degrau acima dos pés (por baixo do deque o chão continua sendo o terreno).
 if(!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.position.x,player.position.z,player.position.y+(grounded?0:.05));if(sup&&sup.y>floorY)floorY=sup.y;}
 if(grounded&&!caveWalk&&!voidMode&&floorY<player.position.y-.6){grounded=false;verticalVelocity=0;} // saiu pela borda: cai em vez de teleportar para o chão
@@ -2029,7 +2034,7 @@ if(!grounded){
  player.position.y=floorY;
 }
 // Atravessar a borda do abismo termina em morte e retorna ao checkpoint da zona.
-if(ascVoidFall&&playerHP>0&&!ascBusy&&player.position.y<terrainHeightAt(player.position.x,player.position.z)-32){
+if(ascVoidFall&&playerHP>0&&!ascBusy&&player.position.y<ascFallFrom-30){
  playerHP=0;playerRespawnAt=now+1250;moveVX=moveVZ=0;dashRemaining=0;
  status.textContent='Você caiu no abismo. Retornando ao último ponto seguro…';updatePlayerHud();
 }
@@ -4187,12 +4192,13 @@ function travelVeil(cb){const veil=document.getElementById('travel-veil');if(vei
    ATRAVESSA o plano do disco no sentido certo, com tempo de recarga na volta. Cenas montadas antes (pré-carga)
    e shaders compilados de forma assíncrona para não travar no meio da passagem. */
 const ascZones={},ascVeil=(()=>{const d=document.createElement('div');d.id='ascensao-escuro';d.style.cssText='position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:40;transition:opacity .45s ease';document.body.appendChild(d);return d;})();
-let ascKey=null,ascBusy=false,ascCooldownUntil=0,ascPrev={x:0,z:0},ascPreload=null;
+let ascKey=null,ascBusy=false,ascCooldownUntil=0,ascPrev={x:0,z:0},ascPreload=null,ascFallFrom=null;
 const ascBuilders={cave:()=>buildCave(THREE,{GLTFLoader,prepareBaked:r=>clampBakedMips(THREE,r,terrainLowSpec?4:3.5),lowSpec:terrainLowSpec,origin:ASC_ZONES.cave}),ascent:()=>buildAscent(THREE,{GLTFLoader,prepareBaked:r=>clampBakedMips(THREE,r,terrainLowSpec?4:3.5),lowSpec:terrainLowSpec,origin:ASC_ZONES.ascent})};
 function ascZone(key){if(!ascZones[key]){const z=ascBuilders[key]();scene.add(z.group);z.warm=z.ready.then(()=>{z.group.visible=true;const c=renderer.compileAsync?renderer.compileAsync(z.group,camera,scene):Promise.resolve();return Promise.race([c,new Promise(r=>setTimeout(r,2500))]).catch(()=>{}).finally(()=>{if(ascKey!==key)z.group.visible=false;});});ascZones[key]=z;}return ascZones[key];}
 function ascWhenReady(key){const z=ascZone(key);return Promise.race([z.warm,new Promise(r=>setTimeout(r,6000))]).then(()=>z);}
 function ascDarken(on,ms){ascVeil.style.transition='opacity '+((ms||450)/1000)+'s ease';ascVeil.style.opacity=on===true?1:on===false?0:String(on);}
 function ascEnter(key,at){
+ ascFallFrom=null;
  const z=ascZone(key),O=ASC_ZONES[key];if(ascKey&&ascKey!==key&&ascZones[ascKey])ascZones[ascKey].group.visible=false;
  voidSpec={x:O.x,z:O.z,y:0,radius:1e4,walk:(lx,lz)=>z.walk(lx,lz),floor:z.floor,ceil:z.roof||null,camSolid:z.camSolid,hazard:z.hazard||null,solid:true};
  voidMode=true;dimKey=null;ascKey=key;z.group.visible=true;
@@ -4200,7 +4206,7 @@ function ascEnter(key,at){
  const x=O.x+at.x,zz=O.z+at.z;player.position.set(x,z.floor(at.x,at.z),zz);playerYaw=at.yaw;player.rotation.y=at.yaw;cameraYaw=at.yaw+Math.PI;cameraPitch=.14;moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;grounded=true;
  checkpointX=x;checkpointZ=zz;camera.position.set(x-Math.sin(at.yaw)*5.5,player.position.y+2.6,zz-Math.cos(at.yaw)*5.5);ascPrev={x:at.x,z:at.z};ascCooldownUntil=performance.now()+1600;
 }
-function ascHide(){if(ascKey&&ascZones[ascKey])ascZones[ascKey].group.visible=false;ascKey=null;}
+function ascHide(){ascFallFrom=null;if(ascKey&&ascZones[ascKey])ascZones[ascKey].group.visible=false;ascKey=null;}
 function ascLeaveToWorld(){
  const M=CAVE_MOUTH,x=M.x-5.5,z=M.z;ascHide();voidSpec.walk=null;leaveVoid();
  player.position.set(x,terrainHeightAt(x,z),z);playerYaw=Math.PI/2;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;moveVX=moveVZ=0;checkpointX=x;checkpointZ=z;
