@@ -7576,7 +7576,9 @@ function installCombatLab(){
 if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  torchAudit(){const placed=[];villageGroup.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-'))placed.push({name:o.name,x:o.position.x,z:o.position.z});});const districtModels=[];district.root.traverse(o=>{if(o.name?.startsWith('TochaMedievalTripo-Distrito-'))districtModels.push(o.name);});
  const legacy=[];for(const root of [villageGroup,district.root,...Object.values(ascZones).map(z=>z.group)])root?.traverse(o=>{if(/^(ChamaFluidaTocha|TochasVentoFogoGPU|BrasasCompartilhadas)/.test(o.name||''))legacy.push(o.name);});
- return {expected:villageTorchSites.length,loaded:placed.length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels},genericFire:legacy};},
+ const torchParts=[];const first=villageGroup.getObjectByName('TochaMedievalTripo-1');
+ first?.traverse(o=>{if(o.isMesh){const m=Array.isArray(o.material)?o.material[0]:o.material;torchParts.push({name:o.name,material:m?.name,color:m?.color?.getHexString?.(),emissive:m?.emissive?.getHexString?.(),tri:(o.geometry?.index?.count||o.geometry?.attributes?.position?.count||0)/3});}});
+ return {expected:villageTorchSites.length,loaded:placed.length,placed,district:{expected:3,loaded:districtModels.length,names:districtModels},genericFire:legacy,torchParts};},
  blueBurn(){return {cast:cySkill?.st.phase||'none',t:cySkill?.st.t||0,stacks:cySkill?.st.burn?.stacks||0,remaining:cySkill?.st.burn?.left||0,visible:!!cyBurnFx?.active,fireTiles:cySkill?.st.fires.length||0,pullRadius:cySkill?.T.megaPull.infl||0};},
 
  /** Instrumento de QA: avança APENAS a timeline determinística da Skill 2 sem a física do mundo;
