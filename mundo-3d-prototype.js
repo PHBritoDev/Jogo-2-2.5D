@@ -775,6 +775,13 @@ for(const p of villageTorchSites){
 // Somente os GLBs autorais: NENHUMA chama geometrica gerada por codigo.
 const authoredTorchAsset=new Promise(resolve=>new GLTFLoader().load('./TochaMedievalTripo.glb',gltf=>{
  const source=gltf.scene,bounds=new THREE.Box3().setFromObject(source);
+ if(new URLSearchParams(location.search).has('debug3d')){
+  window.SevenSinsTorchMeshAudit=[];
+  source.traverse(o=>{if(!o.isMesh)return;const bb=new THREE.Box3().setFromObject(o),m=o.material;
+   window.SevenSinsTorchMeshAudit.push({name:o.name,material:m?.name,color:m?.color?.getHexString(),emissive:m?.emissive?.getHexString(),
+    minY:+bb.min.y.toFixed(3),maxY:+bb.max.y.toFixed(3),height:+bb.getSize(new THREE.Vector3()).y.toFixed(3)});
+  });
+ }
  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
  if(bounds.isEmpty()||!Number.isFinite(size.y)||size.y<.001)return;
  clampBakedMips(THREE,source,terrainLowSpec?4:3.5);
