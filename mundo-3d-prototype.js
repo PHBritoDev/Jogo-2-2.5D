@@ -1962,7 +1962,27 @@ if(firstPerson){
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
  camera.position.lerp(desired,1-Math.exp(-(ascKey==='cave'?22:8)*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
- if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);
+ if(voidMode&&voidSpec.camSolid){
+  const cs=voidSpec.camSolid,solid=p=>cs(p.x-voidSpec.x,p.y-voidSpec.y,p.z-voidSpec.z);
+  if(solid(camera.position)||solid(desired)){
+   // Nunca saltar para desired sem testar: em corredor estreito desired tambem pode ser rocha.
+   // Procurar do foco para fora o ultimo ponto realmente livre.
+   const focus=target.clone();
+   if(solid(focus)&&ascKey==='cave'){
+    const lx=player.position.x-voidSpec.x,lz=player.position.z-voidSpec.z;
+    const floor=voidSpec.floor?.(lx,lz),roof=voidSpec.ceil?.(lx,lz);
+    focus.set(player.position.x,Number.isFinite(floor)?floor+.85:player.position.y+.85,player.position.z);
+    if(Number.isFinite(roof))focus.y=Math.min(focus.y,voidSpec.y+roof-.5);
+   }
+   const dir=desired.clone().sub(focus),safe=focus.clone();
+   for(let n=1;n<=24;n++){
+    const p=focus.clone().addScaledVector(dir,n/24);
+    if(solid(p))break;
+    safe.copy(p);
+   }
+   camera.position.copy(safe);
+  }
+ }
  camera.lookAt(target);applyUltCam(dt,target);
 }
 }
