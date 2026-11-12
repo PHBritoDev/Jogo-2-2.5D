@@ -52,7 +52,7 @@ test('retalho do terreno compartilha a borda com a grade fina (sem fresta) para 
   }
 });
 
-test('Missão P1: Teren, lona, carroça, cochilo, 4 bandidos humanos, escolha sem punição, amanhecer e chegada', () => {
+test('Missão P1: Teren, lona, carroça, cochilo, 5 bandidos humanos (Mod 317), escolha sem punição, amanhecer e chegada', () => {
   assert.equal(initialRoadStage(0, '3'), ROAD.meet, 'jogo novo começa no prado');
   assert.equal(initialRoadStage(1, null), ROAD.done, 'save antigo não repete o prólogo');
   assert.equal(initialRoadStage(1, '2'), 2); assert.equal(initialRoadStage(2, '0'), ROAD.done); assert.equal(initialRoadStage(1, '1', 1), ROAD.done);
@@ -67,7 +67,7 @@ test('Missão P1: Teren, lona, carroça, cochilo, 4 bandidos humanos, escolha se
   for (const help of [true, false]) { const t = texts(choiceScene(help)); assert.match(t, /chegamos ao amanhecer/); assert.doesNotMatch(t, /mat(ar|o)\b/i); }
   assert.match(texts(dawnRideScene()), /Eldória\. Já foi um lugar bonito de viver\./);
   assert.ok(rideDozeScene().some(s => s.id === 'dormir') && rideDozeScene().some(s => s.type === 'wait'), 'o sono escurece antes de acordar');
-  assert.equal(ROAD_BANDITS.length, 4); for (const b of ROAD_BANDITS) assert.ok(Math.hypot(b.x - BANDIT_AMBUSH.x, b.z - BANDIT_AMBUSH.z) < 8);
+  assert.equal(ROAD_BANDITS.length, 5); assert.equal(ROAD.bandits, 5); for (const b of ROAD_BANDITS) assert.ok(Math.hypot(b.x - BANDIT_AMBUSH.x, b.z - BANDIT_AMBUSH.z) < 8);
   for (let k = 0; k < 1; k += .1) assert.ok(dawnHourAt(k + .1) >= dawnHourAt(k)); assert.ok(dawnHourAt(0) < 3 && dawnHourAt(1) > 6.5);
   assert.equal(roadPresentation(ROAD.done), null); assert.match(roadPresentation(ROAD.meet).objective, /estrada/);
   // Integração: bandido = morador humano com golpes emprestados do mesmo esqueleto; sem magia; checkpoint na estrada.

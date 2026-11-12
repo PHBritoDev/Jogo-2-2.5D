@@ -24,7 +24,7 @@ test('Mod 302: locomoção explícita, salto proporcional e dash curto',()=>{
  assert(PROTA_LOCO.walk<PROTA_LOCO.run/2,'andar é bem mais lento que correr');
  assert(PROTA_LOCO.walk/PROTA_LOCO.walkNatural<1.45&&PROTA_LOCO.run/PROTA_LOCO.runNatural<1.3,'cadência do clipe perto da natural (sem patinar)');
  const apex=PROTA_JUMP.impulse**2/(2*PROTA_JUMP.gravity),air=2*PROTA_JUMP.impulse/PROTA_JUMP.gravity;
- assert(apex>.45&&apex<.75,`altura do salto ${apex}`);assert(air>.38&&air<.6,`tempo no ar ${air}`);
+ assert(apex>1&&apex<1.3,`altura do salto ${apex}`);assert(air>.55&&air<.75,`tempo no ar ${air}`); // Mod 317 (= PR #468): ápice ~1,18 m
  assert(PROTA_DASH.distance>=4&&PROTA_DASH.distance<=6.5&&PROTA_DASH.travel<.2&&PROTA_DASH.iframes>=PROTA_DASH.travel&&PROTA_DASH.cooldown>PROTA_DASH.iframes);
 });
 

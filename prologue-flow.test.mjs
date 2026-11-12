@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDirector, sceneDuration } from './cutscenes3d.js';
-import { heavenScene, awakeningScene, personalize, SPEAKERS } from './prologue-flow.js';
+import { heavenScene, awakeningScene, wingsScene, personalize, SPEAKERS, GUIDE_NAME } from './prologue-flow.js';
 
 function run(list, opts = {}) {
   const log = [];
@@ -51,18 +51,20 @@ test('prólogo segue o roteiro: caminhada, ajoelhar, missão dos sete mundos, as
   assert.ok(sceneDuration(s) > 20 && sceneDuration(s) < 45, 'ritmo do prólogo');
 });
 
-test('despertar: olhos, mãos, redor, nome digitado nas falas, missão aceita, "Ato 1" e escuro', () => {
+test('despertar (Mod 317): deitado olhando o céu, piscadas, levanta, Aethraziel já presente, nome nas falas, missão', () => {
   const s = awakeningScene();
   const ordem = s.map(x => x.id || x.type);
-  assert.deepEqual(ordem.slice(0, 4), ['olhos-abrem', 'maos', 'olhar-em-volta', 'anjo-chega']);
+  assert.deepEqual(ordem.slice(0, 3), ['deitado', 'say', 'levantar']);
+  assert.ok(s[0].with.some(w => w.id === 'piscar-despertar'), 'piscadas naturais no POV');
+  assert.ok(!ordem.includes('anjo-chega') && !JSON.stringify(s).includes('anjo-aparece'), 'o anjo não brota: já estava lá');
   assert.ok(ordem.indexOf('nome') < ordem.indexOf('aceitar-missao'));
-  assert.ok(ordem.indexOf('aceitar-missao') < ordem.indexOf('ato-1'));
-  assert.ok(ordem.indexOf('ato-1') < ordem.indexOf('escuro'));
+  assert.ok(ordem.indexOf('aceitar-missao') < ordem.indexOf('prologo-card'));
   const falas = s.filter(x => x.type === 'say').map(x => personalize(x, 'Davi'));
-  assert.ok(falas.some(f => f.text === 'Pode me chamar de Davi.' && f.who === 'Davi'));
-  assert.ok(falas.some(f => /Bem-vindo, Davi, ao Mundo da Ganância/.test(f.text)));
-  assert.ok(falas.some(f => /vila/.test(f.text) && /vendedor/.test(f.text) && /Pecado da Ganância/.test(f.text)));
+  assert.ok(falas.some(f => f.who === GUIDE_NAME && /Certo, Davi\./.test(f.text)));
+  assert.ok(falas.every(f => f.text.length < 90), 'falas curtas e humanas');
   assert.ok(!/Paulo/.test(JSON.stringify(s)), 'sem nome fixo');
+  const ws = wingsScene(), w = ws.map(x => x.id || x.type), fold = ws.findIndex(x => (x.with || []).some(q => q.id === 'anjo-recolhe-asas'));
+  assert.ok(fold >= 0 && fold < w.indexOf('carroca-ouvida'), 'asas recolhidas antes de ouvir a carroça');
 });
 
 test('cena completa roda do começo ao fim com respostas automáticas', async () => {
@@ -71,5 +73,5 @@ test('cena completa roda do começo ao fim com respostas automáticas', async ()
   for (let k = 0; k < 400 && d.running; k++) { d.update(.1); d.tap(); await Promise.resolve(); }
   assert.equal(d.running, false);
   assert.equal(log.at(-1), 'end:fim');
-  assert.ok(log.includes('do:ato-1') && log.includes('do:escuro'));
+  assert.ok(log.includes('do:prologo-card') && log.includes('do:levantar'));
 });

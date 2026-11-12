@@ -1,5 +1,8 @@
 import { syncBuildMarker } from './build-info.js';
 import {createMeshyNpcFactory,ELDORIA_NPC_MODELS} from './eldoria-meshy-npcs.js';
+import {createSeatPose} from './seated-pose3d.js';
+import {buildShelter} from './eldoria-shelter3d.js';
+import './bandit-squad3d.js';
 import {newHero,heroURL,heroFallbackURL,moveWorldHero,prepareWorldHero,nativeWorldCombos,retargetWorldRites,worldSwordLayers,worldHeroShadows,installHeroSelector,protaClips} from './protagonist-aerial3d.js';
 import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep} from './prota-combat3d.js';
 import {createProtaVFX} from './prota-vfx3d.js';
@@ -49,7 +52,7 @@ import {buildWaterfall,WATERFALL} from './eldoria-waterfall3d.js';
 import {createBirdFlocks} from './eldoria-birds3d.js';
 import {buildForestPlaces} from './eldoria-forest-places3d.js';
 import {buildFarRidges} from './eldoria-far-ridges3d.js';
-import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, CAGE_TRAIL, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
+import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, CAGE_TRAIL, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, TEREN_ORIGIN, ORIGIN_LIMIT, nearestAlong as nearestAlongRoad, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
 import {loadTorchSource,placeTorches} from './eldoria-torches3d.js';
 import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
@@ -66,7 +69,7 @@ import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
 import {buildUndergrowth,buildTropical} from './eldoria-undergrowth.js';
 // Heavy ArvoreFloresta01.glb retired; its territory now uses the same optimized tropical LOD system.
-import {ROAD,ROAD_STORE,ROAD_SPEAKERS,RIDE,initialRoadStage,roadPresentation,terenMeetScene,tarpScene,rideDozeScene,ambushScene,hungerScene,choiceScene,dawnRideScene,dawnHourAt} from './prologue-road-flow.js';
+import {ROAD,ROAD_STORE,ROAD_SPEAKERS,RIDE,initialRoadStage,roadPresentation,cartRestS,terenMeetScene,tarpScene,rideDozeScene,ambushScene,hungerScene,choiceScene,dawnRideScene,dawnHourAt} from './prologue-road-flow.js';
 import {prepareSandraMaterials} from './sandra-materials.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -77,7 +80,7 @@ import { showGalaxyScreen } from './galaxies3d.js';
 import { iconSvg } from './shop-icons3d.js';
 import { DIMENSIONS, dimensionForProfile, arenaSpec, vsCard, arenaSpots } from './dimensions3d.js';
 import { buildDimensionArena, buildDimensionPortal } from './dimension-arenas3d.js';
-import { createDirector, heavenScene, awakeningScene, MISSION_ACT1 } from './prologue-flow.js';
+import { createDirector, heavenScene, awakeningScene, wingsScene, MISSION_ACT1, MISSION_PROLOGUE, GUIDE_NAME, GUIDE_PUBLIC_NAME } from './prologue-flow.js';
 import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
@@ -834,10 +837,12 @@ const torchSets=[];
    chegam (KHR_parallel_shader_compile quando houver), em vez de compilar no primeiro quadro em que a tocha aparece. */
 function adoptTorchSet(ts){torchSets.push(ts);if(ts.holders.length&&renderer.compileAsync)renderer.compileAsync(ts.holders[0],camera,scene).catch(()=>{});return ts;}
 authoredTorchAsset.then(source=>adoptTorchSet(placeTorches(THREE,villageGroup,source,villageTorchSites,{ground:groundHeightAt})));
+/* MOD 317 — a frente (balcão com as frutas) da BarracaFrutasEldoria.glb aponta para +Z local: o vendedor fica ATRÁS do
+   balcão, de frente para o comprador (antes ficava do lado do cliente, de costas para quem chegava). */
 const villageVendors=[
- {name:'Bento · Alimentos',shortName:'ALIMENTOS',x:marketStalls[0].x+Math.sin(marketStalls[0].yaw)*1.65,z:marketStalls[0].z+Math.cos(marketStalls[0].yaw)*1.65,yaw:marketStalls[0].yaw+Math.PI,greeting:'Não sobrou quase nada, forasteiro. Ainda tento salvar o que posso.',hints:['Minha idade já pesa, mas ninguém mais cuida desta barraca.','Procure Téo nas provisões. Ele sabe dos rumores.','Ouço pedidos de socorro vindos da floresta à noite.','O povo vive com medo dos cobradores.','Ainda estamos aqui, apesar de tudo.']},
- {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x+Math.sin(marketStalls[1].yaw)*1.65,z:marketStalls[1].z+Math.cos(marketStalls[1].yaw)*1.65,yaw:marketStalls[1].yaw+Math.PI,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']},
- {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[2].x+Math.sin(marketStalls[2].yaw)*1.65,z:marketStalls[2].z+Math.cos(marketStalls[2].yaw)*1.65,yaw:marketStalls[2].yaw+Math.PI,greeting:'Escolho as frutas que ainda podem alimentar alguém.',hints:['As que estão boas vão primeiro para quem está doente.','Téo conhece histórias da mata.','Ninguém tem coragem de sair à noite.','A caverna é um lugar perigoso.','Talvez a vila ainda possa se recuperar.']}
+ {name:'Bento · Alimentos',shortName:'ALIMENTOS',x:marketStalls[0].x-Math.sin(marketStalls[0].yaw)*.55,z:marketStalls[0].z-Math.cos(marketStalls[0].yaw)*.55,yaw:marketStalls[0].yaw,greeting:'Não sobrou quase nada, forasteiro. Ainda tento salvar o que posso.',hints:['Minha idade já pesa, mas ninguém mais cuida desta barraca.','Procure Téo nas provisões. Ele sabe dos rumores.','Ouço pedidos de socorro vindos da floresta à noite.','O povo vive com medo dos cobradores.','Ainda estamos aqui, apesar de tudo.']},
+ {name:'Téo · Provisões',shortName:'PROVISÕES',x:marketStalls[1].x-Math.sin(marketStalls[1].yaw)*.55,z:marketStalls[1].z-Math.cos(marketStalls[1].yaw)*.55,yaw:marketStalls[1].yaw,greeting:'Provisões… se é que dá pra chamar isso de comida.',hints:['Não vendo para quem não tem nome.','Vai comprar ou vai só olhar?','Eu já te disse o que sabia. Agora some, antes que alguém nos veja.','Você ainda está vivo? Então ande depressa.','VHAZRAEL caiu? Fale baixo… ainda há outros.']},
+ {name:'Lia · Frutas',shortName:'FRUTAS',x:marketStalls[2].x-Math.sin(marketStalls[2].yaw)*.55,z:marketStalls[2].z-Math.cos(marketStalls[2].yaw)*.55,yaw:marketStalls[2].yaw,greeting:'Escolho as frutas que ainda podem alimentar alguém.',hints:['As que estão boas vão primeiro para quem está doente.','Téo conhece histórias da mata.','Ninguém tem coragem de sair à noite.','A caverna é um lugar perigoso.','Talvez a vila ainda possa se recuperar.']}
 ];
 function mergeGrassTuft(sourceRoot){const positions=[],colors=[],indices=[],zUpToYUp=new THREE.Matrix4().makeRotationX(-Math.PI/2);sourceRoot.updateMatrixWorld(true);sourceRoot.traverse(obj=>{if(!obj.isMesh||!obj.geometry||!obj.geometry.attributes.position)return;const geometry=obj.geometry,position=geometry.attributes.position,color=geometry.attributes.color,base=positions.length/3;const vertex=new THREE.Vector3();for(let i=0;i<position.count;i++){vertex.fromBufferAttribute(position,i).applyMatrix4(obj.matrixWorld).applyMatrix4(zUpToYUp);positions.push(vertex.x,vertex.y,vertex.z);colors.push(color?color.getX(i):.38,color?color.getY(i):.56,color?color.getZ(i):.3);}if(geometry.index){for(let i=0;i<geometry.index.count;i++)indices.push(base+geometry.index.getX(i));}else for(let i=0;i<position.count;i++)indices.push(base+i);});if(!positions.length)throw new Error('Grama.glb não contém malhas com vértices');const merged=new THREE.BufferGeometry();merged.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));merged.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));merged.setIndex(indices);merged.computeVertexNormals();merged.computeBoundingBox();merged.computeBoundingSphere();return merged;}
 /** Tufo de grama leve: ~9 lâminas (≈30 triângulos) com a altura e as cores do tufo original, que tinha ~380 triângulos. */
@@ -1216,6 +1221,57 @@ function updateGuideMotion(){
  if(moving&&next)next.setEffectiveTimeScale(guideMoveSpeed/(role==='run'?3.6:1.8));
 }
 const _ga=new THREE.Vector3(),_gq=new THREE.Quaternion();let guideArmT=0;
+
+/* MOD 317 — asas do Anjo-Guia: Asas.glb presas ao osso UpperChest (escápulas), escala pela altura real do anjo,
+   respiração sutil, penas raras caindo (pool de 4) e recolhimento antes de qualquer humano vê-las. O estado
+   (recolhidas/visíveis) fica salvo: pular cenas e recarregar nunca faz as asas reaparecerem fora de hora. */
+const GUIDE_WINGS_STORE='seven-sins-3d-guide-wings';
+var guideWingsHidden=(()=>{try{const v=localStorage.getItem(GUIDE_WINGS_STORE);if(v!==null)return v==='1';}catch(_){}return true;})();
+const guideWings={root:null,L:null,R:null,want:false,fold:-1,feathers:[],nextFeather:4,glow:null,loading:false};
+function saveGuideWings(){try{localStorage.setItem(GUIDE_WINGS_STORE,guideWingsHidden?'1':'0');}catch(_){}}
+function attachGuideWings(){
+ const W=guideWings;if(W.root||W.loading||!guideModel)return;W.loading=true;
+ new GLTFLoader().load('./Asas.glb?v=mod317',g=>{W.loading=false;if(!guideModel)return;
+  const chest=(()=>{let b=null;guideModel.traverse(o=>{if(!b&&o.isBone&&/^upperchest$/i.test(o.name||''))b=o;});if(!b)guideModel.traverse(o=>{if(!b&&o.isBone&&/^chest$/i.test(o.name||''))b=o;});return b;})();
+  if(!chest){console.warn('Anjo-Guia sem osso UpperChest para as asas');return;}
+  guide.updateMatrixWorld(true);const gb=measureModelBounds(guideModel),H=gb.getSize(new THREE.Vector3()).y||2.8;
+  const wings=g.scene,wb=new THREE.Box3().setFromObject(wings),ws=wb.getSize(new THREE.Vector3()),wc=wb.getCenter(new THREE.Vector3());
+  const k=H*1.25/Math.max(.001,ws.x);wings.scale.setScalar(k);wings.position.set(-wc.x*k,-wc.y*k+H*.06,-wc.z*k);
+  wings.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=false;o.material=o.material.clone();o.material.transparent=true;o.material.side=THREE.DoubleSide;}});
+  const holder=new THREE.Group();holder.name='AsasAnjoGuia';holder.add(wings);
+  const cp=new THREE.Vector3(),gq=new THREE.Quaternion();chest.getWorldPosition(cp);guideModelRoot.getWorldQuaternion(gq);
+  const back=new THREE.Vector3(0,0,-1).applyQuaternion(gq);holder.position.copy(cp).addScaledVector(back,H*.055);holder.quaternion.copy(gq);holder.updateMatrixWorld(true);
+  chest.attach(holder);
+  W.root=holder;W.L=wings.getObjectByName('AsaEsquerda');W.R=wings.getObjectByName('AsaDireita');W.restL=W.L&&W.L.quaternion.clone();W.restR=W.R&&W.R.quaternion.clone();W.scale=holder.scale.clone();W.H=H;
+  W.glow=glowSprite(0xfff6e0,0,H*.9);W.glow.renderOrder=3;holder.add(W.glow);
+  const fm=new THREE.MeshBasicMaterial({color:0xf6f1e6,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});const fg=new THREE.PlaneGeometry(.07,.2);fg.translate(0,.1,0);
+  for(let i=0;i<4;i++){const f=new THREE.Mesh(fg,fm.clone());f.visible=false;f.frustumCulled=false;scene.add(f);W.feathers.push({m:f,t:-1,vx:0,vz:0,spin:0});}
+  holder.visible=W.want;
+ },undefined,e=>{W.loading=false;console.warn('Asas.glb não carregou para o Anjo-Guia',e);});
+}
+function setGuideWings(visible,instant){
+ const W=guideWings;W.want=!!visible;if(!W.root){attachGuideWings();return;}
+ if(instant||!visible){W.fold=-1;W.root.visible=W.want;if(W.scale)W.root.scale.copy(W.scale);if(W.glow)W.glow.material.opacity=0;}
+}
+function foldGuideWings(){
+ guideWingsHidden=true;saveGuideWings();const W=guideWings;if(!W.root||!W.root.visible){setGuideWings(false,true);return;}
+ W.fold=0;W.want=false;worldAudio.dissolve&&worldAudio.dissolve();
+}
+function updateGuideWings(dt){
+ const W=guideWings;if(!W.root){if(guideModel&&!W.loading)attachGuideWings();return;}
+ const t=performance.now()*.001,moving=guideRun&&guideMoveSpeed>.1;
+ if(W.fold>=0){W.fold+=dt;const k=Math.min(1,W.fold/1.25),e=k*k*(3-2*k);W.root.scale.copy(W.scale).multiplyScalar(Math.max(.001,1-e*.96));if(W.glow)W.glow.material.opacity=Math.sin(Math.min(1,k*1.15)*Math.PI)*.55;
+  if(W.L&&W.restL){W.L.quaternion.copy(W.restL);W.L.rotateY(-e*.9);}if(W.R&&W.restR){W.R.quaternion.copy(W.restR);W.R.rotateY(e*.9);}
+  if(k>=1){W.fold=-1;W.root.visible=false;W.root.scale.copy(W.scale);if(W.glow)W.glow.material.opacity=0;}return;}
+ if(!W.root.visible)return;
+ const flap=Math.sin(t*(moving?3.2:1.15))*(moving?.09:.035)+Math.sin(t*2.7)*.008;
+ if(W.L&&W.restL){W.L.quaternion.copy(W.restL);W.L.rotateY(flap);}if(W.R&&W.restR){W.R.quaternion.copy(W.restR);W.R.rotateY(-flap);}
+ // penas raras: uma a cada 6–11 s, caem girando e somem (pool fixo, sem partículas contínuas)
+ W.nextFeather-=dt;if(W.nextFeather<=0){W.nextFeather=6+Math.random()*5;const f=W.feathers.find(q=>q.t<0);if(f){W.root.getWorldPosition(_gw);f.m.position.set(_gw.x+(Math.random()-.5)*W.H*.8,_gw.y+W.H*.15,_gw.z+(Math.random()-.5)*.6);f.t=0;f.vx=(Math.random()-.5)*.3;f.vz=(Math.random()-.5)*.3;f.spin=(Math.random()-.5)*3;f.m.visible=true;}}
+ for(const f of W.feathers){if(f.t<0)continue;f.t+=dt;const m=f.m;m.position.x+=(f.vx+Math.sin(f.t*2.1)*.25)*dt;m.position.z+=f.vz*dt;m.position.y-=dt*.42;m.rotation.set(Math.sin(f.t*2.4)*.8,f.t*f.spin,Math.cos(f.t*1.7)*.6);
+  m.material.opacity=Math.min(1,f.t*2)*Math.max(0,1-f.t/4.5)*.9;if(f.t>4.5||m.position.y<terrainHeightAt(m.position.x,m.position.z)){f.t=-1;m.visible=false;}}
+}
+const _gw=new THREE.Vector3();
 function relaxGuideArms(dt){
  if(!guideModel||!guide.visible)return;const rig=poseRig(guideModel);if(!rig)return;guideArmT+=dt;guideModel.getWorldQuaternion(_gq);
  if(!(guideRun&&guideMoveSpeed>.1)&&!guideModel.userData.authoredStand)for(const [ua,la,hd,sx] of [[rig.lua,rig.lla,rig.lh,1],[rig.rua,rig.rla,rig.rh,-1]]){const sw=Math.sin(guideArmT*1.1+(sx>0?0:1.3))*.03;
@@ -1477,7 +1533,7 @@ function nextDashCooldown(){if(encounterProfile==='warden')return 2.15;if(encoun
 function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)return;const dimInfo=dimensionForProfile(encounterProfile);el.textContent=dimBattle&&dimBattle.active&&dimInfo?dimInfo.name+' · '+(dimInfo.order<5?dimInfo.order+'º BISPO':'PECADO'):(finaleReady&&finaleNameFor(encounterProfile))?finaleNameFor(encounterProfile):encounterProfile==='vorgazhek'?'VORGAZHEK · SEGUNDO BISPO':encounterProfile==='arena'?'ARENA DO VALE':(lateSystemsReady&&lateDef()&&lateDef().profile===encounterProfile)?lateDef().name:encounterProfile==='warden'?'GUARDIÃO DO PORTAL':(encounterProfile==='demon2'||encounterProfile==='demon3')?'DEMÔNIO DA GANÂNCIA':encounterProfile==='miniboss3'?'GUARDIÃO DA DISTORÇÃO':ROUND_NAMES[encounterProfile]?ROUND_NAMES[encounterProfile]:encounterProfile==='angel'?'ANJO-GUIA':encounterProfile==='demon4'?'GUARDIÃO DA TORRE':encounterProfile==='miniboss4'?'GUARDIÃO DO 6º PISO':encounterProfile==='leader4'?'LÍDER DOS GUARDIÕES':encounterProfile==='bandit4'?'BANDIDO':encounterProfile==='rival'?'DESCONHECIDO':encounterProfile==='miniboss2'?'GUARDIÃO DO TRONO':encounterProfile==='sentry'?'SENTINELA DA SUBIDA':'SEGUIDOR DA GANÂNCIA';if(wardenRing)wardenRing.visible=encounterProfile==='warden'&&enemy.visible;}
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;siegeEpoch++;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=profile==='bandit1'?spot.z+4:Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
 function advanceAfterEnemyDefeat(){if(squadOn||performance.now()<squadSwallowUntil)return;if(dimBattle&&dimBattle.active){if(dimBattle.test){dimensionVictory();return;}if(act6GreedDefeat())return;if(questStep===ACT6N.rematch&&!dimBattle.outro){const r=nextRematch(act1Sub);if(r&&r.key===dimBattle.key){dimBattle.outro=true;enemy.visible=true;playStory('revanche-cai',rematchOutroScene(r.key),{focus:'enemy',done:()=>dimensionVictory()});return;}}if(dimBattle.key==='bishop1'&&questStep<8&&!dimBattle.outro){dimBattle.outro=true;vhazraelOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&questStep===ACT2.boss&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
-function nearestVillageVendor(){let nearest=null,best=2.85;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
+function nearestVillageVendor(){let nearest=null,best=3.3;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
 function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;const root=vendorRoots[villageVendors.indexOf(vendor)];if(root){faceTo(root,player.position);faceTo(player,root.position);}if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
 function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;const T=inSewer?sewerLocal(SEWER.portal):PORTAL,tz=T.z+(inSewer?1.2:2.4);player.position.x+=(T.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=(tz-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(T.x-player.position.x,T.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestVhazraelHandoff();}
@@ -1595,7 +1651,7 @@ stick.addEventListener('pointerdown',e=>{joyActive=true;stick.setPointerCapture(
 stick.addEventListener('pointermove',e=>{if(joyActive)setJoy(e);});
 function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';}
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
-let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
+let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=7.2;let grounded=true;
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
 /* MOD 302 — estado do protagonista em tempo de JOGO (segundos): não depende do relógio real, então a filmagem em passo
    fixo e o jogo a 30/60/120 FPS veem a mesma coisa. */
@@ -2050,6 +2106,9 @@ camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
  camera.lookAt(target);applyUltCam(dt,target);
 }
 }
+/** MOD 317 — água rasa tem peso, mas não vira lesma: até −28 % na altura do joelho, nada no chão seco. */
+let wadeCacheT=0,wadeCacheV=1;
+function wadeMul(){if(voidMode)return 1;const now=performance.now();if(now-wadeCacheT>100){wadeCacheT=now;const d=terrain3D.waterDepth(player.position.x,player.position.z);wadeCacheV=d>.05&&grounded?1-Math.min(.28,(d-.05)*.5):1;}return wadeCacheV;}
 function updatePlayerMovement(dt,now){
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
@@ -2070,7 +2129,7 @@ let worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);
 // MOD 292 — só QA (?debug3d): caminhada guiada numa direção do mundo, para testar escadas, deques e bordas.
 if(qaMove&&!(rites.locksMovement||dialogueOpen||cineActive)){if(qaMove.left>0){qaMove.left-=dt;worldX=qaMove.x;worldZ=qaMove.z;}else qaMove=null;}
 const engaged=enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;
-const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul()/* MOD 316: a mesma velocidade real em 1ª e 3ª pessoa (removido o ×1,85 da caverna) */,targetVX=worldX*speed,targetVZ=worldZ*speed;
+const speed=(newHero?(defending?PROTA_LOCO.guard:isSprinting()?PROTA_LOCO.run:PROTA_LOCO.walk):(defending?1.9:isSprinting()?7.2:4.3))*(rites.active?.kind==='basic'?.65:1)*act3SpeedMul()*foeSlowMul()*wadeMul()/* MOD 316: a mesma velocidade real em 1ª e 3ª pessoa (removido o ×1,85 da caverna) */,targetVX=worldX*speed,targetVZ=worldZ*speed;
 const currentSpeed=Math.hypot(moveVX,moveVZ),targetSpeed=Math.hypot(targetVX,targetVZ);
 let response;
 if(targetSpeed<.001){
@@ -2268,7 +2327,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(zarkUltBossLock){enemyModelRoot.position.y=zarkUltBossLock.modelRootY;}
  else if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
  else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer){updateGuideMotion();guideIdleMixer.update(dt);relaxGuideArms(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
+ }if(guideIdleMixer){updateGuideMotion();guideIdleMixer.update(dt);relaxGuideArms(dt);updateGuideWings(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
@@ -2281,7 +2340,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  const talkButton=document.getElementById('talk-button');
  const nearbyVendor=nearestVillageVendor();
  const fightingNow=enemy.visible&&enemyAlive;const nearStone=nearestWaystone(),atShop=nearShopDoor(),act1Label=roadTalkLabel()||act1TalkLabel()||act2StoryLabel()||(act3Ready?act3Label()||act4Label()||act6Label():''),act2Label=act2TalkLabel()||(finaleReady?finaleTalkLabel():'')||(lateSystemsReady?lateTalkLabel():'');const canTalk=!!act1Label||!!act2Label||atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||!!nearbyVendor;
- if(talkButton){const label=act1Label?act1Label:act2Label?act2Label:atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · MAPA':'REGISTRAR ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull||cineActive);}
+ if(talkButton){const label=act1Label?act1Label:act2Label?act2Label:atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · VIAJAR':'REGISTRAR ESTE ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull||cineActive);}
  questMarker.visible=(questStep<15||isAct3Step(questStep)||isAct4Step(questStep)||questStep===ACT5N.step||isAct6Step(questStep))&&!portalPull&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower)&&!cineActive;
  if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
@@ -2297,7 +2356,7 @@ updateAutoGraphics3D(frameDelta,now);
  updateCages();updateAct1(dt,now);
  updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateHydra(dt);updateMoonFlames(dt);updateVeraxionSwords(dt);updateVeraxionCyclone(dt);updateZarkhaelSword(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateEclipseSword(dt);tickCosmicSwords(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateAscension(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  // Recalcular culling DEPOIS da câmera definitiva deste quadro (antes havia 1 frame de atraso).
- lightBudget.update(camera,frameDelta);updateInstanceCulling();if(vzCinematic()){vzCamRestore();return;}const forestRenderStart=forestPerfEnabled?performance.now():0;renderer.render(scene,camera);if(forestPerfEnabled)forestPerfUpdate(forestFrameStart,forestRenderStart,performance.now());vzCamRestore();}
+ if(road.group)applySeating(frameDelta);lightBudget.update(camera,frameDelta);updateInstanceCulling();if(vzCinematic()){vzCamRestore();return;}const forestRenderStart=forestPerfEnabled?performance.now():0;renderer.render(scene,camera);if(forestPerfEnabled)forestPerfUpdate(forestFrameStart,forestRenderStart,performance.now());vzCamRestore();}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
 /* MOD 316 — serras distantes em camadas (perspectiva atmosférica), cores da hora atual. */
 const farRidges=buildFarRidges(THREE,{lowSpec:terrainLowSpec});scene.add(farRidges.mesh);
@@ -2455,11 +2514,17 @@ const fallingLeaves=(()=>{const pos=new Float32Array(LEAF_COUNT*3),col=new Float
 /* MOD 316 — bandos pequenos e raros de pássaros (1 draw call), chilreio quando passam perto. */
 const birdFlocks=createBirdFlocks(THREE,{ground:(x,z)=>groundHeightAt(x,z),onCall:level=>worldAudio.flock(level)});scene.add(birdFlocks.mesh);
 const forestPlaces=buildForestPlaces(THREE,{ground:(x,z)=>groundHeightAt(x,z),obstacles:rockObstacles,lowSpec:terrainLowSpec});scene.add(forestPlaces.group);
+/* MOD 317 — a garganta de origem segue por dias até as terras baixas: depois da curva (ORIGIN_LIMIT) o herói não segue
+   (limite narrativo da estrada, sem parede invisível em objeto pequeno). O Anjo chama de volta uma vez. */
+const ORIGIN_LIMIT_S=nearestAlongRoad(TEREN_ROAD,ORIGIN_LIMIT.x,ORIGIN_LIMIT.z).s;let originSafe=null,originCheckT=0;
+function originLimitCheck(t){if(voidMode||t<originCheckT)return;originCheckT=t+.15;const P=player.position,n=nearestAlongRoad(TEREN_ROAD,P.x,P.z);
+ if(n.d<14&&n.s<ORIGIN_LIMIT_S&&P.z>180){if(originSafe){P.x=originSafe.x;P.z=originSafe.z;moveVX=moveVZ=0;dashRemaining=0;}if(t-originWarned>14){originWarned=t;status.textContent='Vaelthar: “Essa estrada desce por dias até as terras baixas. A cidade fica do outro lado.”';}}
+ else originSafe={x:P.x,z:P.z};}
 function updateAmbientLife(dt,now){
  shopBuilding.star.rotation.y+=dt*.8;shopBuilding.lamp.intensity=dayNightState.t*2.2;
  if(grassRefresh)grassRefresh(player.position.x,player.position.z);
  const night=dayNightState.t,t=now*.001,px=player.position.x,pz=player.position.z;
- forestPlaces.update(t,night);if(!voidMode)birdFlocks.update(dt,t,player.position,1-THREE.MathUtils.smoothstep(night,.25,.7));else birdFlocks.mesh.visible=false;
+ forestPlaces.update(t,night);originLimitCheck(t);for(const v of waystoneVisuals)v.shelter.update(t,dt);if(!voidMode)birdFlocks.update(dt,t,player.position,1-THREE.MathUtils.smoothstep(night,.25,.7));else birdFlocks.mesh.visible=false;
  const ready=questStep>=6;portalBeacon.material.opacity=(ready?.42:.17)+night*.14+Math.sin(t*1.7)*.035;
  fireflies.pts.visible=night>.35&&grassGroup.visible;
  if(fireflies.pts.visible){fireflies.pts.material.opacity=THREE.MathUtils.smoothstep(night,.35,1)*(.75+Math.sin(t*3.1)*.2);
@@ -2487,17 +2552,14 @@ const MAP_STORE=MAP_STORE_KEY;
 const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');if(!saved){const old=JSON.parse(localStorage.getItem('seven-sins-3d-map-v2')||localStorage.getItem('seven-sins-3d-map')||'null');if(old)saved={pois:old.pois,waystones:old.waystones};}}catch(_){}return createMapState(saved);})();
 let mapDirty=false,mapSaveAt=0,mapScanAt=0,mapBase=null,mapOpen=false;
 function saveMapState(force){if(!mapDirty&&!force)return;mapDirty=false;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));}catch(_){}}
-const waystoneVisuals=WAYSTONES.map(w=>{const g=new THREE.Group();g.position.set(w.x,groundHeightAt(w.x,w.z),w.z);scene.add(g);
- const stone=new THREE.Mesh(new THREE.CylinderGeometry(.34,.5,1.75,6),rockMat);stone.position.y=.86;stone.castShadow=true;stone.receiveShadow=true;g.add(stone);
- // MOD 291 — o topo do abrigo vira um cristal facetado (prisma hexagonal) no lugar do losango genérico.
- const cap=new THREE.Mesh(crystalPrismGeometry(THREE,{seed:7,tip:.32,taper:.8}),new THREE.MeshStandardMaterial({color:0x6b6450,emissive:0x8a6a20,emissiveIntensity:.25,roughness:.45,flatShading:true}));cap.scale.set(.2,.62,.2);cap.position.y=2.0;g.add(cap);
- const ring=new THREE.Mesh(new THREE.TorusGeometry(.62,.035,6,28),new THREE.MeshBasicMaterial({color:0x9a8650,transparent:true,opacity:.55}));ring.rotation.x=Math.PI/2;ring.position.y=.06;g.add(ring);
- marketObstacles.push({x:w.x,z:w.z,shape:'circle',radius:.62,height:1.8});return{data:w,group:g,cap,ring};});
-function syncWaystoneVisuals(){for(const v of waystoneVisuals){const on=mapState.waystones.has(v.data.id);v.cap.material.emissive.setHex(on?0x66d6ff:0x8a6a20);v.cap.material.emissiveIntensity=on?1.6:.25;v.ring.material.color.setHex(on?0x8fe3ff:0x9a8650);v.ring.material.opacity=on?.9:.55;}}
+/* MOD 317 — abrigos: plataforma ritual autoral (eldoria-shelter3d.js) com degraus caminháveis e pilares sólidos;
+   o registro só acontece com o herói no CENTRO da plataforma. */
+const waystoneVisuals=WAYSTONES.map((w,i)=>{const y=groundHeightAt(w.x,w.z),sh=buildShelter(THREE,{x:w.x,y,z:w.z,yaw:i*.7,seed:i+1,walk:eldoriaWalk,lowSpec:terrainLowSpec});scene.add(sh.group);return{data:w,group:sh.group,shelter:sh};});
+function syncWaystoneVisuals(){for(const v of waystoneVisuals)v.shelter.setActive(mapState.waystones.has(v.data.id));}
 syncWaystoneVisuals();
-function nearestWaystone(){let best=null,bd=2.5;for(const v of waystoneVisuals){const d=Math.hypot(v.data.x-player.position.x,v.data.z-player.position.z);if(d<bd){bd=d;best=v.data;}}return best;}
+function nearestWaystone(){let best=null,bd=1.35;for(const v of waystoneVisuals){const d=Math.hypot(v.data.x-player.position.x,v.data.z-player.position.z);if(d<bd&&player.position.y>v.shelter.center.y-.25){bd=d;best=v.data;}}return best;}
 function useWaystone(w){
- if(!mapState.waystones.has(w.id)){mapState.waystones.add(w.id);mapDirty=true;saveMapState();syncWaystoneVisuals();refreshSideQuests();worldAudio.reveal();
+ if(!mapState.waystones.has(w.id)){mapState.waystones.add(w.id);mapDirty=true;saveMapState();syncWaystoneVisuals();refreshSideQuests();worldAudio.reveal();{const v=waystoneVisuals.find(q=>q.data.id===w.id);if(v)v.shelter.pulse();}
   const toast=document.getElementById('quest-toast');if(toast){toast.textContent='ABRIGO REGISTRADO · '+w.name.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}
   status.textContent='Abrigo registrado. Abra o MAPA para voltar aqui quando estiver em segurança.';return;}
  openWorldMap();
@@ -2550,7 +2612,8 @@ function renderTravelList(){
 function fastTravelTo(w){
  const check=travelState();if(!check.ok){status.textContent=check.reason;renderTravelList();return;}
  closeWorldMap();const veil=document.getElementById('travel-veil');if(veil){veil.classList.add('on');setTimeout(()=>veil.classList.remove('on'),520);}
- setTimeout(()=>{const x=w.x+1.4,z=w.z+1.4;player.position.set(x,terrainHeightAt(x,z),z);moveVX=moveVZ=0;dashRemaining=0;camera.position.set(x+Math.sin(cameraYaw)*cameraDistance,player.position.y+3,z+Math.cos(cameraYaw)*cameraDistance);status.textContent='Você chegou ao '+w.name+'.';},260);
+ setTimeout(()=>{const v=waystoneVisuals.find(q=>q.data.id===w.id),x=w.x,z=w.z;player.position.set(x,v?v.shelter.center.y:terrainHeightAt(x,z),z);verticalVelocity=0;grounded=true;checkpointX=x;checkpointZ=z;// MOD 317: chega no centro da plataforma (nunca dentro de pilar ou na água)
+ moveVX=moveVZ=0;dashRemaining=0;camera.position.set(x+Math.sin(cameraYaw)*cameraDistance,player.position.y+3,z+Math.cos(cameraYaw)*cameraDistance);status.textContent='Você chegou ao '+w.name+'.';},260);
 }
 function openWorldMap(){if(awakeningActive||namePromptOpen)return;const panel=document.getElementById('world-map');if(!panel)return;mapOpen=true;panel.hidden=false;const c=document.getElementById('world-map-canvas');const size=Math.max(220,Math.min(520,Math.floor(Math.min(innerWidth*.9,innerHeight*.66))));if(c.width!==size){c.width=c.height=size;}drawWorldMap();renderTravelList();}
 function closeWorldMap(){const panel=document.getElementById('world-map');if(panel)panel.hidden=true;mapOpen=false;}
@@ -3053,9 +3116,18 @@ function loadCineAssets(){
  const load=file=>new Promise((res,rej)=>new GLTFLoader().load(file,res,undefined,rej));
  const playerReady=new Promise(res=>{const t=()=>player.userData.ready&&model?res():setTimeout(t,120);t();});
  const guideReady=new Promise(res=>{const t0=performance.now(),t=()=>guideFitRoot||performance.now()-t0>9000?res():setTimeout(t,120);t();});
- cineAssets=Promise.all([load('./Protagonista-cine.glb?v=mod203'),load('./Asas.glb?v=mod203'),load('./TronoCeleste.glb?v=mod203'),load('./FiguraDeLuz.glb?v=mod203'),playerReady,guideReady]).then(([clips,wings,throne,figure])=>{
+ // MOD 317 — guardiões do céu: Anjos.glb (dois, flanqueando a aproximação do herói) e BracoDireitoEsquerdo.glb (dois, nas
+ // laterais do trono). Clipe de levantar (Arise) do rig humanoide Meshy dos moradores, compatível osso a osso com o herói.
+ const opt=file=>load(file).catch(e=>{console.warn('Prólogo: '+file+' não carregou',e);return null;});
+ cineAssets=Promise.all([load('./Protagonista-cine.glb?v=mod203'),load('./Asas.glb?v=mod203'),load('./TronoCeleste.glb?v=mod203'),load('./FiguraDeLuz.glb?v=mod203'),playerReady,guideReady,opt('./Anjos.glb?v=mod317'),opt('./BracoDireitoEsquerdo.glb?v=mod317'),opt('./NPC_Masculino_Animado_Otimizado_1K.glb')]).then(([clips,wings,throne,figure,,,seraph,armGuard,manRig])=>{
+  if(mixer&&manRig&&model){const known=new Set();model.traverse(o=>known.add(o.name));
+   // altura do quadril em repouso (espaço de bind) dos dois esqueletos: a translação do Hips do clipe é reescalada para o herói
+   const hipY=root=>{let y=null;root.traverse(o=>{if(y===null&&o.isSkinnedMesh&&o.skeleton){const i=o.skeleton.bones.findIndex(b=>/^hips$/i.test(b.name));if(i>=0)y=new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().copy(o.skeleton.boneInverses[i]).invert()).y;}});return y;};
+   const hy=hipY(model),ny=hipY(manRig.scene),ratio=hy&&ny?hy/ny:1;
+   for(const c of manRig.animations||[]){if(!/^(arise|falling_down)$/i.test(c.name))continue;const k=c.clone();k.tracks=k.tracks.filter(t=>{const n=t.name.split('.')[0];if(!known.has(n)||/\.scale$/.test(t.name))return false;return !/\.position$/.test(t.name)||/^hips$/i.test(n);}).map(t=>{if(/\.position$/.test(t.name)){const q=t.clone();for(let i=0;i<q.values.length;i++)q.values[i]*=ratio;return q;}return t;});
+    const key=/arise/i.test(c.name)?'levantar':'cair';if(!actions[key])actions[key]=mixer.clipAction(k);}}
   if(mixer)for(const c of clips.animations||[]){const key=/ajoelh/i.test(c.name)?'ajoelhar':/olhar/i.test(c.name)?'olharMaos':null;if(key&&!actions[key])actions[key]=mixer.clipAction(c);}
-  return {wings:wings.scene,throne:throne.scene,figure:figure.scene};
+  return {wings:wings.scene,throne:throne.scene,figure:figure.scene,seraph:seraph&&seraph.scene,armGuard:armGuard&&armGuard.scene};
  });
  return cineAssets;
 }
@@ -3069,9 +3141,19 @@ function buildHeaven(a){
  const glow=glowSprite(0xfff0c8,.7,14);glow.position.copy(head).sub(g.position).add(new THREE.Vector3(0,-1.6,-1.2));g.add(glow);
  const halo=glowSprite(0xffffff,.85,4.2);halo.position.copy(head).sub(g.position);g.add(halo);
  const kneelZ=throneBox.max.z+3.2,startZ=kneelZ+17;
- // Anjos de guarda ao longo do caminho (o mesmo modelo do Anjo-Guia), pairando de frente para o caminho.
+ /* MOD 317 — quatro guardiões reais (nenhum clone do Anjo-Guia): dois Anjos.glb flanqueando a aproximação e dois
+    BracoDireitoEsquerdo.glb nas laterais do trono. Presença pela escala, silhueta e aura branca tênue (sprite aditivo
+    fraco atrás, sem bloom); respiração/micromovimento procedural (Anjos.glb é estático; o outro tem 49 ossos sem clipe). */
  const angels=[];
- if(guideFitRoot)for(let k=0;k<3;k++)for(const sx of [-1,1]){const c=cloneSkinned(guideFitRoot);c.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;}});const h=new THREE.Group();h.add(c);h.scale.setScalar(1.7);h.position.set(sx*5.4,.35,kneelZ-sp.z+3+k*6.2);h.rotation.y=-sx*Math.PI/2;h.userData.phase=k*1.7+(sx>0?.8:0);g.add(h);angels.push(h);}
+ const guardian=(src,height,x,y,z,yaw,phase,kind)=>{if(!src)return null;const m=kind==='arm'?cloneSkinned(src):src.clone(true);const holder=new THREE.Group(),body=new THREE.Group();body.add(m);holder.add(body);
+  m.updateMatrixWorld(true);const b=measureModelBounds(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=height/Math.max(.001,sz.y);m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k,-c.z*k);
+  m.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=false;for(const mt of [].concat(o.material))if(mt&&mt.emissive){mt.emissive.setHex(0xfff6e6);mt.emissiveIntensity=.03;if(mt.color)mt.color.multiplyScalar(.82);}}});
+  const aura=glowSprite(0xffffff,.11,height*1.15);aura.position.set(0,height*.55,-.4);aura.renderOrder=-1;holder.add(aura);
+  const bones=[];if(kind==='arm')m.traverse(o=>{if(o.isBone){let d=0;for(let q=o.parent;q&&q.isBone;q=q.parent)d++;if(d>=2)bones.push({b:o,q:o.quaternion.clone(),d,ph:bones.length*.7});}});
+  holder.position.set(x,y,z);holder.rotation.y=yaw;holder.userData={phase,baseY:y,yaw,kind,body,aura,bones,height};g.add(holder);angels.push(holder);return holder;};
+ const midZ=(kneelZ+startZ)/2-sp.z;
+ for(const sx of [-1,1])guardian(a.seraph,5.6,sx*6.6,1.6,midZ+1.5,sx<0?Math.PI/2:-Math.PI/2,sx>0?1.3:0,'seraph');
+ {const tc=throneBox.getCenter(new THREE.Vector3()),tw=(throneBox.max.x-throneBox.min.x)/2;for(const sx of [-1,1])guardian(a.armGuard,7.4,tc.x-sp.x+sx*(tw+3.4),0,tc.z-sp.z+2.2,-sx*.22,sx>0?2.1:.6,'arm');}
  // Asas e aura do herói (retiradas na cena C05).
  const wings=a.wings;wings.scale.setScalar(.55);const wingMats=[];wings.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;wingMats.push(o.material);o.castShadow=true;}});
  const wingL=wings.getObjectByName('AsaEsquerda'),wingR=wings.getObjectByName('AsaDireita');
@@ -3086,7 +3168,7 @@ function buildHeaven(a){
 }
 function disposeHeaven(){
  if(!cineHeaven)return;const h=cineHeaven;cineHeaven=null;
- for(const a of h.angels)a.removeFromParent();// os anjos dividem malhas e materiais com o Anjo-Guia do mundo
+ // MOD 317: os guardiões têm malhas próprias (não são clones do Anjo-Guia) e são liberados junto com o céu.
  for(const o of [h.group,h.wingHolder,h.fx]){scene.remove(o);o.traverse(x=>{if(x.isMesh||x.isPoints||x.isSprite){if(x.geometry&&!x.isSprite)x.geometry.dispose();for(const m of [].concat(x.material||[]))if(m)m.dispose();}});}
  if(dimArenas.ceu){scene.remove(dimArenas.ceu.group);dimArenas.ceu.dispose();delete dimArenas.ceu;}
 }
@@ -3133,11 +3215,23 @@ function openGalaxyAfterHeaven(failed){
  setGameHour(7.5);player.position.set(AWAKE_SPOT.x,terrainHeightAt(AWAKE_SPOT.x,AWAKE_SPOT.z),AWAKE_SPOT.z);playerYaw=0;player.rotation.y=0;
  pendingAwakening=true;openGalaxyScreen();setCineFade(0,1.4,true);
 }
+/** MOD 317 — pose deitada = primeiro quadro do clipe Arise (rig Meshy dos moradores, osso a osso igual ao herói).
+    on=false com stand=true toca o levantar de verdade e volta ao repouso ao terminar. */
+function heroLyingPose(on,stand){
+ const a=actions.levantar;if(!a||!mixer)return;
+ if(on){if(activeAction&&activeAction!==a)activeAction.stop();a.reset();a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=true;a.setEffectiveWeight(1);a.play();a.paused=true;a.time=0;activeAction=a;actionUntil=Infinity;mixer.update(0);return;}
+ if(stand){a.paused=false;a.setEffectiveTimeScale(.92);const dur=a.getClip().duration/.92;setTimeout(()=>{if(activeAction===a&&actions.idle){play('idle',.45);}},Math.max(200,dur*1000-380));return;}
+ if(activeAction===a){a.stop();activeAction=null;if(actions.idle)play('idle',.2);}
+}
 function startAwakeningCine(){
- guide.position.set(AWAKE_SPOT.x-1.9,0,AWAKE_SPOT.z-2.4);guide.position.y=terrainHeightAt(guide.position.x,guide.position.z);
- const G=guide.position,ax=AWAKE_SPOT.x,az=AWAKE_SPOT.z;
- player.position.set(ax,terrainHeightAt(ax,az),az);playerYaw=Math.atan2(G.x-ax,G.z-az);player.rotation.y=playerYaw;
- guide.lookAt(ax,guide.position.y,az);guide.visible=false;
+ /* MOD 317 — o Anjo já está ali, de pé ao lado do herói caído, desde antes do fade abrir (respirando, olhando para ele).
+    Herói deitado no chão (primeiro quadro do clipe Arise), câmera nos olhos olhando para o céu. */
+ const ax=AWAKE_SPOT.x,az=AWAKE_SPOT.z;playerYaw=Math.PI*.82;
+ const gx=ax+Math.cos(playerYaw)*1.55+Math.sin(playerYaw)*.9,gz=az-Math.sin(playerYaw)*1.55+Math.cos(playerYaw)*.9;
+ guide.position.set(gx,terrainHeightAt(gx,gz),gz);
+ const G=guide.position;
+ player.position.set(ax,terrainHeightAt(ax,az),az);player.rotation.y=playerYaw;
+ guide.lookAt(ax,guide.position.y,az);guide.visible=true;guide.scale.setScalar(1);guideWingsHidden=false;saveGuideWings();setGuideWings(true,true);prologueAwake=null;
  cineAwake={x:ax,z:az,yaw:playerYaw};awakeningActive=false;
  cineBegin();loadCineAssets().catch(()=>{}).then(()=>{if(cineActive&&cineShot==='olhos-abrem'&&actions.olharMaos)playOnce('olharMaos',.2);});
  cineDirector.play('despertar',awakeningScene(),null,{skippable:false});cineEl('cine-skip').hidden=true;
@@ -3148,8 +3242,8 @@ function cineAcceptMission(){
  questStep=1;save3DProgress();roadStage=ROAD.meet;try{localStorage.setItem(ROAD_STORE,'0');}catch(_){}updateQuestHud();status.textContent='Siga a estrada de terra: uma carroça se aproxima.';
 }
 function endAwakeningCine(skipped){
- cineEl('mission-card').hidden=true;cineEl('act-card').classList.add('hidden');
- actCardSeen=true;cineEnd();finishAwakening();
+ cineEl('mission-card').hidden=true;cineEl('act-card').classList.add('hidden');heroLyingPose(false);
+ actCardSeen=true;cineEnd();finishAwakening();prologueAwake={t:performance.now(),x:player.position.x,z:player.position.z};
  if(!playerName)openNamePrompt(()=>cineAcceptMission());else cineAcceptMission();
  cameraYaw=cineAwake?cineAwake.yaw+Math.PI:cameraYaw;cameraPitch=.16;
  setCineFade(0,skipped?.6:1.4,false);
@@ -3162,6 +3256,10 @@ function cineDo(id,args){
  else if(id==='heroi-ajoelha'&&h){cineWalk=null;player.position.z=h.kneelZ;if(actions.walk)actions.walk.setEffectiveTimeScale(1);if(!(actions.ajoelhar&&playOnce('ajoelhar',.35)))play('idle',.3);}
  else if(id==='retirar-asas'){cineDissolveT=0;worldAudio.dissolve();}
  else if(id==='clarão'){setCineFade(1,2.2,true);}
+ else if(id==='deitado'){heroLyingPose(true);}
+ else if(id==='piscar-despertar'){const lids=cineEl('cine-lids');lids.className='on';void lids.offsetWidth;lids.className='on open';cineBlurT=0;setCineFade(0,1.1,false);}
+ else if(id==='levantar'){heroLyingPose(false,true);}
+ else if(id==='prologo-card'){const card=cineEl('act-card');card.querySelector('#act-kicker').textContent='GALÁXIA 1 · GANÂNCIA';card.querySelector('h2').textContent='PRÓLOGO';card.querySelector('#act-bishop').textContent='O chão desconhecido';card.classList.remove('hidden');actCardSeen=true;worldAudio.chapter();setTimeout(()=>card.classList.add('hidden'),2500);}
  else if(id==='palpebras'){const lids=cineEl('cine-lids');lids.className='on';void lids.offsetWidth;lids.className='on open';cineBlurT=0;setCineFade(0,.8,false);}
  else if(id==='heroi-olha-maos'){if(actions.olharMaos)playOnce('olharMaos',.2);}
  else if(id==='heroi-repouso'){if(actions.idle)play('idle',.9);}
@@ -3174,7 +3272,7 @@ function cineAsk(id){
  if(id==='pergaminho'){const c=cineEl('choice-card');if(c){choiceMode='pergaminho';c.querySelector('.mc-kicker').textContent='PESSOA MISTERIOSA';c.querySelector('h2').textContent='Pergaminho de Encantamento';cineEl('choice-text').textContent='Encanta a sua espada: +20% de dano.';cineEl('choice-yes').textContent='RECEBER';cineEl('choice-no').hidden=true;c.hidden=false;}else{scrollOwned=true;cineDirector.resume();}return;}
  if(id==='casaco'){const c=cineEl('choice-card');if(c){choiceMode='casaco';c.querySelector('.mc-kicker').textContent='VENDEDOR DE CASACOS';c.querySelector('h2').textContent='Comprar o casaco?';cineEl('choice-yes').textContent='COMPRAR';cineEl('choice-no').hidden=false;cineEl('choice-text').textContent='Casaco de Pele · '+COAT.price+' moedas (você tem '+coins+').';c.hidden=false;}else cineDirector.resume();return;}
  if(id==='bandidos-escolha'){const c=cineEl('choice-card');if(c){choiceMode='bandidos';c.querySelector('.mc-kicker').textContent='ESTRADA DE TEREN';c.querySelector('h2').textContent='E agora, com os bandidos?';cineEl('choice-text').textContent='Ninguém será punido. Escolha como responder.';cineEl('choice-yes').textContent='DEIXAR IREM';cineEl('choice-no').textContent='PEDIR AJUDA NO REPARO';cineEl('choice-no').hidden=false;c.hidden=false;}else{road.choice=false;cineDirector.resume();}return;}
- if(id==='aceitar-missao'){cineEl('mission-kicker').textContent=MISSION_ACT1.kicker;cineEl('mission-title').textContent=MISSION_ACT1.title;cineEl('mission-objective').textContent=MISSION_ACT1.objective;cineEl('mission-card').hidden=false;return;}
+ if(id==='aceitar-missao'){const M=cineDirector.scene==='despertar'?MISSION_PROLOGUE:MISSION_ACT1;cineEl('mission-kicker').textContent=M.kicker;cineEl('mission-title').textContent=M.title;cineEl('mission-objective').textContent=M.objective;cineEl('mission-card').hidden=false;return;}
  cineDirector.resume();
 }
 bindInstantTap(cineEl('choice-yes'),()=>{if(cineEl('choice-card').hidden)return;if(choiceMode==='bandidos'){cineEl('choice-card').hidden=true;road.choice=false;cineDirector.resume();return;}if(choiceMode==='pergaminho')receiveScroll();else coatChoice(true);});
@@ -3191,7 +3289,10 @@ function cineCam(px,py,pz,lx,ly,lz,follow,dt){
 function updateHeavenCine(dt,now){
  const h=cineHeaven;if(!h)return;const P=player.position,y=h.origin.y,u=cineU,e=cineSmooth(u),t=now*.001;
  if(cineWalk&&cineShot==='ceu-caminhada')P.z=THREE.MathUtils.lerp(cineWalk.from,cineWalk.to,u);
- for(const a of h.angels)a.position.y=.35+Math.sin(t*1.3+a.userData.phase)*.18;
+ for(const a of h.angels){const U=a.userData,br=Math.sin(t*.85+U.phase);a.position.y=U.baseY+Math.sin(t*.55+U.phase)*(U.kind==='seraph'?.22:.06);
+  U.body.scale.set(1+br*.012,1+br*.018,1+br*.012);U.aura.material.opacity=.13+(br*.5+.5)*.06;
+  if(U.kind==='seraph'){const want=Math.atan2(P.x-(h.origin.x+a.position.x),P.z-(h.origin.z+a.position.z));let d=want-a.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));a.rotation.y+=d*Math.min(1,dt*.6)*.35;} // acompanha o herói com o olhar, sem girar o corpo inteiro
+  for(const B of U.bones){const w=Math.sin(t*.9+B.ph)*.022*Math.min(1,B.d/4);B.b.quaternion.copy(B.q);B.b.rotateX(w);B.b.rotateZ(w*.5);}}
  h.glow.material.opacity=.62+Math.sin(t*1.7)*.08;h.halo.material.opacity=.8+Math.sin(t*2.3)*.1;
  // Asas presas às costas (osso Spine2) com bater lento; aura e faíscas sobem em volta do herói.
  if(h.spine){h.spine.getWorldPosition(cineV);h.wingHolder.position.copy(cineV);h.wingHolder.position.x-=Math.sin(playerYaw)*.1;h.wingHolder.position.z-=Math.cos(playerYaw)*.1;}
@@ -3218,7 +3319,27 @@ function updateHeavenCine(dt,now){
 }
 function updateAwakeningCine(dt,now){
  const A=cineAwake;if(!A)return;const P=player.position,yaw=A.yaw,fx=Math.sin(yaw),fz=Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw),u=cineU,G=guide.position,t=now*.001;
- if(cineAngelT>=0){cineAngelT+=dt;const k=cineSmooth(cineAngelT/1.3);guide.scale.setScalar(Math.max(.01,k));if(cineAngelT>1.6)cineAngelT=-1;}
+ if(cineShot==='deitado'||cineShot==='levantar'){
+  /* MOD 317 — POV do chão: olhos no osso da cabeça (deitado), céu e capim nas bordas; ao levantar, a câmera acompanha a
+     cabeça subindo e, na metade do clipe, sai dos olhos para um 3/4 de frente (sem atravessar o próprio corpo). */
+  const head=cineBone(/head$/i);if(head)head.getWorldPosition(cineHead);else cineHead.set(P.x,P.y+.3,P.z);
+  if(camera.near!==.24){camera.near=.24;camera.updateProjectionMatrix();}
+  const eyeX=cineHead.x,eyeY=cineHead.y+.08,eyeZ=cineHead.z,lookSide=cineShot==='deitado'&&cineSayWho?1:0,sw=Math.sin(t*.7)*.25;
+  // céu com o capim e as flores do prado nas bordas (não um céu chapado): olhar ~40° acima do horizonte, na direção dos pés
+  const povL=[eyeX+fx*2.6+(G.x-eyeX)*.45*lookSide+sw*rx,eyeY+2.1-lookSide*1.2,eyeZ+fz*2.6+(G.z-eyeZ)*.45*lookSide+sw*rz];
+  if(cineShot==='deitado'){if(model)model.visible=false;cineCam(eyeX,eyeY+.1+Math.sin(t*1.1)*.01,eyeZ,povL[0],povL[1],povL[2],cineSayWho?2.5:0,dt);return;} // POV: o próprio corpo (capuz) não entra na lente
+  const k=cineSmooth((u-.12)/.55),ox=P.x+fx*2.7+rx*1.3,oy=P.y+1.55,oz=P.z+fz*2.7+rz*1.3;if(model)model.visible=k>.22;
+  cineCam(THREE.MathUtils.lerp(eyeX,ox,k),THREE.MathUtils.lerp(eyeY,oy,k),THREE.MathUtils.lerp(eyeZ,oz,k),THREE.MathUtils.lerp(povL[0],cineHead.x,k),THREE.MathUtils.lerp(povL[1],cineHead.y-.1,k),THREE.MathUtils.lerp(povL[2],cineHead.z,k),0,dt);
+  if(k>.5&&camera.near!==.1){camera.near=.1;camera.updateProjectionMatrix();}
+  return;
+ }
+ if(cineShot==='olhar-em-volta'&&!cineSayWho){
+  // MOD 317 — plano de situação: herói e anjo no prado, a garganta da estrada ao sul (origem da carroça) ao fundo.
+  if(camera.near!==.1){camera.near=.1;camera.updateProjectionMatrix();}
+  const tx=TEREN_ORIGIN[TEREN_ORIGIN.length-2][0],tz=TEREN_ORIGIN[TEREN_ORIGIN.length-2][1],dirx=tx-P.x,dirz=tz-P.z,L=Math.hypot(dirx,dirz)||1,a=THREE.MathUtils.lerp(-.5,.35,cineSmooth(u));
+  const bx=-dirx/L,bz=-dirz/L,cx=P.x+(bx*Math.cos(a)-bz*Math.sin(a))*6.5,cz=P.z+(bz*Math.cos(a)+bx*Math.sin(a))*6.5;
+  cineCam(cx,P.y+2.4,cz,P.x+dirx/L*14,P.y+2.2,P.z+dirz/L*14,cineCut?0:3,dt);return;
+ }
  if(cineShot==='olhos-abrem'||cineShot==='maos'||cineShot==='olhar-em-volta'){
   // Primeira pessoa: a câmera fica nos olhos (osso da cabeça) e procura as mãos.
   const head=cineBone(/head$/i),hl=cineBone(/lefthand$/i),hr=cineBone(/righthand$/i);
@@ -3668,6 +3789,7 @@ function updateStoryCine(dt,now){
  const st=cineDirector.step,t=now*.001;
  if(storyMove){storyMove.t+=dt;const k=Math.min(1,storyMove.t/storyMove.dur),e=k*k*(3-2*k);player.position.x=THREE.MathUtils.lerp(storyMove.from.x,storyMove.to.x,e);player.position.z=THREE.MathUtils.lerp(storyMove.from.z,storyMove.to.z,e);faceTo(player,storyMove.to);if(k>=1){const cb=storyMove.done;storyMove=null;if(cb)cb();}}
  for(let i=storyFx.length-1;i>=0;i--){const fx=storyFx[i];fx.t+=dt;if(fx.tick(fx.t,dt)===false){storyFx.splice(i,1);}}
+ if(st&&st.type==='say'&&seatedNow&&road.cart){const S=st.actor||SPEAKER_ACTOR[st.who]||'hero';if(S==='hero'||S==='guide'){cartInteriorCam(S,dt,false);return;}}
  if(st&&st.type==='say'){
   const S=st.actor||SPEAKER_ACTOR[st.who]||'hero',L=S==='hero'?storyScene&&storyScene.focus:'hero';
   const sp=actorPos(S,_sa),lp=actorPos(L||'hero',_sb);let dx=sp.x-lp.x,dz=sp.z-lp.z;const d=Math.hypot(dx,dz);
@@ -3679,6 +3801,7 @@ function updateStoryCine(dt,now){
  }
  if(!st||st.type!=='shot'){cineCam(cinePos.x,cinePos.y,cinePos.z,cineLook.x,cineLook.y,cineLook.z,0,dt);return;}
  const a=st.args||{},u=cineU,e=cineSmooth(u),L3=THREE.MathUtils.lerp;
+ if(a.cam==='interior'&&road.cart){cartInteriorCam(a.look||'guide',dt,!!a.doze,u);return;}
  if(a.cam==='crane'){const o=actorPos(a.anchor,_sc),f=a.from,to=a.to,lf=a.lookFrom,lt=a.lookTo;cineCam(o.x+L3(f[0],to[0],e),o.y+L3(f[1],to[1],e),o.z+L3(f[2],to[2],e),o.x+L3(lf[0],lt[0],e),o.y+L3(lf[1],lt[1],e),o.z+L3(lf[2],lt[2],e),0,dt);return;}
  if(a.cam==='two'){const p=actorPos(a.a,_sa),q=actorPos(a.b,_sb);let dx=q.x-p.x,dz=q.z-p.z;const d=Math.hypot(dx,dz)||1;dx/=d;dz/=d;const side=a.side||1,dist=(a.dist||4)+e*.4;const mx=(p.x+q.x)/2,mz=(p.z+q.z)/2,my=(p.y+q.y)/2;storyCam(mx+dz*side*dist,my+1.6,mz-dx*side*dist,mx,my+1.15,mz,0,dt);return;}
  if(a.cam==='look'||a.cam==='follow'){const p=actorLocal(a.on,a.off,_sa),q=actorLocal(a.on,a.at||[0,1,0],_sb);storyCam(p.x,p.y,p.z,q.x,q.y,q.z,a.cam==='follow'?5:0,dt,a.off[1]>4);return;}
@@ -3718,7 +3841,7 @@ function disposeClone(c){if(!c)return;c.mixer.stopAllAction();scene.remove(c.hol
 function startPack(o){
  clearPack();pendingRelease=false;const rigName=o.rig||'enemy1';
  const go=()=>{
-  pack={...o,rig:rigName,index:0,clones:o.spots.map(s=>makeFoeClone(rigName,s,o.cloneOpts)),active:false,squad:(rigName==='enemy1'||rigName==='enemy2')&&!SQUAD_LEGACY||e3SquadPack(rigName,o.profile)||e4SquadPack(rigName,o.profile)};
+  pack={...o,rig:rigName,index:0,clones:o.spots.map(s=>makeFoeClone(rigName,s,o.cloneOpts)),active:false,squad:(rigName==='enemy1'||rigName==='enemy2')&&!SQUAD_LEGACY||e3SquadPack(rigName,o.profile)||e4SquadPack(rigName,o.profile)||banditSquadPack(rigName,o.profile)};
   if(!o.hold||pendingRelease){pendingRelease=false;packNext();}
  };
  if(rigName!=='enemy1'&&!rigs[rigName])loadRig(rigName).then(go,()=>{console.warn('Rig '+rigName+' não carregou; usando Enemy1.');o.rig='enemy1';startPack(o);});else go();
@@ -3764,7 +3887,7 @@ function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squ
 function squadRuntime(){
  if(squadRT)return squadRT;
  squadRT=createEnemy1SquadRuntime({T:THREE,scene,ground:terrainHeightAt,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
-  source:k=>rigSource(k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':k==='vhazrael'?'bishop1':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,slash:slashVFX,shields:shieldVFX,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
+  source:k=>rigSource(k==='bandit'?'bandit':k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':k==='vhazrael'?'bishop1':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,slash:slashVFX,shields:shieldVFX,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
  return squadRT;
 }
 const squadSq=()=>squadRT&&squadRT.squad;
@@ -3775,12 +3898,14 @@ const squadAlive=()=>{const s=squadSq();return s?s.actors.filter(a=>a.alive):[];
 function e3SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy3'&&(profile==='demon3'||profile==='miniboss3');}
 /** Mod 246: Enemy4 (demon4) e mini-chefe Enemy4 (miniboss4) no MESMO Enemy4.glb; o líder (leader4) segue no pacote antigo. */
 function e4SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy4'&&(profile==='demon4'||profile==='miniboss4');}
-function squadRig(P){return P.rig==='enemy2'||P.rig==='enemy3'||P.rig==='enemy4'||P.rig==='bishop1'?P.rig:'enemy1';}
-function squadHp(P,kind,n){if(kind==='vhazrael')return Math.round((P.hp||260)*2.5);if(kind==='e4boss')return Math.round((P.hp||560)*1.36);if(kind==='e4')return Math.round((P.hp||190)*1.4*(n>=3?.9:1));if(kind==='e3boss')return Math.round((P.hp||520)*1.35);if(kind==='e3')return Math.round((P.hp||170)*1.48*(n>=3?.9:1));return kind==='warden'?Math.round((P.hp||300)*1.6):kind==='e2boss'?Math.round((P.hp||480)*1.35):kind==='e2'?Math.round((P.hp||150)*1.6*(n>=3?.85:1)):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
+/** Mod 317: os bandidos da estrada lutam como esquadra simultânea (espécie 'bandit', só espada). */
+function banditSquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='bandit'&&profile==='bandit1';}
+function squadRig(P){return P.rig==='enemy2'||P.rig==='enemy3'||P.rig==='enemy4'||P.rig==='bishop1'||P.rig==='bandit'?P.rig:'enemy1';}
+function squadHp(P,kind,n){if(kind==='bandit')return Math.round((P.hp||70)*1.25);if(kind==='vhazrael')return Math.round((P.hp||260)*2.5);if(kind==='e4boss')return Math.round((P.hp||560)*1.36);if(kind==='e4')return Math.round((P.hp||190)*1.4*(n>=3?.9:1));if(kind==='e3boss')return Math.round((P.hp||520)*1.35);if(kind==='e3')return Math.round((P.hp||170)*1.48*(n>=3?.9:1));return kind==='warden'?Math.round((P.hp||300)*1.6):kind==='e2boss'?Math.round((P.hp||480)*1.35):kind==='e2'?Math.round((P.hp||150)*1.6*(n>=3?.85:1)):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
 function startSquadPack(){
  const P=pack;if(!P)return;const rigN=squadRig(P),src=rigSource(rigN);if(!src||!src.model){P.waitRig=true;if(rigN==='enemy1')loadEnemyModel();else loadRig(rigN).catch(()=>{});return;}// espera o rig carregar
  P.waitRig=false;
- const kind=P.rig==='bishop1'?'vhazrael':P.rig==='enemy2'?(P.profile==='miniboss2'?'e2boss':'e2'):P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3'):P.profile==='warden'?'warden':'common',n=P.spots.length,rt=squadRuntime();
+ const kind=P.rig==='bishop1'?'vhazrael':P.rig==='enemy2'?(P.profile==='miniboss2'?'e2boss':'e2'):P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3'):P.profile==='warden'?'warden':P.rig==='bandit'?'bandit':'common',n=P.spots.length,rt=squadRuntime();
  const spots=P.spots.map((s,i)=>{const c=P.clones[i],x=c?c.holder.position.x:s.x,z=c?c.holder.position.z:s.z;return{x,z,yaw:Math.atan2(player.position.x-x,player.position.z-z),kind,hp:squadHp(P,kind,n)};});
  for(let i=0;i<P.clones.length;i++)if(P.clones[i]){disposeClone(P.clones[i]);P.clones[i]=null;}
  squadBlockCache.clear();squadStopAt=0;rt.start(spots,{seed:(questStep*131+act1Sub*17+n*7+1)|0});
@@ -3788,7 +3913,7 @@ function startSquadPack(){
  enemy.visible=false;useRig(rigN);revealEncounter(P.profile,spots[0],spots[0].hp,P.intro||'');
  if(inSewer){const cp=sewerLocal(sewerCheckpoint(questStep,act1Sub));checkpointX=cp.x;checkpointZ=cp.z;}
  P.active=true;P.index=0;squadLabelN=0;pickSquadFocus(true);writeSquadProxy();syncEnemyLabel();
- if(n>1&&!P.lab&&!P.dim)showCombatCallout(n+(rigN==='enemy2'?' DEMÔNIOS':rigN==='enemy3'?' ABISSAIS':rigN==='enemy4'?' DEMÔNIOS DA TORRE':' SEGUIDORES')+' ATACAM JUNTOS');
+ if(n>1&&!P.lab&&!P.dim)showCombatCallout(n+(rigN==='bandit'?' BANDIDOS FAMINTOS':rigN==='enemy2'?' DEMÔNIOS':rigN==='enemy3'?' ABISSAIS':rigN==='enemy4'?' DEMÔNIOS DA TORRE':' SEGUIDORES')+' ATACAM JUNTOS');
 }
 function squadAbort(){if(!squadRT)return;squadOn=false;squadFocus=null;squadRT.stop();for(const al of squadAllies.splice(0))disposeClone(al.c);enemyModelRoot.visible=true;enemyGroundShadow.visible=true;}
 function hideSquadProxy(){enemyModelRoot.visible=false;enemySprite.visible=false;enemyGroundShadow.visible=false;wardenRing.visible=false;}
@@ -4477,7 +4602,8 @@ var roadStage=ROAD.done;
 try{roadStage=initialRoadStage(questStep,localStorage.getItem(ROAD_STORE),act1Sub);}catch(_){roadStage=initialRoadStage(questStep,null,act1Sub);}
 function setRoadStage(v){roadStage=v;try{localStorage.setItem(ROAD_STORE,String(v));}catch(_){}updateQuestHud();}
 const roadCurve=new THREE.CatmullRomCurve3(CART_ROUTE.map(p=>new THREE.Vector3(p[0],0,p[1])),false,'centripetal');
-const road={group:null,cart:null,cartModel:null,mule:null,legs:[],teren:null,tarp:null,s:RIDE.start,speed:0,ride:false,yaw:null,legT:0,met:false,bandits:[],choice:null,dawnK:-1,obstacle:null,passengers:false,leaving:0};
+var prologueAwake=null,originWarned=0;
+const road={arrived:false,approach:false,group:null,cart:null,cartModel:null,mule:null,legs:[],teren:null,tarp:null,s:RIDE.start,speed:0,ride:false,yaw:null,legT:0,met:false,bandits:[],choice:null,dawnK:-1,obstacle:null,passengers:false,leaving:0};
 Object.assign(SPEAKER_ACTOR,{[ROAD_SPEAKERS.teren]:'teren',[ROAD_SPEAKERS.chief]:'bandit',[ROAD_SPEAKERS.bandit]:'bandit'});
 Object.assign(STORY_EYE,{teren:1.55,bandit:1.5,cart:1.6});
 const _rp=new THREE.Vector3(),_rt=new THREE.Vector3();
@@ -4525,29 +4651,87 @@ function ensureRoadProps(){
  const L=new GLTFLoader();L.load('./Carroça.glb',gltf=>{const m=gltf.scene,b=new THREE.Box3().setFromObject(m),s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=4.4/Math.max(.01,s.x);
   m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k,-c.z*k);const wrap=new THREE.Group();wrap.rotation.y=Math.PI/2;wrap.add(m);road.cart.add(wrap);road.cartModel=wrap;
   m.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;}});},undefined,e=>console.warn('Carroça.glb não carregou para a estrada.',e));
- npcBase().then(b=>{if(road.teren)return;const t=makeTownsfolk(b,0x9a8a70,'Walking',41);road.teren=t;road.group.add(t.holder);if(t.action)t.action.timeScale=0;}).catch(()=>{});
+ /* MOD 317 — Teren é o morador masculino Meshy (NPC_Masculino_Animado_Otimizado_1K.glb + Cabelo-otimizado.glb preso ao
+    osso da cabeça), nunca o Npc.glb. Fica SENTADO no banco do cocheiro (socket medido no modelo da carroça), segurando
+    as rédeas; o clipe Alert segue no tronco/cabeça (respira e olha a estrada) e a pose sentada é aplicada por cima. */
+ npcFactory.create({sex:'man',role:'idle',x:0,z:0,hairToHead:true}).then(n=>{if(road.teren)return;const alert=(n.animations||[]).find(c=>/^alert$/i.test(c.name));
+  if(n.mixer){n.mixer.stopAllAction();if(alert){const a=n.mixer.clipAction(alert);a.play();a.setEffectiveTimeScale(.45);n.action=a;}}
+  n.holder.name='Teren-cocheiro';n.holder.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.material=o.material.clone();if(o.name!=='CabeloMeshy'&&o.material.color)o.material.color.multiply(new THREE.Color(0xb4a48a));}});
+  road.teren={holder:n.holder,mixer:n.mixer||new THREE.AnimationMixer(n.holder),action:n.action,seat:createSeatPose(THREE,n.model,{reins:true})};road.group.add(n.holder);placeRoadCart(road.s,true);
+ }).catch(e=>console.warn('Teren (NPC Masculino) não carregou',e));
  road.obstacle={x:0,z:0,radius:1.9,height:3,base:0};rockObstacles.push(road.obstacle);
- placeRoadCart(roadStage>=ROAD.freed?RIDE.ambush:RIDE.start,true);
+ road.arrived=roadStage!==ROAD.meet||road.met;placeRoadCart(cartRestS(roadStage,road.arrived),true);
 }
 function placeRoadCart(s,snap){
  road.s=s;const p=roadAt(s),y=groundHeightAt(p.x,p.z);
- if(road.yaw===null||snap)road.yaw=p.yaw;else{let d=p.yaw-road.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));road.yaw+=d*.08;}
+ const prevYaw=road.yaw;if(road.yaw===null||snap)road.yaw=p.yaw;else{let d=p.yaw-road.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));road.yaw+=d*.08;}road.yawRate=prevYaw===null||snap?0:Math.atan2(Math.sin(road.yaw-prevYaw),Math.cos(road.yaw-prevYaw))*60;
  const fx=Math.sin(road.yaw),fz=Math.cos(road.yaw),ahead=groundHeightAt(p.x+fx*1.6,p.z+fz*1.6),behind=groundHeightAt(p.x-fx*1.6,p.z-fz*1.6);
  road.cart.position.set(p.x,y,p.z);road.cart.rotation.set(0,road.yaw,0);road.cart.rotateX(-Math.atan2(ahead-behind,3.2));
  const mx=p.x+fx*3.35,mz=p.z+fz*3.35;road.mule.position.set(mx,groundHeightAt(mx,mz),mz);road.mule.rotation.y=road.yaw;if(road.horse){road.horse.position.copy(road.mule.position);road.horse.rotation.y=road.yaw;}
- if(road.teren){const tx=mx+Math.cos(road.yaw)*.95,tz=mz-Math.sin(road.yaw)*.95;road.teren.holder.position.set(tx,groundHeightAt(tx,tz),tz);road.teren.holder.rotation.y=road.yaw;}
+ if(road.teren){cartSocketWorld('driver',_seatW);road.teren.holder.position.copy(_seatW);road.teren.holder.rotation.y=road.yaw;}
  road.obstacle.x=p.x;road.obstacle.z=p.z;road.obstacle.base=y;
  storyAnchors.cart={x:p.x,z:p.z,y:y,yaw:road.yaw};
  const T=road.teren?road.teren.holder.position:{x:mx,z:mz};storyAnchors.teren={x:T.x,z:T.z,yaw:road.yaw};
 }
+/* MOD 317 — sockets locais medidos por raycast no Carroça.glb (frente = +z): banco do cocheiro na plataforma da frente
+   (assento a 1,32 m), assoalho da cabine a 1,16 m e banco traseiro a 1,64 m. O herói senta no banco traseiro olhando
+   para a frente; Aethraziel (2,8 m de altura) senta no assoalho de frente para ele, joelhos dobrados — cabe sob a lona
+   (teto a ~2,9 m) sem atravessá-la. Porta lateral direita com degrau. */
+const CART_SOCKETS={driver:{x:0,y:1.32,z:1.5,yaw:0},hero:{x:.04,y:1.64,z:-1.45,yaw:0},guide:{x:0,y:1.16,z:.42,yaw:Math.PI},door:{x:1.75,y:0,z:-.3},step:{x:1.05,y:1.16,z:-.3}};
+const _seatW=new THREE.Vector3();
+function cartSocketWorld(key,out){const S=CART_SOCKETS[key];out.set(S.x,S.y,S.z);road.cart.updateMatrixWorld(true);return road.cart.localToWorld(out);}
+var heroSeat=null,guideSeat=null,seatedNow=false;
 function seatPassengers(){
- player.visible=false; // dentro da cabine coberta (o modelo não tem pose sentada)
- const c=road.cart.position,fx=Math.sin(road.yaw),fz=Math.cos(road.yaw),rx=fz,rz=-fx,fl=c.y+1.42;
- player.position.set(c.x+rx*.38-fx*.35,fl,c.z+rz*.38-fz*.35);playerYaw=road.yaw;player.rotation.y=road.yaw;
- guide.visible=false;guide.position.set(c.x-rx*.42-fx*.55,fl,c.z-rz*.42-fz*.55);guide.rotation.y=road.yaw; // dentro da cabine: as asas não atravessam a lona
+ road.passengers=true;seatedNow=true;player.visible=true;guide.visible=true;setGuideWings(false,true);
+ if(!heroSeat&&model)heroSeat=createSeatPose(THREE,model,{reins:false});if(!guideSeat&&guideModel)guideSeat=createSeatPose(THREE,guideModel,{reins:false,floor:true,legSpread:.18});
+ playerYaw=road.yaw+CART_SOCKETS.hero.yaw;player.rotation.y=playerYaw;guide.rotation.y=road.yaw+CART_SOCKETS.guide.yaw;
+ placeSeated();
+}
+/** Mantém cada passageiro no socket (curvas, inclinação e solavancos da carroça) e apoia o quadril no assento. */
+function placeSeated(){
+ if(!seatedNow||!road.cart)return;
+ cartSocketWorld('hero',_seatW);player.position.copy(_seatW);playerYaw=road.yaw+CART_SOCKETS.hero.yaw;player.rotation.y=playerYaw;
+ cartSocketWorld('guide',_seatW);guide.position.copy(_seatW);guide.rotation.y=road.yaw+CART_SOCKETS.guide.yaw;
+}
+const _seatF=new THREE.Vector3();
+function applySeating(dt){
+ const t=performance.now()*.001,bump=road.ride&&road.speed>.2?Math.sin(t*9.5)*.012+Math.sin(t*5.3)*.008:0,lean=road.ride?THREE.MathUtils.clamp((road.yawRate||0)*.6,-.12,.12):0;
+ if(road.teren&&road.teren.seat&&road.group&&road.group.visible){const T=road.teren;_seatF.set(Math.sin(road.yaw),0,Math.cos(road.yaw));T.seat.apply({forward:_seatF,lean,t});cartSocketWorld('driver',_seatW);T.holder.position.y=_seatW.y+.07-T.seat.hipHeight(T.holder)+bump;}
+ if(!seatedNow)return;placeSeated();
+ if(heroSeat&&model){_seatF.set(Math.sin(playerYaw),0,Math.cos(playerYaw));heroSeat.apply({forward:_seatF,lean:-lean,t});const hh=heroSeat.hipHeight(player);player.position.y+=-hh+.08+bump;}
+ if(guideSeat&&guideModel){const gy=guide.rotation.y;_seatF.set(Math.sin(gy),0,Math.cos(gy));guideSeat.apply({forward:_seatF,lean,t});const gh=guideSeat.hipHeight(guide);guide.position.y+=-gh+.1+bump;}
+}
+function unseatPassengers(){seatedNow=false;}
+/** MOD 317 — câmera DENTRO da cabine: por cima do ombro de um passageiro para o rosto do outro (nada de câmera olhando
+    o vazio lá fora durante a conversa). Tremor discreto da estrada; no cochilo, aproximação lenta do rosto do herói. */
+const _ic=new THREE.Vector3(),_il=new THREE.Vector3();
+function cartInteriorCam(look,dt,doze,u=0){
+ const L=look==='hero';const t=performance.now()*.001,sh=road.ride?Math.sin(t*11)*.006:0;
+ // posições locais (frente = +z): ombro do anjo olhando o herói, ou ombro do herói olhando o anjo
+ if(L){_ic.set(-.42,2.55+sh,.2-(doze?u*.35:0));_il.set(.04,2.42,-1.45);}
+ else{_ic.set(.36,2.48+sh,-1.05);_il.set(0,2.6,.42);}
+ road.cart.updateMatrixWorld(true);road.cart.localToWorld(_ic);road.cart.localToWorld(_il);
+ if(L){const head=cineBone(/head$/i);if(head)head.getWorldPosition(_il);}
+ else if(guideModel){let gh=null;guideModel.traverse(o=>{if(!gh&&o.isBone&&/^head$/i.test(o.name||''))gh=o;});if(gh)gh.getWorldPosition(_il);}
+ if(camera.near!==.08){camera.near=.08;camera.updateProjectionMatrix();}
+ storyCam(_ic.x,_ic.y,_ic.z,_il.x,_il.y,_il.z,4,dt,true);
+}
+/** MOD 317 — embarque sem teleporte: o herói caminha até a porta, sobe o degrau, entra e senta; Aethraziel entra logo
+    depois e senta no assoalho. Tudo por trajetória curta em tempo de cena (pular a cena só assenta os dois). */
+function boardCart(){
+ if(cineSkipping){seatPassengers();return;}
+ const door=cartSocketWorld('door',new THREE.Vector3()),step=cartSocketWorld('step',new THREE.Vector3()),seat=cartSocketWorld('hero',new THREE.Vector3());
+ const gseat=cartSocketWorld('guide',new THREE.Vector3()),from=player.position.clone(),gfrom=guide.position.clone();if(actions.walk)play('walk',.2);
+ const T=2.6;storyFx.push({t:0,tick:(t)=>{const k=Math.min(1,t/T);let p;
+  if(k<.55){const u=k/.55;p=from.clone().lerp(door,u*u*(3-2*u));p.y=groundHeightAt(p.x,p.z);faceTo(player,door);}
+  else if(k<.72){const u=(k-.55)/.17;p=door.clone().lerp(step,u);p.y=THREE.MathUtils.lerp(groundHeightAt(door.x,door.z),step.y,Math.sin(u*Math.PI/2));faceTo(player,seat);}
+  else{const u=(k-.72)/.28;p=step.clone().lerp(seat,u);p.y=THREE.MathUtils.lerp(step.y,seat.y,u);}
+  player.position.copy(p);
+  const gk=Math.max(0,Math.min(1,(t-.6)/T));const gp=gk<.6?gfrom.clone().lerp(door,gk/.6):door.clone().lerp(gseat,(gk-.6)/.4);if(gk<.6)gp.y=groundHeightAt(gp.x,gp.z);else gp.y=THREE.MathUtils.lerp(groundHeightAt(door.x,door.z),gseat.y,(gk-.6)/.4);guide.position.copy(gp);faceTo(guide,gk<.6?door:gseat);
+  if(t>=T+.6){if(actions.idle)play('idle',.25);seatPassengers();return false;}return true;}});
 }
 function stepOutOfCart(side){
- const c=road.cart.position,fx=Math.sin(road.yaw),fz=Math.cos(road.yaw),rx=fz*side,rz=-fx*side;road.passengers=false;
+ const c=road.cart.position,fx=Math.sin(road.yaw),fz=Math.cos(road.yaw),rx=fz*side,rz=-fx*side;road.passengers=false;unseatPassengers();
  const x=c.x+rx*2.4,z=c.z+rz*2.4;player.position.set(x,groundHeightAt(x,z),z);player.visible=true;
  const gx=c.x+rx*2.6-fx*1.6,gz=c.z+rz*2.6-fz*1.6;guide.position.set(gx,groundHeightAt(gx,gz),gz);guide.visible=true;
  checkpointX=x;checkpointZ=z;
@@ -4557,12 +4741,13 @@ function updateRoad(dt){
  if(!need){if(road.group&&!road.leaving){road.group.visible=false;road.obstacle.radius=0;}return;}
  ensureRoadProps();road.group.visible=true;road.obstacle.radius=road.leaving||cineActive?0:1.9; // a câmera das cenas não colide com a carroça
  if(road.hideBandits&&pack&&pack.clones)for(const cl of pack.clones)if(cl)cl.holder.visible=false;
+ if(road.approach&&!road.ride){/* MOD 317: a carroça desce a garganta e chega ao prado; o som vem antes da imagem */const dS=RIDE.start-road.s,sp=Math.min(6.2,1+dS*.14);placeRoadCart(Math.min(RIDE.start,road.s+sp*dt));const dist=Math.hypot(road.cart.position.x-player.position.x,road.cart.position.z-player.position.z);worldAudio.setCart&&worldAudio.setCart(Math.max(.15,1-dist/90));road.legT+=dt*sp*2.6;if(road.horseAction)road.horseAction.timeScale=Math.min(1.6,sp*.3);if(dS<.05){road.approach=false;road.arrived=true;worldAudio.setCart&&worldAudio.setCart(0);worldAudio.land();}}
  if(road.ride){const target=road.rideTo;road.speed=THREE.MathUtils.damp(road.speed,road.rideSpeed||ROAD.rideSpeed,2.2,dt);let s=road.s+road.speed*dt;if(target!==undefined&&s>=target){s=target;road.ride=false;road.speed=0;}placeRoadCart(s);if(road.passengers)seatPassengers();
   if(road.dawnK>=0){const k=(road.s-RIDE.ambush)/Math.max(1,RIDE.end-RIDE.ambush);setGameHour(dawnHourAt(k));}}
  const moving=road.ride&&road.speed>.2;road.legT+=dt*(moving?road.speed*2.6:0);
  for(const l of road.legs)l.pivot.rotation.x=moving?Math.sin(road.legT+l.ph)*.5:0;
  if(road.horseMixer){if(road.horseAction)road.horseAction.timeScale=moving?Math.min(1.6,road.speed*.3):0;road.horseMixer.update(dt);}
- if(road.teren){road.teren.mixer.update(dt);if(road.teren.action)road.teren.action.timeScale=moving?Math.min(2.4,road.speed*.48):0;}
+ if(road.teren){road.teren.mixer.update(dt);} // MOD 317: sentado; o clipe Alert segue lento (respiração e olhar)
  if(road.cartModel&&moving)road.cartModel.position.y=Math.abs(Math.sin(road.legT*.9))*.035;
  if(road.lamp){const n=dayNightState.t;road.lamp.intensity=n*2.4;road.lampGlow.visible=n>.2;}
  if(road.leaving>0){road.leaving-=dt;if(road.leaving<=0){road.group.visible=false;road.leaving=0;}}
@@ -4573,17 +4758,21 @@ function startRoadRide(to,speed,riders=true){road.ride=true;road.rideTo=to;road.
 function clearRoadBandits(){for(const b of road.bandits)scene.remove(b.holder);road.bandits.length=0;}
 function spawnSurrendered(){
  return npcBase().then(b=>{clearRoadBandits();const c=road.cart.position;
-  ROAD_BANDITS.forEach((s,i)=>{const v=makeTownsfolk(b,[0x8a7a6a,0x6a5a4a,0x9a8070,0x5a6a5a][i],'Alert',{bandit:true,leader:i===0});const x=(s.x+c.x)/2+(i-1.5)*.9,z=(s.z+c.z)/2+1.2;v.holder.position.set(x,groundHeightAt(x,z),z);v.holder.rotation.y=Math.atan2(player.position.x-x,player.position.z-z);if(v.action)v.action.timeScale=.6;road.bandits.push(v);});
+  ROAD_BANDITS.forEach((s,i)=>{const v=makeTownsfolk(b,[0x8a7a6a,0x6a5a4a,0x9a8070,0x5a6a5a,0x7a6050][i%5],'Alert',{bandit:true,leader:i===0});const x=(s.x+c.x)/2+(i-2)*.9,z=(s.z+c.z)/2+1.2;v.holder.position.set(x,groundHeightAt(x,z),z);v.holder.rotation.y=Math.atan2(player.position.x-x,player.position.z-z);if(v.action)v.action.timeScale=.6;road.bandits.push(v);});
   const f=road.bandits[0].holder.position;storyAnchors.bandit={x:f.x,z:f.z,yaw:road.bandits[0].holder.rotation.y};});
 }
 function roadStoryDo(id){
  switch(id){
-  case 'carroca-frear':ensureRoadProps();placeRoadCart(RIDE.start,true);worldAudio.land();return true;
+  case 'carroca-frear':ensureRoadProps();road.approach=false;road.arrived=true;placeRoadCart(RIDE.start,true);worldAudio.setCart&&worldAudio.setCart(0);worldAudio.land();return true;
+  case 'anjo-recolhe-asas':foldGuideWings();return true;
+  case 'carroca-ouvida':ensureRoadProps();if(!road.arrived)road.approach=true;return true;
   case 'lona-presa':if(road.tarp)road.tarp.visible=false;worldAudio.whoosh();return true;
-  case 'viagem-partir':startRoadRide(RIDE.ambush,ROAD.rideSpeed);worldAudio.setCart&&worldAudio.setCart(1);return true;
+  case 'embarcar':boardCart();return true;
+  case 'tres-horas':storyTitle('3 HORAS DEPOIS','');return true;
+  case 'viagem-partir':if(!seatedNow)seatPassengers();startRoadRide(RIDE.ambush,ROAD.rideSpeed);worldAudio.setCart&&worldAudio.setCart(1);return true;
   case 'piscadas':setCineFade(.75,.6,false);setTimeout(()=>setCineFade(0,.5,false),700);setTimeout(()=>setCineFade(.85,.7,false),1600);setTimeout(()=>setCineFade(.2,.6,false),2350);return true;
   case 'dormir':setCineFade(1,.9,false);worldAudio.setCart&&worldAudio.setCart(0);return true;
-  case 'acordar':road.ride=false;road.speed=0;placeRoadCart(RIDE.ambush,true);seatPassengers();setGameHour(1.6);storyTitle('MAIS TARDE','A estrada à noite');setCineFade(0,1.6,false);return true;
+  case 'acordar':{road.ride=false;road.speed=0;placeRoadCart(RIDE.ambush,true);seatPassengers();setGameHour(1.6);setCineFade(0,1.6,false);const lids=cineEl('cine-lids');if(lids&&!cineSkipping){lids.className='on';void lids.offsetWidth;lids.className='on open';setTimeout(()=>{lids.className='';},3300);}return true;}
   case 'bandidos-cercam':{const c=road.cart.position;storyAnchors.bandit={x:ROAD_BANDITS[0].x,z:ROAD_BANDITS[0].z,yaw:Math.atan2(c.x-ROAD_BANDITS[0].x,c.z-ROAD_BANDITS[0].z)};road.hideBandits=false;if(pack&&pack.clones)for(const cl of pack.clones)if(cl)cl.holder.visible=true;worldAudio.block();return true;}
   case 'descer-carroca':stepOutOfCart(1);faceTo(player,ROAD_BANDITS[0]);return true;
   case 'bandidos-rendidos':return true;
@@ -4633,7 +4822,12 @@ function finishRoad(){
 }
 function updateRoadQuest(px,pz,near,mark){
  ensureRoadProps();if(!rigLoads.bandit)loadRig('bandit').catch(()=>{});
- if(roadStage===ROAD.meet&&!road.met){mark(road.cart.position);if(!act1Busy()&&near(road.cart.position,ROAD.meetRadius)){road.met=true;act1Lock=true;faceTo(player,road.cart.position);playStory('teren',terenMeetScene(),{focus:'teren',face:'teren',done:()=>{act1Lock=false;status.textContent='Ajude Teren a prender a lona da carroça.';}});}return;}
+ if(roadStage===ROAD.meet&&!road.met){
+  // MOD 317 — antes de qualquer humano: o herói pergunta das asas e Aethraziel as recolhe; então a carroça é ouvida.
+  if(!guideWingsHidden&&!act1Busy()&&prologueAwake&&(performance.now()-prologueAwake.t>4500||Math.hypot(px-prologueAwake.x,pz-prologueAwake.z)>5)){act1Lock=true;faceTo(player,guide.position);playStory('asas',wingsScene(),{focus:'guide',face:'guide',done:()=>{act1Lock=false;status.textContent='Rodas na estrada: vá até ela.';}});return;}
+  if(guideWingsHidden&&!road.arrived&&!road.approach)road.approach=true; // save recarregado: a carroça volta a descer
+  if(!road.arrived){mark(TEREN_STOP);return;}
+  mark(road.cart.position);if(!act1Busy()&&near(road.cart.position,ROAD.meetRadius)){road.met=true;act1Lock=true;faceTo(player,road.cart.position);playStory('teren',terenMeetScene(),{focus:'teren',face:'teren',done:()=>{act1Lock=false;status.textContent='Ajude Teren a prender a lona da carroça.';}});}return;}
  mark(road.cart.position);
 }
 
@@ -7736,6 +7930,9 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  birdsNow(){const ok=birdFlocks.forceSpawn(player.position,20);const f=birdFlocks.flocks.find(q=>q.active);if(f){cameraYaw=Math.atan2(-(f.x-player.position.x),-(f.z-player.position.z));cameraPitch=-.55;cameraDistance=.72;}return ok;},
  birdsState(){return {count:birdFlocks.mesh.count,visible:birdFlocks.mesh.visible,flocks:birdFlocks.flocks.filter(f=>f.active).map(f=>[Math.round(f.x),Math.round(f.z),Math.round(f.y),+f.t.toFixed(1)])};},
  rippleNow(){const m=playerWaterBody();if(m){const t=performance.now()*.001;m.addRipple(player.position.x,player.position.z,t,1.4);}return !!m;},
+ cartProfile(){ensureRoadProps();if(!road.cartModel)return null;road.group.visible=true;road.cart.updateMatrixWorld(true);const rc=new THREE.Raycaster(),out={};const o=new THREE.Vector3(),dn=new THREE.Vector3(0,-1,0);
+  for(const x of [-.8,-.4,0,.4,.8]){const row=[];for(let z=2.6;z>=-2.6;z-=.2){o.set(x,3.2,z);road.cart.localToWorld(o);rc.set(o,dn);const hits=rc.intersectObject(road.cartModel,true).map(h=>+road.cart.worldToLocal(h.point.clone()).y.toFixed(2));row.push([+z.toFixed(1),hits.slice(0,4)]);}out['x'+x]=row;}return out;},
+ squadInfo(){const s=squadSq();return s?{n:s.actors.length,alive:s.actors.filter(a=>a.alive).length,kinds:[...new Set(s.actors.map(a=>a.kind))],acts:s.actors.map(a=>a.act?a.act.type:'-'),spells:s.spells.length,on:squadOn}:null;},
  caveTo(lx,lz,yaw=Math.PI){if(!ascKey)return null;const O=ASC_ZONES[ascKey],z=ascZones[ascKey];return this.placeAt(O.x+lx,z.floor(lx,lz),O.z+lz,yaw);},
  camInfo(){const P=player.position,C=camera.position;const sol=voidMode&&voidSpec.camSolid?!!voidSpec.camSolid(C.x-voidSpec.x,C.y-voidSpec.y,C.z-voidSpec.z):null;const d=new THREE.Vector3();camera.getWorldDirection(d);return{loc:voidMode?[C.x-voidSpec.x,C.y-voidSpec.y,C.z-voidSpec.z].map(v=>+v.toFixed(2)):null,ploc:voidMode?[P.x-voidSpec.x,P.y,P.z-voidSpec.z].map(v=>+v.toFixed(2)):null,arm:+C.distanceTo(P).toFixed(3),dy:+(C.y-P.y).toFixed(3),solid:sol,lookPitch:+Math.asin(d.y).toFixed(3),fov:camera.fov};},
  programList(){return renderer.info.programs.map(p=>p.name+'|'+String(p.cacheKey).slice(0,60));},
@@ -7790,7 +7987,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
  freeRoam(){awakeningActive=false;namePromptOpen=false;dialogueOpen=false;},
  cine(id){awakeningActive=false;if(id==='ceu')return prepareHeaven().then(()=>{menuGate=false;startHeavenCine();});startAwakeningCine();return Promise.resolve();},
- cineState(){const s=cineDirector.step;return{active:cineActive,scene:cineDirector.scene,index:cineDirector.index,type:s&&s.type,id:s&&(s.id||s.who),shot:cineShot,waitingTap:cineDirector.waitingTap,waitingAsk:cineDirector.waitingAsk,heavenSeen,questStep,playerName,coins,menuGate,actions:Object.keys(actions),cam:camera.position.toArray().map(v=>+v.toFixed(2)),head:cineHead.toArray().map(v=>+v.toFixed(2)),player:player.position.toArray().map(v=>+v.toFixed(2)),yaw:+playerYaw.toFixed(2)};},
+ cineState(){const s=cineDirector.step;return{u:+cineU.toFixed(2),active:cineActive,scene:cineDirector.scene,index:cineDirector.index,type:s&&s.type,id:s&&(s.id||s.who),shot:cineShot,waitingTap:cineDirector.waitingTap,waitingAsk:cineDirector.waitingAsk,heavenSeen,questStep,playerName,coins,menuGate,actions:Object.keys(actions),cam:camera.position.toArray().map(v=>+v.toFixed(2)),head:cineHead.toArray().map(v=>+v.toFixed(2)),player:player.position.toArray().map(v=>+v.toFixed(2)),yaw:+playerYaw.toFixed(2)};},
  voidTest(){enterVoid();},
  setHearts(n){heartState.hearts=n;updateHeartsHud(true);},
  killPlayer(){playerInvulnerableUntil=0;playerHP=1;defending=false;damagePlayerFromEnemyAttack(999);},
@@ -7885,7 +8082,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  /** MOD 291 — estrada de Teren: road(0) prado/encontro, road(1) lona presa, road(2) pós-bandidos. */
  road(stage=0){this.act1(1,0);roadStage=stage;road.met=stage>0;try{localStorage.setItem(ROAD_STORE,String(stage));}catch(_){}ensureRoadProps();placeRoadCart(stage>=2?RIDE.ambush:RIDE.start,true);const c=road.cart.position,x=stage===0?FALL_SPOT.x:c.x+2.6,z=stage===0?FALL_SPOT.z:c.z;player.position.set(x,terrainHeightAt(x,z),z);updateQuestHud();return this.roadState();},
- roadState(){return{stage:roadStage,visible:player.visible,yaw:road.yaw,horse:road.horse?(()=>{const b=new THREE.Box3().setFromObject(road.horse);return{min:b.min.toArray().map(v=>+v.toFixed(2)),max:b.max.toArray().map(v=>+v.toFixed(2))};})():null,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
+ roadState(){return{s:+road.s.toFixed(1),arrived:road.arrived,approach:road.approach,seated:seatedNow,teren:!!(road.teren&&road.teren.seat),stage:roadStage,visible:player.visible,yaw:road.yaw,horse:road.horse?(()=>{const b=new THREE.Box3().setFromObject(road.horse);return{min:b.min.toArray().map(v=>+v.toFixed(2)),max:b.max.toArray().map(v=>+v.toFixed(2))};})():null,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
  interact(){tryInteract();return this.roadState();},
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;

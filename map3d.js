@@ -31,12 +31,15 @@ export const MAP_POIS = [
   { id: 'arena-vale', name: 'Arena do Vale', x: 168, z: -70, kind: 'danger' }
 ];
 
+/* Mod 317 — POUCOS abrigos, cada um com função de rota: cidade, mata e caverna. O antigo Abrigo do Sopé ficava a 14 m do
+   da Mata Funda (redundante): saves que o tinham registrado ganham o da Mata (WAYSTONE_ALIASES), sem perder progresso.
+   Abrigos são viagem rápida/retorno; checkpoints de história e de chefe continuam separados. */
 export const WAYSTONES = [
   { id: 'abrigo-vila', name: 'Abrigo da Vila', x: -4.6, z: -36.5 },
-  // Mod 292: a passarela suspensa da cidade cruza o antigo ponto; o abrigo foi para a orla da mata funda, junto à trilha.
   { id: 'abrigo-mata', name: 'Abrigo da Mata Funda', x: 6.5, z: -79 },
-  { id: 'abrigo-sope', name: 'Abrigo do Sopé', x: 9.5, z: -92.5 }
+  { id: 'abrigo-caverna', name: 'Abrigo da Fronteira', x: -40, z: -219 }
 ];
+export const WAYSTONE_ALIASES = Object.freeze({ 'abrigo-sope': 'abrigo-mata' });
 
 export function worldToCell(x, z) {
   const cx = Math.floor((x - MAP_BOUNDS.x0) / MAP_BOUNDS.size * FOG_CELLS);
@@ -55,7 +58,7 @@ export function createMapState(saved) {
       } catch (_) {}
     }
     for (const id of saved.pois || []) if (MAP_POIS.some(p => p.id === id)) pois.add(id);
-    for (const id of saved.waystones || []) if (WAYSTONES.some(w => w.id === id)) waystones.add(id);
+    for (const raw of saved.waystones || []) { const id = WAYSTONE_ALIASES[raw] || raw; if (WAYSTONES.some(w => w.id === id)) waystones.add(id); }
   }
   return { cells, pois, waystones };
 }

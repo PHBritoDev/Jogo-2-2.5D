@@ -74,7 +74,7 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   for(const re of tests){const found=clips.find(c=>re.test(c.name)&&!/(attack|combat|sword)/i.test(c.name));if(found)return found;}
   return null;
  };
- async function create({sex,age='adult',role='idle',x,z,yaw=0,hair=true}){
+ async function create({sex,age='adult',role='idle',x,z,yaw=0,hair=true,hairToHead=false}){
   const file=ELDORIA_NPC_MODELS[sex];if(!file)throw Error('NPC Meshy desconhecido: '+sex);
   const gltf=await load(file),src=cloneSkinned(gltf.scene),box=measureMeshyNpcBounds(THREE,src);
   const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
@@ -156,7 +156,11 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   holder.position.x+=x-pivot.x;holder.position.z+=z-pivot.z;
   holder.updateMatrixWorld(true);
   finalBox=measureMeshyNpcBounds(THREE,holder);
-  return {holder,mixer,action,role,file,actualHeight:finalBox.getSize(new THREE.Vector3()).y,hair:hair?((sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair):null,clips:nativeClips.map(c=>c.name)};
+  // Mod 317: para quem muda de pose (cocheiro sentado, virando o tronco), o cabelo passa a seguir o osso da cabeça.
+  // attach() preserva o transform de mundo medido na pose em pé, qualquer que seja a escala da armadura.
+  let hairNode=null;holder.traverse(o=>{if(o.name==='CabeloMeshy')hairNode=o;});
+  if(hairToHead&&hairNode){let head=null;src.traverse(o=>{if(!head&&o.isBone&&/^head$/i.test(o.name||''))head=o;});if(head){holder.updateMatrixWorld(true);head.attach(hairNode);}}
+  return {holder,mixer,action,role,file,animations:nativeClips,model:src,actualHeight:finalBox.getSize(new THREE.Vector3()).y,hair:hair?((sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair):null,clips:nativeClips.map(c=>c.name)};
  }
  return {create};
 }

@@ -9,13 +9,13 @@
  *   3 — chegada concluída (a missão 1 da vila começa)
  * Saves antigos que já passaram do despertar começam em 3 (ninguém é obrigado a repetir o prólogo).
  */
-import { CART_ROUTE, TEREN_STOP, BANDIT_AMBUSH, ELDORIA_DROP, nearestAlong, polylineLength } from './act1-world-layout.js';
+import { CART_ROUTE, TEREN_STOP, BANDIT_AMBUSH, ELDORIA_DROP, ORIGIN_LIMIT, nearestAlong, polylineLength } from './act1-world-layout.js';
 import { SPEAKERS } from './act1-flow.js';
 
 export const ROAD_STORE = 'seven-sins-3d-road';
 export const ROAD = {
   meet: 0, boarded: 1, freed: 2, done: 3,
-  banditHp: 70, bandits: 4,
+  banditHp: 70, bandits: 5,
   rideSpeed: 5.2, dawnSpeed: 9,
   meetRadius: 9, cartReach: 3.4
 };
@@ -27,8 +27,17 @@ export const RIDE = (() => {
   const start = nearestAlong(CART_ROUTE, TEREN_STOP.x, TEREN_STOP.z).s;
   const ambush = nearestAlong(CART_ROUTE, BANDIT_AMBUSH.x, BANDIT_AMBUSH.z).s - 3.5;
   const end = nearestAlong(CART_ROUTE, ELDORIA_DROP.x, ELDORIA_DROP.z).s;
-  return { total, start, ambush, end, dozeAt: start + 26, revealAt: end - 46 };
+  // Mod 317: a carroça espera fora de vista na garganta de origem (curva) até ser ouvida
+  // a carroça espera ALÉM do limite a pé da garganta (o jogador a ouve antes de poder vê-la)
+  const limit = nearestAlong(CART_ROUTE, ORIGIN_LIMIT.x, ORIGIN_LIMIT.z).s;
+  return { total, start, ambush, end, dozeAt: start + 26, revealAt: end - 46, origin: Math.max(0, limit - 16), limit };
 })();
+/** Onde a carroça fica quando a cena carrega: na garganta (ainda não chegou), no prado, ou parada após a emboscada. */
+export function cartRestS(stage, arrived) {
+  if (stage >= ROAD.freed) return RIDE.ambush;
+  if (stage === ROAD.meet && !arrived) return RIDE.origin;
+  return RIDE.start;
+}
 
 export function initialRoadStage(questStep, stored, sub = 0) {
   if (!(questStep >= 1)) return ROAD.meet;            // jogo novo (ou reiniciado): o prólogo começa do prado
@@ -46,7 +55,7 @@ export function roadPresentation(stage) {
   return null;
 }
 
-const S = SPEAKERS, T = ROAD_SPEAKERS;
+const S = { ...SPEAKERS, guide: 'Vaelthar' }, T = ROAD_SPEAKERS; // Mod 317: diante de Teren o guia usa o nome público
 const say = (who, text, extra) => Object.assign({ type: 'say', who, text }, extra || {});
 const shot = (id, dur, args, extra) => Object.assign({ type: 'shot', id, dur, args: args || {} }, extra || {});
 const act = (id, args) => ({ type: 'do', id, args: args || {} });
@@ -71,19 +80,29 @@ export function tarpScene() {
 /** Viagem até o cochilo: balanço, vento e piscadas levam ao sono (sem teleporte: a carroça anda pela estrada). */
 export function rideDozeScene() {
   return [
+    act('embarcar'),
+    shot('embarque', 3.6, { cam: 'look', on: 'cart', off: [5.2, 2.4, -2.2], at: [.6, 1.5, -.4] }),
     act('viagem-partir'),
-    shot('estrada-larga', 5.5, { cam: 'look', on: 'cart', off: [6.2, 3.4, 3], at: [0, 1.4, 3] }),
-    shot('janela', 4.2, { cam: 'look', on: 'cart', off: [2.6, 2.7, .6], at: [0, 2.35, -.2] }),
-    act('piscadas'),
-    shot('sono', 3.2, { cam: 'look', on: 'cart', off: [2.3, 2.6, .5], at: [0, 2.3, -.2] }),
+    // plano de situação curto (fora) e depois o interior: rostos, conversa, balanço
+    shot('estrada-larga', 3.6, { cam: 'look', on: 'cart', off: [6.2, 3.4, 3], at: [0, 1.4, 3] }),
+    shot('interior', 3, { cam: 'interior', look: 'guide' }),
+    say(S.hero, 'Você já esteve neste mundo antes?', { actor: 'hero' }),
+    shot('interior-anjo', .1, { cam: 'interior', look: 'guide' }),
+    say(S.guide, 'Não assim. Daqui de baixo tudo parece mais pesado.', { actor: 'guide' }),
+    shot('interior-heroi', .1, { cam: 'interior', look: 'hero' }),
+    say(S.hero, 'E o Teren? Ele não perguntou nada sobre nós.', { actor: 'hero' }),
+    say(S.guide, 'Quem passa fome aprende a não fazer perguntas. Descanse um pouco.', { actor: 'guide' }),
+    shot('interior-sono', 2.6, { cam: 'interior', look: 'hero', doze: true }, { with: [act('piscadas')] }),
     act('dormir'),
-    { type: 'wait', dur: 1.2 }
+    { type: 'wait', dur: 1.2 },
+    act('tres-horas'),
+    { type: 'wait', dur: 2.2 }
   ];
 }
 
 export function ambushScene() {
   return [
-    shot('parada', 2.4, { cam: 'look', on: 'cart', off: [2.4, 2.6, .5], at: [0, 2.3, -.2] }, { with: [act('acordar')] }),
+    shot('parada', 2.4, { cam: 'interior', look: 'hero', wake: true }, { with: [act('acordar')] }),
     say(S.guide, '{NOME}. Acorde.'),
     say(T.teren, 'Eu não tenho o que vocês querem!', { actor: 'teren' }),
     shot('cerco', 3, { cam: 'orbit', on: 'cart', r: 9, h: 3.6, from: -.6, to: .7 }, { with: [act('bandidos-cercam')] }),
