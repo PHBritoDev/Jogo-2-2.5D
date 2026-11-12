@@ -63,11 +63,11 @@ function paint(THREE, g, seed, mossK) {
 }
 
 /** Monta um abrigo em (x, y, z). walk = eldoria-walkable (createWalkables). Devolve { group, setActive(on), pulse(), update(t) }. */
-export function buildShelter(THREE, { x, y, z, yaw = 0, seed = 1, walk = null, lowSpec = false } = {}) {
+export function buildShelter(THREE, { x, y, z, yaw = 0, seed = 1, walk = null, lowSpec = false, skirt = .25 } = {}) {
   const M = sharedMaterials(THREE), S = SHELTER, group = new THREE.Group(); group.position.set(x, y, z); group.rotation.y = yaw; group.name = 'abrigo-ritual-mod317';
   const parts = [];
   const nB1 = lowSpec ? 16 : 22, nB2 = lowSpec ? 12 : 16;
-  for (let i = 0; i < nB1; i++) { const a0 = i / nB1 * Math.PI * 2, a1 = (i + 1) / nB1 * Math.PI * 2; parts.push(paint(THREE, wedge(THREE, S.r2 - .05, S.r1, a0, a1, -.25, S.step, seed * 50 + i), seed + i, .9)); }
+  for (let i = 0; i < nB1; i++) { const a0 = i / nB1 * Math.PI * 2, a1 = (i + 1) / nB1 * Math.PI * 2; parts.push(paint(THREE, wedge(THREE, S.r2 - .05, S.r1, a0, a1, -skirt, S.step, seed * 50 + i), seed + i, .9)); }
   for (let i = 0; i < nB2; i++) { const a0 = i / nB2 * Math.PI * 2 + .1, a1 = (i + 1) / nB2 * Math.PI * 2 + .1; parts.push(paint(THREE, wedge(THREE, S.centerR + .02, S.r2, a0, a1, S.step - .05, S.step * 2, seed * 70 + i), seed + 40 + i, .45)); }
   // pilares: base larga, fuste com anéis, capitel; um deles partido e inclinado
   for (let k = 0; k < 4; k++) {

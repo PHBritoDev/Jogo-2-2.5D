@@ -1505,7 +1505,7 @@ function renderDialoguePage(){
  panel.dataset.speaker=page.who||'';who.textContent=page.who||'';textEl.textContent=page.text||'';
  document.getElementById('dialog-page').textContent=String(dialogueIndex+1).padStart(2,'0')+' / '+String(dialoguePages.length).padStart(2,'0');
  monogram.textContent=(page.who||'✦').trim().charAt(0).toUpperCase()||'✦';
- const src=/anjo-guia/i.test(page.who||'')?'AnjoGuia-ui.webp':(page.portrait||'');
+ const src=/anjo-guia|aethraziel|vaelthar/i.test(page.who||'')?'AnjoGuia-ui.webp':(page.portrait||'');
  if(src){portrait.src=src;portrait.classList.remove('hidden');monogram.classList.add('hidden');}
  else{portrait.removeAttribute('src');portrait.classList.add('hidden');monogram.classList.remove('hidden');}
  panel.classList.remove('dialog-beat');void panel.offsetWidth;panel.classList.add('dialog-beat');
@@ -2327,7 +2327,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(zarkUltBossLock){enemyModelRoot.position.y=zarkUltBossLock.modelRootY;}
  else if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
  else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer){updateGuideMotion();guideIdleMixer.update(dt);relaxGuideArms(dt);updateGuideWings(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
+ }if(guideIdleMixer){updateGuideMotion();guideIdleMixer.update(dt);relaxGuideArms(dt);updateGuideWings(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}npcIdleLife(dt);updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
@@ -2554,7 +2554,7 @@ let mapDirty=false,mapSaveAt=0,mapScanAt=0,mapBase=null,mapOpen=false;
 function saveMapState(force){if(!mapDirty&&!force)return;mapDirty=false;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));}catch(_){}}
 /* MOD 317 — abrigos: plataforma ritual autoral (eldoria-shelter3d.js) com degraus caminháveis e pilares sólidos;
    o registro só acontece com o herói no CENTRO da plataforma. */
-const waystoneVisuals=WAYSTONES.map((w,i)=>{const y=groundHeightAt(w.x,w.z),sh=buildShelter(THREE,{x:w.x,y,z:w.z,yaw:i*.7,seed:i+1,walk:eldoriaWalk,lowSpec:terrainLowSpec});scene.add(sh.group);return{data:w,group:sh.group,shelter:sh};});
+const waystoneVisuals=WAYSTONES.map((w,i)=>{const c0=groundHeightAt(w.x,w.z),hs=[];for(let k=0;k<12;k++){const a=k/12*Math.PI*2;hs.push(groundHeightAt(w.x+Math.sin(a)*3.35,w.z+Math.cos(a)*3.35));}const y=Math.min(Math.max(c0,...hs),c0+.35),skirt=Math.max(.25,y-Math.min(c0,...hs)+.15),sh=buildShelter(THREE,{x:w.x,y,z:w.z,yaw:i*.7,seed:i+1,walk:eldoriaWalk,lowSpec:terrainLowSpec,skirt});scene.add(sh.group);return{data:w,group:sh.group,shelter:sh};});
 function syncWaystoneVisuals(){for(const v of waystoneVisuals)v.shelter.setActive(mapState.waystones.has(v.data.id));}
 syncWaystoneVisuals();
 function nearestWaystone(){let best=null,bd=1.35;for(const v of waystoneVisuals){const d=Math.hypot(v.data.x-player.position.x,v.data.z-player.position.z);if(d<bd&&player.position.y>v.shelter.center.y-.25){bd=d;best=v.data;}}return best;}
@@ -3475,6 +3475,21 @@ function loadVillagers(){
    window.SevenSinsVillagerReport={vendors:vendorRoots.length,residents:villageNpcs.length-vendorRoots.length,childrenInVillage:0,models:[ELDORIA_NPC_MODELS.man,ELDORIA_NPC_MODELS.woman],roles:villageNpcs.map(c=>c.role)};
  }).catch(e=>console.error('NPC Meshy: carregamento falhou (sem fallback procedural)',e));
 }
+/** MOD 317 — moradores parados respiram e reagem: peito sobe e desce, cabeça acompanha o herói quando ele chega perto
+    (vendedores atrás do balcão olham o comprador). Só pose de ossos sobre a pose do clipe; 7 NPCs, custo desprezível. */
+const npcLife=[],_nl=new THREE.Vector3();let npcLifeT=0;
+function npcIdleLife(dt){
+ npcLifeT+=dt;
+ for(const c of villageNpcs){if(c.__life!==undefined||!c.model)continue;let chest=null,head=null;c.model.traverse(o=>{if(!o.isBone)return;if(!chest&&/^(upperchest|chest)$/i.test(o.name))chest=o;if(!head&&/^head$/i.test(o.name))head=o;});
+  c.__life=npcLife.length;npcLife.push({c,chest,head,qc:chest&&chest.quaternion.clone(),qh:head&&head.quaternion.clone(),ph:npcLife.length*1.7,look:0,vendor:vendorRoots.includes(c.holder),walk:c.role==='walk'});}
+ for(const L of npcLife){const h=L.c.holder;if(!h.visible||L.walk)continue;
+  // o mixer reescreve o osso a cada quadro quando o clipe o anima; se não anima, parte da pose base salva (sem acumular)
+  if(L.chest){if(L.oc&&!L.chest.quaternion.equals(L.oc))L.qc.copy(L.chest.quaternion);L.chest.quaternion.copy(L.qc);L.chest.rotateX(Math.sin(npcLifeT*1.05+L.ph)*(L.c.role==='down'?.02:.013));(L.oc||(L.oc=new THREE.Quaternion())).copy(L.chest.quaternion);}
+  if(L.head&&L.c.role!=='down'){h.getWorldPosition(_nl);const dx=player.position.x-_nl.x,dz=player.position.z-_nl.z,d=Math.hypot(dx,dz);
+   let want=Math.sin(npcLifeT*.23+L.ph)*.18;if(d<(L.vendor?7:4.5)){let a=Math.atan2(dx,dz)-h.rotation.y;a=Math.atan2(Math.sin(a),Math.cos(a));want=THREE.MathUtils.clamp(a,-.7,.7);}
+   L.look+=(want-L.look)*Math.min(1,dt*2.2);if(L.oh&&!L.head.quaternion.equals(L.oh))L.qh.copy(L.head.quaternion);L.head.quaternion.copy(L.qh);L.head.rotateY(L.look);(L.oh||(L.oh=new THREE.Quaternion())).copy(L.head.quaternion);}
+ }
+}
 function updateVillagers(dt){
  // Animações dos NPCs são atualizadas pelo laço global villageNpcMixers.
  // Único caminhante circula lentamente num espaço curto, sem busca de caminho cara.
@@ -3751,7 +3766,7 @@ function useRig(name){
    (tema "sewer", layout em sewer3d.js), como as dimensões. */
 var packFinishing=false,act1Sub=saved3DProgress.act1Sub||0,storyScene=null,pack=null,inSewer=false,sewerArena=null,storyMove=null,storyFx=[],act1Props=null,act1Night=false,act1Lock=false,hordeClones=[],guideFighting=false;
 const STORY_EYE={hero:1.5,guide:2.1,enemy:1.35,vendor:1.5,cage:.7,victim:.9,feeding:.9,cell:1.2,hole:0,massacre:1,village:2};
-const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[SPEAKERS.vendor]:'vendor',[SPEAKERS.follower]:'enemy',[SPEAKERS.demon]:'enemy',[SPEAKERS.child]:'cage',[SPEAKERS.warden]:'enemy',[SPEAKERS.vhazrael]:'enemy',[SPEAKERS.victim]:'victim'};
+const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[GUIDE_NAME]:'guide',[GUIDE_PUBLIC_NAME]:'guide',[SPEAKERS.vendor]:'vendor',[SPEAKERS.follower]:'enemy',[SPEAKERS.demon]:'enemy',[SPEAKERS.child]:'cage',[SPEAKERS.warden]:'enemy',[SPEAKERS.vhazrael]:'enemy',[SPEAKERS.victim]:'victim'};
 const storyAnchors={};
 const _sa=new THREE.Vector3(),_sb=new THREE.Vector3(),_sc=new THREE.Vector3();
 function sewerLocal(p){return{x:p.x+DIMENSIONS.esgoto.center.x,z:p.z+DIMENSIONS.esgoto.center.z};}
@@ -4718,6 +4733,10 @@ function cartInteriorCam(look,dt,doze,u=0){
 }
 /** MOD 317 — embarque sem teleporte: o herói caminha até a porta, sobe o degrau, entra e senta; Aethraziel entra logo
     depois e senta no assoalho. Tudo por trajetória curta em tempo de cena (pular a cena só assenta os dois). */
+/** MOD 317 — cenas longas só podem ser puladas depois da primeira exibição (memória por save neste aparelho). */
+const STORY_SEEN_STORE='seven-sins-3d-cenas-vistas';
+function storySeen(id){try{return (JSON.parse(localStorage.getItem(STORY_SEEN_STORE)||'[]')).includes(id);}catch(_){return false;}}
+function markStorySeen(id){try{const a=JSON.parse(localStorage.getItem(STORY_SEEN_STORE)||'[]');if(!a.includes(id)){a.push(id);localStorage.setItem(STORY_SEEN_STORE,JSON.stringify(a));}}catch(_){}}
 function boardCart(){
  if(cineSkipping){seatPassengers();return;}
  const door=cartSocketWorld('door',new THREE.Vector3()),step=cartSocketWorld('step',new THREE.Vector3()),seat=cartSocketWorld('hero',new THREE.Vector3());
@@ -4793,7 +4812,7 @@ function roadStoryDo(id){
 function walkBanditsAway(){npcBase().then(b=>{const clip=b.clips.find(k=>k.name==='Walking');if(!clip)return;for(const bd of road.bandits){bd.mixer.stopAllAction();bd.mixer.clipAction(clip).play();}}).catch(()=>{});}
 function roadTalkLabel(){
  if(cineActive||!(questStep===1&&act1Sub===0)||roadStage>=ROAD.done||!road.group||pack||enemy.visible)return '';
- const c=road.cart.position,d=Math.hypot(c.x-player.position.x,c.z-player.position.z);if(d>ROAD.cartReach+1.2)return '';
+ const c=road.cart.position,d=Math.hypot(c.x-player.position.x,c.z-player.position.z);if(d>ROAD.cartReach+2)return '';
  if(roadStage===ROAD.meet&&road.met)return 'PRENDER A LONA';
  if(roadStage===ROAD.boarded||roadStage===ROAD.freed)return 'SUBIR NA CARROÇA';
  return '';
@@ -4804,7 +4823,7 @@ function roadInteract(){
  if(roadStage===ROAD.boarded){
   road.hideBandits=true;startPack({rig:'bandit',profile:'bandit1',hp:ROAD.banditHp,spots:ROAD_BANDITS,hold:true,intro:'Bandidos famintos fecham a estrada.',onDone:roadBanditsDown});
   if(pack&&pack.clones)for(const cl of pack.clones)if(cl)cl.holder.visible=false;
-  playStory('estrada-viagem',rideDozeScene(),{focus:'cart',skippable:false,done:()=>{
+  const seenRide=storySeen('estrada-viagem');playStory('estrada-viagem',rideDozeScene(),{focus:'cart',skippable:seenRide,done:()=>{markStorySeen('estrada-viagem');
    for(const cl of (pack&&pack.clones)||[])if(cl){cl.holder.visible=true;cl.holder.rotation.y=Math.atan2(road.cart.position.x-cl.holder.position.x,road.cart.position.z-cl.holder.position.z);}
    playStory('emboscada',ambushScene(),{focus:'bandit',done:()=>{act1Lock=false;releasePack();checkpointX=player.position.x;checkpointZ=player.position.z;status.textContent='Desarme os bandidos sem matar ninguém.';}});}});
   return true;}
@@ -7933,6 +7952,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  cartProfile(){ensureRoadProps();if(!road.cartModel)return null;road.group.visible=true;road.cart.updateMatrixWorld(true);const rc=new THREE.Raycaster(),out={};const o=new THREE.Vector3(),dn=new THREE.Vector3(0,-1,0);
   for(const x of [-.8,-.4,0,.4,.8]){const row=[];for(let z=2.6;z>=-2.6;z-=.2){o.set(x,3.2,z);road.cart.localToWorld(o);rc.set(o,dn);const hits=rc.intersectObject(road.cartModel,true).map(h=>+road.cart.worldToLocal(h.point.clone()).y.toFixed(2));row.push([+z.toFixed(1),hits.slice(0,4)]);}out['x'+x]=row;}return out;},
  squadInfo(){const s=squadSq();return s?{n:s.actors.length,alive:s.actors.filter(a=>a.alive).length,kinds:[...new Set(s.actors.map(a=>a.kind))],acts:s.actors.map(a=>a.act?a.act.type:'-'),spells:s.spells.length,on:squadOn}:null;},
+ cartArrive(){ensureRoadProps();road.approach=false;road.arrived=true;placeRoadCart(RIDE.start,true);return this.roadState();},
  caveTo(lx,lz,yaw=Math.PI){if(!ascKey)return null;const O=ASC_ZONES[ascKey],z=ascZones[ascKey];return this.placeAt(O.x+lx,z.floor(lx,lz),O.z+lz,yaw);},
  camInfo(){const P=player.position,C=camera.position;const sol=voidMode&&voidSpec.camSolid?!!voidSpec.camSolid(C.x-voidSpec.x,C.y-voidSpec.y,C.z-voidSpec.z):null;const d=new THREE.Vector3();camera.getWorldDirection(d);return{loc:voidMode?[C.x-voidSpec.x,C.y-voidSpec.y,C.z-voidSpec.z].map(v=>+v.toFixed(2)):null,ploc:voidMode?[P.x-voidSpec.x,P.y,P.z-voidSpec.z].map(v=>+v.toFixed(2)):null,arm:+C.distanceTo(P).toFixed(3),dy:+(C.y-P.y).toFixed(3),solid:sol,lookPitch:+Math.asin(d.y).toFixed(3),fov:camera.fov};},
  programList(){return renderer.info.programs.map(p=>p.name+'|'+String(p.cacheKey).slice(0,60));},
@@ -8082,7 +8102,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  /** MOD 291 — estrada de Teren: road(0) prado/encontro, road(1) lona presa, road(2) pós-bandidos. */
  road(stage=0){this.act1(1,0);roadStage=stage;road.met=stage>0;try{localStorage.setItem(ROAD_STORE,String(stage));}catch(_){}ensureRoadProps();placeRoadCart(stage>=2?RIDE.ambush:RIDE.start,true);const c=road.cart.position,x=stage===0?FALL_SPOT.x:c.x+2.6,z=stage===0?FALL_SPOT.z:c.z;player.position.set(x,terrainHeightAt(x,z),z);updateQuestHud();return this.roadState();},
- roadState(){return{s:+road.s.toFixed(1),arrived:road.arrived,approach:road.approach,seated:seatedNow,teren:!!(road.teren&&road.teren.seat),stage:roadStage,visible:player.visible,yaw:road.yaw,horse:road.horse?(()=>{const b=new THREE.Box3().setFromObject(road.horse);return{min:b.min.toArray().map(v=>+v.toFixed(2)),max:b.max.toArray().map(v=>+v.toFixed(2))};})():null,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
+ roadState(){return{label:roadTalkLabel(),met:road.met,pd:road.cart?+Math.hypot(road.cart.position.x-player.position.x,road.cart.position.z-player.position.z).toFixed(2):null,s:+road.s.toFixed(1),arrived:road.arrived,approach:road.approach,seated:seatedNow,teren:!!(road.teren&&road.teren.seat),stage:roadStage,visible:player.visible,yaw:road.yaw,horse:road.horse?(()=>{const b=new THREE.Box3().setFromObject(road.horse);return{min:b.min.toArray().map(v=>+v.toFixed(2)),max:b.max.toArray().map(v=>+v.toFixed(2))};})():null,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
  interact(){tryInteract();return this.roadState();},
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;
