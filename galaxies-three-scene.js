@@ -527,14 +527,31 @@ function angel(parent,W,H){
   const o=mesh(geo,new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.78,metalness}),g,0,0,z);
   return o;
  };
+ // Reunir as 42 penas em 3 lotes de mesma cor sem perder suas curvas.
+ const featherBins=new Map();
+ const featherPiece=(outline,color,z)=>{
+  const o=piece(outline,color,z),g0=o.geometry;
+  const geo=g0.index?g0.toNonIndexed():g0,att=geo.getAttribute('position');
+  let verts=featherBins.get(color);
+  if(!verts){verts=[];featherBins.set(color,verts);}
+  for(let i=0;i<att.count;i++)verts.push(att.getX(i),att.getY(i),att.getZ(i)+z);
+  g.remove(o);if(geo!==g0)geo.dispose();g0.dispose();o.material.dispose();
+ };
  // Plumas longas sobrepostas em camadas, com nervuras claras.
  for(const side of [-1,1]){
   for(let i=20;i>=0;i--){
    const t=i/20,rootX=side*(.016+t*.022),rootY=-.035+t*.026;
    const tipX=side*(.06+t*.25),tipY=.01+Math.sin(t*2.1)*.22-t*.03;
-   piece([['M',rootX,rootY],['Q',side*.13,.11,tipX,tipY],['Q',tipX-side*.012,tipY-.045,rootX,rootY]],
+   featherPiece([['M',rootX,rootY],['Q',side*.13,.11,tipX,tipY],['Q',tipX-side*.012,tipY-.045,rootX,rootY]],
      i%3===0?'#465061':i%3===1?'#273144':'#202a3b',-38-i*.18);
   }
+ }
+ for(const [color,vertices] of featherBins){
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+  geo.computeVertexNormals();
+  const m=new THREE.MeshStandardMaterial({color,roughness:.86,metalness:.08,side:THREE.DoubleSide});
+  g.add(new THREE.Mesh(geo,m));
  }
  // Capa caída, ombreira reforçada, mangas, dobra de tecido.
  piece([['M',-.09,-.29],['C',-.13,-.15,-.18,-.01,-.085,.07],['C',-.04,.10,.035,.045,.07,-.025],
