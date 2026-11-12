@@ -206,16 +206,16 @@ export function questPresentation(step, sub = 0) {
   const pages = {
     0: ['ATO I · O PREÇO DE UMA VIDA', 'Fale com o Anjo-Guia'],
     1: sub >= 1
-      ? ['ATO I · A VILA DA CLAREIRA', 'Pergunte ao vendedor de frutas sobre o Pecado da Ganância']
-      : ['ATO I · O PREÇO DE UMA VIDA', 'Siga a trilha até a pequena vila e fale com um vendedor'],
-    2: ['ATO I · A FLORESTA À NOITE', 'Investigue o choro de crianças na floresta'],
+      ? ['ATO I · ELDÓRIA', 'Investigue as cargas confiscadas e converse com o vendedor']
+      : ['ATO I · O PREÇO DE UMA VIDA', 'Atravesse a ponte e descubra o que aconteceu em Eldória'],
+    2: ['ATO I · LUZES NA FLORESTA', 'Siga as marcas das cargas até as jaulas na floresta'],
     3: sub >= 1
-      ? ['ATO I · RECEPTÁCULOS', 'Derrote as crianças possuídas pelos demônios']
-      : ['ATO I · A CHAVE', 'Abra a gaiola com a chave dos Seguidores'],
-    4: [['ATO I · OS ESGOTOS', 'Siga a trilha da montanha rumo aos esgotos'],
+      ? ['ATO I · O RITUAL', 'Derrote as crianças possuídas pelos demônios']
+      : ['ATO I · AS JAULAS', 'Abra a gaiola com a chave dos Seguidores'],
+    4: [['ATO I · GALERIAS DA CAVERNA', 'Ajude os moradores e siga a trilha até a montanha'],
       ['ATO I · A PISTA', 'Siga a pista até a entrada da caverna, na encosta'],
-      ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
-      ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][Math.min(3, sub)],
+      ['ATO I · GALERIAS DA CAVERNA', 'Siga os rastros dos prisioneiros pelas galerias'],
+      ['ATO I · O BURACO', 'Encontre a passagem abaixo da caverna']][Math.min(3, sub)],
     5: ['ATO I · O GUARDIÃO DO PORTAL', 'Siga pelo caminho vazio e derrote o guardião do portal'],
     6: ['ATO I · O PORTAL DE VHAZRAEL', 'Entre no portal: a dimensão de VHAZRAEL está do outro lado'],
     7: ['ATO I · DIMENSÃO ABERTA', 'VHAZRAEL espera na dimensão dele. Atravesse o portal'],
@@ -231,7 +231,7 @@ export function combatStep(step) {
 
 /* ---------- Falas (texto revisado; o original está em docs/roteiro/M2-ATO1.md) ---------- */
 export const SPEAKERS = {
-  hero: 'heroi', guide: 'Anjo-Guia', vendor: 'Téo · Provisões', follower: 'Seguidor da Ganância',
+  hero: 'heroi', guide: 'Anjo-Guia', vendor: 'Téo · Provisões', ilyan: 'Ilyan · antigo guarda', follower: 'Seguidor da Ganância',
   demon: 'Demônio da Ganância', child: 'Criança', warden: 'Guardião do Portal', vhazrael: 'VHAZRAEL', victim: 'Morador'
 };
 const S = SPEAKERS;
@@ -244,7 +244,7 @@ const wait = dur => ({ type: 'wait', dur });
 export function villageArrivalScene() {
   return [
     shot('vila-panorama', 5.5, { cam: 'crane', anchor: 'village', from: [26, 18, 34], to: [12, 6, 20], lookFrom: [0, 2, 0], lookTo: [0, 1.5, 0] },
-      { with: [act('titulo', { kicker: 'GALÁXIA 1 · MUNDO DA GANÂNCIA', title: 'Vila da Clareira' }), act('som-descoberta')] }),
+      { with: [act('titulo', { kicker: 'GALÁXIA 1 · MUNDO DA GANÂNCIA', title: 'Eldória' }), act('som-descoberta')] }),
     shot('vila-miseria', 3.5, { cam: 'crane', anchor: 'village', from: [4, 2.8, 9.2], to: [8.4, 2.4, 7.6], lookFrom: [12.5, .3, 2.6], lookTo: [6.2, 1, 6.4] })
   ];
 }
@@ -253,7 +253,7 @@ export function villageArrivalScene() {
 export function vendorRefusalScene() {
   return [
     say(S.hero, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?'),
-    say(S.vendor, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.')
+    say(S.vendor, 'Se veio perguntar, espere. Tem gente aqui que não come desde ontem.')
   ];
 }
 
@@ -261,19 +261,45 @@ export function vendorRefusalScene() {
 export function vendorScene() {
   return [
     say(S.hero, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?'),
-    say(S.vendor, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.'),
+    say(S.vendor, 'Se veio perguntar, espere. Tem gente aqui que não come desde ontem.'),
     shot('saco-de-ouro', 2.6, { cam: 'two', a: 'hero', b: 'vendor', side: 1, dist: 3.4 }, { with: [act('entregar-ouro')] }),
-    say(S.vendor, '…Não conte isso pra ninguém, senão nós dois vamos morrer. Você está vendo a situação desta vila?'),
-    say(S.vendor, 'Não é só aqui: o mundo inteiro está em caos. Há alguns anos o mundo vivia em paz, mas então chegou o Pecado da Ganância. Ele se considera um deus.'),
-    say(S.vendor, 'Desde que ele chegou, o mundo caiu em desgraça. Ele controla todo o dinheiro do mundo.'),
+    say(S.vendor, 'Fale baixo. Os homens que cobram pela estrada ainda passam por aqui. Você viu como Eldória está?'),
+    say(S.vendor, 'Antes, os comerciantes chegavam pela ponte. Agora levam a maior parte da carga antes que ela alcance a cidade.'),
+    say(S.vendor, 'Primeiro vieram os recibos. Depois, a cobrança pela estrada. Sem mercadorias, as famílias começaram a passar fome.'),
     say(S.hero, 'Como eu posso encontrá-lo?'),
-    say(S.vendor, 'Fiquei sabendo que não é muito longe daqui. De madrugada, ouvem-se sons estranhos na floresta… choro de crianças.'),
-    say(S.vendor, 'Parece que algumas crianças das vilas e aldeias estão sendo vendidas pelos próprios pais, para servirem de experimento. Dizem até que há demônios envolvidos nisso.'),
+    say(S.vendor, 'Os carregamentos seguem para a mata depois de escurecer. Algumas noites, escutamos crianças pedindo ajuda.'),
+    say(S.vendor, 'Vi um símbolo marcado nas caixas confiscadas. O mesmo apareceu perto da trilha onde crianças desapareceram.'),
     say(S.hero, 'Mas quem pode estar por trás disso?'),
-    say(S.vendor, 'Parece que é um dos subordinados do Pecado da Ganância. Ele se chama VHAZRAEL.'),
-    say(S.vendor, 'Bom, eu disse tudo o que sei. Tome cuidado, rapaz, você parece novo. Se tem amor à vida, jamais se envolva com eles.'),
+    say(S.vendor, 'Os guardas dizem que obedecem a VHAZRAEL, um dos bispos a serviço da Ganância. Nunca vi o rosto dele.'),
+    say(S.vendor, 'Se decidir ir, procure as marcas junto ao rio. E cuidado com quem disser que cobra em nome da cidade.'),
     act('anoitecer'),
     wait(2.6)
+  ];
+}
+
+/** Encontro opcional com Ilyan no povoado, antes de sua prisão.
+ * Não altera o avanço principal nem declara sua sobrevivência futura. */
+export function ilyanVillageScene() {
+  return [
+    shot('ilyan-encontro', 2.4, { cam: 'two', a: 'hero', b: 'ilyan', side: 1, dist: 3.8 }),
+    say(S.ilyan, 'Era eu quem vigiava a feira. Agora fico perto do poço, esperando notícias das cargas.'),
+    say(S.hero, 'Sabe quem está levando tudo?'),
+    say(S.ilyan, 'Quem cobra diz que trabalha para a cidade. Mas não reconheço nenhum daqueles homens.'),
+    say(S.ilyan, 'Se encontrar alguém preso por eles, não abandone essa pessoa. É o que eu tentaria fazer.')
+  ];
+}
+
+/** Conversa opcional com Ilyan na prisão, após a fuga da cela.
+ * Dá ao jogador contexto sobre a saída; não altera flags de sobrevivência.
+ */
+export function ilyanPrisonScene() {
+  return [
+    shot('ilyan-cela', 2.2, { cam: 'two', a: 'hero', b: 'ilyan', side: -1, dist: 3.4 }),
+    say(S.hero, 'Ilyan, consegue andar?', { actor: 'hero' }),
+    say(S.ilyan, 'Consigo. Trabalhei de guarda na feira. Conheço a diferença entre uma saída e uma armadilha.'),
+    say(S.ilyan, 'A galeria ao sul leva a outra passagem. Há um vigia mais adiante.'),
+    say(S.hero, 'E os outros prisioneiros?'),
+    say(S.ilyan, 'Vou procurar quem ainda pode caminhar. Se puder, mantenha o caminho livre.')
   ];
 }
 
@@ -283,9 +309,9 @@ export function forestFirstScene() {
     shot('gaiola-de-longe', 3.2, { cam: 'look', on: 'cage', off: [5, 2.6, 7], at: [0, .8, 0] }, { with: [act('choro')] }),
     say(S.child, 'Socorro! Alguém, por favor… tira a gente daqui!', { actor: 'cage' }),
     shot('seguidor-surge', 2.2, { cam: 'look', on: 'enemy', off: [2.2, 1.6, 3.6], at: [0, 1, 0] }, { with: [act('surgir-seguidor')] }),
-    say(S.follower, 'Hoje é meu dia de sorte: chegou mais um sacrifício.'),
-    say(S.hero, 'Seu demônio imundo, como ousa acabar com a paz deste mundo?'),
-    say(S.follower, 'A paz deste mundo acabou no momento em que os seres humanos pisaram nele.')
+    say(S.follower, 'Não dê mais um passo. Essa clareira está sob nossa guarda.'),
+    say(S.hero, 'As crianças estão presas ali. Abra as jaulas.'),
+    say(S.follower, 'Não é você quem decide o que acontece aqui, humano.')
   ];
 }
 
@@ -294,13 +320,13 @@ export function forestSecondScene() {
   return [
     shot('mais-dois', 2.4, { cam: 'look', on: 'hero', off: [-3, 2.4, -4.5], at: [0, 1, 4] }, { with: [act('surgir-dois')] }),
     say(S.follower, 'Quem é você?'),
-    say(S.hero, 'Eu sou aquele que vai destruir o Pecado da Ganância.'),
-    say(S.follower, 'Ahahahaha! Isso é impossível. Você não teria chance nem contra VHAZRAEL.')
+    say(S.hero, 'Vou tirar essas crianças daqui. Saiam do caminho.'),
+    say(S.follower, 'Você nem sabe para quem trabalhamos. VHAZRAEL não se incomoda com intrusos por muito tempo.')
   ];
 }
 
 export function keyFoundScene() {
-  return [say(S.hero, 'Achei a chave para abrir essa gaiola.')];
+  return [say(S.hero, 'A chave. Preciso abrir essas jaulas antes que o ritual avance.')];
 }
 
 /** Abrir a gaiola: as crianças viram Seguidores. */
@@ -311,8 +337,8 @@ export function cageScene() {
     say(S.child, 'Socorro! Alguém me ajuda… eu não consigo parar!', { actor: 'cage' }),
     say(S.hero, 'O que está acontecendo?'),
     shot('transformacao', 6.5, { cam: 'look', on: 'cage', off: [4.2, 2.2, 4.6], at: [0, .9, 0] }, { with: [act('transformar-criancas')] }),
-    say(S.hero, 'Droga, cheguei tarde demais. Essas crianças já foram possuídas.'),
-    say(S.hero, 'Que demônios imundos… estão usando as almas dessas pobres crianças como receptáculo.')
+    say(S.hero, 'O ritual já as alcançou... Ainda precisamos impedir que continue.'),
+    say(S.hero, 'Não vou permitir que levem mais ninguém para essas jaulas.')
   ];
 }
 
@@ -325,15 +351,15 @@ export function faintScene() {
     wait(2.2),
     shot('anjo-chama', 2.2, { cam: 'look', on: 'hero', off: [0, 2.6, 1.6], at: [0, .3, 0] }, { with: [act('anjo-aparece')] }),
     say(S.guide, '{nome}… {nome}! {NOME}!'),
-    say(S.guide, 'Por que você está estirado no chão?'),
+    say(S.guide, 'O que aconteceu? Você está ferido?'),
     shot('levantar', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: 1, dist: 4.2 }, { with: [act('levantar')] }),
     say(S.hero, 'Onde eu estou? Como assim, já é de manhã?'),
-    say(S.guide, 'Eu estava te procurando e, do nada, te achei aqui nesta floresta. O que aconteceu?'),
-    say(S.hero, 'Não sei muito bem. Derrotei alguns demônios e, do nada, me senti tonto e desmaiei.'),
-    say(S.guide, 'Enfim, sem perder tempo: vamos para a próxima missão. Descobri uma possível pista enquanto você dormia. Parece que o Primeiro Bispo anda pelos esgotos.'),
-    say(S.hero, 'Esgotos? Eu não quero ir para um lugar tão imundo assim…'),
-    say(S.guide, 'Se você não for, eu mesmo te mato.'),
-    say(S.hero, 'Já estou indo…'),
+    say(S.guide, 'Encontrei sinais do ritual perto do rio. Diga o que viu antes de perder os sentidos.'),
+    say(S.hero, 'Encontrei as jaulas e interrompi os demônios. Depois, tudo ficou escuro.'),
+    say(S.guide, 'As marcas das caixas e do ritual são iguais. Segui as carroças até uma entrada na montanha. Há prisioneiros lá.'),
+    say(S.hero, 'Então precisamos voltar por Eldória. Talvez alguém ainda possa nos dizer por onde elas passaram.'),
+    say(S.guide, 'Irei com você até onde puder. Mas não entre sozinho numa passagem desconhecida.'),
+    say(S.hero, 'Certo. Primeiro vamos encontrar quem precisa de ajuda.'),
     act('anjo-parte')
   ];
 }
@@ -342,19 +368,19 @@ export function faintScene() {
 export function massacreScene() {
   return [
     shot('massacre', 2.8, { cam: 'look', on: 'massacre', off: [7, 3, 6], at: [0, 1, 0] }, { with: [act('massacre-inicio')] }),
-    say(S.victim, 'Não faça isso! Alguém me ajuda! A gente não tem mais nada!', { actor: 'victim' }),
+    say(S.victim, 'Por favor, deixem as provisões! Há pessoas esperando por elas!', { actor: 'victim' }),
     say(S.hero, 'Parem!'),
     shot('correndo', 2.4, { cam: 'follow', on: 'hero', off: [0, 2.2, -4.5], at: [0, 1.2, 6] }, { with: [act('correr-ate-massacre')] }),
     shot('ataque-aos-moradores', 3.2, { cam: 'look', on: 'massacre', off: [5, 2.4, 5], at: [0, .9, 0] }, { with: [act('massacre-fim')] }),
     say(S.hero, 'Por que vocês fizeram isso?'),
-    say(S.demon, 'Eles se recusaram a nos dar todo o dinheiro deles. Então eu os matei.'),
-    say(S.hero, 'Então é isso… A existência de vocês acaba aqui.')
+    say(S.demon, 'Recebemos ordens de levar tudo. Quem resiste não chega ao próximo amanhecer.'),
+    say(S.hero, 'Vocês não vão levar mais ninguém daqui.')
   ];
 }
 
 export function clueScene() {
   return [
-    say(S.hero, 'Um deles deixou cair isto… um mapa sujo de sangue. Marca uma caverna na encosta, aqui perto.')
+    say(S.hero, 'Um registro de carga... a mesma marca das jaulas. A rota termina numa caverna da montanha.')
   ];
 }
 
@@ -363,19 +389,19 @@ export function feedingScene() {
   return [
     shot('rastros', 2.6, { cam: 'look', on: 'hero', off: [1.4, 1.9, -2.6], at: [0, .2, 5] }),
     shot('banquete', 2.6, { cam: 'look', on: 'feeding', off: [6, 3, 6], at: [0, .8, 0] }),
-    say(S.hero, 'Larguem eles, seus demônios imundos!'),
-    say(S.follower, 'Hoje é o nosso dia de sorte: chegou a nossa sobremesa.', { actor: 'feeding' })
+    say(S.hero, 'Afastem-se dos prisioneiros. Agora.'),
+    say(S.follower, 'O bispo não tolera atrasos. Você não devia ter seguido a carga.', { actor: 'feeding' })
   ];
 }
 
 /** O buraco: o Anjo chega, o herói pula, acorda cercado, desmaia e acorda numa jaula. */
-export function holeScene() {
+export function holeScene({ ilyanPresent = false } = {}) {
   return [
     shot('buraco', 2.4, { cam: 'look', on: 'hole', off: [3, 4, 4], at: [0, -1, 0] }, { with: [act('anjo-aparece')] }),
     say(S.guide, 'O que aconteceu aqui?'),
-    say(S.hero, 'Esses demônios miseráveis… eu vou matar todos eles!'),
+    say(S.hero, 'Há pessoas presas lá embaixo. Não podemos abandoná-las.'),
     shot('correr-buraco', 1.6, { cam: 'follow', on: 'hero', off: [0, 2.4, -4], at: [0, 0, 5] }, { with: [act('correr-ao-buraco')] }),
-    say(S.guide, 'Não seja imprudente! Você pode acabar morrendo!', { auto: 1.8 }),
+    say(S.guide, 'Espere! Não sabemos a profundidade desse buraco!', { auto: 1.8 }),
     shot('pular', 1.6, { cam: 'look', on: 'hole', off: [0, 7, 2], at: [0, -4, 0] }, { with: [act('pular')] }),
     act('piscar'),
     wait(2.4),
@@ -385,17 +411,23 @@ export function holeScene() {
     wait(2.6),
     shot('na-jaula', 4, { cam: 'look', on: 'cell', off: [3.4, 2.2, 3.6], at: [0, 1, 0] }, { with: [act('acordar-na-jaula')] }),
     say(S.hero, 'Me tira daqui!'),
+    ...(ilyanPresent ? [
+      say(S.ilyan, 'Fale baixo. Eles voltam quando escutam alguém gritar.', { actor: 'ilyan' }),
+      say(S.hero, 'Ilyan? Você estava em Eldória.'),
+      say(S.ilyan, 'Tentei impedir que levassem mais uma carga. Me trouxeram para cá.', { actor: 'ilyan' }),
+      say(S.ilyan, 'A fechadura desta cela é fraca, mas o corredor está vigiado.', { actor: 'ilyan' })
+    ] : []),
     shot('anjo-chega', 2, { cam: 'two', a: 'hero', b: 'guide', side: -1, dist: 4.6 }, { with: [act('anjo-chega-jaula')] }),
     say(S.guide, 'Fala baixo, eles podem te ouvir.'),
     shot('anjo-vigia', 2.6, { cam: 'look', on: 'guide', off: [1.8, 1.9, 2.8], at: [0, 1.6, 0] }, { with: [act('anjo-vigia')] }),
     wait(.5),
     shot('anjo-liberta', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: -1, dist: 4.4 }, { with: [act('anjo-abre-jaula')] }),
     shot('sair-da-jaula', 2, { cam: 'look', on: 'hero', off: [2.6, 1.8, 3.2], at: [0, 1, 0] }, { with: [act('heroi-sai-jaula')] }),
-    say(S.guide, 'Nunca mais seja imprudente dessa maneira. Se você morrer, este mundo estará acabado, e muitas pessoas sofrerão.'),
+    say(S.guide, 'Você não pode ajudar os prisioneiros se morrer aqui. Da próxima vez, procuramos uma passagem juntos.'),
     shot('horda', 3, { cam: 'look', on: 'hero', off: [-2.2, 2.8, -3.4], at: [0, 1, 9] }, { with: [act('horda-chega')] }),
     say(S.guide, 'Vá por aquele caminho. Eu dou um jeito neles aqui.'),
     say(S.hero, 'Você tem certeza de que consegue lidar com tantos deles assim?'),
-    say(S.guide, 'Você esqueceu que eu estou entre os arcanjos mais fortes de Deus? Apenas vá.'),
+    say(S.guide, 'Consigo segurar a passagem por algum tempo. Encontre a saída e não pare até alcançá-la.'),
     shot('barreira-do-anjo', 1.6, { cam: 'look', on: 'hero', off: [-2.2, 2.8, -3.4], at: [7, 1.5, 0] }, { with: [act('anjo-luta')] })
   ];
 }
@@ -405,53 +437,61 @@ export function wardenIntroScene() {
   return [
     shot('portal-de-longe', 3.4, { cam: 'look', on: 'hero', off: [1.2, 2.2, -3], at: [0, 2, 26] }),
     shot('guardiao', 2.4, { cam: 'look', on: 'enemy', off: [2, 1.8, 4.2], at: [0, 1.3, 0] }, { with: [act('surgir-guardiao')] }),
-    say(S.hero, 'Saia do meu caminho, se não quiser morrer.'),
-    say(S.warden, 'Você não dará mais nenhum passo.')
+    say(S.hero, 'As pessoas presas aqui vão sair. Abra a passagem.'),
+    say(S.warden, 'Só passa quem leva o selo do bispo.')
   ];
 }
 
 /** O Guardião derrotado implora; o herói não poupa demônios. */
 export function wardenDefeatScene() {
   return [
-    say(S.warden, 'Por favor, não me mate… eu estava apenas seguindo ordens.'),
+    say(S.warden, 'Espere. Eu cumpri ordens. Não conheço outra saída.'),
     say(S.hero, 'O que é isso? E o que tem dentro desse portal?'),
-    say(S.warden, 'VHAZRAEL está aí dentro. É uma dimensão isolada deste mundo… foi VHAZRAEL quem a criou. Ela leva a algum lugar distante deste planeta.'),
-    say(S.hero, 'Entendi… Agora pode sumir deste mundo.'),
+    say(S.warden, 'VHAZRAEL mantém uma passagem para a própria dimensão. É por ela que as cargas e os selos chegam até ele.'),
+    say(S.hero, 'Você teve a chance de parar. Não vou permitir que continue.'),
     say(S.warden, 'Nãoooooo!', { auto: 1.4 }),
     shot('guardiao-desfeito', 2, { cam: 'look', on: 'enemy', off: [2.6, 1.6, 3.6], at: [0, 1, 0] }, { with: [act('desfazer-guardiao')] }),
-    say(S.hero, 'Demônios não merecem misericórdia. Tantas almas imploraram para não morrer, e eles brincaram com elas.'),
-    say(S.hero, 'Matar VHAZRAEL vai ser o primeiro passo para salvar este mundo.')
+    say(S.hero, 'O que aconteceu aqui não pode se repetir. Precisamos alcançar quem deu as ordens.'),
+    say(S.hero, 'VHAZRAEL está adiante. Ao menos agora sabemos aonde essas pessoas estavam sendo levadas.')
   ];
 }
 
 /** Dentro da dimensão, antes da luta. */
 export function vhazraelIntroScene() {
   return [
-    say(S.vhazrael, 'Quem é você, e como entrou aqui?'),
-    say(S.hero, 'Você não precisa saber de nada, já que logo vai morrer.'),
-    say(S.vhazrael, 'Hahaha! Você acha que pode matar uma divindade?'),
-    say(S.hero, 'Cadê a divindade? Não estou vendo nenhuma. Até agora, só vi uma: no Céu.'),
-    say(S.vhazrael, 'Espero que esteja preparado para morrer.')
+    say(S.vhazrael, 'Quem permitiu sua entrada? O selo desta passagem está sob meu comando.'),
+    say(S.hero, 'As pessoas da floresta e da cidade não são mercadorias. Vim encerrar isso.'),
+    say(S.vhazrael, 'Você derrubou guardas e atravessou um portal. Ainda não compreendeu a quem enfrenta.'),
+    say(S.hero, 'Compreendi o bastante. Você arruinou Eldória para servir à Ganância.'),
+    say(S.vhazrael, 'Os outros bispos não deixarão que leve isso adiante.')
   ];
 }
 
 /** VHAZRAEL caindo. */
 export function vhazraelDefeatScene() {
   return [
-    say(S.vhazrael, 'Não… não pode ser. Isso é impossível! Eu, uma divindade, um dos quatro Bispos da Ganância… derrotado por um humano.'),
-    say(S.vhazrael, 'Espera… você é realmente um humano?')
+    say(S.vhazrael, 'Não... O primeiro selo... A Ganância não vai permitir que o levem.'),
+    say(S.vhazrael, 'Que espécie de poder é esse...? Você não é como os outros.')
   ];
 }
 
-/** De volta ao início do mapa: o esgoto sumiu; tela escura e o Ato II. */
-export function afterVhazraelScene() {
+/** Epílogo jogável do Ato I: o guia acolhe a vitória, mas há cargas rumo às montanhas.
+ * Ponte breve para a região vulcânica, sem antecipar a revelação da Ganância nem
+ * afirmar destinos ainda pendentes de aprovação (Ilyan e crianças).
+ * A sequência de eventos do diretor continua intacta para preservar saves.
+ */
+export function afterVhazraelScene({ childrenFreed = false, wardenDefeated = false } = {}) {
   return [
     shot('volta', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: 1, dist: 4.4 }, { with: [act('anjo-aparece')] }),
-    say(S.guide, 'Então você realmente voltou vivo, né?'),
-    say(S.hero, 'Aonde eu estou? Eu não estava na dimensão de VHAZRAEL?'),
-    say(S.guide, 'Parece que, quando você derrotou VHAZRAEL, o portal se fechou e todo o esgoto sumiu.'),
-    say(S.hero, 'Então, o que eu devo fazer agora?'),
-    say(S.guide, 'Agora é só o começo. Ainda há uma longa jornada pela frente.'),
+    say(S.guide, 'Você voltou. Quando a passagem se fechou, temi que tivesse ficado lá dentro.'),
+    say(S.hero, 'VHAZRAEL caiu. Mas o que ele fez com Eldória não desaparece com ele.'),
+    ...(childrenFreed ? [say(S.hero, 'Conseguimos abrir as jaulas, mas o ritual já tinha começado. Ainda precisamos descobrir quem estava por trás dele.')] : []),
+    ...(wardenDefeated ? [say(S.guide, 'O guardião da passagem caiu. Aqueles que ainda estão presos podem ter uma saída.')] : []),
+    say(S.guide, 'Não. Os que sobreviveram ainda precisarão de ajuda. Ao menos, agora terão uma chance.'),
+    say(S.hero, 'E a Ganância? Um dos quatro bispos foi derrotado. Onde estão os outros?'),
+    say(S.guide, 'Ainda não sabemos. Mas encontrei registros de cargas enviadas para as montanhas. A estrada segue até a região vulcânica.'),
+    say(S.hero, 'Então começamos por lá. Antes, quero ter certeza de que ninguém ficou para trás.'),
+    say(S.guide, 'É por isso que vale a pena continuar.'),
     act('escuro'),
     wait(2.4)
   ];

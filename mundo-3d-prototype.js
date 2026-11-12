@@ -122,7 +122,7 @@ import { buildFrontier } from './frontier3d.js';
 import { ZONES as ASC_ZONES, CAVE as ASC_CAVE, ASCENT as ASC_ASCENT, ASCENT_PORTAL, crossedCavePortal, crossedAscentPortal } from './ascension-layout.js';
 import { buildCave } from './ascension-cave3d.js';
 import { buildAscent } from './ascension-ascent3d.js';
-import { ACT1, SPEAKERS, sanitizePlayerName, migrateProgress, questPresentation, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, afterVhazraelVictory, personalizeLine, villageArrivalScene, vendorRefusalScene, vendorScene, forestFirstScene, forestSecondScene, keyFoundScene, cageScene, faintScene, massacreScene, clueScene, feedingScene, holeScene, wardenIntroScene, wardenDefeatScene, vhazraelIntroScene, vhazraelDefeatScene, afterVhazraelScene } from './act1-flow.js';
+import { ACT1, SPEAKERS, sanitizePlayerName, migrateProgress, questPresentation, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, afterVhazraelVictory, personalizeLine, villageArrivalScene, vendorRefusalScene, vendorScene, forestFirstScene, forestSecondScene, keyFoundScene, cageScene, faintScene, massacreScene, clueScene, feedingScene, holeScene, wardenIntroScene, wardenDefeatScene, vhazraelIntroScene, vhazraelDefeatScene, afterVhazraelScene, ilyanVillageScene, ilyanPrisonScene } from './act1-flow.js';
 import { SEWER, sewerWalkable, sewerCheckpoint, sewerZone } from './sewer3d.js';
 
 const worldAudio=createWorldAudio();
@@ -3310,6 +3310,63 @@ function mergeGroupMeshes(root){
 const npcFactory=createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeightAt});
 const villageNpcs=[];
 const flyNpcTargets=[];
+// Ilyan reutiliza o rig Meshy masculino existente; uma única instância em cena.
+// Sua presença no poço e na cela é vinculada ao estágio, sem adicionar clones.
+const ILYAN_WELL={x:VILLAGE_CENTER.x-3.0,z:VILLAGE_CENTER.z-1.6};
+let ilyanNpc=null,ilyanPending=null,ilyanPlace='';
+/** Seguimento 3D leve, limitado ao piso caminhável. Sem teleporte ou pathfinding através de parede. */
+function updateIlyanEscort(dt){
+ if(!ilyanNpc||!inSewer||questStep!==5||act1Lock||cineActive||portalPull)return;
+ const h=ilyanNpc.holder,action=ilyanNpc.action;
+ if(!h.visible)return;
+ const dx=player.position.x-h.position.x,dz=player.position.z-h.position.z,d=Math.hypot(dx,dz);
+ const origin=DIMENSIONS.esgoto.center,localZ=h.position.z-origin.z;
+ // Saia da cela pelo corredor central antes de perseguir o jogador: evita cortar rochas.
+ const waypoint=localZ>-36.6&&player.position.z-origin.z<-34;
+ const tx=waypoint?origin.x+SEWER.emptyPath.from.x:player.position.x;
+ const tz=waypoint?origin.z-37:player.position.z;
+ const vx=tx-h.position.x,vz=tz-h.position.z,len=Math.hypot(vx,vz);
+ const moving=d<35&&(waypoint?len>.06:d>2.5)&&len>.05;
+ if(action)action.paused=!moving;
+ if(!moving)return;
+ const step=Math.min(len,Math.min(.05,Math.max(0,dt))*2.45);
+ const nx=h.position.x+vx/len*step,nz=h.position.z+vz/len*step;
+ // A própria geometria de colisão do esgoto valida o próximo ponto.
+ if(!sewerWalkable(nx-origin.x,nz-origin.z,{portalOpen:false})){
+  if(action)action.paused=true;
+  return;
+ }
+ h.position.set(nx,voidSpec.y,nz);
+ h.rotation.y=Math.atan2(vx,vz);
+ if(ilyanNpc.mixer)ilyanNpc.mixer.update(Math.min(.05,Math.max(0,dt)));
+}
+function syncIlyanPlacement(){
+ if(!ilyanNpc)return;
+ const prison=inSewer&&questStep>=4&&questStep<=5;
+ const town=!inSewer&&questStep===1&&act1Sub>=1;
+ const where=prison?'prison':town?'town':'hidden';
+ if(where===ilyanPlace)return;
+ ilyanPlace=where;
+ const h=ilyanNpc.holder;h.visible=where!=='hidden';
+ if(ilyanNpc.action)ilyanNpc.action.paused=true;
+ if(where==='prison'){
+  const p=sewerLocal(SEWER.cell);
+  h.position.set(p.x+2.1,voidSpec.y,p.z-.9);
+  h.rotation.y=Math.PI*.75;
+ }else if(where==='town'){
+  h.position.set(ILYAN_WELL.x,groundHeightAt(ILYAN_WELL.x,ILYAN_WELL.z),ILYAN_WELL.z);
+  h.rotation.y=-.6;
+ }
+}
+function ensureIlyan(){
+ if(ilyanNpc||ilyanPending)return ilyanPending;
+ ilyanPending=npcFactory.create({sex:'man',role:'walk',x:ILYAN_WELL.x,z:ILYAN_WELL.z,yaw:-.6})
+  .then(n=>{ilyanNpc=n;n.holder.name='Ilyan-Guarda-Eldoria';scene.add(n.holder);syncIlyanPlacement();return n;})
+  .catch(e=>{console.warn('Ilyan: NPC Meshy indisponível; nenhuma malha substituta',e);return null;})
+  .finally(()=>{ilyanPending=null;});
+ return ilyanPending;
+}
+
 function loadVillagers(){
  const roles=[
   {sex:'man',age:'elder',role:'idle'},
@@ -3320,6 +3377,7 @@ function loadVillagers(){
  return Promise.all(villageVendors.map((p,i)=>npcFactory.create({...roles[i],x:p.x,z:p.z,yaw:p.yaw})))
  .then(cast=>{
    for(const c of cast){villageGroup.add(c.holder);villageNpcs.push(c);vendorRoots.push(c.holder);if(c.mixer)villageNpcMixers.push(c.mixer);}
+   ensureIlyan();
    // A vila permanece pouco habitada: 3 vendedores + 4 moradores, nenhum menor.
    const extras=[
     {sex:'man',role:'down',offset:[-6,-9],yaw:.8},
@@ -3626,12 +3684,12 @@ function useRig(name){
    outros visíveis esperando a vez (o motor de combate é de um adversário). O esgoto é uma área abaixo do mundo
    (tema "sewer", layout em sewer3d.js), como as dimensões. */
 var packFinishing=false,act1Sub=saved3DProgress.act1Sub||0,storyScene=null,pack=null,inSewer=false,sewerArena=null,storyMove=null,storyFx=[],act1Props=null,act1Night=false,act1Lock=false,hordeClones=[],guideFighting=false;
-const STORY_EYE={hero:1.5,guide:2.1,enemy:1.35,vendor:1.5,cage:.7,victim:.9,feeding:.9,cell:1.2,hole:0,massacre:1,village:2};
-const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[SPEAKERS.vendor]:'vendor',[SPEAKERS.follower]:'enemy',[SPEAKERS.demon]:'enemy',[SPEAKERS.child]:'cage',[SPEAKERS.warden]:'enemy',[SPEAKERS.vhazrael]:'enemy',[SPEAKERS.victim]:'victim'};
+const STORY_EYE={hero:1.5,guide:2.1,enemy:1.35,vendor:1.5,ilyan:1.55,cage:.7,victim:.9,feeding:.9,cell:1.2,hole:0,massacre:1,village:2};
+const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[SPEAKERS.vendor]:'vendor',[SPEAKERS.ilyan]:'ilyan',[SPEAKERS.follower]:'enemy',[SPEAKERS.demon]:'enemy',[SPEAKERS.child]:'cage',[SPEAKERS.warden]:'enemy',[SPEAKERS.vhazrael]:'enemy',[SPEAKERS.victim]:'victim'};
 const storyAnchors={};
 const _sa=new THREE.Vector3(),_sb=new THREE.Vector3(),_sc=new THREE.Vector3();
 function sewerLocal(p){return{x:p.x+DIMENSIONS.esgoto.center.x,z:p.z+DIMENSIONS.esgoto.center.z};}
-function actorObj(key){if(key==='hero')return player;if(key==='guide')return guide;if(key==='enemy')return enemy.visible?enemy:(pack&&pack.clones.find(c=>c&&c.holder.visible)||{}).holder||enemy;if(key==='vendor')return vendorRoots[2]||null;return null;}
+function actorObj(key){if(key==='ilyan')return ilyanNpc?.holder||null;if(key==='hero')return player;if(key==='guide')return guide;if(key==='enemy')return enemy.visible?enemy:(pack&&pack.clones.find(c=>c&&c.holder.visible)||{}).holder||enemy;if(key==='vendor')return vendorRoots[1]||null;return null;}
 function actorPos(key,out){
  const a=storyAnchors[key];if(a){out.set(a.x,a.y!==undefined?a.y:terrainHeightAt(a.x,a.z),a.z);return out;}
  const o=actorObj(key);if(o){o.getWorldPosition(out);return out;}return out.copy(player.position);
@@ -4300,6 +4358,7 @@ function updateFlies(now){const f=act1Props&&act1Props.flies;if(!f||Math.hypot(p
 function enterSewer(at){
  inSewer=true;sewerArena=getDimArena('esgoto');enterDimensionArena('esgoto');
  voidSpec.walk=(lx,lz)=>sewerWalkable(lx,lz,{portalOpen:questStep>=6});
+ syncIlyanPlacement();
  const c=sewerLocal(at||sewerCheckpoint(questStep,act1Sub));player.position.set(c.x,voidSpec.y,c.z);playerYaw=(at&&at.yaw!==undefined)?at.yaw:Math.PI;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;
  checkpointX=c.x;checkpointZ=c.z;camera.position.set(c.x-Math.sin(playerYaw)*6,voidSpec.y+3,c.z-Math.cos(playerYaw)*6);
  const r=sewerArena.refs;if(r.cage){r.cage.bars.position.y=questStep>=5||(questStep===4&&act1Sub>=3)?0:-3.2;r.cage.top.position.y=r.cage.bars.position.y+2.6;}
@@ -4307,7 +4366,7 @@ function enterSewer(at){
  worldAudio.portalEnter();
 }
 function leaveSewer(to){
- inSewer=false;voidSpec.walk=null;leaveVoid();for(const c of hordeClones.splice(0))disposeClone(c);guideFighting=false;
+ inSewer=false;voidSpec.walk=null;syncIlyanPlacement();leaveVoid();for(const c of hordeClones.splice(0))disposeClone(c);guideFighting=false;
  const p=to||sewerDoorFront();player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);checkpointX=p.x;checkpointZ=p.z;camera.position.set(p.x+Math.sin(cameraYaw)*6,player.position.y+3,p.z+Math.cos(cameraYaw)*6);
  setGameHour(act1Night?21.5:9);
 }
@@ -4384,7 +4443,7 @@ function act1Toast(text){const toast=document.getElementById('quest-toast');if(!
 function act1Busy(){return cineActive||dialogueOpen||namePromptOpen||act1Lock||packFinishing||!!portalPull;}
 /** Marcador da missão e gatilhos por proximidade. */
 function updateAct1(dt,now){
- updatePack(dt);updateFlies(now);updateRoad(dt);
+ updatePack(dt);updateFlies(now);updateRoad(dt);syncIlyanPlacement();updateIlyanEscort(dt);
  if(questStep<1||questStep>8)return;
  if(questStep>=3&&questStep<=4&&!rigLoads.enemy2)loadRig('enemy2').catch(()=>{});
  const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>questMarker.position.set(p.x,terrainHeightAt(p.x,p.z)+.06,p.z);
@@ -4447,6 +4506,8 @@ function updateAct1(dt,now){
 }
 function act1TalkLabel(){
  if(cineActive)return '';const px=player.position.x,pz=player.position.z;
+ if(inSewer&&questStep===5&&ilyanNpc?.holder.visible&&Math.hypot(ilyanNpc.holder.position.x-px,ilyanNpc.holder.position.z-pz)<=2.9)return 'FALAR · ILYAN';
+ if(questStep===1&&act1Sub>=1&&ilyanNpc?.holder.visible&&Math.hypot(ILYAN_WELL.x-px,ILYAN_WELL.z-pz)<=2.9)return 'FALAR · ILYAN';
  if(questStep===1&&act1Sub>=1){const t=villageVendors[1];if(Math.hypot(t.x-px,t.z-pz)<=2.9)return 'PERGUNTAR · TÉO';}
  if(questStep===3&&act1Sub===0&&Math.hypot(CAGE_CENTER.x-px,CAGE_CENTER.z-pz)<=4.2)return 'ABRIR GAIOLA';
  if(questStep===4&&act1Sub===1&&!inSewer){const d=sewerDoorFront();if(Math.hypot(d.x-px,d.z-pz)<=3.4)return 'ENTRAR NO ESGOTO';}
@@ -4457,6 +4518,7 @@ function act1TalkLabel(){
 }
 function act1Interact(){
  const label=act1TalkLabel();if(!label)return false;
+ if(label==='FALAR · ILYAN'){faceTo(player,ilyanNpc.holder.position);playStory(inSewer?'ilyan-cela':'ilyan-poco',inSewer?ilyanPrisonScene():ilyanVillageScene(),{focus:'ilyan',face:'ilyan'});return true;}
  if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor'});return true;}
   playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
  if(label==='ABRIR GAIOLA'){faceTo(player,CAGE_CENTER);openCage();return true;}
@@ -4640,7 +4702,7 @@ function forestCleared(){
  playStory('chave',keyFoundScene(),{focus:'cage',face:'cage'});
 }
 function openCage(){
- act1Lock=true;childrenFreed=true;bumpStat('rescues');save3DProgress();
+ act1Lock=true;childrenFreed=true;/* Abertura da jaula não equivale a resgate: o ritual ainda acontece. */save3DProgress();
  playStory('gaiola',cageScene(),{focus:'cage',face:'cage',done:()=>{act1Lock=false;for(const k of act1Props?act1Props.kids:[])k.visible=false;act1Advance(3,1);if(pack)packNext();}});
 }
 function childrenCleared(){act1Advance(3,2);}
@@ -4656,7 +4718,7 @@ function massacreSpots(){const m=MASSACRE_SPOT;return[{x:m.x+2.6,z:m.z-1.2},{x:m
 function massacreCleared(){act1Advance(4,1);playStory('pista',clueScene(),{focus:'hero',done:()=>{status.textContent='A pista marca uma caverna na encosta.';}});}
 function feedingCleared(){act1Advance(4,3);status.textContent='Há um buraco no fundo da sala.';}
 function playHole(){
- playStory('buraco',holeScene(),{focus:'guide',done:skipped=>{
+ playStory('buraco',holeScene({ilyanPresent:!!ilyanNpc}),{focus:'guide',done:skipped=>{
   act1Lock=false;
   if(skipped){const c=sewerLocal(SEWER.checkpoints.path);player.position.set(c.x,voidSpec.y,c.z);setCineFade(0,.6,false);}
   guideFighting=!skipped;if(sewerArena&&sewerArena.refs.seal){sewerArena.refs.seal.visible=true;sewerArena.refs.seal.scale.y=1;}if(skipped){guide.visible=false;for(const c of hordeClones.splice(0))disposeClone(c);}act1Advance(5,0);status.textContent='Siga pelo caminho vazio. O Anjo segura a horda.';
@@ -4686,7 +4748,7 @@ function storyDo(id,args){
   case 'entregar-ouro':{
    coins=Math.max(0,coins-ACT1.bribe);updateQuestHud();showRewardPop('−'+ACT1.bribe+' MOEDAS');worldAudio.coins();
    const bag=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),mat(0x7a5a2a));bag.scale.set(1,1.2,1);scene.add(bag);
-   const v=vendorRoots[2],to=v?v.position.clone():P.clone();
+   const v=vendorRoots[1],to=v?v.position.clone():P.clone();
    storyFx.push({t:0,tick(t){const k=Math.min(1,t/1.3);bag.position.set(THREE.MathUtils.lerp(P.x,to.x,k),P.y+1.05+Math.sin(k*Math.PI)*.35,THREE.MathUtils.lerp(P.z,to.z,k));if(k>=1){scene.remove(bag);return false;}},finish(){scene.remove(bag);}});
    break;}
   case 'anoitecer':nightFalls(false);break;
@@ -4766,7 +4828,7 @@ function vhazraelIntro(){if(!dimBattle||dimBattle.key!=='bishop1'||questStep>=8)
 function vhazraelOutro(then){playStory('vhazrael-cai',vhazraelDefeatScene(),{focus:'enemy',done:()=>then()});}
 function afterVhazraelStory(){
  guide.visible=true;
- playStory('volta',afterVhazraelScene(),{focus:'guide',done:()=>{
+ playStory('volta',afterVhazraelScene({childrenFreed,wardenDefeated}),{focus:'guide',done:()=>{
   // Fim do Ato I: tela escura e o Ato II começa (a viagem até a cidade seguinte).
   startAct2Travel();setCineFade(0,1.6,false);
  }});

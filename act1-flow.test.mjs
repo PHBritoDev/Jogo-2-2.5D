@@ -48,9 +48,9 @@ test('cada etapa e sub-etapa tem objetivo; há luta nas etapas 2 a 5', () => {
     const page = questPresentation(step, sub);
     assert.ok(page.title.length > 8 && page.objective.length > 8, step + '/' + sub);
   }
-  assert.match(questPresentation(1, 0).objective, /vila/);
+  assert.match(questPresentation(1, 0).objective, /Eldória/);
   assert.match(questPresentation(2).objective, /floresta/);
-  assert.match(questPresentation(4, 2).objective, /esgoto/);
+  assert.match(questPresentation(4, 2).objective, /galerias/);
   for (const s of [2, 3, 4, 5]) assert.equal(combatStep(s), true);
   for (const s of [0, 1, 6, 7, 8]) assert.equal(combatStep(s), false);
 });
@@ -82,16 +82,21 @@ test('sub-etapas avançam na ordem e fecham a etapa', () => {
   assert.equal(vhazraelHandoffPlan().replaceDimension, false);
 });
 
-test('falas essenciais do roteiro estão presentes', () => {
+test('arco narrativo revisado: exploração, ritual, caverna, bispo e caminho para o vulcão', () => {
   const t = text();
-  for (const re of [/Se não vai comprar nada, vaza/, /Ele se considera um deus/, /controla todo o dinheiro do mundo/, /choro de crianças/, /vendidas pelos próprios pais/, /Ele se chama VHAZRAEL/,
-    /se tem amor à vida, jamais se envolva com eles/i, /chegou mais um sacrifício/, /A paz deste mundo acabou/, /destruir o Pecado da Ganância/, /nem contra VHAZRAEL/,
-    /Achei a chave/, /Vocês estão bem\?/, /como receptáculo/, /meio tonto/, /já é de manhã/, /esgotos/, /eu mesmo te mato/, /Já estou indo/,
-    /se recusaram a nos dar todo o dinheiro/, /A existência de vocês acaba aqui/, /nossa sobremesa/, /Não seja imprudente/, /Nunca mais seja imprudente/,
-    /arcanjos mais fortes de Deus/, /Você não dará mais nenhum passo/, /seguindo ordens/, /dimensão isolada/, /Demônios não merecem misericórdia/,
-    /primeiro passo para salvar este mundo/, /matar uma divindade/, /só vi uma: no Céu/, /um dos quatro Bispos da Ganância/, /realmente um humano/,
-    /voltou vivo/, /todo o esgoto sumiu/, /longa jornada/])
-    assert.match(t, re);
+  for (const re of [
+    /cargas confiscadas|caixas confiscadas/i,
+    /famílias começaram a passar fome/i,
+    /crianças pedindo ajuda/i,
+    /VHAZRAEL/,
+    /Abra as jaulas/i,
+    /ritual/i,
+    /prisioneiros/i,
+    /caverna/i,
+    /um dos quatro Bispos da Ganância|outros bispos/i,
+    /região vulcânica/i,
+    /sobreviveram/i
+  ]) assert.match(t, re);
   assert.doesNotMatch(JSON.stringify(all()), /Paulo/);
 });
 
