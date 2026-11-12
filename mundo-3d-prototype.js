@@ -122,7 +122,7 @@ import { buildFrontier } from './frontier3d.js';
 import { ZONES as ASC_ZONES, CAVE as ASC_CAVE, ASCENT as ASC_ASCENT, ASCENT_PORTAL, crossedCavePortal, crossedAscentPortal } from './ascension-layout.js';
 import { buildCave } from './ascension-cave3d.js';
 import { buildAscent } from './ascension-ascent3d.js';
-import { ACT1, SPEAKERS, sanitizePlayerName, migrateProgress, questPresentation, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, afterVhazraelVictory, personalizeLine, villageArrivalScene, vendorRefusalScene, vendorScene, forestFirstScene, forestSecondScene, keyFoundScene, cageScene, faintScene, massacreScene, clueScene, feedingScene, holeScene, wardenIntroScene, wardenDefeatScene, vhazraelIntroScene, vhazraelDefeatScene, afterVhazraelScene, ilyanVillageScene } from './act1-flow.js';
+import { ACT1, SPEAKERS, sanitizePlayerName, migrateProgress, questPresentation, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, afterVhazraelVictory, personalizeLine, villageArrivalScene, vendorRefusalScene, vendorScene, forestFirstScene, forestSecondScene, keyFoundScene, cageScene, faintScene, massacreScene, clueScene, feedingScene, holeScene, wardenIntroScene, wardenDefeatScene, vhazraelIntroScene, vhazraelDefeatScene, afterVhazraelScene, ilyanVillageScene, ilyanPrisonScene } from './act1-flow.js';
 import { SEWER, sewerWalkable, sewerCheckpoint, sewerZone } from './sewer3d.js';
 
 const worldAudio=createWorldAudio();
@@ -4479,6 +4479,7 @@ function updateAct1(dt,now){
 }
 function act1TalkLabel(){
  if(cineActive)return '';const px=player.position.x,pz=player.position.z;
+ if(inSewer&&questStep===5&&ilyanNpc?.holder.visible&&Math.hypot(ilyanNpc.holder.position.x-px,ilyanNpc.holder.position.z-pz)<=2.9)return 'FALAR · ILYAN';
  if(questStep===1&&act1Sub>=1&&ilyanNpc?.holder.visible&&Math.hypot(ILYAN_WELL.x-px,ILYAN_WELL.z-pz)<=2.9)return 'FALAR · ILYAN';
  if(questStep===1&&act1Sub>=1){const t=villageVendors[1];if(Math.hypot(t.x-px,t.z-pz)<=2.9)return 'PERGUNTAR · TÉO';}
  if(questStep===3&&act1Sub===0&&Math.hypot(CAGE_CENTER.x-px,CAGE_CENTER.z-pz)<=4.2)return 'ABRIR GAIOLA';
@@ -4490,7 +4491,7 @@ function act1TalkLabel(){
 }
 function act1Interact(){
  const label=act1TalkLabel();if(!label)return false;
- if(label==='FALAR · ILYAN'){faceTo(player,ilyanNpc.holder.position);playStory('ilyan-poco',ilyanVillageScene(),{focus:'ilyan',face:'ilyan'});return true;}
+ if(label==='FALAR · ILYAN'){faceTo(player,ilyanNpc.holder.position);playStory(inSewer?'ilyan-cela':'ilyan-poco',inSewer?ilyanPrisonScene():ilyanVillageScene(),{focus:'ilyan',face:'ilyan'});return true;}
  if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor'});return true;}
   playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
  if(label==='ABRIR GAIOLA'){faceTo(player,CAGE_CENTER);openCage();return true;}
