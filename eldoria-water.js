@@ -9,6 +9,9 @@
  * Custo: 1 draw call por corpo d'água, sem render target, sem reflexo em tempo real (orçamento mobile).
  */
 export const WATER_MAX_ROCKS = 10;
+/** Mod 316 — ondulações de passos/aterrissagens: pool fixo de anéis (uniform), nenhum objeto criado por passo. */
+export const WATER_MAX_RIPPLES = 6;
+export const RIPPLE_LIFE = 2.2;
 
 const VERT = /* glsl */`
 #include <common>
@@ -23,9 +26,10 @@ void main(){
 const FRAG = /* glsl */`
 #include <common>
 #include <fog_pars_fragment>
-uniform float uTime, uFlow, uNight, uRadial, uAlpha, uFoamEnd;
+uniform float uTime, uFlow, uNight, uRadial, uAlpha, uFoamEnd, uWhite;
 uniform vec2 uLakeC;
-uniform vec3 uDeep, uShallow, uSky, uSkyNight, uSun, uFoam;
+uniform vec3 uDeep, uShallow, uSky, uSkyNight, uSun, uFoam, uSkyZen, uSunCol;
+uniform vec4 uRipples[${WATER_MAX_RIPPLES}];
 uniform vec4 uRocks[${WATER_MAX_ROCKS}];
 uniform int uRockCount;
 varying vec2 vUv; varying vec3 vWorld;
@@ -44,16 +48,25 @@ void main(){
   float nx = fbm(a + vec2(e, 0)) * .65 + fbm(b + vec2(e, 0)) * .35;
   float nz = fbm(a + vec2(0, e)) * .65 + fbm(b + vec2(0, e)) * .35;
   vec3 N = normalize(vec3((n0 - nx) * 3.2 * (.35 + .65 * (1.0 - smoothstep(15.0, 80.0, length(cameraPosition - vWorld)))), 1.0, (n0 - nz) * 3.2 * (.35 + .65 * (1.0 - smoothstep(15.0, 80.0, length(cameraPosition - vWorld))))));
+  // Mod 316 — anéis de ondulação (passos na água rasa / aterrissagem): perturbam a normal e deixam um fio de espuma.
+  float rippleFoam = 0.0;
+  for (int i = 0; i < ${WATER_MAX_RIPPLES}; i++){ vec4 rp = uRipples[i]; float age = uTime - rp.z; if (rp.w <= 0.0 || age < 0.0 || age > ${RIPPLE_LIFE.toFixed(2)}) continue;
+    vec2 dv = vWorld.xz - rp.xy; float d = length(dv) + 1e-4, rad = .25 + age * 1.15, fade = (1.0 - age / ${RIPPLE_LIFE.toFixed(2)}) * rp.w;
+    float band = exp(-pow((d - rad) * 4.5, 2.0)) * fade, band2 = exp(-pow((d - rad * .62) * 6.0, 2.0)) * fade * .55;
+    N.xz += dv / d * (sin((d - rad) * 22.0) * band + sin((d - rad * .62) * 26.0) * band2) * .55; rippleFoam = max(rippleFoam, band * .45); }
+  N = normalize(N);
   vec3 V = normalize(cameraPosition - vWorld);
   float fres = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 4.0) * .5 + .04;
   vec3 body = mix(uDeep, uShallow, smoothstep(.15, .95, across) * .8 + (n0 - .5) * .25);
-  vec3 sky = mix(mix(uSky, uDeep, .3), uSkyNight, uNight);
+  // Mod 316 — reflexo do céu da HORA atual: horizonte perto da incidência rasante, zênite quando se olha de cima.
+  vec3 R = reflect(-V, N); vec3 skyRef = mix(uSky, uSkyZen, smoothstep(.05, .6, R.y));
+  vec3 sky = mix(mix(skyRef, uDeep, .22), uSkyNight, uNight * .5);
   // Reflexo aproximado da mata (lago cercado de árvores): verde-escuro na faixa da margem, recortado por ruído
   // que imita troncos/copas refletidos; sem render target.
   if (uRadial > .5) { float trunks = .55 + .45 * sin(atan(vWorld.z - uLakeC.y, vWorld.x - uLakeC.x) * 23.0 + n0 * 3.0); sky = mix(sky, vec3(.05, .11, .07) * (1.0 - uNight * .5), smoothstep(.35, .95, across) * (.45 + .4 * trunks)); }
   vec3 col = mix(body, sky, fres);
   vec3 L = normalize(uSun); float spec = pow(max(dot(reflect(-L, N), V), 0.0), 90.0) * (1.0 - uNight * .7);
-  col += vec3(1.0, .96, .86) * spec * 1.4;
+  col += uSunCol * spec * 1.4;
   // Espuma: margens recortadas por ruído e riscos que descem com a correnteza.
   float streak = fbm(vec2(vUv.x * .9 - uTime * speed * 1.3, vUv.y * 5.0));
   float camDist = length(cameraPosition - vWorld), near = (1.0 - smoothstep(18.0, 70.0, camDist)); // longe: sem cintilar
@@ -68,10 +81,15 @@ void main(){
     vec4 r = uRocks[i]; float d = length(vWorld.xz - r.xy) - r.z;
     float ring = (1.0 - smoothstep(0.0, .9, d)) * (.55 + .45 * fbm(vWorld.xz * 2.0 - vec2(uTime * speed, 0.0)));
     foam = max(foam, ring * r.w); }
+  foam = max(foam, rippleFoam);
+  // Mod 316 — água branca (cascata): riscos longos que descem com a correnteza + bolhas; uWhite = 0 no rio/lago.
+  if (uWhite > 0.0) { float w = smoothstep(.38, .82, fbm(vec2(vUv.x * .55 - uTime * speed * 1.7, vUv.y * 3.2)) + (n0 - .5) * .35); foam = max(foam, uWhite * (.35 + .65 * w)); }
   col = mix(col, uFoam * (1.0 - uNight * .55), clamp(foam, 0.0, 1.0) * .85);
   float alpha = mix(uAlpha, .97, clamp(foam, 0.0, 1.0)) * (1.0 - smoothstep(.97, 1.0, across) * .6);
   // Margem rasa do lago mais transparente (o fundo aparece): a água deixa de parecer uma placa sobreposta.
   if (uRadial > .5) alpha *= mix(1.0, .55, smoothstep(.7, 1.0, across));
+  // Mod 316 — rio raso nas margens: absorção menor, o leito aparece (água translúcida como na referência).
+  else alpha *= mix(1.0, .72, smoothstep(.72, .97, across) * (1.0 - foam));
   gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -85,10 +103,15 @@ export function createFlowWaterMaterial(THREE, o = {}) {
     uDeep: { value: new THREE.Color(o.deep ?? 0x0d4f55) }, uShallow: { value: new THREE.Color(o.shallow ?? 0x37a9a2) },
     uSky: { value: new THREE.Color(o.sky ?? 0xbfdbe0) }, uSkyNight: { value: new THREE.Color(0x24344e) },
     uSun: { value: new THREE.Vector3(.4, .8, .3) }, uFoam: { value: new THREE.Color(0xeef6f2) },
-    uRocks: { value: rocks }, uRockCount: { value: 0 }
+    uRocks: { value: rocks }, uRockCount: { value: 0 },
+    uSkyZen: { value: new THREE.Color(o.skyZen ?? 0x6aa5d3) }, uWhite: { value: o.white ?? 0 }, uSunCol: { value: new THREE.Color(1, .96, .86) },
+    uRipples: { value: Array.from({ length: WATER_MAX_RIPPLES }, () => new THREE.Vector4(0, 0, -99, 0)) }
   }]);
   const m = new THREE.ShaderMaterial({ uniforms, vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide });
   m.name = o.radial ? 'eldoria-lake-water' : 'eldoria-river-water';
+  /** Pool circular: reaproveita o anel mais antigo (sem alocação). */
+  let rippleNext = 0;
+  m.addRipple = (x, z, time, amp = 1) => { const r = uniforms.uRipples.value[rippleNext]; r.set(x, z, time, amp); rippleNext = (rippleNext + 1) % WATER_MAX_RIPPLES; };
   m.setRocks = list => { const n = Math.min(WATER_MAX_ROCKS, list.length); for (let i = 0; i < n; i++) rocks[i].set(list[i].x, list[i].z, list[i].r, list[i].foam ?? 1); uniforms.uRockCount.value = n; };
   return m;
 }
@@ -123,7 +146,7 @@ export function buildRiverMesh(THREE, points, o = {}) {
   const r = riverRibbon(points, o), g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(r.positions, 3)); g.setAttribute('uv', new THREE.BufferAttribute(r.uvs, 2)); g.setIndex(r.indices);
   g.computeVertexNormals(); g.computeBoundingSphere();
-  const material = createFlowWaterMaterial(THREE, { flow: o.flow ?? 1.15 });
+  const material = createFlowWaterMaterial(THREE, { flow: o.flow ?? 1.15, white: o.white ?? 0, alpha: o.alpha });
   material.uniforms.uFoamEnd.value = r.length;
   const mesh = new THREE.Mesh(g, material); mesh.name = 'eldoria-river-mod291'; mesh.renderOrder = 2; mesh.frustumCulled = true;
   return { mesh, material, ribbon: r };

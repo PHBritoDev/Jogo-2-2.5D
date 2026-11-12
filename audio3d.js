@@ -48,6 +48,8 @@ export function createWorldAudio() {
     layers.wind = loopNoise('lowpass', 240, .35, ambBus);
     layers.leaves = loopNoise('highpass', 3200, .4, ambBus);
     layers.water = loopNoise('lowpass', 900, .3, ambBus);
+    // Mod 316 — cachoeira: rumor grave + chiado da água branca (posicional por distância, ver update)
+    layers.falls = loopNoise('lowpass', 1100, .45, ambBus); layers.fallsHi = loopNoise('bandpass', 2700, .8, ambBus);
     // Zumbido grave do portal (duas senoides levemente desafinadas).
     const hum = ctx.createGain(); hum.gain.value = 0; hum.connect(ambBus);
     for (const [fr, det] of [[55, 0], [82.4, 4], [110, -6]]) { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = fr; o.detune.value = det; const g = ctx.createGain(); g.gain.value = fr === 55 ? .55 : .22; o.connect(g); g.connect(hum); o.start(); }
@@ -142,12 +144,16 @@ export function createWorldAudio() {
       if (music) { music.set(s.music || 'explore', night); music.tick(dt, night); }
       gustTimer -= dt; if (gustTimer <= 0) { gustTimer = 3 + Math.random() * 6; layers.wind.f.frequency.setTargetAtTime(180 + Math.random() * 140, t, 1.4); }
       const height = Math.max(0, s.altitude || 0);
-      layers.wind.g.gain.setTargetAtTime((.035 + Math.min(.025, Math.max(0, height) * .003)) * (1 + .25 * Math.sin(t * .23)), t, .8);
-      layers.leaves.g.gain.setTargetAtTime(.018 + .014 * Math.max(0, Math.sin(t * .41 + Math.sin(t * .13) * 2)), t, .6);
+      // Mod 316 — transição suave mata ↔ campo aberto: dentro da mata o vento baixa e as folhas sobem.
+      const forest = Math.max(0, Math.min(1, s.forest || 0));
+      layers.wind.g.gain.setTargetAtTime((.035 + Math.min(.025, Math.max(0, height) * .003)) * (1 + .25 * Math.sin(t * .23)) * (1 - .38 * forest), t, .8);
+      layers.leaves.g.gain.setTargetAtTime((.018 + .014 * Math.max(0, Math.sin(t * .41 + Math.sin(t * .13) * 2))) * (1 + .9 * forest), t, .6);
+      const falls = Math.pow(Math.max(0, 1 - (s.fallsDistance ?? 999) / 44), 1.6);
+      layers.falls.g.gain.setTargetAtTime(.3 * falls, t, .4); layers.fallsHi.g.gain.setTargetAtTime(.07 * falls * (1 + .15 * Math.sin(t * 1.7)), t, .3);
       layers.water.g.gain.setTargetAtTime(.22 * Math.max(0, 1 - (s.pondDistance || 99) / 26), t, .5);
       layers.portal.g.gain.setTargetAtTime(.09 * Math.max(0, 1 - (s.portalDistance || 99) / 30) * (s.portalReady ? 1.6 : 1), t, .5);
       if (night > .4) { insectTimer -= dt; if (insectTimer <= 0) { insectTimer = .25 + Math.random() * .9; cricket(night); } }
-      else { birdTimer -= dt; if (birdTimer <= 0) { birdTimer = 2.5 + Math.random() * 7; bird(1 - night); } }
+      else { birdTimer -= dt; if (birdTimer <= 0) { birdTimer = (2.5 + Math.random() * 7) * (1 - .35 * forest); bird(1 - night); } }
       // Passos: um a cada ~0,65 m percorridos no chão; superfície muda o timbre.
       if (s.grounded && s.speed > .4) {
         stepDistance += s.speed * dt;
@@ -160,6 +166,8 @@ export function createWorldAudio() {
       } else stepDistance = .5;
     },
     swing(step=0, sword='') { if (!ready) return; const n=Math.abs(step)%3, dark=sword==='aurora'?.82:1; burst('bandpass', [700,920,540][n]*dark, 1.4, [.16,.13,.20][n], .2, sfxBus, [2600,3100,2100][n]*dark); },
+    /** Mod 316 — bando de pássaros passando (chamado pelo sistema de pássaros quando um bando cruza perto). */
+    flock(level = 1) { if (!ready) return; const f = 2600 + Math.random() * 900; for (let i = 0; i < 5; i++) tone('sine', f * (1 + Math.random() * .2), f * (1.3 + Math.random() * .3), .016 * level, .07, ambBus, i * .09 + Math.random() * .05); burst('bandpass', 1800, 1.2, .025 * level, .35, ambBus); },
     hit() { if (!ready) return; tone('sine', 150, 48, .38, .18); burst('lowpass', 1800, .7, .22, .08); },
     energyImpact(strength=1) { if(!ready)return;const k=Math.max(.2,Math.min(1,strength));tone('sine',90,32,.28*k,.4);burst('lowpass',850,.65,.18*k,.22,sfxBus,180); },
     hurt() { if (!ready) return; tone('triangle', 110, 70, .26, .22); burst('bandpass', 500, .9, .16, .14); },

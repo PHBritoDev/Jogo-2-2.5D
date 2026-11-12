@@ -7,7 +7,7 @@
  */
 import { CAVE, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, caveHazard, hash2, fbm } from './ascension-layout.js';
 import { triplanarRock, ensureUv, vortexPortal, lightShaft, dustField, disposeGroup } from './ascension-fx3d.js';
-import { createVillageTorchFire } from './eldoria-torch-fire3d.js';
+import { prepareTorchSource, placeTorches } from './eldoria-torches3d.js';
 
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -39,10 +39,9 @@ export function caveCamSolid(x, y, z) {
 export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, origin = { x: 0, z: 0 } } = {}) {
   const group = new THREE.Group(); group.name = 'caverna-fronteira'; group.position.set(origin.x, 0, origin.z); group.visible = false;
   const updaters = [];
-  let torchFlames = null;
-  const torchView = { position: { x: 0, z: 0 } }; // câmera em coordenadas locais
+  let torchSet = null;
   // ---------- piso + abóbada: duas folhas sobre a mesma grade (vértices com jitter para quebrar a grade) ----------
-  const cell = lowSpec ? 1.35 : 1, X0 = -66, X1 = 50, Z0 = -160, Z1 = 16;
+  const cell = lowSpec ? 1.35 : 1, X0 = -82, X1 = 76, Z0 = -160, Z1 = 16; // Mod 316: grade cobre a prisão (leste) e o salão de cristal (noroeste)
   const nx = Math.ceil((X1 - X0) / cell) + 1, nz = Math.ceil((Z1 - Z0) / cell) + 1;
   const fieldAt = new Float32Array(nx * nz), jx = new Float32Array(nx * nz), jz = new Float32Array(nx * nz);
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
@@ -184,6 +183,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
     const sky = new THREE.Mesh(new THREE.CircleGeometry(1.1 * w, 16), new THREE.MeshBasicMaterial({ color: 0xd8f6ff, fog: false })); sky.rotation.x = Math.PI / 2; sky.position.set(x, top - .15, z); group.add(sky);
   };
   addShaft(-7, -52, .12, .42, 1.2); addShaft(9, -66, -.08, .3, .9); addShaft(-45, -60, .1, .5, 1); addShaft(-6, -128, -.06, .22, .8);
+  addShaft(-60, -104, .07, .55, 1.4); // Mod 316: salão de cristal — fresta alta sobre a poça-espelho
   updaters.push(t => { for (const s of shafts) s.update(t); waterU.uTime.value = t; });
   const dust1 = dustField(THREE, { count: lowSpec ? 220 : 520, box: [50, 30, 50], center: [0, -6, -60], color: 0xbff4ff, size: 2 }), dust2 = dustField(THREE, { count: lowSpec ? 120 : 260, box: [34, 12, 30], center: [-42, -7.6, -62], color: 0x8ff7e0, size: 2.4 });
   group.add(dust1.points, dust2.points); updaters.push(t => { dust1.update(t); dust2.update(t); });
@@ -198,7 +198,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
         float e = smoothstep(.5, .2, length(vUv - .5)); float d = clamp(length(vW - cameraPosition) / 6.0 - .2, 0.0, 1.0);
         gl_FragColor = vec4(uC, smoothstep(.45, .95, m) * e * d * .16); }`,
   });
-  for (const [x, y, z, s] of [[-42, -6.9, -62, 40], [-38, -6.6, -70, 22], [1, -9, -60, 34], [1, -15, -60, 30], [0, -5.2, -86, 18]]) { const q = new THREE.Mesh(new THREE.PlaneGeometry(s, s), mistMat); q.rotation.x = -Math.PI / 2; q.position.set(x, y, z); q.renderOrder = 7; group.add(q); }
+  for (const [x, y, z, s] of [[-58, -3.3, -106, 30], [-42, -6.9, -62, 40], [-38, -6.6, -70, 22], [1, -9, -60, 34], [1, -15, -60, 30], [0, -5.2, -86, 18]]) { const q = new THREE.Mesh(new THREE.PlaneGeometry(s, s), mistMat); q.rotation.x = -Math.PI / 2; q.position.set(x, y, z); q.renderOrder = 7; group.add(q); }
   updaters.push(t => { mistMat.uniforms.uTime.value = t; });
   // ---------- saída: luz do dia no fim do túnel de entrada ----------
   const daylight = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({ color: 0xe8f4d8, fog: false })); daylight.position.set(0, 2, 15.5); daylight.rotation.y = Math.PI; group.add(daylight);
@@ -226,10 +226,11 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
     [0x42e6d0, 2.2, 20, [-43, -5, -62]],  // gruta das poças
     [0x8a5cff, 3.2, 22, [P.x, portalY, P.z + 2.5]], // portal
     [0x6fa8ff, 1.2, 16, [0, 2.8, -6]],    // entrada
+    [0x7fc8ff, 2.4, 24, [-58, 1.5, -104]], // Mod 316: salão de cristal (fria, sob o feixe)
   ].map(([c, i, d, p]) => { const l = new THREE.PointLight(c, i, d, 1.6); l.position.set(...p); l.name = 'caverna-luz'; l.layers.set(31); group.add(l); return { l, base: i }; });
   updaters.push(t => { L[2].l.intensity = L[2].base * (1 + .12 * Math.sin(t * 2.3)); L[1].l.intensity = L[1].base * (1 + .06 * Math.sin(t * 1.1)); });
   // ---------- cristais: poucos GLB "herói" em fendas + aglomerados procedurais leves (emissivo violeta/azul) ----------
-  const crystalSpots = [[-24.5, -49, 1.6, .3], [22.5, -60, 1.9, 2.4], [-52, -55, 1.3, 1.2], [-31, -75, 1.1, 4], [12.5, -130, 1.5, 2], [-20, -136, 1.7, .8], [5, -20, .9, 1.7], [31, -96, 1.1, 3.4]];
+  const crystalSpots = [[-66, -94, 2.3, .5], [-47, -97, 1.6, 2.2], [-71, -112, 2, 4], [-55, -122, 1.4, 1], [-24.5, -49, 1.6, .3], [22.5, -60, 1.9, 2.4], [-52, -55, 1.3, 1.2], [-31, -75, 1.1, 4], [12.5, -130, 1.5, 2], [-20, -136, 1.7, .8], [5, -20, .9, 1.7], [31, -96, 1.1, 3.4]];
   const clusterGeo = (() => { // prismas hexagonais pontudos (≈80 triângulos)
     const parts = []; for (let q = 0; q < 6; q++) { const h = .7 + 1.4 * hash2(q, 15, 927), r = .07 + .06 * hash2(q, 16, 928); const g = new THREE.CylinderGeometry(0, r, h * .25, 6); g.translate(0, h * .5 + h * .125, 0); const b = new THREE.CylinderGeometry(r, r * .9, h, 6); b.translate(0, h * .5, 0); const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler((hash2(q, 17, 929) - .5) * 1.1, q, (hash2(q, 18, 930) - .5) * 1.1)); parts.push(b.toNonIndexed().applyMatrix4(m), g.toNonIndexed().applyMatrix4(m)); }
     const g = mergeGeos(THREE, parts); g.computeVertexNormals(); return g; })();
@@ -239,40 +240,36 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   const loader = GLTFLoader ? new GLTFLoader() : null;
   const ready = new Promise(res => {
     if (!loader) { res(); return; }
-    let left = 3;
+    let left = 4;
     const done = () => { if (--left === 0) res(); };
     // Apenas três tochas 3D nos pontos de orientação. O fogo GLSL existente é reutilizado;
     // nenhuma haste/esfera procedural é criada e não se acrescentam point lights caras.
+    // Mod 316: só o GLB do criador (sem haste/chama procedural); três pontos de orientação, luz contida (escuridão
+    // intencional preservada nas galerias).
     loader.load('./TochaMedievalTripo.glb', gltf => {
-      const source = gltf.scene, bounds = new THREE.Box3().setFromObject(source);
-      const size = bounds.getSize(new THREE.Vector3()), center = bounds.getCenter(new THREE.Vector3());
-      if (!bounds.isEmpty() && Number.isFinite(size.y) && size.y > .001) {
-        prepareBaked?.(source);
-        const scale = 2.05 / size.y;
-        source.scale.setScalar(scale);
-        source.position.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
-        const sites = [
-          { x: 2.5, z: -12 }, // recepção: saída reconhecível
-          { x: -38, z: -62 }, // gruta lateral, antes das poças
-          { x: CAVE.portal.x + 10, z: CAVE.portal.z + 8 }, // orientação na câmara final
-        ].filter(p => caveWalk(p.x, p.z) && !CAVE.pillars.some(q => Math.hypot(p.x-q.x,p.z-q.z) < q.r+1));
-        for (const p of sites) {
-          const holder = new THREE.Group();
-          holder.name = 'tocha-medieval-3d';
-          holder.position.set(p.x, caveFloor(p.x, p.z), p.z);
-          const model = source.clone(true);
-          model.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
-          holder.add(model);group.add(holder);
-        }
-        if (sites.length) {
-          const flameGroup = new THREE.Group();group.add(flameGroup);
-          // O utilitário posiciona a chama em y=1.9; deslocamos a origem de cada sítio ao piso.
-          const relative = sites.map(p => ({ x: p.x, y: caveFloor(p.x, p.z), z: p.z }));
-          torchFlames = createVillageTorchFire(THREE, flameGroup, relative, [], torchView);
-        }
-      }
+      const source = prepareTorchSource(THREE, gltf.scene, { prepareBaked });
+      const sites = [
+        { x: 2.5, z: -12, why: 'recepção: saída reconhecível' },
+        { x: -38, z: -62, why: 'gruta lateral, antes das poças' },
+        { x: CAVE.portal.x + 10, z: CAVE.portal.z + 8, why: 'câmara final: orientação até o portal' },
+        { x: CAVE.camp.x - 2.2, z: CAVE.camp.z + 2.4, why: 'prisão: a única tocha que os carcereiros deixaram' },
+      ].filter(p => caveWalk(p.x, p.z) && !CAVE.pillars.some(q => Math.hypot(p.x - q.x, p.z - q.z) < q.r + 1)).map(p => ({ ...p, y: caveFloor(p.x, p.z) }));
+      torchSet = placeTorches(THREE, group, source, sites, { namePrefix: 'TochaMedievalTripo-Caverna-', lightIntensity: .9, lightDistance: 9 });
+      for (const h of torchSet.holders) h.traverse(o => { if (o.isPointLight) o.layers.set(31); });
       done();
     }, undefined, done);
+    // Mod 316 — câmara de ocupação: jaulas do ritual (GLB do criador) e restos de vigília (pedras frias, sem fogo).
+    loader.load('./JaulaRitualAto1.glb', g => {
+      prepareBaked && prepareBaked(g.scene); const box = new THREE.Box3().setFromObject(g.scene), sz = box.getSize(new THREE.Vector3()), k = 2.5 / Math.max(.001, sz.y), c = box.getCenter(new THREE.Vector3());
+      for (const [n, cg] of CAVE.cages.entries()) { const h = new THREE.Group(), m = g.scene.clone(true); m.scale.setScalar(k); m.position.set(-c.x * k, -box.min.y * k, -c.z * k); h.add(m); h.position.set(cg.x, caveFloor(cg.x, cg.z) - .05, cg.z); h.rotation.y = cg.yaw; h.name = 'jaula-prisao-' + (n + 1); h.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = true; } }); group.add(h); }
+      done();
+    }, undefined, done);
+    {
+      const C = CAVE.camp, ring = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(.28, 0), rockMat, 9), o = new THREE.Object3D();
+      for (let q = 0; q < 9; q++) { const a = q / 9 * Math.PI * 2; o.position.set(C.x + Math.cos(a) * .85, caveFloor(C.x, C.z) + .08, C.z + Math.sin(a) * .85); o.rotation.set(q, q * 1.7, 0); o.scale.set(1, .7, 1.2); o.updateMatrix(); ring.setMatrixAt(q, o.matrix); }
+      ring.name = 'vigilia-fria'; group.add(ring);
+      const ash = new THREE.Mesh(new THREE.CircleGeometry(.62, 14), new THREE.MeshStandardMaterial({ color: 0x1b1a19, roughness: 1 })); ash.rotation.x = -Math.PI / 2; ash.position.set(C.x, caveFloor(C.x, C.z) + .04, C.z); ash.name = 'cinzas'; group.add(ash);
+    }
     loader.load('./MontanhaEldoria01.glb', g => { let mesh = null; g.scene.traverse(o => { if (!mesh && o.isMesh) mesh = o; }); prepareBaked && prepareBaked(g.scene); const tex = mesh && mesh.material.map; for (const m of tpMats) { m.map = tex; m.needsUpdate = true; } disposeGroup(g.scene, new Set([tex])); done(); }, undefined, done);
     loader.load('./CristalCaverna01.glb', g => {
       prepareBaked && prepareBaked(g.scene); let mesh = null; g.scene.traverse(o => { if (!mesh && o.isMesh) mesh = o; });
@@ -283,15 +280,15 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
       done();
     }, undefined, done);
   });
-  // ---------- colisão extra (menires/arco do portal) ----------
-  const walk = (x, z) => caveWalk(x, z) && !menires.some(m => Math.hypot(x - m.x, z - m.z) < m.r + .3);
+  // ---------- colisão extra (menires/arco do portal/jaulas) ----------
+  const cageBlock = CAVE.cages.map(c => ({ x: c.x, z: c.z, r: 1.35 }));
+  const walk = (x, z) => caveWalk(x, z) && !menires.some(m => Math.hypot(x - m.x, z - m.z) < m.r + .3) && !cageBlock.some(m => Math.hypot(x - m.x, z - m.z) < m.r + .3);
   let t = 0;
   return {
     group, ready, portal, walk, hazard: caveHazard, floor: (x, z) => caveFloor(x, z), roof: (x, z) => caveRoofAt(x, z), camSolid: caveCamSolid,
     env: { bg: 0x03090c, fog: 0x0a2329, fogNear: 9, fogFar: 92, hemi: [0x7cc2cf, 0x0c1416, 1.35], sun: [0xa9dcff, .5], exposure: 1.32 },
-    update(dt, cam) { t += dt; if (cam) { torchView.position.x = cam.position.x - origin.x; torchView.position.z = cam.position.z - origin.z; }
-      torchFlames?.update(t, 1); for (const u of updaters) u(t, dt); },
-    dispose() { torchFlames?.dispose(); disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
+    update(dt, cam) { t += dt; torchSet?.update(t, 1); for (const u of updaters) u(t, dt); },
+    dispose() { disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
     stats() { let tris = 0; group.traverse(o => { if (o.isMesh && o.geometry) { const n = (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; tris += o.isInstancedMesh ? n * o.count : n; } }); return { tris: Math.round(tris), clusters: clusters.length }; },
   };
 }

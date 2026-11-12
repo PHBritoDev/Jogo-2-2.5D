@@ -44,12 +44,13 @@ const safe=t=>String(t).replace(/[^a-z0-9_-]/gi,'-');
   await snap('caverna-corredor-1p',-2,-98,{yaw:Math.PI,distance:.72});
   const caveMovement=await page.evaluate(()=>{
    const a=window.SevenSinsDebug3D,st=a.ascState(),ox=st.world.x-st.local.x,oz=st.world.z-st.local.z;
-   a.teleport(ox-2,oz-98);a.fly(null);a.view(0,.1,.72);
-   const before=a.ascState().local;a.motionStep(6,{x:0,z:-1,fps:30});
-   const after=a.ascState().local;return {before,after,meters:Math.hypot(after.x-before.x,after.z-before.z)};
+   // Mod 316: a 1ª pessoa anda na MESMA velocidade real da 3ª (o ×1,85 só da caverna foi removido — era gambiarra).
+   const run=dist=>{a.teleport(ox-2,oz-98);a.fly(null);a.view(0,.1,dist);a.motionStep(.2,{x:0,z:0,fps:30});const before=a.ascState().local;a.motionStep(6,{x:0,z:-1,fps:30});const after=a.ascState().local;return {before,after,meters:Math.hypot(after.x-before.x,after.z-before.z)};};
+   const fp=run(.72),tp=run(8.5);return {...fp,tp:tp.meters};
   });
-  report.checks.push({name:'travessia-corredor-da-caverna-1p',passed:caveMovement.meters>18&&caveMovement.after.z<-116,measurement:caveMovement});
-  assert.ok(caveMovement.meters>18&&caveMovement.after.z<-116,'Corredor principal da caverna bloqueado ou movimento lento em primeira pessoa');
+  const caveOk=caveMovement.meters>11.5&&caveMovement.after.z<-108.5&&Math.abs(caveMovement.meters-caveMovement.tp)<.6;
+  report.checks.push({name:'travessia-corredor-da-caverna-1p',passed:caveOk,measurement:caveMovement});
+  assert.ok(caveOk,'Corredor principal da caverna bloqueado ou 1ª pessoa com velocidade diferente da 3ª: '+JSON.stringify(caveMovement));
 
   await snap('caverna-grota',-42,-62,{yaw:-.7});
   await snap('caverna-portal',-4,-136,{yaw:Math.PI});

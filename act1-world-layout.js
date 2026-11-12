@@ -71,3 +71,24 @@ export function bridgeDeck(x, z, b = BRIDGE) {
   if (Math.abs(along) > b.halfLength || Math.abs(side) > b.halfWidth) return null;
   const t = along / b.halfLength; return { y: b.rise * (1 - t * t) + .08, along, side, edge: Math.abs(side) > b.halfWidth - .32 };
 }
+
+/* Mod 316 — floresta expandida (Ato I): trilhas ramificadas com laço, mirante, clareiras e áreas reservadas.
+   Tudo em terreno caminhável já existente (medido: altura 0–0,6 m na mata, planalto leste a ~5,5 m). As trilhas viram
+   faixas de chão batido (mesma malha única das trilhas) e afastam troncos; as clareiras só afastam a mata. */
+export const FOREST_TRAILS = [
+  // laço oeste: sai da trilha da serra, contorna a margem sul do lago, passa pela clareira do musgo e volta
+  { id: 'samambaias', name: 'Trilha das Samambaias', width: 2.8, points: [[-5.3, -104], [-12, -105], [-20, -105.5], [-30, -103.5], [-38, -101.5], [-45, -103.5], [-51, -109], [-52, -116], [-46, -122], [-36, -126], [-24, -121], [-14, -116], [-5.8, -112]] },
+  // ramal de mistério: termina no círculo de pedras musgosas
+  { id: 'circulo', name: 'Caminho do Círculo de Pedras', width: 2.2, points: [[-46, -122], [-52, -130], [-58, -137], [-63, -141.5]] },
+  // subida ao mirante do planalto leste e volta pela borda até a trilha principal (segundo laço)
+  { id: 'mirante', name: 'Subida do Mirante', width: 2.6, points: [[-4, -133], [5, -134], [13, -133], [19.5, -131], [25, -129.5], [29, -128]] },
+  { id: 'borda', name: 'Borda do Planalto', width: 2.4, points: [[29, -128], [28, -120], [27.5, -112], [27, -108]] },
+];
+export const FOREST_CLEARINGS = [
+  { id: 'musgo', name: 'Clareira do Musgo', x: -36, z: -126, r: 6.5, kind: 'clareira' },
+  { id: 'remanso', name: 'Recanto do Remanso', x: 6, z: -121, r: 5.5, kind: 'calma' },
+  { id: 'circulo-pedras', name: 'Círculo de Pedras', x: -64, z: -143, r: 5.2, kind: 'misterio' },
+  { id: 'mirante', name: 'Mirante do Planalto', x: 30, z: -127, r: 4.5, kind: 'mirante' },
+  { id: 'reserva-oeste', name: 'Reserva Oeste', x: -66, z: -104, r: 6, kind: 'reservado' },
+  { id: 'reserva-leste', name: 'Reserva Leste', x: 37, z: -146, r: 6, kind: 'reservado' },
+];

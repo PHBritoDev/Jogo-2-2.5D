@@ -197,13 +197,6 @@ export function mountCityDressing(THREE, GLTFLoader, o) {
     m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); m.name = 'eldoria-garden-flowers'; root.add(m);
   }
   if (plan.hedges.length) { const m = new THREE.InstancedMesh(bushGeometry(THREE, 9), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9 }), plan.hedges.length); plan.hedges.forEach((h, i) => { d.position.set(h.x, groundHeightAt(h.x, h.z) + h.s * .3, h.z); d.rotation.set(0, h.rot, 0); d.scale.set(h.s * 1.3, h.s * .9, h.s); d.updateMatrix(); m.setMatrixAt(i, d.matrix); }); m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); m.receiveShadow = true; m.name = 'eldoria-garden-hedges'; root.add(m); }
-  const fenceParts = []; // só bases/postes das luminárias: nenhuma cerca branca ornamental
-  for (const l of lamps) { const y = groundHeightAt(l.x, l.z); fenceParts.push({ x: l.x, y: y + 1.35, z: l.z, sx: .12, sy: 2.7, sz: .12, color: 0x4a3828 }, { x: l.x + .28, y: y + 2.62, z: l.z, sx: .62, sy: .08, sz: .08, color: 0x4a3828 }); obstacles.push({ x: l.x, z: l.z, radius: .28, height: 2.7 }); }
-  if (fenceParts.length) { const m = new THREE.Mesh(merge(THREE, fenceParts), woodMat); m.receiveShadow = true; m.castShadow = !lowSpec; m.name = 'eldoria-fences-lamps'; root.add(m); }
-  if (lamps.length) {
-    const lm = new THREE.InstancedMesh(new THREE.BoxGeometry(.24, .32, .24), new THREE.MeshStandardMaterial({ color: 0xffd9a0, emissive: 0xffb860, emissiveIntensity: .9, roughness: .6 }), lamps.length);
-    lamps.forEach((l, i) => { d.position.set(l.x + .5, groundHeightAt(l.x, l.z) + 2.4, l.z); d.rotation.set(0, 0, 0); d.scale.setScalar(1); d.updateMatrix(); lm.setMatrixAt(i, d.matrix); });
-    lm.instanceMatrix.needsUpdate = true; lm.computeBoundingSphere(); lm.name = 'eldoria-lanterns'; root.add(lm); root.userData.lanterns = lm.material;
-  }
+  // Mod 316: sem postes/lanternas por código (antes 10 caixas emissivas em hastes); luz de rua = tochas GLB do criador.
   return { root, plan, deckY: Y };
 }
