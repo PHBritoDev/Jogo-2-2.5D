@@ -4640,7 +4640,7 @@ function forestCleared(){
  playStory('chave',keyFoundScene(),{focus:'cage',face:'cage'});
 }
 function openCage(){
- act1Lock=true;childrenFreed=true;bumpStat('rescues');save3DProgress();
+ act1Lock=true;childrenFreed=true;/* Abertura da jaula não equivale a resgate: o ritual ainda acontece. */save3DProgress();
  playStory('gaiola',cageScene(),{focus:'cage',face:'cage',done:()=>{act1Lock=false;for(const k of act1Props?act1Props.kids:[])k.visible=false;act1Advance(3,1);if(pack)packNext();}});
 }
 function childrenCleared(){act1Advance(3,2);}
