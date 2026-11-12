@@ -1345,7 +1345,10 @@ function measureModelBounds(model){
 new GLTFLoader().load('./AnjoGuiador-otimizado.glb?v=mod316-anjo',gltf=>{
  clampBakedMips(THREE,gltf.scene,terrainLowSpec?4:3.5);
  const imported=gltf.scene;imported.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material&&'side'in o.material)o.material.side=THREE.DoubleSide;}});
- guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideModel=imported;playNativeGuideIdle(gltf.animations||[]);fitGuideModel();
+ // MOD 316 — o GLB do Anjo (12,6 MB, texturas 2K) chega depois do mundo: shader compilado e texturas enviadas à GPU
+ // ANTES de entrar na cena (compileAsync + initTexture), em vez de travar o primeiro quadro em que aparece.
+ const attach=()=>{try{warmTextures(imported);}catch(e){}guideFitRoot=new THREE.Group();guideFitRoot.name='AnjoGuia_FitRoot';guideFitRoot.add(imported);guideModel=imported;playNativeGuideIdle(gltf.animations||[]);fitGuideModel();};
+ if(renderer.compileAsync)renderer.compileAsync(imported,camera,scene).then(attach,attach);else attach();
 },undefined,err=>{console.error('AnjoGuiador-otimizado.glb não carregou:',err);status.textContent='Não foi possível carregar o Anjo-Guia (AnjoGuiador-otimizado.glb)';});
 const PROGRESS_KEY='sevenSins3DCampaignV6';
 function read3DProgress(){try{const keys=[PROGRESS_KEY,'sevenSins3DCampaignV5','sevenSins3DCampaignV4','sevenSins3DCampaignV3','sevenSins3DCampaignV2','sevenSins3DCampaignV1'];for(const key of keys){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw)return migrateProgress(raw);}return migrateProgress({coins:0});}catch(_){return migrateProgress(null);}}
