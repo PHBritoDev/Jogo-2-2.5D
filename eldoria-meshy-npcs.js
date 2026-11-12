@@ -16,6 +16,31 @@ export const ELDORIA_NPC_ROLES=Object.freeze([
  {role:'morador-sentado',sex:'man',job:'descansa sem forcas perto da praca'},
  {role:'moradora-caminhando',sex:'woman',job:'caminha lentamente em busca de ajuda'}
 ]);
+/** Caixa REAL da malha deformada pelo esqueleto. Box3.setFromObject sozinho
+ * subestima ou superestima GLBs Meshy com rig importado. */
+export function measureMeshyNpcBounds(THREE,root){
+ root.updateMatrixWorld(true);
+ const box=new THREE.Box3();box.makeEmpty();
+ const vertex=new THREE.Vector3();
+ root.traverse(obj=>{
+  if(!obj.isMesh||!obj.visible||!obj.geometry)return;
+  const pos=obj.geometry.attributes&&obj.geometry.attributes.position;
+  const boneFn=obj.applyBoneTransform||obj.boneTransform;
+  if(obj.isSkinnedMesh&&obj.skeleton&&pos&&typeof boneFn==='function'){
+   obj.skeleton.update();
+   for(let i=0;i<pos.count;i++){
+    vertex.fromBufferAttribute(pos,i);
+    boneFn.call(obj,i,vertex);
+    vertex.applyMatrix4(obj.matrixWorld);
+    if(Number.isFinite(vertex.x)&&Number.isFinite(vertex.y)&&Number.isFinite(vertex.z))box.expandByPoint(vertex);
+   }
+  }else{
+   if(!obj.geometry.boundingBox)obj.geometry.computeBoundingBox();
+   if(obj.geometry.boundingBox)box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
+  }
+ });
+ return box;
+}
 /** Compartilha downloads entre instâncias. Nenhuma malha substituta por código se o GLB falhar. */
 export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeightAt}){
  const loader=new GLTFLoader(),cache=new Map();
@@ -30,7 +55,7 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
  };
  async function create({sex,age='adult',role='idle',x,z,yaw=0,hair=true}){
   const file=ELDORIA_NPC_MODELS[sex];if(!file)throw Error('NPC Meshy desconhecido: '+sex);
-  const gltf=await load(file),src=cloneSkinned(gltf.scene),box=new THREE.Box3().setFromObject(src);
+  const gltf=await load(file),src=cloneSkinned(gltf.scene),box=measureMeshyNpcBounds(THREE,src);
   const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
   if(size.y<.01||!Number.isFinite(size.y))throw Error('Altura NPC invalida: '+file);
   const target=sex==='boy'||sex==='girl'?1.18:age==='elder'?1.57:1.72;
@@ -44,13 +69,13 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
    body.rotation.z=(sex==='woman'||sex==='girl'?-1:1)*Math.PI/2;
    body.rotation.x=.12;
    holder.updateMatrixWorld(true);
-   const lying=new THREE.Box3().setFromObject(holder);
+   const lying=measureMeshyNpcBounds(THREE,holder);
    body.position.y+=groundHeightAt(x,z)-lying.min.y+.035;
   }
   if(role==='sit'){
    body.rotation.x=-.14;
    holder.updateMatrixWorld(true);
-   const sitting=new THREE.Box3().setFromObject(holder);
+   const sitting=measureMeshyNpcBounds(THREE,holder);
    body.position.y+=groundHeightAt(x,z)-sitting.min.y+.025;
   }
   src.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});
@@ -75,7 +100,7 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
    const hairFile=(sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair;
    try{
     holder.updateMatrixWorld(true);
-    const skinBox=new THREE.Box3().setFromObject(holder);
+    const skinBox=measureMeshyNpcBounds(THREE,holder);
     const hairGltf=await load(hairFile),hairScene=hairGltf.scene.clone(true);
     const hb=new THREE.Box3().setFromObject(hairScene),hs=hb.getSize(new THREE.Vector3()),hc=hb.getCenter(new THREE.Vector3());
     const child=sex==='boy'||sex==='girl',female=sex==='woman'||sex==='girl';
@@ -97,7 +122,7 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   // O corpo já foi normalizado antes do cabelo. Nunca redimensionar o CORPO
   // para compensar a altura de um acessório: foi a causa da regressão anterior.
   holder.updateMatrixWorld(true);
-  let finalBox=new THREE.Box3().setFromObject(holder);
+  let finalBox=measureMeshyNpcBounds(THREE,holder);
   if(finalBox.isEmpty())throw Error('NPC sem geometria visível: '+file);
   const dimensions=finalBox.getSize(new THREE.Vector3());
   if(Math.max(dimensions.x,dimensions.y,dimensions.z)>3.0)
@@ -108,7 +133,7 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   const pivot=finalBox.getCenter(new THREE.Vector3());
   holder.position.x+=x-pivot.x;holder.position.z+=z-pivot.z;
   holder.updateMatrixWorld(true);
-  finalBox.setFromObject(holder);
+  finalBox=measureMeshyNpcBounds(THREE,holder);
   return {holder,mixer,action,role,file,actualHeight:finalBox.getSize(new THREE.Vector3()).y,hair:hair?((sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair):null,clips:nativeClips.map(c=>c.name)};
  }
  return {create};
