@@ -118,13 +118,28 @@ function envy(parent,r){
  tube(parent,[[h[0],h[1]-r*.02,h[2]+r*.12],[h[0]+r*.09,h[1]-r*.09,h[2]+r*.21]],r*.018,'#bcff7a');
 }
 function maw(parent,r){
- const cavity=ball(parent,r*.5,'#140407',0,-r*.03,r*.85,[1.15,.8,.28]);
- ring(parent,r*.43,r*.095,'#b94142',.02,0,r*.88);
- for(let i=0;i<14;i++){const a=i*2*PI/14,x=Math.cos(a)*r*.45,y=Math.sin(a)*r*.35;
-  const tooth=mesh(new THREE.ConeGeometry(r*.085,r*.32,5),mat('#ffe6d0',.15,.4),parent,x,y,r*.97);
-  tooth.rotation.z=a-PI/2;
+ // Boca monstruosa em grande abertura tridimensional: tecido escuro,
+ // maxilares curvos e presas inclinadas para dentro.
+ ball(parent,r*.56,'#621724',0,-r*.02,r*.67,[1.19,1.02,.52]);
+ ball(parent,r*.47,'#070307',0,-r*.06,r*.99,[1.11,.76,.31]);
+ const lip=new THREE.CatmullRomCurve3(Array.from({length:32},(_,i)=>{
+   const a=i*2*PI/31;return new THREE.Vector3(Math.cos(a)*r*.55,Math.sin(a)*r*.40-r*.045,r*.985);
+ }));
+ mesh(new THREE.TubeGeometry(lip,88,r*.066,6,false),mat('#b83442',.15,.44),parent);
+ const toothMat=mat('#e9d8bf',.14,.35),shade=mat('#b5a99c',.08,.48);
+ for(let row=0;row<2;row++){
+  for(let i=0;i<8;i++){
+   const t=(i+.3)/8,ang=(row?PI:0)+t*PI;
+   const x=Math.cos(ang)*r*.49,y=Math.sin(ang)*r*.37-r*.045;
+   const big=(i===1||i===6),length=r*(big?.37:.22);
+   const tooth=mesh(new THREE.ConeGeometry(r*(big?.062:.045),length,7),toothMat,parent,x,y,r*1.05);
+   tooth.rotation.z=ang+PI/2;
+   tooth.rotation.x=.13;
+  }
  }
- ball(parent,r*.12,'#a21423',-.1*r,-r*.26,r*1.14);
+ // Língua e saliva brilhantes na profundidade da mandíbula.
+ const tongue=ball(parent,r*.18,'#b6283e',.07*r,-r*.26,r*1.11,[1.2,.37,.45]);
+ for(let i=0;i<4;i++)tube(parent,[[(-.3+i*.18)*r,-r*.02,r*1.11],[(-.22+i*.17)*r,-r*.14,r*1.17]],r*.01,'#e36473',.1);
 }
 function rose(parent,x,y,z,s,shade){
  const core=ball(parent,s*.22,shade,x,y,z);
