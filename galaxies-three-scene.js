@@ -310,8 +310,14 @@ function lust(parent,r){
 function makePlanet(id,r){
  const group=new THREE.Group();
  const colors=['#f4ab36','#1cd463','#f3bb50','#c8e9fa','#c64357','#ff5329','#ff76b7'];
- const globe=new THREE.Mesh(new THREE.SphereGeometry(r,40,24),
-  new THREE.MeshStandardMaterial({map:proceduralTexture(id),metalness:id===3?.43:.12,roughness:.59}));
+ // Mapa PBR e relevo físico feitos no navegador a partir da mesma
+ // textura procedural — nenhuma fotografia usada na superfície.
+ const surface=proceduralTexture(id);
+ const globe=new THREE.Mesh(new THREE.SphereGeometry(r,48,32),
+  new THREE.MeshStandardMaterial({
+   map:surface,bumpMap:surface,bumpScale:r*(id===6?.014:id===1||id===4?.010:.006),
+   metalness:id===3?.35:id===1?.24:.09,roughness:id===4?.37:.64
+  }));
  group.add(globe);
  // Fresnel de atmosfera: contorno luminoso real na silhueta, sem textura externa.
  const atmosphereMaterial=new THREE.ShaderMaterial({
