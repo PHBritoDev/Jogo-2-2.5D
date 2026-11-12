@@ -206,16 +206,16 @@ export function questPresentation(step, sub = 0) {
   const pages = {
     0: ['ATO I · O PREÇO DE UMA VIDA', 'Fale com o Anjo-Guia'],
     1: sub >= 1
-      ? ['ATO I · A VILA DA CLAREIRA', 'Pergunte ao vendedor de frutas sobre o Pecado da Ganância']
-      : ['ATO I · O PREÇO DE UMA VIDA', 'Siga a trilha até a pequena vila e fale com um vendedor'],
-    2: ['ATO I · A FLORESTA À NOITE', 'Investigue o choro de crianças na floresta'],
+      ? ['ATO I · ELDÓRIA', 'Investigue as cargas confiscadas e converse com o vendedor']
+      : ['ATO I · O PREÇO DE UMA VIDA', 'Atravesse a ponte e descubra o que aconteceu em Eldória'],
+    2: ['ATO I · LUZES NA FLORESTA', 'Siga as marcas das cargas até as jaulas na floresta'],
     3: sub >= 1
-      ? ['ATO I · RECEPTÁCULOS', 'Derrote as crianças possuídas pelos demônios']
-      : ['ATO I · A CHAVE', 'Abra a gaiola com a chave dos Seguidores'],
-    4: [['ATO I · OS ESGOTOS', 'Siga a trilha da montanha rumo aos esgotos'],
+      ? ['ATO I · O RITUAL', 'Derrote as crianças possuídas pelos demônios']
+      : ['ATO I · AS JAULAS', 'Abra a gaiola com a chave dos Seguidores'],
+    4: [['ATO I · GALERIAS DA CAVERNA', 'Ajude os moradores e siga a trilha até a montanha'],
       ['ATO I · A PISTA', 'Siga a pista até a entrada da caverna, na encosta'],
-      ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
-      ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][Math.min(3, sub)],
+      ['ATO I · GALERIAS DA CAVERNA', 'Siga os rastros dos prisioneiros pelas galerias'],
+      ['ATO I · O BURACO', 'Encontre a passagem abaixo da caverna']][Math.min(3, sub)],
     5: ['ATO I · O GUARDIÃO DO PORTAL', 'Siga pelo caminho vazio e derrote o guardião do portal'],
     6: ['ATO I · O PORTAL DE VHAZRAEL', 'Entre no portal: a dimensão de VHAZRAEL está do outro lado'],
     7: ['ATO I · DIMENSÃO ABERTA', 'VHAZRAEL espera na dimensão dele. Atravesse o portal'],
@@ -244,7 +244,7 @@ const wait = dur => ({ type: 'wait', dur });
 export function villageArrivalScene() {
   return [
     shot('vila-panorama', 5.5, { cam: 'crane', anchor: 'village', from: [26, 18, 34], to: [12, 6, 20], lookFrom: [0, 2, 0], lookTo: [0, 1.5, 0] },
-      { with: [act('titulo', { kicker: 'GALÁXIA 1 · MUNDO DA GANÂNCIA', title: 'Vila da Clareira' }), act('som-descoberta')] }),
+      { with: [act('titulo', { kicker: 'GALÁXIA 1 · MUNDO DA GANÂNCIA', title: 'Eldória' }), act('som-descoberta')] }),
     shot('vila-miseria', 3.5, { cam: 'crane', anchor: 'village', from: [4, 2.8, 9.2], to: [8.4, 2.4, 7.6], lookFrom: [12.5, .3, 2.6], lookTo: [6.2, 1, 6.4] })
   ];
 }
