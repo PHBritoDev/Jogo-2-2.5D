@@ -24,7 +24,7 @@ export const DEMON1_COMBOS = Object.freeze({
   castigo: ['giro'],
 });
 /** Salto predatório: salto do chão → segundo salto no ar → dash aéreo até a posição ATUAL do alvo → garra descendente. */
-export const DEMON1_LEAP = Object.freeze({ min: 3.6, max: 8.5, crouch: .16, v1: 7.2, v2: 5.6, second: .36, dash: .3, dashSpeed: 11, fall: -14, maxAir: 1.45, gravity: 18, strike: { r: 1.7, dmg: 14, arc: -.2 }, recover: .42, cd: 6.5, role: 'jump', from: .72, speed: 1.05 });
+export const DEMON1_LEAP = Object.freeze({ min: 3.6, max: 8.5, crouch: .16, v1: 11.5, v2: 8.7, second: .36, dash: .3, dashSpeed: 11, fall: -14, maxAir: 2.1, gravity: 18, strike: { r: 1.7, dmg: 14, arc: -.2 }, recover: .42, cd: 6.5, role: 'jump', from: .72, speed: 1.05 });
 /** Escudo do Demônio1 e quando vale defender. */
 export const DEMON1_SHIELD = Object.freeze({ react: .2, chanceVsCast: .55, chanceVsMelee: .3, minGap: 1.2, maxGap: 9 });
 
