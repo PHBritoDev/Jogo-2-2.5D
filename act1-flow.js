@@ -231,7 +231,7 @@ export function combatStep(step) {
 
 /* ---------- Falas (texto revisado; o original está em docs/roteiro/M2-ATO1.md) ---------- */
 export const SPEAKERS = {
-  hero: 'heroi', guide: 'Anjo-Guia', vendor: 'Téo · Provisões', follower: 'Seguidor da Ganância',
+  hero: 'heroi', guide: 'Anjo-Guia', vendor: 'Téo · Provisões', ilyan: 'Ilyan · antigo guarda', follower: 'Seguidor da Ganância',
   demon: 'Demônio da Ganância', child: 'Criança', warden: 'Guardião do Portal', vhazrael: 'VHAZRAEL', victim: 'Morador'
 };
 const S = SPEAKERS;
@@ -274,6 +274,18 @@ export function vendorScene() {
     say(S.vendor, 'Se decidir ir, procure as marcas junto ao rio. E cuidado com quem disser que cobra em nome da cidade.'),
     act('anoitecer'),
     wait(2.6)
+  ];
+}
+
+/** Encontro opcional com Ilyan no povoado, antes de sua prisão.
+ * Não altera o avanço principal nem declara sua sobrevivência futura. */
+export function ilyanVillageScene() {
+  return [
+    shot('ilyan-encontro', 2.4, { cam: 'two', a: 'hero', b: 'ilyan', side: 1, dist: 3.8 }),
+    say(S.ilyan, 'Era eu quem vigiava a feira. Agora fico perto do poço, esperando notícias das cargas.'),
+    say(S.hero, 'Sabe quem está levando tudo?'),
+    say(S.ilyan, 'Quem cobra diz que trabalha para a cidade. Mas não reconheço nenhum daqueles homens.'),
+    say(S.ilyan, 'Se encontrar alguém preso por eles, não abandone essa pessoa. É o que eu tentaria fazer.')
   ];
 }
 
@@ -369,7 +381,7 @@ export function feedingScene() {
 }
 
 /** O buraco: o Anjo chega, o herói pula, acorda cercado, desmaia e acorda numa jaula. */
-export function holeScene() {
+export function holeScene({ ilyanPresent = false } = {}) {
   return [
     shot('buraco', 2.4, { cam: 'look', on: 'hole', off: [3, 4, 4], at: [0, -1, 0] }, { with: [act('anjo-aparece')] }),
     say(S.guide, 'O que aconteceu aqui?'),
@@ -385,6 +397,12 @@ export function holeScene() {
     wait(2.6),
     shot('na-jaula', 4, { cam: 'look', on: 'cell', off: [3.4, 2.2, 3.6], at: [0, 1, 0] }, { with: [act('acordar-na-jaula')] }),
     say(S.hero, 'Me tira daqui!'),
+    ...(ilyanPresent ? [
+      say(S.ilyan, 'Fale baixo. Eles voltam quando escutam alguém gritar.', { actor: 'ilyan' }),
+      say(S.hero, 'Ilyan? Você estava em Eldória.'),
+      say(S.ilyan, 'Tentei impedir que levassem mais uma carga. Me trouxeram para cá.', { actor: 'ilyan' }),
+      say(S.ilyan, 'A fechadura desta cela é fraca, mas o corredor está vigiado.', { actor: 'ilyan' })
+    ] : []),
     shot('anjo-chega', 2, { cam: 'two', a: 'hero', b: 'guide', side: -1, dist: 4.6 }, { with: [act('anjo-chega-jaula')] }),
     say(S.guide, 'Fala baixo, eles podem te ouvir.'),
     shot('anjo-vigia', 2.6, { cam: 'look', on: 'guide', off: [1.8, 1.9, 2.8], at: [0, 1.6, 0] }, { with: [act('anjo-vigia')] }),
