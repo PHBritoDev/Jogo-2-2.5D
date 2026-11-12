@@ -1,7 +1,7 @@
-# Artes da interface das galáxias
+# Interface 7 Pecados — totalmente procedural
 
-Coloque aqui **`menu-sete-pecados-reference.jpg`**, exatamente o PNG de 1536×864 aprovado pelo criador.
+A tela principal de galáxias NÃO usa imagens ou fotografias. O código Three.js em `galaxies-three-scene.js` gera sete mundos 3D, eclipse, auréola, anjo, nuvens e solo vulcânico (ShaderMaterial, geometria e CanvasTexture criada no navegador).
 
-O menu usa a imagem original e sobrepõe áreas clicáveis. O workflow `.github/workflows/galaxies-infernal-qa.yml` verifica desktop e celular, testa as interações e compara pixels.
+A seleção/progresso/entrada permanecem em `galaxies3d.js`. Apenas se WebGL não estiver disponível usa-se a arte SVG gerada em código `galaxies-infernal-art.js`.
 
-**Não mesclar enquanto o PNG faltar ou a auditoria visual não confirmar fidelidade.**
+O agente `.github/workflows/galaxies-infernal-qa.yml` testa WebGL real e captura o menu em 1536×864 e 852×393. Qualidade visual deve ser verificada contra a referência do criador antes do merge.
