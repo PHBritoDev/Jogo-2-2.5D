@@ -323,6 +323,14 @@ function sky(parent,W,H){
  const plane=mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
  return material;
 }
+function smokeLayer(parent,W,H,tint,x,y,z){
+ const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  uniforms:{uTime:{value:0},uTint:{value:new THREE.Color(tint)}},
+  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:"\nuniform float uTime;uniform vec3 uTint;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float v=0.;float a=.57;for(int i=0;i<3;i++){v+=a*n(p);p*=2.11;a*=.5;}return v;}\nvoid main(){\n vec2 uv=vUv,flow=vec2(uTime*.016,uTime*.002);\n float large=fbm(uv*vec2(4.,3.)+flow),fine=fbm(uv*vec2(13.,8.)-flow*.65);\n float m=smoothstep(.32,.65,large*.75+fine*.34);\n float feather=pow(max(0.,sin(3.1415926*uv.x)*sin(3.1415926*uv.y)),.85);\n float a=m*feather*.31;\n vec3 color=uTint*(.55+large*.85);\n gl_FragColor=vec4(color,a);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
+ mesh(new THREE.PlaneGeometry(W*.66,H*.47),material,parent,x,y,z);
+ return material;
+}
 function gothicRuins(parent,W,H){
  const rock=mat('#08070b',.08,.95),light=mat('#782116',.4,.7,.04);
  // Cidadela e torres distantes: geometria compartilhada, poucas draw calls.
@@ -520,6 +528,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const red=new THREE.PointLight('#ff3a17',5,H*1.25,1.5);red.position.set(W*.3,H*.25,150);scene.add(red);
  const environment=new THREE.Group();scene.add(environment);
  const shader=sky(environment,W,H);
+ const smokes=[smokeLayer(environment,W,H,'#25364e',-W*.19,H*.26,-310),smokeLayer(environment,W,H,'#74212e',W*.28,H*.27,-309)];
  gothicRuins(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);angel(environment,W,H);starfield(environment,W,H);
  const embers=emberField(environment,W,H);
  const groups=[],details={planet:null,chains:null};
@@ -553,7 +562,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=dt;
   // 30 FPS cap para preservar GPU do celular (menus não precisam de 60).
   if(ms-frame<(reduced?1000:16.7))return;frame=ms;
-  shader.uniforms.uTime.value=elapsed;
+  shader.uniforms.uTime.value=elapsed;for(const m of smokes)m.uniforms.uTime.value=elapsed;
   if(!reduced){
    environment.position.x+=(parallax.x-environment.position.x)*Math.min(1,dt*2.6);
    environment.position.y+=(parallax.y-environment.position.y)*Math.min(1,dt*2.6);
