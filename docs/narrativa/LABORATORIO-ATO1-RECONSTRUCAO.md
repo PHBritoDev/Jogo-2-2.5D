@@ -650,3 +650,62 @@ Fazer uma leitura de ritmo e consistência das Partes 2–9; confrontar os nomes
 **Alternativas de encenação:** se a volta a Eldória for espacialmente possível, encontro na cidade; se não, usar um abrigo da rota validada e somente personagens que plausivelmente estejam lá. **Pendências autorais:** destino de Ilyan, destino das crianças, identidade do Guardião e mapa definitivo.
 
 **Próxima rodada:** conferir a máquina de estados e as condições de transição de 'act1-flow.js' contra essas alternativas, sem editar código. Esta Parte 10 não autoriza mudanças na main, PRs, workflows ou trabalho do Claude.
+
+
+## Parte 11 — Contrato de continuidade entre escolhas, salvamento e narrativa (12/11/2026)
+**Estado:** proposta técnica-narrativa; não é cânone aprovado nem implementação. Escopo desta rodada: impedir que a campanha conte duas versões incompatíveis do mesmo acontecimento ao carregar saves, revisitar Eldória ou sair da dimensão de Vhazrael. Nenhuma alteração de código ou cenário.
+
+### Pesquisa realizada antes da proposta
+- Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling* (GDC 2010), https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental — a consequência deve ser perceptível no ambiente; a inferência do jogador depende de coerência entre o que fez e o que encontra.
+- Paweł Sasko, *10 Key Quest Design Lessons from The Witcher 3 and Cyberpunk 2077* (GDC 2023), https://www.gdcvault.com/play/1028897/10-Key-Quest-Design-LessonsStartup — escolhas e consequências precisam ser legíveis e economicamente produzíveis; cortar redundância de missões e diálogo.
+- Holly Green, síntese da palestra de Sasko (Game Developer, 22/03/2023), https://www.gamedeveloper.com/marketing/10-key-takeaways-from-the-quest-design-of-cyberpunk-2077-and-the-witcher-3 — atenção ao excesso de design, à concisão e ao impacto emocional.
+
+### Fontes reais conferidas e distinção entre fatos e propostas
+- `docs/roteiro/M1-PROLOGO.md` + `prologue-flow.js`: abertura celestial, retirada de asas/aura, despertar, nome escolhido e missão precedem Eldória. **Não** criar segundo despertar nem segundo chamado celestial.
+- `docs/roteiro/M2-ATO1.md` + `act1-flow.js`: implementação legada possui `ACT1.version=6`, `rev=2`; `questStep` progride da vila (1) à floresta (2), gaiola (3), esgoto (4), Guardião (5), portal (6), dimensão (7) e vitória (8). `afterEnemyDefeated` leva à gaiola após três inimigos; `afterWardenDefeat` libera portal; `afterVhazraelVictory` conclui etapa e evita duplicar recompensa por `vhazraelRewardClaimed`. Isso **não comprova** que as novas cenas estão implementadas.
+- `docs/narrativa/ato-1-eldoria-roteiro-v1.md`: propõe caverna, Teren, Osren, Ilyan, Zarkun e o primeiro selo, mas se identifica como proposta não implementada.
+- `docs/OBJETIVO-GALAXIA-1.md`: a visão exige preservar dimensão existente, progressão e saves, além de evitar duplicações de sistemas.
+- Partes 4, 6, 7, 8 e 10 deste laboratório mantêm **alternativas incompatíveis** para as crianças, Ilyan e Guardião/Zarkun. Não tratar qualquer uma como decisão autoral. Não houve teste visual do cenário do Claude nesta rodada.
+
+### Uma sequência proposta: o retorno que reconhece o que o jogador viveu
+Depois da vitória sobre Vhazrael, o jogador retoma o controle em uma saída **a confirmar no mapa**, não em posição inventada. A primeira evidência é física: um fardo antes confiscado agora está aberto para distribuição; seu carimbo é o mesmo encontrado na ponte, clareira e caverna. Um morador o desloca sem aguardar comando do herói. A cena não afirma que a cidade foi curada nem que o Pecado da Ganância morreu.
+
+**Encontro curto e condicional, sem nova missão:**
+- **Osren:** “Conseguimos abrir um dos depósitos. Amanhã veremos o resto.” (Mostra iniciativa própria e recuperação limitada.)
+- **Protagonista:** “A marca também estava na caverna.” (Relaciona descoberta e ação, sem explicar a cosmologia.)
+- **Teren:** “Vi esse sinal em cargas que seguiam para as montanhas.” (Oferece observação de rota; não sabe quem fundou a rede.)
+- **Vaelthar:** “Então temos por onde começar. Mas primeiro, descanse.” (Cuida do protagonista, sem forçar viagem instantânea.)
+
+Se Osren ou Teren não puderem estar no mesmo lugar pela continuidade espacial, dividir suas informações entre um objeto e um reencontro posterior, **sem duplicar as falas**. A pausa para descansar é facultativa e não vira tarefa de dormir/coletar comida. Um gesto simples do guia — oferecer apoio quando o protagonista hesita — cria vínculo sem explicar sua origem.
+
+**Resposta ao passado, somente após decisão autoral:**
+- **Crianças vivas (direção B):** a família aparece reunida se o resgate realmente foi concluído; uma fala curta basta: “Elas estão em casa. Obrigado.” Não exigir que o jogador assista à mesma gratidão em visitas futuras.
+- **Crianças transformadas (direção A):** não mostrar reunião familiar; a fita encontrada pode permanecer num memorial discreto, sem sugerir que a purificação já ocorreu. Nenhum NPC acusa o jogador de falha inevitável.
+- **Ilyan vivo:** ele continua organizando a ajuda e pode discordar da pressa de partir: “Tem gente precisando de nós aqui.”
+- **Ilyan morto:** sua ausência é perceptível na rotina interrompida; outra pessoa assume a distribuição, sem transformar toda a cidade em cenário de luto. Evitar uma fala que o situe vivo depois da perda.
+Essas quatro linhas são **ramificações de planejamento**, não quatro acontecimentos simultâneos.
+
+### Contrato proposto para futura migração de saves — sem editar o código agora
+| Fato narrativo | Evidência atual no código | Risco de interpretação | Requisito antes de implementar |
+|---|---|---|---|
+| Crianças | `childrenFreed` e `childEnemies=2` | “Jaula aberta” não significa “crianças salvas”; legado as transforma | Registrar resultado explícito somente após escolha do autor; migrar saves antigos sem presumir sobrevivência |
+| Ilyan | Não há garantia nesta auditoria de flag específica para seu destino | NPC aparecer vivo após evento de perda | Decidir destino e definir persistência única antes de roteirizar retornos |
+| Guardião/Zarkun | `wardenDefeated`, `afterWardenDefeat()` e portal | Criar dois confrontos para a mesma função dramática | Confirmar se são a mesma entidade; preservar desbloqueio e recompensa existentes |
+| Caminho caverna/esgoto | `questStep=4` e subetapas 0–3 no legado | Trocar geometria e quebrar checkpoints/entrada | Mapear saída, gatilhos e checkpoints reais após validação do Claude |
+| Vhazrael/primeiro selo | `bishopsDefeated`, `vhazraelRewardClaimed`, `afterVhazraelVictory()` | Confundir bispo com Ganância ou entregar recompensa duplicada | Garantir conclusão idempotente e registro narrativo do selo sem inventar novo item |
+| Retorno a Eldória | `questStep=8` marca vitória | Falas ou objetos não refletirem o estado carregado | Definir reações condicionais mínimas e testá-las após carregar save |
+
+**Regra de transição:** nenhuma escolha cosmética pode prometer um desfecho que não existe; resultados inevitáveis devem ser comunicados com clareza. Na implementação futura, estados novos precisam de valores de migração seguros para saves legados, e a recompensa do bispo deve continuar única. Não inventar agora IDs de flags, funções ou cenas para o código.
+
+### Continuidade, alternativas, riscos e pendências
+**Continuidade preservada:** Deus e sete mundos no prólogo; Vaelthar/Aethraziel é um único guia; Vhazrael é o primeiro dos quatro bispos da Ganância, não a própria Ganância; primeiro selo e rumo a Vorgazhek; a mulher misteriosa não aparece antes do arco vulcânico. O protagonista e o guia seguem misteriosos, mas não inexplicavelmente desinformados.
+
+**Alternativa de produção econômica:** se os retornos à cidade forem inviáveis na geografia validada, concentrar a consequência num ponto de saída já existente e reservar o encontro com Teren/Osren para a próxima visita. Não criar teleporte narrativo ou uma nova área apenas para quatro falas.
+
+**Riscos principais:** `childrenFreed` interpretado como sobrevivência, duplicação de Guardião/Zarkun, save antigo entrando em estado impossível, recompensa repetida, revelação prematura da Ganância, NPCs posicionados sobre terreno ainda em reconstrução. Os efeitos devem ser mudanças simples de estado/objeto e diálogo, não multidões ou VFX pesados em Android.
+
+**Pendências autorais:** escolher destino das crianças e de Ilyan; confirmar identidade de Zarkun; conciliar caverna/esgoto e nome definitivo da vila; confirmar regras e cronologia da chegada da Ganância, origem dos quatro bispos e motivações dos demônios. **Nada disso foi canonizado nesta parte.**
+
+**Teste de aceitação futuro:** em save novo e legado, vencer Vhazrael, retornar, recarregar e revisitar. Verificar se os mesmos personagens estão vivos ou ausentes conforme o estado, se os recursos da cidade mudam sem se multiplicar, se o portal e o primeiro selo persistem e se não se repete recompensa. Perguntar a um jogador: “O que mudou em Eldória por sua ação? O que ainda não foi resolvido?” A resposta deve vir do jogo, não de um texto explicativo.
+
+**Limite desta rodada:** apenas planejamento narrativo; não houve inspeção visual da build, alteração de código, PR, workflow, `main` ou merge.
