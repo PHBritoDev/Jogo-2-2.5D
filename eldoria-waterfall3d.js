@@ -26,7 +26,7 @@ float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float n(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), u.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), u.x), u.y); }
 void main(){ vec2 p = vUv - .5; float r = length(p * vec2(1.0, 1.4));
   float m = n(vUv * 4.0 + vec2(uSeed, -uTime * .45)) * .6 + n(vUv * 9.0 + vec2(-uTime * .3, uSeed)) * .4;
-  float a = smoothstep(.5, .1, r) * smoothstep(.25, .75, m) * .32 * (1.0 - uNight * .45);
+  float a = (1.0 - smoothstep(.1, .5, r)) * smoothstep(.25, .75, m) * .32 * (1.0 - uNight * .45);
   gl_FragColor = vec4(mix(vec3(.93, .97, .98), vec3(.55, .62, .74), uNight), a); }`;
 
 /** height(x,z) = altura do terreno. Devolve { group, material, update(t, night), distanceTo(x,z), routes }. */
