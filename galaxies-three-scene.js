@@ -396,7 +396,7 @@ function makePlanet(id,r){
  const atmosphereMaterial=new THREE.ShaderMaterial({
   uniforms:{uColor:{value:new THREE.Color(colors[id-1])}},
   vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vec4 p=modelViewMatrix*vec4(position,1.);vP=-p.xyz;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*p;}',
-  fragmentShader:'uniform vec3 uColor;varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.-max(0.,dot(normalize(vN),normalize(vP))),3.0);gl_FragColor=vec4(uColor,f*.53);}',
+  fragmentShader:'uniform vec3 uColor;varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.-max(0.,dot(normalize(vN),normalize(vP))),3.0);gl_FragColor=vec4(uColor,f*.32);\n#include <colorspace_fragment>\n}',
   transparent:true,depthWrite:false,side:THREE.FrontSide,blending:THREE.AdditiveBlending
  });
  const atm=new THREE.Mesh(new THREE.SphereGeometry(r*1.048,32,20),atmosphereMaterial);
@@ -408,7 +408,7 @@ function makePlanet(id,r){
  if(id===5){maw(group,r);ring(group,r*1.17,r*.02,'#fc444d',-.21,.17,.2*r);}
  if(id===6){for(let i=0;i<9;i++){let a=i*2*PI/9;const crack=[];for(let j=0;j<6;j++)crack.push([Math.cos(a+j*.1)*r*(.95-j*.09),Math.sin(a+j*.16)*r*(.95-j*.08),r*.27+j*r*.045]);tube(group,crack,r*.014,'#ff5a0c',.62);}ring(group,r*1.07,r*.028,'#ff430e',.3,-.18,0);}
  if(id===7){lust(group,r);}
- const halo=ring(group,r*1.16,r*.010,colors[id-1],.31,.1,-r*.06,.51);halo.name='orbital';
+ const halo=ring(group,r*1.15,r*.009,colors[id-1],.31,.1,-r*.06,.34);halo.name='orbital';
  group.userData={globe,halo,id};
  return group;
 }
