@@ -188,12 +188,16 @@ function gothicRuins(parent,W,H){
 }
 function eclipse(parent,W,H){
  const x=W*.245,y=H*.33,r=H*.13;
- const dark=new THREE.MeshBasicMaterial({color:'#1b060b'});
- mesh(new THREE.CircleGeometry(r,64),new THREE.MeshBasicMaterial({color:'#bd1f15'}),parent,x,y,-280);
- mesh(new THREE.CircleGeometry(r*.89,64),dark,parent,x-r*.07,y+r*.09,-278);
- ring(parent,r*.985,r*.032,'#fb3d1b',0,0,-275);
- ring(parent,r*1.07,r*.022,'#f55c25',0,0,-276,.48);
- const glow=new THREE.PointLight('#ff311b',6,H*.8,1.8);glow.position.set(x,y,110);parent.add(glow);
+ const corona=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
+ vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+ fragmentShader:"varying vec2 vUv;\nvoid main(){float d=length((vUv-.5)*2.);\nfloat glow=exp(-d*3.3)*.58+exp(-abs(d-.53)*15.)*.32;\nvec3 c=mix(vec3(.92,.055,.01),vec3(.99,.27,.07),d);\ngl_FragColor=vec4(c,glow*max(0.,1.-smoothstep(.8,1.1,d)));}"});
+ mesh(new THREE.PlaneGeometry(r*4.6,r*4.6),corona,parent,x,y,-295);
+ const moon=mesh(new THREE.SphereGeometry(r,48,32),
+  new THREE.MeshBasicMaterial({map:proceduralTexture(6),color:'#b91b17'}),parent,x,y,-283);
+ mesh(new THREE.CircleGeometry(r*.79,64),new THREE.MeshBasicMaterial({color:'#180609'}),parent,x-r*.10,y+r*.08,-273);
+ ring(parent,r*.98,r*.019,'#fc5428',0,0,-267);
+ ring(parent,r*1.035,r*.008,'#f1974c',0,0,-272,.72);
+ const glow=new THREE.PointLight('#ff311b',8,H*.9,1.5);glow.position.set(x,y,110);parent.add(glow);
 }
 function angel(parent,W,H){
  // Guardião alado escultural: capuz, rosto, armadura e penas 3D.
@@ -218,6 +222,12 @@ function angel(parent,W,H){
  }
  ring(g,H*.055,H*.004,'#edbd78',.27,0,37,.86);
  return g;
+}
+function infernalGround(parent,W,H){
+ const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
+ vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+ fragmentShader:"varying vec2 vUv;\nfloat hash(vec2 p){return fract(sin(dot(p,vec2(91.7,217.3)))*43758.5453);}\nfloat noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}\nvoid main(){\n vec2 uv=vUv;\n float n=noise(uv*vec2(28.,6.));\n float split=abs(sin(uv.x*63.+n*9.+sin(uv.y*11.)*2.))*abs(cos(uv.y*35.+n*7.));\n float lava=pow(max(0.,1.-split),12.)*(.3+.7*noise(uv*vec2(16.,5.)));\n vec3 earth=vec3(.016,.012,.015)+vec3(.07,.009,.012)*n;\n vec3 fire=vec3(1.,.18,.022)*lava*1.8;\n float heat=(1.-uv.y)*(.12+.36*n);\n gl_FragColor=vec4(earth+fire+vec3(heat,heat*.12,0.),.98);\n}"});
+ mesh(new THREE.PlaneGeometry(W,H*.35),material,parent,0,-H*.395,-188);
 }
 function updateCoordinates(root,scene,camera,groups,details,viewport){
  const W=root.clientWidth,H=root.clientHeight;if(!W||!H)return;
@@ -260,7 +270,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const key=new THREE.DirectionalLight('#ffd4a6',3.1);key.position.set(-130,220,220);scene.add(key);
  const red=new THREE.PointLight('#ff3a17',5,H*1.25,1.5);red.position.set(W*.3,H*.25,150);scene.add(red);
  const shader=sky(scene,W,H);
- gothicRuins(scene,W,H);eclipse(scene,W,H);angel(scene,W,H);starfield(scene,W,H);
+ gothicRuins(scene,W,H);infernalGround(scene,W,H);eclipse(scene,W,H);angel(scene,W,H);starfield(scene,W,H);
  const groups=[],details={planet:null,chains:null};
  details.chains=new THREE.Mesh(
   new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:'#ff3b20',toneMapped:false,depthWrite:false})
