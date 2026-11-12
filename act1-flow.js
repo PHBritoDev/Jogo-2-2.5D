@@ -448,11 +448,13 @@ export function vhazraelDefeatScene() {
  * afirmar destinos ainda pendentes de aprovação (Ilyan e crianças).
  * A sequência de eventos do diretor continua intacta para preservar saves.
  */
-export function afterVhazraelScene() {
+export function afterVhazraelScene({ childrenFreed = false, wardenDefeated = false } = {}) {
   return [
     shot('volta', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: 1, dist: 4.4 }, { with: [act('anjo-aparece')] }),
     say(S.guide, 'Você voltou. Quando a passagem se fechou, temi que tivesse ficado lá dentro.'),
     say(S.hero, 'VHAZRAEL caiu. Mas o que ele fez com Eldória não desaparece com ele.'),
+    ...(childrenFreed ? [say(S.hero, 'Conseguimos abrir as jaulas, mas o ritual já tinha começado. Ainda precisamos descobrir quem estava por trás dele.')] : []),
+    ...(wardenDefeated ? [say(S.guide, 'O guardião da passagem caiu. Aqueles que ainda estão presos podem ter uma saída.')] : []),
     say(S.guide, 'Não. Os que sobreviveram ainda precisarão de ajuda. Ao menos, agora terão uma chance.'),
     say(S.hero, 'E a Ganância? Um dos quatro bispos foi derrotado. Onde estão os outros?'),
     say(S.guide, 'Ainda não sabemos. Mas encontrei registros de cargas enviadas para as montanhas. A estrada segue até a região vulcânica.'),
