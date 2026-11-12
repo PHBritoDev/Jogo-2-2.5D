@@ -43,3 +43,12 @@ test('Ilyan aparece no mundo 3D e na cena da cela sem forçar destinos não apro
   assert.match(src,/syncIlyanPlacement\(\)/);
   assert.match(src,/holeScene\(\{ilyanPresent:!!ilyanNpc\}\)/);
 });
+
+test('Ilyan tem conversas interativas na vila e na cela; vendedor aponta Téo', async () => {
+  const {ilyanPrisonScene} = await import('../act1-flow.js');
+  const src = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+  assert.match(ilyanPrisonScene().map(x=>x.text||'').join(' '),/galeria ao sul/);
+  assert.match(src,/inSewer\?ilyanPrisonScene\(\):ilyanVillageScene\(\)/);
+  assert.match(src,/if\(key==='vendor'\)return vendorRoots\[1\]/);
+  assert.match(src,/const v=vendorRoots\[1\],to=/);
+});
