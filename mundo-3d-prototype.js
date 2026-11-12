@@ -3314,6 +3314,32 @@ const flyNpcTargets=[];
 // Sua presença no poço e na cela é vinculada ao estágio, sem adicionar clones.
 const ILYAN_WELL={x:VILLAGE_CENTER.x-3.0,z:VILLAGE_CENTER.z-1.6};
 let ilyanNpc=null,ilyanPending=null,ilyanPlace='';
+/** Seguimento 3D leve, limitado ao piso caminhável. Sem teleporte ou pathfinding através de parede. */
+function updateIlyanEscort(dt){
+ if(!ilyanNpc||!inSewer||questStep!==5||act1Lock||cineActive||portalPull)return;
+ const h=ilyanNpc.holder,action=ilyanNpc.action;
+ if(!h.visible)return;
+ const dx=player.position.x-h.position.x,dz=player.position.z-h.position.z,d=Math.hypot(dx,dz);
+ const origin=DIMENSIONS.esgoto.center,localZ=h.position.z-origin.z;
+ // Saia da cela pelo corredor central antes de perseguir o jogador: evita cortar rochas.
+ const waypoint=localZ>-36&&player.position.z-origin.z<-34;
+ const tx=waypoint?origin.x+SEWER.emptyPath.from.x:player.position.x;
+ const tz=waypoint?origin.z-37:player.position.z;
+ const vx=tx-h.position.x,vz=tz-h.position.z,len=Math.hypot(vx,vz);
+ const moving=d<35&&(waypoint?len>.55:d>2.5)&&len>.05;
+ if(action)action.paused=!moving;
+ if(!moving)return;
+ const step=Math.min(len,Math.min(.05,Math.max(0,dt))*2.45);
+ const nx=h.position.x+vx/len*step,nz=h.position.z+vz/len*step;
+ // A própria geometria de colisão do esgoto valida o próximo ponto.
+ if(!sewerWalkable(nx-origin.x,nz-origin.z,{portalOpen:false})){
+  if(action)action.paused=true;
+  return;
+ }
+ h.position.set(nx,voidSpec.y,nz);
+ h.rotation.y=Math.atan2(vx,vz);
+ if(ilyanNpc.mixer)ilyanNpc.mixer.update(Math.min(.05,Math.max(0,dt)));
+}
 function syncIlyanPlacement(){
  if(!ilyanNpc)return;
  const prison=inSewer&&questStep>=4&&questStep<=5;
@@ -3322,6 +3348,7 @@ function syncIlyanPlacement(){
  if(where===ilyanPlace)return;
  ilyanPlace=where;
  const h=ilyanNpc.holder;h.visible=where!=='hidden';
+ if(ilyanNpc.action)ilyanNpc.action.paused=true;
  if(where==='prison'){
   const p=sewerLocal(SEWER.cell);
   h.position.set(p.x+2.1,voidSpec.y,p.z-.9);
@@ -3333,7 +3360,7 @@ function syncIlyanPlacement(){
 }
 function ensureIlyan(){
  if(ilyanNpc||ilyanPending)return ilyanPending;
- ilyanPending=npcFactory.create({sex:'man',role:'idle',x:ILYAN_WELL.x,z:ILYAN_WELL.z,yaw:-.6})
+ ilyanPending=npcFactory.create({sex:'man',role:'walk',x:ILYAN_WELL.x,z:ILYAN_WELL.z,yaw:-.6})
   .then(n=>{ilyanNpc=n;n.holder.name='Ilyan-Guarda-Eldoria';scene.add(n.holder);syncIlyanPlacement();return n;})
   .catch(e=>{console.warn('Ilyan: NPC Meshy indisponível; nenhuma malha substituta',e);return null;})
   .finally(()=>{ilyanPending=null;});
@@ -4416,7 +4443,7 @@ function act1Toast(text){const toast=document.getElementById('quest-toast');if(!
 function act1Busy(){return cineActive||dialogueOpen||namePromptOpen||act1Lock||packFinishing||!!portalPull;}
 /** Marcador da missão e gatilhos por proximidade. */
 function updateAct1(dt,now){
- updatePack(dt);updateFlies(now);updateRoad(dt);syncIlyanPlacement();
+ updatePack(dt);updateFlies(now);updateRoad(dt);syncIlyanPlacement();updateIlyanEscort(dt);
  if(questStep<1||questStep>8)return;
  if(questStep>=3&&questStep<=4&&!rigLoads.enemy2)loadRig('enemy2').catch(()=>{});
  const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>questMarker.position.set(p.x,terrainHeightAt(p.x,p.z)+.06,p.z);
