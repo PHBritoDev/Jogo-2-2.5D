@@ -290,3 +290,63 @@ A subida começa com trilha de floresta que vai ficando silenciosa; na encosta, 
 - Teste cego: após a cena, o jogador consegue explicar (a) o que mudou em Eldória, (b) por que os prisioneiros estão na caverna e (c) o que ele conseguiu salvar? Se não, revisar a encenação, não acrescentar monólogo.
 - **Riscos:** (1) o jogo atual ainda usa a cadeia antiga dos esgotos; não misturar os dois fluxos; (2) a bifurcação A/B das crianças não foi aprovada; (3) a ponte/cidade/caverna em reconstrução não devem receber geometria narrativa antes da revisão visual; (4) não criar culpabilização por desastre inevitável.
 - **Próxima parte:** progressão interna da caverna e reencontro com Ilyan, com objetivos e checkpoints que funcionem em Android, sem repetir o resgate de Eldória.
+
+
+---
+
+## Parte 6 — A caverna: prisioneiros, reencontro e escolha de rota (12/11/2026)
+**Estado:** PROPOSTA, não implementação nem cânone aprovado. **Escopo:** da entrada após Morvek/Krazel até o primeiro descanso com Ilyan; Zarkun e Vhazrael ficam para a Parte 7.
+
+### Auditoria e continuidade antes da escrita
+- `docs/narrativa/ato-1-eldoria-roteiro-v1.md`, Missões 5–7: entrada natural com Morvek e Krazel; caverna bela e explorada; mecanismo antigo separa Vaelthar; cela que restringe energia; Ilyan preso, ex-guarda; libertação e bênção de duração limitada; aqueduto, colega desaparecido, descanso e lembrança da filha. **Preservar a espinha dorsal, revisar a forma de apresentar Ilyan**.
+- `docs/roteiro/M2-ATO1.md`, A1-11 a A1-13: esgoto, queda, captura, gaiola, guia resgatando, grupos de inimigos e portal. **Reaproveitáveis:** queda e perda temporária de controle, sensação de ser caçado, guia que retorna, bifurcação e passagem ao guardião. **Não importar literalmente:** dois desmaios consecutivos, doze inimigos aparecendo como fila, heroísmo ilimitado do guia, matar guardas rendidos, fala de “apenas vá” sem contexto.
+- `docs/roteiro/M1-PROLOGO.md`: manter a identidade pública Vaelthar e a relação estabelecida na abertura; não revelar nome do bispo antes da preparação narrativa.
+- `docs/OBJETIVO-GALAXIA-1.md`: checkpoints seguros, manutenção transparente do progresso, combate legível em primeira/terceira pessoa e mobile, controle do jogador sobre ações importantes.
+- Partes 2–5 deste laboratório: Ilyan **já foi conhecido em Eldória**, a rede de confisco tem marca recorrente, a cidade passou por um ataque e uma pista material apontou à montanha. Não repetir a apresentação de Ilyan como estranho, nem apagar os salvamentos anteriores. Destino das crianças continua em duas variantes não aprovadas.
+
+### A missão em cinco movimentos jogáveis
+**1. A entrada não é uma nova vila.** Depois de Morvek/Krazel, o jogador atravessa uma passagem rochosa curta e chega a uma galeria alta com cristais e água. Por alguns segundos só se ouvem gotas, passos e ferramentas distantes. Em vez de outro grupo de inimigos imediatamente, duas trilhas convergem num depósito: uma passa junto à água; outra acompanha um passadiço elevado. O jogador vê **caixas com a mesma marca** encontrada no ritual e no confisco. A marca não prova a origem dos bispos; prova a conexão entre remessas. Se a corneta foi interrompida na entrada, o depósito tem patrulha menor; caso contrário, os guardas estão alertas. Ambas as condições permitem prosseguir.
+
+**2. O perigo é compreensível antes de acontecer.** Uma porta pesada fecha o acesso após o jogador atravessar uma plataforma antiga; os contrapesos mostram desgaste, com ruído de pedra e fragmentos caindo. Vaelthar avisa: “Não pise no centro.” A plataforma cede apesar da tentativa de recuo, mas o jogador controla uma queda curta com orientação para uma borda segura. **Não simular que uma escolha evitaria a separação**. Aethraziel tenta alcançá-lo, falha e fica do outro lado, visivelmente enfraquecido por uma proteção breve. Evitar tela preta longa ou segundo desmaio gratuito. A queda termina num setor de contenção, sem dano arbitrário.
+
+**3. Reencontro com Ilyan: a pessoa reconhecida age primeiro.** A cela usa pedra marcada para reduzir magia, não retira toda a capacidade de movimento. O protagonista ouve alguém orientando outros presos a economizar forças. É Ilyan, reconhecível pela voz e por uma ação concreta: divide o último pouco de água entre dois cativos. Ele identifica o protagonista sem nova apresentação. Diálogo proposto (quatro falas, sem cutscene extensa):
+- **Protagonista:** “Ilyan? Pensei que tivesse conseguido sair.”
+- **Ilyan:** “Eu voltei pelos que faltavam. Fecharam a passagem.”
+- **Protagonista:** “Consegue andar?”
+- **Ilyan:** “Consigo. Os outros precisam de ajuda.”
+Se a cena anterior com Ilyan em Eldória não for aprovada, **variante de compatibilidade:** ele se apresenta brevemente como ex-guarda; não usar reconhecimento que o jogador não vivenciou.
+
+**4. A fuga pede planejamento, não uma horda infinita.** O jogador escolhe entre destravar uma válvula de manutenção (mais silenciosa, demanda observar encanamento e trabalhar com Ilyan) ou quebrar a trava danificada (mais rápida, aumenta alerta). As duas rotas convergem na saída; a escolha afeta a primeira patrulha e uma fala de Ilyan, não a vida ou morte de um personagem central. Dois cativos conseguem andar, um precisa de abrigo; Ilyan mostra uma alcova defensável, e o jogador abre a passagem para um corredor seguro antes de partir. Não prometer que todos fugiram se não foram mostrados escapando. Quando o alarme soar, Vaelthar alcança a galeria por um acesso superior e sustenta uma proteção **temporária e custosa**, conforme v1. Em vez de enfrentar ondas sem fim, a missão é fechar dois portões e alcançar a saída; o HUD avisa quanto tempo resta da bênção. Se falhar, checkpoint antes da fuga, não antes da entrada da caverna.
+
+**5. A pausa que prepara o vínculo.** No aqueduto desativado, Ilyan e o protagonista giram juntos uma válvula emperrada, permitindo seguir. Numa área de descanso segura, Ilyan observa Vaelthar tentando esconder o cansaço e oferece água ao protagonista. Fala opcional:
+- **Ilyan:** “Na feira, eu sabia o nome de quase todos. Aqui, só chamam as pessoas pelo número.”
+- **Protagonista:** “Você voltou por elas.”
+- **Ilyan:** “Não consegui tirar todas. Ainda.”
+A frase final preserva a coragem e a falibilidade de Ilyan. A lembrança da filha fica para um diálogo **posterior e opcional**, antes de Zarkun, para não concentrar toda a caracterização numa pausa. O protagonista pode perguntar por sua família, mas não receber uma revelação conveniente.
+
+### Camadas históricas, sem exposição artificial
+- **Confirmado pela sequência:** remessas de mantimentos e cativos passam pela caverna; os guardas mantêm registros; a mesma marca aparece na vila e no ritual. Isso estabelece um sistema organizado sob Vhazrael, não a data em que a Ganância chegou ao mundo.
+- **Hipótese a investigar, NÃO cânone:** o centro de extração existia antes dos demônios e foi convertido em prisão. Mostrar uma antiga marca de trabalhadores parcialmente coberta por uma placa de cobrança. O jogador pode inferir a mudança de uso sem narrador explicando.
+- **Possível pista dos quatro bispos:** registro de transporte com quatro espaços de autorização, apenas um preenchido. **Risco:** pode revelar cedo uma estrutura ainda não fixada; manter como alternativa até verificar a hierarquia dos atos posteriores. Não afirmar que os quatro bispos foram humanos, criados simultaneamente ou nomeados pela Ganância sem evidência.
+- **Demônios como indivíduos:** um guarda reclama da quantidade de turnos e teme perder sua parte; outro prefere evitar alarme para não ser punido. São subordinados cruéis com incentivos distintos, não inocentes por padrão. A cena não deve fazer o jogador ouvir uma palestra sobre organização demoníaca.
+
+### Direção espacial e desempenho (proposta dependente do cenário)
+Uma galeria de contemplação → depósito/duas rotas → queda de contenção → celas → fuga com portões → aqueduto/descanso. Cada setor precisa de **um marco visual inequívoco**, não corredores indistinguíveis. Não solicitar ao Claude novas salas antes de conferir o que existe. Usar água e iluminação já disponíveis se forem confirmadas no cenário; nenhuma promessa de cristais, pontes ou caminhos novos sem validação. Para mobile, evitar dezenas de NPCs ativos e combate simultâneo que destrua FPS; priorizar poucas silhuetas reconhecíveis, sons direcionais e interações contextuais.
+
+### Ritmo e teste de aceitação
+**Meta experimental:** 18–25 minutos da entrada ao descanso, ajustável após playtest; pelo menos 70% de controle efetivo, no máximo duas conversas obrigatórias curtas. Uma descoberta visual, um risco de travessia, um reencontro, uma decisão mecânica e um descanso — não cinco batalhas consecutivas. Checkpoints após a entrada e antes da fuga; nenhuma morte exige rever o diálogo de Ilyan. Verificar: jogador entende por que a caverna é uma prisão? Reconhece Ilyan? Percebe que Vaelthar tem limite? Sabe qual caminho leva à saída? Vê os sobreviventes efetivamente protegidos? Em primeira pessoa, a queda não pode depender de escala ou colisão enganosa.
+
+### Alternativas, riscos e decisões ainda pendentes
+1. **Ilyan conhecido previamente versus apresentação original:** preferir reencontro se a Parte 2 for aprovada; caso contrário, manter apresentação breve.
+2. **Desmaio/gaiola original versus queda controlada:** preferir queda curta e captura legível para evitar perda arbitrária de agência; avaliar se o efeito dramático original se perde.
+3. **Bênção temporária:** a duração de dois minutos na v1 é referência de design, não compromisso técnico; ajustar por playtest e desempenho.
+4. **Destino das crianças e estado de Eldória:** manter ambas as variantes das Partes 4–5 até decisão do criador; nenhuma altera artificialmente a lógica da caverna.
+5. **Pistas sobre bispos e Ganância:** a estrutura dos quatro selos é existente no roteiro v1; qualquer explicação sobre criação, chegada ou objetivo geral dos sete Pecados requer revisão cruzada dos demais atos.
+6. **Geometria real do Claude:** não foi auditada nesta rodada; não afirmar que depósito, aqueduto ou galerias já existem.
+7. **Próxima parte:** preparação da perda de Ilyan, Zarkun, combate, consequência e entrada na dimensão de Vhazrael, evitando falsa agência e revanche glorificada.
+
+### Pesquisa consultada e aplicação específica
+- Harvey Smith e Matthias Worch, GDC 2010, *What Happened Here? Environmental Storytelling*: https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental — a marca repetida, os registros e a conversão do espaço convidam o jogador a inferir a história.
+- Jolie Menzel, GDC 2017, *Level Design Workshop: A Narrative Approach to Level Design*: https://www.gdcvault.com/play/1024302/Level-Design-Workshop-A-Narrative — alternância deliberada de risco, exploração e pausa na sequência de salas.
+- Thomas Grip, palestra GDC Europe 2012, relatada em Game Developer: https://www.gamedeveloper.com/design/-why-hasn-t-story-in-games-advanced-i-amnesia-i-s-designer-has-some-opinions- — priorizar o jogador vivenciar a história por ações, não assisti-la em excesso.
+- Nels Anderson e Jake Rodkin, GDC 2015, *Designing for Exploration and Choice in Firewatch*: https://www.gamedeveloper.com/design/video-designing-for-exploration-and-choice-in-i-firewatch-i- — duas rotas e consequências compreensíveis, mantendo clareza do objetivo.
