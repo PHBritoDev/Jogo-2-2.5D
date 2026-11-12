@@ -31,3 +31,15 @@ test('Abrir as jaulas não rende estatística falsa de resgate', () => {
   assert.doesNotMatch(src, /childrenFreed=true;\s*bumpStat\(['"]rescues['"]\)/);
   assert.match(src, /afterVhazraelScene\(\{childrenFreed,wardenDefeated\}\)/);
 });
+
+test('Ilyan aparece no mundo 3D e na cena da cela sem forçar destinos não aprovados', async () => {
+  const { ilyanVillageScene, holeScene } = await import('../act1-flow.js');
+  const src = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+  assert.ok(ilyanVillageScene().some(s => s.who?.includes('Ilyan')));
+  assert.ok(holeScene({ilyanPresent:true}).some(s => s.actor==='ilyan'));
+  assert.ok(!holeScene({ilyanPresent:false}).some(s => s.actor==='ilyan'));
+  assert.match(src,/ILYAN_WELL/);
+  assert.match(src,/npcFactory\.create\(\{sex:'man',role:'idle'/);
+  assert.match(src,/syncIlyanPlacement\(\)/);
+  assert.match(src,/holeScene\(\{ilyanPresent:!!ilyanNpc\}\)/);
+});
