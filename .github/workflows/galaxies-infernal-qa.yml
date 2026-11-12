@@ -1,10 +1,10 @@
-name: Galaxias infernais — captura visual (PR 482)
+name: Galaxias — auditoria Three.js animada
 on:
   pull_request:
     branches: [main]
     paths:
       - "galaxies3d.js"
-      - "galaxies-pixel-reference.js"
+      - "galaxies-three-scene.js"
       - "assets/ui/menu-sete-pecados-reference.jpg"
       - "galaxies-infernal-art.js"
       - "galaxies-infernal-reference.css"
@@ -26,7 +26,7 @@ jobs:
       - name: Validar sintaxe e progresso
         run: |
           node --check galaxies-infernal-art.js
-          node --check galaxies-pixel-reference.js
+          node --check galaxies-three-scene.js
           node --check tools/visual-lab/galaxy-menu-qa.cjs
           node --check galaxies3d.js
           node --test galaxies3d.test.mjs
@@ -49,7 +49,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: galaxias-infernais-fotos-${{ github.run_number }}
-          path: visual-lab-results/galaxy-menu-482/
+          name: galaxias-threejs-fotos-${{ github.run_number }}
+          path: visual-lab-results/galaxy-menu-three/
           retention-days: 14
           if-no-files-found: warn
