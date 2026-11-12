@@ -6,7 +6,7 @@
  * Este modo evita recriar artes pintadas por CSS/Three.js — um mesh 3D não
  * consegue reproduzir pixel a pixel uma ilustração 2D.
  */
-const IMAGE='./assets/ui/menu-sete-pecados-reference.png';
+const IMAGE=new URL('./assets/ui/menu-sete-pecados-reference.png',import.meta.url).href;
 function button(label,x,y,w,h,handler){
  const b=document.createElement('button');b.type='button';b.className='gx-exact-hit';
  b.setAttribute('aria-label',label);b.style.cssText=`left:${x/1536*100}%;top:${y/864*100}%;width:${w/1536*100}%;height:${h/864*100}%`;
