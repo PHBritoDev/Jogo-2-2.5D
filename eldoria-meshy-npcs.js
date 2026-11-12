@@ -56,6 +56,7 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   src.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});
   // Cabelos autorais: somente se o modelo tiver osso de cabeça válido.
   // Evita posicionar cabelo no ar com rig incompatível.
+  let attachedHair=null;
   if(hair){
    const hairFile=(sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair;
    const head=[];src.traverse(o=>{if(o.isBone&&/(^head$|head$|cabeca$)/i.test(o.name))head.push(o);});
@@ -74,7 +75,7 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
      hairScene.position.set(-hc.x*scale,-hb.min.y*scale,-hc.z*scale);
      mesh.add(hairScene);
      mesh.name='CabeloMeshy';mesh.position.set(0,child?.055:.085,0);
-     head[0].add(mesh);
+     head[0].add(mesh);attachedHair=mesh;
     }catch(error){console.warn('Cabelo Meshy não carregou:',hairFile,error);}
    }else console.warn('NPC sem osso Head identificado; cabelo separado não anexado:',file);
   }
@@ -90,6 +91,20 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
     const fraction=role==='down'&&nativeDown?.90:role==='sit'?.32:.28;
     mixer.update(Math.min(Math.max(clip.duration*fraction,.08),Math.max(.55,clip.duration*.95)));
     action.paused=true;
+   }
+  }
+  // O osso Head pode ter uma escala mundial muito diferente do SkinnedMesh.
+  // Corrigir o acessório DEPOIS da pose, em metros do mundo, não no espaço do osso.
+  if(attachedHair){
+   holder.updateMatrixWorld(true);
+   const hairBounds=new THREE.Box3().setFromObject(attachedHair);
+   const hairDims=hairBounds.getSize(new THREE.Vector3());
+   const isChild=sex==='boy'||sex==='girl',isWoman=sex==='woman'||sex==='girl';
+   const capHeight=isChild?.25:isWoman?.48:.31,capWidth=isChild?.23:.32;
+   const ratio=Math.min(1,capHeight/Math.max(.0001,hairDims.y),capWidth/Math.max(.0001,hairDims.x,hairDims.z));
+   if(ratio<1){
+    attachedHair.scale.multiplyScalar(ratio);
+    attachedHair.updateMatrixWorld(true);
    }
   }
   // O corpo já foi normalizado antes do cabelo. Nunca redimensionar o CORPO
