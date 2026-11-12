@@ -77,24 +77,33 @@ function spire(parent,x,y,z,height,base,color,glow){
  return body;
 }
 function castle(parent,r,ice=false){
- // Cidadela de pontas góticas sobre a superfície esférica, iluminada em ouro
- // ou gelo. 3D real: muralhas, torres, flechas, telhados e pequenas janelas.
+ // Cidadela instanciada: mantém todas as torres, janelas e pináculos,
+ // reduzindo chamadas de desenho no celular.
  const stone=mat(ice?'#728cab':'#b47a32',.58,.45,ice?.08:.15);
  const roofs=mat(ice?'#c9e7fa':'#ffce70',.43,.43,ice?.14:.25);
  const windows=new THREE.MeshBasicMaterial({color:ice?'#e4f6ff':'#ffe49b'});
- const wall=mesh(new THREE.BoxGeometry(r*1.39,r*.18,r*.17),stone,parent,0,r*.23,r*1.02);
- const n=ice?10:12;
+ mesh(new THREE.BoxGeometry(r*1.39,r*.18,r*.17),stone,parent,0,r*.23,r*1.02);
+ const n=ice?10:12,d=new THREE.Object3D();
+ const towers=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),stone,n);
+ const tips=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,5),roofs,n);
+ const panes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),windows,n);
  for(let i=0;i<n;i++){
   const t=i/(n-1),x=(t-.5)*r*1.4,random=rand(i*8+19);
   const h=r*(.29+random*.6)+(i===Math.floor(n/2)?r*.55:0),y=r*.28;
   const z=r*(1.03+Math.cos((t-.5)*PI)*.08);
-  mesh(new THREE.BoxGeometry(r*(.08+random*.07),h*.68,r*.16),stone,parent,x,y+h*.33,z);
-  mesh(new THREE.ConeGeometry(r*(.09+random*.055),h*.38,5),roofs,parent,x,y+h*.85,z);
-  mesh(new THREE.BoxGeometry(r*.028,r*.07,r*.006),windows,parent,x,y+h*.39,z+r*.087);
+  d.rotation.set(0,0,0);d.position.set(x,y+h*.33,z);
+  d.scale.set(r*(.08+random*.07),h*.68,r*.16);d.updateMatrix();towers.setMatrixAt(i,d.matrix);
+  d.position.set(x,y+h*.85,z);
+  d.scale.set(r*(.09+random*.055),h*.38,r*(.09+random*.055));d.updateMatrix();tips.setMatrixAt(i,d.matrix);
+  d.position.set(x,y+h*.39,z+r*.087);
+  d.scale.set(r*.028,r*.07,r*.006);d.updateMatrix();panes.setMatrixAt(i,d.matrix);
   if(i%3===0){
    mesh(new THREE.CylinderGeometry(r*.014,r*.014,h*.3,6),roofs,parent,x,y+h*1.2,z);
    ball(parent,r*.022,ice?'#dcf7ff':'#fff3b6',x,y+h*1.37,z);
   }
+ }
+ for(const instance of [towers,tips,panes]){
+  instance.instanceMatrix.needsUpdate=true;parent.add(instance);
  }
 }
 function goldenIsland(parent,r){
