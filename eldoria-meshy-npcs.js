@@ -41,6 +41,27 @@ export function measureMeshyNpcBounds(THREE,root){
  });
  return box;
 }
+/** Localiza a cabeça pela geometria deformada (não pelos ossos com pivôs deslocados). */
+function crownOfMeshy(THREE,root,bounds){
+ const top=bounds.max.y,h=bounds.getSize(new THREE.Vector3()).y,mid=bounds.getCenter(new THREE.Vector3());
+ const from=top-Math.min(.25,h*.22);
+ const p=new THREE.Vector3();let sumX=0,sumZ=0,n=0;
+ root.updateMatrixWorld(true);
+ root.traverse(o=>{
+  if(!o.isMesh||!o.visible||!o.geometry?.attributes?.position)return;
+  const arr=o.geometry.attributes.position,skin=o.applyBoneTransform||o.boneTransform;
+  if(o.isSkinnedMesh&&o.skeleton)o.skeleton.update();
+  const skip=Math.max(1,Math.floor(arr.count/8000));
+  for(let i=0;i<arr.count;i+=skip){
+   p.fromBufferAttribute(arr,i);
+   if(o.isSkinnedMesh&&typeof skin==='function')skin.call(o,i,p);
+   p.applyMatrix4(o.matrixWorld);
+   if(p.y<from||p.y>top+.02||Math.abs(p.x-mid.x)>.45||Math.abs(p.z-mid.z)>.45)continue;
+   sumX+=p.x;sumZ+=p.z;n++;
+  }
+ });
+ return n>=3?{x:sumX/n,z:sumZ/n}:{x:mid.x,z:mid.z};
+}
 /** Compartilha downloads entre instâncias. Nenhuma malha substituta por código se o GLB falhar. */
 export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeightAt}){
  const loader=new GLTFLoader(),cache=new Map();
@@ -111,10 +132,11 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
     hairScene.position.set(-hc.x*k,-hb.min.y*k,-hc.z*k);
     accessory.add(hairScene);
     // Trancar ao corpo (holder) para não herdar escalas anormais da armadura óssea.
+    const crown=crownOfMeshy(THREE,holder,skinBox);
     accessory.position.set(
-     (skinBox.min.x+skinBox.max.x)*.5-holder.position.x,
+     crown.x-holder.position.x,
      skinBox.max.y-holder.position.y-(child?.10:.15),
-     (skinBox.min.z+skinBox.max.z)*.5-holder.position.z
+     crown.z-holder.position.z
     );
     holder.add(accessory);
    }catch(e){console.warn('Cabelo não foi aplicado:',hairFile,e);}
