@@ -1,0 +1,44 @@
+name: QA HUD — ESCUDO no lugar de DEF
+on:
+  pull_request:
+    paths:
+      - 'mundo-3d-prototype.html'
+      - 'hud-shield-position.test.mjs'
+      - 'tools/visual-lab/hud-shield-position.cjs'
+      - '.github/workflows/hud-shield-position.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  hud-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar estrutura HUD
+        run: node --test hud-shield-position.test.mjs
+      - name: Instalar navegador WebGL
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install chromium --with-deps --only-shell
+      - name: Iniciar jogo real
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/hud-shield.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Fotografar HUD PC e Android, verificar posição
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/hud-shield-position.cjs
+      - name: Guardar capturas e relatório
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hud-shield-${{ github.run_number }}
+          path: visual-lab-results/hud-shield/
+          retention-days: 14
+          if-no-files-found: warn
