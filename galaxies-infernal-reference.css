@@ -121,3 +121,8 @@
 .gx-exact-coin-value{position:absolute;right:4.85%;top:2.5%;width:2.8%;text-align:center;background:#11090c;color:#fff;font:700 clamp(9px,1.3vw,16px) Georgia,serif}
 .gx-exact-progress-value{position:absolute;left:65.4%;top:63.45%;width:3%;text-align:right;background:#0a0308;color:#fff;font:700 clamp(8px,1.25vw,16px) Georgia,serif}
 @media (prefers-reduced-motion:reduce){#galaxy-screen.gx-exact-mode *{animation:none!important}}
+
+/* No modo exato, o SVG legado e seus pseudo-elementos NÃO podem aparecer
+ * nas margens do A55 (a referência 16:9 é letterboxed, sem recortes). */
+#galaxy-screen.gx-exact-mode > :not(.gx-exact-stage){display:none!important}
+#galaxy-screen.gx-exact-mode::before,#galaxy-screen.gx-exact-mode::after{content:none!important;display:none!important}
