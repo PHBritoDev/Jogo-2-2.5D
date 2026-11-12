@@ -585,6 +585,12 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   }
   const now=selected();if(now!==lastSelection){lastSelection=now;setSelected(now);}
   renderer.render(scene,camera);
+  // Telemetria sem alocação por frame para auditoria do custo real na GPU.
+  if((Math.floor(ms/1000)%2)===0){
+   root.dataset.gxDrawCalls=String(renderer.info.render.calls);
+   root.dataset.gxTriangles=String(renderer.info.render.triangles);
+   root.dataset.gxTextures=String(renderer.info.memory.textures);
+  }
  };
  function lost(e){e.preventDefault();root.classList.remove('gx-three-on');}
  canvas.addEventListener('webglcontextlost',lost,{passive:false});
