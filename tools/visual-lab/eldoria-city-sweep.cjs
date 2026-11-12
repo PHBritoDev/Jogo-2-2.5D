@@ -59,14 +59,21 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
      api.walkMove(b[0]-a[0],b[1]-a[1],2);
      return {prior,foot:a,top:b};
    });
-   await page.waitForTimeout(2400);
-   const after=await page.evaluate(()=>window.SevenSinsDebug3D.walkState());
+   // Avança a física determinística, sem depender do FPS real do SwiftShader.
+   const result=await page.evaluate(()=>{const d=window.SevenSinsDebug3D;d.combatStep(2.8,{fps:30,draw:false});return{state:d.walkState(),busy:d.walkBusy()};});
+   const after=result.state;
    const snap=path.join(dir,"escada-depois-caminhada.png");
    await page.screenshot({path:snap,timeout:65000,animations:"disabled"});
-   report.cases.push({preset:preset.name,name:"subida-escada",before:climb.prior,after,screen:path.relative(output,snap)});
+   const expected=Math.hypot(climb.top[0]-climb.foot[0],climb.top[1]-climb.foot[1]);
+   const moved=Math.hypot(after.x-climb.prior.x,after.z-climb.prior.z);
+   const ascent=after.y-climb.prior.y;
+   const completed=!result.busy,pass=completed&&moved>=expected*.7&&ascent>=1.5;
+   const reason=!completed?"SwiftShader lento: comando ainda em andamento; subida não validada":pass?"Subida confirmada":"Caminhada terminou sem atingir o topo da escada";
+   report.cases.push({preset:preset.name,name:"subida-escada",before:climb.prior,after,screen:path.relative(output,snap),expected,moved,ascent,completed,pass,reason});
+   if(!pass){report.errors.push("Auditoria de escada inconclusiva ou falhou ("+preset.name+"): "+reason);process.exitCode=1;}
    await page.close(); await context.close();context=null;
   }
-  report.status="captured";
+  report.status=report.errors.length?"needs-review":"captured";
  }catch(e){report.status="failed";report.error=String(e.stack||e).slice(0,1500);process.exitCode=1;}
  finally {if(context)await context.close().catch(()=>{});if(browser)await browser.close().catch(()=>{});
    report.videos=fs.readdirSync(path.join(output,"android-landscape"),{withFileTypes:true}).filter(x=>x.name.endsWith(".webm")).map(x=>"android-landscape/"+x.name).concat(fs.existsSync(path.join(output,"desktop"))?fs.readdirSync(path.join(output,"desktop")).filter(x=>x.endsWith(".webm")).map(x=>"desktop/"+x):[]);
