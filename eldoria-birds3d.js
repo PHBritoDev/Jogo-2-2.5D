@@ -65,8 +65,8 @@ export function createBirdFlocks(THREE, { ground = () => 0, random = Math.random
   const flocks = Array.from({ length: BIRDS.FLOCKS }, () => ({ active: false, t: 0, life: 0, x: 0, z: 0, y: 0, dx: 0, dz: 0, speed: 10, curve: 0, n: 0, called: false, offs: new Float32Array(BIRDS.PER_FLOCK * 3) }));
   const o = new THREE.Object3D();
   let nextAt = 8 + random() * 14, clock = 0;
-  function spawn(f, focus) {
-    const a = random() * Math.PI * 2, R = 70 + random() * 25, head = a + Math.PI + (random() - .5) * .9;
+  function spawn(f, focus, near = 0) {
+    const a = random() * Math.PI * 2, R = near || 70 + random() * 25, head = a + Math.PI + (random() - .5) * .9;
     f.x = focus.x + Math.cos(a) * R; f.z = focus.z + Math.sin(a) * R; f.dx = Math.cos(head); f.dz = Math.sin(head);
     f.speed = 9 + random() * 3; f.curve = (random() - .5) * .12; f.y = 16 + random() * 14; f.t = 0; f.life = (R * 2.1) / f.speed; f.called = false;
     f.n = 3 + Math.floor(random() * (BIRDS.PER_FLOCK - 2));
@@ -94,5 +94,5 @@ export function createBirdFlocks(THREE, { ground = () => 0, random = Math.random
     mesh.count = k; mesh.visible = k > 0; if (k) mesh.instanceMatrix.needsUpdate = true;
     return k;
   }
-  return { mesh, update, flocks, forceSpawn(focus) { const f = flocks.find(q => !q.active); if (f) spawn(f, focus); return !!f; } };
+  return { mesh, update, flocks, forceSpawn(focus, near = 0) { const f = flocks.find(q => !q.active); if (f) spawn(f, focus, near); return !!f; } };
 }

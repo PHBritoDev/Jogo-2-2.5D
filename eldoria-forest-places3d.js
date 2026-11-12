@@ -37,7 +37,7 @@ export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = fal
   { const P = box.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i); const k = 1 - .18 * y + (hash(i, 10) - .5) * .12; P.setXYZ(i, x * k, y, z * k); } box.computeVertexNormals(); }
   const stoneMat = new THREE.MeshStandardMaterial({ roughness: .95, metalness: 0, vertexColors: true });
   // musgo no topo via cor por vértice (sem textura nova)
-  { const P = box.attributes.position, c = new Float32Array(P.count * 3); for (let i = 0; i < P.count; i++) { const y = P.getY(i), m = Math.max(0, (y - .45) / .55) * (.6 + .4 * hash(i, 11)); const g = .46 + .08 * hash(i, 12); c[i * 3] = g * (1 - m) + .27 * m; c[i * 3 + 1] = g * (1 - m) + .36 * m; c[i * 3 + 2] = g * .96 * (1 - m) + .19 * m; } box.setAttribute('color', new THREE.BufferAttribute(c, 3)); }
+  { const P = box.attributes.position, c = new Float32Array(P.count * 3); for (let i = 0; i < P.count; i++) { const y = P.getY(i), m = Math.max(0, (y - .45) / .55) * (.6 + .4 * hash(i, 11)); const g = .34 + .07 * hash(i, 12); c[i * 3] = g * (1 - m) + .27 * m; c[i * 3 + 1] = g * (1 - m) + .36 * m; c[i * 3 + 2] = g * .96 * (1 - m) + .19 * m; } box.setAttribute('color', new THREE.BufferAttribute(c, 3)); }
   const im = new THREE.InstancedMesh(box, stoneMat, stones.length), o = new THREE.Object3D();
   stones.forEach((s, n) => { o.position.set(s.x, s.y, s.z); o.rotation.set(s.tilt, s.yaw, 0); o.scale.set(s.sx, s.sy, s.sz); o.updateMatrix(); im.setMatrixAt(n, o.matrix); });
   im.castShadow = !lowSpec; im.receiveShadow = true; im.name = 'pedras-lugares'; group.add(im);

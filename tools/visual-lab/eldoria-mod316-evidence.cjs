@@ -48,8 +48,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
       ['circulo_pedras_22h', () => { const a = window.SevenSinsDebug3D; a.setHour(22); a.teleport(-58, -137); a.view(2.4, .18, 7); }],
       ['remanso_13h', () => { const a = window.SevenSinsDebug3D; a.setHour(13); a.teleport(10, -118); a.view(-.9, .14, 7); }],
       ['trilha_samambaias_6h', () => { const a = window.SevenSinsDebug3D; a.setHour(6.6); a.teleport(-14, -105); a.view(-1.6, .08, 6); }],
-      ['passaros_11h', () => { const a = window.SevenSinsDebug3D; a.setHour(11); a.teleport(54, 150); a.birdsNow(); a.view(2.83, -.35, 6); }],
-      ['lago_ondulacao_10h', () => { const a = window.SevenSinsDebug3D; a.setHour(10); a.placeAt(-27, -.9, -99.5, Math.PI); a.view(0, .5, 5); a.rippleNow(); }],
+      ['passaros_11h', () => { const a = window.SevenSinsDebug3D; a.setHour(11); a.teleport(54, 150); a.birdsNow(); }],
+      ['lago_ondulacao_10h', () => { const a = window.SevenSinsDebug3D; a.setHour(10); a.teleport(-27, -96, Math.PI); a.view(.6, .42, 5); a.rippleNow(); }],
       ['primeira_pessoa_mata_10h', () => { const a = window.SevenSinsDebug3D; a.setHour(10); a.teleport(20, -118); a.view(3.14, .02, .72); }],
     ];
     for (const [n, fn] of nov) { await shot('nov_' + n, fn, null, n.startsWith('passaros') ? 4200 : 1800); report.novelties.push(n); }
@@ -65,7 +65,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     // ---------------- 1ª × 3ª pessoa: mesma velocidade real, olhos medidos, FOV
     report.firstPerson = await D(() => { const a = window.SevenSinsDebug3D, o = {}; for (const [mode, dist] of [['tp', 8.5], ['fp', .72], ['tp2', 8.5]]) { a.teleport(20, -118, 0); a.view(3.14, .1, dist); a.motionStep(.5, { x: 0, z: 0 }); const s0 = a.fpProbe(); a.motionStep(2, { x: 0, z: -1 }); const s1 = a.fpProbe(); a.motionStep(1.5, { x: 0, z: -1, sprint: true }); const s2 = a.fpProbe(); o[mode] = { eye: s0.eye, fov: s0.fov, walk: s1.speed, run: s2.speed, walked: +Math.hypot(s1.pos[0] - s0.pos[0], s1.pos[1] - s0.pos[1]).toFixed(2) }; } return o; });
     // ---------------- vídeo: água em três horários
-    for (const h of [10, 18.3, 21.5]) for (const [x, z, vy, vp, vd] of [[-14, -80, 1.5708, .12, 8], [0, 12, 0, .1, 7], [-27, -99.5, 0, .45, 5], [66, -4, -1.75, .02, 7]]) {
+    for (const h of [10, 18.3, 21.5]) for (const [x, z, vy, vp, vd] of [[-14, -80, 1.5708, .12, 8], [0, 12, 0, .1, 7], [-27, -96, .6, .42, 5], [66, -4, -1.75, .02, 7]]) {
       await D(([h, x, z, vy, vp, vd]) => { const a = window.SevenSinsDebug3D; a.setHour(h); a.teleport(x, z); a.view(vy, vp, vd); }, [h, x, z, vy, vp, vd]);
       for (let i = 0; i < 12; i++) { await D(([vy, vp, vd, i]) => window.SevenSinsDebug3D.view(vy + i * .035, vp, vd), [vy, vp, vd, i]); await wait(160); }
     }
