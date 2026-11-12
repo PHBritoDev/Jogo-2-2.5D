@@ -330,7 +330,7 @@ function lust(parent,r){
  ball(parent,r*.29,'#d69ba5',0,-r*.43,r*.74,[1.62,.66,.8]);
  ball(parent,r*.22,'#a42a5b',0,-r*.53,r*1.02,[1.66,.5,.34]);
  mesh(new THREE.CylinderGeometry(r*.112,r*.155,r*.29,14),skin,parent,0,-r*.155,r*.84);
- const head=new THREE.Group();head.position.set(0,r*.225,r*.83);head.rotation.z=-.11;parent.add(head);
+ const head=new THREE.Group();head.position.set(0,r*.225,r*.83);head.rotation.z=-.19;head.rotation.y=-.12;parent.add(head);
  const face=ball(head,r*.36,'#dfadaf',0,0,.018*r,[.70,1.1,.63]);
  ball(head,r*.22,'#ce929e',0,-r*.14,r*.115,[.63,.56,.6]);
  // Sobrancelhas, pálpebras curvas, íris verde e cílios.
@@ -366,6 +366,17 @@ function lust(parent,r){
  ring(parent,r*.16,r*.015,'#ffc580',0,0,r*.96,.83).position.y=-r*.23;
  ball(parent,r*.047,'#ffca67',0,-r*.37,r*1.11);
  roseField(parent,r,9);
+ // Pétalas suspensas no espaço, uma única malha instanciada colorida.
+ const petals=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),
+  mat('#ed729b',.28,.47),24),pd=new THREE.Object3D();
+ for(let i=0;i<24;i++){
+  const ang=i*2*PI/24,rad=r*(.85+.3*rand(i+70));
+  pd.position.set(Math.cos(ang)*rad,Math.sin(ang)*rad*.78,r*(.62+.2*rand(i+77)));
+  pd.rotation.set(rand(i*3)*PI,rand(i*7)*PI,ang);
+  const size=r*(.016+.023*rand(i+54));
+  pd.scale.set(size,size*.56,size*.2);pd.updateMatrix();petals.setMatrixAt(i,pd.matrix);
+ }
+ petals.instanceMatrix.needsUpdate=true;parent.add(petals);
  ring(parent,r*1.14,r*.016,'#ff42a6',-.25,.18,r*.23,.81);
 }
 function makePlanet(id,r){
