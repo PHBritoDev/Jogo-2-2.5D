@@ -300,6 +300,22 @@ function starfield(parent,W,H){
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(points,3));g.setAttribute('color',new THREE.BufferAttribute(cols,3));
  const pts=new THREE.Points(g,new THREE.PointsMaterial({size:1.45,vertexColors:true,transparent:true,opacity:.8,sizeAttenuation:false}));parent.add(pts);return pts;
 }
+function emberField(parent,W,H){
+ // Partículas incandescentes geradas em buffer: uma única draw call.
+ const count=110,coords=new Float32Array(count*3);
+ for(let i=0;i<count;i++){
+  coords[i*3]=(rand(i+810)-.5)*W;
+  coords[i*3+1]=-H*.49+rand(i+428)*H*.58;
+  coords[i*3+2]=-145+rand(i+583)*36;
+ }
+ const geo=new THREE.BufferGeometry();const attr=new THREE.BufferAttribute(coords,3);
+ attr.setUsage(THREE.DynamicDrawUsage);geo.setAttribute('position',attr);
+ const points=new THREE.Points(geo,new THREE.PointsMaterial({
+  color:'#f06c39',size:1.45,transparent:true,opacity:.6,
+  sizeAttenuation:false,depthWrite:false,blending:THREE.AdditiveBlending
+ }));parent.add(points);
+ return {coords,attr,count,W,H};
+}
 function sky(parent,W,H){
  const material=new THREE.ShaderMaterial({uniforms:{uTime:{value:0}},depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -502,8 +518,10 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  scene.add(new THREE.AmbientLight('#858ca9',1.7));
  const key=new THREE.DirectionalLight('#ffd4a6',3.1);key.position.set(-130,220,220);scene.add(key);
  const red=new THREE.PointLight('#ff3a17',5,H*1.25,1.5);red.position.set(W*.3,H*.25,150);scene.add(red);
- const shader=sky(scene,W,H);
- gothicRuins(scene,W,H);infernalGround(scene,W,H);eclipse(scene,W,H);eclipseCitadel(scene,W,H);borderChains(scene,W,H);angel(scene,W,H);starfield(scene,W,H);
+ const environment=new THREE.Group();scene.add(environment);
+ const shader=sky(environment,W,H);
+ gothicRuins(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);angel(environment,W,H);starfield(environment,W,H);
+ const embers=emberField(environment,W,H);
  const groups=[],details={planet:null,chains:null};
  details.chains=new THREE.Mesh(
   new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:'#ff3b20',toneMapped:false,depthWrite:false})
@@ -522,14 +540,29 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  }
  let lastSelection=1,frame=0,elapsed=0,prev=0,running=true,id=0;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const parallax={x:0,y:0};
+ const pointer=e=>{const b=root.getBoundingClientRect();
+  parallax.x=clamp(((e.clientX-b.left)/Math.max(1,b.width)-.5)*-W*.014,-12,12);
+  parallax.y=clamp(((e.clientY-b.top)/Math.max(1,b.height)-.5)*H*.012,-8,8);
+ };
+ root.addEventListener('pointermove',pointer,{passive:true});
  const tick=ms=>{
   if(!running||!root.isConnected)return;
   id=requestAnimationFrame(tick);
   if(document.hidden||root.classList.contains('leaving'))return;
   const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=dt;
   // 30 FPS cap para preservar GPU do celular (menus não precisam de 60).
-  if(ms-frame<(reduced?1000:32))return;frame=ms;
+  if(ms-frame<(reduced?1000:16.7))return;frame=ms;
   shader.uniforms.uTime.value=elapsed;
+  if(!reduced){
+   environment.position.x+=(parallax.x-environment.position.x)*Math.min(1,dt*2.6);
+   environment.position.y+=(parallax.y-environment.position.y)*Math.min(1,dt*2.6);
+   for(let i=0;i<embers.count;i++){
+    const at=i*3+1;embers.coords[at]+=(6+rand(i+42)*22)*dt;
+    if(embers.coords[at]>H*.14)embers.coords[at]=-H*.49;
+   }
+   embers.attr.needsUpdate=true;
+  }
   if(!reduced){
    groups.forEach((g,i)=>{g.rotation.y=Math.sin(elapsed*.13+i)*.11;g.rotation.z=Math.sin(elapsed*.43+i)*.012;});
    details.planet.rotation.y=Math.sin(elapsed*.2)*.075;
@@ -541,7 +574,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  canvas.addEventListener('webglcontextlost',lost,{passive:false});
  root.classList.add('gx-three-on');size();id=requestAnimationFrame(tick);
  const stop=()=>{
-  running=false;cancelAnimationFrame(id);observer.disconnect();
+  running=false;cancelAnimationFrame(id);observer.disconnect();root.removeEventListener('pointermove',pointer);
   for(const object of scene.children){object.traverse?.(v=>{v.geometry?.dispose?.();if(v.material){const ms=Array.isArray(v.material)?v.material:[v.material];for(const m of ms){m.map?.dispose?.();m.dispose?.();}}});}
   renderer.dispose();canvas.remove();root.classList.remove('gx-three-on');
  };
