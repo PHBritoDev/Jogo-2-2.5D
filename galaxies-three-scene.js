@@ -21,34 +21,53 @@ function ring(parent,r,t,color,rx=.26,ry=-.2,z=0,opacity=1){
  const o=mesh(new THREE.TorusGeometry(r,t,5,96),m,parent,0,0,z);o.rotation.set(rx,ry,0);return o;
 }
 function proceduralTexture(id){
- const c=document.createElement('canvas');c.width=c.height=256;
- const ctx=c.getContext('2d',{alpha:false});const p=[
-  ['#c5872d','#4a2b17','#171014'],['#1abc68','#03473a','#060a12'],
-  ['#ebae42','#664015','#161012'],['#e3f2ff','#7594b4','#1b2335'],
-  ['#8f2535','#390912','#0a0208'],['#bd3527','#3d1115','#08090c'],
-  ['#e78ac3','#73306e','#1a0a28']
+ // Materiais terrestres feitos por ruído multi-escala CPU (320²), sem importar
+ // fotografias, mapas PBR ou sequer um arquivo bitmap. Gerado uma vez/planeta.
+ const N=320,c=document.createElement('canvas');c.width=c.height=N;
+ const ctx=c.getContext('2d',{alpha:false}),im=ctx.createImageData(N,N),data=im.data;
+ const shades=[
+  [[236,174,65],[118,68,25],[35,23,22]],
+  [[24,221,111],[5,93,65],[3,17,27]],
+  [[248,199,95],[138,81,27],[41,25,23]],
+  [[239,248,254],[126,164,210],[31,50,79]],
+  [[179,57,72],[93,12,33],[23,4,11]],
+  [[255,99,29],[96,33,20],[14,13,17]],
+  [[250,151,208],[134,52,114],[37,14,54]]
  ][id-1];
- const grad=ctx.createRadialGradient(82,65,2,127,137,178);
- grad.addColorStop(0,p[0]);grad.addColorStop(.44,p[1]);grad.addColorStop(1,p[2]);
- ctx.fillStyle=grad;ctx.fillRect(0,0,256,256);
- // Vulcões, crostas, continentes, nuvens e fissuras codificados, não imagens.
- for(let i=0;i<195;i++){
-  const x=rand(i*2+id*170)*256,y=rand(i*3+id*65)*256;
-  const r=2+rand(i*5+id*23)*26;
-  ctx.beginPath();ctx.ellipse(x,y,r,r*(.24+rand(i*11)),rand(i*7)*PI,0,2*PI);
-  ctx.fillStyle=id===4?'rgba(230,246,255,.21)':id===6?'rgba(15,6,7,.42)':
-   id===2?'rgba(3,35,20,.24)':id===7?'rgba(255,171,223,.12)':'rgba(15,11,8,.26)';
-  ctx.fill();
- }
- if(id===6||id===3||id===1){
-  for(let i=0;i<22;i++){
-   ctx.strokeStyle=id===6?'rgba(255,76,19,.85)':'rgba(255,189,56,.48)';
-   ctx.lineWidth=1+rand(i+32)*3;ctx.beginPath();
-   let x=rand(i*71)*256,y=rand(i*43)*256;ctx.moveTo(x,y);
-   for(let j=0;j<5;j++){x+=10+rand(i*4+j)*18;y+=(rand(i*6+j)-.5)*40;ctx.lineTo(x,y);}
-   ctx.stroke();
+ const hash=(x,y)=>{
+  let k=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(id,2147483647);
+  k=Math.imul(k^(k>>>13),1274126177);return ((k^(k>>>16))>>>0)/4294967295;
+ };
+ const vnoise=(x,y)=>{
+  const X=Math.floor(x),Y=Math.floor(y),u=x-X,v=y-Y,fx=u*u*(3-2*u),fy=v*v*(3-2*v);
+  const a=hash(X,Y)+(hash(X+1,Y)-hash(X,Y))*fx;
+  const b=hash(X,Y+1)+(hash(X+1,Y+1)-hash(X,Y+1))*fx;
+  return a+(b-a)*fy;
+ };
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+  const xx=x/N,yy=y/N,off=(y*N+x)*4;
+  const n=vnoise(xx*6.3,yy*4.7)*.46+vnoise(xx*19.7,yy*12.1)*.33+
+   vnoise(xx*57.8,yy*39.6)*.21;
+  const ridge=Math.abs(n-.52),angle=xx*5+vnoise(xx*4,yy*4)*2;
+  const cloud=Math.sin(angle*3+yy*16+n*9)*.18;
+  let intensity=Math.max(0,Math.min(1,n*1.45-.18+cloud*.35));
+  if(id===2)intensity=Math.max(0,Math.min(1,intensity+.16*Math.sin(yy*23+n*14)));
+  if(id===4)intensity=.28+.72*Math.pow(intensity,.66);
+  if(id===5)intensity=Math.max(0,Math.min(1,intensity*.75+ridge*.8));
+  let lava=0;
+  if(id===6||id===3||id===1){
+   const p=Math.abs(Math.sin(xx*31+vnoise(xx*10,yy*10)*9)*Math.sin(yy*24+n*16));
+   lava=Math.pow(1-p,id===6?22:35)*(id===6?1:.38);
   }
+  const t=intensity<.5?intensity*2:(intensity-.5)*2;
+  const a=intensity<.5?shades[2]:shades[1],b=intensity<.5?shades[1]:shades[0];
+  for(let k=0;k<3;k++){
+   const base=a[k]+(b[k]-a[k])*t;
+   data[off+k]=Math.min(255,Math.max(0,base*(.77+.32*n)+lava*(k===0?235:k===1?85:15)));
+  }
+  data[off+3]=255;
  }
+ ctx.putImageData(im,0,0);
  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=2;
  return tex;
 }
