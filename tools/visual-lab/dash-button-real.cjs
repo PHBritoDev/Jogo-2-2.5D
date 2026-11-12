@@ -7,7 +7,7 @@ const fs=require('node:fs'),path=require('node:path');
  const results=[];
  try{
   for(const p of [{name:'desktop',width:1365,height:768,mobile:false},{name:'mobile',width:844,height:390,mobile:true}]){
-   const context=await browser.newContext({viewport:{width:p.width,height:p.height},deviceScaleFactor:1,isMobile:p.mobile,hasTouch:true});
+   const context=await browser.newContext({viewport:{width:p.width,height:p.height},deviceScaleFactor:1,isMobile:p.mobile,hasTouch:p.mobile});
    const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto('http://127.0.0.1:4173/mundo-3d-prototype.html?debug3d=1',{waitUntil:'domcontentloaded',timeout:45000});
    await page.waitForFunction(()=>document.getElementById('loading')?.classList.contains('hidden')&&window.SevenSinsDebug3D?.combat315,null,{timeout:120000});
@@ -18,7 +18,8 @@ const fs=require('node:fs'),path=require('node:path');
      return {x,y,enabled:!b.disabled,visible:r.width>0&&r.height>0,atPoint:top?.id||top?.closest?.('button')?.id||null,before:D.combat315().mob.dashLeft,prior:D.heroState().p};
    });
    await page.screenshot({path:path.join(dir,'before-'+p.name+'.png')});
-   await page.touchscreen.tap(setup.x,setup.y);
+   if(p.mobile)await page.touchscreen.tap(setup.x,setup.y);
+   else await page.mouse.click(setup.x,setup.y);
    const after=await page.evaluate(()=>({dashLeft:window.SevenSinsDebug3D.combat315().mob.dashLeft,pos:window.SevenSinsDebug3D.heroState().p}));
    await page.screenshot({path:path.join(dir,'after-'+p.name+'.png')});
    const pass=setup.enabled&&setup.visible&&setup.atPoint==='dash'&&setup.before<.03&&after.dashLeft>.35;
