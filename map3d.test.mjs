@@ -33,3 +33,17 @@ test('viagem rápida bloqueada em combate, cena, escolta e queda', () => {
   for (const key of ['inCombat', 'inDialogue', 'inCinematic', 'escorting', 'falling', 'dead']) assert.equal(canFastTravel({ [key]: true }).ok, false, key);
   assert.ok(WAYSTONES.length >= 2);
 });
+
+test('Arena do Vale e Coliseu da Ascensão têm IDs próprios e descoberta independente', () => {
+  const ids = MAP_POIS.map(p=>p.id);
+  assert.equal(new Set(ids).size, ids.length, 'IDs de pontos de interesse devem ser únicos');
+  const coliseu = MAP_POIS.find(p=>p.name==='Coliseu da Ascensão');
+  const arena = MAP_POIS.find(p=>p.name==='Arena do Vale');
+  assert.ok(coliseu && arena);
+  assert.notEqual(coliseu.id, arena.id);
+  const state = createMapState();
+  assert.ok(discoverPois(state, coliseu.x,coliseu.z).some(p=>p.id===coliseu.id));
+  assert.ok(discoverPois(state, arena.x,arena.z).some(p=>p.id===arena.id));
+  const saved = createMapState(serializeMapState(state));
+  assert.ok(saved.pois.has(coliseu.id) && saved.pois.has(arena.id));
+});
