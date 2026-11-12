@@ -289,6 +289,20 @@ export function ilyanVillageScene() {
   ];
 }
 
+/** Conversa opcional com Ilyan na prisão, após a fuga da cela.
+ * Dá ao jogador contexto sobre a saída; não altera flags de sobrevivência.
+ */
+export function ilyanPrisonScene() {
+  return [
+    shot('ilyan-cela', 2.2, { cam: 'two', a: 'hero', b: 'ilyan', side: -1, dist: 3.4 }),
+    say(S.hero, 'Ilyan, consegue andar?', { actor: 'hero' }),
+    say(S.ilyan, 'Consigo. Trabalhei de guarda na feira. Conheço a diferença entre uma saída e uma armadilha.'),
+    say(S.ilyan, 'A galeria ao sul leva a outra passagem. Há um vigia mais adiante.'),
+    say(S.hero, 'E os outros prisioneiros?'),
+    say(S.ilyan, 'Vou procurar quem ainda pode caminhar. Se puder, mantenha o caminho livre.')
+  ];
+}
+
 /** Na floresta à noite: o choro, o primeiro Seguidor e a provocação. */
 export function forestFirstScene() {
   return [
