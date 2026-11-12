@@ -24,7 +24,7 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   return cache.get(file);
  };
  const clipFor=(clips,role)=> {
-  const tests=role==='walk'?[/walk/i,/idle|breath/i]:role==='down'?[/fall|lie|sleep|dead|down/i,/idle|breath/i]:[/idle|breath|stand/i];
+  const tests=role==='walk'?[/walk/i,/idle|breath/i]:role==='down'?[/side.?lying|falling.?down|knock.?down|lie|sleep|dead|down/i,/idle|breath/i]:role==='sit'?[/sit|sitting|rest/i,/arise/i,/idle|breath/i]:[/idle|breath|stand/i];
   for(const re of tests){const found=clips.find(c=>re.test(c.name)&&!/(attack|combat|sword)/i.test(c.name));if(found)return found;}
   return null;
  };
@@ -39,7 +39,8 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   src.scale.setScalar(k);src.position.set(-center.x*k,-box.min.y*k,-center.z*k);
   body.add(src);holder.add(body);holder.name='NPC-Meshy-'+sex+'-'+role;
   holder.position.set(x,groundHeightAt(x,z),z);holder.rotation.y=yaw;
-  if(role==='down'){
+  const nativeDown=role==='down'&&(gltf.animations||[]).some(c=>/side.?lying|falling.?down|knock.?down|sleep|lying/i.test(c.name));
+  if(role==='down'&&!nativeDown){
    body.rotation.z=(sex==='woman'||sex==='girl'?-1:1)*Math.PI/2;
    body.rotation.x=.12;
    holder.updateMatrixWorld(true);
@@ -64,9 +65,15 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
      const hb=new THREE.Box3().setFromObject(hairScene),hs=hb.getSize(new THREE.Vector3()),hc=hb.getCenter(new THREE.Vector3());
      // Pequeno acessório fixado ao osso, sem animação extra por frame.
      const mesh=new THREE.Group();const child=sex==='boy'||sex==='girl';
-     const width=child?.245:.335,scale=width/Math.max(.01,hs.x,hs.z);
-     hairScene.scale.setScalar(scale);hairScene.position.set(-hc.x*scale,-hb.min.y*scale,-hc.z*scale);mesh.add(hairScene);
-     mesh.name='CabeloMeshy';mesh.position.set(0,child?.045:.075,0);
+     const width=child?.18:sex==='man'?.255:.28;
+     const maxHeight=child?.23:sex==='man'?.27:.42;
+     // IMPORTANTE: os GLBs de cabelo têm eixo Y muito maior que X/Z.
+     // Normalizar apenas pela largura produzia cabelos de 6–9 m (NPCs gigantes ao deitar).
+     const scale=Math.min(width/Math.max(.01,hs.x,hs.z),maxHeight/Math.max(.01,hs.y));
+     hairScene.scale.setScalar(scale);
+     hairScene.position.set(-hc.x*scale,-hb.min.y*scale,-hc.z*scale);
+     mesh.add(hairScene);
+     mesh.name='CabeloMeshy';mesh.position.set(0,child?.055:.085,0);
      head[0].add(mesh);
     }catch(error){console.warn('Cabelo Meshy não carregou:',hairFile,error);}
    }else console.warn('NPC sem osso Head identificado; cabelo separado não anexado:',file);
@@ -80,24 +87,24 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
    action.play();
    if(role==='idle'||role==='sit'||role==='down'){
     // Captura uma pose natural do clipe, mas não anima caminhada parado.
-    mixer.update(Math.min(Math.max(clip.duration*.28,.08),.55));
+    const fraction=role==='down'&&nativeDown?.90:role==='sit'?.32:.28;
+    mixer.update(Math.min(Math.max(clip.duration*fraction,.08),Math.max(.55,clip.duration*.95)));
     action.paused=true;
    }
   }
-  // Verificação após rig, cabelo e pose: os pés devem tocar o terreno,
-  // independentemente do deslocamento presente no GLB.
+  // O corpo já foi normalizado antes do cabelo. Nunca redimensionar o CORPO
+  // para compensar a altura de um acessório: foi a causa da regressão anterior.
   holder.updateMatrixWorld(true);
   let finalBox=new THREE.Box3().setFromObject(holder);
   if(finalBox.isEmpty())throw Error('NPC sem geometria visível: '+file);
-  const actualHeight=finalBox.getSize(new THREE.Vector3()).y;
-  if(actualHeight>target*1.25||actualHeight<target*.75){
-   const correction=target/Math.max(.01,actualHeight);
-   src.scale.multiplyScalar(correction);
-   src.position.multiplyScalar(correction);
-   holder.updateMatrixWorld(true);
-   finalBox.setFromObject(holder);
-  }
-  holder.position.y+=groundHeightAt(x,z)-finalBox.min.y+.015;
+  const dimensions=finalBox.getSize(new THREE.Vector3());
+  if(Math.max(dimensions.x,dimensions.y,dimensions.z)>3.0)
+   throw Error('Dimensões anormais do NPC '+file+' ('+dimensions.toArray()+')');
+  const base=groundHeightAt(x,z);
+  holder.position.y+=base-finalBox.min.y+.015;
+  // Centralização horizontal após a pose real, importante para quem está deitado.
+  const pivot=finalBox.getCenter(new THREE.Vector3());
+  holder.position.x+=x-pivot.x;holder.position.z+=z-pivot.z;
   holder.updateMatrixWorld(true);
   finalBox.setFromObject(holder);
   return {holder,mixer,action,role,file,actualHeight:finalBox.getSize(new THREE.Vector3()).y,hair:hair?((sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair):null,clips:nativeClips.map(c=>c.name)};
