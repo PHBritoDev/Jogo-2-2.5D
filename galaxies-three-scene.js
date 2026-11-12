@@ -149,31 +149,54 @@ function rose(parent,x,y,z,s,shade){
  }return core;
 }
 function lust(parent,r){
- // Escultura procedural: busto e rosto humanizados, fios de cabelo orgânicos,
- // acessórios e flores. Sem fotografia nem recurso externo.
- const skin=mat('#e4a8c4',.18,.42),hair=mat('#512342',.26,.42);
- ball(parent,r*.3,'#f1b6cc',0,-r*.48,r*.77,[1.4,.56,.6]);
- mesh(new THREE.CylinderGeometry(r*.14,r*.18,r*.32,16),skin,parent,0,-r*.16,r*.91);
- const face=mesh(new THREE.SphereGeometry(r*.36,32,24),skin,parent,.04*r,r*.23,r*.81);
- face.scale.set(.73,1.22,.65);
- // Olhos, sobrancelhas, nariz e boca em alto-relevo.
+ // Luxúria: escultura procedural de mulher adulta, rosto com anatomia,
+ // cabelos ondulados, joias, braço elevado e pétalas 3D — nenhuma foto.
+ const skin=mat('#d9a0a6',.08,.52),hair=mat('#612646',.26,.52);
+ const red=mat('#b83769',.44,.31),gold=mat('#e8b16f',.79,.23);
+ ball(parent,r*.29,'#d69ba5',0,-r*.43,r*.74,[1.62,.66,.8]);
+ ball(parent,r*.22,'#a42a5b',0,-r*.53,r*1.02,[1.66,.5,.34]);
+ mesh(new THREE.CylinderGeometry(r*.112,r*.155,r*.29,14),skin,parent,0,-r*.155,r*.84);
+ const head=new THREE.Group();head.position.set(0,r*.225,r*.83);head.rotation.z=-.11;parent.add(head);
+ const face=ball(head,r*.36,'#dfadaf',0,0,.018*r,[.70,1.1,.63]);
+ ball(head,r*.22,'#ce929e',0,-r*.14,r*.115,[.63,.56,.6]);
+ // Sobrancelhas, pálpebras curvas, íris verde e cílios.
  for(const d of [-1,1]){
-  ball(parent,r*.073,'#fff1e5',d*r*.137,r*.29,r*1.045,[1,.42,.35]);
-  ball(parent,r*.024,'#2a0c26',d*r*.14,r*.29,r*1.07);
-  tube(parent,[[d*r*.068,r*.4,r*1.06],[d*r*.15,r*.42,r*1.055],[d*r*.21,r*.385,r*1.02]],r*.014,'#2b1024');
+  const x=d*r*.127,y=r*.077,z=r*.222;
+  ball(head,r*.062,'#f3d8d0',x,y,z,[1.11,.36,.41]);
+  ball(head,r*.034,'#347f60',x+d*r*.005,y,z+r*.031,[.69,.88,.24]);
+  ball(head,r*.017,'#141820',x+d*r*.006,y,z+r*.042,[.75,.85,.25]);
+  tube(head,[[x-d*r*.057,y+r*.039,z],[x,y+r*.056,z+r*.025],[x+d*r*.055,y+r*.034,z]],r*.013,'#492435');
+  tube(head,[[x-d*r*.065,y+r*.109,z-r*.01],[x,y+r*.124,z],[x+d*r*.07,y+r*.105,z-r*.01]],r*.017,'#412338');
+  for(let j=0;j<3;j++)tube(head,[[x+d*r*(.03+j*.018),y+r*.041,z+r*.013],[x+d*r*(.045+j*.021),y+r*.069,z+r*.018]],r*.007,'#241020');
  }
- ball(parent,r*.05,'#ce839c',0,r*.1,r*1.08,[.65,1.2,.7]);
- ball(parent,r*.085,'#a12a52',.01*r,-r*.01,r*1.07,[1.1,.28,.4]);
- for(let i=0;i<17;i++){
-  const sign=i%2?-1:1;
-  const x=sign*r*(.18+rand(i+8)*.19),top=r*(.63+rand(i+1)*.16);
-  tube(parent,[[x*.6,top,r*.77],[x,top-r*.15,r*.97],[x*1.2,r*.1,r*.9],[x*.7,-r*.47,r*.85]],r*(.025+rand(i)*.017),i%3?'#592448':'#823957');
+ // Nariz com ponte e ponta; lábios curvados.
+ const nose=ball(head,r*.049,'#d59b9d',.015*r,-r*.017,r*.249,[.72,1.9,.8]);
+ ball(head,r*.049,'#c9798b',.018*r,-r*.117,r*.249,[1.58,.36,.5]);
+ ball(head,r*.045,'#ab415f',.018*r,-r*.149,r*.243,[1.45,.26,.48]);
+ // cabelo volumoso sobre a testa
+ ball(head,r*.29,'#452039',-.035*r,r*.26,-r*.08,[1.05,.55,.57]);
+ for(let i=0;i<23;i++){
+  const d=i%2?-1:1,t=i/22,side=d*r*(.19+.14*rand(i+31)),top=r*(.32+.17*rand(i+45));
+  const tail=-r*(.37+.3*rand(i+9));
+  tube(parent,[[side*.3,r*.52,r*.76],[side,top+r*.06,r*.93],
+   [side*1.45,r*.13,r*.99],[side*.84,tail,r*.94]],
+  r*(.021+.015*rand(i+17)),i%3?'#502343':'#873d61',.07);
  }
- for(let i=0;i<8;i++){
-  const a=i*2*PI/8;
-  rose(parent,Math.cos(a)*r*.82,Math.sin(a)*r*.75,r*.6,r*.19,i%2?'#ff5a99':'#bd1c67');
+ // Braço direito apoiado acima da cabeça, mão e dedos.
+ tube(parent,[[r*.38,-r*.40,r*.96],[r*.61,-r*.10,r*.91],[r*.55,r*.43,r*.86],
+  [r*.29,r*.64,r*.85]],r*.076,'#d7a3aa');
+ const palm=ball(parent,r*.091,'#e3b6b3',r*.27,r*.65,r*.85,[.6,1.1,.35]);
+ for(let i=0;i<4;i++)tube(parent,[[r*(.26+i*.022),r*.67,r*.85],
+  [r*(.18+i*.026),r*.77,r*.85]],r*.013,'#ddb0af');
+ // Gargantilha e broche metálico no peito.
+ ring(parent,r*.16,r*.015,'#ffc580',0,0,r*.96,.83).position.y=-r*.23;
+ ball(parent,r*.047,'#ffca67',0,-r*.37,r*1.11);
+ for(let i=0;i<9;i++){
+  const ang=i*2*PI/9;
+  rose(parent,Math.cos(ang)*r*.80,Math.sin(ang)*r*.71,r*.69,r*(.125+rand(i)*.07),
+    i%2?'#ff74a8':'#b42366');
  }
- ring(parent,r*1.12,r*.015,'#ff4cae',-.36,.1,r*.21,.84);
+ ring(parent,r*1.14,r*.016,'#ff42a6',-.25,.18,r*.23,.81);
 }
 function makePlanet(id,r){
  const group=new THREE.Group();
