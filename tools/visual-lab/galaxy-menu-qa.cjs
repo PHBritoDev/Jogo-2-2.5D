@@ -21,7 +21,7 @@ function check(ok,msg){if(!ok)throw Error(msg);}
     const root=document.querySelector("#galaxy-screen"),c=root.querySelector("canvas.gx-three-canvas"),orbs=[...root.querySelectorAll(".gx-orb")];
     const gl=c.getContext("webgl2")||c.getContext("webgl");
     return {three:root.classList.contains("gx-three-on"),canvas:{width:c.width,height:c.height},gl:!!gl,errors:gl?gl.getError():null,orbs:orbs.length,menu:root.querySelectorAll(".gx-nav button").length,
-      pixelImageShown:!!root.querySelector(".gx-exact-stage"),labels:orbs.map(o=>o.getAttribute("aria-label")),
+      pixelImageShown:!!root.querySelector(".gx-exact-stage"),gpu:{drawCalls:Number(root.dataset.gxDrawCalls||0),triangles:Number(root.dataset.gxTriangles||0),textures:Number(root.dataset.gxTextures||0)},labels:orbs.map(o=>o.getAttribute("aria-label")),
       enter:!!root.querySelector(".gx-enter"),detail:!!root.querySelector(".gx-detail")};
    });
    check(info.three&&info.gl,view.name+": canvas Three.js/WebGL nao funcionou");
