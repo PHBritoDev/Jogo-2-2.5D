@@ -17,7 +17,7 @@ function tube(parent,points,r,color,emissive=.0){
  return mesh(new THREE.TubeGeometry(c,Math.max(20,points.length*4),r,5,false),mat(color,.5,.38,emissive),parent);
 }
 function ring(parent,r,t,color,rx=.26,ry=-.2,z=0,opacity=1){
- const m=new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,depthWrite:false,side:THREE.DoubleSide});
+ const m=new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,depthWrite:false,side:THREE.DoubleSide,blending:opacity<1?THREE.AdditiveBlending:THREE.NormalBlending});
  const o=mesh(new THREE.TorusGeometry(r,t,5,96),m,parent,0,0,z);o.rotation.set(rx,ry,0);return o;
 }
 function proceduralTexture(id){
@@ -82,8 +82,8 @@ function castle(parent,r,ice=false){
  const stone=mat(ice?'#728cab':'#b47a32',.58,.45,ice?.08:.15);
  const roofs=mat(ice?'#c9e7fa':'#ffce70',.43,.43,ice?.14:.25);
  const windows=new THREE.MeshBasicMaterial({color:ice?'#e4f6ff':'#ffe49b'});
- mesh(new THREE.BoxGeometry(r*1.39,r*.18,r*.17),stone,parent,0,r*.23,r*1.02);
- const n=ice?10:12,d=new THREE.Object3D();
+ mesh(new THREE.BoxGeometry(r*1.43,r*.105,r*.14),stone,parent,0,r*.23,r*1.02);
+ const n=ice?15:18,d=new THREE.Object3D();
  const towers=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),stone,n);
  const tips=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,5),roofs,n);
  const panes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),windows,n);
@@ -246,7 +246,7 @@ function makePlanet(id,r){
  if(id===5){maw(group,r);ring(group,r*1.17,r*.02,'#fc444d',-.21,.17,.2*r);}
  if(id===6){for(let i=0;i<9;i++){let a=i*2*PI/9;const crack=[];for(let j=0;j<6;j++)crack.push([Math.cos(a+j*.1)*r*(.95-j*.09),Math.sin(a+j*.16)*r*(.95-j*.08),r*.27+j*r*.045]);tube(group,crack,r*.014,'#ff5a0c',.62);}ring(group,r*1.07,r*.028,'#ff430e',.3,-.18,0);}
  if(id===7){lust(group,r);}
- const halo=ring(group,r*1.23,r*.013,colors[id-1],.31,.1,-r*.06,.64);halo.name='orbital';
+ const halo=ring(group,r*1.23,r*.013,colors[id-1],.31,.1,-r*.06,.64);halo.name='orbital';ring(group,r*1.23,r*.048,colors[id-1],.31,.1,-r*.062,.16);
  group.userData={globe,halo,id};
  return group;
 }
