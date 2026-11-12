@@ -323,14 +323,15 @@ function roseField(parent,r,count=9){
  parent.add(flowers);
 }
 function lust(parent,r){
+ const stage=new THREE.Group();stage.scale.setScalar(1.17);parent.add(stage);
  // Luxúria: escultura procedural de mulher adulta, rosto com anatomia,
  // cabelos ondulados, joias, braço elevado e pétalas 3D — nenhuma foto.
  const skin=mat('#d9a0a6',.08,.52),hair=mat('#612646',.26,.52);
  const red=mat('#b83769',.44,.31),gold=mat('#e8b16f',.79,.23);
- ball(parent,r*.29,'#d69ba5',0,-r*.43,r*.74,[1.62,.66,.8]);
- ball(parent,r*.22,'#a42a5b',0,-r*.53,r*1.02,[1.66,.5,.34]);
- mesh(new THREE.CylinderGeometry(r*.112,r*.155,r*.29,14),skin,parent,0,-r*.155,r*.84);
- const head=new THREE.Group();head.position.set(0,r*.225,r*.83);head.rotation.z=-.19;head.rotation.y=-.12;parent.add(head);
+ ball(stage,r*.29,'#d69ba5',0,-r*.43,r*.74,[1.62,.66,.8]);
+ ball(stage,r*.22,'#a42a5b',0,-r*.53,r*1.02,[1.66,.5,.34]);
+ mesh(new THREE.CylinderGeometry(r*.112,r*.155,r*.29,14),skin,stage,0,-r*.155,r*.84);
+ const head=new THREE.Group();head.position.set(0,r*.225,r*.83);head.rotation.z=-.19;head.rotation.y=-.12;stage.add(head);
  const face=ball(head,r*.36,'#dfadaf',0,0,.018*r,[.70,1.1,.63]);
  ball(head,r*.22,'#ce929e',0,-r*.14,r*.115,[.63,.56,.6]);
  // Sobrancelhas, pálpebras curvas, íris verde e cílios.
@@ -352,19 +353,19 @@ function lust(parent,r){
  for(let i=0;i<23;i++){
   const d=i%2?-1:1,t=i/22,side=d*r*(.19+.14*rand(i+31)),top=r*(.32+.17*rand(i+45));
   const tail=-r*(.37+.3*rand(i+9));
-  tube(parent,[[side*.3,r*.52,r*.76],[side,top+r*.06,r*.93],
+  tube(stage,[[side*.3,r*.52,r*.76],[side,top+r*.06,r*.93],
    [side*1.45,r*.13,r*.99],[side*.84,tail,r*.94]],
   r*(.021+.015*rand(i+17)),i%3?'#502343':'#873d61',.07);
  }
  // Braço direito apoiado acima da cabeça, mão e dedos.
- tube(parent,[[r*.38,-r*.40,r*.96],[r*.61,-r*.10,r*.91],[r*.55,r*.43,r*.86],
+ tube(stage,[[r*.38,-r*.40,r*.96],[r*.61,-r*.10,r*.91],[r*.55,r*.43,r*.86],
   [r*.29,r*.64,r*.85]],r*.076,'#d7a3aa');
- const palm=ball(parent,r*.091,'#e3b6b3',r*.27,r*.65,r*.85,[.6,1.1,.35]);
- for(let i=0;i<4;i++)tube(parent,[[r*(.26+i*.022),r*.67,r*.85],
+ const palm=ball(stage,r*.091,'#e3b6b3',r*.27,r*.65,r*.85,[.6,1.1,.35]);
+ for(let i=0;i<4;i++)tube(stage,[[r*(.26+i*.022),r*.67,r*.85],
   [r*(.18+i*.026),r*.77,r*.85]],r*.013,'#ddb0af');
  // Gargantilha e broche metálico no peito.
  ring(parent,r*.16,r*.015,'#ffc580',0,0,r*.96,.83).position.y=-r*.23;
- ball(parent,r*.047,'#ffca67',0,-r*.37,r*1.11);
+ ball(stage,r*.047,'#ffca67',0,-r*.37,r*1.11);
  roseField(parent,r,9);
  // Pétalas suspensas no espaço, uma única malha instanciada colorida.
  const petals=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),
