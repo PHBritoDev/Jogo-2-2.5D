@@ -448,3 +448,95 @@ Ele percebe algo estranho no protagonista, mas a dimensão começa a ruir **ante
 - Harvey Smith e Matthias Worch, GDC 2010, *What Happened Here? Environmental Storytelling*: https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental — o ambiente de Vhazrael fornece evidências que o jogador interpreta em vez de monólogo.
 - Paweł Sasko, GDC 2023, *10 Key Quest Design Lessons from The Witcher 3 and Cyberpunk 2077*: https://www.gdcvault.com/play/1028897/10-Key-Quest-Design-LessonsStartup — concisão, emoção, escolha e consequência sem sobrecarregar a missão.
 - Paweł Sasko sobre o ritmo de *Family Matters*, relato de 2017: https://www.destructoid.com/cd-projekt-red-designer-breaks-down-the-witcher-3s-best-quest/ — alternar gameplay, tensão, descanso e revelação; evitar acumular cenas passivas.
+
+
+## Parte 8 — Depois do primeiro selo: voltar não é desfazer (12/11/2026, 03h54)
+**Estado:** proposta narrativa e de direção jogável; NÃO aprovada como cânone. **Escopo exclusivo desta rodada:** fuga da dimensão de Vhazrael, consequência do primeiro selo, retorno aos sobreviventes e gancho orgânico para o vulcão. Não escrever cenas da mulher misteriosa, que só entra no arco seguinte. Não declarar que o cenário do Claude já possui os caminhos abaixo.
+
+### Pesquisa aplicada antes da escrita
+1. Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling* (GDC 2010), https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental — o cenário e suas alterações contam o que aconteceu; o jogador deve inferir, não apenas ouvir.
+2. Jakub Stokalski, *The Language of Gameplay and How to Speak It* (GDC 2023), https://www.gdcvault.com/play/1029351/The-Language-of-Gameplay-and — ações do jogador também são linguagem narrativa. O retorno precisa **ser jogado**, não apenas mostrado.
+3. Jesse Schell, *The Art of Game Design* (2008), princípio de ritmo sob controle do jogador, discussão compilada em https://adventuresincausality.com/principles/GDC-L1-NARR-0005/ — evitar cortar continuamente a exploração para diálogos; usar pequenos momentos interruptíveis.
+
+### Conferência de continuidade e escopo
+- `docs/roteiro/M1-PROLOGO.md`: a missão vem de Deus e abrange sete mundos; o primeiro selo é um passo, não o fim da missão. A perda das asas e da aura do protagonista no prólogo não é revertida neste ato.
+- `docs/roteiro/M2-ATO1.md`: o legado inclui esgotos, portal e enfrentamento de Vhazrael. Reaproveitar o **retorno após o portal**, se o fluxo implementado permitir, sem afirmar que a velha disposição espacial coincide com a nova caverna. A lógica existente em `act1-flow.js` ainda precisa de auditoria de estados antes de codificar.
+- `docs/narrativa/ato-1-eldoria-roteiro-v1.md`: Vhazrael é um bispo da Ganância; Vaelthar e Aethraziel são o mesmo anjo; ele não deve matar o bispo para impedir revelação; as pessoas resgatadas não podem ser anuladas. O Selo I abre a progressão, não é um poder arbitrário novo.
+- `docs/OBJETIVO-GALAXIA-1.md`: preservar sete mundos e quatro bispos da Ganância. A informação sobre Vorgazhek e as montanhas de fogo é uma orientação para o Ato 2, não convite a começar o próximo ato antes de encerrar Eldória.
+- **Partes 2–7:** Teren, Osren, Ilyan e o guia têm relações e ações anteriores; respeitar variações de ajuda prestada. Se Ilyan morrer, não ressuscitá-lo nem reduzir a perda a um item de recompensa; se sobreviver, reescrever o retorno inteiro em consequência. As crianças ainda têm dois destinos alternativos sem decisão do autor.
+- **Geografia real:** Claude está refazendo floresta/caverna. Nada aqui pressupõe que um túnel de fuga, abrigo ou praça pós-ataque já foi implementado. Reutilizar áreas navegáveis verificadas e colocar o restante como condicionais.
+
+### 1. Fuga: três decisões físicas, nenhuma palestra (proposta de 2–4 min)
+A dimensão perde estabilidade após a queda de Vhazrael. Não iniciar com longa câmera do céu: o jogador recupera controle rapidamente e vê o primeiro efeito concreto, como objetos suspensos caindo ou uma porta mudando de posição. Vaelthar chega exausto; a saída está visível, mas não imediatamente acessível. O jogador precisa ativar **dois pontos de passagem**, ambos legíveis por forma e luz, enquanto o anjo sustenta uma proteção localizada por poucos instantes. Sem corredores intermináveis nem combate obrigatório adicional.
+
+- **Vaelthar:** “A passagem está cedendo. Precisamos sair.”
+- **Protagonista:** “Você consegue atravessar?”
+- **Vaelthar:** “Consigo. Abra o caminho.”
+
+**Escolha de expressão jogável:** se o jogador voltar alguns passos, encontra uma bolsa com os nomes de pessoas presas e pode levá-la; se avançar, Vaelthar chama a atenção para a urgência e o caminho principal continua. Não punir a curiosidade com morte súbita nem transformar a bolsa em coletável obrigatório. **Não há escolha de abandonar Vaelthar:** a relação foi construída; criar esse dilema só para forçar sofrimento seria artificial. A fuga termina no limiar da caverna (ou saída existente verificada), com checkpoint imediato.
+
+### 2. O primeiro selo: consequência observável, não superpoder sem custo
+Fora da dimensão, o Selo I aparece no inventário e no diário como **primeiro de quatro**. Uma das marcas de confisco encontrada anteriormente deixa de emitir energia ou de reagir à presença do guia. Esse pequeno sinal dá ao jogador evidência de que vencer Vhazrael teve efeito. **Não afirmar que a Ganância morreu, que toda a rede foi desfeita ou que todos os cativos foram libertos:** os outros três bispos continuam ativos.
+
+- **Protagonista:** “A marca apagou.”
+- **Vaelthar:** “O poder de Vhazrael enfraqueceu. O restante ainda está aqui.”
+- **Protagonista:** “Então vamos ver quem conseguimos ajudar.”
+
+A fala do protagonista escolhe pessoas concretas antes de ir para outro chefe. Se o anjo ficou ferido na Parte 7, a animação e as pausas respiratórias devem refletir isso; não curá-lo silenciosamente entre cenas. Não criar uma barra de energia especial só para esta passagem.
+
+### 3. O retorno à cidade: reconhecer os rostos e as consequências (proposta de 5–8 min livres)
+O caminho de volta passa por **um marco já conhecido** (ponte, poço ou árvore central, conforme o mapa final), agora com um estado distinto. A beleza permanece: água, luz, telhados e vegetação não são destruídos arbitrariamente para sinalizar tristeza. A mudança é humana e localizada: a banca de Osren reorganizada como ponto de distribuição; um abrigo improvisado; moradores carregando água em recipientes reaproveitados. O jogador reconhece o local por memória, não por uma cutscene comparativa.
+
+**Teren**, se o jogador o ajudou na estrada, está transportando sobreviventes e recebe o protagonista com alívio discreto. Caso contrário, ainda está presente e prestando serviço, sem hostilidade fabricada:
+- **Teren:** “Pensei que não voltariam.”
+- **Protagonista:** “Ainda há pessoas lá embaixo.”
+- **Teren:** “Então vou preparar a carroça.”
+
+**Osren** usa a banca para distribuir as mercadorias que conseguiu preservar. Se o jogador o ajudou anteriormente, ele entrega uma fruta em silêncio antes de falar. Caso contrário, dá uma informação funcional sem fingir intimidade:
+- **Osren:** “Os cobradores não voltaram desde a madrugada.”
+- **Vaelthar:** “Não significa que desistiram.”
+- **Osren:** “Eu sei. Mas hoje conseguimos abrir a banca.”
+
+**Recompensa narrativa:** ver uma ação cotidiana retomada é mais forte do que uma festa que contradiga a fome. Nenhum NPC declara Eldória “salva para sempre”. As mudanças persistentes devem ser pequenas e de baixo custo: trocar objetos/placas, reusar animações, poucos personagens ativos.
+
+### 4. O lugar vazio de Ilyan: duas versões exclusivas, não misturar
+**Versão A — se a morte de Ilyan for aprovada:** no poço, o recipiente que ele ajudou a distribuir permanece em uso; um morador pergunta por ele. Não colocar funeral completo obrigatório nem um discurso heroico. O protagonista entrega a insígnia a alguém que conhecia Ilyan e responde com clareza:
+- **Moradora:** “Ele vem com vocês?”
+- **Protagonista:** “Não. Ele nos ajudou a sair.”
+- **Moradora:** “Entendi.”
+A moradora retoma o trabalho depois de um silêncio breve. Se a filha de Ilyan ainda não foi encontrada, **não** inventar que ela morreu: registrar a busca como promessa aberta, com possível resolução no arco seguinte.
+
+**Versão B — se Ilyan sobreviver:** o jogador o acompanha até um abrigo, onde ele delega a distribuição de água a outra pessoa, aceitando pela primeira vez que não precisa resolver tudo sozinho. O objeto do poço deixa de representar luto e passa a representar continuidade. A sequência de Vhazrael precisa ter sido ajustada antes para acomodar o ferimento e o resgate; não colar esta cena sobre a versão A.
+
+**Regra comum:** o estado das duas crianças precisa ser consistente com a decisão pendente da Parte 4. Se forem resgatadas, aparecem com familiares ou há notícia verificável de sua chegada; se forem perdidas, o roteiro não pode afirmar resgate nem exibir as duas caminhando na praça. Evitar mostrar violência contra crianças.
+
+### 5. A primeira explicação parcial da ameaça maior
+No registro recuperado da dimensão, um mapa incompleto de rotas tem **quatro marcas de comando**, das quais uma perdeu a força. A observação confirma a estrutura dos bispos, já anunciada por Vhazrael, mas não revela a origem dos quatro, a data da chegada da Ganância nem o propósito final dos sete Pecados. Uma anotação parcialmente legível pode citar transporte de recursos rumo às montanhas de fogo, conectando o próximo destino a um problema material de Eldória.
+
+**Não transformar essa anotação em verdade absoluta:** quem escreveu, quando e por que são desconhecidos. A rede pode ter sido estabelecida antes de Vhazrael; isso permanece hipótese. **Objetivo proposto dos demônios em nível local:** manter os postos de confisco e impedir fugas para conservar posição e evitar punição; diferentes demônios podem ter razões distintas. A finalidade dos sete Pecados continua pendente de uma bíblia de mundo reconciliada com os demais atos.
+
+### 6. Encerramento: promessa pequena, horizonte grande
+Quando o jogador estiver pronto para partir, uma curta interação com Vaelthar ocorre perto da saída da cidade. Não interromper o controle com uma despedida longa. A cidade não pede que o protagonista abandone os outros mundos; a reconstrução fica nas mãos dos moradores, que têm agência própria.
+- **Protagonista:** “E se os cobradores voltarem?”
+- **Vaelthar:** “Podem voltar. Mas agora as pessoas sabem que podem resistir.”
+- **Protagonista:** “E o próximo bispo?”
+- **Vaelthar:** “Vorgazhek. Além das montanhas de fogo.”
+- **Protagonista:** “Então vamos.”
+
+**Última imagem proposta:** o jogador cruza a ponte ou segue pela estrada; ao olhar para trás, vê a banca aberta e alguém repondo água no poço. A câmera permanece com o jogador. Só depois da saída efetiva aparece o título do próximo ato, caso a transição do jogo suporte isso. **Não mostrar nem citar a identidade da mulher misteriosa antes de seu arco.**
+
+### 7. Controle de ritmo, custo e riscos
+- **Duração total indicativa, sujeita a playtest:** 2–4 min fuga; 5–8 min retorno livre; 30–60 s de conversa de encerramento. Não adicionar novas batalhas ou três missões de coleta para “alongar” o ato.
+- **Checkpoint:** após o combate, antes da fuga; e na saída da dimensão. Repetir a fuga não deve obrigar a rever a morte de Ilyan ou o diálogo do bispo.
+- **Mobile:** priorizar substituição de estados de props existentes e poucas interações, sem multidões, efeitos persistentes ou novas simulações de água; manter FPS sem sacrificar qualidade visual.
+- **Risco de continuidade 1:** o roteiro v1 já pode possuir outro final e outro trajeto. Comparar estados e gatilhos em `act1-flow.js` antes de implementar.
+- **Risco 2:** salvar crianças e resgatar prisioneiros exige flags coerentes; não mostrar NPC salvo se o jogador nunca o resgatou.
+- **Risco 3:** a frase “as pessoas sabem que podem resistir” não deve atribuir a vitória a um único herói: mostrar resistência prévia de Ilyan, Osren e moradores.
+- **Risco 4:** não dar resposta definitiva sobre os sete Pecados com base em um único documento do bispo; produzir depois cronologia e matriz de segredos para os sete mundos.
+- **Risco 5:** a saída da dimensão e a ponte são **propostas de encenação**, não locais verificados no build do Claude.
+- **Risco 6:** a morte de Ilyan e destino das crianças ainda precisam de decisão autoral; não escolher silenciosamente.
+
+### Critérios de aprovação da proposta
+Jogador entende que venceu **um bispo, não a Ganância**; vê ao menos um efeito positivo verificável em Eldória; reconhece Teren e Osren sem explicação redundante; consegue nomear por que Vorgazhek é o próximo destino; não sente que a campanha apagou os resgates; mantém controle na maior parte do retorno; o gancho emociona sem recorrer a frase exagerada ou ameaça genérica.
+
+**Próxima parte recomendada:** auditoria integral de ritmo, falas e cronologia do Ato 1; mapa de revelações para a origem dos bispos e dos sete Pecados sem fixar cânone prematuramente.
