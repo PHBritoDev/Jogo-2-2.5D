@@ -588,7 +588,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   new THREE.ShaderMaterial({
    uniforms:{uColor:{value:new THREE.Color('#f8b15a')},uTime:{value:0}},
    vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-   fragmentShader:'uniform vec3 uColor;uniform float uTime;varying vec2 vUv;void main(){float d=length((vUv-.5)*2.);float v=exp(-d*d*6.)*(.38+.06*sin(uTime*1.3));gl_FragColor=vec4(uColor,v*(1.-smoothstep(.65,1.,d)));#include <colorspace_fragment>}',
+   fragmentShader:'uniform vec3 uColor;uniform float uTime;varying vec2 vUv;void main(){float d=length((vUv-.5)*2.);float v=exp(-d*d*6.)*(.38+.06*sin(uTime*1.3));gl_FragColor=vec4(uColor,v*(1.-smoothstep(.65,1.,d)));\n#include <colorspace_fragment>\n}',
    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending
   }));
  selectionHalo.renderOrder=-1;scene.add(selectionHalo);
