@@ -204,27 +204,47 @@ function eclipse(parent,W,H){
  const glow=new THREE.PointLight('#ff311b',8,H*.9,1.5);glow.position.set(x,y,110);parent.add(glow);
 }
 function angel(parent,W,H){
- // Guardião alado escultural: capuz, rosto, armadura e penas 3D.
- const g=new THREE.Group();g.position.set(-W*.31,H*.29,-140);g.scale.setScalar(.67);parent.add(g);
- const fabric=mat('#333544',.16,.8),skin=mat('#9d7770',.12,.83);
- const localLight=new THREE.PointLight('#b2a4bd',55,H*.45,2);localLight.position.set(0,H*.06,150);g.add(localLight);
- ball(g,H*.079,'#262532',0,-H*.09,0,[.78,1.25,.6]);
- const cloak=mesh(new THREE.ConeGeometry(H*.12,H*.37,11),fabric,g,0,-H*.26,-8);cloak.rotation.z=.12;
- for(const d of [-1,1]){const shoulder=ball(g,H*.042,'#4d5263',d*H*.076,-H*.05,7,[1.4,.85,.7]);shoulder.rotation.z=d*.48;}
- mesh(new THREE.CylinderGeometry(H*.018,H*.025,H*.06,10),skin,g,0,H*.04,6);
- ball(g,H*.049,'#795e61',-H*.007,H*.104,8,[.7,1.02,.65]);
- ball(g,H*.053,'#1b1721',-H*.008,H*.131,2,[.8,.66,.74]);
- mesh(new THREE.ConeGeometry(H*.067,H*.14,10),fabric,g,0,H*.16,-1).rotation.x=-.19;
- for(const d of [-1,1]){
-  for(let i=0;i<24;i++){
-   const t=i/23,spread=H*(.085+.24*t);
-   const x=d*(H*.07+spread*Math.sin(.43+t*1.04));
-   const y=H*(.025+spread*Math.cos(.43+t*1.04))-t*t*H*.05;
-   const p=ball(g,H*.028,i%4?'#343d52':'#576076',x,y,-30-t*6,[.44,2.4+t*.95,.22]);
-   p.rotation.z=d*(-.15-t*.9);
+ // Escultura gótica autoral em ShapeGeometry: anatomia em perfil, capuz,
+ // capa, asa de penas individuais e halo. Não usa imagem ou GLB.
+ const g=new THREE.Group();g.position.set(-W*.32,H*.315,-136);g.scale.setScalar(.78);parent.add(g);
+ const S=H;
+ const piece=(outline,color,z,metalness=0)=>{
+  const sh=new THREE.Shape();for(const [k,...p] of outline){
+   if(k==='M')sh.moveTo(p[0]*S,p[1]*S);
+   if(k==='L')sh.lineTo(p[0]*S,p[1]*S);
+   if(k==='Q')sh.quadraticCurveTo(...p.map(x=>x*S));
+   if(k==='C')sh.bezierCurveTo(...p.map(x=>x*S));
+  }
+  const o=mesh(new THREE.ShapeGeometry(sh,10),new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.86,metalness}),g,0,0,z);
+  return o;
+ };
+ // Plumas longas sobrepostas em camadas, com nervuras claras.
+ for(const side of [-1,1]){
+  for(let i=20;i>=0;i--){
+   const t=i/20,rootX=side*(.016+t*.022),rootY=-.035+t*.026;
+   const tipX=side*(.06+t*.25),tipY=.01+Math.sin(t*2.1)*.22-t*.03;
+   piece([['M',rootX,rootY],['Q',side*.13,.11,tipX,tipY],['Q',tipX-side*.012,tipY-.045,rootX,rootY]],
+     i%3===0?'#465061':i%3===1?'#273144':'#202a3b',-38-i*.18);
   }
  }
- const halo=ring(g,H*.074,H*.004,'#edbd78',.27,0,-25,.86);halo.position.y=H*.20;
+ // Capa caída, ombreira reforçada, mangas, dobra de tecido.
+ piece([['M',-.09,-.29],['C',-.13,-.15,-.18,-.01,-.085,.07],['C',-.04,.10,.035,.045,.07,-.025],
+        ['C',.10,-.11,.14,-.27,.08,-.30],['L',-.09,-.29]],'#202330',-1);
+ piece([['M',-.075,-.28],['Q',-.045,-.15,-.064,-.035],['Q',-.029,-.12,-.013,-.28]],'#434450',.8);
+ piece([['M',.056,-.28],['Q',.016,-.14,.064,-.026],['Q',.092,-.11,.087,-.28]],'#12131c',1);
+ piece([['M',-.1,.00],['Q',-.14,.055,-.054,.078],['Q',-.04,.04,-.006,.02],['Q',-.08,-.04,-.1,0]],'#50505c',7,.25);
+ // Pescoço e perfil facial: nariz, testa, lábios, queixo e capuz escuro.
+ piece([['M',-.03,.066],['L',-.024,.121],['Q',-.065,.151,-.043,.195],['Q',.002,.23,.062,.176],
+       ['L',.070,.147],['L',.085,.135],['L',.069,.126],['L',.074,.106],
+       ['Q',.052,.073,.024,.068],['L',-.03,.066]],'#967670',8);
+ piece([['M',-.067,.151],['Q',-.074,.242,-.002,.252],['Q',.082,.225,.093,.165],
+       ['Q',.046,.204,-.006,.17],['Q',-.037,.133,-.043,.084],['L',-.067,.151]],'#20202d',11);
+ piece([['M',-.054,.109],['Q',-.028,.054,.006,.062],['Q',.009,.122,-.019,.155],['L',-.054,.109]],'#313440',13);
+ piece([['M',.02,.149],['L',.061,.152],['L',.054,.147],['L',.02,.149]],'#e0c5a7',13);
+ // Mão diante do peito, em prece.
+ piece([['M',.09,.0],['Q',.17,.027,.142,.072],['Q',.102,.09,.065,.012],['L',.09,.0]],'#a18279',14);
+ // Halo atrás da cabeça, inclinado.
+ const halo=ring(g,S*.072,S*.003,'#eac187',.22,-.15,-40,.89);halo.position.set(-S*.012,S*.198,-40);
  return g;
 }
 function infernalGround(parent,W,H){
