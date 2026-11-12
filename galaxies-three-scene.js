@@ -695,7 +695,8 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  );
  details.chains.renderOrder=-2;scene.add(details.chains);
  for(let id=1;id<=7;id++){const g=makePlanet(id,64);g.userData.originalRadius=64;scene.add(g);groups.push(g);}
- details.planet=makePlanet(1,100);details.planet.userData.originalRadius=100;scene.add(details.planet);
+ // O retrato de destaque compartilha texturas/malhas com o planeta do topo.
+ details.planet=groups[0].clone(true);details.planet.userData.originalRadius=64;scene.add(details.planet);
  const size=()=>updateCoordinates(root,scene,camera,groups,details,{renderer});
  const observer=new ResizeObserver(size);observer.observe(root);
  const selected=()=>Number(root.querySelector('.gx-orb.sel')?.dataset.id||1);
