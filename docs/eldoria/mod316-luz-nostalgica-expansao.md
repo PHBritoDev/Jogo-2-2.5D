@@ -72,3 +72,27 @@ anda em passos de 0,25° contra o shimmer da sombra.
 ## Preservado
 Arquitetura da cidade, árvores, ponte, rio, GLBs e qualidade da água. A resolução, as texturas, a densidade e a
 distância visual não foram reduzidas, e não há quests novas.
+
+## Evidências gravadas
+As imagens ficam em `docs/eldoria/mod316-evidencias/`, todas com a câmera assentada da mesma forma antes e depois:
+- `antes-depois-09h/13h/18h/22h.jpg`: 7 âncoras fixas, com a `main` na linha de cima e o Mod 316 na de baixo.
+- `novidades.jpg`: cachoeira (10 h / 17 h / 21 h), mirante, clareira, recanto, trilha ao amanhecer, 1ª pessoa e as
+  câmaras novas da caverna.
+- `lago_ondulacao_10h.jpg`: anéis de ondulação ao redor do herói na água rasa.
+- `passaros_11h.jpg` e `circulo_pedras_22h.jpg`.
+- `caverna-camera-antes-depois.jpg`: linhas alternadas, antes e depois, nos mesmos 8 pontos.
+
+O CI (`eldoria-mod316-evidence.yml`) refaz as capturas, grava vídeos `.webm` da água (lago, ponte/rio, raso e
+cachoeira, de dia, no crepúsculo e à noite) e da caverna, e publica `report.json` como artefato.
+
+Giro de câmera e caminhada na mata por 24 s, com perfil de CPU (`stutter.mjs`, SwiftShader limitado pela GPU emulada):
+
+| | p50 | p95 | p99 |
+|---|---|---|---|
+| `main` | 467 ms | 650 ms | 783 ms |
+| Mod 316 | 400 ms | 650 ms | 1383 ms |
+
+Com ~2 FPS esses números não servem para julgar travadas de 0,3 s. Por isso a correção do P4 se apoia na causa medida
+(compilações tardias = 0 no mundo e contagem de luzes do shader constante) e não em FPS de SwiftShader. O p99 do Mod
+316 inclui a chegada do Anjo-Guia (GLB de 12,6 MB). Depois dessa medição, o shader dele passou a ser compilado e as
+texturas enviadas à GPU antes de entrar na cena.
