@@ -216,15 +216,43 @@ function treasure(parent,r){
  const lamp=new THREE.PointLight('#fbb752',2.5,r*3,1.8);lamp.position.set(0,0,r*1.6);parent.add(lamp);
 }
 function envy(parent,r){
- // Serpente venenosa esculpida na face frontal de Inveja (trajeto em S).
+ // Dragão-serpente esculpido sobre o planeta, corpo em S, escamas e chifres.
  const p=[[-.63,-.57,1.03],[-.27,-.52,1.11],[.20,-.62,1.12],[.51,-.4,1.13],
- [.34,-.06,1.16],[-.2,.11,1.15],[-.49,.39,1.06],[-.10,.57,1.12],[.43,.56,1.04]]
- .map(v=>[v[0]*r,v[1]*r,v[2]*r]);
- tube(parent,p,r*.082,'#0b7039',.08);
- const pale=p.map(v=>[v[0],v[1]-r*.025,v[2]+r*.07]);tube(parent,pale,r*.025,'#69fa87',.35);
- const h=p.at(-1),head=ball(parent,r*.17,'#28d770',h[0],h[1],h[2],[1.3,.75,.65]);
- for(const d of [-1,1])ball(parent,r*.024,'#f4e785',h[0]+d*r*.06,h[1]+r*.04,h[2]+r*.12);
- tube(parent,[[h[0],h[1]-r*.02,h[2]+r*.12],[h[0]+r*.09,h[1]-r*.09,h[2]+r*.21]],r*.018,'#bcff7a');
+  [.34,-.06,1.16],[-.2,.11,1.15],[-.49,.39,1.06],[-.10,.57,1.12],[.43,.56,1.04]]
+  .map(v=>new THREE.Vector3(v[0]*r,v[1]*r,v[2]*r));
+ const curve=new THREE.CatmullRomCurve3(p);
+ mesh(new THREE.TubeGeometry(curve,80,r*.083,9,false),mat('#087c49',.22,.43),parent);
+ const belly=p.map(v=>[v.x,v.y-r*.027,v.z+r*.07]);
+ tube(parent,belly,r*.028,'#71f9a1',.2);
+ const sc=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),
+  mat('#16aa61',.36,.35),68),d=new THREE.Object3D();
+ const spine=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,4),mat('#67f69e',.27,.41),24);
+ for(let i=0;i<68;i++){
+  const t=(i+.25)/68,pt=curve.getPoint(t),tangent=curve.getTangent(t);
+  const side=i%2?1:-1;
+  d.position.copy(pt).add(new THREE.Vector3(side*r*.048,0,r*.063));
+  d.rotation.set(0,0,Math.atan2(tangent.y,tangent.x));
+  d.scale.set(r*.022,r*.032,r*.014);d.updateMatrix();sc.setMatrixAt(i,d.matrix);
+ }
+ for(let i=0;i<24;i++){
+  const t=(i+.5)/24,pt=curve.getPoint(t),tangent=curve.getTangent(t);
+  d.position.copy(pt).add(new THREE.Vector3(0,r*.078,-r*.011));
+  d.rotation.set(0,0,-Math.atan2(tangent.x,tangent.y));
+  d.scale.set(r*.026,r*.066,r*.022);d.updateMatrix();spine.setMatrixAt(i,d.matrix);
+ }
+ sc.instanceMatrix.needsUpdate=true;spine.instanceMatrix.needsUpdate=true;parent.add(sc,spine);
+ const h=p.at(-1);
+ const head=ball(parent,r*.155,'#22b76b',h.x,h.y,h.z,[1.42,.82,.68]);
+ const muzzle=ball(parent,r*.086,'#34c781',h.x+r*.16,h.y-r*.036,h.z+r*.01,[1.2,.54,.6]);
+ for(const v of [-1,1]){
+  ball(parent,r*.025,'#e9efa0',h.x+v*r*.054,h.y+r*.051,h.z+r*.12,[1,.63,.43]);
+  ball(parent,r*.010,'#102416',h.x+v*r*.054,h.y+r*.052,h.z+r*.142);
+  const horn=mesh(new THREE.ConeGeometry(r*.035,r*.125,5),mat('#b7eac2',.1,.38),parent,
+   h.x+v*r*.102,h.y+r*.145,h.z);
+  horn.rotation.z=v*.4;
+ }
+ tube(parent,[[h.x+r*.18,h.y-r*.042,h.z+r*.062],[h.x+r*.26,h.y-r*.08,h.z+r*.13]],
+  r*.009,'#ffd17b');
 }
 function maw(parent,r){
  // Boca monstruosa em grande abertura tridimensional: tecido escuro,
