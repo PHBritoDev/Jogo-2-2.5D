@@ -235,6 +235,14 @@ function updateCoordinates(root,scene,camera,groups,details,viewport){
   const original=g.userData.originalRadius;g.position.set(p.x,p.y,15);
   g.scale.setScalar(p.radius/original);
  }
+ // Corrente vermelha animável entre os sete mundos, feita de curvas 3D.
+ if(details.chains){
+  const pts=groups.map(g=>new THREE.Vector3(g.position.x,g.position.y,-20));
+  const curve=new THREE.CatmullRomCurve3(pts,false,'centripetal');
+  const old=details.chains.geometry;
+  details.chains.geometry=new THREE.TubeGeometry(curve,112,2.2,5,false);
+  old.dispose();
+ }
  const pane=root.querySelector('.gx-art');if(pane&&details.planet){
   const p=rpos(pane);details.planet.position.set(p.x,p.y,18);
   details.planet.scale.setScalar(clamp(p.radius,28,Math.min(H*.16,130))/details.planet.userData.originalRadius);
@@ -258,7 +266,11 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const red=new THREE.PointLight('#ff3a17',5,H*1.25,1.5);red.position.set(W*.3,H*.25,150);scene.add(red);
  const shader=sky(scene,W,H);
  gothicRuins(scene,W,H);eclipse(scene,W,H);angel(scene,W,H);starfield(scene,W,H);
- const groups=[],details={planet:null};
+ const groups=[],details={planet:null,chains:null};
+ details.chains=new THREE.Mesh(
+  new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:'#ff3b20',toneMapped:false,depthWrite:false})
+ );
+ details.chains.renderOrder=-2;scene.add(details.chains);
  for(let id=1;id<=7;id++){const g=makePlanet(id,64);g.userData.originalRadius=64;scene.add(g);groups.push(g);}
  details.planet=makePlanet(1,100);details.planet.userData.originalRadius=100;scene.add(details.planet);
  const size=()=>updateCoordinates(root,scene,camera,groups,details,{renderer});
