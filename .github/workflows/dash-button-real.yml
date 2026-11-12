@@ -1,0 +1,40 @@
+name: QA DASH — botão real PC e mobile
+on:
+  pull_request:
+    paths:
+      - 'tools/visual-lab/dash-button-real.cjs'
+      - '.github/workflows/dash-button-real.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dash-button:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar navegador
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install chromium --with-deps --only-shell
+      - name: Servir jogo integrado
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/dash-real.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Acionar botão DASH com toque em PC e mobile
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/dash-button-real.cjs
+      - name: Guardar fotos e telemetria
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dash-button-${{ github.run_number }}
+          path: visual-lab-results/dash-button/
+          retention-days: 14
+          if-no-files-found: warn
