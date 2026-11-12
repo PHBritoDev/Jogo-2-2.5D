@@ -1,0 +1,41 @@
+name: Stage validated large GLB blobs
+on:
+  push:
+    branches: ['codex/glb-lossless-2026-11-12']
+    paths: ['.github/workflows/glb-stage-large.yml']
+permissions:
+  contents: write
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reproduce exact validated bytes and create unreferenced blobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import sys,json,hashlib,base64,os,urllib.request,pathlib
+          sys.path.insert(0,'tools/glb')
+          from lossless import optimize,verify
+          expected={"Demonio1.glb":"ac1ad04ee06221693748362c89bc966cfbaf01eb","Prota_otimizado_2K.glb":"debc94282716485f3cc3f3b8bc4d9a4cb8a5ca26"}
+          results={}
+          for name,sha in expected.items():
+              before=pathlib.Path(name).read_bytes()
+              after,_=optimize(before)
+              verify(before,after)
+              actual=hashlib.sha1(b'blob '+str(len(after)).encode()+b'\0'+after).hexdigest()
+              assert actual==sha,(name,actual,sha)
+              body=json.dumps({'encoding':'base64','content':base64.b64encode(after).decode()}).encode()
+              req=urllib.request.Request('https://api.github.com/repos/PHBritoDev/Jogo-2-2.5D/git/blobs',data=body,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/json','Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(req) as response:result=json.load(response)
+              assert result['sha']==sha
+              results[name]=sha
+          pathlib.Path('staged-blobs.json').write_text(json.dumps(results,indent=2))
+          print(json.dumps(results))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: staged-glb-hashes
+          path: staged-blobs.json
+          retention-days: 3
