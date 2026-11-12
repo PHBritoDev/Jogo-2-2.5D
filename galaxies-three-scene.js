@@ -565,10 +565,11 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   if(!running||!root.isConnected)return;
   id=requestAnimationFrame(tick);
   if(document.hidden||root.classList.contains('leaving'))return;
-  const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=dt;
-  // Cap de 30 FPS em celular; 60 FPS apenas em telas maiores com folga.
+  // Calcular delta apenas quando renderizar: evita animação em meia velocidade
+  // em telas de 60 Hz com limitador de 30 FPS.
   const mobile=window.matchMedia('(pointer:coarse)').matches||root.clientWidth<950;
-  if(ms-frame<(reduced?1000:(mobile?33.3:16.7)))return;frame=ms;
+  if(ms-frame<(reduced?1000:(mobile?32:16)))return;
+  const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=dt;frame=ms;
   shader.uniforms.uTime.value=elapsed;for(const m of smokes)m.uniforms.uTime.value=elapsed;
   if(!reduced){
    environment.position.x+=(parallax.x-environment.position.x)*Math.min(1,dt*2.6);
