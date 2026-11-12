@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>QA — Galáxias infernais</title>
+<link rel="stylesheet" href="../../hud3d.css">
+<link rel="stylesheet" href="../../galaxies-infernal-reference.css">
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}*{box-sizing:border-box}</style>
+</head><body>
+<script type="module">
+ import {showGalaxyScreen} from '../../galaxies3d.js';
+ let opened=0,settings=0;
+ const ui=showGalaxyScreen({coins:0,progress:{questStep:0,bishopsDefeated:0},save:{},isReady:()=>true,onEnter:()=>{opened++;window.menuQA={opened,settings}},onSettings:()=>{settings++;window.menuQA={opened,settings}}});
+ window.menuQA={opened,settings,root:ui.root,ready:true};
+</script>
+</body></html>
