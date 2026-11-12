@@ -44,3 +44,7 @@
 - Epílogo agora consulta `childrenFreed` e `wardenDefeated` do progresso atual e acrescenta falas sem assumir sobreviventes.
 - Ilyan implementado com um **único modelo Meshy masculino já usado no jogo**, próximo ao poço enquanto a vila está ativa e na cela dentro do esgoto/caverna narrativa; duas conversas sem desfecho imposto, condicionadas ao carregamento do GLB. Não cria duplicata ou NPC por geometria procedural.
 - Dependências ainda faltantes: missão de Ilyan pela caverna e sequência com Zarkun (exigirão validação de cenários e IA); não representar como concluídas.
+
+- Continuação: Ilyan acompanha o protagonista durante a etapa 5 pelas galerias do esgoto, caminhando com o clipe Meshy (quando presente), usando o mesmo `sewerWalkable` da colisão e waypoint para sair da cela. Não há teleporte para alcançar o jogador. Sua conversa na cela indica o caminho e a situação dos outros prisioneiros. A narrativa **não** declara escolta ou salvamento concluídos.
+- Correção de continuidade: tomada do vendedor e efeito do saco de ouro agora focam Téo (`vendorRoots[1]`), não Lia (`vendorRoots[2]`).
+- Os últimos jobs de regressão/visuais consultados foram cancelados por novas execuções; **a verificação do novo commit continua pendente**. Não mesclar sem validação.
