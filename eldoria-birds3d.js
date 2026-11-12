@@ -55,7 +55,7 @@ function birdGeometry(THREE) {
 /**
  * opts: { ground(x,z), random(), onCall(level) }. update(dt, t, focus{x,z}, daylight 0..1).
  */
-export function createBirdFlocks(THREE, { ground = () => 0, random = Math.random, onCall = () => {}, scale = .42 } = {}) {
+export function createBirdFlocks(THREE, { ground = () => 0, random = Math.random, onCall = () => {}, scale = .55 } = {}) {
   const N = BIRDS.FLOCKS * BIRDS.PER_FLOCK, geo = birdGeometry(THREE);
   const phase = new Float32Array(N); for (let i = 0; i < N; i++) phase[i] = random();
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uTime: { value: 0 }, uColor: { value: new THREE.Color(0x2b2a2e) } }]);

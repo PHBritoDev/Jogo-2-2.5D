@@ -18,7 +18,7 @@ export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = fal
   for (let i = 0; i < 7; i++) {
     const a = -2.2 + i / 7 * Math.PI * 2 * .86, R = 3.6 + hash(i, 1) * .5, x = circle.x + Math.cos(a) * R, z = circle.z + Math.sin(a) * R;
     const fallen = i === 4, h = fallen ? .7 : 1.9 + hash(i, 2) * 1.1;
-    stones.push({ x, z, y: ground(x, z) - .15, sx: .7 + hash(i, 3) * .25, sy: h, sz: .45 + hash(i, 4) * .2, yaw: a + Math.PI / 2, tilt: fallen ? 1.35 : (hash(i, 5) - .5) * .12, moss: .75 });
+    stones.push({ x, z, y: ground(x, z) - .15, sx: .8 + hash(i, 3) * .3, sy: h, sz: .62 + hash(i, 4) * .25, yaw: a + Math.PI / 2 + (hash(i, 13) - .5) * .5, tilt: fallen ? 1.35 : (hash(i, 5) - .5) * .12, moss: .75 });
     if (!fallen) obstacles.push({ x, z, radius: 1.0, height: h, base: ground(x, z) });
   }
   const altar = { x: circle.x, z: circle.z, y: ground(circle.x, circle.z) - .05, sx: 1.5, sy: .32, sz: 1.1, yaw: .4, tilt: 0, moss: .55 };
