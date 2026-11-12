@@ -1,0 +1,51 @@
+name: Galaxias infernais — captura visual (PR 482)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "galaxies3d.js"
+      - "galaxies-infernal-art.js"
+      - "galaxies-infernal-reference.css"
+      - "mundo-3d-prototype.html"
+      - "tools/visual-lab/galaxy-menu-*"
+      - ".github/workflows/galaxies-infernal-qa.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validar sintaxe e progresso
+        run: |
+          node --check galaxies-infernal-art.js
+          node --check galaxies3d.js
+          node --test galaxies3d.test.mjs
+      - name: Preparar agente navegador
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Servir codigo do PR
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/galaxy-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/tools/visual-lab/galaxy-menu-preview.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/galaxy-preview.log
+          exit 1
+      - name: Fotografar nas duas resolucoes, selecionar mundos e testar ENTRAR
+        run: node tools/visual-lab/galaxy-menu-qa.cjs
+      - name: Guardar quatro capturas e relatorio
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: galaxias-infernais-fotos-${{ github.run_number }}
+          path: visual-lab-results/galaxy-menu-482/
+          retention-days: 14
+          if-no-files-found: warn
