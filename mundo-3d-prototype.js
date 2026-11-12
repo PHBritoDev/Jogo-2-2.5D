@@ -1163,9 +1163,7 @@ function updateEnemyAI(dt){
  // Os kits próprios de inimigos/chefes rodam em updateFoeKit() ou em seus módulos de esquadra.
  if(distance<=ENEMY_ATTACK_RANGE&&enemyActions.attack&&enemyAttackCooldown<=0){if(!startEnemyAttack('attack'))playEnemyAnimation('idle',.08);return;}
  if(distance<1.55&&enemyAttackCooldown>0){playEnemyAnimation('idle',.08);return;}
- if(distance>1.9&&distance<=3.5&&enemyActions.block&&enemyBlockCooldown<=0&&Math.random()<.008){
-  if(playEnemyAnimation('block',.06,true)){enemyBlockCooldown=3.0;const side=enemy.rotation.y+Math.PI/2,sx=enemy.position.x+Math.sin(side)*.65,sz=enemy.position.z+Math.cos(side)*.65;if(!blockedAt(sx,enemy.position.z))enemy.position.x=sx;if(!blockedAt(enemy.position.x,sz))enemy.position.z=sz;return;}
- }
+ /* O inimigo comum não usa mais o Block legado; escudo energético controlado pela squad AI. */
  if(isZarkhaelProfile(encounterProfile)&&!hydraSkill&&enemyCurrentRole!=='attack'){const hy=kitFor(encounterProfile)?.skills.find(m=>m.type==='hydra_judgment'),cd=hy?(kitState.cds[hy.id]||0):9;zkKite=!!hy&&cd<=1.5&&distance<5.5&&playerHP>playerMaxHP*.3;
   if(zkKite){const st2=2.2*dt,nx=THREE.MathUtils.clamp(enemy.position.x-dx/(distance||1)*st2,-6000,6000),nz=THREE.MathUtils.clamp(enemy.position.z-dz/(distance||1)*st2,-6000,6000);let mv=false;if(!enemyBlockedAt(nx,enemy.position.z)){enemy.position.x=nx;mv=true;}if(!enemyBlockedAt(enemy.position.x,nz)){enemy.position.z=nz;mv=true;}playEnemyAnimation(mv?'walk':'idle',.12);return;}} /* BISPO 3: abre distância antes do ritual */
  const running=distance>7.5&&!!enemyActions.run,role=running?'run':'walk',speed=running?3.0:1.35,stopDistance=ENEMY_ATTACK_RANGE-.18,step=Math.min(speed*dt,Math.max(0,distance-stopDistance));if(step<=0){playEnemyAnimation('idle',.1);return;}
@@ -1417,7 +1415,7 @@ const skillButtons={};
 /* MOD 233 — cada botão 1–3 é um ESPAÇO: mostra a Palavra equipada nele (ícone, nome, custo); a ultimate fica no 4. */
 function renderSkillSlot(slotId){const ui=skillButtons[slotId];if(!ui)return;const id=slotSkill(slotId),k=SKILLS[slotId].key;ui.skill=id;ui.el.innerHTML='<span class="btn-icon skill-art">'+iconSvg(id,{size:48})+'</span><span class="btn-label" data-key="'+k+'">'+(SKILL_LABELS[id]||id)+'</span><span class="skill-cost">'+SKILLS[id].mana+'</span>';ui.el.dataset.key=k;ui.el.dataset.skill=id;ui.el.setAttribute('aria-label',SKILLS[id].name+' — '+SKILLS[id].mana+' de mana');ui.cost=ui.el.querySelector('.skill-cost');ui.cd=-1;ui.state='';}
 for(const id of SKILL_ORDER){const b=document.getElementById(id);if(!b)continue;if(SKILLS[id].disabled){b.hidden=true;b.classList.add('skill-locked');b.setAttribute('aria-label','Em desenvolvimento');continue;}skillButtons[id]={el:b,cost:null,cd:-1,state:'',skill:id};renderSkillSlot(id);}
-for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧'],['defend','K'],['aim','Q']]){const b=document.getElementById(id);if(b){b.dataset.key=key;const l=b.querySelector('.btn-label');if(l)l.dataset.key=key;}}
+for(const [id,key] of [['attack','J'],['jump','␣'],['dash','⇧'],['aim','Q']]){const b=document.getElementById(id);if(b){b.dataset.key=key;const l=b.querySelector('.btn-label');if(l)l.dataset.key=key;}}
 function refreshSkillUnlocks(){
  const next=unlockedSkills({owned:ownedItems,testAll:testAllSkills});for(const id of ownedSlotSkills({owned:ownedItems,testAll:testAllSkills}))if(EXTRA_SKILLS.includes(id))next.add(id);
  const fresh=skillSet?[...next].filter(id=>!skillSet.has(id)&&SKILL_ORDER.includes(id)):[];
@@ -1595,7 +1593,7 @@ stick.addEventListener('pointerdown',e=>{joyActive=true;stick.setPointerCapture(
 stick.addEventListener('pointermove',e=>{if(joyActive)setJoy(e);});
 function endJoy(){joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';}
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
-let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=5.2;let grounded=true;
+let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=7.2;let grounded=true;
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
 /* MOD 302 — estado do protagonista em tempo de JOGO (segundos): não depende do relógio real, então a filmagem em passo
    fixo e o jogo a 30/60/120 FPS veem a mesma coisa. */
@@ -2814,8 +2812,8 @@ function updateLockOn(dt){
  const def=document.getElementById('defend');
  if(def){def.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();try{def.setPointerCapture(e.pointerId);}catch(_){}setDefending(true);});for(const t of ['pointerup','pointercancel','lostpointercapture'])def.addEventListener(t,()=>setDefending(false));}
  bindInstantTap(document.getElementById('aim'),toggleLockOn);
- addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing)return;if(e.code==='KeyK'&&!e.repeat)setDefending(true);if((e.code==='KeyQ'||e.code==='Tab')&&!e.repeat){e.preventDefault();toggleLockOn();}});
- addEventListener('keyup',e=>{if(e.code==='KeyK')setDefending(false);});
+ addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing)return;if((e.code==='KeyQ'||e.code==='Tab')&&!e.repeat){e.preventDefault();toggleLockOn();}});
+ 
  lookArea.addEventListener('contextmenu',e=>e.preventDefault());
  lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===2)setDefending(true);});
  addEventListener('pointerup',e=>{if(e.pointerType==='mouse'&&e.button===2)setDefending(false);});
