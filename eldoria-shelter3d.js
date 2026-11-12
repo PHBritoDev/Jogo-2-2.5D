@@ -26,7 +26,7 @@ function sharedMaterials(THREE) {
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
   shared = {
     stone: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .93, metalness: 0 }),
-    inlay: new THREE.MeshStandardMaterial({ map: tex, roughness: .88, metalness: 0, color: 0xcfcab8 }),
+    inlay: new THREE.MeshStandardMaterial({ map: tex, roughness: .9, metalness: 0, color: 0x9c968a }),
   };
   return shared;
 }
@@ -55,9 +55,9 @@ function merge(THREE, list) {
 function paint(THREE, g, seed, mossK) {
   const p = g.attributes.position, n = g.attributes.normal, c = new Float32Array(p.count * 3);
   for (let i = 0; i < p.count; i++) {
-    const up = Math.max(0, n.getY(i)), base = .5 + .08 * hash(seed, i % 7), low = Math.max(0, 1 - p.getY(i) / .5);
-    const moss = Math.min(1, mossK * (up * .55 + low * .5) * (.4 + .6 * hash(seed + 3, Math.floor(p.getX(i) * 3) + Math.floor(p.getZ(i) * 3) * 17)));
-    c[i * 3] = base * (1 - moss) + .26 * moss; c[i * 3 + 1] = base * .97 * (1 - moss) + .36 * moss; c[i * 3 + 2] = base * .9 * (1 - moss) + .18 * moss;
+    const up = Math.max(0, n.getY(i)), base = .33 + .07 * hash(seed, i % 7), low = Math.max(0, 1 - p.getY(i) / .7), streak = hash(seed + 7, Math.floor(p.getY(i) * 4) + Math.floor((p.getX(i) + p.getZ(i)) * 5) * 31) > .78 ? .35 : 0;
+    const moss = Math.min(.92, mossK * (up * .7 + low * .6 + streak) * (.45 + .55 * hash(seed + 3, Math.floor(p.getX(i) * 3) + Math.floor(p.getZ(i) * 3) * 17)));
+    c[i * 3] = base * (1 - moss) + .17 * moss; c[i * 3 + 1] = base * .98 * (1 - moss) + .27 * moss; c[i * 3 + 2] = base * .9 * (1 - moss) + .11 * moss;
   }
   g.setAttribute('color', new THREE.BufferAttribute(c, 3)); return g;
 }

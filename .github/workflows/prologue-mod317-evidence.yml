@@ -21,14 +21,14 @@ permissions:
 jobs:
   evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Testes do Mod 317 e regressões do prólogo
-        run: node --test tests/mod317-prologo.test.mjs prologue-flow.test.mjs eldoria-mod291.test.mjs enemy1-squad.test.mjs map3d.test.mjs sidequests3d.test.mjs tests/prota-combat302.test.mjs build-info.test.mjs
+        run: node --test tests/mod317-prologo.test.mjs prologue-flow.test.mjs eldoria-mod291.test.mjs enemy1-squad.test.mjs map3d.test.mjs sidequests3d.test.mjs tests/prota-combat302.test.mjs build-info.test.mjs enemy1-integration.test.mjs
       - name: Instalar navegador WebGL
         run: |
           npm install --prefix tools/visual-lab --no-audit --no-fund

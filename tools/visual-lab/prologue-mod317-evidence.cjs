@@ -54,7 +54,7 @@ async function prologue(browser, name, viewport, mobile) {
     R.metrics.prado = await H.frames(5000);
     for (let i = 0; i < 10; i++) await page.evaluate(() => window.SevenSinsDebug3D.motionStep(.5, { x: 0, z: -1 }));
     await wait(1500); await H.snap('3-asas-pergunta'); await H.tapUntil(s => s.shot === 'asas-recolher'); await wait(900); await H.snap('3-asas-recolhendo');
-    await H.tapUntil(s => !s.active, 30); await wait(1500); await H.snap('3-asas-recolhidas');
+    await H.tapUntil(s => !s.active, 120); await wait(1500); await H.snap('3-asas-recolhidas');
     R.wingsSaved = await page.evaluate(() => localStorage.getItem('seven-sins-3d-guide-wings'));
     R.errors.push(...errs); await ctx.close(); }
   // ---- 2) estrada, carroça e emboscada (save no prólogo)
@@ -63,13 +63,13 @@ async function prologue(browser, name, viewport, mobile) {
     R.roadStart = await H.rs(); await page.evaluate(() => window.SevenSinsDebug3D.cartArrive()); await wait(1500);
     await page.evaluate(() => window.SevenSinsDebug3D.teleport(58, 140)); await wait(2500); await H.tapUntil(s => s.active, 20); await H.snap('4-teren-chega');
     await H.tapUntil(s => s.type === 'say' && /Teren/.test(s.id || ''), 20); await H.snap('4-teren-sentado-fala');
-    await H.tapUntil(s => !s.active, 30); await page.evaluate(() => window.SevenSinsDebug3D.interact()); await wait(1500); await H.tapUntil(s => !s.active, 30);
+    await H.tapUntil(s => !s.active, 160); await page.evaluate(() => window.SevenSinsDebug3D.interact()); await wait(1500); await H.tapUntil(s => !s.active, 160);
     await page.evaluate(() => window.SevenSinsDebug3D.interact()); await wait(2400); await H.snap('5-embarque'); await wait(2800); await H.snap('5-sentados');
     await H.tapUntil(s => s.type === 'say', 30); await H.snap('5-interior-conversa'); R.seated = await H.rs();
     R.metrics.estrada = await H.frames(4000);
-    await H.tapUntil(s => s.scene === 'emboscada', 80); await wait(800); await H.snap('6-tres-horas-acordar');
+    await H.tapUntil(s => s.scene === 'emboscada', 200); await wait(800); await H.snap('6-tres-horas-acordar');
     await H.tapUntil(s => s.shot === 'cerco', 30); await wait(1400); await H.snap('6-cerco-5-bandidos');
-    await H.tapUntil(s => !s.active, 40); await wait(4000); await H.snap('6-luta-5-simultaneos'); R.squad = await page.evaluate(() => window.SevenSinsDebug3D.squadInfo());
+    await H.tapUntil(s => !s.active, 120); await wait(4000); await H.snap('6-luta-5-simultaneos'); R.squad = await page.evaluate(() => window.SevenSinsDebug3D.squadInfo());
     let maxMelee = 0; for (let i = 0; i < 12; i++) { const q = await page.evaluate(() => window.SevenSinsDebug3D.squadInfo()); if (q) maxMelee = Math.max(maxMelee, q.acts.filter(a => a === 'melee').length); await wait(500); }
     R.squad.maxMeleeObserved = maxMelee;
     R.errors.push(...errs); await ctx.close(); }
