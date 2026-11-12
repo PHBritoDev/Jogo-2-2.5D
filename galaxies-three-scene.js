@@ -555,6 +555,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  }
  let lastSelection=1,frame=0,elapsed=0,prev=0,running=true,id=0;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const coarsePointer=matchMedia('(pointer:coarse)').matches;
  const parallax={x:0,y:0};
  const pointer=e=>{const b=root.getBoundingClientRect();
   parallax.x=clamp(((e.clientX-b.left)/Math.max(1,b.width)-.5)*-W*.014,-12,12);
@@ -567,7 +568,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   if(document.hidden||root.classList.contains('leaving'))return;
   // Calcular delta apenas quando renderizar: evita animação em meia velocidade
   // em telas de 60 Hz com limitador de 30 FPS.
-  const mobile=window.matchMedia('(pointer:coarse)').matches||root.clientWidth<950;
+  const mobile=coarsePointer||root.clientWidth<950;
   if(ms-frame<(reduced?1000:(mobile?32:16)))return;
   const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=dt;frame=ms;
   shader.uniforms.uTime.value=elapsed;for(const m of smokes)m.uniforms.uTime.value=elapsed;
