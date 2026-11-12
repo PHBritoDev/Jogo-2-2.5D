@@ -5,7 +5,7 @@
  * MOD 202: layout redesenhado (menu lateral, planetas desenhados em SVG próprio, painel de detalhe com condições de acesso).
  */
 import { infernalBackdrop, infernalPlanetSvg } from './galaxies-infernal-art.js';
-import { mountPixelReference } from './galaxies-pixel-reference.js';
+import { mountThreeGalaxyScene } from './galaxies-three-scene.js';
 
 export const GALAXIES = [
   { id: 1, name: 'Ganância', tag: 'Nada é suficiente. Sempre mais.', subtitle: 'Onde vidas viraram moeda', hue: 42, color: '#f3c25a', glow: '#ffcf6a',
@@ -130,9 +130,9 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   });
   renderDetail();
   document.body.appendChild(root);
-  // Somente o PNG idêntico à arte aprovada ativa a modalidade pixel-exact.
-  // Sem ele o menu vetorial anterior permanece, evitando tela vazia.
-  mountPixelReference({root,galaxies:GALAXIES,progressPercent:Math.round(galaxyProgress(1,progress)*100),coins,isReady,onEnter,onSettings});
+  // Cenário e planetas vivos, gerados integralmente por código Three.js.
+  // SVG autoral continua disponível apenas em caso de WebGL indisponível.
+  mountThreeGalaxyScene(root);
   // MOD 197 — a corrente da galáxia recém-libertada se rompe (uma vez), com o próximo mundo despertando.
   const freed = Number(save.celebrate) || 0;
   if (freed >= 2 && freed <= 7) {
