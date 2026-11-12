@@ -155,3 +155,11 @@
 @media (prefers-reduced-motion:reduce){
  #galaxy-screen.gx-three-on .gx-orb.open .gx-core{animation:none!important}
 }
+
+/* JANELA transparente no painel para a esfera Three.js 3D, sem afetar texto. */
+#galaxy-screen.gx-three-on .gx-detail{
+ background:linear-gradient(90deg,rgba(5,2,5,.08) 0%,rgba(7,2,6,.22) 27%,rgba(9,3,6,.96) 30%,rgba(13,3,7,.96) 100%);
+}
+#galaxy-screen.gx-three-on .gx-art{background:transparent;position:relative;z-index:1}
+#galaxy-screen.gx-three-on .gx-detail .gx-info,
+#galaxy-screen.gx-three-on .gx-detail .gx-access{position:relative;z-index:2}
