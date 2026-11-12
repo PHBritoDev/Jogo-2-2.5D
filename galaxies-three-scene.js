@@ -221,6 +221,32 @@ function gothicRuins(parent,W,H){
   ball(parent,r,'#fc3515',x,-H*.43+rand(i+14)*18,-178,[2.7,.22,.25]);
  }
 }
+function eclipseCitadel(parent,W,H){
+ // Silhueta gótica contra o sol vermelho, sem modelos/bitmaps.
+ const x=W*.235,y=H*.13,z=-247;
+ const dark=mat('#180a10',.18,.9),edge=mat('#41121b',.22,.8);
+ mesh(new THREE.BoxGeometry(W*.25,H*.038,14),dark,parent,x,y,z);
+ for(let i=0;i<21;i++){
+  const t=(i-10)/10,px=x+t*W*.125;
+  const h=H*(.045+(1-Math.abs(t))*.12+rand(i+200)*.05);
+  mesh(new THREE.CylinderGeometry(4.5,7.5,h,5),dark,parent,px,y+h*.48,z);
+  mesh(new THREE.ConeGeometry(10,h*.48,5),edge,parent,px,y+h*.94,z);
+ }
+}
+function borderChains(parent,W,H){
+ const geo=new THREE.TorusGeometry(10,3.2,5,12);
+ const inst=new THREE.InstancedMesh(geo,mat('#32303a',.48,.73),84),d=new THREE.Object3D();
+ const strands=[[[-W*.57,H*.56],[-W*.34,H*.26],28],[[-W*.57,-H*.27],[-W*.25,-H*.61],32],[[W*.57,H*.54],[W*.36,H*.32],24]];
+ let idx=0;for(const [a,b,n] of strands){
+  const angle=Math.atan2(b[1]-a[1],b[0]-a[0]);
+  for(let i=0;i<n;i++){const t=i/(n-1);
+   d.position.set(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,16);
+   d.rotation.set(.28,0,angle+(i%2?PI/2:0));
+   d.scale.setScalar(Math.max(.42,H/800));d.updateMatrix();inst.setMatrixAt(idx++,d.matrix);
+  }
+ }
+ inst.instanceMatrix.needsUpdate=true;parent.add(inst);
+}
 function eclipse(parent,W,H){
  const x=W*.245,y=H*.33,r=H*.13;
  const corona=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
@@ -325,7 +351,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const key=new THREE.DirectionalLight('#ffd4a6',3.1);key.position.set(-130,220,220);scene.add(key);
  const red=new THREE.PointLight('#ff3a17',5,H*1.25,1.5);red.position.set(W*.3,H*.25,150);scene.add(red);
  const shader=sky(scene,W,H);
- gothicRuins(scene,W,H);infernalGround(scene,W,H);eclipse(scene,W,H);angel(scene,W,H);starfield(scene,W,H);
+ gothicRuins(scene,W,H);infernalGround(scene,W,H);eclipse(scene,W,H);eclipseCitadel(scene,W,H);borderChains(scene,W,H);angel(scene,W,H);starfield(scene,W,H);
  const groups=[],details={planet:null,chains:null};
  details.chains=new THREE.Mesh(
   new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:'#ff3b20',toneMapped:false,depthWrite:false})
