@@ -709,3 +709,48 @@ Essas quatro linhas são **ramificações de planejamento**, não quatro acontec
 **Teste de aceitação futuro:** em save novo e legado, vencer Vhazrael, retornar, recarregar e revisitar. Verificar se os mesmos personagens estão vivos ou ausentes conforme o estado, se os recursos da cidade mudam sem se multiplicar, se o portal e o primeiro selo persistem e se não se repete recompensa. Perguntar a um jogador: “O que mudou em Eldória por sua ação? O que ainda não foi resolvido?” A resposta deve vir do jogo, não de um texto explicativo.
 
 **Limite desta rodada:** apenas planejamento narrativo; não houve inspeção visual da build, alteração de código, PR, workflow, `main` ou merge.
+
+
+## Parte 12 — A prova que conduz ao vulcão: uma pista, não uma nova missão (12/11/2026)
+**Estado: proposta não aprovada; nenhuma cena implementada.** Foco único: garantir que o destino seguinte seja uma conclusão alcançada pelo jogador e não uma ordem arbitrária do guia. Esta parte não amplia o Ato 1 com outra missão; revisa a **entrega de informação essencial** entre caverna, dimensão e saída de Eldória.
+
+### Pesquisa consultada antes de escrever
+- Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling* (GDC 2010): https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental — objetos, distribuição espacial e reação do mundo permitem inferir a história sem monólogo.
+- Paweł Sasko, *10 Key Quest Design Lessons from The Witcher 3 and Cyberpunk 2077* (GDC 2023): https://www.gdcvault.com/play/1028897/10-Key-Quest-Design-Lessons — escolhas, concisão, emoção e economia de produção; não repetir informação já compreendida.
+- Holly Green, *Key takeaways from the quest design of Cyberpunk 2077 and The Witcher 3*, Game Developer, 22/03/2023: https://www.gamedeveloper.com/marketing/10-key-takeaways-from-the-quest-design-of-cyberpunk-2077-and-the-witcher-3 — remover excesso de design e fazer detalhes importarem.
+**Decisão aplicada:** uma evidência indispensável no caminho principal, uma confirmação opcional já prevista no retorno e uma resposta breve do guia. Sem nova coleta obrigatória.
+
+### Auditoria dos materiais reais e fronteira entre roteiro e implementação
+- \`docs/roteiro/M1-PROLOGO.md\` e \`prologue-flow.js\`: a missão divina e a identidade do guia já são introduzidas antes de Eldória; não reabrir o prólogo nem atribuir a Teren conhecimento celestial.
+- \`docs/roteiro/M2-ATO1.md\` e \`act1-flow.js\`: o fluxo legado progride de vila e floresta para esgoto, Guardião, portal e dimensão; \`questStep=8\` encerra o ato. O retorno legado ao início do mapa não é prova de que uma saída física da nova caverna esteja pronta.
+- \`docs/narrativa/ato-1-eldoria-roteiro-v1.md\`: a caverna contém registros de tributos e prisioneiros; Vhazrael é o primeiro bispo, não a Ganância; o primeiro selo aponta para uma ameaça maior. Teren conhece estradas, Osren conhece comércio e Vaelthar reconhece sinais demoníacos.
+- \`docs/OBJETIVO-GALAXIA-1.md\`: preservar campanha 3D, dimensão do primeiro bispo, progressão e saves; não duplicar missão, portal, recompensa ou sistema de diário.
+- \`docs/narrativa/LABORATORIO-ATO1-RECONSTRUCAO.md\`, Partes 7–11: já propõem o primeiro selo, a conversa de Teren e o retorno condicionado. Esta Parte 12 **substitui eventual repetição explicativa**, não cria um segundo epílogo.
+- Nenhuma alteração do Claude foi verificada visualmente nesta rodada. Posicionamento de registros, corredores e saídas é **topologia proposta**, não descrição do mapa atual.
+
+### Sequência de revelação proposta — três contatos, uma conclusão
+**1. Caverna: a carga que não pertence a Eldória (essencial, sem desvio).** Ao atravessar a área de transporte já necessária para libertar os prisioneiros, o jogador encontra **um único manifesto** associado a caixas marcadas com o mesmo sinal de confisco visto na cidade e na clareira. O manifesto diferencia cargas locais das destinadas a uma rota de montanha com referência a calor, cinzas ou fornos. Não escrever o nome de Vorgazhek como assinatura de um documento banal; a prova mostra **continuidade logística**, não identidade do segundo bispo. A leitura cabe numa interação curta e pode ser substituída por inspeção visual/áudio contextual para mobile. Se a área for pulada por checkpoint, a informação essencial deve acompanhar o progresso existente, sem nova flag inventada aqui.
+
+**2. Dimensão: o que Vhazrael realmente confirma (essencial, no encerramento já previsto).** A derrota revela que há outros bispos e que o primeiro selo não encerra a Ganância. O guia pode relacionar o selo ao manifesto **somente depois** que o jogador já viu a pista; se a interação foi pulada, usa a evidência encontrada pelo grupo durante a fuga. A fala não define quando os bispos surgiram nem o propósito final dos sete Pecados. Não inventar que o selo contém um mapa, coordenadas ou profecia.
+
+**3. Retorno: Teren verifica o rumo (opcional, não nova missão).** Se a rota e a presença de Teren forem plausíveis no cenário validado, ele reconhece no manifesto o tipo de carga e o caminho de montanha. Se não puder estar presente, o comprovante de transporte já proposto na Parte 9 cumpre a mesma função numa visita posterior. A informação principal **não depende** desse encontro; ele oferece reconhecimento humano e precisão prática.
+
+### Falas propostas, revisadas por função
+- **Protagonista, diante do manifesto:** “Essas caixas não vieram daqui.” — percepção ativa; não explica o que o jogador acabou de ler.
+- **Ilyan, se presente e vivo nesse ponto:** “Passavam por aqui sem parar. Nunca vi para onde iam.” — testemunho limitado; não o transforma em especialista. **Omitir** se a continuidade não permitir sua presença.
+- **Vaelthar, após a vitória:** “Vhazrael era apenas o primeiro. E as cargas seguiam para as montanhas.” — une ameaça e evidência, sem prometer certeza sobre o destino final.
+- **Teren, encontro opcional:** “Conheço essa estrada. Perto das montanhas, o ar fica quente mesmo à noite.” — conhecimento de viagem, não cosmologia.
+- **Protagonista:** “Então é por lá que começamos a procurar.” — decisão simples que devolve agência.
+
+**Corte editorial:** se o jogador já ouviu Vaelthar explicar o destino após a dimensão, suprimir a última fala de Teren sobre a direção e manter apenas uma reação humana; evitar três personagens repetindo “montanhas”. Não usar a expressão “próximo bispo” em todas as cenas. Nenhuma fala atribui a Teren, Ilyan ou Osren conhecimento sobre a origem dos quatro bispos.
+
+### Continuidade, alternativas, riscos e pendências
+**Continuidade:** prólogo celestial intacto; Aethraziel/Vaelthar é uma pessoa; Vhazrael primeiro bispo; quatro selos; Ganância acima dos bispos; a mulher misteriosa só aparece no arco vulcânico; a natureza do protagonista continua um mistério. A pista logística prepara a viagem sem insinuar a identidade ou lealdade da futura personagem.
+
+**Alternativa A (preferida):** manifesto em suporte já existente na caverna e confirmação verbal mínima. **Alternativa B:** se o trajeto real não comportar registro, usar marca em carregamento e conversa breve com prisioneiro; não adicionar sala de arquivos, item obrigatório ou coletáveis. Ambas aguardam validação de cenário.
+
+**Riscos:** documento muito explicativo, informação essencial perdida por skip, Teren aparecendo longe da carroça, Ilyan falando após eventual morte, transição do esgoto legado incompatível com caverna nova, símbolo reutilizado em excesso, retorno que presume crianças vivas por \`childrenFreed\`, e novo item de selo duplicando recompensa. O manifesto **não** prova a chegada original da Ganância ao mundo nem a origem dos bispos.
+
+**Pendências autorais:** destino das crianças; destino de Ilyan; identidade Guardião/Zarkun; nomenclatura final de Eldória; posição real da saída da dimensão e da rota ao vulcão; data e mecanismo de chegada da Ganância; origem e motivações dos bispos e demônios; objetivo dos sete Pecados. Nenhuma decisão foi tomada nesta rodada.
+
+**Critério de teste futuro:** após a sequência, jogador sem conhecimento do roteiro deve responder “por que sigo às montanhas?” com evidência observada, não “porque o anjo mandou”; também deve saber que venceu um bispo, não a Ganância. Verificar leitura no Android e continuidade após save/skip antes de qualquer implementação. **Não alterar main, PR, workflows, código ou cenário do Claude.**
