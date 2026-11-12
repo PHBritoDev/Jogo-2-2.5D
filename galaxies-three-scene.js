@@ -666,7 +666,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  try{
   renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power',preserveDrawingBuffer:false});
  }catch(e){console.warn('[Galáxias] WebGL indisponível, usando fallback SVG',e);return null;}
- renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.35));
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2.4));
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;
  const canvas=renderer.domElement;canvas.className='gx-three-canvas';canvas.setAttribute('aria-hidden','true');root.prepend(canvas);
@@ -697,7 +697,14 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  for(let id=1;id<=7;id++){const g=makePlanet(id,64);g.userData.originalRadius=64;scene.add(g);groups.push(g);}
  // O retrato de destaque compartilha texturas/malhas com o planeta do topo.
  details.planet=groups[0].clone(true);details.planet.userData.originalRadius=64;scene.add(details.planet);
- const size=()=>updateCoordinates(root,scene,camera,groups,details,{renderer});
+ // Prioriza nitidez no celular, limitando a área renderizada para não
+ // desperdiçar GPU. Na tela 975x450 do A55, alvo ~2,08 DPR.
+ const size=()=>{
+  const width=Math.max(1,root.clientWidth),height=Math.max(1,root.clientHeight);
+  const dpr=Math.min(window.devicePixelRatio||1,2.4,Math.max(1,Math.sqrt(1900000/(width*height))));
+  if(Math.abs(renderer.getPixelRatio()-dpr)>.03)renderer.setPixelRatio(dpr);
+  updateCoordinates(root,scene,camera,groups,details,{renderer});
+ };
  const observer=new ResizeObserver(size);observer.observe(root);
  const selected=()=>Number(root.querySelector('.gx-orb.sel')?.dataset.id||1);
  function setSelected(id){
