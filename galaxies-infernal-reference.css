@@ -97,36 +97,6 @@
 @media(prefers-reduced-motion:reduce){#galaxy-screen .gx-stars,#galaxy-screen .gx-core{animation:none}}
 
 
-/* Imagem aprovada 1536×864: tela exata, com áreas de clique invisíveis.
-   Preserve aspecto, sem recortar a arte para encaixar no A55. */
-#galaxy-screen.gx-exact-mode>.gx-infernal-bg,
-#galaxy-screen.gx-exact-mode>.gx-head,
-#galaxy-screen.gx-exact-mode>.gx-wallet,
-#galaxy-screen.gx-exact-mode>.gx-nav,
-#galaxy-screen.gx-exact-mode>.gx-track,
-#galaxy-screen.gx-exact-mode>.gx-detail,
-#galaxy-screen.gx-exact-mode>.gx-foot{visibility:hidden!important;pointer-events:none!important}
-#galaxy-screen.gx-exact-mode{background:#050207!important}
-.gx-exact-stage{position:absolute;z-index:50;left:50%;top:50%;transform:translate(-50%,-50%);width:min(100vw,177.7777778vh);height:min(100vh,56.25vw);aspect-ratio:16/9;overflow:hidden}
-.gx-exact-art{width:100%;height:100%;display:block;object-fit:fill;user-select:none;pointer-events:none}
-.gx-exact-hit{position:absolute;border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;cursor:pointer;touch-action:manipulation;min-height:0!important;min-width:0!important;opacity:0}
-.gx-exact-hit:focus-visible{opacity:1;outline:2px solid #ffe4a0!important;background:#ffb83522!important}
-.gx-exact-hit:disabled{cursor:default}
-.gx-exact-live{position:absolute;bottom:2%;left:39%;font:700 clamp(11px,2vw,17px) Georgia,serif;color:#ffdeaa;text-shadow:0 1px 5px #000}
-.gx-exact-selected{position:absolute;z-index:2;left:17%;right:6%;bottom:15%;padding:1.3% 2.1%;border:1px solid #e8a54a;background:#09030cf0;color:#fff0cd;box-shadow:0 0 45px #000;font-family:Georgia,serif}
-.gx-exact-selected[hidden]{display:none}
-.gx-exact-selected h2{margin:0 0 5px;font-size:clamp(13px,3vw,27px)}
-.gx-exact-selected p{margin:3px 0;font-size:clamp(9px,1.5vw,14px)}
-.gx-exact-selected button{margin-top:8px;padding:6px 15px;border:1px solid #eeaa50;background:#26090a;color:#ffe6b0}
-.gx-exact-coin-value{position:absolute;right:4.85%;top:2.5%;width:2.8%;text-align:center;background:#11090c;color:#fff;font:700 clamp(9px,1.3vw,16px) Georgia,serif}
-.gx-exact-progress-value{position:absolute;left:65.4%;top:63.45%;width:3%;text-align:right;background:#0a0308;color:#fff;font:700 clamp(8px,1.25vw,16px) Georgia,serif}
-@media (prefers-reduced-motion:reduce){#galaxy-screen.gx-exact-mode *{animation:none!important}}
-
-/* No modo exato, o SVG legado e seus pseudo-elementos NÃO podem aparecer
- * nas margens do A55 (a referência 16:9 é letterboxed, sem recortes). */
-#galaxy-screen.gx-exact-mode > :not(.gx-exact-stage){display:none!important}
-#galaxy-screen.gx-exact-mode::before,#galaxy-screen.gx-exact-mode::after{content:none!important;display:none!important}
-
 /* MENU THREE.JS VIVO — WebGL real, nunca fotografia/bitmap de referência.
  * A cena usa somente geometrias, GLSL e CanvasTexture procedural gerada pelo código. */
 #galaxy-screen.gx-three-on{background:#070309!important}
