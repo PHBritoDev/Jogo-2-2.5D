@@ -1,0 +1,44 @@
+name: QA mapa — POIs sem duplicação
+on:
+  pull_request:
+    paths:
+      - 'map3d.js'
+      - 'map3d.test.mjs'
+      - 'tools/visual-lab/map-poi-audit.cjs'
+      - '.github/workflows/map-poi-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  map-pois:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar descoberta e persistência do mapa
+        run: node --test map3d.test.mjs
+      - name: Preparar agente WebGL
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install chromium --with-deps --only-shell
+      - name: Servir o jogo 3D do próprio PR
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/map-poi.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Conferir mapa real em desktop e mobile
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/map-poi-audit.cjs
+      - name: Salvar fotos e relatório
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-poi-${{ github.run_number }}
+          path: visual-lab-results/map-pois/
+          retention-days: 14
+          if-no-files-found: warn
