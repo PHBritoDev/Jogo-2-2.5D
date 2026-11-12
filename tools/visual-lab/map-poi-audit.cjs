@@ -21,7 +21,7 @@ const fs=require('node:fs'),path=require('node:path');
     window.SevenSinsDebug3D?.freeRoam?.();
     return {coliseu,arena,before,after,restored:[...restored.pois],unique:new Set(mod.MAP_POIS.map(p=>p.id)).size===mod.MAP_POIS.length};
    });
-   await page.locator('#map-toggle-3d').click({timeout:12000});
+   await page.evaluate(()=>document.getElementById('map-toggle-3d').click());
    await page.locator('#world-map').waitFor({state:'visible',timeout:10000});
    await page.screenshot({path:path.join(output,'map-'+name+'.png')});
    const ok=actual.unique&&actual.coliseu.id!==actual.arena.id&&actual.before.includes(actual.coliseu.id)&&actual.after.includes(actual.arena.id)&&actual.restored.includes(actual.coliseu.id)&&actual.restored.includes(actual.arena.id);
