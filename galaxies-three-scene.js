@@ -363,10 +363,14 @@ function emberField(parent,W,H){
  return {coords,attr,count,W,H};
 }
 function sky(parent,W,H){
- const material=new THREE.ShaderMaterial({uniforms:{uTime:{value:0}},depthWrite:false,
- vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:"\nuniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float x=0.,a=.55;for(int i=0;i<4;i++){x+=a*n(p);p*=2.03;a*=.49;}return x;}\nvoid main(){\nvec2 uv=vUv, drift=vec2(uTime*.003,0.);\nfloat wide=fbm(uv*vec2(4.7,3.3)+drift),fine=fbm(uv*vec2(13.,7.)-drift*2.);\nfloat cloud=smoothstep(.46,.7,wide*.77+fine*.38);\nfloat redSun=exp(-length((uv-vec2(.77,.80))*vec2(1.23,1.45))*4.7);\nfloat farRed=exp(-length((uv-vec2(.89,.4))*vec2(1.3,1.4))*3.7);\nfloat blue=exp(-length((uv-vec2(.29,.83))*vec2(1.6,1.3))*5.);\nfloat lava=pow(1.-uv.y,2.6);\nvec3 base=vec3(.016,.018,.034);\nbase+=vec3(.16,.024,.039)*(cloud*(.42+redSun*1.7)+farRed*.62);\nbase+=vec3(.2,.024,.008)*redSun*(.21+.6*cloud);\nbase+=vec3(.06,.10,.18)*blue*(.7+.6*fine);\nbase+=vec3(.11,.011,.006)*lava*(.4+cloud*.9);\nfloat shade=smoothstep(.17,.8,wide);\nbase=mix(base,base*.38,shade*.18);\nbase*=.52;gl_FragColor=vec4(base,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
- const plane=mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
+ // Nebulosa infernal procedural com nuvens fractais e contra-luz cromática;
+ // desenhada e animada integralmente no fragment shader.
+ const material=new THREE.ShaderMaterial({
+  uniforms:{uTime:{value:0}},depthWrite:false,
+  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:"uniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float f=0.,a=.54;for(int i=0;i<4;i++){f+=a*n(p);p*=2.03;a*=.49;}return f;}\nvoid main(){\n vec2 uv=vUv,wind=vec2(uTime*.0032,uTime*.0007);\n vec2 p=uv*vec2(5.9,3.9);\n float warp=fbm(p*.68+wind);\n float c1=fbm(p+vec2(warp,-warp)*1.17+wind);\n float c2=fbm(p*1.82-vec2(warp*.58)+wind*.5);\n float formation=smoothstep(.39,.67,c1*.76+c2*.37);\n float den=smoothstep(.34,.64,c1*.91+c2*.22);\n float fiery=exp(-length((uv-vec2(.82,.72))*vec2(1.33,1.6))*2.75);\n float blue=exp(-length((uv-vec2(.17,.79))*vec2(1.9,1.65))*3.6);\n float redRight=smoothstep(.35,.93,uv.x)*(.24+fiery*.83);\n float horizon=pow(1.-uv.y,2.6);\n vec3 sky=vec3(.006,.010,.021);\n sky+=vec3(.15,.018,.031)*formation*redRight*1.48;\n sky+=vec3(.12,.015,.024)*den*fiery*.95;\n sky+=vec3(.043,.073,.125)*blue*(.25+formation*.8);\n sky+=vec3(.13,.011,.012)*horizon*(.26+den*.9);\n float ironCloud=smoothstep(.21,.62,fbm(p*.8+vec2(2.4,1.2)+wind));\n sky=mix(sky,sky*.28,ironCloud*.47);\n float rim=exp(-length((uv-vec2(.745,.76))*vec2(2.4,2.2))*4.4);\n sky+=vec3(.23,.026,.011)*rim*(.12+formation);\n sky*=.82;\n gl_FragColor=vec4(sky,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"
+ });
+ mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
  return material;
 }
 function smokeLayer(parent,W,H,tint,x,y,z){
