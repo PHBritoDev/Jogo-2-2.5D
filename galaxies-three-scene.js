@@ -303,7 +303,7 @@ function starfield(parent,W,H){
 function sky(parent,W,H){
  const material=new THREE.ShaderMaterial({uniforms:{uTime:{value:0}},depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:"\nuniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float x=0.,a=.55;for(int i=0;i<4;i++){x+=a*n(p);p*=2.03;a*=.49;}return x;}\nvoid main(){\nvec2 uv=vUv, drift=vec2(uTime*.003,0.);\nfloat wide=fbm(uv*vec2(4.7,3.3)+drift),fine=fbm(uv*vec2(13.,7.)-drift*2.);\nfloat cloud=smoothstep(.46,.7,wide*.77+fine*.38);\nfloat redSun=exp(-length((uv-vec2(.77,.80))*vec2(1.23,1.45))*4.7);\nfloat farRed=exp(-length((uv-vec2(.89,.4))*vec2(1.3,1.4))*3.7);\nfloat blue=exp(-length((uv-vec2(.14,.83))*vec2(1.6,1.3))*5.);\nfloat lava=pow(1.-uv.y,2.6);\nvec3 base=vec3(.016,.018,.034);\nbase+=vec3(.16,.024,.039)*(cloud*(.42+redSun*1.7)+farRed*.45);\nbase+=vec3(.2,.024,.008)*redSun*(.21+.6*cloud);\nbase+=vec3(.035,.057,.12)*blue*(.7+.6*fine);\nbase+=vec3(.11,.011,.006)*lava*(.4+cloud*.9);\nfloat shade=smoothstep(.17,.8,wide);\nbase=mix(base,base*.38,shade*.18);\nbase*=.17;gl_FragColor=vec4(base,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
+ fragmentShader:"\nuniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float x=0.,a=.55;for(int i=0;i<4;i++){x+=a*n(p);p*=2.03;a*=.49;}return x;}\nvoid main(){\nvec2 uv=vUv, drift=vec2(uTime*.003,0.);\nfloat wide=fbm(uv*vec2(4.7,3.3)+drift),fine=fbm(uv*vec2(13.,7.)-drift*2.);\nfloat cloud=smoothstep(.46,.7,wide*.77+fine*.38);\nfloat redSun=exp(-length((uv-vec2(.77,.80))*vec2(1.23,1.45))*4.7);\nfloat farRed=exp(-length((uv-vec2(.89,.4))*vec2(1.3,1.4))*3.7);\nfloat blue=exp(-length((uv-vec2(.29,.83))*vec2(1.6,1.3))*5.);\nfloat lava=pow(1.-uv.y,2.6);\nvec3 base=vec3(.016,.018,.034);\nbase+=vec3(.16,.024,.039)*(cloud*(.42+redSun*1.7)+farRed*.62);\nbase+=vec3(.2,.024,.008)*redSun*(.21+.6*cloud);\nbase+=vec3(.06,.10,.18)*blue*(.7+.6*fine);\nbase+=vec3(.11,.011,.006)*lava*(.4+cloud*.9);\nfloat shade=smoothstep(.17,.8,wide);\nbase=mix(base,base*.38,shade*.18);\nbase*=.17;gl_FragColor=vec4(base,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
  const plane=mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
  return material;
 }
@@ -424,7 +424,7 @@ function angel(parent,W,H){
  // Pescoço e perfil facial: nariz, testa, lábios, queixo e capuz escuro.
  piece([['M',-.03,.066],['L',-.024,.121],['Q',-.065,.151,-.043,.195],['Q',.002,.23,.062,.176],
        ['L',.070,.147],['L',.085,.135],['L',.069,.126],['L',.074,.106],
-       ['Q',.052,.073,.024,.068],['L',-.03,.066]],'#967670',8);
+       ['Q',.052,.073,.024,.068],['L',-.03,.066]],'#594650',8);
  piece([['M',-.067,.151],['Q',-.074,.242,-.002,.252],['Q',.082,.225,.093,.165],
        ['Q',.046,.204,-.006,.17],['Q',-.037,.133,-.043,.084],['L',-.067,.151]],'#20202d',11);
  piece([['M',-.054,.109],['Q',-.028,.054,.006,.062],['Q',.009,.122,-.019,.155],['L',-.054,.109]],'#313440',13);
@@ -435,7 +435,7 @@ function angel(parent,W,H){
  tube(g,[[S*.019,S*.17,19],[S*.046,S*.181,21],[S*.070,S*.17,20]],S*.0034,'#272331');
  tube(g,[[S*.071,S*.143,19],[S*.087,S*.138,19],[S*.079,S*.133,21]],S*.0031,'#b1817e');
  tube(g,[[S*.062,S*.106,19],[S*.074,S*.104,19],[S*.067,S*.095,19]],S*.0024,'#774e4f');
- ball(g,S*.021,'#71555c',S*.006,S*.113,12,[1.5,.96,.33]);
+ ball(g,S*.021,'#443742',S*.006,S*.113,12,[1.5,.96,.33]);
  // Cabelos grisalhos eriçados pelo vento, enraizados no couro cabeludo.
  for(let i=0;i<24;i++){
   const t=i/23;
@@ -459,7 +459,7 @@ function infernalGround(parent,W,H){
  // Rachaduras Voronoi entre placas rochosas (não linhas senoides artificiais).
  const material=new THREE.ShaderMaterial({depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:"varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat crack(vec2 p){\n vec2 ip=floor(p),fp=fract(p);float d1=10.,d2=10.;\n for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){\n  vec2 o=vec2(float(i),float(j)),cell=ip+o;\n  vec2 seed=o+vec2(h(cell),h(cell+13.1))*.74+.13;\n  float d=length(seed-fp);\n  if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;\n }\n return max(0.,d2-d1);\n}\nvoid main(){\n vec2 uv=vUv;\n float f=n(uv*vec2(11.,4.)),detail=n(uv*vec2(41.,13.));\n vec2 warp=uv*vec2(20.,6.)+vec2(f,detail)*.58;\n float e=crack(warp);\n float gap=1.-smoothstep(.006,.026,e);\n float ridge=detail*.58+f*.42;\n vec3 stone=mix(vec3(.016,.010,.014),vec3(.075,.027,.029),ridge);\n stone+=vec3(.028,.008,.011)*n(uv*vec2(89.,17.));\n float glow=gap*(.34+.66*n(uv*vec2(7.,3.)))*(.52+pow(1.-uv.y,1.6)*.48);\n vec3 lava=vec3(.82,.11,.025)*glow+vec3(.4,.09,.025)*pow(glow,3.);\n vec3 col=stone+lava;\n col*=.8+.2*n(uv*vec2(5.,2.));\n col*=.14;gl_FragColor=vec4(col,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
+ fragmentShader:"varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat crack(vec2 p){\n vec2 ip=floor(p),fp=fract(p);float d1=10.,d2=10.;\n for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){\n  vec2 o=vec2(float(i),float(j)),cell=ip+o;\n  vec2 seed=o+vec2(h(cell),h(cell+13.1))*.74+.13;\n  float d=length(seed-fp);\n  if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;\n }\n return max(0.,d2-d1);\n}\nvoid main(){\n vec2 uv=vUv;\n float f=n(uv*vec2(11.,4.)),detail=n(uv*vec2(41.,13.));\n vec2 warp=uv*vec2(20.,6.)+vec2(f,detail)*.58;\n float e=crack(warp);\n float gap=1.-smoothstep(.006,.026,e);\n float ridge=detail*.58+f*.42;\n vec3 stone=mix(vec3(.016,.010,.014),vec3(.075,.027,.029),ridge);\n stone+=vec3(.028,.008,.011)*n(uv*vec2(89.,17.));\n float glow=gap*(.34+.66*n(uv*vec2(7.,3.)))*(.52+pow(1.-uv.y,1.6)*.48);\n vec3 lava=vec3(.82,.11,.025)*glow+vec3(.4,.09,.025)*pow(glow,3.);\n vec3 col=stone+lava;\n col*=.8+.2*n(uv*vec2(5.,2.));\n col*=.24;gl_FragColor=vec4(col,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
  mesh(new THREE.PlaneGeometry(W,H*.32),material,parent,0,-H*.42,-188);
 }
 function updateCoordinates(root,scene,camera,groups,details,viewport){
