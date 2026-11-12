@@ -129,6 +129,40 @@ function goldenIsland(parent,r){
  chain.instanceMatrix.needsUpdate=true;parent.add(chain);
  for(let i=0;i<4;i++)ball(parent,r*.035,'#ffd16b',-r*.59+i*r*.36,-r*.14,r*1.18);
 }
+
+function celestialFalls(parent,r,ice=false){
+ // Cachoeiras de luz e bancos de nuvens, todos formados por malhas Three.js.
+ const puff=new THREE.InstancedMesh(
+  new THREE.SphereGeometry(1,9,6),
+  new THREE.MeshStandardMaterial({color:ice?'#dbf1ff':'#e9d6b3',transparent:true,opacity:.48,depthWrite:false,roughness:1}),27);
+ const d=new THREE.Object3D();
+ for(let i=0;i<27;i++){
+  const x=(rand(i*13+9)-.5)*r*1.85,y=-r*(.33+rand(i*5+1)*.43);
+  const z=r*(.64+rand(i*11+4)*.5);
+  d.position.set(x,y,z);d.scale.set(r*(.09+rand(i+31)*.14),r*(.04+rand(i+21)*.065),r*.085);
+  d.rotation.set(0,0,rand(i*8)*.45);d.updateMatrix();puff.setMatrixAt(i,d.matrix);
+ }
+ puff.instanceMatrix.needsUpdate=true;parent.add(puff);
+ const ribbonMat=new THREE.MeshBasicMaterial({
+   color:ice?'#b8edff':'#ffe2a1',transparent:true,opacity:ice?.38:.58,
+   side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending
+ });
+ for(let j=0;j<5;j++){
+  const x=(j-2)*r*.29,z=r*1.16;
+  const pts=[];for(let k=0;k<=12;k++){
+   const t=k/12;pts.push(new THREE.Vector3(x+Math.sin(t*9+j*7)*r*.017,-r*.08-t*r*.83,z-r*.02*t));
+  }
+  const g=new THREE.BufferGeometry(),p=[],uv=[],ind=[];
+  for(let k=0;k<pts.length;k++){
+   const q=pts[k],w=r*(.012+.011*Math.sin(k*.27+j));
+   p.push(q.x-w,q.y,q.z,q.x+w,q.y,q.z);
+   uv.push(0,k/12,1,k/12);
+   if(k<pts.length-1){const a=k*2;ind.push(a,a+1,a+2,a+1,a+3,a+2);}
+  }
+  g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(ind);
+  parent.add(new THREE.Mesh(g,ribbonMat));
+ }
+}
 function glacialMountains(parent,r){
  // Montanhas de gelo e banco de nuvens sob a cidadela de Soberba.
  const geo=new THREE.ConeGeometry(1,1,5);
@@ -288,10 +322,10 @@ function makePlanet(id,r){
  });
  const atm=new THREE.Mesh(new THREE.SphereGeometry(r*1.048,32,20),atmosphereMaterial);
  group.add(atm);
- if(id===1){goldenIsland(group,r);castle(group,r);ring(group,r*1.13,r*.035,'#e8a34b',.55,.27,r*.18);ring(group,r*.86,r*.055,'#704016',-.48,0,r*.87);}
+ if(id===1){goldenIsland(group,r);castle(group,r);celestialFalls(group,r);ring(group,r*1.13,r*.035,'#e8a34b',.55,.27,r*.18);ring(group,r*.86,r*.055,'#704016',-.48,0,r*.87);}
  if(id===2){envy(group,r);ring(group,r*1.14,r*.02,'#36ec82',.32,-.2,r*.12,.75);}
  if(id===3){treasure(group,r);ring(group,r*1.18,r*.025,'#f6c467',-.24,.16,r*.12);}
- if(id===4){glacialMountains(group,r);castle(group,r,true);ring(group,r*1.11,r*.018,'#9de5ff',.48,.09,r*.17);}
+ if(id===4){glacialMountains(group,r);castle(group,r,true);celestialFalls(group,r,true);ring(group,r*1.11,r*.018,'#9de5ff',.48,.09,r*.17);}
  if(id===5){maw(group,r);ring(group,r*1.17,r*.02,'#fc444d',-.21,.17,.2*r);}
  if(id===6){for(let i=0;i<9;i++){let a=i*2*PI/9;const crack=[];for(let j=0;j<6;j++)crack.push([Math.cos(a+j*.1)*r*(.95-j*.09),Math.sin(a+j*.16)*r*(.95-j*.08),r*.27+j*r*.045]);tube(group,crack,r*.014,'#ff5a0c',.62);}ring(group,r*1.07,r*.028,'#ff430e',.3,-.18,0);}
  if(id===7){lust(group,r);}
