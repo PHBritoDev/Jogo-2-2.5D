@@ -155,19 +155,7 @@ function starfield(parent,W,H){
 function sky(parent,W,H){
  const material=new THREE.ShaderMaterial({uniforms:{uTime:{value:0}},depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:`
- uniform float uTime;varying vec2 vUv;
- float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
- float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}
- void main(){
-  vec2 u=vUv;
-  float f=n(u*vec2(8.,5.)+vec2(uTime*.003,0.))*0.58+n(u*vec2(17.,9.)-vec2(uTime*.007,0.))*0.3+n(u*vec2(39.,18.))*.12;
-  float inferno=pow(1.-u.y,1.7)*.7+exp(-length((u-vec2(.79,.78))*vec2(1.8,1.2))*6.)*.9;
-  vec3 sky=mix(vec3(.015,.017,.033),vec3(.16,.018,.035),inferno);
-  sky+=vec3(.39,.032,.015)*pow(max(0.,f-.45),1.8)*inferno*2.2;
-  sky*=.62+.72*f;
-  gl_FragColor=vec4(sky,1.);
- }`});
+ fragmentShader:"\nuniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float x=0.,a=.55;for(int i=0;i<4;i++){x+=a*n(p);p*=2.03;a*=.49;}return x;}\nvoid main(){\nvec2 uv=vUv, drift=vec2(uTime*.003,0.);\nfloat wide=fbm(uv*vec2(4.7,3.3)+drift),fine=fbm(uv*vec2(13.,7.)-drift*2.);\nfloat cloud=smoothstep(.3,.73,wide*.77+fine*.38);\nfloat redSun=exp(-length((uv-vec2(.77,.80))*vec2(1.23,1.45))*4.7);\nfloat farRed=exp(-length((uv-vec2(.89,.4))*vec2(1.3,1.4))*3.7);\nfloat blue=exp(-length((uv-vec2(.14,.83))*vec2(1.6,1.3))*5.);\nfloat lava=pow(1.-uv.y,2.6);\nvec3 base=vec3(.016,.018,.034);\nbase+=vec3(.19,.016,.025)*(cloud*(.55+redSun*1.7)+farRed*.45);\nbase+=vec3(.33,.032,.008)*redSun*(.21+.6*cloud);\nbase+=vec3(.012,.036,.075)*blue*(.7+.6*fine);\nbase+=vec3(.27,.022,.012)*lava*(.4+cloud*.9);\nfloat shade=smoothstep(.17,.8,wide);\nbase=mix(base,base*.38,shade*.18);\ngl_FragColor=vec4(base,1.);\n}"});
  const plane=mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
  return material;
 }
@@ -208,21 +196,28 @@ function eclipse(parent,W,H){
  const glow=new THREE.PointLight('#ff311b',6,H*.8,1.8);glow.position.set(x,y,110);parent.add(glow);
 }
 function angel(parent,W,H){
- // Silhueta 3D do sentinela caído: capuz, halo quebrado, penas e túnica.
- const group=new THREE.Group();group.position.set(-W*.32,H*.31,-172);
- const body=mat('#15131d',.1,.9),feather=mat('#232937',.1,.86);
- const cloak=mesh(new THREE.ConeGeometry(H*.092,H*.3,8),body,group,0,-H*.16,0);cloak.rotation.z=.12;
- const head=ball(group,H*.049,'#48332f',-H*.005,H*.025,24,[.77,1.14,.72]);
- mesh(new THREE.ConeGeometry(H*.061,H*.13,10),body,group,0,H*.08,18).rotation.x=-.16;
- for(const sign of [-1,1]){
-  for(let i=0;i<11;i++){
-   let a=(i/10)*1.08+.38,rr=H*(.08+.014*i);
-   const f=ball(group,H*.035, '#2b3543',sign*(H*.065+rr*Math.sin(a)),-H*.025+rr*Math.cos(a),-12-i*.15,[.47,2.8,.18]);
-   f.rotation.z=sign*(-.18-i*.082);
+ // Guardião alado escultural: capuz, rosto, armadura e penas 3D.
+ const g=new THREE.Group();g.position.set(-W*.325,H*.345,-140);parent.add(g);
+ const fabric=mat('#333544',.16,.8),skin=mat('#9d7770',.12,.83);
+ const localLight=new THREE.PointLight('#b2a4bd',55,H*.45,2);localLight.position.set(0,H*.06,150);g.add(localLight);
+ ball(g,H*.079,'#262532',0,-H*.09,0,[.78,1.25,.6]);
+ const cloak=mesh(new THREE.ConeGeometry(H*.12,H*.37,11),fabric,g,0,-H*.26,-8);cloak.rotation.z=.12;
+ for(const d of [-1,1]){const shoulder=ball(g,H*.042,'#4d5263',d*H*.076,-H*.05,7,[1.4,.85,.7]);shoulder.rotation.z=d*.48;}
+ mesh(new THREE.CylinderGeometry(H*.018,H*.025,H*.06,10),skin,g,0,H*.04,6);
+ ball(g,H*.049,'#af8980',-H*.007,H*.104,8,[.7,1.02,.65]);
+ ball(g,H*.053,'#1b1721',-H*.008,H*.131,2,[.8,.66,.74]);
+ mesh(new THREE.ConeGeometry(H*.067,H*.14,10),fabric,g,0,H*.16,-1).rotation.x=-.19;
+ for(const d of [-1,1]){
+  for(let i=0;i<24;i++){
+   const t=i/23,spread=H*(.085+.24*t);
+   const x=d*(H*.07+spread*Math.sin(.43+t*1.04));
+   const y=H*(.025+spread*Math.cos(.43+t*1.04))-t*t*H*.05;
+   const p=ball(g,H*.028,i%4?'#343d52':'#576076',x,y,-30-t*6,[.44,2.4+t*.95,.22]);
+   p.rotation.z=d*(-.15-t*.9);
   }
  }
- ring(group,H*.057,H*.005,'#e6a65d',.26,0,37,.85);
- return group;
+ ring(g,H*.055,H*.004,'#edbd78',.27,0,37,.86);
+ return g;
 }
 function updateCoordinates(root,scene,camera,groups,details,viewport){
  const W=root.clientWidth,H=root.clientHeight;if(!W||!H)return;
