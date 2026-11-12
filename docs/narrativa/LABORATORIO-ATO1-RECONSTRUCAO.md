@@ -43,3 +43,21 @@ Estado: proposta colaborativa em elaboração. NÃO implementar nem mesclar auto
 
 ## Condição de integração
 Somente após revisão do criador: não escrever o roteiro como cânone definitivo, não modificar mecânicas, NPCs e cenas no jogo. Relatar lacunas honestamente.
+
+
+## Diretrizes adicionais do criador — 11/11/2026, noite (aplicáveis a todas as partes)
+1. **Pesquisar antes de cada nova etapa e de afirmar fatos**: GDC, estudos de narrativa de jogos e arquivos históricos do repositório. Registrar fontes ao lado da decisão. Pesquisar não autoriza copiar conteúdo de jogos alheios.
+2. **Escrita sem exageros**: português brasileiro bem escrito, formal moderado, natural, acessível; falas humanas, breves, específicas do personagem e com intenção dramática. Fugir de frases solenes aleatórias, mistério fabricado, clichês, chavões, passagens explicativas muito longas, expressões modernas deslocadas ou jargões difíceis.
+3. **Ritmo sem gordura nem pressa**: cenas devem mudar o estado de personagem, informação, objetivo ou recurso; descanso para criar apego e contemplação nostálgica; ação integrada à narrativa. Cortar qualquer missão cuja única função seja prolongar tempo. Em locais de pouca área, reutilizar com NOVO contexto apenas quando transformar o lugar e a forma de jogar.
+4. **História da corrupção, origem e motivações**: desenvolver hipóteses não canônicas bem amarradas sobre (a) o mundo antes da chegada da Ganância; (b) data/época aproximada e consequências da chegada; (c) como se originaram os quatro bispos e por que receberam poder; (d) quem são os demônios, o que querem individualmente e coletivamente, e como a hierarquia opera; (e) o objetivo geral dos sete Pecados Capitais e o motivo de sete mundos; (f) relação entre Ganância e instituições humanas. Não explicar tudo no Ato 1 nem contrariar revelações já previstas nos atos 2–6. Verificar especialmente roteiro do Bispo4, Ganância e final antes de fixar regras. Revelar um pouco por meio de documentos, escolhas, cenas e relatos confiáveis/incertos; preservar descobertas posteriores.
+5. **Mistérios orgânicos**: Anjo-Guia e protagonista têm segredos que mudam a percepção de cenas anteriores, sem retcon arbitrário. NPC feminina misteriosa só estreia no vulcão; sua possível identidade entre vilões é ideia reservada, não revelar no Ato 1.
+6. **Respeitar o legado**: aproveitar cenas específicas do roteiro anterior já implementadas, somente quando fortes, coerentes e melhorarem o novo; indicar arquivo, motivo e adaptações para não misturar duas versões indiscriminadamente.
+7. **Cada palavra precisa ter função**: revisar cada diálogo por clareza, subtexto, voz, necessidade, naturalidade, brevidade e consequência no jogo. Não confundir formalidade com linguagem arcaica.
+8. **Nada aprovado automaticamente**: propostas ficam em branch narrativa para o criador avaliar; Claude pode ainda alterar tamanho da floresta e caverna. Garantir que a campanha é finita e tem final.
+
+### Fontes de trabalho verificadas
+- Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling* (GDC Vault): https://www.gdcvault.com/play/1012647/what-happened-here-environmental
+- Paweł Sasko, lições de design de quests de The Witcher 3 e Cyberpunk 2077, GDC 2023 (relato GameDeveloper): https://www.gamedeveloper.com/marketing/10-key-takeaways-from-the-quest-design-of-cyberpunk-2077-and-the-witcher-3
+- *The Game Narrative Toolbox*, capítulo Dialogue (2023): https://www.oreilly.com/library/view/the-game-narrative/9781000921779/xhtml/ch07.xhtml
+- Thomas Grip, *4 Layers, A Narrative Design Approach*: https://gamedev.net/tutorials/game-design/writing-for-games/4-layers-a-narrative-design-approach-r3707
+- Dr. Mata Haggis, perguntas para diagnosticar cenas: https://media.gdcvault.com/gdc2017/Presentations/Haggis_Mata_StorytellingToolsTo.pdf
