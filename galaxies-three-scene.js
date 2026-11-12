@@ -77,12 +77,24 @@ function spire(parent,x,y,z,height,base,color,glow){
  return body;
 }
 function castle(parent,r,ice=false){
- const ground=ice?'#49627f':'#986022',shine=ice?'#dceeff':'#ffc35b';
- for(let i=0;i<12;i++){
-  const x=(i-5.5)*r*.16,scale=.45+rand(i*8+19)*.65;
-  const y=r*.33+Math.sin(i*.45)*r*.12;
-  spire(parent,x,y,r*.65,r*.6*scale,r*.065,ground,shine);
-  if(i%3===0)ball(parent,r*.018,'#ffe1a3',x,y+r*.18,r*.715);
+ // Cidadela de pontas góticas sobre a superfície esférica, iluminada em ouro
+ // ou gelo. 3D real: muralhas, torres, flechas, telhados e pequenas janelas.
+ const stone=mat(ice?'#728cab':'#b47a32',.58,.45,ice?.08:.15);
+ const roofs=mat(ice?'#c9e7fa':'#ffce70',.43,.43,ice?.14:.25);
+ const windows=new THREE.MeshBasicMaterial({color:ice?'#e4f6ff':'#ffe49b'});
+ const wall=mesh(new THREE.BoxGeometry(r*1.39,r*.18,r*.17),stone,parent,0,r*.23,r*1.02);
+ const n=ice?10:12;
+ for(let i=0;i<n;i++){
+  const t=i/(n-1),x=(t-.5)*r*1.4,random=rand(i*8+19);
+  const h=r*(.29+random*.6)+(i===Math.floor(n/2)?r*.55:0),y=r*.28;
+  const z=r*(1.03+Math.cos((t-.5)*PI)*.08);
+  mesh(new THREE.BoxGeometry(r*(.08+random*.07),h*.68,r*.16),stone,parent,x,y+h*.33,z);
+  mesh(new THREE.ConeGeometry(r*(.09+random*.055),h*.38,5),roofs,parent,x,y+h*.85,z);
+  mesh(new THREE.BoxGeometry(r*.028,r*.07,r*.006),windows,parent,x,y+h*.39,z+r*.087);
+  if(i%3===0){
+   mesh(new THREE.CylinderGeometry(r*.014,r*.014,h*.3,6),roofs,parent,x,y+h*1.2,z);
+   ball(parent,r*.022,ice?'#dcf7ff':'#fff3b6',x,y+h*1.37,z);
+  }
  }
 }
 function coin(parent,r,x,y,z){const m=new THREE.MeshStandardMaterial({color:'#ffcf43',metalness:.85,roughness:.21,emissive:'#a24a02',emissiveIntensity:.1});
