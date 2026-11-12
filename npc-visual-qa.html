@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
-import {createMeshyNpcFactory} from './eldoria-meshy-npcs.js';
+import {createMeshyNpcFactory,measureMeshyNpcBounds} from './eldoria-meshy-npcs.js';
 const canvas=document.getElementById('scene'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});
 renderer.setSize(window.innerWidth,window.innerHeight,false);renderer.setPixelRatio(1);
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.4;
@@ -24,7 +24,7 @@ window.mountNpc=async function(role){
  if(!opts[role])throw Error('Role desconhecido '+role);
  active=await factory.create({...opts[role],x:0,z:0,yaw:0});
  scene.add(active.holder);scene.updateMatrixWorld(true);
- const bound=new THREE.Box3().setFromObject(active.holder),size=bound.getSize(new THREE.Vector3()),center=bound.getCenter(new THREE.Vector3());
+ const bound=measureMeshyNpcBounds(THREE,active.holder),size=bound.getSize(new THREE.Vector3()),center=bound.getCenter(new THREE.Vector3());
  const d=Math.max(3.2,size.y*2.7,size.x*1.6);
  camera.position.set(d*.48,Math.max(1.15,center.y+size.y*.38),d);camera.lookAt(center);camera.updateProjectionMatrix();
  document.getElementById('legend').textContent=role+' | '+active.file+' | '+size.x.toFixed(2)+' × '+size.y.toFixed(2)+' × '+size.z.toFixed(2);
