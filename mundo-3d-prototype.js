@@ -4766,7 +4766,7 @@ function vhazraelIntro(){if(!dimBattle||dimBattle.key!=='bishop1'||questStep>=8)
 function vhazraelOutro(then){playStory('vhazrael-cai',vhazraelDefeatScene(),{focus:'enemy',done:()=>then()});}
 function afterVhazraelStory(){
  guide.visible=true;
- playStory('volta',afterVhazraelScene(),{focus:'guide',done:()=>{
+ playStory('volta',afterVhazraelScene({childrenFreed,wardenDefeated}),{focus:'guide',done:()=>{
   // Fim do Ato I: tela escura e o Ato II começa (a viagem até a cidade seguinte).
   startAct2Travel();setCineFade(0,1.6,false);
  }});
