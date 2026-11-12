@@ -137,3 +137,52 @@ Todas as falas propostas são curtas, vinculadas a um objeto/ação presente, se
 
 ### Pendências para a Parte 3
 Confirmar a aparência final da ponte, poço, vila e floresta na versão de Claude antes de posicionar NPCs. Pesquisar as origens econômicas e políticas do confisco como narrativa ambiental, sem afirmar um ano canônico. Checar o arquivo de atos posteriores antes de definir se Vhazrael inventou as taxas ou apenas se aproveitou de uma crise anterior. Confirmar se o anjo é chamado Vaelthar publicamente nos diálogos atuais, para não haver dois nomes conflitantes.
+
+
+## Parte 3 — Eldória antes e depois da cobrança (11/11, 22h54)
+**Estado:** proposta de ambientação, ritmo e descoberta; NÃO cânone aprovado. Objetivo: fazer o jogador perceber a transformação da cidade sem palestra, decoração aleatória ou quatro tarefas repetidas. Esta parte aprofunda as relações da Parte 2, sem antecipar o ritual da Parte 4.
+
+### Pesquisa aplicada antes da escrita
+- Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling*, GDC 2010: o espaço comunica história quando o jogador infere causas a partir de vestígios; suas ações podem deixar marcas observáveis. Fonte primária: https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental e notas https://www.worch.com/2010/03/11/gdc-2010/
+- Richard Rouse III, *Environmental Narrative: Your World Is Your Story*, GDC 2010: o mundo é percorrido por mais tempo do que o jogador assiste a cenas; narrativa precisa aparecer durante o movimento. https://www.gdcvault.com/play/1012712/Environmental-Narrative-Your-World-is
+- Aplicação específica: três evidências concretas e uma reação persistente dos moradores contam mais do que uma fala longa de Osren explicando toda a história.
+
+### Auditoria de continuidade
+- `docs/narrativa/ato-1-eldoria-roteiro-v1.md`: Eldória é bela apesar da fome; Osren preserva algumas frutas para a família; Teren é o cocheiro; crianças desaparecidas desencadeiam a investigação. O documento **não confirma data exata da chegada da Ganância**. Manter isso como mistério.
+- `docs/roteiro/M1-PROLOGO.md`: a missão celestial e o despertar precedem a visita a Eldória. Não apresentar Eldória como início absoluto da jornada.
+- `docs/roteiro/M2-ATO1.md`: aproveitar o plano de descoberta da vila, vendedor desconfiado e pista que conduz à floresta; descartar a dependência de entregar um saco de ouro para destravar informação. O antigo nome “Vila da Clareira” não deve substituir “Eldória” sem decisão do criador.
+- `docs/OBJETIVO-GALAXIA-1.md`: a Ganância é uma entidade diferente do primeiro bispo, Vhazrael; sete mundos ligados por correntes. A degradação econômica local é **sinal** da influência, não a explicação completa do projeto dos sete pecados.
+- O cenário de floresta, ponte, poço e caverna está sendo modificado pelo Claude. **Não houve validação visual nesta rodada**; todas as posições e distâncias abaixo são sugestões adaptáveis, não afirmações sobre a build.
+
+### Sequência jogável proposta: uma única visita, três descobertas
+**1. A entrada — beleza antes da ferida (60–90 s de exploração livre, estimativa a testar).** Ao cruzar a ponte obrigatória, a câmera não sequestra o controle. Ouve-se água, vento nas copas e uma conversa distante. Casas bem cuidadas, árvore central e caminhos claros sugerem uma comunidade que ainda tenta manter a dignidade. A falta aparece depois: balcões fechados, fila silenciosa, poço quase seco. Um morador varre a soleira mesmo sem ter comida. **Sem ruínas aleatórias ou cercas brancas sem função.** O jogador pode parar, seguir ou explorar, sem cutscene obrigatória.
+
+**2. A banca de Osren — o que foi retirado (interação opcional curta).** Um aviso de cobrança foi pregado sobre a placa antiga de preços. O jogador pode examinar as duas inscrições e constatar que há duas taxas novas: passagem e armazenamento. Não inventar números absolutos nem moedas absurdas. Um pequeno carimbo na cobrança também aparece nos fardos confiscados perto da ponte; é a primeira conexão espacial.
+- Protagonista: “Essa cobrança vale para todos?”
+- Osren: “Para quem ainda tem o que entregar.”
+- Protagonista: “E quem não tem?”
+- Osren: “Voltam no dia seguinte.”
+A fala deixa a ameaça subentendida. Se o jogador já ajudou Teren, Osren reconhece o nome dele; se não, a pista permanece acessível.
+
+**3. O poço — o que os moradores ainda oferecem (encontro com Ilyan).** Ilyan organiza a distribuição das últimas porções de água. O jogador escolhe entre ajudar a sustentar um recipiente rachado ou acompanhar uma criança até a família; ambas são interações breves, sem inventário e sem coleta repetitiva. Ilyan intervém quando alguém tenta passar à frente, mas evita humilhar a pessoa: “Todos estão esperando. Fique aqui comigo.” A ação demonstra sua liderança melhor do que chamá-lo de herói. A insígnia antiga da guarda civil no cinto e um selo de confisco num saco próximo indicam a troca de autoridade.
+
+### Uma pequena virada: a cidade responde
+Ao voltar pela mesma praça após falar com Ilyan, o jogador encontra uma mesa com porções repartidas. Se ajudou, um morador lhe oferece água; se passou direto, a distribuição ainda acontece por esforço da comunidade, mas sem agradecimento pessoal. **Não transformar ajuda opcional em requisito para salvar crianças ou evitar mortes.** A reação deve persistir após a investigação e não desaparecer no próximo carregamento do mapa. Se houver risco de FPS, usar poucos NPCs com animações simples e alterações de estado já suportadas; não gerar multidões nem partículas de moscas.
+
+### Como revelar a chegada da Ganância sem inventar história oficial
+**Evidências escalonadas, com confiabilidade distinta:**
+1. **Documento datado:** registro de feira antiga, anterior ao carimbo de confisco, demonstra que a cobrança é recente em relação à memória institucional da cidade. Não define ano.
+2. **Testemunho parcial de Teren:** “Na estrada do norte, começaram a cobrar primeiro. Depois chegaram aqui.” Ele sabe a ordem local, não quem criou a rede.
+3. **Observação de Vaelthar:** reconhece no selo uma marca demoníaca, mas não identifica o responsável nem o momento da invasão. Não atribuir a Vhazrael todo o plano dos sete mundos.
+**Hipótese para etapas futuras, ainda NÃO aprovada:** a Ganância primeiro dominou rotas e contratos por meio de intermediários humanos; os demônios consolidaram a cobrança; os bispos assumiram funções distintas de controle. Precisa ser reconciliada com atos posteriores e com a origem real dos quatro bispos antes de virar cânone.
+
+### Pista que leva à Parte 4
+Uma mulher que aguardava água mostra um pedaço de tecido encontrado junto à trilha. Não precisa explicar que é da criança desaparecida; o jogador reconhece o padrão se tiver visto um desenho ou roupa semelhante numa casa próxima. Ilyan confirma que duas crianças não voltaram e indica a última trilha conhecida, **sem saber onde está o ritual**. Vaelthar nota que há marcas de arrasto que não seguem a rota comercial. A investigação ganha urgência sem anunciar o resultado trágico.
+
+### Teste de ritmo e qualidade antes de implementar
+- A sequência inteira precisa funcionar com **um único trajeto principal**, sem obrigar o jogador a falar com três NPCs em ordem rígida; a trilha pode ser descoberta por Osren, Ilyan ou pistas ambientais.
+- Alternar contemplação → descoberta → interação humana → ameaça. Nenhum diálogo acima de quatro falas consecutivas sem devolver controle.
+- Em teste com jogadores, perguntar: “O que mudou na cidade?”, “Por que Osren tem medo?”, “O que Ilyan faz pelos moradores?” Se só responderem após uma explicação do anjo, a narrativa ambiental falhou.
+- Comparar no Android a fluidez da ponte, praça e poço; não aceitar custo de desempenho em troca de decoração narrativa.
+- **Riscos:** confundir a vila da floresta com a grande cidade; mostrar miséria como sujeira arquitetônica; NPCs genéricos repetindo as mesmas falas; criar cobrança incoerente com as regras de moeda; posicionar objetos em lugares que Claude ainda vai reconstruir.
+- **Pendências para o criador:** decidir se “Eldória” nomeia a vila ou toda a região; definir se Ilyan é ex-guarda ou ainda guarda civil; confirmar quando a Ganância chegou ao mundo e quais instituições os bispos substituíram. Não resolver essas dúvidas unilateralmente.
