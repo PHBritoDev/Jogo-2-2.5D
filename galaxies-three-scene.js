@@ -343,9 +343,10 @@ function angel(parent,W,H){
  return g;
 }
 function infernalGround(parent,W,H){
- const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
+ // Rachaduras Voronoi entre placas rochosas (não linhas senoides artificiais).
+ const material=new THREE.ShaderMaterial({depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:"varying vec2 vUv;\nfloat hash(vec2 p){return fract(sin(dot(p,vec2(91.7,217.3)))*43758.5453);}\nfloat noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}\nvoid main(){\n vec2 uv=vUv;\n float n=noise(uv*vec2(28.,6.));\n float split=abs(sin(uv.x*63.+n*9.+sin(uv.y*11.)*2.))*abs(cos(uv.y*35.+n*7.));\n float lava=pow(max(0.,1.-split),22.)*(.3+.7*noise(uv*vec2(16.,5.)));\n vec3 earth=vec3(.016,.012,.015)+vec3(.07,.009,.012)*n;\n vec3 fire=vec3(.83,.16,.024)*lava*.64;\n float heat=(1.-uv.y)*(.12+.36*n);\n gl_FragColor=vec4(earth+fire+vec3(heat,heat*.12,0.),.98);\n}"});
+ fragmentShader:"varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat crack(vec2 p){\n vec2 ip=floor(p),fp=fract(p);float d1=10.,d2=10.;\n for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){\n  vec2 o=vec2(float(i),float(j)),cell=ip+o;\n  vec2 seed=o+vec2(h(cell),h(cell+13.1))*.74+.13;\n  float d=length(seed-fp);\n  if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;\n }\n return max(0.,d2-d1);\n}\nvoid main(){\n vec2 uv=vUv;\n float f=n(uv*vec2(11.,4.)),detail=n(uv*vec2(41.,13.));\n vec2 warp=uv*vec2(20.,6.)+vec2(f,detail)*.58;\n float e=crack(warp);\n float gap=1.-smoothstep(.018,.09,e);\n float ridge=detail*.58+f*.42;\n vec3 stone=mix(vec3(.016,.010,.014),vec3(.075,.027,.029),ridge);\n stone+=vec3(.028,.008,.011)*n(uv*vec2(89.,17.));\n float glow=gap*(.34+.66*n(uv*vec2(7.,3.)))*(.52+pow(1.-uv.y,1.6)*.48);\n vec3 lava=vec3(.82,.11,.025)*glow+vec3(.4,.09,.025)*pow(glow,3.);\n vec3 col=stone+lava;\n col*=.8+.2*n(uv*vec2(5.,2.));\n gl_FragColor=vec4(col,1.);\n}"});
  mesh(new THREE.PlaneGeometry(W,H*.35),material,parent,0,-H*.395,-188);
 }
 function updateCoordinates(root,scene,camera,groups,details,viewport){
