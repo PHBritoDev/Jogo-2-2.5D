@@ -47,7 +47,7 @@ async function prologue(browser, name, viewport, mobile) {
     await H.tapUntil(s => !s.active, 60);
     await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => window.SevenSinsDebug3D?.riteState?.().ready, null, { timeout: 240000 });
     await page.evaluate(() => window.SevenSinsDebug3D.cine('despertar')); await wait(1300); await H.snap('2-despertar-palpebras'); await wait(2400); await H.snap('2-despertar-ceu-pov');
-    await H.tapUntil(s => s.shot === 'levantar'); await wait(1000); await H.snap('2-levantando'); await wait(1600); await H.snap('2-de-pe-anjo-presente');
+    await H.tapUntil(s => s.shot === 'levantar' && s.u > .35, 120); await H.snap('2-levantando'); await H.tapUntil(s => s.shot !== 'levantar' || s.u > .95, 160); await wait(600); await H.snap('2-de-pe-anjo-presente');
     await H.tapUntil(s => s.waitingAsk, 30); if (await page.$('#name-input')) { await page.fill('#name-input', 'Davi').catch(() => {}); await page.click('#name-confirm').catch(() => {}); }
     await H.tapUntil(s => s.shot === 'olhar-em-volta'); await wait(1800); await H.snap('2-olhar-garganta');
     await H.tapUntil(s => s.waitingAsk, 30); await page.click('#mission-accept').catch(() => {}); await wait(3500);

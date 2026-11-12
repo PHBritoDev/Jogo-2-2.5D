@@ -1216,7 +1216,7 @@ function playNativeGuideIdle(clips){
 /* MOD 217 — o clipe parado veio da Misteriosa e, no corpo do Anjo, deixava os braços abertos e rígidos (um deles
    puxado para trás). Depois do clipe, os braços são apontados para baixo no espaço do mundo, com balanço leve. */
 function updateGuideMotion(){
- if(!guideIdleMixer)return;const moving=guideRun&&guideMoveSpeed>.1,role=moving?(guideMoveSpeed>2.6?'run':'walk'):'idle',next=guideMotionActions[role]||guideMotionActions.idle;
+ if(!guideIdleMixer)return;const moving=(guideRun||guideCompanion)&&guideMoveSpeed>.1,role=moving?(guideMoveSpeed>2.6?'run':'walk'):'idle',next=guideMotionActions[role]||guideMotionActions.idle;
  if(next&&next!==guideMotionAction){if(guideMotionAction)guideMotionAction.fadeOut(.18);next.reset().setEffectiveWeight(1).fadeIn(.18).play();guideMotionAction=next;}
  if(moving&&next)next.setEffectiveTimeScale(guideMoveSpeed/(role==='run'?3.6:1.8));
 }
@@ -1259,7 +1259,7 @@ function foldGuideWings(){
 }
 function updateGuideWings(dt){
  const W=guideWings;if(!W.root){if(guideModel&&!W.loading)attachGuideWings();return;}
- const t=performance.now()*.001,moving=guideRun&&guideMoveSpeed>.1;
+ const t=performance.now()*.001,moving=(guideRun||guideCompanion)&&guideMoveSpeed>.1;
  if(W.fold>=0){W.fold+=dt;const k=Math.min(1,W.fold/1.25),e=k*k*(3-2*k);W.root.scale.copy(W.scale).multiplyScalar(Math.max(.001,1-e*.96));if(W.glow)W.glow.material.opacity=Math.sin(Math.min(1,k*1.15)*Math.PI)*.55;
   if(W.L&&W.restL){W.L.quaternion.copy(W.restL);W.L.rotateY(-e*.9);}if(W.R&&W.restR){W.R.quaternion.copy(W.restR);W.R.rotateY(e*.9);}
   if(k>=1){W.fold=-1;W.root.visible=false;W.root.scale.copy(W.scale);if(W.glow)W.glow.material.opacity=0;}return;}
@@ -1274,7 +1274,7 @@ function updateGuideWings(dt){
 const _gw=new THREE.Vector3();
 function relaxGuideArms(dt){
  if(!guideModel||!guide.visible)return;const rig=poseRig(guideModel);if(!rig)return;guideArmT+=dt;guideModel.getWorldQuaternion(_gq);
- if(!(guideRun&&guideMoveSpeed>.1)&&!guideModel.userData.authoredStand)for(const [ua,la,hd,sx] of [[rig.lua,rig.lla,rig.lh,1],[rig.rua,rig.rla,rig.rh,-1]]){const sw=Math.sin(guideArmT*1.1+(sx>0?0:1.3))*.03;
+ if(!((guideRun||guideCompanion)&&guideMoveSpeed>.1)&&!guideModel.userData.authoredStand)for(const [ua,la,hd,sx] of [[rig.lua,rig.lla,rig.lh,1],[rig.rua,rig.rla,rig.rh,-1]]){const sw=Math.sin(guideArmT*1.1+(sx>0?0:1.3))*.03;
   aimBone(ua,la,_ga.set(sx*.2,-1,.05+sw).normalize().applyQuaternion(_gq),1);aimBone(la,hd,_ga.set(sx*.08,-1,.22+sw).normalize().applyQuaternion(_gq),1);}
  // MOD 218 — asas vivas: respiram devagar, batem mais quando o Anjo anda e tremulam um pouco com o vento.
  const W=guideModel.userData.wings||(guideModel.userData.wings=['AsaEsq','AsaDir'].map(n=>{const b=guideModel.getObjectByName(n);return b?{b,rest:b.quaternion.clone()}:null;}).filter(Boolean));
@@ -4532,6 +4532,7 @@ function updateAct1(dt,now){
  if(questStep>=3&&questStep<=4&&!rigLoads.enemy2)loadRig('enemy2').catch(()=>{});
  const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>questMarker.position.set(p.x,terrainHeightAt(p.x,p.z)+.06,p.z);
  if(!cineActive)guide.visible=questStep===0||questStep>=8||guideFighting;
+ roadCompanion(dt);
  if(questStep===1){
   if(act1Sub===0&&roadStage<ROAD.done){updateRoadQuest(px,pz,near,mark);return;}
   if(act1Sub===0){mark(VILLAGE_CENTER);if(!act1Busy()&&near(VILLAGE_CENTER,VILLAGE_CLEAR_RADIUS+2)){act1Lock=true;storyAnchors.village={x:VILLAGE_CENTER.x,z:VILLAGE_CENTER.z,yaw:0};playStory('vila-chegada',villageArrivalScene(),{done:()=>{act1Lock=false;act1Advance(1,1);status.textContent='Pergunte ao vendedor sobre o Pecado da Ganância.';}});}}
@@ -4839,6 +4840,24 @@ function roadBanditsDown(){
   {const card=cineEl('choice-card');if(card&&choiceMode==='bandidos')card.hidden=true;}
   playStory('bandidos-escolha',choiceScene(!!road.choice),{focus:'teren',done:()=>{act1Lock=false;setRoadStage(ROAD.freed);status.textContent='Volte à carroça de Teren.';}});}});},()=>{act1Lock=false;setRoadStage(ROAD.freed);});
 }
+/** MOD 317 — na estrada do prólogo (do despertar até a chegada) Aethraziel/Vaelthar anda ao lado do herói: some só
+    dentro da carroça (lá ele está sentado) e para de seguir durante a luta (fica junto da carroça, olhando). */
+var guideCompanion=false;
+function roadCompanion(dt){
+ guideCompanion=false;
+ if(!(questStep===1&&act1Sub===0&&roadStage<ROAD.done&&awakeningSeen)||voidMode)return;
+ if(seatedNow||road.passengers){guide.visible=true;return;}
+ if(cineActive)return;
+ guide.visible=true;const P=player.position,G=guide.position;
+ if(pack&&pack.active){faceTo(guide,P);return;}
+ const fx=Math.sin(playerYaw),fz=Math.cos(playerYaw),tx=P.x+fz*2.3-fx*1.1,tz=P.z-fx*2.3-fz*1.1;
+ const dp=Math.hypot(P.x-G.x,P.z-G.z);
+ if(dp>28){G.set(tx,groundHeightAt(tx,tz),tz);faceTo(guide,P);return;}
+ const dx=tx-G.x,dz=tz-G.z,d=Math.hypot(dx,dz);
+ if(d<.9||dp<2.2){guideMoveSpeed=0;if(dp<6)faceTo(guide,P);return;}
+ const sp=Math.min(5.4,1.5+d*.9),st=Math.min(d,dt*sp),a0=Math.atan2(dx,dz);
+ for(const da of [0,.4,-.4,.8,-.8]){const a=a0+da,nx=G.x+Math.sin(a)*st,nz=G.z+Math.cos(a)*st;if(!blockedAt(nx,nz)){G.x=nx;G.z=nz;G.y=groundHeightAt(nx,nz);guide.rotation.y=a;guideMoveSpeed=dt>0?st/dt:0;guideCompanion=true;return;}}
+}
 function finishRoad(){
  road.ride=false;road.speed=0;stepOutOfCart(-1);road.passengers=false;setCineFade(0,.4,false);setRoadStage(ROAD.done);
  status.textContent='Atravesse a ponte até Eldória e fale com um vendedor.';road.leaving=7;road.obstacle.radius=0;startRoadRide(RIDE.total,2.4,false);
@@ -4848,7 +4867,8 @@ function updateRoadQuest(px,pz,near,mark){
  ensureRoadProps();if(!rigLoads.bandit)loadRig('bandit').catch(()=>{});
  if(roadStage===ROAD.meet&&!road.met){
   // MOD 317 — antes de qualquer humano: o herói pergunta das asas e Aethraziel as recolhe; então a carroça é ouvida.
-  if(!guideWingsHidden&&!act1Busy()&&prologueAwake&&(performance.now()-prologueAwake.t>4500||Math.hypot(px-prologueAwake.x,pz-prologueAwake.z)>5)){act1Lock=true;faceTo(player,guide.position);playStory('asas',wingsScene(),{focus:'guide',face:'guide',done:()=>{act1Lock=false;status.textContent='Rodas na estrada: vá até ela.';}});return;}
+  // save recarregado antes das asas: arma só com o herói já no prado (o save reposiciona o herói depois do 1º quadro)
+  if(!guideWingsHidden&&awakeningSeen&&!act1Busy()&&Math.hypot(px-FALL_SPOT.x,pz-FALL_SPOT.z)<90&&(prologueAwake||(prologueAwake={t:performance.now(),x:px,z:pz,lazy:true}))&&(performance.now()-prologueAwake.t>4500||(!prologueAwake.lazy&&Math.hypot(px-prologueAwake.x,pz-prologueAwake.z)>5))){act1Lock=true;{const G=guide.position;if(Math.hypot(G.x-px,G.z-pz)>7){const fx=Math.sin(playerYaw),fz=Math.cos(playerYaw),gx=px+fz*2.2+fx*1.4,gz=pz-fx*2.2+fz*1.4;G.set(gx,groundHeightAt(gx,gz),gz);}guide.visible=true;faceTo(guide,player.position);}faceTo(player,guide.position);playStory('asas',wingsScene(),{focus:'guide',face:'guide',done:()=>{act1Lock=false;status.textContent='Rodas na estrada: vá até ela.';}});return;}
   if(guideWingsHidden&&!road.arrived&&!road.approach)road.approach=true; // save recarregado: a carroça volta a descer
   if(!road.arrived){mark(TEREN_STOP);return;}
   mark(road.cart.position);if(!act1Busy()&&near(road.cart.position,ROAD.meetRadius)){road.met=true;act1Lock=true;faceTo(player,road.cart.position);playStory('teren',terenMeetScene(),{focus:'teren',face:'teren',done:()=>{act1Lock=false;status.textContent='Ajude Teren a prender a lona da carroça.';}});}return;}
@@ -8111,7 +8131,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  /** MOD 291 — estrada de Teren: road(0) prado/encontro, road(1) lona presa, road(2) pós-bandidos. */
  road(stage=0){this.act1(1,0);roadStage=stage;road.met=stage>0;try{localStorage.setItem(ROAD_STORE,String(stage));}catch(_){}ensureRoadProps();placeRoadCart(stage>=2?RIDE.ambush:RIDE.start,true);const c=road.cart.position,x=stage===0?FALL_SPOT.x:c.x+2.6,z=stage===0?FALL_SPOT.z:c.z;player.position.set(x,terrainHeightAt(x,z),z);updateQuestHud();return this.roadState();},
- roadState(){return{why:{cine:!!cineActive,q:questStep,sub:act1Sub,stage:roadStage,group:!!road.group,pack:!!pack,enemy:!!enemy.visible},label:roadTalkLabel(),met:road.met,pd:road.cart?+Math.hypot(road.cart.position.x-player.position.x,road.cart.position.z-player.position.z).toFixed(2):null,s:+road.s.toFixed(1),arrived:road.arrived,approach:road.approach,seated:seatedNow,teren:!!(road.teren&&road.teren.seat),stage:roadStage,visible:player.visible,yaw:road.yaw,horse:road.horse?(()=>{const b=new THREE.Box3().setFromObject(road.horse);return{min:b.min.toArray().map(v=>+v.toFixed(2)),max:b.max.toArray().map(v=>+v.toFixed(2))};})():null,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
+ roadState(){return{guide:guide?{x:+guide.position.x.toFixed(1),z:+guide.position.z.toFixed(1),vis:guide.visible,mv:!!(guideModel&&guideModel.visible),wings:!guideWingsHidden}:null,why:{cine:!!cineActive,q:questStep,sub:act1Sub,stage:roadStage,group:!!road.group,pack:!!pack,enemy:!!enemy.visible},label:roadTalkLabel(),met:road.met,pd:road.cart?+Math.hypot(road.cart.position.x-player.position.x,road.cart.position.z-player.position.z).toFixed(2):null,s:+road.s.toFixed(1),arrived:road.arrived,approach:road.approach,seated:seatedNow,teren:!!(road.teren&&road.teren.seat),stage:roadStage,visible:player.visible,yaw:road.yaw,horse:road.horse?(()=>{const b=new THREE.Box3().setFromObject(road.horse);return{min:b.min.toArray().map(v=>+v.toFixed(2)),max:b.max.toArray().map(v=>+v.toFixed(2))};})():null,met:road.met,s:+road.s.toFixed(1),ride:road.ride,cart:road.cart?{x:+road.cart.position.x.toFixed(1),z:+road.cart.position.z.toFixed(1)}:null,cartModel:!!road.cartModel,teren:!!road.teren,bandits:road.bandits.length,label:roadTalkLabel(),hour:+gameClock.hour.toFixed(2),pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,rig:pack.rig}:null,enemy:enemy.visible,profile:encounterProfile,hp:enemyHP,scene:cineActive?cineDirector.scene:null,choice:!cineEl('choice-card').hidden,player:{x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1)},q:questStep,sub:act1Sub,objective:(document.getElementById('quest-objective')||{}).textContent};},
  interact(){tryInteract();return this.roadState();},
  act1(step,sub=0){
   if(cineActive)cineDirector.skip();clearPack();for(const c of hordeClones.splice(0))disposeClone(c);enemy.visible=false;
