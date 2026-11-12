@@ -1,0 +1,36 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Auditoria individual dos NPCs Meshy</title>
+<style>html,body{margin:0;background:#25332c;color:white;font:14px sans-serif}#legend{position:absolute;left:18px;top:12px;background:#111b;padding:10px;z-index:3}#scene{width:100vw;height:100vh;display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head><body><div id="legend">NPC Meshy — auditoria individual</div><canvas id="scene"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {clone} from 'three/addons/utils/SkeletonUtils.js';
+import {createMeshyNpcFactory} from './eldoria-meshy-npcs.js';
+const canvas=document.getElementById('scene'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true});
+renderer.setSize(window.innerWidth,window.innerHeight,false);renderer.setPixelRatio(1);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.4;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x526b65);
+scene.add(new THREE.HemisphereLight(0xe6f2ff,0x4e5149,2.5));
+const key=new THREE.DirectionalLight(0xffebd0,3);key.position.set(4,7,7);scene.add(key);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0x677968,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const grid=new THREE.GridHelper(12,12,0xc4d3ba,0x738275);grid.position.y=.003;scene.add(grid);
+const camera=new THREE.PerspectiveCamera(44,innerWidth/innerHeight,.05,100);
+const factory=createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned:clone,groundHeightAt:()=>0});
+let active=null;
+function draw(){renderer.render(scene,camera)};draw();
+window.mountNpc=async function(role){
+ if(active){scene.remove(active.holder);active=null;}
+ const opts={vendorMan:{sex:'man',role:'idle'},vendorWoman:{sex:'woman',role:'idle'},elder:{sex:'man',age:'elder',role:'idle'},downMan:{sex:'man',role:'down'},downWoman:{sex:'woman',role:'down'},sitting:{sex:'man',role:'sit'},walking:{sex:'woman',role:'walk'},boy:{sex:'boy',role:'idle'},girl:{sex:'girl',role:'idle'}};
+ if(!opts[role])throw Error('Role desconhecido '+role);
+ active=await factory.create({...opts[role],x:0,z:0,yaw:0});
+ scene.add(active.holder);scene.updateMatrixWorld(true);
+ const bound=new THREE.Box3().setFromObject(active.holder),size=bound.getSize(new THREE.Vector3()),center=bound.getCenter(new THREE.Vector3());
+ const d=Math.max(3.2,size.y*2.7,size.x*1.6);
+ camera.position.set(d*.48,Math.max(1.15,center.y+size.y*.38),d);camera.lookAt(center);camera.updateProjectionMatrix();
+ document.getElementById('legend').textContent=role+' | '+active.file+' | '+size.x.toFixed(2)+' × '+size.y.toFixed(2)+' × '+size.z.toFixed(2);
+ draw();
+ const hair=[];active.holder.traverse(x=>{if(x.name==='CabeloMeshy')hair.push(x.name)});
+ return {role,file:active.file,size:size.toArray(),center:center.toArray(),min:bound.min.toArray(),max:bound.max.toArray(),hairs:hair.length,clips:active.clips,viewDistance:d};
+};
+window.qaReady=true;
+</script></body></html>
