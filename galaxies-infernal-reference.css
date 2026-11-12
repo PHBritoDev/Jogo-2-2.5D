@@ -133,3 +133,36 @@
 #galaxy-screen.gx-three-on .gx-art{background:transparent;position:relative;z-index:1}
 #galaxy-screen.gx-three-on .gx-detail .gx-info,
 #galaxy-screen.gx-three-on .gx-detail .gx-access{position:relative;z-index:2}
+
+/* Molduras esculpidas — UI vetorial/CSS, sem bitmaps. */
+#galaxy-screen.gx-three-on .gx-enter{
+ position:relative!important;
+ width:83%!important;
+ border:2px solid #ffb955!important;
+ background:
+ linear-gradient(180deg,#ff4e162e 0%,transparent 30%),
+ linear-gradient(145deg,#3c0605,#ab120b 55%,#270507)!important;
+ box-shadow:inset 0 0 0 2px #5f120b,inset 0 0 19px #ff36178e,0 0 17px #fa43197a!important;
+ clip-path:polygon(0 50%,5% 15%,8% 15%,10% 0,90% 0,92% 15%,95% 15%,100% 50%,95% 85%,92% 85%,90% 100%,10% 100%,8% 85%,5% 85%);
+ transition:filter .22s ease,transform .22s ease;
+}
+#galaxy-screen.gx-three-on .gx-enter:hover,
+#galaxy-screen.gx-three-on .gx-enter:focus-visible{filter:brightness(1.25) drop-shadow(0 0 9px #fb541e);transform:scale(1.018)}
+#galaxy-screen.gx-three-on .gx-nav button.on{
+ clip-path:polygon(0 0,89% 0,100% 50%,89% 100%,0 100%);
+ padding-right:12%;
+ background:linear-gradient(90deg,#700909,#a71b11 62%,#280505);
+ border:1px solid #ff862d;
+}
+#galaxy-screen.gx-three-on .gx-head h1{
+ background:linear-gradient(180deg,#fff7de 0%,#ffd997 28%,#ffbf65 55%,#9c4925 80%,#f3ce91);
+ -webkit-background-clip:text;background-clip:text;
+ filter:drop-shadow(0 0 3px #cc4b1b);
+}
+#galaxy-screen.gx-three-on .gx-detail{
+ border-color:#e6a75e;
+ box-shadow:inset 0 0 0 1px #7a3d23,0 0 10px #f24b1938,0 14px 30px #000a;
+}
+#galaxy-screen.gx-three-on .gx-detail::before,
+#galaxy-screen.gx-three-on .gx-detail::after{font-size:43px;color:#ffc379;text-shadow:0 0 14px #fa3a16}
+#galaxy-screen.gx-three-on .gx-label b{filter:drop-shadow(0 0 3px #f9ad5199)}
