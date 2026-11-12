@@ -16,6 +16,19 @@ test('missões abrem conforme a campanha e só contam itens quando ativas', () =
   assert.equal(turnInSide(s, 'ervas'), null, 'recompensa uma vez só');
 });
 
+test('atualizações incompletas e contagens antigas não apagam pedras já registradas', () => {
+  const s = createSideState();
+  refreshSide(s, { questStep: 2 });
+  acceptSide(s, 'abrigos');
+  refreshSide(s, { questStep: 2, waystones: 2 });
+  refreshSide(s, { questStep: 2 });
+  assert.equal(s.abrigos.progress, 2, 'sem contagem não deve zerar progresso');
+  refreshSide(s, { questStep: 2, waystones: 1 });
+  assert.equal(s.abrigos.progress, 2, 'contagem desatualizada não retrocede progresso');
+  refreshSide(s, { questStep: 2, waystones: 3 });
+  assert.equal(s.abrigos.state, 'ready');
+});
+
 test('abrigos acompanham as pedras registradas; diário mostra progresso', () => {
   const s = createSideState();
   refreshSide(s, { questStep: 2 });
