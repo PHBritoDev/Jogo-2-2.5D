@@ -12,7 +12,8 @@ const path=require('node:path');
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto('http://127.0.0.1:4173/mundo-3d-prototype.html?debug3d=1',{waitUntil:'domcontentloaded',timeout:45000});
    await page.locator('#actions #shield').waitFor({state:'attached',timeout:15000});
-   await page.waitForTimeout(3000);
+   await page.waitForFunction(()=>document.querySelector('#loading')?.classList.contains('hidden'),null,{timeout:90000});
+   await page.waitForTimeout(1500);
    const checks=await page.evaluate(()=>{
     const actions=document.querySelector('#actions'),ids=Array.from(actions.querySelectorAll('button')).map(b=>b.id);
     const shield=document.querySelector('#actions #shield');
