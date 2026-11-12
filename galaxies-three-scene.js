@@ -190,7 +190,7 @@ function starfield(parent,W,H){
 function sky(parent,W,H){
  const material=new THREE.ShaderMaterial({uniforms:{uTime:{value:0}},depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:"\nuniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float x=0.,a=.55;for(int i=0;i<4;i++){x+=a*n(p);p*=2.03;a*=.49;}return x;}\nvoid main(){\nvec2 uv=vUv, drift=vec2(uTime*.003,0.);\nfloat wide=fbm(uv*vec2(4.7,3.3)+drift),fine=fbm(uv*vec2(13.,7.)-drift*2.);\nfloat cloud=smoothstep(.46,.7,wide*.77+fine*.38);\nfloat redSun=exp(-length((uv-vec2(.77,.80))*vec2(1.23,1.45))*4.7);\nfloat farRed=exp(-length((uv-vec2(.89,.4))*vec2(1.3,1.4))*3.7);\nfloat blue=exp(-length((uv-vec2(.14,.83))*vec2(1.6,1.3))*5.);\nfloat lava=pow(1.-uv.y,2.6);\nvec3 base=vec3(.016,.018,.034);\nbase+=vec3(.078,.012,.019)*(cloud*(.42+redSun*1.7)+farRed*.45);\nbase+=vec3(.2,.024,.008)*redSun*(.21+.6*cloud);\nbase+=vec3(.012,.036,.075)*blue*(.7+.6*fine);\nbase+=vec3(.11,.011,.006)*lava*(.4+cloud*.9);\nfloat shade=smoothstep(.17,.8,wide);\nbase=mix(base,base*.38,shade*.18);\ngl_FragColor=vec4(base,1.);\n}"});
+ fragmentShader:"\nuniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float x=0.,a=.55;for(int i=0;i<4;i++){x+=a*n(p);p*=2.03;a*=.49;}return x;}\nvoid main(){\nvec2 uv=vUv, drift=vec2(uTime*.003,0.);\nfloat wide=fbm(uv*vec2(4.7,3.3)+drift),fine=fbm(uv*vec2(13.,7.)-drift*2.);\nfloat cloud=smoothstep(.46,.7,wide*.77+fine*.38);\nfloat redSun=exp(-length((uv-vec2(.77,.80))*vec2(1.23,1.45))*4.7);\nfloat farRed=exp(-length((uv-vec2(.89,.4))*vec2(1.3,1.4))*3.7);\nfloat blue=exp(-length((uv-vec2(.14,.83))*vec2(1.6,1.3))*5.);\nfloat lava=pow(1.-uv.y,2.6);\nvec3 base=vec3(.016,.018,.034);\nbase+=vec3(.16,.024,.039)*(cloud*(.42+redSun*1.7)+farRed*.45);\nbase+=vec3(.2,.024,.008)*redSun*(.21+.6*cloud);\nbase+=vec3(.035,.057,.12)*blue*(.7+.6*fine);\nbase+=vec3(.11,.011,.006)*lava*(.4+cloud*.9);\nfloat shade=smoothstep(.17,.8,wide);\nbase=mix(base,base*.38,shade*.18);\ngl_FragColor=vec4(base,1.);\n}"});
  const plane=mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
  return material;
 }
@@ -223,12 +223,12 @@ function gothicRuins(parent,W,H){
 }
 function eclipseCitadel(parent,W,H){
  // Silhueta gótica contra o sol vermelho, sem modelos/bitmaps.
- const x=W*.235,y=H*.13,z=-247;
+ const x=W*.245,y=H*.239,z=-247;
  const dark=mat('#180a10',.18,.9),edge=mat('#41121b',.22,.8);
  mesh(new THREE.BoxGeometry(W*.25,H*.038,14),dark,parent,x,y,z);
  for(let i=0;i<21;i++){
   const t=(i-10)/10,px=x+t*W*.125;
-  const h=H*(.045+(1-Math.abs(t))*.12+rand(i+200)*.05);
+  const h=H*(.052+(1-Math.abs(t))*.09+rand(i+200)*.05);
   mesh(new THREE.CylinderGeometry(4.5,7.5,h,5),dark,parent,px,y+h*.48,z);
   mesh(new THREE.ConeGeometry(10,h*.48,5),edge,parent,px,y+h*.94,z);
  }
@@ -248,7 +248,7 @@ function borderChains(parent,W,H){
  inst.instanceMatrix.needsUpdate=true;parent.add(inst);
 }
 function eclipse(parent,W,H){
- const x=W*.245,y=H*.33,r=H*.13;
+ const x=W*.245,y=H*.405,r=H*.094;
  const corona=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:"varying vec2 vUv;\nvoid main(){float d=length((vUv-.5)*2.);\nfloat glow=exp(-d*3.3)*.58+exp(-abs(d-.53)*15.)*.32;\nvec3 c=mix(vec3(.92,.055,.01),vec3(.99,.27,.07),d);\ngl_FragColor=vec4(c,glow*max(0.,1.-smoothstep(.8,1.1,d)));}"});
