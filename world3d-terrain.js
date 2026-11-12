@@ -157,7 +157,7 @@ export function createTerrain(opts = {}) {
 
   /** Limite físico: o jogador sobe o começo do contraforte e para onde a encosta fica íngreme. */
   const WALK_LIMIT = -5.5;
-  function walkable(x, z) { return boundaryDistance(x, z) < WALK_LIMIT && waterDepth(x, z) < .9; }
+  function walkable(x, z) { return boundaryDistance(x, z) < WALK_LIMIT && waterDepth(x, z) < 1.25; }
 
   // Mod 291: sombra opcional do dossel (1 = sem sombra) usada só na cor do relevo.
   const shade = opts.shade || null;
