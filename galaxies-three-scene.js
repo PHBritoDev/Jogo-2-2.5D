@@ -278,12 +278,32 @@ function maw(parent,r){
  const tongue=ball(parent,r*.18,'#b6283e',.07*r,-r*.26,r*1.11,[1.2,.37,.45]);
  for(let i=0;i<4;i++)tube(parent,[[(-.3+i*.18)*r,-r*.02,r*1.11],[(-.22+i*.17)*r,-r*.14,r*1.17]],r*.01,'#e36473',.1);
 }
-function rose(parent,x,y,z,s,shade){
- const core=ball(parent,s*.22,shade,x,y,z);
- for(let j=0;j<7;j++){
-  const a=j*2*PI/7,o=ball(parent,s*.26,shade,x+Math.cos(a)*s*.38,y+Math.sin(a)*s*.38,z+.03*s,[.8,1.2,.32]);
-  o.rotation.z=a;
- }return core;
+function roseField(parent,r,count=9){
+ // Rosas volumétricas em UM draw call usando a cor por instância.
+ const petals=9,n=count*(petals+1);
+ const geo=new THREE.SphereGeometry(1,9,6);
+ const material=mat('#ffffff',.24,.53);
+ const flowers=new THREE.InstancedMesh(geo,material,n),d=new THREE.Object3D();
+ const pink=new THREE.Color('#f873aa'),ruby=new THREE.Color('#a9155c');
+ let idx=0;
+ for(let i=0;i<count;i++){
+  const ang=i*2*PI/count,x=Math.cos(ang)*r*.80,y=Math.sin(ang)*r*.71,z=r*.69;
+  const radius=r*(.125+rand(i)*.07),shade=i%2?pink:ruby;
+  d.position.set(x,y,z);d.rotation.set(0,0,0);
+  d.scale.setScalar(radius*.23);d.updateMatrix();flowers.setMatrixAt(idx,d.matrix);
+  flowers.setColorAt(idx++,shade);
+  for(let j=0;j<petals;j++){
+   const t=j*2*PI/petals;
+   d.position.set(x+Math.cos(t)*radius*.37,y+Math.sin(t)*radius*.37,z+.04*radius);
+   d.rotation.set(0,0,t);
+   d.scale.set(radius*.27,radius*.35,radius*.09);
+   d.updateMatrix();flowers.setMatrixAt(idx,d.matrix);
+   flowers.setColorAt(idx++,shade);
+  }
+ }
+ flowers.instanceMatrix.needsUpdate=true;
+ if(flowers.instanceColor)flowers.instanceColor.needsUpdate=true;
+ parent.add(flowers);
 }
 function lust(parent,r){
  // Luxúria: escultura procedural de mulher adulta, rosto com anatomia,
@@ -328,11 +348,7 @@ function lust(parent,r){
  // Gargantilha e broche metálico no peito.
  ring(parent,r*.16,r*.015,'#ffc580',0,0,r*.96,.83).position.y=-r*.23;
  ball(parent,r*.047,'#ffca67',0,-r*.37,r*1.11);
- for(let i=0;i<9;i++){
-  const ang=i*2*PI/9;
-  rose(parent,Math.cos(ang)*r*.80,Math.sin(ang)*r*.71,r*.69,r*(.125+rand(i)*.07),
-    i%2?'#ff74a8':'#b42366');
- }
+ roseField(parent,r,9);
  ring(parent,r*1.14,r*.016,'#ff42a6',-.25,.18,r*.23,.81);
 }
 function makePlanet(id,r){
