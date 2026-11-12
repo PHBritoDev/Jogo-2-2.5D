@@ -129,6 +129,31 @@ function goldenIsland(parent,r){
  chain.instanceMatrix.needsUpdate=true;parent.add(chain);
  for(let i=0;i<4;i++)ball(parent,r*.035,'#ffd16b',-r*.59+i*r*.36,-r*.14,r*1.18);
 }
+function glacialMountains(parent,r){
+ // Montanhas de gelo e banco de nuvens sob a cidadela de Soberba.
+ const geo=new THREE.ConeGeometry(1,1,5);
+ const rock=new THREE.InstancedMesh(geo,mat('#7294b0',.21,.64),14);
+ const caps=new THREE.InstancedMesh(geo,mat('#e9f6ff',.22,.45),14);
+ const d=new THREE.Object3D();
+ for(let i=0;i<14;i++){
+  const t=i/13,x=(t-.5)*r*1.7,depth=r*(.72+rand(i+71)*.34);
+  const h=r*(.42+rand(i+92)*.46);
+  d.position.set(x,-r*.12+h*.37,depth);d.rotation.set(0,rand(i+42)*2*PI,0);
+  d.scale.set(r*(.12+rand(i+2)*.07),h,r*(.12+rand(i+2)*.07));
+  d.updateMatrix();rock.setMatrixAt(i,d.matrix);
+  d.position.set(x,-r*.12+h*.77,depth+r*.06);
+  d.scale.set(r*.095,h*.31,r*.095);d.updateMatrix();caps.setMatrixAt(i,d.matrix);
+ }
+ rock.instanceMatrix.needsUpdate=true;caps.instanceMatrix.needsUpdate=true;parent.add(rock,caps);
+ const fog=new THREE.InstancedMesh(new THREE.SphereGeometry(1,10,6),
+ new THREE.MeshBasicMaterial({color:'#d3ebf7',transparent:true,opacity:.38,depthWrite:false}),23);
+ for(let i=0;i<23;i++){
+  const x=(rand(i+12)-.5)*r*2,y=-r*(.53+rand(i+3)*.21),z=r*(.72+rand(i+33)*.23);
+  d.position.set(x,y,z);d.rotation.set(0,0,0);d.scale.set(r*(.13+rand(i+51)*.14),r*(.043+rand(i+81)*.04),r*.13);
+  d.updateMatrix();fog.setMatrixAt(i,d.matrix);
+ }
+ fog.instanceMatrix.needsUpdate=true;parent.add(fog);
+}
 function coin(parent,r,x,y,z){const m=new THREE.MeshStandardMaterial({color:'#ffcf43',metalness:.85,roughness:.21,emissive:'#a24a02',emissiveIntensity:.1});
  const o=mesh(new THREE.CylinderGeometry(r,r,r*.16,12),m,parent,x,y,z);o.rotation.x=PI/2;return o;}
 function treasure(parent,r){
@@ -260,7 +285,7 @@ function makePlanet(id,r){
  if(id===1){goldenIsland(group,r);castle(group,r);ring(group,r*1.13,r*.035,'#e8a34b',.55,.27,r*.18);ring(group,r*.86,r*.055,'#704016',-.48,0,r*.87);}
  if(id===2){envy(group,r);ring(group,r*1.14,r*.02,'#36ec82',.32,-.2,r*.12,.75);}
  if(id===3){treasure(group,r);ring(group,r*1.18,r*.025,'#f6c467',-.24,.16,r*.12);}
- if(id===4){castle(group,r,true);for(let i=0;i<8;i++)spire(group,(i-3.5)*r*.21,r*.05,r*.68,r*(.3+rand(i+6)*.3),r*.085,'#9bd8fa','#e0f6ff');ring(group,r*1.11,r*.018,'#9de5ff',.48,.09,r*.17);}
+ if(id===4){glacialMountains(group,r);castle(group,r,true);ring(group,r*1.11,r*.018,'#9de5ff',.48,.09,r*.17);}
  if(id===5){maw(group,r);ring(group,r*1.17,r*.02,'#fc444d',-.21,.17,.2*r);}
  if(id===6){for(let i=0;i<9;i++){let a=i*2*PI/9;const crack=[];for(let j=0;j<6;j++)crack.push([Math.cos(a+j*.1)*r*(.95-j*.09),Math.sin(a+j*.16)*r*(.95-j*.08),r*.27+j*r*.045]);tube(group,crack,r*.014,'#ff5a0c',.62);}ring(group,r*1.07,r*.028,'#ff430e',.3,-.18,0);}
  if(id===7){lust(group,r);}
