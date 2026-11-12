@@ -58,7 +58,7 @@ function spire(parent,x,y,z,height,base,color,glow){
  return body;
 }
 function castle(parent,r,ice=false){
- const ground=ice?'#49627f':'#3e2714',shine=ice?'#dceeff':'#efa93e';
+ const ground=ice?'#49627f':'#986022',shine=ice?'#dceeff':'#ffc35b';
  for(let i=0;i<12;i++){
   const x=(i-5.5)*r*.16,scale=.45+rand(i*8+19)*.65;
   const y=r*.33+Math.sin(i*.45)*r*.12;
@@ -76,11 +76,15 @@ function treasure(parent,r){
  for(const x of [-r*.4,r*.4])mesh(new THREE.BoxGeometry(r*.07,r*.4,r*.52),gold,parent,x,-r*.25,r*.81);
 }
 function envy(parent,r){
- const pts=[];for(let i=0;i<24;i++){const t=i/23;const angle=-2.6+t*PI*3.4;
-  pts.push([Math.cos(angle)*r*.73,Math.sin(angle)*r*.67,r*.7+Math.sin(i*.8)*r*.1]);}
- tube(parent,pts,r*.065,'#21d565',.15);
- const h=pts.at(-1);ball(parent,r*.125,'#17bd5d',h[0],h[1],h[2]);
- for(const x of [-1,1])ball(parent,r*.025,'#f5f6a0',h[0]+x*r*.052,h[1]+r*.045,h[2]+r*.11);
+ // Serpente venenosa esculpida na face frontal de Inveja (trajeto em S).
+ const p=[[-.63,-.57,1.03],[-.27,-.52,1.11],[.20,-.62,1.12],[.51,-.4,1.13],
+ [.34,-.06,1.16],[-.2,.11,1.15],[-.49,.39,1.06],[-.10,.57,1.12],[.43,.56,1.04]]
+ .map(v=>[v[0]*r,v[1]*r,v[2]*r]);
+ tube(parent,p,r*.082,'#0b7039',.08);
+ const pale=p.map(v=>[v[0],v[1]-r*.025,v[2]+r*.07]);tube(parent,pale,r*.025,'#69fa87',.35);
+ const h=p.at(-1),head=ball(parent,r*.17,'#28d770',h[0],h[1],h[2],[1.3,.75,.65]);
+ for(const d of [-1,1])ball(parent,r*.024,'#f4e785',h[0]+d*r*.06,h[1]+r*.04,h[2]+r*.12);
+ tube(parent,[[h[0],h[1]-r*.02,h[2]+r*.12],[h[0]+r*.09,h[1]-r*.09,h[2]+r*.21]],r*.018,'#bcff7a');
 }
 function maw(parent,r){
  const cavity=ball(parent,r*.5,'#140407',0,-r*.03,r*.85,[1.15,.8,.28]);
@@ -155,7 +159,7 @@ function starfield(parent,W,H){
 function sky(parent,W,H){
  const material=new THREE.ShaderMaterial({uniforms:{uTime:{value:0}},depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:"\nuniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float x=0.,a=.55;for(int i=0;i<4;i++){x+=a*n(p);p*=2.03;a*=.49;}return x;}\nvoid main(){\nvec2 uv=vUv, drift=vec2(uTime*.003,0.);\nfloat wide=fbm(uv*vec2(4.7,3.3)+drift),fine=fbm(uv*vec2(13.,7.)-drift*2.);\nfloat cloud=smoothstep(.3,.73,wide*.77+fine*.38);\nfloat redSun=exp(-length((uv-vec2(.77,.80))*vec2(1.23,1.45))*4.7);\nfloat farRed=exp(-length((uv-vec2(.89,.4))*vec2(1.3,1.4))*3.7);\nfloat blue=exp(-length((uv-vec2(.14,.83))*vec2(1.6,1.3))*5.);\nfloat lava=pow(1.-uv.y,2.6);\nvec3 base=vec3(.016,.018,.034);\nbase+=vec3(.19,.016,.025)*(cloud*(.55+redSun*1.7)+farRed*.45);\nbase+=vec3(.33,.032,.008)*redSun*(.21+.6*cloud);\nbase+=vec3(.012,.036,.075)*blue*(.7+.6*fine);\nbase+=vec3(.27,.022,.012)*lava*(.4+cloud*.9);\nfloat shade=smoothstep(.17,.8,wide);\nbase=mix(base,base*.38,shade*.18);\ngl_FragColor=vec4(base,1.);\n}"});
+ fragmentShader:"\nuniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float x=0.,a=.55;for(int i=0;i<4;i++){x+=a*n(p);p*=2.03;a*=.49;}return x;}\nvoid main(){\nvec2 uv=vUv, drift=vec2(uTime*.003,0.);\nfloat wide=fbm(uv*vec2(4.7,3.3)+drift),fine=fbm(uv*vec2(13.,7.)-drift*2.);\nfloat cloud=smoothstep(.46,.7,wide*.77+fine*.38);\nfloat redSun=exp(-length((uv-vec2(.77,.80))*vec2(1.23,1.45))*4.7);\nfloat farRed=exp(-length((uv-vec2(.89,.4))*vec2(1.3,1.4))*3.7);\nfloat blue=exp(-length((uv-vec2(.14,.83))*vec2(1.6,1.3))*5.);\nfloat lava=pow(1.-uv.y,2.6);\nvec3 base=vec3(.016,.018,.034);\nbase+=vec3(.078,.012,.019)*(cloud*(.42+redSun*1.7)+farRed*.45);\nbase+=vec3(.2,.024,.008)*redSun*(.21+.6*cloud);\nbase+=vec3(.012,.036,.075)*blue*(.7+.6*fine);\nbase+=vec3(.11,.011,.006)*lava*(.4+cloud*.9);\nfloat shade=smoothstep(.17,.8,wide);\nbase=mix(base,base*.38,shade*.18);\ngl_FragColor=vec4(base,1.);\n}"});
  const plane=mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
  return material;
 }
@@ -201,14 +205,14 @@ function eclipse(parent,W,H){
 }
 function angel(parent,W,H){
  // Guardião alado escultural: capuz, rosto, armadura e penas 3D.
- const g=new THREE.Group();g.position.set(-W*.325,H*.345,-140);parent.add(g);
+ const g=new THREE.Group();g.position.set(-W*.31,H*.29,-140);g.scale.setScalar(.67);parent.add(g);
  const fabric=mat('#333544',.16,.8),skin=mat('#9d7770',.12,.83);
  const localLight=new THREE.PointLight('#b2a4bd',55,H*.45,2);localLight.position.set(0,H*.06,150);g.add(localLight);
  ball(g,H*.079,'#262532',0,-H*.09,0,[.78,1.25,.6]);
  const cloak=mesh(new THREE.ConeGeometry(H*.12,H*.37,11),fabric,g,0,-H*.26,-8);cloak.rotation.z=.12;
  for(const d of [-1,1]){const shoulder=ball(g,H*.042,'#4d5263',d*H*.076,-H*.05,7,[1.4,.85,.7]);shoulder.rotation.z=d*.48;}
  mesh(new THREE.CylinderGeometry(H*.018,H*.025,H*.06,10),skin,g,0,H*.04,6);
- ball(g,H*.049,'#af8980',-H*.007,H*.104,8,[.7,1.02,.65]);
+ ball(g,H*.049,'#795e61',-H*.007,H*.104,8,[.7,1.02,.65]);
  ball(g,H*.053,'#1b1721',-H*.008,H*.131,2,[.8,.66,.74]);
  mesh(new THREE.ConeGeometry(H*.067,H*.14,10),fabric,g,0,H*.16,-1).rotation.x=-.19;
  for(const d of [-1,1]){
@@ -220,13 +224,13 @@ function angel(parent,W,H){
    p.rotation.z=d*(-.15-t*.9);
   }
  }
- ring(g,H*.055,H*.004,'#edbd78',.27,0,37,.86);
+ const halo=ring(g,H*.074,H*.004,'#edbd78',.27,0,-25,.86);halo.position.y=H*.20;
  return g;
 }
 function infernalGround(parent,W,H){
  const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:"varying vec2 vUv;\nfloat hash(vec2 p){return fract(sin(dot(p,vec2(91.7,217.3)))*43758.5453);}\nfloat noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}\nvoid main(){\n vec2 uv=vUv;\n float n=noise(uv*vec2(28.,6.));\n float split=abs(sin(uv.x*63.+n*9.+sin(uv.y*11.)*2.))*abs(cos(uv.y*35.+n*7.));\n float lava=pow(max(0.,1.-split),12.)*(.3+.7*noise(uv*vec2(16.,5.)));\n vec3 earth=vec3(.016,.012,.015)+vec3(.07,.009,.012)*n;\n vec3 fire=vec3(1.,.18,.022)*lava*1.8;\n float heat=(1.-uv.y)*(.12+.36*n);\n gl_FragColor=vec4(earth+fire+vec3(heat,heat*.12,0.),.98);\n}"});
+ fragmentShader:"varying vec2 vUv;\nfloat hash(vec2 p){return fract(sin(dot(p,vec2(91.7,217.3)))*43758.5453);}\nfloat noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}\nvoid main(){\n vec2 uv=vUv;\n float n=noise(uv*vec2(28.,6.));\n float split=abs(sin(uv.x*63.+n*9.+sin(uv.y*11.)*2.))*abs(cos(uv.y*35.+n*7.));\n float lava=pow(max(0.,1.-split),22.)*(.3+.7*noise(uv*vec2(16.,5.)));\n vec3 earth=vec3(.016,.012,.015)+vec3(.07,.009,.012)*n;\n vec3 fire=vec3(.83,.16,.024)*lava*.64;\n float heat=(1.-uv.y)*(.12+.36*n);\n gl_FragColor=vec4(earth+fire+vec3(heat,heat*.12,0.),.98);\n}"});
  mesh(new THREE.PlaneGeometry(W,H*.35),material,parent,0,-H*.395,-188);
 }
 function updateCoordinates(root,scene,camera,groups,details,viewport){
