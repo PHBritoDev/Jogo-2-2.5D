@@ -61,3 +61,79 @@ Somente após revisão do criador: não escrever o roteiro como cânone definiti
 - *The Game Narrative Toolbox*, capítulo Dialogue (2023): https://www.oreilly.com/library/view/the-game-narrative/9781000921779/xhtml/ch07.xhtml
 - Thomas Grip, *4 Layers, A Narrative Design Approach*: https://gamedev.net/tutorials/game-design/writing-for-games/4-layers-a-narrative-design-approach-r3707
 - Dr. Mata Haggis, perguntas para diagnosticar cenas: https://media.gdcvault.com/gdc2017/Presentations/Haggis_Mata_StorytellingToolsTo.pdf
+
+
+## Parte 2 — Vínculos que o jogador constrói antes do perigo (11/11, 21h54)
+**Estado:** proposta de encenação e gameplay, NÃO cânone aprovado. Foco desta rodada: quatro relações que sustentam o Ato 1. Não introduzir ainda explicações definitivas sobre origem dos bispos ou dos Pecados.
+
+### Auditoria de continuidade anterior à proposta
+- `docs/roteiro/M1-PROLOGO.md`: o roteiro original inclui trono de Deus, retirada de asas/aura, escolha da primeira galáxia, despertar e nome personalizado. **Não apagar o prólogo celestial** ao adotar a queda da proposta v1; encaixar o despertar terrestre DEPOIS da seleção da galáxia. O encontro com Deus é a razão da missão, não uma cena a ser substituída.
+- `docs/roteiro/M2-ATO1.md`: já há vendedor desconfiado, floresta noturna, jaulas, queda/desmaio, retorno, esgoto/caverna, inimigos, portal e Vhazrael. Reaproveitar a **função jogável** dessas passagens, não suas falas agressivas ou números fixos de inimigos. O marco descreve vila próxima do spawn e esgoto sob o mapa; o projeto atual deseja jornada longa, ponte obrigatória, caverna monumental. O layout definitivo deve ser confirmado com Claude antes da implementação.
+- `docs/narrativa/ato-1-eldoria-roteiro-v1.md`: Ilyan é encontrado preso na caverna e morre protegendo o herói de Zarkun; Teren conduz a carroça; Osren é vendedor; Aethraziel e Vaelthar são o MESMO anjo (nome verdadeiro/público). A proposta de apresentar Ilyan antes da prisão exige explicar como foi capturado e evitar duplicar seu primeiro encontro.
+- `docs/OBJETIVO-GALAXIA-1.md`: sete mundos ligados por correntes; primeiro bispo não é a Ganância; não revelar antagonistas posteriores cedo.
+- A cena antiga em que as duas crianças se transformam e precisam ser enfrentadas entra em tensão com a expectativa de resgate e de consequências positivas; não mudar nesta rodada, mas marcar para revisão da Parte 4. Não fabricar escolha salvadora impossível.
+
+### Arco A — Teren: hospitalidade que custa alguma coisa
+**Primeiro contato, na estrada:** Teren não confia instantaneamente no protagonista, mas aceita ajuda para amarrar uma lona rasgada. O jogador segura a carga e ajusta duas presilhas (interação curta, sem minijogo repetitivo). Na emboscada, Teren protege a mula e a carroça em vez de lutar como guerreiro. Depois, examina a roda danificada.
+**Diálogo curto após os bandidos:**
+- Teren: «Vocês podiam ter seguido viagem.»
+- Protagonista: «E deixado você sozinho?»
+- Teren: «Há quem faça isso por muito menos.»
+Não colocar sermão moral. Ele agradece oferecendo lugar na carroça, não ouro.
+**Reencontro em Eldória:** vê-se a carroça parada perto da ponte com menos mercadorias que antes. Teren tenta entregar uma encomenda já paga a uma família; os cobradores exigem uma segunda taxa. O jogador pode apresentar o comprovante recolhido na estrada, ajudar a descarregar ou apenas observar; as três opções preservam a história principal, mas mudam o que Teren diz no fim. Essa pequena dívida moral será paga com informação ou transporte de sobreviventes no retorno.
+**Função emocional:** mostrar que gentileza comum existe antes de o herói salvar o mundo. **Risco:** não transformá-lo em mero NPC de transporte. **Viabilidade:** precisa de carroça e rota já presentes; caso Claude altere a ponte, adaptar o ponto de parada sem criar área nova.
+
+### Arco B — Osren: um comerciante que protege a família, não um informante comprado
+**Primeiro encontro:** banca de frutas com algumas estragadas e moscas; atrás, uma cesta pequena com frutas boas reservadas à família. Osren esconde a cesta quando percebe a aproximação. O jogador observa um recibo de confisco pregado na banca, com selo repetido em caixotes da estrada.
+- Protagonista: «Essa cobrança é de quem?»
+- Osren: «De quem pode voltar amanhã.»
+- Protagonista: «E as frutas?»
+- Osren: «As que prestam não estão à venda.»
+Não fazê-lo pedir sacos de ouro absurdos nem vender informação como missão artificial. A pista sobre as crianças só vem quando o jogador oferece ajuda concreta (ex.: proteger o recibo de um cobrador, ou entregar uma fruta à cozinha comunitária com autorização de Osren). Se o jogador ignora a interação, outro morador oferece a pista essencial; a narrativa não trava.
+**Reação posterior:** no retorno, Osren reconhece se o jogador ajudou; pode oferecer água a refugiados. Seu destino deve depender de resgate legível, não de uma decisão invisível.
+**Função emocional:** a Ganância atinge pessoas que precisam negociar até a própria confiança. **Risco:** não converter miséria em espetáculo visual ou criar dezenas de moscas com custo de FPS.
+
+### Arco C — Ilyan: o homem que já estava resistindo
+**Proposta principal (alteração controlada à v1):** primeira aparição curta em Eldória, sem entrar no grupo ainda. Ilyan, ex-guarda civil, organiza uma fila de água no poço quase seco e impede um cobrador de tomar o último balde. Não luta; usa o respeito que os moradores têm por ele. O jogador ajuda a levantar uma viga que impede uma pessoa debilitada de alcançar a fila (uma única ação, com alternativa de contornar).
+- Ilyan: «Primeiro as crianças. Depois nós.»
+- Protagonista: «Você é o responsável daqui?»
+- Ilyan: «Não. Só fui o primeiro a chegar.»
+Ele pede que o herói procure os desaparecidos; não revela ainda a história da filha nem faz discurso de despedida. Quando o jogador retorna da floresta, a fila foi dispersada, e o poço guarda um pedaço da insígnia do antigo guarda. Uma testemunha viu Ilyan ser levado ao tentar impedir o confisco de suprimentos. **Isso explica por que o protagonista o reencontra preso na caverna**, preservando a Missão 6 da v1. Quando Ilyan o reconhece, a primeira fala da v1 «Meu nome é Ilyan» deve mudar para «Você voltou.».
+**Alternativa de menor custo:** se a cidade não suportar novo NPC com animações, mostrar Ilyan primeiro por uma placa assinada e um relato de Osren; contudo, o vínculo fica menos forte. Preferir presença jogável, se viável.
+**Risco crítico:** se Ilyan morrer protegendo o herói, a cena precisa respeitar posicionamento e telegráficos. A morte não pode resultar de controle injustamente retirado ou de falha que o jogador poderia impedir. Não fazer a família dele existir apenas como gatilho de tristeza.
+
+### Arco D — Vaelthar/Aethraziel: confiança construída pela limitação
+**Caminhada entre o spawn e a ponte:** um pequeno trecho de exploração livre, com rochas, vento e água. O anjo observa o protagonista tentar atravessar um riacho e indica uma passagem segura, mas o jogador faz a travessia. Não precisa de cutscene.
+- Protagonista: «Você sabe o que vamos encontrar?»
+- Vaelthar: «Sei por que viemos. Sobre este lugar, ainda preciso aprender.»
+- Protagonista: «Pensei que anjos soubessem de tudo.»
+- Vaelthar: «Não somos Deus.»
+A fala curta comunica limite sem despejar cosmologia. O anjo não deve parecer incompetente: reconhece selos demoníacos e protege em momentos de risco, mas cada bênção consome energia. Uma pequena pausa perto da ponte, com opção de sentar e ouvir a água, abre uma fala variável de curiosidade. Jogador pode seguir andando sem perder informação indispensável.
+**Sinal discreto de mistério:** após o ritual, Vaelthar percebe algo incomum no protagonista e interrompe uma frase — não por manipulação, mas por incerteza genuína. O segredo não é explicado neste ato. O protagonista percebe o silêncio e retoma o assunto após Vhazrael.
+
+### Encadeamento jogável, sem inflar duração
+1. Despertar terrestre após prólogo celestial → caminhada com Vaelthar (curiosidade).
+2. Carroça de Teren e bandidos famintos (primeira ação, ambivalência).
+3. Ponte e Eldória → banca de Osren e recibo de confisco (mistério concreto).
+4. Poço e Ilyan (respeito) → notícia das crianças desaparecidas (urgência).
+5. Ritual na floresta → retorno à cidade alterada → pista da captura de Ilyan (consequência).
+6. Caverna → reencontro com Ilyan (recompensa emocional de memória) → ações compartilhadas → Zarkun (clímax pessoal).
+Cada relação precisa aparecer ao menos duas vezes, e cada reaparição deve mudar informação, objetivo ou estado do mundo. **Não** somar quatro missões obrigatórias de apresentação: distribuir as relações ao longo de uma mesma investigação com ordem parcialmente livre.
+
+### Sementes da origem da Ganância, sem explicação prematura
+- **Recibo de Osren:** uma taxa de passagem com data posterior a um registro antigo de feira sem cobrança; primeira evidência de mudança institucional.
+- **Insígnia de Ilyan:** símbolo de uma guarda civil anterior ao domínio demoníaco; indica que Eldória teve instituições próprias, não nasceu miserável.
+- **Relato de Teren:** rotas que antes funcionavam agora têm postos de confisco; a mudança alcança outras aldeias.
+- **Reação de Vaelthar:** ele reconhece o desenho de um selo, mas não sabe se sua origem é anterior à chegada da Ganância. Não afirmar datas, origens ou hierarquias sem pesquisa interna dos atos futuros.
+
+### Auditoria das falas
+Todas as falas propostas são curtas, vinculadas a um objeto/ação presente, sem termos como «destino», «trevas eternas», «essência do vazio» ou monólogos. O diálogo do anjo afirma limite sem fazer profecia. O de Ilyan expressa caráter por decisão prática. O de Osren é defensivo porque teme cobrança, não porque «todos os pobres são hostis». Teren expressa gratidão sem elogiar o protagonista como salvador.
+
+### Fontes consultadas nesta rodada
+- Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling*, GDC 2010: https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental — evidência espacial e interpretação ativa do jogador.
+- Matthias Worch, notas da palestra (2010): https://www.worch.com/2010/03/11/gdc-2010/ — espaço com história implícita, reação dos sistemas.
+- Paweł Sasko, *10 Key Quest Design Lessons from The Witcher 3 and Cyberpunk 2077*, GDC: https://www.gdcvault.com/play/1028897/10-Key-Quest-Design-LessonsStartup — brevidade, estrutura, escolhas, emoção.
+- Game Developer, resumo da palestra de Sasko: https://www.gamedeveloper.com/marketing/10-key-takeaways-from-the-quest-design-of-cyberpunk-2077-and-the-witcher-3 — evitar excesso de design e fazer cenas de ação servirem a sentimentos.
+
+### Pendências para a Parte 3
+Confirmar a aparência final da ponte, poço, vila e floresta na versão de Claude antes de posicionar NPCs. Pesquisar as origens econômicas e políticas do confisco como narrativa ambiental, sem afirmar um ano canônico. Checar o arquivo de atos posteriores antes de definir se Vhazrael inventou as taxas ou apenas se aproveitou de uma crise anterior. Confirmar se o anjo é chamado Vaelthar publicamente nos diálogos atuais, para não haver dois nomes conflitantes.
