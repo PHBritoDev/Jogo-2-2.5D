@@ -4723,14 +4723,19 @@ const _ic=new THREE.Vector3(),_il=new THREE.Vector3();
 function cartInteriorCam(look,dt,doze,u=0){
  const L=look==='hero';const t=performance.now()*.001,sh=road.ride?Math.sin(t*11)*.006:0;
  // posições locais (frente = +z): ombro do anjo olhando o herói, ou ombro do herói olhando o anjo
- if(L){_ic.set(-.42,2.55+sh,.2-(doze?u*.35:0));_il.set(.04,2.42,-1.45);}
- else{_ic.set(.36,2.48+sh,-1.05);_il.set(0,2.6,.42);}
+ // alvos medidos no jogo com os dois sentados (cabeça do herói ~(0,2,24,-1,3); do anjo no assoalho ~(0,2,0,0,14)).
+ // Não usa a posição do osso aqui: esta câmera roda ANTES de applySeating no quadro, e o osso ainda estaria na pose em pé.
+ if(L){_ic.set(-.46,2.36+sh,.36-(doze?u*.3:0));_il.set(.04,2.2,-1.3);}
+ else{_ic.set(.44,2.42+sh,-1.18);_il.set(0,1.98,.14);}
  road.cart.updateMatrixWorld(true);road.cart.localToWorld(_ic);road.cart.localToWorld(_il);
- if(L){const head=cineBone(/head$/i);if(head)head.getWorldPosition(_il);}
- else if(guideModel){let gh=null;guideModel.traverse(o=>{if(!gh&&o.isBone&&/^head$/i.test(o.name||''))gh=o;});if(gh)gh.getWorldPosition(_il);}
+ // nunca atrás de tábua: raio do rosto olhado até a câmera contra a malha da carroça; a câmera para antes da parede
+ if(road.cartModel){_icD.subVectors(_ic,_il);const dist=_icD.length();if(dist>.05){_icD.multiplyScalar(1/dist);_icRay.set(_il,_icD);_icRay.far=dist+.15;const hit=_icRay.intersectObject(road.cartModel,true)[0];if(hit)_ic.copy(_il).addScaledVector(_icD,Math.max(.32,hit.distance-.14));}}
+ // entrada no interior e troca de quem fala são cortes secos (a câmera nunca desliza através das tábuas ou dos passageiros)
+ const now=performance.now();if(now-cartInteriorCam.last>400||cartInteriorCam.look!==look)cineCut=true;cartInteriorCam.last=now;cartInteriorCam.look=look;
  if(camera.near!==.08){camera.near=.08;camera.updateProjectionMatrix();}
  storyCam(_ic.x,_ic.y,_ic.z,_il.x,_il.y,_il.z,4,dt,true);
 }
+cartInteriorCam.last=0;const _icRay=new THREE.Raycaster(),_icD=new THREE.Vector3();
 /** MOD 317 — embarque sem teleporte: o herói caminha até a porta, sobe o degrau, entra e senta; Aethraziel entra logo
     depois e senta no assoalho. Tudo por trajetória curta em tempo de cena (pular a cena só assenta os dois). */
 /** MOD 317 — cenas longas só podem ser puladas depois da primeira exibição (memória por save neste aparelho). */
@@ -7951,6 +7956,10 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  rippleNow(){const m=playerWaterBody();if(m){const t=performance.now()*.001;m.addRipple(player.position.x,player.position.z,t,1.4);}return !!m;},
  cartProfile(){ensureRoadProps();if(!road.cartModel)return null;road.group.visible=true;road.cart.updateMatrixWorld(true);const rc=new THREE.Raycaster(),out={};const o=new THREE.Vector3(),dn=new THREE.Vector3(0,-1,0);
   for(const x of [-.8,-.4,0,.4,.8]){const row=[];for(let z=2.6;z>=-2.6;z-=.2){o.set(x,3.2,z);road.cart.localToWorld(o);rc.set(o,dn);const hits=rc.intersectObject(road.cartModel,true).map(h=>+road.cart.worldToLocal(h.point.clone()).y.toFixed(2));row.push([+z.toFixed(1),hits.slice(0,4)]);}out['x'+x]=row;}return out;},
+ seatProbe(){if(!road.cart)return null;road.cart.updateMatrixWorld(true);const inv=road.cart.matrixWorld.clone().invert(),L=v=>{const q=v.clone().applyMatrix4(inv);return q.toArray().map(n=>+n.toFixed(2));};const out={cam:L(camera.position),fwd:new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).transformDirection(inv).toArray().map(n=>+n.toFixed(2)),fov:camera.fov,near:camera.near,gVis:(()=>{let o=guideModel,v=true;while(o){v=v&&o.visible;o=o.parent;}return v;})(),gIn:!!(guideModel&&guideModel.parent),pVis:player.visible,mVis:model&&model.visible};const hh=cineBone(/head$/i);if(hh)out.heroHead=L(hh.getWorldPosition(new THREE.Vector3()));out.hero=L(player.position);if(guideModel){let gh=null;guideModel.traverse(o=>{if(!gh&&o.isBone&&/^head$/i.test(o.name||''))gh=o;});if(gh)out.guideHead=L(gh.getWorldPosition(new THREE.Vector3()));const gb=new THREE.Box3().setFromObject(guideModel);out.guideBox=[L(gb.min),L(gb.max)];}
+  const rc=new THREE.Raycaster(),hit=(o,d)=>{rc.set(o,d);rc.far=8;const h=rc.intersectObject(road.cartModel,true)[0];return h?+h.distance.toFixed(2):null;},W=(x,y,z)=>road.cart.localToWorld(new THREE.Vector3(x,y,z)),dir=(x,y,z)=>new THREE.Vector3(x,y,z).transformDirection(road.cart.matrixWorld);
+  out.walls={};for(const z of [-1.45,-.5,.42]){const o=W(0,2,z);out.walls[z]={up:hit(o,dir(0,1,0)),down:hit(o,dir(0,-1,0)),left:hit(o,dir(-1,0,0)),right:hit(o,dir(1,0,0)),back:hit(o,dir(0,0,-1)),front:hit(o,dir(0,0,1))};}
+  const cb=new THREE.Box3().setFromObject(road.cartModel);out.cartBox=[L(cb.min),L(cb.max)];return out;},
  squadInfo(){const s=squadSq();return s?{n:s.actors.length,alive:s.actors.filter(a=>a.alive).length,kinds:[...new Set(s.actors.map(a=>a.kind))],acts:s.actors.map(a=>a.act?a.act.type:'-'),spells:s.spells.length,on:squadOn}:null;},
  cartArrive(){ensureRoadProps();road.approach=false;road.arrived=true;placeRoadCart(RIDE.start,true);return this.roadState();},
  caveTo(lx,lz,yaw=Math.PI){if(!ascKey)return null;const O=ASC_ZONES[ascKey],z=ascZones[ascKey];return this.placeAt(O.x+lx,z.floor(lx,lz),O.z+lz,yaw);},
