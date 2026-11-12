@@ -28,6 +28,22 @@ function check(ok,msg){if(!ok)throw Error(msg);}
    check(info.orbs===7&&info.menu===5&&info.enter,view.name+": controles incompletos");
    check(!info.pixelImageShown,view.name+": ainda esta exibindo imagem estática");
    await page.screenshot({path:path.join(output,view.name+"-ganancia.png"),animations:"disabled"});
+   // Auditar TODOS os sete mundos, não somente Ganância e Luxúria.
+   const planetAudits=[];
+   for(let pid=1;pid<=7;pid++){
+    await page.locator('.gx-orb[data-id="'+pid+'"]').click();
+    await page.waitForTimeout(120);
+    const state=await page.evaluate(pid=>{
+     const root=document.querySelector('#galaxy-screen'),selected=root.querySelector('.gx-orb.sel');
+     const canvas=root.querySelector('canvas.gx-three-canvas');
+     const gl=canvas.getContext('webgl2')||canvas.getContext('webgl');
+     return {selected:selected?.dataset.id,glError:gl.getError(),canvasPixels:canvas.width*canvas.height};
+    },pid);
+    check(state.selected===String(pid),view.name+": falhou selecionar planeta "+pid);
+    check(state.glError===0,view.name+": erro WebGL no planeta "+pid+": "+state.glError);
+    planetAudits.push({id:pid,...state});
+    await page.screenshot({path:path.join(output,view.name+"-planeta-"+pid+".png"),animations:"disabled"});
+   }
    await page.locator('.gx-orb[data-id="7"]').click();
    await page.waitForTimeout(320);
    check((await page.locator(".gx-detail h2").innerText())==="LUXÚRIA",view.name+": seleção de Luxuria falhou");
@@ -37,7 +53,7 @@ function check(ok,msg){if(!ok)throw Error(msg);}
    await page.waitForTimeout(720);
    const opened=await page.evaluate(()=>window.menuQA.opened);
    check(opened===1,view.name+": ENTRAR não chamou jogo");
-   reports.push({view,info,errors,bad,opened,passed:errors.length===0&&bad.length===0});
+   reports.push({view,info,planetAudits,errors,bad,opened,passed:errors.length===0&&bad.length===0});
    await ctx.close();
   }
  }finally{await browser.close();}
