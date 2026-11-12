@@ -263,17 +263,20 @@ function maw(parent,r){
    const a=i*2*PI/31;return new THREE.Vector3(Math.cos(a)*r*.55,Math.sin(a)*r*.40-r*.045,r*.985);
  }));
  mesh(new THREE.TubeGeometry(lip,88,r*.066,6,false),mat('#b83442',.15,.44),parent);
- const toothMat=mat('#e9d8bf',.14,.35),shade=mat('#b5a99c',.08,.48);
+ const toothMat=mat('#e9d8bf',.14,.35);
+ const teeth=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,7),toothMat,16),d=new THREE.Object3D();
+ let ti=0;
  for(let row=0;row<2;row++){
   for(let i=0;i<8;i++){
    const t=(i+.3)/8,ang=(row?PI:0)+t*PI;
    const x=Math.cos(ang)*r*.49,y=Math.sin(ang)*r*.37-r*.045;
-   const big=(i===1||i===6),length=r*(big?.37:.22);
-   const tooth=mesh(new THREE.ConeGeometry(r*(big?.062:.045),length,7),toothMat,parent,x,y,r*1.05);
-   tooth.rotation.z=ang+PI/2;
-   tooth.rotation.x=.13;
+   const big=i===1||i===6,len=r*(big?.37:.22);
+   d.position.set(x,y,r*1.05);d.rotation.set(.13,0,ang+PI/2);
+   d.scale.set(r*(big?.062:.045),len,r*(big?.062:.045));d.updateMatrix();
+   teeth.setMatrixAt(ti++,d.matrix);
   }
  }
+ teeth.instanceMatrix.needsUpdate=true;parent.add(teeth);
  // Língua e saliva brilhantes na profundidade da mandíbula.
  const tongue=ball(parent,r*.18,'#b6283e',.07*r,-r*.26,r*1.11,[1.2,.37,.45]);
  for(let i=0;i<4;i++)tube(parent,[[(-.3+i*.18)*r,-r*.02,r*1.11],[(-.22+i*.17)*r,-r*.14,r*1.17]],r*.01,'#e36473',.1);
