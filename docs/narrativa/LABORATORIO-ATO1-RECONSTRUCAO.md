@@ -350,3 +350,101 @@ Uma galeria de contemplação → depósito/duas rotas → queda de contenção 
 - Jolie Menzel, GDC 2017, *Level Design Workshop: A Narrative Approach to Level Design*: https://www.gdcvault.com/play/1024302/Level-Design-Workshop-A-Narrative — alternância deliberada de risco, exploração e pausa na sequência de salas.
 - Thomas Grip, palestra GDC Europe 2012, relatada em Game Developer: https://www.gamedeveloper.com/design/-why-hasn-t-story-in-games-advanced-i-amnesia-i-s-designer-has-some-opinions- — priorizar o jogador vivenciar a história por ações, não assisti-la em excesso.
 - Nels Anderson e Jake Rodkin, GDC 2015, *Designing for Exploration and Choice in Firewatch*: https://www.gamedeveloper.com/design/video-designing-for-exploration-and-choice-in-i-firewatch-i- — duas rotas e consequências compreensíveis, mantendo clareza do objetivo.
+
+
+---
+
+## Parte 7 — A dívida de Ilyan, Zarkun e o primeiro selo (12/11/2026)
+**Estado:** PROPOSTA de direção narrativa, não cânone aprovado nem implementação. **Escopo:** do descanso no aqueduto ao confronto com Vhazrael e a obtenção do Selo I. A fuga e a volta à cidade ficam para a Parte 8. **Princípio:** a morte não deve ser usada como atalho para emoção; a luta precisa continuar interessante mesmo sem a tragédia.
+
+### Auditoria cruzada e decisão de continuidade
+- **Roteiro v1, Missões 7–9:** Ilyan ajuda no aqueduto, lembra a filha, protege o protagonista de Zarkun, entrega um pingente e morre; Vaelthar tem poder limitado; o protagonista enfrenta Zarkun; a dimensão de Vhazrael revela os quatro selos e Vorgazhek. Estes são os eventos **propostos pela v1**, não acontecimentos já confirmados em gameplay.
+- **M2-ATO1.md, A1-12 a A1-15 / \`act1-flow.js\`:** o jogo anterior usa uma gaiola, uma bifurcação, um Guardião do Portal, um combate na dimensão e o retorno imediato. **Reaproveitar** a bifurcação, o guardião e o portal como funções dramáticas e assets existentes quando verificados; **não fingir** que Zarkun, Ilyan ou a nova sequência já estão implementados. O fluxo \`ACT1\` ainda nomeia \`wardenHp:300\` e \`portalOpened\`, o que exige migração de progresso antes de qualquer troca.
+- **M1-PROLOGO.md:** o encontro com Deus e a retirada das asas antecedem a chegada. Não contradizer a natureza inicialmente angelical que o protagonista acredita possuir. Aethraziel é o nome verdadeiro de Vaelthar, não um segundo guia.
+- **OBJETIVO-GALAXIA-1.md:** preservar a dimensão 3D do Bispo 1 e seus poderes, os checkpoints, o combate responsivo e o desempenho no celular. A direção abaixo **não solicita reconstrução** da arena, poderes ou mapa pelo Claude.
+- **Partes 2–6:** Ilyan já ajudou na cidade e reapareceu preso; Vaelthar demonstrou limites; o jogador resgatou pessoas e encontrou registros de confisco. Não repetir explicações nem anular os salvamentos. Destino das duas crianças permanece bifurcado, sem impacto forçado neste clímax.
+
+### 1. O último trecho de convivência: confiança sem despedida anunciada
+O descanso no aqueduto da Parte 6 termina quando o jogador decide levantar. Ilyan se oferece para guiar por um desvio de manutenção: não é uma missão paralela, mas uma travessia de 3–5 minutos com uma tarefa compartilhada. Ele indica onde pisar numa ponte úmida, ajuda a mover uma comporta e reconhece o emblema de um antigo colega preso. **Escolha pequena e concreta:** abrir uma cela lateral com ferramentas disponíveis (leva algum tempo e pode aumentar o alerta) ou deixar uma indicação de saída para um sobrevivente capaz de destrancá-la mais tarde. Não prometer resgate se a pessoa não for efetivamente vista em segurança.
+
+O diálogo opcional acontece **enquanto o jogador anda**:
+- **Ilyan:** “Eu trabalhava na feira. Minha filha dizia que eu sempre chegava tarde.”
+- **Protagonista:** “Ela está em Eldória?”
+- **Ilyan:** “Não sei. Pedi que saísse antes de fecharem a estrada.”
+- **Vaelthar:** “Quando sairmos, podemos procurar por ela.”
+- **Ilyan:** “Obrigado. Mas primeiro precisamos tirar os outros daqui.”
+
+Evitar música de despedida, presságios explícitos de morte e repetir o pingente em close. Ilyan deve parecer um companheiro com planos, não alguém marcado pelo roteiro.
+
+### 2. A armadilha de Zarkun: leitura, ação e consequência honesta
+A travessia chega a uma ponte de manutenção sobre um salão profundo. **Telegráficos legíveis:** rachaduras no apoio, descarga corrosiva que percorre as correntes e um som distinto antes do disparo. O jogador pode desviar, defender ou tentar cortar a energia de um mecanismo; isso muda **a posição de chegada e o dano mecânico**, não promete evitar a tragédia da v1. Se a morte de Ilyan for mantida, encenar a proteção como uma **decisão visível dele**, não um truque que faz o controle falhar: quando um suporte cede e o protagonista perde apoio, Ilyan o empurra até a borda firme, recebendo o impacto. Uma cena breve mostra o que ocorreu; nenhuma interface sugere que um reflexo mais rápido o salvaria.
+
+**Diálogo proposto, contido:**
+- **Protagonista:** “Ilyan. Olhe para mim.”
+- **Ilyan:** “Os outros… conseguiram passar?”
+- **Protagonista:** “Conseguiram.”
+- **Ilyan:** “Então continue. Não deixe que voltem por eles.”
+
+Ele entrega o pingente apenas se a morte for aprovada. O protagonista não precisa pronunciar uma promessa grandiosa. Vaelthar ajoelha, tenta ajudá-lo, reconhece que não pode curar tudo e faz uma oração breve. O silêncio dura o suficiente para o jogador entender o acontecimento, mas sem um longo bloqueio de câmera.
+
+**Alternativa de produção (pendente de aprovação):** Ilyan sobrevive gravemente ferido, e a tensão se desloca para a escolha de levá-lo a um abrigo seguro antes do portal. Essa alternativa preserva a relação construída e evita concentrar muitas mortes na campanha. **Não misturar as duas versões** em missões posteriores; escolher antes da implementação.
+
+### 3. Zarkun: um adversário com função, não um discurso
+Zarkun não anuncia uma filosofia própria. É o guardião encarregado de impedir fugas e proteger o acesso às remessas de Vhazrael. **Hipótese de motivação:** teme ser punido pelo fracasso mais do que deseja ouro; isso o diferencia dos cobradores da vila. Sua origem e posição exata na hierarquia ainda precisam de confirmação. Uma única fala após a armadilha basta:
+- **Zarkun:** “A passagem estava fechada. Vocês insistiram.”
+- **Protagonista:** “Havia pessoas presas aqui.”
+- **Zarkun:** “Não são problema meu.”
+
+A batalha é jogável e justa: primeiro o arco de energia, depois armadilhas de chão com aviso, por fim uma combinação curta. Os sinais devem ser visíveis em primeira pessoa e na tela pequena; a morte de Ilyan **não aumenta automaticamente o dano** nem torna o herói invencível. Se a aura vermelha prevista na v1 for usada, será **um instante de descontrole narrativo** com limite claro, sem glamourizar vingança. Vaelthar diz apenas: “Concentre-se. Ele ainda está atacando.” Após vencer, não há celebração nem execução de um inimigo rendido.
+
+**Compatibilidade com o jogo antigo:** o Guardião do Portal pode cumprir a função de Zarkun após revisão do modelo, nome e diálogos; não criar um segundo miniboss só para duplicar combate. Se os assets e animações forem inadequados, manter o guardião como encontro mecânico e adiar a identidade Zarkun para revisão, registrando a incompatibilidade.
+
+### 4. A escolha do guia: proteger a passagem ou acompanhar o herói
+Depois do combate, uma porta de pedra abre a antecâmara. Os demônios do setor de contenção se aproximam. Vaelthar, já exausto pela proteção da Parte 6, consegue **segurar uma passagem estreita por pouco tempo** usando as próprias portas e barreiras; não derrota uma horda sozinho. O jogador ativa dois travamentos para reduzir a pressão antes de atravessar o portal. Se errar, pode repetir do checkpoint, sem refazer Zarkun.
+
+- **Protagonista:** “Não vou deixar você aqui.”
+- **Vaelthar:** “Não estou pedindo que me abandone. Preciso que abra o caminho.”
+- **Protagonista:** “E se não conseguir voltar?”
+- **Vaelthar:** “Então procure a saída. Eu vou tentar alcançá-lo.”
+
+O guia demonstra confiança no jogador sem esconder o risco. Sua limitação é consequência das ações vistas, não explicação conveniente.
+
+### 5. Vhazrael: o primeiro bispo e a primeira resposta real
+**Preservar a dimensão 3D existente.** Direção ambiental para eventual revisão, sem alteração técnica agora: riquezas acumuladas sem utilidade, recipientes vazios e sinais de mercadorias de Eldória. O jogador reconhece a marca dos registros anteriores: **resposta concreta** à pergunta “quem se beneficiava dos confiscos?”. Não inferir que Vhazrael criou a Ganância ou que todos os demônios vieram juntos.
+
+**Abertura curta:**
+- **Vhazrael:** “Vieram de Eldória, então.”
+- **Protagonista:** “As pessoas estão morrendo enquanto vocês guardam tudo aqui.”
+- **Vhazrael:** “Não fui eu quem lhes ensinou a vender o que precisavam.”
+- **Protagonista:** “Mas foi você quem tomou o que restava.”
+
+O bispo tenta transferir a responsabilidade aos humanos. O jogador já viu humanos que resistiram e ajudaram uns aos outros, por isso a acusação é contestada **pela experiência**, não por sermão. O combate respeita integralmente os poderes e fases já existentes; só avaliar clareza de sinais e transições em testes posteriores.
+
+**Após a vitória:** o Selo I se torna um objeto visível e persistente. Vhazrael, enfraquecido, revela **uma informação verificável e suficiente**:
+- **Protagonista:** “Onde encontro a Ganância?”
+- **Vhazrael:** “Não chegará até ela sem os quatro selos.”
+- **Protagonista:** “Quem guarda os outros?”
+- **Vhazrael:** “O próximo está além das montanhas de fogo. Vorgazhek.”
+
+Ele percebe algo estranho no protagonista, mas a dimensão começa a ruir **antes de concluir**. Vaelthar entra ferido e avisa o perigo real. Não fazer o guia silenciar ou executar o bispo para esconder segredo. A resposta sobre a origem híbrida é reservada a uma conversa posterior com consequências.
+
+### 6. Mistério maior: separar fatos, hipóteses e revelações futuras
+**Fatos já previstos no cânone de trabalho:** existem quatro bispos ligados à Ganância; Vhazrael é o primeiro, Vorgazhek o segundo; quatro selos são necessários; o protagonista tem natureza humana e angelical ainda inexplicada; Vaelthar atua com essência restringida. O prólogo estabelece sete mundos ameaçados pelos Pecados.
+
+**Pistas propostas, NÃO cânone:** registros de Vhazrael têm datas posteriores à primeira referência de cobrança na vila. Isso abre duas hipóteses — a exploração humana precedeu o bispo, ou o bispo herdou uma rede anterior — sem confirmar a chegada da entidade Ganância. Um selo pode apresentar um traço gráfico compartilhado com outros três espaços, sem nomeá-los nem anunciar origem divina/demoníaca dos bispos. Os demônios aparecem organizados por tarefas, mas ainda não sabemos por que servem à Ganância, se obedecem por medo, ambição ou criação; diferentes indivíduos podem ter razões distintas. **Não revelar nesta parte o objetivo último dos sete Pecados**, que exige uma bíblia cosmológica consistente para todas as galáxias.
+
+**Perguntas a preservar:** quando a Ganância chegou ao mundo? Quem escolheu os bispos e por qual critério? Como os sete Pecados coordenam ou disputam poder? O que ganham os demônios ao obedecer? Por que Vhazrael reconhece algo impossível no protagonista? Essas perguntas precisam de respostas planejadas nos próximos atos, não de improvisos apresentados como fatos.
+
+### 7. Ritmo, riscos e critérios de aceitação
+**Duração hipotética para teste, não promessa:** 5–8 minutos de convivência/travessia; 2–3 minutos de armadilha e consequência; 3–6 minutos de Zarkun; 2–3 minutos de acesso ao portal; combate de Vhazrael conforme arena existente. O jogador controla a maioria da sequência; nenhuma cutscene obrigatória ultrapassa aproximadamente 70 segundos sem justificativa forte. Se o impacto da perda depender de cena longa ou música insistente, reescrever a preparação, não prolongar a morte.
+
+**Testes futuros:** jogador reconhece Ilyan como alguém útil e querido? Entende por que não pôde evitar o golpe sem sentir que o jogo mentiu? Sabe por que luta contra Zarkun e Vhazrael? Percebe que Vhazrael explorou a região sem concluir erroneamente que ele criou o pecado? Consegue repetir cada boss sem repetir luto/cutscene? Vê a progressão do Selo I após fechar o jogo? Os efeitos da arena permanecem legíveis e leves no Android?
+
+**Riscos documentados:** (1) a morte de Ilyan pode saturar a campanha após o ritual e o ataque à vila; (2) o destino das crianças segue sem aprovação; (3) Zarkun pode conflitar com o Guardião do Portal já implementado; (4) a nova caverna do Claude não foi inspecionada nesta rodada, logo nenhuma ponte/antecâmara é tratada como existente; (5) progressão antiga de \`act1-flow.js\` não pode ser descartada; (6) nome público/verdadeiro de Vaelthar não deve oscilar sem motivo; (7) não alterar poderes do Bispo 1.
+
+**Próxima parte:** fuga da dimensão, retorno aos sobreviventes de Eldória, consequência do Selo I e gancho para a região vulcânica — sem iniciar o Ato 2 prematuramente.
+
+### Pesquisa desta parte e decisões de aplicação
+- Harvey Smith e Matthias Worch, GDC 2010, *What Happened Here? Environmental Storytelling*: https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental — o ambiente de Vhazrael fornece evidências que o jogador interpreta em vez de monólogo.
+- Paweł Sasko, GDC 2023, *10 Key Quest Design Lessons from The Witcher 3 and Cyberpunk 2077*: https://www.gdcvault.com/play/1028897/10-Key-Quest-Design-LessonsStartup — concisão, emoção, escolha e consequência sem sobrecarregar a missão.
+- Paweł Sasko sobre o ritmo de *Family Matters*, relato de 2017: https://www.destructoid.com/cd-projekt-red-designer-breaks-down-the-witcher-3s-best-quest/ — alternar gameplay, tensão, descanso e revelação; evitar acumular cenas passivas.
