@@ -52,3 +52,11 @@ test('Ilyan tem conversas interativas na vila e na cela; vendedor aponta Téo', 
   assert.match(src,/if\(key==='vendor'\)return vendorRoots\[1\]/);
   assert.match(src,/const v=vendorRoots\[1\],to=/);
 });
+
+test('Ilyan acompanha pelo corredor caminhável sem teleporte', () => {
+  const src = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+  assert.match(src, /function updateIlyanEscort\(dt\)/);
+  assert.match(src, /sewerWalkable\(nx-origin\.x,nz-origin\.z,\{portalOpen:false\}\)/);
+  assert.match(src, /updateIlyanEscort\(dt\)/);
+  assert.doesNotMatch(src.slice(src.indexOf('function updateIlyanEscort'),src.indexOf('function syncIlyanPlacement')), /\.position\.copy\(player\.position\)/);
+});
