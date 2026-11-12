@@ -271,7 +271,7 @@ export function vendorScene() {
     say(S.vendor, 'Vi um símbolo marcado nas caixas confiscadas. O mesmo apareceu perto da trilha onde crianças desapareceram.'),
     say(S.hero, 'Mas quem pode estar por trás disso?'),
     say(S.vendor, 'Os guardas dizem que obedecem a VHAZRAEL, um dos bispos a serviço da Ganância. Nunca vi o rosto dele.'),
-    say(S.vendor, 'Se decidir ir, procure as marcas junto ao rio. E não confie em quem disser que está cobrando em nome da cidade.'),
+    say(S.vendor, 'Se decidir ir, procure as marcas junto ao rio. E cuidado com quem disser que cobra em nome da cidade.'),
     act('anoitecer'),
     wait(2.6)
   ];
@@ -311,8 +311,8 @@ export function cageScene() {
     say(S.child, 'Socorro! Alguém me ajuda… eu não consigo parar!', { actor: 'cage' }),
     say(S.hero, 'O que está acontecendo?'),
     shot('transformacao', 6.5, { cam: 'look', on: 'cage', off: [4.2, 2.2, 4.6], at: [0, .9, 0] }, { with: [act('transformar-criancas')] }),
-    say(S.hero, 'O círculo ainda está ativo. Preciso impedir que alcance as crianças.'),
-    say(S.hero, 'Não vou deixar que decidam a vida delas como se fossem mercadorias.')
+    say(S.hero, 'O ritual já as alcançou... Ainda precisamos impedir que continue.'),
+    say(S.hero, 'Não vou permitir que levem mais ninguém para essas jaulas.')
   ];
 }
 
@@ -416,7 +416,7 @@ export function wardenDefeatScene() {
     say(S.warden, 'Espere. Eu cumpri ordens. Não conheço outra saída.'),
     say(S.hero, 'O que é isso? E o que tem dentro desse portal?'),
     say(S.warden, 'VHAZRAEL mantém uma passagem para a própria dimensão. É por ela que as cargas e os selos chegam até ele.'),
-    say(S.hero, 'A passagem está livre. Não volte a tocar nesses prisioneiros.'),
+    say(S.hero, 'Você teve a chance de parar. Não vou permitir que continue.'),
     say(S.warden, 'Nãoooooo!', { auto: 1.4 }),
     shot('guardiao-desfeito', 2, { cam: 'look', on: 'enemy', off: [2.6, 1.6, 3.6], at: [0, 1, 0] }, { with: [act('desfazer-guardiao')] }),
     say(S.hero, 'O que aconteceu aqui não pode se repetir. Precisamos alcançar quem deu as ordens.'),
