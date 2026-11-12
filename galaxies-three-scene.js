@@ -607,7 +607,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   const copy=groups[id-1].clone(true);copy.userData.originalRadius=64;
   details.planet=copy;scene.add(copy);size();
  }
- let lastSelection=1,frame=0,elapsed=0,prev=0,running=true,id=0;
+ let lastSelection=1,frame=0,elapsed=0,prev=0,running=true,id=0,lastTelemetry=0;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  const coarsePointer=matchMedia('(pointer:coarse)').matches;
  const parallax={x:0,y:0};
@@ -653,17 +653,19 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   }
   renderer.render(scene,camera);
   // Telemetria sem alocação por frame para auditoria do custo real na GPU.
-  if((Math.floor(ms/1000)%2)===0){
+  if(ms-lastTelemetry>1200){
+   lastTelemetry=ms;
    root.dataset.gxDrawCalls=String(renderer.info.render.calls);
    root.dataset.gxTriangles=String(renderer.info.render.triangles);
    root.dataset.gxTextures=String(renderer.info.memory.textures);
   }
  };
  function lost(e){e.preventDefault();root.classList.remove('gx-three-on');}
- canvas.addEventListener('webglcontextlost',lost,{passive:false});
+ function restored(){if(running&&root.isConnected)root.classList.add('gx-three-on');}
+ canvas.addEventListener('webglcontextlost',lost,{passive:false});canvas.addEventListener('webglcontextrestored',restored);
  root.classList.add('gx-three-on');size();id=requestAnimationFrame(tick);
  const stop=()=>{
-  running=false;cancelAnimationFrame(id);observer.disconnect();root.removeEventListener('pointermove',pointer);
+  running=false;cancelAnimationFrame(id);observer.disconnect();root.removeEventListener('pointermove',pointer);canvas.removeEventListener('webglcontextrestored',restored);canvas.removeEventListener('webglcontextlost',lost);
   for(const object of scene.children){object.traverse?.(v=>{v.geometry?.dispose?.();if(v.material){const ms=Array.isArray(v.material)?v.material:[v.material];for(const m of ms){m.map?.dispose?.();m.dispose?.();}}});}
   renderer.dispose();canvas.remove();root.classList.remove('gx-three-on');
  };
