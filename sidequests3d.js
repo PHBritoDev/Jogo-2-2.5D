@@ -60,7 +60,9 @@ export function refreshSide(state, ctx) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
     if (s.state === 'locked' && ctx.questStep >= q.minStep) s.state = 'available';
-    if (q.goal.type === 'waystones' && s.state === 'active') s.progress = Math.min(q.goal.count, ctx.waystones || 0);
+    if (q.goal.type === 'waystones' && s.state === 'active' && Number.isFinite(ctx.waystones)) {
+      s.progress = Math.min(q.goal.count, Math.max(s.progress, Math.max(0, Math.floor(ctx.waystones))));
+    }
     if (s.state === 'active' && s.progress >= q.goal.count) s.state = 'ready';
   }
   return state;
