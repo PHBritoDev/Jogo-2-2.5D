@@ -186,3 +186,50 @@ Uma mulher que aguardava água mostra um pedaço de tecido encontrado junto à t
 - Comparar no Android a fluidez da ponte, praça e poço; não aceitar custo de desempenho em troca de decoração narrativa.
 - **Riscos:** confundir a vila da floresta com a grande cidade; mostrar miséria como sujeira arquitetônica; NPCs genéricos repetindo as mesmas falas; criar cobrança incoerente com as regras de moeda; posicionar objetos em lugares que Claude ainda vai reconstruir.
 - **Pendências para o criador:** decidir se “Eldória” nomeia a vila ou toda a região; definir se Ilyan é ex-guarda ou ainda guarda civil; confirmar quando a Ganância chegou ao mundo e quais instituições os bispos substituíram. Não resolver essas dúvidas unilateralmente.
+
+## Parte 4 — As duas crianças e o círculo na floresta (11/11, 23h54)
+**Estado: proposta para discussão, NÃO aprovada e NÃO implementada.** Objetivo dramático: o jogador investiga um desaparecimento com pistas compreensíveis, tenta um resgate real e descobre a função concreta do ritual. A história não deve punir a curiosidade nem prometer uma salvação que o código impede.
+
+### Pesquisa desta rodada e tradução em decisões
+- Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling*, GDC 2010 (https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental ; notas do palestrante https://www.worch.com/2010/03/11/gdc-2010/): evidências no espaço devem permitir ao jogador inferir causas; objetos e reação do ambiente devem contar a história junto com a ação.
+- Randy Smith, *Advanced Environmental Storytelling in Spider: Rite of the Shrouded Moon*, GDC 2016 (https://www.gdcvault.com/play/1023388/Advanced-Environmental-Storytelling-in-Spider%7C): fios narrativos podem se cruzar em um mistério resolvível sem depender de exposição verbal.
+- Aplicação: três pistas de naturezas distintas conduzem a uma conclusão verificável; a recompensa é descobrir e interromper uma operação, não colecionar itens arbitrários.
+
+### Continuidade auditada antes da proposta
+- `docs/narrativa/ato-1-eldoria-roteiro-v1.md`, Missões 2–4: duas crianças, fita de pano, rastros, duas jaulas, Varkhen e Drazek, círculo parcialmente visível, transformação irreversível naquele momento, queda do protagonista, ataque a Eldória durante sua ausência. O guia contém o círculo; a marca escondida já estava completa. Esta é a versão de trabalho, **não** tratar automaticamente como aprovada.
+- `docs/roteiro/M2-ATO1.md`: o fluxo anterior tem **um** captor seguido por **dois** seguidores, chave, abertura de gaiola, transformação e luta. **Reaproveitamento específico permitido:** o ato físico de encontrar a chave, abrir a gaiola e o susto ao ver o círculo reagir. **Não reaproveitar sem revisão:** provocações genéricas e o número de inimigos fixado pela implementação.
+- `docs/OBJETIVO-GALAXIA-1.md`, §7: descreve explicitamente escoltar crianças vivas às famílias e consequências positivas. **CONTRADIÇÃO DE CÂNONE:** a versão v1 exige transformação das duas crianças e combate trágico. Não fingir que as duas versões são compatíveis. O criador precisa escolher qual consequência será a definitiva antes de implementação.
+- `act1-flow.js` na `main`: estados `questStep=2` (floresta), `questStep=3` (chave, transformação, desmaio), `childEnemies=2`, `childrenFreed`. Isto comprova **fluxo legado no código**, não comprova que o cenário/novos NPCs já foram atualizados. Qualquer mudança exige migração de saves e validação do combate/cutscene, em etapa futura.
+- `docs/roteiro/M1-PROLOGO.md`: o jogador já recebeu uma missão maior. Não inserir aqui outra cena celestial ou nova explicação de Deus.
+- Cenário do Claude **não inspecionado visualmente nesta rodada**; clareira, água e trilhas abaixo são propostas topológicas, não posições confirmadas.
+
+### Sequência jogável: investigar, preparar, intervir, compreender
+**1. Uma ausência com rosto (na cidade, 30–60 s de interação opcional).** Uma pessoa procura duas crianças. Uma tigela posta para três pessoas continua intocada; um brinquedo de madeira foi deixado junto ao portão. Não mostrar um quarto inteiro decorado para morrer em cena. O jogador pode perguntar onde foram vistas ou seguir a trilha indicada por Ilyan; ambas as opções levam à mesma investigação. Uma fala suficiente: **Moradora:** “Saíram antes de escurecer. A mais velha levou a fita azul.”
+
+**2. A trilha não é uma linha luminosa (exploração e observação).** Três sinais conectados: (a) pegadas pequenas que se juntam a marcas de botas; (b) um pedaço da fita preso num galho baixo; (c) um caixote de transporte com o mesmo carimbo de cobrança visto na banca de Osren. A sequência revela que os desaparecimentos não são um ataque aleatório: há transporte organizado ligado ao sistema de confisco. A pista essencial deve ter contraste visual legível no celular e feedback sonoro discreto. Quem não encontrar as três recebe orientação ambiental sem falha de missão.
+
+**3. A clareira: a escolha é como agir, não se a história existe.** O jogador avista duas jaulas, dois demônios de comportamentos diferentes e marcas no chão. Pode observar alguns segundos para notar que Varkhen fica perto do selo enquanto Drazek patrulha; ou pode atacar imediatamente. Observação oferece vantagem tática real (por exemplo, localizar o mecanismo que retarda o círculo), mas não garante resgate caso o resultado trágico seja mantido. Vaelthar permanece **visivelmente** ocupado sustentando um contrasselo; não desaparecer sem justificativa.
+- **Protagonista:** “São as crianças.”
+- **Vaelthar:** “O círculo está ativo. Vou conter a marca. Tire-as daí.”
+- **Drazek (ao perceber o jogador):** “Varkhen. Temos companhia.”
+- **Varkhen:** “Não se afaste do selo.”
+As falas mostram coordenação e função dos inimigos, não ameaças vagas.
+
+**4. Dois objetivos curtos durante o combate.** Derrotar os guardas e alcançar a chave; opcionalmente interromper um condutor de energia/inscrição para enfraquecer o ritual. Esse objetivo secundário tem consequência perceptível — menos efeitos hostis, uma rota de fuga segura ou uma pista adicional —, **nunca** promessa de salvar as crianças se a tragédia for fixa. Evitar temporizador oculto que culpe jogadores lentos.
+
+**5. A abertura das jaulas: duas direções mutuamente exclusivas, aguardando aprovação.**
+- **Direção A — trágica, fiel à v1:** as marcas ocultas sob as jaulas já foram concluídas antes da chegada. O protagonista abre, as crianças começam a reagir; Vaelthar admite que não sabe revertê-las. O jogador **não recebe botão falso de “salvar”**. A manifestação corrompida exige defesa curta e legível; não pedir ao jogador que ataque deliberadamente crianças reconhecíveis. A câmera enfatiza mãos, sombra e a fita caída, sem violência gráfica. A frase “irreversível” se refere apenas ao estado atual, não ao destino das almas. A emoção vem do silêncio posterior e da resposta da cidade, não de gritos prolongados.
+- **Direção B — resgate, fiel ao objetivo da Galáxia 1:** a intervenção enfraquece o ritual a tempo de liberar as duas crianças; escolta curta, perigo ambiental e reencontro com a família. A operação revela que outros cativos foram enviados à caverna, preservando a urgência. A retaliação contra Eldória ocorre por insubordinação, não porque o jogador “errou”. Esta opção oferece vitória concreta e deixa o trauma maior para o arco de Ilyan.
+**Recomendação de direção (ainda não aprovada): B**, porque o Ato 1 já prevê represália na cidade e a perda de Ilyan; somar morte inevitável de duas crianças pode saturar o drama e enfraquecer o sentimento de agência. Se o criador preferir A, é indispensável preparar a tragédia com clareza e oferecer uma vitória real em outro eixo (interromper novos rituais, libertar outros presos), sem fingir que as crianças poderiam ser salvas.
+
+**6. Consequência e retorno.** A prova da ligação entre transporte, confisco e ritual é um fragmento de registro, não uma fala de vilão: caixotes marcados com destino “galerias superiores” e contagem de remessas. Vaelthar identifica a escrita como demoníaca, **mas não afirma a origem da Ganância**. O protagonista pode recolher o registro. Se Direção A, sua fala ao retornar deve reconhecer a perda com sobriedade; se B, a família agradece brevemente e a cidade continua em perigo. O ataque de represália não deve acontecer “porque o jogador foi à floresta”, nem exigir que ele se sinta culpado por algo impossível de evitar.
+
+### O que a cena sugere sobre os demônios (sem fechar a cosmologia)
+**Hipótese de trabalho:** Varkhen protege o ritual porque foi designado a preservar o selo e teme punição hierárquica; Drazek prefere manter a patrulha porque seu interesse imediato é sobreviver e obter recompensa. Ambos participam de crueldade e são responsáveis por seus atos, mas não precisam compartilhar a mesma personalidade. Um registro pode usar a palavra “remessa”, revelando que a hierarquia trata pessoas como mercadoria. **Não estabelecer** ainda como esses demônios nasceram, quem os criou ou por que os sete Pecados agem juntos; isso exige auditoria dos atos seguintes.
+
+### Ritmo, implementação futura e testes
+- Alternância: vínculo em Eldória → trilha explorável → observação tática → luta → consequência silenciosa → retorno. Não colocar monólogo de Vaelthar entre cada etapa.
+- Sem cutscene longa no meio do combate; ações e pistas devem funcionar com toque no Android. Cenas repetidas podem ser puladas sem quebrar flags.
+- Testar com alguém que não conhece a história: consegue dizer por que as crianças foram levadas? Consegue distinguir o que sua intervenção alterou? Sente que a história o enganou com uma escolha falsa?
+- **Risco maior:** divergência entre resgate garantido (`OBJETIVO-GALAXIA-1.md`) e transformação garantida (`roteiro-v1.md` e `act1-flow.js`). Escolher uma direção antes de autorizar o Claude/Codex a implementar.
+- **Próxima parte:** o retorno a Eldória após o ritual, consequência visível do ataque, busca dos prisioneiros e motivo concreto para ir à caverna; levar em conta a direção A/B sem criar dois jogos inteiros.
