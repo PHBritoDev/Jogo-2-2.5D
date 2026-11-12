@@ -544,7 +544,9 @@ function updateCoordinates(root,scene,camera,groups,details,viewport){
   const el=root.querySelector('.gx-orb[data-id="'+(i+1)+'"]');
   if(!el)continue;const p=rpos(el),g=groups[i];
   const original=g.userData.originalRadius;g.position.set(p.x,p.y,15);
-  g.scale.setScalar(p.radius/original);
+  g.userData.screenScale=p.radius/original;
+  g.userData.screenRadius=p.radius;
+  g.scale.setScalar(g.userData.screenScale);
  }
  // Corrente vermelha animável entre os sete mundos, feita de curvas 3D.
  if(details.chains){
@@ -581,6 +583,15 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  gothicRuins(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);angel(environment,W,H);starfield(environment,W,H);
  const embers=emberField(environment,W,H);
  const groups=[],details={planet:null,chains:null};
+ // Halo da seleção: gradiente HDR calculado em shader, sem JPG/PNG.
+ const selectionHalo=new THREE.Mesh(new THREE.PlaneGeometry(1,1),
+  new THREE.ShaderMaterial({
+   uniforms:{uColor:{value:new THREE.Color('#f8b15a')},uTime:{value:0}},
+   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+   fragmentShader:'uniform vec3 uColor;uniform float uTime;varying vec2 vUv;void main(){float d=length((vUv-.5)*2.);float v=exp(-d*d*6.)*(.38+.06*sin(uTime*1.3));gl_FragColor=vec4(uColor,v*(1.-smoothstep(.65,1.,d)));#include <colorspace_fragment>}',
+   transparent:true,depthWrite:false,blending:THREE.AdditiveBlending
+  }));
+ selectionHalo.renderOrder=-1;scene.add(selectionHalo);
  details.chains=new THREE.Mesh(
   new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:'#ff3b20',toneMapped:false,depthWrite:false})
  );
@@ -629,6 +640,17 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
    details.planet.rotation.y=Math.sin(elapsed*.2)*.075;
   }
   const now=selected();if(now!==lastSelection){lastSelection=now;setSelected(now);}
+  groups.forEach((g,i)=>{
+   const target=g.userData.screenScale*(i+1===now?1.055:1);
+   g.scale.setScalar(g.scale.x+(target-g.scale.x)*Math.min(1,dt*9));
+  });
+  const active=groups[now-1];
+  if(active){
+   selectionHalo.position.set(active.position.x,active.position.y,active.position.z-23);
+   selectionHalo.scale.setScalar(active.userData.screenRadius*2.85);
+   selectionHalo.material.uniforms.uColor.value.set([0xfbc77f,0x34ca75,0xeab95e,0xaadfff,0xfb537c,0xf85433,0xf782ca][now-1]);
+   selectionHalo.material.uniforms.uTime.value=elapsed;
+  }
   renderer.render(scene,camera);
   // Telemetria sem alocação por frame para auditoria do custo real na GPU.
   if((Math.floor(ms/1000)%2)===0){
