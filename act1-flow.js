@@ -443,15 +443,21 @@ export function vhazraelDefeatScene() {
   ];
 }
 
-/** De volta ao início do mapa: o esgoto sumiu; tela escura e o Ato II. */
+/** Epílogo jogável do Ato I: o guia acolhe a vitória, mas há cargas rumo às montanhas.
+ * Ponte breve para a região vulcânica, sem antecipar a revelação da Ganância nem
+ * afirmar destinos ainda pendentes de aprovação (Ilyan e crianças).
+ * A sequência de eventos do diretor continua intacta para preservar saves.
+ */
 export function afterVhazraelScene() {
   return [
     shot('volta', 2.6, { cam: 'two', a: 'hero', b: 'guide', side: 1, dist: 4.4 }, { with: [act('anjo-aparece')] }),
-    say(S.guide, 'Então você realmente voltou vivo, né?'),
-    say(S.hero, 'Aonde eu estou? Eu não estava na dimensão de VHAZRAEL?'),
-    say(S.guide, 'Parece que, quando você derrotou VHAZRAEL, o portal se fechou e todo o esgoto sumiu.'),
-    say(S.hero, 'Então, o que eu devo fazer agora?'),
-    say(S.guide, 'Agora é só o começo. Ainda há uma longa jornada pela frente.'),
+    say(S.guide, 'Você voltou. Quando a passagem se fechou, temi que tivesse ficado lá dentro.'),
+    say(S.hero, 'VHAZRAEL caiu. Mas o que ele fez com Eldória não desaparece com ele.'),
+    say(S.guide, 'Não. Os que sobreviveram ainda precisarão de ajuda. Ao menos, agora terão uma chance.'),
+    say(S.hero, 'E a Ganância? Um dos quatro bispos foi derrotado. Onde estão os outros?'),
+    say(S.guide, 'Ainda não sabemos. Mas encontrei registros de cargas enviadas para as montanhas. A estrada segue até a região vulcânica.'),
+    say(S.hero, 'Então começamos por lá. Antes, quero ter certeza de que ninguém ficou para trás.'),
+    say(S.guide, 'É por isso que vale a pena continuar.'),
     act('escuro'),
     wait(2.4)
   ];
