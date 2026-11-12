@@ -540,3 +540,61 @@ Quando o jogador estiver pronto para partir, uma curta interação com Vaelthar 
 Jogador entende que venceu **um bispo, não a Ganância**; vê ao menos um efeito positivo verificável em Eldória; reconhece Teren e Osren sem explicação redundante; consegue nomear por que Vorgazhek é o próximo destino; não sente que a campanha apagou os resgates; mantém controle na maior parte do retorno; o gancho emociona sem recorrer a frase exagerada ou ameaça genérica.
 
 **Próxima parte recomendada:** auditoria integral de ritmo, falas e cronologia do Ato 1; mapa de revelações para a origem dos bispos e dos sete Pecados sem fixar cânone prematuramente.
+
+
+## Parte 9 — O que Eldória sabe e o que ainda não pode saber (12/11/2026, 04h54)
+**Estado:** auditoria narrativa e proposta de distribuição de revelações; NÃO aprovada como cânone. Esta rodada não acrescenta um novo chefe ou bioma: organiza a investigação que acompanha o jogador do prólogo até o encerramento do Ato 1, preparando os próximos atos sem estragar seus mistérios.
+
+### Pesquisa aplicada
+- Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling*, GDC 2010, https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental — vestígios espaciais precisam permitir inferências, não simplesmente repetir exposições.
+- Notas originais da palestra, https://media.gdcvault.com/gdc10/slides/Smith_Harvey_WhatHappenedHereWeb_Notes.pdf — objetos, composição e reação sistêmica podem contar a história juntos.
+- *Pace story around player-controlled time*, https://adventuresincausality.com/principles/GDC-L1-NARR-0005/ — pistas essenciais devem funcionar mesmo quando o jogador explora fora da ordem esperada; cenas opcionais não podem conter o único acesso à compreensão.
+- *Pacing in Level Design: The Rhythm of Spaces*, https://gamedesign.gg/articles/pacing-in-level-design/ — após confrontos, descanso útil e exploração voluntária evitam saturação emocional.
+**Aplicação:** cada informação central tem uma evidência principal e um segundo caminho de acesso; não obrigar o jogador a recolher todos os papéis para entender a campanha.
+
+### Auditoria dos documentos e dos limites
+1. `docs/roteiro/M1-PROLOGO.md` registra **Deus enviando o protagonista para sete mundos**, retirada de asas/aura, escolha de nome e despertar. A versão v1 abre diretamente na queda: **não usar a queda para apagar o encontro celestial**. A missão maior existe antes de Eldória; o protagonista, porém, ainda desconhece o funcionamento da Ganância.
+2. `docs/roteiro/M2-ATO1.md` contém vendedor, crianças transformadas, desmaio, combate contra grupos, esgoto, guardião, Vhazrael e retorno ao spawn. Algumas cenas antigas têm violência verbal ou escolhas sem consequência e divergem das Partes 2–8. **O código `act1-flow.js` não foi auditado nesta rodada**: não alegar que mudanças propostas já existem ou que seus estados podem ser integrados sem adaptação.
+3. `docs/narrativa/ato-1-eldoria-roteiro-v1.md` estabelece Vaelthar como nome público de Aethraziel, o guia limitado, Ilyan, Teren, Osren, Vhazrael como primeiro bispo e quatro selos. A proposta v1 é roteiro de produção, não aprovação final.
+4. `docs/OBJETIVO-GALAXIA-1.md` diferencia a Ganância de seus bispos, aponta sete mundos e avisa que design escrito não é implementação comprovada.
+5. `LABORATORIO-ATO1-RECONSTRUCAO.md`, Partes 2–8, já prepara recibos, marcas de confisco, a insígnia, o ritual, o transporte de prisioneiros e quatro selos. **Não criar uma segunda coleção paralela de símbolos, contratos ou selos.** O mesmo motivo visual deve evoluir de pista cotidiana para prova de organização.
+6. O cenário em reforma pelo Claude **não foi validado visualmente nesta rodada**. Todos os pontos de investigação abaixo são posições relativas a locais já descritos, não coordenadas nem objetos confirmados na build.
+
+### Proposta jogável: a investigação em quatro graus de certeza
+**Grau 1 — O que aconteceu com a cidade?** Na ponte e na banca, recibo recente cobre uma antiga lista de preços; sacos de mercadoria têm o mesmo carimbo. Osren só sabe o que lhe cobraram; Teren confirma que a cobrança apareceu primeiro em outra estrada. O jogador entende: houve uma mudança organizada no comércio. Não sabe ainda a data exata nem quem iniciou tudo.
+
+**Grau 2 — Quem está impondo a cobrança?** A marca reaparece junto à clareira do ritual e no transporte de prisioneiros. O jogador a reconhece sem precisar de um flashback. Um demônio subalterno recebe ordens e teme falhar; outro aproveita a autoridade para explorar moradores. São comportamentos distintos, **não uma explicação oficial de por que todos os demônios existem**. O protagonista entende que a violência e a arrecadação fazem parte da mesma operação local.
+
+**Grau 3 — Quem responde por essa operação?** Na caverna, registro de carga e rota vincula postos de confisco a Vhazrael. Uma marca mais antiga, sem assinatura legível, impede concluir que ele inventou o sistema. O jogador descobre a cadeia de comando do Ato 1, não toda a história do mundo.
+
+**Grau 4 — Qual é a dimensão da ameaça?** Depois de vencer Vhazrael, o primeiro selo e o registro de quatro marcas confirmam que ele era apenas um bispo. A direção para Vorgazhek tem justificativa material (rotas e recursos desviados às montanhas de fogo). Não explicar por que os quatro foram escolhidos, quem eram antes, quando a Ganância chegou ou o objetivo final dos sete Pecados. São perguntas a responder progressivamente nos próximos atos.
+
+### Pequena cena de descoberta (proposta, antes de sair de Eldória)
+O jogador encontra Teren perto da carroça, comparando dois comprovantes de transporte. Um é anterior às cobranças; o outro traz o símbolo visto na dimensão. A interação é opcional; o diário já registra a conexão caso o jogador passe direto.
+
+- **Teren:** “Antes eu pagava pela carga. Agora cobram até pela estrada.”
+- **Protagonista:** “A marca é a mesma.”
+- **Teren:** “Então quem fez isso não ficou só em Eldória.”
+- **Vaelthar:** “Não. E ainda não sabemos onde começou.”
+
+**Função dramática:** Teren percebe uma mudança que afeta seu trabalho; o protagonista conecta evidências; Vaelthar reconhece o limite do conhecimento. Não repetir a explicação dos quatro selos nem transformar Teren em historiador dos Pecados. Se a cena não couber no ritmo do retorno, integrá-la à conversa de Osren já existente; não adicionar missão obrigatória.
+
+### Matriz de revelações e responsabilidades
+| Pergunta | O que o jogador pode afirmar ao fim do Ato 1 | O que continua aberto | Fonte narrativa futura necessária |
+|---|---|---|---|
+| Quando a Ganância chegou? | Eldória tinha comércio e instituições anteriores às taxas atuais | Data, primeiro local de chegada e modo de entrada | Cronologia da Galáxia 1 aprovada pelo criador |
+| Quem criou os quatro bispos? | Vhazrael é um deles; quatro selos integram a progressão | Origem, transformação, critérios de escolha e relações entre os quatro | Dossiê individual de cada bispo e atos posteriores |
+| O que querem os demônios? | Alguns cobram, vigiam, transportam cativos e temem seus superiores; outros exploram a situação | Razão de cada grupo para servir e possibilidade de dissidência | Hierarquia demoníaca e motivações por facção |
+| O que querem os sete Pecados? | Cada mundo está ameaçado por um Pecado; o primeiro tem uma rede de exploração | Objetivo conjunto, rivalidades, relação com Deus e destino dos mundos | Bíblia cosmológica das sete galáxias |
+| Quem é o protagonista? | Recebeu missão divina e perdeu asas/aura; Vhazrael nota algo estranho | Sua natureza humana/angelical e o motivo da exceção | Revelação futura aprovada, sem contradição com prólogo |
+| O que Vaelthar sabe? | Reconhece sinais demoníacos e é limitado; aprende junto do protagonista | O que ainda esconde por cautela, e o que realmente ignora | Arco do anjo com regras estáveis de conhecimento |
+
+### Ritmo e economia de produção
+**Ordem proposta de descoberta:** 1) beleza e confisco na cidade; 2) medo e ritual na floresta; 3) organização na caverna; 4) escala maior na dimensão; 5) confirmação e próximo rumo no retorno. Cada pista deve mudar a interpretação da anterior. Não acrescentar narração onisciente nem coletáveis em quantidade. Um único símbolo reutilizado em objetos existentes, uma reação de NPC e um registro contextualizado bastam.
+
+**Risco de exposição:** se Osren explicar os sete Pecados já no primeiro encontro, a descoberta posterior perde função. Se Vhazrael revelar toda a cosmologia derrotado, a luta vira palestra. Se Vaelthar souber tudo e se recusar a falar sem motivo, a confiança construída nas Partes 2–8 fica comprometida.
+
+**Risco de continuidade:** o nome do primeiro bispo aparece em arquivos como VHAZRAEL/Vhazrael; normalizar a grafia de exibição sem alterar IDs internos. A mulher misteriosa só entra no arco vulcânico, **não** colocar voz, sombra identificável ou participação dela aqui. A perda de Ilyan e o destino das crianças seguem decisões exclusivas pendentes, não resolvidas por esta auditoria.
+
+### Critérios para próxima rodada
+Fazer uma leitura de ritmo e consistência das Partes 2–9; confrontar os nomes e eventos com os arquivos reais de fluxo antes de propor implementação. O jogador deve conseguir explicar **quem oprime Eldória, por que a vitória contra Vhazrael importa e por que segue ao vulcão**, mas não precisa saber ainda a origem dos Pecados. **Nenhum item desta Parte 9 autoriza alterar `main` ou o trabalho do Claude.**
