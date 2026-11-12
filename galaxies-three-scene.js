@@ -488,11 +488,11 @@ function angel(parent,W,H){
  // Pescoço e perfil facial: nariz, testa, lábios, queixo e capuz escuro.
  piece([['M',-.03,.066],['L',-.024,.121],['Q',-.065,.151,-.043,.195],['Q',.002,.23,.062,.176],
        ['L',.070,.147],['L',.085,.135],['L',.069,.126],['L',.074,.106],
-       ['Q',.052,.073,.024,.068],['L',-.03,.066]],'#594650',8);
+       ['Q',.052,.073,.024,.068],['L',-.03,.066]],'#33323d',8);
  piece([['M',-.067,.151],['Q',-.074,.242,-.002,.252],['Q',.082,.225,.093,.165],
        ['Q',.046,.204,-.006,.17],['Q',-.037,.133,-.043,.084],['L',-.067,.151]],'#20202d',11);
  piece([['M',-.054,.109],['Q',-.028,.054,.006,.062],['Q',.009,.122,-.019,.155],['L',-.054,.109]],'#313440',13);
- piece([['M',.02,.149],['L',.061,.152],['L',.054,.147],['L',.02,.149]],'#e0c5a7',13);
+ piece([['M',.02,.149],['L',.061,.152],['L',.054,.147],['L',.02,.149]],'#a9958c',13);
  // Retrato esculpido em profundidade: olhar, nariz, boca e madeixas.
  ball(g,S*.012,'#523c43',S*.051,S*.148,19,[.72,.39,.26]);
  ball(g,S*.005,'#d8b58c',S*.056,S*.15,21,[.48,.56,.3]);
@@ -506,7 +506,7 @@ function angel(parent,W,H){
   const x=S*(-.042+t*.1),top=S*(.237+.015*Math.sin(i*1.4));
   tube(g,[[x,S*.178,22],[x-S*.012,top,23],
    [x-S*(.039+.034*rand(i+10)),top+S*(.01+.039*rand(i+19)),21]],
-   S*(.0028+.0017*rand(i+30)),i%3?'#6f7480':'#a6a6ae',.0);
+   S*(.0019+.0013*rand(i+30)),i%3?'#455566':'#657082',.0);
  }
  // Sobreposição de placas de couro com brilho de metal antigo.
  for(let i=0;i<10;i++){
@@ -514,9 +514,12 @@ function angel(parent,W,H){
   ball(g,S*.011,i%2?'#343644':'#646572',x,y,13,[1.6,.55,.2]);
  }
  // Mão diante do peito, em prece.
- piece([['M',.09,.0],['Q',.17,.027,.142,.072],['Q',.102,.09,.065,.012],['L',.09,.0]],'#a18279',14);
- // Halo atrás da cabeça, inclinado.
- const halo=ring(g,S*.072,S*.003,'#eac187',.22,-.15,-40,.89);halo.position.set(-S*.012,S*.198,-40);
+ piece([['M',.09,.0],['Q',.17,.027,.142,.072],['Q',.102,.09,.065,.012],['L',.09,.0]],'#75595b',14);
+ // Iluminação recortada azul: material escuro ganha contorno e textura,
+ // sem clarear o rosto inteiro como uma ilustração cartunesca.
+ const moonlight=new THREE.PointLight('#427fa9',3.2,S*.48,2);
+ moonlight.position.set(-S*.12,S*.16,56);g.add(moonlight);
+ const halo=ring(g,S*.072,S*.003,'#c29d78',.22,-.15,-40,.58);halo.position.set(-S*.012,S*.198,-40);
  return g;
 }
 function infernalGround(parent,W,H){
