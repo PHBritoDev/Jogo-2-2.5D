@@ -39,7 +39,7 @@ test('Ilyan aparece no mundo 3D e na cena da cela sem forçar destinos não apro
   assert.ok(holeScene({ilyanPresent:true}).some(s => s.actor==='ilyan'));
   assert.ok(!holeScene({ilyanPresent:false}).some(s => s.actor==='ilyan'));
   assert.match(src,/ILYAN_WELL/);
-  assert.match(src,/npcFactory\.create\(\{sex:'man',role:'idle'/);
+  assert.match(src,/npcFactory\.create\(\{sex:'man',role:'walk'/);
   assert.match(src,/syncIlyanPlacement\(\)/);
   assert.match(src,/holeScene\(\{ilyanPresent:!!ilyanNpc\}\)/);
 });
