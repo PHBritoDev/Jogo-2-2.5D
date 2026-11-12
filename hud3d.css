@@ -81,6 +81,8 @@
 @keyframes hudUltGlow{from{filter:drop-shadow(0 0 3px rgba(180,140,255,.7))}to{filter:drop-shadow(0 0 10px rgba(220,200,255,1))}}
 /* Atalho do teclado só no PC, dentro do rótulo (não cobre o ícone). */
 @media (hover:hover) and (pointer:fine){#actions button[data-key]::after{content:""!important}#actions button[data-key] .btn-label::after{content:" · " attr(data-key);color:#f3d58a}}
+/* O script legado mostra ⇧ no DASH, mas a tecla real é F (Shift serve para correr). */
+@media (hover:hover) and (pointer:fine){#actions #dash .btn-label::after{content:" · F"}}
 
 /* ---------- Interação ---------- */
 #talk-button{left:50%!important;bottom:calc(var(--u)*2.7 + var(--safe-b))!important;top:auto!important;transform:translateX(-50%)!important;width:auto!important;height:clamp(36px,9vh,46px)!important;padding:0 20px 0 46px!important;border:2px solid #e2b653!important;border-radius:999px!important;background:linear-gradient(180deg,#3a2a12f0,#140c04f2)!important;color:#fff0c8!important;font:900 clamp(10px,2.6vh,13px)/1 var(--hud-font)!important;letter-spacing:.08em;box-shadow:0 0 0 1px #000,0 0 14px rgba(255,200,90,.35),0 4px 10px #0009!important}
