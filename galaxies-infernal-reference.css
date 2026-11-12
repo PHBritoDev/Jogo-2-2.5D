@@ -166,3 +166,18 @@
 #galaxy-screen.gx-three-on .gx-detail::before,
 #galaxy-screen.gx-three-on .gx-detail::after{font-size:43px;color:#ffc379;text-shadow:0 0 14px #fa3a16}
 #galaxy-screen.gx-three-on .gx-label b{filter:drop-shadow(0 0 3px #f9ad5199)}
+
+/* Composição corrigida conforme referência 1536x864: linhas de planetas e
+ painel sobem, deixando a faixa inferior para o vale vulcânico animado. */
+@media(min-aspect-ratio:14/9){
+ #galaxy-screen.gx-three-on .gx-track{top:18.2%;height:27%}
+ #galaxy-screen.gx-three-on .gx-nav{top:19%; }
+ #galaxy-screen.gx-three-on .gx-detail{
+   top:auto;bottom:21.9%;height:28%;padding:.7% 1.6%;
+   grid-template-columns:27% 38% 1fr
+ }
+ #galaxy-screen.gx-three-on .gx-art .gx-planet{width:min(24vh,190px);height:min(24vh,190px)}
+ #galaxy-screen.gx-three-on .gx-detail h2{font-size:clamp(20px,6vh,47px)}
+ #galaxy-screen.gx-three-on .gx-enter{height:clamp(31px,6vh,56px)!important}
+ #galaxy-screen.gx-three-on .gx-access{height:91%}
+}
