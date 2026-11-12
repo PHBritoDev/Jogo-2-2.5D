@@ -424,7 +424,7 @@ function smokeLayer(parent,W,H,tint,x,y,z){
  const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
   uniforms:{uTime:{value:0},uTint:{value:new THREE.Color(tint)}},
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:"\nuniform float uTime;uniform vec3 uTint;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float v=0.;float a=.57;for(int i=0;i<3;i++){v+=a*n(p);p*=2.11;a*=.5;}return v;}\nvoid main(){\n vec2 uv=vUv,flow=vec2(uTime*.016,uTime*.002);\n float large=fbm(uv*vec2(4.,3.)+flow),fine=fbm(uv*vec2(13.,8.)-flow*.65);\n float m=smoothstep(.32,.65,large*.75+fine*.34);\n float feather=pow(max(0.,sin(3.1415926*uv.x)*sin(3.1415926*uv.y)),.85);\n float a=m*feather*.31;\n vec3 color=uTint*(.55+large*.85);\n gl_FragColor=vec4(color,a);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
+  fragmentShader:"\nuniform float uTime;uniform vec3 uTint;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float v=0.;float a=.57;for(int i=0;i<3;i++){v+=a*n(p);p*=2.11;a*=.5;}return v;}\nvoid main(){\n vec2 uv=vUv,flow=vec2(uTime*.016,uTime*.002);\n float large=fbm(uv*vec2(4.,3.)+flow),fine=fbm(uv*vec2(13.,8.)-flow*.65);\n float m=smoothstep(.32,.65,large*.75+fine*.34);\n float feather=pow(max(0.,sin(3.1415926*uv.x)*sin(3.1415926*uv.y)),.85);\n float a=pow(m,1.15)*feather*.67;\n vec3 color=uTint*(.55+large*.85);\n gl_FragColor=vec4(color,a);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
  mesh(new THREE.PlaneGeometry(W*.66,H*.47),material,parent,x,y,z);
  return material;
 }
@@ -651,7 +651,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const red=new THREE.PointLight('#ff3a17',3.4,H*1.25,1.5);red.position.set(W*.3,H*.25,150);scene.add(red);
  const environment=new THREE.Group();scene.add(environment);
  const shader=sky(environment,W,H);
- const smokes=[smokeLayer(environment,W,H,'#25364e',-W*.19,H*.26,-310),smokeLayer(environment,W,H,'#74212e',W*.28,H*.27,-309)];
+ const smokes=[smokeLayer(environment,W,H,'#365579',-W*.19,H*.26,-310),smokeLayer(environment,W,H,'#a32738',W*.28,H*.27,-309)];
  gothicRuins(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);angel(environment,W,H);starfield(environment,W,H);
  const embers=emberField(environment,W,H);
  const groups=[],details={planet:null,chains:null};
