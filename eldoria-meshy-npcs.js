@@ -54,31 +54,6 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
    body.position.y+=groundHeightAt(x,z)-sitting.min.y+.025;
   }
   src.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});
-  // Cabelos autorais: somente se o modelo tiver osso de cabeça válido.
-  // Evita posicionar cabelo no ar com rig incompatível.
-  let attachedHair=null;
-  if(hair){
-   const hairFile=(sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair;
-   const head=[];src.traverse(o=>{if(o.isBone&&/(^head$|head$|cabeca$)/i.test(o.name))head.push(o);});
-   if(head.length){
-    try{
-     const hairGltf=await load(hairFile),hairScene=hairGltf.scene.clone(true);
-     const hb=new THREE.Box3().setFromObject(hairScene),hs=hb.getSize(new THREE.Vector3()),hc=hb.getCenter(new THREE.Vector3());
-     // Pequeno acessório fixado ao osso, sem animação extra por frame.
-     const mesh=new THREE.Group();const child=sex==='boy'||sex==='girl';
-     const width=child?.18:sex==='man'?.255:.28;
-     const maxHeight=child?.23:sex==='man'?.27:.42;
-     // IMPORTANTE: os GLBs de cabelo têm eixo Y muito maior que X/Z.
-     // Normalizar apenas pela largura produzia cabelos de 6–9 m (NPCs gigantes ao deitar).
-     const scale=Math.min(width/Math.max(.01,hs.x,hs.z),maxHeight/Math.max(.01,hs.y));
-     hairScene.scale.setScalar(scale);
-     hairScene.position.set(-hc.x*scale,-hb.min.y*scale,-hc.z*scale);
-     mesh.add(hairScene);
-     mesh.name='CabeloMeshy';mesh.position.set(0,child?.055:.085,0);
-     head[0].add(mesh);attachedHair=mesh;
-    }catch(error){console.warn('Cabelo Meshy não carregou:',hairFile,error);}
-   }else console.warn('NPC sem osso Head identificado; cabelo separado não anexado:',file);
-  }
   const nativeClips=gltf.animations||[];
   // Em alguns GLBs só há Walking/Running: evitar a pose rígida em T.
   const clip=clipFor(nativeClips,role)||nativeClips.find(c=>/walking/i.test(c.name))||null;
@@ -93,19 +68,31 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
     action.paused=true;
    }
   }
-  // O osso Head pode ter uma escala mundial muito diferente do SkinnedMesh.
-  // Corrigir o acessório DEPOIS da pose, em metros do mundo, não no espaço do osso.
-  if(attachedHair){
-   holder.updateMatrixWorld(true);
-   const hairBounds=new THREE.Box3().setFromObject(attachedHair);
-   const hairDims=hairBounds.getSize(new THREE.Vector3());
-   const isChild=sex==='boy'||sex==='girl',isWoman=sex==='woman'||sex==='girl';
-   const capHeight=isChild?.25:isWoman?.48:.31,capWidth=isChild?.23:.32;
-   const ratio=Math.min(1,capHeight/Math.max(.0001,hairDims.y),capWidth/Math.max(.0001,hairDims.x,hairDims.z));
-   if(ratio<1){
-    attachedHair.scale.multiplyScalar(ratio);
-    attachedHair.updateMatrixWorld(true);
-   }
+  // Hair GLBs possuem rigs/metadados incompatíveis com Head do corpo.
+  // Nunca anexar diretamente ao osso: no modelo original ele fica a 6–9 m.
+  // Ancorar no topo da geometria VISÍVEL após aplicar a pose.
+  if(hair&&role!=='down'){
+   const hairFile=(sex==='woman'||sex==='girl')?ELDORIA_NPC_MODELS.femaleHair:ELDORIA_NPC_MODELS.maleHair;
+   try{
+    holder.updateMatrixWorld(true);
+    const skinBox=new THREE.Box3().setFromObject(holder);
+    const hairGltf=await load(hairFile),hairScene=hairGltf.scene.clone(true);
+    const hb=new THREE.Box3().setFromObject(hairScene),hs=hb.getSize(new THREE.Vector3()),hc=hb.getCenter(new THREE.Vector3());
+    const child=sex==='boy'||sex==='girl',female=sex==='woman'||sex==='girl';
+    const width=child?.20:female?.29:.27,height=child?.19:female?.35:.24;
+    const k=Math.min(width/Math.max(.001,hs.x,hs.z),height/Math.max(.001,hs.y));
+    const accessory=new THREE.Group();accessory.name='CabeloMeshy';
+    hairScene.scale.setScalar(k);
+    hairScene.position.set(-hc.x*k,-hb.min.y*k,-hc.z*k);
+    accessory.add(hairScene);
+    // Trancar ao corpo (holder) para não herdar escalas anormais da armadura óssea.
+    accessory.position.set(
+     (skinBox.min.x+skinBox.max.x)*.5-holder.position.x,
+     skinBox.max.y-holder.position.y-(child?.10:.15),
+     (skinBox.min.z+skinBox.max.z)*.5-holder.position.z
+    );
+    holder.add(accessory);
+   }catch(e){console.warn('Cabelo não foi aplicado:',hairFile,e);}
   }
   // O corpo já foi normalizado antes do cabelo. Nunca redimensionar o CORPO
   // para compensar a altura de um acessório: foi a causa da regressão anterior.
