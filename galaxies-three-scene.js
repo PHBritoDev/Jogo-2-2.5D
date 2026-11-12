@@ -150,12 +150,12 @@ function starfield(parent,W,H){
  for(let i=0;i<n;i++){points[i*3]=(rand(i*4)-.5)*W;points[i*3+1]=(rand(i*5+2)-.5)*H;points[i*3+2]=-310+rand(i*7)*35;
   const c=new THREE.Color(i%5===0?'#ff6b52':'#e7bbad');cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(points,3));g.setAttribute('color',new THREE.BufferAttribute(cols,3));
- return mesh(g,new THREE.PointsMaterial({size:1.45,vertexColors:true,transparent:true,opacity:.8,sizeAttenuation:false}),parent);
+ const pts=new THREE.Points(g,new THREE.PointsMaterial({size:1.45,vertexColors:true,transparent:true,opacity:.8,sizeAttenuation:false}));parent.add(pts);return pts;
 }
 function sky(parent,W,H){
  const material=new THREE.ShaderMaterial({uniforms:{uTime:{value:0}},depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:String.raw\`
+ fragmentShader:`
  uniform float uTime;varying vec2 vUv;
  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
  float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}
@@ -167,7 +167,7 @@ function sky(parent,W,H){
   sky+=vec3(.39,.032,.015)*pow(max(0.,f-.45),1.8)*inferno*2.2;
   sky*=.62+.72*f;
   gl_FragColor=vec4(sky,1.);
- }\`});
+ }`});
  const plane=mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
  return material;
 }
