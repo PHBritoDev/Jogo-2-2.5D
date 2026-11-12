@@ -181,3 +181,15 @@
  #galaxy-screen.gx-three-on .gx-enter{height:clamp(31px,6vh,56px)!important}
  #galaxy-screen.gx-three-on .gx-access{height:91%}
 }
+
+/* Ajustes de hierarquia textual e altura do menu da referência 1536x864. */
+@media (min-aspect-ratio:14/9){
+ #galaxy-screen.gx-three-on .gx-head{left:31%;width:44%;top:3.2%}
+ #galaxy-screen.gx-three-on .gx-head h1{
+  font-size:clamp(23px,6.1vh,54px);
+  text-shadow:0 1px 2px #13070c,0 0 11px #8d240d80;
+  background:linear-gradient(180deg,#fff9e4 0%,#f9dbaa 32%,#e2ad6b 67%,#a66d42 89%,#fae0a3);
+  -webkit-background-clip:text;background-clip:text
+ }
+ #galaxy-screen.gx-three-on .gx-nav button{min-height:clamp(36px,6.35vh,55px)}
+}
