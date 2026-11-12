@@ -59,8 +59,8 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
      api.walkMove(b[0]-a[0],b[1]-a[1],2);
      return {prior,foot:a,top:b};
    });
-   await page.waitForTimeout(2400);
-   const result=await page.evaluate(()=>({state:window.SevenSinsDebug3D.walkState(),busy:window.SevenSinsDebug3D.walkBusy()}));
+   // Avança a física determinística, sem depender do FPS real do SwiftShader.
+   const result=await page.evaluate(()=>{const d=window.SevenSinsDebug3D;d.combatStep(2.8,{fps:30,draw:false});return{state:d.walkState(),busy:d.walkBusy()};});
    const after=result.state;
    const snap=path.join(dir,"escada-depois-caminhada.png");
    await page.screenshot({path:snap,timeout:65000,animations:"disabled"});
