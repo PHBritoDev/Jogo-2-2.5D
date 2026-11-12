@@ -1894,7 +1894,10 @@ cameraPitch=THREE.MathUtils.clamp(cameraPitch+dy*(firstPersonLook?.003:.004)*use
 function endLook(e){const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
 lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);lookArea.addEventListener('lostpointercapture',endLook);
 lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);syncCameraToggle3D();},{passive:true});
-addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';});
+function resetInterruptedControls(){lookPointers.clear();mouseLookStart=null;lastPinchDistance=0;for(const key of Object.keys(keys))keys[key]=false;endJoy();moveVX=moveVZ=0;setDefending(false);}
+addEventListener('blur',resetInterruptedControls);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInterruptedControls();});
+stick.addEventListener('lostpointercapture',endJoy);
 
 function blockedAt(x,z){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
