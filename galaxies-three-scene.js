@@ -532,8 +532,8 @@ function eclipse(parent,W,H){
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}'});
  mesh(new THREE.CircleGeometry(r,64),moon,parent,x,y,-283);
  mesh(new THREE.CircleGeometry(r*.79,64),new THREE.MeshBasicMaterial({color:'#180609'}),parent,x-r*.10,y+r*.08,-273);
- ring(parent,r*.98,r*.019,'#fc5428',0,0,-267);
- ring(parent,r*1.035,r*.008,'#f1974c',0,0,-272,.72);
+ ring(parent,r*.98,r*.019,'#fc5428',0,0,-267).position.set(x,y,-267);
+ ring(parent,r*1.035,r*.008,'#f1974c',0,0,-272,.72).position.set(x,y,-272);
  const glow=new THREE.PointLight('#ff311b',5,H*.9,1.5);glow.position.set(x,y,110);parent.add(glow);
 }
 function angel(parent,W,H){
