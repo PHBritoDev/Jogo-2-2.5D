@@ -1,0 +1,57 @@
+name: Mod 316 — Eldória luz nostálgica, águas, expansão e correções (evidências)
+on:
+  pull_request:
+    paths:
+      - 'mundo-3d-prototype.js'
+      - 'eldoria-nostalgic-light.js'
+      - 'eldoria-water.js'
+      - 'eldoria-waterfall3d.js'
+      - 'eldoria-birds3d.js'
+      - 'eldoria-forest-places3d.js'
+      - 'eldoria-far-ridges3d.js'
+      - 'eldoria-torches3d.js'
+      - 'ascension-cave3d.js'
+      - 'ascension-layout.js'
+      - 'light-budget3d.js'
+      - 'audio3d.js'
+      - 'act1-world-layout.js'
+      - 'tests/mod316-eldoria.test.mjs'
+      - 'tools/visual-lab/eldoria-mod316-evidence.cjs'
+      - '.github/workflows/eldoria-mod316-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testes do Mod 316 e regressões da caverna
+        run: node --test tests/mod316-eldoria.test.mjs tests/ascension311.test.mjs tests/mod312-spatial.test.mjs eldoria-water-glsl.test.mjs eldoria-lake-foam.test.mjs build-info.test.mjs
+      - name: Instalar navegador WebGL
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install chromium --only-shell
+      - name: Servir o jogo de teste sem publicar
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/mod316.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/mod316.log
+          exit 1
+      - name: Capturas, vídeos e métricas (SwiftShader, não Android)
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/eldoria-mod316-evidence.cjs
+      - name: Publicar evidências
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eldoria-mod316-${{ github.run_number }}
+          path: visual-lab-results/eldoria-mod316/
+          retention-days: 30
+          if-no-files-found: warn

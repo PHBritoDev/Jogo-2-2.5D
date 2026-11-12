@@ -17,12 +17,24 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   });
   const sources = new Set(), sourceScore = new Map(), ranked = [];
   let frame = 0;
+  /* Mod 316 — guarda imediata: antes, uma PointLight nova (tocha GLB que termina de carregar, efeito, zona) ficava até
+     45 quadros na camada 0 até o próximo scan. Nesse intervalo o número de luzes do shader mudava (+1) e TODOS os
+     materiais iluminados recompilavam — e de novo quando o scan a escondia: duas travadas de 0,3–0,5 s no celular.
+     Agora qualquer add() que traga uma PointLight a registra na hora, antes do próximo render. */
+  function adopt(o) { if (o.isPointLight && !o.userData.budgetSlot && !o.castShadow && !sources.has(o)) { sources.add(o); sourceScore.set(o, { s: o, score: 0 }); o.layers.set(hiddenLayer); } }
+  const Obj = T.Object3D && T.Object3D.prototype, rawAdd = Obj && Obj.add;
+  if (Obj && !Obj.__budgetGuard) {
+    Obj.__budgetGuard = [];
+    // só conta o que entra NA cena do orçamento (cenas auxiliares, como o retrato do HUD, mantêm as luzes delas)
+    Obj.add = function (...objs) { const r = rawAdd.apply(this, objs); let root = this; while (root.parent) root = root.parent;
+      for (const g of Obj.__budgetGuard) if (g.scene === root) for (const o of objs) if (o && o.isObject3D) (o.isPointLight ? g.adopt(o) : o.children.length && o.traverse(g.adopt)); return r; };
+  }
+  if (Obj) Obj.__budgetGuard.push({ scene, adopt });
   const v = new T.Vector3(), cam = new T.Vector3();
   function scan() {
-    scene.traverse(o => {
-      if (!o.isPointLight || o.userData.budgetSlot || o.castShadow || sources.has(o)) return;
-      sources.add(o); sourceScore.set(o,{s:o,score:0}); o.layers.set(hiddenLayer);
-    });
+    scene.traverse(adopt);
+    // fontes removidas da cena saem do conjunto (sem crescer para sempre com efeitos descartados)
+    for (const o of sources) if (!o.parent) { sources.delete(o); sourceScore.delete(o); }
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
   function update(camera, dt = 1 / 60) {

@@ -139,23 +139,31 @@ export const CAVE = Object.freeze({
     { id: 'salao', x: 0, z: -58, r: 27, floor: -6, ceil: 40, wob: 4.2, s: 11 },       // grande gruta vertical (ref. 2)
     { id: 'gruta', x: -42, z: -62, r: 17, floor: -7.6, ceil: 17, wob: 3.2, s: 12 },  // gruta verde-azulada com poças (ref. 3)
     { id: 'portal', x: -4, z: -132, r: 20, floor: -1.6, ceil: 30, wob: 3, s: 13 },   // câmara do portal
-    { id: 'eco', x: 34, z: -100, r: 10, floor: -4.4, ceil: 14, wob: 2.4, s: 14 },    // nicho lateral (expansão futura)
+    { id: 'eco', x: 34, z: -100, r: 10, floor: -4.4, ceil: 14, wob: 2.4, s: 14 },    // nicho lateral
+    // Mod 316 — expansão: as duas ramificações seladas viraram espaços grandes, cada um com função de leitura própria.
+    { id: 'prisao', x: 58, z: -34, r: 13, floor: -5.4, ceil: 12, wob: 2.2, s: 15 },   // câmara de ocupação/prisão (jaulas, restos de vigília)
+    { id: 'cristal', x: -58, z: -106, r: 17, floor: -3.2, ceil: 30, wob: 3.4, s: 16 }, // salão de cristal e água (poça-espelho, feixe do teto)
   ],
   corridors: [
     { id: 'entrada', a: [0, 10], b: [0, -32], r: 4.5, fa: 0, fb: -6, ceil: 9.2 },
     { id: 'ligacao-gruta', a: [-20, -60], b: [-29, -61], r: 3.9, fa: -6, fb: -7.6, ceil: 8.2 },
     { id: 'norte', a: [0, -84], b: [-3, -113], r: 4.1, fa: -6, fb: -1.6, ceil: 9.2 },
     { id: 'eco', a: [18, -76], b: [30, -94], r: 3.6, fa: -6, fb: -4.4, ceil: 8.0 },
-    // ramificações seladas por desabamento (expansão futura): caminhável só até o entulho
-    { id: 'leste-selado', a: [24, -50], b: [38, -44], r: 2.9, fa: -6, fb: -5, ceil: 6.5, sealed: true },
-    { id: 'noroeste-selado', a: [-20, -126], b: [-34, -118], r: 2.5, fa: -1.6, fb: -1.2, ceil: 6, sealed: true },
+    // Mod 316 — antigas ramificações seladas, agora abertas: galeria leste com degrau descendo à prisão e passagem
+    // estreita e escura (eco) até o salão de cristal. Largura ≥ 2,6 m: o corpo e a câmera passam sem raspar.
+    { id: 'leste', a: [22, -51], b: [46, -38], r: 3.1, fa: -6, fb: -5.4, ceil: 7 },
+    { id: 'eco-cristal', a: [-17, -127], b: [-44, -112], r: 2.7, fa: -1.6, fb: -3.2, ceil: 6.2 },
   ],
   /** abismo no salão (não caminhável) atravessado por uma ponte natural de pedra */
   chasm: { x: 1, z: -60, rx: 14.5, rz: 8.6 },
   bridge: { a: [0, -48.5], b: [0, -71.5], r: 1.75, y: -6 },
-  pools: [{ x: -46, z: -57, r: 4.6 }, { x: -37, z: -68.5, r: 3.1 }, { x: -48.5, z: -68, r: 2.2 }],
+  pools: [{ x: -46, z: -57, r: 4.6 }, { x: -37, z: -68.5, r: 3.1 }, { x: -48.5, z: -68, r: 2.2 }, { x: -62, z: -103, r: 6.2 }, { x: -50, z: -116, r: 2.6 }],
   pillars: [{ x: -16, z: -44, r: 2.3 }, { x: 17, z: -72, r: 2.7 }, { x: -15, z: -76, r: 1.9 }, { x: 15, z: -43, r: 2 }, { x: 8, z: -120, r: 1.2 }, { x: -14, z: -138, r: 1.8 }, { x: 7, z: -139, r: 1.7 }],
-  rubble: [{ x: 37, z: -44.5, r: 3.4 }, { x: -33, z: -118.5, r: 3 }],
+  // entulho antigo encostado nas paredes das câmaras novas (as passagens agora são livres)
+  rubble: [{ x: 66, z: -24, r: 3 }, { x: -70, z: -96, r: 3.2 }],
+  /** Mod 316 — jaulas da câmara de ocupação (JaulaRitualAto1.glb) e restos da vigília. */
+  cages: [{ x: 61, z: -40, yaw: .4 }, { x: 65.5, z: -31, yaw: -.9 }, { x: 52, z: -26, yaw: 2.1 }],
+  camp: { x: 53, z: -36 },
   portal: { x: -4, z: -144, r: 3.1, h: 3.9 },
 });
 
