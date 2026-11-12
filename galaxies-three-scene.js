@@ -339,8 +339,9 @@ function eclipse(parent,W,H){
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:"varying vec2 vUv;\nvoid main(){float d=length((vUv-.5)*2.);\nfloat glow=exp(-d*3.3)*.58+exp(-abs(d-.53)*15.)*.32;\nvec3 c=mix(vec3(.92,.055,.01),vec3(.99,.27,.07),d);\ngl_FragColor=vec4(c,glow*max(0.,1.-smoothstep(.8,1.1,d)));\n #include <tonemapping_fragment>\n #include <colorspace_fragment>}"});
  mesh(new THREE.PlaneGeometry(r*4.6,r*4.6),corona,parent,x,y,-295);
- const moon=mesh(new THREE.SphereGeometry(r,48,32),
-  new THREE.MeshBasicMaterial({map:proceduralTexture(6),color:'#b91b17'}),parent,x,y,-283);
+ const moon=new THREE.ShaderMaterial({fragmentShader:"varying vec2 vUv;\nfloat hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}\nvoid main(){\n vec2 v=(vUv-.5)*2.;float d=length(v);\n float clouds=n(v*8.)*.48+n(v*21.)*.25+n(v*3.)*.27;\n float limb=smoothstep(.69,.99,d);\n vec3 surface=mix(vec3(.028,.004,.013),vec3(.14,.013,.022),clouds);\n surface+=vec3(.11,.006,.009)*pow(max(0.,clouds-.35),1.9);\n vec3 fire=mix(vec3(.73,.035,.016),vec3(1.,.36,.05),pow(limb,3.));\n surface=mix(surface,fire,limb*.92);\n surface*=.72;\n gl_FragColor=vec4(surface,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}",
+ vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}'});
+ mesh(new THREE.CircleGeometry(r,64),moon,parent,x,y,-283);
  mesh(new THREE.CircleGeometry(r*.79,64),new THREE.MeshBasicMaterial({color:'#180609'}),parent,x-r*.10,y+r*.08,-273);
  ring(parent,r*.98,r*.019,'#fc5428',0,0,-267);
  ring(parent,r*1.035,r*.008,'#f1974c',0,0,-272,.72);
