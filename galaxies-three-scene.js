@@ -349,7 +349,8 @@ function angel(parent,W,H){
    if(k==='Q')sh.quadraticCurveTo(...p.map(x=>x*S));
    if(k==='C')sh.bezierCurveTo(...p.map(x=>x*S));
   }
-  const o=mesh(new THREE.ShapeGeometry(sh,10),new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.86,metalness}),g,0,0,z);
+  const geo=z>0?new THREE.ExtrudeGeometry(sh,{depth:2.5,steps:1,bevelEnabled:true,bevelThickness:.7,bevelSize:.9,bevelSegments:2,curveSegments:12}):new THREE.ShapeGeometry(sh,10);
+  const o=mesh(geo,new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.78,metalness}),g,0,0,z);
   return o;
  };
  // Plumas longas sobrepostas em camadas, com nervuras claras.
@@ -375,6 +376,26 @@ function angel(parent,W,H){
        ['Q',.046,.204,-.006,.17],['Q',-.037,.133,-.043,.084],['L',-.067,.151]],'#20202d',11);
  piece([['M',-.054,.109],['Q',-.028,.054,.006,.062],['Q',.009,.122,-.019,.155],['L',-.054,.109]],'#313440',13);
  piece([['M',.02,.149],['L',.061,.152],['L',.054,.147],['L',.02,.149]],'#e0c5a7',13);
+ // Retrato esculpido em profundidade: olhar, nariz, boca e madeixas.
+ ball(g,S*.012,'#523c43',S*.051,S*.148,19,[.72,.39,.26]);
+ ball(g,S*.005,'#d8b58c',S*.056,S*.15,21,[.48,.56,.3]);
+ tube(g,[[S*.019,S*.17,19],[S*.046,S*.181,21],[S*.070,S*.17,20]],S*.0034,'#272331');
+ tube(g,[[S*.071,S*.143,19],[S*.087,S*.138,19],[S*.079,S*.133,21]],S*.0031,'#b1817e');
+ tube(g,[[S*.062,S*.106,19],[S*.074,S*.104,19],[S*.067,S*.095,19]],S*.0024,'#774e4f');
+ ball(g,S*.021,'#71555c',S*.006,S*.113,12,[1.5,.96,.33]);
+ // Cabelos grisalhos eriçados pelo vento, enraizados no couro cabeludo.
+ for(let i=0;i<24;i++){
+  const t=i/23;
+  const x=S*(-.042+t*.1),top=S*(.237+.015*Math.sin(i*1.4));
+  tube(g,[[x,S*.178,22],[x-S*.012,top,23],
+   [x-S*(.039+.034*rand(i+10)),top+S*(.01+.039*rand(i+19)),21]],
+   S*(.0028+.0017*rand(i+30)),i%3?'#6f7480':'#a6a6ae',.0);
+ }
+ // Sobreposição de placas de couro com brilho de metal antigo.
+ for(let i=0;i<10;i++){
+  const x=-S*.082+S*.025*(i%5),y=-S*.018-S*.023*Math.floor(i/5);
+  ball(g,S*.011,i%2?'#343644':'#646572',x,y,13,[1.6,.55,.2]);
+ }
  // Mão diante do peito, em prece.
  piece([['M',.09,.0],['Q',.17,.027,.142,.072],['Q',.102,.09,.065,.012],['L',.09,.0]],'#a18279',14);
  // Halo atrás da cabeça, inclinado.
