@@ -598,3 +598,55 @@ O jogador encontra Teren perto da carroça, comparando dois comprovantes de tran
 
 ### Critérios para próxima rodada
 Fazer uma leitura de ritmo e consistência das Partes 2–9; confrontar os nomes e eventos com os arquivos reais de fluxo antes de propor implementação. O jogador deve conseguir explicar **quem oprime Eldória, por que a vitória contra Vhazrael importa e por que segue ao vulcão**, mas não precisa saber ainda a origem dos Pecados. **Nenhum item desta Parte 9 autoriza alterar `main` ou o trabalho do Claude.**
+
+
+## Parte 10 — Auditoria de continuidade e ritmo jogável (12/11/2026)
+**Estado:** proposta de revisão, não cânone aprovado. Nenhuma mudança de cenário do Claude foi validada visualmente nesta rodada.
+
+### Pesquisa desta etapa
+- Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling*, GDC 2010: https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental — vestígios e reações do ambiente permitem ao jogador interpretar acontecimentos sem exposição redundante.
+- Notas originais de Matthias Worch: https://www.worch.com/2010/03/11/gdc-2010/ — composição e objetos como portadores de história.
+- Paweł Sasko, *10 Key Quest Design Lessons from The Witcher 3 and Cyberpunk 2077*, GDC 2023: https://www.gdcvault.com/play/1028897/10-Key-Quest-Design-LessonsStartup — concisão, impacto emocional, estrutura de escolhas e consequências.
+- Síntese técnica: https://www.gamedeveloper.com/marketing/10-key-takeaways-from-the-quest-design-of-cyberpunk-2077-and-the-witcher-3 — deixar espaço para as emoções e fazer o jogador desejar a próxima informação.
+
+### Auditoria dos arquivos reais
+1. 'docs/roteiro/M1-PROLOGO.md' e 'prologue-flow.js' preservam encontro com Deus, sete mundos, retirada das asas e aura, escolha do nome e despertar. O começo diretamente pela queda, proposto em 'ato-1-eldoria-roteiro-v1.md', NÃO pode substituir a abertura celestial. Campo e estrada podem aparecer depois, sem repetir o despertar.
+2. 'docs/roteiro/M2-ATO1.md' e 'act1-flow.js' descrevem vila, gaiola, transformação das crianças, esgoto, Guardião do Portal e Vhazrael. O código tem ACT1.version=6, rev=2 e flags childrenFreed, wardenDefeated, portalOpened e bishopsDefeated. Essas flags não comprovam que as propostas das Partes 2–9 foram implementadas.
+3. 'docs/narrativa/ato-1-eldoria-roteiro-v1.md' é roteiro de produção não implementado; fornece Teren, Osren, Ilyan, Zarkun, Vaelthar/Aethraziel e quatro selos. 'docs/OBJETIVO-GALAXIA-1.md' exige preservar dimensão existente, campanha 3D, checkpoints e suporte mobile. Nenhuma dessas fontes autoriza substituir combate.
+4. As Partes 2–9 deste laboratório são hipóteses conectadas, não ordens para criar nove conjuntos de missões. A mulher misteriosa não participa do Ato 1.
+
+### Conflitos a resolver antes de implementar
+| Tema | Evidência | Proposta / pendência |
+|---|---|---|
+| Abertura | M1 e fluxo mostram Deus; v1 começa na queda | Preservar prólogo celestial; queda somente depois, sem duplicação |
+| Identidade do guia | Fluxo diz Anjo Guiador; v1 diz Aethraziel/Vaelthar | Um único personagem, Vaelthar como nome público; revisar falas quando aprovado |
+| Crianças | M2 transforma crianças em inimigos; laboratório propõe resgate | Duas alternativas abertas; exigir decisão autoral antes de cenas condicionais |
+| Ilyan | v1 prevê perda para Zarkun; laboratório preserva alternativas | Não prometer salvamento impossível; decidir destino antes de programar |
+| Miniboss | M2 possui Guardião do Portal; v1 introduz Zarkun | Auditar identidade, modelo e função antes de renomear ou duplicar |
+| Geografia | M2 usa esgoto; v1 propõe caverna monumental | Planejar uma ligação espacial plausível depois de validar o mapa |
+| Primeiro selo | Vhazrael é primeiro bispo, Ganância é superior | Vencer Vhazrael não encerra Galáxia 1; selo aponta para Vorgazhek |
+| Próximo ato | M2 termina com Ato II; v1 aponta vulcão | Encerrar com consequência em Eldória e direção ao vulcão, sem revelar a mulher misteriosa |
+
+### Cena curta proposta — O trabalho que continua
+**Posição:** ponto de encontro já existente na rota de retorno, se validado. Não criar uma missão de entrega nem teleportar personagens para locais incompatíveis. O jogador recupera o controle após a fuga da dimensão e encontra Osren distribuindo mantimentos recuperados, com Teren junto à carga.
+
+- **Osren:** “Abrimos o depósito. Não vai durar muito, mas hoje ninguém sai daqui sem comer.”
+- **Teren:** “Na estrada do norte, vi cargas com a mesma marca. Seguiam para as montanhas.”
+- **Protagonista:** “Então ainda há outros envolvidos.”
+- **Vaelthar:** “Há. Mas o que vocês fizeram aqui teve resultado.”
+- **Osren:** “Voltem quando puderem. Ainda temos trabalho.”
+
+**Função das falas:** Osren demonstra ação própria, não dependência do herói; Teren fornece observação concreta do seu ofício, sem saber toda a cosmologia; protagonista liga as evidências; Vaelthar reconhece o esforço sem resolver o mistério. Cortar a última fala se alongar a saída. O jogador pode seguir quando quiser, e um comprovante já existente pode acrescentar detalhe opcional. Não repetir os quatro selos, explicados no encontro com Vhazrael.
+
+**Consequência condicional:** mostrar pessoas resgatadas somente quando houver registro inequívoco de resgate. A flag childrenFreed não deve ser interpretada automaticamente como sobrevivência: no fluxo legado, as crianças se transformam. Se não houve salvamento, manter a distribuição de mantimentos como conquista coletiva, sem acusação artificial ao jogador.
+
+### Revelações obrigatórias, alternativas e riscos
+**Obrigatório para compreensão:** missão divina, exploração da cidade, conexão entre confisco e demônios, Vhazrael como bispo e não Ganância, primeiro selo e direção de Vorgazhek. Essas informações não podem depender de coletáveis opcionais.
+
+**Ainda em aberto:** quando a Ganância chegou, como surgiram os quatro bispos, objetivos conjuntos dos sete Pecados, motivações de diferentes demônios, natureza do protagonista, limites do conhecimento de Vaelthar e possível papel futuro da mulher misteriosa. Não transformar hipótese em cânone.
+
+**Riscos:** salvar crianças em um trecho e mostrá-las transformadas em outro; duplicar Guardião/Zarkun; quebrar progressão ao trocar flags; acrescentar epílogo longo; declarar cenários do Claude concluídos sem inspeção. Para mobile, priorizar estados de objetos existentes, NPCs presentes e diálogos curtos, sem novos efeitos persistentes.
+
+**Alternativas de encenação:** se a volta a Eldória for espacialmente possível, encontro na cidade; se não, usar um abrigo da rota validada e somente personagens que plausivelmente estejam lá. **Pendências autorais:** destino de Ilyan, destino das crianças, identidade do Guardião e mapa definitivo.
+
+**Próxima rodada:** conferir a máquina de estados e as condições de transição de 'act1-flow.js' contra essas alternativas, sem editar código. Esta Parte 10 não autoriza mudanças na main, PRs, workflows ou trabalho do Claude.
