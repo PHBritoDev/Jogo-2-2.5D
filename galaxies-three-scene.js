@@ -132,11 +132,29 @@ function goldenIsland(parent,r){
 function coin(parent,r,x,y,z){const m=new THREE.MeshStandardMaterial({color:'#ffcf43',metalness:.85,roughness:.21,emissive:'#a24a02',emissiveIntensity:.1});
  const o=mesh(new THREE.CylinderGeometry(r,r,r*.16,12),m,parent,x,y,z);o.rotation.x=PI/2;return o;}
 function treasure(parent,r){
- const brown=mat('#54280b',.32,.56),gold=mat('#efae36',.78,.32);
- const base=mesh(new THREE.BoxGeometry(r*.86,r*.39,r*.45),brown,parent,0,-r*.29,r*.79);
- const lid=mesh(new THREE.BoxGeometry(r*.86,r*.13,r*.48),gold,parent,0,r*.02,r*.8);lid.rotation.z=.23;
- for(let i=0;i<14;i++)coin(parent,r*.095,(rand(i+42)-.5)*r*1.5,-r*.55+rand(i+12)*r*.5,r*.95+rand(i)*r*.13);
- for(const x of [-r*.4,r*.4])mesh(new THREE.BoxGeometry(r*.07,r*.4,r*.52),gold,parent,x,-r*.25,r*.81);
+ // Baú de Avareza com tampa levantada, conteúdo luminoso e moedas 3D.
+ const wood=mat('#3e2111',.22,.72),gold=mat('#e9b548',.78,.27),gem=mat('#edc879',.34,.31);
+ const base=mesh(new THREE.BoxGeometry(r*.94,r*.44,r*.52),wood,parent,0,-r*.30,r*.91);
+ const inner=mesh(new THREE.BoxGeometry(r*.80,r*.10,r*.40),gold,parent,0,-r*.12,r*1.10);
+ const lid=mesh(new THREE.BoxGeometry(r*.94,r*.14,r*.47),wood,parent,0,r*.21,r*.72);
+ lid.rotation.x=-.77;lid.rotation.z=.06;
+ mesh(new THREE.BoxGeometry(r*.96,r*.057,r*.09),gold,parent,0,r*.31,r*.68).rotation.x=-.77;
+ for(const x of [-r*.41,r*.41]){
+  mesh(new THREE.BoxGeometry(r*.070,r*.48,r*.57),gold,parent,x,-r*.28,r*.91);
+  ball(parent,r*.043,'#fff0b9',x,-r*.27,r*1.23,[.8,.85,.35]);
+ }
+ // Moedas espalhadas e curvas dentro e fora do tesouro, um draw call.
+ const coins=new THREE.InstancedMesh(new THREE.CylinderGeometry(r*.078,r*.078,r*.018,12),gold,36);
+ const d=new THREE.Object3D();
+ for(let i=0;i<36;i++){
+  const x=(rand(i+42)-.5)*r*(i<25?.72:1.43);
+  const y=-r*(.05+rand(i+12)*.53),z=r*(1.16+rand(i+9)*.19);
+  d.position.set(x,y,z);d.rotation.set(PI/2,rand(i+17)*PI*2,(rand(i+24)-.5)*.75);
+  d.scale.setScalar(.72+rand(i+7)*.52);d.updateMatrix();coins.setMatrixAt(i,d.matrix);
+ }
+ coins.instanceMatrix.needsUpdate=true;parent.add(coins);
+ for(let i=0;i<7;i++)ball(parent,r*.025,'#fff4bf',(rand(i+62)-.5)*r*.68,-r*(.04+rand(i)*.35),r*1.4);
+ const lamp=new THREE.PointLight('#fbb752',2.5,r*3,1.8);lamp.position.set(0,0,r*1.6);parent.add(lamp);
 }
 function envy(parent,r){
  // Serpente venenosa esculpida na face frontal de Inveja (trajeto em S).
