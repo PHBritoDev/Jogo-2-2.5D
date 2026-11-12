@@ -14,3 +14,12 @@ test('Epílogo de Eldória liga Vhazrael ao caminho vulcânico sem antecipar des
   assert.ok(talks.some(s => /sobreviveram/i.test(s.text)));
   assert.ok(talks.every(s => !/Ilyan|crianças morreram|crianças foram salvas/i.test(s.text)));
 });
+
+test('Epílogo respeita flags reais sem declarar destinos não comprovados', () => {
+  const plain = afterVhazraelScene().filter(s => s.type === 'say').map(s => s.text).join(' ');
+  const full = afterVhazraelScene({ childrenFreed: true, wardenDefeated: true }).filter(s => s.type === 'say').map(s => s.text).join(' ');
+  assert.doesNotMatch(plain, /Conseguimos abrir as jaulas/);
+  assert.match(full, /Conseguimos abrir as jaulas/);
+  assert.match(full, /guardião da passagem caiu/);
+  assert.doesNotMatch(full, /crianças estão salvas|Ilyan morreu|Ilyan vive/i);
+});
