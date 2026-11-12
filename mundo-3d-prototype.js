@@ -3662,7 +3662,7 @@ const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[SPEAKERS.v
 const storyAnchors={};
 const _sa=new THREE.Vector3(),_sb=new THREE.Vector3(),_sc=new THREE.Vector3();
 function sewerLocal(p){return{x:p.x+DIMENSIONS.esgoto.center.x,z:p.z+DIMENSIONS.esgoto.center.z};}
-function actorObj(key){if(key==='ilyan')return ilyanNpc?.holder||null;if(key==='hero')return player;if(key==='guide')return guide;if(key==='enemy')return enemy.visible?enemy:(pack&&pack.clones.find(c=>c&&c.holder.visible)||{}).holder||enemy;if(key==='vendor')return vendorRoots[2]||null;return null;}
+function actorObj(key){if(key==='ilyan')return ilyanNpc?.holder||null;if(key==='hero')return player;if(key==='guide')return guide;if(key==='enemy')return enemy.visible?enemy:(pack&&pack.clones.find(c=>c&&c.holder.visible)||{}).holder||enemy;if(key==='vendor')return vendorRoots[1]||null;return null;}
 function actorPos(key,out){
  const a=storyAnchors[key];if(a){out.set(a.x,a.y!==undefined?a.y:terrainHeightAt(a.x,a.z),a.z);return out;}
  const o=actorObj(key);if(o){o.getWorldPosition(out);return out;}return out.copy(player.position);
@@ -4720,7 +4720,7 @@ function storyDo(id,args){
   case 'entregar-ouro':{
    coins=Math.max(0,coins-ACT1.bribe);updateQuestHud();showRewardPop('−'+ACT1.bribe+' MOEDAS');worldAudio.coins();
    const bag=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),mat(0x7a5a2a));bag.scale.set(1,1.2,1);scene.add(bag);
-   const v=vendorRoots[2],to=v?v.position.clone():P.clone();
+   const v=vendorRoots[1],to=v?v.position.clone():P.clone();
    storyFx.push({t:0,tick(t){const k=Math.min(1,t/1.3);bag.position.set(THREE.MathUtils.lerp(P.x,to.x,k),P.y+1.05+Math.sin(k*Math.PI)*.35,THREE.MathUtils.lerp(P.z,to.z,k));if(k>=1){scene.remove(bag);return false;}},finish(){scene.remove(bag);}});
    break;}
   case 'anoitecer':nightFalls(false);break;
