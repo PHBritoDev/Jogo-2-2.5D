@@ -279,8 +279,14 @@ function makePlanet(id,r){
  const globe=new THREE.Mesh(new THREE.SphereGeometry(r,40,24),
   new THREE.MeshStandardMaterial({map:proceduralTexture(id),metalness:id===3?.43:.12,roughness:.59}));
  group.add(globe);
- const atm=new THREE.Mesh(new THREE.SphereGeometry(r*1.035,24,12),
-  new THREE.MeshBasicMaterial({color:colors[id-1],transparent:true,opacity:.075,side:THREE.BackSide,depthWrite:false}));
+ // Fresnel de atmosfera: contorno luminoso real na silhueta, sem textura externa.
+ const atmosphereMaterial=new THREE.ShaderMaterial({
+  uniforms:{uColor:{value:new THREE.Color(colors[id-1])}},
+  vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vec4 p=modelViewMatrix*vec4(position,1.);vP=-p.xyz;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*p;}',
+  fragmentShader:'uniform vec3 uColor;varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.-max(0.,dot(normalize(vN),normalize(vP))),3.0);gl_FragColor=vec4(uColor,f*.53);}',
+  transparent:true,depthWrite:false,side:THREE.FrontSide,blending:THREE.AdditiveBlending
+ });
+ const atm=new THREE.Mesh(new THREE.SphereGeometry(r*1.048,32,20),atmosphereMaterial);
  group.add(atm);
  if(id===1){goldenIsland(group,r);castle(group,r);ring(group,r*1.13,r*.035,'#e8a34b',.55,.27,r*.18);ring(group,r*.86,r*.055,'#704016',-.48,0,r*.87);}
  if(id===2){envy(group,r);ring(group,r*1.14,r*.02,'#36ec82',.32,-.2,r*.12,.75);}
@@ -560,8 +566,9 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   id=requestAnimationFrame(tick);
   if(document.hidden||root.classList.contains('leaving'))return;
   const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=dt;
-  // 30 FPS cap para preservar GPU do celular (menus não precisam de 60).
-  if(ms-frame<(reduced?1000:16.7))return;frame=ms;
+  // Cap de 30 FPS em celular; 60 FPS apenas em telas maiores com folga.
+  const mobile=window.matchMedia('(pointer:coarse)').matches||root.clientWidth<950;
+  if(ms-frame<(reduced?1000:(mobile?33.3:16.7)))return;frame=ms;
   shader.uniforms.uTime.value=elapsed;for(const m of smokes)m.uniforms.uTime.value=elapsed;
   if(!reduced){
    environment.position.x+=(parallax.x-environment.position.x)*Math.min(1,dt*2.6);
