@@ -3322,11 +3322,11 @@ function updateIlyanEscort(dt){
  const dx=player.position.x-h.position.x,dz=player.position.z-h.position.z,d=Math.hypot(dx,dz);
  const origin=DIMENSIONS.esgoto.center,localZ=h.position.z-origin.z;
  // Saia da cela pelo corredor central antes de perseguir o jogador: evita cortar rochas.
- const waypoint=localZ>-36&&player.position.z-origin.z<-34;
+ const waypoint=localZ>-36.6&&player.position.z-origin.z<-34;
  const tx=waypoint?origin.x+SEWER.emptyPath.from.x:player.position.x;
  const tz=waypoint?origin.z-37:player.position.z;
  const vx=tx-h.position.x,vz=tz-h.position.z,len=Math.hypot(vx,vz);
- const moving=d<35&&(waypoint?len>.55:d>2.5)&&len>.05;
+ const moving=d<35&&(waypoint?len>.06:d>2.5)&&len>.05;
  if(action)action.paused=!moving;
  if(!moving)return;
  const step=Math.min(len,Math.min(.05,Math.max(0,dt))*2.45);
