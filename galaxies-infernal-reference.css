@@ -126,3 +126,32 @@
  * nas margens do A55 (a referência 16:9 é letterboxed, sem recortes). */
 #galaxy-screen.gx-exact-mode > :not(.gx-exact-stage){display:none!important}
 #galaxy-screen.gx-exact-mode::before,#galaxy-screen.gx-exact-mode::after{content:none!important;display:none!important}
+
+/* MENU THREE.JS VIVO — WebGL real, nunca fotografia/bitmap de referência.
+ * A cena usa somente geometrias, GLSL e CanvasTexture procedural gerada pelo código. */
+#galaxy-screen.gx-three-on{background:#070309!important}
+#galaxy-screen.gx-three-on>.gx-backdrop,
+#galaxy-screen.gx-three-on>.gx-stars,
+#galaxy-screen.gx-three-on>.gx-spiral{display:none!important}
+#galaxy-screen.gx-three-on::before,
+#galaxy-screen.gx-three-on::after{display:none!important;content:none!important}
+#galaxy-screen .gx-three-canvas{
+ position:absolute;z-index:1;inset:0;display:block;width:100%;height:100%;
+ pointer-events:none;touch-action:none;contain:strict;transform:translateZ(0);
+}
+#galaxy-screen.gx-three-on .gx-orb .gx-core,
+#galaxy-screen.gx-three-on .gx-art .gx-planet,
+#galaxy-screen.gx-three-on .gx-chains{visibility:hidden!important}
+#galaxy-screen.gx-three-on .gx-head,
+#galaxy-screen.gx-three-on .gx-wallet,
+#galaxy-screen.gx-three-on .gx-nav,
+#galaxy-screen.gx-three-on .gx-track,
+#galaxy-screen.gx-three-on .gx-detail{z-index:3}
+#galaxy-screen.gx-three-on .gx-orb{
+ border-radius:50%;background:transparent!important;pointer-events:auto!important;
+}
+#galaxy-screen.gx-three-on .gx-orb.sel .gx-label b{color:#fff0c7;text-shadow:0 0 8px #f33,0 1px 3px #000}
+#galaxy-screen.gx-three-on .gx-nav button.on{box-shadow:inset 0 0 17px #ff531c8c,0 0 14px #f92c2090}
+@media (prefers-reduced-motion:reduce){
+ #galaxy-screen.gx-three-on .gx-orb.open .gx-core{animation:none!important}
+}
