@@ -417,7 +417,7 @@ function infernalGround(parent,W,H){
  const material=new THREE.ShaderMaterial({depthWrite:false,
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:"varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat crack(vec2 p){\n vec2 ip=floor(p),fp=fract(p);float d1=10.,d2=10.;\n for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){\n  vec2 o=vec2(float(i),float(j)),cell=ip+o;\n  vec2 seed=o+vec2(h(cell),h(cell+13.1))*.74+.13;\n  float d=length(seed-fp);\n  if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;\n }\n return max(0.,d2-d1);\n}\nvoid main(){\n vec2 uv=vUv;\n float f=n(uv*vec2(11.,4.)),detail=n(uv*vec2(41.,13.));\n vec2 warp=uv*vec2(20.,6.)+vec2(f,detail)*.58;\n float e=crack(warp);\n float gap=1.-smoothstep(.006,.026,e);\n float ridge=detail*.58+f*.42;\n vec3 stone=mix(vec3(.016,.010,.014),vec3(.075,.027,.029),ridge);\n stone+=vec3(.028,.008,.011)*n(uv*vec2(89.,17.));\n float glow=gap*(.34+.66*n(uv*vec2(7.,3.)))*(.52+pow(1.-uv.y,1.6)*.48);\n vec3 lava=vec3(.82,.11,.025)*glow+vec3(.4,.09,.025)*pow(glow,3.);\n vec3 col=stone+lava;\n col*=.8+.2*n(uv*vec2(5.,2.));\n col*=.14;gl_FragColor=vec4(col,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
- mesh(new THREE.PlaneGeometry(W,H*.35),material,parent,0,-H*.395,-188);
+ mesh(new THREE.PlaneGeometry(W,H*.32),material,parent,0,-H*.42,-188);
 }
 function updateCoordinates(root,scene,camera,groups,details,viewport){
  const W=root.clientWidth,H=root.clientHeight;if(!W||!H)return;
