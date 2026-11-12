@@ -3,7 +3,7 @@ const {chromium}=require("playwright");
 const sharp=require("sharp");
 const fs=require("node:fs"),path=require("node:path");
 const out=path.resolve("visual-lab-results/galaxy-menu-482");
-const reference=path.resolve("assets/ui/menu-sete-pecados-reference.png");
+const reference=path.resolve("assets/ui/menu-sete-pecados-reference.jpg");
 fs.mkdirSync(out,{recursive:true});
 function assert(ok,msg){if(!ok)throw Error(msg);}
 async function pixelsMatch(file,baseline){
@@ -65,7 +65,7 @@ async function pixelsMatch(file,baseline){
   }
  }finally{await browser.close();}
  fs.writeFileSync(path.join(out,"report.json"),JSON.stringify({source:"real galaxies3d.js; pixel-exact image 1536x864",referencePresent:exists,views:results},null,2));
- assert(exists,"BLOQUEADO: imagem exata NÃO foi commitada em assets/ui/menu-sete-pecados-reference.png");
+ assert(exists,"BLOQUEADO: imagem exata NÃO foi commitada em assets/ui/menu-sete-pecados-reference.jpg");
  assert(results.every(r=>r.exact),"BLOQUEADO: uma resolução ainda exibe fallback vetorial");
  assert(results.every(r=>!r.errors.length&&!r.requests.length),"Falhas console/network: "+JSON.stringify(results));
 })().catch(e=>{console.error(e);fs.writeFileSync(path.join(out,"failure.txt"),String(e.stack||e));process.exitCode=1;});
