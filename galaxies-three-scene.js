@@ -248,16 +248,32 @@ function gothicRuins(parent,W,H){
   dummy.position.y=y+sc*52;dummy.scale.setScalar(sc);dummy.updateMatrix();ms.setMatrixAt(i,dummy.matrix);
  }
  parent.add(mt,ms);
- // Escarpa inferior vulcânica, com clarões do chão.
- for(let i=0;i<38;i++){
-  const x=(i/37-.5)*W,y=-H*.41+rand(i+78)*H*.13;
-  mesh(new THREE.ConeGeometry(18+rand(i)*38,36+rand(i+22)*90,4),rock,parent,x,y,-190);
+ // Rochedos vulcânicos facetados, sem cones geométricos artificiais.
+ // Instancing dá dezenas de pedras com uma única draw call.
+ const rockGeo=new THREE.IcosahedronGeometry(1,0);
+ const shards=new THREE.InstancedMesh(rockGeo,mat('#151117',.13,.94),84);
+ const d=new THREE.Object3D();
+ for(let i=0;i<84;i++){
+  const t=i/83,x=(t-.5)*W*1.13;
+  const side=1-Math.abs(t-.5)*1.55;
+  const h=15+rand(i+72)*55+(i%11===0?45:0);
+  d.position.set(x,-H*.425+rand(i+29)*H*.08,-170+rand(i+15)*17);
+  d.rotation.set(rand(i+3)*PI,rand(i+4)*PI,rand(i+18)*.7-.35);
+  d.scale.set(13+rand(i+6)*27,h,17+rand(i+24)*17);
+  d.updateMatrix();shards.setMatrixAt(i,d.matrix);
+  const c=new THREE.Color().setRGB(.033+rand(i+7)*.04,.023+rand(i+19)*.025,.029+rand(i+10)*.026);
+  shards.setColorAt(i,c);
  }
- for(let i=0;i<13;i++){
+ shards.instanceMatrix.needsUpdate=true;shards.instanceColor.needsUpdate=true;parent.add(shards);
+ // Reflexos de lava presos aos intervalos entre rochas.
+ const embers=new THREE.InstancedMesh(new THREE.SphereGeometry(1,6,4),
+   new THREE.MeshBasicMaterial({color:'#ca2e12',transparent:true,opacity:.66}),17);
+ for(let i=0;i<17;i++){
   const x=(rand(i+87)-.5)*W;
-  const r=3+rand(i+69)*19;
-  ball(parent,r,'#fc3515',x,-H*.43+rand(i+14)*18,-178,[2.7,.22,.25]);
+  d.position.set(x,-H*.437+rand(i+14)*22,-158);
+  d.rotation.set(0,0,0);d.scale.set(5+rand(i)*16,1.3,2.7);d.updateMatrix();embers.setMatrixAt(i,d.matrix);
  }
+ embers.instanceMatrix.needsUpdate=true;parent.add(embers);
 }
 function eclipseCitadel(parent,W,H){
  // Silhueta gótica contra o sol vermelho, sem modelos/bitmaps.
