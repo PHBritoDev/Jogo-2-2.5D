@@ -5,7 +5,7 @@ on:
     paths:
       - "galaxies3d.js"
       - "galaxies-pixel-reference.js"
-      - "assets/ui/menu-sete-pecados-reference.png"
+      - "assets/ui/menu-sete-pecados-reference.jpg"
       - "galaxies-infernal-art.js"
       - "galaxies-infernal-reference.css"
       - "mundo-3d-prototype.html"
