@@ -31,7 +31,9 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     const D = (fn, arg) => page.evaluate(fn, arg);
     const baseline = new Set(await D(() => window.SevenSinsDebug3D.programList()));
     const shot = async (name, js, arg = null, ms = 1700) => { await D(js, arg); await D(() => window.SevenSinsDebug3D.motionStep(.6, { x: 0, z: 0 })); await wait(ms); // câmera assentada (determinística)
-      await page.screenshot({ path: path.join(out, name + '.png') }); };
+      // SwiftShader pode levar >30 s num quadro pesado (caverna): espera longa e uma nova tentativa antes de falhar
+      try { await page.screenshot({ path: path.join(out, name + '.png'), timeout: 150000 }); }
+      catch (e) { await wait(3000); await page.screenshot({ path: path.join(out, name + '.png'), timeout: 150000 }); } };
     // ---------------- âncoras × horas
     const anchors = [['prado', 54, 160, 2.83, 6.0, .12, 7], ['ponte', 0, 12, 3.1416, 0, .1, 7], ['praca', -10, -36, 3.1416, 0, .14, 7], ['lago', -14, -80, -1.5708, 1.5708, .12, 8], ['mata', 20, -118, 3.1416, 0, .1, 6], ['gaiolas', 62, -58, 3.1416, 0, .14, 7], ['serra', -40, -232, -1.5708, 1.5708, .12, 7]];
     for (const h of [9, 13, 17.5, 22]) for (const [n, x, z, y, vy, vp, vd] of anchors) {
