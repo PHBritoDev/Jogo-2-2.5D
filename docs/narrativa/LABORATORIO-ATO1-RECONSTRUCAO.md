@@ -233,3 +233,60 @@ As falas mostram coordenação e função dos inimigos, não ameaças vagas.
 - Testar com alguém que não conhece a história: consegue dizer por que as crianças foram levadas? Consegue distinguir o que sua intervenção alterou? Sente que a história o enganou com uma escolha falsa?
 - **Risco maior:** divergência entre resgate garantido (`OBJETIVO-GALAXIA-1.md`) e transformação garantida (`roteiro-v1.md` e `act1-flow.js`). Escolher uma direção antes de autorizar o Claude/Codex a implementar.
 - **Próxima parte:** o retorno a Eldória após o ritual, consequência visível do ataque, busca dos prisioneiros e motivo concreto para ir à caverna; levar em conta a direção A/B sem criar dois jogos inteiros.
+
+
+## Parte 5 — O retorno: a cidade responde (12/11, 00h54)
+**Estado:** proposta; não implementada. **Foco único desta rodada:** a consequência do ritual e o motivo humano e verificável para entrar na caverna. Não decidir ainda o destino das crianças (direções A/B da Parte 4).
+
+### Pesquisa anterior à escrita e decisão prática
+- Harvey Smith e Matthias Worch, *What Happened Here? Environmental Storytelling* (GDC 2010): o ambiente e os sistemas devem permitir ao jogador reconstruir o que aconteceu, não apenas ouvir a explicação. https://www.gdcvault.com/play/1012647/What-Happened-Here-Environmental
+- Jolie Menzel, *Level Design Workshop: A Narrative Approach to Level Design* (GDC 2017): narrativa, ritmo e sensação de jogar precisam orientar a organização do espaço. https://www.gdcvault.com/play/1024302/Level-Design-Workshop-A-Narrative
+- Thomas Grip, *Making Storytelling a Fundamental Part of the Gameplay Experience* (GDC 2014): começar com ações jogáveis e acrescentar camadas narrativas; evitar sequência de jogo interrompida por explicações. https://gdcvault.com/play/1020484/Making-Storytelling-a-Fundamental-Part
+
+**Aplicação:** fazer o retorno à cidade mudar o que o jogador vê e consegue fazer. A cena não será uma montagem de destruição nem uma coleção de falas tristes.
+
+### Auditoria de continuidade e do estado real
+- `docs/narrativa/ato-1-eldoria-roteiro-v1.md`, Missão 4: após o ritual, o protagonista desperta na floresta, avista fumaça sobre Eldória, ajuda moradores em risco, descobre transporte de prisioneiros para a caverna e deixa os sobreviventes em segurança. Missão 5: subida pela mata, dois guardas (Morvek/Krazel), possibilidade de interromper o alarme.
+- `docs/roteiro/M2-ATO1.md` e `act1-flow.js` representam **fluxo anterior**, com desmaio/amanhecer, ataque na estrada e esgotos; não pressupor que a missão de resgate urbano já exista no jogo.
+- `docs/roteiro/M1-PROLOGO.md` preserva a abertura celestial e nome escolhido pelo jogador; não repetir a apresentação do anjo nem rebatizar o protagonista.
+- `docs/OBJETIVO-GALAXIA-1.md` exige campanha jogável em 3D e preservação da dimensão do primeiro bispo; esta proposta não mexe na dimensão, no HUD ou em código.
+- O documento v1 estabelece **Aethraziel = Vaelthar** (nome verdadeiro e nome público), força restringida e **Vhazrael = primeiro bispo**, não a própria Ganância. Evitar que Vaelthar resolva sozinho o ataque.
+- As alterações de floresta/caverna do Claude não foram confirmadas nesta rodada. Nenhuma nova geometria ou interação é descrita como pronta.
+
+### Sequência proposta: seis momentos curtos, com ações distintas
+**1. Da clareira à estrada — a ausência de ruído.** Depois do ritual, o protagonista e Vaelthar percorrem trecho controlável. Pássaros e água permanecem audíveis; ao se aproximarem da ponte, cessam os sons habituais do mercado. Uma coluna de fumaça pode ser vista por entre as árvores. Sem câmera sequestrada ou teleporte. Se as crianças foram resgatadas (B), seguem protegidas em percurso simplificado ou são acompanhadas por Vaelthar até uma zona segura; se morreram/foram transformadas (A), o protagonista carrega a fita azul, sem cutscene de luto repetida.
+
+**2. A ponte — primeiro indício de que o ataque foi organizado.** A ponte está transitável, mas há um carro de tributos abandonado, rodas ainda quentes e uma tábua com marca de cobrança já vista na banca de Osren. O jogador pode examiná-la. A ligação entre o ritual e a rede de confisco fica visível; não afirmar que os demônios atacaram em resposta ao jogador. Um sobrevivente fala apenas o que testemunhou: **Morador:** “Vieram pela estrada. Sabiam quais casas procurar.” Vaelthar: “Então não foi um ataque ao acaso.”
+
+**3. Eldória — a beleza continua; o perigo é localizado.** Não destruir a arquitetura inteira. Árvores, fachadas, praça e poço continuam reconhecíveis. Uma casa ou depósito tem fumaça, uma barraca está vazia, a fila do mercado se dispersou, e pessoas tentam ajudar outras. O contraste é entre um lugar amado e a interrupção de sua rotina. No celular, sinalizar o resgate com gritos direcionais discretos, fumaça localizada e moradores gesticulando — não dezenas de objetos de efeito.
+
+**4. Um resgate jogável, não três tarefas genéricas.** Escolher **uma** emergência central: uma passagem do depósito foi obstruída por carga e uma pessoa está presa do outro lado. O jogador usa deslocamento, interação e uma habilidade de combate para abrir acesso; Vaelthar estabiliza uma viga ou protege um sobrevivente, pagando um custo visível (respiração pesada, luz enfraquecida). Não exigir baldes repetidos, carregar cinco caixas ou um temporizador invisível. Após libertar a pessoa, outros moradores a conduzem para segurança. A consequência aparece no mundo: o local permanece aberto e a pessoa reaparece viva mais tarde.
+
+**5. Reencontro com Osren e Teren — consequências pequenas, reais.** Osren está reunindo o que restou da banca, sem virar apenas um informante. Se o jogador o ajudou antes, ele reconhece a ajuda; se não, ainda fornece a pista essencial para não travar a campanha. Teren pode chegar com carroça vazia e oferecer levar feridos, **condicional à geografia e à presença já estabelecida do personagem**, sem surgir magicamente no meio da praça. Falas propostas:
+- **Osren:** “Levaram as caixas boas. Deixaram as que não serviam.”
+- **Protagonista:** “E as pessoas?”
+- **Osren:** “Algumas foram com eles. Não por vontade própria.”
+- **Teren:** “Posso levar os feridos até a outra vila. Mas preciso de alguém para cuidar dos que ficam.”
+Falas não devem ser ditas todas em sequência obrigatória: duas bastam para a missão, as outras dependem de interação.
+
+**6. A pista que não é um mapa milagroso.** Um mensageiro ferido ou registro de transporte aponta a **galeria na encosta da montanha**, com contagem de cativos e a mesma marca dos caixotes do ritual. A pista confirma o destino da remessa, não o plano completo da Ganância. Vaelthar diz: “Se seguirmos agora, talvez ainda os encontremos.” O protagonista pode partir depois de garantir que os moradores tenham abrigo. **Protagonista:** “Então vamos. Mas primeiro vou deixar essas pessoas em segurança.” Ao voltar à praça mais tarde, um pequeno sinal da ação persiste (morador resgatado, rota livre, abrigo funcionando).
+
+### Duas variantes sem duplicar o Ato 1
+- **A — crianças perdidas:** alguém pergunta por elas. O protagonista não faz promessa falsa. A fita azul pode ser entregue em cena breve, sem dramatização forçada. A descoberta de outros cativos na montanha oferece objetivo concreto e não apaga a perda.
+- **B — crianças salvas (recomendação da Parte 4):** família e sobreviventes se reúnem num abrigo; uma criança aponta que havia **outras** pessoas na fila de transporte. Não usar a criança como narradora de informações que não poderia saber. Ela só descreve algo visto: “Levaram os outros pelo caminho da montanha.” A pista documental corrobora.
+
+### Preparação da entrada da caverna, sem antecipar a Parte 6
+A subida começa com trilha de floresta que vai ficando silenciosa; na encosta, duas rotas de aproximação visualmente legíveis levam ao mesmo portão. Morvek e Krazel guardam a entrada, como na Missão 5 da v1. O jogador pode ouvir uma referência a “mais uma remessa” e interromper o alarme para diminuir a pressão da **primeira** sala, mas não eliminar a dificuldade central. Não afirmar que as rotas laterais já existem: dependem da geometria real do Claude.
+
+### Pistas históricas e objetivo dos inimigos: somente o que se pode sustentar
+- O carimbo repetido no ritual, na ponte e no registro da galeria demonstra **uma rede logística de captura e confisco**, não quando a Ganância chegou ao planeta.
+- A escolha de casas específicas sugere que há registros locais ou colaboração sob coerção. **Hipótese a testar**, não confirmação de traição de Osren/Teren.
+- Os demônios não agem todos por prazer em matar: há guardas, cobradores e transportadores, com incentivos e punições distintos. A identidade de quem estabeleceu a rede, a origem dos quatro bispos e o objetivo dos sete Pecados continuam pendentes de uma linha histórica maior; não inventar respostas contraditórias aqui.
+- A origem híbrida do protagonista e os limites de Vaelthar permanecem subtexto. **Não** revelar um segredo cosmológico no retorno à vila.
+
+### Ritmo, riscos e testes futuros
+- Alvo **experimental**, não promessa de duração: 7–12 minutos entre sair da clareira e obter a pista da caverna, com pelo menos 70% do tempo sob controle do jogador; ajustar em playtest.
+- Uma única emergência principal; uma pista essencial impossível de perder; pistas adicionais opcionais; uma pausa para olhar a cidade; uma decisão de partir que não seja apenas “aperte para continuar”.
+- Teste cego: após a cena, o jogador consegue explicar (a) o que mudou em Eldória, (b) por que os prisioneiros estão na caverna e (c) o que ele conseguiu salvar? Se não, revisar a encenação, não acrescentar monólogo.
+- **Riscos:** (1) o jogo atual ainda usa a cadeia antiga dos esgotos; não misturar os dois fluxos; (2) a bifurcação A/B das crianças não foi aprovada; (3) a ponte/cidade/caverna em reconstrução não devem receber geometria narrativa antes da revisão visual; (4) não criar culpabilização por desastre inevitável.
+- **Próxima parte:** progressão interna da caverna e reencontro com Ilyan, com objetivos e checkpoints que funcionem em Android, sem repetir o resgate de Eldória.
