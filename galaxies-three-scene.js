@@ -656,7 +656,8 @@ function updateCoordinates(root,scene,camera,groups,details,viewport){
  }
  const pane=root.querySelector('.gx-art');if(pane&&details.planet){
   const p=rpos(pane);details.planet.position.set(p.x,p.y,18);
-  details.planet.scale.setScalar(clamp(p.radius,28,Math.min(H*.16,130))/details.planet.userData.originalRadius);
+  details.planet.userData.detailTargetScale=clamp(p.radius,28,Math.min(H*.16,130))/details.planet.userData.originalRadius;
+  details.planet.scale.setScalar(details.planet.userData.detailTargetScale);
  }
  const canvas=root.querySelector('.gx-three-canvas');if(canvas)viewport.renderer.setSize(W,H,false);
 }
@@ -711,7 +712,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   const current=details.planet;scene.remove(current);
   // Reutilizar modelo já criado evita gerar texturas e geometrias a cada clique.
   const copy=groups[id-1].clone(true);copy.userData.originalRadius=64;
-  details.planet=copy;scene.add(copy);size();
+  details.planet=copy;scene.add(copy);size();copy.scale.multiplyScalar(.82);
  }
  let lastSelection=1,frame=0,elapsed=0,prev=0,running=true,id=0,lastTelemetry=0;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -746,6 +747,8 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
    details.planet.rotation.y=Math.sin(elapsed*.2)*.075;
   }
   const now=selected();if(now!==lastSelection){lastSelection=now;setSelected(now);}
+  const dtPlanet=details.planet,scaleGoal=dtPlanet.userData.detailTargetScale;
+  if(scaleGoal){dtPlanet.scale.setScalar(dtPlanet.scale.x+(scaleGoal-dtPlanet.scale.x)*Math.min(1,dt*8.5));}
   groups.forEach((g,i)=>{
    const target=g.userData.screenScale*(i+1===now?1.055:1);
    g.scale.setScalar(g.scale.x+(target-g.scale.x)*Math.min(1,dt*9));
