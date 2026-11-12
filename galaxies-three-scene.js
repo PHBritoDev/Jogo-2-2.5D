@@ -97,6 +97,29 @@ function castle(parent,r,ice=false){
   }
  }
 }
+function goldenIsland(parent,r){
+ // Fortaleza levitando sobre rocha natural fraturada. Nada de imagem pronta.
+ const g=new THREE.IcosahedronGeometry(r*.78,1);
+ const p=g.getAttribute('position');
+ for(let i=0;i<p.count;i++){
+  const x=p.getX(i),y=p.getY(i),z=p.getZ(i),n=1+(rand(i+71)-.5)*.22;
+  p.setXYZ(i,x*n,y*n,z*n);
+ }g.computeVertexNormals();
+ const island=mesh(g,mat('#6d4327',.28,.88),parent,0,-r*.35,r*.93);
+ island.scale.set(1.36,.55,.5);
+ const upper=mesh(new THREE.CylinderGeometry(r*.85,r*.73,r*.11,12),mat('#d89c40',.51,.57),parent,0,-r*.08,r*.93);
+ upper.rotation.x=PI/2;upper.scale.y=.45;
+ // Corrente de ferro dourado cruzando a cidade-ilha.
+ const count=16,geo=new THREE.TorusGeometry(r*.064,r*.013,5,12);
+ const chain=new THREE.InstancedMesh(geo,mat('#a9772d',.77,.38),count),d=new THREE.Object3D();
+ for(let i=0;i<count;i++){const t=i/(count-1);
+  d.position.set((-r*.9+r*1.8*t),r*(.19-.69*t),r*1.22);
+  d.rotation.set(.4,0,-.33+(i%2)*PI/2);
+  d.scale.setScalar(1);d.updateMatrix();chain.setMatrixAt(i,d.matrix);
+ }
+ chain.instanceMatrix.needsUpdate=true;parent.add(chain);
+ for(let i=0;i<4;i++)ball(parent,r*.035,'#ffd16b',-r*.59+i*r*.36,-r*.14,r*1.18);
+}
 function coin(parent,r,x,y,z){const m=new THREE.MeshStandardMaterial({color:'#ffcf43',metalness:.85,roughness:.21,emissive:'#a24a02',emissiveIntensity:.1});
  const o=mesh(new THREE.CylinderGeometry(r,r,r*.16,12),m,parent,x,y,z);o.rotation.x=PI/2;return o;}
 function treasure(parent,r){
@@ -207,7 +230,7 @@ function makePlanet(id,r){
  const atm=new THREE.Mesh(new THREE.SphereGeometry(r*1.035,24,12),
   new THREE.MeshBasicMaterial({color:colors[id-1],transparent:true,opacity:.075,side:THREE.BackSide,depthWrite:false}));
  group.add(atm);
- if(id===1){castle(group,r);ring(group,r*1.13,r*.035,'#e8a34b',.55,.27,r*.18);ring(group,r*.86,r*.055,'#704016',-.48,0,r*.87);}
+ if(id===1){goldenIsland(group,r);castle(group,r);ring(group,r*1.13,r*.035,'#e8a34b',.55,.27,r*.18);ring(group,r*.86,r*.055,'#704016',-.48,0,r*.87);}
  if(id===2){envy(group,r);ring(group,r*1.14,r*.02,'#36ec82',.32,-.2,r*.12,.75);}
  if(id===3){treasure(group,r);ring(group,r*1.18,r*.025,'#f6c467',-.24,.16,r*.12);}
  if(id===4){castle(group,r,true);for(let i=0;i<8;i++)spire(group,(i-3.5)*r*.21,r*.05,r*.68,r*(.3+rand(i+6)*.3),r*.085,'#9bd8fa','#e0f6ff');ring(group,r*1.11,r*.018,'#9de5ff',.48,.09,r*.17);}
