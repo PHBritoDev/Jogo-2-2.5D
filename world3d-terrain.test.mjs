@@ -87,6 +87,18 @@ test('região extra ligada por garganta é caminhável de ponta a ponta', () => 
   for (let x = -60; x >= -140; x -= 2) assert.ok(t.walkable(x, -60), 'garganta fechada em x=' + x);
   assert.ok(!t.walkable(-90, -20), 'fora da garganta continua montanha');
   assert.ok(t.waterDepth(-150, -60) > .3, 'canal tem água');
-  // Mod 298: água rasa pode ser atravessada; a profundidade >=0,9 m ainda bloqueia.
-  assert.equal(t.walkable(-150, -60), t.waterDepth(-150, -60) < .9, 'colisão da água respeita o limiar de profundidade');
+  // Margens e canais até 1,25 m permitem caminhar; o centro profundo do lago continua bloqueado.
+  assert.equal(t.walkable(-150, -60), t.waterDepth(-150, -60) < 1.25, 'colisão da água respeita o limiar de profundidade');
+});
+
+test('margens alagadas permitem caminhar até 1,25 m, sem liberar o fundo profundo', () => {
+  const t = createTerrain({ ponds: [{ x: -42, z: -96, r: 13, depth: 2.2, level: -.55 }] });
+  assert.ok(!t.walkable(-42, -96), 'centro profundo permanece fechado');
+  let shallow = null;
+  for (let x = -42; x < -22; x += .1) {
+    const depth = t.waterDepth(x, -96);
+    if (depth >= .9 && depth < 1.25) { shallow = x; break; }
+  }
+  assert.notEqual(shallow, null, 'a margem possui uma faixa intermediária');
+  assert.ok(t.walkable(shallow, -96), 'faixa antes bloqueada deve permitir caminhada');
 });
