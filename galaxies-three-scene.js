@@ -105,6 +105,20 @@ function castle(parent,r,ice=false){
  for(const instance of [towers,tips,panes]){
   instance.instanceMatrix.needsUpdate=true;parent.add(instance);
  }
+ // Catedral central com nave, torres laterais, vitrais e pináculo agudo.
+ // Geometria única por parte, preserva a leitura gótica mesmo em 100px.
+ const mid=r*(ice?1.05:1.14);
+ const nave=mesh(new THREE.BoxGeometry(r*.38,r*.62,r*.25),stone,parent,0,r*.62,mid);
+ const roof=mesh(new THREE.ConeGeometry(r*.245,r*.48,8),roofs,parent,0,r*1.13,mid);
+ const needle=mesh(new THREE.CylinderGeometry(r*.012,r*.014,r*.29,6),roofs,parent,0,r*1.48,mid);
+ ball(parent,r*.023,ice?'#f2ffff':'#ffdf8d',0,r*1.66,mid);
+ const glass=new THREE.MeshBasicMaterial({color:ice?'#c4ecff':'#ffb944',transparent:true,opacity:.85});
+ for(const v of [-1,0,1]){
+  const h=v===0?r*.25:r*.17;
+  const pane=mesh(new THREE.PlaneGeometry(r*.055,h),glass,parent,v*r*.095,r*.62,mid+r*.132);
+  const arch=mesh(new THREE.SphereGeometry(r*.032,10,6),glass,parent,v*r*.095,r*.62+h*.49,mid+r*.131);
+  arch.scale.set(1,.45,.13);
+ }
 }
 function goldenIsland(parent,r){
  // Fortaleza levitando sobre rocha natural fraturada. Nada de imagem pronta.
