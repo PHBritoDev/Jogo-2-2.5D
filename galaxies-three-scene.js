@@ -577,6 +577,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  };
  const observer=new ResizeObserver(size);observer.observe(root);
  const selected=()=>Number(root.querySelector('.gx-orb.sel')?.dataset.id||1);
+ cinematic.ready.then(()=>{if(root.isConnected&&selected()===7)setSelected(7);});
  function setSelected(id){
   const current=details.planet;scene.remove(current);
   // Reutilizar modelo já criado evita gerar texturas e geometrias a cada clique.
