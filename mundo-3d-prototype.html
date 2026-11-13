@@ -284,5 +284,27 @@ await import('./mod181-loader.js?v='+encodeURIComponent(meta.BUILD));
 <script>
 (function(){const b=document.getElementById('fullscreen');if(!b)return;function sync(){const active=!!document.fullscreenElement;b.setAttribute('aria-label',active?'Sair da tela cheia':'Entrar em tela cheia');b.title=active?'Sair da tela cheia':'Tela cheia';}b.addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen();}else if(document.documentElement.webkitRequestFullscreen){document.documentElement.webkitRequestFullscreen();}else{document.getElementById('status').textContent='Seu navegador não oferece tela cheia para esta página.';}}catch(e){document.getElementById('status').textContent='Se a tela cheia não abrir, use o menu do navegador para Tela cheia.';}});document.addEventListener('fullscreenchange',sync);sync();})();
 </script>
+<script>
+/* Mobile: fullscreen na primeira interação real, sem exigir o botão dedicado.
+   A API bloqueia fullscreen sem ativação do usuário. Mantemos ⛶ como fallback. */
+(function(){
+  if (!window.matchMedia || !window.matchMedia('(pointer: coarse)').matches) return;
+  var attempted = false;
+  function enterOnFirstTouch(event){
+    if (attempted || document.fullscreenElement || document.webkitFullscreenElement) return;
+    if (event.target && event.target.closest && event.target.closest('#fullscreen')) return;
+    attempted = true;
+    var root = document.documentElement;
+    try {
+      var request = root.requestFullscreen || root.webkitRequestFullscreen;
+      if (!request) return;
+      var result = request.call(root);
+      if (result && typeof result.catch === 'function') result.catch(function(){ /* botão manual permanece disponível */ });
+    } catch (_) { /* browser não aceita ativação automática */ }
+  }
+  document.addEventListener('pointerdown', enterOnFirstTouch, {capture:true, passive:true});
+  document.addEventListener('touchstart', enterOnFirstTouch, {capture:true, passive:true});
+})();
+</script>
 </body>
 </html>
