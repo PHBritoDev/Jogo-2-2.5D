@@ -57,8 +57,9 @@ export function createMapState(saved) {
         for (let i = 0; i < cells.length; i++) cells[i] = (bin.charCodeAt(i >> 3) >> (i & 7)) & 1;
       } catch (_) {}
     }
-    for (const id of saved.pois || []) if (MAP_POIS.some(p => p.id === id)) pois.add(id);
-    for (const raw of saved.waystones || []) { const id = WAYSTONE_ALIASES[raw] || raw; if (WAYSTONES.some(w => w.id === id)) waystones.add(id); }
+    // Saves antigos/corrompidos podem conter objetos em vez de listas; ignore apenas o campo inválido.
+    for (const id of Array.isArray(saved.pois) ? saved.pois : []) if (MAP_POIS.some(p => p.id === id)) pois.add(id);
+    for (const raw of Array.isArray(saved.waystones) ? saved.waystones : []) { const id = WAYSTONE_ALIASES[raw] || raw; if (WAYSTONES.some(w => w.id === id)) waystones.add(id); }
   }
   return { cells, pois, waystones };
 }
