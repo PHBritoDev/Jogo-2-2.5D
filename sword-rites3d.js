@@ -137,9 +137,12 @@ export class SwordRites {
   // compartilha o "acertou" do golpe (híbrido nunca dá dano dobrado) e respeita parede/linha de visão.
   for(let i=this.energies.length-1;i>=0;i--){const e=this.energies[i],owner=e.owner;
    if(e.kind==='wave'){const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),end=Math.min(e.range,e.travel+e.speed*dt);for(let d=e.travel;d<=end+1e-6&&!e.done;d+=Math.max(.05,Math.min(.06,end-d||.06)))for(const k of [-1,0,1]){const off=k*e.radius*.7*Math.cos(e.roll);if(this.api.blocked({x:e.x+fx*d+fz*off,y:e.y,z:e.z+fz*d-fx*off})){e.done=true;e.blockedAt=d;break;}}}
-   const touched=!e.done&&energyStep(e,dt,target,{blocked:(a,b)=>segmentBlocked(a,b,this.api.blocked)});
-   // Mod 315: a onda também alcança os OUTROS inimigos da cena (uma vez por golpe cada; o alvo do golpe divide o "acertou" com a lâmina)
-   if(!e.done&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z);this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});}}}
+   // A energia pode expirar AO ALCANÇAR a distância final neste quadro; esse último contato ainda é válido.
+   // Capturar o estado após a checagem de parede, antes de energyStep marcar o fim do alcance.
+   const unblockedThisFrame=!e.done;
+   const touched=unblockedThisFrame&&energyStep(e,dt,target,{blocked:(a,b)=>segmentBlocked(a,b,this.api.blocked)});
+   // Inimigos secundários também devem ser atingidos no último quadro, sem atravessar paredes.
+   if(unblockedThisFrame&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z);this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});}}}
    if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){owner.hit=true;owner.hitBy='energy';this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,Math.hypot(target.x-ctx.from.x,target.z-ctx.from.z))),target.id,'basic');
     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
     this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});}
