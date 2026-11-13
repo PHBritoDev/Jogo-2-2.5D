@@ -9,6 +9,7 @@ const STORE_KEY = 'seven-sins-3d-audio';
 export function createWorldAudio() {
   let ctx = null, master = null, ambBus = null, sfxBus = null, musicBus = null, music = null, noiseBuf = null, ready = false;
   let cinematicGain=1;
+  let pausedByGame=false;
   const settings = { ambient: .7, sfx: .8, music: .55, muted: false };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (_) {}
   const layers = {};
@@ -36,7 +37,7 @@ export function createWorldAudio() {
     return { src, f, g };
   }
   function unlock() {
-    if (ready) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    if (ready) { if (!pausedByGame && !document.hidden && ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     try { ctx = new AC(); } catch (_) { return; }
     master = ctx.createGain(); master.connect(ctx.destination);
@@ -60,7 +61,8 @@ export function createWorldAudio() {
     layers.cart = loopNoise('lowpass', 150, .8, sfxBus); layers.cartHi = loopNoise('bandpass', 900, 4, sfxBus); // MOD 291: rodas na terra + madeira rangendo
     layers.crowd = loopNoise('bandpass', 620, .55, ambBus); layers.crowdHi = loopNoise('bandpass', 1500, 1.2, ambBus);
     ready = true; applyVolumes();
-    document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); });
+    document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else if (!pausedByGame) ctx.resume(); });
+    if (pausedByGame || document.hidden) ctx.suspend();
   }
   /* MOD 194 — trilha procedural própria (sem amostras de outras obras): exploração em pad modal (ré dórico,
      calma de dia, mais grave à noite) e combate com tambores graves e ostinato; troca com fade, sem sobrepor loops. */
@@ -187,7 +189,7 @@ export function createWorldAudio() {
       if (kind === 'ultimate') tone('sawtooth', 65, 40, .12, 1.2);
     },
     /** Pausa todo o som enquanto a dimensão do Bispo está aberta por cima do mundo. */
-    pause(on) { if (!ctx) return; if (on) ctx.suspend(); else ctx.resume(); },
+    pause(on) { pausedByGame=!!on; if (!ctx) return; if (pausedByGame || document.hidden) ctx.suspend(); else ctx.resume(); },
     portalEnter() { if (!ready) return; tone('sine', 220, 55, .2, 1.4); burst('bandpass', 300, .6, .18, 1.3, sfxBus, 3000); },
     shieldUp() { if (!ready) return; tone('sine', 660, 990, .05, .18); },
     block() { if (!ready) return; tone('triangle', 320, 180, .2, .16); burst('bandpass', 2400, 2, .14, .1); },

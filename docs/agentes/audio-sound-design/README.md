@@ -29,3 +29,10 @@
 
 ## Histórico
 - 2026-11-12: primeira auditoria estática e correção A-001 em branch exclusiva. Nenhum merge autorizado ou realizado.
+
+## Integração A-002 — Pausa do jogo e visibilidade (13/11/2026)
+- Origem: PR #492. Ao mudar de aba, `visibilitychange` podia executar `ctx.resume()` mesmo enquanto o jogo solicitava pausa; `unlock()` também podia reativar indevidamente.
+- Correção transportada para branch criada da `main` *após* integrações #490, #495 e #502, preservando caudas de áudio, trilha silenciosa e trovão.
+- Novo indicador `pausedByGame`: `pause(on)`, `unlock()` e evento de visibilidade respeitam simultaneamente a pausa e aba oculta.
+- Teste de regressão reaproveitado de #492: `tests/audio-pause-visibility.test.mjs`.
+- QA auditivo em aparelho real ainda pendente; não interpretar CI como validação da mixagem.
