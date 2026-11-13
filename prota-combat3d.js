@@ -10,8 +10,9 @@ import { MOBILITY } from './combat-mobility3d.js';
  *    dos nós dos dedos, +X da mão): janela ativa = trecho com > 45 % do pico.
  */
 export const PROTA_LOCO = Object.freeze({ walk: 2.2, run: 6.8, walkNatural: 1.63, runNatural: 5.48, idleBelow: .3, guard: 1.6 });
-/** Salto proporcional ao corpo (1,9 m): ~0,6 m de altura e ~0,47 s no ar. Clipe Jump_Over_Obstacle_2 em 3 fases. */
-export const PROTA_JUMP = Object.freeze({ gravity: 22, impulse: 5.2, clip: 'Jump_Over_Obstacle_2', takeoff: .10, airFrom: .20, airTo: .52, land: .60, landEnd: .80, recover: .16 });
+/** Salto proporcional ao corpo (1,9 m): ~1,18 m de altura e ~0,65 s no ar (mesmo valor do PR #468, aplicado UMA vez:
+ *  ápice v²/2g). O clipe Jump_Over_Obstacle_2 é esticado para o tempo real de voo (fase aérea = arco balístico). */
+export const PROTA_JUMP = Object.freeze({ gravity: 22, impulse: 7.2, clip: 'Jump_Over_Obstacle_2', takeoff: .10, airFrom: .20, airTo: .52, land: .60, landEnd: .80, recover: .16 });
 /** Dash da referência 3900: some em fumaça vertical na origem, atravessa invisível e reaparece adiante
  *  num rastro horizontal escuro que se fecha no corpo. Curto, imediato, com i-frames e recarga. */
 /* Mod 315: recarga ÚNICA de 0,50 s contada desde a ativação (combat-mobility3d.MOBILITY.dashCooldown) — o jogo usa a mesma. */

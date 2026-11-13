@@ -16,7 +16,13 @@ export const CAGE_TRAIL=[[44,-33],[51,-38],[57,-46],[64,-50],[69,-56],[67,-62]];
 export const PROLOGUE_MEADOW = { cx: 60, cz: 152, hx: 40, hz: 32, round: 26, wobble: 5, tint: [[.37, .5, .21], [.5, .62, .27]], tintStrength: .72 };
 export const FALL_SPOT = { x: 54, z: 160 };
 export const ROAD_JUNCTION = { x: 52, z: 10 };
-export const TEREN_ROAD = [[54, 156], [58, 140], [66, 120], [76, 98], [71, 76], [58, 56], [53, 34], [52, 10]];
+/** Mod 317 — a ORIGEM da estrada: Teren desce das terras baixas por uma garganta entre duas serras ao sul do prado.
+ * A garganta faz uma curva em S (a extensão fica escondida atrás do contraforte), então a carroça é OUVIDA antes de ser
+ * vista e surge na curva. A mesma polilinha abre o corredor no relevo (passes) e vira a trilha de terra. */
+export const TEREN_ORIGIN = [[86, 282], [93, 266], [98, 250], [94, 232], [84, 216], [71, 202], [61, 187], [56, 171]];
+export const TEREN_ROAD = TEREN_ORIGIN.concat([[54, 156], [58, 140], [66, 120], [76, 98], [71, 76], [58, 56], [53, 34], [52, 10]]);
+/** Até onde o jogador vai a pé garganta adentro (depois disso o Anjo chama de volta; a estrada segue para longe). */
+export const ORIGIN_LIMIT = { x: 94, z: 238 };
 /** Continuação da viagem de carroça pelas trilhas existentes até a entrada de Eldória. */
 /** Mod 292: a carroça para no largo ANTES da ponte (estreita, de pedestres): o jogador atravessa a pé e entra pela ponte. */
 export const CART_ROUTE = TEREN_ROAD.concat([[40, 14], [24, 16], [10, 15], [0, 14], [0, 4], [.2, -1.2]]);
@@ -24,9 +30,10 @@ export const TEREN_STOP = { x: 59.5, z: 136 };
 export const BROKEN_WHEEL = { x: 62.4, z: 128.5 };
 export const BANDIT_AMBUSH = { x: 73.6, z: 90 };
 export const ELDORIA_DROP = { x: .2, z: -1.2 };
-export const ROAD_TERRAIN_PATCH = { x0: 18, x1: 118, z0: 40, z1: 204 };
+export const ROAD_TERRAIN_PATCH = { x0: 18, x1: 118, z0: 40, z1: 294 }; // Mod 317: cobre a garganta de origem da estrada
 /** Bandidos humanos famintos (sem magia): fecham a estrada à frente e atrás da carroça. */
-export const ROAD_BANDITS = [{ x: 75.2, z: 85.6 }, { x: 72.2, z: 84.8 }, { x: 77.4, z: 93.8 }, { x: 70.2, z: 94.6 }];
+/** Mod 317: CINCO bandidos — fecham a estrada à frente e atrás da carroça e um pelo flanco; lutam juntos. */
+export const ROAD_BANDITS = [{ x: 75.2, z: 85.6 }, { x: 72.2, z: 84.8 }, { x: 77.4, z: 93.8 }, { x: 70.2, z: 94.6 }, { x: 79.6, z: 89.4 }];
 
 export function insideMeadow(x, z, pad = 0) {
   const m = PROLOGUE_MEADOW, qx = Math.abs(x - m.cx) / (m.hx + pad), qz = Math.abs(z - m.cz) / (m.hz + pad);

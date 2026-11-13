@@ -154,7 +154,9 @@ export class Enemy1Squad {
   canAttack(a, kind, tid) {
     const gap = a.T.boss ? a.T.gap : a.T.gap * (this.alive.length > 2 ? 1.25 : 1);
     if (this.time - this.lastAttackAt < gap) return false;
-    for (const o of this.actors) if (o !== a && o.alive && o.act && o.act.token === kind && o.act.tid === tid) return false;
+    // Mod 317: fichas por alvo — padrão 1 golpe; espécies podem liberar mais (bandidos: 2 golpes perigosos simultâneos)
+    let busy = 0; const cap = kind === 'melee' ? (a.T.meleeTokens || 1) : 1;
+    for (const o of this.actors) if (o !== a && o.alive && o.act && o.act.token === kind && o.act.tid === tid && ++busy >= cap) return false;
     if (kind === 'spell') for (const s of this.spells) if (s.owner !== a.id && s.tid === tid && (s.type === 'spiral' || s.type === 'claws') && s.phase !== 'sink' && s.phase !== 'burst') return false;
     return true;
   }

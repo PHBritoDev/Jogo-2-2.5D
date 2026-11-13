@@ -53,7 +53,7 @@ test('Mod visível e cache atualizado: marcador, loader, BUILD e index na mesma 
 
 test('Mod 238: Enemy2 do Ato II em esquadra, mini-chefe com foice, ultimate genérico desligado na esquadra', () => {
   assert.match(src, /P\.rig==='enemy2'\?\(P\.profile==='miniboss2'\?'e2boss':'e2'\)/);
-  assert.match(src, /source:k=>rigSource\(k==='e2'\|\|k==='e2boss'\?'enemy2':k==='e3'\|\|k==='e3boss'\?'enemy3':k==='e4'\|\|k==='e4boss'\?'enemy4':k==='vhazrael'\?'bishop1':'enemy1'\)/);
+  assert.match(src, /source:k=>rigSource\((?:k==='bandit'\?'bandit':)?k==='e2'\|\|k==='e2boss'\?'enemy2':k==='e3'\|\|k==='e3boss'\?'enemy3':k==='e4'\|\|k==='e4boss'\?'enemy4':k==='vhazrael'\?'bishop1':'enemy1'\)/);
   assert.match(src, /function updateBossUltimates\(dt,now\)\{\n tickTransientFx\(dt\);\n[^\n]*\n[^\n]*\n if\(squadOn\)\{if\(bossUlt\.kind\)endBossUlt\(\);return;\}/);
   assert.match(src, /air:Math\.max\(0,player\.position\.y-terrainHeightAt/, 'salto sobre a onda do Colapso');
   for (const k of ["case 'surgir-tres':startPack({rig:'enemy2'", "case 'surgir-cinco':startPack({rig:'enemy2'", "case 'surgir-mini-chefe':startPack({rig:'enemy2',profile:'miniboss2'"]) assert.ok(src.includes(k), k);

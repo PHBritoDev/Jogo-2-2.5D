@@ -6,7 +6,7 @@
 import { createDirector } from './cutscenes3d.js';
 export { createDirector };
 
-export const SPEAKERS = { god: 'Deus', guide: 'Anjo-Guia' };
+export const SPEAKERS = { god: 'Deus', guide: 'Anjo-Guia' }; // no prólogo o guia fala com o próprio nome (GUIDE_NAME)
 
 /** C01–C06 · Reino Celestial: caminhada até o trono, ajoelhar, a missão, asas e aura retiradas. */
 export function heavenScene() {
@@ -26,26 +26,49 @@ export function heavenScene() {
   ];
 }
 
-/** C08–C12 · Despertar no Mundo da Ganância: olhos abrindo, as mãos, o redor, o nome e o chamado. */
+/**
+ * MOD 317 — Despertar humano (roteiro v1, cena P0): tela escura → visão do chão para o céu com piscadas → o corpo levanta
+ * de verdade (clipe Arise) → a câmera sai dos olhos para a terceira pessoa. Aethraziel JÁ está ao lado desde o primeiro
+ * quadro: esperou o herói acordar (nada de anjo surgindo do nada). Falas curtas do roteiro, nome escolhido pelo jogador.
+ */
+export const GUIDE_NAME = 'Aethraziel';
+export const GUIDE_PUBLIC_NAME = 'Vaelthar';
 export function awakeningScene() {
   return [
-    { type: 'shot', id: 'olhos-abrem', dur: 3.2, with: [{ id: 'palpebras' }, { id: 'heroi-olha-maos' }] },
-    { type: 'shot', id: 'maos', dur: 3.4 },
-    { type: 'shot', id: 'olhar-em-volta', dur: 5.2, with: [{ id: 'heroi-repouso' }] },
-    { type: 'shot', id: 'anjo-chega', dur: 2.6, with: [{ id: 'anjo-aparece' }] },
-    { type: 'say', who: SPEAKERS.guide, text: 'Finalmente acordaste. Antes de qualquer passo neste mundo… como devo te chamar?' },
+    { type: 'shot', id: 'deitado', dur: 4.4, with: [{ id: 'deitado' }, { id: 'piscar-despertar' }] },
+    { type: 'say', who: GUIDE_NAME, text: 'Consegue ficar em pé?' },
+    { type: 'shot', id: 'levantar', dur: 2.6, with: [{ id: 'levantar' }] },
+    { type: 'say', who: 'heroi', text: 'Onde… eu estou? Quem é você?' },
+    { type: 'say', who: GUIDE_NAME, text: 'Aethraziel. Fui enviado para acompanhar você.' },
+    { type: 'say', who: 'heroi', text: 'Acompanhar para onde?' },
+    { type: 'say', who: GUIDE_NAME, text: 'Ainda precisamos descobrir por onde começar. Antes… como devo chamá-lo?' },
     { type: 'ask', id: 'nome' },
-    { type: 'say', who: 'heroi', text: 'Pode me chamar de {nome}.' },
-    { type: 'say', who: SPEAKERS.guide, text: 'Eu sou o Anjo Guiador. Serei eu quem irá te guiar nesta jornada. Bem-vindo, {nome}, ao Mundo da Ganância.' },
-    { type: 'say', who: 'heroi', text: 'Então… por onde devo começar?' },
-    { type: 'say', who: SPEAKERS.guide, text: 'Procure uma pequena vila. Fale com algum vendedor e descubra onde o Pecado da Ganância está.' },
+    { type: 'say', who: GUIDE_NAME, text: 'Certo, {nome}. Ande comigo. Aqui não é seguro ficar parado.' },
+    { type: 'shot', id: 'olhar-em-volta', dur: 4.2, with: [{ id: 'heroi-repouso' }] },
     { type: 'ask', id: 'aceitar-missao' },
-    { type: 'do', id: 'ato-1' },
-    { type: 'wait', dur: 3.2 },
-    { type: 'do', id: 'escuro' },
-    { type: 'wait', dur: 2.4 }
+    { type: 'do', id: 'prologo-card' },
+    { type: 'wait', dur: 2.6 }
   ];
 }
+
+/** Antes de qualquer humano vê-lo: o herói repara nas asas e Aethraziel as recolhe (gesto curto + brilho que se fecha). */
+export function wingsScene() {
+  return [
+    { type: 'shot', id: 'asas-anjo', dur: 2.2, args: { cam: 'two', a: 'hero', b: 'guide', side: -1, dist: 4.4 } },
+    { type: 'say', who: 'heroi', text: 'O que aconteceu com suas asas?' },
+    { type: 'shot', id: 'asas-recolher', dur: 2.6, args: { cam: 'two', a: 'hero', b: 'guide', side: 1, dist: 5.6 }, with: [{ id: 'anjo-recolhe-asas' }] },
+    { type: 'say', who: GUIDE_NAME, text: 'Elas continuam aqui. Não é prudente que todos saibam.' },
+    { type: 'say', who: GUIDE_NAME, text: 'Diante das pessoas, me chame de Vaelthar.' },
+    { type: 'do', id: 'carroca-ouvida' },
+    { type: 'say', who: GUIDE_NAME, text: 'Ouça. Rodas na estrada — alguém vem da garganta.' }
+  ];
+}
+
+export const MISSION_PROLOGUE = {
+  kicker: 'PRÓLOGO · O CHÃO DESCONHECIDO',
+  title: 'Passageiros da estrada',
+  objective: 'Siga com Aethraziel até a estrada de terra.'
+};
 
 /** Troca {nome} pelo nome do jogador e "heroi" pelo nome como orador. */
 export function personalize(step, name) {
