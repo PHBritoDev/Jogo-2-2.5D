@@ -47,3 +47,10 @@ Branch de trabalho: `combat/fix-energy-wave-final-frame-20261113`. PR: [#486](ht
 - Quatro workflows do commit do PR concluíram **success**: [QA da onda](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350807458), [combate cinematográfico](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350807345), [regressão/performance](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350807448) e [laboratório visual](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350807418).
 - Laboratório visual gerou artefatos `mundo3d-smoke-837` e `bispo3-ultimate-mod281`, mas **não foram inspecionados quadro a quadro nesta revisão**. Sucesso de workflow não comprova qualidade visual, FPS real de Android nem ausência de falhas no dash.
 - **Nenhum bug novo reproduzido nesta revisão**; portanto não houve alteração adicional de gameplay. Próxima prioridade: inspecionar artefatos e reproduzir BUG-COMB-002 sem conflito com PR #487 (VFX de dash).
+
+## Revisão horária — 2026-11-13 10:14 BRT
+- `main` atualizada para `981606e338c53257adf9612ac74c96168888afe1` (upload de arquivos); mudança desde a revisão anterior, exigindo rebase e testes antes de qualquer merge.
+- PRs abertos conferidos: #468 (salto/HUD), #473 (história), #487 (VFX do dash), #493 (VFX Enemy1) e #494 (VFX Enemy2), entre outros. Não tocar nesses escopos.
+- Inspeção estática de `sword-rites3d.js` na branch deste PR: a correção BUG-COMB-001 continua presente. Não foi reproduzida falha nova nesta rodada; nenhum teste executado ou screenshot WebGL inspecionado aqui. Não declarar aprovação nova de CI ou Android.
+- **Hipótese a testar (não é bug confirmado):** `SwordRites.update(dt)` limita o tempo processado a 0,25 s após travamentos longos, inclusive cooldowns e janelas de animação. Investigar se a política é deliberada e se provoca atraso perceptível no combo após stutter, sem modificar código antes de teste reproduzível.
+- **Próximo experimento:** teste determinístico de pausa/stutter (dt=0,5 s) comparado a 60 atualizações de 1/120 s, registrando diferença esperada de relógio e eventos; depois testar no WebGL e Android. O PR permanece sem merge e sem auto-merge.
