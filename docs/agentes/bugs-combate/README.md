@@ -40,3 +40,10 @@ Branch de trabalho: `combat/fix-energy-wave-final-frame-20261113`. PR: [#486](ht
 - Testes após a correção (5 novos + 30 regressões): [43350662210](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350662210), **35 aprovados, 0 falhas**.
 - Testes visuais adicionais e combate cinematográfico: acompanhar os workflows associados ao PR #486; não confundir aprovação de testes lógicos com uma captura do efeito final na tela.
 - Commit adicional de testes 20/30/60/120 FPS: `4cd8231fc84be69ca4612b0410599105abf272ce`.
+
+## Revisão horária — 2026-11-13 09:12 BRT
+- `main` conferida em `88217cc9e67777aa4a6573a0a3dd1472c7ced841`; PRs concorrentes #468, #473, #485, #487 e #491 continuam abertos. Não editar arquivos de HUD/salto, história, VFX/dash ou mapa sob outros agentes.
+- PR #486 permanece aberto em rascunho, sem merge.
+- Quatro workflows do commit do PR concluíram **success**: [QA da onda](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350807458), [combate cinematográfico](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350807345), [regressão/performance](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350807448) e [laboratório visual](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350807418).
+- Laboratório visual gerou artefatos `mundo3d-smoke-837` e `bispo3-ultimate-mod281`, mas **não foram inspecionados quadro a quadro nesta revisão**. Sucesso de workflow não comprova qualidade visual, FPS real de Android nem ausência de falhas no dash.
+- **Nenhum bug novo reproduzido nesta revisão**; portanto não houve alteração adicional de gameplay. Próxima prioridade: inspecionar artefatos e reproduzir BUG-COMB-002 sem conflito com PR #487 (VFX de dash).
