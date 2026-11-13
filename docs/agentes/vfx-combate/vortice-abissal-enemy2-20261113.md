@@ -21,3 +21,11 @@
 1. Confirmar que o workflow e os cinco PNGs realmente foram produzidos.
 2. Inspecionar legibilidade e medir baseline antes de escolher refinamento.
 3. Só aplicar mudança pequena e reexecutar QA; não mesclar automaticamente.
+
+## Implementação e validação final desta rodada
+- Baseline [GitHub Actions #43431664193](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43431664193): cinco PNGs e JSON, sucesso. No início (20% da abertura) a corrente estava **totalmente formada**, enquanto o portal ainda estava pequeno, criando sequência visual invertida. O início registrou 11 draw calls, 3.836 triângulos, 12 estilhaços, 3 discos e 4 tubos.
+- Commit `359cae50aa794c06a6b4706cd05ffffd98b683b3`: a intensidade da corrente tubular, do núcleo e dos estilhaços segue `open` na fase `open`, e relâmpagos secundários só aparecem depois de `open > .35`. Nenhuma fase, tempo, trajetória, raio ou mecânica alterados.
+- [QA pós-refino #43431924884](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43431924884): sucesso. Início agora 10 draw calls, 3.644 triângulos, zero estilhaços, 3 discos e 4 tubos; abertura intermediária 11 draw calls, 3.836 triângulos; final 11 draw calls, 3.842 triângulos; zero texturas em todos os casos.
+- Comparação visual das imagens 960×540: antes a corrente era brilhante já no início, depois o portal começa a formar-se primeiro e a corrente emerge gradualmente; o quadro intermediário mantém corrente legível. A cena é de QA isolado, com trajetória sintética e sem o Enemy2 real, não demonstra FPS Android.
+- Commit `97825c1d89f74443c928c23df60613797f617fca`: asserções automáticas de até 11 draw calls, zero texturas e três discos de portal. [Teste final #43431969577](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43431969577) concluído com sucesso.
+- **Pendente antes do merge**: testar no jogo completo com o modelo real, vários inimigos, HUD e celular físico; confirmar se a fase `open` do estado de combate contém corrente ativa em produção. PR #494 permanece em rascunho; nenhuma mesclagem.
