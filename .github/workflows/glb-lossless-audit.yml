@@ -1,0 +1,44 @@
+name: GLB lossless equivalence
+on:
+  pull_request:
+    paths:
+      - '*.glb'
+      - 'tools/glb/**'
+      - 'docs/auditorias/glb-lossless-2026-11-12/**'
+      - '.github/workflows/glb-lossless-audit.yml'
+      - 'CODEX_OTIMIZACAO_GLB_TEMP.md'
+permissions:
+  contents: read
+jobs:
+  equivalence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GLB_BASE_SHA: 49113a707ae51d838a9965ad2c367d6ae0464f5a
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit tests and exact binary/metadata equivalence
+        run: |
+          python3 -m unittest discover -s tools/glb -p 'test_*.py'
+          python3 tools/glb/ci-verify.py
+      - name: Install pinned visual validator
+        run: |
+          npm ci --prefix tools/glb --no-audit --no-fund
+          tools/glb/node_modules/.bin/playwright install chromium --only-shell
+      - name: Khronos validation (reject new errors or warnings)
+        run: node tools/glb/validate-structure.cjs
+      - name: Render original and committed optimized models
+        run: |
+          python3 -m http.server 4180 --bind 127.0.0.1 >/tmp/glb-http.log 2>&1 &
+          node tools/glb/validate-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: glb-equivalence-${{ github.run_number }}
+          path: evidence/
+          retention-days: 14

@@ -1,0 +1,10 @@
+{
+  "name": "seven-sins-glb-validation",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "three": "0.160.0",
+    "playwright": "1.64.1",
+    "gltf-validator": "2.0.0-dev.3.10"
+  }
+}

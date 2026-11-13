@@ -1894,7 +1894,10 @@ cameraPitch=THREE.MathUtils.clamp(cameraPitch+dy*(firstPersonLook?.003:.004)*use
 function endLook(e){const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
 lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);lookArea.addEventListener('lostpointercapture',endLook);
 lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);syncCameraToggle3D();},{passive:true});
-addEventListener('blur',()=>{lookPointers.clear();lastPinchDistance=0;joyActive=false;joyX=joyY=0;knob.style.transform='translate(0,0)';});
+function resetInterruptedControls(){lookPointers.clear();mouseLookStart=null;lastPinchDistance=0;for(const key of Object.keys(keys))keys[key]=false;endJoy();moveVX=moveVZ=0;setDefending(false);}
+addEventListener('blur',resetInterruptedControls);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInterruptedControls();});
+stick.addEventListener('lostpointercapture',endJoy);
 
 function blockedAt(x,z){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
@@ -1906,7 +1909,7 @@ function blockedAt(x,z){
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
  {const bd=bridgeDeck(x,z);if(bd)return bd.edge;} // MOD 291: a ponte atravessa o rio (parapeitos bloqueiam)
  if(frontierBlocked(x,z))return true; // MOD 311: muralha da fronteira (mesma linha da malha do penhasco) — só o túnel da boca é livre
- if(terrain3D.boundaryDistance(x,z)>45||terrain3D.waterDepth(x,z)>=.9)return true;
+ if(terrain3D.boundaryDistance(x,z)>45||terrain3D.waterDepth(x,z)>=1.25)return true;
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const o of marketObstacles){if(o.height!==undefined&&o.height<=.68)continue;const dx=x-o.x,dz=z-o.z;if(o.shape==='box'?Math.abs(dx)<o.halfX&&Math.abs(dz)<o.halfZ:dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}

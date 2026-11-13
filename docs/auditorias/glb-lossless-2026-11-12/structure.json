@@ -1,0 +1,1100 @@
+[
+  {
+    "file": "Anjo-rig.glb",
+    "originalErrors": 2,
+    "optimizedErrors": 2,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_RANGE": 2,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "AnjoGuia-lod.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "AnjoGuia.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "AnjoGuiador-otimizado.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "ArreiosCavalo.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Arvore.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "ArvoreAncestralEldoria.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "ArvoreFloresta01.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1
+    }
+  },
+  {
+    "file": "Asas.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "AsasAnjo_leve.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1
+    }
+  },
+  {
+    "file": "BarracaFrutasEldoria-lod1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "BarracaFrutasEldoria.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Bispo1-lod.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_LOCAL_TRANSFORMS": 1
+    }
+  },
+  {
+    "file": "Bispo1.0.glb",
+    "originalErrors": 312,
+    "optimizedErrors": 312,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "ACCESSOR_ANIMATION_INPUT_NON_INCREASING": 312
+    }
+  },
+  {
+    "file": "Bispo2-lod.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Bispo2.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Bispo3-lod.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Bispo3.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Bispo4-lod.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Bispo4.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Cabelo-otimizado.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1
+    }
+  },
+  {
+    "file": "CabeloMulher-otimizado.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1
+    }
+  },
+  {
+    "file": "Carroça.glb",
+    "originalErrors": 14,
+    "optimizedErrors": 14,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "ACCESSOR_VECTOR3_NON_UNIT": 8,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "CasaEldoria01-lod1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "CasaEldoria01.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "CasaEldoria02-lod1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "CasaEldoria02.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Casaco.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Cavalo.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "Coliseu.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "CriancaNpc-otimizado.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "CristalCaverna01.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Demonio1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "DesertoKit.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "DevoradorLunar.glb",
+    "originalErrors": 9781,
+    "optimizedErrors": 9781,
+    "originalWarnings": 1526,
+    "optimizedWarnings": 1526,
+    "newIssues": [],
+    "codes": {
+      "ACCESSOR_NON_CLAMPED": 717,
+      "ACCESSOR_JOINTS_USED_ZERO_WEIGHT": 1526,
+      "ACCESSOR_JOINTS_INDEX_DUPLICATE": 4532,
+      "ACCESSOR_WEIGHTS_NON_NORMALIZED": 4532
+    }
+  },
+  {
+    "file": "EldoriaArvoresTropicais.glb",
+    "originalErrors": 25,
+    "optimizedErrors": 25,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_ATTRIBUTES_ACCESSOR_INVALID_FORMAT": 25,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 5
+    }
+  },
+  {
+    "file": "Enemy2-rig.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Enemy2.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Enemy3.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Enemy4.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "EntradaCavernaAto1.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Espada1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1
+    }
+  },
+  {
+    "file": "EspadaBispo2.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "EspadaBispo3.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "EspadaBispo4.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "EspadaProta.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1
+    }
+  },
+  {
+    "file": "EspadaVeraxion.glb",
+    "originalErrors": 23,
+    "optimizedErrors": 23,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {
+      "ACCESSOR_VECTOR3_NON_UNIT": 23
+    }
+  },
+  {
+    "file": "FerreiroEldoria-lod1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "FerreiroEldoria.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "FiguraDeLuz.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Ganancia1-lod.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Ganancia1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Ganancia2-lod.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Ganancia2.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Ganancia3-lod.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Ganancia3.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Grama.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "JaulaRitualAto1.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Lua.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "MeninaNpc-otimizado.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "Misteriosa-rig.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "Montanha.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "MontanhaEldoria01-lod1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "MontanhaEldoria01.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Moradores-216.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "MoradoresPose.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 2
+    }
+  },
+  {
+    "file": "MulherNpc-otimizado.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "NPC_Masculino_Animado_Otimizado_1K.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "NeveKit.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Npc-lod.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "Npc-lod2.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1
+    }
+  },
+  {
+    "file": "Npc.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "NpcEspecial-otimizado.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "PassarelaSuspensaEldoria.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "PocoEldoria-lod1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "PocoEldoria.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Ponte.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Prota_otimizado_2K.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 2,
+    "optimizedWarnings": 2,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "Protagonista-cine.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Protagonista-corrida-216.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Protagonista-corrida-235.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Protagonista-corrida.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Protagonista-ritos-231.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Protagonista-ritos-232.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Protagonista.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 5,
+    "optimizedWarnings": 5,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "NODE_SKINNED_MESH_NON_ROOT": 1,
+      "IMAGE_FEATURES_UNSUPPORTED": 3
+    }
+  },
+  {
+    "file": "RochedoMusgoEldoria-lod1.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "RochedoMusgoEldoria.glb",
+    "originalErrors": 6,
+    "optimizedErrors": 6,
+    "originalWarnings": 4,
+    "optimizedWarnings": 4,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_LIST": 3,
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+      "IMAGE_NON_ENABLED_MIME_TYPE": 3,
+      "TEXTURE_INVALID_IMAGE_MIME_TYPE": 3
+    }
+  },
+  {
+    "file": "Sandra-rig.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "TochaMedievalTripo.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1
+    }
+  },
+  {
+    "file": "TorreKit.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "TronoCeleste.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "VilaKit.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "Vitima-rig.glb",
+    "originalErrors": 2,
+    "optimizedErrors": 2,
+    "originalWarnings": 1,
+    "optimizedWarnings": 1,
+    "newIssues": [],
+    "codes": {
+      "VALUE_NOT_IN_RANGE": 2,
+      "NODE_SKINNED_MESH_NON_ROOT": 1
+    }
+  },
+  {
+    "file": "biblia_celestial_aberta.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  },
+  {
+    "file": "biblia_celestial_fechada.glb",
+    "originalErrors": 0,
+    "optimizedErrors": 0,
+    "originalWarnings": 0,
+    "optimizedWarnings": 0,
+    "newIssues": [],
+    "codes": {}
+  }
+]
