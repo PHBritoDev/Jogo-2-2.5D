@@ -1,7 +1,11 @@
-# Interface 7 Pecados — totalmente procedural
+# Menu cinematográfico das sete galáxias
 
-A tela principal de galáxias NÃO usa imagens ou fotografias. O código Three.js em `galaxies-three-scene.js` gera sete mundos 3D, eclipse, auréola, anjo, nuvens e solo vulcânico (ShaderMaterial, geometria e CanvasTexture criada no navegador).
+A interface combina Three.js (modelos reais GLB, planetas, shaders de fogo, partículas, eclipse, céu e lava) com HTML/CSS (texto, botões, progresso e navegação).
 
-A seleção/progresso/entrada permanecem em `galaxies3d.js`. Apenas se WebGL não estiver disponível usa-se a arte SVG gerada em código `galaxies-infernal-art.js`.
+**Modelos confirmados no repositório:** `AnjoGuiador-otimizado.glb` (com reserva `AnjoGuia-lod.glb` e `Anjo-rig.glb`) e `Misteriosa-rig.glb`. Não utilizar fotografias desses personagens. A NPC misteriosa aparece em silhueta escura com borda magenta e corações 3D para preservar sua identidade.
 
-O agente `.github/workflows/galaxies-infernal-qa.yml` testa WebGL real e captura o menu em 1536×864 e 852×393. Qualidade visual deve ser verificada contra a referência do criador antes do merge.
+**Arquivos:** `galaxies-three-scene.js` integra a cena; `galaxies-cinematic-models.js` carrega e anima os GLBs; `galaxies-living-inferno.js` implementa chamas instanciadas e luz procedural; `galaxies-gothic-depth.js` desenha a arquitetura do horizonte.
+
+**Verificação:** `.github/workflows/galaxies-infernal-qa.yml` executa Chromium nas resoluções desktop 1536×864 e celular 852×393, fotografa todos os planetas, valida GLBs carregados, contexto WebGL, navegação e ENTRAR. Essas capturas não provam FPS no celular físico.
+
+**Segurança de integração:** manter em branch separada, sem alterar Eldória, narrativa ou combate. Não fazer merge antes de revisar imagens e comportamento em dispositivo real.
