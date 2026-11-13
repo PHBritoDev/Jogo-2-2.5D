@@ -93,7 +93,7 @@ export function attachCinematicModels({root,environment,planets,detail,screenWid
  };
  const alive=()=>state.active&&root.isConnected;
  const guardianPivot=new THREE.Group();
- guardianPivot.position.set(-screenWidth*.31,screenHeight*.265,-110);
+ guardianPivot.position.set(-screenWidth*.31,screenHeight*.20,-110);
  environment.add(guardianPivot);
  const angelHalo=new THREE.Mesh(new THREE.TorusGeometry(screenHeight*.115,screenHeight*.0025,6,90),
    new THREE.MeshBasicMaterial({color:'#b4c5ee',transparent:true,opacity:.42,depthWrite:false,blending:THREE.AdditiveBlending}));
@@ -106,14 +106,14 @@ export function attachCinematicModels({root,environment,planets,detail,screenWid
   if(!alive())return;
   const figure=gltf.scene;
   shadowMeshes(figure,{color:'#161b2a',emissive:'#2b354e'});
-  fitModel(figure,screenHeight*.56);
+  fitModel(figure,screenHeight*.49);
   figure.rotation.y=-.12;
   guardianPivot.add(figure);state.angel=figure;state.loaded.guardian=path;
   // Existindo uma animação adequada no rig, ela substitui o idle improvisado.
   if(gltf.animations?.length){
    const mixer=new THREE.AnimationMixer(figure);
-   const idle=gltf.animations.find(a=>/idle|breath|float|respir|parado/i.test(a.name));
-   if(idle){mixer.clipAction(idle).setEffectiveWeight(.8).play();state.mixers.push(mixer);}
+   const idle=gltf.animations.find(a=>/idle|breath|float|respir|parado/i.test(a.name))||gltf.animations[0];
+   if(idle){const action=mixer.clipAction(idle);action.setEffectiveWeight(.8).setEffectiveTimeScale(.22).play();state.mixers.push(mixer);root.dataset.gxGuardianAnimation=idle.name;}
   }
   root.dataset.gxGuardianModel=path.split('/').pop();
  };
