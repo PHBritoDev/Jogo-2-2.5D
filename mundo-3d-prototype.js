@@ -65,7 +65,8 @@ import {createLightState,sampleTimeOfDay,applyRegionGrade,sunDirection,createReg
 import {createWeatherDirector,applyWeatherToLight,WEATHER} from './eldoria-weather.js';
 import {createWeatherView} from './eldoria-weather3d.js';
 import {rocksBlock,rockSupportAt} from './eldoria-rock-collider.js';
-import {planValleyForest,planValleyOutcrops,VIGIA} from './eldoria-valley-landscape.js';
+import {planValleyForest,planValleyOutcrops,planValleyGroundCover,VIGIA} from './eldoria-valley-landscape.js';
+import {grassTuftGeometry,flowerGeometry} from './eldoria-prologue-meadow.js';
 import {buildVigiaRuin} from './eldoria-valley-ruin3d.js';
 import {loadTropicalTrees,mountTropicalForest,planTropicalBelt} from './eldoria-tropical-trees.js';
 import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
@@ -815,6 +816,16 @@ if(VALLEY_ON)new GLTFLoader().load('./RochedoMusgoEldoria-lod1.glb',gltf=>{
  mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=true;mesh.receiveShadow=true;(prologueMeadow.group||scene).add(mesh);
  window.SevenSinsValleyReport.meadowBoulders=n;
 },undefined,e=>console.warn('Rochedos do prado não carregaram; mantendo os procedurais.',e));
+// RENASCIMENTO F2 — chão das encostas: manchas de capim alto e flores do campo (2 InstancedMesh, cortados por distância)
+if(VALLEY_ON){const gc=planValleyGroundCover(valleyEnv,{tufts:terrainLowSpec?900:1500,flowers:terrainLowSpec?260:440}),dm=new THREE.Object3D();
+ const gm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide});addInstancedWind(gm,.09,'clamp(position.y*2.0,0.0,1.0)',1.1,'f2-valley-grass');
+ const tu=new THREE.InstancedMesh(grassTuftGeometry(THREE),gm,Math.max(1,gc.tufts.length));gc.tufts.forEach((t,i)=>{dm.position.set(t.x,groundHeightAt(t.x,t.z)-.03,t.z);dm.rotation.set(0,t.rot,0);dm.scale.set(t.s,t.s*(.8+(i%5)*.1),t.s);dm.updateMatrix();tu.setMatrixAt(i,dm.matrix);});
+ tu.count=gc.tufts.length;tu.name='vale-capim';tu.receiveShadow=true;tu.instanceMatrix.needsUpdate=true;tu.computeBoundingSphere();scene.add(tu);registerInstanceCull(tu,terrainLowSpec?46:64,14);
+ const fm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.8,side:THREE.DoubleSide});
+ for(const yellow of [false,true]){const L=gc.flowers.filter(f=>f.yellow===yellow);if(!L.length)continue;const m=new THREE.InstancedMesh(flowerGeometry(THREE,yellow?[.98,.82,.22]:[.92,.9,.98],yellow?[.85,.55,.12]:[.98,.78,.2]),fm,L.length);
+  L.forEach((f,i)=>{dm.position.set(f.x,groundHeightAt(f.x,f.z)-.02,f.z);dm.rotation.set(f.tilt,f.rot,0);dm.scale.setScalar(f.s);dm.updateMatrix();m.setMatrixAt(i,dm.matrix);});
+  m.name='vale-flores-'+(yellow?'amarelas':'claras');m.instanceMatrix.needsUpdate=true;m.computeBoundingSphere();scene.add(m);registerInstanceCull(m,terrainLowSpec?40:56,12);}
+ window.SevenSinsValleyReport.groundCover={tufts:gc.tufts.length,flowers:gc.flowers.length};}
 // Posto do Vigia (desvio opcional): ruína autoral no topo da encosta oeste, relicário com recompensa única.
 const VIGIA_STORE='seven-sins-3d-posto-vigia';
 const vigiaRuin=VALLEY_ON?buildVigiaRuin(THREE,{ground:groundHeightAt,walk:eldoriaWalk,lowSpec:terrainLowSpec}):null;
