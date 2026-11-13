@@ -154,7 +154,8 @@ export function createStarfallVFX(T, scene, { ground = () => 0 } = {}) {
         glow.add(s.p.x, s.p.y, s.p.z, 2.4 * big, .14 * big, 1, 1, 1, .6, 2, spin * .1);
         const segs = low ? 7 : 14, bands = low ? 1 : 3;
         for (let j = 0; j < segs; j++) {
-          const u0 = Math.max(0, (age - j * .028) / .65), u1 = Math.max(0, (age - (j + 1) * .028) / .65); if (u0 <= 0) break;
+          // Limita a geometria visual ao destino: sem extrapolar a estrela além do impacto.
+          const u0 = Math.min(1, Math.max(0, (age - j * .028) / .65)), u1 = Math.min(1, Math.max(0, (age - (j + 1) * .028) / .65)); if (u0 <= 0 || u0 <= u1) break;
           const fall = k => [s.from.x + (s.aim.x - s.from.x) * k, s.from.y + (s.aim.y - s.from.y) * k * k, s.from.z + (s.aim.z - s.from.z) * k];
           const A = fall(u0), Bp = fall(u1), w = 1 - j / segs;
           for (let band = 0; band < bands; band++) {
