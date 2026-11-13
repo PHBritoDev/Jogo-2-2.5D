@@ -30,3 +30,11 @@ Data inicial: 2026-11-12. Escopo exclusivo de VFX, sem dano, hitbox, movimentaç
 3. `celestial-starfall-vfx3d.js`: avaliar impactos sequenciais e legibilidade do fim do cast.
 4. `skill-x-rupture-vfx3d.js`: verificar silhueta do X vista de lado e clareza da preparação.
 Cada um exige pesquisa específica e QA visual de antes/depois independente; nunca alterar todos de uma vez.
+
+## Validação consolidada (2026-11-12)
+- [Agente isolado, versão final #43351522559](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43351522559): sucesso, quatro PNG + `report.json`; capturas conferidas contra as imagens do baseline: os fiapos permanecem ligados ao local de desaparecimento, ganharam largura e não houve regressão óbvia no rastro de reaparecimento.
+- [Agente final com orçamento automático #43351637690](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43351637690): sucesso; as capturas de desaparecimento registram 28 fiapos, 5 draw calls, 490 triângulos e nenhuma textura; reaparecimento mantém 6 draw calls. Limite de até 8 draw calls para a cena de desaparecimento validado pelo script.
+- A medição é uma cena de QA isolada com personagem simplificado; não demonstra paridade artística com Genshin/Star Rail, nem FPS no Galaxy A55. Não há alegação de medição de GPU time/RAM do dispositivo.
+- Integração dos sistemas externos: `tests/combat315` workflow teve execuções de sucesso para commits de VFX na branch; laboratório WebGL completo ainda pode estar em andamento. Sem merge.
+- PR #481 do Claude: na consulta mais recente do GitHub estava **fechado e mesclado**; o trabalho atual de VFX não alterou seus arquivos.
+- Risco remanescente: atualizações múltiplas de `instanceMatrix` por frame e performance de shader devem ser verificadas em Android físico, inclusive na luta com vários poderes simultâneos. O preview isolado usa o mesmo shader mas não a cena completa.
