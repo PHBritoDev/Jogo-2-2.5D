@@ -1,0 +1,13 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>QA VFX Vórtice Abissal</title><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script><style>body{margin:0;background:#101820;color:white;font:14px system-ui}canvas{display:block}label{position:absolute;top:5px;left:10px}</style></head><body><label>Enemy2 — Vórtice Abissal · QA visual</label><script type="module">
+import * as T from 'three';import {createChaosVFX} from './enemy2-chaos-vfx3d.js';
+const renderer=new T.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(960,540);renderer.setPixelRatio(1);renderer.outputColorSpace=T.SRGBColorSpace;document.body.append(renderer.domElement);
+const scene=new T.Scene();scene.background=new T.Color('#20272d');const camera=new T.PerspectiveCamera(50,960/540,.01,100);camera.position.set(7,8.5,11);camera.lookAt(0,2,0);
+scene.add(new T.HemisphereLight(0xbad0ff,0x1a2217,2));const sun=new T.DirectionalLight(0xffe4b1,2.5);sun.position.set(2,8,4);scene.add(sun);
+const floor=new T.Mesh(new T.PlaneGeometry(30,30),new T.MeshStandardMaterial({color:'#506352',roughness:.95}));floor.rotation.x=-Math.PI/2;scene.add(floor);const grid=new T.GridHelper(20,20,0x66796b,0x40534e);grid.position.y=.008;scene.add(grid);
+const fx=createChaosVFX(T,scene,{ground:()=>0});const T0={portal:2.4,r:0.5,retract:.65,burst:.55};
+window.vfxQa={ready:true,show:({phase='open',progress=.5,quality=1}={})=>{
+const path=[{x:.3,y:3.7,z:.3},{x:1,y:2.5,z:.7},{x:2,y:1.5,z:1.4}];
+const s={type:'vortex',phase,t:(phase==='open'?.35:T0[phase]||.55)*progress,T:T0,px:0,py:4.3,pz:0,x:2.8,y:1.2,z:1.7,id:28,kind:'enemy',path};
+const counts=fx.update(1/60,camera,[s],[],quality);renderer.render(scene,camera);return {phase,progress,quality,counts,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures};}};
+window.vfxQa.show({phase:'open',progress:.5});
+</script></body></html>
