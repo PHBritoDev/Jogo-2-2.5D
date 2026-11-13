@@ -1,0 +1,415 @@
+{
+ "res": [
+  {
+   "name": "rocha-baixa (h .32)",
+   "expect": "pass",
+   "from": [
+    33.66,
+    171.18
+   ],
+   "to": [
+    39.66,
+    171.18
+   ],
+   "steps": 0,
+   "maxY": -0.17,
+   "minAbove": 0,
+   "pen": 36,
+   "penRock": {
+    "x": 38.6,
+    "z": 171.6,
+    "r": 1.46,
+    "h": 1.57
+   },
+   "stuckT": 0.3,
+   "fell": false,
+   "end": [
+    37.58,
+    -0.37,
+    171.18
+   ],
+   "progress": 0.653
+  },
+  {
+   "name": "rocha-media (h .95) andando",
+   "expect": "block",
+   "from": [
+    75.6,
+    131.9
+   ],
+   "to": [
+    81.6,
+    131.9
+   ],
+   "steps": 0,
+   "maxY": 0.04,
+   "minAbove": 0,
+   "pen": 90,
+   "penRock": {
+    "x": 78.6,
+    "z": 131.9,
+    "r": 1.29,
+    "h": 0.95
+   },
+   "stuckT": 1.33,
+   "fell": false,
+   "end": [
+    77.66,
+    0.04,
+    131.9
+   ],
+   "progress": 0.343
+  },
+  {
+   "name": "rocha-media (h .95) pulando",
+   "expect": "over",
+   "from": [
+    75.6,
+    131.9
+   ],
+   "to": [
+    81.6,
+    131.9
+   ],
+   "steps": 0,
+   "maxY": 1.12,
+   "minAbove": 0,
+   "pen": 101,
+   "penRock": {
+    "x": 78.6,
+    "z": 131.9,
+    "r": 1.29,
+    "h": 0.95
+   },
+   "stuckT": 1.53,
+   "fell": false,
+   "end": [
+    77.66,
+    0.04,
+    131.9
+   ],
+   "progress": 0.343
+  },
+  {
+   "name": "rocha-media correndo+pulo",
+   "expect": "over",
+   "from": [
+    74.6,
+    131.9
+   ],
+   "to": [
+    79.4,
+    131.9
+   ],
+   "steps": 0,
+   "maxY": 1.13,
+   "minAbove": 0,
+   "pen": 37,
+   "penRock": {
+    "x": 78.6,
+    "z": 131.9,
+    "r": 1.29,
+    "h": 0.95
+   },
+   "stuckT": 0.58,
+   "fell": false,
+   "end": [
+    77.65,
+    0.04,
+    131.9
+   ],
+   "progress": 0.636
+  },
+  {
+   "name": "rocha-grande (h 3.74)",
+   "expect": "block",
+   "from": [
+    62.5,
+    154
+   ],
+   "to": [
+    75.5,
+    154
+   ],
+   "steps": 0,
+   "maxY": -0.11,
+   "minAbove": 0,
+   "pen": 119,
+   "penRock": {
+    "x": 69,
+    "z": 154,
+    "r": 4.68,
+    "h": 3.74
+   },
+   "stuckT": 1.5,
+   "fell": false,
+   "end": [
+    65.54,
+    -0.43,
+    154
+   ],
+   "progress": 0.234
+  },
+  {
+   "name": "rocha-grande + dash",
+   "expect": "block",
+   "from": [
+    62.5,
+    154
+   ],
+   "to": [
+    75.5,
+    154
+   ],
+   "steps": 0,
+   "maxY": -0.11,
+   "minAbove": 0,
+   "pen": 155,
+   "penRock": {
+    "x": 69,
+    "z": 154,
+    "r": 4.68,
+    "h": 3.74
+   },
+   "stuckT": 2.5,
+   "fell": false,
+   "end": [
+    65.53,
+    -0.43,
+    154
+   ],
+   "progress": 0.233
+  },
+  {
+   "name": "ponte (atravessar o rio)",
+   "expect": "pass",
+   "from": [
+    -0.4,
+    -2.5
+   ],
+   "to": [
+    -0.4,
+    -22
+   ],
+   "steps": 0,
+   "maxY": 1.3,
+   "minAbove": 0,
+   "pen": 0,
+   "penRock": null,
+   "stuckT": 0,
+   "fell": false,
+   "end": [
+    -0.4,
+    0,
+    -22.1
+   ],
+   "progress": 1.005
+  },
+  {
+   "name": "rio fora da ponte (x=30)",
+   "expect": "info",
+   "from": [
+    30,
+    -6
+   ],
+   "to": [
+    30,
+    -21
+   ],
+   "steps": 0,
+   "maxY": 0,
+   "minAbove": 0,
+   "pen": 0,
+   "penRock": null,
+   "stuckT": 1.65,
+   "fell": false,
+   "end": [
+    30,
+    -1.75,
+    -12.01
+   ],
+   "progress": 0.401
+  },
+  {
+   "name": "escada lance0 -> patamar",
+   "expect": "climb",
+   "from": [
+    12.6,
+    -46.4
+   ],
+   "to": [
+    7.2,
+    -46.6
+   ],
+   "steps": 0,
+   "maxY": 3.21,
+   "minAbove": 0,
+   "pen": 0,
+   "penRock": null,
+   "stuckT": 0,
+   "fell": false,
+   "end": [
+    7.09,
+    3.21,
+    -46.4
+   ],
+   "progress": 1.02
+  },
+  {
+   "name": "abrigo (degraus) -> centro",
+   "expect": "climb",
+   "from": [
+    -4.6,
+    -31.5
+   ],
+   "to": [
+    -4.6,
+    -36.5
+   ],
+   "steps": 0,
+   "maxY": 0.44,
+   "minAbove": 0,
+   "pen": 0,
+   "penRock": null,
+   "stuckT": 0,
+   "fell": false,
+   "end": [
+    -4.6,
+    0.44,
+    -36.14
+   ],
+   "progress": 0.928
+  },
+  {
+   "name": "prado em declive (subida)",
+   "expect": "pass",
+   "from": [
+    54,
+    150
+   ],
+   "to": [
+    54,
+    120
+   ],
+   "steps": 0,
+   "maxY": 0,
+   "minAbove": 0,
+   "pen": 0,
+   "penRock": null,
+   "stuckT": 0,
+   "fell": false,
+   "end": [
+    54,
+    -0.03,
+    137
+   ],
+   "progress": 0.433
+  },
+  {
+   "name": "casa CasaEldoria01 (parede)",
+   "expect": "block",
+   "from": [
+    -13.2,
+    -24
+   ],
+   "to": [
+    -13.2,
+    -38
+   ],
+   "steps": 0,
+   "maxY": 0,
+   "minAbove": 0,
+   "pen": 0,
+   "penRock": null,
+   "stuckT": 3.48,
+   "fell": false,
+   "end": [
+    -13.2,
+    0,
+    -29.25
+   ],
+   "progress": 0.375
+  },
+  {
+   "name": "casa grande (-33.9,-45)",
+   "expect": "block",
+   "from": [
+    -25,
+    -45
+   ],
+   "to": [
+    -42,
+    -45
+   ],
+   "steps": 0,
+   "maxY": 0,
+   "minAbove": 0,
+   "pen": 0,
+   "penRock": null,
+   "stuckT": 3.47,
+   "fell": false,
+   "end": [
+    -30.37,
+    0,
+    -45
+   ],
+   "progress": 0.316
+  },
+  {
+   "name": "lago: margem rasa -> fundo",
+   "expect": "wade",
+   "from": [
+    -27,
+    -73
+   ],
+   "to": [
+    -27,
+    -88
+   ],
+   "steps": 0,
+   "maxY": 0,
+   "minAbove": 0,
+   "pen": 0,
+   "penRock": null,
+   "stuckT": 1.78,
+   "fell": false,
+   "end": [
+    -27,
+    -1.67,
+    -82.02
+   ],
+   "progress": 0.601
+  },
+  {
+   "name": "rocha baixa: sem afundar (2a)",
+   "expect": "pass",
+   "from": [
+    28.5,
+    167.41
+   ],
+   "to": [
+    33.5,
+    167.41
+   ],
+   "steps": 0,
+   "maxY": 1.01,
+   "minAbove": 0,
+   "pen": 72,
+   "penRock": {
+    "x": 31,
+    "z": 167.4,
+    "r": 0.89,
+    "h": 0.58
+   },
+   "stuckT": 0,
+   "fell": false,
+   "end": [
+    32.47,
+    -0.37,
+    167.41
+   ],
+   "progress": 0.795
+  }
+ ],
+ "errs": []
+}

@@ -1,0 +1,48 @@
+name: Renascimento F1 — navegação, clima e ângulos fixos (QA jogável)
+on:
+  pull_request:
+    paths:
+      - 'mundo-3d-prototype.js'
+      - 'eldoria-weather.js'
+      - 'eldoria-weather3d.js'
+      - 'eldoria-rock-collider.js'
+      - 'tests/renascimento-f1.test.mjs'
+      - 'tools/visual-lab/renascimento-f1-qa.cjs'
+      - '.github/workflows/renascimento-f1-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testes do Renascimento F1 e regressões vizinhas
+        run: node --test tests/renascimento-f1.test.mjs graphics-adaptive.test.mjs tests/mod317-prologo.test.mjs eldoria-mod291.test.mjs map3d.test.mjs
+      - name: Instalar navegador WebGL
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install chromium --only-shell
+      - name: Servir o jogo de teste sem publicar
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ren.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ren.log
+          exit 1
+      - name: QA jogável em paisagem mobile e desktop (SwiftShader, não Android)
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/renascimento-f1-qa.cjs
+      - name: Publicar evidências
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: renascimento-f1-${{ github.run_number }}
+          path: visual-lab-results/renascimento-f1/
+          retention-days: 30
+          if-no-files-found: warn

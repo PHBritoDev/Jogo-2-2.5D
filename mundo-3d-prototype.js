@@ -62,6 +62,9 @@ import {ELDORIA_STREETS,doorPaths,treeStructurePlan} from './eldoria-city-layout
 import {createWalkables} from './eldoria-walkable.js';
 import {clampBakedMips} from './eldoria-baked-texture.js';
 import {createLightState,sampleTimeOfDay,applyRegionGrade,sunDirection,createRegionProbe} from './eldoria-nostalgic-light.js';
+import {createWeatherDirector,applyWeatherToLight,WEATHER} from './eldoria-weather.js';
+import {createWeatherView} from './eldoria-weather3d.js';
+import {rocksBlock,rockSupportAt} from './eldoria-rock-collider.js';
 import {loadTropicalTrees,mountTropicalForest,planTropicalBelt} from './eldoria-tropical-trees.js';
 import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
@@ -191,6 +194,7 @@ const cloudGeometry=new THREE.SphereGeometry(1,10,7),cloudMaterial=new THREE.Mes
 const movingClouds=[];
 const cloudLayouts=[{x:-92,y:49,z:-66,s:1.05,v:.38,p:0.3},{x:-46,y:63,z:-124,s:.78,v:.29,p:1.6},{x:62,y:53,z:-98,s:1.1,v:-.32,p:2.4},{x:105,y:68,z:-18,s:.88,v:-.26,p:3.1},{x:22,y:76,z:35,s:.72,v:.24,p:4.2}];
 for(const cloud of cloudLayouts){const group=new THREE.Group();group.position.set(cloud.x,cloud.y,cloud.z);for(const p of [{x:-3.1,y:0,z:0,sx:4.2,sy:1.5,sz:2.2},{x:.1,y:1.25,z:.2,sx:5.3,sy:2.2,sz:2.9},{x:3.7,y:.2,z:.1,sx:3.7,sy:1.35,sz:2},{x:1.5,y:-.25,z:-1.6,sx:3.4,sy:1.25,sz:1.8}]){const puff=new THREE.Mesh(cloudGeometry,cloudMaterial);puff.position.set(p.x,p.y,p.z);puff.scale.set(p.sx*cloud.s, p.sy*cloud.s, p.sz*cloud.s);group.add(puff);}group.frustumCulled=false;scene.add(group);movingClouds.push({group,speed:cloud.v,phase:cloud.p,baseY:cloud.y});}
+for(const c of movingClouds)c.group.visible=false; // RENASCIMENTO F1: substituídas pela cúpula de nuvens (eldoria-weather3d.js)
 function makeSoilTexture(base,palette,seed){const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;const ctx=canvas.getContext('2d');ctx.fillStyle=base;ctx.fillRect(0,0,256,256);let s=seed>>>0;const next=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};for(let i=0;i<1500;i++){ctx.globalAlpha=.08+next()*.16;ctx.fillStyle=palette[Math.floor(next()*palette.length)];const w=1+next()*3.5,h=1+next()*2.5;ctx.fillRect(next()*256,next()*256,w,h);}ctx.globalAlpha=1;const texture=new THREE.CanvasTexture(canvas);texture.wrapS=THREE.RepeatWrapping;texture.wrapT=THREE.RepeatWrapping;texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());return texture;}
 const groundMat=mat(0xffffff),pathMat=mat(0xffffff),barkMat=mat(0x493c2e),leafMat=mat(0x183b29),leafLight=mat(0x35633a),rockMat=mat(0x626c68);
 groundMat.map=makeSoilTexture('#435d3e',['#536b43','#354f35','#647248'],163);groundMat.map.repeat.set(34,34);groundMat.needsUpdate=true;
@@ -285,8 +289,9 @@ const waterMaterials=[eldoriaRiver.material,eldoriaLake.material,eldoriaFalls.ma
 const eldoriaBridge=buildBridge(THREE,BRIDGE,{level:RIVER.level,lowSpec:terrainLowSpec});scene.add(eldoriaBridge);
 /* Ponte.glb (asset do criador) substitui a ponte procedural de reserva: escala pelo vão, tabuleiro medido por raio para
    a caminhada (bridgeDeck usa a mesma curva) e cabeceiras assentadas no barranco. */
+const cameraOccluders=[],camRay=new THREE.Raycaster(),camRayO=new THREE.Vector3(),camRayD=new THREE.Vector3(); // RENASCIMENTO F1: malhas grandes que o braço da câmera não atravessa (raio só quando o herói está perto)
 new GLTFLoader().load('./Ponte.glb',gltf=>{clampBakedMips(THREE,gltf.scene,terrainLowSpec?4:3.5);const m=gltf.scene,b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=BRIDGE.halfLength*2.18/Math.max(.01,sz.x);
- m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k,-c.z*k);const g=new THREE.Group();g.add(m);g.rotation.y=Math.atan2(-BRIDGE.axisZ,BRIDGE.axisX);g.position.set(BRIDGE.x,0,BRIDGE.z);scene.add(g);g.updateMatrixWorld(true);
+ m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k,-c.z*k);const g=new THREE.Group();g.add(m);g.rotation.y=Math.atan2(-BRIDGE.axisZ,BRIDGE.axisX);g.position.set(BRIDGE.x,0,BRIDGE.z);scene.add(g);g.updateMatrixWorld(true);cameraOccluders.push({obj:g,x:BRIDGE.x,z:BRIDGE.z,r:BRIDGE.halfLength+14});
  m.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;}});
  const ray=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0),deckAt=t=>{const x=BRIDGE.x+BRIDGE.axisX*BRIDGE.halfLength*t,z=BRIDGE.z+BRIDGE.axisZ*BRIDGE.halfLength*t;ray.set(new THREE.Vector3(x,40,z),down);const h=ray.intersectObject(m,true)[0];return h?h.point.y:null;};
  const end=Math.min(...[-.96,.96].map(deckAt).filter(v=>v!==null));if(!Number.isFinite(end))return;g.position.y=.1-end;g.updateMatrixWorld(true);
@@ -351,10 +356,34 @@ function updateRegionWeights(dt){
  const k=1-Math.exp(-dt*1.2);for(const key in regionWeights)regionWeights[key]+=(regionTarget[key]-regionWeights[key])*k;
 }
 function setSrgb(color,a){return color.setRGB(a[0],a[1],a[2],THREE.SRGBColorSpace);}
+/* RENASCIMENTO F1 — clima do mundo aberto (eldoria-weather.js + eldoria-weather3d.js): cadeia de estados com transições
+   suaves (limpo → nuvens → encoberto → chuvisco → chuva → chuva forte → tempestade, neblina de vale ao amanhecer),
+   nuvens em cúpula com ruído periódico, chuva na GPU, relâmpago com trovão atrasado pela distância, superfícies molhadas.
+   Só em Eldória (fora de dimensões/cavernas, da cidade de neve e do Ato II das cinzas). Estado salvo por aparelho. */
+const WEATHER_STORE='seven-sins-3d-clima',WEATHER_REGION_R=380;
+const eldoriaWeather=createWeatherDirector({seed:(Date.now()/86400000|0)^0x5eed,state:'nuvens'});
+try{eldoriaWeather.restore(JSON.parse(localStorage.getItem(WEATHER_STORE)||'null'));}catch(_){}
+const eldoriaWeatherView=createWeatherView(THREE,{scene,lowSpec:terrainLowSpec});
+for(const [m,o] of [[terrainMesh.material,{darken:.2,rough:.38}],[pathMat,{darken:.24,rough:.42}],[rockMat,{darken:.26,rough:.5}],[groundMat,{darken:.18,rough:.35}]])eldoriaWeatherView.registerWet(m,o);
+let weatherActive=true,weatherSaveT=0,weatherWindPhase=0,weatherWindDir=.6,weatherLowFps=false;const weatherSunDir=new THREE.Vector3();
+function weatherAllowedHere(){if(typeof voidMode!=='undefined'&&voidMode)return false;const P=player.position;if(inSnowCity(P.x,P.z))return false;
+ if(typeof questStep!=='undefined'&&typeof ACT2!=='undefined'&&questStep>=ACT2.travel&&questStep<ACT3N.road)return false; // Ato II: cinzas do vulcão, não chuva (MOD 205)
+ return Math.hypot(P.x-VILLAGE_CENTER.x,P.z-VILLAGE_CENTER.z)<WEATHER_REGION_R;}
+function updateWeather(dt){
+ const ev=eldoriaWeather.update(dt,typeof gameClock!=='undefined'?gameClock.hour:12,regionWeights);
+ weatherActive=weatherAllowedHere();
+ for(const e of ev){if(!weatherActive)continue;
+  if(e.type==='strike')eldoriaWeatherView.strike(player.position,e,!!(typeof userSettings!=='undefined'&&userSettings.reduceFlash));
+  else if(e.type==='thunder'&&worldAudio.thunder)worldAudio.thunder();}
+ weatherWindDir+=Math.sin(performance.now()*.00003)*dt*.02;
+ weatherWindPhase+=dt*(.75+eldoriaWeather.windNow*1.7);
+ weatherSaveT+=dt;if(weatherSaveT>6){weatherSaveT=0;try{localStorage.setItem(WEATHER_STORE,JSON.stringify(eldoriaWeather.snapshot()));}catch(_){}}
+}
 function applyDayNightVisual(t){
  if(typeof voidMode!=='undefined'&&voidMode)return;
  const p=t,L=sampleTimeOfDay(typeof gameClock!=='undefined'?gameClock.hour:(p>.5?22:10),nostalgicLight);
  applyRegionGrade(L,regionWeights,p);
+ const Wp=weatherActive?eldoriaWeather.params:WEATHER.limpo,wFlash=weatherActive?eldoriaWeatherView.flash:0;applyWeatherToLight(L,Wp,p,wFlash);
  setSrgb(scene.background,L.skyH);setSrgb(scene.fog.color,L.fog);scene.fog.near=L.fogNear;scene.fog.far=L.fogFar;
  setSrgb(hemiLight.color,L.hemiSky);setSrgb(hemiLight.groundColor,L.hemiGround);hemiLight.intensity=L.hemiInt;
  sunLight.intensity=L.sunInt;setSrgb(sunLight.color,L.sun);setSrgb(fill.color,L.fill);fill.intensity=L.fillInt;
@@ -365,9 +394,11 @@ function applyDayNightVisual(t){
  if(sunDisk&&sunDisk.material){sunDisk.material.color.setRGB(1,.82+.14*Math.min(1,L.elev/30),.55+.4*Math.min(1,Math.max(0,L.elev)/40),THREE.SRGBColorSpace);}
  if(starField){starField.visible=p>.3;starField.material.opacity=THREE.MathUtils.smoothstep(p,.3,1)*.95;}
  renderer.toneMappingExposure=L.exposure;
- if(sunDisk)sunDisk.visible=p<.55;
- if(sunHalo)sunHalo.visible=p<.55;
- if(moonRoot)moonRoot.visible=p>.35;
+ const celestialK=eldoriaWeatherView.celestial(Wp);
+ if(sunDisk)sunDisk.visible=p<.55&&celestialK>.05;
+ if(sunHalo){sunHalo.visible=p<.55&&celestialK>.05;sunHalo.material.opacity=celestialK;}
+ if(moonRoot)moonRoot.visible=p>.35&&celestialK>.25;
+ if(starField&&starField.visible)starField.material.opacity*=celestialK;
  for(const light of villageTorchLights)light.intensity=THREE.MathUtils.lerp(dayPreset.torchInt,nightPreset.torchInt,p);
  // Gradiente do céu diurno → noturno (recalculado só quando a luz mudou de verdade: são centenas de vértices).
  const skySig=Math.round(L.hour*20)+Math.round((regionWeights.forest+regionWeights.serra)*20)*1000;
@@ -400,10 +431,13 @@ function syncDayNightButton(){
 function setDayNightMode(mode){setGameHour(mode==='night'?20:8);}
 let clockSaveT=0,clockBtnT=0;
 function updateDayNight(dt){
- gameClock.hour=(gameClock.hour+dt*24/GAME_DAY_SECONDS)%24;
+ gameClock.hour=(gameClock.hour+dt*24/GAME_DAY_SECONDS)%24;updateWeather(dt);
  dayNightState.target=nightFactorForHour(gameClock.hour);dayNightState.t=dayNightState.target;
  dayNightState.mode=dayNightState.target>.5?'night':'day';
  updateRegionWeights(dt);applyDayNightVisual(dayNightState.t);
+ if(!(typeof voidMode!=='undefined'&&voidMode))weatherSunDir.copy(SUN_DIRECTION);
+ eldoriaWeatherView.update(eldoriaWeather.params,nostalgicLight,{camera,dt,time:performance.now()*.001,night:dayNightState.t,sunDir:weatherSunDir,wind:eldoriaWeather.windNow,windDir:weatherWindDir,wetness:eldoriaWeather.wetness,active:weatherActive,allowRain:weatherActive,lowFps:weatherLowFps});
+ if(worldAudio.setRain)worldAudio.setRain(weatherActive?eldoriaWeather.params.rain:0);
  clockBtnT+=dt;if(clockBtnT>1){clockBtnT=0;syncDayNightButton();}
  clockSaveT+=dt;if(clockSaveT>5){clockSaveT=0;try{localStorage.setItem('seven-sins-3d-clock',gameClock.hour.toFixed(3));}catch(e){}}
 }
@@ -1955,7 +1989,7 @@ addEventListener('blur',resetInterruptedControls);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInterruptedControls();});
 stick.addEventListener('lostpointercapture',endJoy);
 
-function blockedAt(x,z){
+function blockedAt(x,z,skipRocks=false){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
   // Em abismos não existe parede invisível: deixar atravessar a borda e cair.
   // Depois de iniciar uma queda, nao criar paredes invisiveis dentro do vazio.
@@ -1968,18 +2002,24 @@ function blockedAt(x,z){
  if(terrain3D.boundaryDistance(x,z)>45||terrain3D.waterDepth(x,z)>=1.25)return true;
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
  for(const o of marketObstacles){if(o.height!==undefined&&o.height<=.68)continue;const dx=x-o.x,dz=z-o.z;if(o.shape==='box'?Math.abs(dx)<o.halfX&&Math.abs(dz)<o.halfZ:dx*dx+dz*dz<o.radius*o.radius)return true;}
- for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
+ if(!skipRocks)for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
  return false;
 }
 /** MOD 302: o dash atravessa corpos (como a referência 3900), nunca parede/obstáculo/guarda-corpo. */
 function dashBlockedAt(x,z){
- if(blockedAt(x,z))return true;
+ if(blockedAt(x,z,!voidMode))return true;
+ if(!voidMode&&rocksBlock(rockObstacles,x,z,player.position.y,terrainHeightAt,player.position.x,player.position.z))return true; // RENASCIMENTO F1: mesmo domo do andar
  if(!voidMode&&walkRailingsOn&&eldoriaWalk.blocked(x,z,player.position.y,groundHeightAt))return true;
  if(!voidMode&&[...vendorRoots,...villagerWalkers.map(w=>w.holder)].some(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8))return true;
  return questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(s=>Math.abs(x-s.x)<.72&&Math.abs(z-s.z)<.72);
 }
+const PLAYER_WADE_MAX=1.25; // RENASCIMENTO F1: o herói não nada; mesma profundidade do contrato water-wade (margens 0,9–1,25 m são atravessáveis) — além disso para COM aviso, não numa parede muda
+let deepWaterHintAt=0;
 function playerBlockedAt(x,z){
- if(blockedAt(x,z))return true;
+ if(!voidMode&&!bridgeDeck(x,z)){const w=terrain3D.waterDepth(x,z);if(w>=PLAYER_WADE_MAX&&terrain3D.height(x,z)+w-Math.max(player.position.y-.3,terrain3D.height(x,z))>PLAYER_WADE_MAX){const now=performance.now();if(now>deepWaterHintAt){deepWaterHintAt=now+9000;if(typeof status!=='undefined'&&status&&!cineActive)status.textContent='A água fica funda e a correnteza é forte: atravesse pela ponte.';}return true;}}
+ if(blockedAt(x,z,!voidMode))return true;
+ // RENASCIMENTO F1: rochas do herói são domos (eldoria-rock-collider.js) — pedrinha se pisa, rocha alta só por cima
+ if(!voidMode&&rocksBlock(rockObstacles,x,z,player.position.y,terrainHeightAt,player.position.x,player.position.z))return true;
  if(!voidMode&&walkRailingsOn&&eldoriaWalk.blocked(x,z,player.position.y,groundHeightAt))return true;
  if(!voidMode&&[...vendorRoots,...villagerWalkers.map(w=>w.holder)].some(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8))return true;
  if(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(s=>Math.abs(x-s.x)<.72&&Math.abs(z-s.z)<.72))return true;
@@ -2078,6 +2118,10 @@ if(firstPerson){
   if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>camDistUse+2||Math.abs(rz)>camDistUse+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
   // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
   if(!voidMode)for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
+  if(!voidMode&&cameraOccluders.length){const L=Math.hypot(camOffset.x,camOffset.y,camOffset.z)*limit;for(const oc of cameraOccluders){if(Math.hypot(target.x-oc.x,target.z-oc.z)>oc.r)continue;camRay.set(camRayO.copy(target),camRayD.copy(camOffset).normalize());camRay.far=L+.3;const h=camRay.intersectObject(oc.obj,true)[0];if(h)limit=Math.max(.14,Math.min(limit,(h.distance-.35)/Math.max(.01,L/limit)));}}
+  // RENASCIMENTO F1: o braço da câmera também não atravessa guarda-corpos/parapeitos (deques, escadas, ponte) nem rochas altas
+  if(!voidMode)for(let i=2;i<=12;i++){const f=i/12*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;const bd=bridgeDeck(sx,sz);
+   if((bd&&bd.edge&&sy<bd.y+1.25)||eldoriaWalk.blocked(sx,sz,sy-.9,groundHeightAt)||rocksBlock(rockObstacles,sx,sz,sy-.25,terrainHeightAt)){limit=Math.max(.16,(i-1.4)/12*limit);break;}}
   // MOD 217 — casas da cidade (caixas de colisão): a câmera para antes da fachada em vez de entrar no prédio.
   if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape==='box'&&Math.abs(o.x-target.x)<camDistUse+8&&Math.abs(o.z-target.z)<camDistUse+8);
    if(near.length)for(let i=1;i<=14;i++){const f=i/14*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(near.some(o=>Math.abs(sx-o.x)<o.halfX+.25&&Math.abs(sz-o.z)<o.halfZ+.25&&sy<groundHeightAt(o.x,o.z)+(o.height||3)+1.8)){limit=Math.max(.12,(i-1.5)/14*limit);break;}}}
@@ -2183,6 +2227,9 @@ if(ascVoidFall){floorY=ascFallFrom-1000;if(grounded){grounded=false;verticalVelo
 // MOD 292 — apoio em deque/escada/passarela: a superfície mais alta até um degrau acima dos pés (por baixo do deque o chão continua sendo o terreno).
 // Nunca permitir que suportes de Eldoria anulem a queda em um abismo da Ascensao.
 if(!ascVoidFall&&!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.position.x,player.position.z,player.position.y+(grounded?0:.05));if(sup&&sup.y>floorY)floorY=sup.y;}
+if(!ascVoidFall&&!caveWalk&&!voidMode){const rs=rockSupportAt(rockObstacles,player.position.x,player.position.z,player.position.y+(grounded?0:.05),terrainHeightAt);if(rs&&rs.y>floorY){floorY=rs.y;
+ // pousou no flanco íngreme de uma rocha alta: escorrega para fora (não fica grudado na parede da pedra)
+ if(rs.steep&&grounded){const sx=player.position.x+rs.nx*dt*3.2,sz=player.position.z+rs.nz*dt*3.2;if(!blockedAt(sx,sz,true)){player.position.x=sx;player.position.z=sz;}}}}
 if(grounded&&!caveWalk&&!voidMode&&floorY<player.position.y-.6){grounded=false;verticalVelocity=0;} // saiu pela borda: cai em vez de teleportar para o chão
 if(!grounded){
  if(newHero){prota302.airborneT+=dt;const hang=rites.active?.kind==='basic'&&rites.active.mode==='air'&&rites.active.t<=rites.active.def.close;verticalVelocity-=(hang?PROTA_JUMP.gravity*.35:PROTA_JUMP.gravity)*dt;}else verticalVelocity-=gravity*dt;
@@ -2317,7 +2364,7 @@ function forestPerfUpdate(start,renderStart,end){
  forestPerf.sumUpdate=0;forestPerf.sumRender=0;forestPerf.frames=0;forestPerf.last=end;
 }
 var debugDtScale=1;// só o modo de teste (?debug3d=1) muda isto, para acelerar as cenas no navegador sem GPU
-function animate(){requestAnimationFrame(animate);const forestFrameStart=forestPerfEnabled?performance.now():0;if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;if(lunarUlt&&tickLunarUlt(Math.min(frameDelta,.05)*debugDtScale))return; /* MOD 288: o filme da ultimate congela o combate */updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=now*.001;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(heroShadows){heroShadows.quality(graphics3DMode);}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);// O modelo deve acompanhar o piso REAL sob o root (escada/deque), não o terreno abaixo dele.
+function animate(){requestAnimationFrame(animate);const forestFrameStart=forestPerfEnabled?performance.now():0;if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;if(lunarUlt&&tickLunarUlt(Math.min(frameDelta,.05)*debugDtScale))return; /* MOD 288: o filme da ultimate congela o combate */updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=weatherWindPhase;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(heroShadows){heroShadows.quality(graphics3DMode);}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);// O modelo deve acompanhar o piso REAL sob o root (escada/deque), não o terreno abaixo dele.
  const floorY=player.position.y;if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
@@ -2441,7 +2488,8 @@ function applyGraphics3D(mode,autoScale){
  // Preserve primary grass on all except an explicit low or emergency setting.
  grassGroup.visible=effective.foliage;
  mossInstancesA.visible=effective.foliage;mossInstancesB.visible=effective.foliage;
- for(const cloud of movingClouds)cloud.group.visible=effective.clouds;
+ for(const cloud of movingClouds)cloud.group.visible=false; // RENASCIMENTO F1: bolhas de esfera substituídas pela cúpula de nuvens do clima (effective.clouds só escolhe o detalhe dela)
+ if(typeof eldoriaWeatherView!=="undefined")eldoriaWeatherView.dome.material.uniforms.uDetail.value=effective.clouds?1:0;
  if(typeof tropicalBelt!=='undefined'&&tropicalBelt){tropicalBelt.setProfile(tropicalProfile());refreshInstanceCulling();}
  const status=document.getElementById('graphics-status-3d');
  const labels={auto:'Automático',low:'Baixo',medium:'Médio',high:'Alto',max:'Máximo'};
@@ -8057,6 +8105,22 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  /** MOD 291 — lista real de draw calls do próximo quadro (intercepta renderBufferDirect uma vez). */
  /** MOD 292 — sonda de relevo para QA/planejamento: altura, distância à borda caminhável e profundidade de água. */
  /** MOD 292 — QA das superfícies caminháveis: estado do apoio e liga/desliga guarda-corpos (teste de queda pela borda). */
+ /** RENASCIMENTO F1 — QA de navegação: anda de (x0,z0) até (x1,z1) simulando o controle quadro a quadro (sem render
+     intermediário) e devolve progresso, altura máxima/mínima e penetrações em rochas (corpo dentro do volume visual). */
+ navWalk(x0,z0,x1,z1,{seconds=4,sprint=false,jumpAt=-1,dashAt=-1,fps=60,every=15}={}){
+  rites.cancel&&rites.cancel('qa');const dx=x1-x0,dz=z1-z0,len=Math.hypot(dx,dz)||1,yaw=Math.atan2(-dx,-dz);
+  player.position.set(x0,terrainHeightAt(x0,z0),z0);verticalVelocity=0;grounded=true;moveVX=moveVZ=0;dashRemaining=0;cameraYaw=yaw;playerYaw=yaw;wadeCacheT=0;
+  const out={from:[x0,z0],to:[x1,z1],steps:0,maxY:-1e9,minAbove:1e9,pen:0,penRock:null,stuckT:0,fell:false,trace:[]};let last=player.position.clone();
+  for(let i=0;i<Math.round(seconds*fps);i++){const t=i/fps;cameraYaw=yaw;joyX=0;joyY=-1;sprintToggle=sprint;
+   if(jumpAt>=0&&Math.abs(t-jumpAt)<.5/fps)action('jump');if(dashAt>=0&&Math.abs(t-dashAt)<.5/fps)action('dash');
+   mixer.update(1/fps);updatePlayerMovement(1/fps,performance.now()+i*1000/fps);updatePlayerCamera(1/fps);keepCameraAboveTerrain();
+   const P=player.position,g=terrainHeightAt(P.x,P.z);out.maxY=Math.max(out.maxY,P.y);out.minAbove=Math.min(out.minAbove,P.y-g);if(P.y<g-.35)out.fell=true;
+   for(const r of rockObstacles){const d=Math.hypot(P.x-r.x,P.z-r.z);if(d>=r.radius*.95)continue;const dome=(r.base??terrainHeightAt(r.x,r.z))+r.height*Math.sqrt(1-(d*d)/(r.radius*r.radius));if(P.y+.12<dome){out.pen++;out.penRock={x:+r.x.toFixed(1),z:+r.z.toFixed(1),r:+r.radius.toFixed(2),h:+r.height.toFixed(2)};}}
+   if(P.distanceTo(last)<.004&&t>.3)out.stuckT+=1/fps;last.copy(P);if(i%every===0)out.trace.push([+P.x.toFixed(3),+P.y.toFixed(3),+P.z.toFixed(2),grounded?1:0]);}
+  joyX=joyY=0;const P=player.position,prog=((P.x-x0)*dx+(P.z-z0)*dz)/len;
+  Object.assign(out,{end:[+P.x.toFixed(2),+P.y.toFixed(2),+P.z.toFixed(2)],progress:+(prog/len).toFixed(3),maxY:+out.maxY.toFixed(2),minAbove:+out.minAbove.toFixed(2),stuckT:+out.stuckT.toFixed(2)});return out;},
+ /** catálogo de obstáculos reais perto de (x,z) para montar a matriz (rochas por altura, superfícies caminháveis). */
+ navCatalog(x=0,z=0,r=400){const near=o=>Math.hypot(o.x-x,o.z-z)<r;return{rocks:rockObstacles.filter(near).map(o=>({x:+o.x.toFixed(2),z:+o.z.toFixed(2),r:+o.radius.toFixed(2),h:+o.height.toFixed(2),base:o.base!==undefined?+o.base.toFixed(2):null})),market:marketObstacles.filter(near).filter(o=>o.shape==='box'&&o.height>1.5).slice(0,40).map(o=>({x:+o.x.toFixed(2),z:+o.z.toFixed(2),hx:o.halfX,hz:o.halfZ,h:o.height})),trees:treeObstacles.filter(near).length,surfaces:eldoriaWalk.surfaces.map(s=>({n:s.name,t:s.type,x:+s.cx.toFixed(2),z:+s.cz.toFixed(2),y:+(s.y??s.y0).toFixed(2),y1:s.y1!==undefined?+s.y1.toFixed(2):null,hl:s.hl?+s.hl.toFixed(2):null,ux:s.ux!==undefined?+s.ux.toFixed(3):null,uz:s.uz!==undefined?+s.uz.toFixed(3):null}))};},
  walkState(){const p=player.position,s=eldoriaWalk.supportAt(p.x,p.z,p.y+.05);return{x:+p.x.toFixed(2),y:+p.y.toFixed(3),z:+p.z.toFixed(2),grounded,surface:s?s.s.name:null,surfaceY:s?+s.y.toFixed(3):null,terrain:+terrainHeightAt(p.x,p.z).toFixed(3),surfaces:eldoriaWalk.surfaces.length,walls:eldoriaWalk.walls.length};},
  walkRailings(on=true){walkRailingsOn=!!on;return walkRailingsOn;},
  walkMove(dx,dz,seconds=1){const l=Math.hypot(dx,dz)||1;qaMove={x:dx/l,z:dz/l,left:seconds};return true;},
@@ -8080,6 +8144,9 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  startDim(key){const d=DIMENSIONS[key];startDimensionBattle(key,{hp:d.hp,returnTo:{x:player.position.x,z:player.position.z},onVictory(){},onAbort(){}});},
  vsGo(){const b=document.getElementById('vs-go');if(b&&!b.disabled)b.click();return b?b.textContent:null;},
  setHour(h){setGameHour(h);},
+ weather(name,hold=600,instant=true){const ok=eldoriaWeather.setState(name,hold);if(ok&&instant){const P=eldoriaWeather.params,W=WEATHER[name];for(const k in W)P[k]=W[k];}applyDayNightVisual(dayNightState.t);return this.weatherState();},
+ weatherState(){const P=eldoriaWeather.params;return{name:eldoriaWeather.name,active:weatherActive,remaining:Math.round(eldoriaWeather.remaining),wet:+eldoriaWeather.wetness.toFixed(2),wind:+eldoriaWeather.windNow.toFixed(2),flash:+eldoriaWeatherView.flash.toFixed(2),rainDrawn:eldoriaWeatherView.rain.geometry.drawRange.count/2,params:Object.fromEntries(Object.entries(P).map(([k,v])=>[k,+v.toFixed(3)]))};},
+ strikeNow(dist=600){const e={az:playerYaw+Math.PI,dist,power:Math.min(1,1.25-dist/3200),thunderIn:dist/343};eldoriaWeatherView.strike(player.position,e);setTimeout(()=>worldAudio.thunder&&worldAudio.thunder(),e.thunderIn*1000);return e;},
  killBoss(){if(enemy.visible){enemyHP=1;}},
   /** MOD 210 — força uma ultimate de chefe ('void' ou 'nova') e lê o estado dela. */
   ult(k){startSupernova();return bossUlt.kind;},
