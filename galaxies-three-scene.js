@@ -5,6 +5,7 @@
  * WebGL é opcional; se falhar, SVG existente permanece disponível.
  */
 import * as THREE from 'three';
+import { addInfernalArchitecture } from './galaxies-gothic-depth.js';
 
 const PI=Math.PI;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -679,7 +680,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const environment=new THREE.Group();scene.add(environment);
  const shader=sky(environment,W,H);
  const smokes=[smokeLayer(environment,W,H,'#263955',-W*.19,H*.26,-310),smokeLayer(environment,W,H,'#781327',W*.28,H*.27,-309)];
- gothicRuins(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);angel(environment,W,H);starfield(environment,W,H);
+ gothicRuins(environment,W,H);addInfernalArchitecture(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);angel(environment,W,H);starfield(environment,W,H);
  const embers=emberField(environment,W,H);
  const groups=[],details={planet:null,chains:null};
  // Halo da seleção: gradiente HDR calculado em shader, sem JPG/PNG.
