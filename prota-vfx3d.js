@@ -33,11 +33,11 @@ export function createProtaVFX(T, scene) {
         float shear=n(vec2(x*31.-vSeed*1.7,y*7.+vAge*5.));
         float lean=(flow-.5)*(.17+.15*y)+(.5-shear)*.085;
         float gap=abs(x-.5+lean);
-        float edge=(.15+.13*flow)*(1.-.45*y);
+        float edge=(.19+.15*flow)*(1.-.40*y);
         float core=1.-smoothstep(edge,edge+.14,gap);
         float striations=smoothstep(.34,.76,torn)*(1.-smoothstep(.76,.97,shear));
         float tip=smoothstep(0.,.18,y)*(1.-smoothstep(.52+.33*flow,1.,y));
-        float a=core*tip*(.65+.35*striations)*(1.-smoothstep(.28,1.,vAge))*.86;
+        float a=core*tip*(.70+.30*striations)*(1.-smoothstep(.28,1.,vAge))*.93;
         if(a<.035)discard;
         vec3 ink=mix(tint,vec3(.075,.038,.092),flow*.4+striations*.2);
         gl_FragColor=vec4(ink,a);
@@ -55,7 +55,7 @@ export function createProtaVFX(T, scene) {
     for(let i=0;i<count;i++){
       const s=smoke[smokeCursor++%smoke.length],a=i*2.399,r=.08+(i%4)*.08;
       s.p.set(p.x+Math.sin(a)*r,p.y+.05+(i%5)*.2,p.z+Math.cos(a)*r);
-      s.age=0;s.life=.26+(i%3)*.06;s.w=.09+(i%4)*.05;s.h=.55+(i%5)*.14;
+      s.age=0;s.life=.26+(i%3)*.06;s.w=.14+(i%4)*.065;s.h=.66+(i%5)*.15;
       s.vx=-dir.x*(1.2+(i%3)*.5);s.vz=-dir.z*(1.2+(i%3)*.5);s.vy=2.2+(i%4)*.7;
       s.visible=true;s.liveSeed=s.seed+time;
     }
