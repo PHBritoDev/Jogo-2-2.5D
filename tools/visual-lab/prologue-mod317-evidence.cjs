@@ -69,9 +69,18 @@ async function prologue(browser, name, viewport, mobile) {
     R.metrics.estrada = await H.frames(4000);
     await H.tapUntil(s => s.scene === 'emboscada', 200); await wait(800); await H.snap('6-tres-horas-acordar');
     await H.tapUntil(s => s.shot === 'cerco', 30); await wait(1400); await H.snap('6-cerco-5-bandidos');
-    await H.tapUntil(s => !s.active, 120); await wait(4000); await H.snap('6-luta-5-simultaneos'); R.squad = await page.evaluate(() => window.SevenSinsDebug3D.squadInfo());
-    let maxMelee = 0; for (let i = 0; i < 12; i++) { const q = await page.evaluate(() => window.SevenSinsDebug3D.squadInfo()); if (q) maxMelee = Math.max(maxMelee, q.acts.filter(a => a === 'melee').length); await wait(500); }
-    R.squad.maxMeleeObserved = maxMelee;
+    await H.tapUntil(s => !s.active, 240); await wait(4000); await H.snap('6-luta-5-simultaneos');
+    // SwiftShader (CPU) anda a poucos quadros por segundo: espera a esquadra existir em vez de supor o tempo
+    let q = null; for (let i = 0; i < 90 && !q; i++) { q = await page.evaluate(() => window.SevenSinsDebug3D.squadInfo()); if (!q) { await page.evaluate(() => { const b = document.getElementById('cine-continue'); if (b && b.offsetParent) b.click(); }); await wait(1000); } }
+    let maxMelee = 0; for (let i = 0; i < 12 && q; i++) { const r = await page.evaluate(() => window.SevenSinsDebug3D.squadInfo()); if (r) maxMelee = Math.max(maxMelee, r.acts.filter(a => a === 'melee').length); await wait(500); }
+    R.squadStory = q ? { ...q, maxMeleeObserved: maxMelee } : null;
+    R.errors.push(...errs); await ctx.close(); }
+  // ---- 2b) cinco bandidos direto (independe do tempo das cenas): mesma espécie e mesma esquadra da emboscada
+  { const { ctx, page, errs } = await session(browser, viewport, mobile, SEED, out, false); const H = helpers(page, out);
+    await page.evaluate(() => { const D = window.SevenSinsDebug3D; D.freeRoam(); D.setHour(10); D.teleport(60, 150, 0); if (D.god) D.god(); D.packQA('bandit', 'bandit1', 5, 90); });
+    let q = null, maxMelee = 0; const t0 = Date.now();
+    for (let i = 0; i < 60 && Date.now() - t0 < 240000; i++) { const r = await page.evaluate(() => window.SevenSinsDebug3D.squadInfo()); if (r) { q = r; maxMelee = Math.max(maxMelee, r.acts.filter(a => a === 'melee').length); } if (i === 10) await H.snap('6-cinco-bandidos-direto'); await wait(1000); }
+    R.squad = q ? { ...q, maxMeleeObserved: maxMelee } : null;
     R.errors.push(...errs); await ctx.close(); }
   // ---- 3) vila e abrigos
   { const { ctx, page, errs } = await session(browser, viewport, mobile, SEED, out, false); const H = helpers(page, out);

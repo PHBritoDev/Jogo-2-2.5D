@@ -62,7 +62,7 @@ const act = (id, args) => ({ type: 'do', id, args: args || {} });
 
 export function terenMeetScene() {
   return [
-    shot('carroca-chega', 3.2, { cam: 'look', on: 'cart', off: [6.5, 2.6, 7.5], at: [0, 1.4, 1.5] }, { with: [act('carroca-frear')] }),
+    shot('carroca-chega', 3.2, { cam: 'look', on: 'cart', off: [6.5, 3.5, 7.5], at: [0, 1.4, 1.5] }, { with: [act('carroca-frear')] }),
     say(T.teren, 'Vocês vieram daquela trilha? Não é boa ideia andar por aqui.', { actor: 'teren' }),
     say(S.hero, 'Estamos procurando uma cidade.'),
     say(T.teren, 'Vou até Eldória. Se ajudarem a segurar as cargas, podem vir.', { actor: 'teren' }),

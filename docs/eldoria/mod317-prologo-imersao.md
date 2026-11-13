@@ -39,6 +39,10 @@ PR e no CI (`prologue-mod317-evidence.yml`).
 - Antes de qualquer humano aparecer, o herói pergunta das asas e Aethraziel as recolhe com um gesto curto (dobra e
   brilho que se fecha), dizendo as falas do roteiro ("Diante das pessoas, me chame de Vaelthar").
 - O estado fica em `seven-sins-3d-guide-wings`: pular cenas ou recarregar nunca faz as asas reaparecerem fora de hora.
+- Save recarregado antes das asas: a cena só arma com o herói já no prado (o save reposiciona o herói depois do primeiro
+  quadro) e o anjo é posto ao lado do herói antes do plano.
+- Na estrada do prólogo, do despertar até a chegada, Vaelthar anda ao lado do herói. Na luta ele fica junto da carroça
+  e, dentro dela, sentado.
 - Na carroça e diante de Teren, o guia fala como Vaelthar.
 
 ## Teren, carroça e estrada (Gate 5)
@@ -59,6 +63,10 @@ PR e no CI (`prologue-mod317-evidence.yml`).
   senta no assoalho de frente para ele, joelhos dobrados, sob a lona.
 - **Câmera interna:** por cima do ombro de um passageiro para o rosto do outro, com tremor discreto da estrada. Nada de
   câmera olhando o vazio durante a conversa.
+  - Os alvos foram medidos no jogo com os dois sentados. A câmera roda antes da pose sentada no quadro, então não usa o
+    osso.
+  - Um raio contra a malha da carroça impede que a câmera fique atrás de uma tábua.
+  - Entrar no interior e trocar de quem fala são cortes secos.
 - Depois da conversa: "3 HORAS DEPOIS" com a tela escura, e o herói acorda **dentro** da carroça com piscadas.
 - A viagem só pode ser pulada depois da primeira exibição.
 
@@ -93,6 +101,11 @@ PR e no CI (`prologue-mod317-evidence.yml`).
 - O registro só acontece no **centro** da plataforma ("REGISTRAR ESTE ABRIGO"). A viagem chega no centro, nunca em
   pilar ou água.
 - Checkpoints de história e de chefe continuam separados dos abrigos.
+
+## Evidências locais
+`docs/eldoria/mod317-evidencias/` guarda 28 quadros do jogo real (Chromium + SwiftShader, 960×540): céu, despertar,
+asas (inclusive após recarregar o save), Teren, embarque, interior, 3 horas depois, cinco bandidos, vila e abrigos. O
+CI gera o restante em paisagem mobile e desktop, com métricas.
 
 ## Narrativa (Gate 9)
 Céu → despertar → asas → Teren → carroça → cinco bandidos → chegada a Eldória: tudo jogável e com estado salvo em cada
