@@ -53,3 +53,9 @@ Atualização inicial: 2026-11-13 (BRT). Responsável: auditoria geral. **Este d
 - Consulta GitHub: acesso ao repositório confirmado; PRs abertos #473, #468, #466, #465, #464, #463, #459, #452, #436 e #422 retornados na busca.
 - `docs/agentes/bugs-gerais/README.md` não existia no momento da consulta (404).
 - Nesta etapa **não foram executados novos testes WebGL nem inspecionadas novas fotografias**. Nenhum bug marcado como corrigido/validado.
+
+## Atualização verificada após criação do registro (2026-11-13)
+- **PR #481: fechado e mesclado**, conforme consulta direta de metadados GitHub. Seu texto declara testes e evidências, mas não foram inspecionadas as fotos nesta rodada. BG-007/008 devem ser reavaliados na main atual; não marcar como validados somente pelo merge.
+- **PR #483: fechado e mesclado**, merge commit `f4962886842d8d6bce8b101bbd18f97ae641f348`. O texto do PR cita run #43345721240 como QA aprovado em Chromium/SwiftShader, sem prova de FPS Android real. BG-010/011 agora precisam ser verificados na main (não em PR aberto).
+- **BG-004 e BG-005 confirmados estaticamente na main consultada**: `sidequests3d.js` em `createSideState()` aceita somente `active`, `ready`, `done` e normaliza progresso apenas com `Math.max(0, ...)`; `refreshSide()` utiliza `available`. Reprodução em save/UI e verificação de fluxo ainda pendentes. Sem correção nesta rodada.
+- Não houve merge realizado pelo auditor. Os merges #481/#483 já existiam quando seus metadados foram consultados.
