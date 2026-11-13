@@ -24,16 +24,29 @@ function fitModel(object,height){
  return object;
 }
 function shadowMaterial(color,emissive){
- return new THREE.MeshStandardMaterial({
-  color,roughness:.96,metalness:.05,emissive,emissiveIntensity:.2,
+ const m=new THREE.MeshStandardMaterial({
+  color,roughness:.95,metalness:.06,emissive,emissiveIntensity:.26,
   depthWrite:true,side:THREE.DoubleSide
  });
+ // Real geometry silhouettes with view-dependent edge illumination.
+ // The real facial details stay hidden, but the shape remains readable.
+ const rgb=new THREE.Color(emissive);
+ const c=rgb.toArray().map(v=>v.toFixed(5)).join(',');
+ m.onBeforeCompile=shader=>{
+  const anchor='#include <emissivemap_fragment>';
+  shader.fragmentShader=shader.fragmentShader.replace(anchor,
+   anchor+"\nfloat cinematicRim = pow(1. - abs(dot(normalize(normal),normalize(vViewPosition))),2.7);"+
+   "\ntotalEmissiveRadiance += vec3("+c+") * cinematicRim * 1.25;");
+ };
+ m.customProgramCacheKey=()=>('galaxias-rim-'+c);
+ return m;
 }
 function shadowMeshes(root,{color='#090715',emissive='#28122e'}={}){
  // Material próprio por elemento evita alterar assets que estão no jogo.
+ const shadow=shadowMaterial(color,emissive);
  root.traverse(o=>{
   if(!o.isMesh)return;
-  o.material=shadowMaterial(color,emissive);
+  o.material=shadow;
   o.castShadow=false;o.receiveShadow=false;
   o.frustumCulled=false;
  });
@@ -99,7 +112,7 @@ export function attachCinematicModels({root,environment,planets,detail,screenWid
   // Existindo uma animação adequada no rig, ela substitui o idle improvisado.
   if(gltf.animations?.length){
    const mixer=new THREE.AnimationMixer(figure);
-   const idle=gltf.animations.find(a=>/idle|breath|float|respir|parado/i.test(a.name))||gltf.animations[0];
+   const idle=gltf.animations.find(a=>/idle|breath|float|respir|parado/i.test(a.name));
    if(idle){mixer.clipAction(idle).setEffectiveWeight(.8).play();state.mixers.push(mixer);}
   }
   root.dataset.gxGuardianModel=path.split('/').pop();
