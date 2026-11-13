@@ -44,12 +44,21 @@ function shadowMaterial(color,emissive){
 function shadowMeshes(root,{color='#090715',emissive='#28122e'}={}){
  // Material próprio por elemento evita alterar assets que estão no jogo.
  const shadow=shadowMaterial(color,emissive);
+ const originals=new Set(),textures=new Set();
  root.traverse(o=>{
   if(!o.isMesh)return;
+  for(const m of (Array.isArray(o.material)?o.material:[o.material])){
+   if(!m||originals.has(m))continue;
+   originals.add(m);
+   for(const v of Object.values(m))if(v?.isTexture)textures.add(v);
+  }
   o.material=shadow;
   o.castShadow=false;o.receiveShadow=false;
   o.frustumCulled=false;
  });
+ // Silhueta não usa texturas originais; liberá-las evita pressão de VRAM
+ // no celular e preserva a geometria/armadura real do GLB.
+ textures.forEach(t=>t.dispose());originals.forEach(m=>m.dispose());
 }
 function heartShape(){
  const sh=new THREE.Shape();
