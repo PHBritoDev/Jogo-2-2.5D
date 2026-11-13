@@ -107,6 +107,9 @@ export function createWorldAudio() {
     const f = ctx.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t); f.Q.value = q;
     if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t + dur);
     const g = ctx.createGain(); src.connect(f); f.connect(g); g.connect(bus);
+    // O buffer de ruído dura 2 s: repetir evita truncar explosões longas ou iniciadas perto do fim.
+    // A duração continua sendo limitada por stop(); não são criados buffers adicionais.
+    src.loop = true;
     env(g, t, Math.min(.012, dur * .2), peak, dur); src.start(t, Math.random() * 1.6); src.stop(t + dur + .05);
   }
   function tone(type, f0, f1, peak, dur, bus = sfxBus, delay = 0) {
