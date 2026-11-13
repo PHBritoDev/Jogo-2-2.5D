@@ -1,0 +1,17 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>QA VFX Garras do Abismo</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<style>body{margin:0;background:#101820;color:white;font:14px system-ui}canvas{display:block}label{position:absolute;top:5px;left:10px}</style></head><body><label>Enemy1 — Garras do Abismo · QA visual</label><script type="module">
+import * as T from 'three';import {createDarkPowersVFX} from './enemy1-dark-vfx3d.js';
+const renderer=new T.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(960,540);renderer.setPixelRatio(1);renderer.outputColorSpace=T.SRGBColorSpace;document.body.append(renderer.domElement);
+const scene=new T.Scene();scene.background=new T.Color('#222c35');const camera=new T.PerspectiveCamera(48,960/540,.01,100);camera.position.set(6.5,9.4,9.0);camera.lookAt(0,.55,0);
+scene.add(new T.HemisphereLight(0xbad0ff,0x1a2217,2));const sun=new T.DirectionalLight(0xffe4b1,2.8);sun.position.set(2,8,4);scene.add(sun);
+const floor=new T.Mesh(new T.PlaneGeometry(30,30),new T.MeshStandardMaterial({color:'#4e6452',roughness:.95}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const grid=new T.GridHelper(20,20,0x66796b,0x40534e);grid.position.y=.008;scene.add(grid);
+const fx=createDarkPowersVFX(T,scene,{ground:()=>0});const phaseDur={telegraph:.9,rise:.65,lashT:.6,sink:.6,grab:.2};
+const hands=[{a:0,d:1.3,s:1,delay:0},{a:2.09,d:1.5,s:1.1,delay:.12},{a:4.18,d:1.45,s:.94,delay:.20}];
+window.vfxQa={ready:true,scene,fx,renderer,show:({phase='telegraph',progress=.5}={})=>{
+const s={type:'claws',phase,t:phaseDur[phase] * progress,T:phaseDur,x:0,y:0,z:0,r:2.3,id:37,hands,kind:'enemy',held:null,wasHeld:false};
+const counts=fx.update(1/60,camera,[s],[],1);renderer.render(scene,camera);
+return {phase,progress,counts,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures};}};
+window.vfxQa.show({phase:'telegraph',progress:.5});
+</script></body></html>
