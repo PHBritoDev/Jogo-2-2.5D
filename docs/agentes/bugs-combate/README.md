@@ -17,8 +17,8 @@ Branch de trabalho: `combat/fix-energy-wave-final-frame-20261113`. PR: [#486](ht
 - **Correção:** preservar `unblockedThisFrame` após a varredura de obstáculos e antes da atualização terminal; verificar inimigos secundários nesse quadro, mantendo bloqueios e deduplicação.
 - **Commit de código:** `4b36c73388a67e67320c03745497507a3aaeadfe`.
 - **Evidência antes:** log do teste de regressão vermelho na execução acima.
-- **Evidência depois:** teste e regressões devem ficar verdes no CI subsequente. Registrar o resultado antes de solicitar merge.
-- **Status:** correção em branch isolada; validação pós-alteração em andamento; **sem merge**.
+- **Evidência depois:** [GitHub Actions 43350662210](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350662210): **35/35 testes aprovados**, incluindo o contato terminal em 20/30/60/120 FPS, parede e os 30 testes de combos/hitboxes/ultimates. O mesmo cenário antes falhava no CI 43350256238.
+- **Status:** correção comprovada em testes determinísticos; testes visuais/integração de WebGL em execução no momento do registro; **sem merge, aguardando autorização**.
 
 ## Pendências de combate (não consideradas corrigidas)
 | ID | Área | Severidade | Situação / próximo teste |
@@ -34,3 +34,9 @@ Branch de trabalho: `combat/fix-energy-wave-final-frame-20261113`. PR: [#486](ht
 3. Alterar apenas na branch própria de combate, executar testes unitários, integração e agente WebGL quando aplicável.
 4. Registrar erro, localização, gravidade, reprodução, evidências, causa, commits, testes, PR e status.
 5. **Não mesclar nem ativar auto-merge sem autorização explícita do criador.**
+
+## Execuções da rodada
+- Teste inicial com falha reproduzida: [43350256238](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350256238).
+- Testes após a correção (5 novos + 30 regressões): [43350662210](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43350662210), **35 aprovados, 0 falhas**.
+- Testes visuais adicionais e combate cinematográfico: acompanhar os workflows associados ao PR #486; não confundir aprovação de testes lógicos com uma captura do efeito final na tela.
+- Commit adicional de testes 20/30/60/120 FPS: `4cd8231fc84be69ca4612b0410599105abf272ce`.
