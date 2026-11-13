@@ -278,7 +278,8 @@ function maw(parent,r){
  ball(parent,r*.56,'#621724',0,-r*.02,r*.67,[1.19,1.02,.52]);
  ball(parent,r*.47,'#070307',0,-r*.06,r*.99,[1.11,.76,.31]);
  const lip=new THREE.CatmullRomCurve3(Array.from({length:32},(_,i)=>{
-   const a=i*2*PI/31;return new THREE.Vector3(Math.cos(a)*r*.55,Math.sin(a)*r*.40-r*.045,r*.985);
+   const a=i*2*PI/31,j=1+.075*Math.sin(a*5.3)+.047*Math.cos(a*9.2);
+   return new THREE.Vector3(Math.cos(a)*r*.55*j,Math.sin(a)*r*.40*j-r*.045,r*(.99+.025*Math.sin(a*3)));
  }));
  mesh(new THREE.TubeGeometry(lip,88,r*.066,6,false),mat('#b83442',.15,.44),parent);
  const toothMat=mat('#e9d8bf',.14,.35);
@@ -288,8 +289,9 @@ function maw(parent,r){
   for(let i=0;i<8;i++){
    const t=(i+.3)/8,ang=(row?PI:0)+t*PI;
    const x=Math.cos(ang)*r*.49,y=Math.sin(ang)*r*.37-r*.045;
-   const big=i===1||i===6,len=r*(big?.37:.22);
-   d.position.set(x,y,r*1.05);d.rotation.set(.13,0,ang+PI/2);
+   const big=i===1||i===6,len=r*(big?.35+.04*rand(i+row*8):.17+.13*rand(i+row*10));
+   d.position.set(x+r*(rand(i+row*9)-.5)*.038,y,r*(1.05+.025*rand(i+row*19)));
+   d.rotation.set(.13,0,ang+PI/2+(rand(i+row*13)-.5)*.16);
    d.scale.set(r*(big?.062:.045),len,r*(big?.062:.045));d.updateMatrix();
    teeth.setMatrixAt(ti++,d.matrix);
   }
@@ -298,6 +300,14 @@ function maw(parent,r){
  // Língua e saliva brilhantes na profundidade da mandíbula.
  const tongue=ball(parent,r*.18,'#b6283e',.07*r,-r*.26,r*1.11,[1.2,.37,.45]);
  for(let i=0;i<4;i++)tube(parent,[[(-.3+i*.18)*r,-r*.02,r*1.11],[(-.22+i*.17)*r,-r*.14,r*1.17]],r*.01,'#e36473',.1);
+ // Tendões, cicatrizes e membranas avermelhadas de uma criatura voraz.
+ for(let i=0;i<6;i++){
+  const a=i*2*PI/6+.21;
+  const p1=[Math.cos(a)*r*.6,Math.sin(a)*r*.49,r*.87];
+  const p2=[Math.cos(a+.15)*r*.77,Math.sin(a+.1)*r*.71,r*.67];
+  const p3=[Math.cos(a-.16)*r*.83,Math.sin(a-.13)*r*.76,r*.48];
+  tube(parent,[p1,p2,p3],r*(.018+.012*rand(i+99)),i%2?'#691326':'#ab3149',.03);
+ }
 }
 function roseField(parent,r,count=9){
  // Rosas volumétricas em UM draw call usando a cor por instância.
