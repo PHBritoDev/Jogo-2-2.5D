@@ -85,3 +85,8 @@ Atualização inicial: 2026-11-13 (BRT). Responsável: auditoria geral. **Este d
 - **BG-015 rechecado:** `tools/visual-lab/map-poi-audit.cjs` ainda aprova com `if(results.some(r=>!r.ok))` sem considerar `errors`, conforme leitura direta da main. Não repetido como novo achado.
 - Evidências: https://github.com/PHBritoDev/Jogo-2-2.5D/blob/main/map3d.js e https://github.com/PHBritoDev/Jogo-2-2.5D/blob/main/tools/visual-lab/map-poi-audit.cjs . Nenhuma nova captura/vídeo WebGL ou teste automatizado executado; nenhuma correção ou merge.
 - **Próxima prioridade:** teste negativo de BG-016 e BG-015 em ambiente isolado, depois QA WebGL de persistência de mapa desktop/mobile. Não reduzir qualidade nem mexer em código de cenário.
+
+## Rodada 2026-11-13 — verificação de persistência do mapa
+- PRs ativos consultados antes de qualquer escrita: #490 áudio, #489 arte ambiental, #488 iluminação, #487 VFX e demais resultados da busca. Arquivos de outros agentes preservados.
+- BG-016 permanece no código da `main`: `map3d.js`, `createMapState()`, aproximadamente linhas 52–68; `for (const id of saved.pois || [])` e `for (const raw of saved.waystones || [])` assumem iteráveis. Valores não iteráveis e truthy, como `{}`, produzem `TypeError`. A causa está no contrato de entrada não validado. Esta é confirmação estática, não reprodução WebGL.
+- Nenhuma correção aplicada ao jogo, teste automatizado disparado ou captura WebGL examinada nesta rodada. Próximo passo: executar teste negativo real para ambos os campos, depois teste de round-trip de save e QA de mapa em navegador desktop/mobile. Não mesclar sem autorização.
