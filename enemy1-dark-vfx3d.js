@@ -171,6 +171,14 @@ export function createDarkPowersVFX(T, scene, { ground = () => 0 } = {}) {
     groundNormal(ground, s.x, s.z, nrm);
     arc(arcDark, s.x, gy, s.z, s.r * 1.18, [.03, .0, .05], 0, circ, s.id % 7, .9 * fadeAll, nrm);
     arc(arcGlow, s.x, gy, s.z, s.r * 1.12, [.72, .3, 1], 0, circ, s.id % 7, (.8 + .5 * Math.sin(time * 14) * (s.phase === 'telegraph' ? tel : 0)) * fadeAll, nrm);
+    // Selo de pressão: contrai-se DENTRO do mesmo círculo de perigo, sem mudar hitbox ou tempo.
+    // Reutiliza o InstancedMesh de runas (zero draw calls/materials extras).
+    if (s.phase === 'telegraph' && tel > .16) {
+      const seal = smooth((tel - .16) / .84), converge = 1 - smooth(tel);
+      arc(arcGlow, s.x, gy + .008, s.z, s.r * (.92 - .24 * seal),
+        [.34, .12, .55], 0, seal, (s.id + 3) % 7,
+        (.28 + .26 * seal + .14 * converge) * fadeAll, nrm);
+    }
     if (s.phase === 'telegraph' && tel > .5 && !low) decals.add(s.x, gy, s.z, s.r * (1.3 - tel * .3), .6, .25, 1, (tel - .5) * .6, 1, tel, s.id, nrm);
     // fumaça e filetes subindo do círculo
     const nSm = low ? 6 : 14;
