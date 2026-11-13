@@ -91,7 +91,10 @@ export function createWorldAudio() {
       },
       tick(dt, night) {
         const t = ctx.currentTime;
-        if (t >= chordAt) { const c = chords[chordIdx++ % chords.length]; pad(night > .5 ? c.map(f => f * .75) : c, 7.5); chordAt = t + 7.5; }
+        if (mode === 'silent') {
+          // Não sintetizar pads inaudíveis em cenas silenciosas; retomar sem atraso ao sair.
+          chordAt = t;
+        } else if (t >= chordAt) { const c = chords[chordIdx++ % chords.length]; pad(night > .5 ? c.map(f => f * .75) : c, 7.5); chordAt = t + 7.5; }
         if (mode === 'combat' && t >= beatAt) {
           const step = .2, b = beat++ % 16;
           if (b % 4 === 0) drum(t + .02, 70, .5); if (b === 6 || b === 14) drum(t + .02, 95, .28);
