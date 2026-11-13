@@ -5,6 +5,8 @@ on:
     paths:
       - "galaxies3d.js"
       - "galaxies-three-scene.js"
+      - "galaxies-cinematic-models.js"
+      - "galaxies-living-inferno.js"
       - "galaxies-gothic-depth.js"
       - "galaxies-infernal-art.js"
       - "galaxies-infernal-reference.css"
@@ -27,6 +29,8 @@ jobs:
         run: |
           node --check galaxies-infernal-art.js
           node --check galaxies-three-scene.js
+          node --check galaxies-cinematic-models.js
+          node --check galaxies-living-inferno.js
           node --check galaxies-gothic-depth.js
           node --check tools/visual-lab/galaxy-menu-qa.cjs
           node --check galaxies3d.js
