@@ -71,7 +71,8 @@ async function profile(browser, name, viewport, mobile) {
     for (const [id, args, ok] of NAV) { const r = await page.evaluate(a => window.SevenSinsDebug3D.navWalk(...a), args); delete r.trace; R.nav.push({ id, ok: !!ok(r), ...r }); }
     // relicário do Posto do Vigia: recompensa única, salva no aparelho
     R.vigia = await page.evaluate(async () => { const D = window.SevenSinsDebug3D; let before = null; try { before = localStorage.getItem('seven-sins-3d-posto-vigia'); } catch (e) {}
-      D.teleport(26.9, 96.9, Math.PI / 2); await new Promise(r => setTimeout(r, 2500)); let after = null; try { after = localStorage.getItem('seven-sins-3d-posto-vigia'); } catch (e) {}
+      D.teleport(26.9, 96.9, Math.PI / 2); let after = null; // o gatilho roda no laço do jogo: no SwiftShader do desktop um quadro pode levar >1 s
+      for (let i = 0; i < 60 && after !== '1'; i++) { await new Promise(r => setTimeout(r, 500)); try { after = localStorage.getItem('seven-sins-3d-posto-vigia'); } catch (e) {} }
       return { before, after, status: (document.getElementById('status') || {}).textContent || '' }; });
     if (R.vigia.after !== '1') R.errors.push('relicário do Vigia não abriu');
     await page.evaluate(() => { const D = window.SevenSinsDebug3D; D.setHour(15); D.teleport(-.4, -3.5, Math.PI); D.view(Math.PI * .9, .2, 8); D.weather('limpo'); });
