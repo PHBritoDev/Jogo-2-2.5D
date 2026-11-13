@@ -71,6 +71,47 @@ Metas experimentais: fluidez ideal 45–60 FPS no Galaxy A55, piso de referênci
 ### Aplicação imediata na primeira região
 Compare alternativas (GLBs próprios / procedural / CC0 externo) para **rochas e margens naturais do rio, pedras da ponte, solo, musgo, troncos e vegetação, materiais da cidade, céu/nuvens e efeitos de clima**. Escolha por resultado e custo comprovado. **É melhor uma pequena região de qualidade profissional do que cem objetos aleatórios “gratuitos”.** Fotografar a região de vários ângulos durante dia, pôr do sol, noite e chuva, movimentar a câmera e atravessar os colliders. Não marcar a tarefa como concluída sem QA visual, funcional e de carregamento.
 
+## DIRETRIZ EXECUTIVA — FASE 2: RECONSTRUÇÃO VISUAL REAL (13/11/2026, após PR #509)
+**Esta seção é prioritária para a PRÓXIMA rodada. O documento mestre continua válido.** A Fase 1 (PR #509) foi integrada: clima em `eldoria-weather.js`/`eldoria-weather3d.js`, colisão parcial de rochas em `eldoria-rock-collider.js`, câmera e QA. **Ela NÃO reconstruiu visualmente Eldória.** Não apresente mais correções pontuais de clima, testes e documentação como se isso fosse a reconstrução completa. NÃO recomece a Fase 1 e NÃO substitua o sistema meteorológico recém-integrado por outro do zero: melhore-o somente com evidências.
+
+### OBJETIVO DESTA RODADA
+**Fazer o jogador perceber imediatamente que entrou em um mundo NOVO, belo e explorável**, preservando os sistemas, a narrativa e os atos. Substitua de fato a cenografia e a composição antiga da região inicial e da rota até a vila por um projeto espacial coerente. Não sobreponha objetos decorativos a um mundo visualmente ruim; faça inventário, remova/substitua **visualmente** os elementos fracos e reorganize o espaço sem deletar as APIs e gatilhos canônicos. Leitura e escolha cuidadosa de asset profissional CC0 e GLB próprio é incentivada. Qualidade vale mais que quantidade de objetos.
+
+### PRIORIDADE ABSOLUTA — PRINCÍPIO DA PRIMEIRA IMPRESSÃO
+**O spawn, despertar, primeiro contato com Anjo-Guia, panorama inicial e 5–10 minutos iniciais de caminhada têm prioridade de produção e QA.** Preserve sua encenação/cenas/diálogo e melhore o ambiente que as envolve. O jogador deve encontrar nos primeiros minutos: composição de horizonte inconfundível; terreno bonito e caminhável; relevo em múltiplos planos; vegetação orgânica não repetitiva; direção visual clara sem trilho artificial; vista que gere desejo de explorar; travessia funcional de água rasa e ponte; progressão natural para uma cidade planejada com arquitetura convincente e pobreza narrativa, não feiura estrutural. Encosta, rios e vila devem possuir conexões físicas e visuais plausíveis.
+
+### DIREÇÃO CONCRETA (liberdade para superar a proposta, sem replicar literalmente)
+- **Entrada:** clareira/prado de despertar com silhuetas botânicas cuidadas, serras e cumes ao fundo, luz filtrada e gradiente de cor ambiental, vestígios discretos de acontecimentos; nenhum 'grande plano vazio com objetos jogados'.
+- **Caminho e floresta:** transição gradual de campo para mata viva, bosques com composição em grupos naturais e clareiras intencionais, árvores de alturas/espécies diversas coerentes com bioma, copa e sub-bosque sem padrão de distribuição, trilhas legíveis e bifurcações que levam a detalhes reais. Instancing/LOD sem aparência de fotocópia.
+- **Rio/ponte:** curso d'água acompanhado de margens erodidas, pedras integradas ao relevo, correnteza e vegetação ribeirinha, vau caminhável e ponte robusta de escala crível, sem paredes invisíveis, água sólida ou mureta atravessável.
+- **Cidade:** redesenho espacial e visual completo da frente/chegada/praça com ruas, níveis, escadas, construções proporcionais e composição de arquitetura bela; entradas e interiores somente onde terão função; NPCs com ações plausíveis e sem partes desconectadas. Sinais narrativos de carência e opressão devem vir dos habitantes e recursos, não de geração automática de ruínas feias.
+- **Mistério inicial:** ao menos um desvio opcional explorável e recompensador, integrado ao cenário e testado, sem quebrar sequência principal.
+- **Cavernas e demais áreas:** definir plano espacial, estética, colisão, iluminação e transição de qualidade para expansão seguinte; não fingir que foram reconstruídas nesta rodada. Iniciar trecho adicional apenas depois de validar o percurso inicial.
+- **Clima e hora do dia:** usar a Fase 1 para testar paisagens sob manhã, entardecer, noite bela, noite ameaçadora, neblina, chuva e tempestade. Atmosfera deve enriquecer a nova arte. Não confundir escurecer e esconder o cenário com qualidade cinematográfica.
+- **Áudio:** usar o motor existente; registrar exigências de paisagem sonora realista por região e clima. Se alterar sons agora, fazer pequena mudança isolada com licença segura; não permitir áudio genérico ou externo sem direitos.
+
+### PROCESSO E PROTEÇÕES
+1. Leia a situação mais recente da `main`, branch/PRs concorrentes, `AGENTS.md`, contrato de integração e este mestre. **Branch exclusiva da Fase 2**, sem force-push de trabalho de terceiros; `main` somente após nosso aceite.
+2. Produza baseline **visual e jogável** dos primeiros minutos: ângulos equivalentes, posição/rumo/FOV iguais, períodos de luz e climáticos fixos, distância de visão, erros JS/HTTP, interações e colisões. Use imagens reais do runtime, não renders conceituais.
+3. Refaça geometria/cenografia/vegetação/arquitetura por **sistemas e módulos específicos**, integrando com patch mínimo no controlador principal. Não trocar indiscriminadamente `mundo-3d-prototype.js` inteiro. Mapear e preservar coordenadas/gatilhos/spawns para não tornar roteiro, combate, NPCs, save, portais e dimensões inacessíveis.
+4. Use CC0/procedural/GLBs adequados segundo seção de licenças. Valide cada recurso em jogo; não embutir assets Fab com distribuição individual não permitida no repositório público. Diferencie referências e produtos licenciados. Não invente downloads/validações.
+5. Priorizar uma **fatia visual substancial e contínua do percurso** (spawn → bosque → margem/ponte → primeira vista e acesso à cidade) em vez de 100 intervenções mínimas desconectadas. Caso não caiba numa só execução, faça PRs menores com aspecto finalizado e integração gradual; nada de demo restrita a uma área artificial minúscula. A reconstrução deve se estender coerentemente na Fase 3, sem vazio imediatamente depois da primeira clareira.
+6. Testar jogo como jogador: caminhar, girar câmera, saltar, dash, atravessar pedras, entrar e sair da água rasa, ponte, degraus, ruas e áreas opcionais, alternar 1ª/3ª pessoa, testar NPCs e sequência narrativa. **Não aceitar** pedrinhas invencíveis, objetos enterrados/flutuando, portas bloqueadas, câmera atravessando, paredes invisíveis, árvores dentro de casas ou FPS severamente instável.
+7. Medir custos e vazamentos em mobile viewport e, se disponível, Android físico. Emulador/SwiftShader não comprova FPS em smartphone. Comparar queda de FPS, stutters, draw calls, triangulação e memória antes/depois e testar carregamento de texturas à distância. Evitar esconder bugs por redução global de qualidade. Não prometer FPS sem medir.
+8. Documentar apenas o necessário: um mapa/contrato atualizado, tabela curta de testes e **evidências antes/depois** dos mesmos locais, com imagens e vídeo ou sequência navegável. Se usar asset externo, registrar licença. Abrir PR, sem auto-merge.
+9. **Gate de aprovação:** ao examinar as evidências, diretores devem reconhecer uma transformação artística significativa e superior. Se a diferença visual não for óbvia ou a composição parecer genérica, continuar revisando **antes de chamar de Fase 2 concluída**. Critérios qualitativos apoiados por capturas reais, não pontuações inventadas.
+10. Faça varredura de bugs antes de encerrar cada trecho da jornada. Não aceitar acumulação deliberada de bugs para uma futura rodada; defeitos bloqueadores resolvidos ou explicitamente impedem conclusão.
+
+### NÃO FAZER
+- Não passar outra rodada apenas em um shader de nuvem, pequenos ajustes de uma rocha, relatório extenso ou mais testes sem reestruturação visual.
+- Não criar um segundo mundo por cima do primeiro que duplica meshes, colisores e draw calls. Substituir/cancelar as camadas visuais anteriores com flags ou migração reversível, remover só o conteúdo obsoleto após comprovar a integração; manter uma rota segura de rollback.
+- Não demolir logicamente combate, habilidades, dimensões de Bispos, HUD, história, economia, animações ou dados salvos.
+- Não importar pacotes sem licença comercial redistribuível em arquivos isolados no GitHub Pages.
+- Não sacrificar escala do mundo por uma demo de algumas dezenas de metros; modularidade e streaming permitirão extensão posterior.
+- Não fazer merge na `main` ou ativar os agentes horários.
+
+**Comunicação:** MANTER SILÊNCIO NO CHAT DURANTE E DEPOIS. Nenhum resumo final; progresso, evidências e PR no GitHub. Se plataforma obrigar mensagem, mínima possível. Economizar tokens de conversa, NUNCA economizar QA, decisões ou testes.
+
 ## REFERÊNCIAS TÉCNICAS DOCUMENTADAS
 - Character controller com degraus, declives e colisões: https://rapier.rs/docs/user_guides/javascript/character_controller/
 - Three.js InstancedMesh: https://threejs.org/docs/#api/en/objects/InstancedMesh
