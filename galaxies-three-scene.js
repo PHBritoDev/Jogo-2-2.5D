@@ -680,7 +680,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const environment=new THREE.Group();scene.add(environment);
  const shader=sky(environment,W,H);
  const smokes=[smokeLayer(environment,W,H,'#263955',-W*.19,H*.26,-310),smokeLayer(environment,W,H,'#781327',W*.28,H*.27,-309)];
- gothicRuins(environment,W,H);addInfernalArchitecture(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);angel(environment,W,H);starfield(environment,W,H);
+ gothicRuins(environment,W,H);addInfernalArchitecture(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);const guardian=angel(environment,W,H);const guardianY=guardian.position.y;starfield(environment,W,H);
  const embers=emberField(environment,W,H);
  const groups=[],details={planet:null,chains:null};
  // Halo da seleção: gradiente HDR calculado em shader, sem JPG/PNG.
@@ -737,6 +737,9 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   if(!reduced){
    environment.position.x+=(parallax.x-environment.position.x)*Math.min(1,dt*2.6);
    environment.position.y+=(parallax.y-environment.position.y)*Math.min(1,dt*2.6);
+   // Respiração e tecido do guardião: deslocamento sutil sem deformações faciais.
+   guardian.position.y=guardianY+Math.sin(elapsed*.78)*H*.0024;
+   guardian.rotation.z=Math.sin(elapsed*.37)*.006;
    for(let i=0;i<embers.count;i++){
     const at=i*3+1;embers.coords[at]+=(6+rand(i+42)*22)*dt;
     if(embers.coords[at]>H*.14)embers.coords[at]=-H*.49;
