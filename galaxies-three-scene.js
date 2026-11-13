@@ -5,6 +5,9 @@
  * WebGL é opcional; se falhar, SVG existente permanece disponível.
  */
 import * as THREE from 'three';
+import {clone as cloneSkinned} from 'three/addons/utils/SkeletonUtils.js';
+import {attachCinematicModels} from './galaxies-cinematic-models.js';
+import {addLivingInferno} from './galaxies-living-inferno.js';
 import { addInfernalArchitecture } from './galaxies-gothic-depth.js';
 
 const PI=Math.PI;
@@ -323,64 +326,6 @@ function roseField(parent,r,count=9){
  if(flowers.instanceColor)flowers.instanceColor.needsUpdate=true;
  parent.add(flowers);
 }
-function lust(parent,r){
- const stage=new THREE.Group();stage.scale.setScalar(1.17);parent.add(stage);
- // Luxúria: escultura procedural de mulher adulta, rosto com anatomia,
- // cabelos ondulados, joias, braço elevado e pétalas 3D — nenhuma foto.
- const skin=mat('#d9a0a6',.08,.52),hair=mat('#612646',.26,.52);
- const red=mat('#b83769',.44,.31),gold=mat('#e8b16f',.79,.23);
- ball(stage,r*.29,'#d69ba5',0,-r*.43,r*.74,[1.62,.66,.8]);
- ball(stage,r*.22,'#a42a5b',0,-r*.53,r*1.02,[1.66,.5,.34]);
- mesh(new THREE.CylinderGeometry(r*.112,r*.155,r*.29,14),skin,stage,0,-r*.155,r*.84);
- const head=new THREE.Group();head.position.set(0,r*.225,r*.83);head.rotation.z=-.19;head.rotation.y=-.12;stage.add(head);
- const face=ball(head,r*.36,'#dfadaf',0,0,.018*r,[.70,1.1,.63]);
- ball(head,r*.22,'#ce929e',0,-r*.14,r*.115,[.63,.56,.6]);
- // Sobrancelhas, pálpebras curvas, íris verde e cílios.
- for(const d of [-1,1]){
-  const x=d*r*.127,y=r*.077,z=r*.222;
-  ball(head,r*.041,'#f3d8d0',x,y,z,[1.11,.36,.41]);
-  ball(head,r*.024,'#347f60',x+d*r*.005,y,z+r*.031,[.69,.88,.24]);
-  ball(head,r*.013,'#141820',x+d*r*.006,y,z+r*.042,[.75,.85,.25]);
-  tube(head,[[x-d*r*.057,y+r*.039,z],[x,y+r*.056,z+r*.025],[x+d*r*.055,y+r*.034,z]],r*.013,'#492435');
-  tube(head,[[x-d*r*.065,y+r*.109,z-r*.01],[x,y+r*.124,z],[x+d*r*.07,y+r*.105,z-r*.01]],r*.017,'#412338');
-  for(let j=0;j<3;j++)tube(head,[[x+d*r*(.03+j*.018),y+r*.041,z+r*.013],[x+d*r*(.045+j*.021),y+r*.069,z+r*.018]],r*.007,'#241020');
- }
- // Nariz com ponte e ponta; lábios curvados.
- const nose=ball(head,r*.049,'#d59b9d',.015*r,-r*.017,r*.249,[.72,1.9,.8]);
- ball(head,r*.040,'#c9798b',.018*r,-r*.117,r*.249,[1.58,.36,.5]);
- ball(head,r*.034,'#ab415f',.018*r,-r*.149,r*.243,[1.45,.26,.48]);
- // cabelo volumoso sobre a testa
- ball(head,r*.29,'#452039',-.035*r,r*.26,-r*.08,[1.05,.55,.57]);
- for(let i=0;i<23;i++){
-  const d=i%2?-1:1,t=i/22,side=d*r*(.19+.14*rand(i+31)),top=r*(.32+.17*rand(i+45));
-  const tail=-r*(.37+.3*rand(i+9));
-  tube(stage,[[side*.3,r*.52,r*.76],[side,top+r*.06,r*.93],
-   [side*1.45,r*.13,r*.99],[side*.84,tail,r*.94]],
-  r*(.021+.015*rand(i+17)),i%3?'#502343':'#873d61',.07);
- }
- // Braço direito apoiado acima da cabeça, mão e dedos.
- tube(stage,[[r*.38,-r*.40,r*.96],[r*.61,-r*.10,r*.91],[r*.55,r*.43,r*.86],
-  [r*.29,r*.64,r*.85]],r*.076,'#d7a3aa');
- const palm=ball(stage,r*.091,'#e3b6b3',r*.27,r*.65,r*.85,[.6,1.1,.35]);
- for(let i=0;i<4;i++)tube(stage,[[r*(.26+i*.022),r*.67,r*.85],
-  [r*(.18+i*.026),r*.77,r*.85]],r*.013,'#ddb0af');
- // Gargantilha e broche metálico no peito.
- ring(parent,r*.16,r*.015,'#ffc580',0,0,r*.96,.83).position.y=-r*.23;
- ball(stage,r*.047,'#ffca67',0,-r*.37,r*1.11);
- roseField(parent,r,9);
- // Pétalas suspensas no espaço, uma única malha instanciada colorida.
- const petals=new THREE.InstancedMesh(new THREE.TetrahedronGeometry(1,0),
-  mat('#ed729b',.28,.47),24),pd=new THREE.Object3D();
- for(let i=0;i<24;i++){
-  const ang=i*2*PI/24,rad=r*(.85+.3*rand(i+70));
-  pd.position.set(Math.cos(ang)*rad,Math.sin(ang)*rad*.78,r*(.62+.2*rand(i+77)));
-  pd.rotation.set(rand(i*3)*PI,rand(i*7)*PI,ang);
-  const size=r*(.016+.023*rand(i+54));
-  pd.scale.set(size,size*.56,size*.2);pd.updateMatrix();petals.setMatrixAt(i,pd.matrix);
- }
- petals.instanceMatrix.needsUpdate=true;parent.add(petals);
- ring(parent,r*1.14,r*.016,'#ff42a6',-.25,.18,r*.23,.81);
-}
 function makePlanet(id,r){
  const group=new THREE.Group();
  const colors=['#f4ab36','#1cd463','#f3bb50','#c8e9fa','#c64357','#ff5329','#ff76b7'];
@@ -408,7 +353,7 @@ function makePlanet(id,r){
  if(id===4){glacialMountains(group,r);castle(group,r,true);celestialFalls(group,r,true);ring(group,r*1.11,r*.018,'#9de5ff',.48,.09,r*.17);}
  if(id===5){maw(group,r);ring(group,r*1.17,r*.02,'#fc444d',-.21,.17,.2*r);}
  if(id===6){for(let i=0;i<9;i++){let a=i*2*PI/9;const crack=[];for(let j=0;j<6;j++)crack.push([Math.cos(a+j*.1)*r*(.95-j*.09),Math.sin(a+j*.16)*r*(.95-j*.08),r*.27+j*r*.045]);tube(group,crack,r*.014,'#ff5a0c',.62);}ring(group,r*1.07,r*.028,'#ff430e',.3,-.18,0);}
- if(id===7){lust(group,r);}
+ if(id===7){roseField(group,r,7);ring(group,r*1.14,r*.016,'#ff42a6',-.25,.18,r*.23,.81);}
  const halo=ring(group,r*1.15,r*.009,colors[id-1],.31,.1,-r*.06,.34);halo.name='orbital';
  group.userData={globe,halo,id};
  return group;
@@ -538,95 +483,6 @@ function eclipse(parent,W,H){
  ring(parent,r*1.035,r*.008,'#f1974c',0,0,-272,.72).position.set(x,y,-272);
  const glow=new THREE.PointLight('#ff311b',5,H*.9,1.5);glow.position.set(x,y,110);parent.add(glow);
 }
-function angel(parent,W,H){
- // Escultura gótica autoral em ShapeGeometry: anatomia em perfil, capuz,
- // capa, asa de penas individuais e halo. Não usa imagem ou GLB.
- const g=new THREE.Group();g.position.set(-W*.32,H*.315,-136);g.scale.setScalar(.78);parent.add(g);
- const S=H;
- const piece=(outline,color,z,metalness=0)=>{
-  const sh=new THREE.Shape();for(const [k,...p] of outline){
-   if(k==='M')sh.moveTo(p[0]*S,p[1]*S);
-   if(k==='L')sh.lineTo(p[0]*S,p[1]*S);
-   if(k==='Q')sh.quadraticCurveTo(...p.map(x=>x*S));
-   if(k==='C')sh.bezierCurveTo(...p.map(x=>x*S));
-  }
-  const geo=z>0?new THREE.ExtrudeGeometry(sh,{depth:2.5,steps:1,bevelEnabled:true,bevelThickness:.7,bevelSize:.9,bevelSegments:2,curveSegments:12}):new THREE.ShapeGeometry(sh,10);
-  const o=mesh(geo,new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.78,metalness}),g,0,0,z);
-  return o;
- };
- // Reunir as 42 penas em 3 lotes de mesma cor sem perder suas curvas.
- const featherBins=new Map();
- const featherPiece=(outline,color,z)=>{
-  const o=piece(outline,color,z),g0=o.geometry;
-  const geo=g0.index?g0.toNonIndexed():g0,att=geo.getAttribute('position');
-  let verts=featherBins.get(color);
-  if(!verts){verts=[];featherBins.set(color,verts);}
-  for(let i=0;i<att.count;i++)verts.push(att.getX(i),att.getY(i),att.getZ(i)+z);
-  g.remove(o);if(geo!==g0)geo.dispose();g0.dispose();o.material.dispose();
- };
- // Plumas longas sobrepostas em camadas, com nervuras claras.
- for(const side of [-1,1]){
-  for(let i=20;i>=0;i--){
-   const t=i/20,rootX=side*(.016+t*.022),rootY=-.035+t*.026;
-   const tipX=side*(.06+t*.25),tipY=.01+Math.sin(t*2.1)*.22-t*.03;
-   featherPiece([['M',rootX,rootY],['Q',side*.13,.11,tipX,tipY],['Q',tipX-side*.012,tipY-.045,rootX,rootY]],
-     i%3===0?'#465061':i%3===1?'#273144':'#202a3b',-38-i*.18);
-  }
- }
- for(const [color,vertices] of featherBins){
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-  geo.computeVertexNormals();
-  const m=new THREE.MeshStandardMaterial({color,roughness:.86,metalness:.08,side:THREE.DoubleSide});
-  g.add(new THREE.Mesh(geo,m));
- }
- // Capa caída, ombreira reforçada, mangas, dobra de tecido.
- piece([['M',-.09,-.29],['C',-.13,-.15,-.18,-.01,-.085,.07],['C',-.04,.10,.035,.045,.07,-.025],
-        ['C',.10,-.11,.14,-.27,.08,-.30],['L',-.09,-.29]],'#202330',-1);
- piece([['M',-.075,-.28],['Q',-.045,-.15,-.064,-.035],['Q',-.029,-.12,-.013,-.28]],'#434450',.8);
- piece([['M',.056,-.28],['Q',.016,-.14,.064,-.026],['Q',.092,-.11,.087,-.28]],'#12131c',1);
- piece([['M',-.1,.00],['Q',-.14,.055,-.054,.078],['Q',-.04,.04,-.006,.02],['Q',-.08,-.04,-.1,0]],'#50505c',7,.25);
- // Pescoço e perfil facial: nariz, testa, lábios, queixo e capuz escuro.
- piece([['M',-.03,.066],['L',-.024,.121],['Q',-.065,.151,-.043,.195],['Q',.002,.23,.062,.176],
-       ['L',.070,.147],['L',.085,.135],['L',.069,.126],['L',.074,.106],
-       ['Q',.052,.073,.024,.068],['L',-.03,.066]],'#33323d',8);
- piece([['M',-.067,.151],['Q',-.074,.242,-.002,.252],['Q',.082,.225,.093,.165],
-       ['Q',.046,.204,-.006,.17],['Q',-.037,.133,-.043,.084],['L',-.067,.151]],'#20202d',11);
- piece([['M',-.054,.109],['Q',-.028,.054,.006,.062],['Q',.009,.122,-.019,.155],['L',-.054,.109]],'#313440',13);
- piece([['M',.02,.149],['L',.061,.152],['L',.054,.147],['L',.02,.149]],'#a9958c',13);
- // Retrato esculpido em profundidade: olhar, nariz, boca e madeixas.
- ball(g,S*.012,'#523c43',S*.051,S*.148,19,[.72,.39,.26]);
- ball(g,S*.005,'#d8b58c',S*.056,S*.15,21,[.48,.56,.3]);
- tube(g,[[S*.019,S*.17,19],[S*.046,S*.181,21],[S*.070,S*.17,20]],S*.0034,'#272331');
- tube(g,[[S*.071,S*.143,19],[S*.087,S*.138,19],[S*.079,S*.133,21]],S*.0031,'#b1817e');
- tube(g,[[S*.062,S*.106,19],[S*.074,S*.104,19],[S*.067,S*.095,19]],S*.0024,'#774e4f');
- ball(g,S*.021,'#443742',S*.006,S*.113,12,[1.5,.96,.33]);
- // Capuz drapeado e fios sutis: sem espinhos cartunescos na cabeça.
- piece([['M',-.074,.158],['C',-.094,.235,-.065,.278,-.008,.267],
-  ['C',.043,.262,.095,.221,.102,.159],['C',.049,.204,-.012,.199,-.042,.126],
-  ['L',-.074,.158]],'#171923',24);
- piece([['M',-.072,.163],['C',-.095,.09,-.103,.021,-.064,-.043],
-  ['C',-.035,.015,-.024,.083,-.039,.137],['L',-.072,.163]],'#30303e',23);
- for(let i=0;i<9;i++){
-  const t=i/8,x=S*(-.048+t*.085);
-  tube(g,[[x,S*.2,25],[x-S*.008,S*(.238+.014*Math.sin(i)),25],
-   [x-S*(.019+.008*rand(i+10)),S*(.244+.013*rand(i+19)),24]],
-   S*.0017,i%2?'#444657':'#565566');
- }
- // Sobreposição de placas de couro com brilho de metal antigo.
- for(let i=0;i<10;i++){
-  const x=-S*.082+S*.025*(i%5),y=-S*.018-S*.023*Math.floor(i/5);
-  ball(g,S*.011,i%2?'#343644':'#646572',x,y,13,[1.6,.55,.2]);
- }
- // Mão diante do peito, em prece.
- piece([['M',.09,.0],['Q',.17,.027,.142,.072],['Q',.102,.09,.065,.012],['L',.09,.0]],'#75595b',14);
- // Iluminação recortada azul: material escuro ganha contorno e textura,
- // sem clarear o rosto inteiro como uma ilustração cartunesca.
- const moonlight=new THREE.PointLight('#427fa9',3.2,S*.48,2);
- moonlight.position.set(-S*.12,S*.16,56);g.add(moonlight);
- const halo=ring(g,S*.072,S*.003,'#c29d78',.22,-.15,-40,.58);halo.position.set(-S*.012,S*.198,-40);
- return g;
-}
 function infernalGround(parent,W,H){
  // Rachaduras Voronoi entre placas rochosas (não linhas senoides artificiais).
  const material=new THREE.ShaderMaterial({depthWrite:false,
@@ -680,7 +536,8 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const environment=new THREE.Group();scene.add(environment);
  const shader=sky(environment,W,H);
  const smokes=[smokeLayer(environment,W,H,'#263955',-W*.19,H*.26,-310),smokeLayer(environment,W,H,'#781327',W*.28,H*.27,-309)];
- gothicRuins(environment,W,H);addInfernalArchitecture(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);const guardian=angel(environment,W,H);const guardianY=guardian.position.y;starfield(environment,W,H);
+ gothicRuins(environment,W,H);addInfernalArchitecture(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);starfield(environment,W,H);
+ const inferno=addLivingInferno(environment,W,H);
  const embers=emberField(environment,W,H);
  const groups=[],details={planet:null,chains:null};
  // Halo da seleção: gradiente HDR calculado em shader, sem JPG/PNG.
@@ -699,6 +556,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  for(let id=1;id<=7;id++){const g=makePlanet(id,64);g.userData.originalRadius=64;scene.add(g);groups.push(g);}
  // O retrato de destaque compartilha texturas/malhas com o planeta do topo.
  details.planet=groups[0].clone(true);details.planet.userData.originalRadius=64;scene.add(details.planet);
+ const cinematic=attachCinematicModels({root,environment,planets:groups,detail:details,screenWidth:W,screenHeight:H});
  // Prioriza nitidez no celular, limitando a área renderizada para não
  // desperdiçar GPU. Na tela 975x450 do A55, alvo ~2,08 DPR.
  const size=()=>{
@@ -712,7 +570,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  function setSelected(id){
   const current=details.planet;scene.remove(current);
   // Reutilizar modelo já criado evita gerar texturas e geometrias a cada clique.
-  const copy=groups[id-1].clone(true);copy.userData.originalRadius=64;
+  const copy=id===7?cloneSkinned(groups[6]):groups[id-1].clone(true);copy.userData.originalRadius=64;
   details.planet=copy;scene.add(copy);size();copy.scale.multiplyScalar(.82);
  }
  let lastSelection=1,frame=0,elapsed=0,prev=0,running=true,id=0,lastTelemetry=0;
@@ -734,12 +592,11 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   if(ms-frame<(reduced?1000:(mobile?32:16)))return;
   const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=dt;frame=ms;
   shader.uniforms.uTime.value=elapsed;for(const m of smokes)m.uniforms.uTime.value=elapsed;
+  inferno.update(elapsed);cinematic.update(dt,elapsed);
   if(!reduced){
    environment.position.x+=(parallax.x-environment.position.x)*Math.min(1,dt*2.6);
    environment.position.y+=(parallax.y-environment.position.y)*Math.min(1,dt*2.6);
-   // Respiração e tecido do guardião: deslocamento sutil sem deformações faciais.
-   guardian.position.y=guardianY+Math.sin(elapsed*.78)*H*.0024;
-   guardian.rotation.z=Math.sin(elapsed*.37)*.006;
+   // Modelos GLB possuem animações/idle próprios, sem figura procedural.
    for(let i=0;i<embers.count;i++){
     const at=i*3+1;embers.coords[at]+=(6+rand(i+42)*22)*dt;
     if(embers.coords[at]>H*.14)embers.coords[at]=-H*.49;
@@ -778,7 +635,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  canvas.addEventListener('webglcontextlost',lost,{passive:false});canvas.addEventListener('webglcontextrestored',restored);
  root.classList.add('gx-three-on');size();id=requestAnimationFrame(tick);
  const stop=()=>{
-  running=false;cancelAnimationFrame(id);observer.disconnect();root.removeEventListener('pointermove',pointer);canvas.removeEventListener('webglcontextrestored',restored);canvas.removeEventListener('webglcontextlost',lost);
+  running=false;cancelAnimationFrame(id);observer.disconnect();root.removeEventListener('pointermove',pointer);cinematic.stop();canvas.removeEventListener('webglcontextrestored',restored);canvas.removeEventListener('webglcontextlost',lost);
   for(const object of scene.children){object.traverse?.(v=>{v.geometry?.dispose?.();if(v.material){const ms=Array.isArray(v.material)?v.material:[v.material];for(const m of ms){m.map?.dispose?.();m.dispose?.();}}});}
   renderer.dispose();canvas.remove();root.classList.remove('gx-three-on');
  };
