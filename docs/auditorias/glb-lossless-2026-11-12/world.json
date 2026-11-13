@@ -1,0 +1,320 @@
+{
+  "platform": "Chromium SwiftShader touch viewport; no physical Android",
+  "errors": [],
+  "loaded": [
+    "Ponte.glb",
+    "Lua.glb",
+    "MontanhaEldoria01.glb",
+    "EntradaCavernaAto1.glb",
+    "CristalCaverna01.glb",
+    "RochedoMusgoEldoria.glb",
+    "MontanhaEldoria01-lod1.glb",
+    "EldoriaArvoresTropicais.glb",
+    "TochaMedievalTripo.glb",
+    "Grama.glb",
+    "AnjoGuiador-otimizado.glb",
+    "Prota_otimizado_2K.glb",
+    "CasaEldoria01.glb",
+    "Npc-lod2.glb",
+    "EspadaProta.glb",
+    "Protagonista-ritos-232.glb",
+    "NPC_Masculino_Animado_Otimizado_1K.glb",
+    "MulherNpc-otimizado.glb",
+    "Asas.glb",
+    "CasaEldoria02.glb",
+    "BarracaFrutasEldoria.glb",
+    "PocoEldoria.glb",
+    "FerreiroEldoria.glb",
+    "Carroça.glb",
+    "ArvoreAncestralEldoria.glb",
+    "PassarelaSuspensaEldoria.glb",
+    "CriancaNpc-otimizado.glb",
+    "MeninaNpc-otimizado.glb",
+    "Cabelo-otimizado.glb",
+    "FerreiroEldoria-lod1.glb",
+    "CasaEldoria01-lod1.glb",
+    "CasaEldoria02-lod1.glb",
+    "CabeloMulher-otimizado.glb",
+    "PocoEldoria-lod1.glb",
+    "RochedoMusgoEldoria-lod1.glb"
+  ],
+  "views": [
+    {
+      "firstPerson": false,
+      "state": {
+        "hero": {
+          "p": [
+            0,
+            0,
+            4
+          ],
+          "yaw": 3.142,
+          "grounded": true,
+          "vy": 0,
+          "dash": 0,
+          "clip": "Idle",
+          "speed": 0,
+          "sprint": false,
+          "cam": [
+            0.42,
+            1.7,
+            9.47
+          ],
+          "hp": 100,
+          "e": [
+            0,
+            0,
+            -3.2
+          ]
+        },
+        "world": {
+          "x": 0,
+          "y": 0,
+          "z": 4,
+          "walkable": true,
+          "edge": -27.500897004106672,
+          "calls": 130,
+          "triangles": 368992,
+          "terrain": {
+            "vertices": 48035,
+            "triangles": 93584,
+            "patchTriangles": 5968,
+            "extent": [
+              -661.935143267781,
+              657.935143267781
+            ]
+          },
+          "trees": 0,
+          "fog": "c7d3cb",
+          "fogFar": 345.50816800896706,
+          "night": 0,
+          "quest": 0,
+          "coins": 0,
+          "dialogueOpen": false,
+          "namePromptOpen": false,
+          "awakeningActive": false,
+          "hp": 100,
+          "enemy": {
+            "hp": 100,
+            "visible": false,
+            "alive": true,
+            "x": 0,
+            "z": -3.2,
+            "y": 0
+          },
+          "objective": "Fale com o Anjo-Guia",
+          "audio": "locked",
+          "dim": {
+            "vs": false,
+            "battle": false,
+            "active": false,
+            "key": null,
+            "sent": false,
+            "pull": false,
+            "pt": null,
+            "paused": false,
+            "gate": false,
+            "voidMode": false,
+            "hour": 9.03,
+            "enemyHP": 100,
+            "enemyMaxHP": 100,
+            "hp": 100
+          }
+        },
+        "renderer": {
+          "geo": 187,
+          "tex": 33,
+          "prog": 131,
+          "shadow": false,
+          "pr": 0.68,
+          "lights": 9
+        }
+      }
+    },
+    {
+      "firstPerson": true,
+      "state": {
+        "hero": {
+          "p": [
+            0,
+            0,
+            4
+          ],
+          "yaw": 3.142,
+          "grounded": true,
+          "vy": 0,
+          "dash": 0,
+          "clip": "Idle",
+          "speed": 0,
+          "sprint": false,
+          "cam": [
+            0,
+            1.52,
+            4
+          ],
+          "hp": 100,
+          "e": [
+            0,
+            0,
+            -3.2
+          ]
+        },
+        "world": {
+          "x": 0,
+          "y": 0,
+          "z": 4,
+          "walkable": true,
+          "edge": -27.500897004106672,
+          "calls": 153,
+          "triangles": 692874,
+          "terrain": {
+            "vertices": 48035,
+            "triangles": 93584,
+            "patchTriangles": 5968,
+            "extent": [
+              -661.935143267781,
+              657.935143267781
+            ]
+          },
+          "trees": 0,
+          "fog": "c7d3cb",
+          "fogFar": 345.53139326566867,
+          "night": 0,
+          "quest": 0,
+          "coins": 0,
+          "dialogueOpen": false,
+          "namePromptOpen": false,
+          "awakeningActive": false,
+          "hp": 100,
+          "enemy": {
+            "hp": 100,
+            "visible": false,
+            "alive": true,
+            "x": 0,
+            "z": -3.2,
+            "y": 0
+          },
+          "objective": "Fale com o Anjo-Guia",
+          "audio": "locked",
+          "dim": {
+            "vs": false,
+            "battle": false,
+            "active": false,
+            "key": null,
+            "sent": false,
+            "pull": false,
+            "pt": null,
+            "paused": false,
+            "gate": false,
+            "voidMode": false,
+            "hour": 9.04,
+            "enemyHP": 100,
+            "enemyMaxHP": 100,
+            "hp": 100
+          }
+        },
+        "renderer": {
+          "geo": 213,
+          "tex": 73,
+          "prog": 135,
+          "shadow": false,
+          "pr": 0.68,
+          "lights": 9
+        }
+      }
+    },
+    {
+      "firstPerson": false,
+      "state": {
+        "hero": {
+          "p": [
+            0,
+            0,
+            4
+          ],
+          "yaw": 3.142,
+          "grounded": true,
+          "vy": 0,
+          "dash": 0,
+          "clip": "Idle",
+          "speed": 0,
+          "sprint": false,
+          "cam": [
+            0.42,
+            1.7,
+            9.47
+          ],
+          "hp": 100,
+          "e": [
+            0,
+            0,
+            -3.2
+          ]
+        },
+        "world": {
+          "x": 0,
+          "y": 0,
+          "z": 4,
+          "walkable": true,
+          "edge": -27.500897004106672,
+          "calls": 157,
+          "triangles": 662401,
+          "terrain": {
+            "vertices": 48035,
+            "triangles": 93584,
+            "patchTriangles": 5968,
+            "extent": [
+              -661.935143267781,
+              657.935143267781
+            ]
+          },
+          "trees": 0,
+          "fog": "c7d3cb",
+          "fogFar": 345.5632034167209,
+          "night": 0,
+          "quest": 0,
+          "coins": 0,
+          "dialogueOpen": false,
+          "namePromptOpen": false,
+          "awakeningActive": false,
+          "hp": 100,
+          "enemy": {
+            "hp": 100,
+            "visible": false,
+            "alive": true,
+            "x": 0,
+            "z": -3.2,
+            "y": 0
+          },
+          "objective": "Fale com o Anjo-Guia",
+          "audio": "locked",
+          "dim": {
+            "vs": false,
+            "battle": false,
+            "active": false,
+            "key": null,
+            "sent": false,
+            "pull": false,
+            "pt": null,
+            "paused": false,
+            "gate": false,
+            "voidMode": false,
+            "hour": 9.05,
+            "enemyHP": 100,
+            "enemyMaxHP": 100,
+            "hp": 100
+          }
+        },
+        "renderer": {
+          "geo": 214,
+          "tex": 74,
+          "prog": 135,
+          "shadow": false,
+          "pr": 0.68,
+          "lights": 9
+        }
+      }
+    }
+  ],
+  "status": "passed"
+}

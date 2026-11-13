@@ -1,0 +1,5202 @@
+[
+  {
+    "file": "Anjo-rig.glb",
+    "before": 3574176,
+    "sha256Before": "ced75ed42cddfa2841f95f292192eb4942e1e78d9a1d24ae2080f1f137af66e8",
+    "triangles": 68550,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "channels": 210
+      },
+      {
+        "name": "Attack",
+        "channels": 210
+      },
+      {
+        "name": "Dead",
+        "channels": 210
+      },
+      {
+        "name": "Idle",
+        "channels": 210
+      },
+      {
+        "name": "Running",
+        "channels": 210
+      },
+      {
+        "name": "Skill_03",
+        "channels": 210
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 210
+      },
+      {
+        "name": "Walking",
+        "channels": 210
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_emissive_strength"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 10232,
+    "status": "candidate",
+    "after": 3563944,
+    "sha256After": "2e51eec9c1bdb763f7266aeb824d173926dc543dd678a23d232f8d77dbf3e743",
+    "images": [
+      {
+        "width": 256,
+        "height": 256,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "format": "PNG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 699050,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "AnjoGuia-lod.glb",
+    "before": 2411748,
+    "sha256Before": "f847107e1b529ba38d1c239903dd0f7064a4767ee41006d666e30adbd29e4a7b",
+    "triangles": 39865,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 152
+      },
+      {
+        "name": "Walking",
+        "channels": 152
+      },
+      {
+        "name": "Skill_01",
+        "channels": 152
+      },
+      {
+        "name": "Skill_03",
+        "channels": 152
+      },
+      {
+        "name": "Unsteady_Walk",
+        "channels": 152
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 2411748,
+    "sha256After": "f847107e1b529ba38d1c239903dd0f7064a4767ee41006d666e30adbd29e4a7b",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "AnjoGuia.glb",
+    "before": 11688812,
+    "sha256Before": "11595a99c14fe9e5654d63747c6cebdf0e2cc3e675acdc83361af638ba9607e8",
+    "triangles": 265788,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 152
+      },
+      {
+        "name": "Walking",
+        "channels": 152
+      },
+      {
+        "name": "Skill_01",
+        "channels": 152
+      },
+      {
+        "name": "Skill_03",
+        "channels": 152
+      },
+      {
+        "name": "Unsteady_Walk",
+        "channels": 152
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 11688812,
+    "sha256After": "11595a99c14fe9e5654d63747c6cebdf0e2cc3e675acdc83361af638ba9607e8",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "AnjoGuiador-otimizado.glb",
+    "before": 12958700,
+    "sha256Before": "4c77e26f7c822e105f928599cc81fb997b886764fb08fa59b8ff36f559b3e8d4",
+    "triangles": 19567,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 166
+      },
+      {
+        "name": "Walking",
+        "channels": 166
+      },
+      {
+        "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+        "channels": 166
+      },
+      {
+        "name": "Basic_Jump",
+        "channels": 166
+      },
+      {
+        "name": "Dead",
+        "channels": 166
+      },
+      {
+        "name": "Double_Combo_Attack",
+        "channels": 166
+      },
+      {
+        "name": "Jump_Over_Obstacle_2",
+        "channels": 166
+      },
+      {
+        "name": "Stand_Up1",
+        "channels": 166
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 166
+      },
+      {
+        "name": "Weapon_Combo",
+        "channels": 166
+      },
+      {
+        "name": "Weapon_Combo_1",
+        "channels": 166
+      },
+      {
+        "name": "Weapon_Combo_2",
+        "channels": 166
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.5.51",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 2805376,
+    "pngBytesSaved": 0,
+    "status": "candidate",
+    "after": 10152612,
+    "sha256After": "f6c14202eba80331b362cad2b2e3be28037868b22146a8c694d196a5b92e7ba1",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "ArreiosCavalo.glb",
+    "before": 3164904,
+    "sha256Before": "504df79bf4e162cd254fce588ad4a215593eea7dbb5301f23824d2d5be70b8ac",
+    "triangles": 10220,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 3164904,
+    "sha256After": "504df79bf4e162cd254fce588ad4a215593eea7dbb5301f23824d2d5be70b8ac",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Arvore.glb",
+    "before": 247036,
+    "sha256Before": "3bcc1a76be369ef080e5278eba3c350860983f7e17e162700c38d040c229271c",
+    "triangles": 12436,
+    "meshes": 309,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "https://github.com/mikedh/trimesh"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 247036,
+    "sha256After": "3bcc1a76be369ef080e5278eba3c350860983f7e17e162700c38d040c229271c",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "ArvoreAncestralEldoria.glb",
+    "before": 5440360,
+    "sha256Before": "8bd20251fe5e329a7150e4a5ad6c54b2ec50943ea54130b5b02e43162a8538a1",
+    "triangles": 26296,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 5440360,
+    "sha256After": "8bd20251fe5e329a7150e4a5ad6c54b2ec50943ea54130b5b02e43162a8538a1",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "eldoria-city-layout.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "ArvoreFloresta01.glb",
+    "before": 5331328,
+    "sha256Before": "6de8aa46e20110c3d41263c09382093910465803bfaaa2672ff27ec4352f13f1",
+    "triangles": 6165,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 385523,
+    "status": "candidate",
+    "after": 4945808,
+    "sha256After": "39b1f23dfab726740ba12ac21e4e33f671312421b9a406f1741fd8b679629e68",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "PNG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "eldoria-mature-forest.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Asas.glb",
+    "before": 123824,
+    "sha256Before": "24150a7e01d93a88bf124dfa270213c055e5c435f122a918a22837c5ae929c7d",
+    "triangles": 3648,
+    "meshes": 2,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 18468,
+    "pngBytesSaved": 0,
+    "status": "candidate",
+    "after": 105356,
+    "sha256After": "69e796351688ee22aa5833b514c5d1ec0d1b7fdc393ffaf6d5c58dd31f7be293",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "celestial-whitehole-vfx3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "AsasAnjo_leve.glb",
+    "before": 5788104,
+    "sha256Before": "d3d08b453bcbd3bf31d1b7693dbc8f08efe4f220dca00f567a1d6d6ccbf45ebb",
+    "triangles": 203331,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "https://github.com/mikedh/trimesh"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 5788104,
+    "sha256After": "d3d08b453bcbd3bf31d1b7693dbc8f08efe4f220dca00f567a1d6d6ccbf45ebb",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "BarracaFrutasEldoria-lod1.glb",
+    "before": 196508,
+    "sha256Before": "124ae265f65e922c437644d0ed0f8e8ea7807dff94a1302d3604ead6c412b6e2",
+    "triangles": 1697,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 196508,
+    "sha256After": "124ae265f65e922c437644d0ed0f8e8ea7807dff94a1302d3604ead6c412b6e2",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 5592405,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "BarracaFrutasEldoria.glb",
+    "before": 2963084,
+    "sha256Before": "0531ce43c3b13ccf5b288b29409cffc54c1892a365a538c7bb94f10ce3ee8925",
+    "triangles": 9097,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 2963084,
+    "sha256After": "0531ce43c3b13ccf5b288b29409cffc54c1892a365a538c7bb94f10ce3ee8925",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "eldoria-live-village3d.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Bispo1-lod.glb",
+    "before": 1504552,
+    "sha256Before": "796c591e2182083c24fbb2e20543f87737eda1d0f738da9504d588cf925c4228",
+    "triangles": 8180,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Idle",
+        "channels": 156
+      },
+      {
+        "name": "Walk",
+        "channels": 156
+      },
+      {
+        "name": "Hit Knockback Root Motion",
+        "channels": 156
+      },
+      {
+        "name": "Sword Aerial Combo",
+        "channels": 156
+      },
+      {
+        "name": "Sword Regular B",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1504552,
+    "sha256After": "796c591e2182083c24fbb2e20543f87737eda1d0f738da9504d588cf925c4228",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "vhazrael3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Bispo1.0.glb",
+    "before": 8078112,
+    "sha256Before": "008ae15f62390027b2948bb317aa2983e8991f3d86b60c86e9d50dee5ecaa7cc",
+    "triangles": 10035,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Idle",
+        "channels": 156
+      },
+      {
+        "name": "Walk",
+        "channels": 156
+      },
+      {
+        "name": "Hit Knockback Root Motion",
+        "channels": 156
+      },
+      {
+        "name": "Sword Aerial Combo",
+        "channels": 156
+      },
+      {
+        "name": "Sword Regular B",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "THREE.GLTFExporter r183"
+    },
+    "deduplicatedBytes": 145136,
+    "pngBytesSaved": 882996,
+    "status": "preserved-archive",
+    "after": 8078112,
+    "sha256After": "008ae15f62390027b2948bb317aa2983e8991f3d86b60c86e9d50dee5ecaa7cc",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGBA"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGBA"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGBA"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Bispo2-lod.glb",
+    "before": 2236212,
+    "sha256Before": "a7ae454b96ef528355dd27888acb0a929e48fc7887b123ee44f9e51c32cc1ff8",
+    "triangles": 37004,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Swim Idle",
+        "channels": 156
+      },
+      {
+        "name": "Walk",
+        "channels": 156
+      },
+      {
+        "name": "Hit Knockback",
+        "channels": 156
+      },
+      {
+        "name": "Hit Shoulder Right",
+        "channels": 156
+      },
+      {
+        "name": "Sword Heavy Combo",
+        "channels": 156
+      },
+      {
+        "name": "Culturalibre Wizard With Sceptre 2",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 2236212,
+    "sha256After": "a7ae454b96ef528355dd27888acb0a929e48fc7887b123ee44f9e51c32cc1ff8",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Bispo2.glb",
+    "before": 5861608,
+    "sha256Before": "aeae8a9a1e04c8d94525d54dba6174e56fa4c31594820a79602cb57ea1a8a5b5",
+    "triangles": 123348,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Swim Idle",
+        "channels": 156
+      },
+      {
+        "name": "Walk",
+        "channels": 156
+      },
+      {
+        "name": "Hit Knockback",
+        "channels": 156
+      },
+      {
+        "name": "Hit Shoulder Right",
+        "channels": 156
+      },
+      {
+        "name": "Sword Heavy Combo",
+        "channels": 156
+      },
+      {
+        "name": "Culturalibre Wizard With Sceptre 2",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 5861608,
+    "sha256After": "aeae8a9a1e04c8d94525d54dba6174e56fa4c31594820a79602cb57ea1a8a5b5",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "vorgazhek-eclipse-sword3d.js",
+      "mundo-3d-prototype.js",
+      "powers3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Bispo3-lod.glb",
+    "before": 3950292,
+    "sha256Before": "79d6f1eaa59566e8e126a0d9c8e6407b37b99429db2527df94e383c876fdb706",
+    "triangles": 69329,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Swim Idle",
+        "channels": 156
+      },
+      {
+        "name": "Walk Backward",
+        "channels": 156
+      },
+      {
+        "name": "Lift Air Fall Root Motion",
+        "channels": 156
+      },
+      {
+        "name": "Lift Air Hit Left",
+        "channels": 156
+      },
+      {
+        "name": "Sword Light Combo",
+        "channels": 156
+      },
+      {
+        "name": "Sword Regular Combo",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 3950292,
+    "sha256After": "79d6f1eaa59566e8e126a0d9c8e6407b37b99429db2527df94e383c876fdb706",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Bispo3.glb",
+    "before": 10838464,
+    "sha256Before": "cbcd20d58311d02f278046803c15028d3f5ccc8e6dbb916dd7d2931e99b400e7",
+    "triangles": 231102,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Swim Idle",
+        "channels": 156
+      },
+      {
+        "name": "Walk Backward",
+        "channels": 156
+      },
+      {
+        "name": "Lift Air Fall Root Motion",
+        "channels": 156
+      },
+      {
+        "name": "Lift Air Hit Left",
+        "channels": 156
+      },
+      {
+        "name": "Sword Light Combo",
+        "channels": 156
+      },
+      {
+        "name": "Sword Regular Combo",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 10838464,
+    "sha256After": "cbcd20d58311d02f278046803c15028d3f5ccc8e6dbb916dd7d2931e99b400e7",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "zarkhael-six-seals-vfx3d.js",
+      "zarkhael-circular-sword3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Bispo4-lod.glb",
+    "before": 5117136,
+    "sha256Before": "566aadbbf96a62e8411dc325ab6de16d638b64e9b241321c5fe11bd5acae9858",
+    "triangles": 90057,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Idle Torch",
+        "channels": 156
+      },
+      {
+        "name": "Walk",
+        "channels": 156
+      },
+      {
+        "name": "Lift Air Fall Root Motion",
+        "channels": 156
+      },
+      {
+        "name": "Hit Chest",
+        "channels": 156
+      },
+      {
+        "name": "Sword Aerial Combo",
+        "channels": 156
+      },
+      {
+        "name": "Sword Light Combo",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 5117136,
+    "sha256After": "566aadbbf96a62e8411dc325ab6de16d638b64e9b241321c5fe11bd5acae9858",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Bispo4.glb",
+    "before": 13425456,
+    "sha256Before": "7c88c7c691d5507b0103ad46e05d49cb800287b90fca8d44a49bd4b4aa88bd94",
+    "triangles": 300190,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Idle Torch",
+        "channels": 156
+      },
+      {
+        "name": "Walk",
+        "channels": 156
+      },
+      {
+        "name": "Lift Air Fall Root Motion",
+        "channels": 156
+      },
+      {
+        "name": "Hit Chest",
+        "channels": 156
+      },
+      {
+        "name": "Sword Aerial Combo",
+        "channels": 156
+      },
+      {
+        "name": "Sword Light Combo",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 13425456,
+    "sha256After": "7c88c7c691d5507b0103ad46e05d49cb800287b90fca8d44a49bd4b4aa88bd94",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Cabelo-otimizado.glb",
+    "before": 492324,
+    "sha256Before": "1e796686c01e358320a1f8f765e57f76970d13d9ecb6b8e0b8f53403cd199236",
+    "triangles": 3931,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_volume",
+      "FB_ngon_encoding"
+    ],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "Tripo"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 492324,
+    "sha256After": "1e796686c01e358320a1f8f765e57f76970d13d9ecb6b8e0b8f53403cd199236",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "eldoria-meshy-npcs.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "CabeloMulher-otimizado.glb",
+    "before": 2103564,
+    "sha256Before": "510feaf9eb11a73865c958ace5f7d24bf25d23ea44252d6549c0fbcba1b79272",
+    "triangles": 11959,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 2103564,
+    "sha256After": "510feaf9eb11a73865c958ace5f7d24bf25d23ea44252d6549c0fbcba1b79272",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "eldoria-meshy-npcs.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Carroça.glb",
+    "before": 1774720,
+    "sha256Before": "18365376721c9b5367acd1437fc9c72345f6ca6e83fa9b1e5da9dc5cbfc656f7",
+    "triangles": 14476,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "pygltflib@v1.16.5",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1774720,
+    "sha256After": "18365376721c9b5367acd1437fc9c72345f6ca6e83fa9b1e5da9dc5cbfc656f7",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "eldoria-live-village3d.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "CasaEldoria01-lod1.glb",
+    "before": 367960,
+    "sha256Before": "8717a8c90417e5f5cb27bb4e269e50aacb8256229406ff1efc35f429f1e253b5",
+    "triangles": 4842,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 367960,
+    "sha256After": "8717a8c90417e5f5cb27bb4e269e50aacb8256229406ff1efc35f429f1e253b5",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 5592405,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "CasaEldoria01.glb",
+    "before": 4233872,
+    "sha256Before": "10ad6089b8dd70f333d53619426915657d8886867e4e94a5d7fa89ba41034fa2",
+    "triangles": 30343,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 4233872,
+    "sha256After": "10ad6089b8dd70f333d53619426915657d8886867e4e94a5d7fa89ba41034fa2",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "eldoria-live-village3d.js",
+      "eldoria-city-layout.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "CasaEldoria02-lod1.glb",
+    "before": 399600,
+    "sha256Before": "18e739973c2cb171deab19b5cbf61914bfef3ff6a564ccd2281c7a582ea5962f",
+    "triangles": 4397,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 399600,
+    "sha256After": "18e739973c2cb171deab19b5cbf61914bfef3ff6a564ccd2281c7a582ea5962f",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 5592405,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "CasaEldoria02.glb",
+    "before": 5279488,
+    "sha256Before": "f59cc1e1a362397c8dcf0b296fe697446944ad148e11c91618c1715b81785540",
+    "triangles": 28597,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 5279488,
+    "sha256After": "f59cc1e1a362397c8dcf0b296fe697446944ad148e11c91618c1715b81785540",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "eldoria-live-village3d.js",
+      "eldoria-city-layout.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Casaco.glb",
+    "before": 209788,
+    "sha256Before": "98dfc90c8060637e5c5ec61f1026e2e0d5a731c2cb11d3a55a9e6e8f305c98db",
+    "triangles": 7152,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 209788,
+    "sha256After": "98dfc90c8060637e5c5ec61f1026e2e0d5a731c2cb11d3a55a9e6e8f305c98db",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Cavalo.glb",
+    "before": 5214268,
+    "sha256Before": "6b9aeb551dc9f64d92c9aa9d99814f6707fb1d7a73d09f01d75e7270ad6a1beb",
+    "triangles": 9697,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Armature|Unreal Take|baselayer",
+        "channels": 81
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_specular",
+      "KHR_materials_ior"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.0.43",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 639971,
+    "status": "candidate",
+    "after": 4574296,
+    "sha256After": "9ef85988640468308c93f9ea636eb286c7134646f5fd134318aaa56820babda9",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "PNG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 22369621,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Coliseu.glb",
+    "before": 1518692,
+    "sha256Before": "9357a59a476dfb52ebcd3b601b012e6f70ee5e5b567ada4f1ae4c46585b8caea",
+    "triangles": 16554,
+    "meshes": 4,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_emissive_strength"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1518692,
+    "sha256After": "9357a59a476dfb52ebcd3b601b012e6f70ee5e5b567ada4f1ae4c46585b8caea",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "coliseum3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "CriancaNpc-otimizado.glb",
+    "before": 5841060,
+    "sha256Before": "ac8cc9f21adae2f8d653714c97ced2f6257f09b334a32efde92d03603cbf4afb",
+    "triangles": 10402,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 132
+      },
+      {
+        "name": "Walking",
+        "channels": 132
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 66264,
+    "status": "candidate",
+    "after": 5774848,
+    "sha256After": "1a01c0b6587dc3af875d0dcc82c8c4a135eba2b29b2239ee7bff8d9984421910",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "eldoria-meshy-npcs.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "CristalCaverna01.glb",
+    "before": 2527720,
+    "sha256Before": "53b8801157c054282ba6a7c690f2b594fabc4281c5cb2881af8e29c4ee699b45",
+    "triangles": 10329,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 2527720,
+    "sha256After": "53b8801157c054282ba6a7c690f2b594fabc4281c5cb2881af8e29c4ee699b45",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "ascension-cave3d.js",
+      "eldoria-asset-plan.js",
+      "frontier3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Demonio1.glb",
+    "before": 17707512,
+    "sha256Before": "b7a903e8153306a7cdfe9989cb11f73fd02d1cc92f6d8c913f207b7dfe2f1428",
+    "triangles": 31018,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 100
+      },
+      {
+        "name": "Walking",
+        "channels": 100
+      },
+      {
+        "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+        "channels": 100
+      },
+      {
+        "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+        "channels": 100
+      },
+      {
+        "name": "Alert",
+        "channels": 100
+      },
+      {
+        "name": "Arise",
+        "channels": 100
+      },
+      {
+        "name": "Dead",
+        "channels": 100
+      },
+      {
+        "name": "Knock_Down",
+        "channels": 100
+      },
+      {
+        "name": "Left_Hook_from_Guard",
+        "channels": 100
+      },
+      {
+        "name": "Roll_Dodge",
+        "channels": 100
+      },
+      {
+        "name": "Roundhouse_Kick",
+        "channels": 100
+      },
+      {
+        "name": "Run_Jump_and_Roll",
+        "channels": 100
+      },
+      {
+        "name": "Sweep_Kick",
+        "channels": 100
+      },
+      {
+        "name": "Sweeping_Kick",
+        "channels": 100
+      },
+      {
+        "name": "Weapon_Combo_2",
+        "channels": 100
+      },
+      {
+        "name": "mage_soell_cast_8",
+        "channels": 100
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.5.51",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 1632860,
+    "pngBytesSaved": 0,
+    "status": "candidate",
+    "after": 16074652,
+    "sha256After": "013c60ed1caac1262644c6de9e151e8e6b57177a083507b6915d449be2f8ad50",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "demon1-combat3d.js",
+      "experiments/aerial-combat/app.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "DesertoKit.glb",
+    "before": 1139172,
+    "sha256Before": "81fa191d846924a0550c51ca98806086fbccaf1e4ab4785689fea0bc8bbb570d",
+    "triangles": 14390,
+    "meshes": 7,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_emissive_strength"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1139172,
+    "sha256After": "81fa191d846924a0550c51ca98806086fbccaf1e4ab4785689fea0bc8bbb570d",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "desert3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "DevoradorLunar.glb",
+    "before": 663468,
+    "sha256Before": "9a3b409fae2b7cf0905b7ae8934bf34ab7425915a2cf23446c1768f7174ac164",
+    "triangles": 13800,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "lunar_idle",
+        "channels": 10
+      },
+      {
+        "name": "jaw_charge",
+        "channels": 9
+      },
+      {
+        "name": "launch",
+        "channels": 7
+      },
+      {
+        "name": "recoil",
+        "channels": 7
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "veraxion-lunar-monster-model3d.js 288-devorador-lunar"
+    },
+    "status": "preserved-frozen",
+    "reason": "AGENTS.md: visual frozen",
+    "after": 663468,
+    "sha256After": "9a3b409fae2b7cf0905b7ae8934bf34ab7425915a2cf23446c1768f7174ac164",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "veraxion-lunar-cosmos3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "EldoriaArvoresTropicais.glb",
+    "before": 1105992,
+    "sha256Before": "f21c1b2b93acae55e7baf187c29eaf64e0a7e1e1dd9ec57a1a95b13fdf297270",
+    "triangles": 19471,
+    "meshes": 15,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Eldoria tree generator (Mod 292)",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 695,
+    "status": "unchanged",
+    "after": 1105992,
+    "sha256After": "f21c1b2b93acae55e7baf187c29eaf64e0a7e1e1dd9ec57a1a95b13fdf297270",
+    "images": [
+      {
+        "width": 512,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "P"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "P"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 19573417,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "eldoria-tropical-trees.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Enemy2-rig.glb",
+    "before": 2740364,
+    "sha256Before": "ac8fcccac6cf790c4d718b340c79ba168ca4eb317ecb7ccf994d296055d8783c",
+    "triangles": 35396,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "channels": 204
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+        "channels": 204
+      },
+      {
+        "name": "Attack",
+        "channels": 204
+      },
+      {
+        "name": "Dead",
+        "channels": 204
+      },
+      {
+        "name": "Running",
+        "channels": 204
+      },
+      {
+        "name": "Skill_03",
+        "channels": 204
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 204
+      },
+      {
+        "name": "Walking",
+        "channels": 204
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 2740364,
+    "sha256After": "ac8fcccac6cf790c4d718b340c79ba168ca4eb317ecb7ccf994d296055d8783c",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Enemy2.glb",
+    "before": 8839184,
+    "sha256Before": "2524e951342135b38eb7f08320baf8bb096fd330e9ca377d5eb3a195771d7116",
+    "triangles": 272484,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 8839184,
+    "sha256After": "2524e951342135b38eb7f08320baf8bb096fd330e9ca377d5eb3a195771d7116",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Enemy3.glb",
+    "before": 1926444,
+    "sha256Before": "5f04d38214551ab2472549982ef473b18f6a8d2e71d3bb0b0ba303631d19eb07",
+    "triangles": 9546,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 136
+      },
+      {
+        "name": "Walking",
+        "channels": 136
+      },
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "channels": 136
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+        "channels": 136
+      },
+      {
+        "name": "Attack",
+        "channels": 136
+      },
+      {
+        "name": "Dead",
+        "channels": 136
+      },
+      {
+        "name": "Skill_03",
+        "channels": 136
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 136
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1926444,
+    "sha256After": "5f04d38214551ab2472549982ef473b18f6a8d2e71d3bb0b0ba303631d19eb07",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "enemy3-squad3d.js",
+      "enemy3-runtime3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Enemy4.glb",
+    "before": 1814648,
+    "sha256Before": "c054f0dfb67e16eae24c24d9cde1dcccfd6a273b03a1a73c96a803548628e525",
+    "triangles": 10069,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 100
+      },
+      {
+        "name": "Walking",
+        "channels": 100
+      },
+      {
+        "name": "_01a15ace_9e83_7761_a901_661f649d465a",
+        "channels": 100
+      },
+      {
+        "name": "_01a15ad2_c637_77d6_b5f4_1b96b9e71d4b",
+        "channels": 100
+      },
+      {
+        "name": "Attack",
+        "channels": 100
+      },
+      {
+        "name": "Dead",
+        "channels": 100
+      },
+      {
+        "name": "Skill_03",
+        "channels": 100
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 100
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1814648,
+    "sha256After": "c054f0dfb67e16eae24c24d9cde1dcccfd6a273b03a1a73c96a803548628e525",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "jaw-sword3d.js",
+      "crimson-katana3d.js",
+      "enemy4-squad3d.js",
+      "enemy3-runtime3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "EntradaCavernaAto1.glb",
+    "before": 3472532,
+    "sha256Before": "4e2fad9c1db887ac3f8f50769845092671cc62491c2d4941089749fc868e0b3a",
+    "triangles": 14962,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 3472532,
+    "sha256After": "4e2fad9c1db887ac3f8f50769845092671cc62491c2d4941089749fc868e0b3a",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "ascension-layout.js",
+      "eldoria-asset-plan.js",
+      "frontier3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Espada1.glb",
+    "before": 1552760,
+    "sha256Before": "96f262565b477ee085027e26d7e07b83f487e9cf7ae19dfca225070eb0771fff",
+    "triangles": 38324,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "pygltflib@v1.16.5",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1552760,
+    "sha256After": "96f262565b477ee085027e26d7e07b83f487e9cf7ae19dfca225070eb0771fff",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "EspadaBispo2.glb",
+    "before": 1653676,
+    "sha256Before": "f489eb0febf47ebca8725bb015cd845964c578a90fa0d599ca48dbd8d468bed9",
+    "triangles": 54732,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1653676,
+    "sha256After": "f489eb0febf47ebca8725bb015cd845964c578a90fa0d599ca48dbd8d468bed9",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "vorgazhek-eclipse-sword3d.js",
+      "mundo-3d-prototype.js",
+      "powers3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "EspadaBispo3.glb",
+    "before": 1209036,
+    "sha256Before": "1da98f4e47570bf1ad0bd3837a39105d0d833c165bc42a633b682141cd512f4c",
+    "triangles": 37166,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1209036,
+    "sha256After": "1da98f4e47570bf1ad0bd3837a39105d0d833c165bc42a633b682141cd512f4c",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "zarkhael-six-seals-vfx3d.js",
+      "zarkhael-circular-sword3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "EspadaBispo4.glb",
+    "before": 714440,
+    "sha256Before": "1227f5b41171e9db5fb8a4b38acc8a4990bbfc529713a3d2b724f8e83291eb69",
+    "triangles": 18480,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 714440,
+    "sha256After": "1227f5b41171e9db5fb8a4b38acc8a4990bbfc529713a3d2b724f8e83291eb69",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "EspadaProta.glb",
+    "before": 581348,
+    "sha256Before": "0c93c986b3e4b5cd864dcc99b28e20e4123d24abc6da706007ddbf1a49ab4ef2",
+    "triangles": 12672,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 581348,
+    "sha256After": "0c93c986b3e4b5cd864dcc99b28e20e4123d24abc6da706007ddbf1a49ab4ef2",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "celestial-siege-vfx3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "EspadaVeraxion.glb",
+    "before": 118512,
+    "sha256Before": "9ce995629a494790e5aaa6da5d46b05bfe006c5dd7272715c0772dc8c09fa2bc",
+    "triangles": 3932,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "veraxion-sword-model3d.js 285-veraxion-sentenca"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 118512,
+    "sha256After": "9ce995629a494790e5aaa6da5d46b05bfe006c5dd7272715c0772dc8c09fa2bc",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "veraxion-sword-model3d.js",
+      "veraxion-four-swords-vfx3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "FerreiroEldoria-lod1.glb",
+    "before": 250724,
+    "sha256Before": "e5e3064f80860f8ee83d13012101ac2f8a33568394eab19a3c2c2e7eb2e5aba8",
+    "triangles": 1477,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 250724,
+    "sha256After": "e5e3064f80860f8ee83d13012101ac2f8a33568394eab19a3c2c2e7eb2e5aba8",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 5592405,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "FerreiroEldoria.glb",
+    "before": 3340196,
+    "sha256Before": "8880c3d938e73065d8ef27906d820704f97f2d6a397fe080afeedce165f35183",
+    "triangles": 9393,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 3340196,
+    "sha256After": "8880c3d938e73065d8ef27906d820704f97f2d6a397fe080afeedce165f35183",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "eldoria-live-village3d.js",
+      "eldoria-city-layout.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "FiguraDeLuz.glb",
+    "before": 704364,
+    "sha256Before": "c1432b4e475badabb6f49b3bda7aa3376f069896eec8c23dd4c6d7d08121547d",
+    "triangles": 17201,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_emissive_strength"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 704364,
+    "sha256After": "c1432b4e475badabb6f49b3bda7aa3376f069896eec8c23dd4c6d7d08121547d",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Ganancia1-lod.glb",
+    "before": 4320232,
+    "sha256Before": "f493a8aabd836e428ce97f660ffdca99dce28e6c96d00257a409cfb346b3634d",
+    "triangles": 61651,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 180
+      },
+      {
+        "name": "Walking",
+        "channels": 180
+      },
+      {
+        "name": "_01a15a96_67a9_773a_89e1_3990f76b968d",
+        "channels": 180
+      },
+      {
+        "name": "_01a15a9a_6e6b_7033_9379_efb3a7974d29",
+        "channels": 180
+      },
+      {
+        "name": "_01a15a9f_d25c_70e1_bcee_3b20cf78b1d2",
+        "channels": 180
+      },
+      {
+        "name": "Agree_Gesture",
+        "channels": 180
+      },
+      {
+        "name": "Arise",
+        "channels": 180
+      },
+      {
+        "name": "Attack",
+        "channels": 180
+      },
+      {
+        "name": "Dead",
+        "channels": 180
+      },
+      {
+        "name": "Skill_03",
+        "channels": 180
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 180
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 4320232,
+    "sha256After": "f493a8aabd836e428ce97f660ffdca99dce28e6c96d00257a409cfb346b3634d",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Ganancia1.glb",
+    "before": 14687156,
+    "sha256Before": "e69df3f9923e775b95c8ca175dd4233f40f216b30e797a53965fbe75f6a5e813",
+    "triangles": 308258,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 180
+      },
+      {
+        "name": "Walking",
+        "channels": 180
+      },
+      {
+        "name": "_01a15a96_67a9_773a_89e1_3990f76b968d",
+        "channels": 180
+      },
+      {
+        "name": "_01a15a9a_6e6b_7033_9379_efb3a7974d29",
+        "channels": 180
+      },
+      {
+        "name": "_01a15a9f_d25c_70e1_bcee_3b20cf78b1d2",
+        "channels": 180
+      },
+      {
+        "name": "Agree_Gesture",
+        "channels": 180
+      },
+      {
+        "name": "Arise",
+        "channels": 180
+      },
+      {
+        "name": "Attack",
+        "channels": 180
+      },
+      {
+        "name": "Dead",
+        "channels": 180
+      },
+      {
+        "name": "Skill_03",
+        "channels": 180
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 180
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 14687156,
+    "sha256After": "e69df3f9923e775b95c8ca175dd4233f40f216b30e797a53965fbe75f6a5e813",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Ganancia2-lod.glb",
+    "before": 4155440,
+    "sha256Before": "a7a6c799ccda20fa0a9179d4242a53e547ec26e6c03bec9fe9af33f43fc3bc18",
+    "triangles": 72209,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 122
+      },
+      {
+        "name": "Walking",
+        "channels": 122
+      },
+      {
+        "name": "_01a156cd_69c5_76fe_b170_51aba82e74db",
+        "channels": 122
+      },
+      {
+        "name": "_01a156d1_257b_7614_b379_e28ddb9f6052",
+        "channels": 122
+      },
+      {
+        "name": "Arise",
+        "channels": 122
+      },
+      {
+        "name": "Attack",
+        "channels": 122
+      },
+      {
+        "name": "Dead",
+        "channels": 122
+      },
+      {
+        "name": "Skill_01",
+        "channels": 122
+      },
+      {
+        "name": "Skill_03",
+        "channels": 122
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 122
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 4155440,
+    "sha256After": "a7a6c799ccda20fa0a9179d4242a53e547ec26e6c03bec9fe9af33f43fc3bc18",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Ganancia2.glb",
+    "before": 16198700,
+    "sha256Before": "80dba2e2d31789c7ecd218f222faa3837ee1597a37c8847c59d7fd96d4ff4850",
+    "triangles": 361048,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 122
+      },
+      {
+        "name": "Walking",
+        "channels": 122
+      },
+      {
+        "name": "_01a156cd_69c5_76fe_b170_51aba82e74db",
+        "channels": 122
+      },
+      {
+        "name": "_01a156d1_257b_7614_b379_e28ddb9f6052",
+        "channels": 122
+      },
+      {
+        "name": "Arise",
+        "channels": 122
+      },
+      {
+        "name": "Attack",
+        "channels": 122
+      },
+      {
+        "name": "Dead",
+        "channels": 122
+      },
+      {
+        "name": "Skill_01",
+        "channels": 122
+      },
+      {
+        "name": "Skill_03",
+        "channels": 122
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 122
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 16198700,
+    "sha256After": "80dba2e2d31789c7ecd218f222faa3837ee1597a37c8847c59d7fd96d4ff4850",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Ganancia3-lod.glb",
+    "before": 5660384,
+    "sha256Before": "a6622376c5215e4534aad077a3ad343557483a812b64eefd9e2860f8feb33a9a",
+    "triangles": 86761,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 154
+      },
+      {
+        "name": "Walking",
+        "channels": 154
+      },
+      {
+        "name": "_01a156df_e232_77c3_9887_dc9edce1e064",
+        "channels": 154
+      },
+      {
+        "name": "_01a156e1_4e78_7159_8f95_3fb168a222f7",
+        "channels": 154
+      },
+      {
+        "name": "Arise",
+        "channels": 154
+      },
+      {
+        "name": "Dead",
+        "channels": 154
+      },
+      {
+        "name": "Skill_03",
+        "channels": 154
+      },
+      {
+        "name": "Slow_Orc_Walk",
+        "channels": 154
+      },
+      {
+        "name": "Unsteady_Walk",
+        "channels": 154
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 5660384,
+    "sha256After": "a6622376c5215e4534aad077a3ad343557483a812b64eefd9e2860f8feb33a9a",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Ganancia3.glb",
+    "before": 19833368,
+    "sha256Before": "81141946ac6ed5f2515e7805b30465bee5a19c75f2e648e2c817566f38b4d637",
+    "triangles": 433810,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 154
+      },
+      {
+        "name": "Walking",
+        "channels": 154
+      },
+      {
+        "name": "_01a156df_e232_77c3_9887_dc9edce1e064",
+        "channels": 154
+      },
+      {
+        "name": "_01a156e1_4e78_7159_8f95_3fb168a222f7",
+        "channels": 154
+      },
+      {
+        "name": "Arise",
+        "channels": 154
+      },
+      {
+        "name": "Dead",
+        "channels": 154
+      },
+      {
+        "name": "Skill_03",
+        "channels": 154
+      },
+      {
+        "name": "Slow_Orc_Walk",
+        "channels": 154
+      },
+      {
+        "name": "Unsteady_Walk",
+        "channels": 154
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 19833368,
+    "sha256After": "81141946ac6ed5f2515e7805b30465bee5a19c75f2e648e2c817566f38b4d637",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Grama.glb",
+    "before": 30912,
+    "sha256Before": "f9f93bbd749bbc345f1bb3131501e6417baa757c7c38bd78eeef3ccc2185b8c3",
+    "triangles": 384,
+    "meshes": 48,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "https://github.com/mikedh/trimesh"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 30912,
+    "sha256After": "f9f93bbd749bbc345f1bb3131501e6417baa757c7c38bd78eeef3ccc2185b8c3",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "JaulaRitualAto1.glb",
+    "before": 3322784,
+    "sha256Before": "d8ecd2def7b407e1b6559560d08ae25910f2110c8fdd9dbddc5733a298eada67",
+    "triangles": 13210,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 3322784,
+    "sha256After": "d8ecd2def7b407e1b6559560d08ae25910f2110c8fdd9dbddc5733a298eada67",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "ascension-cave3d.js",
+      "ascension-layout.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Lua.glb",
+    "before": 2194748,
+    "sha256Before": "9292f90dd58606a8675ac8c18b5f986ce6e24d5765bfe5b5a9278e4eb682721b",
+    "triangles": 82498,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 2194748,
+    "sha256After": "9292f90dd58606a8675ac8c18b5f986ce6e24d5765bfe5b5a9278e4eb682721b",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "mod181-moon-snippet.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "MeninaNpc-otimizado.glb",
+    "before": 7300060,
+    "sha256Before": "d8c65a4ea5ab533df09cab2c4e519c7de1c4529945e9168e9d1d17128d69d4d6",
+    "triangles": 13363,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 132
+      },
+      {
+        "name": "Walking",
+        "channels": 132
+      },
+      {
+        "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+        "channels": 132
+      },
+      {
+        "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+        "channels": 132
+      },
+      {
+        "name": "Knock_Down",
+        "channels": 132
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 68737,
+    "status": "candidate",
+    "after": 7231376,
+    "sha256After": "93e9d26954b3011b06ba338dd9df6b45ad4b231068ebe9410ec3c5852d800456",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "eldoria-meshy-npcs.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Misteriosa-rig.glb",
+    "before": 1882012,
+    "sha256Before": "c9ed36ffcae3ecedfef33439ed9fbb0dbfe04ebf6e849730240c8fa849cd2e9a",
+    "triangles": 8400,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "channels": 204
+      },
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40.001",
+        "channels": 204
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+        "channels": 204
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc.001",
+        "channels": 204
+      },
+      {
+        "name": "Attack",
+        "channels": 204
+      },
+      {
+        "name": "Attack.001",
+        "channels": 204
+      },
+      {
+        "name": "Dead",
+        "channels": 204
+      },
+      {
+        "name": "Dead.001",
+        "channels": 204
+      },
+      {
+        "name": "Running",
+        "channels": 204
+      },
+      {
+        "name": "Running.001",
+        "channels": 204
+      },
+      {
+        "name": "Skill_03",
+        "channels": 204
+      },
+      {
+        "name": "Skill_03.001",
+        "channels": 204
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 204
+      },
+      {
+        "name": "Triple_Combo_Attack.001",
+        "channels": 204
+      },
+      {
+        "name": "Walking",
+        "channels": 204
+      },
+      {
+        "name": "Walking.001",
+        "channels": 204
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1882012,
+    "sha256After": "c9ed36ffcae3ecedfef33439ed9fbb0dbfe04ebf6e849730240c8fa849cd2e9a",
+    "images": [
+      {
+        "width": 512,
+        "height": 512,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 512,
+        "height": 512,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 512,
+        "height": 512,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 4194303,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Montanha.glb",
+    "before": 264976,
+    "sha256Before": "f1cdf0f1ed97b526141ed552bf24029bb3d084855cc65654087e001960c569f4",
+    "triangles": 12222,
+    "meshes": 108,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "https://github.com/mikedh/trimesh"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 264976,
+    "sha256After": "f1cdf0f1ed97b526141ed552bf24029bb3d084855cc65654087e001960c569f4",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "MontanhaEldoria01-lod1.glb",
+    "before": 26500,
+    "sha256Before": "8aa82b0e8f5cf3944ed03de6dd6b30e4b27942bc01f2c525b672329f361cd295",
+    "triangles": 2148,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 26500,
+    "sha256After": "8aa82b0e8f5cf3944ed03de6dd6b30e4b27942bc01f2c525b672329f361cd295",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "frontier3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "MontanhaEldoria01.glb",
+    "before": 3547024,
+    "sha256Before": "252ddfd5efe37af6707719eccba74e044ed51f3a2d42aac20cdeceee305d27cf",
+    "triangles": 15508,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 3547024,
+    "sha256After": "252ddfd5efe37af6707719eccba74e044ed51f3a2d42aac20cdeceee305d27cf",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "ascension-cave3d.js",
+      "ascension-ascent3d.js",
+      "eldoria-asset-plan.js",
+      "frontier3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Moradores-216.glb",
+    "before": 588188,
+    "sha256Before": "89d8a171cfe911eef7be568c7002810b4af2afae15225ac3fb1c09a7e4d09ec9",
+    "triangles": 18976,
+    "meshes": 141,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.3.47",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 435552,
+    "pngBytesSaved": 0,
+    "status": "preserved-archive",
+    "after": 588188,
+    "sha256After": "89d8a171cfe911eef7be568c7002810b4af2afae15225ac3fb1c09a7e4d09ec9",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "MoradoresPose.glb",
+    "before": 840456,
+    "sha256Before": "24bc78a8b1ca14f759a8433870b0c099800f6971ed4c2e63d0b1d74e0df890a2",
+    "triangles": 16800,
+    "meshes": 2,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 840456,
+    "sha256After": "24bc78a8b1ca14f759a8433870b0c099800f6971ed4c2e63d0b1d74e0df890a2",
+    "images": [
+      {
+        "width": 512,
+        "height": 512,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 512,
+        "height": 512,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 512,
+        "height": 512,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 4194303,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "MulherNpc-otimizado.glb",
+    "before": 9750348,
+    "sha256Before": "c5790b5d1fd8753ffd71daee3f9f1f03707b446cb1897deda5e3934d8e3eccff",
+    "triangles": 13452,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 132
+      },
+      {
+        "name": "Walking",
+        "channels": 132
+      },
+      {
+        "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+        "channels": 132
+      },
+      {
+        "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+        "channels": 132
+      },
+      {
+        "name": "SideLying_Reach_Help",
+        "channels": 132
+      },
+      {
+        "name": "Wave_One_Hand",
+        "channels": 132
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 65547,
+    "status": "candidate",
+    "after": 9684832,
+    "sha256After": "ecff2d9e74ce64509bbdac49ba838003a166ba73ed85faad139128277b121d82",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "eldoria-meshy-npcs.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "NPC_Masculino_Animado_Otimizado_1K.glb",
+    "before": 8042568,
+    "sha256Before": "510835e14eec3855e26ac9f955190f99229dc8571a9d85099327f2ebfebfdb3b",
+    "triangles": 10442,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 132
+      },
+      {
+        "name": "Walking",
+        "channels": 132
+      },
+      {
+        "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+        "channels": 132
+      },
+      {
+        "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+        "channels": 132
+      },
+      {
+        "name": "Alert",
+        "channels": 132
+      },
+      {
+        "name": "Arise",
+        "channels": 132
+      },
+      {
+        "name": "Regular_Jump",
+        "channels": 132
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 132
+      },
+      {
+        "name": "Wave_One_Hand",
+        "channels": 132
+      },
+      {
+        "name": "falling_down",
+        "channels": 132
+      },
+      {
+        "name": "victory",
+        "channels": 132
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.5.51",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 1893904,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 8042568,
+    "sha256After": "510835e14eec3855e26ac9f955190f99229dc8571a9d85099327f2ebfebfdb3b",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "eldoria-meshy-npcs.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "NeveKit.glb",
+    "before": 910328,
+    "sha256Before": "ba1380706aa0884cd3032c256c692453e3476496f826ae1a6d6fed213c305156",
+    "triangles": 11394,
+    "meshes": 16,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_emissive_strength"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 8160,
+    "pngBytesSaved": 0,
+    "status": "candidate",
+    "after": 902168,
+    "sha256After": "f4316f59949eb3231494bc8f7a27beb32b9dddf9b23be79f798b53327d5fe39a",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Npc-lod.glb",
+    "before": 2794716,
+    "sha256Before": "0c4ecc097a2a88a11c7b41cf93da0a5d60d4dacde0ee12b11734133327a1dabc",
+    "triangles": 38236,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 136
+      },
+      {
+        "name": "Walking",
+        "channels": 136
+      },
+      {
+        "name": "_01a156a3_6952_769b_94bf_2cf0e9d19b46",
+        "channels": 136
+      },
+      {
+        "name": "Agree_Gesture",
+        "channels": 136
+      },
+      {
+        "name": "Alert",
+        "channels": 136
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 2794716,
+    "sha256After": "0c4ecc097a2a88a11c7b41cf93da0a5d60d4dacde0ee12b11734133327a1dabc",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Npc-lod2.glb",
+    "before": 1312980,
+    "sha256Before": "8effbad67a9757b8c30e48f5f13e71556665045e62a8473335bb41767c8da276",
+    "triangles": 8402,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 136
+      },
+      {
+        "name": "Walking",
+        "channels": 136
+      },
+      {
+        "name": "_01a156a3_6952_769b_94bf_2cf0e9d19b46",
+        "channels": 136
+      },
+      {
+        "name": "Agree_Gesture",
+        "channels": 136
+      },
+      {
+        "name": "Alert",
+        "channels": 136
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1312980,
+    "sha256After": "8effbad67a9757b8c30e48f5f13e71556665045e62a8473335bb41767c8da276",
+    "images": [
+      {
+        "width": 512,
+        "height": 512,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 512,
+        "height": 512,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 512,
+        "height": 512,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 4194303,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Npc.glb",
+    "before": 17065128,
+    "sha256Before": "3a23f8ea7b3d52a2f0bd795e70e2c19799a9d72f75248a273ebea6ed6a351741",
+    "triangles": 382406,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 136
+      },
+      {
+        "name": "Walking",
+        "channels": 136
+      },
+      {
+        "name": "_01a156a3_6952_769b_94bf_2cf0e9d19b46",
+        "channels": 136
+      },
+      {
+        "name": "Agree_Gesture",
+        "channels": 136
+      },
+      {
+        "name": "Alert",
+        "channels": 136
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 17065128,
+    "sha256After": "3a23f8ea7b3d52a2f0bd795e70e2c19799a9d72f75248a273ebea6ed6a351741",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "eldoria-meshy-npcs.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "NpcEspecial-otimizado.glb",
+    "before": 13266124,
+    "sha256Before": "41e2fe847e770459c4d560f062db4e56a8e141b0bf27bc2736a296537c4d809e",
+    "triangles": 29932,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 144
+      },
+      {
+        "name": "Walking",
+        "channels": 144
+      },
+      {
+        "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+        "channels": 144
+      },
+      {
+        "name": "_360_Power_Spin_Jump",
+        "channels": 144
+      },
+      {
+        "name": "Alert",
+        "channels": 144
+      },
+      {
+        "name": "Basic_Jump",
+        "channels": 144
+      },
+      {
+        "name": "Jump_Over_Obstacle_2",
+        "channels": 144
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 144
+      },
+      {
+        "name": "Unarmed_Vault",
+        "channels": 144
+      },
+      {
+        "name": "Walking_Woman",
+        "channels": 144
+      },
+      {
+        "name": "Weapon_Combo",
+        "channels": 144
+      },
+      {
+        "name": "Weapon_Combo_1",
+        "channels": 144
+      },
+      {
+        "name": "Weapon_Combo_2",
+        "channels": 144
+      },
+      {
+        "name": "falling_down",
+        "channels": 144
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.5.51",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 2299792,
+    "pngBytesSaved": 0,
+    "status": "preserved-archive",
+    "after": 13266124,
+    "sha256After": "41e2fe847e770459c4d560f062db4e56a8e141b0bf27bc2736a296537c4d809e",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "PassarelaSuspensaEldoria.glb",
+    "before": 3420652,
+    "sha256Before": "404e20d8ffd19aff677b1ac071b1d96611aa57d4fe9bf4787b9307274aaa5a90",
+    "triangles": 9608,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 3420652,
+    "sha256After": "404e20d8ffd19aff677b1ac071b1d96611aa57d4fe9bf4787b9307274aaa5a90",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "eldoria-asset-plan.js",
+      "eldoria-city-dressing.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "PocoEldoria-lod1.glb",
+    "before": 243192,
+    "sha256Before": "f373e4d9210158a28bb0b534899d4056c47a322b4531f319ef0c6ff50bef32ce",
+    "triangles": 1374,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 243192,
+    "sha256After": "f373e4d9210158a28bb0b534899d4056c47a322b4531f319ef0c6ff50bef32ce",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 5592405,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "PocoEldoria.glb",
+    "before": 3236544,
+    "sha256Before": "a527b8cb75ea3acf3c4da6b81f4e51ce5cc8353e3144209516cfdde343720192",
+    "triangles": 8684,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 3236544,
+    "sha256After": "a527b8cb75ea3acf3c4da6b81f4e51ce5cc8353e3144209516cfdde343720192",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "eldoria-live-village3d.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Ponte.glb",
+    "before": 2825004,
+    "sha256Before": "90e84f629d45bee8919a430ba0d79881331f03afc8fb09403c3b0889773c1a6c",
+    "triangles": 9179,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 2825004,
+    "sha256After": "90e84f629d45bee8919a430ba0d79881331f03afc8fb09403c3b0889773c1a6c",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "eldoria-asset-plan.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Prota_otimizado_2K.glb",
+    "before": 21977932,
+    "sha256Before": "87d235ae2ac61293c651b4b6e72a235e0800f7a90fb2020c47c2c7f215e2f7b3",
+    "triangles": 30953,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 146
+      },
+      {
+        "name": "Walking",
+        "channels": 146
+      },
+      {
+        "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+        "channels": 146
+      },
+      {
+        "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+        "channels": 146
+      },
+      {
+        "name": "_360_Power_Spin_Jump",
+        "channels": 146
+      },
+      {
+        "name": "Combat_Stance",
+        "channels": 146
+      },
+      {
+        "name": "Dead",
+        "channels": 146
+      },
+      {
+        "name": "Jump_Over_Obstacle_2",
+        "channels": 146
+      },
+      {
+        "name": "Quick_Step_and_Spin_Dodge",
+        "channels": 146
+      },
+      {
+        "name": "Roll_Dodge_1",
+        "channels": 146
+      },
+      {
+        "name": "Run_Jump_and_Roll",
+        "channels": 146
+      },
+      {
+        "name": "Skill_03",
+        "channels": 146
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 146
+      },
+      {
+        "name": "Walk_Backward",
+        "channels": 146
+      },
+      {
+        "name": "Walk_Forward_with_Bow_Aimed",
+        "channels": 146
+      },
+      {
+        "name": "Weapon_Combo",
+        "channels": 146
+      },
+      {
+        "name": "Weapon_Combo_1",
+        "channels": 146
+      },
+      {
+        "name": "Weapon_Combo_2",
+        "channels": 146
+      },
+      {
+        "name": "slide_right",
+        "channels": 146
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.5.51",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 2703356,
+    "pngBytesSaved": 0,
+    "status": "candidate",
+    "after": 19274576,
+    "sha256After": "9ff0294c99da7cc4c468b36ba817a4d99ccf97c88e1d7ef1106c7ce752919097",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "prota-combat3d.js",
+      "mundo-3d-prototype.js",
+      "experiments/aerial-combat/world-protagonist.js",
+      "experiments/aerial-combat/rig.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Protagonista-cine.glb",
+    "before": 120548,
+    "sha256Before": "d8bd962e9e6d94ce726f2dc23271828d43f8129cb433a66028aef523b315de18",
+    "triangles": 0,
+    "meshes": 0,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Ajoelhar",
+        "channels": 156
+      },
+      {
+        "name": "OlharMaos",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 120548,
+    "sha256After": "d8bd962e9e6d94ce726f2dc23271828d43f8129cb433a66028aef523b315de18",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Protagonista-corrida-216.glb",
+    "before": 116036,
+    "sha256Before": "e9c313331a8e0a7868b25991ba18d0dd1bf9db1c62d95bdebb99c5fd72ee31d9",
+    "triangles": 0,
+    "meshes": 0,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Idle",
+        "channels": 156
+      },
+      {
+        "name": "Running",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.3.47",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 24,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 116036,
+    "sha256After": "e9c313331a8e0a7868b25991ba18d0dd1bf9db1c62d95bdebb99c5fd72ee31d9",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Protagonista-corrida-235.glb",
+    "before": 96360,
+    "sha256Before": "f01b7df06f46ed33749ec458b7734502d76b2bcb3854a029a6669d218b96edd6",
+    "triangles": 0,
+    "meshes": 0,
+    "skins": 0,
+    "animations": [
+      {
+        "name": "Hero_Run",
+        "channels": 53
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "Mod235 original rig run stance and lower sword carry / Blender 4.3.2"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 96360,
+    "sha256After": "f01b7df06f46ed33749ec458b7734502d76b2bcb3854a029a6669d218b96edd6",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Protagonista-corrida.glb",
+    "before": 60360,
+    "sha256Before": "e5f9531773ff01ceab4cadb41315abe5b3f0ed71eaa502182033d1304b4ff4d4",
+    "triangles": 0,
+    "meshes": 0,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Running",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 60360,
+    "sha256After": "e5f9531773ff01ceab4cadb41315abe5b3f0ed71eaa502182033d1304b4ff4d4",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Protagonista-ritos-231.glb",
+    "before": 687700,
+    "sha256Before": "e288151f929d43a00f90fcc627f1ca91e9bf043651912c5d3aefc725022aace0",
+    "triangles": 0,
+    "meshes": 0,
+    "skins": 0,
+    "animations": [
+      {
+        "name": "Rite_Crescent",
+        "channels": 53
+      },
+      {
+        "name": "Rite_Reverse",
+        "channels": 53
+      },
+      {
+        "name": "Rite_Ascendant",
+        "channels": 53
+      },
+      {
+        "name": "Rite_Judgment",
+        "channels": 53
+      },
+      {
+        "name": "Rite_Eclipse",
+        "channels": 53
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "Mod231 original sword choreography / Blender 5.0.1"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 687700,
+    "sha256After": "e288151f929d43a00f90fcc627f1ca91e9bf043651912c5d3aefc725022aace0",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Protagonista-ritos-232.glb",
+    "before": 820056,
+    "sha256Before": "0ff364665150659d044abf03cb1665f073afc1a61522de451f5ed84d54f865cd",
+    "triangles": 0,
+    "meshes": 0,
+    "skins": 0,
+    "animations": [
+      {
+        "name": "Rite_Crescent",
+        "channels": 53
+      },
+      {
+        "name": "Rite_Reverse",
+        "channels": 53
+      },
+      {
+        "name": "Rite_Ascendant",
+        "channels": 53
+      },
+      {
+        "name": "Rite_Judgment",
+        "channels": 53
+      },
+      {
+        "name": "Rite_Eclipse",
+        "channels": 53
+      },
+      {
+        "name": "Hero_Run",
+        "channels": 53
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "Mod232 original sword choreography / Blender 5.0.1"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 820056,
+    "sha256After": "0ff364665150659d044abf03cb1665f073afc1a61522de451f5ed84d54f865cd",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Protagonista.glb",
+    "before": 1215824,
+    "sha256Before": "38d5d2b94be8fb8c8e051def2c593bd7c33b87ef63e8e97842a4ec7fdf47eea3",
+    "triangles": 10148,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Idle",
+        "channels": 156
+      },
+      {
+        "name": "Walk",
+        "channels": 156
+      },
+      {
+        "name": "Lift Air Hit Right",
+        "channels": 156
+      },
+      {
+        "name": "Hit Knockback",
+        "channels": 156
+      },
+      {
+        "name": "Overhand Throw",
+        "channels": 156
+      },
+      {
+        "name": "Kip Up",
+        "channels": 156
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "EXT_texture_webp"
+    ],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.4.2",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1215824,
+    "sha256After": "38d5d2b94be8fb8c8e051def2c593bd7c33b87ef63e8e97842a4ec7fdf47eea3",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "experiments/aerial-combat/world-protagonist.js",
+      "experiments/aerial-combat/rig.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "RochedoMusgoEldoria-lod1.glb",
+    "before": 269300,
+    "sha256Before": "1e1f2692d9be34aab4263b3d4c7afbf7bd4b1b5a0616e6ce8eb31d61d6b8bbec",
+    "triangles": 2302,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "glTF-Transform v4.5.1",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 269300,
+    "sha256After": "1e1f2692d9be34aab4263b3d4c7afbf7bd4b1b5a0616e6ce8eb31d61d6b8bbec",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 5592405,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "RochedoMusgoEldoria.glb",
+    "before": 3648748,
+    "sha256Before": "78c184b9327e8a0ac9795e80307ffc666edf4afef5bacdb61f28b11291c013da",
+    "triangles": 15033,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.4.55",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 3648748,
+    "sha256After": "78c184b9327e8a0ac9795e80307ffc666edf4afef5bacdb61f28b11291c013da",
+    "images": [
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      },
+      {
+        "width": 2048,
+        "height": 2048,
+        "format": "WEBP",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 67108863,
+    "runtimeLiteralReferences": [
+      "eldoria-live-village3d.js",
+      "eldoria-asset-plan.js",
+      "frontier3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Sandra-rig.glb",
+    "before": 7054052,
+    "sha256Before": "2a82c58f7ab01da2674c03a389f988a52d04c4113066204a2b871f8dc0f31bb0",
+    "triangles": 110708,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "Walking",
+        "channels": 204
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 204
+      },
+      {
+        "name": "Skill_03",
+        "channels": 204
+      },
+      {
+        "name": "Running",
+        "channels": 204
+      },
+      {
+        "name": "Dead",
+        "channels": 204
+      },
+      {
+        "name": "Attack",
+        "channels": 204
+      },
+      {
+        "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+        "channels": 204
+      },
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "channels": 204
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_specular"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v4.3.47",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 638616,
+    "pngBytesSaved": 45723,
+    "status": "candidate",
+    "after": 6369704,
+    "sha256After": "a29f2c94224feb6567dd00ddf7205df03b78f081f15c87fa041307711de7de2a",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "format": "PNG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 6640980,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "TochaMedievalTripo.glb",
+    "before": 1106588,
+    "sha256Before": "266d6e3f503b9a0749d4bb22d99caa082aba0a7ad267127190b702311089e118",
+    "triangles": 9972,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_volume",
+      "FB_ngon_encoding"
+    ],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "Tripo"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 1106588,
+    "sha256After": "266d6e3f503b9a0749d4bb22d99caa082aba0a7ad267127190b702311089e118",
+    "images": [
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "JPEG",
+        "mode": "RGB"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "format": "PNG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 16777215,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js",
+      "ascension-cave3d.js",
+      "eldoria-torches3d.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "TorreKit.glb",
+    "before": 558704,
+    "sha256Before": "a99f00e560bee2476b2c30ef4a9a0662d657a16e28349a6cb2b94e5da428eaf1",
+    "triangles": 6372,
+    "meshes": 4,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_emissive_strength"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 558704,
+    "sha256After": "a99f00e560bee2476b2c30ef4a9a0662d657a16e28349a6cb2b94e5da428eaf1",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "TronoCeleste.glb",
+    "before": 516008,
+    "sha256Before": "4735200686e848aa28153591c1b21ecd8cf4a42154964670a37d03237384613c",
+    "triangles": 7290,
+    "meshes": 1,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_emissive_strength"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 516008,
+    "sha256After": "4735200686e848aa28153591c1b21ecd8cf4a42154964670a37d03237384613c",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "VilaKit.glb",
+    "before": 405868,
+    "sha256Before": "978a187a06440f851c462882a4ac4ab24723d8f82442823def4dea1aeca2efd8",
+    "triangles": 6644,
+    "meshes": 9,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 405868,
+    "sha256After": "978a187a06440f851c462882a4ac4ab24723d8f82442823def4dea1aeca2efd8",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "Vitima-rig.glb",
+    "before": 2495000,
+    "sha256Before": "03132451aa27011e907bd68b6e594777c9e4a1e80682fe8a2fffb10b51a02d5b",
+    "triangles": 47328,
+    "meshes": 1,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+        "channels": 204
+      },
+      {
+        "name": "Attack",
+        "channels": 204
+      },
+      {
+        "name": "Dead",
+        "channels": 204
+      },
+      {
+        "name": "Idle",
+        "channels": 204
+      },
+      {
+        "name": "Running",
+        "channels": 204
+      },
+      {
+        "name": "Skill_03",
+        "channels": 204
+      },
+      {
+        "name": "Triple_Combo_Attack",
+        "channels": 204
+      },
+      {
+        "name": "Walking",
+        "channels": 204
+      }
+    ],
+    "morphPrimitives": 0,
+    "extensions": [
+      "KHR_materials_emissive_strength"
+    ],
+    "assetMetadata": {
+      "generator": "Khronos glTF Blender I/O v5.2.41",
+      "version": "2.0"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 10204,
+    "status": "candidate",
+    "after": 2484796,
+    "sha256After": "2ea5f093094e42f8c774b03fe30a46ec5796e31680aac9b3be39a48d9a0d2e72",
+    "images": [
+      {
+        "width": 256,
+        "height": 256,
+        "format": "PNG",
+        "mode": "RGB"
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "format": "PNG",
+        "mode": "RGB"
+      }
+    ],
+    "estimatedRGBA8TextureBytesWithMips": 699050,
+    "runtimeLiteralReferences": [
+      "mundo-3d-prototype.js"
+    ],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "biblia_celestial_aberta.glb",
+    "before": 30916,
+    "sha256Before": "c549e49c12af4b8130e57ea2c1f721c9acc9416117604ffb465b71ccae07e664",
+    "triangles": 588,
+    "meshes": 49,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "https://github.com/mikedh/trimesh"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 30916,
+    "sha256After": "c549e49c12af4b8130e57ea2c1f721c9acc9416117604ffb465b71ccae07e664",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  },
+  {
+    "file": "biblia_celestial_fechada.glb",
+    "before": 19288,
+    "sha256Before": "3b42b4ba419decabce27faff4ba33b7a78a99a33f9043210746fa8ddbfe8cadb",
+    "triangles": 360,
+    "meshes": 30,
+    "skins": 0,
+    "animations": [],
+    "morphPrimitives": 0,
+    "extensions": [],
+    "assetMetadata": {
+      "version": "2.0",
+      "generator": "https://github.com/mikedh/trimesh"
+    },
+    "deduplicatedBytes": 0,
+    "pngBytesSaved": 0,
+    "status": "unchanged",
+    "after": 19288,
+    "sha256After": "3b42b4ba419decabce27faff4ba33b7a78a99a33f9043210746fa8ddbfe8cadb",
+    "images": [],
+    "estimatedRGBA8TextureBytesWithMips": 0,
+    "runtimeLiteralReferences": [],
+    "structuralEquivalence": true,
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+  }
+]

@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>GLB equivalence laboratory</title>
+<style>body{margin:0;background:#172331}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/tools/glb/node_modules/three/build/three.module.js","three/addons/":"/tools/glb/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as T from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+const renderer=new T.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(384,384);renderer.setPixelRatio(1);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+const target=new T.WebGLRenderTarget(384,384),camera=new T.PerspectiveCamera(38,1,.01,100);
+const loader=new GLTFLoader();
+const hash=async data=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data))).map(x=>x.toString(16).padStart(2,'0')).join('');
+function build(g){const scene=new T.Scene();scene.background=new T.Color('#172331');scene.add(new T.HemisphereLight(0xddeeff,0x776655,2));const sun=new T.DirectionalLight(0xffffff,3);sun.position.set(3,5,4);scene.add(sun);const fill=new T.DirectionalLight(0x99bbff,1);fill.position.set(-4,2,-3);scene.add(fill);g.scene.updateMatrixWorld(true);const box=new T.Box3().setFromObject(g.scene),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3()),scale=2/Math.max(size.x,size.y,size.z,1e-6);const root=new T.Group();root.scale.setScalar(scale);root.position.copy(center).multiplyScalar(-scale);root.add(g.scene);scene.add(root);return{scene,g,mixer:new T.AnimationMixer(g.scene),bind:[]};}
+function pose(o,clip,t){o.mixer.stopAllAction();if(clip>=0){const a=o.mixer.clipAction(o.g.animations[clip]);a.reset().play();o.mixer.setTime(t);}o.g.scene.updateMatrixWorld(true);}
+function draw(o,view){const views=[[2,1.1,3.8],[.55,.6,1.5],[-2,.9,-3.8]];camera.position.set(...views[view]);camera.lookAt(0,view===1?.45:0,0);renderer.setRenderTarget(target);renderer.render(o.scene,camera);const pixels=new Uint8Array(384*384*4);renderer.readRenderTargetPixels(target,0,0,384,384,pixels);renderer.setRenderTarget(null);renderer.render(o.scene,camera);return pixels;}
+function release(o){o.mixer.stopAllAction();o.mixer.uncacheRoot(o.g.scene);const geo=new Set(),mat=new Set(),tex=new Set();o.scene.traverse(n=>{if(n.geometry)geo.add(n.geometry);for(const m of n.material?(Array.isArray(n.material)?n.material:[n.material]):[]){mat.add(m);for(const v of Object.values(m))if(v?.isTexture)tex.add(v);}});for(const x of [...geo,...mat,...tex])x.dispose();}
+window.compareAsset=async(file,save=false)=>{
+ let a,b;const start=performance.now();const ag=await loader.loadAsync('/original/'+encodeURIComponent(file)),mid=performance.now();const bg=await loader.loadAsync('/optimized/'+encodeURIComponent(file)),end=performance.now();a=build(ag);b=build(bg);const result={file,loadOriginalMs:mid-start,loadOptimizedMs:end-mid,poses:[],images:[],clips:ag.animations.map(c=>({name:c.name,duration:c.duration,tracks:c.tracks.length})),ok:true};
+ try{
+  const cases=[{clip:-1,t:0,view:0},{clip:-1,t:0,view:1},{clip:-1,t:0,view:2},...ag.animations.map((c,i)=>({clip:i,t:c.duration*.37,view:0}))];
+  for(const c of cases){pose(a,c.clip,c.t);pose(b,c.clip,c.t);const pa=draw(a,c.view);const before=save&&c.clip===-1?renderer.domElement.toDataURL():null;const pb=draw(b,c.view);let changed=0,max=0;for(let i=0;i<pa.length;i++){const d=Math.abs(pa[i]-pb[i]);if(d)changed++;max=Math.max(max,d);}if(changed)result.ok=false;result.poses.push({...c,changedChannels:changed,maxDelta:max,originalHash:await hash(pa),optimizedHash:await hash(pb)});if(before)result.images.push({view:c.view,before,after:renderer.domElement.toDataURL()});
+  }
+  result.memory=renderer.info.memory;return result;
+ }finally{release(a);release(b);}
+};
+window.labReady=true;
+</script>

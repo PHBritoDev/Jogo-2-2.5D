@@ -1,0 +1,3473 @@
+{
+  "platform": "Chromium SwiftShader desktop + touch viewport; no physical Android",
+  "errors": [],
+  "assets": [
+    {
+      "file": "Anjo-rig.glb",
+      "loadOriginalMs": 162.90000000002328,
+      "loadOptimizedMs": 144.19999999995343,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "5bc676e3f5c6ca7cbd93e965adb8725db0d670d66368c8d296fe67f9b4866f48",
+          "optimizedHash": "5bc676e3f5c6ca7cbd93e965adb8725db0d670d66368c8d296fe67f9b4866f48"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "44ae19400b0a2aefb93c1a00bc7d7d5693cf46dcf43f9f856c9ef0ae20a3e26a",
+          "optimizedHash": "44ae19400b0a2aefb93c1a00bc7d7d5693cf46dcf43f9f856c9ef0ae20a3e26a"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "b7df2b2db355dab370556f220c188827c674773cd4a8cd811ba129845f1dc042",
+          "optimizedHash": "b7df2b2db355dab370556f220c188827c674773cd4a8cd811ba129845f1dc042"
+        },
+        {
+          "clip": 0,
+          "t": 0.7245833480358124,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc",
+          "optimizedHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc"
+        },
+        {
+          "clip": 1,
+          "t": 1.0329166960716247,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a79dde6357044f5d52fa48f966bc2db3f5e52fd1b80756f14ca55646af9f4855",
+          "optimizedHash": "a79dde6357044f5d52fa48f966bc2db3f5e52fd1b80756f14ca55646af9f4855"
+        },
+        {
+          "clip": 2,
+          "t": 1.0945833039283752,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ec05be8dda778843fdf126caf71a48d6eb4bee7c07d7c549c3db4d4df246f0b6",
+          "optimizedHash": "ec05be8dda778843fdf126caf71a48d6eb4bee7c07d7c549c3db4d4df246f0b6"
+        },
+        {
+          "clip": 3,
+          "t": 0.9095833039283753,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e3595e176ecc058b77a20a1c8f42aacad842d4baf7604a8435d2342b2dadd788",
+          "optimizedHash": "e3595e176ecc058b77a20a1c8f42aacad842d4baf7604a8435d2342b2dadd788"
+        },
+        {
+          "clip": 4,
+          "t": 0.23125,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "20b2175dcd61fc86151189e9412646fe8f3e2d2d5f103f1d1e6ca70d6393195d",
+          "optimizedHash": "20b2175dcd61fc86151189e9412646fe8f3e2d2d5f103f1d1e6ca70d6393195d"
+        },
+        {
+          "clip": 5,
+          "t": 0.60125,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "37593620031727c20ff55346fb88c977fe26abe856eeb3c160420a9bc94c672c",
+          "optimizedHash": "37593620031727c20ff55346fb88c977fe26abe856eeb3c160420a9bc94c672c"
+        },
+        {
+          "clip": 6,
+          "t": 1.5879166078567504,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "eea4dae579294c08b485ae7d3f97a296e927308dec1a7cd0b142087dc67bcb4f",
+          "optimizedHash": "eea4dae579294c08b485ae7d3f97a296e927308dec1a7cd0b142087dc67bcb4f"
+        },
+        {
+          "clip": 7,
+          "t": 0.37,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "b2a7083193350a5d1a6d0a1a939b2ceb99364a4a06d8ddbce475e3e63810e2a2",
+          "optimizedHash": "b2a7083193350a5d1a6d0a1a939b2ceb99364a4a06d8ddbce475e3e63810e2a2"
+        }
+      ],
+      "clips": [
+        {
+          "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+          "duration": 1.9583333730697632,
+          "tracks": 210
+        },
+        {
+          "name": "Attack",
+          "duration": 2.7916667461395264,
+          "tracks": 210
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9583332538604736,
+          "tracks": 210
+        },
+        {
+          "name": "Idle",
+          "duration": 2.4583332538604736,
+          "tracks": 210
+        },
+        {
+          "name": "Running",
+          "duration": 0.625,
+          "tracks": 210
+        },
+        {
+          "name": "Skill_03",
+          "duration": 1.625,
+          "tracks": 210
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.291666507720947,
+          "tracks": 210
+        },
+        {
+          "name": "Walking",
+          "duration": 1,
+          "tracks": 210
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 3
+      },
+      "mobile": false
+    },
+    {
+      "file": "AnjoGuiador-otimizado.glb",
+      "loadOriginalMs": 1154.9000000000233,
+      "loadOptimizedMs": 623.7000000000116,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "dbb47bfa2393d7d057082f14125ef09bc36227816f77e7ef0c2c2e3875d5f476",
+          "optimizedHash": "dbb47bfa2393d7d057082f14125ef09bc36227816f77e7ef0c2c2e3875d5f476"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6f33ef745cf8065f4dfdfb871f4bee2c91a06acfbd2497eea24fa557052c6909",
+          "optimizedHash": "6f33ef745cf8065f4dfdfb871f4bee2c91a06acfbd2497eea24fa557052c6909"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "c530d9977ce41be0e8a97938f165bd1f76dcde17493cfdc900886ba3c79ca1c4",
+          "optimizedHash": "c530d9977ce41be0e8a97938f165bd1f76dcde17493cfdc900886ba3c79ca1c4"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "c5b8a8ec5d92b3237237d980f31af4df40f123ace18d0f276e2439163c070030",
+          "optimizedHash": "c5b8a8ec5d92b3237237d980f31af4df40f123ace18d0f276e2439163c070030"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6c3617e15c72198a22ecb841d3584ce1aebc140d13aa2525c2ec2684467a651e",
+          "optimizedHash": "6c3617e15c72198a22ecb841d3584ce1aebc140d13aa2525c2ec2684467a651e"
+        },
+        {
+          "clip": 2,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "fe50a48b3f7fb9d46ea124c3b73fa101574cc24734c34f51a23054ee6dbe6aac",
+          "optimizedHash": "fe50a48b3f7fb9d46ea124c3b73fa101574cc24734c34f51a23054ee6dbe6aac"
+        },
+        {
+          "clip": 3,
+          "t": 2.1706667137145996,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "680bc4bcc188f0b5021cbe6be29c65fc36e048f42e2ff6094e3b6d18c175962b",
+          "optimizedHash": "680bc4bcc188f0b5021cbe6be29c65fc36e048f42e2ff6094e3b6d18c175962b"
+        },
+        {
+          "clip": 4,
+          "t": 1.0976667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "eadf73705db40cffbc7c928af7c0535d360e3eb77870ef82cf6afc73c0966225",
+          "optimizedHash": "eadf73705db40cffbc7c928af7c0535d360e3eb77870ef82cf6afc73c0966225"
+        },
+        {
+          "clip": 5,
+          "t": 1.048333215713501,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "9b25680c1d5efe01de1f438f652ff758beb195cc6330e74a304af98bf76f5976",
+          "optimizedHash": "9b25680c1d5efe01de1f438f652ff758beb195cc6330e74a304af98bf76f5976"
+        },
+        {
+          "clip": 6,
+          "t": 0.3206667798757553,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "4312b39d37c4d60bd753b1065254ea9a4e187c19251ffe8bd46108c176949ee4",
+          "optimizedHash": "4312b39d37c4d60bd753b1065254ea9a4e187c19251ffe8bd46108c176949ee4"
+        },
+        {
+          "clip": 7,
+          "t": 3.0586665725708007,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a3677d4f3db01c217d63803ef2d25dcff505b895ec3e170e545eadf029fd67c2",
+          "optimizedHash": "a3677d4f3db01c217d63803ef2d25dcff505b895ec3e170e545eadf029fd67c2"
+        },
+        {
+          "clip": 8,
+          "t": 1.603333215713501,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "511eb9c114216c0d2ce45a2432d382d6bac1b45b95fa241ad85eee7a7c2b6cdd",
+          "optimizedHash": "511eb9c114216c0d2ce45a2432d382d6bac1b45b95fa241ad85eee7a7c2b6cdd"
+        },
+        {
+          "clip": 9,
+          "t": 1.356666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "fd9b8c85809386655c1b9ed6e416a5c799a731aa9df2a6dd10c43d591a3ec434",
+          "optimizedHash": "fd9b8c85809386655c1b9ed6e416a5c799a731aa9df2a6dd10c43d591a3ec434"
+        },
+        {
+          "clip": 10,
+          "t": 1.295,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "67ba1c79641e31bb877470f9108af8df05e9c494755a5204ef85d495ac2e776f",
+          "optimizedHash": "67ba1c79641e31bb877470f9108af8df05e9c494755a5204ef85d495ac2e776f"
+        },
+        {
+          "clip": 11,
+          "t": 1.665,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "56a0ce385bfcbc4deda03ab04f7868f54639b53864015298afc621e799fd76d0",
+          "optimizedHash": "56a0ce385bfcbc4deda03ab04f7868f54639b53864015298afc621e799fd76d0"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 166
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 166
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 166
+        },
+        {
+          "name": "Basic_Jump",
+          "duration": 5.866666793823242,
+          "tracks": 166
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9666669368743896,
+          "tracks": 166
+        },
+        {
+          "name": "Double_Combo_Attack",
+          "duration": 2.8333330154418945,
+          "tracks": 166
+        },
+        {
+          "name": "Jump_Over_Obstacle_2",
+          "duration": 0.8666669726371765,
+          "tracks": 166
+        },
+        {
+          "name": "Stand_Up1",
+          "duration": 8.266666412353516,
+          "tracks": 166
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.3333330154418945,
+          "tracks": 166
+        },
+        {
+          "name": "Weapon_Combo",
+          "duration": 3.6666669845581055,
+          "tracks": 166
+        },
+        {
+          "name": "Weapon_Combo_1",
+          "duration": 3.5,
+          "tracks": 166
+        },
+        {
+          "name": "Weapon_Combo_2",
+          "duration": 4.5,
+          "tracks": 166
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 5
+      },
+      "mobile": false
+    },
+    {
+      "file": "ArvoreFloresta01.glb",
+      "loadOriginalMs": 454.79999999998836,
+      "loadOptimizedMs": 341.29999999998836,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "9c1d032867aa2837903727bf8f8a725a766758fe7f53509b986a0d845e398e08",
+          "optimizedHash": "9c1d032867aa2837903727bf8f8a725a766758fe7f53509b986a0d845e398e08"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "d9a44c161a0572c62192c6078000ef81253dec8e512f61c3cd1b5ee3491293c6",
+          "optimizedHash": "d9a44c161a0572c62192c6078000ef81253dec8e512f61c3cd1b5ee3491293c6"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a7dbb31a55a6d0e590158b42a097e26553df7e4af9eb358b8c101eec9399c4e6",
+          "optimizedHash": "a7dbb31a55a6d0e590158b42a097e26553df7e4af9eb358b8c101eec9399c4e6"
+        }
+      ],
+      "clips": [],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 5
+      },
+      "mobile": false
+    },
+    {
+      "file": "Asas.glb",
+      "loadOriginalMs": 85,
+      "loadOptimizedMs": 29,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6bb2408b4b8486243a1d0b6085fae0462e3a08cd3ed9613fe3d6f5333c8ab233",
+          "optimizedHash": "6bb2408b4b8486243a1d0b6085fae0462e3a08cd3ed9613fe3d6f5333c8ab233"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "61b11e2f21e50adf40e98ea0ee784a199cbe4bcc9b419d7de89ae879cda69bc2",
+          "optimizedHash": "61b11e2f21e50adf40e98ea0ee784a199cbe4bcc9b419d7de89ae879cda69bc2"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "40ab5a4073eb875108f44a34fe2a3a800d35be0c21d27e2ed37c73dcf99d91df",
+          "optimizedHash": "40ab5a4073eb875108f44a34fe2a3a800d35be0c21d27e2ed37c73dcf99d91df"
+        }
+      ],
+      "clips": [],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 5
+      },
+      "mobile": false
+    },
+    {
+      "file": "Cavalo.glb",
+      "loadOriginalMs": 401.19999999995343,
+      "loadOptimizedMs": 353.1000000000349,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "5c15ffc17546d4ae15e40789474839ea218cc53b9eccdb5633c7c3c163f3b921",
+          "optimizedHash": "5c15ffc17546d4ae15e40789474839ea218cc53b9eccdb5633c7c3c163f3b921"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0e6369cb1a75668139e58ab60498f18306af28050892aa53d895cd571afe7a6c",
+          "optimizedHash": "0e6369cb1a75668139e58ab60498f18306af28050892aa53d895cd571afe7a6c"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0c5ac161e138422f1cb92cb6643d7c833b1377b83aaa931a1c3cc3663a7d02c3",
+          "optimizedHash": "0c5ac161e138422f1cb92cb6643d7c833b1377b83aaa931a1c3cc3663a7d02c3"
+        },
+        {
+          "clip": 0,
+          "t": 0.37,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "23389d68094967b0ae63e1999c200b7831c4a14ffd394f75292978569a79721d",
+          "optimizedHash": "23389d68094967b0ae63e1999c200b7831c4a14ffd394f75292978569a79721d"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Armature|Unreal Take|baselayer",
+          "duration": 1,
+          "tracks": 81
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 7
+      },
+      "mobile": false
+    },
+    {
+      "file": "CriancaNpc-otimizado.glb",
+      "loadOriginalMs": 1021,
+      "loadOptimizedMs": 799.7000000000116,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ad505db8b8567c94e22d383ddd23c57a96c8b2af1471e2990a8e8e6b6feb7fb5",
+          "optimizedHash": "ad505db8b8567c94e22d383ddd23c57a96c8b2af1471e2990a8e8e6b6feb7fb5"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "46e7a658d02419633db5f9c194476020ee92eb45cdf148610622576ccd944775",
+          "optimizedHash": "46e7a658d02419633db5f9c194476020ee92eb45cdf148610622576ccd944775"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "afc5e8f510030ba665c6a137b9eac79c3acf719bac96426c1ea2eb91b8214f11",
+          "optimizedHash": "afc5e8f510030ba665c6a137b9eac79c3acf719bac96426c1ea2eb91b8214f11"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "220e9b3a3cc7cb7a2a7d0ff1c2a7480e97f3ef627ec94d622cd035bb320edaf4",
+          "optimizedHash": "220e9b3a3cc7cb7a2a7d0ff1c2a7480e97f3ef627ec94d622cd035bb320edaf4"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "bee9b74e7297bfc9d162ac97feefc9ed5c8cebc868090751ca016426ce8b1300",
+          "optimizedHash": "bee9b74e7297bfc9d162ac97feefc9ed5c8cebc868090751ca016426ce8b1300"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 132
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 132
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 9
+      },
+      "mobile": false
+    },
+    {
+      "file": "Demonio1.glb",
+      "loadOriginalMs": 1332.2000000000116,
+      "loadOptimizedMs": 369.1000000000349,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "303cc6157f294dd02ce7ff2e630e5c02a1b79eb05f5feda3ed1dcc118a0a29f2",
+          "optimizedHash": "303cc6157f294dd02ce7ff2e630e5c02a1b79eb05f5feda3ed1dcc118a0a29f2"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "3ce70ea5e5bd04ed859e56c6ed336471f7c1d8fe3f306a50061a1661bbd9fc6b",
+          "optimizedHash": "3ce70ea5e5bd04ed859e56c6ed336471f7c1d8fe3f306a50061a1661bbd9fc6b"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0c78e1dd6dd447dfdc7e153fb97dd14e666b748c90fa5a48195717fa045ca5c3",
+          "optimizedHash": "0c78e1dd6dd447dfdc7e153fb97dd14e666b748c90fa5a48195717fa045ca5c3"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a8d78a990021f5f3d63524816f268a0053a41176d4ba65530ab4c6466ae9872c",
+          "optimizedHash": "a8d78a990021f5f3d63524816f268a0053a41176d4ba65530ab4c6466ae9872c"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "8c655c5a69f15b86121f9b8f08c591e8ff162d6291522a48bef4aca51ee938d3",
+          "optimizedHash": "8c655c5a69f15b86121f9b8f08c591e8ff162d6291522a48bef4aca51ee938d3"
+        },
+        {
+          "clip": 2,
+          "t": 1.8376668548583983,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e5208881e74f2d5a4499797762db3e1c436afbd87c8bfa5b9a039c11760ae4bb",
+          "optimizedHash": "e5208881e74f2d5a4499797762db3e1c436afbd87c8bfa5b9a039c11760ae4bb"
+        },
+        {
+          "clip": 3,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6b7c2e9037af09b128edeac7e1c1ec82f3e592a304b8870bb6c300a9af6b305a",
+          "optimizedHash": "6b7c2e9037af09b128edeac7e1c1ec82f3e592a304b8870bb6c300a9af6b305a"
+        },
+        {
+          "clip": 4,
+          "t": 1.48,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ec32b6eefa6e9212ed62019f30060cb102697f9a7e25160b763b6a87113921ea",
+          "optimizedHash": "ec32b6eefa6e9212ed62019f30060cb102697f9a7e25160b763b6a87113921ea"
+        },
+        {
+          "clip": 5,
+          "t": 0.6783332157135009,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "7900aee117809f033049cad20ebf2d61343ca16015030b6b8b34c10610eaa604",
+          "optimizedHash": "7900aee117809f033049cad20ebf2d61343ca16015030b6b8b34c10610eaa604"
+        },
+        {
+          "clip": 6,
+          "t": 1.0976667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "dbd74a0f8ce0711d6886a8d10d7f0aee47d25e12d3e3609846a3bc5f9e7d4e4e",
+          "optimizedHash": "dbd74a0f8ce0711d6886a8d10d7f0aee47d25e12d3e3609846a3bc5f9e7d4e4e"
+        },
+        {
+          "clip": 7,
+          "t": 0.925,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e9f6c055935ae1afddd628a79c197ca33e78d02b51782225be3047ad327329b6",
+          "optimizedHash": "e9f6c055935ae1afddd628a79c197ca33e78d02b51782225be3047ad327329b6"
+        },
+        {
+          "clip": 8,
+          "t": 0.37,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "eff29b4bdd0d6a87024c6427a72cba0991e06e9a10be2caf1cf762a84520d185",
+          "optimizedHash": "eff29b4bdd0d6a87024c6427a72cba0991e06e9a10be2caf1cf762a84520d185"
+        },
+        {
+          "clip": 9,
+          "t": 0.6783332157135009,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "def0b37888124244a6ca292f14c4e2b11bd2692cc8c46b79913b5232d83684d3",
+          "optimizedHash": "def0b37888124244a6ca292f14c4e2b11bd2692cc8c46b79913b5232d83684d3"
+        },
+        {
+          "clip": 10,
+          "t": 0.986666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a1fe3ca2af18ac0e4137e528d79542a407ec8121c1a751953172ae9aab8036b5",
+          "optimizedHash": "a1fe3ca2af18ac0e4137e528d79542a407ec8121c1a751953172ae9aab8036b5"
+        },
+        {
+          "clip": 11,
+          "t": 1.2703331804275513,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a87eb0f765913d7f0b49b28389ba956cd01b38b85584e36716681e79dabcd040",
+          "optimizedHash": "a87eb0f765913d7f0b49b28389ba956cd01b38b85584e36716681e79dabcd040"
+        },
+        {
+          "clip": 12,
+          "t": 1.4923331451416015,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "d038e9d6f5dee5defe0e91709e788c2f510f36bab2c3ab40099b76c8d640ce80",
+          "optimizedHash": "d038e9d6f5dee5defe0e91709e788c2f510f36bab2c3ab40099b76c8d640ce80"
+        },
+        {
+          "clip": 13,
+          "t": 0.863333215713501,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "5bef21efb8b52deee5a93d8f8e2ba115c6cbee5f5b0011ac57ba9f3ade737164",
+          "optimizedHash": "5bef21efb8b52deee5a93d8f8e2ba115c6cbee5f5b0011ac57ba9f3ade737164"
+        },
+        {
+          "clip": 14,
+          "t": 1.665,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "49d69a0340d70cd8270fc2e9aa2afd1e239481d1d88d6632824eb52ac1725d8a",
+          "optimizedHash": "49d69a0340d70cd8270fc2e9aa2afd1e239481d1d88d6632824eb52ac1725d8a"
+        },
+        {
+          "clip": 15,
+          "t": 0.49333321571350097,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "baca01c79b016c8151ab1a130c2567192cb07712a2836361824973f5adb7e408",
+          "optimizedHash": "baca01c79b016c8151ab1a130c2567192cb07712a2836361824973f5adb7e408"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 100
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 100
+        },
+        {
+          "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+          "duration": 4.966667175292969,
+          "tracks": 100
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 100
+        },
+        {
+          "name": "Alert",
+          "duration": 4,
+          "tracks": 100
+        },
+        {
+          "name": "Arise",
+          "duration": 1.8333330154418945,
+          "tracks": 100
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9666669368743896,
+          "tracks": 100
+        },
+        {
+          "name": "Knock_Down",
+          "duration": 2.5,
+          "tracks": 100
+        },
+        {
+          "name": "Left_Hook_from_Guard",
+          "duration": 1,
+          "tracks": 100
+        },
+        {
+          "name": "Roll_Dodge",
+          "duration": 1.8333330154418945,
+          "tracks": 100
+        },
+        {
+          "name": "Roundhouse_Kick",
+          "duration": 2.6666669845581055,
+          "tracks": 100
+        },
+        {
+          "name": "Run_Jump_and_Roll",
+          "duration": 3.433332920074463,
+          "tracks": 100
+        },
+        {
+          "name": "Sweep_Kick",
+          "duration": 4.033332824707031,
+          "tracks": 100
+        },
+        {
+          "name": "Sweeping_Kick",
+          "duration": 2.3333330154418945,
+          "tracks": 100
+        },
+        {
+          "name": "Weapon_Combo_2",
+          "duration": 4.5,
+          "tracks": 100
+        },
+        {
+          "name": "mage_soell_cast_8",
+          "duration": 1.3333330154418945,
+          "tracks": 100
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 11
+      },
+      "mobile": false
+    },
+    {
+      "file": "MeninaNpc-otimizado.glb",
+      "loadOriginalMs": 321.79999999998836,
+      "loadOptimizedMs": 223.09999999997672,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "77ad6093383b0f4f6de4a38d83102d6fb9df349f20b02271ab7f9914dd1edb5f",
+          "optimizedHash": "77ad6093383b0f4f6de4a38d83102d6fb9df349f20b02271ab7f9914dd1edb5f"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "8d3e8a91bb7fdefdbc893feee8e5d9c089cc9e19498a2f20d05ed8f85f1a718e",
+          "optimizedHash": "8d3e8a91bb7fdefdbc893feee8e5d9c089cc9e19498a2f20d05ed8f85f1a718e"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "4a1f86974a087dcb196a9d146e6c9221f11dad6bae0bb766ca88de620f577c5e",
+          "optimizedHash": "4a1f86974a087dcb196a9d146e6c9221f11dad6bae0bb766ca88de620f577c5e"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "772c27a5226f8e62df2a75748809aee21f118ac64730ae1b41c9faac9616ee43",
+          "optimizedHash": "772c27a5226f8e62df2a75748809aee21f118ac64730ae1b41c9faac9616ee43"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6dc095bcc4d7d2c670f7ee47f70d4d68211db9b0bceb07ac570202bd0b33f8ab",
+          "optimizedHash": "6dc095bcc4d7d2c670f7ee47f70d4d68211db9b0bceb07ac570202bd0b33f8ab"
+        },
+        {
+          "clip": 2,
+          "t": 1.8376668548583983,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e888a9978e64656d68b3e31d10b3863ddfbd194d8e3991420ea28f87413f4b29",
+          "optimizedHash": "e888a9978e64656d68b3e31d10b3863ddfbd194d8e3991420ea28f87413f4b29"
+        },
+        {
+          "clip": 3,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "4f16f7a1a159805a32c7d4db936013ff5a057337b04c19691473fe3c5c726395",
+          "optimizedHash": "4f16f7a1a159805a32c7d4db936013ff5a057337b04c19691473fe3c5c726395"
+        },
+        {
+          "clip": 4,
+          "t": 0.925,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "738026b33aa0517f80913793a4d18fbac1259c102106d38ef0b9128498c775df",
+          "optimizedHash": "738026b33aa0517f80913793a4d18fbac1259c102106d38ef0b9128498c775df"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 132
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 132
+        },
+        {
+          "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+          "duration": 4.966667175292969,
+          "tracks": 132
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 132
+        },
+        {
+          "name": "Knock_Down",
+          "duration": 2.5,
+          "tracks": 132
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 13
+      },
+      "mobile": false
+    },
+    {
+      "file": "MulherNpc-otimizado.glb",
+      "loadOriginalMs": 459.29999999998836,
+      "loadOptimizedMs": 431.9000000000233,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2c08174b4804a15894978bd17e03c31988695d44478d3cb662f02f57c961c45a",
+          "optimizedHash": "2c08174b4804a15894978bd17e03c31988695d44478d3cb662f02f57c961c45a"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "508b5b1f458c156a0dae4b08b4f45e92819f8b88f1c1a60a0d0a8ba5b1cd23f1",
+          "optimizedHash": "508b5b1f458c156a0dae4b08b4f45e92819f8b88f1c1a60a0d0a8ba5b1cd23f1"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "d1885b618606479e9e4dff2323614049be7fa0482c01af0426b18fbc4d9153ee",
+          "optimizedHash": "d1885b618606479e9e4dff2323614049be7fa0482c01af0426b18fbc4d9153ee"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "b934907a87913ef552162607ac0872992ae2f1a51b1559b1661721f6f331749e",
+          "optimizedHash": "b934907a87913ef552162607ac0872992ae2f1a51b1559b1661721f6f331749e"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "bfeb7a8adc7eb1cea4f23c5326687639518e16d1a4371613c2e060db4cb2b174",
+          "optimizedHash": "bfeb7a8adc7eb1cea4f23c5326687639518e16d1a4371613c2e060db4cb2b174"
+        },
+        {
+          "clip": 2,
+          "t": 1.8376668548583983,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ea5692154fd056c13ea10c3d8a170b9208ca937e1877a6a08886173853dc244d",
+          "optimizedHash": "ea5692154fd056c13ea10c3d8a170b9208ca937e1877a6a08886173853dc244d"
+        },
+        {
+          "clip": 3,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a695ba0dd6fd27745be12df6ee60fdb3bfe7fdae0dfedbe65f4babf51f95f1d3",
+          "optimizedHash": "a695ba0dd6fd27745be12df6ee60fdb3bfe7fdae0dfedbe65f4babf51f95f1d3"
+        },
+        {
+          "clip": 4,
+          "t": 5.426666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "902cc3bbe7179f4e07208eb51b5481c13612905120bedb9863fb9571abdc7563",
+          "optimizedHash": "902cc3bbe7179f4e07208eb51b5481c13612905120bedb9863fb9571abdc7563"
+        },
+        {
+          "clip": 5,
+          "t": 1.5169999647140502,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "dc3d431759d553a555ad15918800b5090cc150d4fb08d937177ea3212325a6ab",
+          "optimizedHash": "dc3d431759d553a555ad15918800b5090cc150d4fb08d937177ea3212325a6ab"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 132
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 132
+        },
+        {
+          "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+          "duration": 4.966667175292969,
+          "tracks": 132
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 132
+        },
+        {
+          "name": "SideLying_Reach_Help",
+          "duration": 14.666666984558105,
+          "tracks": 132
+        },
+        {
+          "name": "Wave_One_Hand",
+          "duration": 4.099999904632568,
+          "tracks": 132
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 15
+      },
+      "mobile": false
+    },
+    {
+      "file": "NeveKit.glb",
+      "loadOriginalMs": 81.20000000001164,
+      "loadOptimizedMs": 29.599999999976717,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "09ed33a8b3abbd1333e951846507b37b4e216fef6f4b202da4c64cb5cbbf72d9",
+          "optimizedHash": "09ed33a8b3abbd1333e951846507b37b4e216fef6f4b202da4c64cb5cbbf72d9"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "8239dda1285aafd3a34061a073324849e4044e6233cf0c2b13f639172f78979b",
+          "optimizedHash": "8239dda1285aafd3a34061a073324849e4044e6233cf0c2b13f639172f78979b"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "bdee4b8c98eb01cfdc960ffc49fc459d07d183c918736933983057d314cfd879",
+          "optimizedHash": "bdee4b8c98eb01cfdc960ffc49fc459d07d183c918736933983057d314cfd879"
+        }
+      ],
+      "clips": [],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 15
+      },
+      "mobile": false
+    },
+    {
+      "file": "Prota_otimizado_2K.glb",
+      "loadOriginalMs": 744.7999999999884,
+      "loadOptimizedMs": 606,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a493fb2db9f8134e2503abc7dbe237b7a99f618de5cfa9445cd451dcae6fc8f1",
+          "optimizedHash": "a493fb2db9f8134e2503abc7dbe237b7a99f618de5cfa9445cd451dcae6fc8f1"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0c34a353d0e726c0ac21effab9c4880f9daea6faf5a7156ab1eb6a5f175002dd",
+          "optimizedHash": "0c34a353d0e726c0ac21effab9c4880f9daea6faf5a7156ab1eb6a5f175002dd"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "1ed948bdc7c20ef9bb5b430873b94eb4db35b93dcebc6b8a627ab1ec3b8ade63",
+          "optimizedHash": "1ed948bdc7c20ef9bb5b430873b94eb4db35b93dcebc6b8a627ab1ec3b8ade63"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "56ac747f55dca018c13b3920a58cc660ab28e24fc59e5d3de1517507c20a85c7",
+          "optimizedHash": "56ac747f55dca018c13b3920a58cc660ab28e24fc59e5d3de1517507c20a85c7"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "f5744c6f5d7de4b507c20eb9554c795f37326e65a208b36a3b3833fc84b338d8",
+          "optimizedHash": "f5744c6f5d7de4b507c20eb9554c795f37326e65a208b36a3b3833fc84b338d8"
+        },
+        {
+          "clip": 2,
+          "t": 1.8376668548583983,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "559deb61ccaaf8ad9469ed23366478e282ff7841d521e8a1b035d170df598d1b",
+          "optimizedHash": "559deb61ccaaf8ad9469ed23366478e282ff7841d521e8a1b035d170df598d1b"
+        },
+        {
+          "clip": 3,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "74f0f8dcc5c6086a9d14549c652322b1a211688e31c6d8f1cd7dc4d5c91fbc81",
+          "optimizedHash": "74f0f8dcc5c6086a9d14549c652322b1a211688e31c6d8f1cd7dc4d5c91fbc81"
+        },
+        {
+          "clip": 4,
+          "t": 1.1223332333564757,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "599541605d80250eda3d94125699fd7f97cff45aa3f1c012412512e0b6ad3f79",
+          "optimizedHash": "599541605d80250eda3d94125699fd7f97cff45aa3f1c012412512e0b6ad3f79"
+        },
+        {
+          "clip": 5,
+          "t": 0.616666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2003452a2e95cfa28e44ab2b5d140bb849a8880076eef44d008af261b1923d54",
+          "optimizedHash": "2003452a2e95cfa28e44ab2b5d140bb849a8880076eef44d008af261b1923d54"
+        },
+        {
+          "clip": 6,
+          "t": 1.0976667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "f3efcd8db7b49f9ee551f2cde315e101b4d886dcd0e14ce908442f2f4b8b0a8a",
+          "optimizedHash": "f3efcd8db7b49f9ee551f2cde315e101b4d886dcd0e14ce908442f2f4b8b0a8a"
+        },
+        {
+          "clip": 7,
+          "t": 0.3206667798757553,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "22f670d48c5c3b29542fc8be82362db96ddb27cf63bfdb41e8283f951d6e8c93",
+          "optimizedHash": "22f670d48c5c3b29542fc8be82362db96ddb27cf63bfdb41e8283f951d6e8c93"
+        },
+        {
+          "clip": 8,
+          "t": 0.431666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e50b2d08e83cda6e145a58d108e5cca8009d0212312ff0c124a425d42912bc48",
+          "optimizedHash": "e50b2d08e83cda6e145a58d108e5cca8009d0212312ff0c124a425d42912bc48"
+        },
+        {
+          "clip": 9,
+          "t": 0.4686667931079864,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a56aa0c8ab552ceefb41bca914d3723dea3ad12be4c9a799a9875364d42ee543",
+          "optimizedHash": "a56aa0c8ab552ceefb41bca914d3723dea3ad12be4c9a799a9875364d42ee543"
+        },
+        {
+          "clip": 10,
+          "t": 1.2703331804275513,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "f87399aeed8a22a6eb6a66fe4fb43230e57b34c75629185175fdf1047a8d23c0",
+          "optimizedHash": "f87399aeed8a22a6eb6a66fe4fb43230e57b34c75629185175fdf1047a8d23c0"
+        },
+        {
+          "clip": 11,
+          "t": 0.6043331980705261,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "eab495a2f85bcf7ee12662e79a3c2494c2394956396031f2e01f8c08a8622a65",
+          "optimizedHash": "eab495a2f85bcf7ee12662e79a3c2494c2394956396031f2e01f8c08a8622a65"
+        },
+        {
+          "clip": 12,
+          "t": 1.603333215713501,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2b7b7f9f2063de8a596d98666951d09feadf4ae8b5a1ee7e8cb7de0b0c32ae5d",
+          "optimizedHash": "2b7b7f9f2063de8a596d98666951d09feadf4ae8b5a1ee7e8cb7de0b0c32ae5d"
+        },
+        {
+          "clip": 13,
+          "t": 0.3206667798757553,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "06645892f5ab0884383d7bbbde78f278fedda940ac237e19bbd8df49bf50de1e",
+          "optimizedHash": "06645892f5ab0884383d7bbbde78f278fedda940ac237e19bbd8df49bf50de1e"
+        },
+        {
+          "clip": 14,
+          "t": 0.44400001764297486,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a0e8886f507751d3c2721d4b36fa580482b1047b0479a217f0ef63dcaa4112b5",
+          "optimizedHash": "a0e8886f507751d3c2721d4b36fa580482b1047b0479a217f0ef63dcaa4112b5"
+        },
+        {
+          "clip": 15,
+          "t": 1.356666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "cca668ac61ab9ce36b33dc60c6ee5e9b54681a220d102ea5aca188eb7973fba9",
+          "optimizedHash": "cca668ac61ab9ce36b33dc60c6ee5e9b54681a220d102ea5aca188eb7973fba9"
+        },
+        {
+          "clip": 16,
+          "t": 1.295,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "faf9cf1a4576d07267767685d0464bb02b3c1af999d8d9ae1109a92f5399f934",
+          "optimizedHash": "faf9cf1a4576d07267767685d0464bb02b3c1af999d8d9ae1109a92f5399f934"
+        },
+        {
+          "clip": 17,
+          "t": 1.665,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "24c4ab0a1913ab326a79feadfa2688695624194caa30a589b825c4aba32c480a",
+          "optimizedHash": "24c4ab0a1913ab326a79feadfa2688695624194caa30a589b825c4aba32c480a"
+        },
+        {
+          "clip": 18,
+          "t": 0.6413332068920136,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc",
+          "optimizedHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 146
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 146
+        },
+        {
+          "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+          "duration": 4.966667175292969,
+          "tracks": 146
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 146
+        },
+        {
+          "name": "_360_Power_Spin_Jump",
+          "duration": 3.0333330631256104,
+          "tracks": 146
+        },
+        {
+          "name": "Combat_Stance",
+          "duration": 1.6666669845581055,
+          "tracks": 146
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9666669368743896,
+          "tracks": 146
+        },
+        {
+          "name": "Jump_Over_Obstacle_2",
+          "duration": 0.8666669726371765,
+          "tracks": 146
+        },
+        {
+          "name": "Quick_Step_and_Spin_Dodge",
+          "duration": 1.1666669845581055,
+          "tracks": 146
+        },
+        {
+          "name": "Roll_Dodge_1",
+          "duration": 1.2666670083999634,
+          "tracks": 146
+        },
+        {
+          "name": "Run_Jump_and_Roll",
+          "duration": 3.433332920074463,
+          "tracks": 146
+        },
+        {
+          "name": "Skill_03",
+          "duration": 1.6333329677581787,
+          "tracks": 146
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.3333330154418945,
+          "tracks": 146
+        },
+        {
+          "name": "Walk_Backward",
+          "duration": 0.8666669726371765,
+          "tracks": 146
+        },
+        {
+          "name": "Walk_Forward_with_Bow_Aimed",
+          "duration": 1.2000000476837158,
+          "tracks": 146
+        },
+        {
+          "name": "Weapon_Combo",
+          "duration": 3.6666669845581055,
+          "tracks": 146
+        },
+        {
+          "name": "Weapon_Combo_1",
+          "duration": 3.5,
+          "tracks": 146
+        },
+        {
+          "name": "Weapon_Combo_2",
+          "duration": 4.5,
+          "tracks": 146
+        },
+        {
+          "name": "slide_right",
+          "duration": 1.7333329916000366,
+          "tracks": 146
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 17
+      },
+      "mobile": false
+    },
+    {
+      "file": "Sandra-rig.glb",
+      "loadOriginalMs": 226.90000000002328,
+      "loadOptimizedMs": 200.19999999995343,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "dfca951e47cb4aa9f8d5b279c38e3b44d3cf1193f6a85546391bc622c74da176",
+          "optimizedHash": "dfca951e47cb4aa9f8d5b279c38e3b44d3cf1193f6a85546391bc622c74da176"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "78cea5ae1272adc2a5dec7d9338b0ceb81ad5687952dadfde47c5d173d57f367",
+          "optimizedHash": "78cea5ae1272adc2a5dec7d9338b0ceb81ad5687952dadfde47c5d173d57f367"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a60983f5b7e63e8b0dafb522e7702645ce463e1aa01a1c9d05bd4c5ca0395c1d",
+          "optimizedHash": "a60983f5b7e63e8b0dafb522e7702645ce463e1aa01a1c9d05bd4c5ca0395c1d"
+        },
+        {
+          "clip": 0,
+          "t": 0.3854166519641876,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ce33de039a33632c3d4aeab635c89f7829954689848f37fe99e377ee8539fabb",
+          "optimizedHash": "ce33de039a33632c3d4aeab635c89f7829954689848f37fe99e377ee8539fabb"
+        },
+        {
+          "clip": 1,
+          "t": 1.6033333921432495,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "65c93c116f7c914141226b41b4a361f7ff1fd18b7b1138227cc252548b88d4b8",
+          "optimizedHash": "65c93c116f7c914141226b41b4a361f7ff1fd18b7b1138227cc252548b88d4b8"
+        },
+        {
+          "clip": 2,
+          "t": 0.6166666519641876,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ad8598023d886efc2692da9cc7a270d2d40d5a570dd4ae0c755d2401efc4800d",
+          "optimizedHash": "ad8598023d886efc2692da9cc7a270d2d40d5a570dd4ae0c755d2401efc4800d"
+        },
+        {
+          "clip": 3,
+          "t": 0.24666667401790618,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0d1f12264e66d55dc5a351f286217c29561a9c1df9eb0835b5588373af00c1f7",
+          "optimizedHash": "0d1f12264e66d55dc5a351f286217c29561a9c1df9eb0835b5588373af00c1f7"
+        },
+        {
+          "clip": 4,
+          "t": 1.1099999999999999,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a7d25677d24e00562115e011d8cafe6a3af28a7e7860bee4966d58eb5441297b",
+          "optimizedHash": "a7d25677d24e00562115e011d8cafe6a3af28a7e7860bee4966d58eb5441297b"
+        },
+        {
+          "clip": 5,
+          "t": 1.0483333039283753,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2bbf67eeb8da3f8515fd032b8095f76e7de6969465c4fd5bf748e706554df5f2",
+          "optimizedHash": "2bbf67eeb8da3f8515fd032b8095f76e7de6969465c4fd5bf748e706554df5f2"
+        },
+        {
+          "clip": 6,
+          "t": 0.925,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e96bcc368a1a6dd11432c3644d3ccb13147d7d6b0cf72dd353ced2eb1889df31",
+          "optimizedHash": "e96bcc368a1a6dd11432c3644d3ccb13147d7d6b0cf72dd353ced2eb1889df31"
+        },
+        {
+          "clip": 7,
+          "t": 0.74,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc",
+          "optimizedHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Walking",
+          "duration": 1.0416666269302368,
+          "tracks": 204
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.333333492279053,
+          "tracks": 204
+        },
+        {
+          "name": "Skill_03",
+          "duration": 1.6666666269302368,
+          "tracks": 204
+        },
+        {
+          "name": "Running",
+          "duration": 0.6666666865348816,
+          "tracks": 204
+        },
+        {
+          "name": "Dead",
+          "duration": 3,
+          "tracks": 204
+        },
+        {
+          "name": "Attack",
+          "duration": 2.8333332538604736,
+          "tracks": 204
+        },
+        {
+          "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+          "duration": 2.5,
+          "tracks": 204
+        },
+        {
+          "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+          "duration": 2,
+          "tracks": 204
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 19
+      },
+      "mobile": false
+    },
+    {
+      "file": "Vitima-rig.glb",
+      "loadOriginalMs": 195.30000000004657,
+      "loadOptimizedMs": 92.79999999993015,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e5a4b3e2acb2c53ce63092734668feb5e49c2e84eb693864e0a3e15185127678",
+          "optimizedHash": "e5a4b3e2acb2c53ce63092734668feb5e49c2e84eb693864e0a3e15185127678"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "22d5ef4e8139322c67d56cf3beb14eef2ed7ad8358cc214c828e5b18fc48411f",
+          "optimizedHash": "22d5ef4e8139322c67d56cf3beb14eef2ed7ad8358cc214c828e5b18fc48411f"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "d00801338e8f5e27c792ecb9a64f43bf368706974387675db3e4a947929b2cae",
+          "optimizedHash": "d00801338e8f5e27c792ecb9a64f43bf368706974387675db3e4a947929b2cae"
+        },
+        {
+          "clip": 0,
+          "t": 0.7245833480358124,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc",
+          "optimizedHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc"
+        },
+        {
+          "clip": 1,
+          "t": 1.0329166960716247,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "db997e8fe18efda3e5ff3fca3825b6125448710245664d0e1da887fe3ae98b31",
+          "optimizedHash": "db997e8fe18efda3e5ff3fca3825b6125448710245664d0e1da887fe3ae98b31"
+        },
+        {
+          "clip": 2,
+          "t": 1.0945833039283752,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ce03035d77973af43479e2866a2a20eb53d96f6caf955516dd7ac99d1d8fcab8",
+          "optimizedHash": "ce03035d77973af43479e2866a2a20eb53d96f6caf955516dd7ac99d1d8fcab8"
+        },
+        {
+          "clip": 3,
+          "t": 0.9095833039283753,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "275744d7af699f86b050db5a96713e5dfaa8a6892dc9ae7f0acaa0b9936fbcec",
+          "optimizedHash": "275744d7af699f86b050db5a96713e5dfaa8a6892dc9ae7f0acaa0b9936fbcec"
+        },
+        {
+          "clip": 4,
+          "t": 0.23125,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "5379841ef709caf87e8ec4623cb7aab2d72ddd18431158b7a9a470b6d4e9d8db",
+          "optimizedHash": "5379841ef709caf87e8ec4623cb7aab2d72ddd18431158b7a9a470b6d4e9d8db"
+        },
+        {
+          "clip": 5,
+          "t": 0.60125,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0300f325af213658ab063ce541d769da6b263a267beb77c99b64e7d0f7b10b2f",
+          "optimizedHash": "0300f325af213658ab063ce541d769da6b263a267beb77c99b64e7d0f7b10b2f"
+        },
+        {
+          "clip": 6,
+          "t": 1.5879166078567504,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "b12852cc911abe8eec4dab8110a777b16e0001b11d2bfe769b36360911c833ff",
+          "optimizedHash": "b12852cc911abe8eec4dab8110a777b16e0001b11d2bfe769b36360911c833ff"
+        },
+        {
+          "clip": 7,
+          "t": 0.37,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2f1ffc5969ffe4f6fff883ff12cb654669f2eb72eba57723b6cb84876934acc6",
+          "optimizedHash": "2f1ffc5969ffe4f6fff883ff12cb654669f2eb72eba57723b6cb84876934acc6"
+        }
+      ],
+      "clips": [
+        {
+          "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+          "duration": 1.9583333730697632,
+          "tracks": 204
+        },
+        {
+          "name": "Attack",
+          "duration": 2.7916667461395264,
+          "tracks": 204
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9583332538604736,
+          "tracks": 204
+        },
+        {
+          "name": "Idle",
+          "duration": 2.4583332538604736,
+          "tracks": 204
+        },
+        {
+          "name": "Running",
+          "duration": 0.625,
+          "tracks": 204
+        },
+        {
+          "name": "Skill_03",
+          "duration": 1.625,
+          "tracks": 204
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.291666507720947,
+          "tracks": 204
+        },
+        {
+          "name": "Walking",
+          "duration": 1,
+          "tracks": 204
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 21
+      },
+      "mobile": false
+    },
+    {
+      "file": "Anjo-rig.glb",
+      "loadOriginalMs": 203.19999999995343,
+      "loadOptimizedMs": 201.90000000002328,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "5bc676e3f5c6ca7cbd93e965adb8725db0d670d66368c8d296fe67f9b4866f48",
+          "optimizedHash": "5bc676e3f5c6ca7cbd93e965adb8725db0d670d66368c8d296fe67f9b4866f48"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "44ae19400b0a2aefb93c1a00bc7d7d5693cf46dcf43f9f856c9ef0ae20a3e26a",
+          "optimizedHash": "44ae19400b0a2aefb93c1a00bc7d7d5693cf46dcf43f9f856c9ef0ae20a3e26a"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "b7df2b2db355dab370556f220c188827c674773cd4a8cd811ba129845f1dc042",
+          "optimizedHash": "b7df2b2db355dab370556f220c188827c674773cd4a8cd811ba129845f1dc042"
+        },
+        {
+          "clip": 0,
+          "t": 0.7245833480358124,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc",
+          "optimizedHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc"
+        },
+        {
+          "clip": 1,
+          "t": 1.0329166960716247,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a79dde6357044f5d52fa48f966bc2db3f5e52fd1b80756f14ca55646af9f4855",
+          "optimizedHash": "a79dde6357044f5d52fa48f966bc2db3f5e52fd1b80756f14ca55646af9f4855"
+        },
+        {
+          "clip": 2,
+          "t": 1.0945833039283752,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ec05be8dda778843fdf126caf71a48d6eb4bee7c07d7c549c3db4d4df246f0b6",
+          "optimizedHash": "ec05be8dda778843fdf126caf71a48d6eb4bee7c07d7c549c3db4d4df246f0b6"
+        },
+        {
+          "clip": 3,
+          "t": 0.9095833039283753,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e3595e176ecc058b77a20a1c8f42aacad842d4baf7604a8435d2342b2dadd788",
+          "optimizedHash": "e3595e176ecc058b77a20a1c8f42aacad842d4baf7604a8435d2342b2dadd788"
+        },
+        {
+          "clip": 4,
+          "t": 0.23125,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "20b2175dcd61fc86151189e9412646fe8f3e2d2d5f103f1d1e6ca70d6393195d",
+          "optimizedHash": "20b2175dcd61fc86151189e9412646fe8f3e2d2d5f103f1d1e6ca70d6393195d"
+        },
+        {
+          "clip": 5,
+          "t": 0.60125,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "37593620031727c20ff55346fb88c977fe26abe856eeb3c160420a9bc94c672c",
+          "optimizedHash": "37593620031727c20ff55346fb88c977fe26abe856eeb3c160420a9bc94c672c"
+        },
+        {
+          "clip": 6,
+          "t": 1.5879166078567504,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "eea4dae579294c08b485ae7d3f97a296e927308dec1a7cd0b142087dc67bcb4f",
+          "optimizedHash": "eea4dae579294c08b485ae7d3f97a296e927308dec1a7cd0b142087dc67bcb4f"
+        },
+        {
+          "clip": 7,
+          "t": 0.37,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "b2a7083193350a5d1a6d0a1a939b2ceb99364a4a06d8ddbce475e3e63810e2a2",
+          "optimizedHash": "b2a7083193350a5d1a6d0a1a939b2ceb99364a4a06d8ddbce475e3e63810e2a2"
+        }
+      ],
+      "clips": [
+        {
+          "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+          "duration": 1.9583333730697632,
+          "tracks": 210
+        },
+        {
+          "name": "Attack",
+          "duration": 2.7916667461395264,
+          "tracks": 210
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9583332538604736,
+          "tracks": 210
+        },
+        {
+          "name": "Idle",
+          "duration": 2.4583332538604736,
+          "tracks": 210
+        },
+        {
+          "name": "Running",
+          "duration": 0.625,
+          "tracks": 210
+        },
+        {
+          "name": "Skill_03",
+          "duration": 1.625,
+          "tracks": 210
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.291666507720947,
+          "tracks": 210
+        },
+        {
+          "name": "Walking",
+          "duration": 1,
+          "tracks": 210
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 3
+      },
+      "mobile": true
+    },
+    {
+      "file": "AnjoGuiador-otimizado.glb",
+      "loadOriginalMs": 404.9000000000233,
+      "loadOptimizedMs": 257.9000000000233,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "dbb47bfa2393d7d057082f14125ef09bc36227816f77e7ef0c2c2e3875d5f476",
+          "optimizedHash": "dbb47bfa2393d7d057082f14125ef09bc36227816f77e7ef0c2c2e3875d5f476"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6f33ef745cf8065f4dfdfb871f4bee2c91a06acfbd2497eea24fa557052c6909",
+          "optimizedHash": "6f33ef745cf8065f4dfdfb871f4bee2c91a06acfbd2497eea24fa557052c6909"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "c530d9977ce41be0e8a97938f165bd1f76dcde17493cfdc900886ba3c79ca1c4",
+          "optimizedHash": "c530d9977ce41be0e8a97938f165bd1f76dcde17493cfdc900886ba3c79ca1c4"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "c5b8a8ec5d92b3237237d980f31af4df40f123ace18d0f276e2439163c070030",
+          "optimizedHash": "c5b8a8ec5d92b3237237d980f31af4df40f123ace18d0f276e2439163c070030"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6c3617e15c72198a22ecb841d3584ce1aebc140d13aa2525c2ec2684467a651e",
+          "optimizedHash": "6c3617e15c72198a22ecb841d3584ce1aebc140d13aa2525c2ec2684467a651e"
+        },
+        {
+          "clip": 2,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "fe50a48b3f7fb9d46ea124c3b73fa101574cc24734c34f51a23054ee6dbe6aac",
+          "optimizedHash": "fe50a48b3f7fb9d46ea124c3b73fa101574cc24734c34f51a23054ee6dbe6aac"
+        },
+        {
+          "clip": 3,
+          "t": 2.1706667137145996,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "680bc4bcc188f0b5021cbe6be29c65fc36e048f42e2ff6094e3b6d18c175962b",
+          "optimizedHash": "680bc4bcc188f0b5021cbe6be29c65fc36e048f42e2ff6094e3b6d18c175962b"
+        },
+        {
+          "clip": 4,
+          "t": 1.0976667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "eadf73705db40cffbc7c928af7c0535d360e3eb77870ef82cf6afc73c0966225",
+          "optimizedHash": "eadf73705db40cffbc7c928af7c0535d360e3eb77870ef82cf6afc73c0966225"
+        },
+        {
+          "clip": 5,
+          "t": 1.048333215713501,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "9b25680c1d5efe01de1f438f652ff758beb195cc6330e74a304af98bf76f5976",
+          "optimizedHash": "9b25680c1d5efe01de1f438f652ff758beb195cc6330e74a304af98bf76f5976"
+        },
+        {
+          "clip": 6,
+          "t": 0.3206667798757553,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "4312b39d37c4d60bd753b1065254ea9a4e187c19251ffe8bd46108c176949ee4",
+          "optimizedHash": "4312b39d37c4d60bd753b1065254ea9a4e187c19251ffe8bd46108c176949ee4"
+        },
+        {
+          "clip": 7,
+          "t": 3.0586665725708007,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a3677d4f3db01c217d63803ef2d25dcff505b895ec3e170e545eadf029fd67c2",
+          "optimizedHash": "a3677d4f3db01c217d63803ef2d25dcff505b895ec3e170e545eadf029fd67c2"
+        },
+        {
+          "clip": 8,
+          "t": 1.603333215713501,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "511eb9c114216c0d2ce45a2432d382d6bac1b45b95fa241ad85eee7a7c2b6cdd",
+          "optimizedHash": "511eb9c114216c0d2ce45a2432d382d6bac1b45b95fa241ad85eee7a7c2b6cdd"
+        },
+        {
+          "clip": 9,
+          "t": 1.356666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "fd9b8c85809386655c1b9ed6e416a5c799a731aa9df2a6dd10c43d591a3ec434",
+          "optimizedHash": "fd9b8c85809386655c1b9ed6e416a5c799a731aa9df2a6dd10c43d591a3ec434"
+        },
+        {
+          "clip": 10,
+          "t": 1.295,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "67ba1c79641e31bb877470f9108af8df05e9c494755a5204ef85d495ac2e776f",
+          "optimizedHash": "67ba1c79641e31bb877470f9108af8df05e9c494755a5204ef85d495ac2e776f"
+        },
+        {
+          "clip": 11,
+          "t": 1.665,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "56a0ce385bfcbc4deda03ab04f7868f54639b53864015298afc621e799fd76d0",
+          "optimizedHash": "56a0ce385bfcbc4deda03ab04f7868f54639b53864015298afc621e799fd76d0"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 166
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 166
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 166
+        },
+        {
+          "name": "Basic_Jump",
+          "duration": 5.866666793823242,
+          "tracks": 166
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9666669368743896,
+          "tracks": 166
+        },
+        {
+          "name": "Double_Combo_Attack",
+          "duration": 2.8333330154418945,
+          "tracks": 166
+        },
+        {
+          "name": "Jump_Over_Obstacle_2",
+          "duration": 0.8666669726371765,
+          "tracks": 166
+        },
+        {
+          "name": "Stand_Up1",
+          "duration": 8.266666412353516,
+          "tracks": 166
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.3333330154418945,
+          "tracks": 166
+        },
+        {
+          "name": "Weapon_Combo",
+          "duration": 3.6666669845581055,
+          "tracks": 166
+        },
+        {
+          "name": "Weapon_Combo_1",
+          "duration": 3.5,
+          "tracks": 166
+        },
+        {
+          "name": "Weapon_Combo_2",
+          "duration": 4.5,
+          "tracks": 166
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 5
+      },
+      "mobile": true
+    },
+    {
+      "file": "ArvoreFloresta01.glb",
+      "loadOriginalMs": 255.29999999993015,
+      "loadOptimizedMs": 233.30000000004657,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "9c1d032867aa2837903727bf8f8a725a766758fe7f53509b986a0d845e398e08",
+          "optimizedHash": "9c1d032867aa2837903727bf8f8a725a766758fe7f53509b986a0d845e398e08"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "d9a44c161a0572c62192c6078000ef81253dec8e512f61c3cd1b5ee3491293c6",
+          "optimizedHash": "d9a44c161a0572c62192c6078000ef81253dec8e512f61c3cd1b5ee3491293c6"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a7dbb31a55a6d0e590158b42a097e26553df7e4af9eb358b8c101eec9399c4e6",
+          "optimizedHash": "a7dbb31a55a6d0e590158b42a097e26553df7e4af9eb358b8c101eec9399c4e6"
+        }
+      ],
+      "clips": [],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 5
+      },
+      "mobile": true
+    },
+    {
+      "file": "Asas.glb",
+      "loadOriginalMs": 58.699999999953434,
+      "loadOptimizedMs": 36.09999999997672,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6bb2408b4b8486243a1d0b6085fae0462e3a08cd3ed9613fe3d6f5333c8ab233",
+          "optimizedHash": "6bb2408b4b8486243a1d0b6085fae0462e3a08cd3ed9613fe3d6f5333c8ab233"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "61b11e2f21e50adf40e98ea0ee784a199cbe4bcc9b419d7de89ae879cda69bc2",
+          "optimizedHash": "61b11e2f21e50adf40e98ea0ee784a199cbe4bcc9b419d7de89ae879cda69bc2"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "40ab5a4073eb875108f44a34fe2a3a800d35be0c21d27e2ed37c73dcf99d91df",
+          "optimizedHash": "40ab5a4073eb875108f44a34fe2a3a800d35be0c21d27e2ed37c73dcf99d91df"
+        }
+      ],
+      "clips": [],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 5
+      },
+      "mobile": true
+    },
+    {
+      "file": "Cavalo.glb",
+      "loadOriginalMs": 296.80000000004657,
+      "loadOptimizedMs": 299.69999999995343,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "5c15ffc17546d4ae15e40789474839ea218cc53b9eccdb5633c7c3c163f3b921",
+          "optimizedHash": "5c15ffc17546d4ae15e40789474839ea218cc53b9eccdb5633c7c3c163f3b921"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0e6369cb1a75668139e58ab60498f18306af28050892aa53d895cd571afe7a6c",
+          "optimizedHash": "0e6369cb1a75668139e58ab60498f18306af28050892aa53d895cd571afe7a6c"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0c5ac161e138422f1cb92cb6643d7c833b1377b83aaa931a1c3cc3663a7d02c3",
+          "optimizedHash": "0c5ac161e138422f1cb92cb6643d7c833b1377b83aaa931a1c3cc3663a7d02c3"
+        },
+        {
+          "clip": 0,
+          "t": 0.37,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "23389d68094967b0ae63e1999c200b7831c4a14ffd394f75292978569a79721d",
+          "optimizedHash": "23389d68094967b0ae63e1999c200b7831c4a14ffd394f75292978569a79721d"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Armature|Unreal Take|baselayer",
+          "duration": 1,
+          "tracks": 81
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 7
+      },
+      "mobile": true
+    },
+    {
+      "file": "CriancaNpc-otimizado.glb",
+      "loadOriginalMs": 289.9000000000233,
+      "loadOptimizedMs": 305.9000000000233,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ad505db8b8567c94e22d383ddd23c57a96c8b2af1471e2990a8e8e6b6feb7fb5",
+          "optimizedHash": "ad505db8b8567c94e22d383ddd23c57a96c8b2af1471e2990a8e8e6b6feb7fb5"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "46e7a658d02419633db5f9c194476020ee92eb45cdf148610622576ccd944775",
+          "optimizedHash": "46e7a658d02419633db5f9c194476020ee92eb45cdf148610622576ccd944775"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "afc5e8f510030ba665c6a137b9eac79c3acf719bac96426c1ea2eb91b8214f11",
+          "optimizedHash": "afc5e8f510030ba665c6a137b9eac79c3acf719bac96426c1ea2eb91b8214f11"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "220e9b3a3cc7cb7a2a7d0ff1c2a7480e97f3ef627ec94d622cd035bb320edaf4",
+          "optimizedHash": "220e9b3a3cc7cb7a2a7d0ff1c2a7480e97f3ef627ec94d622cd035bb320edaf4"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "bee9b74e7297bfc9d162ac97feefc9ed5c8cebc868090751ca016426ce8b1300",
+          "optimizedHash": "bee9b74e7297bfc9d162ac97feefc9ed5c8cebc868090751ca016426ce8b1300"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 132
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 132
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 9
+      },
+      "mobile": true
+    },
+    {
+      "file": "Demonio1.glb",
+      "loadOriginalMs": 925.7000000000698,
+      "loadOptimizedMs": 1144.5,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "303cc6157f294dd02ce7ff2e630e5c02a1b79eb05f5feda3ed1dcc118a0a29f2",
+          "optimizedHash": "303cc6157f294dd02ce7ff2e630e5c02a1b79eb05f5feda3ed1dcc118a0a29f2"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "3ce70ea5e5bd04ed859e56c6ed336471f7c1d8fe3f306a50061a1661bbd9fc6b",
+          "optimizedHash": "3ce70ea5e5bd04ed859e56c6ed336471f7c1d8fe3f306a50061a1661bbd9fc6b"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0c78e1dd6dd447dfdc7e153fb97dd14e666b748c90fa5a48195717fa045ca5c3",
+          "optimizedHash": "0c78e1dd6dd447dfdc7e153fb97dd14e666b748c90fa5a48195717fa045ca5c3"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a8d78a990021f5f3d63524816f268a0053a41176d4ba65530ab4c6466ae9872c",
+          "optimizedHash": "a8d78a990021f5f3d63524816f268a0053a41176d4ba65530ab4c6466ae9872c"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "8c655c5a69f15b86121f9b8f08c591e8ff162d6291522a48bef4aca51ee938d3",
+          "optimizedHash": "8c655c5a69f15b86121f9b8f08c591e8ff162d6291522a48bef4aca51ee938d3"
+        },
+        {
+          "clip": 2,
+          "t": 1.8376668548583983,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e5208881e74f2d5a4499797762db3e1c436afbd87c8bfa5b9a039c11760ae4bb",
+          "optimizedHash": "e5208881e74f2d5a4499797762db3e1c436afbd87c8bfa5b9a039c11760ae4bb"
+        },
+        {
+          "clip": 3,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6b7c2e9037af09b128edeac7e1c1ec82f3e592a304b8870bb6c300a9af6b305a",
+          "optimizedHash": "6b7c2e9037af09b128edeac7e1c1ec82f3e592a304b8870bb6c300a9af6b305a"
+        },
+        {
+          "clip": 4,
+          "t": 1.48,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ec32b6eefa6e9212ed62019f30060cb102697f9a7e25160b763b6a87113921ea",
+          "optimizedHash": "ec32b6eefa6e9212ed62019f30060cb102697f9a7e25160b763b6a87113921ea"
+        },
+        {
+          "clip": 5,
+          "t": 0.6783332157135009,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "7900aee117809f033049cad20ebf2d61343ca16015030b6b8b34c10610eaa604",
+          "optimizedHash": "7900aee117809f033049cad20ebf2d61343ca16015030b6b8b34c10610eaa604"
+        },
+        {
+          "clip": 6,
+          "t": 1.0976667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "dbd74a0f8ce0711d6886a8d10d7f0aee47d25e12d3e3609846a3bc5f9e7d4e4e",
+          "optimizedHash": "dbd74a0f8ce0711d6886a8d10d7f0aee47d25e12d3e3609846a3bc5f9e7d4e4e"
+        },
+        {
+          "clip": 7,
+          "t": 0.925,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e9f6c055935ae1afddd628a79c197ca33e78d02b51782225be3047ad327329b6",
+          "optimizedHash": "e9f6c055935ae1afddd628a79c197ca33e78d02b51782225be3047ad327329b6"
+        },
+        {
+          "clip": 8,
+          "t": 0.37,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "eff29b4bdd0d6a87024c6427a72cba0991e06e9a10be2caf1cf762a84520d185",
+          "optimizedHash": "eff29b4bdd0d6a87024c6427a72cba0991e06e9a10be2caf1cf762a84520d185"
+        },
+        {
+          "clip": 9,
+          "t": 0.6783332157135009,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "def0b37888124244a6ca292f14c4e2b11bd2692cc8c46b79913b5232d83684d3",
+          "optimizedHash": "def0b37888124244a6ca292f14c4e2b11bd2692cc8c46b79913b5232d83684d3"
+        },
+        {
+          "clip": 10,
+          "t": 0.986666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a1fe3ca2af18ac0e4137e528d79542a407ec8121c1a751953172ae9aab8036b5",
+          "optimizedHash": "a1fe3ca2af18ac0e4137e528d79542a407ec8121c1a751953172ae9aab8036b5"
+        },
+        {
+          "clip": 11,
+          "t": 1.2703331804275513,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a87eb0f765913d7f0b49b28389ba956cd01b38b85584e36716681e79dabcd040",
+          "optimizedHash": "a87eb0f765913d7f0b49b28389ba956cd01b38b85584e36716681e79dabcd040"
+        },
+        {
+          "clip": 12,
+          "t": 1.4923331451416015,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "d038e9d6f5dee5defe0e91709e788c2f510f36bab2c3ab40099b76c8d640ce80",
+          "optimizedHash": "d038e9d6f5dee5defe0e91709e788c2f510f36bab2c3ab40099b76c8d640ce80"
+        },
+        {
+          "clip": 13,
+          "t": 0.863333215713501,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "5bef21efb8b52deee5a93d8f8e2ba115c6cbee5f5b0011ac57ba9f3ade737164",
+          "optimizedHash": "5bef21efb8b52deee5a93d8f8e2ba115c6cbee5f5b0011ac57ba9f3ade737164"
+        },
+        {
+          "clip": 14,
+          "t": 1.665,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "49d69a0340d70cd8270fc2e9aa2afd1e239481d1d88d6632824eb52ac1725d8a",
+          "optimizedHash": "49d69a0340d70cd8270fc2e9aa2afd1e239481d1d88d6632824eb52ac1725d8a"
+        },
+        {
+          "clip": 15,
+          "t": 0.49333321571350097,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "baca01c79b016c8151ab1a130c2567192cb07712a2836361824973f5adb7e408",
+          "optimizedHash": "baca01c79b016c8151ab1a130c2567192cb07712a2836361824973f5adb7e408"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 100
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 100
+        },
+        {
+          "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+          "duration": 4.966667175292969,
+          "tracks": 100
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 100
+        },
+        {
+          "name": "Alert",
+          "duration": 4,
+          "tracks": 100
+        },
+        {
+          "name": "Arise",
+          "duration": 1.8333330154418945,
+          "tracks": 100
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9666669368743896,
+          "tracks": 100
+        },
+        {
+          "name": "Knock_Down",
+          "duration": 2.5,
+          "tracks": 100
+        },
+        {
+          "name": "Left_Hook_from_Guard",
+          "duration": 1,
+          "tracks": 100
+        },
+        {
+          "name": "Roll_Dodge",
+          "duration": 1.8333330154418945,
+          "tracks": 100
+        },
+        {
+          "name": "Roundhouse_Kick",
+          "duration": 2.6666669845581055,
+          "tracks": 100
+        },
+        {
+          "name": "Run_Jump_and_Roll",
+          "duration": 3.433332920074463,
+          "tracks": 100
+        },
+        {
+          "name": "Sweep_Kick",
+          "duration": 4.033332824707031,
+          "tracks": 100
+        },
+        {
+          "name": "Sweeping_Kick",
+          "duration": 2.3333330154418945,
+          "tracks": 100
+        },
+        {
+          "name": "Weapon_Combo_2",
+          "duration": 4.5,
+          "tracks": 100
+        },
+        {
+          "name": "mage_soell_cast_8",
+          "duration": 1.3333330154418945,
+          "tracks": 100
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 11
+      },
+      "mobile": true
+    },
+    {
+      "file": "MeninaNpc-otimizado.glb",
+      "loadOriginalMs": 295.69999999995343,
+      "loadOptimizedMs": 179.20000000006985,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "77ad6093383b0f4f6de4a38d83102d6fb9df349f20b02271ab7f9914dd1edb5f",
+          "optimizedHash": "77ad6093383b0f4f6de4a38d83102d6fb9df349f20b02271ab7f9914dd1edb5f"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "8d3e8a91bb7fdefdbc893feee8e5d9c089cc9e19498a2f20d05ed8f85f1a718e",
+          "optimizedHash": "8d3e8a91bb7fdefdbc893feee8e5d9c089cc9e19498a2f20d05ed8f85f1a718e"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "4a1f86974a087dcb196a9d146e6c9221f11dad6bae0bb766ca88de620f577c5e",
+          "optimizedHash": "4a1f86974a087dcb196a9d146e6c9221f11dad6bae0bb766ca88de620f577c5e"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "772c27a5226f8e62df2a75748809aee21f118ac64730ae1b41c9faac9616ee43",
+          "optimizedHash": "772c27a5226f8e62df2a75748809aee21f118ac64730ae1b41c9faac9616ee43"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "6dc095bcc4d7d2c670f7ee47f70d4d68211db9b0bceb07ac570202bd0b33f8ab",
+          "optimizedHash": "6dc095bcc4d7d2c670f7ee47f70d4d68211db9b0bceb07ac570202bd0b33f8ab"
+        },
+        {
+          "clip": 2,
+          "t": 1.8376668548583983,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e888a9978e64656d68b3e31d10b3863ddfbd194d8e3991420ea28f87413f4b29",
+          "optimizedHash": "e888a9978e64656d68b3e31d10b3863ddfbd194d8e3991420ea28f87413f4b29"
+        },
+        {
+          "clip": 3,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "4f16f7a1a159805a32c7d4db936013ff5a057337b04c19691473fe3c5c726395",
+          "optimizedHash": "4f16f7a1a159805a32c7d4db936013ff5a057337b04c19691473fe3c5c726395"
+        },
+        {
+          "clip": 4,
+          "t": 0.925,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "738026b33aa0517f80913793a4d18fbac1259c102106d38ef0b9128498c775df",
+          "optimizedHash": "738026b33aa0517f80913793a4d18fbac1259c102106d38ef0b9128498c775df"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 132
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 132
+        },
+        {
+          "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+          "duration": 4.966667175292969,
+          "tracks": 132
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 132
+        },
+        {
+          "name": "Knock_Down",
+          "duration": 2.5,
+          "tracks": 132
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 13
+      },
+      "mobile": true
+    },
+    {
+      "file": "MulherNpc-otimizado.glb",
+      "loadOriginalMs": 300.4000000000233,
+      "loadOptimizedMs": 285.9000000000233,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2c08174b4804a15894978bd17e03c31988695d44478d3cb662f02f57c961c45a",
+          "optimizedHash": "2c08174b4804a15894978bd17e03c31988695d44478d3cb662f02f57c961c45a"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "508b5b1f458c156a0dae4b08b4f45e92819f8b88f1c1a60a0d0a8ba5b1cd23f1",
+          "optimizedHash": "508b5b1f458c156a0dae4b08b4f45e92819f8b88f1c1a60a0d0a8ba5b1cd23f1"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "d1885b618606479e9e4dff2323614049be7fa0482c01af0426b18fbc4d9153ee",
+          "optimizedHash": "d1885b618606479e9e4dff2323614049be7fa0482c01af0426b18fbc4d9153ee"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "b934907a87913ef552162607ac0872992ae2f1a51b1559b1661721f6f331749e",
+          "optimizedHash": "b934907a87913ef552162607ac0872992ae2f1a51b1559b1661721f6f331749e"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "bfeb7a8adc7eb1cea4f23c5326687639518e16d1a4371613c2e060db4cb2b174",
+          "optimizedHash": "bfeb7a8adc7eb1cea4f23c5326687639518e16d1a4371613c2e060db4cb2b174"
+        },
+        {
+          "clip": 2,
+          "t": 1.8376668548583983,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ea5692154fd056c13ea10c3d8a170b9208ca937e1877a6a08886173853dc244d",
+          "optimizedHash": "ea5692154fd056c13ea10c3d8a170b9208ca937e1877a6a08886173853dc244d"
+        },
+        {
+          "clip": 3,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a695ba0dd6fd27745be12df6ee60fdb3bfe7fdae0dfedbe65f4babf51f95f1d3",
+          "optimizedHash": "a695ba0dd6fd27745be12df6ee60fdb3bfe7fdae0dfedbe65f4babf51f95f1d3"
+        },
+        {
+          "clip": 4,
+          "t": 5.426666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "902cc3bbe7179f4e07208eb51b5481c13612905120bedb9863fb9571abdc7563",
+          "optimizedHash": "902cc3bbe7179f4e07208eb51b5481c13612905120bedb9863fb9571abdc7563"
+        },
+        {
+          "clip": 5,
+          "t": 1.5169999647140502,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "dc3d431759d553a555ad15918800b5090cc150d4fb08d937177ea3212325a6ab",
+          "optimizedHash": "dc3d431759d553a555ad15918800b5090cc150d4fb08d937177ea3212325a6ab"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 132
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 132
+        },
+        {
+          "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+          "duration": 4.966667175292969,
+          "tracks": 132
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 132
+        },
+        {
+          "name": "SideLying_Reach_Help",
+          "duration": 14.666666984558105,
+          "tracks": 132
+        },
+        {
+          "name": "Wave_One_Hand",
+          "duration": 4.099999904632568,
+          "tracks": 132
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 15
+      },
+      "mobile": true
+    },
+    {
+      "file": "NeveKit.glb",
+      "loadOriginalMs": 67.10000000009313,
+      "loadOptimizedMs": 21.399999999906868,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "09ed33a8b3abbd1333e951846507b37b4e216fef6f4b202da4c64cb5cbbf72d9",
+          "optimizedHash": "09ed33a8b3abbd1333e951846507b37b4e216fef6f4b202da4c64cb5cbbf72d9"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "8239dda1285aafd3a34061a073324849e4044e6233cf0c2b13f639172f78979b",
+          "optimizedHash": "8239dda1285aafd3a34061a073324849e4044e6233cf0c2b13f639172f78979b"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "bdee4b8c98eb01cfdc960ffc49fc459d07d183c918736933983057d314cfd879",
+          "optimizedHash": "bdee4b8c98eb01cfdc960ffc49fc459d07d183c918736933983057d314cfd879"
+        }
+      ],
+      "clips": [],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 15
+      },
+      "mobile": true
+    },
+    {
+      "file": "Prota_otimizado_2K.glb",
+      "loadOriginalMs": 1926.5999999999767,
+      "loadOptimizedMs": 1966,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a493fb2db9f8134e2503abc7dbe237b7a99f618de5cfa9445cd451dcae6fc8f1",
+          "optimizedHash": "a493fb2db9f8134e2503abc7dbe237b7a99f618de5cfa9445cd451dcae6fc8f1"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0c34a353d0e726c0ac21effab9c4880f9daea6faf5a7156ab1eb6a5f175002dd",
+          "optimizedHash": "0c34a353d0e726c0ac21effab9c4880f9daea6faf5a7156ab1eb6a5f175002dd"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "1ed948bdc7c20ef9bb5b430873b94eb4db35b93dcebc6b8a627ab1ec3b8ade63",
+          "optimizedHash": "1ed948bdc7c20ef9bb5b430873b94eb4db35b93dcebc6b8a627ab1ec3b8ade63"
+        },
+        {
+          "clip": 0,
+          "t": 0.23433322012424468,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "56ac747f55dca018c13b3920a58cc660ab28e24fc59e5d3de1517507c20a85c7",
+          "optimizedHash": "56ac747f55dca018c13b3920a58cc660ab28e24fc59e5d3de1517507c20a85c7"
+        },
+        {
+          "clip": 1,
+          "t": 0.3823331892490387,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "f5744c6f5d7de4b507c20eb9554c795f37326e65a208b36a3b3833fc84b338d8",
+          "optimizedHash": "f5744c6f5d7de4b507c20eb9554c795f37326e65a208b36a3b3833fc84b338d8"
+        },
+        {
+          "clip": 2,
+          "t": 1.8376668548583983,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "559deb61ccaaf8ad9469ed23366478e282ff7841d521e8a1b035d170df598d1b",
+          "optimizedHash": "559deb61ccaaf8ad9469ed23366478e282ff7841d521e8a1b035d170df598d1b"
+        },
+        {
+          "clip": 3,
+          "t": 0.9126667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "74f0f8dcc5c6086a9d14549c652322b1a211688e31c6d8f1cd7dc4d5c91fbc81",
+          "optimizedHash": "74f0f8dcc5c6086a9d14549c652322b1a211688e31c6d8f1cd7dc4d5c91fbc81"
+        },
+        {
+          "clip": 4,
+          "t": 1.1223332333564757,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "599541605d80250eda3d94125699fd7f97cff45aa3f1c012412512e0b6ad3f79",
+          "optimizedHash": "599541605d80250eda3d94125699fd7f97cff45aa3f1c012412512e0b6ad3f79"
+        },
+        {
+          "clip": 5,
+          "t": 0.616666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2003452a2e95cfa28e44ab2b5d140bb849a8880076eef44d008af261b1923d54",
+          "optimizedHash": "2003452a2e95cfa28e44ab2b5d140bb849a8880076eef44d008af261b1923d54"
+        },
+        {
+          "clip": 6,
+          "t": 1.0976667666435242,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "f3efcd8db7b49f9ee551f2cde315e101b4d886dcd0e14ce908442f2f4b8b0a8a",
+          "optimizedHash": "f3efcd8db7b49f9ee551f2cde315e101b4d886dcd0e14ce908442f2f4b8b0a8a"
+        },
+        {
+          "clip": 7,
+          "t": 0.3206667798757553,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "22f670d48c5c3b29542fc8be82362db96ddb27cf63bfdb41e8283f951d6e8c93",
+          "optimizedHash": "22f670d48c5c3b29542fc8be82362db96ddb27cf63bfdb41e8283f951d6e8c93"
+        },
+        {
+          "clip": 8,
+          "t": 0.431666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e50b2d08e83cda6e145a58d108e5cca8009d0212312ff0c124a425d42912bc48",
+          "optimizedHash": "e50b2d08e83cda6e145a58d108e5cca8009d0212312ff0c124a425d42912bc48"
+        },
+        {
+          "clip": 9,
+          "t": 0.4686667931079864,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a56aa0c8ab552ceefb41bca914d3723dea3ad12be4c9a799a9875364d42ee543",
+          "optimizedHash": "a56aa0c8ab552ceefb41bca914d3723dea3ad12be4c9a799a9875364d42ee543"
+        },
+        {
+          "clip": 10,
+          "t": 1.2703331804275513,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "f87399aeed8a22a6eb6a66fe4fb43230e57b34c75629185175fdf1047a8d23c0",
+          "optimizedHash": "f87399aeed8a22a6eb6a66fe4fb43230e57b34c75629185175fdf1047a8d23c0"
+        },
+        {
+          "clip": 11,
+          "t": 0.6043331980705261,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "eab495a2f85bcf7ee12662e79a3c2494c2394956396031f2e01f8c08a8622a65",
+          "optimizedHash": "eab495a2f85bcf7ee12662e79a3c2494c2394956396031f2e01f8c08a8622a65"
+        },
+        {
+          "clip": 12,
+          "t": 1.603333215713501,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2b7b7f9f2063de8a596d98666951d09feadf4ae8b5a1ee7e8cb7de0b0c32ae5d",
+          "optimizedHash": "2b7b7f9f2063de8a596d98666951d09feadf4ae8b5a1ee7e8cb7de0b0c32ae5d"
+        },
+        {
+          "clip": 13,
+          "t": 0.3206667798757553,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "06645892f5ab0884383d7bbbde78f278fedda940ac237e19bbd8df49bf50de1e",
+          "optimizedHash": "06645892f5ab0884383d7bbbde78f278fedda940ac237e19bbd8df49bf50de1e"
+        },
+        {
+          "clip": 14,
+          "t": 0.44400001764297486,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a0e8886f507751d3c2721d4b36fa580482b1047b0479a217f0ef63dcaa4112b5",
+          "optimizedHash": "a0e8886f507751d3c2721d4b36fa580482b1047b0479a217f0ef63dcaa4112b5"
+        },
+        {
+          "clip": 15,
+          "t": 1.356666784286499,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "cca668ac61ab9ce36b33dc60c6ee5e9b54681a220d102ea5aca188eb7973fba9",
+          "optimizedHash": "cca668ac61ab9ce36b33dc60c6ee5e9b54681a220d102ea5aca188eb7973fba9"
+        },
+        {
+          "clip": 16,
+          "t": 1.295,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "faf9cf1a4576d07267767685d0464bb02b3c1af999d8d9ae1109a92f5399f934",
+          "optimizedHash": "faf9cf1a4576d07267767685d0464bb02b3c1af999d8d9ae1109a92f5399f934"
+        },
+        {
+          "clip": 17,
+          "t": 1.665,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "24c4ab0a1913ab326a79feadfa2688695624194caa30a589b825c4aba32c480a",
+          "optimizedHash": "24c4ab0a1913ab326a79feadfa2688695624194caa30a589b825c4aba32c480a"
+        },
+        {
+          "clip": 18,
+          "t": 0.6413332068920136,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc",
+          "optimizedHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Running",
+          "duration": 0.6333330273628235,
+          "tracks": 146
+        },
+        {
+          "name": "Walking",
+          "duration": 1.0333329439163208,
+          "tracks": 146
+        },
+        {
+          "name": "_01a1b3e4_6f0c_705b_82f5_e9447d85cbef",
+          "duration": 4.966667175292969,
+          "tracks": 146
+        },
+        {
+          "name": "_01a1b3e6_e46e_7367_9007_2e104dc2e6b7",
+          "duration": 2.4666669368743896,
+          "tracks": 146
+        },
+        {
+          "name": "_360_Power_Spin_Jump",
+          "duration": 3.0333330631256104,
+          "tracks": 146
+        },
+        {
+          "name": "Combat_Stance",
+          "duration": 1.6666669845581055,
+          "tracks": 146
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9666669368743896,
+          "tracks": 146
+        },
+        {
+          "name": "Jump_Over_Obstacle_2",
+          "duration": 0.8666669726371765,
+          "tracks": 146
+        },
+        {
+          "name": "Quick_Step_and_Spin_Dodge",
+          "duration": 1.1666669845581055,
+          "tracks": 146
+        },
+        {
+          "name": "Roll_Dodge_1",
+          "duration": 1.2666670083999634,
+          "tracks": 146
+        },
+        {
+          "name": "Run_Jump_and_Roll",
+          "duration": 3.433332920074463,
+          "tracks": 146
+        },
+        {
+          "name": "Skill_03",
+          "duration": 1.6333329677581787,
+          "tracks": 146
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.3333330154418945,
+          "tracks": 146
+        },
+        {
+          "name": "Walk_Backward",
+          "duration": 0.8666669726371765,
+          "tracks": 146
+        },
+        {
+          "name": "Walk_Forward_with_Bow_Aimed",
+          "duration": 1.2000000476837158,
+          "tracks": 146
+        },
+        {
+          "name": "Weapon_Combo",
+          "duration": 3.6666669845581055,
+          "tracks": 146
+        },
+        {
+          "name": "Weapon_Combo_1",
+          "duration": 3.5,
+          "tracks": 146
+        },
+        {
+          "name": "Weapon_Combo_2",
+          "duration": 4.5,
+          "tracks": 146
+        },
+        {
+          "name": "slide_right",
+          "duration": 1.7333329916000366,
+          "tracks": 146
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 17
+      },
+      "mobile": true
+    },
+    {
+      "file": "Sandra-rig.glb",
+      "loadOriginalMs": 194.69999999995343,
+      "loadOptimizedMs": 194.20000000006985,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "dfca951e47cb4aa9f8d5b279c38e3b44d3cf1193f6a85546391bc622c74da176",
+          "optimizedHash": "dfca951e47cb4aa9f8d5b279c38e3b44d3cf1193f6a85546391bc622c74da176"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "78cea5ae1272adc2a5dec7d9338b0ceb81ad5687952dadfde47c5d173d57f367",
+          "optimizedHash": "78cea5ae1272adc2a5dec7d9338b0ceb81ad5687952dadfde47c5d173d57f367"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a60983f5b7e63e8b0dafb522e7702645ce463e1aa01a1c9d05bd4c5ca0395c1d",
+          "optimizedHash": "a60983f5b7e63e8b0dafb522e7702645ce463e1aa01a1c9d05bd4c5ca0395c1d"
+        },
+        {
+          "clip": 0,
+          "t": 0.3854166519641876,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ce33de039a33632c3d4aeab635c89f7829954689848f37fe99e377ee8539fabb",
+          "optimizedHash": "ce33de039a33632c3d4aeab635c89f7829954689848f37fe99e377ee8539fabb"
+        },
+        {
+          "clip": 1,
+          "t": 1.6033333921432495,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "65c93c116f7c914141226b41b4a361f7ff1fd18b7b1138227cc252548b88d4b8",
+          "optimizedHash": "65c93c116f7c914141226b41b4a361f7ff1fd18b7b1138227cc252548b88d4b8"
+        },
+        {
+          "clip": 2,
+          "t": 0.6166666519641876,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ad8598023d886efc2692da9cc7a270d2d40d5a570dd4ae0c755d2401efc4800d",
+          "optimizedHash": "ad8598023d886efc2692da9cc7a270d2d40d5a570dd4ae0c755d2401efc4800d"
+        },
+        {
+          "clip": 3,
+          "t": 0.24666667401790618,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0d1f12264e66d55dc5a351f286217c29561a9c1df9eb0835b5588373af00c1f7",
+          "optimizedHash": "0d1f12264e66d55dc5a351f286217c29561a9c1df9eb0835b5588373af00c1f7"
+        },
+        {
+          "clip": 4,
+          "t": 1.1099999999999999,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "a7d25677d24e00562115e011d8cafe6a3af28a7e7860bee4966d58eb5441297b",
+          "optimizedHash": "a7d25677d24e00562115e011d8cafe6a3af28a7e7860bee4966d58eb5441297b"
+        },
+        {
+          "clip": 5,
+          "t": 1.0483333039283753,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2bbf67eeb8da3f8515fd032b8095f76e7de6969465c4fd5bf748e706554df5f2",
+          "optimizedHash": "2bbf67eeb8da3f8515fd032b8095f76e7de6969465c4fd5bf748e706554df5f2"
+        },
+        {
+          "clip": 6,
+          "t": 0.925,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e96bcc368a1a6dd11432c3644d3ccb13147d7d6b0cf72dd353ced2eb1889df31",
+          "optimizedHash": "e96bcc368a1a6dd11432c3644d3ccb13147d7d6b0cf72dd353ced2eb1889df31"
+        },
+        {
+          "clip": 7,
+          "t": 0.74,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc",
+          "optimizedHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc"
+        }
+      ],
+      "clips": [
+        {
+          "name": "Walking",
+          "duration": 1.0416666269302368,
+          "tracks": 204
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.333333492279053,
+          "tracks": 204
+        },
+        {
+          "name": "Skill_03",
+          "duration": 1.6666666269302368,
+          "tracks": 204
+        },
+        {
+          "name": "Running",
+          "duration": 0.6666666865348816,
+          "tracks": 204
+        },
+        {
+          "name": "Dead",
+          "duration": 3,
+          "tracks": 204
+        },
+        {
+          "name": "Attack",
+          "duration": 2.8333332538604736,
+          "tracks": 204
+        },
+        {
+          "name": "_01a15ab5_eeba_71ae_a438_b85a938940fc",
+          "duration": 2.5,
+          "tracks": 204
+        },
+        {
+          "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+          "duration": 2,
+          "tracks": 204
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 19
+      },
+      "mobile": true
+    },
+    {
+      "file": "Vitima-rig.glb",
+      "loadOriginalMs": 132.19999999995343,
+      "loadOptimizedMs": 68.70000000006985,
+      "poses": [
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "e5a4b3e2acb2c53ce63092734668feb5e49c2e84eb693864e0a3e15185127678",
+          "optimizedHash": "e5a4b3e2acb2c53ce63092734668feb5e49c2e84eb693864e0a3e15185127678"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 1,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "22d5ef4e8139322c67d56cf3beb14eef2ed7ad8358cc214c828e5b18fc48411f",
+          "optimizedHash": "22d5ef4e8139322c67d56cf3beb14eef2ed7ad8358cc214c828e5b18fc48411f"
+        },
+        {
+          "clip": -1,
+          "t": 0,
+          "view": 2,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "d00801338e8f5e27c792ecb9a64f43bf368706974387675db3e4a947929b2cae",
+          "optimizedHash": "d00801338e8f5e27c792ecb9a64f43bf368706974387675db3e4a947929b2cae"
+        },
+        {
+          "clip": 0,
+          "t": 0.7245833480358124,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc",
+          "optimizedHash": "415e813b951384f46de61e83c9c5df3c19c438d355c8fe9ab96a872ea40e45bc"
+        },
+        {
+          "clip": 1,
+          "t": 1.0329166960716247,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "db997e8fe18efda3e5ff3fca3825b6125448710245664d0e1da887fe3ae98b31",
+          "optimizedHash": "db997e8fe18efda3e5ff3fca3825b6125448710245664d0e1da887fe3ae98b31"
+        },
+        {
+          "clip": 2,
+          "t": 1.0945833039283752,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "ce03035d77973af43479e2866a2a20eb53d96f6caf955516dd7ac99d1d8fcab8",
+          "optimizedHash": "ce03035d77973af43479e2866a2a20eb53d96f6caf955516dd7ac99d1d8fcab8"
+        },
+        {
+          "clip": 3,
+          "t": 0.9095833039283753,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "275744d7af699f86b050db5a96713e5dfaa8a6892dc9ae7f0acaa0b9936fbcec",
+          "optimizedHash": "275744d7af699f86b050db5a96713e5dfaa8a6892dc9ae7f0acaa0b9936fbcec"
+        },
+        {
+          "clip": 4,
+          "t": 0.23125,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "5379841ef709caf87e8ec4623cb7aab2d72ddd18431158b7a9a470b6d4e9d8db",
+          "optimizedHash": "5379841ef709caf87e8ec4623cb7aab2d72ddd18431158b7a9a470b6d4e9d8db"
+        },
+        {
+          "clip": 5,
+          "t": 0.60125,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "0300f325af213658ab063ce541d769da6b263a267beb77c99b64e7d0f7b10b2f",
+          "optimizedHash": "0300f325af213658ab063ce541d769da6b263a267beb77c99b64e7d0f7b10b2f"
+        },
+        {
+          "clip": 6,
+          "t": 1.5879166078567504,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "b12852cc911abe8eec4dab8110a777b16e0001b11d2bfe769b36360911c833ff",
+          "optimizedHash": "b12852cc911abe8eec4dab8110a777b16e0001b11d2bfe769b36360911c833ff"
+        },
+        {
+          "clip": 7,
+          "t": 0.37,
+          "view": 0,
+          "changedChannels": 0,
+          "maxDelta": 0,
+          "originalHash": "2f1ffc5969ffe4f6fff883ff12cb654669f2eb72eba57723b6cb84876934acc6",
+          "optimizedHash": "2f1ffc5969ffe4f6fff883ff12cb654669f2eb72eba57723b6cb84876934acc6"
+        }
+      ],
+      "clips": [
+        {
+          "name": "_01a15ab0_deed_76a9_818c_47f5fc81ba40",
+          "duration": 1.9583333730697632,
+          "tracks": 204
+        },
+        {
+          "name": "Attack",
+          "duration": 2.7916667461395264,
+          "tracks": 204
+        },
+        {
+          "name": "Dead",
+          "duration": 2.9583332538604736,
+          "tracks": 204
+        },
+        {
+          "name": "Idle",
+          "duration": 2.4583332538604736,
+          "tracks": 204
+        },
+        {
+          "name": "Running",
+          "duration": 0.625,
+          "tracks": 204
+        },
+        {
+          "name": "Skill_03",
+          "duration": 1.625,
+          "tracks": 204
+        },
+        {
+          "name": "Triple_Combo_Attack",
+          "duration": 4.291666507720947,
+          "tracks": 204
+        },
+        {
+          "name": "Walking",
+          "duration": 1,
+          "tracks": 204
+        }
+      ],
+      "ok": true,
+      "memory": {
+        "geometries": 0,
+        "textures": 21
+      },
+      "mobile": true
+    }
+  ],
+  "status": "passed"
+}
