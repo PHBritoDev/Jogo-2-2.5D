@@ -1,0 +1,24 @@
+name: QA combate — contato terminal da onda
+on:
+  pull_request:
+    paths:
+      - 'sword-rites3d.js'
+      - 'combat-energy3d.js'
+      - 'tests/combat-energy-last-frame.test.mjs'
+      - '.github/workflows/combat-energy-last-frame.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  terminal-wave:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reproduzir contatos em alcance máximo e paredes
+        run: node --test tests/combat-energy-last-frame.test.mjs
+      - name: Regressão de golpes e combos
+        run: node --test sword-rites3d.test.mjs combat244.test.mjs
