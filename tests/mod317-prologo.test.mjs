@@ -92,7 +92,7 @@ test('Gate 6 — cinco bandidos simultâneos, só espada, no máximo 2 golpes pe
 
 test('Gate 7 — vila: vendedor atrás do balcão de frente para o comprador; água rasa com peso sem virar lesma', () => {
   assert.match(world, /x:marketStalls\[0\]\.x-Math\.sin\(marketStalls\[0\]\.yaw\)\*\.55,z:marketStalls\[0\]\.z-Math\.cos\(marketStalls\[0\]\.yaw\)\*\.55,yaw:marketStalls\[0\]\.yaw,/);
-  assert.match(world, /function wadeMul\(\)\{[^}]*Math\.min\(\.28,/);
+  assert.match(world, /function wadeMul\(\)\{[\s\S]{0,400}?surf-player\.position\.y[\s\S]{0,200}?Math\.min\(\.28,/, 'água rasa medida acima dos pés (ponte sobre o rio não pesa)');
 });
 
 test('Gate 8 — abrigos: poucos, plataforma ritual autoral caminhável, registro no centro, saves antigos migrados', () => {

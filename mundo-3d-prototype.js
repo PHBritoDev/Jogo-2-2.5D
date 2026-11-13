@@ -2108,7 +2108,8 @@ camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
 }
 /** MOD 317 — água rasa tem peso, mas não vira lesma: até −28 % na altura do joelho, nada no chão seco. */
 let wadeCacheT=0,wadeCacheV=1;
-function wadeMul(){if(voidMode)return 1;const now=performance.now();if(now-wadeCacheT>100){wadeCacheT=now;const d=terrain3D.waterDepth(player.position.x,player.position.z);wadeCacheV=d>.05&&grounded?1-Math.min(.28,(d-.05)*.5):1;}return wadeCacheV;}
+function wadeMul(){if(voidMode)return 1;const now=performance.now();if(now-wadeCacheT>100){wadeCacheT=now;const x=player.position.x,z=player.position.z,w=terrain3D.waterDepth(x,z);let d=-1;if(w>.05){const surf=terrain3D.height(x,z)+w;d=surf-player.position.y;} // água acima dos PÉS: ponte/deque sobre o rio não pesa
+ wadeCacheV=d>.05&&grounded?1-Math.min(.28,(d-.05)*.5):1;}return wadeCacheV;}
 function updatePlayerMovement(dt,now){
 let axisX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;
 let axisZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;
