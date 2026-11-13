@@ -25,7 +25,7 @@ Missão: `docs/renascimento/CLAUDE-MISSAO-01-ELDORIA-2.md`. Branch: `claude/eldo
 | Água | O herói entrava no rio até 1,25 m de profundidade (água no peito) e parava numa parede invisível no meio da correnteza, sem explicação | matriz: `rio-fora-da-ponte` |
 | Ponte, escada, degraus do abrigo, casas | Corretos (0 penetração, progresso esperado) | matriz |
 | Erros/404 | 0 erros de página e 0 GLB/JS com HTTP ≥ 400 no percurso | `qa/report.json` |
-| Quadros fixos | A estrada em (53, 60) é uma encosta sem mata (composição fraca). Na ponte, o enquadramento em (−0,4, −3,5) cola a câmera no guarda-corpo. **Registrado para a Fase 2** (não é remendo desta PR) | `evidencias/base-12/` |
+| Quadros fixos | A estrada em (53, 60) é uma encosta sem mata (composição fraca): **fica para a Fase 2**. Na cabeceira da ponte, em (−0,4, −3,5), a câmera **atravessava** a parede do `Ponte.glb`: **corrigido** (ver §2, braço da câmera) | `evidencias/antes-12h-04-ponte.jpg` × `evidencias/depois-12h-ponte.jpg` |
 
 ### Matriz de navegação — antes × depois
 
@@ -71,6 +71,8 @@ Pontos tocados em `mundo-3d-prototype.js`, com patch mínimo por função:
   `skipRocks`.
 - **Herói:** `playerBlockedAt` e `dashBlockedAt` usam `rocksBlock`, e o apoio vertical usa `rockSupportAt`. A regra de
   água funda vem de `PLAYER_WADE_MAX = 0,85`.
+- **Braço da câmera** (`updatePlayerCamera`): não atravessa mais guarda-corpos de deques e escadas, parapeitos da
+  ponte, rochas altas e a malha do `Ponte.glb`. Usa um raio só quando o herói está a menos de ~20 m da ponte.
 - **Depuração** (`SevenSinsDebug3D`): `weather(nome)`, `weatherState()`, `strikeNow(dist)`, `navWalk(...)` e
   `navCatalog(...)`.
 
@@ -107,7 +109,8 @@ setor.
 
 ## 4. O que esta PR não faz (para não ser remendo)
 
-- Não reconstrói a estrada/encosta de (53, 60) nem o enquadramento da ponte. Isso entra na Fase 2, com composição
-  manual e aprovação.
+- Não reconstrói a estrada/encosta de (53, 60). Isso entra na Fase 2, com composição manual e aprovação.
+- Com a câmera baixa de lado na ponte, o guarda-corpo pode esconder o herói (igual à `main`). O enquadramento
+  automático da Fase 2 resolve isso subindo a câmera.
 - Não muda modelos, NPCs, combate, dimensões, missões, saves nem `build-info.js`.
 - Não declara FPS de Android. A medição real em aparelho continua pendente.

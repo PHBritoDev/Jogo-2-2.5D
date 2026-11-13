@@ -75,11 +75,13 @@ async function profile(browser, name, viewport, mobile) {
     R.errors.push(...errs); await ctx.close(); }
   // 2) clima em movimento (vídeo): andar na ponte enquanto o céu fecha e cai um raio
   { const { ctx, page, errs } = await session(browser, viewport, mobile, out, true);
-    await page.evaluate(() => { const D = window.SevenSinsDebug3D; D.setHour(16.2); D.teleport(-.4, -1.5, Math.PI); D.view(Math.PI * .92, .12, 7); D.weather('limpo'); });
-    for (const [st, ms] of [['nuvens', 5000], ['encoberto', 5000], ['chuva', 6000], ['tempestade', 6000]]) {
-      await page.evaluate(s => window.SevenSinsDebug3D.weather(s, 600, false), st);
-      const t0 = Date.now(); while (Date.now() - t0 < ms) { await page.evaluate(() => window.SevenSinsDebug3D.motionStep(.25, { x: 0, z: -1 })); }
-      await snap(page, path.join(out, `movimento-${st}.png`)); }
+    // a transição suave do clima é provada nos testes (passo por quadro < 2%); aqui cada estado é mostrado com o herói andando
+    // pela ponte (-z), câmera atrás e levemente acima, olhando para Eldória
+    await page.evaluate(() => { const D = window.SevenSinsDebug3D; D.setHour(16.2); D.teleport(-.4, 1.5, 0); D.view(0, .16, 7); D.weather('limpo'); });
+    for (const st of ['nuvens', 'encoberto', 'chuva', 'tempestade']) {
+      await page.evaluate(s => window.SevenSinsDebug3D.weather(s), st);
+      for (let i = 0; i < 4; i++) await page.evaluate(() => window.SevenSinsDebug3D.motionStep(.3, { x: 0, z: -1 }));
+      await wait(1500); await snap(page, path.join(out, `movimento-${st}.png`)); }
     await page.evaluate(() => window.SevenSinsDebug3D.strikeNow(450)); await wait(120); await snap(page, path.join(out, 'movimento-raio.png')); await wait(3500);
     R.errors.push(...errs); await ctx.close(); }
 }

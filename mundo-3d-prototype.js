@@ -289,8 +289,9 @@ const waterMaterials=[eldoriaRiver.material,eldoriaLake.material,eldoriaFalls.ma
 const eldoriaBridge=buildBridge(THREE,BRIDGE,{level:RIVER.level,lowSpec:terrainLowSpec});scene.add(eldoriaBridge);
 /* Ponte.glb (asset do criador) substitui a ponte procedural de reserva: escala pelo vão, tabuleiro medido por raio para
    a caminhada (bridgeDeck usa a mesma curva) e cabeceiras assentadas no barranco. */
+const cameraOccluders=[],camRay=new THREE.Raycaster(),camRayO=new THREE.Vector3(),camRayD=new THREE.Vector3(); // RENASCIMENTO F1: malhas grandes que o braço da câmera não atravessa (raio só quando o herói está perto)
 new GLTFLoader().load('./Ponte.glb',gltf=>{clampBakedMips(THREE,gltf.scene,terrainLowSpec?4:3.5);const m=gltf.scene,b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=BRIDGE.halfLength*2.18/Math.max(.01,sz.x);
- m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k,-c.z*k);const g=new THREE.Group();g.add(m);g.rotation.y=Math.atan2(-BRIDGE.axisZ,BRIDGE.axisX);g.position.set(BRIDGE.x,0,BRIDGE.z);scene.add(g);g.updateMatrixWorld(true);
+ m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k,-c.z*k);const g=new THREE.Group();g.add(m);g.rotation.y=Math.atan2(-BRIDGE.axisZ,BRIDGE.axisX);g.position.set(BRIDGE.x,0,BRIDGE.z);scene.add(g);g.updateMatrixWorld(true);cameraOccluders.push({obj:g,x:BRIDGE.x,z:BRIDGE.z,r:BRIDGE.halfLength+14});
  m.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;}});
  const ray=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0),deckAt=t=>{const x=BRIDGE.x+BRIDGE.axisX*BRIDGE.halfLength*t,z=BRIDGE.z+BRIDGE.axisZ*BRIDGE.halfLength*t;ray.set(new THREE.Vector3(x,40,z),down);const h=ray.intersectObject(m,true)[0];return h?h.point.y:null;};
  const end=Math.min(...[-.96,.96].map(deckAt).filter(v=>v!==null));if(!Number.isFinite(end))return;g.position.y=.1-end;g.updateMatrixWorld(true);
@@ -2117,6 +2118,10 @@ if(firstPerson){
   if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>camDistUse+2||Math.abs(rz)>camDistUse+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
   // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
   if(!voidMode)for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
+  if(!voidMode&&cameraOccluders.length){const L=Math.hypot(camOffset.x,camOffset.y,camOffset.z)*limit;for(const oc of cameraOccluders){if(Math.hypot(target.x-oc.x,target.z-oc.z)>oc.r)continue;camRay.set(camRayO.copy(target),camRayD.copy(camOffset).normalize());camRay.far=L+.3;const h=camRay.intersectObject(oc.obj,true)[0];if(h)limit=Math.max(.14,Math.min(limit,(h.distance-.35)/Math.max(.01,L/limit)));}}
+  // RENASCIMENTO F1: o braço da câmera também não atravessa guarda-corpos/parapeitos (deques, escadas, ponte) nem rochas altas
+  if(!voidMode)for(let i=2;i<=12;i++){const f=i/12*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;const bd=bridgeDeck(sx,sz);
+   if((bd&&bd.edge&&sy<bd.y+1.25)||eldoriaWalk.blocked(sx,sz,sy-.9,groundHeightAt)||rocksBlock(rockObstacles,sx,sz,sy-.25,terrainHeightAt)){limit=Math.max(.16,(i-1.4)/12*limit);break;}}
   // MOD 217 — casas da cidade (caixas de colisão): a câmera para antes da fachada em vez de entrar no prédio.
   if(!voidMode&&marketObstacles.length){const near=marketObstacles.filter(o=>o.shape==='box'&&Math.abs(o.x-target.x)<camDistUse+8&&Math.abs(o.z-target.z)<camDistUse+8);
    if(near.length)for(let i=1;i<=14;i++){const f=i/14*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(near.some(o=>Math.abs(sx-o.x)<o.halfX+.25&&Math.abs(sz-o.z)<o.halfZ+.25&&sy<groundHeightAt(o.x,o.z)+(o.height||3)+1.8)){limit=Math.max(.12,(i-1.5)/14*limit);break;}}}
