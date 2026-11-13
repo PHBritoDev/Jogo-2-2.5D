@@ -54,3 +54,10 @@ Branch de trabalho: `combat/fix-energy-wave-final-frame-20261113`. PR: [#486](ht
 - Inspeção estática de `sword-rites3d.js` na branch deste PR: a correção BUG-COMB-001 continua presente. Não foi reproduzida falha nova nesta rodada; nenhum teste executado ou screenshot WebGL inspecionado aqui. Não declarar aprovação nova de CI ou Android.
 - **Hipótese a testar (não é bug confirmado):** `SwordRites.update(dt)` limita o tempo processado a 0,25 s após travamentos longos, inclusive cooldowns e janelas de animação. Investigar se a política é deliberada e se provoca atraso perceptível no combo após stutter, sem modificar código antes de teste reproduzível.
 - **Próximo experimento:** teste determinístico de pausa/stutter (dt=0,5 s) comparado a 60 atualizações de 1/120 s, registrando diferença esperada de relógio e eventos; depois testar no WebGL e Android. O PR permanece sem merge e sem auto-merge.
+
+## Revisão horária — 2026-11-13 11:21 BRT
+- Main atual: `981606e338c53257adf9612ac74c96168888afe1`. PRs recentes #493–#497 ocupam VFX e áudio; não houve edição nesses arquivos, nem no código de gameplay.
+- Adicionado teste de caracterização `tests/combat-stutter-clock.test.mjs` no commit `8c6f6ed11fc4fd942c2f7deaf46f0509c3ab3a31`: 500 ms de travamento contabilizam 250 ms no relógio de combate e cooldown, enquanto 60 quadros de 1/120 s contabilizam 500 ms; pausa explícita mantém o relógio parado.
+- **Classificação:** diferença temporal determinística por leitura de `SwordRites.update`, mas ainda NÃO é defeito de jogabilidade comprovado; o limite pode ser uma proteção intencional contra simulações longas após travamento. Não remover o cap sem avaliar segurança, hitboxes e Android.
+- **Validação pendente:** executar `node --test tests/combat-stutter-clock.test.mjs` no CI e observar resultado, depois medir comportamento real em WebGL/Android. Nenhuma captura WebGL nova foi inspecionada nesta rodada.
+- **Próxima ação:** verificar se os cooldowns deveriam seguir relógio real enquanto eventos de hitbox seguem relógio simulado; reproduzir percepção do jogador antes de alterar a política de tempo. PR #486 permanece sem merge/auto-merge.
