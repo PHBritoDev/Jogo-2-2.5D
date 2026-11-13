@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>QA Barragem Abissal</title><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script><style>body{margin:0;background:#101015;color:#fff;font:13px system-ui}label{position:absolute;top:8px;left:12px}</style></head><body><label>Enemy3 — Barragem Abissal · laboratório VFX</label><script type="module">
+import * as T from 'three';import {createAbyssVFX} from './enemy3-abyss-vfx3d.js';
+const renderer=new T.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(960,540);renderer.setPixelRatio(1);document.body.append(renderer.domElement);const scene=new T.Scene();scene.background=new T.Color('#171c25');const camera=new T.PerspectiveCamera(50,960/540,.01,100);
+scene.add(new T.HemisphereLight(0xbac9ef,0x111117,2));const light=new T.DirectionalLight(0xffddcc,2);light.position.set(5,8,4);scene.add(light);const floor=new T.Mesh(new T.PlaneGeometry(35,35),new T.MeshStandardMaterial({color:'#363c48',roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);const grid=new T.GridHelper(25,25,0x59606a,0x363d49);grid.position.y=.01;scene.add(grid);
+const fx=createAbyssVFX(T,scene,{ground:()=>0});
+window.vfxQa={ready:true,show:({stage='opening',view='front'}={})=>{
+const ports=[{i:0,x:-2.0,y:2.2,z:0,dx:0,dy:0,dz:1,tilt:-.13},{i:1,x:0,y:2.5,z:-.6,dx:0,dy:0,dz:1,tilt:.2},{i:2,x:2.1,y:2.0,z:0,dx:0,dy:0,dz:1,tilt:-.27}];
+const open=stage==='opening'?.22:stage==='forming'?.6:1;const state=stage==='opening'?'open':stage==='forming'?'emerge':'ready';for(const p of ports){p.open=open;p.state=state;p.e=stage==='opening'?0:stage==='forming'?.32:.9;}
+const s={type:'barrage',kind:'enemy',phase:stage,T:{len:1.7,close:.5,stick:.5},t:.25,id:17,portals:ports,swords:[]};
+camera.position.set(view==='side'?8:6,view==='side'?4.5:6.5,view==='side'?1:11);camera.lookAt(0,1.8,0);
+const counts=fx.update(1/60,camera,[s],[],1,{x:0,y:1.5,z:8});renderer.render(scene,camera);
+return {stage,view,counts,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries};}};
+window.vfxQa.show({stage:'forming',view:'front'});
+</script></body></html>
