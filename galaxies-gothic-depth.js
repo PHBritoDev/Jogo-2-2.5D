@@ -20,7 +20,7 @@ export function addInfernalArchitecture(parent,W,H) {
  const basalt=standard('#100d15'),masonry=standard('#24202b'),roof=standard('#180d16');
  const ember=new THREE.MeshBasicMaterial({color:'#c84b22',toneMapped:false});
  // Penhascos em cinco planos sobrepostos, com silhueta diferente por camada.
- const planes=[[-238,.23,.85],[-223,.38,.83],[-207,.58,.82],[-191,.80,.78]];
+ const planes=[[-238,.18,.85],[-223,.30,.83],[-207,.46,.82],[-191,.64,.78]];
  const cliff=new THREE.BufferGeometry(),positions=[],normals=[];
  for(let l=0;l<planes.length;l++){
   const [z,scale,y]=planes[l],count=48;
@@ -44,10 +44,10 @@ export function addInfernalArchitecture(parent,W,H) {
  const shafts=[],tips=[],windows=[],archways=[];
  for(let i=0;i<64;i++){
   const t=i/63,cluster=random(i*5+2);
-  let x=(t-.5)*W*1.12;
-  const z=-245+(i%4)*4,baseY=H*(.10+random(i*9)*.13);
-  const height=H*(.10+cluster*.23);
-  const width=H*(.009+random(i*29)*.012);
+  let x=W*(.20+.30*t);
+  const z=-245+(i%4)*4,baseY=H*(.055+random(i*9)*.04);
+  const height=H*(.035+cluster*.08);
+  const width=H*(.006+random(i*29)*.008);
   shafts.push([x,baseY+height*.4,z,width/7,height/110,1]);
   tips.push([x,baseY+height*.96,z,width/10,height/120,1]);
   windows.push([x,baseY+height*.48,z+11,width/13,height/510,1]);
@@ -65,8 +65,8 @@ export function addInfernalArchitecture(parent,W,H) {
  // Cristais fosforescentes e rochedos de primeiro plano.
  const stones=[],crystals=[];
  for(let i=0;i<92;i++){
-  const x=(random(i*41)-.5)*W*1.18,y=-H*.46+random(i*6)*H*.07;
-  const a=H*(.012+random(i*7)*.041);
+  const x=(random(i*41)-.5)*W*1.18,y=-H*.49+random(i*6)*H*.035;
+  const a=H*(.009+random(i*7)*.025);
   stones.push([x,y,-130+random(i*12)*20,a,a*(.9+random(i*25)*1.7),a*.4,random(i*8)*.6]);
   if(i%8===0)crystals.push([x,y+a*.4,-109,a*.1,a*.78,a*.11,random(i*8)*.7]);
  }
