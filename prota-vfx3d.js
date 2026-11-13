@@ -12,24 +12,52 @@ export function createProtaVFX(T, scene) {
   const vtx = `varying vec2 vUv;varying vec3 vP;void main(){vUv=uv;vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
   let quality = 'high', time = 0;
   // ---------------- fumaça vertical (some) ----------------
-  const smokeMat = () => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false,
-    uniforms: { age: { value: 1 }, seed: { value: 0 }, tint: { value: new T.Color(0x07050b) } },
-    vertexShader: vtx,
-    fragmentShader: `precision highp float;varying vec2 vUv;uniform float age,seed;uniform vec3 tint;${noise}
-      void main(){float x=vUv.x,y=vUv.y;float fil=n(vec2(x*9.+seed,y*3.-age*7.));float wisp=n(vec2(x*23.+seed*2.,y*9.-age*11.));float core=1.-smoothstep(.04+.22*fil,.42,abs(x-.5+.12*(fil-.5)));
-      float tip=smoothstep(0.,.22,y)*(1.-smoothstep(.45+.4*fil,1.,y));float a=core*tip*(.55+.45*wisp)*(1.-smoothstep(.35,1.,age))*.95;if(a<.03)discard;
-      gl_FragColor=vec4(tint+vec3(.05,.02,.08)*fil,a);}` });
+  // Fumaça do teleporte: um único draw call para 28 fiapos.
+  // Cada instância preserva seu tempo e ruído próprios; sem novos objetos por dash.
   const plane = new T.PlaneGeometry(1, 1); plane.translate(0, .5, 0);
-  const smoke = Array.from({ length: 28 }, (_, i) => { const m = new T.Mesh(plane, smokeMat()); m.visible = false; m.frustumCulled = false; m.renderOrder = 5; root.add(m); return { m, age: 1, life: .3, vx: 0, vy: 0, vz: 0, w: .1, h: 1, seed: i * 1.37 }; });
-  let smokeCursor = 0;
-  function vanish(p, dir) {
-    const count = quality === 'low' ? 10 : quality === 'medium' ? 18 : 28;
-    for (let i = 0; i < count; i++) {
-      const s = smoke[smokeCursor++ % smoke.length], a = i * 2.399, r = .08 + (i % 4) * .08;
-      s.m.position.set(p.x + Math.sin(a) * r, p.y + .05 + (i % 5) * .2, p.z + Math.cos(a) * r);
-      s.age = 0; s.life = .26 + (i % 3) * .06; s.w = .09 + (i % 4) * .05; s.h = .55 + (i % 5) * .14;
-      s.vx = -dir.x * (1.2 + (i % 3) * .5); s.vz = -dir.z * (1.2 + (i % 3) * .5); s.vy = 2.2 + (i % 4) * .7; s.m.visible = true;
-      s.m.material.uniforms.seed.value = s.seed + time;
+  const smokeCapacity = 28;
+  const smokeGeometry = plane.clone();
+  const smokeAge = new T.InstancedBufferAttribute(new Float32Array(smokeCapacity),1);
+  const smokeSeed = new T.InstancedBufferAttribute(new Float32Array(smokeCapacity),1);
+  smokeGeometry.setAttribute('aAge',smokeAge);
+  smokeGeometry.setAttribute('aSeed',smokeSeed);
+  const smokeMat = new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,toneMapped:false,
+    uniforms:{tint:{value:new T.Color(0x07050b)}},
+    vertexShader:`attribute float aAge;attribute float aSeed;varying vec2 vUv;varying float vAge;varying float vSeed;
+      void main(){vUv=uv;vAge=aAge;vSeed=aSeed;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}`,
+    fragmentShader:`precision highp float;varying vec2 vUv;varying float vAge;varying float vSeed;uniform vec3 tint;${noise}
+      void main(){
+        vec2 p=vUv;float x=p.x,y=p.y;
+        float flow=n(vec2(x*9.+vSeed,y*3.-vAge*6.));
+        float torn=n(vec2(x*23.+vSeed*2.,y*9.-vAge*11.));
+        float shear=n(vec2(x*31.-vSeed*1.7,y*7.+vAge*5.));
+        float lean=(flow-.5)*(.17+.15*y)+(.5-shear)*.085;
+        float gap=abs(x-.5+lean);
+        float edge=(.19+.15*flow)*(1.-.40*y);
+        float core=1.-smoothstep(edge,edge+.14,gap);
+        float striations=smoothstep(.34,.76,torn)*(1.-smoothstep(.76,.97,shear));
+        float tip=smoothstep(0.,.18,y)*(1.-smoothstep(.52+.33*flow,1.,y));
+        float a=core*tip*(.70+.30*striations)*(1.-smoothstep(.28,1.,vAge))*.93;
+        if(a<.035)discard;
+        vec3 ink=mix(tint,vec3(.075,.038,.092),flow*.4+striations*.2);
+        gl_FragColor=vec4(ink,a);
+      }`});
+  const smokeMesh=new T.InstancedMesh(smokeGeometry,smokeMat,smokeCapacity);
+  smokeMesh.name='DashShadowFilaments';smokeMesh.count=0;smokeMesh.visible=false;
+  smokeMesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
+  smokeMesh.frustumCulled=false;smokeMesh.renderOrder=5;root.add(smokeMesh);
+  const smokeTransform=new T.Object3D();
+  const smoke=Array.from({length:smokeCapacity},(_,i)=>({p:new T.Vector3(),visible:false,age:1,life:.3,
+    vx:0,vy:0,vz:0,w:.1,h:1,seed:i*1.37}));
+  let smokeCursor=0;
+  function vanish(p,dir){
+    const count=quality==='low'?10:quality==='medium'?18:28;
+    for(let i=0;i<count;i++){
+      const s=smoke[smokeCursor++%smoke.length],a=i*2.399,r=.08+(i%4)*.08;
+      s.p.set(p.x+Math.sin(a)*r,p.y+.05+(i%5)*.2,p.z+Math.cos(a)*r);
+      s.age=0;s.life=.26+(i%3)*.06;s.w=.14+(i%4)*.065;s.h=.66+(i%5)*.15;
+      s.vx=-dir.x*(1.2+(i%3)*.5);s.vz=-dir.z*(1.2+(i%3)*.5);s.vy=2.2+(i%4)*.7;
+      s.visible=true;s.liveSeed=s.seed+time;
     }
   }
   // ---------------- rastro horizontal (reaparece) ----------------
@@ -108,15 +136,29 @@ export function createProtaVFX(T, scene) {
   const camQ = new T.Quaternion(), camP = new T.Vector3();
   function update(dt, camera, level = 'high') {
     time += dt; quality = level; camera.getWorldQuaternion(camQ); camera.getWorldPosition(camP);
-    for (const s of smoke) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; }
-      s.m.position.x += s.vx * dt; s.m.position.y += s.vy * dt; s.m.position.z += s.vz * dt; s.vx *= Math.exp(-6 * dt); s.vz *= Math.exp(-6 * dt);
-      s.m.scale.set(s.w * (1 - .5 * k), s.h * (1 + 1.25 * k), 1); s.m.rotation.set(0, Math.atan2(camP.x - s.m.position.x, camP.z - s.m.position.z), 0); s.m.material.uniforms.age.value = k; }
+    let activeSmoke=0;
+    for(const s of smoke){
+      if(!s.visible)continue;
+      s.age+=dt;const k=s.age/s.life;
+      if(k>=1){s.visible=false;continue;}
+      s.p.x+=s.vx*dt;s.p.y+=s.vy*dt;s.p.z+=s.vz*dt;
+      s.vx*=Math.exp(-6*dt);s.vz*=Math.exp(-6*dt);
+      smokeTransform.position.copy(s.p);
+      smokeTransform.rotation.set(0,Math.atan2(camP.x-s.p.x,camP.z-s.p.z),0);
+      smokeTransform.scale.set(s.w*(1-.5*k),s.h*(1+1.25*k),1);
+      smokeTransform.updateMatrix();
+      smokeMesh.setMatrixAt(activeSmoke,smokeTransform.matrix);
+      smokeAge.setX(activeSmoke,k);smokeSeed.setX(activeSmoke,s.liveSeed);
+      activeSmoke++;
+    }
+    smokeMesh.count=activeSmoke;smokeMesh.visible=activeSmoke>0;
+    if(activeSmoke){smokeMesh.instanceMatrix.needsUpdate=true;smokeAge.needsUpdate=true;smokeSeed.needsUpdate=true;}
     for (const s of smears) { if (!s.g.visible) continue; s.age += dt; const k = s.age / .2; if (k >= 1) { s.g.visible = false; continue; }
       const len = Math.max(.2, s.len * (1 - k) ** 1.6); s.v.scale.set(len, 1.75 * (1 - .35 * k), 1); s.hz.scale.set(len, .8 * (1 - .3 * k), 1); s.mat.uniforms.k.value = k; }
     for (const s of energies) syncEnergy(s, dt);
     for (const f of flashes) { if (!f.m.visible) continue; f.age += dt; const k = f.age / f.life; if (k >= 1) { f.m.visible = false; continue; } f.m.quaternion.copy(camQ); f.m.scale.setScalar(f.size * (.6 + .6 * k)); f.m.material.uniforms.k.value = k; }
   }
-  function clear() { for (const s of smoke) s.m.visible = false; for (const s of smears) s.g.visible = false; for (const s of energies) { s.g.visible = false; s.e = null; } for (const f of flashes) f.m.visible = false; }
-  function stats() { return { smoke: smoke.filter(s => s.m.visible).length, smears: smears.filter(s => s.g.visible).length, energies: energies.filter(s => s.g.visible).length, flashes: flashes.filter(f => f.m.visible).length }; }
+  function clear() { for (const s of smoke) s.visible = false; smokeMesh.count=0; smokeMesh.visible=false; for (const s of smears) s.g.visible = false; for (const s of energies) { s.g.visible = false; s.e = null; } for (const f of flashes) f.m.visible = false; }
+  function stats() { return { smoke: smoke.filter(s => s.visible).length, smears: smears.filter(s => s.g.visible).length, energies: energies.filter(s => s.g.visible).length, flashes: flashes.filter(f => f.m.visible).length }; }
   return { vanish, reappear, energy, impact, update, clear, stats, root };
 }
