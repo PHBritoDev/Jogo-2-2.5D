@@ -1,4 +1,4 @@
-name: Renascimento F1 — navegação, clima e ângulos fixos (QA jogável)
+name: Renascimento — navegação, clima, Vale do Despertar e ângulos fixos (QA jogável)
 on:
   pull_request:
     paths:
@@ -6,6 +6,10 @@ on:
       - 'eldoria-weather.js'
       - 'eldoria-weather3d.js'
       - 'eldoria-rock-collider.js'
+      - 'eldoria-valley-landscape.js'
+      - 'eldoria-valley-ruin3d.js'
+      - 'act1-world-layout.js'
+      - 'tests/renascimento-f2.test.mjs'
       - 'tests/renascimento-f1.test.mjs'
       - 'tools/visual-lab/renascimento-f1-qa.cjs'
       - '.github/workflows/renascimento-f1-qa.yml'
@@ -22,7 +26,7 @@ jobs:
         with:
           node-version: '22'
       - name: Testes do Renascimento F1 e regressões vizinhas
-        run: node --test tests/renascimento-f1.test.mjs graphics-adaptive.test.mjs tests/mod317-prologo.test.mjs eldoria-mod291.test.mjs map3d.test.mjs
+        run: node --test tests/renascimento-f1.test.mjs tests/renascimento-f2.test.mjs graphics-adaptive.test.mjs tests/mod317-prologo.test.mjs eldoria-mod291.test.mjs map3d.test.mjs
       - name: Instalar navegador WebGL
         run: |
           npm install --prefix tools/visual-lab --no-audit --no-fund
