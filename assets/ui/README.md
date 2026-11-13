@@ -1,7 +1,11 @@
-# Artes da interface das galáxias
+# Menu cinematográfico das sete galáxias
 
-Coloque aqui **`menu-sete-pecados-reference.jpg`**, exatamente o PNG de 1536×864 aprovado pelo criador.
+A interface combina Three.js (modelos reais GLB, planetas, shaders de fogo, partículas, eclipse, céu e lava) com HTML/CSS (texto, botões, progresso e navegação).
 
-O menu usa a imagem original e sobrepõe áreas clicáveis. O workflow `.github/workflows/galaxies-infernal-qa.yml` verifica desktop e celular, testa as interações e compara pixels.
+**Modelos confirmados no repositório:** `AnjoGuiador-otimizado.glb` (com reserva `AnjoGuia-lod.glb` e `Anjo-rig.glb`) e `Misteriosa-rig.glb`. Não utilizar fotografias desses personagens. A NPC misteriosa aparece em silhueta escura com borda magenta e corações 3D para preservar sua identidade.
 
-**Não mesclar enquanto o PNG faltar ou a auditoria visual não confirmar fidelidade.**
+**Arquivos:** `galaxies-three-scene.js` integra a cena; `galaxies-cinematic-models.js` carrega e anima os GLBs; `galaxies-living-inferno.js` implementa chamas instanciadas e luz procedural; `galaxies-gothic-depth.js` desenha a arquitetura do horizonte.
+
+**Verificação:** `.github/workflows/galaxies-infernal-qa.yml` executa Chromium nas resoluções desktop 1536×864 e celular 852×393, fotografa todos os planetas, valida GLBs carregados, contexto WebGL, navegação e ENTRAR. Essas capturas não provam FPS no celular físico.
+
+**Segurança de integração:** manter em branch separada, sem alterar Eldória, narrativa ou combate. Não fazer merge antes de revisar imagens e comportamento em dispositivo real.
