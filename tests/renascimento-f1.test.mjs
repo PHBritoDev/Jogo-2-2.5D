@@ -62,11 +62,11 @@ test('rochas: pedrinha se pisa, rocha média bloqueia andando, rocha alta não s
 });
 
 test('integração: herói usa domos de rocha, água funda explícita, clima no ciclo e vento pelo clima', () => {
-  assert.match(world, /function playerBlockedAt\(x,z\)\{\n if\(blockedAt\(x,z,!voidMode\)\)return true;/);
+  assert.match(world, /function playerBlockedAt\(x,z\)\{\n if\(!voidMode&&!bridgeDeck\(x,z\)\)\{const w=terrain3D\.waterDepth\(x,z\);if\(w>=PLAYER_WADE_MAX&&[\s\S]{0,400}?\n if\(blockedAt\(x,z,!voidMode\)\)return true;/);
   assert.match(world, /rocksBlock\(rockObstacles,x,z,player\.position\.y,terrainHeightAt,player\.position\.x,player\.position\.z\)/);
   assert.match(world, /function dashBlockedAt\(x,z\)\{\n if\(blockedAt\(x,z,!voidMode\)\)return true;\n if\(!voidMode&&rocksBlock/);
   assert.match(world, /rockSupportAt\(rockObstacles,player\.position\.x,player\.position\.z/);
-  assert.match(world, /const PLAYER_WADE_MAX=\.85;/);
+  assert.match(world, /const PLAYER_WADE_MAX=1\.25;/, 'mesma profundidade do contrato water-wade (margens até 1,25 m atravessáveis)');
   assert.match(world, /applyWeatherToLight\(L,Wp,p,wFlash\)/);
   assert.match(world, /gameClock\.hour=\(gameClock\.hour\+dt\*24\/GAME_DAY_SECONDS\)%24;updateWeather\(dt\);/);
   assert.match(world, /forestWindUniforms\)uniform\.value=weatherWindPhase;/);

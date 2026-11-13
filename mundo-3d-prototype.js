@@ -2013,11 +2013,11 @@ function dashBlockedAt(x,z){
  if(!voidMode&&[...vendorRoots,...villagerWalkers.map(w=>w.holder)].some(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8))return true;
  return questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(s=>Math.abs(x-s.x)<.72&&Math.abs(z-s.z)<.72);
 }
-const PLAYER_WADE_MAX=.85; // RENASCIMENTO F1: o herói não nada; entra na água até a coxa e para ali (a ponte é o caminho)
+const PLAYER_WADE_MAX=1.25; // RENASCIMENTO F1: o herói não nada; mesma profundidade do contrato water-wade (margens 0,9–1,25 m são atravessáveis) — além disso para COM aviso, não numa parede muda
 let deepWaterHintAt=0;
 function playerBlockedAt(x,z){
+ if(!voidMode&&!bridgeDeck(x,z)){const w=terrain3D.waterDepth(x,z);if(w>=PLAYER_WADE_MAX&&terrain3D.height(x,z)+w-Math.max(player.position.y-.3,terrain3D.height(x,z))>PLAYER_WADE_MAX){const now=performance.now();if(now>deepWaterHintAt){deepWaterHintAt=now+9000;if(typeof status!=='undefined'&&status&&!cineActive)status.textContent='A água fica funda e a correnteza é forte: atravesse pela ponte.';}return true;}}
  if(blockedAt(x,z,!voidMode))return true;
- if(!voidMode&&!bridgeDeck(x,z)){const w=terrain3D.waterDepth(x,z);if(w>PLAYER_WADE_MAX&&terrain3D.height(x,z)+w-Math.max(player.position.y-.3,terrain3D.height(x,z))>PLAYER_WADE_MAX){const now=performance.now();if(now>deepWaterHintAt){deepWaterHintAt=now+9000;if(typeof status!=='undefined'&&status&&!cineActive)status.textContent='A água fica funda e a correnteza é forte: atravesse pela ponte.';}return true;}}
  // RENASCIMENTO F1: rochas do herói são domos (eldoria-rock-collider.js) — pedrinha se pisa, rocha alta só por cima
  if(!voidMode&&rocksBlock(rockObstacles,x,z,player.position.y,terrainHeightAt,player.position.x,player.position.z))return true;
  if(!voidMode&&walkRailingsOn&&eldoriaWalk.blocked(x,z,player.position.y,groundHeightAt))return true;

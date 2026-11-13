@@ -26,12 +26,12 @@ const NAV = [
   ['rocha-grande', [62.5, 154, 75.5, 154, { seconds: 3 }], r => r.pen === 0 && r.maxY < .5],
   ['rocha-grande-dash', [62.5, 154, 75.5, 154, { seconds: 3, dashAt: .4 }], r => r.pen <= 2 && r.maxY < .5],
   ['ponte', [-.4, -2.5, -.4, -22, { seconds: 9 }], r => r.progress > .97 && !r.fell],
-  ['rio-fora-da-ponte', [30, -6, 30, -21, { seconds: 4.5 }], r => r.end[2] > -13.5 && r.end[1] > -1.5],
+  ['rio-fora-da-ponte', [30, -6, 30, -21, { seconds: 4.5 }], r => r.end[2] > -13.5 && !r.fell],
   ['escada', [12.6, -46.4, 7.2, -46.6, { seconds: 2.6 }], r => r.maxY > 3.1],
   ['abrigo-degraus', [-4.6, -31.5, -4.6, -36.5, { seconds: 2.2 }], r => r.maxY > .4],
   ['casa-parede', [-13.2, -24, -13.2, -38, { seconds: 6 }], r => r.end[2] > -31],
   ['casa-grande', [-25, -45, -42, -45, { seconds: 6 }], r => r.end[0] > -31],
-  ['lago-raso-fundo', [-27, -73, -27, -88, { seconds: 6 }], r => r.end[1] > -1.4],
+  ['lago-raso-fundo', [-27, -73, -27, -88, { seconds: 6 }], r => r.end[2] > -88 && !r.fell],
 ];
 const SHOTS = [
   ['prado', 'D.teleport(54,158,Math.PI);D.view(Math.PI*.92,.18,7.5)'],

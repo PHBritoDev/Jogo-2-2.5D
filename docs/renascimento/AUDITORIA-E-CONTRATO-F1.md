@@ -22,7 +22,7 @@ Missão: `docs/renascimento/CLAUDE-MISSAO-01-ELDORIA-2.md`. Branch: `claude/eldo
 | Nuvens | 5 grupos de esferas (opacidade 0,32) que parecem "algodão colado": exatamente as "nuvens chapadas" proibidas | `cloudLayouts` |
 | Vento | Só `uForestWindTime = now`: velocidade constante, sem rajada | `animate()` |
 | Rochas (herói) | Cilindro **infinito** de raio 0,74·r. Rochas ≤ 0,68 m eram ignoradas (o corpo atravessava a malha) | matriz abaixo, coluna "antes" |
-| Água | O herói entrava no rio até 1,25 m de profundidade (água no peito) e parava numa parede invisível no meio da correnteza, sem explicação | matriz: `rio-fora-da-ponte` |
+| Água | O herói entrava no rio até 1,25 m de profundidade e parava numa parede invisível no meio da correnteza, sem explicação. O limite de 1,25 m é contrato do QA `water-wade` (margens de lago atravessáveis) e foi mantido; faltava o motivo | matriz: `rio-fora-da-ponte` |
 | Ponte, escada, degraus do abrigo, casas | Corretos (0 penetração, progresso esperado) | matriz |
 | Erros/404 | 0 erros de página e 0 GLB/JS com HTTP ≥ 400 no percurso | `qa/report.json` |
 | Quadros fixos | A estrada em (53, 60) é uma encosta sem mata (composição fraca): **fica para a Fase 2**. Na cabeceira da ponte, em (−0,4, −3,5), a câmera **atravessava** a parede do `Ponte.glb`: **corrigido** (ver §2, braço da câmera) | `evidencias/antes-12h-04-ponte.jpg` × `evidencias/depois-12h-ponte.jpg` |
@@ -41,9 +41,9 @@ Mesma sequência, mesmos pontos reais do mapa. O controle é simulado quadro a q
 | Rocha grande (3,7 m) | pen 119 | bloqueia, **pen 0** |
 | Rocha grande + dash | pen 155 | bloqueia, **pen 0** |
 | Ponte | atravessa | atravessa (igual) |
-| Rio fora da ponte | entra até a água no peito (y −1,75), parede invisível | entra até a coxa (0,85 m), para com a mensagem "atravesse pela ponte" |
+| Rio fora da ponte | entra até 1,25 m e para numa parede muda | mesma profundidade (1,25 m, contrato do QA `water-wade` já existente: margens de 0,9–1,25 m são atravessáveis), mas agora para **com aviso** ("atravesse pela ponte") |
 | Escada / degraus do abrigo / casas | ok | ok (igual) |
-| Lago raso → fundo | entra até 1,25 m | entra até 0,85 m e para (mesma regra do rio) |
+| Lago raso → fundo | entra até 1,25 m | igual, com o mesmo aviso |
 
 Arquivos: `evidencias/nav-antes.json` e `evidencias/nav-depois.json`.
 
@@ -70,7 +70,7 @@ Pontos tocados em `mundo-3d-prototype.js`, com patch mínimo por função:
 - **`blockedAt(x,z,skipRocks=false)`:** NPCs, câmera e IA continuam com a regra antiga; só o herói passa
   `skipRocks`.
 - **Herói:** `playerBlockedAt` e `dashBlockedAt` usam `rocksBlock`, e o apoio vertical usa `rockSupportAt`. A regra de
-  água funda vem de `PLAYER_WADE_MAX = 0,85`.
+  água funda vem de `PLAYER_WADE_MAX = 1,25` (igual ao contrato `water-wade`), agora com aviso ao jogador.
 - **Braço da câmera** (`updatePlayerCamera`): não atravessa mais guarda-corpos de deques e escadas, parapeitos da
   ponte, rochas altas e a malha do `Ponte.glb`. Usa um raio só quando o herói está a menos de ~20 m da ponte.
 - **Depuração** (`SevenSinsDebug3D`): `weather(nome)`, `weatherState()`, `strikeNow(dist)`, `navWalk(...)` e
