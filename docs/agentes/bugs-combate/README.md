@@ -61,3 +61,11 @@ Branch de trabalho: `combat/fix-energy-wave-final-frame-20261113`. PR: [#486](ht
 - **Classificação:** diferença temporal determinística por leitura de `SwordRites.update`, mas ainda NÃO é defeito de jogabilidade comprovado; o limite pode ser uma proteção intencional contra simulações longas após travamento. Não remover o cap sem avaliar segurança, hitboxes e Android.
 - **Validação pendente:** executar `node --test tests/combat-stutter-clock.test.mjs` no CI e observar resultado, depois medir comportamento real em WebGL/Android. Nenhuma captura WebGL nova foi inspecionada nesta rodada.
 - **Próxima ação:** verificar se os cooldowns deveriam seguir relógio real enquanto eventos de hitbox seguem relógio simulado; reproduzir percepção do jogador antes de alterar a política de tempo. PR #486 permanece sem merge/auto-merge.
+
+## Revisão horária — 2026-11-13 12:15 BRT
+- `main` confirmada em `981606e338c53257adf9612ac74c96168888afe1`; PR #486 continua aberto e em rascunho. Conferidos PRs ativos #468, #473, #487, #491, #493–#499; evitar os arquivos de outros agentes (HUD/salto, VFX, áudio, história).
+- Inspecionados os três testes de caracterização de `tests/combat-stutter-clock.test.mjs` e o workflow `.github/workflows/combat-energy-last-frame.yml`. Os testes existiam, mas **não estavam ligados ao workflow**, portanto não havia evidência de execução automática.
+- Commit `820e438fa57ee5976a9db9d5e50308856e7fff10`: adiciona o arquivo de teste ao filtro de caminhos e a etapa `node --test tests/combat-stutter-clock.test.mjs` ao CI do PR. **Nenhum código de gameplay alterado.**
+- Consulta imediata aos workflows associados ao commit retornou lista vazia; **não afirmar testes aprovados ou executados**. Aguardar criação/conclusão do CI e revisar logs; se o workflow não disparar, verificar políticas de GitHub Actions e evento do PR.
+- A divergência de 250 ms em pausa de 500 ms permanece **comportamento determinístico a validar**, não bug comprovado. Próximo passo: confirmar resultado dos três testes e investigar se cooldowns devem usar tempo real separado do tempo simulado, com WebGL/Android e sem afetar hitboxes.
+- Sem merge/auto-merge.
