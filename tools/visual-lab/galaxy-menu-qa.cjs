@@ -16,15 +16,18 @@ function check(ok,msg){if(!ok)throw Error(msg);}
    await page.goto("http://127.0.0.1:4173/tools/visual-lab/galaxy-menu-preview.html",{waitUntil:"domcontentloaded"});
    await page.waitForFunction(()=>window.menuQA?.ready,{timeout:20000});
    await page.waitForSelector("#galaxy-screen.gx-three-on canvas.gx-three-canvas",{timeout:30000});
+   await page.waitForFunction(()=>document.querySelector("#galaxy-screen")?.dataset.gxModelsReady==="true",{timeout:65000});
    await page.waitForTimeout(900);
    const info=await page.evaluate(()=>{
     const root=document.querySelector("#galaxy-screen"),c=root.querySelector("canvas.gx-three-canvas"),orbs=[...root.querySelectorAll(".gx-orb")];
     const gl=c.getContext("webgl2")||c.getContext("webgl");
-    return {three:root.classList.contains("gx-three-on"),canvas:{width:c.width,height:c.height},gl:!!gl,errors:gl?gl.getError():null,orbs:orbs.length,menu:root.querySelectorAll(".gx-nav button").length,
+    const models={guardian:root.dataset.gxGuardianModel,lust:root.dataset.gxLustModel};
+    return {models,three:root.classList.contains("gx-three-on"),canvas:{width:c.width,height:c.height},gl:!!gl,errors:gl?gl.getError():null,orbs:orbs.length,menu:root.querySelectorAll(".gx-nav button").length,
       pixelImageShown:!!root.querySelector(".gx-exact-stage"),gpu:{drawCalls:Number(root.dataset.gxDrawCalls||0),triangles:Number(root.dataset.gxTriangles||0),textures:Number(root.dataset.gxTextures||0)},labels:orbs.map(o=>o.getAttribute("aria-label")),
       enter:!!root.querySelector(".gx-enter"),detail:!!root.querySelector(".gx-detail")};
    });
    check(info.three&&info.gl,view.name+": canvas Three.js/WebGL nao funcionou");
+   check(info.models.guardian&&info.models.lust,view.name+": GLB real do Anjo ou da Misteriosa falhou: "+JSON.stringify(info.models));
    check(info.orbs===7&&info.menu===5&&info.enter,view.name+": controles incompletos");
    check(!info.pixelImageShown,view.name+": ainda esta exibindo imagem estática");
    await page.screenshot({path:path.join(output,view.name+"-ganancia.png"),animations:"disabled"});
