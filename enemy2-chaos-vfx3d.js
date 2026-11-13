@@ -133,11 +133,12 @@ void main(){ vec2 uv=vec2(vUv.x*frequency*7.-time*2.6, vUv.y*4.+vUv.x*3.+seed);
     if (!low) for (let i = 0; i < 14; i++) { const u = (time * .5 + i / 14) % 1, a = i * 2.4 - time * 3 - u * 4, rr = R * (1.3 - u * 1.1); glow.add(s.px + Math.cos(a) * rr, s.py + .1 - u * .3, s.pz + Math.sin(a) * rr, .06, .3, 1, .3, .7, (1 - u) * open, 3, a + 1.57, i); }
     // a corrente: tubo grosso do centro do portal até a ponta, seguindo o caminho real (curvas orgânicas, sem fragmentar)
     const path = s.path; if (path.length < 2) return;
-    { const pts0 = path, nb = low ? 2 : 4; for (let i = 0; i < nb; i++) { const k = Math.floor(hash(i + Math.floor(time * 10) + s.id) * pts0.length), p = pts0[Math.min(pts0.length - 1, k)], a = hash(i * 7 + Math.floor(time * 10)) * 6.283, L = (1.6 + hash(i * 3) * 1.8) * (s.kind === 'e2boss' ? 1.35 : 1);
+    // A corrente só ganha relâmpagos depois que o portal abre: leitura clara da invocação.
+    if (open > .35) { const pts0 = path, nb = low ? 2 : 4; for (let i = 0; i < nb; i++) { const k = Math.floor(hash(i + Math.floor(time * 10) + s.id) * pts0.length), p = pts0[Math.min(pts0.length - 1, k)], a = hash(i * 7 + Math.floor(time * 10)) * 6.283, L = (1.6 + hash(i * 3) * 1.8) * (s.kind === 'e2boss' ? 1.35 : 1);
       darkBolt(s.id * 31 + i + Math.floor(time * 10), p.x, p.y, p.z, p.x + Math.cos(a) * L, p.y + Math.sin(a * 1.3) * L * .7, p.z + Math.sin(a) * L, .07); } }
     const pts = [[s.px, s.py - .1, s.pz], ...path.map(p => [p.x, p.y, p.z]), [s.x, s.y, s.z]];
     const L = pts.length - 1, at = u => { const f = u * L, i = Math.min(L - 1, Math.floor(f)), k = f - i, a = pts[i], b = pts[i + 1]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; };
-    const fade = s.phase === 'retract' ? 1 - smooth(s.t / T0.retract) : 1, rB = T0.r * big, burst = s.phase === 'burst' ? Math.sin(Math.min(1, s.t / T0.burst) * Math.PI) : 0;
+    const fade = s.phase === 'retract' ? 1 - smooth(s.t / T0.retract) : s.phase === 'open' ? open : 1, rB = T0.r * big, burst = s.phase === 'burst' ? Math.sin(Math.min(1, s.t / T0.burst) * Math.PI) : 0;
     // corpo opaco escuro com veios magenta; mini-chefe com brasas na paleta (diferente do comum); núcleo branco por dentro
     const tb = take(s.kind === 'e2boss' ? streamsBoss : streams), tv = take(streamVeins), tc = take(cores);
     if (tb) { fillTube(tb, at, (u, a) => rB * (.42 + .58 * Math.pow(u, .7)) * (1 + .14 * Math.sin(a * 3 + u * 18 - time * 9) + .25 * burst * u * u) * fade, 2.5); tb.m.uniforms.time.value = time; tb.m.uniforms.alpha.value = Math.min(1, fade * 1.4) * camFade(s.x, s.z, rB); tb.m.uniforms.detail.value = low ? .65 : 1; }
