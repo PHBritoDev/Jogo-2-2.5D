@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Enemy1 — inspeção 360°</title><style>body{margin:0;overflow:hidden;background:#15171b}canvas{display:block}</style></head><body>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+const params=new URLSearchParams(location.search);
+const src=params.get('asset')||'Enemy1.glb';
+const status={ready:false,error:null,asset:src,meshes:0,animations:0};
+window.enemy1Capture=status;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(1);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.2;
+document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x202127);
+scene.add(new THREE.HemisphereLight(0xe7efff,0x434050,2.25));
+const key=new THREE.DirectionalLight(0xffeed9,3);key.position.set(4,7,6);scene.add(key);
+const fill=new THREE.DirectionalLight(0x9bafff,1.6);fill.position.set(-4,4,-4);scene.add(fill);
+const camera=new THREE.PerspectiveCamera(34,innerWidth/innerHeight,0.02,500);
+let model,baseY=0,height=2,rad=1;
+function pose(angle=0,close=false){
+  if(!model)return;
+  model.rotation.y=angle;
+  const visualHeight=Math.max(3.0,height*5.5); const focus=close?Math.max(visualHeight*0.55,1.65):visualHeight*0.48;
+  const distance=close?Math.max(visualHeight*0.6,1.8):Math.max(visualHeight*1.7,5.1);
+  camera.position.set(0,focus,distance);
+  camera.lookAt(0,focus,0);camera.updateProjectionMatrix();
+  renderer.render(scene,camera);
+}
+window.enemy1SetView=(angle,close)=>{pose(angle,close);return status;};
+new GLTFLoader().load('/'+src,gltf=>{
+  const original=gltf.scene;const box=new THREE.Box3().setFromObject(original);
+  if(box.isEmpty())throw new Error('Empty GLB');
+  const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+  height=size.y;rad=Math.max(size.x,size.z);
+  original.position.sub(new THREE.Vector3(center.x,box.min.y,center.z));
+  model=new THREE.Group();model.add(original);scene.add(model);
+  original.traverse(n=>{if(n.isMesh){status.meshes++;n.frustumCulled=false;}});
+  status.animations=gltf.animations.length;
+  status.bounds={width:size.x,height:size.y,depth:size.z};
+  pose(0,false);status.ready=true;
+},undefined,e=>{status.error=String(e?.message||e);console.error(e)});
+window.addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();pose(0,false);});
+</script></body></html>
