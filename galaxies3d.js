@@ -4,6 +4,9 @@
  * O progresso vem do mundo 3D (passos do Ato I em diante) e é salvo no aparelho.
  * MOD 202: layout redesenhado (menu lateral, planetas desenhados em SVG próprio, painel de detalhe com condições de acesso).
  */
+import { infernalBackdrop, infernalPlanetSvg } from './galaxies-infernal-art.js';
+import { mountPixelReference } from './galaxies-pixel-reference.js';
+
 export const GALAXIES = [
   { id: 1, name: 'Ganância', tag: 'Nada é suficiente. Sempre mais.', subtitle: 'Onde vidas viraram moeda', hue: 42, color: '#f3c25a', glow: '#ffcf6a',
     lore: 'O primeiro pecado. O início de todos os outros. Neste mundo, tudo tem um preço — e você não é exceção. A ganância consome, corrompe e transforma até o mais puro em algo descartável.',
@@ -34,6 +37,7 @@ const PLANET_DETAILS = {
 };
 let planetUid = 0;
 export function planetSvg(id, locked) {
+  return infernalPlanetSvg(id, locked);
   const g = GALAXIES[id - 1], u = 'pl' + (++planetUid);
   const c = g.color, hi = locked ? g.glow : '#ffffff';
   return '<svg class="gx-planet" viewBox="0 0 120 120" aria-hidden="true"><defs>' +
@@ -77,8 +81,8 @@ const NAV = [['GALÁXIAS', 'on'], ['LOJA', 'soon'], ['INVENTÁRIO', 'soon'], ['M
 export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = () => true, onCelebrated, coins = 0, onSettings } = {}) {
   const open = unlockedGalaxies(save);
   const root = el('section', { id: 'galaxy-screen', 'aria-label': 'Sete galáxias' });
-  root.innerHTML = '<div class="gx-stars"></div><div class="gx-spiral"></div>' +
-    '<header class="gx-head"><span class="gx-sigil" aria-hidden="true"></span><div><span class="gx-kicker">GALÁXIA 1</span><h1>OS 7 PECADOS CAPITAIS</h1><p>Sete mundos acorrentados. Um deles já pede por você.</p></div></header>' +
+  root.innerHTML = '<div class="gx-backdrop">' + infernalBackdrop() + '</div><div class="gx-stars"></div>' +
+    '<header class="gx-head"><span class="gx-sigil" aria-hidden="true"></span><div><span class="gx-kicker">A BATALHA CONTRA OS</span><h1>7 PECADOS CAPITAIS</h1><p>Sete mundos acorrentados. Um deles já pede por você.</p></div></header>' +
     '<div class="gx-wallet"><span class="gx-coin"></span><b>' + Number(coins || 0).toLocaleString('pt-BR') + '</b></div>' +
     '<nav class="gx-nav">' + NAV.map(([n, k]) => '<button type="button" class="gx-nav-' + k + (k === 'on' ? ' on' : '') + '"' + (k === 'soon' ? ' disabled aria-disabled="true" title="Em breve"' : '') + '><i></i><span>' + n + '</span></button>').join('') + '</nav>' +
     '<div class="gx-track"><svg class="gx-chains" viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true"></svg><div class="gx-orbs"></div></div>' +
@@ -87,7 +91,7 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   const settingsBtn = root.querySelector('.gx-nav-settings');
   if (settingsBtn) settingsBtn.addEventListener('click', () => { if (typeof onSettings === 'function') onSettings(); });
   // Planetas numa fila com leve ondulação; a corrente alaranjada passa por trás deles.
-  const pts = GALAXIES.map((g, i) => ({ x: 70 + i * 143, y: 100 + Math.sin(i * .9 + .6) * 34 }));
+  const pts = GALAXIES.map((g, i) => ({ x: 70 + i * 143, y: 94 }));
   let chains = '';
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i], b = pts[i + 1], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 + 10;
@@ -126,6 +130,9 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   });
   renderDetail();
   document.body.appendChild(root);
+  // Somente o PNG idêntico à arte aprovada ativa a modalidade pixel-exact.
+  // Sem ele o menu vetorial anterior permanece, evitando tela vazia.
+  mountPixelReference({root,galaxies:GALAXIES,progressPercent:Math.round(galaxyProgress(1,progress)*100),coins,isReady,onEnter,onSettings});
   // MOD 197 — a corrente da galáxia recém-libertada se rompe (uma vez), com o próximo mundo despertando.
   const freed = Number(save.celebrate) || 0;
   if (freed >= 2 && freed <= 7) {
