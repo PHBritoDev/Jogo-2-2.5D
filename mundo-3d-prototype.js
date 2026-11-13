@@ -798,7 +798,7 @@ if(valleyOutcrops.length)new GLTFLoader().load('./RochedoMusgoEldoria-lod1.glb',
  parts.forEach((p,i)=>{const k=p.s/Math.max(W,D),y=groundHeightAt(p.x,p.z),hy=H*k;e.set((Math.sin(i*1.7)-.5)*.12,p.yaw,(Math.cos(i*2.3)-.5)*.1);q.setFromEuler(e);sc.set(k,k*(.8+.3*Math.abs(Math.sin(i*3.1))),k);
   v.set(p.x,y-bb.min.y*sc.y-hy*p.sink,p.z);m4.compose(v,q,sc);mesh.setMatrixAt(i,m4);
   const top=y+hy*(1-p.sink)*(.8+.3*Math.abs(Math.sin(i*3.1)));rockObstacles.push({x:p.x,z:p.z,radius:p.s*.42,height:Math.max(.2,top-(y-.15)),base:y-.15,valley:true});});
- mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=!terrainLowSpec;mesh.receiveShadow=true;scene.add(mesh);valleyRockMesh=mesh;
+ mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=!terrainLowSpec;mesh.receiveShadow=true;scene.add(mesh);valleyRockMesh=mesh;registerInstanceCull(mesh,terrainLowSpec?80:110,30);
  window.SevenSinsValleyReport.outcropParts=parts.length;window.SevenSinsValleyReport.outcropTris=parts.length*(src.geometry.index?src.geometry.index.count/3:0);
 },undefined,e=>console.warn('Afloramentos do vale não carregaram.',e));
 // RENASCIMENTO F2 — os rochedos do prado do despertar eram esferas facetadas procedurais (vista de "pedra de polígono");
@@ -813,7 +813,7 @@ if(VALLEY_ON)new GLTFLoader().load('./RochedoMusgoEldoria-lod1.glb',gltf=>{
  for(const o of olds){for(let i=0;i<o.count;i++){o.getMatrixAt(i,m4);m4.decompose(p,q,sc);const r=sc.x,hy=sc.y*1.25,gy=groundHeightAt(p.x,p.z);
    e.setFromQuaternion(q);e.x+=(Math.sin(k*1.3)-.5)*.1;q.setFromEuler(e);const s2=new THREE.Vector3(2.05*r/W,hy/H,2.05*sc.z/D);p.y=gy-bb.min.y*s2.y-hy*.2;m4.compose(p,q,s2);mesh.setMatrixAt(k++,m4);}
   o.count=0;o.visible=false;}
- mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=true;mesh.receiveShadow=true;(prologueMeadow.group||scene).add(mesh);
+ mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=true;mesh.receiveShadow=true;(prologueMeadow.group||scene).add(mesh);registerInstanceCull(mesh,terrainLowSpec?70:95,28);
  window.SevenSinsValleyReport.meadowBoulders=n;
 },undefined,e=>console.warn('Rochedos do prado não carregaram; mantendo os procedurais.',e));
 // RENASCIMENTO F2 — chão das encostas: manchas de capim alto e flores do campo (2 InstancedMesh, cortados por distância)
@@ -829,7 +829,8 @@ if(VALLEY_ON){const gc=planValleyGroundCover(valleyEnv,{tufts:terrainLowSpec?900
 // Posto do Vigia (desvio opcional): ruína autoral no topo da encosta oeste, relicário com recompensa única.
 const VIGIA_STORE='seven-sins-3d-posto-vigia';
 const vigiaRuin=VALLEY_ON?buildVigiaRuin(THREE,{ground:groundHeightAt,walk:eldoriaWalk,lowSpec:terrainLowSpec}):null;
-if(vigiaRuin){scene.add(vigiaRuin.group);try{vigiaRuin.setOpened(localStorage.getItem(VIGIA_STORE)==='1');}catch(_){}}
+if(vigiaRuin){scene.add(vigiaRuin.group);cameraOccluders.push({obj:vigiaRuin.group,x:VIGIA.x,z:VIGIA.z,r:VIGIA.r+12}); // a câmera não atravessa o muro do posto
+ try{vigiaRuin.setOpened(localStorage.getItem(VIGIA_STORE)==='1');}catch(_){}}
 let vigiaSeenAt=0;
 function checkVigiaRuin(now){
  if(!vigiaRuin||voidMode||cineActive)return;vigiaRuin.update(now*.001);

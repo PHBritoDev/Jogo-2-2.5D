@@ -70,6 +70,24 @@ Diretriz: `CLAUDE-MISSAO-01-ELDORIA-2.md`, seção **DIRETRIZ EXECUTIVA — FASE
 | QA jogável (`tools/visual-lab/renascimento-f1-qa.cjs`, CI `renascimento-f1-qa`) | Matriz da Fase 1 + 3 trechos da Trilha do Vigia + abertura do relicário, em mobile e desktop |
 | Capturas antes/depois | `docs/renascimento/evidencias/f2/`: 10 ângulos fixos × 5 condições (15 h limpo, 6:24 com neblina, 18:12 com nuvens, 22:30 noite, 16 h tempestade) |
 
+## 4b. Custo medido (mesmo enquadramento, 15 h, céu limpo, paisagem mobile 852×393)
+
+Medido com SwiftShader (CPU). As contagens de draw calls e triângulos são exatas e comparáveis. O tempo de quadro
+**não** é o de um Android.
+
+| Local | draw calls `main` → F2 | triângulos `main` → F2 | geometrias |
+|---|---|---|---|
+| Prado do despertar | 33 → 39 | 174 k → 229 k | 206 → 231 |
+| Vale (60, 62) | 143 → 155 | 346 k → 365 k | 242 → 267 |
+| Vale sul (68, 112) | 113 → 125 | 349 k → 378 k | 242 → 267 |
+
+A cena nova cabe nesse custo porque:
+- as árvores do vale são instâncias do mesmo pipeline com LOD/impostor (nenhum material novo);
+- os rochedos e afloramentos usam o LOD1 (2,3 k triângulos) e são **cortados por distância**;
+- capim e flores são cortados por distância.
+
+A memória de heap JS ficou estável (≈ 143–158 MB nos dois casos).
+
 ## 5. Próximas etapas (plano, não feito nesta rodada)
 
 - **Margem do rio e vau:** margem erodida com pedras assentadas e vegetação ribeirinha. O vau raso desenhado exige
