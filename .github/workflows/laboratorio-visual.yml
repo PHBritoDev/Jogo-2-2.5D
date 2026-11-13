@@ -353,3 +353,37 @@ jobs:
           path: visual-lab-results/devorador-mod289/
           retention-days: 14
           if-no-files-found: warn
+
+
+  fotos_protagonista:
+    if: github.event_name == 'pull_request' && github.head_ref == 'qa/fotos-protagonista-6-angulos'
+    name: QA protagonista — seis angulos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Playwright e Chromium
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Iniciar jogo real
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/protagonista-fotos-http.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null && exit 0
+            sleep 1
+          done
+          exit 1
+      - name: Fotografar modelo em seis angulos
+        run: node tools/visual-lab/protagonista-fotos.cjs
+      - name: Publicar fotos e relatorio
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: protagonista-seis-angulos
+          path: visual-lab-results/protagonista-fotos/
+          retention-days: 14
+          if-no-files-found: warn
