@@ -5,7 +5,8 @@
  * Direção de arte (referências 2 e 3): salão vertical escuro com abismo e ponte natural; gruta verde-azulada com poças
  * luminosas, névoa e feixes frios; acentos violeta por emissivo nos cristais (sem dezenas de luzes). Quatro luzes no total.
  */
-import { CAVE, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, caveHazard, hash2, fbm } from './ascension-layout.js';
+import { CAVE, CHASM_RIM, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, caveHazard, hash2, fbm } from './ascension-layout.js';
+import { boulderGeometry } from './eldoria-prologue-meadow.js';
 import { triplanarRock, ensureUv, vortexPortal, lightShaft, dustField, disposeGroup } from './ascension-fx3d.js';
 import { prepareTorchSource, placeTorches } from './eldoria-torches3d.js';
 
@@ -92,6 +93,15 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   // fundo do abismo: breu (o nevoeiro do abismo faz o resto)
   const pit = new THREE.Mesh(new THREE.CircleGeometry(22, 24), new THREE.MeshBasicMaterial({ color: 0x000203, fog: false }));
   pit.rotation.x = -Math.PI / 2; pit.position.set(CAVE.chasm.x, -36, CAVE.chasm.z); group.add(pit);
+  // CAVERNA C1 — lábio do abismo: pedras meio enterradas na borda (com vãos), na mesma rocha triplanar; colisão em
+  // CHASM_RIM (ascension-layout.js). Uma malha só.
+  {
+    const geos = [], m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+    CHASM_RIM.forEach((p, i) => { const g = boulderGeometry(THREE, 70 + (i % 5), lowSpec ? 1 : 2), y = caveFloor(p.x, p.z);
+      e.set((hash2(i, 3, 9) - .5) * .4, hash2(i, 5, 9) * 6.28, (hash2(i, 7, 9) - .5) * .4); q.setFromEuler(e);
+      m4.compose(new THREE.Vector3(p.x, y - p.h * .35, p.z), q, new THREE.Vector3(p.r * 1.25, p.h * 1.4, p.r)); g.applyMatrix4(m4); geos.push(g.index ? g.toNonIndexed() : g); });
+    if (geos.length) { const rg = mergeGeos(THREE, geos); rg.computeVertexNormals(); ensureUv(THREE, rg); const rim = new THREE.Mesh(rg, rockMat); rim.name = 'caverna-labio-abismo'; rim.receiveShadow = true; group.add(rim); }
+  }
   // ---------- ponte natural de pedra sobre o abismo ----------
   {
     const B = CAVE.bridge, segs = 34, ring = 14, pos = [], idx = [];
