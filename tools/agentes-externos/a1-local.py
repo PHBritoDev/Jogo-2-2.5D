@@ -91,7 +91,7 @@ def clean_report(output):
     ))
     if not starts:
         raise ValueError("No valid report header; refusing to publish CLI output")
-    report = output[starts[-1].start():]
+    report = output[starts[0].start():]
     report = re.split(
         r"(?im)^\s*\[\s*Prompt:|^\s*Exiting\.\.\.|^\s*>\s*<\|im_start\|",
         report, maxsplit=1,
