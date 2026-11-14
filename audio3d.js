@@ -49,6 +49,8 @@ export function createWorldAudio() {
     layers.wind = loopNoise('lowpass', 240, .35, ambBus);
     layers.leaves = loopNoise('highpass', 3200, .4, ambBus);
     layers.water = loopNoise('lowpass', 900, .3, ambBus);
+    // Renascimento F2 — rio: correnteza grave perto da margem e marulho claro das pedras no vau (posicional por distância)
+    layers.river = loopNoise('lowpass', 620, .5, ambBus); layers.riffle = loopNoise('bandpass', 1900, 1.1, ambBus);
     // Mod 316 — cachoeira: rumor grave + chiado da água branca (posicional por distância, ver update)
     layers.falls = loopNoise('lowpass', 1100, .45, ambBus); layers.fallsHi = loopNoise('bandpass', 2700, .8, ambBus);
     // Zumbido grave do portal (duas senoides levemente desafinadas).
@@ -159,6 +161,10 @@ export function createWorldAudio() {
       const falls = Math.pow(Math.max(0, 1 - (s.fallsDistance ?? 999) / 44), 1.6);
       layers.falls.g.gain.setTargetAtTime(.3 * falls, t, .4); layers.fallsHi.g.gain.setTargetAtTime(.07 * falls * (1 + .15 * Math.sin(t * 1.7)), t, .3);
       layers.water.g.gain.setTargetAtTime(.22 * Math.max(0, 1 - (s.pondDistance || 99) / 26), t, .5);
+      const river = Math.pow(Math.max(0, 1 - (s.riverDistance ?? 99) / 24), 1.4), ford = Math.max(0, Math.min(1, s.fordNear || 0));
+      layers.river.g.gain.setTargetAtTime(.16 * river * (1 + .12 * Math.sin(t * .37 + Math.sin(t * .11) * 2)), t, .6);
+      layers.river.f.frequency.setTargetAtTime(560 + 160 * river, t, .8);
+      layers.riffle.g.gain.setTargetAtTime(.05 * ford * (.8 + .2 * Math.sin(t * 2.3) * Math.sin(t * .7)), t, .3);
       layers.portal.g.gain.setTargetAtTime(.09 * Math.max(0, 1 - (s.portalDistance || 99) / 30) * (s.portalReady ? 1.6 : 1), t, .5);
       if (night > .4) { insectTimer -= dt; if (insectTimer <= 0) { insectTimer = .25 + Math.random() * .9; cricket(night); } }
       else { birdTimer -= dt; if (birdTimer <= 0) { birdTimer = (2.5 + Math.random() * 7) * (1 - .35 * forest); bird(1 - night); } }
