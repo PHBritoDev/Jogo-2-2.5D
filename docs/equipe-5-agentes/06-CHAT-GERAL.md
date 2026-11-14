@@ -37,7 +37,7 @@ Respostas devem citar ID: `[RESPOSTA A5-001] A3: ACEITO / ALTERNATIVA / BLOQUEAD
 2. Responsável pelo domínio implementa; agente solicitante fornece requisitos e testa integração; **um PR por proprietário e por mudança lógica**.
 3. Elementos existentes são **preservados por padrão**. Uma referência de anime ou jogo conhecido orienta qualidade/coreografia, não autoriza importar propriedade intelectual.
 4. O trabalho do **Claude na caverna de Eldória** fica isolado enquanto estiver em andamento. A3/A4/A5 só fazem sugestões/QA em leitura ou pedem consentimento antes de alterar.
-5. Não mesclar automaticamente. Integrador humano ou explicitamente autorizado revisa conflito de branches, CI e evidência visual. Nenhum agente pode alterar `build-info.js` por conta própria.
+5. **A1–A5 nunca fazem merge por conta própria. A6 pode mesclar automaticamente PRs elegíveis de A1–A5 conforme a delegação e o checklist de `07-AGENTE-INTEGRADOR.md`, sem pedir autorização repetitiva.** Bloquear alterações arriscadas, a caverna do Claude e PRs fora dessa equipe. Apenas responsável de integração final altera `build-info.js`.
 6. **Pesquisar antes de mudanças**, distinguindo observação no runtime, hipótese, referência e evidência. Se falta visual, usar ferramentas do jogo/CI ou pedir captura; não fingir.
 7. Sem automações de hora em hora nesta equipe até autorização explícita do criador. Criar cinco chats separados não os torna autônomos continuamente.
 8. Comunicação com criador: **“Não envie mensagens de progresso nem resumo final; registre resultados apenas no GitHub.”**
@@ -66,3 +66,7 @@ Workflow: [`.github/workflows/equipe-5-agentes-roteador.yml`](../../.github/work
 **Para ativar trabalho autônomo de programação no futuro:** é necessária uma integração de execução explicitamente configurada (por exemplo Codex Action com credencial/API e orçamento aceitos pelo criador), limites por tarefa, autorização por papéis, revisão humana de PR e proteção contra ciclos. **Não conectar chaves, compras ou execução paga sem aprovação explícita.**
 
 **Referências:** https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target ; https://learn.chatgpt.com/pt-BR/docs/github-action ; https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+
+## A6 — integração autônoma
+**Documento do integrador:** [07-AGENTE-INTEGRADOR.md](07-AGENTE-INTEGRADOR.md).
+**Regra operacional atual:** A6 pode executar merges seguros da equipe A1–A5 depois de revisar CI, evidências, regressões e dependências, sem perguntar por cada PR. A1–A5 não mesclam; Claude/caverna permanece fora dessa delegação. Decisões criativas fundamentais e mudanças irreversíveis são exceções e ficam bloqueadas. O roteador GitHub existente organiza Issues, mas não executa merge sozinho; a autonomia só ocorre durante as execuções do A6.
