@@ -1,0 +1,225 @@
+{
+ "status": "captured",
+ "nav": [
+  {
+   "id": "rocha-baixa",
+   "ok": true,
+   "progress": 0.587,
+   "maxY": -0.17,
+   "pen": 0,
+   "stuckT": 0.47,
+   "end": [
+    37.18,
+    -0.49,
+    171.18
+   ]
+  },
+  {
+   "id": "rocha-media-andando",
+   "ok": true,
+   "progress": 0.289,
+   "maxY": 0.02,
+   "pen": 0,
+   "stuckT": 1.48,
+   "end": [
+    77.33,
+    0.02,
+    131.9
+   ]
+  },
+  {
+   "id": "rocha-media-correndo-pulo",
+   "ok": true,
+   "progress": 1.148,
+   "maxY": 1.13,
+   "pen": 0,
+   "stuckT": 0.57,
+   "end": [
+    80.11,
+    0.21,
+    131.9
+   ]
+  },
+  {
+   "id": "rocha-grande",
+   "ok": true,
+   "progress": 0.147,
+   "maxY": -0.11,
+   "pen": 0,
+   "stuckT": 2,
+   "end": [
+    64.41,
+    -0.33,
+    154
+   ]
+  },
+  {
+   "id": "rocha-grande-dash",
+   "ok": true,
+   "progress": 0.147,
+   "maxY": -0.11,
+   "pen": 0,
+   "stuckT": 2.47,
+   "end": [
+    64.41,
+    -0.33,
+    154
+   ]
+  },
+  {
+   "id": "ponte",
+   "ok": true,
+   "progress": 1.005,
+   "maxY": 1.3,
+   "pen": 0,
+   "stuckT": 0,
+   "end": [
+    -0.4,
+    0,
+    -22.1
+   ]
+  },
+  {
+   "id": "rio-fora-da-ponte",
+   "ok": true,
+   "progress": 0.401,
+   "maxY": 0,
+   "pen": 0,
+   "stuckT": 1.65,
+   "end": [
+    30,
+    -1.75,
+    -12.01
+   ]
+  },
+  {
+   "id": "escada",
+   "ok": true,
+   "progress": 1.02,
+   "maxY": 3.21,
+   "pen": 0,
+   "stuckT": 0,
+   "end": [
+    7.09,
+    3.21,
+    -46.4
+   ]
+  },
+  {
+   "id": "abrigo-degraus",
+   "ok": true,
+   "progress": 0.928,
+   "maxY": 0.44,
+   "pen": 0,
+   "stuckT": 0,
+   "end": [
+    -4.6,
+    0.44,
+    -36.14
+   ]
+  },
+  {
+   "id": "casa-parede",
+   "ok": true,
+   "progress": 0.375,
+   "maxY": 0,
+   "pen": 0,
+   "stuckT": 3.48,
+   "end": [
+    -13.2,
+    0,
+    -29.25
+   ]
+  },
+  {
+   "id": "casa-grande",
+   "ok": true,
+   "progress": 0.316,
+   "maxY": 0,
+   "pen": 0,
+   "stuckT": 3.47,
+   "end": [
+    -30.37,
+    0,
+    -45
+   ]
+  },
+  {
+   "id": "lago-raso-fundo",
+   "ok": true,
+   "progress": 0.601,
+   "maxY": 0,
+   "pen": 0,
+   "stuckT": 1.78,
+   "end": [
+    -27,
+    -1.67,
+    -82.02
+   ]
+  },
+  {
+   "id": "vigia-trilha-1",
+   "ok": true,
+   "progress": 1.051,
+   "maxY": 9.41,
+   "pen": 0,
+   "stuckT": 0,
+   "end": [
+    51.89,
+    9.41,
+    105.85
+   ]
+  },
+  {
+   "id": "vigia-trilha-2",
+   "ok": true,
+   "progress": 1.053,
+   "maxY": 12.31,
+   "pen": 0,
+   "stuckT": 0,
+   "end": [
+    40.92,
+    12.31,
+    100.1
+   ]
+  },
+  {
+   "id": "vigia-trilha-3",
+   "ok": true,
+   "progress": 1.08,
+   "maxY": 15.64,
+   "pen": 0,
+   "stuckT": 0,
+   "end": [
+    30.51,
+    15.64,
+    96.33
+   ]
+  }
+ ],
+ "vigia": {
+  "before": null,
+  "after": "1",
+  "status": "Um relic\u00e1rio esquecido pelos vigias. Daqui eles viam quem descia da garganta."
+ },
+ "perf": {
+  "limpo": {
+   "n": 33,
+   "p50": 166.7,
+   "p95": 283.4,
+   "p99": 433.3,
+   "max": 433.3,
+   "calls": 59,
+   "tris": 235982
+  },
+  "tempestade": {
+   "n": 38,
+   "p50": 150.1,
+   "p95": 183.3,
+   "p99": 183.3,
+   "max": 183.3,
+   "calls": 60,
+   "tris": 235982
+  }
+ }
+}

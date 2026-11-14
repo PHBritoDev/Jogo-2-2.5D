@@ -40,7 +40,7 @@ test('Mod 305/311: gaiolas e Demônio 1 numa clareira da mata (Mod 311: longe da
  assert.match(src,/const CAGE_CENTER=\{x:CAGE_CLEARING\.x,z:CAGE_CLEARING\.z\}/);
 });
 test('Mod 305: mata contínua na serra no mesmo pipeline LOD, torre do Ato IV preservada',()=>{
- assert.match(src,/const tropicalPlan=\[\.\.\.southernForestPlan,\.\.\.villageBeltPlan\]\.concat\(serraForestPlan\)/);
+ assert.match(src,/const tropicalPlan=\[\.\.\.southernForestPlan,\.\.\.villageBeltPlan\]\.concat\(serraForestPlan(?:,valleyPlan)?\)/);
  assert.match(src,/function clearSerraTowerSite\(\)/);assert.match(src,/clearSerraTowerSite\(\);/);
  assert.match(src,/serraPaths=\[TOWER\.rivalPath/);
  assert.match(src,/lightBudget\.update\(camera,frameDelta\);updateInstanceCulling\(\)/);

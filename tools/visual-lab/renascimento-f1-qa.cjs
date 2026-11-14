@@ -32,6 +32,10 @@ const NAV = [
   ['casa-parede', [-13.2, -24, -13.2, -38, { seconds: 6 }], r => r.end[2] > -31],
   ['casa-grande', [-25, -45, -42, -45, { seconds: 6 }], r => r.end[0] > -31],
   ['lago-raso-fundo', [-27, -73, -27, -88, { seconds: 6 }], r => r.end[2] > -88 && !r.fell],
+  // Fase 2 — Vale do Despertar
+  ['vigia-trilha-1', [64.5, 109, 52.5, 106, { seconds: 6 }], r => r.progress > .9 && !r.fell],
+  ['vigia-trilha-2', [52.5, 106, 41.5, 100.4, { seconds: 6 }], r => r.progress > .9 && !r.fell],
+  ['vigia-trilha-3', [41.5, 100.4, 31.2, 97, { seconds: 6 }], r => r.progress > .75 && !r.fell && r.pen === 0],
 ];
 const SHOTS = [
   ['prado', 'D.teleport(54,158,Math.PI);D.view(Math.PI*.92,.18,7.5)'],
@@ -65,6 +69,12 @@ async function profile(browser, name, viewport, mobile) {
   // 1) navegação + 4) custo (mesma sessão, sem vídeo)
   { const { ctx, page, errs } = await session(browser, viewport, mobile, out, false);
     for (const [id, args, ok] of NAV) { const r = await page.evaluate(a => window.SevenSinsDebug3D.navWalk(...a), args); delete r.trace; R.nav.push({ id, ok: !!ok(r), ...r }); }
+    // relicário do Posto do Vigia: recompensa única, salva no aparelho
+    R.vigia = await page.evaluate(async () => { const D = window.SevenSinsDebug3D; let before = null; try { before = localStorage.getItem('seven-sins-3d-posto-vigia'); } catch (e) {}
+      D.teleport(26.9, 96.9, Math.PI / 2); let after = null; // o gatilho roda no laço do jogo: no SwiftShader do desktop um quadro pode levar >1 s
+      for (let i = 0; i < 60 && after !== '1'; i++) { await new Promise(r => setTimeout(r, 500)); try { after = localStorage.getItem('seven-sins-3d-posto-vigia'); } catch (e) {} }
+      return { before, after, status: (document.getElementById('status') || {}).textContent || '' }; });
+    if (R.vigia.after !== '1') R.errors.push('relicário do Vigia não abriu');
     await page.evaluate(() => { const D = window.SevenSinsDebug3D; D.setHour(15); D.teleport(-.4, -3.5, Math.PI); D.view(Math.PI * .9, .2, 8); D.weather('limpo'); });
     await wait(2500); R.perf.limpo = await frames(page, 6000);
     await page.evaluate(() => window.SevenSinsDebug3D.weather('tempestade')); await wait(2500); R.perf.tempestade = await frames(page, 6000);

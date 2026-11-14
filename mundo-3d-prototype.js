@@ -65,6 +65,9 @@ import {createLightState,sampleTimeOfDay,applyRegionGrade,sunDirection,createReg
 import {createWeatherDirector,applyWeatherToLight,WEATHER} from './eldoria-weather.js';
 import {createWeatherView} from './eldoria-weather3d.js';
 import {rocksBlock,rockSupportAt} from './eldoria-rock-collider.js';
+import {planValleyForest,planValleyOutcrops,planValleyGroundCover,VIGIA} from './eldoria-valley-landscape.js';
+import {grassTuftGeometry,flowerGeometry} from './eldoria-prologue-meadow.js';
+import {buildVigiaRuin} from './eldoria-valley-ruin3d.js';
 import {loadTropicalTrees,mountTropicalForest,planTropicalBelt} from './eldoria-tropical-trees.js';
 import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
@@ -771,7 +774,73 @@ window.SevenSinsSerraForest={trees:serraForestPlan.length,pts:serraForestPlan.ma
 // MOD 311 — muralha montanhosa da fronteira e boca da caverna (malha e colisão nascem da mesma linha).
 const frontier=buildFrontier(THREE,{scene,groundHeightAt,GLTFLoader,registerCull:registerInstanceCull,lowSpec:terrainLowSpec,prepareBaked:r=>clampBakedMips(THREE,r,terrainLowSpec?4:3.5)});
 frontier.ready.then(st=>{window.SevenSinsFrontierReport=st;refreshInstanceCulling();}).catch(e=>console.warn('Fronteira: GLBs não carregaram.',e));
-const tropicalPlan=[...southernForestPlan,...villageBeltPlan].concat(serraForestPlan);
+/* RENASCIMENTO F2 — Vale do Despertar (eldoria-valley-landscape.js): as encostas lisas e vazias entre o prado e a
+   planície viram bosques em grupos naturais (baixio úmido, meia-encosta, cristas com marcos), com alameda esparsa junto
+   à estrada, clareiras intencionais e a Trilha do Vigia. Mesmas espécies/LOD instanciados do cinturão (sem material novo).
+   Rollback: ?vale=0 desliga o vale novo (o mundo volta ao estado da Fase 1). */
+const VALLEY_ON=new URLSearchParams(location.search).get('vale')!=='0';
+const valleyKeep=(x,z,r)=>Math.hypot(x-77,z-90)>13+r&&Math.hypot(x-TEREN_STOP.x,z-TEREN_STOP.z)>10+r&&Math.hypot(x-FALL_SPOT.x,z-FALL_SPOT.z)>14+r
+ &&!WAYSTONES.some(w=>Math.hypot(x-w.x,z-w.z)<7+r)&&!rockObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<o.radius+1.6+r)&&!treeObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<o.radius+2.5+r)
+ &&!villageBeltPlan.some(t=>Math.hypot(t.x-x,t.z-z)<(t.gap||6)*.6+r);
+const valleyEnv={height:groundHeightAt,boundary:(x,z)=>terrain3D.boundaryDistance(x,z),water:(x,z)=>terrain3D.waterDepth(x,z),road:TEREN_ROAD,meadow:(x,z,pad)=>insideMeadow(x,z,pad),keep:valleyKeep,density:terrainLowSpec?.78:1};
+const valleyPlan=VALLEY_ON?planValleyForest(valleyEnv).map(t=>({...t,y:groundHeightAt(t.x,t.z)-.12*t.s})):[];
+const valleyOutcrops=VALLEY_ON?planValleyOutcrops(valleyEnv,terrainLowSpec?10:14):[];
+window.SevenSinsValleyReport={trees:valleyPlan.length,perSpecies:valleyPlan.reduce((a,t)=>(a[t.sp]=(a[t.sp]||0)+1,a),{}),outcrops:valleyOutcrops.length};
+const tropicalPlan=[...southernForestPlan,...villageBeltPlan].concat(serraForestPlan,valleyPlan);
+// RENASCIMENTO F2 — afloramentos de rocha musgosa nas encostas (1 InstancedMesh, LOD1 do RochedoMusgoEldoria.glb) com
+// colisão de domo (pisa-se na beirada baixa; o corpo nunca entra na pedra) — mesma regra da Fase 1.
+let valleyRockMesh=null;
+if(valleyOutcrops.length)new GLTFLoader().load('./RochedoMusgoEldoria-lod1.glb',gltf=>{
+ clampBakedMips(THREE,gltf.scene,terrainLowSpec?4:3.5);let src=null;gltf.scene.traverse(o=>{if(!src&&o.isMesh)src=o;});if(!src)return;
+ src.geometry.computeBoundingBox();const bb=src.geometry.boundingBox,W=bb.max.x-bb.min.x,H=bb.max.y-bb.min.y,D=bb.max.z-bb.min.z;
+ const parts=valleyOutcrops.flatMap(g=>g.parts);const mesh=new THREE.InstancedMesh(src.geometry,src.material,parts.length);mesh.name='vale-afloramentos';
+ const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),sc=new THREE.Vector3();
+ parts.forEach((p,i)=>{const k=p.s/Math.max(W,D),y=groundHeightAt(p.x,p.z),hy=H*k;e.set((Math.sin(i*1.7)-.5)*.12,p.yaw,(Math.cos(i*2.3)-.5)*.1);q.setFromEuler(e);sc.set(k,k*(.8+.3*Math.abs(Math.sin(i*3.1))),k);
+  v.set(p.x,y-bb.min.y*sc.y-hy*p.sink,p.z);m4.compose(v,q,sc);mesh.setMatrixAt(i,m4);
+  const top=y+hy*(1-p.sink)*(.8+.3*Math.abs(Math.sin(i*3.1)));rockObstacles.push({x:p.x,z:p.z,radius:p.s*.42,height:Math.max(.2,top-(y-.15)),base:y-.15,valley:true});});
+ mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=!terrainLowSpec;mesh.receiveShadow=true;scene.add(mesh);valleyRockMesh=mesh;registerInstanceCull(mesh,terrainLowSpec?80:110,30);
+ window.SevenSinsValleyReport.outcropParts=parts.length;window.SevenSinsValleyReport.outcropTris=parts.length*(src.geometry.index?src.geometry.index.count/3:0);
+},undefined,e=>console.warn('Afloramentos do vale não carregaram.',e));
+// RENASCIMENTO F2 — os rochedos do prado do despertar eram esferas facetadas procedurais (vista de "pedra de polígono");
+// agora usam o RochedoMusgoEldoria (LOD1, musgo e textura assados) nas MESMAS posições/escala e com os MESMOS colisores.
+// Rollback: ?vale=0 mantém os antigos.
+if(VALLEY_ON)new GLTFLoader().load('./RochedoMusgoEldoria-lod1.glb',gltf=>{
+ let src=null;gltf.scene.traverse(o=>{if(!src&&o.isMesh)src=o;});if(!src)return;clampBakedMips(THREE,gltf.scene,terrainLowSpec?4:3.5);
+ src.geometry.computeBoundingBox();const bb=src.geometry.boundingBox,W=bb.max.x-bb.min.x,H=bb.max.y-bb.min.y,D=bb.max.z-bb.min.z;
+ const olds=[];prologueMeadow.group&&prologueMeadow.group.traverse(o=>{if(o.isInstancedMesh&&/^meadow-boulders-/.test(o.name))olds.push(o);});if(!olds.length)return;
+ const n=olds.reduce((a,m)=>a+m.count,0),mesh=new THREE.InstancedMesh(src.geometry,src.material,n);mesh.name='prado-rochedos-renascimento';
+ const m4=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),e=new THREE.Euler();let k=0;
+ for(const o of olds){for(let i=0;i<o.count;i++){o.getMatrixAt(i,m4);m4.decompose(p,q,sc);const r=sc.x,hy=sc.y*1.25,gy=groundHeightAt(p.x,p.z);
+   e.setFromQuaternion(q);e.x+=(Math.sin(k*1.3)-.5)*.1;q.setFromEuler(e);const s2=new THREE.Vector3(2.05*r/W,hy/H,2.05*sc.z/D);p.y=gy-bb.min.y*s2.y-hy*.2;m4.compose(p,q,s2);mesh.setMatrixAt(k++,m4);}
+  o.count=0;o.visible=false;}
+ mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=true;mesh.receiveShadow=true;(prologueMeadow.group||scene).add(mesh);registerInstanceCull(mesh,terrainLowSpec?70:95,28);
+ window.SevenSinsValleyReport.meadowBoulders=n;
+},undefined,e=>console.warn('Rochedos do prado não carregaram; mantendo os procedurais.',e));
+// RENASCIMENTO F2 — chão das encostas: manchas de capim alto e flores do campo (2 InstancedMesh, cortados por distância)
+if(VALLEY_ON){const gc=planValleyGroundCover(valleyEnv,{tufts:terrainLowSpec?900:1500,flowers:terrainLowSpec?260:440}),dm=new THREE.Object3D();
+ const gm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide});addInstancedWind(gm,.09,'clamp(position.y*2.0,0.0,1.0)',1.1,'f2-valley-grass');
+ const tu=new THREE.InstancedMesh(grassTuftGeometry(THREE),gm,Math.max(1,gc.tufts.length));gc.tufts.forEach((t,i)=>{dm.position.set(t.x,groundHeightAt(t.x,t.z)-.03,t.z);dm.rotation.set(0,t.rot,0);dm.scale.set(t.s,t.s*(.8+(i%5)*.1),t.s);dm.updateMatrix();tu.setMatrixAt(i,dm.matrix);});
+ tu.count=gc.tufts.length;tu.name='vale-capim';tu.receiveShadow=true;tu.instanceMatrix.needsUpdate=true;tu.computeBoundingSphere();scene.add(tu);registerInstanceCull(tu,terrainLowSpec?46:64,14);
+ const fm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.8,side:THREE.DoubleSide});
+ for(const yellow of [false,true]){const L=gc.flowers.filter(f=>f.yellow===yellow);if(!L.length)continue;const m=new THREE.InstancedMesh(flowerGeometry(THREE,yellow?[.98,.82,.22]:[.92,.9,.98],yellow?[.85,.55,.12]:[.98,.78,.2]),fm,L.length);
+  L.forEach((f,i)=>{dm.position.set(f.x,groundHeightAt(f.x,f.z)-.02,f.z);dm.rotation.set(f.tilt,f.rot,0);dm.scale.setScalar(f.s);dm.updateMatrix();m.setMatrixAt(i,dm.matrix);});
+  m.name='vale-flores-'+(yellow?'amarelas':'claras');m.instanceMatrix.needsUpdate=true;m.computeBoundingSphere();scene.add(m);registerInstanceCull(m,terrainLowSpec?40:56,12);}
+ window.SevenSinsValleyReport.groundCover={tufts:gc.tufts.length,flowers:gc.flowers.length};}
+// Posto do Vigia (desvio opcional): ruína autoral no topo da encosta oeste, relicário com recompensa única.
+const VIGIA_STORE='seven-sins-3d-posto-vigia';
+const vigiaRuin=VALLEY_ON?buildVigiaRuin(THREE,{ground:groundHeightAt,walk:eldoriaWalk,lowSpec:terrainLowSpec}):null;
+if(vigiaRuin){scene.add(vigiaRuin.group);cameraOccluders.push({obj:vigiaRuin.group,x:VIGIA.x,z:VIGIA.z,r:VIGIA.r+12}); // a câmera não atravessa o muro do posto
+ try{vigiaRuin.setOpened(localStorage.getItem(VIGIA_STORE)==='1');}catch(_){}}
+let vigiaSeenAt=0;
+function checkVigiaRuin(now){
+ if(!vigiaRuin||voidMode||cineActive)return;vigiaRuin.update(now*.001);
+ const P=player.position,dc=Math.hypot(P.x-vigiaRuin.chestWorld.x,P.z-vigiaRuin.chestWorld.z);
+ if(!vigiaRuin.opened&&dc<1.9){vigiaRuin.setOpened(true);try{localStorage.setItem(VIGIA_STORE,'1');}catch(_){}
+  bumpStat('ruins');gainXp(XP_REWARDS.ruin);coins+=6;save3DProgress();updateQuestHud();worldAudio.discovery&&worldAudio.discovery();
+  const toast=document.getElementById('quest-toast');if(toast){toast.textContent='POSTO DO VIGIA · +6 MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),3000);}
+  status.textContent='Um relicário esquecido pelos vigias. Daqui eles viam quem descia da garganta.';}
+ else if(Math.hypot(P.x-VIGIA.x,P.z-VIGIA.z)<VIGIA.r&&now-vigiaSeenAt>60000){vigiaSeenAt=now;if(!vigiaRuin.opened)status.textContent='Ruínas de um posto de vigia. Algo brilha junto ao muro.';}
+}
 let tropicalBelt=null;
 /* Chão sob o dossel: escurece e puxa para o musgo/serapilheira as cores de vértice do terreno sob as copas do cinturão
    (uma passada única na carga, grade espacial; a cor do terreno fora da mata não muda). */
@@ -2394,7 +2463,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);applyCycloneSuction(dt);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();for(const ts of torchSets)ts.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();for(const ts of torchSets)ts.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();checkVigiaRuin(now);
  undoCyShake();undoVxShake();undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -8121,6 +8190,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   Object.assign(out,{end:[+P.x.toFixed(2),+P.y.toFixed(2),+P.z.toFixed(2)],progress:+(prog/len).toFixed(3),maxY:+out.maxY.toFixed(2),minAbove:+out.minAbove.toFixed(2),stuckT:+out.stuckT.toFixed(2)});return out;},
  /** catálogo de obstáculos reais perto de (x,z) para montar a matriz (rochas por altura, superfícies caminháveis). */
  navCatalog(x=0,z=0,r=400){const near=o=>Math.hypot(o.x-x,o.z-z)<r;return{rocks:rockObstacles.filter(near).map(o=>({x:+o.x.toFixed(2),z:+o.z.toFixed(2),r:+o.radius.toFixed(2),h:+o.height.toFixed(2),base:o.base!==undefined?+o.base.toFixed(2):null})),market:marketObstacles.filter(near).filter(o=>o.shape==='box'&&o.height>1.5).slice(0,40).map(o=>({x:+o.x.toFixed(2),z:+o.z.toFixed(2),hx:o.halfX,hz:o.halfZ,h:o.height})),trees:treeObstacles.filter(near).length,surfaces:eldoriaWalk.surfaces.map(s=>({n:s.name,t:s.type,x:+s.cx.toFixed(2),z:+s.cz.toFixed(2),y:+(s.y??s.y0).toFixed(2),y1:s.y1!==undefined?+s.y1.toFixed(2):null,hl:s.hl?+s.hl.toFixed(2):null,ux:s.ux!==undefined?+s.ux.toFixed(3):null,uz:s.uz!==undefined?+s.uz.toFixed(3):null}))};},
+ heightGrid(x0,x1,z0,z1,step=6){const rows=[];for(let z=z0;z<=z1;z+=step){const r=[];for(let x=x0;x<=x1;x+=step)r.push([+terrainHeightAt(x,z).toFixed(1),+terrain3D.boundaryDistance(x,z).toFixed(0),terrain3D.waterDepth(x,z)>-.12?1:0,insideMeadow(x,z,0)?1:0]);rows.push(r);}return rows;},
  walkState(){const p=player.position,s=eldoriaWalk.supportAt(p.x,p.z,p.y+.05);return{x:+p.x.toFixed(2),y:+p.y.toFixed(3),z:+p.z.toFixed(2),grounded,surface:s?s.s.name:null,surfaceY:s?+s.y.toFixed(3):null,terrain:+terrainHeightAt(p.x,p.z).toFixed(3),surfaces:eldoriaWalk.surfaces.length,walls:eldoriaWalk.walls.length};},
  walkRailings(on=true){walkRailingsOn=!!on;return walkRailingsOn;},
  walkMove(dx,dz,seconds=1){const l=Math.hypot(dx,dz)||1;qaMove={x:dx/l,z:dz/l,left:seconds};return true;},

@@ -1,3 +1,4 @@
+import { VIGIA, VIGIA_TRAIL } from './eldoria-valley-landscape.js';
 /** Mod 216: a pista fica além da floresta, no fim da trilha da encosta. */
 export const MASSACRE_SPOT={x:49,z:-139};
 export const SEWER_DOOR={x:73,z:-170,yaw:-.64};
@@ -90,6 +91,8 @@ export const FOREST_TRAILS = [
   // subida ao mirante do planalto leste e volta pela borda até a trilha principal (segundo laço)
   { id: 'mirante', name: 'Subida do Mirante', width: 2.6, points: [[-4, -133], [5, -134], [13, -133], [19.5, -131], [25, -129.5], [29, -128]] },
   { id: 'borda', name: 'Borda do Planalto', width: 2.4, points: [[29, -128], [28, -120], [27.5, -112], [27, -108]] },
+  // Renascimento F2 — desvio opcional do Vale do Despertar: da estrada de Teren ao Posto do Vigia (eldoria-valley-landscape.js)
+  { id: VIGIA_TRAIL.id, name: VIGIA_TRAIL.name, width: VIGIA_TRAIL.width, points: VIGIA_TRAIL.points.map(p => [p[0], p[1]]) },
 ];
 export const FOREST_CLEARINGS = [
   { id: 'musgo', name: 'Clareira do Musgo', x: -36, z: -126, r: 6.5, kind: 'clareira' },
@@ -98,4 +101,5 @@ export const FOREST_CLEARINGS = [
   { id: 'mirante', name: 'Mirante do Planalto', x: 30, z: -127, r: 4.5, kind: 'mirante' },
   { id: 'reserva-oeste', name: 'Reserva Oeste', x: -66, z: -104, r: 6, kind: 'reservado' },
   { id: 'reserva-leste', name: 'Reserva Leste', x: 37, z: -146, r: 6, kind: 'reservado' },
+  { id: 'vigia', name: VIGIA.name, x: VIGIA.x, z: VIGIA.z, r: VIGIA.r, kind: 'misterio' },
 ];
