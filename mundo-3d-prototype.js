@@ -76,7 +76,7 @@ import {createRiverQuery,wrapTerrainForBanks,planRiverBanks,fordAlong,FORD} from
 import {buildRiverBanks,paintRiverBanks} from './eldoria-river-banks3d.js';
 import {buildCityPlaza} from './eldoria-city-plaza3d.js';
 import {buildCityFacades} from './eldoria-city-facades3d.js';
-import {PORTER_ROUTE,TAX_GUARD,routeAt} from './eldoria-city-facades.js';
+import {PORTER_ROUTE,routeAt} from './eldoria-city-facades.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
 import {buildUndergrowth,buildTropical} from './eldoria-undergrowth.js';
 // Heavy ArvoreFloresta01.glb retired; its territory now uses the same optimized tropical LOD system.
@@ -3624,15 +3624,14 @@ function loadVillagers(){
     const body=new THREE.Mesh(new THREE.CylinderGeometry(.15,.12,.26,10,1,true),wood);body.material.side=THREE.DoubleSide;const bottom=new THREE.Mesh(new THREE.CircleGeometry(.12,10),new THREE.MeshStandardMaterial({color:0x140f0b}));bottom.rotation.x=-Math.PI/2;bottom.position.y=-.12;
     const hoop=new THREE.Mesh(new THREE.TorusGeometry(.15,.012,4,12),iron);hoop.rotation.x=Math.PI/2;hoop.position.y=.08;const handle=new THREE.Mesh(new THREE.TorusGeometry(.14,.008,4,10,Math.PI),iron);handle.position.y=.13;b.add(body,bottom,hoop,handle);
     b.scale.setScalar(k);b.position.set(.33*k,.6*k,.04*k);h.add(b);villagerWalkers[0].bucket=b;}
-   // RENASCIMENTO F2 — ações com clipes VERIFICADOS nos GLBs (o rig não tem varrer/carregar): o carregador anda
-   // ("Walking") do largo da ponte até a mesa de ração com um saco no ombro e volta sem ele; o guarda do tributo fica
-   // em pé ao lado do edital na pose "Alert".
+   // RENASCIMENTO F2 — ação com clipe VERIFICADO no GLB (o rig não tem varrer/carregar): o carregador anda ("Walking")
+   // do largo da ponte até a mesa de ração com um saco no ombro e volta sem ele. Guarda do tributo: bloqueado (sem
+   // modelo/traje de guarda; a pose Alert no morador comum não convence) — documentado no PR.
    if(FACADES_ON)Promise.all([
     npcFactory.create({sex:'man',role:'walk',x:PORTER_ROUTE[0][0],z:PORTER_ROUTE[0][1]}).then(c=>{villageGroup.add(c.holder);villageNpcs.push(c);if(c.mixer)villageNpcMixers.push(c.mixer);
      const k=1/(c.holder.scale.x||1),sack=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6),new THREE.MeshStandardMaterial({color:0x8a7150,roughness:1}));sack.scale.set(1.25*k,.8*k,.9*k);sack.position.set(.16*k,1.5*k,-.05*k);sack.name='saco-carregador';c.holder.add(sack);
-     cityPorter={c,sack,t:0};}),
-    npcFactory.create({sex:'man',role:'idle',clipRe:/^alert$/i,x:TAX_GUARD.x,z:TAX_GUARD.z,yaw:Math.atan2(TAX_GUARD.lookAt[0]-TAX_GUARD.x,TAX_GUARD.lookAt[1]-TAX_GUARD.z)}).then(c=>{villageGroup.add(c.holder);villageNpcs.push(c);if(c.mixer)villageNpcMixers.push(c.mixer);c.holder.name="guarda-tributo";marketObstacles.push({x:TAX_GUARD.x,z:TAX_GUARD.z,shape:"circle",radius:.38,height:1.8,guard:true});})
-   ]).catch(e=>console.warn('F2: carregador/guarda não carregou',e));
+     cityPorter={c,sack,t:0};})
+   ]).catch(e=>console.warn('F2: carregador não carregou',e));
    window.SevenSinsVillagerReport={vendors:vendorRoots.length,residents:villageNpcs.length-vendorRoots.length,childrenInVillage:0,models:[ELDORIA_NPC_MODELS.man,ELDORIA_NPC_MODELS.woman],roles:villageNpcs.map(c=>c.role)};
  }).catch(e=>console.error('NPC Meshy: carregamento falhou (sem fallback procedural)',e));
 }

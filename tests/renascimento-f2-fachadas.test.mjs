@@ -2,12 +2,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { FACADE_AUDIT, planFacadeDetails, besideDoor, doorFront, routeAt, PORTER_ROUTE, TAX_GUARD } from '../eldoria-city-facades.js';
+import { FACADE_AUDIT, planFacadeDetails, besideDoor, doorFront, routeAt, PORTER_ROUTE } from '../eldoria-city-facades.js';
 import { ELDORIA_HOUSES, ELDORIA_DOOR_LOCAL } from '../eldoria-city-layout.js';
 import { ENTRY_STREET, plazaProps } from '../eldoria-city-plaza.js';
 
 const world = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
-const npcs = fs.readFileSync(new URL('../eldoria-meshy-npcs.js', import.meta.url), 'utf8');
 const glbClips = f => { const b = fs.readFileSync(new URL('../' + f, import.meta.url)), len = b.readUInt32LE(12); return (JSON.parse(b.slice(20, 20 + len).toString()).animations || []).map(a => a.name); };
 
 test('auditoria: porta de cada GLB na mesma face que o layout usa', () => {
@@ -36,9 +35,9 @@ test('ações de NPC: só clipes que existem no rig; carregador vai cheio e volt
   const go = routeAt(PORTER_ROUTE, 3), back = routeAt(PORTER_ROUTE, 30), end = PORTER_ROUTE[PORTER_ROUTE.length - 1];
   assert.equal(go.loaded, true); assert.equal(back.loaded, false);
   const table = plazaProps().find(p => p.kind === 'rationTable'); assert.ok(Math.hypot(end[0] - table.x, end[1] - table.z) < 2, 'termina na mesa de ração');
-  const board = plazaProps().find(p => p.kind === 'board'); assert.ok(Math.hypot(TAX_GUARD.x - board.x, TAX_GUARD.z - board.z) < 2, 'guarda ao lado do edital');
+  const board = plazaProps().find(p => p.kind === 'board');
   for (let t = 0; t < 60; t += .5) { const r = routeAt(PORTER_ROUTE, t); assert.ok(Number.isFinite(r.x) && Number.isFinite(r.z)); assert.ok(Math.hypot(r.x - board.x, r.z - board.z) > .9, 'rota não atravessa o quadro'); }
-  assert.match(npcs, /clipRe/); assert.match(world, /clipRe:\/\^alert\$\/i/);
+  assert.ok(!/guarda-tributo/.test(world), 'sem guarda improvisado');
 });
 
 test('fachadas: contrato de integração e rollback ?fachadas=0', () => {
