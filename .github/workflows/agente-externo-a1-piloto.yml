@@ -1,0 +1,31 @@
+name: A1 externo - piloto gratuito (desativado por padrao)
+# Somente triagem IA de uma issue rotulada; nenhum codigo e alterado.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: agente-externo-a1-piloto
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    # Habilitar somente apos configurar a chave GRATUITA e a variavel do repo.
+    if: vars.AGENTE_EXTERNO_A1_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Diagnosticar issue selecionada (max 1 chamada por rodada)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_FREE_MODEL }}
+        run: python3 tools/agentes-externos/a1-piloto.py
