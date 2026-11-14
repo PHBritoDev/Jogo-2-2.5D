@@ -74,6 +74,7 @@ import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js'
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
 import {createRiverQuery,wrapTerrainForBanks,planRiverBanks,fordAlong,FORD} from './eldoria-river-banks.js';
 import {buildRiverBanks,paintRiverBanks} from './eldoria-river-banks3d.js';
+import {buildCityPlaza} from './eldoria-city-plaza3d.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
 import {buildUndergrowth,buildTropical} from './eldoria-undergrowth.js';
 // Heavy ArvoreFloresta01.glb retired; its territory now uses the same optimized tropical LOD system.
@@ -944,6 +945,12 @@ const discardedFruits=new THREE.InstancedMesh(
 }
 // Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
+/* RENASCIMENTO F2 — chegada e praça: praça calçada com meio-fio, Rua da Entrada em pedra, Adro da Árvore (terraço
+   caminhável com escadarias e parapeito) e a carência contada por recursos (fila de baldes na fonte seca, mesa de
+   ração quase vazia, edital de tributo, canteiros secos, lampiões apagados de dia). `?praca=0` volta ao estado anterior. */
+const PLAZA_ON=new URLSearchParams(location.search).get('praca')!=='0';
+const cityPlaza=PLAZA_ON?buildCityPlaza(THREE,{scene:villageGroup,ground:groundHeightAt,walk:eldoriaWalk,obstacles:marketObstacles,lowSpec:terrainLowSpec}):null;
+window.SevenSinsPlazaReport=cityPlaza?{on:true,...cityPlaza.stats}:{on:false};
 // MOD 316 — tochas: ÚNICA estrutura física = TochaMedievalTripo.glb do criador (eldoria-torches3d.js); fogo pintado do GLB
 // recortado e chama autoral pequena em GPU. Poucas e justificadas; sem fallback procedural (GLB falhou → nenhuma tocha).
 const villageTorchSites=[
@@ -951,7 +958,7 @@ const villageTorchSites=[
  {x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1,why:'praça: saída para a mata/altar'},
 ];
 const authoredTorchAsset=loadTorchSource(THREE,GLTFLoader,{prepareBaked:r=>clampBakedMips(THREE,r,terrainLowSpec?4:3.5)});
-const torchSets=[];
+const torchSets=[];if(cityPlaza)torchSets.push(cityPlaza); // lampiões da praça acendem com a noite
 /* MOD 316 — o GLB da tocha chega depois do carregamento: compila o material recortado e a chama em segundo plano assim que
    chegam (KHR_parallel_shader_compile quando houver), em vez de compilar no primeiro quadro em que a tocha aparece. */
 function adoptTorchSet(ts){torchSets.push(ts);if(ts.holders.length&&renderer.compileAsync)renderer.compileAsync(ts.holders[0],camera,scene).catch(()=>{});return ts;}
@@ -3606,6 +3613,11 @@ function loadVillagers(){
     return c;
    }));
  }).then(()=>{
+   // RENASCIMENTO F2 — a moradora que anda pela praça leva um balde vazio (vai à fonte seca e volta sem água)
+   if(PLAZA_ON&&villagerWalkers[0]){const h=villagerWalkers[0].holder,k=1/(h.scale.x||1),b=new THREE.Group();b.name='balde-vazio-moradora';const wood=new THREE.MeshStandardMaterial({color:0x5c3f27,roughness:.9}),iron=new THREE.MeshStandardMaterial({color:0x2a2826,roughness:.6,metalness:.4});
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(.15,.12,.26,10,1,true),wood);body.material.side=THREE.DoubleSide;const bottom=new THREE.Mesh(new THREE.CircleGeometry(.12,10),new THREE.MeshStandardMaterial({color:0x140f0b}));bottom.rotation.x=-Math.PI/2;bottom.position.y=-.12;
+    const hoop=new THREE.Mesh(new THREE.TorusGeometry(.15,.012,4,12),iron);hoop.rotation.x=Math.PI/2;hoop.position.y=.08;const handle=new THREE.Mesh(new THREE.TorusGeometry(.14,.008,4,10,Math.PI),iron);handle.position.y=.13;b.add(body,bottom,hoop,handle);
+    b.scale.setScalar(k);b.position.set(.33*k,.6*k,.04*k);h.add(b);villagerWalkers[0].bucket=b;}
    window.SevenSinsVillagerReport={vendors:vendorRoots.length,residents:villageNpcs.length-vendorRoots.length,childrenInVillage:0,models:[ELDORIA_NPC_MODELS.man,ELDORIA_NPC_MODELS.woman],roles:villageNpcs.map(c=>c.role)};
  }).catch(e=>console.error('NPC Meshy: carregamento falhou (sem fallback procedural)',e));
 }
