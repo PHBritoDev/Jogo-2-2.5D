@@ -17,7 +17,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: a1-local-llm
+  group: a1-local-llm-${{ github.event_name == 'pull_request' && github.sha || 'background' }}
   cancel-in-progress: false
 
 jobs:
