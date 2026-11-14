@@ -95,8 +95,8 @@ peças pequenas são cortadas por distância (46–85 m). O tempo de quadro no S
 
 ## 6. Evidências
 
-`docs/renascimento/evidencias/f2-rio/`. São 12 ângulos fixos × 5 condições (15 h limpo, 6:24 com neblina, 18:12 com
-nuvens, 22:30 noite, 16 h tempestade), em pares antes/depois e em folhas de contato.
+`docs/renascimento/evidencias/f2-rio/`. São 10 ângulos fixos × 5 condições (15 h limpo, 6:24 com neblina, 18:12 com
+nuvens, 22:30 noite, 16 h tempestade), em folhas comparativas antes|depois (`comparativo-*.jpg`) e quadros de 15 h em 960×540 (`antes-15h-*`, `depois-15h-*`).
 
 ## 7. Próximo passo sugerido (não feito)
 
