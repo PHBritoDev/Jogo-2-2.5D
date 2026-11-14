@@ -1,0 +1,75 @@
+name: Equipe 5 agentes - triagem gratuita de PR
+# Execucao orientada a evento, sem OpenAI API, sem checkout de codigo nao confiavel,
+# sem merge e sem consumir quota de IA.
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize, edited]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: equipe-triagem-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  validar-pr-agente:
+    if: github.event_name == 'pull_request_target' && startsWith(github.event.pull_request.head.ref, 'agentes/a')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar entrega e reportar pendencias no proprio PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            const pr=context.payload.pull_request;
+            // Nunca executar codigo do PR ou permitir fork nao confiavel.
+            if (pr.head.repo.full_name!==owner+'/'+repo) return;
+            const match=/^agentes\/(a[1-5])\//i.exec(pr.head.ref);
+            if(!match) return;
+            const agent=match[1].toUpperCase();
+            const files=await github.paginate(github.rest.pulls.listFiles,{
+              owner,repo,pull_number:pr.number,per_page:100
+            });
+            const changed=files.map(f=>f.filename);
+            const code=changed.some(f=>/\.(?:js|mjs|cjs|ts|html|css|json|glb|gltf|frag|vert|glsl)$/i.test(f));
+            const visual=agent==='A2'||agent==='A3'||agent==='A4';
+            const description=String(pr.body||'');
+            const checks=[
+              {ok:!pr.draft,title:'PR fora do modo rascunho'},
+              {ok:changed.length>0,title:'Diff com arquivos alterados'},
+              {ok:!code||/test|teste|qa|valida|CI|check/i.test(description),title:'Relato de testes/validação no corpo da PR'},
+              {ok:!visual||/evid[eê]ncia|captura|screenshot|v[ií]deo|before|after|antes|depois/i.test(description),title:'Referência a evidências visuais (A2/A3/A4)'},
+              {ok:!changed.some(f=>/^docs\/renascimento\/.*caverna|caverna/i.test(f)),title:'Nenhum arquivo com nome de caverna modificado (área Claude)'},
+              {ok:!changed.includes('build-info.js'),title:'Versão de publicação reservada ao A6'}
+            ];
+            const marker='<!-- equipe-5-agentes-triagem-v1 -->';
+            const missing=checks.filter(c=>!c.ok);
+            const lines=[
+              marker,
+              '### Triagem automática gratuita — '+agent,
+              '',
+              'Esta triagem é **metadados e checklist**, não revisão de código por IA, execução de testes nem aprovação para merge.',
+              '',
+              ...checks.map(c=> (c.ok?'✅':'⚠️')+' '+c.title),
+              '',
+              (missing.length?'**Pendências preliminares:** '+missing.length+'.':'**Checklist preliminar completo.**'),
+              'A6 ainda precisa verificar CI real, diff, branches, evidências e integridade do jogo antes de qualquer merge.',
+              'Nenhum modelo, API paga ou merge foi executado.',
+              '',
+              '[Central #519](https://github.com/'+owner+'/'+repo+'/issues/519)'
+            ];
+            const body=lines.join('\n');
+            const comments=await github.paginate(github.rest.issues.listComments,{
+              owner,repo,issue_number:pr.number,per_page:100
+            });
+            const old=comments.find(c=>c.user.type==='Bot'&&c.body.includes(marker));
+            if (old) {
+              if(old.body!==body){
+                await github.rest.issues.updateComment({owner,repo,comment_id:old.id,body});
+              }
+            }else{
+              await github.rest.issues.createComment({owner,repo,issue_number:pr.number,body});
+            }
