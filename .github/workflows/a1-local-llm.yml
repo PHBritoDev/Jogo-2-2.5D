@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/a1-local-llm.yml"
       - "tools/agentes-externos/a1-local.py"
+      - "tools/agentes-externos/test_a1_local.py"
   issues:
     types: [labeled]
   schedule:
@@ -20,6 +21,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  testar-codigo:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tools/agentes-externos -p 'test_a1_local.py' -v
   escolher-issue:
     if: github.event_name != 'pull_request' && (github.event_name != 'issues' || github.event.label.name == 'agente-local-a1')
     runs-on: ubuntu-latest
