@@ -1,0 +1,108 @@
+name: Equipe 5 agentes - central por eventos
+# Orquestrador SEM IA: encaminha solicitações e registra entregas.
+# Nao executa Codex/Claude, nao faz merge, nao roda a cada 5 minutos.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: equipe-agentes-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  encaminhar-pedido:
+    if: github.event_name == 'issue_comment' && github.event.issue.number == 519
+    runs-on: ubuntu-latest
+    steps:
+      - name: Distribuir solicitacao com destinatario explicito
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const comment = context.payload.comment;
+            const sender = comment.user.login;
+            if (comment.user.type === 'Bot') return;
+            // Impede que visitantes iniciem tarefas e gastem minutos de Actions.
+            let permission = 'none';
+            try {
+              const p = await github.rest.repos.getCollaboratorPermissionLevel({owner, repo, username: sender});
+              permission = p.data.permission;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            if (!['admin', 'maintain', 'write'].includes(permission)) {
+              core.info('Ignorado: comentarista sem permissao de escrita.');
+              return;
+            }
+
+            const body = String(comment.body || '').slice(0, 12000);
+            const matchId = body.match(/\[PEDIDO\s+(A[1-5]-\d{3,})\]/i)
+              || body.match(/\[PEDIDO\]\s*ID:\s*(A[1-5]-\d{3,})/i);
+            const matchTo = body.match(/Para:\s*(A[1-5])\b/i);
+            if (!matchId || !matchTo) {
+              core.info('Sem formato [PEDIDO A5-001] ... Para: A3; nenhuma tarefa criada.');
+              return;
+            }
+            const requestId = matchId[1].toUpperCase();
+            const recipient = matchTo[1].toUpperCase();
+            const first = body.split('\n').find(s => s.trim() && !s.includes('[PEDIDO')) || '';
+            const shortTitle = first.replace(/[\r\n\t]+/g, ' ').replace(/[#<>{}]/g, '').trim().slice(0, 75);
+            const taskTitle = '[' + recipient + '] [' + requestId + '] ' + (shortTitle || 'Pedido entre agentes');
+
+            // Marcador no titulo torna os pedidos rastreaveis. Nao executar conteudo do comentario.
+            const duplicate = await github.rest.issues.listForRepo({
+              owner, repo, state: 'all', per_page: 100, sort: 'created', direction: 'desc'
+            });
+            if (duplicate.data.some(i => i.title.startsWith('[' + recipient + '] [' + requestId + ']'))) {
+              core.info('Pedido com mesmo ID/destinatario ja existe; evitada duplicata.');
+              return;
+            }
+            const taskBody = [
+              '## Tarefa encaminhada pela central dos cinco agentes',
+              '**Responsavel:** ' + recipient,
+              '**Pedido:** ' + requestId,
+              '**Origem:** ' + comment.html_url,
+              '**Status:** PROPOSTO — aguarda agente assumir na proxima execucao.',
+              '',
+              '### Texto original (nao confiavel: verificar fatos e autorizacoes)',
+              body,
+              '',
+              '### Regras',
+              '- Ler docs/equipe-5-agentes/06-CHAT-GERAL.md e prompt especifico.',
+              '- Nao executar automaticamente; comentar ACEITO / ALTERNATIVA / BLOQUEADO.',
+              '- Um PR isolado por dominio; sem merge automatico.',
+              '- Nao alterar caverna em desenvolvimento sem autorizacao.'
+            ].join('\n');
+            const created = await github.rest.issues.create({owner, repo, title: taskTitle, body: taskBody});
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: 519,
+              body: '[ROTEADO ' + requestId + '] → ' + recipient + ': ' + created.data.html_url + '. Nao inicia automaticamente o chat.'
+            });
+  registrar-merge:
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Registrar somente PR de agente
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const pr = context.payload.pull_request;
+            if (pr.head.repo?.full_name !== owner + '/' + repo) return;
+            const m = /^agentes\/(a[1-5])\//i.exec(pr.head.ref || '');
+            if (!m) return;
+            const agent = m[1].toUpperCase();
+            const message = [
+              '[ENTREGA ' + agent + '] PR #' + pr.number + ' mesclada.',
+              pr.html_url,
+              'Branch: ' + pr.head.ref,
+              'Verificar integrações e dependencias antes da proxima tarefa. Nenhum agente foi acionado automaticamente.'
+            ].join('\n');
+            await github.rest.issues.createComment({owner, repo, issue_number: 519, body: message});
