@@ -31,7 +31,7 @@ def gh(method, path, payload=None):
 
 
 def gemini(prompt):
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
+    model = (os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash-lite")
     # Model identifier fixed to known-safe syntax; no arbitrary URL control.
     if not model.replace("-", "").replace(".", "").isalnum():
         raise RuntimeError("Invalid GEMINI_MODEL")
