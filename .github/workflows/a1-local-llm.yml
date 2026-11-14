@@ -2,6 +2,10 @@ name: A1 local gratuito - triagem por modelo aberto
 # Modelo roda no runner publico sem API. Não altera nem executa codigo da Issue.
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/a1-local-llm.yml"
+      - "tools/agentes-externos/a1-local.py"
   issues:
     types: [labeled]
   schedule:
@@ -17,7 +21,7 @@ concurrency:
 
 jobs:
   escolher-issue:
-    if: github.event_name != 'issues' || github.event.label.name == 'agente-local-a1'
+    if: github.event_name != 'pull_request' && (github.event_name != 'issues' || github.event.label.name == 'agente-local-a1')
     runs-on: ubuntu-latest
     outputs:
       target: ${{ steps.pick.outputs.target }}
@@ -71,27 +75,25 @@ jobs:
       - name: Cache do binário llama.cpp
         uses: actions/cache@v4
         with:
-          path: ~/.cache/a1-llm/llama-cli
+          path: ~/.cache/a1-llm/llama-bin
           key: a1-llama-cli-b12244-ubuntu-v1
       - name: Compilar llama.cpp se necessário
         run: |
-          if [ ! -x "$HOME/.cache/a1-llm/llama-cli" ]; then
+          if [ ! -x "$HOME/.cache/a1-llm/llama-bin/llama-cli" ]; then
             git clone -q --depth 1 --branch b12244 https://github.com/ggml-org/llama.cpp /tmp/a1-llama
             cmake -S /tmp/a1-llama -B /tmp/a1-llama-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF
             cmake --build /tmp/a1-llama-build -j 2 --target llama-cli
-            cp /tmp/a1-llama-build/bin/llama-cli "$HOME/.cache/a1-llm/llama-cli"
-            # Binary may depend on shared libraries; cache only executable is
-            # insufficient, so keep the build directory for this run.
-            echo "LD_LIBRARY_PATH=/tmp/a1-llama-build/bin" >> "$GITHUB_ENV"
+            mkdir -p "$HOME/.cache/a1-llm/llama-bin"
+            cp -a /tmp/a1-llama-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
           fi
       - name: Produzir diagnóstico sem modificar codigo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_ISSUE: ${{ needs.escolher-issue.outputs.target }}
           MODEL_FILE: ${{ runner.temp }}/model.gguf
-          LLAMA_BIN: ${{ runner.temp }}/llama-cli
         run: |
           cp "$HOME/.cache/a1-llm/model.gguf" "$MODEL_FILE"
-          cp "$HOME/.cache/a1-llm/llama-cli" "$LLAMA_BIN"
-          chmod +x "$LLAMA_BIN"
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          "$HOME/.cache/a1-llm/llama-bin/llama-cli" --version
+          export LLAMA_BIN="$HOME/.cache/a1-llm/llama-bin/llama-cli"
           python3 tools/agentes-externos/a1-local.py
