@@ -72,7 +72,7 @@ import {loadTropicalTrees,mountTropicalForest,planTropicalBelt} from './eldoria-
 import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
-import {createRiverQuery,wrapTerrainForBanks,planRiverBanks,fordAlong,FORD} from './eldoria-river-banks.js';
+import {createRiverQuery,wrapTerrainForBanks,planRiverBanks,fordAlong,fordMask,FORD} from './eldoria-river-banks.js';
 import {buildRiverBanks,paintRiverBanks} from './eldoria-river-banks3d.js';
 import {buildCityPlaza} from './eldoria-city-plaza3d.js';
 import {buildCityFacades} from './eldoria-city-facades3d.js';
@@ -259,6 +259,8 @@ const RIVER_BANKS_ON=new URLSearchParams(location.search).get('rio')!=='0';
 const riverQuery=createRiverQuery(RIVER_POINTS,{width:RIVER.width*.98,level:RIVER.level}),riverBankOpts={fordS:RIVER_BANKS_ON?fordAlong(riverQuery):undefined,bridge:BRIDGE};
 if(RIVER_BANKS_ON)wrapTerrainForBanks(terrain3D,riverQuery,riverBankOpts);
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
+/* RENASCIMENTO F2 — som do rio: distância à linha d'água (correnteza) e proximidade do vau (marulho nas pedras). */
+function riverAudioAt(x,z){const q=riverQuery.nearest(x,z);if(!q)return{riverDistance:99,fordNear:0};const d=Math.max(0,q.d-2.6);return{riverDistance:d,fordNear:riverBankOpts.fordS!==undefined?fordMask(q,riverBankOpts.fordS)*Math.max(0,1-d/12):0};}
 function groundHeightAt(x,z){if(voidMode)return voidSpec.y;return terrain3D.height(x,z);}
 function dryGround(x,z){return terrain3D.walkable(x,z)&&terrain3D.waterDepth(x,z)<-.12;}
 const terrainLowSpec=(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches)||innerWidth<700;
@@ -2691,7 +2693,7 @@ function updateWorldAudio(dt){
  const x=player.position.x,z=player.position.z;
  const onPath=Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<13||trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5));
  const surface=terrain3D.waterDepth(x,z)>-.05?'water':onPath?'path':'grass';
- worldAudio.update(dt,{night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,fallsDistance:eldoriaFalls.distanceTo(x,z),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
+ worldAudio.update(dt,{night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,...riverAudioAt(x,z),fallsDistance:eldoriaFalls.distanceTo(x,z),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
 }
 /* MOD 186 — mapa com névoa de guerra e abrigos de viagem rápida. O mapa só mostra o que já foi visto;
    cada abrigo precisa ser encontrado e registrado antes de aparecer na lista de viagem. */
