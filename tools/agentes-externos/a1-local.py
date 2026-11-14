@@ -75,7 +75,7 @@ def infer(prompt, llama_bin, model):
     result = subprocess.run(
         [llama_bin, "-m", model, "-p", prompt, "-n", "420",
          "-c", "4096", "-t", "2", "--temp", "0.2",
-         "--no-display-prompt", "--simple-io"],
+         "--single-turn", "--no-display-prompt", "--simple-io"],
         capture_output=True, text=True, timeout=210, check=True,
     )
     text = result.stdout.strip()
