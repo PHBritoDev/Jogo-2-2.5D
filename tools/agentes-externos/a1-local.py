@@ -76,7 +76,7 @@ def infer(prompt, llama_bin, model):
         [llama_bin, "-m", model, "-p", prompt, "-n", "420",
          "-c", "4096", "-t", "2", "--temp", "0.2",
          "--single-turn", "--no-display-prompt", "--simple-io"],
-        capture_output=True, text=True, timeout=210, check=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=210, check=True,
     )
     text = result.stdout.strip()
     # Reject a llama-cli startup-only response. Never treat a banner as QA.
