@@ -78,21 +78,36 @@ def infer(prompt, llama_bin, model):
          "--single-turn", "--no-display-prompt", "--simple-io"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=210, check=True,
     )
-    text = result.stdout.strip()
-    # Reject a llama-cli startup-only response. Never treat a banner as QA.
-    if "Loading model..." in text:
-        text = text.split("Loading model...", 1)[1]
-    text = re.sub(r"(?m)^.*[▄█▀].*$", "", text)
-    text = re.sub(r"\n{3,}", "\n\n", text).strip()
-    if not any(x in text.lower() for x in ("hipótese", "reprodu", "teste", "verific")):
-        raise ValueError("Model did not produce a recognizable QA report")
-    return text[-MAX_OUTPUT_CHARS:]
+    return clean_report(result.stdout)
+
+
+def clean_report(output):
+    """Isolate the model's QA body; drop llama-cli banner, echoed prompt and stats."""
+    # Real llama-cli executions can print metadata and the entire input prompt.
+    # Never publish the system prompt or untrusted raw input into an Issue.
+    starts = list(re.finditer(
+        r"(?im)^#{1,4}\s*(?:hip[oó]tese a validar|diagn[oó]stico preliminar|"
+        r"passos de reprodu[cç][aã]o|an[aá]lise)\s*$", output,
+    ))
+    if not starts:
+        raise ValueError("No valid report header; refusing to publish CLI output")
+    report = output[starts[-1].start():]
+    report = re.split(
+        r"(?im)^\s*\[\s*Prompt:|^\s*Exiting\.\.\.|^\s*>\s*<\|im_start\|",
+        report, maxsplit=1,
+    )[0].strip()
+    report = re.sub(r"\n#{1,4}\s+[^\n]{1,55}$", "", report).strip() if report.endswith(("### Ident", "### Concl")) else report
+    if len(report) < 200 or len(re.findall(r"(?m)^#{1,4}\s+", report)) < 3:
+        raise ValueError("QA report too short or incomplete")
+    if "<|im_start|" in report or "available commands:" in report:
+        raise ValueError("Unsafe prompt echo in QA report")
+    return report[:MAX_OUTPUT_CHARS]
 
 
 def submit(repo, number, report):
     if len(report) < 50:
         raise ValueError("Model returned an empty/insufficient report")
-    body = (MARKER + "\n### Diagnóstico preliminar — A1 local (Qwen 1.5B)\n\n"
+    body = (MARKER + "\n### Hipóteses automáticas — A1 local (Qwen 1.5B)\n\n**NÃO É BUG CONFIRMADO. Não aplicar correções sem reprodução e testes.**\n\n"
             + report[:MAX_OUTPUT_CHARS] + "\n\n"
             "**Automático, sem execução de código do relatório.** "
             "Nenhuma correção ou teste foi executado; A1/A6 devem validar. "
