@@ -1,0 +1,97 @@
+name: A1 local gratuito - triagem por modelo aberto
+# Modelo roda no runner publico sem API. Não altera nem executa codigo da Issue.
+on:
+  workflow_dispatch:
+  issues:
+    types: [labeled]
+  schedule:
+    - cron: '*/15 * * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: a1-local-llm
+  cancel-in-progress: false
+
+jobs:
+  escolher-issue:
+    if: github.event_name != 'issues' || github.event.label.name == 'agente-local-a1'
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.pick.outputs.target }}
+    steps:
+      - name: Selecionar uma Issue não processada
+        id: pick
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const list = await github.rest.issues.listForRepo({
+              owner, repo, labels: 'agente-local-a1', state: 'open',
+              per_page: 25, sort: 'created', direction: 'asc'
+            });
+            const marker = '<!-- a1-local-llm-v1 -->';
+            for (const issue of list.data) {
+              if (issue.pull_request) continue;
+              const comments = await github.paginate(github.rest.issues.listComments,
+                {owner,repo,issue_number:issue.number,per_page:100});
+              if (comments.some(c => String(c.body).includes(marker))) continue;
+              core.setOutput('target', issue.number.toString());
+              return;
+            }
+            core.setOutput('target', '');
+
+  analisar-com-modelo-local:
+    needs: escolher-issue
+    if: needs.escolher-issue.outputs.target != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout apenas de main (não de PR/Issue)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: main
+      - name: Cache do modelo de aproximadamente 1 GB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/a1-llm/model.gguf
+          key: a1-qwen25-coder-15b-q4km-v1
+      - name: Baixar modelo aberto (somente se cache ausente)
+        run: |
+          mkdir -p "$HOME/.cache/a1-llm"
+          if [ ! -s "$HOME/.cache/a1-llm/model.gguf" ]; then
+            curl --fail --location --retry 3 --max-time 180 \
+              "https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf" \
+              -o "$HOME/.cache/a1-llm/model.gguf"
+          fi
+          test "$(stat -c%s "$HOME/.cache/a1-llm/model.gguf")" -gt 700000000
+      - name: Cache do binário llama.cpp
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/a1-llm/llama-cli
+          key: a1-llama-cli-b12244-ubuntu-v1
+      - name: Compilar llama.cpp se necessário
+        run: |
+          if [ ! -x "$HOME/.cache/a1-llm/llama-cli" ]; then
+            git clone -q --depth 1 --branch b12244 https://github.com/ggml-org/llama.cpp /tmp/a1-llama
+            cmake -S /tmp/a1-llama -B /tmp/a1-llama-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF
+            cmake --build /tmp/a1-llama-build -j 2 --target llama-cli
+            cp /tmp/a1-llama-build/bin/llama-cli "$HOME/.cache/a1-llm/llama-cli"
+            # Binary may depend on shared libraries; cache only executable is
+            # insufficient, so keep the build directory for this run.
+            echo "LD_LIBRARY_PATH=/tmp/a1-llama-build/bin" >> "$GITHUB_ENV"
+          fi
+      - name: Produzir diagnóstico sem modificar codigo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_ISSUE: ${{ needs.escolher-issue.outputs.target }}
+          MODEL_FILE: ${{ runner.temp }}/model.gguf
+          LLAMA_BIN: ${{ runner.temp }}/llama-cli
+        run: |
+          cp "$HOME/.cache/a1-llm/model.gguf" "$MODEL_FILE"
+          cp "$HOME/.cache/a1-llm/llama-cli" "$LLAMA_BIN"
+          chmod +x "$LLAMA_BIN"
+          python3 tools/agentes-externos/a1-local.py
