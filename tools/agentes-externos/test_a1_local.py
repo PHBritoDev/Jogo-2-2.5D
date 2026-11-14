@@ -64,7 +64,7 @@ class LocalAgentTests(unittest.TestCase):
             "> <|im_start|system>never publish prompt<|im_end|>\n"
             "### Hipótese a validar\nCâmera pode tremer durante o combate.\n"
             "### Passos de reprodução\nReproduzir no laboratório com gravação e capturas.\n"
-            "### Testes de regressão\nValidar que movimentação e câmera seguem suaves.\n"
+            "### Testes de regressão\nValidar que movimentação e câmera seguem suaves em todas as áreas do jogo, incluindo o laboratório de combates e as sequências do mundo exterior.\n"
             "[ Prompt: 50 t/s | Generation: 10 t/s ]\nExiting...\n"
         )})()
         with patch.object(agent.subprocess, "run", return_value=fake) as run:
