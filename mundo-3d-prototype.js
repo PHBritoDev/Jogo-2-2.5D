@@ -72,6 +72,11 @@ import {loadTropicalTrees,mountTropicalForest,planTropicalBelt} from './eldoria-
 import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
+import {createRiverQuery,wrapTerrainForBanks,planRiverBanks,fordAlong,fordMask,FORD} from './eldoria-river-banks.js';
+import {buildRiverBanks,paintRiverBanks} from './eldoria-river-banks3d.js';
+import {buildCityPlaza} from './eldoria-city-plaza3d.js';
+import {buildCityFacades} from './eldoria-city-facades3d.js';
+import {PORTER_ROUTE,routeAt} from './eldoria-city-facades.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
 import {buildUndergrowth,buildTropical} from './eldoria-undergrowth.js';
 // Heavy ArvoreFloresta01.glb retired; its territory now uses the same optimized tropical LOD system.
@@ -247,7 +252,15 @@ const terrain3D=createTerrain({
 });
 /* MOD 311 — a encosta oeste do vale vira rampa até a boca da caverna e o túnel ganha piso plano (rebaixo do relevo). */
 {const h0=terrain3D.height;terrain3D.height=(x,z)=>{const h=h0(x,z);if(x<CAVE_MOUTH.x-CAVE_MOUTH.depth-7||x>CAVE_MOUTH.x+10||Math.abs(z-CAVE_MOUTH.z)>CAVE_MOUTH.width/2+6)return h;const c=mouthCarve(x,z);return c.w>0?h+(c.y-h)*c.w:h;};}
+/* RENASCIMENTO F2 — rio: margens erodidas em rampa (praia de cascalho na curva interna, corte no lado externo) e o
+   Vau das Pedras a leste da ponte (leito raso, ~0,5 m de lâmina). Só rebaixa barranco seco e só levanta leito; ponte,
+   cabeceira e foz intocadas. `?rio=0` volta ao canal antigo. */
+const RIVER_BANKS_ON=new URLSearchParams(location.search).get('rio')!=='0';
+const riverQuery=createRiverQuery(RIVER_POINTS,{width:RIVER.width*.98,level:RIVER.level}),riverBankOpts={fordS:RIVER_BANKS_ON?fordAlong(riverQuery):undefined,bridge:BRIDGE};
+if(RIVER_BANKS_ON)wrapTerrainForBanks(terrain3D,riverQuery,riverBankOpts);
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
+/* RENASCIMENTO F2 — som do rio: distância à linha d'água (correnteza) e proximidade do vau (marulho nas pedras). */
+function riverAudioAt(x,z){const q=riverQuery.nearest(x,z);if(!q)return{riverDistance:99,fordNear:0};const d=Math.max(0,q.d-2.6);return{riverDistance:d,fordNear:riverBankOpts.fordS!==undefined?fordMask(q,riverBankOpts.fordS)*Math.max(0,1-d/12):0};}
 function groundHeightAt(x,z){if(voidMode)return voidSpec.y;return terrain3D.height(x,z);}
 function dryGround(x,z){return terrain3D.walkable(x,z)&&terrain3D.waterDepth(x,z)<-.12;}
 const terrainLowSpec=(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches)||innerWidth<700;
@@ -258,6 +271,7 @@ const terrainMesh=(()=>{
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.BufferAttribute(built.positions,3));geo.setIndex(new THREE.BufferAttribute(built.indices,1));geo.computeVertexNormals();
  geo.setAttribute('color',new THREE.BufferAttribute(colorTerrain(terrain3D,built.positions,geo.attributes.normal.array),3));
+ if(RIVER_BANKS_ON)paintRiverBanks(geo,riverQuery,riverBankOpts); // F2: lama molhada e cascalho nas margens
  const uv=new Float32Array(built.positions.length/3*2);for(let i=0,k=0;i<uv.length;i+=2,k+=3){uv[i]=built.positions[k]*.12;uv[i+1]=built.positions[k+2]*.12;}
  geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));geo.computeBoundingSphere();
  // Textura neutra de detalhe: a cor vem do relevo (grama, musgo, rocha, neve).
@@ -284,7 +298,7 @@ const pondWater=(()=>{const geo=new THREE.CircleGeometry(FOREST_POND.r*1.34,56);
  const mesh=new THREE.Mesh(geo,material);mesh.position.set(FOREST_POND.x,FOREST_POND.level,FOREST_POND.z);mesh.renderOrder=2;mesh.name='forest-pond';mesh.visible=false;scene.add(mesh);return mesh;})();
 /* MOD 291 — água corrente de Eldória: rio em fita com correnteza ao longo da curva, espuma nas margens e pedras,
    Fresnel e cor por profundidade; o lago da mata usa o mesmo shader (o disco antigo fica só como material do canal). */
-const eldoriaRiver=buildRiverMesh(THREE,RIVER_POINTS,{width:RIVER.width*.98,level:RIVER.level,flow:RIVER.flow});scene.add(eldoriaRiver.mesh);
+const eldoriaRiver=buildRiverMesh(THREE,RIVER_POINTS,{width:RIVER.width*.98,level:RIVER.level,flow:RIVER.flow,...(RIVER_BANKS_ON?{deep:0x0e4648,shallow:0x3b8e84}:{})});scene.add(eldoriaRiver.mesh); // F2: verde de rio de mata (menos ciano de piscina)
 const eldoriaLake=buildLakeMesh(THREE,{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.32,level:FOREST_POND.level});scene.add(eldoriaLake.mesh);
 /* MOD 316 — cachoeira em degraus da nascente (crista leste → cabeceira do rio), ver eldoria-waterfall3d.js. */
 const eldoriaFalls=buildWaterfall(THREE,{height:(x,z)=>terrain3D.height(x,z),lowSpec:terrainLowSpec});scene.add(eldoriaFalls.group);
@@ -303,6 +317,7 @@ const riverRockPlan=planRiverRocks(eldoriaRiver.ribbon.centerline,{width:RIVER.w
 // Pedras dos encontros da ponte também espumam (a água bate no pé do arco).
 riverRockPlan.push({x:BRIDGE.x+BRIDGE.axisZ*1.6,z:BRIDGE.z-BRIDGE.axisX*1.6,r:.6,foam:.55,hidden:true},{x:BRIDGE.x-BRIDGE.axisZ*1.6,z:BRIDGE.z+BRIDGE.axisX*1.6,r:.6,foam:.55,hidden:true});
 scene.add(buildRiverRocks(THREE,riverRockPlan.filter(r=>!r.hidden),{level:RIVER.level,lowSpec:terrainLowSpec}));eldoriaRiver.material.setRocks(riverRockPlan);
+if(riverBankOpts.fordS!==undefined)eldoriaRiver.material.setFord(riverBankOpts.fordS-FORD.halfLen,riverBankOpts.fordS+FORD.halfLen,FORD.fade,1); // F2: lâmina rasa e corredeira do vau
 /* MOD 316 — água por hora: reflete o horizonte/zênite da paleta atual e brilha com a cor do sol; passos na água rasa
    (margem do lago, vau do rio) e aterrissagens deixam anéis de ondulação (pool fixo de 6 por corpo d'água). */
 let waterProbeAt=0,waterInWater=null,waterRippleAt=0,waterWasGrounded=true;
@@ -787,13 +802,19 @@ const valleyPlan=VALLEY_ON?planValleyForest(valleyEnv).map(t=>({...t,y:groundHei
 const valleyOutcrops=VALLEY_ON?planValleyOutcrops(valleyEnv,terrainLowSpec?10:14):[];
 window.SevenSinsValleyReport={trees:valleyPlan.length,perSpecies:valleyPlan.reduce((a,t)=>(a[t.sp]=(a[t.sp]||0)+1,a),{}),outcrops:valleyOutcrops.length};
 const tropicalPlan=[...southernForestPlan,...villageBeltPlan].concat(serraForestPlan,valleyPlan);
+// RENASCIMENTO F2 — peças das margens: pedras na linha d'água, pedras-degrau do vau, juncos/taboas e blocos grandes
+// (estes entram no mesmo InstancedMesh dos afloramentos do vale: nenhuma draw call nova).
+const riverBankPlan=RIVER_BANKS_ON?planRiverBanks(riverQuery,{...riverBankOpts,lowSpec:terrainLowSpec,avoid:(x,z,r)=>bridgeDeck(x,z)||riverRockPlan.some(o=>Math.hypot(o.x-x,o.z-z)<o.r+r)||closeToPolyline(x,z,TEREN_ROAD,4)}):{stones:[],boulders:[],reeds:[],steps:[]};
+const riverBanks=RIVER_BANKS_ON?buildRiverBanks(THREE,{plan:riverBankPlan,scene,ground:groundHeightAt,level:RIVER.level,addWind:addInstancedWind,registerCull:registerInstanceCull,lowSpec:terrainLowSpec,rockObstacles}):null;
+const riverBoulderParts=riverBankPlan.boulders.map(b=>({x:b.x,z:b.z,s:b.s,yaw:b.rot,sink:.34}));
+window.SevenSinsRiverReport={on:RIVER_BANKS_ON,fordS:riverBankOpts.fordS,...(riverBanks?riverBanks.stats:{}),boulders:riverBoulderParts.length};
 // RENASCIMENTO F2 — afloramentos de rocha musgosa nas encostas (1 InstancedMesh, LOD1 do RochedoMusgoEldoria.glb) com
 // colisão de domo (pisa-se na beirada baixa; o corpo nunca entra na pedra) — mesma regra da Fase 1.
 let valleyRockMesh=null;
-if(valleyOutcrops.length)new GLTFLoader().load('./RochedoMusgoEldoria-lod1.glb',gltf=>{
+if(valleyOutcrops.length||riverBoulderParts.length)new GLTFLoader().load('./RochedoMusgoEldoria-lod1.glb',gltf=>{
  clampBakedMips(THREE,gltf.scene,terrainLowSpec?4:3.5);let src=null;gltf.scene.traverse(o=>{if(!src&&o.isMesh)src=o;});if(!src)return;
  src.geometry.computeBoundingBox();const bb=src.geometry.boundingBox,W=bb.max.x-bb.min.x,H=bb.max.y-bb.min.y,D=bb.max.z-bb.min.z;
- const parts=valleyOutcrops.flatMap(g=>g.parts);const mesh=new THREE.InstancedMesh(src.geometry,src.material,parts.length);mesh.name='vale-afloramentos';
+ const parts=valleyOutcrops.flatMap(g=>g.parts).concat(riverBoulderParts);const mesh=new THREE.InstancedMesh(src.geometry,src.material,parts.length);mesh.name='vale-afloramentos';
  const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),sc=new THREE.Vector3();
  parts.forEach((p,i)=>{const k=p.s/Math.max(W,D),y=groundHeightAt(p.x,p.z),hy=H*k;e.set((Math.sin(i*1.7)-.5)*.12,p.yaw,(Math.cos(i*2.3)-.5)*.1);q.setFromEuler(e);sc.set(k,k*(.8+.3*Math.abs(Math.sin(i*3.1))),k);
   v.set(p.x,y-bb.min.y*sc.y-hy*p.sink,p.z);m4.compose(v,q,sc);mesh.setMatrixAt(i,m4);
@@ -928,6 +949,16 @@ const discardedFruits=new THREE.InstancedMesh(
 }
 // Eldória: barracas GLB e vendedores compartilham ELDORIA_MARKET; sem barracas fantasma ou NPC solto.
 const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_CENTER.z+5.4);villageGroup.add(bench);addVillageBox(bench,new THREE.BoxGeometry(1,1,1),woodLightMat,0,.55,0,1.6,.16,.42);for(const x of [-.58,.58])addVillageBox(bench,new THREE.BoxGeometry(.14,.5,.32),woodMat,x,.25,0,1,1,1);
+/* RENASCIMENTO F2 — chegada e praça: praça calçada com meio-fio, Rua da Entrada em pedra, Adro da Árvore (terraço
+   caminhável com escadarias e parapeito) e a carência contada por recursos (fila de baldes na fonte seca, mesa de
+   ração quase vazia, edital de tributo, canteiros secos, lampiões apagados de dia). `?praca=0` volta ao estado anterior. */
+const PLAZA_ON=new URLSearchParams(location.search).get('praca')!=='0';
+const cityPlaza=PLAZA_ON?buildCityPlaza(THREE,{scene:villageGroup,ground:groundHeightAt,walk:eldoriaWalk,obstacles:marketObstacles,lowSpec:terrainLowSpec}):null;
+window.SevenSinsPlazaReport=cityPlaza?{on:true,...cityPlaza.stats}:{on:false};
+/* RENASCIMENTO F2 — fachadas e sinais de vida: jardineiras ao lado das portas (auditadas nos GLBs), lenha nas laterais,
+   varais com roupa remendada e a tabuleta da ferraria. `?fachadas=0` desliga. */
+const FACADES_ON=new URLSearchParams(location.search).get('fachadas')!=='0';
+const cityFacades=FACADES_ON?buildCityFacades(THREE,{scene:villageGroup,ground:groundHeightAt,obstacles:marketObstacles,lowSpec:terrainLowSpec}):null;
 // MOD 316 — tochas: ÚNICA estrutura física = TochaMedievalTripo.glb do criador (eldoria-torches3d.js); fogo pintado do GLB
 // recortado e chama autoral pequena em GPU. Poucas e justificadas; sem fallback procedural (GLB falhou → nenhuma tocha).
 const villageTorchSites=[
@@ -935,7 +966,7 @@ const villageTorchSites=[
  {x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1,why:'praça: saída para a mata/altar'},
 ];
 const authoredTorchAsset=loadTorchSource(THREE,GLTFLoader,{prepareBaked:r=>clampBakedMips(THREE,r,terrainLowSpec?4:3.5)});
-const torchSets=[];
+const torchSets=[];if(cityPlaza)torchSets.push(cityPlaza);if(cityFacades)torchSets.push(cityFacades); // lampiões da praça acendem com a noite
 /* MOD 316 — o GLB da tocha chega depois do carregamento: compila o material recortado e a chama em segundo plano assim que
    chegam (KHR_parallel_shader_compile quando houver), em vez de compilar no primeiro quadro em que a tocha aparece. */
 function adoptTorchSet(ts){torchSets.push(ts);if(ts.holders.length&&renderer.compileAsync)renderer.compileAsync(ts.holders[0],camera,scene).catch(()=>{});return ts;}
@@ -2085,7 +2116,7 @@ function dashBlockedAt(x,z){
 const PLAYER_WADE_MAX=1.25; // RENASCIMENTO F1: o herói não nada; mesma profundidade do contrato water-wade (margens 0,9–1,25 m são atravessáveis) — além disso para COM aviso, não numa parede muda
 let deepWaterHintAt=0;
 function playerBlockedAt(x,z){
- if(!voidMode&&!bridgeDeck(x,z)){const w=terrain3D.waterDepth(x,z);if(w>=PLAYER_WADE_MAX&&terrain3D.height(x,z)+w-Math.max(player.position.y-.3,terrain3D.height(x,z))>PLAYER_WADE_MAX){const now=performance.now();if(now>deepWaterHintAt){deepWaterHintAt=now+9000;if(typeof status!=='undefined'&&status&&!cineActive)status.textContent='A água fica funda e a correnteza é forte: atravesse pela ponte.';}return true;}}
+ if(!voidMode&&!bridgeDeck(x,z)){const w=terrain3D.waterDepth(x,z);if(w>=PLAYER_WADE_MAX&&terrain3D.height(x,z)+w-Math.max(player.position.y-.3,terrain3D.height(x,z))>PLAYER_WADE_MAX){const now=performance.now();if(now>deepWaterHintAt){deepWaterHintAt=now+9000;if(typeof status!=='undefined'&&status&&!cineActive)status.textContent='A água fica funda e a correnteza é forte: atravesse pela ponte'+(RIVER_BANKS_ON?' ou pelo vau, a leste.':'.');}return true;}}
  if(blockedAt(x,z,!voidMode))return true;
  // RENASCIMENTO F1: rochas do herói são domos (eldoria-rock-collider.js) — pedrinha se pisa, rocha alta só por cima
  if(!voidMode&&rocksBlock(rockObstacles,x,z,player.position.y,terrainHeightAt,player.position.x,player.position.z))return true;
@@ -2662,7 +2693,7 @@ function updateWorldAudio(dt){
  const x=player.position.x,z=player.position.z;
  const onPath=Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<13||trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5));
  const surface=terrain3D.waterDepth(x,z)>-.05?'water':onPath?'path':'grass';
- worldAudio.update(dt,{night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,fallsDistance:eldoriaFalls.distanceTo(x,z),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
+ worldAudio.update(dt,{night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,...riverAudioAt(x,z),fallsDistance:eldoriaFalls.distanceTo(x,z),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
 }
 /* MOD 186 — mapa com névoa de guerra e abrigos de viagem rápida. O mapa só mostra o que já foi visto;
    cada abrigo precisa ser encontrado e registrado antes de aparecer na lista de viagem. */
@@ -3533,7 +3564,7 @@ function closeProfile(){const panel=document.getElementById('profile-panel');if(
 /* MOD 191 — moradores de verdade: Npc.glb (versão leve Npc-lod.glb, 33 mil vértices, mesma aparência e
    animações) substitui os clones do protagonista nas bancas; três moradores caminham pela vila. */
 // MOD 216 — elenco próprio, gerado em Blender, com roupas, silhuetas e rostos distintos.
-const villagerWalkers=[];
+const villagerWalkers=[];let cityPorter=null; // RENASCIMENTO F2: carregador de mantimentos (rota de ida e volta)
 /** MOD 291 — os moradores procedurais tinham ~25 peças por cabeça (centenas de draw calls na praça). Junta as malhas
     irmãs de cada grupo que dividem o mesmo material; os grupos animados (_head, _armL/R, _legL/R) continuam separados. */
 function mergeGroupMeshes(root){
@@ -3590,6 +3621,19 @@ function loadVillagers(){
     return c;
    }));
  }).then(()=>{
+   // RENASCIMENTO F2 — a moradora que anda pela praça leva um balde vazio (vai à fonte seca e volta sem água)
+   if(PLAZA_ON&&villagerWalkers[0]){const h=villagerWalkers[0].holder,k=1/(h.scale.x||1),b=new THREE.Group();b.name='balde-vazio-moradora';const wood=new THREE.MeshStandardMaterial({color:0x5c3f27,roughness:.9}),iron=new THREE.MeshStandardMaterial({color:0x2a2826,roughness:.6,metalness:.4});
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(.15,.12,.26,10,1,true),wood);body.material.side=THREE.DoubleSide;const bottom=new THREE.Mesh(new THREE.CircleGeometry(.12,10),new THREE.MeshStandardMaterial({color:0x140f0b}));bottom.rotation.x=-Math.PI/2;bottom.position.y=-.12;
+    const hoop=new THREE.Mesh(new THREE.TorusGeometry(.15,.012,4,12),iron);hoop.rotation.x=Math.PI/2;hoop.position.y=.08;const handle=new THREE.Mesh(new THREE.TorusGeometry(.14,.008,4,10,Math.PI),iron);handle.position.y=.13;b.add(body,bottom,hoop,handle);
+    b.scale.setScalar(k);b.position.set(.33*k,.6*k,.04*k);h.add(b);villagerWalkers[0].bucket=b;}
+   // RENASCIMENTO F2 — ação com clipe VERIFICADO no GLB (o rig não tem varrer/carregar): o carregador anda ("Walking")
+   // do largo da ponte até a mesa de ração com um saco no ombro e volta sem ele. Guarda do tributo: bloqueado (sem
+   // modelo/traje de guarda; a pose Alert no morador comum não convence) — documentado no PR.
+   if(FACADES_ON)Promise.all([
+    npcFactory.create({sex:'man',role:'walk',x:PORTER_ROUTE[0][0],z:PORTER_ROUTE[0][1]}).then(c=>{villageGroup.add(c.holder);villageNpcs.push(c);if(c.mixer)villageNpcMixers.push(c.mixer);
+     const k=1/(c.holder.scale.x||1),sack=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6),new THREE.MeshStandardMaterial({color:0x8a7150,roughness:1}));sack.scale.set(1.25*k,.8*k,.9*k);sack.position.set(.16*k,1.5*k,-.05*k);sack.name='saco-carregador';c.holder.add(sack);
+     cityPorter={c,sack,t:0};})
+   ]).catch(e=>console.warn('F2: carregador não carregou',e));
    window.SevenSinsVillagerReport={vendors:vendorRoots.length,residents:villageNpcs.length-vendorRoots.length,childrenInVillage:0,models:[ELDORIA_NPC_MODELS.man,ELDORIA_NPC_MODELS.woman],roles:villageNpcs.map(c=>c.role)};
  }).catch(e=>console.error('NPC Meshy: carregamento falhou (sem fallback procedural)',e));
 }
@@ -3612,6 +3656,8 @@ function updateVillagers(dt){
  // Animações dos NPCs são atualizadas pelo laço global villageNpcMixers.
  // Único caminhante circula lentamente num espaço curto, sem busca de caminho cara.
  if(voidMode||dialogueOpen||cineActive)return;
+ if(cityPorter){const P=cityPorter,nx=routeAt(PORTER_ROUTE,P.t+dt*6,.85,3);if(Math.hypot(nx.x-player.position.x,nx.z-player.position.z)>.95)P.t+=dt; // para e dá passagem ao herói (não é obstáculo: nunca trava a rua)
+  const r=routeAt(PORTER_ROUTE,P.t,.85,3);P.c.holder.position.set(r.x,groundHeightAt(r.x,r.z),r.z);P.c.holder.rotation.y=Math.atan2(r.dirX,r.dirZ);P.sack.visible=r.loaded;if(P.c.action)P.c.action.paused=!r.moving;}
  for(const w of villagerWalkers){
   w.phase+=dt;const dx=Math.sin(w.phase*.31)*1.3,dz=Math.cos(w.phase*.31)*.7;
   const x=w.home.x+dx,z=w.home.z+dz;

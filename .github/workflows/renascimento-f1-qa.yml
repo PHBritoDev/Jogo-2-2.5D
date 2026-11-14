@@ -8,6 +8,16 @@ on:
       - 'eldoria-rock-collider.js'
       - 'eldoria-valley-landscape.js'
       - 'eldoria-valley-ruin3d.js'
+      - 'eldoria-river-banks.js'
+      - 'eldoria-city-plaza.js'
+      - 'eldoria-city-plaza3d.js'
+      - 'eldoria-city-facades.js'
+      - 'eldoria-city-facades3d.js'
+      - 'tests/renascimento-f2-fachadas.test.mjs'
+      - 'tests/renascimento-f2-cidade.test.mjs'
+      - 'eldoria-river-banks3d.js'
+      - 'eldoria-water.js'
+      - 'tests/renascimento-f2-rio.test.mjs'
       - 'act1-world-layout.js'
       - 'tests/renascimento-f2.test.mjs'
       - 'tests/renascimento-f1.test.mjs'
@@ -26,7 +36,7 @@ jobs:
         with:
           node-version: '22'
       - name: Testes do Renascimento F1 e regressões vizinhas
-        run: node --test tests/renascimento-f1.test.mjs tests/renascimento-f2.test.mjs graphics-adaptive.test.mjs tests/mod317-prologo.test.mjs eldoria-mod291.test.mjs map3d.test.mjs
+        run: node --test tests/renascimento-f1.test.mjs tests/renascimento-f2.test.mjs tests/renascimento-f2-rio.test.mjs tests/renascimento-f2-cidade.test.mjs tests/renascimento-f2-fachadas.test.mjs graphics-adaptive.test.mjs tests/mod317-prologo.test.mjs eldoria-mod291.test.mjs map3d.test.mjs
       - name: Instalar navegador WebGL
         run: |
           npm install --prefix tools/visual-lab --no-audit --no-fund
