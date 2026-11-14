@@ -77,6 +77,8 @@ test('rio: contrato de integração, trilha do vau e rollback ?rio=0', () => {
   assert.match(world, /buildRiverBanks\(THREE,\{plan:riverBankPlan/);
   assert.match(world, /concat\(riverBoulderParts\)/, 'blocos grandes no mesmo InstancedMesh dos afloramentos');
   assert.match(world, /eldoriaRiver\.material\.setFord\(/);
+  const riverLine = world.split('\n').find(l => l.startsWith('const eldoriaRiver=buildRiverMesh('));
+  assert.ok(riverLine && /scene\.add\(eldoriaRiver\.mesh\)/.test(riverLine.split('//')[0]), 'a fita d\'água do rio continua na cena (fora de comentário)');
   assert.match(water, /uniform vec4 uFord;/);
   assert.ok(FOREST_TRAILS.some(t => t.id === FORD_TRAIL.id), 'Caminho do Vau registrado nas trilhas');
 });

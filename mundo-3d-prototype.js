@@ -293,7 +293,7 @@ const pondWater=(()=>{const geo=new THREE.CircleGeometry(FOREST_POND.r*1.34,56);
  const mesh=new THREE.Mesh(geo,material);mesh.position.set(FOREST_POND.x,FOREST_POND.level,FOREST_POND.z);mesh.renderOrder=2;mesh.name='forest-pond';mesh.visible=false;scene.add(mesh);return mesh;})();
 /* MOD 291 — água corrente de Eldória: rio em fita com correnteza ao longo da curva, espuma nas margens e pedras,
    Fresnel e cor por profundidade; o lago da mata usa o mesmo shader (o disco antigo fica só como material do canal). */
-const eldoriaRiver=buildRiverMesh(THREE,RIVER_POINTS,{width:RIVER.width*.98,level:RIVER.level,flow:RIVER.flow,...(RIVER_BANKS_ON?{deep:0x0e4648,shallow:0x3b8e84}:{})}); // F2: verde de rio de mata (menos ciano de piscina)scene.add(eldoriaRiver.mesh);
+const eldoriaRiver=buildRiverMesh(THREE,RIVER_POINTS,{width:RIVER.width*.98,level:RIVER.level,flow:RIVER.flow,...(RIVER_BANKS_ON?{deep:0x0e4648,shallow:0x3b8e84}:{})});scene.add(eldoriaRiver.mesh); // F2: verde de rio de mata (menos ciano de piscina)
 const eldoriaLake=buildLakeMesh(THREE,{x:FOREST_POND.x,z:FOREST_POND.z,r:FOREST_POND.r*1.32,level:FOREST_POND.level});scene.add(eldoriaLake.mesh);
 /* MOD 316 — cachoeira em degraus da nascente (crista leste → cabeceira do rio), ver eldoria-waterfall3d.js. */
 const eldoriaFalls=buildWaterfall(THREE,{height:(x,z)=>terrain3D.height(x,z),lowSpec:terrainLowSpec});scene.add(eldoriaFalls.group);
