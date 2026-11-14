@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { PLAZA, PLAZA_OPENINGS, ENTRY_STREET, TERRACE, insidePlaza, plazaPolar, openingAt, terraceParts, plazaProps, registerTerraceWalk } from '../eldoria-city-plaza.js';
+import { PLAZA, PLAZA_OPENINGS, ENTRY_STREET, ABRIGO_VILA, TERRACE, insidePlaza, plazaPolar, openingAt, terraceParts, plazaProps, registerTerraceWalk } from '../eldoria-city-plaza.js';
 import { ELDORIA_HOUSES, ELDORIA_SMITHY } from '../eldoria-city-layout.js';
 import { ELDORIA_CENTER } from '../act1-world-layout.js';
 import { ELDORIA_MARKET, ELDORIA_DRY_FOUNTAIN } from '../eldoria-live-village3d.js';
@@ -21,6 +21,12 @@ test('praça: abraça poço, fonte seca, bancas e a chegada da Rua da Entrada; c
   let cross = null; for (let t = 0; t <= 1; t += .01) { const x = prev[0] + (end[0] - prev[0]) * t, z = prev[1] + (end[1] - prev[1]) * t; if (insidePlaza(x, z)) { cross = plazaPolar(x, z); break; } }
   assert.ok(cross && openingAt(cross.theta)?.id === 'entrada', 'meio-fio aberto onde a rua chega');
   assert.ok(PLAZA_OPENINGS.length >= 4);
+});
+
+test('Rua da Entrada não invade a base nem os pilares do Abrigo da Vila', () => {
+  const P = ENTRY_STREET.points; let min = 1e9;
+  for (let i = 0; i < P.length - 1; i++) for (let t = 0; t <= 1; t += .02) { const x = P[i][0] + (P[i + 1][0] - P[i][0]) * t, z = P[i][1] + (P[i + 1][1] - P[i][1]) * t; min = Math.min(min, Math.hypot(x - ABRIGO_VILA.x, z - ABRIGO_VILA.z)); }
+  assert.ok(min - ENTRY_STREET.width / 2 > ABRIGO_VILA.r, `borda da rua a ${(min - ENTRY_STREET.width / 2).toFixed(2)} m do centro (base ${ABRIGO_VILA.r} m)`);
 });
 
 test('adro: fora das casas, do passeio da moradora e das bancas; escadas confortáveis', () => {

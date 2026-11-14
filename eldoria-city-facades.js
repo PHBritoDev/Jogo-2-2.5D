@@ -49,7 +49,7 @@ export function planFacadeDetails() {
 }
 
 /** Rota do carregador: do largo da ponte (onde a carga chega) até a mesa de ração da praça, pela Rua da Entrada. */
-export const PORTER_ROUTE = Object.freeze([[-1.2, -29.9], [-3.8, -31.8], [-8.2, -35.2], [-9.6, -38], [-8.4, -45.1]]);
+export const PORTER_ROUTE = Object.freeze([[-1.2, -29.9], [-4.2, -31], [-7.6, -32.6], [-9.6, -35.4], [-9.9, -38.4], [-8.4, -45.1]]); // pela Rua da Entrada, longe dos pilares do abrigo
 /** Posição ao longo de uma rota de ida e volta (pausa nas pontas). t em segundos. Devolve {x,z,dirX,dirZ,loaded,moving}. */
 export function routeAt(route, t, speed = .9, pause = 2.5) {
   const seg = []; let L = 0; for (let i = 0; i < route.length - 1; i++) { const l = Math.hypot(route[i + 1][0] - route[i][0], route[i + 1][1] - route[i][1]); seg.push(l); L += l; }
