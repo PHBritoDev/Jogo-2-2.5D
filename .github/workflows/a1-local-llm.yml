@@ -83,7 +83,7 @@ jobs:
         run: |
           if [ ! -x "$HOME/.cache/a1-llm/llama-bin/llama-cli" ]; then
             git clone -q --depth 1 --branch b12244 https://github.com/ggml-org/llama.cpp /tmp/a1-llama
-            cmake -S /tmp/a1-llama -B /tmp/a1-llama-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_APP=OFF
+            cmake -S /tmp/a1-llama -B /tmp/a1-llama-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF
             cmake --build /tmp/a1-llama-build -j 2 --target llama-cli
             mkdir -p "$HOME/.cache/a1-llm/llama-bin"
             cp -a /tmp/a1-llama-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
