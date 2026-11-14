@@ -69,12 +69,13 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   if(!cache.has(file))cache.set(file,new Promise((resolve,reject)=>loader.load('./'+file,resolve,undefined,reject)));
   return cache.get(file);
  };
- const clipFor=(clips,role)=> {
+ const clipFor=(clips,role,clipRe=null)=> {
+  if(clipRe){const found=clips.find(c=>clipRe.test(c.name));if(found)return found;} // clipe nomeado e verificado (ex.: Alert do guarda)
   const tests=role==='walk'?[/walk/i,/idle|breath/i]:role==='down'?[/side.?lying|falling.?down|knock.?down|lie|sleep|dead|down/i,/idle|breath/i]:role==='sit'?[/sit|sitting|rest/i,/arise/i,/idle|breath/i]:[/idle|breath|stand/i];
   for(const re of tests){const found=clips.find(c=>re.test(c.name)&&!/(attack|combat|sword)/i.test(c.name));if(found)return found;}
   return null;
  };
- async function create({sex,age='adult',role='idle',x,z,yaw=0,hair=true,hairToHead=false}){
+ async function create({sex,age='adult',role='idle',x,z,yaw=0,hair=true,hairToHead=false,clipRe=null}){
   const file=ELDORIA_NPC_MODELS[sex];if(!file)throw Error('NPC Meshy desconhecido: '+sex);
   const gltf=await load(file),src=cloneSkinned(gltf.scene),box=measureMeshyNpcBounds(THREE,src);
   const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
@@ -102,7 +103,7 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
   src.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});
   const nativeClips=gltf.animations||[];
   // Em alguns GLBs só há Walking/Running: evitar a pose rígida em T.
-  const clip=clipFor(nativeClips,role)||nativeClips.find(c=>/walking/i.test(c.name))||null;
+  const clip=clipFor(nativeClips,role,clipRe)||nativeClips.find(c=>/walking/i.test(c.name))||null;
   const mixer=clip?new THREE.AnimationMixer(src):null;
   const action=mixer?mixer.clipAction(clip):null;
   if(action){

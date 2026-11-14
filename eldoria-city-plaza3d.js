@@ -36,7 +36,7 @@ export function cobbleTexture(THREE, size = 256) {
 }
 
 /** Acumulador de triângulos com cor por vértice (e UV de mundo opcional). */
-function builder(withUv = false) {
+export function builder(withUv = false) {
   const pos = [], col = [], uv = [];
   const api = {
     tri(a, b, c, ca, cb = ca, cc = ca) { pos.push(...a, ...b, ...c); col.push(...ca, ...cb, ...cc); if (withUv) uv.push(a[0] * .42, a[2] * .42, b[0] * .42, b[2] * .42, c[0] * .42, c[2] * .42); },
@@ -58,9 +58,9 @@ function builder(withUv = false) {
   return api;
 }
 
-const WOOD = [.34, .23, .15], WOOD_D = [.22, .15, .09], STONE = [.5, .47, .42], STONE_D = [.37, .35, .32], BURLAP = [.55, .45, .3], IRON = [.16, .15, .15], PAPER = [.86, .82, .7], SOIL = [.22, .16, .11], DRY = [.52, .44, .26];
+export const WOOD = [.34, .23, .15], WOOD_D = [.22, .15, .09], STONE = [.5, .47, .42], STONE_D = [.37, .35, .32], BURLAP = [.55, .45, .3], IRON = [.16, .15, .15], PAPER = [.86, .82, .7], SOIL = [.22, .16, .11], DRY = [.52, .44, .26];
 
-function addProp(b, p, ground) {
+export function addProp(b, p, ground) {
   const y0 = (p.y !== undefined ? p.y : 0) + ground(p.x, p.z), r = p.rot || 0, c = Math.cos(r), s = Math.sin(r), L = (lx, lz) => [p.x + lx * c + lz * s, p.z - lx * s + lz * c];
   if (p.kind === 'bucket') { // balde vazio (aduelas, aro de ferro, fundo escuro à vista)
     const n = 10, rr = .17, h = .3, tip = p.tip ? 1 : 0;

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Auditoria de fachadas</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script></head>
+<body><pre id="out">auditando…</pre>
+<script type="module">
+/* Renascimento F2 — auditoria das fachadas dos GLBs da cidade (uso: abrir via servidor na raiz do repo).
+   Para cada GLB: normaliza como o jogo (altura → 1, base no chão), lança raios horizontais de fora para dentro
+   numa grade em cada uma das 4 faces e lê a cor da textura assada no ponto atingido. Classifica:
+   vidro (escuro azulado/acinzentado e uniforme), madeira escura (porta/enxaimel), reboco claro e pedra.
+   Janelas = manchas de vidro; porta = mancha alta de madeira escura que toca o chão. Saída em window.FACADE_AUDIT. */
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const files = ['CasaEldoria01.glb', 'CasaEldoria02.glb', 'FerreiroEldoria.glb'];
+const loader = new GLTFLoader(), ray = new THREE.Raycaster(), out = {};
+function pixelReader(tex) { const img = tex.image, c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0); const d = g.getImageData(0, 0, c.width, c.height).data;
+  return (u, v) => { u = ((u % 1) + 1) % 1; v = ((v % 1) + 1) % 1; const x = Math.floor(u * (c.width - 1)), y = Math.floor((tex.flipY ? 1 - v : v) * (c.height - 1)), i = (y * c.width + x) * 4; return [d[i], d[i + 1], d[i + 2]]; }; }
+function classify([r, g, b]) { const l = (r * .3 + g * .59 + b * .11), sat = Math.max(r, g, b) - Math.min(r, g, b);
+  if (l < 70 && b >= r - 4) return 'vidro'; if (l < 85 && r > b + 6) return 'madeira'; if (l > 150 && sat < 50) return 'reboco'; if (sat < 30) return 'pedra'; return 'outro'; }
+for (const f of files) {
+  const gltf = await loader.loadAsync('../../' + f); const root = gltf.scene; root.updateMatrixWorld(true);
+  let mesh = null; root.traverse(o => { if (!mesh && o.isMesh) mesh = o; });
+  const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), k = 1 / Math.max(size.x, size.y, size.z); // como o jogo: maior medida = 1 (× size da casa)
+  root.scale.setScalar(k); root.position.set(-(box.min.x + size.x / 2) * k, -box.min.y * k, -(box.min.z + size.z / 2) * k); root.updateMatrixWorld(true);
+  const B = new THREE.Box3().setFromObject(root), read = pixelReader(mesh.material.map), faces = {};
+  for (const [name, dir] of [['+x', [-1, 0]], ['-x', [1, 0]], ['+z', [0, -1]], ['-z', [0, 1]]]) {
+    const cells = [], N = 28, M = 22; // ao longo × altura
+    for (let j = 0; j < M; j++) { const y = .02 + j / M * .7; const row = [];
+      for (let i = 0; i < N; i++) { const t = (i + .5) / N; const along = dir[0] ? B.min.z + t * (B.max.z - B.min.z) : B.min.x + t * (B.max.x - B.min.x);
+        const o = dir[0] ? new THREE.Vector3(dir[0] < 0 ? B.max.x + 1 : B.min.x - 1, y, along) : new THREE.Vector3(along, y, dir[1] < 0 ? B.max.z + 1 : B.min.z - 1);
+        ray.set(o, new THREE.Vector3(dir[0], 0, dir[1])); const h = ray.intersectObject(root, true)[0];
+        row.push(h && h.uv ? { rgb: read(h.uv.x, h.uv.y), c: classify(read(h.uv.x, h.uv.y)), d: +(dir[0] ? Math.abs(h.point.x - o.x) - 1 : Math.abs(h.point.z - o.z) - 1).toFixed(3), a: +along.toFixed(3) } : null); }
+      cells.push({ y: +y.toFixed(3), row }); }
+    // porta: colunas escuras (madeira) de y≈0,1 a 0,26 com reboco claro dos dois lados na mesma altura
+    const lum = c => c ? (c.rgb[0] * .3 + c.rgb[1] * .59 + c.rgb[2] * .11) : null, rowsIdx = cells.map((r, j) => j).filter(j => cells[j].y > .1 && cells[j].y < .27);
+    const dark = [], hasWall = [];
+    for (let i = 0; i < N; i++) { const L = rowsIdx.map(j => lum(cells[j].row[i])); hasWall.push(L.some(v => v !== null)); dark.push(L.length && L.every(v => v !== null && v < 115)); }
+    const plaster = i => rowsIdx.some(j => (lum(cells[j].row[i]) || 0) > 175);
+    let best = null; for (let i = 0; i < N; i++) { if (!dark[i]) continue; let j = i; while (j + 1 < N && dark[j + 1]) j++;
+      const L = i - 1, R = j + 1, ok = L >= 0 && R < N && plaster(L) && plaster(R) && j - i + 1 >= 2 && j - i + 1 <= 8; if (ok && (!best || j - i > best.j - best.i)) best = { i, j }; i = j; }
+    const colA = i => cells[0].row[i]?.a ?? cells.find(r => r.row[i])?.row[i].a;
+    const wallD = []; for (let i = 0; i < N; i++) { const c = cells.find(r => r.y > .12 && r.row[i])?.row[i]; if (c) wallD.push(c.d); }
+    const span = hasWall.map((h, i) => h ? colA(i) : null).filter(v => v !== null && v !== undefined);
+    faces[name] = { door: best ? { a: +((colA(best.i) + colA(best.j)) / 2).toFixed(3), w: +(Math.abs(colA(best.j) - colA(best.i)) + (dir[0] ? (B.max.z - B.min.z) : (B.max.x - B.min.x)) / N).toFixed(3) } : null,
+      wall: +(wallD.sort((p, q) => p - q)[Math.floor(wallD.length * .5)] || 0).toFixed(3), span: span.length ? [+Math.min(...span).toFixed(3), +Math.max(...span).toFixed(3)] : null };
+  }
+  out[f] = { size: { x: +(B.max.x - B.min.x).toFixed(3), y: 1, z: +(B.max.z - B.min.z).toFixed(3) }, faces };
+}
+window.FACADE_AUDIT = out; document.getElementById('out').textContent = JSON.stringify(out, null, 1);
+</script></body></html>

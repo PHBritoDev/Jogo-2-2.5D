@@ -75,6 +75,8 @@ import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
 import {createRiverQuery,wrapTerrainForBanks,planRiverBanks,fordAlong,FORD} from './eldoria-river-banks.js';
 import {buildRiverBanks,paintRiverBanks} from './eldoria-river-banks3d.js';
 import {buildCityPlaza} from './eldoria-city-plaza3d.js';
+import {buildCityFacades} from './eldoria-city-facades3d.js';
+import {PORTER_ROUTE,TAX_GUARD,routeAt} from './eldoria-city-facades.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
 import {buildUndergrowth,buildTropical} from './eldoria-undergrowth.js';
 // Heavy ArvoreFloresta01.glb retired; its territory now uses the same optimized tropical LOD system.
@@ -951,6 +953,10 @@ const bench=new THREE.Group();bench.position.set(VILLAGE_CENTER.x+1.4,0,VILLAGE_
 const PLAZA_ON=new URLSearchParams(location.search).get('praca')!=='0';
 const cityPlaza=PLAZA_ON?buildCityPlaza(THREE,{scene:villageGroup,ground:groundHeightAt,walk:eldoriaWalk,obstacles:marketObstacles,lowSpec:terrainLowSpec}):null;
 window.SevenSinsPlazaReport=cityPlaza?{on:true,...cityPlaza.stats}:{on:false};
+/* RENASCIMENTO F2 — fachadas e sinais de vida: jardineiras ao lado das portas (auditadas nos GLBs), lenha nas laterais,
+   varais com roupa remendada e a tabuleta da ferraria. `?fachadas=0` desliga. */
+const FACADES_ON=new URLSearchParams(location.search).get('fachadas')!=='0';
+const cityFacades=FACADES_ON?buildCityFacades(THREE,{scene:villageGroup,ground:groundHeightAt,obstacles:marketObstacles,lowSpec:terrainLowSpec}):null;
 // MOD 316 — tochas: ÚNICA estrutura física = TochaMedievalTripo.glb do criador (eldoria-torches3d.js); fogo pintado do GLB
 // recortado e chama autoral pequena em GPU. Poucas e justificadas; sem fallback procedural (GLB falhou → nenhuma tocha).
 const villageTorchSites=[
@@ -958,7 +964,7 @@ const villageTorchSites=[
  {x:VILLAGE_CENTER.x+7.4,z:VILLAGE_CENTER.z+1,why:'praça: saída para a mata/altar'},
 ];
 const authoredTorchAsset=loadTorchSource(THREE,GLTFLoader,{prepareBaked:r=>clampBakedMips(THREE,r,terrainLowSpec?4:3.5)});
-const torchSets=[];if(cityPlaza)torchSets.push(cityPlaza); // lampiões da praça acendem com a noite
+const torchSets=[];if(cityPlaza)torchSets.push(cityPlaza);if(cityFacades)torchSets.push(cityFacades); // lampiões da praça acendem com a noite
 /* MOD 316 — o GLB da tocha chega depois do carregamento: compila o material recortado e a chama em segundo plano assim que
    chegam (KHR_parallel_shader_compile quando houver), em vez de compilar no primeiro quadro em que a tocha aparece. */
 function adoptTorchSet(ts){torchSets.push(ts);if(ts.holders.length&&renderer.compileAsync)renderer.compileAsync(ts.holders[0],camera,scene).catch(()=>{});return ts;}
@@ -3556,7 +3562,7 @@ function closeProfile(){const panel=document.getElementById('profile-panel');if(
 /* MOD 191 — moradores de verdade: Npc.glb (versão leve Npc-lod.glb, 33 mil vértices, mesma aparência e
    animações) substitui os clones do protagonista nas bancas; três moradores caminham pela vila. */
 // MOD 216 — elenco próprio, gerado em Blender, com roupas, silhuetas e rostos distintos.
-const villagerWalkers=[];
+const villagerWalkers=[];let cityPorter=null; // RENASCIMENTO F2: carregador de mantimentos (rota de ida e volta)
 /** MOD 291 — os moradores procedurais tinham ~25 peças por cabeça (centenas de draw calls na praça). Junta as malhas
     irmãs de cada grupo que dividem o mesmo material; os grupos animados (_head, _armL/R, _legL/R) continuam separados. */
 function mergeGroupMeshes(root){
@@ -3618,6 +3624,15 @@ function loadVillagers(){
     const body=new THREE.Mesh(new THREE.CylinderGeometry(.15,.12,.26,10,1,true),wood);body.material.side=THREE.DoubleSide;const bottom=new THREE.Mesh(new THREE.CircleGeometry(.12,10),new THREE.MeshStandardMaterial({color:0x140f0b}));bottom.rotation.x=-Math.PI/2;bottom.position.y=-.12;
     const hoop=new THREE.Mesh(new THREE.TorusGeometry(.15,.012,4,12),iron);hoop.rotation.x=Math.PI/2;hoop.position.y=.08;const handle=new THREE.Mesh(new THREE.TorusGeometry(.14,.008,4,10,Math.PI),iron);handle.position.y=.13;b.add(body,bottom,hoop,handle);
     b.scale.setScalar(k);b.position.set(.33*k,.6*k,.04*k);h.add(b);villagerWalkers[0].bucket=b;}
+   // RENASCIMENTO F2 — ações com clipes VERIFICADOS nos GLBs (o rig não tem varrer/carregar): o carregador anda
+   // ("Walking") do largo da ponte até a mesa de ração com um saco no ombro e volta sem ele; o guarda do tributo fica
+   // em pé ao lado do edital na pose "Alert".
+   if(FACADES_ON)Promise.all([
+    npcFactory.create({sex:'man',role:'walk',x:PORTER_ROUTE[0][0],z:PORTER_ROUTE[0][1]}).then(c=>{villageGroup.add(c.holder);villageNpcs.push(c);if(c.mixer)villageNpcMixers.push(c.mixer);
+     const k=1/(c.holder.scale.x||1),sack=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6),new THREE.MeshStandardMaterial({color:0x8a7150,roughness:1}));sack.scale.set(1.25*k,.8*k,.9*k);sack.position.set(.16*k,1.5*k,-.05*k);sack.name='saco-carregador';c.holder.add(sack);
+     cityPorter={c,sack,t:0};}),
+    npcFactory.create({sex:'man',role:'idle',clipRe:/^alert$/i,x:TAX_GUARD.x,z:TAX_GUARD.z,yaw:Math.atan2(TAX_GUARD.lookAt[0]-TAX_GUARD.x,TAX_GUARD.lookAt[1]-TAX_GUARD.z)}).then(c=>{villageGroup.add(c.holder);villageNpcs.push(c);if(c.mixer)villageNpcMixers.push(c.mixer);c.holder.name="guarda-tributo";marketObstacles.push({x:TAX_GUARD.x,z:TAX_GUARD.z,shape:"circle",radius:.38,height:1.8,guard:true});})
+   ]).catch(e=>console.warn('F2: carregador/guarda não carregou',e));
    window.SevenSinsVillagerReport={vendors:vendorRoots.length,residents:villageNpcs.length-vendorRoots.length,childrenInVillage:0,models:[ELDORIA_NPC_MODELS.man,ELDORIA_NPC_MODELS.woman],roles:villageNpcs.map(c=>c.role)};
  }).catch(e=>console.error('NPC Meshy: carregamento falhou (sem fallback procedural)',e));
 }
@@ -3640,6 +3655,8 @@ function updateVillagers(dt){
  // Animações dos NPCs são atualizadas pelo laço global villageNpcMixers.
  // Único caminhante circula lentamente num espaço curto, sem busca de caminho cara.
  if(voidMode||dialogueOpen||cineActive)return;
+ if(cityPorter){const P=cityPorter,nx=routeAt(PORTER_ROUTE,P.t+dt*6,.85,3);if(Math.hypot(nx.x-player.position.x,nx.z-player.position.z)>.95)P.t+=dt; // para e dá passagem ao herói (não é obstáculo: nunca trava a rua)
+  const r=routeAt(PORTER_ROUTE,P.t,.85,3);P.c.holder.position.set(r.x,groundHeightAt(r.x,r.z),r.z);P.c.holder.rotation.y=Math.atan2(r.dirX,r.dirZ);P.sack.visible=r.loaded;if(P.c.action)P.c.action.paused=!r.moving;}
  for(const w of villagerWalkers){
   w.phase+=dt;const dx=Math.sin(w.phase*.31)*1.3,dz=Math.cos(w.phase*.31)*.7;
   const x=w.home.x+dx,z=w.home.z+dz;
