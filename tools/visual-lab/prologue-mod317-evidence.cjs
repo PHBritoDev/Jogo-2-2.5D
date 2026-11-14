@@ -59,6 +59,8 @@ async function prologue(browser, name, viewport, mobile) {
     await H.tapUntil(s => !s.active, 260); await wait(1500); await H.snap('3-asas-recolhidas');
     R.wingsSaved = await page.evaluate(() => localStorage.getItem('seven-sins-3d-guide-wings'));
     for (let i = 0; i < 60 && R.wingsSaved !== '1'; i++) { const s = await H.st(); if (s.waitingTap) await page.evaluate(() => document.getElementById('cine-continue').click()); await wait(500); R.wingsSaved = await page.evaluate(() => localStorage.getItem('seven-sins-3d-guide-wings')); }
+    // diagnóstico quando o save não aparece: cena atual, etapa do roteiro, asas e posição (vai para o relatório do CI)
+    if (R.wingsSaved !== '1') R.wingsDbg = await page.evaluate(() => { const D = window.SevenSinsDebug3D, c = D.cineState ? D.cineState() : {}, r = D.roadState ? D.roadState() : {}; return JSON.stringify({ saved: localStorage.getItem('seven-sins-3d-guide-wings'), scene: c.scene, index: c.index, shot: c.shot, active: c.active, waitingTap: c.waitingTap, waitingAsk: c.waitingAsk, q: c.questStep, wings: r.guide && r.guide.wings, player: r.player, why: r.why }); });
     R.errors.push(...errs); await ctx.close(); }
   // ---- 2) estrada, carroça e emboscada (save no prólogo)
   { const { ctx, page, errs } = await session(browser, viewport, mobile, SEED_ROAD, out, false); const H = helpers(page, out);
@@ -110,7 +112,7 @@ async function prologue(browser, name, viewport, mobile) {
       if (real.length) report.errors.push(k + ': ' + real.slice(0, 3).join(' | '));
       if (!P.squad || P.squad.n !== 5 || P.squad.kinds.join() !== 'bandit' || P.squad.spells) report.errors.push(k + ': esquadra de bandidos inesperada ' + JSON.stringify(P.squad));
       if (P.squad && P.squad.maxMeleeObserved > 2) report.errors.push(k + ': mais de 2 golpes simultâneos');
-      if (P.wingsSaved !== '1') report.errors.push(k + ': estado das asas não salvo');
+      if (P.wingsSaved !== '1') report.errors.push(k + ': estado das asas não salvo' + (P.wingsDbg ? ' ' + P.wingsDbg : ''));
     }
     report.status = report.errors.length ? 'suspected_errors' : 'captured';
   } catch (e) { report.status = 'failed'; report.errors.push(String(e.stack || e).slice(0, 1500)); process.exitCode = 1; }
