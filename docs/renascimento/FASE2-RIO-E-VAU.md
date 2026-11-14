@@ -102,3 +102,25 @@ nuvens, 22:30 noite, 16 h tempestade), em folhas comparativas antes|depois (`com
 
 - Correnteza audível perto da margem, pelo motor procedural existente (`audio3d.js`).
 - Respingo nos passos dentro do vau: o pool de ondulações já existe e só falta o gatilho.
+
+## 8. Polimento pedido pelos diretores (13/11)
+
+Passada curta, sem refazer sistemas. Comparação em 3 colunas (antes #510 | rio v1 | polido), 6 ângulos problemáticos,
+15 h limpo e 18:12 nuvens: `evidencias/f2-rio/polimento-*.jpg`.
+
+| Item | O que mudou |
+|---|---|
+| Água | Rio em verde de mata (deep `#0e4648`, shallow `#3b8e84`; antes ciano de piscina). No vau o céu refletido cai 55 %, o leito fica mais escuro e a faixa branca contínua da margem some. A corredeira continua fina. O custo é o mesmo shader, sem passe nem textura novos |
+| Pedras do vau | O musgo vira só um resto no topo (pedra lavada, cinza-parda), com a base molhada e um pouco mais lisa. As 6 pedras-degrau se dividem nas 3 formas, cada uma com inclinação, proporção e tom próprios (`instanceColor`). **Posições e colisores não mudaram** |
+| Margens | Praia e corte passam a ser contínuos (sem degrau onde a curvatura troca de sinal). A rampa ganha ondulação suave, que é nula na beira e nunca desce abaixo da lâmina. O cascalho vira manchas de borda irregular e escurece ao entrar na água. Os juncos ganham altura, largura, inclinação e tom variados |
+| Correção | Durante o polimento, a fita d'água chegou a sair da cena (`scene.add` ficou dentro de um comentário). Isso foi corrigido em `2bf703d` e um teste agora impede a regressão |
+
+**QA** (`navWalk`, viewport mobile 852×393):
+- O vau é atravessado nos dois sentidos, N→S e S→N, sem queda nem trava.
+- Sobre as pedras-degrau, nos dois sentidos, os pés ficam entre −0,35 e −0,5 (acima da lâmina).
+- Continuam passando: barranco, ponte e parada no canal fundo fora do vau.
+- Os casos `vau-travessia-volta` e `vau-pedras-volta` foram adicionados ao CI.
+
+**Custo depois do polimento** (mesmos 4 pontos, SwiftShader): draw calls 157, 129, 188 e 194. É igual à v1, com
++1–2 chamadas por ponto. A geometria ficou em 231 e o heap em 143–150 MB. Nenhuma medição foi feita em Android ou no
+Galaxy A55.
