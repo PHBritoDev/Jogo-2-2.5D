@@ -45,3 +45,14 @@ A6 executa integração por eventos/rodadas com CI/evidências e sem merges arri
 - https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target
 
 **Importante:** esta é uma arquitetura de implantação, **não** uma ativação; não existe custo novo de modelos nem operação contínua por criar este documento.
+
+## Implementação gratuita adicional — 14/11/2026
+
+O repositório foi confirmado **público** pelo GitHub. Para repositórios públicos, o GitHub oferece execução gratuita e ilimitada dos runners padrão, sujeita a políticas/limites gerais; isso **não** inclui modelos de IA gratuitos.
+
+Workflow criado: [`equipe-5-agentes-triagem.yml`](../../.github/workflows/equipe-5-agentes-triagem.yml). Ele atua **imediatamente em eventos** de PR A1–A5 (abertura, atualização, pronto para revisão), sem agendamento de 5 minutos: lê apenas metadados, arquivos modificados e corpo da PR; publica ou atualiza **um só comentário de checklist** por PR; sinaliza PR em rascunho, ausência declarada de testes/evidências, alterações nomeadas de caverna e `build-info.js`. Não realiza testes ou revisão semântica, não consome IA, não aprova nem mescla. Caso a PR tenha imagens anexadas sem menção textual explícita, o checklist pode ter falso positivo; A6 continua responsável pela revisão.
+
+A alternativa de **mais execuções de IA sem API paga** é usar **tarefa do ChatGPT Work acionada por evento GitHub**, se a conta for elegível. Segundo a documentação oficial, eventos de PR podem disparar tarefas e o limite conjunto de tarefas por evento é de até 30 execuções/hora e 720/dia; não há garantia de disponibilidade ou de que rodadas consecutivas tenham quota suficiente. A configuração requer iniciativa na interface **Agendadas** com GitHub conectado e acesso elegível ao Work. Nesta conversa não foi possível confirmar uma fonte de eventos disponível, então **não foi ativada**.
+
+Fonte: https://help.openai.com/pt-br/articles/10291617-scheduled-tasks-in-chatgpt
+GitHub gratuito: https://docs.github.com/en/actions/concepts/billing-and-usage
