@@ -90,8 +90,7 @@ A memória de heap JS ficou estável (≈ 143–158 MB nos dois casos).
 
 ## 5. Próximas etapas (plano, não feito nesta rodada)
 
-- **Margem do rio e vau:** margem erodida com pedras assentadas e vegetação ribeirinha. O vau raso desenhado exige
-  rebaixar o canal localmente (terreno + contrato `water-wade`), no trecho leste da ponte.
+- **Margem do rio e vau:** feito na etapa seguinte. Ver `FASE2-RIO-E-VAU.md`.
 - **Chegada da cidade:** redesenho da frente e da praça. Ruas em níveis, escadas, fachadas proporcionais, portas
   só onde têm função, e NPCs com ações (carregar, varrer, vender, vigiar). A pobreza vem das pessoas e dos recursos.
 - **Caverna e serra:** plano espacial (galeria vertical com dois níveis e saída alternativa), luz por cristais e

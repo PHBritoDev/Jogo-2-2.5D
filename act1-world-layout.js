@@ -1,4 +1,5 @@
 import { VIGIA, VIGIA_TRAIL } from './eldoria-valley-landscape.js';
+import { FORD_TRAIL } from './eldoria-river-banks.js';
 /** Mod 216: a pista fica além da floresta, no fim da trilha da encosta. */
 export const MASSACRE_SPOT={x:49,z:-139};
 export const SEWER_DOOR={x:73,z:-170,yaw:-.64};
@@ -93,6 +94,7 @@ export const FOREST_TRAILS = [
   { id: 'borda', name: 'Borda do Planalto', width: 2.4, points: [[29, -128], [28, -120], [27.5, -112], [27, -108]] },
   // Renascimento F2 — desvio opcional do Vale do Despertar: da estrada de Teren ao Posto do Vigia (eldoria-valley-landscape.js)
   { id: VIGIA_TRAIL.id, name: VIGIA_TRAIL.name, width: VIGIA_TRAIL.width, points: VIGIA_TRAIL.points.map(p => [p[0], p[1]]) },
+  { id: FORD_TRAIL.id, name: FORD_TRAIL.name, width: FORD_TRAIL.width, points: FORD_TRAIL.points.map(p => [p[0], p[1]]) }, // Renascimento F2: Caminho do Vau
 ];
 export const FOREST_CLEARINGS = [
   { id: 'musgo', name: 'Clareira do Musgo', x: -36, z: -126, r: 6.5, kind: 'clareira' },

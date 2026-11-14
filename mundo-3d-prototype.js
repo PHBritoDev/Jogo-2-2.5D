@@ -72,6 +72,8 @@ import {loadTropicalTrees,mountTropicalForest,planTropicalBelt} from './eldoria-
 import {crystalPrismGeometry} from './eldoria-crystal-geometry.js';
 import {buildPrologueMeadow,boulderGeometry} from './eldoria-prologue-meadow.js';
 import {buildRiverMesh,buildLakeMesh} from './eldoria-water.js';
+import {createRiverQuery,wrapTerrainForBanks,planRiverBanks,fordAlong,FORD} from './eldoria-river-banks.js';
+import {buildRiverBanks,paintRiverBanks} from './eldoria-river-banks3d.js';
 import {buildBridge,planRiverRocks,buildRiverRocks} from './eldoria-river-props.js';
 import {buildUndergrowth,buildTropical} from './eldoria-undergrowth.js';
 // Heavy ArvoreFloresta01.glb retired; its territory now uses the same optimized tropical LOD system.
@@ -247,6 +249,12 @@ const terrain3D=createTerrain({
 });
 /* MOD 311 — a encosta oeste do vale vira rampa até a boca da caverna e o túnel ganha piso plano (rebaixo do relevo). */
 {const h0=terrain3D.height;terrain3D.height=(x,z)=>{const h=h0(x,z);if(x<CAVE_MOUTH.x-CAVE_MOUTH.depth-7||x>CAVE_MOUTH.x+10||Math.abs(z-CAVE_MOUTH.z)>CAVE_MOUTH.width/2+6)return h;const c=mouthCarve(x,z);return c.w>0?h+(c.y-h)*c.w:h;};}
+/* RENASCIMENTO F2 — rio: margens erodidas em rampa (praia de cascalho na curva interna, corte no lado externo) e o
+   Vau das Pedras a leste da ponte (leito raso, ~0,5 m de lâmina). Só rebaixa barranco seco e só levanta leito; ponte,
+   cabeceira e foz intocadas. `?rio=0` volta ao canal antigo. */
+const RIVER_BANKS_ON=new URLSearchParams(location.search).get('rio')!=='0';
+const riverQuery=createRiverQuery(RIVER_POINTS,{width:RIVER.width*.98,level:RIVER.level}),riverBankOpts={fordS:RIVER_BANKS_ON?fordAlong(riverQuery):undefined,bridge:BRIDGE};
+if(RIVER_BANKS_ON)wrapTerrainForBanks(terrain3D,riverQuery,riverBankOpts);
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
 function groundHeightAt(x,z){if(voidMode)return voidSpec.y;return terrain3D.height(x,z);}
 function dryGround(x,z){return terrain3D.walkable(x,z)&&terrain3D.waterDepth(x,z)<-.12;}
@@ -258,6 +266,7 @@ const terrainMesh=(()=>{
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.BufferAttribute(built.positions,3));geo.setIndex(new THREE.BufferAttribute(built.indices,1));geo.computeVertexNormals();
  geo.setAttribute('color',new THREE.BufferAttribute(colorTerrain(terrain3D,built.positions,geo.attributes.normal.array),3));
+ if(RIVER_BANKS_ON)paintRiverBanks(geo,riverQuery,riverBankOpts); // F2: lama molhada e cascalho nas margens
  const uv=new Float32Array(built.positions.length/3*2);for(let i=0,k=0;i<uv.length;i+=2,k+=3){uv[i]=built.positions[k]*.12;uv[i+1]=built.positions[k+2]*.12;}
  geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));geo.computeBoundingSphere();
  // Textura neutra de detalhe: a cor vem do relevo (grama, musgo, rocha, neve).
@@ -303,6 +312,7 @@ const riverRockPlan=planRiverRocks(eldoriaRiver.ribbon.centerline,{width:RIVER.w
 // Pedras dos encontros da ponte também espumam (a água bate no pé do arco).
 riverRockPlan.push({x:BRIDGE.x+BRIDGE.axisZ*1.6,z:BRIDGE.z-BRIDGE.axisX*1.6,r:.6,foam:.55,hidden:true},{x:BRIDGE.x-BRIDGE.axisZ*1.6,z:BRIDGE.z+BRIDGE.axisX*1.6,r:.6,foam:.55,hidden:true});
 scene.add(buildRiverRocks(THREE,riverRockPlan.filter(r=>!r.hidden),{level:RIVER.level,lowSpec:terrainLowSpec}));eldoriaRiver.material.setRocks(riverRockPlan);
+if(riverBankOpts.fordS!==undefined)eldoriaRiver.material.setFord(riverBankOpts.fordS-FORD.halfLen,riverBankOpts.fordS+FORD.halfLen,FORD.fade,1); // F2: lâmina rasa e corredeira do vau
 /* MOD 316 — água por hora: reflete o horizonte/zênite da paleta atual e brilha com a cor do sol; passos na água rasa
    (margem do lago, vau do rio) e aterrissagens deixam anéis de ondulação (pool fixo de 6 por corpo d'água). */
 let waterProbeAt=0,waterInWater=null,waterRippleAt=0,waterWasGrounded=true;
@@ -787,13 +797,19 @@ const valleyPlan=VALLEY_ON?planValleyForest(valleyEnv).map(t=>({...t,y:groundHei
 const valleyOutcrops=VALLEY_ON?planValleyOutcrops(valleyEnv,terrainLowSpec?10:14):[];
 window.SevenSinsValleyReport={trees:valleyPlan.length,perSpecies:valleyPlan.reduce((a,t)=>(a[t.sp]=(a[t.sp]||0)+1,a),{}),outcrops:valleyOutcrops.length};
 const tropicalPlan=[...southernForestPlan,...villageBeltPlan].concat(serraForestPlan,valleyPlan);
+// RENASCIMENTO F2 — peças das margens: pedras na linha d'água, pedras-degrau do vau, juncos/taboas e blocos grandes
+// (estes entram no mesmo InstancedMesh dos afloramentos do vale: nenhuma draw call nova).
+const riverBankPlan=RIVER_BANKS_ON?planRiverBanks(riverQuery,{...riverBankOpts,lowSpec:terrainLowSpec,avoid:(x,z,r)=>bridgeDeck(x,z)||riverRockPlan.some(o=>Math.hypot(o.x-x,o.z-z)<o.r+r)||closeToPolyline(x,z,TEREN_ROAD,4)}):{stones:[],boulders:[],reeds:[],steps:[]};
+const riverBanks=RIVER_BANKS_ON?buildRiverBanks(THREE,{plan:riverBankPlan,scene,ground:groundHeightAt,level:RIVER.level,addWind:addInstancedWind,registerCull:registerInstanceCull,lowSpec:terrainLowSpec,rockObstacles}):null;
+const riverBoulderParts=riverBankPlan.boulders.map(b=>({x:b.x,z:b.z,s:b.s,yaw:b.rot,sink:.34}));
+window.SevenSinsRiverReport={on:RIVER_BANKS_ON,fordS:riverBankOpts.fordS,...(riverBanks?riverBanks.stats:{}),boulders:riverBoulderParts.length};
 // RENASCIMENTO F2 — afloramentos de rocha musgosa nas encostas (1 InstancedMesh, LOD1 do RochedoMusgoEldoria.glb) com
 // colisão de domo (pisa-se na beirada baixa; o corpo nunca entra na pedra) — mesma regra da Fase 1.
 let valleyRockMesh=null;
-if(valleyOutcrops.length)new GLTFLoader().load('./RochedoMusgoEldoria-lod1.glb',gltf=>{
+if(valleyOutcrops.length||riverBoulderParts.length)new GLTFLoader().load('./RochedoMusgoEldoria-lod1.glb',gltf=>{
  clampBakedMips(THREE,gltf.scene,terrainLowSpec?4:3.5);let src=null;gltf.scene.traverse(o=>{if(!src&&o.isMesh)src=o;});if(!src)return;
  src.geometry.computeBoundingBox();const bb=src.geometry.boundingBox,W=bb.max.x-bb.min.x,H=bb.max.y-bb.min.y,D=bb.max.z-bb.min.z;
- const parts=valleyOutcrops.flatMap(g=>g.parts);const mesh=new THREE.InstancedMesh(src.geometry,src.material,parts.length);mesh.name='vale-afloramentos';
+ const parts=valleyOutcrops.flatMap(g=>g.parts).concat(riverBoulderParts);const mesh=new THREE.InstancedMesh(src.geometry,src.material,parts.length);mesh.name='vale-afloramentos';
  const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),sc=new THREE.Vector3();
  parts.forEach((p,i)=>{const k=p.s/Math.max(W,D),y=groundHeightAt(p.x,p.z),hy=H*k;e.set((Math.sin(i*1.7)-.5)*.12,p.yaw,(Math.cos(i*2.3)-.5)*.1);q.setFromEuler(e);sc.set(k,k*(.8+.3*Math.abs(Math.sin(i*3.1))),k);
   v.set(p.x,y-bb.min.y*sc.y-hy*p.sink,p.z);m4.compose(v,q,sc);mesh.setMatrixAt(i,m4);
@@ -2085,7 +2101,7 @@ function dashBlockedAt(x,z){
 const PLAYER_WADE_MAX=1.25; // RENASCIMENTO F1: o herói não nada; mesma profundidade do contrato water-wade (margens 0,9–1,25 m são atravessáveis) — além disso para COM aviso, não numa parede muda
 let deepWaterHintAt=0;
 function playerBlockedAt(x,z){
- if(!voidMode&&!bridgeDeck(x,z)){const w=terrain3D.waterDepth(x,z);if(w>=PLAYER_WADE_MAX&&terrain3D.height(x,z)+w-Math.max(player.position.y-.3,terrain3D.height(x,z))>PLAYER_WADE_MAX){const now=performance.now();if(now>deepWaterHintAt){deepWaterHintAt=now+9000;if(typeof status!=='undefined'&&status&&!cineActive)status.textContent='A água fica funda e a correnteza é forte: atravesse pela ponte.';}return true;}}
+ if(!voidMode&&!bridgeDeck(x,z)){const w=terrain3D.waterDepth(x,z);if(w>=PLAYER_WADE_MAX&&terrain3D.height(x,z)+w-Math.max(player.position.y-.3,terrain3D.height(x,z))>PLAYER_WADE_MAX){const now=performance.now();if(now>deepWaterHintAt){deepWaterHintAt=now+9000;if(typeof status!=='undefined'&&status&&!cineActive)status.textContent='A água fica funda e a correnteza é forte: atravesse pela ponte'+(RIVER_BANKS_ON?' ou pelo vau, a leste.':'.');}return true;}}
  if(blockedAt(x,z,!voidMode))return true;
  // RENASCIMENTO F1: rochas do herói são domos (eldoria-rock-collider.js) — pedrinha se pisa, rocha alta só por cima
  if(!voidMode&&rocksBlock(rockObstacles,x,z,player.position.y,terrainHeightAt,player.position.x,player.position.z))return true;
