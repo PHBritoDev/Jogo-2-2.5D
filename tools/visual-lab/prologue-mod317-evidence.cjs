@@ -53,9 +53,12 @@ async function prologue(browser, name, viewport, mobile) {
     await H.tapUntil(s => s.waitingAsk, 30); await page.click('#mission-accept').catch(() => {}); await wait(3500);
     R.metrics.prado = await H.frames(5000);
     for (let i = 0; i < 10; i++) await page.evaluate(() => window.SevenSinsDebug3D.motionStep(.5, { x: 0, z: -1 }));
-    await wait(1500); await H.snap('3-asas-pergunta'); await H.tapUntil(s => s.shot === 'asas-recolher'); await wait(900); await H.snap('3-asas-recolhendo');
-    await H.tapUntil(s => !s.active, 120); await wait(1500); await H.snap('3-asas-recolhidas');
+    await wait(1500); await H.snap('3-asas-pergunta'); await H.tapUntil(s => s.shot === 'asas-recolher', 160); await wait(900); await H.snap('3-asas-recolhendo');
+    // A cena avança pelos quadros reais do jogo: no desktop com SwiftShader (CPU) ela leva bem mais tempo de relógio
+    // que no mobile. Espera o FIM da cena e o save pelo estado do jogo, não por um número fixo de toques.
+    await H.tapUntil(s => !s.active, 260); await wait(1500); await H.snap('3-asas-recolhidas');
     R.wingsSaved = await page.evaluate(() => localStorage.getItem('seven-sins-3d-guide-wings'));
+    for (let i = 0; i < 60 && R.wingsSaved !== '1'; i++) { const s = await H.st(); if (s.waitingTap) await page.evaluate(() => document.getElementById('cine-continue').click()); await wait(500); R.wingsSaved = await page.evaluate(() => localStorage.getItem('seven-sins-3d-guide-wings')); }
     R.errors.push(...errs); await ctx.close(); }
   // ---- 2) estrada, carroça e emboscada (save no prólogo)
   { const { ctx, page, errs } = await session(browser, viewport, mobile, SEED_ROAD, out, false); const H = helpers(page, out);
