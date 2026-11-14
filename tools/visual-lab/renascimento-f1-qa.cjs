@@ -36,11 +36,18 @@ const NAV = [
   ['vigia-trilha-1', [64.5, 109, 52.5, 106, { seconds: 6 }], r => r.progress > .9 && !r.fell],
   ['vigia-trilha-2', [52.5, 106, 41.5, 100.4, { seconds: 6 }], r => r.progress > .9 && !r.fell],
   ['vigia-trilha-3', [41.5, 100.4, 31.2, 97, { seconds: 6 }], r => r.progress > .75 && !r.fell && r.pen === 0],
+  // Fase 2 — rio: Vau das Pedras (lâmina ~0,5 m, a pé), pedras-degrau acima da água e barranco em rampa
+  ['vau-travessia', [19.2, -6, 19.2, -18.5, { seconds: 10 }], r => r.progress > .95 && !r.fell], // margem norte → margem sul pelo vau
+  ['vau-travessia-volta', [19.2, -18.5, 19.2, -6, { seconds: 10 }], r => r.progress > .95 && !r.fell], // margem sul → margem norte
+  ['vau-pedras-volta', [18.6, -17, 19.45, -9.4, { seconds: 2.4 }], r => r.end[2] > -13.4 && r.end[1] > -.55 && !r.fell],
+  ['vau-pedras-degrau', [19.45, -9.4, 18.68, -16.9, { seconds: 2.1 }], r => r.end[2] < -13.4 && r.end[1] > -.55 && !r.fell], // no meio do rio, pés acima da lâmina (-0,5)
+  ['margem-rampa', [48, -3, 48, -10.4, { seconds: 4 }], r => r.progress > .9 && !r.fell],
 ];
 const SHOTS = [
   ['prado', 'D.teleport(54,158,Math.PI);D.view(Math.PI*.92,.18,7.5)'],
   ['estrada', 'D.teleport(53,60,Math.PI);D.view(Math.PI,.15,7)'],
   ['rio', 'D.teleport(30,-7,Math.PI);D.view(Math.PI*.95,.2,7.5)'],
+  ['vau', 'D.teleport(19.2,-8.6,Math.PI);D.view(0,.3,5.5)'],
   ['ponte', 'D.teleport(-.4,-3.5,Math.PI);D.view(Math.PI*.9,.2,8)'],
   ['vista-eldoria', 'D.teleport(-.6,-20,Math.PI);D.view(Math.PI,.08,6)'],
   ['praca', 'D.teleport(-12,-40,Math.PI);D.view(Math.PI*1.1,.2,9)'],
