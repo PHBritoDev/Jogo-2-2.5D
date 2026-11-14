@@ -179,6 +179,20 @@ export function caveField(x, z) {
 }
 export function inChasm(x, z, pad = 0) { const c = CAVE.chasm, w = .9 * (fbm(x * .2, z * .2, 41, 2) - .5); return ((x - c.x) / (c.rx + pad + w)) ** 2 + ((z - c.z) / (c.rz + pad + w)) ** 2 < 1; }
 export function onBridge(x, z) { const b = CAVE.bridge; return segDist(x, z, b.a[0], b.a[1], b.b[0], b.b[1]).d < b.r; }
+/** CAVERNA C1 — lábio do abismo: pedras assentadas logo FORA da borda, com vãos (a borda continua alcançável e o
+ *  salto possível), para a queda nunca parecer parede invisível nem chão que some. Fora da ponte e das cabeceiras. */
+export const CHASM_RIM = Object.freeze((() => {
+  const c = CAVE.chasm, b = CAVE.bridge, out = [], N = 72;
+  for (let i = 0; i < N; i++) {
+    if (hash2(i, 7, 3) < .3) continue;
+    const a = i / N * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+    let x = 0, z = 0, ok = false;
+    for (let k = 1; k <= 1.4; k += .01) { x = c.x + ca * c.rx * k; z = c.z + sa * c.rz * k; if (!inChasm(x, z, .12)) { ok = true; break; } }
+    if (!ok || caveField(x, z) < 1.2 || segDist(x, z, b.a[0], b.a[1], b.b[0], b.b[1]).d < 3.6) continue;
+    out.push(Object.freeze({ x, z, r: .28 + .3 * hash2(i, 11, 3), h: .25 + .3 * hash2(i, 13, 3) }));
+  }
+  return out;
+})());
 /** Zona sem piso: bordas atravessáveis; a queda é resolvida pela física vertical do jogador. */
 export function caveHazard(x, z) { return caveField(x, z) > .75 && inChasm(x, z) && !onBridge(x, z); }
 /** Onde o herói pode pisar. */
@@ -188,6 +202,7 @@ export function caveWalk(x, z) {
   for (const p of CAVE.pools) if (Math.hypot(x - p.x, z - p.z) < p.r + .35) return false;
   for (const p of CAVE.pillars) if (Math.hypot(x - p.x, z - p.z) < p.r + .35) return false;
   for (const p of CAVE.rubble) if (Math.hypot(x - p.x, z - p.z) < p.r) return false;
+  for (const p of CHASM_RIM) if (Math.abs(x - p.x) < 1 && Math.abs(z - p.z) < 1 && Math.hypot(x - p.x, z - p.z) < p.r + .22) return false;
   const P = CAVE.portal; if (Math.abs(z - P.z) < .5 && Math.abs(x - P.x) > P.r - .2 && Math.abs(x - P.x) < P.r + 1.4) return false; // aro do portal é sólido
   return true;
 }
