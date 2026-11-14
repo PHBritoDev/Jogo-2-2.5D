@@ -29,7 +29,10 @@ export const PLAZA_OPENINGS = Object.freeze([
   { id: 'oeste', a: 2.79, half: .26 },
 ]);
 /** Rua da Entrada calçada (mundo): do largo depois da Clareira do Tronco até a borda da praça. */
-export const ENTRY_STREET = Object.freeze({ width: 3.3, points: Object.freeze([[-1.6, -30.2], [-3.8, -31.8], [-8.2, -35.2], [-10.6, -38.6]]) });
+/** Contorna o Abrigo da Vila (centro −4,6; −36,5, base r = 3,35) com folga: a versão anterior (3,3 m de largura sobre o
+ *  traçado antigo da trilha) invadia a base e passava rente a um pilar (revisão integrada #510–#514). */
+export const ABRIGO_VILA = Object.freeze({ x: -4.6, z: -36.5, r: 3.35 });
+export const ENTRY_STREET = Object.freeze({ width: 2.6, points: Object.freeze([[-1.6, -30.2], [-4.2, -31], [-7.6, -32.6], [-9.6, -35.4], [-10.6, -38.6]]) });
 /** Adro da Árvore: terraço de pedra (mundo). y = altura do piso acima do chão (o chão da cidade é plano). */
 export const TERRACE = Object.freeze({ x: -12.8, z: -54.1, hx: 3, hz: 2.5, y: .6, front: { w: 4.4, d: 1.8 }, back: { w: 2.4, d: 1.6 } });
 
