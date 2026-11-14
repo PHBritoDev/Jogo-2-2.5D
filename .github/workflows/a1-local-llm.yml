@@ -1,0 +1,132 @@
+name: A1 local gratuito - triagem por modelo aberto
+# Modelo roda no runner publico sem API. Não altera nem executa codigo da Issue.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/a1-local-llm.yml"
+      - "tools/agentes-externos/a1-local.py"
+      - "tools/agentes-externos/test_a1_local.py"
+  issues:
+    types: [labeled]
+  schedule:
+    - cron: '*/15 * * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: a1-local-llm
+  cancel-in-progress: false
+
+jobs:
+  testar-codigo:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tools/agentes-externos -p 'test_a1_local.py' -v
+  escolher-issue:
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.pick.outputs.target }}
+    steps:
+      - name: Selecionar uma Issue não processada
+        id: pick
+        if: github.event_name != 'pull_request' && (github.event_name != 'issues' || github.event.label.name == 'agente-local-a1')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const list = await github.rest.issues.listForRepo({
+              owner, repo, labels: 'agente-local-a1', state: 'open',
+              per_page: 25, sort: 'created', direction: 'asc'
+            });
+            const marker = '<!-- a1-local-llm-v1 -->';
+            for (const issue of list.data) {
+              if (issue.pull_request) continue;
+              const comments = await github.paginate(github.rest.issues.listComments,
+                {owner,repo,issue_number:issue.number,per_page:100});
+              if (comments.some(c => String(c.body).includes(marker))) continue;
+              core.setOutput('target', issue.number.toString());
+              return;
+            }
+            core.setOutput('target', '');
+
+  analisar-com-modelo-local:
+    needs: escolher-issue
+    if: github.event_name == 'pull_request' || needs.escolher-issue.outputs.target != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout seguro do código para QA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'main' }}
+      - name: Cache do modelo de aproximadamente 1 GB
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/a1-llm/model.gguf
+          key: a1-qwen25-coder-15b-q4km-v1
+      - name: Baixar modelo aberto (somente se cache ausente)
+        run: |
+          mkdir -p "$HOME/.cache/a1-llm"
+          if [ ! -s "$HOME/.cache/a1-llm/model.gguf" ]; then
+            curl --fail --location --retry 3 --max-time 180 \
+              "https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf" \
+              -o "$HOME/.cache/a1-llm/model.gguf"
+          fi
+          printf '%s  %s\n' 'f530705d447660a4336c329981af164b471b60b974b1d808d57e8ec9fe23b239' "$HOME/.cache/a1-llm/model.gguf" | sha256sum --check --status
+      - name: Cache do binário llama.cpp
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/a1-llm/llama-bin
+          key: a1-llama-cli-b12244-ubuntu-v1
+      - name: Compilar llama.cpp se necessário
+        run: |
+          if [ ! -x "$HOME/.cache/a1-llm/llama-bin/llama-cli" ]; then
+            git clone -q --depth 1 --branch b12244 https://github.com/ggml-org/llama.cpp /tmp/a1-llama
+            cmake -S /tmp/a1-llama -B /tmp/a1-llama-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF
+            cmake --build /tmp/a1-llama-build -j 2 --target llama-cli
+            mkdir -p "$HOME/.cache/a1-llm/llama-bin"
+            cp -a /tmp/a1-llama-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
+          fi
+      - name: Teste real do modelo sem escrever no GitHub (somente PR)
+        if: github.event_name == 'pull_request'
+        env:
+          MODEL_FILE: ${{ runner.temp }}/model.gguf
+        run: |
+          cp "$HOME/.cache/a1-llm/model.gguf" "$MODEL_FILE"
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          timeout 180 "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            -m "$MODEL_FILE" \
+            -p "<|im_start|user>\nEm uma frase curta, diga como testar um bug de colisao em um RPG 3D.\n<|im_end|>\n<|im_start|assistant>\n" \
+            -n 64 -c 1024 -t 2 --temp 0.1 --single-turn --no-display-prompt --simple-io \
+            > "$RUNNER_TEMP/qa-smoke-output.txt"
+          # A banner ("Loading model") is NOT a model response.
+          # Reject an empty startup-only smoke test.
+          python3 - <<'PY'
+          import pathlib
+          p = pathlib.Path(__import__("os").environ["RUNNER_TEMP"]) / "qa-smoke-output.txt"
+          t = p.read_text(encoding="utf-8", errors="replace").lower()
+          expected = ("colis", "parede", "personagem", "moviment", "atravess", "obst", "teste")
+          if not any(x in t for x in expected):
+              raise SystemExit("Falha: inferência não comprovada, apenas banner/saída sem resposta relevante")
+          print("Inferência válida: resposta contém linguagem relacionada ao teste de colisão")
+          PY
+          echo "Modelo respondeu no runner; amostra (limite 500 caracteres):"
+          head -c 500 "$RUNNER_TEMP/qa-smoke-output.txt"
+      - name: Produzir diagnóstico sem modificar codigo
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_ISSUE: ${{ needs.escolher-issue.outputs.target }}
+          MODEL_FILE: ${{ runner.temp }}/model.gguf
+        run: |
+          cp "$HOME/.cache/a1-llm/model.gguf" "$MODEL_FILE"
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          "$HOME/.cache/a1-llm/llama-bin/llama-cli" --version
+          export LLAMA_BIN="$HOME/.cache/a1-llm/llama-bin/llama-cli"
+          python3 tools/agentes-externos/a1-local.py
