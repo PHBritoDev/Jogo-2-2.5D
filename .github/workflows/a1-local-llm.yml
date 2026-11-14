@@ -78,7 +78,7 @@ jobs:
               "https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf" \
               -o "$HOME/.cache/a1-llm/model.gguf"
           fi
-          test "$(stat -c%s "$HOME/.cache/a1-llm/model.gguf")" -gt 700000000
+          printf '%s  %s\n' 'f530705d447660a4336c329981af164b471b60b974b1d808d57e8ec9fe23b239' "$HOME/.cache/a1-llm/model.gguf" | sha256sum --check --status
       - name: Cache do binário llama.cpp
         uses: actions/cache@v4
         with:
