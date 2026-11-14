@@ -53,3 +53,16 @@ Respostas devem citar ID: `[RESPOSTA A5-001] A3: ACEITO / ALTERNATIVA / BLOQUEAD
 - Unity — armadilhas comuns de overdraw/partículas/luzes em dispositivos móveis: https://docs.unity3d.com/kr/2018.3/Manual/MobileOptimizationGraphicsMethods.html
 - GDC — narrativa interativa, design de escolhas e storytelling ambiental: https://gdconf.com/call-for-submissions/
 - Fontes são pontos de partida. Cada agente deve validar versão, motor e aplicabilidade **no código deste jogo** antes de executar.
+
+## Roteador por eventos (implementado em 14/11/2026)
+Workflow: [`.github/workflows/equipe-5-agentes-roteador.yml`](../../.github/workflows/equipe-5-agentes-roteador.yml).
+
+**O que ele FAZ:** quando um colaborador com permissão de escrita comenta no Issue #519 no formato `[PEDIDO A5-001] ... Para: A3` (ou `[PEDIDO] ID: A5-001 ... Para: A3`), a Action cria um **Issue de tarefa** identificado por destinatário, vincula o comentário e responde na central com o link. Quando uma PR de branch `agentes/a1/...` a `agentes/a5/...` é mesclada, a Action registra o acontecimento na central.
+
+**O que ele NÃO FAZ:** não executa ChatGPT/Claude/Codex, não ativa chats, não interpreta ou implementa código, não agenda a cada 5 minutos, não faz merge, não acessa segredos nem usa API de IA. É organização assíncrona e automática, não autonomia ininterrupta. O destinatário deve consultar sua fila ao começar a rodada.
+
+**Segurança e custo:** só autores com permissão write/maintain/admin podem criar tarefas pelo comentário; o texto da tarefa é conteúdo não confiável e deve ser verificado antes de qualquer execução. O workflow consome minutos de GitHub Actions conforme a franquia da conta, mas não faz chamadas pagas a modelos. Se o fluxo falhar, verificar a aba Actions; nenhuma entrega pode ser considerada executada só porque uma solicitação foi roteada.
+
+**Para ativar trabalho autônomo de programação no futuro:** é necessária uma integração de execução explicitamente configurada (por exemplo Codex Action com credencial/API e orçamento aceitos pelo criador), limites por tarefa, autorização por papéis, revisão humana de PR e proteção contra ciclos. **Não conectar chaves, compras ou execução paga sem aprovação explícita.**
+
+**Referências:** https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target ; https://learn.chatgpt.com/pt-BR/docs/github-action ; https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
