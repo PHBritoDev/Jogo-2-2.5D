@@ -28,13 +28,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 -m unittest discover -s tools/agentes-externos -p 'test_a1_local.py' -v
   escolher-issue:
-    if: github.event_name != 'pull_request' && (github.event_name != 'issues' || github.event.label.name == 'agente-local-a1')
     runs-on: ubuntu-latest
     outputs:
       target: ${{ steps.pick.outputs.target }}
     steps:
       - name: Selecionar uma Issue não processada
         id: pick
+        if: github.event_name != 'pull_request' && (github.event_name != 'issues' || github.event.label.name == 'agente-local-a1')
         uses: actions/github-script@v7
         with:
           script: |
@@ -56,7 +56,7 @@ jobs:
 
   analisar-com-modelo-local:
     needs: escolher-issue
-    if: needs.escolher-issue.outputs.target != ''
+    if: github.event_name == 'pull_request' || needs.escolher-issue.outputs.target != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -93,7 +93,23 @@ jobs:
             mkdir -p "$HOME/.cache/a1-llm/llama-bin"
             cp -a /tmp/a1-llama-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
           fi
+      - name: Teste real do modelo sem escrever no GitHub (somente PR)
+        if: github.event_name == 'pull_request'
+        env:
+          MODEL_FILE: ${{ runner.temp }}/model.gguf
+        run: |
+          cp "$HOME/.cache/a1-llm/model.gguf" "$MODEL_FILE"
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          timeout 180 "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            -m "$MODEL_FILE" \
+            -p "<|im_start|user>\nEm uma frase curta, diga como testar um bug de colisao em um RPG 3D.\n<|im_end|>\n<|im_start|assistant>\n" \
+            -n 64 -c 1024 -t 2 --temp 0.1 --single-turn --no-display-prompt --simple-io \
+            > "$RUNNER_TEMP/qa-smoke-output.txt"
+          test "$(wc -c < "$RUNNER_TEMP/qa-smoke-output.txt")" -gt 25
+          echo "Modelo respondeu no runner; amostra (limite 500 caracteres):"
+          head -c 500 "$RUNNER_TEMP/qa-smoke-output.txt"
       - name: Produzir diagnóstico sem modificar codigo
+        if: github.event_name != 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_ISSUE: ${{ needs.escolher-issue.outputs.target }}
