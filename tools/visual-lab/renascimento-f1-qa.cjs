@@ -45,6 +45,9 @@ const NAV = [
   ['adro-volta', [-12.8, -61, -12.8, -47, { seconds: 8 }], r => r.progress > .95 && r.maxY > .55 && !r.fell],
   ['adro-lateral', [-18.5, -54.1, -12.8, -54.1, { seconds: 4 }], r => r.end[0] < -15.7 && r.pen === 0],
   ['rua-entrada', [-1.6, -30.2, -12, -41, { seconds: 8 }], r => r.progress > .95 && !r.fell],
+  // Fase 2 — fachadas: as jardineiras/lenha não fecham a porta (aproximação de 2,2 m até a soleira)
+  ['porta-casa-A4', [-9.07, -33.23, -11.08, -32.22, { seconds: 2.4 }], r => r.progress > .85 && r.pen === 0],
+  ['porta-casa-B3', [-24.2, -35.98, -26.03, -34.68, { seconds: 2.4 }], r => r.progress > .85 && r.pen === 0],
   ['vau-pedras-degrau', [19.45, -9.4, 18.68, -16.9, { seconds: 2.1 }], r => r.end[2] < -13.4 && r.end[1] > -.55 && !r.fell], // no meio do rio, pés acima da lâmina (-0,5)
   ['margem-rampa', [48, -3, 48, -10.4, { seconds: 4 }], r => r.progress > .9 && !r.fell],
 ];
