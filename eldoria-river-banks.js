@@ -17,7 +17,7 @@ import { riverRibbon } from './eldoria-water.js';
 
 export const RIVER_BANK = Object.freeze({ edge: 2.62, run: 3.1, runVar: 2.4, bridgeKeep: 9.5 });
 export const FORD = Object.freeze({ x: 19, z: -13.2, halfLen: 4.6, fade: 3.2, bedDepth: .5, name: 'Vau das Pedras' });
-export const FORD_TRAIL = Object.freeze({ id: 'vau', name: 'Caminho do Vau', width: 2.4, points: Object.freeze([[22, 14.6], [21, 6.5], [19.6, 0], [19, -6.8], [19, -19.6], [17, -25], [12.5, -30]]) });
+export const FORD_TRAIL = Object.freeze({ id: 'vau', name: 'Caminho do Vau', width: 2.4, points: Object.freeze([[22, 14.6], [21, 6.5], [19.6, 0], [19, -6.8], [19, -17.5], [21.8, -21.5], [19.5, -26.5], [14, -30.5]]) });
 
 const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
 function vnoise1(t, seed) { const i = Math.floor(t), f = t - i, u = f * f * (3 - 2 * f); return hash(i, seed) * (1 - u) + hash(i + 1, seed) * u; }
