@@ -49,11 +49,15 @@ export function createRiverQuery(points, { width = 3.33, level = -.5 } = {}) {
 
 /** Lado interno da curva (praia de cascalho) = mesmo lado para onde o rio curva. */
 export function innerBend(q) { return q.curv * q.side > .015; }
+/** Quanto o ponto é curva interna (0 = reto/externo … 1 = praia), contínuo: sem degrau onde a curvatura troca de sinal. */
+export function innerAmount(q) { return Math.max(0, Math.min(1, (q.curv * q.side - .004) / .03)); }
+function vnoise2(x, z) { const i = Math.floor(x), j = Math.floor(z), fx = x - i, fz = z - j, u = fx * fx * (3 - 2 * fx), w = fz * fz * (3 - 2 * fz);
+  return (hash(i, j) * (1 - u) + hash(i + 1, j) * u) * (1 - w) + (hash(i, j + 1) * (1 - u) + hash(i + 1, j + 1) * u) * w; }
 
 /** Largura da rampa do barranco neste ponto (m): varia ao longo do rio; maior na praia interna e menor no corte externo. */
 export function bankRun(q) {
-  const base = RIVER_BANK.run + (vnoise1(q.s / 11, 5) - .5) * RIVER_BANK.runVar, k = Math.min(1, Math.abs(q.curv) * 9);
-  return Math.max(1.4, innerBend(q) ? base + 2.6 * k : base - 1.3 * k);
+  const base = RIVER_BANK.run + (vnoise1(q.s / 11, 5) - .5) * RIVER_BANK.runVar, k = Math.min(1, Math.abs(q.curv) * 9), ki = innerAmount(q);
+  return Math.max(1.4, base + 2.6 * k * ki - 1.3 * k * (1 - ki));
 }
 
 /** Máscara do vau (0..1) ao longo do rio, em torno do ponto mais próximo de FORD. */
@@ -76,7 +80,9 @@ export function shapeBankHeight(h0, x, z, river, { fordS, bridge } = {}) {
   // barranco em rampa (acima da água)
   if (q.d > RIVER_BANK.edge - .25 && h0 > lv) {
     const run = bankRun(q), u = (q.d - RIVER_BANK.edge) / run;
-    if (u < 1) { const k = Math.max(0, u), e = k * k * (3 - 2 * k), shelf = innerBend(q) ? .07 : .16, target = lv + shelf + (h0 - lv - shelf) * e;
+    if (u < 1) { const k = Math.max(0, u), e = k * k * (3 - 2 * k), shelf = .16 - .09 * innerAmount(q);
+      // ondulação suave (montículos, sulcos de enchente): zero na beira e no alto da rampa, nunca abaixo da lâmina
+      const bump = (vnoise2(x * .45, z * .45) - .5) * .12 * Math.sin(Math.PI * k), target = lv + shelf + (h0 - lv - shelf) * e + bump;
       if (target < h) h = target; }
   }
   // vau: o leito sobe até ~bedDepth de lâmina, com ondulação do cascalho

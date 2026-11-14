@@ -38,6 +38,8 @@ const NAV = [
   ['vigia-trilha-3', [41.5, 100.4, 31.2, 97, { seconds: 6 }], r => r.progress > .75 && !r.fell && r.pen === 0],
   // Fase 2 — rio: Vau das Pedras (lâmina ~0,5 m, a pé), pedras-degrau acima da água e barranco em rampa
   ['vau-travessia', [19.2, -6, 19.2, -18.5, { seconds: 10 }], r => r.progress > .95 && !r.fell], // margem norte → margem sul pelo vau
+  ['vau-travessia-volta', [19.2, -18.5, 19.2, -6, { seconds: 10 }], r => r.progress > .95 && !r.fell], // margem sul → margem norte
+  ['vau-pedras-volta', [18.6, -17, 19.45, -9.4, { seconds: 2.4 }], r => r.end[2] > -13.4 && r.end[1] > -.55 && !r.fell],
   ['vau-pedras-degrau', [19.45, -9.4, 18.68, -16.9, { seconds: 2.1 }], r => r.end[2] < -13.4 && r.end[1] > -.55 && !r.fell], // no meio do rio, pés acima da lâmina (-0,5)
   ['margem-rampa', [48, -3, 48, -10.4, { seconds: 4 }], r => r.progress > .9 && !r.fell],
 ];

@@ -61,14 +61,14 @@ void main(){
   vec3 body = mix(uDeep, uShallow, smoothstep(.15, .95, across) * .8 + (n0 - .5) * .25);
   // Renascimento F2 — vau: lâmina rasa sobre cascalho (cor de areia molhada, mais transparente, corredeira).
   float ford = uRadial > .5 ? 0.0 : uFord.w * smoothstep(uFord.x - uFord.z, uFord.x, vUv.x) * (1.0 - smoothstep(uFord.y, uFord.y + uFord.z, vUv.x));
-  body = mix(body, vec3(.27, .33, .24) + (n0 - .5) * .1, ford * .62);
+  body = mix(body, vec3(.2, .27, .2) + (n0 - .5) * .08, ford * .66);
   // Mod 316 — reflexo do céu da HORA atual: horizonte perto da incidência rasante, zênite quando se olha de cima.
   vec3 R = reflect(-V, N); vec3 skyRef = mix(uSky, uSkyZen, smoothstep(.05, .6, R.y));
   vec3 sky = mix(mix(skyRef, uDeep, .22), uSkyNight, uNight * .5);
   // Reflexo aproximado da mata (lago cercado de árvores): verde-escuro na faixa da margem, recortado por ruído
   // que imita troncos/copas refletidos; sem render target.
   if (uRadial > .5) { float trunks = .55 + .45 * sin(atan(vWorld.z - uLakeC.y, vWorld.x - uLakeC.x) * 23.0 + n0 * 3.0); sky = mix(sky, vec3(.05, .11, .07) * (1.0 - uNight * .5), smoothstep(.35, .95, across) * (.45 + .4 * trunks)); }
-  vec3 col = mix(body, sky, fres);
+  vec3 col = mix(body, sky, fres * (1.0 - ford * .55)); // raso do vau: menos céu refletido, mais leito (sem leitoso)
   vec3 L = normalize(uSun); float spec = pow(max(dot(reflect(-L, N), V), 0.0), 90.0) * (1.0 - uNight * .7);
   col += uSunCol * spec * 1.4;
   // Espuma: margens recortadas por ruído e riscos que descem com a correnteza.
@@ -86,6 +86,7 @@ void main(){
     float ring = (1.0 - smoothstep(0.0, .9, d)) * (.55 + .45 * fbm(vWorld.xz * 2.0 - vec2(uTime * speed, 0.0)));
     foam = max(foam, ring * r.w); }
   foam = max(foam, rippleFoam);
+  foam *= 1.0 - ford * .7; // no vau a margem não vira faixa branca contínua
   if (ford > 0.0) foam = max(foam, ford * smoothstep(.62, .9, fbm(vec2(vUv.x * 2.4 - uTime * speed * 2.2, vUv.y * 7.0 + n0))) * (.16 + .3 * near));
   // Mod 316 — água branca (cascata): riscos longos que descem com a correnteza + bolhas; uWhite = 0 no rio/lago.
   if (uWhite > 0.0) { float w = smoothstep(.38, .82, fbm(vec2(vUv.x * .55 - uTime * speed * 1.7, vUv.y * 3.2)) + (n0 - .5) * .35); foam = max(foam, uWhite * (.35 + .65 * w)); }
@@ -153,7 +154,7 @@ export function buildRiverMesh(THREE, points, o = {}) {
   const r = riverRibbon(points, o), g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(r.positions, 3)); g.setAttribute('uv', new THREE.BufferAttribute(r.uvs, 2)); g.setIndex(r.indices);
   g.computeVertexNormals(); g.computeBoundingSphere();
-  const material = createFlowWaterMaterial(THREE, { flow: o.flow ?? 1.15, white: o.white ?? 0, alpha: o.alpha });
+  const material = createFlowWaterMaterial(THREE, { flow: o.flow ?? 1.15, white: o.white ?? 0, alpha: o.alpha, deep: o.deep, shallow: o.shallow });
   material.uniforms.uFoamEnd.value = r.length;
   const mesh = new THREE.Mesh(g, material); mesh.name = 'eldoria-river-mod291'; mesh.renderOrder = 2; mesh.frustumCulled = true;
   return { mesh, material, ribbon: r };
