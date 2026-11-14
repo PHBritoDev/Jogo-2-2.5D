@@ -47,11 +47,11 @@ class LocalAgentTests(unittest.TestCase):
 
     def test_cli_metadata_without_report_is_rejected(self):
         with self.assertRaises(ValueError):
-            agent.clean_report("build: b1\\nmodel: foo\\navailable commands:\\n/regen")
+            agent.clean_report("build: b1\nmodel: foo\navailable commands:\n/regen")
 
     def test_incomplete_report_is_rejected(self):
         with self.assertRaises(ValueError):
-            agent.clean_report("### Hipótese a validar\\nAlgo estranho")
+            agent.clean_report("### Hipótese a validar\nAlgo estranho")
 
     def test_short_report_is_not_submitted(self):
         with self.assertRaises(ValueError):
@@ -59,13 +59,13 @@ class LocalAgentTests(unittest.TestCase):
 
     def test_inference_never_executes_generated_text(self):
         fake = type("Completed", (), {"stdout": (
-            "Loading model...\\n"
-            "available commands:\\n  /clear\\n"
-            "> <|im_start|system>never publish prompt<|im_end|>\\n"
-            "### Hipótese a validar\\nCâmera pode tremer durante o combate.\\n"
-            "### Passos de reprodução\\nReproduzir no laboratório com gravação e capturas.\\n"
-            "### Testes de regressão\\nValidar que movimentação e câmera seguem suaves.\\n"
-            "[ Prompt: 50 t/s | Generation: 10 t/s ]\\nExiting...\\n"
+            "Loading model...\n"
+            "available commands:\n  /clear\n"
+            "> <|im_start|system>never publish prompt<|im_end|>\n"
+            "### Hipótese a validar\nCâmera pode tremer durante o combate.\n"
+            "### Passos de reprodução\nReproduzir no laboratório com gravação e capturas.\n"
+            "### Testes de regressão\nValidar que movimentação e câmera seguem suaves.\n"
+            "[ Prompt: 50 t/s | Generation: 10 t/s ]\nExiting...\n"
         )})()
         with patch.object(agent.subprocess, "run", return_value=fake) as run:
             output = agent.infer("prompt", "/tmp/llama", "/tmp/model.gguf")
