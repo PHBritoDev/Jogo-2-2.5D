@@ -50,7 +50,11 @@ async function prologue(browser, name, viewport, mobile) {
     await H.tapUntil(s => s.shot === 'levantar' && s.u > .35, 120); await H.snap('2-levantando'); await H.tapUntil(s => s.shot !== 'levantar' || s.u > .95, 160); await wait(600); await H.snap('2-de-pe-anjo-presente');
     await H.tapUntil(s => s.waitingAsk, 30); if (await page.$('#name-input')) { await page.fill('#name-input', 'Davi').catch(() => {}); await page.click('#name-confirm').catch(() => {}); }
     await H.tapUntil(s => s.shot === 'olhar-em-volta'); await wait(1800); await H.snap('2-olhar-garganta');
-    await H.tapUntil(s => s.waitingAsk, 30); await page.click('#mission-accept').catch(() => {}); await wait(3500);
+    // Pergunta da missão: no desktop com SwiftShader a cena chega à pergunta bem depois de 30 toques. Espera a pergunta
+    // e o botão de verdade (o diagnóstico do CI mostrou a cena parada em "olhar-em-volta" com waitingAsk=true e q=0).
+    await H.tapUntil(s => s.waitingAsk, 140); await page.waitForSelector('#mission-accept', { state: 'visible', timeout: 60000 }).catch(() => {});
+    await page.click('#mission-accept').catch(() => {}); await wait(3500);
+    for (let i = 0; i < 20 && (await H.st()).waitingAsk; i++) { await page.click('#mission-accept').catch(() => {}); await wait(700); }
     R.metrics.prado = await H.frames(5000);
     for (let i = 0; i < 10; i++) await page.evaluate(() => window.SevenSinsDebug3D.motionStep(.5, { x: 0, z: -1 }));
     await wait(1500); await H.snap('3-asas-pergunta'); await H.tapUntil(s => s.shot === 'asas-recolher', 160); await wait(900); await H.snap('3-asas-recolhendo');
