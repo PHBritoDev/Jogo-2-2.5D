@@ -16,6 +16,7 @@ ALLOWED_CONTEXT = (
     "world3d-terrain.js",
     "powers3d.js",
     "audio3d.js",
+    "act1-world-layout.js",
 )
 MAX_OUTPUT_CHARS = 7000
 
@@ -34,10 +35,24 @@ def prompt_for(issue, root):
     body = (issue.get("body") or "")[:6000]
     title = issue.get("title", "")[:200]
     context = []
+    words = set(re.findall(r"[A-Za-z_][A-Za-z_0-9]{3,}", (title + " " + body).lower()))
     for relative in ALLOWED_CONTEXT:
         path = root / relative
-        if path.is_file():
-            context.append(f"ARQUIVO {relative}:\n{path.read_text('utf-8', errors='replace')[:1300]}")
+        if not path.is_file():
+            continue
+        lines = path.read_text("utf-8", errors="replace").splitlines()
+        candidates = []
+        for i, line in enumerate(lines):
+            score = sum(1 for word in words if word in line.lower())
+            if score >= 2:
+                candidates.append((score, i))
+        top = sorted(candidates, reverse=True)[:3]
+        if top:
+            selected = sorted({n for _, i in top for n in range(max(0, i-2), min(len(lines), i+3))})
+            excerpt = "\n".join(f"{i+1}: {lines[i]}" for i in selected)[:1250]
+        else:
+            excerpt = "\n".join(lines[:16])[:400]
+        context.append(f"ARQUIVO {relative}:\n{excerpt}")
     return (
         "<|im_start|system>\n"
         "Você é um engenheiro de QA de um RPG Three.js/WebGL mobile. "
@@ -60,11 +75,17 @@ def infer(prompt, llama_bin, model):
     result = subprocess.run(
         [llama_bin, "-m", model, "-p", prompt, "-n", "420",
          "-c", "4096", "-t", "2", "--temp", "0.2",
-         "--no-display-prompt", "--simple-io"],
-        capture_output=True, text=True, timeout=210, check=True,
+         "--single-turn", "--no-display-prompt", "--simple-io"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=210, check=True,
     )
     text = result.stdout.strip()
-    # Model output is a suggestion, not trusted source code.
+    # Reject a llama-cli startup-only response. Never treat a banner as QA.
+    if "Loading model..." in text:
+        text = text.split("Loading model...", 1)[1]
+    text = re.sub(r"(?m)^.*[▄█▀].*$", "", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    if not any(x in text.lower() for x in ("hipótese", "reprodu", "teste", "verific")):
+        raise ValueError("Model did not produce a recognizable QA report")
     return text[-MAX_OUTPUT_CHARS:]
 
 
