@@ -29,6 +29,22 @@ class LocalAgentTests(unittest.TestCase):
             }, Path(d))
         self.assertNotIn("Z" * 7000, p)
 
+    def test_context_includes_relevant_non_header_lines(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "world3d-terrain.js"
+            p.write_text("// header\n" * 30 + "function terrainPatchCollision() { return 'collision'; }\n")
+            out = agent.prompt_for({
+                "number": 7, "title": "terrainPatchCollision collision",
+                "body": "terrainPatchCollision collision error"
+            }, Path(d))
+        self.assertIn("terrainPatchCollision()", out)
+
+    def test_banner_only_is_rejected(self):
+        fake = type("Completed", (), {"stdout": "Loading model... \n▄▄ ██ ██"})()
+        with patch.object(agent.subprocess, "run", return_value=fake):
+            with self.assertRaises(ValueError):
+                agent.infer("prompt", "/tmp/llama", "/tmp/model.gguf")
+
     def test_short_report_is_not_submitted(self):
         with self.assertRaises(ValueError):
             agent.submit("owner/repo", 4, "oops")
