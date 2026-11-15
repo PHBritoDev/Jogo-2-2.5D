@@ -158,3 +158,20 @@ test('energy shader rejects dissolved pixels before expensive secondary noises',
   assert.ok(shader.includes('float edgeCut=smoothstep(dissolve,dissolve+.11,cells);'),'preserve dissolve edge falloff');
   fx.dispose();
 });
+
+test('low-quality energy body skips fully dissolved masks and recovers at threshold', () => {
+  const fx=energyBody(T,{add() {},remove() {}},'celestial');
+  // FLOW_NOISE maximum is .72 + .28*detail, with detail=.65 at quality 0.
+  const ceiling=.72+.28*.65;
+  fx.update(0,{alpha:1,quality:0,dissolve:ceiling});
+  assert.equal(fx.mesh.visible,false,'all low-detail pixels are discarded at mask ceiling');
+  fx.update(.1,{alpha:1,quality:0,dissolve:ceiling-.0001});
+  assert.equal(fx.mesh.visible,true,'just below the ceiling the body remains eligible');
+  fx.update(.2,{alpha:1,quality:1,dissolve:ceiling});
+  assert.equal(fx.mesh.visible,true,'full detail has a higher mask ceiling');
+  fx.update(.3,{alpha:1,quality:0,dissolve:1});
+  assert.equal(fx.mesh.visible,false);
+  fx.update(.4,{alpha:1,quality:0,dissolve:0});
+  assert.equal(fx.mesh.visible,true,'pooled effect reappears after dissolving');
+  fx.dispose();
+});
