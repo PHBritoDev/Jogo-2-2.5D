@@ -5,6 +5,8 @@ Candidate JSON is untrusted model output. This tool ONLY stages data; it does no
 run model text, create PRs, push commits or touch controller/cave/shared modules.
 """
 import argparse
+import ast
+import re
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -14,6 +16,67 @@ from pathlib import Path, PurePosixPath
 ALLOWED = frozenset(("hearts3d.js",))
 MAX_SOURCE = 65536
 MAX_FRAGMENT = 2048
+
+
+
+# Only a bounded, expression-only subset may reach a test runner. The Qwen
+# cannot introduce calls, properties, identifiers, strings or statement syntax.
+_EXPRESSION = re.compile(r"[A-Za-z_][A-Za-z_0-9]*|(?:Math\\.(?:min|max))|[0-9]+(?:\\.[0-9]+)?|[+*/(),\\s.-]+")
+_RESERVED = frozenset(("constructor", "prototype", "__proto__", "eval", "Function", "require",
+                       "import", "process", "globalThis", "window", "document", "fetch"))
+
+
+def _safe_expression(fragment):
+    code = fragment.strip()
+    if code.startswith("return "):
+        code = code[7:].strip()
+    if not code or len(code) > 240 or "\\n" in code or "\\r" in code:
+        raise ValueError("Expected one bounded JS expression")
+    # Only Math.min/max, identifiers, arithmetic and numeric literals are legal.
+    tokens = re.findall(r"Math\\.(?:min|max)|[A-Za-z_][A-Za-z_0-9]*|\\d+(?:\\.\\d+)?|[+*/(),.\\s-]", code)
+    if "".join(tokens) != code:
+        raise ValueError("Unexpected JS syntax")
+    names = set()
+    translated = code.replace("Math.min(", "min(").replace("Math.max(", "max(")
+    try:
+        tree = ast.parse(translated, mode="eval")
+    except SyntaxError as exc:
+        raise ValueError("Invalid arithmetic expression") from exc
+
+    def check(node):
+        if isinstance(node, ast.Expression):
+            check(node.body)
+        elif isinstance(node, ast.Constant):
+            if type(node.value) not in (int, float) or abs(node.value) > 1000000:
+                raise ValueError("Invalid numeric literal")
+        elif isinstance(node, ast.Name):
+            if node.id in _RESERVED or node.id.startswith("__"):
+                raise ValueError("Forbidden identifier")
+            names.add(node.id)
+        elif isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
+            check(node.operand)
+        elif isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
+            check(node.left)
+            check(node.right)
+        elif (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+              and node.func.id in ("min", "max") and not node.keywords
+              and 1 <= len(node.args) <= 3):
+            for arg in node.args:
+                check(arg)
+        else:
+            raise ValueError("Unsupported JS expression node")
+
+    check(tree)
+    return names
+
+
+def _check_patch_expression(before, after):
+    old_names = _safe_expression(before)
+    new_names = _safe_expression(after)
+    if not new_names.issubset(old_names):
+        raise ValueError("New variable names forbidden")
+    if before.lstrip().startswith("return ") != after.lstrip().startswith("return "):
+        raise ValueError("Return statement must be preserved")
 
 
 def stage(root, staging, candidate):
@@ -30,6 +93,7 @@ def stage(root, staging, candidate):
         raise ValueError("Invalid or oversized patch")
     if "\x00" in before or "\x00" in after:
         raise ValueError("NUL bytes forbidden")
+    _check_patch_expression(before, after)
     root = Path(root).resolve(strict=True)
     staging = Path(staging).resolve()
     if staging == root or root in staging.parents:
