@@ -249,3 +249,22 @@ test('A5: replaying the first bishop never rewinds later canonical acts or dupli
   assert.equal(victory.questStep, 8);
   assert.equal(victory.coinsGained, ACT1.vhazraelReward);
 });
+
+test('A5: corrupted bishop counter must not grant legacy magic3 on reload', () => {
+  for (const bishopsDefeated of [Infinity, 'Infinity', NaN, 'NaN', -Infinity]) {
+    const saved = migrateProgress({
+      version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+      bishopsDefeated, coins: 15
+      // Old save has no owned list: unlocks must be derived from valid progress.
+    });
+    assert.equal(saved.bishopsDefeated, 0);
+    assert.equal(saved.owned.includes('magic3'), false);
+    assert.deepEqual(migrateProgress(saved), saved);
+  }
+  const legitimate = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 8,
+    bishopsDefeated: 1
+  });
+  assert.equal(legitimate.owned.includes('magic3'), true);
+  assert.deepEqual(migrateProgress(legitimate), legitimate);
+});
