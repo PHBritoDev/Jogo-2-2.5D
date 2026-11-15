@@ -53,5 +53,6 @@ test('save legado com secretsFound nulo não derruba descoberta de locais', () =
   const s = createMapState();
   assert.doesNotThrow(() => discoverPois(s, ruin.x, ruin.z, { secretsFound: null }));
   assert.equal(s.pois.has('ruina'), false, 'segredo não deve ser revelado por campo nulo');
+  assert.equal(s.pois.has('vila'), true, 'save legado não pode impedir descoberta de POIs públicos próximos');
   assert.ok(discoverPois(s, ruin.x, ruin.z, { secretsFound: { ruina: true } }).some(p => p.id === 'ruina'));
 });
