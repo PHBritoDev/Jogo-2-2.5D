@@ -24,3 +24,17 @@ test('sem coração não desafia Bispo; cronômetro legível', () => {
   assert.equal(formatTimer(151000), '2:31');
   assert.equal(normalizeHearts({ hearts: 'x' }, 0).hearts, HEARTS.max);
 });
+
+test('salvamento com timestamp futuro não bloqueia regeneração nem cria timer enorme', () => {
+  const now = 1000000;
+  const future = now + HEARTS.regenMs * 100;
+  const loaded = normalizeHearts({ hearts: 3, since: future }, now);
+  assert.equal(loaded.hearts, 3);
+  assert.equal(loaded.since, now, 'um timestamp futuro deve ser reancorado ao relógio atual');
+  assert.equal(msToNextHeart(loaded, now), HEARTS.regenMs);
+  assert.equal(tickHearts(loaded, now + HEARTS.regenMs).hearts, 4);
+
+  const live = tickHearts({ hearts: 3, since: future }, now);
+  assert.equal(live.since, now, 'ajuste de relógio também durante sessão aberta');
+  assert.equal(msToNextHeart({ hearts: 3, since: future }, now), HEARTS.regenMs);
+});
