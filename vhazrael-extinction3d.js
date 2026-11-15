@@ -203,8 +203,8 @@ export function createExtinctionVFX(T, kit) {
       for (let i = 0; i < (low ? 4 : 12); i++) { const a = hash(i + 40) * 6.283, u = (time * .5 + hash(i + 41)) % 1, rr = 4 + (T0.blastR - 4) * hash(i + 42); shard(G.ex + Math.cos(a) * rr, G.ey + .2 + u * 2.5 * near, G.ez + Math.sin(a) * rr, .08 + .25 * hash(i + 43), u * 7, i, a); } }
     // Tomada C2: plano ABERTO da arena (2ª metade de entry), saída suave para a câmera do jogador ANTES da queda
     if (ph === 'entry' && s.t >= T0.entry * .5) { const u = (s.t - T0.entry * .5) / (T0.entry * .5), hy = ground(G.hx, G.hz);
-      A.set(G.hx - G.fx * (13 + 3 * u) - G.fz * 9, hy + 8 + 2 * u, G.hz - G.fz * (13 + 3 * u) + G.fx * 9); B.copy(C).lerp(V.set(G.ex, G.ey + 2, G.ez), .42 + .2 * u); /* meteoro no alto do quadro, marca no chão embaixo */
-      shot = { pos: A.toArray(), look: B.toArray(), fov: 62, blend: 1 - smooth((u - .7) / .3) }; if (shot.blend < .01) shot = null; }
+      A.set(G.hx - G.fx * (13 + 3 * u) - G.fz * 9, hy + 8 + 2 * u, G.hz - G.fz * (13 + 3 * u) + G.fx * 9); B.copy(C).lerp(V.set(G.ex, G.ey + 2, G.ez), .3 + .35 * u); /* teleobjetiva: o meteoro domina o céu e a câmera desce até a marca no chão */
+      shot = { pos: A.toArray(), look: B.toArray(), fov: 34 + 24 * smooth(u), blend: 1 - smooth((u - .7) / .3) }; if (shot.blend < .01) shot = null; }
     // SHOT 7: impacto com massa (todos os secundários irradiam do epicentro)
     if (ph === 'impact' || ph === 'after') { const it = ph === 'impact' ? s.t : T0.impact + s.t, cx = G.ex, cz = G.ez, cy = G.ey, er = smooth((it - 1.1) / 1.9), duel = false, RB = orbitalBlastR(T0, it), HB = T0.blastH / T0.blastR;
       groundNormal(ground, cx, cz, nrm3);
