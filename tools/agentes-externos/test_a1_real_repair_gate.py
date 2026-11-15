@@ -42,14 +42,39 @@ class RealRepairGateTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "not owned"):
                     gate.stage(self.root, self.staging, self.proposal)
 
+    def test_rejects_generated_side_effects_and_non_arithmetic(self):
+        dangerous = (
+            "process.exit(0)",
+            "Math.constructor('return process')()",
+            "Math.min(10, value); fetch('https://example.com')",
+            "Math.max(10, value) || eval('1')",
+            "Math.max(10, value)\nconsole.log('oops')",
+            "Math.max(10, value) + newVariable",
+            "globalThis.process",
+            "Math.max(10, value).constructor",
+            "value = 0",
+        )
+        for payload in dangerous:
+            with self.subTest(payload=payload):
+                self.proposal["after"] = payload
+                with self.assertRaises(ValueError):
+                    gate.stage(self.root, self.staging, self.proposal)
+        self.assertEqual(self.source.read_text(), self.original)
+
+    def test_accepts_bounded_arithmetic_return_patch(self):
+        self.proposal["before"] = "return Math.max(10, value)"
+        self.proposal["after"] = "return Math.min(10, value)"
+        target = gate.stage(self.root, self.staging, self.proposal)
+        self.assertIn("return Math.min(10, value)", target.read_text())
+
     def test_reject_stale_sha(self):
         self.proposal["base_sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "Stale"):
             gate.stage(self.root, self.staging, self.proposal)
 
     def test_reject_ambiguous_anchor_and_noop(self):
-        self.proposal["before"] = "return"
-        self.source.write_text(self.original.replace("return", "return return"))
+        self.proposal["before"] = "Math.max(10, value)"
+        self.source.write_text(self.original + self.original)
         self.proposal["base_sha256"] = hashlib.sha256(self.source.read_bytes()).hexdigest()
         with self.assertRaisesRegex(ValueError, "unique"):
             gate.stage(self.root, self.staging, self.proposal)
