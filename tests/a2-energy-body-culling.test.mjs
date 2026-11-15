@@ -75,11 +75,12 @@ test('energy body culls outside frustum with conservative warp margin and keeps 
   assert.equal(children.length,0);
 });
 
-// Zero-size or non-finite energy volumes should not submit a draw call.
+// Non-positive or non-finite energy scales should not submit a draw call.
+// Negative scale mirrors triangle winding, making FrontSide energy shells vanish unpredictably.
 // Reusing the same pooled body with valid dimensions must restore visibility.
 test('energy body skips degenerate transforms and recovers without changing geometry', () => {
   const fx=energyBody(T,{add() {},remove() {}},'celestial');
-  for (const dimensions of [{radius:0,length:1},{radius:1,length:0},{radius:NaN,length:1},{radius:1,length:Infinity}]) {
+  for (const dimensions of [{radius:0,length:1},{radius:1,length:0},{radius:-1,length:1},{radius:1,length:-1},{radius:-.001,length:-.001},{radius:NaN,length:1},{radius:1,length:Infinity}]) {
     fx.update(1,{alpha:1,dissolve:0,...dimensions});
     assert.equal(fx.mesh.visible,false,'invalid or collapsed energy body should not render');
   }
