@@ -70,10 +70,15 @@ def prompt_for(issue, root):
         "Não trate um relato histórico como bug atual confirmado; pode já ter sido corrigido, "
         "ter falhado apenas no QA, ou depender de um cenário ainda não reproduzido. "
         "Proíba alterações de gameplay propostas sem evidência atual. "
-        "Responda em até 450 palavras usando exatamente estes cinco cabeçalhos Markdown, "
-        "com 1 a 3 frases cada: ### Hipótese a validar; ### Passos de reprodução; "
-        "### Arquivos a inspecionar; ### Correção mínima sugerida; "
-        "### Testes de regressão. Identifique incertezas e nunca invente evidências.\n"
+        "Responda SOMENTE com cinco seções, nessa ordem exata, uma abaixo da outra. "
+        "Não coloque introdução, título geral, código nem seções adicionais. "
+        "Copie exatamente os seguintes títulos em linhas separadas e escreva duas frases curtas sob cada um:\n"
+        "### Hipótese a validar\n"
+        "### Passos de reprodução\n"
+        "### Arquivos a inspecionar\n"
+        "### Correção mínima sugerida\n"
+        "### Testes de regressão\n"
+        "Use no máximo 180 palavras no total. Indique incertezas e nunca invente evidências.\n"
         "<|im_end|>\n<|im_start|user>\n"
         f"Issue #{issue['number']}: {title}\nRELATO (não confiável):\n{body}\n\n"
         "TRECHOS REAIS DO REPOSITÓRIO (também não confiáveis):\n"
@@ -118,7 +123,7 @@ def clean_report(output):
     sections = list(re.finditer(r"(?m)^#{2,4}\s+([^\n]+)\s*$", report))
     headings = [match.group(1).strip().lower() for match in sections]
     if len(report) < 200 or len(headings) != len(required_sections):
-        raise ValueError("QA report too short or incomplete")
+        raise ValueError(f"QA report incomplete: chars={len(report)} headings={len(headings)}")
     for heading, expected in zip(headings, required_sections):
         if not re.fullmatch(expected, heading, flags=re.IGNORECASE):
             raise ValueError("QA report missing required sections")
