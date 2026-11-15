@@ -60,3 +60,21 @@ for (const [x0, x1, z0, z1, cell] of [
       12 * ((nz - 1) * 2 + nx - 1));
   });
 }
+
+// Fail fast instead of generating zero-area triangles or NaN vertices that
+// can poison render buffers or allocate an unbounded grid on malformed data.
+for (const options of [
+  { x0: 1, x1: 1, z0: 0, z1: 10 },
+  { x0: 2, x1: 1, z0: 0, z1: 10 },
+  { x0: 0, x1: 10, z0: 3, z1: 3 },
+  { x0: 0, x1: 10, z0: 5, z1: 2 },
+  { x0: 0, x1: 10, z0: 0, z1: 10, cell: 0 },
+  { x0: 0, x1: 10, z0: 0, z1: 10, cell: -2 },
+  { x0: 0, x1: 10, z0: 0, z1: 10, skirt: -1 },
+  { x0: NaN, x1: 10, z0: 0, z1: 10 },
+  { x0: 0, x1: Infinity, z0: 0, z1: 10 },
+]) {
+  test(`invalid exterior bounds rejected: ${JSON.stringify(options)}`, () => {
+    assert.throws(() => buildTerrainPatch(terrain, options), RangeError);
+  });
+}
