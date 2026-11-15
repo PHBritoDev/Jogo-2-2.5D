@@ -65,6 +65,12 @@ test('energy body culls outside frustum with conservative warp margin and keeps 
   assert.equal(fx.mesh.visible,false,'fully dissolved body should not consume a draw call');
   fx.update(2.2,{alpha:1,dissolve:.99});
   assert.equal(fx.mesh.visible,true,'body should reappear if dissolution reverses');
+  for (const invalid of [NaN,Infinity,-Infinity]) {
+    fx.update(2.3,{alpha:1,dissolve:invalid});
+    assert.equal(fx.mesh.visible,false,'invalid dissolve must not submit shader draw');
+  }
+  fx.update(2.4,{alpha:1,dissolve:.5});
+  assert.equal(fx.mesh.visible,true,'effect recovers after invalid dissolve');
   fx.dispose();
   assert.equal(children.length,0);
 });
