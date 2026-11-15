@@ -103,6 +103,22 @@ class RepairGateTests(unittest.TestCase):
                 )
         self.assertEqual(run.call_count, 3)
 
+    def test_examples_are_supplied_to_model_and_bounded(self):
+        from unittest.mock import patch
+        fake = type("Result", (), {"stdout": 'PATCH: {"after":"return hp - damage"}\n'})()
+        with patch.object(gate.subprocess, "run", return_value=fake) as run:
+            gate.propose_replacement(
+                "llama", "model", "return hp + damage",
+                "10 menos 3 é 7", examples="hp=10, damage=3 -> 7",
+            )
+        args = run.call_args.args[0]
+        self.assertIn("hp=10, damage=3 -> 7", args[args.index("-p") + 1])
+        with self.assertRaisesRegex(ValueError, "pilot limits"):
+            gate.propose_replacement(
+                "llama", "model", "return hp + damage",
+                "10 menos 3 é 7", examples="x" * 700,
+            )
+
     def test_rejects_stale_checksum(self):
         self.candidate["base_sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "checksum"):
