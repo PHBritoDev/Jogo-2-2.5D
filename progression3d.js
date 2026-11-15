@@ -86,6 +86,9 @@ export function shopStatus(item, { questStep = 0, level = 1, coins = 0, owned = 
   }
   if (item.requires && !owned.has(item.requires)) return { state: 'locked', reason: 'Requer ' + (SHOP_ITEMS.find(i => i.id === item.requires) || {}).name + '.' };
   if (level < item.level) return { state: 'level', reason: 'Requer nível ' + item.level + '.' };
+  // NaN ignora comparações (<), liberando compra e propagando NaN ao save.
+  if (typeof coins !== 'number' || !Number.isFinite(coins) || coins < 0)
+    return { state: 'gold', reason: 'Saldo de moedas inválido.' };
   if (coins < item.cost) return { state: 'gold', reason: 'Faltam ' + (item.cost - coins) + ' moedas.' };
   return { state: 'buyable', reason: '' };
 }
