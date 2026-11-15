@@ -3,7 +3,7 @@
 ## Já instalado na main
 - Workflow: [A1 autonomo — vigia 5min e reparo opt-in](../../.github/workflows/a1-agente-autonomo-5min.yml).
 - Agenda: `*/5 * * * *` (mínimo permitido pelo GitHub Actions; execução não garante precisão de minuto). **Não depende de automações ou mensagens do ChatGPT.**
-- A cada execução rápida: executa testes reais e gratuitos de regressão do mapa, saves, NPCs e fotógrafo, gera `bug-agent-results/report.json`, logs e artefato (`a1-robot-N`). Não roda browser pesado a cada cinco minutos.
+- A cada execução rápida: executa testes reais e gratuitos de regressão do mapa, saves, vida/HUD, atos/checkpoints, dimensões/chefes, terreno, NPCs e fotógrafo, gera `bug-agent-results/report.json`, logs e artefato (`a1-robot-N`). Não roda browser pesado a cada cinco minutos.
 - Se detectar nova falha, abre **uma issue por conjunto de falhas** e solicita uma captura WebGL real pelo `agente-cenas.yml` (uma vez, não a cada polling). A captura pode atrasar ou falhar; relatório não equivale a correção.
 - Não faz merge, não edita `main` automaticamente e não interfere no trabalho da vila/caverna do Claude.
 
