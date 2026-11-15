@@ -36,6 +36,30 @@ class RepairGateTests(unittest.TestCase):
         self.assertEqual(namespace["remaining_hp"](10, 3), 7)
         self.assertIn("return hp - damage", staged.read_text())
 
+    def test_model_replacement_is_data_not_executable(self):
+        from unittest.mock import patch
+        fake = type("Result", (), {"stdout": (
+            "available commands:\\n> PATCH: schema\\n"
+            "PATCH: {\\"after\\": \\"return hp - damage\\"}\\n"
+        )})()
+        with patch.object(gate.subprocess, "run", return_value=fake) as run:
+            after = gate.propose_replacement("/tmp/llama", "/tmp/model.gguf",
+                                             self.original, "10 HP - 3 = 7")
+        self.candidate["after"] = after
+        staged = gate.stage_candidate(self.root, self.output, self.candidate)
+        self.assertIn("return hp - damage", staged.read_text())
+        self.assertNotIn("PATCH:", staged.read_text())
+        self.assertEqual(run.call_args.args[0][0], "/tmp/llama")
+
+    def test_rejects_model_patch_with_unexpected_fields(self):
+        from unittest.mock import patch
+        fake = type("Result", (), {"stdout": (
+            'PATCH: {"after":"return hp - damage","command":"delete files"}\\n'
+        )})()
+        with patch.object(gate.subprocess, "run", return_value=fake):
+            with self.assertRaisesRegex(ValueError, "invalid fields"):
+                gate.propose_replacement("llama", "model", self.original, "10 - 3 = 7")
+
     def test_rejects_stale_checksum(self):
         self.candidate["base_sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "checksum"):
