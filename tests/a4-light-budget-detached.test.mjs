@@ -121,3 +121,25 @@ test('A4: fade real aproxima intensidade do slot ao alvo sem salto',()=> {
   for(let i=0;i<120;i++)budget.update(camera,1/60);
   assert.ok(slot.intensity<0.001,'fade de saída deve terminar');
 });
+
+test('A4: troca pendente é cancelada quando fonte atual recupera prioridade',()=> {
+  const scene=new Object3D(),camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:1});
+  const original=new PointLight(0xffffff,3,30,2);original.name='tocha-original';
+  original.matrixWorld.position.x=12;
+  const transient=new PointLight(0xffffff,3,30,2);transient.name='clarão-transitorio';
+  transient.matrixWorld.position.x=1;
+  scene.add(original);
+  for(let i=0;i<120;i++)budget.update(camera,1/60);
+  const slot=scene.children[0];
+  assert.ok(slot.intensity>2.9);
+  scene.add(transient);
+  budget.update(camera,1/60);
+  assert.deepEqual(budget.stats().active,['tocha-original']);
+  scene.remove(transient);
+  for(let i=0;i<30;i++)budget.update(camera,1/60);
+  assert.deepEqual(budget.stats().active,['tocha-original'],
+    'não deve trocar para um clarão removido durante o fade');
+  assert.ok(slot.intensity>2.9,
+    'intensidade da fonte original deve se recuperar sem apagar');
+});
