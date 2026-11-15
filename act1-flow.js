@@ -89,7 +89,7 @@ export function progressionFields(raw, questStep) {
     owned = [];
     if (questStep >= 4) owned.push('magic');
     if (questStep >= 6) owned.push('magic2');
-    if ((Number(r.bishopsDefeated) || 0) >= 1) owned.push('magic3');
+    if (clampInt(r.bishopsDefeated, 0, 4, 0) >= 1) owned.push('magic3');
   }
   const stats = {};
   for (const k of STAT_KEYS) stats[k] = clampInt(r.stats && r.stats[k], 0, Number.MAX_SAFE_INTEGER, 0);
