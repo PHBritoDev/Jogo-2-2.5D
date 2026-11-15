@@ -1,6 +1,10 @@
 # CLAUDE — MISSÃO TEMPORÁRIA: NPCs VIVOS DE ELDÓRIA (Mod 318+)
 **Pedido direto do criador — 15/11/2026.** A caverna C1–C5 foi mesclada. Esta nova missão é da **vila/cidade e seus NPCs**, não da caverna. **NÃO terminar com análise, plano, documentação ou apenas um cabelo colocado. Implementar, testar no jogo real e iterar.**
 
+## REGRA DE COMUNICAÇÃO — SILÊNCIO MÁXIMO
+
+Durante a missão, **não enviar mensagens de progresso, comentários narrativos, planos, justificativas, relatórios ou resumos ao chat**. Trabalhar diretamente no código, fazer testes, corrigir e registrar evidências/commits/PRs no GitHub. **Somente quando TODAS as etapas estiverem realmente concluídas e verificadas**, enviar ao chat exatamente: **Concluído.** Se ainda houver trabalho pendente ou falha, não afirmar conclusão; deixar o estado verificável no GitHub e, se for indispensável responder, usar apenas uma indicação curta e verdadeira da pendência. Essa regra não autoriza burlar controles, ocultar falhas ou inventar resultados.
+
 ## Prioridade, resultado observável e autonomia criativa
 1. **P0 — Consertar de vez o cabelo flutuando:** o usuário viu cabelo suspenso acima das cabeças. Inspecionar vídeos/fotos reais, medir o GLB e corrigir geometricamente e durante TODAS as animações. Nenhum NPC “aprovado” com cabelo desconectado, penetrando o crânio, deformado, enorme ou que não acompanha cabeça ao caminhar/olhar.
 2. **P0 — Personalização real** de homens e mulheres: penteados visivelmente diferentes e bem encaixados; barbas **variadas nos homens** (sem barba, curta, média e/ou outros estilos coerentes); mulheres com cabelos de **cores diferentes** além de estilos. Tons plausíveis de cabelo (preto, castanho, ruivo, loiro, grisalho; opcional variações contextualizadas); materiais reais e per-instance, sem recolorir pele/corpo/olhos nem todos os clones. Homens também podem variar idade, cabelos e barba; nada de clones idênticos.
