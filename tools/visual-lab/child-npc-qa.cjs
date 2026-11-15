@@ -27,7 +27,8 @@ const dir=path.resolve('work/child-npc-evidence');fs.mkdirSync(dir,{recursive:tr
   report.village=await page.evaluate(()=>window.SevenSinsVillagerReport);
   assert.equal(report.village.vendors,3);
   assert.equal(report.village.childrenInVillage,0);
-  assert.equal(report.village.residents,4,'todos os quatro adultos devem aparecer');
+  assert.equal(report.village.residents,2,'os dois moradores vivos (morador e moradora) devem aparecer');
+  assert.equal(report.village.down,0,'não há mais NPCs desmaiados na vila');
   report.scene=await page.evaluate(()=>{
     const n=window.SevenSinsChildNpcReport;
     return {npc:n.loaded,render:SevenSinsDebug3D.rinfo()};
