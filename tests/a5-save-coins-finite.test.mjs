@@ -225,3 +225,27 @@ test('A5: completed Act I legacy checkpoint cannot pay VHAZRAEL twice when rewar
   }));
   assert.equal(firstVictory.coinsGained, ACT1.vhazraelReward);
 });
+
+test('A5: replaying the first bishop never rewinds later canonical acts or duplicates payment', () => {
+  for (const questStep of [8, 9, 14, 15, 21, 25, 30, '21']) {
+    const saved = migrateProgress({
+      version: ACT1.version, act1Rev: ACT1.rev,
+      questStep, act1Sub: 0, coins: 120, bishopsDefeated: 3,
+      vhazraelRewardClaimed: false, owned: ['magic', 'aurora'], sword: 'aurora'
+    });
+    const victory = afterVhazraelVictory(saved);
+    assert.equal(victory.questStep, Number(questStep));
+    assert.equal(victory.coinsGained, 0);
+    assert.equal(victory.bishopsDefeated, 3);
+    const reload = migrateProgress({ ...saved, ...victory });
+    assert.equal(reload.questStep, Number(questStep));
+    assert.equal(reload.coins, 120);
+    assert.equal(reload.sword, 'aurora');
+    assert.equal(afterVhazraelVictory(reload).coinsGained, 0);
+    assert.deepEqual(migrateProgress(reload), reload);
+  }
+  const first = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev, questStep: 7, coins: 10 });
+  const victory = afterVhazraelVictory(first);
+  assert.equal(victory.questStep, 8);
+  assert.equal(victory.coinsGained, ACT1.vhazraelReward);
+});
