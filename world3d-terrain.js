@@ -221,7 +221,18 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
   // A corrupted resolution can otherwise allocate millions of vertices and
   // lock up mobile browsers before the geometry is even sent to WebGL.
   // Normal exterior patches are orders of magnitude smaller than this guard.
-  if (!Number.isSafeInteger(nx) || !Number.isSafeInteger(nz) || nx * nz > 1_000_000) {
+  // Count the skirt vertices as well: a long/thin patch can have few
+  // surface vertices but a large boundary buffer. Reject unknown edges and
+  // duplicates before allocating the arrays or creating degenerate walls.
+  const edgeNames = ['x0', 'x1', 'z0', 'z1'];
+  if (!Array.isArray(skirtEdges) || new Set(skirtEdges).size !== skirtEdges.length ||
+      skirtEdges.some(name => !edgeNames.includes(name))) {
+    throw new RangeError('buildTerrainPatch: invalid skirt edges');
+  }
+  const skirtVertices = skirtEdges.reduce((count, name) =>
+    count + (name === 'x0' || name === 'x1' ? nz : nx), 0);
+  if (!Number.isSafeInteger(nx) || !Number.isSafeInteger(nz) ||
+      nx * nz + skirtVertices > 1_000_000) {
     throw new RangeError('buildTerrainPatch: exterior patch exceeds vertex budget');
   }
   const dx = (x1 - x0) / (nx - 1), dz = (z1 - z0) / (nz - 1);
