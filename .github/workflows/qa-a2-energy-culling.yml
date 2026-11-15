@@ -1,0 +1,23 @@
+name: QA direcionado A2 — regressão de produção
+on:
+  pull_request:
+    paths:
+      - 'tests/a2-energy-body-culling.test.mjs'
+      - 'vfx-flow3d.js'
+      - '.github/workflows/qa-a2-energy-culling.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regressao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar arquivo JS
+        run: node --check vfx-flow3d.js
+      - name: Executar teste específico e contrato base
+        run: node --test tests/a2-energy-body-culling.test.mjs

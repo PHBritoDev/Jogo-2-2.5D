@@ -23,6 +23,9 @@ void main(){vUv=uv;vP=position;vec3 p=position;
 const FRAG=`uniform float time,alpha,detail,dissolve,seed,frequency,flame,celestial;uniform vec3 deep,body,hot;varying vec2 vUv;varying vec3 vN,vV,vP;
 ${FLOW_NOISE}
 void main(){
+ // Dissolve rejection first: avoid evaluating the remaining layered noises for discarded fragments.
+ float cells=flowNoise(vec2(vUv.x*22.*frequency,vUv.y*15.+seed),time*.7,detail);
+ if(cells<dissolve)discard;
  float n=flowNoise(vec2(vUv.x*11.*frequency,vUv.y*7.+seed),time,detail);
  float n2=flowNoise(vec2(vUv.x*23.*frequency-time*1.2,vUv.y*13.+seed*1.7),time*.85,detail);
  float ndotv=abs(dot(normalize(vN),normalize(vV)));
@@ -30,8 +33,6 @@ void main(){
  float coreDark=smoothstep(.22,.78,ndotv);
  float fil=pow(max(0.,1.-abs(n-.54)*5.5),2.6);
  float darkVein=smoothstep(.09,.0,abs(n2-.48)-.025)*coreDark;
- float cells=flowNoise(vec2(vUv.x*22.*frequency,vUv.y*15.+seed),time*.7,detail);
- if(cells<dissolve)discard;
  float heat=smoothstep(.22,.74,n+rim*.32);
  vec3 col=mix(deep,body,heat);
  col=mix(col,hot,clamp(pow(smoothstep(.42,.82,n),1.35)*.78+rim*.35+fil*.28,0.,.96));
@@ -63,10 +64,48 @@ export function energyGeometry(T,{rings=30,sides=14,tail=3,seed=0}={}){
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();return g;
 }
 export function energyBody(T,parent,preset,options={}){
- const geometry=energyGeometry(T,options),material=energyMaterial(T,preset,{warp:.12,...options}),mesh=new T.Mesh(geometry,material);mesh.frustumCulled=false;parent.add(mesh);
+ const geometry=energyGeometry(T,options),material=energyMaterial(T,preset,{warp:.12,...options}),mesh=new T.Mesh(geometry,material);
+ // The vertex shader displaces vertices along their normals. Expand the local bounds
+ // by the maximum displacement so off-screen effects can be safely frustum-culled.
+ geometry.computeBoundingSphere();
+ const baseBoundingRadius=geometry.boundingSphere.radius;
+ let boundedWarp=NaN;
+ function syncWarpBounds(){
+  // The shader's two sine terms have a combined maximum amplitude of .85.
+  // Warp is a public uniform: refresh the bound if another VFX controller edits it.
+  const warp=material.uniforms.warp.value;
+  if(warp===boundedWarp)return;
+  // Even finite uniforms can overflow the expanded radius. In that case
+  // disable culling rather than passing Infinity into the renderer's sphere test.
+  const radius=baseBoundingRadius+Math.abs(warp)*.85;
+  if(!Number.isFinite(warp)||!Number.isFinite(radius)){
+   mesh.frustumCulled=false;
+   boundedWarp=warp;
+   return;
+  }
+  geometry.boundingSphere.radius=radius;
+  mesh.frustumCulled=true;
+  boundedWarp=warp;
+ }
+ // Controllers may write the warp uniform between simulation updates. Refresh the
+ // conservative bounds at assignment time, before Three.js performs frustum tests.
+ const warpUniform=material.uniforms.warp;
+ let warpValue=warpUniform.value;
+ Object.defineProperty(warpUniform,'value',{
+  configurable:true,enumerable:true,
+  get(){return warpValue;},
+  set(value){warpValue=value;syncWarpBounds();}
+ });
+ syncWarpBounds();
+ // Preserve the fail-open state selected by syncWarpBounds for invalid warp.
+ parent.add(mesh);
  const direction=new T.Vector3(),axis=new T.Vector3(0,0,1);
  return{mesh,material,update(time,{position,dir,radius=1,length=1,alpha=.94,quality=1,dissolve=0}={}){
-  mesh.visible=alpha>.005;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
+  syncWarpBounds();// Fragment shader discards alpha below .015; skip the entire draw at that threshold.
+  // FLOW_NOISE weights are .72 and .28*detail; at low quality detail=.65.
+  // Above that ceiling every fragment is discarded, so avoid a wasted draw.
+  const dissolveCeiling=quality===0?.72+.28*.65:1;
+  mesh.visible=Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius!==0&&Number.isFinite(length)&&length!==0;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
   material.uniforms.time.value=time;material.uniforms.alpha.value=alpha;material.uniforms.detail.value=quality===0?.65:1;material.uniforms.dissolve.value=dissolve;
  },dispose(){parent.remove(mesh);geometry.dispose();material.dispose();}};
 }
