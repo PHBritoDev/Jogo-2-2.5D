@@ -18,11 +18,11 @@ const camera=new THREE.PerspectiveCamera(44,innerWidth/innerHeight,.05,100);
 const factory=createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned:clone,groundHeightAt:()=>0});
 let active=null;
 function draw(){renderer.render(scene,camera)};draw();
-window.mountNpc=async function(role){
+window.mountNpc=async function(role,look){
  if(active){scene.remove(active.holder);active=null;}
  const opts={vendorMan:{sex:'man',role:'idle'},vendorWoman:{sex:'woman',role:'idle'},elder:{sex:'man',age:'elder',role:'idle'},downMan:{sex:'man',role:'down'},downWoman:{sex:'woman',role:'down'},sitting:{sex:'man',role:'sit'},walking:{sex:'woman',role:'walk'},boy:{sex:'boy',role:'idle'},girl:{sex:'girl',role:'idle'}};
  if(!opts[role])throw Error('Role desconhecido '+role);
- active=await factory.create({...opts[role],x:0,z:0,yaw:0});
+ active=await factory.create({...opts[role],x:0,z:0,yaw:0,look:look||opts[role].look||{}});
  scene.add(active.holder);scene.updateMatrixWorld(true);
  const bound=measureMeshyNpcBounds(THREE,active.holder),size=bound.getSize(new THREE.Vector3()),center=bound.getCenter(new THREE.Vector3());
  const d=Math.max(3.2,size.y*2.7,size.x*1.6);
@@ -32,5 +32,40 @@ window.mountNpc=async function(role){
  const hair=[];active.holder.traverse(x=>{if(x.name==='CabeloMeshy')hair.push(x.name)});
  return {role,file:active.file,size:size.toArray(),center:center.toArray(),min:bound.min.toArray(),max:bound.max.toArray(),hairs:hair.length,clips:active.clips,viewDistance:d};
 };
+/* ---- Close-up de cabeça/cabelo (missão NPCs vivos): mede o encaixe real cabelo–crânio, não só a caixa total ---- */
+const _v=new THREE.Vector3();
+function headBone(root){let h=null;root.traverse(o=>{if(!h&&o.isBone&&/^head$/i.test(o.name))h=o;});return h;}
+/** Vértices da malha presos ao osso da cabeça (peso ≥ .5 em Head/HeadEnd/headfront), em coordenadas de mundo. */
+function headVerts(root){const out=[];root.updateMatrixWorld(true);root.traverse(o=>{if(!o.isSkinnedMesh)return;o.skeleton.update();
+ const ids=new Set(o.skeleton.bones.map((b,i)=>/^(head|headend|headfront)$/i.test(b.name)?i:-1).filter(i=>i>=0));
+ const P=o.geometry.attributes.position,SI=o.geometry.attributes.skinIndex,SW=o.geometry.attributes.skinWeight;
+ const gi=[SI.getX.bind(SI),SI.getY.bind(SI),SI.getZ.bind(SI),SI.getW.bind(SI)],gw=[SW.getX.bind(SW),SW.getY.bind(SW),SW.getZ.bind(SW),SW.getW.bind(SW)];
+ for(let i=0;i<P.count;i++){let w=0;for(let k=0;k<4;k++)if(ids.has(gi[k](i)))w+=gw[k](i);if(w<.5)continue;
+  _v.fromBufferAttribute(P,i);o.applyBoneTransform(i,_v);_v.applyMatrix4(o.matrixWorld);out.push(_v.clone());}});return out;}
+function hairVerts(root){const out=[];let hair=null;root.traverse(o=>{if(o.name==='CabeloMeshy')hair=o;});if(!hair)return out;hair.updateMatrixWorld(true);
+ hair.traverse(o=>{if(!o.isMesh)return;const P=o.geometry.attributes.position;const st=Math.max(1,Math.floor(P.count/6000));for(let i=0;i<P.count;i+=st){_v.fromBufferAttribute(P,i).applyMatrix4(o.matrixWorld);out.push(_v.clone());}});return out;}
+function boxOf(pts){const b=new THREE.Box3();for(const p of pts)b.expandByPoint(p);return b;}
+/** Métricas: lacuna sobre o crânio (cabelo acima da cabeça), centro do cabelo vs centro da cabeça, e o mesmo no referencial da cabeça. */
+window.hairFit=function(){if(!active)return null;const H=headVerts(active.holder),Hh=hairVerts(active.holder);if(!H.length)return {error:'sem vertices de cabeca'};
+ const hb=boxOf(H),hc=hb.getCenter(new THREE.Vector3()),hs=hb.getSize(new THREE.Vector3());
+ if(!Hh.length)return {head:{c:hc.toArray(),s:hs.toArray()},hair:null};
+ const rb=boxOf(Hh),rc=rb.getCenter(new THREE.Vector3()),rs=rb.getSize(new THREE.Vector3());
+ // coluna sobre o topo do crânio: cabelo mais baixo dentro de 35 % do raio da cabeça em xz
+ const r=Math.min(hs.x,hs.z)*.35;let low=1e9;for(const p of Hh)if(Math.hypot(p.x-hc.x,p.z-hc.z)<r)low=Math.min(low,p.y);
+ // pior "flutuação": para cada vértice do topo do crânio, distância ao vértice de cabelo mais próximo
+ const top=H.filter(p=>p.y>hb.max.y-.04);let worst=0,mean=0;for(const p of top){let d=1e9;for(const q of Hh)d=Math.min(d,p.distanceToSquared(q));d=Math.sqrt(d);worst=Math.max(worst,d);mean+=d;}mean/=Math.max(1,top.length);
+ const head=headBone(active.model);let local=null;if(head){head.updateMatrixWorld(true);local=head.worldToLocal(rc.clone()).sub(head.worldToLocal(hc.clone())).toArray().map(v=>+v.toFixed(4));}
+ return {head:{c:hc.toArray().map(v=>+v.toFixed(3)),s:hs.toArray().map(v=>+v.toFixed(3)),crown:+hb.max.y.toFixed(3)},hair:{c:rc.toArray().map(v=>+v.toFixed(3)),s:rs.toArray().map(v=>+v.toFixed(3)),top:+rb.max.y.toFixed(3)},
+  gapOverCrown:+(low-hb.max.y).toFixed(3),topToHairMean:+mean.toFixed(3),topToHairWorst:+worst.toFixed(3),offsetXZ:+Math.hypot(rc.x-hc.x,rc.z-hc.z).toFixed(3),hairMinusHeadLocal:local};};
+/** Enquadramento fechado da cabeça: front/side/back/three (câmera a ~0,9 m do centro da cabeça). */
+window.closeup=function(view='front',dist=.95){if(!active)return null;const H=headVerts(active.holder);const hc=boxOf(H).getCenter(new THREE.Vector3());
+ const yaw=active.holder.rotation.y,ang={front:0,three:Math.PI/4,side:Math.PI/2,back:Math.PI}[view]??0,dir=new THREE.Vector3(Math.sin(yaw+ang),0,Math.cos(yaw+ang));
+ camera.position.copy(hc).addScaledVector(dir,dist);camera.position.y+=.08;camera.lookAt(hc);camera.updateProjectionMatrix();draw();return hc.toArray();};
+/** Pose de teste: clipe nativo no tempo t e giro do osso da cabeça (olhar o herói). */
+window.pose=function({clip=null,t=0,headYaw=0,headPitch=0}={}){if(!active||!active.mixer)return null;const mixer=active.mixer;
+ if(clip){const c=active.animations.find(a=>a.name===clip);if(!c)return {error:'clip '+clip};mixer.stopAllAction();const a=mixer.clipAction(c);a.reset();a.play();a.paused=false;mixer.setTime(0);mixer.update(Math.min(t,c.duration-.01));a.paused=true;}
+ const head=headBone(active.model);if(head){head.rotation.y+=headYaw;head.rotation.x+=headPitch;}active.holder.updateMatrixWorld(true);draw();return {clip,t,headYaw};};
+window.bodyView=function(ang=.5){if(!active)return null;const b=measureMeshyNpcBounds(THREE,active.holder),c=b.getCenter(new THREE.Vector3());camera.position.set(c.x+Math.sin(ang)*3.4,c.y+.4,c.z+Math.cos(ang)*3.4);camera.lookAt(c);camera.updateProjectionMatrix();draw();return b.getSize(new THREE.Vector3()).toArray();};
+window.__qaActive=()=>active;
 window.qaReady=true;
 </script></body></html>

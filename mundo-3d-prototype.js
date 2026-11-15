@@ -1,5 +1,6 @@
 import { syncBuildMarker } from './build-info.js';
 import {createMeshyNpcFactory,ELDORIA_NPC_MODELS} from './eldoria-meshy-npcs.js';
+import {createVillagerBrain,createVillagerDriver,measureWalkSpeed} from './eldoria-npc-life.js';
 import {createSeatPose} from './seated-pose3d.js';
 import {buildShelter} from './eldoria-shelter3d.js';
 import './bandit-squad3d.js';
@@ -3599,23 +3600,24 @@ function mergeGroupMeshes(root){
 }
 const npcFactory=createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeightAt});
 const villageNpcs=[];
-const flyNpcTargets=[];
+/* Mod 318 — NPCs vivos: aparência própria (cabelo encaixado no crânio, cor, barba por casca do rosto) e rotina por
+   função com os clipes reais dos GLBs (eldoria-npc-life.js). Os dois moradores desmaiados e as moscas sobre eles saíram
+   da vila; as moscas da comida podre nas bancas ficam. */
+const villageDrivers=[];
 function loadVillagers(){
  const roles=[
-  {sex:'man',age:'elder',role:'idle'},
-  {sex:'man',role:'idle'},
-  {sex:'woman',role:'idle'}
+  {sex:'man',age:'elder',role:'idle',life:'bento',look:{hair:'balding',hairColor:'grisalho',beard:'full'}},
+  {sex:'man',role:'idle',life:'teo',look:{hair:'short',hairColor:'castanho',beard:'short'}},
+  {sex:'woman',role:'idle',life:'lia',look:{hair:'long',hairColor:'ruivo'}}
  ];
  // Barracas: Bento idoso, Téo adulto, Lia adulta. Uma função por pessoa.
  return Promise.all(villageVendors.map((p,i)=>npcFactory.create({...roles[i],x:p.x,z:p.z,yaw:p.yaw})))
  .then(cast=>{
-   for(const c of cast){villageGroup.add(c.holder);villageNpcs.push(c);vendorRoots.push(c.holder);if(c.mixer)villageNpcMixers.push(c.mixer);}
-   // A vila permanece pouco habitada: 3 vendedores + 4 moradores, nenhum menor.
+   cast.forEach((c,i)=>{villageGroup.add(c.holder);villageNpcs.push(c);vendorRoots.push(c.holder);if(c.mixer)villageNpcMixers.push(c.mixer);attachVillagerLife(c,roles[i].life,i+1);});
+   // A vila permanece pouco habitada: 3 vendedores + 2 moradores (+ carregador), nenhum menor; ninguém desmaiado na rua.
    const extras=[
-    {sex:'man',role:'down',offset:[-6,-9],yaw:.8},
-    {sex:'woman',role:'down',offset:[7,9],yaw:-.4},
-    {sex:'man',role:'sit',offset:[-9,8],yaw:1.3},
-    {sex:'woman',role:'walk',offset:[4,-7],yaw:0}
+    {sex:'man',role:'idle',offset:[-9,8],yaw:1.3,life:'morador',look:{hair:'short',hairColor:'preto',beard:'stubble'}},
+    {sex:'woman',role:'walk',offset:[4,-7],yaw:0,life:'moradora',look:{hair:'long',hairColor:'castanhoClaro'}}
    ];
    return Promise.all(extras.map(async(p,i)=>{
     let x=VILLAGE_CENTER.x+p.offset[0],z=VILLAGE_CENTER.z+p.offset[1];
@@ -3632,9 +3634,10 @@ function loadVillagers(){
     }
     const c=await npcFactory.create({...p,x,z});
     villageGroup.add(c.holder);villageNpcs.push(c);
-    if(p.role==='down')flyNpcTargets.push(c.holder);
     if(c.mixer)villageNpcMixers.push(c.mixer);
-    if(p.role==='walk')villagerWalkers.push({holder:c.holder,mixer:c.mixer,role:p.role,home:{x,z},speed:.48,phase:0});
+    if(p.role==='walk'){const F={x:VILLAGE_CENTER.x+ELDORIA_DRY_FOUNTAIN.x,z:VILLAGE_CENTER.z+ELDORIA_DRY_FOUNTAIN.z},a=Math.atan2(x-F.x,z-F.z),fx=F.x+Math.sin(a)*(ELDORIA_DRY_FOUNTAIN.r+.75),fz=F.z+Math.cos(a)*(ELDORIA_DRY_FOUNTAIN.r+.75);
+     villagerWalkers.push({holder:c.holder,mixer:c.mixer,role:p.role,home:{x,z}});attachVillagerLife(c,p.life,7,[[x,z],[fx,fz]]);}
+    else attachVillagerLife(c,p.life,6);
     return c;
    }));
  }).then(()=>{
@@ -3651,14 +3654,29 @@ function loadVillagers(){
      const k=1/(c.holder.scale.x||1),sack=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6),new THREE.MeshStandardMaterial({color:0x8a7150,roughness:1}));sack.scale.set(1.25*k,.8*k,.9*k);sack.position.set(.16*k,1.5*k,-.05*k);sack.name='saco-carregador';c.holder.add(sack);
      cityPorter={c,sack,t:0};})
    ]).catch(e=>console.warn('F2: carregador não carregou',e));
-   window.SevenSinsVillagerReport={vendors:vendorRoots.length,residents:villageNpcs.length-vendorRoots.length,childrenInVillage:0,models:[ELDORIA_NPC_MODELS.man,ELDORIA_NPC_MODELS.woman],roles:villageNpcs.map(c=>c.role)};
+   window.SevenSinsVillagerReport={vendors:vendorRoots.length,residents:villageNpcs.length-vendorRoots.length,childrenInVillage:0,models:[ELDORIA_NPC_MODELS.man,ELDORIA_NPC_MODELS.woman],roles:villageNpcs.map(c=>c.role),down:villageNpcs.filter(c=>c.role==='down').length,life:villageDrivers.map(d=>d.id)};
+   window.SevenSinsVillagerLife=()=>villageDrivers.map(d=>{const h=d.c.holder;return{id:d.id,state:d.drv.brain.state,x:+h.position.x.toFixed(2),z:+h.position.z.toFixed(2),yaw:+h.rotation.y.toFixed(2),history:d.drv.brain.history.slice(-6)};});
  }).catch(e=>console.error('NPC Meshy: carregamento falhou (sem fallback procedural)',e));
 }
 /** MOD 317 — moradores parados respiram e reagem: peito sobe e desce, cabeça acompanha o herói quando ele chega perto
     (vendedores atrás do balcão olham o comprador). Só pose de ossos sobre a pose do clipe; 7 NPCs, custo desprezível. */
 const npcLife=[],_nl=new THREE.Vector3();let npcLifeT=0;
+/** Mod 318 — rotina viva de um morador: cérebro determinístico (semente) + motor com clipes reais e olhar. */
+function attachVillagerLife(c,id,seed,waypoints=null){if(!c||!c.mixer||!id)return;
+ const ENTRY=[-1.6,-30.2],h=c.holder,roadYaw=Math.atan2(Math.sin(Math.atan2(ENTRY[0]-h.position.x,ENTRY[1]-h.position.z)-h.rotation.y),Math.cos(Math.atan2(ENTRY[0]-h.position.x,ENTRY[1]-h.position.z)-h.rotation.y));
+ const brain=createVillagerBrain(id,seed*7919+11,{roadYaw,waypoints:waypoints?waypoints.length:2});
+ const drv=createVillagerDriver(THREE,c,brain,{walkSpeed:measureWalkSpeed(THREE,c),waypoints,ground:groundHeightAt,blocked:(x,z)=>blockedAt(x,z)});
+ c.__life=-1;c.__driver=drv;villageDrivers.push({id,c,drv,sense:{}});}
+const _npcSense={heroDist:0,heroAngle:0,heroAhead:false,talking:false,danger:false,atTarget:false};
+function villageLifeUpdate(dt){
+ const P=player.position,danger=!!(enemy&&enemy.visible&&enemyAlive&&combatStepNow&&combatStepNow());
+ for(const L of villageDrivers){const h=L.c.holder;if(!h.visible||(L.c.mixer&&L.c.mixer.__far))continue;
+  const dx=P.x-h.position.x,dz=P.z-h.position.z,d=Math.hypot(dx,dz);let a=Math.atan2(dx,dz)-h.rotation.y;a=Math.atan2(Math.sin(a),Math.cos(a));
+  const S=L.sense;S.heroDist=d;S.heroAngle=a;S.heroAhead=d<1.3&&Math.abs(a)<1.05;S.talking=!!(dialogueOpen&&d<3.2);S.danger=danger&&enemy&&Math.hypot(enemy.position.x-h.position.x,enemy.position.z-h.position.z)<12;
+  L.drv.update(dt,S);}
+}
 function npcIdleLife(dt){
- npcLifeT+=dt;
+ npcLifeT+=dt;villageLifeUpdate(dt);
  for(const c of villageNpcs){if(c.__life!==undefined||!c.model)continue;let chest=null,head=null;c.model.traverse(o=>{if(!o.isBone)return;if(!chest&&/^(upperchest|chest)$/i.test(o.name))chest=o;if(!head&&/^head$/i.test(o.name))head=o;});
   c.__life=npcLife.length;npcLife.push({c,chest,head,qc:chest&&chest.quaternion.clone(),qh:head&&head.quaternion.clone(),ph:npcLife.length*1.7,look:0,vendor:vendorRoots.includes(c.holder),walk:c.role==='walk'});}
  for(const L of npcLife){const h=L.c.holder;if(!h.visible||L.walk)continue;
@@ -3675,13 +3693,7 @@ function updateVillagers(dt){
  if(voidMode||dialogueOpen||cineActive)return;
  if(cityPorter){const P=cityPorter,nx=routeAt(PORTER_ROUTE,P.t+dt*6,.85,3);if(Math.hypot(nx.x-player.position.x,nx.z-player.position.z)>.95)P.t+=dt; // para e dá passagem ao herói (não é obstáculo: nunca trava a rua)
   const r=routeAt(PORTER_ROUTE,P.t,.85,3);P.c.holder.position.set(r.x,groundHeightAt(r.x,r.z),r.z);P.c.holder.rotation.y=Math.atan2(r.dirX,r.dirZ);P.sack.visible=r.loaded;if(P.c.action)P.c.action.paused=!r.moving;}
- for(const w of villagerWalkers){
-  w.phase+=dt;const dx=Math.sin(w.phase*.31)*1.3,dz=Math.cos(w.phase*.31)*.7;
-  const x=w.home.x+dx,z=w.home.z+dz;
-  if(blockedAt(x,z))continue;
-  w.holder.position.set(x,groundHeightAt(x,z),z);
-  w.holder.rotation.y=Math.atan2(Math.cos(w.phase*.31),-Math.sin(w.phase*.31));
- }
+ // Mod 318: a moradora anda pelo motor de vida (rota casa ↔ fonte seca, velocidade do passo do clipe, dá passagem).
 }
 /* MOD 192 — missões opcionais da vila: ofertas nas bancas, itens no mundo, diário no quadro de missão. */
 const SIDE_STORE='seven-sins-3d-side';
@@ -4577,11 +4589,8 @@ function buildAct1Props(){
   };
   syncAct1World();
  }).catch(e=>console.error('GLBs infantis Meshy indisponíveis; não criar substitutos procedurais',e));
- // Moscas sobre a comida podre e os corpos (uma chamada de desenho).
- // Apenas bancas reais e moradores efetivamente caídos: sem moscas em corpos genéricos removidos.
- const spots=marketStalls.map(s=>({x:s.x,z:s.z,h:.95})).concat(flyNpcTargets.map(n=>({npc:n,h:.4})));
- // Reservar posições para os corpos que carregam de modo assíncrono.
- while(spots.length<marketStalls.length+2)spots.push({npcIndex:spots.length-marketStalls.length,h:.4});
+ // Moscas sobre a comida podre das bancas (uma chamada de desenho).
+ const spots=marketStalls.map(s=>({x:s.x,z:s.z,h:.95})); // Mod 318: só a comida podre das bancas (os desmaiados saíram da vila)
  const N=spots.length*7,pos=new Float32Array(N*3),seed=[];for(let i=0;i<N;i++){const s=spots[i%spots.length];seed.push({s,a:Math.random()*6.28,r:.25+Math.random()*.5,h:.5+Math.random()*.9,v:2+Math.random()*3});}
  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
  const flies=new THREE.Points(geo,new THREE.PointsMaterial({color:0x111111,size:.045}));flies.frustumCulled=false;villageGroup.add(flies);
@@ -4614,8 +4623,7 @@ function syncAct1World(){
  portalGroup.visible=questStep>=8;portalBeacon.visible=false;
 }
 function updateFlies(now){const f=act1Props&&act1Props.flies;if(!f||Math.hypot(player.position.x-VILLAGE_CENTER.x,player.position.z-VILLAGE_CENTER.z)>40)return;const t=now*.001,a=f.geo.attributes.position;
- for(let i=0;i<f.seed.length;i++){const s=f.seed[i],ang=s.a+t*s.v;const npc=s.s.npc||((s.s.npcIndex!==undefined)?flyNpcTargets[s.s.npcIndex]:null);
-  const x=npc?npc.position.x:s.s.x,z=npc?npc.position.z:s.s.z;
+ for(let i=0;i<f.seed.length;i++){const s=f.seed[i],ang=s.a+t*s.v;const x=s.s.x,z=s.s.z;
   if(!Number.isFinite(x)||!Number.isFinite(z)){a.array[i*3+1]=-999;continue;}
   a.array[i*3]=x+Math.cos(ang)*s.r;
   a.array[i*3+1]=groundHeightAt(x,z)+s.h+Math.sin(t*7+i)*.08;

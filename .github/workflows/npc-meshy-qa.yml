@@ -4,6 +4,7 @@ on:
     paths:
       - 'eldoria-meshy-npcs.js'
       - 'npc-visual-qa.html'
+      - 'eldoria-npc-life.js'
       - 'tools/visual-lab/npc-meshy-qa.cjs'
       - '.github/workflows/npc-meshy-qa.yml'
   workflow_dispatch:
