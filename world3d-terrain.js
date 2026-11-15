@@ -215,9 +215,10 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
     throw new RangeError('buildTerrainPatch: invalid exterior patch bounds or resolution');
   }
   // Preserve the requested world-space edges even when a span is not a multiple
-  // of cell. Rounded step counts previously shifted the patch edge and its skirt.
-  const nx = Math.max(2, Math.round((x1 - x0) / cell) + 1);
-  const nz = Math.max(2, Math.round((z1 - z0) / cell) + 1);
+  // of cell. Ceil keeps every actual grid interval <= the requested cell size;
+  // rounding could silently stretch outer trail cells by nearly 50%.
+  const nx = Math.max(2, Math.ceil((x1 - x0) / cell) + 1);
+  const nz = Math.max(2, Math.ceil((z1 - z0) / cell) + 1);
   // A corrupted resolution can otherwise allocate millions of vertices and
   // lock up mobile browsers before the geometry is even sent to WebGL.
   // Normal exterior patches are orders of magnitude smaller than this guard.
