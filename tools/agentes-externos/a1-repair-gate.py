@@ -61,7 +61,7 @@ def stage_candidate(root, output, candidate):
     return staged
 
 
-def propose_replacement(llama_bin, model, source, behavior, validator=None):
+def propose_replacement(llama_bin, model, source, behavior, validator=None, examples=''):
     """Bounded repair loop: one proposal plus at most two test-driven retries.
 
     validator is a trusted local checker; no generated code is executed here.
@@ -69,7 +69,7 @@ def propose_replacement(llama_bin, model, source, behavior, validator=None):
     """
     if not isinstance(source, str) or not isinstance(behavior, str):
         raise ValueError("Invalid repair input")
-    if len(source) > 800 or len(behavior) > 240:
+    if len(source) > 800 or len(behavior) > 240 or not isinstance(examples, str) or len(examples) > 650:
         raise ValueError("Repair prompt exceeds pilot limits")
     if validator is not None and not callable(validator):
         raise ValueError("Validator must be callable")
@@ -85,6 +85,7 @@ def propose_replacement(llama_bin, model, source, behavior, validator=None):
     base_user = (
         "Linha original:\n" + source
         + "\nComportamento obrigatório:\n" + behavior
+        + ("\nCasos de teste obrigatórios:\n" + examples if examples else "")
     )
     feedback = ""
     for attempt in range(3):
@@ -124,7 +125,7 @@ def propose_replacement(llama_bin, model, source, behavior, validator=None):
             return after
         feedback = (
             "\nA proposta anterior FALHOU nos testes automáticos de comportamento. "
-            "Não a repita. Reanalise operadores e limites usando a especificação. "
+            "Não a repita. Compare entradas e saídas esperadas dos testes e revise operadores. "
             "Responda com uma correção diferente no mesmo formato JSON."
         )
     raise ValueError("Model patch did not pass bounded validation")
