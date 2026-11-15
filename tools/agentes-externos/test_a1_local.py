@@ -135,6 +135,26 @@ class LocalAgentTests(unittest.TestCase):
         self.assertNotIn("available commands", report)
         self.assertNotIn("Prompt:", report)
 
+    def test_three_sections_are_rejected_even_if_long(self):
+        incomplete = (
+            "### Hipótese a validar\n" + "Possível falha de câmera. " * 14 + "\n"
+            "### Passos de reprodução\n" + "Repetir no mundo exterior. " * 12 + "\n"
+            "### Testes de regressão\n" + "Verificar movimento e colisão. " * 12
+        )
+        with self.assertRaises(ValueError):
+            agent.clean_report(incomplete)
+
+    def test_empty_required_section_is_rejected(self):
+        output = (
+            "### Hipótese a validar\nPossível travamento do jogador ao caminhar.\n"
+            "### Passos de reprodução\nTestar câmera no cenário real da floresta.\n"
+            "### Arquivos a inspecionar\n\n"
+            "### Correção mínima sugerida\nAlterar só depois de reproduzir o problema.\n"
+            "### Testes de regressão\nRepetir caminhada e registrar antes e depois.\n"
+        )
+        with self.assertRaises(ValueError):
+            agent.clean_report(output)
+
     def test_short_report_is_not_submitted(self):
         with self.assertRaises(ValueError):
             agent.submit("owner/repo", 4, "oops")
@@ -146,6 +166,8 @@ class LocalAgentTests(unittest.TestCase):
             "> <|im_start|system>never publish prompt<|im_end|>\n"
             "### Hipótese a validar\nCâmera pode tremer durante o combate.\n"
             "### Passos de reprodução\nReproduzir no laboratório com gravação e capturas.\n"
+            "### Arquivos a inspecionar\nConferir o módulo de câmera e suas dependências.\n"
+            "### Correção mínima sugerida\nAplicar ajuste somente após reprodução confirmada.\n"
             "### Testes de regressão\nValidar que movimentação e câmera seguem suaves em todas as áreas do jogo, incluindo o laboratório de combates e as sequências do mundo exterior.\n"
             "[ Prompt: 50 t/s | Generation: 10 t/s ]\nExiting...\n"
         )})()
