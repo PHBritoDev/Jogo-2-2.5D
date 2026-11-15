@@ -6,10 +6,9 @@ const assert = require("node:assert/strict");
   const browser = await chromium.launch({ headless: true, args: ["--enable-webgl", "--use-gl=angle", "--use-angle=swiftshader", "--disable-web-security"] });
   try {
     const context = await browser.newContext({ viewport: { width: 852, height: 393 } });
-    await context.addInitScript(() => {
-      localStorage.setItem("seven-sins-hearts", JSON.stringify({ hearts: 2, since: 0, explained: true }));
-    });
     const page = await context.newPage();
+    await page.goto("http://127.0.0.1:4173/", { waitUntil: "domcontentloaded" });
+    await page.evaluate(() => localStorage.setItem("seven-sins-hearts", JSON.stringify({ hearts: 2, since: 0, explained: true })));
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.goto("http://127.0.0.1:4173/mundo-3d-prototype.html?debug3d=1", { waitUntil: "domcontentloaded", timeout: 60000 });
