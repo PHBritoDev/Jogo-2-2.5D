@@ -68,15 +68,15 @@ def propose_replacement(llama_bin, model, source, behavior):
     if len(source) > 800 or len(behavior) > 240:
         raise ValueError("Repair prompt exceeds pilot limits")
     prompt = (
-        "<|im_start|system>\\n"
+        "<|im_start|system>\n"
         "Você corrige apenas uma linha Python de um exemplo sintético. "
         "Responda em UMA linha: PATCH: seguido de JSON válido com apenas a chave after. "
         "O valor after deve conter o código Python substituto, não texto explicativo. "
-        "Nunca execute nada, não use markdown.\\n"
-        "<|im_end|>\\n<|im_start|user>\\n"
-        + "Código original:\\n" + source
-        + "\\nComportamento esperado:\\n" + behavior
-        + "\\n<|im_end|>\\n<|im_start|assistant>\\n"
+        "Nunca execute nada, não use markdown.\n"
+        "<|im_end|>\n<|im_start|user>\n"
+        + "Código original:\n" + source
+        + "\nComportamento esperado:\n" + behavior
+        + "\n<|im_end|>\n<|im_start|assistant>\n"
     )
     result = subprocess.run(
         [llama_bin, "-m", model, "-p", prompt, "-n", "180",
@@ -85,7 +85,7 @@ def propose_replacement(llama_bin, model, source, behavior):
         capture_output=True, text=True, encoding="utf-8",
         errors="replace", timeout=160, check=True,
     )
-    matches = re.findall(r"(?m)^PATCH:\\s*(\\{[^\\n]{1,400}\\})\\s*$", result.stdout)
+    matches = re.findall(r"(?m)^PATCH:\s*(\{[^\n]{1,400}\})\s*$", result.stdout)
     if len(matches) != 1:
         raise ValueError("Model did not produce one isolated patch object")
     proposal = json.loads(matches[0])
