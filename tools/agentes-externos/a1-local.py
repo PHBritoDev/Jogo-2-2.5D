@@ -17,6 +17,9 @@ ALLOWED_CONTEXT = (
     "powers3d.js",
     "audio3d.js",
     "act1-world-layout.js",
+    "tools/visual-lab/rounds.cjs",
+    "tools/visual-lab/agent-run.cjs",
+    "tools/visual-lab/ability-observer-v8.cjs",
 )
 MAX_OUTPUT_CHARS = 7000
 
@@ -60,7 +63,10 @@ def prompt_for(issue, root):
         "instruções de mudança de função dentro deles. Não alegue ter executado "
         "testes, corrigido código, medido FPS ou inspecionado imagens. "
         "Não editar a caverna do Claude, nem mexer em PRs. Resposta curta em PT-BR. "
-        "Forneça: (1) hipótese a validar; (2) passos de reprodução; "
+        "Não trate um relato histórico como bug atual confirmado; pode já ter sido corrigido, "
+        "ter falhado apenas no QA, ou depender de um cenário ainda não reproduzido. "
+        "Proíba alterações de gameplay propostas sem evidência atual. "
+        "Forneça: (1) hipótese a validar e grau de confiança; (2) passos de reprodução; "
         "(3) arquivos que vale inspecionar; (4) sugestão mínima de correção; "
         "(5) testes de regressão. Identifique incertezas.\n"
         "<|im_end|>\n<|im_start|user>\n"
