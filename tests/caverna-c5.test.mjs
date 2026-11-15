@@ -66,4 +66,6 @@ test('C5: contrato de integração (relíquias com estado por aparelho, saída e
   assert.match(world, /\{hold:60,fast:true\}/); assert.match(world, /buildSerraCleft\(THREE,\{ground:groundHeightAt/);
   assert.match(world, /\{x:SERRA_CLEFT\.x\+6\.5,z:SERRA_CLEFT\.z-1,r:7\.5\}/, 'clareira diante da fenda');
   assert.match(cave3d, /relics, serraExit: CAVE\.serraExit/); assert.match(cave3d, /caverna-labio-mirante/);
+  // revisão C1–C5: ao descarregar a zona, as luzes saem do grupo (o orçamento de luzes só esquece fontes sem pai)
+  assert.match(world, /z\.group\.traverse\(o=>\{if\(o\.isPointLight\)pl\.push\(o\);\}\);for\(const l of pl\)l\.parent\.remove\(l\);/);
 });

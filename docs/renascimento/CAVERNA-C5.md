@@ -62,3 +62,16 @@ Etapa C5 do `PLANO-CAVERNA-ELDORIA.md`, empilhada sobre a C4 (#538). Pilha compl
 - `jogo-novos-espacos.jpg`: rampa, mirante, Galeria Alta, nicho, túnel da saída e descida ao cristal, no jogo.
 - `mundo-fenda-da-serra.jpg`: a fenda vista do vale.
 - `jogo-9-pontos-c4-vs-c5.jpg`: os 9 pontos da baseline sem regressão (C4 | C5).
+
+## Revisão final C1–C5 (pilha completa no topo da C5)
+
+| Verificação | Resultado |
+|---|---|
+| Jornada real pelo laço do jogo (gatilhos rodando no loop, não teleporte) | Boca do mundo → caverna ✔ · saída pelo túnel → mundo ✔ · fenda da serra → túnel da galeria ✔ · túnel → fenda (mundo) ✔ · portal → escadaria ✔ |
+| Rollback `?caverna=0` | Carrega sem erro. Galeria, espeleotemas e relíquias ficam sobre a folha antiga; vão mínimo dos pendurados de 4,46 m |
+| Descarregar e voltar à caverna | **Bug encontrado e corrigido.** Fontes do orçamento de luzes: 16 → 29 → 29 → **42** (+13 luzes mortas a cada volta, presas a grupos já descartados). Agora 16 → 29 → **16** → **29**. As luzes saem do grupo antes do descarte |
+| Câmera na rocha (17 pontos × 120) | 0 |
+| Navegação (17 trechos) | Todos completos, sem queda |
+| Custo mobile | ≤ 76 calls / ≤ 199 k triângulos |
+| Custo desktop (1280×720, sem lowSpec) | 53–76 calls, 413–434 k triângulos, 2,0–3,0 ms (SwiftShader). Os 12 cristais-herói (~10 k cada) só são cortados por distância no mobile: no desktop estão espalhados pela caverna numa malha instanciada só |
+| Suíte | C1–C5 + ascensão 311: 33/33. Suíte inteira sem falha nova (só `Mod 262`/`Mod 278`, como na `main`) |

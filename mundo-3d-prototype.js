@@ -4673,7 +4673,7 @@ function ascLeaveToWorld(at){
 /** Descarrega as zonas (GPU e memória) depois de um tempo longe da boca; voltar remonta tudo com pré-carga. */
 let ascUnloadTimer=0;
 function ascScheduleUnload(){clearTimeout(ascUnloadTimer);ascUnloadTimer=setTimeout(()=>{const P=player.position;if(ascKey||ascBusy||Math.hypot(P.x-CAVE_MOUTH.x,P.z-CAVE_MOUTH.z)<120){ascScheduleUnload();return;}
- for(const k of Object.keys(ascZones)){const z=ascZones[k];scene.remove(z.group);z.dispose();delete ascZones[k];}ascPreload=null;ascUnloadTimer=0;},45000);}
+ for(const k of Object.keys(ascZones)){const z=ascZones[k],pl=[];z.group.traverse(o=>{if(o.isPointLight)pl.push(o);});for(const l of pl)l.parent.remove(l);/* revisão C1–C5: solta as luzes antes de descarregar; o orçamento de luzes só esquece fontes sem pai (antes: +13 fontes mortas a cada volta à caverna) */scene.remove(z.group);z.dispose();delete ascZones[k];}ascPreload=null;ascUnloadTimer=0;},45000);}
 function ascTravel(fn,{color='#000',hold=260,fast=false}={}){if(ascBusy)return;ascBusy=true;ascVeil.style.background=color;ascDarken(true,fast?160:380);
  setTimeout(()=>{Promise.resolve(fn()).catch(e=>console.warn('Ascensão: transição',e)).finally(()=>{setTimeout(()=>{ascDarken(false,fast?360:620);ascBusy=false;ascVeil.style.background='#000';},hold);});},fast?170:400);}
 function updateAscension(dt,now){
