@@ -105,7 +105,7 @@ export function energyBody(T,parent,preset,options={}){
   // FLOW_NOISE weights are .72 and .28*detail; at low quality detail=.65.
   // Above that ceiling every fragment is discarded, so avoid a wasted draw.
   const dissolveCeiling=quality===0?.72+.28*.65:1;
-  mesh.visible=Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
+  mesh.visible=Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&Number.isFinite(dir.x)&&Number.isFinite(dir.y)&&Number.isFinite(dir.z??0)&&direction.set(dir.x,dir.y??0,dir.z??0).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
   material.uniforms.time.value=time;material.uniforms.alpha.value=alpha;material.uniforms.detail.value=quality===0?.65:1;material.uniforms.dissolve.value=dissolve;
  },dispose(){parent.remove(mesh);geometry.dispose();material.dispose();}};
 }
