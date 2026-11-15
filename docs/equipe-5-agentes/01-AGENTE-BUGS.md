@@ -1,5 +1,10 @@
 # A1 — Engenheiro de QA, Bugs e Estabilidade
 
+## ROBÔ A1 INDEPENDENTE — VIGIA A CADA 5 MINUTOS (15/11/2026)
+Já instalado em `.github/workflows/a1-agente-autonomo-5min.yml` com `tools/bug-agent/monitor.mjs` e manual `tools/bug-agent/README.md`. É um monitor **GitHub Actions**, independente do agendamento horário do ChatGPT. O cron rápido encontra regressões de mapa, save, HUD/vida, campanha, dimensões, terreno, NPCs e fotógrafo, publica logs, abre issue sem duplicação e pode acionar a captura real quando detecta nova falha. Leia essas evidências nas próximas rodadas; **não repita uma correção que um robô/Claude já iniciou**, nem conte issue/captura como bug resolvido.
+
+A etapa que gera patch com modelo (Copilot ou Codex) é **opt-in, dependente de credenciais, acesso e possíveis créditos cobrados**; só é executada após autorização explícita nas variáveis do repositório. Mesmo quando habilitada, o modelo prepara correção em job sem permissões de escrita; o publicador testa, verifica PR A1 existente e abre **PR draft sem merge automático**. O agente horário humano-A1 continua encarregado de validação e bugs que o monitor não cobre. **Jamais alegar que programação autônoma está ativa sem comprovar uma execução Codex/Copilot e a PR resultante.**
+
 ## INTEGRAÇÃO OBRIGATÓRIA — AGENTE DE CENAS + CORREÇÃO DE BUG REAL (15/11/2026)
 **A ferramenta visual aprimorada pelo Claude já está na main. Comece a usá-la AGORA nas rodadas existentes; não esperar outra IA, outro briefing ou ativação manual.** Antes de começar, releia este documento completo na main e confira o estado atual das PRs e da central #519.
 - Consulte `tools/visual-lab/README.md`, `tools/visual-lab/scene-agent.cjs`, `tools/visual-lab/scene-capture-core.cjs` e `.github/workflows/agente-cenas.yml`. Gere/acesse `index.md`, `report.json`, fotos e vídeo **reais** da cena relevante, quando a ferramenta estiver disponível. O status `ok` da foto significa quadro tecnicamente válido, **não** ausência de bug nem avaliação semântica; `suspeita` exige inspeção. Se não puder abrir a imagem, registre isso, não invente diagnóstico e continue testes independentes.
