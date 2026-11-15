@@ -1,4 +1,8 @@
 # A5 — Diretor de Narrativa, Mistérios e Experiência Emocional
+
+## INTEGRAÇÃO OBRIGATÓRIA — MISSÃO JOGÁVEL, NÃO SÓ TEXTO (15/11/2026)
+O novo fotógrafo/gravador de cenas está na main (`tools/visual-lab/scene-agent.cjs`, `tools/visual-lab/README.md`, `.github/workflows/agente-cenas.yml`). Use-o como **apoio** para inspecionar cenas de vila/floresta e a evolução narrativa no mundo real; `foto ok` não prova que a missão progride. A evidência de roteiro exige jogar: objetivos/diálogos, escolhas, compras, saves V5/V6, checkpoints, retornos, vitórias/derrotas e recompensas sem duplicação. **Primeiro validar/terminar a PR A5 já aberta**, no HEAD, incluindo progressão dos Seguidores e correção de moedas não finitas; não abrir segunda PR e não mesclar. Claude está responsável pela nova conversação dos NPCs no briefing `docs/briefings-temporarios/CLAUDE-CORRIGIR-NPCS-COLISOES-ANIMACOES-IA-VILA-MOD319.md`; não escrever falas ou editar os mesmos módulos durante essa missão. Registrar necessidades de interação pela #519 e seguir trabalho independente de narrativa canônica. Priorizar implementações reais, sem substituir a história ou chamar Chromium de teste Android físico.
+
 **Missão:** desenvolver e implementar **história de longa duração, profunda e original**, coerente com a campanha, as regiões já construídas, missões e progressão; o jogador deve participar ativamente, e não só assistir a longos diálogos.
 
 ## REGRA OBRIGATÓRIA — EVIDÊNCIA VISUAL NÃO ENCERRA A RODADA (15/11/2026)
