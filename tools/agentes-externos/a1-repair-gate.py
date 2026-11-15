@@ -21,8 +21,8 @@ def stage_candidate(root, output, candidate):
     p = PurePosixPath(name)
     if (not name.startswith(PILOT_PREFIX) or p.is_absolute()
             or ".." in p.parts or "." in p.parts or "\\" in name
-            or p.suffix != ".py"):
-        raise ValueError("Only pilot Python fixtures are allowed")
+            or p.suffix not in (".py", ".js")):
+        raise ValueError("Only pilot Python/JavaScript fixtures are allowed")
     if not before or not after or before == after or len(before) > 4096 or len(after) > 4096:
         raise ValueError("Candidate must make one small, nonempty change")
     if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
@@ -61,7 +61,7 @@ def stage_candidate(root, output, candidate):
     return staged
 
 
-def propose_replacement(llama_bin, model, source, behavior, validator=None, examples=''):
+def propose_replacement(llama_bin, model, source, behavior, validator=None, examples='', language='Python'):
     """Bounded repair loop: one proposal plus at most two test-driven retries.
 
     validator is a trusted local checker; no generated code is executed here.
@@ -71,15 +71,17 @@ def propose_replacement(llama_bin, model, source, behavior, validator=None, exam
         raise ValueError("Invalid repair input")
     if len(source) > 800 or len(behavior) > 240 or not isinstance(examples, str) or len(examples) > 650:
         raise ValueError("Repair prompt exceeds pilot limits")
+    if language not in ("Python", "JavaScript"):
+        raise ValueError("Unsupported repair language")
     if validator is not None and not callable(validator):
         raise ValueError("Validator must be callable")
     system = (
-        "Você corrige UM erro lógico de uma linha Python sintética. "
+        f"Você corrige UM erro lógico de uma linha {language} sintética. "
         "Preserve os nomes das variáveis existentes. "
         "NÃO devolva a linha original se ela contradiz o comportamento esperado. "
         "A saída é uma única linha: PATCH: seguido de um JSON válido com "
         'exatamente a chave "after". Exemplo: PATCH: {"after":"return score - spent"}. '
-        "O código after começa com 'return ' e é uma expressão Python única, "
+        f"O código after começa com 'return ' e é uma expressão {language} única, "
         "sem markdown, comentários, imports, execução ou explicações."
     )
     base_user = (
