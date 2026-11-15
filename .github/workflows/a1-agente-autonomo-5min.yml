@@ -138,7 +138,7 @@ jobs:
         shell: bash
         run: |
           git add -N .
-          git diff --binary -- . ':!.github' ':!build-info.js' ':!docs' ':!tools/bug-agent' ':!mundo-3d-prototype.js' ':!eldoria-meshy-npcs.js' ':!eldoria-npc-life.js' > a1-robot.patch
+          git diff --binary -- . ':!.github' ':!build-info.js' ':!docs' ':!tools/bug-agent' ':!mundo-3d-prototype.js' ':!eldoria-meshy-npcs.js' ':!eldoria-npc-life.js' ':!bug-agent-results' ':!visual-lab-results' ':!a1-robot.patch' > a1-robot.patch
           if [ -s a1-robot.patch ]; then
             git diff --check
             git apply --check --reverse a1-robot.patch
@@ -186,7 +186,7 @@ jobs:
         shell: bash
         run: |
           git add -N .
-          git diff --binary -- . ':!.github' ':!build-info.js' ':!docs' ':!tools/bug-agent' ':!mundo-3d-prototype.js' ':!eldoria-meshy-npcs.js' ':!eldoria-npc-life.js' > a1-robot.patch
+          git diff --binary -- . ':!.github' ':!build-info.js' ':!docs' ':!tools/bug-agent' ':!mundo-3d-prototype.js' ':!eldoria-meshy-npcs.js' ':!eldoria-npc-life.js' ':!bug-agent-results' ':!visual-lab-results' ':!a1-robot.patch' > a1-robot.patch
           if [ -s a1-robot.patch ]; then
             git diff --check
             git apply --check --reverse a1-robot.patch
@@ -227,7 +227,7 @@ jobs:
           git apply a1-robot.patch
           git diff --check
           git diff --name-only | grep -Eq '.' || exit 0
-          if git diff --name-only | grep -E '^(\.github/|build-info\.js$|mundo-3d-prototype\.js$|eldoria-|docs/)' ; then
+          if git diff --name-only | grep -E '^(\.github/|build-info\.js$|mundo-3d-prototype\.js$|eldoria-|docs/|bug-agent-results/|visual-lab-results/)' ; then
             echo 'Arquivo protegido'; exit 1
           fi
           node tools/bug-agent/monitor.mjs
@@ -235,7 +235,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           branch="agentes/a1/automatico-${RUN_ID}"
           git switch -c "$branch"
-          git add -A -- . ':!.github' ':!build-info.js' ':!docs' ':!tools/bug-agent' ':!mundo-3d-prototype.js' ':!eldoria-meshy-npcs.js' ':!eldoria-npc-life.js'
+          git add -A -- . ':!.github' ':!build-info.js' ':!docs' ':!tools/bug-agent' ':!mundo-3d-prototype.js' ':!eldoria-meshy-npcs.js' ':!eldoria-npc-life.js' ':!bug-agent-results' ':!visual-lab-results' ':!a1-robot.patch'
           git commit -m "fix(a1): regressão reproduzida e corrigida pelo agente"
           git push -u origin "$branch"
           gh pr create --draft --base main --head "$branch" --title "A1 automático: corrigir regressão detectada" --body "Patch gerado pelo Codex após falha real dos testes do monitor. Regressões locais foram executadas e passaram. **PR em rascunho: revisão humana e QA visual obrigatórios; sem merge automático.** Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"
