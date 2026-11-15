@@ -1,7 +1,7 @@
 "use strict";
-// Agent de inspeção visual real do campo de Valério. Isolado do combate/Claude.
+// Agent de inspeção visual real do campo de VHAZRAEL. Isolado do combate/Claude.
 const {chromium}=require('../visual-lab/node_modules/playwright'),fs=require('node:fs'),path=require('node:path');
-const out=path.resolve('valerio-qa-results');fs.mkdirSync(out,{recursive:true});
+const out=path.resolve('vhazrael-qa-results');fs.mkdirSync(out,{recursive:true});
 (async()=>{
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const report={reference:'1000364204.mp4 (provided by creator, not available in CI)',shots:[],errors:[],render:null,status:'unverified'};
@@ -38,7 +38,7 @@ try {
  for(const pose of poses) {
    if(pose.camera)try {await page.evaluate(({camera,target})=>{const api=window.SevenSinsDebug3D;api.freeRoam?.();api.fly?.(camera,target)},pose);}catch(e){report.errors.push('cam '+pose.id+': '+e.message)}
    await page.waitForTimeout(1700);
-   const filename='valerio-'+pose.id+'.png';
+   const filename='vhazrael-'+pose.id+'.png';
    await page.screenshot({path:path.join(out,filename),timeout:90000,animations:'disabled'});
    report.shots.push(filename);
  }
