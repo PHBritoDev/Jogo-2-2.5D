@@ -33,3 +33,12 @@ jobs:
         env:
           NODE_PATH: tools/visual-lab/node_modules
         run: node tools/visual-lab/a1-hearts-browser-smoke.cjs
+
+      - name: Guardar evidências reais do HUD e localStorage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a1-hearts-smoke-${{ github.run_number }}
+          path: visual-lab-results/a1-hearts/
+          if-no-files-found: warn
+          retention-days: 14
