@@ -201,6 +201,57 @@ jobs:
             --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
             --model "$RUNNER_TEMP/qwen-3b.gguf"
 
+
+  comparar-qwen3-4b-apache:
+    # Teste isolado com modelo Apache 2.0; sem escrita, sem API, sem alterar jogo.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'a1-compare-4b')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout sem credenciais
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Recuperar motor compilado
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/a1-llm/llama-bin
+          key: a1-llama-cli-b12244-ubuntu-pr-smoke-v1
+      - name: Compilar motor se ausente
+        run: |
+          if [ ! -x "$HOME/.cache/a1-llm/llama-bin/llama-cli" ]; then
+            git clone -q --depth 1 --branch b12244 https://github.com/ggml-org/llama.cpp /tmp/a1-qwen3-llama
+            cmake -S /tmp/a1-qwen3-llama -B /tmp/a1-qwen3-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF
+            cmake --build /tmp/a1-qwen3-build -j 2 --target llama-cli
+            mkdir -p "$HOME/.cache/a1-llm/llama-bin"
+            cp -a /tmp/a1-qwen3-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
+          fi
+      - name: Baixar Qwen3 4B Apache 2.0 com SHA256
+        run: |
+          curl --fail --location --retry 3 --max-time 420 \
+            "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf" \
+            -o "$RUNNER_TEMP/qwen3-4b.gguf"
+          echo "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597  $RUNNER_TEMP/qwen3-4b.gguf" | sha256sum --check --status
+      - name: Benchmark de regressões Python
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 tools/agentes-externos/a1-repair-benchmark.py \
+            --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            --model "$RUNNER_TEMP/qwen3-4b.gguf"
+      - name: Benchmark de regressões JavaScript
+        if: always()
+        run: |
+          test -s "$RUNNER_TEMP/qwen3-4b.gguf"
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 tools/agentes-externos/a1-js-repair-benchmark.py \
+            --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            --model "$RUNNER_TEMP/qwen3-4b.gguf"
+
   escolher-issue:
     runs-on: ubuntu-latest
     outputs:
