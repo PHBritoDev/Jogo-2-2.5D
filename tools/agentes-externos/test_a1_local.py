@@ -29,6 +29,19 @@ class LocalAgentTests(unittest.TestCase):
             }, Path(d))
         self.assertNotIn("Z" * 7000, p)
 
+    def test_long_visual_issue_stays_bounded_and_preserves_relevant_code(self):
+        with tempfile.TemporaryDirectory() as d:
+            code = Path(d) / "tools/visual-lab/agent-run.cjs"
+            code.parent.mkdir(parents=True)
+            code.write_text("// header\\n" * 50 + "function hydraObservedQA() { return true; }\\n")
+            p = agent.prompt_for({
+                "number": 399,
+                "title": "Falha visual de Hydra - hydraObservedQA",
+                "body": "hydraObservedQA " * 600,
+            }, Path(d))
+        self.assertLess(len(p), 7300)
+        self.assertIn("hydraObservedQA()", p)
+
     def test_context_includes_relevant_non_header_lines(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "world3d-terrain.js"
