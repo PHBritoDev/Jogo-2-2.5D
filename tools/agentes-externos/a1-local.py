@@ -101,6 +101,14 @@ def clean_report(output):
     """Isolate the model's QA body; drop llama-cli banner, echoed prompt and stats."""
     # Real llama-cli executions can print metadata and the entire input prompt.
     # Never publish the system prompt or untrusted raw input into an Issue.
+    # llama-cli may echo the entire chat template, including the five required
+    # report headings. Keep only the last explicit assistant-turn boundary.
+    # Never interpret the system prompt or Issue body as generated output.
+    boundaries = list(re.finditer(
+        r"(?m)^\\s*(?:>\\s*)?<\\|im_start\\|assistant>\\s*$", output,
+    ))
+    if boundaries:
+        output = output[boundaries[-1].end():]
     starts = list(re.finditer(
         r"(?im)^#{1,4}\s*(?:hip[oó]tese a validar|diagn[oó]stico preliminar|"
         r"passos de reprodu[cç][aã]o|an[aá]lise)\s*$", output,
