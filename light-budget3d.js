@@ -46,7 +46,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
   function finiteColor(o) {
     const c = o.color;
-    return !!c && Number.isFinite(c.r) && Number.isFinite(c.g) && Number.isFinite(c.b);
+    return !!c && Number.isFinite(c.r) && Number.isFinite(c.g) && Number.isFinite(c.b) && c.r >= 0 && c.g >= 0 && c.b >= 0;
   }
   function finitePosition(o) {
     v.setFromMatrixPosition(o.matrixWorld);
