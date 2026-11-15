@@ -21,6 +21,11 @@ class JsRepairTests(unittest.TestCase):
         self.assertTrue(all(bench.accepts(sol, case)
                             for sol, case in zip(solutions, bench.CASES)))
 
+    def test_rejects_python_min_max_as_javascript(self):
+        c = bench.CASES[0]
+        self.assertFalse(bench.accepts("return min(mana + regen, maxMana)", c))
+        self.assertTrue(bench.accepts("return Math.min(mana + regen, maxMana)", c))
+
     def test_noop_does_not_count_as_repair(self):
         results = bench.evaluate(lambda case: case["source"])
         self.assertFalse(any(r["pass"] for r in results))
