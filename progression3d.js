@@ -114,7 +114,9 @@ export const ACHIEVEMENTS = [
 ];
 
 export function achievementState(a, stats = {}, claimed = new Set()) {
-  const value = Math.min(a.goal, Math.max(0, Math.floor(Number(stats[a.stat]) || 0)));
+  const raw = Number(stats[a.stat]);
+  // Um contador infinito/corrompido não pode concluir a conquista automaticamente.
+  const value = Math.min(a.goal, Math.max(0, Number.isFinite(raw) ? Math.floor(raw) : 0));
   return { value, done: value >= a.goal, claimed: claimed.has(a.id) };
 }
 
