@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { ELDORIA_NPC_MODELS, ELDORIA_HAIR_COLORS, fitMeshyHair } from '../eldoria-meshy-npcs.js';
+import { ELDORIA_NPC_MODELS, ELDORIA_HAIR_COLORS, ELDORIA_HAIR_FITS, fitMeshyHair } from '../eldoria-meshy-npcs.js';
 import { createVillagerBrain, VILLAGER_PROFILES, NPC_CLIP_PATTERNS, rng } from '../eldoria-npc-life.js';
 
 const root = new URL('../', import.meta.url);
@@ -31,6 +31,24 @@ test('encaixe do cabelo (sintético): cobre o couro cabeludo de uma cabeça elip
   const fit = fitMeshyHair(F, hair, { female: false });
   assert.ok(fit.coverage > .85, `cobertura ${fit.coverage.toFixed(2)}`); assert.ok(fit.penetration < .03, `penetração ${fit.penetration.toFixed(3)}`);
   assert.ok(Math.abs(fit.S * 3.1 * .1 - .1) < .025, 'escala devolvida perto do tamanho da cabeça');
+  // busca grossa (só para combinação fora da tabela): resultado parecido e muito mais barata
+  const t0 = performance.now(); const fc = fitMeshyHair(F, hair, { female: false, coarse: true }); const tc = performance.now() - t0;
+  const t1 = performance.now(); fitMeshyHair(F, hair, { female: false }); const tf = performance.now() - t1;
+  assert.ok(fc.coverage > .8 && fc.penetration < .05, `grossa: cobertura ${fc.coverage.toFixed(2)}, penetração ${fc.penetration.toFixed(3)}`);
+  assert.ok(tc * 10 < tf, `grossa ${tc.toFixed(0)} ms × completa ${tf.toFixed(0)} ms`);
+});
+
+test('desempenho: em jogo o cabelo usa encaixe PRÉ-CALCULADO (a busca completa travava o celular por dezenas de segundos)', () => {
+  const src = fs.readFileSync(new URL('../eldoria-meshy-npcs.js', import.meta.url), 'utf8');
+  const M = ELDORIA_NPC_MODELS;
+  for (const k of [`${M.man}|${M.maleHair}|short`, `${M.woman}|${M.femaleHair}|long`, `${M.boy}|${M.maleHair}|short`, `${M.girl}|${M.femaleHair}|long`]) {
+    const f = ELDORIA_HAIR_FITS[k]; assert.ok(f, 'sem encaixe pré-calculado: ' + k);
+    for (const n of ['S', 'dy', 'dw', 'tilt', 'hcx', 'hcz', 'hy1']) assert.ok(Number.isFinite(f[n]), k + ' ' + n);
+    assert.ok(f.S > .15 && f.S < .5, k + ' escala plausível');
+  }
+  assert.match(src, /let fit=fitCache\.get\(key\)\|\|ELDORIA_HAIR_FITS\[key\]\|\|null;/, 'tabela antes de qualquer busca');
+  assert.match(src, /fitMeshyHair\(headFrame,pts,\{female:style==='long',coarse:true\}\)/, 'fora da tabela, só a busca grossa roda em jogo');
+  assert.doesNotMatch(src, /fitMeshyHair\(headFrame,pts,\{female:style==='long'\}\)/, 'a busca completa não roda em jogo');
 });
 
 test('rotina: determinística por semente, papéis distintos, saudação sem spam, retoma o trabalho, dá passagem', () => {
