@@ -56,3 +56,12 @@ test('save legado com secretsFound nulo não derruba descoberta de locais', () =
   assert.equal(s.pois.has('vila'), true, 'save legado não pode impedir descoberta de POIs públicos próximos');
   assert.ok(discoverPois(s, ruin.x, ruin.z, { secretsFound: { ruina: true } }).some(p => p.id === 'ruina'));
 });
+
+
+test('opções nulas de mapa legado não interrompem a descoberta de locais públicos', () => {
+  const s = createMapState();
+  const vila = MAP_POIS.find(p => p.id === 'vila');
+  assert.doesNotThrow(() => discoverPois(s, vila.x, vila.z, null));
+  assert.equal(s.pois.has('vila'), true);
+  assert.equal(s.pois.has('ruina'), false, 'não revelar segredo por falta de opções');
+});
