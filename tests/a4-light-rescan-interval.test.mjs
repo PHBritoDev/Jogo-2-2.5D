@@ -34,3 +34,23 @@ for (const interval of [0, -1, NaN, Infinity, 1.5]) {
     assert.equal(budget.stats().sources,1);
   });
 }
+
+test('A4: invalid world position cannot steal the only light slot', () => {
+  const scene = new Object3D();
+  const invalid = new PointLight(0xffffff, 10, 20);
+  invalid.name = 'invalid-position';
+  invalid.matrixWorld.x = NaN;
+  const valid = new PointLight(0xffffff, 3, 20);
+  valid.name = 'valid-torch';
+  valid.matrixWorld.x = 5;
+  scene.add(invalid, valid);
+  const budget = createLightBudget(T, scene, { slots: 1, rescanEvery: 1 });
+  for (let i = 0; i < 30; i++) budget.update(camera, 1 / 60);
+  assert.deepEqual(budget.stats().active, ['valid-torch']);
+  invalid.matrixWorld.x = 0;
+  for (let i = 0; i < 50; i++) budget.update(camera, 1 / 60);
+  assert.deepEqual(budget.stats().active, ['invalid-position']);
+  invalid.matrixWorld.x = Infinity;
+  for (let i = 0; i < 50; i++) budget.update(camera, 1 / 60);
+  assert.deepEqual(budget.stats().active, ['valid-torch']);
+});
