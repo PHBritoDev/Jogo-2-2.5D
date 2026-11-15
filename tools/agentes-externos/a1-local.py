@@ -151,7 +151,7 @@ def failed_attempt(repo, number, error):
         marker + "\n### A1 local — diagnóstico inconclusivo\n\n"
         "A IA local não conseguiu produzir um relatório de QA válido. "
         "Nenhum bug foi confirmado e nenhuma correção foi aplicada.\n\n"
-        f"Tipo técnico da falha: \\x60{kind}\\x60. "
+        f"Tipo técnico da falha: {kind}. "
         + ("**Limite de duas tentativas atingido; encaminhar ao A1 humano/ChatGPT.** "
            "Não iniciar novas análises automáticas para esta Issue sem reabertura controlada."
            if stop else "Uma segunda tentativa automática é permitida; se falhar, a Issue será pausada.")
