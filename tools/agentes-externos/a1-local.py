@@ -122,6 +122,15 @@ def clean_report(output):
     )
     sections = list(re.finditer(r"(?m)^#{2,4}\s+([^\n]+)\s*$", report))
     headings = [match.group(1).strip().lower() for match in sections]
+    # An extra closing heading from the model is never published. Only trim it
+    # after all five required sections appear in the correct order.
+    if len(sections) > len(required_sections) and all(
+        re.fullmatch(expected, heading, flags=re.IGNORECASE)
+        for heading, expected in zip(headings[:5], required_sections)
+    ):
+        report = report[:sections[5].start()].rstrip()
+        sections = list(re.finditer(r"(?m)^#{2,4}\\s+([^\\n]+)\\s*$", report))
+        headings = [match.group(1).strip().lower() for match in sections]
     if len(report) < 200 or len(headings) != len(required_sections):
         shape = "".join(
             str(next((i + 1 for i, expected in enumerate(required_sections)
