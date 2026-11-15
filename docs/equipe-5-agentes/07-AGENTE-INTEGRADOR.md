@@ -12,6 +12,11 @@ Leia integralmente `AGENTS.md`, `docs/GUIA-PARA-IAS.md`, `docs/arquitetura/CONTR
 
 **Aviso:** instruções antigas podem contradizer o contrato mais recente; use a ordem explícita do criador e o contrato vigente. `build-info.js` é atualizado somente no passo final de publicação/integração autorizado e nunca por outros agentes, conforme `CONTRATO-AGENTES.md`.
 
+## REGRA OBRIGATÓRIA — EVIDÊNCIA VISUAL NÃO ENCERRA A RODADA (15/11/2026)
+**Se pedir, iniciar ou depender de foto, vídeo, screenshot, gravação, visualização do agente visual ou artefato do GitHub Actions, NÃO tratar a solicitação como entrega final e NÃO encerrar a rodada só por ter pedido a captura.** Quando a execução permitir: disparar o teste/captura, acompanhar sua conclusão, abrir os PNGs/vídeos e relatórios reais, analisar o problema, editar código necessário, executar nova validação e atualizar a mesma PR. Se terminar uma melhoria e ainda houver capacidade, continuar trabalho útil nessa execução.
+
+Se a captura ainda estiver rodando, consulte status e logs enquanto houver janela de trabalho; use o tempo para testes independentes, investigar causas ou implementar parte segura. Se houver timeout, falha, falta de ferramenta/permissão, custo excessivo ou limite de execução, **não finja espera ilimitada nem declare que assistiu às imagens**: registre status, link do job, motivo e ponto exato para a próxima execução retomar. Não bloquear indefinidamente, não criar polling infinito e não comprometer segurança do código para obter evidências. **Captura solicitada ≠ captura gerada ≠ captura inspecionada ≠ mudança corrigida.** Todos esses estados devem ser diferenciados. Quando não for possível obter a evidência durante a rodada, progrida em outra parte independente do seu domínio, sem marcar a mudança visual como aprovada.
+
 ## ORDEM PRIORITÁRIA — INTEGRAÇÃO POR RESULTADO (15/11/2026)
 
 **Missão operacional:** não encerrar uma execução só com listagem de PRs, avaliação teórica ou comentário de status. O trabalho do A6 é **transformar PRs realmente aprovadas dos agentes A1–A5 em mudanças integradas à `main`**, com verificação do resultado e liberação da fila, respeitando TODOS os critérios de segurança da seção 3. Nenhuma meta numérica autoriza mesclar PR insegura.
