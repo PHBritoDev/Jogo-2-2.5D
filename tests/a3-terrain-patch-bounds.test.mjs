@@ -188,3 +188,16 @@ test('exterior skirt rejects Float32 underflow while the surface remains valid',
     /exterior skirt exceeds Float32 range/);
   assert.doesNotThrow(() => buildTerrainPatch(terrainNearFloatLimit, { ...opts, skirt: 3e38, skirtEdges: [] }));
 });
+
+
+test('positive exterior skirt must remain below its surface in GPU Float32', () => {
+  const opts = { x0: 0, x1: 10, z0: 0, z1: 10, cell: 2.5 };
+  // Float64 subtraction succeeds, but a 1 cm skirt at 100 million units
+  // rounds to the same Float32 Y coordinate as the surface.
+  const elevated = { height: () => 1e8 };
+  assert.throws(() => buildTerrainPatch(elevated, { ...opts, skirt: 0.01 }),
+    /exterior skirt collapses in Float32/);
+  assert.doesNotThrow(() => buildTerrainPatch(elevated, { ...opts, skirt: 16 }));
+  assert.doesNotThrow(() => buildTerrainPatch(elevated, { ...opts, skirt: 0 }));
+  assert.doesNotThrow(() => buildTerrainPatch(elevated, { ...opts, skirt: 0.01, skirtEdges: [] }));
+});
