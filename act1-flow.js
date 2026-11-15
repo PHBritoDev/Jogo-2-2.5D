@@ -196,7 +196,9 @@ export function migrateProgress(raw) {
       questStep: step,
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: 0,
-      portalRewardClaimed: alreadyPaidPortal
+      portalRewardClaimed: alreadyPaidPortal,
+      // A migração de V5 não deve apagar compras, XP, bestiário ou conquistas.
+      ...progressionFields(raw, step)
     };
   }
   // Missão anterior à V5: conserva o ouro e recomeça o resgate.
