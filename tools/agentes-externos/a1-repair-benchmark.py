@@ -115,7 +115,7 @@ def main():
     results = evaluate(lambda source, behavior: gate.propose_replacement(
         args.llama, args.model, source, behavior,
         validator=lambda after: behaves_correctly(after, cases[source]),
-        examples="\\n".join(
+        examples="\n".join(
             "Entradas " + ", ".join(f"{k}={v}" for k, v in values.items())
             + f" -> retorno esperado {expected}"
             for values, expected in cases[source]["samples"]
