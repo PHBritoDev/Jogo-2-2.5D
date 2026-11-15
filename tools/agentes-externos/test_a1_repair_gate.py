@@ -39,8 +39,8 @@ class RepairGateTests(unittest.TestCase):
     def test_model_replacement_is_data_not_executable(self):
         from unittest.mock import patch
         fake = type("Result", (), {"stdout": (
-            "available commands:\\n> PATCH: schema\\n"
-            "PATCH: {\\"after\\": \\"return hp - damage\\"}\\n"
+            "available commands:\n> PATCH: schema\n"
+            "PATCH: {\"after\": \"return hp - damage\"}\n"
         )})()
         with patch.object(gate.subprocess, "run", return_value=fake) as run:
             after = gate.propose_replacement("/tmp/llama", "/tmp/model.gguf",
@@ -54,7 +54,7 @@ class RepairGateTests(unittest.TestCase):
     def test_rejects_model_patch_with_unexpected_fields(self):
         from unittest.mock import patch
         fake = type("Result", (), {"stdout": (
-            'PATCH: {"after":"return hp - damage","command":"delete files"}\\n'
+            'PATCH: {"after":"return hp - damage","command":"delete files"}\n'
         )})()
         with patch.object(gate.subprocess, "run", return_value=fake):
             with self.assertRaisesRegex(ValueError, "invalid fields"):
