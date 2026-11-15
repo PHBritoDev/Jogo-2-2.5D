@@ -133,7 +133,8 @@ import { FINALE, FINAL_PORTAL, VOID, GAUNTLET, SIN_FORMS, finaleTalkLines, gaunt
 import { createTerrain, buildTerrainArrays, buildTerrainPatch, colorTerrain, scatterForest, fbm } from './world3d-terrain.js';
 import { CAVE_MOUTH, CAVE_TRAIL as CAVE_MOUTH_TRAIL, frontierBlocked, frontierSigned, inMouthTunnel, mouthDepth, mouthCarve } from './ascension-layout.js';
 import { buildFrontier } from './frontier3d.js';
-import { ZONES as ASC_ZONES, CAVE as ASC_CAVE, ASCENT as ASC_ASCENT, ASCENT_PORTAL, crossedCavePortal, crossedAscentPortal } from './ascension-layout.js';
+import { ZONES as ASC_ZONES, CAVE as ASC_CAVE, ASCENT as ASC_ASCENT, ASCENT_PORTAL, crossedCavePortal, crossedAscentPortal, SERRA_CLEFT, SERRA_CLEFT_TRAIL } from './ascension-layout.js';
+import { buildSerraCleft } from './ascension-serra-cleft3d.js';
 import { buildCave } from './ascension-cave3d.js';
 import { buildAscent } from './ascension-ascent3d.js';
 import { ACT1, SPEAKERS, sanitizePlayerName, migrateProgress, questPresentation, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, afterVhazraelVictory, personalizeLine, villageArrivalScene, vendorRefusalScene, vendorScene, forestFirstScene, forestSecondScene, keyFoundScene, cageScene, faintScene, massacreScene, clueScene, feedingScene, holeScene, wardenIntroScene, wardenDefeatScene, vhazraelIntroScene, vhazraelDefeatScene, afterVhazraelScene } from './act1-flow.js';
@@ -248,7 +249,7 @@ const terrain3D=createTerrain({
  // MOD 291: chão mais escuro e musgoso sob a mata fechada (faixa entre o rio e a serra e anel do lago).
  shade:(x,z)=>{const zone=Math.min(1,Math.max(0,(-79-z)/10))*Math.min(1,Math.max(0,(z+150)/10))*Math.min(1,Math.max(0,(x+72)/10))*Math.min(1,Math.max(0,(42-x)/10)),lake=1-Math.min(1,Math.max(0,(Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r-2)/16));const m=Math.max(zone,lake*.8)*(.75+.25*Math.sin(x*.3+Math.cos(z*.21)*2));return 1-.55*Math.max(0,m);},
  extraAreas:[PROLOGUE_MEADOW,DISTRICT,DISTRICT_SPOTS.volcanoApproach,...EXTRA_REGIONS,SNOW_CITY.caveApproach,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:TEREN_ROAD,r:8.5},{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6},{points:RIVER_POINTS,width:RIVER.width,depth:RIVER.depth,level:RIVER.level}],
- paths:[...cityLanes.map(points=>({points,r:2.2,fade:3})),...cityDoorPaths.map(points=>({points,r:1.2,fade:2})),{points:RIVER_POINTS,r:RIVER.width+2.2,fade:5},{points:TEREN_ROAD,r:4,fade:5},{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:CAGE_TRAIL,r:3.6,fade:5},{points:CAVE_MOUTH_TRAIL,r:3.4,fade:5},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5},...FOREST_TRAILS.map(t=>({points:t.points,r:t.width*.5+.8,fade:3}))]
+ paths:[...cityLanes.map(points=>({points,r:2.2,fade:3})),...cityDoorPaths.map(points=>({points,r:1.2,fade:2})),{points:RIVER_POINTS,r:RIVER.width+2.2,fade:5},{points:TEREN_ROAD,r:4,fade:5},{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:CAGE_TRAIL,r:3.6,fade:5},{points:CAVE_MOUTH_TRAIL,r:3.4,fade:5},{points:SERRA_CLEFT_TRAIL,r:1.9,fade:3},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5},...FOREST_TRAILS.map(t=>({points:t.points,r:t.width*.5+.8,fade:3}))]
 });
 /* MOD 311 — a encosta oeste do vale vira rampa até a boca da caverna e o túnel ganha piso plano (rebaixo do relevo). */
 {const h0=terrain3D.height;terrain3D.height=(x,z)=>{const h=h0(x,z);if(x<CAVE_MOUTH.x-CAVE_MOUTH.depth-7||x>CAVE_MOUTH.x+10||Math.abs(z-CAVE_MOUTH.z)>CAVE_MOUTH.width/2+6)return h;const c=mouthCarve(x,z);return c.w>0?h+(c.y-h)*c.w:h;};}
@@ -475,7 +476,7 @@ const eldoriaWalk=createWalkables();let walkRailingsOn=true,qaMove=null;
 const leafMid=mat(0x245035),mossMatA=mat(0x34522e),mossMatB=mat(0x465e32),grassMatA=mat(0x58763d),grassMatB=mat(0x304d31);
 const canopyWindUniforms=[leafMat,leafMid,leafLight].map((material,i)=>addInstancedWind(material,.075,'clamp((position.y+1.175)/2.35,0.0,1.0)',.72,'forest-canopy-wind-v163-'+i));
 for(const material of [leafMat,leafMid,leafLight,barkMat])addNearCameraFade(material);
-const trailRoutes=[{points:TEREN_ROAD,width:3.6},{points:SEWER_TRAIL,width:3.4},{points:startTrail,width:3.4},{points:mainTrail,width:5.2},{points:villageTrail,width:4.0},{points:shopTrail,width:3.4},{points:districtTrail,width:3.6},{points:altarTrail,width:3.4},{points:serraTrail,width:3.4},{points:CAGE_TRAIL,width:3},{points:CAVE_MOUTH_TRAIL,width:3},{points:colosseumTrail,width:3.4},{points:desertTrail,width:3.4},...cityLanes.map(points=>({points,width:3})),...cityDoorPaths.map(points=>({points,width:1.6})),...FOREST_TRAILS.map(t=>({points:t.points,width:t.width,name:t.name})),...FOREST_CLEARINGS.map(c=>({points:[[c.x-.01,c.z],[c.x+.01,c.z]],width:c.r*2-2.5,noMesh:true,name:c.name})),{points:WATERFALL.points,width:3.4,noMesh:true,name:'cachoeira'}];
+const trailRoutes=[{points:TEREN_ROAD,width:3.6},{points:SEWER_TRAIL,width:3.4},{points:startTrail,width:3.4},{points:mainTrail,width:5.2},{points:villageTrail,width:4.0},{points:shopTrail,width:3.4},{points:districtTrail,width:3.6},{points:altarTrail,width:3.4},{points:serraTrail,width:3.4},{points:CAGE_TRAIL,width:3},{points:CAVE_MOUTH_TRAIL,width:3},{points:SERRA_CLEFT_TRAIL,width:2.2,name:'Trilha da Fenda'},{points:colosseumTrail,width:3.4},{points:desertTrail,width:3.4},...cityLanes.map(points=>({points,width:3})),...cityDoorPaths.map(points=>({points,width:1.6})),...FOREST_TRAILS.map(t=>({points:t.points,width:t.width,name:t.name})),...FOREST_CLEARINGS.map(c=>({points:[[c.x-.01,c.z],[c.x+.01,c.z]],width:c.r*2-2.5,noMesh:true,name:c.name})),{points:WATERFALL.points,width:3.4,noMesh:true,name:'cachoeira'}];
 function addTrail(points,width){
  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],groundHeightAt(p[0],p[1]),p[1])),false,'centripetal');
  const steps=Math.max(48,points.length*14),vertices=[],uvs=[],indices=[];
@@ -752,7 +753,7 @@ const beltBlocks=(()=>{const out=[];const L=VILLAGE_CENTER;
 // MOD 305: clareiras e caminhos preservados dentro da nova mata da serra (gaiolas, torre/caminho do Ato IV, bandidos).
 /* A torre do Ato IV só existe a partir do Ato IV: até lá o lugar dela é mata; buildAct4World retira essas árvores. */
 const SERRA_TOWER_SITE={x:TOWER.base.x,z:(TOWER.base.z+TOWER.door.z)/2,r:TOWER.radius+7};
-const serraClearings=[{x:CAGE_CLEARING.x,z:CAGE_CLEARING.z,r:9.5},{x:TOWER.view.x,z:TOWER.view.z,r:6},{x:TOWER.rivalMeet.x,z:TOWER.rivalMeet.z,r:6},...TOWER.bandits.map(b=>({x:b.x,z:b.z,r:5})),...JOURNEY_ENEMIES.map(e=>({x:e.x,z:e.z,r:3.5}))];
+const serraClearings=[{x:CAGE_CLEARING.x,z:CAGE_CLEARING.z,r:9.5},{x:TOWER.view.x,z:TOWER.view.z,r:6},{x:TOWER.rivalMeet.x,z:TOWER.rivalMeet.z,r:6},...TOWER.bandits.map(b=>({x:b.x,z:b.z,r:5})),...JOURNEY_ENEMIES.map(e=>({x:e.x,z:e.z,r:3.5})),{x:SERRA_CLEFT.x+6.5,z:SERRA_CLEFT.z-1,r:7.5}/* Caverna C5: clareira diante da fenda da serra (legível de fora) */];
 const serraPaths=[TOWER.rivalPath];
 function beltFree(x,z,r){
  if(!dryGround(x,z)||terrain3D.boundaryDistance(x,z)>-6||insideMeadow(x,z,6)||bridgeDeck(x,z))return false;
@@ -788,6 +789,7 @@ window.SevenSinsSerraForest={trees:serraForestPlan.length,pts:serraForestPlan.ma
 // Individual trunks keep collision; foliage/shadow/LOD stays optimized at every quality.
 // MOD 311 — muralha montanhosa da fronteira e boca da caverna (malha e colisão nascem da mesma linha).
 const frontier=buildFrontier(THREE,{scene,groundHeightAt,GLTFLoader,registerCull:registerInstanceCull,lowSpec:terrainLowSpec,prepareBaked:r=>clampBakedMips(THREE,r,terrainLowSpec?4:3.5)});
+const serraCleft=buildSerraCleft(THREE,{ground:groundHeightAt,lowSpec:terrainLowSpec});scene.add(serraCleft.group); /* Caverna C5: saída alternativa da Galeria Alta, no pé da muralha */
 frontier.ready.then(st=>{window.SevenSinsFrontierReport=st;refreshInstanceCulling();}).catch(e=>console.warn('Fronteira: GLBs não carregaram.',e));
 /* RENASCIMENTO F2 — Vale do Despertar (eldoria-valley-landscape.js): as encostas lisas e vazias entre o prado e a
    planície viram bosques em grupos naturais (baixio úmido, meia-encosta, cristas com marcos), com alameda esparsa junto
@@ -853,6 +855,15 @@ const vigiaRuin=VALLEY_ON?buildVigiaRuin(THREE,{ground:groundHeightAt,walk:eldor
 if(vigiaRuin){scene.add(vigiaRuin.group);cameraOccluders.push({obj:vigiaRuin.group,x:VIGIA.x,z:VIGIA.z,r:VIGIA.r+12}); // a câmera não atravessa o muro do posto
  try{vigiaRuin.setOpened(localStorage.getItem(VIGIA_STORE)==='1');}catch(_){}}
 let vigiaSeenAt=0;
+/* Caverna C5 — desvios com recompensa real (nicho do vigia antigo e mirante do abismo): mesmo padrão do Posto do
+   Vigia (cofre que brilha até ser aberto, XP de ruína, moedas e estado por aparelho). */
+const CAVE_RELIC_STORE='seven-sins-3d-caverna-reliquia-';
+function checkCaveRelics(Z,lx,lz,now){if(!Z.relics)return;
+ for(const r of Z.relics){if(!r._loaded){r._loaded=true;try{r.setOpened(localStorage.getItem(CAVE_RELIC_STORE+r.id)==='1');}catch(_){}}
+  if(r.opened||Math.hypot(lx-r.x,lz-r.z)>1.9)continue;r.setOpened(true);try{localStorage.setItem(CAVE_RELIC_STORE+r.id,'1');}catch(_){}
+  bumpStat('ruins');gainXp(XP_REWARDS.ruin);coins+=r.coins;save3DProgress();updateQuestHud();worldAudio.discovery&&worldAudio.discovery();
+  const toast=document.getElementById('quest-toast');if(toast){toast.textContent=r.name.toUpperCase()+' · +'+r.coins+' MOEDAS';toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),3000);}
+  status.textContent=r.line;}}
 function checkVigiaRuin(now){
  if(!vigiaRuin||voidMode||cineActive)return;vigiaRuin.update(now*.001);
  const P=player.position,dc=Math.hypot(P.x-vigiaRuin.chestWorld.x,P.z-vigiaRuin.chestWorld.z);
@@ -2249,7 +2260,7 @@ if(firstPerson){
   // encolhe rápido mas contínuo; só salta se o ponto atual já tocaria a rocha (o sólido tem folga própria de 0,55/0,65 m)
   if(caveArmLen>want){const f=caveArmLen/len;if(voidSpec.camSolid(target.x+camOffset.x*f-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,target.z+camOffset.z*f-voidSpec.z))caveArmLen=want;}
 camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
-  if(voidSpec.ceil){const top=voidSpec.y+voidSpec.ceil(camera.position.x-voidSpec.x,camera.position.z-voidSpec.z)-.35;if(camera.position.y>top)camera.position.y=top;}
+  if(voidSpec.ceil){const top=voidSpec.y+voidSpec.ceil(camera.position.x-voidSpec.x,camera.position.z-voidSpec.z)-.35;if(camera.position.y>top){const y0=camera.position.y;camera.position.y=top;/* Caverna C5: a folha antiga do teto fica abaixo da parede 3D junto às paredes; se baixar a câmera a enfia na rocha, vale o volume 3D (que já inclui a abóbada) */if(voidSpec.camSolid(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z)&&!voidSpec.camSolid(camera.position.x-voidSpec.x,y0-voidSpec.y,camera.position.z-voidSpec.z))camera.position.y=y0;}}
  }else{caveArmLen=0;caveSide=0;camera.position.lerp(desired,1-Math.exp(-8*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
  if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);}
@@ -4654,17 +4665,17 @@ function ascEnter(key,at){
  checkpointX=x;checkpointZ=zz;camera.position.set(x-Math.sin(at.yaw)*5.5,player.position.y+2.6,zz-Math.cos(at.yaw)*5.5);ascPrev={x:at.x,z:at.z};ascCooldownUntil=performance.now()+1600;
 }
 function ascHide(){ascFallFrom=null;if(ascKey&&ascZones[ascKey])ascZones[ascKey].group.visible=false;ascKey=null;}
-function ascLeaveToWorld(){
- const M=CAVE_MOUTH,x=M.x-5.5,z=M.z;ascHide();voidSpec.walk=null;leaveVoid();
- player.position.set(x,terrainHeightAt(x,z),z);playerYaw=Math.PI/2;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;moveVX=moveVZ=0;checkpointX=x;checkpointZ=z;
- camera.position.set(x-6,player.position.y+2.8,z);ascCooldownUntil=performance.now()+1800;ascScheduleUnload();
+function ascLeaveToWorld(at){
+ const M=CAVE_MOUTH,x=at?at.x:M.x-5.5,z=at?at.z:M.z;ascHide();voidSpec.walk=null;leaveVoid();
+ player.position.set(x,terrainHeightAt(x,z),z);playerYaw=at&&at.yaw!=null?at.yaw:Math.PI/2;player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;moveVX=moveVZ=0;checkpointX=x;checkpointZ=z;
+ camera.position.set(x-Math.sin(playerYaw)*6,player.position.y+2.8,z-Math.cos(playerYaw)*6);ascCooldownUntil=performance.now()+1800;ascScheduleUnload();
 }
 /** Descarrega as zonas (GPU e memória) depois de um tempo longe da boca; voltar remonta tudo com pré-carga. */
 let ascUnloadTimer=0;
 function ascScheduleUnload(){clearTimeout(ascUnloadTimer);ascUnloadTimer=setTimeout(()=>{const P=player.position;if(ascKey||ascBusy||Math.hypot(P.x-CAVE_MOUTH.x,P.z-CAVE_MOUTH.z)<120){ascScheduleUnload();return;}
- for(const k of Object.keys(ascZones)){const z=ascZones[k];scene.remove(z.group);z.dispose();delete ascZones[k];}ascPreload=null;ascUnloadTimer=0;},45000);}
-function ascTravel(fn,{color='#000',hold=260}={}){if(ascBusy)return;ascBusy=true;ascVeil.style.background=color;ascDarken(true,380);
- setTimeout(()=>{Promise.resolve(fn()).catch(e=>console.warn('Ascensão: transição',e)).finally(()=>{setTimeout(()=>{ascDarken(false,620);ascBusy=false;ascVeil.style.background='#000';},hold);});},400);}
+ for(const k of Object.keys(ascZones)){const z=ascZones[k],pl=[];z.group.traverse(o=>{if(o.isPointLight)pl.push(o);});for(const l of pl)l.parent.remove(l);/* revisão C1–C5: solta as luzes antes de descarregar; o orçamento de luzes só esquece fontes sem pai (antes: +13 fontes mortas a cada volta à caverna) */scene.remove(z.group);z.dispose();delete ascZones[k];}ascPreload=null;ascUnloadTimer=0;},45000);}
+function ascTravel(fn,{color='#000',hold=260,fast=false}={}){if(ascBusy)return;ascBusy=true;ascVeil.style.background=color;ascDarken(true,fast?160:380);
+ setTimeout(()=>{Promise.resolve(fn()).catch(e=>console.warn('Ascensão: transição',e)).finally(()=>{setTimeout(()=>{ascDarken(false,fast?360:620);ascBusy=false;ascVeil.style.background='#000';},hold);});},fast?170:400);}
 function updateAscension(dt,now){
  const P=player.position;
  if(!ascKey){
@@ -4673,8 +4684,9 @@ function updateAscension(dt,now){
   const dm=Math.hypot(P.x-CAVE_MOUTH.x,P.z-CAVE_MOUTH.z);
   if(dm<75&&!ascPreload){ascPreload=(window.requestIdleCallback||setTimeout)(()=>{ascZone('cave');});}
   else if(dm>150&&ascPreload&&!ascUnloadTimer)ascScheduleUnload();
+  if(Math.hypot(P.x-SERRA_CLEFT.x,P.z-SERRA_CLEFT.z)<SERRA_CLEFT.enterR+.55&&P.x<ascPrev.x-1e-4&&now>ascCooldownUntil){/* Caverna C5: entrar pela fenda da serra leva ao fim do túnel da Galeria Alta */const E=ASC_CAVE.serraExit,dx=E.a[0]-E.b[0],dz=E.a[1]-E.b[1],L=Math.hypot(dx,dz);ascTravel(()=>ascWhenReady('cave').then(()=>{ascEnter('cave',{x:E.b[0]+dx/L*3.2,z:E.b[1]+dz/L*3.2,yaw:Math.atan2(dx,dz)});status.textContent='A fenda se abre numa galeria alta, acima do salão.';}),{hold:60,fast:true});}
   if(inMouthTunnel(P.x,P.z)){const d=mouthDepth(P.x);ascDarken(Math.max(0,Math.min(.92,(d-.18)/(CAVE_MOUTH.enterDepth-.18)*.92)),180);
-   if(d>=CAVE_MOUTH.enterDepth&&P.x<ascPrev.x-1e-4&&now>ascCooldownUntil)ascTravel(()=>ascWhenReady('cave').then(()=>{const S=ASC_CAVE.spawn;ascEnter('cave',S);status.textContent='Caverna da Fronteira — o frio vem lá de dentro.';}));}
+   if(d>=CAVE_MOUTH.enterDepth&&P.x<ascPrev.x-1e-4&&now>ascCooldownUntil)ascTravel(()=>ascWhenReady('cave').then(()=>{const S=ASC_CAVE.spawn;ascEnter('cave',S);status.textContent='Caverna da Fronteira — o frio vem lá de dentro.';}),{hold:60,fast:true});}
   else if(ascVeil.style.opacity!=='0'&&!ascBusy)ascDarken(false,300);
   ascPrev={x:P.x,z:P.z};return;
  }
@@ -4683,7 +4695,9 @@ function updateAscension(dt,now){
  Z.update(dt,camera,{x:lx,y:P.y,z:lz});
  if(!ascBusy&&now>ascCooldownUntil){
   if(ascKey==='cave'){
-   if(lz>ASC_CAVE.exitZ&&lz>ascPrev.z)ascTravel(()=>{ascLeaveToWorld();status.textContent='De volta à serra.';});
+   checkCaveRelics(Z,lx,lz,now);
+   if(lz>ASC_CAVE.exitZ&&lz>ascPrev.z)ascTravel(()=>{ascLeaveToWorld();status.textContent='De volta à serra.';},{hold:60,fast:true});
+   else if(Z.serraExit&&Math.hypot(lx-Z.serraExit.b[0],lz-Z.serraExit.b[1])<1.6)ascTravel(()=>{ascLeaveToWorld(SERRA_CLEFT.arrive);status.textContent='A fenda dá na encosta da serra, ao norte da boca da caverna.';},{hold:60,fast:true});
    else if(crossedCavePortal(ascPrev,{x:lx,z:lz})){Z.portal.pulse();worldAudio.portalEnter();ascTravel(()=>ascWhenReady('ascent').then(()=>{ascEnter('ascent',ASC_ASCENT.spawn);status.textContent='Uma escadaria sem fim sobe pelo vazio.';}),{color:'#1a0c3a',hold:420});}
   }else if(ascKey==='ascent'&&crossedAscentPortal(ascPrev,{x:lx,z:lz})){Z.portal.pulse();worldAudio.portalEnter();ascTravel(()=>ascWhenReady('cave').then(()=>{const p=ASC_CAVE.portal;ascEnter('cave',{x:p.x,z:p.z+4.5,yaw:0});}),{color:'#0a1440',hold:380});}
  }

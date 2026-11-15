@@ -51,6 +51,12 @@ export const FRONTIER_LINE = Object.freeze(catmull(FRONTIER_KNOTS, 1.5).map(([x,
   const off = nearMouth ? 0 : (fbm(x * .07, z * .07, 803, 3) - .5) * 2.4;
   return [x + tz / L * off, z - tx / L * off];
 }));
+/** CAVERNA C5 — fenda da serra: a saída alternativa da Galeria Alta abre no pé da muralha, ~31 m ao norte da boca.
+ *  Fenda estreita demais para se ver dentro (como a boca, a passagem é uma transição). `out` = lado do vale (+x). */
+export const SERRA_CLEFT = Object.freeze((() => { let best = FRONTIER_LINE[0]; for (const p of FRONTIER_LINE) if (Math.abs(p[1] + 205) < Math.abs(best[1] + 205)) best = p;
+  return { x: best[0], z: best[1], out: [1, 0], arrive: { x: best[0] + 5.5, z: best[1] - 1.5, yaw: Math.atan2(.55, -1) }, enterR: 1.7 }; })()); // sai olhando para a trilha da boca (sul), com a câmera livre da muralha
+/** Trilha estreita da trilha da boca até a fenda: torna a saída alternativa encontrável a partir do mundo. */
+export const SERRA_CLEFT_TRAIL = Object.freeze([[-58, -233], [-61.5, -225], [-64, -216], [-66.6, -208.4]]);
 /** Polígono fechado da massa rochosa (linha + fundo distante). */
 const FRONTIER_POLY = FRONTIER_LINE.concat([[70, -460], [-220, -460], [-220, -183]]);
 const FB = { x0: -221, x1: 71, z0: -461, z1: -182 };
@@ -143,6 +149,9 @@ export const CAVE = Object.freeze({
     // Mod 316 — expansão: as duas ramificações seladas viraram espaços grandes, cada um com função de leitura própria.
     { id: 'prisao', x: 58, z: -34, r: 13, floor: -5.4, ceil: 12, wob: 2.2, s: 15 },   // câmara de ocupação/prisão (jaulas, restos de vigília)
     { id: 'cristal', x: -58, z: -106, r: 17, floor: -3.2, ceil: 30, wob: 3.4, s: 16 }, // salão de cristal e água (poça-espelho, feixe do teto)
+    // CAVERNA C5 — Galeria Alta: patamar 6 m acima do salão, entre o salão e o cristal. Fecha o laço salão → rampa →
+    // galeria → cristal → passagem do eco → portal → norte → salão, e leva à saída alternativa pela encosta da serra.
+    { id: 'galeria', x: -29, z: -101, r: 8, floor: 0, ceil: 13, wob: 1.6, s: 17 },
   ],
   corridors: [
     { id: 'entrada', a: [0, 10], b: [0, -32], r: 4.5, fa: 0, fb: -6, ceil: 9.2 },
@@ -153,7 +162,21 @@ export const CAVE = Object.freeze({
     // estreita e escura (eco) até o salão de cristal. Largura ≥ 2,6 m: o corpo e a câmera passam sem raspar.
     { id: 'leste', a: [22, -51], b: [46, -38], r: 3.1, fa: -6, fb: -5.4, ceil: 7 },
     { id: 'eco-cristal', a: [-17, -127], b: [-44, -112], r: 2.7, fa: -1.6, fb: -3.2, ceil: 6.2 },
+    // CAVERNA C5 — rampa de sedimento do salão até a Galeria Alta (+6 m em 20 m: ~17°), ligação descendo ao cristal,
+    // mirante (desvio) que se debruça sobre o salão e o abismo, nicho da relíquia (desvio) e a saída para a serra.
+    { id: 'rampa-galeria', a: [-12, -80], b: [-23, -96], r: 3.1, fa: -6, fb: 0, ceil: 8.5 },
+    { id: 'galeria-cristal', a: [-35, -104], b: [-47, -106], r: 2.9, fa: 0, fb: -3.2, ceil: 7 },
+    // mirante: patamar (ledge) que sai da Galeria Alta e termina na crista entre o salão e a gruta, ~5 m acima dos dois.
+    { id: 'mirante', a: [-28, -95.5], b: [-23.5, -74], r: 2.6, fa: 0, fb: -1.2, ceil: 7.5, ledge: true },
+    { id: 'nicho', a: [-28, -105], b: [-15, -108.6], r: 2.7, fa: 0, fb: .35, ceil: 5.6 },
+    { id: 'saida-serra', a: [-33, -96], b: [-39, -88], r: 2.6, fa: 0, fb: 1.4, ceil: 6 },
   ],
+  /** CAVERNA C5 — desvios com recompensa (coordenadas locais) e a saída alternativa (gatilho no fim do túnel). */
+  relics: [
+    { id: 'nicho', x: -17.8, z: -107.7, name: 'Nicho do Vigia Antigo', coins: 8, line: 'Uma relíquia escondida pelos primeiros vigias da fronteira.' },
+    { id: 'mirante', x: -23.8, z: -76, name: 'Mirante do Abismo', coins: 5, line: 'Daqui se vê o salão inteiro, a ponte e o fundo do abismo.' },
+  ],
+  serraExit: { a: [-37.6, -89.9], b: [-39, -88], r: 2.2 },
   /** abismo no salão (não caminhável) atravessado por uma ponte natural de pedra */
   chasm: { x: 1, z: -60, rx: 14.5, rz: 8.6 },
   bridge: { a: [0, -48.5], b: [0, -71.5], r: 1.75, y: -6 },
@@ -195,9 +218,18 @@ export const CHASM_RIM = Object.freeze((() => {
 })());
 /** Zona sem piso: bordas atravessáveis; a queda é resolvida pela física vertical do jogador. */
 export function caveHazard(x, z) { return caveField(x, z) > .75 && inChasm(x, z) && !onBridge(x, z); }
+const LEDGES = CAVE.corridors.filter(k => k.ledge), LEDGE_BAND = 1.4;
+/** CAVERNA C5 — faixa íngreme em volta de um patamar (a queda do mirante): não se pisa, como a borda do abismo. */
+export function caveLedgeEdge(x, z) {
+  for (const k of LEDGES) { const s = segDist(x, z, k.a[0], k.a[1], k.b[0], k.b[1]), d = s.d - corridorR(k, s.t, x, z); if (d > -.05 && d < LEDGE_BAND + .3) {
+    const y = k.fa + (k.fb - k.fa) * s.t, e = .35, g = Math.max(Math.abs(caveFloor(x + e, z) - caveFloor(x - e, z)), Math.abs(caveFloor(x, z + e) - caveFloor(x, z - e))) / (2 * e);
+    if (g > .9 || caveFloor(x, z) < y - .6) return true; } }
+  return false;
+}
 /** Onde o herói pode pisar. */
 export function caveWalk(x, z) {
   if (caveField(x, z) < .75) return false;
+  if (LEDGES.length && caveLedgeEdge(x, z)) return false;
   if (inChasm(x, z) && !onBridge(x, z)) return false;
   for (const p of CAVE.pools) if (Math.hypot(x - p.x, z - p.z) < p.r + .35) return false;
   for (const p of CAVE.pillars) if (Math.hypot(x - p.x, z - p.z) < p.r + .35) return false;
@@ -212,7 +244,10 @@ export function caveFloor(x, z) {
   let sw = 0, sy = 0;
   for (const c of CAVE.chambers) { const d = Math.hypot(x - c.x, z - c.z), w = smooth(-2, 4, chamberR(c, x, z) - d); if (w > 0) { const terr = c.id === 'salao' ? .45 * Math.sin(d * .22) * smooth(14, 22, d) : c.id === 'portal' ? .55 * smooth(9, 6, Math.hypot(x - CAVE.portal.x, z - CAVE.portal.z - 2)) : 0; sw += w; sy += w * (c.floor + terr); } }
   for (const k of CAVE.corridors) { const s = segDist(x, z, k.a[0], k.a[1], k.b[0], k.b[1]), w = smooth(-2, 3, corridorR(k, s.t, x, z) - s.d); if (w > 0) { sw += w * 1.4; sy += w * 1.4 * (k.fa + (k.fb - k.fa) * s.t); } }
-  const base = sw > 0 ? sy / sw : -6;
+  let base = sw > 0 ? sy / sw : -6;
+  // CAVERNA C5 — patamares (ledge): piso próprio, sem média com o vizinho, e borda íngreme de 1,4 m (não caminhável:
+  // ver caveLedgeEdge). É o que permite um mirante de verdade sobre o salão num piso de altura única por (x, z).
+  for (const k of LEDGES) { const s = segDist(x, z, k.a[0], k.a[1], k.b[0], k.b[1]), d = s.d - corridorR(k, s.t, x, z); if (d < LEDGE_BAND) { const y = k.fa + (k.fb - k.fa) * s.t; base = d <= 0 ? y : y + (base - y) * smooth(0, LEDGE_BAND, d); } }
   return base + .22 * (fbm(x * .35, z * .35, 51, 2) - .5);
 }
 /** Teto (altura acima do piso) — abóbadas altas nas câmaras, baixas nos corredores. */

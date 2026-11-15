@@ -30,7 +30,7 @@ test('malha: fechada por dentro da caixa, determinística e dentro do orçamento
     let holes = 0; for (const [key, c] of E) if (c === 1) { const a = Math.floor(key / 1e7), x = P[a * 3], y = P[a * 3 + 1], z = P[a * 3 + 2]; if (x > SDF_BOX.x0 + 3 && x < SDF_BOX.x1 - 3 && z > SDF_BOX.z0 + 3 && z < SDF_BOX.z1 - 3 && y > r.y[0] + 3 && y < r.y[1] - 3) holes++; }
     assert.equal(holes, 0, 'sem buracos na rocha');
   }
-  assert.ok(mobile.indices.length / 3 <= 30000, `mobile ${mobile.indices.length / 3} tri`); assert.ok(desktop.indices.length / 3 <= 75000, `desktop ${desktop.indices.length / 3} tri`);
+  assert.ok(mobile.indices.length / 3 <= 30000, `mobile ${mobile.indices.length / 3} tri`); assert.ok(desktop.indices.length / 3 <= 85000, `desktop ${desktop.indices.length / 3} tri`); // C5: +galeria, rampa, mirante, nicho e saída (~+12 % de superfície); o mobile segue ≤ 30 k
   const again = buildCaveSurface({ cell: 1.6 }); assert.equal(again.indices.length, mobile.indices.length); assert.equal(again.positions[123], mobile.positions[123]);
 });
 

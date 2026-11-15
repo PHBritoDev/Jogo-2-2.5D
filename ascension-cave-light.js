@@ -25,6 +25,7 @@ export const CAVE_MOODS = Object.freeze({
   prisao: M(0x0b0604, 0x25180e, 7, 62, 0xdcab7c, 0x21160e, 1.08, 0xffb070, .3, 1.38),
   cristal: M(0x07051a, 0x1e1742, 9, 86, 0xab98ff, 0x19122d, 1.3, 0xd2c4ff, .4, 1.42),
   portal: M(0x080418, 0x1b1038, 9, 86, 0x9d88ff, 0x170e28, 1.25, 0xc8b8ff, .38, 1.38),
+  galeria: M(0x0a0d0b, 0x23302a, 9, 70, 0xd9e6c4, 0x272319, 1.3, 0xffe2b0, .45, 1.34), // C5: luz do dia da fenda da serra, quente
 });
 /** Onde cada humor manda (câmaras do layout + a boca do túnel). */
 export const MOOD_ZONES = Object.freeze([
@@ -81,14 +82,15 @@ export const CAVE_KEYS = Object.freeze([
   [0xbfd6ff, 2.2, 24, [-58, 4.7, -104], 'cristal: fresta fria sobre a poça-espelho'],
   [0x9a6bff, 2.0, 18, [-62, 1.6, -97], 'cristal: os cristais são a luz da câmara'],
   [0x7d96ff, 1.3, 15, [33, 2.6, -99], 'eco: recorte frio na saída da passagem'],
+  [0xffe2b8, 1.8, 18, [-37, 2.6, -91], 'galeria alta: luz do dia que entra pela fenda da serra'],
 ]);
 /** Cor dos feixes por fresta (mesma ordem de CAVE_SHAFTS): dourado no salão, verde-água na gruta, frio no portal, lavanda no cristal. */
 export const SHAFT_COLORS = Object.freeze([0xffe2a8, 0xffd9a0, 0xc6ffec, 0xbfd2ff, 0xd8ccff]);
 
 /** Áudio por câmara: tamanho da sala (reverb) e gotejamento (poças e pontas de calcita). */
 export function caveAudioAt(x, z) {
-  const W = moodWeights(x, z), size = { entrada: .25, salao: 1, gruta: .6, eco: .75, prisao: .45, cristal: .85, portal: .8 };
+  const W = moodWeights(x, z), size = { entrada: .25, salao: 1, gruta: .6, eco: .75, prisao: .45, cristal: .85, portal: .8, galeria: .5 };
   let room = 0; for (const id in W) room += (size[id] ?? .5) * W[id];
   let drip = .15; for (const p of CAVE.pools) drip = Math.max(drip, sm(p.r + 16, p.r, Math.hypot(x - p.x, z - p.z)));
-  return { room, drip, draft: W.entrada || 0 };
+  return { room, drip, draft: (W.entrada || 0) + .6 * (W.galeria || 0) };
 }
