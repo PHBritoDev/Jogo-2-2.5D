@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Caverna C2 — forma</title>
+<style>html,body{margin:0;background:#111}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script></head>
+<body><script type="module">
+/* Caverna C2 — comparação só de FORMA (luz neutra de inspeção, sem a iluminação do jogo): folha de altura antiga
+   (abóbada que "cai" para formar a parede) × volume 3D (Surface Nets). Mesmo piso e mesmas câmeras.
+   Uso: ?view=0..5&mode=old|new  → window.READY quando renderizado. */
+import * as THREE from 'three';
+import { caveField } from '../../ascension-layout.js';
+import { caveRoofAt, caveFloorVisual, buildCaveSurface, SDF_BOX } from '../../ascension-cave-sdf.js';
+const q = new URLSearchParams(location.search), view = +(q.get('view') || 0), mode = q.get('mode') || 'new', cellQ = +(q.get('cell') || 1);
+const W = 852, H = 393, r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(W, H); document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0d1215); scene.fog = new THREE.Fog(0x0d1215, 30, 110);
+const cam = new THREE.PerspectiveCamera(60, W / H, .1, 400);
+scene.add(new THREE.HemisphereLight(0xcfe6ff, 0x2a2622, 1.15)); const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(30, 60, 20); scene.add(key);
+const head = new THREE.PointLight(0xffe2c0, 60, 40, 1.6); scene.add(head);
+const mat = new THREE.MeshStandardMaterial({ color: 0x9a9890, roughness: .9, side: THREE.DoubleSide });
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x6e6a60, roughness: 1, side: THREE.DoubleSide });
+function sheet(fn) { const c = 1, B = SDF_BOX, nx = Math.ceil((B.x1 - B.x0) / c) + 1, nz = Math.ceil((B.z1 - B.z0) / c) + 1, pos = [], idx = [], map = new Int32Array(nx * nz).fill(-1), F = new Float32Array(nx * nz);
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) F[i + j * nx] = caveField(B.x0 + i * c, B.z0 + j * c);
+  for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = i + j * nx, b = a + 1, cc = a + nx, d = cc + 1; if (![a, b, cc, d].some(k => F[k] > -2.2)) continue;
+    for (const k of [a, b, cc, d]) if (map[k] < 0) { const x = B.x0 + (k % nx) * c, z = B.z0 + Math.floor(k / nx) * c; map[k] = pos.length / 3; pos.push(x, fn(x, z), z); }
+    idx.push(map[a], map[b], map[cc], map[b], map[d], map[cc]); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g; }
+scene.add(new THREE.Mesh(sheet(caveFloorVisual), floorMat));
+if (mode === 'old') scene.add(new THREE.Mesh(sheet(caveRoofAt), mat));
+else { const s = buildCaveSurface({ cell: cellQ }), g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(s.positions, 3)); g.setIndex(new THREE.BufferAttribute(s.indices, 1)); g.computeVertexNormals(); scene.add(new THREE.Mesh(g, mat)); }
+const V = [[[15, -2, -44], [-22, 0, -62]], [[2, -3, -50], [-2, 30, -62]], [[-30, -5, -56], [-52, -5, -64]], [[-1, -2, 2], [0, -4, -30]], [[-45, -1, -102], [-68, -1, -110]], [[52, -3, -30], [64, -3, -40]]];
+const [p, t] = V[view]; cam.position.set(...p); cam.lookAt(...t); head.position.copy(cam.position);
+r.render(scene, cam); window.READY = true;
+</script></body></html>

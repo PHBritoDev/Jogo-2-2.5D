@@ -7,31 +7,20 @@
  */
 import { CAVE, CHASM_RIM, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, caveHazard, hash2, fbm } from './ascension-layout.js';
 import { boulderGeometry } from './eldoria-prologue-meadow.js';
+import { caveRoofAt, caveFloorVisual, buildCaveSurface, makeGridSolid } from './ascension-cave-sdf.js';
 import { triplanarRock, ensureUv, vortexPortal, lightShaft, dustField, disposeGroup } from './ascension-fx3d.js';
 import { prepareTorchSource, placeTorches } from './eldoria-torches3d.js';
 
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-/** Altura da abóbada no ponto (relativa ao mundo local) — parede quase vertical nos primeiros metros e domo acima. */
-export function caveRoofAt(x, z) {
-  const f = caveField(x, z), base = caveFloor(x, z);
-  if (f < -.4) return base - .6;
-  const C = caveCeil(x, z), wallH = Math.min(C, 4.6), band = 2.5 + .2 * C;
-  return base - .6 + (wallH + .6) * smooth(-.4, .7, f) + Math.max(0, C - wallH) * smooth(.7, band, f) - 2.2 * (fbm(x * .16, z * .16, 901, 3) - .5) * smooth(1, 4, f);
-}
-function chasmDrop(x, z) {
-  const c = CAVE.chasm, w = .9 * (fbm(x * .2, z * .2, 41, 2) - .5);
-  const e = ((x - c.x) / (c.rx + w)) ** 2 + ((z - c.z) / (c.rz + w)) ** 2;
-  return e >= 1 ? 0 : 34 * smooth(1, .78, e) + 6 * fbm(x * .3, z * .3, 902, 2);
-}
-function poolDrop(x, z) { let d = 0; for (const p of CAVE.pools) { const r = Math.hypot(x - p.x, z - p.z); if (r < p.r + .6) d = Math.max(d, 1.3 * smooth(p.r + .6, p.r - .8, r)); } return d; }
-/** Altura do piso visual (abismo e poças rebaixados; colisão impede pisar neles). */
-export function caveFloorVisual(x, z) { return caveFloor(x, z) - chasmDrop(x, z) - poolDrop(x, z); }
+// C2: abóbada, piso visual e o campo 3D da rocha vivem em ascension-cave-sdf.js (puro; também roda no Web Worker).
+export { caveRoofAt, caveFloorVisual };
+let gridSolid = null; // campo 3D da malha nova (quando pronto); antes disso, a regra antiga da folha de altura
 /** Câmera: sólido fora do volume, acima da abóbada ou abaixo do piso. */
 export function caveCamSolid(x, y, z) {
   // Raio de câmera com pequena folga; não tratar o ar dos abismos como parede.
-  if (caveField(x, z) < .55) return true; // folga da camera para largura do enquadramento, nao apenas um ponto
-  if (y > caveRoofAt(x, z) - .65) return true;
+  if (gridSolid) { if (gridSolid(x, y, z, .6)) return true; } // C2: o mesmo campo 3D que desenha paredes e abóbada
+  else { if (caveField(x, z) < .55) return true; if (y > caveRoofAt(x, z) - .65) return true; } // folga do enquadramento
   if (y < caveFloor(x, z) - .35 && !caveHazard(x, z)) return true;
   for (const p of CAVE.pillars) if (Math.hypot(x - p.x, z - p.z) < p.r + .15) return true;
   return false;
@@ -90,6 +79,28 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   const floorMat = triplanarRock(THREE, { key: 'caverna-piso', scale: .11, tint: 1.2, roughness: .78 }); floorMat.side = THREE.DoubleSide;
   const tpMats = [rockMat, floorMat];
   floor.material = floorMat; roof.material = rockMat; floor.receiveShadow = roof.receiveShadow = true; group.add(floor, roof);
+  // ---------- C2: paredes e abóbada em volume 3D (Surface Nets sobre o SDF), gerado num Web Worker ----------
+  // A folha antiga fica como reserva até a malha nova chegar (ou para sempre com ?caverna=0 / sem Worker).
+  const sdfOff = typeof location !== 'undefined' && /[?&]caverna=0\b/.test(location.search);
+  const sdfStats = { on: false, ms: 0, tris: 0, via: 'off' };
+  const adoptSurface = r => {
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(r.positions, 3)); g.setIndex(new THREE.BufferAttribute(r.indices, 1));
+    const P = r.positions, cc = new Float32Array(P.length);
+    for (let i = 0; i < P.length; i += 3) { const c = roofCol(P[i], P[i + 1], P[i + 2]); cc[i] = c[0]; cc[i + 1] = c[1]; cc[i + 2] = c[2]; }
+    g.setAttribute('color', new THREE.BufferAttribute(cc, 3)); g.computeVertexNormals(); ensureUv(THREE, g); g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, rockMat); m.name = 'caverna-rocha-3d'; m.receiveShadow = true; group.add(m);
+    roof.visible = false; group.remove(roof); roof.geometry.dispose();
+    gridSolid = makeGridSolid(r.columns); Object.assign(sdfStats, { on: true, ms: Math.round(r.ms), tris: r.indices.length / 3 });
+  };
+  const sdfReady = sdfOff ? Promise.resolve() : new Promise(res => {
+    const cell = lowSpec ? 1.6 : 1, local = () => { try { adoptSurface(buildCaveSurface({ cell })); sdfStats.via = 'principal'; } catch (e) { console.warn('C2: malha 3D da caverna falhou; fica a folha antiga', e); } res(); };
+    let w = null; try { w = typeof Worker !== 'undefined' ? new Worker(new URL('./ascension-cave-sdf.worker.js', import.meta.url), { type: 'module' }) : null; } catch (e) { w = null; }
+    if (!w) { setTimeout(local, 0); return; }
+    const t = setTimeout(() => { w.terminate(); local(); }, 15000);
+    w.onmessage = e => { clearTimeout(t); w.terminate(); if (e.data && e.data.ok) { adoptSurface(e.data.r); sdfStats.via = 'worker'; res(); } else local(); };
+    w.onerror = () => { clearTimeout(t); w.terminate(); local(); };
+    w.postMessage({ cell });
+  });
   // fundo do abismo: breu (o nevoeiro do abismo faz o resto)
   const pit = new THREE.Mesh(new THREE.CircleGeometry(22, 24), new THREE.MeshBasicMaterial({ color: 0x000203, fog: false }));
   pit.rotation.x = -Math.PI / 2; pit.position.set(CAVE.chasm.x, -36, CAVE.chasm.z); group.add(pit);
@@ -248,7 +259,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   const clusters = []; for (let j = 0; j < nz; j += 3) for (let i = 0; i < nx; i += 3) { const k = i + j * nx, f = fieldAt[k]; if (f < -.1 || f > .7 || hash2(i, j, 931) > .32 || Math.hypot(X0 + i * cell, Z0 + j * cell) < 14) continue; const x = X0 + i * cell + jx[k], z = Z0 + j * cell + jz[k]; if (inChasm(x, z, 2)) continue; clusters.push({ x, z, s: .5 + .7 * hash2(i, j, 932), y: caveFloor(x, z) - .1 }); }
   { const im = new THREE.InstancedMesh(clusterGeo, clusterMat, clusters.length), o = new THREE.Object3D(); clusters.forEach((c, n) => { o.position.set(c.x, c.y, c.z); o.rotation.set((hash2(n, 19, 933) - .5) * .5, hash2(n, 20, 934) * 6.28, (hash2(n, 21, 935) - .5) * .5); o.scale.setScalar(c.s); o.updateMatrix(); im.setMatrixAt(n, o.matrix); }); const cc = new Float32Array(clusters.length * 3); clusters.forEach((c, n) => { const v = hash2(n, 22, 936); cc[n * 3] = .55 + .45 * v; cc[n * 3 + 1] = .6 + .2 * (1 - v); cc[n * 3 + 2] = 1; }); im.instanceColor = new THREE.InstancedBufferAttribute(cc, 3); im.name = 'cristais-veios'; group.add(im); }
   const loader = GLTFLoader ? new GLTFLoader() : null;
-  const ready = new Promise(res => {
+  const readyAssets = new Promise(res => {
     if (!loader) { res(); return; }
     let left = 4;
     const done = () => { if (--left === 0) res(); };
@@ -290,6 +301,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
       done();
     }, undefined, done);
   });
+  const ready = Promise.all([readyAssets, sdfReady]);
   // ---------- colisão extra (menires/arco do portal/jaulas) ----------
   const cageBlock = CAVE.cages.map(c => ({ x: c.x, z: c.z, r: 1.35 }));
   const walk = (x, z) => caveWalk(x, z) && !menires.some(m => Math.hypot(x - m.x, z - m.z) < m.r + .3) && !cageBlock.some(m => Math.hypot(x - m.x, z - m.z) < m.r + .3);
@@ -299,7 +311,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
     env: { bg: 0x03090c, fog: 0x0a2329, fogNear: 9, fogFar: 92, hemi: [0x7cc2cf, 0x0c1416, 1.35], sun: [0xa9dcff, .5], exposure: 1.32 },
     update(dt, cam) { t += dt; torchSet?.update(t, 1); for (const u of updaters) u(t, dt); },
     dispose() { disposeGroup(group, new Set(), true); }, // zona descarregada: geometrias, materiais e texturas próprias
-    stats() { let tris = 0; group.traverse(o => { if (o.isMesh && o.geometry) { const n = (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; tris += o.isInstancedMesh ? n * o.count : n; } }); return { tris: Math.round(tris), clusters: clusters.length }; },
+    sdf: sdfStats, stats() { let tris = 0; group.traverse(o => { if (o.isMesh && o.geometry) { const n = (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; tris += o.isInstancedMesh ? n * o.count : n; } }); return { tris: Math.round(tris), clusters: clusters.length, sdf: sdfStats }; },
   };
 }
 
