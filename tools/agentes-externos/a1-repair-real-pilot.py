@@ -80,7 +80,7 @@ def main():
         if target == checkout or checkout in target.parents or target.exists() or target.is_symlink():
             raise ValueError("Patch destination must be new and outside checkout")
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps(outcome["candidate"], sort_keys=True, indent=2) + "\\n", encoding="utf-8")
+        target.write_text(json.dumps(outcome["candidate"], sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({key: value for key, value in outcome.items() if key != "candidate"}, sort_keys=True))
     if outcome["result"] != "verified_candidate":
         raise SystemExit("A1: model candidate failed trusted red/green validation")
