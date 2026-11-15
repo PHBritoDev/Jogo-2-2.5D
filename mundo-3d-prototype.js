@@ -13,7 +13,7 @@ import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
 import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
 import {pullOn} from './enemy2-squad3d.js';
-import {VZ,VHAZRAEL_BUILD} from './vhazrael3d.js';
+import {VZ,VHAZRAEL_BUILD,vzMix} from './vhazrael3d.js';
 import {VHAZRAEL_WINGS_BUILD} from './vhazrael-feather-wings3d.js';
 import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {BOSS_MOVES,bossTraceContact,bossLift} from './boss-choreography3d.js';
@@ -55,6 +55,7 @@ import {buildForestPlaces} from './eldoria-forest-places3d.js';
 import {buildFarRidges} from './eldoria-far-ridges3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, CAGE_TRAIL, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, TEREN_ORIGIN, ORIGIN_LIMIT, nearestAlong as nearestAlongRoad, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
+import {VZ_FILE,VZ_ROLES,VZ_IN_PLACE,VZ_TIME} from './vhazrael-rig3d.js';
 import {loadTorchSource,placeTorches} from './eldoria-torches3d.js';
 import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
 import {createVillageSolidQuery} from './eldoria-village-solids.js';
@@ -97,7 +98,7 @@ import { buildDimensionArena, buildDimensionPortal } from './dimension-arenas3d.
 import { createDirector, heavenScene, awakeningScene, wingsScene, MISSION_ACT1, MISSION_PROLOGUE, GUIDE_NAME, GUIDE_PUBLIC_NAME } from './prologue-flow.js';
 import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
-import { levelFromXp, levelProgress, statsForLevel, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
+import { levelFromXp, levelProgress, statsForLevel, HERO_HP_MULT, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_STORE_KEY, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { cityLayout, inAlley, ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
@@ -1060,7 +1061,7 @@ let checkpointX=0,checkpointZ=4;
 let enemyAttackCooldown=0,enemyAttackElapsed=0,enemyAttackDuration=0,enemyAttackHitAt=0,enemyAttackResolved=true,enemyAttackFacingX=0,enemyAttackFacingZ=1,enemyAttackRole='attack';
 let enemyDashRemaining=0,enemyDashCooldown=0,enemySpecialCooldown=0,enemyCastCooldown=0,enemyBlockCooldown=0,enemyCastElapsed=0,enemyCastDuration=0,enemyCastResolved=true,enemyDashDirectionX=0,enemyDashDirectionZ=1;
 let attackCooldown=0,pendingEnemyHitAt=0,playerAttackFacingX=0,playerAttackFacingZ=1;
-let playerHP=100,playerMaxHP=100,playerInvulnerableUntil=0,playerRespawnAt=0;
+let playerHP=500,playerMaxHP=500,playerInvulnerableUntil=0,playerRespawnAt=0;
 const ENEMY_ATTACK_RANGE=2.25,ENEMY_ATTACK_DAMAGE=18,PLAYER_SPAWN={x:0,z:4};
 function playEnemyAnimation(role,fade=.1,once=false){
  const next=enemyActions[role];if(!next)return false;
@@ -5760,7 +5761,7 @@ function attachCoat(){
  return coatLoad;
 }
 function setCoat(on){coatOn=!!on&&coatOwned;if(coatOn&&!coatMesh)attachCoat();if(coatMesh)coatMesh.visible=coatOn;applyLevelStats(false);save3DProgress();}
-function coatHpBonus(){return typeof coatOn!=='undefined'&&coatOn?COAT.hp:0;}
+function coatHpBonus(){return typeof coatOn!=='undefined'&&coatOn?COAT.hp*HERO_HP_MULT:0;} // Mod 320: o bônus do casaco acompanha a vida ×5
 function act3SpeedMul(){return act3Climate.speed;}
 function act3ManaMul(){return act3Climate.mana;}
 function updateClimate(dt){
@@ -6827,7 +6828,7 @@ function updateLate(dt,now){
 }
 lateSystemsReady=true;
 /* ===================== MOD 197 — ARCO FINAL: OS QUATRO GUARDIÕES E O PECADO DA GANÂNCIA ===================== */
-RIG_DEFS.bishop1={file:'./Bispo1-lod.glb?v=mod202',height:1.4,roles:{idle:'Idle',walk:'Walk',attack:'Sword Aerial Combo',cast:'Sword Regular B',death:'Hit Knockback Root Motion'},inPlace:['attack','cast','death']};
+RIG_DEFS.bishop1={file:VZ_FILE,height:1.4,roles:VZ_ROLES,inPlace:VZ_IN_PLACE,timeScales:{idle:.85,look:1,stride:1,jump:VZ_TIME.jump.speed,dash:VZ_TIME.dash.speed,block:1}}; // Mod 320: VHAZRAEL.glb substitui o Bispo1-lod.glb (mesmo bispo, mesmos IDs)
 RIG_DEFS.greed1={file:'./Ganancia1-lod.glb?v=mod197',height:1.7,roles:{idle:'_01a15a96_67a9_773a_89e1_3990f76b968d',walk:'Walking',run:'Running',attack:'Triple_Combo_Attack',cast:'Skill_03',dash:'_01a15a9f_d25c_70e1_bcee_3b20cf78b1d2',death:'Dead',arise:'Arise'},inPlace:['attack','dash','death']};
 RIG_DEFS.greed2={file:'./Ganancia2-lod.glb?v=mod197',height:1.9,roles:{idle:'_01a156cd_69c5_76fe_b170_51aba82e74db',walk:'Walking',run:'Running',attack:'Triple_Combo_Attack',cast:'Skill_01',death:'Dead',arise:'Arise'},inPlace:['attack','death']};
 RIG_DEFS.greed3={file:'./Ganancia3-lod.glb?v=mod197',height:2.15,roles:{idle:'_01a156df_e232_77c3_9887_dc9edce1e064',walk:'Unsteady_Walk',run:'Running',attack:'Skill_03',cast:'Skill_03',death:'Dead',arise:'Arise'},inPlace:['attack','death']};
@@ -8567,6 +8568,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   squadRender(){return{calls:renderer.info.render.calls,tris:renderer.info.render.triangles,geos:renderer.info.memory.geometries,tex:renderer.info.memory.textures,programs:renderer.info.programs?.length,dim:squadRT?squadRT.dim:0,hemi:+hemiLight.intensity.toFixed(3),sun:+sunLight.intensity.toFixed(3)};},
   wardenSpot(){const w=sewerLocal(SEWER.warden);return[w.x,w.z];},
   squadPose(id,x,z,yaw,pause=true){const s=squadSq();if(!s)return null;const a=s.actor(id);if(!a)return null;a.x=x;a.z=z;a.y=terrainHeightAt(x,z);a.yaw=yaw||0;a.alert=pause?1e9:0;a.act=null;a.intent.mode='hold';a.decideT=pause?1e9:.2;return this.squadState();},
+  vzStats(){const s=squadSq();const a=s&&s.actors.find(x=>x.kind==='vhazrael');if(!a)return null;return{hp:a.hp,max:a.maxHp,phase:a.vzPhase,alive:a.alive,act:a.act&&(a.act.move?.id||a.act.skill||a.act.type),air:+(a.airY||0).toFixed(2),jumps:a.jumps,shield:a.shield&&a.shield.state,mix:vzMix(a),spells:s.spells.map(x=>x.type+':'+x.phase)};},
   squadHit(id,n){const s=squadSq();return s?s.damageActor(id,n,{x:player.position.x,z:player.position.z}):0;},
   squadKillAll(){const s=squadSq();if(s)for(const a of s.actors)if(a.alive)s.damageActor(a.id,9999,{x:a.x,z:a.z});return this.squadState();},
   squadHeights(){const out={hero:playerReferenceHeight};if(squadRT)for(const a of (squadSq()?squadSq().actors:[])){const b=squadRT.body(a.id);if(b){const bb=measureModelBounds(b.holder);out[a.id]=+(bb.max.y-bb.min.y).toFixed(2);out[a.id+'_foot']=+(bb.min.y-a.y).toFixed(2);}}return out;},

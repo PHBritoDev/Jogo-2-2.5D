@@ -1,7 +1,9 @@
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
+import { SHIELD_SPECS } from './combat-defense3d.js';
+import { VZ_MOVES } from './vhazrael-rig3d.js';
 // Selo do motor, importado pela página para provar que a lógica nova carregou.
-export const VHAZRAEL_BUILD = '255-bombardeio-dobro';
+export const VHAZRAEL_BUILD = '320-ceifador-glb';
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
@@ -31,36 +33,64 @@ const lead = (t, k, cap) => ({ x: t.x + clamp((t.vx || 0) * k, -cap, cap), z: t.
 const anyActive = (sq, type) => sq.spells.some(s => s.type === type && !s.dead && s.phase !== 'fade');
 const channeling = (sq, s) => { const o = sq.actor(s.owner); return !!(o && o.alive && o.act && o.act.type === 'cast' && o.act.spellId === s.id); };
 
-export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 14, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 4.6, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, shockAt: .25, shockTravel: 1.6, blast: 1.05, fade: 2.8 };
-export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 9, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
-export const BOMBARD = { min: 3, max: 26, cast: .9, release: .45, cd: 13, anim: 'idle', channel: false, rise: .6, dur: 5.6, every: .22, fall: .62, r: 1.45, dmg: 6, lead: .12, leadCap: 1.6, side: 2.6, jitter: .5, fireR: 1.45, fireLife: 2.6, fireTick: .6, fireDmg: 2, maxFires: 12, alt: 10.5 };
+export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 20, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 4.6, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, shockAt: .25, shockTravel: 1.6, blast: 1.05, fade: 2.8 };
+export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 14, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
+export const BOMBARD = { min: 3, max: 26, cast: .9, release: .45, cd: 18, anim: 'idle', channel: false, rise: .6, dur: 5.6, every: .22, fall: .62, r: 1.45, dmg: 6, lead: .12, leadCap: 1.6, side: 2.6, jitter: .5, fireR: 1.45, fireLife: 2.6, fireTick: .6, fireDmg: 2, maxFires: 12, alt: 10.5 };
 export const ORBITAL = { min: 0, max: 60, cast: 15.8, release: .05, cd: 999, anim: 'idle', channel: true, awaken: 2.6, orbit: 3, entry: 4, arrival: 1.6, choice: 2.6, impact: 2, after: 2.2, guard: .35, dmg: 95, shieldDmg: 14, needSkills: 3, lowHp: .35 };
 
+/* Mod 320 — vida e fases. Baseline REAL da luta jogável = DIMENSIONS.bishop1.hp 260 × squadHp 2,5 = 650 (o 900 daqui
+   nunca valia na dimensão). 4× → 2600 em jogo (DIMENSIONS 1040 × 2,5) e aqui. Fases pela vida: 0 ensino (>70 %), 1 técnica (70–40 %), 2 ritmo (40–15 %),
+   3 fúria (≤15 %). Fases sobem a variedade e a pressão de ESPADA, nunca transformam o chefe em canhão de magia. */
+export const VZ_HP = 2600, VZ_PHASES = [.7, .4, .15];
+export const vzPhaseOf = (hp, max) => { const k = hp / Math.max(1, max); return k > VZ_PHASES[0] ? 0 : k > VZ_PHASES[1] ? 1 : k > VZ_PHASES[2] ? 2 : 3; };
+/** Duplo salto REAL (motor da esquadra: 2 impulsos, dash aéreo travado no alvo, corte descendente no pouso). */
+export const VZ_LEAP = Object.freeze({ min: 3.4, max: 9, crouch: .2, v1: 7.4, v2: 5.8, second: .38, dash: .26, dashSpeed: 12.5, fall: -15, maxAir: 1.5, gravity: 18, strike: { r: 2.1, dmg: 16, arc: -.3 }, recover: .55, cd: 7.5, role: 'jump', from: 1.45, speed: 1.2 });
+/** Dash: recarga de 0,5 s, mas com orçamento (no máximo 3 em 2,5 s) e compromisso — nunca vira teleporte em série. */
+export const VZ_DASH = Object.freeze({ speed: 13, time: .24, cd: .5, budget: 3, window: 2.5, lockout: 1.3 });
+/** Proporção de decisões ofensivas: a magia é pontuação de ritmo (alvo 25–40 % das últimas 12 decisões). */
+export const VZ_MIX = Object.freeze({ window: 12, maxSpell: .34, minSpellGap: 6 });
 const VHAZ = {
-  ...E1.common, hp: 900, radius: .55, height: 2.2, poise: 60, flinch: 99, stamina: 140, sight: 40, leash: 60, boss: true, pref: [1.8, 2.6], phase2: .5, furyCd: .78,
-  speed: { walk: 2.2, run: 4.8, strafe: 2.1, back: 2.7, turn: 10 },
-  // Bispo1-lod.glb 'Sword Aerial Combo' (1 s): dois cortes do clipe casados com as janelas
-  melee: { max: 2.6, reach: 2.6, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 12, cd: 1.5, knock: .8 },
-  dash: { speed: 11, time: .3, cd: 1.6 }, block: { chance: .32, dur: .7, cd: 1.8, cost: 12, reduce: .8 }, dodge: { chance: .4, cd: 2 },
+  ...E1.common, hp: VZ_HP, radius: .55, height: 2.3, poise: 70, flinch: 99, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.6, 2.4], phase2: .4, furyCd: .8,
+  speed: { walk: 2.2, run: 4.9, strafe: 2.2, back: 2.8, turn: 10 },
+  melee: { max: 2.8, reach: 2.7, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 13, cd: 1.1, knock: .8 },
+  dash: VZ_DASH, block: { chance: .3, dur: .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: .42, cd: VZ_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
-  decide: [.16, .26], gap: .45, spellGap: 2.2, maxBig: 2, interrupt: true, feint: 'throne',
+  leap: VZ_LEAP, shield: SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
+  decide: [.16, .26], gap: .42, spellGap: VZ_MIX.minSpellGap, maxBig: 1, interrupt: true, feint: 'throne',
   kit: ['throne', 'thorns', 'bombard', 'orbital'], throne: THRONE, thorns: THORNS, bombard: BOMBARD, orbital: ORBITAL,
-  brain: vhazraelBrain
+  brain: vhazraelBrain, pickMove: vhazraelPickMove
 };
-/* MOD 247b — golpes de espada NATIVOS (assador de IK da Mod 244 sobre o esqueleto mixamo do Bispo1): substituem o clipe
-   acrobático 'Sword Aerial Combo' (girava/deitava o tronco ~56°) por cortes de montante estáveis, com contato pela lâmina. */
-BOSS_MOVES.vhazrael = [
-  { id: 'Trono_Corte', label: 'Corte do Trono', patterns: ['diagonal', 'reverse'], hits: [.5, .92], duration: 1.55, advance: .6, heavy: true },
-  { id: 'Trono_Estocada', label: 'Estocada do Condenado', patterns: ['thrust'], hits: [.68], duration: 1.4, advance: 2.4, range: [2.4, 5], score: 1, cd: 6 },
-  { id: 'Trono_Queda', label: 'Sentença Vertical', patterns: ['overhead'], hits: [1.05], duration: 2, advance: 1, jump: .55, heavy: true }
-];
-for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.jump ? 1.3 : m.range ? 1.15 : 1; }
+/* Mod 320 — golpes de espada NATIVOS do VHAZRAEL.glb (vhazrael-rig3d.js): clipes reais, janelas nos picos medidos da
+   mão, contato pelo traço da lâmina amostrado do mesmo clipe. Substituem os 3 golpes de IK do rig antigo. */
+BOSS_MOVES.vhazrael = VZ_MOVES.map(m => ({ ...m, patterns: ['diagonal'] }));
+for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.35 : m.fast ? .8 : m.range ? 1.1 : m.hits.length > 2 ? .85 : 1; }
+/** Escolha do golpe: fase, situação observada (guarda → golpe pesado; alvo de lado/atrás → giro; janela de castigo →
+    abertura rápida) e anti-repetição (nunca o mesmo duas vezes seguidas; peso cai para os recentes). */
+export function vhazraelPickMove(sq, a, t, pool) {
+  if (!pool.length) return null; const recent = a.recentMoves || (a.recentMoves = []), st = sq.study(t.id).rates;
+  const dx = t.x - a.x, dz = t.z - a.z, d = Math.hypot(dx, dz) || 1, front = (dx * Math.sin(a.yaw) + dz * Math.cos(a.yaw)) / d;
+  const recovering = sq.time - sq.study(t.id).lastAttack < .9;
+  let best = null, bs = -Infinity;
+  for (const m of pool) {
+    let w = m.weight || 1;
+    if (recent[recent.length - 1] === m.id) w -= 2; else if (recent.includes(m.id)) w -= .45;
+    if (m.guardBreak && (t.blocking || st.block > .25)) w += 1.1;
+    if (m.spin && front < .35) w += 1.2;
+    if (m.fast && recovering) w += .8;
+    if (m.opener && !a.lastMoveAt) w += .6;
+    if (m.hits.length > 2) w += .25 * (a.vzPhase || 0);
+    w += (sq.rand() - .5) * .5;
+    if (w > bs) { bs = w; best = m; }
+  }
+  recent.push(best.id); if (recent.length > 3) recent.shift(); a.lastMoveAt = sq.time; return best;
+}
 export const VZ = Object.freeze({ boss: registerKind('vhazrael', VHAZ) });
 
 /* ---------- cérebro adaptativo ---------- */
 /** Estilo observado (médias que decaem em ~8 s) e adaptação limitada dos parâmetros do PRÓPRIO bispo. */
 export function vhazraelBrain(sq, a, dt, t) {
   if (!a.ownT) { a.T = { ...a.T, block: { ...a.T.block }, dodge: { ...a.T.dodge }, thorns: { ...a.T.thorns }, throne: { ...a.T.throne } }; a.ownT = true; a.style = { dash: 0, side: 0, guard: 0, aggr: 0, far: 0, cast: 0, near: 0, samples: 0 }; a.used = new Set(); }
+  vzTick(sq, a, dt);
   const S = a.style, k = Math.exp(-dt / 8);
   for (const key of ['dash', 'guard', 'aggr', 'far', 'cast', 'near']) S[key] *= k;
   if (t) {
@@ -84,6 +114,21 @@ export function vhazraelBrain(sq, a, dt, t) {
   const orbit = sq.spells.find(s => s.type === 'orbital' && s.phase !== 'after' && s.phase !== 'done');
   for (const o of sq.actors) if (o !== a && o.alive) { if (orbit) { o.alert = Math.max(o.alert, .5); if (o.act && o.act.type !== 'stagger') o.act = null; } }
 }
+/** Mod 320 — fase pela vida, orçamento de dash e proporção espada × magia (com registro auditável em a.vzStats). */
+function vzTick(sq, a, dt) {
+  const ph = vzPhaseOf(a.hp, a.maxHp); if (ph !== a.vzPhase) { const was = a.vzPhase; a.vzPhase = ph; if (was !== undefined) sq.event('vzPhase', { actor: a, phase: ph }); }
+  a.cdMul = Math.min(a.cdMul || 1, [1, .9, .8, .7][ph]);
+  const S = a.vzStats || (a.vzStats = { melee: 0, leap: 0, dash: 0, block: 0, shield: 0, spell: 0, log: [], dashAt: [] });
+  if (a.act && a.act !== a._vzAct) { a._vzAct = a.act; const x = a.act, kind = x.type === 'cast' && x.skill && x.skill !== 'counter' ? 'spell' : x.type === 'melee' ? 'melee' : x.type === 'leap' ? 'leap' : x.type === 'dodge' ? 'dash' : x.type === 'block' ? 'block' : null;
+    if (kind) { S[kind]++; if (kind !== 'block') { S.log.push(kind); if (S.log.length > VZ_MIX.window) S.log.shift(); } if (kind === 'dash') S.dashAt.push(sq.time); } }
+  if (!a.act && a.shield && a.shield.active && !a._vzShield) { a._vzShield = true; S.shield++; } else if (!(a.shield && a.shield.active)) a._vzShield = false;
+  // magia demais nas últimas decisões → segura a próxima até a espada voltar a liderar
+  const spells = S.log.filter(k => k === 'spell').length; if (S.log.length >= 6 && spells / S.log.length > VZ_MIX.maxSpell) a.cds.spellGap = Math.max(a.cds.spellGap || 0, 2.5);
+  // dash: no máximo VZ_DASH.budget em VZ_DASH.window s; estourou → trava esquiva/avanço por um tempo (compromisso)
+  S.dashAt = S.dashAt.filter(t0 => sq.time - t0 < VZ_DASH.window); if (S.dashAt.length >= VZ_DASH.budget) { a.cds.dodge = Math.max(a.cds.dodge || 0, VZ_DASH.lockout); a.cds.lunge = Math.max(a.cds.lunge || 0, VZ_DASH.lockout); a.cds.close = Math.max(a.cds.close || 0, VZ_DASH.lockout); }
+}
+/** Proporção auditável (testes/QA): fração de decisões ofensivas de espada/manobra × magia. */
+export function vzMix(a) { const S = a.vzStats; if (!S) return null; const off = S.melee + S.leap + S.dash, tot = off + S.spell; return { ...S, log: undefined, dashAt: undefined, swordShare: tot ? +(off / tot).toFixed(3) : null }; }
 const showDistinct = a => a.used ? [...a.used].filter(id => id !== 'orbital').length : 0;
 const varied = (a, id) => (a.lastSkill === id ? -.4 : 0) + (a.used && !a.used.has(id) ? .25 : 0); // não repete; mostra o kit inteiro
 const markUsed = (a, id) => { a.lastSkill = id; if (a.used) a.used.add(id); };

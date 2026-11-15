@@ -9,7 +9,7 @@ export const DIM_FLOOR_Y = -2000;
 export const DIMENSIONS = {
   bishop1: {
     key: 'bishop1', order: 1, name: 'VHAZRAEL', title: 'O Primeiro Bispo', epithet: 'O Ceifador dos Condenados',
-    kicker: 'DIMENSÃO I · A CÂMARA DOS CONDENADOS', portrait: 'Bispo1-ui.webp', rig: 'bishop1', profile: 'vhazrael', hp: 260,
+    kicker: 'DIMENSÃO I · A CÂMARA DOS CONDENADOS', portrait: 'Bispo1-ui.webp', rig: 'bishop1', profile: 'vhazrael', hp: 1040, // Mod 320: 4× (em jogo × squadHp 2,5: 650 → 2600)
     line: '“Toda alma tem um último pedido. A sua terá o privilégio de morrer sem ser ouvida.”',
     rage: 'O abismo tem fome, e eu sou a boca dele.',
     center: { x: 400, z: 0 }, radius: 30, accent: '#e9be6f', theme: 'goldenMeadow'

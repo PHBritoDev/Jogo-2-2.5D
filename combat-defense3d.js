@@ -18,6 +18,10 @@
 export const SHIELD_SPECS = Object.freeze({
   hero: Object.freeze({ id: 'hero', duration: 2.7, cooldown: 8.0, durability: 120, mitigation: .85, drain: 1, areaDrain: .55, areaTick: .3, breakAt: 46, radiusK: .6, skin: 'celeste',
     colors: { core: 0x9fe6ff, edge: 0xe9fbff, glow: 0x5fb8ff, crack: 0xffffff } }),
+  // Mod 320: escudo de obsidiana rachada do VHAZRAEL — placas escuras, veios rubros, brilho só no impacto; resiste
+  // mais que o do Demônio1, porém dura menos, recarrega devagar e rompe com golpe pesado (vulnerável depois).
+  vhazrael: Object.freeze({ id: 'vhazrael', duration: 2.1, cooldown: 11, durability: 140, mitigation: .7, drain: 1, areaDrain: .5, areaTick: .3, breakAt: 40, radiusK: .62, skin: 'obsidiana',
+    colors: { core: 0x0b0608, edge: 0xc4162e, glow: 0x6a0614, crack: 0xff3a2a } }),
   demon1: Object.freeze({ id: 'demon1', duration: 2.7, cooldown: 9.5, durability: 70, mitigation: .75, drain: 1.1, areaDrain: .6, areaTick: .3, breakAt: 38, radiusK: .6, skin: 'abismo',
     colors: { core: 0x2a0b3d, edge: 0xb04dff, glow: 0x7a2cff, crack: 0xe6b3ff } }),
 });

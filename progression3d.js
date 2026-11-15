@@ -16,8 +16,11 @@ export function levelProgress(xp) {
   return { level: lvl, into: xp - cur, need: next === undefined ? 0 : next - cur, max: next === undefined };
 }
 /** Bônus por nível: vida e mana máximas crescem pouco, para o combate não ficar trivial. */
+/** Mod 320 — vida máxima do herói ×5 (pedido do criador para a luta longa com o VHAZRAEL). Só a vida máxima/base:
+    corações, dano recebido e cura proporcional não mudam; a vida atual não é salva (recarrega cheia). */
+export const HERO_HP_MULT = 5;
 export function statsForLevel(level) {
-  return { maxHP: 100 + (level - 1) * 10, maxMana: 100 + (level - 1) * 6, damageBonus: (level - 1) * .04 };
+  return { maxHP: (100 + (level - 1) * 10) * HERO_HP_MULT, maxMana: 100 + (level - 1) * 6, damageBonus: (level - 1) * .04 };
 }
 
 /** Etapas da campanha usadas como requisito (questStep do Ato I). */

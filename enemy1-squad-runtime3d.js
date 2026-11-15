@@ -15,6 +15,7 @@ import './vhazrael3d.js?v=mod276-trono-no-knock';
 import { createVhazraelVFX } from './vhazrael-vfx3d.js?v=mod276-feathered-wings';
 import { createEnemy4VFX } from './enemy4-vfx3d.js';
 import { createAbyssVFX } from './enemy3-abyss-vfx3d.js';
+import { calibrateGrip, nativeMoveClips, inPlaceClip } from './vhazrael-rig3d.js';
 import { attachKatana, poseKatana, poseCaster, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
 /**
  * MOD 237 — corpo visual da esquadra Enemy1: um clone do Enemy1 por ator, com mixer, materiais (lampejo de dano
@@ -48,7 +49,7 @@ export function createEnemy1SquadRuntime(ctx) {
   function measureSource(src) {
     let measured = measuredBy.get(src.model); if (measured) return measured;
     const probe = ctx.clone(src.model); probe.position.set(0, 0, 0); probe.rotation.set(0, 0, 0); probe.scale.copy(src.model.scale); probe.updateMatrixWorld(true);
-    const b = ctx.measure(probe); let top = null; probe.traverse(o => { if (top === null && o.isBone && /(HeadTop_End|HeadEnd)$/i.test(o.name)) top = o.getWorldPosition(new T.Vector3()).y; });
+    const b = ctx.measure(probe); let top = null; probe.traverse(o => { if (top === null && o.isBone && /(HeadTop_End|HeadEnd|head_end)$/i.test(o.name)) top = o.getWorldPosition(new T.Vector3()).y; });
     // altura até o topo da cabeça (as asas do Enemy1 não contam)
     measured = { h: Math.max(.5, (top !== null && top > b.min.y + .3 ? top : b.max.y) - b.min.y), minY: b.min.y }; measuredBy.set(src.model, measured); return measured;
   }
@@ -76,11 +77,17 @@ export function createEnemy1SquadRuntime(ctx) {
     if(a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael')attachKatana(T,scene,b,a.kind);
     if(BOSS_MOVES[a.kind]){
       if(a.kind==='warden')attachClaws(b);
+      if(a.kind==='vhazrael'){ // Mod 320: VHAZRAEL.glb — golpes NATIVOS (clipes reais), empunhadura calibrada e traço da lâmina do mesmo clipe
+        const clipOf=r=>src.actions?.[r]?.getClip?.()||null;
+        if(!combatCache.has('vhazrael')){const grip=calibrateGrip(T,model,ctx.clone,clipOf('idle')),wt=b.weapon?[b.weapon.userData.tipA.toArray(),b.weapon.userData.tipB.toArray()]:undefined;
+          const clips=nativeMoveClips(T,model,ctx.clone,r=>{const c=clipOf(r);return c?inPlaceClip(c,{vertical:r==='dash'}):null;},BOSS_MOVES.vhazrael,grip,wt);clips.__grip=grip;combatCache.set('vhazrael',clips);}
+        b.grip=combatCache.get('vhazrael').__grip;const jc=clipOf('jump');if(jc)acts.jump=mixer.clipAction(inPlaceClip(jc,{vertical:true})); // o salto sobe pela física (airY), não pelo clipe
+      }
       if(!combatCache.has(a.kind)){
         const ws=a.kind==='e3boss'?KATANA_SCALE:a.kind==='e4boss'?JAW_SCALE:a.kind==='vhazrael'?1:1.12,specs=a.kind==='warden'?['RightHand','LeftHand'].map(hand=>({hand,points:[[0,.08,0],[0,.53,0]]})):[{hand:'RightHand',points:[b.weapon.userData.tipA.toArray().map(x=>x*ws),b.weapon.userData.tipB.toArray().map(x=>x*ws)]}];
         combatCache.set(a.kind,bakeCombatClips(T,model,ctx.clone,acts.idle?.getClip(),BOSS_MOVES[a.kind],a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael'?katanaPose:bossPose,specs));
       }
-      for(const [id,clip]of Object.entries(combatCache.get(a.kind)))acts[id]=mixer.clipAction(clip);
+      for(const [id,clip]of Object.entries(combatCache.get(a.kind)))if(id!=='__grip')acts[id]=mixer.clipAction(clip);
       const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:a.kind==='e4boss'?2.5:a.kind==='vhazrael'?2.4:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:a.kind==='e4boss'?3.4:a.kind==='vhazrael'?3:3.2;
       b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:a.kind==='vhazrael'?0xff1a5a:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
     }
@@ -243,7 +250,7 @@ export function createEnemy1SquadRuntime(ctx) {
           b.dead += dt; const nativeDeath = (E3K[a.kind] || b.hasDeath) && b.acts.death;
           if (nativeDeath) { if (!b.deathPlayed) { b.deathPlayed = true; play(b, 'death', true, 1, .12); } b.mixer.update(b.dead < 3 ? dt : 0); for (const [o, s] of b.scales) o.scale.copy(s); b.model.rotation.z = 0; }
           else { if (b.cur && b.dead < .05) b.cur.fadeOut(.2); b.model.rotation.x = -Math.min(1, (b.dead / .75) ** 2) * Math.PI / 2 * .92; }
-          if (a.shield && ctx.shields && b.dead < .1) { a.shield.end(squad.time, 'broken'); ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, 'abismo', dt); } else if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, 'abismo', dt);
+          if (a.shield && ctx.shields && b.dead < .1) { a.shield.end(squad.time, 'broken'); ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, a.shield.spec?.skin || 'abismo', dt); } else if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, a.shield.spec?.skin || 'abismo', dt);
           if (b.dead > 2.6) b.holder.position.y = a.y - (b.dead - 2.6) * .55;
           b.holder.visible = b.dead < 4.4; if (b.dead < 1 && !nativeDeath) b.mixer.update(dt * .5); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else if (b.weaponRoot) poseScythe(b, a, dt);poseClaws(b);if(b.tell)b.tell.visible=false;continue;
         }
@@ -262,7 +269,7 @@ export function createEnemy1SquadRuntime(ctx) {
           if (a.act && a.act.spellId && b.hand) { const s = squad.spells.find(x => x.id === a.act.spellId); if (s && s.type === 'singularity') { b.hand.getWorldPosition(_v); s.hand = s.hand || {}; s.hand.x = _v.x + Math.sin(a.yaw) * .18; s.hand.y = _v.y + .12; s.hand.z = _v.z + Math.cos(a.yaw) * .18; } }
         }
         if (b.weapon) { b.weapon.userData.tick(time, fury ? 1 : 0, b.wW || 0); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else poseScythe(b, a, dt); }
-        demonSlashes(b, a); if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, 'abismo', dt);
+        demonSlashes(b, a); if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, a.shield.spec?.skin || 'abismo', dt);
         poseClaws(b);if(b.tell){b.tell.visible=!!a.act?.move&&a.act.phase==='windup';b.tell.position.y=.05-(a.y-ctx.ground(a.x,a.z));b.tell.material.opacity=.12+.18*(a.act?.t/(a.act?.move?.open||1));}
         const act = a.act;
         if (act && !act.released && (act.type === 'cast' || act.type === 'counter') && act.release > 0) {

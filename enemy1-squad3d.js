@@ -198,9 +198,10 @@ export class Enemy1Squad {
   perceive(a, t) {
     const d = Math.hypot(t.x - a.x, t.z - a.z), st = this.study(t.id).rates;
     // Mod 315: escudo — vale defender contra golpe começando perto ou magia/projétil vindo; nunca em spam
-    if (a.shield && !a.act && a.shield.canActivate(this.time) && !a.cds.shieldGap && ((t.attacking && d < 4.6) || (t.casting && d < DEMON1_SHIELD.maxGap)) && d > DEMON1_SHIELD.minGap) {
-      const k = t.casting ? DEMON1_SHIELD.chanceVsCast : DEMON1_SHIELD.chanceVsMelee * (d < 3.4 ? 1 : .4);
-      a.cds.shieldGap = 1.2; if (this.rand() < k * (a.hp < a.maxHp * .5 ? 1.3 : 1)) { a.react = { type: 'shield', t: DEMON1_SHIELD.react + this.rand() * .12 }; return; }
+    const SA = a.T.shieldAI || DEMON1_SHIELD; // Mod 320: cada espécie com escudo decide com a própria regra
+    if (a.shield && !a.act && a.shield.canActivate(this.time) && !a.cds.shieldGap && ((t.attacking && d < 4.6) || (t.casting && d < SA.maxGap)) && d > SA.minGap) {
+      const k = t.casting ? SA.chanceVsCast : SA.chanceVsMelee * (d < 3.4 ? 1 : .4);
+      a.cds.shieldGap = SA.gap || 1.2; if (this.rand() < k * (a.hp < a.maxHp * .5 ? 1.3 : 1)) { a.react = { type: 'shield', t: SA.react + this.rand() * .12 }; return; }
     }
     if (t.attacking && !a.sawAttack && d < 3.4 && !a.cds.guard) {
       a.sawAttack = true;
@@ -291,7 +292,7 @@ export class Enemy1Squad {
   }
   startMelee(a, t, forcedMove) {
     if(BOSS_MOVES[a.kind]){
-      const pool=BOSS_MOVES[a.kind],near=pool.filter(m=>!m.range),move=pool.find(m=>m.id===forcedMove)||near[(a.meleeCycle||0)%near.length];a.meleeCycle=(a.meleeCycle||0)+1;
+      const pool=BOSS_MOVES[a.kind],near=pool.filter(m=>!m.range&&!((m.minPhase||0)>(a.vzPhase||0))),move=pool.find(m=>m.id===forcedMove)||(a.T.pickMove&&a.T.pickMove(this,a,t,near))||near[(a.meleeCycle||0)%near.length];a.meleeCycle=(a.meleeCycle||0)+1; // Mod 320: espécie pode escolher o golpe (VHAZRAEL: fase, anti-repetição, situação)
       this.begin(a,{type:'melee',dur:move.duration,hits:move.hits,done:0,anim:move.id,token:'melee',tid:t.id,landed:false,move,contacts:new Set(),phase:'windup'});
       a.vx=a.vz=0;a.cds.melee=(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
     }
