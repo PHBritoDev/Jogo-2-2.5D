@@ -2,22 +2,61 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildTerrainPatch } from '../world3d-terrain.js';
 
+// Deterministic non-flat exterior. The mesh, its skirt and collider height
+// must all use the same terrain sampler, including fractional edge cells.
 const terrain = { height: (x, z) => x * 0.01 + z * 0.02 };
+const near = (a, b, tolerance = 1e-5) =>
+  assert.ok(Math.abs(a - b) <= tolerance, `${a} != ${b}`);
 
 for (const [x0, x1, z0, z1, cell] of [
   [-10, 11, -40, -19, 2.5], // non-divisible span
   [-10, 10, -40, -20, 2.5], // existing divisible behavior
   [0, 0.8, 0, 0.7, 2.5], // smaller than cell
+  [-124, 124, -230, -126, 2.5], // long exterior strip
 ]) {
-  test(`patch edges stay exact for ${x1 - x0} x ${z1 - z0} span`, () => {
-    const patch = buildTerrainPatch(terrain, { x0, x1, z0, z1, cell });
+  test(`exterior patch has continuous cells and exact bounds: ${x1 - x0} x ${z1 - z0}`, () => {
+    const skirt = 4;
+    const patch = buildTerrainPatch(terrain, { x0, x1, z0, z1, cell, skirt });
     const { positions: p, nx, nz, indices } = patch;
     assert.ok(nx >= 2 && nz >= 2);
-    const vertex = (i, j) => [p[(j * nx + i) * 3], p[(j * nx + i) * 3 + 2]];
-    const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-5, `${a} != ${b}`);
-    near(vertex(0, 0)[0], x0); near(vertex(0, 0)[1], z0);
-    near(vertex(nx - 1, 0)[0], x1); near(vertex(0, nz - 1)[1], z1);
-    near(vertex(nx - 1, nz - 1)[0], x1); near(vertex(nx - 1, nz - 1)[1], z1);
+    const point = (i, j) => {
+      const k = 3 * (j * nx + i);
+      return [p[k], p[k + 1], p[k + 2]];
+    };
+    for (let j = 0; j < nz; j++) {
+      for (let i = 0; i < nx; i++) {
+        const [x, y, z] = point(i, j);
+        near(x, x0 + (x1 - x0) * i / (nx - 1));
+        near(z, z0 + (z1 - z0) * j / (nz - 1));
+        near(y, terrain.height(x, z));
+        if (i > 0) assert.ok(x > point(i - 1, j)[0], 'inverted/zero-width cell');
+        if (j > 0) assert.ok(z > point(i, j - 1)[2], 'inverted/zero-depth cell');
+      }
+    }
+    near(point(0, 0)[0], x0);
+    near(point(0, 0)[2], z0);
+    near(point(nx - 1, nz - 1)[0], x1);
+    near(point(nx - 1, nz - 1)[2], z1);
     assert.ok([...indices].every(index => index < p.length / 3));
+
+    // Default skirts on x0, x1 and z1: exactly three boundary strips,
+    // attached to their elevated counterparts without shifting the seam.
+    const boundaryIds = [
+      Array.from({ length: nz }, (_, j) => j * nx),
+      Array.from({ length: nz }, (_, j) => (nz - 1 - j) * nx + nx - 1),
+      Array.from({ length: nx }, (_, i) => (nz - 1) * nx + i),
+    ];
+    let skirtIndex = nx * nz;
+    for (const ids of boundaryIds) {
+      for (const id of ids) {
+        near(p[3 * skirtIndex], p[3 * id]);
+        near(p[3 * skirtIndex + 1], p[3 * id + 1] - skirt);
+        near(p[3 * skirtIndex + 2], p[3 * id + 2]);
+        skirtIndex++;
+      }
+    }
+    assert.equal(p.length / 3, skirtIndex);
+    assert.equal(indices.length, 6 * (nx - 1) * (nz - 1) +
+      12 * ((nz - 1) * 2 + nx - 1));
   });
 }
