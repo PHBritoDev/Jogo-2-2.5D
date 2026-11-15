@@ -6,14 +6,20 @@
 export const LEVELS = [0, 60, 150, 280, 450, 680, 980, 1350, 1800, 2350, 3000, 3750];
 export const XP_REWARDS = { captor: 22, demon2: 40, sentry: 32, warden: 70, rescue: 50, ruin: 15, vhazrael: 160, zealot: 45, hollow: 55 };
 
+function safeXp(xp) {
+  const value = Number(xp);
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+}
 export function levelFromXp(xp) {
+  const value = safeXp(xp);
   let lvl = 1;
-  for (let i = 1; i < LEVELS.length; i++) if (xp >= LEVELS[i]) lvl = i + 1;
+  for (let i = 1; i < LEVELS.length; i++) if (value >= LEVELS[i]) lvl = i + 1;
   return lvl;
 }
 export function levelProgress(xp) {
-  const lvl = levelFromXp(xp), cur = LEVELS[lvl - 1], next = LEVELS[lvl];
-  return { level: lvl, into: xp - cur, need: next === undefined ? 0 : next - cur, max: next === undefined };
+  const value = safeXp(xp);
+  const lvl = levelFromXp(value), cur = LEVELS[lvl - 1], next = LEVELS[lvl];
+  return { level: lvl, into: value - cur, need: next === undefined ? 0 : next - cur, max: next === undefined };
 }
 /** Bônus por nível: vida e mana máximas crescem pouco, para o combate não ficar trivial. */
 export function statsForLevel(level) {
