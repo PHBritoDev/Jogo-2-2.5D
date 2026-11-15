@@ -1,0 +1,2924 @@
+{
+ "schema": "scene-agent/v1",
+ "startedAt": "2026-11-15T06:30:22.210Z",
+ "commit": "1656c6e",
+ "base": "http://localhost:8245",
+ "viewport": {
+  "width": 852,
+  "height": 393
+ },
+ "renderer": "Chromium headless + SwiftShader (CPU) — não representa FPS de celular",
+ "request": [
+  {
+   "id": "vila-praca",
+   "video": false
+  },
+  {
+   "id": "vila-vendedores",
+   "video": false
+  },
+  {
+   "id": "floresta-trilha",
+   "video": true
+  },
+  {
+   "id": "caverna-salao",
+   "video": true
+  },
+  {
+   "id": "caverna-gruta-cristal",
+   "video": false
+  },
+  {
+   "id": "mundo-boca-caverna",
+   "video": false
+  },
+  {
+   "id": "npc-cabelos",
+   "video": false
+  }
+ ],
+ "howToReproduce": "SCENE_AGENT_SCENES='[\"vila-praca\",\"vila-vendedores\",{\"scene\":\"floresta-trilha\",\"video\":true},{\"scene\":\"caverna-salao\",\"video\":true},\"caverna-gruta-cristal\",\"mundo-boca-caverna\",\"npc-cabelos\"]' node tools/visual-lab/scene-agent.cjs",
+ "build": "mod318-renascimento-caverna-eldoria-c5 (Mod 318)",
+ "counts": {
+  "ok": 16,
+  "suspeita": 4,
+  "falha": 0
+ },
+ "status": "suspeita",
+ "exitCode": 0,
+ "fatal": null,
+ "shots": [
+  {
+   "scene": "vila-praca",
+   "name": "praca-alto",
+   "mode": "camera-livre-qa",
+   "file": "vila-praca/01-praca-alto.jpg",
+   "attempts": 1,
+   "controls": [
+    "fly([[-2,18,-26],[-13,0,-44]])"
+   ],
+   "cameraSettleMs": 2285,
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 61.08,
+    "stdev": 30.76,
+    "darkFrac": 0.0204,
+    "brightFrac": 0.0002,
+    "saturatedFrac": 0.1779
+   },
+   "signature": [
+    37,
+    39.7,
+    44.7,
+    45.6,
+    57.5,
+    42.9,
+    59.8,
+    41.7,
+    61.1,
+    50.8,
+    62.5,
+    75.5,
+    78.5,
+    56,
+    63.8,
+    55.9,
+    48.7,
+    42.7,
+    65.8,
+    103.5,
+    106.9,
+    70.1,
+    71.2,
+    50.4,
+    39.7,
+    40.8,
+    38.9,
+    73.9,
+    99,
+    86.8,
+    83.5,
+    60.6
+   ],
+   "observed": {
+    "state": {
+     "x": 0,
+     "y": 0,
+     "z": 4,
+     "walkable": true,
+     "edge": -27.500897004106672,
+     "calls": 178,
+     "triangles": 703954,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "cdcdbe",
+     "fogFar": 341.8125381471274,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 15.02,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -2,
+     18,
+     -26
+    ],
+    "render": {
+     "geo": 245,
+     "tex": 82,
+     "prog": 157,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador 0.0,0.0,4.0 · câmera -2,18,-26"
+  },
+  {
+   "scene": "vila-praca",
+   "name": "praca-rua",
+   "mode": "camera-do-jogo",
+   "file": "vila-praca/02-praca-rua.jpg",
+   "attempts": 1,
+   "controls": [
+    "teleport(-8,-36,-2.4)",
+    "view(-2.4,0.12,7)"
+   ],
+   "framing": [
+    {
+     "yaw": -2.4,
+     "dist": 7,
+     "settleMs": 6888,
+     "view": {
+      "camToHero": 7.1,
+      "onScreen": true,
+      "ndc": [
+       -0.05,
+       -0.01
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 90.48,
+    "stdev": 46.32,
+    "darkFrac": 0.0276,
+    "brightFrac": 0,
+    "saturatedFrac": 0.2987
+   },
+   "signature": [
+    44.2,
+    64.9,
+    64.5,
+    136.4,
+    164,
+    115.8,
+    85.2,
+    56.1,
+    54.3,
+    68.1,
+    74.6,
+    75.8,
+    69.3,
+    70.6,
+    80.7,
+    64.3,
+    76.8,
+    91.3,
+    96.8,
+    103.1,
+    87.8,
+    81.5,
+    94,
+    103,
+    117.8,
+    111.1,
+    108.9,
+    91.7,
+    104.9,
+    110.9,
+    107.2,
+    113.3
+   ],
+   "observed": {
+    "state": {
+     "x": -8,
+     "y": 0,
+     "z": -36,
+     "walkable": true,
+     "edge": -66.76766377914826,
+     "calls": 113,
+     "triangles": 558425,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "cfccbd",
+     "fogFar": 327.3313593475092,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 15.06,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -13.01,
+     1.99,
+     -40.85
+    ],
+    "render": {
+     "geo": 286,
+     "tex": 87,
+     "prog": 157,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador -8.0,0.0,-36.0 · câmera -13.01,1.99,-40.85"
+  },
+  {
+   "scene": "vila-vendedores",
+   "name": "bento",
+   "mode": "camera-livre-qa",
+   "file": "vila-vendedores/01-bento.jpg",
+   "attempts": 1,
+   "controls": [
+    "fly([[-21,2.25,-46],[-22.48,1.25,-49.01]])"
+   ],
+   "cameraSettleMs": 920,
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 51.34,
+    "stdev": 33.3,
+    "darkFrac": 0.0525,
+    "brightFrac": 0,
+    "saturatedFrac": 0.1068
+   },
+   "signature": [
+    33.3,
+    25.6,
+    29,
+    23,
+    22.4,
+    22,
+    30.6,
+    24.6,
+    76.3,
+    70.8,
+    41.1,
+    29.8,
+    31.1,
+    42,
+    58.4,
+    52.5,
+    89.5,
+    78.8,
+    49.1,
+    58.3,
+    55.4,
+    40.4,
+    46.3,
+    47.4,
+    76.9,
+    58.6,
+    52.8,
+    63.9,
+    80.3,
+    69.7,
+    60.8,
+    102.3
+   ],
+   "observed": {
+    "state": {
+     "x": 0,
+     "y": 0,
+     "z": 4,
+     "walkable": true,
+     "edge": -27.500897004106672,
+     "calls": 121,
+     "triangles": 535729,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "c5cdc5",
+     "fogFar": 350.20836562752186,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 14.03,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -21,
+     2.25,
+     -46
+    ],
+    "render": {
+     "geo": 233,
+     "tex": 59,
+     "prog": 152,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador 0.0,0.0,4.0 · câmera -21,2.25,-46"
+  },
+  {
+   "scene": "vila-vendedores",
+   "name": "teo",
+   "mode": "camera-livre-qa",
+   "file": "vila-vendedores/02-teo.jpg",
+   "attempts": 1,
+   "controls": [
+    "fly([[-3,2.25,-38.2],[-1.95,1.25,-41.04]])"
+   ],
+   "cameraSettleMs": 1726,
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 54.39,
+    "stdev": 36.05,
+    "darkFrac": 0.0476,
+    "brightFrac": 0,
+    "saturatedFrac": 0.1341
+   },
+   "signature": [
+    29.3,
+    30.7,
+    33.6,
+    22.4,
+    22,
+    23.6,
+    27.6,
+    23.1,
+    81.6,
+    43.4,
+    56.6,
+    29.8,
+    36.6,
+    46.4,
+    50.3,
+    61.4,
+    111.2,
+    71,
+    52.1,
+    52.6,
+    47,
+    48,
+    76.8,
+    100.3,
+    100.2,
+    64.1,
+    53.1,
+    77.3,
+    65.6,
+    58.5,
+    55.1,
+    87.9
+   ],
+   "observed": {
+    "state": {
+     "x": 0,
+     "y": 0,
+     "z": 4,
+     "walkable": true,
+     "edge": -27.500897004106672,
+     "calls": 100,
+     "triangles": 530459,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "c6cdc5",
+     "fogFar": 349.9645323241641,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 14.05,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -3,
+     2.25,
+     -38.2
+    ],
+    "render": {
+     "geo": 240,
+     "tex": 73,
+     "prog": 153,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador 0.0,0.0,4.0 · câmera -3,2.25,-38.2"
+  },
+  {
+   "scene": "vila-vendedores",
+   "name": "lia",
+   "mode": "camera-livre-qa",
+   "file": "vila-vendedores/03-lia.jpg",
+   "attempts": 1,
+   "controls": [
+    "fly([[-15.4,2.25,-37.9],[-16.2,1.25,-41.07]])"
+   ],
+   "cameraSettleMs": 1572,
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 62.56,
+    "stdev": 43.79,
+    "darkFrac": 0.0307,
+    "brightFrac": 0,
+    "saturatedFrac": 0.081
+   },
+   "signature": [
+    34.5,
+    25.4,
+    23,
+    21.9,
+    23.7,
+    25.6,
+    30.5,
+    44.9,
+    78.2,
+    79.9,
+    51.7,
+    31.1,
+    37.7,
+    34.7,
+    75.7,
+    64.7,
+    113,
+    85.2,
+    49.7,
+    65.8,
+    51.9,
+    51.8,
+    121.1,
+    126.2,
+    110.8,
+    51.5,
+    52.8,
+    88,
+    66.4,
+    58.1,
+    101.2,
+    122.9
+   ],
+   "observed": {
+    "state": {
+     "x": 0,
+     "y": 0,
+     "z": 4,
+     "walkable": true,
+     "edge": -27.500897004106672,
+     "calls": 113,
+     "triangles": 662574,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "c6cdc5",
+     "fogFar": 349.666933797138,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 14.08,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -15.4,
+     2.25,
+     -37.9
+    ],
+    "render": {
+     "geo": 243,
+     "tex": 78,
+     "prog": 154,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador 0.0,0.0,4.0 · câmera -15.4,2.25,-37.9"
+  },
+  {
+   "scene": "floresta-trilha",
+   "name": "trilha-samambaias",
+   "mode": "camera-do-jogo",
+   "file": "floresta-trilha/01-trilha-samambaias.jpg",
+   "attempts": 1,
+   "controls": [
+    "teleport(-14,-105,-1.571)",
+    "view(-1.571,0.1,6.5)"
+   ],
+   "framing": [
+    {
+     "yaw": -1.571,
+     "dist": 6.5,
+     "settleMs": 14315,
+     "view": {
+      "camToHero": 6.62,
+      "onScreen": true,
+      "ndc": [
+       -0.06,
+       -0.01
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 55.79,
+    "stdev": 32.02,
+    "darkFrac": 0.097,
+    "brightFrac": 0,
+    "saturatedFrac": 0.1357
+   },
+   "signature": [
+    57.5,
+    32.2,
+    34.9,
+    28.8,
+    18,
+    24.8,
+    22.5,
+    26.5,
+    48.6,
+    65.8,
+    60.3,
+    57.3,
+    47.9,
+    48.4,
+    54,
+    46.8,
+    70.5,
+    66.6,
+    62.8,
+    79.3,
+    70.8,
+    64.6,
+    64.3,
+    64.5,
+    62,
+    63.4,
+    91.8,
+    93.5,
+    75.4,
+    60,
+    56.5,
+    62.5
+   ],
+   "observed": {
+    "state": {
+     "x": -14,
+     "y": 0,
+     "z": -105,
+     "walkable": true,
+     "edge": -58.169863173484764,
+     "calls": 112,
+     "triangles": 460065,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "c4d2cc",
+     "fogFar": 354.2425651539254,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 10.04,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -20.48,
+     1.8,
+     -104.58
+    ],
+    "render": {
+     "geo": 289,
+     "tex": 95,
+     "prog": 154,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador -14.0,0.0,-105.0 · câmera -20.48,1.8,-104.58"
+  },
+  {
+   "scene": "floresta-trilha",
+   "name": "clareira-musgo",
+   "mode": "camera-do-jogo",
+   "file": "floresta-trilha/02-clareira-musgo.jpg",
+   "attempts": 1,
+   "controls": [
+    "teleport(-30,-120,-2.36)",
+    "view(-2.36,0.14,7)"
+   ],
+   "framing": [
+    {
+     "yaw": -2.36,
+     "dist": 7,
+     "settleMs": 8139,
+     "view": {
+      "camToHero": 6.94,
+      "onScreen": true,
+      "ndc": [
+       -0.05,
+       -0.01
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 53.97,
+    "stdev": 33.67,
+    "darkFrac": 0.1052,
+    "brightFrac": 0,
+    "saturatedFrac": 0.1156
+   },
+   "signature": [
+    43.8,
+    20.5,
+    23.5,
+    35.2,
+    19.6,
+    42.5,
+    66.6,
+    66.5,
+    47.6,
+    45,
+    47.4,
+    48.8,
+    43.8,
+    64.6,
+    67.4,
+    76.4,
+    51.3,
+    68.8,
+    76.3,
+    60.7,
+    56.9,
+    52.5,
+    61.2,
+    68.5,
+    79.5,
+    76.5,
+    57.1,
+    43.9,
+    52.1,
+    53.9,
+    55.9,
+    56
+   ],
+   "observed": {
+    "state": {
+     "x": -30,
+     "y": 0.09986278856693911,
+     "z": -120,
+     "walkable": true,
+     "edge": -44.85521863226588,
+     "calls": 201,
+     "triangles": 689632,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "c3d1cc",
+     "fogFar": 350.8616364663787,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 10.08,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -35.18,
+     2.23,
+     -124.62
+    ],
+    "render": {
+     "geo": 292,
+     "tex": 96,
+     "prog": 154,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador -30.0,0.1,-120.0 · câmera -35.18,2.23,-124.62"
+  },
+  {
+   "scene": "floresta-trilha",
+   "name": "apos-percurso",
+   "mode": "camera-do-jogo",
+   "file": "floresta-trilha/03-apos-percurso.jpg",
+   "attempts": 1,
+   "controls": [
+    "keyboard KeyW 3500 ms (após a última tomada)"
+   ],
+   "framing": [
+    {
+     "view": {
+      "camToHero": 7.07,
+      "onScreen": true,
+      "ndc": [
+       -0.05,
+       -0.01
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 53.81,
+    "stdev": 34.13,
+    "darkFrac": 0.1082,
+    "brightFrac": 0.0001,
+    "saturatedFrac": 0.1125
+   },
+   "signature": [
+    45.2,
+    21.2,
+    22.9,
+    35.1,
+    19.7,
+    42.2,
+    75.3,
+    53.3,
+    53.3,
+    44.6,
+    48.3,
+    48.1,
+    41.1,
+    64,
+    67.1,
+    73.3,
+    50.4,
+    74,
+    74.6,
+    63.1,
+    60.6,
+    54.1,
+    62.6,
+    68.5,
+    72.6,
+    79.7,
+    54.9,
+    47.5,
+    50.9,
+    49.2,
+    54.8,
+    52.1
+   ],
+   "observed": {
+    "state": {
+     "x": -29.441214936306363,
+     "y": 0.15534310234275964,
+     "z": -119.43694574516842,
+     "walkable": true,
+     "edge": -45.376492808666654,
+     "calls": 201,
+     "triangles": 689632,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "c3d1cc",
+     "fogFar": 350.2319184805461,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "running",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 10.11,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -34.62,
+     2.28,
+     -124.06
+    ],
+    "render": {
+     "geo": 292,
+     "tex": 96,
+     "prog": 154,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador -29.4,0.2,-119.4 · câmera -34.62,2.28,-124.06"
+  },
+  {
+   "scene": "caverna-salao",
+   "name": "entrada",
+   "mode": "camera-do-jogo-caverna",
+   "file": "caverna-salao/01-entrada.jpg",
+   "attempts": 1,
+   "controls": [
+    "caveTo(0,-6,3.142)",
+    "view(3.142,0.1,6)"
+   ],
+   "framing": [
+    {
+     "yaw": 3.142,
+     "dist": 6,
+     "settleMs": 8225,
+     "view": {
+      "camToHero": 5.97,
+      "onScreen": true,
+      "ndc": [
+       -0.06,
+       -0.02
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 20.08,
+    "stdev": 17.66,
+    "darkFrac": 0.4366,
+    "brightFrac": 0,
+    "saturatedFrac": 0.0001
+   },
+   "signature": [
+    8.6,
+    8.5,
+    5,
+    10.9,
+    14.1,
+    20,
+    25.6,
+    27,
+    15.1,
+    18.7,
+    11.8,
+    35.1,
+    27.5,
+    11.4,
+    6.6,
+    8.8,
+    12.6,
+    43.4,
+    25.6,
+    39.5,
+    29.8,
+    19.2,
+    14.1,
+    6,
+    20.2,
+    31.3,
+    24.3,
+    30.6,
+    35.3,
+    22.6,
+    14.2,
+    17.8
+   ],
+   "observed": {
+    "state": {
+     "x": -3600,
+     "y": -2.290939797458407,
+     "z": -6,
+     "walkable": false,
+     "edge": 3403.890768183798,
+     "calls": 37,
+     "triangles": 281796,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "1f3a33",
+     "fogFar": 80,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": true,
+      "hour": 9.08,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -3600.42,
+     -0.54,
+     -11.97
+    ],
+    "render": {
+     "geo": 257,
+     "tex": 83,
+     "prog": 171,
+     "shadow": true,
+     "pr": 0.53,
+     "lights": 9
+    },
+    "cave": {
+     "key": "cave",
+     "busy": false,
+     "local": {
+      "x": 0,
+      "y": -2.29,
+      "z": -6
+     },
+     "world": {
+      "x": -3600,
+      "y": -2.29,
+      "z": -6
+     },
+     "veil": "0",
+     "zones": [
+      "cave"
+     ],
+     "stats": {
+      "tris": 419242,
+      "clusters": 30,
+      "sdf": {
+       "on": true,
+       "ms": 709,
+       "tris": 76142,
+       "via": "worker"
+      },
+      "speleo": {
+       "tites": 575,
+       "mites": 146,
+       "curtains": 26,
+       "minClear": 3.912373440992087
+      }
+     },
+     "progress": null,
+     "frontier": {
+      "mountains": 24,
+      "cliffTris": 4888,
+      "lod": 2148,
+      "rocks": 11
+     }
+    }
+   },
+   "stateSummary": "jogador -3600.0,-2.3,-6.0 · câmera -3600.42,-0.54,-11.97 · cave"
+  },
+  {
+   "scene": "caverna-salao",
+   "name": "salao",
+   "mode": "camera-do-jogo-caverna",
+   "file": "caverna-salao/02-salao.jpg",
+   "attempts": 1,
+   "controls": [
+    "caveTo(0,-34,3.142)",
+    "view(3.142,0.05,6)"
+   ],
+   "framing": [
+    {
+     "yaw": 3.142,
+     "dist": 6,
+     "settleMs": 3907,
+     "view": {
+      "camToHero": 6.02,
+      "onScreen": true,
+      "ndc": [
+       -0.06,
+       -0.02
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "suspeita",
+   "reason": "muito escuro (média 16.9/255): pode ser cena noturna legítima ou câmera tapada — conferir a imagem",
+   "pixels": {
+    "samples": 21087,
+    "mean": 16.9,
+    "stdev": 13.93,
+    "darkFrac": 0.4415,
+    "brightFrac": 0,
+    "saturatedFrac": 0.0019
+   },
+   "signature": [
+    10.6,
+    10.1,
+    2,
+    6.1,
+    9.2,
+    12.7,
+    10,
+    12.1,
+    23.7,
+    18.2,
+    7.3,
+    23.2,
+    27,
+    17.4,
+    14.7,
+    22.3,
+    17.5,
+    18.5,
+    14.9,
+    26.9,
+    20.1,
+    21.4,
+    18.9,
+    23.2,
+    18.7,
+    23,
+    23.3,
+    23.9,
+    18.9,
+    19,
+    13.4,
+    13
+   ],
+   "observed": {
+    "state": {
+     "x": -3600,
+     "y": -6.224821262722276,
+     "z": -34,
+     "walkable": false,
+     "edge": 3402.688174222189,
+     "calls": 42,
+     "triangles": 304285,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "172c3a",
+     "fogFar": 92.41949792076451,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": true,
+      "hour": 9.12,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -3600.42,
+     -4.77,
+     -39.99
+    ],
+    "render": {
+     "geo": 261,
+     "tex": 86,
+     "prog": 171,
+     "shadow": true,
+     "pr": 0.53,
+     "lights": 9
+    },
+    "cave": {
+     "key": "cave",
+     "busy": false,
+     "local": {
+      "x": 0,
+      "y": -6.22,
+      "z": -34
+     },
+     "world": {
+      "x": -3600,
+      "y": -6.22,
+      "z": -34
+     },
+     "veil": "0",
+     "zones": [
+      "cave"
+     ],
+     "stats": {
+      "tris": 419242,
+      "clusters": 30,
+      "sdf": {
+       "on": true,
+       "ms": 709,
+       "tris": 76142,
+       "via": "worker"
+      },
+      "speleo": {
+       "tites": 575,
+       "mites": 146,
+       "curtains": 26,
+       "minClear": 3.912373440992087
+      }
+     },
+     "progress": null,
+     "frontier": {
+      "mountains": 24,
+      "cliffTris": 4888,
+      "lod": 2148,
+      "rocks": 11
+     }
+    }
+   },
+   "stateSummary": "jogador -3600.0,-6.2,-34.0 · câmera -3600.42,-4.77,-39.99 · cave"
+  },
+  {
+   "scene": "caverna-salao",
+   "name": "portal",
+   "mode": "camera-do-jogo-caverna",
+   "file": "caverna-salao/03-portal.jpg",
+   "attempts": 1,
+   "controls": [
+    "caveTo(-4,-120,3.142)",
+    "view(3.142,0.08,6)"
+   ],
+   "framing": [
+    {
+     "yaw": 3.142,
+     "dist": 6,
+     "settleMs": 9199,
+     "view": {
+      "camToHero": 5.93,
+      "onScreen": true,
+      "ndc": [
+       -0.06,
+       -0.02
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "suspeita",
+   "reason": "muito escuro (média 9.53/255): pode ser cena noturna legítima ou câmera tapada — conferir a imagem",
+   "pixels": {
+    "samples": 21087,
+    "mean": 9.53,
+    "stdev": 8.96,
+    "darkFrac": 0.6952,
+    "brightFrac": 0,
+    "saturatedFrac": 0.0002
+   },
+   "signature": [
+    3.1,
+    3.4,
+    3.8,
+    4.9,
+    5.7,
+    6.5,
+    6.5,
+    8.4,
+    6.8,
+    6,
+    5.9,
+    12.5,
+    9.5,
+    12.5,
+    10.7,
+    10,
+    11,
+    11.6,
+    12.2,
+    15.8,
+    11.6,
+    12.7,
+    12.7,
+    10,
+    5.8,
+    8.4,
+    7.2,
+    9.4,
+    15.5,
+    11.2,
+    15.9,
+    16.1
+   ],
+   "observed": {
+    "state": {
+     "x": -3604,
+     "y": -1.5781650086119223,
+     "z": -120,
+     "walkable": false,
+     "edge": 3406.0415186888654,
+     "calls": 66,
+     "triangles": 360054,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "1b1038",
+     "fogFar": 86,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": true,
+      "hour": 9.17,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -3604.42,
+     0.05,
+     -125.97
+    ],
+    "render": {
+     "geo": 291,
+     "tex": 86,
+     "prog": 179,
+     "shadow": true,
+     "pr": 0.53,
+     "lights": 9
+    },
+    "cave": {
+     "key": "cave",
+     "busy": false,
+     "local": {
+      "x": -4,
+      "y": -1.58,
+      "z": -120
+     },
+     "world": {
+      "x": -3604,
+      "y": -1.58,
+      "z": -120
+     },
+     "veil": "0",
+     "zones": [
+      "cave",
+      "ascent"
+     ],
+     "stats": {
+      "tris": 419242,
+      "clusters": 30,
+      "sdf": {
+       "on": true,
+       "ms": 709,
+       "tris": 76142,
+       "via": "worker"
+      },
+      "speleo": {
+       "tites": 575,
+       "mites": 146,
+       "curtains": 26,
+       "minClear": 3.912373440992087
+      }
+     },
+     "progress": null,
+     "frontier": {
+      "mountains": 24,
+      "cliffTris": 4888,
+      "lod": 2148,
+      "rocks": 11
+     }
+    }
+   },
+   "stateSummary": "jogador -3604.0,-1.6,-120.0 · câmera -3604.42,0.05,-125.97 · cave"
+  },
+  {
+   "scene": "caverna-salao",
+   "name": "apos-percurso",
+   "mode": "camera-do-jogo",
+   "file": "caverna-salao/04-apos-percurso.jpg",
+   "attempts": 1,
+   "controls": [
+    "keyboard KeyW 3000 ms (após a última tomada)"
+   ],
+   "framing": [
+    {
+     "view": {
+      "camToHero": 6.02,
+      "onScreen": true,
+      "ndc": [
+       -0.06,
+       -0.02
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "suspeita",
+   "reason": "muito escuro (média 9.11/255): pode ser cena noturna legítima ou câmera tapada — conferir a imagem",
+   "pixels": {
+    "samples": 21087,
+    "mean": 9.11,
+    "stdev": 8.83,
+    "darkFrac": 0.7036,
+    "brightFrac": 0,
+    "saturatedFrac": 0.0004
+   },
+   "signature": [
+    4,
+    3.8,
+    3.8,
+    4.7,
+    5.6,
+    5.7,
+    6.3,
+    8.4,
+    5.5,
+    6.3,
+    5.6,
+    11.7,
+    10,
+    13.6,
+    10.5,
+    10,
+    10.5,
+    13.6,
+    11.8,
+    16.5,
+    14.7,
+    12.3,
+    13.6,
+    11.4,
+    7.9,
+    8.5,
+    9.5,
+    9.8,
+    9.2,
+    7.7,
+    8.6,
+    9.6
+   ],
+   "observed": {
+    "state": {
+     "x": -3604,
+     "y": -1.592861904985391,
+     "z": -118.97418420164742,
+     "walkable": false,
+     "edge": 3405.9160977554784,
+     "calls": 66,
+     "triangles": 360054,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "1b1038",
+     "fogFar": 86,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "running",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": true,
+      "hour": 9.21,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -3604.42,
+     0.04,
+     -124.95
+    ],
+    "render": {
+     "geo": 291,
+     "tex": 86,
+     "prog": 179,
+     "shadow": true,
+     "pr": 0.53,
+     "lights": 9
+    },
+    "cave": {
+     "key": "cave",
+     "busy": false,
+     "local": {
+      "x": -4,
+      "y": -1.59,
+      "z": -118.97
+     },
+     "world": {
+      "x": -3604,
+      "y": -1.59,
+      "z": -118.97
+     },
+     "veil": "0",
+     "zones": [
+      "cave",
+      "ascent"
+     ],
+     "stats": {
+      "tris": 419242,
+      "clusters": 30,
+      "sdf": {
+       "on": true,
+       "ms": 709,
+       "tris": 76142,
+       "via": "worker"
+      },
+      "speleo": {
+       "tites": 575,
+       "mites": 146,
+       "curtains": 26,
+       "minClear": 3.912373440992087
+      }
+     },
+     "progress": null,
+     "frontier": {
+      "mountains": 24,
+      "cliffTris": 4888,
+      "lod": 2148,
+      "rocks": 11
+     }
+    }
+   },
+   "stateSummary": "jogador -3604.0,-1.6,-119.0 · câmera -3604.42,0.04,-124.95 · cave"
+  },
+  {
+   "scene": "caverna-gruta-cristal",
+   "name": "gruta",
+   "mode": "camera-do-jogo-caverna",
+   "file": "caverna-gruta-cristal/01-gruta.jpg",
+   "attempts": 1,
+   "controls": [
+    "caveTo(-30,-61,-1.571)",
+    "view(-1.571,0.08,6)"
+   ],
+   "framing": [
+    {
+     "yaw": -1.571,
+     "dist": 6,
+     "settleMs": 8135,
+     "view": {
+      "camToHero": 6,
+      "onScreen": true,
+      "ndc": [
+       -0.06,
+       -0.02
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 22.68,
+    "stdev": 13.7,
+    "darkFrac": 0.2546,
+    "brightFrac": 0,
+    "saturatedFrac": 0.0003
+   },
+   "signature": [
+    3.6,
+    5.8,
+    19.4,
+    28.7,
+    32.2,
+    27.9,
+    23.3,
+    15.5,
+    8.7,
+    14.6,
+    27.8,
+    33.1,
+    31.2,
+    30,
+    21.7,
+    13.1,
+    25.3,
+    29.2,
+    28.6,
+    26.4,
+    17.4,
+    17,
+    15.6,
+    17,
+    37.7,
+    33.1,
+    27.6,
+    24.9,
+    32.3,
+    25.5,
+    13.2,
+    18
+   ],
+   "observed": {
+    "state": {
+     "x": -3630,
+     "y": -7.6081308268217605,
+     "z": -61,
+     "walkable": false,
+     "edge": 3433.5038329274535,
+     "calls": 52,
+     "triangles": 327293,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "112e30",
+     "fogFar": 78.19589294314156,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": true,
+      "hour": 9.06,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -3635.99,
+     -5.98,
+     -60.58
+    ],
+    "render": {
+     "geo": 268,
+     "tex": 83,
+     "prog": 171,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    },
+    "cave": {
+     "key": "cave",
+     "busy": false,
+     "local": {
+      "x": -30,
+      "y": -7.61,
+      "z": -61
+     },
+     "world": {
+      "x": -3630,
+      "y": -7.61,
+      "z": -61
+     },
+     "veil": "0",
+     "zones": [
+      "cave"
+     ],
+     "stats": {
+      "tris": 419242,
+      "clusters": 30,
+      "sdf": {
+       "on": true,
+       "ms": 562,
+       "tris": 76142,
+       "via": "worker"
+      },
+      "speleo": {
+       "tites": 575,
+       "mites": 146,
+       "curtains": 26,
+       "minClear": 3.912373440992087
+      }
+     },
+     "progress": null,
+     "frontier": {
+      "mountains": 24,
+      "cliffTris": 4888,
+      "lod": 2148,
+      "rocks": 11
+     }
+    }
+   },
+   "stateSummary": "jogador -3630.0,-7.6,-61.0 · câmera -3635.99,-5.98,-60.58 · cave"
+  },
+  {
+   "scene": "caverna-gruta-cristal",
+   "name": "galeria-alta",
+   "mode": "camera-do-jogo-caverna",
+   "file": "caverna-gruta-cristal/02-galeria-alta.jpg",
+   "attempts": 1,
+   "controls": [
+    "caveTo(-25,-98,-2.2)",
+    "view(-2.2,0.08,5.5)"
+   ],
+   "framing": [
+    {
+     "yaw": -2.2,
+     "dist": 5.5,
+     "settleMs": 11146,
+     "view": {
+      "camToHero": 5.44,
+      "onScreen": true,
+      "ndc": [
+       -0.07,
+       -0.02
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 19.98,
+    "stdev": 18.78,
+    "darkFrac": 0.4676,
+    "brightFrac": 0,
+    "saturatedFrac": 0.0014
+   },
+   "signature": [
+    5.8,
+    2.7,
+    2.6,
+    2.6,
+    4.8,
+    16.6,
+    3.1,
+    6.7,
+    11.9,
+    13,
+    13.9,
+    16.8,
+    11.9,
+    10.1,
+    18.1,
+    20.9,
+    16.7,
+    20.1,
+    26,
+    29.8,
+    31.7,
+    25,
+    28.6,
+    35.6,
+    37.7,
+    31.5,
+    39.3,
+    27.7,
+    32.5,
+    35.1,
+    29.7,
+    27
+   ],
+   "observed": {
+    "state": {
+     "x": -3625,
+     "y": -0.002159380772013656,
+     "z": -98,
+     "walkable": false,
+     "edge": 3422.622433158975,
+     "calls": 55,
+     "triangles": 327383,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "23302a",
+     "fogFar": 70,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": true,
+      "hour": 9.12,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -3629.68,
+     1.59,
+     -100.88
+    ],
+    "render": {
+     "geo": 272,
+     "tex": 83,
+     "prog": 171,
+     "shadow": true,
+     "pr": 0.53,
+     "lights": 9
+    },
+    "cave": {
+     "key": "cave",
+     "busy": false,
+     "local": {
+      "x": -25,
+      "y": 0,
+      "z": -98
+     },
+     "world": {
+      "x": -3625,
+      "y": 0,
+      "z": -98
+     },
+     "veil": "0",
+     "zones": [
+      "cave"
+     ],
+     "stats": {
+      "tris": 419242,
+      "clusters": 30,
+      "sdf": {
+       "on": true,
+       "ms": 562,
+       "tris": 76142,
+       "via": "worker"
+      },
+      "speleo": {
+       "tites": 575,
+       "mites": 146,
+       "curtains": 26,
+       "minClear": 3.912373440992087
+      }
+     },
+     "progress": null,
+     "frontier": {
+      "mountains": 24,
+      "cliffTris": 4888,
+      "lod": 2148,
+      "rocks": 11
+     }
+    }
+   },
+   "stateSummary": "jogador -3625.0,-0.0,-98.0 · câmera -3629.68,1.59,-100.88 · cave"
+  },
+  {
+   "scene": "caverna-gruta-cristal",
+   "name": "cristal",
+   "mode": "camera-do-jogo-caverna",
+   "file": "caverna-gruta-cristal/03-cristal.jpg",
+   "attempts": 1,
+   "controls": [
+    "caveTo(-46,-106,-1.571)",
+    "view(-1.571,0.08,6)"
+   ],
+   "framing": [
+    {
+     "yaw": -1.571,
+     "dist": 6,
+     "settleMs": 9286,
+     "view": {
+      "camToHero": 5.95,
+      "onScreen": true,
+      "ndc": [
+       -0.06,
+       -0.02
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "suspeita",
+   "reason": "muito escuro (média 12.81/255): pode ser cena noturna legítima ou câmera tapada — conferir a imagem",
+   "pixels": {
+    "samples": 21087,
+    "mean": 12.81,
+    "stdev": 12.89,
+    "darkFrac": 0.5957,
+    "brightFrac": 0,
+    "saturatedFrac": 0
+   },
+   "signature": [
+    1,
+    2.3,
+    4.1,
+    2.7,
+    7.8,
+    3.8,
+    1.8,
+    2.4,
+    6.6,
+    19.1,
+    6,
+    12.4,
+    11.7,
+    10.4,
+    5.1,
+    11.5,
+    25.4,
+    30.4,
+    22.8,
+    25,
+    12.9,
+    13.3,
+    14.3,
+    27.5,
+    25.2,
+    20.3,
+    16.6,
+    17.2,
+    11.6,
+    11.8,
+    14.2,
+    13.1
+   ],
+   "observed": {
+    "state": {
+     "x": -3646,
+     "y": -2.982241036986299,
+     "z": -106,
+     "walkable": false,
+     "edge": 3446.5200526271456,
+     "calls": 67,
+     "triangles": 349683,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "1f1a3f",
+     "fogFar": 83.88096537310382,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": true,
+      "hour": 9.18,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -3651.97,
+     -1.35,
+     -105.58
+    ],
+    "render": {
+     "geo": 283,
+     "tex": 83,
+     "prog": 179,
+     "shadow": true,
+     "pr": 0.53,
+     "lights": 9
+    },
+    "cave": {
+     "key": "cave",
+     "busy": false,
+     "local": {
+      "x": -46,
+      "y": -2.98,
+      "z": -106
+     },
+     "world": {
+      "x": -3646,
+      "y": -2.98,
+      "z": -106
+     },
+     "veil": "0",
+     "zones": [
+      "cave",
+      "ascent"
+     ],
+     "stats": {
+      "tris": 419242,
+      "clusters": 30,
+      "sdf": {
+       "on": true,
+       "ms": 562,
+       "tris": 76142,
+       "via": "worker"
+      },
+      "speleo": {
+       "tites": 575,
+       "mites": 146,
+       "curtains": 26,
+       "minClear": 3.912373440992087
+      }
+     },
+     "progress": null,
+     "frontier": {
+      "mountains": 24,
+      "cliffTris": 4888,
+      "lod": 2148,
+      "rocks": 11
+     }
+    }
+   },
+   "stateSummary": "jogador -3646.0,-3.0,-106.0 · câmera -3651.97,-1.35,-105.58 · cave"
+  },
+  {
+   "scene": "npc-cabelos",
+   "name": "vendorMan",
+   "mode": "close-up-npc",
+   "file": "npc-cabelos/01-vendorMan.jpg",
+   "attempts": 1,
+   "controls": [
+    "mountNpc(vendorMan)",
+    "vista padrão da página (sem closeup)"
+   ],
+   "extra": {
+    "clips": 11
+   },
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 136.06,
+    "stdev": 39.49,
+    "darkFrac": 0.0001,
+    "brightFrac": 0.0012,
+    "saturatedFrac": 0.0003
+   },
+   "signature": [
+    86.7,
+    84.8,
+    84.2,
+    84.9,
+    83.3,
+    101.3,
+    101.3,
+    101.3,
+    116.2,
+    121,
+    125.2,
+    117.8,
+    113.7,
+    120.7,
+    118.7,
+    116.7,
+    167,
+    167.1,
+    166,
+    163,
+    165.5,
+    167,
+    166.8,
+    167.1,
+    166.8,
+    166.6,
+    167.5,
+    167.3,
+    167,
+    167.6,
+    167.8,
+    167.8
+   ],
+   "observed": {
+    "hairFit": null
+   },
+   "stateSummary": "sem métrica de cabelo"
+  },
+  {
+   "scene": "npc-cabelos",
+   "name": "vendorWoman",
+   "mode": "close-up-npc",
+   "file": "npc-cabelos/02-vendorWoman.jpg",
+   "attempts": 1,
+   "controls": [
+    "mountNpc(vendorWoman)",
+    "vista padrão da página (sem closeup)"
+   ],
+   "extra": {
+    "clips": 6
+   },
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 136.4,
+    "stdev": 38.68,
+    "darkFrac": 0.0001,
+    "brightFrac": 0.0015,
+    "saturatedFrac": 0
+   },
+   "signature": [
+    87.1,
+    86.8,
+    84.8,
+    83.7,
+    101.3,
+    101.3,
+    101.3,
+    101.3,
+    115.4,
+    120.1,
+    124.9,
+    122.3,
+    118.9,
+    120.1,
+    118,
+    115.9,
+    167.1,
+    167.1,
+    166.1,
+    155.7,
+    156.5,
+    166.9,
+    166.9,
+    167.1,
+    166.8,
+    166.5,
+    167.4,
+    167.3,
+    166.9,
+    167.5,
+    167.8,
+    167.8
+   ],
+   "observed": {
+    "hairFit": null
+   },
+   "stateSummary": "sem métrica de cabelo"
+  },
+  {
+   "scene": "npc-cabelos",
+   "name": "elder",
+   "mode": "close-up-npc",
+   "file": "npc-cabelos/03-elder.jpg",
+   "attempts": 1,
+   "controls": [
+    "mountNpc(elder)",
+    "vista padrão da página (sem closeup)"
+   ],
+   "extra": {
+    "clips": 11
+   },
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 136.54,
+    "stdev": 39.08,
+    "darkFrac": 0.0002,
+    "brightFrac": 0.0008,
+    "saturatedFrac": 0.0004
+   },
+   "signature": [
+    86.2,
+    84.6,
+    84.3,
+    83.5,
+    90.4,
+    101.3,
+    101.3,
+    101.3,
+    118.2,
+    122.6,
+    126.6,
+    118.4,
+    114.9,
+    122.2,
+    120.3,
+    118.5,
+    167.2,
+    166.9,
+    166.2,
+    163.2,
+    165,
+    166.9,
+    166.7,
+    167,
+    167.1,
+    166.9,
+    167.1,
+    166.9,
+    167.2,
+    167.6,
+    167.8,
+    167.9
+   ],
+   "observed": {
+    "hairFit": null
+   },
+   "stateSummary": "sem métrica de cabelo"
+  },
+  {
+   "scene": "mundo-boca-caverna",
+   "name": "boca",
+   "mode": "camera-do-jogo",
+   "file": "mundo-boca-caverna/01-boca.jpg",
+   "attempts": 1,
+   "controls": [
+    "teleport(-56,-236,-1.571)",
+    "view(-1.571,0.1,7)"
+   ],
+   "framing": [
+    {
+     "yaw": -1.571,
+     "dist": 7,
+     "settleMs": 13164,
+     "view": {
+      "camToHero": 7.07,
+      "onScreen": true,
+      "ndc": [
+       -0.05,
+       -0.01
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 61.59,
+    "stdev": 35.85,
+    "darkFrac": 0.1241,
+    "brightFrac": 0,
+    "saturatedFrac": 0.0768
+   },
+   "signature": [
+    46,
+    22.8,
+    36.7,
+    58,
+    23.1,
+    17.9,
+    23.2,
+    21.3,
+    65.5,
+    47.9,
+    45.6,
+    63.3,
+    47.6,
+    50,
+    47.3,
+    38.6,
+    63.8,
+    64.6,
+    73.5,
+    81.2,
+    97.2,
+    91.5,
+    74.9,
+    66.7,
+    69.8,
+    75.6,
+    74.6,
+    93.2,
+    99.5,
+    105.2,
+    89.7,
+    96.3
+   ],
+   "observed": {
+    "state": {
+     "x": -56,
+     "y": 0,
+     "z": -236,
+     "walkable": true,
+     "edge": -22.598035993556643,
+     "calls": 102,
+     "triangles": 620728,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "b9cacc",
+     "fogFar": 327.73419324505994,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 13.05,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -62.97,
+     1.85,
+     -235.58
+    ],
+    "render": {
+     "geo": 285,
+     "tex": 92,
+     "prog": 172,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador -56.0,0.0,-236.0 · câmera -62.97,1.85,-235.58"
+  },
+  {
+   "scene": "mundo-boca-caverna",
+   "name": "boca-frente",
+   "mode": "camera-livre-qa",
+   "file": "mundo-boca-caverna/02-boca-frente.jpg",
+   "attempts": 1,
+   "controls": [
+    "fly([[-61,2.8,-233],[-72.6,2.4,-236]])"
+   ],
+   "framing": [
+    {
+     "view": {
+      "camToHero": 11.99,
+      "onScreen": true,
+      "ndc": [
+       0,
+       0
+      ],
+      "blocked": null
+     }
+    }
+   ],
+   "cameraSettleMs": 807,
+   "status": "ok",
+   "reason": "pixels variados (critério estrutural apenas, não semântico)",
+   "pixels": {
+    "samples": 21087,
+    "mean": 44.42,
+    "stdev": 32.19,
+    "darkFrac": 0.2154,
+    "brightFrac": 0,
+    "saturatedFrac": 0.0196
+   },
+   "signature": [
+    13.7,
+    11.9,
+    12.4,
+    15.2,
+    11.6,
+    26,
+    19,
+    35.3,
+    49.9,
+    38.3,
+    18.1,
+    10.1,
+    16,
+    34,
+    39.1,
+    39.8,
+    55,
+    65.5,
+    43.6,
+    45.9,
+    55.8,
+    52.9,
+    51.5,
+    59.8,
+    45.6,
+    69.2,
+    69.7,
+    68.6,
+    103.7,
+    95.3,
+    74.3,
+    69.7
+   ],
+   "observed": {
+    "state": {
+     "x": -56,
+     "y": 0,
+     "z": -236,
+     "walkable": true,
+     "edge": -22.598035993556643,
+     "calls": 69,
+     "triangles": 509365,
+     "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+       -662.5130391947365,
+       658.5130391947365
+      ]
+     },
+     "trees": 0,
+     "fog": "b9c9cc",
+     "fogFar": 324.0107189723242,
+     "night": 0,
+     "quest": 0,
+     "coins": 0,
+     "dialogueOpen": false,
+     "namePromptOpen": false,
+     "awakeningActive": false,
+     "hp": 100,
+     "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+     },
+     "objective": "Fale com o Anjo-Guia",
+     "audio": "locked",
+     "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 13.07,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+     }
+    },
+    "camera": [
+     -61,
+     2.8,
+     -233
+    ],
+    "render": {
+     "geo": 285,
+     "tex": 92,
+     "prog": 172,
+     "shadow": true,
+     "pr": 0.68,
+     "lights": 9
+    }
+   },
+   "stateSummary": "jogador -56.0,0.0,-236.0 · câmera -61,2.8,-233"
+  }
+ ],
+ "videos": [
+  {
+   "scene": "floresta-trilha",
+   "format": "mp4",
+   "file": "videos/floresta-trilha.mp4",
+   "bytes": 1256967,
+   "mp4": {
+    "file": "videos/floresta-trilha.mp4",
+    "bytes": 1256967
+   },
+   "durationS": 61.44,
+   "nota": "no repositório só o MP4 (o WebM fica no artefato do Actions)"
+  },
+  {
+   "scene": "caverna-salao",
+   "format": "mp4",
+   "file": "videos/caverna-salao.mp4",
+   "bytes": 570550,
+   "mp4": {
+    "file": "videos/caverna-salao.mp4",
+    "bytes": 570550
+   },
+   "durationS": 57.84,
+   "nota": "no repositório só o MP4 (o WebM fica no artefato do Actions)"
+  }
+ ],
+ "timings": [
+  {
+   "scene": "vila-praca",
+   "ms": 42776,
+   "loadMs": 17202
+  },
+  {
+   "scene": "vila-vendedores",
+   "ms": 59517,
+   "loadMs": 11870
+  },
+  {
+   "scene": "floresta-trilha",
+   "ms": 70793,
+   "loadMs": 15757
+  },
+  {
+   "scene": "caverna-salao",
+   "ms": 61573,
+   "loadMs": 16270
+  },
+  {
+   "scene": "caverna-gruta-cristal",
+   "ms": 62476,
+   "loadMs": 15760
+  },
+  {
+   "scene": "mundo-boca-caverna",
+   "ms": 53785,
+   "loadMs": 17627
+  },
+  {
+   "scene": "npc-cabelos",
+   "ms": 10556,
+   "loadMs": 128
+  }
+ ],
+ "totalMs": 361627,
+ "pageErrors": [],
+ "consoleErrors": [],
+ "failedRequests": [],
+ "observedVsInferred": {
+  "observed": "arquivos PNG/WebM/MP4, métricas de pixels (média, desvio, frações preto/branco), estado do debug (posição, câmera, render.info, caverna, métricas de cabelo), erros e requisições",
+  "inferred": "nenhum — nada aqui reconhece objetos; 'ok' só quer dizer que o quadro não é preto/branco/uniforme"
+ },
+ "finishedAt": "2026-11-15T06:36:23.836Z",
+ "evidenceNote": "Cópia versionada: PNG convertido para JPG q78 para caber no repositório; métricas de pixels foram medidas nos PNGs originais. A cena mundo-boca-caverna vem da execução seguinte (commit igual, preset boca-alto trocado por boca-frente depois de a 1ª execução fotografar a copa)."
+}

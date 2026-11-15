@@ -222,3 +222,34 @@ A V7 acrescenta o módulo cinematic-visual.cjs:
 - Qualquer falha de captura é registrada no JSON e o job sinaliza erro, em vez de inventar sucesso.
 
 Arquivos relevantes: cinematic-visual.cjs, cinematic-visual.test.cjs, cinematic-run.cjs, cinematic-criteria.cjs e workflow. Testes sintéticos validam assinaturas RGB, detecção de frames apagados, comparação do histórico e comportamento diante de PNGs corrompidos. A interpretação semântica de personagens e movimentos continua limitada sem um modelo multimodal e sem visão contínua da gravação. Não se modifica dano, IA, modelos, áudio ou controles normais; o sistema só inspeciona as evidências.
+
+## V10 — agente de cenas: fotos e vídeos confiáveis do jogo real (15/11/2026)
+
+`scene-agent.cjs` + `scene-capture-core.cjs` (puro, testado) + workflow `agente-cenas.yml` (manual com JSON de cenas e
+automático em PR que mexe no agente). Falhas reproduzidas antes da correção, no Chromium/SwiftShader:
+
+| falha real | antes | agora |
+|---|---|---|
+| 1ª foto preta/duplicada | `photographer.cjs` lançava erro e **descartava todas** as fotos seguintes | repete até 3×; se continuar ruim, a foto fica `suspeita` com motivo e o lote segue (`judgeCapture`, teste de regressão) |
+| foto antes do quadro válido | espera fixa de 1,7 s (2–5 FPS no SwiftShader = 4–8 quadros) | espera a câmera **parar** e chegar à distância pedida do herói (`waitCameraStable`); repete quadro preto/branco/uniforme até 5× |
+| herói encoberto (tronco na trilha, rocha) | métrica de pixels dizia "ok" | `SevenSinsDebug3D.camView()` (só `?debug3d=1`, só leitura) mede raio câmera→peito e projeção na tela; o agente gira/aproxima a câmera real do jogo (até 7 ângulos) e, se não houver ângulo limpo, marca `suspeita` com o objeto que encobre |
+| HUD/aviso cobrindo a ação | fotos com joystick, botões e "LOCAL DESCOBERTO" por cima | só o canvas aparece (CSS da captura; `{"scene":…,"hud":true}` mantém o HUD) |
+| só Bispo 3 / preset de floresta "aproximado" | presets fly sem conferência | cenas reutilizáveis: `vila-praca`, `vila-vendedores`, `floresta-trilha`, `mundo-boca-caverna`, `caverna-salao`, `caverna-gruta-cristal` (entra por `ascension('cave')`, espera o véu sumir, **só leitura**), `npc-cabelos` (close-up com métricas de cabelo × crânio); preset `floresta` do fotógrafo agora na Clareira do Musgo real |
+| caverna fotografada no véu de transição | quadro preto | espera `ascState()` sem `busy` e véu < 0,05 |
+
+**Saída** (`visual-lab-results/scene-agent/`, artefato `cenas-N` no Actions e índice no resumo do job):
+- `index.md` (agentes) e `index.html` (humanos): ordem de abertura, status por foto, motivo numérico, estado do jogo;
+- `report.json` (`scene-agent/v1`): commit, build (lido de `build-info.js`), viewport, renderer, controles usados
+  (`teleport`/`caveTo`/`view`/`fly`/tecla e duração), tentativas, enquadramento (`framing`: ângulos testados, distância
+  câmera→herói, objeto que encobre), `pixels`, `signature` 8×4 para comparar antes/depois na mesma cena, erros de
+  página/console, requisições falhas, tempos por cena e `howToReproduce` (comando exato);
+- `videos/<cena>.webm` (gravação Playwright de toda a cena, inclusive o percurso com tecla segurada) e `.mp4`
+  (H.264, se houver ffmpeg) com duração por `ffprobe`; vídeo < 2 KB conta como falha, não como entrega.
+
+**Observado × inferido:** `ok` quer dizer só "não é preto/branco/uniforme e o herói não está encoberto" — nada reconhece
+objetos. Cenas legitimamente escuras (caverna) saem `suspeita: muito escuro … conferir a imagem` sem repetir à toa.
+SwiftShader **não mede FPS de celular**. As fotos do Actions não aparecem sozinhas no ChatGPT: é preciso baixar o
+artefato (ou abrir as evidências versionadas na PR).
+
+Execução local: `SCENE_AGENT_SCENES='["vila-praca",{"scene":"caverna-salao","video":true}]' VISUAL_BASE_URL=http://127.0.0.1:4173 node tools/visual-lab/scene-agent.cjs`
+(sem CDN: `THREE_LOCAL=/caminho/node_modules/three`).

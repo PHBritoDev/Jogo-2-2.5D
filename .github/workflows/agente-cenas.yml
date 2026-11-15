@@ -1,0 +1,58 @@
+name: Agente de cenas (fotos e vídeos do jogo real)
+on:
+  workflow_dispatch:
+    inputs:
+      cenas:
+        description: 'JSON: ["vila-praca","vila-vendedores",{"scene":"floresta-trilha","video":true},{"scene":"caverna-salao","video":true},"caverna-gruta-cristal","mundo-boca-caverna","npc-cabelos"]'
+        required: true
+        default: '["vila-praca",{"scene":"floresta-trilha","video":true},{"scene":"caverna-salao","video":true},"npc-cabelos"]'
+        type: string
+  pull_request:
+    paths:
+      - "tools/visual-lab/scene-agent.cjs"
+      - "tools/visual-lab/scene-capture-core.cjs"
+      - "tools/visual-lab/scene-capture-core.test.cjs"
+      - "tools/visual-lab/photographer.cjs"
+      - ".github/workflows/agente-cenas.yml"
+permissions:
+  contents: read
+concurrency:
+  group: agente-cenas-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  cenas:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results
+      SCENE_AGENT_SCENES: ${{ inputs.cenas || '["vila-praca",{"scene":"caverna-salao","video":true},"npc-cabelos"]' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testes puros (classificação de quadro, cenas, índice, regressão do fotógrafo)
+        run: node --test tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs
+      - run: npm install --prefix tools/visual-lab --no-audit --no-fund
+      - run: ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Servidor
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/cenas-http.log 2>&1 &
+          for i in $(seq 1 30); do curl --silent --fail http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Capturar cenas no jogo real (Chromium + SwiftShader)
+        run: NODE_PATH=tools/visual-lab/node_modules node tools/visual-lab/scene-agent.cjs
+      - name: Índice no resumo do job
+        if: always()
+        run: |
+          f=visual-lab-results/scene-agent/index.md
+          if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; echo "" >> "$GITHUB_STEP_SUMMARY"; echo "Arquivos: artefato **cenas-${{ github.run_number }}** desta execução (abrir index.html)." >> "$GITHUB_STEP_SUMMARY"; else echo "Sem índice: a execução falhou antes de gravar o relatório." >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Entregar fotos, vídeos e relatório
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cenas-${{ github.run_number }}
+          path: visual-lab-results/scene-agent/
+          retention-days: 14
+          if-no-files-found: warn
