@@ -92,7 +92,8 @@ export function isRevealed(state, x, z) {
 }
 
 /** Marca pontos de interesse próximos. Locais secretos dependem de terem sido encontrados no jogo. */
-export function discoverPois(state, x, z, { secretsFound = {} } = {}) {
+export function discoverPois(state, x, z, options = {}) {
+  const secretsFound = options?.secretsFound;
   const found = [];
   for (const p of MAP_POIS) {
     if (state.pois.has(p.id)) continue;
