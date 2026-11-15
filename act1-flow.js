@@ -109,7 +109,7 @@ export function progressionFields(raw, questStep) {
     playSeconds: clampInt(r.playSeconds, 0, Number.MAX_SAFE_INTEGER, 0),
     ledgersFound: Array.isArray(r.ledgersFound) ? [...new Set(r.ledgersFound.filter(i => Number.isInteger(i) && i >= 0 && i < 3))] : [],
     vorgazhekRewardClaimed: !!r.vorgazhekRewardClaimed,
-    lateFound: Array.isArray(r.lateFound) ? r.lateFound.filter(i => Number.isInteger(i) && i >= 0 && i < 8) : [],
+    lateFound: Array.isArray(r.lateFound) ? [...new Set(r.lateFound.filter(i => Number.isInteger(i) && i >= 0 && i < 8))] : [],
     lateFoundStep: clampInt(r.lateFoundStep, 0, Number.MAX_SAFE_INTEGER, 0),
     lateFightIndex: clampInt(r.lateFightIndex, 0, 5, 0),
     lateBossClaimed: { zarkhael: !!(r.lateBossClaimed && r.lateBossClaimed.zarkhael), veraxion: !!(r.lateBossClaimed && r.lateBossClaimed.veraxion) },

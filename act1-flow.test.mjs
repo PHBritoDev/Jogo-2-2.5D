@@ -152,3 +152,13 @@ test('Mod 247: save anterior ao nome VHAZRAEL migra a recompensa e o bestiário 
   const p = migrateProgress(legacy); assert.equal(p.vhazraelRewardClaimed, true); assert.equal(p.coins, 55);
   const fresh = migrateBishopOneName({ vorgazhekRewardClaimed: true, bestiary: ['veraxion'] }); assert.equal(fresh.vhazraelRewardClaimed, undefined); assert.deepEqual(fresh.bestiary, ['veraxion']);
 });
+
+
+test('save dos atos finais restaura cada pista uma vez, descartando ids inválidos', () => {
+  const input = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 22, lateFound: [0, 2, 2, 7, 0, -1, 8, 1.5, '3', null, NaN] };
+  const restored = migrateProgress(input);
+  assert.deepEqual(restored.lateFound, [0, 2, 7]);
+  assert.deepEqual(migrateProgress(restored).lateFound, [0, 2, 7]);
+  assert.deepEqual(migrateProgress({ ...input, lateFound: null }).lateFound, []);
+  assert.deepEqual(input.lateFound.slice(0, 5), [0, 2, 2, 7, 0]);
+});
