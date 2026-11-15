@@ -31,10 +31,17 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   }
   if (Obj) Obj.__budgetGuard.push({ scene, adopt });
   const v = new T.Vector3(), cam = new T.Vector3();
+  // Uma fonte pode continuar com parent dentro de um grupo já removido da cena.
+  // Nunca permitir que esse grupo ocupe slots de luz ou retenha fontes no cadastro.
+  function attachedToScene(o) {
+    let root = o;
+    while (root.parent) root = root.parent;
+    return root === scene;
+  }
   function scan() {
     scene.traverse(adopt);
     // fontes removidas da cena saem do conjunto (sem crescer para sempre com efeitos descartados)
-    for (const o of sources) if (!o.parent) { sources.delete(o); sourceScore.delete(o); }
+    for (const o of sources) if (!attachedToScene(o)) { sources.delete(o); sourceScore.delete(o); }
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
   function update(camera, dt = 1 / 60) {
@@ -42,7 +49,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     camera.getWorldPosition(cam);
     ranked.length=0;
     for (const s of sources) {
-      if (!s.parent || s.intensity <= .001 || !effectiveVisible(s)) continue;
+      if (!attachedToScene(s) || s.intensity <= .001 || !effectiveVisible(s)) continue;
       v.setFromMatrixPosition(s.matrixWorld);
       const d = v.distanceTo(cam), reach = (s.distance || 40);
       if (d > reach + 30) continue;
@@ -60,7 +67,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     for (const p of free) { const s = chosen.shift() || null; if (s !== p.src) { if (p.src && p.light.intensity > .05) p.next = s; else { p.src = s; p.next = undefined; } } }
     const k = 1 - Math.exp(-dt * 10);
     for (const p of pool) {
-      const s = p.src, l = p.light, live = s && s.parent && effectiveVisible(s);
+      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s);
       if (s && s.parent) { l.position.setFromMatrixPosition(s.matrixWorld); l.color.copy(s.color); l.distance = s.distance; l.decay = s.decay; }
       const target = p.next !== undefined || !live ? 0 : s.intensity;
       l.intensity += (target - l.intensity) * k;
