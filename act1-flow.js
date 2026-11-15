@@ -109,7 +109,7 @@ export function progressionFields(raw, questStep) {
     lateFound: Array.isArray(r.lateFound) ? r.lateFound.filter(i => Number.isInteger(i) && i >= 0 && i < 8) : [],
     lateFoundStep: clampInt(r.lateFoundStep, 0, Number.MAX_SAFE_INTEGER, 0),
     lateFightIndex: clampInt(r.lateFightIndex, 0, 5, 0),
-    lateBossClaimed: r.lateBossClaimed && typeof r.lateBossClaimed === 'object' ? { zarkhael: !!r.lateBossClaimed.zarkhael, veraxion: !!r.lateBossClaimed.veraxion } : {},
+    lateBossClaimed: { zarkhael: !!(r.lateBossClaimed && r.lateBossClaimed.zarkhael), veraxion: !!(r.lateBossClaimed && r.lateBossClaimed.veraxion) },
     gauntletIndex: clampInt(r.gauntletIndex, 0, 4, 0),
     finaleClaimed: !!r.finaleClaimed,
     // MOD 206 — casaco de frio do Ato III (comprado na estrada da cidade de neve).
