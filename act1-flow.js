@@ -501,7 +501,7 @@ export function afterVhazraelVictory(progress) {
   const first = !p.vhazraelRewardClaimed;
   return {
     questStep: 8,
-    bishopsDefeated: Math.max(1, Math.floor(Number(p.bishopsDefeated) || 0)),
+    bishopsDefeated: Math.max(1, clampInt(p.bishopsDefeated, 0, 4, 0)),
     vhazraelRewardClaimed: true,
     coinsGained: first ? ACT1.vhazraelReward : 0
   };
