@@ -56,3 +56,22 @@ test('energy body culls outside frustum with conservative warp margin and keeps 
   fx.dispose();
   assert.equal(children.length,0);
 });
+
+// Regression: the initial fail-open decision must not be overwritten after setup.
+test('energy body keeps culling disabled for invalid initial warp and recovers', () => {
+  for (const warp of [NaN, Infinity, -Infinity]) {
+    const children=[];
+    const parent={add(mesh) { children.push(mesh); },remove(mesh) { children.splice(children.indexOf(mesh),1); }};
+    const fx=energyBody(T,parent,'celestial',{warp});
+    assert.equal(fx.mesh.frustumCulled,false,'invalid initial warp must fail open');
+    assert.equal(children.length,1);
+    fx.update(0,{alpha:1});
+    assert.equal(fx.mesh.frustumCulled,false);
+    fx.material.uniforms.warp.value=.25;
+    fx.update(.1,{alpha:1});
+    assert.equal(fx.mesh.frustumCulled,true,'finite warp restores culling');
+    assert.ok(Math.abs(fx.mesh.geometry.boundingSphere.radius-(3+.25*.85))<1e-9);
+    fx.dispose();
+    assert.equal(children.length,0);
+  }
+});
