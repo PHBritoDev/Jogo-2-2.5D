@@ -372,6 +372,9 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
       if (!isFree(x, z)) continue;
       const water = terrain.waterDepth(x, z);
       if (!Number.isFinite(water) || water > -.25) continue;
+      // Valley tree placement also depends on terrain elevation downstream.
+      // Reject invalid height samples before producing a world-space instance.
+      if (!Number.isFinite(terrain.height(x, z))) continue;
       const kind = density > .6 && rnd() < .45 ? 'conifer' : (rnd() < .52 ? 'oak' : 'round');
       specs.push({ x, z, kind, s: .8 + rnd() * .75, rot: rnd() * Math.PI * 2, tint: rnd(), collide: true });
     } else if (d > 5 && d < 62) {
