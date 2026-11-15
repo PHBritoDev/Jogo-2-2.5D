@@ -23,6 +23,9 @@ void main(){vUv=uv;vP=position;vec3 p=position;
 const FRAG=`uniform float time,alpha,detail,dissolve,seed,frequency,flame,celestial;uniform vec3 deep,body,hot;varying vec2 vUv;varying vec3 vN,vV,vP;
 ${FLOW_NOISE}
 void main(){
+ // Dissolve rejection first: avoid evaluating the remaining layered noises for discarded fragments.
+ float cells=flowNoise(vec2(vUv.x*22.*frequency,vUv.y*15.+seed),time*.7,detail);
+ if(cells<dissolve)discard;
  float n=flowNoise(vec2(vUv.x*11.*frequency,vUv.y*7.+seed),time,detail);
  float n2=flowNoise(vec2(vUv.x*23.*frequency-time*1.2,vUv.y*13.+seed*1.7),time*.85,detail);
  float ndotv=abs(dot(normalize(vN),normalize(vV)));
@@ -30,8 +33,6 @@ void main(){
  float coreDark=smoothstep(.22,.78,ndotv);
  float fil=pow(max(0.,1.-abs(n-.54)*5.5),2.6);
  float darkVein=smoothstep(.09,.0,abs(n2-.48)-.025)*coreDark;
- float cells=flowNoise(vec2(vUv.x*22.*frequency,vUv.y*15.+seed),time*.7,detail);
- if(cells<dissolve)discard;
  float heat=smoothstep(.22,.74,n+rim*.32);
  vec3 col=mix(deep,body,heat);
  col=mix(col,hot,clamp(pow(smoothstep(.42,.82,n),1.35)*.78+rim*.35+fil*.28,0.,.96));
