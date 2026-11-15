@@ -86,6 +86,15 @@ test('escapar: correr para fora, saltar acima do domo na borda, ou dash atravess
     assert.equal(W.dmg.filter(d => d.kind === 'orbitalBlast').length, 1, 'dash não é imunidade universal: dentro da zona ativa depois dos i-frames, leva'); }
 });
 
+test('domo cresce em altura junto com o raio: alvo 2 m acima do epicentro só é tocado quando a altura visível chega lá', () => {
+  const W = world(), h = W.add(hero()); start(W, h); const s = until(W.sq, 'fall'); h.x = s.path.ix + 1.5; h.z = s.path.iz; until(W.sq, 'impact'); h.air = 2; // fora do corpo do meteoro? (o corpo cobre o epicentro: limpa o registro do corpo)
+  W.dmg.length = 0; let firstAt = null; run(W.sq, T.blastGrow + .1, 1 / 240, () => { if (firstAt === null && W.dmg.some(d => d.kind === 'orbitalBlast')) firstAt = orbitalSpell(W.sq).t; });
+  assert.ok(firstAt !== null, 'acaba tocado');
+  const Rhit = orbitalBlastR(T, firstAt), Hhit = Rhit * T.blastH / T.blastR, capBottom = 2 + h.radius;
+  assert.ok(Hhit >= capBottom - h.radius - .05 || Rhit >= Math.hypot(1.5, (capBottom - h.radius) * T.blastR / T.blastH) - h.radius - .05, 'não fere antes de o domo visível alcançar a cápsula');
+  assert.ok(Rhit > .5, 'não acerta com o domo ainda minúsculo (raio ' + Rhit.toFixed(3) + ')');
+});
+
 test('defender: o golpe chega como acerto bloqueado (redução do escudo), uma vez cada', () => {
   const W = world(), h = W.add(hero({ blockNext: true })); start(W, h); run(W.sq, 25);
   assert.deepEqual(W.dmg.map(d => [d.kind, !!d.blocked]), [['orbitalMeteor', true], ['orbitalBlast', true]]);

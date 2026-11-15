@@ -380,7 +380,8 @@ export const ORBITAL_LOCKED = /^(awaken|orbit|entry)$/;
 export { orbitalPath, orbitalMeteorAt, segSegDist, orbitalBlastR };
 const capsule = (sq, tg) => { const y0 = (sq.ground ? sq.ground(tg.x, tg.z) : (tg.y || 0)) + (tg.air || 0), r = tg.radius || .42, h = tg.height || 1.8; return { a: { x: tg.x, y: y0 + r, z: tg.z }, b: { x: tg.x, y: y0 + Math.max(r, h - r), z: tg.z }, r }; };
 /** Ponto da cápsula mais próximo de c, com a escala vertical do domo (elipsoide blastR × blastH). */
-function domeDist(c, cap, R, H) { const k = R / H, y = clamp(c.y, cap.a.y, cap.b.y), dy = (c.y - y) * k; return Math.hypot(c.x - cap.a.x, dy, c.z - cap.a.z) - cap.r; }
+/** distância da cápsula ao centro no espaço normalizado do domo: a altura cresce JUNTO com o raio (proporção fixa blastR:blastH), igual ao desenho. */
+function domeDist(c, cap, k) { const y = clamp(c.y, cap.a.y, cap.b.y), dy = (c.y - y) * k; return Math.hypot(c.x - cap.a.x, dy, c.z - cap.a.z) - cap.r; }
 registerSkill('orbital', {
   score(sq, a) {
     if (a.ultUsed || anyActive(sq, 'orbital') || a.pendingDeath) return null; const T = a.T.orbital;
@@ -433,7 +434,7 @@ registerSkill('orbital', {
     const T = s.T, P = s.path, k = clamp(s.t / T.blastGrow, 0, 1); if (s.t > T.blastGrow + 1e-6 && s.blastDone) return;
     const R = orbitalBlastR(T, s.t), c = { x: P.ix, y: P.iy, z: P.iz };
     for (const tg of live(sq)) {
-      if (s.hitB.has(tg.id)) continue; const cap = capsule(sq, tg); if (domeDist(c, cap, R, T.blastH) > R) continue;
+      if (s.hitB.has(tg.id)) continue; const cap = capsule(sq, tg); if (R <= 0 || domeDist(c, cap, T.blastR / T.blastH) > R) continue;
       if (tg.iframes) continue; if (sq.los && !sq.los(P.ix, P.iz, tg.x, tg.z)) continue;
       s.hitB.add(tg.id); const res = sq.damageTarget(tg.id, T.blastDmg, { kind: 'orbitalBlast', spell: s.id, x: P.ix, z: P.iz, knock: 0 });
       s.log.push({ k: 'blast', id: tg.id, res, at: s.total }); sq.event('orbitalBlastHit', { spell: s, target: tg.id, result: res });
