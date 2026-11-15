@@ -239,6 +239,11 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
     throw new RangeError('buildTerrainPatch: exterior patch exceeds vertex budget');
   }
   const dx = (x1 - x0) / (nx - 1), dz = (z1 - z0) / (nz - 1);
+  // Report out-of-range world coordinates before testing cell collapse:
+  // Infinity from Float32 conversion is a different defect than zero width.
+  if (![x0, x1, z0, z1].every(v => Number.isFinite(Math.fround(v)))) {
+    throw new RangeError('buildTerrainPatch: exterior position exceeds Float32 range');
+  }
   // World coordinates can be finite and within Float32 range yet round to
   // the same GPU coordinate. A collapsed strip has zero-area triangles and
   // cannot form a traversable exterior surface. Validate before allocating.
