@@ -15,7 +15,7 @@ class Vector3 {
   distanceTo(v) { return Math.hypot(this.x-v.x,this.y-v.y,this.z-v.z); }
 }
 class PointLight extends Object3D {
-  constructor(color,intensity,distance,decay){ super(); this.isPointLight=true; this.intensity=intensity; this.distance=distance; this.decay=decay; this.castShadow=false; this.userData={}; this.color={copy(){}}; this.layers={set(){}}; this.position={setFromMatrixPosition(){}}; }
+  constructor(color,intensity,distance,decay){ super(); this.isPointLight=true; this.intensity=intensity; this.distance=distance; this.decay=decay; this.castShadow=false; this.userData={}; this.color={r:1,g:1,b:1,copy(c){this.r=c.r;this.g=c.g;this.b=c.b;}}; this.layers={set(){}}; this.position={setFromMatrixPosition(){}}; }
 }
 const T={Object3D,PointLight,Vector3};
 test('A4: grupo destacado não ocupa slots nem permanece registrado após scan',()=>{
