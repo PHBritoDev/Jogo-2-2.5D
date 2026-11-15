@@ -2,6 +2,12 @@ import { impactFragments } from './skill-impact3d.js';
 import { softParticles, groundDecals, groundNormal, groundShatter, hash } from './celestial-fxkit3d.js?v=mod241-gemini-vfx-fixed';
 import { energyBody, ENERGY_PALETTES } from './vfx-flow3d.js?v=mod241-gemini-vfx-fixed';
 
+/** Ground-contact tolerance in world units. Air impacts must not emit terrain decals or dust. */
+export function impactTouchesGround(pointY, groundY) {
+  return Number.isFinite(pointY) && Number.isFinite(groundY)
+    && pointY - groundY >= -1 && pointY - groundY < 5;
+}
+
 /** Consumes collision records without deciding damage. Fixed reusable slots and 3D tectonic impact shatter. */
 export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () => {} } = {}) {
   const root = new T.Group();
@@ -58,7 +64,7 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
         const mode = s.kind === 'x' ? 'x' : 'radial';
         debris.add(p, age, s.size, C, s.seed + s.time, mode, low);
         const gy = ground(p.x, p.z);
-        const nearGround = Number.isFinite(gy) && p.y - gy >= -1 && p.y - gy < 5;
+        const nearGround = impactTouchesGround(p.y, gy);
         if (nearGround) {
           const nrm = groundNormal(ground, p.x, p.z, normal);
           shatter.addCrater(p.x, gy, p.z, age, 1.45, s.size * .72, C[0], C[1], C[2], s.seed, mode, low);
