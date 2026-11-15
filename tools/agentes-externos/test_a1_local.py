@@ -39,6 +39,20 @@ class LocalAgentTests(unittest.TestCase):
             }, Path(d))
         self.assertIn("terrainPatchCollision()", out)
 
+    def test_visual_lab_issue_includes_actual_rounds_logic(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "tools/visual-lab/rounds.cjs"
+            path.parent.mkdir(parents=True)
+            path.write_text("// QA rounds\\n" * 35 + "function verifyHydraRound() { return hydraObserved; }\\n")
+            prompt = agent.prompt_for({
+                "number": 399,
+                "title": "Visual laboratory verifyHydraRound fail",
+                "body": "Investigate verifyHydraRound and hydraObserved in QA rounds",
+            }, Path(d))
+        self.assertIn("verifyHydraRound()", prompt)
+        self.assertIn("tools/visual-lab/rounds.cjs", prompt)
+        self.assertIn("bug atual confirmado", prompt)
+
     def test_banner_only_is_rejected(self):
         fake = type("Completed", (), {"stdout": "Loading model... \n▄▄ ██ ██"})()
         with patch.object(agent.subprocess, "run", return_value=fake):
