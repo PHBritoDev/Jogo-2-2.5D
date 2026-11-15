@@ -1,0 +1,23 @@
+name: QA direcionado A5 — regressão de produção
+on:
+  pull_request:
+    paths:
+      - 'tests/a5-save-coins-finite.test.mjs'
+      - 'act1-flow.js'
+      - '.github/workflows/qa-a5-save-campaign.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regressao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar arquivo JS
+        run: node --check act1-flow.js
+      - name: Executar teste específico e contrato base
+        run: node --test tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs

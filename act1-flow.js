@@ -89,13 +89,13 @@ export function progressionFields(raw, questStep) {
     owned = [];
     if (questStep >= 4) owned.push('magic');
     if (questStep >= 6) owned.push('magic2');
-    if ((Number(r.bishopsDefeated) || 0) >= 1) owned.push('magic3');
+    if (clampInt(r.bishopsDefeated, 0, 4, 0) >= 1) owned.push('magic3');
   }
   const stats = {};
-  for (const k of STAT_KEYS) stats[k] = Math.max(0, Math.floor(Number(r.stats && r.stats[k]) || 0));
+  for (const k of STAT_KEYS) stats[k] = clampInt(r.stats && r.stats[k], 0, Number.MAX_SAFE_INTEGER, 0);
   const list = v => (Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 64) : []);
   return {
-    xp: Math.max(0, Math.floor(Number(r.xp) || 0)),
+    xp: clampInt(r.xp, 0, Number.MAX_SAFE_INTEGER, 0),
     owned: [...new Set(owned)],
     sword: ['aurora', 'vigilia', 'celeste'].includes(r.sword) && owned.includes(r.sword) ? r.sword : 'prota',
     stats,
@@ -103,14 +103,14 @@ export function progressionFields(raw, questStep) {
     bestiary: list(r.bestiary),
     bestiaryRewarded: list(r.bestiaryRewarded),
     shopVisited: !!r.shopVisited,
-    playSeconds: Math.max(0, Math.floor(Number(r.playSeconds) || 0)),
+    playSeconds: clampInt(r.playSeconds, 0, Number.MAX_SAFE_INTEGER, 0),
     ledgersFound: Array.isArray(r.ledgersFound) ? [...new Set(r.ledgersFound.filter(i => Number.isInteger(i) && i >= 0 && i < 3))] : [],
     vorgazhekRewardClaimed: !!r.vorgazhekRewardClaimed,
     lateFound: Array.isArray(r.lateFound) ? r.lateFound.filter(i => Number.isInteger(i) && i >= 0 && i < 8) : [],
-    lateFoundStep: Math.max(0, Math.floor(Number(r.lateFoundStep) || 0)),
-    lateFightIndex: Math.max(0, Math.min(5, Math.floor(Number(r.lateFightIndex) || 0))),
-    lateBossClaimed: r.lateBossClaimed && typeof r.lateBossClaimed === 'object' ? { zarkhael: !!r.lateBossClaimed.zarkhael, veraxion: !!r.lateBossClaimed.veraxion } : {},
-    gauntletIndex: Math.max(0, Math.min(4, Math.floor(Number(r.gauntletIndex) || 0))),
+    lateFoundStep: clampInt(r.lateFoundStep, 0, Number.MAX_SAFE_INTEGER, 0),
+    lateFightIndex: clampInt(r.lateFightIndex, 0, 5, 0),
+    lateBossClaimed: { zarkhael: !!(r.lateBossClaimed && r.lateBossClaimed.zarkhael), veraxion: !!(r.lateBossClaimed && r.lateBossClaimed.veraxion) },
+    gauntletIndex: clampInt(r.gauntletIndex, 0, 4, 0),
     finaleClaimed: !!r.finaleClaimed,
     // MOD 206 — casaco de frio do Ato III (comprado na estrada da cidade de neve).
     coatOwned: !!r.coatOwned,
@@ -143,7 +143,9 @@ export function migrateProgress(raw) {
   const base = baseProgress();
   if (!raw || typeof raw !== 'object') return base;
   raw = migrateBishopOneName(raw);
-  const coins = Math.max(0, Math.floor(Number(raw.coins) || 0));
+  // Saves corrompidos podem conter Infinity/NaN: nunca propagar moedas não finitas ao HUD/loja.
+  const rawCoins = Number(raw.coins);
+  const coins = Number.isFinite(rawCoins) ? Math.max(0, Math.floor(rawCoins)) : 0;
   // Preserva nomes de saves antigos (2–16 caracteres) sem permitir novos nomes fora do limite atual.
   const named = sanitizePlayerName(raw.playerName || '');
   const legacyName = String(raw.playerName || '').replace(/\s+/g, ' ').trim();
@@ -159,6 +161,9 @@ export function migrateProgress(raw) {
   const version = Number(raw.version);
   if (version >= ACT1.version) {
     const step = clampInt(raw.questStep, 0, 30, 0);
+    // Concluir o Ato I exige derrotar VHAZRAEL; saves antigos podem perder o contador.
+    // Reconstituir apenas o mínimo canônico, sem apagar vitórias posteriores.
+    const bishopsDefeated = Math.max(step >= 8 ? 1 : 0, clampInt(raw.bishopsDefeated, 0, 4, 0));
     const out = {
       ...base,
       ...shared,
@@ -170,9 +175,9 @@ export function migrateProgress(raw) {
       wardenDefeated: !!raw.wardenDefeated,
       portalOpened: !!raw.portalOpened,
       portalRewardClaimed: !!raw.portalRewardClaimed,
-      bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
-      vhazraelRewardClaimed: !!raw.vhazraelRewardClaimed,
-      ...progressionFields(raw, step)
+      bishopsDefeated,
+      vhazraelRewardClaimed: !!raw.vhazraelRewardClaimed || step >= 8,
+      ...progressionFields({ ...raw, bishopsDefeated }, step)
     };
     // Save do Ato I antigo (antes do Marco 2) parado no meio do ato: a etapa é mantida, mas a etapa recomeça
     // do jeito novo (o roteiro mudou: vendedor, floresta à noite, esgotos). Ouro, nome e compras ficam.
@@ -194,7 +199,9 @@ export function migrateProgress(raw) {
       questStep: step,
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: 0,
-      portalRewardClaimed: alreadyPaidPortal
+      portalRewardClaimed: alreadyPaidPortal,
+      // A migração de V5 não deve apagar compras, XP, bestiário ou conquistas.
+      ...progressionFields(raw, step)
     };
   }
   // Missão anterior à V5: conserva o ouro e recomeça o resgate.
@@ -215,10 +222,10 @@ export function questPresentation(step, sub = 0) {
     4: [['ATO I · OS ESGOTOS', 'Siga a trilha da montanha rumo aos esgotos'],
       ['ATO I · A PISTA', 'Siga a pista até a entrada da caverna, na encosta'],
       ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
-      ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][Math.min(3, sub)],
+      ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][clampInt(sub, 0, 3, 0)],
     5: ['ATO I · O GUARDIÃO DO PORTAL', 'Siga pelo caminho vazio e derrote o guardião do portal'],
     6: ['ATO I · O PORTAL DE VHAZRAEL', 'Entre no portal: a dimensão de VHAZRAEL está do outro lado'],
-    7: ['ATO I · DIMENSÃO ABERTA', 'VHAZRAEL espera na dimensão dele. Atravesse o portal'],
+    7: ['ATO I · DIMENSÃO ABERTA', 'Encontre VHAZRAEL na dimensão e derrote o Primeiro Bispo'],
     8: ['ATO I · CONCLUÍDO', 'VHAZRAEL caiu. Uma longa jornada começa']
   };
   const pair = pages[step] || pages[8];
@@ -467,8 +474,9 @@ export function personalizeLine(step, name) {
 /* ---------- Transições ---------- */
 /** Floresta: o 1º Seguidor, depois mais 2 (3 no total) e a chave. */
 export function afterEnemyDefeated(index, total = ACT1.enemyTotal) {
-  const next = Math.max(0, Math.floor(Number(index) || 0)) + 1;
-  if (next >= total) return { questStep: 3, journeyEnemyIndex: next, status: 'A chave caiu do último Seguidor. Abra a gaiola.' };
+  const limit = clampInt(total, 1, ACT1.enemyTotal, ACT1.enemyTotal);
+  const next = Math.min(limit, clampInt(index, 0, limit, 0) + 1);
+  if (next >= limit) return { questStep: 3, journeyEnemyIndex: next, status: 'A chave caiu do último Seguidor. Abra a gaiola.' };
   return { questStep: 2, journeyEnemyIndex: next, status: next === 1 ? 'Mais deles saem da mata.' : 'Falta um.' };
 }
 
@@ -478,10 +486,13 @@ export function afterWardenDefeat() {
 
 /** Avanço dentro do Ato I por sub-etapa (para salvar onde o jogador está). */
 export function nextAct1Sub(step, sub) {
-  const last = { 1: 1, 3: 2, 4: 3 }[step];
-  if (last === undefined) return { questStep: step, act1Sub: 0 };
-  if (sub < last) return { questStep: step, act1Sub: sub + 1 };
-  return { questStep: step + 1, act1Sub: 0 };
+  // Saves antigos podem restaurar a etapa como texto; nunca concatenar "4" + 1.
+  const safeStep = clampInt(step, 0, 30, 0);
+  const last = { 1: 1, 3: 2, 4: 3 }[safeStep];
+  if (last === undefined) return { questStep: safeStep, act1Sub: 0 };
+  const safeSub = clampInt(sub, 0, last, 0);
+  if (safeSub < last) return { questStep: safeStep, act1Sub: safeSub + 1 };
+  return { questStep: safeStep + 1, act1Sub: 0 };
 }
 
 /** A entrada usa a dimensão estável já publicada. Não cria arena nova. */
@@ -496,10 +507,13 @@ export function portalBlockedLines() {
 /** Volta da dimensão: a vitória sobre VHAZRAEL fecha o Ato I uma única vez. */
 export function afterVhazraelVictory(progress) {
   const p = progress || {};
-  const first = !p.vhazraelRewardClaimed;
+  // Checkpoints antigos podem estar na etapa concluída sem a flag de pagamento.
+  // Nunca pagar o Bispo novamente ao retomar um Ato I já finalizado.
+  const first = !p.vhazraelRewardClaimed && clampInt(p.questStep, 0, 30, 0) < 8;
   return {
-    questStep: 8,
-    bishopsDefeated: Math.max(1, Math.floor(Number(p.bishopsDefeated) || 0)),
+    // Uma vitória repetida não pode retroceder um save que já iniciou atos posteriores.
+    questStep: Math.max(8, clampInt(p.questStep, 0, 30, 0)),
+    bishopsDefeated: Math.max(1, clampInt(p.bishopsDefeated, 0, 4, 0)),
     vhazraelRewardClaimed: true,
     coinsGained: first ? ACT1.vhazraelReward : 0
   };

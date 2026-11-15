@@ -1,0 +1,328 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { ACT1, migrateProgress, afterVhazraelVictory, afterEnemyDefeated, nextAct1Sub, questPresentation } from '../act1-flow.js';
+
+test('A5: restore V6 checkpoints without duplicating narrative rewards', () => {
+  const saved = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 6,
+    act1Sub: 0, coins: 23, playerName: 'Viajante',
+    portalOpened: true, portalRewardClaimed: true, wardenDefeated: true };
+  const restored = migrateProgress(saved);
+  const reloaded = migrateProgress(restored);
+  assert.equal(restored.questStep, 6);
+  assert.equal(restored.portalRewardClaimed, true);
+  assert.equal(restored.wardenDefeated, true);
+  assert.deepEqual(reloaded, restored);
+});
+
+test('A5: corrupt non-finite coin balances cannot survive load/reload', () => {
+  for (const coins of [Infinity, -Infinity, 'Infinity', '-Infinity', 'NaN', NaN]) {
+    const restored = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev, coins, questStep: 3, act1Sub: 1 });
+    assert.equal(restored.coins, 0);
+    assert.equal(restored.questStep, 3);
+    assert.equal(restored.act1Sub, 1);
+    assert.equal(migrateProgress(restored).coins, 0);
+  }
+});
+
+test('A5: valid and legacy coin balances retain their value', () => {
+  for (const version of [5, ACT1.version]) {
+    assert.equal(migrateProgress({ version, coins: 18.9 }).coins, 18);
+    assert.equal(migrateProgress({ version, coins: -5 }).coins, 0);
+  }
+});
+
+test('A5: final boss checkpoint is finite and reward is once-only even after corrupt counter', () => {
+  for (const bishopsDefeated of [Infinity, -Infinity, NaN, 'Infinity', 'NaN', -12]) {
+    const progress = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+      questStep: 7, bishopsDefeated, coins: 23 });
+    const victory = afterVhazraelVictory(progress);
+    assert.equal(victory.questStep, 8);
+    assert.equal(victory.bishopsDefeated, 1);
+    assert.equal(victory.coinsGained, ACT1.vhazraelReward);
+    const saved = migrateProgress({ ...progress, ...victory,
+      coins: progress.coins + victory.coinsGained });
+    const reload = migrateProgress(saved);
+    assert.equal(reload.bishopsDefeated, 1);
+    assert.equal(reload.questStep, 8);
+    assert.equal(reload.coins, 23 + ACT1.vhazraelReward);
+    assert.equal(afterVhazraelVictory(reload).coinsGained, 0);
+    assert.deepEqual(migrateProgress(reload), reload);
+  }
+});
+
+test('A5: already claimed boss and portal rewards stay claimed through reload', () => {
+  const progress = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+    questStep: 8, bishopsDefeated: 2, coins: 80, portalRewardClaimed: true,
+    vhazraelRewardClaimed: true, wardenDefeated: true, portalOpened: true });
+  const repeat = afterVhazraelVictory(progress);
+  assert.equal(repeat.coinsGained, 0);
+  assert.equal(repeat.bishopsDefeated, 2);
+  const reloaded = migrateProgress({ ...progress, ...repeat });
+  assert.equal(reloaded.portalRewardClaimed, true);
+  assert.equal(reloaded.wardenDefeated, true);
+  assert.equal(reloaded.portalOpened, true);
+  assert.equal(reloaded.coins, 80);
+  assert.equal(afterVhazraelVictory(reloaded).coinsGained, 0);
+});
+
+test('A5: quest objective after portal crossing points to the actual boss', () => {
+  assert.match(questPresentation(6).objective, /Entre no portal/);
+  assert.match(questPresentation(7).objective, /Encontre VHAZRAEL/);
+  assert.match(questPresentation(7).objective, /derrote o Primeiro Bispo/);
+  assert.doesNotMatch(questPresentation(7).objective, /Atravesse o portal/);
+});
+
+test('A5: corrupt XP, time, combat stats and narrative checkpoint counters cannot survive reload', () => {
+  const raw = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    coins: 18, xp: Infinity, playSeconds: 'Infinity',
+    stats: { kills: Infinity, rescues: 'NaN', bishops: -Infinity },
+    lateFoundStep: Infinity, lateFightIndex: Infinity, gauntletIndex: Infinity };
+  const restored = migrateProgress(raw);
+  assert.equal(restored.questStep, 7);
+  assert.equal(restored.coins, 18);
+  for (const value of [restored.xp, restored.playSeconds, restored.stats.kills,
+    restored.stats.rescues, restored.stats.bishops, restored.lateFoundStep,
+    restored.lateFightIndex, restored.gauntletIndex]) {
+    assert.ok(Number.isFinite(value));
+    assert.equal(value, 0);
+  }
+  assert.deepEqual(migrateProgress(restored), restored);
+});
+
+test('A5: legitimate XP and checkpoint progress survive save reload', () => {
+  const raw = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    xp: 245.9, playSeconds: 420.8, stats: { kills: 11, rescues: 2 },
+    lateFoundStep: 4, lateFightIndex: 3, gauntletIndex: 2 };
+  const restored = migrateProgress(raw);
+  assert.equal(restored.xp, 245);
+  assert.equal(restored.playSeconds, 420);
+  assert.equal(restored.stats.kills, 11);
+  assert.equal(restored.stats.rescues, 2);
+  assert.equal(restored.lateFoundStep, 4);
+  assert.equal(restored.lateFightIndex, 3);
+  assert.equal(restored.gauntletIndex, 2);
+  assert.deepEqual(migrateProgress(restored), restored);
+});
+
+test('A5: follower encounters advance once and never exceed the three-enemy checkpoint', () => {
+  const expected = [1, 2, 3];
+  for (let i = 0; i < expected.length; i++) {
+    const result = afterEnemyDefeated(i);
+    assert.equal(result.journeyEnemyIndex, expected[i]);
+    assert.equal(result.questStep, i === 2 ? 3 : 2);
+    const saved = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+      questStep: result.questStep, journeyEnemyIndex: result.journeyEnemyIndex });
+    assert.equal(migrateProgress(saved).journeyEnemyIndex, expected[i]);
+  }
+  for (const bad of [Infinity, -Infinity, NaN, 'Infinity', -9, 9999]) {
+    const result = afterEnemyDefeated(bad);
+    assert.ok(Number.isFinite(result.journeyEnemyIndex));
+    assert.ok(result.journeyEnemyIndex >= 1 && result.journeyEnemyIndex <= ACT1.enemyTotal);
+    assert.equal(migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+      ...result }).journeyEnemyIndex, result.journeyEnemyIndex);
+  }
+  assert.equal(afterEnemyDefeated(ACT1.enemyTotal).journeyEnemyIndex, ACT1.enemyTotal);
+});
+
+test('A5: corrupted sewer objective substeps never crash HUD rendering', () => {
+  for (const bad of [-Infinity, Infinity, NaN, -1, 'NaN', 'Infinity', null, undefined]) {
+    const objective = questPresentation(4, bad);
+    assert.equal(typeof objective.title, 'string');
+    assert.equal(typeof objective.objective, 'string');
+    assert.ok(objective.objective.length > 0);
+  }
+  assert.match(questPresentation(4, 0).objective, /trilha/);
+  assert.match(questPresentation(4, 3).objective, /buraco/);
+});
+
+test('A5: invalid Act I substep cannot poison checkpoint transitions', () => {
+  for (const step of [1, 3, 4]) {
+    for (const bad of [Infinity, -Infinity, NaN, 'NaN', -9]) {
+      const transition = nextAct1Sub(step, bad);
+      assert.equal(transition.questStep, step);
+      assert.equal(transition.act1Sub, 1);
+      const saved = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+        ...transition, coins: 14, portalRewardClaimed: true });
+      const reloaded = migrateProgress(saved);
+      assert.equal(reloaded.act1Sub, 1);
+      assert.equal(reloaded.coins, 14);
+      assert.equal(reloaded.portalRewardClaimed, true);
+    }
+  }
+  assert.deepEqual(nextAct1Sub(4, 3), { questStep: 5, act1Sub: 0 });
+  assert.deepEqual(nextAct1Sub(3, 1.9), { questStep: 3, act1Sub: 2 });
+});
+
+test('A5: legacy string quest steps advance numerically and reload the intended checkpoint', () => {
+  for (const [step, sub, nextStep] of [['1', 1, 2], ['3', 2, 4], ['4', 3, 5]]) {
+    const result = nextAct1Sub(step, sub);
+    assert.deepEqual(result, { questStep: nextStep, act1Sub: 0 });
+    const restored = migrateProgress({
+      version: ACT1.version, act1Rev: ACT1.rev, ...result, coins: 19,
+      portalRewardClaimed: true, owned: ['magic']
+    });
+    assert.equal(restored.questStep, nextStep);
+    assert.equal(restored.coins, 19);
+    assert.equal(restored.portalRewardClaimed, true);
+    assert.deepEqual(migrateProgress(restored), restored);
+  }
+  assert.deepEqual(nextAct1Sub('4', '2'), { questStep: 4, act1Sub: 3 });
+  assert.deepEqual(nextAct1Sub('Infinity', 1), { questStep: 0, act1Sub: 0 });
+  assert.deepEqual(nextAct1Sub(-Infinity, 1), { questStep: 0, act1Sub: 0 });
+});
+
+test('A5: V5 save migration retains paid upgrades, XP and collection after reload', () => {
+  const legacy = {
+    version: 5, questStep: 5, coins: 64, playerName: 'Viajante',
+    xp: 540, owned: ['magic', 'aurora', 'magic2'],
+    sword: 'aurora', shopVisited: true,
+    stats: { kills: 11, rescues: 2 },
+    achievementsClaimed: ['first-rescue'], bestiary: ['captor'],
+    bestiaryRewarded: ['captor'], ledgersFound: [0, 2],
+    playSeconds: 320
+  };
+  const restored = migrateProgress(legacy);
+  assert.equal(restored.version, ACT1.version);
+  assert.equal(restored.questStep, 4);
+  assert.equal(restored.portalRewardClaimed, true);
+  assert.equal(restored.coins, 64);
+  assert.equal(restored.xp, 540);
+  assert.deepEqual(restored.owned, ['magic', 'aurora', 'magic2']);
+  assert.equal(restored.sword, 'aurora');
+  assert.equal(restored.shopVisited, true);
+  assert.equal(restored.stats.kills, 11);
+  assert.equal(restored.stats.rescues, 2);
+  assert.deepEqual(restored.achievementsClaimed, ['first-rescue']);
+  assert.deepEqual(restored.bestiary, ['captor']);
+  assert.deepEqual(restored.bestiaryRewarded, ['captor']);
+  assert.deepEqual(restored.ledgersFound, [0, 2]);
+  assert.equal(restored.playSeconds, 320);
+  assert.deepEqual(migrateProgress(restored), restored);
+});
+
+test('A5: legacy V5 missing shop fields still migrates with default progression', () => {
+  const restored = migrateProgress({ version: 5, questStep: 1, coins: 9 });
+  assert.equal(restored.questStep, 1);
+  assert.equal(restored.coins, 9);
+  assert.deepEqual(restored.owned, []);
+  assert.equal(restored.sword, 'prota');
+  assert.deepEqual(migrateProgress(restored), restored);
+});
+
+test('A5: completed Act I legacy checkpoint cannot pay VHAZRAEL twice when reward flag is missing', () => {
+  for (const questStep of [8, '8', 9, 14]) {
+    const legacy = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+      questStep, coins: 120, bishopsDefeated: 1, vhazraelRewardClaimed: false });
+    const victory = afterVhazraelVictory(legacy);
+    assert.equal(victory.coinsGained, 0);
+    assert.equal(victory.vhazraelRewardClaimed, true);
+    const reload = migrateProgress({ ...legacy, ...victory });
+    assert.equal(reload.coins, 120);
+    assert.equal(afterVhazraelVictory(reload).coinsGained, 0);
+  }
+  const firstVictory = afterVhazraelVictory(migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 7, coins: 120
+  }));
+  assert.equal(firstVictory.coinsGained, ACT1.vhazraelReward);
+});
+
+test('A5: replaying the first bishop never rewinds later canonical acts or duplicates payment', () => {
+  for (const questStep of [8, 9, 14, 15, 21, 25, 30, '21']) {
+    const saved = migrateProgress({
+      version: ACT1.version, act1Rev: ACT1.rev,
+      questStep, act1Sub: 0, coins: 120, bishopsDefeated: 3,
+      vhazraelRewardClaimed: false, owned: ['magic', 'aurora'], sword: 'aurora'
+    });
+    const victory = afterVhazraelVictory(saved);
+    assert.equal(victory.questStep, Number(questStep));
+    assert.equal(victory.coinsGained, 0);
+    assert.equal(victory.bishopsDefeated, 3);
+    const reload = migrateProgress({ ...saved, ...victory });
+    assert.equal(reload.questStep, Number(questStep));
+    assert.equal(reload.coins, 120);
+    assert.equal(reload.sword, 'aurora');
+    assert.equal(afterVhazraelVictory(reload).coinsGained, 0);
+    assert.deepEqual(migrateProgress(reload), reload);
+  }
+  const first = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev, questStep: 7, coins: 10 });
+  const victory = afterVhazraelVictory(first);
+  assert.equal(victory.questStep, 8);
+  assert.equal(victory.coinsGained, ACT1.vhazraelReward);
+});
+
+test('A5: corrupted bishop counter must not grant legacy magic3 on reload', () => {
+  for (const bishopsDefeated of [Infinity, 'Infinity', NaN, 'NaN', -Infinity]) {
+    const saved = migrateProgress({
+      version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+      bishopsDefeated, coins: 15
+      // Old save has no owned list: unlocks must be derived from valid progress.
+    });
+    assert.equal(saved.bishopsDefeated, 0);
+    assert.equal(saved.owned.includes('magic3'), false);
+    assert.deepEqual(migrateProgress(saved), saved);
+  }
+  const purchased = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    bishopsDefeated: Infinity, owned: ['magic', 'magic3']
+  });
+  assert.deepEqual(purchased.owned, ['magic', 'magic3']);
+  assert.deepEqual(migrateProgress(purchased), purchased);
+  const legitimate = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 8,
+    bishopsDefeated: 1
+  });
+  assert.equal(legitimate.owned.includes('magic3'), true);
+  assert.deepEqual(migrateProgress(legitimate), legitimate);
+});
+
+test('A5: restoring completed Act I repairs a missing bishop reward flag', () => {
+  for (const questStep of [8, 9, 14, 21, 30, '8']) {
+    const restored = migrateProgress({
+      version: ACT1.version, act1Rev: ACT1.rev, questStep,
+      vhazraelRewardClaimed: false, coins: 97, owned: ['magic', 'magic3'],
+      bishopsDefeated: 1
+    });
+    assert.equal(restored.vhazraelRewardClaimed, true);
+    assert.equal(restored.questStep, Number(questStep));
+    assert.equal(restored.coins, 97);
+    assert.equal(afterVhazraelVictory(restored).coinsGained, 0);
+    assert.deepEqual(migrateProgress(restored), restored);
+  }
+  const beforeBattle = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    vhazraelRewardClaimed: false, coins: 20
+  });
+  assert.equal(beforeBattle.vhazraelRewardClaimed, false);
+  assert.equal(afterVhazraelVictory(beforeBattle).coinsGained, ACT1.vhazraelReward);
+});
+
+test('A5: completed Act I repairs missing first bishop count without replay or duplicate reward', () => {
+  for (const questStep of [8, 9, 14, 21, 30, '8']) {
+    for (const bishopsDefeated of [0, undefined, NaN, Infinity, 'NaN']) {
+      const restored = migrateProgress({
+        version: ACT1.version, act1Rev: ACT1.rev, questStep, bishopsDefeated,
+        coins: 72, vhazraelRewardClaimed: false
+      });
+      assert.equal(restored.bishopsDefeated, 1);
+      assert.equal(restored.vhazraelRewardClaimed, true);
+      assert.equal(restored.owned.includes('magic3'), true);
+      assert.equal(restored.coins, 72);
+      assert.equal(afterVhazraelVictory(restored).coinsGained, 0);
+      assert.deepEqual(migrateProgress(restored), restored);
+    }
+  }
+  const laterBosses = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 25,
+    bishopsDefeated: 3, owned: ['magic', 'aurora'], sword: 'aurora'
+  });
+  assert.equal(laterBosses.bishopsDefeated, 3);
+  assert.deepEqual(laterBosses.owned, ['magic', 'aurora']);
+  assert.equal(laterBosses.sword, 'aurora');
+  const firstBattle = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    bishopsDefeated: 0, coins: 10
+  });
+  assert.equal(firstBattle.bishopsDefeated, 0);
+  assert.equal(firstBattle.owned.includes('magic3'), false);
+  assert.equal(afterVhazraelVictory(firstBattle).coinsGained, ACT1.vhazraelReward);
+});
