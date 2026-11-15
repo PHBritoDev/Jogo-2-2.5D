@@ -19,3 +19,16 @@ test('A5: normal coins and first victory reward are unchanged', () => {
   assert.equal(afterVhazraelVictory(restored).coinsGained, ACT1.vhazraelReward);
   assert.equal(migrateProgress({ ...restored, coins: -100 }).coins, 0);
 });
+
+test('A5: partially saved VHAZRAEL victory never pays twice', () => {
+  const partial = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+    questStep: 7, bishopsDefeated: 1, coins: 400, vhazraelRewardClaimed: false });
+  const victory = afterVhazraelVictory(partial);
+  assert.equal(victory.coinsGained, 0);
+  assert.equal(victory.questStep, 8);
+  assert.equal(victory.bishopsDefeated, 1);
+  assert.equal(afterVhazraelVictory(migrateProgress({ ...partial, ...victory })).coinsGained, 0);
+  const fresh = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+    questStep: 7, bishopsDefeated: 0, coins: 400, vhazraelRewardClaimed: false });
+  assert.equal(afterVhazraelVictory(fresh).coinsGained, ACT1.vhazraelReward);
+});
