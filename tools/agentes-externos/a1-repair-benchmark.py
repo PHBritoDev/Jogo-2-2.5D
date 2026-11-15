@@ -85,6 +85,18 @@ def evaluate(proposer):
             answer = proposer(case["source"], case["behavior"])
             ok = behaves_correctly(answer, case)
             error = "mismatch" if not ok else ""
+            # Telemetry contains no raw prompt, code or arbitrary text.
+            shape = "unchanged" if answer == case["source"] else "changed"
+            try:
+                if answer.startswith("return ") and len(answer) <= 240 and "\\n" not in answer:
+                    expr = ast.parse(answer[7:], mode="eval").body
+                    observed = [restricted_value(expr, values) for values, _ in case["samples"]]
+                    shape += ":evaluated:" + ",".join(str(v)[:12] for v in observed)
+                else:
+                    shape += ":unsupported"
+            except (ValueError, SyntaxError, TypeError, RecursionError, OverflowError):
+                shape += ":unsupported"
+            error = shape if not ok else ""
         except (ValueError, TimeoutError) as exc:
             ok, error = False, type(exc).__name__
         results.append({"id": case["id"], "pass": ok, "reason": error})
