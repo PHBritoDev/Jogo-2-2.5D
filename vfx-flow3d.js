@@ -100,7 +100,7 @@ export function energyBody(T,parent,preset,options={}){
  parent.add(mesh);
  const direction=new T.Vector3(),axis=new T.Vector3(0,0,1);
  return{mesh,material,update(time,{position,dir,radius=1,length=1,alpha=.94,quality=1,dissolve=0}={}){
-  syncWarpBounds();mesh.visible=alpha>.005;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
+  syncWarpBounds();mesh.visible=alpha>.005&&dissolve<1;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
   material.uniforms.time.value=time;material.uniforms.alpha.value=alpha;material.uniforms.detail.value=quality===0?.65:1;material.uniforms.dissolve.value=dissolve;
  },dispose(){parent.remove(mesh);geometry.dispose();material.dispose();}};
 }
