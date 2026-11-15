@@ -49,6 +49,26 @@ test('retalho do terreno compartilha a borda com a grade fina (sem fresta) para 
     for (const x of [ROAD_TERRAIN_PATCH.x0, ROAD_TERRAIN_PATCH.x1]) assert.ok(main.ax.some(v => Math.abs(v - x) < 1e-6), 'coluna alinhada em x=' + x);
     const patch = buildTerrainPatch(terrain, { ...ROAD_TERRAIN_PATCH, z0, cell });
     assert.ok(Number.isInteger((ROAD_TERRAIN_PATCH.z1 - z0) / cell) && patch.indices.length % 3 === 0);
+    // Validate ACTUAL vertex coordinates at the seam, not only aligned axis metadata.
+    // This would catch a patch whose vertices drift from the main terrain even with aligned bounds.
+    const seamRow = main.az.findIndex(z => Math.abs(z - z0) < 1e-6);
+    assert.ok(seamRow >= 0, 'linha z0 realmente gerada na malha principal');
+    for (let i = 0; i < patch.nx; i++) {
+      const x = patch.positions[3 * i];
+      const mainCol = main.ax.findIndex(v => Math.abs(v - x) < 1e-5);
+      assert.ok(mainCol >= 0, 'coluna compartilhada x=' + x + ', celula=' + cell);
+      const m = 3 * (seamRow * main.nx + mainCol);
+      const p = 3 * i;
+      for (let axis = 0; axis < 3; axis++) {
+        assert.ok(Math.abs(main.positions[m + axis] - patch.positions[p + axis]) < 1e-4,
+          'fresta de vertice no eixo ' + axis + ', x=' + x + ', celula=' + cell);
+      }
+    }
+    const lastX = patch.positions[3 * (patch.nx - 1)];
+    const lastZ = patch.positions[3 * ((patch.nz - 1) * patch.nx) + 2];
+    assert.ok(Math.abs(lastX - ROAD_TERRAIN_PATCH.x1) < 1e-5, 'retalho nao cobre borda x1');
+    assert.ok(Math.abs(lastZ - ROAD_TERRAIN_PATCH.z1) < 1e-5, 'retalho nao cobre borda z1');
+
   }
 });
 
