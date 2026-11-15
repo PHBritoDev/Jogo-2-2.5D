@@ -1,3 +1,6 @@
+## Atualização operacional — PRs paralelas (15/11/2026)
+Por autorização do criador, **A1–A5 podem manter várias PRs em paralelo**, cada uma em branch própria e escopo independente; commits e novos trabalhos não aguardam o merge da PR anterior. **A1–A5 podem mesclar suas próprias PRs de baixo risco** somente depois de CI obrigatório totalmente verde, revisão de conflito/integração, testes e evidências pertinentes confirmados, sem alterar áreas protegidas, sem depender de outro agente e com rastreio na #519. A6 continua podendo integrar PRs elegíveis. Não dar push direto à main nem mesclar pendências, testes falhos, alterações sensíveis ou cenas da caverna/Claude. Em choque com instrução antiga de uma PR ou proibição absoluta de auto-merge, prevalece esta regra mais recente.
+
 # Contrato de trabalho paralelo — Claude, Codex e outros
 
 ## Regra essencial
