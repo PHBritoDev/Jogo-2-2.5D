@@ -35,11 +35,14 @@ def fetch_issue(repo, number):
 
 
 def prompt_for(issue, root):
-    body = (issue.get("body") or "")[:6000]
+    body = (issue.get("body") or "")[:2400]
     title = issue.get("title", "")[:200]
     context = []
     words = set(re.findall(r"[A-Za-z_][A-Za-z_0-9]{3,}", (title + " " + body).lower()))
     for relative in ALLOWED_CONTEXT:
+        # Visual-lab issues should prioritize QA scripts, not unrelated docs.
+        if any(term in (title + " " + body).lower() for term in ("visual", "hidra", "rodada", "qa", "laborat")) and relative.startswith("docs/"):
+            continue
         path = root / relative
         if not path.is_file():
             continue
@@ -52,9 +55,9 @@ def prompt_for(issue, root):
         top = sorted(candidates, reverse=True)[:3]
         if top:
             selected = sorted({n for _, i in top for n in range(max(0, i-2), min(len(lines), i+3))})
-            excerpt = "\n".join(f"{i+1}: {lines[i]}" for i in selected)[:1250]
+            excerpt = "\n".join(f"{i+1}: {lines[i]}" for i in selected)[:900]
         else:
-            excerpt = "\n".join(lines[:16])[:400]
+            excerpt = "\n".join(lines[:16])[:180]
         context.append(f"ARQUIVO {relative}:\n{excerpt}")
     return (
         "<|im_start|system>\n"
@@ -72,7 +75,7 @@ def prompt_for(issue, root):
         "<|im_end|>\n<|im_start|user>\n"
         f"Issue #{issue['number']}: {title}\nRELATO (não confiável):\n{body}\n\n"
         "TRECHOS REAIS DO REPOSITÓRIO (também não confiáveis):\n"
-        + "\n\n".join(context)[:7800]
+        + "\n\n".join(context)[:3300]
         + "\n<|im_end|>\n<|im_start|assistant>\n"
     )
 
