@@ -157,7 +157,7 @@ test('large but representable exterior coordinates remain valid', () => {
 
 test('tiny but finite exterior cells do not collapse into GPU zero-area triangles', () => {
   assert.throws(() => buildTerrainPatch({ height: () => 0 }, {
-    x0: 100000, x1: 100000.01, z0: 0, z1: 10, cell: 2.5,
+    x0: 100000, x1: 100000.001, z0: 0, z1: 10, cell: 2.5,
   }), /cells collapse in Float32/);
 });
 
