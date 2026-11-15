@@ -23,8 +23,9 @@ export function impactRecordValid({ time, point, size = 2 } = {}) {
 
 /** Direction vectors from combat records must be finite and non-degenerate. */
 export function impactDirectionValid(dir) {
-  return Number.isFinite(dir?.x) && Number.isFinite(dir?.y) && Number.isFinite(dir?.z)
-    && (dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) > 1e-12;
+  if (!Number.isFinite(dir?.x) || !Number.isFinite(dir?.y) || !Number.isFinite(dir?.z)) return false;
+  const lengthSquared = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
+  return Number.isFinite(lengthSquared) && lengthSquared > 1e-12;
 }
 
 /** Consumes collision records without deciding damage. Fixed reusable slots and 3D tectonic impact shatter. */
