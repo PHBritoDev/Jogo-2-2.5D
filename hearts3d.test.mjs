@@ -137,3 +137,20 @@ test('timestamp zero preservado em JSON e em save legado textual', () => {
     assert.equal(reopened.hearts, 6, 'reabrir o save não deve perder a contagem parcial');
   }
 });
+
+
+test('timestamp zero não é confundido com ausente e mantém tempo parcial após consumir coração', () => {
+  const now = HEARTS.regenMs * 3 + 45000;
+  const loaded = normalizeHearts({ hearts: 4, since: 0, explained: true }, now);
+  assert.deepEqual({ hearts: loaded.hearts, since: loaded.since, explained: loaded.explained },
+    { hearts: 7, since: HEARTS.regenMs * 3, explained: true });
+  const afterLoss = loseHeart(loaded, now);
+  assert.equal(afterLoss.hearts, 6);
+  assert.equal(afterLoss.since, HEARTS.regenMs * 3, 'perder coração não deve reiniciar contagem parcial');
+  const reopened = normalizeHearts(JSON.parse(JSON.stringify(afterLoss)), now + HEARTS.regenMs - 45000);
+  assert.equal(reopened.hearts, 7);
+  assert.equal(reopened.since, HEARTS.regenMs * 4);
+  const absent = normalizeHearts({ hearts: 4 }, now);
+  assert.equal(absent.hearts, 4, 'campo ausente não pode dar regeneração desde a época Unix');
+  assert.equal(absent.since, now);
+});
