@@ -51,7 +51,7 @@ def python_variants(before, limit=12):
             choices.append(item)
 
     for old, new in (("max(", "min("), ("min(", "max(")):
-        for match in re.finditer(r"(?<![\\w.])" + re.escape(old), before):
+        for match in re.finditer(r"(?<![\w.])" + re.escape(old), before):
             add(before[:match.start()] + new + before[match.end():])
     expr = before[7:]
     add("return max(0, " + expr + ")")
