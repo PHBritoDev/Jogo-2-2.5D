@@ -469,8 +469,9 @@ export function personalizeLine(step, name) {
 /* ---------- Transições ---------- */
 /** Floresta: o 1º Seguidor, depois mais 2 (3 no total) e a chave. */
 export function afterEnemyDefeated(index, total = ACT1.enemyTotal) {
-  const next = Math.max(0, Math.floor(Number(index) || 0)) + 1;
-  if (next >= total) return { questStep: 3, journeyEnemyIndex: next, status: 'A chave caiu do último Seguidor. Abra a gaiola.' };
+  const limit = clampInt(total, 1, ACT1.enemyTotal, ACT1.enemyTotal);
+  const next = Math.min(limit, clampInt(index, 0, limit, 0) + 1);
+  if (next >= limit) return { questStep: 3, journeyEnemyIndex: next, status: 'A chave caiu do último Seguidor. Abra a gaiola.' };
   return { questStep: 2, journeyEnemyIndex: next, status: next === 1 ? 'Mais deles saem da mata.' : 'Falta um.' };
 }
 
