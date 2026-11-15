@@ -20,9 +20,9 @@ export const clipFor = (clips, key) => (clips || []).find(c => NPC_CLIP_PATTERNS
 
 /** Perfis: o que cada um faz, para onde olha quando "vigia", com que frequência trabalha e saúda. */
 export const VILLAGER_PROFILES = Object.freeze({
-  bento: { kind: 'vendor', name: 'Bento', mood: 'cansado', work: .55, rest: .35, watch: 0, greetR: 5, nodEvery: 5.5, greetCooldown: 50 },
-  teo: { kind: 'vendor', name: 'Téo', mood: 'desconfiado', work: .45, rest: 0, watch: .35, greetR: 5.5, nodEvery: 4.5, greetCooldown: 45 },
-  lia: { kind: 'vendor', name: 'Lia', mood: 'cordial', work: .65, rest: 0, watch: 0, greetR: 6, nodEvery: 3.8, greetCooldown: 40 },
+  bento: { kind: 'vendor', name: 'Bento', mood: 'cansado', work: .4, stock: .15, rest: .35, watch: 0, greetR: 5, nodEvery: 5.5, greetCooldown: 50 },
+  teo: { kind: 'vendor', name: 'Téo', mood: 'desconfiado', work: .3, stock: .2, rest: 0, watch: .35, greetR: 5.5, nodEvery: 4.5, greetCooldown: 45 },
+  lia: { kind: 'vendor', name: 'Lia', mood: 'cordial', work: .4, stock: .3, rest: 0, watch: 0, greetR: 6, nodEvery: 3.8, greetCooldown: 40 },
   morador: { kind: 'vendor', name: 'Morador da praça', mood: 'apreensivo', work: .3, rest: 0, watch: .4, greetR: 3.6, nodEvery: 6, greetCooldown: 60 },
   moradora: { kind: 'walker', name: 'Moradora com balde', greetR: 2.6, greetCooldown: 70 },
 });
@@ -37,20 +37,23 @@ const between = (r, a, b) => a + (b - a) * r();
  */
 export function createVillagerBrain(profile, seed = 1, { roadYaw = 0, waypoints = 2 } = {}) {
   const P = typeof profile === 'string' ? VILLAGER_PROFILES[profile] : profile, R = rng(seed);
-  const B = { state: P.kind === 'walker' ? 'walk' : 'idle', t: 0, dur: between(R, 3, 6), lastGreet: -1e9, clock: 0, target: 1, history: [] };
+  const B = { state: P.kind === 'walker' ? 'walk' : 'idle', t: 0, dur: between(R, 3, 6), lastGreet: -1e9, clock: 0, target: 1, history: [], att: 0, attCool: 0, cueClip: 'idle', side: 1 };
   const go = (s, dur) => { B.history.push(s); if (B.history.length > 40) B.history.shift(); B.state = s; B.t = 0; B.dur = dur; };
   const ONCE = { work: 2.4, greet: 2.6 };
   function update(dt, sense = {}) {
     B.t += dt; B.clock += dt; const d = sense.heroDist ?? 1e9, canGreet = B.clock - B.lastGreet > P.greetCooldown;
     // reação ao herói tem prioridade, mas nunca interrompe um gesto já começado
     if (sense.danger && B.state !== 'cower') go('cower', 3);
-    else if ((sense.talking || (d < P.greetR && canGreet)) && !['greet', 'attend', 'work', 'cower'].includes(B.state)) {
+    else if ((sense.talking || (d < P.greetR && canGreet)) && !['greet', 'attend', 'work', 'cower', 'cue'].includes(B.state)) {
       if (P.kind === 'walker' && !sense.heroAhead && !sense.talking) { /* segue o caminho: só olha */ }
       else { B.lastGreet = B.clock; go(sense.talking ? 'attend' : 'greet', sense.talking ? 3 : ONCE.greet); }
     }
     switch (B.state) {
-      case 'idle': if (B.t > B.dur) { const r = R();
-        if (r < P.work) go('work', ONCE.work); else if (r < P.work + P.rest) go('rest', between(R, 4, 7)); else if (r < P.work + P.rest + P.watch) go('watchRoad', between(R, 3, 5)); else go('lookAround', between(R, 2.5, 4)); } break;
+      case 'idle': if (B.t > B.dur) { const r = R(), st = P.stock || 0;
+        if (r < P.work) go('work', ONCE.work); else if (r < P.work + st) { B.side = R() < .5 ? -1 : 1; go('stock', ONCE.work + .8); } else if (r < P.work + st + P.rest) go('rest', between(R, 4, 7));
+        else if (r < P.work + st + P.rest + P.watch) go('watchRoad', between(R, 3, 5)); else go('lookAround', between(R, 2.5, 4)); } break;
+      case 'stock': if (B.t > B.dur) go('idle', between(R, 3, 6)); break;
+      case 'cue': if (B.t > B.dur) go('attend', 2.5); break;
       case 'work': if (B.t > B.dur) go('idle', between(R, 3, 7)); break;
       case 'rest': case 'watchRoad': case 'lookAround': if (B.t > B.dur) go('idle', between(R, 2.5, 5)); break;
       case 'greet': if (B.t > B.dur) go('attend', 2); break;
@@ -66,23 +69,31 @@ export function createVillagerBrain(profile, seed = 1, { roadYaw = 0, waypoints 
     return intent(sense);
   }
   function intent(sense) {
-    const s = B.state, look = (sense.heroDist ?? 1e9) < (P.greetR + 3) ? { yaw: sense.heroAngle || 0, pitch: 0 } : null;
+    // atenção: olha o herói quando está perto e À FRENTE (não gira o pescoço para trás), por alguns segundos; depois
+    // desvia o olhar um tempo e volta (sem rastrear sem parar). Conversando, a atenção é total.
+    const d = sense.heroDist ?? 1e9, a = Math.abs(sense.heroAngle || 0), near = d < (P.greetR + 3) && a < 1.75, dt = sense.dt || 0;
+    if (sense.talking) { B.att = 0; B.attCool = 0; } else if (near && B.attCool <= 0) { B.att += dt; if (B.att > (d < 2 ? 9 : 5.5)) { B.att = 0; B.attCool = 3.5; } } else { B.attCool = Math.max(0, B.attCool - dt); if (!near) B.att = 0; }
+    const s = B.state, look = sense.talking || (near && B.attCool <= 0) ? { yaw: sense.heroAngle || 0, pitch: 0 } : null;
     const base = { state: s, clip: 'idle', once: false, look: null, lean: 0, nod: 0, move: false, target: B.target };
     switch (s) {
       case 'work': return { ...base, clip: 'inspect', once: true };
+      case 'stock': return { ...base, clip: 'inspect', once: true, turn: B.side * .75 }; // vira para a caixa ao lado e confere o estoque
+      case 'cue': return { ...base, clip: B.cueClip, once: true, look };
       case 'rest': return { ...base, lean: .55, look: { yaw: 0, pitch: .18 } }; // apoia-se no balcão, olha para baixo
       case 'watchRoad': return { ...base, clip: 'alert', look: { yaw: roadYaw, pitch: -.04 } };
       case 'lookAround': return { ...base, look: { yaw: Math.sin(B.t * 1.4) * .6, pitch: 0 } };
       case 'greet': return { ...base, clip: 'wave', once: true, look };
       case 'attend': case 'resume': return { ...base, look, nod: P.nodEvery ? (B.t % P.nodEvery < .55 ? Math.sin(B.t % P.nodEvery / .55 * Math.PI) : 0) : 0 };
       case 'cower': return { ...base, clip: 'alert', look, lean: -.2 };
-      case 'walk': return { ...base, clip: 'walk', move: true };
+      case 'walk': return { ...base, clip: 'walk', move: true, look: look && a < 1.2 ? { yaw: look.yaw * .6, pitch: 0 } : null }; // passante nota o herói sem parar
       case 'yield': return { ...base, look };
       case 'pause': return { ...base, clip: B.target === 1 && B.t < 2.4 ? 'inspect' : 'idle', once: B.target === 1 && B.t < 2.4, look };
       default: return { ...base, look };
     }
   }
-  return { update, get state() { return B.state; }, get history() { return B.history.slice(); }, profile: P };
+  /** Gesto pedido de fora (conversa): 'wave' | 'inspect' | 'alert'. Nunca interrompe medo nem caminhada com balde. */
+  function cue(clip, dur = 2.4) { if (!clip || clip === 'none' || B.state === 'cower') return false; B.cueClip = clip; go('cue', dur); return true; }
+  return { update, cue, get state() { return B.state; }, get history() { return B.history.slice(); }, profile: P };
 }
 
 /**
@@ -90,23 +101,31 @@ export function createVillagerBrain(profile, seed = 1, { roadYaw = 0, waypoints 
  * opts.walkSpeed (m/s no timeScale 1, medido no clipe Walking), opts.waypoints [[x,z],…], opts.ground(x,z).
  * Chamado DEPOIS de mixer.update (o mixer reescreve os ossos; os acréscimos não acumulam).
  */
+export const IDLE_W = .3;
 export function createVillagerDriver(THREE, npc, brain, { walkSpeed = .67, waypoints = null, ground = () => 0, blocked = () => false } = {}) {
   const clips = npc.animations || [], mixer = npc.mixer, actions = {}, head = findBone(npc.model, /^head$/i), chest = findBone(npc.model, /^(upperchest|chest)$/i), neck = findBone(npc.model, /^neck$/i);
-  let current = null, curKey = null, look = { yaw: 0, pitch: 0 }, lean = 0, last = null, stuck = 0;
+  let current = null, curKey = null, look = { yaw: 0, pitch: 0 }, lean = 0, last = null, stuck = 0, baseYaw = null;
   const action = key => { if (actions[key] !== undefined) return actions[key]; const c = clipFor(clips, key); actions[key] = c && mixer ? mixer.clipAction(c) : null; return actions[key]; };
   if (mixer) mixer.stopAllAction(); // o factory deixou um clipe congelado: a vida assume
+  // O idle dos GLBs Meshy balança o corpo inteiro (medido no jogo: cabeça ±9 cm, quadril ±4 cm em 15 s) — lia como
+  // "respiração bizarra". O idle toca com peso IDLE_W sobre uma ÂNCORA (o mesmo clipe parado no quadro 0, pose
+  // neutra): pesos somam 1 (nunca mistura com a pose de ligação/T-pose) e a amplitude cai para ~30 %.
+  const idleClip = clipFor(clips, 'idle'), anchor = idleClip && mixer ? mixer.clipAction(idleClip.clone()) : null;
+  if (anchor) { anchor.play(); anchor.paused = true; anchor.time = 0; anchor.setEffectiveWeight(0); }
   function play(key, it) {
     const a = action(key) || action('idle'); if (!a) return;
     if (key === curKey && !it.once) return; if (key === curKey && it.once && current && current.isRunning()) return; curKey = key;
-    a.reset(); a.enabled = true; a.setEffectiveWeight(1);
+    a.reset(); a.enabled = true; a.setEffectiveWeight(key === 'idle' && anchor ? IDLE_W : 1);
     a.setLoop(it.once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = true;
     a.timeScale = key === 'walk' ? walkScale : 1;
     a.play(); if (current && current !== a) current.crossFadeTo(a, .35, false); current = a;
   }
   const walkScale = .82, speed = walkSpeed * walkScale, _v = new THREE.Vector3();
+  let breath = (npc.holder && npc.holder.id || 1) * 1.7; // fase própria: os moradores não respiram em uníssono
   function update(dt, sense) {
-    const it = brain.update(dt, sense); last = it;
+    sense.dt = dt; const it = brain.update(dt, sense); last = it;
     play(it.clip, it);
+    if (anchor) { let w = 0; for (const k in actions) if (actions[k]) w += actions[k].getEffectiveWeight(); anchor.setEffectiveWeight(Math.max(0, Math.min(1, 1 - w))); }
     // caminhada: anda à velocidade do passo do próprio clipe (sem deslizar), vira suave para o alvo
     if (it.move && waypoints) {
       const h = npc.holder, [tx, tz] = waypoints[it.target % waypoints.length], dx = tx - h.position.x, dz = tz - h.position.z, dist = Math.hypot(dx, dz);
@@ -116,15 +135,22 @@ export function createVillagerDriver(THREE, npc, brain, { walkSpeed = .67, waypo
       sense.atTarget = dist < .35 || stuck > 2; // obstáculo no caminho: desiste daquele ponto e volta (nunca trava andando no lugar)
       if (sense.atTarget) stuck = 0;
     }
+    // virar o corpo: conferir o estoque ao lado (turn) ou ficar de frente para quem conversa; volta à posição de trabalho
+    if (!it.move && npc.holder) { const h = npc.holder; if (baseYaw === null) baseYaw = h.rotation.y;
+      const want = sense.talking ? h.rotation.y + THREE.MathUtils.clamp(sense.heroAngle || 0, -1.2, 1.2) : baseYaw + (it.turn || 0);
+      let dy = want - h.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); h.rotation.y += dy * Math.min(1, dt * 2.2); }
+    else if (it.move) baseYaw = null;
     // olhar e postura por cima do clipe (suavizados)
     const k = Math.min(1, dt * 3), tl = it.look || { yaw: 0, pitch: 0 };
     look.yaw += (THREE.MathUtils.clamp(tl.yaw, -.85, .85) - look.yaw) * k; look.pitch += ((tl.pitch || 0) - look.pitch) * k; lean += ((it.lean || 0) - lean) * Math.min(1, dt * 2);
     if (neck) neck.rotateY(look.yaw * .35);
     if (head) { head.rotateY(look.yaw * .65); head.rotateX(look.pitch + (it.nod || 0) * .16); }
-    if (chest && lean) chest.rotateX(lean * .32);
+    if (chest && lean) chest.rotateX(lean * .2);
+    // respiração discreta e orgânica (~14 por minuto, ±0,6°) só parado: não deforma roupa nem mexe no quadril
+    breath += dt; if (chest && curKey === 'idle') chest.rotateX(Math.sin(breath * 1.45) * .011);
     return it;
   }
-  return { update, brain, get intent() { return last; }, get walkSpeed() { return speed; } };
+  return { update, brain, cue: (c, d) => brain.cue(c, d), get intent() { return last; }, get walkSpeed() { return speed; } };
 }
 function findBone(root, re) { let b = null; root && root.traverse(o => { if (!b && o.isBone && re.test(o.name)) b = o; }); return b; }
 
