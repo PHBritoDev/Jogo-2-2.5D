@@ -53,6 +53,14 @@ test('energy body culls outside frustum with conservative warp margin and keeps 
   assert.equal(fx.material.uniforms.detail.value,.65);
   fx.update(2,{alpha:1,quality:1});
   assert.equal(fx.mesh.visible,true);
+  fx.update(2.01,{alpha:.0149,dissolve:0});
+  assert.equal(fx.mesh.visible,false,'shader discards every fragment below .015 alpha');
+  fx.update(2.02,{alpha:.015,dissolve:0});
+  assert.equal(fx.mesh.visible,true,'boundary alpha remains renderable');
+  fx.update(2.03,{alpha:NaN,dissolve:0});
+  assert.equal(fx.mesh.visible,false,'non-finite alpha must not draw');
+  fx.update(2.04,{alpha:1,dissolve:0});
+  assert.equal(fx.mesh.visible,true,'effect recovers after low or invalid alpha');
   fx.update(2.1,{alpha:1,dissolve:1});
   assert.equal(fx.mesh.visible,false,'fully dissolved body should not consume a draw call');
   fx.update(2.2,{alpha:1,dissolve:.99});
