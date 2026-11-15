@@ -1,4 +1,4 @@
-"""Unit tests: benchmark distinguishes genuine repairs without executing generated code."""
+"""Unit tests: semantic benchmark tests repairs without executing generated code."""
 import importlib.util
 from pathlib import Path
 import unittest
@@ -10,30 +10,46 @@ spec.loader.exec_module(bench)
 
 
 class RepairBenchmarkTests(unittest.TestCase):
-    def test_examples_require_real_changes(self):
-        self.assertTrue(all(not bench.same_python_code(c["source"], c["expected"])
-                            for c in bench.CASES))
+    def test_examples_are_red_before_green(self):
+        for c in bench.CASES:
+            self.assertFalse(bench.behaves_correctly(c["source"], c))
+            self.assertTrue(bench.behaves_correctly(c["expected"], c))
 
-    def test_benchmark_accepts_correct_changes(self):
+    def test_correct_repairs_are_accepted(self):
         answers = {c["source"]: c["expected"] for c in bench.CASES}
         results = bench.evaluate(lambda source, behavior: answers[source])
         self.assertEqual(sum(r["pass"] for r in results), len(bench.CASES))
 
-    def test_benchmark_rejects_noop(self):
+    def test_semantically_equivalent_replacement_is_accepted(self):
+        cap = bench.CASES[0]
+        self.assertTrue(bench.behaves_correctly("return min(maximum, current + heal)", cap))
+
+    def test_noop_is_rejected(self):
         results = bench.evaluate(lambda source, behavior: source)
         self.assertFalse(any(r["pass"] for r in results))
 
-    def test_benchmark_rejects_unsafe_syntax_without_executing(self):
-        self.assertFalse(bench.same_python_code("return __import__('os').system('true')",
-                                                 "return min(1, 2)"))
-        results = bench.evaluate(lambda source, behavior: "return 0")
-        self.assertFalse(any(r["pass"] for r in results))
+    def test_unsafe_constructs_cannot_run(self):
+        c = bench.CASES[0]
+        unsafe = (
+            "return __import__('os').system('true')",
+            "return open('/tmp/x').read()",
+            "return (lambda: 10)()",
+            "return current.__class__",
+            "return min(maximum, current + heal); __import__('os')",
+            "return max(current + heal, maximum)\nprint('run')",
+        )
+        self.assertTrue(all(not bench.behaves_correctly(x, c) for x in unsafe))
 
-    def test_partial_benchmark_is_not_reported_as_total_success(self):
+    def test_partial_benchmark_fails(self):
         first = bench.CASES[0]
         results = bench.evaluate(lambda source, behavior:
                                  first["expected"] if source == first["source"] else source)
         self.assertEqual(sum(r["pass"] for r in results), 1)
+
+    def test_candidate_must_pass_all_cases(self):
+        c = bench.CASES[1]
+        self.assertFalse(bench.behaves_correctly("return hp - damage if hp > damage else 0", c))
+        self.assertFalse(bench.behaves_correctly("return max(0, hp - damage + 1)", c))
 
 
 if __name__ == "__main__":
