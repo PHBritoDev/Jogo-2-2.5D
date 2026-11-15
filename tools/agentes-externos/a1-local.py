@@ -9,6 +9,7 @@ import sys
 import urllib.request
 
 MARKER = "<!-- a1-local-llm-v1 -->"
+ATTEMPT_MARKER = "<!-- a1-local-llm-failed-attempt-v1 -->"
 ALLOWED_CONTEXT = (
     "docs/GUIA-PARA-IAS.md",
     "docs/arquitetura/CONTRATO-AGENTES.md",
@@ -133,6 +134,42 @@ def submit(repo, number, report):
         return json.load(response)["html_url"]
 
 
+def failed_attempt(repo, number, error):
+    """Record bounded failure: at most two full LLM attempts per Issue."""
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/issues/{number}/comments?per_page=100",
+        headers={"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                 "Accept": "application/vnd.github+json"},
+    )
+    with urllib.request.urlopen(request, timeout=20) as response:
+        comments = json.load(response)
+    tries = sum(ATTEMPT_MARKER in (c.get("body") or "") for c in comments)
+    stop = tries >= 1
+    marker = MARKER if stop else ATTEMPT_MARKER
+    kind = type(error).__name__
+    body = (
+        marker + "\n### A1 local — diagnóstico inconclusivo\n\n"
+        "A IA local não conseguiu produzir um relatório de QA válido. "
+        "Nenhum bug foi confirmado e nenhuma correção foi aplicada.\n\n"
+        f"Tipo técnico da falha: \\x60{kind}\\x60. "
+        + ("**Limite de duas tentativas atingido; encaminhar ao A1 humano/ChatGPT.** "
+           "Não iniciar novas análises automáticas para esta Issue sem reabertura controlada."
+           if stop else "Uma segunda tentativa automática é permitida; se falhar, a Issue será pausada.")
+        + "\n\nO histórico técnico está em GitHub Actions; não publicar saídas brutas "
+          "do modelo nem executar comandos sugeridos por ele."
+    )
+    payload = json.dumps({"body": body}).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/issues/{number}/comments",
+        data=payload, method="POST",
+        headers={"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=20) as response:
+        return json.load(response)["html_url"]
+
+
 def main():
     repo = os.environ["GITHUB_REPOSITORY"]
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
@@ -144,7 +181,11 @@ def main():
     if not any(x.get("name") == "agente-local-a1" for x in issue.get("labels", [])):
         raise ValueError("Issue no longer has authorization label")
     prompt = prompt_for(issue, Path("."))
-    report = infer(prompt, os.environ["LLAMA_BIN"], os.environ["MODEL_FILE"])
+    try:
+        report = infer(prompt, os.environ["LLAMA_BIN"], os.environ["MODEL_FILE"])
+    except (ValueError, subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+        print("QA generation failed; attempt recorded:", failed_attempt(repo, number, error))
+        raise
     print("Report submitted:", submit(repo, number, report))
 
 
