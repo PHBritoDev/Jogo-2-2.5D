@@ -1,7 +1,7 @@
 import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smooth, easeOut, hash } from './celestial-fxkit3d.js';
 import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod320-segunda';
 import { createThroneSkyVFX } from './vhazrael-throne-sky3d.js?v=mod320';
-import { createExtinctionVFX } from './vhazrael-extinction3d.js?v=mod255-bombardeio-dobro';
+import { createExtinctionVFX } from './vhazrael-extinction3d.js?v=mod320-orbital';
 import { createBombardVFX } from './vhazrael-bombard3d.js?v=mod255-bombardeio-dobro';
 /**
  * MOD 247b — VFX do VHAZRAEL refeito (só desenha o estado de vhazrael3d.js). Correção visual pedida pelo criador:

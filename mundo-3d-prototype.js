@@ -1955,7 +1955,7 @@ const whiteLease=new CinematicLease({capture:()=>({modelPosition:model.position.
  finally{clearWhiteInput();actionUntil=0;attackCooldown=0;whiteOverlay.style.opacity='0';document.body.classList.remove('whitehole-cinematic');snap.controls.forEach(({el,disabled,inert})=>{el.inert=inert;if('disabled'in el)el.disabled=disabled;});worldAudio.setCinematicGain?.(1);whiteVFX?.clear();whiteStorm?.hide();whiteWindPhase=0;}
 }});
 function finishWhiteHole(){const death=whitePendingDeath&&whiteHole.id===siegeEpoch&&enemyHP===0;whitePendingDeath=false;whiteHole.cancel();whiteLease.release();if(death)hurtEnemy(0,false,true,true);}
-function beginWhiteHole(){if(squadRT&&squadRT.orbit&&squadRT.orbit.phase==='choice')vzDuel=true;if(!whiteVFX){whiteVFX=createWhiteHoleVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});loadUltimateWings();}ensureWhiteStorm();whiteScene=siegeContext();whitePendingDeath=false;whiteLease.begin();try{if(!whiteHole.start(player.position,phoenixTarget(),1+statsForLevel(playerLevel()).damageBonus))finishWhiteHole();}catch(e){finishWhiteHole();throw e;}}
+function beginWhiteHole(){if(!whiteVFX){whiteVFX=createWhiteHoleVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});loadUltimateWings();}ensureWhiteStorm();whiteScene=siegeContext();whitePendingDeath=false;whiteLease.begin();try{if(!whiteHole.start(player.position,phoenixTarget(),1+statsForLevel(playerLevel()).damageBonus))finishWhiteHole();}catch(e){finishWhiteHole();throw e;}}
 const whiteCam=new THREE.Vector3(),whiteLook=new THREE.Vector3();
 /* MOD 229 — asas do prólogo (Asas.glb) na Ultimate, tempestade carmesim em volta da câmera e vento nas árvores. */
 const WHITE_HEMI=new THREE.Color(0xc0402a),WHITE_HEMI_G=new THREE.Color(0x2a0404),WHITE_SUN=new THREE.Color(0xff4a28),WHITE_SKY=new THREE.Color(0x4a0508),WHITE_BG=new THREE.Color(0x220305),WHITE_FOG=new THREE.Color(0x5e0c0a),whiteHoleSky=new THREE.Vector3();
@@ -2048,6 +2048,7 @@ function updateQuantum(dt,q){
 }
 function castHolyMagic(kind){
  const now=performance.now();if(whiteLease.locked||playerHP<=0||gamePaused||cineActive||dialogueOpen)return;
+ if(kind==='ultimate'&&vzUltBlocked()){vzUltDenied();return;} // Mod 320: única habilidade proibida durante a Extinção Orbital do chefe (nada é gasto)
  if(kind==='magic'&&(siege.active||!siegeVFX||!siegeTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>22)){status.textContent=siege.active?'Dispare as lâminas restantes.':'Aproxime-se de um inimigo para invocar o cerco.';return;}
  if(kind==='magic2'&&starfall.active){status.textContent='A chuva de estrelas ainda está ativa.';return;}
  if(kind==='magic3'&&phoenix.active){status.textContent='A fênix ainda está ativa.';return;}
@@ -2939,7 +2940,7 @@ function abortDimensionBattle(){
 function dimensionPlayerDown(){
  const b=dimBattle;if(!b||!b.active)return;
  if(b.test){showCombatCallout('DERROTA — TESTE (nada foi salvo)');abortDimensionBattle();return;} // teste: sem corações, sem história
- if(b.key==='bishop1'){spendHeart('vhazrael');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(squadOn){const s=squadSq();if(s){for(const a of s.actors)if(a.alive&&a.kind==='vhazrael')a.hp=a.maxHp;s.spells=s.spells.filter(x=>x.type!=='orbital');writeSquadProxy();}}if(heartState.hearts<=0)enemy.visible=false;}
+ if(b.key==='bishop1'){spendHeart('vhazrael');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(squadOn){const s=squadSq();if(s){for(const a of s.actors)if(a.alive&&a.kind==='vhazrael'){a.hp=a.maxHp;a.pendingDeath=false;if(a.act&&a.act.held)a.act=null;}s.spells=s.spells.filter(x=>x.type!=='orbital');writeSquadProxy();}}if(heartState.hearts<=0)enemy.visible=false;}
  else if(b.key==='bishop2')bossDefeatedPlayer();
  else if(b.key==='bishop3'&&questStep===ACT3N.boss){spendHeart('zarkhael');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(heartState.hearts<=0)enemy.visible=false;}
  else if(b.key==='bishop4'&&questStep===ACT4N.boss){spendHeart('veraxion');enemyHP=enemyMaxHP;bossRageAnnounced=false;if(heartState.hearts<=0)enemy.visible=false;}
@@ -4153,7 +4154,7 @@ function updatePack(dt){
    diferença de vida/posição vai para o ator certo. Corte da espada, projéteis e magias em área alcançam os outros atores.
    ?esquadraLegada=1 volta ao modo antigo (um por vez). ?testeEnemy1=1 abre o laboratório isolado do progresso. */
 var squadQAPause=false; // MOD 315: QA congela a IA da esquadra (o dano do herói continua valendo)
-var vzDuel=false,vzLocked=false,vzLockPos=null,squadSakugaCd=0,squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
+var vzDuel=false,vzMeteorIframe=0,vzLocked=false,vzLockPos=null,squadSakugaCd=0,squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
 const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=new Map();
 function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
 function squadRuntime(){
@@ -4240,7 +4241,7 @@ function squadHitFx(a,n){if(!squadRT)return;squadRT.flash(a.id);const p=new THRE
 function squadDamageTarget(id,dmg,info){
  const n=squadAlive().length,mul=n>=4?.72:n===3?.84:1,amount=Math.max(1,Math.round(dmg*mul));
  if(id==='hero'){
-  if(info.kind==='orbital'){playerInvulnerableUntil=0;dashRemaining=0;}
+  if(info.kind==='orbitalBlast'&&vzMeteorIframe&&playerInvulnerableUntil===vzMeteorIframe)playerInvulnerableUntil=0; // Mod 320: explosão é dano SEPARADO — o pós-acerto do corpo do meteoro não a anula (dash/i-frames reais continuam valendo)
   const wasDef=defending,res=damagePlayerFromEnemyAttack(amount,{kind:info.kind,source:info.spell??info.actor??info.kind,from:{x:info.x,z:info.z},area:!!info.area});if(!res)return 'evaded';if(res==='shield')return 'blocked';
   // hitstop/shake do Enemy2 só com acerto CONFIRMADO e com trava contra duplo disparo
   if(/^(vortex|collapse|collapseWave|trinity)$/.test(info.kind)){const now=performance.now();if(now>squadSakugaCd){squadSakugaCd=now+160;hitStop(info.kind==='trinity'?40:55);cameraShake(info.kind==='trinity'?.08:.17);}}
@@ -4320,11 +4321,13 @@ function squadEvent(type,d){
   case 'orbital':status.textContent='VHAZRAEL ergue a espada para o céu…';worldAudio.abyss3&&worldAudio.abyss3('gravity',.6);break;
   case 'orbital_orbit':worldAudio.abyss3&&worldAudio.abyss3('storm',.8);break;
   case 'orbital_entry':worldAudio.abyss3&&worldAudio.abyss3('launch',1);worldAudio.abyss3&&worldAudio.abyss3('storm',1);break;
-  case 'orbital_arrival':worldAudio.abyss3&&worldAudio.abyss3('heavy',.8);if(!userSettings.reduceShake)cameraShake(.08);break;
-  case 'orbitalGuard':if(d.target==='hero'){showCombatCallout('GUARDA FIRME — AGUENTE O IMPACTO');worldAudio.abyss3&&worldAudio.abyss3('blade',.8);}break;
-  case 'orbital_choice':showCombatCallout('DEFENDA-SE OU CONTRAPONHA COM SUA ULTIMATE');status.textContent='O meteoro cobre a dimensão inteira: segure DEF ou use sua ULTIMATE agora.';break;
-  case 'orbital_impact':vzFlash('#fff6e0',userSettings.reduceFlash?.2:.7,90);hitStop(60);worldAudio.abyss3&&worldAudio.abyss3('thunder',1);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);worldAudio.abyss3&&worldAudio.abyss3('boom',1);if(!userSettings.reduceShake)cameraShake(.4);break;
-  case 'orbitalResult':if(d.target==='hero'){showCombatCallout(d.result==='duel'?'DUELO DE ULTIMATES — O METEORO SE PARTIU':d.result==='shield'?'O ESCUDO SEGUROU O METEORO':'EXTINÇÃO');if(d.result==='shield'){setDefending(false);}}break;
+  case 'orbital_fall':worldAudio.abyss3&&worldAudio.abyss3('heavy',.8);if(!userSettings.reduceShake)cameraShake(.08);showCombatCallout('O METEORO CAI NA MARCA — CORRA, SALTE, DASH OU DEFENDA');status.textContent='Extinção Orbital: o meteoro fere só quem ele TOCA; a explosão, só quem a onda alcança. Ultimate bloqueada até o fim.';break;
+  case 'orbitalMeteorHit':if(d.target==='hero'&&d.result==='hit'){hitStop(55);vzMeteorIframe=playerInvulnerableUntil;}break;
+  case 'orbitalBlastHit':if(d.target==='hero'&&d.result==='hit')hitStop(45);break;
+  case 'deathPending':if(d.actor.kind==='vhazrael'){showCombatCallout('VHAZRAEL CAIU… MAS O METEORO AINDA VEM');status.textContent='Sobreviva ao impacto para vencer.';}break;
+  case 'deathPendingDefeat':showCombatCallout('A EXTINÇÃO LEVOU VOCÊ JUNTO — DERROTA');break;
+  case 'orbital_impact':vzFlash('#fff6e0',userSettings.reduceFlash?.12:.4,90);hitStop(squadNear(d.spell.path?.ix??0,d.spell.path?.iz??0,d.spell.T.blastR+6)?60:20);worldAudio.abyss3&&worldAudio.abyss3('thunder',1);worldAudio.abyss3&&worldAudio.abyss3('heavy',1);worldAudio.abyss3&&worldAudio.abyss3('boom',1);if(!userSettings.reduceShake)cameraShake(.4);break;
+  case 'orbitalResult':if(d.target==='hero')showCombatCallout(d.meteor||d.blast?'A EXTINÇÃO TE ALCANÇOU':'VOCÊ ESCAPOU DA EXTINÇÃO');break;
   case 'sanctumMark':squadSfx('warn',d.mark.x,d.mark.z,90);break;
   case 'sanctumPillar':squadSfx('thunder',d.mark.x,d.mark.z,110);break;
   case 'orbShot':squadSfx('launch',d.orb.x,d.orb.z,120);break;
@@ -4374,11 +4377,14 @@ function squadEvent(type,d){
 /** Clarão/vinheta curtos (sem strobe), abaixo do HUD; respeita reduzir flashes. */
 function vzFlash(bg,op,ms){let el=document.getElementById('vz-flash');if(!el){el=document.createElement('div');el.id='vz-flash';el.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .25s';document.body.appendChild(el);}el.style.background=bg;el.style.transition='none';el.style.opacity=String(op);void el.offsetWidth;el.style.transition='opacity '+(ms/1000)+'s';setTimeout(()=>{el.style.opacity='0';},40);}
 function vzOrbitState(){const o=squadOn&&squadRT?squadRT.orbit:null;return o&&o.s&&!o.s.dead?o:null;}
-function vzSkip(){const o=vzOrbitState();if(o&&/^(awaken|orbit|entry|arrival)$/.test(o.phase)){o.s.phase='choice';o.s.t=0;squadSq()?.event('orbital_choice',{spell:o.s});}}
+function vzSkip(){const o=vzOrbitState();if(o&&/^(awaken|orbit|entry)$/.test(o.phase)){o.s.phase='fall';o.s.t=0;squadSq()?.event('orbital_fall',{spell:o.s});}} // Mod 320: PULAR só encurta as tomadas — a queda (lógica e dano) acontece inteira
+/** Mod 320: ultimate do herói bloqueada enquanto a Extinção Orbital do chefe não terminar (todas as outras ações livres). */
+function vzUltBlocked(){const o=vzOrbitState();return !!o&&o.phase!=='after';}
+function vzUltDenied(){const u=document.getElementById('ultimate');if(u){u.classList.add('vz-ult-locked');setTimeout(()=>u.classList.remove('vz-ult-locked'),700);}showCombatCallout('🔒 ULTIMATE BLOQUEADA DURANTE A EXTINÇÃO ORBITAL');}
 function vzUpdateLock(){
- const o=vzOrbitState(),lock=!!o&&/^(awaken|orbit|entry|arrival)$/.test(o.phase);vzHud(o);
+ const o=vzOrbitState(),lock=!!o&&/^(awaken|orbit|entry)$/.test(o.phase);vzHud(o);
  if(lock&&!vzLocked){vzLockPos=player.position.clone();setDefending(false);}
- vzLocked=lock;if(!o||o.phase==='after')vzDuel=vzDuel&&!!o&&o.phase!=='after';
+ vzLocked=lock;vzDuel=false; // Mod 320: não existe mais duelo de ultimates
  if(lock&&vzLockPos){player.position.copy(vzLockPos);moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;}
 }
 const _vzA=new THREE.Vector3(),_vzB=new THREE.Vector3();
@@ -4402,11 +4408,13 @@ function vzApplyShot(sh){const b=Math.max(0,Math.min(1,sh.blend??1));if(b<.002)r
  const f=vzShotSaved.fov+((sh.fov||vzShotSaved.fov)-vzShotSaved.fov)*b;if(Math.abs(f-camera.fov)>.01){camera.fov=f;camera.updateProjectionMatrix();}}
 /** HUD da cinematografia: tomadas travadas escondem tudo (fica PULAR); na janela jogável só DEF, ULTIMATE e o indicador. */
 let vzHudEl=null;function vzHud(o){
- const cine=!!o&&/^(awaken|orbit|entry|arrival|impact)$/.test(o.phase),choice=!!o&&o.phase==='choice';document.body.classList.toggle('vz-cine',cine);document.body.classList.toggle('vz-choice',choice);
- if(!vzHudEl&&(cine||choice)){const st=document.createElement('style');st.textContent='body.vz-cine #top,body.vz-cine #hud-hero,body.vz-cine #player-hud,body.vz-cine #enemy-hud,body.vz-cine #quest-box,body.vz-cine #hint,body.vz-cine #stick,body.vz-cine #actions,body.vz-cine #enemy1-lab,body.vz-cine #combat-callout{visibility:hidden!important}body.vz-choice #top,body.vz-choice #quest-box,body.vz-choice #hint,body.vz-choice #enemy1-lab,body.vz-choice #enemy-hud,body.vz-choice #actions>button:not(#defend):not(#ultimate){visibility:hidden!important}body.vz-choice #defend{transform:scale(1.35);box-shadow:0 0 0 3px #ffb35a,0 0 26px #ff7a1a}#vz-window{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%);z-index:40;pointer-events:none;font:700 15px system-ui;color:#fff;text-shadow:0 2px 4px #000;text-align:center;display:none;width:min(80vw,420px)}#vz-window i{display:block;height:6px;margin-top:6px;border-radius:3px;background:linear-gradient(90deg,#ffd27a,#ff5a1a);transform-origin:left}#vz-window.ok{color:#9dffb8}#vz-skip{position:fixed;right:calc(env(safe-area-inset-right) + 14px);bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:41;display:none;padding:10px 16px;border-radius:10px;border:1px solid #ff5a5a;background:#1a0608cc;color:#fff;font:700 14px system-ui}body.vz-cine #vz-skip{display:block}';document.head.appendChild(st);
+ const cine=!!o&&/^(awaken|orbit|entry)$/.test(o.phase),choice=!!o&&o.phase==='fall',ultLock=!!o&&o.phase!=='after';document.body.classList.toggle('vz-ult',ultLock); // Mod 320: na queda TUDO fica na tela; só a ultimate mostra cadeadodocument.body.classList.toggle('vz-cine',cine);document.body.classList.toggle('vz-choice',choice);
+ if(!vzHudEl&&(cine||choice)){const st=document.createElement('style');st.textContent='body.vz-cine #top,body.vz-cine #hud-hero,body.vz-cine #player-hud,body.vz-cine #enemy-hud,body.vz-cine #quest-box,body.vz-cine #hint,body.vz-cine #stick,body.vz-cine #actions,body.vz-cine #enemy1-lab,body.vz-cine #combat-callout{visibility:hidden!important}body.vz-ult #ultimate{filter:grayscale(1) brightness(.6);position:relative}body.vz-ult #ultimate::after{content:'🔒';position:absolute;right:-4px;top:-6px;font-size:15px}#ultimate.vz-ult-locked{animation:vzUltNo .35s 2}@keyframes vzUltNo{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}#vz-window{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%);z-index:40;pointer-events:none;font:700 15px system-ui;color:#fff;text-shadow:0 2px 4px #000;text-align:center;display:none;width:min(80vw,420px)}#vz-window i{display:block;height:6px;margin-top:6px;border-radius:3px;background:linear-gradient(90deg,#ffd27a,#ff5a1a);transform-origin:left}#vz-window.ok{color:#9dffb8}#vz-skip{position:fixed;right:calc(env(safe-area-inset-right) + 14px);bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:41;display:none;padding:10px 16px;border-radius:10px;border:1px solid #ff5a5a;background:#1a0608cc;color:#fff;font:700 14px system-ui}body.vz-cine #vz-skip{display:block}';document.head.appendChild(st);
   vzHudEl=document.createElement('div');vzHudEl.id='vz-window';vzHudEl.innerHTML='<span></span><i></i>';document.body.appendChild(vzHudEl);const sk=document.createElement('button');sk.id='vz-skip';sk.type='button';sk.textContent='PULAR ›';sk.addEventListener('pointerdown',e=>{e.preventDefault();vzSkip();});document.body.appendChild(sk);}
- if(!vzHudEl)return;vzHudEl.style.display=choice?'block':'none';if(choice){const T0=o.s.T,ok=o.s.guardOk||o.s.duel;vzHudEl.className=ok?'ok':'';vzHudEl.firstChild.textContent=o.s.duel?'DUELO DE ULTIMATES!':ok?'GUARDA FIRME — AGUENTE!':'SEGURE DEF (ou ULTIMATE)';vzHudEl.lastChild.style.transform='scaleX('+Math.max(0,1-o.t/T0.choice).toFixed(3)+')';}
+ if(!vzHudEl)return;vzHudEl.style.display=choice?'block':'none';if(choice){const T0=o.s.T,ok=vzOutside();vzHudEl.className=ok?'ok':'';vzHudEl.firstChild.textContent=vzOutside()?'FORA DA MARCA — AGUENTE A ONDA':'SAIA DA MARCA: CORRA, SALTE, DASH OU DEFENDA';vzHudEl.lastChild.style.transform='scaleX('+Math.max(0,1-o.t/T0.fall).toFixed(3)+')';}
 }
+/** herói fora do alcance da explosão (marca no chão) na queda — só para o aviso; o dano é decidido pela lógica. */
+function vzOutside(){const o=vzOrbitState(),P=o&&o.s.path;return !!P&&Math.hypot(player.position.x-P.ix,player.position.z-P.iz)>o.s.T.blastR+.5;}
 function vzCinematic(){
  vzThroneCamera();const o=vzOrbitState();if(!o)return false;
  const sh=squadRT.vhazraelVFX.orbitShot;if(!sh)return false;

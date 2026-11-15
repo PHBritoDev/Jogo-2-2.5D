@@ -164,6 +164,7 @@ export class Enemy1Squad {
   /* ---------------- ator ---------------- */
   stepActor(a, dt) {
     if (!a.alive) { a.deadT += dt; return; }
+    if (a.pendingDeath) { a.vx = a.vz = 0; a.react = null; if (!a.act || !a.act.held) { a.anim = { role: 'block', once: false, speed: .6, rev: a.anim.rev + 1 }; a.act = { type: 'held', held: true, t: 0, dur: 1e9 }; } if (a.act) a.act.t += dt; return; } // Mod 320: morte pendente — presente só para concluir a ultimate, sem decidir nem atacar
     for (const k in a.cds) if ((a.cds[k] -= dt) <= 0) delete a.cds[k];
     a.stamina = Math.min(a.T.stamina, a.stamina + dt * 14); if ((a.poiseT -= dt) <= 0) a.poise = a.T.poise;
     if (a.alert > 0) a.alert -= dt;
@@ -474,6 +475,7 @@ export class Enemy1Squad {
   /** opts: { x, z (origem), kind: 'melee'|'spell'|'area', knock, crit }. Retorna o dano aplicado. */
   damageActor(id, amount, opts = {}) {
     const a = typeof id === 'string' ? this.actor(id) : id; if (!a || !a.alive || !(amount > 0)) return 0;
+    if (a.pendingDeath) return 0; // Mod 320: HP já em 0 aguardando a resolução da ultimate
     if (a.act && a.act.iframes) { this.event('evade', { actor: a }); return 0; }
     // Mod 315: escudo hexagonal do Demônio1 — mesma regra do herói (área por tiques, limiar de ruptura com dano integral)
     if (a.shield && a.shield.active) { const ox = (opts.x ?? a.x) - a.x, oz = (opts.z ?? a.z) - a.z, ol = Math.hypot(ox, oz) || 1;
@@ -488,6 +490,8 @@ export class Enemy1Squad {
     a.hp = Math.max(0, a.hp - dmg); if (opts.by) a.hitBy = opts.by;
     const unstoppable = !!(a.act && a.act.unstoppable);
     if (opts.knock && !a.T.boss && !unstoppable) { a.kx -= ox / ol * opts.knock * 4; a.kz -= oz / ol * opts.knock * 4; }
+    // Mod 320: vida zerada com a ULTIMATE do próprio chefe em curso → morte pendente (barra em 0, sem recompensa, sem novos ataques)
+    if (a.hp === 0 && a.T.holdDeath && a.T.holdDeath(this, a)) { a.pendingDeath = true; a.deathDue = false; a.guard = false; this.event('deathPending', { actor: a }); return dmg; }
     // vida zerada durante um ato incancelável: o golpe termina primeiro, a morte vem no fim do ato (uma vez só)
     if (a.hp === 0 && unstoppable) { a.hp = 1; if (!a.deathDue) { a.deathDue = true; this.event('deathDeferred', { actor: a }); } return dmg; }
     if (a.hp === 0) { this.kill(a); return dmg; }

@@ -85,6 +85,8 @@ test('Mod 247: VHAZRAEL na esquadra dentro da dimensão, sem as moedas antigas, 
   assert.ok(src.includes("if(b.key==='bishop1'&&!SQUAD_LEGACY){pack={squad:true,dim:true,rig:'bishop1'"));
   assert.ok(!/ vhazrael:\{cd:8,run\(\)/.test(src), 'ataque de moedas removido do kit jogável');
   assert.ok(src.includes('function vzUpdateLock()') && /if\(vzCinematic\(\)\)\{vzCamRestore\(\);return;\}[\s\S]{0,240}renderer\.render\(scene,camera\);[\s\S]{0,160}vzCamRestore\(\);/.test(src));
-  assert.ok(src.includes("if(info.kind==='orbital'){playerInvulnerableUntil=0;dashRemaining=0;}"), 'sem dash que salve do meteoro');
+  // Mod 320 (briefing §8): o meteoro não arranca mais i-frames/dash do herói; só o pós-acerto do CORPO não anula a explosão (dano separado)
+  assert.ok(!src.includes("if(info.kind==='orbital'){playerInvulnerableUntil=0;dashRemaining=0;}"), 'regra antiga (sem ponto seguro) removida');
+  assert.ok(src.includes("if(info.kind==='orbitalBlast'&&vzMeteorIframe&&playerInvulnerableUntil===vzMeteorIframe)playerInvulnerableUntil=0;"));
   for (const f of fs.readdirSync(new URL('./', import.meta.url))) { if (!/\.(m?js|html|md|json|css|txt)$/.test(f) || /^CLAUDE-/.test(f)) continue; const t = fs.readFileSync(new URL('./' + f, import.meta.url), 'utf8'); assert.ok(!/val[eé]rio/i.test(t), 'nome antigo em ' + f); }
 });
