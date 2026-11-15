@@ -65,3 +65,15 @@ test('saldo corrompido não permite comprar nem gravar moedas inválidas', () =>
   }
   assert.equal(buyItem(offer, { questStep: 4, level: 2, coins: 20, owned: new Set() }).coins, 0);
 });
+
+
+test('conquistas não são desbloqueadas por contadores não finitos de save', () => {
+  const explorer = ACHIEVEMENTS.find(a => a.id === 'explorador');
+  for (const places of [Infinity, -Infinity, NaN, 'Infinity', 'NaN']) {
+    assert.deepEqual(achievementState(explorer, { places }),
+      { value: 0, done: false, claimed: false },
+      'contador inválido não pode concluir conquista');
+  }
+  assert.equal(achievementState(explorer, { places: '3' }).value, 3,
+    'save legado com número em string continua aceito');
+});
