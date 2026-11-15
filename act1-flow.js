@@ -101,7 +101,8 @@ export function progressionFields(raw, questStep) {
     owned: [...new Set(owned)],
     sword: ['aurora', 'vigilia', 'celeste'].includes(r.sword) && owned.includes(r.sword) ? r.sword : 'prota',
     stats,
-    achievementsClaimed: list(r.achievementsClaimed),
+    // Recarregar saves antigos não deve duplicar conquistas já resgatadas.
+    achievementsClaimed: [...new Set(list(r.achievementsClaimed))],
     bestiary: list(r.bestiary),
     bestiaryRewarded: list(r.bestiaryRewarded),
     shopVisited: !!r.shopVisited,
