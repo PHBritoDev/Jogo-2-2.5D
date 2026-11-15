@@ -111,8 +111,10 @@ def main():
     parser.add_argument("--llama", required=True)
     parser.add_argument("--model", required=True)
     args = parser.parse_args()
+    cases = {case["source"]: case for case in CASES}
     results = evaluate(lambda source, behavior: gate.propose_replacement(
-        args.llama, args.model, source, behavior
+        args.llama, args.model, source, behavior,
+        validator=lambda after: behaves_correctly(after, cases[source]),
     ))
     for r in results:
         print("BENCHMARK", r["id"], "PASS" if r["pass"] else "FAIL", r["reason"])
