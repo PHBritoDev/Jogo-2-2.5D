@@ -60,7 +60,8 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     camera.getWorldPosition(cam);
     ranked.length=0;
     for (const s of sources) {
-      if (!attachedToScene(s) || !Number.isFinite(s.intensity) || s.intensity <= .001 || !finiteColor(s) || !effectiveVisible(s)) continue;
+      // Fontes com matriz inválida não podem roubar um slot de uma tocha válida.
+      if (!attachedToScene(s) || !Number.isFinite(s.intensity) || s.intensity <= .001 || !finiteColor(s) || !effectiveVisible(s) || !finitePosition(s)) continue;
       v.setFromMatrixPosition(s.matrixWorld);
       // No Three.js distance=0 significa alcance ilimitado. Manter score finito
       // (raio de prioridade 40), mas não descartar a fonte por distância.
