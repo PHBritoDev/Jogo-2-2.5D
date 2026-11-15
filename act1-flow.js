@@ -481,11 +481,13 @@ export function afterWardenDefeat() {
 
 /** Avanço dentro do Ato I por sub-etapa (para salvar onde o jogador está). */
 export function nextAct1Sub(step, sub) {
-  const last = { 1: 1, 3: 2, 4: 3 }[step];
-  if (last === undefined) return { questStep: step, act1Sub: 0 };
+  // Saves antigos podem restaurar a etapa como texto; nunca concatenar "4" + 1.
+  const safeStep = clampInt(step, 0, 30, 0);
+  const last = { 1: 1, 3: 2, 4: 3 }[safeStep];
+  if (last === undefined) return { questStep: safeStep, act1Sub: 0 };
   const safeSub = clampInt(sub, 0, last, 0);
-  if (safeSub < last) return { questStep: step, act1Sub: safeSub + 1 };
-  return { questStep: step + 1, act1Sub: 0 };
+  if (safeSub < last) return { questStep: safeStep, act1Sub: safeSub + 1 };
+  return { questStep: safeStep + 1, act1Sub: 0 };
 }
 
 /** A entrada usa a dimensão estável já publicada. Não cria arena nova. */
