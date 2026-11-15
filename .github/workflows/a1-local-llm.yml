@@ -140,6 +140,7 @@ jobs:
 
           PY
       - name: Benchmark de duas correções sintéticas inéditas
+        if: ${{ always() }}
         env:
           MODEL_FILE: ${{ runner.temp }}/model.gguf
         run: |
