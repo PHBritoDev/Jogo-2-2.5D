@@ -55,3 +55,13 @@ test('cronômetro não exibe NaN para marca temporal inválida', () => {
   assert.equal(recovered.hearts, 4);
   assert.equal(recovered.since, now);
 });
+
+test('salvamento de corações vazio não deve virar zero por coerção JavaScript', () => {
+  const now = 1000000;
+  for (const hearts of [null, '', '  ']) {
+    const state = normalizeHearts({ hearts, since: now }, now);
+    assert.equal(state.hearts, HEARTS.max, 'valor vazio de save não equivale a 0 corações');
+  }
+  assert.equal(normalizeHearts({ hearts: '0', since: now }, now).hearts, 0,
+    'zero explícito em save antigo continua válido');
+});
