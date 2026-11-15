@@ -176,3 +176,20 @@ test('low-quality energy body skips fully dissolved masks and recovers at thresh
   assert.equal(fx.mesh.visible,true,'pooled effect reappears after dissolving');
   fx.dispose();
 });
+
+test('energy body ignores non-finite aim vectors and recovers on the next valid direction', () => {
+  const fx=energyBody(T,{add() {},remove() {}},'celestial');
+  let rotations=0;
+  fx.mesh.quaternion.setFromUnitVectors=(_axis,vector) => {
+    assert.ok([vector.x,vector.y,vector.z].every(Number.isFinite),'quaternion must receive a finite vector');
+    rotations++;
+  };
+  for(const dir of [{x:NaN,y:0,z:1},{x:1,y:Infinity,z:0},{x:1,y:0,z:NaN},{x:1,y:-Infinity,z:2}]) {
+    fx.update(1,{dir,alpha:1});
+    assert.equal(rotations,0,'invalid aim must preserve the last valid orientation');
+    assert.equal(fx.mesh.visible,true,'invalid aim alone must not hide the energy effect');
+  }
+  fx.update(2,{dir:{x:1,y:0,z:0},alpha:1});
+  assert.equal(rotations,1,'valid aim restores orientation updates');
+  fx.dispose();
+});
