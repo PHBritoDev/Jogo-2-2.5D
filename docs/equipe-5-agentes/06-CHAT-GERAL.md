@@ -36,15 +36,15 @@ Respostas devem citar ID: `[RESPOSTA A5-001] A3: ACEITO / ALTERNATIVA / BLOQUEAD
 1. Prioridade à **ordem mais recente do criador** e aos documentos canônicos do repositório; o Issue não pode alterar unilateralmente a visão mestra.
 2. Responsável pelo domínio implementa; agente solicitante fornece requisitos e testa integração; **um PR por proprietário e por mudança lógica**.
 3. Elementos existentes são **preservados por padrão**. Uma referência de anime ou jogo conhecido orienta qualidade/coreografia, não autoriza importar propriedade intelectual.
-4. O trabalho do **Claude na caverna de Eldória** fica isolado enquanto estiver em andamento. A3/A4/A5 só fazem sugestões/QA em leitura ou pedem consentimento antes de alterar.
+4. A **caverna de Eldória C1–C5 foi mesclada**; continua uma área de responsabilidade protegida. A1–A5 só fazem sugestões/QA em leitura ou pedem consentimento e coordenação antes de alterar módulos específicos dela.
 5. **A1–A5 nunca fazem merge por conta própria. A6 pode mesclar automaticamente PRs elegíveis de A1–A5 conforme a delegação e o checklist de `07-AGENTE-INTEGRADOR.md`, sem pedir autorização repetitiva.** Bloquear alterações arriscadas, a caverna do Claude e PRs fora dessa equipe. Apenas responsável de integração final altera `build-info.js`.
 6. **Pesquisar antes de mudanças**, distinguindo observação no runtime, hipótese, referência e evidência. Se falta visual, usar ferramentas do jogo/CI ou pedir captura; não fingir.
-7. Sem automações de hora em hora nesta equipe até autorização explícita do criador. Criar cinco chats separados não os torna autônomos continuamente.
+7. **As cinco automações horárias A1–A5 já foram autorizadas e estão ativas desde 14/11/2026.** Cada disparo deve retomar trabalhos anteriores, executar melhorias reais em sua branch/PR e registrar código/testes/evidências. Não criar agendamentos duplicados e não inferir autonomia contínua fora da execução de cada tarefa.
 8. Comunicação com criador: **“Não envie mensagens de progresso nem resumo final; registre resultados apenas no GitHub.”**
 
 ## Critérios de entrada / saída de cada rodada
-**Entrada:** ler instruções próprias + este arquivo, mensagens recentes do Issue, main/PRs, contrato de agentes; escolher uma intervenção útil e pequena dentro do domínio. Se pedido cruzado, pedir aceite no Issue antes de alterar subsistema alheio.
-**Saída:** PR pequena em branch exclusiva, testes de regressão, capturas/vídeos do runtime antes/depois quando visual, tabela resumida de custo e riscos, link ao Issue do pedido. Se uma dependência estiver bloqueada, contribuir no próprio domínio em vez de esperar sem atividade.
+**Entrada:** ler instruções próprias (especialmente a seção ORDEM PRIORITÁRIA — EXECUÇÃO POR RESULTADO), mensagens recentes do Issue, main/PRs e contrato; retomar a alteração pendente e selecionar um objetivo de código imediatamente executável. Se pedido cruzado, pedir aceite no Issue antes de alterar subsistema alheio e continuar outra tarefa independente.
+**Saída:** preferencialmente mudança concreta no jogo + testes de regressão + commit e PR pequena em branch exclusiva; capturas/vídeos do runtime antes/depois quando visual, custo e riscos. Não confundir comentários, brainstorms e documentação repetida com entrega. Se uma dependência estiver bloqueada, contribuir no próprio domínio em vez de esperar sem atividade. Estender a execução com novas correções ou validação útil enquanto a plataforma permitir, sem simular trabalho ou ultrapassar limites reais.
 
 ## Referências de pesquisa verificadas
 - GitHub — PRs e proteção da main: https://docs.github.com/en/pull-requests/reference/pull-requests ; https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
