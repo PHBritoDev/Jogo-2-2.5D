@@ -33,7 +33,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       for (const g of Obj.__budgetGuard) if (g.scene === root) for (const o of objs) if (o && o.isObject3D) (o.isPointLight ? g.adopt(o) : o.children.length && o.traverse(g.adopt)); return r; };
   }
   if (Obj) Obj.__budgetGuard.push({ scene, adopt });
-  const v = new T.Vector3(), cam = new T.Vector3();
+  const v = new T.Vector3(), cam = new T.Vector3(), lastCamera = new T.Vector3();
   // Uma fonte pode continuar com parent dentro de um grupo já removido da cena.
   // Nunca permitir que esse grupo ocupe slots de luz ou retenha fontes no cadastro.
   function attachedToScene(o) {
@@ -57,7 +57,14 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   }
   function update(camera, dt = 1 / 60) {
     if (frame++ % scanInterval === 0) scan();
+    // Uma câmera com transformação transitória inválida não deve apagar todas as
+    // tochas nem contaminar o ranking; conservar a última posição válida.
     camera.getWorldPosition(cam);
+    if (!Number.isFinite(cam.x) || !Number.isFinite(cam.y) || !Number.isFinite(cam.z)) {
+      cam.x = lastCamera.x; cam.y = lastCamera.y; cam.z = lastCamera.z;
+    } else {
+      lastCamera.x = cam.x; lastCamera.y = cam.y; lastCamera.z = cam.z;
+    }
     ranked.length=0;
     for (const s of sources) {
       // Fontes com matriz inválida não podem roubar um slot de uma tocha válida.
