@@ -58,7 +58,7 @@ jobs:
               "https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf" \
               -o "$HOME/.cache/a1-llm/model.gguf"
           fi
-          printf '%s  %s\\n' 'f530705d447660a4336c329981af164b471b60b974b1d808d57e8ec9fe23b239' "$HOME/.cache/a1-llm/model.gguf" | sha256sum --check --status
+          printf '%s  %s\n' 'f530705d447660a4336c329981af164b471b60b974b1d808d57e8ec9fe23b239' "$HOME/.cache/a1-llm/model.gguf" | sha256sum --check --status
       - name: Recuperar cache do motor
         uses: actions/cache/restore@v4
         with:
