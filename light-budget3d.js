@@ -64,7 +64,8 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     for (let i = 0; i < Math.min(slots, ranked.length); i++) chosen.push(ranked[i].s);
     // histerese: quem já ocupa um slot e continua entre os escolhidos fica no mesmo slot
     free.length = 0;
-    for (const p of pool) { if (p.src && chosen.includes(p.src)) chosen.splice(chosen.indexOf(p.src), 1); else free.push(p); }
+    // Se a fonte atual voltou a ser prioritária durante o fade, cancelar a troca pendente.
+    for (const p of pool) { if (p.src && chosen.includes(p.src)) { chosen.splice(chosen.indexOf(p.src), 1); p.next = undefined; } else free.push(p); }
     // troca sem piscar: o slot apaga a fonte antiga suavemente e só então acende a nova no lugar dela
     for (const p of free) { const s = chosen.shift() || null; if (s !== p.src) { if (p.src && p.light.intensity > .05) p.next = s; else { p.src = s; p.next = undefined; } } }
     const k = 1 - Math.exp(-dt * 10);
