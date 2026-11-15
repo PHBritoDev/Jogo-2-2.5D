@@ -43,7 +43,8 @@ class PipelineTests(unittest.TestCase):
     def test_cli_exports_reviewable_patch_outside_checkout(self):
         from io import StringIO
         from contextlib import redirect_stdout
-        destination = self.root.parent / "review-patch.json"
+        destination = self.root.parent / (self.root.name + "-review-patch.json")
+        self.addCleanup(lambda: destination.unlink(missing_ok=True))
         with patch.object(pipeline.proposer, "propose_replacement", return_value=self.good):
             with patch.object(sys, "argv", [
                 "a1-repair-real-pilot.py", "--root", str(self.root),
