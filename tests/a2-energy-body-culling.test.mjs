@@ -92,3 +92,19 @@ test('energy body fails open when expanded bounding radius overflows', () => {
   assert.equal(fx.mesh.geometry.boundingSphere.radius,Number.MAX_VALUE);
   fx.dispose();
 });
+
+// A controller can change warp after its last update and before the renderer's
+// frustum test. Bounds must update on assignment, not one frame later.
+test('energy body refreshes culling immediately when warp uniform is assigned', () => {
+  const fx=energyBody(T,{add() {},remove() {}},'celestial',{warp:.1});
+  const warp=fx.material.uniforms.warp;
+  warp.value=2;
+  assert.equal(fx.mesh.frustumCulled,true);
+  assert.ok(Math.abs(fx.mesh.geometry.boundingSphere.radius-4.7)<1e-9);
+  warp.value=Infinity;
+  assert.equal(fx.mesh.frustumCulled,false);
+  warp.value=-.5;
+  assert.equal(fx.mesh.frustumCulled,true);
+  assert.ok(Math.abs(fx.mesh.geometry.boundingSphere.radius-3.425)<1e-9);
+  fx.dispose();
+});
