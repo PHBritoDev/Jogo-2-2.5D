@@ -23,7 +23,11 @@ export function levelProgress(xp) {
 }
 /** Bônus por nível: vida e mana máximas crescem pouco, para o combate não ficar trivial. */
 export function statsForLevel(level) {
-  return { maxHP: 100 + (level - 1) * 10, maxMana: 100 + (level - 1) * 6, damageBonus: (level - 1) * .04 };
+  // Saves corrompidos não devem gerar HP, mana ou dano NaN/Infinity.
+  const raw = Number(level);
+  const safeLevel = Number.isFinite(raw) && raw >= 1
+    ? Math.min(LEVELS.length, Math.floor(raw)) : 1;
+  return { maxHP: 100 + (safeLevel - 1) * 10, maxMana: 100 + (safeLevel - 1) * 6, damageBonus: (safeLevel - 1) * .04 };
 }
 
 /** Etapas da campanha usadas como requisito (questStep do Ato I). */
