@@ -16,6 +16,9 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     return { light: l, src: null, next: undefined };
   });
   const sources = new Set(), sourceScore = new Map(), ranked = [], chosen = [], free = [];
+  // Intervalos 0, negativos, fracionários ou NaN não podem desativar o scan
+  // (frame % NaN nunca é zero) nem deixar fontes antigas sem orçamento.
+  const scanInterval = Number.isSafeInteger(rescanEvery) && rescanEvery > 0 ? rescanEvery : 45;
   let frame = 0;
   /* Mod 316 — guarda imediata: antes, uma PointLight nova (tocha GLB que termina de carregar, efeito, zona) ficava até
      45 quadros na camada 0 até o próximo scan. Nesse intervalo o número de luzes do shader mudava (+1) e TODOS os
@@ -53,7 +56,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     return Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z);
   }
   function update(camera, dt = 1 / 60) {
-    if (frame++ % rescanEvery === 0) scan();
+    if (frame++ % scanInterval === 0) scan();
     camera.getWorldPosition(cam);
     ranked.length=0;
     for (const s of sources) {
