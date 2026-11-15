@@ -57,3 +57,21 @@ test('foothill shoreline cutoff is enforced without clearing dry hillside', () =
   assert.deepEqual(scatterForest(flooded, options), [], 'shallow water margin must remain clear');
   assert.ok(scatterForest(dry, options).length > 0, 'dry slope must keep its conifers');
 });
+
+test('nonfinite water readings never plant trees in valley or foothills', () => {
+  for (const depth of [NaN, Infinity, -Infinity]) {
+    for (const distance of [-20, 20]) {
+      const invalid = { ...foothill, boundaryDistance: () => distance, waterDepth: () => depth };
+      assert.deepEqual(scatterForest(invalid, { seed: 9137, attempts: 1500 }), [],
+        `invalid water depth ${depth} at boundary ${distance} must be rejected`);
+    }
+  }
+});
+
+test('nonfinite foothill elevations never generate floating conifers', () => {
+  for (const elevation of [NaN, Infinity, -Infinity]) {
+    const invalid = { ...foothill, height: () => elevation };
+    assert.deepEqual(scatterForest(invalid, { seed: 9137, attempts: 1500 }), [],
+      `invalid elevation ${elevation} must not produce vegetation`);
+  }
+});
