@@ -8,6 +8,8 @@ on:
       - ".github/workflows/a1-local-llm.yml"
       - "tools/agentes-externos/a1-local.py"
       - "tools/agentes-externos/test_a1_local.py"
+      - "tools/agentes-externos/a1-repair-gate.py"
+      - "tools/agentes-externos/test_a1_repair_gate.py"
   issues:
     types: [labeled]
   schedule:
@@ -27,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -m unittest discover -s tools/agentes-externos -p 'test_a1_local.py' -v
+      - run: python3 -m unittest discover -s tools/agentes-externos -p 'test_a1*.py' -v
 
   smoke-inferencia-pr:
     # Smoke real é opt-in e não recebe token nem permissão para escrever Issues.
