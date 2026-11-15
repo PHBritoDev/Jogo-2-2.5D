@@ -47,6 +47,8 @@ export function msToNextHeart(state, now = Date.now()) {
 export function canChallengeBishop(state) { return state.hearts >= 1; }
 
 export function formatTimer(ms) {
-  const s = Math.ceil(ms / 1000), m = Math.floor(s / 60);
+  // Um relógio inválido não pode vazar NaN/Infinity ou tempo negativo ao HUD.
+  const safeMs = typeof ms === 'number' && Number.isFinite(ms) ? Math.max(0, ms) : 0;
+  const s = Math.ceil(safeMs / 1000), m = Math.floor(s / 60);
   return m + ':' + String(s % 60).padStart(2, '0');
 }
