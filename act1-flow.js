@@ -508,7 +508,8 @@ export function afterVhazraelVictory(progress) {
   // Nunca pagar o Bispo novamente ao retomar um Ato I já finalizado.
   const first = !p.vhazraelRewardClaimed && clampInt(p.questStep, 0, 30, 0) < 8;
   return {
-    questStep: 8,
+    // Uma vitória repetida não pode retroceder um save que já iniciou atos posteriores.
+    questStep: Math.max(8, clampInt(p.questStep, 0, 30, 0)),
     bishopsDefeated: Math.max(1, clampInt(p.bishopsDefeated, 0, 4, 0)),
     vhazraelRewardClaimed: true,
     coinsGained: first ? ACT1.vhazraelReward : 0
