@@ -1,0 +1,181 @@
+name: A1 autonomo — vigia 5min e reparo opt-in
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      tentar_reparo:
+        description: 'Usar Codex se secret e variável de autorização estiverem configurados'
+        required: false
+        default: false
+        type: boolean
+  push:
+    paths:
+      - 'tools/bug-agent/**'
+      - '.github/workflows/a1-agente-autonomo-5min.yml'
+permissions:
+  contents: read
+concurrency:
+  group: a1-robot-main
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      failed: ${{ steps.check.outputs.failed }}
+      repair_enabled: ${{ steps.flag.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: flag
+        name: Verificar autorização explícita de consumo de API
+        env:
+          ALLOWED: ${{ vars.ENABLE_A1_CODEX_AUTOFIX }}
+          REQUESTED: ${{ inputs.tentar_reparo }}
+        run: |
+          if [ "$ALLOWED" = true ] && { [ "${{ github.event_name }}" != workflow_dispatch ] || [ "$REQUESTED" = true ]; }; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+          fi
+      - id: check
+        name: Executar regressões reais e gravar relatório
+        shell: bash
+        run: |
+          set +e
+          node tools/bug-agent/monitor.mjs
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo 'failed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'failed=false' >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a1-robot-${{ github.run_number }}
+          path: bug-agent-results/
+          retention-days: 7
+      - name: Reportar defeito sem duplicar issues a cada 5min
+        if: steps.check.outputs.failed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('bug-agent-results/report.json','utf8'));
+            const bad = report.results.filter(r => !r.ok);
+            const title='[A1-auto] Regressão detectada em main';
+            const {owner,repo}=context.repo;
+            const existing=await github.paginate(github.rest.issues.listForRepo,{owner,repo,state:'open',per_page:100});
+            const issue=existing.find(x=>!x.pull_request&&x.title===title);
+            if (!issue) {
+              const body='Falha reproduzida pelo monitor agendado. **Isso é diagnóstico, não correção automática concluída.**\n\n'+
+                bad.map(b=>'- '+b.name+' (log: '+b.log+')').join('\n')+
+                '\n\nCommit: '+report.commit+'\nExecução: https://github.com/'+owner+'/'+repo+'/actions/runs/'+context.runId+
+                '\nArtefato: a1-robot-'+context.runNumber+'\nA1: reproduzir, teste vermelho, corrigir, teste verde e abrir PR sem merge.';
+              await github.rest.issues.create({owner,repo,title,body});
+            }
+    permissions:
+      contents: read
+      issues: write
+
+  codex:
+    needs: monitor
+    if: needs.monitor.outputs.failed == 'true' && needs.monitor.outputs.repair_enabled == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: a1-robot-${{ github.run_number }}
+          path: bug-agent-results
+      - name: Validar que a chave está disponível
+        env:
+          TOKEN_SET: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: |
+          if [ "$TOKEN_SET" != true ]; then
+            echo 'Falta OPENAI_API_KEY; nenhum agente de programação pode ser executado.' >&2
+            exit 1
+          fi
+      - name: Codex implementa patch local sem token de escrita
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ':workspace'
+          prompt: |
+            Você é A1 do RPG PHBritoDev/Jogo-2-2.5D. Leia o arquivo ATUAL docs/equipe-5-agentes/01-AGENTE-BUGS.md.
+            Leia bug-agent-results/report.json e os logs de falha. Corrija a causa reproduzida no código de produção,
+            adicione regressão específica e execute testes até ficarem verdes. Não faça mudança especulativa.
+            NÃO altere caverna, NPCs/colisões da vila do Claude, arquivos de workflow, secrets, docs de agentes, GLBs,
+            build-info.js, main ou outros componentes concorrentes. Não edite .github/ e não instale serviços pagos.
+            Limite a um bug. Se não houver reprodução ou patch seguro, não edite nada.
+            Apenas modifique o checkout local; não dê push, não abra PR e não invoque rede.
+      - name: Exportar somente diff de código
+        shell: bash
+        run: |
+          git diff --binary -- . ':!.github' ':!build-info.js' ':!docs' ':!tools/bug-agent' ':!mundo-3d-prototype.js' ':!eldoria-meshy-npcs.js' ':!eldoria-npc-life.js' > a1-robot.patch
+          if [ -s a1-robot.patch ]; then
+            git diff --check
+            git apply --check --reverse a1-robot.patch
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a1-fix-patch-${{ github.run_number }}
+          path: a1-robot.patch
+          retention-days: 7
+
+  pr:
+    needs: [monitor,codex]
+    if: needs.codex.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: a1-fix-patch-${{ github.run_number }}
+      - name: Evitar PR duplicada, proteger main e validar patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          test -s a1-robot.patch || { echo 'Sem mudança concreta; nenhuma PR.'; exit 0; }
+          if gh pr list --state open --json headRefName --jq '.[].headRefName' | grep -q '^agentes/a1/'; then
+            echo 'Já existe PR A1 ativa: não abrir outra.'
+            exit 0
+          fi
+          if ! git apply --check a1-robot.patch; then echo 'Patch incompatível com main atual'; exit 1; fi
+          git apply a1-robot.patch
+          git diff --check
+          git diff --name-only | grep -Eq '.' || exit 0
+          if git diff --name-only | grep -E '^(\.github/|build-info\.js$|mundo-3d-prototype\.js$|eldoria-|docs/)' ; then
+            echo 'Arquivo protegido'; exit 1
+          fi
+          node tools/bug-agent/monitor.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          branch="agentes/a1/automatico-${RUN_ID}"
+          git switch -c "$branch"
+          git add -u
+          git commit -m "fix(a1): regressão reproduzida e corrigida pelo agente"
+          git push -u origin "$branch"
+          gh pr create --draft --base main --head "$branch" --title "A1 automático: corrigir regressão detectada" --body "Patch gerado pelo Codex após falha real dos testes do monitor. Regressões locais foram executadas e passaram. **PR em rascunho: revisão humana e QA visual obrigatórios; sem merge automático.** Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"
