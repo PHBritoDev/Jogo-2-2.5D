@@ -14,8 +14,14 @@ const path = require("node:path");
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.goto("http://127.0.0.1:4173/mundo-3d-prototype.html?debug3d=1", { waitUntil: "domcontentloaded", timeout: 60000 });
-    await page.waitForFunction(() => document.getElementById("heart-count")?.textContent === "10" ||
-      document.getElementById("loading")?.textContent?.includes("Falha ao montar o mundo 3D"), null, { timeout: 180000 });
+    // O HTML começa com 10 no HUD antes de o controlador carregar o save!
+    // Esperar a montagem real do mundo evita o falso negativo observado no CI.
+    const ready = await page.waitForFunction(() => {
+      if (document.getElementById("loading")?.textContent?.includes("Falha ao montar o mundo 3D")) return "falhou";
+      const D = window.SevenSinsDebug3D;
+      return D && typeof D.fly === "function" && (!D.riteState || D.riteState().ready) ? "pronto" : false;
+    }, null, { timeout: 240000 }).then(h => h.jsonValue());
+    assert.equal(ready, "pronto", "o jogo precisa montar antes de examinar HUD e persistência");
     assert.equal(await page.locator("#heart-count").textContent(), "10", "HUD deve recuperar 10 corações do save antigo");
     const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("seven-sins-hearts")));
     const evidence = path.resolve("visual-lab-results/a1-hearts");
@@ -24,7 +30,12 @@ const path = require("node:path");
     fs.writeFileSync(path.join(evidence, "state-before-reload.json"), JSON.stringify({ hud: await page.locator("#heart-count").textContent(), stored, errors }, null, 2));
     assert.equal(stored?.hearts, 10, "regeneração offline deve ser persistida imediatamente, não só após novo tick");
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForFunction(() => document.getElementById("heart-count")?.textContent === "10", null, { timeout: 180000 });
+    const reopenedReady = await page.waitForFunction(() => {
+      if (document.getElementById("loading")?.textContent?.includes("Falha ao montar o mundo 3D")) return "falhou";
+      const D=window.SevenSinsDebug3D;
+      return D && typeof D.fly === "function" && (!D.riteState || D.riteState().ready) ? "pronto" : false;
+    }, null, { timeout: 240000 }).then(h => h.jsonValue());
+    assert.equal(reopenedReady, "pronto", "jogo real deve reabrir antes da leitura pós-reload");
     assert.equal(await page.locator("#heart-count").textContent(), "10");
     const storedAfterReload = await page.evaluate(() => JSON.parse(localStorage.getItem("seven-sins-hearts")));
     assert.equal(storedAfterReload?.hearts, 10, "reload deve preservar os corações regenerados no armazenamento");
