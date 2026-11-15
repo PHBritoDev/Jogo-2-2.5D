@@ -247,3 +247,25 @@ test('A4: clarão pendente que sai do alcance não apaga a tocha próxima',()=> 
   }
   assert.ok(slot.intensity>2.9,'tocha não deve perder iluminação por fonte distante');
 });
+
+test('A4: PointLight com distance zero mantém alcance ilimitado do Three.js',()=> {
+  const scene=new Object3D(), camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:1});
+  const source=new PointLight(0xffffff,2,0,2); source.name='luz-infinita';
+  source.matrixWorld.position.x=100;
+  scene.add(source);
+  for(let i=0;i<30;i++)budget.update(camera,1/60);
+  assert.deepEqual(budget.stats().active,['luz-infinita'],
+    'distance=0 não deve ser descartado pelo corte de 70 unidades');
+  assert.equal(scene.children[0].distance,0,'preservar alcance ilimitado no slot');
+  assert.ok(scene.children[0].intensity>0);
+});
+test('A4: luz de alcance finito continua descartada quando distante',()=> {
+  const scene=new Object3D(), camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:1});
+  const source=new PointLight(0xffffff,2,30,2);source.name='luz-limitada';
+  source.matrixWorld.position.x=100;
+  scene.add(source);
+  budget.update(camera,1/60);
+  assert.deepEqual(budget.stats().active,[]);
+});
