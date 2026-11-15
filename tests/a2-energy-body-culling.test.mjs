@@ -126,3 +126,22 @@ test('energy body refreshes culling immediately when warp uniform is assigned', 
   assert.ok(Math.abs(fx.mesh.geometry.boundingSphere.radius-3.425)<1e-9);
   fx.dispose();
 });
+
+
+// The dissolve mask is independent of the later body/vein noises.
+// Early fragment rejection saves their cost without changing the mask or palette.
+test('energy shader rejects dissolved pixels before expensive secondary noises', () => {
+  const fx=energyBody(T,{add() {},remove() {}},'celestial');
+  const shader=fx.material.fragmentShader;
+  const mask='float cells=flowNoise(vec2(vUv.x*22.*frequency,vUv.y*15.+seed),time*.7,detail);';
+  const rejection='if(cells<dissolve)discard;';
+  const body='float n=flowNoise(vec2(vUv.x*11.*frequency,vUv.y*7.+seed),time,detail);';
+  const veins='float n2=flowNoise(vec2(vUv.x*23.*frequency-time*1.2,vUv.y*13.+seed*1.7),time*.85,detail);';
+  assert.equal(shader.split(mask).length,2,'dissolve noise must be evaluated exactly once');
+  assert.equal(shader.split(rejection).length,2,'dissolve discard must occur exactly once');
+  assert.ok(shader.indexOf(mask)<shader.indexOf(rejection));
+  assert.ok(shader.indexOf(rejection)<shader.indexOf(body));
+  assert.ok(shader.indexOf(rejection)<shader.indexOf(veins));
+  assert.ok(shader.includes('float edgeCut=smoothstep(dissolve,dissolve+.11,cells);'),'preserve dissolve edge falloff');
+  fx.dispose();
+});
