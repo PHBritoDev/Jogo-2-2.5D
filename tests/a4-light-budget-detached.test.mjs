@@ -75,3 +75,31 @@ test('A4: grupo reanexado volta a iluminar após scan sem duplicar cadastro',()=
   assert.deepEqual(budget.stats().active,['tocha-reanexada']);
   assert.equal(budget.stats().sources,1);
 });
+
+test('A4: intensidade não finita não contamina o slot e fonte válida assume iluminação',()=> {
+  const scene=new Object3D(),camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:1});
+  const bad=new PointLight(0xffffff,NaN,30,2);bad.name='invalida';
+  const good=new PointLight(0xffffff,3,30,2);good.name='valida';
+  scene.add(bad,good);
+  for(let i=0;i<5;i++)budget.update(camera,1);
+  assert.deepEqual(budget.stats().active,['valida']);
+  assert.ok(Number.isFinite(scene.children[0].intensity));
+  good.intensity=Infinity;
+  for(let i=0;i<5;i++)budget.update(camera,1);
+  assert.deepEqual(budget.stats().active,[]);
+  assert.ok(Number.isFinite(scene.children[0].intensity));
+  good.intensity=2;
+  for(let i=0;i<5;i++)budget.update(camera,1);
+  assert.deepEqual(budget.stats().active,['valida']);
+});
+test('A4: posição inválida não supera fonte de posição finita',()=> {
+  const scene=new Object3D(),camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:1});
+  const bad=new PointLight(0xffffff,5,30,2);bad.name='posicao-invalida';
+  bad.matrixWorld.position.x=NaN;
+  const good=new PointLight(0xffffff,2,30,2);good.name='posicao-valida';
+  scene.add(bad,good);
+  budget.update(camera,1);
+  assert.deepEqual(budget.stats().active,['posicao-valida']);
+});
