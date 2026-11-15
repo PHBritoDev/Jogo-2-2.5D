@@ -290,7 +290,15 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
   };
   for (const name of activeSkirtEdges) {
     const ids = edge(name), base = pos.length / 3;
-    for (const id of ids) pos.push(pos[id * 3], pos[id * 3 + 1] - skirt, pos[id * 3 + 2]);
+    for (const id of ids) {
+      const skirtY = pos[id * 3 + 1] - skirt;
+      // The surface may fit Float32 while lowering the skirt overflows it.
+      // Fail before uploading an infinite vertex to the GPU.
+      if (!Number.isFinite(skirtY) || !Number.isFinite(Math.fround(skirtY))) {
+        throw new RangeError('buildTerrainPatch: exterior skirt exceeds Float32 range');
+      }
+      pos.push(pos[id * 3], skirtY, pos[id * 3 + 2]);
+    }
     for (let k = 0; k < ids.length - 1; k++) { const a = ids[k], b = ids[k + 1], c = base + k, d = base + k + 1; idx.push(a, b, c, b, d, c, a, c, b, b, c, d); }
   }
   return { positions: new Float32Array(pos), indices: new Uint32Array(idx), nx, nz };
