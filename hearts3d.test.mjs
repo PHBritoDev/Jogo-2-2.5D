@@ -115,3 +115,12 @@ test('tipos inválidos no save não zeram o contador de corações', () => {
     assert.equal(normalizeHearts({ hearts, since: now }, now).hearts, Number(hearts));
   }
 });
+
+
+test('save com timestamp zero válido recupera corações ao reabrir', () => {
+  const now = HEARTS.regenMs * 4;
+  const state = normalizeHearts({ hearts: 2, since: 0 }, now);
+  assert.equal(state.hearts, 6, 'quatro intervalos completos devem regenerar quatro corações');
+  assert.equal(state.since, now);
+  assert.equal(msToNextHeart(state, now), HEARTS.regenMs);
+});
