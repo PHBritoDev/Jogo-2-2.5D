@@ -1,4 +1,5 @@
 import { smooth, easeOut, hash, groundNormal } from './celestial-fxkit3d.js';
+import { orbitalPath, orbitalMeteorAt, orbitalBlastR } from './vhazrael-orbital-path.js';
 /**
  * MOD 253 — EXTINÇÃO ORBITAL do VHAZRAEL refeita como cutscene (só desenha o estado de vhazrael3d.js; dano é da lógica).
  * Tudo procedural e original (shaders + geometria gerada no carregamento; nenhuma textura externa).
@@ -172,51 +173,48 @@ export function createExtinctionVFX(T, kit) {
   const VDIR = pathEnd.clone().sub(pathStart).normalize(), LOOK0 = dirAt(RHO, new T.Vector3()), CAM0 = AX.clone().multiplyScalar(PD);
   const LIMB = AX.clone().multiplyScalar(Math.cos(PHI)).addScaledVector(TX, Math.sin(PHI)).multiplyScalar(R * 1.004);
   function spaceShot(s, T0) {
-    const ph = s.phase, tAll = ph === 'orbit' ? s.t : T0.orbit + s.t, total = T0.orbit + T0.entry, kk = tAll / total, k = kk < .4 ? .05 * (kk / .4) ** 2 : .05 + .95 * smooth((kk - .4) / .6) ** 1.3;
+    /* Mod 320 — DUAS tomadas contínuas, sem montagem: B (orbit) revelação da Terra com a câmera girando devagar até
+       encontrar o ponto quente que vira meteoro; C1 (1ª metade de entry) acompanhamento 3/4 do meteoro entrando na atmosfera. */
+    const ph = s.phase, u = ph === 'orbit' ? s.t / T0.orbit : Math.min(1, s.t / (T0.entry * .5)), k = ph === 'orbit' ? .55 * smooth(u) ** 1.25 : .55 + .45 * smooth(u);
     meteorAt(k, C); const r = 16, alt = C.length() - R, heat = .5 + .5 * smooth(1 - alt / (R * 1.4)); mSpace.set(C, VDIR, r, heat);
     X.crossVectors(VDIR, AX).normalize(); Z.crossVectors(X, VDIR).normalize(); // eixos do caminho
     const pos = new T.Vector3(), look = new T.Vector3(), upv = new T.Vector3().copy(AX); let fov = 46;
-    if (ph === 'orbit') { // SHOT 2/3: revelação da Terra (dolly lento) e o ponto quente que surge longe e cresce
-      const u = s.t / T0.orbit; pos.copy(CAM0).multiplyScalar(1 - .04 * u).addScaledVector(BX, R * .06 * u); look.copy(pos).addScaledVector(LOOK0, R); fov = 46 - 3 * u;
-    } else { const u = s.t / T0.entry, sub = Math.min(4, Math.floor(u * 5)), w = u * 5 - sub; // SHOT 4: montagem guiada pelo mesmo caminho
-      if (sub === 0) { pos.copy(C).addScaledVector(X, r * 7).addScaledVector(VDIR, -r * 9 + r * 3 * w).addScaledVector(Z, r * 2.5); look.copy(C).addScaledVector(VDIR, r * 3); fov = 44; upv.copy(Z); }
-      else if (sub === 1) { pos.copy(C).addScaledVector(X, r * 2.1).addScaledVector(VDIR, r * (1.2 - .7 * w)).addScaledVector(Z, r * .6); look.copy(C).addScaledVector(VDIR, -r * .3); fov = 50; upv.copy(Z); }
-      else if (sub === 2) { pos.copy(CAM0).multiplyScalar(.8).addScaledVector(BX, R * .35); look.copy(pathEnd).lerp(C, .45); fov = 44; }
-      else if (sub === 3) { meteorAt(.9, V); pos.copy(V).normalize().multiplyScalar(R).addScaledVector(BX, R * .1).addScaledVector(TX, -R * .06).normalize().multiplyScalar(R * 1.025); upv.copy(pos).normalize(); E.copy(C).sub(pos); E.addScaledVector(upv, -E.dot(upv)).normalize(); look.copy(pos).addScaledVector(E, R * .6).lerp(C, .45); fov = 54; }
-      else { pos.copy(pathEnd).addScaledVector(BX, R * .05).addScaledVector(TX, -R * .06).normalize().multiplyScalar(R * 1.006); upv.copy(pos).normalize(); E.copy(C).sub(pos); E.addScaledVector(upv, -E.dot(upv)).normalize(); look.copy(pos).addScaledVector(E, R * .3).lerp(C, .7); fov = 64 - 8 * w; }
-    }
+    if (ph === 'orbit') { pos.copy(CAM0).multiplyScalar(1 - .05 * u).addScaledVector(BX, R * .08 * u); look.copy(pos).addScaledVector(LOOK0, R).lerp(C, .62 * smooth((u - .3) / .7)); fov = 46 - 6 * u; }
+    else { const w = smooth(u); pos.copy(C).addScaledVector(X, r * 7 * (1 - .45 * w)).addScaledVector(VDIR, -r * (9 - 5 * w)).addScaledVector(Z, r * (2.5 - w)); look.copy(C).addScaledVector(VDIR, r * (3 + 2 * w)); fov = 44 + 6 * w; upv.copy(Z); }
     flare.position.copy(LIMB); const fd = pos.distanceTo(LIMB); flare.scale.set(fd * .55, fd * .55, 1); flareM.uniforms.k.value = ph === 'orbit' ? .7 + .3 * smooth(s.t / 1.2) : .8;
     { const bd = pos.distanceTo(C); beacon.position.copy(C).addScaledVector(VDIR, r * .6); const bs = Math.max(r * 5, bd * .05) * (ph === 'orbit' ? .6 + 1.1 * smooth((s.t / T0.orbit - .4) / .6) : .9); beacon.scale.set(bs, bs, 1); beaconM.uniforms.k.value = ph === 'orbit' ? smooth((s.t / T0.orbit - .35) / .3) : 1 - .75 * smooth((r * 40 - bd) / (r * 25)); }
     clouds.rotation.y = time * .003; oCam.position.copy(pos); oCam.up.copy(upv); oCam.lookAt(look); oCam.fov = fov; oCam.updateProjectionMatrix();
     return { space: true };
   }
   /** direção de chegada do meteoro na arena: de trás do bispo (visto do herói), descendo; mesma em arrival/choice/impact */
-  function arenaGeom(s, target) { const hx = target ? target.x : s.x + 8, hz = target ? target.z : s.z + 8, tx = s.x - hx, tz = s.z - hz, l = Math.hypot(tx, tz) || 1;
-    return { hx, hz, fx: tx / l, fz: tz / l, ex: s.x, ez: s.z, ey: ground(s.x, s.z) }; }
+  /* Mod 320 — arena: o meteoro segue a trajetória da LÓGICA (orbitalPath/orbitalMeteorAt), com o raio físico do contato;
+     sombra e anel marcam o epicentro TRAVADO; a câmera só faz o plano aberto da 2ª metade de entry e devolve antes da queda. */
+  function arenaGeom(s, target) { const P = s.path, hx = target ? target.x : s.x + 8, hz = target ? target.z : s.z + 8;
+    if (!P) return null; const l = Math.hypot(P.dx, P.dz) || 1; return { hx, hz, fx: -P.dx / l, fz: -P.dz / l, ex: P.ix, ez: P.iz, ey: P.iy }; }
   function drawArena(s, T0, target, boss, head) {
-    const ph = s.phase, G = arenaGeom(s, target), Rm = 30; D.set(-G.fx * .85 - G.fz * .25, -.62, -G.fz * .85 + G.fx * .25).normalize(); // velocidade do meteoro (desce rumo ao epicentro)
-    let dist = 0; if (ph === 'arrival') dist = 640 - 300 * smooth(s.t / T0.arrival); else if (ph === 'choice') { const u = s.t / T0.choice; dist = 340 - 320 * u ** 1.5; } // sempre dentro do far da câmera do jogo (760 m) else if (ph === 'impact') dist = Math.max(0, 50 * (1 - s.t / .12));
-    const show = ph === 'arrival' || ph === 'choice' || (ph === 'impact' && s.t < .14);
-    if (show) { C.set(G.ex, G.ey, G.ez).addScaledVector(D, -dist - Rm * .9); mArena.set(C, D, Rm, ph === 'arrival' ? .85 : 1); } else mArena.set(null, D, 1, 0, false);
-    const near = ph === 'arrival' ? .25 * smooth(s.t / T0.arrival) : ph === 'choice' ? .25 + .75 * smooth(s.t / T0.choice) : ph === 'impact' ? 1 - smooth(s.t / 1.2) : 0;
-    tint = Math.max(tint, near * .85); tintHex = 0xff6a1a;
-    if (ph === 'arrival' || ph === 'choice') { shadow.visible = true; shadow.position.set(G.ex, G.ey + .08, G.ez); const sr = 30 + 40 * near; shadow.scale.set(sr, 1, sr); shadow.material.uniforms.k.value = near;
-      for (let i = 0; i < (low ? 10 : 26); i++) { const a = hash(i) * 6.283, u = (time * (.6 + hash(i + 1)) + hash(i + 2)) % 1, rr = 4 + 30 * u; glow.add(G.ex + Math.cos(a) * rr, G.ey + .3 + u * 3 * near, G.ez + Math.sin(a) * rr, .1, .5, 1, .55, .2, near * (1 - u), 3, a, i); } // brasas/vento empurrados
-      for (let i = 0; i < (low ? 4 : 12); i++) { const a = hash(i + 40) * 6.283, u = (time * .5 + hash(i + 41)) % 1, rr = 6 + 22 * hash(i + 42); shard(G.ex + Math.cos(a) * rr, G.ey + .2 + u * 2.5 * near, G.ez + Math.sin(a) * rr, .08 + .25 * hash(i + 43), u * 7, i, a); } }
-    // câmeras da arena
-    if (ph === 'arrival') { const u = s.t / T0.arrival; A.set(G.hx - G.fx * (3 + 2 * u) - G.fz * 7, ground(G.hx, G.hz) + 3.2 + 1.5 * u, G.hz - G.fz * (3 + 2 * u) + G.fx * 7); /* ao lado do herói, na área aberta da luta (longe de copas e telhados) */ B.copy(C).lerp(V.set(G.ex, G.ey + 2, G.ez), .5); shot = { pos: A.toArray(), look: B.toArray(), fov: 64, blend: 1 }; }
-    else if (ph === 'choice') { const u = s.t / T0.choice, hy = ground(G.hx, G.hz); A.set(G.hx - G.fx * .95 + G.fz * .38, hy + 1.72, G.hz - G.fz * .95 - G.fx * .38); B.copy(C).lerp(V.set(G.ex, G.ey + 3, G.ez), .38 + .22 * u);
-      shot = { pos: A.toArray(), look: B.toArray(), fov: 66 + 8 * u, blend: smooth(s.t / .25) }; }
-    else if (ph === 'impact' || ph === 'after') { const it = ph === 'impact' ? s.t : T0.impact + s.t, back = smooth((it - 1.35) / 1.1), hy = ground(G.hx, G.hz);
-      A.set(G.hx - G.fx * 24 - G.fz * 8, hy + 21, G.hz - G.fz * 24 + G.fx * 8); /* alto e afastado: fora do domo e acima das copas */ B.set(G.ex, G.ey + 5, G.ez); shot = { pos: A.toArray(), look: B.toArray(), fov: 66, blend: (1 - back) * smooth(it / .05) }; if (shot.blend < .01) shot = null; }
+    const ph = s.phase, G = arenaGeom(s, target); if (!G) return; const OP = orbitalPath(s), Rm = T0.meteorR; D.set(s.path.dx, s.path.dy, s.path.dz);
+    const show = ph === 'entry' || ph === 'fall' || (ph === 'impact' && s.t < .1);
+    if (show) { const m = orbitalMeteorAt(s, ph === 'impact' ? 0 : OP.dist, {}); C.set(m.x, m.y, m.z); mArena.set(C, D, Rm, ph === 'entry' ? .85 : 1); } else mArena.set(null, D, 1, 0, false);
+    const near = ph === 'entry' ? .2 * smooth(s.t / T0.entry) : ph === 'fall' ? .2 + .8 * smooth(s.t / T0.fall) : ph === 'impact' ? 1 - smooth(s.t / 1.2) : 0;
+    tint = Math.max(tint, near * .8); tintHex = 0xff6a1a;
+    if (ph === 'entry' || ph === 'fall') { shadow.visible = true; shadow.position.set(G.ex, G.ey + .08, G.ez); const sr = T0.blastR * (.35 + .75 * near); shadow.scale.set(sr, 1, sr); shadow.material.uniforms.k.value = .35 + .65 * near; // sombra CRESCENDO sobre o alvo travado
+      ring(G.ex, G.ey + .25, G.ez, T0.blastR, .9 + .9 * near); ring(G.ex, G.ey + .3, G.ez, Rm, .6 + .6 * near); // anel externo = alcance da explosão; interno = onde o corpo cai
+      for (let i = 0; i < (low ? 10 : 26); i++) { const a = hash(i) * 6.283, u = (time * (.6 + hash(i + 1)) + hash(i + 2)) % 1, rr = 4 + T0.blastR * u; glow.add(G.ex + Math.cos(a) * rr, G.ey + .3 + u * 3 * near, G.ez + Math.sin(a) * rr, .1, .5, 1, .55, .2, near * (1 - u), 3, a, i); } // brasas/vento empurrados
+      for (let i = 0; i < (low ? 4 : 12); i++) { const a = hash(i + 40) * 6.283, u = (time * .5 + hash(i + 41)) % 1, rr = 4 + (T0.blastR - 4) * hash(i + 42); shard(G.ex + Math.cos(a) * rr, G.ey + .2 + u * 2.5 * near, G.ez + Math.sin(a) * rr, .08 + .25 * hash(i + 43), u * 7, i, a); } }
+    // Tomada C2: plano ABERTO da arena (2ª metade de entry), saída suave para a câmera do jogador ANTES da queda
+    if (ph === 'entry' && s.t >= T0.entry * .5) { const u = (s.t - T0.entry * .5) / (T0.entry * .5), hy = ground(G.hx, G.hz);
+      /* começa colada ao meteoro (de lado, ~9 raios) e recua num movimento só até o plano aberto da arena, ao lado do herói */
+      const w = smooth(u), sx = -D.z, sz = D.x, sl = Math.hypot(sx, sz) || 1; E.set(C.x + sx / sl * Rm * 9 - D.x * Rm * 6, C.y + Rm * 2, C.z + sz / sl * Rm * 9 - D.z * Rm * 6);
+      A.set(G.hx - G.fx * 15 - G.fz * 9, hy + 9, G.hz - G.fz * 15 + G.fx * 9); A.lerpVectors(E, A, w); B.copy(C).lerp(V.set(G.ex, G.ey + 2, G.ez), .55 * w);
+      shot = { pos: A.toArray(), look: B.toArray(), fov: 48 + 12 * w, blend: 1 - smooth((u - .7) / .3) }; if (shot.blend < .01) shot = null; }
     // SHOT 7: impacto com massa (todos os secundários irradiam do epicentro)
-    if (ph === 'impact' || ph === 'after') { const it = ph === 'impact' ? s.t : T0.impact + s.t, cx = G.ex, cz = G.ez, cy = G.ey, er = smooth((it - .95) / 1.9), duel = s.result === 'duel';
+    if (ph === 'impact' || ph === 'after') { const it = ph === 'impact' ? s.t : T0.impact + s.t, cx = G.ex, cz = G.ez, cy = G.ey, er = smooth((it - 1.1) / 1.9), duel = false, RB = orbitalBlastR(T0, it), HB = T0.blastH / T0.blastR;
       groundNormal(ground, cx, cz, nrm3);
-      if (it < .25) glow.add(cx, cy + 8, cz, 90 * (1 - it * 2), 70 * (1 - it * 2), 1, .9, .7, (1 - it / .25), 0);
-      if (!duel && er < .995) { const Rc = (8 + 14 * easeOut(Math.min(1, it / .35))) * (1 - .25 * er); core.visible = true; core.position.set(cx, cy - .3, cz); core.scale.set(Rc, Rc * (.8 + .4 * smooth(it / .6)), Rc); core.material.uniforms.heat.value = 1.05 - .7 * smooth((it - .3) / 1.6); core.material.uniforms.erode.value = er; }
-      const sk = Math.min(1, it / 1.3); if (sk < 1) { shock.visible = true; const sr = 6 + 70 * easeOut(sk); shock.position.set(cx, cy + .2, cz); shock.scale.set(sr, 1.8 * (1 - sk) + .4, sr); shock.material.uniforms.k.value = sk; decals.add(cx, cy, cz, sr * 1.05, 1, .5, .15, (1 - sk) * .9, 0, sk, s.id + 3, nrm3); }
+      if (it < .25) glow.add(cx, cy + 6, cz, 40 * (1 - it * 2), 30 * (1 - it * 2), 1, .9, .7, .8 * (1 - it / .25), 0); // clarão contido (sem cegar)
+      if (!duel && er < .995) { const Rc = Math.max(.5, RB) * (1 - .25 * er); core.visible = true; core.position.set(cx, cy - .3, cz); core.scale.set(Rc, Rc * HB * 1.05, Rc); /* domo = volume REAL do dano (orbitalBlastR × blastH) */ core.material.uniforms.heat.value = 1.05 - .7 * smooth((it - .3) / 1.6); core.material.uniforms.erode.value = er; }
+      const sk = Math.min(1, it / 1.3); if (sk < 1) { shock.visible = true; const sr = it < T0.blastGrow ? Math.max(.5, RB) : T0.blastR + 40 * easeOut((it - T0.blastGrow) / (1.3 - T0.blastGrow)); /* anel = frente do dano até blastGrow; depois só poeira */ shock.position.set(cx, cy + .2, cz); shock.scale.set(sr, 1.8 * (1 - sk) + .4, sr); shock.material.uniforms.k.value = sk; decals.add(cx, cy, cz, sr * 1.05, 1, .5, .15, (1 - sk) * .9, 0, sk, s.id + 3, nrm3); }
       for (let i = 0; i < 3; i++) { const k = (it - .05 - i * .12) / 1.1; if (k > 0 && k < 1) ring(cx, cy + .6 + i * 2.5, cz, 10 + 60 * easeOut(k), (1 - k) * 5 + 1); }
-      const Rb = (8 + 14 * easeOut(Math.min(1, it / .35))) * .85; for (let i = 0; i < (low ? 12 : 34); i++) { const k = it - hash(i + 60) * .3; if (k <= 0) continue; const a = hash(i + 61) * 6.283, el = .2 + hash(i + 62) * 1.1, g = easeOut(Math.min(1, k / .3)), L = (12 + 20 * hash(i + 63)) * g; // lâminas de fogo direcionais saindo da casca
+      const Rb = Math.max(.5, RB) * .85; for (let i = 0; i < (low ? 12 : 34); i++) { const k = it - hash(i + 60) * .3; if (k <= 0) continue; const a = hash(i + 61) * 6.283, el = .2 + hash(i + 62) * 1.1, g = easeOut(Math.min(1, k / .3)), L = (12 + 20 * hash(i + 63)) * g; // lâminas de fogo direcionais saindo da casca
         blade(cx + Math.cos(a) * Math.cos(el) * Rb, cy + .3 + Math.sin(el) * Rb * .9, cz + Math.sin(a) * Math.cos(el) * Rb, Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el), L, 3 + 3 * hash(i + 64), 1, 1, smooth((k - .9 - hash(i + 65) * .5) / .7), hash(i + 66)); }
       const cool = 1 - smooth((it - 1) / 3.2); for (let i = 0; i < (low ? 8 : 16); i++) { const a = i / 16 * 6.283 + hash(i + 70) * .3, L = (16 + 22 * hash(i + 71)) * easeOut(Math.min(1, it / .5)); crack(s.id * 7 + i * 31, cx + Math.cos(a) * 3, cz + Math.sin(a) * 3, cx + Math.cos(a) * L, cz + Math.sin(a) * L, .5 + .4 * hash(i + 72), cool, .95 * (1 - er * .6)); }
       for (let i = 0; i < (low ? 10 : 24); i++) { const an = hash(i + 80) * 6.283, u = easeOut(Math.min(1, it / .45)), r = 8 + 20 * hash(i + 81) * u; plate(cx + Math.cos(an) * r, cy - .3 + (1 - er) * (.6 + Math.sin(Math.min(1, it / .45) * 3.14) * 2.5), cz + Math.sin(an) * r, (1.2 + 1.4 * hash(i + 82)) * (1 - er * .5), (hash(i + 83) - .5) * 1.4, an, .4 + hash(i + 84) * .7); }
@@ -226,7 +224,7 @@ export function createExtinctionVFX(T, kit) {
     }
   }
   const nrm3 = [0, 1, 0];
-  function drawAwaken(s, T0, boss, head) { // SHOT 1: close do tirano em silhueta contra a aura; X de luz no rosto
+  function drawAwaken(s, T0, boss, head, target) { // SHOT 1: close do tirano em silhueta contra a aura; X de luz no rosto
     const u = s.t / T0.awaken, e = smooth(u), fy = Math.sin(boss.yaw), fz = Math.cos(boss.yaw), rx = fz, rz = -fy, hp = head ? head.p : V.set(boss.x, boss.y + 2.05, boss.z), hh = head ? head.h : 2.05;
     tint = Math.max(tint, .9 * smooth(u / .3)); tintHex = 0x5a0008;
     // aura atrás do bispo, de frente para a câmera
@@ -239,16 +237,22 @@ export function createExtinctionVFX(T, kit) {
       rib.seg(ex - rx * s0 * .55, ey + s0 * .55, ez - rz * s0 * .55, ex + rx * s0 * .55, ey - s0 * .55, ez + rz * s0 * .55, .005, .005, [1, .9, .9, a], [1, .9, .9, a]); rib.seg(ex - rx * s0 * .55, ey - s0 * .55, ez - rz * s0 * .55, ex + rx * s0 * .55, ey + s0 * .55, ez + rz * s0 * .55, .005, .005, [1, .9, .9, a], [1, .9, .9, a]);
       glow.add(ex, ey, ez, .32 * k, .32 * k, 1, .05, .08, .9 * k, 0); glow.add(ex, ey, ez, .9 * k, .22 * k, 1, .02, .05, .45 * k, 0); }
     // câmera: close baixo e frontal aproximando do rosto e da lâmina
-    A.set(boss.x + fy * (4 - 2.1 * e) + rx * .7 * (1 - e), boss.y + .35 + hh * .35 * e, boss.z + fz * (4 - 2.1 * e) + rz * .7 * (1 - e)); B.set(hp.x, hp.y - .25 + .2 * e, hp.z);
-    shot = { pos: A.toArray(), look: B.toArray(), fov: 42 - 10 * e, blend: 1 };
+    /* Mod 320 — tomada A: câmera BAIXA atrás do herói; o bispo ergue a espada, a luz cai e a câmera sobe junto para o céu
+       que se abre (continuidade para a tomada orbital). Sem alvo, cai no close antigo. */
+    if (target) { const hx = target.x, hz = target.z; let bx = boss.x - hx, bz = boss.z - hz; const l = Math.hypot(bx, bz) || 1; bx /= l; bz /= l; const sx = -bz, sz = bx, hy = ground(hx, hz), up2 = smooth((u - .45) / .55);
+      A.set(hx - bx * (3.1 - .6 * e) + sx * 1.15, hy + .7 + .25 * e, hz - bz * (3.1 - .6 * e) + sz * 1.15); B.set(boss.x, boss.y + hh * .75 + 16 * up2, boss.z);
+      glow.add(boss.x + bx * 30, boss.y + 46, boss.z + bz * 30, 34 * e, 20 * e, 1, .06, .1, .55 * e, 0); // o céu se abre acima do bispo
+      shot = { pos: A.toArray(), look: B.toArray(), fov: 54 - 8 * e, blend: smooth(s.t / .2) }; }
+    else { A.set(boss.x + fy * (4 - 2.1 * e) + rx * .7 * (1 - e), boss.y + .35 + hh * .35 * e, boss.z + fz * (4 - 2.1 * e) + rz * .7 * (1 - e)); B.set(hp.x, hp.y - .25 + .2 * e, hp.z);
+      shot = { pos: A.toArray(), look: B.toArray(), fov: 42 - 10 * e, blend: 1 }; }
   }
   return {
     oScene, oCam, meteor: mArena.g,
     get shot() { return shot; }, get tint() { return tint; }, get tintHex() { return tintHex; }, get info() { return info; },
     begin(camera, t, q) { time = t; uTime.value = t; low = q === 0; cam.copy(camera.position); shot = null; tint = 0; info = null; aura.visible = shadow.visible = core.visible = shock.visible = false; bn = 0; iq = 0; mArena.set(null, up, 1, 0, false); },
     draw(s, boss, target, head) { const T0 = s.T, ph = s.phase; info = { phase: ph, t: s.t, s };
-      if (ph === 'awaken' && boss) drawAwaken(s, T0, boss, head);
-      else if (ph === 'orbit' || ph === 'entry') shot = spaceShot(s, T0);
+      if (ph === 'awaken' && boss) drawAwaken(s, T0, boss, head, target);
+      else if (ph === 'orbit' || (ph === 'entry' && s.t < T0.entry * .5)) shot = spaceShot(s, T0);
       else drawArena(s, T0, target, boss, head); },
     end() { blades.count = bn; blades.instanceMatrix.needsUpdate = true; blades.geometry.attributes.aP.needsUpdate = true; inkG.setDrawRange(0, iq * 6); inkG.attributes.position.needsUpdate = inkG.attributes.aColor.needsUpdate = true; },
     clear() { shot = null; tint = 0; info = null; aura.visible = shadow.visible = core.visible = shock.visible = false; blades.count = 0; inkG.setDrawRange(0, 0); mArena.set(null, up, 1, 0, false); },

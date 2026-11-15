@@ -6,6 +6,9 @@ on:
     paths:
       - "vhazrael*.js"
       - "vhazrael*.html"
+      - "tests/vhazrael-*.test.mjs"
+      - "mundo-3d-prototype.js"
+      - "VHAZRAEL.glb"
       - "enemy1-squad-runtime3d.js"
       - "tools/visual-lab/vhazrael-reference-qa.cjs"
       - ".github/workflows/vhazrael-rupture-reference.yml"
@@ -34,7 +37,10 @@ jobs:
           node-version: "22"
       - name: Testar golpe, dano, fases e shader
         run: |
-          node --test vhazrael-reference-sakuga.test.mjs vhazrael.test.mjs
+          node --test vhazrael-reference-sakuga.test.mjs vhazrael.test.mjs tests/vhazrael-orbital-mod320.test.mjs enemy1-integration.test.mjs demonio1-migration.test.mjs
+          node --input-type=module --check < vhazrael-throne-sky3d.js
+          node --input-type=module --check < mundo-3d-prototype.js
+          node --input-type=module --check < vhazrael-extinction3d.js
           node --input-type=module --check < vhazrael-reference-sakuga3d.js
           node --input-type=module --check < vhazrael-rupture3d.js
           node --input-type=module --check < vhazrael-vfx3d.js

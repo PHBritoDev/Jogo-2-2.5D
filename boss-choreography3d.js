@@ -19,7 +19,7 @@ export const BOSS_MOVES={
 };
 for(const [kind,moves]of Object.entries(BOSS_MOVES))for(const m of moves){m.kind=kind;m.open=m.hits[0]-.11;m.close=m.hits.at(-1)+.11;m.recovery=m.duration-m.close;m.damageScale=kind==='warden'?.85:1.12;}
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
-export function bossTravel(m,t){const go=smooth((t-(m.open-.22))/.34)*m.advance;return go-(m.retreat||0)*smooth((t-m.close)/(m.duration-m.close));}
+export function bossTravel(m,t){const go=m.glide?smooth((t-(m.open-.18))/(m.close-m.open+.36))*m.advance:smooth((t-(m.open-.22))/.34)*m.advance; /* Mod 320: combos nativos avançam ao longo de TODOS os golpes (glide) */return go-(m.retreat||0)*smooth((t-m.close)/(m.duration-m.close));}
 export function bossLift(m,t){if(!m.jump)return 0;const u=(t-.15)/(m.hits[0]-.15);return u>0&&u<1?Math.sin(Math.PI*u)*m.jump:0;}
 export function bossPose(m,t){
  let i=m.hits.findIndex(h=>t<h+.18);if(i<0)i=m.hits.length-1;
