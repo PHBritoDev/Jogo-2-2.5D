@@ -139,5 +139,6 @@ test('mundo: na queda só a ultimate do herói fica bloqueada (sem gastar nada);
   assert.ok(src.includes("lock=!!o&&/^(awaken|orbit|entry)$/.test(o.phase)"), 'travado só nas tomadas');
   assert.ok(!src.includes("body.vz-choice #actions>button"), 'nenhuma ação escondida na queda');
   assert.ok(src.includes('a.pendingDeath=false;'), 'derrota limpa a morte pendente');
+  const hud = src.split('\n').find(l => l.includes('const cine=!!o&&')); assert.ok(hud && !hud.includes('//') && hud.includes("classList.toggle('vz-cine',cine)"), 'HUD das tomadas escondido de fato (nenhum comentário de linha engolindo o código)');
   assert.ok(!/info\.kind==='orbital'\)\{playerInvulnerableUntil=0/.test(src), 'i-frames/dash do herói valem contra o meteoro');
 });

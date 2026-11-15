@@ -8,7 +8,7 @@ export function orbitalPath(s) {
   if (!s.path) return null; const T = s.T, P = s.path, out = { ix: P.ix, iy: P.iy, iz: P.iz, dx: P.dx, dy: P.dy, dz: P.dz, r: T.meteorR };
   // distância do centro do meteoro ao ponto final ao longo da trajetória: chega a 0 no fim da queda (centro enterrado sink·R)
   const u = s.phase === 'fall' ? clamp(s.t / T.fall, 0, 1) : s.phase === 'impact' || s.phase === 'after' ? 1 : 0;
-  out.dist = s.phase === 'entry' ? T.approach * (1 + 1.6 * (1 - clamp(s.t / T.entry, 0, 1))) : T.approach * (1 - u) ** 1.35;
+  out.dist = s.phase === 'entry' ? T.approach * (1 + .6 * (1 - clamp(s.t / T.entry, 0, 1))) : T.approach * (1 - u) ** 1.35;
   out.u = u; return out;
 }
 export function orbitalMeteorAt(s, dist, o = {}) { const P = s.path; o.x = P.ix - P.dx * dist; o.y = P.iy + s.T.meteorR * (1 - 2 * s.T.sink) - P.dy * dist; o.z = P.iz - P.dz * dist; return o; }
