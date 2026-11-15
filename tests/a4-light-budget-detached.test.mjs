@@ -163,3 +163,25 @@ test('A4: clarão pendente removido nunca é promovido ao slot durante fade',()=
   }
   assert.ok(scene.children[0].intensity>2.9);
 });
+
+test('A4: alcance e decaimento inválidos não chegam aos uniforms dos slots',()=> {
+  const scene=new Object3D(),camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:1});
+  const source=new PointLight(0xffffff,3,NaN,Infinity);source.name='tocha-metadata';
+  scene.add(source);
+  budget.update(camera,1);
+  const slot=scene.children[0];
+  assert.deepEqual(budget.stats().active,['tocha-metadata']);
+  assert.equal(slot.distance,40);
+  assert.equal(slot.decay,2);
+  source.distance=0;
+  source.decay=0;
+  budget.update(camera,1);
+  assert.equal(slot.distance,0,'alcance zero do Three.js continua permitido');
+  assert.equal(slot.decay,0,'decaimento zero continua permitido');
+  source.distance=-Infinity;
+  source.decay=-2;
+  budget.update(camera,1);
+  assert.equal(slot.distance,40);
+  assert.equal(slot.decay,2);
+});
