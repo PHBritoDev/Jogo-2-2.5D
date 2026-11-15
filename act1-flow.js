@@ -509,7 +509,9 @@ export function afterVhazraelVictory(progress) {
   const p = progress || {};
   // Checkpoints antigos podem estar na etapa concluída sem a flag de pagamento.
   // Nunca pagar o Bispo novamente ao retomar um Ato I já finalizado.
-  const first = !p.vhazraelRewardClaimed && clampInt(p.questStep, 0, 30, 0) < 8;
+  // Um checkpoint parcialmente gravado pode já contar o Bispo, mesmo antes de avançar a etapa.
+  const first = !p.vhazraelRewardClaimed && clampInt(p.questStep, 0, 30, 0) < 8
+    && clampInt(p.bishopsDefeated, 0, 4, 0) === 0;
   return {
     // Uma vitória repetida não pode retroceder um save que já iniciou atos posteriores.
     questStep: Math.max(8, clampInt(p.questStep, 0, 30, 0)),
