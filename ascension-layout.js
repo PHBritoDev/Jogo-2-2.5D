@@ -55,6 +55,8 @@ export const FRONTIER_LINE = Object.freeze(catmull(FRONTIER_KNOTS, 1.5).map(([x,
  *  Fenda estreita demais para se ver dentro (como a boca, a passagem é uma transição). `out` = lado do vale (+x). */
 export const SERRA_CLEFT = Object.freeze((() => { let best = FRONTIER_LINE[0]; for (const p of FRONTIER_LINE) if (Math.abs(p[1] + 205) < Math.abs(best[1] + 205)) best = p;
   return { x: best[0], z: best[1], out: [1, 0], arrive: { x: best[0] + 5.5, z: best[1] - 1.5, yaw: Math.atan2(.55, -1) }, enterR: 1.7 }; })()); // sai olhando para a trilha da boca (sul), com a câmera livre da muralha
+/** Trilha estreita da trilha da boca até a fenda: torna a saída alternativa encontrável a partir do mundo. */
+export const SERRA_CLEFT_TRAIL = Object.freeze([[-58, -233], [-61.5, -225], [-64, -216], [-66.6, -208.4]]);
 /** Polígono fechado da massa rochosa (linha + fundo distante). */
 const FRONTIER_POLY = FRONTIER_LINE.concat([[70, -460], [-220, -460], [-220, -183]]);
 const FB = { x0: -221, x1: 71, z0: -461, z1: -182 };

@@ -346,10 +346,13 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
     loader.load('./CristalCaverna01.glb', g => {
       prepareBaked && prepareBaked(g.scene); let mesh = null; g.scene.traverse(o => { if (!mesh && o.isMesh) mesh = o; });
       if (mesh) { const mat = mesh.material; mat.emissive = new THREE.Color(0x7a52ff); mat.emissiveMap = mat.map; mat.emissiveIntensity = .9;
-        const spots = lowSpec ? crystalSpots.slice(0, 4) : crystalSpots, im = new THREE.InstancedMesh(mesh.geometry, mat, spots.length), o = new THREE.Object3D();
-        spots.forEach(([x, z, s, yaw], n) => { o.position.set(x, caveFloor(x, z) + s * .55 - .3, z); o.rotation.set((hash2(n, 23, 937) - .5) * .4, yaw, (hash2(n, 24, 938) - .5) * .4); o.scale.setScalar(s); o.updateMatrix(); im.setMatrixAt(n, o.matrix); });
-        im.name = 'cristais-heroi'; group.add(im);
-        if (lowSpec) { const cx = spots.reduce((a, s) => a + s[0], 0) / spots.length, cz = spots.reduce((a, s) => a + s[1], 0) / spots.length; propCull.push({ o: im, x: cx, z: cz, r: 62 }); } }
+        const spots = lowSpec ? crystalSpots.slice(0, 4) : crystalSpots, o = new THREE.Object3D(), groups = [];
+        // revisão C1–C5: um InstancedMesh por grupo de cristais próximos (≤ 25 m), cada um com distância de desenho.
+        // Antes, no desktop, os 12 cristais-herói (~10 k triângulos cada) eram desenhados da caverna inteira.
+        spots.forEach((sp, n) => { let g = groups.find(q => Math.hypot(q.x - sp[0], q.z - sp[1]) < 25); if (!g) { g = { x: sp[0], z: sp[1], list: [] }; groups.push(g); } g.list.push([sp, n]); });
+        groups.forEach((g, gi) => { const im = new THREE.InstancedMesh(mesh.geometry, mat, g.list.length); let cx = 0, cz = 0;
+          g.list.forEach(([[x, z, sc, yaw], n], k) => { o.position.set(x, caveFloor(x, z) + sc * .55 - .3, z); o.rotation.set((hash2(n, 23, 937) - .5) * .4, yaw, (hash2(n, 24, 938) - .5) * .4); o.scale.setScalar(sc); o.updateMatrix(); im.setMatrixAt(k, o.matrix); cx += x; cz += z; });
+          im.name = 'cristais-heroi' + (gi ? '-' + gi : ''); group.add(im); propCull.push({ o: im, x: cx / g.list.length, z: cz / g.list.length, r: 62 }); }); }
       done();
     }, undefined, done);
   });

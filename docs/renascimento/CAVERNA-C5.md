@@ -53,7 +53,7 @@ Etapa C5 do `PLANO-CAVERNA-ELDORIA.md`, empilhada sobre a C4 (#538). Pilha compl
   - A boca continua com o véu de transição. O que mudou é que ele virou um **piscar curto** (160 + 60 + 360 ms em vez de 380 + 400 + 260 + 620 ms) no trecho escuro do túnel. Isso vale na entrada, na saída e na fenda.
   - Não houve curva geométrica nova no túnel do GLB da boca.
   - A troca de zona sem nenhum véu exige refazer o túnel do mundo, fora do escopo seguro desta etapa.
-- **Fenda da serra:** é procedural (lajes de pedra). De perto se lê como abertura na muralha, mas a mata do cinturão em volta ainda esconde parte dela à distância.
+- **Fenda da serra:** é procedural (lajes de pedra). Ganhou a **Trilha da Fenda**, que sai da trilha da boca até ela, e uma clareira; antes, a mata a escondia à distância.
 - FPS e áudio no aparelho real (A55) não foram medidos.
 
 ## Evidências (`evidencias/caverna-c5/`)
@@ -73,5 +73,5 @@ Etapa C5 do `PLANO-CAVERNA-ELDORIA.md`, empilhada sobre a C4 (#538). Pilha compl
 | Câmera na rocha (17 pontos × 120) | 0 |
 | Navegação (17 trechos) | Todos completos, sem queda |
 | Custo mobile | ≤ 76 calls / ≤ 199 k triângulos |
-| Custo desktop (1280×720, sem lowSpec) | 53–76 calls, 413–434 k triângulos, 2,0–3,0 ms (SwiftShader). Os 12 cristais-herói (~10 k cada) só são cortados por distância no mobile: no desktop estão espalhados pela caverna numa malha instanciada só |
+| Custo desktop (1280×720, sem lowSpec) | Antes: 53–76 calls, 413–434 k triângulos. Os cristais-herói (~10 k cada) eram desenhados da caverna inteira. Agora há um InstancedMesh por grupo de cristais, com distância de desenho: 53–78 calls, **321–350 k** triângulos, 2,2–3,5 ms (SwiftShader) |
 | Suíte | C1–C5 + ascensão 311: 33/33. Suíte inteira sem falha nova (só `Mod 262`/`Mod 278`, como na `main`) |
