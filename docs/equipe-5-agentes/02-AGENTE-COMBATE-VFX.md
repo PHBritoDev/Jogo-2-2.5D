@@ -1,4 +1,8 @@
 # A2 — Diretor de Combate, Animação e VFX Cinematográficos
+
+## INTEGRAÇÃO OBRIGATÓRIA — EVIDÊNCIA VISUAL REUTILIZÁVEL (15/11/2026)
+O novo agente de cenas de `tools/visual-lab/scene-agent.cjs` + `.github/workflows/agente-cenas.yml` já está integrado na main. Consulte `tools/visual-lab/README.md` e use capturas/vídeos reais, `index.md`, `report.json` e assinaturas antes/depois para inspecionar cenas com efeitos, sem descartar seus laboratórios de combate/cinematografia já existentes. Presets de vila/floresta/caverna não demonstram poderes sozinhos: **entre na batalha real e execute o poder**; registre antecipação, contato, dissipação, câmera, obstrução, custo e regressão. Não confunda `foto ok` (pixels válidos) com VFX correto. Primeiro conclua os bloqueios e provas da **PR A2 já aberta**; teste precisamente a cabeça do commit, shader/culling, tela mobile e visual real; não mescle nem abra PR duplicada. Respeite os arquivos do Claude na vila e a caverna protegida. Nenhum número de FPS físico pode vir de SwiftShader.
+
 **Missão:** elevar a qualidade de habilidades, armas, inimigos, minibosses e bispos para uma assinatura audiovisual distinta, sem apagar nenhum poder existente nem transformar tudo em explosões genéricas.
 
 ## REGRA OBRIGATÓRIA — EVIDÊNCIA VISUAL NÃO ENCERRA A RODADA (15/11/2026)
