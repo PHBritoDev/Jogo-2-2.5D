@@ -1,0 +1,45 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { energyBody } from '../vfx-flow3d.js';
+
+class Geometry {
+  setAttribute() {}
+  setIndex() {}
+  computeVertexNormals() {}
+  computeBoundingSphere() { this.boundingSphere = { radius: 3 }; }
+  dispose() {}
+}
+class Vector {
+  constructor(x=0,y=0,z=0) { this.x=x;this.y=y;this.z=z; }
+  set(x,y,z) { this.x=x;this.y=y;this.z=z;return this; }
+  lengthSq() { return this.x*this.x+this.y*this.y+this.z*this.z; }
+  normalize() { return this; }
+}
+const T = {
+  BufferGeometry: Geometry,
+  Float32BufferAttribute: class { constructor(values,size) { this.values=values;this.size=size; } },
+  Color: class { constructor(...rgb) { this.rgb=rgb; } },
+  ShaderMaterial: class { constructor(options) { Object.assign(this,options); } dispose() {} },
+  Mesh: class {
+    constructor(geometry,material) {
+      this.geometry=geometry;this.material=material;
+      this.position={set() {}};this.scale={set() {}};
+      this.quaternion={setFromUnitVectors() {}};
+    }
+  },
+  Vector3: Vector, DoubleSide:2, FrontSide:0
+};
+test('energy body culls outside frustum with conservative warp margin and keeps updates', () => {
+  const children=[];
+  const parent={add(mesh) {children.push(mesh);},remove(mesh) {children.splice(children.indexOf(mesh),1);}};
+  const fx=energyBody(T,parent,'celestial',{warp:.4});
+  assert.equal(fx.mesh.frustumCulled,true);
+  assert.ok(fx.mesh.geometry.boundingSphere.radius >= 3+.4*.85-1e-9);
+  fx.update(1,{alpha:0,quality:0});
+  assert.equal(fx.mesh.visible,false);
+  assert.equal(fx.material.uniforms.detail.value,.65);
+  fx.update(2,{alpha:1,quality:1});
+  assert.equal(fx.mesh.visible,true);
+  fx.dispose();
+  assert.equal(children.length,0);
+});
