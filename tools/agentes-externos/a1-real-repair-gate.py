@@ -21,6 +21,7 @@ MAX_FRAGMENT = 2048
 
 # Only a bounded, expression-only subset may reach a test runner. The Qwen
 # cannot introduce calls, properties, identifiers, strings or statement syntax.
+_ALLOWED_PROPERTIES = frozenset(("regenMs", "max", "hearts", "since"))
 _RESERVED = frozenset(("constructor", "prototype", "__proto__", "eval", "Function", "require",
                        "import", "process", "globalThis", "window", "document", "fetch"))
 
@@ -52,6 +53,12 @@ def _safe_expression(fragment):
             if node.id in _RESERVED or node.id.startswith("__"):
                 raise ValueError("Forbidden identifier")
             names.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            if (not isinstance(node.value, ast.Name)
+                    or node.attr not in _ALLOWED_PROPERTIES
+                    or node.value.id in _RESERVED):
+                raise ValueError("Forbidden property access")
+            names.add(node.value.id + "." + node.attr)
         elif isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
             check(node.operand)
         elif isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
