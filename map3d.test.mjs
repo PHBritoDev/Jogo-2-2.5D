@@ -47,3 +47,11 @@ test('Arena do Vale e Coliseu da Ascensão têm IDs próprios e descoberta indep
   const saved = createMapState(serializeMapState(state));
   assert.ok(saved.pois.has(coliseu.id) && saved.pois.has(arena.id));
 });
+
+test('save legado com secretsFound nulo não derruba descoberta de locais', () => {
+  const ruin = MAP_POIS.find(p => p.id === 'ruina');
+  const s = createMapState();
+  assert.doesNotThrow(() => discoverPois(s, ruin.x, ruin.z, { secretsFound: null }));
+  assert.equal(s.pois.has('ruina'), false, 'segredo não deve ser revelado por campo nulo');
+  assert.ok(discoverPois(s, ruin.x, ruin.z, { secretsFound: { ruina: true } }).some(p => p.id === 'ruina'));
+});
