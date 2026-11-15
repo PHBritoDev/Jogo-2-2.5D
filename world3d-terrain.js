@@ -243,7 +243,13 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
     const x = i === nx - 1 ? x1 : x0 + i * dx;
     const z = j === nz - 1 ? z1 : z0 + j * dz;
-    pos.push(x, terrain.height(x, z), z);
+    const y = terrain.height(x, z);
+    // A broken height sampler must not send NaN/Infinity into GPU buffers.
+    // Reject the affected exterior patch before constructing its triangles.
+    if (!Number.isFinite(y)) {
+      throw new RangeError('buildTerrainPatch: non-finite terrain height');
+    }
+    pos.push(x, y, z);
   }
   for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
     const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
