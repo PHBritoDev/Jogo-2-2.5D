@@ -65,3 +65,14 @@ test('saldo corrompido não permite comprar nem gravar moedas inválidas', () =>
   }
   assert.equal(buyItem(offer, { questStep: 4, level: 2, coins: 20, owned: new Set() }).coins, 0);
 });
+
+
+test('XP corrompido não libera níveis nem produz progresso não finito', () => {
+  for (const xp of [Infinity, -Infinity, NaN, -30, 'Infinity', 'inválido']) {
+    assert.equal(levelFromXp(xp), 1, 'XP inválido não concede nível');
+    assert.deepEqual(levelProgress(xp), { level: 1, into: 0, need: 60, max: false },
+      'XP inválido mantém barra de experiência válida');
+  }
+  assert.equal(levelFromXp('150'), 3, 'save legado com XP numérico em string permanece válido');
+  assert.deepEqual(levelProgress(60), { level: 2, into: 0, need: 90, max: false });
+});
