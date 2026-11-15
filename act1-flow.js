@@ -173,7 +173,7 @@ export function migrateProgress(raw) {
       portalOpened: !!raw.portalOpened,
       portalRewardClaimed: !!raw.portalRewardClaimed,
       bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
-      vhazraelRewardClaimed: !!raw.vhazraelRewardClaimed,
+      vhazraelRewardClaimed: !!raw.vhazraelRewardClaimed || step >= 8,
       ...progressionFields(raw, step)
     };
     // Save do Ato I antigo (antes do Marco 2) parado no meio do ato: a etapa é mantida, mas a etapa recomeça
