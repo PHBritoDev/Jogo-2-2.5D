@@ -49,10 +49,10 @@ test('C3: contrato de integração (um programa de rocha, água com profundidade
   assert.match(cave3d, /buildHanging\(\); \/\/ C3/);
   assert.match(cave3d, /poolGeometry\(THREE, p, y, caveFloorVisual/);
   assert.match(cave3d, /if \(nearPath\(x, z, r \* \.7\)\) continue;/, 'estalagmites fora do caminho');
-  assert.match(cave3d, /Math\.min\(\.26 \+ \.14 \* L, \.85 - f\)/, 'raio não cruza a linha onde se anda');
+  assert.match(cave3d, /Math\.min\(\.38 \+ \.2 \* L, \.85 - f\)/, 'raio não cruza a linha onde se anda');
   assert.match(cave3d, /maxL = room - 2\.9/, 'estalactite não desce até a cabeça');
   assert.doesNotMatch(cave3d, /uC: \{ value: new THREE\.Color\(0x2fd3c6\) \}/, 'sem a poça neon antiga');
-  assert.match(look, /customProgramCacheKey = \(\) => 'caverna-rocha-c3'/);
+  assert.match(look, /customProgramCacheKey = \(\) => 'caverna-rocha-c[34]'/);
   assert.doesNotMatch(look, /cvHgt = dot\(tpC/, 'textura fora do relevo (mosaico no celular)');
   assert.match(worker, /shadeCaveSurface\(r\)/);
   assert.ok(CAVE.pools.length <= 6 && CAVE_SHAFTS.length <= 6, 'cabem nos uniformes de 6');

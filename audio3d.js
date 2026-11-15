@@ -13,7 +13,7 @@ export function createWorldAudio() {
   const settings = { ambient: .7, sfx: .8, music: .55, muted: false };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (_) {}
   const layers = {};
-  let insectTimer = 0, birdTimer = 2, gustTimer = 0, stepDistance = 0, lastStepAt = 0;
+  let insectTimer = 0, birdTimer = 2, gustTimer = 0, stepDistance = 0, lastStepAt = 0, dripTimer = 1, caveVerb = null, caveSend = null;
 
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(settings)); } catch (_) {} }
   function applyVolumes() {
@@ -58,6 +58,14 @@ export function createWorldAudio() {
     for (const [fr, det] of [[55, 0], [82.4, 4], [110, -6]]) { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = fr; o.detune.value = det; const g = ctx.createGain(); g.gain.value = fr === 55 ? .55 : .22; o.connect(g); g.connect(hum); o.start(); }
     layers.portal = { g: hum };
     layers.rain = loopNoise('highpass', 1800, .3, ambBus);
+    // Caverna C4 — eco por câmara: resposta de sala procedural (ruído com decaimento de 2,6 s, sem arquivo de áudio).
+    // Passos, golpes e gotas vão à sala por um envio cujo nível segue o tamanho da câmara. Fora da caverna o envio é 0.
+    try { const n = Math.floor(ctx.sampleRate * 2.6), ir = ctx.createBuffer(2, n, ctx.sampleRate);
+      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < n; i++) { const t = i / n; d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 3.2) * (i < 900 ? i / 900 : 1); } }
+      caveVerb = ctx.createConvolver(); caveVerb.buffer = ir; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+      caveSend = ctx.createGain(); caveSend.gain.value = 0; sfxBus.connect(caveSend); ambBus.connect(caveSend); caveSend.connect(lp); lp.connect(caveVerb); caveVerb.connect(comp);
+    } catch (_) { caveVerb = caveSend = null; }
+    layers.cave = loopNoise('lowpass', 110, .6, ambBus); // tom de sala: o "peso" do ar da caverna
     layers.rainLow = loopNoise('lowpass', 420, .5, ambBus);
     // MOD 208 — multidão do coliseu: murmúrio de vozes (ruído em banda de fala com leve vibrato).
     layers.cart = loopNoise('lowpass', 150, .8, sfxBus); layers.cartHi = loopNoise('bandpass', 900, 4, sfxBus); // MOD 291: rodas na terra + madeira rangendo
@@ -141,6 +149,19 @@ export function createWorldAudio() {
     for (let i = 0; i < n; i++) tone('sine', f * (1 + Math.random() * .15), f * (1.25 + Math.random() * .3), .022 * level, .09, ambBus, i * .13);
   }
 
+  /** Passos: um a cada ~0,65 m percorridos no chão; superfície muda o timbre (usado dentro e fora da caverna). */
+  function stepsOnly(dt, s) {
+    if (s.grounded && s.speed > .4) {
+      stepDistance += s.speed * dt;
+      if (stepDistance > .66 && performance.now() - lastStepAt > 180) {
+        stepDistance = 0; lastStepAt = performance.now();
+        if (s.surface === 'path') burst('bandpass', 1500 + Math.random() * 400, 1.1, .12, .07);
+        else if (s.surface === 'water') burst('lowpass', 900, .6, .14, .16);
+        else burst('lowpass', 650 + Math.random() * 200, .7, .1, .09);
+      }
+    } else stepDistance = .5;
+  }
+
   return {
     unlock,
     setCinematicGain(value){cinematicGain=Math.max(0,Math.min(1,value));applyVolumes();},
@@ -166,18 +187,17 @@ export function createWorldAudio() {
       layers.river.f.frequency.setTargetAtTime(560 + 160 * river, t, .8);
       layers.riffle.g.gain.setTargetAtTime(.05 * ford * (.8 + .2 * Math.sin(t * 2.3) * Math.sin(t * .7)), t, .3);
       layers.portal.g.gain.setTargetAtTime(.09 * Math.max(0, 1 - (s.portalDistance || 99) / 30) * (s.portalReady ? 1.6 : 1), t, .5);
+      // Caverna C4: sem pássaros, grilos nem folhas; eco pelo tamanho da câmara, gotas perto das poças, corrente de ar na boca.
+      const cv = s.cave || null;
+      if (layers.cave) layers.cave.g.gain.setTargetAtTime(cv ? .05 + .04 * cv.room : 0, t, .8);
+      if (caveSend) caveSend.gain.setTargetAtTime(cv ? .16 + .34 * cv.room : 0, t, .5);
+      if (cv) { layers.leaves.g.gain.setTargetAtTime(0, t, .4); layers.wind.g.gain.setTargetAtTime(.012 + .03 * (cv.draft || 0), t, .8);
+        dripTimer -= dt; if (dripTimer <= 0) { dripTimer = (.35 + Math.random() * 1.6) / Math.max(.15, cv.drip); const f = 1300 + Math.random() * 1400, k = .35 + .65 * cv.drip;
+          tone('sine', f, f * .55, .05 * k, .06, ambBus); if (Math.random() < .5) tone('sine', f * 1.5, f * .8, .02 * k, .05, ambBus, .03); }
+        return stepsOnly(dt, s); }
       if (night > .4) { insectTimer -= dt; if (insectTimer <= 0) { insectTimer = .25 + Math.random() * .9; cricket(night); } }
       else { birdTimer -= dt; if (birdTimer <= 0) { birdTimer = (2.5 + Math.random() * 7) * (1 - .35 * forest); bird(1 - night); } }
-      // Passos: um a cada ~0,65 m percorridos no chão; superfície muda o timbre.
-      if (s.grounded && s.speed > .4) {
-        stepDistance += s.speed * dt;
-        if (stepDistance > .66 && performance.now() - lastStepAt > 180) {
-          stepDistance = 0; lastStepAt = performance.now();
-          if (s.surface === 'path') burst('bandpass', 1500 + Math.random() * 400, 1.1, .12, .07);
-          else if (s.surface === 'water') burst('lowpass', 900, .6, .14, .16);
-          else burst('lowpass', 650 + Math.random() * 200, .7, .1, .09);
-        }
-      } else stepDistance = .5;
+      stepsOnly(dt, s);
     },
     swing(step=0, sword='') { if (!ready) return; const n=Math.abs(step)%3, dark=sword==='aurora'?.82:1; burst('bandpass', [700,920,540][n]*dark, 1.4, [.16,.13,.20][n], .2, sfxBus, [2600,3100,2100][n]*dark); },
     /** Mod 316 — bando de pássaros passando (chamado pelo sistema de pássaros quando um bando cruza perto). */

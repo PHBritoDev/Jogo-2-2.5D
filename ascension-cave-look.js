@@ -30,21 +30,22 @@ float cvN3(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f)
  * Material de rocha da caverna. `floor: true` muda só uniformes (mesmo programa).
  * origin: posição do grupo da caverna no mundo (o ruído usa coordenadas locais, sem perder precisão em x = −3600).
  */
-export function caveRockMaterial(THREE, { origin = { x: 0, z: 0 }, floor = false, roughness = .9, scale = .085, tint = 1.25 } = {}) {
+export function caveRockMaterial(THREE, { origin = { x: 0, z: 0 }, floor = false, roughness = .9, scale = .085, tint = 1.25, shaftColors = [], shaftGlow = 0 } = {}) {
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, flatShading: false, roughness, metalness: 0 });
   const pools = CAVE.pools.map(p => new THREE.Vector4(p.x, caveFloor(p.x, p.z) - .32, p.z, p.r));
   while (pools.length < 6) pools.push(new THREE.Vector4(0, -999, 0, 0));
   const shafts = CAVE_SHAFTS.map(([x, z, , I, w]) => new THREE.Vector4(x, z, 3.2 * w + 1.5, I));
   while (shafts.length < 6) shafts.push(new THREE.Vector4(0, 0, 0, 0));
-  const U = { uOrigin: { value: new THREE.Vector3(origin.x, 0, origin.z) }, uPools: { value: pools.slice(0, 6) }, uShafts: { value: shafts.slice(0, 6) }, uFloor: { value: floor ? 1 : 0 } };
+  const cols = Array.from({ length: 6 }, (_, i) => new THREE.Color(shaftColors[i] ?? 0xffffff));
+  const U = { uOrigin: { value: new THREE.Vector3(origin.x, 0, origin.z) }, uPools: { value: pools.slice(0, 6) }, uShafts: { value: shafts.slice(0, 6) }, uShaftCol: { value: cols }, uGlow: { value: shaftGlow }, uFloor: { value: floor ? 1 : 0 } };
   mat.userData.caveUniforms = U;
   mat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, U);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vCvW; varying vec3 vCvN;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvCvW = (modelMatrix * vec4(transformed, 1.0)).xyz; vCvN = normalize(mat3(modelMatrix) * objectNormal);');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying vec3 vCvW; varying vec3 vCvN; uniform vec3 uOrigin; uniform vec4 uPools[6]; uniform vec4 uShafts[6]; uniform float uFloor;
-      float cvWet = 0.0, cvHgt = 0.0; ${GLSL_NOISE}`)
+      varying vec3 vCvW; varying vec3 vCvN; uniform vec3 uOrigin; uniform vec4 uPools[6]; uniform vec4 uShafts[6]; uniform vec3 uShaftCol[6]; uniform float uFloor, uGlow;
+      float cvWet = 0.0, cvHgt = 0.0; vec3 cvGlow = vec3(0.0); ${GLSL_NOISE}`)
       .replace('#include <map_fragment>', `
         vec3 cvP = vCvW - uOrigin; vec3 cvNn = normalize(vCvN);
         #ifdef USE_MAP
@@ -71,17 +72,20 @@ export function caveRockMaterial(THREE, { origin = { x: 0, z: 0 }, floor = false
           for (int i = 0; i < 6; i++) { vec4 q = uPools[i]; float d = length(cvP.xz - q.xz);
             cvWet = max(cvWet, smoothstep(q.w + 3.2, q.w + .2, d) * smoothstep(3.5, 0.0, cvP.y - q.y)); }
           for (int i = 0; i < 6; i++) { vec4 q = uShafts[i]; if (q.w <= 0.0) continue; float d = length(cvP.xz - q.xy);
-            float k = smoothstep(q.z * 1.6, q.z * .35, d); lit = max(lit, k * q.w * 2.0); cvWet = max(cvWet, k * .45); }
+            float k = smoothstep(q.z * 1.6, q.z * .35, d); lit = max(lit, k * q.w * 2.0); cvWet = max(cvWet, k * .45);
+            float spot = smoothstep(q.z * 1.25, q.z * .15, d) * (.35 + .65 * up) * (.75 + .5 * cvN3(vec3(cvP.xz * 1.3, 0.0)));
+            cvGlow += uShaftCol[i] * spot * q.w; } // C4: poça de luz da fresta no chão e na rocha (segue o relevo, sem malha extra)
           cvWet = max(cvWet, smoothstep(-.35, -.85, cvNn.y) * .25 * smoothstep(.4, .7, st));
           diffuseColor.rgb *= mix(1.0, .6, cvWet);
           // musgo só onde a luz das frestas chega e a face olha para cima
           float moss = clamp(lit, 0.0, 1.0) * up * smoothstep(.35, .65, sn + .25 * st);
-          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.2, .3, .13) * (.8 + .5 * sn), moss * .75);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.22, .27, .15) * (.8 + .5 * sn), moss * .5);
           // gradiente pintado de grande escala: alto quente, fundo frio
           float g = smoothstep(-10.0, 16.0, cvP.y);
           diffuseColor.rgb *= mix(vec3(.88, .96, 1.06), vec3(1.07, 1.0, .92), g);
           cvHgt = (band * .5 + .5) * .3 * wallness + flow * .1 + sn * .5; // só campos suaves: a derivada por bloco 2×2 não aparece
         }`)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += cvGlow * (dot(diffuseColor.rgb, vec3(.3, .45, .25)) + .04) * uGlow; // a luz tem a cor da fresta, não do musgo')
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, mix(.4, .55, uFloor), cvWet); // úmido brilha, sem virar faixa branca na borda das poças')
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
         {
@@ -90,13 +94,13 @@ export function caveRockMaterial(THREE, { origin = { x: 0, z: 0 }, floor = false
           vec3 grad = sign(det) * (dh.x * r1 + dh.y * r2); normal = normalize(abs(det) * normal - grad);
         }`);
   };
-  mat.customProgramCacheKey = () => 'caverna-rocha-c3';
+  mat.customProgramCacheKey = () => 'caverna-rocha-c4';
   return mat;
 }
 
 /** Calcita (espeleotemas e cortinas): mais clara, levemente translúcida na leitura (emissivo mínimo na ponta), úmida. */
 export function calciteMaterial(THREE) {
-  return new THREE.MeshStandardMaterial({ color: 0xe9e1d0, vertexColors: true, roughness: .48, metalness: 0, side: THREE.DoubleSide });
+  return new THREE.MeshStandardMaterial({ color: 0xbdb3a0, vertexColors: true, roughness: .55, metalness: 0, side: THREE.DoubleSide }); // C4: tom da rocha, só um pouco mais claro
 }
 
 /** Normais suaves em geometria não indexada (soldando vértices pela posição). */
@@ -111,7 +115,7 @@ export function smoothNormals(THREE, g, eps = 1e-3) {
 /** Perfil de estalactite (t: 0 base no teto → 1 ponta): base alargada, corpo afunilado com anéis de crescimento. */
 export function stalactiteRadius(t) { const flare = t < .14 ? 1 + (1 - t / .14) ** 2 * .7 : 1; return Math.max(.035, (1 - t) ** 1.55 * flare * (1 + .07 * Math.sin(t * 23))); }
 /** Perfil de estalagmite (t: 0 chão → 1 topo): base larga, topo arredondado (gota que cai espalha). */
-export function stalagmiteRadius(t) { return Math.max(.06, Math.sqrt(Math.max(0, 1 - t ** 2.2)) * (1 - .35 * t) * (1 + .06 * Math.sin(t * 19))); }
+export function stalagmiteRadius(t) { const cap = t > .82 ? Math.sqrt(Math.max(0, 1 - ((t - .82) / .18) ** 2)) : 1; return Math.max(.05, (1 - .62 * t ** .8) * cap * (1 + .08 * Math.sin(t * 17) + .05 * Math.sin(t * 41))); } // topo arredondado, como pingo que se espalha
 
 /** Lathe ao longo de y (0 → -1 para estalactite; 0 → 1 para estalagmite), com gradiente de cor base→ponta. */
 export function speleoGeometry(THREE, { down = true, radial = 8, rings = 7 } = {}) {
@@ -119,7 +123,7 @@ export function speleoGeometry(THREE, { down = true, radial = 8, rings = 7 } = {
   if (down) pts.push(new THREE.Vector2(0, -1.02)); else pts.push(new THREE.Vector2(0, 1.0));
   const g = new THREE.LatheGeometry(pts, radial); g.computeVertexNormals();
   const P = g.attributes.position, cc = new Float32Array(P.count * 3);
-  for (let i = 0; i < P.count; i++) { const t = Math.abs(P.getY(i)); const v = down ? .62 + .38 * t : .78 - .22 * t; cc[i * 3] = v; cc[i * 3 + 1] = v * .98; cc[i * 3 + 2] = v * .93; }
+  for (let i = 0; i < P.count; i++) { const t = Math.abs(P.getY(i)); const v = down ? .55 + .4 * t : .42 + .45 * Math.min(1, t * 1.6); cc[i * 3] = v; cc[i * 3 + 1] = v * .98; cc[i * 3 + 2] = v * .93; }
   g.setAttribute('color', new THREE.BufferAttribute(cc, 3)); return g;
 }
 
