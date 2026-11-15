@@ -16,6 +16,9 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     return { light: l, src: null, next: undefined };
   });
   const sources = new Set(), sourceScore = new Map(), ranked = [], chosen = [], free = [];
+  // Intervalos 0, negativos, fracionários ou NaN não podem desativar o scan
+  // (frame % NaN nunca é zero) nem deixar fontes antigas sem orçamento.
+  const scanInterval = Number.isSafeInteger(rescanEvery) && rescanEvery > 0 ? rescanEvery : 45;
   let frame = 0;
   /* Mod 316 — guarda imediata: antes, uma PointLight nova (tocha GLB que termina de carregar, efeito, zona) ficava até
      45 quadros na camada 0 até o próximo scan. Nesse intervalo o número de luzes do shader mudava (+1) e TODOS os
@@ -30,7 +33,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       for (const g of Obj.__budgetGuard) if (g.scene === root) for (const o of objs) if (o && o.isObject3D) (o.isPointLight ? g.adopt(o) : o.children.length && o.traverse(g.adopt)); return r; };
   }
   if (Obj) Obj.__budgetGuard.push({ scene, adopt });
-  const v = new T.Vector3(), cam = new T.Vector3();
+  const v = new T.Vector3(), cam = new T.Vector3(), lastCamera = new T.Vector3();
   // Uma fonte pode continuar com parent dentro de um grupo já removido da cena.
   // Nunca permitir que esse grupo ocupe slots de luz ou retenha fontes no cadastro.
   function attachedToScene(o) {
@@ -53,11 +56,19 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     return Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z);
   }
   function update(camera, dt = 1 / 60) {
-    if (frame++ % rescanEvery === 0) scan();
+    if (frame++ % scanInterval === 0) scan();
+    // Uma câmera com transformação transitória inválida não deve apagar todas as
+    // tochas nem contaminar o ranking; conservar a última posição válida.
     camera.getWorldPosition(cam);
+    if (!Number.isFinite(cam.x) || !Number.isFinite(cam.y) || !Number.isFinite(cam.z)) {
+      cam.x = lastCamera.x; cam.y = lastCamera.y; cam.z = lastCamera.z;
+    } else {
+      lastCamera.x = cam.x; lastCamera.y = cam.y; lastCamera.z = cam.z;
+    }
     ranked.length=0;
     for (const s of sources) {
-      if (!attachedToScene(s) || !Number.isFinite(s.intensity) || s.intensity <= .001 || !finiteColor(s) || !effectiveVisible(s)) continue;
+      // Fontes com matriz inválida não podem roubar um slot de uma tocha válida.
+      if (!attachedToScene(s) || !Number.isFinite(s.intensity) || s.intensity <= .001 || !finiteColor(s) || !effectiveVisible(s) || !finitePosition(s)) continue;
       v.setFromMatrixPosition(s.matrixWorld);
       // No Three.js distance=0 significa alcance ilimitado. Manter score finito
       // (raio de prioridade 40), mas não descartar a fonte por distância.
