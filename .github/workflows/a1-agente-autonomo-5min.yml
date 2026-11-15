@@ -37,7 +37,7 @@ jobs:
       - id: flag
         name: Verificar autorização explícita de consumo de API
         env:
-          ALLOWED: ${{ vars.ENABLE_A1_CODEX_AUTOFIX }}
+          ALLOWED: ${{ vars.ENABLE_A1_CODEX_AUTOFIX == 'true' || vars.ENABLE_A1_COPILOT_AUTOFIX == 'true' }}
           REQUESTED: ${{ inputs.tentar_reparo }}
         run: |
           if [ "$ALLOWED" = true ] && { [ "${{ github.event_name }}" != workflow_dispatch ] || [ "$REQUESTED" = true ]; }; then
@@ -92,7 +92,7 @@ jobs:
 
   codex:
     needs: monitor
-    if: needs.monitor.outputs.failed == 'true' && needs.monitor.outputs.repair_enabled == 'true' && (needs.monitor.outputs.new_failure == 'true' || github.event_name == 'workflow_dispatch')
+    if: needs.monitor.outputs.failed == 'true' && needs.monitor.outputs.repair_enabled == 'true' && vars.ENABLE_A1_COPILOT_AUTOFIX != 'true' && (needs.monitor.outputs.new_failure == 'true' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     timeout-minutes: 22
     permissions:
@@ -149,9 +149,57 @@ jobs:
           path: a1-robot.patch
           retention-days: 7
 
+  copilot:
+    needs: monitor
+    if: needs.monitor.outputs.failed == 'true' && needs.monitor.outputs.repair_enabled == 'true' && vars.ENABLE_A1_COPILOT_AUTOFIX == 'true' && (needs.monitor.outputs.new_failure == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    permissions:
+      contents: read
+      pull-requests: read
+      copilot-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: a1-robot-${{ github.run_number }}
+          path: bug-agent-results
+      - name: Evitar gastar créditos se já houver PR A1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh pr list --state open --json headRefName --jq '.[].headRefName' | grep -q '^agentes/a1/'; then
+            echo 'Já existe PR A1, não iniciar outra chamada de IA.' >&2
+            exit 1
+          fi
+      - name: Instalar Copilot CLI
+        run: npm install -g @github/copilot
+      - name: Corrigir bug reproduzido no checkout local
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          copilot -p "Você é A1 do RPG. Leia docs/equipe-5-agentes/01-AGENTE-BUGS.md e bug-agent-results/report.json com os logs. Corrija UMA falha real de regressão fora da vila/caverna protegidas. Reproduza antes, implemente alteração mínima de produção + teste, valide depois. Não edite .github, docs, build-info.js, mundo-3d-prototype.js, eldoria-meshy-npcs.js, eldoria-npc-life.js, nem tente push/PR. Se não puder reproduzir com segurança, não modifique nada." -s --allow-tool='write' --allow-tool='shell(node:*)' --allow-tool='shell(git status)' --allow-tool='shell(git diff)' --deny-tool='shell(git push)' --deny-tool='shell(gh:*)' --excluded-tools='web_fetch,web_search'
+      - name: Gerar patch limitado e rastreável
+        shell: bash
+        run: |
+          git add -N .
+          git diff --binary -- . ':!.github' ':!build-info.js' ':!docs' ':!tools/bug-agent' ':!mundo-3d-prototype.js' ':!eldoria-meshy-npcs.js' ':!eldoria-npc-life.js' > a1-robot.patch
+          if [ -s a1-robot.patch ]; then
+            git diff --check
+            git apply --check --reverse a1-robot.patch
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a1-fix-patch-${{ github.run_number }}
+          path: a1-robot.patch
+          retention-days: 7
+
   pr:
-    needs: [monitor,codex]
-    if: needs.codex.result == 'success'
+    needs: [monitor,codex,copilot]
+    if: always() && (needs.codex.result == 'success' || needs.copilot.result == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
