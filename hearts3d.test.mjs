@@ -84,3 +84,22 @@ test('regressão de 400 saves variados: corações, timer e timestamp sempre seg
     assert.ok(next.hearts >= state.hearts && next.hearts <= HEARTS.max);
   }
 });
+
+test('fluxo realista de save/reload após relógio incorreto mantém o progresso', () => {
+  const start = 1700000000000;
+  const legacySave = JSON.stringify({ hearts: 2, since: start + 86400000, explained: true });
+  let state = normalizeHearts(JSON.parse(legacySave), start);
+  assert.equal(state.hearts, 2);
+  assert.equal(state.since, start);
+  state = tickHearts(state, start + 90000);
+  assert.equal(state.hearts, 2, '90 segundos não bastam para ganhar 1 coração');
+  const persisted = JSON.stringify(state);
+  state = normalizeHearts(JSON.parse(persisted), start + 90000);
+  assert.equal(state.hearts, 2);
+  assert.equal(msToNextHeart(state, start + 90000), 90000);
+  state = tickHearts(state, start + HEARTS.regenMs);
+  assert.equal(state.hearts, 3);
+  state = loseHeart(state, start + HEARTS.regenMs + 1000);
+  assert.equal(state.hearts, 2);
+  assert.equal(msToNextHeart(state, start + HEARTS.regenMs + 1000), HEARTS.regenMs - 1000);
+});
