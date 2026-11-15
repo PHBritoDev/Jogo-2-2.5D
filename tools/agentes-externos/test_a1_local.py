@@ -135,6 +135,30 @@ class LocalAgentTests(unittest.TestCase):
         self.assertNotIn("available commands", report)
         self.assertNotIn("Prompt:", report)
 
+    def test_full_llama_prompt_echo_is_ignored_before_assistant_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            prompt = agent.prompt_for({
+                "number": 77, "title": "Travamento de camera",
+                "body": "### Hipótese a validar\\nEsse texto não é resposta da IA.",
+            }, Path(d))
+        report = (
+            "### Hipótese a validar\\nPossível colisão da câmera no túnel.\\n"
+            "### Passos de reprodução\\nCaminhar no trecho suspeito e registrar vídeo.\\n"
+            "### Arquivos a inspecionar\\nExaminar os módulos de câmera 3D do jogo.\\n"
+            "### Correção mínima sugerida\\nCorrigir apenas depois de reproduzir a falha real.\\n"
+            "### Testes de regressão\\nRepetir percurso no navegador e validar ângulos.\\n"
+        )
+        echoed = "llama CLI banner\\n" + prompt + report + "[ Prompt: 50 t/s ]\\n"
+        parsed = agent.clean_report(echoed)
+        self.assertEqual(parsed, report.strip())
+        self.assertNotIn("Esse texto não é resposta", parsed)
+
+    def test_fake_report_only_in_prompt_echo_is_not_accepted(self):
+        with tempfile.TemporaryDirectory() as d:
+            prompt = agent.prompt_for({"number": 78, "title": "QA", "body": "falha"}, Path(d))
+        with self.assertRaises(ValueError):
+            agent.clean_report("llama CLI banner\\n" + prompt)
+
     def test_extra_section_reports_only_safe_heading_shape(self):
         output = (
             "### Hipótese a validar\nPossível problema de câmera ainda não comprovado.\n"
