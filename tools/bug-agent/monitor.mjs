@@ -7,6 +7,10 @@ const root=path.resolve(import.meta.dirname,'../..');
 const out=path.join(root,'bug-agent-results');fs.mkdirSync(out,{recursive:true});
 const specs=[
  ['mapa-e-save','map3d.test.mjs','tools/agentes-externos/a1-save-fallback.test.mjs'],
+ ['vida-e-hud','hearts3d.test.mjs'],
+ ['historia-e-checkpoint','act1-flow.test.mjs'],
+ ['dimensoes-e-chefes','dimensions3d.test.mjs'],
+ ['terreno-base','world3d-terrain.test.mjs'],
  ['npc-sem-travada','tests/npcs-vivos.test.mjs'],
  ['fotografo','tools/visual-lab/scene-capture-core.test.cjs','tools/visual-lab/photographer.test.cjs']
 ];
