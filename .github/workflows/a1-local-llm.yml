@@ -12,6 +12,8 @@ on:
       - "tools/agentes-externos/test_a1_repair_gate.py"
       - "tools/agentes-externos/a1-repair-benchmark.py"
       - "tools/agentes-externos/test_a1_repair_benchmark.py"
+      - "tools/agentes-externos/a1-js-repair-benchmark.py"
+      - "tools/agentes-externos/test_a1_js_repair_benchmark.py"
   issues:
     types: [labeled]
   schedule:
@@ -188,6 +190,14 @@ jobs:
         run: |
           export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
           python3 tools/agentes-externos/a1-repair-benchmark.py \
+            --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            --model "$RUNNER_TEMP/qwen-3b.gguf"
+
+      - name: Benchmark JavaScript de correções isoladas
+        if: ${{ always() }}
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 tools/agentes-externos/a1-js-repair-benchmark.py \
             --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
             --model "$RUNNER_TEMP/qwen-3b.gguf"
 
