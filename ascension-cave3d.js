@@ -8,6 +8,7 @@
 import { CAVE, CHASM_RIM, caveField, caveWalk, caveFloor, caveCeil, inChasm, onBridge, caveHazard, hash2, fbm } from './ascension-layout.js';
 import { boulderGeometry } from './eldoria-prologue-meadow.js';
 import { caveRoofAt, caveFloorVisual, buildCaveSurface, shadeCaveSurface, makeGridSDF } from './ascension-cave-sdf.js';
+import { CAVE_KEYS, SHAFT_COLORS, moodAt, easeEnv, caveAudioAt } from './ascension-cave-light.js';
 import { CAVE_SHAFTS, caveRockMaterial, calciteMaterial, smoothNormals, speleoGeometry, planCurtains, curtainSamples, curtainGeometry, poolGeometry, poolMaterial } from './ascension-cave-look.js';
 import { triplanarRock, ensureUv, vortexPortal, lightShaft, dustField, disposeGroup } from './ascension-fx3d.js';
 import { prepareTorchSource, placeTorches } from './eldoria-torches3d.js';
@@ -79,8 +80,8 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   floor.name = 'caverna-piso'; roof.name = 'caverna-abobada';
   const rockMat = triplanarRock(THREE, { key: 'caverna', scale: .085, tint: 1.25 }); rockMat.side = THREE.DoubleSide; // entulho e pedras soltas (facetadas)
   // C3: um programa só para paredes, abóbada, piso, ponte, pilares e lábio do abismo (estratos, umidade, musgo, relevo)
-  const caveMat = caveRockMaterial(THREE, { origin, scale: .085, tint: 1.25 }); caveMat.side = THREE.DoubleSide;
-  const floorMat = caveRockMaterial(THREE, { origin, floor: true, scale: .11, tint: 1.2, roughness: .8 }); floorMat.side = THREE.DoubleSide;
+  const caveMat = caveRockMaterial(THREE, { origin, scale: .085, tint: 1.25, shaftColors: SHAFT_COLORS, shaftGlow: 1.1 }); caveMat.side = THREE.DoubleSide;
+  const floorMat = caveRockMaterial(THREE, { origin, floor: true, scale: .11, tint: 1.2, roughness: .8, shaftColors: SHAFT_COLORS, shaftGlow: 1.6 }); floorMat.side = THREE.DoubleSide;
   const calcMat = calciteMaterial(THREE);
   const tpMats = [rockMat, caveMat, floorMat];
   floor.material = floorMat; roof.material = caveMat; floor.receiveShadow = roof.receiveShadow = true; group.add(floor, roof);
@@ -165,7 +166,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   const placeInst = (geo, mat, list, name) => {
     const im = new THREE.InstancedMesh(geo, mat, list.length), o = new THREE.Object3D(), cc = new Float32Array(list.length * 3);
     list.forEach((s, n) => { o.position.set(s.x, s.y, s.z); o.rotation.set((hash2(n, 5, 915) - .5) * .12, hash2(n, 3, 915) * 6.28, (hash2(n, 6, 915) - .5) * .12); o.scale.set(s.r, s.L, s.r); o.updateMatrix(); im.setMatrixAt(n, o.matrix);
-      const k = .7 + .3 * hash2(n, 4, 916); cc[n * 3] = k; cc[n * 3 + 1] = k * .97; cc[n * 3 + 2] = k * .92; });
+      const k = .62 + .3 * hash2(n, 4, 916); cc[n * 3] = k; cc[n * 3 + 1] = k * .96; cc[n * 3 + 2] = k * .9; });
     im.instanceColor = new THREE.InstancedBufferAttribute(cc, 3); im.name = name; group.add(im); return im;
   };
   {
@@ -174,14 +175,14 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
     for (let j = 0; j < nz; j += 2) for (let i = 0; i < nx; i += 2) {
       const k = i + j * nx, f = fieldAt[k]; if (f < -.5 || f > .4 || hash2(i, j, 911) <= (lowSpec ? .72 : .6)) continue;
       const x = X0 + i * cell + jx[k], z = Z0 + j * cell + jz[k]; if (inChasm(x, z, 1.5)) continue;
-      const L = 1 + 3 * hash2(i, j, 914), r = Math.max(.2, Math.min(.26 + .14 * L, .85 - f)); if (nearPath(x, z, r * .7)) continue;
+      const L = .8 + 2.6 * hash2(i, j, 914), r = Math.max(.24, Math.min(.38 + .2 * L, .85 - f)); if (nearPath(x, z, r * .7)) continue;
       mites.push({ x, y: caveFloor(x, z) - .25, z, L, r });
-      if (hash2(i, j, 917) > .5) { const a = hash2(i, j, 918) * 6.28, x2 = x + Math.cos(a) * .55, z2 = z + Math.sin(a) * .55, L2 = L * (.35 + .3 * hash2(i, j, 919)), r2 = .18 + .1 * L2;
+      if (hash2(i, j, 917) > .5) { const a = hash2(i, j, 918) * 6.28, x2 = x + Math.cos(a) * .55, z2 = z + Math.sin(a) * .55, L2 = L * (.35 + .3 * hash2(i, j, 919)), r2 = .2 + .18 * L2;
         if (!nearPath(x2, z2, r2 * .7)) mites.push({ x: x2, y: caveFloor(x2, z2) - .2, z: z2, L: L2, r: r2 }); } // irmã menor
     }
     // na borda das poças (onde a água pinga do teto há séculos), dentro da faixa que já não se pisa
     CAVE.pools.forEach((p, q) => { const n = lowSpec ? 3 : 5; for (let m = 0; m < n; m++) { const a = hash2(q, m, 944) * 6.28, d = p.r - .1 + .35 * hash2(q, m, 945), x = p.x + Math.cos(a) * d, z = p.z + Math.sin(a) * d;
-      if (caveWalk(x, z)) continue; const L = .5 + 1.4 * hash2(q, m, 946); mites.push({ x, y: caveFloorVisual(x, z) - .15, z, L, r: Math.min(.32, .14 + .1 * L) }); } });
+      if (caveWalk(x, z)) continue; const L = .5 + 1.3 * hash2(q, m, 946); mites.push({ x, y: caveFloorVisual(x, z) - .15, z, L, r: Math.min(.45, .2 + .16 * L) }); } });
     if (mites.length) placeInst(speleoGeometry(THREE, { down: false, radial: lowSpec ? 6 : 8, rings: lowSpec ? 4 : 6 }), calcMat, mites, 'estalagmites');
     speleoStats.mites = mites.length;
   }
@@ -221,14 +222,14 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
       m.position.set(p.x, y, p.z); m.renderOrder = 2; m.name = 'poca'; group.add(m); } }
   // ---------- feixes de luz fria das frestas do teto, poeira e névoa ----------
   const shafts = [];
-  const addShaft = (x, z, tilt, I, w) => {
+  const addShaft = (x, z, tilt, I, w, color = 0xa8ecff) => {
     const top = caveRoofAt(x, z) + 1, bot = caveFloor(x, z), H = top - bot + 1;
-    const s = lightShaft(THREE, { top: .9 * w, bottom: 3.2 * w, height: H, color: 0xa8ecff, intensity: I }); s.mesh.position.set(x, top, z); s.mesh.rotation.z = tilt; group.add(s.mesh); shafts.push(s);
-    const sky = new THREE.Mesh(new THREE.CircleGeometry(1.1 * w, 16), new THREE.MeshBasicMaterial({ color: 0xd8f6ff, fog: false })); sky.rotation.x = Math.PI / 2; sky.position.set(x, top - .15, z); group.add(sky);
+    const s = lightShaft(THREE, { top: .9 * w, bottom: 3.2 * w, height: H, color, intensity: I * 1.6 }); // C4: cor da câmara, feixe mais presente (plano cinematográfico) s.mesh.position.set(x, top, z); s.mesh.rotation.z = tilt; group.add(s.mesh); shafts.push(s);
+    const sky = new THREE.Mesh(new THREE.CircleGeometry(1.1 * w, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).lerp(new THREE.Color(0xffffff), .5), fog: false })); sky.rotation.x = Math.PI / 2; sky.position.set(x, top - .15, z); group.add(sky);
   };
-  for (const [x, z, tilt, I, w] of CAVE_SHAFTS) addShaft(x, z, tilt, I, w); // salão, gruta, câmara final e (Mod 316) salão de cristal
+  CAVE_SHAFTS.forEach(([x, z, tilt, I, w], i) => addShaft(x, z, tilt, I, w, SHAFT_COLORS[i])); // salão, gruta, câmara final e (Mod 316) salão de cristal
   updaters.push(t => { for (const s of shafts) s.update(t); waterU.uTime.value = t; });
-  const dust1 = dustField(THREE, { count: lowSpec ? 220 : 520, box: [50, 30, 50], center: [0, -6, -60], color: 0xbff4ff, size: 2 }), dust2 = dustField(THREE, { count: lowSpec ? 120 : 260, box: [34, 12, 30], center: [-42, -7.6, -62], color: 0x8ff7e0, size: 2.4 });
+  const dust1 = dustField(THREE, { count: lowSpec ? 220 : 520, box: [50, 30, 50], center: [0, -6, -60], color: 0xffe2b0, size: 2 }) /* C4: poeira dourada no feixe do salão */, dust2 = dustField(THREE, { count: lowSpec ? 120 : 260, box: [34, 12, 30], center: [-42, -7.6, -62], color: 0x8ff7e0, size: 2.4 });
   group.add(dust1.points, dust2.points); updaters.push(t => { dust1.update(t); dust2.update(t); });
   // névoa baixa (gruta) e névoa subindo do abismo: cartões com ruído animado
   const mistMat = new THREE.ShaderMaterial({
@@ -264,14 +265,12 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   const menires = []; group.traverse(o => { if (o.userData.menir) menires.push(o.userData.menir); });
   updaters.push((t, dt) => portal.update(dt));
   // ---------- luzes (4, todas via orçamento de luzes do jogo) ----------
-  const L = [
-    [0x5fd0e6, 2.6, 26, [-6, -2.5, -54]], // salão: luz fria sob o feixe
-    [0x42e6d0, 2.2, 20, [-43, -5, -62]],  // gruta das poças
-    [0x8a5cff, 3.2, 22, [P.x, portalY, P.z + 2.5]], // portal
-    [0x6fa8ff, 1.2, 16, [0, 2.8, -6]],    // entrada
-    [0x7fc8ff, 2.4, 24, [-58, 1.5, -104]], // Mod 316: salão de cristal (fria, sob o feixe)
-  ].map(([c, i, d, p]) => { const l = new THREE.PointLight(c, i, d, 1.6); l.position.set(...p); l.name = 'caverna-luz'; l.layers.set(31); group.add(l); return { l, base: i }; });
-  updaters.push(t => { L[2].l.intensity = L[2].base * (1 + .12 * Math.sin(t * 2.3)); L[1].l.intensity = L[1].base * (1 + .06 * Math.sin(t * 1.1)); });
+  // ---------- C4: luzes de cena por câmara (fontes do orçamento de 4 luzes do jogo; ver ascension-cave-light.js) ----------
+  const L = CAVE_KEYS.map(([c, i, d, pos, why]) => { const l = new THREE.PointLight(c, i, d, 1.6);
+    if (pos) l.position.set(pos[0], caveFloor(pos[0], pos[2]) + pos[1], pos[2]); else l.position.set(P.x, portalY, P.z + 2.5);
+    l.name = 'caverna-luz'; l.userData.why = why; l.layers.set(31); group.add(l); return { l, base: i }; });
+  const Lp = L[3], Lg = L[2], Lc = L[6];
+  updaters.push(t => { Lp.l.intensity = Lp.base * (1 + .12 * Math.sin(t * 2.3)); Lg.l.intensity = Lg.base * (1 + .06 * Math.sin(t * 1.1)); Lc.l.intensity = Lc.base * (1 + .08 * Math.sin(t * .7) * Math.sin(t * 1.9)); });
   // ---------- cristais: poucos GLB "herói" em fendas + aglomerados procedurais leves (emissivo violeta/azul) ----------
   const crystalSpots = [[-66, -94, 2.3, .5], [-47, -97, 1.6, 2.2], [-71, -112, 2, 4], [-55, -122, 1.4, 1], [-24.5, -49, 1.6, .3], [22.5, -60, 1.9, 2.4], [-52, -55, 1.3, 1.2], [-31, -75, 1.1, 4], [12.5, -130, 1.5, 2], [-20, -136, 1.7, .8], [5, -20, .9, 1.7], [31, -96, 1.1, 3.4]];
   const clusterGeo = (() => { // prismas hexagonais pontudos (≈80 triângulos)
@@ -280,6 +279,7 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   const clusterMat = new THREE.MeshStandardMaterial({ color: 0x8a7cff, emissive: 0x4b2fd6, emissiveIntensity: .55, roughness: .22, metalness: .15, flatShading: true });
   const clusters = []; for (let j = 0; j < nz; j += 3) for (let i = 0; i < nx; i += 3) { const k = i + j * nx, f = fieldAt[k]; if (f < -.1 || f > .7 || hash2(i, j, 931) > .32 || Math.hypot(X0 + i * cell, Z0 + j * cell) < 14) continue; const x = X0 + i * cell + jx[k], z = Z0 + j * cell + jz[k]; if (inChasm(x, z, 2)) continue; clusters.push({ x, z, s: .5 + .7 * hash2(i, j, 932), y: caveFloor(x, z) - .1 }); }
   { const im = new THREE.InstancedMesh(clusterGeo, clusterMat, clusters.length), o = new THREE.Object3D(); clusters.forEach((c, n) => { o.position.set(c.x, c.y, c.z); o.rotation.set((hash2(n, 19, 933) - .5) * .5, hash2(n, 20, 934) * 6.28, (hash2(n, 21, 935) - .5) * .5); o.scale.setScalar(c.s); o.updateMatrix(); im.setMatrixAt(n, o.matrix); }); const cc = new Float32Array(clusters.length * 3); clusters.forEach((c, n) => { const v = hash2(n, 22, 936); cc[n * 3] = .55 + .45 * v; cc[n * 3 + 1] = .6 + .2 * (1 - v); cc[n * 3 + 2] = 1; }); im.instanceColor = new THREE.InstancedBufferAttribute(cc, 3); im.name = 'cristais-veios'; group.add(im); }
+  const env = moodAt(CAVE.spawn.x, CAVE.spawn.z); let lastP = null; // C4: o jogo lê env a cada quadro
   const propCull = []; // C3: GLBs pesados com distância de desenho
   const loader = GLTFLoader ? new GLTFLoader() : null;
   const readyAssets = new Promise(res => {
@@ -332,8 +332,10 @@ export function buildCave(THREE, { GLTFLoader, prepareBaked, lowSpec = false, or
   let t = 0;
   return {
     group, ready, portal, walk, hazard: caveHazard, floor: (x, z) => caveFloor(x, z), roof: (x, z) => caveRoofAt(x, z), camSolid: caveCamSolid,
-    env: { bg: 0x03090c, fog: 0x0a2329, fogNear: 9, fogFar: 92, hemi: [0x7cc2cf, 0x0c1416, 1.35], sun: [0xa9dcff, .5], exposure: 1.32 },
+    env, // C4: humor da câmara onde o herói está (misturado e suavizado em update)
+    audioAt: (x, z) => caveAudioAt(x, z),
     update(dt, cam, p) { t += dt; torchSet?.update(t, 1); for (const u of updaters) u(t, dt);
+      if (p) { const target = moodAt(p.x, p.z); if (!lastP || Math.hypot(p.x - lastP.x, p.z - lastP.z) > 15) { Object.assign(env, target); env._f = null; } else easeEnv(env, target, dt); lastP = { x: p.x, z: p.z }; env.weights = target.weights; }
       // C3 — GLBs pesados (jaulas 13 k, tochas 10 k, cristais-herói 10 k triângulos cada) só perto: antes eram desenhados da
       // caverna inteira (a névoa escondia, mas a GPU pagava). Histerese de 4 m para não piscar na borda.
       if (p) for (const c of propCull) { const d = Math.hypot(p.x - c.x, p.z - c.z); if (c.o.visible && d > c.r + 4) c.o.visible = false; else if (!c.o.visible && d < c.r) c.o.visible = true; } },
