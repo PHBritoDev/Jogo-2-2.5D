@@ -11,7 +11,10 @@
  * O número de luzes do shader nunca muda (sem recompilação, sem travadas) e as trocas são suavizadas (sem piscar).
  */
 export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, rescanEvery = 45 } = {}) {
-  const pool = Array.from({ length: slots }, (_, i) => {
+  // Configurações externas inválidas não podem quebrar o carregamento do mundo
+  // nem gerar dezenas de luzes extras no shader mobile.
+  const safeSlots = Number.isSafeInteger(slots) && slots >= 1 && slots <= 8 ? slots : 4;
+  const pool = Array.from({ length: safeSlots }, (_, i) => {
     const l = new T.PointLight(0xffffff, 0, 10, 2); l.name = 'orcamento-luz-' + i; l.userData.budgetSlot = true; scene.add(l);
     return { light: l, src: null, next: undefined };
   });
@@ -83,7 +86,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     ranked.sort((a, b) => a.score - b.score);
     // Reaproveita a lista temporária: evitar dois arrays novos por frame no mobile.
     chosen.length = 0;
-    for (let i = 0; i < Math.min(slots, ranked.length); i++) chosen.push(ranked[i].s);
+    for (let i = 0; i < Math.min(safeSlots, ranked.length); i++) chosen.push(ranked[i].s);
     // histerese: quem já ocupa um slot e continua entre os escolhidos fica no mesmo slot
     free.length = 0;
     // A fonte pendente pode ter saído do alcance ou perdido prioridade durante o fade.
@@ -117,6 +120,6 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       else if (!live && l.intensity < .02) p.src = null;
     }
   }
-  function stats() { return { slots, sources: sources.size, active: pool.filter(p => p.src).map(p => p.src.name || 'luz') }; }
+  function stats() { return { slots: safeSlots, sources: sources.size, active: pool.filter(p => p.src).map(p => p.src.name || 'luz') }; }
   return { update, stats, scan };
 }
