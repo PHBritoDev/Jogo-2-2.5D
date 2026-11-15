@@ -74,6 +74,22 @@ class PipelineTests(unittest.TestCase):
                         pipeline.main()
         self.assertFalse(destination.exists())
 
+    def test_fallback_fixes_case_when_qwen_gives_wrong_safe_answer(self):
+        with patch.object(pipeline.proposer, "propose_replacement",
+                          return_value="return Math.max(11, x)"):
+            result = pipeline.run(self.root, self.bad, "Cap to ten", "llama", "model")
+        self.assertEqual(result["result"], "verified_candidate")
+        self.assertEqual(result["method"], "bounded_fallback")
+        self.assertEqual(result["candidate"]["after"], self.good)
+        self.assertEqual((self.root / "hearts3d.js").read_text(), self.original)
+
+    def test_fallback_recovers_when_model_has_no_valid_answer(self):
+        with patch.object(pipeline.proposer, "propose_replacement",
+                          side_effect=ValueError("model exhausted")):
+            result = pipeline.run(self.root, self.bad, "Cap to ten", "llama", "model")
+        self.assertTrue(result["verified_red_green"])
+        self.assertEqual(result["method"], "bounded_fallback")
+
     def test_dangerous_model_patch_rejected_before_node_execution(self):
         with patch.object(pipeline.proposer, "propose_replacement",
                           return_value="return process.exit(0)"):
