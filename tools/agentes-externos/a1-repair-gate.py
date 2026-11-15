@@ -3,6 +3,8 @@
 import argparse
 import hashlib
 import json
+import re
+import subprocess
 from pathlib import Path, PurePosixPath
 
 PILOT_PREFIX = "tools/agentes-externos/fixtures/"
@@ -57,6 +59,41 @@ def stage_candidate(root, output, candidate):
     staged.parent.mkdir(parents=True, exist_ok=True)
     staged.write_text(modified, encoding="utf-8")
     return staged
+
+
+def propose_replacement(llama_bin, model, source, behavior):
+    """Ask the local model for one replacement; never execute its raw response."""
+    if not isinstance(source, str) or not isinstance(behavior, str):
+        raise ValueError("Invalid repair input")
+    if len(source) > 800 or len(behavior) > 240:
+        raise ValueError("Repair prompt exceeds pilot limits")
+    prompt = (
+        "<|im_start|system>\\n"
+        "Você corrige apenas uma linha Python de um exemplo sintético. "
+        "Responda em UMA linha: PATCH: seguido de JSON válido com apenas a chave after. "
+        "O valor after deve conter o código Python substituto, não texto explicativo. "
+        "Nunca execute nada, não use markdown.\\n"
+        "<|im_end|>\\n<|im_start|user>\\n"
+        + "Código original:\\n" + source
+        + "\\nComportamento esperado:\\n" + behavior
+        + "\\n<|im_end|>\\n<|im_start|assistant>\\n"
+    )
+    result = subprocess.run(
+        [llama_bin, "-m", model, "-p", prompt, "-n", "180",
+         "-c", "2048", "-t", "2", "--temp", "0.1",
+         "--single-turn", "--no-display-prompt", "--simple-io"],
+        capture_output=True, text=True, encoding="utf-8",
+        errors="replace", timeout=160, check=True,
+    )
+    matches = re.findall(r"(?m)^PATCH:\\s*(\\{[^\\n]{1,400}\\})\\s*$", result.stdout)
+    if len(matches) != 1:
+        raise ValueError("Model did not produce one isolated patch object")
+    proposal = json.loads(matches[0])
+    if not isinstance(proposal, dict) or set(proposal) != {"after"}:
+        raise ValueError("Model patch has invalid fields")
+    if not isinstance(proposal["after"], str) or not proposal["after"].strip():
+        raise ValueError("Empty model replacement")
+    return proposal["after"]
 
 
 def main():
