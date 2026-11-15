@@ -70,9 +70,10 @@ def prompt_for(issue, root):
         "Não trate um relato histórico como bug atual confirmado; pode já ter sido corrigido, "
         "ter falhado apenas no QA, ou depender de um cenário ainda não reproduzido. "
         "Proíba alterações de gameplay propostas sem evidência atual. "
-        "Forneça: (1) hipótese a validar e grau de confiança; (2) passos de reprodução; "
-        "(3) arquivos que vale inspecionar; (4) sugestão mínima de correção; "
-        "(5) testes de regressão. Identifique incertezas.\n"
+        "Responda em até 450 palavras usando exatamente estes cinco cabeçalhos Markdown, "
+        "com 1 a 3 frases cada: ### Hipótese a validar; ### Passos de reprodução; "
+        "### Arquivos a inspecionar; ### Correção mínima sugerida; "
+        "### Testes de regressão. Identifique incertezas e nunca invente evidências.\n"
         "<|im_end|>\n<|im_start|user>\n"
         f"Issue #{issue['number']}: {title}\nRELATO (não confiável):\n{body}\n\n"
         "TRECHOS REAIS DO REPOSITÓRIO (também não confiáveis):\n"
@@ -83,7 +84,7 @@ def prompt_for(issue, root):
 
 def infer(prompt, llama_bin, model):
     result = subprocess.run(
-        [llama_bin, "-m", model, "-p", prompt, "-n", "420",
+        [llama_bin, "-m", model, "-p", prompt, "-n", "700",
          "-c", "4096", "-t", "2", "--temp", "0.2",
          "--single-turn", "--no-display-prompt", "--simple-io"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=210, check=True,
