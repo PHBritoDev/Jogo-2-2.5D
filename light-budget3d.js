@@ -76,7 +76,17 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     const k = 1 - Math.exp(-dt * 10);
     for (const p of pool) {
       const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001;
-      if (s && s.parent) { l.position.setFromMatrixPosition(s.matrixWorld); l.color.copy(s.color); l.distance = s.distance; l.decay = s.decay; }
+      // Não copiar distância/decay inválidos para os uniforms do shader.
+      // A posição da fonte também pode mudar após o ranking do quadro anterior.
+      if (live) {
+        v.setFromMatrixPosition(s.matrixWorld);
+        if (Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z)) {
+          l.position.setFromMatrixPosition(s.matrixWorld);
+          l.color.copy(s.color);
+          l.distance = Number.isFinite(s.distance) && s.distance >= 0 ? s.distance : 40;
+          l.decay = Number.isFinite(s.decay) && s.decay >= 0 ? s.decay : 2;
+        }
+      }
       const target = p.next !== undefined || !live ? 0 : s.intensity;
       // Não propagar NaN/Infinity de efeitos transitórios para os shaders do jogo.
       if (!Number.isFinite(l.intensity)) l.intensity = 0;
