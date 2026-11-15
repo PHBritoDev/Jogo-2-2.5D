@@ -103,6 +103,38 @@ jobs:
           report = agent.infer(prompt, os.path.expanduser("~/.cache/a1-llm/llama-bin/llama-cli"), os.environ["MODEL_FILE"])
           # Não imprimir saída bruta nem conteúdo de prompt.
           print("SMOKE REAL: relatório aceito; caracteres =", len(report))
+          import ast
+          import hashlib
+          import tempfile
+          gate_path = Path("tools/agentes-externos/a1-repair-gate.py")
+          gate_spec = importlib.util.spec_from_file_location("a1_repair_pilot", gate_path)
+          gate = importlib.util.module_from_spec(gate_spec)
+          gate_spec.loader.exec_module(gate)
+          with tempfile.TemporaryDirectory() as temp:
+              root = Path(temp) / "source"
+              path = root / "tools/agentes-externos/fixtures/damage_math.py"
+              path.parent.mkdir(parents=True)
+              original = "def remaining_hp(hp, damage):\n    return hp + damage\n"
+              path.write_text(original, encoding="utf-8")
+              after = gate.propose_replacement(
+                  os.path.expanduser("~/.cache/a1-llm/llama-bin/llama-cli"),
+                  os.environ["MODEL_FILE"],
+                  "return hp + damage",
+                  "Ao receber 3 de dano com 10 HP, restam exatamente 7 HP.",
+              )
+              proposal = {
+                  "path": "tools/agentes-externos/fixtures/damage_math.py",
+                  "base_sha256": hashlib.sha256(original.encode()).hexdigest(),
+                  "before": "return hp + damage",
+                  "after": after,
+              }
+              staged = gate.stage_candidate(root, Path(temp) / "out", proposal)
+              expected = "def remaining_hp(hp, damage):\n    return hp - damage\n"
+              if ast.dump(ast.parse(staged.read_text())) != ast.dump(ast.parse(expected)):
+                  raise ValueError("Repair candidate did not match verified target behavior")
+              if path.read_text() != original:
+                  raise ValueError("Repair pilot modified original source")
+              print("SMOKE REPAIR: candidate generated, staged and AST-verified; original untouched")
           PY
 
   escolher-issue:
