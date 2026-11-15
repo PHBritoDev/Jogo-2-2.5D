@@ -103,3 +103,15 @@ test('fluxo realista de save/reload após relógio incorreto mantém o progresso
   assert.equal(state.hearts, 2);
   assert.equal(msToNextHeart(state, start + HEARTS.regenMs + 1000), HEARTS.regenMs - 1000);
 });
+
+test('tipos inválidos no save não zeram o contador de corações', () => {
+  const now = 1700000000000;
+  for (const hearts of [false, true, [], {}, '-Infinity']) {
+    const state = normalizeHearts({ hearts, since: now }, now);
+    assert.equal(state.hearts, HEARTS.max,
+      'tipo corrompido não deve ser interpretado como vida perdida');
+  }
+  for (const hearts of [0, '0', 4, '4']) {
+    assert.equal(normalizeHearts({ hearts, since: now }, now).hearts, Number(hearts));
+  }
+});
