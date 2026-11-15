@@ -201,3 +201,37 @@ test('positive exterior skirt must remain below its surface in GPU Float32', () 
   assert.doesNotThrow(() => buildTerrainPatch(elevated, { ...opts, skirt: 0 }));
   assert.doesNotThrow(() => buildTerrainPatch(elevated, { ...opts, skirt: 0.01, skirtEdges: [] }));
 });
+
+test('non-divisible exterior strips never stretch cells beyond requested resolution', () => {
+  const options = { x0: -10, x1: 11, z0: -40, z1: -19, cell: 2.5, skirt: 0 };
+  const patch = buildTerrainPatch(terrain, options);
+  // 21 / 2.5 = 8.4: floor/round would produce eight 2.625-unit
+  // segments. Nine segments preserve both the maximum spacing and bounds.
+  assert.equal(patch.nx, 10);
+  assert.equal(patch.nz, 10);
+  for (let j = 0; j < patch.nz; j++) {
+    for (let i = 1; i < patch.nx; i++) {
+      const a = patch.positions[3 * (j * patch.nx + i - 1)];
+      const b = patch.positions[3 * (j * patch.nx + i)];
+      assert.ok(b - a > 0 && b - a <= options.cell + 1e-5);
+    }
+  }
+  for (let j = 1; j < patch.nz; j++) {
+    for (let i = 0; i < patch.nx; i++) {
+      const a = patch.positions[3 * ((j - 1) * patch.nx + i) + 2];
+      const b = patch.positions[3 * (j * patch.nx + i) + 2];
+      assert.ok(b - a > 0 && b - a <= options.cell + 1e-5);
+    }
+  }
+});
+
+test('adjacent exterior strips preserve a shared world-space seam', () => {
+  const a = buildTerrainPatch(terrain, { x0: -10, x1: 11, z0: -40, z1: -19, cell: 2.5, skirt: 0 });
+  const b = buildTerrainPatch(terrain, { x0: 11, x1: 32, z0: -40, z1: -19, cell: 2.5, skirt: 0 });
+  assert.equal(a.nz, b.nz);
+  for (let j = 0; j < a.nz; j++) {
+    const ai = 3 * (j * a.nx + a.nx - 1);
+    const bi = 3 * j * b.nx;
+    assert.deepEqual([...a.positions.slice(ai, ai + 3)], [...b.positions.slice(bi, bi + 3)]);
+  }
+});
