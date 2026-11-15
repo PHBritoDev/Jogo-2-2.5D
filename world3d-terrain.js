@@ -376,6 +376,10 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
       // Encostas: coníferas rareando com a altitude (linha das árvores). A faixa do contraforte
       // fica aberta (pedras e capim) para a câmera não ficar presa dentro da mata no limite.
       const y = terrain.height(x, z);
+      // Keep the same route/mission clearance on the foothills as in the valley.
+      // Previously the hillside branch bypassed isFree and could spawn trees
+      // over reserved exterior paths despite having collision disabled.
+      if (!isFree(x, z) || terrain.waterDepth(x, z) > -.25) continue;
       if (y > 38 + density * 12) continue;
       if (rnd() > (.78 - smoothstep(10, 46, y) * .7) * smoothstep(.22, .5, density + .12)) continue;
       specs.push({ x, z, kind: 'conifer', s: .85 + rnd() * .9, rot: rnd() * Math.PI * 2, tint: rnd(), collide: false });
