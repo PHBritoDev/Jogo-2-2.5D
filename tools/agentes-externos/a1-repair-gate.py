@@ -84,6 +84,12 @@ def propose_replacement(llama_bin, model, source, behavior, validator=None, exam
         f"O código after começa com 'return ' e é uma expressão {language} única, "
         "sem markdown, comentários, imports, execução ou explicações."
     )
+    if language == "JavaScript":
+        system += (
+            " Em JavaScript os limites são Math.min(...) e Math.max(...), "
+            "NUNCA min(...) ou max(...) isolados. Não use sintaxe Python. "
+            "Mantenha todos os nomes das variáveis e a saída return expressão."
+        )
     base_user = (
         "Linha original:\n" + source
         + "\nComportamento obrigatório:\n" + behavior
