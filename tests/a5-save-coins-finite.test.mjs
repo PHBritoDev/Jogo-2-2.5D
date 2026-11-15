@@ -71,3 +71,35 @@ test('A5: quest objective after portal crossing points to the actual boss', () =
   assert.match(questPresentation(7).objective, /derrote o Primeiro Bispo/);
   assert.doesNotMatch(questPresentation(7).objective, /Atravesse o portal/);
 });
+
+test('A5: corrupt XP, time, combat stats and narrative checkpoint counters cannot survive reload', () => {
+  const raw = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    coins: 18, xp: Infinity, playSeconds: 'Infinity',
+    stats: { kills: Infinity, rescues: 'NaN', bishops: -Infinity },
+    lateFoundStep: Infinity, lateFightIndex: Infinity, gauntletIndex: Infinity };
+  const restored = migrateProgress(raw);
+  assert.equal(restored.questStep, 7);
+  assert.equal(restored.coins, 18);
+  for (const value of [restored.xp, restored.playSeconds, restored.stats.kills,
+    restored.stats.rescues, restored.stats.bishops, restored.lateFoundStep,
+    restored.lateFightIndex, restored.gauntletIndex]) {
+    assert.ok(Number.isFinite(value));
+    assert.equal(value, 0);
+  }
+  assert.deepEqual(migrateProgress(restored), restored);
+});
+
+test('A5: legitimate XP and checkpoint progress survive save reload', () => {
+  const raw = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    xp: 245.9, playSeconds: 420.8, stats: { kills: 11, rescues: 2 },
+    lateFoundStep: 4, lateFightIndex: 3, gauntletIndex: 2 };
+  const restored = migrateProgress(raw);
+  assert.equal(restored.xp, 245);
+  assert.equal(restored.playSeconds, 420);
+  assert.equal(restored.stats.kills, 11);
+  assert.equal(restored.stats.rescues, 2);
+  assert.equal(restored.lateFoundStep, 4);
+  assert.equal(restored.lateFightIndex, 3);
+  assert.equal(restored.gauntletIndex, 2);
+  assert.deepEqual(migrateProgress(restored), restored);
+});
