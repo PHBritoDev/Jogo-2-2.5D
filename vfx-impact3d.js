@@ -15,6 +15,12 @@ export function impactGroundHeight(ground, point) {
     : NaN;
 }
 
+/** Reject malformed collision events before they enter pooled meshes and particle buffers. */
+export function impactRecordValid({ time, point, size = 2 } = {}) {
+  return Number.isFinite(time) && Number.isFinite(size) && size > 0
+    && Number.isFinite(point?.x) && Number.isFinite(point?.y) && Number.isFinite(point?.z);
+}
+
 /** Consumes collision records without deciding damage. Fixed reusable slots and 3D tectonic impact shatter. */
 export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () => {} } = {}) {
   const root = new T.Group();
@@ -36,7 +42,7 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
   return {
     root,
     emit({ id, time, point, size = 2, preset = 'cinder', kind = 'ball', dir = { x: 0, y: 1, z: 0 } }) {
-      if (seen.has(id)) return false;
+      if (!impactRecordValid({ time, point, size }) || seen.has(id)) return false;
       seen.add(id);
       if (seen.size > 64) seen.delete(seen.values().next().value);
       const s = slots[head++ % capacity];
