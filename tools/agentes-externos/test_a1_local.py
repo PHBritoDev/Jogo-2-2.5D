@@ -110,6 +110,13 @@ class LocalAgentTests(unittest.TestCase):
             self.assertNotIn("invalid", body)
             self.assertIn("Nenhum bug foi confirmado", body)
 
+    def test_prompt_requests_bounded_five_section_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            prompt = agent.prompt_for({"number": 2, "title": "Bug", "body": "Falha"}, Path(d))
+        self.assertIn("cinco cabeçalhos Markdown", prompt)
+        self.assertIn("### Testes de regressão", prompt)
+        self.assertIn("nunca invente evidências", prompt)
+
     def test_short_report_is_not_submitted(self):
         with self.assertRaises(ValueError):
             agent.submit("owner/repo", 4, "oops")
@@ -133,6 +140,7 @@ class LocalAgentTests(unittest.TestCase):
         args = run.call_args.args[0]
         self.assertEqual(args[0], "/tmp/llama")
         self.assertEqual(args[1:3], ["-m", "/tmp/model.gguf"])
+        self.assertEqual(args[args.index("-n") + 1], "700")
         self.assertEqual(run.call_args.kwargs["timeout"], 210)
 
 
