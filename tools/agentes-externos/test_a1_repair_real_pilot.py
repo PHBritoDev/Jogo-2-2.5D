@@ -1,5 +1,7 @@
 """End-to-end A1 pipeline tests with mocked model, real JS regression runner."""
 import hashlib
+import json
+import sys
 import importlib.util
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -37,6 +39,40 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual((self.root / "hearts3d.js").read_text(), self.original)
         self.assertEqual(result["baseline_sha256"], hashlib.sha256(self.original.encode()).hexdigest())
         self.assertEqual(model.call_args.kwargs["language"], "JavaScript")
+
+    def test_cli_exports_reviewable_patch_outside_checkout(self):
+        from io import StringIO
+        from contextlib import redirect_stdout
+        destination = self.root.parent / "review-patch.json"
+        with patch.object(pipeline.proposer, "propose_replacement", return_value=self.good):
+            with patch.object(sys, "argv", [
+                "a1-repair-real-pilot.py", "--root", str(self.root),
+                "--llama", "llama", "--model", "model",
+                "--before", self.bad, "--behavior", "Cap to ten",
+                "--output", str(destination),
+            ]):
+                with redirect_stdout(StringIO()):
+                    pipeline.main()
+        proposal = json.loads(destination.read_text(encoding="utf-8"))
+        self.assertEqual(proposal["after"], self.good)
+        self.assertEqual(proposal["path"], "hearts3d.js")
+        self.assertEqual((self.root / "hearts3d.js").read_text(), self.original)
+
+    def test_cli_does_not_export_patch_into_repository(self):
+        from io import StringIO
+        from contextlib import redirect_stdout
+        destination = self.root / "unsafe-patch.json"
+        with patch.object(pipeline.proposer, "propose_replacement", return_value=self.good):
+            with patch.object(sys, "argv", [
+                "a1-repair-real-pilot.py", "--root", str(self.root),
+                "--llama", "llama", "--model", "model",
+                "--before", self.bad, "--behavior", "Cap to ten",
+                "--output", str(destination),
+            ]):
+                with redirect_stdout(StringIO()):
+                    with self.assertRaisesRegex(ValueError, "outside checkout"):
+                        pipeline.main()
+        self.assertFalse(destination.exists())
 
     def test_dangerous_model_patch_rejected_before_node_execution(self):
         with patch.object(pipeline.proposer, "propose_replacement",
