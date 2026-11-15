@@ -204,3 +204,23 @@ test('A4: posição se torna inválida durante fade e slot apaga até recuperaç
   for(let i=0;i<120;i++)budget.update(camera,1/60);
   assert.ok(slot.intensity>2.9,'posição recuperada deve restaurar iluminação');
 });
+
+test('A4: dt inválido não injeta NaN nos slots e o fade retoma no quadro válido',()=> {
+  const scene=new Object3D(),camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:1});
+  const source=new PointLight(0xffffff,3,30,2);source.name='tocha-pausa';
+  scene.add(source);
+  const slot=scene.children[0];
+  for(const dt of [NaN,Infinity,-Infinity,-1]){
+    budget.update(camera,dt);
+    assert.equal(slot.intensity,0,'dt inválido/negativo não avança iluminação');
+  }
+  budget.update(camera,1/60);
+  assert.ok(slot.intensity>0 && slot.intensity<3,'fade retoma gradualmente');
+  const before=slot.intensity;
+  budget.update(camera,120);
+  assert.ok(slot.intensity>before && slot.intensity<2.5,
+    'retomada após aba suspensa não deve saltar diretamente à intensidade total');
+  for(let i=0;i<120;i++)budget.update(camera,1/60);
+  assert.ok(Math.abs(slot.intensity-3)<0.001);
+});
