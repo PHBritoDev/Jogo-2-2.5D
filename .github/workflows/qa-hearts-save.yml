@@ -1,0 +1,45 @@
+name: QA corações — save e regeneração
+on:
+  pull_request:
+    paths:
+      - 'hearts3d.js'
+      - 'mundo-3d-prototype.js'
+      - 'hearts3d.test.mjs'
+      - '.github/workflows/qa-hearts-save.yml'
+      - 'tools/visual-lab/a1-hearts-browser-smoke.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  hearts-save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar saves, relógio e regeneração de corações
+        run: node --test hearts3d.test.mjs
+      - name: Instalar Chromium do laboratório
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Servir jogo real
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/a1-hearts-http.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Smoke de corações, HUD e persistência no jogo real
+        env:
+          NODE_PATH: tools/visual-lab/node_modules
+        run: node tools/visual-lab/a1-hearts-browser-smoke.cjs
+
+      - name: Guardar evidências reais do HUD e localStorage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a1-hearts-smoke-${{ github.run_number }}
+          path: visual-lab-results/a1-hearts/
+          if-no-files-found: warn
+          retention-days: 14

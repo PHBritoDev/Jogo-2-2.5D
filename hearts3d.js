@@ -14,7 +14,10 @@ export function normalizeHearts(raw, now = Date.now()) {
   const parsedHearts = numericSave ? Number(r.hearts) : NaN;
   const rawHearts = Number.isFinite(parsedHearts) ? parsedHearts : NaN;
   const hearts = Math.max(0, Math.min(HEARTS.max, Math.floor(rawHearts))); 
-  return tickHearts({ hearts: Number.isFinite(hearts) ? hearts : HEARTS.max, since: Number(r.since) || now, explained: !!r.explained }, now);
+  // Zero é timestamp válido: não confundir com campo ausente ao carregar um save antigo.
+  const hasSince = typeof r.since === 'number' || (typeof r.since === 'string' && r.since.trim() !== '');
+  const parsedSince = hasSince ? Number(r.since) : NaN;
+  return tickHearts({ hearts: Number.isFinite(hearts) ? hearts : HEARTS.max, since: Number.isFinite(parsedSince) ? parsedSince : now, explained: !!r.explained }, now);
 }
 
 /** Aplica a regeneração acumulada (inclusive com o jogo fechado). */

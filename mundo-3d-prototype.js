@@ -3547,7 +3547,15 @@ function openStartGate(){
 if(menuGate){pendingAwakening=awakeningActive;awakeningActive=false;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');if(questStep===0&&!awakeningSeen&&!heavenSeen){pendingAwakening=false;openStartGate();}else openGalaxyScreen();}
 /* MOD 190 — corações e perfil. Corações vivem num registro próprio (regeneram com o jogo fechado). */
 const HEART_STORE='seven-sins-hearts';
-let heartState=(()=>{let raw=null;try{raw=JSON.parse(localStorage.getItem(HEART_STORE)||'null');}catch(_){}return normalizeHearts(raw);})();
+let heartState=(()=>{
+ let raw=null;try{raw=JSON.parse(localStorage.getItem(HEART_STORE)||'null');}catch(_){}
+ const normalized=normalizeHearts(raw);
+ // A regeneração offline já ocorreu: persista-a antes do próximo tick/HUD ou reload.
+ if(raw && (raw.hearts!==normalized.hearts || raw.since!==normalized.since || !!raw.explained!==normalized.explained)){
+  try{localStorage.setItem(HEART_STORE,JSON.stringify(normalized));}catch(_){}
+ }
+ return normalized;
+})();
 function saveHearts(){try{localStorage.setItem(HEART_STORE,JSON.stringify(heartState));}catch(_){}}
 let heartHudAt=0;
 function updateHeartsHud(force){
