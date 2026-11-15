@@ -145,7 +145,7 @@ export function migrateProgress(raw) {
   raw = migrateBishopOneName(raw);
   // Saves corrompidos podem conter Infinity/NaN: nunca propagar moedas não finitas ao HUD/loja.
   const rawCoins = Number(raw.coins);
-  const coins = Number.isFinite(rawCoins) ? Math.max(0, Math.floor(rawCoins)) : 0;
+  const coins = Number.isFinite(rawCoins) ? Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(rawCoins))) : 0;
   // Preserva nomes de saves antigos (2–16 caracteres) sem permitir novos nomes fora do limite atual.
   const named = sanitizePlayerName(raw.playerName || '');
   const legacyName = String(raw.playerName || '').replace(/\s+/g, ' ').trim();
@@ -509,7 +509,9 @@ export function afterVhazraelVictory(progress) {
   const p = progress || {};
   // Checkpoints antigos podem estar na etapa concluída sem a flag de pagamento.
   // Nunca pagar o Bispo novamente ao retomar um Ato I já finalizado.
-  const first = !p.vhazraelRewardClaimed && clampInt(p.questStep, 0, 30, 0) < 8;
+  // Um checkpoint parcialmente gravado pode já contar o Bispo, mesmo antes de avançar a etapa.
+  const first = !p.vhazraelRewardClaimed && clampInt(p.questStep, 0, 30, 0) < 8
+    && clampInt(p.bishopsDefeated, 0, 4, 0) === 0;
   return {
     // Uma vitória repetida não pode retroceder um save que já iniciou atos posteriores.
     questStep: Math.max(8, clampInt(p.questStep, 0, 30, 0)),
