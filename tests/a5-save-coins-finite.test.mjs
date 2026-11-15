@@ -274,3 +274,24 @@ test('A5: corrupted bishop counter must not grant legacy magic3 on reload', () =
   assert.equal(legitimate.owned.includes('magic3'), true);
   assert.deepEqual(migrateProgress(legitimate), legitimate);
 });
+
+test('A5: restoring completed Act I repairs a missing bishop reward flag', () => {
+  for (const questStep of [8, 9, 14, 21, 30, '8']) {
+    const restored = migrateProgress({
+      version: ACT1.version, act1Rev: ACT1.rev, questStep,
+      vhazraelRewardClaimed: false, coins: 97, owned: ['magic', 'magic3'],
+      bishopsDefeated: 1
+    });
+    assert.equal(restored.vhazraelRewardClaimed, true);
+    assert.equal(restored.questStep, Number(questStep));
+    assert.equal(restored.coins, 97);
+    assert.equal(afterVhazraelVictory(restored).coinsGained, 0);
+    assert.deepEqual(migrateProgress(restored), restored);
+  }
+  const beforeBattle = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    vhazraelRewardClaimed: false, coins: 20
+  });
+  assert.equal(beforeBattle.vhazraelRewardClaimed, false);
+  assert.equal(afterVhazraelVictory(beforeBattle).coinsGained, ACT1.vhazraelReward);
+});
