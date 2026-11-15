@@ -297,6 +297,12 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
       if (!Number.isFinite(skirtY) || !Number.isFinite(Math.fround(skirtY))) {
         throw new RangeError('buildTerrainPatch: exterior skirt exceeds Float32 range');
       }
+      // Even a positive skirt can disappear when quantized to GPU Float32,
+      // leaving zero-area triangles at high world elevations. Reject such
+      // geometry instead of uploading degenerate walls along the route edge.
+      if (!(Math.fround(skirtY) < Math.fround(pos[id * 3 + 1]))) {
+        throw new RangeError('buildTerrainPatch: exterior skirt collapses in Float32');
+      }
       pos.push(pos[id * 3], skirtY, pos[id * 3 + 2]);
     }
     for (let k = 0; k < ids.length - 1; k++) { const a = ids[k], b = ids[k + 1], c = base + k, d = base + k + 1; idx.push(a, b, c, b, d, c, a, c, b, b, c, d); }
