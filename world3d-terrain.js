@@ -249,6 +249,11 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
     if (!Number.isFinite(y)) {
       throw new RangeError('buildTerrainPatch: non-finite terrain height');
     }
+    // WebGL positions are Float32: finite doubles beyond this range become
+    // Infinity during conversion, creating broken exterior triangles.
+    if (![x, y, z].every(v => Number.isFinite(Math.fround(v)))) {
+      throw new RangeError('buildTerrainPatch: exterior position exceeds Float32 range');
+    }
     pos.push(x, y, z);
   }
   for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
