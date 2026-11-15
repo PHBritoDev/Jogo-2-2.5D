@@ -123,7 +123,15 @@ def clean_report(output):
     sections = list(re.finditer(r"(?m)^#{2,4}\s+([^\n]+)\s*$", report))
     headings = [match.group(1).strip().lower() for match in sections]
     if len(report) < 200 or len(headings) != len(required_sections):
-        raise ValueError(f"QA report incomplete: chars={len(report)} headings={len(headings)}")
+        shape = "".join(
+            str(next((i + 1 for i, expected in enumerate(required_sections)
+                      if re.fullmatch(expected, heading, flags=re.IGNORECASE)), 0))
+            for heading in headings
+        )
+        raise ValueError(
+            f"QA report incomplete: chars={len(report)} headings={len(headings)} "
+            f"shape={shape[:16]} assistant_markers={report.count('<|im_start|assistant>')}"
+        )
     for heading, expected in zip(headings, required_sections):
         if not re.fullmatch(expected, heading, flags=re.IGNORECASE):
             raise ValueError("QA report missing required sections")
