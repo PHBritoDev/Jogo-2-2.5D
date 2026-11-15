@@ -1708,12 +1708,12 @@ function startVillageConversation(id,c,hint){
 }
 let talkCam=null;
 /** Câmera da conversa: por cima do ombro do herói, com o morador à frente (suave, sem corte brusco). */
-function updateTalkCamera(dt){if(!talkCam||!dialogueOpen||!villageTalkPartner)return;const h=villageTalkPartner.holder,want=Math.atan2(h.position.x-player.position.x,h.position.z-player.position.z)+.5;
+function updateTalkCamera(dt){if(!talkCam||!dialogueOpen||!villageTalkPartner)return;const h=villageTalkPartner.holder,want=Math.atan2(player.position.x-h.position.x,player.position.z-h.position.z)+.5; // câmera fica em player+(sin,cos)·dist: atrás do herói = direção oposta ao morador
  let d=want-cameraYaw;d=Math.atan2(Math.sin(d),Math.cos(d));const k=1-Math.exp(-3*dt);cameraYaw+=d*k;cameraDistance+=(Math.min(talkCam.dist0,4.2)-cameraDistance)*k;}
 /** Morador/moradora/carregador perto (≤ 2,4 m) e à frente do herói ou da câmera (ou colado, < 1,6 m): botão CONVERSAR. */
 function nearestVillageTalker(){let best=null,bd=2.4;const yaw=player.rotation.y;
  const cand=villageDrivers.filter(d=>d.id==='morador'||d.id==='moradora').map(d=>({id:d.id,c:d.c}));if(cityPorter)cand.push({id:'carregador',c:cityPorter.c});
- for(const t of cand){const h=t.c.holder;if(!h.visible)continue;const dx=h.position.x-player.position.x,dz=h.position.z-player.position.z,d=Math.hypot(dx,dz);if(d>=bd)continue;const ang=y=>{let a=Math.atan2(dx,dz)-y;return Math.abs(Math.atan2(Math.sin(a),Math.cos(a)));};if(d>1.6&&ang(yaw)>1.3&&ang(cameraYaw)>1.0)continue;bd=d;best=t;}
+ for(const t of cand){const h=t.c.holder;if(!h.visible)continue;const dx=h.position.x-player.position.x,dz=h.position.z-player.position.z,d=Math.hypot(dx,dz);if(d>=bd)continue;const ang=y=>{let a=Math.atan2(dx,dz)-y;return Math.abs(Math.atan2(Math.sin(a),Math.cos(a)));};if(d>1.6&&ang(yaw)>1.3&&ang(cameraYaw+Math.PI)>1.0)continue;bd=d;best=t;}
  return best;}
 addEventListener('keydown',e=>{if(!dialogueOpen||e.repeat)return;const m=/^(?:Digit|Numpad)([1-9])$/.exec(e.code);if(!m)return;const b=document.querySelectorAll('#dialog-options:not([hidden]) button')[+m[1]-1];if(b){e.preventDefault();pickDialogueOption(b.dataset.opt);}});
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
