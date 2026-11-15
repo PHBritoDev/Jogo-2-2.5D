@@ -217,7 +217,7 @@ export function questPresentation(step, sub = 0) {
     4: [['ATO I · OS ESGOTOS', 'Siga a trilha da montanha rumo aos esgotos'],
       ['ATO I · A PISTA', 'Siga a pista até a entrada da caverna, na encosta'],
       ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
-      ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][Math.min(3, sub)],
+      ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][clampInt(sub, 0, 3, 0)],
     5: ['ATO I · O GUARDIÃO DO PORTAL', 'Siga pelo caminho vazio e derrote o guardião do portal'],
     6: ['ATO I · O PORTAL DE VHAZRAEL', 'Entre no portal: a dimensão de VHAZRAEL está do outro lado'],
     7: ['ATO I · DIMENSÃO ABERTA', 'Encontre VHAZRAEL na dimensão e derrote o Primeiro Bispo'],
@@ -483,7 +483,8 @@ export function afterWardenDefeat() {
 export function nextAct1Sub(step, sub) {
   const last = { 1: 1, 3: 2, 4: 3 }[step];
   if (last === undefined) return { questStep: step, act1Sub: 0 };
-  if (sub < last) return { questStep: step, act1Sub: sub + 1 };
+  const safeSub = clampInt(sub, 0, last, 0);
+  if (safeSub < last) return { questStep: step, act1Sub: safeSub + 1 };
   return { questStep: step + 1, act1Sub: 0 };
 }
 
