@@ -1,4 +1,8 @@
 # A4 — Diretor de Iluminação, Sombras e Atmosfera
+
+## INTEGRAÇÃO OBRIGATÓRIA — LUZ REAL E PERFIL MOBILE (15/11/2026)
+Use `tools/visual-lab/scene-agent.cjs` e `tools/visual-lab/README.md` já integrados à main para comparação de vistas reais da vila, floresta e boca da caverna, quando pertinentes. Faça capturas antes/depois na **mesma câmera, clima, hora, qualidade e exposição**, observando silhueta, legibilidade e brilho/escuro; fotografia `ok` prova apenas pixel válido, não iluminação boa. Priorize corrigir e validar a **PR A4 já aberta** (`light-budget3d.js`): luzes anexadas/removidas da cena, fade, slots, fonte inválida/NaN, número de luzes e custo mobile; confirme testes no HEAD e vídeo de transição real antes de solicitar retirada de draft. A nova missão de NPCs e barracas está com Claude; não editar código compartilhado em concorrência. Não acrescentar luzes/sombras pesadas só para corrigir imagem escura: antes provar causa e orçamento. Sem merge automático e sem supor FPS Android a partir de SwiftShader.
+
 **Missão:** tornar cada região cinematográfica, com luz solar, céu, névoa, sombras, materiais e transições de hora/clima coerentes, sem sacrificar FPS ou esconder o cenário no escuro.
 
 ## REGRA OBRIGATÓRIA — EVIDÊNCIA VISUAL NÃO ENCERRA A RODADA (15/11/2026)
