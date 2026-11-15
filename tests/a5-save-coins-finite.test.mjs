@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ACT1, migrateProgress, afterVhazraelVictory, afterEnemyDefeated, questPresentation } from '../act1-flow.js';
+import { ACT1, migrateProgress, afterVhazraelVictory, afterEnemyDefeated, nextAct1Sub, questPresentation } from '../act1-flow.js';
 
 test('A5: restore V6 checkpoints without duplicating narrative rewards', () => {
   const saved = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 6,
@@ -122,4 +122,33 @@ test('A5: follower encounters advance once and never exceed the three-enemy chec
       ...result }).journeyEnemyIndex, result.journeyEnemyIndex);
   }
   assert.equal(afterEnemyDefeated(ACT1.enemyTotal).journeyEnemyIndex, ACT1.enemyTotal);
+});
+
+test('A5: corrupted sewer objective substeps never crash HUD rendering', () => {
+  for (const bad of [-Infinity, Infinity, NaN, -1, 'NaN', 'Infinity', null, undefined]) {
+    const objective = questPresentation(4, bad);
+    assert.equal(typeof objective.title, 'string');
+    assert.equal(typeof objective.objective, 'string');
+    assert.ok(objective.objective.length > 0);
+  }
+  assert.match(questPresentation(4, 0).objective, /trilha/);
+  assert.match(questPresentation(4, 3).objective, /buraco/);
+});
+
+test('A5: invalid Act I substep cannot poison checkpoint transitions', () => {
+  for (const step of [1, 3, 4]) {
+    for (const bad of [Infinity, -Infinity, NaN, 'NaN', -9]) {
+      const transition = nextAct1Sub(step, bad);
+      assert.equal(transition.questStep, step);
+      assert.equal(transition.act1Sub, 1);
+      const saved = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+        ...transition, coins: 14, portalRewardClaimed: true });
+      const reloaded = migrateProgress(saved);
+      assert.equal(reloaded.act1Sub, 1);
+      assert.equal(reloaded.coins, 14);
+      assert.equal(reloaded.portalRewardClaimed, true);
+    }
+  }
+  assert.deepEqual(nextAct1Sub(4, 3), { questStep: 5, act1Sub: 0 });
+  assert.deepEqual(nextAct1Sub(3, 1.9), { questStep: 3, act1Sub: 2 });
 });
