@@ -1,5 +1,7 @@
 """Unit tests for the free local QA agent; no remote services or models."""
 import importlib.util
+import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -79,6 +81,34 @@ class LocalAgentTests(unittest.TestCase):
     def test_incomplete_report_is_rejected(self):
         with self.assertRaises(ValueError):
             agent.clean_report("### Hipótese a validar\nAlgo estranho")
+
+    def test_generation_failure_is_capped_after_two_attempts(self):
+        class Response:
+            def __init__(self, data):
+                self.raw = json.dumps(data).encode()
+            def __enter__(self):
+                return self
+            def __exit__(self, *_):
+                return False
+            def read(self):
+                return self.raw
+
+        for prior_comments, expected_marker in [
+            ([], agent.ATTEMPT_MARKER),
+            ([{"body": agent.ATTEMPT_MARKER}], agent.MARKER),
+        ]:
+            requests = []
+            def fake_urlopen(request, timeout=20):
+                requests.append(request)
+                return Response(prior_comments if len(requests) == 1 else {"html_url": "https://github.com/test"})
+            with patch.dict(os.environ, {"GITHUB_TOKEN": "fake"}):
+                with patch.object(agent.urllib.request, "urlopen", side_effect=fake_urlopen):
+                    url = agent.failed_attempt("owner/repo", 399, ValueError("invalid"))
+            self.assertEqual(url, "https://github.com/test")
+            body = json.loads(requests[1].data)["body"]
+            self.assertIn(expected_marker, body)
+            self.assertNotIn("invalid", body)
+            self.assertIn("Nenhum bug foi confirmado", body)
 
     def test_short_report_is_not_submitted(self):
         with self.assertRaises(ValueError):
