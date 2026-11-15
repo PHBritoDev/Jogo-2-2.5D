@@ -96,7 +96,7 @@ export function discoverPois(state, x, z, { secretsFound = {} } = {}) {
   const found = [];
   for (const p of MAP_POIS) {
     if (state.pois.has(p.id)) continue;
-    if (p.secret && !secretsFound[p.id]) continue;
+    if (p.secret && !secretsFound?.[p.id]) continue;
     if (Math.hypot(p.x - x, p.z - z) <= (p.revealRadius || 16)) { state.pois.add(p.id); found.push(p); }
   }
   return found;
