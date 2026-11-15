@@ -147,3 +147,16 @@ test('Mod 247: save anterior ao nome VHAZRAEL migra a recompensa e o bestiário 
   const p = migrateProgress(legacy); assert.equal(p.vhazraelRewardClaimed, true); assert.equal(p.coins, 55);
   const fresh = migrateBishopOneName({ vorgazhekRewardClaimed: true, bestiary: ['veraxion'] }); assert.equal(fresh.vhazraelRewardClaimed, undefined); assert.deepEqual(fresh.bestiary, ['veraxion']);
 });
+
+test('conquistas resgatadas não duplicam após reload, sem alterar o save original', () => {
+  const raw = {
+    version: ACT1.version,
+    act1Rev: ACT1.rev,
+    questStep: 8,
+    achievementsClaimed: ['first-win', 'first-win', 'explorer', 42, 'explorer']
+  };
+  const once = migrateProgress(raw);
+  assert.deepEqual(once.achievementsClaimed, ['first-win', 'explorer']);
+  assert.deepEqual(migrateProgress(once).achievementsClaimed, ['first-win', 'explorer']);
+  assert.deepEqual(raw.achievementsClaimed, ['first-win', 'first-win', 'explorer', 42, 'explorer']);
+});
