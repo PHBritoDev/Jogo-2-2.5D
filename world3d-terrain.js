@@ -208,9 +208,75 @@ export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, 
  * esconder frestas de T-junction nas encostas.
  */
 export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt = 4, skirtEdges = ['x0', 'x1', 'z1'] } = {}) {
-  const nx = Math.round((x1 - x0) / cell) + 1, nz = Math.round((z1 - z0) / cell) + 1;
+  // Invalid exterior patch extents used to create degenerate triangles or
+  // unbounded allocations; fail at the caller instead of corrupting WebGL.
+  if (![x0, x1, z0, z1, cell, skirt].every(Number.isFinite) ||
+      !(x1 > x0) || !(z1 > z0) || !(cell > 0) || skirt < 0) {
+    throw new RangeError('buildTerrainPatch: invalid exterior patch bounds or resolution');
+  }
+  // Preserve the requested world-space edges even when a span is not a multiple
+  // of cell. Ceil keeps every actual grid interval <= the requested cell size;
+  // rounding could silently stretch outer trail cells by nearly 50%.
+  const nx = Math.max(2, Math.ceil((x1 - x0) / cell) + 1);
+  const nz = Math.max(2, Math.ceil((z1 - z0) / cell) + 1);
+  // A corrupted resolution can otherwise allocate millions of vertices and
+  // lock up mobile browsers before the geometry is even sent to WebGL.
+  // Normal exterior patches are orders of magnitude smaller than this guard.
+  // Count the skirt vertices as well: a long/thin patch can have few
+  // surface vertices but a large boundary buffer. Reject unknown edges and
+  // duplicates before allocating the arrays or creating degenerate walls.
+  const edgeNames = ['x0', 'x1', 'z0', 'z1'];
+  if (!Array.isArray(skirtEdges) || new Set(skirtEdges).size !== skirtEdges.length ||
+      skirtEdges.some(name => !edgeNames.includes(name))) {
+    throw new RangeError('buildTerrainPatch: invalid skirt edges');
+  }
+  // A zero-depth skirt has no surface: omit its degenerate walls entirely.
+  // This also avoids wasting index/vertex bandwidth in low-detail exterior patches.
+  const activeSkirtEdges = skirt === 0 ? [] : skirtEdges;
+  const skirtVertices = activeSkirtEdges.reduce((count, name) =>
+    count + (name === 'x0' || name === 'x1' ? nz : nx), 0);
+  if (!Number.isSafeInteger(nx) || !Number.isSafeInteger(nz) ||
+      nx * nz + skirtVertices > 1_000_000) {
+    throw new RangeError('buildTerrainPatch: exterior patch exceeds vertex budget');
+  }
+  const dx = (x1 - x0) / (nx - 1), dz = (z1 - z0) / (nz - 1);
+  // Report out-of-range world coordinates before testing cell collapse:
+  // Infinity from Float32 conversion is a different defect than zero width.
+  if (![x0, x1, z0, z1].every(v => Number.isFinite(Math.fround(v)))) {
+    throw new RangeError('buildTerrainPatch: exterior position exceeds Float32 range');
+  }
+  // World coordinates can be finite and within Float32 range yet round to
+  // the same GPU coordinate. A collapsed strip has zero-area triangles and
+  // cannot form a traversable exterior surface. Validate before allocating.
+  const distinctGpuCells = (start, end, count, step) => {
+    let previous = Math.fround(start);
+    for (let i = 1; i < count; i++) {
+      const current = Math.fround(i === count - 1 ? end : start + i * step);
+      if (!(current > previous)) return false;
+      previous = current;
+    }
+    return true;
+  };
+  if (!distinctGpuCells(x0, x1, nx, dx) || !distinctGpuCells(z0, z1, nz, dz)) {
+    throw new RangeError('buildTerrainPatch: exterior cells collapse in Float32');
+  }
   const pos = [], idx = [];
-  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const x = x0 + i * cell, z = z0 + j * cell; pos.push(x, terrain.height(x, z), z); }
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+    const x = i === nx - 1 ? x1 : x0 + i * dx;
+    const z = j === nz - 1 ? z1 : z0 + j * dz;
+    const y = terrain.height(x, z);
+    // A broken height sampler must not send NaN/Infinity into GPU buffers.
+    // Reject the affected exterior patch before constructing its triangles.
+    if (!Number.isFinite(y)) {
+      throw new RangeError('buildTerrainPatch: non-finite terrain height');
+    }
+    // WebGL positions are Float32: finite doubles beyond this range become
+    // Infinity during conversion, creating broken exterior triangles.
+    if (![x, y, z].every(v => Number.isFinite(Math.fround(v)))) {
+      throw new RangeError('buildTerrainPatch: exterior position exceeds Float32 range');
+    }
+    pos.push(x, y, z);
+  }
   for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
     const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
     if ((i + j) & 1) idx.push(a, c, b, b, c, d); else idx.push(a, c, d, a, d, b);
@@ -223,9 +289,23 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
     if (name === 'z1') for (let i = 0; i < nx; i++) ids.push((nz - 1) * nx + i);
     return ids;
   };
-  for (const name of skirtEdges) {
+  for (const name of activeSkirtEdges) {
     const ids = edge(name), base = pos.length / 3;
-    for (const id of ids) pos.push(pos[id * 3], pos[id * 3 + 1] - skirt, pos[id * 3 + 2]);
+    for (const id of ids) {
+      const skirtY = pos[id * 3 + 1] - skirt;
+      // The surface may fit Float32 while lowering the skirt overflows it.
+      // Fail before uploading an infinite vertex to the GPU.
+      if (!Number.isFinite(skirtY) || !Number.isFinite(Math.fround(skirtY))) {
+        throw new RangeError('buildTerrainPatch: exterior skirt exceeds Float32 range');
+      }
+      // Even a positive skirt can disappear when quantized to GPU Float32,
+      // leaving zero-area triangles at high world elevations. Reject such
+      // geometry instead of uploading degenerate walls along the route edge.
+      if (!(Math.fround(skirtY) < Math.fround(pos[id * 3 + 1]))) {
+        throw new RangeError('buildTerrainPatch: exterior skirt collapses in Float32');
+      }
+      pos.push(pos[id * 3], skirtY, pos[id * 3 + 2]);
+    }
     for (let k = 0; k < ids.length - 1; k++) { const a = ids[k], b = ids[k + 1], c = base + k, d = base + k + 1; idx.push(a, b, c, b, d, c, a, c, b, b, c, d); }
   }
   return { positions: new Float32Array(pos), indices: new Uint32Array(idx), nx, nz };
