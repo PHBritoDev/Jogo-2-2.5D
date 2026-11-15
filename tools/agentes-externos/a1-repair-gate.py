@@ -76,8 +76,8 @@ def propose_replacement(llama_bin, model, source, behavior):
         "Responda exclusivamente com uma linha no formato PATCH: seguido de JSON "
         "com a única chave after. O valor after DEVE começar com return e um espaço, "
         "conter uma única instrução Python, sem comentários, blocos ou explicação. "
-        "Exemplo de FORMATO: PATCH: {\\\"after\\\": \\\"return score - spent\\\"}. "
-        "Nunca execute nada, não use markdown.\\n"
+        "Exemplo de FORMATO: PATCH: {\"after\": \"return score - spent\"}. "
+        "Nunca execute nada, não use markdown.\n"
         "<|im_end|>\n<|im_start|user>\n"
         + "Código original:\n" + source
         + "\nComportamento esperado:\n" + behavior
