@@ -8,6 +8,13 @@ export function impactTouchesGround(pointY, groundY) {
     && pointY - groundY >= -1 && pointY - groundY < 5;
 }
 
+/** Avoid sampling terrain at invalid world coordinates from malformed impact records. */
+export function impactGroundHeight(ground, point) {
+  return Number.isFinite(point?.x) && Number.isFinite(point?.z)
+    ? ground(point.x, point.z)
+    : NaN;
+}
+
 /** Consumes collision records without deciding damage. Fixed reusable slots and 3D tectonic impact shatter. */
 export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () => {} } = {}) {
   const root = new T.Group();
@@ -63,7 +70,7 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
         }
         const mode = s.kind === 'x' ? 'x' : 'radial';
         debris.add(p, age, s.size, C, s.seed + s.time, mode, low);
-        const gy = ground(p.x, p.z);
+        const gy = impactGroundHeight(ground, p);
         const nearGround = impactTouchesGround(p.y, gy);
         if (nearGround) {
           const nrm = groundNormal(ground, p.x, p.z, normal);
