@@ -77,7 +77,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     for (const p of pool) { if (p.src && chosen.includes(p.src)) { chosen.splice(chosen.indexOf(p.src), 1); p.next = undefined; } else free.push(p); }
     // troca sem piscar: o slot apaga a fonte antiga suavemente e só então acende a nova no lugar dela
     for (const p of free) { const s = chosen.shift() || null; if (s !== p.src) { if (p.src && p.light.intensity > .05) p.next = s; else { p.src = s; p.next = undefined; } } }
-    const k = 1 - Math.exp(-dt * 10);
+    // dt pode vir inválido ou muito alto após pausa/retomada do navegador mobile.
+    // Limitar a interpolação evita NaN/Infinity e saltos bruscos de luz no retorno.
+    const safeDt = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 0.1)) : 0;
+    const k = 1 - Math.exp(-safeDt * 10);
     for (const p of pool) {
       const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001 && finitePosition(s);
       // Não copiar distância/decay inválidos para os uniforms do shader.
