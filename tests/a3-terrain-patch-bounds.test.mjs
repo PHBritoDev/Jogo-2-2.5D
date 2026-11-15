@@ -107,3 +107,20 @@ test('all four boundary skirts have expected geometry', () => {
   assert.equal(patch.positions.length / 3, 25 + 20);
   assert.equal(patch.indices.length, 6 * 16 + 12 * 16);
 });
+
+test('zero-depth skirts do not generate degenerate exterior walls', () => {
+  const opts = { x0: -10, x1: 11, z0: -40, z1: -19, cell: 2.5 };
+  const withSkirt = buildTerrainPatch(terrain, { ...opts, skirt: 4 });
+  const noSkirt = buildTerrainPatch(terrain, { ...opts, skirt: 0 });
+  const noEdges = buildTerrainPatch(terrain, { ...opts, skirt: 4, skirtEdges: [] });
+  const surfaceVertices = noSkirt.nx * noSkirt.nz;
+  const surfaceIndices = 6 * (noSkirt.nx - 1) * (noSkirt.nz - 1);
+  assert.equal(noSkirt.positions.length / 3, surfaceVertices);
+  assert.equal(noSkirt.indices.length, surfaceIndices);
+  assert.equal(noEdges.positions.length, noSkirt.positions.length);
+  assert.equal(noEdges.indices.length, noSkirt.indices.length);
+  assert.ok(withSkirt.positions.length > noSkirt.positions.length);
+  assert.ok(withSkirt.indices.length > noSkirt.indices.length);
+  assert.deepEqual([...noSkirt.positions], [...noEdges.positions]);
+  assert.deepEqual([...noSkirt.indices], [...noEdges.indices]);
+});
