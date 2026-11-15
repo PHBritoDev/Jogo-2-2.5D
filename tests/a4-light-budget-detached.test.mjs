@@ -103,3 +103,21 @@ test('A4: posição inválida não supera fonte de posição finita',()=> {
   budget.update(camera,1);
   assert.deepEqual(budget.stats().active,['posicao-valida']);
 });
+
+test('A4: fade real aproxima intensidade do slot ao alvo sem salto',()=> {
+  const scene=new Object3D(),camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:1});
+  const source=new PointLight(0xffffff,3,30,2);source.name='fade';
+  scene.add(source);
+  const slot=scene.children[0];
+  assert.equal(slot.intensity,0);
+  budget.update(camera,1/60);
+  assert.ok(slot.intensity>0 && slot.intensity<3,'fade de entrada deve interpolar intensidade');
+  for(let i=0;i<120;i++)budget.update(camera,1/60);
+  assert.ok(Math.abs(slot.intensity-3)<0.001,'fade deve alcançar o alvo');
+  source.intensity=0;
+  budget.update(camera,1/60);
+  assert.ok(slot.intensity>0 && slot.intensity<3,'fade de saída não deve apagar instantaneamente');
+  for(let i=0;i<120;i++)budget.update(camera,1/60);
+  assert.ok(slot.intensity<0.001,'fade de saída deve terminar');
+});
