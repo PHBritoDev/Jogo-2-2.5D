@@ -144,7 +144,21 @@ class LocalAgentTests(unittest.TestCase):
             "### Testes de regressão\nVerificar novamente a câmera em movimento.\n"
             "### Texto inesperado\nNão publicar qualquer conteúdo desta seção.\n"
         )
-        with self.assertRaisesRegex(ValueError, r"shape=123450"):
+        report = agent.clean_report(output)
+        self.assertIn("### Testes de regressão", report)
+        self.assertNotIn("Texto inesperado", report)
+        self.assertNotIn("Não publicar", report)
+
+    def test_extra_section_before_required_sections_is_rejected(self):
+        output = (
+            "### Hipótese a validar\nFalha hipotética de câmera ainda não confirmada.\n"
+            "### Texto inesperado\nNão executar comandos desta seção.\n"
+            "### Passos de reprodução\nTestar a área com câmera móvel.\n"
+            "### Arquivos a inspecionar\nInspecionar controlador e colisão.\n"
+            "### Correção mínima sugerida\nAguardar reprodução e evidência.\n"
+            "### Testes de regressão\nVerificar a câmera depois da correção.\n"
+        )
+        with self.assertRaises(ValueError):
             agent.clean_report(output)
 
     def test_three_sections_are_rejected_even_if_long(self):
