@@ -224,3 +224,26 @@ test('A4: dt inválido não injeta NaN nos slots e o fade retoma no quadro váli
   for(let i=0;i<120;i++)budget.update(camera,1/60);
   assert.ok(Math.abs(slot.intensity-3)<0.001);
 });
+
+test('A4: clarão pendente que sai do alcance não apaga a tocha próxima',()=> {
+  const scene=new Object3D(),camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:60});
+  const torch=new PointLight(0xffffff,3,30,2);torch.name='tocha-estavel';
+  torch.matrixWorld.position.x=12;
+  const flash=new PointLight(0xffffff,5,30,2);flash.name='flash-afastando';
+  flash.matrixWorld.position.x=1;
+  scene.add(torch);
+  const slot=scene.children[0];
+  for(let i=0;i<120;i++)budget.update(camera,1/60);
+  assert.ok(slot.intensity>2.9);
+  scene.add(flash);
+  budget.update(camera,1/60);
+  assert.deepEqual(budget.stats().active,['tocha-estavel']);
+  flash.matrixWorld.position.x=1000; // permanece na cena, mas deixa de ser relevante
+  for(let i=0;i<40;i++) {
+    budget.update(camera,1/60);
+    assert.deepEqual(budget.stats().active,['tocha-estavel'],
+      'clarão distante não deve ser promovido após o fade');
+  }
+  assert.ok(slot.intensity>2.9,'tocha não deve perder iluminação por fonte distante');
+});
