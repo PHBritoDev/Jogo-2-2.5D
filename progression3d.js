@@ -22,12 +22,15 @@ export function levelProgress(xp) {
   return { level: lvl, into: value - cur, need: next === undefined ? 0 : next - cur, max: next === undefined };
 }
 /** Bônus por nível: vida e mana máximas crescem pouco, para o combate não ficar trivial. */
+/** Mod 320 — vida máxima do herói ×5 (pedido do criador para a luta longa com o VHAZRAEL). Só a vida máxima/base:
+    corações, dano recebido e cura proporcional não mudam; a vida atual não é salva (recarrega cheia). */
+export const HERO_HP_MULT = 5;
 export function statsForLevel(level) {
   // Saves corrompidos não devem gerar HP, mana ou dano NaN/Infinity.
   const raw = Number(level);
   const safeLevel = Number.isFinite(raw) && raw >= 1
     ? Math.min(LEVELS.length, Math.floor(raw)) : 1;
-  return { maxHP: 100 + (safeLevel - 1) * 10, maxMana: 100 + (safeLevel - 1) * 6, damageBonus: (safeLevel - 1) * .04 };
+  return { maxHP: (100 + (safeLevel - 1) * 10) * HERO_HP_MULT, maxMana: 100 + (safeLevel - 1) * 6, damageBonus: (safeLevel - 1) * .04 };
 }
 
 /** Etapas da campanha usadas como requisito (questStep do Ato I). */
@@ -121,7 +124,9 @@ export const ACHIEVEMENTS = [
 ];
 
 export function achievementState(a, stats = {}, claimed = new Set()) {
-  const value = Math.min(a.goal, Math.max(0, Math.floor(Number(stats[a.stat]) || 0)));
+  const raw = Number(stats[a.stat]);
+  // Um contador infinito/corrompido não pode concluir a conquista automaticamente.
+  const value = Math.min(a.goal, Math.max(0, Number.isFinite(raw) ? Math.floor(raw) : 0));
   return { value, done: value >= a.goal, claimed: claimed.has(a.id) };
 }
 
