@@ -34,6 +34,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 -m unittest discover -s tools/agentes-externos -p 'test_a1*.py' -v
+      - name: Regressão de corações do RPG (Node)
+        run: node --test hearts3d.test.mjs
 
   smoke-inferencia-pr:
     # Smoke real é opt-in e não recebe token nem permissão para escrever Issues.
