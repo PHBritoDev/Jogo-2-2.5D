@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'hearts3d.js'
+      - 'mundo-3d-prototype.js'
       - 'hearts3d.test.mjs'
       - '.github/workflows/qa-hearts-save.yml'
       - 'tools/visual-lab/a1-hearts-browser-smoke.cjs'
