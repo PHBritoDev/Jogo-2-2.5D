@@ -185,3 +185,22 @@ test('A4: alcance e decaimento inválidos não chegam aos uniforms dos slots',()
   assert.equal(slot.distance,40);
   assert.equal(slot.decay,2);
 });
+
+test('A4: posição se torna inválida durante fade e slot apaga até recuperação',()=> {
+  const scene=new Object3D(),camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:60});
+  const source=new PointLight(0xffffff,3,30,2);source.name='tocha-movendo';
+  scene.add(source);
+  const slot=scene.children[0];
+  for(let i=0;i<120;i++)budget.update(camera,1/60);
+  assert.ok(slot.intensity>2.9);
+  source.matrixWorld.position.x=Infinity;
+  for(let i=0;i<120;i++){
+    budget.update(camera,1/60);
+    assert.ok(Number.isFinite(slot.intensity),'intensidade nunca pode virar NaN');
+  }
+  assert.ok(slot.intensity<0.001,'posição inválida deve apagar o slot');
+  source.matrixWorld.position.x=0;
+  for(let i=0;i<120;i++)budget.update(camera,1/60);
+  assert.ok(slot.intensity>2.9,'posição recuperada deve restaurar iluminação');
+});
