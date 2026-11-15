@@ -7,6 +7,17 @@ on:
         required: true
         default: '["vila-praca",{"scene":"floresta-trilha","video":true},{"scene":"caverna-salao","video":true},"npc-cabelos"]'
         type: string
+  push:
+    branches: [main]
+    paths:
+      - 'mundo-3d-prototype.js'
+      - 'eldoria-meshy-npcs.js'
+      - 'eldoria-npc-life.js'
+      - 'world3d-terrain.js'
+      - 'act1-flow.js'
+      - 'light-budget3d.js'
+      - 'vfx-flow3d.js'
+      - 'npc-visual-qa.html'
   pull_request:
     paths:
       - "tools/visual-lab/scene-agent.cjs"
