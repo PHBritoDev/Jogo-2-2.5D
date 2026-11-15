@@ -218,6 +218,12 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
   // of cell. Rounded step counts previously shifted the patch edge and its skirt.
   const nx = Math.max(2, Math.round((x1 - x0) / cell) + 1);
   const nz = Math.max(2, Math.round((z1 - z0) / cell) + 1);
+  // A corrupted resolution can otherwise allocate millions of vertices and
+  // lock up mobile browsers before the geometry is even sent to WebGL.
+  // Normal exterior patches are orders of magnitude smaller than this guard.
+  if (!Number.isSafeInteger(nx) || !Number.isSafeInteger(nz) || nx * nz > 1_000_000) {
+    throw new RangeError('buildTerrainPatch: exterior patch exceeds vertex budget');
+  }
   const dx = (x1 - x0) / (nx - 1), dz = (z1 - z0) / (nz - 1);
   const pos = [], idx = [];
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
