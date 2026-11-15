@@ -49,10 +49,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     camera.getWorldPosition(cam);
     ranked.length=0;
     for (const s of sources) {
-      if (!attachedToScene(s) || s.intensity <= .001 || !effectiveVisible(s)) continue;
+      if (!attachedToScene(s) || !Number.isFinite(s.intensity) || s.intensity <= .001 || !effectiveVisible(s)) continue;
       v.setFromMatrixPosition(s.matrixWorld);
-      const d = v.distanceTo(cam), reach = (s.distance || 40);
-      if (d > reach + 30) continue;
+      const d = v.distanceTo(cam), reach = Number.isFinite(s.distance) && s.distance > 0 ? s.distance : 40;
+      if (!Number.isFinite(d) || d > reach + 30) continue;
       // Reaproveita o mesmo objeto por luz (sem milhares de alocacoes por minuto).
       const item=sourceScore.get(s);
       item.score=d-reach*.5-Math.min(6,s.intensity)*1.5;
@@ -69,10 +69,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     for (const p of free) { const s = chosen.shift() || null; if (s !== p.src) { if (p.src && p.light.intensity > .05) p.next = s; else { p.src = s; p.next = undefined; } } }
     const k = 1 - Math.exp(-dt * 10);
     for (const p of pool) {
-      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s);
+      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001;
       if (s && s.parent) { l.position.setFromMatrixPosition(s.matrixWorld); l.color.copy(s.color); l.distance = s.distance; l.decay = s.decay; }
       const target = p.next !== undefined || !live ? 0 : s.intensity;
-      l.intensity += (target - l.intensity) * k;
+      // Não propagar NaN/Infinity de efeitos transitórios para os shaders do jogo.\n      if (!Number.isFinite(l.intensity)) l.intensity = 0;\n      l.intensity += (target - l.intensity) * k;
       if (p.next !== undefined && l.intensity < .05) { p.src = p.next; p.next = undefined; }
       else if (!live && l.intensity < .02) p.src = null;
     }
