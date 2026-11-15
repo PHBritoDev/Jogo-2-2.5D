@@ -145,7 +145,7 @@ export function migrateProgress(raw) {
   raw = migrateBishopOneName(raw);
   // Saves corrompidos podem conter Infinity/NaN: nunca propagar moedas não finitas ao HUD/loja.
   const rawCoins = Number(raw.coins);
-  const coins = Number.isFinite(rawCoins) ? Math.max(0, Math.floor(rawCoins)) : 0;
+  const coins = Number.isFinite(rawCoins) ? Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(rawCoins))) : 0;
   // Preserva nomes de saves antigos (2–16 caracteres) sem permitir novos nomes fora do limite atual.
   const named = sanitizePlayerName(raw.playerName || '');
   const legacyName = String(raw.playerName || '').replace(/\s+/g, ' ').trim();
