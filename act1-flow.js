@@ -504,7 +504,9 @@ export function portalBlockedLines() {
 /** Volta da dimensão: a vitória sobre VHAZRAEL fecha o Ato I uma única vez. */
 export function afterVhazraelVictory(progress) {
   const p = progress || {};
-  const first = !p.vhazraelRewardClaimed;
+  // Checkpoints antigos podem estar na etapa concluída sem a flag de pagamento.
+  // Nunca pagar o Bispo novamente ao retomar um Ato I já finalizado.
+  const first = !p.vhazraelRewardClaimed && clampInt(p.questStep, 0, 30, 0) < 8;
   return {
     questStep: 8,
     bishopsDefeated: Math.max(1, clampInt(p.bishopsDefeated, 0, 4, 0)),
