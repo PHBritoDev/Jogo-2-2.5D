@@ -14,6 +14,9 @@ gate_path = Path(__file__).with_name("a1-repair-gate.py")
 spec = importlib.util.spec_from_file_location("a1_repair_gate_bench", gate_path)
 gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
+fallback_spec = importlib.util.spec_from_file_location("a1_arithmetic_fallback_bench", gate_path.with_name("a1-arithmetic-fallback.py"))
+fallback = importlib.util.module_from_spec(fallback_spec)
+fallback_spec.loader.exec_module(fallback)
 
 
 CASES = (
@@ -110,6 +113,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--llama", required=True)
     parser.add_argument("--model", required=True)
+    parser.add_argument("--hybrid", action="store_true", help="Evaluate bounded deterministic fallback separately")
     args = parser.parse_args()
     cases = {case["source"]: case for case in CASES}
     results = evaluate(lambda source, behavior: gate.propose_replacement(
@@ -125,7 +129,16 @@ def main():
         print("BENCHMARK", r["id"], "PASS" if r["pass"] else "FAIL", r["reason"])
     successful = sum(r["pass"] for r in results)
     print(f"BENCHMARK TOTAL: {successful}/{len(results)}")
-    if successful != len(results):
+    if args.hybrid:
+        hybrid = sum(
+            item["pass"] or any(behaves_correctly(candidate, case)
+                                for candidate in fallback.python_variants(case["source"]))
+            for item, case in zip(results, CASES)
+        )
+        print(f"BENCHMARK HYBRID TOTAL: {hybrid}/{len(CASES)} (raw Qwen: {successful}/{len(CASES)})")
+        if hybrid != len(CASES):
+            raise SystemExit(1)
+    elif successful != len(results):
         raise SystemExit(1)
 
 
