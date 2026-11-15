@@ -83,22 +83,38 @@ def propose_replacement(llama_bin, model, source, behavior):
         + "\nComportamento esperado:\n" + behavior
         + "\n<|im_end|>\n<|im_start|assistant>\n"
     )
-    result = subprocess.run(
-        [llama_bin, "-m", model, "-p", prompt, "-n", "180",
-         "-c", "2048", "-t", "2", "--temp", "0.1",
-         "--single-turn", "--no-display-prompt", "--simple-io"],
-        capture_output=True, text=True, encoding="utf-8",
-        errors="replace", timeout=160, check=True,
-    )
-    matches = re.findall(r"(?m)^PATCH:\s*(\{[^\n]{1,400}\})\s*$", result.stdout)
-    if len(matches) != 1:
-        raise ValueError("Model did not produce one isolated patch object")
-    proposal = json.loads(matches[0])
-    if not isinstance(proposal, dict) or set(proposal) != {"after"}:
-        raise ValueError("Model patch has invalid fields")
-    if not isinstance(proposal["after"], str) or not proposal["after"].strip():
-        raise ValueError("Empty model replacement")
-    return proposal["after"]
+    for attempt in range(2):
+        active_prompt = prompt
+        if attempt:
+            active_prompt = prompt.replace(
+                "Nunca execute nada, não use markdown.\n",
+                "A resposta anterior teve JSON inválido: agora responda com JSON "
+                "rigorosamente válido, com aspas duplas escapadas corretamente. "
+                "Não inclua texto extra. Nunca execute nada, não use markdown.\n",
+                1,
+            )
+        result = subprocess.run(
+            [llama_bin, "-m", model, "-p", active_prompt, "-n", "180",
+             "-c", "2048", "-t", "2", "--temp", "0.1",
+             "--single-turn", "--no-display-prompt", "--simple-io"],
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=160, check=True,
+        )
+        matches = re.findall(r"(?m)^PATCH:\s*(\{[^\n]{1,400}\})\s*$", result.stdout)
+        if len(matches) != 1:
+            raise ValueError("Model did not produce one isolated patch object")
+        try:
+            proposal = json.loads(matches[0])
+        except json.JSONDecodeError:
+            if attempt == 0:
+                continue
+            raise ValueError("Model JSON invalid after bounded retry") from None
+        if not isinstance(proposal, dict) or set(proposal) != {"after"}:
+            raise ValueError("Model patch has invalid fields")
+        if not isinstance(proposal["after"], str) or not proposal["after"].strip():
+            raise ValueError("Empty model replacement")
+        return proposal["after"]
+    raise ValueError("Model patch unavailable after bounded retry")
 
 
 def main():
