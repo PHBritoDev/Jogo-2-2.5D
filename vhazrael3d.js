@@ -53,7 +53,7 @@ const VHAZ = {
   ...E1.common, hp: VZ_HP, radius: .55, height: 2.3, poise: 70, flinch: 99, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.6, 2.4], phase2: .4, furyCd: .8,
   speed: { walk: 2.2, run: 4.9, strafe: 2.2, back: 2.8, turn: 10 },
   melee: { max: 2.8, reach: 2.7, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 13, cd: 1.1, knock: .8 },
-  dash: VZ_DASH, block: { chance: .3, dur: .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: .42, cd: VZ_DASH.cd },
+  dash: VZ_DASH, block: { chance: .32, dur: .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: .42, cd: VZ_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
   leap: VZ_LEAP, shield: SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
   decide: [.16, .26], gap: .42, spellGap: VZ_MIX.minSpellGap, maxBig: 1, interrupt: true, feint: 'throne',

@@ -214,13 +214,13 @@ test('Determinismo do VHAZRAEL a 30/60/144 FPS e limpeza após ciclos', () => {
   assert.equal(sig(30), sig(60)); assert.equal(sig(60), sig(144));
 });
 
-test('Mod 247b: golpes do VHAZRAEL são cortes nativos estáveis (sem o clipe acrobático), contato só pela lâmina; poderes conjurados sobre o Idle', async () => {
-  const { BOSS_MOVES } = await import('./boss-choreography3d.js');
-  assert.deepEqual(BOSS_MOVES.vhazrael.map(m => m.id), ['Trono_Corte', 'Trono_Estocada', 'Trono_Queda']);
+test('Mod 320 (era 247b): golpes do VHAZRAEL são os clipes nativos do VHAZRAEL.glb, contato só pela lâmina; poderes conjurados sobre o Idle', async () => {
+  const { BOSS_MOVES } = await import('./boss-choreography3d.js'), { VZ_MOVES } = await import('./vhazrael-rig3d.js');
+  assert.deepEqual(BOSS_MOVES.vhazrael.map(m => m.id), VZ_MOVES.map(m => m.id)); assert.ok(BOSS_MOVES.vhazrael.length >= 6);
   for (const k of ['throne', 'thorns', 'bombard', 'orbital']) assert.equal(VZ.boss[k].anim, 'idle', k);
   for (const m of BOSS_MOVES.vhazrael) { const { sq, dmg } = world(); const t = hero({ z: 2.4 }); sq.meleeTrace = () => true; sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, m.id); run(sq, m.duration + .2);
-    assert.equal(dmg.filter(d => d.kind === 'melee').length, m.hits.length, m.id); assert.ok(a.z < t.z - t.radius); }
-  { const { sq, dmg } = world(); const t = hero({ z: 2 }); sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, 'Trono_Corte'); run(sq, 2); assert.equal(dmg.length, 0, 'sem traço da lâmina, sem dano'); }
+    assert.equal(dmg.filter(d => d.kind === 'melee').length, m.hits.length, m.id); assert.ok(a.z < t.z - t.radius, m.id + " z=" + a.z.toFixed(2)); }
+  { const { sq, dmg } = world(); const t = hero({ z: 2 }); sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, 'Trono_Duplo'); run(sq, 2); assert.equal(dmg.length, 0, 'sem traço da lâmina, sem dano'); }
 });
 
 test('Mod 253 — Extinção Orbital: storyboard de 7 fases na mesma linha do tempo, silhueta no despertar, DEF jogável e cleanup', async () => {

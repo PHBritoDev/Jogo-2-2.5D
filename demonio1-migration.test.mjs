@@ -21,6 +21,6 @@ test('Demonio1 — cada clipe real do GLB tem papel; papéis usados pelo combate
   const bones = new Set(g.nodes.map(n => n.name)); for (const b of ['Hips', 'Head', 'HeadEnd', 'RightHand', 'LeftHand']) assert.ok(bones.has(b), b);
   assert.equal(g.skins.length, 1);
   const rt = fs.readFileSync(new URL('./enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
-  assert.ok(rt.includes('/(HeadTop_End|HeadEnd)$/i') && src.includes('/(HeadTop_End|HeadEnd)$/i'), 'altura medida até o topo da cabeça do Demonio1');
+  assert.ok(/\/\(HeadTop_End\|HeadEnd(\|head_end)?\)\$\/i/.test(rt) && src.includes('/(HeadTop_End|HeadEnd)$/i'), 'altura medida até o topo da cabeça do Demonio1 (Mod 320: o runtime aceita também head_end do VHAZRAEL.glb)');
   assert.ok(rt.includes('(E3K[a.kind] || b.hasDeath) && b.acts.death') && src.includes('nativeDeath:enemyHasDeathClip'), 'usa o clipe Dead real só no Demonio1');
 });

@@ -41,7 +41,7 @@ export const VZ_MOVES = [
   { id: 'Trono_Riposta', clip: 'vz_riposte', label: 'Riposta do Condenado', hits: [.43], duration: .86, advance: .55, fast: true, weight: .9 },
   { id: 'Trono_Triplo', clip: 'vz_triple', label: 'Sentença Tripla', hits: [.77, 1.5, 2.23], duration: 2.72, advance: 1.45, glide: true, minPhase: 1, weight: 1 },
   { id: 'Trono_Danca', clip: 'vz_dance', label: 'Dança do Ceifador', hits: [.53, 1.27, 2.23], duration: 2.66, advance: 1.25, glide: true, minPhase: 2, weight: 1 },
-  { id: 'Trono_Estocada', clip: 'dash', label: 'Estocada do Condenado', hits: [.42], duration: .9, advance: 2.6, range: [2.4, 5.5], score: 1, cd: 4.5, fast: true }
+  { id: 'Trono_Estocada', clip: 'dash', label: 'Estocada do Condenado', hits: [.42], duration: .9, advance: 2.6, range: [2.4, 5.5], score: 1, cd: 4.5, fast: true, aim: true }
 ];
 
 /** Remove o deslocamento horizontal do quadril (e o vertical, se pedido): cópia do clipe, original intacto. */
