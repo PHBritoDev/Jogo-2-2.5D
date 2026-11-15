@@ -8,17 +8,25 @@ export const HEARTS = { max: 10, regenMs: 180000 };
 
 export function normalizeHearts(raw, now = Date.now()) {
   const r = raw && typeof raw === 'object' ? raw : {};
-  const hearts = Math.max(0, Math.min(HEARTS.max, Math.floor(Number(r.hearts)))); 
+  // Null/vazio em saves antigos não representa uma escolha explícita de zero corações.
+  const numericSave = typeof r.hearts === 'number'
+    || (typeof r.hearts === 'string' && r.hearts.trim().length > 0);
+  const parsedHearts = numericSave ? Number(r.hearts) : NaN;
+  const rawHearts = Number.isFinite(parsedHearts) ? parsedHearts : NaN;
+  const hearts = Math.max(0, Math.min(HEARTS.max, Math.floor(rawHearts))); 
   return tickHearts({ hearts: Number.isFinite(hearts) ? hearts : HEARTS.max, since: Number(r.since) || now, explained: !!r.explained }, now);
 }
 
 /** Aplica a regeneração acumulada (inclusive com o jogo fechado). */
 export function tickHearts(state, now = Date.now()) {
   if (state.hearts >= HEARTS.max) return { ...state, hearts: HEARTS.max, since: now };
-  const gained = Math.floor(Math.max(0, now - state.since) / HEARTS.regenMs);
-  if (!gained) return state;
-  const hearts = Math.min(HEARTS.max, state.hearts + gained);
-  return { ...state, hearts, since: hearts >= HEARTS.max ? now : state.since + gained * HEARTS.regenMs };
+  // Se o relógio voltou ou o save veio do futuro, reinicie a contagem sem premiar tempo negativo.
+  const safeSince = Number.isFinite(state.since) && state.since >= 0 ? Math.min(state.since, now) : now;
+  const current = safeSince === state.since ? state : { ...state, since: safeSince };
+  const gained = Math.floor(Math.max(0, now - safeSince) / HEARTS.regenMs);
+  if (!gained) return current;
+  const hearts = Math.min(HEARTS.max, current.hearts + gained);
+  return { ...current, hearts, since: hearts >= HEARTS.max ? now : safeSince + gained * HEARTS.regenMs };
 }
 
 export function loseHeart(state, now = Date.now()) {
@@ -29,7 +37,8 @@ export function loseHeart(state, now = Date.now()) {
 
 export function msToNextHeart(state, now = Date.now()) {
   if (state.hearts >= HEARTS.max) return 0;
-  return Math.max(0, HEARTS.regenMs - (now - state.since));
+  const since = Number.isFinite(state.since) && state.since >= 0 ? Math.min(state.since, now) : now;
+  return Math.max(0, HEARTS.regenMs - Math.max(0, now - since));
 }
 
 export function canChallengeBishop(state) { return state.hearts >= 1; }

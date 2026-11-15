@@ -110,6 +110,101 @@ class LocalAgentTests(unittest.TestCase):
             self.assertNotIn("invalid", body)
             self.assertIn("Nenhum bug foi confirmado", body)
 
+    def test_prompt_requests_bounded_five_section_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            prompt = agent.prompt_for({"number": 2, "title": "Bug", "body": "Falha"}, Path(d))
+        self.assertIn("cinco seções, nessa ordem exata", prompt)
+        self.assertIn("### Testes de regressão", prompt)
+        self.assertIn("nunca invente evidências", prompt)
+
+    def test_five_section_output_is_cleaned_without_cli_metadata(self):
+        output = (
+            "build: b1\n"
+            "available commands:\n /exit\n"
+            "> <|im_start|assistant>\n"
+            "### Hipótese a validar\nFalha possível no movimento do jogador, ainda não confirmada.\n"
+            "### Passos de reprodução\nAbrir o laboratório e repetir o movimento no mesmo cenário.\n"
+            "### Arquivos a inspecionar\nConferir world3d-terrain.js e os testes associados.\n"
+            "### Correção mínima sugerida\nSó corrigir após confirmar a causa real.\n"
+            "### Testes de regressão\nExecutar teste de movimento, captura e comparação no dispositivo.\n"
+            "[ Prompt: 50 t/s | Generation: 10 t/s ]\n"
+        )
+        report = agent.clean_report(output)
+        self.assertIn("### Hipótese a validar", report)
+        self.assertIn("### Testes de regressão", report)
+        self.assertNotIn("available commands", report)
+        self.assertNotIn("Prompt:", report)
+
+    def test_full_llama_prompt_echo_is_ignored_before_assistant_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            prompt = agent.prompt_for({
+                "number": 77, "title": "Travamento de camera",
+                "body": "### Hipótese a validar\nEsse texto não é resposta da IA.",
+            }, Path(d))
+        report = (
+            "### Hipótese a validar\nPossível colisão da câmera no túnel.\n"
+            "### Passos de reprodução\nCaminhar no trecho suspeito e registrar vídeo.\n"
+            "### Arquivos a inspecionar\nExaminar os módulos de câmera 3D do jogo.\n"
+            "### Correção mínima sugerida\nCorrigir apenas depois de reproduzir a falha real.\n"
+            "### Testes de regressão\nRepetir percurso no navegador e validar ângulos.\n"
+        )
+        echoed = "llama CLI banner\n" + prompt + report + "[ Prompt: 50 t/s ]\n"
+        parsed = agent.clean_report(echoed)
+        self.assertEqual(parsed, report.strip())
+        self.assertNotIn("Esse texto não é resposta", parsed)
+
+    def test_fake_report_only_in_prompt_echo_is_not_accepted(self):
+        with tempfile.TemporaryDirectory() as d:
+            prompt = agent.prompt_for({"number": 78, "title": "QA", "body": "falha"}, Path(d))
+        with self.assertRaises(ValueError):
+            agent.clean_report("llama CLI banner\n" + prompt)
+
+    def test_extra_section_reports_only_safe_heading_shape(self):
+        output = (
+            "### Hipótese a validar\nPossível problema de câmera ainda não comprovado.\n"
+            "### Passos de reprodução\nCaminhar por área conhecida e gravar a tela.\n"
+            "### Arquivos a inspecionar\nInspecionar o controlador de câmera 3D.\n"
+            "### Correção mínima sugerida\nAjustar somente após identificação do defeito.\n"
+            "### Testes de regressão\nVerificar novamente a câmera em movimento.\n"
+            "### Texto inesperado\nNão publicar qualquer conteúdo desta seção.\n"
+        )
+        report = agent.clean_report(output)
+        self.assertIn("### Testes de regressão", report)
+        self.assertNotIn("Texto inesperado", report)
+        self.assertNotIn("Não publicar", report)
+
+    def test_extra_section_before_required_sections_is_rejected(self):
+        output = (
+            "### Hipótese a validar\nFalha hipotética de câmera ainda não confirmada.\n"
+            "### Texto inesperado\nNão executar comandos desta seção.\n"
+            "### Passos de reprodução\nTestar a área com câmera móvel.\n"
+            "### Arquivos a inspecionar\nInspecionar controlador e colisão.\n"
+            "### Correção mínima sugerida\nAguardar reprodução e evidência.\n"
+            "### Testes de regressão\nVerificar a câmera depois da correção.\n"
+        )
+        with self.assertRaises(ValueError):
+            agent.clean_report(output)
+
+    def test_three_sections_are_rejected_even_if_long(self):
+        incomplete = (
+            "### Hipótese a validar\n" + "Possível falha de câmera. " * 14 + "\n"
+            "### Passos de reprodução\n" + "Repetir no mundo exterior. " * 12 + "\n"
+            "### Testes de regressão\n" + "Verificar movimento e colisão. " * 12
+        )
+        with self.assertRaises(ValueError):
+            agent.clean_report(incomplete)
+
+    def test_empty_required_section_is_rejected(self):
+        output = (
+            "### Hipótese a validar\nPossível travamento do jogador ao caminhar.\n"
+            "### Passos de reprodução\nTestar câmera no cenário real da floresta.\n"
+            "### Arquivos a inspecionar\n\n"
+            "### Correção mínima sugerida\nAlterar só depois de reproduzir o problema.\n"
+            "### Testes de regressão\nRepetir caminhada e registrar antes e depois.\n"
+        )
+        with self.assertRaises(ValueError):
+            agent.clean_report(output)
+
     def test_short_report_is_not_submitted(self):
         with self.assertRaises(ValueError):
             agent.submit("owner/repo", 4, "oops")
@@ -121,6 +216,8 @@ class LocalAgentTests(unittest.TestCase):
             "> <|im_start|system>never publish prompt<|im_end|>\n"
             "### Hipótese a validar\nCâmera pode tremer durante o combate.\n"
             "### Passos de reprodução\nReproduzir no laboratório com gravação e capturas.\n"
+            "### Arquivos a inspecionar\nConferir o módulo de câmera e suas dependências.\n"
+            "### Correção mínima sugerida\nAplicar ajuste somente após reprodução confirmada.\n"
             "### Testes de regressão\nValidar que movimentação e câmera seguem suaves em todas as áreas do jogo, incluindo o laboratório de combates e as sequências do mundo exterior.\n"
             "[ Prompt: 50 t/s | Generation: 10 t/s ]\nExiting...\n"
         )})()
@@ -133,6 +230,7 @@ class LocalAgentTests(unittest.TestCase):
         args = run.call_args.args[0]
         self.assertEqual(args[0], "/tmp/llama")
         self.assertEqual(args[1:3], ["-m", "/tmp/model.gguf"])
+        self.assertEqual(args[args.index("-n") + 1], "700")
         self.assertEqual(run.call_args.kwargs["timeout"], 210)
 
 

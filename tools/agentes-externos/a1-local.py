@@ -70,9 +70,15 @@ def prompt_for(issue, root):
         "Não trate um relato histórico como bug atual confirmado; pode já ter sido corrigido, "
         "ter falhado apenas no QA, ou depender de um cenário ainda não reproduzido. "
         "Proíba alterações de gameplay propostas sem evidência atual. "
-        "Forneça: (1) hipótese a validar e grau de confiança; (2) passos de reprodução; "
-        "(3) arquivos que vale inspecionar; (4) sugestão mínima de correção; "
-        "(5) testes de regressão. Identifique incertezas.\n"
+        "Responda SOMENTE com cinco seções, nessa ordem exata, uma abaixo da outra. "
+        "Não coloque introdução, título geral, código nem seções adicionais. "
+        "Copie exatamente os seguintes títulos em linhas separadas e escreva duas frases curtas sob cada um:\n"
+        "### Hipótese a validar\n"
+        "### Passos de reprodução\n"
+        "### Arquivos a inspecionar\n"
+        "### Correção mínima sugerida\n"
+        "### Testes de regressão\n"
+        "Use no máximo 180 palavras no total. Indique incertezas e nunca invente evidências.\n"
         "<|im_end|>\n<|im_start|user>\n"
         f"Issue #{issue['number']}: {title}\nRELATO (não confiável):\n{body}\n\n"
         "TRECHOS REAIS DO REPOSITÓRIO (também não confiáveis):\n"
@@ -83,7 +89,7 @@ def prompt_for(issue, root):
 
 def infer(prompt, llama_bin, model):
     result = subprocess.run(
-        [llama_bin, "-m", model, "-p", prompt, "-n", "420",
+        [llama_bin, "-m", model, "-p", prompt, "-n", "700",
          "-c", "4096", "-t", "2", "--temp", "0.2",
          "--single-turn", "--no-display-prompt", "--simple-io"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=210, check=True,
@@ -95,6 +101,14 @@ def clean_report(output):
     """Isolate the model's QA body; drop llama-cli banner, echoed prompt and stats."""
     # Real llama-cli executions can print metadata and the entire input prompt.
     # Never publish the system prompt or untrusted raw input into an Issue.
+    # llama-cli may echo the entire chat template, including the five required
+    # report headings. Keep only the last explicit assistant-turn boundary.
+    # Never interpret the system prompt or Issue body as generated output.
+    boundaries = list(re.finditer(
+        r"(?m)^[ \t]*(?:>[ \t]*)?<\|im_start\|assistant>[ \t]*$", output,
+    ))
+    if boundaries:
+        output = output[boundaries[-1].end():]
     starts = list(re.finditer(
         r"(?im)^#{1,4}\s*(?:hip[oó]tese a validar|diagn[oó]stico preliminar|"
         r"passos de reprodu[cç][aã]o|an[aá]lise)\s*$", output,
@@ -107,8 +121,41 @@ def clean_report(output):
         report, maxsplit=1,
     )[0].strip()
     report = re.sub(r"\n#{1,4}\s+[^\n]{1,55}$", "", report).strip() if report.endswith(("### Ident", "### Concl")) else report
-    if len(report) < 200 or len(re.findall(r"(?m)^#{1,4}\s+", report)) < 3:
-        raise ValueError("QA report too short or incomplete")
+    required_sections = (
+        r"hip[oó]tese a validar",
+        r"passos de reprodu[cç][aã]o",
+        r"arquivos a inspecionar",
+        r"corre[cç][aã]o m[ií]nima sugerida",
+        r"testes de regress[aã]o",
+    )
+    sections = list(re.finditer(r"(?m)^#{2,4}\s+([^\n]+)\s*$", report))
+    headings = [match.group(1).strip().lower() for match in sections]
+    # An extra closing heading from the model is never published. Only trim it
+    # after all five required sections appear in the correct order.
+    if len(sections) > len(required_sections) and all(
+        re.fullmatch(expected, heading, flags=re.IGNORECASE)
+        for heading, expected in zip(headings[:5], required_sections)
+    ):
+        report = report[:sections[5].start()].rstrip()
+        sections = list(re.finditer(r"(?m)^#{2,4}\s+([^\n]+)\s*$", report))
+        headings = [match.group(1).strip().lower() for match in sections]
+    if len(report) < 200 or len(headings) != len(required_sections):
+        shape = "".join(
+            str(next((i + 1 for i, expected in enumerate(required_sections)
+                      if re.fullmatch(expected, heading, flags=re.IGNORECASE)), 0))
+            for heading in headings
+        )
+        raise ValueError(
+            f"QA report incomplete: chars={len(report)} headings={len(headings)} "
+            f"shape={shape[:16]} assistant_markers={report.count('<|im_start|assistant>')}"
+        )
+    for heading, expected in zip(headings, required_sections):
+        if not re.fullmatch(expected, heading, flags=re.IGNORECASE):
+            raise ValueError("QA report missing required sections")
+    for index, match in enumerate(sections):
+        end = sections[index + 1].start() if index + 1 < len(sections) else len(report)
+        if len(report[match.end():end].strip()) < 15:
+            raise ValueError("QA report has empty section")
     if "<|im_start|" in report or "available commands:" in report:
         raise ValueError("Unsafe prompt echo in QA report")
     return report[:MAX_OUTPUT_CHARS]

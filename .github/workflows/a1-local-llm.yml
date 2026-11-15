@@ -3,10 +3,29 @@ name: A1 local gratuito - triagem por modelo aberto
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - ".github/workflows/a1-local-llm.yml"
       - "tools/agentes-externos/a1-local.py"
       - "tools/agentes-externos/test_a1_local.py"
+      - "tools/agentes-externos/a1-repair-gate.py"
+      - "tools/agentes-externos/test_a1_repair_gate.py"
+      - "tools/agentes-externos/a1-repair-benchmark.py"
+      - "tools/agentes-externos/test_a1_repair_benchmark.py"
+      - "tools/agentes-externos/a1-js-repair-benchmark.py"
+      - "tools/agentes-externos/test_a1_js_repair_benchmark.py"
+      - "tools/agentes-externos/a1-real-repair-gate.py"
+      - "tools/agentes-externos/test_a1_real_repair_gate.py"
+      - "tools/agentes-externos/a1-real-repair-verify.py"
+      - "tools/agentes-externos/test_a1_real_repair_verify.py"
+      - "tools/agentes-externos/a1-repair-real-pilot.py"
+      - "tools/agentes-externos/test_a1_repair_real_pilot.py"
+      - "tools/agentes-externos/test_a1_real_module_regression.py"
+      - "tools/agentes-externos/a1-arithmetic-fallback.py"
+      - "tools/agentes-externos/test_a1_arithmetic_fallback.py"
+      - "tools/agentes-externos/a1-save-fallback.test.mjs"
+      - "hearts3d.js"
+      - "hearts3d.test.mjs"
   issues:
     types: [labeled]
   schedule:
@@ -26,7 +45,283 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -m unittest discover -s tools/agentes-externos -p 'test_a1_local.py' -v
+      - run: python3 -m unittest discover -s tools/agentes-externos -p 'test_a1*.py' -v
+      - name: Regressão de corações do RPG (Node)
+        run: node --test hearts3d.test.mjs tools/agentes-externos/a1-save-fallback.test.mjs
+
+  smoke-inferencia-pr:
+    # Smoke real é opt-in e não recebe token nem permissão para escrever Issues.
+    # Executa apenas em PR do próprio repositório com a label explícita.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'a1-smoke-real')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout isolado da PR
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Recuperar cache do modelo
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/a1-llm/model.gguf
+          key: a1-qwen25-coder-15b-q4km-v1
+      - name: Obter e verificar modelo
+        run: |
+          mkdir -p "$HOME/.cache/a1-llm"
+          if [ ! -s "$HOME/.cache/a1-llm/model.gguf" ]; then
+            curl --fail --location --retry 3 --max-time 180 \
+              "https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf" \
+              -o "$HOME/.cache/a1-llm/model.gguf"
+          fi
+          printf '%s  %s\n' 'f530705d447660a4336c329981af164b471b60b974b1d808d57e8ec9fe23b239' "$HOME/.cache/a1-llm/model.gguf" | sha256sum --check --status
+      - name: Recuperar cache do motor
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/a1-llm/llama-bin
+          key: a1-llama-cli-b12244-ubuntu-pr-smoke-v1
+      - name: Compilar motor se necessário
+        run: |
+          if [ ! -x "$HOME/.cache/a1-llm/llama-bin/llama-cli" ]; then
+            git clone -q --depth 1 --branch b12244 https://github.com/ggml-org/llama.cpp /tmp/a1-smoke-llama
+            cmake -S /tmp/a1-smoke-llama -B /tmp/a1-smoke-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF
+            cmake --build /tmp/a1-smoke-build -j 2 --target llama-cli
+            mkdir -p "$HOME/.cache/a1-llm/llama-bin"
+            cp -a /tmp/a1-smoke-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
+          fi
+      - name: Cache do compilador para futuras provas reais
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/a1-llm/llama-bin
+          key: a1-llama-cli-b12244-ubuntu-pr-smoke-v1
+      - name: Inferir cenário sintético sem postagem e sem credenciais
+        env:
+          MODEL_FILE: ${{ runner.temp }}/model.gguf
+        run: |
+          cp "$HOME/.cache/a1-llm/model.gguf" "$MODEL_FILE"
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 - <<'PY'
+          import importlib.util
+          import os
+          from pathlib import Path
+          path = Path("tools/agentes-externos/a1-local.py")
+          spec = importlib.util.spec_from_file_location("a1_local_smoke", path)
+          agent = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(agent)
+          issue = {
+              "number": 0,
+              "title": "Câmera treme ao caminhar na floresta (relato sintético)",
+              "body": "Relato fictício para teste: tremor ao mover a câmera. Não há bug confirmado."
+          }
+          prompt = agent.prompt_for(issue, Path("."))
+          report = agent.infer(prompt, os.path.expanduser("~/.cache/a1-llm/llama-bin/llama-cli"), os.environ["MODEL_FILE"])
+          # Não imprimir saída bruta nem conteúdo de prompt.
+          print("SMOKE REAL: relatório aceito; caracteres =", len(report))
+          import ast
+          import hashlib
+          import tempfile
+          gate_path = Path("tools/agentes-externos/a1-repair-gate.py")
+          gate_spec = importlib.util.spec_from_file_location("a1_repair_pilot", gate_path)
+          gate = importlib.util.module_from_spec(gate_spec)
+          gate_spec.loader.exec_module(gate)
+          with tempfile.TemporaryDirectory() as temp:
+              root = Path(temp) / "source"
+              path = root / "tools/agentes-externos/fixtures/damage_math.py"
+              path.parent.mkdir(parents=True)
+              original = "def remaining_hp(hp, damage):\n    return hp + damage\n"
+              path.write_text(original, encoding="utf-8")
+              after = gate.propose_replacement(
+                  os.path.expanduser("~/.cache/a1-llm/llama-bin/llama-cli"),
+                  os.environ["MODEL_FILE"],
+                  "return hp + damage",
+                  "Ao receber 3 de dano com 10 HP, restam exatamente 7 HP.",
+              )
+              proposal = {
+                  "path": "tools/agentes-externos/fixtures/damage_math.py",
+                  "base_sha256": hashlib.sha256(original.encode()).hexdigest(),
+                  "before": "return hp + damage",
+                  "after": after,
+              }
+              staged = gate.stage_candidate(root, Path(temp) / "out", proposal)
+              expected = "def remaining_hp(hp, damage):\n    return hp - damage\n"
+              if ast.dump(ast.parse(staged.read_text())) != ast.dump(ast.parse(expected)):
+                  raise ValueError("Repair candidate did not match verified target behavior")
+              if path.read_text() != original:
+                  raise ValueError("Repair pilot modified original source")
+              print("SMOKE REPAIR: candidate generated, staged and AST-verified; original untouched")
+
+          PY
+      - name: Piloto real Qwen com módulo JS de jogo em cópia temporária
+        env:
+          MODEL_FILE: ${{ runner.temp }}/model.gguf
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          import os
+          import tempfile
+          spec = importlib.util.spec_from_file_location(
+              "a1_pipeline", "tools/agentes-externos/a1-repair-real-pilot.py"
+          )
+          pipeline = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(pipeline)
+          # O módulo REAL é copiado; o defeito é introduzido somente na cópia.
+          real = Path("hearts3d.js").read_text(encoding="utf-8")
+          with tempfile.TemporaryDirectory(prefix="a1-qwen-real-") as tmp:
+              root = Path(tmp)
+              before = "return Math.max(10, x)"
+              (root / "hearts3d.js").write_text(
+                  real + "\nexport function a1PilotCap(x) { " + before + "; }\n",
+                  encoding="utf-8"
+              )
+              (root / "hearts3d.test.mjs").write_text(
+                  "import test from 'node:test';\n"
+                  "import assert from 'node:assert/strict';\n"
+                  "import { a1PilotCap } from './hearts3d.js';\n"
+                  "test('cap', () => { assert.equal(a1PilotCap(14),10);"
+                  " assert.equal(a1PilotCap(3),3); });\n",
+                  encoding="utf-8"
+              )
+              result = pipeline.run(
+                  root, before,
+                  "O teto de corações é 10; se houver 3, manter 3; se houver 14, limitar a 10.",
+                  os.path.expanduser("~/.cache/a1-llm/llama-bin/llama-cli"),
+                  os.environ["MODEL_FILE"],
+                  examples="x=14 -> 10; x=3 -> 3",
+              )
+              print("A1 REAL QWEN PILOT:", result["result"])
+              if result["verified_red_green"]:
+                  import json
+                  Path(os.environ["RUNNER_TEMP"], "a1-verified-candidate.json").write_text(
+                      json.dumps(result["candidate"], sort_keys=True, indent=2) + "\n", encoding="utf-8"
+                  )
+              if not result["verified_red_green"]:
+                  raise RuntimeError("Qwen failed red/green pilot")
+          PY
+      - name: Arquivar somente o patch verificado (sem merge)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a1-qwen-candidate-for-review
+          path: ${{ runner.temp }}/a1-verified-candidate.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Benchmark de duas correções sintéticas inéditas
+        if: ${{ always() }}
+        env:
+          MODEL_FILE: ${{ runner.temp }}/model.gguf
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 tools/agentes-externos/a1-repair-benchmark.py \
+            --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" --model "$MODEL_FILE" --hybrid
+
+
+  comparar-qwen-3b:
+    # Modelo alternativo apenas em PR própria, sem permissões de escrita.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'a1-compare-3b')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout sem credenciais
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Recuperar motor compilado
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/a1-llm/llama-bin
+          key: a1-llama-cli-b12244-ubuntu-pr-smoke-v1
+      - name: Compilar motor se cache ausente
+        run: |
+          if [ ! -x "$HOME/.cache/a1-llm/llama-bin/llama-cli" ]; then
+            git clone -q --depth 1 --branch b12244 https://github.com/ggml-org/llama.cpp /tmp/a1-compare-llama
+            cmake -S /tmp/a1-compare-llama -B /tmp/a1-compare-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF
+            cmake --build /tmp/a1-compare-build -j 2 --target llama-cli
+            mkdir -p "$HOME/.cache/a1-llm/llama-bin"
+            cp -a /tmp/a1-compare-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
+          fi
+      - name: Baixar Qwen 3B com SHA256 obrigatório
+        run: |
+          curl --fail --location --retry 3 --max-time 360 \
+            "https://huggingface.co/bartowski/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf" \
+            -o "$RUNNER_TEMP/qwen-3b.gguf"
+          echo "3da3afe6cf5c674ac195803ea0dd6fee7e1c228c2105c1ce8c66890d1d4ab460  $RUNNER_TEMP/qwen-3b.gguf" | sha256sum --check --status
+      - name: Benchmark de dois reparos sem editar jogo
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 tools/agentes-externos/a1-repair-benchmark.py \
+            --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            --model "$RUNNER_TEMP/qwen-3b.gguf"
+
+      - name: Benchmark JavaScript de correções isoladas
+        if: ${{ always() }}
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 tools/agentes-externos/a1-js-repair-benchmark.py \
+            --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            --model "$RUNNER_TEMP/qwen-3b.gguf"
+
+
+  comparar-qwen3-4b-apache:
+    # Teste isolado com modelo Apache 2.0; sem escrita, sem API, sem alterar jogo.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'a1-compare-4b')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout sem credenciais
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Recuperar motor compilado
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/a1-llm/llama-bin
+          key: a1-llama-cli-b12244-ubuntu-pr-smoke-v1
+      - name: Compilar motor se ausente
+        run: |
+          if [ ! -x "$HOME/.cache/a1-llm/llama-bin/llama-cli" ]; then
+            git clone -q --depth 1 --branch b12244 https://github.com/ggml-org/llama.cpp /tmp/a1-qwen3-llama
+            cmake -S /tmp/a1-qwen3-llama -B /tmp/a1-qwen3-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF
+            cmake --build /tmp/a1-qwen3-build -j 2 --target llama-cli
+            mkdir -p "$HOME/.cache/a1-llm/llama-bin"
+            cp -a /tmp/a1-qwen3-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
+          fi
+      - name: Baixar Qwen3 4B Apache 2.0 com SHA256
+        run: |
+          curl --fail --location --retry 3 --max-time 420 \
+            "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf" \
+            -o "$RUNNER_TEMP/qwen3-4b.gguf"
+          echo "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597  $RUNNER_TEMP/qwen3-4b.gguf" | sha256sum --check --status
+      - name: Benchmark de regressões Python
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 tools/agentes-externos/a1-repair-benchmark.py \
+            --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            --model "$RUNNER_TEMP/qwen3-4b.gguf"
+      - name: Benchmark de regressões JavaScript
+        if: always()
+        run: |
+          test -s "$RUNNER_TEMP/qwen3-4b.gguf"
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 tools/agentes-externos/a1-js-repair-benchmark.py \
+            --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            --model "$RUNNER_TEMP/qwen3-4b.gguf"
+
   escolher-issue:
     runs-on: ubuntu-latest
     outputs:
