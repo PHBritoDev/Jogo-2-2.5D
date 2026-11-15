@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { impactTouchesGround } from '../vfx-impact3d.js';
+import { impactTouchesGround, impactGroundHeight } from '../vfx-impact3d.js';
 
 test('ground contact accepts nearby finite impact heights', () => {
   assert.equal(impactTouchesGround(0, 0), true);
@@ -16,4 +16,20 @@ test('airborne, buried and invalid heights cannot spawn terrain effects', () => 
     assert.equal(impactTouchesGround(invalid, 0), false);
     assert.equal(impactTouchesGround(0, invalid), false);
   }
+});
+
+
+test('invalid horizontal coordinates never reach the terrain sampler', () => {
+  const calls = [];
+  const ground = (x, z) => { calls.push([x, z]); return 2; };
+  assert.equal(impactGroundHeight(ground, { x: 3, z: 4 }), 2);
+  assert.deepEqual(calls, [[3, 4]]);
+  for (const x of [NaN, Infinity, -Infinity, undefined]) {
+    assert.ok(Number.isNaN(impactGroundHeight(ground, { x, z: 4 })));
+  }
+  for (const z of [NaN, Infinity, -Infinity, undefined]) {
+    assert.ok(Number.isNaN(impactGroundHeight(ground, { x: 3, z })));
+  }
+  assert.ok(Number.isNaN(impactGroundHeight(ground, null)));
+  assert.deepEqual(calls, [[3, 4]], 'invalid impacts must not invoke terrain lookup');
 });
