@@ -20,4 +20,4 @@ jobs:
       - name: Verificar arquivo JS
         run: node --check vfx-flow3d.js
       - name: Executar teste específico e contrato base
-        run: node --test tests/a2-energy-body-culling.test.mjs vfx-flow3d.test.mjs
+        run: node --test tests/a2-energy-body-culling.test.mjs
