@@ -193,3 +193,23 @@ test('energy body ignores non-finite aim vectors and recovers on the next valid 
   assert.equal(rotations,1,'valid aim restores orientation updates');
   fx.dispose();
 });
+
+test('energy body accepts planar aim vectors while rejecting non-finite components', () => {
+  const fx=energyBody(T,{add() {},remove() {}},'celestial');
+  const orientations=[];
+  fx.mesh.quaternion.setFromUnitVectors=(_axis,vector) => {
+    orientations.push([vector.x,vector.y,vector.z]);
+  };
+  fx.update(1,{dir:{x:1,z:0}});
+  assert.equal(orientations.length,1,'planar direction should orient the VFX');
+  assert.deepEqual(orientations[0],[1,0,0]);
+  fx.update(2,{dir:{x:0,z:-1}});
+  assert.equal(orientations.length,2,'another planar direction should update orientation');
+  fx.update(3,{dir:{x:1,y:NaN,z:0}});
+  assert.equal(orientations.length,2,'explicit invalid y must not corrupt orientation');
+  fx.update(4,{dir:{x:Infinity,z:0}});
+  assert.equal(orientations.length,2,'invalid x must not corrupt orientation');
+  fx.update(5,{dir:{x:0,y:0,z:1}});
+  assert.equal(orientations.length,3,'valid full 3D direction must still work');
+  fx.dispose();
+});
