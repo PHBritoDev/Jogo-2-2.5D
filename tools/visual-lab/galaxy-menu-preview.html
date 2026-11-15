@@ -9,8 +9,10 @@
 </head><body>
 <script type="module">
  import {showGalaxyScreen} from '../../galaxies3d.js';
- let opened=0,settings=0;
- const ui=showGalaxyScreen({coins:0,progress:{questStep:0,bishopsDefeated:0},save:{},isReady:()=>true,onEnter:()=>{opened++;window.menuQA={opened,settings}},onSettings:()=>{settings++;window.menuQA={opened,settings}}});
- window.menuQA={opened,settings,root:ui.root,ready:true};
+ const qa=window.menuQA={opened:0,settings:0,canEnter:true,ready:true};
+ let ui;
+ qa.mount=(options={})=>{ui?.close();ui=showGalaxyScreen({coins:0,progress:{questStep:0,bishopsDefeated:0},save:{},isReady:()=>qa.canEnter,onEnter:()=>qa.opened++,onSettings:()=>qa.settings++,...options});qa.root=ui.root;};
+ qa.close=()=>ui?.close();qa.mount();
+
 </script>
 </body></html>

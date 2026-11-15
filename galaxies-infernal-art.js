@@ -3,48 +3,10 @@
  */
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
 export function infernalBackdrop(){
- const pinnacles=Array.from({length:31},(_,i)=>{
-  const x=710+i*27, h=28+(i*13%77), y=270-(i%5)*6;
-  return '<path d="M'+x+' '+y+'l'+(8+i%8)+' -'+h+' '+(7+i%4)+' '+h+'v'+(40+i%3*18)+'h-'+(15+i%8)+'Z" fill="#08060b" stroke="#5a1015" stroke-width=".7"/>';
- }).join('');
- const embers=Array.from({length:54},(_,i)=>{
-  const x=(i*251+37)%1536,y=(i*79+31)%864;
-  return '<circle cx="'+x+'" cy="'+y+'" r="'+(i%3===0?1.8:.7)+'" fill="'+(i%4===0?'#ffe0a1':'#ff4b25')+'" opacity="'+(.13+(i%5)*.11)+'"/>';
- }).join('');
- return '<svg class="gx-hell-svg" viewBox="0 0 1536 864" preserveAspectRatio="xMidYMid slice" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'+
- '<defs><radialGradient id="infernoHalo"><stop stop-color="#fb5013" stop-opacity=".92"/><stop offset=".22" stop-color="#ff210d" stop-opacity=".72"/><stop offset=".6" stop-color="#820a13" stop-opacity=".5"/><stop offset="1" stop-color="#14020a" stop-opacity="0"/></radialGradient>'+
- '<linearGradient id="angelCloth" x1=".1" x2=".9" y1=".2" y2="1"><stop stop-color="#29344a"/><stop offset=".42" stop-color="#070a14"/><stop offset="1" stop-color="#01030a"/></linearGradient>'+
- '<radialGradient id="skyBlood"><stop stop-color="#ff9c4c"/><stop offset=".5" stop-color="#fb2509"/><stop offset=".84" stop-color="#b10b18"/><stop offset="1" stop-color="#5d080d"/></radialGradient>'+
- '<linearGradient id="lava"><stop stop-color="#260606"/><stop offset=".5" stop-color="#c72509"/><stop offset="1" stop-color="#ff7a20"/></linearGradient>'+
- '<filter id="infernoGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="7"/></filter>'+
- '</defs>'+
- '<ellipse cx="1175" cy="98" rx="298" ry="214" fill="url(#infernoHalo)" opacity=".55"/>'+
- '<circle cx="1134" cy="62" r="121" fill="url(#skyBlood)" stroke="#ff8a35" stroke-width="6"/>'+
- '<circle cx="1156" cy="51" r="120" fill="#1b050c" opacity=".22"/>'+
- '<circle cx="1134" cy="62" r="128" fill="none" stroke="#ff250d" stroke-opacity=".6" stroke-width="2"/>'+
- '<path d="M989 257L1026 211L1035 163L1044 211L1065 176L1077 216L1103 131L1120 225L1153 180L1159 219L1182 139L1199 226L1230 190L1240 220L1264 169L1284 238L1310 202L1329 260Z" fill="#10040b"/>'+
- '<path d="M973 251L1019 203L1035 163L1044 208L1103 131L1120 211L1182 139L1199 214L1264 169L1283 237" fill="none" stroke="#8c1820" stroke-width="2" opacity=".65"/>'+
- '<g opacity=".72">'+pinnacles+'</g>'+
- '<path d="M0 340L60 285L89 320L120 248L145 315L180 290L218 340L263 320L310 348L360 290L399 327L461 296L500 343L566 320L598 273L615 331L680 307L730 345L815 310L855 329L913 274L943 326L996 305L1040 347L1090 310L1140 331L1241 293L1282 325L1340 292L1409 321L1449 277L1536 329V650H0Z" fill="#080610"/>'+
- // fallen angel silhouette left
- '<g transform="translate(55,-22)">'+
- '<path d="M292 227C251 174 228 104 136 33C195 53 256 66 325 132C300 87 295 49 270 12C340 42 377 98 380 167L391 277Z" fill="#111824" stroke="#43516a" stroke-width="2"/>'+
- '<path d="M270 221C228 168 177 147 95 107C176 120 238 137 316 185M279 188C222 133 182 87 164 55M332 170C312 116 314 75 300 43" stroke="#6d7380" stroke-width="3" opacity=".37" fill="none"/>'+
- '<path d="M303 155C306 123 327 111 348 127C366 141 367 181 353 197L375 227L399 267L389 356L287 357L266 301L285 233Z" fill="url(#angelCloth)" stroke="#4a4050" stroke-width="2"/>'+
- '<path d="M308 143Q337 114 354 145Q346 170 342 179Q316 185 302 170Z" fill="#534340"/>'+
- '<path d="M318 154L344 148M335 166L346 161" stroke="#dfb58a" stroke-width="2" opacity=".72"/>'+
- '<path d="M287 211Q243 262 211 386L432 389Q378 254 361 216Z" fill="#060814" stroke="#55556e" stroke-opacity=".6" stroke-width="3"/>'+
- '<path d="M285 219L237 326L277 307M360 222L396 311L358 291" fill="none" stroke="#8791a0" stroke-width="3" opacity=".27"/>'+
- '<ellipse cx="328" cy="119" rx="39" ry="7" transform="rotate(-15 328 119)" fill="none" stroke="#ffdb9a" stroke-width="5" opacity=".95"/>'+
- '</g>'+
- // hanging upper chains
- '<g fill="none" stroke="#030206" stroke-width="14" opacity=".9"><path d="M0 0Q42 48 101 127T197 216"/><path d="M1536 0Q1480 54 1450 123T1378 232"/></g>'+
- '<g fill="none" stroke="#71433e" stroke-width="2" opacity=".65"><path d="M0 0Q42 48 101 127T197 216"/><path d="M1536 0Q1480 54 1450 123T1378 232"/></g>'+
- // lava under world
- '<path d="M0 770L75 738L122 777L175 733L213 755L308 707L380 741L420 690L489 743L551 699L640 740L710 687L788 736L856 695L935 739L1001 692L1087 742L1162 682L1241 734L1340 690L1417 736L1536 676V864H0Z" fill="#080508" stroke="#c32811" stroke-opacity=".75" stroke-width="3"/>'+
- '<path d="M0 820L91 786L147 812L232 780L315 813L406 759L503 810L587 766L663 798L744 757L850 810L911 764L1015 810L1113 753L1208 813L1333 756L1430 811L1536 758" fill="none" stroke="#f64015" stroke-width="3" opacity=".6"/>'+
- '<path d="M0 856L81 833L133 853L200 819L267 848L340 826L400 860M513 859L608 809L686 858L772 826L861 859M992 861L1074 819L1178 859L1261 821L1343 858L1477 818L1536 845" fill="none" stroke="#f87022" stroke-width="2.6" opacity=".7"/>'+
- embers+'</svg>';
+ const feathers=Array.from({length:32},(_,i)=>{const t=i/31;return [-1,1].map(side=>`<path d="M300 155 Q${300+side*120*t} ${40+t*35} ${300+side*(90+t*170)} ${70+t*95} Q${300+side*120*t} ${190+t*18} 300 180" fill="${i%2?'#8e98a8':'#b3bbc5'}"/>`).join('');}).join('');
+ const ruins=Array.from({length:32},(_,i)=>{const x=i*51,h=30+(i*29%100);return `<path d="M${x} 670v-${h}l12 -32 12 32v${h}Z" fill="#15151e"/><path d="M${x} 690v174" stroke="#bfc5d1" stroke-opacity=".13" stroke-width="${5+i%5}"/>`;}).join('');
+ const chains=[204,296,390,535,701,806,899].map((x,i)=>{const px=x*1.536,top=180+Math.pow((px-768)/768,2)*165,bottom=i===3?245:310;return `<path d="M${px-18} ${top}L${px-12} ${bottom}M${px+18} ${top}L${px+12} ${bottom}" fill="none" stroke="#8c7965" stroke-width="3" stroke-dasharray="3 3"/>`;}).join('');
+ return `<svg viewBox="0 0 1536 864" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="menuSky"><stop stop-color="#303748"/><stop offset=".5" stop-color="#13121e"/><stop offset="1" stop-color="#401522"/></linearGradient><linearGradient id="menuMist" x2="0" y2="1"><stop stop-color="#13121e" stop-opacity="0"/><stop offset="1" stop-color="#aaa5b6" stop-opacity=".25"/></linearGradient></defs><path fill="url(#menuSky)" d="M0 0h1536v864H0z"/>${feathers}<circle cx="300" cy="90" r="38" fill="none" stroke="#d5d6df" stroke-width="3"/><path d="M285 100q15 -35 30 0l-3 45 37 132-50 -13-40 13 29-132Z" fill="#bdc2cb"/><path d="M1150 290q-60-70-3-145l-30-80 55 47q20-24 45 0l58-60-35 98q45 70-10 140Z" fill="#120d15"/><path d="M1160 147l12 4m29 0 12-5" stroke="#a83b37" stroke-width="3"/><path d="M30 340Q360 180 690 180M850 180Q1180 180 1500 340" fill="none" stroke="#453b3b" stroke-width="27"/>${chains}${ruins}<path d="M0 570L260 630 480 790 600 864H0ZM1536 555L1250 680 1020 864h516Z" fill="#25232b"/><path d="M0 490h1536v374H0Z" fill="url(#menuMist)"/><path d="M540 864l55-35h330l55 35M600 829l40-30h250l35 30M640 799l28-23h195l27 23" fill="#29252a" stroke="#847365"/><path d="M756 579q22-32 34 0l-5 30 35 148-74 0-10-94-100 76 87-146Z" fill="#100d15"/><path d="M791 643l42 127" stroke="#af9d7b" stroke-width="3"/></svg>`;
 }
 function scape(id) {
  switch(id){
