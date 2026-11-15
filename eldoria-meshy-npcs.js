@@ -94,9 +94,19 @@ export function meshyHeadFrame(THREE,model,headPts){
  let chinV=1e9;for(let i=0;i<n;i++)if(W[i]>wMax*.35&&Math.abs(U[i])<.03)chinV=Math.min(chinV,V[i]);
  return {c,f,r,U,V,W,n,ru,rv:(y1-y0)/2,rw,crownV:y1-c.y,noseV,chinV:chinV<1e8?chinV:-(y1-y0)/2,wMax,head,front};
 }
+/** Encaixes de cabelo PRÉ-CALCULADOS (fitMeshyHair completo, medido no próprio GLB; chave corpo|cabelo|estilo).
+ *  A busca completa custa 1,5–5 s de CPU por combinação (≈6 mil passos) e travava o celular ao chegar à vila; em jogo
+ *  só se lê esta tabela. Combinação nova cai na busca grossa (≈100× mais barata) e avisa no console para medir aqui. */
+export const ELDORIA_HAIR_FITS=Object.freeze({
+ 'NPC_Masculino_Animado_Otimizado_1K.glb|Cabelo-otimizado.glb|short':{S:.2558,dy:.05,dw:-.03,tilt:0,hcx:0,hcz:0,hy1:.8276},
+ 'MulherNpc-otimizado.glb|CabeloMulher-otimizado.glb|long':{S:.3204,dy:.05,dw:-.035,tilt:0,hcx:.0053,hcz:.001,hy1:.9438},
+ 'CriancaNpc-otimizado.glb|Cabelo-otimizado.glb|short':{S:.2508,dy:.05,dw:-.03,tilt:0,hcx:0,hcz:0,hy1:.8276},
+ 'MeninaNpc-otimizado.glb|CabeloMulher-otimizado.glb|long':{S:.2968,dy:.05,dw:-.035,tilt:0,hcx:.0053,hcz:.001,hy1:.9438}
+});
 /** Busca o encaixe do cabelo no crânio: escala, altura e recuo que cobrem o couro cabeludo sem entrar na cabeça nem
  *  cobrir os olhos. hair: pontos locais (x,y,z) do GLB de cabelo; devolve {S,dy,dw,score,coverage,penetration}. */
-export function fitMeshyHair(F,hair,{female=false}={}){
+export function fitMeshyHair(F,hair,{female=false,coarse=false}={}){
+ if(coarse&&hair.length>2400){const k=Math.ceil(hair.length/3/800),h=[];for(let i=0;i<hair.length/3;i+=k)h.push(hair[i*3],hair[i*3+1],hair[i*3+2]);hair=h;} // ≤800 pontos
  const hn=hair.length/3;let hx0=1e9,hx1=-1e9,hy1=-1e9,hz0=1e9,hz1=-1e9,hy0=1e9;
  for(let i=0;i<hn;i++){const x=hair[i*3],y=hair[i*3+1],z=hair[i*3+2];hx0=Math.min(hx0,x);hx1=Math.max(hx1,x);hy0=Math.min(hy0,y);hy1=Math.max(hy1,y);hz0=Math.min(hz0,z);hz1=Math.max(hz1,z);}
  const hcx=(hx0+hx1)/2,hcz=(hz0+hz1)/2,capY=hy1-(hy1-hy0)*.3;let cw=0;for(let i=0;i<hn;i++)if(hair[i*3+1]>capY)cw=Math.max(cw,Math.abs(hair[i*3]-hcx));cw=Math.max(cw*2,1e-4);
@@ -104,11 +114,12 @@ export function fitMeshyHair(F,hair,{female=false}={}){
  const scalp=[];for(let i=0;i<F.n;i++){const front=F.W[i]>F.rw*.45;if(F.V[i]>-.005&&!(front&&F.V[i]<F.crownV-.045))scalp.push(i);}
  const eyeV=F.noseV+.032,base=F.ru*2*1.12/cw,cell=.02;let best=null;
  const ex=F.ru*.93,ey=F.rv*.93,ez=F.rw*.9,cy=0;
- for(const tilt of (female?[0]:[0,-.1,-.2,-.3]))for(let si=0;si<13;si++){const S=base*(.64+si*.06),ct=Math.cos(tilt),st=Math.sin(tilt);
+ const sStep=coarse?3:1,yStep=coarse?2:1,wStep=coarse?2:1;
+ for(const tilt of (female||coarse?[0]:[0,-.1,-.2,-.3]))for(let si=0;si<13;si+=sStep){const S=base*(.64+si*.06),ct=Math.cos(tilt),st=Math.sin(tilt);
   // inclinação para trás (franja sobe, nuca desce), em torno do topo do cabelo
   const P=new Float32Array(hn*3);for(let i=0;i<hn;i++){const y=(hair[i*3+1]-hy1)*S,z=(hair[i*3+2]-hcz)*S;P[i*3]=(hair[i*3]-hcx)*S;P[i*3+1]=y*ct+z*st;P[i*3+2]=-y*st+z*ct;}
-  for(let dyi=0;dyi<=16;dyi++){const dy=-.11+dyi*.01;
-   for(let dwi=0;dwi<=(female?7:6);dwi++){const dw=(female?-.045:-.03)+dwi*.01,vt=F.crownV+dy;
+  for(let dyi=0;dyi<=16;dyi+=yStep){const dy=-.11+dyi*.01;
+   for(let dwi=0;dwi<=(female?7:6);dwi+=wStep){const dw=(female?-.045:-.03)+dwi*.01,vt=F.crownV+dy;
     const grid=new Map();let pen=0,eye=0;
     for(let i=0;i<hn;i++){const u=P[i*3],v=vt+P[i*3+1],w=P[i*3+2]+dw;
      if((u/ex)**2+((v-cy)/ey)**2+(w/ez)**2<1)pen++;
@@ -258,10 +269,11 @@ export function createMeshyNpcFactory({THREE,GLTFLoader,cloneSkinned,groundHeigh
     holder.updateMatrixWorld(true);
     headFrame=meshyHeadFrame(THREE,src,meshyHeadVertices(THREE,src));
     const hairGltf=await load(hairFile),hairScene=hairGltf.scene.clone(true);
-    const key=file+'|'+hairFile+'|'+age+'|'+style;let fit=fitCache.get(key);
+    const key=file+'|'+hairFile+'|'+style;let fit=fitCache.get(key)||ELDORIA_HAIR_FITS[key]||null;
     if(!fit){const pts=[],v=new THREE.Vector3();hairScene.updateMatrixWorld(true);
      hairScene.traverse(o=>{if(!o.isMesh)return;const P=o.geometry.attributes.position,st=Math.max(1,Math.floor(P.count/2500));for(let i=0;i<P.count;i+=st){v.fromBufferAttribute(P,i).applyMatrix4(o.matrixWorld);pts.push(v.x,v.y,v.z);}});
-     fit=headFrame?fitMeshyHair(headFrame,pts,{female:style==='long'}):null;fitCache.set(key,fit);}
+     console.warn('Encaixe de cabelo sem tabela (busca grossa em tempo de jogo):',key);
+     fit=headFrame?fitMeshyHair(headFrame,pts,{female:style==='long',coarse:true}):null;fitCache.set(key,fit);}
     if(fit&&headFrame){
      const accessory=new THREE.Group();accessory.name='CabeloMeshy';accessory.userData.fit=fit;
      hairScene.position.set(-fit.hcx,-fit.hy1,-fit.hcz);accessory.add(hairScene);
