@@ -66,12 +66,12 @@ export function createVillagerBrain(profile, seed = 1, { roadYaw = 0, waypoints 
       case 'pause': if (B.t > B.dur) { B.target = (B.target + 1) % waypoints; go('walk', 0); } break;
       default: break;
     }
-    return intent(sense);
+    return intent(sense, dt);
   }
-  function intent(sense) {
+  function intent(sense, dt = 0) {
     // atenção: olha o herói quando está perto e À FRENTE (não gira o pescoço para trás), por alguns segundos; depois
     // desvia o olhar um tempo e volta (sem rastrear sem parar). Conversando, a atenção é total.
-    const d = sense.heroDist ?? 1e9, a = Math.abs(sense.heroAngle || 0), near = d < (P.greetR + 3) && a < 1.75, dt = sense.dt || 0;
+    const d = sense.heroDist ?? 1e9, a = Math.abs(sense.heroAngle || 0), near = d < (P.greetR + 3) && a < 1.75;
     if (sense.talking) { B.att = 0; B.attCool = 0; } else if (near && B.attCool <= 0) { B.att += dt; if (B.att > (d < 2 ? 9 : 5.5)) { B.att = 0; B.attCool = 3.5; } } else { B.attCool = Math.max(0, B.attCool - dt); if (!near) B.att = 0; }
     const s = B.state, look = sense.talking || (near && B.attCool <= 0) ? { yaw: sense.heroAngle || 0, pitch: 0 } : null;
     const base = { state: s, clip: 'idle', once: false, look: null, lean: 0, nod: 0, move: false, target: B.target };

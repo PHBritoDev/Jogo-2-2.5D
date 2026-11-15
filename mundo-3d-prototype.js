@@ -1703,8 +1703,13 @@ function startVillageConversation(id,c,hint){
  if(drv&&o.gesture&&o.gesture!=='none')drv.cue(o.gesture,o.gesture==='wave'?2.6:2.4);
  const withMenu=pages=>{const last={...pages[pages.length-1],options:listOptions(id,ctx,villageTalkMem),onPick:pick};return[...pages.slice(0,-1),last];};
  function pick(tid){const r=answerTopic(id,tid,ctx,villageTalkMem);store();if(drv&&r.gesture&&r.gesture!=='none')drv.cue(r.gesture);return r.done?r.pages:withMenu(r.pages);}
- showDialogue(withMenu(o.opening),()=>{villageTalkPartner=null;});return true;
+ talkCam=cameraDistance>=1.05?{dist0:cameraDistance}:null; // 3ª pessoa: enquadra herói e morador; 1ª pessoa fica como está
+ showDialogue(withMenu(o.opening),()=>{villageTalkPartner=null;if(talkCam){cameraDistance=talkCam.dist0;talkCam=null;}});return true;
 }
+let talkCam=null;
+/** Câmera da conversa: por cima do ombro do herói, com o morador à frente (suave, sem corte brusco). */
+function updateTalkCamera(dt){if(!talkCam||!dialogueOpen||!villageTalkPartner)return;const h=villageTalkPartner.holder,want=Math.atan2(h.position.x-player.position.x,h.position.z-player.position.z)+.5;
+ let d=want-cameraYaw;d=Math.atan2(Math.sin(d),Math.cos(d));const k=1-Math.exp(-3*dt);cameraYaw+=d*k;cameraDistance+=(Math.min(talkCam.dist0,4.2)-cameraDistance)*k;}
 /** Morador/moradora/carregador perto (≤ 2,4 m) e à frente do herói ou da câmera (ou colado, < 1,6 m): botão CONVERSAR. */
 function nearestVillageTalker(){let best=null,bd=2.4;const yaw=player.rotation.y;
  const cand=villageDrivers.filter(d=>d.id==='morador'||d.id==='moradora').map(d=>({id:d.id,c:d.c}));if(cityPorter)cand.push({id:'carregador',c:cityPorter.c});
@@ -3703,6 +3708,7 @@ function attachVillagerLife(c,id,seed,waypoints=null){if(!c||!c.mixer||!id)retur
  c.__life=-1;c.__driver=drv;villageDrivers.push({id,c,drv,sense:{}});}
 const _npcSense={heroDist:0,heroAngle:0,heroAhead:false,talking:false,danger:false,atTarget:false};
 function villageLifeUpdate(dt){
+ updateTalkCamera(dt);
  const P=player.position,danger=!!(enemy&&enemy.visible&&enemyAlive&&combatStepNow&&combatStepNow());
  for(const L of villageDrivers){const h=L.c.holder;if(!h.visible||(L.c.mixer&&L.c.mixer.__far))continue;
   const dx=P.x-h.position.x,dz=P.z-h.position.z,d=Math.hypot(dx,dz);let a=Math.atan2(dx,dz)-h.rotation.y;a=Math.atan2(Math.sin(a),Math.cos(a));
