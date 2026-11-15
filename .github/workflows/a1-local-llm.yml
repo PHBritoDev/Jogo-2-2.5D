@@ -137,14 +137,15 @@ jobs:
               if path.read_text() != original:
                   raise ValueError("Repair pilot modified original source")
               print("SMOKE REPAIR: candidate generated, staged and AST-verified; original untouched")
+
+          PY
       - name: Benchmark de duas correções sintéticas inéditas
         env:
           MODEL_FILE: ${{ runner.temp }}/model.gguf
         run: |
           export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
-          python3 tools/agentes-externos/a1-repair-benchmark.py \\
+          python3 tools/agentes-externos/a1-repair-benchmark.py \
             --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" --model "$MODEL_FILE"
-          PY
 
   escolher-issue:
     runs-on: ubuntu-latest
