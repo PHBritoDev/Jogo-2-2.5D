@@ -9,7 +9,10 @@ export const HEARTS = { max: 10, regenMs: 180000 };
 export function normalizeHearts(raw, now = Date.now()) {
   const r = raw && typeof raw === 'object' ? raw : {};
   // Null/vazio em saves antigos não representa uma escolha explícita de zero corações.
-  const rawHearts = r.hearts == null || (typeof r.hearts === 'string' && !r.hearts.trim()) ? NaN : Number(r.hearts);
+  const numericSave = typeof r.hearts === 'number'
+    || (typeof r.hearts === 'string' && r.hearts.trim().length > 0);
+  const parsedHearts = numericSave ? Number(r.hearts) : NaN;
+  const rawHearts = Number.isFinite(parsedHearts) ? parsedHearts : NaN;
   const hearts = Math.max(0, Math.min(HEARTS.max, Math.floor(rawHearts))); 
   return tickHearts({ hearts: Number.isFinite(hearts) ? hearts : HEARTS.max, since: Number(r.since) || now, explained: !!r.explained }, now);
 }
