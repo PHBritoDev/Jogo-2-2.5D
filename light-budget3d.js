@@ -44,6 +44,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     for (const o of sources) if (!attachedToScene(o)) { sources.delete(o); sourceScore.delete(o); }
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
+  function finiteColor(o) {
+    const c = o.color;
+    return !!c && Number.isFinite(c.r) && Number.isFinite(c.g) && Number.isFinite(c.b);
+  }
   function finitePosition(o) {
     v.setFromMatrixPosition(o.matrixWorld);
     return Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z);
@@ -53,7 +57,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     camera.getWorldPosition(cam);
     ranked.length=0;
     for (const s of sources) {
-      if (!attachedToScene(s) || !Number.isFinite(s.intensity) || s.intensity <= .001 || !effectiveVisible(s)) continue;
+      if (!attachedToScene(s) || !Number.isFinite(s.intensity) || s.intensity <= .001 || !finiteColor(s) || !effectiveVisible(s)) continue;
       v.setFromMatrixPosition(s.matrixWorld);
       // No Three.js distance=0 significa alcance ilimitado. Manter score finito
       // (raio de prioridade 40), mas não descartar a fonte por distância.
@@ -85,7 +89,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     const safeDt = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 0.1)) : 0;
     const k = 1 - Math.exp(-safeDt * 10);
     for (const p of pool) {
-      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001 && finitePosition(s);
+      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001 && finiteColor(s) && finitePosition(s);
       // Não copiar distância/decay inválidos para os uniforms do shader.
       // A posição da fonte também pode mudar após o ranking do quadro anterior.
       if (live) {
