@@ -44,6 +44,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     for (const o of sources) if (!attachedToScene(o)) { sources.delete(o); sourceScore.delete(o); }
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
+  function finitePosition(o) {
+    v.setFromMatrixPosition(o.matrixWorld);
+    return Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z);
+  }
   function update(camera, dt = 1 / 60) {
     if (frame++ % rescanEvery === 0) scan();
     camera.getWorldPosition(cam);
@@ -68,24 +72,21 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     // Não promover referências destacadas/invalidas após o fade.
     for (const p of pool) if (p.next !== undefined && p.next !== null &&
       (!attachedToScene(p.next) || !effectiveVisible(p.next) ||
-       !Number.isFinite(p.next.intensity) || p.next.intensity <= .001)) p.next = undefined;
+       !Number.isFinite(p.next.intensity) || p.next.intensity <= .001 || !finitePosition(p.next))) p.next = undefined;
     // Se a fonte atual voltou a ser prioritária durante o fade, cancelar a troca pendente.
     for (const p of pool) { if (p.src && chosen.includes(p.src)) { chosen.splice(chosen.indexOf(p.src), 1); p.next = undefined; } else free.push(p); }
     // troca sem piscar: o slot apaga a fonte antiga suavemente e só então acende a nova no lugar dela
     for (const p of free) { const s = chosen.shift() || null; if (s !== p.src) { if (p.src && p.light.intensity > .05) p.next = s; else { p.src = s; p.next = undefined; } } }
     const k = 1 - Math.exp(-dt * 10);
     for (const p of pool) {
-      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001;
+      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001 && finitePosition(s);
       // Não copiar distância/decay inválidos para os uniforms do shader.
       // A posição da fonte também pode mudar após o ranking do quadro anterior.
       if (live) {
-        v.setFromMatrixPosition(s.matrixWorld);
-        if (Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z)) {
-          l.position.setFromMatrixPosition(s.matrixWorld);
-          l.color.copy(s.color);
-          l.distance = Number.isFinite(s.distance) && s.distance >= 0 ? s.distance : 40;
-          l.decay = Number.isFinite(s.decay) && s.decay >= 0 ? s.decay : 2;
-        }
+        l.position.setFromMatrixPosition(s.matrixWorld);
+        l.color.copy(s.color);
+        l.distance = Number.isFinite(s.distance) && s.distance >= 0 ? s.distance : 40;
+        l.decay = Number.isFinite(s.decay) && s.decay >= 0 ? s.decay : 2;
       }
       const target = p.next !== undefined || !live ? 0 : s.intensity;
       // Não propagar NaN/Infinity de efeitos transitórios para os shaders do jogo.
