@@ -69,10 +69,15 @@ def propose_replacement(llama_bin, model, source, behavior):
         raise ValueError("Repair prompt exceeds pilot limits")
     prompt = (
         "<|im_start|system>\n"
-        "Você corrige apenas uma linha Python de um exemplo sintético. "
-        "Responda em UMA linha: PATCH: seguido de JSON válido com apenas a chave after. "
-        "O valor after deve conter o código Python substituto, não texto explicativo. "
-        "Nunca execute nada, não use markdown.\n"
+        "Você corrige um ERRO LÓGICO de uma única linha Python sintética. "
+        "A linha original TEM UM DEFEITO e não satisfaz o comportamento. "
+        "NÃO repita a linha original: conserte-a. Preserve nomes das variáveis. "
+        "Para um teto máximo use min; para piso mínimo zero use max. "
+        "Responda exclusivamente com uma linha no formato PATCH: seguido de JSON "
+        "com a única chave after. O valor after DEVE começar com return e um espaço, "
+        "conter uma única instrução Python, sem comentários, blocos ou explicação. "
+        "Exemplo de FORMATO: PATCH: {\\\"after\\\": \\\"return score - spent\\\"}. "
+        "Nunca execute nada, não use markdown.\\n"
         "<|im_end|>\n<|im_start|user>\n"
         + "Código original:\n" + source
         + "\nComportamento esperado:\n" + behavior
