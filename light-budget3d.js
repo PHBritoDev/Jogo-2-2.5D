@@ -55,8 +55,11 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     for (const s of sources) {
       if (!attachedToScene(s) || !Number.isFinite(s.intensity) || s.intensity <= .001 || !effectiveVisible(s)) continue;
       v.setFromMatrixPosition(s.matrixWorld);
+      // No Three.js distance=0 significa alcance ilimitado. Manter score finito
+      // (raio de prioridade 40), mas não descartar a fonte por distância.
+      const unlimited = s.distance === 0;
       const d = v.distanceTo(cam), reach = Number.isFinite(s.distance) && s.distance > 0 ? s.distance : 40;
-      if (!Number.isFinite(d) || d > reach + 30) continue;
+      if (!Number.isFinite(d) || (!unlimited && d > reach + 30)) continue;
       // Reaproveita o mesmo objeto por luz (sem milhares de alocacoes por minuto).
       const item=sourceScore.get(s);
       item.score=d-reach*.5-Math.min(6,s.intensity)*1.5;
