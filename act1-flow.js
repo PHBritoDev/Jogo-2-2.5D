@@ -220,7 +220,7 @@ export function questPresentation(step, sub = 0) {
       ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][Math.min(3, sub)],
     5: ['ATO I · O GUARDIÃO DO PORTAL', 'Siga pelo caminho vazio e derrote o guardião do portal'],
     6: ['ATO I · O PORTAL DE VHAZRAEL', 'Entre no portal: a dimensão de VHAZRAEL está do outro lado'],
-    7: ['ATO I · DIMENSÃO ABERTA', 'VHAZRAEL espera na dimensão dele. Atravesse o portal'],
+    7: ['ATO I · DIMENSÃO ABERTA', 'Encontre VHAZRAEL na dimensão e derrote o Primeiro Bispo'],
     8: ['ATO I · CONCLUÍDO', 'VHAZRAEL caiu. Uma longa jornada começa']
   };
   const pair = pages[step] || pages[8];
