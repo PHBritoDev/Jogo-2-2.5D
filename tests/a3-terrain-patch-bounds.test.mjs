@@ -89,3 +89,21 @@ for (const options of [
     assert.throws(() => buildTerrainPatch(terrain, options), RangeError);
   });
 }
+
+// Reject malformed or duplicate skirt definitions before creating buffers.
+for (const skirtEdges of [['x0', 'x0'], ['unknown'], [null], 'x0', null]) {
+  test('invalid skirt edge definition rejected', () => {
+    assert.throws(() => buildTerrainPatch(terrain, {
+      x0: 0, x1: 10, z0: 0, z1: 10, skirtEdges,
+    }), RangeError);
+  });
+}
+
+test('all four boundary skirts have expected geometry', () => {
+  const patch = buildTerrainPatch(terrain, {
+    x0: 0, x1: 10, z0: 0, z1: 10, cell: 2.5,
+    skirtEdges: ['x0', 'x1', 'z0', 'z1'],
+  });
+  assert.equal(patch.positions.length / 3, 25 + 20);
+  assert.equal(patch.indices.length, 6 * 16 + 12 * 16);
+});
