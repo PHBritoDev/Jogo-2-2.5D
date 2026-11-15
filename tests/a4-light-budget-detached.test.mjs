@@ -56,3 +56,22 @@ test('A4: seleção reutilizada troca fonte distante por próxima sem duplicar s
   assert.deepEqual(budget.stats().active,['distante']);
   assert.equal(budget.stats().sources,1);
 });
+
+test('A4: grupo reanexado volta a iluminar após scan sem duplicar cadastro',()=> {
+  const scene=new Object3D(), camera=new Object3D(), group=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:2,rescanEvery:2});
+  const source=new PointLight(0xffffff,2,30,2); source.name='tocha-reanexada';
+  group.add(source);scene.add(group);
+  budget.update(camera,1);
+  assert.equal(budget.stats().sources,1);
+  scene.remove(group);
+  budget.update(camera,1);
+  budget.update(camera,1);
+  assert.equal(budget.stats().sources,0);
+  scene.add(group);
+  budget.update(camera,1);
+  assert.equal(budget.stats().sources,1);
+  for(let i=0;i<6;i++)budget.update(camera,1);
+  assert.deepEqual(budget.stats().active,['tocha-reanexada']);
+  assert.equal(budget.stats().sources,1);
+});
