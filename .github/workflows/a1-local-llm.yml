@@ -54,14 +54,19 @@ jobs:
             }
             core.setOutput('target', '');
 
-  preparar-modelo:
+  analisar-com-modelo-local:
     needs: escolher-issue
     if: needs.escolher-issue.outputs.target != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Cache do modelo de aproximadamente 1 GB
-        uses: actions/cache@v4
+      - name: Checkout seguro do código para QA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: main
+      - name: Restaurar cache existente do modelo (opcional)
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/a1-llm/model.gguf
           key: a1-qwen25-coder-15b-q4km-v1
@@ -74,8 +79,8 @@ jobs:
               -o "$HOME/.cache/a1-llm/model.gguf"
           fi
           printf '%s  %s\n' 'f530705d447660a4336c329981af164b471b60b974b1d808d57e8ec9fe23b239' "$HOME/.cache/a1-llm/model.gguf" | sha256sum --check --status
-      - name: Cache do binário llama.cpp
-        uses: actions/cache@v4
+      - name: Restaurar cache existente do motor (opcional)
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/a1-llm/llama-bin
           key: a1-llama-cli-b12244-ubuntu-v1
@@ -88,39 +93,6 @@ jobs:
             mkdir -p "$HOME/.cache/a1-llm/llama-bin"
             cp -a /tmp/a1-llama-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
           fi
-      - name: Confirmar binario gerado
-        run: |
-          test -x "$HOME/.cache/a1-llm/llama-bin/llama-cli"
-          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
-          "$HOME/.cache/a1-llm/llama-bin/llama-cli" --version
-
-  analisar-com-modelo-local:
-    needs: [escolher-issue, preparar-modelo]
-    if: needs.escolher-issue.outputs.target != '' && needs.preparar-modelo.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    steps:
-      - name: Checkout seguro do código para QA
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          ref: main
-      - name: Restaurar modelo do cache validado
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.cache/a1-llm/model.gguf
-          key: a1-qwen25-coder-15b-q4km-v1
-          fail-on-cache-miss: true
-      - name: Restaurar motor compilado do cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.cache/a1-llm/llama-bin
-          key: a1-llama-cli-b12244-ubuntu-v1
-          fail-on-cache-miss: true
-      - name: Confirmar integridade antes de executar
-        run: |
-          printf '%s  %s\n' 'f530705d447660a4336c329981af164b471b60b974b1d808d57e8ec9fe23b239' "$HOME/.cache/a1-llm/model.gguf" | sha256sum --check --status
-          test -x "$HOME/.cache/a1-llm/llama-bin/llama-cli"
       - name: Produzir diagnóstico sem modificar codigo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
