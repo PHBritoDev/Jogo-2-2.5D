@@ -7,6 +7,7 @@ class Object3D {
   add(...objects) { for(const o of objects){ if(o.parent) o.parent.remove(o); o.parent=this; this.children.push(o); } return this; }
   remove(o) { this.children=this.children.filter(c=>c!==o); o.parent=null; return this; }
   traverse(fn) { fn(this); for(const c of this.children) c.traverse(fn); }
+  getWorldPosition(out) { return out.setFromMatrixPosition(this.matrixWorld); }
 }
 class Vector3 {
   setFromMatrixPosition(m) { Object.assign(this,m.position); return this; }
