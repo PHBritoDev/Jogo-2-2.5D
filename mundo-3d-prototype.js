@@ -13,7 +13,7 @@ import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
 import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
 import {pullOn} from './enemy2-squad3d.js';
-import {VZ,VHAZRAEL_BUILD,vzMix} from './vhazrael3d.js';
+import {VZ,VHAZRAEL_BUILD,vzMix,VZ_HERO_DMG} from './vhazrael3d.js';
 import {VHAZRAEL_WINGS_BUILD} from './vhazrael-feather-wings3d.js';
 import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {BOSS_MOVES,bossTraceContact,bossLift} from './boss-choreography3d.js';
@@ -4467,7 +4467,7 @@ function updateSquadCombat(dt,now){
  const f=squadFocus;
  if(f&&f.alive){
   const lost=squadProxy.hp-enemyHP;
-  if(lost>0){const n=s.damageActor(f.id,lost,{x:player.position.x,z:player.position.z,kind:'melee',by:'hero'});squadRT.flash(f.id);if(n<lost){const p=new THREE.Vector3(f.x,f.y+2,f.z);damageNumber(p,n>0?'DEFENDEU':'ESQUIVOU','blocked');}
+  if(lost>0){const n=s.damageActor(f.id,f.kind==='vhazrael'?Math.round(lost*VZ_HERO_DMG):lost,{x:player.position.x,z:player.position.z,kind:'melee',by:'hero'});squadRT.flash(f.id);if(n<lost){const p=new THREE.Vector3(f.x,f.y+2,f.z);damageNumber(p,n>0?'DEFENDEU':'ESQUIVOU','blocked');}
    const R=squadAreaRadius();if(R>0)for(const o of squadAlive())if(o!==f&&Math.hypot(o.x-f.x,o.z-f.z)<R){const m=s.damageActor(o.id,lost,{x:f.x,z:f.z,kind:'area',by:'hero'});squadHitFx(o,m);}}
   const mx=enemy.position.x-squadProxy.x,mz=enemy.position.z-squadProxy.z,md=Math.hypot(mx,mz);if(md>1e-3&&md<4&&!f.act?.unstoppable&&!squadBlocked(f.x+mx,f.z+mz)){f.x+=mx;f.z+=mz;}
   if(enemyKnockback>0){f.kx+=enemyKnockbackX*enemyKnockback*3;f.kz+=enemyKnockbackZ*enemyKnockback*3;enemyKnockback=0;}

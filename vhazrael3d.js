@@ -51,6 +51,8 @@ export const ORBITAL = { min: 0, max: 60, cast: 18, release: .05, cd: 999, anim:
    nunca valia na dimensão). 4× → 2600 em jogo (DIMENSIONS 1040 × 2,5) e aqui. Fases pela vida: 0 ensino (>70 %), 1 técnica (70–40 %), 2 ritmo (40–15 %),
    3 fúria (≤15 %). Fases sobem a variedade e a pressão de ESPADA, nunca transformam o chefe em canhão de magia. */
 export const VZ_HP = 2600, VZ_PHASES = [.7, .4, .15];
+/** Mod 320: o golpe do herói pesa 1,6× no VHAZRAEL — vida 4× maior sem virar desgaste (tempo de luta ≈ 2,5× o antigo, com herói 5× mais resistente). */
+export const VZ_HERO_DMG = 1.6;
 export const vzPhaseOf = (hp, max) => { const k = hp / Math.max(1, max); return k > VZ_PHASES[0] ? 0 : k > VZ_PHASES[1] ? 1 : k > VZ_PHASES[2] ? 2 : 3; };
 /** Duplo salto REAL (motor da esquadra: 2 impulsos, dash aéreo travado no alvo, corte descendente no pouso). */
 export const VZ_LEAP = Object.freeze({ min: 3.4, max: 9, crouch: .2, v1: 7.4, v2: 5.8, second: .38, dash: .26, dashSpeed: 12.5, fall: -15, maxAir: 1.5, gravity: 18, strike: { r: 2.1, dmg: 16, arc: -.3 }, recover: .55, cd: 7.5, role: 'jump', from: 1.45, speed: 1.2 });

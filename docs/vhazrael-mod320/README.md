@@ -50,6 +50,7 @@ Registro permanente da missão (o briefing temporário foi removido nesta mesma 
 | HP do chefe | base real 650 (260 × `squadHp` 2,5) → **2600 (4×)** | `dimensions3d.js` (1040 × 2,5), `VZ_HP` |
 | fases | 70 % / 40 % / 15 % (recargas encurtam, golpes novos liberados) | `VZ_PHASES` |
 | HP do herói | **× 5** na vida máxima (100 → 500 no nível 1), cura e casaco acompanham | `HERO_HP_MULT` em `progression3d.js` |
+| dano do herói no VHAZRAEL | **× 1,6** (luta ≈ 2,5× mais longa que a antiga, não 4×: sem virar desgaste) | `VZ_HERO_DMG` |
 
 VFX de espada inspirados nos **princípios** dos vídeos do criador (crescentes largas que seguem a lâmina, núcleo claro
 sobre faixa saturada, impacto com estrela), com identidade própria: estilo `vhazrael` em `slash-vfx3d.js` (núcleo
