@@ -3,7 +3,9 @@ import os,pathlib,subprocess,json
 from lossless import verify
 base=os.environ['GLB_BASE_SHA'];manifest=json.loads(pathlib.Path('docs/auditorias/glb-lossless-2026-11-12/audit.json').read_text());pathlib.Path('original').mkdir(exist_ok=True);pathlib.Path('optimized').mkdir(exist_ok=True)
 for item in manifest:
- name=item['file'];before=subprocess.check_output(['git','show',base+':'+name]);after=pathlib.Path(name).read_bytes();verify(before,after)
+ name=item['file']
+ if item.get('removedBy') and not pathlib.Path(name).exists(): print('Removido de propósito:',name,'-',item['removedBy']);continue
+ before=subprocess.check_output(['git','show',base+':'+name]);after=pathlib.Path(name).read_bytes();verify(before,after)
  # Detect accidental edits or a different baseline, including assets intentionally preserved.
  import hashlib
  assert hashlib.sha256(before).hexdigest()==item['sha256Before'],name+' baseline changed'
