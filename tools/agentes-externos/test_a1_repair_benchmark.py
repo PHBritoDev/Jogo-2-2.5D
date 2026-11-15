@@ -27,7 +27,7 @@ class RepairBenchmarkTests(unittest.TestCase):
     def test_multiline_candidate_rejected_even_if_semantically_correct(self):
         # Contrato do piloto: uma única linha de retorno; newline real não equivale a "\\n".
         c = bench.CASES[1]
-        self.assertFalse(bench.behaves_correctly("return max(\\n    0, hp - damage\\n)", c))
+        self.assertFalse(bench.behaves_correctly("return max(\n    0, hp - damage\n)", c))
         self.assertTrue(bench.behaves_correctly("return max(0, hp - damage)", c))
 
     def test_noop_is_rejected(self):
