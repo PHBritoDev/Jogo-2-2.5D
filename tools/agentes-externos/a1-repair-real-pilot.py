@@ -29,6 +29,7 @@ def _load(filename, name):
 gate = _load("a1-real-repair-gate.py", "a1_real_pilot_gate")
 verify = _load("a1-real-repair-verify.py", "a1_real_pilot_verify")
 proposer = _load("a1-repair-gate.py", "a1_synthetic_proposer")
+fallback = _load("a1-arithmetic-fallback.py", "a1_arithmetic_fallback")
 
 
 def run(root, before, behavior, llama, model, examples=""):
@@ -41,24 +42,50 @@ def run(root, before, behavior, llama, model, examples=""):
     gate._safe_expression(before)
     if not isinstance(behavior, str) or not 10 <= len(behavior) <= 240:
         raise ValueError("Trusted behavioral requirement out of bounds")
-    after = proposer.propose_replacement(
-        llama, model, before, behavior, examples=examples, language="JavaScript"
-    )
-    candidate = {
-        "path": "hearts3d.js",
-        "base_sha256": hashlib.sha256(original).hexdigest(),
-        "before": before,
-        "after": after,
-    }
-    # Validate model output before ANY execution, then use trusted regressions.
-    gate._check_patch_expression(before, after)
-    outcome = verify.verify(root, candidate)
+    # A malformed/unsolved model answer does not block bounded, test-driven
+    # arithmetic search. A *dangerous* model response still fails closed.
+    try:
+        suggested = proposer.propose_replacement(
+            llama, model, before, behavior, examples=examples, language="JavaScript"
+        )
+    except ValueError:
+        suggested = None
+    if suggested is not None:
+        gate._check_patch_expression(before, suggested)
+    choices = ([suggested] if suggested is not None else [])
+    choices += [item for item in fallback.variants(before, limit=8) if item not in choices]
+    baseline_sha = hashlib.sha256(original).hexdigest()
+    last = None
+    for after in choices:
+        try:
+            gate._check_patch_expression(before, after)
+        except ValueError:
+            continue
+        candidate = {
+            "path": "hearts3d.js",
+            "base_sha256": baseline_sha,
+            "before": before,
+            "after": after,
+        }
+        outcome = verify.verify(root, candidate)
+        last = outcome
+        if outcome["verified_red_green"]:
+            return {
+                "path": candidate["path"],
+                "baseline_sha256": baseline_sha,
+                "result": "verified_candidate",
+                "method": "qwen" if suggested is not None and after == suggested else "bounded_fallback",
+                **outcome,
+                "candidate": candidate,
+            }
     return {
-        "path": candidate["path"],
-        "baseline_sha256": candidate["base_sha256"],
-        "result": "verified_candidate" if outcome["verified_red_green"] else "rejected",
-        **outcome,
-        "candidate": candidate if outcome["verified_red_green"] else None,
+        "path": "hearts3d.js",
+        "baseline_sha256": baseline_sha,
+        "result": "rejected",
+        "method": "none",
+        **(last or {"original_passes": None, "candidate_passes": None,
+                     "verified_red_green": False}),
+        "candidate": None,
     }
 
 
