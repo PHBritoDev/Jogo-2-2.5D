@@ -54,3 +54,23 @@ test('A4: invalid world position cannot steal the only light slot', () => {
   for (let i = 0; i < 50; i++) budget.update(camera, 1 / 60);
   assert.deepEqual(budget.stats().active, ['valid-torch']);
 });
+
+test('A4: transient invalid camera position retains torch selection and recovers', () => {
+  const scene = new Object3D();
+  const torch = new PointLight(0xffffff, 4, 20);
+  torch.name = 'nearby-torch';
+  torch.matrixWorld.x = 4;
+  scene.add(torch);
+  const budget = createLightBudget(T, scene, { slots: 1, rescanEvery: 1 });
+  const movingCamera = { x: 0, getWorldPosition(v) { v.x = this.x; v.y = 0; v.z = 0; } };
+  for (let i = 0; i < 25; i++) budget.update(movingCamera, 1 / 60);
+  assert.deepEqual(budget.stats().active, ['nearby-torch']);
+  for (const bad of [NaN, Infinity, -Infinity]) {
+    movingCamera.x = bad;
+    for (let i = 0; i < 20; i++) budget.update(movingCamera, 1 / 60);
+    assert.deepEqual(budget.stats().active, ['nearby-torch']);
+  }
+  movingCamera.x = 3;
+  for (let i = 0; i < 20; i++) budget.update(movingCamera, 1 / 60);
+  assert.deepEqual(budget.stats().active, ['nearby-torch']);
+});
