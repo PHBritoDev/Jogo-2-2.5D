@@ -50,3 +50,11 @@ Reprodução antes, prova depois, testes e percurso jogável, sem regressões ad
 
 ## Pesquisa técnica orientadora
 Consultar documentação de profiling/WebGL e APIs atuais (Chrome Performance, Three.js renderer.info, Playwright/CI do repositório) de acordo com o defeito. Se um bug for apenas impressão visual, pedir inspeção por imagens reais em vez de arriscar conserto imaginário.
+
+## Reparo real de referência — A1-SAVE-FALLBACK-02 (15/11/2026)
+Fluxo completo que o A1 deve repetir: **bug reproduzido → teste vermelho → patch mínimo → verde → smoke no jogo → PR**.
+- Reprodução no jogo (Chromium/SwiftShader, `?debug3d=1`): `sevenSins3DCampaignV6='{bad-json'` + V5 válida com 47 moedas/missão 3 → o jogo abria com 0 moedas/missão 0 **e regravava a V6 zerada**, perdendo a V5 de vez.
+- Vermelho: `tools/agentes-externos/a1-save-fallback.test.mjs` (o caso estava em `test.skip`; ativado, falhou com `expected 47, actual 0`).
+- Causa: um único `try/catch` em volta do laço de `read3DProgress()`; o `JSON.parse` da V6 lançava e o `catch` devolvia progresso vazio sem tentar V5…V1.
+- Patch: `try/catch` por slot (corrompido é pulado). Verde: 5 casos (V6 válida tem prioridade, V6 ruim → V5, V6+V5 ruins → V4, storage inacessível, tudo corrompido). Smoke depois do patch: 47 moedas/missão 3 e V6 regravada com o progresso recuperado.
+- Um candidato gerado por modelo local só entra depois desse mesmo trilho; benchmark sintético não conta como correção do jogo.

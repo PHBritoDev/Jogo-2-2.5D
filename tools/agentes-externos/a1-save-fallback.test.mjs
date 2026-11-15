@@ -34,14 +34,28 @@ test('sem save, o progresso inicia com zero moedas', () => {
   assert.equal(load({}).coins, 0);
 });
 
-test.skip('PENDENTE A1-SAVE-FALLBACK-02: V6 corrompida não pode apagar V5 válida', () => {
-  // RED confirmado isoladamente: hoje retorna 0, mas deve retornar 47.
+test('A1-SAVE-FALLBACK-02: V6 corrompida não pode apagar V5 válida', () => {
+  // Antes da correção retornava 0 moedas/missão 0: um JSON inválido na V6 abortava a leitura de todos os slots.
   const result = load({
     sevenSins3DCampaignV6: '{bad-json',
     sevenSins3DCampaignV5: JSON.stringify({ version: 5, coins: 47, questStep: 3 }),
   });
   assert.equal(result.coins, 47);
   assert.equal(result.questStep, 3);
+});
+
+test('V6 e V5 corrompidas: recupera a V4 válida mais recente', () => {
+  const result = load({
+    sevenSins3DCampaignV6: '{bad-json',
+    sevenSins3DCampaignV5: '[[[',
+    sevenSins3DCampaignV4: JSON.stringify({ version: 4, coins: 9, questStep: 2 }),
+  });
+  assert.deepEqual([result.coins, result.questStep], [9, 2]);
+});
+
+test('localStorage inacessível (modo privado) ainda carrega um progresso vazio', () => {
+  const sandbox = { localStorage: { getItem: () => { throw new Error('SecurityError'); } }, migrateProgress: (raw) => ({ coins: Number(raw?.coins) || 0, questStep: 0 }) };
+  assert.equal(runInNewContext(actualSaveReader + '\nread3DProgress()', sandbox).coins, 0);
 });
 
 test('todos os slots corrompidos não interrompem o carregamento', () => {
