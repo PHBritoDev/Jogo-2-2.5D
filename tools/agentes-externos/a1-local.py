@@ -105,7 +105,7 @@ def clean_report(output):
     # report headings. Keep only the last explicit assistant-turn boundary.
     # Never interpret the system prompt or Issue body as generated output.
     boundaries = list(re.finditer(
-        r"(?m)^\\s*(?:>\\s*)?<\\|im_start\\|assistant>\\s*$", output,
+        r"(?m)^[ \t]*(?:>[ \t]*)?<\|im_start\|assistant>[ \t]*$", output,
     ))
     if boundaries:
         output = output[boundaries[-1].end():]
