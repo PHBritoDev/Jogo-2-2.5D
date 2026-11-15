@@ -53,6 +53,10 @@ test('energy body culls outside frustum with conservative warp margin and keeps 
   assert.equal(fx.material.uniforms.detail.value,.65);
   fx.update(2,{alpha:1,quality:1});
   assert.equal(fx.mesh.visible,true);
+  fx.update(2.1,{alpha:1,dissolve:1});
+  assert.equal(fx.mesh.visible,false,'fully dissolved body should not consume a draw call');
+  fx.update(2.2,{alpha:1,dissolve:.99});
+  assert.equal(fx.mesh.visible,true,'body should reappear if dissolution reverses');
   fx.dispose();
   assert.equal(children.length,0);
 });
