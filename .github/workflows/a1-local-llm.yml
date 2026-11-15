@@ -194,9 +194,22 @@ jobs:
                   examples="x=14 -> 10; x=3 -> 3",
               )
               print("A1 REAL QWEN PILOT:", result["result"])
+              if result["verified_red_green"]:
+                  import json
+                  Path(os.environ["RUNNER_TEMP"], "a1-verified-candidate.json").write_text(
+                      json.dumps(result["candidate"], sort_keys=True, indent=2) + "\n", encoding="utf-8"
+                  )
               if not result["verified_red_green"]:
                   raise RuntimeError("Qwen failed red/green pilot")
           PY
+      - name: Arquivar somente o patch verificado (sem merge)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a1-qwen-candidate-for-review
+          path: ${{ runner.temp }}/a1-verified-candidate.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Benchmark de duas correções sintéticas inéditas
         if: ${{ always() }}
         env:
