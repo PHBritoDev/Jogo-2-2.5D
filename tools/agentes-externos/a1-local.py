@@ -108,8 +108,24 @@ def clean_report(output):
         report, maxsplit=1,
     )[0].strip()
     report = re.sub(r"\n#{1,4}\s+[^\n]{1,55}$", "", report).strip() if report.endswith(("### Ident", "### Concl")) else report
-    if len(report) < 200 or len(re.findall(r"(?m)^#{1,4}\s+", report)) < 3:
+    required_sections = (
+        r"hip[oó]tese a validar",
+        r"passos de reprodu[cç][aã]o",
+        r"arquivos a inspecionar",
+        r"corre[cç][aã]o m[ií]nima sugerida",
+        r"testes de regress[aã]o",
+    )
+    sections = list(re.finditer(r"(?m)^#{2,4}\s+([^\n]+)\s*$", report))
+    headings = [match.group(1).strip().lower() for match in sections]
+    if len(report) < 200 or len(headings) != len(required_sections):
         raise ValueError("QA report too short or incomplete")
+    for heading, expected in zip(headings, required_sections):
+        if not re.fullmatch(expected, heading, flags=re.IGNORECASE):
+            raise ValueError("QA report missing required sections")
+    for index, match in enumerate(sections):
+        end = sections[index + 1].start() if index + 1 < len(sections) else len(report)
+        if len(report[match.end():end].strip()) < 15:
+            raise ValueError("QA report has empty section")
     if "<|im_start|" in report or "available commands:" in report:
         raise ValueError("Unsafe prompt echo in QA report")
     return report[:MAX_OUTPUT_CHARS]
