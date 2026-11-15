@@ -154,3 +154,12 @@ test('timestamp zero não é confundido com ausente e mantém tempo parcial apó
   assert.equal(absent.hearts, 4, 'campo ausente não pode dar regeneração desde a época Unix');
   assert.equal(absent.since, now);
 });
+
+
+test('cronômetro de corações não mostra NaN, Infinity nem valores negativos', () => {
+  for (const ms of [NaN, Infinity, -Infinity, -1000, undefined, null]) {
+    assert.equal(formatTimer(ms), '0:00', 'tempo inválido deve ser seguro para o HUD');
+  }
+  assert.equal(formatTimer(0), '0:00');
+  assert.equal(formatTimer(1001), '0:02', 'segundos parciais arredondam para cima');
+});
