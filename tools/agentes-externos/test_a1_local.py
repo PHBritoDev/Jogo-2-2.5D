@@ -117,6 +117,24 @@ class LocalAgentTests(unittest.TestCase):
         self.assertIn("### Testes de regressão", prompt)
         self.assertIn("nunca invente evidências", prompt)
 
+    def test_five_section_output_is_cleaned_without_cli_metadata(self):
+        output = (
+            "build: b1\n"
+            "available commands:\n /exit\n"
+            "> <|im_start|assistant>\n"
+            "### Hipótese a validar\nFalha possível no movimento do jogador, ainda não confirmada.\n"
+            "### Passos de reprodução\nAbrir o laboratório e repetir o movimento no mesmo cenário.\n"
+            "### Arquivos a inspecionar\nConferir world3d-terrain.js e os testes associados.\n"
+            "### Correção mínima sugerida\nSó corrigir após confirmar a causa real.\n"
+            "### Testes de regressão\nExecutar teste de movimento, captura e comparação no dispositivo.\n"
+            "[ Prompt: 50 t/s | Generation: 10 t/s ]\n"
+        )
+        report = agent.clean_report(output)
+        self.assertIn("### Hipótese a validar", report)
+        self.assertIn("### Testes de regressão", report)
+        self.assertNotIn("available commands", report)
+        self.assertNotIn("Prompt:", report)
+
     def test_short_report_is_not_submitted(self):
         with self.assertRaises(ValueError):
             agent.submit("owner/repo", 4, "oops")
