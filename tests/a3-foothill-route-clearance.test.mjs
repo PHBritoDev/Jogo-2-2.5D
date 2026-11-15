@@ -75,3 +75,28 @@ test('nonfinite foothill elevations never generate floating conifers', () => {
       `invalid elevation ${elevation} must not produce vegetation`);
   }
 });
+
+test('nonfinite valley elevations never generate invalid tree instances', () => {
+  const options = { seed: 9137, attempts: 1500 };
+  const valley = { ...foothill, boundaryDistance: () => -20 };
+  assert.ok(scatterForest(valley, options).length > 0, 'valid valley should retain its forest');
+  for (const elevation of [NaN, Infinity, -Infinity]) {
+    const invalid = { ...valley, height: () => elevation };
+    assert.deepEqual(scatterForest(invalid, options), [],
+      `invalid valley elevation ${elevation} must not generate trees`);
+  }
+});
+
+test('valley height filtering preserves dry, walkable vegetation', () => {
+  const options = { seed: 9137, attempts: 1500 };
+  const valley = { ...foothill, boundaryDistance: () => -20 };
+  const valid = scatterForest(valley, options);
+  const selectivelyInvalid = {
+    ...valley,
+    height: (x) => x < 0 ? NaN : 0,
+  };
+  const filtered = scatterForest(selectivelyInvalid, options);
+  assert.ok(filtered.length > 0, 'valid valley cells should remain wooded');
+  assert.ok(filtered.length < valid.length, 'invalid valley cells must lose their trees');
+  assert.ok(filtered.every(tree => tree.x >= 0), 'all retained trees have valid elevations');
+});
