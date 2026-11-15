@@ -124,3 +124,13 @@ test('zero-depth skirts do not generate degenerate exterior walls', () => {
   assert.deepEqual([...noSkirt.positions], [...noEdges.positions]);
   assert.deepEqual([...noSkirt.indices], [...noEdges.indices]);
 });
+
+// Exterior patches must not propagate a corrupt terrain sampler into WebGL.
+// An invalid height in an interior cell or along a skirt is equally unsafe.
+for (const height of [() => NaN, () => Infinity, (x, z) => x > 2 && z > 2 ? -Infinity : 0]) {
+  test('non-finite exterior terrain heights fail before GPU buffer creation', () => {
+    assert.throws(() => buildTerrainPatch({ height }, {
+      x0: 0, x1: 10, z0: 0, z1: 10, cell: 2.5,
+    }), /non-finite terrain height/);
+  });
+}
