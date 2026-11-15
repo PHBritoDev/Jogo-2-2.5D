@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ACT1, migrateProgress, afterVhazraelVictory, questPresentation } from '../act1-flow.js';
+import { ACT1, migrateProgress, afterVhazraelVictory, afterEnemyDefeated, questPresentation } from '../act1-flow.js';
 
 test('A5: restore V6 checkpoints without duplicating narrative rewards', () => {
   const saved = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 6,
@@ -102,4 +102,24 @@ test('A5: legitimate XP and checkpoint progress survive save reload', () => {
   assert.equal(restored.lateFightIndex, 3);
   assert.equal(restored.gauntletIndex, 2);
   assert.deepEqual(migrateProgress(restored), restored);
+});
+
+test('A5: follower encounters advance once and never exceed the three-enemy checkpoint', () => {
+  const expected = [1, 2, 3];
+  for (let i = 0; i < expected.length; i++) {
+    const result = afterEnemyDefeated(i);
+    assert.equal(result.journeyEnemyIndex, expected[i]);
+    assert.equal(result.questStep, i === 2 ? 3 : 2);
+    const saved = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+      questStep: result.questStep, journeyEnemyIndex: result.journeyEnemyIndex });
+    assert.equal(migrateProgress(saved).journeyEnemyIndex, expected[i]);
+  }
+  for (const bad of [Infinity, -Infinity, NaN, 'Infinity', -9, 9999]) {
+    const result = afterEnemyDefeated(bad);
+    assert.ok(Number.isFinite(result.journeyEnemyIndex));
+    assert.ok(result.journeyEnemyIndex >= 1 && result.journeyEnemyIndex <= ACT1.enemyTotal);
+    assert.equal(migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+      ...result }).journeyEnemyIndex, result.journeyEnemyIndex);
+  }
+  assert.equal(afterEnemyDefeated(ACT1.enemyTotal).journeyEnemyIndex, ACT1.enemyTotal);
 });
