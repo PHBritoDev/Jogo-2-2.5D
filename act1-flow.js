@@ -35,8 +35,9 @@ export const ACT1 = {
 const BANNED = ['porra', 'merda', 'caralho', 'fdp', 'puta', 'viado', 'cuzao', 'buceta'];
 
 export function sanitizePlayerName(raw) {
-  // Não transformar quebras de linha coladas em espaços: o nome deve ocupar uma única linha.
-  if (/[\r\n\u2028\u2029]/.test(String(raw ?? ''))) return { ok: false, error: 'Use de 3 a 12 caracteres, em uma única linha.' };
+  // Rejeitar controles invisíveis (inclusive tab e NUL), sem transformá-los em espaços.
+  // Isso mantém nomes de HUD, legendas e saves em uma única linha previsível.
+  if (/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(String(raw ?? ''))) return { ok: false, error: 'Use de 3 a 12 caracteres, em uma única linha.' };
   const name = String(raw || '').replace(/\s+/g, ' ').trim();
   if (name.length < 3 || name.length > 12) return { ok: false, error: 'Use de 3 a 12 caracteres, em uma única linha.' };
   if (!/^[\p{L}][\p{L} '\-.]{2,11}$/u.test(name)) {
