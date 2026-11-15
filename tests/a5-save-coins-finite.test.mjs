@@ -261,6 +261,12 @@ test('A5: corrupted bishop counter must not grant legacy magic3 on reload', () =
     assert.equal(saved.owned.includes('magic3'), false);
     assert.deepEqual(migrateProgress(saved), saved);
   }
+  const purchased = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    bishopsDefeated: Infinity, owned: ['magic', 'magic3']
+  });
+  assert.deepEqual(purchased.owned, ['magic', 'magic3']);
+  assert.deepEqual(migrateProgress(purchased), purchased);
   const legitimate = migrateProgress({
     version: ACT1.version, act1Rev: ACT1.rev, questStep: 8,
     bishopsDefeated: 1
