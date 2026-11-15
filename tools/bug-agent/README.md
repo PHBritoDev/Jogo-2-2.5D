@@ -14,7 +14,7 @@
    - Valor: `true`
 2. Confirmar que o dono do repo tem acesso ao **Copilot CLI** e que o recurso pode rodar via `GITHUB_TOKEN`; o uso de créditos Copilot **pode ser cobrado**, segundo o plano, orçamento e limites. Não habilitar sem consentimento. Ver https://docs.github.com/en/copilot/concepts/agent-capabilities/agent-powered-workflows-and-operations/copilot-cli-in-github-actions
 3. Em **Settings > Actions > General**, permitir GitHub Actions criar pull requests e dar permissões necessárias ao `GITHUB_TOKEN` (o workflow já solicita `contents: write` apenas no job publicador). Sem isso, a PR não abre; não usar token pessoal em arquivos.
-4. A partir desse momento, o agente só pede créditos quando um **teste falha** em commit novo e não existe PR A1 aberta. Para forçar nova investigação de uma falha registrada, use `Actions > A1 autonomo ... > Run workflow` marcando `tentar_reparo` (a variável precisa estar `true`). O código limita uma PR A1 ativa e não mescla.
+4. A partir desse momento, o agente só pede créditos quando um **teste falha** em commit novo e o incidente é novo (sem issue idêntica aberta). Para forçar nova investigação de uma falha registrada, use `Actions > A1 autonomo ... > Run workflow` marcando `tentar_reparo` (a variável precisa estar `true`). Podem existir várias PRs A1 independentes; duplicações da mesma falha continuam bloqueadas por issue.
 
 **Alternativa:** configurar secret `OPENAI_API_KEY` e variável `ENABLE_A1_CODEX_AUTOFIX=true` para usar a ação Codex oficial em vez do Copilot. Uma variável basta; se ambas estiverem `true`, Copilot tem prioridade. A API tem cobrança separada do ChatGPT.
 
