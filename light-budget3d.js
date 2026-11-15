@@ -15,7 +15,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     const l = new T.PointLight(0xffffff, 0, 10, 2); l.name = 'orcamento-luz-' + i; l.userData.budgetSlot = true; scene.add(l);
     return { light: l, src: null, next: undefined };
   });
-  const sources = new Set(), sourceScore = new Map(), ranked = [];
+  const sources = new Set(), sourceScore = new Map(), ranked = [], chosen = [];
   let frame = 0;
   /* Mod 316 — guarda imediata: antes, uma PointLight nova (tocha GLB que termina de carregar, efeito, zona) ficava até
      45 quadros na camada 0 até o próximo scan. Nesse intervalo o número de luzes do shader mudava (+1) e TODOS os
@@ -59,7 +59,9 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       ranked.push(item);
     }
     ranked.sort((a, b) => a.score - b.score);
-    const chosen = ranked.slice(0, slots).map(r => r.s);
+    // Reaproveita a lista temporária: evitar dois arrays novos por frame no mobile.
+    chosen.length = 0;
+    for (let i = 0; i < Math.min(slots, ranked.length); i++) chosen.push(ranked[i].s);
     // histerese: quem já ocupa um slot e continua entre os escolhidos fica no mesmo slot
     const free = [];
     for (const p of pool) { if (p.src && chosen.includes(p.src)) chosen.splice(chosen.indexOf(p.src), 1); else free.push(p); }
