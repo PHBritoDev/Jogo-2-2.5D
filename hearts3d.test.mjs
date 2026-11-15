@@ -65,3 +65,22 @@ test('salvamento de corações vazio não deve virar zero por coerção JavaScri
   assert.equal(normalizeHearts({ hearts: '0', since: now }, now).hearts, 0,
     'zero explícito em save antigo continua válido');
 });
+
+test('regressão de 400 saves variados: corações, timer e timestamp sempre seguros', () => {
+  const now = 1700000000000;
+  const timestamps = [now - 3600000, now - 100000, now, now + 1000, now + 3600000, -5000, NaN, Infinity, null, ''];
+  const values = [0, 1, 3, 7, 9, 10, 11, -2, null, '', '  ', '4', 'x', Infinity, NaN];
+  for (let i = 0; i < 400; i++) {
+    const raw = { hearts: values[i % values.length], since: timestamps[(i * 7) % timestamps.length] };
+    const state = normalizeHearts(raw, now);
+    assert.ok(Number.isInteger(state.hearts) && state.hearts >= 0 && state.hearts <= HEARTS.max,
+      'corações devem permanecer inteiros no intervalo 0..10');
+    assert.ok(Number.isFinite(state.since) && state.since >= 0 && state.since <= now,
+      'timestamp deve permanecer em intervalo válido');
+    const timer = msToNextHeart(state, now);
+    assert.ok(Number.isFinite(timer) && timer >= 0 && timer <= HEARTS.regenMs,
+      'cronômetro deve estar entre 0 e 3 minutos');
+    const next = tickHearts(state, now + HEARTS.regenMs);
+    assert.ok(next.hearts >= state.hearts && next.hearts <= HEARTS.max);
+  }
+});
