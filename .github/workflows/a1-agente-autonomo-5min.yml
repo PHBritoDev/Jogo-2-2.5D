@@ -85,10 +85,15 @@ jobs:
                 '\n\nCommit: '+report.commit+'\nExecução: https://github.com/'+owner+'/'+repo+'/actions/runs/'+context.runId+
                 '\nArtefato: a1-robot-'+context.runNumber+'\nA1: reproduzir, teste vermelho, corrigir, teste verde e abrir PR sem merge.';
               await github.rest.issues.create({owner,repo,title,body});
+              // Uma captura real adicional só no primeiro incidente, nunca a cada 5 min.
+              try {
+                await github.rest.actions.createWorkflowDispatch({owner,repo,workflow_id:'agente-cenas.yml',ref:'main',inputs:{cenas:'["vila-praca","vila-vendedores","npc-cabelos"]'}});
+              } catch(e) { core.warning('Captura visual extra indisponível: '+e.message); }
             }
     permissions:
       contents: read
       issues: write
+      actions: write
 
   codex:
     needs: monitor
