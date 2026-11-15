@@ -15,7 +15,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     const l = new T.PointLight(0xffffff, 0, 10, 2); l.name = 'orcamento-luz-' + i; l.userData.budgetSlot = true; scene.add(l);
     return { light: l, src: null, next: undefined };
   });
-  const sources = new Set(), sourceScore = new Map(), ranked = [];
+  const sources = new Set(), sourceScore = new Map(), ranked = [], chosen = [], free = [];
   let frame = 0;
   /* Mod 316 — guarda imediata: antes, uma PointLight nova (tocha GLB que termina de carregar, efeito, zona) ficava até
      45 quadros na camada 0 até o próximo scan. Nesse intervalo o número de luzes do shader mudava (+1) e TODOS os
@@ -31,38 +31,72 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   }
   if (Obj) Obj.__budgetGuard.push({ scene, adopt });
   const v = new T.Vector3(), cam = new T.Vector3();
+  // Uma fonte pode continuar com parent dentro de um grupo já removido da cena.
+  // Nunca permitir que esse grupo ocupe slots de luz ou retenha fontes no cadastro.
+  function attachedToScene(o) {
+    let root = o;
+    while (root.parent) root = root.parent;
+    return root === scene;
+  }
   function scan() {
     scene.traverse(adopt);
     // fontes removidas da cena saem do conjunto (sem crescer para sempre com efeitos descartados)
-    for (const o of sources) if (!o.parent) { sources.delete(o); sourceScore.delete(o); }
+    for (const o of sources) if (!attachedToScene(o)) { sources.delete(o); sourceScore.delete(o); }
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
+  function finitePosition(o) {
+    v.setFromMatrixPosition(o.matrixWorld);
+    return Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z);
+  }
   function update(camera, dt = 1 / 60) {
     if (frame++ % rescanEvery === 0) scan();
     camera.getWorldPosition(cam);
     ranked.length=0;
     for (const s of sources) {
-      if (!s.parent || s.intensity <= .001 || !effectiveVisible(s)) continue;
+      if (!attachedToScene(s) || !Number.isFinite(s.intensity) || s.intensity <= .001 || !effectiveVisible(s)) continue;
       v.setFromMatrixPosition(s.matrixWorld);
-      const d = v.distanceTo(cam), reach = (s.distance || 40);
-      if (d > reach + 30) continue;
+      // No Three.js distance=0 significa alcance ilimitado. Manter score finito
+      // (raio de prioridade 40), mas não descartar a fonte por distância.
+      const unlimited = s.distance === 0;
+      const d = v.distanceTo(cam), reach = Number.isFinite(s.distance) && s.distance > 0 ? s.distance : 40;
+      if (!Number.isFinite(d) || (!unlimited && d > reach + 30)) continue;
       // Reaproveita o mesmo objeto por luz (sem milhares de alocacoes por minuto).
       const item=sourceScore.get(s);
       item.score=d-reach*.5-Math.min(6,s.intensity)*1.5;
       ranked.push(item);
     }
     ranked.sort((a, b) => a.score - b.score);
-    const chosen = ranked.slice(0, slots).map(r => r.s);
+    // Reaproveita a lista temporária: evitar dois arrays novos por frame no mobile.
+    chosen.length = 0;
+    for (let i = 0; i < Math.min(slots, ranked.length); i++) chosen.push(ranked[i].s);
     // histerese: quem já ocupa um slot e continua entre os escolhidos fica no mesmo slot
-    const free = [];
-    for (const p of pool) { if (p.src && chosen.includes(p.src)) chosen.splice(chosen.indexOf(p.src), 1); else free.push(p); }
+    free.length = 0;
+    // A fonte pendente pode ter saído do alcance ou perdido prioridade durante o fade.
+    // Só promover fontes que ainda constam na seleção deste quadro; isso também
+    // exclui clarões destacados, ocultos ou com posição/intensidade inválida.
+    for (const p of pool) if (p.next !== undefined && p.next !== null &&
+      !chosen.includes(p.next)) p.next = undefined;
+    // Se a fonte atual voltou a ser prioritária durante o fade, cancelar a troca pendente.
+    for (const p of pool) { if (p.src && chosen.includes(p.src)) { chosen.splice(chosen.indexOf(p.src), 1); p.next = undefined; } else free.push(p); }
     // troca sem piscar: o slot apaga a fonte antiga suavemente e só então acende a nova no lugar dela
     for (const p of free) { const s = chosen.shift() || null; if (s !== p.src) { if (p.src && p.light.intensity > .05) p.next = s; else { p.src = s; p.next = undefined; } } }
-    const k = 1 - Math.exp(-dt * 10);
+    // dt pode vir inválido ou muito alto após pausa/retomada do navegador mobile.
+    // Limitar a interpolação evita NaN/Infinity e saltos bruscos de luz no retorno.
+    const safeDt = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 0.1)) : 0;
+    const k = 1 - Math.exp(-safeDt * 10);
     for (const p of pool) {
-      const s = p.src, l = p.light, live = s && s.parent && effectiveVisible(s);
-      if (s && s.parent) { l.position.setFromMatrixPosition(s.matrixWorld); l.color.copy(s.color); l.distance = s.distance; l.decay = s.decay; }
+      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001 && finitePosition(s);
+      // Não copiar distância/decay inválidos para os uniforms do shader.
+      // A posição da fonte também pode mudar após o ranking do quadro anterior.
+      if (live) {
+        l.position.setFromMatrixPosition(s.matrixWorld);
+        l.color.copy(s.color);
+        l.distance = Number.isFinite(s.distance) && s.distance >= 0 ? s.distance : 40;
+        l.decay = Number.isFinite(s.decay) && s.decay >= 0 ? s.decay : 2;
+      }
       const target = p.next !== undefined || !live ? 0 : s.intensity;
+      // Não propagar NaN/Infinity de efeitos transitórios para os shaders do jogo.
+      if (!Number.isFinite(l.intensity)) l.intensity = 0;
       l.intensity += (target - l.intensity) * k;
       if (p.next !== undefined && l.intensity < .05) { p.src = p.next; p.next = undefined; }
       else if (!live && l.intensity < .02) p.src = null;
