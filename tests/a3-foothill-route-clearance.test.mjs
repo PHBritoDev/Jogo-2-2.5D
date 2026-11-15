@@ -38,3 +38,22 @@ test('valley scatter remains subject to the same clearance', () => {
     seed: 9137, attempts: 1500, isFree: () => false,
   }), []);
 });
+
+
+test('foothill route mask removes only blocked tree positions', () => {
+  const options = { seed: 9137, attempts: 1500 };
+  const baseline = scatterForest(foothill, options);
+  const keep = (x, z) => x >= 0;
+  const filtered = scatterForest(foothill, { ...options, isFree: keep });
+  assert.ok(filtered.length > 0, 'unblocked hillside must retain vegetation');
+  assert.ok(filtered.length < baseline.length, 'reserved half of hillside must lose trees');
+  assert.ok(filtered.every(tree => keep(tree.x, tree.z)), 'every retained tree must clear the path mask');
+});
+
+test('foothill shoreline cutoff is enforced without clearing dry hillside', () => {
+  const options = { seed: 9137, attempts: 1500 };
+  const flooded = { ...foothill, waterDepth: () => -.24 };
+  const dry = { ...foothill, waterDepth: () => -.26 };
+  assert.deepEqual(scatterForest(flooded, options), [], 'shallow water margin must remain clear');
+  assert.ok(scatterForest(dry, options).length > 0, 'dry slope must keep its conifers');
+});
