@@ -118,14 +118,6 @@ jobs:
             echo 'Falta OPENAI_API_KEY; nenhum agente de programação pode ser executado.' >&2
             exit 1
           fi
-      - name: Evitar desperdício com PR A1 existente
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh pr list --state open --json headRefName --jq '.[].headRefName' | grep -q '^agentes/a1/'; then
-            echo 'Já existe PR A1, abortando para não cobrar por uma segunda correção.' >&2
-            exit 1
-          fi
       - name: Codex implementa patch local sem token de escrita
         uses: openai/codex-action@v1
         with:
@@ -171,14 +163,6 @@ jobs:
         with:
           name: a1-robot-${{ github.run_number }}
           path: bug-agent-results
-      - name: Evitar gastar créditos se já houver PR A1
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh pr list --state open --json headRefName --jq '.[].headRefName' | grep -q '^agentes/a1/'; then
-            echo 'Já existe PR A1, não iniciar outra chamada de IA.' >&2
-            exit 1
-          fi
       - name: Instalar Copilot CLI
         run: npm install -g @github/copilot
       - name: Corrigir bug reproduzido no checkout local
@@ -224,10 +208,7 @@ jobs:
         run: |
           set -euo pipefail
           test -s a1-robot.patch || { echo 'Sem mudança concreta; nenhuma PR.'; exit 0; }
-          if gh pr list --state open --json headRefName --jq '.[].headRefName' | grep -q '^agentes/a1/'; then
-            echo 'Já existe PR A1 ativa: não abrir outra.'
-            exit 0
-          fi
+          # Várias PRs independentes A1 são permitidas. O monitor já deduplica pelo conjunto de falhas.
           if ! git apply --check a1-robot.patch; then echo 'Patch incompatível com main atual'; exit 1; fi
           git apply a1-robot.patch
           git diff --check
