@@ -154,3 +154,26 @@ test('large but representable exterior coordinates remain valid', () => {
   });
   assert.ok([...patch.positions].every(Number.isFinite));
 });
+
+test('tiny but finite exterior cells do not collapse into GPU zero-area triangles', () => {
+  assert.throws(() => buildTerrainPatch({ height: () => 0 }, {
+    x0: 100000, x1: 100000.01, z0: 0, z1: 10, cell: 2.5,
+  }), /cells collapse in Float32/);
+});
+
+test('adjacent large-world coordinates remain strictly ordered in Float32', () => {
+  const patch = buildTerrainPatch({ height: () => 0 }, {
+    x0: 100000, x1: 100010, z0: -100000, z1: -99990, cell: 2.5,
+  });
+  const { positions, nx, nz } = patch;
+  for (let j = 0; j < nz; j++) {
+    for (let i = 1; i < nx; i++) {
+      assert.ok(positions[3 * (j * nx + i)] > positions[3 * (j * nx + i - 1)]);
+    }
+  }
+  for (let j = 1; j < nz; j++) {
+    for (let i = 0; i < nx; i++) {
+      assert.ok(positions[3 * (j * nx + i) + 2] > positions[3 * ((j - 1) * nx + i) + 2]);
+    }
+  }
+});
