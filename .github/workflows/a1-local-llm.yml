@@ -39,19 +39,34 @@ jobs:
         with:
           script: |
             const {owner, repo} = context.repo;
-            const list = await github.rest.issues.listForRepo({
-              owner, repo, labels: 'agente-local-a1', state: 'open',
-              per_page: 25, sort: 'created', direction: 'asc'
-            });
+            // On a fresh label event use its issue directly. Search indexes can
+            // lag behind event delivery, so discovery is only a fallback.
+            const issueEvent = context.eventName === 'issues'
+              && context.payload.action === 'labeled'
+              && context.payload.label?.name === 'agente-local-a1'
+              && context.payload.issue?.state === 'open'
+              && !context.payload.issue.pull_request;
+            let candidates;
+            if (issueEvent) {
+              candidates = [context.payload.issue];
+            } else {
+              const list = await github.rest.issues.listForRepo({
+                owner, repo, labels: 'agente-local-a1', state: 'open',
+                per_page: 50, sort: 'created', direction: 'asc'
+              });
+              candidates = list.data;
+            }
             const marker = '<!-- a1-local-llm-v1 -->';
-            for (const issue of list.data) {
+            for (const issue of candidates) {
               if (issue.pull_request) continue;
               const comments = await github.paginate(github.rest.issues.listComments,
-                {owner,repo,issue_number:issue.number,per_page:100});
+                {owner, repo, issue_number: issue.number, per_page: 100});
               if (comments.some(c => String(c.body).includes(marker))) continue;
+              core.info('A1 selecionou Issue #' + issue.number + ' via ' + (issueEvent ? 'evento' : 'busca'));
               core.setOutput('target', issue.number.toString());
               return;
             }
+            core.info('A1 sem Issues pendentes; candidatas=' + candidates.length);
             core.setOutput('target', '');
 
   analisar-com-modelo-local:
