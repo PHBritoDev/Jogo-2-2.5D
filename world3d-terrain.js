@@ -239,6 +239,21 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
     throw new RangeError('buildTerrainPatch: exterior patch exceeds vertex budget');
   }
   const dx = (x1 - x0) / (nx - 1), dz = (z1 - z0) / (nz - 1);
+  // World coordinates can be finite and within Float32 range yet round to
+  // the same GPU coordinate. A collapsed strip has zero-area triangles and
+  // cannot form a traversable exterior surface. Validate before allocating.
+  const distinctGpuCells = (start, end, count, step) => {
+    let previous = Math.fround(start);
+    for (let i = 1; i < count; i++) {
+      const current = Math.fround(i === count - 1 ? end : start + i * step);
+      if (!(current > previous)) return false;
+      previous = current;
+    }
+    return true;
+  };
+  if (!distinctGpuCells(x0, x1, nx, dx) || !distinctGpuCells(z0, z1, nz, dz)) {
+    throw new RangeError('buildTerrainPatch: exterior cells collapse in Float32');
+  }
   const pos = [], idx = [];
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
     const x = i === nx - 1 ? x1 : x0 + i * dx;
