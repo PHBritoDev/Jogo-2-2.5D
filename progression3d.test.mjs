@@ -55,3 +55,13 @@ test('MOD 211 — Espada do Círculo: aprimoramento do Sol da Justiça no Ato IV
   const up = SHOP_ITEMS.find(i => i.id === 'magic3_plus');
   assert.ok(up); assert.equal(up.requires, 'magic3'); assert.equal(up.kind, 'upgrade'); assert.equal(up.step, 21);
 });
+
+test('saldo corrompido não permite comprar nem gravar moedas inválidas', () => {
+  const offer = item('magic');
+  for (const coins of [NaN, Infinity, -Infinity, -1, undefined]) {
+    const ctx = { questStep: 4, level: 2, coins, owned: new Set() };
+    assert.notEqual(shopStatus(offer, ctx).state, 'buyable', 'saldo inválido não libera compra');
+    assert.equal(buyItem(offer, ctx).ok, false, 'compra com saldo inválido deve falhar');
+  }
+  assert.equal(buyItem(offer, { questStep: 4, level: 2, coins: 20, owned: new Set() }).coins, 0);
+});
