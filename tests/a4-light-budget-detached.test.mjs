@@ -143,3 +143,23 @@ test('A4: troca pendente é cancelada quando fonte atual recupera prioridade',()
   assert.ok(slot.intensity>2.9,
     'intensidade da fonte original deve se recuperar sem apagar');
 });
+
+test('A4: clarão pendente removido nunca é promovido ao slot durante fade',()=> {
+  const scene=new Object3D(),camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:60});
+  const torch=new PointLight(0xffffff,3,30,2);torch.name='tocha';
+  torch.matrixWorld.position.x=12;
+  const flash=new PointLight(0xffffff,5,30,2);flash.name='flash';
+  flash.matrixWorld.position.x=1;
+  scene.add(torch);
+  for(let i=0;i<120;i++)budget.update(camera,1/60);
+  scene.add(flash);
+  budget.update(camera,1/60);
+  scene.remove(flash);
+  // Rescan ainda não ocorreu: a seleção precisa ignorar a fonte destacada.
+  for(let i=0;i<120;i++){
+    budget.update(camera,1/60);
+    assert.deepEqual(budget.stats().active,['tocha']);
+  }
+  assert.ok(scene.children[0].intensity>2.9);
+});
