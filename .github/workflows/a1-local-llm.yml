@@ -152,6 +152,49 @@ jobs:
               print("SMOKE REPAIR: candidate generated, staged and AST-verified; original untouched")
 
           PY
+      - name: Piloto real Qwen com módulo JS de jogo em cópia temporária
+        env:
+          MODEL_FILE: ${{ runner.temp }}/model.gguf
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          import os
+          import tempfile
+          spec = importlib.util.spec_from_file_location(
+              "a1_pipeline", "tools/agentes-externos/a1-repair-real-pilot.py"
+          )
+          pipeline = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(pipeline)
+          # O módulo REAL é copiado; o defeito é introduzido somente na cópia.
+          real = Path("hearts3d.js").read_text(encoding="utf-8")
+          with tempfile.TemporaryDirectory(prefix="a1-qwen-real-") as tmp:
+              root = Path(tmp)
+              before = "return Math.max(10, x)"
+              (root / "hearts3d.js").write_text(
+                  real + "\nexport function a1PilotCap(x) { " + before + "; }\n",
+                  encoding="utf-8"
+              )
+              (root / "hearts3d.test.mjs").write_text(
+                  "import test from 'node:test';\n"
+                  "import assert from 'node:assert/strict';\n"
+                  "import { a1PilotCap } from './hearts3d.js';\n"
+                  "test('cap', () => { assert.equal(a1PilotCap(14),10);"
+                  " assert.equal(a1PilotCap(3),3); });\n",
+                  encoding="utf-8"
+              )
+              result = pipeline.run(
+                  root, before,
+                  "O teto de corações é 10; se houver 3, manter 3; se houver 14, limitar a 10.",
+                  os.path.expanduser("~/.cache/a1-llm/llama-bin/llama-cli"),
+                  os.environ["MODEL_FILE"],
+                  examples="x=14 -> 10; x=3 -> 3",
+              )
+              print("A1 REAL QWEN PILOT:", result["result"])
+              if not result["verified_red_green"]:
+                  raise RuntimeError("Qwen failed red/green pilot")
+          PY
       - name: Benchmark de duas correções sintéticas inéditas
         if: ${{ always() }}
         env:
