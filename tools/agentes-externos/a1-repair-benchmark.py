@@ -93,9 +93,12 @@ def evaluate(proposer):
                     observed = [restricted_value(expr, values) for values, _ in case["samples"]]
                     shape += ":evaluated:" + ",".join(str(v)[:12] for v in observed)
                 else:
-                    shape += ":unsupported"
-            except (ValueError, SyntaxError, TypeError, RecursionError, OverflowError):
-                shape += ":unsupported"
+                    shape += ":unsupported:prefix=" + str(answer.startswith("return "))
+                    shape += ":len=" + str(len(answer))
+                    shape += ":newline=" + str("\\n" in answer or "\\r" in answer)
+            except (ValueError, SyntaxError, TypeError, RecursionError, OverflowError) as exc:
+                shape += ":unsupported:" + type(exc).__name__
+                shape += ":len=" + str(len(answer))
             error = shape if not ok else ""
         except (ValueError, TimeoutError) as exc:
             ok, error = False, type(exc).__name__
