@@ -68,11 +68,11 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     for (let i = 0; i < Math.min(slots, ranked.length); i++) chosen.push(ranked[i].s);
     // histerese: quem já ocupa um slot e continua entre os escolhidos fica no mesmo slot
     free.length = 0;
-    // Uma fonte de clarão pode ser removida enquanto aguarda a troca de slot.
-    // Não promover referências destacadas/invalidas após o fade.
+    // A fonte pendente pode ter saído do alcance ou perdido prioridade durante o fade.
+    // Só promover fontes que ainda constam na seleção deste quadro; isso também
+    // exclui clarões destacados, ocultos ou com posição/intensidade inválida.
     for (const p of pool) if (p.next !== undefined && p.next !== null &&
-      (!attachedToScene(p.next) || !effectiveVisible(p.next) ||
-       !Number.isFinite(p.next.intensity) || p.next.intensity <= .001 || !finitePosition(p.next))) p.next = undefined;
+      !chosen.includes(p.next)) p.next = undefined;
     // Se a fonte atual voltou a ser prioritária durante o fade, cancelar a troca pendente.
     for (const p of pool) { if (p.src && chosen.includes(p.src)) { chosen.splice(chosen.indexOf(p.src), 1); p.next = undefined; } else free.push(p); }
     // troca sem piscar: o slot apaga a fonte antiga suavemente e só então acende a nova no lugar dela
