@@ -134,3 +134,23 @@ for (const height of [() => NaN, () => Infinity, (x, z) => x > 2 && z > 2 ? -Inf
     }), /non-finite terrain height/);
   });
 }
+
+
+test('finite Float64 heights that overflow GPU Float32 positions are rejected', () => {
+  assert.throws(() => buildTerrainPatch({ height: () => 1e100 }, {
+    x0: 0, x1: 10, z0: 0, z1: 10, cell: 2.5,
+  }), /exterior position exceeds Float32 range/);
+});
+
+test('finite Float64 world coordinates that overflow GPU Float32 positions are rejected', () => {
+  assert.throws(() => buildTerrainPatch(terrain, {
+    x0: 1e100, x1: 1e100 + 1e90, z0: 0, z1: 10, cell: 1e90,
+  }), /exterior position exceeds Float32 range/);
+});
+
+test('large but representable exterior coordinates remain valid', () => {
+  const patch = buildTerrainPatch({ height: () => 1000 }, {
+    x0: 100000, x1: 100010, z0: -100000, z1: -99990, cell: 2.5,
+  });
+  assert.ok([...patch.positions].every(Number.isFinite));
+});
