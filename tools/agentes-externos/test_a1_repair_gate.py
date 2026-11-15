@@ -119,6 +119,32 @@ class RepairGateTests(unittest.TestCase):
                 "10 menos 3 é 7", examples="x" * 700,
             )
 
+    def test_javascript_fixture_staged_but_not_executed(self):
+        relative = "tools/agentes-externos/fixtures/mana.js"
+        source = self.root / relative
+        original = "export function spendMana(mana, cost) { return mana + cost; }\n"
+        source.write_text(original, encoding="utf-8")
+        proposal = {
+            "path": relative,
+            "base_sha256": hashlib.sha256(original.encode()).hexdigest(),
+            "before": "return mana + cost",
+            "after": "return Math.max(0, mana - cost)",
+        }
+        staged = gate.stage_candidate(self.root, self.output, proposal)
+        self.assertIn("Math.max", staged.read_text())
+        self.assertEqual(source.read_text(), original)
+
+    def test_javascript_prompt_is_explicit(self):
+        from unittest.mock import patch
+        fake = type("Result", (), {"stdout": 'PATCH: {"after":"return Math.max(0, mana - cost)"}\n'})()
+        with patch.object(gate.subprocess, "run", return_value=fake) as run:
+            gate.propose_replacement(
+                "llama", "model", "return mana + cost",
+                "mana nunca negativa", language="JavaScript",
+            )
+        args = run.call_args.args[0]
+        self.assertIn("linha JavaScript sintética", args[args.index("-p") + 1])
+
     def test_rejects_stale_checksum(self):
         self.candidate["base_sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "checksum"):
