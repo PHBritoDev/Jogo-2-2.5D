@@ -102,7 +102,7 @@ export function energyBody(T,parent,preset,options={}){
  const direction=new T.Vector3(),axis=new T.Vector3(0,0,1);
  return{mesh,material,update(time,{position,dir,radius=1,length=1,alpha=.94,quality=1,dissolve=0}={}){
   syncWarpBounds();// Fragment shader discards alpha below .015; skip the entire draw at that threshold.
-  mesh.visible=Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<1;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
+  mesh.visible=Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<1&&Number.isFinite(radius)&&radius!==0&&Number.isFinite(length)&&length!==0;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
   material.uniforms.time.value=time;material.uniforms.alpha.value=alpha;material.uniforms.detail.value=quality===0?.65:1;material.uniforms.dissolve.value=dissolve;
  },dispose(){parent.remove(mesh);geometry.dispose();material.dispose();}};
 }
