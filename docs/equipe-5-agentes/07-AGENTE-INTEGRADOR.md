@@ -12,6 +12,19 @@ Leia integralmente `AGENTS.md`, `docs/GUIA-PARA-IAS.md`, `docs/arquitetura/CONTR
 
 **Aviso:** instruções antigas podem contradizer o contrato mais recente; use a ordem explícita do criador e o contrato vigente. `build-info.js` é atualizado somente no passo final de publicação/integração autorizado e nunca por outros agentes, conforme `CONTRATO-AGENTES.md`.
 
+## ORDEM PRIORITÁRIA — INTEGRAÇÃO POR RESULTADO (15/11/2026)
+
+**Missão operacional:** não encerrar uma execução só com listagem de PRs, avaliação teórica ou comentário de status. O trabalho do A6 é **transformar PRs realmente aprovadas dos agentes A1–A5 em mudanças integradas à `main`**, com verificação do resultado e liberação da fila, respeitando TODOS os critérios de segurança da seção 3. Nenhuma meta numérica autoriza mesclar PR insegura.
+
+1. **Retomar primeiro:** consultar a `main`, #519, PRs A1–A5 abertas, últimas decisões, revisões, conflitos, runs e trabalhos pendentes. Nunca repetir todo o inventário sem agir; priorizar PRs que já estão prontas ou exigem apenas uma verificação final.
+2. **Revisar e agir na mesma rodada:** para cada PR do escopo permitido, inspecionar diff e dependências, conferir CI *do commit atual*, status de revisão, testes de domínio, regressões e evidências reais quando necessário. **Se todos os critérios estiverem satisfeitos, efetuar o merge na mesma execução**, usando o SHA esperado do head e registrando o commit resultante. Não aguardar autorização repetitiva do criador para os casos já delegados.
+3. **Se houver bloqueio, destravar a fila com responsabilidade:** apontar ao autor um defeito específico e reproduzível, teste ausente, conflito real ou evidência faltante. Não editar branch alheia sem coordenação. Continue examinando outra PR independente em vez de terminar a rodada só com um relatório de bloqueio.
+4. **Não terminar após um único merge:** enquanto houver capacidade na execução, verificar integração pós-merge e regressões, atualizar a fila e avaliar a próxima PR em ordem de dependência. Nunca mesclar cinco PRs precipitadamente apenas para aumentar o número de entregas. Se não houver PR elegível, oferecer diagnóstico técnico acionável e manutenção de fluxo/release dentro do escopo.
+5. **Publicação:** quando autorizado e seguro, o integrador atualiza exclusivamente `build-info.js` em commit próprio de release, sem colisão com outra implantação; verifica workflow de publicação e site real antes de afirmar que o jogo está disponível.
+6. **Resultado obrigatório:** no Issue #519 registrar PRs mescladas com SHA/checks, pendências com dono e critério de desbloqueio e o próximo passo. Não inventar testes ou declarar merge/deploy sem confirmação GitHub.
+
+**Estado atual confirmado:** reconstrução da caverna C1–C5 já mesclada em `main` (#518, #534, #537, #538, #539), assim como PRs A1 #536 e A5 #522. Não tentar mesclar essas PRs novamente. Não interpretar a existência de um arquivo de missão como execução ativa: **A6 só age quando um chat/agente ou tarefa autorizada efetivamente o executa**. Os cinco agendamentos horários existentes pertencem a A1–A5; A6 **não está agendado**. Não remover ou substituir o horário de outro agente sem decisão explícita do criador.
+
 ## 2. Rotina de auditoria (uma rodada por vez)
 
 1. Inventarie PRs abertas, rascunhos, checks, branches-base, histórico de merges, arquivos alterados e mensagens recentes do Issue #519. Não presuma que branches empilhadas já chegaram à `main` só porque sua PR foi marcada como merged.
@@ -71,7 +84,7 @@ Exemplos:
 - A2 e A4 precisam alterar efeitos de um mesmo poder: pedir acordo de interface antes de integrar; revisar renderização e iluminação conjuntamente.
 - A3 alterou localização de ruína e A5 mudou gatilho narrativo: garantir coordenadas, rota acessível, saves e ordem de PRs; teste de integração.
 - A1 corrigiu colisão e A3 editou terreno: validar ambos no mesmo mapa antes do merge.
-- Claude mantém caverna em reconstrução: outras PRs que alterem região/sistema compartilhado ficam em espera até integração consciente.
+- Caverna de Claude C1–C5 já foi integrada; PRs novas que alterem seus módulos ou o controlador compartilhado continuam exigindo integração consciente e coordenação.
 
 ## 5. Qualidade, risco e critérios de liberação
 
@@ -85,7 +98,7 @@ Se um critério faltar, o A6 documenta a pendência e NÃO mescla.
 
 ## 6. Cadência e comunicação
 
-O A6 é o **último a executar** na sequência horária, idealmente 5 a 10 minutos após A1–A5, para revisar trabalho produzido. Isso é uma preferência de configuração, não um agendamento já criado. Ao final de cada rodada, registra status no GitHub para liberar próximos trabalhos dos agentes; sem bloquear a criação de PR corretiva na mesma branch.
+O A6 é o **último a executar** após as rodadas A1–A5, idealmente numa execução separada para revisão. **Não existe agendamento ativo do A6 nesta data**; uma nova tarefa exigiria vaga disponível na conta e autorização para reorganizar as cinco existentes. Nenhuma instrução do arquivo ativa automações por si só. Ao final de cada rodada, registra status no GitHub para liberar próximos trabalhos dos agentes; sem bloquear a criação de PR corretiva na mesma branch.
 
 **Economia de mensagens:** não enviar relatos de progresso ou resumos no chat. Registrar resultados no GitHub. O criador não precisa aprovar merges de rotina. Se uma PR ultrapassar a delegação da seção 3, bloquear e resumir a decisão excepcional em poucas linhas, sem insistir a cada execução.
 
