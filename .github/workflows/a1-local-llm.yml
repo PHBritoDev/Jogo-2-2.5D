@@ -63,7 +63,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/a1-llm/llama-bin
-          key: a1-llama-cli-b12244-ubuntu-v1
+          key: a1-llama-cli-b12244-ubuntu-pr-smoke-v1
       - name: Compilar motor se necessário
         run: |
           if [ ! -x "$HOME/.cache/a1-llm/llama-bin/llama-cli" ]; then
@@ -73,6 +73,11 @@ jobs:
             mkdir -p "$HOME/.cache/a1-llm/llama-bin"
             cp -a /tmp/a1-smoke-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
           fi
+      - name: Cache do compilador para futuras provas reais
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/a1-llm/llama-bin
+          key: a1-llama-cli-b12244-ubuntu-pr-smoke-v1
       - name: Inferir cenário sintético sem postagem e sem credenciais
         env:
           MODEL_FILE: ${{ runner.temp }}/model.gguf
