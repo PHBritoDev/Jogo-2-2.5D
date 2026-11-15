@@ -135,6 +135,18 @@ class LocalAgentTests(unittest.TestCase):
         self.assertNotIn("available commands", report)
         self.assertNotIn("Prompt:", report)
 
+    def test_extra_section_reports_only_safe_heading_shape(self):
+        output = (
+            "### Hipótese a validar\nPossível problema de câmera ainda não comprovado.\n"
+            "### Passos de reprodução\nCaminhar por área conhecida e gravar a tela.\n"
+            "### Arquivos a inspecionar\nInspecionar o controlador de câmera 3D.\n"
+            "### Correção mínima sugerida\nAjustar somente após identificação do defeito.\n"
+            "### Testes de regressão\nVerificar novamente a câmera em movimento.\n"
+            "### Texto inesperado\nNão publicar qualquer conteúdo desta seção.\n"
+        )
+        with self.assertRaisesRegex(ValueError, r"shape=123450"):
+            agent.clean_report(output)
+
     def test_three_sections_are_rejected_even_if_long(self):
         incomplete = (
             "### Hipótese a validar\n" + "Possível falha de câmera. " * 14 + "\n"
