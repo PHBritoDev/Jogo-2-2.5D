@@ -74,10 +74,34 @@ class RepairGateTests(unittest.TestCase):
         from unittest.mock import patch
         bad = type("Result", (), {"stdout": 'PATCH: {"after": return hp - damage}\n'})()
         with patch.object(gate.subprocess, "run", return_value=bad) as run:
-            with self.assertRaisesRegex(ValueError, "bounded retry"):
+            with self.assertRaisesRegex(ValueError, "bounded validation"):
                 gate.propose_replacement("llama", "model", self.original,
                                          "10 HP - 3 = 7")
+        self.assertEqual(run.call_count, 3)
+
+    def test_test_driven_retry_repairs_initial_noop(self):
+        from unittest.mock import patch
+        noop = type("Result", (), {"stdout": 'PATCH: {"after":"return hp + damage"}\n'})()
+        fixed = type("Result", (), {"stdout": 'PATCH: {"after":"return hp - damage"}\n'})()
+        with patch.object(gate.subprocess, "run", side_effect=[noop, fixed]) as run:
+            after = gate.propose_replacement(
+                "llama", "model", "return hp + damage", "10 menos 3 resulta 7",
+                validator=lambda answer: answer == "return hp - damage",
+            )
+        self.assertEqual(after, "return hp - damage")
         self.assertEqual(run.call_count, 2)
+        self.assertIn("FALHOU nos testes", run.call_args.args[0][run.call_args.args[0].index("-p") + 1])
+
+    def test_test_driven_retry_stops_after_three_wrong_replies(self):
+        from unittest.mock import patch
+        wrong = type("Result", (), {"stdout": 'PATCH: {"after":"return hp + damage"}\n'})()
+        with patch.object(gate.subprocess, "run", return_value=wrong) as run:
+            with self.assertRaisesRegex(ValueError, "bounded validation"):
+                gate.propose_replacement(
+                    "llama", "model", "return hp + damage", "10 menos 3 resulta 7",
+                    validator=lambda answer: False,
+                )
+        self.assertEqual(run.call_count, 3)
 
     def test_rejects_stale_checksum(self):
         self.candidate["base_sha256"] = "0" * 64
