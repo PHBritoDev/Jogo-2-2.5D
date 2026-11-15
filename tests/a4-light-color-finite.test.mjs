@@ -31,6 +31,11 @@ test('A4: non-finite RGB never reaches a shader slot and valid light recovers', 
   for(let i=0;i<50;i++) budget.update(camera,1/60);
   assert.equal(slot.intensity<0.02,true);
   assert.ok(Number.isFinite(slot.color.r));
+  // Negative linear RGB is also invalid for lighting and can darken surfaces.
+  source.color.r=-0.5;
+  for(let i=0;i<50;i++) budget.update(camera,1/60);
+  assert.ok(slot.intensity<0.02);
+  assert.ok(slot.color.r>=0);
   source.color.r=0.7;
   for(let i=0;i<30;i++) budget.update(camera,1/60);
   assert.ok(slot.intensity>0);
