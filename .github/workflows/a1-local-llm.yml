@@ -14,6 +14,8 @@ on:
       - "tools/agentes-externos/test_a1_repair_benchmark.py"
       - "tools/agentes-externos/a1-js-repair-benchmark.py"
       - "tools/agentes-externos/test_a1_js_repair_benchmark.py"
+      - "hearts3d.js"
+      - "hearts3d.test.mjs"
   issues:
     types: [labeled]
   schedule:
