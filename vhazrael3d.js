@@ -33,7 +33,10 @@ const lead = (t, k, cap) => ({ x: t.x + clamp((t.vx || 0) * k, -cap, cap), z: t.
 const anyActive = (sq, type) => sq.spells.some(s => s.type === type && !s.dead && s.phase !== 'fade');
 const channeling = (sq, s) => { const o = sq.actor(s.owner); return !!(o && o.alive && o.act && o.act.type === 'cast' && o.act.spellId === s.id); };
 
-export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 20, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 4.6, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, shockAt: .25, shockTravel: 1.6, blast: 1.05, fade: 2.8 };
+export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 20, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 4.6, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, shockAt: .25, shockTravel: 1.6, blast: .6, fade: 2.8,
+  /* Mod 320: SEGUNDA explosão — mesmo epicentro do contato, .6 s após a primeira (compressão + detonação), frente que cresce até r em grow s;
+     dano próprio por CONTATO da frente (no máximo 1 por alvo), telegrafado desde o impacto pelo anel no chão; pular acima de h, dash (iframes) ou sair do raio escapa. */
+  second: { r: 4.8, grow: .42, h: 3.2, dmg: 14 } };
 export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 14, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
 export const BOMBARD = { min: 3, max: 26, cast: .9, release: .45, cd: 18, anim: 'idle', channel: false, rise: .6, dur: 5.6, every: .22, fall: .62, r: 1.45, dmg: 6, lead: .12, leadCap: 1.6, side: 2.6, jitter: .5, fireR: 1.45, fireLife: 2.6, fireTick: .6, fireDmg: 2, maxFires: 12, alt: 10.5 };
 export const ORBITAL = { min: 0, max: 60, cast: 15.8, release: .05, cd: 999, anim: 'idle', channel: true, awaken: 2.6, orbit: 3, entry: 4, arrival: 1.6, choice: 2.6, impact: 2, after: 2.2, guard: .35, dmg: 95, shieldDmg: 14, needSkills: 3, lowHp: .35 };
@@ -245,13 +248,28 @@ registerSkill('throne', {
       }
       if (!s.blasted && s.t >= T.blast) {
         s.blasted = true;
-        sq.event('throneBlast', { spell: s }); // apenas reforço VISUAL, nunca outra bomba
+        sq.event('throneBlast', { spell: s }); // Mod 320: segunda explosão no MESMO epicentro (s.ix/s.iz), dano abaixo
+      }
+      if (s.blasted && T.second && !s.secondDone) { // frente da segunda explosão: só quem ela TOCA, uma vez, nunca o que já passou
+        const S2 = T.second, k = clamp((s.t - T.blast) / S2.grow, 0, 1), R = S2.r * (1 - (1 - k) ** 2), R0 = s.r2 || 0;
+        s.hit2 = s.hit2 || new Set();
+        for (const tg of live(sq)) {
+          if (s.hit2.has(tg.id)) continue;
+          const d = Math.hypot(tg.x - s.ix, tg.z - s.iz);
+          if (d - tg.radius > R || d + tg.radius < R0) continue; // a frente ainda não chegou / já passou por dentro dele
+          if ((tg.air || 0) > S2.h || tg.iframes) continue;
+          if (sq.los && !sq.los(s.ix, s.iz, tg.x, tg.z)) continue;
+          s.hit2.add(tg.id);
+          const res = sq.damageTarget(tg.id, S2.dmg, { kind: 'throneSecond', spell: s.id, x: s.ix, z: s.iz, knock: 0 });
+          sq.event('throneSecondHit', { spell: s, target: tg.id, result: res, damage: S2.dmg });
+        }
+        s.r2 = R; if (k >= 1) s.secondDone = true;
       }
       if (s.t >= T.impact) { s.phase = 'fade'; s.t = 0; }
     }
         else if (s.phase === 'fade' && s.t >= T.fade) s.dead = true;
   },
-  danger(sq, s) { return s.phase === 'wave' ? { x: s.x + s.dx * s.front, z: s.z + s.dz * s.front, r: s.T.w + 1, until: .4 } : null; }
+  danger(sq, s) { return s.phase === 'wave' ? { x: s.x + s.dx * s.front, z: s.z + s.dz * s.front, r: s.T.w + 1, until: .4 } : s.phase === 'impact' && s.T.second && !s.secondDone ? { x: s.ix, z: s.iz, r: s.T.second.r + .5, until: Math.max(.1, s.T.blast + s.T.second.grow - s.t) } : null; }
 });
 
 

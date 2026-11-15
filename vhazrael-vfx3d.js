@@ -1,5 +1,6 @@
 import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smooth, easeOut, hash } from './celestial-fxkit3d.js';
-import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod276-feathered-wings';
+import { createRuptureVFX } from './vhazrael-rupture3d.js?v=mod320-segunda';
+import { createThroneSkyVFX } from './vhazrael-throne-sky3d.js?v=mod320';
 import { createExtinctionVFX } from './vhazrael-extinction3d.js?v=mod255-bombardeio-dobro';
 import { createBombardVFX } from './vhazrael-bombard3d.js?v=mod255-bombardeio-dobro';
 /**
@@ -118,6 +119,7 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
   /* ---------- Skill 2: Entidade + Mãos ---------- */
   /* ---------- Ruptura do Trono (MOD 249) ---------- */
   const rupture = createRuptureVFX(T, { root, glow, rib, decals, shard, plate, ring, boltRib, ground });
+  const throneSky = createThroneSkyVFX(T, { root, rib, glow, boltRib, ground }); // Mod 320: céu na carga + segunda explosão
   /* ---------- Extinção Orbital (MOD 253): módulo próprio vhazrael-extinction3d.js ---------- */
   const extinction = createExtinctionVFX(T, { root, glow, rib, decals, shard, plate, ring, ground });
   /* ---------- Bombardeio Abissal Perseguidor (MOD 254): módulo próprio ---------- */
@@ -131,8 +133,8 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
     /** blades: {id → {a,b}} pontas da Lâmina do Trono em mundo. Devolve a Extinção em curso (fase/tempo) para câmera e cena. */
     update(dt, camera, spells, actors = [], quality = 1, blades = {}, target = null, heads = {}) {
       time += dt; uTime.value = time; low = quality === 0; cam.copy(camera.position); sn = pn = rn = 0; for (const st of spikeSets) st.n = 0;
-      glow.begin(); rib.begin(camera, time); decals.begin(); rupture.begin(camera, time, quality, target); extinction.begin(camera, time, quality); bombard.begin(camera, time, quality); const boss = actors.find(a => a.alive && a.kind === 'vhazrael');
-      for (const s of spells) { if (s.type === 'thorns') drawThorns(s); else if (s.type === 'throne') rupture.draw(s, blades[s.owner], actors.find(a => a.id === s.owner && a.alive)); else if (s.type === 'bombard') bombard.draw(s, actors.find(a => a.id === s.owner && a.alive), target); else if (s.type === 'orbital') { const o = actors.find(a => a.id === s.owner && a.alive); extinction.draw(s, o, target, o ? heads[o.id] : null); } }
+      glow.begin(); rib.begin(camera, time); decals.begin(); rupture.begin(camera, time, quality, target); throneSky.begin(camera, time); extinction.begin(camera, time, quality); bombard.begin(camera, time, quality); const boss = actors.find(a => a.alive && a.kind === 'vhazrael');
+      for (const s of spells) { if (s.type === 'thorns') drawThorns(s); else if (s.type === 'throne') { rupture.draw(s, blades[s.owner], actors.find(a => a.id === s.owner && a.alive)); throneSky.draw(s, blades[s.owner], actors.find(a => a.id === s.owner), low); } else if (s.type === 'bombard') bombard.draw(s, actors.find(a => a.id === s.owner && a.alive), target); else if (s.type === 'orbital') { const o = actors.find(a => a.id === s.owner && a.alive); extinction.draw(s, o, target, o ? heads[o.id] : null); } }
       if (boss && boss.phase2 && !low) for (let i = 0; i < 6; i++) { const a = i * 1.05 + time * 1.3, u = (time * .7 + i / 6) % 1; glow.add(boss.x + Math.cos(a) * .7, boss.y + u * 2.6, boss.z + Math.sin(a) * .7, .25, .5, 1, .03, .06, (1 - u) * .7, 0); }
       for (const st of spikeSets) { st.m.count = st.n; st.m.instanceMatrix.needsUpdate = true; }
       shards.count = sn; shards.instanceMatrix.needsUpdate = true; plates.count = pn; plates.instanceMatrix.needsUpdate = true; rings.count = rn; rings.instanceMatrix.needsUpdate = true;
@@ -140,8 +142,8 @@ export function createVhazraelVFX(T, scene, { ground = () => 0 } = {}) {
     },
     /** pedido de câmera da Ruptura (abrir o plano/olhar para cima durante a carga) — o jogo decide se usa */
     get throneHint() { return rupture.camHint; }, get throneTint() { return rupture.tint; },
-    get throneReferenceStats() { return rupture.referenceStats; },
-    clear() { rupture.clear(); extinction.clear(); bombard.clear(); for (const st of spikeSets) st.m.count = 0; shards.count = plates.count = rings.count = 0;  },
-    dispose() { scene.remove(root); rupture.dispose(); extinction.dispose(); bombard.dispose(); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); glow.dispose(); rib.dispose(); decals.dispose(); }
+    get throneReferenceStats() { return rupture.referenceStats; }, get throneSkyStats() { return throneSky.stats; },
+    clear() { rupture.clear(); throneSky.clear(); extinction.clear(); bombard.clear(); for (const st of spikeSets) st.m.count = 0; shards.count = plates.count = rings.count = 0;  },
+    dispose() { scene.remove(root); rupture.dispose(); throneSky.dispose(); extinction.dispose(); bombard.dispose(); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); glow.dispose(); rib.dispose(); decals.dispose(); }
   };
 }

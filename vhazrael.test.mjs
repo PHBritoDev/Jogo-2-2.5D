@@ -124,8 +124,26 @@ test('Mod 252: hit imediato no feixe, contato único e choque depois no MESMO po
   run(sq, 1.4);
   assert.equal(log.filter(e => e.type === 'throneShockwave').length, 1);
   assert.equal(log.filter(e => e.type === 'throneBlast').length, 1);
-  assert.equal(dmg.filter(d => d.id === 'hero').length, 1,
-    'um único dano por jogador, sem segunda bomba');
+  // Mod 320: a SEGUNDA explosão nasce no MESMO epicentro e tem dano próprio, telegrafado; parado no centro, o herói a recebe uma vez.
+  assert.deepEqual(dmg.filter(d => d.id === 'hero').map(d => d.kind), ['throne', 'throneSecond'], 'corte + segunda explosão (sem ghost hit, sem repetir)');
+  const sec = dmg.find(d => d.kind === 'throneSecond'); assert.ok(Math.hypot(sec.x - impact.spell.ix, sec.z - impact.spell.iz) < 1e-6, 'segunda explosão no MESMO epicentro');
+  run(sq, 4); assert.equal(dmg.filter(d => d.id === 'hero').length, 2, 'nada depois');
+});
+
+test('Mod 320: segunda explosão da Ruptura — atraso legível, escapável correndo, pulando ou com dash; no máximo 1 acerto', () => {
+  const THRONE = VZ.boss.throne; assert.ok(THRONE.blast >= .35 && THRONE.blast <= .75, 'segunda detonação .35–.75 s depois da primeira');
+  for (const how of ['corre', 'pula', 'dash', 'parado']) {
+    const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 16); a.alert = a.decideT = 1e9; cast(sq, a, h, 'throne');
+    run(sq, 5.22); assert.ok(log.some(e => e.type === 'throneImpact'));
+    const sp = log.find(e => e.type === 'throneImpact').spell;
+    run(sq, .3); // reação dentro da janela do telegraph (anel no chão desde o impacto)
+    if (how === 'corre') { h.x = sp.ix + THRONE.second.r + h.radius + .3; h.z = sp.iz; }
+    if (how === 'pula') h.air = THRONE.second.h + .5;
+    if (how === 'dash') h.iframes = true;
+    run(sq, .9); h.air = 0; h.iframes = false; run(sq, 3);
+    const n = dmg.filter(d => d.kind === 'throneSecond').length;
+    assert.equal(n, how === 'parado' ? 1 : 0, how);
+  }
 });
 
 test('Mod 252: obstáculo encerra feixe antes do jogador e i-frames respeitam esquiva', () => {
