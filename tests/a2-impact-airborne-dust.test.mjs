@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { impactTouchesGround, impactGroundHeight, impactRecordValid } from '../vfx-impact3d.js';
+import { impactTouchesGround, impactGroundHeight, impactRecordValid, impactDirectionValid } from '../vfx-impact3d.js';
 
 test('ground contact accepts nearby finite impact heights', () => {
   assert.equal(impactTouchesGround(0, 0), true);
@@ -50,4 +50,16 @@ test('malformed impacts are rejected before entering pooled VFX', () => {
     }
   }
   assert.equal(impactRecordValid(valid), true, 'a valid event still works after invalid input');
+});
+
+
+test('impact directions reject degenerate and nonfinite vectors without blocking valid combat', () => {
+  assert.equal(impactDirectionValid({ x: 0, y: 1, z: 0 }), true);
+  assert.equal(impactDirectionValid({ x: -2, y: 0, z: 4 }), true);
+  assert.equal(impactDirectionValid({ x: 0, y: 0, z: 0 }), false);
+  assert.equal(impactDirectionValid({ x: 1e308, y: 0, z: 0 }), false);
+  for (const bad of [null, undefined, {}, { x: NaN, y: 1, z: 0 }, { x: 0, y: Infinity, z: 0 }]) {
+    assert.equal(impactDirectionValid(bad), false);
+  }
+  assert.equal(impactDirectionValid({ x: 0, y: 1, z: 0 }), true);
 });
