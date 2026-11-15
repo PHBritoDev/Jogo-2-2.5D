@@ -1,0 +1,21 @@
+name: QA corações — save e regeneração
+on:
+  pull_request:
+    paths:
+      - 'hearts3d.js'
+      - 'hearts3d.test.mjs'
+      - '.github/workflows/qa-hearts-save.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  hearts-save:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar saves, relógio e regeneração de corações
+        run: node --test hearts3d.test.mjs
