@@ -61,40 +61,41 @@ def stage_candidate(root, output, candidate):
     return staged
 
 
-def propose_replacement(llama_bin, model, source, behavior):
-    """Ask the local model for one replacement; never execute its raw response."""
+def propose_replacement(llama_bin, model, source, behavior, validator=None):
+    """Bounded repair loop: one proposal plus at most two test-driven retries.
+
+    validator is a trusted local checker; no generated code is executed here.
+    Its result is only a boolean. Never disclose raw model output in logs.
+    """
     if not isinstance(source, str) or not isinstance(behavior, str):
         raise ValueError("Invalid repair input")
     if len(source) > 800 or len(behavior) > 240:
         raise ValueError("Repair prompt exceeds pilot limits")
-    prompt = (
-        "<|im_start|system>\n"
-        "Você corrige um ERRO LÓGICO de uma única linha Python sintética. "
-        "A linha original TEM UM DEFEITO e não satisfaz o comportamento. "
-        "NÃO repita a linha original: conserte-a. Preserve nomes das variáveis. "
-        "Para um teto máximo use min; para piso mínimo zero use max. "
-        "Responda exclusivamente com uma linha no formato PATCH: seguido de JSON "
-        "com a única chave after. O valor after DEVE começar com return e um espaço, "
-        "conter uma única instrução Python, sem comentários, blocos ou explicação. "
-        "Exemplo de FORMATO: PATCH: {\"after\": \"return score - spent\"}. "
-        "Nunca execute nada, não use markdown.\n"
-        "<|im_end|>\n<|im_start|user>\n"
-        + "Código original:\n" + source
-        + "\nComportamento esperado:\n" + behavior
-        + "\n<|im_end|>\n<|im_start|assistant>\n"
+    if validator is not None and not callable(validator):
+        raise ValueError("Validator must be callable")
+    system = (
+        "Você corrige UM erro lógico de uma linha Python sintética. "
+        "Preserve os nomes das variáveis existentes. "
+        "NÃO devolva a linha original se ela contradiz o comportamento esperado. "
+        "A saída é uma única linha: PATCH: seguido de um JSON válido com "
+        'exatamente a chave "after". Exemplo: PATCH: {"after":"return score - spent"}. '
+        "O código after começa com 'return ' e é uma expressão Python única, "
+        "sem markdown, comentários, imports, execução ou explicações."
     )
-    for attempt in range(2):
-        active_prompt = prompt
-        if attempt:
-            active_prompt = prompt.replace(
-                "Nunca execute nada, não use markdown.\n",
-                "A resposta anterior teve JSON inválido: agora responda com JSON "
-                "rigorosamente válido, com aspas duplas escapadas corretamente. "
-                "Não inclua texto extra. Nunca execute nada, não use markdown.\n",
-                1,
-            )
+    base_user = (
+        "Linha original:\n" + source
+        + "\nComportamento obrigatório:\n" + behavior
+    )
+    feedback = ""
+    for attempt in range(3):
+        prompt = (
+            "<|im_start|system>\n" + system
+            + "\n<|im_end|>\n<|im_start|user>\n"
+            + base_user + feedback
+            + "\n<|im_end|>\n<|im_start|assistant>\n"
+        )
         result = subprocess.run(
-            [llama_bin, "-m", model, "-p", active_prompt, "-n", "180",
+            [llama_bin, "-m", model, "-p", prompt, "-n", "180",
              "-c", "2048", "-t", "2", "--temp", "0.1",
              "--single-turn", "--no-display-prompt", "--simple-io"],
             capture_output=True, text=True, encoding="utf-8",
@@ -102,19 +103,31 @@ def propose_replacement(llama_bin, model, source, behavior):
         )
         matches = re.findall(r"(?m)^PATCH:\s*(\{[^\n]{1,400}\})\s*$", result.stdout)
         if len(matches) != 1:
-            raise ValueError("Model did not produce one isolated patch object")
+            feedback = "\nTentativa anterior rejeitada: formato incorreto. Gere somente uma linha PATCH: JSON."
+            continue
         try:
             proposal = json.loads(matches[0])
         except json.JSONDecodeError:
-            if attempt == 0:
-                continue
-            raise ValueError("Model JSON invalid after bounded retry") from None
+            feedback = "\nTentativa anterior rejeitada: JSON inválido. Use aspas duplas e escape corretamente."
+            continue
         if not isinstance(proposal, dict) or set(proposal) != {"after"}:
             raise ValueError("Model patch has invalid fields")
-        if not isinstance(proposal["after"], str) or not proposal["after"].strip():
+        after = proposal["after"]
+        if not isinstance(after, str) or not after.strip():
             raise ValueError("Empty model replacement")
-        return proposal["after"]
-    raise ValueError("Model patch unavailable after bounded retry")
+        if not after.startswith("return ") or len(after) > 240 or "\n" in after or "\r" in after:
+            feedback = "\nTentativa anterior rejeitada: escreva somente uma linha Python 'return expressão'."
+            continue
+        if validator is None:
+            return after
+        if validator(after):
+            return after
+        feedback = (
+            "\nA proposta anterior FALHOU nos testes automáticos de comportamento. "
+            "Não a repita. Reanalise operadores e limites usando a especificação. "
+            "Responda com uma correção diferente no mesmo formato JSON."
+        )
+    raise ValueError("Model patch did not pass bounded validation")
 
 
 def main():
