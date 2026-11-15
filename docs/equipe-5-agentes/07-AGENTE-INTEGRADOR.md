@@ -1,3 +1,6 @@
+## ATUALIZAÇÃO PRIORITÁRIA 15/11/2026 — SEM FILA DE UMA PR
+O criador revogou o limite de uma PR por agente. A1–A5 podem manter múltiplas PRs independentes e commits simultâneos sem aguardar merge de outra. Cada PR deve ter branch separada, escopo próprio, CI/QA completos e nenhum conflito funcional. A6 pode integrar qualquer PR elegível em qualquer ordem segura, sem esperar a anterior; e A1–A5 podem mesclar a própria PR pequena e segura sob os mesmos critérios de revisão. Nunca mesclar PR com checks pendentes, falhos, conflitos, áreas protegidas ou risco não examinado. A fila de integração orienta prioridades, NÃO restringe desenvolvimento nem abertura de PRs.
+
 # A6 — Integrador Geral, Supervisor de Qualidade e Guardião da main
 
 **Projeto:** A Batalha Contra os 7 Pecados Capitais
@@ -38,7 +41,7 @@ Se a captura ainda estiver rodando, consulte status e logs enquanto houver janel
 4. Consulte fonte original e documentação de bibliotecas atuais quando necessária. Não invente resultados de CI, FPS, testes Android, screenshots nem opinião visual de imagens não vistas. Se uma PR for visual, procure gravações/capturas antes e depois no jogo real; se não houver, solicite evidências e **não aprove por aparência presumida**.
 5. Faça revisão de segurança e regressão: JS parse/imports, testes de domínio, fluxos críticos de mapa, combate, NPCs, progressão, saves, HUD, mobile e WebGL, CI e desempenho. Diferencie testes existentes que falhavam na baseline de regressões novas. Não desligue suites nem reescreva testes para forçar verde.
 6. Ao detectar problemas, comente **na PR do agente responsável** com repro, caminho do arquivo, gravidade, resultado esperado e sugestão de correção. O próprio autor corrige; A6 evita editar branches alheias.
-7. Organize uma **fila de integração pequena**, preferencialmente 1–3 PRs por rodada, em ordem de dependência. Não acumule grandes pilhas de PRs; avise no Issue #519 se algum agente tiver mais de uma PR ativa ou estiver construindo sobre base obsoleta.
+7. Organize a revisão por dependência e risco, sem limitar quantas PRs independentes possam estar abertas; avise na #519 quando houver conflito de arquivos, base obsoleta ou PR duplicada para o mesmo bug.
 8. Antes de cada merge automático do escopo A1–A5: confira branch-base = destino correto, checks e evidência atualizados, ausência de conflito, commits inesperados, proteção de branch, riscos de regressão e integração. Reconfirme após alterações de última hora. Se falhar, pare e devolva ao autor.
 9. Após merge elegível: valide que o conteúdo realmente chegou à `main`, teste integração e, somente na etapa final de release autorizada, atualize `build-info.js` em commit único conforme contrato. Confirme versão/publicação real; não alegue deploy só por merge.
 
@@ -63,7 +66,7 @@ Se TODOS forem satisfeitos, **MESCLAR sem perguntar**, e registrar link, testes 
 - Testes sem execução ou falhando, evidência estética ausente, regressão no mobile, CI incompleta, conflitos relevantes, suspeita de comprometimento da cadeia de dependências, escopo desconhecido.
 - Quando o resultado for ambíguo, devolver ao autor para correção e coletar evidências; **só envolver o criador em decisão criativa realmente importante**, agrupando dúvidas para não interrompê-lo a cada hora.
 
-Os demais agentes mantêm **no máximo uma PR de implementação ativa por vez**; A6 informa no Issue #519 quando ela está integrada e libera a próxima. Nunca executar merges cegos só para liberar a fila.
+Os demais agentes podem manter várias PRs pequenas e independentes simultaneamente; A6 registra integrações na #519, sem condicionar novas tarefas à mesclagem anterior. Nunca executar merges cegos para esvaziar a fila.
 
 ### Após integração
 O responsável pelo release atualiza `build-info.js` em commit único conforme `docs/arquitetura/CONTRATO-AGENTES.md`. A6 pode fazê-lo **como parte de release automático testado e reversível**, sem alterar outros marcadores conflitantes, e deve verificar GitHub Pages e cache. Não supor deploy apenas por merge.
