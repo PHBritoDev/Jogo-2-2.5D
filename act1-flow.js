@@ -161,6 +161,9 @@ export function migrateProgress(raw) {
   const version = Number(raw.version);
   if (version >= ACT1.version) {
     const step = clampInt(raw.questStep, 0, 30, 0);
+    // Concluir o Ato I exige derrotar VHAZRAEL; saves antigos podem perder o contador.
+    // Reconstituir apenas o mínimo canônico, sem apagar vitórias posteriores.
+    const bishopsDefeated = Math.max(step >= 8 ? 1 : 0, clampInt(raw.bishopsDefeated, 0, 4, 0));
     const out = {
       ...base,
       ...shared,
@@ -172,9 +175,9 @@ export function migrateProgress(raw) {
       wardenDefeated: !!raw.wardenDefeated,
       portalOpened: !!raw.portalOpened,
       portalRewardClaimed: !!raw.portalRewardClaimed,
-      bishopsDefeated: clampInt(raw.bishopsDefeated, 0, 4, 0),
+      bishopsDefeated,
       vhazraelRewardClaimed: !!raw.vhazraelRewardClaimed || step >= 8,
-      ...progressionFields(raw, step)
+      ...progressionFields({ ...raw, bishopsDefeated }, step)
     };
     // Save do Ato I antigo (antes do Marco 2) parado no meio do ato: a etapa é mantida, mas a etapa recomeça
     // do jeito novo (o roteiro mudou: vendedor, floresta à noite, esgotos). Ouro, nome e compras ficam.
