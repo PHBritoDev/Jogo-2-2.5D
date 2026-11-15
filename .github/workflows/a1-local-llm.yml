@@ -20,6 +20,7 @@ on:
       - "tools/agentes-externos/test_a1_real_repair_verify.py"
       - "tools/agentes-externos/a1-repair-real-pilot.py"
       - "tools/agentes-externos/test_a1_repair_real_pilot.py"
+      - "tools/agentes-externos/test_a1_real_module_regression.py"
       - "tools/agentes-externos/a1-save-fallback.test.mjs"
       - "hearts3d.js"
       - "hearts3d.test.mjs"
