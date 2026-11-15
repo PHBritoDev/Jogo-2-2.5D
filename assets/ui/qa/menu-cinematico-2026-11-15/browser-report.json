@@ -1,0 +1,217 @@
+{
+  "environment": "Chromium/SwiftShader; mobile viewport emulation, not physical Android",
+  "reports": [
+    {
+      "view": {
+        "name": "desktop-1536x864",
+        "width": 1536,
+        "height": 864
+      },
+      "loadMs": 4295,
+      "info": {
+        "models": {
+          "guardian": "AnjoGuiador-otimizado.glb",
+          "wings": "Asas.glb",
+          "lust": "Misteriosa-rig.glb",
+          "hero": "Protagonista.glb",
+          "storm": "storm-effigy.glb"
+        },
+        "gpu": {
+          "calls": 194,
+          "triangles": 206400,
+          "textures": 11
+        },
+        "canvasCount": 1,
+        "glError": 0
+      },
+      "planets": [
+        {
+          "id": 1,
+          "selected": true,
+          "locked": false
+        },
+        {
+          "id": 2,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 3,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 4,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 5,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 6,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 7,
+          "selected": true,
+          "locked": true
+        }
+      ],
+      "settings": true,
+      "readiness": true,
+      "contextRestored": true,
+      "callbackAndTeardown": true,
+      "dynamicValues": true,
+      "errors": [],
+      "bad": []
+    },
+    {
+      "view": {
+        "name": "mobile-emulated-852x393",
+        "width": 852,
+        "height": 393
+      },
+      "loadMs": 1851,
+      "info": {
+        "models": {
+          "guardian": "AnjoGuiador-otimizado.glb",
+          "wings": "Asas.glb",
+          "lust": "Misteriosa-rig.glb",
+          "hero": "Protagonista.glb",
+          "storm": "storm-effigy.glb"
+        },
+        "gpu": {
+          "calls": 194,
+          "triangles": 206400,
+          "textures": 11
+        },
+        "canvasCount": 1,
+        "glError": 0
+      },
+      "planets": [
+        {
+          "id": 1,
+          "selected": true,
+          "locked": false
+        },
+        {
+          "id": 2,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 3,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 4,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 5,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 6,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 7,
+          "selected": true,
+          "locked": true
+        }
+      ],
+      "settings": true,
+      "readiness": true,
+      "contextRestored": true,
+      "callbackAndTeardown": true,
+      "dynamicValues": true,
+      "errors": [],
+      "bad": []
+    },
+    {
+      "view": {
+        "name": "narrow-667x375",
+        "width": 667,
+        "height": 375,
+        "reduced": true
+      },
+      "loadMs": 1951,
+      "info": {
+        "models": {
+          "guardian": "AnjoGuiador-otimizado.glb",
+          "wings": "Asas.glb",
+          "lust": "Misteriosa-rig.glb",
+          "hero": "Protagonista.glb",
+          "storm": "storm-effigy.glb"
+        },
+        "gpu": {
+          "calls": 194,
+          "triangles": 206400,
+          "textures": 11
+        },
+        "canvasCount": 1,
+        "glError": 0
+      },
+      "planets": [
+        {
+          "id": 1,
+          "selected": true,
+          "locked": false
+        },
+        {
+          "id": 2,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 3,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 4,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 5,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 6,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 7,
+          "selected": true,
+          "locked": true
+        }
+      ],
+      "settings": true,
+      "readiness": true,
+      "contextRestored": true,
+      "callbackAndTeardown": true,
+      "dynamicValues": true,
+      "errors": [],
+      "bad": []
+    },
+    {
+      "view": {
+        "name": "WebGL unavailable"
+      },
+      "fallback": true,
+      "entered": true
+    }
+  ]
+}

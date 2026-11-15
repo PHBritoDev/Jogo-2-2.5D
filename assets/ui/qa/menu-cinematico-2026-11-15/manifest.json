@@ -1,0 +1,28 @@
+{
+  "baseline": "2732e9d",
+  "implementation": "35c415b7924767f52e85d7d988ac16e6e40fb1de",
+  "baselineGPU": {
+    "calls": 300,
+    "triangles": 184277,
+    "textures": 9
+  },
+  "baselineLoad": [
+    {
+      "viewport": {
+        "width": 1536,
+        "height": 864
+      },
+      "loadMs": 11423
+    },
+    {
+      "viewport": {
+        "width": 852,
+        "height": 393
+      },
+      "loadMs": 5979
+    }
+  ],
+  "reference": "Imagem anexada à conversa do criador; inspeção visual, sem comparação pixel a pixel",
+  "environment": "Chromium 154 / SwiftShader / DPR 1, sem Android físico",
+  "visualApproval": "Pendente; resultado estilizado, equivalência ao realismo da referência não demonstrada"
+}
