@@ -36,7 +36,11 @@ def safe_js_value(code, values):
         raise ValueError("Invalid JavaScript statement")
     if any(x in code for x in (";", "\n", "\r", "#", "{", "}", "[", "]")):
         raise ValueError("Unexpected JavaScript syntax")
-    expr = code[7:].replace("Math.min(", "min(").replace("Math.max(", "max(")
+    expr = code[7:]
+    # Rejeitar min/max globais: Python válido não é necessariamente JavaScript válido.
+    if __import__("re").search(r"(?<![\\w.])(?:min|max)\\s*\\(", expr):
+        raise ValueError("Global min/max is not valid JavaScript")
+    expr = expr.replace("Math.min(", "min(").replace("Math.max(", "max(")
     tree = ast.parse(expr, mode="eval").body
     return bench.restricted_value(tree, values)
 
