@@ -208,3 +208,20 @@ test('A5: legacy V5 missing shop fields still migrates with default progression'
   assert.equal(restored.sword, 'prota');
   assert.deepEqual(migrateProgress(restored), restored);
 });
+
+test('A5: completed Act I legacy checkpoint cannot pay VHAZRAEL twice when reward flag is missing', () => {
+  for (const questStep of [8, '8', 9, 14]) {
+    const legacy = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev,
+      questStep, coins: 120, bishopsDefeated: 1, vhazraelRewardClaimed: false });
+    const victory = afterVhazraelVictory(legacy);
+    assert.equal(victory.coinsGained, 0);
+    assert.equal(victory.vhazraelRewardClaimed, true);
+    const reload = migrateProgress({ ...legacy, ...victory });
+    assert.equal(reload.coins, 120);
+    assert.equal(afterVhazraelVictory(reload).coinsGained, 0);
+  }
+  const firstVictory = afterVhazraelVictory(migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 7, coins: 120
+  }));
+  assert.equal(firstVictory.coinsGained, ACT1.vhazraelReward);
+});
