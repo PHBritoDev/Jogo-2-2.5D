@@ -47,3 +47,21 @@ test('Arena do Vale e Coliseu da Ascensão têm IDs próprios e descoberta indep
   const saved = createMapState(serializeMapState(state));
   assert.ok(saved.pois.has(coliseu.id) && saved.pois.has(arena.id));
 });
+
+test('save legado com secretsFound nulo não derruba descoberta de locais', () => {
+  const ruin = MAP_POIS.find(p => p.id === 'ruina');
+  const s = createMapState();
+  assert.doesNotThrow(() => discoverPois(s, ruin.x, ruin.z, { secretsFound: null }));
+  assert.equal(s.pois.has('ruina'), false, 'segredo não deve ser revelado por campo nulo');
+  assert.equal(s.pois.has('vila'), true, 'save legado não pode impedir descoberta de POIs públicos próximos');
+  assert.ok(discoverPois(s, ruin.x, ruin.z, { secretsFound: { ruina: true } }).some(p => p.id === 'ruina'));
+});
+
+
+test('opções nulas de mapa legado não interrompem a descoberta de locais públicos', () => {
+  const s = createMapState();
+  const vila = MAP_POIS.find(p => p.id === 'vila');
+  assert.doesNotThrow(() => discoverPois(s, vila.x, vila.z, null));
+  assert.equal(s.pois.has('vila'), true);
+  assert.equal(s.pois.has('ruina'), false, 'não revelar segredo por falta de opções');
+});
