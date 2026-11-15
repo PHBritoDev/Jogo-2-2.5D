@@ -67,11 +67,28 @@ export function energyBody(T,parent,preset,options={}){
  // The vertex shader displaces vertices along their normals. Expand the local bounds
  // by the maximum displacement so off-screen effects can be safely frustum-culled.
  geometry.computeBoundingSphere();
- geometry.boundingSphere.radius += Math.abs(material.uniforms.warp.value) * .85;
+ const baseBoundingRadius=geometry.boundingSphere.radius;
+ let boundedWarp=NaN;
+ function syncWarpBounds(){
+  // The shader's two sine terms have a combined maximum amplitude of .85.
+  // Warp is a public uniform: refresh the bound if another VFX controller edits it.
+  const warp=material.uniforms.warp.value;
+  if(warp===boundedWarp)return;
+  if(!Number.isFinite(warp)){
+   // Invalid displacement must never allow an object to disappear through culling.
+   mesh.frustumCulled=false;
+   boundedWarp=warp;
+   return;
+  }
+  geometry.boundingSphere.radius=baseBoundingRadius+Math.abs(warp)*.85;
+  mesh.frustumCulled=true;
+  boundedWarp=warp;
+ }
+ syncWarpBounds();
  mesh.frustumCulled=true;parent.add(mesh);
  const direction=new T.Vector3(),axis=new T.Vector3(0,0,1);
  return{mesh,material,update(time,{position,dir,radius=1,length=1,alpha=.94,quality=1,dissolve=0}={}){
-  mesh.visible=alpha>.005;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
+  syncWarpBounds();mesh.visible=alpha>.005;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
   material.uniforms.time.value=time;material.uniforms.alpha.value=alpha;material.uniforms.detail.value=quality===0?.65:1;material.uniforms.dissolve.value=dissolve;
  },dispose(){parent.remove(mesh);geometry.dispose();material.dispose();}};
 }
