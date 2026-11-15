@@ -1,0 +1,23 @@
+name: A3 — regressão dos retalhos exteriores
+on:
+  pull_request:
+    paths:
+      - 'world3d-terrain.js'
+      - 'tests/a3-terrain-patch-bounds.test.mjs'
+      - '.github/workflows/a3-terrain-patch-regression.yml'
+  workflow_dispatch:
+jobs:
+  terrain-patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe do terreno
+        run: node --check world3d-terrain.js
+      - name: Executar regressões A3 reais do repositório
+        run: node --test tests/a3-terrain-patch-bounds.test.mjs
