@@ -208,9 +208,17 @@ export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, 
  * esconder frestas de T-junction nas encostas.
  */
 export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt = 4, skirtEdges = ['x0', 'x1', 'z1'] } = {}) {
-  const nx = Math.round((x1 - x0) / cell) + 1, nz = Math.round((z1 - z0) / cell) + 1;
+  // Preserve the requested world-space edges even when a span is not a multiple
+  // of cell. Rounded step counts previously shifted the patch edge and its skirt.
+  const nx = Math.max(2, Math.round((x1 - x0) / cell) + 1);
+  const nz = Math.max(2, Math.round((z1 - z0) / cell) + 1);
+  const dx = (x1 - x0) / (nx - 1), dz = (z1 - z0) / (nz - 1);
   const pos = [], idx = [];
-  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const x = x0 + i * cell, z = z0 + j * cell; pos.push(x, terrain.height(x, z), z); }
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+    const x = i === nx - 1 ? x1 : x0 + i * dx;
+    const z = j === nz - 1 ? z1 : z0 + j * dz;
+    pos.push(x, terrain.height(x, z), z);
+  }
   for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
     const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
     if ((i + j) & 1) idx.push(a, c, b, b, c, d); else idx.push(a, c, d, a, d, b);
