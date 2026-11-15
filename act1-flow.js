@@ -92,10 +92,10 @@ export function progressionFields(raw, questStep) {
     if ((Number(r.bishopsDefeated) || 0) >= 1) owned.push('magic3');
   }
   const stats = {};
-  for (const k of STAT_KEYS) stats[k] = Math.max(0, Math.floor(Number(r.stats && r.stats[k]) || 0));
+  for (const k of STAT_KEYS) stats[k] = clampInt(r.stats && r.stats[k], 0, Number.MAX_SAFE_INTEGER, 0);
   const list = v => (Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 64) : []);
   return {
-    xp: Math.max(0, Math.floor(Number(r.xp) || 0)),
+    xp: clampInt(r.xp, 0, Number.MAX_SAFE_INTEGER, 0),
     owned: [...new Set(owned)],
     sword: ['aurora', 'vigilia', 'celeste'].includes(r.sword) && owned.includes(r.sword) ? r.sword : 'prota',
     stats,
@@ -103,14 +103,14 @@ export function progressionFields(raw, questStep) {
     bestiary: list(r.bestiary),
     bestiaryRewarded: list(r.bestiaryRewarded),
     shopVisited: !!r.shopVisited,
-    playSeconds: Math.max(0, Math.floor(Number(r.playSeconds) || 0)),
+    playSeconds: clampInt(r.playSeconds, 0, Number.MAX_SAFE_INTEGER, 0),
     ledgersFound: Array.isArray(r.ledgersFound) ? [...new Set(r.ledgersFound.filter(i => Number.isInteger(i) && i >= 0 && i < 3))] : [],
     vorgazhekRewardClaimed: !!r.vorgazhekRewardClaimed,
     lateFound: Array.isArray(r.lateFound) ? r.lateFound.filter(i => Number.isInteger(i) && i >= 0 && i < 8) : [],
-    lateFoundStep: Math.max(0, Math.floor(Number(r.lateFoundStep) || 0)),
-    lateFightIndex: Math.max(0, Math.min(5, Math.floor(Number(r.lateFightIndex) || 0))),
+    lateFoundStep: clampInt(r.lateFoundStep, 0, Number.MAX_SAFE_INTEGER, 0),
+    lateFightIndex: clampInt(r.lateFightIndex, 0, 5, 0),
     lateBossClaimed: r.lateBossClaimed && typeof r.lateBossClaimed === 'object' ? { zarkhael: !!r.lateBossClaimed.zarkhael, veraxion: !!r.lateBossClaimed.veraxion } : {},
-    gauntletIndex: Math.max(0, Math.min(4, Math.floor(Number(r.gauntletIndex) || 0))),
+    gauntletIndex: clampInt(r.gauntletIndex, 0, 4, 0),
     finaleClaimed: !!r.finaleClaimed,
     // MOD 206 — casaco de frio do Ato III (comprado na estrada da cidade de neve).
     coatOwned: !!r.coatOwned,
