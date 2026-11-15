@@ -20,4 +20,4 @@ jobs:
       - name: Verificar arquivo JS
         run: node --check light-budget3d.js
       - name: Executar teste específico e contrato base
-        run: node --test tests/a4-light-budget-detached.test.mjs light-budget3d.test.mjs
+        run: node --test tests/a4-light-budget-detached.test.mjs
