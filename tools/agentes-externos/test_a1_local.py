@@ -113,7 +113,7 @@ class LocalAgentTests(unittest.TestCase):
     def test_prompt_requests_bounded_five_section_report(self):
         with tempfile.TemporaryDirectory() as d:
             prompt = agent.prompt_for({"number": 2, "title": "Bug", "body": "Falha"}, Path(d))
-        self.assertIn("cinco cabeçalhos Markdown", prompt)
+        self.assertIn("cinco seções, nessa ordem exata", prompt)
         self.assertIn("### Testes de regressão", prompt)
         self.assertIn("nunca invente evidências", prompt)
 
