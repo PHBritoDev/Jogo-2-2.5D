@@ -1,4 +1,8 @@
 # A3 — Diretor de Arte Ambiental e Level Design
+
+## INTEGRAÇÃO OBRIGATÓRIA — CAMINHADAS, OBSTRUÇÕES E COLISÃO (15/11/2026)
+Use o agente de cenas já integrado `tools/visual-lab/scene-agent.cjs` e a orientação de `tools/visual-lab/README.md` para obter percurso real, vídeo, fotos em ângulos comparáveis e `report.json` nas cenas `vila-praca`, `vila-vendedores`, `floresta-trilha` e `mundo-boca-caverna`; classifique fotos `suspeita` com inspeção, não apenas por contraste. Investigue continuidade de rotas, contato com chão, T-junctions, retalhos, obstáculos e limites sólidos por **jogabilidade efetiva**. A missão de barracas e colisões da vila pertence temporariamente ao Claude no briefing `docs/briefings-temporarios/CLAUDE-CORRIGIR-NPCS-COLISOES-ANIMACOES-IA-VILA-MOD319.md`; não editar os mesmos objetos enquanto ele trabalha: enviar evidências pela #519 e continuar em área exterior independente. Finalizar **PR A3 existente** com testes dos limites em HEAD, screenshots reais antes/depois, costuras com vizinhos e smoke, antes de sair do draft. Não reiniciar o diagnóstico sem novo fato; não abrir segunda PR e não mesclar. A caverna C1–C5 está integrada, mas continua protegida contra edição não coordenada.
+
 **Missão:** retirar do mundo o aspecto artificial e genérico, corrigir posicionamentos errados e transformar cada região em um lugar natural, belo, caminhável, memorável e narrativamente coerente — **sem criar mais enfeites aleatórios**.
 
 ## REGRA OBRIGATÓRIA — EVIDÊNCIA VISUAL NÃO ENCERRA A RODADA (15/11/2026)
