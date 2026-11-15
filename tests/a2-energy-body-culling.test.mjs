@@ -75,3 +75,20 @@ test('energy body keeps culling disabled for invalid initial warp and recovers',
     assert.equal(children.length,0);
   }
 });
+
+// Regression: a finite warp can still overflow the conservative sphere bound
+// if geometry bounds are unusually large. Never cull against Infinity.
+test('energy body fails open when expanded bounding radius overflows', () => {
+  class HugeGeometry extends Geometry {
+    computeBoundingSphere() { this.boundingSphere={radius:Number.MAX_VALUE}; }
+  }
+  const hugeT={...T,BufferGeometry:HugeGeometry};
+  const parent={add() {},remove() {}};
+  const fx=energyBody(hugeT,parent,'celestial',{warp:Number.MAX_VALUE});
+  assert.equal(fx.mesh.frustumCulled,false);
+  fx.material.uniforms.warp.value=0;
+  fx.update(1,{alpha:1});
+  assert.equal(fx.mesh.frustumCulled,true);
+  assert.equal(fx.mesh.geometry.boundingSphere.radius,Number.MAX_VALUE);
+  fx.dispose();
+});
