@@ -38,3 +38,20 @@ test('salvamento com timestamp futuro não bloqueia regeneração nem cria timer
   assert.equal(live.since, now, 'ajuste de relógio também durante sessão aberta');
   assert.equal(msToNextHeart({ hearts: 3, since: future }, now), HEARTS.regenMs);
 });
+
+test('save com data negativa não concede corações instantâneos', () => {
+  const now = 1000000;
+  const loaded = normalizeHearts({ hearts: 3, since: -5000000 }, now);
+  assert.equal(loaded.hearts, 3, 'um save inválido não pode presentear horas de regeneração');
+  assert.equal(loaded.since, now);
+  assert.equal(msToNextHeart(loaded, now), HEARTS.regenMs);
+});
+
+test('cronômetro não exibe NaN para marca temporal inválida', () => {
+  const now = 1000000;
+  const state = { hearts: 4, since: Number.NaN };
+  assert.equal(msToNextHeart(state, now), HEARTS.regenMs);
+  const recovered = tickHearts(state, now);
+  assert.equal(recovered.hearts, 4);
+  assert.equal(recovered.since, now);
+});
