@@ -1552,7 +1552,7 @@ new GLTFLoader().load('./AnjoGuiador-otimizado.glb?v=mod316-anjo',gltf=>{
  if(renderer.compileAsync)renderer.compileAsync(imported,camera,scene).then(attach,attach);else attach();
 },undefined,err=>{console.error('AnjoGuiador-otimizado.glb não carregou:',err);status.textContent='Não foi possível carregar o Anjo-Guia (AnjoGuiador-otimizado.glb)';});
 const PROGRESS_KEY='sevenSins3DCampaignV6';
-function read3DProgress(){try{const keys=[PROGRESS_KEY,'sevenSins3DCampaignV5','sevenSins3DCampaignV4','sevenSins3DCampaignV3','sevenSins3DCampaignV2','sevenSins3DCampaignV1'];for(const key of keys){const raw=JSON.parse(localStorage.getItem(key)||'null');if(raw)return migrateProgress(raw);}return migrateProgress({coins:0});}catch(_){return migrateProgress(null);}}
+function read3DProgress(){try{const keys=[PROGRESS_KEY,'sevenSins3DCampaignV5','sevenSins3DCampaignV4','sevenSins3DCampaignV3','sevenSins3DCampaignV2','sevenSins3DCampaignV1'];for(const key of keys){let raw=null;try{raw=JSON.parse(localStorage.getItem(key)||'null');}catch(_){continue;}/* A1-SAVE-FALLBACK-02: slot corrompido não esconde um slot antigo válido */if(raw)return migrateProgress(raw);}return migrateProgress({coins:0});}catch(_){return migrateProgress(null);}}
 let saved3DProgress=read3DProgress();
 let sideReady=false;
 let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,journeyEnemyIndex=saved3DProgress.journeyEnemyIndex,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
