@@ -78,3 +78,14 @@ for (const options of [
     assert.throws(() => buildTerrainPatch(terrain, options), RangeError);
   });
 }
+
+// A positive but absurdly small cell is technically finite, yet would freeze
+// low-memory mobile browsers while building the arrays. Reject before alloc.
+for (const options of [
+  { x0: 0, x1: 1000, z0: 0, z1: 1000, cell: 0.1 },
+  { x0: 0, x1: 100, z0: 0, z1: 100, cell: Number.MIN_VALUE },
+]) {
+  test('exterior vertex budget rejects pathological resolution without allocation', () => {
+    assert.throws(() => buildTerrainPatch(terrain, options), RangeError);
+  });
+}
