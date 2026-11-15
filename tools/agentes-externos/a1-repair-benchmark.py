@@ -64,7 +64,7 @@ def behaves_correctly(code, case):
     """Red/green behavioral validation of an expression-only candidate."""
     if not isinstance(code, str) or len(code) > 240 or not code.startswith("return "):
         return False
-    if any(x in code for x in ("\\n", "\\r", ";", "#")):
+    if any(x in code for x in ("\n", "\r", ";", "#")):
         return False
     try:
         expr = ast.parse(code[7:], mode="eval").body
