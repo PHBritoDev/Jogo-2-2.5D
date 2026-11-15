@@ -177,3 +177,14 @@ test('adjacent large-world coordinates remain strictly ordered in Float32', () =
     }
   }
 });
+
+test('exterior skirt rejects Float32 underflow while the surface remains valid', () => {
+  const opts = { x0: 0, x1: 10, z0: 0, z1: 10, cell: 2.5 };
+  // Both the height and the skirt are individually finite and representable,
+  // but their subtraction is not. Only the surface is safe for WebGL.
+  const terrainNearFloatLimit = { height: () => -3e38 };
+  assert.doesNotThrow(() => buildTerrainPatch(terrainNearFloatLimit, { ...opts, skirt: 0 }));
+  assert.throws(() => buildTerrainPatch(terrainNearFloatLimit, { ...opts, skirt: 3e38 }),
+    /exterior skirt exceeds Float32 range/);
+  assert.doesNotThrow(() => buildTerrainPatch(terrainNearFloatLimit, { ...opts, skirt: 3e38, skirtEdges: [] }));
+});
