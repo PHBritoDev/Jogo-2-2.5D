@@ -21,6 +21,12 @@ export function impactRecordValid({ time, point, size = 2 } = {}) {
     && Number.isFinite(point?.x) && Number.isFinite(point?.y) && Number.isFinite(point?.z);
 }
 
+/** Direction vectors from combat records must be finite and non-degenerate. */
+export function impactDirectionValid(dir) {
+  return Number.isFinite(dir?.x) && Number.isFinite(dir?.y) && Number.isFinite(dir?.z)
+    && (dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) > 1e-12;
+}
+
 /** Consumes collision records without deciding damage. Fixed reusable slots and 3D tectonic impact shatter. */
 export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () => {} } = {}) {
   const root = new T.Group();
@@ -49,9 +55,7 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
       Object.assign(s, { id, time, size, preset, kind, seed: head });
       Object.assign(s.point, point);
       // A malformed direction must never poison pooled shader transforms.
-      const validDir = Number.isFinite(dir?.x) && Number.isFinite(dir?.y) && Number.isFinite(dir?.z)
-        && (dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) > 1e-12;
-      Object.assign(s.dir, validDir ? dir : { x: 0, y: 1, z: 0 });
+      Object.assign(s.dir, impactDirectionValid(dir) ? dir : { x: 0, y: 1, z: 0 });
       s.body.material.uniforms.celestial.value = preset === 'celestial' ? 1 : 0;
       const pal = ENERGY_PALETTES[preset] || ENERGY_PALETTES.crimson;
       for (const k of ['deep', 'body', 'hot']) s.body.material.uniforms[k].value.setRGB(...pal[k]);
