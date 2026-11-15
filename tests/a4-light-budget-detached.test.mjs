@@ -37,3 +37,22 @@ test('A4: fonte anexada diretamente continua elegível',()=>{
   scene.add(source);budget.update(camera,1);
   assert.deepEqual(budget.stats().active,['tocha-ativa']);
 });
+
+test('A4: seleção reutilizada troca fonte distante por próxima sem duplicar slots',()=> {
+  const scene=new Object3D(), camera=new Object3D();
+  const budget=createLightBudget(T,scene,{slots:1,rescanEvery:1});
+  const distant=new PointLight(0xffffff,2,30,2); distant.name='distante';
+  distant.matrixWorld.position.x=20;
+  const near=new PointLight(0xffffff,2,30,2); near.name='proxima';
+  near.matrixWorld.position.x=1;
+  scene.add(distant);
+  budget.update(camera,1);
+  assert.deepEqual(budget.stats().active,['distante']);
+  scene.add(near);
+  for(let i=0;i<5;i++) budget.update(camera,1);
+  assert.deepEqual(budget.stats().active,['proxima']);
+  scene.remove(near);
+  for(let i=0;i<5;i++) budget.update(camera,1);
+  assert.deepEqual(budget.stats().active,['distante']);
+  assert.equal(budget.stats().sources,1);
+});
