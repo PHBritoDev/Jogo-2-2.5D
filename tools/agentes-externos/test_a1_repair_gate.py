@@ -60,6 +60,25 @@ class RepairGateTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "invalid fields"):
                 gate.propose_replacement("llama", "model", self.original, "10 - 3 = 7")
 
+    def test_retries_once_on_invalid_json_then_accepts_valid_patch(self):
+        from unittest.mock import patch
+        bad = type("Result", (), {"stdout": 'PATCH: {"after": return hp - damage}\n'})()
+        good = type("Result", (), {"stdout": 'PATCH: {"after":"return hp - damage"}\n'})()
+        with patch.object(gate.subprocess, "run", side_effect=[bad, good]) as run:
+            actual = gate.propose_replacement("llama", "model", self.original,
+                                               "10 HP - 3 = 7")
+        self.assertEqual(actual, "return hp - damage")
+        self.assertEqual(run.call_count, 2)
+
+    def test_invalid_json_never_runs_more_than_twice(self):
+        from unittest.mock import patch
+        bad = type("Result", (), {"stdout": 'PATCH: {"after": return hp - damage}\n'})()
+        with patch.object(gate.subprocess, "run", return_value=bad) as run:
+            with self.assertRaisesRegex(ValueError, "bounded retry"):
+                gate.propose_replacement("llama", "model", self.original,
+                                         "10 HP - 3 = 7")
+        self.assertEqual(run.call_count, 2)
+
     def test_rejects_stale_checksum(self):
         self.candidate["base_sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "checksum"):
