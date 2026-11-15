@@ -63,7 +63,12 @@ export function energyGeometry(T,{rings=30,sides=14,tail=3,seed=0}={}){
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();return g;
 }
 export function energyBody(T,parent,preset,options={}){
- const geometry=energyGeometry(T,options),material=energyMaterial(T,preset,{warp:.12,...options}),mesh=new T.Mesh(geometry,material);mesh.frustumCulled=false;parent.add(mesh);
+ const geometry=energyGeometry(T,options),material=energyMaterial(T,preset,{warp:.12,...options}),mesh=new T.Mesh(geometry,material);
+ // The vertex shader displaces vertices along their normals. Expand the local bounds
+ // by the maximum displacement so off-screen effects can be safely frustum-culled.
+ geometry.computeBoundingSphere();
+ geometry.boundingSphere.radius += Math.abs(material.uniforms.warp.value) * .85;
+ mesh.frustumCulled=true;parent.add(mesh);
  const direction=new T.Vector3(),axis=new T.Vector3(0,0,1);
  return{mesh,material,update(time,{position,dir,radius=1,length=1,alpha=.94,quality=1,dissolve=0}={}){
   mesh.visible=alpha>.005;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&direction.set(dir.x,dir.y||0,dir.z).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
