@@ -43,7 +43,7 @@ test('câmera: a grade rápida concorda com o campo exato (≥ 99 %) e segura a 
 
 test('integração: worker com reserva na thread principal, folha antiga até chegar, rollback e câmera pelo mesmo campo', () => {
   assert.match(cave, /new Worker\(new URL\('\.\/ascension-cave-sdf\.worker\.js', import\.meta\.url\), \{ type: 'module' \}\)/);
-  assert.match(cave, /setTimeout\(local, 0\)/); assert.match(cave, /caverna=0/); assert.match(cave, /gridSolid = makeGridSolid\(r\.columns\)/);
+  assert.match(cave, /setTimeout\(local, 0\)/); assert.match(cave, /caverna=0/); assert.match(cave, /gridSdf = makeGridSDF\(r\.columns\); gridSolid = /); // C3: mesmo campo, valor exposto para o teto real
   assert.match(cave, /if \(gridSolid\) \{ if \(gridSolid\(x, y, z, \.6\)\) return true; \}/);
   assert.match(cave, /const ready = Promise\.all\(\[readyAssets, sdfReady\]\)/);
   assert.match(worker, /buildCaveSurface/); assert.ok(CAVE.chambers.length >= 6, 'câmaras preservadas');

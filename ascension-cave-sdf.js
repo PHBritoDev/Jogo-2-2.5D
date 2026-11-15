@@ -137,15 +137,38 @@ export function buildCaveSurface({ cell = 1, box = SDF_BOX } = {}) {
     columns: { nx, nz, cell, x0: box.x0, z0: box.z0, f: gf, fl: gfl, rf: grf } };
 }
 
-/** Teste de sólido rápido pela grade de colunas (bilinear) + ruído 3D: o mesmo campo da malha, barato o bastante para
- *  os ~100 raios de câmera por quadro. Fora da grade = rocha. */
-export function makeGridSolid(G) {
+/** Valor do campo pela grade de colunas (bilinear) + ruído 3D: o mesmo campo da malha, barato o bastante para os ~100
+ *  raios de câmera por quadro. Fora da grade = rocha (+4). */
+export function makeGridSDF(G) {
   const { nx, nz, cell, x0, z0, f, fl, rf } = G;
   const lerp = (A, i, j, u, v) => { const a = A[i + j * nx], b = A[i + 1 + j * nx], c = A[i + (j + 1) * nx], d = A[i + 1 + (j + 1) * nx]; return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; };
-  return (x, y, z, pad = .5) => {
+  return (x, y, z) => {
     const gx = (x - x0) / cell, gz = (z - z0) / cell, i = Math.floor(gx), j = Math.floor(gz);
-    if (i < 0 || j < 0 || i >= nx - 1 || j >= nz - 1) return true;
+    if (i < 0 || j < 0 || i >= nx - 1 || j >= nz - 1) return 4;
     const u = gx - i, v = gz - j;
-    return caveSDF(x, y, z, { f: lerp(f, i, j, u, v), fl: lerp(fl, i, j, u, v), rf: lerp(rf, i, j, u, v) }) > -pad;
+    return caveSDF(x, y, z, { f: lerp(f, i, j, u, v), fl: lerp(fl, i, j, u, v), rf: lerp(rf, i, j, u, v) });
   };
+}
+/** Teste de sólido rápido (câmera): rocha com folga `pad`. */
+export function makeGridSolid(G) { const sdf = makeGridSDF(G); return (x, y, z, pad = .5) => sdf(x, y, z) > -pad; }
+
+/**
+ * C3 — sombreamento assado da malha (roda no Worker junto com a malha):
+ *  - normais suaves pelo gradiente do próprio campo (sem facetas de Surface Nets);
+ *  - oclusão de reentrâncias: 3 amostras do campo ao longo da normal (0,6 / 1,6 / 3,2 m). Onde a rocha "fecha" sobre o
+ *    ponto, ele escurece. Entra na cor de vértice, então o shader não paga nada.
+ * Devolve { normals: Float32Array(3n), ao: Float32Array(n) } com ao em [0,32; 1].
+ */
+export function shadeCaveSurface(r) {
+  const sdf = makeGridSDF(r.columns), P = r.positions, n = P.length / 3, N = new Float32Array(P.length), AO = new Float32Array(n), e = .35;
+  const S = [[.6, .45], [1.6, .35], [3.2, .2]];
+  for (let v = 0; v < n; v++) {
+    const x = P[v * 3], y = P[v * 3 + 1], z = P[v * 3 + 2];
+    let gx = sdf(x + e, y, z) - sdf(x - e, y, z), gy = sdf(x, y + e, z) - sdf(x, y - e, z), gz = sdf(x, y, z + e) - sdf(x, y, z - e);
+    const l = Math.hypot(gx, gy, gz) || 1; gx /= -l; gy /= -l; gz /= -l; // normal aponta para o ar (campo decresce)
+    N[v * 3] = gx; N[v * 3 + 1] = gy; N[v * 3 + 2] = gz;
+    let occ = 0; for (const [d, w] of S) { const s = sdf(x + gx * d, y + gy * d, z + gz * d); occ += w * Math.max(0, Math.min(1, (s + d) / d)); }
+    AO[v] = Math.max(.32, 1 - occ * 1.3);
+  }
+  return { normals: N, ao: AO };
 }
