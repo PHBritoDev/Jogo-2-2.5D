@@ -15,7 +15,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     const l = new T.PointLight(0xffffff, 0, 10, 2); l.name = 'orcamento-luz-' + i; l.userData.budgetSlot = true; scene.add(l);
     return { light: l, src: null, next: undefined };
   });
-  const sources = new Set(), sourceScore = new Map(), ranked = [], chosen = [];
+  const sources = new Set(), sourceScore = new Map(), ranked = [], chosen = [], free = [];
   let frame = 0;
   /* Mod 316 — guarda imediata: antes, uma PointLight nova (tocha GLB que termina de carregar, efeito, zona) ficava até
      45 quadros na camada 0 até o próximo scan. Nesse intervalo o número de luzes do shader mudava (+1) e TODOS os
@@ -63,7 +63,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     chosen.length = 0;
     for (let i = 0; i < Math.min(slots, ranked.length); i++) chosen.push(ranked[i].s);
     // histerese: quem já ocupa um slot e continua entre os escolhidos fica no mesmo slot
-    const free = [];
+    free.length = 0;
     for (const p of pool) { if (p.src && chosen.includes(p.src)) chosen.splice(chosen.indexOf(p.src), 1); else free.push(p); }
     // troca sem piscar: o slot apaga a fonte antiga suavemente e só então acende a nova no lugar dela
     for (const p of free) { const s = chosen.shift() || null; if (s !== p.src) { if (p.src && p.light.intensity > .05) p.next = s; else { p.src = s; p.next = undefined; } } }
