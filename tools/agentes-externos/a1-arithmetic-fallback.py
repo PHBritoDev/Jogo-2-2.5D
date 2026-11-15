@@ -35,3 +35,25 @@ def variants(before, limit=16):
         add("return Math.max(0, " + expression + ")")
         add("return Math.min(10, " + expression + ")")
     return options[:limit]
+
+def python_variants(before, limit=12):
+    """Bounded Python return-expression repair candidates (never executed)."""
+    if not isinstance(before, str) or not before.startswith("return ") or len(before) > 240:
+        raise ValueError("Expected one Python return expression")
+    if not isinstance(limit, int) or not 1 <= limit <= 32:
+        raise ValueError("Invalid bound")
+    choices = []
+    seen = {before}
+
+    def add(item):
+        if item not in seen and len(item) <= 240:
+            seen.add(item)
+            choices.append(item)
+
+    for old, new in (("max(", "min("), ("min(", "max(")):
+        for match in re.finditer(r"(?<![\\w.])" + re.escape(old), before):
+            add(before[:match.start()] + new + before[match.end():])
+    expr = before[7:]
+    add("return max(0, " + expr + ")")
+    add("return min(10, " + expr + ")")
+    return choices[:limit]
