@@ -74,13 +74,15 @@ export function energyBody(T,parent,preset,options={}){
   // Warp is a public uniform: refresh the bound if another VFX controller edits it.
   const warp=material.uniforms.warp.value;
   if(warp===boundedWarp)return;
-  if(!Number.isFinite(warp)){
-   // Invalid displacement must never allow an object to disappear through culling.
+  // Even finite uniforms can overflow the expanded radius. In that case
+  // disable culling rather than passing Infinity into the renderer's sphere test.
+  const radius=baseBoundingRadius+Math.abs(warp)*.85;
+  if(!Number.isFinite(warp)||!Number.isFinite(radius)){
    mesh.frustumCulled=false;
    boundedWarp=warp;
    return;
   }
-  geometry.boundingSphere.radius=baseBoundingRadius+Math.abs(warp)*.85;
+  geometry.boundingSphere.radius=radius;
   mesh.frustumCulled=true;
   boundedWarp=warp;
  }
