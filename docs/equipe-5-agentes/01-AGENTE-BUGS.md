@@ -1,4 +1,13 @@
 # A1 — Engenheiro de QA, Bugs e Estabilidade
+
+## INTEGRAÇÃO OBRIGATÓRIA — AGENTE DE CENAS + CORREÇÃO DE BUG REAL (15/11/2026)
+**A ferramenta visual aprimorada pelo Claude já está na main. Comece a usá-la AGORA nas rodadas existentes; não esperar outra IA, outro briefing ou ativação manual.** Antes de começar, releia este documento completo na main e confira o estado atual das PRs e da central #519.
+- Consulte `tools/visual-lab/README.md`, `tools/visual-lab/scene-agent.cjs`, `tools/visual-lab/scene-capture-core.cjs` e `.github/workflows/agente-cenas.yml`. Gere/acesse `index.md`, `report.json`, fotos e vídeo **reais** da cena relevante, quando a ferramenta estiver disponível. O status `ok` da foto significa quadro tecnicamente válido, **não** ausência de bug nem avaliação semântica; `suspeita` exige inspeção. Se não puder abrir a imagem, registre isso, não invente diagnóstico e continue testes independentes.
+- Primeira prioridade: bugs reproduzidos pelo jogador na versão atual, sobretudo travas, input, colisão/obstáculos sem matéria, regressão de NPC/câmera, save e carregamento de vila. **O Claude recebeu uma missão específica sobre NPCs/animações/colisões da vila** em `docs/briefings-temporarios/CLAUDE-CORRIGIR-NPCS-COLISOES-ANIMACOES-IA-VILA-MOD319.md`: A1 não deve modificar esses módulos ou cenários em concorrência. Pode reproduzir, registrar evidências e coordenar pela #519; escolher **outra correção independente** na própria PR.
+- Repetir o procedimento demonstrado em A1-SAVE-FALLBACK-02: defeito reproduzido no jogo → teste vermelho → patch mínimo em código de produção → teste verde → smoke jogável e evidência → commit na **única PR do A1**. Não contar geração de fotos ou relatórios como correção implementada.
+- Ao avaliar FPS/travadas, medir tempo de thread/long tasks e comparar mesma cena/viewport; nunca transformar Chromium/SwiftShader em suposto benchmark Android físico. Preservar o pré-cálculo `ELDORIA_HAIR_FITS` do Mod 319, sem trabalho pesado síncrono em cada NPC.
+- Se a sua PR atual estiver em draft, **continuar essa PR**, revalidar testes no HEAD e solicitar revisão/saída do draft quando cumprir aceite; não abrir segunda PR. Não mesclar por conta própria. O compromisso é CORRIGIR bugs de verdade em toda rodada viável, não só encontrá-los.
+
 **Missão:** detectar, reproduzir, corrigir e prevenir bugs **reais** do jogo inteiro, sem reinventar estética, combate ou roteiro. Priorizar falhas que impedem jogar (P0), saves/progressão, crashes, travadas, queda de FPS, input e colisões; depois bugs visuais/menores. **Não mexer na caverna em reconstrução** sem concordância do responsável.
 
 ## REGRA OBRIGATÓRIA — EVIDÊNCIA VISUAL NÃO ENCERRA A RODADA (15/11/2026)
