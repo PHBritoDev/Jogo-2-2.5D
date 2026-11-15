@@ -21,7 +21,6 @@ MAX_FRAGMENT = 2048
 
 # Only a bounded, expression-only subset may reach a test runner. The Qwen
 # cannot introduce calls, properties, identifiers, strings or statement syntax.
-_EXPRESSION = re.compile(r"[A-Za-z_][A-Za-z_0-9]*|(?:Math\\.(?:min|max))|[0-9]+(?:\\.[0-9]+)?|[+*/(),\\s.-]+")
 _RESERVED = frozenset(("constructor", "prototype", "__proto__", "eval", "Function", "require",
                        "import", "process", "globalThis", "window", "document", "fetch"))
 
@@ -30,10 +29,10 @@ def _safe_expression(fragment):
     code = fragment.strip()
     if code.startswith("return "):
         code = code[7:].strip()
-    if not code or len(code) > 240 or "\\n" in code or "\\r" in code:
+    if not code or len(code) > 240 or "\n" in code or "\r" in code:
         raise ValueError("Expected one bounded JS expression")
     # Only Math.min/max, identifiers, arithmetic and numeric literals are legal.
-    tokens = re.findall(r"Math\\.(?:min|max)|[A-Za-z_][A-Za-z_0-9]*|\\d+(?:\\.\\d+)?|[+*/(),.\\s-]", code)
+    tokens = re.findall(r"Math\.(?:min|max)|[A-Za-z_][A-Za-z_0-9]*|\d+(?:\.\d+)?|[+*/(),.\s-]", code)
     if "".join(tokens) != code:
         raise ValueError("Unexpected JS syntax")
     names = set()
