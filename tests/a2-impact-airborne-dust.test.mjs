@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { impactTouchesGround, impactGroundHeight } from '../vfx-impact3d.js';
+import { impactTouchesGround, impactGroundHeight, impactRecordValid } from '../vfx-impact3d.js';
 
 test('ground contact accepts nearby finite impact heights', () => {
   assert.equal(impactTouchesGround(0, 0), true);
@@ -32,4 +32,22 @@ test('invalid horizontal coordinates never reach the terrain sampler', () => {
   }
   assert.ok(Number.isNaN(impactGroundHeight(ground, null)));
   assert.deepEqual(calls, [[3, 4]], 'invalid impacts must not invoke terrain lookup');
+});
+
+test('malformed impacts are rejected before entering pooled VFX', () => {
+  const valid = { time: 1, point: { x: 2, y: 3, z: 4 }, size: 2 };
+  assert.equal(impactRecordValid(valid), true);
+  assert.equal(impactRecordValid({ ...valid, size: 0 }), false);
+  assert.equal(impactRecordValid({ ...valid, size: -2 }), false);
+  assert.equal(impactRecordValid({ ...valid, size: Infinity }), false);
+  assert.equal(impactRecordValid({ ...valid, time: NaN }), false);
+  assert.equal(impactRecordValid({ ...valid, point: null }), false);
+  for (const axis of ['x', 'y', 'z']) {
+    for (const invalid of [NaN, Infinity, -Infinity, undefined]) {
+      assert.equal(impactRecordValid({
+        ...valid, point: { ...valid.point, [axis]: invalid }
+      }), false, `${axis}=${invalid} must be rejected`);
+    }
+  }
+  assert.equal(impactRecordValid(valid), true, 'a valid event still works after invalid input');
 });
