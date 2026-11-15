@@ -72,7 +72,9 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001;
       if (s && s.parent) { l.position.setFromMatrixPosition(s.matrixWorld); l.color.copy(s.color); l.distance = s.distance; l.decay = s.decay; }
       const target = p.next !== undefined || !live ? 0 : s.intensity;
-      // Não propagar NaN/Infinity de efeitos transitórios para os shaders do jogo.\n      if (!Number.isFinite(l.intensity)) l.intensity = 0;\n      l.intensity += (target - l.intensity) * k;
+      // Não propagar NaN/Infinity de efeitos transitórios para os shaders do jogo.
+      if (!Number.isFinite(l.intensity)) l.intensity = 0;
+      l.intensity += (target - l.intensity) * k;
       if (p.next !== undefined && l.intensity < .05) { p.src = p.next; p.next = undefined; }
       else if (!live && l.intensity < .02) p.src = null;
     }
