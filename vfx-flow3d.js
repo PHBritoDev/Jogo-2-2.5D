@@ -86,6 +86,15 @@ export function energyBody(T,parent,preset,options={}){
   mesh.frustumCulled=true;
   boundedWarp=warp;
  }
+ // Controllers may write the warp uniform between simulation updates. Refresh the
+ // conservative bounds at assignment time, before Three.js performs frustum tests.
+ const warpUniform=material.uniforms.warp;
+ let warpValue=warpUniform.value;
+ Object.defineProperty(warpUniform,'value',{
+  configurable:true,enumerable:true,
+  get(){return warpValue;},
+  set(value){warpValue=value;syncWarpBounds();}
+ });
  syncWarpBounds();
  // Preserve the fail-open state selected by syncWarpBounds for invalid warp.
  parent.add(mesh);
