@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ACT1, migrateProgress, afterVhazraelVictory } from '../act1-flow.js';
+import { ACT1, migrateProgress, afterVhazraelVictory, questPresentation } from '../act1-flow.js';
 
 test('A5: restore V6 checkpoints without duplicating narrative rewards', () => {
   const saved = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 6,
@@ -63,4 +63,11 @@ test('A5: already claimed boss and portal rewards stay claimed through reload', 
   assert.equal(reloaded.portalOpened, true);
   assert.equal(reloaded.coins, 80);
   assert.equal(afterVhazraelVictory(reloaded).coinsGained, 0);
+});
+
+test('A5: quest objective after portal crossing points to the actual boss', () => {
+  assert.match(questPresentation(6).objective, /Entre no portal/);
+  assert.match(questPresentation(7).objective, /Encontre VHAZRAEL/);
+  assert.match(questPresentation(7).objective, /derrote o Primeiro Bispo/);
+  assert.doesNotMatch(questPresentation(7).objective, /Atravesse o portal/);
 });
