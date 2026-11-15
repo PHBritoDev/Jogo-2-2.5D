@@ -208,6 +208,12 @@ export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, 
  * esconder frestas de T-junction nas encostas.
  */
 export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt = 4, skirtEdges = ['x0', 'x1', 'z1'] } = {}) {
+  // Invalid exterior patch extents used to create degenerate triangles or
+  // unbounded allocations; fail at the caller instead of corrupting WebGL.
+  if (![x0, x1, z0, z1, cell, skirt].every(Number.isFinite) ||
+      !(x1 > x0) || !(z1 > z0) || !(cell > 0) || skirt < 0) {
+    throw new RangeError('buildTerrainPatch: invalid exterior patch bounds or resolution');
+  }
   // Preserve the requested world-space edges even when a span is not a multiple
   // of cell. Rounded step counts previously shifted the patch edge and its skirt.
   const nx = Math.max(2, Math.round((x1 - x0) / cell) + 1);
