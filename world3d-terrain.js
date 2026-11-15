@@ -229,7 +229,10 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
       skirtEdges.some(name => !edgeNames.includes(name))) {
     throw new RangeError('buildTerrainPatch: invalid skirt edges');
   }
-  const skirtVertices = skirtEdges.reduce((count, name) =>
+  // A zero-depth skirt has no surface: omit its degenerate walls entirely.
+  // This also avoids wasting index/vertex bandwidth in low-detail exterior patches.
+  const activeSkirtEdges = skirt === 0 ? [] : skirtEdges;
+  const skirtVertices = activeSkirtEdges.reduce((count, name) =>
     count + (name === 'x0' || name === 'x1' ? nz : nx), 0);
   if (!Number.isSafeInteger(nx) || !Number.isSafeInteger(nz) ||
       nx * nz + skirtVertices > 1_000_000) {
@@ -254,7 +257,7 @@ export function buildTerrainPatch(terrain, { x0, x1, z0, z1, cell = 2.5, skirt =
     if (name === 'z1') for (let i = 0; i < nx; i++) ids.push((nz - 1) * nx + i);
     return ids;
   };
-  for (const name of skirtEdges) {
+  for (const name of activeSkirtEdges) {
     const ids = edge(name), base = pos.length / 3;
     for (const id of ids) pos.push(pos[id * 3], pos[id * 3 + 1] - skirt, pos[id * 3 + 2]);
     for (let k = 0; k < ids.length - 1; k++) { const a = ids[k], b = ids[k + 1], c = base + k, d = base + k + 1; idx.push(a, b, c, b, d, c, a, c, b, b, c, d); }
