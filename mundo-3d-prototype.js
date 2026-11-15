@@ -57,6 +57,8 @@ import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING,
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
 import {loadTorchSource,placeTorches} from './eldoria-torches3d.js';
 import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
+import {createVillageSolidQuery} from './eldoria-village-solids.js';
+import {VILLAGE_TALK,openConversation,answerTopic,listOptions,loadTalkMemory,saveTalkMemory} from './eldoria-village-talk.js';
 import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
 import {ELDORIA_STREETS,doorPaths,treeStructurePlan} from './eldoria-city-layout.js';
@@ -1656,7 +1658,12 @@ function renderDialoguePage(){
  else{portrait.removeAttribute('src');portrait.classList.add('hidden');monogram.classList.remove('hidden');}
  panel.classList.remove('dialog-beat');void panel.offsetWidth;panel.classList.add('dialog-beat');
  document.getElementById('dialog-continue').innerHTML=dialogueIndex===dialoguePages.length-1?'FECHAR <span aria-hidden="true">×</span>':'CONTINUAR <span aria-hidden="true">↗</span>';
+ // Mod 319+ — respostas do jogador (conversa com moradores): página com options + onPick(id) → próximas páginas
+ const box=document.getElementById('dialog-options'),cont=document.getElementById('dialog-continue'),hint=document.getElementById('dialog-hint');
+ if(box){box.innerHTML='';const opts=Array.isArray(page.options)&&page.onPick?page.options:null;box.hidden=!opts;cont.style.display=opts?'none':'';if(hint)hint.textContent=opts?'ESCOLHA UMA RESPOSTA':'TOQUE PARA AVANÇAR';
+  if(opts)opts.forEach((o,i)=>{const b=document.createElement('button');b.type='button';b.dataset.opt=o.id;b.innerHTML='<span class="n">'+(i+1)+'</span>';b.appendChild(document.createTextNode(o.label));bindInstantTap(b,()=>pickDialogueOption(o.id));box.appendChild(b);});}
 }
+function pickDialogueOption(id){if(!dialogueOpen)return;const page=dialoguePages[dialogueIndex];if(!page||!page.onPick)return;const next=page.onPick(id)||[];dialoguePages.splice(dialogueIndex+1,Infinity,...next);advanceDialogue();}
 function showDialogue(pages,onFinish){
  dialoguePages=pages;dialogueIndex=0;dialogueFinish=onFinish||null;dialogueOpen=true;
  moveVX=moveVZ=0;dashRemaining=0;actionUntil=0;endJoy();if(actions.idle)play('idle',.1);
@@ -1680,11 +1687,39 @@ function syncEnemyLabel(){const el=document.getElementById('enemy-name');if(!el)
 function revealEncounter(profile,spot,hp,intro){if(enemy.visible)return;siegeEpoch++;encounterProfile=profile;enemyMaxHP=hp;enemyHP=hp;enemyAlive=true;enemy.position.set(spot.x,terrainHeightAt(spot.x,spot.z),spot.z);enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackElapsed=0;enemyAttackResolved=true;enemyAttackCooldown=.35;enemyKnockback=0;enemyDashRemaining=0;enemyCastResolved=true;wardenFanPending=false;if(profile!=='warden')wardenPhaseUsed=false;enemy.visible=true;checkpointX=spot.x;checkpointZ=profile==='bandit1'?spot.z+4:Math.min(12,spot.z+7.5);syncEnemyLabel();if(enemyActions.idle)playEnemyAnimation('idle',.05);status.textContent=intro;}
 function advanceAfterEnemyDefeat(){if(squadOn||performance.now()<squadSwallowUntil)return;if(dimBattle&&dimBattle.active){if(dimBattle.test){dimensionVictory();return;}if(act6GreedDefeat())return;if(questStep===ACT6N.rematch&&!dimBattle.outro){const r=nextRematch(act1Sub);if(r&&r.key===dimBattle.key){dimBattle.outro=true;enemy.visible=true;playStory('revanche-cai',rematchOutroScene(r.key),{focus:'enemy',done:()=>dimensionVictory()});return;}}if(dimBattle.key==='bishop1'&&questStep<8&&!dimBattle.outro){dimBattle.outro=true;vhazraelOutro(()=>dimensionVictory());return;}if(dimBattle.key==='bishop2'&&questStep===ACT2.boss&&!dimBattle.outro){dimBattle.outro=true;playStory('vorgazhek-cai',vorgazhekDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop4'&&questStep===ACT4N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}if(dimBattle.key==='bishop3'&&questStep===ACT3N.boss&&!dimBattle.outro){dimBattle.outro=true;enemy.visible=true;enemyAlive=true;playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();return;}if(packHandleDefeat())return;if(finaleReady&&finaleHandleDefeat())return;if(lateSystemsReady&&lateHandleDefeat())return;if(encounterProfile==='vorgazhek'){registerEnemyDefeat('vorgazhek');act2Victory();return;}registerEnemyDefeat(encounterProfile);enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;if(wardenRing)wardenRing.visible=false;}
 function nearestVillageVendor(){let nearest=null,best=3.3;for(const vendor of villageVendors){const distance=Math.hypot(vendor.x-player.position.x,vendor.z-player.position.z);if(distance<best){best=distance;nearest=vendor;}}return nearest;}
-function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;const root=vendorRoots[villageVendors.indexOf(vendor)];if(root){faceTo(root,player.position);faceTo(player,root.position);}if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
+function talkToVillageVendor(vendor){if(!vendor||dialogueOpen||namePromptOpen)return;const idx=villageVendors.indexOf(vendor),root=vendorRoots[idx];if(root){faceTo(root,player.position);faceTo(player,root.position);}if(trySideQuestTalk(vendor))return;const hint=vendor.hints[Math.min(4,questStep)]||vendor.hints[4];
+ const id=['bento','teo','lia'][idx];if(id&&root){startVillageConversation(id,villageNpcs.find(c=>c.holder===root),hint);return;}
+ showDialogue([{who:vendor.name,text:vendor.greeting},{who:vendor.name,text:hint}]);}
+/* Mod 319+ — conversa com moradores: abertura pelo momento do Ato I, hora e memória; respostas do jogador; gestos reais
+   (Wave/inspecionar/Alert) e o NPC de frente para o herói. A pista canônica de cada vendedor vira o tópico "Algum
+   conselho?"/hint — nada aqui avança a missão (PERGUNTAR · TÉO segue no act1Interact, com prioridade). */
+const villageTalkMem=(()=>{try{return loadTalkMemory(localStorage);}catch(_){return loadTalkMemory(null);}})();
+let villageTalkPartner=null;
+function villagerDriverOf(c){const d=villageDrivers.find(v=>v.c===c);return d?d.drv:null;}
+function startVillageConversation(id,c,hint){
+ const ctx={questStep,hour:gameClock.hour,hint},drv=c?villagerDriverOf(c):null,o=openConversation(id,ctx,villageTalkMem);if(!o)return false;
+ const store=()=>{try{saveTalkMemory(localStorage,villageTalkMem);}catch(_){}};store();villageTalkPartner=c||null;
+ if(c){faceTo(player,c.holder.position);if(!drv)faceTo(c.holder,player.position);}
+ if(drv&&o.gesture&&o.gesture!=='none')drv.cue(o.gesture,o.gesture==='wave'?2.6:2.4);
+ const withMenu=pages=>{const last={...pages[pages.length-1],options:listOptions(id,ctx,villageTalkMem),onPick:pick};return[...pages.slice(0,-1),last];};
+ function pick(tid){const r=answerTopic(id,tid,ctx,villageTalkMem);store();if(drv&&r.gesture&&r.gesture!=='none')drv.cue(r.gesture);return r.done?r.pages:withMenu(r.pages);}
+ talkCam=cameraDistance>=1.05?{dist0:cameraDistance}:null; // 3ª pessoa: enquadra herói e morador; 1ª pessoa fica como está
+ showDialogue(withMenu(o.opening),()=>{villageTalkPartner=null;if(talkCam){cameraDistance=talkCam.dist0;talkCam=null;}});return true;
+}
+let talkCam=null;
+/** Câmera da conversa: por cima do ombro do herói, com o morador à frente (suave, sem corte brusco). */
+function updateTalkCamera(dt){if(!talkCam||!dialogueOpen||!villageTalkPartner)return;const h=villageTalkPartner.holder,want=Math.atan2(player.position.x-h.position.x,player.position.z-h.position.z)+.5; // câmera fica em player+(sin,cos)·dist: atrás do herói = direção oposta ao morador
+ let d=want-cameraYaw;d=Math.atan2(Math.sin(d),Math.cos(d));const k=1-Math.exp(-3*dt);cameraYaw+=d*k;cameraDistance+=(Math.min(talkCam.dist0,4.2)-cameraDistance)*k;}
+/** Morador/moradora/carregador perto (≤ 2,4 m) e à frente do herói ou da câmera (ou colado, < 1,6 m): botão CONVERSAR. */
+function nearestVillageTalker(){let best=null,bd=2.4;const yaw=player.rotation.y;
+ const cand=villageDrivers.filter(d=>d.id==='morador'||d.id==='moradora').map(d=>({id:d.id,c:d.c}));if(cityPorter)cand.push({id:'carregador',c:cityPorter.c});
+ for(const t of cand){const h=t.c.holder;if(!h.visible)continue;const dx=h.position.x-player.position.x,dz=h.position.z-player.position.z,d=Math.hypot(dx,dz);if(d>=bd)continue;const ang=y=>{let a=Math.atan2(dx,dz)-y;return Math.abs(Math.atan2(Math.sin(a),Math.cos(a)));};if(d>1.6&&ang(yaw)>1.3&&ang(cameraYaw+Math.PI)>1.0)continue;bd=d;best=t;}
+ return best;}
+addEventListener('keydown',e=>{if(!dialogueOpen||e.repeat)return;const m=/^(?:Digit|Numpad)([1-9])$/.exec(e.code);if(!m)return;const b=document.querySelectorAll('#dialog-options:not([hidden]) button')[+m[1]-1];if(b){e.preventDefault();pickDialogueOption(b.dataset.opt);}});
 function startPortalPull(){if(!portalPull)portalPull={t:0};}
 function updatePortalPull(dt){if(!portalPull||handoffSent)return;portalPull.t+=dt;const T=inSewer?sewerLocal(SEWER.portal):PORTAL,tz=T.z+(inSewer?1.2:2.4);player.position.x+=(T.x-player.position.x)*Math.min(1,dt*2.1);player.position.z+=(tz-player.position.z)*Math.min(1,dt*2.1);player.position.y=terrainHeightAt(player.position.x,player.position.z);const yaw=Math.atan2(T.x-player.position.x,T.z-player.position.z);player.rotation.y=yaw;playerYaw=yaw;if(portalPull.t>1.2)requestVhazraelHandoff();}
 function openVhazraelPortal(){if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive)return;if(questStep>=8){status.textContent='O portal se fechou. O selo de VHAZRAEL foi quebrado.';return;}updateHeartsHud(true);if(!canChallengeBishop(heartState)){status.textContent='Sem corações. O próximo volta em '+formatTimer(msToNextHeart(heartState))+'.';showDialogue([{who:'Anjo-Guia',text:'Não atravesse de peito vazio. Espere um coração voltar.'}]);return;}if(questStep===6){if(!portalRewardClaimed){coins+=ACT1.portalReward;portalRewardClaimed=true;}questStep=7;portalOpened=true;save3DProgress();updateQuestHud();act1Toast('A DIMENSÃO DE VHAZRAEL SE ABRE');}if(questStep===7){status.textContent='O portal puxa você.';worldAudio.portalEnter();startPortalPull();}}
-function tryInteract(){if(whiteLease.locked)return;if(cineActive)return;if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen)return;if(roadInteract())return;if(act1Interact())return;if(act2StoryInteract())return;if(act3Ready&&act3Interact())return;if(act3Ready&&act4Interact())return;if(act3Ready&&act6Interact())return;if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor)talkToVillageVendor(vendor);}
+function tryInteract(){if(whiteLease.locked)return;if(cineActive)return;if(namePromptOpen||awakeningActive||portalPull||shopOpen)return;if(dialogueOpen)return;if(roadInteract())return;if(act1Interact())return;if(act2StoryInteract())return;if(act3Ready&&act3Interact())return;if(act3Ready&&act4Interact())return;if(act3Ready&&act6Interact())return;if(act2Interact())return;if(finaleReady&&finaleInteract())return;if(lateSystemsReady&&lateInteract())return;const guideDistance=Math.hypot(guide.position.x-player.position.x,guide.position.z-player.position.z);if(questStep===0&&guideDistance<=2.7){talkToGuide();return;}if(nearShopDoor()){openShop();return;}const stone=nearestWaystone();if(stone){useWaystone(stone);return;}const vendor=nearestVillageVendor();if(vendor){talkToVillageVendor(vendor);return;}const talker=nearestVillageTalker();if(talker)startVillageConversation(talker.id,talker.c);}
 bindInstantTap(document.getElementById('talk-button'),tryInteract);
 const skipAwakening=document.getElementById('skip-awakening');if(skipAwakening){if(awakeningActive)skipAwakening.classList.remove('hidden');skipAwakening.classList.add('hidden');}
 
@@ -2101,6 +2136,9 @@ addEventListener('blur',resetInterruptedControls);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInterruptedControls();});
 stick.addEventListener('lostpointercapture',endJoy);
 
+/* Mod 319+ — matéria da vila com colisão ajustada à forma (barracas inteiras, balcões, sebes, banco, bordas de casa):
+   máscara medida no jogo real (eldoria-village-solids.js). `?solidos=0` volta ao estado anterior (só círculos). */
+const villageSolidAt=new URLSearchParams(location.search).get('solidos')==='0'?()=>false:createVillageSolidQuery();
 function blockedAt(x,z,skipRocks=false){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
   // Em abismos não existe parede invisível: deixar atravessar a borda e cair.
@@ -2113,6 +2151,7 @@ function blockedAt(x,z,skipRocks=false){
  if(frontierBlocked(x,z))return true; // MOD 311: muralha da fronteira (mesma linha da malha do penhasco) — só o túnel da boca é livre
  if(terrain3D.boundaryDistance(x,z)>45||terrain3D.waterDepth(x,z)>=1.25)return true;
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
+ if(villageSolidAt(x,z))return true;
  for(const o of marketObstacles){if(o.height!==undefined&&o.height<=.68)continue;const dx=x-o.x,dz=z-o.z;if(o.shape==='box'?Math.abs(dx)<o.halfX&&Math.abs(dz)<o.halfZ:dx*dx+dz*dz<o.radius*o.radius)return true;}
  if(!skipRocks)for(const rock of rockObstacles){if(rock.height<=.68)continue;const dx=x-rock.x,dz=z-rock.z,collisionRadius=rock.radius*.74;if(dx*dx+dz*dz<collisionRadius*collisionRadius)return true;}
  return false;
@@ -2505,8 +2544,8 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  const portalDistance=Math.hypot(PORTAL.x-player.position.x,PORTAL.z-player.position.z);
  const talkButton=document.getElementById('talk-button');
  const nearbyVendor=nearestVillageVendor();
- const fightingNow=enemy.visible&&enemyAlive;const nearStone=nearestWaystone(),atShop=nearShopDoor(),act1Label=roadTalkLabel()||act1TalkLabel()||act2StoryLabel()||(act3Ready?act3Label()||act4Label()||act6Label():''),act2Label=act2TalkLabel()||(finaleReady?finaleTalkLabel():'')||(lateSystemsReady?lateTalkLabel():'');const canTalk=!!act1Label||!!act2Label||atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||!!nearbyVendor;
- if(talkButton){const label=act1Label?act1Label:act2Label?act2Label:atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · VIAJAR':'REGISTRAR ESTE ABRIGO'):nearbyVendor?'FALAR · '+nearbyVendor.shortName:'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull||cineActive);}
+ const fightingNow=enemy.visible&&enemyAlive;const nearStone=nearestWaystone(),atShop=nearShopDoor(),act1Label=roadTalkLabel()||act1TalkLabel()||act2StoryLabel()||(act3Ready?act3Label()||act4Label()||act6Label():''),act2Label=act2TalkLabel()||(finaleReady?finaleTalkLabel():'')||(lateSystemsReady?lateTalkLabel():'');const nearbyTalker=nearbyVendor?null:nearestVillageTalker();const canTalk=!!act1Label||!!act2Label||atShop||!!nearStone||(questStep===0&&guideDistance<=2.7)||!!nearbyVendor||!!nearbyTalker;
+ if(talkButton){const label=act1Label?act1Label:act2Label?act2Label:atShop?'LOJA CENTRAL':nearStone?(mapState.waystones.has(nearStone.id)?'ABRIGO · VIAJAR':'REGISTRAR ESTE ABRIGO'):nearbyVendor?'CONVERSAR · '+nearbyVendor.name.split(' ·')[0].toUpperCase():nearbyTalker?'CONVERSAR · '+VILLAGE_TALK[nearbyTalker.id].name.split(' ')[0].toUpperCase():'FALAR';talkButton.textContent=label;talkButton.classList.toggle('hidden',!canTalk||dialogueOpen||namePromptOpen||awakeningActive||!!portalPull||cineActive);}
  questMarker.visible=(questStep<15||isAct3Step(questStep)||isAct4Step(questStep)||questStep===ACT5N.step||isAct6Step(questStep))&&!portalPull&&(!voidMode||inSewer||inVolcano||!!act3Void||inTower)&&!cineActive;
  if(questStep===0)questMarker.position.set(guide.position.x,terrainHeightAt(guide.position.x,guide.position.z)+.06,guide.position.z);
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
@@ -3659,7 +3698,7 @@ function loadVillagers(){
    // modelo/traje de guarda; a pose Alert no morador comum não convence) — documentado no PR.
    if(FACADES_ON)Promise.all([
     npcFactory.create({sex:'man',role:'walk',x:PORTER_ROUTE[0][0],z:PORTER_ROUTE[0][1]}).then(c=>{villageGroup.add(c.holder);villageNpcs.push(c);if(c.mixer)villageNpcMixers.push(c.mixer);
-     const k=1/(c.holder.scale.x||1),sack=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6),new THREE.MeshStandardMaterial({color:0x8a7150,roughness:1}));sack.scale.set(1.25*k,.8*k,.9*k);sack.position.set(.16*k,1.5*k,-.05*k);sack.name='saco-carregador';c.holder.add(sack);
+     const sack=porterSack(c);
      cityPorter={c,sack,t:0};})
    ]).catch(e=>console.warn('F2: carregador não carregou',e));
    window.SevenSinsVillagerReport={vendors:vendorRoots.length,residents:villageNpcs.length-vendorRoots.length,childrenInVillage:0,models:[ELDORIA_NPC_MODELS.man,ELDORIA_NPC_MODELS.woman],roles:villageNpcs.map(c=>c.role),down:villageNpcs.filter(c=>c.role==='down').length,life:villageDrivers.map(d=>d.id)};
@@ -3677,10 +3716,11 @@ function attachVillagerLife(c,id,seed,waypoints=null){if(!c||!c.mixer||!id)retur
  c.__life=-1;c.__driver=drv;villageDrivers.push({id,c,drv,sense:{}});}
 const _npcSense={heroDist:0,heroAngle:0,heroAhead:false,talking:false,danger:false,atTarget:false};
 function villageLifeUpdate(dt){
+ updateTalkCamera(dt);
  const P=player.position,danger=!!(enemy&&enemy.visible&&enemyAlive&&combatStepNow&&combatStepNow());
  for(const L of villageDrivers){const h=L.c.holder;if(!h.visible||(L.c.mixer&&L.c.mixer.__far))continue;
   const dx=P.x-h.position.x,dz=P.z-h.position.z,d=Math.hypot(dx,dz);let a=Math.atan2(dx,dz)-h.rotation.y;a=Math.atan2(Math.sin(a),Math.cos(a));
-  const S=L.sense;S.heroDist=d;S.heroAngle=a;S.heroAhead=d<1.3&&Math.abs(a)<1.05;S.talking=!!(dialogueOpen&&d<3.2);S.danger=danger&&enemy&&Math.hypot(enemy.position.x-h.position.x,enemy.position.z-h.position.z)<12;
+  const S=L.sense;S.heroDist=d;S.heroAngle=a;S.heroAhead=d<1.3&&Math.abs(a)<1.05;S.talking=!!(dialogueOpen&&villageTalkPartner===L.c);S.danger=danger&&enemy&&Math.hypot(enemy.position.x-h.position.x,enemy.position.z-h.position.z)<12;
   L.drv.update(dt,S);}
 }
 function npcIdleLife(dt){
@@ -3694,6 +3734,21 @@ function npcIdleLife(dt){
    let want=Math.sin(npcLifeT*.23+L.ph)*.18;if(d<(L.vendor?7:4.5)){let a=Math.atan2(dx,dz)-h.rotation.y;a=Math.atan2(Math.sin(a),Math.cos(a));want=THREE.MathUtils.clamp(a,-.7,.7);}
    L.look+=(want-L.look)*Math.min(1,dt*2.2);if(L.oh&&!L.head.quaternion.equals(L.oh))L.qh.copy(L.head.quaternion);L.head.quaternion.copy(L.qh);L.head.rotateY(L.look);(L.oh||(L.oh=new THREE.Quaternion())).copy(L.head.quaternion);}
  }
+}
+/** Saco do carregador DEITADO no ombro esquerdo e preso ao osso do ombro (acompanha passo e braço). Antes: esfera
+    de 40 cm no centro do corpo a 1,5 m — à altura da cabeça —, lida como uma bola escura grande sobre a cabeça. */
+function porterSack(c){
+ const g=new THREE.SphereGeometry(1,12,8),P=g.attributes.position;
+ for(let i=0;i<P.count;i++){const y=P.getY(i);P.setXYZ(i,P.getX(i)*(1-.18*Math.max(0,y)),y*(y<0?.82:1),P.getZ(i)*(1-.1*Math.max(0,y)));} // fundo achatado no ombro, boca franzida
+ g.computeVertexNormals();
+ const sack=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x8a7150,roughness:1}));sack.name='saco-carregador';sack.castShadow=true;
+ let sh=null,arm=null,head=null;c.model.traverse(o=>{if(!o.isBone)return;if(/^leftshoulder$/i.test(o.name))sh=o;else if(/^leftupperarm$/i.test(o.name))arm=o;else if(/^head$/i.test(o.name))head=o;});
+ const h=c.holder;h.updateMatrixWorld(true);const k=1/(h.scale.x||1);
+ if(!sh||!arm){sack.scale.set(.13*k,.11*k,.2*k);sack.position.set(.3*k,1.42*k,-.16*k);h.add(sack);return sack;} // rig sem ombro: ao lado, nunca sobre a cabeça
+ const A=h.worldToLocal(arm.getWorldPosition(new THREE.Vector3())),S=h.worldToLocal(sh.getWorldPosition(new THREE.Vector3())),out=new THREE.Vector3(A.x-S.x,0,0);out.x=Math.sign(out.x||1);
+ sack.position.set(A.x+out.x*.04*k,A.y+.1*k,A.z-.11*k);sack.scale.set(.12*k,.1*k,.2*k);sack.rotation.set(.25,0,out.x*.35);h.add(sack);h.updateMatrixWorld(true);sh.attach(sack);
+ if(head){const d=head.getWorldPosition(new THREE.Vector3()).distanceTo(sack.getWorldPosition(new THREE.Vector3()));sack.userData.headGap=+d.toFixed(3);}
+ return sack;
 }
 function updateVillagers(dt){
  // Animações dos NPCs são atualizadas pelo laço global villageNpcMixers.
@@ -8238,6 +8293,44 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  ascState(){const z=ascKey&&ascZones[ascKey],O=ascKey&&ASC_ZONES[ascKey],P=player.position;return{key:ascKey,busy:ascBusy,local:O?{x:+(P.x-O.x).toFixed(2),y:+P.y.toFixed(2),z:+(P.z-O.z).toFixed(2)}:null,world:{x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2)},veil:ascVeil.style.opacity,zones:Object.keys(ascZones),stats:z?z.stats():null,progress:z&&z.progress?+z.progress().toFixed(3):null,frontier:window.SevenSinsFrontierReport||null};},
  fly(from,to){if(from){camera.position.set(...from);camera.lookAt(...to);}debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
+ // Vila (só ?debug3d=1, só leitura): onde há MATÉRIA na altura do corpo (0,3–1,7 m acima do chão, por raio vertical em
+ // grade) e o herói ainda passa. Agrupa por objeto do topo da vila; devolve os furos de colisão com coordenadas.
+ villagers(){return villageNpcs.map((c,i)=>{const h=c.holder,d=villageDrivers.find(v=>v.c===c);let acc=[];h.traverse(o=>{if(o!==h&&o.name&&/Cabelo|Barba|Couro|saco|balde/i.test(o.name))acc.push(o.name);});return{i,id:d?d.id:(cityPorter&&cityPorter.c===c?'carregador':c.role),sex:c.sex||null,file:c.file,x:+h.position.x.toFixed(2),y:+h.position.y.toFixed(2),z:+h.position.z.toFixed(2),yaw:+h.rotation.y.toFixed(2),visible:h.visible,state:d?d.drv.brain.state:null,acc};});},
+ villagerBones(i){const c=villageNpcs[i];if(!c||!c.model)return null;const h=c.holder,v=new THREE.Vector3(),o={};h.updateMatrixWorld(true);c.model.traverse(b=>{if(b.isBone&&/^(hips|chest|upperchest|neck|head|leftupperarm|rightupperarm|lefthand|righthand)$/i.test(b.name)){b.getWorldPosition(v);h.worldToLocal(v);const s=h.scale.x||1;o[b.name]=[+(v.x*s).toFixed(4),+(v.y*s).toFixed(4),+(v.z*s).toFixed(4)];}});const d=villageDrivers.find(x=>x.c===c);o.state=d?d.drv.brain.state:null;o.clip=d&&d.drv.intent?d.drv.intent.clip:null;return o;},
+ villagerCam(i,dist=2.2,height=1.55,side=0){const c=villageNpcs[i];if(!c)return null;const h=c.holder,a=h.rotation.y+side,f=[Math.sin(a),Math.cos(a)];camera.fov=40;camera.updateProjectionMatrix();this.fly([h.position.x+f[0]*dist,h.position.y+height,h.position.z+f[1]*dist],[h.position.x,h.position.y+height-.12,h.position.z]);return true;},
+ /** Máscara de matéria da vila (gerador offline das colisões ajustadas à forma): raios verticais em grade; célula sólida
+     quando há malha na altura do corpo que não é piso caminhável. Devolve contagem por malha e o bitset em base64. */
+ villageSolidMask(step=.25,R=36,exclude=null){const C=VILLAGE_CENTER,rc=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0),skip=new Set();for(const c of villageNpcs)c.holder.traverse(o=>skip.add(o));player.traverse(o=>skip.add(o));
+  const ex=exclude?new RegExp(exclude,'i'):null,meshes=[];villageGroup.updateMatrixWorld(true);villageGroup.traverseVisible(o=>{if(o.isMesh&&!o.isSkinnedMesh&&!skip.has(o)&&!(o.material&&o.material.transparent&&o.material.opacity<.5)&&!(ex&&(ex.test(o.name)||ex.test(o.parent&&o.parent.name||''))))meshes.push(o);});
+  const N=Math.round(2*R/step)+1,bits=new Uint8Array(Math.ceil(N*N/8)),names={};
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){const x=C.x-R+i*step,z=C.z-R+j*step,g=groundHeightAt(x,z);rc.set(new THREE.Vector3(x,g+6,z),down);rc.far=6-.3;
+   const h=rc.intersectObjects(meshes,false).find(h=>h.point.y>g+.3&&h.point.y<g+1.7&&!(()=>{const sp=eldoriaWalk.supportAt(x,z,h.point.y+.05);return sp&&Math.abs(sp.y-h.point.y)<.2;})());
+   if(!h)continue;const k=i*N+j;bits[k>>3]|=1<<(k&7);const nm=(h.object.name||'?')+'<'+(h.object.parent&&h.object.parent.name||'');names[nm]=(names[nm]||0)+1;}
+  let bin='';for(const b of bits)bin+=String.fromCharCode(b);return{cx:C.x,cz:C.z,R,step,N,names,b64:btoa(bin)};},
+ /** Alcance a pé na vila (BFS em grade a partir da entrada): nenhuma colisão nova pode lacrar vendedor, rota de NPC, fonte
+     ou ponto de missão. Devolve células alcançáveis e quais pontos-chave ficaram fora. */
+ villageReach(step=.35,R=36){const C=VILLAGE_CENTER,N=Math.round(2*R/step)+1,free=(x,z)=>{const g=groundHeightAt(x,z);return !(blockedAt(x,z)||(walkRailingsOn&&eldoriaWalk.blocked(x,z,g,groundHeightAt))||rocksBlock(rockObstacles,x,z,g,terrainHeightAt,x+9,z+9));};
+  const idx=(x,z)=>[Math.round((x-C.x+R)/step),Math.round((z-C.z+R)/step)],seen=new Uint8Array(N*N),q=[];let [si,sj]=idx(-1.6,-30.2);
+  for(let r=0;r<12&&!free(C.x-R+si*step,C.z-R+sj*step);r++)sj--; seen[si*N+sj]=1;q.push(si*N+sj);let n=0;
+  while(q.length){const k=q.pop();n++;const i=Math.floor(k/N),j=k%N;for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const ii=i+a,jj=j+b;if(ii<0||jj<0||ii>=N||jj>=N)continue;const kk=ii*N+jj;if(seen[kk])continue;if(!free(C.x-R+ii*step,C.z-R+jj*step))continue;seen[kk]=1;q.push(kk);}}
+  const reach=(x,z,rad=.6)=>{for(let a=-rad;a<=rad;a+=step)for(let b=-rad;b<=rad;b+=step){const [i,j]=idx(x+a,z+b);if(i>=0&&j>=0&&i<N&&j<N&&seen[i*N+j])return true;}return false;};
+  const spots=[];marketStalls.forEach((m,i)=>{const f=[Math.sin(m.yaw),Math.cos(m.yaw)];spots.push(['frente-'+m.label,m.x+f[0]*1.7,m.z+f[1]*1.7]);});
+  villageVendors.forEach(v=>spots.push(['falar-'+v.shortName,v.x+Math.sin(v.yaw)*2.3,v.z+Math.cos(v.yaw)*2.3]));
+  for(const L of villageDrivers)if(L.drv&&L.c.holder)spots.push(['npc-'+L.id,L.c.holder.position.x,L.c.holder.position.z,1.1]);
+  PORTER_ROUTE.forEach((p,i)=>spots.push(['carregador-'+i,p[0],p[1]]));
+  spots.push(['fonte',C.x+ELDORIA_DRY_FOUNTAIN.x,C.z+ELDORIA_DRY_FOUNTAIN.z+ELDORIA_DRY_FOUNTAIN.r+.9],['poco',C.x-1.4,C.z-.6+1.6],['centro',C.x,C.z]);
+  const out=spots.map(([k,x,z,r])=>({k,x:+x.toFixed(1),z:+z.toFixed(1),ok:reach(x,z,r||.6)}));
+  return{reachable:n,step,missing:out.filter(o=>!o.ok),spots:out.length};},
+ villageSolidAudit(step=.35,R=34){const C=VILLAGE_CENTER,rc=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0),skip=new Set();for(const c of villageNpcs)c.holder.traverse(o=>skip.add(o));
+  const meshes=[];villageGroup.updateMatrixWorld(true);villageGroup.traverseVisible(o=>{if(o.isMesh&&!skip.has(o)&&!(o.material&&o.material.transparent&&o.material.opacity<.5))meshes.push(o);});
+  const cells=new Map();let pts=0;const N=Math.round(2*R/step);
+  for(let i=0;i<=N;i++)for(let j=0;j<=N;j++){const x=C.x-R+i*step,z=C.z-R+j*step,g=groundHeightAt(x,z);rc.set(new THREE.Vector3(x,g+6,z),down);rc.far=6-.3;const hits=rc.intersectObjects(meshes,false).filter(h=>h.point.y>g+.3&&h.point.y<g+1.7&&!(()=>{const sp=eldoriaWalk.supportAt(x,z,h.point.y+.05);return sp&&Math.abs(sp.y-h.point.y)<.2;})());if(!hits.length)continue;pts++; // piso caminhável (adro, deque) não é obstáculo
+   if(blockedAt(x,z)||(walkRailingsOn&&eldoriaWalk.blocked(x,z,g,groundHeightAt))||rocksBlock(rockObstacles,x,z,g,terrainHeightAt,x+9,z+9))continue;
+   cells.set(i+','+j,{i,j,x,z,mesh:hits[0].object.name||hits[0].object.parent&&hits[0].object.parent.name||'?',h:+(hits[0].point.y-g).toFixed(2)});}
+  const seen=new Set(),holes=[];for(const [k,c0] of cells){if(seen.has(k))continue;const st=[c0],cl=[];seen.add(k);while(st.length){const c=st.pop();cl.push(c);for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const kk=(c.i+a)+','+(c.j+b);if(!seen.has(kk)&&cells.has(kk)){seen.add(kk);st.push(cells.get(kk));}}}
+   if(cl.length<3)continue;const names={};for(const c of cl)names[c.mesh]=(names[c.mesh]||0)+1;let cx=0,cz=0,hm=0;for(const c of cl){cx+=c.x;cz+=c.z;hm=Math.max(hm,c.h);}
+   holes.push({mesh:Object.entries(names).sort((a,b)=>b[1]-a[1]).map(e=>e[0]+'×'+e[1]).slice(0,3).join(' '),n:cl.length,area:+(cl.length*step*step).toFixed(2),cx:+(cx/cl.length).toFixed(1),cz:+(cz/cl.length).toFixed(1),local:[+(cx/cl.length-C.x).toFixed(1),+(cz/cl.length-C.z).toFixed(1)],hmax:hm,x0:+Math.min(...cl.map(c=>c.x)).toFixed(1),x1:+Math.max(...cl.map(c=>c.x)).toFixed(1),z0:+Math.min(...cl.map(c=>c.z)).toFixed(1),z1:+Math.max(...cl.map(c=>c.z)).toFixed(1)});}
+  return{solidSamples:pts,step,holes:holes.sort((a,b)=>b.n-a.n)};},
  // Agente de cenas (só ?debug3d=1): o herói (ou o ponto `to` da câmera livre) aparece no quadro? Raio da câmera ao peito contra as malhas visíveis
  // (exceto o próprio herói) + projeção na tela. Só leitura: não mexe em câmera, colisão nem gameplay.
  camView(to){camera.updateMatrixWorld();const P=to?new THREE.Vector3(...to):player.position.clone().setY(player.position.y+1.1);const C=camera.position,d=P.clone().sub(C),L=d.length(),rc=new THREE.Raycaster(C.clone(),d.normalize(),.05,Math.max(.06,L-(to?.3:1.25))),mine=new Set();player.traverse(o=>mine.add(o));
