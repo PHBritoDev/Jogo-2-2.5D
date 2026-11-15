@@ -152,3 +152,21 @@ test('A5: invalid Act I substep cannot poison checkpoint transitions', () => {
   assert.deepEqual(nextAct1Sub(4, 3), { questStep: 5, act1Sub: 0 });
   assert.deepEqual(nextAct1Sub(3, 1.9), { questStep: 3, act1Sub: 2 });
 });
+
+test('A5: legacy string quest steps advance numerically and reload the intended checkpoint', () => {
+  for (const [step, sub, nextStep] of [['1', 1, 2], ['3', 2, 4], ['4', 3, 5]]) {
+    const result = nextAct1Sub(step, sub);
+    assert.deepEqual(result, { questStep: nextStep, act1Sub: 0 });
+    const restored = migrateProgress({
+      version: ACT1.version, act1Rev: ACT1.rev, ...result, coins: 19,
+      portalRewardClaimed: true, owned: ['magic']
+    });
+    assert.equal(restored.questStep, nextStep);
+    assert.equal(restored.coins, 19);
+    assert.equal(restored.portalRewardClaimed, true);
+    assert.deepEqual(migrateProgress(restored), restored);
+  }
+  assert.deepEqual(nextAct1Sub('4', '2'), { questStep: 4, act1Sub: 3 });
+  assert.deepEqual(nextAct1Sub('Infinity', 1), { questStep: 0, act1Sub: 0 });
+  assert.deepEqual(nextAct1Sub(-Infinity, 1), { questStep: 0, act1Sub: 0 });
+});
