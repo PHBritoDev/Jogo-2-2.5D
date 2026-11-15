@@ -295,3 +295,34 @@ test('A5: restoring completed Act I repairs a missing bishop reward flag', () =>
   assert.equal(beforeBattle.vhazraelRewardClaimed, false);
   assert.equal(afterVhazraelVictory(beforeBattle).coinsGained, ACT1.vhazraelReward);
 });
+
+test('A5: completed Act I repairs missing first bishop count without replay or duplicate reward', () => {
+  for (const questStep of [8, 9, 14, 21, 30, '8']) {
+    for (const bishopsDefeated of [0, undefined, NaN, Infinity, 'NaN']) {
+      const restored = migrateProgress({
+        version: ACT1.version, act1Rev: ACT1.rev, questStep, bishopsDefeated,
+        coins: 72, vhazraelRewardClaimed: false
+      });
+      assert.equal(restored.bishopsDefeated, 1);
+      assert.equal(restored.vhazraelRewardClaimed, true);
+      assert.equal(restored.owned.includes('magic3'), true);
+      assert.equal(restored.coins, 72);
+      assert.equal(afterVhazraelVictory(restored).coinsGained, 0);
+      assert.deepEqual(migrateProgress(restored), restored);
+    }
+  }
+  const laterBosses = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 25,
+    bishopsDefeated: 3, owned: ['magic', 'aurora'], sword: 'aurora'
+  });
+  assert.equal(laterBosses.bishopsDefeated, 3);
+  assert.deepEqual(laterBosses.owned, ['magic', 'aurora']);
+  assert.equal(laterBosses.sword, 'aurora');
+  const firstBattle = migrateProgress({
+    version: ACT1.version, act1Rev: ACT1.rev, questStep: 7,
+    bishopsDefeated: 0, coins: 10
+  });
+  assert.equal(firstBattle.bishopsDefeated, 0);
+  assert.equal(firstBattle.owned.includes('magic3'), false);
+  assert.equal(afterVhazraelVictory(firstBattle).coinsGained, ACT1.vhazraelReward);
+});
