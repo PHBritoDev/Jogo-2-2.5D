@@ -1,3 +1,6 @@
+## Atualização operacional — PRs paralelas (15/11/2026)
+Por autorização do criador, **A1–A5 podem manter várias PRs em paralelo**, cada uma em branch própria e escopo independente; commits e novos trabalhos não aguardam o merge da PR anterior. **A1–A5 podem mesclar suas próprias PRs de baixo risco** somente depois de CI obrigatório totalmente verde, revisão de conflito/integração, testes e evidências pertinentes confirmados, sem alterar áreas protegidas, sem depender de outro agente e com rastreio na #519. A6 continua podendo integrar PRs elegíveis. Não dar push direto à main nem mesclar pendências, testes falhos, alterações sensíveis ou cenas da caverna/Claude. Em choque com instrução antiga de uma PR ou proibição absoluta de auto-merge, prevalece esta regra mais recente.
+
 # Central de comunicação — cinco agentes do RPG
 **Canal ativo de mensagens:** https://github.com/PHBritoDev/Jogo-2-2.5D/issues/519
 **Pasta:** `docs/equipe-5-agentes/` | **Responsável final:** criador do jogo
@@ -37,7 +40,7 @@ Respostas devem citar ID: `[RESPOSTA A5-001] A3: ACEITO / ALTERNATIVA / BLOQUEAD
 2. Responsável pelo domínio implementa; agente solicitante fornece requisitos e testa integração; **um PR por proprietário e por mudança lógica**.
 3. Elementos existentes são **preservados por padrão**. Uma referência de anime ou jogo conhecido orienta qualidade/coreografia, não autoriza importar propriedade intelectual.
 4. A **caverna de Eldória C1–C5 foi mesclada**; continua uma área de responsabilidade protegida. A1–A5 só fazem sugestões/QA em leitura ou pedem consentimento e coordenação antes de alterar módulos específicos dela.
-5. **A1–A5 nunca fazem merge por conta própria. A6 pode mesclar automaticamente PRs elegíveis de A1–A5 conforme a delegação e o checklist de `07-AGENTE-INTEGRADOR.md`, sem pedir autorização repetitiva.** Bloquear alterações arriscadas, a caverna do Claude e PRs fora dessa equipe. Apenas responsável de integração final altera `build-info.js`.
+5. **A1–A5 podem mesclar PRs próprias de baixo risco somente quando integralmente verdes, verificadas e sem conflitos/áreas protegidas; A6 também pode integrar PRs elegíveis seguindo `07-AGENTE-INTEGRADOR.md`.** Bloquear alterações arriscadas, a caverna do Claude e PRs fora dessa equipe. Apenas responsável de integração final altera `build-info.js`.
 6. **Pesquisar antes de mudanças**, distinguindo observação no runtime, hipótese, referência e evidência. Se falta visual, usar ferramentas do jogo/CI ou pedir captura; não fingir.
 7. **As cinco automações horárias A1–A5 já foram autorizadas e estão ativas desde 14/11/2026.** Cada disparo deve retomar trabalhos anteriores, executar melhorias reais em sua branch/PR e registrar código/testes/evidências. Não criar agendamentos duplicados e não inferir autonomia contínua fora da execução de cada tarefa.
 8. Comunicação com criador: **“Não envie mensagens de progresso nem resumo final; registre resultados apenas no GitHub.”**
@@ -69,4 +72,4 @@ Workflow: [`.github/workflows/equipe-5-agentes-roteador.yml`](../../.github/work
 
 ## A6 — integração autônoma
 **Documento do integrador:** [07-AGENTE-INTEGRADOR.md](07-AGENTE-INTEGRADOR.md).
-**Regra operacional atual:** A6 pode executar merges seguros da equipe A1–A5 depois de revisar CI, evidências, regressões e dependências, sem perguntar por cada PR. A1–A5 não mesclam; Claude/caverna permanece fora dessa delegação. Decisões criativas fundamentais e mudanças irreversíveis são exceções e ficam bloqueadas. O roteador GitHub existente organiza Issues, mas não executa merge sozinho; a autonomia só ocorre durante as execuções do A6.
+**Regra operacional atual:** A6 pode executar merges seguros da equipe A1–A5 após revisar CI, evidências, regressões e dependências; A1–A5 também podem integrar suas próprias mudanças pequenas e seguras segundo o checklist acima; Claude/caverna permanece fora dessa delegação. Decisões criativas fundamentais e mudanças irreversíveis são exceções e ficam bloqueadas. O roteador GitHub existente organiza Issues, mas não executa merge sozinho; a autonomia só ocorre durante as execuções do A6.
