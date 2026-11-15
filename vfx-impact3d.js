@@ -48,7 +48,10 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
       const s = slots[head++ % capacity];
       Object.assign(s, { id, time, size, preset, kind, seed: head });
       Object.assign(s.point, point);
-      Object.assign(s.dir, dir);
+      // A malformed direction must never poison pooled shader transforms.
+      const validDir = Number.isFinite(dir?.x) && Number.isFinite(dir?.y) && Number.isFinite(dir?.z)
+        && (dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) > 1e-12;
+      Object.assign(s.dir, validDir ? dir : { x: 0, y: 1, z: 0 });
       s.body.material.uniforms.celestial.value = preset === 'celestial' ? 1 : 0;
       const pal = ENERGY_PALETTES[preset] || ENERGY_PALETTES.crimson;
       for (const k of ['deep', 'body', 'hot']) s.body.material.uniforms[k].value.setRGB(...pal[k]);
