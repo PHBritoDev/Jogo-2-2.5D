@@ -124,3 +124,16 @@ test('save com timestamp zero válido recupera corações ao reabrir', () => {
   assert.equal(state.since, now);
   assert.equal(msToNextHeart(state, now), HEARTS.regenMs);
 });
+
+test('timestamp zero preservado em JSON e em save legado textual', () => {
+  const now = HEARTS.regenMs * 2 + 30000;
+  for (const since of [0, '0']) {
+    const saved = JSON.parse(JSON.stringify({ hearts: 3, since, explained: true }));
+    const state = normalizeHearts(saved, now);
+    assert.equal(state.hearts, 5, 'dois intervalos completos devem regenerar');
+    assert.equal(state.since, HEARTS.regenMs * 2, 'fração de 30 segundos permanece para a próxima regeneração');
+    assert.equal(msToNextHeart(state, now), HEARTS.regenMs - 30000);
+    const reopened = normalizeHearts(JSON.parse(JSON.stringify(state)), now + HEARTS.regenMs - 30000);
+    assert.equal(reopened.hearts, 6, 'reabrir o save não deve perder a contagem parcial');
+  }
+});
