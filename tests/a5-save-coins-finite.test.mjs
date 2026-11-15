@@ -170,3 +170,41 @@ test('A5: legacy string quest steps advance numerically and reload the intended 
   assert.deepEqual(nextAct1Sub('Infinity', 1), { questStep: 0, act1Sub: 0 });
   assert.deepEqual(nextAct1Sub(-Infinity, 1), { questStep: 0, act1Sub: 0 });
 });
+
+test('A5: V5 save migration retains paid upgrades, XP and collection after reload', () => {
+  const legacy = {
+    version: 5, questStep: 5, coins: 64, playerName: 'Viajante',
+    xp: 540, owned: ['magic', 'aurora', 'magic2'],
+    sword: 'aurora', shopVisited: true,
+    stats: { kills: 11, rescues: 2 },
+    achievementsClaimed: ['first-rescue'], bestiary: ['captor'],
+    bestiaryRewarded: ['captor'], ledgersFound: [0, 2],
+    playSeconds: 320
+  };
+  const restored = migrateProgress(legacy);
+  assert.equal(restored.version, ACT1.version);
+  assert.equal(restored.questStep, 4);
+  assert.equal(restored.portalRewardClaimed, true);
+  assert.equal(restored.coins, 64);
+  assert.equal(restored.xp, 540);
+  assert.deepEqual(restored.owned, ['magic', 'aurora', 'magic2']);
+  assert.equal(restored.sword, 'aurora');
+  assert.equal(restored.shopVisited, true);
+  assert.equal(restored.stats.kills, 11);
+  assert.equal(restored.stats.rescues, 2);
+  assert.deepEqual(restored.achievementsClaimed, ['first-rescue']);
+  assert.deepEqual(restored.bestiary, ['captor']);
+  assert.deepEqual(restored.bestiaryRewarded, ['captor']);
+  assert.deepEqual(restored.ledgersFound, [0, 2]);
+  assert.equal(restored.playSeconds, 320);
+  assert.deepEqual(migrateProgress(restored), restored);
+});
+
+test('A5: legacy V5 missing shop fields still migrates with default progression', () => {
+  const restored = migrateProgress({ version: 5, questStep: 1, coins: 9 });
+  assert.equal(restored.questStep, 1);
+  assert.equal(restored.coins, 9);
+  assert.deepEqual(restored.owned, []);
+  assert.equal(restored.sword, 'prota');
+  assert.deepEqual(migrateProgress(restored), restored);
+});
