@@ -148,6 +148,49 @@ jobs:
           python3 tools/agentes-externos/a1-repair-benchmark.py \
             --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" --model "$MODEL_FILE"
 
+
+  comparar-qwen-3b:
+    # Modelo alternativo apenas em PR própria, sem permissões de escrita.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'a1-compare-3b')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout sem credenciais
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Recuperar motor compilado
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/a1-llm/llama-bin
+          key: a1-llama-cli-b12244-ubuntu-pr-smoke-v1
+      - name: Compilar motor se cache ausente
+        run: |
+          if [ ! -x "$HOME/.cache/a1-llm/llama-bin/llama-cli" ]; then
+            git clone -q --depth 1 --branch b12244 https://github.com/ggml-org/llama.cpp /tmp/a1-compare-llama
+            cmake -S /tmp/a1-compare-llama -B /tmp/a1-compare-build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF
+            cmake --build /tmp/a1-compare-build -j 2 --target llama-cli
+            mkdir -p "$HOME/.cache/a1-llm/llama-bin"
+            cp -a /tmp/a1-compare-build/bin/. "$HOME/.cache/a1-llm/llama-bin/"
+          fi
+      - name: Baixar Qwen 3B com SHA256 obrigatório
+        run: |
+          curl --fail --location --retry 3 --max-time 360 \
+            "https://huggingface.co/bartowski/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf" \
+            -o "$RUNNER_TEMP/qwen-3b.gguf"
+          echo "3da3afe6cf5c674ac195803ea0dd6fee7e1c228c2105c1ce8c66890d1d4ab460  $RUNNER_TEMP/qwen-3b.gguf" | sha256sum --check --status
+      - name: Benchmark de dois reparos sem editar jogo
+        run: |
+          export LD_LIBRARY_PATH="$HOME/.cache/a1-llm/llama-bin:${LD_LIBRARY_PATH:-}"
+          python3 tools/agentes-externos/a1-repair-benchmark.py \
+            --llama "$HOME/.cache/a1-llm/llama-bin/llama-cli" \
+            --model "$RUNNER_TEMP/qwen-3b.gguf"
+
   escolher-issue:
     runs-on: ubuntu-latest
     outputs:
