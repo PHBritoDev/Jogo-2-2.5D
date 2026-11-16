@@ -33,12 +33,12 @@ test('ponte do abismo: tabuleiro firme de ponta a ponta, corrimão bloqueia quem
   assert.ok(!J.journeyBlocked(-860, B.z + B.half + .3, B.y + 1.2), 'pular por cima do corrimão é possível');
   assert.ok(J.inAbyss(-860, B.z + 6) && J.journeyHeight(-860, B.z + 6) < -250, 'abaixo só o abismo (sem fundo visível sob a névoa)');
   assert.ok(J.journeyHeight(B.x0 + 1, B.z) > B.y - 1 && J.journeyHeight(B.x1 - 1, B.z) > B.y - 1, 'extremos firmes ligados à rocha');
-  assert.ok(J.journeyHeight(-1528 + 42, -66) > 250, 'vulcão monumental (cone com cratera)');
-  assert.ok(J.journeyHeight(-1528, -66) < J.journeyHeight(-1528 + 42, -66) - 30, 'cratera legível');
+  const rim = J.journeyHeight(J.VOLCANO2.x + J.VOLCANO2.crater, J.VOLCANO2.z); assert.ok(rim > 150, 'vulcão monumental (cone com cratera): ' + rim.toFixed(0));
+  assert.ok(J.journeyHeight(J.VOLCANO2.x, J.VOLCANO2.z) < rim - 30, 'cratera legível');
 });
 
 test('Cinzária: bairros com casas, rua principal e radiais livres, praça térrea, rotas dos moradores fora das casas', () => {
-  const L = J.cinzariaLayout(); assert.ok(L.length >= 36, 'casas: ' + L.length);
+  const L = J.cinzariaLayout(); assert.ok(L.length >= 34, 'casas: ' + L.length);
   assert.deepEqual([...new Set(L.map(h => h[6]))].sort(), ['alto', 'mercado', 'oficinas', 'praca']);
   for (const r of J.CITY_ROUTES2) for (const p of r) assert.ok(!houseAt(p[0], p[1], .4), 'rota dentro de casa: ' + p);
   for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], b = L[j]; assert.ok(Math.hypot(a[0] - b[0], a[1] - b[1]) > (Math.min(a[2], a[3]) + Math.min(b[2], b[3])) / 2, 'casas sobrepostas'); }
@@ -76,9 +76,9 @@ test('integração no mundo: relevo/limites/água da jornada, recorte da malha a
   const src = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes('holes:[terrainPatchRect,...JOURNEY_HOLES]'));
   assert.ok(src.includes('terrain3D.height=(x,z)=>{if(!inJourney(x,z))return h0(x,z);'));
-  assert.ok(src.includes('if(journeyBlocked(x,z,player.position.y)||journeyWorld&&journeyWorld.solidAt(x,z))return true;'));
+  assert.ok(src.includes('if(journeyBlocked(x,z,player.position.y)||journeyWorld&&journeyWorld.solidAt(x,z,player.position.y))return true;'));
   assert.ok(/journeyFall\.on&&playerHP>0&&P\.y<JBRIDGE\.y-38\)\{playerHP=0;playerRespawnAt=/.test(src), 'queda no abismo mata e volta ao checkpoint');
-  assert.ok(src.includes("get('adm')==='1'") && src.includes("'TP Cidade 1 — Eldória'") && src.includes("'TP Cidade 2 — Cinzária'"));
+  assert.ok(src.includes("get('adm')==='1'") && src.includes("'TP Cidade 1 — Eldória'") && /tpCity\(n\)\{return journeyTeleport\(n===1\|\|n==='eldoria'\?'eldoria':'cinzaria'\)/.test(src), 'painel ADM com TP (Mod 322 trocou o 2º botão pelo início do Vale; Cinzária segue pelo debug)');
   assert.ok(/function journeyTeleport\(key\)\{[\s\S]{0,400}journeyWorld\.prefetch\(S\.x,S\.z\)/.test(src), 'carrega o terreno antes de posicionar');
   assert.ok(!/cityLayout\(\)|DISTRICT_CANAL|inAlley/.test(src), 'cidade antiga removida do mundo');
 });

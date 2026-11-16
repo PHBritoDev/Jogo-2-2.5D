@@ -35,10 +35,13 @@ const cumulative = pts => { const c = [0]; for (let i = 1; i < pts.length; i++) 
 export const BRIDGE = Object.freeze({ x0: -806, x1: -930, z: -50, y: 62, half: 1.35, rail: 1.05, sag: 1.4 });
 export const ABYSS = Object.freeze({ x0: -930, x1: -806, z0: -300, z1: 180, floor: -320, fogY: -34 });
 export const CITY2 = Object.freeze({ x: -1262, z: -66, r: 64, y: 24 });
-export const VOLCANO2 = Object.freeze({ x: -1528, z: -66, r: 206, h: 390, crater: 40, craterDepth: 60 });
+export const VOLCANO2 = Object.freeze({ x: -1528, z: -66, r: 220, h: 290, crater: 60, craterDepth: 58, block: 186 });
 export const GATE2 = Object.freeze({ x: -1327, z: -66, face: Math.PI / 2 });
 export const GUARDS2 = Object.freeze([{ x: -1318.5, z: -62.6 }, { x: -1318.5, z: -69.4 }]);
 export const WATERFALL = Object.freeze({ x: -432, z: 64, zTop: 108, w: 9 }); // cascata descendo a encosta da serra norte até o poço (z = 64)
+/** Mod 323 — poço ao pé da cachoeira (lago raso de 0,7 m que alimenta o rio) e quedas d'água das paredes do abismo. */
+export const FALL_POOL = Object.freeze({ x: -432, z: 58, r: 10 });
+export const ABYSS_FALLS = Object.freeze([{ side: 1, z: -128, w: 6 }, { side: -1, z: 14, w: 8 }, { side: 1, z: 66, w: 5 }]);
 /** Percurso principal (polilinha jogável) Eldória → portão do vulcão. */
 export const ROUTE = Object.freeze([
   [-112, -62], [-150, -70], [-200, -58], [-260, -40], [-320, -62], [-380, -92], [-440, -80], [-500, -52], [-560, -64], [-612, -84],
@@ -69,7 +72,7 @@ export function inJourney(x, z) { return x < JOURNEY_BOUNDS.x1 && x > JOURNEY_BO
 /** Recortes que a malha antiga do mundo deve deixar para a malha em blocos da jornada. */
 export const JOURNEY_HOLES = Object.freeze([{ x0: -4000, x1: -118, z0: -175, z1: 4000 }, { x0: -4000, x1: -240, z0: -4000, z1: -175 }]);
 /** Borda recortada do abismo (paredes irregulares); as pontas da ponte ficam sempre em rocha firme. */
-const abyssEdge = (z, side) => 9 * (fbm2(z * .045 + side * 17, side * 3.1, 3, 77) - .5) * sstep(6, 30, Math.abs(z - BRIDGE.z));
+export const abyssEdge = (z, side) => 9 * (fbm2(z * .045 + side * 17, side * 3.1, 3, 77) - .5) * sstep(6, 30, Math.abs(z - BRIDGE.z));
 export function inAbyss(x, z) { return z > ABYSS.z0 && z < ABYSS.z1 && x < ABYSS.x1 + abyssEdge(z, 1) && x > ABYSS.x0 + abyssEdge(z, -1); }
 
 /** Distância assinada ao limite caminhável (negativa dentro). O abismo é "aberto" de propósito: cair é possível. */
@@ -88,13 +91,33 @@ function mountains(x, z, d) {
   const massif = .6 + .9 * fbm2(x * .006 + 7, z * .006 - 3, 3, 11), r = ridge(x * .0095, z * .0095, 4, 23);
   return 6 * sstep(0, 12, s) + Math.max(0, s - 10) * .25 + 70 * massif * sstep(4, 110, s) * (.35 + r * 1.05) + 48 * sstep(110, 300, s) * ridge(x * .004 + 3, z * .004 + 5, 3, 51);
 }
+/** Mod 323 — estratovulcão de verdade: perfil côncavo (encostas suaves no sopé, íngremes no alto), cume TRUNCADO por
+ *  uma cratera larga com borda irregular e um lado rebaixado (noroeste, oposto ao caminho), ravinas de erosão por ruído
+ *  (espaçamento e profundidade irregulares, nunca listras repetidas) e um avental baixo no sopé onde fica o portal. */
+const VOLC_P = 1.85;
+function volcanoRim(a) { return 1 + .07 * Math.sin(a * 2 + .8) + .05 * (fbm2(Math.cos(a) * 2.2 + 9, Math.sin(a) * 2.2, 3, 131) - .5) * 2; }
+export function volcanoLobe(a) { return 1 + .05 * Math.sin(a * 3 + 2.2) + .035 * Math.sin(a * 5 + .4) + .06 * (fbm2(Math.cos(a) * 1.6 + 3, Math.sin(a) * 1.6 + 5, 3, 127) - .5); }
+export function volcanoGully(a, r) { // 0..1: ravina radial suave e sem costura (ruído amostrado num círculo, deriva lenta com o raio)
+  const F = 2.4, v = fbm2(Math.cos(a) * F + r * .0045 + 11, Math.sin(a) * F - r * .0035 + 5, 2, 143);
+  return Math.pow(Math.max(0, 1 - Math.abs(v - .5) * 3.2), 3);
+}
 export function volcanoHeight(x, z) {
-  const V = VOLCANO2, r = Math.hypot(x - V.x, z - V.z); if (r >= V.r * 1.12) return 0;
-  const a = Math.atan2(z - V.z, x - V.x), lobe = 1 + .06 * Math.sin(a * 3 + 1.3) + .04 * Math.sin(a * 7), k = Math.min(1, r / (V.r * lobe));
-  let h = V.h * Math.pow(1 - k, 1.6) * (1 + .03 * Math.sin(a * 23 + r * .05)) - Math.max(0, .9 - k) * 6 * Math.pow(Math.abs(Math.sin(a * 11 + r * .02)), 8); // ravinas de escoamento
-  if (r < V.crater) { const rim = V.h * Math.pow(1 - V.crater / V.r, 1.6); h = rim - V.craterDepth * (1 - (r / V.crater) ** 2); }
+  const V = VOLCANO2, r = Math.hypot(x - V.x, z - V.z); if (r >= V.r * 1.14) return 0;
+  const a = Math.atan2(z - V.z, x - V.x), k = Math.min(1, r / (V.r * volcanoLobe(a)));
+  const breach = 1 - .2 * Math.pow(Math.max(0, Math.cos(a - 2.35)), 3); // borda noroeste mais baixa (silhueta assimétrica)
+  let h = V.h * Math.pow(1 - k, VOLC_P) * (k < .55 ? breach + (1 - breach) * k / .55 : 1);
+  h -= V.h * .035 * volcanoGully(a, r) * sstep(.18, .4, k) * sstep(1, .62, k); // ravinas de escoamento
+  h += 2.2 * (fbm2(x * .05, z * .05, 3, 137) - .5) * sstep(.2, .5, k);          // rugosidade de lava/cinza
+  const cr = V.crater * volcanoRim(a);
+  if (r < cr * 1.25) { // borda arredondada e cratera em tigela com fundo plano (lago de lava em volta.js visual)
+    const kr = cr / (V.r * volcanoLobe(a)), rim = V.h * Math.pow(1 - kr, VOLC_P) * breach, t = r / cr;
+    const lipK = 3 * Math.exp(-(((t - 1) * 6) ** 2)), bowl = rim - V.craterDepth * (1 - sstep(.35, 1, t)) + lipK, lip = rim + lipK;
+    h = t < 1 ? bowl : h + (lip - h) * sstep(1.25, 1, t);
+  }
   return Math.max(0, h);
 }
+/** Lago de lava no fundo da cratera (altura e raio, para o visual). */
+export function craterFloor() { const V = VOLCANO2; return { x: V.x, z: V.z, r: V.crater * .45, y: volcanoHeight(V.x, V.z) }; }
 /** Relevo da jornada. Retorna null fora da região (o mundo antigo responde). */
 export function journeyHeight(x, z) {
   if (!inJourney(x, z)) return null;
@@ -104,14 +127,17 @@ export function journeyHeight(x, z) {
   const roll = x > -612 ? (fbm2(x * .022 + 5, z * .022 - 2, 3, 7) - .5) * 4.2 * sstep(4, 18, q.d) : (fbm2(x * .03, z * .03, 3, 17) - .5) * 2.2 * sstep(4, 14, q.d);
   const city = Math.hypot(x - CITY2.x, z - CITY2.z) < CITY2.r + 6 ? sstep(CITY2.r + 6, CITY2.r - 8, Math.hypot(x - CITY2.x, z - CITY2.z)) : 0;
   const vr = Math.hypot(x - VOLCANO2.x, z - VOLCANO2.z); // planície de cinza em volta do cone; as serras voltam longe dele
-  let h = py + roll * (1 - city) + mountains(x, z, d) * sstep(VOLCANO2.r * 1.05, VOLCANO2.r * 1.75, vr);
+  // Mod 323: as serras baixam perto das bordas do mapa da jornada (antes eram cortadas a pique: "paredes" planas no horizonte)
+  const B = JOURNEY_BOUNDS, fadeB = sstep(0, 170, Math.min(x - B.x0, z - B.z0, B.z1 - z)); // (o canto da Ascensão a sudeste fica como estava: as serras escondem a muralha da fronteira)
+  let h = py + roll * (1 - city) + mountains(x, z, d) * sstep(VOLCANO2.r * 1.05, VOLCANO2.r * 1.75, vr) * fadeB;
   // o rio do vale: leito raso (≤ 0,7 m de água) que nasce na cachoeira e corre para leste
   const rv = polyProject(x, z, RIVER2, RIVER2_CUM).d; if (rv < 7) h -= 1.1 * sstep(7, 2.5, rv);
+  const pd = Math.hypot(x - FALL_POOL.x, z - FALL_POOL.z); if (pd < FALL_POOL.r + 3) h = Math.min(h, py - .2 + 2.6 * sstep(FALL_POOL.r - 3, FALL_POOL.r + 3, pd) * (h - py + 1.8) / 2.6 - 1.1 * sstep(FALL_POOL.r, FALL_POOL.r - 3, pd));
   return h + volcanoHeight(x, z);
 }
 export const RIVER2 = Object.freeze([[WATERFALL.x, WATERFALL.z - 4], [-424, 40], [-398, 14], [-352, 4], [-300, 12], [-240, 6], [-190, 24], [-150, 46], [-122, 52]].map(p => Object.freeze(p)));
 const RIVER2_CUM = cumulative(RIVER2);
-export function riverDepth(x, z) { const d = polyProject(x, z, RIVER2, RIVER2_CUM).d; return d < 5.5 ? .7 * sstep(5.5, 2.5, d) : 0; }
+export function riverDepth(x, z) { const d = polyProject(x, z, RIVER2, RIVER2_CUM).d, p = Math.hypot(x - FALL_POOL.x, z - FALL_POOL.z); return Math.max(d < 5.5 ? .7 * sstep(5.5, 2.5, d) : 0, p < FALL_POOL.r ? .7 * sstep(FALL_POOL.r, FALL_POOL.r - 3, p) : 0); }
 
 /** Ponte do abismo: chão do tabuleiro (com leve barriga) e corrimãos. */
 export function bridgeDeck(x, z) {
@@ -124,7 +150,7 @@ export function journeyBlocked(x, z, y = 0) {
   if (!inJourney(x, z)) return false;
   const deck = bridgeDeck(x, z); if (deck) return deck.edge && y < deck.y + .7; // pulando por cima do corrimão, cai
   if (inAbyss(x, z)) return false;
-  if (Math.hypot(x - VOLCANO2.x, z - VOLCANO2.z) < VOLCANO2.r - 26) return true; // o cone não é escalável
+  if (Math.hypot(x - VOLCANO2.x, z - VOLCANO2.z) < VOLCANO2.block) return true; // o cone não é escalável (anel de basalto marca o limite)
   return journeyBoundary(x, z) > 7;
 }
 
@@ -132,12 +158,31 @@ export function journeyBlocked(x, z, y = 0) {
 /** Casas: [x, z, largura, fundo, andares, rotação (rad), bairro]. Bairros: praça, oficinas (sul), mercado (norte), alto (oeste). */
 export function cinzariaLayout() {
   const C = CITY2, out = [], seed = { s: 7703 }, rnd = () => (seed.s = (seed.s * 16807) % 2147483647) / 2147483647;
-  const ring = (r, n, a0, a1, w, d, floors, district) => { for (let i = 0; i < n; i++) { const a = a0 + (a1 - a0) * (i + .5) / n, x = C.x + Math.cos(a) * r, z = C.z + Math.sin(a) * r; out.push([+x.toFixed(2), +z.toFixed(2), +(w + rnd() * 1.6).toFixed(2), +(d + rnd() * 1.2).toFixed(2), floors + (rnd() < .4 ? 1 : 0), +Math.atan2(-Math.cos(a), -Math.sin(a)).toFixed(3), district]); } };
+  // Mod 323: recuos e larguras irregulares, lotes vagos (jardins/vielas) e alturas de 1 a 3 pavimentos (nada de anel de clones)
+  const ring = (r, n, a0, a1, w, d, floors, district) => { for (let i = 0; i < n; i++) { const gap = rnd(), ja = (rnd() - .5) * .2, jr = (rnd() - .5) * 2.2, ww = w + rnd() * 1.8 - 1, dd = d + rnd() * 1.8 - .4, fl = Math.min(3, floors + (rnd() < .35 ? 1 : 0) - (rnd() < .18 ? 1 : 0));
+    if (gap < .07) continue; const a = a0 + (a1 - a0) * (i + .5 + ja) / n, rr = r + jr, x = C.x + Math.cos(a) * rr, z = C.z + Math.sin(a) * rr; out.push([+x.toFixed(2), +z.toFixed(2), +ww.toFixed(2), +dd.toFixed(2), Math.max(1, fl), +Math.atan2(-Math.cos(a), -Math.sin(a)).toFixed(3), district]); } };
   const ring2 = (r, n, a0, a1, w, d, floors, district) => { const all = []; const save = out.length; ring(r, n, a0, a1, w, d, floors, district); for (const h of out.splice(save)) { const a = Math.atan2(h[1] - C.z, h[0] - C.x); if (Math.abs(Math.sin(a)) < .975) all.push(h); } out.push(...all); }; // ruas radiais norte/sul livres
   ring2(19, 5, .55, 2.6, 6.2, 6, 2, 'praca'); ring2(19, 5, 3.7, 5.75, 6.2, 6, 2, 'praca');          // a praça térrea (abertura leste para a estrada e oeste para o vulcão)
-  ring2(33, 10, .35, 2.75, 5.6, 6, 1, 'mercado'); ring2(33, 10, 3.55, 5.95, 5.6, 6, 1, 'oficinas');   // segundo anel
-  ring2(47, 13, .4, 2.7, 6.4, 7, 2, 'alto'); ring2(47, 13, 3.6, 5.9, 6, 6.4, 1, 'oficinas');         // terceiro anel
-  return out.filter(([x, z]) => Math.abs(z - C.z) > 5.2 || Math.abs(x - C.x) < 8); // rua principal leste-oeste sempre livre
+  ring2(33, 10, .35, 2.75, 5.2, 5.8, 1, 'mercado'); ring2(33, 10, 3.55, 5.95, 5.2, 5.8, 1, 'oficinas');   // segundo anel
+  ring2(47, 13, .4, 2.7, 5.8, 6.6, 2, 'alto'); ring2(47, 13, 3.6, 5.9, 5.6, 6.2, 1, 'oficinas');         // terceiro anel
+  const fit = out.filter(([x, z]) => Math.abs(z - C.z) > 5.2 || Math.abs(x - C.x) < 8); // rua principal leste-oeste sempre livre
+  const corners = (h, m) => { const c = Math.cos(h[5]), s = Math.sin(h[5]), w = h[2] / 2 + m, d = h[3] / 2 + m; return [[-w, -d], [w, -d], [w, d], [-w, d]].map(([lx, lz]) => [h[0] + lx * c + lz * s, h[1] - lx * s + lz * c]); };
+  const sep = (A, B) => { for (const P of [A, B]) for (let i = 0; i < 4; i++) { const [ax, az] = P[i], [bx, bz] = P[(i + 1) % 4], nx = bz - az, nz = ax - bx; let a0 = Infinity, a1 = -Infinity, b0 = Infinity, b1 = -Infinity; for (const [x, z] of A) { const v = x * nx + z * nz; a0 = Math.min(a0, v); a1 = Math.max(a1, v); } for (const [x, z] of B) { const v = x * nx + z * nz; b0 = Math.min(b0, v); b1 = Math.max(b1, v); } if (a1 < b0 || b1 < a0) return true; } return false; };
+  const keep = []; for (const h of fit) { const P = corners(h, .45); if (P.some(([x, z]) => Math.abs(z - C.z) < 5.2 && Math.abs(x - C.x) > 8)) continue; if (keep.some(k => !sep(P, corners(k, .45)))) continue; keep.push(h); }
+  return keep;
+}
+/** Mod 323 — função e feitio de cada casa (determinístico): estalagem, ferraria, armazém, casas pobres de pedra, casas
+ *  de reboco com andar em balanço; cor e inclinação do telhado variam por casa. */
+export function cinzariaStyle(h, i) {
+  const r = hash2(Math.round(h[0] * 10), Math.round(h[1] * 10), 909), r2 = hash2(i, 17, 911);
+  let kind = h[6] === 'oficinas' ? (r < .45 ? 'pedra' : 'oficina') : h[6] === 'alto' ? (r < .25 ? 'pedra' : 'casa') : h[6] === 'mercado' ? (r < .3 ? 'armazem' : 'casa') : 'casa';
+  return { kind, roof: Math.floor(r2 * 5), pitch: .55 + hash2(i, 3, 913) * .55, jetty: kind === 'casa' && h[4] > 1 && r2 > .35, chimney: hash2(i, 5, 915) < .6, shutters: hash2(i, 7, 917) };
+}
+/** Prédios marcantes da praça: a estalagem (3 pav.) e a ferraria com forja acesa. Índices do layout. */
+export function cinzariaLandmarks(L = cinzariaLayout()) {
+  const C = CITY2; let inn = -1, smith = -1, best = 1e9, bs = 1e9;
+  L.forEach((h, i) => { const d = Math.hypot(h[0] - C.x, h[1] - C.z), a = Math.atan2(h[1] - C.z, h[0] - C.x); if (h[6] === 'praca' && Math.abs(a - 1.9) < best) { best = Math.abs(a - 1.9); inn = i; } if (h[6] === 'oficinas' && d < 40 && Math.abs(a + 2.1) < bs) { bs = Math.abs(a + 2.1); smith = i; } });
+  return { inn, smith };
 }
 /** Bancas, fonte, poços e postes: ruas e praças com vida (posições sólidas, colisão simples). */
 export const CITY_PROPS = Object.freeze({
