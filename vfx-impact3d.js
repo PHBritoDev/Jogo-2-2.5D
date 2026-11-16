@@ -30,6 +30,8 @@ export function impactDirectionValid(dir) {
 
 /** Consumes collision records without deciding damage. Fixed reusable slots and 3D tectonic impact shatter. */
 export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () => {} } = {}) {
+  // Keep pooled slot count finite and nonzero even with malformed quality/config input.
+  capacity = Number.isSafeInteger(capacity) && capacity >= 1 && capacity <= 64 ? capacity : 6;
   const root = new T.Group();
   parent.add(root);
   const debris = impactFragments(T, root, ground, 240);
