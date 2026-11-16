@@ -69,3 +69,12 @@ test('vitória de VORGAZHEK normaliza contador de Bispos inválido sem perder pr
   assert.equal(afterVorgazhek({ bishopsDefeated: Number.MAX_VALUE }).bishopsDefeated, Number.MAX_SAFE_INTEGER);
   assert.equal(afterVorgazhek({ bishopsDefeated: 1 }).coinsGained, ACT2.reward);
 });
+
+test('objetivo do vulcão tolera sub-etapa inválida de save sem perder as válidas', () => {
+  const fallback = act2Presentation(ACT2.volcano, 0);
+  for (const invalid of [NaN, Infinity, -Infinity, 'NaN', 'Infinity', undefined]) {
+    assert.deepEqual(act2Presentation(ACT2.volcano, invalid), fallback);
+  }
+  for (let i = 0; i <= 4; i++) assert.deepEqual(act2Presentation(ACT2.volcano, i), act2Presentation(ACT2.volcano, String(i)));
+  assert.deepEqual(act2Presentation(ACT2.volcano, 2.9), act2Presentation(ACT2.volcano, 2));
+});
