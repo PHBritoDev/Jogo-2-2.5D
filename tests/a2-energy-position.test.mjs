@@ -16,3 +16,10 @@ test('valid position still updates mesh and missing position retains previous pl
  assert.equal(validate(undefined),true);
  for(const position of [{x:NaN,y:2,z:3},{x:1,y:Infinity,z:3},{x:1,y:2,z:undefined},{x:1,y:2,z:-Infinity}])assert.equal(validate(position),false);
 });
+
+test('invalid frames preserve pooled mesh scale and shader uniforms',()=>{
+ assert.match(source,/if\(Number\.isFinite\(radius\)&&radius>0&&Number\.isFinite\(length\)&&length>0\)mesh\.scale\.set\(radius,radius,length\)/);
+ assert.match(source,/if\(Number\.isFinite\(time\)\)material\.uniforms\.time\.value=time/);
+ assert.match(source,/if\(Number\.isFinite\(alpha\)\)material\.uniforms\.alpha\.value=alpha/);
+ assert.match(source,/if\(Number\.isFinite\(dissolve\)\)material\.uniforms\.dissolve\.value=dissolve/);
+});
