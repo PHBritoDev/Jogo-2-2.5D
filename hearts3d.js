@@ -59,7 +59,10 @@ export function msToNextHeart(state, now = Date.now()) {
   if (hearts >= HEARTS.max) return 0;
   const parsedSince = typeof state?.since === 'number' || (typeof state?.since === 'string' && state.since.trim() !== '') ? Number(state.since) : NaN;
   const since = Number.isFinite(parsedSince) && parsedSince >= 0 ? Math.min(parsedSince, now) : now;
-  return Math.max(0, HEARTS.regenMs - Math.max(0, now - since));
+  const elapsed = Math.max(0, now - since);
+  const gained = Math.floor(elapsed / HEARTS.regenMs);
+  if (hearts + gained >= HEARTS.max) return 0;
+  return HEARTS.regenMs - elapsed % HEARTS.regenMs;
 }
 
 export function canChallengeBishop(state) {
