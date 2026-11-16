@@ -62,3 +62,10 @@ test('trail configuration is bounded before allocation and geometry math', () =>
   assert.match(runtime, /Number\.isFinite\(life\)&&life>0/);
   assert.match(runtime, /Number\.isFinite\(radius\)&&radius>0/);
 });
+
+
+test('trail frame checks small displacement and near-parallel axis before normalization', () => {
+  const runtime = volumeTrail.toString();
+  assert.match(runtime, /tangent\.subVectors\(h\.p,next\.p\);[\s\S]*?if\(tangent\.lengthSq\(\)<\.0001\)tangent\.set\(0,0,1\);[\s\S]*?else tangent\.normalize\(\)/);
+  assert.match(runtime, /side\.crossVectors\(axis,tangent\);[\s\S]*?if\(side\.lengthSq\(\)<\.0001\)side\.set\(1,0,0\);[\s\S]*?else side\.normalize\(\)/);
+});
