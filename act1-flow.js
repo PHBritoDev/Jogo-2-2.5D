@@ -222,10 +222,12 @@ export function questPresentation(step, sub = 0) {
       ? ['ATO I · A VILA DA CLAREIRA', 'Pergunte ao vendedor de frutas sobre o Pecado da Ganância']
       : ['ATO I · O PREÇO DE UMA VIDA', 'Siga a trilha até a pequena vila e fale com um vendedor'],
     2: ['ATO I · A FLORESTA À NOITE', 'Investigue o choro de crianças na floresta'],
-    3: sub >= 1
-      ? ['ATO I · RECEPTÁCULOS', 'Derrote as crianças possuídas pelos demônios']
-      : ['ATO I · A CHAVE', 'Abra a gaiola com a chave dos Seguidores'],
-    4: [['ATO I · OS ESGOTOS', 'Siga a trilha da montanha rumo aos esgotos'],
+    3: sub >= 2
+      ? ['ATO I · O AMANHECER', 'A luta terminou. Recupere o fôlego e escute o Anjo-Guia']
+      : sub >= 1
+        ? ['ATO I · RECEPTÁCULOS', 'Derrote as crianças possuídas pelos demônios']
+        : ['ATO I · A CHAVE', 'Abra a gaiola com a chave dos Seguidores'],
+    4: [['ATO I · GRITOS NA TRILHA', 'Investigue os gritos dos moradores no caminho da montanha'],
       ['ATO I · A PISTA', 'Siga a pista até a entrada da caverna, na encosta'],
       ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
       ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][clampInt(sub, 0, 3, 0)],
