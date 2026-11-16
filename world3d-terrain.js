@@ -188,6 +188,17 @@ export function buildAxis(fineHalf, fineCell, outerSteps, growth) {
   for (let k = outerSteps; k >= 1; k--) out.push(-(fineHalf + offset(k)));
   for (let i = -fineSteps; i <= fineSteps; i++) out.push(i * fineCell);
   for (let k = 1; k <= outerSteps; k++) out.push(fineHalf + offset(k));
+  // Extreme but finite growth can overflow the geometric series; even finite
+  // doubles can collapse adjacent GPU Float32 coordinates into zero-area cells.
+  // Reject those grids before allocating the terrain buffers.
+  let previous = -Infinity;
+  for (const coordinate of out) {
+    const gpu = Math.fround(coordinate);
+    if (!Number.isFinite(gpu) || !(gpu > previous)) {
+      throw new RangeError('buildAxis: terrain coordinates overflow or collapse in Float32');
+    }
+    previous = gpu;
+  }
   return out;
 }
 
