@@ -27,7 +27,7 @@ class Vector3 {
 const THREE = { Object3D, PointLight, Vector3 };
 
 test('invalid slot counts fall back to four bounded shader lights', () => {
-  for (const slots of [0, -1, 1.5, NaN, Infinity, 1000000, '4']) {
+  for (const slots of [0, -1, 1.5, NaN, Infinity, -Infinity, 1000000, Number.MAX_SAFE_INTEGER + 1, '4', null]) {
     const scene = new Object3D();
     const budget = createLightBudget(THREE, scene, { slots });
     assert.equal(budget.stats().slots, 4, String(slots));
@@ -40,4 +40,15 @@ test('valid slot count is preserved', () => {
   const budget = createLightBudget(THREE, scene, { slots: 2 });
   assert.equal(budget.stats().slots, 2);
   assert.equal(scene.children.length, 2);
+});
+
+
+test('invalid slot configuration remains bounded during repeated updates', () => {
+  const scene = new Object3D();
+  const budget = createLightBudget(THREE, scene, { slots: Infinity, rescanEvery: 1 });
+  const camera = { getWorldPosition(out) { out.x = 0; out.y = 0; out.z = 0; } };
+  for (let i = 0; i < 120; i++) budget.update(camera, 1 / 60);
+  assert.equal(budget.stats().slots, 4);
+  assert.equal(scene.children.length, 4);
+  assert.equal(budget.stats().active.length, 0);
 });
