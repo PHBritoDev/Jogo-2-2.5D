@@ -48,6 +48,8 @@ export const SIDE_QUESTS = [
 
 // Saves antigos ou incompletos não podem criar contadores infinitos nem saltar objetivos.
 function safeSideCount(value, max) {
+  // Rejeitar coerção de arrays, booleanos e objetos: [4] não comprova quatro coletas.
+  if (typeof value !== 'number' && !(typeof value === 'string' && value.trim() !== '')) return 0;
   const n = Number(value);
   if (!Number.isFinite(n)) return 0;
   return Math.min(max, Math.max(0, Math.floor(n)));
@@ -81,7 +83,7 @@ export function refreshSide(state, ctx) {
     const rawStep = ctx?.questStep;
     const validStep = typeof rawStep === 'number' || (typeof rawStep === 'string' && rawStep.trim() !== '');
     if (s.state === 'locked' && validStep && Number.isFinite(Number(rawStep)) && Number(rawStep) >= q.minStep) s.state = 'available';
-    if (q.goal.type === 'waystones' && s.state === 'active' && Number.isFinite(ctx?.waystones)) {
+    if (q.goal.type === 'waystones' && s.state === 'active' && typeof ctx?.waystones === 'number' && Number.isFinite(ctx.waystones)) {
       s.progress = Math.max(s.progress, safeSideCount(ctx.waystones, q.goal.count));
     }
     if (s.state === 'active' && s.progress >= q.goal.count) s.state = 'ready';
