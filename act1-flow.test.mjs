@@ -63,6 +63,20 @@ test('cada etapa e sub-etapa tem objetivo; há luta nas etapas 2 a 5', () => {
   for (const s of [0, 1, 6, 7, 8]) assert.equal(combatStep(s), false);
 });
 
+test('objetivos acompanham os eventos jogáveis do resgate até os esgotos', () => {
+  // No runtime, childrenCleared() avança para (3,2) e playFaint() é disparado em seguida.
+  // Depois do desmaio, (4,0) marca MASSACRE_SPOT e dispara massacreScene(),
+  // não a entrada do esgoto; a entrada só é liberada após massacreCleared().
+  assert.match(questPresentation(3, 0).objective, /gaiola/i);
+  assert.match(questPresentation(3, 1).objective, /Derrote/i);
+  assert.match(questPresentation(3, 2).objective, /Anjo-Guia/i);
+  assert.doesNotMatch(questPresentation(3, 2).objective, /Derrote/i);
+  assert.match(questPresentation(4, 0).objective, /moradores/i);
+  assert.doesNotMatch(questPresentation(4, 0).objective, /esgoto/i);
+  assert.match(questPresentation(4, 1).objective, /caverna/i);
+  assert.match(questPresentation(4, 2).objective, /esgoto/i);
+});
+
 test('floresta: 1 Seguidor, depois mais 2 (3 no total), e a chave', () => {
   assert.equal(afterEnemyDefeated(0).questStep, 2);
   assert.equal(afterEnemyDefeated(1).journeyEnemyIndex, 2);
