@@ -70,6 +70,12 @@ export function createSideState(saved) {
 export function refreshSide(state, ctx) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
+    // Um estado ready restaurado/adulterado sem progresso suficiente não deve
+    // instruir o jogador a entregar uma missão que turnInSide recusará.
+    if (s.state === 'ready' && (!Number.isFinite(s.progress) || s.progress < q.goal.count)) {
+      s.progress = safeSideCount(s.progress, q.goal.count);
+      s.state = 'active';
+    }
     if (s.state === 'locked' && Number.isFinite(Number(ctx?.questStep)) && Number(ctx.questStep) >= q.minStep) s.state = 'available';
     if (q.goal.type === 'waystones' && s.state === 'active' && Number.isFinite(ctx?.waystones)) {
       s.progress = Math.max(s.progress, safeSideCount(ctx.waystones, q.goal.count));
