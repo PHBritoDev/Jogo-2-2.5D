@@ -368,8 +368,15 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
     const x0 = e.cx - e.hx - 70, x1 = e.cx + e.hx + 70;
     const z0 = e.cz - e.hz - 70, z1 = e.cz + e.hz + 70;
     if (![x0, x1, z0, z1].every(v => Number.isFinite(Math.fround(v)))) continue;
-    span.x0 = Math.min(span.x0, x0); span.x1 = Math.max(span.x1, x1);
-    span.z0 = Math.min(span.z0, z0); span.z1 = Math.max(span.z1, z1);
+    // A distant but individually representable optional region can make the
+    // combined extent overflow Float32. Ignore only that region: the playable
+    // base forest must not disappear because of unrelated map data.
+    const next = {
+      x0: Math.min(span.x0, x0), x1: Math.max(span.x1, x1),
+      z0: Math.min(span.z0, z0), z1: Math.max(span.z1, z1),
+    };
+    if (![next.x1 - next.x0, next.z1 - next.z0].every(v => Number.isFinite(Math.fround(v)))) continue;
+    Object.assign(span, next);
   }
   // Endpoints can be representable while their difference overflows Float32.
   // A non-representable span would generate unstable world coordinates on mobile.
