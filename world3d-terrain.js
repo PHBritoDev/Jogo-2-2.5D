@@ -207,10 +207,26 @@ export function buildTerrainArrays(terrain, { cx = 0, cz = -64, fineHalf = 124, 
   const ax = buildAxis(fineHalf, fineCell, outerSteps, growth).map(v => v + cx);
   const az = buildAxis(fineHalfZ, fineCell, outerSteps, growth).map(v => v + cz);
   const nx = ax.length, nz = az.length;
+  // Offsetting a valid local axis can still collapse world-space cells in
+  // Float32 (or overflow the GPU coordinate range). Reject before allocation.
+  for (const axis of [ax, az]) {
+    let previous = -Infinity;
+    for (const coordinate of axis) {
+      const gpu = Math.fround(coordinate);
+      if (!Number.isFinite(gpu) || !(gpu > previous)) {
+        throw new RangeError('buildTerrainArrays: world-space axis overflows or collapses in Float32');
+      }
+      previous = gpu;
+    }
+  }
   const positions = new Float32Array(nx * nz * 3);
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
     const k = (j * nx + i) * 3, x = ax[i], z = az[j];
-    positions[k] = x; positions[k + 1] = terrain.height(x, z); positions[k + 2] = z;
+    const y = terrain.height(x, z);
+    if (!Number.isFinite(Math.fround(y))) {
+      throw new RangeError('buildTerrainArrays: terrain height exceeds Float32 range');
+    }
+    positions[k] = x; positions[k + 1] = y; positions[k + 2] = z;
   }
   const indices = new Uint32Array((nx - 1) * (nz - 1) * 6);
   let t = 0;
