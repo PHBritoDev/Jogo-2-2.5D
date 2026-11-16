@@ -72,8 +72,10 @@ export function refreshSide(state, ctx) {
     const s = state[q.id];
     // Um estado ready restaurado/adulterado sem progresso suficiente não deve
     // instruir o jogador a entregar uma missão que turnInSide recusará.
-    if (s.state === 'ready' && (!Number.isFinite(s.progress) || s.progress < q.goal.count)) {
+    if (['active', 'ready'].includes(s.state) && (!Number.isFinite(s.progress) || s.progress < 0 || s.progress > q.goal.count)) {
       s.progress = safeSideCount(s.progress, q.goal.count);
+    }
+    if (s.state === 'ready' && s.progress < q.goal.count) {
       s.state = 'active';
     }
     if (s.state === 'locked' && Number.isFinite(Number(ctx?.questStep)) && Number(ctx.questStep) >= q.minStep) s.state = 'available';
@@ -97,7 +99,7 @@ export function collectSide(state, item) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
     if (q.goal.type === 'collect' && q.goal.item === item && s.state === 'active') {
-      s.progress = Math.min(q.goal.count, s.progress + 1);
+      s.progress = Math.min(q.goal.count, safeSideCount(s.progress, q.goal.count) + 1);
       if (s.progress >= q.goal.count) s.state = 'ready';
       return q;
     }
