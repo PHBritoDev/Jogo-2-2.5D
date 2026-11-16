@@ -3913,7 +3913,7 @@ function journeyTeleport(key){
  player.position.set(S.x,y,S.z);playerYaw=S.yaw;player.rotation.y=S.yaw;cameraYaw=S.yaw+Math.PI;verticalVelocity=0;grounded=true;moveVX=moveVZ=0;dashRemaining=0;journeyFall.on=false;checkpointX=S.x;checkpointZ=S.z;
  for(let i=0;i<10;i++)updatePlayerCamera(1);status.textContent='TP de teste — '+S.name;return true;
 }
-if(new URLSearchParams(location.search).get('adm')==='1'){const mountAdm=()=>{const el=document.createElement('div');el.id='adm-panel';el.style.cssText='position:fixed;right:8px;top:calc(env(safe-area-inset-top) + 64px);z-index:31;display:flex;flex-direction:column;gap:4px;align-items:flex-end';
+if(new URLSearchParams(location.search).get('adm')==='1'){const mountAdm=()=>{const el=document.createElement('div');el.id='adm-panel';el.style.cssText='position:fixed;right:8px;top:calc(env(safe-area-inset-top) + 112px);z-index:31;display:flex;flex-direction:column;gap:4px;align-items:flex-end';
  const st='border-radius:9px;border:1px solid #c8a24a;background:#1e1608e6;color:#ffe6b0;font:700 11px system-ui;padding:6px 9px;min-height:30px',menu=document.createElement('div');menu.style.cssText='display:none;flex-direction:column;gap:4px';
  const tog=document.createElement('button');tog.type='button';tog.textContent='ADM (teste) ▾';tog.style.cssText=st;tog.onclick=()=>{menu.style.display=menu.style.display==='none'?'flex':'none';};
  for(const [k,t] of [['eldoria','TP Cidade 1 — Eldória'],['cinzaria','TP Cidade 2 — Cinzária']]){const b=document.createElement('button');b.type='button';b.textContent=t;b.dataset.tp=k;b.style.cssText=st;b.onclick=()=>{journeyTeleport(k);menu.style.display='none';};menu.appendChild(b);}
@@ -5316,7 +5316,7 @@ function spawnCityFolk(){cityFolk=[];npcBase().then(b=>{const walk=b.clips.find(
   cityFolk.push({...v,route,k,pause:Math.random()*3,clips:{walk,talk,idle},state:'pause'});}});});}
 function folkPlay(f,clip){if(!clip||f.cur===clip)return;f.mixer.stopAllAction();f.mixer.clipAction(clip).play();f.cur=clip;}
 function updateCityFolk(dt){
- const on=questStep>=ACT2.travel&&questStep<ACT2.done&&!act2Abyss&&!voidMode&&!cineSkipping;if(!cityFolk&&on)spawnCityFolk();if(!cityFolk)return;
+ const on=!act2Abyss&&!voidMode&&!cineSkipping&&Math.hypot(player.position.x-CITY.x,player.position.z-CITY.z)<160;if(!cityFolk&&on)spawnCityFolk(); /* MOD 321: a nova Cinzária é habitada em qualquer etapa (só some com o abismo) */if(!cityFolk)return;
  const P=player.position,near=Math.hypot(P.x-CITY.x,P.z-CITY.z)<85;
  for(const f of cityFolk){const h=f.holder;h.visible=on&&near;if(!h.visible)continue;f.mixer.update(dt);
   if(f.route.length<2){folkPlay(f,f.clips.talk);continue;}
@@ -5433,7 +5433,7 @@ function updateAct2Story(dt,now){
  }
  if(questStep===ACT2.gate){
   const G=DISTRICT_SPOTS.volcanoGate;mark(G);
-  if(!act1Busy()&&!pack&&!enemy.visible&&near(G,14)){act1Lock=true;startPack({rig:'enemy2',profile:'demon2',hp:ACT2.enemy2Hp,spots:DISTRICT_SPOTS.volcanoGuards,hold:true,onDone:gateCleared});
+  if(!act1Busy()&&!pack&&!enemy.visible&&near(G,20)){act1Lock=true;startPack({rig:'enemy2',profile:'demon2',hp:ACT2.enemy2Hp,spots:DISTRICT_SPOTS.volcanoGuards,hold:true,onDone:gateCleared});
    playStory('entrada',gateScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}
   return;
  }
@@ -8524,7 +8524,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   squadLeap(id){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;a.alert=0;a.cds.leap=0;s.startLeap(a,t);return this.combat315();},
   squadShield(id){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus;if(!a||!a.shield)return null;a.shield.readyAt=-1e9;a.shield.update(s.time);a.shield.activate(s.time);return this.combat315();},
   squadNative(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;a.alert=0;a.combo=null;s.startNative(a,t,move);return this.combat315();},
-  vzSky(){return squadRT?.vhazraelVFX?.throneSkyStats||null;},journeyStep(step,sub=0){act1Advance(step,sub);gorgeGate.sync();return questStep;},tpCity(n){return journeyTeleport(n===1||n==='eldoria'?'eldoria':'cinzaria');},journeyStats(){return{...journeyWorld.stats(),fall:journeyFall.on,reached:[...journeyFall.reached],cp:[checkpointX,checkpointZ],deck:journeyDeck(player.position.x,player.position.z),pack:pack?{n:(pack.spots||[]).length,profile:pack.profile,rig:pack.rig}:null,enemyVisible:!!(enemy&&enemy.visible),hp:playerHP};},squadDash(id,side=1){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus;if(!a)return null;a.act=null;const c=Math.cos(a.yaw),n=Math.sin(a.yaw);s.begin(a,{type:'dodge',dur:a.T.dash.time,anim:'dash',dx:c*side,dz:-n*side,iframes:true,face:false});return this.squadState();},/* Mod 320: QA do rastro do dash */squadMove(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;s.startMelee(a,t,move);return this.squadState();},
+  vzSky(){return squadRT?.vhazraelVFX?.throneSkyStats||null;},journeyStep(step,sub=0){act1Advance(step,sub);gorgeGate.sync();return questStep;},tpCity(n){return journeyTeleport(n===1||n==='eldoria'?'eldoria':'cinzaria');},journeyStats(){return{...journeyWorld.stats(),busy:act1Busy(),lock:act1Lock,cine:cineActive,quest:questStep,fall:journeyFall.on,reached:[...journeyFall.reached],cp:[checkpointX,checkpointZ],deck:journeyDeck(player.position.x,player.position.z),pack:pack?{n:(pack.spots||[]).length,profile:pack.profile,rig:pack.rig}:null,enemyVisible:!!(enemy&&enemy.visible),hp:playerHP};},squadDash(id,side=1){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus;if(!a)return null;a.act=null;const c=Math.cos(a.yaw),n=Math.sin(a.yaw);s.begin(a,{type:'dodge',dur:a.T.dash.time,anim:'dash',dx:c*side,dz:-n*side,iframes:true,face:false});return this.squadState();},/* Mod 320: QA do rastro do dash */squadMove(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;s.startMelee(a,t,move);return this.squadState();},
   squadCam(o,id){if(!o){debugCameraOverride=null;return null;}const s=squadSq();const a=s&&((id&&s.actor(id))||s.actors.find(x=>x.alive&&x.act&&x.act.type==='cast')||s.actors.find(x=>x.alive&&x.act)||s.alive[0]);if(!a)return null;const f=[Math.sin(a.yaw),Math.cos(a.yaw)],r=[Math.cos(a.yaw),-Math.sin(a.yaw)],P=(x,y,z)=>[a.x+r[0]*x+f[0]*z,a.y+y,a.z+r[1]*x+f[1]*z];this.fly(P(o[0],o[1],o[2]),P(o[3],o[4],o[5]));return a.id;},
   /** MOD 245 — QA do caminho real do Ato III: startPack com o rig/perfil do roteiro, em volta do herói (laboratório). */
   packQA(rig,profile,n=1,hp=170){const px=player.position.x,pz=player.position.z;startPack({rig,profile,hp,spots:Array.from({length:n},(_,i)=>({x:px+Math.sin(i*1.3)*9,z:pz-9+Math.cos(i*1.3)*2})),onDone:()=>{window.__packDone=(window.__packDone||0)+1;}});return this.squadState();},

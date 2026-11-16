@@ -114,3 +114,23 @@ O painel tem os botões **TP Cidade 1 — Eldória** e **TP Cidade 2 — Cinzár
 - abrigo de rocha no mirante;
 - forja abandonada nas cinzas;
 - ossada petrificada.
+
+## QA no jogo real (Playwright + SwiftShader, `?debug3d=1&adm=1`)
+
+Capturas em `docs/jornada/evidencias/` (01–14) e resultados brutos em `evidencias/qa-jornada.json`.
+
+| verificação | resultado |
+|---|---|
+| Caminhada em 8 trechos (saída de Eldória, vale, rio, subida, ponte, cinzas, rua da cidade, portão) | todos andam, sempre no chão, sem bloqueio indevido, HP intacto |
+| Paredes das casas (3 casas, andando contra o centro) | param à meia-profundidade + 0,2 m |
+| Corrimão da ponte | para em z −48,67, ainda no tabuleiro |
+| Pulo no abismo | queda real (y 60 → −94), morte, volta ao checkpoint (−797, −50) com HP cheio |
+| TP Eldória ↔ Cinzária (4 vezes) | posições seguras no chão; painel só com `?adm=1` |
+| Passo 11 no sopé | 2 Enemy2 (`demon2`) surgem nos postos do portal após a cena e atacam juntos |
+
+Correções achadas no QA: comentário de linha que engolia o retorno em `updateCityFolk` (erro
+`cityFolk is not iterable` que parava o resto do quadro), gatilho dos guardas ampliado de 14 m para 20 m
+(antes o jogador só chegava ao raio já entre os guardas), painel ADM abaixo do botão PULAR.
+
+Testes: `node --test` geral com 830 aprovados; as falhas restantes já existem na `main` ou dependem do
+ambiente (build-info, Mod 305 ×2, Mod 262, Mod 278, `dist-public` não gerado, `sharp` ausente no visual-lab).
