@@ -358,9 +358,15 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   const area = terrain.area, specs = [];
   const span = { x0: area.cx - area.hx - 70, x1: area.cx + area.hx + 70, z0: area.cz - area.hz - 70, z1: area.cz + area.hz + 70 };
   for (const e of terrain.extraAreas || []) {
-    span.x0 = Math.min(span.x0, e.cx - e.hx - 70); span.x1 = Math.max(span.x1, e.cx + e.hx + 70);
-    span.z0 = Math.min(span.z0, e.cz - e.hz - 70); span.z1 = Math.max(span.z1, e.cz + e.hz + 70);
+    // A corrupt optional region must not poison the entire forest sampling span.
+    if (![e?.cx, e?.cz, e?.hx, e?.hz].every(Number.isFinite) || e.hx < 0 || e.hz < 0) continue;
+    const x0 = e.cx - e.hx - 70, x1 = e.cx + e.hx + 70;
+    const z0 = e.cz - e.hz - 70, z1 = e.cz + e.hz + 70;
+    if (![x0, x1, z0, z1].every(v => Number.isFinite(Math.fround(v)))) continue;
+    span.x0 = Math.min(span.x0, x0); span.x1 = Math.max(span.x1, x1);
+    span.z0 = Math.min(span.z0, z0); span.z1 = Math.max(span.z1, z1);
   }
+  if (![span.x0, span.x1, span.z0, span.z1].every(v => Number.isFinite(Math.fround(v)))) return specs;
   const total = lowSpec ? Math.round(attempts * .6) : attempts;
   for (let i = 0; i < total; i++) {
     const x = span.x0 + rnd() * (span.x1 - span.x0), z = span.z0 + rnd() * (span.z1 - span.z0);
