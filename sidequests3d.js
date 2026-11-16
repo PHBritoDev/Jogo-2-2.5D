@@ -58,7 +58,10 @@ export function createSideState(saved) {
   for (const q of SIDE_QUESTS) {
     const s = saved && saved[q.id];
     const state = ['active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked';
-    out[q.id] = { state, progress: state === 'locked' ? 0 : safeSideCount(s && s.progress, q.goal.count) };
+    const progress = state === 'locked' ? 0 : safeSideCount(s && s.progress, q.goal.count);
+    // Um save corrompido não pode entregar recompensa sem cumprir a meta.
+    // Missões já concluídas permanecem concluídas para não duplicar pagamentos.
+    out[q.id] = { state: state === 'ready' && progress < q.goal.count ? 'active' : state, progress };
   }
   return out;
 }
