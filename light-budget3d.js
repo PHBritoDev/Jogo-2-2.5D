@@ -14,6 +14,8 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   // Configurações externas inválidas não podem quebrar o carregamento do mundo
   // nem gerar dezenas de luzes extras no shader mobile.
   const safeSlots = Number.isSafeInteger(slots) && slots >= 1 && slots <= 8 ? slots : 4;
+  // Camada 0 é a câmera padrão; índice inválido pode deixar as fontes no shader.
+  const safeHiddenLayer = Number.isInteger(hiddenLayer) && hiddenLayer >= 1 && hiddenLayer <= 31 ? hiddenLayer : 31;
   const pool = Array.from({ length: safeSlots }, (_, i) => {
     const l = new T.PointLight(0xffffff, 0, 10, 2); l.name = 'orcamento-luz-' + i; l.userData.budgetSlot = true; scene.add(l);
     return { light: l, src: null, next: undefined };
@@ -27,7 +29,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
      45 quadros na camada 0 até o próximo scan. Nesse intervalo o número de luzes do shader mudava (+1) e TODOS os
      materiais iluminados recompilavam — e de novo quando o scan a escondia: duas travadas de 0,3–0,5 s no celular.
      Agora qualquer add() que traga uma PointLight a registra na hora, antes do próximo render. */
-  function adopt(o) { if (o.isPointLight && !o.userData.budgetSlot && !o.castShadow && !sources.has(o)) { sources.add(o); sourceScore.set(o, { s: o, score: 0 }); o.layers.set(hiddenLayer); } }
+  function adopt(o) { if (o.isPointLight && !o.userData.budgetSlot && !o.castShadow && !sources.has(o)) { sources.add(o); sourceScore.set(o, { s: o, score: 0 }); o.layers.set(safeHiddenLayer); } }
   const Obj = T.Object3D && T.Object3D.prototype, rawAdd = Obj && Obj.add;
   if (Obj && !Obj.__budgetGuard) {
     Obj.__budgetGuard = [];
