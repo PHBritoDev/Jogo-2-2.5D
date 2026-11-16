@@ -77,3 +77,37 @@ test('conquistas não são desbloqueadas por contadores não finitos de save', (
   assert.equal(achievementState(explorer, { places: '3' }).value, 3,
     'save legado com número em string continua aceito');
 });
+
+test('XP corrompido não libera níveis nem produz progresso não finito', () => {
+  for (const xp of [Infinity, -Infinity, NaN, -30, 'Infinity', 'inválido']) {
+    assert.equal(levelFromXp(xp), 1, 'XP inválido não concede nível');
+    assert.deepEqual(levelProgress(xp), { level: 1, into: 0, need: 60, max: false },
+      'XP inválido mantém barra de experiência válida');
+  }
+  assert.equal(levelFromXp('150'), 3, 'save legado com XP numérico em string permanece válido');
+  assert.deepEqual(levelProgress(60), { level: 2, into: 0, need: 90, max: false });
+  assert.deepEqual(levelProgress(1e9), { level: LEVELS.length, into: 0, need: 0, max: true },
+    'nível máximo não pode deixar XP residual ilimitado na barra sem próximo nível');
+});
+
+test('nível corrompido não contamina vida, mana ou dano do personagem', () => {
+  const base = statsForLevel(1);
+  for (const level of [NaN, Infinity, -Infinity, -3, 'inválido', undefined]) {
+    assert.deepEqual(statsForLevel(level), base, 'nível inválido deve usar atributos iniciais');
+  }
+  assert.equal(statsForLevel(1).maxHP, 500, 'preservar multiplicador de vida do Mod 320');
+  assert.deepEqual(statsForLevel('3'), statsForLevel(3), 'nível legado numérico em string continua válido');
+  assert.deepEqual(statsForLevel(3), { maxHP: 600, maxMana: 112, damageBonus: .08 });
+});
+
+test('progresso corrompido não ignora requisitos de ato e nível da loja', () => {
+  const offer = item('magic');
+  for (const questStep of [NaN, Infinity, -Infinity, 'inválido']) {
+    assert.notEqual(shopStatus(offer, { questStep, level: 2, coins: 100 }).state, 'buyable');
+  }
+  for (const level of [NaN, Infinity, -Infinity, 'inválido']) {
+    assert.notEqual(shopStatus(offer, { questStep: 4, level, coins: 100 }).state, 'buyable');
+  }
+  assert.equal(shopStatus(offer, { questStep: '4', level: '2', coins: 100 }).state, 'buyable',
+    'save legado com progresso numérico em string permanece aceito');
+});
