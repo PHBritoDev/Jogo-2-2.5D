@@ -93,12 +93,17 @@ export const SWORDS = {
 export function shopStatus(item, { questStep = 0, level = 1, coins = 0, owned = new Set() } = {}) {
   if (item.disabled) return { state: 'locked', reason: 'Em desenvolvimento.' };
   if (owned.has(item.id)) return { state: 'owned', reason: 'Já é seu.' };
-  if (questStep < item.step) {
+  // Comparações com NaN são falsas; saves corrompidos não podem pular requisitos.
+  const stepValue = Number(questStep);
+  const levelValue = Number(level);
+  if (!Number.isFinite(stepValue) || stepValue < 0 || !Number.isFinite(levelValue) || levelValue < 1)
+    return { state: 'locked', reason: 'Progresso inválido; recarregue o jogo.' };
+  if (stepValue < item.step) {
     const what = item.stepText || STEP_NAMES[item.step] || 'avançar na campanha';
     return { state: 'locked', reason: 'Disponível após ' + what + '.' };
   }
   if (item.requires && !owned.has(item.requires)) return { state: 'locked', reason: 'Requer ' + (SHOP_ITEMS.find(i => i.id === item.requires) || {}).name + '.' };
-  if (level < item.level) return { state: 'level', reason: 'Requer nível ' + item.level + '.' };
+  if (levelValue < item.level) return { state: 'level', reason: 'Requer nível ' + item.level + '.' };
   // NaN ignora comparações (<), liberando compra e propagando NaN ao save.
   if (typeof coins !== 'number' || !Number.isFinite(coins) || coins < 0)
     return { state: 'gold', reason: 'Saldo de moedas inválido.' };
