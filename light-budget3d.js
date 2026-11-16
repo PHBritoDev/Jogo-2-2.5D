@@ -147,7 +147,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     const safeDt = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 0.1)) : 0;
     const k = 1 - Math.exp(-safeDt * 10);
     for (const p of pool) {
-      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001 && finiteColor(s) && finitePosition(s);
+      const s = p.src, l = p.light, live = s && !s.castShadow && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001 && finiteColor(s) && finitePosition(s);
       // Não copiar distância/decay inválidos para os uniforms do shader.
       // A posição da fonte também pode mudar após o ranking do quadro anterior.
       if (live) {
