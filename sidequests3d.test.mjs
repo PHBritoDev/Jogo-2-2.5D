@@ -138,3 +138,35 @@ test('missão ready invalidada durante a sessão volta a mostrar objetivo alcan�
   assert.deepEqual(turnInSide(s, 'ervas'), SIDE_QUESTS[0].reward);
   assert.equal(turnInSide(s, 'ervas'), null);
 });
+
+test('contadores corrompidos em memória não bloqueiam coleta nem o diário', () => {
+  const s = createSideState();
+  refreshSide(s, { questStep: 2 });
+  assert.equal(acceptSide(s, 'ervas'), true);
+  s.ervas.progress = NaN;
+  assert.equal(collectSide(s, 'flor')?.id, 'ervas');
+  assert.equal(s.ervas.progress, 1);
+  s.ervas.progress = Infinity;
+  refreshSide(s, { questStep: 2 });
+  assert.equal(s.ervas.progress, 0);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
+  for (let i = 0; i < 4; i++) collectSide(s, 'flor');
+  assert.equal(s.ervas.state, 'ready');
+  assert.deepEqual(turnInSide(s, 'ervas'), SIDE_QUESTS[0].reward);
+  assert.equal(turnInSide(s, 'ervas'), null);
+});
+
+test('progresso negativo ou acima da meta durante a sessão é normalizado', () => {
+  const s = createSideState();
+  refreshSide(s, { questStep: 2 });
+  acceptSide(s, 'pingente');
+  s.pingente.progress = -100;
+  refreshSide(s, { questStep: 2 });
+  assert.equal(s.pingente.progress, 0);
+  collectSide(s, 'pingente');
+  assert.equal(s.pingente.state, 'ready');
+  s.pingente.progress = 999;
+  refreshSide(s, { questStep: 2 });
+  assert.equal(s.pingente.progress, 1);
+  assert.deepEqual(turnInSide(s, 'pingente'), SIDE_QUESTS[1].reward);
+});
