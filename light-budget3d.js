@@ -84,9 +84,6 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   }
   function scan() {
     scene.traverse(adopt);
-    // Luzes que passaram a projetar sombras deixam o orçamento: a camada
-    // original precisa voltar, ou a sombra e a luz ficam invisíveis.
-    for (const o of sources) if (o.castShadow) release(o, true);
     // fontes removidas da cena saem do conjunto (sem crescer para sempre com efeitos descartados)
     for (const o of sources) if (!attachedToScene(o)) {
       release(o);
@@ -103,6 +100,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   }
   function update(camera, dt = 1 / 60) {
     if (frame++ % scanInterval === 0) scan();
+    // castShadow pode mudar entre scans (tochas/efeitos dinâmicos).
+    // Uma fonte com sombra não pertence ao pool e deve recuperar sua layer
+    // no próprio frame, sem esperar o próximo scan periódico.
+    for (const o of sources) if (o.castShadow) release(o, true);
     // Uma câmera com transformação transitória inválida não deve apagar todas as
     // tochas nem contaminar o ranking; conservar a última posição válida.
     camera.getWorldPosition(cam);
