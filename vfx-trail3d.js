@@ -11,7 +11,7 @@ export function volumeTrail(T,parent,preset,{capacity=36,life=.65,radius=.5,side
  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3).setUsage(T.DynamicDrawUsage));g.setAttribute('uv',new T.BufferAttribute(uv,2));g.setAttribute('normal',new T.BufferAttribute(new Float32Array(pos.length),3));g.setIndex(ix);
  const m=energyMaterial(T,preset,{warp:.045,alpha:.86,frequency:1.6,flame:1}),mesh=new T.Mesh(g,m);mesh.frustumCulled=false;mesh.visible=false;parent.add(mesh);
  const tangent=new T.Vector3(),side=new T.Vector3(),up=new T.Vector3(),axis=new T.Vector3(0,1,0);const normals=g.attributes.normal.array;
- return{mesh,update(time,point,emitting=true,quality=1){if(!Number.isFinite(time)){count=0;last=-99;mesh.visible=false;return;}if(time<last){count=0;last=-99;}if(emitting&&time!==last&&trailSampleValid(time,point)){head=(head+1)%capacity;history[head].p.set(point.x,point.y,point.z);history[head].t=time;count=Math.min(capacity,count+1);}last=time;
+ return{mesh,update(time,point,emitting=true,quality=1){if(!Number.isFinite(time)){count=0;last=-99;mesh.visible=false;return;}if(time<last){count=0;last=-99;}if(emitting&&time!==last){if(!trailSampleValid(time,point)){count=0;mesh.visible=false;last=time;return;}head=(head+1)%capacity;history[head].p.set(point.x,point.y,point.z);history[head].t=time;count=Math.min(capacity,count+1);}last=time;
   let live=0;for(let j=0;j<count;j++){if(time-history[(head-j+capacity)%capacity].t>life)break;live++;}mesh.visible=live>1;if(!mesh.visible)return;
   for(let j=0;j<live;j++){
    const h=history[(head-j+capacity)%capacity],next=history[(head-Math.min(live-1,j+1)+capacity)%capacity];
