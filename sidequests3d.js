@@ -126,6 +126,9 @@ export function questForGiver(state, giver) {
 export function activeSideLines(state) {
   return SIDE_QUESTS.filter(q => ['active', 'ready'].includes(state[q.id].state)).map(q => {
     const s = state[q.id];
-    return s.state === 'ready' ? q.title + ' · volte a ' + q.offer[0].who.split(' · ')[0] : q.title + ' · ' + s.progress + '/' + q.goal.count;
+    const progress = safeSideCount(s.progress, q.goal.count);
+    return s.state === 'ready' && progress >= q.goal.count
+      ? q.title + ' · volte a ' + q.offer[0].who.split(' · ')[0]
+      : q.title + ' · ' + progress + '/' + q.goal.count;
   });
 }
