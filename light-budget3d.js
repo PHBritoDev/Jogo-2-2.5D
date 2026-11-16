@@ -58,6 +58,21 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       return r;
     };
   }
+  // Object3D.remove() não chama add(): liberar a camada no mesmo frame,
+  // inclusive para grupos removidos e usados em previews sem novo parent.
+  // Instalar apenas uma vez por classe Three.js, como o guard de add().
+  if (Obj && !Obj.__budgetRemoveGuard && typeof Obj.remove === 'function') {
+    const rawRemove = Obj.remove;
+    Obj.__budgetRemoveGuard = true;
+    Obj.remove = function (...objs) {
+      const r = rawRemove.apply(this, objs);
+      for (const o of objs) if (o && o.isObject3D) {
+        for (const g of Obj.__budgetGuard)
+          (o.isPointLight ? g.release(o) : o.traverse(g.release));
+      }
+      return r;
+    };
+  }
   if (Obj) Obj.__budgetGuard.push({ scene, adopt, release });
   const v = new T.Vector3(), cam = new T.Vector3(), lastCamera = new T.Vector3();
   // Uma fonte pode continuar com parent dentro de um grupo já removido da cena.
