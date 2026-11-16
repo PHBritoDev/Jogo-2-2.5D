@@ -107,3 +107,22 @@ test('malformed optional forest containers preserve the valid primary region', (
     assert.deepEqual(scatterForest({ ...terrain, extraAreas }, options), baseline);
   }
 });
+
+test('optional regions cannot invalidate the combined Float32 sampling span', () => {
+  const west = { cx: -2e38, cz: 0, hx: 1e37, hz: 20 };
+  const east = { cx: 2e38, cz: 0, hx: 1e37, hz: 20 };
+  const options = { seed: 9137, attempts: 200 };
+  let sampled = 0;
+  const probe = {
+    ...terrain,
+    extraAreas: [west, east],
+    boundaryDistance: () => { sampled++; return -20; },
+  };
+  const actual = scatterForest(probe, options);
+  assert.equal(sampled, 200, 'invalid union must not abort forest sampling');
+  assert.deepEqual(
+    actual,
+    scatterForest({ ...terrain, extraAreas: [west] }, options),
+    'overflowing optional region is ignored without changing deterministic samples',
+  );
+});
