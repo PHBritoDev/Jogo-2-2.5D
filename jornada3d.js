@@ -158,6 +158,7 @@ export const CITY_ROUTES2 = Object.freeze([
 /* ---------------- pontos seguros, marcos e mapa ---------------- */
 export const SAFE_SPOTS = Object.freeze({
   eldoria: { x: -4.6, z: -33.5, yaw: Math.PI, name: 'Eldória' },
+  vale: { x: -150, z: -70, yaw: -Math.PI / 2, name: 'Início do Vale do Entardecer' },
   cinzaria: { x: -1222, z: -66, yaw: -Math.PI / 2, name: 'Cinzária' }
 });
 /** Checkpoints de queda/respawn ao longo do percurso (o mais próximo já alcançado vale). */
