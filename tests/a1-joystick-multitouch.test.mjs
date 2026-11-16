@@ -51,3 +51,14 @@ test('cancel of non-owner is ignored, owner cancel and blur reset movement', () 
   h.send('pointerdown', 7, 18, 50);
   assert.ok(h.read().x < -.9, 'new finger owns joystick after reset');
 });
+
+test('losing capture of the owning finger stops movement without a pointerup', () => {
+  const h = harness();
+  h.send('pointerdown', 21, 82, 50);
+  h.send('lostpointercapture', 22);
+  assert.equal(h.read().active, true, 'capture loss for unrelated finger is ignored');
+  h.send('lostpointercapture', 21);
+  assert.deepEqual({ x: h.read().x, y: h.read().y, active: h.read().active }, { x: 0, y: 0, active: false });
+  h.send('pointerdown', 23, 18, 50);
+  assert.ok(h.read().x < -.9, 'a new finger can take control after capture is lost');
+});
