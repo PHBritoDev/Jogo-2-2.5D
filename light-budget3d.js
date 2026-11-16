@@ -111,6 +111,11 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       if (live) {
         l.position.setFromMatrixPosition(s.matrixWorld);
         l.color.copy(s.color);
+        // Cores HDR finitas mas extremas também estouram uniforms Float32.
+        // Preservar a cor da fonte; limitar apenas a cópia enviada ao shader.
+        l.color.r = Math.min(l.color.r, 16);
+        l.color.g = Math.min(l.color.g, 16);
+        l.color.b = Math.min(l.color.b, 16);
         l.distance = Number.isFinite(s.distance) && s.distance >= 0 ? s.distance : 40;
         l.decay = Number.isFinite(s.decay) && s.decay >= 0 ? s.decay : 2;
       }
