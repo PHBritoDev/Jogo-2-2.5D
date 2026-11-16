@@ -108,8 +108,15 @@ export function energyBody(T,parent,preset,options={}){
   const validPosition=!position||(Number.isFinite(position.x)&&Number.isFinite(position.y)&&Number.isFinite(position.z));
   // A malformed impact must not poison the object's transform or render a stale effect.
   mesh.visible=validPosition&&Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;
-  if(position&&validPosition)mesh.position.set(position.x,position.y,position.z);if(dir&&Number.isFinite(dir.x)&&Number.isFinite(dir.y??0)&&Number.isFinite(dir.z??0)&&direction.set(dir.x,dir.y??0,dir.z??0).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
-  material.uniforms.time.value=time;material.uniforms.alpha.value=alpha;material.uniforms.detail.value=quality===0?.65:1;material.uniforms.dissolve.value=dissolve;
+  if(position&&validPosition)mesh.position.set(position.x,position.y,position.z);
+  if(dir&&Number.isFinite(dir.x)&&Number.isFinite(dir.y??0)&&Number.isFinite(dir.z??0)&&direction.set(dir.x,dir.y??0,dir.z??0).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());
+  // An invalid frame must not corrupt the matrix or shader state retained by the pooled mesh.
+  // Keep the last valid transform until the next valid update; the draw is already hidden.
+  if(Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0)mesh.scale.set(radius,radius,length);
+  if(Number.isFinite(time))material.uniforms.time.value=time;
+  if(Number.isFinite(alpha))material.uniforms.alpha.value=alpha;
+  material.uniforms.detail.value=quality===0?.65:1;
+  if(Number.isFinite(dissolve))material.uniforms.dissolve.value=dissolve;
  },dispose(){parent.remove(mesh);geometry.dispose();material.dispose();}};
 }
 
