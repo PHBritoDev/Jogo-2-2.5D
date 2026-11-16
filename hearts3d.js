@@ -34,7 +34,8 @@ export function tickHearts(state, now = Date.now()) {
   state = normalizedHearts === state.hearts ? state : { ...state, hearts: normalizedHearts };
   if (state.hearts >= HEARTS.max) return { ...state, hearts: HEARTS.max, since: now };
   // Se o relógio voltou ou o save veio do futuro, reinicie a contagem sem premiar tempo negativo.
-  const safeSince = Number.isFinite(state.since) && state.since >= 0 ? Math.min(state.since, now) : now;
+  const parsedSince = typeof state.since === 'number' || (typeof state.since === 'string' && state.since.trim() !== '') ? Number(state.since) : NaN;
+  const safeSince = Number.isFinite(parsedSince) && parsedSince >= 0 ? Math.min(parsedSince, now) : now;
   const current = safeSince === state.since ? state : { ...state, since: safeSince };
   const gained = Math.floor(Math.max(0, now - safeSince) / HEARTS.regenMs);
   if (!gained) return current;
@@ -56,7 +57,8 @@ export function msToNextHeart(state, now = Date.now()) {
   const parsed = numeric ? Number(value) : NaN;
   const hearts = Number.isFinite(parsed) ? Math.max(0, Math.min(HEARTS.max, Math.floor(parsed))) : HEARTS.max;
   if (hearts >= HEARTS.max) return 0;
-  const since = Number.isFinite(state.since) && state.since >= 0 ? Math.min(state.since, now) : now;
+  const parsedSince = typeof state?.since === 'number' || (typeof state?.since === 'string' && state.since.trim() !== '') ? Number(state.since) : NaN;
+  const since = Number.isFinite(parsedSince) && parsedSince >= 0 ? Math.min(parsedSince, now) : now;
   return Math.max(0, HEARTS.regenMs - Math.max(0, now - since));
 }
 
