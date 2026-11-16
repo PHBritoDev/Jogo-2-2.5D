@@ -8,6 +8,8 @@ import {newHero,heroURL,heroFallbackURL,moveWorldHero,prepareWorldHero,nativeWor
 import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep} from './prota-combat3d.js';
 import {createProtaVFX} from './prota-vfx3d.js';
 import {createSlashVFX} from './slash-vfx3d.js';import {createShieldVFX} from './shield-vfx3d.js';import {EnergyShield,SHIELD_SPECS} from './combat-defense3d.js';import {Mobility2,MOBILITY} from './combat-mobility3d.js';
+import {inJourney,journeyHeight,journeyBoundary,journeyBlocked,bridgeDeck as journeyDeck,inAbyss,riverDepth as journeyRiverDepth,BRIDGE as JBRIDGE,CHECKPOINTS as JOURNEY_CHECKPOINTS,SAFE_SPOTS,CITY_ROUTES2,JOURNEY_HOLES} from './jornada3d.js';
+import {createJourneyWorld} from './jornada-world3d.js';
 import {createLightBudget} from './light-budget3d.js';
 import {repairHumanoidLocomotion} from './locomotion-rig3d.js';
 import {buildRiteSword} from './sword-design3d.js';
@@ -99,8 +101,8 @@ import { createDirector, heavenScene, awakeningScene, wingsScene, MISSION_ACT1, 
 import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, HERO_HP_MULT, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
-import { MAP_STORE_KEY, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
-import { cityLayout, inAlley, ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
+import { MAP_STORE_KEY, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
+import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, migrateAct2Step, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
@@ -243,7 +245,7 @@ const altarTrail=[[2.2,-43],[20,-38],[44,-33],[60,-32]].concat(EXTRA_PASSES[0],[
 // MOD 209 — trilha do coliseu até o deserto da estátua (ao norte).
 const desertTrail=[[COLOSSEUM.gate.x,COLOSSEUM.gate.z]].concat(DESERT_PASS,[[DESERT.offer.x,DESERT.offer.z]]);
 const colosseumTrail=[[-36,-238]].concat(COLOSSEUM_PASS,[[COLOSSEUM.gate.x,COLOSSEUM.gate.z]]);
-const districtTrail=[[-27.4,-45],[-28.5,-51],[-38,-52.5],[-56,-56]].concat(DISTRICT_PASS,[[-130,-62],[DISTRICT_SPOTS.plaza.x,DISTRICT_SPOTS.plaza.z]]);
+const districtTrail=[[-27.4,-45],[-28.5,-51],[-38,-52.5],[-56,-56]].concat(DISTRICT_PASS); // Mod 321: a trilha sai pela Garganta e vira a estrada da jornada (jornada3d.js)
 // MOD 292 — ruas novas da cidade e caminhos das soleiras (porta → rua) entram no relevo e na malha de trilhas.
 const cityLanes=Object.values(ELDORIA_STREETS),cityDoorPaths=doorPaths(VILLAGE_CENTER).map(p=>p.points);
 const terrain3D=createTerrain({
@@ -252,7 +254,7 @@ const terrain3D=createTerrain({
  ponds:[FOREST_POND],
  // MOD 291: chão mais escuro e musgoso sob a mata fechada (faixa entre o rio e a serra e anel do lago).
  shade:(x,z)=>{const zone=Math.min(1,Math.max(0,(-79-z)/10))*Math.min(1,Math.max(0,(z+150)/10))*Math.min(1,Math.max(0,(x+72)/10))*Math.min(1,Math.max(0,(42-x)/10)),lake=1-Math.min(1,Math.max(0,(Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r-2)/16));const m=Math.max(zone,lake*.8)*(.75+.25*Math.sin(x*.3+Math.cos(z*.21)*2));return 1-.55*Math.max(0,m);},
- extraAreas:[PROLOGUE_MEADOW,DISTRICT,DISTRICT_SPOTS.volcanoApproach,...EXTRA_REGIONS,SNOW_CITY.caveApproach,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:TEREN_ROAD,r:8.5},{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:DISTRICT_CANAL,width:3.2,depth:1.8,level:-.6},{points:RIVER_POINTS,width:RIVER.width,depth:RIVER.depth,level:RIVER.level}],
+ extraAreas:[PROLOGUE_MEADOW,...EXTRA_REGIONS,SNOW_CITY.caveApproach,COLOSSEUM_REGION,DESERT_REGION],passes:[{points:TEREN_ROAD,r:8.5},{points:SEWER_TRAIL,r:7},{points:DISTRICT_PASS,r:PASS_RADIUS},...EXTRA_PASSES.map(points=>({points,r:PASS_RADIUS})),{points:COLOSSEUM_PASS,r:PASS_RADIUS},{points:DESERT_PASS,r:PASS_RADIUS}],channels:[{points:RIVER_POINTS,width:RIVER.width,depth:RIVER.depth,level:RIVER.level}],
  paths:[...cityLanes.map(points=>({points,r:2.2,fade:3})),...cityDoorPaths.map(points=>({points,r:1.2,fade:2})),{points:RIVER_POINTS,r:RIVER.width+2.2,fade:5},{points:TEREN_ROAD,r:4,fade:5},{points:SEWER_TRAIL,r:4,fade:5},{points:startTrail,r:4,fade:5},{points:mainTrail,r:5.5,fade:6},{points:villageTrail,r:4.5,fade:5},{points:shopTrail,r:4,fade:5},{points:districtTrail,r:4,fade:5},{points:altarTrail,r:4,fade:5},{points:serraTrail,r:4,fade:5},{points:CAGE_TRAIL,r:3.6,fade:5},{points:CAVE_MOUTH_TRAIL,r:3.4,fade:5},{points:SERRA_CLEFT_TRAIL,r:1.9,fade:3},{points:colosseumTrail,r:4,fade:5},{points:desertTrail,r:4,fade:5},...FOREST_TRAILS.map(t=>({points:t.points,r:t.width*.5+.8,fade:3}))]
 });
 /* MOD 311 — a encosta oeste do vale vira rampa até a boca da caverna e o túnel ganha piso plano (rebaixo do relevo). */
@@ -263,6 +265,14 @@ const terrain3D=createTerrain({
 const RIVER_BANKS_ON=new URLSearchParams(location.search).get('rio')!=='0';
 const riverQuery=createRiverQuery(RIVER_POINTS,{width:RIVER.width*.98,level:RIVER.level}),riverBankOpts={fordS:RIVER_BANKS_ON?fordAlong(riverQuery):undefined,bridge:BRIDGE};
 if(RIVER_BANKS_ON)wrapTerrainForBanks(terrain3D,riverQuery,riverBankOpts);
+var journeyWorld=null,journeyFall={on:false,from:0,cp:null,reached:new Set()};
+/* MOD 321 — A JORNADA: a oeste de x = -112 o relevo, os limites e a água vêm de jornada3d.js (vale, serra, ponte do abismo,
+   terras de cinza, Cinzária e o vulcão). Entre x = -112 e -150 os dois relevos se misturam para a saída de Eldória ser
+   orgânica (sem degrau). A malha antiga deixa o recorte JOURNEY_HOLES para a malha em blocos (jornada-world3d.js). */
+{const h0=terrain3D.height,b0=terrain3D.boundaryDistance,w0=terrain3D.waterDepth,mixK=x=>{const t=Math.max(0,Math.min(1,(-112-x)/38));return t*t*(3-2*t);};
+ terrain3D.height=(x,z)=>{if(!inJourney(x,z))return h0(x,z);const j=journeyHeight(x,z),k=mixK(x);return k>=1?j:h0(x,z)+(j-h0(x,z))*k;};
+ terrain3D.boundaryDistance=(x,z)=>{if(!inJourney(x,z))return b0(x,z);const j=journeyBoundary(x,z),k=mixK(x);return k>=1?j:Math.min(b0(x,z),j+(1-k)*8);};
+ terrain3D.waterDepth=(x,z)=>inJourney(x,z)?(journeyRiverDepth(x,z)>0?journeyRiverDepth(x,z):-1):w0(x,z);}
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
 /* RENASCIMENTO F2 — som do rio: distância à linha d'água (correnteza) e proximidade do vau (marulho nas pedras). */
 function riverAudioAt(x,z){const q=riverQuery.nearest(x,z);if(!q)return{riverDistance:99,fordNear:0};const d=Math.max(0,q.d-2.6);return{riverDistance:d,fordNear:riverBankOpts.fordS!==undefined?fordMask(q,riverBankOpts.fordS)*Math.max(0,1-d/12):0};}
@@ -272,7 +282,7 @@ const terrainLowSpec=(window.matchMedia&&window.matchMedia('(pointer: coarse)').
 // MOD 291 — o retalho começa exatamente na última linha da grade fina (z = cz + passos·célula) para dividir os vértices.
 const terrainCell=terrainLowSpec?2.5:2,terrainPatchRect={...ROAD_TERRAIN_PATCH,z0:-126+Math.round(166/terrainCell)*terrainCell};
 const terrainMesh=(()=>{
- const built=buildTerrainArrays(terrain3D,{cx:-2,cz:-126,fineHalf:206,fineHalfZ:166,fineCell:terrainLowSpec?2.5:2,outerSteps:terrainLowSpec?32:40,growth:terrainLowSpec?1.095:1.075,holes:[terrainPatchRect]});
+ const built=buildTerrainArrays(terrain3D,{cx:-2,cz:-126,fineHalf:206,fineHalfZ:166,fineCell:terrainLowSpec?2.5:2,outerSteps:terrainLowSpec?32:40,growth:terrainLowSpec?1.095:1.075,holes:[terrainPatchRect,...JOURNEY_HOLES]});
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.BufferAttribute(built.positions,3));geo.setIndex(new THREE.BufferAttribute(built.indices,1));geo.computeVertexNormals();
  geo.setAttribute('color',new THREE.BufferAttribute(colorTerrain(terrain3D,built.positions,geo.attributes.normal.array),3));
@@ -2150,6 +2160,7 @@ function blockedAt(x,z,skipRocks=false){
  }
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
  {const bd=bridgeDeck(x,z);if(bd)return bd.edge;} // MOD 291: a ponte atravessa o rio (parapeitos bloqueiam)
+/* MOD 321 */ if(journeyBlocked(x,z,player.position.y)||journeyWorld&&journeyWorld.solidAt(x,z))return true;
  if(frontierBlocked(x,z))return true; // MOD 311: muralha da fronteira (mesma linha da malha do penhasco) — só o túnel da boca é livre
  if(terrain3D.boundaryDistance(x,z)>45||terrain3D.waterDepth(x,z)>=1.25)return true;
  for(const o of treeObstacles){const dx=x-o.x,dz=z-o.z;if(dx*dx+dz*dz<o.radius*o.radius)return true;}
@@ -2187,6 +2198,7 @@ function terrainHeightAt(x,z){
  if(voidMode)return voidSpec.y+(voidSpec.floor&&(voidSpec.walk===innWalkable||voidSpec.solid)?voidSpec.floor(x-voidSpec.x,z-voidSpec.z):0);
  let height=groundHeightAt(x,z);
  {const bd=bridgeDeck(x,z);if(bd)height=Math.max(height,bd.y);}
+ {const jd=journeyDeck(x,z);if(jd&&!(journeyFall.on&&player.position.y<jd.y-1.2))height=Math.max(height,jd.y);} // MOD 321: tabuleiro da ponte do abismo (quem já caiu abaixo dele não volta para cima)
  for(const rock of rockObstacles){const d=Math.hypot(x-rock.x,z-rock.z);if(d<rock.radius){const t=1-d/rock.radius;const smooth=t*t*(3-2*t);height=Math.max(height,rock.base+rock.height*smooth);}}
  for(const obstacle of walkableObstacles){let distance;
   if(obstacle.type==='capsule'){const along=THREE.MathUtils.clamp((x-obstacle.x)*obstacle.axisX+(z-obstacle.z)*obstacle.axisZ,-obstacle.halfLength,obstacle.halfLength);distance=Math.hypot(x-(obstacle.x+obstacle.axisX*along),z-(obstacle.z+obstacle.axisZ*along));}
@@ -2561,7 +2573,7 @@ updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(d
 updateAutoGraphics3D(frameDelta,now);
  if(awakeningActive){awakeningT=Math.min(1,awakeningT+dt/5.4);const yaw=Math.sin(awakeningT*Math.PI*1.6)*.85,pitch=.22+Math.sin(awakeningT*Math.PI)*.16,dist=8.2;const target=new THREE.Vector3(player.position.x,player.position.y+1.35,player.position.z);camera.position.set(target.x+Math.sin(yaw)*dist*Math.cos(pitch),target.y+dist*Math.sin(pitch)+.35,target.z+Math.cos(yaw)*dist*Math.cos(pitch));camera.lookAt(target);if(awakeningT>=1)finishAwakening();}
  updateCages();updateAct1(dt,now);
- updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateHydra(dt);updateMoonFlames(dt);updateVeraxionSwords(dt);updateVeraxionCyclone(dt);updateZarkhaelSword(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateEclipseSword(dt);tickCosmicSwords(dt);updateAct2(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateAscension(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
+ updateFpsBadge(now);updateFriendlyStrikes(dt);autoRecenterCamera(dt,now);updateFovKick(rawDt);updateFpExtras(dt);updateWarnRing(dt);updateHazards(dt);updateBlackHole(dt,now);updateBossUltimates(dt,now);updateFoeKit(dt);updateHydra(dt);updateMoonFlames(dt);updateVeraxionSwords(dt);updateVeraxionCyclone(dt);updateZarkhaelSword(dt);updateTornadoRitual(dt);updatePortalSwords(dt);updateEclipseSword(dt);tickCosmicSwords(dt);updateAct2(dt,now);updateJourney(dt,now);if(act3Ready){updateAct3(dt,now);updateAct4(dt,now);updateAct5(dt,now);updateAct6(dt,now);}if(lateSystemsReady)updateLate(dt,now);if(finaleReady)updateFinale(dt,now);updateAscension(dt,now);updateObjectiveArrow();updateCombatJuice(rawDt);updateSideItems(dt,now);tickPlayTime(dt,now);updateHeartsHud();if(!heroPortraitDone&&model)renderHeroPortrait();updateSlashTrail(dt);updateUltimateFx(rawDt);updateDefense(dt);updateLockOn(dt);updatePrologue(dt);updateAmbientLife(dt,now);updateWorldAudio(dt);keepCameraAboveTerrain();if(debugCameraOverride){camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);}updateSkyAndShadows();applyCameraShake(rawDt);updateCine(dt,now);
  // Recalcular culling DEPOIS da câmera definitiva deste quadro (antes havia 1 frame de atraso).
  if(road.group)applySeating(frameDelta);lightBudget.update(camera,frameDelta);updateInstanceCulling();if(vzCinematic()){vzCamRestore();return;}const forestRenderStart=forestPerfEnabled?performance.now():0;renderer.render(scene,camera);if(forestPerfEnabled)forestPerfUpdate(forestFrameStart,forestRenderStart,performance.now());vzCamRestore();}
 /* MOD 186 — céu, sol e lua acompanham a câmera (o mundo agora vai até o horizonte); sombra acompanha o jogador. */
@@ -2757,7 +2769,7 @@ function updateWorldAudio(dt){
 /* MOD 186 — mapa com névoa de guerra e abrigos de viagem rápida. O mapa só mostra o que já foi visto;
    cada abrigo precisa ser encontrado e registrado antes de aparecer na lista de viagem. */
 const MAP_STORE=MAP_STORE_KEY;
-const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');if(!saved){const old=JSON.parse(localStorage.getItem('seven-sins-3d-map-v2')||localStorage.getItem('seven-sins-3d-map')||'null');if(old)saved={pois:old.pois,waystones:old.waystones};}}catch(_){}return createMapState(saved);})();
+const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');if(!saved){const v3=JSON.parse(localStorage.getItem(LEGACY_MAP_STORE_KEY)||'null');if(v3)saved=migrateLegacyFog(v3);} /* MOD 321: névoa v3 convertida para a grade da jornada */ if(!saved){const old=JSON.parse(localStorage.getItem('seven-sins-3d-map-v2')||localStorage.getItem('seven-sins-3d-map')||'null');if(old)saved={pois:old.pois,waystones:old.waystones};}}catch(_){}return createMapState(saved);})();
 let mapDirty=false,mapSaveAt=0,mapScanAt=0,mapBase=null,mapOpen=false;
 function saveMapState(force){if(!mapDirty&&!force)return;mapDirty=false;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));}catch(_){}}
 /* MOD 317 — abrigos: plataforma ritual autoral (eldoria-shelter3d.js) com degraus caminháveis e pilares sólidos;
@@ -3879,70 +3891,33 @@ const gorgeGate=(()=>{
  function sync(){const open=act2Started(questStep);g.visible=!open;for(const b of blockers){const idx=marketObstacles.indexOf(b);if(open&&idx>=0)marketObstacles.splice(idx,1);else if(!open&&idx<0)marketObstacles.push(b);}}
  return{group:g,sync,spot:{x:gx+2,z:gz}};
 })();
-// ---------- Distrito da Ferrugem: ruínas de comércio, mina, canal, altar do selo ----------
-const district=(()=>{
- const root=new THREE.Group();scene.add(root);
- const brick=mat(0x6d5246),brickDark=mat(0x4a3a33),plaster=mat(0x8f8270),beam=mat(0x3d2c20),slate=mat(0x2f3138),rust=new THREE.MeshStandardMaterial({color:0x7a4a2a,metalness:.4,roughness:.7});
- const boxGeo=new THREE.BoxGeometry(1,1,1);
- const add=(m,x,y,z,sx,sy,sz,ry=0,rx=0,rz=0)=>{const o=new THREE.Mesh(boxGeo,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.rotation.set(rx,ry,rz);o.castShadow=!terrainLowSpec;o.receiveShadow=true;root.add(o);return o;};
- // MOD 217 — Cinzária de verdade: casas de basalto e reboco cor de cinza com telhados de duas águas, portas, janelas acesas
- // e chaminés, ao longo da rua principal, de uma rua de trás, da praça e do beco sem saída. Tudo instanciado (poucas
- // chamadas de desenho) e com colisão por casa.
- {const instanced=(geo,m,items)=>{const im=new THREE.InstancedMesh(geo,m,items.length),d=new THREE.Object3D();items.forEach((it,i)=>{d.position.set(it.x,it.y,it.z);d.rotation.set(0,it.ry||0,0);d.scale.set(it.sx,it.sy,it.sz);d.updateMatrix();im.setMatrixAt(i,d.matrix);});im.instanceMatrix.needsUpdate=true;im.castShadow=!terrainLowSpec;im.receiveShadow=true;return im;};
-  const L=cityLayout(),bodies=[],roofs=[],doors=[],wins=[],chims=[],bases=[],tint=[];const rnd=(()=>{let k=91;return()=>(k=(k*16807)%2147483647)/2147483647;})();
-  const PAL=[0x8a7e70,0x6e6258,0x9a8a74,0x7a5e4e,0x5e5a58,0x8e7462,0x6a5448];
-  for(const [x,z,w,d,h,face,side] of L){const y=groundHeightAt(x,z)-.2;const alongX=!side;
-   const ex=side?d:w,ez=side?w:d;bodies.push({x,y:y+h/2,z,sx:ex,sy:h,sz:ez});bases.push({x,y:y+.45,z,sx:ex+.3,sy:.9,sz:ez+.3});tint.push(PAL[(rnd()*PAL.length)|0]);
-   roofs.push({x,y:y+h,z,sx:w+.7,sy:1.4+rnd()*1.2,sz:d+.7,ry:alongX?0:Math.PI/2});
-   if(rnd()<.6)chims.push({x:x+(rnd()-.5)*w*.5,y:y+h+1.2,z:z+(rnd()-.5)*d*.4,sx:.6,sy:2.2,sz:.6});
-   const fx=side?x+side*d/2:x,fz=side?z:z+face*d/2,nx=side||0,nz=side?0:face,ry=side?Math.PI/2:0;
-   doors.push({x:fx+nx*.06,y:y+1.15,z:fz+nz*.06,sx:side?.12:1.2,sy:2.3,sz:side?1.2:.12});
-   const floors=Math.max(1,Math.round(h/2.2));for(let f=0;f<floors;f++)for(const o of [-1,1]){if(f===0&&Math.abs(o)<1)continue;const off=o*Math.min(w*.3,1.9),wy=y+1.6+f*2.1;
-    wins.push({x:fx+nx*.07+(side?0:off),y:wy,z:fz+nz*.07+(side?off:0),sx:side?.1:.7,sy:.85,sz:side?.7:.1});}
-   marketObstacles.push({x,z,shape:'box',halfX:(side?d:w)/2+.15,halfZ:(side?w:d)/2+.15,height:h});}
-  // Parede do fundo do beco (sem saída).
-  {const A=DISTRICT_SPOTS.alley,y=groundHeightAt(A.x,A.z1);bodies.push({x:A.x,y:y+2.4,z:A.z1-2.2,sx:A.half*2+2.6,sy:4.8,sz:.8});tint.push(0x4e4844);marketObstacles.push({x:A.x,z:A.z1-2.2,shape:'box',halfX:A.half+1.3,halfZ:.6,height:4.8});}
-  const plasterM=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.92});
-  const roofGeo=new THREE.BufferGeometry();{const v=[-.5,0,-.5,.5,0,-.5,.5,0,.5,-.5,0,.5,-.5,1,0,.5,1,0];const ix=[0,4,1,1,4,5,3,2,5,3,5,4,0,3,4,1,5,2,0,1,2,0,2,3];roofGeo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));roofGeo.setIndex(ix);roofGeo.computeVertexNormals();}
-  const bodyMesh=instanced(boxGeo,plasterM,bodies);tint.forEach((c,i)=>bodyMesh.setColorAt(i,new THREE.Color(c)));bodyMesh.instanceColor.needsUpdate=true;root.add(bodyMesh);
-  root.add(instanced(boxGeo,mat(0x2e2826),bases),instanced(roofGeo,new THREE.MeshStandardMaterial({color:0x3a2a26,roughness:.85,flatShading:true,side:THREE.DoubleSide}),roofs),instanced(boxGeo,beam,doors),instanced(boxGeo,mat(0x3a3230),chims));
-  const winM=new THREE.MeshStandardMaterial({color:0x2a1a10,emissive:0xff9a40,emissiveIntensity:.9});root.add(instanced(boxGeo,winM,wins));}
- // Barracas de cobrança abandonadas e caixotes.
- for(const [x,z] of [[-142,-70],[-156,-52],[-166,-62],[-136,-62]]){const y=groundHeightAt(x,z);add(beam,x,y+.5,z,2.2,1,1);add(rust,x,y+1.05,z,2.4,.08,1.2,0,.08);}
- // Mina: arco escuro na encosta noroeste, trilhos e lanterna.
- const mx=-184,mz=-38,my=groundHeightAt(mx,mz);
- const mine=new THREE.Group();mine.position.set(mx,my,mz);mine.rotation.y=Math.PI*.78;root.add(mine);
- const mouth=new THREE.Mesh(new THREE.CircleGeometry(2.1,20,0,Math.PI),new THREE.MeshBasicMaterial({color:0x050404}));mouth.position.set(0,0,-.3);mine.add(mouth);
- for(const sx of [-1,1]){const p=new THREE.Mesh(boxGeo,beam);p.position.set(sx*2,1.6,0);p.scale.set(.35,3.2,.35);mine.add(p);}
- const lintel=new THREE.Mesh(boxGeo,beam);lintel.position.set(0,3.25,0);lintel.scale.set(4.8,.4,.45);mine.add(lintel);
- const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(5,1),mat(0x4e4a45));rock.position.set(0,2.4,-3.5);rock.scale.set(1.3,.9,.8);mine.add(rock);
- for(const sx of [-.5,.5]){const rail=new THREE.Mesh(boxGeo,rust);rail.position.set(sx,.06,4);rail.scale.set(.08,.08,9);mine.add(rail);}
- marketObstacles.push({x:mx-Math.sin(Math.PI*.78)*3.5,z:mz-Math.cos(Math.PI*.78)*3.5,shape:'circle',radius:4.6,height:5});
- // Canal de drenagem: água corrente numa fita que acompanha o leito escavado.
- const pts=DISTRICT_CANAL.map(p=>new THREE.Vector3(p[0],-.6,p[1])),curve=new THREE.CatmullRomCurve3(pts),N=60,pos=[],idx=[];
- for(let i=0;i<=N;i++){const c=curve.getPoint(i/N),t=curve.getTangent(i/N),sx=-t.z,sz=t.x,w=3.4;pos.push(c.x+sx*w,-.62,c.z+sz*w,c.x-sx*w,-.62,c.z-sz*w);if(i<N)idx.push(i*2,i*2+1,i*2+2,i*2+1,i*2+3,i*2+2);}
- const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));cg.setIndex(idx);cg.computeVertexNormals();
- const canal=new THREE.Mesh(cg,pondWater.material);canal.renderOrder=2;root.add(canal);
- // Altar do selo: pedestal e um selo de dívida flutuando, vermelho-ferrugem.
- const sp=DISTRICT_SPOTS.seal,sy=groundHeightAt(sp.x,sp.z);
- const altar=new THREE.Group();altar.position.set(sp.x,sy,sp.z);root.add(altar);
- const ped=new THREE.Mesh(new THREE.CylinderGeometry(1,1.3,1.1,8),brickDark);ped.position.y=.55;ped.castShadow=true;altar.add(ped);
- const sealMat=new THREE.MeshStandardMaterial({color:0x8a2a1a,emissive:0xb0301a,emissiveIntensity:1.6,metalness:.5,roughness:.35,side:THREE.DoubleSide});
- const seal=new THREE.Mesh(new THREE.TorusGeometry(.7,.09,8,32),sealMat);seal.position.y=2;altar.add(seal);
- const sealCore=new THREE.Mesh(new THREE.CircleGeometry(.6,24),new THREE.MeshBasicMaterial({color:0x2a0805,side:THREE.DoubleSide}));sealCore.position.y=2;altar.add(sealCore);
- const sealLight=new THREE.PointLight(0xff4a2a,1.6,12);sealLight.position.y=2.2;altar.add(sealLight);
- marketObstacles.push({x:sp.x,z:sp.z,shape:'circle',radius:1.25,height:1.1});
- // Livros-caixa: tomos com brilho dourado nos três locais da investigação.
- const ledgers=DISTRICT_SPOTS.ledgers.map((p,i)=>{const g=new THREE.Group();g.position.set(p.x,groundHeightAt(p.x,p.z)+.05,p.z);root.add(g);
-  const book=new THREE.Mesh(new THREE.BoxGeometry(.55,.14,.42),new THREE.MeshStandardMaterial({color:0x4a1e14,emissive:0x3a0a04,emissiveIntensity:.6}));book.position.y=.6;g.add(book);
-  const stand=new THREE.Mesh(new THREE.CylinderGeometry(.08,.14,.55,6),beam);stand.position.y=.28;g.add(stand);
-  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:softDot,color:0xffc860,transparent:true,opacity:.7,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));glow.position.y=.75;glow.scale.set(1.3,1.3,1);g.add(glow);
-  return{group:g,book,glow,index:i};});
- // Substituição definitiva dos postes/esferas feitos por código: somente GLB autoral.
- const districtTorchSites=[[-146,-56],[-156,-68],[-140,-68]].map(([x,z])=>({x,z,y:groundHeightAt(x,z)}));
- authoredTorchAsset.then(source=>adoptTorchSet(placeTorches(THREE,root,source,districtTorchSites.map((p,i)=>({...p,why:['portão do distrito','beco das oficinas','escada da mina'][i]})),{namePrefix:'TochaMedievalTripo-Distrito-',lightIntensity:.6,lightDistance:12})));
- return{root,seal,sealLight,sealMat,altar,ledgers};
-})();
+// ---------- MOD 321 — a antiga Cidade 2 (distrito, beco, mina, canal e selo) deu lugar à jornada e à nova Cinzária ----------
+journeyWorld=createJourneyWorld(THREE,scene,{height:(x,z)=>terrain3D.height(x,z),lowSpec:terrainLowSpec,waterMaterial:pondWater.material,softDot});
+const district={root:journeyWorld.city,altar:null,ledgers:[]};
+/** MOD 321 — jornada por quadro: blocos/vegetação, checkpoints do percurso e a queda REAL no abismo (gravidade → morte → checkpoint). */
+function updateJourney(dt,now){
+ const P=player.position;journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode,eruption:typeof eruption==='number'?eruption:0});
+ if(voidMode)return;
+ for(const c of JOURNEY_CHECKPOINTS)if(Math.hypot(P.x-c.x,P.z-c.z)<9&&grounded&&playerHP>0){if(!journeyFall.reached.has(c.id))journeyFall.reached.add(c.id);if(checkpointX!==c.x||checkpointZ!==c.z){checkpointX=c.x;checkpointZ=c.z;}}
+ if(!journeyFall.on&&inAbyss(P.x,P.z)&&!journeyDeck(P.x,P.z)&&P.y<JBRIDGE.y-2){journeyFall.on=true;journeyFall.from=P.y;}
+ if(journeyFall.on&&playerHP>0&&P.y<JBRIDGE.y-38){playerHP=0;playerRespawnAt=now+1250;moveVX=moveVZ=0;dashRemaining=0;status.textContent='Você caiu no abismo. Retornando ao último ponto seguro…';updatePlayerHud();}
+ if(journeyFall.on&&playerHP>0&&!inAbyss(P.x,P.z))journeyFall.on=false;
+}
+/** MOD 321 — TP de TESTE entre as cidades (painel ADM com ?adm=1). Ferramenta de depuração, NÃO é autorização segura:
+ *  não muda progresso, itens, inimigos nem saves; recusa em luta/dimensão/cena e carrega o terreno antes de posicionar. */
+function journeyTeleport(key){
+ const S=SAFE_SPOTS[key];if(!S)return false;
+ if((dimBattle&&dimBattle.active)||voidMode){status.textContent='TP indisponível dentro de dimensões e áreas internas.';return false;}
+ if(cineActive||(typeof whiteLease!=='undefined'&&whiteLease.locked)||pack||(enemy&&enemy.visible&&enemyAlive)){status.textContent='TP indisponível durante cenas e combates.';return false;}
+ journeyWorld.prefetch(S.x,S.z);const y=terrainHeightAt(S.x,S.z);
+ player.position.set(S.x,y,S.z);playerYaw=S.yaw;player.rotation.y=S.yaw;cameraYaw=S.yaw+Math.PI;verticalVelocity=0;grounded=true;moveVX=moveVZ=0;dashRemaining=0;journeyFall.on=false;checkpointX=S.x;checkpointZ=S.z;
+ for(let i=0;i<10;i++)updatePlayerCamera(1);status.textContent='TP de teste — '+S.name;return true;
+}
+if(new URLSearchParams(location.search).get('adm')==='1')addEventListener('load',()=>{const el=document.createElement('div');el.id='adm-panel';el.style.cssText='position:fixed;right:8px;top:calc(env(safe-area-inset-top) + 64px);z-index:31;display:flex;flex-direction:column;gap:4px;align-items:flex-end';
+ const st='border-radius:9px;border:1px solid #c8a24a;background:#1e1608e6;color:#ffe6b0;font:700 11px system-ui;padding:6px 9px;min-height:30px',menu=document.createElement('div');menu.style.cssText='display:none;flex-direction:column;gap:4px';
+ const tog=document.createElement('button');tog.type='button';tog.textContent='ADM (teste) ▾';tog.style.cssText=st;tog.onclick=()=>{menu.style.display=menu.style.display==='none'?'flex':'none';};
+ for(const [k,t] of [['eldoria','TP Cidade 1 — Eldória'],['cinzaria','TP Cidade 2 — Cinzária']]){const b=document.createElement('button');b.type='button';b.textContent=t;b.dataset.tp=k;b.style.cssText=st;b.onclick=()=>{journeyTeleport(k);menu.style.display='none';};menu.appendChild(b);}
+ el.append(tog,menu);document.body.appendChild(el);});
 // ---------- Chuva (shader: sem atualizar vértices na CPU) e relâmpagos ----------
 const rain=(()=>{
  const N=terrainLowSpec?900:1800,pos=new Float32Array(N*2*3),seed=new Float32Array(N*2);
@@ -5289,23 +5264,9 @@ const CITY=DISTRICT_SPOTS.plaza;
 /* ---------- O vulcão, as cinzas, a erupção e a cidade destruída ---------- */
 function buildAct2World(){
  if(act2World)return act2World;const W=act2World={};
- const V=DISTRICT_SPOTS.volcano,vy=groundHeightAt(DISTRICT_SPOTS.volcanoGate.x,DISTRICT_SPOTS.volcanoGate.z)-2;
- const g=new THREE.Group();g.position.set(V.x,vy,V.z);scene.add(g);W.volcano=g;
- // MOD 217 — portão diegético no pé do cone: pilares de basalto, verga com runas, boca escura com brilho de lava e braseiros.
- {const G=DISTRICT_SPOTS.volcanoGate,gy=groundHeightAt(G.x,G.z),gate=new THREE.Group();gate.position.set(G.x-2,gy,G.z);gate.rotation.y=Math.PI/2;scene.add(gate);W.gate=gate;
-  const basalt=new THREE.MeshStandardMaterial({color:0x2a2220,roughness:.95,flatShading:true}),rune=new THREE.MeshBasicMaterial({color:0xff6a20,toneMapped:false});
-  for(const sx of [-1,1]){const p=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.2,7.5,6),basalt);p.position.set(sx*3,3.75,0);p.rotation.y=sx*.3;gate.add(p);
-   const r=new THREE.Mesh(new THREE.BoxGeometry(.12,4.4,.12),rune);r.position.set(sx*3,3.4,.95);gate.add(r);
-   const br=new THREE.Mesh(new THREE.CylinderGeometry(.55,.35,1.1,8),basalt);br.position.set(sx*4.6,.55,1.6);gate.add(br);const f=glowSprite(0xff7a28,.9,3.2);f.position.set(sx*4.6,1.7,1.6);gate.add(f);}
-  const lintel=new THREE.Mesh(new THREE.BoxGeometry(8.4,1.3,1.6),basalt);lintel.position.y=7.6;lintel.rotation.z=.04;gate.add(lintel);
-  const mouth=new THREE.Mesh(new THREE.PlaneGeometry(5.2,6.6),new THREE.MeshBasicMaterial({color:0x050302}));mouth.position.set(0,3.3,-.2);gate.add(mouth);
-  const glow=glowSprite(0xff5010,.55,7);glow.position.set(0,1.2,0);gate.add(glow);
-  const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(7,0),basalt);rock.scale.set(1.6,1.3,1);rock.position.set(0,4,-4.5);gate.add(rock);}
- // Cone com cratera (perfil girado) e veios incandescentes.
- const prof=[];for(let i=0;i<=16;i++){const t=i/16;prof.push(new THREE.Vector2(Math.max(6,30*(1-t)+(1-t)*(1-t)*5),t*50));}prof.push(new THREE.Vector2(5,47));
- const rockC=document.createElement('canvas');rockC.width=rockC.height=256;{const c=rockC.getContext('2d');c.fillStyle='#2a221e';c.fillRect(0,0,256,256);for(let i=0;i<400;i++){const v=30+Math.random()*30|0;c.fillStyle='rgb('+v+','+(v-6)+','+(v-9)+')';c.fillRect(Math.random()*256,Math.random()*256,4+Math.random()*10,2+Math.random()*5);}c.strokeStyle='rgba(255,90,20,.55)';c.lineWidth=2;for(let i=0;i<10;i++){let x=Math.random()*256,y=0;c.beginPath();c.moveTo(x,y);while(y<256){x+=(Math.random()-.5)*24;y+=10+Math.random()*16;c.lineTo(x,y);}c.stroke();}}
- const rockT=new THREE.CanvasTexture(rockC);rockT.wrapS=rockT.wrapT=THREE.RepeatWrapping;rockT.repeat.set(6,3);rockT.colorSpace=THREE.SRGBColorSpace;
- const cone=new THREE.Mesh(new THREE.LatheGeometry(prof,40),new THREE.MeshStandardMaterial({map:rockT,emissiveMap:rockT,emissive:0x501806,emissiveIntensity:.7,roughness:.95}));g.add(cone);
+ // MOD 321 — o cone, a cratera, o portão e a caverna moram em jornada-world3d.js; aqui só a erupção, a fumaça e as cinzas,
+ // ancoradas na cratera do novo vulcão (o grupo fica 50 m abaixo do topo, como no desenho antigo).
+ const g=new THREE.Group();g.position.set(journeyWorld.craterTop.x,journeyWorld.craterTop.y-50,journeyWorld.craterTop.z);scene.add(g);W.volcano=g;
  const crater=glowSprite(0xff6a20,.75,22);crater.position.y=51;g.add(crater);W.crater=crater;
  // Fumaça subindo da cratera (uma chamada de desenho).
  const N=90,sp=new Float32Array(N*3),sv=[];for(let i=0;i<N;i++){sp[i*3]=(Math.random()-.5)*8;sp[i*3+1]=50+Math.random()*60;sp[i*3+2]=(Math.random()-.5)*8;sv.push(2+Math.random()*3);}
@@ -5321,7 +5282,7 @@ function buildAct2World(){
  const ag=new THREE.BufferGeometry();ag.setAttribute('position',new THREE.BufferAttribute(ap,3));
  const ash=new THREE.Points(ag,new THREE.PointsMaterial({color:0x9a908a,size:.09,transparent:true,opacity:.8,depthWrite:false}));ash.frustumCulled=false;scene.add(ash);W.ash={pts:ash,geo:ag};
  // Incêndios da cidade destruída.
- const firePts=[];for(const [x,z] of [[-138,-36],[-162,-36],[-182,-56],[-128,-58],[-178,-76],[-145,-84],[-122,-74],[-188,-36],[-150,-50],[-160,-72],[-140,-70]])for(let k=0;k<3;k++)firePts.push([x+(Math.random()-.5)*5,z+(Math.random()-.5)*5]);
+ const firePts=[];for(let i=0;i<11;i++){const a=i/11*Math.PI*2+.3,r=20+(i%3)*13,x=CITY.x+Math.cos(a)*r,z=CITY.z+Math.sin(a)*r;for(let k=0;k<3;k++)firePts.push([x+(Math.random()-.5)*5,z+(Math.random()-.5)*5]);} // MOD 321: em volta da nova praça
  W.fires=firePts.map(([x,z])=>{const s=glowSprite(0xff6a18,.85,2.6+Math.random()*2.4);s.position.set(x,groundHeightAt(x,z)+1.4,z);s.visible=false;scene.add(s);return s;});
  // O abismo deixado pelo buraco negro: um rombo que mostra o espaço lá no fundo, como o fim do mundo.
  const abyss=new THREE.Mesh(new THREE.CircleGeometry(24,64),new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uTime:{value:0}},
@@ -5340,7 +5301,7 @@ function syncAct2World(){
  const W=act2World;if(!W)return;
  const destroyed=questStep>=ACT2.done;W.volcano.visible=questStep>=ACT2.start;
  for(const f of W.fires)f.visible=destroyed&&!act2Abyss;
- W.abyss.visible=act2Abyss;district.root.visible=!act2Abyss;
+ W.abyss.visible=act2Abyss;district.root.visible=!act2Abyss;journeyWorld.setCityGone(act2Abyss);
  const i=marketObstacles.indexOf(W.abyssBlock);if(act2Abyss&&i<0)marketObstacles.push(W.abyssBlock);else if(!act2Abyss&&i>=0)marketObstacles.splice(i,1);
  W.note.visible=questStep===ACT2.done&&act2Abyss;
  if(destroyed&&!W.sooted){W.sooted=true;district.root.traverse(o=>{if(o.isMesh&&o.material&&o.material.color&&!o.material.userData.soot){o.material.userData.soot=true;o.material.color.multiplyScalar(.45);}});}
@@ -5348,7 +5309,7 @@ function syncAct2World(){
 let eruption=0;
 /* MOD 218 — Cinzária com gente: moradores com rotina andam pelas ruas e pela praça, param, conversam e seguem.
    Somem quando a cidade cai (abismo) e dentro das áreas internas. */
-const CITY_ROUTES=[[[-118,-61],[-136,-63]],[[-142,-56],[-158,-56],[-158,-68],[-142,-68]],[[-120,-46],[-141,-46]],[[-166,-61],[-183,-63]],[[-136,-61.5],[-149,-58]],[[-152,-49.5]]];
+const CITY_ROUTES=CITY_ROUTES2; // MOD 321: ruas, praça e oficinas da nova Cinzária
 let cityFolk=null;
 function spawnCityFolk(){cityFolk=[];npcBase().then(b=>{const walk=b.clips.find(k=>k.name==='Walking'),talk=b.clips.find(k=>k.name==='Agree_Gesture'),idle=b.clips.find(k=>k.name==='Alert');
  CITY_ROUTES.forEach((route,i)=>{for(let n=0;n<(route.length>2?2:1);n++){const k=(n*2)%route.length,p=route[k],v=makeTownsfolk(b,0xb0a898,route.length>1?'Walking':'Agree_Gesture');v.holder.position.set(p[0],groundHeightAt(p[0],p[1]),p[1]);
@@ -5466,13 +5427,9 @@ function updateAct2Story(dt,now){
  const px=player.position.x,pz=player.position.z,near=(p,r)=>Math.hypot(p.x-px,p.z-pz)<r,mark=p=>questMarker.position.set(p.x,terrainHeightAt(p.x,p.z)+.06,p.z);
  if(questStep>=ACT2.city&&questStep<=ACT2.volcano&&!rigLoads.enemy2)loadRig('enemy2').catch(()=>{});
  if(questStep===ACT2.travel){mark(gorgeGate.spot.x<px&&px>-90?gorgeGate.spot:CITY);storyAnchors.city={x:CITY.x,z:CITY.z,yaw:0};
-  if(!act1Busy()&&near(CITY,40)){act1Lock=true;playStory('cidade',cityArrivalScene(),{focus:'guide',done:()=>{act1Lock=false;act1Advance(ACT2.city,0);status.textContent='Atravesse a cidade.';}});}return;}
- if(questStep===ACT2.city){
-  if(act1Sub===0){const A=DISTRICT_SPOTS.ambush,AL=DISTRICT_SPOTS.alley;if(!inAlley(px,pz))mark({x:AL.x,z:AL.z0+1});if(!act1Busy()&&inAlley(px,pz)&&pz<AL.z0-4){act1Lock=true;spawnBandits().then(()=>{playStory('bandidos',banditScene(),{focus:'bandit',face:'bandit',done:()=>{act1Lock=false;act1Advance(ACT2.city,1);status.textContent='Alguém na praça parece observar você.';}});},()=>{act1Lock=false;act1Advance(ACT2.city,1);});}}
-  else{const R=DISTRICT_SPOTS.rival;mark(R);storyAnchors.rival={x:R.x,z:R.z,yaw:Math.atan2(px-R.x,pz-R.z)};
-   if(!act1Busy()&&!pack&&!enemy.visible&&near(R,9)){act1Lock=true;startPack({rig:'rival',profile:'rival',hp:ACT2.rivalHp,spots:[R],hold:true,intro:'O desconhecido saca as lâminas.',onDone:rivalDown});
-    playStory('misteriosa',rivalScene(),{focus:'rival',face:'rival',done:()=>{act1Lock=false;delete storyAnchors.rival;releasePack();}});}}
-  return;
+  if(!act1Busy()&&near(CITY,40)){act1Lock=true;playStory('cidade',cityArrivalScene(),{focus:'guide',done:()=>{act1Lock=false;act1Advance(ACT2.gate,0);status.textContent='A entrada do vulcão fica no sopé, a oeste da cidade.';}});}return;}
+ if(questStep===ACT2.city){ // MOD 321: beco/desconhecido dependiam da cidade antiga — o passo segue direto para a entrada do vulcão
+  const m=migrateAct2Step(questStep,act1Sub);act1Advance(m.step,m.sub);status.textContent='A entrada do vulcão fica no sopé, a oeste da cidade.';return;
  }
  if(questStep===ACT2.gate){
   const G=DISTRICT_SPOTS.volcanoGate;mark(G);
@@ -8233,7 +8190,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
 
  combatStudio(boss=false){player.visible=!boss;const keep=new Set([player,camera]);for(const a of squadSq()?.actors||[]){const b=squadRT.body(a.id);if(b){keep.add(b.holder);keep.add(b.weaponRoot);for(const c of b.claws||[])keep.add(c.root);}}for(const o of scene.children){if(o.isDirectionalLight||o.isHemisphereLight||o.isAmbientLight||o.name==='SwordRites231')keep.add(o);if(!keep.has(o))o.visible=false;}scene.background=new THREE.Color(0x18202c);scene.fog=new THREE.Fog(0x18202c,100,200);const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshStandardMaterial({color:0x3b4659,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.set(player.position.x,terrainHeightAt(player.position.x,player.position.z)-.04,player.position.z);scene.add(floor);const light=new THREE.HemisphereLight(0xf2e7d1,0x555776,1.8);scene.add(light);renderer.render(scene,camera);},
  combatMoveQA(sword,mode='ground',step=0){rites.cancel('qa');this.riteEquip(sword);rites.next=step;rites.lastEnd=rites.time;return rites.attack(sword,{damage:SWORDS[sword].damage,mode,target:riteTarget(),yaw:playerYaw});},
- combatStep(seconds,{fps=60,draw=true}={}){for(let i=0;i<Math.round(seconds*fps);i++){const dt=1/fps;mixer.update(dt);restoreRiteScales();updatePlayerMovement(dt,performance.now()+i*1000/fps);updateRites(dt);updateSquadCombat(dt,performance.now()+i*1000/fps);updatePlayerSwordMount();updateFirstPerson(dt,performance.now());if(!debugCameraOverride)updatePlayerCamera(dt);slashVFX.update(dt,camera,graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium');/* Mod 320: VFX de corte envelhece no mesmo relógio do passo */if(typeof vzUpdateLock==='function')vzUpdateLock();}if(!player.visible){if(swordMount)swordMount.visible=false;if(swordView)swordView.root.visible=false;}if(draw){if(draw==='cine'){applyVzTint();if(!vzCinematic()){renderer.render(scene,camera);}vzCamRestore();}else renderer.render(scene,camera);} /* Mod 320: draw:'cine' desenha como o laço real (tomadas da Extinção + tinta) */return{hero:this.riteState(),squad:this.squadState()};},
+ combatStep(seconds,{fps=60,draw=true}={}){for(let i=0;i<Math.round(seconds*fps);i++){const dt=1/fps;mixer.update(dt);restoreRiteScales();updatePlayerMovement(dt,performance.now()+i*1000/fps);updateRites(dt);updateSquadCombat(dt,performance.now()+i*1000/fps);updatePlayerSwordMount();updateFirstPerson(dt,performance.now());if(!debugCameraOverride)updatePlayerCamera(dt);slashVFX.update(dt,camera,graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium');/* Mod 320: VFX de corte envelhece no mesmo relógio do passo */updateJourney(dt,performance.now());if(typeof vzUpdateLock==='function')vzUpdateLock();}if(!player.visible){if(swordMount)swordMount.visible=false;if(swordView)swordView.root.visible=false;}if(draw){if(draw==='cine'){applyVzTint();if(!vzCinematic()){renderer.render(scene,camera);}vzCamRestore();}else renderer.render(scene,camera);} /* Mod 320: draw:'cine' desenha como o laço real (tomadas da Extinção + tinta) */return{hero:this.riteState(),squad:this.squadState()};},
  combatAction(kind){action(kind);return this.riteState();},
  /** QA: joystick/correr determinísticos para combatStep e um quadro desenhado depois de posicionar a câmera. */
  /** QA (Mod 316): programas de shader já compilados (nome + chave) — detecta compilação tardia durante o jogo. */
@@ -8567,7 +8524,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
   squadLeap(id){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;a.alert=0;a.cds.leap=0;s.startLeap(a,t);return this.combat315();},
   squadShield(id){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus;if(!a||!a.shield)return null;a.shield.readyAt=-1e9;a.shield.update(s.time);a.shield.activate(s.time);return this.combat315();},
   squadNative(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;a.alert=0;a.combo=null;s.startNative(a,t,move);return this.combat315();},
-  vzSky(){return squadRT?.vhazraelVFX?.throneSkyStats||null;},squadDash(id,side=1){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus;if(!a)return null;a.act=null;const c=Math.cos(a.yaw),n=Math.sin(a.yaw);s.begin(a,{type:'dodge',dur:a.T.dash.time,anim:'dash',dx:c*side,dz:-n*side,iframes:true,face:false});return this.squadState();},/* Mod 320: QA do rastro do dash */squadMove(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;s.startMelee(a,t,move);return this.squadState();},
+  vzSky(){return squadRT?.vhazraelVFX?.throneSkyStats||null;},journeyStep(step,sub=0){act1Advance(step,sub);gorgeGate.sync();return questStep;},tpCity(n){return journeyTeleport(n===1||n==='eldoria'?'eldoria':'cinzaria');},journeyStats(){return{...journeyWorld.stats(),fall:journeyFall.on,reached:[...journeyFall.reached],cp:[checkpointX,checkpointZ],deck:journeyDeck(player.position.x,player.position.z)};},squadDash(id,side=1){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus;if(!a)return null;a.act=null;const c=Math.cos(a.yaw),n=Math.sin(a.yaw);s.begin(a,{type:'dodge',dur:a.T.dash.time,anim:'dash',dx:c*side,dz:-n*side,iframes:true,face:false});return this.squadState();},/* Mod 320: QA do rastro do dash */squadMove(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;s.startMelee(a,t,move);return this.squadState();},
   squadCam(o,id){if(!o){debugCameraOverride=null;return null;}const s=squadSq();const a=s&&((id&&s.actor(id))||s.actors.find(x=>x.alive&&x.act&&x.act.type==='cast')||s.actors.find(x=>x.alive&&x.act)||s.alive[0]);if(!a)return null;const f=[Math.sin(a.yaw),Math.cos(a.yaw)],r=[Math.cos(a.yaw),-Math.sin(a.yaw)],P=(x,y,z)=>[a.x+r[0]*x+f[0]*z,a.y+y,a.z+r[1]*x+f[1]*z];this.fly(P(o[0],o[1],o[2]),P(o[3],o[4],o[5]));return a.id;},
   /** MOD 245 — QA do caminho real do Ato III: startPack com o rig/perfil do roteiro, em volta do herói (laboratório). */
   packQA(rig,profile,n=1,hp=170){const px=player.position.x,pz=player.position.z;startPack({rig,profile,hp,spots:Array.from({length:n},(_,i)=>({x:px+Math.sin(i*1.3)*9,z:pz-9+Math.cos(i*1.3)*2})),onDone:()=>{window.__packDone=(window.__packDone||0)+1;}});return this.squadState();},

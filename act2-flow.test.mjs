@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createTerrain } from './world3d-terrain.js';
 import * as A from './act2-flow.js';
-const { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, DISTRICT_CANAL, act2Presentation, afterVorgazhek, bossPhase } = A;
+const { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, act2Presentation, afterVorgazhek, bossPhase } = A;
 const SCENES = ['cityArrivalScene', 'banditScene', 'rivalScene', 'rivalDefeatScene', 'gateScene', 'gateDefeatScene', 'labScene', 'keyScene', 'goldScene', 'hallScene', 'hallDefeatScene', 'throneScene', 'minibossDefeatScene', 'vorgazhekIntroScene', 'vorgazhekDefeatScene', 'afterVorgazhekScene'];
 const all = () => SCENES.flatMap(n => A[n]());
 const text = () => all().filter(s => s.type === 'say').map(s => s.text).join(' \n ');
@@ -46,13 +46,10 @@ test('vitória paga uma vez; fúria na metade da vida', () => {
   assert.equal(bossPhase(ACT2.bossHp * .4, ACT2.bossHp), 2);
 });
 
-test('a cidade, a garganta e os pontos da missão são alcançáveis a pé', () => {
-  const t = createTerrain({ extraAreas: [DISTRICT, DISTRICT_SPOTS.volcanoApproach], passes: [{ points: DISTRICT_PASS, r: PASS_RADIUS }], channels: [{ points: DISTRICT_CANAL, width: 3.2, depth: 1.8, level: -.6 }] });
-  const spots = [DISTRICT_SPOTS.gate, DISTRICT_SPOTS.plaza, DISTRICT_SPOTS.ambush, DISTRICT_SPOTS.rival, DISTRICT_SPOTS.volcanoGate, ...DISTRICT_SPOTS.volcanoGuards, DISTRICT_SPOTS.note];
-  for (const p of spots) assert.ok(t.walkable(p.x, p.z), 'inalcançável: ' + p.x + ',' + p.z);
-  const path = [[-12, -44], ...DISTRICT_PASS, [DISTRICT_SPOTS.plaza.x, DISTRICT_SPOTS.plaza.z], [DISTRICT_SPOTS.volcanoGate.x, DISTRICT_SPOTS.volcanoGate.z]];
-  for (let i = 0; i < path.length - 1; i++) for (let k = 0; k <= 20; k++) {
-    const x = path[i][0] + (path[i + 1][0] - path[i][0]) * k / 20, z = path[i][1] + (path[i + 1][1] - path[i][1]) * k / 20;
-    assert.ok(t.walkable(x, z), 'trecho bloqueado em ' + x.toFixed(1) + ',' + z.toFixed(1));
-  }
+test('Mod 321 — a nova Cinzária, a garganta e a entrada do vulcão são alcançáveis a pé pela jornada', async () => {
+  const J = await import('./jornada3d.js');
+  for (const p of [DISTRICT_SPOTS.gate, DISTRICT_SPOTS.plaza, DISTRICT_SPOTS.volcanoGate, ...DISTRICT_SPOTS.volcanoGuards, DISTRICT_SPOTS.note]) assert.ok(J.inJourney(p.x, p.z) && !J.journeyBlocked(p.x, p.z, 99), 'inalcançável: ' + p.x + ',' + p.z);
+  const t = createTerrain({ passes: [{ points: DISTRICT_PASS, r: PASS_RADIUS }] });
+  for (const [x, z] of DISTRICT_PASS) assert.ok(t.walkable(x, z), 'garganta bloqueada em ' + x + ',' + z);
+  assert.equal(DISTRICT_SPOTS.volcanoGuards.length, 2, 'exatamente dois guardas');
 });

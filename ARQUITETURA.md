@@ -37,8 +37,10 @@ VHAZRAEL no fim. Modelos: `VilaKit.glb`, `MoradoresPose.glb`, `Enemy2-rig.glb` (
 
 ## Ato II (Mod 205)
 
-Roteiro do autor em `docs/roteiro/M3-ATO2.md`. Cenas em `act2-flow.js` (etapas 8–14, sub-etapas em `act1Sub`).
-Cidade Cinzária a oeste (`DISTRICT_SPOTS`); depois de VORGAZHEK ela vira ruína e abismo (`act2Abyss`, bloqueado).
+Roteiro do autor em `docs/roteiro/M3-ATO2.md` (histórico; a narrativa nova do Ato II será escrita depois). Cenas em `act2-flow.js`
+(etapas 8–14, sub-etapas em `act1Sub`). **Mod 321:** a Cidade 2 antiga deu lugar à JORNADA a oeste de Eldória — vale, serra, ponte do
+abismo, terras de cinza, a nova Cinzária e o vulcão (`jornada3d.js` regras, `jornada-world3d.js` visual; ver `docs/jornada/README.md`).
+Depois de VORGAZHEK a praça nova vira ruína e abismo (`act2Abyss`, bloqueado).
 O interior do vulcão é uma área abaixo do mundo (dimensão `vulcao`, tema `volcano`, colisão por `volcanoWalkable`,
 porta liberada pela chave) com laboratório, sala do ouro, salão, trono e o portal de VORGAZHEK. A visão da erupção
 mostra o mundo por alguns segundos no meio da luta (`visao-inicio`/`visao-fim`). Modelo novo: `Misteriosa-rig.glb`.

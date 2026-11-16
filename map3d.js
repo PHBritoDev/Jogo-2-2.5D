@@ -1,12 +1,17 @@
+import { JOURNEY_POIS } from './jornada3d.js';
 /**
  * MOD 186 — Mapa com névoa de guerra e abrigos de viagem rápida (regras puras, testadas em map3d.test.mjs).
  * O mapa só mostra o que o jogador já viu; abrigos precisam ser encontrados e registrados
  * explicitamente antes de aparecerem no menu de viagem.
  */
-export const MAP_BOUNDS = { x0: -215, z0: -290, size: 430 };
+/* Mod 321 — o mapa cobre a jornada a oeste (vale, serra, ponte, terras de cinza, Cinzária e o vulcão). A névoa antiga
+   (v3: 80×80 sobre 430 m) é convertida célula a célula para a grade nova (migrateLegacyFog), sem perder o que foi visto. */
+export const LEGACY_MAP_BOUNDS = Object.freeze({ x0: -215, z0: -290, size: 430, cells: 80 });
+export const MAP_BOUNDS = { x0: -1760, z0: -1090, size: 1980 };
 /** Chave de armazenamento da névoa: muda quando os limites do mapa mudam (Mod 195). */
-export const MAP_STORE_KEY = 'seven-sins-3d-map-v3';
-export const FOG_CELLS = 80;
+export const MAP_STORE_KEY = 'seven-sins-3d-map-v4';
+export const LEGACY_MAP_STORE_KEY = 'seven-sins-3d-map-v3';
+export const FOG_CELLS = 220;
 export const REVEAL_RADIUS = 24;
 
 export const MAP_POIS = [
@@ -20,9 +25,8 @@ export const MAP_POIS = [
   { id: 'ruina', name: 'Ruína Esquecida', x: -18.5, z: -52, kind: 'secret', secret: true },
   { id: 'portal', name: 'Portal de VHAZRAEL', x: 44, z: -119, kind: 'portal', revealRadius: 34 },
   { id: 'garganta', name: 'Garganta da Dívida', x: -72, z: -60, kind: 'danger' },
-  { id: 'distrito', name: 'Distrito da Ferrugem', x: -150, z: -62, kind: 'village', revealRadius: 26 },
-  { id: 'mina', name: 'Mina Velha', x: -184, z: -38, kind: 'danger' },
-  { id: 'canal', name: 'Canal de Drenagem', x: -158, z: -86, kind: 'water' },
+  // Mod 321 — a jornada substitui o antigo Distrito/Mina/Canal (ver POI_ALIASES)
+  ...JOURNEY_POIS,
   { id: 'incenso', name: 'Passagem do Incenso', x: 96, z: -32, kind: 'danger' },
   { id: 'altar', name: 'Invernália', x: 150, z: -40, kind: 'village', revealRadius: 26 }, // MOD 206 — a cidade de neve do Ato III
   { id: 'serra', name: 'Torre de VÉRAXION', x: -36, z: -238, kind: 'village', revealRadius: 26 }, // MOD 207
@@ -37,9 +41,15 @@ export const MAP_POIS = [
 export const WAYSTONES = [
   { id: 'abrigo-vila', name: 'Abrigo da Vila', x: -4.6, z: -36.5 },
   { id: 'abrigo-mata', name: 'Abrigo da Mata Funda', x: 6.5, z: -79 },
-  { id: 'abrigo-caverna', name: 'Abrigo da Fronteira', x: -40, z: -219 }
+  { id: 'abrigo-caverna', name: 'Abrigo da Fronteira', x: -40, z: -219 },
+  // Mod 321 — abrigos da jornada: vale, antes da ponte e na nova cidade
+  { id: 'abrigo-vale', name: 'Abrigo do Vale', x: -236, z: -46 },
+  { id: 'abrigo-serra', name: 'Abrigo da Serra', x: -790, z: -54 },
+  { id: 'abrigo-cinzaria', name: 'Abrigo de Cinzária', x: -1228, z: -74 }
 ];
 export const WAYSTONE_ALIASES = Object.freeze({ 'abrigo-sope': 'abrigo-mata' });
+/** Mod 321 — POIs da Cidade 2 antiga: quem já tinha o Distrito descoberto ganha Cinzária; Mina/Canal deixam de existir. */
+export const POI_ALIASES = Object.freeze({ distrito: 'cinzaria' });
 
 export function worldToCell(x, z) {
   const cx = Math.floor((x - MAP_BOUNDS.x0) / MAP_BOUNDS.size * FOG_CELLS);
@@ -58,7 +68,7 @@ export function createMapState(saved) {
       } catch (_) {}
     }
     // Saves antigos/corrompidos podem conter objetos em vez de listas; ignore apenas o campo inválido.
-    for (const id of Array.isArray(saved.pois) ? saved.pois : []) if (MAP_POIS.some(p => p.id === id)) pois.add(id);
+    for (const raw of Array.isArray(saved.pois) ? saved.pois : []) { const id = POI_ALIASES[raw] || raw; if (MAP_POIS.some(p => p.id === id)) pois.add(id); }
     for (const raw of Array.isArray(saved.waystones) ? saved.waystones : []) { const id = WAYSTONE_ALIASES[raw] || raw; if (WAYSTONES.some(w => w.id === id)) waystones.add(id); }
   }
   return { cells, pois, waystones };
@@ -111,4 +121,15 @@ export function canFastTravel({ inCombat, inDialogue, inCinematic, escorting, fa
   if (escorting) return { ok: false, reason: 'Não abandone as crianças: leve-as a pé até a vila.' };
   if (falling) return { ok: false, reason: 'Pise em chão firme antes de viajar.' };
   return { ok: true };
+}
+
+/** Mod 321 — converte a névoa salva na grade antiga (v3) para a grade atual: cada célula vista continua vista. */
+export function migrateLegacyFog(saved, legacy = LEGACY_MAP_BOUNDS) {
+  if (!saved || typeof saved.cells !== 'string') return saved || null;
+  let bin = ''; try { bin = typeof atob === 'function' ? atob(saved.cells) : Buffer.from(saved.cells, 'base64').toString('binary'); } catch (_) { return { pois: saved.pois, waystones: saved.waystones }; }
+  const out = new Uint8Array(FOG_CELLS * FOG_CELLS), n = legacy.cells, cs = legacy.size / n, ns = MAP_BOUNDS.size / FOG_CELLS;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const k = j * n + i; if (!((bin.charCodeAt(k >> 3) >> (k & 7)) & 1)) continue;
+    const x0 = legacy.x0 + i * cs, z0 = legacy.z0 + j * cs; for (let z = z0; z < z0 + cs; z += ns * .5) for (let x = x0; x < x0 + cs; x += ns * .5) { const [a, b] = worldToCell(x, z); if (a >= 0 && b >= 0 && a < FOG_CELLS && b < FOG_CELLS) out[b * FOG_CELLS + a] = 1; } }
+  const state = { cells: out, pois: new Set(), waystones: new Set() };
+  return Object.assign(serializeMapState(state), { pois: saved.pois, waystones: saved.waystones });
 }
