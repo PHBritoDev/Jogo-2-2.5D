@@ -116,3 +116,19 @@ test('enabling shadows on a budgeted light restores its layer in the next update
   assert.equal(light.layers.mask, 1 << 31);
   assert.equal(budget.stats().sources, 1);
 });
+
+
+test('explicit scan releases a source that enabled shadows without waiting for update', () => {
+  const world = new Object3D(), budget = createLightBudget(T, world, { slots: 1, rescanEvery: 45 });
+  const light = new PointLight();
+  world.add(light);
+  assert.equal(budget.stats().sources, 1);
+  light.castShadow = true;
+  budget.scan();
+  assert.equal(light.layers.mask, 5);
+  assert.equal(budget.stats().sources, 0);
+  light.castShadow = false;
+  budget.scan();
+  assert.equal(light.layers.mask, 1 << 31);
+  assert.equal(budget.stats().sources, 1);
+});
