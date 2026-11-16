@@ -365,6 +365,8 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   for (let i = 0; i < total; i++) {
     const x = span.x0 + rnd() * (span.x1 - span.x0), z = span.z0 + rnd() * (span.z1 - span.z0);
     const d = terrain.boundaryDistance(x, z);
+    // Invalid boundary samples must not classify a cell as a walkable forest slope.
+    if (!Number.isFinite(d)) continue;
     const density = fbm(x * .028 + 31, z * .028 - 17, 3, 61);
     if (d < -11) {
       // Vale: bosques em manchas, com clareiras naturais.
