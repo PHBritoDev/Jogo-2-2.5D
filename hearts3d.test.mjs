@@ -198,3 +198,17 @@ test('estado runtime com coração ausente não vira zero por coerção implíci
   assert.equal(tickHearts({ hearts: '0', since: now }, now).hearts, 0);
   assert.equal(tickHearts({ hearts: '4', since: now }, now).hearts, 4);
 });
+
+
+test('HUD de regeneração respeita corações brutos inválidos e saves legados', () => {
+  const now = 1000000;
+  for (const hearts of [NaN, Infinity, -Infinity, null, '', '  ', false, [], {}, undefined]) {
+    assert.equal(msToNextHeart({ hearts, since: now }, now), 0,
+      'estado ausente/corrompido é restaurado como cheio, sem timer fictício');
+  }
+  assert.equal(msToNextHeart({ hearts: '10', since: now }, now), 0,
+    'save legado com dez corações já está cheio');
+  assert.equal(msToNextHeart({ hearts: '4', since: now - 5000 }, now), HEARTS.regenMs - 5000);
+  assert.equal(msToNextHeart({ hearts: 0, since: now }, now), HEARTS.regenMs);
+  assert.equal(msToNextHeart(null, now), 0);
+});
