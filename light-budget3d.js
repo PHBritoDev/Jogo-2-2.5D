@@ -36,8 +36,8 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   const Obj = T.Object3D && T.Object3D.prototype, rawAdd = Obj && Obj.add;
   // Restaurar imediatamente as layers de fontes movidas para outra cena.
   // Esperar pelo scan periódico deixava a luz invisível no HUD/preview por até 45 frames.
-  function release(o) {
-    if (!sources.has(o) || attachedToScene(o)) return;
+  function release(o, force = false) {
+    if (!sources.has(o) || (!force && attachedToScene(o))) return;
     sources.delete(o); sourceScore.delete(o);
     if (originalLayers.has(o) && o.layers) o.layers.mask = originalLayers.get(o);
     originalLayers.delete(o);
@@ -84,6 +84,9 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   }
   function scan() {
     scene.traverse(adopt);
+    // Luzes que passaram a projetar sombras deixam o orçamento: a camada
+    // original precisa voltar, ou a sombra e a luz ficam invisíveis.
+    for (const o of sources) if (o.castShadow) release(o, true);
     // fontes removidas da cena saem do conjunto (sem crescer para sempre com efeitos descartados)
     for (const o of sources) if (!attachedToScene(o)) {
       release(o);
