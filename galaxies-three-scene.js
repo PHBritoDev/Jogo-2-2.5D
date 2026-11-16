@@ -1,6 +1,6 @@
 /**
- * MENU VIVO THREE.JS — 7 Pecados. 100% geometria + shaders + texturas
- * procedurais geradas no navegador. Não utiliza arquivos de imagem.
+ * MENU VIVO THREE.JS — 7 Pecados. Geometria, shaders e superfícies procedurais,
+ * com fotogrametria CC0 e iluminação HDR locais (fontes em assets/ui/menu/polyhaven).
  * O menu HTML continua responsável pelas ações, progressão e acessibilidade.
  * WebGL é opcional; se falhar, SVG existente permanece disponível.
  */

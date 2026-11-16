@@ -134,7 +134,7 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   });
   renderDetail();
   document.body.appendChild(root);
-  // Cenário e planetas vivos, gerados integralmente por código Three.js.
+  // Cenário e planetas Three.js vivos com geometria procedural e assets locais.
   // SVG autoral continua disponível apenas em caso de WebGL indisponível.
   // Importação sob demanda: testes Node de progresso não precisam de WebGL nem 'three'.
   import('./galaxies-three-scene.js').then(m=>{if(root.isConnected && !closed)sceneHandle=m.mountThreeGalaxyScene(root);})

@@ -1,0 +1,58 @@
+{
+  "state": {
+    "x": 0,
+    "y": 0,
+    "z": 4,
+    "walkable": true,
+    "edge": -27.500897004106672,
+    "calls": 208,
+    "triangles": 701983,
+    "terrain": {
+      "vertices": 77724,
+      "triangles": 151328,
+      "patchTriangles": 13916,
+      "extent": [
+        -662.5130391947365,
+        658.5130391947365
+      ]
+    },
+    "trees": 0,
+    "fog": "c7d2cb",
+    "fogFar": 328.17706246861883,
+    "night": 0,
+    "quest": 1,
+    "coins": 47,
+    "dialogueOpen": false,
+    "namePromptOpen": false,
+    "awakeningActive": false,
+    "hp": 100,
+    "enemy": {
+      "hp": 100,
+      "visible": false,
+      "alive": true,
+      "x": 0,
+      "z": -3.2,
+      "y": 0
+    },
+    "objective": "Siga a trilha até a pequena vila e fale com um vendedor",
+    "audio": "running",
+    "dim": {
+      "vs": false,
+      "battle": false,
+      "active": false,
+      "key": null,
+      "sent": false,
+      "pull": false,
+      "pt": null,
+      "paused": false,
+      "gate": false,
+      "voidMode": false,
+      "hour": 9,
+      "enemyHP": 100,
+      "enemyMaxHP": 100,
+      "hp": 100
+    }
+  },
+  "errors": [],
+  "passed": true
+}

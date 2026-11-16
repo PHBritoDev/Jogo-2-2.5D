@@ -4,6 +4,13 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
 const output=path.resolve(process.env.GALAXY_QA_OUTPUT||'visual-lab-results/galaxy-menu-three');
 const base=process.env.GALAXY_QA_BASE_URL||'http://127.0.0.1:4173';
 fs.mkdirSync(output,{recursive:true});
+// Capture the last genuinely rendered frame without racing the software GPU's next frame.
+// This pauses only the menu through its existing visibility handler; it does not redraw or edit pixels.
+async function capture(page,file){
+ await page.evaluate(()=>{window.__captureHidden=Object.getOwnPropertyDescriptor(document,'hidden');Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+ try{await page.screenshot({path:file,animations:'disabled',timeout:45000});}
+ finally{await page.evaluate(()=>{const saved=window.__captureHidden;if(saved)Object.defineProperty(document,'hidden',saved);else delete document.hidden;delete window.__captureHidden;document.dispatchEvent(new Event('visibilitychange'));});}
+}
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined,args:['--no-sandbox','--disable-dev-shm-usage','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const reports=[];
@@ -13,7 +20,7 @@ fs.mkdirSync(output,{recursive:true});
    const page=await context.newPage(),errors=[],bad=[];
    page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.location().url?.endsWith('favicon.ico')){errors.push(m.text());console.error(m.text());}});page.on('response',r=>{if(r.status()>=400&&!r.url().endsWith('favicon.ico'))bad.push([r.status(),r.url()]);});
    const start=Date.now();await page.goto(base+'/tools/visual-lab/galaxy-menu-preview.html');
-   await page.waitForFunction(()=>document.querySelector('#galaxy-screen')?.dataset.gxModelsReady==='true',{timeout:90000});
+   await page.waitForFunction(()=>document.querySelector('#galaxy-screen')?.dataset.gxModelsReady==='true',null,{timeout:90000});
    const loadMs=Date.now()-start;
    const readyAt=await page.evaluate(()=>performance.now());
    await page.waitForFunction(t=>Number(document.querySelector('#galaxy-screen')?.dataset.gxTelemetryAt)>t,readyAt,{timeout:15000});
@@ -21,7 +28,7 @@ fs.mkdirSync(output,{recursive:true});
    assert.equal(info.canvasCount,1);assert.equal(info.glError,0);assert.ok(Object.values(info.models).every(Boolean),'all models loaded');
    assert.equal(await page.locator('.gx-nav button').count(),5);assert.equal(await page.locator('.gx-nav button:disabled').count(),3);
    // One before/after image per required size; narrow is functional QA only.
-   if(!view.reduced)await page.screenshot({path:path.join(output,view.name+'.png')});
+   if(!view.reduced)await capture(page,path.join(output,view.name+'.png'));
    const planets=[];
    for(let id=1;id<=7;id++){
     const orb=page.locator(`.gx-orb[data-id="${id}"]`);
@@ -66,7 +73,7 @@ fs.mkdirSync(output,{recursive:true});
   assert.equal(await page.locator('#galaxy-screen.gx-three-on').count(),0);
   await page.locator('.gx-orb[data-id="2"]').click();assert.ok(await page.locator('.gx-access').isVisible());
   await page.locator('.gx-orb[data-id="1"]').click();
-  await page.screenshot({path:path.join(output,'fallback-webgl-unavailable.png')});
+  await capture(page,path.join(output,'fallback-webgl-unavailable.png'));
   await page.locator('.gx-enter').click();await page.waitForFunction(()=>window.menuQA.opened===1);
   await fallback.close();reports.push({view:{name:'WebGL unavailable'},fallback:true,entered:true});
  }finally{await browser.close();}

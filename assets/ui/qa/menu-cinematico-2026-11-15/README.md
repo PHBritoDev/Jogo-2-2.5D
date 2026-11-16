@@ -22,3 +22,9 @@ Tempo observado até modelos carregados: desktop 11.423 → 7.159 ms; móvel 5.9
 Problemas encontrados e corrigidos: seleção anterior mantinha polling de prontidão; fechamento podia duplicar entrada; ator angelical usava corrida; o contexto restaurado expôs descarte de um objeto que não era material; altura 375 gerava literal inteiro incompatível no shader; título colidia com a torre/asas nas primeiras composições.
 
 **Revisão artística pendente:** composição e interação foram implementadas, mas malhas, materiais e iluminação permanecem estilizados. A qualidade fotorealista da referência não foi igualada nem demonstrada. Não interpretar testes verdes como aprovação visual ou autorização de merge. A referência veio da conversa, não do antigo JPG do repositório; a comparação automática com aquele JPG foi retirada por medir a arte errada.
+
+## Verificação no CI de 16/11
+
+O Chromium 156 do GitHub expôs um timeout ao capturar o menu em animação contínua por SwiftShader. O capturador agora suspende o menu pelo seu handler de visibilidade, fotografa o último frame realmente renderizado e retoma a animação em `finally`; não altera pixels ou geometria. Passou localmente com Chromium 154 e com a mesma versão do CI, Chromium 156.0.8078.4: [navegação/captura](chromium156-report.json), [entrada no mundo](chromium156-world-report.json).
+
+O laboratório geral encontra **dois testes já falhando na main `f5c6de45bbcc8efbcf8dd34b768fc9259566aae8`**: `vorgazhek-eclipse-sword.test.mjs` exige `testSwordEclipse=1` no HTML; `zarkhael-blackflame.test.mjs` exige `testLuaNegra=1` e `testHidra=1`. A main substituiu esse laboratório por navegação via `data-dim`. Reprodução isolada da main: 13 testes, 11 passaram, os mesmos 2 falharam ([log](main-ci-baseline.txt)). Esta PR não modifica esses testes nem o laboratório de combate; não reintroduz controles removidos por outro trabalho.
