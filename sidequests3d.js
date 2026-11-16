@@ -46,11 +46,19 @@ export const SIDE_QUESTS = [
   }
 ];
 
+// Saves antigos ou incompletos não podem criar contadores infinitos nem saltar objetivos.
+function safeSideCount(value, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(max, Math.max(0, Math.floor(n)));
+}
+
 export function createSideState(saved) {
   const out = {};
   for (const q of SIDE_QUESTS) {
     const s = saved && saved[q.id];
-    out[q.id] = { state: ['active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked', progress: Math.max(0, Math.floor(Number(s && s.progress) || 0)) };
+    const state = ['active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked';
+    out[q.id] = { state, progress: state === 'locked' ? 0 : safeSideCount(s && s.progress, q.goal.count) };
   }
   return out;
 }
@@ -59,9 +67,9 @@ export function createSideState(saved) {
 export function refreshSide(state, ctx) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
-    if (s.state === 'locked' && ctx.questStep >= q.minStep) s.state = 'available';
-    if (q.goal.type === 'waystones' && s.state === 'active' && Number.isFinite(ctx.waystones)) {
-      s.progress = Math.min(q.goal.count, Math.max(s.progress, Math.max(0, Math.floor(ctx.waystones))));
+    if (s.state === 'locked' && Number.isFinite(Number(ctx?.questStep)) && Number(ctx.questStep) >= q.minStep) s.state = 'available';
+    if (q.goal.type === 'waystones' && s.state === 'active' && Number.isFinite(ctx?.waystones)) {
+      s.progress = Math.max(s.progress, safeSideCount(ctx.waystones, q.goal.count));
     }
     if (s.state === 'active' && s.progress >= q.goal.count) s.state = 'ready';
   }
