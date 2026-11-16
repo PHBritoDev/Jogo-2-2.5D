@@ -6,7 +6,7 @@ const source=readFileSync(new URL('../vfx-flow3d.js',import.meta.url),'utf8');
 
 test('energy body rejects malformed positions before drawing',()=>{
  assert.match(source,/const validPosition=position===undefined\|\|\(position!==null&&typeof position==='object'&&Number\.isFinite\(position\.x\)&&Number\.isFinite\(position\.y\)&&Number\.isFinite\(position\.z\)\)/);
- assert.match(source,/mesh\.visible=validPosition&&Number\.isFinite\(alpha\)/);
+ assert.match(source,/mesh\.visible=validPosition&&validDirection&&Number\.isFinite\(alpha\)/);
  assert.match(source,/if\(position&&validPosition\)mesh\.position\.set\(position\.x,position\.y,position\.z\)/);
 });
 
