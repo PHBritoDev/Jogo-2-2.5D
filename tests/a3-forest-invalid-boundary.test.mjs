@@ -81,3 +81,20 @@ test('forest sampling budget is finite, bounded and deterministic for mobile', (
     scatterForest(terrain, { seed: 9137, attempts: 2600, lowSpec: true }),
   );
 });
+
+
+test('malformed primary forest extents do not create reversed or unsafe spans', () => {
+  const options = { seed: 9137, attempts: 1500 };
+  for (const area of [
+    null,
+    { ...terrain.area, hx: -1 },
+    { ...terrain.area, hz: -1 },
+    { ...terrain.area, hx: Infinity },
+    { ...terrain.area, hz: NaN },
+    { ...terrain.area, cx: 3e38, hx: 3e38 },
+    { ...terrain.area, cz: -3e38, hz: 3e38 },
+  ]) {
+    assert.deepEqual(scatterForest({ ...terrain, area }, options), []);
+  }
+  assert.ok(scatterForest(terrain, options).length > 0, 'valid primary region still supports forest');
+});
