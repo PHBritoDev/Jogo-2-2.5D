@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { impactTouchesGround, impactGroundHeight, impactRecordValid, impactDirectionValid } from '../vfx-impact3d.js';
+import { impactTouchesGround, impactGroundHeight, impactRecordValid, impactDirectionValid, impactPoolCapacity } from '../vfx-impact3d.js';
 
 test('ground contact accepts nearby finite impact heights', () => {
   assert.equal(impactTouchesGround(0, 0), true);
@@ -62,4 +62,12 @@ test('impact directions reject degenerate and nonfinite vectors without blocking
     assert.equal(impactDirectionValid(bad), false);
   }
   assert.equal(impactDirectionValid({ x: 0, y: 1, z: 0 }), true);
+});
+
+
+test('impact pool capacity remains bounded and usable after malformed config', () => {
+  for (const bad of [0, -1, 1.5, NaN, Infinity, -Infinity, null, undefined, '6', 65, 1e12]) {
+    assert.equal(impactPoolCapacity(bad), 6, `bad capacity ${String(bad)}`);
+  }
+  for (const good of [1, 2, 6, 64]) assert.equal(impactPoolCapacity(good), good);
 });
