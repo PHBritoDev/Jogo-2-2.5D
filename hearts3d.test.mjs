@@ -163,3 +163,16 @@ test('cronômetro de corações não mostra NaN, Infinity nem valores negativos'
   assert.equal(formatTimer(0), '0:00');
   assert.equal(formatTimer(1001), '0:02', 'segundos parciais arredondam para cima');
 });
+
+test('estado de corações corrompido em memória não contamina HUD ou regeneração', () => {
+  const now = 1000000;
+  for (const hearts of [NaN, Infinity, -Infinity, undefined, -3, 11, 2.9]) {
+    const state = tickHearts({ hearts, since: now }, now);
+    assert.ok(Number.isInteger(state.hearts) && state.hearts >= 0 && state.hearts <= HEARTS.max);
+    assert.ok(Number.isFinite(msToNextHeart(state, now)));
+    assert.ok(Number.isInteger(loseHeart(state, now).hearts));
+  }
+  assert.equal(tickHearts({ hearts: 2.9, since: now }, now).hearts, 2);
+  assert.equal(tickHearts({ hearts: -3, since: now }, now).hearts, 0);
+  assert.equal(tickHearts({ hearts: NaN, since: now }, now).hearts, HEARTS.max);
+});
