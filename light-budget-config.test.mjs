@@ -13,7 +13,7 @@ class PointLight extends Object3D {
     this.isPointLight = true;
     this.userData = {};
     this.castShadow = false;
-    this.layers = { set() {} };
+    this.layers = { value: 0, set(value) { this.value = value; } };
     this.position = { setFromMatrixPosition() {} };
     this.color = { copy() {} };
     this.intensity = 0;
@@ -51,4 +51,26 @@ test('invalid slot configuration remains bounded during repeated updates', () =>
   assert.equal(budget.stats().slots, 4);
   assert.equal(scene.children.length, 4);
   assert.equal(budget.stats().active.length, 0);
+});
+
+
+test('invalid hidden layer never leaves a source on the default camera layer', () => {
+  for (const hiddenLayer of [0, -1, 32, 1.5, NaN, Infinity, '31', null]) {
+    const scene = new Object3D();
+    const budget = createLightBudget(THREE, scene, { hiddenLayer });
+    const source = new PointLight();
+    source.userData.budgetSlot = false;
+    scene.add(source);
+    budget.scan();
+    assert.equal(source.layers.value, 31, String(hiddenLayer));
+  }
+});
+
+test('valid nondefault hidden layer remains configurable', () => {
+  const scene = new Object3D();
+  const budget = createLightBudget(THREE, scene, { hiddenLayer: 30 });
+  const source = new PointLight();
+  scene.add(source);
+  budget.scan();
+  assert.equal(source.layers.value, 30);
 });
