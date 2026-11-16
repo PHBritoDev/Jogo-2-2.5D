@@ -96,7 +96,8 @@ export function progressionFields(raw, questStep) {
   }
   const stats = {};
   for (const k of STAT_KEYS) stats[k] = clampInt(r.stats && r.stats[k], 0, Number.MAX_SAFE_INTEGER, 0);
-  const list = v => (Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 64) : []);
+  // IDs de conquistas e bestiário representam registros únicos; saves antigos podem conter duplicatas.
+  const list = v => (Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string'))].slice(0, 64) : []);
   return {
     xp: clampInt(r.xp, 0, Number.MAX_SAFE_INTEGER, 0),
     owned: [...new Set(owned)],

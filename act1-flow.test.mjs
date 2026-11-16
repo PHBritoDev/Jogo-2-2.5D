@@ -162,3 +162,16 @@ test('save dos atos finais restaura cada pista uma vez, descartando ids inválid
   assert.deepEqual(migrateProgress({ ...input, lateFound: null }).lateFound, []);
   assert.deepEqual(input.lateFound.slice(0, 5), [0, 2, 2, 7, 0]);
 });
+
+test('restauração de bestiário mantém IDs únicos sem alterar o save nem recompensar novamente', () => {
+  const saved = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 8,
+    bestiary: ['captor', 'captor', 'warden', 'warden', 'vhazrael'],
+    bestiaryRewarded: ['captor', 'captor', 'warden'],
+    achievementsClaimed: ['first_win', 'first_win'] };
+  const restored = migrateProgress(saved);
+  assert.deepEqual(restored.bestiary, ['captor', 'warden', 'vhazrael']);
+  assert.deepEqual(restored.bestiaryRewarded, ['captor', 'warden']);
+  assert.deepEqual(restored.achievementsClaimed, ['first_win']);
+  assert.equal(saved.bestiary.length, 5);
+  assert.deepEqual(migrateProgress(restored).bestiaryRewarded, ['captor', 'warden']);
+});
