@@ -35,3 +35,19 @@ test('valid tinted optional regions still change colors and stay finite', () => 
   assert.ok(tinted.every(Number.isFinite));
   assert.deepEqual(palette([null, region, { cx: NaN }]), tinted);
 });
+
+test('malformed tint palettes and strengths cannot poison GPU vertex colors', () => {
+  const region = { cx: 0, cz: 0, hx: 12, hz: 12 };
+  const fallback = palette([region]);
+  for (const tint of [[], [null, null], [[NaN, 0, 0], [1, 0, 0]],
+    [[Infinity, 0, 0], [0, 0, 0]], [[2, 0, 0], [0, 0, 0]],
+    [[0, 0], [0, 0, 0]], 'invalid']) {
+    assert.deepEqual(palette([{ ...region, tint }]), fallback);
+  }
+  for (const tintStrength of [NaN, Infinity, -1, 2, 'invalid']) {
+    assert.deepEqual(palette([{ ...region, tintStrength }]), fallback);
+  }
+  const valid = palette([{ ...region, tint: [[.2, .3, .4], [.4, .3, .2]], tintStrength: .5 }]);
+  assert.ok(valid.every(Number.isFinite));
+  assert.notDeepEqual(valid, fallback);
+});
