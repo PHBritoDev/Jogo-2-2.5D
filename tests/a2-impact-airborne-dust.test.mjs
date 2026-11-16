@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { impactTouchesGround, impactGroundHeight, impactRecordValid, impactDirectionValid, impactPoolCapacity } from '../vfx-impact3d.js';
+import { impactTouchesGround, impactGroundHeight, impactRecordValid, impactDirectionValid, impactPoolCapacity, impactHasStableId } from '../vfx-impact3d.js';
 
 test('ground contact accepts nearby finite impact heights', () => {
   assert.equal(impactTouchesGround(0, 0), true);
@@ -70,4 +70,28 @@ test('impact pool capacity remains bounded and usable after malformed config', (
     assert.equal(impactPoolCapacity(bad), 6, `bad capacity ${String(bad)}`);
   }
   for (const good of [1, 2, 6, 64]) assert.equal(impactPoolCapacity(good), good);
+});
+
+
+test('anonymous impact events remain independent while stable IDs deduplicate', () => {
+  for (const anonymous of [undefined, null, '', NaN, Infinity, {}, []]) {
+    assert.equal(impactHasStableId(anonymous), false);
+  }
+  for (const stable of ['hit-1', 0, 12, -3]) {
+    assert.equal(impactHasStableId(stable), true);
+  }
+  // Mirrors the production guard: only explicit stable IDs enter the dedupe set.
+  const seen = new Set();
+  const accept = id => {
+    if (!impactHasStableId(id)) return true;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  };
+  assert.equal(accept(undefined), true);
+  assert.equal(accept(undefined), true);
+  assert.equal(accept('hit-1'), true);
+  assert.equal(accept('hit-1'), false);
+  assert.equal(accept(0), true);
+  assert.equal(accept(0), false);
 });
