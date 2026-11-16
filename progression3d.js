@@ -19,7 +19,7 @@ export function levelFromXp(xp) {
 export function levelProgress(xp) {
   const value = safeXp(xp);
   const lvl = levelFromXp(value), cur = LEVELS[lvl - 1], next = LEVELS[lvl];
-  return { level: lvl, into: value - cur, need: next === undefined ? 0 : next - cur, max: next === undefined };
+  return { level: lvl, into: next === undefined ? 0 : value - cur, need: next === undefined ? 0 : next - cur, max: next === undefined };
 }
 /** Bônus por nível: vida e mana máximas crescem pouco, para o combate não ficar trivial. */
 /** Mod 320 — vida máxima do herói ×5 (pedido do criador para a luta longa com o VHAZRAEL). Só a vida máxima/base:
