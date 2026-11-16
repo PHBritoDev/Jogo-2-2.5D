@@ -183,3 +183,15 @@ test('HUD do Ato I não anuncia conclusão com etapa corrompida', () => {
   assert.deepEqual(questPresentation(8, 0), questPresentation(12, 0));
   assert.equal(questPresentation('3', 0).objective, questPresentation(3, 0).objective);
 });
+
+
+test('HUD narrativo rejeita booleanos, arrays e objetos em checkpoints sem converter para etapas futuras', () => {
+  const initial = questPresentation(0, 0);
+  for (const bad of [true, false, [], [8], {}, { valueOf: () => 8 }, null, ' ']) {
+    assert.deepEqual(questPresentation(bad, 0), initial);
+    assert.deepEqual(questPresentation(1, bad), questPresentation(1, 0));
+    assert.deepEqual(questPresentation(3, bad), questPresentation(3, 0));
+  }
+  assert.deepEqual(questPresentation('8', 0), questPresentation(8, 0));
+  assert.deepEqual(questPresentation(1, '1'), questPresentation(1, 1));
+});
