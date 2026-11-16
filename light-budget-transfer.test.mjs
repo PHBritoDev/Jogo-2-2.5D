@@ -98,3 +98,21 @@ test('removing a nested light still attached to the budget scene does not releas
   assert.equal(light.layers.mask, 1 << 31);
   assert.equal(budget.stats().sources, 1);
 });
+
+
+test('enabling shadows on a budgeted light restores its layer in the next update', () => {
+  const world = new Object3D(), budget = createLightBudget(T, world, { slots: 1, rescanEvery: 45 });
+  const light = new PointLight();
+  world.add(light);
+  assert.equal(light.layers.mask, 1 << 31);
+  light.castShadow = true;
+  const camera = { getWorldPosition(out) { out.x = 0; out.y = 0; out.z = 0; } };
+  budget.update(camera);
+  assert.equal(light.layers.mask, 5);
+  assert.equal(budget.stats().sources, 0);
+  // When shadows are disabled, the normal periodic scan can adopt it again.
+  light.castShadow = false;
+  budget.scan();
+  assert.equal(light.layers.mask, 1 << 31);
+  assert.equal(budget.stats().sources, 1);
+});
