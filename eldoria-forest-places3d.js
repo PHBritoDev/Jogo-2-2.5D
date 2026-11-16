@@ -66,7 +66,30 @@ export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = fal
 
   // tronco caído do remanso (banco natural)
   const logPlan = planRemansoLog(ground, { x: rem.x - 1, z: rem.z + .6 });
-  const log = new THREE.Mesh(new THREE.CylinderGeometry(.32, .38, logPlan.length, 10, 1), new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 }));
+  // Tronco antigo com silhueta e casca irregulares, sem textura externa ou draw call adicional.
+  // As extremidades permanecem no mesmo eixo calculado pelo relevo.
+  const bark = new THREE.CylinderGeometry(.32, .38, logPlan.length, 12, 8);
+  const barkPos = bark.attributes.position;
+  const barkColors = new Float32Array(barkPos.count * 3);
+  for (let i = 0; i < barkPos.count; i++) {
+    const x = barkPos.getX(i), y = barkPos.getY(i), z = barkPos.getZ(i);
+    const angle = Math.atan2(z, x);
+    const along = y / logPlan.length;
+    const ridge = Math.sin(angle * 7 + along * 8) * .022 + Math.sin(angle * 13 - along * 19) * .009;
+    const taper = 1 + .035 * Math.sin(along * 11 + 1.2);
+    const radius = Math.hypot(x, z);
+    if (radius > .01) {
+      const k = taper + ridge / radius;
+      barkPos.setXYZ(i, x * k, y, z * k);
+    }
+    const shade = .78 + .16 * Math.sin(angle * 9 + along * 15) + .07 * Math.sin(along * 37);
+    barkColors[i * 3] = .35 * shade;
+    barkColors[i * 3 + 1] = .24 * shade;
+    barkColors[i * 3 + 2] = .15 * shade;
+  }
+  bark.setAttribute('color', new THREE.BufferAttribute(barkColors, 3));
+  bark.computeVertexNormals();
+  const log = new THREE.Mesh(bark, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
   const logAxis = new THREE.Vector3(logPlan.b.x - logPlan.a.x, logPlan.b.y - logPlan.a.y, logPlan.b.z - logPlan.a.z).normalize();
   log.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), logAxis);
   log.position.set(logPlan.center.x, logPlan.center.y, logPlan.center.z);
