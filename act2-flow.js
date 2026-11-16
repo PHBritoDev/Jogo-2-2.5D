@@ -61,7 +61,7 @@ export function act2Presentation(step, sub = 0) {
     9: ['ATO II · A CIDADE DO VULCÃO', 'Atravesse a Garganta, a oeste, até a cidade do vulcão'],
     10: sub >= 1 ? ['ATO II · O DESCONHECIDO', 'Alguém na praça diz saber onde está o Segundo Bispo'] : ['ATO II · ' + CITY_NAME.toUpperCase(), 'Atravesse a cidade e procure pistas do Segundo Bispo'],
     11: ['ATO II · A ENTRADA DO VULCÃO', 'Dois Demônios guardam a entrada do vulcão, a oeste da cidade'],
-    12: vol[Math.max(0, Math.min(4, sub))],
+    12: vol[Number.isFinite(Number(sub)) ? Math.max(0, Math.min(4, Math.trunc(Number(sub)))) : 0],
     13: ['ATO II · VORGAZHEK', 'Entre no portal do Segundo Bispo'],
     14: ['ATO II · CONCLUÍDO', 'Vá à cidade de neve']
   };
