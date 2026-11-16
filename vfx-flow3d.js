@@ -105,7 +105,7 @@ export function energyBody(T,parent,preset,options={}){
   // FLOW_NOISE weights are .72 and .28*detail; at low quality detail=.65.
   // Above that ceiling every fragment is discarded, so avoid a wasted draw.
   const dissolveCeiling=quality===0?.72+.28*.65:1;
-  const validPosition=!position||(Number.isFinite(position.x)&&Number.isFinite(position.y)&&Number.isFinite(position.z));
+  const validPosition=position===undefined||(position!==null&&typeof position==='object'&&Number.isFinite(position.x)&&Number.isFinite(position.y)&&Number.isFinite(position.z));
   // A malformed impact must not poison the object's transform or render a stale effect.
   mesh.visible=validPosition&&Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;
   if(position&&validPosition)mesh.position.set(position.x,position.y,position.z);
