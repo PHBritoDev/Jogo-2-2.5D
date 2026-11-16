@@ -87,3 +87,13 @@ test('XP corrompido não libera níveis nem produz progresso não finito', () =>
   assert.equal(levelFromXp('150'), 3, 'save legado com XP numérico em string permanece válido');
   assert.deepEqual(levelProgress(60), { level: 2, into: 0, need: 90, max: false });
 });
+
+test('nível corrompido não contamina vida, mana ou dano do personagem', () => {
+  const base = statsForLevel(1);
+  for (const level of [NaN, Infinity, -Infinity, -3, 'inválido', undefined]) {
+    assert.deepEqual(statsForLevel(level), base, 'nível inválido deve usar atributos iniciais');
+  }
+  assert.equal(statsForLevel(1).maxHP, 500, 'preservar multiplicador de vida do Mod 320');
+  assert.deepEqual(statsForLevel('3'), statsForLevel(3), 'nível legado numérico em string continua válido');
+  assert.deepEqual(statsForLevel(3), { maxHP: 600, maxMana: 112, damageBonus: .08 });
+});
