@@ -170,8 +170,18 @@ export function createTerrain(opts = {}) {
  * flutuando.
  */
 export function buildAxis(fineHalf, fineCell, outerSteps, growth) {
-  const out = [];
+  // Reject malformed grid parameters before loops or GPU allocations. A zero
+  // cell size used to produce Infinity fine steps and hang the main thread.
+  if (![fineHalf, fineCell, outerSteps, growth].every(Number.isFinite) ||
+      fineHalf < 0 || fineCell <= 0 || outerSteps < 0 || !Number.isInteger(outerSteps) || growth < 1) {
+    throw new RangeError('buildAxis: invalid terrain grid parameters');
+  }
   const fineSteps = Math.round(fineHalf / fineCell);
+  // Keep the mesh within the practical mobile vertex budget before allocation.
+  if (!Number.isSafeInteger(fineSteps) || 2 * fineSteps + 1 + 2 * outerSteps > 1000) {
+    throw new RangeError('buildAxis: terrain grid exceeds axis budget');
+  }
+  const out = [];
   // Growth 1 is a valid uniform outer grid. The geometric-series quotient
   // would otherwise divide 0/0 and upload NaN vertices to WebGL.
   const offset = k => growth === 1 ? fineCell * k : fineCell * (Math.pow(growth, k) - 1) / (growth - 1);
