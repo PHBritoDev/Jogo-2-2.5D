@@ -34,13 +34,31 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       if (Number.isInteger(o.layers?.mask)) originalLayers.set(o, o.layers.mask);
       o.layers.set(safeHiddenLayer); } }
   const Obj = T.Object3D && T.Object3D.prototype, rawAdd = Obj && Obj.add;
+  // Restaurar imediatamente as layers de fontes movidas para outra cena.
+  // Esperar pelo scan periódico deixava a luz invisível no HUD/preview por até 45 frames.
+  function release(o) {
+    if (!sources.has(o) || attachedToScene(o)) return;
+    sources.delete(o); sourceScore.delete(o);
+    if (originalLayers.has(o) && o.layers) o.layers.mask = originalLayers.get(o);
+    originalLayers.delete(o);
+  }
   if (Obj && !Obj.__budgetGuard) {
     Obj.__budgetGuard = [];
     // só conta o que entra NA cena do orçamento (cenas auxiliares, como o retrato do HUD, mantêm as luzes delas)
-    Obj.add = function (...objs) { const r = rawAdd.apply(this, objs); let root = this; while (root.parent) root = root.parent;
-      for (const g of Obj.__budgetGuard) if (g.scene === root) for (const o of objs) if (o && o.isObject3D) (o.isPointLight ? g.adopt(o) : o.children.length && o.traverse(g.adopt)); return r; };
+    Obj.add = function (...objs) {
+      const r = rawAdd.apply(this, objs);
+      let root = this; while (root.parent) root = root.parent;
+      for (const o of objs) if (o && o.isObject3D) {
+        // Primeiro liberar a máscara de qualquer orçamento anterior; depois adotar na nova cena.
+        for (const g of Obj.__budgetGuard) if (g.scene !== root)
+          (o.isPointLight ? g.release(o) : o.traverse(g.release));
+        for (const g of Obj.__budgetGuard) if (g.scene === root)
+          (o.isPointLight ? g.adopt(o) : o.traverse(g.adopt));
+      }
+      return r;
+    };
   }
-  if (Obj) Obj.__budgetGuard.push({ scene, adopt });
+  if (Obj) Obj.__budgetGuard.push({ scene, adopt, release });
   const v = new T.Vector3(), cam = new T.Vector3(), lastCamera = new T.Vector3();
   // Uma fonte pode continuar com parent dentro de um grupo já removido da cena.
   // Nunca permitir que esse grupo ocupe slots de luz ou retenha fontes no cadastro.
@@ -53,11 +71,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     scene.traverse(adopt);
     // fontes removidas da cena saem do conjunto (sem crescer para sempre com efeitos descartados)
     for (const o of sources) if (!attachedToScene(o)) {
-      sources.delete(o); sourceScore.delete(o);
-      // Uma fonte destacada pode ser reutilizada por outra cena (HUD, preview, dimensão).
-      // Restaurar a máscara anterior em vez de deixá-la invisível na camada 31.
-      if (originalLayers.has(o) && o.layers) o.layers.mask = originalLayers.get(o);
-      originalLayers.delete(o);
+      release(o);
     }
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
