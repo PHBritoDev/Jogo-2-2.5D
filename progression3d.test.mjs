@@ -86,6 +86,8 @@ test('XP corrompido não libera níveis nem produz progresso não finito', () =>
   }
   assert.equal(levelFromXp('150'), 3, 'save legado com XP numérico em string permanece válido');
   assert.deepEqual(levelProgress(60), { level: 2, into: 0, need: 90, max: false });
+  assert.deepEqual(levelProgress(1e9), { level: LEVELS.length, into: 0, need: 0, max: true },
+    'nível máximo não pode deixar XP residual ilimitado na barra sem próximo nível');
 });
 
 test('nível corrompido não contamina vida, mana ou dano do personagem', () => {
