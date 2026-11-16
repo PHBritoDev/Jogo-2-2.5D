@@ -213,19 +213,22 @@ export function migrateProgress(raw) {
 
 /** Texto do HUD de missão para cada etapa (e sub-etapa) do Ato I. */
 export function questPresentation(step, sub = 0) {
+  // Saves antigos ou scripts externos podem passar sub-etapas não finitas.
+  // Não anunciar uma ação posterior sem o checkpoint correspondente.
+  const safeSub = clampInt(sub, 0, 9, 0);
   const pages = {
     0: ['ATO I · O PREÇO DE UMA VIDA', 'Fale com o Anjo-Guia'],
-    1: sub >= 1
+    1: safeSub >= 1
       ? ['ATO I · A VILA DA CLAREIRA', 'Pergunte ao vendedor de frutas sobre o Pecado da Ganância']
       : ['ATO I · O PREÇO DE UMA VIDA', 'Siga a trilha até a pequena vila e fale com um vendedor'],
     2: ['ATO I · A FLORESTA À NOITE', 'Investigue o choro de crianças na floresta'],
-    3: sub >= 1
+    3: safeSub >= 1
       ? ['ATO I · RECEPTÁCULOS', 'Derrote as crianças possuídas pelos demônios']
       : ['ATO I · A CHAVE', 'Abra a gaiola com a chave dos Seguidores'],
     4: [['ATO I · OS ESGOTOS', 'Siga a trilha da montanha rumo aos esgotos'],
       ['ATO I · A PISTA', 'Siga a pista até a entrada da caverna, na encosta'],
       ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
-      ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][clampInt(sub, 0, 3, 0)],
+      ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][clampInt(safeSub, 0, 3, 0)],
     5: ['ATO I · O GUARDIÃO DO PORTAL', 'Siga pelo caminho vazio e derrote o guardião do portal'],
     6: ['ATO I · O PORTAL DE VHAZRAEL', 'Entre no portal: a dimensão de VHAZRAEL está do outro lado'],
     7: ['ATO I · DIMENSÃO ABERTA', 'Encontre VHAZRAEL na dimensão e derrote o Primeiro Bispo'],
