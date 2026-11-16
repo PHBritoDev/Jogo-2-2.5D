@@ -22,6 +22,8 @@ export function normalizeHearts(raw, now = Date.now()) {
 
 /** Aplica a regeneração acumulada (inclusive com o jogo fechado). */
 export function tickHearts(state, now = Date.now()) {
+  // Chamadores legados podem entregar estado ausente; restaurar com segurança.
+  if (!state || typeof state !== 'object') return { hearts: HEARTS.max, since: now };
   // Estado em memória também pode ser alterado por integrações antigas sem passar pelo carregador.
   // Evite propagar NaN/Infinity ao HUD, às regras de Bispos ou à persistência.
   // Null, string vazia e tipos não numéricos não são zero explícito.
