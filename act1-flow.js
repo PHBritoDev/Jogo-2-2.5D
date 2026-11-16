@@ -234,7 +234,10 @@ export function questPresentation(step, sub = 0) {
     7: ['ATO I · DIMENSÃO ABERTA', 'Encontre VHAZRAEL na dimensão e derrote o Primeiro Bispo'],
     8: ['ATO I · CONCLUÍDO', 'VHAZRAEL caiu. Uma longa jornada começa']
   };
-  const pair = pages[step] || pages[8];
+  // Um checkpoint inválido não deve anunciar que VHAZRAEL já foi derrotado.
+  // Etapas futuras válidas (> 8) continuam usando a apresentação de conclusão do Ato I.
+  const safeStep = clampInt(step, 0, 30, 0);
+  const pair = pages[safeStep] || pages[8];
   return { title: pair[0], objective: pair[1] };
 }
 
