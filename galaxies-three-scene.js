@@ -496,7 +496,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   renderer.render(scene,camera);
   // Telemetria sem alocação por frame para auditoria do custo real na GPU.
   if(ms-lastTelemetry>1200){
-   lastTelemetry=ms;
+   lastTelemetry=ms;root.dataset.gxTelemetryAt=String(ms);
    root.dataset.gxDrawCalls=String(renderer.info.render.calls);
    root.dataset.gxTriangles=String(renderer.info.render.triangles);
    root.dataset.gxTextures=String(renderer.info.memory.textures);
