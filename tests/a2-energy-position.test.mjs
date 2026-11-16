@@ -62,7 +62,13 @@ test('energyBody hides invalid frames and recovers without corrupting pooled tra
  assert.deepEqual([effect.mesh.position.x,effect.mesh.position.y,effect.mesh.position.z],[3,4,5]);
  assert.deepEqual([effect.mesh.scale.x,effect.mesh.scale.y,effect.mesh.scale.z],[2,2,3]);
  assert.equal(effect.material.uniforms.alpha.value,.8);
- effect.update(3,{position:{x:7,y:8,z:9},radius:1,length:1,alpha:.5});
+ effect.update(2.5,{position:{x:7,y:8,z:9},dir:{x:NaN,y:0,z:1},radius:1,length:1,alpha:.5});
+ assert.equal(effect.mesh.visible,false);
+ effect.update(2.6,{position:{x:7,y:8,z:9},dir:{x:0,y:0,z:0},radius:1,length:1,alpha:.5});
+ assert.equal(effect.mesh.visible,false);
+ effect.update(2.7,{position:{x:7,y:8,z:9},dir:{x:1e308,y:1e308,z:0},radius:1,length:1,alpha:.5});
+ assert.equal(effect.mesh.visible,false);
+ effect.update(3,{position:{x:7,y:8,z:9},dir:{x:0,y:0,z:1},radius:1,length:1,alpha:.5});
  assert.equal(effect.mesh.visible,true);
  assert.deepEqual([effect.mesh.position.x,effect.mesh.position.y,effect.mesh.position.z],[7,8,9]);
  effect.dispose();
