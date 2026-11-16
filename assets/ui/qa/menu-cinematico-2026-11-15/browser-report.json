@@ -7,19 +7,22 @@
         "width": 1536,
         "height": 864
       },
-      "loadMs": 4295,
+      "loadMs": 7159,
       "info": {
         "models": {
           "guardian": "AnjoGuiador-otimizado.glb",
           "wings": "Asas.glb",
           "lust": "Misteriosa-rig.glb",
           "hero": "Protagonista.glb",
-          "storm": "storm-effigy.glb"
+          "storm": "storm-effigy.glb",
+          "rock": "rock_face_02",
+          "fort": "modular_fort_01",
+          "environment": "CC0-clouds"
         },
         "gpu": {
-          "calls": 194,
-          "triangles": 206400,
-          "textures": 11
+          "calls": 230,
+          "triangles": 347186,
+          "textures": 28
         },
         "canvasCount": 1,
         "glError": 0
@@ -75,19 +78,22 @@
         "width": 852,
         "height": 393
       },
-      "loadMs": 1851,
+      "loadMs": 3409,
       "info": {
         "models": {
           "guardian": "AnjoGuiador-otimizado.glb",
           "wings": "Asas.glb",
           "lust": "Misteriosa-rig.glb",
           "hero": "Protagonista.glb",
-          "storm": "storm-effigy.glb"
+          "storm": "storm-effigy.glb",
+          "rock": "rock_face_02",
+          "fort": "modular_fort_01",
+          "environment": "CC0-clouds"
         },
         "gpu": {
-          "calls": 194,
-          "triangles": 206400,
-          "textures": 11
+          "calls": 226,
+          "triangles": 314074,
+          "textures": 28
         },
         "canvasCount": 1,
         "glError": 0
@@ -144,19 +150,22 @@
         "height": 375,
         "reduced": true
       },
-      "loadMs": 1951,
+      "loadMs": 2150,
       "info": {
         "models": {
           "guardian": "AnjoGuiador-otimizado.glb",
           "wings": "Asas.glb",
           "lust": "Misteriosa-rig.glb",
           "hero": "Protagonista.glb",
-          "storm": "storm-effigy.glb"
+          "storm": "storm-effigy.glb",
+          "rock": "rock_face_02",
+          "fort": "modular_fort_01",
+          "environment": "CC0-clouds"
         },
         "gpu": {
-          "calls": 194,
-          "triangles": 206400,
-          "textures": 11
+          "calls": 226,
+          "triangles": 314074,
+          "textures": 28
         },
         "canvasCount": 1,
         "glError": 0

@@ -1,6 +1,6 @@
 {
   "baseline": "2732e9d",
-  "implementation": "35c415b7924767f52e85d7d988ac16e6e40fb1de",
+  "implementation": "385dab9056d2830783fdac699095e88126b4706f",
   "baselineGPU": {
     "calls": 300,
     "triangles": 184277,
@@ -24,5 +24,7 @@
   ],
   "reference": "Imagem anexada à conversa do criador; inspeção visual, sem comparação pixel a pixel",
   "environment": "Chromium 154 / SwiftShader / DPR 1, sem Android físico",
-  "visualApproval": "Pendente; resultado estilizado, equivalência ao realismo da referência não demonstrada"
+  "visualApproval": "Pendente; resultado estilizado, equivalência ao realismo da referência não demonstrada",
+  "updated": "2026-11-16",
+  "sources": "../../menu/polyhaven/LICENSE-SOURCES.md"
 }
