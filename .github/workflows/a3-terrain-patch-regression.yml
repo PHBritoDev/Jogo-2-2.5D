@@ -5,6 +5,8 @@ on:
       - 'world3d-terrain.js'
       - 'tests/a3-terrain-patch-bounds.test.mjs'
       - 'tests/a3-foothill-route-clearance.test.mjs'
+      - 'tests/a3-terrain-axis-uniform.test.mjs'
+      - 'tests/a3-terrain-axis-parameter-safety.test.mjs'
       - '.github/workflows/a3-terrain-patch-regression.yml'
   workflow_dispatch:
 jobs:
@@ -21,4 +23,4 @@ jobs:
       - name: Validar sintaxe do terreno
         run: node --check world3d-terrain.js
       - name: Executar regressões A3 reais do repositório
-        run: node --test tests/a3-terrain-patch-bounds.test.mjs tests/a3-foothill-route-clearance.test.mjs
+        run: node --test tests/a3-terrain-patch-bounds.test.mjs tests/a3-foothill-route-clearance.test.mjs tests/a3-terrain-axis-uniform.test.mjs tests/a3-terrain-axis-parameter-safety.test.mjs
