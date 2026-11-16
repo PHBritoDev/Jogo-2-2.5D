@@ -142,6 +142,11 @@ export function migrateBishopOneName(raw) {
   return out;
 }
 
+// Checkpoints só aceitam números ou strings numéricas legadas; arrays/booleanos não são progresso.
+function checkpointValue(value) {
+  return typeof value === 'number' || (typeof value === 'string' && value.trim() !== '') ? value : NaN;
+}
+
 export function migrateProgress(raw) {
   const base = baseProgress();
   if (!raw || typeof raw !== 'object') return base;
@@ -163,7 +168,7 @@ export function migrateProgress(raw) {
   };
   const version = Number(raw.version);
   if (version >= ACT1.version) {
-    const step = clampInt(raw.questStep, 0, 30, 0);
+    const step = clampInt(checkpointValue(raw.questStep), 0, 30, 0);
     // Concluir o Ato I exige derrotar VHAZRAEL; saves antigos podem perder o contador.
     // Reconstituir apenas o mínimo canônico, sem apagar vitórias posteriores.
     const bishopsDefeated = Math.max(step >= 8 ? 1 : 0, clampInt(raw.bishopsDefeated, 0, 4, 0));
@@ -171,7 +176,7 @@ export function migrateProgress(raw) {
       ...base,
       ...shared,
       questStep: step,
-      act1Sub: clampInt(raw.act1Sub, 0, 9, 0),
+      act1Sub: clampInt(checkpointValue(raw.act1Sub), 0, 9, 0),
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: clampInt(raw.mountainIndex, 0, ACT1.mountainSentries, 0),
       wardenTaunted: !!raw.wardenTaunted,
@@ -193,7 +198,7 @@ export function migrateProgress(raw) {
   if (version === 5) {
     // O fim antigo (passo 5) era o portal fechado de propósito.
     // Quem já chegou lá continua na subida, sem perder ouro nem receber de novo a recompensa do portal.
-    const previousStep = clampInt(raw.questStep, 0, 5, 0);
+    const previousStep = clampInt(checkpointValue(raw.questStep), 0, 5, 0);
     const alreadyPaidPortal = previousStep >= 5;
     const step = previousStep >= 4 ? 4 : previousStep;
     return {
