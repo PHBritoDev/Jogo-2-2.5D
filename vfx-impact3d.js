@@ -33,6 +33,11 @@ export function impactPoolCapacity(capacity) {
   return Number.isSafeInteger(capacity) && capacity >= 1 && capacity <= 64 ? capacity : 6;
 }
 
+/** Only explicit, stable IDs are deduplicated; anonymous impact events are independent. */
+export function impactHasStableId(id) {
+  return (typeof id === 'string' && id.length > 0) || (typeof id === 'number' && Number.isFinite(id));
+}
+
 /** Consumes collision records without deciding damage. Fixed reusable slots and 3D tectonic impact shatter. */
 export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () => {} } = {}) {
   // Keep pooled slot count finite and nonzero even with malformed quality/config input.
@@ -56,9 +61,13 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
   return {
     root,
     emit({ id, time, point, size = 2, preset = 'cinder', kind = 'ball', dir = { x: 0, y: 1, z: 0 } }) {
-      if (!impactRecordValid({ time, point, size }) || seen.has(id)) return false;
-      seen.add(id);
-      if (seen.size > 64) seen.delete(seen.values().next().value);
+      if (!impactRecordValid({ time, point, size })) return false;
+      // Missing IDs previously collapsed every anonymous collision into a single event.
+      if (impactHasStableId(id)) {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        if (seen.size > 64) seen.delete(seen.values().next().value);
+      }
       const s = slots[head++ % capacity];
       Object.assign(s, { id, time, size, preset, kind, seed: head });
       Object.assign(s.point, point);
