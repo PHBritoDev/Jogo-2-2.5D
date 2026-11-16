@@ -1851,6 +1851,9 @@ stick.addEventListener('pointerdown',e=>{if(joyActive)return;joyActive=true;joyP
 stick.addEventListener('pointermove',e=>{if(joyActive&&e.pointerId===joyPointerId)setJoy(e);});
 function endJoy(e){if(e&&e.pointerId!==joyPointerId)return;joyActive=false;joyPointerId=null;joyX=joyY=0;knob.style.transform='translate(0,0)';}
 stick.addEventListener('pointerup',endJoy);stick.addEventListener('pointercancel',endJoy);
+// A browser can revoke pointer capture without delivering pointerup (e.g. overlay/DOM change).
+// Release only the owning pointer, otherwise the hero can keep walking indefinitely.
+stick.addEventListener('lostpointercapture',endJoy);
 let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=7.2;let grounded=true;
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
 /* MOD 302 — estado do protagonista em tempo de JOGO (segundos): não depende do relógio real, então a filmagem em passo
