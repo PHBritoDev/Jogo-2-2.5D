@@ -114,7 +114,8 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
         l.distance = Number.isFinite(s.distance) && s.distance >= 0 ? s.distance : 40;
         l.decay = Number.isFinite(s.decay) && s.decay >= 0 ? s.decay : 2;
       }
-      const target = p.next !== undefined || !live ? 0 : s.intensity;
+      // Limitar clarões extremos: intensidade finita pode exceder o alcance Float32 dos uniforms GPU.
+      const target = p.next !== undefined || !live ? 0 : Math.min(s.intensity, 64);
       // Não propagar NaN/Infinity de efeitos transitórios para os shaders do jogo.
       if (!Number.isFinite(l.intensity)) l.intensity = 0;
       l.intensity += (target - l.intensity) * k;
