@@ -215,7 +215,8 @@ export function migrateProgress(raw) {
 export function questPresentation(step, sub = 0) {
   // Saves antigos ou scripts externos podem passar sub-etapas não finitas.
   // Não anunciar uma ação posterior sem o checkpoint correspondente.
-  const safeSub = clampInt(sub, 0, 9, 0);
+  const hudNumber = value => (typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')) ? value : NaN;
+  const safeSub = clampInt(hudNumber(sub), 0, 9, 0);
   const pages = {
     0: ['ATO I · O PREÇO DE UMA VIDA', 'Fale com o Anjo-Guia'],
     1: safeSub >= 1
@@ -236,7 +237,7 @@ export function questPresentation(step, sub = 0) {
   };
   // Um checkpoint inválido não deve anunciar que VHAZRAEL já foi derrotado.
   // Etapas futuras válidas (> 8) continuam usando a apresentação de conclusão do Ato I.
-  const safeStep = clampInt(step, 0, 30, 0);
+  const safeStep = clampInt(hudNumber(step), 0, 30, 0);
   const pair = pages[safeStep] || pages[8];
   return { title: pair[0], objective: pair[1] };
 }
