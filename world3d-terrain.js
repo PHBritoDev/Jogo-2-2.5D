@@ -356,6 +356,8 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   let s = seed >>> 0;
   const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
   const area = terrain.area, specs = [];
+  // Invalid primary bounds must not reverse the forest span or poison sampling.
+  if (![area?.cx, area?.cz, area?.hx, area?.hz].every(Number.isFinite) || area.hx < 0 || area.hz < 0) return specs;
   const span = { x0: area.cx - area.hx - 70, x1: area.cx + area.hx + 70, z0: area.cz - area.hz - 70, z1: area.cz + area.hz + 70 };
   for (const e of terrain.extraAreas || []) {
     // A corrupt optional region must not poison the entire forest sampling span.
@@ -366,7 +368,9 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
     span.x0 = Math.min(span.x0, x0); span.x1 = Math.max(span.x1, x1);
     span.z0 = Math.min(span.z0, z0); span.z1 = Math.max(span.z1, z1);
   }
-  if (![span.x0, span.x1, span.z0, span.z1].every(v => Number.isFinite(Math.fround(v)))) return specs;
+  // Endpoints can be representable while their difference overflows Float32.
+  // A non-representable span would generate unstable world coordinates on mobile.
+  if (![span.x0, span.x1, span.z0, span.z1, span.x1 - span.x0, span.z1 - span.z0].every(v => Number.isFinite(Math.fround(v)))) return specs;
   // A malformed or unbounded sample budget must never stall the mobile main thread.
   // Normal gameplay budgets (2600, or 60% on low spec) are unchanged.
   const budget = Number.isFinite(attempts) ? Math.min(10000, Math.max(0, Math.trunc(attempts))) : 2600;
