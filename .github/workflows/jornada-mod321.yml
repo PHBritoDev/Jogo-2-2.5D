@@ -1,0 +1,39 @@
+name: Jornada Mod 321 - Eldoria a Cinzaria
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "jornada*.js"
+      - "act2-flow.js"
+      - "map3d.js"
+      - "mundo-3d-prototype.js"
+      - "tests/jornada-mod321.test.mjs"
+      - ".github/workflows/jornada-mod321.yml"
+  push:
+    branches: [main]
+    paths:
+      - "jornada*.js"
+      - "act2-flow.js"
+      - "map3d.js"
+
+permissions:
+  contents: read
+
+jobs:
+  regras:
+    name: Percurso, ponte, cidade, migracao e sintaxe dos modulos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Testes da jornada, do Ato II e do mapa
+        run: node --test tests/jornada-mod321.test.mjs act2-flow.test.mjs map3d.test.mjs tests/map-state-invalid-saves.test.mjs tests/mod317-prologo.test.mjs
+      - name: Sintaxe de modulo ES
+        run: |
+          for f in jornada3d.js jornada-world3d.js act2-flow.js map3d.js mundo-3d-prototype.js; do
+            node --input-type=module --check < "$f"
+          done

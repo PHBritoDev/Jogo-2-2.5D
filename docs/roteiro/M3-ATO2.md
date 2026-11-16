@@ -1,3 +1,6 @@
+> **Mod 321 (16/11/2026):** histórico. O cenário deste roteiro (distrito a 150 m de Eldória, beco, mina, canal) foi substituído pela
+> jornada até a nova Cinzária (`docs/jornada/README.md`). A narrativa nova do Ato II será escrita depois; o jogo usa um fluxo provisório.
+
 # Marco 3 — Ato II: a cidade no vulcão, o laboratório e VORGAZHEK
 
 **Fonte:** roteiro original do autor, anexo do [documento mestre](../GALAXIA-1-ROTEIRO-INTEGRAL-E-DIRECAO.pdf), páginas 9 a 11.
