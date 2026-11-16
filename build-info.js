@@ -1,8 +1,8 @@
 // ÚNICO lugar para atualizar identidade/cache da build publicada.
 // NÃO editar HTML, loader ou mundo 3D apenas para trocar número de versão.
-export const MOD = 323;
-export const BUILD = 'mod323-jornada-arte-fisica-cinzaria-2e6f2eb';
-export const DESCRIPTION = 'Mod 323: reconstrução da jornada, vale e cachoeiras, aurora no céu, ponte, vulcão, Cinzária e moradores Meshy';
+export const MOD = 324;
+export const BUILD = 'mod324-integracao-agentes-a1-a2-a4-a5-4417e10';
+export const DESCRIPTION = 'Mod 324: revisão dos agentes — progressão segura, impactos aéreos, bestiário, iluminação e teste de cache';
 export function syncBuildMarker(marker) {
   if (!marker) return;
   marker.textContent = String(MOD);
