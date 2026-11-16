@@ -183,3 +183,29 @@ test('checkpoints não escalares não liberam missões após restauração', () 
   refreshSide(restored, { questStep: '2' });
   assert.equal(restored.pingente.state, 'available', 'save legado com etapa numérica continua válido');
 });
+
+test('save com contadores não escalares não fabrica entregas nem recompensas', () => {
+  for (const invalid of [[4], [1], true, false, {}, { valueOf: () => 4 }, null, ' ']) {
+    const state = createSideState({ ervas: { state: 'ready', progress: invalid } });
+    assert.equal(state.ervas.progress, 0);
+    assert.equal(state.ervas.state, 'active');
+    assert.equal(turnInSide(state, 'ervas'), null);
+  }
+  const valid = createSideState({ ervas: { state: 'ready', progress: '4' } });
+  assert.equal(valid.ervas.state, 'ready', 'contador legado em string numérica permanece válido');
+  assert.deepEqual(turnInSide(valid, 'ervas'), SIDE_QUESTS[0].reward);
+  assert.equal(turnInSide(valid, 'ervas'), null);
+});
+
+test('pedras de abrigo ignoram arrays e objetos de contagem durante a sessão', () => {
+  const state = createSideState();
+  refreshSide(state, { questStep: 2 });
+  assert.equal(acceptSide(state, 'abrigos'), true);
+  for (const invalid of [[3], true, { valueOf: () => 3 }, '3']) {
+    refreshSide(state, { questStep: 2, waystones: invalid });
+    assert.equal(state.abrigos.progress, 0);
+    assert.equal(state.abrigos.state, 'active');
+  }
+  refreshSide(state, { questStep: 2, waystones: 3 });
+  assert.equal(state.abrigos.state, 'ready');
+});
