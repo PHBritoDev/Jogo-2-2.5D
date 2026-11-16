@@ -25,8 +25,8 @@ export function tickHearts(state, now = Date.now()) {
   // Estado em memória também pode ser alterado por integrações antigas sem passar pelo carregador.
   // Evite propagar NaN/Infinity ao HUD, às regras de Bispos ou à persistência.
   const rawHearts = Number(state.hearts);
-  const hearts = Number.isFinite(rawHearts) ? Math.max(0, Math.min(HEARTS.max, Math.floor(rawHearts))) : HEARTS.max;
-  state = hearts === state.hearts ? state : { ...state, hearts };
+  const normalizedHearts = Number.isFinite(rawHearts) ? Math.max(0, Math.min(HEARTS.max, Math.floor(rawHearts))) : HEARTS.max;
+  state = normalizedHearts === state.hearts ? state : { ...state, hearts: normalizedHearts };
   if (state.hearts >= HEARTS.max) return { ...state, hearts: HEARTS.max, since: now };
   // Se o relógio voltou ou o save veio do futuro, reinicie a contagem sem premiar tempo negativo.
   const safeSince = Number.isFinite(state.since) && state.since >= 0 ? Math.min(state.since, now) : now;
