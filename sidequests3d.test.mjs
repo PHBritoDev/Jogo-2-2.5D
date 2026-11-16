@@ -170,3 +170,16 @@ test('progresso negativo ou acima da meta durante a sessão é normalizado', () 
   assert.equal(s.pingente.progress, 1);
   assert.deepEqual(turnInSide(s, 'pingente'), SIDE_QUESTS[1].reward);
 });
+
+
+test('checkpoints não escalares não liberam missões após restauração', () => {
+  for (const invalid of [true, false, null, [], [2], {}, { valueOf: () => 2 }, ' ']) {
+    const state = createSideState();
+    refreshSide(state, { questStep: invalid });
+    assert.equal(state.pingente.state, 'locked');
+    assert.equal(state.ervas.state, 'locked');
+  }
+  const restored = createSideState();
+  refreshSide(restored, { questStep: '2' });
+  assert.equal(restored.pingente.state, 'available', 'save legado com etapa numérica continua válido');
+});
