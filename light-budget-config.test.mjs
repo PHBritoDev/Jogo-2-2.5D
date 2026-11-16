@@ -15,7 +15,7 @@ class PointLight extends Object3D {
     this.castShadow = false;
     this.layers = { value: 0, set(value) { this.value = value; } };
     this.position = { setFromMatrixPosition() {} };
-    this.color = { copy() {} };
+    this.color = { r: 1, g: 1, b: 1, copy(other) { this.r = other.r; this.g = other.g; this.b = other.b; } };
     this.intensity = 0;
   }
 }
@@ -93,4 +93,24 @@ test('extreme finite source intensity stays within mobile shader budget', () => 
   assert.ok(Number.isFinite(slot.intensity));
   assert.ok(slot.intensity > 0 && slot.intensity <= 64);
   assert.deepEqual(budget.stats().active, ['extreme']);
+});
+
+
+test('extreme HDR colors are clamped only on budget slots, not on original sources', () => {
+  const scene = new Object3D();
+  const source = new PointLight();
+  source.name = 'hdr-torch';
+  source.intensity = 5;
+  source.distance = 0;
+  source.decay = 2;
+  source.visible = true;
+  source.color = { r: 1e308, g: 0.5, b: 1e100 };
+  source.matrixWorld = {};
+  scene.add(source);
+  const budget = createLightBudget(THREE, scene, { slots: 1 });
+  const camera = { getWorldPosition(out) { out.x = 0; out.y = 0; out.z = 0; } };
+  for (let i = 0; i < 120; i++) budget.update(camera, 1 / 60);
+  const slot = scene.children.find(child => child.userData.budgetSlot);
+  assert.deepEqual([slot.color.r, slot.color.g, slot.color.b], [16, 0.5, 16]);
+  assert.deepEqual([source.color.r, source.color.g, source.color.b], [1e308, 0.5, 1e100]);
 });
