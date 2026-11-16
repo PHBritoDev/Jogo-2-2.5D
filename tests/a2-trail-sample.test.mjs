@@ -43,13 +43,13 @@ test('invalid emitted sample breaks trail instead of joining two distant valid p
   const parent={add(){},remove(){}};
   const trail=volumeTrail(T,parent,{}, {capacity:5,sides:3});
   trail.update(1,{x:0,y:0,z:0});
-  trail.update(2,{x:1,y:0,z:0});
+  trail.update(1.1,{x:1,y:0,z:0});
   assert.equal(trail.mesh.visible,true);
-  trail.update(3,{x:NaN,y:0,z:0});
+  trail.update(1.2,{x:NaN,y:0,z:0});
   assert.equal(trail.mesh.visible,false);
-  trail.update(4,{x:1000,y:0,z:0});
+  trail.update(1.3,{x:1000,y:0,z:0});
   assert.equal(trail.mesh.visible,false, 'new stroke must start with a single sample');
-  trail.update(5,{x:1001,y:0,z:0});
+  trail.update(1.4,{x:1001,y:0,z:0});
   assert.equal(trail.mesh.visible,true);
   trail.dispose();
 });
