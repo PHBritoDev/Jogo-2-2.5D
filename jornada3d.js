@@ -41,7 +41,7 @@ export const GUARDS2 = Object.freeze([{ x: -1318.5, z: -62.6 }, { x: -1318.5, z:
 export const WATERFALL = Object.freeze({ x: -432, z: 64, zTop: 108, w: 9 }); // cascata descendo a encosta da serra norte até o poço (z = 64)
 /** Mod 323 — poço ao pé da cachoeira (lago raso de 0,7 m que alimenta o rio) e quedas d'água das paredes do abismo. */
 export const FALL_POOL = Object.freeze({ x: -432, z: 58, r: 10 });
-export const ABYSS_FALLS = Object.freeze([{ side: 1, z: -128, w: 6 }, { side: -1, z: 14, w: 8 }, { side: 1, z: 66, w: 5 }]);
+export const ABYSS_FALLS = Object.freeze([{ side: 1, z: -128, w: 26 }, { side: -1, z: 16, w: 40 }, { side: 1, z: 72, w: 16 }]); // Mod 325: quedas largas (a de 40 m é o marco visto da ponte)
 /** Percurso principal (polilinha jogável) Eldória → portão do vulcão. */
 export const ROUTE = Object.freeze([
   [-112, -62], [-150, -70], [-200, -58], [-260, -40], [-320, -62], [-380, -92], [-440, -80], [-500, -52], [-560, -64], [-612, -84],

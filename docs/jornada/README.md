@@ -266,3 +266,17 @@ Medidas para não deixar os números subirem:
   ao fluxo do Ato II.
 - **Cinzária**: as casas são um kit procedural, não GLBs autorais. Não há crianças, porque a narrativa da cidade
   ainda não foi escrita.
+
+## Mod 325 — auditoria de costuras, água, vulcão e aurora (16/11/2026)
+
+**Costuras / linhas brancas.** Causa medida com o modo de auditoria (`SevenSinsDebug3D.seamMode(true)`: fundo magenta, céu/névoa/nuvens/árvores ocultos, pixels magenta cercados de chão = fresta): (1) na divisa Eldória→vale (x≈−118) a malha antiga em `terrainLowSpec` tem célula de 2,5 m e terminava antes da malha da jornada, deixando até ~1 m de céu; (2) os ladrilhos distantes (256 m/8 m) não tinham saia; (3) a cor da jornada era gravada em sRGB num atributo que o r160 trata como linear (faixa clara na emenda). Correções: faixa `jornada-costura-leste` (10 m, mesma função de relevo, 5 cm abaixo), saias também nos ladrilhos distantes e preservadas no `maskFar`, `lin()` em todas as cores de vértice, saia de 10 m na base do cone. Evidência `costura-magenta-*`: banda magenta eliminada.
+
+**Água.** Laje turquesa opaca trocada por água translúcida (opacidade .58) + anel de espuma nas pernas (`jornada-espuma-pernas`) quando a lâmina passa de 12 cm. Cachoeira do vale: cortina em duas camadas (`curtainMat`/`makeCurtain`), largura variável, abaulada, véus laterais, espuma no poço. Quedas do abismo: arco de queda livre a partir da borda, largas (`ABYSS_FALLS` 16–40 m), lábio de rocha, névoa de gotículas, somem na névoa. Pedras: apoiadas no ponto mais baixo da pegada (sem flutuar).
+
+**Vulcão.** Causa do "buraco" no flanco (presente na main): os triângulos do cone apontavam para dentro, então a face da frente era descartada e via-se o avesso da encosta de trás com a cratera emissiva atravessando ("mancha laranja"). Winding corrigido (cone e saia), brilho emissivo da cratera removido (a luz vem do lago de lava e da base da pluma). Malha mais densa (288×84), basalto mais claro com cinza, afloramentos meio enterrados com a mesma bruma do cone, pluma em nuvem "couve-flor" iluminada por baixo, lâminas de basalto e poças de lava com crosta no entorno (fora das ruas). Topo segue bloqueado; cidade, portal, 2 Enemy2 e caverna intactos.
+
+**Aurora.** Dois arcos em oval inclinado que atravessam o céu (visíveis em quase todos os rumos, mais fortes de um lado), dobras que correm, raios finos, respiração lenta; tinge levemente hemisfério e névoa (`AUR_TINT_*`, até 22%).
+
+**QA (SwiftShader, 960×540).** Percurso Eldória→vale→ponte→cinzas→Cinzária→portão sem travar; queda no abismo e retorno ao checkpoint com HP cheio; step-up em pedra baixa; 11 NPCs Meshy andando; 2 guardas Enemy2; sem erros de página. Perf (mesmo roteiro, 572 quadros): main p50 7,9 / p95 13,9 / p99 14,7 / máx 21,1 ms → Mod 325 p50 7,6 / p95 13,8 / p99 16,0 / máx 19,7 ms; draw calls +0–13, triângulos +9–14%. Evidências em `evidencias/mod325/` (antes à esquerda, depois à direita).
+
+**Limitações.** FPS em Android real não medido (SwiftShader ≠ GPU móvel). O paredão de fronteira do mundo antigo (Mod 311) segue facetado visto do início do vale (fora do escopo da jornada). Encosta leste do vulcão fica muito escura no fim da tarde (contraluz real).

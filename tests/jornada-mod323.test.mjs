@@ -52,7 +52,7 @@ test('céu: aurora só de noite e de céu aberto, entrando aos poucos; hora dour
 test('integração: aurora sem cilindro, moradores Meshy, câmera fora das casas, pedras como domos, céu ligado ao relógio', () => {
   const w = fs.readFileSync(new URL('../jornada-world3d.js', import.meta.url), 'utf8'), m = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8'), sky = fs.readFileSync(new URL('../ceu-atmosfera3d.js', import.meta.url), 'utf8');
   assert.ok(!/CylinderGeometry\(560/.test(w) && !/aurora/i.test(w.replace(/get aurora\(\) \{ return null; \}/, '')), 'sem anel de aurora no mundo da jornada');
-  assert.ok(/uAurDir/.test(sky) && /smoothstep\(1\.2, \.45, abs\(rel\)\)/.test(sky), 'aurora com faixa de azimute limitada');
+  assert.ok(/uAurDir/.test(sky) && /for \(int i = 0; i < 2; i\+\+\)/.test(sky), 'aurora em arcos no céu (Mod 325: dois arcos, presentes em quase todos os rumos)');
   const folk = m.slice(m.indexOf('async function spawnCityFolk'), m.indexOf('function updateCityFolk'));
   assert.ok(/npcFactory\.create/.test(folk) && !/npcBase|makeTownsfolk/.test(folk), 'moradores de Cinzária com os NPCs Meshy');
   assert.ok(/createVillagerDriver\(THREE,c,brain/.test(folk), 'vida dos moradores (andar, parar, olhar)');

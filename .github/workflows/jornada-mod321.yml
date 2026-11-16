@@ -10,6 +10,7 @@ on:
       - "mundo-3d-prototype.js"
       - "tests/jornada-mod321.test.mjs"
       - "tests/jornada-mod323.test.mjs"
+      - "tests/jornada-mod325.test.mjs"
       - "ceu-atmosfera3d.js"
       - "eldoria-weather3d.js"
       - ".github/workflows/jornada-mod321.yml"
@@ -35,7 +36,7 @@ jobs:
         with:
           node-version: "22"
       - name: Testes da jornada, do Ato II e do mapa
-        run: node --test tests/jornada-mod321.test.mjs tests/jornada-mod323.test.mjs act2-flow.test.mjs map3d.test.mjs tests/map-state-invalid-saves.test.mjs tests/mod317-prologo.test.mjs
+        run: node --test tests/jornada-mod321.test.mjs tests/jornada-mod323.test.mjs tests/jornada-mod325.test.mjs act2-flow.test.mjs map3d.test.mjs tests/map-state-invalid-saves.test.mjs tests/mod317-prologo.test.mjs
       - name: Sintaxe de modulo ES
         run: |
           for f in jornada3d.js jornada-world3d.js ceu-atmosfera3d.js eldoria-weather3d.js act2-flow.js map3d.js mundo-3d-prototype.js; do
