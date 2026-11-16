@@ -2,8 +2,46 @@ import { impactFragments } from './skill-impact3d.js';
 import { softParticles, groundDecals, groundNormal, groundShatter, hash } from './celestial-fxkit3d.js?v=mod241-gemini-vfx-fixed';
 import { energyBody, ENERGY_PALETTES } from './vfx-flow3d.js?v=mod241-gemini-vfx-fixed';
 
+/** Ground-contact tolerance in world units. Air impacts must not emit terrain decals or dust. */
+export function impactTouchesGround(pointY, groundY) {
+  return Number.isFinite(pointY) && Number.isFinite(groundY)
+    && pointY - groundY >= -1 && pointY - groundY < 5;
+}
+
+/** Avoid sampling terrain at invalid world coordinates from malformed impact records. */
+export function impactGroundHeight(ground, point) {
+  return Number.isFinite(point?.x) && Number.isFinite(point?.z)
+    ? ground(point.x, point.z)
+    : NaN;
+}
+
+/** Reject malformed collision events before they enter pooled meshes and particle buffers. */
+export function impactRecordValid({ time, point, size = 2 } = {}) {
+  return Number.isFinite(time) && Number.isFinite(size) && size > 0
+    && Number.isFinite(point?.x) && Number.isFinite(point?.y) && Number.isFinite(point?.z);
+}
+
+/** Direction vectors from combat records must be finite and non-degenerate. */
+export function impactDirectionValid(dir) {
+  if (!Number.isFinite(dir?.x) || !Number.isFinite(dir?.y) || !Number.isFinite(dir?.z)) return false;
+  const lengthSquared = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
+  return Number.isFinite(lengthSquared) && lengthSquared > 1e-12;
+}
+
+/** A zero, fractional or excessive capacity cannot safely index the impact pool. */
+export function impactPoolCapacity(capacity) {
+  return Number.isSafeInteger(capacity) && capacity >= 1 && capacity <= 64 ? capacity : 6;
+}
+
+/** Only explicit, stable IDs are deduplicated; anonymous impact events are independent. */
+export function impactHasStableId(id) {
+  return (typeof id === 'string' && id.length > 0) || (typeof id === 'number' && Number.isFinite(id));
+}
+
 /** Consumes collision records without deciding damage. Fixed reusable slots and 3D tectonic impact shatter. */
 export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () => {} } = {}) {
+  // Keep pooled slot count finite and nonzero even with malformed quality/config input.
+  capacity = impactPoolCapacity(capacity);
   const root = new T.Group();
   parent.add(root);
   const debris = impactFragments(T, root, ground, 240);
@@ -23,13 +61,18 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
   return {
     root,
     emit({ id, time, point, size = 2, preset = 'cinder', kind = 'ball', dir = { x: 0, y: 1, z: 0 } }) {
-      if (seen.has(id)) return false;
-      seen.add(id);
-      if (seen.size > 64) seen.delete(seen.values().next().value);
+      if (!impactRecordValid({ time, point, size })) return false;
+      // Missing IDs previously collapsed every anonymous collision into a single event.
+      if (impactHasStableId(id)) {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        if (seen.size > 64) seen.delete(seen.values().next().value);
+      }
       const s = slots[head++ % capacity];
       Object.assign(s, { id, time, size, preset, kind, seed: head });
       Object.assign(s.point, point);
-      Object.assign(s.dir, dir);
+      // A malformed direction must never poison pooled shader transforms.
+      Object.assign(s.dir, impactDirectionValid(dir) ? dir : { x: 0, y: 1, z: 0 });
       s.body.material.uniforms.celestial.value = preset === 'celestial' ? 1 : 0;
       const pal = ENERGY_PALETTES[preset] || ENERGY_PALETTES.crimson;
       for (const k of ['deep', 'body', 'hot']) s.body.material.uniforms[k].value.setRGB(...pal[k]);
@@ -57,8 +100,9 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
         }
         const mode = s.kind === 'x' ? 'x' : 'radial';
         debris.add(p, age, s.size, C, s.seed + s.time, mode, low);
-        const gy = ground(p.x, p.z);
-        if (p.y - gy < 5) {
+        const gy = impactGroundHeight(ground, p);
+        const nearGround = impactTouchesGround(p.y, gy);
+        if (nearGround) {
           const nrm = groundNormal(ground, p.x, p.z, normal);
           shatter.addCrater(p.x, gy, p.z, age, 1.45, s.size * .72, C[0], C[1], C[2], s.seed, mode, low);
           light.add(p.x, gy, p.z, s.size * .95, C[0], C[1], C[2], Math.max(0, 1 - age / 1.65) * .95, 1, age * .6, s.seed, nrm, s.seed);
@@ -71,7 +115,8 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
           const a = i * 2.39996 + s.time, sp = s.size * (1 + hash(i + 7)), d = sp * age;
           embers.add(p.x + Math.cos(a) * d, p.y + Math.sin(i * 3.1) * d * .45 + age * .7 - age * age * 2, p.z + Math.sin(a) * d, .06, .28, ...C, fade * .85, 3, a, i);
         }
-        for (let i = 0; i < (low ? 4 : 7); i++) {
+        // Airborne collisions keep their energy and embers, but cannot kick up ground dust.
+        if (nearGround) for (let i = 0; i < (low ? 4 : 7); i++) {
           const a = i * 2.4, d = s.size * (.3 + age * .6);
           dust.add(p.x + Math.cos(a) * d, gy + .25 + age * 1.3, p.z + Math.sin(a) * d,
             s.size * .48 + age * .7, s.size * .35 + age * .5,
