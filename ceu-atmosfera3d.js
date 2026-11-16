@@ -27,27 +27,28 @@ void main(){
     vec3 g = warm * (band * .55 + halo) * uGold + vec3(.62, .42, .7) * exp(-max(d.y, 0.) * 5.) * (1. - side) * .16 * uGold;
     col += g; a += 0.;
   }
-  // ---- aurora: cortinas na faixa de azimute uAurDir (±~65°), base acima das serras
-  if (uAur > .001 && d.y > .1) {
+  // ---- aurora (Mod 325): DOIS arcos em oval inclinado que atravessam o céu (presentes em quase todos os rumos, com
+  //      intensidade variando por direção), cortinas altas com dobras que correm de lado, raios finos e respiração lenta.
+  if (uAur > .001 && d.y > .06) {
     vec2 hz = normalize(d.xz), ad = normalize(uAurDir.xz);
-    float rel = atan(hz.x * ad.y - hz.y * ad.x, dot(hz, ad));      // azimute relativo ao centro da aurora
-    float win = smoothstep(1.2, .45, abs(rel));
+    float az = atan(hz.x * ad.y - hz.y * ad.x, dot(hz, ad));
     float el = asin(clamp(d.y, 0., 1.));
-    float az = rel * 1.6;
-    float base = .27 + .07 * sin(az * 2.1 + uT * .035) + .05 * n1(az * 3. + uT * .02);   // pé da cortina ondulando
-    float fold = sin(az * 4.3 + 1.7 * sin(az * 1.3 + uT * .05) + uT * .03);            // dobras da cortina
-    float rays = n1(az * 46. + fold * 4. + uT * .06) * .6 + n1(az * 97. - uT * .09) * .4;
-    rays = .35 + .65 * pow(rays, 1.6);
-    float lowEdge = smoothstep(base - .015, base + .035, el);
-    float up = exp(-(el - base) * 3.2);
-    float body = lowEdge * up * (.55 + .45 * (fold * .5 + .5));
-    // segunda cortina mais alta e fraca
-    float base2 = base + .16 + .04 * sin(az * 1.7 - uT * .03);
-    float body2 = smoothstep(base2 - .02, base2 + .05, el) * exp(-(el - base2) * 4.) * .45 * (n1(az * 31. + uT * .05) * .7 + .3);
-    float k = (body * rays + body2) * win * uAur;
-    vec3 c = mix(vec3(.95, .38, .82), vec3(.58, .36, 1.), smoothstep(base, base + .22, el));   // rosa no pé, violeta acima
-    c = mix(c, vec3(.36, .58, 1.), smoothstep(base + .22, base + .5, el) * .6);               // azul no alto
-    col += c * k * .85;
+    for (int i = 0; i < 2; i++) {
+      float fi = float(i), ph = fi * 2.4 + uT * .004, cen = fi * 3.1;
+      float base = .3 + .16 * cos(az - ph) + .05 * sin(az * 2.3 + uT * .03 + fi) + .04 * n1(az * 3. + fi * 7. + uT * .02);
+      float win = .3 + .7 * smoothstep(-.2, .8, cos(az - cen));                              // mais forte de um lado, nunca some de todo
+      float fold = sin(az * (4.1 + fi) + 1.7 * sin(az * 1.3 + uT * .05 + fi) + uT * (.035 + fi * .01));
+      float rays = n1(az * (44. + fi * 9.) + fold * 4. + uT * .06) * .6 + n1(az * 97. - uT * .09 + fi * 3.) * .4;
+      rays = .3 + .7 * pow(rays, 1.5);
+      float lowEdge = smoothstep(base - .02, base + .04, el);
+      float tall = .9 + .6 * n1(az * 2. + fi * 5. + uT * .01);                                   // cortinas de alturas diferentes
+      float body = lowEdge * exp(-(el - base) * 2.6 / tall) * (.55 + .45 * (fold * .5 + .5));
+      float breath = .78 + .22 * sin(uT * .21 + fi * 2. + az * .7);
+      float k = body * rays * win * breath * uAur * (fi > .5 ? .75 : 1.);
+      vec3 c = mix(vec3(.95, .36, .82), vec3(.56, .34, 1.), smoothstep(base, base + .25, el));
+      c = mix(c, vec3(.34, .56, 1.), smoothstep(base + .25, base + .6, el) * .6);
+      col += c * k * .8;
+    }
   }
   gl_FragColor = vec4(col, a);
 }`;
