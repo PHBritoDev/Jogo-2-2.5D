@@ -98,3 +98,12 @@ test('malformed primary forest extents do not create reversed or unsafe spans', 
   }
   assert.ok(scatterForest(terrain, options).length > 0, 'valid primary region still supports forest');
 });
+
+test('malformed optional forest containers preserve the valid primary region', () => {
+  const options = { seed: 9137, attempts: 1500 };
+  const baseline = scatterForest(terrain, options);
+  assert.ok(baseline.length > 0);
+  for (const extraAreas of [42, {}, 'broken', { 0: terrain.area, length: 1 }]) {
+    assert.deepEqual(scatterForest({ ...terrain, extraAreas }, options), baseline);
+  }
+});
