@@ -134,3 +134,135 @@ Correções achadas no QA: comentário de linha que engolia o retorno em `update
 
 Testes: `node --test` geral com 830 aprovados; as falhas restantes já existem na `main` ou dependem do
 ambiente (build-info, Mod 305 ×2, Mod 262, Mod 278, `dist-public` não gerado, `sharp` ausente no visual-lab).
+
+## Mod 323 — revisão artística, física e de desempenho (16/11/2026)
+
+Briefing temporário removido nesta PR. As capturas de antes e depois, nos mesmos lugares e ângulos, estão em
+`evidencias/mod323/`: cada par mostra a `main` antes desta PR à esquerda e esta PR à direita. Foram feitas no jogo
+real, com Playwright e SwiftShader a 960×540.
+
+### Vulcão (marco A)
+
+**Antes**:
+- **Forma**: cone pontiagudo.
+- **Lava**: 11 listras radiais iguais.
+- **Malha**: a malha própria acabava antes do lóbulo, então a borda flutuava.
+- **Ravinas**: o ruído angular tinha uma costura em ±π, o que gerava triângulos-espinho.
+- **Névoa**: apagava a base.
+
+**Agora** (`volcanoHeight`):
+
+| parte | como é |
+|---|---|
+| Perfil | Estratovulcão côncavo, com cume truncado |
+| Cratera | 60 m, em tigela, com borda irregular e o lado noroeste rebaixado |
+| Ravinas | Ruído amostrado num círculo: sem costura, salto angular abaixo de 1,6 m (teste) |
+| Malha | Vai até 1,15 R, e o chão afunda alguns decímetros por baixo (sem degrau nem disputa de profundidade) |
+| Lava | 2 canais estreitos e irregulares desenhados no shader, e um lago de lava na cratera |
+| Névoa | A mesma do mundo, atenuada só no alto |
+
+O sopé sobe suave até o portal (cerca de 4,5 m acima da praça). Um anel de basalto marca o limite do cone, que
+não se escala.
+
+### Céu global (coordenado com A4 em #519; nenhuma paleta, luz ou névoa global foi alterada)
+
+- **`ceu-atmosfera3d.js`**: é uma única esfera que acompanha a câmera, sempre atrás de toda a geometria. Faz duas
+  coisas:
+  - o halo do sol baixo e a faixa laranja/rosa no horizonte do lado do sol;
+  - a **aurora no céu de verdade**: cortinas rosa, violeta e azuis com a base entre 15° e 20° de elevação, numa faixa
+    de azimute de cerca de ±60°. Entra aos poucos depois do crepúsculo e se apaga com nuvens e chuva.
+- **Aurora antiga**: o cilindro de 560 m em volta do jogador, que formava um anel no horizonte e ficava atrás das
+  serras, foi removido.
+- **`eldoria-weather3d.js`**: na hora dourada, as nuvens ganham bordas laranja/rosa e sombra lilás. A cobertura
+  mínima é de 0,36, apenas visual: não muda a chuva.
+
+### Vale (marco B)
+
+- **Capim**:
+  - manchas altas e baixas, verdes e douradas;
+  - lâminas de tamanhos variados, com espigas e luz que atravessa (com o sol baixo, antes ficavam pretas);
+  - flores em canteiros de 8 cores.
+- **Árvores**: as espécies do acervo (`EldoriaArvoresTropicais.glb`, copa larga e figueira, com LOD e impostor) em
+  bosques, árvores solitárias e mata nas fraldas das serras.
+- **Encostas**: mata baixa e rocha fria com estratos (antes, bege chapado).
+- **Bordas do mapa**: as serras baixam perto delas. Antes eram cortadas a pique e viravam "paredes" planas no
+  horizonte.
+- **Névoa**: com perspectiva aérea por altitude, os cumes ficam legíveis.
+- **Cachoeira**: tem lábio de pedra, cortina afastada da encosta, espuma e névoa. Cai num **poço raso de 0,7 m**
+  (caminhável), com pedras na borda, que alimenta o rio.
+
+### Ponte e abismo (marco C)
+
+- **Ponte**:
+  - ponte pênsil com torres de madeira, cabos em catenária e pendurais;
+  - longarinas sob as tábuas, com tábuas de tons variados;
+  - encontros de pedra aparelhada nas cabeceiras;
+  - pedras margeando a subida.
+- **Paredões**: faces de rocha com relevo, estratos, veios úmidos e musgo. Antes, a face do abismo era um painel
+  liso de triângulos com centenas de metros.
+- **Névoa**: 5 camadas. A de baixo é opaca, então **o fundo nunca aparece**.
+- **Quedas d'água**: 3 delas caem das paredes e somem na névoa.
+- **Vista**: a jornada usa plano de corte de 1,5 km e névoa recuada, então o vulcão aparece da ponte.
+
+### Terras de cinza, Cinzária e moradores (marco D)
+
+- **Terras de cinza**: cinza mais escura, línguas de basalto, ondulações, fendas escuras (algumas com brilho de
+  magma), respiradouros de vapor e rochas claras o bastante para ler a forma.
+- **Cinzária**:
+  - **Lotes**: recuos e larguras irregulares, lotes vagos e casas de 1 a 3 pavimentos.
+  - **Tipos de casa**: de reboco com andar em balanço, de pedra, oficinas e armazéns de tábua.
+  - **Prédios marcantes**: a **estalagem** de 3 pavimentos, com placa, e a **ferraria** com forja acesa e bigorna.
+  - **Telhados**: 5 cores e inclinações variadas, com cumeeira.
+  - **Fachadas**: venezianas coloridas e chaminés.
+  - **Chão e cantos**: calçamento de pedra irregular, barris, caixotes e canteiros encostados nas casas.
+- **Moradores**: os NPCs Meshy do autor (`NPC_Masculino_Animado_Otimizado_1K.glb` e `MulherNpc-otimizado.glb`, com
+  cabelo encaixado) e a vida de `eldoria-npc-life.js` (andar no passo do clipe, parar, olhar para o herói).
+  - Antes eram clones do `Npc-lod2.glb`, que continua no repositório para outros sistemas.
+  - Antes só existiam durante o Ato II. Agora a cidade é habitada em qualquer etapa.
+  - Nascem um por vez e não animam a mais de 70 m do herói.
+- **Câmera**: o braço da câmera não entra nos prédios. Antes, enquadrava o vão de telhados e paredes, que aparecia
+  preto.
+
+### Física
+
+- **Pedras da jornada**: são domos (`eldoria-rock-collider.js`). A pedra baixa sobe andando: no QA, o herói passou
+  por cima de duas pedras de 0,46–0,50 m. A pedra média ou alta bloqueia quem anda.
+- **Sólidos com topo**: os da cidade e do sopé deixam passar por cima quem já está acima deles.
+
+### Desempenho (SwiftShader x86; **o FPS em Android real não foi medido**)
+
+**Travada ao andar.** A cada 30 m, o repovoamento recalculava cerca de 15 mil vezes a função de relevo num único
+quadro, o que custava cerca de 205 ms de CPU em Node x86. Agora:
+- o capim e as flores são calculados uma vez por bloco, com grades 9×9 interpoladas para limite, estrada e rio;
+- repovoar só copia arrays (0,05 ms);
+- blocos e vegetação são montados em fatias com orçamento de 3–5 ms por quadro.
+
+**CPU por quadro** (`combatStep` sem desenho, teleporte a cada 4 m pelo vale, 572 quadros):
+
+| | p50 | p95 | p99 | máx | quadros > 50 ms |
+|---|---|---|---|---|---|
+| `main` | 8,6 ms | 73,9 ms | 99,5 ms | 154,9 ms | 39 |
+| Mod 323 | 8,9 ms | 15,7 ms | 19,6 ms | 21,9 ms | 0 |
+
+**Draw calls e triângulos** (loop real, 800×450):
+
+| lugar | `main` | Mod 323 |
+|---|---|---|
+| vale | 54 / 326 mil | 54 / 345 mil |
+| ponte | 95 / 286 mil | 82 / 369 mil |
+| cidade | 115 / 196 mil | 100 / 272 mil |
+
+Medidas para não deixar os números subirem:
+- grupos com LOD por distância (ponte, abismo, cachoeira, cidade e vapor);
+- postes, lanternas e bancas instanciados;
+- brilho das lanternas num único `Points`.
+
+### Limitações conhecidas
+
+- O FPS e a memória em aparelho físico (Galaxy A55) não foram medidos: os números acima são do SwiftShader.
+- O pulo sobre a pedra média não foi exercitado pelo debug (a ação de pulo não dispara no passo sintético). A regra
+  de domo é a mesma das rochas de Eldória, já testada.
+- O interior da caverna do vulcão (`volcano3d.js`) não foi reconstruído. A entrada e os 2 Enemy2 continuam ligados
+  ao fluxo do Ato II.
+- **Cinzária**: as casas são um kit procedural, não GLBs autorais. Não há crianças, porque a narrativa da cidade
+  ainda não foi escrita.
