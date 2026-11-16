@@ -97,3 +97,15 @@ test('nível corrompido não contamina vida, mana ou dano do personagem', () => 
   assert.deepEqual(statsForLevel('3'), statsForLevel(3), 'nível legado numérico em string continua válido');
   assert.deepEqual(statsForLevel(3), { maxHP: 600, maxMana: 112, damageBonus: .08 });
 });
+
+test('progresso corrompido não ignora requisitos de ato e nível da loja', () => {
+  const offer = item('magic');
+  for (const questStep of [NaN, Infinity, -Infinity, 'inválido']) {
+    assert.notEqual(shopStatus(offer, { questStep, level: 2, coins: 100 }).state, 'buyable');
+  }
+  for (const level of [NaN, Infinity, -Infinity, 'inválido']) {
+    assert.notEqual(shopStatus(offer, { questStep: 4, level, coins: 100 }).state, 'buyable');
+  }
+  assert.equal(shopStatus(offer, { questStep: '4', level: '2', coins: 100 }).state, 'buyable',
+    'save legado com progresso numérico em string permanece aceito');
+});
