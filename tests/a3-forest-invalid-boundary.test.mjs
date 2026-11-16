@@ -60,3 +60,24 @@ test('invalid primary forest span returns no GPU-invalid coordinates', () => {
     assert.deepEqual(scatterForest({ ...terrain, area: { ...terrain.area, cx } }, options), []);
   }
 });
+
+test('forest sampling budget is finite, bounded and deterministic for mobile', () => {
+  const valid = scatterForest(terrain, { seed: 9137, attempts: 2600 });
+  for (const attempts of [NaN, Infinity, -Infinity]) {
+    assert.deepEqual(scatterForest(terrain, { seed: 9137, attempts }), valid);
+  }
+  assert.deepEqual(scatterForest(terrain, { attempts: -20 }), []);
+  assert.deepEqual(scatterForest(terrain, { attempts: 0 }), []);
+  assert.deepEqual(
+    scatterForest(terrain, { seed: 9137, attempts: 100.9 }),
+    scatterForest(terrain, { seed: 9137, attempts: 100 }),
+  );
+  assert.deepEqual(
+    scatterForest(terrain, { seed: 9137, attempts: 1000000 }),
+    scatterForest(terrain, { seed: 9137, attempts: 10000 }),
+  );
+  assert.deepEqual(
+    scatterForest(terrain, { seed: 9137, attempts: Infinity, lowSpec: true }),
+    scatterForest(terrain, { seed: 9137, attempts: 2600, lowSpec: true }),
+  );
+});
