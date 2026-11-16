@@ -25,3 +25,17 @@ test('normal production terrain grid remains finite and ordered', () => {
 test('terrain array builder rejects invalid axis configuration', () => {
   assert.throws(() => buildTerrainArrays({ height: () => 0 }, { fineCell: 0 }), RangeError);
 });
+
+
+test('terrain array world offsets cannot collapse GPU cells or overflow', () => {
+  const flat = { height: () => 0 };
+  assert.throws(() => buildTerrainArrays(flat, { cx: 1e12, fineHalf: 4, fineCell: 2, outerSteps: 2, growth: 1 }), /world-space axis/);
+  assert.throws(() => buildTerrainArrays(flat, { cz: 1e100, fineHalf: 4, fineCell: 2, outerSteps: 2, growth: 1 }), /world-space axis/);
+  const valid = buildTerrainArrays(flat, { cx: 100, cz: -100, fineHalf: 4, fineCell: 2, outerSteps: 2, growth: 1 });
+  assert.ok(valid.positions.every(Number.isFinite));
+});
+
+test('terrain array rejects heights that overflow GPU Float32', () => {
+  assert.throws(() => buildTerrainArrays({ height: () => 1e100 }, { fineHalf: 4, fineCell: 2, outerSteps: 2, growth: 1 }), /terrain height/);
+  assert.throws(() => buildTerrainArrays({ height: () => NaN }, { fineHalf: 4, fineCell: 2, outerSteps: 2, growth: 1 }), /terrain height/);
+});
