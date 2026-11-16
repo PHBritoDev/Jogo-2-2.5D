@@ -19,10 +19,14 @@ export function volumeTrail(T,parent,preset,{capacity=36,life=.65,radius=.5,side
   let live=0;for(let j=0;j<count;j++){if(time-history[(head-j+capacity)%capacity].t>life)break;live++;}mesh.visible=live>1;if(!mesh.visible)return;
   for(let j=0;j<live;j++){
    const h=history[(head-j+capacity)%capacity],next=history[(head-Math.min(live-1,j+1)+capacity)%capacity];
-   tangent.subVectors(h.p,next.p).normalize();
-   if(tangent.lengthSq()<.01)tangent.set(0,0,1);
-   side.crossVectors(axis,tangent).normalize();
-   if(side.lengthSq()<.01)side.set(1,0,0);
+   tangent.subVectors(h.p,next.p);
+   // Test before normalization: sub-centimeter movement must not amplify jitter.
+   if(tangent.lengthSq()<.0001)tangent.set(0,0,1);
+   else tangent.normalize();
+   side.crossVectors(axis,tangent);
+   // Near-vertical swings need a stable perpendicular, not a near-zero basis.
+   if(side.lengthSq()<.0001)side.set(1,0,0);
+   else side.normalize();
    up.crossVectors(tangent,side);
    const fade=Math.max(0,1-(time-h.t)/life),w=radius*Math.pow(fade,1.35);
    const uRatio=j/Math.max(1,live-1);
