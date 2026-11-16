@@ -74,3 +74,23 @@ test('valid nondefault hidden layer remains configurable', () => {
   budget.scan();
   assert.equal(source.layers.value, 30);
 });
+
+test('extreme finite source intensity stays within mobile shader budget', () => {
+  const scene = new Object3D();
+  const source = new PointLight();
+  source.name = 'extreme';
+  source.intensity = 1e308;
+  source.distance = 0;
+  source.decay = 2;
+  source.visible = true;
+  source.color = { r: 1, g: 1, b: 1 };
+  source.matrixWorld = {};
+  scene.add(source);
+  const budget = createLightBudget(THREE, scene, { slots: 1 });
+  const camera = { getWorldPosition(out) { out.x = 0; out.y = 0; out.z = 0; } };
+  for (let i = 0; i < 120; i++) budget.update(camera, 1 / 60);
+  const slot = scene.children.find(child => child.userData.budgetSlot);
+  assert.ok(Number.isFinite(slot.intensity));
+  assert.ok(slot.intensity > 0 && slot.intensity <= 64);
+  assert.deepEqual(budget.stats().active, ['extreme']);
+});
