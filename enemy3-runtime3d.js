@@ -45,7 +45,7 @@ export function poseKatana(T, b, a, dt, time, low) {
     const P = thronePose(thr.t), fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, e = smooth((thr.dur - thr.t) / .35);
     V.d.set(fy * P.blade[0] + rx * P.blade[2], P.blade[1], fz * P.blade[0] + rz * P.blade[2]).normalize(); V.f.set(fy * .3 + rx * .12, -1, fz * .3 + rz * .12).normalize(); V.d.lerp(V.f, 1 - e).normalize();
     V.p.set(rx, 0, rz); V.x.crossVectors(V.p, V.d).normalize(); V.f.crossVectors(V.x, V.d).normalize(); V.m.makeBasis(V.x, V.d, V.f); root.quaternion.setFromRotationMatrix(V.m);
-  } else if (a.alive && a.act && (a.act.move || (a.kind === 'vhazrael' && a.act.skill === 'orbital'))) h.getWorldQuaternion(root.quaternion); // a lâmina segue o osso nos golpes
+  } else if (a.alive && a.act && (a.act.move || a.act.type === 'leap' || (a.kind === 'vhazrael' && a.act.skill === 'orbital'))) { h.getWorldQuaternion(root.quaternion); if (b.grip) root.quaternion.multiply(b.grip); } // a lâmina segue o osso nos golpes (Mod 320: empunhadura calibrada do VHAZRAEL.glb)
   else {
     const cast = a.alive && a.act && (a.act.type === 'cast' || a.act.type === 'phase2'); b.kCast += ((cast ? 1 : 0) - b.kCast) * Math.min(1, dt * 6);
     const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, k = b.kCast;

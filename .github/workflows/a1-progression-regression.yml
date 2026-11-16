@@ -1,0 +1,21 @@
+name: A1 — regressao de progressao 3D
+on:
+  pull_request:
+    paths:
+      - 'progression3d.js'
+      - 'progression3d.test.mjs'
+      - '.github/workflows/a1-progression-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  progression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regressao real de XP, loja e conquistas
+        run: node --test progression3d.test.mjs

@@ -690,7 +690,8 @@
       "vhazrael3d.js"
     ],
     "structuralEquivalence": true,
-    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved.",
+    "removedBy": "Mod 320 (PR #571): modelo antigo do VHAZRAEL substituído por VHAZRAEL.glb"
   },
   {
     "file": "Bispo1.0.glb",
@@ -755,7 +756,8 @@
     "estimatedRGBA8TextureBytesWithMips": 16777215,
     "runtimeLiteralReferences": [],
     "structuralEquivalence": true,
-    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved."
+    "notes": "No new codec/extension; all accessor bytes, node/skin/animation/material definitions preserved.",
+    "removedBy": "Mod 320 (PR #571): modelo antigo do VHAZRAEL substituído por VHAZRAEL.glb"
   },
   {
     "file": "Bispo2-lod.glb",

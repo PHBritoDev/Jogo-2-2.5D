@@ -1,7 +1,10 @@
+import { orbitalPath, orbitalMeteorAt, segSegDist, orbitalBlastR } from './vhazrael-orbital-path.js';
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
+import { SHIELD_SPECS } from './combat-defense3d.js';
+import { VZ_MOVES } from './vhazrael-rig3d.js';
 // Selo do motor, importado pela página para provar que a lógica nova carregou.
-export const VHAZRAEL_BUILD = '255-bombardeio-dobro';
+export const VHAZRAEL_BUILD = '320-ceifador-glb';
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
@@ -31,36 +34,74 @@ const lead = (t, k, cap) => ({ x: t.x + clamp((t.vx || 0) * k, -cap, cap), z: t.
 const anyActive = (sq, type) => sq.spells.some(s => s.type === type && !s.dead && s.phase !== 'fade');
 const channeling = (sq, s) => { const o = sq.actor(s.owner); return !!(o && o.alive && o.act && o.act.type === 'cast' && o.act.spellId === s.id); };
 
-export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 14, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 4.6, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, shockAt: .25, shockTravel: 1.6, blast: 1.05, fade: 2.8 };
-export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 9, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
-export const BOMBARD = { min: 3, max: 26, cast: .9, release: .45, cd: 13, anim: 'idle', channel: false, rise: .6, dur: 5.6, every: .22, fall: .62, r: 1.45, dmg: 6, lead: .12, leadCap: 1.6, side: 2.6, jitter: .5, fireR: 1.45, fireLife: 2.6, fireTick: .6, fireDmg: 2, maxFires: 12, alt: 10.5 };
-export const ORBITAL = { min: 0, max: 60, cast: 15.8, release: .05, cd: 999, anim: 'idle', channel: true, awaken: 2.6, orbit: 3, entry: 4, arrival: 1.6, choice: 2.6, impact: 2, after: 2.2, guard: .35, dmg: 95, shieldDmg: 14, needSkills: 3, lowHp: .35 };
+export const THRONE = { min: 4, max: 30, cast: 9.2, release: .02, cd: 20, anim: 'idle', channel: true, unstoppable: true, raise: 1.65, charge: 4.45, cut: 5.15, speed: 24, range: 32, w: 4.6, h: 6, dmg: 26, endR: 6, endDmg: 14, impact: 3.6, shockAt: .25, shockTravel: 1.6, blast: .6, fade: 2.8,
+  /* Mod 320: SEGUNDA explosão — mesmo epicentro do contato, .6 s após a primeira (compressão + detonação), frente que cresce até r em grow s;
+     dano próprio por CONTATO da frente (no máximo 1 por alvo), telegrafado desde o impacto pelo anel no chão; pular acima de h, dash (iframes) ou sair do raio escapa. */
+  second: { r: 4.8, grow: .42, h: 3.2, dmg: 14 } };
+export const THORNS = { min: 2, max: 18, cast: 1.1, release: .45, cd: 14, anim: 'idle', waves: 3, per: 6, gap: .75, warn: .85, active: .35, hold: .8, r: .42, len: 1.6, dmg: 9, ring: [1.2, 3.6], arc: 4.2, lead: .45 };
+export const BOMBARD = { min: 3, max: 26, cast: .9, release: .45, cd: 18, anim: 'idle', channel: false, rise: .6, dur: 5.6, every: .22, fall: .62, r: 1.45, dmg: 6, lead: .12, leadCap: 1.6, side: 2.6, jitter: .5, fireR: 1.45, fireLife: 2.6, fireTick: .6, fireDmg: 2, maxFires: 12, alt: 10.5 };
+/* Mod 320 — Extinção Orbital refeita (briefing §7/§8): 3 tomadas LONGAS travadas (awaken 3,2 s · orbit 6,4 s contínua · entry 2,6 s
+   reentrada→plano aberto→câmera devolvida) e então a QUEDA jogável (fall) com tudo liberado menos a ultimate do herói.
+   Dano SÓ por contato: corpo do meteoro (esfera meteorR, teste contínuo do segmento percorrido contra a cápsula) e a
+   explosão (domo que cresce de 0 a blastR em blastGrow s; altura blastH), no máximo 1 acerto de cada por alvo. */
+export const ORBITAL = { min: 0, max: 60, cast: 18, release: .05, cd: 999, anim: 'idle', channel: true, awaken: 3.2, orbit: 6.4, entry: 2.6, fall: 4.2, impact: 1.6, after: 2.4,
+  meteorR: 6.5, approach: 300, sink: .35, meteorDmg: 150, blastR: 15, blastH: 6, blastGrow: .95, blastDmg: 120, needSkills: 3, lowHp: .35 };
 
+/* Mod 320 — vida e fases. Baseline REAL da luta jogável = DIMENSIONS.bishop1.hp 260 × squadHp 2,5 = 650 (o 900 daqui
+   nunca valia na dimensão). 4× → 2600 em jogo (DIMENSIONS 1040 × 2,5) e aqui. Fases pela vida: 0 ensino (>70 %), 1 técnica (70–40 %), 2 ritmo (40–15 %),
+   3 fúria (≤15 %). Fases sobem a variedade e a pressão de ESPADA, nunca transformam o chefe em canhão de magia. */
+export const VZ_HP = 2600, VZ_PHASES = [.7, .4, .15];
+/** Mod 320: o golpe do herói pesa 1,6× no VHAZRAEL — vida 4× maior sem virar desgaste (tempo de luta ≈ 2,5× o antigo, com herói 5× mais resistente). */
+export const VZ_HERO_DMG = 1.6;
+export const vzPhaseOf = (hp, max) => { const k = hp / Math.max(1, max); return k > VZ_PHASES[0] ? 0 : k > VZ_PHASES[1] ? 1 : k > VZ_PHASES[2] ? 2 : 3; };
+/** Duplo salto REAL (motor da esquadra: 2 impulsos, dash aéreo travado no alvo, corte descendente no pouso). */
+export const VZ_LEAP = Object.freeze({ min: 3.4, max: 9, crouch: .2, v1: 7.4, v2: 5.8, second: .38, dash: .26, dashSpeed: 12.5, fall: -15, maxAir: 1.5, gravity: 18, strike: { r: 2.1, dmg: 16, arc: -.3 }, recover: .55, cd: 7.5, role: 'jump', from: 1.45, speed: 1.2 });
+/** Dash: recarga de 0,5 s, mas com orçamento (no máximo 3 em 2,5 s) e compromisso — nunca vira teleporte em série. */
+export const VZ_DASH = Object.freeze({ speed: 13, time: .24, cd: .5, budget: 3, window: 2.5, lockout: 1.3 });
+/** Proporção de decisões ofensivas: a magia é pontuação de ritmo (alvo 25–40 % das últimas 12 decisões). */
+export const VZ_MIX = Object.freeze({ window: 12, maxSpell: .34, minSpellGap: 6 });
 const VHAZ = {
-  ...E1.common, hp: 900, radius: .55, height: 2.2, poise: 60, flinch: 99, stamina: 140, sight: 40, leash: 60, boss: true, pref: [1.8, 2.6], phase2: .5, furyCd: .78,
-  speed: { walk: 2.2, run: 4.8, strafe: 2.1, back: 2.7, turn: 10 },
-  // Bispo1-lod.glb 'Sword Aerial Combo' (1 s): dois cortes do clipe casados com as janelas
-  melee: { max: 2.6, reach: 2.6, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 12, cd: 1.5, knock: .8 },
-  dash: { speed: 11, time: .3, cd: 1.6 }, block: { chance: .32, dur: .7, cd: 1.8, cost: 12, reduce: .8 }, dodge: { chance: .4, cd: 2 },
+  ...E1.common, hp: VZ_HP, radius: .55, height: 2.3, poise: 70, flinch: 99, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.6, 2.4], phase2: .4, furyCd: .8,
+  speed: { walk: 2.2, run: 4.9, strafe: 2.2, back: 2.8, turn: 10 },
+  melee: { max: 2.8, reach: 2.7, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 13, cd: 1.1, knock: .8 },
+  dash: VZ_DASH, block: { chance: .32, dur: .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: .42, cd: VZ_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
-  decide: [.16, .26], gap: .45, spellGap: 2.2, maxBig: 2, interrupt: true, feint: 'throne',
+  leap: VZ_LEAP, shield: SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
+  decide: [.16, .26], gap: .42, spellGap: VZ_MIX.minSpellGap, maxBig: 1, interrupt: true, feint: 'throne',
   kit: ['throne', 'thorns', 'bombard', 'orbital'], throne: THRONE, thorns: THORNS, bombard: BOMBARD, orbital: ORBITAL,
-  brain: vhazraelBrain
+  brain: vhazraelBrain, pickMove: vhazraelPickMove, holdDeath: (sq, a) => orbitalHoldsDeath(sq, a)
 };
-/* MOD 247b — golpes de espada NATIVOS (assador de IK da Mod 244 sobre o esqueleto mixamo do Bispo1): substituem o clipe
-   acrobático 'Sword Aerial Combo' (girava/deitava o tronco ~56°) por cortes de montante estáveis, com contato pela lâmina. */
-BOSS_MOVES.vhazrael = [
-  { id: 'Trono_Corte', label: 'Corte do Trono', patterns: ['diagonal', 'reverse'], hits: [.5, .92], duration: 1.55, advance: .6, heavy: true },
-  { id: 'Trono_Estocada', label: 'Estocada do Condenado', patterns: ['thrust'], hits: [.68], duration: 1.4, advance: 2.4, range: [2.4, 5], score: 1, cd: 6 },
-  { id: 'Trono_Queda', label: 'Sentença Vertical', patterns: ['overhead'], hits: [1.05], duration: 2, advance: 1, jump: .55, heavy: true }
-];
-for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.jump ? 1.3 : m.range ? 1.15 : 1; }
+/* Mod 320 — golpes de espada NATIVOS do VHAZRAEL.glb (vhazrael-rig3d.js): clipes reais, janelas nos picos medidos da
+   mão, contato pelo traço da lâmina amostrado do mesmo clipe. Substituem os 3 golpes de IK do rig antigo. */
+BOSS_MOVES.vhazrael = VZ_MOVES.map(m => ({ ...m, patterns: ['diagonal'] }));
+for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.35 : m.fast ? .8 : m.range ? 1.1 : m.hits.length > 2 ? .85 : 1; }
+/** Escolha do golpe: fase, situação observada (guarda → golpe pesado; alvo de lado/atrás → giro; janela de castigo →
+    abertura rápida) e anti-repetição (nunca o mesmo duas vezes seguidas; peso cai para os recentes). */
+export function vhazraelPickMove(sq, a, t, pool) {
+  if (!pool.length) return null; const recent = a.recentMoves || (a.recentMoves = []), st = sq.study(t.id).rates;
+  const dx = t.x - a.x, dz = t.z - a.z, d = Math.hypot(dx, dz) || 1, front = (dx * Math.sin(a.yaw) + dz * Math.cos(a.yaw)) / d;
+  const recovering = sq.time - sq.study(t.id).lastAttack < .9;
+  let best = null, bs = -Infinity;
+  for (const m of pool) {
+    let w = m.weight || 1;
+    if (recent[recent.length - 1] === m.id) w -= 2; else if (recent.includes(m.id)) w -= .45;
+    if (m.guardBreak && (t.blocking || st.block > .25)) w += 1.1;
+    if (m.spin && front < .35) w += 1.2;
+    if (m.fast && recovering) w += .8;
+    if (m.opener && !a.lastMoveAt) w += .6;
+    if (m.hits.length > 2) w += .25 * (a.vzPhase || 0);
+    w += (sq.rand() - .5) * .5;
+    if (w > bs) { bs = w; best = m; }
+  }
+  recent.push(best.id); if (recent.length > 3) recent.shift(); a.lastMoveAt = sq.time; return best;
+}
 export const VZ = Object.freeze({ boss: registerKind('vhazrael', VHAZ) });
 
 /* ---------- cérebro adaptativo ---------- */
 /** Estilo observado (médias que decaem em ~8 s) e adaptação limitada dos parâmetros do PRÓPRIO bispo. */
 export function vhazraelBrain(sq, a, dt, t) {
   if (!a.ownT) { a.T = { ...a.T, block: { ...a.T.block }, dodge: { ...a.T.dodge }, thorns: { ...a.T.thorns }, throne: { ...a.T.throne } }; a.ownT = true; a.style = { dash: 0, side: 0, guard: 0, aggr: 0, far: 0, cast: 0, near: 0, samples: 0 }; a.used = new Set(); }
+  vzTick(sq, a, dt);
   const S = a.style, k = Math.exp(-dt / 8);
   for (const key of ['dash', 'guard', 'aggr', 'far', 'cast', 'near']) S[key] *= k;
   if (t) {
@@ -84,6 +125,21 @@ export function vhazraelBrain(sq, a, dt, t) {
   const orbit = sq.spells.find(s => s.type === 'orbital' && s.phase !== 'after' && s.phase !== 'done');
   for (const o of sq.actors) if (o !== a && o.alive) { if (orbit) { o.alert = Math.max(o.alert, .5); if (o.act && o.act.type !== 'stagger') o.act = null; } }
 }
+/** Mod 320 — fase pela vida, orçamento de dash e proporção espada × magia (com registro auditável em a.vzStats). */
+function vzTick(sq, a, dt) {
+  const ph = vzPhaseOf(a.hp, a.maxHp); if (ph !== a.vzPhase) { const was = a.vzPhase; a.vzPhase = ph; if (was !== undefined) sq.event('vzPhase', { actor: a, phase: ph }); }
+  a.cdMul = Math.min(a.cdMul || 1, [1, .9, .8, .7][ph]);
+  const S = a.vzStats || (a.vzStats = { melee: 0, leap: 0, dash: 0, block: 0, shield: 0, spell: 0, log: [], dashAt: [] });
+  if (a.act && a.act !== a._vzAct) { a._vzAct = a.act; const x = a.act, kind = x.type === 'cast' && x.skill && x.skill !== 'counter' ? 'spell' : x.type === 'melee' ? 'melee' : x.type === 'leap' ? 'leap' : x.type === 'dodge' ? 'dash' : x.type === 'block' ? 'block' : null;
+    if (kind) { S[kind]++; if (kind !== 'block') { S.log.push(kind); if (S.log.length > VZ_MIX.window) S.log.shift(); } if (kind === 'dash') S.dashAt.push(sq.time); } }
+  if (!a.act && a.shield && a.shield.active && !a._vzShield) { a._vzShield = true; S.shield++; } else if (!(a.shield && a.shield.active)) a._vzShield = false;
+  // magia demais nas últimas decisões → segura a próxima até a espada voltar a liderar
+  const spells = S.log.filter(k => k === 'spell').length; if (S.log.length >= 6 && spells / S.log.length > VZ_MIX.maxSpell) a.cds.spellGap = Math.max(a.cds.spellGap || 0, 2.5);
+  // dash: no máximo VZ_DASH.budget em VZ_DASH.window s; estourou → trava esquiva/avanço por um tempo (compromisso)
+  S.dashAt = S.dashAt.filter(t0 => sq.time - t0 < VZ_DASH.window); if (S.dashAt.length >= VZ_DASH.budget) { a.cds.dodge = Math.max(a.cds.dodge || 0, VZ_DASH.lockout); a.cds.lunge = Math.max(a.cds.lunge || 0, VZ_DASH.lockout); a.cds.close = Math.max(a.cds.close || 0, VZ_DASH.lockout); }
+}
+/** Proporção auditável (testes/QA): fração de decisões ofensivas de espada/manobra × magia. */
+export function vzMix(a) { const S = a.vzStats; if (!S) return null; const off = S.melee + S.leap + S.dash, tot = off + S.spell; return { ...S, log: undefined, dashAt: undefined, swordShare: tot ? +(off / tot).toFixed(3) : null }; }
 const showDistinct = a => a.used ? [...a.used].filter(id => id !== 'orbital').length : 0;
 const varied = (a, id) => (a.lastSkill === id ? -.4 : 0) + (a.used && !a.used.has(id) ? .25 : 0); // não repete; mostra o kit inteiro
 const markUsed = (a, id) => { a.lastSkill = id; if (a.used) a.used.add(id); };
@@ -200,13 +256,28 @@ registerSkill('throne', {
       }
       if (!s.blasted && s.t >= T.blast) {
         s.blasted = true;
-        sq.event('throneBlast', { spell: s }); // apenas reforço VISUAL, nunca outra bomba
+        sq.event('throneBlast', { spell: s }); // Mod 320: segunda explosão no MESMO epicentro (s.ix/s.iz), dano abaixo
+      }
+      if (s.blasted && T.second && !s.secondDone) { // frente da segunda explosão: só quem ela TOCA, uma vez, nunca o que já passou
+        const S2 = T.second, k = clamp((s.t - T.blast) / S2.grow, 0, 1), R = S2.r * (1 - (1 - k) ** 2), R0 = s.r2 || 0;
+        s.hit2 = s.hit2 || new Set();
+        for (const tg of live(sq)) {
+          if (s.hit2.has(tg.id)) continue;
+          const d = Math.hypot(tg.x - s.ix, tg.z - s.iz);
+          if (d - tg.radius > R || d + tg.radius < R0) continue; // a frente ainda não chegou / já passou por dentro dele
+          if ((tg.air || 0) > S2.h || tg.iframes) continue;
+          if (sq.los && !sq.los(s.ix, s.iz, tg.x, tg.z)) continue;
+          s.hit2.add(tg.id);
+          const res = sq.damageTarget(tg.id, S2.dmg, { kind: 'throneSecond', spell: s.id, x: s.ix, z: s.iz, knock: 0 });
+          sq.event('throneSecondHit', { spell: s, target: tg.id, result: res, damage: S2.dmg });
+        }
+        s.r2 = R; if (k >= 1) s.secondDone = true;
       }
       if (s.t >= T.impact) { s.phase = 'fade'; s.t = 0; }
     }
         else if (s.phase === 'fade' && s.t >= T.fade) s.dead = true;
   },
-  danger(sq, s) { return s.phase === 'wave' ? { x: s.x + s.dx * s.front, z: s.z + s.dz * s.front, r: s.T.w + 1, until: .4 } : null; }
+  danger(sq, s) { return s.phase === 'wave' ? { x: s.x + s.dx * s.front, z: s.z + s.dz * s.front, r: s.T.w + 1, until: .4 } : s.phase === 'impact' && s.T.second && !s.secondDone ? { x: s.ix, z: s.iz, r: s.T.second.r + .5, until: Math.max(.1, s.T.blast + s.T.second.grow - s.t) } : null; }
 });
 
 
@@ -300,38 +371,90 @@ registerSkill('bombard', {
 });
 
 /* ---------- Extinção Orbital (ultimate única) ---------- */
-/* MOD 253 — storyboard: awaken (close do tirano, X no rosto) → orbit (Terra + ameaça distante) → entry (montagem da viagem e
-   reentrada) → arrival (arena: o meteoro surge no céu) → choice (POV jogável: DEF/ULTIMATE) → impact (choque) → after. */
-export const ORBITAL_PHASES = ['awaken', 'orbit', 'entry', 'arrival', 'choice', 'impact', 'after'];
+/* Mod 320 — storyboard em 3 tomadas longas + queda jogável: awaken (A: câmera baixa atrás do herói, o bispo ergue a espada,
+   a luz cai e o céu abre) → orbit (B: tomada orbital contínua, o ponto de luz vira meteoro) → entry (C: reentrada e plano
+   aberto da arena; a câmera VOLTA ao jogador antes do impacto) → fall (jogável: sombra crescendo sobre o alvo TRAVADO) →
+   impact (explosão por contato) → after. Sem dano global, sem cancelar se o dono zerar a vida (morte pendente). */
+export const ORBITAL_PHASES = ['awaken', 'orbit', 'entry', 'fall', 'impact', 'after'];
+export const ORBITAL_LOCKED = /^(awaken|orbit|entry)$/;
+export { orbitalPath, orbitalMeteorAt, segSegDist, orbitalBlastR };
+const capsule = (sq, tg) => { const y0 = (sq.ground ? sq.ground(tg.x, tg.z) : (tg.y || 0)) + (tg.air || 0), r = tg.radius || .42, h = tg.height || 1.8; return { a: { x: tg.x, y: y0 + r, z: tg.z }, b: { x: tg.x, y: y0 + Math.max(r, h - r), z: tg.z }, r }; };
+/** Ponto da cápsula mais próximo de c, com a escala vertical do domo (elipsoide blastR × blastH). */
+/** distância da cápsula ao centro no espaço normalizado do domo: a altura cresce JUNTO com o raio (proporção fixa blastR:blastH), igual ao desenho. */
+function domeDist(c, cap, k) { const y = clamp(c.y, cap.a.y, cap.b.y), dy = (c.y - y) * k; return Math.hypot(c.x - cap.a.x, dy, c.z - cap.a.z) - cap.r; }
 registerSkill('orbital', {
   score(sq, a) {
-    if (a.ultUsed || anyActive(sq, 'orbital')) return null; const T = a.T.orbital;
+    if (a.ultUsed || anyActive(sq, 'orbital') || a.pendingDeath) return null; const T = a.T.orbital;
     return showDistinct(a) >= T.needSkills || a.hp < a.maxHp * T.lowHp ? 1.8 : null; // só depois de mostrar o kit (ou progresso equivalente)
   },
   spawn(sq, a, t) {
     a.ultUsed = true; markUsed(a, 'orbital'); if (a.act) a.act.armor = true; // não é atordoado no meio do espetáculo
-    const s = { id: sq.nextId++, type: 'orbital', owner: a.id, kind: a.kind, T: a.T.orbital, tid: t.id, t: 0, total: 0, phase: 'awaken', x: a.x, z: a.z, y: a.y, guardT: 0, result: null };
+    const s = { id: sq.nextId++, type: 'orbital', owner: a.id, kind: a.kind, T: a.T.orbital, tid: t.id, t: 0, total: 0, phase: 'awaken', x: a.x, z: a.z, y: a.y, result: null, hitM: new Set(), hitB: new Set(), log: [] };
     for (const o of sq.spells) if (o !== s && o.type !== 'orbital' && o.owner === a.id) o.dead = true; // nada sobreposto
     sq.spells.push(s); sq.event('orbital', { spell: s, actor: a }); return s;
   },
   step(sq, s, dt) {
     const T = s.T, o = sq.actor(s.owner), t = sq.target(s.tid); s.total += dt;
-    if (!o || !o.alive) { if (s.phase !== 'after') { s.phase = 'after'; s.t = 0; s.result = s.result || 'cancel'; sq.event('orbitalEnd', { spell: s, why: 'owner' }); } }
-    const dur = { awaken: T.awaken, orbit: T.orbit, entry: T.entry, arrival: T.arrival, choice: T.choice, impact: T.impact, after: T.after };
-    if (s.phase === 'choice' && t) { if (t.blocking) s.guardT += dt; if (t.ultimate) s.duel = true; if (!s.guardOk && s.guardT >= T.guard) { s.guardOk = true; sq.event('orbitalGuard', { spell: s, target: t.id }); } } // retorno ANTES do impacto
-    s.dim = s.phase === 'awaken' ? .7 * smooth(s.t / .6) : s.phase === 'arrival' ? .35 * smooth(s.t / T.arrival) : s.phase === 'choice' ? .35 : s.phase === 'impact' ? .35 * (1 - smooth(s.t / 1.5)) : 0; // silhueta no despertar, sombra do meteoro
-    if (s.phase === 'after') { if (s.t >= T.after) s.dead = true; return; }
+    if (!o) { s.dead = true; return; } // limpeza sistêmica (ator removido da cena): nenhum dano
+    // Mod 320: NÃO cancela por !owner.alive — o meteoro já foi chamado; com o dono em 0 a morte fica pendente até o resultado
+    const dur = { awaken: T.awaken, orbit: T.orbit, entry: T.entry, fall: T.fall, impact: T.impact, after: T.after };
+    s.dim = s.phase === 'awaken' ? .7 * smooth(s.t / .8) : s.phase === 'orbit' || s.phase === 'entry' ? .55 : s.phase === 'fall' ? .35 + .25 * smooth(s.t / T.fall) : s.phase === 'impact' ? .6 * (1 - smooth(s.t / 1.4)) : 0;
+    if (s.phase === 'after') { if (!s.resolved) this.resolve(sq, s, o); if (s.t >= T.after) s.dead = true; return; }
+    if ((s.phase === 'fall' || s.phase === 'impact') && !s.path) this.lock(sq, s, o, t); // PULAR direto para a queda: trava o alvo no mesmo tick
+    if (s.phase === 'fall') this.fall(sq, s);
+    if (s.phase === 'impact') this.blast(sq, s);
     if (s.t >= dur[s.phase]) {
-      s.t -= dur[s.phase]; const next = ORBITAL_PHASES[ORBITAL_PHASES.indexOf(s.phase) + 1]; s.phase = next; sq.event('orbital_' + next, { spell: s });
-      if (next === 'impact') for (const tg of live(sq)) { // sem ponto seguro: o meteoro cobre a dimensão inteira
-        const guard = tg.blocking || (tg.id === s.tid && s.guardT >= T.guard), duel = tg.ultimate || (tg.id === s.tid && s.duel);
-        const result = duel ? 'duel' : guard ? 'shield' : 'none'; if (tg.id === s.tid) s.result = result;
-        if (result !== 'duel') sq.damageTarget(tg.id, result === 'shield' ? T.shieldDmg : T.dmg, { kind: 'orbital', spell: s.id, x: s.x, z: s.z, knock: result === 'shield' ? .8 : 2, unblockable: result === 'none', shieldBreak: result === 'shield' });
-        sq.event('orbitalResult', { spell: s, target: tg.id, result });
-      }
+      s.t -= dur[s.phase]; const next = ORBITAL_PHASES[ORBITAL_PHASES.indexOf(s.phase) + 1];
+      if (next === 'entry' || (next === 'fall' && !s.path)) this.lock(sq, s, o, t); // alvo TRAVADO antes do plano aberto (o jogador vê onde cai)
+      if (next === 'impact') this.fall(sq, s, true); // fecha o último trecho da trajetória no mesmo tick (nada atravessa entre frames)
+      s.phase = next; sq.event('orbital_' + next, { spell: s });
+      if (next === 'impact') { s.prevR = 0; sq.event('orbitalImpact', { spell: s, x: s.path.ix, z: s.path.iz }); this.blast(sq, s); }
     }
   },
-  danger() { return null; }
+  /** trava o epicentro: posição do alvo no instante (estável até o fim) e a direção de chegada vinda de trás do bispo */
+  lock(sq, s, o, t) {
+    const hx = t ? t.x : s.x + 6, hz = t ? t.z : s.z + 6, bx = o.x - hx, bz = o.z - hz, l = Math.hypot(bx, bz) || 1, fx = bx / l, fz = bz / l;
+    const dx = -fx * .85 - fz * .25, dz = -fz * .85 + fx * .25, dy = -.62, n = Math.hypot(dx, dy, dz);
+    s.path = { ix: hx, iz: hz, iy: sq.ground ? sq.ground(hx, hz) : 0, dx: dx / n, dy: dy / n, dz: dz / n };
+    const m = orbitalPath(s); s.prevC = orbitalMeteorAt(s, T_DIST(s), {}); sq.event('orbitalLock', { spell: s, x: hx, z: hz, r: s.T.blastR, meteorR: s.T.meteorR, m });
+  },
+  /** corpo do meteoro: segmento percorrido neste tick (prevC→C) contra cada cápsula; triscar conta; uma vez por alvo */
+  fall(sq, s, final = false) {
+    if (!s.path) return; const T = s.T, dist = final ? 0 : orbitalPath(s).dist, C = orbitalMeteorAt(s, dist, {}), P = s.prevC || C;
+    for (const tg of live(sq)) {
+      if (s.hitM.has(tg.id)) continue; const cap = capsule(sq, tg), d = segSegDist(P, C, cap.a, cap.b) - cap.r;
+      if (d > T.meteorR) continue; if (tg.iframes) continue; // esquiva com i-frames atravessa o corpo (não marca: se ainda tocar depois, conta)
+      s.hitM.add(tg.id); const res = sq.damageTarget(tg.id, T.meteorDmg, { kind: 'orbitalMeteor', spell: s.id, x: C.x, z: C.z, knock: 0 });
+      s.log.push({ k: 'meteor', id: tg.id, res, at: s.total }); sq.event('orbitalMeteorHit', { spell: s, target: tg.id, result: res });
+    }
+    s.prevC = C; s.meteor = C;
+  },
+  /** explosão: domo que cresce do epicentro; quem a borda ou o volume ativo TOCA leva 1 acerto; fora dele, zero */
+  blast(sq, s) {
+    const T = s.T, P = s.path, k = clamp(s.t / T.blastGrow, 0, 1); if (s.t > T.blastGrow + 1e-6 && s.blastDone) return;
+    const R = orbitalBlastR(T, s.t), c = { x: P.ix, y: P.iy, z: P.iz };
+    for (const tg of live(sq)) {
+      if (s.hitB.has(tg.id)) continue; const cap = capsule(sq, tg); if (R <= 0 || domeDist(c, cap, T.blastR / T.blastH) > R) continue;
+      if (tg.iframes) continue; if (sq.los && !sq.los(P.ix, P.iz, tg.x, tg.z)) continue;
+      s.hitB.add(tg.id); const res = sq.damageTarget(tg.id, T.blastDmg, { kind: 'orbitalBlast', spell: s.id, x: P.ix, z: P.iz, knock: 0 });
+      s.log.push({ k: 'blast', id: tg.id, res, at: s.total }); sq.event('orbitalBlastHit', { spell: s, target: tg.id, result: res });
+    }
+    s.blastR = R; if (k >= 1) s.blastDone = true;
+  },
+  /** resultado (UMA vez, depois de TODO dano resolvido): herói vivo → morte do chefe pendente se confirma (vitória única) */
+  resolve(sq, s, o) {
+    s.resolved = true; const t = sq.target(s.tid), heroAlive = !!(t && t.alive);
+    s.result = s.hitM.size || s.hitB.size ? 'hit' : 'escaped'; sq.event('orbitalResult', { spell: s, target: s.tid, result: s.result, meteor: s.hitM.has(s.tid), blast: s.hitB.has(s.tid) });
+    if (o.pendingDeath) {
+      o.pendingDeath = false; o.act = null;
+      if (heroAlive) { o.hp = 0; sq.event('deathConfirmed', { actor: o, spell: s }); sq.kill(o); }
+      else { o.hp = Math.max(1, o.hp); sq.event('deathPendingDefeat', { actor: o, spell: s }); } // herói caiu: DERROTA, sem recompensa (o jogo reinicia o duelo)
+    }
+  },
+  danger(sq, s) { return s.path && (s.phase === 'fall' || s.phase === 'impact') ? { x: s.path.ix, z: s.path.iz, r: s.T.blastR + 1, until: s.phase === 'fall' ? s.T.fall - s.t : .5 } : null; }
 });
+const T_DIST = s => orbitalPath(s).dist;
+/** Mod 320: chefe com ultimate em curso segura a morte (vale até o resultado; depois, morte normal). */
+export function orbitalHoldsDeath(sq, a) { return !!sq.spells.find(s => s.type === 'orbital' && s.owner === a.id && !s.resolved && !s.dead); }
 export function orbitalActive(sq) { return sq ? sq.spells.find(s => s.type === 'orbital' && s.phase !== 'after') || null : null; }
 export function orbitalSpell(sq) { return sq ? sq.spells.find(s => s.type === 'orbital') || null : null; }

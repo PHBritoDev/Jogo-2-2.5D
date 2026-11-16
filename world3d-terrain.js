@@ -369,14 +369,25 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
     if (d < -11) {
       // Vale: bosques em manchas, com clareiras naturais.
       if (rnd() > smoothstep(.34, .62, density) * .95) continue;
-      if (!isFree(x, z) || terrain.waterDepth(x, z) > -.25) continue;
+      if (!isFree(x, z)) continue;
+      const water = terrain.waterDepth(x, z);
+      if (!Number.isFinite(water) || water > -.25) continue;
+      // Valley tree placement also depends on terrain elevation downstream.
+      // Reject invalid height samples before producing a world-space instance.
+      if (!Number.isFinite(terrain.height(x, z))) continue;
       const kind = density > .6 && rnd() < .45 ? 'conifer' : (rnd() < .52 ? 'oak' : 'round');
       specs.push({ x, z, kind, s: .8 + rnd() * .75, rot: rnd() * Math.PI * 2, tint: rnd(), collide: true });
     } else if (d > 5 && d < 62) {
       // Encostas: coníferas rareando com a altitude (linha das árvores). A faixa do contraforte
       // fica aberta (pedras e capim) para a câmera não ficar presa dentro da mata no limite.
       const y = terrain.height(x, z);
-      if (y > 38 + density * 12) continue;
+      // Keep the same route/mission clearance on the foothills as in the valley.
+      // Previously the hillside branch bypassed isFree and could spawn trees
+      // over reserved exterior paths despite having collision disabled.
+      if (!isFree(x, z)) continue;
+      const water = terrain.waterDepth(x, z);
+      if (!Number.isFinite(water) || water > -.25) continue;
+      if (!Number.isFinite(y) || y > 38 + density * 12) continue;
       if (rnd() > (.78 - smoothstep(10, 46, y) * .7) * smoothstep(.22, .5, density + .12)) continue;
       specs.push({ x, z, kind: 'conifer', s: .85 + rnd() * .9, rot: rnd() * Math.PI * 2, tint: rnd(), collide: false });
     }
