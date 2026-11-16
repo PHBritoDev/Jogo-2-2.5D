@@ -62,3 +62,10 @@ test('integração: aurora sem cilindro, moradores Meshy, câmera fora das casas
   assert.ok(/if\(camera\.far!==wantFar\)\{camera\.far=wantFar;camera\.updateProjectionMatrix\(\);\}/.test(m), 'vista longa na jornada');
   assert.ok(/t\.veg = \{ G, GC, g, F, FC, f \}/.test(w) && /GA\.set\(v\.G\.subarray/.test(w), 'capim calculado por bloco (repovoar só copia)');
 });
+
+test('revisão: cidade destruída não reaparece pelo LOD; bloco em construção não volta à fila (sem malha órfã)', () => {
+  const w = fs.readFileSync(new URL('../jornada-world3d.js', import.meta.url), 'utf8');
+  assert.ok(/city\.visible = dC < 460 && !cityGone/.test(w) && /setCityGone\(v\) \{ cityGone = !!v; if \(cityGone\) city\.visible = false; \}/.test(w));
+  assert.ok(/filter\(k => !near\.has\(k\) && !\(job && job\.kind === 'near' && job\.k === k\)\)/.test(w) && /filter\(k => !far\.has\(k\) && !\(job && job\.kind === 'far' && job\.k === k\)\)/.test(w));
+  assert.ok(/if \(\(kind === 'far' \? far : near\)\.has\(k\)\) continue;/.test(w), 'bloco já existente não é reconstruído');
+});

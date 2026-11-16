@@ -115,13 +115,13 @@ export function createJourneyWorld(T, scene, opts = {}) {
       for (const [k, t] of far) if (!wf.has(k)) { root.remove(t.mesh); t.mesh.geometry.dispose(); far.delete(k); vegDirty = true; }
       const dist = (k, S, o) => { const [i, j] = k.split(',').map(Number), [x0, z0] = o(i, j); return Math.hypot(x0 + S / 2 - px, z0 + S / 2 - pz); };
       if (job && !(job.kind === 'far' ? wf : wn).has(job.k)) { if (job.t) { root.remove(job.t.mesh); job.t.mesh.geometry.dispose(); (job.kind === 'far' ? far : near).delete(job.k); } job = null; }
-      queue.near = [...wn].filter(k => !near.has(k)).sort((a, b) => dist(a, NEAR, nearOrigin) - dist(b, NEAR, nearOrigin));
-      queue.far = [...wf].filter(k => !far.has(k)).sort((a, b) => dist(a, FAR, farOrigin) - dist(b, FAR, farOrigin));
+      queue.near = [...wn].filter(k => !near.has(k) && !(job && job.kind === 'near' && job.k === k)).sort((a, b) => dist(a, NEAR, nearOrigin) - dist(b, NEAR, nearOrigin));
+      queue.far = [...wf].filter(k => !far.has(k) && !(job && job.kind === 'far' && job.k === k)).sort((a, b) => dist(a, FAR, farOrigin) - dist(b, FAR, farOrigin));
     }
     const deadline = budget >= 999 ? Infinity : performance.now() + (low ? 3 : 5);
     while (performance.now() < deadline || deadline === Infinity) {
       if (!job) { const kind = queue.far.length && (!queue.near.length || far.size < 2) ? 'far' : queue.near.length ? 'near' : null; if (!kind) break;
-        const k = (kind === 'far' ? queue.far : queue.near).shift(), [i, j] = k.split(',').map(Number), [x0, z0] = (kind === 'far' ? farOrigin : nearOrigin)(i, j);
+        const k = (kind === 'far' ? queue.far : queue.near).shift(); if ((kind === 'far' ? far : near).has(k)) continue; const [i, j] = k.split(',').map(Number), [x0, z0] = (kind === 'far' ? farOrigin : nearOrigin)(i, j);
         job = { kind, k, i, j, x0, z0, gen: tileGeometryGen(x0, z0, kind === 'far' ? FAR : NEAR, kind === 'far' ? FAR_CELL : NEAR_CELL, kind === 'near'), t: null }; }
       const r = runGen(job.gen, deadline); if (!r.done) break;
       if (!job.t) { const m = new T.Mesh(r.value, terrainMat); m.receiveShadow = true; m.name = job.kind === 'far' ? 'jornada-bloco-grosso' : 'jornada-bloco-fino'; root.add(m); built++; nearDirty = true; job.t = { mesh: m, i: job.i, j: job.j };
@@ -446,7 +446,7 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
       if (hidden) return;
       if (near2) streamTiles(px, pz, 1);
       { const dB = Math.hypot(px - (BRIDGE.x0 + BRIDGE.x1) / 2, pz - BRIDGE.z), dC = Math.hypot(px - CITY2.x, pz - CITY2.z), dF = Math.hypot(px - WATERFALL.x, pz - WATERFALL.z);
-        gBridge.visible = dB < 420; gAbyss.visible = dB < 520; gFall.visible = dF < 380; city.visible = dC < 460; for (const s of vents) s.visible = dC < 330; }
+        gBridge.visible = dB < 420; gAbyss.visible = dB < 520; gFall.visible = dF < 380; city.visible = dC < 460 && !cityGone; /* a cidade destruída no Ato II continua oculta */ for (const s of vents) s.visible = dC < 330; }
       vegWait -= dt; if (near2 && vegWait <= 0 && (vegDirty || Math.hypot(px - vegAt[0], pz - vegAt[1]) > 24)) { vegDirty = false; vegWait = .35; vegAt = [px, pz]; fillInstances(px, pz); fillTreesAndRocks(px, pz); }
       if (scene.fog) coneFog.value.set(scene.fog.near, scene.fog.far);
       if (fog) { for (const m of fogLayers) m.material.uniforms.uC.value.copy(fog).lerp(C.setRGB(.86, .9, .96), .18 * (1 - night)).multiplyScalar(m.userData.shade * (1 - night * .35)); hazeU.value.copy(fog); }
@@ -458,7 +458,7 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
       if (lit.forgeGlow) { lit.forgeGlow.material.opacity = .35 + .25 * night + .08 * Math.sin(t * 7) * Math.sin(t * 3.1); lit.forgeGlow.scale.setScalar(4 + night * 2.5); }
     },
     /** sólidos da jornada (casas, fonte, bancas, postes, torre, árvores, pilares da ponte, portal). y: pés do herói (sólidos baixos com topo deixam passar por cima). */
-    solidAt, blockedAt(x, z, y = null) { return !!solidAt(x, z, y); }, setCityGone(v) { cityGone = !!v; },
+    solidAt, blockedAt(x, z, y = null) { return !!solidAt(x, z, y); }, setCityGone(v) { cityGone = !!v; if (cityGone) city.visible = false; },
     /** o ponto (x,y,z) do braço da câmera está dentro de um prédio da cidade (ou de um poste alto)? */
     camBlocked(x, y, z) { if (cityGone || Math.hypot(x - CITY2.x, z - CITY2.z) > CITY2.r + 12) return false; for (const o of camBoxes) { if (y > o.top) continue; const dx = x - o.x, dz = z - o.z, c = Math.cos(o.ry), s = Math.sin(o.ry), lx = dx * c - dz * s, lz = dx * s + dz * c; if (Math.abs(lx) < o.hx && Math.abs(lz) < o.hz) return true; } return false; },
     /** o jogo troca as copas simples pelas espécies do acervo (LOD/impostor) quando o GLB chega. */
