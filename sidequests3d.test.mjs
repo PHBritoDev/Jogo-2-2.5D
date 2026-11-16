@@ -103,3 +103,19 @@ test('save inconsistente não permite entregar missão sem progresso comprovado'
   assert.equal(done.ervas.state, 'done', 'save legado concluído não deve pagar novamente');
   assert.equal(turnInSide(done, 'ervas'), null);
 });
+
+test('entrega exige progresso completo mesmo se estado ready for adulterado após reload', () => {
+  const s = createSideState();
+  refreshSide(s, { questStep: 2 });
+  assert.equal(acceptSide(s, 'pingente'), true);
+  collectSide(s, 'pingente');
+  assert.equal(s.pingente.state, 'ready');
+  s.pingente.progress = 0;
+  assert.equal(turnInSide(s, 'pingente'), null, 'não pagar missão sem o item');
+  assert.equal(s.pingente.state, 'ready', 'não converter em done sem recompensa');
+  s.pingente.progress = Infinity;
+  assert.equal(turnInSide(s, 'pingente'), null, 'não aceitar progresso não finito');
+  s.pingente.progress = 1;
+  assert.deepEqual(turnInSide(s, 'pingente'), SIDE_QUESTS[1].reward);
+  assert.equal(turnInSide(s, 'pingente'), null, 'não pagar duas vezes');
+});
