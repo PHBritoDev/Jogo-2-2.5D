@@ -367,7 +367,10 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
     span.z0 = Math.min(span.z0, z0); span.z1 = Math.max(span.z1, z1);
   }
   if (![span.x0, span.x1, span.z0, span.z1].every(v => Number.isFinite(Math.fround(v)))) return specs;
-  const total = lowSpec ? Math.round(attempts * .6) : attempts;
+  // A malformed or unbounded sample budget must never stall the mobile main thread.
+  // Normal gameplay budgets (2600, or 60% on low spec) are unchanged.
+  const budget = Number.isFinite(attempts) ? Math.min(10000, Math.max(0, Math.trunc(attempts))) : 2600;
+  const total = lowSpec ? Math.round(budget * .6) : budget;
   for (let i = 0; i < total; i++) {
     const x = span.x0 + rnd() * (span.x1 - span.x0), z = span.z0 + rnd() * (span.z1 - span.z0);
     const d = terrain.boundaryDistance(x, z);
