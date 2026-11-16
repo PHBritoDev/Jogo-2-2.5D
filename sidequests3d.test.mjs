@@ -81,3 +81,25 @@ test('save da vila não libera missões por etapa inválida e preserva contagens
   assert.equal(s.ervas.state, 'ready');
   assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
 });
+
+
+test('save inconsistente não permite entregar missão sem progresso comprovado', () => {
+  const s = createSideState({
+    ervas: { state: 'ready', progress: 1 },
+    pingente: { state: 'ready', progress: Infinity },
+    abrigos: { state: 'ready', progress: 3 }
+  });
+  assert.equal(s.ervas.state, 'active');
+  assert.equal(s.pingente.state, 'active');
+  assert.equal(turnInSide(s, 'ervas'), null);
+  assert.equal(turnInSide(s, 'pingente'), null);
+  assert.equal(s.abrigos.state, 'ready');
+  assert.deepEqual(turnInSide(s, 'abrigos'), SIDE_QUESTS[2].reward);
+  assert.equal(turnInSide(s, 'abrigos'), null);
+  for (let i = 0; i < 3; i++) collectSide(s, 'flor');
+  assert.equal(s.ervas.state, 'ready');
+  assert.deepEqual(turnInSide(s, 'ervas'), SIDE_QUESTS[0].reward);
+  const done = createSideState({ ervas: { state: 'done', progress: 0 } });
+  assert.equal(done.ervas.state, 'done', 'save legado concluído não deve pagar novamente');
+  assert.equal(turnInSide(done, 'ervas'), null);
+});
