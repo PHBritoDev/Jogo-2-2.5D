@@ -235,3 +235,13 @@ test('arrays de saves e runtime não podem virar corações por coerção implí
   }
   assert.equal(normalizeHearts({ hearts: '4', since: now }, now).hearts, 4);
 });
+
+test('timestamp textual legado preserva regeneração parcial em runtime e HUD', () => {
+  const now = HEARTS.regenMs * 2 + 30000;
+  const state = { hearts: 3, since: '0' };
+  const updated = tickHearts(state, now);
+  assert.equal(updated.hearts, 5);
+  assert.equal(updated.since, HEARTS.regenMs * 2);
+  assert.equal(msToNextHeart(state, now), HEARTS.regenMs - 30000);
+  assert.equal(msToNextHeart({ hearts: 3, since: '' }, now), HEARTS.regenMs);
+});
