@@ -162,3 +162,15 @@ test('save dos atos finais restaura cada pista uma vez, descartando ids inválid
   assert.deepEqual(migrateProgress({ ...input, lateFound: null }).lateFound, []);
   assert.deepEqual(input.lateFound.slice(0, 5), [0, 2, 2, 7, 0]);
 });
+
+
+test('HUD do Ato I não antecipa objetivos com sub-etapas inválidas de saves', () => {
+  for (const bad of [NaN, Infinity, -Infinity, undefined, 'invalido']) {
+    assert.deepEqual(questPresentation(1, bad), questPresentation(1, 0));
+    assert.deepEqual(questPresentation(3, bad), questPresentation(3, 0));
+    assert.deepEqual(questPresentation(4, bad), questPresentation(4, 0));
+  }
+  assert.deepEqual(questPresentation(1, '1'), questPresentation(1, 1));
+  assert.deepEqual(questPresentation(3, 1.9), questPresentation(3, 1));
+  assert.deepEqual(questPresentation(4, 2), questPresentation(4, 2));
+});
