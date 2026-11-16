@@ -172,9 +172,12 @@ export function createTerrain(opts = {}) {
 export function buildAxis(fineHalf, fineCell, outerSteps, growth) {
   const out = [];
   const fineSteps = Math.round(fineHalf / fineCell);
-  for (let k = outerSteps; k >= 1; k--) out.push(-(fineHalf + fineCell * (Math.pow(growth, k) - 1) / (growth - 1)));
+  // Growth 1 is a valid uniform outer grid. The geometric-series quotient
+  // would otherwise divide 0/0 and upload NaN vertices to WebGL.
+  const offset = k => growth === 1 ? fineCell * k : fineCell * (Math.pow(growth, k) - 1) / (growth - 1);
+  for (let k = outerSteps; k >= 1; k--) out.push(-(fineHalf + offset(k)));
   for (let i = -fineSteps; i <= fineSteps; i++) out.push(i * fineCell);
-  for (let k = 1; k <= outerSteps; k++) out.push(fineHalf + fineCell * (Math.pow(growth, k) - 1) / (growth - 1));
+  for (let k = 1; k <= outerSteps; k++) out.push(fineHalf + offset(k));
   return out;
 }
 
