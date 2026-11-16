@@ -85,8 +85,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   function scan() {
     scene.traverse(adopt);
     // fontes removidas da cena saem do conjunto (sem crescer para sempre com efeitos descartados)
-    for (const o of sources) if (!attachedToScene(o)) {
-      release(o);
+    for (const o of sources) if (!attachedToScene(o) || o.castShadow) {
+      // scan() também é API pública: uma luz que ganhou sombra não pode
+      // permanecer registrada/oculta até update() ser chamado.
+      release(o, o.castShadow);
     }
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
