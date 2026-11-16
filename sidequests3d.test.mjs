@@ -209,3 +209,20 @@ test('pedras de abrigo ignoram arrays e objetos de contagem durante a sessão', 
   refreshSide(state, { questStep: 2, waystones: 3 });
   assert.equal(state.abrigos.state, 'ready');
 });
+
+
+test('diário permanece legível antes do próximo refresh de estado corrompido', () => {
+  const s = createSideState();
+  refreshSide(s, { questStep: 2 });
+  acceptSide(s, 'ervas');
+  s.ervas.progress = NaN;
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
+  s.ervas.progress = [4];
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
+  s.ervas.state = 'ready';
+  s.ervas.progress = Infinity;
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
+  assert.equal(turnInSide(s, 'ervas'), null);
+  s.ervas.progress = 4;
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+});
