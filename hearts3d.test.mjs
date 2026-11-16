@@ -212,3 +212,15 @@ test('HUD de regeneração respeita corações brutos inválidos e saves legados
   assert.equal(msToNextHeart({ hearts: 0, since: now }, now), HEARTS.regenMs);
   assert.equal(msToNextHeart(null, now), 0);
 });
+
+
+test('estado ausente na regeneração não derruba a sessão ou o HUD', () => {
+  const now = 1000000;
+  for (const invalid of [null, undefined, false, 'corrompido']) {
+    const recovered = tickHearts(invalid, now);
+    assert.equal(recovered.hearts, HEARTS.max);
+    assert.equal(recovered.since, now);
+    assert.equal(msToNextHeart(recovered, now), 0);
+    assert.equal(loseHeart(invalid, now).hearts, HEARTS.max - 1);
+  }
+});
