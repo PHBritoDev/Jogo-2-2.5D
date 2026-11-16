@@ -174,3 +174,12 @@ test('HUD do Ato I não antecipa objetivos com sub-etapas inválidas de saves', 
   assert.deepEqual(questPresentation(3, 1.9), questPresentation(3, 1));
   assert.deepEqual(questPresentation(4, 2), questPresentation(4, 2));
 });
+
+test('HUD do Ato I não anuncia conclusão com etapa corrompida', () => {
+  const initial = questPresentation(0, 0);
+  for (const invalid of [NaN, Infinity, -Infinity, -1, 'invalido', undefined]) {
+    assert.deepEqual(questPresentation(invalid, 0), initial);
+  }
+  assert.deepEqual(questPresentation(8, 0), questPresentation(12, 0));
+  assert.equal(questPresentation('3', 0).objective, questPresentation(3, 0).objective);
+});
