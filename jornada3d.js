@@ -38,7 +38,7 @@ export const CITY2 = Object.freeze({ x: -1262, z: -66, r: 64, y: 24 });
 export const VOLCANO2 = Object.freeze({ x: -1528, z: -66, r: 206, h: 390, crater: 40, craterDepth: 60 });
 export const GATE2 = Object.freeze({ x: -1327, z: -66, face: Math.PI / 2 });
 export const GUARDS2 = Object.freeze([{ x: -1318.5, z: -62.6 }, { x: -1318.5, z: -69.4 }]);
-export const WATERFALL = Object.freeze({ x: -432, z: 78, top: 44, base: 2, w: 9 });
+export const WATERFALL = Object.freeze({ x: -432, z: 64, zTop: 108, w: 9 }); // cascata descendo a encosta da serra norte até o poço (z = 64)
 /** Percurso principal (polilinha jogável) Eldória → portão do vulcão. */
 export const ROUTE = Object.freeze([
   [-112, -62], [-150, -70], [-200, -58], [-260, -40], [-320, -62], [-380, -92], [-440, -80], [-500, -52], [-560, -64], [-612, -84],
@@ -68,7 +68,9 @@ export const JOURNEY_BOUNDS = Object.freeze({ x0: -1760, x1: -112, z0: -420, z1:
 export function inJourney(x, z) { return x < JOURNEY_BOUNDS.x1 && x > JOURNEY_BOUNDS.x0 && z < JOURNEY_BOUNDS.z1 && z > JOURNEY_BOUNDS.z0 && (z > -175 || x < -240); }
 /** Recortes que a malha antiga do mundo deve deixar para a malha em blocos da jornada. */
 export const JOURNEY_HOLES = Object.freeze([{ x0: -4000, x1: -118, z0: -175, z1: 4000 }, { x0: -4000, x1: -240, z0: -4000, z1: -175 }]);
-export function inAbyss(x, z) { return x < ABYSS.x1 && x > ABYSS.x0 && z > ABYSS.z0 && z < ABYSS.z1; }
+/** Borda recortada do abismo (paredes irregulares); as pontas da ponte ficam sempre em rocha firme. */
+const abyssEdge = (z, side) => 9 * (fbm2(z * .045 + side * 17, side * 3.1, 3, 77) - .5) * sstep(6, 30, Math.abs(z - BRIDGE.z));
+export function inAbyss(x, z) { return z > ABYSS.z0 && z < ABYSS.z1 && x < ABYSS.x1 + abyssEdge(z, 1) && x > ABYSS.x0 + abyssEdge(z, -1); }
 
 /** Distância assinada ao limite caminhável (negativa dentro). O abismo é "aberto" de propósito: cair é possível. */
 export function journeyBoundary(x, z) {
@@ -96,18 +98,18 @@ export function volcanoHeight(x, z) {
 /** Relevo da jornada. Retorna null fora da região (o mundo antigo responde). */
 export function journeyHeight(x, z) {
   if (!inJourney(x, z)) return null;
-  if (inAbyss(x, z)) { const e = Math.min(x - ABYSS.x0, ABYSS.x1 - x); return ABYSS.floor + 40 * sstep(0, 30, -e); } // paredes verticais
+  if (inAbyss(x, z)) { const e = Math.min(x - ABYSS.x0 - abyssEdge(z, -1), ABYSS.x1 + abyssEdge(z, 1) - x); return ABYSS.floor + 160 * (1 - sstep(0, 14, e)) - 40 * fbm2(x * .08, z * .08, 2, 5); } // paredes quase verticais e irregulares
   const q = polyProject(x, z, ROUTE, ROUTE_CUM), py = routeY(clamp(x, -1400, -112));
   const d = journeyBoundary(x, z);
   const roll = x > -612 ? (fbm2(x * .022 + 5, z * .022 - 2, 3, 7) - .5) * 4.2 * sstep(4, 18, q.d) : (fbm2(x * .03, z * .03, 3, 17) - .5) * 2.2 * sstep(4, 14, q.d);
   const city = Math.hypot(x - CITY2.x, z - CITY2.z) < CITY2.r + 6 ? sstep(CITY2.r + 6, CITY2.r - 8, Math.hypot(x - CITY2.x, z - CITY2.z)) : 0;
-  const vr = Math.hypot(x - VOLCANO2.x, z - VOLCANO2.z); // o cone não fica coberto de serras
-  let h = py + roll * (1 - city) + mountains(x, z, d) * sstep(VOLCANO2.r * .55, VOLCANO2.r * 1.25, vr);
+  const vr = Math.hypot(x - VOLCANO2.x, z - VOLCANO2.z); // planície de cinza em volta do cone; as serras voltam longe dele
+  let h = py + roll * (1 - city) + mountains(x, z, d) * sstep(VOLCANO2.r * 1.05, VOLCANO2.r * 1.75, vr);
   // o rio do vale: leito raso (≤ 0,7 m de água) que nasce na cachoeira e corre para leste
   const rv = polyProject(x, z, RIVER2, RIVER2_CUM).d; if (rv < 7) h -= 1.1 * sstep(7, 2.5, rv);
   return h + volcanoHeight(x, z);
 }
-export const RIVER2 = Object.freeze([[WATERFALL.x, WATERFALL.z - 14], [-424, 40], [-398, 14], [-352, 4], [-300, 12], [-240, 6], [-190, 24], [-150, 46], [-122, 52]].map(p => Object.freeze(p)));
+export const RIVER2 = Object.freeze([[WATERFALL.x, WATERFALL.z - 4], [-424, 40], [-398, 14], [-352, 4], [-300, 12], [-240, 6], [-190, 24], [-150, 46], [-122, 52]].map(p => Object.freeze(p)));
 const RIVER2_CUM = cumulative(RIVER2);
 export function riverDepth(x, z) { const d = polyProject(x, z, RIVER2, RIVER2_CUM).d; return d < 5.5 ? .7 * sstep(5.5, 2.5, d) : 0; }
 
