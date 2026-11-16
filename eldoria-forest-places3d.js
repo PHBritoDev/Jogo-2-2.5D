@@ -9,6 +9,24 @@ import { FOREST_CLEARINGS } from './act1-world-layout.js';
 
 const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
 
+/**
+ * Alinha o banco natural aos dois pontos de apoio no relevo do Remanso.
+ * Antes o cilindro era nivelado por uma unica amostra central: uma ponta
+ * podia flutuar enquanto a outra atravessava o solo em terrenos inclinados.
+ * Sem geometria extra, o eixo acompanha o declive real do mesmo height sampler.
+ */
+export function planRemansoLog(ground, { x, z, yaw = .6, length = 3.6, radius = .35 }) {
+  const dx = Math.cos(yaw) * length * .5, dz = -Math.sin(yaw) * length * .5;
+  const a = { x: x - dx, z: z - dz }, b = { x: x + dx, z: z + dz };
+  a.y = ground(a.x, a.z) + radius;
+  b.y = ground(b.x, b.z) + radius;
+  const middleGround = ground(x, z) + radius;
+  // A parte central tambem precisa ficar livre de uma lombada entre os apoios.
+  const lift = Math.max(0, middleGround - (a.y + b.y) * .5);
+  a.y += lift; b.y += lift;
+  return { a, b, center: { x, y: (a.y + b.y) * .5, z }, length: Math.hypot(length, b.y - a.y) };
+}
+
 export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = false } = {}) {
   const group = new THREE.Group(); group.name = 'lugares-floresta-mod316';
   const by = id => FOREST_CLEARINGS.find(c => c.id === id);
@@ -47,8 +65,12 @@ export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = fal
   const runes = new THREE.Mesh(new THREE.RingGeometry(.35, .52, 24, 1), runeMat); runes.rotation.x = -Math.PI / 2; runes.position.set(altar.x, altar.y + altar.sy + .02, altar.z); runes.name = 'runas-circulo'; group.add(runes);
 
   // tronco caído do remanso (banco natural)
-  const log = new THREE.Mesh(new THREE.CylinderGeometry(.32, .38, 3.6, 10, 1), new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 }));
-  log.rotation.set(0, .6, Math.PI / 2); log.position.set(rem.x - 1, ground(rem.x - 1, rem.z + .6) + .3, rem.z + .6); log.castShadow = !lowSpec; log.receiveShadow = true; log.name = 'tronco-banco'; group.add(log);
+  const logPlan = planRemansoLog(ground, { x: rem.x - 1, z: rem.z + .6 });
+  const log = new THREE.Mesh(new THREE.CylinderGeometry(.32, .38, logPlan.length, 10, 1), new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 }));
+  const logAxis = new THREE.Vector3(logPlan.b.x - logPlan.a.x, logPlan.b.y - logPlan.a.y, logPlan.b.z - logPlan.a.z).normalize();
+  log.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), logAxis);
+  log.position.set(logPlan.center.x, logPlan.center.y, logPlan.center.z);
+  log.castShadow = !lowSpec; log.receiveShadow = true; log.name = 'tronco-banco'; group.add(log);
 
   const update = (t, night) => { runeMat.opacity = Math.max(0, night - .35) * (.55 + .2 * Math.sin(t * 1.3)); runes.visible = runeMat.opacity > .01; };
   return { group, update, stones: stones.length };
