@@ -20,9 +20,15 @@ export function planRemansoLog(ground, { x, z, yaw = .6, length = 3.6, radius = 
   const a = { x: x - dx, z: z - dz }, b = { x: x + dx, z: z + dz };
   a.y = ground(a.x, a.z) + radius;
   b.y = ground(b.x, b.z) + radius;
-  const middleGround = ground(x, z) + radius;
-  // A parte central tambem precisa ficar livre de uma lombada entre os apoios.
-  const lift = Math.max(0, middleGround - (a.y + b.y) * .5);
+  // Uma unica amostra no meio nao detecta lombadas deslocadas ao longo do banco.
+  // Verificar toda a linha de contato evita tronco atravessando a encosta entre as pontas.
+  let lift = 0;
+  for (let i = 1; i < 9; i++) {
+    const t = i / 9;
+    const px = a.x + (b.x - a.x) * t, pz = a.z + (b.z - a.z) * t;
+    const axisY = a.y + (b.y - a.y) * t;
+    lift = Math.max(lift, ground(px, pz) + radius - axisY);
+  }
   a.y += lift; b.y += lift;
   return { a, b, center: { x, y: (a.y + b.y) * .5, z }, length: Math.hypot(length, b.y - a.y) };
 }
