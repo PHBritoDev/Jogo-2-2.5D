@@ -185,3 +185,16 @@ test('estado bruto inválido não permite iniciar desafio de Bispo', () => {
   assert.equal(canChallengeBishop(null), false);
   for (const hearts of [1, 5, HEARTS.max]) assert.equal(canChallengeBishop({ hearts }), true);
 });
+
+
+test('estado runtime com coração ausente não vira zero por coerção implícita', () => {
+  const now = 1000000;
+  for (const hearts of [null, '', '  ', false, [], {}]) {
+    const state = tickHearts({ hearts, since: now }, now);
+    assert.equal(state.hearts, HEARTS.max, 'valor ausente ou tipo inválido não deve zerar vidas');
+    assert.equal(canChallengeBishop(state), true);
+  }
+  assert.equal(tickHearts({ hearts: 0, since: now }, now).hearts, 0);
+  assert.equal(tickHearts({ hearts: '0', since: now }, now).hearts, 0);
+  assert.equal(tickHearts({ hearts: '4', since: now }, now).hearts, 4);
+});
