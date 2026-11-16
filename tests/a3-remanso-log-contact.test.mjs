@@ -23,3 +23,18 @@ test('Remanso: terreno plano preserva comprimento e altura', () => {
   assert.ok(Math.abs(plan.length - 3.6) < 1e-10);
   assert.equal(plan.center.y, 4.35);
 });
+
+test('Remanso: lombada deslocada entre ponta e centro não atravessa o banco', () => {
+  const x = 5, z = -120, yaw = .6;
+  const peakX = x + Math.cos(yaw) * .9;
+  const peakZ = z - Math.sin(yaw) * .9;
+  const ground = (px, pz) => 1.5 * Math.exp(-((px - peakX) ** 2 + (pz - peakZ) ** 2) * 8);
+  const plan = planRemansoLog(ground, { x, z, yaw });
+  for (let i = 0; i <= 9; i++) {
+    const t = i / 9;
+    const px = plan.a.x + (plan.b.x - plan.a.x) * t;
+    const pz = plan.a.z + (plan.b.z - plan.a.z) * t;
+    const axisY = plan.a.y + (plan.b.y - plan.a.y) * t;
+    assert.ok(axisY >= ground(px, pz) + .35 - 1e-10, `intersecção no segmento ${i}`);
+  }
+});
