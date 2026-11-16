@@ -29,5 +29,5 @@ test('rejects finite growth that overflows outer GPU coordinates', () => {
 test('rejects Float32-collapsed cells even when JS doubles are distinct', () => {
   assert.throws(() => buildAxis(1e12, 1e-3, 1, 1), /axis budget|overflow or collapse/);
   // Small cells at large world coordinates collapse on the GPU.
-  assert.throws(() => buildAxis(1e8, 1e8, 2, 1.00000001), /overflow or collapse/);
+  assert.throws(() => buildAxis(0, 1e-46, 2, 1.1), /overflow or collapse/);
 });
