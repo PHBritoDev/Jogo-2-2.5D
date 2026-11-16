@@ -5141,7 +5141,7 @@ function openCage(){
 }
 function childrenCleared(){act1Advance(3,2);}
 function playFaint(){
- playStory('desmaio',faintScene(),{focus:'guide',done:()=>{act1Lock=false;act1Night=false;if(actions.idle)play('idle',.3);act1Advance(4,0);status.textContent='Siga a trilha da montanha. O Bispo anda pelos esgotos.';}});
+ playStory('desmaio',faintScene(),{focus:'guide',done:()=>{act1Lock=false;act1Night=false;if(actions.idle)play('idle',.3);act1Advance(4,0);status.textContent=questPresentation(4,0).objective;}});
 }
 function playMassacre(){
  playStory('massacre',massacreScene(),{focus:'enemy',face:'massacre',done:()=>{
