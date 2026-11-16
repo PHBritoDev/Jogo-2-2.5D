@@ -28,3 +28,13 @@ test('invalid boundary samples are skipped without clearing valid neighboring ce
   assert.ok(filtered.length < baseline.length, 'invalid half must be rejected');
   assert.ok(filtered.every(tree => tree.x >= 0), 'all remaining trees have finite boundary samples');
 });
+
+test('finite double elevations outside Float32 range never create GPU-invalid trees', () => {
+  const options = { seed: 9137, attempts: 1500 };
+  const overflowValley = { ...terrain, height: () => 1e100 };
+  assert.deepEqual(scatterForest(overflowValley, options), []);
+  const hillside = { ...terrain, boundaryDistance: () => 15, height: () => -1e100 };
+  assert.deepEqual(scatterForest(hillside, options), []);
+  const validHillside = { ...hillside, height: () => 4 };
+  assert.ok(scatterForest(validHillside, options).length > 0, 'valid hillside elevations still produce trees');
+});
