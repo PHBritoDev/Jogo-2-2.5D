@@ -78,7 +78,9 @@ export function refreshSide(state, ctx) {
     if (s.state === 'ready' && s.progress < q.goal.count) {
       s.state = 'active';
     }
-    if (s.state === 'locked' && Number.isFinite(Number(ctx?.questStep)) && Number(ctx.questStep) >= q.minStep) s.state = 'available';
+    const rawStep = ctx?.questStep;
+    const validStep = typeof rawStep === 'number' || (typeof rawStep === 'string' && rawStep.trim() !== '');
+    if (s.state === 'locked' && validStep && Number.isFinite(Number(rawStep)) && Number(rawStep) >= q.minStep) s.state = 'available';
     if (q.goal.type === 'waystones' && s.state === 'active' && Number.isFinite(ctx?.waystones)) {
       s.progress = Math.max(s.progress, safeSideCount(ctx.waystones, q.goal.count));
     }
