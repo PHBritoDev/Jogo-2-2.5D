@@ -38,3 +38,25 @@ test('finite double elevations outside Float32 range never create GPU-invalid tr
   const validHillside = { ...hillside, height: () => 4 };
   assert.ok(scatterForest(validHillside, options).length > 0, 'valid hillside elevations still produce trees');
 });
+
+test('invalid optional forest regions cannot erase the valid base forest', () => {
+  const options = { seed: 9137, attempts: 1500 };
+  const baseline = scatterForest(terrain, options);
+  assert.ok(baseline.length > 0);
+  for (const extra of [
+    { cx: NaN, cz: 0, hx: 20, hz: 20 },
+    { cx: 0, cz: Infinity, hx: 20, hz: 20 },
+    { cx: 0, cz: 0, hx: -20, hz: 20 },
+    { cx: 1e100, cz: 0, hx: 20, hz: 20 },
+    null,
+  ]) {
+    assert.deepEqual(scatterForest({ ...terrain, extraAreas: [extra] }, options), baseline);
+  }
+});
+
+test('invalid primary forest span returns no GPU-invalid coordinates', () => {
+  const options = { seed: 9137, attempts: 1500 };
+  for (const cx of [NaN, Infinity, 1e100]) {
+    assert.deepEqual(scatterForest({ ...terrain, area: { ...terrain.area, cx } }, options), []);
+  }
+});
