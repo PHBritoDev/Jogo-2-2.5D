@@ -359,7 +359,10 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   // Invalid primary bounds must not reverse the forest span or poison sampling.
   if (![area?.cx, area?.cz, area?.hx, area?.hz].every(Number.isFinite) || area.hx < 0 || area.hz < 0) return specs;
   const span = { x0: area.cx - area.hx - 70, x1: area.cx + area.hx + 70, z0: area.cz - area.hz - 70, z1: area.cz + area.hz + 70 };
-  for (const e of terrain.extraAreas || []) {
+  // Optional regions may come from restored/generated map data; malformed containers
+  // must not crash forest generation or erase the valid primary region.
+  const forestExtras = Array.isArray(terrain.extraAreas) ? terrain.extraAreas : [];
+  for (const e of forestExtras) {
     // A corrupt optional region must not poison the entire forest sampling span.
     if (![e?.cx, e?.cz, e?.hx, e?.hz].every(Number.isFinite) || e.hx < 0 || e.hz < 0) continue;
     const x0 = e.cx - e.hx - 70, x1 = e.cx + e.hx + 70;
