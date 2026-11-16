@@ -130,7 +130,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       // Dar pequena preferência à fonte já acesa/selecionada (sem adicionar luzes ou shaders).
       // A concorrente ainda vence quando se torna perceptivelmente mais próxima.
       const incumbent = pool.some(p => p.src === s || p.next === s);
-      item.score=d-reach*.5-Math.min(6,s.intensity)*1.5-(incumbent ? 2.5 : 0);
+      item.score=d-reach*.5-Math.min(6,s.intensity)*1.5-(incumbent ? 0.75 : 0);
       ranked.push(item);
     }
     ranked.sort((a, b) => a.score - b.score);
