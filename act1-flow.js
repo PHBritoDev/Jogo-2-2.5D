@@ -227,7 +227,7 @@ export function questPresentation(step, sub = 0) {
       : sub >= 1
         ? ['ATO I · RECEPTÁCULOS', 'Derrote as crianças possuídas pelos demônios']
         : ['ATO I · A CHAVE', 'Abra a gaiola com a chave dos Seguidores'],
-    4: [['ATO I · GRITOS NA TRILHA', 'Investigue os gritos dos moradores no caminho da montanha'],
+    4: [['ATO I · GRITOS NA TRILHA', 'Investigue os gritos dos moradores na trilha da montanha'],
       ['ATO I · A PISTA', 'Siga a pista até a entrada da caverna, na encosta'],
       ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
       ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][clampInt(sub, 0, 3, 0)],
