@@ -332,8 +332,15 @@ export function colorTerrain(terrain, positions, normals) {
     // Regiões extras (Distrito da Ferrugem): lama, pedra gasta e ferrugem no lugar da grama.
     for (const e of tintAreas) {
       const qx = Math.abs(x - e.cx) - e.hx + 8, qz = Math.abs(z - e.cz) - e.hz + 8, inside = -Math.max(qx, qz);
-      const tA = e.tint ? e.tint[0] : [.27, .22, .17], tB = e.tint ? e.tint[1] : [.36, .3, .24];
-      if (inside > -10) c = mix(c, mix(tA, tB, n2), smoothstep(-10, 6, inside) * (e.tintStrength || .9));
+      // A malformed saved tint must not upload NaN colors to the GPU.
+      const validTint = Array.isArray(e.tint) && e.tint.length === 2 &&
+        e.tint.every(rgb => Array.isArray(rgb) && rgb.length === 3 &&
+          rgb.every(v => Number.isFinite(v) && v >= 0 && v <= 1));
+      const tA = validTint ? e.tint[0] : [.27, .22, .17];
+      const tB = validTint ? e.tint[1] : [.36, .3, .24];
+      const strength = Number.isFinite(e.tintStrength) && e.tintStrength > 0 && e.tintStrength <= 1
+        ? e.tintStrength : .9;
+      if (inside > -10) c = mix(c, mix(tA, tB, n2), smoothstep(-10, 6, inside) * strength);
     }
     const wet = terrain.waterDepth ? terrain.waterDepth(x, z) : -1;
     if (wet > -.5) c = mix(c, [.33, .3, .22], smoothstep(-.5, .05, wet));
