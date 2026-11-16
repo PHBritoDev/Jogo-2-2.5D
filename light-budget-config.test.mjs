@@ -114,3 +114,22 @@ test('extreme HDR colors are clamped only on budget slots, not on original sourc
   assert.deepEqual([slot.color.r, slot.color.g, slot.color.b], [16, 0.5, 16]);
   assert.deepEqual([source.color.r, source.color.g, source.color.b], [1e308, 0.5, 1e100]);
 });
+
+
+test('detached light restores its original layer mask for reuse in another scene', () => {
+  const scene = new Object3D();
+  const otherScene = new Object3D();
+  const source = new PointLight();
+  source.layers.mask = 5;
+  scene.add(source);
+  const budget = createLightBudget(THREE, scene, { slots: 1 });
+  budget.scan();
+  assert.equal(source.layers.value, 31);
+  // Simulate Three.js remove/reparent: a removed source is no longer under the budget scene.
+  scene.children.splice(scene.children.indexOf(source), 1);
+  source.parent = null;
+  otherScene.add(source);
+  budget.scan();
+  assert.equal(source.layers.mask, 5);
+  assert.equal(budget.stats().sources, 0);
+});
