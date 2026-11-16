@@ -126,7 +126,11 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       if (!Number.isFinite(d) || (!unlimited && d > reach + 30)) continue;
       // Reaproveita o mesmo objeto por luz (sem milhares de alocacoes por minuto).
       const item=sourceScore.get(s);
-      item.score=d-reach*.5-Math.min(6,s.intensity)*1.5;
+      // Histerese espacial: fontes quase empatadas não devem alternar a cada passo da câmera.
+      // Dar pequena preferência à fonte já acesa/selecionada (sem adicionar luzes ou shaders).
+      // A concorrente ainda vence quando se torna perceptivelmente mais próxima.
+      const incumbent = pool.some(p => p.src === s || p.next === s);
+      item.score=d-reach*.5-Math.min(6,s.intensity)*1.5-(incumbent ? 2.5 : 0);
       ranked.push(item);
     }
     ranked.sort((a, b) => a.score - b.score);
