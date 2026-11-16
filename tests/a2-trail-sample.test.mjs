@@ -53,3 +53,12 @@ test('invalid emitted sample breaks trail instead of joining two distant valid p
   assert.equal(trail.mesh.visible,true);
   trail.dispose();
 });
+
+
+test('trail configuration is bounded before allocation and geometry math', () => {
+  const runtime = volumeTrail.toString();
+  assert.match(runtime, /Number\.isInteger\(capacity\)&&capacity>=2&&capacity<=128/);
+  assert.match(runtime, /Number\.isInteger\(sides\)&&sides>=3&&sides<=16/);
+  assert.match(runtime, /Number\.isFinite\(life\)&&life>0/);
+  assert.match(runtime, /Number\.isFinite\(radius\)&&radius>0/);
+});
