@@ -176,3 +176,12 @@ test('estado de corações corrompido em memória não contamina HUD ou regenera
   assert.equal(tickHearts({ hearts: -3, since: now }, now).hearts, 0);
   assert.equal(tickHearts({ hearts: NaN, since: now }, now).hearts, HEARTS.max);
 });
+
+
+test('estado bruto inválido não permite iniciar desafio de Bispo', () => {
+  for (const hearts of [NaN, Infinity, -Infinity, -1, 0, 0.5, 11, '1', undefined]) {
+    assert.equal(canChallengeBishop({ hearts }), false, `estado inválido ${String(hearts)}`);
+  }
+  assert.equal(canChallengeBishop(null), false);
+  for (const hearts of [1, 5, HEARTS.max]) assert.equal(canChallengeBishop({ hearts }), true);
+});
