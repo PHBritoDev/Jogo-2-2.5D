@@ -56,3 +56,16 @@ test('a cidade, a garganta e os pontos da missão são alcançáveis a pé', () 
     assert.ok(t.walkable(x, z), 'trecho bloqueado em ' + x.toFixed(1) + ',' + z.toFixed(1));
   }
 });
+
+
+test('vitória de VORGAZHEK normaliza contador de Bispos inválido sem perder progresso válido', () => {
+  for (const bad of [Infinity, -Infinity, NaN, 'Infinity', 'NaN', -5]) {
+    const result = afterVorgazhek({ bishopsDefeated: bad, vorgazhekRewardClaimed: true });
+    assert.equal(result.bishopsDefeated, 2);
+    assert.equal(result.coinsGained, 0);
+    assert.equal(result.xpGained, 0);
+  }
+  assert.equal(afterVorgazhek({ bishopsDefeated: 3.9 }).bishopsDefeated, 3);
+  assert.equal(afterVorgazhek({ bishopsDefeated: Number.MAX_VALUE }).bishopsDefeated, Number.MAX_SAFE_INTEGER);
+  assert.equal(afterVorgazhek({ bishopsDefeated: 1 }).coinsGained, ACT2.reward);
+});
