@@ -224,3 +224,14 @@ test('estado ausente na regeneração não derruba a sessão ou o HUD', () => {
     assert.equal(loseHeart(invalid, now).hearts, HEARTS.max - 1);
   }
 });
+
+test('arrays de saves e runtime não podem virar corações por coerção implícita', () => {
+  const now = 1000000;
+  for (const hearts of [[4], [0], ['4'], new Number(4)]) {
+    assert.equal(normalizeHearts({ hearts, since: now }, now).hearts, HEARTS.max);
+    assert.equal(tickHearts({ hearts, since: now }, now).hearts, HEARTS.max);
+    assert.equal(msToNextHeart({ hearts, since: now }, now), 0);
+    assert.equal(canChallengeBishop({ hearts }), false);
+  }
+  assert.equal(normalizeHearts({ hearts: '4', since: now }, now).hearts, 4);
+});
