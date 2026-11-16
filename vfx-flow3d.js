@@ -112,7 +112,12 @@ export function energyBody(T,parent,preset,options={}){
   // A malformed impact must not poison the object's transform or render a stale effect.
   mesh.visible=validPosition&&validDirection&&Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;
   if(position&&validPosition)mesh.position.set(position.x,position.y,position.z);
-  if(dir!==undefined&&validDirection)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());
+  if(dir!==undefined&&validDirection){
+   // Copy the requested heading before normalizing; the reusable scratch vector
+   // otherwise remains zero and all projectiles inherit an undefined rotation.
+   direction.set(dir.x,dir.y??0,dir.z??0).normalize();
+   mesh.quaternion.setFromUnitVectors(axis,direction);
+  }
   // An invalid frame must not corrupt the matrix or shader state retained by the pooled mesh.
   // Keep the last valid transform until the next valid update; the draw is already hidden.
   if(Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0)mesh.scale.set(radius,radius,length);
