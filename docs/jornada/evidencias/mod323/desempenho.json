@@ -1,0 +1,12 @@
+{
+ "ambiente": "Chromium headless + SwiftShader (CPU x86, contêiner de CI). NÃO é Android; FPS de aparelho não medido.",
+ "metodo_cpu": "combatStep(1/30) sem desenho, teleporte a cada 4 m de x=-150 a -720 pelo vale (572 quadros): tempo de CPU por quadro em ms",
+ "cpu_main": {"p50": 8.6, "p95": 73.9, "p99": 99.5, "max": 154.9, "quadros_acima_50ms": 39, "quadros_acima_100ms": 5},
+ "cpu_mod323": {"p50": 8.9, "p95": 15.7, "p99": 19.6, "max": 21.9, "quadros_acima_50ms": 0, "quadros_acima_100ms": 0},
+ "repovoamento_antigo_node_x86_ms": 205,
+ "repovoamento_novo_copia_ms": 0.05,
+ "draw_calls_triangulos_loop_real_800x450": {
+  "main": {"vale": [54, 326026], "ponte": [95, 286056], "cidade": [115, 195678]},
+  "mod323": {"vale": [54, 345313], "ponte": [82, 368920], "cidade": [100, 271861]}
+ }
+}
