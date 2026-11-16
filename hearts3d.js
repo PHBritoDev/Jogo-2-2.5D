@@ -47,7 +47,13 @@ export function loseHeart(state, now = Date.now()) {
 }
 
 export function msToNextHeart(state, now = Date.now()) {
-  if (state.hearts >= HEARTS.max) return 0;
+  // O HUD pode consultar o estado bruto antes de tickHearts: use o mesmo fallback
+  // de corações inválidos, sem mostrar um timer para uma barra restaurada como cheia.
+  const value = state?.hearts;
+  const numeric = typeof value === 'number' || (typeof value === 'string' && value.trim().length > 0);
+  const parsed = numeric ? Number(value) : NaN;
+  const hearts = Number.isFinite(parsed) ? Math.max(0, Math.min(HEARTS.max, Math.floor(parsed))) : HEARTS.max;
+  if (hearts >= HEARTS.max) return 0;
   const since = Number.isFinite(state.since) && state.since >= 0 ? Math.min(state.since, now) : now;
   return Math.max(0, HEARTS.regenMs - Math.max(0, now - since));
 }
