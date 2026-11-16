@@ -49,7 +49,10 @@ export function msToNextHeart(state, now = Date.now()) {
   return Math.max(0, HEARTS.regenMs - Math.max(0, now - since));
 }
 
-export function canChallengeBishop(state) { return state.hearts >= 1; }
+export function canChallengeBishop(state) {
+  // A validação do desafio também deve falhar fechada se uma integração passar estado bruto.
+  return Number.isInteger(state?.hearts) && state.hearts >= 1 && state.hearts <= HEARTS.max;
+}
 
 export function formatTimer(ms) {
   // Um relógio inválido não pode vazar NaN/Infinity ou tempo negativo ao HUD.
