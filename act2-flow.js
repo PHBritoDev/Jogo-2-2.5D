@@ -76,7 +76,7 @@ export function isAct2BossStep(step) { return step === ACT2.boss; }
 export function afterVorgazhek(progress) {
   const p = progress || {};
   const first = !p.vorgazhekRewardClaimed;
-  return { questStep: ACT2.done, bishopsDefeated: Math.max(2, Math.floor(Number(p.bishopsDefeated) || 0)), vorgazhekRewardClaimed: true, coinsGained: first ? ACT2.reward : 0, xpGained: first ? ACT2.xp : 0 };
+  return { questStep: ACT2.done, bishopsDefeated: Math.max(2, Number.isFinite(Number(p.bishopsDefeated)) ? Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(Number(p.bishopsDefeated)))) : 0), vorgazhekRewardClaimed: true, coinsGained: first ? ACT2.reward : 0, xpGained: first ? ACT2.xp : 0 };
 }
 
 /** Fase de fúria: anunciada uma vez, ao cruzar metade da vida. */
