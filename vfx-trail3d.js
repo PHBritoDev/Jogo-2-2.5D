@@ -5,6 +5,10 @@ export function trailSampleValid(time, point) {
 }
 /** A fixed ring-buffer + closed swept bladed volume. Direction/twist come from velocity, never camera billboarding. */
 export function volumeTrail(T,parent,preset,{capacity=36,life=.65,radius=.5,sides=8}={}){
+ capacity=Number.isInteger(capacity)&&capacity>=2&&capacity<=128?capacity:36;
+ sides=Number.isInteger(sides)&&sides>=3&&sides<=16?sides:8;
+ life=Number.isFinite(life)&&life>0?life:.65;
+ radius=Number.isFinite(radius)&&radius>0?radius:.5;
  const history=Array.from({length:capacity},()=>({p:new T.Vector3(),t:-99}));let head=0,last=-99,count=0;
  const pos=new Float32Array(capacity*(sides+1)*3),uv=new Float32Array(capacity*(sides+1)*2),ix=[];
  for(let j=0;j<capacity;j++)for(let k=0;k<=sides;k++){uv.set([j/(capacity-1),k/sides],(j*(sides+1)+k)*2);if(j<capacity-1&&k<sides){const a=j*(sides+1)+k,b=a+sides+1;ix.push(a,b,a+1,a+1,b,b+1);}}
