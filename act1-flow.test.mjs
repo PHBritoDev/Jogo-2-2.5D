@@ -175,3 +175,18 @@ test('restauração de bestiário mantém IDs únicos sem alterar o save nem rec
   assert.equal(saved.bestiary.length, 5);
   assert.deepEqual(migrateProgress(restored).bestiaryRewarded, ['captor', 'warden']);
 });
+
+
+test('save não converte arrays, booleanos ou objetos em moedas gratuitas', () => {
+  for (const coins of [[40], [], true, false, { value: 40 }, null, '', '   ', Infinity, NaN]) {
+    for (const version of [4, 5, ACT1.version]) {
+      assert.equal(migrateProgress({ version, questStep: 0, coins }).coins, 0);
+    }
+  }
+  for (const coins of [40, '40', '40.9']) {
+    assert.equal(migrateProgress({ version: ACT1.version, coins }).coins, 40);
+  }
+  const original = { version: ACT1.version, coins: [40] };
+  assert.equal(migrateProgress(original).coins, 0);
+  assert.deepEqual(original.coins, [40]);
+});
