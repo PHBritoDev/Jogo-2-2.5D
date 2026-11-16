@@ -20,7 +20,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     const l = new T.PointLight(0xffffff, 0, 10, 2); l.name = 'orcamento-luz-' + i; l.userData.budgetSlot = true; scene.add(l);
     return { light: l, src: null, next: undefined };
   });
-  const sources = new Set(), sourceScore = new Map(), ranked = [], chosen = [], free = [];
+  const sources = new Set(), sourceScore = new Map(), originalLayers = new WeakMap(), ranked = [], chosen = [], free = [];
   // Intervalos 0, negativos, fracionários ou NaN não podem desativar o scan
   // (frame % NaN nunca é zero) nem deixar fontes antigas sem orçamento.
   const scanInterval = Number.isSafeInteger(rescanEvery) && rescanEvery > 0 ? rescanEvery : 45;
@@ -29,7 +29,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
      45 quadros na camada 0 até o próximo scan. Nesse intervalo o número de luzes do shader mudava (+1) e TODOS os
      materiais iluminados recompilavam — e de novo quando o scan a escondia: duas travadas de 0,3–0,5 s no celular.
      Agora qualquer add() que traga uma PointLight a registra na hora, antes do próximo render. */
-  function adopt(o) { if (o.isPointLight && !o.userData.budgetSlot && !o.castShadow && !sources.has(o)) { sources.add(o); sourceScore.set(o, { s: o, score: 0 }); o.layers.set(safeHiddenLayer); } }
+  function adopt(o) { if (o.isPointLight && !o.userData.budgetSlot && !o.castShadow && !sources.has(o)) { sources.add(o); sourceScore.set(o, { s: o, score: 0 });
+      // Guardar a máscara original para não ocultar a luz se ela migrar para outra cena.
+      if (Number.isInteger(o.layers?.mask)) originalLayers.set(o, o.layers.mask);
+      o.layers.set(safeHiddenLayer); } }
   const Obj = T.Object3D && T.Object3D.prototype, rawAdd = Obj && Obj.add;
   if (Obj && !Obj.__budgetGuard) {
     Obj.__budgetGuard = [];
@@ -49,7 +52,13 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   function scan() {
     scene.traverse(adopt);
     // fontes removidas da cena saem do conjunto (sem crescer para sempre com efeitos descartados)
-    for (const o of sources) if (!attachedToScene(o)) { sources.delete(o); sourceScore.delete(o); }
+    for (const o of sources) if (!attachedToScene(o)) {
+      sources.delete(o); sourceScore.delete(o);
+      // Uma fonte destacada pode ser reutilizada por outra cena (HUD, preview, dimensão).
+      // Restaurar a máscara anterior em vez de deixá-la invisível na camada 31.
+      if (originalLayers.has(o) && o.layers) o.layers.mask = originalLayers.get(o);
+      originalLayers.delete(o);
+    }
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
   function finiteColor(o) {
