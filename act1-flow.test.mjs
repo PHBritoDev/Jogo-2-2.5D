@@ -195,3 +195,23 @@ test('HUD narrativo rejeita booleanos, arrays e objetos em checkpoints sem conve
   assert.deepEqual(questPresentation('8', 0), questPresentation(8, 0));
   assert.deepEqual(questPresentation(1, '1'), questPresentation(1, 1));
 });
+
+
+test('restaurar checkpoints malformados não concede vitória nem antecipa objetivos', () => {
+  for (const bad of [true, false, [8], [], {}, null]) {
+    const restored = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev, questStep: bad, act1Sub: bad, coins: 13 });
+    assert.equal(restored.questStep, 0);
+    assert.equal(restored.act1Sub, 0);
+    assert.equal(restored.bishopsDefeated, 0);
+    assert.equal(restored.vhazraelRewardClaimed, false);
+    assert.deepEqual(questPresentation(restored.questStep, restored.act1Sub), questPresentation(0, 0));
+  }
+  const valid = migrateProgress({ version: ACT1.version, act1Rev: ACT1.rev, questStep: '8', act1Sub: '2' });
+  assert.equal(valid.questStep, 8);
+  assert.equal(valid.act1Sub, 2);
+  assert.equal(valid.vhazraelRewardClaimed, true);
+  const legacy = migrateProgress({ version: 5, questStep: [5], coins: 13 });
+  assert.equal(legacy.questStep, 0);
+  assert.equal(legacy.portalRewardClaimed, false);
+  assert.equal(legacy.coins, 13);
+});
