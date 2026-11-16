@@ -106,10 +106,13 @@ export function energyBody(T,parent,preset,options={}){
   // Above that ceiling every fragment is discarded, so avoid a wasted draw.
   const dissolveCeiling=quality===0?.72+.28*.65:1;
   const validPosition=position===undefined||(position!==null&&typeof position==='object'&&Number.isFinite(position.x)&&Number.isFinite(position.y)&&Number.isFinite(position.z));
+  // Explicitly malformed directions must not reuse a pooled projectile's old heading.
+  // Omitted direction retains the orientation chosen by its controller.
+  const validDirection=dir===undefined||(dir!==null&&typeof dir==='object'&&Number.isFinite(dir.x)&&Number.isFinite(dir.y??0)&&Number.isFinite(dir.z??0)&&dir.x*dir.x+(dir.y??0)*(dir.y??0)+(dir.z??0)*(dir.z??0)>.0001);
   // A malformed impact must not poison the object's transform or render a stale effect.
-  mesh.visible=validPosition&&Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;
+  mesh.visible=validPosition&&validDirection&&Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;
   if(position&&validPosition)mesh.position.set(position.x,position.y,position.z);
-  if(dir&&Number.isFinite(dir.x)&&Number.isFinite(dir.y??0)&&Number.isFinite(dir.z??0)&&direction.set(dir.x,dir.y??0,dir.z??0).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());
+  if(dir!==undefined&&validDirection)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());
   // An invalid frame must not corrupt the matrix or shader state retained by the pooled mesh.
   // Keep the last valid transform until the next valid update; the draw is already hidden.
   if(Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0)mesh.scale.set(radius,radius,length);
