@@ -1,0 +1,87 @@
+[
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rock_face_02/rock_face_02_1k.gltf",
+    "md5": "f4c7eefa474143b14312409cad4fb4b8",
+    "file": "rock_face_02/rock_face_02.gltf"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_face_02/rock_face_02_nor_gl_1k.jpg",
+    "md5": "af2e17bb469b499dc14765dc13ad30ae",
+    "file": "rock_face_02/textures/rock_face_02_nor_gl_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_face_02/rock_face_02_arm_1k.jpg",
+    "md5": "9e59b31d77e404500effa446e790f8fb",
+    "file": "rock_face_02/textures/rock_face_02_arm_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/rock_face_02/rock_face_02.bin",
+    "md5": "add01c9b573fdddd688acb6378c78c3b",
+    "file": "rock_face_02/rock_face_02.bin"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rock_face_02/rock_face_02_diff_1k.jpg",
+    "md5": "8f3731e5c8e4e5c7f5de983353cf3ee3",
+    "file": "rock_face_02/textures/rock_face_02_diff_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/modular_fort_01/modular_fort_01_1k.gltf",
+    "md5": "340e7883860599c6b17ab73a893ff9b3",
+    "file": "modular_fort_01/modular_fort_01.gltf"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/modular_fort_01/modular_fort_01.bin",
+    "md5": "49bfa2a55e65c997840799099ad6ffa5",
+    "file": "modular_fort_01/modular_fort_01.bin"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fort_01/modular_fort_01_plaster_diff_1k.jpg",
+    "md5": "c2b8f298926cb63a8d926cffcab863c8",
+    "file": "modular_fort_01/textures/modular_fort_01_plaster_diff_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fort_01/modular_fort_01_wall_nor_gl_1k.jpg",
+    "md5": "2164dad0582c2ec60e757e6565b1f257",
+    "file": "modular_fort_01/textures/modular_fort_01_wall_nor_gl_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fort_01/modular_fort_01_trim_nor_gl_1k.jpg",
+    "md5": "4e87ba7c3ac854d64a6d0de56362f76a",
+    "file": "modular_fort_01/textures/modular_fort_01_trim_nor_gl_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fort_01/modular_fort_01_plaster_nor_gl_1k.jpg",
+    "md5": "b76724f4bb1ec196728c1a4d704f322c",
+    "file": "modular_fort_01/textures/modular_fort_01_plaster_nor_gl_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fort_01/modular_fort_01_wall_arm_1k.jpg",
+    "md5": "9e667ae75549188caa03da56aa276fdb",
+    "file": "modular_fort_01/textures/modular_fort_01_wall_arm_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fort_01/modular_fort_01_plaster_arm_1k.jpg",
+    "md5": "a367aa0d7b6307df5b961f4d339c593c",
+    "file": "modular_fort_01/textures/modular_fort_01_plaster_arm_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fort_01/modular_fort_01_trim_diff_1k.jpg",
+    "md5": "1e5e6e32e599ebaa6471c4c1ce3023fd",
+    "file": "modular_fort_01/textures/modular_fort_01_trim_diff_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fort_01/modular_fort_01_wall_diff_1k.jpg",
+    "md5": "c3958a33d456a5f2b776dde465024072",
+    "file": "modular_fort_01/textures/modular_fort_01_wall_diff_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/modular_fort_01/modular_fort_01_trim_arm_1k.jpg",
+    "md5": "2ad72ca33693932204ffe68ee7232120",
+    "file": "modular_fort_01/textures/modular_fort_01_trim_arm_1k.jpg"
+  },
+  {
+    "source": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr",
+    "md5": "c69498687e876bf68d2a8b8a62234eb9",
+    "file": "clouds.hdr"
+  }
+]

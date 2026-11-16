@@ -29,7 +29,7 @@ export function addCinematicStage(parent,W,H){
  stone.flatShading=true;
  const archY=x=>H*(.30-.28*Math.pow(x/(W*.49),2));
  // Individually fractured blocks follow a shallow, broken vault (no luminous cable).
- batch(group,new T.DodecahedronGeometry(1,0),stone,68,(o,i)=>{const x=(i/67-.5)*W*.95;o.position.set(x,archY(x),-55);o.scale.set(W*.011,H*.018,17);o.rotation.set(.1,noise(i)*.2,-x/W*.8);if(Math.abs(x)<W*.055)o.scale.setScalar(0);});
+ batch(group,new T.BoxGeometry(2,2,2),stone,68,(o,i)=>{const x=(i/67-.5)*W*.95;o.position.set(x,archY(x),-55);o.scale.set(W*.011,H*.018,17);o.rotation.set(.1,noise(i)*.2,-x/W*.8);if(Math.abs(x)<W*.055)o.scale.setScalar(0);});
  batch(group,new T.BoxGeometry(1,1,1),edge,54,(o,i)=>{const x=(i/53-.5)*W*.94;o.position.set(x,archY(x)+H*.018,-51);o.scale.set(W*.014,H*.005,14);o.rotation.z=-x/W*.8;if(Math.abs(x)<W*.06)o.scale.setScalar(0);});
  // Chains are updated from actual button/planet coordinates, including resize.
  const links=new T.InstancedMesh(new T.TorusGeometry(1,.25,5,10),iron,7*2*28);links.instanceMatrix.setUsage(T.DynamicDrawUsage);parent.add(links);
@@ -42,15 +42,13 @@ export function addCinematicStage(parent,W,H){
   }}links.instanceMatrix.needsUpdate=true;
  }
  // Layered cliffs and distant gothic ruins, with pale falls instead of lava floor.
- batch(group,new T.IcosahedronGeometry(1,1),stone,84,(o,i)=>{const side=i%2?-1:1,x=side*W*(.19+noise(i)*.35);o.position.set(x,-H*(.22+noise(i+100)*.28),-160+noise(i+90)*35);o.scale.set(W*(.025+noise(i+20)*.035),H*(.04+noise(i+30)*.10),30);o.rotation.set(noise(i),noise(i+9),noise(i+2));});
+ const rocks=batch(group,new T.IcosahedronGeometry(1,1),stone,84,(o,i)=>{const side=i%2?-1:1,x=side*W*(.19+noise(i)*.35);o.position.set(x,-H*(.22+noise(i+100)*.28),-160+noise(i+90)*35);o.scale.set(W*(.025+noise(i+20)*.035),H*(.04+noise(i+30)*.10),30);o.rotation.set(noise(i),noise(i+9),noise(i+2));});
  const tower=material('#25232c',.1,.9);
  batch(group,new T.CylinderGeometry(.65,1,1,6),tower,38,(o,i)=>{const side=i%2?-1:1;o.position.set(side*W*(.22+noise(i+1)*.30),-H*(.12+noise(i+70)*.13),-190);o.scale.set(W*.004,H*(.035+noise(i+33)*.09),W*.004);});
  batch(group,new T.ConeGeometry(1,1,6),tower,38,(o,i)=>{const side=i%2?-1:1,h=H*(.035+noise(i+33)*.09);o.position.set(side*W*(.22+noise(i+1)*.30),-H*(.12+noise(i+70)*.13)+h*.65,-190);o.scale.set(W*.006,h*.4,W*.006);});
- for(const side of [-1,1]){
-  const bridge=new T.Group();group.add(bridge);const x=side*W*.31,y=-H*.22;
-  mesh(bridge,new T.BoxGeometry(W*.25,H*.012,12),stone,x,y,-110);
-  batch(bridge,new T.BoxGeometry(1,1,1),stone,7,(o,i)=>{o.position.set(x+(i-3)*W*.037,y-H*.065,-110);o.scale.set(W*.007,H*.13,12);});
- }
+ const archShape=new T.Shape();archShape.moveTo(-1,0);archShape.lineTo(-1,2.1);archShape.lineTo(1,2.1);archShape.lineTo(1,0);archShape.lineTo(.68,0);archShape.lineTo(.68,1);archShape.quadraticCurveTo(.68,1.65,0,1.86);archShape.quadraticCurveTo(-.68,1.65,-.68,1);archShape.lineTo(-.68,0);archShape.closePath();
+ const archGeo=new T.ExtrudeGeometry(archShape,{depth:.28,bevelEnabled:false,curveSegments:12});
+ batch(group,archGeo,stone,14,(o,i)=>{const side=i<7?-1:1,j=i%7;o.position.set(side*W*(.20+j*.045),-H*(.30+j*.006),-108);o.scale.set(W*.022,H*.055,20);});
  const fallMat=new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{time:{value:0}},vertexShader:'varying vec2 uvv;void main(){uvv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`varying vec2 uvv;uniform float time;void main(){float strands=.5+.5*sin(uvv.x*145.+sin(uvv.x*31.)*2.+uvv.y*2.-time*.3);float edge=smoothstep(0.,.12,uvv.x)*smoothstep(0.,.12,1.-uvv.x);float a=edge*(.12+strands*.27)*smoothstep(0.,.28,uvv.y);gl_FragColor=vec4(.65,.71,.77,a);}`});
  for(let i=0;i<10;i++){const side=i%2?-1:1;mesh(group,new T.PlaneGeometry(W*(.012+noise(i)*.015),H*.26),fallMat,side*W*(.21+noise(i+10)*.25),-H*.38,-98);}
  // Broad, worn steps and a rooted figure from behind, at a human scale.
@@ -89,5 +87,5 @@ export function addCinematicStage(parent,W,H){
  const feather=new T.SphereGeometry(1,8,6),pearl=material('#abb4bd',.18,.7);
  const wings=new T.Group();wings.position.set(-W*.30,H*.29,-80);wings.name='menu-wings-fallback';group.add(wings);
  batch(wings,feather,94,(o,i)=>{const side=i%2?-1:1,j=Math.floor(i/2),t=j/46;const a=side*(.30+t*1.0);o.position.set(side*H*(.035+t*.17),H*(.02+Math.sin(t*2.9)*.085),-t*12);o.rotation.z=-a;o.scale.set(H*(.008-t*.003),H*(.10-t*.04),H*.004);});
- return {hero,alignChains,resize:(w,h)=>{group.scale.set(w/W,h/H,1);},update:t=>{cape.update(t);flags.forEach((f,i)=>f.update(t-i*.3));fallMat.uniforms.time.value=t;wings.rotation.z=Math.sin(t*.36)*.003;}};
+ return {hero,group,rocks,stone,alignChains,resize:(w,h)=>{group.scale.set(w/W,h/H,1);},update:t=>{cape.update(t);flags.forEach((f,i)=>f.update(t-i*.3));fallMat.uniforms.time.value=t;wings.rotation.z=Math.sin(t*.36)*.003;}};
 }

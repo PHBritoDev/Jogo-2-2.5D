@@ -26,7 +26,7 @@ function fitModel(object,height){
 function shadowMaterial(color,emissive){
  const m=new THREE.MeshStandardMaterial({
   color,roughness:.95,metalness:.06,emissive,emissiveIntensity:.26,
-  depthWrite:true,side:THREE.DoubleSide
+  envMapIntensity:.12,depthWrite:true,side:THREE.DoubleSide
  });
  // Real geometry silhouettes with view-dependent edge illumination.
  // The real facial details stay hidden, but the shape remains readable.
@@ -114,7 +114,7 @@ export function attachCinematicModels({root,environment,planets,detail,screenWid
   const {gltf,path}=await loadFirst(loader,ASSETS.guardian);
   if(!alive()){disposeModel(gltf.scene);return;}
   const figure=gltf.scene;
-  shadowMeshes(figure,{color:'#a5abb3',emissive:'#3b4251'});
+  figure.traverse(o=>{if(o.isMesh){o.material.color.set('#d1d4dc');o.material.roughness=.57;o.material.metalness=.34;o.material.envMapIntensity=.75;o.material.emissive.set('#171923');o.frustumCulled=false;}});
   fitModel(figure,screenHeight*.32);
   figure.rotation.y=-.12;
   guardianPivot.add(figure);state.angel=figure;state.loaded.guardian=path;
@@ -174,8 +174,8 @@ export function attachCinematicModels({root,environment,planets,detail,screenWid
  const loadStorm=async()=>{
   const {gltf}=await loadFirst(loader,['./assets/ui/menu/storm-effigy.glb']);
   if(!alive()){disposeModel(gltf.scene);return;}
-  shadowMeshes(gltf.scene,{color:'#34232a',emissive:'#3f151d'});fitModel(gltf.scene,screenHeight*.70);
-  gltf.scene.traverse(o=>{if(!o.isMesh)return;const m=o.material,previous=m.onBeforeCompile;m.transparent=true;m.depthWrite=false;m.onBeforeCompile=shader=>{previous(shader);shader.vertexShader='varying float menuWorldY;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nmenuWorldY=(modelMatrix*vec4(transformed,1.)).y;');shader.fragmentShader='varying float menuWorldY;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <dithering_fragment>',`gl_FragColor.a *= smoothstep(${(-screenHeight*.08).toFixed(6)},${(screenHeight*.22).toFixed(6)},menuWorldY);\n#include <dithering_fragment>`);};m.customProgramCacheKey=()=> 'menu-storm-fade';});
+  gltf.scene.traverse(o=>{if(o.isMesh){o.material.color.set('#84606c');o.material.roughness=.65;o.material.metalness=.18;o.material.envMapIntensity=.5;}});fitModel(gltf.scene,screenHeight*.70);
+  gltf.scene.traverse(o=>{if(!o.isMesh)return;const m=o.material,previous=m.onBeforeCompile;m.transparent=true;m.depthWrite=false;m.onBeforeCompile=shader=>{previous.call(m,shader);shader.vertexShader='varying float menuWorldY;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nmenuWorldY=(modelMatrix*vec4(transformed,1.)).y;');shader.fragmentShader='varying float menuWorldY;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <dithering_fragment>',`gl_FragColor.a *= smoothstep(${(-screenHeight*.08).toFixed(6)},${(screenHeight*.22).toFixed(6)},menuWorldY);\n#include <dithering_fragment>`);};m.customProgramCacheKey=()=> 'menu-storm-fade';});
   const pivot=new THREE.Group();pivot.position.set(screenWidth*.32,screenHeight*.10,-105);pivot.add(gltf.scene);gltf.scene.rotation.y=-.22;environment.add(pivot);
   const fallback=hero.parent.getObjectByName('menu-demon-fallback');if(fallback)fallback.visible=false;
   root.dataset.gxStormModel='storm-effigy.glb';
@@ -189,7 +189,7 @@ export function attachCinematicModels({root,environment,planets,detail,screenWid
     state.warnings.push(message);console.warn('[Menu GLB]',message);
    }
   });
-  if(alive())root.dataset.gxModelsReady='true';
+  if(alive())root.dataset.gxActorsReady='true';
  });
  return {
   state,ready:settled,

@@ -16,7 +16,7 @@ fs.mkdirSync(output,{recursive:true});
    await page.waitForFunction(()=>document.querySelector('#galaxy-screen')?.dataset.gxModelsReady==='true',{timeout:90000});
    const loadMs=Date.now()-start;
    await page.waitForTimeout(1500);
-   const info=await page.evaluate(()=>{const root=document.querySelector('#galaxy-screen'),c=root.querySelector('canvas'),gl=c.getContext('webgl2');return {models:{guardian:root.dataset.gxGuardianModel,wings:root.dataset.gxWingsModel,lust:root.dataset.gxLustModel,hero:root.dataset.gxHeroModel,storm:root.dataset.gxStormModel},gpu:{calls:+root.dataset.gxDrawCalls,triangles:+root.dataset.gxTriangles,textures:+root.dataset.gxTextures},canvasCount:root.querySelectorAll('canvas').length,glError:gl.getError()};});
+   const info=await page.evaluate(()=>{const root=document.querySelector('#galaxy-screen'),c=root.querySelector('canvas'),gl=c.getContext('webgl2');return {models:{guardian:root.dataset.gxGuardianModel,wings:root.dataset.gxWingsModel,lust:root.dataset.gxLustModel,hero:root.dataset.gxHeroModel,storm:root.dataset.gxStormModel,rock:root.dataset.gxScannedRock,fort:root.dataset.gxScannedFort,environment:root.dataset.gxEnvironment},gpu:{calls:+root.dataset.gxDrawCalls,triangles:+root.dataset.gxTriangles,textures:+root.dataset.gxTextures},canvasCount:root.querySelectorAll('canvas').length,glError:gl.getError()};});
    assert.equal(info.canvasCount,1);assert.equal(info.glError,0);assert.ok(Object.values(info.models).every(Boolean),'all models loaded');
    assert.equal(await page.locator('.gx-nav button').count(),5);assert.equal(await page.locator('.gx-nav button:disabled').count(),3);
    // One before/after image per required size; narrow is functional QA only.
