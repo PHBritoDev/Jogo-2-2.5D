@@ -24,7 +24,10 @@ export function normalizeHearts(raw, now = Date.now()) {
 export function tickHearts(state, now = Date.now()) {
   // Estado em memória também pode ser alterado por integrações antigas sem passar pelo carregador.
   // Evite propagar NaN/Infinity ao HUD, às regras de Bispos ou à persistência.
-  const rawHearts = Number(state.hearts);
+  // Null, string vazia e tipos não numéricos não são zero explícito.
+  const hasNumericHearts = typeof state.hearts === 'number'
+    || (typeof state.hearts === 'string' && state.hearts.trim().length > 0);
+  const rawHearts = hasNumericHearts ? Number(state.hearts) : NaN;
   const normalizedHearts = Number.isFinite(rawHearts) ? Math.max(0, Math.min(HEARTS.max, Math.floor(rawHearts))) : HEARTS.max;
   state = normalizedHearts === state.hearts ? state : { ...state, hearts: normalizedHearts };
   if (state.hearts >= HEARTS.max) return { ...state, hearts: HEARTS.max, since: now };
