@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createLightBudget } from './light-budget3d.js';
+
+class Object3D {
+  constructor() { this.children = []; this.parent = null; this.isObject3D = true; this.visible = true; }
+  add(...objects) {
+    for (const o of objects) {
+      if (o.parent) o.parent.children.splice(o.parent.children.indexOf(o), 1);
+      this.children.push(o); o.parent = this;
+    }
+    return this;
+  }
+  traverse(fn) { fn(this); for (const child of this.children) child.traverse(fn); }
+}
+class PointLight extends Object3D {
+  constructor() {
+    super();
+    this.isPointLight = true; this.userData = {}; this.castShadow = false;
+    this.layers = { mask: 5, set(layer) { this.mask = 1 << layer; } };
+    this.position = { setFromMatrixPosition() {} };
+    this.color = { r: 1, g: 1, b: 1, copy() {} };
+    this.intensity = 1;
+  }
+}
+class Vector3 { setFromMatrixPosition() { return this; } distanceTo() { return 0; } }
+const T = { Object3D, PointLight, Vector3 };
+
+test('a point light moved to an auxiliary scene regains its layer immediately, without scan', () => {
+  const world = new Object3D(), preview = new Object3D();
+  const budget = createLightBudget(T, world, { slots: 1, rescanEvery: 45 });
+  const light = new PointLight();
+  world.add(light);
+  assert.equal(light.layers.mask, 1 << 31);
+  preview.add(light);
+  assert.equal(light.layers.mask, 5);
+  assert.equal(budget.stats().sources, 0);
+  world.add(light);
+  assert.equal(light.layers.mask, 1 << 31);
+  assert.equal(budget.stats().sources, 1);
+});
+
+test('moving a group restores nested lights immediately', () => {
+  const world = new Object3D(), preview = new Object3D();
+  const budget = createLightBudget(T, world, { slots: 1 });
+  const group = new Object3D(), light = new PointLight();
+  group.add(light); world.add(group);
+  assert.equal(light.layers.mask, 1 << 31);
+  preview.add(group);
+  assert.equal(light.layers.mask, 5);
+  assert.equal(budget.stats().sources, 0);
+});
+
+test('transferring a light between two budgeted scenes adopts it in the destination', () => {
+  const world = new Object3D(), otherWorld = new Object3D();
+  const a = createLightBudget(T, world, { slots: 1 });
+  const b = createLightBudget(T, otherWorld, { slots: 1, hiddenLayer: 30 });
+  const light = new PointLight();
+  world.add(light);
+  otherWorld.add(light);
+  assert.equal(a.stats().sources, 0);
+  assert.equal(b.stats().sources, 1);
+  assert.equal(light.layers.mask, 1 << 30);
+});
