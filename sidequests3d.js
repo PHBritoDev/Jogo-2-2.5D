@@ -102,7 +102,7 @@ export function collectSide(state, item) {
 /** Entrega: devolve a recompensa uma única vez. */
 export function turnInSide(state, id) {
   const q = SIDE_QUESTS.find(x => x.id === id), s = state[id];
-  if (!q || !s || s.state !== 'ready') return null;
+  if (!q || !s || s.state !== 'ready' || !Number.isFinite(s.progress) || s.progress < q.goal.count) return null;
   s.state = 'done';
   return q.reward;
 }
