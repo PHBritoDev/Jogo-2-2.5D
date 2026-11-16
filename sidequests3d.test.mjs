@@ -119,3 +119,22 @@ test('entrega exige progresso completo mesmo se estado ready for adulterado apó
   assert.deepEqual(turnInSide(s, 'pingente'), SIDE_QUESTS[1].reward);
   assert.equal(turnInSide(s, 'pingente'), null, 'não pagar duas vezes');
 });
+
+
+test('missão ready invalidada durante a sessão volta a mostrar objetivo alcançável', () => {
+  const s = createSideState();
+  refreshSide(s, { questStep: 2 });
+  assert.equal(acceptSide(s, 'ervas'), true);
+  for (let i = 0; i < 4; i++) collectSide(s, 'flor');
+  assert.equal(s.ervas.state, 'ready');
+  s.ervas.progress = Infinity;
+  refreshSide(s, { questStep: 2 });
+  assert.equal(s.ervas.state, 'active');
+  assert.equal(s.ervas.progress, 0);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
+  assert.equal(turnInSide(s, 'ervas'), null);
+  for (let i = 0; i < 4; i++) collectSide(s, 'flor');
+  assert.equal(s.ervas.state, 'ready');
+  assert.deepEqual(turnInSide(s, 'ervas'), SIDE_QUESTS[0].reward);
+  assert.equal(turnInSide(s, 'ervas'), null);
+});
