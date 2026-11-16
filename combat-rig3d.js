@@ -17,7 +17,7 @@ export function bakeCombatClips(T,root,clone,idle,moves=Object.values(COMBAT_MOV
  const up=new T.Vector3(0,1,0),right=new T.Vector3(1,0,0),tar=v(),pole=v(),localAxis=v(),handQ=new T.Quaternion();bones.RightHand.getWorldQuaternion(handQ);localAxis.set(0,1,0).applyQuaternion(handQ.clone().invert());
  // Protagonist sword is calibrated to hand +Y. Generic rigs use their palm-to-middle-finger direction.
  if(bones.RightHand.name.includes('mixamorig'))localAxis.set(0,1,0);else{const child=bones.RightHand.children.find(b=>/MiddleProximal/.test(b.name));if(child){world(child,p1);world(bones.RightHand,p);localAxis.subVectors(p1,p).normalize().applyQuaternion(handQ.clone().invert());}}
- localAxis.set(0,1,0);
+ // Preserve the calibrated hand-to-blade axis; resetting it to +Y breaks non-Mixamo rigs.
  const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
  const clips={};for(const move of moves){const N=Math.ceil(move.duration*30),times=[],frames=[],rot=rest.map(()=>[]),hips=[];
   for(let i=0;i<=N;i++){const t=move.duration*i/N,a=poseAt(move,t);times.push(t);reset();const hip=hip0.clone();hip.y-=a.dip*scale;bones.Hips.position.copy(bones.Hips.parent.worldToLocal(hip));rig.updateMatrixWorld(true);
