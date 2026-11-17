@@ -10,27 +10,19 @@ import { FOREST_CLEARINGS } from './act1-world-layout.js';
 const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
 
 /**
- * Alinha o banco natural aos dois pontos de apoio no relevo do Remanso.
- * Antes o cilindro era nivelado por uma unica amostra central: uma ponta
- * podia flutuar enquanto a outra atravessava o solo em terrenos inclinados.
- * Sem geometria extra, o eixo acompanha o declive real do mesmo height sampler.
+ * Centro do tronco acompanha o terreno em vez de erguer ambas as pontas
+ * quando encontra uma lombada. Cada anel da malha usa a altura do chão
+ * sob seus vértices: sem pilares invisíveis nem novas draw calls.
  */
 export function planRemansoLog(ground, { x, z, yaw = .6, length = 3.6, radius = .35 }) {
-  const dx = Math.cos(yaw) * length * .5, dz = -Math.sin(yaw) * length * .5;
-  const a = { x: x - dx, z: z - dz }, b = { x: x + dx, z: z + dz };
-  a.y = ground(a.x, a.z) + radius;
-  b.y = ground(b.x, b.z) + radius;
-  // Uma unica amostra no meio nao detecta lombadas deslocadas ao longo do banco.
-  // Verificar toda a linha de contato evita tronco atravessando a encosta entre as pontas.
-  let lift = 0;
-  for (let i = 1; i < 9; i++) {
-    const t = i / 9;
-    const px = a.x + (b.x - a.x) * t, pz = a.z + (b.z - a.z) * t;
-    const axisY = a.y + (b.y - a.y) * t;
-    lift = Math.max(lift, ground(px, pz) + radius - axisY);
-  }
-  a.y += lift; b.y += lift;
-  return { a, b, center: { x, y: (a.y + b.y) * .5, z }, length: Math.hypot(length, b.y - a.y) };
+  const dirX = Math.cos(yaw), dirZ = -Math.sin(yaw);
+  const point = t => {
+    const px = x + dirX * length * (t - .5);
+    const pz = z + dirZ * length * (t - .5);
+    return { x: px, y: ground(px, pz) + radius, z: pz };
+  };
+  const a = point(0), b = point(1);
+  return { a, b, center: point(.5), length, yaw, radius, point };
 }
 
 export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = false } = {}) {
@@ -74,20 +66,26 @@ export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = fal
   const logPlan = planRemansoLog(ground, { x: rem.x - 1, z: rem.z + .6 });
   // Tronco antigo com silhueta e casca irregulares, sem textura externa ou draw call adicional.
   // As extremidades permanecem no mesmo eixo calculado pelo relevo.
-  const bark = new THREE.CylinderGeometry(.32, .38, logPlan.length, 12, 8);
+  const bark = new THREE.CylinderGeometry(.32, .38, logPlan.length, 12, 12);
   const barkPos = bark.attributes.position;
   const barkColors = new Float32Array(barkPos.count * 3);
+  const alongX = Math.cos(logPlan.yaw), alongZ = -Math.sin(logPlan.yaw);
+  const acrossX = -alongZ, acrossZ = alongX;
   for (let i = 0; i < barkPos.count; i++) {
-    const x = barkPos.getX(i), y = barkPos.getY(i), z = barkPos.getZ(i);
-    const angle = Math.atan2(z, x);
-    const along = y / logPlan.length;
+    const radialX = barkPos.getX(i), axial = barkPos.getY(i), radialY = barkPos.getZ(i);
+    const angle = Math.atan2(radialY, radialX);
+    const along = axial / logPlan.length;
     const ridge = Math.sin(angle * 7 + along * 8) * .022 + Math.sin(angle * 13 - along * 19) * .009;
     const taper = 1 + .035 * Math.sin(along * 11 + 1.2);
-    const radius = Math.hypot(x, z);
-    if (radius > .01) {
-      const k = taper + ridge / radius;
-      barkPos.setXYZ(i, x * k, y, z * k);
-    }
+    const radius = Math.hypot(radialX, radialY);
+    const k = radius > .01 ? taper + ridge / radius : 1;
+    const sideways = radialX * k;
+    const worldX = logPlan.center.x + axial * alongX + sideways * acrossX;
+    const worldZ = logPlan.center.z + axial * alongZ + sideways * acrossZ;
+    // Seguir o relevo em cada anel elimina o vão sob as extremidades.
+    // A seção continua arredondada e mantém contato no lado inferior.
+    const worldY = ground(worldX, worldZ) + logPlan.radius + radialY * k;
+    barkPos.setXYZ(i, worldX - logPlan.center.x, worldY, worldZ - logPlan.center.z);
     const shade = .78 + .16 * Math.sin(angle * 9 + along * 15) + .07 * Math.sin(along * 37);
     barkColors[i * 3] = .35 * shade;
     barkColors[i * 3 + 1] = .24 * shade;
@@ -96,9 +94,7 @@ export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = fal
   bark.setAttribute('color', new THREE.BufferAttribute(barkColors, 3));
   bark.computeVertexNormals();
   const log = new THREE.Mesh(bark, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
-  const logAxis = new THREE.Vector3(logPlan.b.x - logPlan.a.x, logPlan.b.y - logPlan.a.y, logPlan.b.z - logPlan.a.z).normalize();
-  log.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), logAxis);
-  log.position.set(logPlan.center.x, logPlan.center.y, logPlan.center.z);
+  log.position.set(logPlan.center.x, 0, logPlan.center.z);
   log.castShadow = !lowSpec; log.receiveShadow = true; log.name = 'tronco-banco'; group.add(log);
 
   const update = (t, night) => { runeMat.opacity = Math.max(0, night - .35) * (.55 + .2 * Math.sin(t * 1.3)); runes.visible = runeMat.opacity > .01; };
