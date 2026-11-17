@@ -1,0 +1,1 @@
+{"frames": 572, "p50": 8.9, "p95": 15.9, "p99": 20.6, "max": 25.6, "over50": 0, "over100": 0, "views": {"vale": {"calls": 56, "tris": 376319}, "ponte": {"calls": 117, "tris": 406566}, "cidade": {"calls": 95, "tris": 296233}}, "ambiente": "SwiftShader, sem desenho (s\u00f3 l\u00f3gica)"}
