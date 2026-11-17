@@ -7,7 +7,7 @@ test('build é centralizada e descritiva', () => {
   assert.equal(typeof MOD, 'number');
   assert.ok(Number.isInteger(MOD) && MOD > 0);
   assert.match(BUILD, /^mod\d+-[a-z0-9-]+$/);
-  assert.match(DESCRIPTION, /Eldória|Dimensão/);
+  assert.ok(DESCRIPTION.startsWith('Mod ' + MOD + ': ') && DESCRIPTION.trim().split(/\s+/).length >= 6, 'descrição corresponde à versão atual e explica o que mudou');
 });
 test('entradas usam build-info em vez de strings de versão duplicadas', () => {
   for (const path of ['index.html','mundo-3d-prototype.html','mod181-loader.js','laboratorio-inimigos.html','mundo-3d-prototype.js']) {
