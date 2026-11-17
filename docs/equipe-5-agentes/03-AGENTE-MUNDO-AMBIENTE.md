@@ -1,3 +1,19 @@
+## ORDEM UNIFICADA ATUAL — RESOLUÇÃO DE CONTRADIÇÕES (16/11/2026)
+
+**Este bloco prevalece sobre qualquer orientação histórica conflitante abaixo.** Os arquivos longos trazem briefings de épocas diferentes: trate nomes de Mods, datas, áreas reservadas, escopos e PRs anteriores como **histórico**, não como estado atual. Toda execução deve: (1) ler documento integral em `main`; (2) consultar `main`, PRs abertas/mescladas, #519 e responsável atual; (3) escolher trabalho permitido pelo **estado real**; (4) executar melhoria significativa e provar em jogo/testes.
+
+**ESCOPO = TODO O JOGO, não só Ato I:** trabalhar no seu domínio profissional em qualquer ato, região, dimensão, caverna e bioma **já implementados e liberados**, mantendo prioridades pelos bugs/qualidade efetivos, não pela numeração do ato. Não iniciar enredo canônico novo sem autorização. A5 não fica eternamente preso a Eldória: pode trabalhar em objetivos, eventos e fluxo de Ato II+ que já estejam aprovados/integrados. A3/A4 podem atuar em ambientes/iluminação de Ato II+ após a entrega e liberação da região.
+
+**ÁREA PROTEGIDA = TRABALHO ATUAL, não mod antigo:** Mod 325 já foi mesclada; Mod 326 P0/P1 foi integrada, e a PR #595 trata do subterrâneo vulcânico, sujeita a rechecagem. O responsável pela caverna de Eldória e pela vulcânica deve ser consultado de acordo com #519/PRs atuais; não editar simultaneamente arquivos/locais reservados, mas **não deixar todo o Ato II proibido por causa de uma PR local**. Se houver disputa, solicitar autorização/coordenação e seguir melhora independente.
+
+**QUALIDADE E PRIORIDADES:** preferir experiência jogável visivelmente melhor, correção de regressão reproduzida, cena/skill realmente aprimorada, FPS sem quedas e QA reais. Guardas `NaN`/sanitizações só têm prioridade se houver evidência de dano significativo. Execuções curtas não são suficientes por si só; usar a janela real disponível com eficiência sem prometer duração impossível nem inflar commits.
+
+**A7/GROK NÃO É ESPECIALISTA FIXO DE CREPÚSCULO:** suas fotos, benchmarks e PR #596 são **referências e uma tarefa pontual**, nunca cerca da missão do A7. A7 tem escopo multidisciplinar aberto e atua em todas as regiões liberadas. Se precisar da ajuda dele, usar `[PEDIDO A7]` na issue #519, com problema/prova, arquivos, dono atual, risco, resultado esperado; não assumir comunicação instantânea entre apps ou que A7 tem permissão de código/execução.
+
+**REGRAS SEGURAS INALTERADAS:** branch por escopo, não escrever diretamente na `main`, sem auto-merge com CI requerido falho, mudança visual sem evidência, conflito de PR, câmeras/colisores não testados; proteção do cânone e qualidade mobile. Testes SwiftShader ≠ performance Galaxy A55. NÃO usar relatórios/contagem de PR como substituto de resultados.
+
+---
+
 ## DIRETRIZ DINÂMICA — TODOS OS ATOS E COOPERAÇÃO A7/GROK (16/11/2026)
 
 **REGRA NOVA, PRIORITÁRIA SOBRE ESCOPO TEMPORÁRIO HISTÓRICO:** A equipe A1–A5 NÃO está limitada ao Ato I, a Eldória ou à Mod 325. Conforme Claude e outros responsáveis **integrem e liberem** capítulos, cidades, biomas, dimensões e atos, a área de atuação dos cinco agentes se expande para TODO O JOGO no próprio domínio profissional. A1 = bugs em todos os atos; A2 = combate/VFX em todos os atos; A3 = mundo/ambiente em todos os atos; A4 = luz/atmosfera em todos os atos; A5 = narrativa *canônica aprovada* e progressão em todos os atos. Ato I pode ser foco temporário pelo bug mais relevante, jamais proibição permanente de continuar a jornada. Se o Ato II estiver em construção e ainda não aprovado, A5 pode auditar/planejar mas não inventar/implantar acontecimentos não autorizados.
