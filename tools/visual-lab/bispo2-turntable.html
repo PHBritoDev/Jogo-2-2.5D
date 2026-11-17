@@ -13,15 +13,23 @@ const ground=new T.Mesh(new T.CircleGeometry(5,64),new T.MeshStandardMaterial({c
 const loader=new GLTFLoader();
 try{
  const gltf=await loader.loadAsync('../../Bispo2-lod.glb');
- const model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.castShadow=false;}});
- const box=new T.Box3().setFromObject(model);const sz=new T.Vector3();box.getSize(sz);const height=sz.y;
- if(!Number.isFinite(height)||height<=0)throw Error('GLB sem altura validada');
- const scale=3.4/height;model.scale.setScalar(scale);model.position.y=-box.min.y*scale;model.position.x=-(box.min.x+box.max.x)*scale/2;model.position.z=-(box.min.z+box.max.z)*scale/2;
- scene.add(model);
- // Uma captura por azimute; modelo e pose constantes, câmera orbitando em torno do eixo vertical.
- const size=3.4;const radius=7.5;const target=new T.Vector3(0,size*.53,0);
- camera.position.set(radius*Math.sin(angle),size*.57,radius*Math.cos(angle));camera.lookAt(target);camera.updateProjectionMatrix();
+ const model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.castShadow=false;o.material.side=T.DoubleSide;}});
+ const idle=gltf.animations.find(c=>c.name==='Swim Idle');if(idle){const mixer=new T.AnimationMixer(model);mixer.clipAction(idle).play();mixer.update(.1);}
+ model.updateMatrixWorld(true);
+ const rawBox=new T.Box3().setFromObject(model,true),rawSize=rawBox.getSize(new T.Vector3()),rawCenter=rawBox.getCenter(new T.Vector3());
+ if(!Number.isFinite(rawSize.y)||rawSize.y<=0)throw Error('GLB sem altura valida');
+ // Escalar PAI (nao substituir escala original da cena) e recentrar pelo bounding box efetivo.
+ const holder=new T.Group();holder.add(model);scene.add(holder);
+ const scale=3.4/rawSize.y;holder.scale.setScalar(scale);
+ holder.position.set(-rawCenter.x*scale,-rawBox.min.y*scale,-rawCenter.z*scale);
+ holder.updateMatrixWorld(true);
+ const finalBox=new T.Box3().setFromObject(holder,true),finalSize=finalBox.getSize(new T.Vector3()),finalCenter=finalBox.getCenter(new T.Vector3());
+ // A câmera orbita o centro calculado da geometria renderizada.
+ const radius=Math.max(8,finalSize.length()*2.7),target=finalCenter.clone();target.y=finalBox.min.y+finalSize.y*.53;
+ camera.position.set(target.x+radius*Math.sin(angle),target.y+finalSize.y*.15,target.z+radius*Math.cos(angle));
+ camera.lookAt(target);camera.near=.01;camera.far=radius*5;camera.updateProjectionMatrix();
  renderer.render(scene,camera);
- window.__BISPO2_CAPTURE__={ready:true,source:'Bispo2-lod.glb',height:sz.y,angle:+q.get('angle')||0,animations:gltf.animations.map(x=>x.name)};
+ window.__BISPO2_CAPTURE__={ready:true,source:'Bispo2-lod.glb',angle:+q.get('angle')||0,rawSize:rawSize.toArray(),rawCenter:rawCenter.toArray(),finalSize:finalSize.toArray(),finalCenter:finalCenter.toArray(),radius,animations:gltf.animations.map(x=>x.name)};
+
 }catch(err){window.__BISPO2_CAPTURE__={ready:false,error:String(err)};console.error(err)}
 </script></html>
